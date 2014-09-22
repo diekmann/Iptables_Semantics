@@ -1,0 +1,26 @@
+akachan-iptables-Ln
+ITVal can understand them correctly (without modification)
+
+QUERY CLASSESThere are 3 total host classes:
+Class1: 
+	[0-9].[0-255].[0-255].[0-255]
+	[11-168].[0-255].[0-255].[0-255]
+	169.[0-253].[0-255].[0-255]
+	169.255.[0-255].[0-255]
+	[170-171].[0-255].[0-255].[0-255]
+	[173-255].[0-255].[0-255].[0-255]
+Class2: 
+	10.[0-255].[0-255].[0-255]
+	169.254.[0-255].[0-255]
+	172.[0-255].[0-255].[0-255]
+;
+
+
+Results upper closure (OUTPUT chain)
+QUERY CLASSESThere are 2 total host classes:
+Class1: 
+	[0-255].[0-255].[0-255].[0-255]
+;
+
+
+

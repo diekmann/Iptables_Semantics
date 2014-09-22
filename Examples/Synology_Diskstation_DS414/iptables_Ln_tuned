@@ -1,0 +1,32 @@
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+DOS_PROTECT  all  --  0.0.0.0/0            0.0.0.0/0           
+DOS_PROTECT  all  --  0.0.0.0/0            0.0.0.0/0           
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0            state RELATED,ESTABLISHED
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:22
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            multiport dports 21,873,5005,5006,80,548,111,2049,892
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0            multiport dports 123,111,2049,892,5353
+ACCEPT     all  --  192.168.0.0/16       0.0.0.0/0           
+DROP       all  --  0.0.0.0/0            0.0.0.0/0           
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain DOS_PROTECT (2 references)
+target     prot opt source               destination         
+RETURN     icmp --  0.0.0.0/0            0.0.0.0/0            icmptype 8 limit: avg 1/sec burst 5
+DROP       icmp --  0.0.0.0/0            0.0.0.0/0            icmptype 8
+RETURN     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp flags:0x17/0x04 limit: avg 1/sec burst 5
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp flags:0x17/0x04
+RETURN     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp flags:0x17/0x02 limit: avg 10000/sec burst 100
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp flags:0x17/0x02
+RETURN     icmp --  0.0.0.0/0            0.0.0.0/0            icmptype 8 limit: avg 1/sec burst 5
+DROP       icmp --  0.0.0.0/0            0.0.0.0/0            icmptype 8
+RETURN     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp flags:0x17/0x04 limit: avg 1/sec burst 5
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp flags:0x17/0x04
+RETURN     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp flags:0x17/0x02 limit: avg 10000/sec burst 100
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp flags:0x17/0x02
+

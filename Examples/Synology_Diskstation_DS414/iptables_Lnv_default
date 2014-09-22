@@ -1,0 +1,26 @@
+Chain INPUT (policy ACCEPT 2905 packets, 813K bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+   49  7401 DOS_PROTECT  all  --  eth1   *       0.0.0.0/0            0.0.0.0/0           
+ 2350  732K DOS_PROTECT  all  --  eth0   *       0.0.0.0/0            0.0.0.0/0           
+
+Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+
+Chain OUTPUT (policy ACCEPT 2168 packets, 3060K bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+
+Chain DOS_PROTECT (2 references)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 RETURN     icmp --  eth1   *       0.0.0.0/0            0.0.0.0/0            icmptype 8 limit: avg 1/sec burst 5
+    0     0 DROP       icmp --  eth1   *       0.0.0.0/0            0.0.0.0/0            icmptype 8
+    0     0 RETURN     tcp  --  eth1   *       0.0.0.0/0            0.0.0.0/0            tcp flags:0x17/0x04 limit: avg 1/sec burst 5
+    0     0 DROP       tcp  --  eth1   *       0.0.0.0/0            0.0.0.0/0            tcp flags:0x17/0x04
+    0     0 RETURN     tcp  --  eth1   *       0.0.0.0/0            0.0.0.0/0            tcp flags:0x17/0x02 limit: avg 10000/sec burst 100
+    0     0 DROP       tcp  --  eth1   *       0.0.0.0/0            0.0.0.0/0            tcp flags:0x17/0x02
+    0     0 RETURN     icmp --  eth0   *       0.0.0.0/0            0.0.0.0/0            icmptype 8 limit: avg 1/sec burst 5
+    0     0 DROP       icmp --  eth0   *       0.0.0.0/0            0.0.0.0/0            icmptype 8
+    5   200 RETURN     tcp  --  eth0   *       0.0.0.0/0            0.0.0.0/0            tcp flags:0x17/0x04 limit: avg 1/sec burst 5
+    0     0 DROP       tcp  --  eth0   *       0.0.0.0/0            0.0.0.0/0            tcp flags:0x17/0x04
+   60  3480 RETURN     tcp  --  eth0   *       0.0.0.0/0            0.0.0.0/0            tcp flags:0x17/0x02 limit: avg 10000/sec burst 100
+    0     0 DROP       tcp  --  eth0   *       0.0.0.0/0            0.0.0.0/0            tcp flags:0x17/0x02
+
