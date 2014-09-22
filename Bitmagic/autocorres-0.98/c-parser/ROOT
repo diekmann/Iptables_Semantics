@@ -1,0 +1,9 @@
+
+session "Simpl-VCG" = "HOL-Word" +
+  theories
+    "hoare-package/Vcg"
+
+session CParser = "Simpl-VCG" +
+  theories
+    "CTranslation"
+
