@@ -142,7 +142,7 @@ proof (induction rs)
   show ?case
     proof (cases r)
       case (Rule m' a')
-      show ?thesis
+      show "\<Gamma>,\<gamma>,p\<turnstile> \<langle>process_ret (r # rs), Undecided\<rangle> \<Rightarrow> t"
         proof (cases a')
           case Accept
           with Cons Rule show ?thesis
@@ -160,18 +160,22 @@ proof (induction rs)
           with Cons Rule show ?thesis
             by simp (metis decision decisionD nomatchD rejectD seqE_cons seq_cons)
         next
-          case Call
-          show ?thesis
-            apply (insert Call Cons Rule)
-            apply(erule seqE_cons)
-            apply(case_tac ti)
-            apply(simp)
-            apply(frule iptables_bigstep_to_undecided)
-            apply(clarsimp)
-            apply (metis seq'_cons)
-            apply(simp)
-            apply (metis decision iptables_bigstep_deterministic seq_cons)
-            done
+          case (Call chain)
+          from Cons.prems obtain ti where 1:"\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r], Undecided\<rangle> \<Rightarrow> ti" and 2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, ti\<rangle> \<Rightarrow> t" using seqE_cons by metis
+          thus ?thesis
+            proof(cases ti)
+            case Undecided
+              with Cons.IH 2 have IH: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>process_ret rs, Undecided\<rangle> \<Rightarrow> t" by simp
+              from Undecided 1 Call Rule have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m' (Call chain)], Undecided\<rangle> \<Rightarrow> Undecided" by simp
+              with IH  have" \<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m' (Call chain) # process_ret rs, Undecided\<rangle> \<Rightarrow> t" using seq'_cons by fast
+              thus ?thesis using Rule Call by force
+            next
+            case (Decision X)
+              with 1 Rule Call have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m' (Call chain)], Undecided\<rangle> \<Rightarrow> Decision X" by simp
+              moreover from 2 Decision have "t = Decision X" using decisionD by fast
+              moreover from decision have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>process_ret rs, Decision X\<rangle> \<Rightarrow> Decision X" by fast
+              ultimately show ?thesis using seq_cons by (metis Call Rule process_ret.simps(7))
+            qed
         next
           case Return
           with Cons Rule show ?thesis
