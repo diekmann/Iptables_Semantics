@@ -83,10 +83,9 @@ lemma process_ret_split_obvious: "process_ret (rs\<^sub>1 @ rs\<^sub>2) =
   unfolding add_missing_ret_unfoldings_def
   proof (induction rs\<^sub>1 arbitrary: rs\<^sub>2)
     case (Cons r rs)
-    thus ?case
-      apply(cases r)
-      apply(rename_tac m a)
-      apply(case_tac a)
+    from Cons obtain m a where "r = Rule m a" by (cases r) simp
+    with Cons.IH show ?case
+      apply(cases a)
              apply(simp_all add: add_match_split)
       done
   qed simp
@@ -98,16 +97,20 @@ proof -
     fix m1 m2
     have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m1 (add_match m2 rs), s\<rangle> \<Rightarrow> t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m2 (add_match m1 rs), s\<rangle> \<Rightarrow> t"
       proof (induction rs arbitrary: s)
+        case Nil thus ?case by (simp add: add_match_def)
+        next
         case (Cons r rs)
-        thus ?case
-          apply(cases r, rename_tac m a)
+        from Cons obtain m a where r: "r = Rule m a" by (cases r) simp
+        with Cons.prems obtain ti where 1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule (MatchAnd m1 (MatchAnd m2 m)) a], s\<rangle> \<Rightarrow> ti" and 2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m1 (add_match m2 rs), ti\<rangle> \<Rightarrow> t"
           apply(simp add: add_match_split_fst)
           apply(erule seqE_cons)
-          apply(rule_tac t=ti in seq'_cons) (*nicht ganz*)
-          apply(metis decision decisionD state.exhaust iptables_bigstep_deterministic matches.simps(1) matches_rule_and_simp nomatch) (*wtf?*)
-          apply(simp)
-          done
-      qed (simp add: add_match_def)
+          by simp
+        from 1 r have base: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule (MatchAnd m2 (MatchAnd m1 m)) a], s\<rangle> \<Rightarrow> ti" 
+           by (metis matches.simps(1) matches_rule_iptables_bigstep)
+        from 2 Cons.IH have IH: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m2 (add_match m1 rs), ti\<rangle> \<Rightarrow> t" by simp
+        from base IH seq'_cons have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule (MatchAnd m2 (MatchAnd m1 m)) a # add_match m2 (add_match m1 rs), s\<rangle> \<Rightarrow> t" by fast
+        thus ?case using r by(simp add: add_match_split_fst[symmetric])
+      qed
   }
   thus ?thesis by blast
 qed
