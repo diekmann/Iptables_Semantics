@@ -105,7 +105,7 @@ proof -
           apply(simp add: add_match_split_fst)
           apply(erule seqE_cons)
           by simp
-        from 1 r have base: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule (MatchAnd m2 (MatchAnd m1 m)) a], s\<rangle> \<Rightarrow> ti" 
+        from 1 r have base: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule (MatchAnd m2 (MatchAnd m1 m)) a], s\<rangle> \<Rightarrow> ti"
            by (metis matches.simps(1) matches_rule_iptables_bigstep)
         from 2 Cons.IH have IH: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m2 (add_match m1 rs), ti\<rangle> \<Rightarrow> t" by simp
         from base IH seq'_cons have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule (MatchAnd m2 (MatchAnd m1 m)) a # add_match m2 (add_match m1 rs), s\<rangle> \<Rightarrow> t" by fast
@@ -135,36 +135,6 @@ lemma add_match_split_fst': "add_match m (a # rs) = add_match m [a] @ add_match 
 lemma process_call_split_fst: "process_call \<Gamma> (a # rs) = process_call \<Gamma> [a] @ process_call \<Gamma> rs"
   by (simp add: process_call_split[symmetric])
 
-lemma "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>process_ret rs, Undecided\<rangle> \<Rightarrow> t"
-apply(induction rs)
-apply(simp)
-apply(rename_tac r rs)
-apply(case_tac r, rename_tac m' a')
-apply(case_tac a')
-apply(simp_all)
-apply (metis acceptD decision decisionD nomatchD seqE_cons seq_cons)
-apply (metis decision decisionD dropD nomatchD seqE_cons seq_cons)
-apply (metis logD nomatchD seqE_cons seq_cons)
-apply (metis decision decisionD nomatchD rejectD seqE_cons seq_cons)
-apply(erule seqE_cons)
-apply(case_tac ti)
-apply(simp)
-apply(frule iptables_bigstep_to_undecided)
-apply(clarsimp)
-apply (metis seq'_cons)
-apply(simp)
-apply (metis decision iptables_bigstep_deterministic seq_cons)
-apply (metis matches.simps(2) matches_add_match_simp no_free_return_seq nomatchD seq seqE_cons skip)
-apply(erule seqE_cons)
-apply(case_tac ti)
-apply(simp)
-apply (metis seq'_cons)
-apply (metis decision decisionD seq'_cons)
-apply(erule seqE_cons)
-apply(case_tac ti)
-apply(simp)
-apply (metis seq'_cons)
-by (metis decision iptables_bigstep_deterministic seq_cons)
 
 lemma iptables_bigstep_process_ret_undecided: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>process_ret rs, Undecided\<rangle> \<Rightarrow> t"
 proof (induction rs)
