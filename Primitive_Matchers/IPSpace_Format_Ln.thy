@@ -1,5 +1,5 @@
 theory IPSpace_Format_Ln
-imports Format_Ln IPSpace_Matcher
+imports Format_Ln IPSpace_Matcher IPSpace_operations
 begin
 
 
@@ -68,72 +68,6 @@ lemma compress_pos_ips_dst_Some_matching: "compress_pos_ips dst' = Some X \<Long
   apply(simp add: simple_matcher_SrcDst_Inter)
   done
 (*careful, compress_pos_ips_dst_Some_matching and compress_pos_ips_src_Some_matching are very similar*)
-
-
-(*TODO: remove Pos (Ip4AddrNetmask (0,0,0,0) 0)*)
-fun compress_ips :: "ipt_ipv4range negation_type list \<Rightarrow> ipt_ipv4range negation_type list option" where
-  "compress_ips l = (if (getPos l) = [] then Some l (*fix not to introduce (Ip4AddrNetmask (0,0,0,0) 0), only return the negative list*)
-  else
-  (case compress_pos_ips (getPos l)
-    of None \<Rightarrow> None
-    | Some ip \<Rightarrow> 
-      if ipv4range_empty (ipv4range_setminus (ipv4range_set_from_bitmask_to_executable_ipv4range ip) (collect_to_range (getNeg l)))
-      (* \<Inter> pos - \<Union> neg = {}*)
-      then
-        None
-      else Some (Pos ip # map Neg (getNeg l))
-      ))"
-
-export_code compress_ips in SML
-
-
-lemma ipv4range_set_from_bitmask_to_executable_ipv4range: 
-  "ipv4range_to_set (ipv4range_set_from_bitmask_to_executable_ipv4range a) = ipv4s_to_set a"
-apply(case_tac a)
-apply(simp_all)
-apply(simp add: ipv4range_set_from_bitmask_alt)
-done
-
-lemma ipv4range_to_set_collect_to_range: "ipv4range_to_set (collect_to_range ips) = (\<Union>x\<in>set ips. ipv4s_to_set x)"
-  apply(induction ips)
-   apply(simp)
-  apply(simp add: ipv4range_set_from_bitmask_to_executable_ipv4range)
-done
-
-
-lemma compress_ips_None: "getPos ips \<noteq> [] \<Longrightarrow> compress_ips ips = None \<longleftrightarrow> (\<Inter> (ipv4s_to_set ` set (getPos ips))) - (\<Union> (ipv4s_to_set ` set (getNeg ips))) = {}"
-  apply(simp only: compress_ips.simps split: split_if)
-  apply(intro conjI impI)
-   apply(simp)
-   (*getPos on empty should be the UNIV*)
-  apply(simp split: option.split)
-  apply(intro conjI impI allI)
-  apply(simp add: compress_pos_ips_None)
-  apply(rename_tac a)
-  apply(frule compress_pos_ips_Some)
-   apply(case_tac a)
-    apply(simp add: ipv4range_to_set_collect_to_range)
-   apply(simp add: ipv4range_set_from_bitmask_alt)
-   apply(simp add: ipv4range_to_set_collect_to_range)
-  apply(frule compress_pos_ips_Some)
-  apply(rename_tac a)
-  apply(case_tac a)
-   apply(simp add: ipv4range_to_set_collect_to_range)
-  apply(simp add: ipv4range_set_from_bitmask_alt)
-  apply(simp add: ipv4range_to_set_collect_to_range)
-done
-  
-
-lemma compress_ips_emptyPos: "getPos ips = [] \<Longrightarrow> compress_ips ips = Some ips \<and> ips = map Neg (getNeg ips)"
-  apply(simp only: compress_ips.simps split: split_if)
-  apply(intro conjI impI)
-   apply(simp_all)
-  apply(induction ips)
-  apply(simp_all)
-  apply(case_tac a)
-  apply(simp_all)
-done
-
 
 
 
