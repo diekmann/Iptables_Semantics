@@ -527,12 +527,13 @@ subsection{*IP ranges*}
   lift_definition ipv4rq_to_set :: "ipv4rq \<Rightarrow> ipv4addr set" is ipv4range_to_set unfolding ipv4range_eq_set_eq by simp
   lift_definition ipv4rq_UNIV :: ipv4rq is ipv4range_UNIV .
   lift_definition ipv4rq_eq :: "ipv4rq \<Rightarrow> ipv4rq \<Rightarrow> bool" is ipv4range_eq unfolding ipv4range_eq_set_eq by simp
+  lemma ipv4rq_union_set_eq: "ipv4rq_to_set (ipv4rq_union r1 r2) = ipv4rq_to_set r1 \<union> ipv4rq_to_set r2" by transfer simp
   lemma ipv4rq_setminus_set_eq: "ipv4rq_to_set (ipv4rq_setminus r1 r2) = ipv4rq_to_set r1 - ipv4rq_to_set r2" by transfer simp
   lemma ipv4rq_intersection_set_eq: "ipv4rq_to_set (ipv4rq_intersection r1 r2) = ipv4rq_to_set r1 \<inter> ipv4rq_to_set r2" by transfer simp
   lemma ipv4rq_empty_set_eq: "ipv4rq_empty r = (ipv4rq_to_set r = {})" by transfer simp
   lemma ipv4rq_element_set_eq: "ipv4rq_element x r = (x \<in> ipv4rq_to_set r)" by transfer simp 
   lemma ipv4rq_UNIV_set_eq: "ipv4rq_to_set ipv4rq_UNIV = UNIV" by transfer simp
-  lemmas ipv4rq_eqs[simp] = ipv4rq_intersection_set_eq ipv4rq_setminus_set_eq ipv4rq_empty_set_eq ipv4rq_UNIV_set_eq
+  lemmas ipv4rq_eqs[simp] = ipv4rq_union_set_eq ipv4rq_intersection_set_eq ipv4rq_setminus_set_eq ipv4rq_empty_set_eq ipv4rq_UNIV_set_eq
 
   instantiation ipv4rq :: equal
   begin
@@ -687,9 +688,6 @@ subsection{*IP ranges*}
     "list_to_ipv4rq [x] = x" |
     "list_to_ipv4rq (x#xs) = ipv4rq_union x (list_to_ipv4rq xs)"
   lemma list_to_ipv4rq_set_eq[simp]: "ipv4rq_to_set (list_to_ipv4rq rs) = (\<Union>set (map ipv4rq_to_set rs))"
-    apply(induction rs rule: list_to_ipv4rq.induct)
-    apply(simp_all)
-oops
-(*TODO julius has the proof and we lost a lemma during 3-way merge*)
+    by(induction rs rule: list_to_ipv4rq.induct) simp_all
     
 end
