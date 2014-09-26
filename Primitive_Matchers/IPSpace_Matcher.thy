@@ -9,11 +9,9 @@ subsection{*Primitive Matchers: IP Space Matcher*}
 
 (*TODO refactor: use ipv4s_to_set*)
 fun simple_matcher :: "(iptrule_match, packet) exact_match_tac" where
-  "simple_matcher (Src (Ip4Addr ip)) p = bool_to_ternary (ipv4addr_of_dotteddecimal ip = src_ip p)" |
-  "simple_matcher (Src (Ip4AddrNetmask ip n)) p = bool_to_ternary (src_ip p \<in> ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal ip) n)" |
+  "simple_matcher (Src ip) p = bool_to_ternary (src_ip p \<in> ipv4s_to_set ip)" |
 
-  "simple_matcher (Dst (Ip4Addr ip)) p = bool_to_ternary (ipv4addr_of_dotteddecimal ip = dst_ip p)" |
-  "simple_matcher (Dst (Ip4AddrNetmask ip n)) p = bool_to_ternary (dst_ip p \<in> ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal ip) n)" |
+  "simple_matcher (Dst ip) p = bool_to_ternary (dst_ip p \<in> ipv4s_to_set ip)" |
 
   "simple_matcher (Prot ProtAll) _ = TernaryTrue" |
   "simple_matcher (Prot ipt_protocol.ProtTCP) p = bool_to_ternary (prot p = protPacket.ProtTCP)" |
@@ -21,6 +19,15 @@ fun simple_matcher :: "(iptrule_match, packet) exact_match_tac" where
 
   "simple_matcher (Extra _) p = TernaryUnknown"
 
+
+lemma 
+  "simple_matcher (Src (Ip4Addr ip)) p = bool_to_ternary (ipv4addr_of_dotteddecimal ip = src_ip p)" 
+  "simple_matcher (Src (Ip4AddrNetmask ip n)) p = bool_to_ternary (src_ip p \<in> ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal ip) n)"
+  "simple_matcher (Dst (Ip4Addr ip)) p = bool_to_ternary (ipv4addr_of_dotteddecimal ip = dst_ip p)"
+  "simple_matcher (Dst (Ip4AddrNetmask ip n)) p = bool_to_ternary (dst_ip p \<in> ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal ip) n)"
+apply(auto)
+apply (metis (poly_guards_query) bool_to_ternary_simps(2))+
+done
 
 text{*Perform very basic optimizations*}
 fun opt_simple_matcher :: "iptrule_match match_expr \<Rightarrow> iptrule_match match_expr" where
@@ -187,9 +194,7 @@ lemma match_simplematcher_SrcDst:
   "matches (simple_matcher, \<alpha>) (Match (Src X)) a p \<longleftrightarrow> src_ip  p \<in> ipv4s_to_set X"
   "matches (simple_matcher, \<alpha>) (Match (Dst X)) a p \<longleftrightarrow> dst_ip  p \<in> ipv4s_to_set X"
    apply(simp_all add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
-   apply(simp_all add: simple_matcher_SrcDst_defined)
-   apply(case_tac [!] X)
-   apply(simp_all add: bool_to_ternary_simps)
+   apply (metis bool_to_ternary.elims bool_to_ternary_Unknown ternaryvalue.distinct(1))+
    done
 lemma match_simplematcher_SrcDst_not:
   "matches (simple_matcher, \<alpha>) (MatchNot (Match (Src X))) a p \<longleftrightarrow> src_ip  p \<notin> ipv4s_to_set X"
@@ -202,30 +207,7 @@ lemma simple_matcher_SrcDst_Inter:
   "(\<forall>m\<in>set X. matches (simple_matcher, \<alpha>) (Match (Src m)) a p) \<longleftrightarrow> src_ip p \<in> (\<Inter>x\<in>set X. ipv4s_to_set x)"
   "(\<forall>m\<in>set X. matches (simple_matcher, \<alpha>) (Match (Dst m)) a p) \<longleftrightarrow> dst_ip p \<in> (\<Inter>x\<in>set X. ipv4s_to_set x)"
   apply(simp_all)
-  apply(simp_all add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
-  apply(simp_all add: simple_matcher_SrcDst_defined simple_matcher_SrcDst_defined_simp)
-  apply(rule iffI)
-   apply(clarify)
-   apply(erule_tac x=x and A="set X" in ballE)
-    apply(case_tac x)
-     apply(simp_all add: bool_to_ternary_simps)
-  apply(clarify)
-  apply(erule_tac x=m and A="set X" in ballE)
-   apply(case_tac m)
-    apply(simp)
-   apply(simp)
-  apply(simp)  apply(rule iffI)
-   apply(clarify)
-   apply(erule_tac x=x and A="set X" in ballE)
-    apply(case_tac x)
-     apply(simp_all add: bool_to_ternary_simps)
-  apply(clarify)
-  apply(erule_tac x=m and A="set X" in ballE)
-   apply(case_tac m)
-    apply(simp)
-   apply(simp)
-  apply(simp)
-done
-
+  apply(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_Unknown bool_to_ternary_simps split: ternaryvalue.split)
+ done
 
 end
