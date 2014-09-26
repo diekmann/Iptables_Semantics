@@ -16,7 +16,7 @@ datatype ipt_ipv4range = Ip4Addr "nat \<times> nat \<times> nat \<times> nat"
 
 datatype ipt_protocol = ProtAll | ProtTCP | ProtUDP
 
-(*datatype ipt_ports = PortSingle nat | PortRange nat nat | PortMulti "nat list"*)
+(*datatype ipt_ports = PortSingle nat | PortRange nat nat | PortMulti "ipt_ports list"*)
 
 datatype iptrule_match = Src ipt_ipv4range | Dst ipt_ipv4range | Prot ipt_protocol (*| Port ipt_ports*) | Extra string
 
@@ -41,7 +41,7 @@ fun ipv4s_to_set :: "ipt_ipv4range \<Rightarrow> ipv4addr set" where
   "ipv4s_to_set (Ip4AddrNetmask base m) = ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal base) m" |
   "ipv4s_to_set (Ip4Addr ip) = { ipv4addr_of_dotteddecimal ip }"
 
-text{*@{term ipv4s_to_set} cannot represent an ampty set.*}
+text{*@{term ipv4s_to_set} cannot represent an empty set.*}
 lemma ipv4s_to_set_nonempty: "ipv4s_to_set ip \<noteq> {}"
   apply(cases ip)
    apply(simp)
