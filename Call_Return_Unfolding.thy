@@ -266,8 +266,12 @@ lemma process_ret_splitcases:
  by (metis process_ret_cases)
 
 
-lemma iptables_bigstep_process_ret_cases3_help:
-  "\<Gamma>,\<gamma>,p\<turnstile> \<langle>process_ret rs, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> 
+lemma iptables_bigstep_process_ret_cases3:
+  assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>process_ret rs, Undecided\<rangle> \<Rightarrow> Undecided"
+  obtains (noreturn) "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided"
+        | (return) rs\<^sub>1 rs\<^sub>2 m where "rs = rs\<^sub>1@[Rule m Return]@rs\<^sub>2" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" "matches \<gamma> m p"
+proof -
+  have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>process_ret rs, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> 
     (\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided) \<or>
     (\<exists>rs\<^sub>1 rs\<^sub>2 m. rs = rs\<^sub>1@[Rule m Return]@rs\<^sub>2 \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided \<and> matches \<gamma> m p)"
   proof (induction rs)
@@ -278,7 +282,7 @@ lemma iptables_bigstep_process_ret_cases3_help:
     from r Cons show ?case
       proof(cases "a \<noteq> Return")
         case True
-        with r Cons.prems have prems_r: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> Undecided " and prems_rs: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>process_ret (rs), Undecided\<rangle> \<Rightarrow> Undecided"
+        with r Cons.prems have prems_r: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> Undecided " and prems_rs: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>process_ret rs, Undecided\<rangle> \<Rightarrow> Undecided"
          apply(simp_all add: process_ret_split_fst_NeqReturn)
          apply(erule seqE_cons, frule iptables_bigstep_to_undecided, simp)+
          done
@@ -306,42 +310,40 @@ lemma iptables_bigstep_process_ret_cases3_help:
         show "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r # rs, Undecided\<rangle> \<Rightarrow> Undecided \<or> (\<exists>rs\<^sub>1 rs\<^sub>2 m. r # rs = rs\<^sub>1 @ [Rule m Return] @ rs\<^sub>2 \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided \<and> matches \<gamma> m p)" (is ?goal)
           proof(cases "matches \<gamma> m p")
           case True
-            thus ?goal
-                (*the prems are useless in this case*)
-               apply(simp)
-               apply(rule disjI2)
+            (*the Cons premises are useless in this case*)
+            hence "\<exists>rs\<^sub>1 rs\<^sub>2 m. r # rs = rs\<^sub>1 @ Rule m Return # rs\<^sub>2 \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided \<and> matches \<gamma> m p"
                apply(rule_tac x="[]" in exI)
                apply(rule_tac x="rs" in exI)
                apply(rule_tac x="m" in exI)
                apply(simp add: skip r `a = Return`)
                done
+            thus ?goal by simp
           next
           case False
-            with not_matches_add_matchNot_simp prems have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>process_ret rs, Undecided\<rangle> \<Rightarrow> Undecided" by fast
-            with Cons.IH have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<or> (\<exists>rs\<^sub>1 rs\<^sub>2 m. rs = rs\<^sub>1 @ [Rule m Return] @ rs\<^sub>2 \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided \<and> matches \<gamma> m p)" .
-            from this `a = Return` False r show ?goal
-              apply -
-               apply(erule disjE)
-               apply(rule disjI1)
-               using seq_cons nomatch apply fast
-              apply(rule disjI2)
-              apply(clarify)
-              apply(rename_tac rs\<^sub>1 rs\<^sub>2 m')
-              apply(rule_tac x="Rule m Return # rs\<^sub>1" in exI)
-              apply(rule_tac x="rs\<^sub>2" in exI)
-              apply(rule_tac x="m'" in exI)
-              apply(simp)
-              using nomatch seq_cons apply fast
-              done
+            with nomatch seq_cons False r have r_nomatch: "\<And>rs. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>r # rs, Undecided\<rangle> \<Rightarrow> Undecided" by fast
+            note r_nomatch'=r_nomatch[simplified r `a = Return`] --"r unfolded"
+            from False not_matches_add_matchNot_simp prems have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>process_ret rs, Undecided\<rangle> \<Rightarrow> Undecided" by fast
+            with Cons.IH have IH: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<or> (\<exists>rs\<^sub>1 rs\<^sub>2 m. rs = rs\<^sub>1 @ [Rule m Return] @ rs\<^sub>2 \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided \<and> matches \<gamma> m p)" .
+            thus ?goal
+              proof(elim disjE)
+                assume "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided"
+                hence "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r # rs, Undecided\<rangle> \<Rightarrow> Undecided" using r_nomatch by simp
+                thus ?goal by simp
+              next
+                assume "\<exists>rs\<^sub>1 rs\<^sub>2 m. rs = rs\<^sub>1 @ [Rule m Return] @ rs\<^sub>2 \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided \<and> matches \<gamma> m p"
+                from this obtain rs\<^sub>1 rs\<^sub>2 m' where "rs = rs\<^sub>1 @ [Rule m' Return] @ rs\<^sub>2" and "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" and "matches \<gamma> m' p" by blast
+                hence "\<exists>rs\<^sub>1 rs\<^sub>2 m. r # rs = rs\<^sub>1 @ [Rule m Return] @ rs\<^sub>2 \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided \<and> matches \<gamma> m p" 
+                  apply(rule_tac x="Rule m Return # rs\<^sub>1" in exI)
+                  apply(rule_tac x="rs\<^sub>2" in exI)
+                  apply(rule_tac x="m'" in exI)
+                  by(simp add:  `a = Return` False r r_nomatch')
+                thus ?goal by simp
+              qed
           qed
        qed
   qed
-
-lemma iptables_bigstep_process_ret_cases3:
-  assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>process_ret rs, Undecided\<rangle> \<Rightarrow> Undecided"
-  obtains (noreturn) "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided"
-        | (return) rs\<^sub>1 rs\<^sub>2 m where "rs = rs\<^sub>1@[Rule m Return]@rs\<^sub>2" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" "matches \<gamma> m p"
-  using assms by (metis iptables_bigstep_process_ret_cases3_help)
+  with assms noreturn return show ?thesis by auto
+qed
 
 lemma add_match_match_not_cases:
   "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match (MatchNot m) rs, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> matches \<gamma> m p \<or> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided"
