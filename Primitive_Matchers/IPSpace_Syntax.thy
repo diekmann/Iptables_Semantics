@@ -49,7 +49,14 @@ lemma ipv4s_to_set_nonempty: "ipv4s_to_set ip \<noteq> {}"
   apply(simp add: bitmagic_zeroLast_leq_or1Last)
   done
 
-
+text{*maybe this is necessary as code equation?*}
+lemma element_ipv4s_to_set: "addr \<in> ipv4s_to_set X = (
+  case X of (Ip4AddrNetmask pre len) \<Rightarrow> ((ipv4addr_of_dotteddecimal pre) AND ((mask len) << (32 - len))) \<le> addr \<and> addr \<le> (ipv4addr_of_dotteddecimal pre) OR (mask (32 - len))
+  | Ip4Addr ip \<Rightarrow> (addr = (ipv4addr_of_dotteddecimal ip)) )"
+apply(cases X)
+ apply(simp)
+apply(simp add: ipv4range_set_from_bitmask_alt)
+done
 
 
 end
