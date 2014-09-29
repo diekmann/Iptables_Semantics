@@ -6,14 +6,11 @@ definition intersect_netmask_empty :: "nat \<times> nat \<times> nat \<times> na
   "intersect_netmask_empty base1 m1 base2 m2 \<equiv> 
     ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal base1) m1 \<inter> ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal base2) m2 = {}"
 
-thm ipv4range_set_from_bitmask_alt
 fun ipv4range_set_from_bitmask_to_executable_ipv4range :: "ipt_ipv4range \<Rightarrow> 32 bitrange" where
    "ipv4range_set_from_bitmask_to_executable_ipv4range (Ip4AddrNetmask pre len) = 
       ipv4range_range (((ipv4addr_of_dotteddecimal pre) AND ((mask len) << (32 - len))))  ((ipv4addr_of_dotteddecimal pre) OR (mask (32 - len)))" |
    "ipv4range_set_from_bitmask_to_executable_ipv4range (Ip4Addr ip) = ipv4range_single (ipv4addr_of_dotteddecimal ip)"
 
-
-export_code ipv4range_set_from_bitmask_to_executable_ipv4range ipv4range_intersection ipv4range_empty in SML
 
 lemma ipv4range_set_from_bitmask_to_executable_ipv4range_simps: 
       "ipv4range_to_set (ipv4range_set_from_bitmask_to_executable_ipv4range (Ip4AddrNetmask base m)) = 
@@ -27,7 +24,6 @@ definition "intersect_netmask_empty_executable \<equiv> (\<lambda> base1 m1 base
         ipv4range_intersection 
           (ipv4range_set_from_bitmask_to_executable_ipv4range (Ip4AddrNetmask base1 m1))
           (ipv4range_set_from_bitmask_to_executable_ipv4range (Ip4AddrNetmask base2 m2))))"
-export_code intersect_netmask_empty_executable in SML
 
 lemma [code]: "intersect_netmask_empty = intersect_netmask_empty_executable"
 apply (rule ext)+
@@ -101,26 +97,15 @@ lemma "\<not> ipv4range_set_from_bitmask b2 m2 \<subseteq> ipv4range_set_from_bi
 
 lemma intersect_ips_None: "intersect_ips ip1 ip2 = None \<longleftrightarrow> (ipv4s_to_set ip1) \<inter> (ipv4s_to_set ip2) = {}"
   apply(induction ip1 ip2 rule: intersect_ips.induct)
-     apply(simp_all add: intersect_netmask_empty_def)[3]
-  apply(simp add: intersect_netmask_empty_def)
-  by (metis subset_netmask_def ipv4range_bitmask_intersect)
+     apply(simp_all add: intersect_netmask_empty_def subset_netmask_def ipv4range_bitmask_intersect)
+  done
  
 
 
 lemma intersect_ips_Some: "intersect_ips ip1 ip2 = Some X \<Longrightarrow> (ipv4s_to_set ip1) \<inter> (ipv4s_to_set ip2) = ipv4s_to_set X"
   apply(induction ip1 ip2 rule: intersect_ips.induct)
-     apply(simp_all)
-     apply(safe)[3]
-           apply(simp_all)
-           apply(case_tac [!] X)[9]
-                    apply(simp_all)
-              apply(simp_all split: split_if_asm)[12]
-  apply(simp split: split_if_asm)
-   apply(simp_all add: intersect_netmask_empty_def subset_netmask_def)
-   apply(case_tac [!] X)
-      apply(simp_all)
-   apply blast
-  apply(blast)
+     apply(case_tac [!] X)
+     apply(auto simp add: ipv4range_set_from_bitmask_to_executable_ipv4range_simps intersect_netmask_empty_def subset_netmask_def split: split_if_asm)
 done
 
 
@@ -128,18 +113,15 @@ text{*The other direction does not directly hold. Someone might enter some inval
 
 (*This proof looks like cheating because always @{term "ipv4s_to_set X \<noteq> {}"}"*)
 lemma intersect_ips_Some2: "(ipv4s_to_set ip1) \<inter> (ipv4s_to_set ip2) = ipv4s_to_set X \<Longrightarrow> \<exists>Y. intersect_ips ip1 ip2 = Some Y \<and> ipv4s_to_set X = ipv4s_to_set Y"
-  apply(subgoal_tac "(ipv4s_to_set ip1) \<inter> (ipv4s_to_set ip2) \<noteq> {}")
-   prefer 2
-   apply(simp add: ipv4s_to_set_nonempty)
-  apply(simp add: intersect_ips_None)
-  apply(subgoal_tac "intersect_ips ip1 ip2 \<noteq> None")
-   prefer 2
-   apply(simp add: intersect_ips_None)
-  apply(simp)
-  apply(erule exE)
-  apply(rule_tac x=y in exI)
-  apply(simp)
-by (metis intersect_ips_Some)
+  proof -
+    assume a: "(ipv4s_to_set ip1) \<inter> (ipv4s_to_set ip2) = ipv4s_to_set X"
+    hence "(ipv4s_to_set ip1) \<inter> (ipv4s_to_set ip2) \<noteq> {}" by(simp add: ipv4s_to_set_nonempty)
+    with a have "ipv4s_to_set X \<noteq> {}" by(simp add: intersect_ips_None)
+    with a have "intersect_ips ip1 ip2 \<noteq> None" by(simp add: intersect_ips_None)
+    from this obtain Y where "intersect_ips ip1 ip2 = Some Y" by blast
+    with a intersect_ips_Some have "intersect_ips ip1 ip2 = Some Y \<and> ipv4s_to_set X = ipv4s_to_set Y" by simp
+    thus ?thesis by blast
+  qed
 
 
 fun compress_pos_ips :: "ipt_ipv4range list \<Rightarrow> ipt_ipv4range option" where
@@ -159,7 +141,7 @@ lemma compress_pos_ips_None: "compress_pos_ips ips = None \<longleftrightarrow> 
   apply(simp)
   apply(simp split: option.split)
   apply(simp add: intersect_ips_None)
-by (metis (hide_lams, no_types) inf_assoc inf_bot_left intersect_ips_Some)
+  using intersect_ips_Some by blast
 
 
 lemma compress_pos_ips_Some: "compress_pos_ips ips = Some X \<Longrightarrow> \<Inter> (ipv4s_to_set ` set ips) = ipv4s_to_set X"
