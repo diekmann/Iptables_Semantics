@@ -20,7 +20,7 @@ fun simple_matcher :: "(iptrule_match, packet) exact_match_tac" where
   "simple_matcher (Extra _) p = TernaryUnknown"
 
 
-lemma 
+lemma [code_unfold]:
   "simple_matcher (Src (Ip4Addr ip)) p = bool_to_ternary (ipv4addr_of_dotteddecimal ip = src_ip p)" 
   "simple_matcher (Src (Ip4AddrNetmask ip n)) p = bool_to_ternary (src_ip p \<in> ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal ip) n)"
   "simple_matcher (Dst (Ip4Addr ip)) p = bool_to_ternary (ipv4addr_of_dotteddecimal ip = dst_ip p)"

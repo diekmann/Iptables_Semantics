@@ -21,16 +21,17 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
     "bitrange_to_set (Bitrange start end) = {start .. end}" |
     "bitrange_to_set (RangeUnion r1 r2) = (bitrange_to_set r1) \<union> (bitrange_to_set r2)"
 
-  fun bitrange_element where
+  fun bitrange_element :: "'a::len word \<Rightarrow> 'a::len bitrange \<Rightarrow> bool" where
     "bitrange_element el (Bitrange s e) = (s \<le> el \<and> el \<le> e)" |
     "bitrange_element el (RangeUnion r1 r2) = (bitrange_element el r1 \<or> bitrange_element el r2)"
   lemma bitrange_element_set_eq[simp]: "bitrange_element el rg = (el \<in> bitrange_to_set rg)"
     by(induction rg rule: bitrange_element.induct) simp_all
 
-  fun bitrange_union where "bitrange_union r1 r2 = RangeUnion r1 r2"
+  fun bitrange_union :: "'a::len bitrange \<Rightarrow> 'a::len bitrange \<Rightarrow> 'a::len bitrange" where 
+    "bitrange_union r1 r2 = RangeUnion r1 r2"
   lemma bitrange_union_set_eq[simp]: "bitrange_to_set (bitrange_union r1 r2) = bitrange_to_set r1 \<union> bitrange_to_set r2" by simp
 
-  fun bitrange_empty where
+  fun bitrange_empty :: "'a::len bitrange \<Rightarrow> bool" where
     "bitrange_empty (Bitrange s e) = (e < s)" |
     "bitrange_empty (RangeUnion r1 r2) = (bitrange_empty r1 \<and> bitrange_empty r2)"
   lemma bitrange_empty_set_eq[simp]: "bitrange_empty r \<longleftrightarrow> bitrange_to_set r = {}"
@@ -62,7 +63,7 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
   lemma bitrange_empty_Empty_Bitrange: "bitrange_empty Empty_Bitrange" by(simp add: Empty_Bitrange_def)
   lemma Empty_Bitrange_set_eq[simp]: "bitrange_to_set Empty_Bitrange = {}" by(simp add: Empty_Bitrange_def)
 
-  fun bitrange_to_list where
+  fun bitrange_to_list  :: "'a::len bitrange \<Rightarrow> ('a::len bitrange) list" where
     "bitrange_to_list (RangeUnion r1 r2) = bitrange_to_list r1 @ bitrange_to_list r2" |
     "bitrange_to_list r = (if bitrange_empty r then [] else [r])"
 
@@ -178,13 +179,15 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
     unfolding bitrange_UNIV_def
     using max_word_max by fastforce
     
-  fun bitrange_invert where "bitrange_invert r = bitrange_setminus bitrange_UNIV r"
+  fun bitrange_invert :: "'a::len bitrange \<Rightarrow> 'a::len bitrange" where
+    "bitrange_invert r = bitrange_setminus bitrange_UNIV r"
   lemma bitrange_invert_set_eq[simp]: "bitrange_to_set (bitrange_invert r) = UNIV - bitrange_to_set r" by(auto)
 
   lemma bitrange_invert_UNIV_empty: "bitrange_empty (bitrange_invert bitrange_UNIV)" by simp
 
-  fun bitrange_intersection where "bitrange_intersection r1 r2 = 
-    bitrange_optimize_same (bitrange_setminus (bitrange_union r1 r2) (bitrange_union (bitrange_invert r1) (bitrange_invert r2)))"
+  fun bitrange_intersection :: "'a::len bitrange \<Rightarrow> 'a::len bitrange \<Rightarrow> 'a::len bitrange" where 
+    "bitrange_intersection r1 r2 = 
+      bitrange_optimize_same (bitrange_setminus (bitrange_union r1 r2) (bitrange_union (bitrange_invert r1) (bitrange_invert r2)))"
   lemma bitrange_intersection_set_eq[simp]: "bitrange_to_set (bitrange_intersection r1 r2) = bitrange_to_set r1 \<inter> bitrange_to_set r2"
     unfolding bitrange_intersection.simps bitrange_optimize_same_set_eq by auto
   
@@ -217,7 +220,8 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
     bitrange_setminus r1 r2 = r1"
     by (induction r1 r2 rule: bitrange_setminus.induct, auto simp add: bitrange_setminus_intersection_empty_struct_rr) fastforce
 
-  definition "bitrange_subset r1 r2 \<equiv> bitrange_empty (bitrange_setminus r1 r2)"
+  definition bitrange_subset :: "'a::len bitrange \<Rightarrow> 'a::len bitrange \<Rightarrow> bool" where
+    "bitrange_subset r1 r2 \<equiv> bitrange_empty (bitrange_setminus r1 r2)"
   lemma bitrange_subset_set_eq[simp]: "bitrange_subset r1 r2 = (bitrange_to_set r1 \<subseteq> bitrange_to_set r2)"
     unfolding bitrange_subset_def by simp
 
@@ -250,5 +254,29 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
   lemma [simp]: "\<exists>x::('a::len bitrange). y \<in> bitrange_to_set x"
   proof show "y \<in> bitrange_to_set bitrange_UNIV" by simp qed
 
+
+
+
+
+  lemma bitrange_eq_reflp:
+    "reflp bitrange_eq"
+    apply(rule reflpI)
+    by(simp only: bitrange_eq_set_eq)
+  lemma bitranget_eq_symp:
+    "symp bitrange_eq"
+    apply(rule sympI)
+    by(simp add: bitrange_eq_comm)
+  lemma bitrange_eq_transp:
+    "transp bitrange_eq"
+    apply(rule transpI)
+    by(simp only: bitrange_eq_set_eq)
+
+  lemma bitrange_eq_equivp:
+    "equivp bitrange_eq"
+    by (auto intro: equivpI bitrange_eq_reflp bitranget_eq_symp bitrange_eq_transp)
+(*
+  quotient_type 'a bitrrq = "'a::len bitrange" / "bitrange_eq"
+    by (rule bitrange_eq_equivp)
+*)
     
 end
