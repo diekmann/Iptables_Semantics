@@ -25,9 +25,9 @@ text{* We have directly executable approximating semantics: @{thm approximating_
   value "simple_ruleset example_ruleset_simplified"
 
 
-  value(code) "approximating_bigstep_fun (simple_matcher, in_doubt_allow) \<lparr>src_ip=ipv4addr_of_dotteddecimal (192,168,3,5), dst_ip=0, prot=protPacket.ProtTCP\<rparr>
+  lemma "approximating_bigstep_fun (simple_matcher, in_doubt_allow) \<lparr>src_ip=ipv4addr_of_dotteddecimal (192,168,3,5), dst_ip=0, prot=protPacket.ProtTCP\<rparr>
         example_ruleset_simplified
-        Undecided"
+        Undecided = Decision FinalAllow" by eval
   hide_const example_ruleset_simplified example_ruleset
 
 
