@@ -12,7 +12,16 @@ fun ipv4range_set_from_bitmask_to_executable_ipv4range :: "ipt_ipv4range \<Right
       ipv4range_range (((ipv4addr_of_dotteddecimal pre) AND ((mask len) << (32 - len))))  ((ipv4addr_of_dotteddecimal pre) OR (mask (32 - len)))" |
    "ipv4range_set_from_bitmask_to_executable_ipv4range (Ip4Addr ip) = ipv4range_single (ipv4addr_of_dotteddecimal ip)"
 
+
 export_code ipv4range_set_from_bitmask_to_executable_ipv4range ipv4range_intersection ipv4range_empty in SML
+
+lemma ipv4range_set_from_bitmask_to_executable_ipv4range_simps: 
+      "ipv4range_to_set (ipv4range_set_from_bitmask_to_executable_ipv4range (Ip4AddrNetmask base m)) = 
+       ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal base) m"
+      "ipv4range_to_set (ipv4range_set_from_bitmask_to_executable_ipv4range (Ip4Addr ip)) = {ipv4addr_of_dotteddecimal ip}"
+  by(simp_all add: ipv4range_set_from_bitmask_alt ipv4range_range_set_eq ipv4range_single_set_eq)
+
+declare ipv4range_set_from_bitmask_to_executable_ipv4range.simps[simp del]
 
 definition "intersect_netmask_empty_executable \<equiv> (\<lambda> base1 m1 base2 m2. ipv4range_empty (
         ipv4range_intersection 
@@ -23,8 +32,7 @@ export_code intersect_netmask_empty_executable in SML
 lemma [code]: "intersect_netmask_empty = intersect_netmask_empty_executable"
 apply (rule ext)+
 unfolding intersect_netmask_empty_def intersect_netmask_empty_executable_def
-apply(simp only: ipv4range_empty_set_eq ipv4range_intersection_set_eq )
-apply(simp only: ipv4range_set_from_bitmask_to_executable_ipv4range.simps ipv4range_set_from_bitmask_alt ipv4range_range_set_eq)
+apply(simp add: ipv4range_set_from_bitmask_to_executable_ipv4range_simps)
 done
 
 export_code intersect_netmask_empty in SML
@@ -42,8 +50,7 @@ definition subset_netmask_executable :: "nat \<times> nat \<times> nat \<times> 
 lemma [code]: "subset_netmask = subset_netmask_executable"
 apply(simp only: fun_eq_iff, intro allI)
 unfolding subset_netmask_def subset_netmask_executable_def
-apply(simp only: ipv4range_subset_set_eq)
-apply(simp only: ipv4range_set_from_bitmask_to_executable_ipv4range.simps ipv4range_set_from_bitmask_alt ipv4range_range_set_eq)
+apply(simp add: ipv4range_set_from_bitmask_to_executable_ipv4range_simps)
 done
 
 (* \<inter> pos \ \<union> neg*)
@@ -85,24 +92,6 @@ fun intersect_ips :: "ipt_ipv4range \<Rightarrow> ipt_ipv4range \<Rightarrow> ip
 export_code intersect_ips in SML
 
 
-lemma ipv4_setinterval_inter_not_empty: "{a::ipv4addr..b} \<inter> {c..d} \<noteq> {} \<longleftrightarrow>
-    a \<le> b \<and> c \<le> d \<and>
-    (a \<ge> c \<and> b \<le> d \<or>
-    c \<le> b \<and> a \<le> c \<or>
-    a \<le> d \<and> c \<le> a)"
-apply(rule iffI)
-apply force
-apply(simp)
-apply(clarify)
-apply(elim disjE)
-apply simp_all
-apply fastforce+
-done
-
-
-
-
-
 lemma "\<not> ipv4range_set_from_bitmask b2 m2 \<subseteq> ipv4range_set_from_bitmask b1 m1 \<longrightarrow>
        \<not> ipv4range_set_from_bitmask b1 m1 \<subseteq> ipv4range_set_from_bitmask b2 m2 \<longrightarrow>
        ipv4range_set_from_bitmask b1 m1 \<inter> ipv4range_set_from_bitmask b2 m2 = {}"
@@ -112,7 +101,7 @@ lemma "\<not> ipv4range_set_from_bitmask b2 m2 \<subseteq> ipv4range_set_from_bi
 
 lemma intersect_ips_None: "intersect_ips ip1 ip2 = None \<longleftrightarrow> (ipv4s_to_set ip1) \<inter> (ipv4s_to_set ip2) = {}"
   apply(induction ip1 ip2 rule: intersect_ips.induct)
-  apply(simp_all add: intersect_netmask_empty_def)[3]
+     apply(simp_all add: intersect_netmask_empty_def)[3]
   apply(simp add: intersect_netmask_empty_def)
   by (metis subset_netmask_def ipv4range_bitmask_intersect)
  
@@ -120,22 +109,18 @@ lemma intersect_ips_None: "intersect_ips ip1 ip2 = None \<longleftrightarrow> (i
 
 lemma intersect_ips_Some: "intersect_ips ip1 ip2 = Some X \<Longrightarrow> (ipv4s_to_set ip1) \<inter> (ipv4s_to_set ip2) = ipv4s_to_set X"
   apply(induction ip1 ip2 rule: intersect_ips.induct)
-  apply(simp_all)
-  apply(safe)[3]
-  apply(simp_all)
-  apply(case_tac [!] X)[9]
-  apply(simp_all)
-  apply(simp_all split: split_if_asm)[12]
-
-
+     apply(simp_all)
+     apply(safe)[3]
+           apply(simp_all)
+           apply(case_tac [!] X)[9]
+                    apply(simp_all)
+              apply(simp_all split: split_if_asm)[12]
   apply(simp split: split_if_asm)
-  apply(simp_all add: intersect_netmask_empty_def subset_netmask_def)
-  apply(case_tac [!] X)
-  apply(simp_all)
-  apply blast
-
+   apply(simp_all add: intersect_netmask_empty_def subset_netmask_def)
+   apply(case_tac [!] X)
+      apply(simp_all)
+   apply blast
   apply(blast)
-  
 done
 
 
@@ -215,8 +200,7 @@ export_code compress_ips in SML
 lemma ipv4range_set_from_bitmask_to_executable_ipv4range: 
   "ipv4range_to_set (ipv4range_set_from_bitmask_to_executable_ipv4range a) = ipv4s_to_set a"
 apply(case_tac a)
- apply(simp_all add:ipv4range_single_set_eq ipv4range_range_set_eq)
- apply(simp add: ipv4range_set_from_bitmask_alt)
+ apply(simp_all add:ipv4range_set_from_bitmask_to_executable_ipv4range_simps)
 done
 
 lemma ipv4range_to_set_collect_to_range: "ipv4range_to_set (collect_to_range ips) = (\<Union>x\<in>set ips. ipv4s_to_set x)"
@@ -227,39 +211,35 @@ lemma ipv4range_to_set_collect_to_range: "ipv4range_to_set (collect_to_range ips
 
 
 lemma compress_ips_None: "getPos ips \<noteq> [] \<Longrightarrow> compress_ips ips = None \<longleftrightarrow> (\<Inter> (ipv4s_to_set ` set (getPos ips))) - (\<Union> (ipv4s_to_set ` set (getNeg ips))) = {}"
-  apply(simp only: compress_ips.simps split: split_if)
-  apply(intro conjI impI)
+  apply(simp split: split_if)
    apply(simp)
    (*getPos on empty should be the UNIV*)
   apply(simp split: option.split)
   apply(intro conjI impI allI)
-  apply(simp add: compress_pos_ips_None)
-  apply(rename_tac a)
-  apply(frule compress_pos_ips_Some)
+    apply(simp add: compress_pos_ips_None)
+   apply(rename_tac a)
+   apply(frule compress_pos_ips_Some)
    apply(case_tac a)
-    apply(simp add: ipv4range_to_set_collect_to_range ipv4range_single_set_eq)
-   apply(simp add: ipv4range_set_from_bitmask_alt)
-   apply(simp add: ipv4range_to_set_collect_to_range)
-  apply(frule compress_pos_ips_Some)
+    apply(simp add:  ipv4range_set_from_bitmask_to_executable_ipv4range_simps)
+   apply(simp add: ipv4range_to_set_collect_to_range ipv4range_set_from_bitmask_to_executable_ipv4range_simps)
+  apply(simp add: ipv4range_to_set_collect_to_range ipv4range_set_from_bitmask_to_executable_ipv4range_simps)
   apply(rename_tac a)
+  apply(frule compress_pos_ips_Some)
   apply(case_tac a)
-   apply(simp add: ipv4range_to_set_collect_to_range ipv4range_range_set_eq)
-  apply(simp add: ipv4range_set_from_bitmask_alt ipv4range_range_set_eq)
-  apply(simp add: ipv4range_to_set_collect_to_range)
-by (metis INF_def compress_pos_ips_Some ipv4range_set_from_bitmask_to_executable_ipv4range)
+   apply(simp add: ipv4range_to_set_collect_to_range ipv4range_set_from_bitmask_to_executable_ipv4range_simps)
+  apply(simp add: ipv4range_to_set_collect_to_range ipv4range_set_from_bitmask_to_executable_ipv4range_simps)
+done
 
-  
 
 lemma compress_ips_emptyPos: "getPos ips = [] \<Longrightarrow> compress_ips ips = Some ips \<and> ips = map Neg (getNeg ips)"
   apply(simp only: compress_ips.simps split: split_if)
   apply(intro conjI impI)
    apply(simp_all)
   apply(induction ips)
-  apply(simp_all)
+   apply(simp_all)
   apply(case_tac a)
   apply(simp_all)
 done
-
 
 
 
