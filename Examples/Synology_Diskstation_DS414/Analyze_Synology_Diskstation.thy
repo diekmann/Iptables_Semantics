@@ -34,6 +34,9 @@ abbreviation MatchAndInfix :: "'a match_expr \<Rightarrow> 'a match_expr \<Right
   lemma "simple_ruleset example_ruleset_simplified" by eval
 
   text{*packets from the local lan are allowed (in doubt)*}
+  value "approximating_bigstep_fun (simple_matcher, in_doubt_allow) \<lparr>src_ip=ipv4addr_of_dotteddecimal (192,168,3,5), dst_ip=0, prot=protPacket.ProtTCP\<rparr>
+        example_ruleset_simplified
+        Undecided = Decision FinalAllow"
   lemma "approximating_bigstep_fun (simple_matcher, in_doubt_allow) \<lparr>src_ip=ipv4addr_of_dotteddecimal (192,168,3,5), dst_ip=0, prot=protPacket.ProtTCP\<rparr>
         example_ruleset_simplified
         Undecided = Decision FinalAllow" by eval

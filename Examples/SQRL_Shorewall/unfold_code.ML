@@ -77,16 +77,6 @@ val equal = #equal : 'a equal -> 'a -> 'a -> bool;
 
 val equal_nat = {equal = equal_nata} : nat equal;
 
-val one_nata : nat = Nat (1 : IntInf.int);
-
-val one_nat = {one = one_nata} : nat one;
-
-fun times_nata m n = Nat (IntInf.* (integer_of_nat m, integer_of_nat n));
-
-val times_nat = {times = times_nata} : nat times;
-
-val power_nat = {one_power = one_nat, times_power = times_nat} : nat power;
-
 fun eq A_ a b = equal A_ a b;
 
 fun equal_lista A_ [] (x21 :: x22) = false
@@ -148,9 +138,11 @@ fun minus_nat m n =
 
 val zero_nat : nat = Nat 0;
 
+val one_nat : nat = Nat (1 : IntInf.int);
+
 fun power one times a n =
   (if equal_nata n zero_nat then one
-    else times a (power one times a (minus_nat n one_nata)));
+    else times a (power one times a (minus_nat n one_nat)));
 
 fun powera A_ = power (one (one_power A_)) (times (times_power A_));
 
@@ -354,6 +346,29 @@ fun semiring_1_word A_ =
 
 val equal_char = {equal = (fn a => fn b => ((a : char) = b))} : char equal;
 
+fun equal_int k l = (((integer_of_int k) : IntInf.int) = (integer_of_int l));
+
+fun equal_word A_ k l = equal_int (uint A_ k) (uint A_ l);
+
+datatype 'a bitrange = Bitrange of 'a word * 'a word |
+  RangeUnion of 'a bitrange * 'a bitrange;
+
+fun equal_bitrangea A_ (Bitrange (word1, word2))
+  (RangeUnion (bitrange1, bitrange2)) = false
+  | equal_bitrangea A_ (RangeUnion (bitrange1, bitrange2))
+    (Bitrange (word1, word2)) = false
+  | equal_bitrangea A_ (RangeUnion (bitrange1a, bitrange2a))
+    (RangeUnion (bitrange1, bitrange2)) =
+    equal_bitrangea A_ bitrange1a bitrange1 andalso
+      equal_bitrangea A_ bitrange2a bitrange2
+  | equal_bitrangea A_ (Bitrange (word1a, word2a)) (Bitrange (word1, word2)) =
+    equal_word (len0_len A_) word1a word1 andalso
+      equal_word (len0_len A_) word2a word2;
+
+fun equal_bitrange A_ = {equal = equal_bitrangea A_} : 'a bitrange equal;
+
+fun times_nat m n = Nat (IntInf.* (integer_of_nat m, integer_of_nat n));
+
 fun nat_of_integer k = Nat (max ord_integer 0 k);
 
 type 'a finite = {};
@@ -361,7 +376,7 @@ type 'a finite = {};
 datatype 'a bit0 = Abs_bit0 of int;
 
 fun len_of_bit0 A_ x =
-  times_nata (nat_of_integer (2 : IntInf.int)) (len_of A_ Type);
+  times_nat (nat_of_integer (2 : IntInf.int)) (len_of A_ Type);
 
 fun len0_bit0 A_ = {len_of = len_of_bit0 A_} : 'a bit0 len0;
 
@@ -369,7 +384,7 @@ fun len_bit0 A_ = {len0_len = len0_bit0 (len0_len A_)} : 'a bit0 len;
 
 datatype num1 = One_num1;
 
-fun len_of_num1 x = one_nata;
+fun len_of_num1 x = one_nat;
 
 val len0_num1 = {len_of = len_of_num1} : num1 len0;
 
@@ -378,33 +393,6 @@ val len_num1 = {len0_len = len0_num1} : num1 len;
 fun equal_proda A_ B_ (x1, x2) (y1, y2) = eq A_ x1 y1 andalso eq B_ x2 y2;
 
 fun equal_prod A_ B_ = {equal = equal_proda A_ B_} : ('a * 'b) equal;
-
-fun equal_int k l = (((integer_of_int k) : IntInf.int) = (integer_of_int l));
-
-fun equal_word A_ k l = equal_int (uint A_ k) (uint A_ l);
-
-datatype ipv4range =
-  IPv4Range of
-    num1 bit0 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 bit0 word
-  | IPv4Union of ipv4range * ipv4range;
-
-fun equal_ipv4rangea (IPv4Range (word1, word2))
-  (IPv4Union (ipv4range1, ipv4range2)) = false
-  | equal_ipv4rangea (IPv4Union (ipv4range1, ipv4range2))
-    (IPv4Range (word1, word2)) = false
-  | equal_ipv4rangea (IPv4Union (ipv4range1a, ipv4range2a))
-    (IPv4Union (ipv4range1, ipv4range2)) =
-    equal_ipv4rangea ipv4range1a ipv4range1 andalso
-      equal_ipv4rangea ipv4range2a ipv4range2
-  | equal_ipv4rangea (IPv4Range (word1a, word2a)) (IPv4Range (word1, word2)) =
-    equal_word
-      (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-      word1a word1 andalso
-      equal_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-        word2a word2;
-
-val equal_ipv4range = {equal = equal_ipv4rangea} : ipv4range equal;
 
 datatype ipt_ipv4range = Ip4Addr of (nat * (nat * (nat * nat))) |
   Ip4AddrNetmask of (nat * (nat * (nat * nat))) * nat;
@@ -481,7 +469,7 @@ fun id x = (fn xa => xa) x;
 
 fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
 
-fun suc n = plus_nat n one_nata;
+fun suc n = plus_nat n one_nat;
 
 fun maps f [] = []
   | maps f (x :: xs) = f x @ maps f xs;
@@ -501,7 +489,7 @@ fun bit k b =
 fun shiftl1 A_ w = word_of_int A_ (bit (uint A_ w) false);
 
 fun funpow n f =
-  (if equal_nata n zero_nat then id else f o funpow (minus_nat n one_nata) f);
+  (if equal_nata n zero_nat then id else f o funpow (minus_nat n one_nat) f);
 
 fun shiftl_word A_ w n = funpow n (shiftl1 A_) w;
 
@@ -523,6 +511,104 @@ fun remdups A_ [] = []
 fun map fi [] = []
   | map fi (x21a :: x22) = fi x21a :: map fi x22;
 
+fun max_word A_ =
+  word_of_int (len0_len A_)
+    (minus_int
+      (powera power_int (Int_of_integer (2 : IntInf.int))
+        (len_of (len0_len A_) Type))
+      (Int_of_integer (1 : IntInf.int)));
+
+fun the (SOME x2) = x2;
+
+fun word_next A_ a =
+  (if equal_word (len0_len A_) a (max_word A_) then max_word A_
+    else plus_worda (len0_len A_) a (one_worda (len0_len A_)));
+
+fun word_prev A_ a =
+  (if equal_word (len0_len A_) a (zero_worda (len0_len A_))
+    then zero_worda (len0_len A_)
+    else minus_word (len0_len A_) a (one_worda (len0_len A_)));
+
+fun mod_nat m n = Nat (mod_integer (integer_of_nat m) (integer_of_nat n));
+
+fun fst (x1, x2) = x1;
+
+fun div_integer k l = fst (divmod_integer k l);
+
+fun div_nat m n = Nat (div_integer (integer_of_nat m) (integer_of_nat n));
+
+fun divmod_nat m n = (div_nat m n, mod_nat m n);
+
+fun add_match m rs = map (fn Rule (ma, a) => Rule (MatchAnd (m, ma), a)) rs;
+
+fun getNeg [] = []
+  | getNeg (Neg x :: xs) = x :: getNeg xs
+  | getNeg (Pos v :: xs) = getNeg xs;
+
+fun getPos [] = []
+  | getPos (Pos x :: xs) = x :: getPos xs
+  | getPos (Neg v :: xs) = getPos xs;
+
+fun bitrange_UNIV A_ = Bitrange (zero_worda (len0_len A_), max_word A_);
+
+fun empty_Bitrange A_ =
+  Bitrange (one_worda (len0_len A_), zero_worda (len0_len A_));
+
+fun bitrange_empty A_ (Bitrange (s, e)) = less_word (len0_len A_) e s
+  | bitrange_empty A_ (RangeUnion (r1, r2)) =
+    bitrange_empty A_ r1 andalso bitrange_empty A_ r2;
+
+fun bitrange_union A_ r1 r2 = RangeUnion (r1, r2);
+
+fun rmMatchFalse [] = []
+  | rmMatchFalse (Rule (MatchNot MatchAny, uu) :: rs) = rmMatchFalse rs
+  | rmMatchFalse (Rule (Match vb, va) :: rs) =
+    Rule (Match vb, va) :: rmMatchFalse rs
+  | rmMatchFalse (Rule (MatchNot (Match vc), va) :: rs) =
+    Rule (MatchNot (Match vc), va) :: rmMatchFalse rs
+  | rmMatchFalse (Rule (MatchNot (MatchNot vc), va) :: rs) =
+    Rule (MatchNot (MatchNot vc), va) :: rmMatchFalse rs
+  | rmMatchFalse (Rule (MatchNot (MatchAnd (vc, vd)), va) :: rs) =
+    Rule (MatchNot (MatchAnd (vc, vd)), va) :: rmMatchFalse rs
+  | rmMatchFalse (Rule (MatchAnd (vb, vc), va) :: rs) =
+    Rule (MatchAnd (vb, vc), va) :: rmMatchFalse rs
+  | rmMatchFalse (Rule (MatchAny, va) :: rs) =
+    Rule (MatchAny, va) :: rmMatchFalse rs;
+
+fun min A_ a b = (if less_eq A_ a b then a else b);
+
+fun bitrange_setminus A_ (Bitrange (s, e)) (Bitrange (ms, me)) =
+  (if less_word (len0_len A_) e s orelse less_word (len0_len A_) me ms
+    then Bitrange (s, e)
+    else (if less_eq_word (len0_len A_) e me
+           then Bitrange
+                  ((if equal_word (len0_len A_) ms (zero_worda (len0_len A_))
+                     then one_worda (len0_len A_) else s),
+                    min (ord_word (len0_len A_)) e (word_prev A_ ms))
+           else (if less_eq_word (len0_len A_) ms s
+                  then Bitrange
+                         (max (ord_word (len0_len A_)) s (word_next A_ me),
+                           (if equal_word (len0_len A_) me (max_word A_)
+                             then zero_worda (len0_len A_) else e))
+                  else RangeUnion
+                         (Bitrange
+                            ((if equal_word (len0_len A_) ms
+                                   (zero_worda (len0_len A_))
+                               then one_worda (len0_len A_) else s),
+                              word_prev A_ ms),
+                           Bitrange
+                             (word_next A_ me,
+                               (if equal_word (len0_len A_) me (max_word A_)
+                                 then zero_worda (len0_len A_) else e))))))
+  | bitrange_setminus A_ (RangeUnion (r1, r2)) t =
+    RangeUnion (bitrange_setminus A_ r1 t, bitrange_setminus A_ r2 t)
+  | bitrange_setminus A_ (Bitrange (v, va)) (RangeUnion (r1, r2)) =
+    bitrange_setminus A_ (bitrange_setminus A_ (Bitrange (v, va)) r1) r2;
+
+fun bitrange_invert A_ r = bitrange_setminus A_ (bitrange_UNIV A_) r;
+
+fun bitrange_subset A_ r1 r2 = bitrange_empty A_ (bitrange_setminus A_ r1 r2);
+
 fun numeral A_ (Bit1 n) =
   let
     val m = numeral A_ n;
@@ -538,16 +624,6 @@ fun numeral A_ (Bit1 n) =
       plus ((plus_semigroup_add o semigroup_add_numeral) A_) m m
     end
   | numeral A_ One = one (one_numeral A_);
-
-fun mod_nat m n = Nat (mod_integer (integer_of_nat m) (integer_of_nat n));
-
-fun fst (x1, x2) = x1;
-
-fun div_integer k l = fst (divmod_integer k l);
-
-fun div_nat m n = Nat (div_integer (integer_of_nat m) (integer_of_nat n));
-
-fun divmod_nat m n = (div_nat m n, mod_nat m n);
 
 fun of_nat A_ n =
   (if equal_nata n zero_nat
@@ -581,66 +657,118 @@ fun ipv4addr_of_nat n =
       (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))))
     n;
 
-val max_ipv4_addr : num1 bit0 bit0 bit0 bit0 bit0 word =
-  ipv4addr_of_nat
-    (minus_nat
-      (powera power_nat (nat_of_integer (2 : IntInf.int))
-        (nat_of_integer (32 : IntInf.int)))
-      one_nata);
+fun ipv4range_empty rg =
+  bitrange_empty (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+    rg;
 
-fun ip_next a =
-  (if equal_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) a
-        max_ipv4_addr
-    then max_ipv4_addr
-    else plus_worda
-           (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-           a (one_worda
-               (len0_bit0
-                 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))));
+fun ipv4range_range ip_start ip_end = Bitrange (ip_start, ip_end);
 
-fun ip_prev a =
-  (if equal_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) a
-        (zero_worda
-          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))))
-    then zero_worda
-           (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-    else minus_word
-           (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-           a (one_worda
-               (len0_bit0
-                 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))));
+fun bitrange_to_list A_ (RangeUnion (r1, r2)) =
+  bitrange_to_list A_ r1 @ bitrange_to_list A_ r2
+  | bitrange_to_list A_ (Bitrange (v, va)) =
+    (if bitrange_empty A_ (Bitrange (v, va)) then [] else [Bitrange (v, va)]);
 
-fun the (SOME x2) = x2;
+fun list_to_bitrange A_ [r] = r
+  | list_to_bitrange A_ (r :: v :: va) =
+    RangeUnion (r, list_to_bitrange A_ (v :: va))
+  | list_to_bitrange A_ [] = empty_Bitrange A_;
 
-fun add_match m rs = map (fn Rule (ma, a) => Rule (MatchAnd (m, ma), a)) rs;
+fun iptrule_match_Ln_uncompressed_append
+  (UncompressedFormattedMatch (src1, dst1, proto1, extra1))
+  (UncompressedFormattedMatch (src2, dst2, proto2, extra2)) =
+  UncompressedFormattedMatch
+    (src1 @ src2, dst1 @ dst2, proto1 @ proto2, extra1 @ extra2);
 
-fun getNeg [] = []
-  | getNeg (Neg x :: xs) = x :: getNeg xs
-  | getNeg (Pos v :: xs) = getNeg xs;
+fun iptrule_match_collect MatchAny accu = accu
+  | iptrule_match_collect (Match (Src ip))
+    (UncompressedFormattedMatch (src, dst, proto, extra)) =
+    UncompressedFormattedMatch (Pos ip :: src, dst, proto, extra)
+  | iptrule_match_collect (Match (Dst ip))
+    (UncompressedFormattedMatch (src, dst, proto, extra)) =
+    UncompressedFormattedMatch (src, Pos ip :: dst, proto, extra)
+  | iptrule_match_collect (Match (Prot p))
+    (UncompressedFormattedMatch (src, dst, proto, extra)) =
+    UncompressedFormattedMatch (src, dst, Pos p :: proto, extra)
+  | iptrule_match_collect (Match (Extra e))
+    (UncompressedFormattedMatch (src, dst, proto, extra)) =
+    UncompressedFormattedMatch (src, dst, proto, Pos e :: extra)
+  | iptrule_match_collect (MatchNot (Match (Src ip)))
+    (UncompressedFormattedMatch (src, dst, proto, extra)) =
+    UncompressedFormattedMatch (Neg ip :: src, dst, proto, extra)
+  | iptrule_match_collect (MatchNot (Match (Dst ip)))
+    (UncompressedFormattedMatch (src, dst, proto, extra)) =
+    UncompressedFormattedMatch (src, Neg ip :: dst, proto, extra)
+  | iptrule_match_collect (MatchNot (Match (Prot p)))
+    (UncompressedFormattedMatch (src, dst, proto, extra)) =
+    UncompressedFormattedMatch (src, dst, Neg p :: proto, extra)
+  | iptrule_match_collect (MatchNot (Match (Extra e)))
+    (UncompressedFormattedMatch (src, dst, proto, extra)) =
+    UncompressedFormattedMatch (src, dst, proto, Neg e :: extra)
+  | iptrule_match_collect (MatchAnd (m1, m2)) fmt =
+    iptrule_match_Ln_uncompressed_append (iptrule_match_collect m1 fmt)
+      (iptrule_match_Ln_uncompressed_append (iptrule_match_collect m2 fmt) fmt);
 
-fun getPos [] = []
-  | getPos (Pos x :: xs) = x :: getPos xs
-  | getPos (Neg v :: xs) = getPos xs;
+fun format_Ln_match m =
+  iptrule_match_collect m (UncompressedFormattedMatch ([], [], [], []));
 
-fun ipv4addr_of_dotteddecimal (a, (b, (c, d))) =
-  ipv4addr_of_nat
-    (plus_nat
-      (plus_nat (plus_nat d (times_nata (nat_of_integer (256 : IntInf.int)) c))
-        (times_nata (nat_of_integer (65536 : IntInf.int)) b))
-      (times_nata (nat_of_integer (16777216 : IntInf.int)) a));
+fun ipv4range_single ip = Bitrange (ip, ip);
 
-fun uminus_int k = Int_of_integer (IntInf.~ (integer_of_int k));
+fun ipv4range_subset r1 r2 =
+  bitrange_subset
+    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
+
+fun bin_last w =
+  equal_int (mod_int w (Int_of_integer (2 : IntInf.int)))
+    (Int_of_integer (1 : IntInf.int));
 
 fun div_int k l =
   Int_of_integer (div_integer (integer_of_int k) (integer_of_int l));
 
 fun bin_rest w = div_int w (Int_of_integer (2 : IntInf.int));
 
-fun bin_last w =
-  equal_int (mod_int w (Int_of_integer (2 : IntInf.int)))
-    (Int_of_integer (1 : IntInf.int));
+fun ipv4range_setminus r1 r2 =
+  bitrange_setminus
+    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
+
+fun rw_Reject [] = []
+  | rw_Reject (Rule (m, Reject) :: rs) = Rule (m, Drop) :: rw_Reject rs
+  | rw_Reject (Rule (v, Accept) :: rs) = Rule (v, Accept) :: rw_Reject rs
+  | rw_Reject (Rule (v, Drop) :: rs) = Rule (v, Drop) :: rw_Reject rs
+  | rw_Reject (Rule (v, Log) :: rs) = Rule (v, Log) :: rw_Reject rs
+  | rw_Reject (Rule (v, Call vb) :: rs) = Rule (v, Call vb) :: rw_Reject rs
+  | rw_Reject (Rule (v, Return) :: rs) = Rule (v, Return) :: rw_Reject rs
+  | rw_Reject (Rule (v, Empty) :: rs) = Rule (v, Empty) :: rw_Reject rs
+  | rw_Reject (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rw_Reject rs;
+
+fun normalize_match MatchAny = [MatchAny]
+  | normalize_match (Match m) = [Match m]
+  | normalize_match (MatchAnd (m1, m2)) =
+    maps (fn x => map (fn a => MatchAnd (x, a)) (normalize_match m2))
+      (normalize_match m1)
+  | normalize_match (MatchNot (MatchAnd (m1, m2))) =
+    normalize_match (MatchNot m1) @ normalize_match (MatchNot m2)
+  | normalize_match (MatchNot (MatchNot m)) = normalize_match m
+  | normalize_match (MatchNot MatchAny) = []
+  | normalize_match (MatchNot (Match m)) = [MatchNot (Match m)];
+
+fun normalize_rules [] = []
+  | normalize_rules (Rule (m, a) :: rs) =
+    map (fn ma => Rule (ma, a)) (normalize_match m) @ normalize_rules rs;
+
+fun rm_LogEmpty [] = []
+  | rm_LogEmpty (Rule (uu, Empty) :: rs) = rm_LogEmpty rs
+  | rm_LogEmpty (Rule (uv, Log) :: rs) = rm_LogEmpty rs
+  | rm_LogEmpty (Rule (v, Accept) :: rs) = Rule (v, Accept) :: rm_LogEmpty rs
+  | rm_LogEmpty (Rule (v, Drop) :: rs) = Rule (v, Drop) :: rm_LogEmpty rs
+  | rm_LogEmpty (Rule (v, Reject) :: rs) = Rule (v, Reject) :: rm_LogEmpty rs
+  | rm_LogEmpty (Rule (v, Call vb) :: rs) = Rule (v, Call vb) :: rm_LogEmpty rs
+  | rm_LogEmpty (Rule (v, Return) :: rs) = Rule (v, Return) :: rm_LogEmpty rs
+  | rm_LogEmpty (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rm_LogEmpty rs;
+
+fun uminus_int k = Int_of_integer (IntInf.~ (integer_of_int k));
+
+fun bitNOT_int x =
+  (fn xa => minus_int (uminus_int xa) (Int_of_integer (1 : IntInf.int))) x;
 
 fun bitAND_int x y =
   (if equal_int x zero_int then zero_int
@@ -648,161 +776,54 @@ fun bitAND_int x y =
            else bit (bitAND_int (bin_rest x) (bin_rest y))
                   (bin_last x andalso bin_last y)));
 
-fun bitAND_word A_ a b = word_of_int A_ (bitAND_int (uint A_ a) (uint A_ b));
-
-fun bitNOT_int x =
-  (fn xa => minus_int (uminus_int xa) (Int_of_integer (1 : IntInf.int))) x;
-
 fun bitOR_int x =
   (fn xa => fn y => bitNOT_int (bitAND_int (bitNOT_int xa) (bitNOT_int y))) x;
 
 fun bitOR_word A_ a b = word_of_int A_ (bitOR_int (uint A_ a) (uint A_ b));
 
+fun bitrange_optimize_same A_ rs =
+  list_to_bitrange A_ (remdups (equal_bitrange A_) (bitrange_to_list A_ rs));
+
+fun bitrange_intersection A_ r1 r2 =
+  bitrange_optimize_same A_
+    (bitrange_setminus A_ (bitrange_union A_ r1 r2)
+      (bitrange_union A_ (bitrange_invert A_ r1) (bitrange_invert A_ r2)));
+
+fun get_match (Rule (x1, x2)) = x1;
+
+fun bitAND_word A_ a b = word_of_int A_ (bitAND_int (uint A_ a) (uint A_ b));
+
+fun get_action (Rule (x1, x2)) = x2;
+
+fun ipv4addr_of_dotteddecimal (a, (b, (c, d))) =
+  ipv4addr_of_nat
+    (plus_nat
+      (plus_nat (plus_nat d (times_nat (nat_of_integer (256 : IntInf.int)) c))
+        (times_nat (nat_of_integer (65536 : IntInf.int)) b))
+      (times_nat (nat_of_integer (16777216 : IntInf.int)) a));
+
 fun ipv4range_set_from_bitmask_to_executable_ipv4range
   (Ip4AddrNetmask (pre, len)) =
-  IPv4Range
+  ipv4range_range
     (bitAND_word
-       (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-       (ipv4addr_of_dotteddecimal pre)
-       (shiftl_word
-         (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-         (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-           len)
-         (minus_nat (nat_of_integer (32 : IntInf.int)) len)),
-      bitOR_word
+      (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+      (ipv4addr_of_dotteddecimal pre)
+      (shiftl_word
         (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-        (ipv4addr_of_dotteddecimal pre)
         (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-          (minus_nat (nat_of_integer (32 : IntInf.int)) len)))
+          len)
+        (minus_nat (nat_of_integer (32 : IntInf.int)) len)))
+    (bitOR_word
+      (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+      (ipv4addr_of_dotteddecimal pre)
+      (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+        (minus_nat (nat_of_integer (32 : IntInf.int)) len)))
   | ipv4range_set_from_bitmask_to_executable_ipv4range (Ip4Addr ip) =
-    IPv4Range (ipv4addr_of_dotteddecimal ip, ipv4addr_of_dotteddecimal ip);
-
-fun list_to_ipv4range [r] = r
-  | list_to_ipv4range (r :: v :: va) =
-    IPv4Union (r, list_to_ipv4range (v :: va))
-  | list_to_ipv4range [] =
-    IPv4Range
-      (word_of_int
-         (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-         (Int_of_integer (2 : IntInf.int)),
-        one_worda
-          (len0_bit0
-            (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))));
-
-fun ipv4range_empty (IPv4Range (s, e)) =
-  less_word
-    (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) e s
-  | ipv4range_empty (IPv4Union (r1, r2)) =
-    ipv4range_empty r1 andalso ipv4range_empty r2;
-
-fun ipv4range_to_list (IPv4Union (r1, r2)) =
-  ipv4range_to_list r1 @ ipv4range_to_list r2
-  | ipv4range_to_list (IPv4Range (v, va)) =
-    (if ipv4range_empty (IPv4Range (v, va)) then [] else [IPv4Range (v, va)]);
-
-fun ipv4range_optimize_same rs =
-  list_to_ipv4range (remdups equal_ipv4range (ipv4range_to_list rs));
-
-fun min A_ a b = (if less_eq A_ a b then a else b);
-
-fun ipv4range_setminus (IPv4Range (s, e)) (IPv4Range (ms, me)) =
-  (if less_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) e
-        s orelse
-        less_word
-          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-          me ms
-    then IPv4Range (s, e)
-    else (if less_eq_word
-               (len0_bit0
-                 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-               e me
-           then IPv4Range
-                  ((if equal_word
-                         (len0_bit0
-                           (len0_bit0
-                             (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-                         ms (zero_worda
-                              (len0_bit0
-                                (len0_bit0
-                                  (len0_bit0
-                                    (len0_bit0 (len0_bit0 len0_num1))))))
-                     then one_worda
-                            (len0_bit0
-                              (len0_bit0
-                                (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-                     else s),
-                    min (ord_word
-                          (len0_bit0
-                            (len0_bit0
-                              (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))))
-                      e (ip_prev ms))
-           else (if less_eq_word
-                      (len0_bit0
-                        (len0_bit0
-                          (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-                      ms s
-                  then IPv4Range
-                         (max (ord_word
-                                (len0_bit0
-                                  (len0_bit0
-                                    (len0_bit0
-                                      (len0_bit0 (len0_bit0 len0_num1))))))
-                            s (ip_next me),
-                           (if equal_word
-                                 (len0_bit0
-                                   (len0_bit0
-                                     (len0_bit0
-                                       (len0_bit0 (len0_bit0 len0_num1)))))
-                                 me max_ipv4_addr
-                             then zero_worda
-                                    (len0_bit0
-                                      (len0_bit0
-(len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-                             else e))
-                  else IPv4Union
-                         (IPv4Range
-                            ((if equal_word
-                                   (len0_bit0
-                                     (len0_bit0
-                                       (len0_bit0
- (len0_bit0 (len0_bit0 len0_num1)))))
-                                   ms (zero_worda
-(len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))))
-                               then one_worda
-                                      (len0_bit0
-(len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-                               else s),
-                              ip_prev ms),
-                           IPv4Range
-                             (ip_next me,
-                               (if equal_word
-                                     (len0_bit0
-                                       (len0_bit0
- (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-                                     me max_ipv4_addr
-                                 then zero_worda
-(len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-                                 else e))))))
-  | ipv4range_setminus (IPv4Union (r1, r2)) t =
-    IPv4Union (ipv4range_setminus r1 t, ipv4range_setminus r2 t)
-  | ipv4range_setminus (IPv4Range (v, va)) (IPv4Union (r1, r2)) =
-    ipv4range_setminus (ipv4range_setminus (IPv4Range (v, va)) r1) r2;
-
-val ipv4range_UNIV : ipv4range =
-  IPv4Range
-    (zero_worda
-       (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))),
-      max_ipv4_addr);
-
-fun ipv4range_invert r = ipv4range_setminus ipv4range_UNIV r;
-
-fun ipv4range_union r1 r2 = IPv4Union (r1, r2);
+    ipv4range_single (ipv4addr_of_dotteddecimal ip);
 
 fun ipv4range_intersection r1 r2 =
-  ipv4range_optimize_same
-    (ipv4range_setminus (ipv4range_union r1 r2)
-      (ipv4range_union (ipv4range_invert r1) (ipv4range_invert r2)));
+  bitrange_intersection
+    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
 
 fun intersect_netmask_empty_executable x =
   (fn base1 => fn m1 => fn base2 => fn m2 =>
@@ -815,8 +836,6 @@ fun intersect_netmask_empty_executable x =
     x;
 
 fun intersect_netmask_empty x = intersect_netmask_empty_executable x;
-
-fun ipv4range_subset r1 r2 = ipv4range_empty (ipv4range_setminus r1 r2);
 
 fun subset_netmask_executable x =
   (fn base1 => fn m1 => fn base2 => fn m2 =>
@@ -893,71 +912,6 @@ fun intersect_ips (Ip4Addr ip) (Ip4AddrNetmask (base, m)) =
              else (if subset_netmask base2 m2 base1 m1
                     then SOME (Ip4AddrNetmask (base2, m2)) else NONE)));
 
-fun rmMatchFalse [] = []
-  | rmMatchFalse (Rule (MatchNot MatchAny, uu) :: rs) = rmMatchFalse rs
-  | rmMatchFalse (Rule (Match vb, va) :: rs) =
-    Rule (Match vb, va) :: rmMatchFalse rs
-  | rmMatchFalse (Rule (MatchNot (Match vc), va) :: rs) =
-    Rule (MatchNot (Match vc), va) :: rmMatchFalse rs
-  | rmMatchFalse (Rule (MatchNot (MatchNot vc), va) :: rs) =
-    Rule (MatchNot (MatchNot vc), va) :: rmMatchFalse rs
-  | rmMatchFalse (Rule (MatchNot (MatchAnd (vc, vd)), va) :: rs) =
-    Rule (MatchNot (MatchAnd (vc, vd)), va) :: rmMatchFalse rs
-  | rmMatchFalse (Rule (MatchAnd (vb, vc), va) :: rs) =
-    Rule (MatchAnd (vb, vc), va) :: rmMatchFalse rs
-  | rmMatchFalse (Rule (MatchAny, va) :: rs) =
-    Rule (MatchAny, va) :: rmMatchFalse rs;
-
-fun iptrule_match_Ln_uncompressed_append
-  (UncompressedFormattedMatch (src1, dst1, proto1, extra1))
-  (UncompressedFormattedMatch (src2, dst2, proto2, extra2)) =
-  UncompressedFormattedMatch
-    (src1 @ src2, dst1 @ dst2, proto1 @ proto2, extra1 @ extra2);
-
-fun iptrule_match_collect MatchAny accu = accu
-  | iptrule_match_collect (Match (Src ip))
-    (UncompressedFormattedMatch (src, dst, proto, extra)) =
-    UncompressedFormattedMatch (Pos ip :: src, dst, proto, extra)
-  | iptrule_match_collect (Match (Dst ip))
-    (UncompressedFormattedMatch (src, dst, proto, extra)) =
-    UncompressedFormattedMatch (src, Pos ip :: dst, proto, extra)
-  | iptrule_match_collect (Match (Prot p))
-    (UncompressedFormattedMatch (src, dst, proto, extra)) =
-    UncompressedFormattedMatch (src, dst, Pos p :: proto, extra)
-  | iptrule_match_collect (Match (Extra e))
-    (UncompressedFormattedMatch (src, dst, proto, extra)) =
-    UncompressedFormattedMatch (src, dst, proto, Pos e :: extra)
-  | iptrule_match_collect (MatchNot (Match (Src ip)))
-    (UncompressedFormattedMatch (src, dst, proto, extra)) =
-    UncompressedFormattedMatch (Neg ip :: src, dst, proto, extra)
-  | iptrule_match_collect (MatchNot (Match (Dst ip)))
-    (UncompressedFormattedMatch (src, dst, proto, extra)) =
-    UncompressedFormattedMatch (src, Neg ip :: dst, proto, extra)
-  | iptrule_match_collect (MatchNot (Match (Prot p)))
-    (UncompressedFormattedMatch (src, dst, proto, extra)) =
-    UncompressedFormattedMatch (src, dst, Neg p :: proto, extra)
-  | iptrule_match_collect (MatchNot (Match (Extra e)))
-    (UncompressedFormattedMatch (src, dst, proto, extra)) =
-    UncompressedFormattedMatch (src, dst, proto, Neg e :: extra)
-  | iptrule_match_collect (MatchAnd (m1, m2)) fmt =
-    iptrule_match_Ln_uncompressed_append (iptrule_match_collect m1 fmt)
-      (iptrule_match_Ln_uncompressed_append (iptrule_match_collect m2 fmt) fmt);
-
-fun format_Ln_match m =
-  iptrule_match_collect m (UncompressedFormattedMatch ([], [], [], []));
-
-fun collect_to_range [] =
-  IPv4Range
-    (word_of_int
-       (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-       (Int_of_integer (2 : IntInf.int)),
-      one_worda
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))))
-  | collect_to_range (r :: rs) =
-    IPv4Union
-      (ipv4range_set_from_bitmask_to_executable_ipv4range r,
-        collect_to_range rs);
-
 fun compress_pos_ips [] =
   SOME (Ip4AddrNetmask ((zero_nat, (zero_nat, (zero_nat, zero_nat))), zero_nat))
   | compress_pos_ips [ip] = SOME ip
@@ -965,42 +919,12 @@ fun compress_pos_ips [] =
     (case intersect_ips a b of NONE => NONE
       | SOME x => compress_pos_ips (x :: cs));
 
-fun rw_Reject [] = []
-  | rw_Reject (Rule (m, Reject) :: rs) = Rule (m, Drop) :: rw_Reject rs
-  | rw_Reject (Rule (v, Accept) :: rs) = Rule (v, Accept) :: rw_Reject rs
-  | rw_Reject (Rule (v, Drop) :: rs) = Rule (v, Drop) :: rw_Reject rs
-  | rw_Reject (Rule (v, Log) :: rs) = Rule (v, Log) :: rw_Reject rs
-  | rw_Reject (Rule (v, Call vb) :: rs) = Rule (v, Call vb) :: rw_Reject rs
-  | rw_Reject (Rule (v, Return) :: rs) = Rule (v, Return) :: rw_Reject rs
-  | rw_Reject (Rule (v, Empty) :: rs) = Rule (v, Empty) :: rw_Reject rs
-  | rw_Reject (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rw_Reject rs;
-
-fun normalize_match MatchAny = [MatchAny]
-  | normalize_match (Match m) = [Match m]
-  | normalize_match (MatchAnd (m1, m2)) =
-    maps (fn x => map (fn a => MatchAnd (x, a)) (normalize_match m2))
-      (normalize_match m1)
-  | normalize_match (MatchNot (MatchAnd (m1, m2))) =
-    normalize_match (MatchNot m1) @ normalize_match (MatchNot m2)
-  | normalize_match (MatchNot (MatchNot m)) = normalize_match m
-  | normalize_match (MatchNot MatchAny) = []
-  | normalize_match (MatchNot (Match m)) = [MatchNot (Match m)];
-
-fun normalize_rules [] = []
-  | normalize_rules (Rule (m, a) :: rs) =
-    map (fn ma => Rule (ma, a)) (normalize_match m) @ normalize_rules rs;
-
-fun rm_LogEmpty [] = []
-  | rm_LogEmpty (Rule (uu, Empty) :: rs) = rm_LogEmpty rs
-  | rm_LogEmpty (Rule (uv, Log) :: rs) = rm_LogEmpty rs
-  | rm_LogEmpty (Rule (v, Accept) :: rs) = Rule (v, Accept) :: rm_LogEmpty rs
-  | rm_LogEmpty (Rule (v, Drop) :: rs) = Rule (v, Drop) :: rm_LogEmpty rs
-  | rm_LogEmpty (Rule (v, Reject) :: rs) = Rule (v, Reject) :: rm_LogEmpty rs
-  | rm_LogEmpty (Rule (v, Call vb) :: rs) = Rule (v, Call vb) :: rm_LogEmpty rs
-  | rm_LogEmpty (Rule (v, Return) :: rs) = Rule (v, Return) :: rm_LogEmpty rs
-  | rm_LogEmpty (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rm_LogEmpty rs;
-
-fun get_match (Rule (x1, x2)) = x1;
+fun collect_to_range [] =
+  empty_Bitrange (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+  | collect_to_range (r :: rs) =
+    RangeUnion
+      (ipv4range_set_from_bitmask_to_executable_ipv4range r,
+        collect_to_range rs);
 
 fun compress_ips l =
   (if null (getPos l) then SOME l
@@ -1011,8 +935,6 @@ fun compress_ips l =
                      (ipv4range_set_from_bitmask_to_executable_ipv4range ip)
                      (collect_to_range (getNeg l)))
                then NONE else SOME (Pos ip :: map Neg (getNeg l)))));
-
-fun get_action (Rule (x1, x2)) = x2;
 
 fun process_ret [] = []
   | process_ret (Rule (m, Return) :: rs) =
@@ -1072,20 +994,20 @@ fun opt_simple_matcher (Match (Prot ProtAll)) = MatchAny
                            then (if equal_nata ve zero_nat then MatchAny
                                   else Match
  (Src (Ip4AddrNetmask
-        ((suc (minus_nat ve one_nata), (zero_nat, (zero_nat, zero_nat))),
+        ((suc (minus_nat ve one_nat), (zero_nat, (zero_nat, zero_nat))),
           zero_nat))))
                            else Match (Src
 (Ip4AddrNetmask
-  ((ve, (suc (minus_nat vg one_nata), (zero_nat, zero_nat))), zero_nat))))
+  ((ve, (suc (minus_nat vg one_nat), (zero_nat, zero_nat))), zero_nat))))
                     else Match (Src (Ip4AddrNetmask
                                       ((ve,
- (vg, (suc (minus_nat vi one_nata), zero_nat))),
+ (vg, (suc (minus_nat vi one_nat), zero_nat))),
 zero_nat))))
              else Match (Src (Ip4AddrNetmask
-                               ((ve, (vg, (vi, suc (minus_nat via one_nata)))),
+                               ((ve, (vg, (vi, suc (minus_nat via one_nat)))),
                                  zero_nat))))
       else Match (Src (Ip4AddrNetmask
-                        ((ve, (vg, (vi, via))), suc (minus_nat vc one_nata)))))
+                        ((ve, (vg, (vi, via))), suc (minus_nat vc one_nat)))))
   | opt_simple_matcher
     (Match (Dst (Ip4AddrNetmask ((ve, (vg, (vi, via))), vc)))) =
     (if equal_nata vc zero_nat
@@ -1095,20 +1017,20 @@ zero_nat))))
                            then (if equal_nata ve zero_nat then MatchAny
                                   else Match
  (Dst (Ip4AddrNetmask
-        ((suc (minus_nat ve one_nata), (zero_nat, (zero_nat, zero_nat))),
+        ((suc (minus_nat ve one_nat), (zero_nat, (zero_nat, zero_nat))),
           zero_nat))))
                            else Match (Dst
 (Ip4AddrNetmask
-  ((ve, (suc (minus_nat vg one_nata), (zero_nat, zero_nat))), zero_nat))))
+  ((ve, (suc (minus_nat vg one_nat), (zero_nat, zero_nat))), zero_nat))))
                     else Match (Dst (Ip4AddrNetmask
                                       ((ve,
- (vg, (suc (minus_nat vi one_nata), zero_nat))),
+ (vg, (suc (minus_nat vi one_nat), zero_nat))),
 zero_nat))))
              else Match (Dst (Ip4AddrNetmask
-                               ((ve, (vg, (vi, suc (minus_nat via one_nata)))),
+                               ((ve, (vg, (vi, suc (minus_nat via one_nat)))),
                                  zero_nat))))
       else Match (Dst (Ip4AddrNetmask
-                        ((ve, (vg, (vi, via))), suc (minus_nat vc one_nata)))));
+                        ((ve, (vg, (vi, via))), suc (minus_nat vc one_nat)))));
 
 fun optimize_matches f rs =
   map (fn r => Rule (f (get_match r), get_action r)) rs;
