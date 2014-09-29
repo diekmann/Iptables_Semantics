@@ -20,6 +20,8 @@ fun simple_matcher :: "(iptrule_match, packet) exact_match_tac" where
   "simple_matcher (Extra _) p = TernaryUnknown"
 
 
+declare simple_matcher.simps(1)[code del]
+declare simple_matcher.simps(2)[code del]
 lemma [code_unfold]:
   "simple_matcher (Src (Ip4Addr ip)) p = bool_to_ternary (ipv4addr_of_dotteddecimal ip = src_ip p)" 
   "simple_matcher (Src (Ip4AddrNetmask ip n)) p = bool_to_ternary (src_ip p \<in> ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal ip) n)"
@@ -28,6 +30,7 @@ lemma [code_unfold]:
 apply(auto)
 apply (metis (poly_guards_query) bool_to_ternary_simps(2))+
 done
+
 
 text{*Perform very basic optimizations*}
 fun opt_simple_matcher :: "iptrule_match match_expr \<Rightarrow> iptrule_match match_expr" where
