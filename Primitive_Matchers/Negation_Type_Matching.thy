@@ -147,15 +147,20 @@ lemma primitive_extractor_has_disc: "normalized_match m \<Longrightarrow> primit
 using primitive_extractor_has_disc_helper by metis
 
 
-lemma primitive_extractor_has_disc2: "\<not> has_disc disc2 m \<Longrightarrow> normalized_match m \<Longrightarrow> primitive_extractor (disc, sel) m = (as, ms) \<Longrightarrow> \<not> has_disc disc ms \<and> \<not> has_disc disc2 ms"
-apply(rule conjI)
-using primitive_extractor_has_disc_helper apply(metis)
+lemma primitive_extractor_has_disc2_helper: "\<not> has_disc disc2 m \<Longrightarrow> normalized_match m \<Longrightarrow> (as, ms) = primitive_extractor (disc, sel) m \<Longrightarrow> \<not> has_disc disc2 ms"
 apply(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
 apply(simp)
 apply(simp split: split_if_asm)
 apply(simp split: split_if_asm)
 apply(clarify) (*the simplifier loops*)
-apply(frule primitive_extractor_normalized)
-sorry
+apply(simp split: split_split_asm)
+apply(simp_all)
+done
+
+lemma primitive_extractor_has_disc2: "\<not> has_disc disc2 m \<Longrightarrow> normalized_match m \<Longrightarrow> primitive_extractor (disc, sel) m = (as, ms) \<Longrightarrow> \<not> has_disc disc ms \<and> \<not> has_disc disc2 ms"
+apply(rule conjI)
+using primitive_extractor_has_disc_helper apply(metis)
+using primitive_extractor_has_disc2_helper apply metis
+done
 
 end
