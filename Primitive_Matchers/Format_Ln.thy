@@ -1,5 +1,5 @@
 theory Format_Ln
-imports "../Fixed_Action" Negation_Type "../Bitmagic/Numberwang_Ln" IPSpace_Syntax "../Bitmagic/IPv4Addr"
+imports "../Fixed_Action" Negation_Type "../Bitmagic/Numberwang_Ln" IPSpace_Syntax "../Bitmagic/IPv4Addr" "../Packet_Set"
 begin
 
 
@@ -89,7 +89,7 @@ fun iptrule_match_Ln_uncompressed_append :: "iptrule_match_Ln_uncompressed \<Rig
   "iptrule_match_Ln_uncompressed_append (UncompressedFormattedMatch src1 dst1 proto1 extra1) (UncompressedFormattedMatch src2 dst2 proto2 extra2) = 
         UncompressedFormattedMatch (src1@src2) (dst1@dst2) (proto1@proto2) (extra1@extra2)"
 
-(*assumes: normalize_match is called. This gives a normalized_match*)
+text{* assumes: @{const "normalized_match"}*}
 fun iptrule_match_collect :: "iptrule_match match_expr \<Rightarrow> iptrule_match_Ln_uncompressed \<Rightarrow> iptrule_match_Ln_uncompressed" where
   "iptrule_match_collect MatchAny accu = accu" |
   "iptrule_match_collect (Match (Src ip)) (UncompressedFormattedMatch src dst proto extra) = UncompressedFormattedMatch ((Pos ip)#src) dst proto extra" |
@@ -103,6 +103,25 @@ fun iptrule_match_collect :: "iptrule_match match_expr \<Rightarrow> iptrule_mat
   "iptrule_match_collect (MatchAnd m1 m2) fmt =  
      iptrule_match_Ln_uncompressed_append (iptrule_match_collect m1 fmt) 
       (iptrule_match_Ln_uncompressed_append (iptrule_match_collect m2 fmt) fmt)" 
+
+
+
+lemma "wf_disc_sel (is_Src, src_range) Src"
+  by(simp add: wf_disc_sel.simps)
+
+
+lemma "normalized_match m \<Longrightarrow> iptrule_match_collect m (UncompressedFormattedMatch [] [] [] []) = (
+    let (srcs, m') = primitive_extractor (is_Src, src_range) m;
+        (dsts, m'') = primitive_extractor (is_Dst, dst_range) m';
+        (protos, m''') = primitive_extractor (is_Prot, prot_sel) m'';
+        (extras, m''') = primitive_extractor (is_Extra, extra_sel) m'''
+        in UncompressedFormattedMatch srcs dsts protos extras
+  )"
+apply(induction m "UncompressedFormattedMatch [] [] [] []" rule: iptrule_match_collect.induct)
+apply(simp_all)
+apply(simp add: split: split_split_asm split_split)
+done
+
 
 
 (*we dont't have an empty ip space, but a space which only contains the 0 address. We will use the option type to denote the empty space in some functions.*)
