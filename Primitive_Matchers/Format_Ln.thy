@@ -1,5 +1,5 @@
 theory Format_Ln
-imports "../Fixed_Action" Negation_Type "../Bitmagic/Numberwang_Ln" IPSpace_Syntax "../Bitmagic/IPv4Addr" "../Packet_Set"
+imports Negation_Type_Matching "../Bitmagic/Numberwang_Ln" IPSpace_Syntax "../Bitmagic/IPv4Addr"
 begin
 
 
@@ -27,13 +27,6 @@ datatype iptrule_match_Ln_uncompressed = UncompressedFormattedMatch
   (*Dst*) "ipt_ipv4range negation_type list"
   (*Prot*) "ipt_protocol negation_type list"
   (*Extra*) "string negation_type list"
-
-
-text{*Transform a @{typ "'a negation_type list"} to a @{typ "'a match_expr"} via conjunction.*}
-fun alist_and :: "'a negation_type list \<Rightarrow> 'a match_expr" where
-  "alist_and [] = MatchAny" |
-  "alist_and ((Pos e)#es) = MatchAnd (Match e) (alist_and es)" |
-  "alist_and ((Neg e)#es) = MatchAnd (MatchNot (Match e)) (alist_and es)"
 
 
 fun UncompressedFormattedMatch_to_match_expr :: "iptrule_match_Ln_uncompressed \<Rightarrow> iptrule_match match_expr" where
@@ -66,11 +59,11 @@ We can express @{const iptrule_match_collect} with @{const primitive_extractor}.
 Latter is more elegant.
 We keep the definition of @{const iptrule_match_collect} to show explicitly what we are doing here.
 *}
-lemma "normalized_match m \<Longrightarrow> iptrule_match_collect m (UncompressedFormattedMatch [] [] [] []) = (
+lemma iptrule_match_collect_by_primitive_extractor: "normalized_match m \<Longrightarrow> iptrule_match_collect m (UncompressedFormattedMatch [] [] [] []) = (
     let (srcs, m') = primitive_extractor (is_Src, src_range) m;
         (dsts, m'') = primitive_extractor (is_Dst, dst_range) m';
         (protos, m''') = primitive_extractor (is_Prot, prot_sel) m'';
-        (extras, m''') = primitive_extractor (is_Extra, extra_sel) m'''
+        (extras, _) = primitive_extractor (is_Extra, extra_sel) m'''
         in UncompressedFormattedMatch srcs dsts protos extras
   )"
 apply(induction m "UncompressedFormattedMatch [] [] [] []" rule: iptrule_match_collect.induct)
@@ -82,17 +75,8 @@ done
 value(code) "iptrule_match_collect (MatchAnd (Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8))) (Match (Prot ipt_protocol.ProtTCP))) (UncompressedFormattedMatch [] [] [] [])"
 
 
-lemma alist_and_append: "matches (\<beta>, \<alpha>) (alist_and (l1 @ l2)) a p \<longleftrightarrow> matches (\<beta>, \<alpha>)  (MatchAnd (alist_and l1)  (alist_and l2)) a p"
-  apply(induction l1)
-   apply(simp_all add: bunch_of_lemmata_about_matches)
-  apply(rename_tac l l1)
-  apply(case_tac l)
-   apply(simp_all add: bunch_of_lemmata_about_matches)
-  done
-
-
-lemma matches_iptrule_match_Ln_uncompressed_append: "matches (\<beta>, \<alpha>) (UncompressedFormattedMatch_to_match_expr (iptrule_match_Ln_uncompressed_append fmt1 fmt2)) a p \<longleftrightarrow>
-       matches (\<beta>, \<alpha>) (MatchAnd (UncompressedFormattedMatch_to_match_expr fmt1) (UncompressedFormattedMatch_to_match_expr fmt2)) a p"
+lemma matches_iptrule_match_Ln_uncompressed_append: "matches \<gamma> (UncompressedFormattedMatch_to_match_expr (iptrule_match_Ln_uncompressed_append fmt1 fmt2)) a p \<longleftrightarrow>
+       matches \<gamma> (MatchAnd (UncompressedFormattedMatch_to_match_expr fmt1) (UncompressedFormattedMatch_to_match_expr fmt2)) a p"
 apply(case_tac fmt1)
 apply(case_tac fmt2)
 apply(clarify)
@@ -101,13 +85,14 @@ apply(simp add: alist_and_append NegPos_map_append bunch_of_lemmata_about_matche
 by fastforce
 
 text{*The empty matches always match*}
-lemma "matches (\<beta>, \<alpha>) (UncompressedFormattedMatch_to_match_expr (UncompressedFormattedMatch [] [] [] [])) a p"
+lemma "matches \<gamma> (UncompressedFormattedMatch_to_match_expr (UncompressedFormattedMatch [] [] [] [])) a p"
   by(simp add: bunch_of_lemmata_about_matches)
 
 lemma UncompressedFormattedMatch_to_match_expr_correct: assumes "normalized_match m" shows
-  "matches (\<beta>, \<alpha>) (UncompressedFormattedMatch_to_match_expr accu) a p \<Longrightarrow> 
-      matches (\<beta>, \<alpha>) (UncompressedFormattedMatch_to_match_expr (iptrule_match_collect m accu)) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
+  "matches \<gamma> (UncompressedFormattedMatch_to_match_expr accu) a p \<Longrightarrow> 
+      matches \<gamma> (UncompressedFormattedMatch_to_match_expr (iptrule_match_collect m accu)) a p \<longleftrightarrow> matches \<gamma> m a p"
 using assms apply (induction m accu arbitrary: rule: iptrule_match_collect.induct)
+  apply(case_tac [!] \<gamma>)
   apply (simp add: eval_ternary_simps ip_in_ipv4range_set_from_bitmask_UNIV bunch_of_lemmata_about_matches)
   apply (simp add: eval_ternary_simps ip_in_ipv4range_set_from_bitmask_UNIV bunch_of_lemmata_about_matches)
   apply (simp add: eval_ternary_simps ip_in_ipv4range_set_from_bitmask_UNIV bunch_of_lemmata_about_matches)
@@ -124,19 +109,64 @@ using assms apply (induction m accu arbitrary: rule: iptrule_match_collect.induc
 done
 
 
+
 definition format_Ln_match :: "iptrule_match match_expr \<Rightarrow> iptrule_match_Ln_uncompressed" where
   "format_Ln_match m \<equiv> iptrule_match_collect m (UncompressedFormattedMatch [] [] [] [])"
 
-corollary format_Ln_match_correct: "normalized_match m \<Longrightarrow> matches (\<beta>, \<alpha>) (UncompressedFormattedMatch_to_match_expr (format_Ln_match m)) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
+corollary format_Ln_match_correct: "normalized_match m \<Longrightarrow> matches \<gamma> (UncompressedFormattedMatch_to_match_expr (format_Ln_match m)) a p \<longleftrightarrow> matches \<gamma> m a p"
 unfolding format_Ln_match_def
 apply(rule UncompressedFormattedMatch_to_match_expr_correct)
 apply(simp_all)
 apply(simp add: bunch_of_lemmata_about_matches)
 done
 
+
+text{*We can also show the previous corollary by the correctness of @{const primitive_extractor}*}
+lemma yc_exhaust: "normalized_match yc \<Longrightarrow> \<not> has_disc is_Dst yc \<Longrightarrow> \<not> has_disc is_Prot yc \<Longrightarrow> \<not> has_disc is_Extra yc \<Longrightarrow> \<not> has_disc is_Src yc \<Longrightarrow> matches \<gamma> yc a p"
+  apply(induction yc)
+  apply(simp_all add:bunch_of_lemmata_about_matches)
+  apply(case_tac aa)
+  apply(simp_all)
+  apply(case_tac yc)
+  apply(simp_all)
+  apply(case_tac aa)
+  apply(simp_all)
+  done
+corollary "normalized_match m \<Longrightarrow> matches \<gamma> (UncompressedFormattedMatch_to_match_expr (format_Ln_match m)) a p \<longleftrightarrow> matches \<gamma> m a p"
+unfolding format_Ln_match_def 
+unfolding iptrule_match_collect_by_primitive_extractor
+apply(simp)
+apply(simp split: split_split add: bunch_of_lemmata_about_matches(1))
+apply(clarify)
+thm primitive_extractor_correct[OF _ wf_disc_sel_iptrule_match(1)]
+apply(frule(1) primitive_extractor_correct[where \<gamma>=\<gamma> and p=p and a=a, OF _ wf_disc_sel_iptrule_match(1)])
+apply(frule(1) primitive_extractor_has_disc, drule(1) primitive_extractor_normalized)
+apply(frule(1) primitive_extractor_correct[where \<gamma>=\<gamma> and p=p and a=a, OF _ wf_disc_sel_iptrule_match(2), symmetric])
+apply(drule(2) primitive_extractor_has_disc2, drule(1) primitive_extractor_normalized)
+apply(frule(1) primitive_extractor_correct[where \<gamma>=\<gamma> and p=p and a=a, OF _ wf_disc_sel_iptrule_match(3), symmetric])
+apply(elim conjE)
+apply(drule(2) primitive_extractor_has_disc2)
+apply(drule(2) primitive_extractor_has_disc2)
+apply(drule(1) primitive_extractor_normalized)
+apply(elim conjE)
+apply(frule(1) primitive_extractor_correct[where \<gamma>=\<gamma> and p=p and a=a, OF _ wf_disc_sel_iptrule_match(4), symmetric])
+apply(drule(2) primitive_extractor_has_disc2)
+apply(drule(2) primitive_extractor_has_disc2)
+apply(drule(2) primitive_extractor_has_disc2)
+apply(drule(2) primitive_extractor_has_disc2)
+apply(drule(1) primitive_extractor_normalized)
+apply(elim conjE)
+apply(simp)
+apply(subgoal_tac "matches \<gamma> yc a p") --"this is the last remaining thing. it is (sort of) empty"
+apply(simp)
+using yc_exhaust by metis
+
+
+
+
 lemma format_Ln_match_correct': "\<forall> m' \<in> set ms. normalized_match m' \<Longrightarrow> 
-    approximating_bigstep_fun (\<beta>, \<alpha>) p (map (\<lambda>m. Rule m a) (map (\<lambda>m'. UncompressedFormattedMatch_to_match_expr (format_Ln_match m')) ms)) s =
-    approximating_bigstep_fun (\<beta>, \<alpha>) p (map (\<lambda>m. Rule m a) ms) s"
+    approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (map (\<lambda>m'. UncompressedFormattedMatch_to_match_expr (format_Ln_match m')) ms)) s =
+    approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) ms) s"
 apply(rule match_list_semantics)
 apply(induction ms)
  apply(simp)
@@ -222,32 +252,6 @@ lemma format_Ln_rules_uncompressed_correct: "good_ruleset rs \<Longrightarrow>
   apply blast
   done
 
-
-
-
-
-text{*Isolating the matching semantics*}
-fun nt_match_list :: "('a, 'packet) match_tac \<Rightarrow> action \<Rightarrow> 'packet \<Rightarrow> 'a negation_type list \<Rightarrow> bool" where
-  "nt_match_list _ _ _ [] = True" |
-  "nt_match_list \<gamma> a p ((Pos x)#xs) \<longleftrightarrow> matches \<gamma> (Match x) a p \<and> nt_match_list \<gamma> a p xs" |
-  "nt_match_list \<gamma> a p ((Neg x)#xs) \<longleftrightarrow> matches \<gamma> (MatchNot (Match x)) a p \<and> nt_match_list \<gamma> a p xs"
-
-lemma nt_match_list_matches: "nt_match_list \<gamma> a p l \<longleftrightarrow> matches \<gamma> (alist_and l) a p"
-  apply(induction l rule: alist_and.induct)
-  apply(simp_all)
-  apply(case_tac [!] \<gamma>)
-  apply(simp_all add: bunch_of_lemmata_about_matches)
-done
-
-
-lemma nt_match_list_simp: "nt_match_list \<gamma> a p ms \<longleftrightarrow> 
-      (\<forall>m \<in> set (getPos ms). matches \<gamma> (Match m) a p) \<and> (\<forall>m \<in> set (getNeg ms). matches \<gamma> (MatchNot (Match m)) a p)"
-apply(induction \<gamma> a p ms rule: nt_match_list.induct)
-apply(simp_all)
-by fastforce
-
-lemma matches_alist_and: "matches \<gamma> (alist_and l) a p \<longleftrightarrow> (\<forall>m \<in> set (getPos l). matches \<gamma> (Match m) a p) \<and> (\<forall>m \<in> set (getNeg l). matches \<gamma> (MatchNot (Match m)) a p)"
-by (metis (poly_guards_query) nt_match_list_matches nt_match_list_simp)
 
 
 
