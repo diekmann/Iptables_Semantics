@@ -1,5 +1,5 @@
 theory Packet_Set
-imports Fixed_Action "Primitive_Matchers/Negation_Type"
+imports Fixed_Action "Primitive_Matchers/Negation_Type" Datatype_Selectors
 begin
 
 fun negation_type_to_match_expr :: "'a negation_type list \<Rightarrow> 'a match_expr" where
@@ -56,7 +56,7 @@ text{*
   The passed function tuple must be the discriminator and selector of the datatype package.
   It filters the latter and returns a tuple.
   The first element are the filtered primitive matches, the second element is the remaining match expression.
-  }*}
+  *}
 fun primitive_extractor :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> 'a match_expr \<Rightarrow> ('b negation_type list \<times> 'a match_expr)" where
  "primitive_extractor _ MatchAny = ([], MatchAny)" |
  "primitive_extractor (disc,sel) (Match a) = (if disc a then ([Pos (sel a)], MatchAny) else ([], Match a))" |
@@ -67,10 +67,6 @@ fun primitive_extractor :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 
         in (a1'@a2', MatchAnd ms1' ms2'))"
 
 
-
-fun wf_disc_sel :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> ('b \<Rightarrow> 'a) \<Rightarrow> bool" where
-  "wf_disc_sel (disc, sel) C = (\<forall>a. disc a \<longrightarrow> C (sel a) = a)"
-declare wf_disc_sel.simps[simp del]
 
 lemma primitive_extractor_correct: "normalized_match m \<Longrightarrow> (as, ms) = primitive_extractor (disc, sel) m \<Longrightarrow> wf_disc_sel (disc, sel) C \<Longrightarrow>
   matches \<gamma> (negation_type_to_match_expr (NegPos_map C as)) a p \<and> matches \<gamma> ms a p \<longleftrightarrow> matches \<gamma> m a p"
