@@ -18,8 +18,16 @@ datatype ipt_protocol = ProtAll | ProtTCP | ProtUDP
 
 (*datatype ipt_ports = PortSingle nat | PortRange nat nat | PortMulti "ipt_ports list"*)
 
-datatype iptrule_match = Src ipt_ipv4range | Dst ipt_ipv4range | Prot ipt_protocol (*| Port ipt_ports*) | Extra string
+datatype_new iptrule_match = 
+    is_Src: Src (src_range: ipt_ipv4range)
+  | is_Dst: Dst (dst_range: ipt_ipv4range)
+  | is_Prot: Prot (prot_sel: ipt_protocol)
+  (*| Port ipt_ports*)
+  | is_Extra: Extra (extra_sel: string)
 
+(*datatype_compat iptrule_match*)
+term is_Src
+term src_range
 
 
 subsection{*Example Packet*}
@@ -28,10 +36,6 @@ subsection{*Example Packet*}
                   dst_ip :: ipv4addr
                   prot :: protPacket
 
-(*TODO: ...*)
-(*
-  record packet_with_port = packet + port :: nat
-*)
 
 hide_const (open) ProtTCP ProtUDP
 
