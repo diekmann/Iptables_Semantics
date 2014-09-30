@@ -34,10 +34,10 @@ lemma compress_pos_ips_dst_None_matching: "compress_pos_ips dst = None \<Longrig
 
 
 lemma compress_pos_ips_src_Some_matching: "compress_pos_ips src' = Some X \<Longrightarrow> 
-  matches (simple_matcher, \<alpha>) (srclist_and [Pos X]) a p \<longleftrightarrow>
-  matches (simple_matcher, \<alpha>) (srclist_and (map Pos src'))a p"
+  matches (simple_matcher, \<alpha>) (alist_and (NegPos_map Src [Pos X])) a p \<longleftrightarrow>
+  matches (simple_matcher, \<alpha>) (alist_and (NegPos_map Src (map Pos src')))a p"
   apply(drule compress_pos_ips_Some)
-  apply(simp only: list_and_simps1 nt_match_list_matches[symmetric]) (*better use matches_alist_and*)
+  apply(simp only: nt_match_list_matches[symmetric])
   apply safe
    apply(simp add: nt_match_list_simp)
    apply(simp add: getPos_NegPos_map_simp)
@@ -51,10 +51,10 @@ lemma compress_pos_ips_src_Some_matching: "compress_pos_ips src' = Some X \<Long
   apply(simp add: simple_matcher_SrcDst_Inter)
   done
 lemma compress_pos_ips_dst_Some_matching: "compress_pos_ips dst' = Some X \<Longrightarrow> 
-  matches (simple_matcher, \<alpha>) (dstlist_and [Pos X]) a p \<longleftrightarrow>
-  matches (simple_matcher, \<alpha>) (dstlist_and (map Pos dst'))a p"
+  matches (simple_matcher, \<alpha>) (alist_and (NegPos_map Dst [Pos X])) a p \<longleftrightarrow>
+  matches (simple_matcher, \<alpha>) (alist_and (NegPos_map Dst (map Pos dst')))a p"
   apply(drule compress_pos_ips_Some)
-  apply(simp only: list_and_simps2 nt_match_list_matches[symmetric]) (*better use matches_alist_and*)
+  apply(simp only: nt_match_list_matches[symmetric]) (*better use matches_alist_and*)
   apply safe
    apply(simp add: nt_match_list_simp)
    apply(simp add: getPos_NegPos_map_simp)
@@ -150,7 +150,7 @@ lemma compress_ips_dst_None_matching: "compress_ips dst = None \<Longrightarrow>
   apply(clarify)
 by (metis (erased, hide_lams) INT_iff UN_iff subsetCE)
 
-lemma Ln_uncompressed_matching_src_eq: "matches (simple_matcher, \<alpha>) (srclist_and X) a p \<longleftrightarrow> matches (simple_matcher, \<alpha>) (srclist_and Y) a p \<Longrightarrow>
+lemma Ln_uncompressed_matching_src_eq: "matches (simple_matcher, \<alpha>) (alist_and (NegPos_map Src X)) a p \<longleftrightarrow> matches (simple_matcher, \<alpha>) (alist_and (NegPos_map Src Y)) a p \<Longrightarrow>
        Ln_uncompressed_matching (simple_matcher, \<alpha>) a p (UncompressedFormattedMatch X dst proto extra) \<longleftrightarrow>
        Ln_uncompressed_matching (simple_matcher, \<alpha>) a p (UncompressedFormattedMatch Y dst proto extra)"
 apply(simp add: Ln_uncompressed_matching)
@@ -158,8 +158,8 @@ by (metis matches_simp11 matches_simp22)
 
 
 (*X \<and> A \<longleftrightarrow> Y \<and> B would be more generic*)
-lemma Ln_uncompressed_matching_src_dst_eq: "matches (simple_matcher, \<alpha>) (srclist_and X) a p \<longleftrightarrow> matches (simple_matcher, \<alpha>) (srclist_and Y) a p \<Longrightarrow>
-       matches (simple_matcher, \<alpha>) (dstlist_and A) a p \<longleftrightarrow> matches (simple_matcher, \<alpha>) (dstlist_and B) a p \<Longrightarrow>
+lemma Ln_uncompressed_matching_src_dst_eq: "matches (simple_matcher, \<alpha>) (alist_and (NegPos_map Src X)) a p \<longleftrightarrow> matches (simple_matcher, \<alpha>) (alist_and (NegPos_map Src Y)) a p \<Longrightarrow>
+       matches (simple_matcher, \<alpha>) (alist_and (NegPos_map Dst A)) a p \<longleftrightarrow> matches (simple_matcher, \<alpha>) (alist_and (NegPos_map Dst B)) a p \<Longrightarrow>
        Ln_uncompressed_matching (simple_matcher, \<alpha>) a p (UncompressedFormattedMatch X A proto extra) \<longleftrightarrow>
        Ln_uncompressed_matching (simple_matcher, \<alpha>) a p (UncompressedFormattedMatch Y B proto extra)"
 apply(simp add: Ln_uncompressed_matching)
@@ -171,7 +171,7 @@ lemma matches_and_x_any: "matches \<gamma> (MatchAnd (Match x) MatchAny) a p = m
   by(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
 
 lemma compress_ips_src_Some_matching: "compress_ips src = Some X \<Longrightarrow> 
-    matches (simple_matcher, \<alpha>) (srclist_and X) a p \<longleftrightarrow> matches (simple_matcher, \<alpha>) (srclist_and src) a p"
+    matches (simple_matcher, \<alpha>) (alist_and (NegPos_map Src X)) a p \<longleftrightarrow> matches (simple_matcher, \<alpha>) (alist_and (NegPos_map Src src)) a p"
   apply(case_tac "getPos src = []")
    apply(simp)
   apply(simp)
@@ -179,12 +179,12 @@ lemma compress_ips_src_Some_matching: "compress_ips src = Some X \<Longrightarro
   apply(simp add: ipv4range_set_from_bitmask_to_executable_ipv4range ipv4range_to_set_collect_to_range)
   apply(drule_tac \<alpha>=\<alpha> and a=a and p=p in compress_pos_ips_src_Some_matching)
   apply(simp add: matches_and_x_any)
-  apply(simp add: list_and_simps1 matches_alist_and NegPos_map_simps match_simplematcher_SrcDst match_simplematcher_SrcDst_not)
+  apply(simp add: matches_alist_and NegPos_map_simps match_simplematcher_SrcDst match_simplematcher_SrcDst_not)
   apply(safe)
   apply(simp_all add: NegPos_map_simps)
   done
 lemma compress_ips_dst_Some_matching: "compress_ips dst = Some X \<Longrightarrow> 
-    matches (simple_matcher, \<alpha>) (dstlist_and X) a p \<longleftrightarrow> matches (simple_matcher, \<alpha>) (dstlist_and dst) a p"
+    matches (simple_matcher, \<alpha>) (alist_and (NegPos_map Dst X)) a p \<longleftrightarrow> matches (simple_matcher, \<alpha>) (alist_and (NegPos_map Dst dst)) a p"
   apply(case_tac "getPos dst = []")
    apply(simp)
   apply(simp)
@@ -192,7 +192,7 @@ lemma compress_ips_dst_Some_matching: "compress_ips dst = Some X \<Longrightarro
   apply(simp add: ipv4range_set_from_bitmask_to_executable_ipv4range ipv4range_to_set_collect_to_range)
   apply(drule_tac \<alpha>=\<alpha> and a=a and p=p in compress_pos_ips_dst_Some_matching)
   apply(simp add: matches_and_x_any)
-  apply(simp add: list_and_simps2 matches_alist_and NegPos_map_simps match_simplematcher_SrcDst match_simplematcher_SrcDst_not)
+  apply(simp add: matches_alist_and NegPos_map_simps match_simplematcher_SrcDst match_simplematcher_SrcDst_not)
   apply(safe)
   apply(simp_all add: NegPos_map_simps)
   done

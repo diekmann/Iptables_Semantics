@@ -1,5 +1,5 @@
 theory IPSpace_Syntax
-imports Main String "../Bitmagic/IPv4Addr"
+imports Main String "../Bitmagic/IPv4Addr" "../Datatype_Selectors"
 begin
 
 section{*Primitive Matchers: IP Space Matcher*}
@@ -26,8 +26,14 @@ datatype_new iptrule_match =
   | is_Extra: Extra (extra_sel: string)
 
 (*datatype_compat iptrule_match*)
-term is_Src
-term src_range
+
+
+lemma wf_disc_sel_iptrule_match[simp]: 
+      "wf_disc_sel (is_Src, src_range) Src"
+      "wf_disc_sel (is_Dst, dst_range) Dst"
+      "wf_disc_sel (is_Prot, prot_sel) Prot"
+      "wf_disc_sel (is_Extra, extra_sel) Extra"
+  by(simp_all add: wf_disc_sel.simps)
 
 
 subsection{*Example Packet*}
@@ -60,6 +66,17 @@ lemma element_ipv4s_to_set: "addr \<in> ipv4s_to_set X = (
 apply(cases X)
  apply(simp)
 apply(simp add: ipv4range_set_from_bitmask_alt)
+done
+
+
+
+
+--"Misc"
+(*we dont't have an empty ip space, but a space which only contains the 0 address. We will use the option type to denote the empty space in some functions.*)
+lemma "ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal (0, 0, 0, 0)) 33 = {0}"
+apply(simp add: ipv4addr_of_dotteddecimal.simps ipv4addr_of_nat_def)
+apply(simp add: ipv4range_set_from_bitmask_def)
+apply(simp add: ipv4range_set_from_netmask_def)
 done
 
 

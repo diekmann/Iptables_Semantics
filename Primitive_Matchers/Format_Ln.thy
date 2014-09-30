@@ -21,9 +21,6 @@ ACCEPT     icmp --  0.0.0.0/0            0.0.0.0/0            icmptype 3
 *}
 
 
-(*TODO: this is the thing I want*)
-datatype iptrule_match_Ln = FormattedMatch (*Src*) "ipt_ipv4range negation_type" (*Dst*) "ipt_ipv4range negation_type" (*Prot*) "ipt_protocol negation_type" (*Extra*) "string negation_type list"
-
 (*this is the thing we have at the moment. Todo: compress the lists to one entry*)
 datatype iptrule_match_Ln_uncompressed = UncompressedFormattedMatch 
   (*Src*) "ipt_ipv4range negation_type list"
@@ -32,58 +29,17 @@ datatype iptrule_match_Ln_uncompressed = UncompressedFormattedMatch
   (*Extra*) "string negation_type list"
 
 
-
-fun srclist_and :: "ipt_ipv4range negation_type list\<Rightarrow> iptrule_match match_expr" where
-  "srclist_and [] = MatchAny" |
-  "srclist_and ((Pos e)#es) = MatchAnd (Match (Src e)) (srclist_and es)" |
-  "srclist_and ((Neg e)#es) = MatchAnd (MatchNot (Match (Src e))) (srclist_and es)"
-
-fun dstlist_and :: "ipt_ipv4range negation_type list\<Rightarrow> iptrule_match match_expr" where
-  "dstlist_and [] = MatchAny" |
-  "dstlist_and ((Pos e)#es) = MatchAnd (Match (Dst e)) (dstlist_and es)" |
-  "dstlist_and ((Neg e)#es) = MatchAnd (MatchNot (Match (Dst e))) (dstlist_and es)"
-
-fun protolist_and :: "ipt_protocol negation_type list\<Rightarrow> iptrule_match match_expr" where
-  "protolist_and [] = MatchAny" |
-  "protolist_and ((Pos e)#es) = MatchAnd (Match (Prot e)) (protolist_and es)" |
-  "protolist_and ((Neg e)#es) = MatchAnd (MatchNot (Match (Prot e))) (protolist_and es)"
-
-fun extralist_and :: "string negation_type list\<Rightarrow> iptrule_match match_expr" where
-  "extralist_and [] = MatchAny" |
-  "extralist_and ((Pos e)#es) = MatchAnd (Match (Extra e)) (extralist_and es)" |
-  "extralist_and ((Neg e)#es) = MatchAnd (MatchNot (Match (Extra e))) (extralist_and es)"
-
-text{*We can express all those @{term srclist_and} functions and similar in a simpler fashion!*}
+text{*Transform a @{typ "'a negation_type list"} to a @{typ "'a match_expr"} via conjunction.*}
 fun alist_and :: "'a negation_type list \<Rightarrow> 'a match_expr" where
   "alist_and [] = MatchAny" |
   "alist_and ((Pos e)#es) = MatchAnd (Match e) (alist_and es)" |
   "alist_and ((Neg e)#es) = MatchAnd (MatchNot (Match e)) (alist_and es)"
 
-lemma list_and_simps1: "srclist_and es = alist_and (NegPos_map Src es)"
-  by(induction es rule: alist_and.induct)(simp_all)
-lemma list_and_simps2: "dstlist_and es = alist_and (NegPos_map Dst es)"
-  by(induction es rule: alist_and.induct)(simp_all)
-lemma list_and_simps3: "protolist_and es = alist_and (NegPos_map Prot es)"
-  by(induction es rule: alist_and.induct)(simp_all)
-lemma list_and_simps4: "extralist_and es = alist_and (NegPos_map Extra es)"
-  by(induction es rule: alist_and.induct)(simp_all)
-
 
 fun UncompressedFormattedMatch_to_match_expr :: "iptrule_match_Ln_uncompressed \<Rightarrow> iptrule_match match_expr" where
   "UncompressedFormattedMatch_to_match_expr (UncompressedFormattedMatch src dst proto extra) = 
-    MatchAnd (srclist_and src) (MatchAnd (dstlist_and dst) (MatchAnd (protolist_and proto) (extralist_and extra)))"
+    MatchAnd (alist_and (NegPos_map Src src)) (MatchAnd (alist_and (NegPos_map Dst dst)) (MatchAnd (alist_and (NegPos_map Prot proto)) (alist_and (NegPos_map Extra extra))))"
 
-
-fun FormattedMatch_to_match_expr :: "iptrule_match_Ln \<Rightarrow> iptrule_match match_expr" where
-  "FormattedMatch_to_match_expr (FormattedMatch src dst proto extra) = MatchAnd 
-    (case src of Pos s \<Rightarrow> Match (Src s) | Neg s \<Rightarrow> MatchNot (Match (Src s)))
-    (MatchAnd
-      (case dst of Pos d \<Rightarrow> Match (Dst d) | Neg d \<Rightarrow> MatchNot (Match (Dst d)))
-      (MatchAnd
-         (case proto of Pos p \<Rightarrow> Match (Prot p) | Neg p \<Rightarrow> MatchNot (Match (Prot p)))
-         (extralist_and extra)
-      )
-    )"
 
 fun iptrule_match_Ln_uncompressed_append :: "iptrule_match_Ln_uncompressed \<Rightarrow> iptrule_match_Ln_uncompressed \<Rightarrow> iptrule_match_Ln_uncompressed" where
   "iptrule_match_Ln_uncompressed_append (UncompressedFormattedMatch src1 dst1 proto1 extra1) (UncompressedFormattedMatch src2 dst2 proto2 extra2) = 
@@ -105,11 +61,11 @@ fun iptrule_match_collect :: "iptrule_match match_expr \<Rightarrow> iptrule_mat
       (iptrule_match_Ln_uncompressed_append (iptrule_match_collect m2 fmt) fmt)" 
 
 
-
-lemma "wf_disc_sel (is_Src, src_range) Src"
-  by(simp add: wf_disc_sel.simps)
-
-
+text{*
+We can express @{const iptrule_match_collect} with @{const primitive_extractor}.
+Latter is more elegant.
+We keep the definition of @{const iptrule_match_collect} to show explicitly what we are doing here.
+*}
 lemma "normalized_match m \<Longrightarrow> iptrule_match_collect m (UncompressedFormattedMatch [] [] [] []) = (
     let (srcs, m') = primitive_extractor (is_Src, src_range) m;
         (dsts, m'') = primitive_extractor (is_Dst, dst_range) m';
@@ -123,46 +79,17 @@ apply(simp add: split: split_split_asm split_split)
 done
 
 
-
-(*we dont't have an empty ip space, but a space which only contains the 0 address. We will use the option type to denote the empty space in some functions.*)
-lemma "ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal (0, 0, 0, 0)) 33 = {0}"
-apply(simp add: ipv4addr_of_dotteddecimal.simps ipv4addr_of_nat_def)
-apply(simp add: ipv4range_set_from_bitmask_def)
-apply(simp add: ipv4range_set_from_netmask_def)
-done
-
 value(code) "iptrule_match_collect (MatchAnd (Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8))) (Match (Prot ipt_protocol.ProtTCP))) (UncompressedFormattedMatch [] [] [] [])"
 
-thm iptrule_match_collect.induct
 
-lemma srclist_and_append: "matches (\<beta>, \<alpha>) (srclist_and (l1 @ l2)) a p \<longleftrightarrow> matches (\<beta>, \<alpha>)  (MatchAnd (srclist_and l1)  (srclist_and l2)) a p"
+lemma alist_and_append: "matches (\<beta>, \<alpha>) (alist_and (l1 @ l2)) a p \<longleftrightarrow> matches (\<beta>, \<alpha>)  (MatchAnd (alist_and l1)  (alist_and l2)) a p"
   apply(induction l1)
    apply(simp_all add: bunch_of_lemmata_about_matches)
   apply(rename_tac l l1)
   apply(case_tac l)
    apply(simp_all add: bunch_of_lemmata_about_matches)
   done
-lemma dstlist_and_append: "matches (\<beta>, \<alpha>) (dstlist_and (l1 @ l2)) a p \<longleftrightarrow> matches (\<beta>, \<alpha>)  (MatchAnd (dstlist_and l1)  (dstlist_and l2)) a p"
-  apply(induction l1)
-   apply(simp_all add: bunch_of_lemmata_about_matches)
-  apply(rename_tac l l1)
-  apply(case_tac l)
-   apply(simp_all add: bunch_of_lemmata_about_matches)
-  done
-lemma protolist_and_append: "matches (\<beta>, \<alpha>) (protolist_and (l1 @ l2)) a p \<longleftrightarrow> matches (\<beta>, \<alpha>)  (MatchAnd (protolist_and l1)  (protolist_and l2)) a p"
-  apply(induction l1)
-   apply(simp_all add: bunch_of_lemmata_about_matches)
-  apply(rename_tac l l1)
-  apply(case_tac l)
-   apply(simp_all add: bunch_of_lemmata_about_matches)
-  done
-lemma extralist_and_append: "matches (\<beta>, \<alpha>) (extralist_and (l1 @ l2)) a p \<longleftrightarrow> matches (\<beta>, \<alpha>)  (MatchAnd (extralist_and l1)  (extralist_and l2)) a p"
-  apply(induction l1)
-   apply(simp_all add: bunch_of_lemmata_about_matches)
-  apply(rename_tac l l1)
-  apply(case_tac l)
-   apply(simp_all add: bunch_of_lemmata_about_matches)
-  done
+
 
 lemma matches_iptrule_match_Ln_uncompressed_append: "matches (\<beta>, \<alpha>) (UncompressedFormattedMatch_to_match_expr (iptrule_match_Ln_uncompressed_append fmt1 fmt2)) a p \<longleftrightarrow>
        matches (\<beta>, \<alpha>) (MatchAnd (UncompressedFormattedMatch_to_match_expr fmt1) (UncompressedFormattedMatch_to_match_expr fmt2)) a p"
@@ -170,7 +97,7 @@ apply(case_tac fmt1)
 apply(case_tac fmt2)
 apply(clarify)
 apply(simp)
-apply(simp add: srclist_and_append dstlist_and_append protolist_and_append extralist_and_append bunch_of_lemmata_about_matches)
+apply(simp add: alist_and_append NegPos_map_append bunch_of_lemmata_about_matches)
 by fastforce
 
 text{*The empty matches always match*}
@@ -336,7 +263,6 @@ declare Ln_uncompressed_matching.simps[simp del]
 lemma Ln_uncompressed_matching: "Ln_uncompressed_matching \<gamma> a p m \<longleftrightarrow> matches \<gamma> (UncompressedFormattedMatch_to_match_expr m) a p"
   apply(cases m)
   apply(simp)
-  apply(simp add: list_and_simps1 list_and_simps2 list_and_simps3 list_and_simps4)
   apply(simp add: nt_match_list_matches Ln_uncompressed_matching.simps)
 by (metis matches_simp1 matches_simp2)
 

@@ -423,26 +423,22 @@ fun equal_ipt_protocol ProtTCP ProtUDP = false
 datatype iptrule_match = Src of ipt_ipv4range | Dst of ipt_ipv4range |
   Prot of ipt_protocol | Extra of char list;
 
-fun equal_iptrule_matcha (Prot ipt_protocol) (Extra lista) = false
-  | equal_iptrule_matcha (Extra lista) (Prot ipt_protocol) = false
-  | equal_iptrule_matcha (Dst ipt_ipv4range) (Extra lista) = false
-  | equal_iptrule_matcha (Extra lista) (Dst ipt_ipv4range) = false
-  | equal_iptrule_matcha (Dst ipt_ipv4range) (Prot ipt_protocol) = false
-  | equal_iptrule_matcha (Prot ipt_protocol) (Dst ipt_ipv4range) = false
-  | equal_iptrule_matcha (Src ipt_ipv4range) (Extra lista) = false
-  | equal_iptrule_matcha (Extra lista) (Src ipt_ipv4range) = false
-  | equal_iptrule_matcha (Src ipt_ipv4range) (Prot ipt_protocol) = false
-  | equal_iptrule_matcha (Prot ipt_protocol) (Src ipt_ipv4range) = false
-  | equal_iptrule_matcha (Src ipt_ipv4rangea) (Dst ipt_ipv4range) = false
-  | equal_iptrule_matcha (Dst ipt_ipv4rangea) (Src ipt_ipv4range) = false
-  | equal_iptrule_matcha (Extra listaa) (Extra lista) =
-    equal_lista equal_char listaa lista
-  | equal_iptrule_matcha (Prot ipt_protocola) (Prot ipt_protocol) =
-    equal_ipt_protocol ipt_protocola ipt_protocol
-  | equal_iptrule_matcha (Dst ipt_ipv4rangea) (Dst ipt_ipv4range) =
-    equal_ipt_ipv4range ipt_ipv4rangea ipt_ipv4range
-  | equal_iptrule_matcha (Src ipt_ipv4rangea) (Src ipt_ipv4range) =
-    equal_ipt_ipv4range ipt_ipv4rangea ipt_ipv4range;
+fun equal_iptrule_matcha (Prot x3) (Extra x4) = false
+  | equal_iptrule_matcha (Extra x4) (Prot x3) = false
+  | equal_iptrule_matcha (Dst x2) (Extra x4) = false
+  | equal_iptrule_matcha (Extra x4) (Dst x2) = false
+  | equal_iptrule_matcha (Dst x2) (Prot x3) = false
+  | equal_iptrule_matcha (Prot x3) (Dst x2) = false
+  | equal_iptrule_matcha (Src x1) (Extra x4) = false
+  | equal_iptrule_matcha (Extra x4) (Src x1) = false
+  | equal_iptrule_matcha (Src x1) (Prot x3) = false
+  | equal_iptrule_matcha (Prot x3) (Src x1) = false
+  | equal_iptrule_matcha (Src x1) (Dst x2) = false
+  | equal_iptrule_matcha (Dst x2) (Src x1) = false
+  | equal_iptrule_matcha (Extra x4) (Extra y4) = equal_lista equal_char x4 y4
+  | equal_iptrule_matcha (Prot x3) (Prot y3) = equal_ipt_protocol x3 y3
+  | equal_iptrule_matcha (Dst x2) (Dst y2) = equal_ipt_ipv4range x2 y2
+  | equal_iptrule_matcha (Src x1) (Src y1) = equal_ipt_ipv4range x1 y1;
 
 val equal_iptrule_match = {equal = equal_iptrule_matcha} : iptrule_match equal;
 
