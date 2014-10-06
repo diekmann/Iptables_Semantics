@@ -1,5 +1,5 @@
 theory Example_Semantics
-imports Call_Return_Unfolding "Primitive_Matchers/IPSpace_Syntax"
+imports "../Call_Return_Unfolding" "../Primitive_Matchers/IPSpace_Syntax"
 begin
 
 

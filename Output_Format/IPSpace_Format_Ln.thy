@@ -1,5 +1,5 @@
 theory IPSpace_Format_Ln
-imports Format_Ln IPSpace_Matcher IPSpace_operations
+imports Format_Ln "../Primitive_Matchers/IPSpace_Matcher" IPSpace_Operations
 begin
 
 
@@ -260,16 +260,15 @@ done
 (**TODO: compress protocols**)
 fun does_I_has_compressed_rules :: "(iptrule_match_Ln_uncompressed \<times> action) list \<Rightarrow> (iptrule_match_Ln_uncompressed \<times> action) list" where
   "does_I_has_compressed_rules [] = []" |
-  "does_I_has_compressed_rules (((UncompressedFormattedMatch [src] [dst] proto []), a)#rs) =
-    does_I_has_compressed_rules rs"|
   "does_I_has_compressed_rules (((UncompressedFormattedMatch [] [dst] proto []), a)#rs) =
-    does_I_has_compressed_rules rs"|
+    does_I_has_compressed_rules rs" |
   "does_I_has_compressed_rules (((UncompressedFormattedMatch [src] [] proto []), a)#rs) =
-    does_I_has_compressed_rules rs"|
+    does_I_has_compressed_rules rs" |
+  "does_I_has_compressed_rules (((UncompressedFormattedMatch [src] [dst] proto []), a)#rs) =
+    does_I_has_compressed_rules rs" |
   "does_I_has_compressed_rules (((UncompressedFormattedMatch [] [] proto []), a)#rs) =
-    does_I_has_compressed_rules rs"|
-  "does_I_has_compressed_rules (r#rs) =
-    r # does_I_has_compressed_rules rs"
+    does_I_has_compressed_rules rs" |
+  "does_I_has_compressed_rules (r#rs) = r # does_I_has_compressed_rules rs"
 
 
 fun does_I_has_compressed_prots :: "(iptrule_match_Ln_uncompressed \<times> action) list \<Rightarrow> (iptrule_match_Ln_uncompressed \<times> action) list" where

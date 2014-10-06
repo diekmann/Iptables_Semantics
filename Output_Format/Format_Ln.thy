@@ -1,5 +1,5 @@
 theory Format_Ln
-imports Negation_Type_Matching "../Bitmagic/Numberwang_Ln" IPSpace_Syntax "../Bitmagic/IPv4Addr"
+imports Negation_Type_Matching "../Bitmagic/Numberwang_Ln" "../Primitive_Matchers/IPSpace_Syntax" "../Bitmagic/IPv4Addr"
 begin
 
 

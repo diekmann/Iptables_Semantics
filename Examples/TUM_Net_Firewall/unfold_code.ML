@@ -1495,32 +1495,36 @@ fun does_I_has_compressed_prots [] = []
 
 fun does_I_has_compressed_rules [] = []
   | does_I_has_compressed_rules
-    ((UncompressedFormattedMatch ([src], [dst], proto, []), a) :: rs) =
-    does_I_has_compressed_rules rs
-  | does_I_has_compressed_rules
     ((UncompressedFormattedMatch ([], [dst], proto, []), a) :: rs) =
     does_I_has_compressed_rules rs
   | does_I_has_compressed_rules
     ((UncompressedFormattedMatch ([src], [], proto, []), a) :: rs) =
     does_I_has_compressed_rules rs
   | does_I_has_compressed_rules
+    ((UncompressedFormattedMatch ([src], [dst], proto, []), a) :: rs) =
+    does_I_has_compressed_rules rs
+  | does_I_has_compressed_rules
     ((UncompressedFormattedMatch ([], [], proto, []), a) :: rs) =
     does_I_has_compressed_rules rs
   | does_I_has_compressed_rules
+    ((UncompressedFormattedMatch (vf :: v :: vb, vc, vd, ve), va) :: rs) =
+    (UncompressedFormattedMatch (vf :: v :: vb, vc, vd, ve), va) ::
+      does_I_has_compressed_rules rs
+  | does_I_has_compressed_rules
+    ((UncompressedFormattedMatch (vf :: vg, v :: vc :: vh, vd, ve), va) :: rs) =
+    (UncompressedFormattedMatch (vf :: vg, v :: vc :: vh, vd, ve), va) ::
+      does_I_has_compressed_rules rs
+  | does_I_has_compressed_rules
+    ((UncompressedFormattedMatch (vf :: vg, v :: vb, vd, vc :: vh), va) :: rs) =
+    (UncompressedFormattedMatch (vf :: vg, v :: vb, vd, vc :: vh), va) ::
+      does_I_has_compressed_rules rs
+  | does_I_has_compressed_rules
+    ((UncompressedFormattedMatch (vf :: vg, vc, vd, v :: vb), va) :: rs) =
+    (UncompressedFormattedMatch (vf :: vg, vc, vd, v :: vb), va) ::
+      does_I_has_compressed_rules rs
+  | does_I_has_compressed_rules
     ((UncompressedFormattedMatch ([], [], vd, v :: vb), va) :: rs) =
     (UncompressedFormattedMatch ([], [], vd, v :: vb), va) ::
-      does_I_has_compressed_rules rs
-  | does_I_has_compressed_rules
-    ((UncompressedFormattedMatch ([], v :: vf :: vg, vd, ve), va) :: rs) =
-    (UncompressedFormattedMatch ([], v :: vf :: vg, vd, ve), va) ::
-      does_I_has_compressed_rules rs
-  | does_I_has_compressed_rules
-    ((UncompressedFormattedMatch ([], vc, vd, v :: vb), va) :: rs) =
-    (UncompressedFormattedMatch ([], vc, vd, v :: vb), va) ::
-      does_I_has_compressed_rules rs
-  | does_I_has_compressed_rules
-    ((UncompressedFormattedMatch (vf :: vh :: vi, vc, vd, ve), va) :: rs) =
-    (UncompressedFormattedMatch (vf :: vh :: vi, vc, vd, ve), va) ::
       does_I_has_compressed_rules rs
   | does_I_has_compressed_rules
     ((UncompressedFormattedMatch (vb, [], vd, v :: vc), va) :: rs) =

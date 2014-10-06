@@ -2,7 +2,7 @@ theory Analyze_Ringofsaturn_com
 imports
   "../../Call_Return_Unfolding"
   "../../Optimizing"
-  "../../Primitive_Matchers/IPSpace_Format_Ln"
+  "../../Output_Format/IPSpace_Format_Ln"
 begin
 
 section{*Example: ringofsaturn.com*}
