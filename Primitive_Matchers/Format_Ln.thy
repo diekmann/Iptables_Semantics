@@ -21,7 +21,7 @@ ACCEPT     icmp --  0.0.0.0/0            0.0.0.0/0            icmptype 3
 *}
 
 
-(*this is the thing we have at the moment. Todo: compress the lists to one entry*)
+(*this is the thing we have at the moment. Todo: compress the first four lists to one entry*)
 datatype iptrule_match_Ln_uncompressed = UncompressedFormattedMatch 
   (*Src*) "ipt_ipv4range negation_type list"
   (*Dst*) "ipt_ipv4range negation_type list"
@@ -122,45 +122,43 @@ done
 
 
 text{*We can also show the previous corollary by the correctness of @{const primitive_extractor}*}
-lemma yc_exhaust: "normalized_match yc \<Longrightarrow> \<not> has_disc is_Dst yc \<Longrightarrow> \<not> has_disc is_Prot yc \<Longrightarrow> \<not> has_disc is_Extra yc \<Longrightarrow> \<not> has_disc is_Src yc \<Longrightarrow> matches \<gamma> yc a p"
-  apply(induction yc)
-  apply(simp_all add:bunch_of_lemmata_about_matches)
-  apply(case_tac aa)
-  apply(simp_all)
-  apply(case_tac yc)
-  apply(simp_all)
-  apply(case_tac aa)
-  apply(simp_all)
-  done
 corollary "normalized_match m \<Longrightarrow> matches \<gamma> (UncompressedFormattedMatch_to_match_expr (format_Ln_match m)) a p \<longleftrightarrow> matches \<gamma> m a p"
-unfolding format_Ln_match_def 
-unfolding iptrule_match_collect_by_primitive_extractor
-apply(simp)
-apply(simp split: split_split add: bunch_of_lemmata_about_matches(1))
-apply(clarify)
-thm primitive_extractor_correct[OF _ wf_disc_sel_iptrule_match(1)]
-apply(frule(1) primitive_extractor_correct[where \<gamma>=\<gamma> and p=p and a=a, OF _ wf_disc_sel_iptrule_match(1)])
-apply(frule(1) primitive_extractor_has_disc, drule(1) primitive_extractor_normalized)
-apply(frule(1) primitive_extractor_correct[where \<gamma>=\<gamma> and p=p and a=a, OF _ wf_disc_sel_iptrule_match(2), symmetric])
-apply(drule(2) primitive_extractor_has_disc2, drule(1) primitive_extractor_normalized)
-apply(frule(1) primitive_extractor_correct[where \<gamma>=\<gamma> and p=p and a=a, OF _ wf_disc_sel_iptrule_match(3), symmetric])
-apply(elim conjE)
-apply(drule(2) primitive_extractor_has_disc2)
-apply(drule(2) primitive_extractor_has_disc2)
-apply(drule(1) primitive_extractor_normalized)
-apply(elim conjE)
-apply(frule(1) primitive_extractor_correct[where \<gamma>=\<gamma> and p=p and a=a, OF _ wf_disc_sel_iptrule_match(4), symmetric])
-apply(drule(2) primitive_extractor_has_disc2)
-apply(drule(2) primitive_extractor_has_disc2)
-apply(drule(2) primitive_extractor_has_disc2)
-apply(drule(2) primitive_extractor_has_disc2)
-apply(drule(1) primitive_extractor_normalized)
-apply(elim conjE)
-apply(simp)
-apply(subgoal_tac "matches \<gamma> yc a p") --"this is the last remaining thing. it is (sort of) empty"
-apply(simp)
-using yc_exhaust by metis
-
+proof -
+  {fix yc
+    have "normalized_match yc \<Longrightarrow> \<not> has_disc is_Dst yc \<Longrightarrow> \<not> has_disc is_Prot yc \<Longrightarrow> \<not> has_disc is_Extra yc \<Longrightarrow> \<not> has_disc is_Src yc \<Longrightarrow> matches \<gamma> yc a p"
+    apply(induction yc)
+    apply(simp_all add:bunch_of_lemmata_about_matches)
+    apply(case_tac aa)
+    apply(simp_all)
+    apply(case_tac yc)
+    apply(simp_all)
+    apply(case_tac aa)
+    apply(simp_all)
+    done
+  } note yc_exhaust=this
+  assume normalized: "normalized_match m" 
+  {fix asrc msrc adst mdst aprot mprot aextra mextra
+  from normalized have
+      "primitive_extractor (is_Extra, extra_sel) mprot = (aextra, mextra) \<Longrightarrow>
+       primitive_extractor (is_Prot, prot_sel) mdst = (aprot, mprot) \<Longrightarrow>
+       primitive_extractor (is_Dst, dst_range) msrc = (adst, mdst) \<Longrightarrow>
+       primitive_extractor (is_Src, src_range) m = (asrc, msrc) \<Longrightarrow>
+        matches \<gamma> (alist_and (NegPos_map Src asrc)) a p \<and>
+        matches \<gamma> (alist_and (NegPos_map Dst adst)) a p \<and>
+        matches \<gamma> (alist_and (NegPos_map Prot aprot)) a p \<and>
+        matches \<gamma> (alist_and (NegPos_map Extra aextra)) a p \<longleftrightarrow> matches \<gamma> m a p"
+    apply -
+    apply(erule(1) primitive_extractor_matchesE[OF wf_disc_sel_iptrule_match(1)])
+    apply(erule(1) primitive_extractor_matchesE[OF wf_disc_sel_iptrule_match(2)])
+    apply(erule(1) primitive_extractor_matchesE[OF wf_disc_sel_iptrule_match(3)])
+    apply(erule(1) primitive_extractor_matches_lastE[OF wf_disc_sel_iptrule_match(4)])
+    using yc_exhaust by metis
+  }
+  thus ?thesis
+    unfolding format_Ln_match_def 
+    unfolding iptrule_match_collect_by_primitive_extractor[OF normalized]
+    by(simp split: split_split add: bunch_of_lemmata_about_matches(1))
+qed
 
 
 

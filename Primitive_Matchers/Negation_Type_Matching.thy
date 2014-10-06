@@ -59,6 +59,18 @@ lemma matches_alist_and: "matches \<gamma> (alist_and l) a p \<longleftrightarro
 by (metis (poly_guards_query) nt_match_list_matches nt_match_list_simp)
 
 
+text{*
+  Test if a @{text disc} is in the match expression.
+  For example, it call tell whether there are some matches for @{text "Src ip"}.
+*}
+fun has_disc :: "('a \<Rightarrow> bool) \<Rightarrow> 'a match_expr \<Rightarrow> bool" where
+  "has_disc _ MatchAny = False" |
+  "has_disc disc (Match a) = disc a" |
+  "has_disc disc (MatchNot m) = has_disc disc m" |
+  "has_disc disc (MatchAnd m1 m2) = (has_disc disc m1 \<or> has_disc disc m2)"
+
+
+
 
 text{*
   The following function takes a tuple of functions and a match expression.
@@ -77,7 +89,6 @@ fun primitive_extractor :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 
             (a2', ms2') = primitive_extractor C ms2
         in (a1'@a2', MatchAnd ms1' ms2'))"
 
-
 text{*
   The first part returned by @{const primitive_extractor}, here @{text as}:
     A list of primitive match expressions.
@@ -88,18 +99,52 @@ text{*
 
     Together, the first and second part match iff @{text m} matches.
 *}
-lemma primitive_extractor_correct_help: "normalized_match m \<Longrightarrow> (as, ms) = primitive_extractor (disc, sel) m \<Longrightarrow> wf_disc_sel (disc, sel) C \<Longrightarrow>
-  matches \<gamma> (alist_and (NegPos_map C as)) a p \<and> matches \<gamma> ms a p \<longleftrightarrow> matches \<gamma> m a p"
-  apply(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
-  apply(simp_all add: bunch_of_lemmata_about_matches wf_disc_sel.simps split: split_if_asm)
-  apply(simp split: split_if_asm split_split_asm add: NegPos_map_append)
-  apply(auto simp add: alist_and_append bunch_of_lemmata_about_matches)
-  done
 
-lemma primitive_extractor_correct: "normalized_match m \<Longrightarrow> wf_disc_sel (disc, sel) C \<Longrightarrow> primitive_extractor (disc, sel) m = (as, ms) \<Longrightarrow> 
-  matches \<gamma> (alist_and (NegPos_map C as)) a p \<and> matches \<gamma> ms a p \<longleftrightarrow> matches \<gamma> m a p"
-using primitive_extractor_correct_help by metis
+theorem primitive_extractor_correct: assumes 
+  "normalized_match m" and "wf_disc_sel (disc, sel) C" and "primitive_extractor (disc, sel) m = (as, ms)" 
+  shows "matches \<gamma> (alist_and (NegPos_map C as)) a p \<and> matches \<gamma> ms a p \<longleftrightarrow> matches \<gamma> m a p"
+  and "normalized_match ms"
+  and "\<not> has_disc disc ms"
+  and "\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms"
+proof -
+  --"better simplification rule"
+  from assms have assm3': "(as, ms) = primitive_extractor (disc, sel) m" by simp
+  with assms(1) assms(2) show "matches \<gamma> (alist_and (NegPos_map C as)) a p \<and> matches \<gamma> ms a p \<longleftrightarrow> matches \<gamma> m a p"
+    apply(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+          apply(simp_all add: bunch_of_lemmata_about_matches wf_disc_sel.simps split: split_if_asm)
+    apply(simp split: split_if_asm split_split_asm add: NegPos_map_append)
+    apply(auto simp add: alist_and_append bunch_of_lemmata_about_matches)
+    done
 
+  from assms(1) assm3' show "normalized_match ms"
+    apply(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+          apply(simp)
+         apply(simp)
+         apply(simp split: split_if_asm)
+        apply(simp split: split_if_asm)
+       apply(clarify) (*if i don't clarify, the simplifier loops*)
+       apply(simp split: split_split_asm)
+      apply(simp)
+     apply(simp)
+    apply(simp)
+    done
+
+  from assms(1) assm3' show "\<not> has_disc disc ms"
+    apply(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+          by(simp_all split: split_if_asm split_split_asm)
+
+  from assms(1) assm3' show "\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms"
+    apply(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+          apply(simp)
+         apply(simp split: split_if_asm)
+        apply(simp split: split_if_asm)
+       apply(clarify) (*the simplifier loops*)
+       apply(simp split: split_split_asm)
+      apply(simp_all)
+    done
+qed
+
+(*
 theorem primitive_extractor_correct': "normalized_match m \<Longrightarrow> wf_disc_sel discsel C \<Longrightarrow>
   matches \<gamma> (alist_and (NegPos_map C (fst (primitive_extractor discsel m)))) a p \<and> matches \<gamma> (snd (primitive_extractor discsel m)) a p \<longleftrightarrow> matches \<gamma> m a p"
 apply(cases discsel)
@@ -113,8 +158,8 @@ text{*
 *}
 
 
-lemma primitive_extractor_normalized_helper: "normalized_match m \<Longrightarrow> (as, ms) = primitive_extractor (disc, sel) m \<Longrightarrow> normalized_match ms"
-  apply(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+lemma primitive_extractor_normalized_helper: "normalized_match m \<Longrightarrow> (as, ms) = primitive_extractor discsel m \<Longrightarrow> normalized_match ms"
+  apply(induction discsel m  arbitrary: as ms rule: primitive_extractor.induct)
   apply(simp)
   apply(simp)
   apply(simp split: split_if_asm)
@@ -128,13 +173,6 @@ lemma primitive_extractor_normalized_helper: "normalized_match m \<Longrightarro
   
 lemma primitive_extractor_normalized: "normalized_match m \<Longrightarrow> primitive_extractor (disc, sel) m = (as, ms) \<Longrightarrow> normalized_match ms"
 using primitive_extractor_normalized_helper by metis
-
-
-fun has_disc :: "('a \<Rightarrow> bool) \<Rightarrow> 'a match_expr \<Rightarrow> bool" where
-  "has_disc _ MatchAny = False" |
-  "has_disc disc (Match a) = disc a" |
-  "has_disc disc (MatchNot m) = has_disc disc m" |
-  "has_disc disc (MatchAnd m1 m2) = (has_disc disc m1 \<or> has_disc disc m2)"
 
 
 
@@ -162,5 +200,26 @@ apply(rule conjI)
 using primitive_extractor_has_disc_helper apply(metis)
 using primitive_extractor_has_disc2_helper apply metis
 done
+*)
+
+
+lemma primitive_extractor_matchesE: "wf_disc_sel (disc,sel) C \<Longrightarrow> normalized_match m \<Longrightarrow> primitive_extractor (disc, sel) m = (as, ms)
+  \<Longrightarrow>
+  (normalized_match ms \<Longrightarrow> \<not> has_disc disc ms \<Longrightarrow> (\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms) \<Longrightarrow> matches_other \<longleftrightarrow>  matches \<gamma> ms a p)
+  \<Longrightarrow>
+  matches \<gamma> (alist_and (NegPos_map C as)) a p \<and> matches_other \<longleftrightarrow>  matches \<gamma> m a p"
+using primitive_extractor_correct by metis
+
+lemma primitive_extractor_matches_lastE: "wf_disc_sel (disc,sel) C \<Longrightarrow> normalized_match m \<Longrightarrow> primitive_extractor (disc, sel) m = (as, ms)
+  \<Longrightarrow>
+  (normalized_match ms \<Longrightarrow> \<not> has_disc disc ms \<Longrightarrow> (\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms) \<Longrightarrow> matches \<gamma> ms a p)
+  \<Longrightarrow>
+  matches \<gamma> (alist_and (NegPos_map C as)) a p  \<longleftrightarrow>  matches \<gamma> m a p"
+using primitive_extractor_correct by metis
+
+text{*The lemmas @{thm primitive_extractor_matchesE} and @{thm primitive_extractor_matches_lastE} can be used as
+  erule to solve goals about consecutive application of @{const primitive_extractor}.
+  They should be used as @{text "primitive_extractor_matchesE[OF wf_disc_sel_for_first_extracted_thing]"}.
+  *}
 
 end
