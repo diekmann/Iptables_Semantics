@@ -73,10 +73,10 @@ fun has_disc :: "('a \<Rightarrow> bool) \<Rightarrow> 'a match_expr \<Rightarro
 
 
 text{*
-  The following function takes a tuple of functions and a match expression.
+  The following function takes a tuple of functions (@{typ "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b))"}) and a @{typ "'a match_expr"}.
   The passed function tuple must be the discriminator and selector of the datatype package.
-  It filters the latter and returns a tuple.
-  The first element are the filtered primitive matches, the second element is the remaining match expression.
+  @{text primitive_extractor} filters the @{typ "'a match_expr"} and returns a tuple.
+  The first element of the returned tuple is the filtered primitive matches, the second element is the remaining match expression.
 
   It requires a @{const normalized_match}.
   *}
