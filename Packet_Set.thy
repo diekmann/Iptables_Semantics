@@ -73,5 +73,51 @@ case (Cons r rs)
 qed
 
 
+lemma "simple_ruleset rs \<Longrightarrow> approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow \<Longrightarrow> p \<in> P \<Longrightarrow> p \<in> collect_allow \<gamma> rs P"
+apply(induction rs arbitrary: P)
+ apply(simp)
+apply(rename_tac r rs P)
+apply(case_tac r, rename_tac m a)
+apply(case_tac a)
+apply(simp_all add: simple_ruleset_def del: approximating_bigstep_fun.simps)
+apply(case_tac "matches \<gamma> m Accept p")
+ apply(simp)
+apply(simp)
+apply(case_tac "matches \<gamma> m Drop p")
+ apply(simp)
+apply(simp)
+done
+
+(*
+lemma "simple_ruleset rs \<Longrightarrow> approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow \<Longrightarrow> p \<in> collect_allow \<gamma> rs UNIV"
+proof(induction rs)
+case Nil thus ?case by simp
+next
+case (Cons r rs)
+  from Cons obtain m a where r: "r = Rule m a" by (cases r) simp
+  from Cons.prems have simple_rs: "simple_ruleset rs" by (simp add: r simple_ruleset_def)
+  from Cons.prems r have a_cases: "a = Accept \<or> a = Drop" by (simp add: r simple_ruleset_def)
+  show ?case (is ?goal)
+  proof(cases a)
+    case Accept
+      from Accept Cons.IH simple_rs have IH:
+        "approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow \<Longrightarrow> p \<in> collect_allow \<gamma> rs UNIV" by simp
+      from Accept Cons.prems have "matches \<gamma> m Accept p \<or> approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow"
+        apply(simp add: r) by presburger
+      with Accept show ?goal
+      apply -
+      apply(erule disjE)
+      apply(simp add: r)
+       apply(simp add: r)
+      apply(drule IH)
+      
+      sorry
+    next
+    case Drop
+      with Cons show ?goal sorry
+    qed(insert a_cases, simp_all)
+qed
+*)
+
 
 end
