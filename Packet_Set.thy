@@ -17,11 +17,34 @@ term normalized_match
 thm normalized_match_normalize_match
 
 
-
 definition to_packet_set :: "('a, 'packet) match_tac \<Rightarrow> action \<Rightarrow> ('a negation_type list) list \<Rightarrow> 'packet set" where
-  "to_packet_set \<gamma> a ms \<equiv> {p. \<exists> m \<in> set ms. matches \<gamma> (alist_and m) a p}"
+  "to_packet_set \<gamma> a ms \<equiv> {p. \<exists> as \<in> set ms. matches \<gamma> (alist_and as) a p}"
 
 
+
+lemma to_packet_set_correct: "p \<in> to_packet_set \<gamma> a (to_negation_type m) \<longleftrightarrow> matches \<gamma> m a p"
+apply(simp add: to_packet_set_def to_negation_type_def)
+apply(rule iffI)
+ apply(clarify)
+ apply(induction m rule: normalize_match.induct)
+       apply(simp_all add: bunch_of_lemmata_about_matches)
+ apply (smt2 alist_and_append imageE matches_simp2 matches_simp22 to_negation_type_nnf.simps(4))
+apply (metis matches_DeMorgan)
+apply(induction m rule: normalize_match.induct)
+      apply(simp_all add: bunch_of_lemmata_about_matches)
+ apply (metis alist_and_append matches_simp1)
+apply (metis Un_iff matches_DeMorgan)
+done
+
+
+
+
+
+
+
+text{*
+Collect all packets which are allowed by the firewall.
+*}
 fun collect_allow :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'p set \<Rightarrow> 'p set" where
   "collect_allow _ [] P = {}" |
   "collect_allow \<gamma> ((Rule m Accept)#rs) P = {p \<in> P. matches \<gamma> m Accept p} \<union> (collect_allow \<gamma> rs {p \<in> P. \<not> matches \<gamma> m Accept p})" |
