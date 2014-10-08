@@ -3,27 +3,27 @@ imports Fixed_Action "Output_Format/Negation_Type_Matching" Datatype_Selectors
 begin
 
 section{*Packet Set*}
-(*probably wants a simple ruleset*)
+(*probably everything here wants a simple ruleset*)
 
 text{*@{const alist_and} transforms @{typ "'a negation_type list \<Rightarrow> 'a match_expr"} and uses conjunction as connective. *}
 
+subsection{*Executable Packet Set Representation*}
 
-text{*inner is and, outer is or*}
-definition to_negation_type :: "'a match_expr \<Rightarrow> ('a negation_type list) list" where
- "to_negation_type m = map to_negation_type_nnf (normalize_match m)"
+text{*Symbolic (executable) representation. inner is @{text \<and>}, outer is @{text \<or>}*}
+datatype_new 'a packet_set = PacketSet (packet_set_repr: "('a negation_type list) list")
 
-term normalize_match
-term normalized_match
-thm normalized_match_normalize_match
+(*generalize remove unknown matches*)
+
+(*irgendwie muss hier \<gamma> a rein*)
+definition to_packet_set :: "'a match_expr \<Rightarrow> 'a packet_set" where
+ "to_packet_set m = PacketSet (map to_negation_type_nnf (normalize_match m))"
+
+definition packet_set_to_set :: "('a, 'packet) match_tac \<Rightarrow> action \<Rightarrow> 'a packet_set \<Rightarrow> 'packet set" where
+  "packet_set_to_set \<gamma> a ps \<equiv> {p. \<exists> as \<in> set (packet_set_repr ps). matches \<gamma> (alist_and as) a p}"
 
 
-definition to_packet_set :: "('a, 'packet) match_tac \<Rightarrow> action \<Rightarrow> ('a negation_type list) list \<Rightarrow> 'packet set" where
-  "to_packet_set \<gamma> a ms \<equiv> {p. \<exists> as \<in> set ms. matches \<gamma> (alist_and as) a p}"
-
-
-
-lemma to_packet_set_correct: "p \<in> to_packet_set \<gamma> a (to_negation_type m) \<longleftrightarrow> matches \<gamma> m a p"
-apply(simp add: to_packet_set_def to_negation_type_def)
+lemma to_packet_set_correct: "p \<in> packet_set_to_set \<gamma> a (to_packet_set m) \<longleftrightarrow> matches \<gamma> m a p"
+apply(simp add: to_packet_set_def packet_set_to_set_def)
 apply(rule iffI)
  apply(clarify)
  apply(induction m rule: normalize_match.induct)
@@ -36,12 +36,15 @@ apply(induction m rule: normalize_match.induct)
 apply (metis Un_iff matches_DeMorgan)
 done
 
+(*'a packet_set \<Rightarrow> 'a packet_set*)
+fun packet_set_filter :: "('a, 'p) match_tac \<Rightarrow> action \<Rightarrow> ('p \<Rightarrow> bool) \<Rightarrow> ('a negation_type list) list \<Rightarrow> ('a negation_type list) list" where
+  "packet_set_filter _ _ _ [] = []" |
+  "packet_set_filter \<gamma> a f (n#ns) = [] @ packet_set_filter \<gamma> a f ns"
 
 
 
 
-
-
+subsection{*The set of all accepted packets*}
 text{*
 Collect all packets which are allowed by the firewall.
 *}

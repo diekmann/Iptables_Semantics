@@ -236,4 +236,79 @@ lemmas bool_to_ternary_simps = bool_to_ternary_simp1 bool_to_ternary_simp2 bool_
 hide_fact bool_to_ternary_simp1 bool_to_ternary_simp2 bool_to_ternary_simp3 bool_to_ternary_simp4 bool_to_ternary_simp5
 
 
+
+
+
+subsection{*Removing Unknown Primitives*}
+
+
+fun remove_unknowns_generic :: "('a, 'packet) match_tac \<Rightarrow> action \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr" where
+  "remove_unknowns_generic _ _ MatchAny = MatchAny" |
+  "remove_unknowns_generic _ _ (MatchNot MatchAny) = MatchNot MatchAny" |
+  "remove_unknowns_generic (\<beta>, \<alpha>) a (Match A) = (if
+      (\<forall>p. ternary_ternary_eval (map_match_tac \<beta> p (Match A)) = TernaryUnknown)
+    then
+      if (\<forall>p. \<alpha> a p) then MatchAny else if (\<forall>p. \<not> \<alpha> a p) then MatchNot MatchAny else Match A
+    else (Match A))" |
+  "remove_unknowns_generic (\<beta>, \<alpha>) a (MatchNot (Match A)) = (if
+      (\<forall>p. ternary_ternary_eval (map_match_tac \<beta> p (Match A)) = TernaryUnknown)
+    then
+      if (\<forall>p. \<alpha> a p) then MatchAny else if (\<forall>p. \<not> \<alpha> a p) then MatchNot MatchAny else MatchNot (Match A)
+    else MatchNot (Match A))" |
+  "remove_unknowns_generic (\<beta>, \<alpha>) a (MatchNot (MatchNot m)) = remove_unknowns_generic (\<beta>, \<alpha>) a m" |
+  "remove_unknowns_generic (\<beta>, \<alpha>) a (MatchAnd m1 m2) = MatchAnd
+      (remove_unknowns_generic (\<beta>, \<alpha>) a m1)
+      (remove_unknowns_generic (\<beta>, \<alpha>) a m2)" |
+
+  --{*@{text "\<not> (a \<and> b) = \<not> b \<or> \<not> a"}   and   @{text "\<not> Unknown = Unknown"}*}
+  "remove_unknowns_generic (\<beta>, \<alpha>) a (MatchNot (MatchAnd m1 m2)) = 
+    (if (remove_unknowns_generic (\<beta>, \<alpha>) a (MatchNot m1)) = MatchAny \<or>
+        (remove_unknowns_generic (\<beta>, \<alpha>) a (MatchNot m2)) = MatchAny
+        then MatchAny else 
+        (if (remove_unknowns_generic (\<beta>, \<alpha>) a (MatchNot m1)) = MatchNot MatchAny then 
+          remove_unknowns_generic (\<beta>, \<alpha>) a (MatchNot m2) else
+         if (remove_unknowns_generic (\<beta>, \<alpha>) a (MatchNot m2)) = MatchNot MatchAny then 
+          remove_unknowns_generic (\<beta>, \<alpha>) a (MatchNot m1) else
+        MatchNot (MatchAnd m1 m2))
+       )"
+
+lemma[code_unfold]: "remove_unknowns_generic \<gamma> a (MatchNot (MatchAnd m1 m2)) = 
+    (let m1' = remove_unknowns_generic \<gamma>  a (MatchNot m1); m2' = remove_unknowns_generic \<gamma>  a (MatchNot m2) in
+    (if m1' = MatchAny \<or> m2' = MatchAny
+     then MatchAny
+     else 
+        if m1' = MatchNot MatchAny then m2' else
+        if m2' = MatchNot MatchAny then m1'
+     else
+        MatchNot (MatchAnd m1 m2))
+       )"
+apply(cases \<gamma>)
+apply(simp)
+done
+
+lemma "a = Accept \<or> a = Drop \<Longrightarrow> matches (\<beta>, \<alpha>) (remove_unknowns_generic (\<beta>, \<alpha>) a (MatchNot (Match A))) a p = matches (\<beta>, \<alpha>) (MatchNot (Match A)) a p"
+apply(simp)
+apply(safe)
+apply(simp_all)
+apply(simp_all add: bunch_of_lemmata_about_matches matches_DeMorgan)
+apply(simp_all add: matches_case_ternaryvalue_tuple )
+done
+
+lemma "a = Accept \<or> a = Drop \<Longrightarrow> \<gamma> = (\<beta>, \<alpha>) \<Longrightarrow>
+      matches (\<beta>, \<alpha>) (remove_unknowns_generic \<gamma> a m) a =
+      matches (\<beta>, \<alpha>) m a"
+  apply(simp add: fun_eq_iff, clarify)
+  apply(rename_tac p)
+  apply(induction "\<gamma>" a m rule: remove_unknowns_generic.induct)
+                    apply(simp_all add: bunch_of_lemmata_about_matches matches_DeMorgan)[2]
+                    apply(simp_all add: bunch_of_lemmata_about_matches matches_DeMorgan)[1]
+                    apply(simp add: matches_case_ternaryvalue_tuple)
+                    apply(simp_all add: bunch_of_lemmata_about_matches matches_DeMorgan)
+   apply(simp_all add: matches_case_ternaryvalue_tuple)
+   apply safe
+   apply(simp_all add : ternary_to_bool_Some ternary_to_bool_None)
+done
+
+
+
 end
