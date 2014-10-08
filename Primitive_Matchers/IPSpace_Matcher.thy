@@ -102,6 +102,39 @@ lemma[code_unfold]: "opt_simple_matcher_in_doubt_allow_extra a (MatchNot (MatchA
        )"
 by(simp)
 
+
+text{*
+@{const opt_simple_matcher_in_doubt_allow_extra} can be expressed in terms of @{text remove_unknowns_generic}
+*}
+lemma assumes "a = Accept \<or> a = Drop" shows "opt_simple_matcher_in_doubt_allow_extra a m = remove_unknowns_generic (simple_matcher, in_doubt_allow) a m"
+proof -
+  {fix x1 x2 x3
+  have 
+    "(\<exists>p::packet. bool_to_ternary (src_ip p \<in> ipv4s_to_set x1) \<noteq> TernaryUnknown)"
+    "(\<exists>p::packet. bool_to_ternary (dst_ip p \<in> ipv4s_to_set x2) \<noteq> TernaryUnknown)"
+    "(\<exists>p::packet. simple_matcher (Prot x3) p \<noteq> TernaryUnknown)"
+      apply -
+      apply(simp_all add: bool_to_ternary_Unknown)
+      apply(case_tac x3)
+      apply(simp_all)
+      apply(rule_tac x="\<lparr> src_ip = X, dst_ip = Y, prot = protPacket.ProtTCP \<rparr>" in exI, simp)
+      apply(rule_tac x="\<lparr> src_ip = X, dst_ip = Y, prot = protPacket.ProtUDP \<rparr>" in exI, simp)
+      done
+  } note simple_matcher_packet_exists=this
+  {fix \<gamma>
+  have "a = Accept \<or> a = Drop \<Longrightarrow> \<gamma> = (simple_matcher, in_doubt_allow) \<Longrightarrow> opt_simple_matcher_in_doubt_allow_extra a m = remove_unknowns_generic \<gamma> a m"
+    apply(induction \<gamma> a m rule: remove_unknowns_generic.induct)
+      apply(simp_all)
+      apply(case_tac [!] A)
+      apply(case_tac [!] a)
+      apply(simp_all)
+      apply(simp_all add: simple_matcher_packet_exists)
+      done
+   } thus ?thesis using `a = Accept \<or> a = Drop` by simp
+qed
+    
+
+
 (*TODO move?*)
 lemma eval_ternary_And_UnknownTrue1: "eval_ternary_And TernaryUnknown t \<noteq> TernaryTrue"
 apply(cases t)

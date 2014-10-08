@@ -288,25 +288,22 @@ done
 
 lemma "a = Accept \<or> a = Drop \<Longrightarrow> matches (\<beta>, \<alpha>) (remove_unknowns_generic (\<beta>, \<alpha>) a (MatchNot (Match A))) a p = matches (\<beta>, \<alpha>) (MatchNot (Match A)) a p"
 apply(simp)
-apply(safe)
-apply(simp_all)
-apply(simp_all add: bunch_of_lemmata_about_matches matches_DeMorgan)
-apply(simp_all add: matches_case_ternaryvalue_tuple )
-done
+apply(simp add: bunch_of_lemmata_about_matches matches_case_ternaryvalue_tuple)
+by presburger
 
 lemma "a = Accept \<or> a = Drop \<Longrightarrow> \<gamma> = (\<beta>, \<alpha>) \<Longrightarrow>
       matches (\<beta>, \<alpha>) (remove_unknowns_generic \<gamma> a m) a =
       matches (\<beta>, \<alpha>) m a"
   apply(simp add: fun_eq_iff, clarify)
   apply(rename_tac p)
-  apply(induction "\<gamma>" a m rule: remove_unknowns_generic.induct)
-                    apply(simp_all add: bunch_of_lemmata_about_matches matches_DeMorgan)[2]
-                    apply(simp_all add: bunch_of_lemmata_about_matches matches_DeMorgan)[1]
-                    apply(simp add: matches_case_ternaryvalue_tuple)
-                    apply(simp_all add: bunch_of_lemmata_about_matches matches_DeMorgan)
-   apply(simp_all add: matches_case_ternaryvalue_tuple)
-   apply safe
-   apply(simp_all add : ternary_to_bool_Some ternary_to_bool_None)
+  apply(induction \<gamma> a m rule: remove_unknowns_generic.induct)
+        apply(simp_all add: bunch_of_lemmata_about_matches)[2]
+      apply(simp_all add: bunch_of_lemmata_about_matches)[1]
+     apply(simp add: matches_case_ternaryvalue_tuple)
+    apply(simp_all add: bunch_of_lemmata_about_matches matches_DeMorgan)
+  apply(simp_all add: matches_case_ternaryvalue_tuple)
+  apply safe
+               apply(simp_all add : ternary_to_bool_Some ternary_to_bool_None)
 done
 
 
