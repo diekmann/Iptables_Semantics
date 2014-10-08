@@ -102,7 +102,7 @@ lemma[code_unfold]: "opt_simple_matcher_in_doubt_allow_extra a (MatchNot (MatchA
        )"
 by(simp)
 
-
+(*TODO move?*)
 lemma eval_ternary_And_UnknownTrue1: "eval_ternary_And TernaryUnknown t \<noteq> TernaryTrue"
 apply(cases t)
 apply(simp_all)
