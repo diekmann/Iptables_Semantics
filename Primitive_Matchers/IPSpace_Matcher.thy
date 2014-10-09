@@ -104,7 +104,7 @@ by(simp)
 
 
 text{*
-@{const opt_simple_matcher_in_doubt_allow_extra} can be expressed in terms of @{text remove_unknowns_generic}
+@{const opt_simple_matcher_in_doubt_allow_extra} can be expressed in terms of @{const remove_unknowns_generic}
 *}
 lemma assumes "a = Accept \<or> a = Drop" shows "opt_simple_matcher_in_doubt_allow_extra a m = remove_unknowns_generic (simple_matcher, in_doubt_allow) a m"
 proof -
@@ -132,8 +132,222 @@ proof -
       done
    } thus ?thesis using `a = Accept \<or> a = Drop` by simp
 qed
-    
 
+
+(******** SCRATCH ************)
+fun has_unknowns :: " ('a, 'p) exact_match_tac \<Rightarrow> 'a match_expr \<Rightarrow> bool" where
+  "has_unknowns \<beta> (Match A) = (\<exists>p. ternary_ternary_eval (map_match_tac \<beta> p (Match A)) = TernaryUnknown)" |
+  "has_unknowns \<beta> (MatchNot m) = has_unknowns \<beta> m" |
+  "has_unknowns \<beta> MatchAny = False" |
+  "has_unknowns \<beta> (MatchAnd m1 m2) = (has_unknowns \<beta> m1 \<or> has_unknowns \<beta> m2)"
+
+value "opt_simple_matcher_in_doubt_allow_extra Drop (MatchNot (MatchAnd (MatchNot MatchAny) (MatchNot (MatchAnd (MatchNot MatchAny) (Match (Extra ''foo''))))))"
+value "opt_simple_matcher_in_doubt_allow_extra Accept ((MatchAnd (MatchNot MatchAny) (MatchNot (MatchAnd (MatchNot MatchAny) (Match (Extra ''foo''))))))"
+
+lemma "(\<exists>p. ternary_ternary_eval (map_match_tac \<beta> p m) = TernaryUnknown) \<Longrightarrow> has_unknowns \<beta> m"
+apply(clarify)
+apply(induction m)
+apply(simp_all)
+apply(rule_tac x=p in exI, simp)
+apply (metis eval_ternary_Not_UnknownD)
+by (metis (poly_guards_query) eval_ternary_simps(2) eval_ternary_simps(4) ternaryvalue.exhaust)
+
+
+lemma simple_matcher_prot_not_unkown: "simple_matcher (Prot v) p \<noteq> TernaryUnknown"
+  apply(cases v)
+  apply(simp_all add: bool_to_ternary_Unknown)
+done
+lemma a_unknown_extraD: "\<exists>p. simple_matcher (a::iptrule_match) p = TernaryUnknown \<Longrightarrow> \<exists>X. a = Extra X"
+  apply(clarify)
+  apply(case_tac a)
+  apply(simp_all add: bool_to_ternary_Unknown)
+  using simple_matcher_prot_not_unkown by blast
+
+lemma has_unknowns_simple_matcher_base: "has_unknowns simple_matcher (Match A) \<longleftrightarrow> (\<exists>X. A = Extra X)"
+  apply(simp)
+  apply(rule iffI)
+   apply(drule a_unknown_extraD, simp)
+  by auto
+  
+
+lemma "has_unknowns simple_matcher m \<Longrightarrow>
+    (opt_simple_matcher_in_doubt_allow_extra a (MatchNot m) \<noteq> MatchAny) \<or>
+    (opt_simple_matcher_in_doubt_allow_extra a (MatchNot m) \<noteq> MatchNot MatchAny)"
+by (metis match_expr.distinct(9))
+
+
+
+lemma matchexpr_neq_matchnot_n_matchany: "\<forall>n. m \<noteq> (MatchNot^^n) MatchAny \<Longrightarrow>  (\<exists>A n. m = (MatchNot^^n) (Match A)) \<or> (\<exists> m1 m2 n. m = (MatchNot^^n) (MatchAnd m1 m2))"
+  apply(induction m)
+apply (metis funpow.simps(1) id_apply)
+apply (metis comp_apply funpow.simps(2))
+apply (metis funpow.simps(1) id_apply)
+apply (metis funpow.simps(1) id_apply)
+done
+lemma matexp_neq_matchany1: "Match X \<noteq> (MatchNot ^^ n) MatchAny"
+  by(induction n) (simp_all)
+lemma matexp_neq_matchany2: "MatchNot (Match X) \<noteq> (MatchNot ^^ n) MatchAny"
+  by(induction n) (simp_all add: matexp_neq_matchany1)
+lemma matexp_neq_matchany3: "MatchAnd m1 m2 \<noteq> (MatchNot ^^ n) MatchAny"
+  by(induction n) (simp_all)
+lemma matexp_neq_matchany4: "MatchNot (MatchAnd m1 m2) \<noteq> (MatchNot ^^ n) MatchAny"
+  by(induction n) (simp_all add: matexp_neq_matchany3)
+lemma matexp_neq_matchany5: "MatchAny \<noteq> (MatchNot ^^ n) (Match A)"
+  by(induction n) (simp_all)
+lemma matexp_neq_matchany6: "MatchNot MatchAny \<noteq> (MatchNot ^^ n) (Match A)"
+  by(induction n) (simp_all add: matexp_neq_matchany5)
+  
+lemma opt_simple_matcher_in_doubt_allow_extra_matchexpr_neq_matchnot_n_matchany:
+      "opt_simple_matcher_in_doubt_allow_extra a (MatchNot m) \<noteq> MatchNot MatchAny \<Longrightarrow>
+       opt_simple_matcher_in_doubt_allow_extra a (MatchNot m) \<noteq> MatchAny \<Longrightarrow>
+       \<forall>n. opt_simple_matcher_in_doubt_allow_extra a (MatchNot m) \<noteq> (MatchNot^^n) MatchAny"
+  apply(induction a m rule: opt_simple_matcher_in_doubt_allow_extra.induct)
+  apply(simp_all add: matexp_neq_matchany1 matexp_neq_matchany2 matexp_neq_matchany3 matexp_neq_matchany4)
+  apply(safe)
+  apply presburger+
+  done
+
+(*
+lemma "opt_simple_matcher_in_doubt_allow_extra Accept (MatchNot m) = MatchNot MatchAny \<Longrightarrow>
+    (\<exists>n. m = (MatchNot ^^ n) MatchAny) \<or> (\<exists> m1 m2 n. m = (MatchNot^^n) (MatchAnd m1 m2))"
+  apply(induction Accept m arbitrary: rule: opt_simple_matcher_in_doubt_allow_extra.induct)
+  apply(simp_all add: bool_to_ternary_Unknown simple_matcher_prot_not_unkown)
+  apply(rule disjI1)
+  apply(rule_tac x=0 in exI,simp)
+  apply(erule disjE)
+  apply(clarify)
+  apply(rule_tac x="Suc (Suc n)" in exI,simp)
+  apply(erule exE)+
+  apply(simp)
+  apply(rule disjI2)
+  apply(rule_tac x=m1 in exI)
+  apply(rule_tac x=m2 in exI)
+  apply(rule_tac x="Suc (Suc n)" in exI)
+  apply(simp)
+  apply(simp split: split_if_asm)
+  apply(erule disjE)
+  apply(erule exE)+
+  apply(erule disjE)
+  apply(erule exE)+
+  apply simp
+  apply(rule disjI2)
+  apply(rule_tac x=m1 in exI)
+  apply(rule_tac x=m2 in exI)
+  apply(rule_tac x=0 in exI)
+  apply simp
+  apply(rule disjI2)
+  apply(rule_tac x=m1 in exI)
+  apply(rule_tac x=m2 in exI)
+  apply(rule_tac x=0 in exI)
+  apply simp
+  apply(rule disjI2)
+  apply(rule_tac x=m1 in exI)
+  apply(rule_tac x=m2 in exI)
+  apply(rule_tac x=0 in exI)
+  apply simp
+  done
+*)
+lemma not_has_unknowns_simplematcher_1: "\<not> has_unknowns simple_matcher ((MatchNot ^^ n) MatchAny)"
+  by(induction n) (simp_all)
+lemma not_has_unknowns_simplematcher_2: "\<not> has_unknowns simple_matcher m1 \<Longrightarrow>
+       \<not> has_unknowns simple_matcher m2 \<Longrightarrow>
+       \<not> has_unknowns simple_matcher ((MatchNot ^^ n) (MatchAnd m1 m2))"
+  by(induction n) (simp_all)
+lemma opt_simple_matcher_in_doubt_allow_extra_Accept_MatchNot_MatchNotMatchAny: 
+  "opt_simple_matcher_in_doubt_allow_extra Accept (MatchNot m) = MatchNot MatchAny \<Longrightarrow>
+    (\<exists>n. m = (MatchNot ^^ n) MatchAny) \<or> (\<exists> m1 m2 n. (m = (MatchNot^^n) (MatchAnd m1 m2)) \<and> \<not> has_unknowns simple_matcher m1 \<and> \<not> has_unknowns simple_matcher m2)"
+  apply(induction Accept m arbitrary: rule: opt_simple_matcher_in_doubt_allow_extra.induct)
+  apply(simp_all add: bool_to_ternary_Unknown simple_matcher_prot_not_unkown)
+  apply(rule disjI1)
+  apply(rule_tac x=0 in exI,simp)
+  apply(erule disjE)
+  apply(clarify)
+  apply(rule_tac x="Suc (Suc n)" in exI,simp)
+  apply(elim exE conjE)+
+  apply(simp)
+  apply(rule disjI2)
+  apply(rule_tac x=m1 in exI, simp)
+  apply(rule_tac x=m2 in exI, simp)
+  apply(rule_tac x="Suc (Suc n)" in exI)
+  apply(simp)
+  apply(simp split: split_if_asm)
+  apply(erule disjE)
+  apply(erule exE)+
+  apply(erule disjE)
+  apply(erule exE)+
+  apply simp
+  apply(rule disjI2)
+  apply(rule_tac x=m1 in exI, simp add: not_has_unknowns_simplematcher_1)
+  apply(rule_tac x=m2 in exI, simp add: not_has_unknowns_simplematcher_1)
+  apply(rule_tac x=0 in exI)
+  apply simp
+  apply(rule disjI2)
+  apply(elim disjE conjE exE)
+  apply(rule_tac x=m1 in exI, simp add: not_has_unknowns_simplematcher_1)
+  apply(rule_tac x=m2 in exI, simp add: not_has_unknowns_simplematcher_1 not_has_unknowns_simplematcher_2)
+  apply(rule_tac x=0 in exI)
+  apply simp
+  apply(rule disjI2)
+  apply(elim disjE conjE exE)
+  apply(simp)
+  apply(rule_tac x=m1 in exI)
+  apply(simp add: not_has_unknowns_simplematcher_1)
+  apply(rule_tac x=m2 in exI)
+  apply(simp add: not_has_unknowns_simplematcher_1 not_has_unknowns_simplematcher_2)
+  apply(rule_tac x=0 in exI)
+  apply simp
+  apply(rule_tac x=m1 in exI)
+  apply(simp add: not_has_unknowns_simplematcher_1)
+  apply(rule_tac x=m2 in exI)
+  apply(simp add: not_has_unknowns_simplematcher_1 not_has_unknowns_simplematcher_2)
+  apply(rule_tac x=0 in exI)
+  apply simp
+  done
+lemma "a = Accept (*\<or> a = Drop \<or> a = Reject*) \<Longrightarrow> opt_simple_matcher_in_doubt_allow_extra a ( m) = ( (Match A)) \<Longrightarrow> \<not> has_unknowns simple_matcher m"
+  apply(induction a m arbitrary: rule: opt_simple_matcher_in_doubt_allow_extra.induct)
+  apply(simp_all add: bool_to_ternary_Unknown simple_matcher_prot_not_unkown)
+  apply(auto dest: a_unknown_extraD simp: bool_to_ternary_Unknown simple_matcher_prot_not_unkown)[3]
+  apply(thin_tac "?x \<Longrightarrow> ?y \<Longrightarrow> True")+
+  apply(thin_tac "?x \<Longrightarrow> ?y \<Longrightarrow> ?z \<Longrightarrow> True")+
+  apply(simp split: split_if_asm)
+  apply(thin_tac "False \<Longrightarrow> ?x")
+  apply(drule opt_simple_matcher_in_doubt_allow_extra_Accept_MatchNot_MatchNotMatchAny)
+  apply(elim disjE exE)
+  apply(simp_all add: not_has_unknowns_simplematcher_1 not_has_unknowns_simplematcher_2)
+  apply(thin_tac "False \<Longrightarrow> ?x")
+  apply(drule opt_simple_matcher_in_doubt_allow_extra_Accept_MatchNot_MatchNotMatchAny)
+  apply(elim disjE exE)
+  apply(simp_all add: not_has_unknowns_simplematcher_1 not_has_unknowns_simplematcher_2)
+done
+
+(*TODO: show this one!!*)
+lemma "a = Accept \<or> a = Drop \<or> a = Reject \<Longrightarrow> \<not> has_unknowns simple_matcher (opt_simple_matcher_in_doubt_allow_extra a m)"
+  apply(induction a m rule: opt_simple_matcher_in_doubt_allow_extra.induct)
+  apply(simp_all add: bool_to_ternary_Unknown simple_matcher_prot_not_unkown)[22]
+  defer
+  apply(simp_all add: bool_to_ternary_Unknown simple_matcher_prot_not_unkown)[23]
+  apply(simp_all add: bool_to_ternary_Unknown simple_matcher_prot_not_unkown)
+  apply clarify
+  apply simp
+  apply(thin_tac "False \<Longrightarrow> True")+
+
+  apply(drule(1) opt_simple_matcher_in_doubt_allow_extra_matchexpr_neq_matchnot_n_matchany)
+  apply(drule matchexpr_neq_matchnot_n_matchany)
+  apply(drule(1) opt_simple_matcher_in_doubt_allow_extra_matchexpr_neq_matchnot_n_matchany)
+  apply(drule matchexpr_neq_matchnot_n_matchany)
+  apply(erule disjE)
+  back (*WAHHHHHH*)
+  apply(erule disjE)
+  back (*WAHHHHHH*)
+  apply(clarify)
+
+  apply(rule conjI)
+  thm match_expr.induct
+  apply(rule match_expr.induct)
+  apply(simp_all add: has_unknowns_simple_matcher_base del: has_unknowns.simps(1))
+oops
+
+(******** END SCRATCH ************)
 
 (*TODO move?*)
 lemma eval_ternary_And_UnknownTrue1: "eval_ternary_And TernaryUnknown t \<noteq> TernaryTrue"

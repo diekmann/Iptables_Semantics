@@ -14,7 +14,9 @@ datatype_new 'a packet_set = PacketSet (packet_set_repr: "('a negation_type list
 
 (*generalize remove unknown matches*)
 
-(*irgendwie muss hier \<gamma> a rein*)
+(*irgendwie muss hier \<gamma> a rein
+TODO: first remove all unknowns?
+*)
 definition to_packet_set :: "'a match_expr \<Rightarrow> 'a packet_set" where
  "to_packet_set m = PacketSet (map to_negation_type_nnf (normalize_match m))"
 
