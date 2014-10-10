@@ -320,7 +320,7 @@ lemma "a = Accept (*\<or> a = Drop \<or> a = Reject*) \<Longrightarrow> opt_simp
   apply(simp_all add: not_has_unknowns_simplematcher_1 not_has_unknowns_simplematcher_2)
 done
 
-(*TODO: show this one!!*)
+  (*TODO: show this one!!*)
 lemma "a = Accept \<or> a = Drop \<or> a = Reject \<Longrightarrow> \<not> has_unknowns simple_matcher (opt_simple_matcher_in_doubt_allow_extra a m)"
   apply(induction a m rule: opt_simple_matcher_in_doubt_allow_extra.induct)
   apply(simp_all add: bool_to_ternary_Unknown simple_matcher_prot_not_unkown)[22]

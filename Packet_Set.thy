@@ -9,6 +9,7 @@ text{*@{const alist_and} transforms @{typ "'a negation_type list \<Rightarrow> '
 
 subsection{*Executable Packet Set Representation*}
 
+(*
 text{*Symbolic (executable) representation. inner is @{text \<and>}, outer is @{text \<or>}*}
 datatype_new 'a packet_set = PacketSet (packet_set_repr: "('a negation_type list) list")
 
@@ -22,7 +23,6 @@ definition to_packet_set :: "'a match_expr \<Rightarrow> 'a packet_set" where
 
 definition packet_set_to_set :: "('a, 'packet) match_tac \<Rightarrow> action \<Rightarrow> 'a packet_set \<Rightarrow> 'packet set" where
   "packet_set_to_set \<gamma> a ps \<equiv> {p. \<exists> as \<in> set (packet_set_repr ps). matches \<gamma> (alist_and as) a p}"
-
 
 lemma to_packet_set_correct: "p \<in> packet_set_to_set \<gamma> a (to_packet_set m) \<longleftrightarrow> matches \<gamma> m a p"
 apply(simp add: to_packet_set_def packet_set_to_set_def)
@@ -42,6 +42,58 @@ done
 fun packet_set_filter :: "('a, 'p) match_tac \<Rightarrow> action \<Rightarrow> ('p \<Rightarrow> bool) \<Rightarrow> ('a negation_type list) list \<Rightarrow> ('a negation_type list) list" where
   "packet_set_filter _ _ _ [] = []" |
   "packet_set_filter \<gamma> a f (n#ns) = [] @ packet_set_filter \<gamma> a f ns"
+*)
+
+text{*Symbolic (executable) representation. inner is @{text \<and>}, outer is @{text \<or>}*}
+(*we remember the action which might be necessary for applying \<alpha>*)
+datatype_new 'a packet_set = PacketSet (packet_set_repr: "(('a negation_type \<times> action) list) list")
+
+definition to_packet_set :: "action \<Rightarrow> 'a match_expr \<Rightarrow> 'a packet_set" where
+ "to_packet_set a m = PacketSet (map (map (\<lambda>m'. (m',a)) o to_negation_type_nnf) (normalize_match m))"
+
+definition packet_set_to_set :: "('a, 'packet) match_tac \<Rightarrow> 'a packet_set \<Rightarrow> 'packet set" where
+  "packet_set_to_set \<gamma> ps \<equiv> \<Union> ms \<in> set (packet_set_repr ps).  {p. \<forall> (m, a) \<in> set ms. matches \<gamma> (negation_type_to_match_expr m) a p}"
+
+lemma to_packet_set_correct: "p \<in> packet_set_to_set \<gamma> (to_packet_set a m) \<longleftrightarrow> matches \<gamma> m a p"
+apply(simp add: to_packet_set_def packet_set_to_set_def)
+apply(rule iffI)
+ apply(clarify)
+ apply(induction m rule: normalize_match.induct)
+       apply(simp_all add: bunch_of_lemmata_about_matches)
+   apply force
+apply (metis matches_DeMorgan)
+apply(induction m rule: normalize_match.induct)
+      apply(simp_all add: bunch_of_lemmata_about_matches)
+ apply (metis Un_iff)
+apply (metis Un_iff matches_DeMorgan)
+done
+
+text{*If the matching agrees for two actions, then the packet sets are also equal*}
+lemma "\<forall>p. matches \<gamma> m a1 p \<longleftrightarrow> matches \<gamma> m a2 p \<Longrightarrow> packet_set_to_set \<gamma> (to_packet_set a1 m) = packet_set_to_set \<gamma> (to_packet_set a2 m)"
+apply(subst(asm) to_packet_set_correct[symmetric])+
+apply safe
+apply simp_all
+done
+
+fun packet_set_and :: "'a packet_set \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
+  "packet_set_and (PacketSet olist1) (PacketSet olist2) = PacketSet [andlist1 @ andlist2. andlist1 <- olist1, andlist2 <- olist2]"
+
+value "packet_set_and (PacketSet [[a,b], [c,d]]) (PacketSet [[v,w], [x,y]])"
+
+declare packet_set_and.simps[simp del]
+
+lemma packet_set_and_correct: "packet_set_to_set \<gamma> (packet_set_and (to_packet_set a m1) (to_packet_set a m2)) = packet_set_to_set \<gamma> (to_packet_set a (MatchAnd m1 m2))"
+ apply(simp add: to_packet_set_def packet_set_and.simps packet_set_to_set_def)
+ by fast
+ 
+lemma packet_set_and_correct': "p \<in> packet_set_to_set \<gamma> (packet_set_and (to_packet_set a m1) (to_packet_set a m2)) \<longleftrightarrow> matches \<gamma> (MatchAnd m1 m2) a p"
+apply(simp add: to_packet_set_correct[symmetric])
+using packet_set_and_correct by fast
+
+fun internal_packet_set_contrain :: "action \<Rightarrow> 'a match_expr \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
+  "internal_packet_set_contrain a m ns = packet_set_and ns (to_packet_set a m)"
+
+(*TODO*)
 
 
 
