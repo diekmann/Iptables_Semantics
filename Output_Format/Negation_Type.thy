@@ -84,4 +84,8 @@ lemmas NegPos_set = getPos_set getNeg_set getPosgetNeg_subset set_Pos_getPos_sub
 hide_fact getPos_set getNeg_set getPosgetNeg_subset set_Pos_getPos_subset set_Neg_getNeg_subset
 
 
+fun invert :: "'a negation_type \<Rightarrow> 'a negation_type" where
+  "invert (Pos x) = Neg x" |
+  "invert (Neg x) = (Pos x)"
+
 end
