@@ -68,6 +68,10 @@ apply(induction m rule: normalize_match.induct)
 apply (metis Un_iff matches_DeMorgan)
 done
 
+lemma to_packet_set_set: "packet_set_to_set \<gamma> (to_packet_set a m) = {p. matches \<gamma> m a p}"
+using to_packet_set_correct by fast
+
+
 text{*If the matching agrees for two actions, then the packet sets are also equal*}
 lemma "\<forall>p. matches \<gamma> m a1 p \<longleftrightarrow> matches \<gamma> m a2 p \<Longrightarrow> packet_set_to_set \<gamma> (to_packet_set a1 m) = packet_set_to_set \<gamma> (to_packet_set a2 m)"
 apply(subst(asm) to_packet_set_correct[symmetric])+
@@ -90,10 +94,62 @@ lemma packet_set_and_correct': "p \<in> packet_set_to_set \<gamma> (packet_set_a
 apply(simp add: to_packet_set_correct[symmetric])
 using packet_set_and_correct by fast
 
-fun internal_packet_set_contrain :: "action \<Rightarrow> 'a match_expr \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
-  "internal_packet_set_contrain a m ns = packet_set_and ns (to_packet_set a m)"
+(*TODO move*)
+lemma packet_set_to_set_alt:  "packet_set_to_set \<gamma> ps = (\<Union> ms \<in> set (packet_set_repr ps).  {p. \<forall> m a. (m, a) \<in> set ms \<longrightarrow> matches \<gamma> (negation_type_to_match_expr m) a p})"
+unfolding packet_set_to_set_def
+by fast
 
-(*TODO*)
+lemma packet_set_and_union: "packet_set_to_set \<gamma> (packet_set_and P1 P2) = packet_set_to_set \<gamma> P1 \<inter> packet_set_to_set \<gamma> P2"
+unfolding packet_set_to_set_alt
+ apply(cases P1)
+ apply(cases P2)
+ apply(simp)
+ apply(simp add: packet_set_and.simps)
+ apply blast
+done
+
+
+
+definition packet_set_constrain :: "action \<Rightarrow> 'a match_expr \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
+  "packet_set_constrain a m ns = packet_set_and ns (to_packet_set a m)"
+
+
+lemma packet_set_constrain_correct: "packet_set_to_set \<gamma> (packet_set_constrain a m P) = {p \<in> packet_set_to_set \<gamma> P. matches \<gamma> m a p}"
+unfolding packet_set_constrain_def
+unfolding packet_set_and_union
+unfolding to_packet_set_set
+by blast
+
+(*
+(*scratch*)
+lemma "(\<not> ((a1 \<and> a2) \<or> b \<or> c)) = ((\<not>a1 \<and> \<not> b \<and> \<not> c) \<or> (\<not>a2 \<and> \<not> b \<and> \<not> c))" by blast
+(*TODO: how?*)
+
+fun listprepend :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list list" where
+  "listprepend [] ns = []" |
+  "listprepend (a#as) ns = (a#ns) # (listprepend as ns)"
+
+lemma "listprepend [a,b,c] ns = [a#ns, b#ns, c#ns]" by simp
+
+
+fun packet_set_not_internal :: " ('a negation_type \<times> action) list list \<Rightarrow>  ('a negation_type \<times> action) list list" where
+  "packet_set_not_internal [] = []" |
+  "packet_set_not_internal (ns#nss) = listprepend (map (\<lambda>(n,a). (invert n,a)) ns) (packet_set_not_internal nss)"
+
+fun packet_set_not :: "'a packet_set \<Rightarrow> 'a packet_set" where
+  "packet_set_not (PacketSet ps) = PacketSet [map (\<lambda>(n,a). (invert n,a)) ns. ns <- ps]"
+
+declare packet_set_not.simps[simp del]
+
+lemma "packet_set_to_set \<gamma> (packet_set_not P) = - packet_set_to_set \<gamma> P"
+apply(cases P)
+apply(simp)
+apply(simp add: packet_set_not.simps)
+apply(simp add: packet_set_to_set_alt)
+apply(safe)
+oops
+(*end scratch*)
+*)
 
 
 
