@@ -44,11 +44,12 @@ apply (smt2 concat.simps(1) dnf_to_bool.simps(1) list.simps(8))
 by (smt2 concat.simps(1) dnf_to_bool.simps(1) list.simps(8))
 
  
-(*inverting a DNF*)
+text{*inverting a DNF*}
 
-(*scratch*)
+text{*Example*}
 lemma "(\<not> ((a1 \<and> a2) \<or> b \<or> c)) = ((\<not>a1 \<and> \<not> b \<and> \<not> c) \<or> (\<not>a2 \<and> \<not> b \<and> \<not> c))" by blast
 lemma "(\<not> ((a1 \<and> a2) \<or> (b1 \<and> b2) \<or> c)) = ((\<not>a1 \<and> \<not> b1 \<and> \<not> c) \<or> (\<not>a2 \<and> \<not> b1 \<and> \<not> c) \<or> (\<not>a1 \<and> \<not> b2 \<and> \<not> c) \<or> (\<not>a2 \<and> \<not> b2 \<and> \<not> c))" by blast
+
 fun listprepend :: "'a list \<Rightarrow> 'a list list \<Rightarrow> 'a list list" where
   "listprepend [] ns = []" |
   "listprepend (a#as) ns = (map (\<lambda>xs. a#xs) ns) @ (listprepend as ns)"
@@ -73,7 +74,14 @@ by(simp add: map_a_and dnf_to_bool_append)
 
 text{*We use @{text "\<exists>"} to model the big @{text "\<or>"} operation*}
 lemma listprepend_correct: "dnf_to_bool \<gamma> (listprepend as ds) \<longleftrightarrow> (\<exists>a\<in> set as. dnf_to_bool \<gamma> [[a]] \<and> dnf_to_bool \<gamma> ds)"
-  apply(induction as arbitrary: )
+  apply(induction as)
+   apply(simp)
+  apply(simp)
+  apply(rename_tac a as)
+  apply(simp add: map_a_and cnf_to_bool_append dnf_to_bool_append)
+  by blast
+lemma listprepend_correct': "dnf_to_bool \<gamma> (listprepend as ds) \<longleftrightarrow> (dnf_to_bool \<gamma> (map (\<lambda>a. [a]) as) \<and> dnf_to_bool \<gamma> ds)"
+  apply(induction as)
    apply(simp)
   apply(simp)
   apply(rename_tac a as)
