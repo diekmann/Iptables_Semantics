@@ -9,6 +9,8 @@ text{*@{const alist_and} transforms @{typ "'a negation_type list \<Rightarrow> '
 
 subsection{*Executable Packet Set Representation*}
 
+text{*based on @{file "Negation_Type_DNF.thy"}*}
+
 (*
 text{*Symbolic (executable) representation. inner is @{text \<and>}, outer is @{text \<or>}*}
 datatype_new 'a packet_set = PacketSet (packet_set_repr: "('a negation_type list) list")
@@ -100,7 +102,7 @@ unfolding packet_set_to_set_def
 by fast
 
 lemma packet_set_and_union: "packet_set_to_set \<gamma> (packet_set_and P1 P2) = packet_set_to_set \<gamma> P1 \<inter> packet_set_to_set \<gamma> P2"
-unfolding packet_set_to_set_alt
+unfolding packet_set_to_set_def
  apply(cases P1)
  apply(cases P2)
  apply(simp)
@@ -120,25 +122,66 @@ unfolding packet_set_and_union
 unfolding to_packet_set_set
 by blast
 
-(*
-(*scratch*)
-lemma "(\<not> ((a1 \<and> a2) \<or> b \<or> c)) = ((\<not>a1 \<and> \<not> b \<and> \<not> c) \<or> (\<not>a2 \<and> \<not> b \<and> \<not> c))" by blast
-(*TODO: how?*)
 
-fun listprepend :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list list" where
+lemma packet_set_append:
+  "packet_set_to_set \<gamma> (PacketSet (p1 @ p2)) = packet_set_to_set \<gamma> (PacketSet p1) \<union> packet_set_to_set \<gamma> (PacketSet p2)"
+  by(simp add: packet_set_to_set_def)
+
+lemma packet_set_cons: "packet_set_to_set \<gamma> (PacketSet (a # p3)) =  packet_set_to_set \<gamma> (PacketSet [a]) \<union> packet_set_to_set \<gamma> (PacketSet p3)"
+  by(simp add: packet_set_to_set_def)
+
+fun listprepend :: "'a list \<Rightarrow> 'a list list \<Rightarrow> 'a list list" where
   "listprepend [] ns = []" |
-  "listprepend (a#as) ns = (a#ns) # (listprepend as ns)"
+  "listprepend (a#as) ns = (map (\<lambda>xs. a#xs) ns) @ (listprepend as ns)"
 
-lemma "listprepend [a,b,c] ns = [a#ns, b#ns, c#ns]" by simp
+lemma packet_set_map_a_and: "packet_set_to_set \<gamma> (PacketSet (map (op # a) ds)) = packet_set_to_set \<gamma> (PacketSet [[a]]) \<inter> packet_set_to_set \<gamma> (PacketSet ds)"
+  apply(induction ds)
+   apply(simp_all add: packet_set_to_set_def)
+  apply(case_tac a)
+   apply(simp_all)
+   apply blast+
+  done
+lemma listprepend_correct: "packet_set_to_set \<gamma> (PacketSet (listprepend as ds)) = packet_set_to_set \<gamma> (PacketSet (map (\<lambda>a. [a]) as)) \<inter> packet_set_to_set \<gamma> (PacketSet ds)"
+  apply(induction as arbitrary: )
+   apply(simp add: packet_set_to_set_alt)
+  apply(simp)
+  apply(rename_tac a as)
+  apply(simp add: packet_set_map_a_and packet_set_append)
+  (*using packet_set_cons by fast*)
+  apply(subst(2) packet_set_cons)
+  by blast
 
+(*begin scratch*)
+(*
+fun invertt :: "('a negation_type \<times> action) \<Rightarrow> ('a negation_type \<times> action)" where
+  "invertt (Pos n, a) = (Neg n, a)" |
+  "invertt (Neg n, a) = (Pos n, a)"
+
+lemma "packet_set_to_set \<gamma> (PacketSet [[invertt n]]) = UNIV - packet_set_to_set \<gamma> (PacketSet [[n]])"
+nitpick
+oops
 
 fun packet_set_not_internal :: " ('a negation_type \<times> action) list list \<Rightarrow>  ('a negation_type \<times> action) list list" where
-  "packet_set_not_internal [] = []" |
+  "packet_set_not_internal [] = [[]]" |
   "packet_set_not_internal (ns#nss) = listprepend (map (\<lambda>(n,a). (invert n,a)) ns) (packet_set_not_internal nss)"
+
+
+lemma "packet_set_to_set \<gamma> (PacketSet (packet_set_not_internal d)) = UNIV - packet_set_to_set \<gamma> (PacketSet d)"
+nitpick
+(*unknown inverting is wrong\<And>*)
+  apply(induction d)
+   apply(simp add: packet_set_to_set_alt)
+  apply(simp add: )
+  apply(simp add: listprepend_correct)
+  apply(simp add: packet_set_to_set_alt)
+  apply safe
+  apply simp_all
+  
+  apply(simp add: cnf_invert_singelton cnf_singleton_false)
+  done
 
 fun packet_set_not :: "'a packet_set \<Rightarrow> 'a packet_set" where
   "packet_set_not (PacketSet ps) = PacketSet [map (\<lambda>(n,a). (invert n,a)) ns. ns <- ps]"
-
 declare packet_set_not.simps[simp del]
 
 lemma "packet_set_to_set \<gamma> (packet_set_not P) = - packet_set_to_set \<gamma> P"
@@ -147,6 +190,7 @@ apply(simp)
 apply(simp add: packet_set_not.simps)
 apply(simp add: packet_set_to_set_alt)
 apply(safe)
+
 oops
 (*end scratch*)
 *)
