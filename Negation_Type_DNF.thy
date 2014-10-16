@@ -94,7 +94,7 @@ lemma cnf_singleton_false: "(\<exists>a'\<in>set as. \<not> cnf_to_bool \<gamma>
   by(induction \<gamma> as rule: cnf_to_bool.induct) (simp_all)
 
 fun dnf_not :: "'a dnf \<Rightarrow> 'a dnf" where
-  "dnf_not [] = [[]]" | (*Falso goes to True*)
+  "dnf_not [] = [[]]" | (*False goes to True*)
   "dnf_not (ns#nss) = listprepend (map invert ns) (dnf_not nss)"
 
 lemma dnf_not_correct: "dnf_to_bool \<gamma> (dnf_not d) \<longleftrightarrow> \<not> dnf_to_bool \<gamma> d"

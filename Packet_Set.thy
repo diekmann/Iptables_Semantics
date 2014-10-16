@@ -60,7 +60,6 @@ fun get_action :: "action negation_type \<Rightarrow> action" where
   "get_action (Pos a) = a" |
   "get_action (Neg a) = a"
 
-
 fun get_action_sign :: "action negation_type \<Rightarrow> (bool \<Rightarrow> bool)" where
   "get_action_sign (Pos _) = id" |
   "get_action_sign (Neg _) = (\<lambda>m. \<not> m)"
@@ -85,6 +84,15 @@ done
 lemma to_packet_set_set: "packet_set_to_set \<gamma> (to_packet_set a m) = {p. matches \<gamma> m a p}"
 using to_packet_set_correct by fast
 
+definition packet_set_UNIV :: "'a packet_set" where
+  "packet_set_UNIV \<equiv> PacketSet [[]]"
+lemma packet_set_UNIV: "packet_set_to_set \<gamma> packet_set_UNIV = UNIV"
+by(simp add: packet_set_UNIV_def packet_set_to_set_def)
+
+definition packet_set_Empty :: "'a packet_set" where
+  "packet_set_Empty \<equiv> PacketSet []"
+lemma packet_set_Empty: "packet_set_to_set \<gamma> packet_set_Empty = {}"
+by(simp add: packet_set_Empty_def packet_set_to_set_def)
 
 text{*If the matching agrees for two actions, then the packet sets are also equal*}
 lemma "\<forall>p. matches \<gamma> m a1 p \<longleftrightarrow> matches \<gamma> m a2 p \<Longrightarrow> packet_set_to_set \<gamma> (to_packet_set a1 m) = packet_set_to_set \<gamma> (to_packet_set a2 m)"
