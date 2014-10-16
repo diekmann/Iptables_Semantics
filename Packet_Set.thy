@@ -135,7 +135,7 @@ definition packet_set_constrain :: "action \<Rightarrow> 'a match_expr \<Rightar
   "packet_set_constrain a m ns = packet_set_and ns (to_packet_set a m)"
 
 
-lemma packet_set_constrain_correct: "packet_set_to_set \<gamma> (packet_set_constrain a m P) = {p \<in> packet_set_to_set \<gamma> P. matches \<gamma> m a p}"
+theorem packet_set_constrain_correct: "packet_set_to_set \<gamma> (packet_set_constrain a m P) = {p \<in> packet_set_to_set \<gamma> P. matches \<gamma> m a p}"
 unfolding packet_set_constrain_def
 unfolding packet_set_and_union
 unfolding to_packet_set_set
@@ -225,6 +225,18 @@ apply(simp add: packet_set_not_internal_correct)
 done
 
 
+
+definition packet_set_constrain_not :: "action \<Rightarrow> 'a match_expr \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
+  "packet_set_constrain_not a m ns = packet_set_and ns (packet_set_not (to_packet_set a m))"
+
+theorem packet_set_constrain_not_correct: "packet_set_to_set \<gamma> (packet_set_constrain_not a m P) = {p \<in> packet_set_to_set \<gamma> P. \<not> matches \<gamma> m a p}"
+unfolding packet_set_constrain_not_def
+unfolding packet_set_and_union
+unfolding packet_set_not_correct
+unfolding to_packet_set_set
+by blast
+
+text{*with @{thm packet_set_constrain_correct} and @{thm packet_set_constrain_not_correct}, it should be possible to build an executable version of the algorithm below.*}
 
 
 subsection{*The set of all accepted packets*}
