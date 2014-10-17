@@ -314,4 +314,27 @@ apply(safe)
 using collect_allow_sound[where P=UNIV] apply fast
 using collect_allow_complete[where P=UNIV] by fast
 
+
+
+
+
+subsection{*The set of all accepted packets -- Executable Implementation*}
+term packet_set_constrain
+fun collect_allow_impl :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
+  "collect_allow_impl _ [] P = packet_set_Empty" |
+  "collect_allow_impl \<gamma> ((Rule m Accept)#rs) P = packet_set_union (packet_set_constrain Accept m P) (collect_allow_impl \<gamma> rs (packet_set_constrain_not Accept m P))" |
+  "collect_allow_impl \<gamma> ((Rule m Drop)#rs) P = (collect_allow_impl \<gamma> rs (packet_set_constrain_not Drop m P))"
+
+lemma collect_allow_impl: "simple_ruleset rs \<Longrightarrow> packet_set_to_set \<gamma> (collect_allow_impl \<gamma> rs P) = collect_allow \<gamma> rs (packet_set_to_set \<gamma> P)"
+apply(induction \<gamma> rs "(packet_set_to_set \<gamma> P)"arbitrary: P  rule: collect_allow.induct)
+apply(simp_all add: packet_set_union_correct packet_set_constrain_correct packet_set_constrain_not_correct packet_set_Empty simple_ruleset_def)
+done
+
+
+theorem collect_allow_impl_sound_complete: "simple_ruleset rs \<Longrightarrow> 
+  packet_set_to_set \<gamma> (collect_allow_impl \<gamma> rs packet_set_UNIV) = {p. approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow}"
+apply(simp add: collect_allow_impl packet_set_UNIV)
+using collect_allow_sound_complete by fast
+
+
 end
