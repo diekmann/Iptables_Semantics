@@ -273,11 +273,41 @@ text{*optimizing*}
   lemma packet_set_opt3_correct: "packet_set_to_set \<gamma> (packet_set_opt3 ps) = packet_set_to_set \<gamma> ps"
     by(cases ps) (simp add: packet_set_opt3.simps packet_set_to_set_alt)
   
+
+  (*TODO: ugly proof*)
+  fun packet_set_opt4_internal_internal :: "(('a negation_type \<times> action negation_type) list) \<Rightarrow> bool" where
+    "packet_set_opt4_internal_internal cs = (\<forall> (m, a) \<in> set cs. (m, invert a) \<notin> set cs)"
+  fun packet_set_opt4 :: "'a packet_set \<Rightarrow> 'a packet_set" where
+    "packet_set_opt4 (PacketSet ps) = PacketSet (filter packet_set_opt4_internal_internal ps)"
+  declare packet_set_opt4.simps[simp del]
+  lemma packet_set_opt4_internal_internal_helper: assumes
+      "\<forall>m a. (m, a) \<in> set xb \<longrightarrow> get_action_sign a (matches \<gamma> (negation_type_to_match_expr m) (Packet_Set.get_action a) xa)"
+   shows "\<forall>(m, a)\<in>set xb. (m, invert a) \<notin> set xb"
+   proof(clarify)
+    fix a b
+    assume a1: "(a, b) \<in> set xb" and a2: "(a, invert b) \<in> set xb"
+    from assms a1 have 1: "get_action_sign b (matches \<gamma> (negation_type_to_match_expr a) (Packet_Set.get_action b) xa)" by simp
+    from assms a2 have 2: "get_action_sign (invert b) (matches \<gamma> (negation_type_to_match_expr a) (Packet_Set.get_action (invert b)) xa)" by simp
+    from 1 2 show "False"
+      by(cases b) (simp_all)
+   qed
+  lemma packet_set_opt4_correct: "packet_set_to_set \<gamma> (packet_set_opt4 ps) = packet_set_to_set \<gamma> ps"
+    apply(cases ps, clarify)
+    apply(simp add: packet_set_opt4.simps packet_set_to_set_alt)
+    apply(rule)
+     apply blast
+    apply(clarify)
+    apply(simp)
+    apply(rule_tac x=xb in exI)
+    apply(simp)
+    using packet_set_opt4_internal_internal_helper by fast
+
+
   definition packet_set_opt :: "'a packet_set \<Rightarrow> 'a packet_set" where
-    "packet_set_opt ps = packet_set_opt1 (packet_set_opt2 (packet_set_opt3 ps))" 
+    "packet_set_opt ps = packet_set_opt1 (packet_set_opt2 (packet_set_opt3 (packet_set_opt4 ps)))" 
 
   lemma packet_set_opt_correct: "packet_set_to_set \<gamma> (packet_set_opt ps) = packet_set_to_set \<gamma> ps"
-    using packet_set_opt_def packet_set_opt2_correct packet_set_opt3_correct packet_set_opt1_correct by metis
+    using packet_set_opt_def packet_set_opt2_correct packet_set_opt3_correct packet_set_opt4_correct packet_set_opt1_correct by metis
 
 
 text{*with @{thm packet_set_constrain_correct} and @{thm packet_set_constrain_not_correct}, it should be possible to build an executable version of the algorithm below.*}
