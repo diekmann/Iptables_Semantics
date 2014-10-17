@@ -16,7 +16,7 @@ develop-eggs/
 dist/
 downloads/
 eggs/
-lib/
+#lib/ we have lib in autocorress
 lib64/
 parts/
 sdist/
