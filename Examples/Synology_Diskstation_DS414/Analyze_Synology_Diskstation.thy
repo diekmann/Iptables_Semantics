@@ -141,10 +141,11 @@ value "format_Ln_rules_uncompressed (rmMatchFalse (((optimize_matches opt_MatchA
 text{*lower closure*}
 value "format_Ln_rules_uncompressed (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_deny_extra example_ruleset_simplified)))"
 
-value(code) "((collect_allow_impl_debug (simple_matcher, \<alpha>) (take 1 example_ruleset_simplified) packet_set_UNIV))"
+value(code) "collect_allow_impl_debug (take 1 example_ruleset_simplified) packet_set_UNIV"
+value(code) "collect_allow_impl_debug (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_allow_extra example_ruleset_simplified))) packet_set_UNIV"
 
-(*
-value(code) "collect_allow_impl_debug (simple_matcher, \<alpha>) (take 5 example_ruleset_simplified) packet_set_UNIV"
-*)
+
+value(code) "collect_allow_impl_debug (take 2 example_ruleset_simplified) packet_set_UNIV"
+
 
 end

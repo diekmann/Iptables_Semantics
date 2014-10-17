@@ -203,10 +203,10 @@ value(code) "format_Ln_rules_uncompressed (rmMatchFalse (((optimize_matches opt_
 value(code) "format_Ln_rules_uncompressed simple_example_firewall2"
 
 text{*the first 10 rules basically accept no packets*}
-lemma "collect_allow_impl (simple_matcher, in_doubt_allow) (take 10 simple_example_firewall2) packet_set_UNIV = packet_set_Empty" by eval
+lemma "collect_allow_impl (take 10 simple_example_firewall2) packet_set_UNIV = packet_set_Empty" by eval
 
 
-value(code) "collect_allow_impl (simple_matcher, \<alpha>) simple_example_firewall2 packet_set_UNIV"
+value(code) "collect_allow_impl simple_example_firewall2 packet_set_UNIV"
 
 
 
