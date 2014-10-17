@@ -34,6 +34,7 @@ structure Test : sig
   val upper_closure : iptrule_match rule list -> iptrule_match rule list
   val format_Ln_rules_uncompressed :
     iptrule_match rule list -> (iptrule_match_Ln_uncompressed * action) list
+  val allow_set_debug : iptrule_match rule list -> iptrule_match packet_set
   val does_I_has_compressed_prots :
     (iptrule_match_Ln_uncompressed * action) list ->
       (iptrule_match_Ln_uncompressed * action) list
@@ -884,6 +885,18 @@ fun packet_set_not_internal [] = [[]]
 
 fun packet_set_not (PacketSet ps) = PacketSet (packet_set_not_internal ps);
 
+fun packet_set_opt4_internal_internal A_ cs =
+  pred_list
+    (fn (m, a) =>
+      not (member
+            (equal_prod (equal_negation_type A_)
+              (equal_negation_type equal_action))
+            cs (m, invert a)))
+    cs;
+
+fun packet_set_opt4 A_ (PacketSet ps) =
+  PacketSet (filter (packet_set_opt4_internal_internal A_) ps);
+
 fun size_list x = gen_length zero_nat x;
 
 fun insort_key B_ f x [] = [x]
@@ -926,7 +939,8 @@ fun packet_set_opt1 A_ (PacketSet ps) =
         ps));
 
 fun packet_set_opt A_ ps =
-  packet_set_opt1 A_ (packet_set_opt2 A_ (packet_set_opt3 ps));
+  packet_set_opt1 A_
+    (packet_set_opt2 A_ (packet_set_opt3 (packet_set_opt4 A_ ps)));
 
 val packet_set_UNIV : 'a packet_set = PacketSet [[]];
 
@@ -1299,6 +1313,19 @@ fun dotteddecimal_of_ipv4addr a =
 
 fun optimize_matches f rs =
   map (fn r => Rule (f (get_match r), get_action r)) rs;
+
+fun collect_allow_impl_debug A_ [] p = packet_set_opt A_ p
+  | collect_allow_impl_debug A_ (Rule (m, Accept) :: rs) p =
+    packet_set_opt A_
+      (packet_set_union (packet_set_opt A_ (packet_set_constrain Accept m p))
+        (packet_set_opt A_
+          (collect_allow_impl_debug A_ rs
+            (packet_set_opt A_
+              (packet_set_constrain_not Accept m (packet_set_opt A_ p))))))
+  | collect_allow_impl_debug A_ (Rule (m, Drop) :: rs) p =
+    collect_allow_impl_debug A_ rs
+      (packet_set_opt A_
+        (packet_set_constrain_not Drop m (packet_set_opt A_ p)));
 
 fun optimize_matches_a f rs =
   map (fn r => Rule (f (get_action r) (get_match r), get_action r)) rs;
@@ -1685,6 +1712,9 @@ fun upper_closure rs =
 fun format_Ln_rules_uncompressed rs =
   map (fn r => (format_Ln_match (get_match r), get_action r))
     (normalize_rules rs);
+
+fun allow_set_debug rs =
+  collect_allow_impl_debug equal_iptrule_match rs packet_set_UNIV;
 
 fun does_I_has_compressed_prots [] = []
   | does_I_has_compressed_prots
