@@ -377,22 +377,22 @@ using collect_allow_complete[where P=UNIV] by fast
 
 
 subsection{*The set of all accepted packets -- Executable Implementation*}
-fun collect_allow_impl_unoptimized :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
-  "collect_allow_impl_unoptimized _ [] P = packet_set_Empty" |
-  "collect_allow_impl_unoptimized \<gamma> ((Rule m Accept)#rs) P = packet_set_union (packet_set_constrain Accept m P) (collect_allow_impl_unoptimized \<gamma> rs (packet_set_constrain_not Accept m P))" |
-  "collect_allow_impl_unoptimized \<gamma> ((Rule m Drop)#rs) P = (collect_allow_impl_unoptimized \<gamma> rs (packet_set_constrain_not Drop m P))"
+fun collect_allow_impl_unoptimized :: "'a rule list \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
+  "collect_allow_impl_unoptimized [] P = packet_set_Empty" |
+  "collect_allow_impl_unoptimized ((Rule m Accept)#rs) P = packet_set_union (packet_set_constrain Accept m P) (collect_allow_impl_unoptimized rs (packet_set_constrain_not Accept m P))" |
+  "collect_allow_impl_unoptimized ((Rule m Drop)#rs) P = (collect_allow_impl_unoptimized rs (packet_set_constrain_not Drop m P))"
 
-lemma collect_allow_impl_unoptimized: "simple_ruleset rs \<Longrightarrow> packet_set_to_set \<gamma> (collect_allow_impl_unoptimized \<gamma> rs P) = collect_allow \<gamma> rs (packet_set_to_set \<gamma> P)"
+lemma collect_allow_impl_unoptimized: "simple_ruleset rs \<Longrightarrow> packet_set_to_set \<gamma> (collect_allow_impl_unoptimized rs P) = collect_allow \<gamma> rs (packet_set_to_set \<gamma> P)"
 apply(induction \<gamma> rs "(packet_set_to_set \<gamma> P)"arbitrary: P  rule: collect_allow.induct)
 apply(simp_all add: packet_set_union_correct packet_set_constrain_correct packet_set_constrain_not_correct packet_set_Empty simple_ruleset_def)
 done
 
 
-fun collect_allow_impl :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
-  "collect_allow_impl _ [] P = packet_set_Empty" |
-  "collect_allow_impl \<gamma> ((Rule m Accept)#rs) P = packet_set_opt ( packet_set_union 
-    (packet_set_opt (packet_set_constrain Accept m P)) (packet_set_opt (collect_allow_impl \<gamma> rs (packet_set_opt (packet_set_constrain_not Accept m (packet_set_opt P))))))" |
-  "collect_allow_impl \<gamma> ((Rule m Drop)#rs) P = (collect_allow_impl \<gamma> rs (packet_set_opt (packet_set_constrain_not Drop m (packet_set_opt P))))"
+fun collect_allow_impl :: "'a rule list \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
+  "collect_allow_impl [] P = packet_set_Empty" |
+  "collect_allow_impl ((Rule m Accept)#rs) P = packet_set_opt ( packet_set_union 
+    (packet_set_opt (packet_set_constrain Accept m P)) (packet_set_opt (collect_allow_impl rs (packet_set_opt (packet_set_constrain_not Accept m (packet_set_opt P))))))" |
+  "collect_allow_impl ((Rule m Drop)#rs) P = (collect_allow_impl rs (packet_set_opt (packet_set_constrain_not Drop m (packet_set_opt P))))"
 
 (*
 not needed atm
@@ -429,8 +429,8 @@ next
 qed(simp_all add: simple_ruleset_def)
 *)
 
-lemma collect_allow_impl: "simple_ruleset rs \<Longrightarrow> packet_set_to_set \<gamma> (collect_allow_impl \<gamma> rs P) = packet_set_to_set \<gamma> (collect_allow_impl_unoptimized \<gamma> rs P)"
-apply(induction \<gamma> rs P arbitrary: P  rule: collect_allow_impl_unoptimized.induct)
+lemma collect_allow_impl: "simple_ruleset rs \<Longrightarrow> packet_set_to_set \<gamma> (collect_allow_impl rs P) = packet_set_to_set \<gamma> (collect_allow_impl_unoptimized rs P)"
+apply(induction rs P arbitrary: P  rule: collect_allow_impl_unoptimized.induct)
 apply(simp_all add: simple_ruleset_def packet_set_union_correct packet_set_opt_correct packet_set_constrain_not_correct collect_allow_impl_unoptimized)
 done
 
@@ -440,12 +440,12 @@ export_code collect_allow_impl in SML
 
 
 theorem collect_allow_impl_unoptimized_sound_complete: "simple_ruleset rs \<Longrightarrow> 
-  packet_set_to_set \<gamma> (collect_allow_impl_unoptimized \<gamma> rs packet_set_UNIV) = {p. approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow}"
+  packet_set_to_set \<gamma> (collect_allow_impl_unoptimized rs packet_set_UNIV) = {p. approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow}"
 apply(simp add: collect_allow_impl_unoptimized packet_set_UNIV)
 using collect_allow_sound_complete by fast
 
 corollary collect_allow_impl_sound_complete: "simple_ruleset rs \<Longrightarrow> 
-  packet_set_to_set \<gamma> (collect_allow_impl \<gamma> rs packet_set_UNIV) = {p. approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow}"
+  packet_set_to_set \<gamma> (collect_allow_impl rs packet_set_UNIV) = {p. approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow}"
 using collect_allow_impl_unoptimized_sound_complete collect_allow_impl by fast
 
 
@@ -455,10 +455,10 @@ using collect_allow_impl_unoptimized_sound_complete collect_allow_impl by fast
 
 text{*debugging how the internal state grows ...*}
 
-fun collect_allow_impl_debug :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
-  "collect_allow_impl_debug _ [] P = packet_set_opt P" |
-  "collect_allow_impl_debug \<gamma> ((Rule m Accept)#rs) P = packet_set_opt (packet_set_union 
-    (packet_set_opt (packet_set_constrain Accept m P)) (packet_set_opt (collect_allow_impl_debug \<gamma> rs (packet_set_opt (packet_set_constrain_not Accept m (packet_set_opt P))))))" |
-  "collect_allow_impl_debug \<gamma> ((Rule m Drop)#rs) P = (collect_allow_impl_debug \<gamma> rs (packet_set_opt (packet_set_constrain_not Drop m (packet_set_opt P))))"
+fun collect_allow_impl_debug :: "'a rule list \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
+  "collect_allow_impl_debug [] P = packet_set_opt P" |
+  "collect_allow_impl_debug ((Rule m Accept)#rs) P = packet_set_opt (packet_set_union 
+    (packet_set_opt (packet_set_constrain Accept m P)) (packet_set_opt (collect_allow_impl_debug rs (packet_set_opt (packet_set_constrain_not Accept m (packet_set_opt P))))))" |
+  "collect_allow_impl_debug ((Rule m Drop)#rs) P = (collect_allow_impl_debug rs (packet_set_opt (packet_set_constrain_not Drop m (packet_set_opt P))))"
 
 end
