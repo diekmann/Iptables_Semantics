@@ -3,6 +3,7 @@ imports
   "../../Call_Return_Unfolding"
   "../../Optimizing"
   "../../Output_Format/IPSpace_Format_Ln"
+  "../../Packet_Set"
 begin
 
 section{*Example: ringofsaturn.com*}
@@ -81,7 +82,7 @@ Rule MatchAny (Accept)] ]"
 
 definition "simple_example_firewall \<equiv> (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches opt_simple_matcher (rw_Reject (rm_LogEmpty (((process_call example_firewall)^^3) [Rule MatchAny (Call ''INPUT'')])))))"
 
-text{*It accepts everything n state RELATED,ESTABLISHED,NEW*}
+text{*It accepts everything in state RELATED,ESTABLISHED,NEW*}
 value(code) "simple_example_firewall"
 value "good_ruleset simple_example_firewall"
 value "simple_ruleset simple_example_firewall"
@@ -201,6 +202,19 @@ value(code) "format_Ln_rules_uncompressed (rmMatchFalse (((optimize_matches opt_
 value(code) "format_Ln_rules_uncompressed (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_deny_extra simple_example_firewall2)))"
 value(code) "format_Ln_rules_uncompressed simple_example_firewall2"
 
+text{*the first 10 rules basically accept no packets*}
+lemma "collect_allow_impl (simple_matcher, in_doubt_allow) (take 10 simple_example_firewall2) packet_set_UNIV = packet_set_Empty" by eval
+
+
+
+text{*debugging how the internal state grows ...*}
+fun collect_allow_impl_debug :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
+  "collect_allow_impl_debug _ [] P = packet_set_Empty" |
+  "collect_allow_impl_debug \<gamma> ((Rule m Accept)#rs) P = packet_set_union 
+    (packet_set_opt1 (packet_set_constrain Accept m P)) (collect_allow_impl_debug \<gamma> rs (packet_set_opt1 (packet_set_constrain_not Accept m (packet_set_opt1 P))))" |
+  "collect_allow_impl_debug \<gamma> ((Rule m Drop)#rs) P = packet_set_union P (collect_allow_impl_debug \<gamma> rs (packet_set_opt1 (packet_set_constrain_not Drop m (packet_set_opt1 P))))"
+
+value(code) "collect_allow_impl_debug (simple_matcher, \<alpha>) (take 3 simple_example_firewall2) packet_set_UNIV"
 
 
 end
