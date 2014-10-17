@@ -6,6 +6,9 @@ structure Test : sig
   val nat_of_integer : IntInf.int -> nat
   type 'a bit0
   type num1
+  datatype action = Accept | Drop | Log | Reject | Call of char list | Return |
+    Empty | Unknown
+  datatype 'a negation_type = Pos of 'a | Neg of 'a
   datatype ipt_ipv4range = Ip4Addr of (nat * (nat * (nat * nat))) |
     Ip4AddrNetmask of (nat * (nat * (nat * nat))) * nat
   datatype ipt_protocol = ProtAll | ProtTCP | ProtUDP
@@ -14,10 +17,8 @@ structure Test : sig
   type nibble
   datatype 'a match_expr = Match of 'a | MatchNot of 'a match_expr |
     MatchAnd of 'a match_expr * 'a match_expr | MatchAny
-  datatype action = Accept | Drop | Log | Reject | Call of char list | Return |
-    Empty | Unknown
   datatype 'a rule = Rule of 'a match_expr * action
-  datatype 'a negation_type = Pos of 'a | Neg of 'a
+  type 'a packet_set
   datatype iptrule_match_Ln_uncompressed =
     UncompressedFormattedMatch of
       ipt_ipv4range negation_type list * ipt_ipv4range negation_type list *
@@ -25,6 +26,7 @@ structure Test : sig
   val compress_Ln_ips :
     (iptrule_match_Ln_uncompressed * action) list ->
       (iptrule_match_Ln_uncompressed * action) list
+  val allow_set : iptrule_match rule list -> iptrule_match packet_set
   val lower_closure : iptrule_match rule list -> iptrule_match rule list
   val map_of_string :
     (char list * iptrule_match rule list) list ->
@@ -81,6 +83,31 @@ val equal = #equal : 'a equal -> 'a -> 'a -> bool;
 
 val equal_nat = {equal = equal_nata} : nat equal;
 
+fun less_eq_nat m n = IntInf.<= (integer_of_nat m, integer_of_nat n);
+
+type 'a ord = {less_eq : 'a -> 'a -> bool, less : 'a -> 'a -> bool};
+val less_eq = #less_eq : 'a ord -> 'a -> 'a -> bool;
+val less = #less : 'a ord -> 'a -> 'a -> bool;
+
+fun less_nat m n = IntInf.< (integer_of_nat m, integer_of_nat n);
+
+val ord_nat = {less_eq = less_eq_nat, less = less_nat} : nat ord;
+
+type 'a preorder = {ord_preorder : 'a ord};
+val ord_preorder = #ord_preorder : 'a preorder -> 'a ord;
+
+type 'a order = {preorder_order : 'a preorder};
+val preorder_order = #preorder_order : 'a order -> 'a preorder;
+
+val preorder_nat = {ord_preorder = ord_nat} : nat preorder;
+
+val order_nat = {preorder_order = preorder_nat} : nat order;
+
+type 'a linorder = {order_linorder : 'a order};
+val order_linorder = #order_linorder : 'a linorder -> 'a order;
+
+val linorder_nat = {order_linorder = order_nat} : nat linorder;
+
 fun eq A_ a b = equal A_ a b;
 
 fun equal_lista A_ [] (x21 :: x22) = false
@@ -125,10 +152,6 @@ fun mod_integer k l = snd (divmod_integer k l);
 
 fun mod_int k l =
   Int_of_integer (mod_integer (integer_of_int k) (integer_of_int l));
-
-type 'a ord = {less_eq : 'a -> 'a -> bool, less : 'a -> 'a -> bool};
-val less_eq = #less_eq : 'a ord -> 'a -> 'a -> bool;
-val less = #less : 'a ord -> 'a -> 'a -> bool;
 
 fun max A_ a b = (if less_eq A_ a b then b else a);
 
@@ -398,6 +421,87 @@ fun equal_proda A_ B_ (x1, x2) (y1, y2) = eq A_ x1 y1 andalso eq B_ x2 y2;
 
 fun equal_prod A_ B_ = {equal = equal_proda A_ B_} : ('a * 'b) equal;
 
+datatype action = Accept | Drop | Log | Reject | Call of char list | Return |
+  Empty | Unknown;
+
+fun equal_actiona Empty Unknown = false
+  | equal_actiona Unknown Empty = false
+  | equal_actiona Return Unknown = false
+  | equal_actiona Unknown Return = false
+  | equal_actiona Return Empty = false
+  | equal_actiona Empty Return = false
+  | equal_actiona (Call lista) Unknown = false
+  | equal_actiona Unknown (Call lista) = false
+  | equal_actiona (Call lista) Empty = false
+  | equal_actiona Empty (Call lista) = false
+  | equal_actiona (Call lista) Return = false
+  | equal_actiona Return (Call lista) = false
+  | equal_actiona Reject Unknown = false
+  | equal_actiona Unknown Reject = false
+  | equal_actiona Reject Empty = false
+  | equal_actiona Empty Reject = false
+  | equal_actiona Reject Return = false
+  | equal_actiona Return Reject = false
+  | equal_actiona Reject (Call lista) = false
+  | equal_actiona (Call lista) Reject = false
+  | equal_actiona Log Unknown = false
+  | equal_actiona Unknown Log = false
+  | equal_actiona Log Empty = false
+  | equal_actiona Empty Log = false
+  | equal_actiona Log Return = false
+  | equal_actiona Return Log = false
+  | equal_actiona Log (Call lista) = false
+  | equal_actiona (Call lista) Log = false
+  | equal_actiona Log Reject = false
+  | equal_actiona Reject Log = false
+  | equal_actiona Drop Unknown = false
+  | equal_actiona Unknown Drop = false
+  | equal_actiona Drop Empty = false
+  | equal_actiona Empty Drop = false
+  | equal_actiona Drop Return = false
+  | equal_actiona Return Drop = false
+  | equal_actiona Drop (Call lista) = false
+  | equal_actiona (Call lista) Drop = false
+  | equal_actiona Drop Reject = false
+  | equal_actiona Reject Drop = false
+  | equal_actiona Drop Log = false
+  | equal_actiona Log Drop = false
+  | equal_actiona Accept Unknown = false
+  | equal_actiona Unknown Accept = false
+  | equal_actiona Accept Empty = false
+  | equal_actiona Empty Accept = false
+  | equal_actiona Accept Return = false
+  | equal_actiona Return Accept = false
+  | equal_actiona Accept (Call lista) = false
+  | equal_actiona (Call lista) Accept = false
+  | equal_actiona Accept Reject = false
+  | equal_actiona Reject Accept = false
+  | equal_actiona Accept Log = false
+  | equal_actiona Log Accept = false
+  | equal_actiona Accept Drop = false
+  | equal_actiona Drop Accept = false
+  | equal_actiona (Call listaa) (Call lista) =
+    equal_lista equal_char listaa lista
+  | equal_actiona Unknown Unknown = true
+  | equal_actiona Empty Empty = true
+  | equal_actiona Return Return = true
+  | equal_actiona Reject Reject = true
+  | equal_actiona Log Log = true
+  | equal_actiona Drop Drop = true
+  | equal_actiona Accept Accept = true;
+
+val equal_action = {equal = equal_actiona} : action equal;
+
+datatype 'a negation_type = Pos of 'a | Neg of 'a;
+
+fun equal_negation_typea A_ (Pos aa) (Neg a) = false
+  | equal_negation_typea A_ (Neg aa) (Pos a) = false
+  | equal_negation_typea A_ (Neg aa) (Neg a) = eq A_ aa a
+  | equal_negation_typea A_ (Pos aa) (Pos a) = eq A_ aa a;
+
+fun equal_negation_type A_ = {equal = equal_negation_typea A_} :
+  'a negation_type equal;
+
 datatype ipt_ipv4range = Ip4Addr of (nat * (nat * (nat * nat))) |
   Ip4AddrNetmask of (nat * (nat * (nat * nat))) * nat;
 
@@ -453,12 +557,10 @@ datatype nibble = Nibble0 | Nibble1 | Nibble2 | Nibble3 | Nibble4 | Nibble5 |
 datatype 'a match_expr = Match of 'a | MatchNot of 'a match_expr |
   MatchAnd of 'a match_expr * 'a match_expr | MatchAny;
 
-datatype action = Accept | Drop | Log | Reject | Call of char list | Return |
-  Empty | Unknown;
-
 datatype 'a rule = Rule of 'a match_expr * action;
 
-datatype 'a negation_type = Pos of 'a | Neg of 'a;
+datatype 'a packet_set =
+  PacketSet of (('a negation_type * action negation_type) list) list;
 
 datatype iptrule_match_Ln_uncompressed =
   UncompressedFormattedMatch of
@@ -502,8 +604,14 @@ fun mask A_ n =
 
 fun unat A_ w = nat (uint A_ w);
 
+fun foldr f [] = id
+  | foldr f (x :: xs) = f x o foldr f xs;
+
 fun map_of A_ ((l, v) :: ps) k = (if eq A_ l k then SOME v else map_of A_ ps k)
   | map_of A_ [] k = NONE;
+
+fun filter p [] = []
+  | filter p (x :: xs) = (if p x then x :: filter p xs else filter p xs);
 
 fun member A_ [] y = false
   | member A_ (x :: xs) y = eq A_ x y orelse member A_ xs y;
@@ -533,6 +641,12 @@ fun max_word A_ =
         (len_of (len0_len A_) Type))
       (Int_of_integer (1 : IntInf.int)));
 
+fun pred_list p [] = true
+  | pred_list p (x :: xs) = p x andalso pred_list p xs;
+
+fun gen_length n (x :: xs) = gen_length (suc n) xs
+  | gen_length n [] = n;
+
 fun the (SOME x2) = x2;
 
 fun word_next A_ a =
@@ -552,6 +666,11 @@ fun divmod_nat m n = (div_nat m n, mod_nat m n);
 
 fun add_match m rs = map (fn Rule (ma, a) => Rule (MatchAnd (m, ma), a)) rs;
 
+fun invert (Pos x) = Neg x
+  | invert (Neg x) = Pos x;
+
+fun invertt (n, a) = (n, invert a);
+
 fun getNeg [] = []
   | getNeg (Neg x :: xs) = x :: getNeg xs
   | getNeg (Pos v :: xs) = getNeg xs;
@@ -561,6 +680,9 @@ fun getPos [] = []
   | getPos (Neg v :: xs) = getPos xs;
 
 fun bitrange_UNIV A_ = Bitrange (zero_worda (len0_len A_), max_word A_);
+
+fun listprepend [] ns = []
+  | listprepend (a :: asa) ns = map (fn b => a :: b) ns @ listprepend asa ns;
 
 fun empty_Bitrange A_ =
   Bitrange (one_worda (len0_len A_), zero_worda (len0_len A_));
@@ -677,6 +799,28 @@ fun ipv4range_range ip_start ip_end = Bitrange (ip_start, ip_end);
 fun nat_of_ipv4addr a =
   unat (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) a;
 
+fun to_negation_type_nnf MatchAny = []
+  | to_negation_type_nnf (Match a) = [Pos a]
+  | to_negation_type_nnf (MatchNot (Match a)) = [Neg a]
+  | to_negation_type_nnf (MatchAnd (a, b)) =
+    to_negation_type_nnf a @ to_negation_type_nnf b;
+
+fun normalize_match MatchAny = [MatchAny]
+  | normalize_match (Match m) = [Match m]
+  | normalize_match (MatchAnd (m1, m2)) =
+    maps (fn x => map (fn a => MatchAnd (x, a)) (normalize_match m2))
+      (normalize_match m1)
+  | normalize_match (MatchNot (MatchAnd (m1, m2))) =
+    normalize_match (MatchNot m1) @ normalize_match (MatchNot m2)
+  | normalize_match (MatchNot (MatchNot m)) = normalize_match m
+  | normalize_match (MatchNot MatchAny) = []
+  | normalize_match (MatchNot (Match m)) = [MatchNot (Match m)];
+
+fun to_packet_set a m =
+  PacketSet
+    (map (map (fn ma => (ma, Pos a)) o to_negation_type_nnf)
+      (normalize_match m));
+
 fun bitrange_to_list A_ (RangeUnion (r1, r2)) =
   bitrange_to_list A_ r1 @ bitrange_to_list A_ r2
   | bitrange_to_list A_ (Bitrange (v, va)) =
@@ -731,6 +875,61 @@ fun ipv4range_subset r1 r2 =
   bitrange_subset
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
 
+fun packet_set_and (PacketSet olist1) (PacketSet olist2) =
+  PacketSet (maps (fn andlist1 => map (fn a => andlist1 @ a) olist2) olist1);
+
+fun packet_set_not_internal [] = [[]]
+  | packet_set_not_internal (ns :: nss) =
+    listprepend (map invertt ns) (packet_set_not_internal nss);
+
+fun packet_set_not (PacketSet ps) = PacketSet (packet_set_not_internal ps);
+
+fun size_list x = gen_length zero_nat x;
+
+fun insort_key B_ f x [] = [x]
+  | insort_key B_ f x (y :: ys) =
+    (if less_eq ((ord_preorder o preorder_order o order_linorder) B_) (f x)
+          (f y)
+      then x :: y :: ys else y :: insort_key B_ f x ys);
+
+fun sort_key B_ f xs = foldr (insort_key B_ f) xs [];
+
+fun packet_set_opt3 (PacketSet ps) =
+  PacketSet (sort_key linorder_nat size_list ps);
+
+fun packet_set_opt2_internal A_ [] = []
+  | packet_set_opt2_internal A_ ([] :: ps) = [[]]
+  | packet_set_opt2_internal A_ ((v :: va) :: ps) =
+    (v :: va) ::
+      filter
+        (fn ass =>
+          not (pred_list
+                (member
+                  (equal_prod (equal_negation_type A_)
+                    (equal_negation_type equal_action))
+                  ass)
+                (v :: va)))
+        ps;
+
+fun packet_set_opt2 A_ (PacketSet ps) =
+  PacketSet (packet_set_opt2_internal A_ ps);
+
+fun packet_set_opt1 A_ (PacketSet ps) =
+  PacketSet
+    (map (remdups
+           (equal_prod (equal_negation_type A_)
+             (equal_negation_type equal_action)))
+      (remdups
+        (equal_list
+          (equal_prod (equal_negation_type A_)
+            (equal_negation_type equal_action)))
+        ps));
+
+fun packet_set_opt A_ ps =
+  packet_set_opt1 A_ (packet_set_opt2 A_ (packet_set_opt3 ps));
+
+val packet_set_UNIV : 'a packet_set = PacketSet [[]];
+
 fun bin_last w =
   equal_int (mod_int w (Int_of_integer (2 : IntInf.int)))
     (Int_of_integer (1 : IntInf.int));
@@ -738,6 +937,11 @@ fun bin_last w =
 fun ipv4range_setminus r1 r2 =
   bitrange_setminus
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
+
+val packet_set_Empty : 'a packet_set = PacketSet [];
+
+fun packet_set_union (PacketSet olist1) (PacketSet olist2) =
+  PacketSet (olist1 @ olist2);
 
 fun rw_Reject [] = []
   | rw_Reject (Rule (m, Reject) :: rs) = Rule (m, Drop) :: rw_Reject rs
@@ -749,20 +953,27 @@ fun rw_Reject [] = []
   | rw_Reject (Rule (v, Empty) :: rs) = Rule (v, Empty) :: rw_Reject rs
   | rw_Reject (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rw_Reject rs;
 
-fun normalize_match MatchAny = [MatchAny]
-  | normalize_match (Match m) = [Match m]
-  | normalize_match (MatchAnd (m1, m2)) =
-    maps (fn x => map (fn a => MatchAnd (x, a)) (normalize_match m2))
-      (normalize_match m1)
-  | normalize_match (MatchNot (MatchAnd (m1, m2))) =
-    normalize_match (MatchNot m1) @ normalize_match (MatchNot m2)
-  | normalize_match (MatchNot (MatchNot m)) = normalize_match m
-  | normalize_match (MatchNot MatchAny) = []
-  | normalize_match (MatchNot (Match m)) = [MatchNot (Match m)];
-
 fun normalize_rules [] = []
   | normalize_rules (Rule (m, a) :: rs) =
     map (fn ma => Rule (ma, a)) (normalize_match m) @ normalize_rules rs;
+
+fun packet_set_constrain_not a m ns =
+  packet_set_and ns (packet_set_not (to_packet_set a m));
+
+fun packet_set_constrain a m ns = packet_set_and ns (to_packet_set a m);
+
+fun collect_allow_impl A_ [] p = packet_set_Empty
+  | collect_allow_impl A_ (Rule (m, Accept) :: rs) p =
+    packet_set_opt A_
+      (packet_set_union (packet_set_opt A_ (packet_set_constrain Accept m p))
+        (packet_set_opt A_
+          (collect_allow_impl A_ rs
+            (packet_set_opt A_
+              (packet_set_constrain_not Accept m (packet_set_opt A_ p))))))
+  | collect_allow_impl A_ (Rule (m, Drop) :: rs) p =
+    collect_allow_impl A_ rs
+      (packet_set_opt A_
+        (packet_set_constrain_not Drop m (packet_set_opt A_ p)));
 
 fun rm_LogEmpty [] = []
   | rm_LogEmpty (Rule (uu, Empty) :: rs) = rm_LogEmpty rs
@@ -969,6 +1180,8 @@ fun compress_Ln_ips [] = []
       | (SOME aa, SOME dsta) =>
         (UncompressedFormattedMatch (aa, dsta, proto, extra), a) ::
           compress_Ln_ips rs);
+
+fun allow_set rs = collect_allow_impl equal_iptrule_match rs packet_set_UNIV;
 
 fun process_call gamma [] = []
   | process_call gamma (Rule (m, Call chain) :: rs) =
