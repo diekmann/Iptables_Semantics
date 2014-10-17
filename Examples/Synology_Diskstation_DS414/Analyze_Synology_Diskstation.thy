@@ -1,11 +1,12 @@
 theory Analyze_Synology_Diskstation
 imports iptables_Ln_tuned_parsed"../../Output_Format/IPSpace_Format_Ln" "../../Call_Return_Unfolding" "../../Optimizing"
+  "../../Packet_Set"
 begin
 
 
 section{*Example: Synology Diskstation*}
 
-text{*we removed the establised,related rule*}
+text{*we removed the established,related rule*}
 
   definition "example_ruleset ==  [''DOS_PROTECT'' \<mapsto> [Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Extra (''Prot icmp''))) (Match (Extra (''icmptype 8 limit: avg 1/sec burst 5'')))))) (Return),
 Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Extra (''Prot icmp''))) (Match (Extra (''icmptype 8'')))))) (Drop),
@@ -140,6 +141,10 @@ value "format_Ln_rules_uncompressed (rmMatchFalse (((optimize_matches opt_MatchA
 text{*lower closure*}
 value "format_Ln_rules_uncompressed (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_deny_extra example_ruleset_simplified)))"
 
+value(code) "((collect_allow_impl_debug (simple_matcher, \<alpha>) (take 1 example_ruleset_simplified) packet_set_UNIV))"
 
+(*
+value(code) "collect_allow_impl_debug (simple_matcher, \<alpha>) (take 5 example_ruleset_simplified) packet_set_UNIV"
+*)
 
 end
