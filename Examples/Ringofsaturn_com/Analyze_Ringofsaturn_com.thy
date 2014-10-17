@@ -206,15 +206,8 @@ text{*the first 10 rules basically accept no packets*}
 lemma "collect_allow_impl (simple_matcher, in_doubt_allow) (take 10 simple_example_firewall2) packet_set_UNIV = packet_set_Empty" by eval
 
 
+value(code) "collect_allow_impl (simple_matcher, \<alpha>) simple_example_firewall2 packet_set_UNIV"
 
-text{*debugging how the internal state grows ...*}
-fun collect_allow_impl_debug :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
-  "collect_allow_impl_debug _ [] P = packet_set_Empty" |
-  "collect_allow_impl_debug \<gamma> ((Rule m Accept)#rs) P = packet_set_union 
-    (packet_set_opt1 (packet_set_constrain Accept m P)) (collect_allow_impl_debug \<gamma> rs (packet_set_opt1 (packet_set_constrain_not Accept m (packet_set_opt1 P))))" |
-  "collect_allow_impl_debug \<gamma> ((Rule m Drop)#rs) P = packet_set_union P (collect_allow_impl_debug \<gamma> rs (packet_set_opt1 (packet_set_constrain_not Drop m (packet_set_opt1 P))))"
-
-value(code) "collect_allow_impl_debug (simple_matcher, \<alpha>) (take 3 simple_example_firewall2) packet_set_UNIV"
 
 
 end

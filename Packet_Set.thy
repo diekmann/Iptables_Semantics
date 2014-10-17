@@ -232,25 +232,52 @@ text{*optimizing*}
     by(cases ps) (simp add: packet_set_to_set_alt packet_set_opt1.simps)
 
 
-  fun packet_set_opt2 :: "'a packet_set \<Rightarrow> 'a packet_set" where
-    "packet_set_opt2 (PacketSet []) = PacketSet []" |
-    "packet_set_opt2 (PacketSet ([]#ps)) = packet_set_UNIV" |
-    "packet_set_opt2 (PacketSet ([a]#ps)) = PacketSet ([a]#(filter (\<lambda>as. a \<notin> set as) ps))" |
-    "packet_set_opt2 (PacketSet (as#ps)) = PacketSet (as#ps)"
-  declare packet_set_opt2.simps[simp del]
-  
-  lemma packet_set_opt2_correct: "packet_set_to_set \<gamma> (packet_set_opt2 ps) = packet_set_to_set \<gamma> ps"
-    apply(induction ps rule:packet_set_opt2.induct)
-    apply(simp_all add: packet_set_opt2.simps packet_set_UNIV)
+  fun packet_set_opt2_internal :: "(('a negation_type \<times> action negation_type) list) list \<Rightarrow> (('a negation_type \<times> action negation_type) list) list" where
+    "packet_set_opt2_internal [] = []" |
+
+    "packet_set_opt2_internal ([]#ps) = [[]]" | (*If UNIV is included, the whole expression is UNIV*)
+
+    (*"packet_set_opt2_internal ([a]#ps) = ([a]#(filter (\<lambda>as. a \<notin> set as) ps))" |*)
+
+    (*if a more permissive expression is encountered, we can drop all less-permissive ones*)
+    "packet_set_opt2_internal (as#ps) = (as#(filter (\<lambda>ass. \<not> set as \<subseteq> set ass) ps))" (*this might be horribly inefficient ...*)
+
+  lemma packet_set_opt2_internal_correct: "packet_set_to_set \<gamma> (PacketSet (packet_set_opt2_internal ps)) = packet_set_to_set \<gamma> (PacketSet ps)"
+    apply(induction ps rule:packet_set_opt2_internal.induct)
+    apply(simp_all add: packet_set_UNIV)
     apply(simp add: packet_set_to_set_alt)
     apply(simp add: packet_set_to_set_alt)
-    apply(safe)
+    apply(safe)[1]
     apply(simp_all)
     apply blast+
+    (*apply(simp add: packet_set_to_set_alt)
+    apply(safe)[1]
+    apply(simp_all)
+    apply blast+*)
     done
     
+  export_code packet_set_opt2_internal in SML
+
+  fun packet_set_opt2 :: "'a packet_set \<Rightarrow> 'a packet_set" where
+    "packet_set_opt2 (PacketSet ps) = PacketSet (packet_set_opt2_internal ps)" 
+  declare packet_set_opt2.simps[simp del]
+
+  lemma packet_set_opt2_correct: "packet_set_to_set \<gamma> (packet_set_opt2 ps) = packet_set_to_set \<gamma> ps"
+    by(cases ps) (simp add: packet_set_opt2.simps packet_set_opt2_internal_correct)
 
 
+  text{*If we sort by length, we will hopefully get better results when applying @{const packet_set_opt2}.*}
+  fun packet_set_opt3 :: "'a packet_set \<Rightarrow> 'a packet_set" where
+    "packet_set_opt3 (PacketSet ps) = PacketSet (sort_key (\<lambda>p. length p) ps)" (*quadratic runtime of sort?*)
+  declare packet_set_opt3.simps[simp del]
+  lemma packet_set_opt3_correct: "packet_set_to_set \<gamma> (packet_set_opt3 ps) = packet_set_to_set \<gamma> ps"
+    by(cases ps) (simp add: packet_set_opt3.simps packet_set_to_set_alt)
+  
+  definition packet_set_opt :: "'a packet_set \<Rightarrow> 'a packet_set" where
+    "packet_set_opt ps = packet_set_opt1 (packet_set_opt2 (packet_set_opt3 ps))" 
+
+  lemma packet_set_opt_correct: "packet_set_to_set \<gamma> (packet_set_opt ps) = packet_set_to_set \<gamma> ps"
+    using packet_set_opt_def packet_set_opt2_correct packet_set_opt3_correct packet_set_opt1_correct by metis
 
 
 text{*with @{thm packet_set_constrain_correct} and @{thm packet_set_constrain_not_correct}, it should be possible to build an executable version of the algorithm below.*}
@@ -363,11 +390,12 @@ done
 
 fun collect_allow_impl :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
   "collect_allow_impl _ [] P = packet_set_Empty" |
-  "collect_allow_impl \<gamma> ((Rule m Accept)#rs) P = packet_set_union 
-    (packet_set_opt1 (packet_set_constrain Accept m P)) (collect_allow_impl \<gamma> rs (packet_set_opt1 (packet_set_constrain_not Accept m (packet_set_opt1 P))))" |
-  "collect_allow_impl \<gamma> ((Rule m Drop)#rs) P = (collect_allow_impl \<gamma> rs (packet_set_opt1 (packet_set_constrain_not Drop m (packet_set_opt1 P))))"
+  "collect_allow_impl \<gamma> ((Rule m Accept)#rs) P = packet_set_opt ( packet_set_union 
+    (packet_set_opt (packet_set_constrain Accept m P)) (packet_set_opt (collect_allow_impl \<gamma> rs (packet_set_opt (packet_set_constrain_not Accept m (packet_set_opt P))))))" |
+  "collect_allow_impl \<gamma> ((Rule m Drop)#rs) P = (collect_allow_impl \<gamma> rs (packet_set_opt (packet_set_constrain_not Drop m (packet_set_opt P))))"
 
-
+(*
+not needed atm
 lemma opt_packet_set_constrain_not: "packet_set_to_set \<gamma> (opt P) = packet_set_to_set \<gamma> P \<Longrightarrow> 
   packet_set_to_set \<gamma> (packet_set_constrain_not a m (opt P)) = packet_set_to_set \<gamma> (packet_set_constrain_not a m P)"
 apply(simp_all add: packet_set_union_correct packet_set_constrain_correct packet_set_constrain_not_correct)
@@ -399,11 +427,11 @@ next
       packet_set_to_set \<gamma> (collect_allow_impl_unoptimized \<gamma> rs (packet_set_constrain_not Drop m P))" by simp
   thus ?case by simp
 qed(simp_all add: simple_ruleset_def)
-
+*)
 
 lemma collect_allow_impl: "simple_ruleset rs \<Longrightarrow> packet_set_to_set \<gamma> (collect_allow_impl \<gamma> rs P) = packet_set_to_set \<gamma> (collect_allow_impl_unoptimized \<gamma> rs P)"
 apply(induction \<gamma> rs P arbitrary: P  rule: collect_allow_impl_unoptimized.induct)
-apply(simp_all add: simple_ruleset_def packet_set_union_correct packet_set_opt1_correct packet_set_constrain_not_correct collect_allow_impl_unoptimized)
+apply(simp_all add: simple_ruleset_def packet_set_union_correct packet_set_opt_correct packet_set_constrain_not_correct collect_allow_impl_unoptimized)
 done
 
 
@@ -420,5 +448,17 @@ corollary collect_allow_impl_sound_complete: "simple_ruleset rs \<Longrightarrow
   packet_set_to_set \<gamma> (collect_allow_impl \<gamma> rs packet_set_UNIV) = {p. approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow}"
 using collect_allow_impl_unoptimized_sound_complete collect_allow_impl by fast
 
+
+
+
+
+
+text{*debugging how the internal state grows ...*}
+
+fun collect_allow_impl_debug :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
+  "collect_allow_impl_debug _ [] P = packet_set_opt P" |
+  "collect_allow_impl_debug \<gamma> ((Rule m Accept)#rs) P = packet_set_opt (packet_set_union 
+    (packet_set_opt (packet_set_constrain Accept m P)) (packet_set_opt (collect_allow_impl_debug \<gamma> rs (packet_set_opt (packet_set_constrain_not Accept m (packet_set_opt P))))))" |
+  "collect_allow_impl_debug \<gamma> ((Rule m Drop)#rs) P = (collect_allow_impl_debug \<gamma> rs (packet_set_opt (packet_set_constrain_not Drop m (packet_set_opt P))))"
 
 end
