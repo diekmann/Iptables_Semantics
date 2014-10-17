@@ -232,6 +232,26 @@ text{*optimizing*}
     by(cases ps) (simp add: packet_set_to_set_alt packet_set_opt1.simps)
 
 
+  fun packet_set_opt2 :: "'a packet_set \<Rightarrow> 'a packet_set" where
+    "packet_set_opt2 (PacketSet []) = PacketSet []" |
+    "packet_set_opt2 (PacketSet ([]#ps)) = packet_set_UNIV" |
+    "packet_set_opt2 (PacketSet ([a]#ps)) = PacketSet ([a]#(filter (\<lambda>as. a \<notin> set as) ps))" |
+    "packet_set_opt2 (PacketSet (as#ps)) = PacketSet (as#ps)"
+  declare packet_set_opt2.simps[simp del]
+  
+  lemma packet_set_opt2_correct: "packet_set_to_set \<gamma> (packet_set_opt2 ps) = packet_set_to_set \<gamma> ps"
+    apply(induction ps rule:packet_set_opt2.induct)
+    apply(simp_all add: packet_set_opt2.simps packet_set_UNIV)
+    apply(simp add: packet_set_to_set_alt)
+    apply(simp add: packet_set_to_set_alt)
+    apply(safe)
+    apply(simp_all)
+    apply blast+
+    done
+    
+
+
+
 
 text{*with @{thm packet_set_constrain_correct} and @{thm packet_set_constrain_not_correct}, it should be possible to build an executable version of the algorithm below.*}
 
