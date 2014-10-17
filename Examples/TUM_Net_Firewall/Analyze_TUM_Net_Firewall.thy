@@ -3,6 +3,7 @@ imports Main "../../Output_Format/IPSpace_Format_Ln" "../../Call_Return_Unfoldin
 "~~/src/HOL/Library/Code_Target_Nat"
 "~~/src/HOL/Library/Code_Target_Int"
 "~~/src/HOL/Library/Code_Char"
+  "../../Packet_Set"
 begin
 
 
@@ -24,6 +25,8 @@ definition lower_closure :: "iptrule_match rule list \<Rightarrow> iptrule_match
 
 
 
+definition allow_set :: "iptrule_match rule list \<Rightarrow> iptrule_match packet_set" where
+  "allow_set rs \<equiv> collect_allow_impl rs packet_set_UNIV"
 
 
 definition bitmask_to_strange_inverse_cisco_mask:: "nat \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat)" where
@@ -45,6 +48,7 @@ export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure for
   UncompressedFormattedMatch Pos Neg
   does_I_has_compressed_prots
   bitmask_to_strange_inverse_cisco_mask
+  allow_set
   in SML module_name "Test" file "unfold_code.ML"
 
 ML_file "unfold_code.ML"
@@ -286,5 +290,11 @@ ML_val{*
 dump_flowtable (compress_Ln_ips (format_Ln_rules_uncompressed upper));
 *}
 
+
+text{*packet set (test)*}
+ML_val{*
+allow_set (take 10 upper)
+*}
+(*test with rules*)
 
 end
