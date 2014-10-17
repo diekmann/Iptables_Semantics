@@ -222,6 +222,17 @@ unfolding packet_set_not_correct
 unfolding to_packet_set_set
 by blast
 
+
+text{*optimizing*}
+  fun packet_set_opt1 :: "'a packet_set \<Rightarrow> 'a packet_set" where
+    "packet_set_opt1 (PacketSet ps) = PacketSet (map remdups (remdups ps))"
+  declare packet_set_opt1.simps[simp del]
+  
+  lemma packet_set_opt1_correct: "packet_set_to_set \<gamma> (packet_set_opt1 ps) = packet_set_to_set \<gamma> ps"
+    by(cases ps) (simp add: packet_set_to_set_alt packet_set_opt1.simps)
+
+
+
 text{*with @{thm packet_set_constrain_correct} and @{thm packet_set_constrain_not_correct}, it should be possible to build an executable version of the algorithm below.*}
 
 
@@ -319,22 +330,75 @@ using collect_allow_complete[where P=UNIV] by fast
 
 
 subsection{*The set of all accepted packets -- Executable Implementation*}
-term packet_set_constrain
-fun collect_allow_impl :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
-  "collect_allow_impl _ [] P = packet_set_Empty" |
-  "collect_allow_impl \<gamma> ((Rule m Accept)#rs) P = packet_set_union (packet_set_constrain Accept m P) (collect_allow_impl \<gamma> rs (packet_set_constrain_not Accept m P))" |
-  "collect_allow_impl \<gamma> ((Rule m Drop)#rs) P = (collect_allow_impl \<gamma> rs (packet_set_constrain_not Drop m P))"
+fun collect_allow_impl_unoptimized :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
+  "collect_allow_impl_unoptimized _ [] P = packet_set_Empty" |
+  "collect_allow_impl_unoptimized \<gamma> ((Rule m Accept)#rs) P = packet_set_union (packet_set_constrain Accept m P) (collect_allow_impl_unoptimized \<gamma> rs (packet_set_constrain_not Accept m P))" |
+  "collect_allow_impl_unoptimized \<gamma> ((Rule m Drop)#rs) P = (collect_allow_impl_unoptimized \<gamma> rs (packet_set_constrain_not Drop m P))"
 
-lemma collect_allow_impl: "simple_ruleset rs \<Longrightarrow> packet_set_to_set \<gamma> (collect_allow_impl \<gamma> rs P) = collect_allow \<gamma> rs (packet_set_to_set \<gamma> P)"
+lemma collect_allow_impl_unoptimized: "simple_ruleset rs \<Longrightarrow> packet_set_to_set \<gamma> (collect_allow_impl_unoptimized \<gamma> rs P) = collect_allow \<gamma> rs (packet_set_to_set \<gamma> P)"
 apply(induction \<gamma> rs "(packet_set_to_set \<gamma> P)"arbitrary: P  rule: collect_allow.induct)
 apply(simp_all add: packet_set_union_correct packet_set_constrain_correct packet_set_constrain_not_correct packet_set_Empty simple_ruleset_def)
 done
 
 
-theorem collect_allow_impl_sound_complete: "simple_ruleset rs \<Longrightarrow> 
-  packet_set_to_set \<gamma> (collect_allow_impl \<gamma> rs packet_set_UNIV) = {p. approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow}"
-apply(simp add: collect_allow_impl packet_set_UNIV)
+fun collect_allow_impl :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
+  "collect_allow_impl _ [] P = packet_set_Empty" |
+  "collect_allow_impl \<gamma> ((Rule m Accept)#rs) P = packet_set_union 
+    (packet_set_opt1 (packet_set_constrain Accept m P)) (collect_allow_impl \<gamma> rs (packet_set_opt1 (packet_set_constrain_not Accept m (packet_set_opt1 P))))" |
+  "collect_allow_impl \<gamma> ((Rule m Drop)#rs) P = (collect_allow_impl \<gamma> rs (packet_set_opt1 (packet_set_constrain_not Drop m (packet_set_opt1 P))))"
+
+
+lemma opt_packet_set_constrain_not: "packet_set_to_set \<gamma> (opt P) = packet_set_to_set \<gamma> P \<Longrightarrow> 
+  packet_set_to_set \<gamma> (packet_set_constrain_not a m (opt P)) = packet_set_to_set \<gamma> (packet_set_constrain_not a m P)"
+apply(simp_all add: packet_set_union_correct packet_set_constrain_correct packet_set_constrain_not_correct)
+done
+
+lemma collect_allow_impl_unoptimized_optP: "simple_ruleset rs \<Longrightarrow> packet_set_to_set \<gamma> (opt P) = packet_set_to_set \<gamma> P \<Longrightarrow>
+  packet_set_to_set \<gamma> (collect_allow_impl_unoptimized \<gamma> rs (opt P)) = packet_set_to_set \<gamma> (collect_allow_impl_unoptimized \<gamma> rs P)"
+proof(induction \<gamma> rs P arbitrary: P opt  rule: collect_allow_impl_unoptimized.induct)
+  case 1 thus ?case by simp
+next
+  case (2 \<gamma> m rs)
+  from 2 have "simple_ruleset rs" by (simp add: simple_ruleset_def)
+  with 2 have IH: "(\<And>P opt. packet_set_to_set \<gamma> (opt P) = packet_set_to_set \<gamma> P \<Longrightarrow>
+                 packet_set_to_set \<gamma> (collect_allow_impl_unoptimized \<gamma> rs (opt P)) = packet_set_to_set \<gamma> (collect_allow_impl_unoptimized \<gamma> rs P))" by simp
+  from 2 opt_packet_set_constrain_not have" packet_set_to_set \<gamma> (packet_set_constrain_not Accept m (opt P)) = packet_set_to_set \<gamma> (packet_set_constrain_not Accept m P)" by metis
+  from IH[OF this] have IH': "packet_set_to_set \<gamma> (collect_allow_impl_unoptimized \<gamma> rs (packet_set_constrain_not Accept m (opt P))) =
+      packet_set_to_set \<gamma> (collect_allow_impl_unoptimized \<gamma> rs (packet_set_constrain_not Accept m P))" by simp
+  from 2 have prems: "packet_set_to_set \<gamma> (opt P) = packet_set_to_set \<gamma> P" by simp
+  from prems IH' show ?case
+    apply(simp_all add: packet_set_union_correct packet_set_constrain_correct packet_set_constrain_not_correct)
+    done
+next
+  case (3 \<gamma> m rs)
+  from 3 have "simple_ruleset rs" by (simp add: simple_ruleset_def)
+  with 3 have IH: "(\<And>P opt. packet_set_to_set \<gamma> (opt P) = packet_set_to_set \<gamma> P \<Longrightarrow>
+                 packet_set_to_set \<gamma> (collect_allow_impl_unoptimized \<gamma> rs (opt P)) = packet_set_to_set \<gamma> (collect_allow_impl_unoptimized \<gamma> rs P))" by simp
+  from 3 opt_packet_set_constrain_not have"packet_set_to_set \<gamma> (packet_set_constrain_not Drop m (opt P)) = packet_set_to_set \<gamma> (packet_set_constrain_not Drop m P)" by metis
+  from IH[OF this] have IH': "packet_set_to_set \<gamma> (collect_allow_impl_unoptimized \<gamma> rs (packet_set_constrain_not Drop m (opt P))) =
+      packet_set_to_set \<gamma> (collect_allow_impl_unoptimized \<gamma> rs (packet_set_constrain_not Drop m P))" by simp
+  thus ?case by simp
+qed(simp_all add: simple_ruleset_def)
+
+
+lemma collect_allow_impl: "simple_ruleset rs \<Longrightarrow> packet_set_to_set \<gamma> (collect_allow_impl \<gamma> rs P) = packet_set_to_set \<gamma> (collect_allow_impl_unoptimized \<gamma> rs P)"
+apply(induction \<gamma> rs P arbitrary: P  rule: collect_allow_impl_unoptimized.induct)
+apply(simp_all add: simple_ruleset_def packet_set_union_correct packet_set_opt1_correct packet_set_constrain_not_correct collect_allow_impl_unoptimized)
+done
+
+
+text{*executable!*}
+export_code collect_allow_impl in SML
+
+
+theorem collect_allow_impl_unoptimized_sound_complete: "simple_ruleset rs \<Longrightarrow> 
+  packet_set_to_set \<gamma> (collect_allow_impl_unoptimized \<gamma> rs packet_set_UNIV) = {p. approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow}"
+apply(simp add: collect_allow_impl_unoptimized packet_set_UNIV)
 using collect_allow_sound_complete by fast
+
+corollary collect_allow_impl_sound_complete: "simple_ruleset rs \<Longrightarrow> 
+  packet_set_to_set \<gamma> (collect_allow_impl \<gamma> rs packet_set_UNIV) = {p. approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow}"
+using collect_allow_impl_unoptimized_sound_complete collect_allow_impl by fast
 
 
 end
