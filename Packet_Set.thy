@@ -223,7 +223,10 @@ subsubsection{*Basic Set Operations*}
     apply(simp add: to_packet_set_correct[symmetric])
     using packet_set_intersect_correct by fast
   
-
+    text{*The length of the result is the product of the input lengths*}
+    lemma packet_set_intersetc_length: "length (packet_set_repr (packet_set_intersect (PacketSet ass) (PacketSet bss))) = length ass * length bss"
+      by(induction ass) (simp_all add: packet_set_intersect.simps)
+      
 
   
   text{* @text{\<union>} *}
@@ -303,7 +306,7 @@ subsubsection{*Basic Set Operations*}
       "packet_set_not_internal (ns#nss) = listprepend (map invertt ns) (packet_set_not_internal nss)"
 
     lemma packet_set_not_internal_length: "length (packet_set_not_internal ass) = listprod ([length n. n <- ass])"
-      by(induction ass) (simp_all add: listprepend_length algebra_simps)
+      by(induction ass) (simp_all add: listprepend_length)
     
     lemma packet_set_not_internal_correct: "packet_set_to_set \<gamma> (PacketSet (packet_set_not_internal d)) = - packet_set_to_set \<gamma> (PacketSet d)"
       apply(induction d)
@@ -527,5 +530,33 @@ fun collect_allow_impl_debug :: "'a rule list \<Rightarrow> 'a packet_set \<Righ
   "collect_allow_impl_debug ((Rule m Accept)#rs) P = packet_set_opt (packet_set_union 
     (packet_set_opt (packet_set_constrain Accept m P)) (packet_set_opt (collect_allow_impl_debug rs (packet_set_opt (packet_set_constrain_not Accept m (packet_set_opt P))))))" |
   "collect_allow_impl_debug ((Rule m Drop)#rs) P = (collect_allow_impl_debug rs (packet_set_opt (packet_set_constrain_not Drop m (packet_set_opt P))))"
+
+
+
+
+
+
+
+
+text{*instead of the expensive invert and intersect operations, we try to build the algorithm primarily by union*}
+lemma "(UNIV - A) \<inter> (UNIV - B) = UNIV - (A \<union> B)" by blast
+lemma "A \<inter> (- P) = UNIV - (-A \<union> P)" by blast
+
+lemma set_helper1: "(- P \<inter> - {p. matches \<gamma> m a p}) = {p. p \<notin> P \<and> \<not> matches \<gamma> m a p}" by blast
+
+fun collect_allow_compl_v1 :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'p set \<Rightarrow> 'p set" where
+  "collect_allow_compl_v1 _ [] P = {}" |
+  "collect_allow_compl_v1 \<gamma> ((Rule m Accept)#rs) P = {p \<in> - P. matches \<gamma> m Accept p} \<union> (collect_allow_compl_v1 \<gamma> rs (P \<union> {p. matches \<gamma> m Accept p}))" |
+  "collect_allow_compl_v1 \<gamma> ((Rule m Drop)#rs) P = (collect_allow_compl_v1 \<gamma> rs (P \<union> {p. matches \<gamma> m Drop p}))"
+
+lemma "simple_ruleset rs \<Longrightarrow> ( collect_allow_compl_v1 \<gamma> rs P) = collect_allow \<gamma> rs (- P)"
+(*nitpick*)
+apply(induction \<gamma> rs P arbitrary: P rule: collect_allow.induct)
+apply(simp_all)
+defer defer
+apply(simp_all add: simple_ruleset_def)[6]
+apply(simp_all add: simple_ruleset_tail)
+apply(simp_all add: set_helper1)
+done
 
 end
