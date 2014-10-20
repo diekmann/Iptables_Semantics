@@ -295,7 +295,7 @@ dump_flowtable (compress_Ln_ips (format_Ln_rules_uncompressed upper));
 
 text{*packet set (test)*}
 ML_val{*
-allow_set_debug (take 15 upper)
+allow_set (take 15 upper)
 *}
 (*test with rules*)
 
