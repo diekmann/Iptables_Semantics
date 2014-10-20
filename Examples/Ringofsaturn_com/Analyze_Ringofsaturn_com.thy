@@ -203,21 +203,16 @@ value(code) "format_Ln_rules_uncompressed (rmMatchFalse (((optimize_matches opt_
 value(code) "format_Ln_rules_uncompressed (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_deny_extra simple_example_firewall2)))"
 value(code) "format_Ln_rules_uncompressed simple_example_firewall2"
 
+text{*Allowed Packets*}
 text{*the first 10 rules basically accept no packets*}
-lemma "collect_allow_impl (take 10 simple_example_firewall2) packet_set_UNIV = packet_set_Empty" by eval
+lemma "collect_allow_impl_v2 (take 10 simple_example_firewall2) packet_set_UNIV = packet_set_Empty" by eval
 
 
+value(code) "allow_set_not_inter simple_example_firewall2"
 
-value(code) " (collect_allow_compl_v2_impl_tailrec simple_example_firewall2 packet_set_Empty [])"
 
+value(code) "map packet_set_opt (allow_set_not_inter simple_example_firewall2)"
 
-value(code) "collect_allow_impl (take 3 simple_example_firewall2) packet_set_UNIV"
-
-value(code) "collect_allow_impl simple_example_firewall2 packet_set_UNIV"
-
-(*
-value(code) "collect_allow_impl_unoptimized simple_example_firewall2 packet_set_UNIV"
-*)
 
 
 end
