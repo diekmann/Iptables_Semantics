@@ -598,7 +598,7 @@ lemma "simple_ruleset rs \<Longrightarrow>
   packet_set_to_set \<gamma> (collect_allow_compl_v2_impl rs P) = - collect_allow \<gamma> rs (- packet_set_to_set \<gamma>  P)"
 apply(simp add: collect_allow_compl_v1_correct[symmetric] )
 apply(simp add: collect_allow_compl_v2_correct)
-apply(induction rs P arbitrary: P  rule: collect_allow_impl_unoptimized.induct)
+apply(induction rs P arbitrary: P rule: collect_allow_impl_unoptimized.induct)
 apply(simp_all add: simple_ruleset_def packet_set_union_correct packet_set_opt_correct packet_set_intersect_intersect packet_set_not_correct
     to_packet_set_set set_helper1
     packet_set_constrain_not_correct collect_allow_impl_unoptimized packet_set_UNIV packet_set_Empty_def)
@@ -612,8 +612,36 @@ fun collect_allow_compl_v2_impl_tailrec :: "'a rule list \<Rightarrow> 'a packet
      collect_allow_compl_v2_impl_tailrec rs (packet_set_opt (packet_set_union P (to_packet_set Accept m)))  ((packet_set_union P  (packet_set_not (to_packet_set Accept m)))# PAs)" |
   "collect_allow_compl_v2_impl_tailrec ((Rule m Drop)#rs) P PAs = collect_allow_compl_v2_impl_tailrec rs (packet_set_opt (packet_set_union P (to_packet_set Drop m))) PAs"
 
-(* TODO
-lemma "simple_ruleset rs \<Longrightarrow> packet_set_to_set \<gamma> (collect_allow_compl_v2_impl rs P) "
-*)
+(*probably the ugliest proof in history*)
+lemma collect_allow_compl_v2_impl_tailrec_helper: "simple_ruleset rs \<Longrightarrow> 
+  (packet_set_to_set \<gamma> (collect_allow_compl_v2_impl rs P)) \<inter> (\<Inter> set (map (packet_set_to_set \<gamma>) PAs)) =
+  (\<Inter> set (map (packet_set_to_set \<gamma>) (collect_allow_compl_v2_impl_tailrec rs P PAs)))"
+proof(induction rs P arbitrary: PAs P rule: collect_allow_compl_v2_impl.induct)
+case (2 m rs)
+from 2 have IH: "(\<And>P PAs. packet_set_to_set \<gamma> (collect_allow_compl_v2_impl rs P) \<inter> (\<Inter>x\<in>set PAs. packet_set_to_set \<gamma> x) =
+              (\<Inter>x\<in>set (collect_allow_compl_v2_impl_tailrec rs P PAs). packet_set_to_set \<gamma> x))"
+by(simp add: simple_ruleset_def)
+from IH[where P="(packet_set_opt (packet_set_union P (to_packet_set Accept m)))" and PAs="(packet_set_union P (packet_set_not (to_packet_set Accept m)) # PAs)", simplified] have
+  "(packet_set_to_set \<gamma> P \<union> {p. \<not> matches \<gamma> m Accept p}) \<inter> 
+    packet_set_to_set \<gamma> (collect_allow_compl_v2_impl rs (packet_set_opt (packet_set_union P (to_packet_set Accept m)))) \<inter>
+    (\<Inter>x\<in>set PAs. packet_set_to_set \<gamma> x) =
+  (\<Inter>x\<in>set (collect_allow_compl_v2_impl_tailrec rs 
+        (packet_set_opt (packet_set_union P (to_packet_set Accept m)))
+        (packet_set_union P (packet_set_not (to_packet_set Accept m)) # PAs)).    packet_set_to_set \<gamma> x)"
+    apply(simp_all add: packet_set_union_correct packet_set_not_correct to_packet_set_set) by blast
+from this show ?case
+apply(simp_all add: simple_ruleset_def packet_set_union_correct packet_set_opt_correct packet_set_intersect_intersect packet_set_not_correct
+    to_packet_set_set set_helper1 packet_set_constrain_not_correct collect_allow_impl_unoptimized)
+done
+qed(simp_all add: simple_ruleset_def packet_set_union_correct packet_set_opt_correct packet_set_intersect_intersect packet_set_not_correct
+    to_packet_set_set set_helper1
+    packet_set_constrain_not_correct collect_allow_impl_unoptimized packet_set_UNIV packet_set_Empty_def)
+
+
+lemma collect_allow_compl_v2_impl_tailrec_correct: "simple_ruleset rs \<Longrightarrow> 
+  (packet_set_to_set \<gamma> (collect_allow_compl_v2_impl rs P)) = (\<Inter>x\<in>set (collect_allow_compl_v2_impl_tailrec rs P []). packet_set_to_set \<gamma> x)"
+using collect_allow_compl_v2_impl_tailrec_helper[where PAs="[]", simplified]
+by metis
+
 
 end
