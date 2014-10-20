@@ -541,22 +541,79 @@ fun collect_allow_impl_debug :: "'a rule list \<Rightarrow> 'a packet_set \<Righ
 text{*instead of the expensive invert and intersect operations, we try to build the algorithm primarily by union*}
 lemma "(UNIV - A) \<inter> (UNIV - B) = UNIV - (A \<union> B)" by blast
 lemma "A \<inter> (- P) = UNIV - (-A \<union> P)" by blast
+lemma "UNIV - ((- P) \<inter> A) = P \<union> - A" by blast
+lemma "((- P) \<inter> A) = UNIV - (P \<union> - A)" by blast
 
-lemma set_helper1: "(- P \<inter> - {p. matches \<gamma> m a p}) = {p. p \<notin> P \<and> \<not> matches \<gamma> m a p}" by blast
+lemma "UNIV - ((P \<union> - A) \<inter> X) = UNIV - ((P \<inter> X) \<union> (- A \<inter> X))" by blast
+lemma "UNIV - ((P \<inter> X) \<union> (- A \<inter> X)) = (- P \<union> -X) \<inter> (A \<union> - X)" by blast
+lemma "(- P \<union> -X) \<inter> (A \<union> -X) = (- P \<inter> A) \<union> - X" by blast
+
+lemma "(((- P) \<inter> A) \<union> X) = UNIV - ((P \<union> - A) \<inter> - X)" by blast
+
+lemma set_helper1: 
+  "(- P \<inter> - {p. matches \<gamma> m a p}) = {p. p \<notin> P \<and> \<not> matches \<gamma> m a p}" 
+  "- {p \<in> - P. matches \<gamma> m a p} = (P \<union> - {p. matches \<gamma> m a p})"
+  "- {p. matches \<gamma> m a p} =  {p. \<not> matches \<gamma> m a p}"
+by blast+
 
 fun collect_allow_compl_v1 :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'p set \<Rightarrow> 'p set" where
   "collect_allow_compl_v1 _ [] P = {}" |
   "collect_allow_compl_v1 \<gamma> ((Rule m Accept)#rs) P = {p \<in> - P. matches \<gamma> m Accept p} \<union> (collect_allow_compl_v1 \<gamma> rs (P \<union> {p. matches \<gamma> m Accept p}))" |
   "collect_allow_compl_v1 \<gamma> ((Rule m Drop)#rs) P = (collect_allow_compl_v1 \<gamma> rs (P \<union> {p. matches \<gamma> m Drop p}))"
 
-lemma "simple_ruleset rs \<Longrightarrow> ( collect_allow_compl_v1 \<gamma> rs P) = collect_allow \<gamma> rs (- P)"
-(*nitpick*)
+lemma collect_allow_compl_v1_correct': "simple_ruleset rs \<Longrightarrow> ( collect_allow_compl_v1 \<gamma> rs P) = collect_allow \<gamma> rs (- P)"
 apply(induction \<gamma> rs P arbitrary: P rule: collect_allow.induct)
 apply(simp_all)
 defer defer
 apply(simp_all add: simple_ruleset_def)[6]
 apply(simp_all add: simple_ruleset_tail)
-apply(simp_all add: set_helper1)
+apply(simp_all add: set_helper1(1))
 done
+lemma collect_allow_compl_v1_correct: "simple_ruleset rs \<Longrightarrow> ( collect_allow_compl_v1 \<gamma> rs (- P)) = collect_allow \<gamma> rs P"
+using collect_allow_compl_v1_correct'[where P="- P", simplified] by blast
+
+fun collect_allow_compl_v2 :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'p set \<Rightarrow> 'p set" where
+  "collect_allow_compl_v2 _ [] P = UNIV" |
+  "collect_allow_compl_v2 \<gamma> ((Rule m Accept)#rs) P = (P \<union> {p. \<not>matches \<gamma> m Accept p}) \<inter> (collect_allow_compl_v2 \<gamma> rs (P \<union> {p. matches \<gamma> m Accept p}))" |
+  "collect_allow_compl_v2 \<gamma> ((Rule m Drop)#rs) P = (collect_allow_compl_v2 \<gamma> rs (P \<union> {p. matches \<gamma> m Drop p}))"
+
+lemma collect_allow_compl_v2_correct: "simple_ruleset rs \<Longrightarrow> (- collect_allow_compl_v1 \<gamma> rs P) = collect_allow_compl_v2 \<gamma> rs P"
+apply(induction \<gamma> rs P arbitrary: P rule: collect_allow.induct)
+apply(simp_all)
+defer defer
+apply(simp_all add: simple_ruleset_def)[6]
+apply(simp_all add: simple_ruleset_tail)
+apply(simp_all add: set_helper1(3) set_helper1(2)[simplified])
+done
+
+
+fun collect_allow_compl_v2_impl :: "'a rule list \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
+  "collect_allow_compl_v2_impl [] P = packet_set_UNIV" |
+  "collect_allow_compl_v2_impl ((Rule m Accept)#rs) P = packet_set_intersect 
+      (packet_set_union P  (packet_set_not (to_packet_set Accept m))) (collect_allow_compl_v2_impl rs (packet_set_opt (packet_set_union P (to_packet_set Accept m))))" |
+  "collect_allow_compl_v2_impl ((Rule m Drop)#rs) P = (collect_allow_compl_v2_impl rs (packet_set_opt (packet_set_union P (to_packet_set Drop m))))"
+
+
+lemma "simple_ruleset rs \<Longrightarrow> 
+  packet_set_to_set \<gamma> (collect_allow_compl_v2_impl rs P) = - collect_allow \<gamma> rs (- packet_set_to_set \<gamma>  P)"
+apply(simp add: collect_allow_compl_v1_correct[symmetric] )
+apply(simp add: collect_allow_compl_v2_correct)
+apply(induction rs P arbitrary: P  rule: collect_allow_impl_unoptimized.induct)
+apply(simp_all add: simple_ruleset_def packet_set_union_correct packet_set_opt_correct packet_set_intersect_intersect packet_set_not_correct
+    to_packet_set_set set_helper1
+    packet_set_constrain_not_correct collect_allow_impl_unoptimized packet_set_UNIV packet_set_Empty_def)
+done
+
+
+text{*take @{text "UNIV"} setminus the intersect over the result and get the set of allowed packets*}
+fun collect_allow_compl_v2_impl_tailrec :: "'a rule list \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set list \<Rightarrow> 'a packet_set list" where
+  "collect_allow_compl_v2_impl_tailrec [] P PAs = PAs" |
+  "collect_allow_compl_v2_impl_tailrec ((Rule m Accept)#rs) P PAs =
+     collect_allow_compl_v2_impl_tailrec rs (packet_set_opt (packet_set_union P (to_packet_set Accept m)))  ((packet_set_union P  (packet_set_not (to_packet_set Accept m)))# PAs)" |
+  "collect_allow_compl_v2_impl_tailrec ((Rule m Drop)#rs) P PAs = collect_allow_compl_v2_impl_tailrec rs (packet_set_opt (packet_set_union P (to_packet_set Drop m))) PAs"
+
+(* TODO
+lemma "simple_ruleset rs \<Longrightarrow> packet_set_to_set \<gamma> (collect_allow_compl_v2_impl rs P) "
+*)
 
 end
