@@ -25,10 +25,10 @@ definition lower_closure :: "iptrule_match rule list \<Rightarrow> iptrule_match
 
 
 
-definition allow_set :: "iptrule_match rule list \<Rightarrow> iptrule_match packet_set" where
-  "allow_set rs \<equiv> collect_allow_impl rs packet_set_UNIV"
-definition allow_set_debug :: "iptrule_match rule list \<Rightarrow> iptrule_match packet_set" where
-  "allow_set_debug rs \<equiv> collect_allow_impl_debug rs packet_set_UNIV"
+definition allow_set :: "iptrule_match rule list \<Rightarrow> iptrule_match packet_set list" where
+  "allow_set rs \<equiv> collect_allow_compl_v2_impl_tailrec rs packet_set_Empty []"
+(*definition allow_set_debug :: "iptrule_match rule list \<Rightarrow> iptrule_match packet_set" where
+  "allow_set_debug rs \<equiv> collect_allow_impl_debug rs packet_set_UNIV"*)
 
 
 definition bitmask_to_strange_inverse_cisco_mask:: "nat \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat)" where
@@ -50,7 +50,7 @@ export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure for
   UncompressedFormattedMatch Pos Neg
   does_I_has_compressed_prots
   bitmask_to_strange_inverse_cisco_mask
-  allow_set allow_set_debug
+  allow_set
   in SML module_name "Test" file "unfold_code.ML"
 
 ML_file "unfold_code.ML"
@@ -295,7 +295,10 @@ dump_flowtable (compress_Ln_ips (format_Ln_rules_uncompressed upper));
 
 text{*packet set (test)*}
 ML_val{*
-allow_set (take 15 upper)
+val t0 = Time.now();
+val _ = allow_set upper;
+val t1= Time.now();
+writeln(String.concat ["It took ", Time.toString(Time.-(t1,t0)), " seconds"])
 *}
 (*test with rules*)
 

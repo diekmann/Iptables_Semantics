@@ -188,6 +188,7 @@ apply(simp add: rm_LogEmpty_fun_semantics)
 done
 
 value(code) "simple_example_firewall2"
+value(code) "zip (upto 0 (int (length simple_example_firewall2))) simple_example_firewall2"
 value "good_ruleset simple_example_firewall2"
 value "simple_ruleset simple_example_firewall2"
 
@@ -206,8 +207,17 @@ text{*the first 10 rules basically accept no packets*}
 lemma "collect_allow_impl (take 10 simple_example_firewall2) packet_set_UNIV = packet_set_Empty" by eval
 
 
+
+value(code) " (collect_allow_compl_v2_impl_tailrec simple_example_firewall2 packet_set_Empty [])"
+
+
+value(code) "collect_allow_impl (take 3 simple_example_firewall2) packet_set_UNIV"
+
 value(code) "collect_allow_impl simple_example_firewall2 packet_set_UNIV"
 
+(*
+value(code) "collect_allow_impl_unoptimized simple_example_firewall2 packet_set_UNIV"
+*)
 
 
 end
