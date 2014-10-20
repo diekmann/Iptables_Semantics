@@ -2,6 +2,23 @@ theory Packet_Set
 imports Fixed_Action "Output_Format/Negation_Type_Matching" Datatype_Selectors
 begin
 
+
+section{*Util: listprod*}
+    definition listprod :: "nat list \<Rightarrow> nat" where "listprod as \<equiv> foldr (op *) as 1"
+    (*better: "'a::comm_semiring_1 list \<Rightarrow> 'a"*)
+    lemma listprod_append[simp]: "listprod (as @ bs) =  listprod as * listprod bs"
+     apply(induction as arbitrary: bs)
+      apply(simp_all add: listprod_def)
+     done
+    lemma listprod_simps [simp]:
+      "listprod [] = 1"
+      "listprod (x # xs) = x * listprod xs"
+      by (simp_all add: listprod_def)
+    lemma "distinct as \<Longrightarrow> listprod as = \<Prod>(set as)"
+      by(induction as) simp_all
+
+
+
 section{*Packet Set*}
 (*probably everything here wants a simple ruleset*)
 
@@ -99,6 +116,8 @@ using collect_allow_complete[where P=UNIV] by fast
 
 
 
+
+
 subsection{*Executable Packet Set Representation*}
 
 text{*Recall: @{const alist_and} transforms @{typ "'a negation_type list \<Rightarrow> 'a match_expr"} and uses conjunction as connective. *}
@@ -171,152 +190,170 @@ apply safe
 apply simp_all
 done
 
-fun packet_set_and :: "'a packet_set \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
-  "packet_set_and (PacketSet olist1) (PacketSet olist2) = PacketSet [andlist1 @ andlist2. andlist1 <- olist1, andlist2 <- olist2]"
-
-lemma "packet_set_and (PacketSet [[a,b], [c,d]]) (PacketSet [[v,w], [x,y]]) = PacketSet [[a, b, v, w], [a, b, x, y], [c, d, v, w], [c, d, x, y]]" by simp
-
-declare packet_set_and.simps[simp del]
-
-
-lemma packet_set_and_correct: "packet_set_to_set \<gamma> (packet_set_and (to_packet_set a m1) (to_packet_set a m2)) = packet_set_to_set \<gamma> (to_packet_set a (MatchAnd m1 m2))"
- apply(simp add: to_packet_set_def packet_set_and.simps packet_set_to_set_alt)
- (*by fast very slow!*)
- apply safe
- apply simp_all
- apply blast+
- done
- 
-lemma packet_set_and_correct': "p \<in> packet_set_to_set \<gamma> (packet_set_and (to_packet_set a m1) (to_packet_set a m2)) \<longleftrightarrow> matches \<gamma> (MatchAnd m1 m2) a p"
-apply(simp add: to_packet_set_correct[symmetric])
-using packet_set_and_correct by fast
-
-
-lemma packet_set_and_intersect: "packet_set_to_set \<gamma> (packet_set_and P1 P2) = packet_set_to_set \<gamma> P1 \<inter> packet_set_to_set \<gamma> P2"
-unfolding packet_set_to_set_def
- apply(cases P1)
- apply(cases P2)
- apply(simp)
- apply(simp add: packet_set_and.simps)
- apply blast
-done
-
-
-fun packet_set_union :: "'a packet_set \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
-  "packet_set_union (PacketSet olist1) (PacketSet olist2) = PacketSet (olist1 @ olist2)"
-declare packet_set_union.simps[simp del]
-
-lemma packet_set_union_correct: "packet_set_to_set \<gamma> (packet_set_union P1 P2) = packet_set_to_set \<gamma> P1 \<union> packet_set_to_set \<gamma> P2"
-unfolding packet_set_to_set_def
- apply(cases P1)
- apply(cases P2)
- apply(simp add: packet_set_union.simps)
-done
+subsubsection{*Basic Set Operations*}
+  
+  text{* @text{\<inter>} *}
+    fun packet_set_intersect :: "'a packet_set \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
+      "packet_set_intersect (PacketSet olist1) (PacketSet olist2) = PacketSet [andlist1 @ andlist2. andlist1 <- olist1, andlist2 <- olist2]"
+    
+    lemma "packet_set_intersect (PacketSet [[a,b], [c,d]]) (PacketSet [[v,w], [x,y]]) = PacketSet [[a, b, v, w], [a, b, x, y], [c, d, v, w], [c, d, x, y]]" by simp
+    
+    declare packet_set_intersect.simps[simp del]
+    
+    
+    lemma packet_set_intersect_intersect: "packet_set_to_set \<gamma> (packet_set_intersect P1 P2) = packet_set_to_set \<gamma> P1 \<inter> packet_set_to_set \<gamma> P2"
+    unfolding packet_set_to_set_def
+     apply(cases P1)
+     apply(cases P2)
+     apply(simp)
+     apply(simp add: packet_set_intersect.simps)
+     apply blast
+    done
+    
+    
+    lemma packet_set_intersect_correct: "packet_set_to_set \<gamma> (packet_set_intersect (to_packet_set a m1) (to_packet_set a m2)) = packet_set_to_set \<gamma> (to_packet_set a (MatchAnd m1 m2))"
+     apply(simp add: to_packet_set_def packet_set_intersect.simps packet_set_to_set_alt)
+     (*by fast very slow!*)
+     apply safe
+     apply simp_all
+     apply blast+
+     done
+     
+    lemma packet_set_intersect_correct': "p \<in> packet_set_to_set \<gamma> (packet_set_intersect (to_packet_set a m1) (to_packet_set a m2)) \<longleftrightarrow> matches \<gamma> (MatchAnd m1 m2) a p"
+    apply(simp add: to_packet_set_correct[symmetric])
+    using packet_set_intersect_correct by fast
+  
 
 
-definition packet_set_constrain :: "action \<Rightarrow> 'a match_expr \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
-  "packet_set_constrain a m ns = packet_set_and ns (to_packet_set a m)"
+  
+  text{* @text{\<union>} *}
+    fun packet_set_union :: "'a packet_set \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
+      "packet_set_union (PacketSet olist1) (PacketSet olist2) = PacketSet (olist1 @ olist2)"
+    declare packet_set_union.simps[simp del]
+    
+    lemma packet_set_union_correct: "packet_set_to_set \<gamma> (packet_set_union P1 P2) = packet_set_to_set \<gamma> P1 \<union> packet_set_to_set \<gamma> P2"
+    unfolding packet_set_to_set_def
+     apply(cases P1)
+     apply(cases P2)
+     apply(simp add: packet_set_union.simps)
+    done
+  
+    lemma packet_set_append:
+      "packet_set_to_set \<gamma> (PacketSet (p1 @ p2)) = packet_set_to_set \<gamma> (PacketSet p1) \<union> packet_set_to_set \<gamma> (PacketSet p2)"
+      by(simp add: packet_set_to_set_def)
+    lemma packet_set_cons: "packet_set_to_set \<gamma> (PacketSet (a # p3)) =  packet_set_to_set \<gamma> (PacketSet [a]) \<union> packet_set_to_set \<gamma> (PacketSet p3)"
+      by(simp add: packet_set_to_set_def)
+  
+  
 
-theorem packet_set_constrain_correct: "packet_set_to_set \<gamma> (packet_set_constrain a m P) = {p \<in> packet_set_to_set \<gamma> P. matches \<gamma> m a p}"
-unfolding packet_set_constrain_def
-unfolding packet_set_and_intersect
-unfolding to_packet_set_set
-by blast
+  text{* @text{-} *}
+    fun listprepend :: "'a list \<Rightarrow> 'a list list \<Rightarrow> 'a list list" where
+      "listprepend [] ns = []" |
+      "listprepend (a#as) ns = (map (\<lambda>xs. a#xs) ns) @ (listprepend as ns)"
+    
+    text{*The returned result of @{const listprepend} can get long.*}
+    lemma listprepend_length: "length (listprepend as bss) = length as * length bss"
+      by(induction as) (simp_all)
+    
+    lemma packet_set_map_a_and: "packet_set_to_set \<gamma> (PacketSet (map (op # a) ds)) = packet_set_to_set \<gamma> (PacketSet [[a]]) \<inter> packet_set_to_set \<gamma> (PacketSet ds)"
+      apply(induction ds)
+       apply(simp_all add: packet_set_to_set_def)
+      apply(case_tac a)
+       apply(simp_all)
+       apply blast+
+      done
+    lemma listprepend_correct: "packet_set_to_set \<gamma> (PacketSet (listprepend as ds)) = packet_set_to_set \<gamma> (PacketSet (map (\<lambda>a. [a]) as)) \<inter> packet_set_to_set \<gamma> (PacketSet ds)"
+      apply(induction as arbitrary: )
+       apply(simp add: packet_set_to_set_alt)
+      apply(simp)
+      apply(rename_tac a as)
+      apply(simp add: packet_set_map_a_and packet_set_append)
+      (*using packet_set_cons by fast*)
+      apply(subst(2) packet_set_cons)
+      by blast
+    
+    lemma packet_set_to_set_map_singleton: "packet_set_to_set \<gamma> (PacketSet (map (\<lambda>a. [a]) as)) = (\<Union> a \<in> set as. packet_set_to_set \<gamma> (PacketSet [[a]]))"
+    by(simp add: packet_set_to_set_alt)
+    
+    fun invertt :: "('a negation_type \<times> action negation_type) \<Rightarrow> ('a negation_type \<times> action negation_type)" where
+      "invertt (n, a) = (n, invert a)"
+    
+    lemma singleton_invertt: "packet_set_to_set \<gamma> (PacketSet [[invertt n]]) =  - packet_set_to_set \<gamma> (PacketSet [[n]])"
+     apply(simp add: to_packet_set_def packet_set_intersect.simps packet_set_to_set_alt)
+     apply(case_tac n, rename_tac m a)
+     apply(simp)
+     apply(case_tac a)
+      apply(simp_all)
+      apply safe
+     done
+    
+    lemma packet_set_to_set_map_singleton_invertt: 
+      "packet_set_to_set \<gamma> (PacketSet (map ((\<lambda>a. [a]) \<circ> invertt) d)) = - (\<Inter> a \<in> set d. packet_set_to_set \<gamma> (PacketSet [[a]]))"
+    apply(induction d)
+     apply(simp)
+     apply(simp add: packet_set_to_set_alt)
+    apply(simp add: )
+    apply(subst(1) packet_set_cons)
+    apply(simp)
+    apply(simp add: packet_set_to_set_map_singleton singleton_invertt)
+    done
+    
+    fun packet_set_not_internal :: " ('a negation_type \<times> action negation_type) list list \<Rightarrow>  ('a negation_type \<times> action  negation_type) list list" where
+      "packet_set_not_internal [] = [[]]" |
+      "packet_set_not_internal (ns#nss) = listprepend (map invertt ns) (packet_set_not_internal nss)"
 
+    lemma packet_set_not_internal_length: "length (packet_set_not_internal ass) = listprod ([length n. n <- ass])"
+      by(induction ass) (simp_all add: listprepend_length algebra_simps)
+    
+    lemma packet_set_not_internal_correct: "packet_set_to_set \<gamma> (PacketSet (packet_set_not_internal d)) = - packet_set_to_set \<gamma> (PacketSet d)"
+      apply(induction d)
+       apply(simp add: packet_set_to_set_alt)
+      apply(rename_tac d ds)
+      apply(simp add: )
+      apply(simp add: listprepend_correct)
+      apply(simp add: packet_set_to_set_map_singleton_invertt)
+      apply(simp add: packet_set_to_set_alt)
+      by blast
+    
+    fun packet_set_not :: "'a packet_set \<Rightarrow> 'a packet_set" where
+      "packet_set_not (PacketSet ps) = PacketSet (packet_set_not_internal ps)"
+    declare packet_set_not.simps[simp del]
 
-lemma packet_set_append:
-  "packet_set_to_set \<gamma> (PacketSet (p1 @ p2)) = packet_set_to_set \<gamma> (PacketSet p1) \<union> packet_set_to_set \<gamma> (PacketSet p2)"
-  by(simp add: packet_set_to_set_def)
+    text{*The length of the result of @{const packet_set_not} is the multiplication over the length of all the inner sets.
+      Warning: gets huge!
+      See @{thm packet_set_not_internal_length}
+    *}
+    
+    lemma packet_set_not_correct: "packet_set_to_set \<gamma> (packet_set_not P) = - packet_set_to_set \<gamma> P"
+    apply(cases P)
+    apply(simp)
+    apply(simp add: packet_set_not.simps)
+    apply(simp add: packet_set_not_internal_correct)
+    done
 
-lemma packet_set_cons: "packet_set_to_set \<gamma> (PacketSet (a # p3)) =  packet_set_to_set \<gamma> (PacketSet [a]) \<union> packet_set_to_set \<gamma> (PacketSet p3)"
-  by(simp add: packet_set_to_set_def)
-
-fun listprepend :: "'a list \<Rightarrow> 'a list list \<Rightarrow> 'a list list" where
-  "listprepend [] ns = []" |
-  "listprepend (a#as) ns = (map (\<lambda>xs. a#xs) ns) @ (listprepend as ns)"
-
-lemma packet_set_map_a_and: "packet_set_to_set \<gamma> (PacketSet (map (op # a) ds)) = packet_set_to_set \<gamma> (PacketSet [[a]]) \<inter> packet_set_to_set \<gamma> (PacketSet ds)"
-  apply(induction ds)
-   apply(simp_all add: packet_set_to_set_def)
-  apply(case_tac a)
-   apply(simp_all)
-   apply blast+
-  done
-lemma listprepend_correct: "packet_set_to_set \<gamma> (PacketSet (listprepend as ds)) = packet_set_to_set \<gamma> (PacketSet (map (\<lambda>a. [a]) as)) \<inter> packet_set_to_set \<gamma> (PacketSet ds)"
-  apply(induction as arbitrary: )
-   apply(simp add: packet_set_to_set_alt)
-  apply(simp)
-  apply(rename_tac a as)
-  apply(simp add: packet_set_map_a_and packet_set_append)
-  (*using packet_set_cons by fast*)
-  apply(subst(2) packet_set_cons)
+subsubsection{*Derived Operations*}
+  definition packet_set_constrain :: "action \<Rightarrow> 'a match_expr \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
+    "packet_set_constrain a m ns = packet_set_intersect ns (to_packet_set a m)"
+  
+  theorem packet_set_constrain_correct: "packet_set_to_set \<gamma> (packet_set_constrain a m P) = {p \<in> packet_set_to_set \<gamma> P. matches \<gamma> m a p}"
+  unfolding packet_set_constrain_def
+  unfolding packet_set_intersect_intersect
+  unfolding to_packet_set_set
+  by blast
+  
+  text{*Warning: result gets hue*}
+  definition packet_set_constrain_not :: "action \<Rightarrow> 'a match_expr \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
+    "packet_set_constrain_not a m ns = packet_set_intersect ns (packet_set_not (to_packet_set a m))"
+  
+  theorem packet_set_constrain_not_correct: "packet_set_to_set \<gamma> (packet_set_constrain_not a m P) = {p \<in> packet_set_to_set \<gamma> P. \<not> matches \<gamma> m a p}"
+  unfolding packet_set_constrain_not_def
+  unfolding packet_set_intersect_intersect
+  unfolding packet_set_not_correct
+  unfolding to_packet_set_set
   by blast
 
-lemma packet_set_to_set_map_singleton: "packet_set_to_set \<gamma> (PacketSet (map (\<lambda>a. [a]) as)) = (\<Union> a \<in> set as. packet_set_to_set \<gamma> (PacketSet [[a]]))"
-by(simp add: packet_set_to_set_alt)
 
-fun invertt :: "('a negation_type \<times> action negation_type) \<Rightarrow> ('a negation_type \<times> action negation_type)" where
-  "invertt (n, a) = (n, invert a)"
-
-lemma singleton_invertt: "packet_set_to_set \<gamma> (PacketSet [[invertt n]]) =  - packet_set_to_set \<gamma> (PacketSet [[n]])"
- apply(simp add: to_packet_set_def packet_set_and.simps packet_set_to_set_alt)
- apply(case_tac n, rename_tac m a)
- apply(simp)
- apply(case_tac a)
-  apply(simp_all)
-  apply safe
- done
-
-lemma packet_set_to_set_map_singleton_invertt: 
-  "packet_set_to_set \<gamma> (PacketSet (map ((\<lambda>a. [a]) \<circ> invertt) d)) = - (\<Inter> a \<in> set d. packet_set_to_set \<gamma> (PacketSet [[a]]))"
-apply(induction d)
- apply(simp)
- apply(simp add: packet_set_to_set_alt)
-apply(simp add: )
-apply(subst(1) packet_set_cons)
-apply(simp)
-apply(simp add: packet_set_to_set_map_singleton singleton_invertt)
-done
-
-fun packet_set_not_internal :: " ('a negation_type \<times> action negation_type) list list \<Rightarrow>  ('a negation_type \<times> action  negation_type) list list" where
-  "packet_set_not_internal [] = [[]]" |
-  "packet_set_not_internal (ns#nss) = listprepend (map invertt ns) (packet_set_not_internal nss)"
-
-
-lemma packet_set_not_internal_correct: "packet_set_to_set \<gamma> (PacketSet (packet_set_not_internal d)) = - packet_set_to_set \<gamma> (PacketSet d)"
-  apply(induction d)
-   apply(simp add: packet_set_to_set_alt)
-  apply(rename_tac d ds)
-  apply(simp add: )
-  apply(simp add: listprepend_correct)
-  apply(simp add: packet_set_to_set_map_singleton_invertt)
-  apply(simp add: packet_set_to_set_alt)
-  by blast
-
-fun packet_set_not :: "'a packet_set \<Rightarrow> 'a packet_set" where
-  "packet_set_not (PacketSet ps) = PacketSet (packet_set_not_internal ps)"
-declare packet_set_not.simps[simp del]
-
-lemma packet_set_not_correct: "packet_set_to_set \<gamma> (packet_set_not P) = - packet_set_to_set \<gamma> P"
-apply(cases P)
-apply(simp)
-apply(simp add: packet_set_not.simps)
-apply(simp add: packet_set_not_internal_correct)
-done
-
-
-definition packet_set_constrain_not :: "action \<Rightarrow> 'a match_expr \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
-  "packet_set_constrain_not a m ns = packet_set_and ns (packet_set_not (to_packet_set a m))"
-
-theorem packet_set_constrain_not_correct: "packet_set_to_set \<gamma> (packet_set_constrain_not a m P) = {p \<in> packet_set_to_set \<gamma> P. \<not> matches \<gamma> m a p}"
-unfolding packet_set_constrain_not_def
-unfolding packet_set_and_intersect
-unfolding packet_set_not_correct
-unfolding to_packet_set_set
-by blast
-
-
-text{*optimizing*}
+subsubsection{*Optimizing*}
   fun packet_set_opt1 :: "'a packet_set \<Rightarrow> 'a packet_set" where
     "packet_set_opt1 (PacketSet ps) = PacketSet (map remdups (remdups ps))"
   declare packet_set_opt1.simps[simp del]
