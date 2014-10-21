@@ -364,6 +364,7 @@ datatype_new 'a packet_set_cnf = PacketSetCNF (packet_set_repr_cnf: "(('a negati
 
 
 lemma "\<not> ((a \<and> b) \<or> (c \<and> d)) \<longleftrightarrow> (\<not>a \<or> \<not>b) \<and> (\<not>c \<or> \<not> d)" by blast
+lemma "\<not> ((a \<or> b) \<and> (c \<or> d)) \<longleftrightarrow> (\<not>a \<and> \<not>b) \<or> (\<not>c \<and> \<not> d)" by blast
 
 definition packet_set_cnf_to_set :: "('a, 'packet) match_tac \<Rightarrow> 'a packet_set_cnf \<Rightarrow> 'packet set" where
   "packet_set_cnf_to_set \<gamma> ps \<equiv>  (\<Inter> ms \<in> set (packet_set_repr_cnf ps).  
@@ -386,6 +387,15 @@ definition packet_set_cnf_to_set :: "('a, 'packet) match_tac \<Rightarrow> 'a pa
   lemma packet_set_not_to_cnf_correct: "packet_set_cnf_to_set \<gamma> (packet_set_not_to_cnf P) = - packet_set_to_set \<gamma> P"
   apply(cases P)
   apply(simp add: packet_set_not_to_cnf.simps packet_set_cnf_to_set_def packet_set_to_set_alt2)
+  apply(subst helper)
+  by simp
+
+  fun packet_set_cnf_not_to_dnf :: "'a packet_set_cnf \<Rightarrow> 'a packet_set" where
+    "packet_set_cnf_not_to_dnf (PacketSetCNF ps) = PacketSet (map (\<lambda>a. map invertt a) ps)"
+  declare packet_set_cnf_not_to_dnf.simps[simp del]
+  lemma packet_set_cnf_not_to_dnf_correct: "packet_set_to_set \<gamma> (packet_set_cnf_not_to_dnf P) = - packet_set_cnf_to_set \<gamma> P"
+  apply(cases P)
+  apply(simp add: packet_set_cnf_not_to_dnf.simps packet_set_cnf_to_set_def packet_set_to_set_alt2)
   apply(subst helper)
   by simp
   

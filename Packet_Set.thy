@@ -409,4 +409,9 @@ lemma allow_set_not_inter: "simple_ruleset rs \<Longrightarrow>
   using collect_allow_sound_complete by fast 
 
 
+
+(*scratch*)
+(*can we use this to collect the Allow set?*)
+lemma "UNIV - ((P \<union> - A) \<inter> X) =  - (- ( - P \<inter> A) \<inter> X)" by blast
+
 end
