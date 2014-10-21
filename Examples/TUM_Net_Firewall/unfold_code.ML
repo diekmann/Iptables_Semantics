@@ -1171,18 +1171,17 @@ fun compress_Ln_ips [] = []
         (UncompressedFormattedMatch (aa, dsta, proto, extra), a) ::
           compress_Ln_ips rs);
 
-fun collect_allow_compl_v2_impl_tailrec A_ [] p pAs = pAs
-  | collect_allow_compl_v2_impl_tailrec A_ (Rule (m, Accept) :: rs) p pAs =
-    collect_allow_compl_v2_impl_tailrec A_ rs
+fun collect_allow_compl_impl_tailrec A_ [] p pAs = pAs
+  | collect_allow_compl_impl_tailrec A_ (Rule (m, Accept) :: rs) p pAs =
+    collect_allow_compl_impl_tailrec A_ rs
       (packet_set_opt A_ (packet_set_union p (to_packet_set Accept m)))
       (packet_set_union p (packet_set_not (to_packet_set Accept m)) :: pAs)
-  | collect_allow_compl_v2_impl_tailrec A_ (Rule (m, Drop) :: rs) p pAs =
-    collect_allow_compl_v2_impl_tailrec A_ rs
+  | collect_allow_compl_impl_tailrec A_ (Rule (m, Drop) :: rs) p pAs =
+    collect_allow_compl_impl_tailrec A_ rs
       (packet_set_opt A_ (packet_set_union p (to_packet_set Drop m))) pAs;
 
 fun allow_set rs =
-  collect_allow_compl_v2_impl_tailrec equal_iptrule_match rs packet_set_Empty
-    [];
+  collect_allow_compl_impl_tailrec equal_iptrule_match rs packet_set_Empty [];
 
 fun process_call gamma [] = []
   | process_call gamma (Rule (m, Call chain) :: rs) =

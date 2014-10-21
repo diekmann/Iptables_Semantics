@@ -26,7 +26,7 @@ definition lower_closure :: "iptrule_match rule list \<Rightarrow> iptrule_match
 
 
 definition allow_set :: "iptrule_match rule list \<Rightarrow> iptrule_match packet_set list" where
-  "allow_set rs \<equiv> collect_allow_compl_v2_impl_tailrec rs packet_set_Empty []"
+  "allow_set rs \<equiv> collect_allow_compl_impl_tailrec rs packet_set_Empty []"
 (*definition allow_set_debug :: "iptrule_match rule list \<Rightarrow> iptrule_match packet_set" where
   "allow_set_debug rs \<equiv> collect_allow_impl_debug rs packet_set_UNIV"*)
 
