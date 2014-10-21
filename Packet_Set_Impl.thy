@@ -407,22 +407,42 @@ definition packet_set_cnf_to_set :: "('a, 'packet) match_tac \<Rightarrow> 'a pa
     "packet_set_cnf_opt1 (PacketSetCNF ps) = PacketSetCNF (map remdups (remdups ps))"
   declare packet_set_cnf_opt1.simps[simp del]
   
-  lemma packet_set_opt1_cnf_correct: "packet_set_cnf_to_set \<gamma> (packet_set_cnf_opt1 ps) = packet_set_cnf_to_set \<gamma> ps"
+  lemma packet_set_cnf_opt1_correct: "packet_set_cnf_to_set \<gamma> (packet_set_cnf_opt1 ps) = packet_set_cnf_to_set \<gamma> ps"
     by(cases ps) (simp add: packet_set_cnf_to_set_def packet_set_cnf_opt1.simps)
 
 
   fun packet_set_cnf_opt2_internal :: "(('a negation_type \<times> action negation_type) list) list \<Rightarrow> (('a negation_type \<times> action negation_type) list) list" where
     "packet_set_cnf_opt2_internal [] = []" |
-
     "packet_set_cnf_opt2_internal ([]#ps) = [[]]" | 
-
-    (*TODO recursive calls missing? auch in DNF opt?*)
+    (*TODO recursive calls missing? do similar to DNF opt?*)
     "packet_set_cnf_opt2_internal (as#ps) = (as#(filter (\<lambda>ass. \<not> set as \<subseteq> set ass) ps))" (*this might be horribly inefficient ...*)
 
   lemma packet_set_cnf_opt2_internal_correct: "packet_set_cnf_to_set \<gamma> (PacketSetCNF (packet_set_cnf_opt2_internal ps)) = packet_set_cnf_to_set \<gamma> (PacketSetCNF ps)"
     apply(induction ps rule:packet_set_cnf_opt2_internal.induct)
-    apply(simp_all add: )
-   oops
+    apply(simp_all add: packet_set_cnf_to_set_def)
+    by blast
+  fun packet_set_cnf_opt2 :: "'a packet_set_cnf \<Rightarrow> 'a packet_set_cnf" where
+    "packet_set_cnf_opt2 (PacketSetCNF ps) = PacketSetCNF (packet_set_cnf_opt2_internal ps)" 
+  declare packet_set_cnf_opt2.simps[simp del]
+
+  lemma packet_set_cnf_opt2_correct: "packet_set_cnf_to_set \<gamma> (packet_set_cnf_opt2 ps) = packet_set_cnf_to_set \<gamma> ps"
+    by(cases ps) (simp add: packet_set_cnf_opt2.simps packet_set_cnf_opt2_internal_correct)
+
+  fun packet_set_cnf_opt3 :: "'a packet_set_cnf \<Rightarrow> 'a packet_set_cnf" where
+    "packet_set_cnf_opt3 (PacketSetCNF ps) = PacketSetCNF (sort_key (\<lambda>p. length p) ps)" (*quadratic runtime of sort?*)
+  declare packet_set_cnf_opt3.simps[simp del]
+  lemma packet_set_cnf_opt3_correct: "packet_set_cnf_to_set \<gamma> (packet_set_cnf_opt3 ps) = packet_set_cnf_to_set \<gamma> ps"
+    by(cases ps) (simp add: packet_set_cnf_opt3.simps packet_set_cnf_to_set_def)
+  
+  (*TODO: more opt*)
+
+  definition packet_set_cnf_opt :: "'a packet_set_cnf \<Rightarrow> 'a packet_set_cnf" where
+    "packet_set_cnf_opt ps = packet_set_cnf_opt1 (packet_set_cnf_opt2 (packet_set_cnf_opt3 (ps)))" 
+
+  lemma packet_set_cnf_opt_correct: "packet_set_cnf_to_set \<gamma> (packet_set_cnf_opt ps) = packet_set_cnf_to_set \<gamma> ps"
+    using packet_set_cnf_opt_def packet_set_cnf_opt2_correct packet_set_cnf_opt3_correct packet_set_cnf_opt1_correct by metis
+
+
 
 hide_const (open) get_action get_action_sign packet_set_repr packet_set_repr_cnf
 
