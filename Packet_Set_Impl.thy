@@ -282,8 +282,9 @@ subsubsection{*Optimizing*}
 
     (*"packet_set_opt2_internal ([a]#ps) = ([a]#(filter (\<lambda>as. a \<notin> set as) ps))" |*)
 
+    (*TODO: call recursively!*)
     (*if a more permissive expression is encountered, we can drop all less-permissive ones*)
-    "packet_set_opt2_internal (as#ps) = (as#(filter (\<lambda>ass. \<not> set as \<subseteq> set ass) ps))" (*this might be horribly inefficient ...*)
+    "packet_set_opt2_internal (as#ps) = (as#packet_set_opt2_internal ((filter (\<lambda>ass. \<not> set as \<subseteq> set ass) ps)))" (*this might be horribly inefficient ...*)
 
   lemma packet_set_opt2_internal_correct: "packet_set_to_set \<gamma> (PacketSet (packet_set_opt2_internal ps)) = packet_set_to_set \<gamma> (PacketSet ps)"
     apply(induction ps rule:packet_set_opt2_internal.induct)
@@ -395,7 +396,28 @@ definition packet_set_cnf_to_set :: "('a, 'packet) match_tac \<Rightarrow> 'a pa
     apply(safe)
     apply(simp_all)
     done
-    
+
+  text{*Optimizing*}
+  fun packet_set_cnf_opt1 :: "'a packet_set_cnf \<Rightarrow> 'a packet_set_cnf" where
+    "packet_set_cnf_opt1 (PacketSetCNF ps) = PacketSetCNF (map remdups (remdups ps))"
+  declare packet_set_cnf_opt1.simps[simp del]
+  
+  lemma packet_set_opt1_cnf_correct: "packet_set_cnf_to_set \<gamma> (packet_set_cnf_opt1 ps) = packet_set_cnf_to_set \<gamma> ps"
+    by(cases ps) (simp add: packet_set_cnf_to_set_def packet_set_cnf_opt1.simps)
+
+
+  fun packet_set_cnf_opt2_internal :: "(('a negation_type \<times> action negation_type) list) list \<Rightarrow> (('a negation_type \<times> action negation_type) list) list" where
+    "packet_set_cnf_opt2_internal [] = []" |
+
+    "packet_set_cnf_opt2_internal ([]#ps) = [[]]" | 
+
+    (*TODO recursive calls missing? auch in DNF opt?*)
+    "packet_set_cnf_opt2_internal (as#ps) = (as#(filter (\<lambda>ass. \<not> set as \<subseteq> set ass) ps))" (*this might be horribly inefficient ...*)
+
+  lemma packet_set_cnf_opt2_internal_correct: "packet_set_cnf_to_set \<gamma> (PacketSetCNF (packet_set_cnf_opt2_internal ps)) = packet_set_cnf_to_set \<gamma> (PacketSetCNF ps)"
+    apply(induction ps rule:packet_set_cnf_opt2_internal.induct)
+    apply(simp_all add: )
+   oops
 
 hide_const (open) get_action get_action_sign packet_set_repr packet_set_repr_cnf
 

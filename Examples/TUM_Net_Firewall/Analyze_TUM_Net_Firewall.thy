@@ -301,8 +301,17 @@ val t1= Time.now();
 writeln(String.concat ["It took ", Time.toString(Time.-(t1,t0)), " seconds"])
 *}
 
+(*result when packet_set_opt2_internal was not recursive within 2 minutes: 95.949 seconds 
+no results for recursive packet_set_opt2_internal now
+  ("packet_set_opt2_internal (as#ps) = (as#((filter (\<lambda>ass. \<not> set as \<subseteq> set ass) (packet_set_opt2_internal ps))))"
+
+first filter than recursive call  943.219seconds (15 min) *)
+
 ML_val{*
 length deny_set_set;
+*}
+ML_val{*
+deny_set_set;
 *}
 (*test with rules*)
 

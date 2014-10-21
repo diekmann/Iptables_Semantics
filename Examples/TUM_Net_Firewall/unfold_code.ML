@@ -666,11 +666,6 @@ fun divmod_nat m n = (div_nat m n, mod_nat m n);
 
 fun add_match m rs = map (fn Rule (ma, a) => Rule (MatchAnd (m, ma), a)) rs;
 
-fun invert (Pos x) = Neg x
-  | invert (Neg x) = Pos x;
-
-fun invertt (n, a) = (n, invert a);
-
 fun getNeg [] = []
   | getNeg (Neg x :: xs) = x :: getNeg xs
   | getNeg (Pos v :: xs) = getNeg xs;
@@ -679,10 +674,10 @@ fun getPos [] = []
   | getPos (Pos x :: xs) = x :: getPos xs
   | getPos (Neg v :: xs) = getPos xs;
 
-fun bitrange_UNIV A_ = Bitrange (zero_worda (len0_len A_), max_word A_);
+fun invert (Pos x) = Neg x
+  | invert (Neg x) = Pos x;
 
-fun listprepend [] ns = []
-  | listprepend (a :: asa) ns = map (fn b => a :: b) ns @ listprepend asa ns;
+fun bitrange_UNIV A_ = Bitrange (zero_worda (len0_len A_), max_word A_);
 
 fun empty_Bitrange A_ =
   Bitrange (one_worda (len0_len A_), zero_worda (len0_len A_));
@@ -709,6 +704,8 @@ fun rmMatchFalse [] = []
     Rule (MatchAny, va) :: rmMatchFalse rs;
 
 fun min A_ a b = (if less_eq A_ a b then a else b);
+
+fun invertt (n, a) = (n, invert a);
 
 fun bitrange_setminus A_ (Bitrange (s, e)) (Bitrange (ms, me)) =
   (if less_word (len0_len A_) e s orelse less_word (len0_len A_) me ms
@@ -799,28 +796,6 @@ fun ipv4range_range ip_start ip_end = Bitrange (ip_start, ip_end);
 fun nat_of_ipv4addr a =
   unat (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) a;
 
-fun to_negation_type_nnf MatchAny = []
-  | to_negation_type_nnf (Match a) = [Pos a]
-  | to_negation_type_nnf (MatchNot (Match a)) = [Neg a]
-  | to_negation_type_nnf (MatchAnd (a, b)) =
-    to_negation_type_nnf a @ to_negation_type_nnf b;
-
-fun normalize_match MatchAny = [MatchAny]
-  | normalize_match (Match m) = [Match m]
-  | normalize_match (MatchAnd (m1, m2)) =
-    maps (fn x => map (fn a => MatchAnd (x, a)) (normalize_match m2))
-      (normalize_match m1)
-  | normalize_match (MatchNot (MatchAnd (m1, m2))) =
-    normalize_match (MatchNot m1) @ normalize_match (MatchNot m2)
-  | normalize_match (MatchNot (MatchNot m)) = normalize_match m
-  | normalize_match (MatchNot MatchAny) = []
-  | normalize_match (MatchNot (Match m)) = [MatchNot (Match m)];
-
-fun to_packet_set a m =
-  PacketSet
-    (map (map (fn ma => (ma, Pos a)) o to_negation_type_nnf)
-      (normalize_match m));
-
 fun bitrange_to_list A_ (RangeUnion (r1, r2)) =
   bitrange_to_list A_ r1 @ bitrange_to_list A_ r2
   | bitrange_to_list A_ (Bitrange (v, va)) =
@@ -875,71 +850,6 @@ fun ipv4range_subset r1 r2 =
   bitrange_subset
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
 
-fun packet_set_not_internal [] = [[]]
-  | packet_set_not_internal (ns :: nss) =
-    listprepend (map invertt ns) (packet_set_not_internal nss);
-
-fun packet_set_not (PacketSet ps) = PacketSet (packet_set_not_internal ps);
-
-fun packet_set_opt4_internal_internal A_ cs =
-  pred_list
-    (fn (m, a) =>
-      not (member
-            (equal_prod (equal_negation_type A_)
-              (equal_negation_type equal_action))
-            cs (m, invert a)))
-    cs;
-
-fun packet_set_opt4 A_ (PacketSet ps) =
-  PacketSet (filter (packet_set_opt4_internal_internal A_) ps);
-
-fun size_list x = gen_length zero_nat x;
-
-fun insort_key B_ f x [] = [x]
-  | insort_key B_ f x (y :: ys) =
-    (if less_eq ((ord_preorder o preorder_order o order_linorder) B_) (f x)
-          (f y)
-      then x :: y :: ys else y :: insort_key B_ f x ys);
-
-fun sort_key B_ f xs = foldr (insort_key B_ f) xs [];
-
-fun packet_set_opt3 (PacketSet ps) =
-  PacketSet (sort_key linorder_nat size_list ps);
-
-fun packet_set_opt2_internal A_ [] = []
-  | packet_set_opt2_internal A_ ([] :: ps) = [[]]
-  | packet_set_opt2_internal A_ ((v :: va) :: ps) =
-    (v :: va) ::
-      filter
-        (fn ass =>
-          not (pred_list
-                (member
-                  (equal_prod (equal_negation_type A_)
-                    (equal_negation_type equal_action))
-                  ass)
-                (v :: va)))
-        ps;
-
-fun packet_set_opt2 A_ (PacketSet ps) =
-  PacketSet (packet_set_opt2_internal A_ ps);
-
-fun packet_set_opt1 A_ (PacketSet ps) =
-  PacketSet
-    (map (remdups
-           (equal_prod (equal_negation_type A_)
-             (equal_negation_type equal_action)))
-      (remdups
-        (equal_list
-          (equal_prod (equal_negation_type A_)
-            (equal_negation_type equal_action)))
-        ps));
-
-fun packet_set_opt A_ ps =
-  packet_set_opt1 A_
-    (packet_set_opt2 A_ (packet_set_opt3 (packet_set_opt4 A_ ps)));
-
-val packet_set_UNIV : 'a packet_set = PacketSet [[]];
-
 fun bin_last w =
   equal_int (mod_int w (Int_of_integer (2 : IntInf.int)))
     (Int_of_integer (1 : IntInf.int));
@@ -948,10 +858,8 @@ fun ipv4range_setminus r1 r2 =
   bitrange_setminus
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
 
-val packet_set_Empty : 'a packet_set = PacketSet [];
-
-fun packet_set_union (PacketSet olist1) (PacketSet olist2) =
-  PacketSet (olist1 @ olist2);
+fun listprepend [] ns = []
+  | listprepend (a :: asa) ns = map (fn b => a :: b) ns @ listprepend asa ns;
 
 fun rw_Reject [] = []
   | rw_Reject (Rule (m, Reject) :: rs) = Rule (m, Drop) :: rw_Reject rs
@@ -963,9 +871,41 @@ fun rw_Reject [] = []
   | rw_Reject (Rule (v, Empty) :: rs) = Rule (v, Empty) :: rw_Reject rs
   | rw_Reject (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rw_Reject rs;
 
+fun normalize_match MatchAny = [MatchAny]
+  | normalize_match (Match m) = [Match m]
+  | normalize_match (MatchAnd (m1, m2)) =
+    maps (fn x => map (fn a => MatchAnd (x, a)) (normalize_match m2))
+      (normalize_match m1)
+  | normalize_match (MatchNot (MatchAnd (m1, m2))) =
+    normalize_match (MatchNot m1) @ normalize_match (MatchNot m2)
+  | normalize_match (MatchNot (MatchNot m)) = normalize_match m
+  | normalize_match (MatchNot MatchAny) = []
+  | normalize_match (MatchNot (Match m)) = [MatchNot (Match m)];
+
 fun normalize_rules [] = []
   | normalize_rules (Rule (m, a) :: rs) =
     map (fn ma => Rule (ma, a)) (normalize_match m) @ normalize_rules rs;
+
+fun insort_key B_ f x [] = [x]
+  | insort_key B_ f x (y :: ys) =
+    (if less_eq ((ord_preorder o preorder_order o order_linorder) B_) (f x)
+          (f y)
+      then x :: y :: ys else y :: insort_key B_ f x ys);
+
+fun sort_key B_ f xs = foldr (insort_key B_ f) xs [];
+
+fun size_list x = gen_length zero_nat x;
+
+fun to_negation_type_nnf MatchAny = []
+  | to_negation_type_nnf (Match a) = [Pos a]
+  | to_negation_type_nnf (MatchNot (Match a)) = [Neg a]
+  | to_negation_type_nnf (MatchAnd (a, b)) =
+    to_negation_type_nnf a @ to_negation_type_nnf b;
+
+fun to_packet_set a m =
+  PacketSet
+    (map (map (fn ma => (ma, Pos a)) o to_negation_type_nnf)
+      (normalize_match m));
 
 fun rm_LogEmpty [] = []
   | rm_LogEmpty (Rule (uu, Empty) :: rs) = rm_LogEmpty rs
@@ -1003,6 +943,63 @@ fun bitrange_intersection A_ r1 r2 =
 
 fun get_match (Rule (x1, x2)) = x1;
 
+fun packet_set_union (PacketSet olist1) (PacketSet olist2) =
+  PacketSet (olist1 @ olist2);
+
+fun packet_set_opt4_internal_internal A_ cs =
+  pred_list
+    (fn (m, a) =>
+      not (member
+            (equal_prod (equal_negation_type A_)
+              (equal_negation_type equal_action))
+            cs (m, invert a)))
+    cs;
+
+fun packet_set_opt4 A_ (PacketSet ps) =
+  PacketSet (filter (packet_set_opt4_internal_internal A_) ps);
+
+fun packet_set_opt3 (PacketSet ps) =
+  PacketSet (sort_key linorder_nat size_list ps);
+
+fun packet_set_opt2_internal A_ [] = []
+  | packet_set_opt2_internal A_ ([] :: ps) = [[]]
+  | packet_set_opt2_internal A_ ((v :: va) :: ps) =
+    (v :: va) ::
+      packet_set_opt2_internal A_
+        (filter
+          (fn ass =>
+            not (pred_list
+                  (member
+                    (equal_prod (equal_negation_type A_)
+                      (equal_negation_type equal_action))
+                    ass)
+                  (v :: va)))
+          ps);
+
+fun packet_set_opt2 A_ (PacketSet ps) =
+  PacketSet (packet_set_opt2_internal A_ ps);
+
+fun packet_set_opt1 A_ (PacketSet ps) =
+  PacketSet
+    (map (remdups
+           (equal_prod (equal_negation_type A_)
+             (equal_negation_type equal_action)))
+      (remdups
+        (equal_list
+          (equal_prod (equal_negation_type A_)
+            (equal_negation_type equal_action)))
+        ps));
+
+fun packet_set_opt A_ ps =
+  packet_set_opt1 A_
+    (packet_set_opt2 A_ (packet_set_opt3 (packet_set_opt4 A_ ps)));
+
+fun packet_set_not_internal [] = [[]]
+  | packet_set_not_internal (ns :: nss) =
+    listprepend (map invertt ns) (packet_set_not_internal nss);
+
+fun packet_set_not (PacketSet ps) = PacketSet (packet_set_not_internal ps);
+
 fun collect_allow_compl_impl_tailrec A_ [] p pAs = pAs
   | collect_allow_compl_impl_tailrec A_ (Rule (m, Accept) :: rs) p pAs =
     collect_allow_compl_impl_tailrec A_ rs
@@ -1011,6 +1008,8 @@ fun collect_allow_compl_impl_tailrec A_ [] p pAs = pAs
   | collect_allow_compl_impl_tailrec A_ (Rule (m, Drop) :: rs) p pAs =
     collect_allow_compl_impl_tailrec A_ rs
       (packet_set_opt A_ (packet_set_union p (to_packet_set Drop m))) pAs;
+
+val packet_set_Empty : 'a packet_set = PacketSet [];
 
 fun allow_set_not_inter A_ rs =
   collect_allow_compl_impl_tailrec A_ rs packet_set_Empty [];
@@ -1161,6 +1160,8 @@ fun compress_ips l =
                      (ipv4range_set_from_bitmask_to_executable_ipv4range ip)
                      (collect_to_range (getNeg l)))
                then NONE else SOME (Pos ip :: map Neg (getNeg l)))));
+
+val packet_set_UNIV : 'a packet_set = PacketSet [[]];
 
 fun shiftr_word A_ w n = funpow n (shiftr1 A_) w;
 
