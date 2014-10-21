@@ -282,9 +282,9 @@ subsubsection{*Optimizing*}
 
     (*"packet_set_opt2_internal ([a]#ps) = ([a]#(filter (\<lambda>as. a \<notin> set as) ps))" |*)
 
-    (*TODO: call recursively!*)
+    (*TODO: call recursively! we did not do this because it is really slow!*)
     (*if a more permissive expression is encountered, we can drop all less-permissive ones*)
-    "packet_set_opt2_internal (as#ps) = (as#packet_set_opt2_internal ((filter (\<lambda>ass. \<not> set as \<subseteq> set ass) ps)))" (*this might be horribly inefficient ...*)
+    "packet_set_opt2_internal (as#ps) = (as#(*packet_set_opt2_internal*) ((filter (\<lambda>ass. \<not> set as \<subseteq> set ass) ps)))" (*this might be horribly inefficient ...*)
 
   lemma packet_set_opt2_internal_correct: "packet_set_to_set \<gamma> (PacketSet (packet_set_opt2_internal ps)) = packet_set_to_set \<gamma> (PacketSet ps)"
     apply(induction ps rule:packet_set_opt2_internal.induct)
@@ -348,7 +348,7 @@ subsubsection{*Optimizing*}
 
 
   definition packet_set_opt :: "'a packet_set \<Rightarrow> 'a packet_set" where
-    "packet_set_opt ps = packet_set_opt1 ( (packet_set_opt3 (packet_set_opt4 ps)))" 
+    "packet_set_opt ps = packet_set_opt1 (packet_set_opt2 (packet_set_opt3 (packet_set_opt4 ps)))" 
 
   lemma packet_set_opt_correct: "packet_set_to_set \<gamma> (packet_set_opt ps) = packet_set_to_set \<gamma> ps"
     using packet_set_opt_def packet_set_opt2_correct packet_set_opt3_correct packet_set_opt4_correct packet_set_opt1_correct by metis
