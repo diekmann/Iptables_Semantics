@@ -348,7 +348,7 @@ subsubsection{*Optimizing*}
 
 
   definition packet_set_opt :: "'a packet_set \<Rightarrow> 'a packet_set" where
-    "packet_set_opt ps = packet_set_opt1 (packet_set_opt2 (packet_set_opt3 (packet_set_opt4 ps)))" 
+    "packet_set_opt ps = packet_set_opt1 ( (packet_set_opt3 (packet_set_opt4 ps)))" 
 
   lemma packet_set_opt_correct: "packet_set_to_set \<gamma> (packet_set_opt ps) = packet_set_to_set \<gamma> ps"
     using packet_set_opt_def packet_set_opt2_correct packet_set_opt3_correct packet_set_opt4_correct packet_set_opt1_correct by metis
