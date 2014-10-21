@@ -23,10 +23,10 @@ structure Test : sig
     UncompressedFormattedMatch of
       ipt_ipv4range negation_type list * ipt_ipv4range negation_type list *
         ipt_protocol negation_type list * (char list) negation_type list
+  val deny_set : iptrule_match rule list -> iptrule_match packet_set list
   val compress_Ln_ips :
     (iptrule_match_Ln_uncompressed * action) list ->
       (iptrule_match_Ln_uncompressed * action) list
-  val allow_set : iptrule_match rule list -> iptrule_match packet_set list
   val lower_closure : iptrule_match rule list -> iptrule_match rule list
   val map_of_string :
     (char list * iptrule_match rule list) list ->
@@ -938,6 +938,8 @@ fun packet_set_opt A_ ps =
   packet_set_opt1 A_
     (packet_set_opt2 A_ (packet_set_opt3 (packet_set_opt4 A_ ps)));
 
+val packet_set_UNIV : 'a packet_set = PacketSet [[]];
+
 fun bin_last w =
   equal_int (mod_int w (Int_of_integer (2 : IntInf.int)))
     (Int_of_integer (1 : IntInf.int));
@@ -1000,6 +1002,18 @@ fun bitrange_intersection A_ r1 r2 =
       (bitrange_union A_ (bitrange_invert A_ r1) (bitrange_invert A_ r2)));
 
 fun get_match (Rule (x1, x2)) = x1;
+
+fun collect_allow_compl_impl_tailrec A_ [] p pAs = pAs
+  | collect_allow_compl_impl_tailrec A_ (Rule (m, Accept) :: rs) p pAs =
+    collect_allow_compl_impl_tailrec A_ rs
+      (packet_set_opt A_ (packet_set_union p (to_packet_set Accept m)))
+      (packet_set_union p (packet_set_not (to_packet_set Accept m)) :: pAs)
+  | collect_allow_compl_impl_tailrec A_ (Rule (m, Drop) :: rs) p pAs =
+    collect_allow_compl_impl_tailrec A_ rs
+      (packet_set_opt A_ (packet_set_union p (to_packet_set Drop m))) pAs;
+
+fun allow_set_not_inter A_ rs =
+  collect_allow_compl_impl_tailrec A_ rs packet_set_Empty [];
 
 fun bitAND_word A_ a b = word_of_int A_ (bitAND_int (uint A_ a) (uint A_ b));
 
@@ -1150,6 +1164,17 @@ fun compress_ips l =
 
 fun shiftr_word A_ w n = funpow n (shiftr1 A_) w;
 
+fun equal_packet_set A_ (PacketSet x) (PacketSet ya) =
+  equal_lista
+    (equal_list
+      (equal_prod (equal_negation_type A_) (equal_negation_type equal_action)))
+    x ya;
+
+fun deny_set rs =
+  filter (fn a => not (equal_packet_set equal_iptrule_match a packet_set_UNIV))
+    (map (packet_set_opt equal_iptrule_match)
+      (allow_set_not_inter equal_iptrule_match rs));
+
 fun process_ret [] = []
   | process_ret (Rule (m, Return) :: rs) =
     add_match (MatchNot m) (process_ret rs)
@@ -1170,18 +1195,6 @@ fun compress_Ln_ips [] = []
       | (SOME aa, SOME dsta) =>
         (UncompressedFormattedMatch (aa, dsta, proto, extra), a) ::
           compress_Ln_ips rs);
-
-fun collect_allow_compl_impl_tailrec A_ [] p pAs = pAs
-  | collect_allow_compl_impl_tailrec A_ (Rule (m, Accept) :: rs) p pAs =
-    collect_allow_compl_impl_tailrec A_ rs
-      (packet_set_opt A_ (packet_set_union p (to_packet_set Accept m)))
-      (packet_set_union p (packet_set_not (to_packet_set Accept m)) :: pAs)
-  | collect_allow_compl_impl_tailrec A_ (Rule (m, Drop) :: rs) p pAs =
-    collect_allow_compl_impl_tailrec A_ rs
-      (packet_set_opt A_ (packet_set_union p (to_packet_set Drop m))) pAs;
-
-fun allow_set rs =
-  collect_allow_compl_impl_tailrec equal_iptrule_match rs packet_set_Empty [];
 
 fun process_call gamma [] = []
   | process_call gamma (Rule (m, Call chain) :: rs) =
