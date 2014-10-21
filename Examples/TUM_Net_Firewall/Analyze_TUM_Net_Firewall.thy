@@ -308,6 +308,9 @@ no results for recursive packet_set_opt2_internal now
 first filter than recursive call  943.219seconds (15 min) 
 
 without opt2:  502.838 seconds (8min)
+
+with opt2 for subset tests \<le> 5: 97.725 seconds
+"packet_set_opt2_internal (as#ps) = as# (if length as \<le> 5 then packet_set_opt2_internal ((filter (\<lambda>ass. \<not> set as \<subseteq> set ass) ps)) else packet_set_opt2_internal ps)"
 *)
 
 ML_val{*

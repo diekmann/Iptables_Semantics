@@ -282,9 +282,14 @@ subsubsection{*Optimizing*}
 
     (*"packet_set_opt2_internal ([a]#ps) = ([a]#(filter (\<lambda>as. a \<notin> set as) ps))" |*)
 
+    (*
     (*TODO: call recursively! we did not do this because it is really slow!*)
     (*if a more permissive expression is encountered, we can drop all less-permissive ones*)
     "packet_set_opt2_internal (as#ps) = (as#(*packet_set_opt2_internal*) ((filter (\<lambda>ass. \<not> set as \<subseteq> set ass) ps)))" (*this might be horribly inefficient ...*)
+    *)
+
+    (*this might be horribly inefficient, so we only test subsets for \<le> 5 entries*)
+    "packet_set_opt2_internal (as#ps) = as# (if length as \<le> 5 then packet_set_opt2_internal ((filter (\<lambda>ass. \<not> set as \<subseteq> set ass) ps)) else packet_set_opt2_internal ps)" 
 
   lemma packet_set_opt2_internal_correct: "packet_set_to_set \<gamma> (PacketSet (packet_set_opt2_internal ps)) = packet_set_to_set \<gamma> (PacketSet ps)"
     apply(induction ps rule:packet_set_opt2_internal.induct)

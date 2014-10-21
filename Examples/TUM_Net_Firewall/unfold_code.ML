@@ -965,15 +965,18 @@ fun packet_set_opt2_internal A_ [] = []
   | packet_set_opt2_internal A_ ([] :: ps) = [[]]
   | packet_set_opt2_internal A_ ((v :: va) :: ps) =
     (v :: va) ::
-      filter
-        (fn ass =>
-          not (pred_list
-                (member
-                  (equal_prod (equal_negation_type A_)
-                    (equal_negation_type equal_action))
-                  ass)
-                (v :: va)))
-        ps;
+      (if less_eq_nat (size_list (v :: va)) (nat_of_integer (5 : IntInf.int))
+        then packet_set_opt2_internal A_
+               (filter
+                 (fn ass =>
+                   not (pred_list
+                         (member
+                           (equal_prod (equal_negation_type A_)
+                             (equal_negation_type equal_action))
+                           ass)
+                         (v :: va)))
+                 ps)
+        else packet_set_opt2_internal A_ ps);
 
 fun packet_set_opt2 A_ (PacketSet ps) =
   PacketSet (packet_set_opt2_internal A_ ps);
