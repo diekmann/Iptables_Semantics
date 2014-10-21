@@ -59,6 +59,13 @@ lemma packet_set_to_set_alt:  "packet_set_to_set \<gamma> ps = (\<Union> ms \<in
 unfolding packet_set_to_set_def
 by fast
 
+
+text{*We really have a disjunctive normal form*}
+lemma packet_set_to_set_alt2:  "packet_set_to_set \<gamma> ps = (\<Union> ms \<in> set (packet_set_repr ps).  
+  (\<Inter>(m, a) \<in> set ms. {p. get_action_sign a (matches \<gamma> (negation_type_to_match_expr m) (get_action a) p)}))"
+unfolding packet_set_to_set_alt
+by blast
+
 lemma to_packet_set_correct: "p \<in> packet_set_to_set \<gamma> (to_packet_set a m) \<longleftrightarrow> matches \<gamma> m a p"
 apply(simp add: to_packet_set_def packet_set_to_set_def)
 apply(rule iffI)
@@ -346,6 +353,50 @@ subsubsection{*Optimizing*}
     using packet_set_opt_def packet_set_opt2_correct packet_set_opt3_correct packet_set_opt4_correct packet_set_opt1_correct by metis
 
 
-hide_const (open) get_action get_action_sign
+subsection{*Conjunction Normal Form Packet Set*}
+datatype_new 'a packet_set_cnf = PacketSetCNF (packet_set_repr_cnf: "(('a negation_type \<times> action negation_type) list) list")
+
+
+lemma "\<not> ((a \<and> b) \<or> (c \<and> d)) \<longleftrightarrow> (\<not>a \<or> \<not>b) \<and> (\<not>c \<or> \<not> d)" by blast
+
+definition packet_set_cnf_to_set :: "('a, 'packet) match_tac \<Rightarrow> 'a packet_set_cnf \<Rightarrow> 'packet set" where
+  "packet_set_cnf_to_set \<gamma> ps \<equiv>  (\<Inter> ms \<in> set (packet_set_repr_cnf ps).  
+  (\<Union>(m, a) \<in> set ms. {p. get_action_sign a (matches \<gamma> (negation_type_to_match_expr m) (get_action a) p)}))"
+
+
+  text{*Inverting a @{typ "'a packet_set"} and returning @{typ "'a packet_set_cnf"} is very efficient!*}
+  fun packet_set_not_to_cnf :: "'a packet_set \<Rightarrow> 'a packet_set_cnf" where
+    "packet_set_not_to_cnf (PacketSet ps) = PacketSetCNF (map (\<lambda>a. map invertt a) ps)"
+  declare packet_set_not_to_cnf.simps[simp del]
+
+  lemma helper: "(case invertt x of (m, a) \<Rightarrow> {p. get_action_sign a (matches \<gamma> (negation_type_to_match_expr m) (Packet_Set_Impl.get_action a) p)}) =
+         (- (case x of (m, a) \<Rightarrow> {p. get_action_sign a (matches \<gamma> (negation_type_to_match_expr m) (Packet_Set_Impl.get_action a) p)}))"
+    apply(case_tac x)
+    apply(simp)
+    apply(case_tac b)
+    apply(simp_all)
+    apply safe
+    done
+  lemma packet_set_not_to_cnf_correct: "packet_set_cnf_to_set \<gamma> (packet_set_not_to_cnf P) = - packet_set_to_set \<gamma> P"
+  apply(cases P)
+  apply(simp add: packet_set_not_to_cnf.simps packet_set_cnf_to_set_def packet_set_to_set_alt2)
+  apply(subst helper)
+  by simp
+  
+  text{*Also, intersection is highly efficient in CNF*}
+  fun packet_set_cnf_intersect :: "'a packet_set_cnf \<Rightarrow> 'a packet_set_cnf \<Rightarrow> 'a packet_set_cnf" where
+    "packet_set_cnf_intersect (PacketSetCNF ps1) (PacketSetCNF ps2) = PacketSetCNF (ps1 @ ps2)"
+  declare packet_set_cnf_intersect.simps[simp del]
+  
+  lemma packet_set_cnf_intersect_correct: "packet_set_cnf_to_set \<gamma> (packet_set_cnf_intersect P1 P2) = packet_set_cnf_to_set \<gamma> P1 \<inter> packet_set_cnf_to_set \<gamma> P2"
+    apply(case_tac P1)
+    apply(case_tac P2)
+    apply(simp add: packet_set_cnf_to_set_def packet_set_cnf_intersect.simps)
+    apply(safe)
+    apply(simp_all)
+    done
+    
+
+hide_const (open) get_action get_action_sign packet_set_repr packet_set_repr_cnf
 
 end
