@@ -961,24 +961,6 @@ fun packet_set_opt4 A_ (PacketSet ps) =
 fun packet_set_opt3 (PacketSet ps) =
   PacketSet (sort_key linorder_nat size_list ps);
 
-fun packet_set_opt2_internal A_ [] = []
-  | packet_set_opt2_internal A_ ([] :: ps) = [[]]
-  | packet_set_opt2_internal A_ ((v :: va) :: ps) =
-    (v :: va) ::
-      packet_set_opt2_internal A_
-        (filter
-          (fn ass =>
-            not (pred_list
-                  (member
-                    (equal_prod (equal_negation_type A_)
-                      (equal_negation_type equal_action))
-                    ass)
-                  (v :: va)))
-          ps);
-
-fun packet_set_opt2 A_ (PacketSet ps) =
-  PacketSet (packet_set_opt2_internal A_ ps);
-
 fun packet_set_opt1 A_ (PacketSet ps) =
   PacketSet
     (map (remdups
@@ -991,8 +973,7 @@ fun packet_set_opt1 A_ (PacketSet ps) =
         ps));
 
 fun packet_set_opt A_ ps =
-  packet_set_opt1 A_
-    (packet_set_opt2 A_ (packet_set_opt3 (packet_set_opt4 A_ ps)));
+  packet_set_opt1 A_ (packet_set_opt3 (packet_set_opt4 A_ ps));
 
 fun packet_set_not_internal [] = [[]]
   | packet_set_not_internal (ns :: nss) =

@@ -305,7 +305,10 @@ writeln(String.concat ["It took ", Time.toString(Time.-(t1,t0)), " seconds"])
 no results for recursive packet_set_opt2_internal now
   ("packet_set_opt2_internal (as#ps) = (as#((filter (\<lambda>ass. \<not> set as \<subseteq> set ass) (packet_set_opt2_internal ps))))"
 
-first filter than recursive call  943.219seconds (15 min) *)
+first filter than recursive call  943.219seconds (15 min) 
+
+without opt2:  502.838 seconds (8min)
+*)
 
 ML_val{*
 length deny_set_set;
