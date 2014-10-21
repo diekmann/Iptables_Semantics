@@ -207,8 +207,23 @@ subsection{*The set of all dropped packets*}
   
 
 
+subsection{*Rulesets with default rules*}
+  definition has_default :: "'a rule list \<Rightarrow> bool" where
+    "has_default rs \<equiv> length rs > 0 \<and> ((last rs = Rule MatchAny Accept) \<or> (last rs = Rule MatchAny Drop))"
 
-
+  lemma has_default_UNIV: "good_ruleset rs \<Longrightarrow> has_default rs \<Longrightarrow>
+    {p. approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow} \<union> {p. approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalDeny} = UNIV"
+  apply(induction rs)
+   apply(simp add: has_default_def)
+  apply(rename_tac r rs)
+  apply(simp add: has_default_def good_ruleset_tail split: split_if_asm)
+   apply(elim disjE)
+    apply(simp add: bunch_of_lemmata_about_matches)
+   apply(simp add: bunch_of_lemmata_about_matches)
+  apply(case_tac r, rename_tac m a)
+  apply(case_tac a)
+         apply(auto simp: good_ruleset_def)
+  done
 
 subsection{*Executable Packet Set Representation*}
 
