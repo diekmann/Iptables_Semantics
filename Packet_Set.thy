@@ -248,7 +248,7 @@ subsection{*The set of all dropped packets*}
     next
     case (2 \<gamma> r rs)
       have set_simp1: "- {p \<in> P. \<not> matches \<gamma> r Drop p} = - P \<union> {p. matches \<gamma> r Drop p}" by blast
-      from 3 have IH: "\<And>P. - collect_deny_compl \<gamma> rs (- P) = collect_deny \<gamma> rs P" using simple_ruleset_tail by blast
+      from 2 have IH: "\<And>P. - collect_deny_compl \<gamma> rs (- P) = collect_deny \<gamma> rs P" using simple_ruleset_tail by blast
       from IH[where P="{p \<in> P. \<not> matches \<gamma> r Drop p}"] set_simp1 have
         "- collect_deny_compl \<gamma> rs (- P \<union> Collect (matches \<gamma> r Drop)) = collect_deny \<gamma> rs {p \<in> P. \<not> matches \<gamma> r Drop p}" by simp
       thus ?case by auto
