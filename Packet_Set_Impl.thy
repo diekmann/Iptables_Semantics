@@ -244,6 +244,8 @@ subsubsection{*Basic Set Operations*}
     apply(simp add: packet_set_not_internal_correct)
     done
 
+    
+
 subsubsection{*Derived Operations*}
   definition packet_set_constrain :: "action \<Rightarrow> 'a match_expr \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
     "packet_set_constrain a m ns = packet_set_intersect ns (to_packet_set a m)"

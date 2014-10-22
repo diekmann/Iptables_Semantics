@@ -1,5 +1,5 @@
 theory Optimizing
-imports Semantics_Ternary
+imports Semantics_Ternary Packet_Set_Impl
 begin
 
 
@@ -7,6 +7,7 @@ section{*Optimizing*}
 
 subsection{*Removing Shadowed Rules*}
 
+text{*Assumes: @{term "simple_ruleset"}*}
 fun rmshadow :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'p set \<Rightarrow> 'a rule list" where
   "rmshadow _ [] _ = []" |
   "rmshadow \<gamma> ((Rule m a)#rs) P = (if (\<forall>p\<in>P. \<not> matches \<gamma> m a p)

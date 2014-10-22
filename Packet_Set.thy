@@ -408,10 +408,23 @@ lemma allow_set_not_inter: "simple_ruleset rs \<Longrightarrow>
   apply(simp add: packet_set_Empty)
   using collect_allow_sound_complete by fast 
 
+text{*this gives the set of denied packets*}
+lemma "simple_ruleset rs \<Longrightarrow> has_default rs \<Longrightarrow> 
+  (\<Inter>x\<in>set (allow_set_not_inter rs). packet_set_to_set \<gamma> x) = {p. approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalDeny}"
+apply(frule simple_imp_good_ruleset)
+apply(drule(1) has_default_UNIV[where \<gamma>=\<gamma>])
+apply(drule allow_set_not_inter[where \<gamma>=\<gamma>])
+(*apply(drule HOL.arg_cong[where f="\<lambda>x. - x"])
+back
+apply(simp)
+try0 now its fast*)
+by force (*>2s on my system!*)
 
+
+(*todo: compute intersection*)
 
 (*scratch*)
 (*can we use this to collect the Allow set?*)
-lemma "UNIV - ((P \<union> - A) \<inter> X) =  - (- ( - P \<inter> A) \<inter> X)" by blast
+lemma "UNIV - ((P \<union> - A) \<inter> X) =  - ((-( - P \<inter> A)) \<inter> X)" by blast
 
 end
