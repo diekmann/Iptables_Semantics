@@ -99,8 +99,13 @@ def parse_extra(rule):
     """parses the right side of an `iptables -L -n' format (everything after destination). Argument: a Rule"""
     
     extra = rule.extra
+    if extra is None:
+        return rule
     
     def parse_ports(d, extra):
+        """d - dport or sport
+           extra - string
+           side-effect-free function"""
         assert(d == 'd' or d == 's')
         
         #list of tuples [(star,end), (start,end)]
@@ -180,7 +185,11 @@ def parse_rule(line):
     ipsrc = parse_ip(m.group('ipsrc'))
     ipdst = parse_ip(m.group('ipdst'))
     
-    return Rule(action, proto, ipsrc, ipdst, extra)
+    rule = Rule(action, proto, ipsrc, ipdst, extra)
+    if False: #parse ports?
+        return parse_extra(rule)
+    else:
+        return rule
 
 def parse_rules(fd):
     """Parses a list of rules until an empty line is reached"""
