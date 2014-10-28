@@ -4,7 +4,7 @@ from enum import Enum
 from lib.serialize import HOL
 from lib.util import trace
 
-Rule = namedtuple("Rule", ["action", "proto", "ipsrc", "ipdst", "dports", "extra"])
+Rule = namedtuple("Rule", ["action", "proto", "ipsrc", "ipdst", "sports", "dports", "extra"])
 Std_Chain = namedtuple("Std_Chain", ["policy", "rules"])
 
 class Src_Or_Dst(Enum):
@@ -120,6 +120,7 @@ class Rule(object):
         self.ipsrc = ipsrc
         self.ipdst = ipdst
         self.extra = extra
+        print("TODO: ports and extra!")
 
     def serialize(self, chain_names, serializer):
         action = self.action.serialize(chain_names, serializer)

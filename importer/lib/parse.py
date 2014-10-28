@@ -99,47 +99,54 @@ def parse_extra(rule):
     """parses the right side of an `iptables -L -n' format (everything after destination). Argument: a Rule"""
     
     extra = rule.extra
-    #list of tuples [(star,end), (start,end)]
-    ports = []
     
-    # dpt:22
-    p = re.compile('dpt:(?P<port>\d+)')
-    m = p.search(extra)
-    if m is not None:
-        ports.append((m.group('port'), m.group('port')))
-        extra = nonmatching_rest(m, extra)
-    assert(p.search(extra) is None) # only one dpt can be specified
-    
-    #dpts:1:65535
-    p = re.compile('dpts:(?P<port_start>\d+):(?P<port_end>\d+)')
-    m = p.search(extra)
-    if m is not None:
-        ports.append((m.group('port_start'), m.group('port_end')))
-        extra = nonmatching_rest(m, extra)
-    assert(p.search(extra) is None) # only one dpt can be specified
-    
-    #multiport dports 4569,5000:65535
-    p = re.compile('multiport dports (?P<multiports>[0-9,:]*\d)')
-    m = p.search(extra)
-    if m is not None:
-        multiports = m.group('multiports').split(',')
-        for pts in multiports:
-            ptssplit = pts.split(':')
-            if len(ptssplit) == 1:
-                ports.append((ptssplit[0], ptssplit[0]))
-            else:
-                assert(len(ptssplit) == 2)
-                ports.append((ptssplit[0], ptssplit[1]))
-        extra = nonmatching_rest(m, extra)
-    assert(p.search(extra) is None) # only one dpt can be specified
+    def parse_ports(d, extra):
+        assert(d == 'd' or d == 's')
+        
+        #list of tuples [(star,end), (start,end)]
+        ports = []
+        
+        # dpt:22
+        p = re.compile(d+r'pt:(?P<port>\d+)')
+        m = p.search(extra)
+        if m is not None:
+            ports.append((m.group('port'), m.group('port')))
+            extra = nonmatching_rest(m, extra)
+        assert(p.search(extra) is None) # only one dpt can be specified
+        
+        #dpts:1:65535
+        p = re.compile(d+r'pts:(?P<port_start>\d+):(?P<port_end>\d+)')
+        m = p.search(extra)
+        if m is not None:
+            ports.append((m.group('port_start'), m.group('port_end')))
+            extra = nonmatching_rest(m, extra)
+        assert(p.search(extra) is None) # only one dpt can be specified
+        
+        #multiport dports 4569,5000:65535
+        p = re.compile(r'multiport '+d+r'ports (?P<multiports>[0-9,:]*\d)')
+        m = p.search(extra)
+        if m is not None:
+            multiports = m.group('multiports').split(',')
+            for pts in multiports:
+                ptssplit = pts.split(':')
+                if len(ptssplit) == 1:
+                    ports.append((ptssplit[0], ptssplit[0]))
+                else:
+                    assert(len(ptssplit) == 2)
+                    ports.append((ptssplit[0], ptssplit[1]))
+            extra = nonmatching_rest(m, extra)
+        assert(p.search(extra) is None) # only one dpt can be specified
 
-    ports = [(int(start), int(end)) for (start, end) in ports]
-    for (start, end) in ports:
-        assert(type(start) == type(0))
-        assert(start <= end)
+        ports = [(int(start), int(end)) for (start, end) in ports]
+        for (start, end) in ports:
+            assert(type(start) == type(0))
+            assert(start <= end)
+        return (extra, ports)
+    
+    (extra, rule.dports) = parse_ports('d', extra)
+    (extra, rule.sports) = parse_ports('s', extra)
     
     rule.extra = extra
-    rule.dports = ports
     
     return rule
 

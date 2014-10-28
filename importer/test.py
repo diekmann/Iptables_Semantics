@@ -24,19 +24,21 @@ class TestParse(unittest.TestCase):
         self.assertEqual(resultrule.ipsrc, self.dummy_rule.ipsrc)
         self.assertEqual(resultrule.ipdst, self.dummy_rule.ipdst)
         self.assertEqual(resultrule.extra, """foobar  state NEW tcp flags: 0x17/0x02  foobar""")
+        self.assertEqual(resultrule.sports, [])
         self.assertEqual(resultrule.dports, [(22,22), (1,65535), (22,22), (80,80), (873,873)])
         
     def test_parse_extra2(self):
         from lib.parse import parse_extra
-        self.dummy_rule.extra = """foobar dpts:1:65535 state NEW tcp dpt:22flags: 0x17/0x02 multiport dports 53,123,1000:2000,234,777:888 foobar"""
+        self.dummy_rule.extra = """foobar dpts:1:65535 state NEW tcp spt:22flags: 0x17/0x02 multiport dports 53,123,1000:2000,234,777:888 foobar multiport sports 53,123,1000:2000,234,777:888 foobar"""
         resultrule = parse_extra(self.dummy_rule)
         
         self.assertEqual(resultrule.action, self.dummy_rule.action)
         self.assertEqual(resultrule.proto, self.dummy_rule.proto)
         self.assertEqual(resultrule.ipsrc, self.dummy_rule.ipsrc)
         self.assertEqual(resultrule.ipdst, self.dummy_rule.ipdst)
-        self.assertEqual(resultrule.extra, """foobar  state NEW tcp flags: 0x17/0x02  foobar""")
-        self.assertEqual(resultrule.dports, [(22,22), (1,65535), (53,53), (123,123), (1000,2000), (234,234), (777,888)])
+        self.assertEqual(resultrule.extra, """foobar  state NEW tcp flags: 0x17/0x02  foobar  foobar""")
+        self.assertEqual(resultrule.sports, [(22,22), (53,53), (123,123), (1000,2000), (234,234), (777,888)])
+        self.assertEqual(resultrule.dports, [(1,65535), (53,53), (123,123), (1000,2000), (234,234), (777,888)])
 
 if __name__ == '__main__':
     unittest.main()
