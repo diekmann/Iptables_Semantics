@@ -148,8 +148,10 @@ def parse_extra(rule):
             assert(start <= end)
         return (extra, ports)
     
-    (extra, rule.dports) = parse_ports('d', extra)
-    (extra, rule.sports) = parse_ports('s', extra)
+    (extra, dports) = parse_ports('d', extra)
+    rule.dports = DPorts(dports)
+    (extra, sports) = parse_ports('s', extra)
+    rule.sports = SPorts(sports)
     
     rule.extra = extra
     
@@ -186,7 +188,7 @@ def parse_rule(line):
     ipdst = parse_ip(m.group('ipdst'))
     
     rule = Rule(action, proto, ipsrc, ipdst, extra)
-    if False: #parse ports?
+    if True: #parse ports?
         return parse_extra(rule)
     else:
         return rule

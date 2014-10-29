@@ -7,6 +7,27 @@ from lib.util import trace
 Rule = namedtuple("Rule", ["action", "proto", "ipsrc", "ipdst", "extra"]) # possible additional attrs: "sports", "dports"
 Std_Chain = namedtuple("Std_Chain", ["policy", "rules"])
 
+class Ports(object):
+    def __init__(self, ports):
+        assert type(ports) is list
+        for (start,end) in ports:
+            assert type(start) is int
+            assert type(end) is int
+            assert start <= end
+            assert start >= 0
+            assert end >= 0
+        self.ports = ports
+
+    def serialize(self):
+        ports = [serializer.tup((serializer.nat(start), serializer.nat(end))) for (start,end) in ports]
+        return serializer.list(ports)
+
+class DPorts(Ports):
+    pass
+
+class SPorts(Ports):
+    pass
+
 class Src_Or_Dst(Enum):
     src = 1
     dst = 2
@@ -128,8 +149,13 @@ class Rule(object):
         ipsrc = self.ipsrc.serialize(Src_Or_Dst.src, serializer)
         ipdst = self.ipdst.serialize(Src_Or_Dst.dst, serializer)
         
-        if hasattr(self, 'sports') or hasattr(self, 'dports'):
-            print("TODO: this Rule object as sports and dports set. Unhandled!")
+        if hasattr(self, 'sports'):
+            print("TODO: this Rule object has sports set. Unhandled!")
+            assert isinstance(self.sports, SPorts)
+
+        if hasattr(self, 'dports'):
+            print("TODO: this Rule object has dports set. Unhandled!")
+            assert isinstance(self.dports, DPorts)
         
         if self.extra is None:
             extra = "MatchAny"
