@@ -14,7 +14,9 @@ if __name__ == '__main__':
     parser.add_argument('--type', '-t', dest='typ', metavar='TYPE', type=str, default='hol', choices=['hol', 'ml', 'scala'], help="Output type (choices: hol, ml, scala; default: hol)")
     parser.add_argument('--module', '-m', dest='module', metavar='NAME', type=str, default=None, help="Module name (if unspecified, guessed from output file name)")
     parser.add_argument('--import', '-i', dest='import_module', metavar='NAME', type=str, default=None, help="Module name to import from (if none, nothing is imported)")
+    parser.add_argument('--parse_ports', dest='parse_ports', action='store_true', help="Parse source and destination l4 ports")
     args = parser.parse_args()
+
 
     if args.module is None:
         args.module = basename(args.output).split(".")[0]
@@ -34,9 +36,9 @@ if __name__ == '__main__':
         if not (args.typ == 'ml'):
             warn("Using experimental serializer")
     else:
-        error("Unknown type", fatal = True)
+        error("Unknown type", fatal=True)
 
-    result = parse_firewall(args.input).serialize(serializer)
+    result = parse_firewall(args.input, parse_ports=args.parse_ports).serialize(serializer)
 
     with open(args.output, 'w') as fd:
         fd.write(serializer.header())

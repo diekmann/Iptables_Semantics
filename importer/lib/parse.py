@@ -159,7 +159,7 @@ def parse_extra(rule):
     
     return rule
 
-def parse_rule(line):
+def parse_rule(line, parse_ports):
     """Parses a single rule"""
     if line == "" or line == '\n':
         return None
@@ -190,12 +190,12 @@ def parse_rule(line):
     ipdst = parse_ip(m.group('ipdst'))
     
     rule = Rule(action, proto, ipsrc, ipdst, extra)
-    if True: #parse ports?
+    if parse_ports:
         return parse_extra(rule)
     else:
         return rule
 
-def parse_rules(fd):
+def parse_rules(fd, parse_ports):
     """Parses a list of rules until an empty line is reached"""
 
     result = []
@@ -205,14 +205,14 @@ def parse_rules(fd):
         if not line:
             break
         try:
-            rule = parse_rule(line)
+            rule = parse_rule(line, parse_ports)
         except (ParseError, AssertionError):
             error("Parsing rule `{0}' failed".format(line))
             raise
         result.append(rule)
     return result
 
-def parse_std_chain(fd, name):
+def parse_std_chain(fd, name, parse_ports):
     """Parses a single complete standard chain; namely INPUT, OUTPUT, FORWARD"""
 
     line = fd.readline()
@@ -223,10 +223,10 @@ def parse_std_chain(fd, name):
     line = fd.readline()
     check_chain_hdrdesc(line)
     
-    rules = parse_rules(fd)
+    rules = parse_rules(fd, parse_ports)
     return (policy, rules)
 
-def parse_custom_chain(fd):
+def parse_custom_chain(fd, parse_ports):
     """Parses a single complete custom chain; returns None if the input file is exhausted"""
 
     line = fd.readline()
@@ -240,20 +240,20 @@ def parse_custom_chain(fd):
     line = fd.readline()
     check_chain_hdrdesc(line)
     
-    rules = parse_rules(fd)
+    rules = parse_rules(fd, parse_ports)
     return (chain, rules)
 
-def parse_firewall(filename):
+def parse_firewall(filename, parse_ports=False):
     std_chains = collections.OrderedDict()
     custom_chains = collections.OrderedDict()
     
     with open(filename, 'r') as fd:
         for chain in Firewall.std_chain_names:
-            (policy, rules) = parse_std_chain(fd, chain)
+            (policy, rules) = parse_std_chain(fd, chain, parse_ports)
             std_chains[chain] = Std_Chain(policy = parse_action(policy), rules = rules)
 
         while True:
-            res = parse_custom_chain(fd)
+            res = parse_custom_chain(fd, parse_ports)
             if not res:
                 break
             (chain, rules) = res
