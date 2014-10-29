@@ -149,9 +149,11 @@ def parse_extra(rule):
         return (extra, ports)
     
     (extra, dports) = parse_ports('d', extra)
-    rule.dports = DPorts(dports)
+    if dports:
+        rule.dports = DPorts(dports)
     (extra, sports) = parse_ports('s', extra)
-    rule.sports = SPorts(sports)
+    if sports:
+        rule.sports = SPorts(sports)
     
     rule.extra = extra
     

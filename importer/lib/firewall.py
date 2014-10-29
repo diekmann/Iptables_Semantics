@@ -18,8 +18,8 @@ class Ports(object):
             assert end >= 0
         self.ports = ports
 
-    def serialize(self):
-        ports = [serializer.tup((serializer.nat(start), serializer.nat(end))) for (start,end) in ports]
+    def serialize(self, serializer):
+        ports = [serializer.tup(serializer.nat(start), serializer.nat(end)) for (start,end) in self.ports]
         return serializer.list(ports)
 
 class DPorts(Ports):
@@ -152,10 +152,12 @@ class Rule(object):
         if hasattr(self, 'sports'):
             print("TODO: this Rule object has sports set. Unhandled!")
             assert isinstance(self.sports, SPorts)
+            print(self.sports.serialize(serializer))
 
         if hasattr(self, 'dports'):
             print("TODO: this Rule object has dports set. Unhandled!")
             assert isinstance(self.dports, DPorts)
+            print(self.dports.serialize(serializer))
         
         if self.extra is None:
             extra = "MatchAny"

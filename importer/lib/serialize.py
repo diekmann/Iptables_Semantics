@@ -31,6 +31,13 @@ class Serializer:
         return self.tup(*parts)
         
     def nat(self, n):
+        if type(n) is int:
+            assert n >= 0
+        elif type(n) is str:
+            assert int(n) >= 0
+        else:
+            assert False
+            
         return "{}".format(n)
 
 class HOL(Serializer):
