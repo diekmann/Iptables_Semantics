@@ -141,7 +141,6 @@ class Rule(object):
         self.ipsrc = ipsrc
         self.ipdst = ipdst
         self.extra = extra
-        
 
     def serialize(self, chain_names, serializer):
         action = self.action.serialize(chain_names, serializer)

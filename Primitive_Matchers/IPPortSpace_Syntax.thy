@@ -1,5 +1,5 @@
 theory IPPortSpace_Syntax
-imports Main String "../Bitmagic/IPv4Addr" IPSpace_Syntax
+imports Main String "../Bitmagic/IPv4Addr" "../Bitmagic/BitrangeLists" IPSpace_Syntax
 begin
 
 section{*Primitive Matchers: IP Space and Layer 4 Ports Matcher*}
@@ -9,7 +9,8 @@ text{*Primitive Match Conditions which only support IPv4 addresses,  layer 4 pro
 
 datatype ipt_protocol = ProtAll | ProtTCP | ProtUDP
 
-datatype ipt_ports = PortSingle nat | PortRange nat nat | PortMulti "ipt_ports list"
+(*list of (start, end) port ranges*)
+type_synonym ipt_ports = "(16 word \<times> 16 word) list"
 
 datatype ipport_rule_match = Src ipt_ipv4range | Dst ipt_ipv4range | Prot ipt_protocol | Src_Port ipt_ports | Dst_Port ipt_ports | Extra string
 
@@ -26,12 +27,12 @@ subsection{*Example Packet*}
 
 
 
-fun ports_to_set :: "ipt_ports \<Rightarrow> nat set" where
-  "ports_to_set (PortSingle p) = { p }" |
-  "ports_to_set (PortRange p1 p2) = {p1 .. p2}" |
-  "ports_to_set (PortMulti ps) = (\<Union> p \<in> set ps. ports_to_set p)"
+fun ports_to_set :: "ipt_ports \<Rightarrow> (16 word) set" where
+  "ports_to_set [] = {}" |
+  "ports_to_set ((s,e)#ps) = {s..e} \<union> ports_to_set ps"
 
-lemma "ports_to_set (PortMulti ps) = \<Union> set [ports_to_set p. p \<leftarrow> ps]" by(simp)
-
+text{*We can reuse the bitrange theory to reason about ports*}
+lemma ports_to_set_bitrange: "ports_to_set ps = bitrange_to_set (l2br ps)"
+  by(induction ps) (auto)
 
 end
