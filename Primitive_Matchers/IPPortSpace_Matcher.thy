@@ -16,9 +16,9 @@ fun ipport_matcher :: "(ipport_rule_match, packet_with_ports) exact_match_tac" w
   "ipport_matcher (Prot ipt_protocol.ProtTCP) p = bool_to_ternary (prot p = protPacket.ProtTCP)" |
   "ipport_matcher (Prot ipt_protocol.ProtUDP) p = bool_to_ternary (prot p = protPacket.ProtUDP)" |
 
-  "ipport_matcher (Src_Port ps) p = bool_to_ternary (src_port p \<in> ports_to_set ps)" |
+  "ipport_matcher (Src_Ports ps) p = bool_to_ternary (src_port p \<in> ports_to_set ps)" |
 
-  "ipport_matcher (Dst_Port ps) p = bool_to_ternary (dst_port p \<in> ports_to_set ps)" |
+  "ipport_matcher (Dst_Ports ps) p = bool_to_ternary (dst_port p \<in> ports_to_set ps)" |
 
   "ipport_matcher (Extra _) p = TernaryUnknown"
 
@@ -26,7 +26,11 @@ fun ipport_matcher :: "(ipport_rule_match, packet_with_ports) exact_match_tac" w
 
 
 text{*Lemmas when matching on @{term Src} or @{term Dst}*}
-lemma ipport_matcher_SrcDst_defined: "ipport_matcher (Src m) p \<noteq> TernaryUnknown" "ipport_matcher (Dst m) p \<noteq> TernaryUnknown"
+lemma ipport_matcher_SrcDst_defined:
+  "ipport_matcher (Src m) p \<noteq> TernaryUnknown"
+  "ipport_matcher (Dst m) p \<noteq> TernaryUnknown"
+  "ipport_matcher (Src_Ports ps) p \<noteq> TernaryUnknown"
+  "ipport_matcher (Dst_Ports ps) p \<noteq> TernaryUnknown"
   apply(case_tac [!] m)
   apply(simp_all add: bool_to_ternary_Unknown)
   done
@@ -55,6 +59,8 @@ lemma ipport_matcher_SrcDst_Inter:
   apply(simp_all)
   apply(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_Unknown bool_to_ternary_simps split: ternaryvalue.split)
  done
+
+
 
 
 end

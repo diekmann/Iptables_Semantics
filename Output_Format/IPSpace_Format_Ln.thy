@@ -14,9 +14,9 @@ lemma compress_pos_ips_src_None_matching: "compress_pos_ips src' = None \<Longri
   apply(simp add: compress_pos_ips_None)
   apply(unfold Ln_uncompressed_matching.simps)
   apply safe
-  apply(thin_tac " nt_match_list (simple_matcher, \<alpha>) a p (NegPos_map Dst dst)")
-  apply(thin_tac " nt_match_list (simple_matcher, \<alpha>) a p (NegPos_map Prot proto)")
-  apply(thin_tac " nt_match_list (simple_matcher, \<alpha>) a p (NegPos_map Extra extra)")
+  apply(thin_tac "nt_match_list (simple_matcher, \<alpha>) a p (NegPos_map Dst dst)")
+  apply(thin_tac "nt_match_list (simple_matcher, \<alpha>) a p (NegPos_map Prot proto)")
+  apply(thin_tac "nt_match_list (simple_matcher, \<alpha>) a p (NegPos_map Extra extra)")
   apply(simp add: nt_match_list_simp)
   apply(simp add: getPos_NegPos_map_simp)
   using simple_matcher_SrcDst_Inter by blast
