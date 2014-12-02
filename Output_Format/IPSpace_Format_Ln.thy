@@ -211,14 +211,14 @@ export_code compress_Ln_ips in SML
 
 
 (*TODO correctness proof*)
-fun compress_ports :: "ipt_protocol negation_type list \<Rightarrow> ipt_protocol negation_type option" where
-  "compress_ports [] = Some (Pos ProtAll)" |
-  "compress_ports ((Pos ProtAll)#ps) = compress_ports ps" |
-  "compress_ports ((Neg ProtAll)#_) = None" | 
-  "compress_ports ( p # Pos ProtAll # ps) = compress_ports (p#ps)"|
-  "compress_ports ( _ # Neg ProtAll # _) = None" |
-  "compress_ports ( Pos ProtTCP # Pos ProtUDP # _) = None"|
-  "compress_ports ( Pos ProtUDP # Pos ProtTCP # _) = None"
+fun compress_prots :: "ipt_protocol negation_type list \<Rightarrow> ipt_protocol negation_type option" where
+  "compress_prots [] = Some (Pos ProtAll)" |
+  "compress_prots ((Pos ProtAll)#ps) = compress_prots ps" |
+  "compress_prots ((Neg ProtAll)#_) = None" | 
+  "compress_prots ( p # Pos ProtAll # ps) = compress_prots (p#ps)"|
+  "compress_prots ( _ # Neg ProtAll # _) = None" |
+  "compress_prots ( Pos ProtTCP # Pos ProtUDP # _) = None"|
+  "compress_prots ( Pos ProtUDP # Pos ProtTCP # _) = None"
 
 
 lemma approximating_bigstep_fun_Ln_rules_to_rule_step_simultaneously:
