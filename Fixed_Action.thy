@@ -556,7 +556,6 @@ lemma normalize_rules_correct: "wf_ruleset \<gamma> p rs \<Longrightarrow> appro
     qed
   qed
 
-
 (*
 value "normalize_rules
   [(Rule (MatchNot (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16)))) (MatchAnd (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) (MatchAnd (Match (Prot ipt_protocol.ProtTCP)) (Match (Extra ''reject-with tcp-reset'')))))) Drop)]
@@ -582,8 +581,8 @@ lemma normalized_match_normalize_match: "\<forall> m' \<in> set (normalize_match
   qed (simp_all)
 
 
-(*Test*)
-value "normalize_match (MatchNot (MatchAnd (Match ip_src) (Match tcp))) = [MatchNot (Match ip_src), MatchNot (Match tcp)]"
+text{*Example*}
+lemma "normalize_match (MatchNot (MatchAnd (Match ip_src) (Match tcp))) = [MatchNot (Match ip_src), MatchNot (Match tcp)]" by simp
 
 
 end

@@ -175,6 +175,53 @@ by (metis format_Ln_match_correct)
 
 
 
+definition format_Ln_rules_uncompressed :: "iptrule_match rule list \<Rightarrow> (match_Ln_uncompressed \<times> action) list" where
+  "format_Ln_rules_uncompressed rs = [((format_Ln_match (get_match r)), (get_action r)). r \<leftarrow> (normalize_rules rs)]"
+
+definition Ln_rules_to_rule :: "(match_Ln_uncompressed \<times> action) list \<Rightarrow> iptrule_match rule list" where
+  "Ln_rules_to_rule rs = [case r of (m,a) \<Rightarrow> Rule (UncompressedFormattedMatch_to_match_expr m) a. r \<leftarrow> rs]"
+
+
+(*TODO*)
+lemma map_uncompressedmapping_simp: "(map ((\<lambda>(m, y). Rule (UncompressedFormattedMatch_to_match_expr m) y) \<circ> (\<lambda>r. (format_Ln_match (get_match r), get_action r)) \<circ> (\<lambda>m. Rule m a)) ms) =
+       (map (\<lambda>m. Rule m a) (map (\<lambda>m'. UncompressedFormattedMatch_to_match_expr (format_Ln_match m')) ms))"
+by(simp)
+lemma TESTRefactor: "good_ruleset rs \<Longrightarrow> 
+    approximating_bigstep_fun \<gamma> p (Ln_rules_to_rule (format_Ln_rules_uncompressed rs)) s = 
+    approximating_bigstep_fun \<gamma> p rs s"
+apply(simp add: Ln_rules_to_rule_def format_Ln_rules_uncompressed_def)
+apply(induction rs)
+ apply(simp)
+apply(rename_tac r rs)
+apply(frule good_ruleset_tail)
+apply(simp)
+apply(subst normalize_rules_fst)
+apply(simp)
+apply(subst approximating_bigstep_fun_wf_postpend[where rsB="[r]", simplified])
+   apply(thin_tac "good_ruleset rs")
+   apply(drule good_ruleset_fst)
+   apply(case_tac r, rename_tac m a, clarify)
+   apply(drule good_ruleset_normalize_match)
+   apply(simp add: normalize_rules_singleton)
+   apply(subgoal_tac "good_ruleset (map ((\<lambda>(m, y). Rule (UncompressedFormattedMatch_to_match_expr m) y) \<circ> (\<lambda>r. (format_Ln_match (get_match r), get_action r)) \<circ> (\<lambda>m. Rule m a)) (normalize_match m))")
+    apply(simp add:good_imp_wf_ruleset)
+   apply(simp add: good_ruleset_alt)
+  apply(drule good_ruleset_fst)
+  apply(simp add:good_imp_wf_ruleset)
+ apply(case_tac r, rename_tac m a, clarify)
+ apply(simp add: normalize_rules_singleton)
+ apply(simp add: map_uncompressedmapping_simp)
+ apply(subst normalize_match_correct[symmetric])
+ apply(subst format_Ln_match_correct'[symmetric])
+  apply(simp add: normalized_match_normalize_match)
+ apply(simp)
+apply(rule approximating_bigstep_fun_singleton_prepend)
+apply(simp)
+done
+
+
+
+(*This whole bunch of ... is the old proof *)
 lemma helper: "\<forall> m' \<in> set ms. normalized_match m' \<Longrightarrow> 
       approximating_bigstep_fun (\<beta>, \<alpha>) p (map ((\<lambda>r. Rule (UncompressedFormattedMatch_to_match_expr (fst r)) (snd r)) \<circ> (\<lambda>r. (format_Ln_match (get_match r), get_action r)) \<circ> (\<lambda>m. Rule m a)) ms) Undecided =
       approximating_bigstep_fun (\<beta>, \<alpha>) p (map (\<lambda> m. Rule m a) ms) Undecided"
@@ -192,19 +239,15 @@ apply (metis normalized_match_normalize_match)
 by (metis normalize_match_correct)
 hide_fact helper
 
+lemma Ln_rules_to_rule_legacy_def: "Ln_rules_to_rule rs = [Rule (UncompressedFormattedMatch_to_match_expr (fst r)) (snd r). r \<leftarrow> rs]"
+apply(simp add: Ln_rules_to_rule_def) by force
 
 lemma approximating_bigstep_fun_seq_wf_fst: "wf_ruleset \<gamma> p [Rule m a] \<Longrightarrow> approximating_bigstep_fun \<gamma> p (Rule m a # rs\<^sub>2) Undecided = approximating_bigstep_fun \<gamma> p rs\<^sub>2 (approximating_bigstep_fun \<gamma> p [Rule m a] Undecided)"
 using approximating_bigstep_fun_seq_wf[where rs\<^sub>1="[Rule m a]"] by (metis append_Cons append_Nil)
 
-definition format_Ln_rules_uncompressed :: "iptrule_match rule list \<Rightarrow> (match_Ln_uncompressed \<times> action) list" where
-  "format_Ln_rules_uncompressed rs = [((format_Ln_match (get_match r)), (get_action r)). r \<leftarrow> (normalize_rules rs)]"
-
-definition Ln_rules_to_rule :: "(match_Ln_uncompressed \<times> action) list \<Rightarrow> iptrule_match rule list" where
-  "Ln_rules_to_rule rs = [Rule (UncompressedFormattedMatch_to_match_expr (fst r)) (snd r). r \<leftarrow> rs]"
-
 
 lemma Ln_rules_to_rule_head: "Ln_rules_to_rule (r#rs) = (Rule (UncompressedFormattedMatch_to_match_expr (fst r)) (snd r))#Ln_rules_to_rule rs"
-  by(simp add: Ln_rules_to_rule_def)
+  by(simp add: Ln_rules_to_rule_legacy_def)
 
 
 
@@ -220,7 +263,7 @@ lemma format_Ln_rules_uncompressed_correct: "good_ruleset rs \<Longrightarrow>
    prefer 2
    apply(simp add: Decision_approximating_bigstep_fun)
   apply(clarify)
-  unfolding Ln_rules_to_rule_def format_Ln_rules_uncompressed_def
+  unfolding Ln_rules_to_rule_legacy_def format_Ln_rules_uncompressed_def
   apply(induction rs)
    apply(simp)
   apply(simp)

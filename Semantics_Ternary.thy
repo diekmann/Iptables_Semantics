@@ -323,6 +323,16 @@ subsubsection{*Append, Prepend, Postpend, Composition*}
   apply (metis Decision_approximating_bigstep_fun approximating_bigstep_fun_seq_wf)+
   done
 
+lemma approximating_bigstep_fun_singleton_prepend: "approximating_bigstep_fun \<gamma> p rsB s = approximating_bigstep_fun \<gamma> p rsC s \<Longrightarrow> 
+      approximating_bigstep_fun \<gamma> p (r#rsB) s = approximating_bigstep_fun \<gamma> p (r#rsC) s"
+  apply(case_tac s)
+   prefer 2
+   apply(simp add: Decision_approximating_bigstep_fun)
+  apply(simp)
+  apply(cases r)
+  apply(simp split: action.split)
+  done
+
 subsection{*Equality with @{term "\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"} semantics*}
   lemma approximating_bigstep_wf: "\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Undecided \<Longrightarrow> wf_ruleset \<gamma> p rs"
   unfolding wf_ruleset_def
