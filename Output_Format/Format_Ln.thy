@@ -219,6 +219,60 @@ apply(rule approximating_bigstep_fun_singleton_prepend)
 apply(simp)
 done
 
+lemma "good_ruleset rs \<Longrightarrow> 
+    approximating_bigstep_fun \<gamma> p (Ln_rules_to_rule (format_Ln_rules_uncompressed rs)) s = 
+    approximating_bigstep_fun \<gamma> p rs s"
+proof(induction rs)
+case Nil thus ?case by(simp add: Ln_rules_to_rule_def format_Ln_rules_uncompressed_def)
+next
+case (Cons r rs)
+  from Cons.IH Cons.prems good_ruleset_tail have IH: "approximating_bigstep_fun \<gamma> p (Ln_rules_to_rule (format_Ln_rules_uncompressed rs)) s = approximating_bigstep_fun \<gamma> p rs s"
+    by blast
+
+  let ?rsA="map ((\<lambda>(m, y). Rule (UncompressedFormattedMatch_to_match_expr m) y) \<circ> (\<lambda>r. (format_Ln_match (get_match r), get_action r))) (normalize_rules [r])"
+  let ?rsC="map ((\<lambda>(m, y). Rule (UncompressedFormattedMatch_to_match_expr m) y) \<circ> (\<lambda>r. (format_Ln_match (get_match r), get_action r))) (normalize_rules rs)"
+  from approximating_bigstep_fun_wf_postpend[where rsB="[r]", simplified] have subst_rule:
+    "\<And>rsA rsC. wf_ruleset \<gamma> p rsA \<Longrightarrow> wf_ruleset \<gamma> p [r] \<Longrightarrow>
+    approximating_bigstep_fun \<gamma> p rsA s = approximating_bigstep_fun \<gamma> p [r] s \<Longrightarrow> approximating_bigstep_fun \<gamma> p (rsA @ rsC) s = approximating_bigstep_fun \<gamma> p (r # rsC) s"
+    by fast
+  
+  have "approximating_bigstep_fun \<gamma> p (Ln_rules_to_rule (format_Ln_rules_uncompressed (r # rs))) s = 
+        approximating_bigstep_fun \<gamma> p
+             (map ((\<lambda>(m, y). Rule (UncompressedFormattedMatch_to_match_expr m) y) \<circ> (\<lambda>r. (format_Ln_match (get_match r), get_action r))) (normalize_rules (r # rs))) s"
+    by (simp add: Ln_rules_to_rule_def format_Ln_rules_uncompressed_def)
+  also have "... = approximating_bigstep_fun \<gamma> p (?rsA @ ?rsC) s" by(subst normalize_rules_fst, simp)
+  also have "... = approximating_bigstep_fun \<gamma> p (r # ?rsC) s" 
+    proof(subst subst_rule)
+      from Cons.prems good_ruleset_fst have "good_ruleset [r]" by fast
+      hence "good_ruleset ?rsA"
+       apply(cases r)
+       apply(rename_tac m a,clarify)
+       apply(simp add: normalize_rules_singleton)
+       apply(drule good_ruleset_normalize_match)
+       apply(simp add: good_ruleset_alt)
+       done
+      thus "wf_ruleset \<gamma> p ?rsA" using good_imp_wf_ruleset by fast
+    next
+      show "wf_ruleset \<gamma> p [r]" using Cons.prems good_ruleset_fst good_imp_wf_ruleset by fast
+    next
+      show "approximating_bigstep_fun \<gamma> p ?rsA s = approximating_bigstep_fun \<gamma> p [r] s"
+       apply(case_tac r, rename_tac m a, clarify)
+       apply(simp add: normalize_rules_singleton)
+       apply(simp add: map_uncompressedmapping_simp)
+       apply(subst normalize_match_correct[symmetric])
+       apply(subst format_Ln_match_correct'[symmetric])
+        apply(simp add: normalized_match_normalize_match)
+       apply(simp)
+       done
+     next
+      show "approximating_bigstep_fun \<gamma> p (r#?rsC) s = approximating_bigstep_fun \<gamma> p (r#?rsC) s" by blast
+     qed
+  also have " ... = approximating_bigstep_fun \<gamma> p (r # Ln_rules_to_rule (format_Ln_rules_uncompressed rs)) s"
+    by (simp add: Ln_rules_to_rule_def format_Ln_rules_uncompressed_def)
+  also have "... = approximating_bigstep_fun \<gamma> p (r # rs) s " using IH approximating_bigstep_fun_singleton_prepend by fast
+  finally show ?case .
+qed
+
 
 
 (*This whole bunch of ... is the old proof *)
@@ -295,7 +349,7 @@ lemma format_Ln_rules_uncompressed_correct: "good_ruleset rs \<Longrightarrow>
 
 
 
-
+(*Move up, simplify stuff?*)
 fun Ln_uncompressed_matching :: "(iptrule_match, 'packet) match_tac \<Rightarrow> action \<Rightarrow> 'packet \<Rightarrow> match_Ln_uncompressed \<Rightarrow> bool" where
   "Ln_uncompressed_matching \<gamma> a p (UncompressedFormattedMatch src dst proto extra) \<longleftrightarrow> 
     (nt_match_list \<gamma> a p (NegPos_map Src src)) \<and>
