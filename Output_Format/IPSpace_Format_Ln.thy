@@ -227,7 +227,7 @@ lemma approximating_bigstep_fun_Ln_rules_to_rule_step_simultaneously:
   \<Longrightarrow>
   approximating_bigstep_fun (simple_matcher, \<alpha>) p (Ln_rules_to_rule ((r1, a)#rs1)) Undecided =
        approximating_bigstep_fun (simple_matcher, \<alpha>) p (Ln_rules_to_rule ((r2, a)#rs2)) Undecided"
-by(simp add: Ln_rules_to_rule_head split: action.split)
+by(simp add: Ln_rules_to_rule_def split: action.split)
 
 theorem compress_Ln_ips_xorrectness: "approximating_bigstep_fun (simple_matcher, \<alpha>) p (Ln_rules_to_rule (compress_Ln_ips rs1)) s = 
       approximating_bigstep_fun (simple_matcher, \<alpha>) p (Ln_rules_to_rule rs1) s"
@@ -246,9 +246,9 @@ apply(simp only:compress_Ln_ips.simps)
 apply(simp del: compress_ips.simps split: option.split)
 apply(safe)
   apply(drule_tac \<alpha>=\<alpha> and p=p and proto=proto and extra=extra and dst=dst and a=action in compress_ips_src_None_matching)
-  apply(simp add: Ln_rules_to_rule_head Ln_uncompressed_matching)
+  apply(simp add: Ln_rules_to_rule_def Ln_uncompressed_matching)
  apply(drule_tac \<alpha>=\<alpha> and p=p and proto=proto and extra=extra and src=src and a=action in compress_ips_dst_None_matching)
- apply(simp add: Ln_rules_to_rule_head Ln_uncompressed_matching)
+ apply(simp add: Ln_rules_to_rule_def Ln_uncompressed_matching)
 apply(simp del: compress_ips.simps)
 apply(drule_tac \<alpha>=\<alpha> and p=p and a=action in compress_ips_dst_Some_matching) (*careful about order of src/dst*)
 apply(drule_tac \<alpha>=\<alpha> and p=p and a=action in compress_ips_src_Some_matching)

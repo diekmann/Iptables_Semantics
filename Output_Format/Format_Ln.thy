@@ -182,52 +182,17 @@ definition Ln_rules_to_rule :: "(match_Ln_uncompressed \<times> action) list \<R
   "Ln_rules_to_rule rs = [case r of (m,a) \<Rightarrow> Rule (UncompressedFormattedMatch_to_match_expr m) a. r \<leftarrow> rs]"
 
 
-(*TODO*)
-lemma map_uncompressedmapping_simp: "(map ((\<lambda>(m, y). Rule (UncompressedFormattedMatch_to_match_expr m) y) \<circ> (\<lambda>r. (format_Ln_match (get_match r), get_action r)) \<circ> (\<lambda>m. Rule m a)) ms) =
-       (map (\<lambda>m. Rule m a) (map (\<lambda>m'. UncompressedFormattedMatch_to_match_expr (format_Ln_match m')) ms))"
-by(simp)
-lemma TESTRefactor: "good_ruleset rs \<Longrightarrow> 
-    approximating_bigstep_fun \<gamma> p (Ln_rules_to_rule (format_Ln_rules_uncompressed rs)) s = 
-    approximating_bigstep_fun \<gamma> p rs s"
-apply(simp add: Ln_rules_to_rule_def format_Ln_rules_uncompressed_def)
-apply(induction rs)
- apply(simp)
-apply(rename_tac r rs)
-apply(frule good_ruleset_tail)
-apply(simp)
-apply(subst normalize_rules_fst)
-apply(simp)
-apply(subst approximating_bigstep_fun_wf_postpend[where rsB="[r]", simplified])
-   apply(thin_tac "good_ruleset rs")
-   apply(drule good_ruleset_fst)
-   apply(case_tac r, rename_tac m a, clarify)
-   apply(drule good_ruleset_normalize_match)
-   apply(simp add: normalize_rules_singleton)
-   apply(subgoal_tac "good_ruleset (map ((\<lambda>(m, y). Rule (UncompressedFormattedMatch_to_match_expr m) y) \<circ> (\<lambda>r. (format_Ln_match (get_match r), get_action r)) \<circ> (\<lambda>m. Rule m a)) (normalize_match m))")
-    apply(simp add:good_imp_wf_ruleset)
-   apply(simp add: good_ruleset_alt)
-  apply(drule good_ruleset_fst)
-  apply(simp add:good_imp_wf_ruleset)
- apply(case_tac r, rename_tac m a, clarify)
- apply(simp add: normalize_rules_singleton)
- apply(simp add: map_uncompressedmapping_simp)
- apply(subst normalize_match_correct[symmetric])
- apply(subst format_Ln_match_correct'[symmetric])
-  apply(simp add: normalized_match_normalize_match)
- apply(simp)
-apply(rule approximating_bigstep_fun_singleton_prepend)
-apply(simp)
-done
-
-lemma "good_ruleset rs \<Longrightarrow> 
-    approximating_bigstep_fun \<gamma> p (Ln_rules_to_rule (format_Ln_rules_uncompressed rs)) s = 
-    approximating_bigstep_fun \<gamma> p rs s"
+lemma format_Ln_rules_uncompressed_correct: "good_ruleset rs \<Longrightarrow> 
+    approximating_bigstep_fun \<gamma> p (Ln_rules_to_rule (format_Ln_rules_uncompressed rs)) s = approximating_bigstep_fun \<gamma> p rs s"
 proof(induction rs)
 case Nil thus ?case by(simp add: Ln_rules_to_rule_def format_Ln_rules_uncompressed_def)
 next
 case (Cons r rs)
   from Cons.IH Cons.prems good_ruleset_tail have IH: "approximating_bigstep_fun \<gamma> p (Ln_rules_to_rule (format_Ln_rules_uncompressed rs)) s = approximating_bigstep_fun \<gamma> p rs s"
     by blast
+
+  have map_uncompressedmapping_simp: "\<And>ms a. (map ((\<lambda>(m, y). Rule (UncompressedFormattedMatch_to_match_expr m) y) \<circ> (\<lambda>r. (format_Ln_match (get_match r), get_action r)) \<circ> (\<lambda>m. Rule m a)) ms) =
+       (map (\<lambda>m. Rule m a) (map (\<lambda>m'. UncompressedFormattedMatch_to_match_expr (format_Ln_match m')) ms))" by(simp)
 
   let ?rsA="map ((\<lambda>(m, y). Rule (UncompressedFormattedMatch_to_match_expr m) y) \<circ> (\<lambda>r. (format_Ln_match (get_match r), get_action r))) (normalize_rules [r])"
   let ?rsC="map ((\<lambda>(m, y). Rule (UncompressedFormattedMatch_to_match_expr m) y) \<circ> (\<lambda>r. (format_Ln_match (get_match r), get_action r))) (normalize_rules rs)"
@@ -274,79 +239,10 @@ case (Cons r rs)
 qed
 
 
-
-(*This whole bunch of ... is the old proof *)
-lemma helper: "\<forall> m' \<in> set ms. normalized_match m' \<Longrightarrow> 
-      approximating_bigstep_fun (\<beta>, \<alpha>) p (map ((\<lambda>r. Rule (UncompressedFormattedMatch_to_match_expr (fst r)) (snd r)) \<circ> (\<lambda>r. (format_Ln_match (get_match r), get_action r)) \<circ> (\<lambda>m. Rule m a)) ms) Undecided =
-      approximating_bigstep_fun (\<beta>, \<alpha>) p (map (\<lambda> m. Rule m a) ms) Undecided"
-apply(induction ms)
- apply(simp add: normalize_match_empty)
-apply(simp split: split_if_asm split_if)
-apply(safe)
-apply(simp_all add: format_Ln_match_correct)
-apply(simp split: action.split)
-by blast
-corollary helper': "(approximating_bigstep_fun (\<beta>, \<alpha>) p (map ((\<lambda>r. Rule (UncompressedFormattedMatch_to_match_expr (fst r)) (snd r)) \<circ> (\<lambda>r. (format_Ln_match (get_match r), get_action r)) \<circ> (\<lambda>m. Rule m a)) (normalize_match m)) Undecided) =
-    (approximating_bigstep_fun (\<beta>, \<alpha>) p [Rule m a] Undecided)"
-apply(subst helper)
-apply (metis normalized_match_normalize_match)
-by (metis normalize_match_correct)
-hide_fact helper
-
-lemma Ln_rules_to_rule_legacy_def: "Ln_rules_to_rule rs = [Rule (UncompressedFormattedMatch_to_match_expr (fst r)) (snd r). r \<leftarrow> rs]"
-apply(simp add: Ln_rules_to_rule_def) by force
-
+(*
 lemma approximating_bigstep_fun_seq_wf_fst: "wf_ruleset \<gamma> p [Rule m a] \<Longrightarrow> approximating_bigstep_fun \<gamma> p (Rule m a # rs\<^sub>2) Undecided = approximating_bigstep_fun \<gamma> p rs\<^sub>2 (approximating_bigstep_fun \<gamma> p [Rule m a] Undecided)"
 using approximating_bigstep_fun_seq_wf[where rs\<^sub>1="[Rule m a]"] by (metis append_Cons append_Nil)
-
-
-lemma Ln_rules_to_rule_head: "Ln_rules_to_rule (r#rs) = (Rule (UncompressedFormattedMatch_to_match_expr (fst r)) (snd r))#Ln_rules_to_rule rs"
-  by(simp add: Ln_rules_to_rule_legacy_def)
-
-
-
-lemma Ln_rules_to_rule_format_Ln_rules: "Ln_rules_to_rule (format_Ln_rules_uncompressed rs) = [Rule (UncompressedFormattedMatch_to_match_expr (format_Ln_match (get_match r))) (get_action r). r \<leftarrow> (normalize_rules rs)]"
-  apply(induction rs)
-   apply(simp_all add: Ln_rules_to_rule_def format_Ln_rules_uncompressed_def)
-  done
-
-lemma format_Ln_rules_uncompressed_correct: "good_ruleset rs \<Longrightarrow> 
-    approximating_bigstep_fun (\<beta>, \<alpha>) p (Ln_rules_to_rule (format_Ln_rules_uncompressed rs)) s = 
-    approximating_bigstep_fun (\<beta>, \<alpha>) p rs s"
-  apply(case_tac s)
-   prefer 2
-   apply(simp add: Decision_approximating_bigstep_fun)
-  apply(clarify)
-  unfolding Ln_rules_to_rule_legacy_def format_Ln_rules_uncompressed_def
-  apply(induction rs)
-   apply(simp)
-  apply(simp)
-  apply(subst normalize_rules_fst)
-  apply(rename_tac r rs)
-  apply(case_tac r, rename_tac m a)
-  apply(clarify)
-  apply(simp del: approximating_bigstep_fun.simps)
-  apply(frule good_ruleset_fst)
-  apply(drule good_ruleset_tail)
-  apply(simp del: approximating_bigstep_fun.simps)
-  apply(frule good_ruleset_normalize_match)
-  apply(subst approximating_bigstep_fun_seq_wf)
-  defer
-  apply(subst helper')
-  
-  apply(subst(2) approximating_bigstep_fun_seq_wf_fst)
-   apply(simp add: good_imp_wf_ruleset)
-  apply(case_tac "(approximating_bigstep_fun (\<beta>, \<alpha>) p [Rule m a] Undecided)")
-   apply(simp)
-  apply (metis Decision_approximating_bigstep_fun)
-
-  apply(thin_tac "approximating_bigstep_fun ?\<gamma> p ?rs1 Undecided = approximating_bigstep_fun ?\<gamma> p ?rs2 Undecided")
-  apply(simp add: wf_ruleset_def)
-  apply(clarify)
-  apply(simp add: good_ruleset_alt)
-  apply blast
-  done
-
+*)
 
 
 (*Move up, simplify stuff?*)
