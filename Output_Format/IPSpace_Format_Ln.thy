@@ -194,7 +194,7 @@ lemma compress_ips_dst_Some_matching: "compress_ips dst = Some X \<Longrightarro
   apply(simp add: matches_and_x_any)
   apply(simp add: matches_alist_and NegPos_map_simps match_simplematcher_SrcDst match_simplematcher_SrcDst_not)
   apply(safe)
-  apply(simp_all add: NegPos_map_simps)
+        apply(simp_all add: NegPos_map_simps)
   done
 
 fun compress_Ln_ips :: "(match_Ln_uncompressed \<times> action) list \<Rightarrow> (match_Ln_uncompressed \<times> action) list" where
