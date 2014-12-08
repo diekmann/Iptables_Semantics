@@ -197,7 +197,7 @@ lemma compress_ips_dst_Some_matching: "compress_ips dst = Some X \<Longrightarro
   apply(simp_all add: NegPos_map_simps)
   done
 
-fun compress_Ln_ips :: "(iptrule_match_Ln_uncompressed \<times> action) list \<Rightarrow> (iptrule_match_Ln_uncompressed \<times> action) list" where
+fun compress_Ln_ips :: "(match_Ln_uncompressed \<times> action) list \<Rightarrow> (match_Ln_uncompressed \<times> action) list" where
   "compress_Ln_ips [] = []" |
   "compress_Ln_ips (((UncompressedFormattedMatch src dst proto extra), a)#rs) =
     (case (compress_ips src, compress_ips dst) of
@@ -258,7 +258,7 @@ apply(simp_all)
 done
 
 (**TODO: compress protocols**)
-fun does_I_has_compressed_rules :: "(iptrule_match_Ln_uncompressed \<times> action) list \<Rightarrow> (iptrule_match_Ln_uncompressed \<times> action) list" where
+fun does_I_has_compressed_rules :: "(match_Ln_uncompressed \<times> action) list \<Rightarrow> (match_Ln_uncompressed \<times> action) list" where
   "does_I_has_compressed_rules [] = []" |
   "does_I_has_compressed_rules (((UncompressedFormattedMatch [] [dst] proto []), a)#rs) =
     does_I_has_compressed_rules rs" |
@@ -271,7 +271,7 @@ fun does_I_has_compressed_rules :: "(iptrule_match_Ln_uncompressed \<times> acti
   "does_I_has_compressed_rules (r#rs) = r # does_I_has_compressed_rules rs"
 
 
-fun does_I_has_compressed_prots :: "(iptrule_match_Ln_uncompressed \<times> action) list \<Rightarrow> (iptrule_match_Ln_uncompressed \<times> action) list" where
+fun does_I_has_compressed_prots :: "(match_Ln_uncompressed \<times> action) list \<Rightarrow> (match_Ln_uncompressed \<times> action) list" where
   "does_I_has_compressed_prots [] = []" |
   "does_I_has_compressed_prots (((UncompressedFormattedMatch src dst [] []), a)#rs) =
     does_I_has_compressed_prots rs"|

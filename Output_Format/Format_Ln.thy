@@ -22,24 +22,24 @@ ACCEPT     icmp --  0.0.0.0/0            0.0.0.0/0            icmptype 3
 
 
 (*this is the thing we have at the moment. Todo: compress the first four lists to one entry*)
-datatype iptrule_match_Ln_uncompressed = UncompressedFormattedMatch 
+datatype match_Ln_uncompressed = UncompressedFormattedMatch 
   (*Src*) "ipt_ipv4range negation_type list"
   (*Dst*) "ipt_ipv4range negation_type list"
   (*Prot*) "ipt_protocol negation_type list"
   (*Extra*) "string negation_type list"
 
 
-fun UncompressedFormattedMatch_to_match_expr :: "iptrule_match_Ln_uncompressed \<Rightarrow> iptrule_match match_expr" where
+fun UncompressedFormattedMatch_to_match_expr :: "match_Ln_uncompressed \<Rightarrow> iptrule_match match_expr" where
   "UncompressedFormattedMatch_to_match_expr (UncompressedFormattedMatch src dst proto extra) = 
     MatchAnd (alist_and (NegPos_map Src src)) (MatchAnd (alist_and (NegPos_map Dst dst)) (MatchAnd (alist_and (NegPos_map Prot proto)) (alist_and (NegPos_map Extra extra))))"
 
 
-fun iptrule_match_Ln_uncompressed_append :: "iptrule_match_Ln_uncompressed \<Rightarrow> iptrule_match_Ln_uncompressed \<Rightarrow> iptrule_match_Ln_uncompressed" where
-  "iptrule_match_Ln_uncompressed_append (UncompressedFormattedMatch src1 dst1 proto1 extra1) (UncompressedFormattedMatch src2 dst2 proto2 extra2) = 
+fun match_Ln_uncompressed_append :: "match_Ln_uncompressed \<Rightarrow> match_Ln_uncompressed \<Rightarrow> match_Ln_uncompressed" where
+  "match_Ln_uncompressed_append (UncompressedFormattedMatch src1 dst1 proto1 extra1) (UncompressedFormattedMatch src2 dst2 proto2 extra2) = 
         UncompressedFormattedMatch (src1@src2) (dst1@dst2) (proto1@proto2) (extra1@extra2)"
 
 text{* assumes: @{const "normalized_match"}*}
-fun iptrule_match_collect :: "iptrule_match match_expr \<Rightarrow> iptrule_match_Ln_uncompressed \<Rightarrow> iptrule_match_Ln_uncompressed" where
+fun iptrule_match_collect :: "iptrule_match match_expr \<Rightarrow> match_Ln_uncompressed \<Rightarrow> match_Ln_uncompressed" where
   "iptrule_match_collect MatchAny accu = accu" |
   "iptrule_match_collect (Match (Src ip)) (UncompressedFormattedMatch src dst proto extra) = UncompressedFormattedMatch ((Pos ip)#src) dst proto extra" |
   "iptrule_match_collect (Match (Dst ip)) (UncompressedFormattedMatch src dst proto extra) = UncompressedFormattedMatch src ((Pos ip)#dst) proto extra" |
@@ -50,8 +50,8 @@ fun iptrule_match_collect :: "iptrule_match match_expr \<Rightarrow> iptrule_mat
   "iptrule_match_collect (MatchNot (Match (Prot p))) (UncompressedFormattedMatch src dst proto extra) = UncompressedFormattedMatch src dst ((Neg p)#proto) extra"  |
   "iptrule_match_collect (MatchNot (Match (Extra e))) (UncompressedFormattedMatch src dst proto extra) = UncompressedFormattedMatch src dst proto ((Neg e)#extra)" |
   "iptrule_match_collect (MatchAnd m1 m2) fmt =  
-     iptrule_match_Ln_uncompressed_append (iptrule_match_collect m1 fmt) 
-      (iptrule_match_Ln_uncompressed_append (iptrule_match_collect m2 fmt) fmt)" 
+     match_Ln_uncompressed_append (iptrule_match_collect m1 fmt) 
+      (match_Ln_uncompressed_append (iptrule_match_collect m2 fmt) fmt)" 
 
 
 text{*
@@ -75,7 +75,7 @@ done
 value(code) "iptrule_match_collect (MatchAnd (Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8))) (Match (Prot ipt_protocol.ProtTCP))) (UncompressedFormattedMatch [] [] [] [])"
 
 
-lemma matches_iptrule_match_Ln_uncompressed_append: "matches \<gamma> (UncompressedFormattedMatch_to_match_expr (iptrule_match_Ln_uncompressed_append fmt1 fmt2)) a p \<longleftrightarrow>
+lemma matches_match_Ln_uncompressed_append: "matches \<gamma> (UncompressedFormattedMatch_to_match_expr (match_Ln_uncompressed_append fmt1 fmt2)) a p \<longleftrightarrow>
        matches \<gamma> (MatchAnd (UncompressedFormattedMatch_to_match_expr fmt1) (UncompressedFormattedMatch_to_match_expr fmt2)) a p"
 apply(case_tac fmt1)
 apply(case_tac fmt2)
@@ -103,14 +103,14 @@ using assms apply (induction m accu arbitrary: rule: iptrule_match_collect.induc
   apply (simp add: eval_ternary_simps ip_in_ipv4range_set_from_bitmask_UNIV bunch_of_lemmata_about_matches)
   apply (simp add: eval_ternary_simps ip_in_ipv4range_set_from_bitmask_UNIV bunch_of_lemmata_about_matches)
   apply (simp add: eval_ternary_simps ip_in_ipv4range_set_from_bitmask_UNIV bunch_of_lemmata_about_matches)
-  apply(simp add: matches_iptrule_match_Ln_uncompressed_append bunch_of_lemmata_about_matches)
+  apply(simp add: matches_match_Ln_uncompressed_append bunch_of_lemmata_about_matches)
   (*the rest are the undefined cases*)
   apply(simp_all) --{*@{text "\<not> normalized_match"}*}
 done
 
 
 
-definition format_Ln_match :: "iptrule_match match_expr \<Rightarrow> iptrule_match_Ln_uncompressed" where
+definition format_Ln_match :: "iptrule_match match_expr \<Rightarrow> match_Ln_uncompressed" where
   "format_Ln_match m \<equiv> iptrule_match_collect m (UncompressedFormattedMatch [] [] [] [])"
 
 corollary format_Ln_match_correct: "normalized_match m \<Longrightarrow> matches \<gamma> (UncompressedFormattedMatch_to_match_expr (format_Ln_match m)) a p \<longleftrightarrow> matches \<gamma> m a p"
@@ -196,10 +196,10 @@ hide_fact helper
 lemma approximating_bigstep_fun_seq_wf_fst: "wf_ruleset \<gamma> p [Rule m a] \<Longrightarrow> approximating_bigstep_fun \<gamma> p (Rule m a # rs\<^sub>2) Undecided = approximating_bigstep_fun \<gamma> p rs\<^sub>2 (approximating_bigstep_fun \<gamma> p [Rule m a] Undecided)"
 using approximating_bigstep_fun_seq_wf[where rs\<^sub>1="[Rule m a]"] by (metis append_Cons append_Nil)
 
-definition format_Ln_rules_uncompressed :: "iptrule_match rule list \<Rightarrow> (iptrule_match_Ln_uncompressed \<times> action) list" where
+definition format_Ln_rules_uncompressed :: "iptrule_match rule list \<Rightarrow> (match_Ln_uncompressed \<times> action) list" where
   "format_Ln_rules_uncompressed rs = [((format_Ln_match (get_match r)), (get_action r)). r \<leftarrow> (normalize_rules rs)]"
 
-definition Ln_rules_to_rule :: "(iptrule_match_Ln_uncompressed \<times> action) list \<Rightarrow> iptrule_match rule list" where
+definition Ln_rules_to_rule :: "(match_Ln_uncompressed \<times> action) list \<Rightarrow> iptrule_match rule list" where
   "Ln_rules_to_rule rs = [Rule (UncompressedFormattedMatch_to_match_expr (fst r)) (snd r). r \<leftarrow> rs]"
 
 
@@ -253,7 +253,7 @@ lemma format_Ln_rules_uncompressed_correct: "good_ruleset rs \<Longrightarrow>
 
 
 
-fun Ln_uncompressed_matching :: "(iptrule_match, 'packet) match_tac \<Rightarrow> action \<Rightarrow> 'packet \<Rightarrow> iptrule_match_Ln_uncompressed \<Rightarrow> bool" where
+fun Ln_uncompressed_matching :: "(iptrule_match, 'packet) match_tac \<Rightarrow> action \<Rightarrow> 'packet \<Rightarrow> match_Ln_uncompressed \<Rightarrow> bool" where
   "Ln_uncompressed_matching \<gamma> a p (UncompressedFormattedMatch src dst proto extra) \<longleftrightarrow> 
     (nt_match_list \<gamma> a p (NegPos_map Src src)) \<and>
     (nt_match_list \<gamma> a p (NegPos_map Dst dst)) \<and>
