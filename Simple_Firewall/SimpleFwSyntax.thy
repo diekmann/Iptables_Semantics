@@ -38,13 +38,18 @@ section{*Simple Firewall Semantics*}
     "If the interface name ends in a "+", then any interface which begins with this name will match."*)
   value "''+''"
   value "Char Nibble2 NibbleB"
+  fun string_is_digits :: "string \<Rightarrow> bool" where
+    "string_is_digits [] \<longleftrightarrow> True" |
+    "string_is_digits (s#ss) \<longleftrightarrow> (s = CHR ''0'' \<or> s = CHR ''1'' \<or> s = CHR ''2'' \<or> s = CHR ''3'' \<or> s = CHR ''4'' \<or> 
+                                s = CHR ''5'' \<or> s = CHR ''6'' \<or> s = CHR ''7'' \<or> s = CHR ''8'' \<or> s = CHR ''9'') \<and> string_is_digits ss"
+
   fun cmp_iface_name :: "string \<Rightarrow> string \<Rightarrow> bool" where
     "cmp_iface_name [] [] \<longleftrightarrow> True" |
     "cmp_iface_name [i1] [] \<longleftrightarrow> (i1 = CHR ''+'')" | (*TODO fixme*)
-    "cmp_iface_name [i1] [i2] \<longleftrightarrow> (i1 = CHR ''+'' \<or> i2 = CHR ''+'' \<or> i1 = i2)" |
-    "cmp_iface_name [i1] (i2#i22#i2s) \<longleftrightarrow> (i1 = CHR ''+'')" |
     "cmp_iface_name [] [i2] \<longleftrightarrow> (i2 = CHR ''+'')" |
-    "cmp_iface_name (i1#i11#i1s) [i2] \<longleftrightarrow> (i2 = CHR ''+'')" |
+    "cmp_iface_name [i1] [i2] \<longleftrightarrow> (i1 = CHR ''+'' \<and> string_is_digits [i2] \<or> i2 = CHR ''+'' \<and> string_is_digits [i1] \<or> i1 = i2)" |
+    "cmp_iface_name [i1] i2s \<longleftrightarrow> (i1 = CHR ''+'' \<and> string_is_digits i2s)" |
+    "cmp_iface_name i1s [i2] \<longleftrightarrow> (i2 = CHR ''+'' \<and> string_is_digits i1s)" |
     "cmp_iface_name (i1#i1s) (i2#i2s) \<longleftrightarrow> (if i1 = i2 then cmp_iface_name i1s i2s else False)" |
     "cmp_iface_name _ _ \<longleftrightarrow> False"
 
@@ -82,9 +87,10 @@ section{*Simple Firewall Semantics*}
     "simple_matches m p \<longleftrightarrow>
       (simple_match_iface (iiface m) (p_iiface p))"
 
-  fun simple_fw :: "simple_rule list \<Rightarrow> state" where
-    "simple_fw [] = Undecided" |
-    "simple_fw (r#rs) = Undecided"
+  fun simple_fw :: "simple_rule list \<Rightarrow> simple_packet \<Rightarrow> state" where
+    "simple_fw [] _ = Undecided" |
+    "simple_fw ((SimpleRule m Accept)#rs) p = (if simple_matches m p then Decision FinalAllow else simple_fw rs p)" |
+    "simple_fw ((SimpleRule m Drop)#rs) p = (if simple_matches m p then Decision FinalDeny else simple_fw rs p)"
 
 
 end
