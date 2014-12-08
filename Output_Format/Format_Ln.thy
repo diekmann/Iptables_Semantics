@@ -34,9 +34,19 @@ fun UncompressedFormattedMatch_to_match_expr :: "match_Ln_uncompressed \<Rightar
     MatchAnd (alist_and (NegPos_map Src src)) (MatchAnd (alist_and (NegPos_map Dst dst)) (MatchAnd (alist_and (NegPos_map Prot proto)) (alist_and (NegPos_map Extra extra))))"
 
 
-fun match_Ln_uncompressed_append :: "match_Ln_uncompressed \<Rightarrow> match_Ln_uncompressed \<Rightarrow> match_Ln_uncompressed" where
-  "match_Ln_uncompressed_append (UncompressedFormattedMatch src1 dst1 proto1 extra1) (UncompressedFormattedMatch src2 dst2 proto2 extra2) = 
-        UncompressedFormattedMatch (src1@src2) (dst1@dst2) (proto1@proto2) (extra1@extra2)"
+text{*append*}
+  fun match_Ln_uncompressed_append :: "match_Ln_uncompressed \<Rightarrow> match_Ln_uncompressed \<Rightarrow> match_Ln_uncompressed" where
+    "match_Ln_uncompressed_append (UncompressedFormattedMatch src1 dst1 proto1 extra1) (UncompressedFormattedMatch src2 dst2 proto2 extra2) = 
+          UncompressedFormattedMatch (src1@src2) (dst1@dst2) (proto1@proto2) (extra1@extra2)"
+  
+  lemma matches_match_Ln_uncompressed_append: "matches \<gamma> (UncompressedFormattedMatch_to_match_expr (match_Ln_uncompressed_append fmt1 fmt2)) a p \<longleftrightarrow>
+         matches \<gamma> (MatchAnd (UncompressedFormattedMatch_to_match_expr fmt1) (UncompressedFormattedMatch_to_match_expr fmt2)) a p"
+  apply(case_tac fmt1)
+  apply(case_tac fmt2)
+  apply(clarify)
+  apply(simp)
+  apply(simp add: alist_and_append NegPos_map_append bunch_of_lemmata_about_matches)
+  by fastforce
 
 text{* assumes: @{const "normalized_match"}*}
 fun iptrule_match_collect :: "iptrule_match match_expr \<Rightarrow> match_Ln_uncompressed \<Rightarrow> match_Ln_uncompressed" where
@@ -72,25 +82,18 @@ apply(simp add: split: split_split_asm split_split)
 done
 
 
-value(code) "iptrule_match_collect (MatchAnd (Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8))) (Match (Prot ipt_protocol.ProtTCP))) (UncompressedFormattedMatch [] [] [] [])"
+text{*Example*}
+lemma "iptrule_match_collect (MatchAnd (Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8))) (Match (Prot ProtTCP))) (UncompressedFormattedMatch [] [] [] []) =
+  UncompressedFormattedMatch [Pos (Ip4AddrNetmask (0, 0, 0, 0) 8)] [] [Pos ProtTCP] []" by eval
 
 
-lemma matches_match_Ln_uncompressed_append: "matches \<gamma> (UncompressedFormattedMatch_to_match_expr (match_Ln_uncompressed_append fmt1 fmt2)) a p \<longleftrightarrow>
-       matches \<gamma> (MatchAnd (UncompressedFormattedMatch_to_match_expr fmt1) (UncompressedFormattedMatch_to_match_expr fmt2)) a p"
-apply(case_tac fmt1)
-apply(case_tac fmt2)
-apply(clarify)
-apply(simp)
-apply(simp add: alist_and_append NegPos_map_append bunch_of_lemmata_about_matches)
-by fastforce
 
-text{*The empty matches always match*}
+text{*The empty @{const UncompressedFormattedMatch} always match*}
 lemma "matches \<gamma> (UncompressedFormattedMatch_to_match_expr (UncompressedFormattedMatch [] [] [] [])) a p"
   by(simp add: bunch_of_lemmata_about_matches)
 
-lemma UncompressedFormattedMatch_to_match_expr_correct: assumes "normalized_match m" shows
-  "matches \<gamma> (UncompressedFormattedMatch_to_match_expr accu) a p \<Longrightarrow> 
-      matches \<gamma> (UncompressedFormattedMatch_to_match_expr (iptrule_match_collect m accu)) a p \<longleftrightarrow> matches \<gamma> m a p"
+lemma UncompressedFormattedMatch_to_match_expr_correct: assumes "normalized_match m" and "matches \<gamma> (UncompressedFormattedMatch_to_match_expr accu) a p" shows
+  "matches \<gamma> (UncompressedFormattedMatch_to_match_expr (iptrule_match_collect m accu)) a p \<longleftrightarrow> matches \<gamma> m a p"
 using assms apply (induction m accu arbitrary: rule: iptrule_match_collect.induct)
   apply(case_tac [!] \<gamma>)
   apply (simp add: eval_ternary_simps ip_in_ipv4range_set_from_bitmask_UNIV bunch_of_lemmata_about_matches)
@@ -116,9 +119,8 @@ definition format_Ln_match :: "iptrule_match match_expr \<Rightarrow> match_Ln_u
 corollary format_Ln_match_correct: "normalized_match m \<Longrightarrow> matches \<gamma> (UncompressedFormattedMatch_to_match_expr (format_Ln_match m)) a p \<longleftrightarrow> matches \<gamma> m a p"
 unfolding format_Ln_match_def
 apply(rule UncompressedFormattedMatch_to_match_expr_correct)
-apply(simp_all)
-apply(simp add: bunch_of_lemmata_about_matches)
-done
+ apply(assumption)
+by(simp add: bunch_of_lemmata_about_matches)
 
 
 text{*We can also show the previous corollary by the correctness of @{const primitive_extractor}*}
@@ -170,8 +172,6 @@ apply(induction ms)
  apply(simp)
 apply(simp)
 by (metis format_Ln_match_correct)
-
-
 
 
 
