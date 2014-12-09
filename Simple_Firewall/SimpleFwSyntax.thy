@@ -3,19 +3,20 @@ imports Main "../Bitmagic/IPv4Addr" "../Bitmagic/BitrangeLists" "../Output_Forma
 begin
 
 
+  datatype primitive_protocol = TCP | UDP | ICMP
+
 section{*Simple Packet*}
   text{*Packet constants are prefixed with p_*}
-  datatype simple_packet_proto = p_TCP | p_UDP | p_ICMP | p_Other
   record simple_packet = p_iiface :: string
                          p_oiface :: string
-                         p_src_ip :: ipv4addr
-                         p_dst_ip :: ipv4addr
-                         p_prot :: simple_packet_proto
+                         p_src :: ipv4addr
+                         p_dst :: ipv4addr
+                         p_proto :: primitive_protocol
                          p_sport :: "16 word"
                          p_dport :: "16 word"
 
 section{*Simple Firewall Syntax (IPv4)*}
-  datatype protocol = TCP | UDP | ICMP | ProtoAny
+  datatype protocol = ProtoAny | Proto "primitive_protocol negation_type"
 
   datatype iface = Iface "string negation_type" | IfaceAny
   
@@ -27,29 +28,21 @@ section{*Simple Firewall Syntax (IPv4)*}
     oiface :: "iface" --"out-interface"
     src :: "(ipv4addr \<times> nat) negation_type" --"source"
     dst :: "(ipv4addr \<times> nat) negation_type" --"destination"
-    prot :: "protocol negation_type"
+    proto :: "protocol"
     sports :: "(16 word \<times> 16 word) negation_type" --"source-port first:last"
     dports :: "(16 word \<times> 16 word) negation_type" --"destination-port first:last"
 
   datatype simple_rule = SimpleRule simple_match simple_action
 
 section{*Simple Firewall Semantics*}
-  (*TODO: iface wildcards:
-    "If the interface name ends in a "+", then any interface which begins with this name will match."*)
-  value "''+''"
-  value "Char Nibble2 NibbleB"
-  fun string_is_digits :: "string \<Rightarrow> bool" where
-    "string_is_digits [] \<longleftrightarrow> True" |
-    "string_is_digits (s#ss) \<longleftrightarrow> (s = CHR ''0'' \<or> s = CHR ''1'' \<or> s = CHR ''2'' \<or> s = CHR ''3'' \<or> s = CHR ''4'' \<or> 
-                                s = CHR ''5'' \<or> s = CHR ''6'' \<or> s = CHR ''7'' \<or> s = CHR ''8'' \<or> s = CHR ''9'') \<and> string_is_digits ss"
-
+  text{*If the interface name ends in a "+", then any interface which begins with this name will match. (man iptables)*}
   fun cmp_iface_name :: "string \<Rightarrow> string \<Rightarrow> bool" where
     "cmp_iface_name [] [] \<longleftrightarrow> True" |
-    "cmp_iface_name [i1] [] \<longleftrightarrow> (i1 = CHR ''+'')" | (*TODO fixme*)
+    "cmp_iface_name [i1] [] \<longleftrightarrow> (i1 = CHR ''+'')" |
     "cmp_iface_name [] [i2] \<longleftrightarrow> (i2 = CHR ''+'')" |
-    "cmp_iface_name [i1] [i2] \<longleftrightarrow> (i1 = CHR ''+'' \<and> string_is_digits [i2] \<or> i2 = CHR ''+'' \<and> string_is_digits [i1] \<or> i1 = i2)" |
-    "cmp_iface_name [i1] i2s \<longleftrightarrow> (i1 = CHR ''+'' \<and> string_is_digits i2s)" |
-    "cmp_iface_name i1s [i2] \<longleftrightarrow> (i2 = CHR ''+'' \<and> string_is_digits i1s)" |
+    "cmp_iface_name [i1] [i2] \<longleftrightarrow> (i1 = CHR ''+'' \<or> i2 = CHR ''+'' \<or> i1 = i2)" |
+    "cmp_iface_name [i1] i2s \<longleftrightarrow> (i1 = CHR ''+'')" |
+    "cmp_iface_name i1s [i2] \<longleftrightarrow> (i2 = CHR ''+'')" |
     "cmp_iface_name (i1#i1s) (i2#i2s) \<longleftrightarrow> (if i1 = i2 then cmp_iface_name i1s i2s else False)" |
     "cmp_iface_name _ _ \<longleftrightarrow> False"
 
@@ -61,11 +54,9 @@ section{*Simple Firewall Semantics*}
    } thus ?thesis by simp 
   qed
   lemma cmp_iface_name_sym: "cmp_iface_name i1 i2 \<Longrightarrow> cmp_iface_name i2 i1"
-    apply(induction i1 i2 rule: cmp_iface_name.induct)
-    apply(auto split: split_if_asm)
-    done
+    by(induction i1 i2 rule: cmp_iface_name.induct)(auto split: split_if_asm)
 
-  lemma xxx: "cmp_iface_name (i2 # i2s) [] \<Longrightarrow> i2 = CHR ''+''"
+  lemma "cmp_iface_name (i2 # i2s) [] \<Longrightarrow> i2 = CHR ''+''"
   proof -
   assume a: "cmp_iface_name (i2 # i2s) []"
   { fix x1 x2
@@ -73,19 +64,53 @@ section{*Simple Firewall Semantics*}
     by(induction x1 x2 rule: cmp_iface_name.induct) (auto)
   } thus ?thesis using a by simp
   qed
-    
-  lemma cmp_iface_name_trans: "cmp_iface_name i1 i2 \<Longrightarrow> cmp_iface_name i2 i3 \<Longrightarrow> cmp_iface_name i1 i3"
-  nitpick
-  oops
-
+  
+  text{*Examples*}
+    lemma cmp_iface_name_not_trans: "\<lbrakk>i1 = ''eth0''; i2 = ''eth+''; i3 = ''eth1''\<rbrakk> \<Longrightarrow> cmp_iface_name i1 i2 \<Longrightarrow> cmp_iface_name i2 i3 \<Longrightarrow> \<not> cmp_iface_name i1 i3"
+      by(simp)
+    lemma "cmp_iface_name ''+'' i2"
+      by(induction "''+''" i2 rule: cmp_iface_name.induct) (simp_all)
+    lemma "cmp_iface_name ''eth+'' ''eth3''" by eval
+    lemma "cmp_iface_name ''eth+'' ''e+''" by eval
+    lemma "cmp_iface_name ''eth+'' ''eth_tun_foobar''" by eval
+    lemma "cmp_iface_name ''eth+'' ''eth_tun+++''" by eval
+    lemma "\<not> cmp_iface_name ''eth+'' ''wlan+''" by eval
+    lemma "cmp_iface_name ''eth1'' ''eth1''" by eval
+    lemma "\<not> cmp_iface_name ''eth1'' ''eth2''" by eval
+    text{*If the interfaces don't end in a wildcard, then @{const cmp_iface_name} is just simple equality*}
+    lemma "\<lbrakk> hd (rev i1) \<noteq> CHR ''+''; hd (rev i2) \<noteq> CHR ''+'' \<rbrakk> \<Longrightarrow> cmp_iface_name i1 i2 \<longleftrightarrow> i1 = i2"
+      apply(induction i1 i2 rule: cmp_iface_name.induct)
+      apply(simp_all)
+      apply (metis append_Nil hd_append2 list.sel(1))+
+      done
+      
   fun simple_match_iface :: "iface \<Rightarrow> string \<Rightarrow> bool" where
     "simple_match_iface IfaceAny p_iface \<longleftrightarrow> True" |
-    "simple_match_iface (Iface (Pos i)) p_iface \<longleftrightarrow> p_iface = i" |
-    "simple_match_iface (Iface (Neg i)) p_iface \<longleftrightarrow> p_iface \<noteq> i"
+    "simple_match_iface (Iface (Pos i)) p_iface \<longleftrightarrow> cmp_iface_name p_iface i" |
+    "simple_match_iface (Iface (Neg i)) p_iface \<longleftrightarrow> \<not> cmp_iface_name p_iface i"
+
+  fun simple_match_ip :: "(ipv4addr \<times> nat) negation_type \<Rightarrow> ipv4addr \<Rightarrow> bool" where
+    "simple_match_ip (Pos (ip, n)) p_ip \<longleftrightarrow> p_ip \<in> ipv4range_set_from_bitmask ip n" |
+    "simple_match_ip (Neg (ip, n)) p_ip \<longleftrightarrow> p_ip \<notin> ipv4range_set_from_bitmask ip n"
+
+  fun simple_match_proto :: "protocol \<Rightarrow> primitive_protocol \<Rightarrow> bool" where
+    "simple_match_proto ProtoAny _ \<longleftrightarrow> True" |
+    "simple_match_proto (Proto (Pos p)) p_p \<longleftrightarrow> p_p = p" |
+    "simple_match_proto (Proto (Neg p)) p_p \<longleftrightarrow> p_p \<noteq> p"
+
+  fun simple_match_port :: "(16 word \<times> 16 word) negation_type \<Rightarrow> 16 word \<Rightarrow> bool" where
+    "simple_match_port (Pos (s,e)) p_p \<longleftrightarrow> p_p \<in> {s..e}" |
+    "simple_match_port (Neg (s,e)) p_p \<longleftrightarrow> p_p \<notin> {s..e}"
 
   fun simple_matches :: "simple_match \<Rightarrow> simple_packet \<Rightarrow> bool" where
     "simple_matches m p \<longleftrightarrow>
-      (simple_match_iface (iiface m) (p_iiface p))"
+      (simple_match_iface (iiface m) (p_iiface p)) \<and>
+      (simple_match_iface (oiface m) (p_oiface p)) \<and>
+      (simple_match_ip (src m) (p_src p)) \<and>
+      (simple_match_ip (dst m) (p_dst p)) \<and>
+      (simple_match_proto (proto m) (p_proto p)) \<and>
+      (simple_match_port (sports m) (p_sport p)) \<and>
+      (simple_match_port (dports m) (p_dport p))"
 
   fun simple_fw :: "simple_rule list \<Rightarrow> simple_packet \<Rightarrow> state" where
     "simple_fw [] _ = Undecided" |
