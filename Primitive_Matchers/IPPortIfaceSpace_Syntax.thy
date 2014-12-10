@@ -15,7 +15,7 @@ text{*Primitive Match Conditions which only support interfaces, IPv4 addresses, 
 type_synonym ipt_ports = "(16 word \<times> 16 word) list"
 
 
-datatype ipport_rule_match = Src ipt_ipv4range | Dst ipt_ipv4range | IIface iface | OIface iface | Prot protocol | Src_Ports ipt_ports | Dst_Ports ipt_ports | Extra string
+datatype ipportiface_rule_match = Src ipt_ipv4range | Dst ipt_ipv4range | IIface iface | OIface iface | Prot protocol | Src_Ports ipt_ports | Dst_Ports ipt_ports | Extra string
 
 
 
