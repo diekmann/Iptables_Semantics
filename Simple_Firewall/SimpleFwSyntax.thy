@@ -3,17 +3,9 @@ imports Main "../Bitmagic/IPv4Addr" "../Bitmagic/BitrangeLists" "../Output_Forma
   "../Firewall_Common_Decision_State"
   "../Primitive_Matchers/Iface"
   "../Primitive_Matchers/Protocol"
+  "../Primitive_Matchers/Simple_Packet"
 begin
 
-section{*Simple Packet*}
-  text{*Packet constants are prefixed with p_*}
-  record simple_packet = p_iiface :: string
-                         p_oiface :: string
-                         p_src :: ipv4addr
-                         p_dst :: ipv4addr
-                         p_proto :: primitive_protocol
-                         p_sport :: "16 word"
-                         p_dport :: "16 word"
 
 section{*Simple Firewall Syntax (IPv4)*}
   datatype simple_action = Accept | Drop

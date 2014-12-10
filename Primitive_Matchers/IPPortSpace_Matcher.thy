@@ -3,22 +3,19 @@ imports "../Semantics_Ternary" IPPortSpace_Syntax IPSpace_Matcher "../Bitmagic/I
 begin
 
 
-
-
 subsection{*Primitive Matchers: IP Port Space Matcher*}
 
-fun ipport_matcher :: "(ipport_rule_match, packet_with_ports) exact_match_tac" where
-  "ipport_matcher (Src ip) p = bool_to_ternary (src_ip p \<in> ipv4s_to_set ip)" |
+fun ipport_matcher :: "(ipport_rule_match, simple_packet) exact_match_tac" where
+  "ipport_matcher (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))" |
+  "ipport_matcher (OIface i) p = bool_to_ternary (match_iface i (p_iiface p))" |
 
-  "ipport_matcher (Dst ip) p = bool_to_ternary (dst_ip p \<in> ipv4s_to_set ip)" |
+  "ipport_matcher (Src ip) p = bool_to_ternary (p_src p \<in> ipv4s_to_set ip)" |
+  "ipport_matcher (Dst ip) p = bool_to_ternary (p_dst p \<in> ipv4s_to_set ip)" |
 
-  "ipport_matcher (Prot ProtAll) _ = TernaryTrue" |
-  "ipport_matcher (Prot ipt_protocol.ProtTCP) p = bool_to_ternary (prot p = protPacket.ProtTCP)" |
-  "ipport_matcher (Prot ipt_protocol.ProtUDP) p = bool_to_ternary (prot p = protPacket.ProtUDP)" |
+  "ipport_matcher (Prot proto) p = bool_to_ternary (match_proto proto (p_proto p))" |
 
-  "ipport_matcher (Src_Ports ps) p = bool_to_ternary (src_port p \<in> ports_to_set ps)" |
-
-  "ipport_matcher (Dst_Ports ps) p = bool_to_ternary (dst_port p \<in> ports_to_set ps)" |
+  "ipport_matcher (Src_Ports ps) p = bool_to_ternary (p_sport p \<in> ports_to_set ps)" |
+  "ipport_matcher (Dst_Ports ps) p = bool_to_ternary (p_dport p \<in> ports_to_set ps)" |
 
   "ipport_matcher (Extra _) p = TernaryUnknown"
 
@@ -41,25 +38,24 @@ apply (metis eval_ternary_Not.cases ipport_matcher_SrcDst_defined(1) ternaryvalu
 apply (metis eval_ternary_Not.cases ipport_matcher_SrcDst_defined(2) ternaryvalue.distinct(1))
 done
 lemma match_simplematcher_SrcDst:
-  "matches (ipport_matcher, \<alpha>) (Match (Src X)) a p \<longleftrightarrow> src_ip  p \<in> ipv4s_to_set X"
-  "matches (ipport_matcher, \<alpha>) (Match (Dst X)) a p \<longleftrightarrow> dst_ip  p \<in> ipv4s_to_set X"
+  "matches (ipport_matcher, \<alpha>) (Match (Src X)) a p \<longleftrightarrow> p_src  p \<in> ipv4s_to_set X"
+  "matches (ipport_matcher, \<alpha>) (Match (Dst X)) a p \<longleftrightarrow> p_dst  p \<in> ipv4s_to_set X"
    apply(simp_all add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
    apply (metis bool_to_ternary.elims bool_to_ternary_Unknown ternaryvalue.distinct(1))+
    done
 lemma match_simplematcher_SrcDst_not:
-  "matches (ipport_matcher, \<alpha>) (MatchNot (Match (Src X))) a p \<longleftrightarrow> src_ip  p \<notin> ipv4s_to_set X"
-  "matches (ipport_matcher, \<alpha>) (MatchNot (Match (Dst X))) a p \<longleftrightarrow> dst_ip  p \<notin> ipv4s_to_set X"
+  "matches (ipport_matcher, \<alpha>) (MatchNot (Match (Src X))) a p \<longleftrightarrow> p_src  p \<notin> ipv4s_to_set X"
+  "matches (ipport_matcher, \<alpha>) (MatchNot (Match (Dst X))) a p \<longleftrightarrow> p_dst  p \<notin> ipv4s_to_set X"
    apply(simp_all add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
    apply(case_tac [!] X)
    apply(simp_all add: bool_to_ternary_simps)
    done
 lemma ipport_matcher_SrcDst_Inter:
-  "(\<forall>m\<in>set X. matches (ipport_matcher, \<alpha>) (Match (Src m)) a p) \<longleftrightarrow> src_ip p \<in> (\<Inter>x\<in>set X. ipv4s_to_set x)"
-  "(\<forall>m\<in>set X. matches (ipport_matcher, \<alpha>) (Match (Dst m)) a p) \<longleftrightarrow> dst_ip p \<in> (\<Inter>x\<in>set X. ipv4s_to_set x)"
+  "(\<forall>m\<in>set X. matches (ipport_matcher, \<alpha>) (Match (Src m)) a p) \<longleftrightarrow> p_src p \<in> (\<Inter>x\<in>set X. ipv4s_to_set x)"
+  "(\<forall>m\<in>set X. matches (ipport_matcher, \<alpha>) (Match (Dst m)) a p) \<longleftrightarrow> p_dst p \<in> (\<Inter>x\<in>set X. ipv4s_to_set x)"
   apply(simp_all)
   apply(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_Unknown bool_to_ternary_simps split: ternaryvalue.split)
  done
-
 
 
 
