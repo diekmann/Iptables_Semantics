@@ -1,4 +1,4 @@
-theory IPPortSpace_Syntax
+theory IPPortIfaceSpace_Syntax
 imports Main String "../Bitmagic/IPv4Addr" "../Bitmagic/BitrangeLists" IPSpace_Syntax Protocol Iface Simple_Packet
 begin
 
@@ -6,16 +6,15 @@ begin
 hide_type(open) ipt_protocol
 hide_const(open) ProtAll ProtTCP ProtUDP
 
-section{*Primitive Matchers: IP Space and Layer 4 Ports Matcher*}
+section{*Primitive Matchers: Interfaces, IP Space, Layer 4 Ports Matcher*}
 
-text{*Primitive Match Conditions which only support IPv4 addresses,  layer 4 protocols, and layer 4 ports.
+text{*Primitive Match Conditions which only support interfaces, IPv4 addresses,  layer 4 protocols, and layer 4 ports.
 *}
 
 (*list of (start, end) port ranges*)
 type_synonym ipt_ports = "(16 word \<times> 16 word) list"
 
 
-text{*I lied. It will not only be an Ip+Port matcher but an Ip+Port+Iface matcher*}
 datatype ipport_rule_match = Src ipt_ipv4range | Dst ipt_ipv4range | IIface iface | OIface iface | Prot protocol | Src_Ports ipt_ports | Dst_Ports ipt_ports | Extra string
 
 

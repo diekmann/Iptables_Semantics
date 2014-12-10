@@ -1,9 +1,9 @@
-theory IPPortSpace_Matcher
-imports "../Semantics_Ternary" IPPortSpace_Syntax IPSpace_Matcher "../Bitmagic/IPv4Addr" "../Unknown_Match_Tacs"
+theory IPPortIfaceSpace_Matcher
+imports "../Semantics_Ternary" IPPortIfaceSpace_Syntax IPSpace_Matcher "../Bitmagic/IPv4Addr" "../Unknown_Match_Tacs"
 begin
 
 
-subsection{*Primitive Matchers: IP Port Space Matcher*}
+subsection{*Primitive Matchers: IP Port Iface Matcher*}
 
 fun ipport_matcher :: "(ipport_rule_match, simple_packet) exact_match_tac" where
   "ipport_matcher (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))" |
