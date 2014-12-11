@@ -52,6 +52,7 @@ section {*Modelling IPv4 Adresses*}
   lemma ipv4addr_of_nat_nat_of_ipv4addr: "ipv4addr_of_nat (nat_of_ipv4addr addr) = addr"
     by(simp add: ipv4addr_of_nat_def nat_of_ipv4addr_def)
 
+
   text{*Equality of IPv4 adresses*}
   lemma "\<lbrakk> n \<le> nat_of_ipv4addr max_ipv4_addr \<rbrakk> \<Longrightarrow> nat_of_ipv4addr (ipv4addr_of_nat n) = n"
     apply(simp add: nat_of_ipv4addr_def ipv4addr_of_nat_def)
@@ -204,6 +205,35 @@ subsection{*Representing IPv4 Adresses*}
      a = e \<and> b = f \<and> c = g \<and> d = h"
      by (metis Pair_inject dotteddecimal_of_ipv4addr_ipv4addr_of_dotteddecimal)
   
+
+(*TODO: move*)
+lemma help1: "word_of_int (uint a mod 256) = a mod (256::ipv4addr)"
+by(simp add: word_mod_def)
+lemma help2: "nat_of_ipv4addr ((ip::ipv4addr) AND mask 8) = (nat_of_ipv4addr ip) mod 256"
+  apply(simp add: nat_of_ipv4addr_def)
+  apply(simp add: and_mask_mod_2p)
+  apply(simp add: help1)
+  apply(simp add: unat_mod)
+  done
+lemma help3: "(nat_of_ipv4addr ip mod 256) = (nat_of_ipv4addr (ip mod 256))"
+  by(simp add: nat_of_ipv4addr_def unat_mod)
+
+lemma ip_shiftr_div_consts: "(ip::ipv4addr) >> 24 = ip div (2^24)"
+      "(ip::ipv4addr) >> 16 = ip div (2^16)"
+      "(ip::ipv4addr) >> 8 = ip div (2^8)"
+by(subst Word.word_uint_eq_iff, simp add: shiftr_div_2n uint_div)+
+
+lemma "(ipv4addr_of_dotteddecimal (dotteddecimal_of_ipv4addr ip)) = ip"
+apply(simp add: ipv4addr_of_dotteddecimal_bit dotteddecimal_of_ipv4addr.simps)
+apply(simp add: IPv4Addr.ipv4addr_and_255)
+apply(simp add: help2)
+apply(simp add: help3)
+apply(simp add: ip_shiftr_div_consts)
+apply(simp add: ipv4addr_of_nat_nat_of_ipv4addr)
+apply(simp add: Word.shiftl_t2n)
+oops
+
+
 
   text{*previous and next ip addresses, without wrap around*}
     definition ip_next :: "ipv4addr \<Rightarrow> ipv4addr" where
