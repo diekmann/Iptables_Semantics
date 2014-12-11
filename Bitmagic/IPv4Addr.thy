@@ -204,35 +204,6 @@ subsection{*Representing IPv4 Adresses*}
   lemma ipv4addr_of_dotteddecimal_eqE: "\<lbrakk> ipv4addr_of_dotteddecimal (a,b,c,d) = ipv4addr_of_dotteddecimal (e,f,g,h); a < 256; b < 256; c < 256; d < 256; e < 256; f < 256; g < 256; h < 256 \<rbrakk> \<Longrightarrow>
      a = e \<and> b = f \<and> c = g \<and> d = h"
      by (metis Pair_inject dotteddecimal_of_ipv4addr_ipv4addr_of_dotteddecimal)
-  
-
-(*TODO: move*)
-lemma help1: "word_of_int (uint a mod 256) = a mod (256::ipv4addr)"
-by(simp add: word_mod_def)
-lemma help2: "nat_of_ipv4addr ((ip::ipv4addr) AND mask 8) = (nat_of_ipv4addr ip) mod 256"
-  apply(simp add: nat_of_ipv4addr_def)
-  apply(simp add: and_mask_mod_2p)
-  apply(simp add: help1)
-  apply(simp add: unat_mod)
-  done
-lemma help3: "(nat_of_ipv4addr ip mod 256) = (nat_of_ipv4addr (ip mod 256))"
-  by(simp add: nat_of_ipv4addr_def unat_mod)
-
-lemma ip_shiftr_div_consts: "(ip::ipv4addr) >> 24 = ip div (2^24)"
-      "(ip::ipv4addr) >> 16 = ip div (2^16)"
-      "(ip::ipv4addr) >> 8 = ip div (2^8)"
-by(subst Word.word_uint_eq_iff, simp add: shiftr_div_2n uint_div)+
-
-lemma "(ipv4addr_of_dotteddecimal (dotteddecimal_of_ipv4addr ip)) = ip"
-apply(simp add: ipv4addr_of_dotteddecimal_bit dotteddecimal_of_ipv4addr.simps)
-apply(simp add: IPv4Addr.ipv4addr_and_255)
-apply(simp add: help2)
-apply(simp add: help3)
-apply(simp add: ip_shiftr_div_consts)
-apply(simp add: ipv4addr_of_nat_nat_of_ipv4addr)
-apply(simp add: Word.shiftl_t2n)
-oops
-
 
 
   text{*previous and next ip addresses, without wrap around*}
