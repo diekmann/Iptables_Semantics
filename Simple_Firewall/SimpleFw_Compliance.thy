@@ -86,7 +86,7 @@ apply(case_tac [!] dps)
 apply(simp_all)
 apply(simp_all add: bunch_of_lemmata_about_matches eval_ternary_simps ternary_to_bool_bool_to_ternary)
 apply(simp_all add: ports_to_set_singleton_simple_match_port)
-apply(auto simp add: matches_case_ternaryvalue_tuple bunch_of_lemmata_about_matches bool_to_ternary_simps split: ternaryvalue.split) (\<otimes>h dear, sorry for that*)
+apply(auto simp add: matches_case_ternaryvalue_tuple bunch_of_lemmata_about_matches bool_to_ternary_simps split: ternaryvalue.split) (* oh dear, sorry for that *)
 done
 
 end
