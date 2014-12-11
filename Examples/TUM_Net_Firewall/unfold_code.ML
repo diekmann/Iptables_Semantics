@@ -19,27 +19,27 @@ structure Test : sig
     MatchAnd of 'a match_expr * 'a match_expr | MatchAny
   datatype 'a rule = Rule of 'a match_expr * action
   type 'a packet_set
-  datatype iptrule_match_Ln_uncompressed =
+  datatype match_Ln_uncompressed =
     UncompressedFormattedMatch of
       ipt_ipv4range negation_type list * ipt_ipv4range negation_type list *
         ipt_protocol negation_type list * (char list) negation_type list
   val deny_set : iptrule_match rule list -> iptrule_match packet_set list
   val compress_Ln_ips :
-    (iptrule_match_Ln_uncompressed * action) list ->
-      (iptrule_match_Ln_uncompressed * action) list
+    (match_Ln_uncompressed * action) list ->
+      (match_Ln_uncompressed * action) list
   val lower_closure : iptrule_match rule list -> iptrule_match rule list
   val map_of_string :
     (char list * iptrule_match rule list) list ->
       char list -> (iptrule_match rule list) option
   val upper_closure : iptrule_match rule list -> iptrule_match rule list
   val format_Ln_rules_uncompressed :
-    iptrule_match rule list -> (iptrule_match_Ln_uncompressed * action) list
+    iptrule_match rule list -> (match_Ln_uncompressed * action) list
   val does_I_has_compressed_prots :
-    (iptrule_match_Ln_uncompressed * action) list ->
-      (iptrule_match_Ln_uncompressed * action) list
+    (match_Ln_uncompressed * action) list ->
+      (match_Ln_uncompressed * action) list
   val does_I_has_compressed_rules :
-    (iptrule_match_Ln_uncompressed * action) list ->
-      (iptrule_match_Ln_uncompressed * action) list
+    (match_Ln_uncompressed * action) list ->
+      (match_Ln_uncompressed * action) list
   val unfold_ruleset_FORWARD :
     (char list -> (iptrule_match rule list) option) -> iptrule_match rule list
   val bitmask_to_strange_inverse_cisco_mask : nat -> nat * (nat * (nat * nat))
@@ -562,7 +562,7 @@ datatype 'a rule = Rule of 'a match_expr * action;
 datatype 'a packet_set =
   PacketSet of (('a negation_type * action negation_type) list) list;
 
-datatype iptrule_match_Ln_uncompressed =
+datatype match_Ln_uncompressed =
   UncompressedFormattedMatch of
     ipt_ipv4range negation_type list * ipt_ipv4range negation_type list *
       ipt_protocol negation_type list * (char list) negation_type list;
@@ -806,7 +806,7 @@ fun list_to_bitrange A_ [r] = r
     RangeUnion (r, list_to_bitrange A_ (v :: va))
   | list_to_bitrange A_ [] = empty_Bitrange A_;
 
-fun iptrule_match_Ln_uncompressed_append
+fun match_Ln_uncompressed_append
   (UncompressedFormattedMatch (src1, dst1, proto1, extra1))
   (UncompressedFormattedMatch (src2, dst2, proto2, extra2)) =
   UncompressedFormattedMatch
@@ -838,8 +838,8 @@ fun iptrule_match_collect MatchAny accu = accu
     (UncompressedFormattedMatch (src, dst, proto, extra)) =
     UncompressedFormattedMatch (src, dst, proto, Neg e :: extra)
   | iptrule_match_collect (MatchAnd (m1, m2)) fmt =
-    iptrule_match_Ln_uncompressed_append (iptrule_match_collect m1 fmt)
-      (iptrule_match_Ln_uncompressed_append (iptrule_match_collect m2 fmt) fmt);
+    match_Ln_uncompressed_append (iptrule_match_collect m1 fmt)
+      (match_Ln_uncompressed_append (iptrule_match_collect m2 fmt) fmt);
 
 fun format_Ln_match m =
   iptrule_match_collect m (UncompressedFormattedMatch ([], [], [], []));
