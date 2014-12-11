@@ -125,7 +125,7 @@ apply(simp split: ternaryvalue.split add: matches_case_ternaryvalue_tuple)
 by (metis eval_ternary_And_comm ternaryvalue.distinct(1) ternaryvalue.distinct(3) ternaryvalue.distinct(5))
 
 lemma matches_not_idem: "matches \<gamma> (MatchNot (MatchNot m)) a p \<longleftrightarrow> matches \<gamma> m a p"
-by (metis bunch_of_lemmata_about_matches(6) surjective_pairing)
+by (metis bunch_of_lemmata_about_matches(6))
 
 
 lemma "(TernaryNot (map_match_tac \<beta> p (m))) = (map_match_tac \<beta> p (MatchNot m))"
@@ -141,9 +141,9 @@ lemma matches_simp11: "matches \<gamma> m a p \<Longrightarrow> matches \<gamma>
   by(simp_all add: matches_and_comm matches_simp1)
 
 lemma matches_simp2: "matches \<gamma> (MatchAnd m m') a p \<Longrightarrow> \<not> matches \<gamma> m a p \<Longrightarrow> False"
-by (metis bunch_of_lemmata_about_matches(1) surjective_pairing)
+by (metis bunch_of_lemmata_about_matches(1))
 lemma matches_simp22: "matches \<gamma> (MatchAnd m m') a p \<Longrightarrow> \<not> matches \<gamma> m' a p \<Longrightarrow> False"
-by (metis bunch_of_lemmata_about_matches(1) surjective_pairing)
+by (metis bunch_of_lemmata_about_matches(1))
 
 (*m simplifies to MatchUnknown*)
 lemma matches_simp3: "matches \<gamma> (MatchNot m) a p \<Longrightarrow> matches \<gamma> m a p \<Longrightarrow> (snd \<gamma>) a p"

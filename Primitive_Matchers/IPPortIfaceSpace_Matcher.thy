@@ -7,7 +7,7 @@ subsection{*Primitive Matchers: IP Port Iface Matcher*}
 
 fun ipportiface_matcher :: "(ipportiface_rule_match, simple_packet) exact_match_tac" where
   "ipportiface_matcher (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))" |
-  "ipportiface_matcher (OIface i) p = bool_to_ternary (match_iface i (p_iiface p))" |
+  "ipportiface_matcher (OIface i) p = bool_to_ternary (match_iface i (p_oiface p))" |
 
   "ipportiface_matcher (Src ip) p = bool_to_ternary (p_src p \<in> ipv4s_to_set ip)" |
   "ipportiface_matcher (Dst ip) p = bool_to_ternary (p_dst p \<in> ipv4s_to_set ip)" |
