@@ -77,6 +77,52 @@ ML_file "iptables_Ln_29.11.2013.ML"
 
 (*iptables_Ln_29.11.2013 netnetwork*)
 
+text{*
+This is the firewall ruleset (excerpt, 24 of 2800 rules displayed) we are going to analyze:
+*}
+text_raw{*
+\begin{footnotesize}
+\begin{verbatim}
+Chain FORWARD (policy ACCEPT)
+target   prot source            destination
+LOG_DROP all  127.0.0.0/8       0.0.0.0/0
+ACCEPT   tcp  131.159.14.206    0.0.0.0/0         multiport sports 389,636
+ACCEPT   tcp  131.159.14.208    0.0.0.0/0         multiport sports 389,636
+ACCEPT   udp  131.159.14.206    0.0.0.0/0         udp spt:88
+ACCEPT   udp  131.159.14.208    0.0.0.0/0         udp spt:88
+ACCEPT   tcp  131.159.14.192/27 0.0.0.0/0         tcp spt:3260
+ACCEPT   tcp  131.159.14.0/23   131.159.14.192/27 tcp dpt:3260
+ACCEPT   tcp  131.159.20.0/24   131.159.14.192/27 tcp dpt:3260
+ACCEPT   udp  131.159.15.252    0.0.0.0/0
+ACCEPT   udp  0.0.0.0/0         131.159.15.252    multiport 
+                                                      dports 4569,5000:65535
+ACCEPT   all  131.159.15.247    0.0.0.0/0
+ACCEPT   all  0.0.0.0/0         131.159.15.247
+ACCEPT   all  131.159.15.248    0.0.0.0/0
+ACCEPT   all  0.0.0.0/0         131.159.15.248
+         tcp  0.0.0.0/0         131.159.14.0/23   state NEW tcp 
+               dpt:22flags: 0x17/0x02 recent: SET name: ratessh side: source
+         tcp  0.0.0.0/0         131.159.20.0/23   state NEW tcp 
+               dpt:22flags: 0x17/0x02 recent: SET name: ratessh side: source
+mac_96   all  131.159.14.0/25   0.0.0.0/0
+LOG_DROP all !131.159.14.0/25   0.0.0.0/0
+
+Chain LOG_DROP (21 references)
+target   prot source            destination
+LOG      all  0.0.0.0/0         0.0.0.0/0         limit: avg 100/min 
+                           burst 5  LOG flags 0 level 4 prefix "[IPT_DROP]:"
+DROP     all  0.0.0.0/0         0.0.0.0/0
+
+Chain mac_96 (1 references)
+target   prot source            destination
+RETURN   all  131.159.14.92     0.0.0.0/0         MAC XX:XX:XX:XX:XX:XX
+DROP     all  131.159.14.92     0.0.0.0/0
+RETURN   all  131.159.14.65     0.0.0.0/0         MAC XX:XX:XX:XX:XX:XX
+DROP     all  131.159.14.65     0.0.0.0/0
+\end{verbatim}
+\end{footnotesize}
+*}
+
 ML{*
 open Test;
 *}
@@ -190,6 +236,35 @@ writeln "Chain OUTPUT (policy ACCEPT)";
 writeln "target     prot opt source               destination"
 *}
 
+text{*
+Upper Closure (excerpt)
+*}
+
+text_raw{*
+
+\begin{footnotesize}
+\begin{verbatim}
+Chain FORWARD (policy ACCEPT) 
+target  prot source              destination
+DROP    all  127.0.0.0/8         0.0.0.0/0
+ACCEPT  tcp  131.159.14.206/32   0.0.0.0/0
+ACCEPT  tcp  131.159.14.208/32   0.0.0.0/0
+ACCEPT  udp  131.159.14.206/32   0.0.0.0/0
+ACCEPT  udp  131.159.14.208/32   0.0.0.0/0
+ACCEPT  tcp  131.159.14.192/27   0.0.0.0/0
+ACCEPT  tcp  131.159.14.0/23     131.159.14.192/27
+ACCEPT  tcp  131.159.20.0/24     131.159.14.192/27
+ACCEPT  udp  131.159.15.252/32   0.0.0.0/0
+ACCEPT  udp  0.0.0.0/0           131.159.15.252/32
+ACCEPT  all  131.159.15.247/32   0.0.0.0/0
+ACCEPT  all  0.0.0.0/0           131.159.15.247/32
+ACCEPT  all  131.159.15.248/32   0.0.0.0/0
+ACCEPT  all  0.0.0.0/0           131.159.15.248/32
+DROP    all  !131.159.14.0/25    0.0.0.0/0
+\end{verbatim}
+\end{footnotesize}
+*}
+
 text{*iptables -L -n*}
 ML_val{*
 writeln "Chain INPUT (policy ACCEPT)";
@@ -201,6 +276,29 @@ dump_iptables (compress_Ln_ips (format_Ln_rules_uncompressed lower));
 
 writeln "Chain OUTPUT (policy ACCEPT)";
 writeln "target     prot opt source               destination"
+*}
+
+text{*
+Lower Closure (excerpt)
+*}
+text_raw{*
+
+\begin{footnotesize}
+\begin{verbatim}
+Chain FORWARD (policy ACCEPT) 
+target  prot source              destination 
+DROP    all  127.0.0.0/8         0.0.0.0/0
+ACCEPT  udp  131.159.15.252/32   0.0.0.0/0
+ACCEPT  all  131.159.15.247/32   0.0.0.0/0
+ACCEPT  all  0.0.0.0/0           131.159.15.247/32
+ACCEPT  all  131.159.15.248/32   0.0.0.0/0
+ACCEPT  all  0.0.0.0/0           131.159.15.248/32
+DROP    all  131.159.14.92/32    0.0.0.0/0
+DROP    all  131.159.14.65/32    0.0.0.0/0
+...  (unfolded DROPs from chain mac_96
+DROP    all  !131.159.14.0/25    0.0.0.0/0
+\end{verbatim}
+\end{footnotesize}
 *}
 
 text{*iptables-save*}

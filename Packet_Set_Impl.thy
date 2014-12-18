@@ -102,7 +102,7 @@ done
 
 subsubsection{*Basic Set Operations*}
   
-  text{* @text{\<inter>} *}
+  text{* @{text \<inter>} *}
     fun packet_set_intersect :: "'a packet_set \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
       "packet_set_intersect (PacketSet olist1) (PacketSet olist2) = PacketSet [andlist1 @ andlist2. andlist1 <- olist1, andlist2 <- olist2]"
     
@@ -139,7 +139,7 @@ subsubsection{*Basic Set Operations*}
       
 
   
-  text{* @text{\<union>} *}
+  text{* @{text \<union>} *}
     fun packet_set_union :: "'a packet_set \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
       "packet_set_union (PacketSet olist1) (PacketSet olist2) = PacketSet (olist1 @ olist2)"
     declare packet_set_union.simps[simp del]
@@ -159,7 +159,7 @@ subsubsection{*Basic Set Operations*}
   
   
 
-  text{* @text{-} *}
+  text{* @{text -} *}
     fun listprepend :: "'a list \<Rightarrow> 'a list list \<Rightarrow> 'a list list" where
       "listprepend [] ns = []" |
       "listprepend (a#as) ns = (map (\<lambda>xs. a#xs) ns) @ (listprepend as ns)"
@@ -256,7 +256,7 @@ subsubsection{*Derived Operations*}
   unfolding to_packet_set_set
   by blast
   
-  text{*Warning: result gets hue*}
+  text{*Warning: result gets huge*}
   definition packet_set_constrain_not :: "action \<Rightarrow> 'a match_expr \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
     "packet_set_constrain_not a m ns = packet_set_intersect ns (packet_set_not (to_packet_set a m))"
   
