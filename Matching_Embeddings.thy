@@ -29,6 +29,9 @@ The Boolean and the ternary matcher agree (where the ternary matcher is defined)
 definition matcher_agree_on_exact_matches :: "('a, 'p) matcher \<Rightarrow> ('a \<Rightarrow> 'p \<Rightarrow> ternaryvalue) \<Rightarrow> bool" where
   "matcher_agree_on_exact_matches exact approx \<equiv> \<forall>p m. approx m p \<noteq> TernaryUnknown \<longrightarrow> exact m p = the (ternary_to_bool (approx m p))"
 
+text{*We say the Boolean and ternary matchers agree iff they return the same result or the ternary matcher returns @{const TernaryUnknown}.*}
+lemma "matcher_agree_on_exact_matches exact approx \<longleftrightarrow> (\<forall>p m. exact m p = the (ternary_to_bool (approx m p)) \<or> approx m p = TernaryUnknown)"
+  unfolding matcher_agree_on_exact_matches_def by blast
 
 lemma eval_ternary_Not_TrueD: "eval_ternary_Not m = TernaryTrue \<Longrightarrow> m = TernaryFalse"
   by (metis eval_ternary_Not.simps(1) eval_ternary_idempotence_Not)
