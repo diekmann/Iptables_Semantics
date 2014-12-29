@@ -52,4 +52,18 @@ subsection{*Simple Firewall Semantics*}
     "simple_fw ((SimpleRule m Drop)#rs) p = (if simple_matches m p then Decision FinalDeny else simple_fw rs p)"
 
 
+
+  
+  definition simple_match_any :: "simple_match" where
+    "simple_match_any \<equiv> \<lparr>iiface=IfaceAny, oiface=IfaceAny, src=Pos (0,0), dst=Pos (0,0), proto=ProtoAny, sports=Pos (0,65535), dports=Pos (0,65535) \<rparr>"
+
+  lemma simple_match_any: "simple_matches simple_match_any p"
+    apply(simp add: simple_match_any_def ipv4range_set_from_bitmask_0)
+    apply(subgoal_tac "(65535::16 word) = max_word")
+     apply(simp)
+    apply(simp add: max_word_def)
+    done
+    
+
+
 end

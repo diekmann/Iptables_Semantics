@@ -357,7 +357,7 @@ text{*simplify a match expression. The output is a list of match exprissions, th
 fun normalize_match :: "'a match_expr \<Rightarrow> 'a match_expr list" where
   "normalize_match (MatchAny) = [MatchAny]" |
   "normalize_match (Match m) = [Match m]" |
-  "normalize_match (MatchAnd m1 m2) = [MatchAnd x y. x <- normalize_match m1, y <- normalize_match m2](*[MatchAnd m1 m2]*)(*and_orlist (normalize_match m1) (normalize_match m2)*)" | (*TODO TODO recursive calls?*)
+  "normalize_match (MatchAnd m1 m2) = [MatchAnd x y. x <- normalize_match m1, y <- normalize_match m2]" |
   "normalize_match (MatchNot (MatchAnd m1 m2)) = normalize_match (MatchNot m1) @ normalize_match (MatchNot m2)" | (*DeMorgan*)
   "normalize_match (MatchNot (MatchNot m)) = normalize_match m" | (*idem*)
   "normalize_match (MatchNot (MatchAny)) = []" | (*false*)
