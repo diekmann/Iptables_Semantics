@@ -8,6 +8,10 @@ begin
 
 
 section{*Simple Firewall Syntax (IPv4)*}
+text{*Very TODO*}
+(*TODO*)
+
+
   datatype simple_action = Accept | Drop
   
   (*TODO: can we get rid of the negation types? Or at least at the ports?*)
@@ -22,7 +26,7 @@ section{*Simple Firewall Syntax (IPv4)*}
 
   datatype simple_rule = SimpleRule simple_match simple_action
 
-section{*Simple Firewall Semantics*}
+subsection{*Simple Firewall Semantics*}
 
   fun simple_match_ip :: "(ipv4addr \<times> nat) negation_type \<Rightarrow> ipv4addr \<Rightarrow> bool" where
     "simple_match_ip (Pos (ip, n)) p_ip \<longleftrightarrow> p_ip \<in> ipv4range_set_from_bitmask ip n" |

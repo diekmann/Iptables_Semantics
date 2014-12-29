@@ -5,6 +5,7 @@ begin
 fun ipv4_word_netmask_to_nattuple :: "(ipv4addr \<times> nat)  \<Rightarrow> ipt_ipv4range" where
   "ipv4_word_netmask_to_nattuple (ip, n) = Ip4AddrNetmask (dotteddecimal_of_ipv4addr ip) n"
 
+(*do I need monads?*)
 fun negation_type_to_match_expr :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a negation_type \<Rightarrow> 'b match_expr" where
   "negation_type_to_match_expr f (Pos a) = Match (f a)" |
   "negation_type_to_match_expr f (Neg a) = MatchNot (Match (f a))"

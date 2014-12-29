@@ -4,7 +4,11 @@ begin
 
 
 section{*Packet Set*}
-(*probably everything here wants a simple ruleset*)
+text{*
+An explicit representation of sets of packets allowed/denied by a firewall.
+Very work in progress, such pre-alpha, wow.
+Probably everything here wants a simple ruleset.
+*}
 
 
 (*TODO: collect_by_action
