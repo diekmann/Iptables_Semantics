@@ -96,8 +96,17 @@ fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Ri
   "ipportiface_match_to_simple_match (Match (OIface oif)) = simple_match_any\<lparr> oiface := oif \<rparr>" |
   "ipportiface_match_to_simple_match (Match (Src ip)) = simple_match_any\<lparr> src := Pos (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>" |
   "ipportiface_match_to_simple_match (Match (Dst ip)) = simple_match_any\<lparr> dst := Pos (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>" |
-  "ipportiface_match_to_simple_match (Match (Prot p)) = simple_match_any\<lparr> proto := p \<rparr>"|
-  "ipportiface_match_to_simple_match (Match (Src_Ports ps)) = simple_match_any\<lparr> sports :=  (0,0) \<rparr>"
+  "ipportiface_match_to_simple_match (Match (Prot p)) = simple_match_any\<lparr> proto := p \<rparr>" |
+  "ipportiface_match_to_simple_match (Match (Src_Ports [])) = simple_match_any" |
+  "ipportiface_match_to_simple_match (Match (Src_Ports [(s,e)])) = simple_match_any\<lparr> sports := (s,e) \<rparr>" |
+  "ipportiface_match_to_simple_match (Match (Dst_Ports [])) = simple_match_any" |
+  "ipportiface_match_to_simple_match (Match (Dst_Ports [(s,e)])) = simple_match_any\<lparr> dports := (s,e) \<rparr>" |
+  "ipportiface_match_to_simple_match (MatchNot (Match (Src ip))) = simple_match_any\<lparr> src := Neg (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>" |
+  "ipportiface_match_to_simple_match (MatchNot (Match (Dst ip))) = simple_match_any\<lparr> dst := Neg (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>" |
+  --"undefined cases, normalize before!"
+  "ipportiface_match_to_simple_match (Match (Src_Ports (_#_))) = undefined" |
+  "ipportiface_match_to_simple_match (Match (Dst_Ports (_#_))) = undefined" |
+  "ipportiface_match_to_simple_match (Match (Extra _)) = undefined"
   (* hmm, port list (\<or>) to one port, creates multiple rules! need normalize_ports for match_Expr*)
 (*\<dots>*)
 
@@ -107,6 +116,25 @@ fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Ri
 fun ipt_ports_negation_type_normalize :: "ipt_ports negation_type \<Rightarrow> ipt_ports" where
   "ipt_ports_negation_type_normalize (Pos ps) = ps" |
   "ipt_ports_negation_type_normalize (Neg ps) = br2l (bitrange_invert (l2br ps))"
+
+
+
+(*TODO: warning!! an empty port range means it can never match! no port range matches (corresponds to firewall behavior, but usually you cannot specify an empty portrange here)*)
+lemma "ipt_ports_negation_type_normalize (Neg [(0,65535)]) = []" by eval
+lemma "\<not> matches (ipportiface_matcher, \<alpha>) (MatchNot (Match (Src_Ports [(0,65535)]))) a 
+        \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotteddecimal (192,168,2,45), p_dst= ipv4addr_of_dotteddecimal (173,194,112,111),
+                 p_proto=TCP, p_sport=2065, p_dport=80\<rparr>"
+by(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
+lemma "matches (ipportiface_matcher, \<alpha>) (MatchNot (Match (Src_Ports []))) a 
+        \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotteddecimal (192,168,2,45), p_dst= ipv4addr_of_dotteddecimal (173,194,112,111),
+                 p_proto=TCP, p_sport=2065, p_dport=80\<rparr>"
+by(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
+lemma "\<not>matches (ipportiface_matcher, \<alpha>) (MatchNot (Match (Src_Ports [(1024,4096)]))) a 
+        \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotteddecimal (192,168,2,45), p_dst= ipv4addr_of_dotteddecimal (173,194,112,111),
+                 p_proto=TCP, p_sport=2065, p_dport=80\<rparr>"
+by(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
+
+
 
 declare ipt_ports_negation_type_normalize.simps[simp del]
 
@@ -145,6 +173,7 @@ find_consts "'b list \<Rightarrow> 'a match_expr"
 
 definition ipt_ports_compress :: "ipt_ports negation_type list \<Rightarrow> ipt_ports" where
   "ipt_ports_compress pss = ipt_ports_andlist_compress (map ipt_ports_negation_type_normalize pss)"
+
 
 (*TODO: only for src*)
 lemma ipt_ports_compress_correct:
@@ -211,8 +240,45 @@ lemma "normalized_match m \<Longrightarrow>
   apply(simp add: ipt_ports_compress_correct)
 done
 
-fun normalize_ipt_ports :: "ipportiface_rule_match match_expr \<Rightarrow> ipportiface_rule_match match_expr list" where
-  "normalize_ipt_ports (Match (Src_Ports [])) = []" |
-  "normalize_ipt_ports (Match (Src_Ports (p#ps))) = []"
+(*TODO*)
+fun normalized_ports :: "ipportiface_rule_match match_expr \<Rightarrow> bool" where
+  "normalized_ports MatchAny = True" |
+  "normalized_ports (Match (Src_Ports [])) = True" |
+  "normalized_ports (Match (Src_Ports [_])) = True" |
+  "normalized_ports (Match (Src_Ports _)) = False" |
+  (* "normalized_ports (Match (Dst_Ports [])) = True" | *)
+  "normalized_ports (Match _) = True" |
+  "normalized_ports (MatchNot (Match (Src_Ports _))) = False" |
+  "normalized_ports (MatchAnd m1 m2) = (normalized_ports m1 \<and> normalized_ports m2)" |
+  "normalized_ports (MatchNot (MatchAnd _ _)) = False" |
+  "normalized_ports (MatchNot _) = True" 
+
+lemma normalized_match_MatchNot_D: "normalized_match (MatchNot m) \<Longrightarrow> normalized_match ( m) "
+apply(induction m)
+apply(simp_all)
+done
+
+
+lemma "\<forall>spt \<in> set (ipt_ports_compress spts). normalized_ports (Match (Src_Ports [spt]))" by(simp)
+
+lemma help1: "normalized_match ms \<Longrightarrow> \<not> has_disc is_Src_Ports ms \<Longrightarrow> normalized_ports ms"
+  apply(induction ms rule: normalized_ports.induct)
+  apply(simp_all)
+  done
+
+lemma "normalized_match m \<Longrightarrow> 
+      primitive_extractor (is_Src_Ports, src_ports_sel) m = (spts, ms) \<Longrightarrow>
+      ml \<in> set (map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) ms) (ipt_ports_compress spts))\<Longrightarrow>
+      normalized_ports ml"
+apply(simp)
+apply(frule(1) primitive_extractor_correct(2)[OF _ wf_disc_sel_ipportiface_rule_match(1)])
+apply(frule(1) primitive_extractor_correct(3)[OF _ wf_disc_sel_ipportiface_rule_match(1)])
+apply(simp add: ipt_ports_compress_def)
+apply(drule(1) help1)
+apply(induction spts)
+ apply(clarsimp)+
+done
+
+
 
 end
