@@ -58,4 +58,19 @@ lemma ipportiface_matcher_SrcDst_Inter:
  done
 
 
+
+text{* multiport list is a way to express  disjunction in one matchexpression in some firewalls*}
+lemma multiports_disjuction:
+        "(\<exists>rg\<in>set spts. matches (ipportiface_matcher, \<alpha>) (Match (Src_Ports [rg])) a p) \<longleftrightarrow>
+        matches (ipportiface_matcher, \<alpha>) (Match (Src_Ports spts)) a p"
+        "(\<exists>rg\<in>set dpts. matches (ipportiface_matcher, \<alpha>) (Match (Dst_Ports [rg])) a p) \<longleftrightarrow>
+        matches (ipportiface_matcher, \<alpha>) (Match (Dst_Ports dpts)) a p"
+  apply(simp_all add: bool_to_ternary_Unknown matches_case_ternaryvalue_tuple bunch_of_lemmata_about_matches bool_to_ternary_simps split: ternaryvalue.split ternaryvalue.split_asm)
+  apply(simp_all add: ports_to_set)
+  apply(safe) (*ugly proof*)
+     apply force+
+  done
+  
+
+
 end

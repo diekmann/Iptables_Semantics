@@ -119,7 +119,7 @@ fun ipt_ports_negation_type_normalize :: "ipt_ports negation_type \<Rightarrow> 
 
 
 
-(*TODO: warning!! an empty port range means it can never match! no port range matches (corresponds to firewall behavior, but usually you cannot specify an empty portrange here)*)
+(*warning!! an empty port range means it can never match! no port range matches (corresponds to firewall behavior, but usually you cannot specify an empty portrange here)*)
 lemma "ipt_ports_negation_type_normalize (Neg [(0,65535)]) = []" by eval
 lemma "\<not> matches (ipportiface_matcher, \<alpha>) (MatchNot (Match (Src_Ports [(0,65535)]))) a 
         \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotteddecimal (192,168,2,45), p_dst= ipv4addr_of_dotteddecimal (173,194,112,111),
@@ -201,26 +201,15 @@ done
 
 
 (*spliting the primitives: multiport list (a list of disjunction!)*)
-lemma multiports_disjuction: "(\<exists>rg\<in>set spts. matches (ipportiface_matcher, \<alpha>) (Match (Src_Ports [rg])) a p) \<longleftrightarrow>
-        matches (ipportiface_matcher, \<alpha>) (Match (Src_Ports spts)) a p"
-  apply(simp add: matches_case_ternaryvalue_tuple bunch_of_lemmata_about_matches bool_to_ternary_simps split: ternaryvalue.split ternaryvalue.split_asm)
-  apply(simp add: bool_to_ternary_Unknown)
-  apply(safe) (*ugly proof*)
-   apply(simp_all add: ports_to_set)
-   apply(blast)
-   by force
-  
-  
-
-lemma singletonize_Src_Ports: "match_list (ipportiface_matcher, \<alpha>) (map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) ms) (spts)) a p \<longleftrightarrow>
+lemma singletonize_SrcDst_Ports: "match_list (ipportiface_matcher, \<alpha>) (map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) ms) (spts)) a p \<longleftrightarrow>
        matches (ipportiface_matcher, \<alpha>) (MatchAnd (Match (Src_Ports spts)) ms) a p"
-  apply(simp add: match_list_matches)
-  apply(simp add: bunch_of_lemmata_about_matches(1))
-  apply(simp add: multiports_disjuction)
+       "match_list (ipportiface_matcher, \<alpha>) (map (\<lambda>spt. (MatchAnd (Match (Dst_Ports [spt]))) ms) (dpts)) a p \<longleftrightarrow>
+       matches (ipportiface_matcher, \<alpha>) (MatchAnd (Match (Dst_Ports dpts)) ms) a p"
+  apply(simp_all add: match_list_matches bunch_of_lemmata_about_matches(1) multiports_disjuction)
 done
 
 
-
+(*idea:*)
 value "case primitive_extractor (is_Src_Ports, src_ports_sel) m 
         of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) rst) (ipt_ports_compress spts)"
 
@@ -235,10 +224,48 @@ lemma "normalized_match m \<Longrightarrow>
   apply(drule(1) primitive_extractor_correct(1)[OF _ wf_disc_sel_ipportiface_rule_match(1), where \<gamma>="(ipportiface_matcher, \<alpha>)" and a=a and p=p])
   apply(drule sym) back (*WHOOOOO*)
   apply(simp)
-  apply(simp add: singletonize_Src_Ports)
+  apply(simp add: singletonize_SrcDst_Ports)
   apply(simp add: bunch_of_lemmata_about_matches(1))
   apply(simp add: ipt_ports_compress_correct)
 done
+
+definition normalize_ports_step :: "((ipportiface_rule_match \<Rightarrow> bool) \<times> (ipportiface_rule_match \<Rightarrow> ipt_ports)) \<Rightarrow> 
+                             (ipt_ports \<Rightarrow> ipportiface_rule_match) \<Rightarrow>
+                             ipportiface_rule_match match_expr \<Rightarrow> ipportiface_rule_match match_expr list" where 
+  "normalize_ports_step (disc_sel) C  m = (case primitive_extractor (disc_sel) m 
+              of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (C [spt]))) rst) (ipt_ports_compress spts))"
+
+
+(*normalizing source ports, only at most one source port will exist in the match expression!*)
+lemma "normalized_match m \<Longrightarrow> 
+      match_list (ipportiface_matcher, \<alpha>) (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m) a p \<longleftrightarrow>
+       matches (ipportiface_matcher, \<alpha>) m a p"
+  unfolding normalize_ports_step_def
+  apply(case_tac "primitive_extractor (is_Src_Ports, src_ports_sel) m")
+  apply(rename_tac as ms)
+  apply(simp)
+  apply(drule(1) primitive_extractor_correct(1)[OF _ wf_disc_sel_ipportiface_rule_match(1), where \<gamma>="(ipportiface_matcher, \<alpha>)" and a=a and p=p])
+  apply(drule sym) back (*WHOOOOO*)
+  apply(simp)
+  apply(simp add: singletonize_SrcDst_Ports(1))
+  apply(simp add: bunch_of_lemmata_about_matches(1))
+  apply(simp add: ipt_ports_compress_correct)
+done
+lemma "normalized_match m \<Longrightarrow> 
+      match_list (ipportiface_matcher, \<alpha>) (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports m) a p \<longleftrightarrow>
+       matches (ipportiface_matcher, \<alpha>) m a p"
+  unfolding normalize_ports_step_def
+  apply(case_tac "primitive_extractor (is_Dst_Ports, dst_ports_sel) m")
+  apply(rename_tac as ms)
+  apply(simp)
+  apply(drule(1) primitive_extractor_correct(1)[OF _ wf_disc_sel_ipportiface_rule_match(2), where \<gamma>="(ipportiface_matcher, \<alpha>)" and a=a and p=p])
+  apply(drule sym) back (*WHOOOOO*)
+  apply(simp)
+  apply(simp add: singletonize_SrcDst_Ports(2))
+  apply(simp add: bunch_of_lemmata_about_matches(1))
+  apply(simp add: ipt_ports_compress_correct)
+oops
+
 
 (*TODO*)
 fun normalized_ports :: "ipportiface_rule_match match_expr \<Rightarrow> bool" where
