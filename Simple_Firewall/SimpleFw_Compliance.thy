@@ -147,11 +147,25 @@ lemma ipt_ports_andlist_compress_correct: "ports_to_set (ipt_ports_andlist_compr
 find_consts "'b list \<Rightarrow> 'a match_expr"
 
 
-fun ipt_ports_compress :: "ipt_ports negation_type list \<Rightarrow> ipt_ports" where
-  "ipt_ports_compress (ps#pss) = (ipt_ports_negation_type_normalize ps)"
+definition ipt_ports_compress :: "ipt_ports negation_type list \<Rightarrow> ipt_ports" where
+  "ipt_ports_compress pss = ipt_ports_andlist_compress (map ipt_ports_negation_type_normalize pss)"
 
 value "case primitive_extractor (is_Src_Ports, src_ports_sel) m 
-        of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) rst) (merge_ipt_ports spts)"
+        of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) rst) (ipt_ports_compress spts)"
+
+lemma "normalized_match m \<Longrightarrow> 
+      \<forall> mi \<in> set (case primitive_extractor (is_Src_Ports, src_ports_sel) m 
+        of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) rst) (ipt_ports_compress spts)). matches (ipportiface_matcher, \<alpha>) mi a p \<longleftrightarrow>
+       matches (ipportiface_matcher, \<alpha>) m a p"
+  apply(simp)
+  apply(clarify)
+  apply(rename_tac as ms s e)
+  apply(drule sym)
+  apply(drule(1) primitive_extractor_correct(1)[OF _ wf_disc_sel_ipportiface_rule_match(1), where \<gamma>="(ipportiface_matcher, \<alpha>)" and a=a and p=p])
+  apply(simp add: bunch_of_lemmata_about_matches(1))
+  apply(simp add: ipt_ports_compress_def)
+oops
+
 
 fun normalize_ipt_ports :: "ipportiface_rule_match match_expr \<Rightarrow> ipportiface_rule_match match_expr list" where
   "normalize_ipt_ports (Match (Src_Ports [])) = []" |
