@@ -173,6 +173,7 @@ fun dump_prots [] = "all"
   (*undefined otherwise*)
 
 fun dump_extra [] = "";
+   (*undefined case checks that we have no Extra (i.e. unknown in here)*)
 
 fun dump_action Accept = "ACCEPT"
   | dump_action Drop = "DROP"
@@ -210,6 +211,10 @@ fun dump_iptables_save [] = ()
 ML_val{*
 length (format_Ln_rules_uncompressed upper);
 (format_Ln_rules_uncompressed upper);
+*}
+--"optimized upper closure, roughly 1k rules"
+ML_val{*
+length (compress_Ln_ips (format_Ln_rules_uncompressed upper));
 *}
 ML_val{*
 (compress_Ln_ips (format_Ln_rules_uncompressed upper));

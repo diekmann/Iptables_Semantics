@@ -1100,7 +1100,14 @@ fun opt_simple_matcher_in_doubt_deny_extra uu MatchAny = MatchAny
                         (opt_simple_matcher_in_doubt_deny_extra a (MatchNot m2))
                         (MatchNot MatchAny)
                     then opt_simple_matcher_in_doubt_deny_extra a (MatchNot m1)
-                    else MatchNot (MatchAnd (m1, m2)))))
+                    else MatchNot
+                           (MatchAnd
+                             (MatchNot
+                                (opt_simple_matcher_in_doubt_deny_extra a
+                                  (MatchNot m1)),
+                               MatchNot
+                                 (opt_simple_matcher_in_doubt_deny_extra a
+                                   (MatchNot m2)))))))
   | opt_simple_matcher_in_doubt_deny_extra Accept (MatchNot (Match (Src va))) =
     MatchNot (Match (Src va))
   | opt_simple_matcher_in_doubt_deny_extra Accept (MatchNot (Match (Dst va))) =
@@ -1357,7 +1364,14 @@ fun opt_simple_matcher_in_doubt_allow_extra uu MatchAny = MatchAny
                           (MatchNot m2))
                         (MatchNot MatchAny)
                     then opt_simple_matcher_in_doubt_allow_extra a (MatchNot m1)
-                    else MatchNot (MatchAnd (m1, m2)))))
+                    else MatchNot
+                           (MatchAnd
+                             (MatchNot
+                                (opt_simple_matcher_in_doubt_allow_extra a
+                                  (MatchNot m1)),
+                               MatchNot
+                                 (opt_simple_matcher_in_doubt_allow_extra a
+                                   (MatchNot m2)))))))
   | opt_simple_matcher_in_doubt_allow_extra Drop (MatchNot (Match (Src va))) =
     MatchNot (Match (Src va))
   | opt_simple_matcher_in_doubt_allow_extra Drop (MatchNot (Match (Dst va))) =
