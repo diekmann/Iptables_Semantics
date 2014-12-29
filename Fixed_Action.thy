@@ -221,6 +221,9 @@ subsection{*@{term match_list}*}
    "match_list \<gamma> (m#ms) a p = (if matches \<gamma> m a p then True else match_list \<gamma> ms a p)"
 
 
+  lemma match_list_matches: "match_list \<gamma> ms a p \<longleftrightarrow> (\<exists>m \<in> set ms. matches \<gamma> m a p)"
+    by(induction ms, simp_all)
+
   lemma match_list_True: "match_list \<gamma> ms a p \<Longrightarrow> approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) ms) Undecided = (case a of Accept \<Rightarrow> Decision FinalAllow
               | Drop \<Rightarrow> Decision FinalDeny
               | Reject \<Rightarrow> Decision FinalDeny

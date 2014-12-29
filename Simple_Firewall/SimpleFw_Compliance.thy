@@ -108,13 +108,15 @@ fun ipt_ports_negation_type_normalize :: "ipt_ports negation_type \<Rightarrow> 
   "ipt_ports_negation_type_normalize (Pos ps) = ps" |
   "ipt_ports_negation_type_normalize (Neg ps) = br2l (bitrange_invert (l2br ps))"
 
+declare ipt_ports_negation_type_normalize.simps[simp del]
+
 lemma ipt_ports_negation_type_normalize_correct:
       "matches (ipportiface_matcher, \<alpha>) (negation_type_to_match_expr (Src_Ports) ps) a p \<longleftrightarrow>
        matches (ipportiface_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_negation_type_normalize ps))) a p"
       "matches (ipportiface_matcher, \<alpha>) (negation_type_to_match_expr (Dst_Ports) ps) a p \<longleftrightarrow>
        matches (ipportiface_matcher, \<alpha>) (Match (Dst_Ports (ipt_ports_negation_type_normalize ps))) a p"
 apply(case_tac [!] ps)
-apply(simp_all add: matches_case_ternaryvalue_tuple bunch_of_lemmata_about_matches bool_to_ternary_simps l2br_br2l ports_to_set_bitrange split: ternaryvalue.split)
+apply(simp_all add: ipt_ports_negation_type_normalize.simps matches_case_ternaryvalue_tuple bunch_of_lemmata_about_matches bool_to_ternary_simps l2br_br2l ports_to_set_bitrange split: ternaryvalue.split)
 done
 
 (*todo: move*)
@@ -144,22 +146,70 @@ find_consts "'b list \<Rightarrow> 'a match_expr"
 definition ipt_ports_compress :: "ipt_ports negation_type list \<Rightarrow> ipt_ports" where
   "ipt_ports_compress pss = ipt_ports_andlist_compress (map ipt_ports_negation_type_normalize pss)"
 
+(*TODO: only for src*)
+lemma ipt_ports_compress_correct:
+  "matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map Src_Ports ms)) a p \<longleftrightarrow> matches (ipportiface_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_compress ms))) a p"
+apply(induction ms)
+ apply(simp add: ipt_ports_compress_def bunch_of_lemmata_about_matches ipt_ports_andlist_compress_correct)
+apply(rename_tac m ms)
+apply(case_tac m)
+ apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary ipt_ports_negation_type_normalize.simps)
+apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps l2br_br2l ports_to_set_bitrange ipt_ports_negation_type_normalize.simps split: ternaryvalue.split)
+done
+
+lemma ipt_ports_compress_matches_set: "matches (ipportiface_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_compress ips))) a p \<longleftrightarrow>
+       p_sport p \<in> \<Inter> set (map (ports_to_set \<circ> ipt_ports_negation_type_normalize) ips)"
+apply(simp add: ipt_ports_compress_def)
+apply(induction ips)
+ apply(simp)
+ apply(simp add: ipt_ports_compress_def bunch_of_lemmata_about_matches ipt_ports_andlist_compress_correct)
+apply(rename_tac m ms)
+apply(case_tac m)
+ apply(simp add: ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary ipt_ports_negation_type_normalize.simps)
+apply(simp add: ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+done
+
+
+(*spliting the primitives: multiport list (a list of disjunction!)*)
+lemma multiports_disjuction: "(\<exists>rg\<in>set spts. matches (ipportiface_matcher, \<alpha>) (Match (Src_Ports [rg])) a p) \<longleftrightarrow>
+        matches (ipportiface_matcher, \<alpha>) (Match (Src_Ports spts)) a p"
+  apply(simp add: matches_case_ternaryvalue_tuple bunch_of_lemmata_about_matches bool_to_ternary_simps split: ternaryvalue.split ternaryvalue.split_asm)
+  apply(simp add: bool_to_ternary_Unknown)
+  apply(safe) (*ugly proof*)
+   apply(simp_all add: ports_to_set)
+   apply(blast)
+   by force
+  
+  
+
+lemma singletonize_Src_Ports: "match_list (ipportiface_matcher, \<alpha>) (map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) ms) (spts)) a p \<longleftrightarrow>
+       matches (ipportiface_matcher, \<alpha>) (MatchAnd (Match (Src_Ports spts)) ms) a p"
+  apply(simp add: match_list_matches)
+  apply(simp add: bunch_of_lemmata_about_matches(1))
+  apply(simp add: multiports_disjuction)
+done
+
+
+
 value "case primitive_extractor (is_Src_Ports, src_ports_sel) m 
         of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) rst) (ipt_ports_compress spts)"
 
+(*normalizing source ports, only at most one source port will exist in the match expression!*)
 lemma "normalized_match m \<Longrightarrow> 
-      \<forall> mi \<in> set (case primitive_extractor (is_Src_Ports, src_ports_sel) m 
-        of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) rst) (ipt_ports_compress spts)). matches (ipportiface_matcher, \<alpha>) mi a p \<longleftrightarrow>
+      match_list (ipportiface_matcher, \<alpha>) (case primitive_extractor (is_Src_Ports, src_ports_sel) m 
+        of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) rst) (ipt_ports_compress spts)) a p \<longleftrightarrow>
        matches (ipportiface_matcher, \<alpha>) m a p"
+  apply(case_tac "primitive_extractor (is_Src_Ports, src_ports_sel) m")
+  apply(rename_tac as ms)
   apply(simp)
-  apply(clarify)
-  apply(rename_tac as ms s e)
-  apply(drule sym)
   apply(drule(1) primitive_extractor_correct(1)[OF _ wf_disc_sel_ipportiface_rule_match(1), where \<gamma>="(ipportiface_matcher, \<alpha>)" and a=a and p=p])
+  apply(drule sym) back (*WHOOOOO*)
+  apply(simp)
+  apply(simp add: singletonize_Src_Ports)
   apply(simp add: bunch_of_lemmata_about_matches(1))
-  apply(simp add: ipt_ports_compress_def)
-oops
-
+  apply(simp add: ipt_ports_compress_correct)
+done
 
 fun normalize_ipt_ports :: "ipportiface_rule_match match_expr \<Rightarrow> ipportiface_rule_match match_expr list" where
   "normalize_ipt_ports (Match (Src_Ports [])) = []" |
