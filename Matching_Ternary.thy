@@ -242,6 +242,7 @@ hide_fact bool_to_ternary_simp1 bool_to_ternary_simp2 bool_to_ternary_simp3 bool
 subsection{*Removing Unknown Primitives*}
 
 
+(*see opt_simple_matcher_in_doubt_allow_extra*)
 fun remove_unknowns_generic :: "('a, 'packet) match_tac \<Rightarrow> action \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr" where
   "remove_unknowns_generic _ _ MatchAny = MatchAny" |
   "remove_unknowns_generic _ _ (MatchNot MatchAny) = MatchNot MatchAny" |
@@ -269,7 +270,7 @@ fun remove_unknowns_generic :: "('a, 'packet) match_tac \<Rightarrow> action \<R
           remove_unknowns_generic (\<beta>, \<alpha>) a (MatchNot m2) else
          if (remove_unknowns_generic (\<beta>, \<alpha>) a (MatchNot m2)) = MatchNot MatchAny then 
           remove_unknowns_generic (\<beta>, \<alpha>) a (MatchNot m1) else
-        MatchNot (MatchAnd m1 m2))
+         MatchNot (MatchAnd (MatchNot (remove_unknowns_generic (\<beta>, \<alpha>) a (MatchNot m1))) (MatchNot (remove_unknowns_generic (\<beta>, \<alpha>) a (MatchNot m2)))))
        )"
 
 lemma[code_unfold]: "remove_unknowns_generic \<gamma> a (MatchNot (MatchAnd m1 m2)) = 
@@ -280,7 +281,7 @@ lemma[code_unfold]: "remove_unknowns_generic \<gamma> a (MatchNot (MatchAnd m1 m
         if m1' = MatchNot MatchAny then m2' else
         if m2' = MatchNot MatchAny then m1'
      else
-        MatchNot (MatchAnd m1 m2))
+        MatchNot (MatchAnd (MatchNot m1') (MatchNot m2')))
        )"
 apply(cases \<gamma>)
 apply(simp)
@@ -305,7 +306,6 @@ lemma "a = Accept \<or> a = Drop \<Longrightarrow> \<gamma> = (\<beta>, \<alpha>
   apply safe
                apply(simp_all add : ternary_to_bool_Some ternary_to_bool_None)
 done
-
 
 
 end

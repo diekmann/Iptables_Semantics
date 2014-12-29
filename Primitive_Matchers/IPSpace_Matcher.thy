@@ -80,8 +80,9 @@ fun opt_simple_matcher_in_doubt_allow_extra :: "action \<Rightarrow> iptrule_mat
           opt_simple_matcher_in_doubt_allow_extra a (MatchNot m2) else
          if (opt_simple_matcher_in_doubt_allow_extra a (MatchNot m2)) = MatchNot MatchAny then 
           opt_simple_matcher_in_doubt_allow_extra a (MatchNot m1) else
-        MatchNot (MatchAnd m1 m2))
+        MatchNot (MatchAnd (MatchNot (opt_simple_matcher_in_doubt_allow_extra a (MatchNot m1))) (MatchNot (opt_simple_matcher_in_doubt_allow_extra a (MatchNot m2)))))
        )" |
+       --{*For the final else case, we exploit idempotence of not to introduce recursive calls*}
   (* does not hold:
     "opt_simple_matcher_in_doubt_allow_extra a (MatchNot (MatchAnd m1 m2)) = 
     MatchNot (MatchAnd (opt_simple_matcher_in_doubt_allow_extra a m1) (opt_simple_matcher_in_doubt_allow_extra a m2))" |*)
@@ -98,7 +99,7 @@ lemma[code_unfold]: "opt_simple_matcher_in_doubt_allow_extra a (MatchNot (MatchA
         if m1' = MatchNot MatchAny then m2' else
         if m2' = MatchNot MatchAny then m1'
      else
-        MatchNot (MatchAnd m1 m2))
+        MatchNot (MatchAnd (MatchNot m1') (MatchNot m2')))
        )"
 by(simp)
 
@@ -134,16 +135,30 @@ proof -
 qed
 
 
-(******** SCRATCH ************)
+
 fun has_unknowns :: " ('a, 'p) exact_match_tac \<Rightarrow> 'a match_expr \<Rightarrow> bool" where
   "has_unknowns \<beta> (Match A) = (\<exists>p. ternary_ternary_eval (map_match_tac \<beta> p (Match A)) = TernaryUnknown)" |
   "has_unknowns \<beta> (MatchNot m) = has_unknowns \<beta> m" |
   "has_unknowns \<beta> MatchAny = False" |
   "has_unknowns \<beta> (MatchAnd m1 m2) = (has_unknowns \<beta> m1 \<or> has_unknowns \<beta> m2)"
 
+
+lemma simple_matcher_prot_not_unkown: "simple_matcher (Prot v) p \<noteq> TernaryUnknown"
+  apply(cases v)
+  apply(simp_all add: bool_to_ternary_Unknown)
+done
+
+text{*@{const opt_simple_matcher_in_doubt_allow_extra} does indeed remove all unknowns*}
+theorem opt_simple_matcher_in_doubt_allow_extra_specification:
+  "a = Accept \<or> a = Drop \<or> a = Reject \<Longrightarrow> \<not> has_unknowns simple_matcher (opt_simple_matcher_in_doubt_allow_extra a m)"
+  apply(induction a m rule: opt_simple_matcher_in_doubt_allow_extra.induct)
+  apply(simp_all add: bool_to_ternary_Unknown simple_matcher_prot_not_unkown)
+done
+
 value "opt_simple_matcher_in_doubt_allow_extra Drop (MatchNot (MatchAnd (MatchNot MatchAny) (MatchNot (MatchAnd (MatchNot MatchAny) (Match (Extra ''foo''))))))"
 value "opt_simple_matcher_in_doubt_allow_extra Accept ((MatchAnd (MatchNot MatchAny) (MatchNot (MatchAnd (MatchNot MatchAny) (Match (Extra ''foo''))))))"
 
+(*
 lemma "(\<exists>p. ternary_ternary_eval (map_match_tac \<beta> p m) = TernaryUnknown) \<Longrightarrow> has_unknowns \<beta> m"
 apply(clarify)
 apply(induction m)
@@ -153,10 +168,6 @@ apply (metis eval_ternary_Not_UnknownD)
 by (metis (poly_guards_query) eval_ternary_simps(2) eval_ternary_simps(4) ternaryvalue.exhaust)
 
 
-lemma simple_matcher_prot_not_unkown: "simple_matcher (Prot v) p \<noteq> TernaryUnknown"
-  apply(cases v)
-  apply(simp_all add: bool_to_ternary_Unknown)
-done
 lemma a_unknown_extraD: "\<exists>p. simple_matcher (a::iptrule_match) p = TernaryUnknown \<Longrightarrow> \<exists>X. a = Extra X"
   apply(clarify)
   apply(case_tac a)
@@ -168,6 +179,18 @@ lemma has_unknowns_simple_matcher_base: "has_unknowns simple_matcher (Match A) \
   apply(rule iffI)
    apply(drule a_unknown_extraD, simp)
   by auto
+
+
+fun has_unknowns_simple_matcher :: "(iptrule_match, packet) exact_match_tac \<Rightarrow> iptrule_match match_expr \<Rightarrow> bool" where
+  "has_unknowns_simple_matcher \<beta> (Match A) = (\<exists>X. A = Extra X)" |
+  "has_unknowns_simple_matcher \<beta> (MatchNot m) = has_unknowns \<beta> m" |
+  "has_unknowns_simple_matcher \<beta> MatchAny = False" |
+  "has_unknowns_simple_matcher \<beta> (MatchAnd m1 m2) = (has_unknowns_simple_matcher \<beta> m1 \<or> has_unknowns_simple_matcher \<beta> m2)"
+
+value "opt_simple_matcher_in_doubt_allow_extra Drop
+    (MatchNot (MatchAnd 
+      (MatchAnd (Match (Src (Ip4Addr (0,0,0,0)))) MatchAny)
+      (MatchNot (MatchAnd (MatchNot MatchAny) (Match (Extra ''foo''))))))"
   
 
 lemma "has_unknowns simple_matcher m \<Longrightarrow>
@@ -346,8 +369,7 @@ lemma "a = Accept \<or> a = Drop \<or> a = Reject \<Longrightarrow> \<not> has_u
   apply(rule match_expr.induct)
   apply(simp_all add: has_unknowns_simple_matcher_base del: has_unknowns.simps(1))
 oops
-
-(******** END SCRATCH ************)
+*)
 
 (*TODO move?*)
 lemma eval_ternary_And_UnknownTrue1: "eval_ternary_And TernaryUnknown t \<noteq> TernaryTrue"
@@ -379,7 +401,9 @@ lemma opt_simple_matcher_in_doubt_allow_extra_correct_matchexpr: "matches (simpl
    apply(simp_all)
 done
 
-corollary opt_simple_matcher_in_doubt_allow_extra_correct: "approximating_bigstep_fun (simple_matcher, in_doubt_allow) p (optimize_matches_a opt_simple_matcher_in_doubt_allow_extra rs) s = approximating_bigstep_fun (simple_matcher, in_doubt_allow) p rs s"
+corollary opt_simple_matcher_in_doubt_allow_extra_correct:
+  "approximating_bigstep_fun (simple_matcher, in_doubt_allow) p (optimize_matches_a opt_simple_matcher_in_doubt_allow_extra rs) s = 
+   approximating_bigstep_fun (simple_matcher, in_doubt_allow) p rs s"
 using optimize_matches_a opt_simple_matcher_in_doubt_allow_extra_correct_matchexpr by metis
 
 
@@ -404,7 +428,7 @@ fun opt_simple_matcher_in_doubt_deny_extra :: "action \<Rightarrow> iptrule_matc
           opt_simple_matcher_in_doubt_deny_extra a (MatchNot m2) else
          if (opt_simple_matcher_in_doubt_deny_extra a (MatchNot m2)) = MatchNot MatchAny then 
           opt_simple_matcher_in_doubt_deny_extra a (MatchNot m1) else
-        MatchNot (MatchAnd m1 m2))
+        MatchNot (MatchAnd (MatchNot (opt_simple_matcher_in_doubt_deny_extra a (MatchNot m1))) (MatchNot (opt_simple_matcher_in_doubt_deny_extra a (MatchNot m2)))))
        )" |
   "opt_simple_matcher_in_doubt_deny_extra _ (MatchNot m) = MatchNot m" | (*TODO*)
   "opt_simple_matcher_in_doubt_deny_extra a (MatchAnd m1 m2) = MatchAnd (opt_simple_matcher_in_doubt_deny_extra a m1) (opt_simple_matcher_in_doubt_deny_extra a m2)"
@@ -430,6 +454,11 @@ using optimize_matches_a opt_simple_matcher_in_doubt_deny_extra_correct_matchexp
 
 
 
+theorem opt_simple_matcher_in_doubt_deny_extra_specification:
+  "a = Accept \<or> a = Drop \<or> a = Reject \<Longrightarrow> \<not> has_unknowns simple_matcher (opt_simple_matcher_in_doubt_deny_extra a m)"
+  apply(induction a m rule: opt_simple_matcher_in_doubt_deny_extra.induct)
+  apply(simp_all add: bool_to_ternary_Unknown simple_matcher_prot_not_unkown)
+done
 
 
 
