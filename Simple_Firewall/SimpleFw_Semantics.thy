@@ -21,8 +21,13 @@ text{*Very TODO*}
     src :: "(ipv4addr \<times> nat) negation_type" --"source"
     dst :: "(ipv4addr \<times> nat) negation_type" --"destination"
     proto :: "protocol"
-    sports :: "(16 word \<times> 16 word) negation_type" --"source-port first:last"
-    dports :: "(16 word \<times> 16 word) negation_type" --"destination-port first:last"
+    sports :: "(16 word \<times> 16 word)" --"source-port first:last"
+    dports :: "(16 word \<times> 16 word)" --"destination-port first:last"
+    (*ports have no negation type as this can be represented by multiple firewall rules
+      for example: !(3,4)
+      is representable by
+      (1,2) and (4,65535)
+      *)
 
   datatype simple_rule = SimpleRule simple_match simple_action
 
@@ -32,9 +37,8 @@ subsection{*Simple Firewall Semantics*}
     "simple_match_ip (Pos (ip, n)) p_ip \<longleftrightarrow> p_ip \<in> ipv4range_set_from_bitmask ip n" |
     "simple_match_ip (Neg (ip, n)) p_ip \<longleftrightarrow> p_ip \<notin> ipv4range_set_from_bitmask ip n"
 
-  fun simple_match_port :: "(16 word \<times> 16 word) negation_type \<Rightarrow> 16 word \<Rightarrow> bool" where
-    "simple_match_port (Pos (s,e)) p_p \<longleftrightarrow> p_p \<in> {s..e}" |
-    "simple_match_port (Neg (s,e)) p_p \<longleftrightarrow> p_p \<notin> {s..e}"
+  fun simple_match_port :: "(16 word \<times> 16 word) \<Rightarrow> 16 word \<Rightarrow> bool" where
+    "simple_match_port (s,e) p_p \<longleftrightarrow> p_p \<in> {s..e}"
 
   fun simple_matches :: "simple_match \<Rightarrow> simple_packet \<Rightarrow> bool" where
     "simple_matches m p \<longleftrightarrow>
@@ -55,7 +59,7 @@ subsection{*Simple Firewall Semantics*}
 
   
   definition simple_match_any :: "simple_match" where
-    "simple_match_any \<equiv> \<lparr>iiface=IfaceAny, oiface=IfaceAny, src=Pos (0,0), dst=Pos (0,0), proto=ProtoAny, sports=Pos (0,65535), dports=Pos (0,65535) \<rparr>"
+    "simple_match_any \<equiv> \<lparr>iiface=IfaceAny, oiface=IfaceAny, src=Pos (0,0), dst=Pos (0,0), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
 
   lemma simple_match_any: "simple_matches simple_match_any p"
     apply(simp add: simple_match_any_def ipv4range_set_from_bitmask_0)

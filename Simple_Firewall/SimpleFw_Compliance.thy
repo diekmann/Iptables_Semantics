@@ -20,8 +20,8 @@ fun simple_match_to_ipportiface_match :: "simple_match \<Rightarrow> ipportiface
     (MatchAnd (negation_type_to_match_expr (\<lambda>x. Src (ipv4_word_netmask_to_ipt_ipv4range x)) sip )
     (MatchAnd (negation_type_to_match_expr (\<lambda>x. Dst (ipv4_word_netmask_to_ipt_ipv4range x)) dip )
     (MatchAnd (Match (Prot p))
-    (MatchAnd (negation_type_to_match_expr (\<lambda>x. Src_Ports [x]) sps)
-    (negation_type_to_match_expr (\<lambda>x. Dst_Ports [x]) dps)
+    (MatchAnd (Match (Src_Ports [sps]))
+    (Match (Dst_Ports [dps]))
     )))))"
 
 
@@ -30,15 +30,12 @@ fun simple_match_to_ipportiface_match :: "simple_match \<Rightarrow> ipportiface
 lemma xxx: "matches \<gamma> (simple_match_to_ipportiface_match \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr>) a p \<longleftrightarrow> 
       matches \<gamma> (alist_and ([Pos (IIface iif), Pos (OIface oif)] @ (NegPos_map (Src \<circ> ipv4_word_netmask_to_ipt_ipv4range) [sip])
         @ (NegPos_map (Dst \<circ> ipv4_word_netmask_to_ipt_ipv4range) [dip]) @ [Pos (Prot p)]
-        @ (NegPos_map (\<lambda>x. Src_Ports [x]) [sps]) @ (NegPos_map (\<lambda>x. Dst_Ports [x]) [dps]))) a p"
+        @ [Pos (Src_Ports [sps])] @ [Pos (Dst_Ports [dps])])) a p"
 apply(simp add:)
 apply(cases sip)
 apply(simp_all)
 apply(case_tac [!] dip)
 apply(simp_all)
-apply(case_tac [!] sps)
-apply(simp_all)
-apply(case_tac [!] dps)
 apply(simp_all add: bunch_of_lemmata_about_matches)
 done
 
@@ -73,7 +70,7 @@ apply(simp add: bunch_of_lemmata_about_matches bool_to_ternary_simps ipv4addr_of
 done
 
 
-lemma ports_to_set_singleton_simple_match_port: "p \<in> ports_to_set [a] \<longleftrightarrow> simple_match_port (Pos a) p"
+lemma ports_to_set_singleton_simple_match_port: "p \<in> ports_to_set [a] \<longleftrightarrow> simple_match_port a p"
   by(cases a, simp)
 
 
@@ -89,9 +86,6 @@ apply(case_tac [!] sps)
 apply(simp_all)
 apply(case_tac [!] dps)
 apply(simp_all)
-apply(simp_all add: bunch_of_lemmata_about_matches eval_ternary_simps ternary_to_bool_bool_to_ternary)
-apply(simp_all add: ports_to_set_singleton_simple_match_port)
-apply(auto simp add: matches_case_ternaryvalue_tuple bunch_of_lemmata_about_matches bool_to_ternary_simps split: ternaryvalue.split) (* oh dear, sorry for that *)
 done
 
 
@@ -103,7 +97,7 @@ fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Ri
   "ipportiface_match_to_simple_match (Match (Src ip)) = simple_match_any\<lparr> src := Pos (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>" |
   "ipportiface_match_to_simple_match (Match (Dst ip)) = simple_match_any\<lparr> dst := Pos (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>" |
   "ipportiface_match_to_simple_match (Match (Prot p)) = simple_match_any\<lparr> proto := p \<rparr>"|
-  "ipportiface_match_to_simple_match (Match (Src_Ports ps)) = simple_match_any\<lparr> sports := Pos (0,0) \<rparr>"
+  "ipportiface_match_to_simple_match (Match (Src_Ports ps)) = simple_match_any\<lparr> sports :=  (0,0) \<rparr>"
   (* hmm, port list (\<or>) to one port, creates multiple rules! need normalize_ports for match_Expr*)
 (*\<dots>*)
 
