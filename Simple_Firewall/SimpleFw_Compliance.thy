@@ -236,21 +236,23 @@ definition normalize_ports_step :: "((ipportiface_rule_match \<Rightarrow> bool)
               of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (C [spt]))) rst) (ipt_ports_compress spts))"
 
 
-(*normalizing source ports, only at most one source port will exist in the match expression!*)
-lemma "normalized_match m \<Longrightarrow> 
-      match_list (ipportiface_matcher, \<alpha>) (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m) a p \<longleftrightarrow>
+(*normalizing source ports, only at most one source port will exist in the match expression.*)
+
+lemma normalize_ports_step_Src: assumes "normalized_match m" shows
+      "match_list (ipportiface_matcher, \<alpha>) (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m) a p \<longleftrightarrow>
        matches (ipportiface_matcher, \<alpha>) m a p"
-  unfolding normalize_ports_step_def
-  apply(case_tac "primitive_extractor (is_Src_Ports, src_ports_sel) m")
-  apply(rename_tac as ms)
-  apply(simp)
-  apply(drule(1) primitive_extractor_correct(1)[OF _ wf_disc_sel_ipportiface_rule_match(1), where \<gamma>="(ipportiface_matcher, \<alpha>)" and a=a and p=p])
-  apply(drule sym) back (*WHOOOOO*)
-  apply(simp)
-  apply(simp add: singletonize_SrcDst_Ports(1))
-  apply(simp add: bunch_of_lemmata_about_matches(1))
-  apply(simp add: ipt_ports_compress_correct)
-done
+  proof -
+    obtain as ms where pe: "primitive_extractor (is_Src_Ports, src_ports_sel) m = (as, ms)" by fastforce
+    from pe have normalize_ports_step: "normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m = (map (\<lambda>spt. MatchAnd (Match (Src_Ports [spt])) ms) (ipt_ports_compress as))"
+      by(simp add: normalize_ports_step_def)
+    from pe  primitive_extractor_correct(1)[OF assms wf_disc_sel_ipportiface_rule_match(1), where \<gamma>="(ipportiface_matcher, \<alpha>)" and a=a and p=p] have 
+      "matches (ipportiface_matcher, \<alpha>) m a p \<longleftrightarrow> (matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map Src_Ports as)) a p \<and> matches (ipportiface_matcher, \<alpha>) ms a p)"
+    by simp
+    also have "... \<longleftrightarrow> match_list (ipportiface_matcher, \<alpha>) (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m) a p"
+      by(simp add: normalize_ports_step singletonize_SrcDst_Ports(1) bunch_of_lemmata_about_matches(1) ipt_ports_compress_correct)
+    finally show ?thesis by simp
+  qed
+
 lemma "normalized_match m \<Longrightarrow> 
       match_list (ipportiface_matcher, \<alpha>) (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports m) a p \<longleftrightarrow>
        matches (ipportiface_matcher, \<alpha>) m a p"
