@@ -178,14 +178,22 @@ definition ipt_ports_compress :: "ipt_ports negation_type list \<Rightarrow> ipt
 (*TODO: only for src*)
 lemma ipt_ports_compress_correct:
   "matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map Src_Ports ms)) a p \<longleftrightarrow> matches (ipportiface_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_compress ms))) a p"
-apply(induction ms)
- apply(simp add: ipt_ports_compress_def bunch_of_lemmata_about_matches ipt_ports_andlist_compress_correct)
-apply(rename_tac m ms)
-apply(case_tac m)
- apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary ipt_ports_negation_type_normalize.simps)
-apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
-apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps l2br_br2l ports_to_set_bitrange ipt_ports_negation_type_normalize.simps split: ternaryvalue.split)
-done
+proof(induction ms)
+  case Nil thus ?case by(simp add: ipt_ports_compress_def bunch_of_lemmata_about_matches ipt_ports_andlist_compress_correct)
+  next
+  case (Cons m ms)
+    thus ?case (is ?goal)
+    proof(cases m)
+      case Pos thus ?goal using Cons
+        by(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary ipt_ports_negation_type_normalize.simps)
+      next
+      case Neg thus ?goal using Cons
+        apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+        apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps l2br_br2l ports_to_set_bitrange ipt_ports_negation_type_normalize.simps split: ternaryvalue.split)
+        done
+      qed
+qed
+
 
 lemma ipt_ports_compress_matches_set: "matches (ipportiface_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_compress ips))) a p \<longleftrightarrow>
        p_sport p \<in> \<Inter> set (map (ports_to_set \<circ> ipt_ports_negation_type_normalize) ips)"
@@ -213,7 +221,7 @@ done
 value "case primitive_extractor (is_Src_Ports, src_ports_sel) m 
         of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) rst) (ipt_ports_compress spts)"
 
-(*normalizing source ports, only at most one source port will exist in the match expression!*)
+(*normalizing source ports, only at most one source port will exist in the match expression. better proof and formalization below*)
 lemma "normalized_match m \<Longrightarrow> 
       match_list (ipportiface_matcher, \<alpha>) (case primitive_extractor (is_Src_Ports, src_ports_sel) m 
         of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) rst) (ipt_ports_compress spts)) a p \<longleftrightarrow>
@@ -237,7 +245,6 @@ definition normalize_ports_step :: "((ipportiface_rule_match \<Rightarrow> bool)
 
 
 (*normalizing source ports, only at most one source port will exist in the match expression.*)
-
 lemma normalize_ports_step_Src: assumes "normalized_match m" shows
       "match_list (ipportiface_matcher, \<alpha>) (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m) a p \<longleftrightarrow>
        matches (ipportiface_matcher, \<alpha>) m a p"
