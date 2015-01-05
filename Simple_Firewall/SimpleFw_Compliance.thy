@@ -167,16 +167,13 @@ lemma ipt_ports_andlist_compress_correct: "ports_to_set (ipt_ports_andlist_compr
       unfolding ipt_ports_andlist_compress_def by(simp add: ports_to_set_bitrange l2br_br2l)
   qed
 
-(**TODO: combine proofs to alist_and**)
-find_consts "'b list \<Rightarrow> 'a match_expr"
-
 
 definition ipt_ports_compress :: "ipt_ports negation_type list \<Rightarrow> ipt_ports" where
   "ipt_ports_compress pss = ipt_ports_andlist_compress (map ipt_ports_negation_type_normalize pss)"
 
 
 (*TODO: only for src*)
-lemma ipt_ports_compress_correct:
+lemma ipt_ports_compress_src_correct:
   "matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map Src_Ports ms)) a p \<longleftrightarrow> matches (ipportiface_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_compress ms))) a p"
 proof(induction ms)
   case Nil thus ?case by(simp add: ipt_ports_compress_def bunch_of_lemmata_about_matches ipt_ports_andlist_compress_correct)
@@ -184,10 +181,29 @@ proof(induction ms)
   case (Cons m ms)
     thus ?case (is ?goal)
     proof(cases m)
-      case Pos thus ?goal using Cons
+      case Pos thus ?goal using Cons.IH
         by(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary ipt_ports_negation_type_normalize.simps)
       next
-      case Neg thus ?goal using Cons
+      case (Neg a)
+        thus ?goal using Cons.IH
+        apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+        apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps l2br_br2l ports_to_set_bitrange ipt_ports_negation_type_normalize.simps split: ternaryvalue.split)
+        done
+      qed
+qed
+lemma ipt_ports_compress_dst_correct:
+  "matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map Dst_Ports ms)) a p \<longleftrightarrow> matches (ipportiface_matcher, \<alpha>) (Match (Dst_Ports (ipt_ports_compress ms))) a p"
+proof(induction ms)
+  case Nil thus ?case by(simp add: ipt_ports_compress_def bunch_of_lemmata_about_matches ipt_ports_andlist_compress_correct)
+  next
+  case (Cons m ms)
+    thus ?case (is ?goal)
+    proof(cases m)
+      case Pos thus ?goal using Cons.IH
+        by(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary ipt_ports_negation_type_normalize.simps)
+      next
+      case (Neg a)
+        thus ?goal using Cons.IH
         apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
         apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps l2br_br2l ports_to_set_bitrange ipt_ports_negation_type_normalize.simps split: ternaryvalue.split)
         done
@@ -234,7 +250,7 @@ lemma "normalized_match m \<Longrightarrow>
   apply(simp)
   apply(simp add: singletonize_SrcDst_Ports)
   apply(simp add: bunch_of_lemmata_about_matches(1))
-  apply(simp add: ipt_ports_compress_correct)
+  apply(simp add: ipt_ports_compress_src_correct)
 done
 
 definition normalize_ports_step :: "((ipportiface_rule_match \<Rightarrow> bool) \<times> (ipportiface_rule_match \<Rightarrow> ipt_ports)) \<Rightarrow> 
@@ -256,7 +272,7 @@ lemma normalize_ports_step_Src: assumes "normalized_match m" shows
       "matches (ipportiface_matcher, \<alpha>) m a p \<longleftrightarrow> (matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map Src_Ports as)) a p \<and> matches (ipportiface_matcher, \<alpha>) ms a p)"
     by simp
     also have "... \<longleftrightarrow> match_list (ipportiface_matcher, \<alpha>) (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m) a p"
-      by(simp add: normalize_ports_step singletonize_SrcDst_Ports(1) bunch_of_lemmata_about_matches(1) ipt_ports_compress_correct)
+      by(simp add: normalize_ports_step singletonize_SrcDst_Ports(1) bunch_of_lemmata_about_matches(1) ipt_ports_compress_src_correct)
     finally show ?thesis by simp
   qed
 
@@ -272,8 +288,8 @@ lemma "normalized_match m \<Longrightarrow>
   apply(simp)
   apply(simp add: singletonize_SrcDst_Ports(2))
   apply(simp add: bunch_of_lemmata_about_matches(1))
-  apply(simp add: ipt_ports_compress_correct)
-oops
+  apply(simp add: ipt_ports_compress_dst_correct)
+done
 
 
 (*TODO*)

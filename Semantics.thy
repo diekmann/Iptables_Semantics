@@ -477,6 +477,7 @@ locale iptables_bigstep_fixedbackground =
 
   lemma wf_\<Gamma>_append: "wf_\<Gamma> (rs1@rs2) \<longleftrightarrow> wf_\<Gamma> rs1 \<and> wf_\<Gamma> rs2"
     by(simp add: wf_\<Gamma>_def, blast)
+  lemma wf_\<Gamma>_tail: "wf_\<Gamma> (r # rs) \<Longrightarrow> wf_\<Gamma> rs" by(simp add: wf_\<Gamma>_def)
   lemma wf_\<Gamma>_Call: "wf_\<Gamma> [Rule m (Call chain)] \<Longrightarrow> wf_\<Gamma> (the (\<Gamma> chain)) \<and> (\<exists>rs. \<Gamma> chain = Some rs)"
     apply(simp add: wf_\<Gamma>_def)
     by (metis option.collapse ranI)
@@ -490,6 +491,7 @@ locale iptables_bigstep_fixedbackground =
     apply(induction rs s t rule: iptables_bigstep.induct)
     apply(auto intro: iptables_bigstep'.intros simp: wf_\<Gamma>_append dest!: wf_\<Gamma>_Call)[11]
     done
+    
   end
 
 
