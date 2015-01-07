@@ -318,36 +318,26 @@ subsubsection{*Normalizing ports*}
   
   lemma "\<forall>spt \<in> set (ipt_ports_compress spts). normalized_src_ports (Match (Src_Ports [spt]))" by(simp)
   
-  lemma help1: "normalized_match ms \<Longrightarrow> \<not> has_disc is_Src_Ports ms \<Longrightarrow> normalized_src_ports ms"
-    apply(induction ms rule: normalized_src_ports.induct)
-    apply(simp_all)
-    done
-  
-  lemma normalize_ports_step_normalized_src_ports_helper: "normalized_match m \<Longrightarrow> 
-        primitive_extractor (is_Src_Ports, src_ports_sel) m = (spts, ms) \<Longrightarrow>
-        ml \<in> set (map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) ms) (ipt_ports_compress spts))\<Longrightarrow>
-        normalized_src_ports ml"
-  apply(simp)
-  apply(frule(1) primitive_extractor_correct(2)[OF _ wf_disc_sel_ipportiface_rule_match(1)])
-  apply(frule(1) primitive_extractor_correct(3)[OF _ wf_disc_sel_ipportiface_rule_match(1)])
-  apply(simp add: ipt_ports_compress_def)
-  apply(drule(1) help1)
-  apply(induction spts)
-   apply(clarsimp)+
-  done
-  
-  lemma "normalized_match m \<Longrightarrow> \<forall>mn \<in> set (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m). normalized_src_ports mn \<and> normalized_match mn"
-    unfolding normalize_ports_step_def
-    apply(simp)
-    apply(intro allI impI)
-    apply(elim exE)
-    apply(rename_tac ms pts)
-    apply(rule conjI)
-     using normalize_ports_step_normalized_src_ports_helper apply(force)
-    apply(drule_tac as=pts and ms=ms in primitive_extractor_correct(2)[OF _ wf_disc_sel_ipportiface_rule_match(1)])
-     apply(simp)
-    by fastforce
-    
+
+  lemma assumes "normalized_match m"
+    shows "\<forall>mn \<in> set (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m). normalized_src_ports mn \<and> normalized_match mn"
+    proof
+      fix mn
+      assume assm2: "mn \<in> set (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m)"
+      obtain pts ms where pts_ms: "primitive_extractor (is_Src_Ports, src_ports_sel) m = (pts, ms)" by fastforce
+      from pts_ms have "normalized_match ms" and "\<not> has_disc is_Src_Ports ms"
+        using primitive_extractor_correct[OF assms wf_disc_sel_ipportiface_rule_match(1)] by simp_all
+      from assm2 pts_ms have normalize_ports_step_unfolded: "mn \<in> (\<lambda>spt. MatchAnd (Match (Src_Ports [spt])) ms) ` set (ipt_ports_compress pts)"
+        unfolding normalize_ports_step_def by force
+      with `normalized_match ms` have "normalized_match mn" by fastforce
+      from `normalized_match ms` `\<not> has_disc is_Src_Ports ms` have "normalized_src_ports ms"
+        by(induction ms rule: normalized_src_ports.induct, simp_all)
+      from normalize_ports_step_unfolded this have "normalized_src_ports mn"
+      apply(induction pts)
+       apply(clarsimp)+
+      done
+      with `normalized_match mn` show "normalized_src_ports mn \<and> normalized_match mn" by simp
+    qed
 
 
 end
