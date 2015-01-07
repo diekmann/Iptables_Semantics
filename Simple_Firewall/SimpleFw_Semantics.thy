@@ -67,7 +67,6 @@ subsection{*Simple Firewall Semantics*}
      apply(simp)
     apply(simp add: max_word_def)
     done
-    
-
+  
 
 end

@@ -21,6 +21,34 @@ fun ipportiface_matcher :: "(ipportiface_rule_match, simple_packet) exact_match_
 
 
 
+  text{*Warning: beware of the sloppy term `empty' portrange*} 
+  text{*An `empty' port range means it can never match! Basically, @{term "MatchNot (Match (Src_Ports [(0,65535)]))"} is False*}
+  lemma "\<not> matches (ipportiface_matcher, \<alpha>) (MatchNot (Match (Src_Ports [(0,65535)]))) a 
+          \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotteddecimal (192,168,2,45), p_dst= ipv4addr_of_dotteddecimal (173,194,112,111),
+                   p_proto=TCP, p_sport=2065, p_dport=80\<rparr>"
+  (*<*)by(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)(*>*)
+  text{*An `empty' port range means it always matches! Basically, @{term "(MatchNot (Match (Src_Ports [])))"} is True.
+        This corresponds to firewall behavior, but usually you cannot specify an empty portrange in firewalls, but omission of portrange means no-port-restrictions, 
+        i.e. every port matches.*}
+  lemma "matches (ipportiface_matcher, \<alpha>) (MatchNot (Match (Src_Ports []))) a 
+          \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotteddecimal (192,168,2,45), p_dst= ipv4addr_of_dotteddecimal (173,194,112,111),
+                   p_proto=TCP, p_sport=2065, p_dport=80\<rparr>"
+  (*<*)by(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)(*>*)
+  text{*If not a corner case, portrange matching is straight forward.*}
+  lemma "matches (ipportiface_matcher, \<alpha>) (Match (Src_Ports [(1024,4096), (9999, 65535)])) a 
+          \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotteddecimal (192,168,2,45), p_dst= ipv4addr_of_dotteddecimal (173,194,112,111),
+                   p_proto=TCP, p_sport=2065, p_dport=80\<rparr>"
+        "\<not> matches (ipportiface_matcher, \<alpha>) (Match (Src_Ports [(1024,4096), (9999, 65535)])) a 
+          \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotteddecimal (192,168,2,45), p_dst= ipv4addr_of_dotteddecimal (173,194,112,111),
+                   p_proto=TCP, p_sport=5000, p_dport=80\<rparr>"
+        "\<not>matches (ipportiface_matcher, \<alpha>) (MatchNot (Match (Src_Ports [(1024,4096), (9999, 65535)]))) a 
+          \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotteddecimal (192,168,2,45), p_dst= ipv4addr_of_dotteddecimal (173,194,112,111),
+                   p_proto=TCP, p_sport=2065, p_dport=80\<rparr>"
+  (*<*)by(simp_all add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)(*>*)
+  
+  
+
+
 
 text{*Lemmas when matching on @{term Src} or @{term Dst}*}
 lemma ipportiface_matcher_SrcDst_defined:
