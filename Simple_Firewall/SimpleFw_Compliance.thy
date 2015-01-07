@@ -134,32 +134,15 @@ subsubsection{*Merging Simple Matches*}
 text{*@{typ "simple_match"} @{text \<and>} @{typ "simple_match"}*}
 
 subsubsection{*Normalizing ports*}
-  
   (*TODO: Move?*)
+
   fun ipt_ports_negation_type_normalize :: "ipt_ports negation_type \<Rightarrow> ipt_ports" where
     "ipt_ports_negation_type_normalize (Pos ps) = ps" |
-    "ipt_ports_negation_type_normalize (Neg ps) = br2l (bitrange_invert (l2br ps))"
+    "ipt_ports_negation_type_normalize (Neg ps) = br2l (bitrange_invert (l2br ps))"  
   
   
-  
-  (*warning!! an empty port range means it can never match!
-    No port range matches (corresponds to firewall behavior, but usually you cannot specify an empty portrange here)*)
   lemma "ipt_ports_negation_type_normalize (Neg [(0,65535)]) = []" by eval
-  lemma "\<not> matches (ipportiface_matcher, \<alpha>) (MatchNot (Match (Src_Ports [(0,65535)]))) a 
-          \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotteddecimal (192,168,2,45), p_dst= ipv4addr_of_dotteddecimal (173,194,112,111),
-                   p_proto=TCP, p_sport=2065, p_dport=80\<rparr>"
-  by(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
-  lemma "matches (ipportiface_matcher, \<alpha>) (MatchNot (Match (Src_Ports []))) a 
-          \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotteddecimal (192,168,2,45), p_dst= ipv4addr_of_dotteddecimal (173,194,112,111),
-                   p_proto=TCP, p_sport=2065, p_dport=80\<rparr>"
-  by(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
-  lemma "\<not>matches (ipportiface_matcher, \<alpha>) (MatchNot (Match (Src_Ports [(1024,4096)]))) a 
-          \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotteddecimal (192,168,2,45), p_dst= ipv4addr_of_dotteddecimal (173,194,112,111),
-                   p_proto=TCP, p_sport=2065, p_dport=80\<rparr>"
-  by(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
-  
-  
-  
+
   declare ipt_ports_negation_type_normalize.simps[simp del]
   
   lemma ipt_ports_negation_type_normalize_correct:
