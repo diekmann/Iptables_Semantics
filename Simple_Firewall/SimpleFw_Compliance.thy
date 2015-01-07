@@ -14,6 +14,8 @@ fun negation_type_to_match_expr :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a negat
   "negation_type_to_match_expr f (Pos a) = Match (f a)" |
   "negation_type_to_match_expr f (Neg a) = MatchNot (Match (f a))"
 
+subsection{*Simple Match to MatchExpr*}
+
 fun simple_match_to_ipportiface_match :: "simple_match \<Rightarrow> ipportiface_rule_match match_expr" where
   "simple_match_to_ipportiface_match \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> = 
     MatchAnd (Match (IIface iif)) (MatchAnd (Match (OIface oif)) 
@@ -74,7 +76,7 @@ lemma ports_to_set_singleton_simple_match_port: "p \<in> ports_to_set [a] \<long
   by(cases a, simp)
 
 
-lemma "matches (ipportiface_matcher, \<alpha>) (simple_match_to_ipportiface_match sm) a p \<longleftrightarrow> simple_matches sm p"
+theorem simple_match_to_ipportiface_match_correct: "matches (ipportiface_matcher, \<alpha>) (simple_match_to_ipportiface_match sm) a p \<longleftrightarrow> simple_matches sm p"
   apply(cases sm)
   apply(rename_tac iif oif sip dip pro sps dps)
   apply(simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
@@ -89,7 +91,9 @@ apply(simp_all)
 done
 
 
-thm normalized_match.simps
+subsection{*MatchExpr to Simple Match*}
+(*Unfinished*)
+text{*Unfinished*}
 
 fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Rightarrow> simple_match" where
   "ipportiface_match_to_simple_match (Match (IIface iif)) = simple_match_any\<lparr> iiface := iif \<rparr>" |
@@ -237,22 +241,8 @@ done
 value "case primitive_extractor (is_Src_Ports, src_ports_sel) m 
         of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) rst) (ipt_ports_compress spts)"
 
-(*normalizing source ports, only at most one source port will exist in the match expression. better proof and formalization below*)
-lemma "normalized_match m \<Longrightarrow> 
-      match_list (ipportiface_matcher, \<alpha>) (case primitive_extractor (is_Src_Ports, src_ports_sel) m 
-        of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) rst) (ipt_ports_compress spts)) a p \<longleftrightarrow>
-       matches (ipportiface_matcher, \<alpha>) m a p"
-  apply(case_tac "primitive_extractor (is_Src_Ports, src_ports_sel) m")
-  apply(rename_tac as ms)
-  apply(simp)
-  apply(drule(1) primitive_extractor_correct(1)[OF _ wf_disc_sel_ipportiface_rule_match(1), where \<gamma>="(ipportiface_matcher, \<alpha>)" and a=a and p=p])
-  apply(drule sym) back (*WHOOOOO*)
-  apply(simp)
-  apply(simp add: singletonize_SrcDst_Ports)
-  apply(simp add: bunch_of_lemmata_about_matches(1))
-  apply(simp add: ipt_ports_compress_src_correct)
-done
 
+text{*Normalizing match expressions such that at most one port will exist in it. Returns a list of match expressions (splits one firewall rule into several rules).*}
 definition normalize_ports_step :: "((ipportiface_rule_match \<Rightarrow> bool) \<times> (ipportiface_rule_match \<Rightarrow> ipt_ports)) \<Rightarrow> 
                              (ipt_ports \<Rightarrow> ipportiface_rule_match) \<Rightarrow>
                              ipportiface_rule_match match_expr \<Rightarrow> ipportiface_rule_match match_expr list" where 
@@ -260,7 +250,6 @@ definition normalize_ports_step :: "((ipportiface_rule_match \<Rightarrow> bool)
               of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (C [spt]))) rst) (ipt_ports_compress spts))"
 
 
-(*normalizing source ports, only at most one source port will exist in the match expression.*)
 lemma normalize_ports_step_Src: assumes "normalized_match m" shows
       "match_list (ipportiface_matcher, \<alpha>) (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m) a p \<longleftrightarrow>
        matches (ipportiface_matcher, \<alpha>) m a p"
@@ -275,53 +264,61 @@ lemma normalize_ports_step_Src: assumes "normalized_match m" shows
       by(simp add: normalize_ports_step singletonize_SrcDst_Ports(1) bunch_of_lemmata_about_matches(1) ipt_ports_compress_src_correct)
     finally show ?thesis by simp
   qed
-
-lemma "normalized_match m \<Longrightarrow> 
-      match_list (ipportiface_matcher, \<alpha>) (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports m) a p \<longleftrightarrow>
+lemma normalize_ports_step_Dst: assumes "normalized_match m" shows
+      "match_list (ipportiface_matcher, \<alpha>) (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports m) a p \<longleftrightarrow>
        matches (ipportiface_matcher, \<alpha>) m a p"
-  unfolding normalize_ports_step_def
-  apply(case_tac "primitive_extractor (is_Dst_Ports, dst_ports_sel) m")
-  apply(rename_tac as ms)
-  apply(simp)
-  apply(drule(1) primitive_extractor_correct(1)[OF _ wf_disc_sel_ipportiface_rule_match(2), where \<gamma>="(ipportiface_matcher, \<alpha>)" and a=a and p=p])
-  apply(drule sym) back (*WHOOOOO*)
-  apply(simp)
-  apply(simp add: singletonize_SrcDst_Ports(2))
-  apply(simp add: bunch_of_lemmata_about_matches(1))
-  apply(simp add: ipt_ports_compress_dst_correct)
-done
+  proof -
+    obtain as ms where pe: "primitive_extractor (is_Dst_Ports, dst_ports_sel) m = (as, ms)" by fastforce
+    from pe have normalize_ports_step: "normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports m = (map (\<lambda>spt. MatchAnd (Match (Dst_Ports [spt])) ms) (ipt_ports_compress as))"
+      by(simp add: normalize_ports_step_def)
+    from pe  primitive_extractor_correct(1)[OF assms wf_disc_sel_ipportiface_rule_match(2), where \<gamma>="(ipportiface_matcher, \<alpha>)" and a=a and p=p] have 
+      "matches (ipportiface_matcher, \<alpha>) m a p \<longleftrightarrow> (matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map Dst_Ports as)) a p \<and> matches (ipportiface_matcher, \<alpha>) ms a p)"
+    by simp
+    also have "... \<longleftrightarrow> match_list (ipportiface_matcher, \<alpha>) (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports m) a p"
+      by(simp add: normalize_ports_step singletonize_SrcDst_Ports(2) bunch_of_lemmata_about_matches(1) ipt_ports_compress_dst_correct)
+    finally show ?thesis by simp
+  qed
 
 
-(*TODO*)
-fun normalized_ports :: "ipportiface_rule_match match_expr \<Rightarrow> bool" where
-  "normalized_ports MatchAny = True" |
-  "normalized_ports (Match (Src_Ports [])) = True" |
-  "normalized_ports (Match (Src_Ports [_])) = True" |
-  "normalized_ports (Match (Src_Ports _)) = False" |
-  (* "normalized_ports (Match (Dst_Ports [])) = True" | *)
-  "normalized_ports (Match _) = True" |
-  "normalized_ports (MatchNot (Match (Src_Ports _))) = False" |
-  "normalized_ports (MatchAnd m1 m2) = (normalized_ports m1 \<and> normalized_ports m2)" |
-  "normalized_ports (MatchNot (MatchAnd _ _)) = False" |
-  "normalized_ports (MatchNot _) = True" 
+fun normalized_src_ports :: "ipportiface_rule_match match_expr \<Rightarrow> bool" where
+  "normalized_src_ports MatchAny = True" |
+  "normalized_src_ports (Match (Src_Ports [])) = True" |
+  "normalized_src_ports (Match (Src_Ports [_])) = True" |
+  "normalized_src_ports (Match (Src_Ports _)) = False" |
+  "normalized_src_ports (Match _) = True" |
+  "normalized_src_ports (MatchNot (Match (Src_Ports _))) = False" |
+  "normalized_src_ports (MatchAnd m1 m2) = (normalized_src_ports m1 \<and> normalized_src_ports m2)" |
+  "normalized_src_ports (MatchNot (MatchAnd _ _)) = False" |
+  "normalized_src_ports (MatchNot _) = True"
 
-lemma normalized_match_MatchNot_D: "normalized_match (MatchNot m) \<Longrightarrow> normalized_match ( m) "
+fun normalized_dst_ports :: "ipportiface_rule_match match_expr \<Rightarrow> bool" where
+  "normalized_dst_ports MatchAny = True" |
+  "normalized_dst_ports (Match (Dst_Ports [])) = True" |
+  "normalized_dst_ports (Match (Dst_Ports [_])) = True" |
+  "normalized_dst_ports (Match (Dst_Ports _)) = False" |
+  "normalized_dst_ports (Match _) = True" |
+  "normalized_dst_ports (MatchNot (Match (Dst_Ports _))) = False" |
+  "normalized_dst_ports (MatchAnd m1 m2) = (normalized_dst_ports m1 \<and> normalized_dst_ports m2)" |
+  "normalized_dst_ports (MatchNot (MatchAnd _ _)) = False" |
+  "normalized_dst_ports (MatchNot _) = True" 
+
+lemma normalized_match_MatchNot_D: "normalized_match (MatchNot m) \<Longrightarrow> normalized_match m"
 apply(induction m)
 apply(simp_all)
 done
 
 
-lemma "\<forall>spt \<in> set (ipt_ports_compress spts). normalized_ports (Match (Src_Ports [spt]))" by(simp)
+lemma "\<forall>spt \<in> set (ipt_ports_compress spts). normalized_src_ports (Match (Src_Ports [spt]))" by(simp)
 
-lemma help1: "normalized_match ms \<Longrightarrow> \<not> has_disc is_Src_Ports ms \<Longrightarrow> normalized_ports ms"
-  apply(induction ms rule: normalized_ports.induct)
+lemma help1: "normalized_match ms \<Longrightarrow> \<not> has_disc is_Src_Ports ms \<Longrightarrow> normalized_src_ports ms"
+  apply(induction ms rule: normalized_src_ports.induct)
   apply(simp_all)
   done
 
-lemma "normalized_match m \<Longrightarrow> 
+lemma normalize_ports_step_normalized_src_ports_helper: "normalized_match m \<Longrightarrow> 
       primitive_extractor (is_Src_Ports, src_ports_sel) m = (spts, ms) \<Longrightarrow>
       ml \<in> set (map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) ms) (ipt_ports_compress spts))\<Longrightarrow>
-      normalized_ports ml"
+      normalized_src_ports ml"
 apply(simp)
 apply(frule(1) primitive_extractor_correct(2)[OF _ wf_disc_sel_ipportiface_rule_match(1)])
 apply(frule(1) primitive_extractor_correct(3)[OF _ wf_disc_sel_ipportiface_rule_match(1)])
@@ -331,6 +328,18 @@ apply(induction spts)
  apply(clarsimp)+
 done
 
+lemma "normalized_match m \<Longrightarrow> \<forall>mn \<in> set (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m). normalized_src_ports mn \<and> normalized_match mn"
+  unfolding normalize_ports_step_def
+  apply(simp)
+  apply(intro allI impI)
+  apply(elim exE)
+  apply(rename_tac ms pts)
+  apply(rule conjI)
+   using normalize_ports_step_normalized_src_ports_helper apply(force)
+  apply(drule_tac as=pts and ms=ms in primitive_extractor_correct(2)[OF _ wf_disc_sel_ipportiface_rule_match(1)])
+   apply(simp)
+  by fastforce
+  
 
 
 end
