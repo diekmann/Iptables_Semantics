@@ -133,6 +133,9 @@ fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Ri
 subsubsection{*Merging Simple Matches*}
 text{*@{typ "simple_match"} @{text \<and>} @{typ "simple_match"}*}
 
+  fun simple_match_and :: "simple_match \<Rightarrow> simple_match \<Rightarrow> simple_match option" where
+    "simple_match_and"
+
 subsubsection{*Normalizing ports*}
   (*TODO: Move?*)
 
@@ -310,6 +313,7 @@ subsubsection{*Normalizing ports*}
     "normalized_dst_ports (MatchNot (MatchAnd _ _)) = False" |
     "normalized_dst_ports (MatchNot _) = True" 
   
+  (*unused?*)
   lemma normalized_match_MatchNot_D: "normalized_match (MatchNot m) \<Longrightarrow> normalized_match m"
   apply(induction m)
   apply(simp_all)
@@ -319,7 +323,7 @@ subsubsection{*Normalizing ports*}
   lemma "\<forall>spt \<in> set (ipt_ports_compress spts). normalized_src_ports (Match (Src_Ports [spt]))" by(simp)
   
 
-  lemma assumes "normalized_match m"
+  lemma assumes normalize_ports_step_src_normalized: "normalized_match m"
     shows "\<forall>mn \<in> set (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m). normalized_src_ports mn \<and> normalized_match mn"
     proof
       fix mn
@@ -333,11 +337,8 @@ subsubsection{*Normalizing ports*}
       from `normalized_match ms` `\<not> has_disc is_Src_Ports ms` have "normalized_src_ports ms"
         by(induction ms rule: normalized_src_ports.induct, simp_all)
       from normalize_ports_step_unfolded this have "normalized_src_ports mn"
-      apply(induction pts)
-       apply(clarsimp)+
-      done
+      by(induction pts) (fastforce)+
       with `normalized_match mn` show "normalized_src_ports mn \<and> normalized_match mn" by simp
     qed
-
 
 end
