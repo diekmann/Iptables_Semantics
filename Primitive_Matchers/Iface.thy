@@ -75,31 +75,16 @@ apply(induction i1 i2 rule: iface_name_eq.induct)
         apply(safe)
 done
 
-lemma iface_name_eq_refl: "iface_name_eq is is"
-proof -
-{ fix i1 i2
-  have "i1 = i2 \<Longrightarrow> iface_name_eq i1 i2"
-    by(induction i1 i2 rule: iface_name_eq.induct)(auto)
- } thus ?thesis by simp 
-qed
-lemma iface_name_eq_sym: "iface_name_eq i1 i2 \<Longrightarrow> iface_name_eq i2 i1"
-  by(induction i1 i2 rule: iface_name_eq.induct)(auto split: split_if_asm)
+lemma iface_name_eq_refl: "iface_name_eq is is" by(simp add: iface_name_eq_alt)
+lemma iface_name_eq_sym: "iface_name_eq i1 i2 \<Longrightarrow> iface_name_eq i2 i1" by(auto simp add: iface_name_eq_alt)
+lemma iface_name_eq_not_trans: "\<lbrakk>i1 = ''eth0''; i2 = ''eth+''; i3 = ''eth1''\<rbrakk> \<Longrightarrow> 
+    iface_name_eq i1 i2 \<Longrightarrow> iface_name_eq i2 i3 \<Longrightarrow> \<not> iface_name_eq i1 i3" by(simp)
 
-lemma "iface_name_eq (i2 # i2s) [] \<Longrightarrow> i2 = CHR ''+'' \<and> i2s = []"
-proof -
-assume a: "iface_name_eq (i2 # i2s) []"
-{ fix x1 x2
-  have "x1 = (i2 # i2s) \<Longrightarrow> x2 = [] \<Longrightarrow> iface_name_eq x1 x2 \<Longrightarrow> i2 = CHR ''+'' \<and> i2s = []"
-  by(induction x1 x2 rule: iface_name_eq.induct) (auto)
-} thus ?thesis using a by simp
-qed
+lemma "iface_name_eq (i2 # i2s) [] \<Longrightarrow> i2 = CHR ''+'' \<and> i2s = []" by(auto simp add: iface_name_eq_alt)
 
 
 
 text{*Examples*}
-  lemma iface_name_eq_not_trans: "\<lbrakk>i1 = ''eth0''; i2 = ''eth+''; i3 = ''eth1''\<rbrakk> \<Longrightarrow> 
-      iface_name_eq i1 i2 \<Longrightarrow> iface_name_eq i2 i3 \<Longrightarrow> \<not> iface_name_eq i1 i3"
-    by(simp)
   lemma "iface_name_eq ''eth+'' ''eth3''" by eval
   lemma "iface_name_eq ''eth+'' ''e+''" by eval
   lemma "iface_name_eq ''eth+'' ''eth_tun_foobar''" by eval
@@ -110,14 +95,10 @@ text{*Examples*}
   lemma "iface_name_eq ''eth+'' ''eth''" by eval
   lemma "\<not> iface_name_eq ''a'' ''b+''" by eval
   lemma "iface_name_eq ''+'' ''''" by eval
-  lemma "iface_name_eq ''++++'' ''+''" by eval
+  lemma "iface_name_eq ''++++'' ''++''" by eval
   text{*If the interfaces don't end in a wildcard, then @{const iface_name_eq} is just simple equality*}
   lemma "\<lbrakk> hd (rev i1) \<noteq> CHR ''+''; hd (rev i2) \<noteq> CHR ''+'' \<rbrakk> \<Longrightarrow> iface_name_eq i1 i2 \<longleftrightarrow> i1 = i2"
-    apply(induction i1 i2 rule: iface_name_eq.induct)
-    apply(simp_all)
-apply (metis append_Nil hd_Cons_tl hd_append2 iface_name_eq.simps(3) iface_name_eq.simps(8) iface_name_eq_sym list.sel(1) rev_is_Nil_conv)
-by (metis append_Nil hd_Cons_tl hd_append2 iface_name_eq.simps(2) iface_name_eq.simps(7) iface_name_eq_sym list.sel(1) rev_is_Nil_conv)
-    
+    by(simp add: iface_name_eq_alt iface_name_is_wildcard_alt)
 
   
   fun iface_name_leq :: "string \<Rightarrow> string \<Rightarrow> bool" where
@@ -128,19 +109,28 @@ by (metis append_Nil hd_Cons_tl hd_append2 iface_name_eq.simps(2) iface_name_eq.
     "iface_name_leq (i1#i1s) (i2#i2s) \<longleftrightarrow> (i2 = CHR ''+'' \<and> i2s = []) \<or> (i1 = i2 \<and> iface_name_leq i1s i2s)" |
     "iface_name_leq _ _ \<longleftrightarrow> False"
 
-  lemma "iface_name_leq i1 i2 \<longleftrightarrow> card {i. iface_name_eq i1 i} \<le> card {i. iface_name_eq i2 i}"
-    oops
-  lemma "iface_name_leq i1 i2 \<longleftrightarrow> iface_name_eq i1 i2 \<and> (
+  lemma iface_name_leq_alt: "iface_name_leq i1 i2 \<longleftrightarrow> iface_name_eq i1 i2 \<and> (
             i1 = i2 \<or> 
             iface_name_is_wildcard i2 \<and> \<not> iface_name_is_wildcard i1 \<or>
             iface_name_is_wildcard i1 \<and> iface_name_is_wildcard i2 \<and> take ((length i2) - 1) i2 = take ((length i2) - 1) i1)"
     apply(induction i1 i2 rule: iface_name_leq.induct)
-     apply(simp_all)
-     apply(safe)
-     apply(simp_all)
-     apply(auto elim: iface_name_leq.elims) (* OMG WTF *)
-     done
+           apply(simp_all)
+      apply(simp_all add: take_Cons' iface_name_eq_alt iface_name_is_wildcard_alt)
+      apply(safe)
+      apply(simp_all) (*TODO: indent by 117*)
+    done
 
+  lemma iface_name_leq_refl: "iface_name_leq is is" by(simp add: iface_name_leq_alt iface_name_eq_refl)
+  lemma "iface_name_leq i1 i2 \<Longrightarrow> i1 \<noteq> i2 \<Longrightarrow> \<not> iface_name_leq i2 i1"
+    nitpick
+    apply(simp add: iface_name_leq_alt iface_name_eq_sym)
+    
+    oops
+  lemma iface_name_leq_not_trans: "\<lbrakk>i1 = ''eth0''; i2 = ''eth+''; i3 = ''eth++''\<rbrakk> \<Longrightarrow> 
+    iface_name_leq i1 i2 \<Longrightarrow> iface_name_leq i2 i3 \<Longrightarrow> \<not> iface_name_leq i1 i3" by(simp)
+
+  lemma "iface_name_leq i1 i2 \<Longrightarrow> (*iface_name_leq i2 i1 \<Longrightarrow>*) iface_name_eq i1 i2" by(simp add: iface_name_leq_alt iface_name_eq_sym)
+  lemma "iface_name_leq i2 i1 \<Longrightarrow> (*iface_name_leq i2 i1 \<Longrightarrow>*) iface_name_eq i1 i2" by(simp add: iface_name_leq_alt iface_name_eq_sym)
 
 subsection{*Matching*}
     
