@@ -51,27 +51,29 @@ fun iface_name_is_wildcard :: "string \<Rightarrow> bool" where
   "iface_name_is_wildcard [] \<longleftrightarrow> False" |
   "iface_name_is_wildcard [s] \<longleftrightarrow> s = CHR ''+''" |
   "iface_name_is_wildcard (_#ss) \<longleftrightarrow> iface_name_is_wildcard ss"
-lemma "iface_name_is_wildcard eth \<longleftrightarrow> (case rev eth of [] \<Rightarrow> False | s#ss \<Rightarrow> s = CHR ''+'')"
+lemma iface_name_is_wildcard_alt: "iface_name_is_wildcard eth \<longleftrightarrow> eth \<noteq> [] \<and> hd (rev eth) = CHR ''+''"
   apply(induction eth rule: iface_name_is_wildcard.induct)
    apply(simp_all)
   apply(rename_tac s s' ss)
   apply(case_tac "rev ss")
-   apply(simp)
-  apply(simp)
+   apply(simp_all)
   done
+(*lemma iface_name_is_wildcard_cases: "iface_name_is_wildcard eth \<longleftrightarrow> (case rev eth of [] \<Rightarrow> False | s#ss \<Rightarrow> s = CHR ''+'')"
+  apply(induction eth rule: iface_name_is_wildcard.induct)
+   apply(simp_all)
+  apply(rename_tac s s' ss)
+  apply(case_tac "rev ss")
+   apply(simp_all)
+  done*)
 
-
-
-lemma "iface_name_eq i1 i2 \<longleftrightarrow> i1 = i2 \<or>
+lemma iface_name_eq_alt: "iface_name_eq i1 i2 \<longleftrightarrow> i1 = i2 \<or>
       iface_name_is_wildcard i1 \<and> take ((length i1) - 1) i1 = take ((length i1) - 1) i2 \<or>
       iface_name_is_wildcard i2 \<and> take ((length i2) - 1) i2 = take ((length i2) - 1) i1"
 apply(induction i1 i2 rule: iface_name_eq.induct)
-apply(simp_all)
-apply(auto)[1]
-apply(safe)[1]
-apply(simp_all)
-apply (metis append_take_drop_id hd_append2 iface_name_is_wildcard.simps(2) length_0_conv list.sel(1) take_eq_Nil)
-oops (*TODO*)
+       apply(simp_all)
+  apply(simp_all add: iface_name_is_wildcard_alt take_Cons' split:split_if_asm)
+        apply(safe)
+done
 
 lemma iface_name_eq_refl: "iface_name_eq is is"
 proof -
