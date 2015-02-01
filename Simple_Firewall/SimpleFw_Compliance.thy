@@ -119,6 +119,8 @@ fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Ri
   "ipportiface_match_to_simple_match (MatchNot (Match (Prot ProtoAny))) = None" |
   "ipportiface_match_to_simple_match (MatchNot (Match (Prot (Proto (Pos p))))) =  Some (simple_match_any\<lparr> proto := Proto (Neg p) \<rparr>)" |
   "ipportiface_match_to_simple_match (MatchNot (Match (Prot (Proto (Neg p))))) =  Some (simple_match_any\<lparr> proto := Proto (Pos p) \<rparr>)" |
+  --"TODO:"
+  "ipportiface_match_to_simple_match (MatchAnd m1 m2) =  undefined" | (*TODO*)
   --"undefined cases, normalize before!"
   "ipportiface_match_to_simple_match (MatchNot (MatchAnd _ _)) = undefined" |
   "ipportiface_match_to_simple_match (MatchNot (MatchNot _)) = undefined" |
@@ -133,8 +135,9 @@ fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Ri
 subsubsection{*Merging Simple Matches*}
 text{*@{typ "simple_match"} @{text \<and>} @{typ "simple_match"}*}
 
+  (*probably we can only return a list here*)
   fun simple_match_and :: "simple_match \<Rightarrow> simple_match \<Rightarrow> simple_match option" where
-    "simple_match_and"
+    "simple_match_and _ _ = undefined"
 
 subsubsection{*Normalizing ports*}
   (*TODO: Move?*)
@@ -313,7 +316,7 @@ subsubsection{*Normalizing ports*}
     "normalized_dst_ports (MatchNot (MatchAnd _ _)) = False" |
     "normalized_dst_ports (MatchNot _) = True" 
   
-  (*unused?*)
+  (*unused? TODO: Move?*)
   lemma normalized_match_MatchNot_D: "normalized_match (MatchNot m) \<Longrightarrow> normalized_match m"
   apply(induction m)
   apply(simp_all)
