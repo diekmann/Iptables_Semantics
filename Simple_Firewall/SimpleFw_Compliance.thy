@@ -10,10 +10,13 @@ fun ipt_ipv4range_to_ipv4_word_netmask :: " ipt_ipv4range \<Rightarrow> (ipv4add
   "ipt_ipv4range_to_ipv4_word_netmask (Ip4Addr ip_ddecim) = (ipv4addr_of_dotteddecimal ip_ddecim, 32)" | 
   "ipt_ipv4range_to_ipv4_word_netmask (Ip4AddrNetmask ip_ddecim n) = (ipv4addr_of_dotteddecimal ip_ddecim, n)"
 
+
 (*do I need monads?*)
+(*TODO: move*)
 fun negation_type_to_match_expr :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a negation_type \<Rightarrow> 'b match_expr" where
   "negation_type_to_match_expr f (Pos a) = Match (f a)" |
   "negation_type_to_match_expr f (Neg a) = MatchNot (Match (f a))"
+
 
 subsection{*Simple Match to MatchExpr*}
 
