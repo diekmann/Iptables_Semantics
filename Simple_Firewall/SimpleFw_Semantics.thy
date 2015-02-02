@@ -16,7 +16,7 @@ text{*Very TODO*}
   
   (*TODO: can we get rid of the negation types?*)
   record simple_match =
-    iiface :: "iface" --"in-interface"
+    iiface :: "iface" --"in-interface" (*TODO: remove negation type in interface, translate this away. This will give horribly blowup (polynomial in the size of the iface length) if negated ifaces occur, but this should not happen in any sane firewall config*)
     oiface :: "iface" --"out-interface"
     src :: "(ipv4addr \<times> nat) negation_type" --"source" (*TODO: remove negation type*)
     dst :: "(ipv4addr \<times> nat) negation_type" --"destination" (*TODO: remove negation type*)
@@ -67,6 +67,16 @@ subsection{*Simple Firewall Semantics*}
      apply(simp add: match_IfaceAny)
     apply(simp add: max_word_def)
     done
+
+
+subsection{*Simple Ports*}
+  fun simpl_ports_conjunct :: "(16 word \<times> 16 word) \<Rightarrow> (16 word \<times> 16 word) \<Rightarrow> (16 word \<times> 16 word)" where
+    "simpl_ports_conjunct (p1s, p1e) (p2s, p2e) = (max p1s p2s, min p1e p2e)"
+
+  lemma "{(p1s:: 16 word) .. p1e} \<inter> {p2s .. p2e} = {max p1s p2s .. min p1e p2e}" by(simp)
   
+  lemma simpl_ports_conjunct_correct: "simple_match_port p1 pkt \<and> simple_match_port p2 pkt \<longleftrightarrow> simple_match_port (simpl_ports_conjunct p1 p2) pkt"
+    apply(cases p1, cases p2, simp)
+    by blast
 
 end

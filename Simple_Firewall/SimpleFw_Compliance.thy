@@ -132,13 +132,6 @@ fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Ri
   "ipportiface_match_to_simple_match (MatchNot (Match (Extra _))) = undefined"
 (*\<dots>*)
 
-subsubsection{*Merging Simple Matches*}
-text{*@{typ "simple_match"} @{text \<and>} @{typ "simple_match"}*}
-
-  (*probably we can only return a list here*)
-  fun simple_match_and :: "simple_match \<Rightarrow> simple_match \<Rightarrow> simple_match option" where
-    "simple_match_and _ _ = undefined"
-
 subsubsection{*Normalizing ports*}
   (*TODO: Move?*)
 
@@ -343,5 +336,33 @@ subsubsection{*Normalizing ports*}
       by(induction pts) (fastforce)+
       with `normalized_match mn` show "normalized_src_ports mn \<and> normalized_match mn" by simp
     qed
+
+
+
+subsubsection{*Merging Simple Matches*}
+text{*@{typ "simple_match"} @{text \<and>} @{typ "simple_match"}*}
+
+(*from intersect_ips*)
+(*import IPSpace_Operations*)
+fun simple_ips_conjunct :: "(ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) option" where 
+  "simple_ips_conjunct (base1, m1) (base2, m2) = (if intersect_netmask_empty base1 m1 base2 m2
+     then
+      None
+     else if 
+      subset_netmask base1 m1 base2 m2
+     then
+      Some (base1, m1)
+     else if subset_netmask base2 m2 base1 m1 then
+      Some (base2, m2)
+     else None
+    )"
+
+
+  (*probably we can only return a list here because of interfaces*)
+  fun simple_match_and :: "simple_match \<Rightarrow> simple_match \<Rightarrow> simple_match option" where
+    "simple_match_and \<lparr>iiface=iif1, oiface=oif1, src=sip1, dst=dip1, proto=p1, sports=sps1, dports=dps1 \<rparr> 
+                      \<lparr>iiface=iif2, oiface=oif2, src=sip2, dst=dip2, proto=p2, sports=sps2, dports=dps2 \<rparr> = 
+                      Some \<lparr>iiface=iif2, oiface=oif2, src=sip2, dst=dip2, proto=p2, sports=simpl_ports_conjunct sps1 sps2, dports=simpl_ports_conjunct sps1 sps2 \<rparr>"
+                      (*add list comprehension to multiply out the interface blowup?*)
 
 end

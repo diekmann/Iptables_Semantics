@@ -6,6 +6,9 @@ section{*Network Interfaces*}
 
 
 datatype iface = Iface "string negation_type"
+datatype simple_iface = IfaceSimple "string"  --"no negation supported, but wildcards"
+
+(*TODO: iface to simple_iface*)
 
 definition IfaceAny :: iface where
   "IfaceAny \<equiv> Iface (Pos ''+'')"
@@ -190,7 +193,7 @@ subsection{*Matching*}
     
      
 
-
+  (*Text: probably not necessary to look at negated ifaces here, just translate iface to simple_iface with same behaviour!*)
   text{*
   If the interfaces are no wildcards, they must be equal, otherwise None
   If one is a wildcard, the other one must `match', return the non-wildcard
@@ -213,8 +216,15 @@ subsection{*Matching*}
   *)
   (*TODO: restrict string to the printable ascii chars, add a placeholder element (not a char but a constructor) which represents one arbitrary char*)
 
+
+  definition all_chars :: "char list" where
+    "all_chars \<equiv> Enum.enum"
+  value "all_chars"
+
+
   hide_const (open) internal_iface_name_wildcard_longest
 
+(*
 (* Old stuff below *)
     (*TODO TODO TODO: a packet has a fixed string as interface, there is no wildcard in it! TODO*)
     (*TODO: this must be redone! see below*)
@@ -455,7 +465,7 @@ fun match_iface_name_and :: "string negation_type \<Rightarrow> string negation_
   (*we need the 'shorter' iface. probably we want a pseudo order on the ifaces*)
     (*An order which is not transitive?*)
 
-
+*)
 hide_const (open) internal_iface_name_match
 
 end
