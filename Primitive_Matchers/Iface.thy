@@ -147,18 +147,73 @@ subsection{*Matching*}
     by (metis One_nat_def length_0_conv list.sel(1) list.sel(3) take_Cons')
   (* TODO: match_iface_case_neg_wildcard_length? hmm, p_i can be shorter or longer, essentially different*)
 
+
+
+  definition internal_iface_name_wildcard_longest :: "string \<Rightarrow> string \<Rightarrow> string option" where
+    "internal_iface_name_wildcard_longest i1 i2 = (
+      if 
+        take (min (length i1 - 1) (length i2 - 1)) i1 = take (min (length i1 - 1) (length i2 - 1)) i2
+      then
+        Some (if length i1 \<le> length i2 then i2 else i1)
+      else
+        None)"
+  lemma "internal_iface_name_wildcard_longest ''eth+'' ''eth3+'' = Some ''eth3+''" by eval
+  lemma "internal_iface_name_wildcard_longest ''eth+'' ''e+'' = Some ''eth+''" by eval
+  lemma "internal_iface_name_wildcard_longest ''eth+'' ''lo'' = None" by eval
+
+
+  lemma internal_iface_name_wildcard_longest_correct: "iface_name_is_wildcard i1 \<Longrightarrow> iface_name_is_wildcard i2 \<Longrightarrow> 
+         match_iface (Iface (Pos i1)) p_i \<and> match_iface (Iface (Pos i2)) p_i \<longleftrightarrow>
+         (case internal_iface_name_wildcard_longest i1 i2 of None \<Rightarrow> False | Some x \<Rightarrow> match_iface (Iface (Pos x)) p_i)"
+    apply(simp split:option.split)
+    apply(intro conjI impI allI)
+     apply(simp add: internal_iface_name_wildcard_longest_def split: split_if_asm)
+     apply(drule match_iface_case_pos_wildcard_prefix[of i1 p_i, simplified butlast_conv_take match_iface.simps])
+     apply(drule match_iface_case_pos_wildcard_prefix[of i2 p_i, simplified butlast_conv_take match_iface.simps])
+     apply (metis One_nat_def min.commute take_take)
+    apply(rename_tac x)
+    apply(simp add: internal_iface_name_wildcard_longest_def split: split_if_asm)
+     apply(simp add: min_def split: split_if_asm)
+     apply(case_tac "internal_iface_name_match x p_i")
+      apply(simp_all)
+     apply(frule match_iface_case_pos_wildcard_prefix[of i1 p_i])
+     apply(frule_tac i=x in match_iface_case_pos_wildcard_prefix[of _ p_i])
+     apply(simp add: butlast_conv_take)
+     apply (metis min_def take_take)
+    apply(case_tac "internal_iface_name_match x p_i")
+     apply(simp_all)
+    apply(frule match_iface_case_pos_wildcard_prefix[of i2 p_i])
+    apply(frule_tac i=x in match_iface_case_pos_wildcard_prefix[of _ p_i])
+    apply(simp add: butlast_conv_take min_def split:split_if_asm)
+    by (metis min.commute min_def take_take)
+    
+    
+     
+
+
   text{*
   If the interfaces are no wildcards, they must be equal, otherwise None
-  If one is a wildcard, the other one must `match'
+  If one is a wildcard, the other one must `match', return the non-wildcard
   If both are wildcards: Longest prefix of both
   *}
   fun most_specific_iface :: "iface \<Rightarrow> iface \<Rightarrow> iface option" where
     "most_specific_iface (Iface (Pos i1)) (Iface (Pos i2)) = (case (iface_name_is_wildcard i1, iface_name_is_wildcard i2) of
-      (True,  True) \<Rightarrow> None  |
-      (True,  False) \<Rightarrow> None |
-      (False, True) \<Rightarrow> None |
-      (False, False) \<Rightarrow> None)"
+      (True,  True) \<Rightarrow> map_option (\<lambda>i. Iface (Pos i)) (internal_iface_name_wildcard_longest i1 i2) |
+      (True,  False) \<Rightarrow> (if match_iface (Iface (Pos i1)) i2 then Some (Iface (Pos i2)) else None) |
+      (False, True) \<Rightarrow> (if match_iface (Iface (Pos i2)) i1 then Some (Iface (Pos i1)) else None) |
+      (False, False) \<Rightarrow> (if i1 = i2 then Some (Iface (Pos i1)) else None))"
   (*TODO: merging Pos and Neg Iface!! ? ? Requires returning a list?*)
+  (* Pos and neg merging: if they don't share the same prefix, Neg can be ignored
+     More complicated examples:
+     Pos eth+ but Neg eth42
+      \<longrightarrow> Pos {eth@X@[''+'']. length X \<le> length ''42'' \<and> X \<noteq> ''42''} \<union> {eth42@[x]@[''+'']}
+      oh shit, I hope this never happens in reality, this is really a blowup!
+     Pos eth+ but Neg eth42+
+      \<longrightarrow> Pos {eth@X@[''+'']. length X \<le> length ''42'' \<and> X \<noteq> ''42''}
+  *)
+  (*TODO: restrict string to the printable ascii chars, add a placeholder element (not a char but a constructor) which represents one arbitrary char*)
+
+  hide_const (open) internal_iface_name_wildcard_longest
 
 (* Old stuff below *)
     (*TODO TODO TODO: a packet has a fixed string as interface, there is no wildcard in it! TODO*)
