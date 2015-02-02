@@ -4,7 +4,13 @@ begin
 
 section{*Network Interfaces*}
 
-datatype iface = Iface "string negation_type" | IfaceAny
+
+datatype iface = Iface "string negation_type"
+
+definition IfaceAny :: iface where
+  "IfaceAny \<equiv> Iface (Pos ''+'')"
+definition IfaceFalse :: iface where
+  "IfaceFalse \<equiv> Iface (Neg ''+'')"
 
 text_raw{*If the interface name ends in a ``+'', then any interface which begins with this name will match. (man iptables)
 
@@ -28,6 +34,115 @@ By the way: \texttt{Warning: weird characters in interface ` ' ('/' and ' ' are 
 *}
 
 
+  
+subsection{*Helpers for the interface name (@{typ string})*}
+  (*Do not use outside this thy! Type is really misleading.*)
+  text{*
+    argument 1: interface as in firewall rule - Wildcard support
+    argument 2: interface a packet came from - No wildcard support*}
+  fun internal_iface_name_match :: "string \<Rightarrow> string \<Rightarrow> bool" where
+    "internal_iface_name_match []     []         \<longleftrightarrow> True" |
+    "internal_iface_name_match (i#is) []         \<longleftrightarrow> (i = CHR ''+'' \<and> is = [])" |
+    "internal_iface_name_match []     (_#_)      \<longleftrightarrow> False" |
+    "internal_iface_name_match (i#is) (p_i#p_is) \<longleftrightarrow> (if (i = CHR ''+'' \<and> is = []) then True else (
+          (p_i = i) \<and> internal_iface_name_match is p_is
+    ))"
+  
+  (*<*)
+  --"Examples"
+    lemma "internal_iface_name_match ''lo'' ''lo''" by eval
+    lemma "internal_iface_name_match ''lo+'' ''lo''" by eval
+    lemma "internal_iface_name_match ''l+'' ''lo''" by eval
+    lemma "internal_iface_name_match ''+'' ''lo''" by eval
+    lemma "\<not> internal_iface_name_match ''lo++'' ''lo''" by eval
+    lemma "\<not> internal_iface_name_match ''lo+++'' ''lo''" by eval
+    lemma "\<not> internal_iface_name_match ''lo1+'' ''lo''" by eval
+    lemma "\<not> internal_iface_name_match ''lo1'' ''lo''" by eval
+    text{*The wildcard interface name*}
+    lemma "internal_iface_name_match ''+'' ''''" by eval (*>*)
+
+
+  fun iface_name_is_wildcard :: "string \<Rightarrow> bool" where
+    "iface_name_is_wildcard [] \<longleftrightarrow> False" |
+    "iface_name_is_wildcard [s] \<longleftrightarrow> s = CHR ''+''" |
+    "iface_name_is_wildcard (_#ss) \<longleftrightarrow> iface_name_is_wildcard ss"
+  lemma iface_name_is_wildcard_alt: "iface_name_is_wildcard eth \<longleftrightarrow> eth \<noteq> [] \<and> last eth = CHR ''+''"
+    apply(induction eth rule: iface_name_is_wildcard.induct)
+      apply(simp_all)
+    done
+  lemma iface_name_is_wildcard_alt': "iface_name_is_wildcard eth \<longleftrightarrow> eth \<noteq> [] \<and> hd (rev eth) = CHR ''+''"
+    apply(simp add: iface_name_is_wildcard_alt)
+    using hd_rev by fastforce
+  lemma iface_name_is_wildcard_fst: "iface_name_is_wildcard (i # is) \<Longrightarrow> is \<noteq> [] \<Longrightarrow> iface_name_is_wildcard is"
+    by(simp add: iface_name_is_wildcard_alt)
+
+subsection{*Matching*}
+  fun match_iface :: "iface \<Rightarrow> string \<Rightarrow> bool" where
+    "match_iface (Iface (Pos i)) p_iface \<longleftrightarrow> internal_iface_name_match i p_iface" |
+    "match_iface (Iface (Neg i)) p_iface \<longleftrightarrow> \<not> internal_iface_name_match i p_iface"
+  
+  --"Examples"
+    lemma "  match_iface (Iface (Pos ''lo''))    ''lo''"
+          "  match_iface (Iface (Pos ''lo+''))   ''lo''"
+          "  match_iface (Iface (Pos ''l+''))    ''lo''"
+          "  match_iface (Iface (Pos ''+''))     ''lo''"
+          "\<not> match_iface (Iface (Pos ''lo++''))  ''lo''"
+          "\<not> match_iface (Iface (Pos ''lo+++'')) ''lo''"
+          "\<not> match_iface (Iface (Pos ''lo1+''))  ''lo''"
+          "\<not> match_iface (Iface (Pos ''lo1''))   ''lo''"
+          "  match_iface (Iface (Pos ''+''))     ''eth0''"
+          "\<not> match_iface (Iface (Neg ''+''))     ''eth0''"
+          "\<not> match_iface (Iface (Neg ''eth+''))  ''eth0''"
+          "  match_iface (Iface (Neg ''lo+''))   ''eth0''"
+          "\<not> match_iface (Iface (Neg ''lo+''))   ''loX''"
+          "\<not> match_iface (Iface (Pos ''''))      ''loX''"
+          "  match_iface (Iface (Neg ''''))      ''loX''"
+          "\<not> match_iface (Iface (Pos ''foobar+''))     ''foo''" by eval+
+
+  lemma match_IfaceAny: "match_iface IfaceAny i"
+    by(cases i, simp_all add: IfaceAny_def)
+  lemma match_IfaceFalse: "\<not> match_iface IfaceFalse i"
+    by(cases i, simp_all add: IfaceFalse_def)
+
+
+  lemma "\<not> iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface (Pos i)) p_i \<longleftrightarrow> i = p_i"
+    apply(simp)
+    apply(induction i p_i rule: internal_iface_name_match.induct)
+       apply(auto simp add: iface_name_is_wildcard_alt split: split_if_asm)
+    done
+  lemma "\<not> iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface (Neg i)) p_i \<longleftrightarrow> i \<noteq> p_i"
+    apply(simp)
+    apply(induction i p_i rule: internal_iface_name_match.induct)
+       apply(auto simp add: iface_name_is_wildcard_alt split: split_if_asm)
+    done
+  lemma "iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface (Pos i)) p_i \<longleftrightarrow> butlast i = take (length i - 1) p_i \<and> length p_i \<ge> (length i - 1)"
+    apply(simp)
+    apply(induction i p_i rule: internal_iface_name_match.induct)
+       apply(simp_all)
+     apply(simp add: iface_name_is_wildcard_alt split: split_if_asm)
+    apply(intro conjI)
+     apply(simp add: iface_name_is_wildcard_alt split: split_if_asm)
+    apply(intro impI)
+    apply(simp add: iface_name_is_wildcard_fst)
+    apply(safe)
+            apply(simp_all)
+       apply (metis One_nat_def length_0_conv take_Cons')
+      apply (metis length_0_conv list.inject take_Cons')
+     apply (metis length_0_conv list.inject take_Cons')
+    by (metis One_nat_def length_0_conv list.inject take_Cons')
+
+
+
+
+  text{*
+  If the interfaces are no wildcards, they must be equal, otherwise None
+  If one is a wildcard, the other one must `match'
+  If both are wildcards: Longest prefix of both
+  *}
+  fun most_specific_iface :: "iface \<Rightarrow> iface \<Rightarrow> iface option"
+
+
+(* Old stuff below *)
     (*TODO TODO TODO: a packet has a fixed string as interface, there is no wildcard in it! TODO*)
     (*TODO: this must be redone! see below*)
 
@@ -259,14 +374,6 @@ text{*Examples*}
       oops
 
 
-subsection{*Matching*}
-    (*TODO TODO TODO: a packet has a fixed string as interface, there is no wildcard in it! *)
-    (*that way, we can only allow wildcard semantics in the interface, not the packet-interface itself!*)
-
-fun match_iface :: "iface \<Rightarrow> string \<Rightarrow> bool" where
-  "match_iface IfaceAny p_iface \<longleftrightarrow> True" |
-  "match_iface (Iface (Pos i)) p_iface \<longleftrightarrow> iface_name_eq p_iface i" |
-  "match_iface (Iface (Neg i)) p_iface \<longleftrightarrow> \<not> iface_name_eq p_iface i"
 
 
 (*eth+ and !eth42. Problem!*)
@@ -274,5 +381,8 @@ fun match_iface_name_and :: "string negation_type \<Rightarrow> string negation_
   "match_iface_name_and (Pos i1) (Pos i2) = (if iface_name_eq i1 i2 then (if length i1 \<ge> length i2 then Some (Pos i1) else Some (Pos i2)) else None)"
   (*we need the 'shorter' iface. probably we want a pseudo order on the ifaces*)
     (*An order which is not transitive?*)
+
+
+hide_const (open) internal_iface_name_match
 
 end
