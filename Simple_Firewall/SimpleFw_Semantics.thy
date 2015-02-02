@@ -60,10 +60,18 @@ text{*Very TODO*}
  do we want some ranges like in the ports?
   but translating back an arbitrary range to the syntax used in the (complex) match_expr will get hard
   {a..b} can be translated into b - a single ips (easy)
-  optimize (needed?):
+  optimize (needed!):
     compress to one large ip range and then add a bunch of single ips
-
-  sounds like the best strategy!
+    oh boy, this is gonna be some work to do!
+  downside: not possible to print it back directly to CIDR notation
+  but we need cidr notation!
+  so, the optimized {a..b} to [IP x, IP y, foo/n, IP z] must be really good
+  and we need a print function then
+    print {a..a} \<rightarrow> a
+    print {a..b} \<rightarrow> base/mask
+       base is longest prefix of a and b appended with zeros, mask is the length of the prefix
+    all other ways to store an ip range (i.e. we cannot directly translate it to CIDR notation) must be normalized away (splitting rules)
+  the longest prefix CIDR stuff is an optimization we may skip for now
 *)
 (*end: scratch: testing ip range normalize*)
 
