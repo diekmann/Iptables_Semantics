@@ -85,7 +85,7 @@ subsection{*Helpers for the interface name (@{typ string})*}
       then
         {i}
       else
-        (\<lambda>s. (butlast i)@s) ` UNIV)"
+        (\<lambda>s. (butlast i)@s) ` (UNIV::string set))"
    lemma internal_iface_name_to_set: "internal_iface_name_match i p_iface \<longleftrightarrow> p_iface \<in> internal_iface_name_to_set i"
     apply(induction i p_iface rule: internal_iface_name_match.induct)
        apply(simp_all)
@@ -263,14 +263,34 @@ subsection{*Matching*}
     done
 
     
-    
-     
-
+  (*we might need this in the following lemma*)
+  lemma "(\<lambda>s. (butlast i)@s) ` (UNIV::string set) = {butlast i@cs | cs. True}"
+    by auto
   (*Neg eth+ means
       \<rightarrow> {s+. length s \<le> length eth \<and> s \<noteq> take (length s) eth}
     Neg eth0 means
       \<rightarrow> {s+. length s \<le> length eth0 \<and> s \<noteq> take (length s) eth0} \<union> {eth0@some_char@+}
       *)
+  lemma "- (internal_iface_name_to_set i) = (
+    if iface_name_is_wildcard i
+    then
+      {s@cs | s cs. length s \<le> length i - 1 \<and> s \<noteq> take (length s - 1) i} (*no ''+'' at end (as one would write donw the iface) but allow arbitrary string*)
+    else
+      {s@''+'' | s . length s \<le> length i - 1 \<and> s \<noteq> take (length s - 1) i} \<union> {i@cs | s cs. length s \<le> length i - 1 \<and> s \<noteq> take (length s - 1) i \<and> cs \<noteq> []}
+  )"
+  nitpick
+  apply(rule)
+  apply(simp split: split_if)
+  apply(intro conjI impI)
+  
+  apply(simp_all add: internal_iface_name_to_set)
+  apply(safe)
+  apply(simp_all)
+  
+  
+  
+  oops
+
   fun iface_to_simple_iface :: "iface \<Rightarrow> simple_iface list" where
     "iface_to_simple_iface (Iface (Pos i)) = [IfaceSimple i]" |
     "iface_to_simple_iface (Iface (Neg i)) = (if iface_name_is_wildcard i
