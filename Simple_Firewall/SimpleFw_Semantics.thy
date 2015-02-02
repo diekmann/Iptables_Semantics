@@ -54,6 +54,8 @@ text{*Very TODO*}
 (*hmm, ip range normalizing with these types will result in a horrible blowup
  we probably need the negation types again
   we could show that Neg corresponds to an inverse bitmask, something like the cisco stuff
+
+ we cannot simmply merge two Negs, see below
 *)
 (*end: scratch: testing ip range normalize*)
 
@@ -107,6 +109,10 @@ subsection{*Simple Ports*}
     by blast
 
 subsection{*Simple IPs*}
+  (*conjunction of two negations? PROBLEM*)
+
+  (*! !PROBLEM ! !*)
+
   lemma simple_match_ip_conjunct: "simple_match_ip ip1 p_ip \<and> simple_match_ip ip2 p_ip \<longleftrightarrow> 
          (case simple_ips_conjunct ip1 ip2 of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
   proof -

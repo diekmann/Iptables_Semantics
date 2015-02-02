@@ -99,7 +99,7 @@ fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Ri
   "ipportiface_match_to_simple_match (MatchNot (Match (Prot (Proto (Neg p))))) =  Some (simple_match_any\<lparr> proto := Proto (Pos p) \<rparr>)" |
   --"TODO:"
   "ipportiface_match_to_simple_match (MatchAnd m1 m2) =  undefined" | (*TODO*)
-  (*TODO: need to normalize this*)
+  (*TODO: need to enable negation type again*)
   "ipportiface_match_to_simple_match (MatchNot (Match (Src ip))) = undefined" |
   "ipportiface_match_to_simple_match (MatchNot (Match (Dst ip))) = undefined" |
   --"undefined cases, normalize before!"
