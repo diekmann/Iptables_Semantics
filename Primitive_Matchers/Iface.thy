@@ -79,6 +79,22 @@ subsection{*Helpers for the interface name (@{typ string})*}
   lemma iface_name_is_wildcard_fst: "iface_name_is_wildcard (i # is) \<Longrightarrow> is \<noteq> [] \<Longrightarrow> iface_name_is_wildcard is"
     by(simp add: iface_name_is_wildcard_alt)
 
+
+  fun internal_iface_name_to_set :: "string \<Rightarrow> string set" where
+    "internal_iface_name_to_set i = (if \<not> iface_name_is_wildcard i
+      then
+        {i}
+      else
+        (\<lambda>s. (butlast i)@s) ` UNIV)"
+   lemma internal_iface_name_to_set: "internal_iface_name_match i p_iface \<longleftrightarrow> p_iface \<in> internal_iface_name_to_set i"
+    apply(induction i p_iface rule: internal_iface_name_match.induct)
+       apply(simp_all)
+     apply (metis append_Cons imageE list.distinct(1))
+    apply(safe)
+           apply(simp_all add: iface_name_is_wildcard_fst)
+     apply (metis (full_types) iface_name_is_wildcard.simps(3) list.exhaust)
+    by (metis append_butlast_last_id range_eqI)
+
 subsection{*Matching*}
   fun match_iface :: "iface \<Rightarrow> string \<Rightarrow> bool" where
     "match_iface (Iface (Pos i)) p_iface \<longleftrightarrow> internal_iface_name_match i p_iface" |
@@ -219,8 +235,50 @@ subsection{*Matching*}
 
   definition all_chars :: "char list" where
     "all_chars \<equiv> Enum.enum"
-  value "all_chars"
+  lemma [simp]: "set all_chars = (UNIV::char set)"
+     by(simp add: all_chars_def enum_UNIV)
 
+  value "(map (\<lambda>c. c#''!'') all_chars):: string list"
+  
+  (*value "List.n_lists 2 all_chars" daam, this takes forever!*)
+  thm List.n_lists.simps
+  (*fun all_strings_except :: "string \<Rightarrow> string list" where
+    "all_strings_except [] = [[]]" |
+    "all_strings_except (s#ss) = concat (map (\<lambda>ys. map (\<lambda>y. y # ys) (remove1 s all_chars)) (all_strings_except ss))"
+   value "all_strings_except ''et''"*)
+
+  (*we can compute this, but its horribly inefficient! TODO: reduce size of valid chars to the printable ones*)
+  lemma strings_of_length_n: "set (List.n_lists n all_chars) = {s::string. length s = n}"
+    apply(induction n)
+     apply(simp)
+    apply(simp)
+    apply(safe)
+     apply(simp)
+    apply(simp)
+    apply(rename_tac n x)
+    apply(rule_tac x="drop 1 x" in exI)
+    apply(simp)
+    apply(case_tac x)
+     apply(simp_all)
+    done
+
+    
+    
+     
+
+  (*Neg eth+ means
+      \<rightarrow> {s+. length s \<le> length eth \<and> s \<noteq> take (length s) eth}
+    Neg eth0 means
+      \<rightarrow> {s+. length s \<le> length eth0 \<and> s \<noteq> take (length s) eth0} \<union> {eth0@some_char@+}
+      *)
+  fun iface_to_simple_iface :: "iface \<Rightarrow> simple_iface list" where
+    "iface_to_simple_iface (Iface (Pos i)) = [IfaceSimple i]" |
+    "iface_to_simple_iface (Iface (Neg i)) = (if iface_name_is_wildcard i
+      then
+        map IfaceSimple (List.n_lists (length i) all_chars) (*TODO*)
+      else
+        [] (*TODO*)
+    )"
 
   hide_const (open) internal_iface_name_wildcard_longest
 
