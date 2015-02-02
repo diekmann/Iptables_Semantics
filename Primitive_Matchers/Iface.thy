@@ -105,17 +105,19 @@ subsection{*Matching*}
     by(cases i, simp_all add: IfaceFalse_def)
 
 
-  lemma "\<not> iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface (Pos i)) p_i \<longleftrightarrow> i = p_i"
+  --{*@{const match_iface} explained by the individual cases*}
+  lemma match_iface_case_pos_nowildcard: "\<not> iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface (Pos i)) p_i \<longleftrightarrow> i = p_i"
     apply(simp)
     apply(induction i p_i rule: internal_iface_name_match.induct)
        apply(auto simp add: iface_name_is_wildcard_alt split: split_if_asm)
     done
-  lemma "\<not> iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface (Neg i)) p_i \<longleftrightarrow> i \<noteq> p_i"
+  lemma match_iface_case_neg_nowildcard: "\<not> iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface (Neg i)) p_i \<longleftrightarrow> i \<noteq> p_i"
     apply(simp)
     apply(induction i p_i rule: internal_iface_name_match.induct)
        apply(auto simp add: iface_name_is_wildcard_alt split: split_if_asm)
     done
-  lemma "iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface (Pos i)) p_i \<longleftrightarrow> butlast i = take (length i - 1) p_i \<and> length p_i \<ge> (length i - 1)"
+  lemma match_iface_case_pos_wildcard_prefix:
+    "iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface (Pos i)) p_i \<longleftrightarrow> butlast i = take (length i - 1) p_i"
     apply(simp)
     apply(induction i p_i rule: internal_iface_name_match.induct)
        apply(simp_all)
@@ -124,15 +126,26 @@ subsection{*Matching*}
      apply(simp add: iface_name_is_wildcard_alt split: split_if_asm)
     apply(intro impI)
     apply(simp add: iface_name_is_wildcard_fst)
-    apply(safe)
-            apply(simp_all)
-       apply (metis One_nat_def length_0_conv take_Cons')
-      apply (metis length_0_conv list.inject take_Cons')
-     apply (metis length_0_conv list.inject take_Cons')
-    by (metis One_nat_def length_0_conv list.inject take_Cons')
-
-
-
+    by (metis One_nat_def length_0_conv list.sel(1) list.sel(3) take_Cons')
+  lemma match_iface_case_pos_wildcard_length: "iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface (Pos i)) p_i \<Longrightarrow> length p_i \<ge> (length i - 1)"
+    apply(simp)
+    apply(induction i p_i rule: internal_iface_name_match.induct)
+       apply(simp_all)
+     apply(simp add: iface_name_is_wildcard_alt split: split_if_asm)
+    done
+  corollary match_iface_case_pos_wildcard:
+    "iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface (Pos i)) p_i \<longleftrightarrow> butlast i = take (length i - 1) p_i \<and> length p_i \<ge> (length i - 1)"
+    using match_iface_case_pos_wildcard_length match_iface_case_pos_wildcard_prefix by blast
+  lemma match_iface_case_neg_wildcard_prefix: "iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface (Neg i)) p_i \<longleftrightarrow> butlast i \<noteq> take (length i - 1) p_i"
+    apply(simp)
+    apply(induction i p_i rule: internal_iface_name_match.induct)
+       apply(simp_all)
+     apply(simp add: iface_name_is_wildcard_alt split: split_if_asm)
+    apply(intro conjI)
+     apply(simp add: iface_name_is_wildcard_alt split: split_if_asm)
+    apply(simp add: iface_name_is_wildcard_fst)
+    by (metis One_nat_def length_0_conv list.sel(1) list.sel(3) take_Cons')
+  (* TODO: match_iface_case_neg_wildcard_length ?*)
 
   text{*
   If the interfaces are no wildcards, they must be equal, otherwise None
