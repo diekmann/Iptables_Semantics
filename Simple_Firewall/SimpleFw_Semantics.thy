@@ -55,7 +55,15 @@ text{*Very TODO*}
  we probably need the negation types again
   we could show that Neg corresponds to an inverse bitmask, something like the cisco stuff
 
- we cannot simmply merge two Negs, see below
+ we cannot simply merge two Negs, see below
+
+ do we want some ranges like in the ports?
+  but translating back an arbitrary range to the syntax used in the (complex) match_expr will get hard
+  {a..b} can be translated into b - a single ips (easy)
+  optimize (needed?):
+    compress to one large ip range and then add a bunch of single ips
+
+  sounds like the best strategy!
 *)
 (*end: scratch: testing ip range normalize*)
 
