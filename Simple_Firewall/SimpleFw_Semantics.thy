@@ -4,6 +4,7 @@ imports Main "../Bitmagic/IPv4Addr" "../Bitmagic/BitrangeLists" "../Output_Forma
   "../Primitive_Matchers/Iface"
   "../Primitive_Matchers/Protocol"
   "../Primitive_Matchers/Simple_Packet"
+  "../Output_Format/IPSpace_Operations"
 begin
 
 
@@ -18,8 +19,8 @@ text{*Very TODO*}
   record simple_match =
     iiface :: "iface" --"in-interface" (*TODO: remove negation type in interface, translate this away. This will give horribly blowup (polynomial in the size of the iface length) if negated ifaces occur, but this should not happen in any sane firewall config*)
     oiface :: "iface" --"out-interface"
-    src :: "(ipv4addr \<times> nat) negation_type" --"source" (*TODO: remove negation type*)
-    dst :: "(ipv4addr \<times> nat) negation_type" --"destination" (*TODO: remove negation type*)
+    src :: "(ipv4addr \<times> nat) " --"source" (*TODO: remove negation type. Was removed, need to normalize IPs now when translating!*)
+    dst :: "(ipv4addr \<times> nat) " --"destination" (*TODO: remove negation type*)
     proto :: "protocol"
     sports :: "(16 word \<times> 16 word)" --"source-port first:last"
     dports :: "(16 word \<times> 16 word)" --"destination-port first:last"
@@ -33,9 +34,8 @@ text{*Very TODO*}
 
 subsection{*Simple Firewall Semantics*}
 
-  fun simple_match_ip :: "(ipv4addr \<times> nat) negation_type \<Rightarrow> ipv4addr \<Rightarrow> bool" where
-    "simple_match_ip (Pos (ip, n)) p_ip \<longleftrightarrow> p_ip \<in> ipv4range_set_from_bitmask ip n" |
-    "simple_match_ip (Neg (ip, n)) p_ip \<longleftrightarrow> p_ip \<notin> ipv4range_set_from_bitmask ip n"
+  fun simple_match_ip :: "(ipv4addr \<times> nat) \<Rightarrow> ipv4addr \<Rightarrow> bool" where
+    "simple_match_ip (ip, n) p_ip \<longleftrightarrow> p_ip \<in> ipv4range_set_from_bitmask ip n"
 
   fun simple_match_port :: "(16 word \<times> 16 word) \<Rightarrow> 16 word \<Rightarrow> bool" where
     "simple_match_port (s,e) p_p \<longleftrightarrow> p_p \<in> {s..e}"
@@ -59,7 +59,7 @@ subsection{*Simple Firewall Semantics*}
 
   
   definition simple_match_any :: "simple_match" where
-    "simple_match_any \<equiv> \<lparr>iiface=IfaceAny, oiface=IfaceAny, src=Pos (0,0), dst=Pos (0,0), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
+    "simple_match_any \<equiv> \<lparr>iiface=IfaceAny, oiface=IfaceAny, src=(0,0), dst=(0,0), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
 
   lemma simple_match_any: "simple_matches simple_match_any p"
     apply(simp add: simple_match_any_def ipv4range_set_from_bitmask_0)
@@ -78,5 +78,23 @@ subsection{*Simple Ports*}
   lemma simpl_ports_conjunct_correct: "simple_match_port p1 pkt \<and> simple_match_port p2 pkt \<longleftrightarrow> simple_match_port (simpl_ports_conjunct p1 p2) pkt"
     apply(cases p1, cases p2, simp)
     by blast
+
+subsection{*Simple IPs*}
+  lemma simple_match_ip_conjunct: "simple_match_ip ip1 p_ip \<and> simple_match_ip ip2 p_ip \<longleftrightarrow> 
+         (case simple_ips_conjunct ip1 ip2 of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
+  proof -
+  {
+    fix b1 m1 b2 m2
+    have "simple_match_ip (b1, m1) p_ip \<and> simple_match_ip (b2, m2) p_ip \<longleftrightarrow> 
+          p_ip \<in> ipv4range_set_from_bitmask b1 m1 \<inter> ipv4range_set_from_bitmask b2 m2"
+    by simp
+    also have "\<dots> \<longleftrightarrow> p_ip \<in> (case simple_ips_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> {} | Some (bx, mx) \<Rightarrow> ipv4range_set_from_bitmask bx mx)"
+      using simple_ips_conjunct_correct by blast
+    also have "\<dots> \<longleftrightarrow> (case simple_ips_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
+      by(simp split: option.split)
+    finally have "simple_match_ip (b1, m1) p_ip \<and> simple_match_ip (b2, m2) p_ip \<longleftrightarrow> 
+         (case simple_ips_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)" .
+   } thus ?thesis by(cases ip1, cases ip2, simp)
+  qed
 
 end

@@ -156,6 +156,7 @@ by (metis Int_assoc intersect_ips_Some)
 
 
 (*SCRATCH: *)
+(*TODO TODO: refactor whole mess above to this simple proof? *)
 
 (*from IPSpace_Operations.intersect_ips*)
   fun simple_ips_conjunct :: "(ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) option" where 
@@ -171,11 +172,12 @@ by (metis Int_assoc intersect_ips_Some)
       )"
   
   (*this proof appears simpler than the other one, maybe refactor?*)
-  lemma simple_ips_conjunct_Some: "simple_ips_conjunct (b1, m1) (b2, m2) = Some (bx, mx) \<Longrightarrow> 
-      (ipv4range_set_from_bitmask b1 m1) \<inter> (ipv4range_set_from_bitmask b2 m2) = ipv4range_set_from_bitmask bx mx"
-    apply(simp  split: split_if_asm)
+  lemma simple_ips_conjunct_correct: "(case simple_ips_conjunct (b1, m1) (b2, m2) of Some (bx, mx) \<Rightarrow> ipv4range_set_from_bitmask bx mx | None \<Rightarrow> {}) = 
+      (ipv4range_set_from_bitmask b1 m1) \<inter> (ipv4range_set_from_bitmask b2 m2)"
+    apply(simp split: split_if_asm)
     using ipv4range_bitmask_intersect apply fast+
     done
+  declare simple_ips_conjunct.simps[simp del]
   
 
 (*End Scratch*)

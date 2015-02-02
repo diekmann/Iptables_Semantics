@@ -20,8 +20,8 @@ subsection{*Simple Match to MatchExpr*}
 fun simple_match_to_ipportiface_match :: "simple_match \<Rightarrow> ipportiface_rule_match match_expr" where
   "simple_match_to_ipportiface_match \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> = 
     MatchAnd (Match (IIface iif)) (MatchAnd (Match (OIface oif)) 
-    (MatchAnd (negation_type_to_match_expr (\<lambda>x. Src (ipv4_word_netmask_to_ipt_ipv4range x)) sip )
-    (MatchAnd (negation_type_to_match_expr (\<lambda>x. Dst (ipv4_word_netmask_to_ipt_ipv4range x)) dip )
+    (MatchAnd (Match (Src (ipv4_word_netmask_to_ipt_ipv4range sip)) )
+    (MatchAnd (Match (Dst (ipv4_word_netmask_to_ipt_ipv4range dip)) )
     (MatchAnd (Match (Prot p))
     (MatchAnd (Match (Src_Ports [sps]))
     (Match (Dst_Ports [dps]))
@@ -31,8 +31,8 @@ fun simple_match_to_ipportiface_match :: "simple_match \<Rightarrow> ipportiface
 
 (*is this usefull?*)
 lemma xxx: "matches \<gamma> (simple_match_to_ipportiface_match \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr>) a p \<longleftrightarrow> 
-      matches \<gamma> (alist_and ([Pos (IIface iif), Pos (OIface oif)] @ (NegPos_map (Src \<circ> ipv4_word_netmask_to_ipt_ipv4range) [sip])
-        @ (NegPos_map (Dst \<circ> ipv4_word_netmask_to_ipt_ipv4range) [dip]) @ [Pos (Prot p)]
+      matches \<gamma> (alist_and ([Pos (IIface iif), Pos (OIface oif)] @ [Pos (Src (ipv4_word_netmask_to_ipt_ipv4range sip))]
+        @ [Pos (Dst (ipv4_word_netmask_to_ipt_ipv4range dip))] @ [Pos (Prot p)]
         @ [Pos (Src_Ports [sps])] @ [Pos (Dst_Ports [dps])])) a p"
 apply(simp add:)
 apply(cases sip)
@@ -43,34 +43,11 @@ apply(simp_all add: bunch_of_lemmata_about_matches)
 done
 
 (*TODO: smelly duplication*)
-lemma matches_Src_simple_match: "matches (ipportiface_matcher, \<alpha>) (negation_type_to_match_expr (\<lambda>x. Src (ipv4_word_netmask_to_ipt_ipv4range x)) ip) a p \<longleftrightarrow>
-  simple_match_ip ip (p_src p)"
-apply(cases ip)
- apply(rename_tac i_ip)
- apply(case_tac i_ip)
- apply(rename_tac iip n)
- apply(simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary ipv4addr_of_dotteddecimal_dotteddecimal_of_ipv4addr)
-apply(simp)
-apply(rename_tac i_ip)
-apply(case_tac i_ip)
-apply(rename_tac iip n)
-apply(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
-apply(simp add: bunch_of_lemmata_about_matches bool_to_ternary_simps ipv4addr_of_dotteddecimal_dotteddecimal_of_ipv4addr)
-done
-lemma matches_Dst_simple_match: "matches (ipportiface_matcher, \<alpha>) (negation_type_to_match_expr (\<lambda>x. Dst (ipv4_word_netmask_to_ipt_ipv4range x)) ip) a p \<longleftrightarrow>
-  simple_match_ip ip (p_dst p)"
-apply(cases ip)
- apply(rename_tac i_ip)
- apply(case_tac i_ip)
- apply(rename_tac iip n)
- apply(simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary ipv4addr_of_dotteddecimal_dotteddecimal_of_ipv4addr)
-apply(simp)
-apply(rename_tac i_ip)
-apply(case_tac i_ip)
-apply(rename_tac iip n)
-apply(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
-apply(simp add: bunch_of_lemmata_about_matches bool_to_ternary_simps ipv4addr_of_dotteddecimal_dotteddecimal_of_ipv4addr)
-done
+lemma matches_SrcDst_simple_match: "p_src p \<in> ipv4s_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_src p)"
+    "p_dst p \<in> ipv4s_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_dst p)"
+apply(case_tac [!] ip)
+apply(rename_tac b m)
+by(simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary ipv4addr_of_dotteddecimal_dotteddecimal_of_ipv4addr)
 
 
 lemma ports_to_set_singleton_simple_match_port: "p \<in> ports_to_set [a] \<longleftrightarrow> simple_match_port a p"
@@ -82,7 +59,7 @@ theorem simple_match_to_ipportiface_match_correct: "matches (ipportiface_matcher
   apply(rename_tac iif oif sip dip pro sps dps)
   apply(simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
   apply(rule refl_conj_eq)+
-  apply(simp add: matches_Src_simple_match matches_Dst_simple_match)
+  apply(simp add: matches_SrcDst_simple_match)
   apply(rule refl_conj_eq)+
 (*brute force proof from here*)
 apply(case_tac [!] sps)
@@ -101,15 +78,13 @@ fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Ri
   "ipportiface_match_to_simple_match (MatchNot MatchAny) = None" |
   "ipportiface_match_to_simple_match (Match (IIface iif)) = Some (simple_match_any\<lparr> iiface := iif \<rparr>)" |
   "ipportiface_match_to_simple_match (Match (OIface oif)) = Some (simple_match_any\<lparr> oiface := oif \<rparr>)" |
-  "ipportiface_match_to_simple_match (Match (Src ip)) = Some (simple_match_any\<lparr> src := Pos (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>)" |
-  "ipportiface_match_to_simple_match (Match (Dst ip)) = Some (simple_match_any\<lparr> dst := Pos (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>)" |
+  "ipportiface_match_to_simple_match (Match (Src ip)) = Some (simple_match_any\<lparr> src := (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>)" |
+  "ipportiface_match_to_simple_match (Match (Dst ip)) = Some (simple_match_any\<lparr> dst := (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>)" |
   "ipportiface_match_to_simple_match (Match (Prot p)) = Some (simple_match_any\<lparr> proto := p \<rparr>)" |
   "ipportiface_match_to_simple_match (Match (Src_Ports [])) = Some (simple_match_any)" |
   "ipportiface_match_to_simple_match (Match (Src_Ports [(s,e)])) = Some (simple_match_any\<lparr> sports := (s,e) \<rparr>)" |
   "ipportiface_match_to_simple_match (Match (Dst_Ports [])) = Some (simple_match_any)" |
   "ipportiface_match_to_simple_match (Match (Dst_Ports [(s,e)])) = Some (simple_match_any\<lparr> dports := (s,e) \<rparr>)" |
-  "ipportiface_match_to_simple_match (MatchNot (Match (Src ip))) = Some (simple_match_any\<lparr> src := Neg (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>)" |
-  "ipportiface_match_to_simple_match (MatchNot (Match (Dst ip))) = Some (simple_match_any\<lparr> dst := Neg (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>)" |
   (*"ipportiface_match_to_simple_match (MatchNot (Match (IIface IfaceAny))) = None" |*)
   "ipportiface_match_to_simple_match (MatchNot (Match (IIface (Iface (Pos eth))))) = Some (simple_match_any\<lparr> iiface := Iface (Neg eth) \<rparr>)" |
   "ipportiface_match_to_simple_match (MatchNot (Match (IIface (Iface (Neg eth))))) = Some (simple_match_any\<lparr> iiface := Iface (Pos eth) \<rparr>)" |
@@ -121,6 +96,9 @@ fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Ri
   "ipportiface_match_to_simple_match (MatchNot (Match (Prot (Proto (Neg p))))) =  Some (simple_match_any\<lparr> proto := Proto (Pos p) \<rparr>)" |
   --"TODO:"
   "ipportiface_match_to_simple_match (MatchAnd m1 m2) =  undefined" | (*TODO*)
+  (*TODO: need to normalize this*)
+  "ipportiface_match_to_simple_match (MatchNot (Match (Src ip))) = undefined" |
+  "ipportiface_match_to_simple_match (MatchNot (Match (Dst ip))) = undefined" |
   --"undefined cases, normalize before!"
   "ipportiface_match_to_simple_match (MatchNot (MatchAnd _ _)) = undefined" |
   "ipportiface_match_to_simple_match (MatchNot (MatchNot _)) = undefined" |
@@ -349,7 +327,9 @@ text{*@{typ "simple_match"} @{text \<and>} @{typ "simple_match"}*}
   fun simple_match_and :: "simple_match \<Rightarrow> simple_match \<Rightarrow> simple_match option" where
     "simple_match_and \<lparr>iiface=iif1, oiface=oif1, src=sip1, dst=dip1, proto=p1, sports=sps1, dports=dps1 \<rparr> 
                       \<lparr>iiface=iif2, oiface=oif2, src=sip2, dst=dip2, proto=p2, sports=sps2, dports=dps2 \<rparr> = 
-                      Some \<lparr>iiface=iif2, oiface=oif2, src=sip2, dst=dip2, proto=p2, sports=simpl_ports_conjunct sps1 sps2, dports=simpl_ports_conjunct sps1 sps2 \<rparr>"
+      (case simple_ips_conjunct sip1 sip2 of None \<Rightarrow> None | Some sip \<Rightarrow> 
+      (case simple_ips_conjunct dip1 dip2 of None \<Rightarrow> None | Some dip \<Rightarrow> 
+      Some \<lparr>iiface=iif2, oiface=oif2, src=sip, dst=dip, proto=p2, sports=simpl_ports_conjunct sps1 sps2, dports=simpl_ports_conjunct sps1 sps2 \<rparr>))"
                       (*add list comprehension to multiply out the interface blowup? hopefully not necessary*)
 
 end
