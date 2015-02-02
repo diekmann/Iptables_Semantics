@@ -50,4 +50,5 @@ text{*We can reuse the bitrange theory to reason about ports*}
 lemma ports_to_set_bitrange: "ports_to_set ps = bitrange_to_set (l2br ps)"
   by(induction ps) (auto)
 
+
 end

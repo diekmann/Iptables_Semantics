@@ -264,7 +264,7 @@ subsection{*Matching*}
 
     
   (*we might need this in the following lemma*)
-  lemma "(\<lambda>s. (butlast i)@s) ` (UNIV::string set) = {butlast i@cs | cs. True}"
+  lemma xxx: "(\<lambda>s. i@s) ` (UNIV::string set) = {i@cs | cs. True}"
     by auto
   (*Neg eth+ means
       \<rightarrow> {s+. length s \<le> length eth \<and> s \<noteq> take (length s) eth}
@@ -278,12 +278,14 @@ subsection{*Matching*}
     else
       {s@''+'' | s . length s \<le> length i - 1 \<and> s \<noteq> take (length s - 1) i} \<union> {i@cs | s cs. length s \<le> length i - 1 \<and> s \<noteq> take (length s - 1) i \<and> cs \<noteq> []}
   )"
-  nitpick
-  apply(rule)
-  apply(simp split: split_if)
+  (*nitpick*)
+  (*apply(rule)*)
+  apply(simp_all split: split_if)
   apply(intro conjI impI)
+  apply(simp_all add: xxx)
   
-  apply(simp_all add: internal_iface_name_to_set)
+  
+  apply(simp_all add:)
   apply(safe)
   apply(simp_all)
   

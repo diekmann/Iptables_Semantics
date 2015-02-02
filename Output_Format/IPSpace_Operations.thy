@@ -154,6 +154,32 @@ lemma compress_pos_ips_Some: "compress_pos_ips ips = Some X \<Longrightarrow> \<
 by (metis Int_assoc intersect_ips_Some)
 
 
+
+(*SCRATCH: *)
+
+(*from IPSpace_Operations.intersect_ips*)
+  fun simple_ips_conjunct :: "(ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) option" where 
+    "simple_ips_conjunct (base1, m1) (base2, m2) = (if ipv4range_set_from_bitmask base1 m1 \<inter> ipv4range_set_from_bitmask base2 m2 = {}
+       then
+        None
+       else if 
+        ipv4range_set_from_bitmask base1 m1 \<subseteq> ipv4range_set_from_bitmask base2 m2
+       then 
+        Some (base1, m1)
+       else
+        Some (base2, m2)
+      )"
+  
+  (*this proof appears simpler than the other one, maybe refactor?*)
+  lemma simple_ips_conjunct_Some: "simple_ips_conjunct (b1, m1) (b2, m2) = Some (bx, mx) \<Longrightarrow> 
+      (ipv4range_set_from_bitmask b1 m1) \<inter> (ipv4range_set_from_bitmask b2 m2) = ipv4range_set_from_bitmask bx mx"
+    apply(simp  split: split_if_asm)
+    using ipv4range_bitmask_intersect apply fast+
+    done
+  
+
+(*End Scratch*)
+
 fun collect_to_range :: "ipt_ipv4range list \<Rightarrow> 32 bitrange" where
  "collect_to_range [] = Empty_Bitrange" |
  "collect_to_range (r#rs) = RangeUnion (ipv4range_set_from_bitmask_to_executable_ipv4range r) (collect_to_range rs)"

@@ -342,27 +342,14 @@ subsubsection{*Normalizing ports*}
 subsubsection{*Merging Simple Matches*}
 text{*@{typ "simple_match"} @{text \<and>} @{typ "simple_match"}*}
 
-(*from intersect_ips*)
-(*import IPSpace_Operations*)
-fun simple_ips_conjunct :: "(ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) option" where 
-  "simple_ips_conjunct (base1, m1) (base2, m2) = (if intersect_netmask_empty base1 m1 base2 m2
-     then
-      None
-     else if 
-      subset_netmask base1 m1 base2 m2
-     then
-      Some (base1, m1)
-     else if subset_netmask base2 m2 base1 m1 then
-      Some (base2, m2)
-     else None
-    )"
 
 
-  (*probably we can only return a list here because of interfaces*)
+
+  (*Why option? once the negation_type is gone from the interfaces, we should be able to directly merge!*)
   fun simple_match_and :: "simple_match \<Rightarrow> simple_match \<Rightarrow> simple_match option" where
     "simple_match_and \<lparr>iiface=iif1, oiface=oif1, src=sip1, dst=dip1, proto=p1, sports=sps1, dports=dps1 \<rparr> 
                       \<lparr>iiface=iif2, oiface=oif2, src=sip2, dst=dip2, proto=p2, sports=sps2, dports=dps2 \<rparr> = 
                       Some \<lparr>iiface=iif2, oiface=oif2, src=sip2, dst=dip2, proto=p2, sports=simpl_ports_conjunct sps1 sps2, dports=simpl_ports_conjunct sps1 sps2 \<rparr>"
-                      (*add list comprehension to multiply out the interface blowup?*)
+                      (*add list comprehension to multiply out the interface blowup? hopefully not necessary*)
 
 end
