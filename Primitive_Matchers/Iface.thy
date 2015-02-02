@@ -145,15 +145,20 @@ subsection{*Matching*}
      apply(simp add: iface_name_is_wildcard_alt split: split_if_asm)
     apply(simp add: iface_name_is_wildcard_fst)
     by (metis One_nat_def length_0_conv list.sel(1) list.sel(3) take_Cons')
-  (* TODO: match_iface_case_neg_wildcard_length ?*)
+  (* TODO: match_iface_case_neg_wildcard_length? hmm, p_i can be shorter or longer, essentially different*)
 
   text{*
   If the interfaces are no wildcards, they must be equal, otherwise None
   If one is a wildcard, the other one must `match'
   If both are wildcards: Longest prefix of both
   *}
-  fun most_specific_iface :: "iface \<Rightarrow> iface \<Rightarrow> iface option"
-
+  fun most_specific_iface :: "iface \<Rightarrow> iface \<Rightarrow> iface option" where
+    "most_specific_iface (Iface (Pos i1)) (Iface (Pos i2)) = (case (iface_name_is_wildcard i1, iface_name_is_wildcard i2) of
+      (True,  True) \<Rightarrow> None  |
+      (True,  False) \<Rightarrow> None |
+      (False, True) \<Rightarrow> None |
+      (False, False) \<Rightarrow> None)"
+  (*TODO: merging Pos and Neg Iface!! ? ? Requires returning a list?*)
 
 (* Old stuff below *)
     (*TODO TODO TODO: a packet has a fixed string as interface, there is no wildcard in it! TODO*)
