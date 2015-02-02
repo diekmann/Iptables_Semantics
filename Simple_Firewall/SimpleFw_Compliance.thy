@@ -110,10 +110,10 @@ fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Ri
   "ipportiface_match_to_simple_match (Match (Dst_Ports [(s,e)])) = Some (simple_match_any\<lparr> dports := (s,e) \<rparr>)" |
   "ipportiface_match_to_simple_match (MatchNot (Match (Src ip))) = Some (simple_match_any\<lparr> src := Neg (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>)" |
   "ipportiface_match_to_simple_match (MatchNot (Match (Dst ip))) = Some (simple_match_any\<lparr> dst := Neg (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>)" |
-  "ipportiface_match_to_simple_match (MatchNot (Match (IIface IfaceAny))) = None" |
+  (*"ipportiface_match_to_simple_match (MatchNot (Match (IIface IfaceAny))) = None" |*)
   "ipportiface_match_to_simple_match (MatchNot (Match (IIface (Iface (Pos eth))))) = Some (simple_match_any\<lparr> iiface := Iface (Neg eth) \<rparr>)" |
   "ipportiface_match_to_simple_match (MatchNot (Match (IIface (Iface (Neg eth))))) = Some (simple_match_any\<lparr> iiface := Iface (Pos eth) \<rparr>)" |
-  "ipportiface_match_to_simple_match (MatchNot (Match (OIface IfaceAny))) = None" |
+  (*"ipportiface_match_to_simple_match (MatchNot (Match (OIface IfaceAny))) = None" |*)
   "ipportiface_match_to_simple_match (MatchNot (Match (OIface (Iface (Pos eth))))) = Some (simple_match_any\<lparr> oiface := Iface (Neg eth) \<rparr>)" |
   "ipportiface_match_to_simple_match (MatchNot (Match (OIface (Iface (Neg eth))))) = Some (simple_match_any\<lparr> oiface := Iface (Pos eth) \<rparr>)" |
   "ipportiface_match_to_simple_match (MatchNot (Match (Prot ProtoAny))) = None" |

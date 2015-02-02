@@ -14,12 +14,12 @@ text{*Very TODO*}
 
   datatype simple_action = Accept | Drop
   
-  (*TODO: can we get rid of the negation types? Or at least at the ports?*)
+  (*TODO: can we get rid of the negation types?*)
   record simple_match =
     iiface :: "iface" --"in-interface"
     oiface :: "iface" --"out-interface"
-    src :: "(ipv4addr \<times> nat) negation_type" --"source"
-    dst :: "(ipv4addr \<times> nat) negation_type" --"destination"
+    src :: "(ipv4addr \<times> nat) negation_type" --"source" (*TODO: remove negation type*)
+    dst :: "(ipv4addr \<times> nat) negation_type" --"destination" (*TODO: remove negation type*)
     proto :: "protocol"
     sports :: "(16 word \<times> 16 word)" --"source-port first:last"
     dports :: "(16 word \<times> 16 word)" --"destination-port first:last"
@@ -64,7 +64,7 @@ subsection{*Simple Firewall Semantics*}
   lemma simple_match_any: "simple_matches simple_match_any p"
     apply(simp add: simple_match_any_def ipv4range_set_from_bitmask_0)
     apply(subgoal_tac "(65535::16 word) = max_word")
-     apply(simp)
+     apply(simp add: match_IfaceAny)
     apply(simp add: max_word_def)
     done
   
