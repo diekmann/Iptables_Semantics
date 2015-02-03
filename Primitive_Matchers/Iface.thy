@@ -266,6 +266,28 @@ subsection{*Matching*}
   (*we might need this in the following lemma*)
   lemma xxx: "(\<lambda>s. i@s) ` (UNIV::string set) = {i@cs | cs. True}"
     by auto
+  lemma xxx2: "{s@cs | s cs. P s} = (\<Union> s \<in> {s | s. P s}. (\<lambda>cs. s@cs) ` (UNIV::string set))"
+    by auto
+  lemma xxx3: "length i = n \<Longrightarrow> {s@cs | s cs. length s = n \<and> s \<noteq> (i::string)} = {s@cs | s cs. length s = n} - {s@cs | s cs. s = i}"
+    thm xxx2[of "\<lambda>s::string. length s = n \<and> s \<noteq> i"]
+    by auto
+  
+  lemma xxx4: "{s@cs | s cs. length s \<le> length i - 1 \<and> s \<noteq> take (length s - 1) (i::string)} = 
+        (\<Union> n \<in> {.. length i - 1}. {s@cs | s cs. length s = n \<and> s \<noteq> take (n - 1) i})" (is "?A = ?B")
+   proof -
+    have a: "?A = (\<Union>s\<in>{s |s. length s \<le> length i - 1 \<and> s \<noteq> take (length s - 1) i}. range (op @ s))" (is "?A=?A'")
+    by blast
+    have "\<And>n. {s@cs | s cs. length s = n \<and> s \<noteq> take (n - 1) i} = (\<Union>s\<in>{s |s. length s = n \<and> s \<noteq> take (n - 1) i}. range (op @ s))" by auto
+    hence b: "?B = (\<Union> n \<in> {.. length i - 1}. (\<Union>s\<in>{s |s. length s = n \<and> s \<noteq> take (n - 1) i}. range (op @ s)))" (is "?B=?B'") by presburger
+    {
+      fix N::nat and P::"string \<Rightarrow> nat \<Rightarrow> bool"
+      have "(\<Union>s\<in>{s |s. length s \<le> N \<and> P s N}. range (op @ s)) = (\<Union> n \<in> {.. N}. (\<Union>s\<in>{s |s. length s = n \<and> P s N}. range (op @ s)))"
+        by auto
+    } from this[of "length i - 1" "\<lambda>s n. s \<noteq> take (length s - 1) i"]
+    have "?A' = (\<Union> n\<le>length i - 1. \<Union>s\<in>{s |s. length s = n \<and> s \<noteq> take (length s - 1) i}. range (op @ s))" by simp
+    also have "\<dots> = ?B'" by blast
+    with a b show ?thesis by blast
+   qed
   (*Neg eth+ means
       \<rightarrow> {s+. length s \<le> length eth \<and> s \<noteq> take (length s) eth}
     Neg eth0 means
@@ -280,17 +302,8 @@ subsection{*Matching*}
   )"
   (*nitpick*)
   (*apply(rule)*)
-  apply(simp_all split: split_if)
-  apply(intro conjI impI)
-  apply(simp_all add: xxx)
-  
-  
-  apply(simp_all add:)
-  apply(safe)
-  apply(simp_all)
-  
-  
-  
+  apply(subst xxx4)
+  apply(subst xxx3) (*n - 1*)
   oops
 
   fun iface_to_simple_iface :: "iface \<Rightarrow> simple_iface list" where
