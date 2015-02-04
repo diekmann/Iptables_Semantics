@@ -271,20 +271,68 @@ subsection{*Matching*}
   lemma xxx3: "length i = n \<Longrightarrow> {s@cs | s cs. length s = n \<and> s \<noteq> (i::string)} = {s@cs | s cs. length s = n} - {s@cs | s cs. s = i}"
     thm xxx2[of "\<lambda>s::string. length s = n \<and> s \<noteq> i"]
     by auto
-  
-  lemma xxx4: "{s@cs | s cs. length s \<le> length i - 1 \<and> s \<noteq> take (length s - 1) (i::string)} = 
-        (\<Union> n \<in> {.. length i - 1}. {s@cs | s cs. length s = n \<and> s \<noteq> take (n - 1) i})" (is "?A = ?B")
-   proof -
-    have a: "?A = (\<Union>s\<in>{s |s. length s \<le> length i - 1 \<and> s \<noteq> take (length s - 1) i}. range (op @ s))" (is "?A=?A'")
+  (*also works with i - 1*)
+  lemma xxx3': "n\<le>length i \<Longrightarrow> {s @ cs |s cs. length s = n \<and> s \<noteq> take n (i::string)} = {s@cs | s cs. length s = n} - {s@cs | s cs. s = take n i}"
+    apply(subst xxx3)
+     apply(simp)
     by blast
-    have "\<And>n. {s@cs | s cs. length s = n \<and> s \<noteq> take (n - 1) i} = (\<Union>s\<in>{s |s. length s = n \<and> s \<noteq> take (n - 1) i}. range (op @ s))" by auto
-    hence b: "?B = (\<Union> n \<in> {.. length i - 1}. (\<Union>s\<in>{s |s. length s = n \<and> s \<noteq> take (n - 1) i}. range (op @ s)))" (is "?B=?B'") by presburger
+
+  lemma "- range (op @ (butlast i)) = UNIV - (op @ (butlast i)) ` UNIV"
+  by fast
+
+  lemma notprefix: "c \<noteq> take (length c) i \<longleftrightarrow> (\<forall>cs. c@cs \<noteq> i)"
+    apply(safe)
+    apply(simp)
+    by (metis append_take_drop_id)
+  
+  (*declare[[show_types]]*)
+  (*c may be too small? Definition: no_common_prefix c i*)
+  lemma "{c@cs | c cs.  take (min (length c) (length i)) c \<noteq> take (min (length c) (length i)) (i::string)} = 
+    {c@cs | c cs. take (length i) (c@cs) \<noteq> i}" (is "?A = ?B")
+    proof
+      show "?A \<subseteq> ?B"
+by (smt2 Collect_mono append_eq_conv_conj append_take_drop_id length_take take_append)
+    next
+      have a: "?A = {c@cs |c cs. (\<forall>cs1 cs2. i@cs1 \<noteq> c@cs2)}"
+        apply(safe)
+         apply(simp_all)
+         apply (metis min.commute notprefix order_refl take_all take_take)
+        by (metis append_take_drop_id length_take min.absorb_iff1 min.commute min_def notprefix take_all)
+
+      have srule: "\<And> P Q. P = Q \<Longrightarrow> {c @ cs |c cs. P c cs} = {c @ cs |c cs. Q c cs}" by simp
+
+      have b: "?B = {c @ cs |c cs. (\<forall>csa. (i @ csa) \<noteq> (c @ cs))}"
+      proof(rule srule, simp only: fun_eq_iff, clarify, rename_tac c cs)
+        fix c cs
+        from notprefix show "((take (length i) (c @ cs)) \<noteq> i) \<longleftrightarrow> (\<forall>csa. (i @ csa) \<noteq> (c @ cs))"
+          apply(subst neq_commute)
+          by blast
+      qed
+      show "?B \<subseteq> ?A"
+      apply(subst a)
+      apply(subst b)
+      
+    oops
+
+  lemma "- {i@cs | cs. True} = {c@cs | c cs. c \<noteq> take (length c) i}"
+    apply(safe)
+    apply(simp_all)
+     
+    oops
+  
+  lemma xxx4: "{s@cs | s cs. length s \<le> length i - 1 \<and> s \<noteq> take (length s) (i::string)} = 
+        (\<Union> n \<in> {.. length i - 1}. {s@cs | s cs. length s = n \<and> s \<noteq> take (n) i})" (is "?A = ?B")
+   proof -
+    have a: "?A = (\<Union>s\<in>{s |s. length s \<le> length i - 1 \<and> s \<noteq> take (length s) i}. range (op @ s))" (is "?A=?A'")
+    by blast
+    have "\<And>n. {s@cs | s cs. length s = n \<and> s \<noteq> take (n) i} = (\<Union>s\<in>{s |s. length s = n \<and> s \<noteq> take (n) i}. range (op @ s))" by auto
+    hence b: "?B = (\<Union> n \<in> {.. length i - 1}. (\<Union>s\<in>{s |s. length s = n \<and> s \<noteq> take (n) i}. range (op @ s)))" (is "?B=?B'") by presburger
     {
       fix N::nat and P::"string \<Rightarrow> nat \<Rightarrow> bool"
       have "(\<Union>s\<in>{s |s. length s \<le> N \<and> P s N}. range (op @ s)) = (\<Union> n \<in> {.. N}. (\<Union>s\<in>{s |s. length s = n \<and> P s N}. range (op @ s)))"
         by auto
-    } from this[of "length i - 1" "\<lambda>s n. s \<noteq> take (length s - 1) i"]
-    have "?A' = (\<Union> n\<le>length i - 1. \<Union>s\<in>{s |s. length s = n \<and> s \<noteq> take (length s - 1) i}. range (op @ s))" by simp
+    } from this[of "length i - 1" "\<lambda>s n. s \<noteq> take (length s) i"]
+    have "?A' = (\<Union> n\<le>length i - 1. \<Union>s\<in>{s |s. length s = n \<and> s \<noteq> take (length s) i}. range (op @ s))" by simp
     also have "\<dots> = ?B'" by blast
     with a b show ?thesis by blast
    qed
@@ -296,14 +344,26 @@ subsection{*Matching*}
   lemma "- (internal_iface_name_to_set i) = (
     if iface_name_is_wildcard i
     then
-      {s@cs | s cs. length s \<le> length i - 1 \<and> s \<noteq> take (length s - 1) i} (*no ''+'' at end (as one would write donw the iface) but allow arbitrary string*)
+      {s@cs | s cs. length s \<le> length i - 1 \<and> s \<noteq> take (length s) i} (*no ''+'' at end (as one would write donw the iface) but allow arbitrary string*)
     else
-      {s@''+'' | s . length s \<le> length i - 1 \<and> s \<noteq> take (length s - 1) i} \<union> {i@cs | s cs. length s \<le> length i - 1 \<and> s \<noteq> take (length s - 1) i \<and> cs \<noteq> []}
+      {s@''+'' | s . length s \<le> length i - 1 \<and> s \<noteq> take (length s) i} \<union> {i@cs | s cs. length s \<le> length i - 1 \<and> s \<noteq> take (length s - 1) i \<and> cs \<noteq> []}
   )"
   (*nitpick*)
   (*apply(rule)*)
   apply(subst xxx4)
-  apply(subst xxx3) (*n - 1*)
+  apply(subst xxx3') (*bound n*) defer
+  apply(subst xxx2)+
+  apply(subst internal_iface_name_to_set.simps)
+  apply(simp only: internal_iface_name_to_set.simps)
+  apply(simp only: split: split_if)
+  apply(intro impI conjI)
+  apply(simp)
+  defer
+  apply(simp)
+  apply(safe)[1]
+  apply(simp)
+  
+  
   oops
 
   fun iface_to_simple_iface :: "iface \<Rightarrow> simple_iface list" where
