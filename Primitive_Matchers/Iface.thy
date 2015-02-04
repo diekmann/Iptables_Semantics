@@ -284,15 +284,30 @@ subsection{*Matching*}
     apply(safe)
     apply(simp)
     by (metis append_take_drop_id)
-  
+
+  lemma not_common_prefix: "take (min (length c) (length i)) c \<noteq> take (min (length c) (length i)) (i::string) \<longleftrightarrow> (\<forall>cs1 cs2. i@cs1 \<noteq> c@cs2)"
+    apply(safe)
+     apply (metis min.commute notprefix order_refl take_all take_take)
+    by (metis append_take_drop_id min_def order_refl take_all)
+
+
+  lemma xxxxx: "length c \<ge> length i \<Longrightarrow> (\<forall>csa. (i::string) @ csa \<noteq> c @ cs) \<longleftrightarrow> (\<forall>cs1 cs2. i @ cs1 \<noteq> c @ cs2)"
+    apply(rule)
+     prefer 2
+     apply simp
+    apply(subst(asm) notprefix[symmetric])
+    apply(subst not_common_prefix[symmetric])
+    apply(subst neq_commute)
+    apply(cases "(length c) > (length i)")
+     apply(simp add: min_def)
+    apply(simp add: min_def)
+    done
+
   (*declare[[show_types]]*)
   (*c may be too small? Definition: no_common_prefix c i*)
   lemma "{c@cs | c cs.  take (min (length c) (length i)) c \<noteq> take (min (length c) (length i)) (i::string)} = 
     {c@cs | c cs. take (length i) (c@cs) \<noteq> i}" (is "?A = ?B")
-    proof
-      show "?A \<subseteq> ?B"
-by (smt2 Collect_mono append_eq_conv_conj append_take_drop_id length_take take_append)
-    next
+    proof -
       have a: "?A = {c@cs |c cs. (\<forall>cs1 cs2. i@cs1 \<noteq> c@cs2)}"
         apply(safe)
          apply(simp_all)
@@ -308,10 +323,21 @@ by (smt2 Collect_mono append_eq_conv_conj append_take_drop_id length_take take_a
           apply(subst neq_commute)
           by blast
       qed
-      show "?B \<subseteq> ?A"
+
+      have "?A \<subseteq> ?B"
       apply(subst a)
       apply(subst b)
-      
+      by blast
+
+      have "?B \<subseteq> ?A"
+       apply(subst a)
+       apply(subst b)
+       apply(safe)
+       apply(subst xxxxx[symmetric])
+       defer
+       apply blast
+       nitpick
+      show "?A = ?B"
     oops
 
   lemma "- {i@cs | cs. True} = {c@cs | c cs. c \<noteq> take (length c) i}"
