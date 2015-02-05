@@ -285,65 +285,79 @@ subsection{*Matching*}
     apply(simp)
     by (metis append_take_drop_id)
 
-  lemma not_common_prefix: "take (min (length c) (length i)) c \<noteq> take (min (length c) (length i)) (i::string) \<longleftrightarrow> (\<forall>cs1 cs2. i@cs1 \<noteq> c@cs2)"
+  definition common_prefix :: "string \<Rightarrow> string \<Rightarrow> bool" where
+    "common_prefix i c \<equiv> take (min (length c) (length i)) c = take (min (length c) (length i)) i"
+  lemma common_prefix_alt: "common_prefix i c \<longleftrightarrow> (\<exists>cs1 cs2. i@cs1 = c@cs2)"
+    unfolding common_prefix_def
     apply(safe)
-     apply (metis min.commute notprefix order_refl take_all take_take)
-    by (metis append_take_drop_id min_def order_refl take_all)
+     apply (metis append_take_drop_id min_def order_refl take_all)
+    by (metis min.commute notprefix order_refl take_all take_take)
+  lemma no_common_prefix: "\<not> common_prefix i c \<longleftrightarrow> (\<forall>cs1 cs2. i@cs1 \<noteq> c@cs2)"
+    using common_prefix_alt by presburger
+  lemma common_prefix_commute: "common_prefix a b \<longleftrightarrow> common_prefix b a"
+    unfolding common_prefix_alt by metis
 
-
-  lemma xxxxx: "length c \<ge> length i \<Longrightarrow> (\<forall>csa. (i::string) @ csa \<noteq> c @ cs) \<longleftrightarrow> (\<forall>cs1 cs2. i @ cs1 \<noteq> c @ cs2)"
+  lemma xxxxx: "length c \<ge> length i \<Longrightarrow> (\<forall>csa. (i::string) @ csa \<noteq> c @ cs) \<longleftrightarrow> \<not> common_prefix i c"
     apply(rule)
      prefer 2
-     apply simp
+     apply (simp add: no_common_prefix)
     apply(subst(asm) notprefix[symmetric])
-    apply(subst not_common_prefix[symmetric])
-    apply(subst neq_commute)
     apply(cases "(length c) > (length i)")
-     apply(simp add: min_def)
-    apply(simp add: min_def)
+     apply(simp add: min_def common_prefix_def)
+    apply(simp add: min_def common_prefix_def)
     done
 
-  (*declare[[show_types]]*)
-  (*c may be too small? Definition: no_common_prefix c i*)
-  lemma "{c@cs | c cs.  take (min (length c) (length i)) c \<noteq> take (min (length c) (length i)) (i::string)} = 
-    {c@cs | c cs. take (length i) (c@cs) \<noteq> i}" (is "?A = ?B")
+  lemma no_prefix_set_split: "{c@cs | c cs. \<not> common_prefix (i::string) c} = 
+          {c@cs | c cs. length c \<ge> length i \<and> take (length i) (c@cs) \<noteq> i} \<union>
+          {c@cs | c cs. length c \<le> length i \<and> take (length c) i \<noteq> c}" (is "?A = ?B1 \<union> ?B2")
     proof -
-      have a: "?A = {c@cs |c cs. (\<forall>cs1 cs2. i@cs1 \<noteq> c@cs2)}"
-        apply(safe)
-         apply(simp_all)
-         apply (metis min.commute notprefix order_refl take_all take_take)
-        by (metis append_take_drop_id length_take min.absorb_iff1 min.commute min_def notprefix take_all)
-
       have srule: "\<And> P Q. P = Q \<Longrightarrow> {c @ cs |c cs. P c cs} = {c @ cs |c cs. Q c cs}" by simp
 
-      have b: "?B = {c @ cs |c cs. (\<forall>csa. (i @ csa) \<noteq> (c @ cs))}"
-      proof(rule srule, simp only: fun_eq_iff, clarify, rename_tac c cs)
-        fix c cs
-        from notprefix show "((take (length i) (c @ cs)) \<noteq> i) \<longleftrightarrow> (\<forall>csa. (i @ csa) \<noteq> (c @ cs))"
-          apply(subst neq_commute)
-          by blast
-      qed
+      have a: "?A = {c@cs |c cs. (\<forall>cs1 cs2. i@cs1 \<noteq> c@cs2)}"
+        using no_common_prefix by presburger
 
-      have "?A \<subseteq> ?B"
-      apply(subst a)
-      apply(subst b)
-      by blast
+      have b1: "?B1 = {c@cs | c cs. length c \<ge> length i \<and>  \<not> common_prefix i c}"
+        by (metis (full_types) notprefix xxxxx)
 
-      have "?B \<subseteq> ?A"
-       apply(subst a)
-       apply(subst b)
-       apply(safe)
-       apply(subst xxxxx[symmetric])
-       defer
-       apply blast
-       nitpick
-      show "?A = ?B"
-    oops
+      have b2: "?B2 = {c@cs | c cs. length c \<le> length i \<and>  \<not> common_prefix i c}"
+        apply(rule srule)
+        apply(simp add: fun_eq_iff)
+        apply(intro allI iffI)
+         apply(simp_all)
+         apply(elim conjE)
+         apply(subst(asm) neq_commute)
+         apply(subst(asm) notprefix)
+         apply(drule xxxxx[where cs="[]"])
+         apply(simp add: common_prefix_commute)
+        apply(elim conjE)
+        apply(subst neq_commute)
+        apply(subst notprefix)
+        apply(drule xxxxx[where cs="[]"])
+        apply(simp add: common_prefix_commute)
+        done
 
-  lemma "- {i@cs | cs. True} = {c@cs | c cs. c \<noteq> take (length c) i}"
+
+      have "?A \<subseteq> ?B1 \<union> ?B2" 
+        apply(subst b1)
+        apply(subst b2)
+        apply(rule)
+        apply(simp)
+        apply(elim exE conjE)
+        apply(case_tac "length x \<le> length i")
+         apply(auto)[1]
+        by (metis nat_le_linear)
+      
+      have "?B1 \<union> ?B2 \<subseteq> ?A"
+        apply(subst b1)
+        apply(subst b2)
+        by blast
+      from `?A \<subseteq> ?B1 \<union> ?B2` `?B1 \<union> ?B2 \<subseteq> ?A` show ?thesis by blast
+    qed
+
+  lemma "- {i@cs | cs. True} = {c@cs | c cs. \<not> common_prefix i c}"
+    apply(simp add: no_common_prefix)
     apply(safe)
-    apply(simp_all)
-     
+     apply(simp_all)
     oops
   
   lemma xxx4: "{s@cs | s cs. length s \<le> length i - 1 \<and> s \<noteq> take (length s) (i::string)} = 
