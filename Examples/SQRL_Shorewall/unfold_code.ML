@@ -1031,132 +1031,6 @@ zero_nat))))
 fun optimize_matches f rs =
   map (fn r => Rule (f (get_match r), get_action r)) rs;
 
-fun equal_match_expr A_ (MatchAnd (match_expr1, match_expr2)) MatchAny = false
-  | equal_match_expr A_ MatchAny (MatchAnd (match_expr1, match_expr2)) = false
-  | equal_match_expr A_ (MatchNot match_expr) MatchAny = false
-  | equal_match_expr A_ MatchAny (MatchNot match_expr) = false
-  | equal_match_expr A_ (MatchNot match_expr)
-    (MatchAnd (match_expr1, match_expr2)) = false
-  | equal_match_expr A_ (MatchAnd (match_expr1, match_expr2))
-    (MatchNot match_expr) = false
-  | equal_match_expr A_ (Match a) MatchAny = false
-  | equal_match_expr A_ MatchAny (Match a) = false
-  | equal_match_expr A_ (Match a) (MatchAnd (match_expr1, match_expr2)) = false
-  | equal_match_expr A_ (MatchAnd (match_expr1, match_expr2)) (Match a) = false
-  | equal_match_expr A_ (Match a) (MatchNot match_expr) = false
-  | equal_match_expr A_ (MatchNot match_expr) (Match a) = false
-  | equal_match_expr A_ (MatchAnd (match_expr1a, match_expr2a))
-    (MatchAnd (match_expr1, match_expr2)) =
-    equal_match_expr A_ match_expr1a match_expr1 andalso
-      equal_match_expr A_ match_expr2a match_expr2
-  | equal_match_expr A_ (MatchNot match_expra) (MatchNot match_expr) =
-    equal_match_expr A_ match_expra match_expr
-  | equal_match_expr A_ (Match aa) (Match a) = eq A_ aa a
-  | equal_match_expr A_ MatchAny MatchAny = true;
-
-fun opt_simple_matcher_in_doubt_deny_extra uu MatchAny = MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Accept (Match (Extra uv)) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Reject (Match (Extra uw)) = MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Drop (Match (Extra ux)) = MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Drop (Match (Src v)) = Match (Src v)
-  | opt_simple_matcher_in_doubt_deny_extra Drop (Match (Dst v)) = Match (Dst v)
-  | opt_simple_matcher_in_doubt_deny_extra Drop (Match (Prot v)) =
-    Match (Prot v)
-  | opt_simple_matcher_in_doubt_deny_extra Log (Match m) = Match m
-  | opt_simple_matcher_in_doubt_deny_extra Reject (Match (Src v)) =
-    Match (Src v)
-  | opt_simple_matcher_in_doubt_deny_extra Reject (Match (Dst v)) =
-    Match (Dst v)
-  | opt_simple_matcher_in_doubt_deny_extra Reject (Match (Prot v)) =
-    Match (Prot v)
-  | opt_simple_matcher_in_doubt_deny_extra (Call v) (Match m) = Match m
-  | opt_simple_matcher_in_doubt_deny_extra Return (Match m) = Match m
-  | opt_simple_matcher_in_doubt_deny_extra Empty (Match m) = Match m
-  | opt_simple_matcher_in_doubt_deny_extra Unknown (Match m) = Match m
-  | opt_simple_matcher_in_doubt_deny_extra uy (Match (Src v)) = Match (Src v)
-  | opt_simple_matcher_in_doubt_deny_extra uy (Match (Dst v)) = Match (Dst v)
-  | opt_simple_matcher_in_doubt_deny_extra uy (Match (Prot v)) = Match (Prot v)
-  | opt_simple_matcher_in_doubt_deny_extra Reject (MatchNot (Match (Extra uz)))
-    = MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Drop (MatchNot (Match (Extra va))) =
-    MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Accept (MatchNot (Match (Extra vb)))
-    = MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra a (MatchNot (MatchNot m)) =
-    opt_simple_matcher_in_doubt_deny_extra a m
-  | opt_simple_matcher_in_doubt_deny_extra a (MatchNot (MatchAnd (m1, m2))) =
-    (if equal_match_expr equal_iptrule_match
-          (opt_simple_matcher_in_doubt_deny_extra a (MatchNot m1))
-          MatchAny orelse
-          equal_match_expr equal_iptrule_match
-            (opt_simple_matcher_in_doubt_deny_extra a (MatchNot m2)) MatchAny
-      then MatchAny
-      else (if equal_match_expr equal_iptrule_match
-                 (opt_simple_matcher_in_doubt_deny_extra a (MatchNot m1))
-                 (MatchNot MatchAny)
-             then opt_simple_matcher_in_doubt_deny_extra a (MatchNot m2)
-             else (if equal_match_expr equal_iptrule_match
-                        (opt_simple_matcher_in_doubt_deny_extra a (MatchNot m2))
-                        (MatchNot MatchAny)
-                    then opt_simple_matcher_in_doubt_deny_extra a (MatchNot m1)
-                    else MatchNot
-                           (MatchAnd
-                             (MatchNot
-                                (opt_simple_matcher_in_doubt_deny_extra a
-                                  (MatchNot m1)),
-                               MatchNot
-                                 (opt_simple_matcher_in_doubt_deny_extra a
-                                   (MatchNot m2)))))))
-  | opt_simple_matcher_in_doubt_deny_extra Accept (MatchNot (Match (Src va))) =
-    MatchNot (Match (Src va))
-  | opt_simple_matcher_in_doubt_deny_extra Accept (MatchNot (Match (Dst va))) =
-    MatchNot (Match (Dst va))
-  | opt_simple_matcher_in_doubt_deny_extra Accept (MatchNot (Match (Prot va))) =
-    MatchNot (Match (Prot va))
-  | opt_simple_matcher_in_doubt_deny_extra Accept (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Drop (MatchNot (Match (Src va))) =
-    MatchNot (Match (Src va))
-  | opt_simple_matcher_in_doubt_deny_extra Drop (MatchNot (Match (Dst va))) =
-    MatchNot (Match (Dst va))
-  | opt_simple_matcher_in_doubt_deny_extra Drop (MatchNot (Match (Prot va))) =
-    MatchNot (Match (Prot va))
-  | opt_simple_matcher_in_doubt_deny_extra Drop (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Log (MatchNot (Match v)) =
-    MatchNot (Match v)
-  | opt_simple_matcher_in_doubt_deny_extra Log (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra (Call v) (MatchNot (Match va)) =
-    MatchNot (Match va)
-  | opt_simple_matcher_in_doubt_deny_extra (Call v) (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Return (MatchNot (Match v)) =
-    MatchNot (Match v)
-  | opt_simple_matcher_in_doubt_deny_extra Return (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Empty (MatchNot (Match v)) =
-    MatchNot (Match v)
-  | opt_simple_matcher_in_doubt_deny_extra Empty (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Unknown (MatchNot (Match v)) =
-    MatchNot (Match v)
-  | opt_simple_matcher_in_doubt_deny_extra Unknown (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra vc (MatchNot (Match (Src va))) =
-    MatchNot (Match (Src va))
-  | opt_simple_matcher_in_doubt_deny_extra vc (MatchNot (Match (Dst va))) =
-    MatchNot (Match (Dst va))
-  | opt_simple_matcher_in_doubt_deny_extra vc (MatchNot (Match (Prot va))) =
-    MatchNot (Match (Prot va))
-  | opt_simple_matcher_in_doubt_deny_extra vc (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra a (MatchAnd (m1, m2)) =
-    MatchAnd
-      (opt_simple_matcher_in_doubt_deny_extra a m1,
-        opt_simple_matcher_in_doubt_deny_extra a m2);
-
 fun opt_MatchAny_match_expr MatchAny = MatchAny
   | opt_MatchAny_match_expr (Match a) = Match a
   | opt_MatchAny_match_expr (MatchNot (MatchNot m)) = opt_MatchAny_match_expr m
@@ -1305,6 +1179,106 @@ fun opt_MatchAny_match_expr MatchAny = MatchAny
       (opt_MatchAny_match_expr (MatchAnd (v, va)),
         opt_MatchAny_match_expr (MatchAnd (vb, vc)));
 
+fun equal_match_expr A_ (MatchAnd (match_expr1, match_expr2)) MatchAny = false
+  | equal_match_expr A_ MatchAny (MatchAnd (match_expr1, match_expr2)) = false
+  | equal_match_expr A_ (MatchNot match_expr) MatchAny = false
+  | equal_match_expr A_ MatchAny (MatchNot match_expr) = false
+  | equal_match_expr A_ (MatchNot match_expr)
+    (MatchAnd (match_expr1, match_expr2)) = false
+  | equal_match_expr A_ (MatchAnd (match_expr1, match_expr2))
+    (MatchNot match_expr) = false
+  | equal_match_expr A_ (Match a) MatchAny = false
+  | equal_match_expr A_ MatchAny (Match a) = false
+  | equal_match_expr A_ (Match a) (MatchAnd (match_expr1, match_expr2)) = false
+  | equal_match_expr A_ (MatchAnd (match_expr1, match_expr2)) (Match a) = false
+  | equal_match_expr A_ (Match a) (MatchNot match_expr) = false
+  | equal_match_expr A_ (MatchNot match_expr) (Match a) = false
+  | equal_match_expr A_ (MatchAnd (match_expr1a, match_expr2a))
+    (MatchAnd (match_expr1, match_expr2)) =
+    equal_match_expr A_ match_expr1a match_expr1 andalso
+      equal_match_expr A_ match_expr2a match_expr2
+  | equal_match_expr A_ (MatchNot match_expra) (MatchNot match_expr) =
+    equal_match_expr A_ match_expra match_expr
+  | equal_match_expr A_ (Match aa) (Match a) = eq A_ aa a
+  | equal_match_expr A_ MatchAny MatchAny = true;
+
+fun lower_closure_matchexpr uu MatchAny = MatchAny
+  | lower_closure_matchexpr Accept (Match (Extra uv)) = MatchNot MatchAny
+  | lower_closure_matchexpr Reject (Match (Extra uw)) = MatchAny
+  | lower_closure_matchexpr Drop (Match (Extra ux)) = MatchAny
+  | lower_closure_matchexpr Drop (Match (Src v)) = Match (Src v)
+  | lower_closure_matchexpr Drop (Match (Dst v)) = Match (Dst v)
+  | lower_closure_matchexpr Drop (Match (Prot v)) = Match (Prot v)
+  | lower_closure_matchexpr Log (Match m) = Match m
+  | lower_closure_matchexpr Reject (Match (Src v)) = Match (Src v)
+  | lower_closure_matchexpr Reject (Match (Dst v)) = Match (Dst v)
+  | lower_closure_matchexpr Reject (Match (Prot v)) = Match (Prot v)
+  | lower_closure_matchexpr (Call v) (Match m) = Match m
+  | lower_closure_matchexpr Return (Match m) = Match m
+  | lower_closure_matchexpr Empty (Match m) = Match m
+  | lower_closure_matchexpr Unknown (Match m) = Match m
+  | lower_closure_matchexpr uy (Match (Src v)) = Match (Src v)
+  | lower_closure_matchexpr uy (Match (Dst v)) = Match (Dst v)
+  | lower_closure_matchexpr uy (Match (Prot v)) = Match (Prot v)
+  | lower_closure_matchexpr Reject (MatchNot (Match (Extra uz))) = MatchAny
+  | lower_closure_matchexpr Drop (MatchNot (Match (Extra va))) = MatchAny
+  | lower_closure_matchexpr Accept (MatchNot (Match (Extra vb))) =
+    MatchNot MatchAny
+  | lower_closure_matchexpr a (MatchNot (MatchNot m)) =
+    lower_closure_matchexpr a m
+  | lower_closure_matchexpr a (MatchNot (MatchAnd (m1, m2))) =
+    (if equal_match_expr equal_iptrule_match
+          (lower_closure_matchexpr a (MatchNot m1)) MatchAny orelse
+          equal_match_expr equal_iptrule_match
+            (lower_closure_matchexpr a (MatchNot m2)) MatchAny
+      then MatchAny
+      else (if equal_match_expr equal_iptrule_match
+                 (lower_closure_matchexpr a (MatchNot m1)) (MatchNot MatchAny)
+             then lower_closure_matchexpr a (MatchNot m2)
+             else (if equal_match_expr equal_iptrule_match
+                        (lower_closure_matchexpr a (MatchNot m2))
+                        (MatchNot MatchAny)
+                    then lower_closure_matchexpr a (MatchNot m1)
+                    else MatchNot
+                           (MatchAnd
+                             (MatchNot
+                                (lower_closure_matchexpr a (MatchNot m1)),
+                               MatchNot
+                                 (lower_closure_matchexpr a (MatchNot m2)))))))
+  | lower_closure_matchexpr Accept (MatchNot (Match (Src va))) =
+    MatchNot (Match (Src va))
+  | lower_closure_matchexpr Accept (MatchNot (Match (Dst va))) =
+    MatchNot (Match (Dst va))
+  | lower_closure_matchexpr Accept (MatchNot (Match (Prot va))) =
+    MatchNot (Match (Prot va))
+  | lower_closure_matchexpr Accept (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr Drop (MatchNot (Match (Src va))) =
+    MatchNot (Match (Src va))
+  | lower_closure_matchexpr Drop (MatchNot (Match (Dst va))) =
+    MatchNot (Match (Dst va))
+  | lower_closure_matchexpr Drop (MatchNot (Match (Prot va))) =
+    MatchNot (Match (Prot va))
+  | lower_closure_matchexpr Drop (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr Log (MatchNot (Match v)) = MatchNot (Match v)
+  | lower_closure_matchexpr Log (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr (Call v) (MatchNot (Match va)) = MatchNot (Match va)
+  | lower_closure_matchexpr (Call v) (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr Return (MatchNot (Match v)) = MatchNot (Match v)
+  | lower_closure_matchexpr Return (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr Empty (MatchNot (Match v)) = MatchNot (Match v)
+  | lower_closure_matchexpr Empty (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr Unknown (MatchNot (Match v)) = MatchNot (Match v)
+  | lower_closure_matchexpr Unknown (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr vc (MatchNot (Match (Src va))) =
+    MatchNot (Match (Src va))
+  | lower_closure_matchexpr vc (MatchNot (Match (Dst va))) =
+    MatchNot (Match (Dst va))
+  | lower_closure_matchexpr vc (MatchNot (Match (Prot va))) =
+    MatchNot (Match (Prot va))
+  | lower_closure_matchexpr vc (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr a (MatchAnd (m1, m2)) =
+    MatchAnd (lower_closure_matchexpr a m1, lower_closure_matchexpr a m2);
+
 fun optimize_matches_a f rs =
   map (fn r => Rule (f (get_action r) (get_match r), get_action r)) rs;
 
@@ -1312,120 +1286,93 @@ fun lower_closure rs =
   rmMatchFalse
     (funpow (nat_of_integer (2000 : IntInf.int))
       (optimize_matches opt_MatchAny_match_expr)
-      (optimize_matches_a opt_simple_matcher_in_doubt_deny_extra rs));
+      (optimize_matches_a lower_closure_matchexpr rs));
 
 fun map_of_string rs = map_of (equal_list equal_char) rs;
 
-fun opt_simple_matcher_in_doubt_allow_extra uu MatchAny = MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Accept (Match (Extra uv)) = MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Reject (Match (Extra uw)) =
+fun upper_closure_matchexpr uu MatchAny = MatchAny
+  | upper_closure_matchexpr Accept (Match (Extra uv)) = MatchAny
+  | upper_closure_matchexpr Reject (Match (Extra uw)) = MatchNot MatchAny
+  | upper_closure_matchexpr Drop (Match (Extra ux)) = MatchNot MatchAny
+  | upper_closure_matchexpr Drop (Match (Src v)) = Match (Src v)
+  | upper_closure_matchexpr Drop (Match (Dst v)) = Match (Dst v)
+  | upper_closure_matchexpr Drop (Match (Prot v)) = Match (Prot v)
+  | upper_closure_matchexpr Log (Match m) = Match m
+  | upper_closure_matchexpr Reject (Match (Src v)) = Match (Src v)
+  | upper_closure_matchexpr Reject (Match (Dst v)) = Match (Dst v)
+  | upper_closure_matchexpr Reject (Match (Prot v)) = Match (Prot v)
+  | upper_closure_matchexpr (Call v) (Match m) = Match m
+  | upper_closure_matchexpr Return (Match m) = Match m
+  | upper_closure_matchexpr Empty (Match m) = Match m
+  | upper_closure_matchexpr Unknown (Match m) = Match m
+  | upper_closure_matchexpr uy (Match (Src v)) = Match (Src v)
+  | upper_closure_matchexpr uy (Match (Dst v)) = Match (Dst v)
+  | upper_closure_matchexpr uy (Match (Prot v)) = Match (Prot v)
+  | upper_closure_matchexpr Accept (MatchNot (Match (Extra uz))) = MatchAny
+  | upper_closure_matchexpr Drop (MatchNot (Match (Extra va))) =
     MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Drop (Match (Extra ux)) =
+  | upper_closure_matchexpr Reject (MatchNot (Match (Extra vb))) =
     MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Drop (Match (Src v)) = Match (Src v)
-  | opt_simple_matcher_in_doubt_allow_extra Drop (Match (Dst v)) = Match (Dst v)
-  | opt_simple_matcher_in_doubt_allow_extra Drop (Match (Prot v)) =
-    Match (Prot v)
-  | opt_simple_matcher_in_doubt_allow_extra Log (Match m) = Match m
-  | opt_simple_matcher_in_doubt_allow_extra Reject (Match (Src v)) =
-    Match (Src v)
-  | opt_simple_matcher_in_doubt_allow_extra Reject (Match (Dst v)) =
-    Match (Dst v)
-  | opt_simple_matcher_in_doubt_allow_extra Reject (Match (Prot v)) =
-    Match (Prot v)
-  | opt_simple_matcher_in_doubt_allow_extra (Call v) (Match m) = Match m
-  | opt_simple_matcher_in_doubt_allow_extra Return (Match m) = Match m
-  | opt_simple_matcher_in_doubt_allow_extra Empty (Match m) = Match m
-  | opt_simple_matcher_in_doubt_allow_extra Unknown (Match m) = Match m
-  | opt_simple_matcher_in_doubt_allow_extra uy (Match (Src v)) = Match (Src v)
-  | opt_simple_matcher_in_doubt_allow_extra uy (Match (Dst v)) = Match (Dst v)
-  | opt_simple_matcher_in_doubt_allow_extra uy (Match (Prot v)) = Match (Prot v)
-  | opt_simple_matcher_in_doubt_allow_extra Accept (MatchNot (Match (Extra uz)))
-    = MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Drop (MatchNot (Match (Extra va))) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Reject (MatchNot (Match (Extra vb)))
-    = MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra a (MatchNot (MatchNot m)) =
-    opt_simple_matcher_in_doubt_allow_extra a m
-  | opt_simple_matcher_in_doubt_allow_extra a (MatchNot (MatchAnd (m1, m2))) =
+  | upper_closure_matchexpr a (MatchNot (MatchNot m)) =
+    upper_closure_matchexpr a m
+  | upper_closure_matchexpr a (MatchNot (MatchAnd (m1, m2))) =
     (if equal_match_expr equal_iptrule_match
-          (opt_simple_matcher_in_doubt_allow_extra a (MatchNot m1))
-          MatchAny orelse
+          (upper_closure_matchexpr a (MatchNot m1)) MatchAny orelse
           equal_match_expr equal_iptrule_match
-            (opt_simple_matcher_in_doubt_allow_extra a (MatchNot m2)) MatchAny
+            (upper_closure_matchexpr a (MatchNot m2)) MatchAny
       then MatchAny
       else (if equal_match_expr equal_iptrule_match
-                 (opt_simple_matcher_in_doubt_allow_extra a (MatchNot m1))
-                 (MatchNot MatchAny)
-             then opt_simple_matcher_in_doubt_allow_extra a (MatchNot m2)
+                 (upper_closure_matchexpr a (MatchNot m1)) (MatchNot MatchAny)
+             then upper_closure_matchexpr a (MatchNot m2)
              else (if equal_match_expr equal_iptrule_match
-                        (opt_simple_matcher_in_doubt_allow_extra a
-                          (MatchNot m2))
+                        (upper_closure_matchexpr a (MatchNot m2))
                         (MatchNot MatchAny)
-                    then opt_simple_matcher_in_doubt_allow_extra a (MatchNot m1)
+                    then upper_closure_matchexpr a (MatchNot m1)
                     else MatchNot
                            (MatchAnd
                              (MatchNot
-                                (opt_simple_matcher_in_doubt_allow_extra a
-                                  (MatchNot m1)),
+                                (upper_closure_matchexpr a (MatchNot m1)),
                                MatchNot
-                                 (opt_simple_matcher_in_doubt_allow_extra a
-                                   (MatchNot m2)))))))
-  | opt_simple_matcher_in_doubt_allow_extra Drop (MatchNot (Match (Src va))) =
+                                 (upper_closure_matchexpr a (MatchNot m2)))))))
+  | upper_closure_matchexpr Drop (MatchNot (Match (Src va))) =
     MatchNot (Match (Src va))
-  | opt_simple_matcher_in_doubt_allow_extra Drop (MatchNot (Match (Dst va))) =
+  | upper_closure_matchexpr Drop (MatchNot (Match (Dst va))) =
     MatchNot (Match (Dst va))
-  | opt_simple_matcher_in_doubt_allow_extra Drop (MatchNot (Match (Prot va))) =
+  | upper_closure_matchexpr Drop (MatchNot (Match (Prot va))) =
     MatchNot (Match (Prot va))
-  | opt_simple_matcher_in_doubt_allow_extra Drop (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Log (MatchNot (Match v)) =
-    MatchNot (Match v)
-  | opt_simple_matcher_in_doubt_allow_extra Log (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Reject (MatchNot (Match (Src va))) =
+  | upper_closure_matchexpr Drop (MatchNot MatchAny) = MatchNot MatchAny
+  | upper_closure_matchexpr Log (MatchNot (Match v)) = MatchNot (Match v)
+  | upper_closure_matchexpr Log (MatchNot MatchAny) = MatchNot MatchAny
+  | upper_closure_matchexpr Reject (MatchNot (Match (Src va))) =
     MatchNot (Match (Src va))
-  | opt_simple_matcher_in_doubt_allow_extra Reject (MatchNot (Match (Dst va))) =
+  | upper_closure_matchexpr Reject (MatchNot (Match (Dst va))) =
     MatchNot (Match (Dst va))
-  | opt_simple_matcher_in_doubt_allow_extra Reject (MatchNot (Match (Prot va)))
-    = MatchNot (Match (Prot va))
-  | opt_simple_matcher_in_doubt_allow_extra Reject (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra (Call v) (MatchNot (Match va)) =
-    MatchNot (Match va)
-  | opt_simple_matcher_in_doubt_allow_extra (Call v) (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Return (MatchNot (Match v)) =
-    MatchNot (Match v)
-  | opt_simple_matcher_in_doubt_allow_extra Return (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Empty (MatchNot (Match v)) =
-    MatchNot (Match v)
-  | opt_simple_matcher_in_doubt_allow_extra Empty (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Unknown (MatchNot (Match v)) =
-    MatchNot (Match v)
-  | opt_simple_matcher_in_doubt_allow_extra Unknown (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra vc (MatchNot (Match (Src va))) =
-    MatchNot (Match (Src va))
-  | opt_simple_matcher_in_doubt_allow_extra vc (MatchNot (Match (Dst va))) =
-    MatchNot (Match (Dst va))
-  | opt_simple_matcher_in_doubt_allow_extra vc (MatchNot (Match (Prot va))) =
+  | upper_closure_matchexpr Reject (MatchNot (Match (Prot va))) =
     MatchNot (Match (Prot va))
-  | opt_simple_matcher_in_doubt_allow_extra vc (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra a (MatchAnd (m1, m2)) =
-    MatchAnd
-      (opt_simple_matcher_in_doubt_allow_extra a m1,
-        opt_simple_matcher_in_doubt_allow_extra a m2);
+  | upper_closure_matchexpr Reject (MatchNot MatchAny) = MatchNot MatchAny
+  | upper_closure_matchexpr (Call v) (MatchNot (Match va)) = MatchNot (Match va)
+  | upper_closure_matchexpr (Call v) (MatchNot MatchAny) = MatchNot MatchAny
+  | upper_closure_matchexpr Return (MatchNot (Match v)) = MatchNot (Match v)
+  | upper_closure_matchexpr Return (MatchNot MatchAny) = MatchNot MatchAny
+  | upper_closure_matchexpr Empty (MatchNot (Match v)) = MatchNot (Match v)
+  | upper_closure_matchexpr Empty (MatchNot MatchAny) = MatchNot MatchAny
+  | upper_closure_matchexpr Unknown (MatchNot (Match v)) = MatchNot (Match v)
+  | upper_closure_matchexpr Unknown (MatchNot MatchAny) = MatchNot MatchAny
+  | upper_closure_matchexpr vc (MatchNot (Match (Src va))) =
+    MatchNot (Match (Src va))
+  | upper_closure_matchexpr vc (MatchNot (Match (Dst va))) =
+    MatchNot (Match (Dst va))
+  | upper_closure_matchexpr vc (MatchNot (Match (Prot va))) =
+    MatchNot (Match (Prot va))
+  | upper_closure_matchexpr vc (MatchNot MatchAny) = MatchNot MatchAny
+  | upper_closure_matchexpr a (MatchAnd (m1, m2)) =
+    MatchAnd (upper_closure_matchexpr a m1, upper_closure_matchexpr a m2);
 
 fun upper_closure rs =
   rmMatchFalse
     (funpow (nat_of_integer (2000 : IntInf.int))
       (optimize_matches opt_MatchAny_match_expr)
-      (optimize_matches_a opt_simple_matcher_in_doubt_allow_extra rs));
+      (optimize_matches_a upper_closure_matchexpr rs));
 
 fun format_Ln_rules_uncompressed rs =
   map (fn r => (format_Ln_match (get_match r), get_action r))

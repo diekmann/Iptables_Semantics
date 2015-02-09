@@ -242,7 +242,7 @@ hide_fact bool_to_ternary_simp1 bool_to_ternary_simp2 bool_to_ternary_simp3 bool
 subsection{*Removing Unknown Primitives*}
 
 
-(*see opt_simple_matcher_in_doubt_allow_extra*)
+(*see upper_closure_matchexpr*)
 fun remove_unknowns_generic :: "('a, 'packet) match_tac \<Rightarrow> action \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr" where
   "remove_unknowns_generic _ _ MatchAny = MatchAny" |
   "remove_unknowns_generic _ _ (MatchNot MatchAny) = MatchNot MatchAny" |

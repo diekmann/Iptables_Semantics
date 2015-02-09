@@ -61,16 +61,16 @@ apply(simp add: rm_LogEmpty_fun_semantics)
 done
 
 text{*in doubt allow closure*}
-value "rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_allow_extra example_ruleset_simplified))"
+value "rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a upper_closure_matchexpr example_ruleset_simplified))"
 
 text{*in doubt deny closure*}
-value "rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_deny_extra example_ruleset_simplified))"
+value "rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a lower_closure_matchexpr example_ruleset_simplified))"
 
 
 (*<*)
-lemma tmp: "rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_allow_extra example_ruleset_simplified)) = 
+lemma tmp: "rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a upper_closure_matchexpr example_ruleset_simplified)) = 
   [Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16))) Accept, Rule MatchAny Drop, Rule MatchAny Accept]" by eval
-lemma tmp': "rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_deny_extra example_ruleset_simplified)) = 
+lemma tmp': "rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a lower_closure_matchexpr example_ruleset_simplified)) = 
   [Rule MatchAny Drop, Rule (Match (Prot ProtTCP)) Drop, Rule (Match (Prot ProtTCP)) Drop, Rule (Match (Prot ProtTCP)) Drop, Rule (Match (Prot ProtTCP)) Drop, 
    Rule (Match (Prot ProtUDP)) Drop, Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16))) Accept, Rule MatchAny Drop,
    Rule MatchAny Accept]" by eval
@@ -79,7 +79,7 @@ lemma hlp1: "((-1062666241)::ipv4addr) = 3232301055" by simp
 (*>*)
 
 text{*upper closure*}
-lemma "rmshadow (simple_matcher, in_doubt_allow) (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_allow_extra example_ruleset_simplified))) UNIV = 
+lemma "rmshadow (simple_matcher, in_doubt_allow) (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a upper_closure_matchexpr example_ruleset_simplified))) UNIV = 
   [Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16))) Accept, Rule MatchAny Drop]"
 apply(subst tmp)
 apply(subst rmshadow.simps)
@@ -96,7 +96,7 @@ done
 
 
 text{*lower closure*}
-lemma "rmshadow (simple_matcher, in_doubt_deny) (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_deny_extra example_ruleset_simplified))) UNIV = 
+lemma "rmshadow (simple_matcher, in_doubt_deny) (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a lower_closure_matchexpr example_ruleset_simplified))) UNIV = 
   [Rule MatchAny Drop]"
 apply(subst tmp')
 apply(subst rmshadow.simps)
@@ -136,13 +136,13 @@ value "length (format_Ln_rules_uncompressed example_ruleset_simplified)"
 thm format_Ln_rules_uncompressed_correct
 
 text{*upper closure*}
-value "format_Ln_rules_uncompressed (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_allow_extra example_ruleset_simplified)))"
-lemma "collect_allow_impl_v2 (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_allow_extra example_ruleset_simplified))) packet_set_UNIV = 
+value "format_Ln_rules_uncompressed (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a upper_closure_matchexpr example_ruleset_simplified)))"
+lemma "collect_allow_impl_v2 (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a upper_closure_matchexpr example_ruleset_simplified))) packet_set_UNIV = 
   PacketSet [[(Pos (Src (Ip4AddrNetmask (192, 168, 0, 0) 16)), Pos Accept)]]" by eval
 
 text{*lower closure*}
-value "format_Ln_rules_uncompressed (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_deny_extra example_ruleset_simplified)))"
-lemma "collect_allow_impl_v2 (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_deny_extra example_ruleset_simplified))) packet_set_UNIV =
+value "format_Ln_rules_uncompressed (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a lower_closure_matchexpr example_ruleset_simplified)))"
+lemma "collect_allow_impl_v2 (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a lower_closure_matchexpr example_ruleset_simplified))) packet_set_UNIV =
   packet_set_Empty" by eval
 
 

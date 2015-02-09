@@ -24,9 +24,9 @@ definition map_of_string :: "(string \<times> iptrule_match rule list) list \<Ri
 
 
 definition upper_closure :: "iptrule_match rule list \<Rightarrow> iptrule_match rule list" where
-  "upper_closure rs == rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^2000) (optimize_matches_a opt_simple_matcher_in_doubt_allow_extra rs))"
+  "upper_closure rs == rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^2000) (optimize_matches_a upper_closure_matchexpr rs))"
 definition lower_closure :: "iptrule_match rule list \<Rightarrow> iptrule_match rule list" where
-  "lower_closure rs == rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^2000) (optimize_matches_a opt_simple_matcher_in_doubt_deny_extra rs))"
+  "lower_closure rs == rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^2000) (optimize_matches_a lower_closure_matchexpr rs))"
 
 export_code unfold_ruleset_OUTPUT map_of_string upper_closure lower_closure format_Ln_rules_uncompressed compress_Ln_ips does_I_has_compressed_rules 
   Rule

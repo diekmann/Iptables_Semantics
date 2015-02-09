@@ -96,10 +96,10 @@ apply(simp add: rm_LogEmpty_fun_semantics)
 done
 
 (*Hmm, this ruleset is the Allow-All ruleset!*)
-value(code) "((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_allow_extra simple_example_firewall)"
+value(code) "((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a upper_closure_matchexpr simple_example_firewall)"
 
 (*<*)
-lemma tmp: "((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_allow_extra simple_example_firewall) = [Rule MatchAny Accept, Rule MatchAny Accept, Rule (MatchNot MatchAny) Drop, Rule (MatchNot MatchAny) Drop, Rule MatchAny Drop, Rule MatchAny Accept, Rule (MatchNot MatchAny) Drop, Rule (MatchNot MatchAny) Drop, Rule (Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8))) Drop,
+lemma tmp: "((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a upper_closure_matchexpr simple_example_firewall) = [Rule MatchAny Accept, Rule MatchAny Accept, Rule (MatchNot MatchAny) Drop, Rule (MatchNot MatchAny) Drop, Rule MatchAny Drop, Rule MatchAny Accept, Rule (MatchNot MatchAny) Drop, Rule (MatchNot MatchAny) Drop, Rule (Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8))) Drop,
   Rule (MatchNot MatchAny) Drop, Rule (MatchNot MatchAny) Drop, Rule (Match (Src (Ip4AddrNetmask (10, 0, 0, 0) 8))) Drop, Rule (MatchNot MatchAny) Drop, Rule (MatchNot MatchAny) Drop, Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) Drop,
   Rule (MatchNot MatchAny) Drop, Rule (MatchNot MatchAny) Drop, Rule (Match (Src (Ip4AddrNetmask (169, 254, 0, 0) 16))) Drop, Rule (MatchNot MatchAny) Drop, Rule (MatchNot MatchAny) Drop, Rule (Match (Src (Ip4AddrNetmask (172, 16, 0, 0) 12))) Drop,
   Rule (MatchNot MatchAny) Drop, Rule (MatchNot MatchAny) Drop, Rule (Match (Src (Ip4AddrNetmask (224, 0, 0, 0) 3))) Drop, Rule (MatchNot MatchAny) Drop, Rule (MatchNot MatchAny) Drop, Rule (Match (Src (Ip4AddrNetmask (240, 0, 0, 0) 8))) Drop,
@@ -109,7 +109,7 @@ lemma tmp: "((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a
   Rule (Match (Prot ipt_protocol.ProtUDP)) Accept, Rule (MatchNot MatchAny) Drop, Rule (MatchNot MatchAny) Drop, Rule (MatchNot MatchAny) Drop, Rule (MatchNot MatchAny) Drop, Rule (MatchNot MatchAny) Drop, Rule MatchAny Drop, Rule MatchAny Accept]" by eval
 (*>*)
 
-lemma "rmshadow (simple_matcher, in_doubt_allow) (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_allow_extra simple_example_firewall)) UNIV = 
+lemma "rmshadow (simple_matcher, in_doubt_allow) (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a upper_closure_matchexpr simple_example_firewall)) UNIV = 
       [Rule MatchAny Accept]"
 apply(subst tmp)
 apply(subst rmshadow.simps)
@@ -193,14 +193,14 @@ value "good_ruleset simple_example_firewall2"
 value "simple_ruleset simple_example_firewall2"
 
 text{*in doubt allow closure*}
-value(code) "rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_allow_extra simple_example_firewall2))"
+value(code) "rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a upper_closure_matchexpr simple_example_firewall2))"
 
 text{*in doubt deny closure*}
-value(code) "rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_deny_extra simple_example_firewall2))"
+value(code) "rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a lower_closure_matchexpr simple_example_firewall2))"
 
 
-value(code) "format_Ln_rules_uncompressed (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_allow_extra simple_example_firewall2)))"
-value(code) "format_Ln_rules_uncompressed (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a opt_simple_matcher_in_doubt_deny_extra simple_example_firewall2)))"
+value(code) "format_Ln_rules_uncompressed (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a upper_closure_matchexpr simple_example_firewall2)))"
+value(code) "format_Ln_rules_uncompressed (rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^10) (optimize_matches_a lower_closure_matchexpr simple_example_firewall2)))"
 value(code) "format_Ln_rules_uncompressed simple_example_firewall2"
 
 text{*Allowed Packets*}
