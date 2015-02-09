@@ -408,6 +408,7 @@ subsection{*Matching*}
 
   (*TODO: what is this set: {c@cs | c cs. \<not> common_prefix i c} \<union> \<dots>?
     test: {c | c. length c < length i} \<union> {c@cs | c cs. length c = length i \<and> c \<noteq> i}*)
+  (*TODO: see version below!*)
   lemma "- {i@cs | cs. True} = {c@cs | c cs. \<not> common_prefix i c} \<union> {c | c. length c < length i}"
     apply(rule)
      prefer 2
@@ -426,6 +427,25 @@ subsection{*Matching*}
      apply (metis append_eq_append_conv_if notprefix)
     apply(simp)
     done
+
+  lemma "- {i@cs | cs. True} = {c | c. length c < length i} \<union> {c@cs | c cs. length c = length i \<and> c \<noteq> i}"
+    apply(rule)
+     prefer 2
+     apply(safe)[1]
+     apply(simp add: no_common_prefix)
+     apply(simp add: no_common_prefix)
+    apply(simp)
+    apply(rule Compl_anti_mono[where B="{i @ cs |cs. True}" and A="- ({c | c. length c < length i} \<union> {c@cs | c cs. length c = length i \<and> c \<noteq> i})", simplified])
+    apply(safe)
+    apply(simp)
+    apply(case_tac "(length i) = length x")
+     apply(erule_tac x=x in allE, simp)
+     apply(blast)
+    apply(erule_tac x="take (length i) x" in allE)
+    apply(simp add: min_def)
+    by (metis append_take_drop_id)
+    
+  
     
   
   lemma xxx4: "{s@cs | s cs. length s \<le> length i - 1 \<and> s \<noteq> take (length s) (i::string)} = 
