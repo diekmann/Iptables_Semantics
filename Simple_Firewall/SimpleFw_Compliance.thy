@@ -95,6 +95,20 @@ proof(induct i j rule:ipv4addr_upto.induct)
 
 subsection{*Simple Match to MatchExpr*}
 
+fun helper_construct_ip_matchexp :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> ipt_ipv4range list" where
+  "helper_construct_ip_matchexp (s, e) = map (Ip4Addr \<circ> dotteddecimal_of_ipv4addr) (ipv4addr_upto s e)"
+
+(*TODO! okay, brute-force construction of match_expressions seems like a `good' idea*)
+lemma "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Src) (helper_construct_ip_matchexp ip)) a p \<longleftrightarrow> simple_match_ip ip (p_src p)"
+  apply(cases ip, rename_tac i j)
+  apply(simp add: ipv4addr_upto match_list_matches)
+  apply(simp add: IPPortIfaceSpace_Matcher.match_simplematcher_SrcDst)
+  apply(simp add: ipv4addr_of_dotteddecimal_dotteddecimal_of_ipv4addr)
+  done
+
+   
+  
+
 fun simple_match_to_ipportiface_match :: "simple_match \<Rightarrow> ipportiface_rule_match match_expr" where
   "simple_match_to_ipportiface_match \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> = 
     MatchAnd (Match (IIface iif)) (MatchAnd (Match (OIface oif)) 

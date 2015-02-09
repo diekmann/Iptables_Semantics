@@ -214,7 +214,7 @@ qed
 
 
 subsection{*@{term match_list}*}
-  text{*Reducing the firewall semantics to shortcircuit matching evaluation*}
+  text{*Reducing the firewall semantics to short-circuit matching evaluation*}
 
   fun match_list :: "('a, 'packet) match_tac \<Rightarrow> 'a match_expr list \<Rightarrow> action \<Rightarrow> 'packet \<Rightarrow> bool" where
    "match_list \<gamma> [] a p = False" |
@@ -242,6 +242,7 @@ subsection{*@{term match_list}*}
     apply(simp split: split_if_asm action.split)
     done
 
+  text{*The key idea behind @{const match_list}: Reducing semantics to match list*}
   lemma match_list_semantics: "match_list \<gamma> ms1 a p \<longleftrightarrow> match_list \<gamma> ms2 a p \<Longrightarrow>
     approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) ms1) s = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) ms2) s"
     apply(case_tac s)
@@ -260,6 +261,22 @@ subsection{*@{term match_list}*}
      apply(simp split: action.split add: match_list_True fixedaction_Log fixedaction_Empty)
     apply(simp)
     done
+
+
+  text{*We can exploit de-morgan to get a disjunction in the match expression!*}
+  fun match_list_to_match_expr :: "'a match_expr list \<Rightarrow> 'a match_expr" where
+    "match_list_to_match_expr [] = MatchNot MatchAny" |
+    "match_list_to_match_expr (m#ms) = MatchNot (MatchAnd (MatchNot m) (MatchNot (match_list_to_match_expr ms)))"
+  text{*@{const match_list_to_match_expr} constructs a unwieldy @{typ "'a match_expr"} from a list.
+        The semantics of the resulting match expression is the disjunction of the elements of the list.
+        This is handy because the normal match expressions do not directly support disjunction.
+        Use this function with care because the resulting match expression is very ugly!*}
+  lemma match_list_to_match_expr_disjunction: "match_list \<gamma> ms a p \<longleftrightarrow> matches \<gamma> (match_list_to_match_expr ms) a p"
+    apply(induction ms rule: match_list_to_match_expr.induct)
+     apply(simp add: bunch_of_lemmata_about_matches)
+    apply(simp)
+    apply (metis matches_DeMorgan matches_not_idem)+
+  done
 
   lemma match_list_singleton: "match_list \<gamma> [m] a p \<longleftrightarrow> matches \<gamma> m a p" by(simp)
 
