@@ -225,9 +225,9 @@ subsection{*Matching*}
     apply(cases i1, cases i2, rename_tac i1name i2name)
     apply(simp split: bool.split option.split)
     apply(safe)
-    apply(simp_all add: internal_iface_name_wildcard_longest_refl)
-    apply(auto dest: internal_iface_name_wildcard_longest_correct)
-    apply (metis match_iface.simps match_iface_case_nowildcard)+
+                                     apply(simp_all add: internal_iface_name_wildcard_longest_refl)
+                 apply(auto dest: internal_iface_name_wildcard_longest_correct)
+             apply (metis match_iface.simps match_iface_case_nowildcard)+
     done
 
 
