@@ -19,8 +19,7 @@ text{*Very TODO*}
   record simple_match =
     iiface :: "iface" --"in-interface" (*TODO: remove negation type in interface, translate this away. This will give horribly blowup (polynomial in the size of the iface length) if negated ifaces occur, but this should not happen in any sane firewall config*)
     oiface :: "iface" --"out-interface"
-    src :: "(ipv4addr \<times> nat) " --"source" (*TODO: remove negation type. Was removed, need to normalize IPs now when translating!*)
-      (*can we translate somehow and somewhat not blowing up without the negation type?
+    src :: "(ipv4addr \<times> nat) " --"source" (*TODO: Change type: (32 word \<times> 32 word) (start, end)
         for reference, the commit where the negation type was removed is 823703ceb9363deb60ecd4923c39ea6c8901f368*)
     dst :: "(ipv4addr \<times> nat) " --"destination" (*TODO: remove negation type*)
     proto :: "protocol"

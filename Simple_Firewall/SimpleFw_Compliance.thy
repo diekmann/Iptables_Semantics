@@ -88,18 +88,15 @@ fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Ri
   "ipportiface_match_to_simple_match (Match (Src_Ports [(s,e)])) = Some (simple_match_any\<lparr> sports := (s,e) \<rparr>)" |
   "ipportiface_match_to_simple_match (Match (Dst_Ports [])) = Some (simple_match_any)" |
   "ipportiface_match_to_simple_match (Match (Dst_Ports [(s,e)])) = Some (simple_match_any\<lparr> dports := (s,e) \<rparr>)" |
-  (*"ipportiface_match_to_simple_match (MatchNot (Match (IIface IfaceAny))) = None" |*)
-  "ipportiface_match_to_simple_match (MatchNot (Match (IIface (Iface (Pos eth))))) = Some (simple_match_any\<lparr> iiface := Iface (Neg eth) \<rparr>)" |
-  "ipportiface_match_to_simple_match (MatchNot (Match (IIface (Iface (Neg eth))))) = Some (simple_match_any\<lparr> iiface := Iface (Pos eth) \<rparr>)" |
-  (*"ipportiface_match_to_simple_match (MatchNot (Match (OIface IfaceAny))) = None" |*)
-  "ipportiface_match_to_simple_match (MatchNot (Match (OIface (Iface (Pos eth))))) = Some (simple_match_any\<lparr> oiface := Iface (Neg eth) \<rparr>)" |
-  "ipportiface_match_to_simple_match (MatchNot (Match (OIface (Iface (Neg eth))))) = Some (simple_match_any\<lparr> oiface := Iface (Pos eth) \<rparr>)" |
   "ipportiface_match_to_simple_match (MatchNot (Match (Prot ProtoAny))) = None" |
   "ipportiface_match_to_simple_match (MatchNot (Match (Prot (Proto (Pos p))))) =  Some (simple_match_any\<lparr> proto := Proto (Neg p) \<rparr>)" |
   "ipportiface_match_to_simple_match (MatchNot (Match (Prot (Proto (Neg p))))) =  Some (simple_match_any\<lparr> proto := Proto (Pos p) \<rparr>)" |
   --"TODO:"
   "ipportiface_match_to_simple_match (MatchAnd m1 m2) =  undefined" | (*TODO*)
-  (*TODO: need to enable negation type again*)
+  (*NOOOOO: what to do about this? Assume: no negated interfaces, I don't know of a better solution now*)
+  "ipportiface_match_to_simple_match (MatchNot (Match (IIface iif))) = undefined (*Some (simple_match_any\<lparr> iiface := Iface (Neg eth) \<rparr>)*)" |
+  "ipportiface_match_to_simple_match (MatchNot (Match (OIface oif))) = undefined" |
+  (*TODO: need to enable negation type again. Nope, test CIDR ranges*)
   "ipportiface_match_to_simple_match (MatchNot (Match (Src ip))) = undefined" |
   "ipportiface_match_to_simple_match (MatchNot (Match (Dst ip))) = undefined" |
   --"undefined cases, normalize before!"
@@ -332,7 +329,9 @@ text{*@{typ "simple_match"} @{text \<and>} @{typ "simple_match"}*}
                       \<lparr>iiface=iif2, oiface=oif2, src=sip2, dst=dip2, proto=p2, sports=sps2, dports=dps2 \<rparr> = 
       (case simple_ips_conjunct sip1 sip2 of None \<Rightarrow> None | Some sip \<Rightarrow> 
       (case simple_ips_conjunct dip1 dip2 of None \<Rightarrow> None | Some dip \<Rightarrow> 
-      Some \<lparr>iiface=iif2, oiface=oif2, src=sip, dst=dip, proto=p2, sports=simpl_ports_conjunct sps1 sps2, dports=simpl_ports_conjunct sps1 sps2 \<rparr>))"
+      (case iface_conjunct iif1 iif2 of None \<Rightarrow> None | Some iif \<Rightarrow>
+      (case iface_conjunct oif1 oif2 of None \<Rightarrow> None | Some oif \<Rightarrow>
+      Some \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p2, sports=simpl_ports_conjunct sps1 sps2, dports=simpl_ports_conjunct sps1 sps2 \<rparr>))))"
                       (*add list comprehension to multiply out the interface blowup? hopefully not necessary*)
 
 end
