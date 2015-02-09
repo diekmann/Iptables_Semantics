@@ -17,11 +17,12 @@ text{*Very TODO*}
   
   (*TODO: can we get rid of the negation types?*)
   record simple_match =
-    iiface :: "iface" --"in-interface" (*TODO: remove negation type in interface, translate this away. This will give horribly blowup (polynomial in the size of the iface length) if negated ifaces occur, but this should not happen in any sane firewall config*)
+    iiface :: "iface" --"in-interface" (*TODO: we cannot (and don't want to, see history) express negated interfaces*)
     oiface :: "iface" --"out-interface"
-    src :: "(ipv4addr \<times> nat) " --"source" (*TODO: Change type: (32 word \<times> 32 word) (start, end)
-        for reference, the commit where the negation type was removed is 823703ceb9363deb60ecd4923c39ea6c8901f368*)
-    dst :: "(ipv4addr \<times> nat) " --"destination" (*TODO: remove negation type*)
+    src :: "(ipv4addr \<times> ipv4addr) " --"source IP address (start, end) inclusive" (*TODO: 
+      for reference, the commit where the negation type was removed is 823703ceb9363deb60ecd4923c39ea6c8901f368
+      the last commit with CIDR notation was 0969c2f99afefb316e4f279863b717fd40e0923c*)
+    dst :: "(ipv4addr \<times> ipv4addr) " --"destination"
     proto :: "protocol"
     sports :: "(16 word \<times> 16 word)" --"source-port first:last"
     dports :: "(16 word \<times> 16 word)" --"destination-port first:last"
@@ -31,6 +32,7 @@ text{*Very TODO*}
       (1,2) and (4,65535)
       *)
 
+(*
 (*scratch: testing ip range normalize*)
 (*TODO move:*)
  lemma "- {4::nat .. 8::nat} = {0..3} \<union> {9..}" by force
@@ -73,13 +75,17 @@ text{*Very TODO*}
   the longest prefix CIDR stuff is an optimization we may skip for now
 *)
 (*end: scratch: testing ip range normalize*)
+*)
 
   datatype simple_rule = SimpleRule simple_match simple_action
 
 subsection{*Simple Firewall Semantics*}
 
-  fun simple_match_ip :: "(ipv4addr \<times> nat) \<Rightarrow> ipv4addr \<Rightarrow> bool" where
-    "simple_match_ip (ip, n) p_ip \<longleftrightarrow> p_ip \<in> ipv4range_set_from_bitmask ip n"
+  fun simple_match_ip :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> ipv4addr \<Rightarrow> bool" where
+    "simple_match_ip (start, end) p_ip \<longleftrightarrow> p_ip \<in> {start .. end}"
+
+  --"by the way, the words do not wrap around"
+  lemma "{(253::8 word) .. 8} = {}" by simp 
 
   fun simple_match_port :: "(16 word \<times> 16 word) \<Rightarrow> 16 word \<Rightarrow> bool" where
     "simple_match_port (s,e) p_p \<longleftrightarrow> p_p \<in> {s..e}"
@@ -101,9 +107,8 @@ subsection{*Simple Firewall Semantics*}
 
 
 
-  
   definition simple_match_any :: "simple_match" where
-    "simple_match_any \<equiv> \<lparr>iiface=IfaceAny, oiface=IfaceAny, src=(0,0), dst=(0,0), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
+    "simple_match_any \<equiv> \<lparr>iiface=IfaceAny, oiface=IfaceAny, src=(0,max_ipv4_addr), dst=(0,max_ipv4_addr), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
 
   lemma simple_match_any: "simple_matches simple_match_any p"
     apply(simp add: simple_match_any_def ipv4range_set_from_bitmask_0)

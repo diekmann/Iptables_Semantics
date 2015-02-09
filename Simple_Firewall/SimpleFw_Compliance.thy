@@ -1,8 +1,11 @@
 theory SimpleFw_Compliance
 imports SimpleFw_Semantics "../Primitive_Matchers/IPPortIfaceSpace_Matcher" "../Semantics_Ternary"
-        "../Output_Format/Negation_Type_Matching" "../Bitmagic/Numberwang_Ln"
+        "../Output_Format/Negation_Type_Matching"
+        "../Bitmagic/Numberwang_Ln" (*unused?*)
+        (*"../Bitmagic/CIDRSplit"*)
 begin
 
+(*unused?*)
 fun ipv4_word_netmask_to_ipt_ipv4range :: "(ipv4addr \<times> nat) \<Rightarrow> ipt_ipv4range" where
   "ipv4_word_netmask_to_ipt_ipv4range (ip, n) = Ip4AddrNetmask (dotteddecimal_of_ipv4addr ip) n"
 
@@ -17,6 +20,78 @@ fun negation_type_to_match_expr :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a negat
   "negation_type_to_match_expr f (Pos a) = Match (f a)" |
   "negation_type_to_match_expr f (Neg a) = MatchNot (Match (f a))"
 
+
+
+value "map (ipv4addr_of_nat \<circ> nat) [1 .. 4]"
+
+definition ipv4addr_upto :: "ipv4addr \<Rightarrow> ipv4addr \<Rightarrow> ipv4addr list" where
+  "ipv4addr_upto i j \<equiv> map (ipv4addr_of_nat \<circ> nat) [int (nat_of_ipv4addr i) .. int (nat_of_ipv4addr j)]"
+
+lemma helpX:"(f \<circ> nat) ` {int i..int j} = f ` {i .. j}"
+  apply(intro set_eqI)
+  apply(safe)
+   apply(force)
+  by (metis Set_Interval.transfer_nat_int_set_functions(2) image_comp image_eqI)
+  
+lemma ipv4addr_of_nat_def': "ipv4addr_of_nat = of_nat" using ipv4addr_of_nat_def fun_eq_iff by presburger
+lemma ipv4addr_upto: "set (ipv4addr_upto i j) = {i .. j}"
+  unfolding ipv4addr_upto_def
+  apply(intro set_eqI)
+  apply(simp add: ipv4addr_of_nat_def' nat_of_ipv4addr_def)
+  apply(safe)
+  apply(simp_all)
+  thm le_unat_uoi nat_mono uint_nat unat_def word_le_nat_alt
+   apply (metis (no_types, hide_lams) le_unat_uoi nat_mono uint_nat unat_def word_le_nat_alt)
+   apply (metis (no_types, hide_lams) le_unat_uoi nat_mono uint_nat unat_def word_le_nat_alt)
+  apply(simp add: helpX)
+by (metis atLeastAtMost_iff image_eqI word_le_nat_alt word_unat.Rep_inverse)
+  
+
+(*
+function ipv4addr_upto :: "ipv4addr \<Rightarrow> ipv4addr \<Rightarrow> ipv4addr list" where
+  "ipv4addr_upto i j = (if i < j then i # ipv4addr_upto (i + 1) j else if i = j then [i] else [])"
+by auto
+lemma helper_unat_minus1_32bitword: "unat ((- 1)::ipv4addr) = 4294967295" by(eval)
+termination
+apply(relation "measure (\<lambda>(i::ipv4addr, j). card {unat i ..  unat j})")
+apply(auto)
+apply(simp add: word_less_nat_alt)
+apply(subst unat_Suc2)
+defer
+apply linarith
+apply unat_arith
+apply(simp)
+apply(simp add: helper_unat_minus1_32bitword)
+done
+
+value "ipv4addr_upto 1 4"
+
+            
+lemma "(m::ipv4addr) \<le> n \<Longrightarrow> insert m {m+1 .. n} = {m .. n}"
+apply(intro set_eqI)
+apply(rule)
+ apply(simp)
+ apply(elim disjE)
+  apply(simp)
+ apply(simp)
+ apply(elim conjE)
+ apply(subgoal_tac "m \<noteq> -1")
+  apply (metis (erased, hide_lams) add.commute less_trans not_le overflow_plus_one_self)
+oops
+
+lemma "set (ipv4addr_upto i j) = {i .. j}"
+proof(induct i j rule:ipv4addr_upto.induct)
+  case (1 i j)
+  from this show ?case
+    unfolding ipv4addr_upto.simps[of i j]
+    apply(cases "i = j")
+     apply(simp)
+    apply(cases "i > j")
+     apply(simp)
+    apply(simp)
+    apply(intro impI)
+    oops
+*)
 
 subsection{*Simple Match to MatchExpr*}
 
