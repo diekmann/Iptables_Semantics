@@ -99,28 +99,36 @@ fun helper_construct_ip_matchexp :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> 
   "helper_construct_ip_matchexp (s, e) = map (Ip4Addr \<circ> dotteddecimal_of_ipv4addr) (ipv4addr_upto s e)"
 
 (*TODO! okay, brute-force construction of match_expressions seems like a `good' idea*)
-lemma "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Src) (helper_construct_ip_matchexp ip)) a p \<longleftrightarrow> simple_match_ip ip (p_src p)"
-  apply(cases ip, rename_tac i j)
-  apply(simp add: ipv4addr_upto match_list_matches)
-  apply(simp add: IPPortIfaceSpace_Matcher.match_simplematcher_SrcDst)
-  apply(simp add: ipv4addr_of_dotteddecimal_dotteddecimal_of_ipv4addr)
+lemma helper_construct_ip_matchexp_SrcDst_match_list:
+  "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Src) (helper_construct_ip_matchexp ip)) a p \<longleftrightarrow> simple_match_ip ip (p_src p)"
+  "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Dst) (helper_construct_ip_matchexp ip)) a p \<longleftrightarrow> simple_match_ip ip (p_dst p)"
+  apply(case_tac [!] ip, rename_tac i j)
+  apply(simp_all add: ipv4addr_upto match_list_matches  IPPortIfaceSpace_Matcher.match_simplematcher_SrcDst ipv4addr_of_dotteddecimal_dotteddecimal_of_ipv4addr)
   done
 
-   
+thm match_list_to_match_expr_disjunction
+
+lemma matches_SrcDst_simple_match:
+      "matches (ipportiface_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src) (helper_construct_ip_matchexp sip))) a p \<longleftrightarrow>
+       simple_match_ip sip (p_src p)"
+      "matches (ipportiface_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Dst) (helper_construct_ip_matchexp dip))) a p \<longleftrightarrow>
+       simple_match_ip dip (p_dst p)"
+  apply(simp_all add: match_list_to_match_expr_disjunction helper_construct_ip_matchexp_SrcDst_match_list[where \<alpha>=\<alpha> and a=a, symmetric])
+  done
   
 
 fun simple_match_to_ipportiface_match :: "simple_match \<Rightarrow> ipportiface_rule_match match_expr" where
   "simple_match_to_ipportiface_match \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> = 
     MatchAnd (Match (IIface iif)) (MatchAnd (Match (OIface oif)) 
-    (MatchAnd (Match (Src (ipv4_word_netmask_to_ipt_ipv4range sip)) )
-    (MatchAnd (Match (Dst (ipv4_word_netmask_to_ipt_ipv4range dip)) )
+    (MatchAnd (match_list_to_match_expr (map (Match \<circ> Src) (helper_construct_ip_matchexp sip)) ) (*WARNING: result is ugly!*)
+    (MatchAnd (match_list_to_match_expr (map (Match \<circ> Dst) (helper_construct_ip_matchexp dip)) )
     (MatchAnd (Match (Prot p))
     (MatchAnd (Match (Src_Ports [sps]))
     (Match (Dst_Ports [dps]))
     )))))"
 
 
-
+(* broken since ip type change
 (*is this usefull?*)
 lemma xxx: "matches \<gamma> (simple_match_to_ipportiface_match \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr>) a p \<longleftrightarrow> 
       matches \<gamma> (alist_and ([Pos (IIface iif), Pos (OIface oif)] @ [Pos (Src (ipv4_word_netmask_to_ipt_ipv4range sip))]
@@ -133,13 +141,7 @@ apply(case_tac [!] dip)
 apply(simp_all)
 apply(simp_all add: bunch_of_lemmata_about_matches)
 done
-
-(*TODO: smelly duplication*)
-lemma matches_SrcDst_simple_match: "p_src p \<in> ipv4s_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_src p)"
-    "p_dst p \<in> ipv4s_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_dst p)"
-apply(case_tac [!] ip)
-apply(rename_tac b m)
-by(simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary ipv4addr_of_dotteddecimal_dotteddecimal_of_ipv4addr)
+*)
 
 
 lemma ports_to_set_singleton_simple_match_port: "p \<in> ports_to_set [a] \<longleftrightarrow> simple_match_port a p"
