@@ -9,9 +9,12 @@ begin
 fun ipv4_word_netmask_to_ipt_ipv4range :: "(ipv4addr \<times> nat) \<Rightarrow> ipt_ipv4range" where
   "ipv4_word_netmask_to_ipt_ipv4range (ip, n) = Ip4AddrNetmask (dotteddecimal_of_ipv4addr ip) n"
 
-fun ipt_ipv4range_to_ipv4_word_netmask :: " ipt_ipv4range \<Rightarrow> (ipv4addr \<times> nat)" where
-  "ipt_ipv4range_to_ipv4_word_netmask (Ip4Addr ip_ddecim) = (ipv4addr_of_dotteddecimal ip_ddecim, 32)" | 
-  "ipt_ipv4range_to_ipv4_word_netmask (Ip4AddrNetmask ip_ddecim n) = (ipv4addr_of_dotteddecimal ip_ddecim, n)"
+fun ipt_ipv4range_to_ipv4_word_netmask :: " ipt_ipv4range \<Rightarrow> (ipv4addr \<times> ipv4addr)" where
+  "ipt_ipv4range_to_ipv4_word_netmask (Ip4Addr ip_ddecim) = (ipv4addr_of_dotteddecimal ip_ddecim, ipv4addr_of_dotteddecimal ip_ddecim)" | 
+  "ipt_ipv4range_to_ipv4_word_netmask (Ip4AddrNetmask pre len) = 
+    (((ipv4addr_of_dotteddecimal pre) AND ((mask len) << (32 - len))), (ipv4addr_of_dotteddecimal pre) OR (mask (32 - len)))"
+(*from ipv4range_set_from_bitmask_alt*)
+(*TODO: this looks horrible! How are caesar's ranges constructed?*)
 
 
 (*do I need monads?*)
@@ -184,7 +187,7 @@ fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Ri
   "ipportiface_match_to_simple_match (MatchNot (Match (Prot (Proto (Neg p))))) =  Some (simple_match_any\<lparr> proto := Proto (Pos p) \<rparr>)" |
   --"TODO:"
   "ipportiface_match_to_simple_match (MatchAnd m1 m2) =  undefined" | (*TODO*)
-  (*NOOOOO: what to do about this? Assume: no negated interfaces, I don't know of a better solution now*)
+  (*NOOOOO: what to do about this? Assume: no negated interfaces, I don't know of a better solution now. Just define that this must not happen*)
   "ipportiface_match_to_simple_match (MatchNot (Match (IIface iif))) = undefined (*Some (simple_match_any\<lparr> iiface := Iface (Neg eth) \<rparr>)*)" |
   "ipportiface_match_to_simple_match (MatchNot (Match (OIface oif))) = undefined" |
   (*TODO: need to enable negation type again. Nope, test CIDR ranges*)
@@ -200,6 +203,19 @@ fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Ri
   "ipportiface_match_to_simple_match (Match (Extra _)) = undefined" |
   "ipportiface_match_to_simple_match (MatchNot (Match (Extra _))) = undefined"
 (*\<dots>*)
+
+
+subsubsection{*Normalizing Interfaces*}
+text{*As for now, negated interfaces are simply not allowed*}
+
+  fun normalized_ifaces :: "ipportiface_rule_match match_expr \<Rightarrow> bool" where
+    "normalized_ifaces MatchAny = True" |
+    "normalized_ifaces (Match _) = True" |
+    "normalized_ifaces (MatchNot (Match (IIface _))) = False" |
+    "normalized_ifaces (MatchNot (Match (OIface _))) = False" |
+    "normalized_ifaces (MatchAnd m1 m2) = (normalized_ifaces m1 \<and> normalized_ifaces m2)" |
+    "normalized_ifaces (MatchNot (MatchAnd _ _)) = False" |
+    "normalized_ifaces (MatchNot _) = True" 
 
 subsubsection{*Normalizing ports*}
   (*TODO: Move?*)
@@ -414,7 +430,8 @@ text{*@{typ "simple_match"} @{text \<and>} @{typ "simple_match"}*}
 
 
 
-  (*Why option? once the negation_type is gone from the interfaces, we should be able to directly merge!*)
+  (*Why option? Well, we need a list because of merging IP ranges may return a list.*)
+  (*TODO: reuse the bitranges here*)
   fun simple_match_and :: "simple_match \<Rightarrow> simple_match \<Rightarrow> simple_match option" where
     "simple_match_and \<lparr>iiface=iif1, oiface=oif1, src=sip1, dst=dip1, proto=p1, sports=sps1, dports=dps1 \<rparr> 
                       \<lparr>iiface=iif2, oiface=oif2, src=sip2, dst=dip2, proto=p2, sports=sps2, dports=dps2 \<rparr> = 
