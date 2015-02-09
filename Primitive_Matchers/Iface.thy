@@ -4,6 +4,19 @@ begin
 
 section{*Network Interfaces*}
 
+(*I don't think I can find a good way to support negated interfaces.
+  Probably we should stick with simple interfaces for now.
+  Reasons why negated interfaces are a problem:
+  * Conjunction of Negated and not Negated interface cannot be expressed of one interface
+  * Negated interfaces cannot (without additional assumption) be translated to non-negated interfaces.
+    Example: Neg ''eth++'', when trying to translate this to a set of non-negated interfaces, 
+    it must be possible to have the interface 'eth+' in this set, where the final + is NOT treated as wildcard!*)
+
+
+(*TODO: refactor, move negation_type interfaces to attic, but keep useful lemmas, add (dead) file to session for future use.
+We don't have any ruleset with negated interfaces and I don't see why one would need them*)
+
+(*TODO: add some rule that says an interface starting with ! is invalid (because we want to fail if negation occurs!)*)
 
 datatype iface = Iface "string negation_type"
 datatype simple_iface = IfaceSimple "string"  --"no negation supported, but wildcards"
@@ -167,6 +180,14 @@ subsection{*Matching*}
   (* TODO: match_iface_case_neg_wildcard_length? hmm, p_i can be shorter or longer, essentially different*)
 
 
+  lemma "match_iface (Iface (Pos i)) p_iface \<longleftrightarrow> p_iface \<in> internal_iface_name_to_set i"
+    using internal_iface_name_to_set by simp
+  lemma "match_iface (Iface (Neg i)) p_iface \<longleftrightarrow> p_iface \<notin> internal_iface_name_to_set i"
+    using internal_iface_name_to_set by simp
+  lemma "match_iface (Iface (Neg i)) p_iface \<longleftrightarrow> p_iface \<in> - (internal_iface_name_to_set i)"
+    using internal_iface_name_to_set by simp
+  --"beware of handling of + as normal non-wildcard character!"
+  lemma "match_iface (Iface (Neg ''eth++'')) ''eth''" by eval
 
   definition internal_iface_name_wildcard_longest :: "string \<Rightarrow> string \<Rightarrow> string option" where
     "internal_iface_name_wildcard_longest i1 i2 = (
@@ -261,8 +282,26 @@ subsection{*Matching*}
     apply(case_tac x)
      apply(simp_all)
     done
+  definition non_wildcard_ifaces :: "nat \<Rightarrow> string list" where
+   "non_wildcard_ifaces n \<equiv> filter (\<lambda>i. \<not> iface_name_is_wildcard i) (List.n_lists n all_chars)"
+  export_code non_wildcard_ifaces in SML (*Can be exported, ... but I wouldn't run it!*)
+  lemma non_wildcard_ifaces: "set (non_wildcard_ifaces n) = {s::string. length s = n \<and> \<not> iface_name_is_wildcard s}"
+    using strings_of_length_n non_wildcard_ifaces_def by auto
 
-    
+  lemma  "(\<Union> i \<in> set (non_wildcard_ifaces n). internal_iface_name_to_set i) = {s::string. length s = n \<and> \<not> iface_name_is_wildcard s}"
+   apply(simp_all only: internal_iface_name_to_set.simps if_True if_False not_True_eq_False not_False_eq_True non_wildcard_ifaces)
+   apply(simp_all split: split_if_asm split_if)
+   done
+
+  fun non_wildcard_ifaces_upto :: "nat \<Rightarrow> string list" where
+    "non_wildcard_ifaces_upto 0 = [[]]" |
+    "non_wildcard_ifaces_upto (Suc n) = (non_wildcard_ifaces (Suc n)) @ non_wildcard_ifaces_upto n"
+  lemma non_wildcard_ifaces_upto: "set (non_wildcard_ifaces_upto n) = {s::string. length s \<le> n \<and> \<not> iface_name_is_wildcard s}"
+    apply(induction n)
+     apply(simp)
+     apply fastforce
+    apply(simp add: non_wildcard_ifaces)
+    by fastforce
 
   lemma inv_i_wildcard: "- {i@cs | cs. True} = {c | c. length c < length i} \<union> {c@cs | c cs. length c = length i \<and> c \<noteq> i}"
     apply(rule)
@@ -294,7 +333,7 @@ subsection{*Matching*}
   qed
 
    
-  lemma "- (internal_iface_name_to_set i) = (
+  lemma inv_iface_name_set: "- (internal_iface_name_to_set i) = (
     if iface_name_is_wildcard i
     then
       {c |c. length c < length (butlast i)} \<union> {c @ cs |c cs. length c = length (butlast i) \<and> c \<noteq> butlast i}
@@ -312,14 +351,46 @@ subsection{*Matching*}
   apply(simp)
   done
 
-  fun iface_to_simple_iface :: "iface \<Rightarrow> simple_iface list" where
-    "iface_to_simple_iface (Iface (Pos i)) = [IfaceSimple i]" |
-    "iface_to_simple_iface (Iface (Neg i)) = (if iface_name_is_wildcard i
+
+  (*TODO: need to write it as interface strings!*)
+  lemma  "- (internal_iface_name_to_set i) = (
+    if iface_name_is_wildcard i
+    then
+      (\<Union> s \<in> set (non_wildcard_ifaces_upto (length i - 1)). internal_iface_name_to_set s) \<union> 
+      (\<Union> s \<in> {c @ cs |c cs. length c = length (butlast i) \<and> c \<noteq> butlast i}. internal_iface_name_to_set s)
+    else
+      {} (*TODO*)
+  )"
+  apply(subst inv_iface_name_set)
+  apply(case_tac "iface_name_is_wildcard i")
+   apply(simp_all only: internal_iface_name_to_set.simps if_True if_False not_True_eq_False not_False_eq_True)
+   apply(simp)
+  oops
+
+  (*TODO: function rewrite Neg Iface to Pos Iface*)
+  fun neg_iface_name_to_pos_iface_name :: "string \<Rightarrow> string list" where
+    "neg_iface_name_to_pos_iface_name i = (if iface_name_is_wildcard i
       then
-        map IfaceSimple (List.n_lists (length i) all_chars) (*TODO*)
+        (non_wildcard_ifaces_upto (length i - 1)) @ map (\<lambda>s. s@''+'') (filter (\<lambda>s. s \<noteq> butlast i) (non_wildcard_ifaces (length i - 1)))
       else
         [] (*TODO*)
     )"
+  lemma "- (internal_iface_name_to_set i) = (\<Union> s \<in> set (neg_iface_name_to_pos_iface_name i). internal_iface_name_to_set s)"
+    apply(subst inv_iface_name)
+    apply(subst neg_iface_name_to_pos_iface_name.simps)
+    apply(case_tac "iface_name_is_wildcard i")
+     apply(simp_all only: internal_iface_name_to_set.simps if_True if_False not_True_eq_False not_False_eq_True)
+     apply(simp add: non_wildcard_ifaces_upto non_wildcard_ifaces)
+     apply(simp add: iface_name_is_wildcard_alt)
+     apply(safe)
+     apply(auto)[1]
+     
+  oops
+
+
+  fun iface_to_simple_iface :: "iface \<Rightarrow> simple_iface list" where
+    "iface_to_simple_iface (Iface (Pos i)) = [IfaceSimple i]" |
+    "iface_to_simple_iface (Iface (Neg i)) = map IfaceSimple (neg_iface_name_to_pos_iface_name i)"
 
   hide_const (open) internal_iface_name_wildcard_longest
 
