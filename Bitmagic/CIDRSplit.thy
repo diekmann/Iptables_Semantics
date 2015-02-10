@@ -9,6 +9,44 @@ definition prefix_to_range :: "prefix_match \<Rightarrow> 32 bitrange" where
 lemma prefix_to_range_set_eq: "bitrange_to_set (prefix_to_range pfx) = prefix_to_ipset pfx"
   unfolding prefix_to_range_def prefix_to_ipset_def by simp
 
+lemma prefix_to_range_ipv4range_range: "prefix_to_range pfx = ipv4range_range (pfxm_prefix pfx) (pfxm_prefix pfx OR pfxm_mask pfx)"
+  unfolding ipv4range_range_def prefix_to_range_def by simp
+
+(*declare[[show_types]]
+declare[[unify_trace_failure]]*)
+lemma bitrange_to_set_ipv4range_set_from_bitmask:  assumes "valid_prefix pfx"
+      shows "bitrange_to_set (prefix_to_range pfx) = ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
+proof-
+  have prefix_match_if_in_corny_set: "(prefix_to_ipset pfx) = ipv4range_set_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx)"
+    unfolding prefix_to_ipset_def ipv4range_set_from_netmask_def Let_def
+    unfolding word_bool_alg.double_compl
+    proof -
+      case goal1
+      have *: "pfxm_prefix pfx AND NOT pfxm_mask pfx = pfxm_prefix pfx"
+        unfolding mask_eq_0_eq_x[symmetric] using valid_prefix_E[OF assms] word_bw_comms(1)[of "pfxm_prefix pfx"] by simp
+      hence **: "pfxm_prefix pfx AND NOT pfxm_mask pfx OR pfxm_mask pfx = pfxm_prefix pfx OR pfxm_mask pfx"
+        by simp
+      show ?case unfolding * ** ..
+    qed
+    
+    have "\<And>len. ((mask len)::ipv4addr) << 32 - len = ~~ mask (32 - len)"
+    using maskshift_eq_not_mask by simp
+    from this[of "(pfxm_length pfx)"] have mask_def2_symmetric: "((mask (pfxm_length pfx)::ipv4addr) << 32 - pfxm_length pfx) = NOT pfxm_mask pfx"
+      unfolding pfxm_mask_def by simp
+
+    have ipv4range_set_from_netmask_bitmask: 
+      "ipv4range_set_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx) = ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
+     unfolding ipv4range_set_from_netmask_def ipv4range_set_from_bitmask_alt
+     unfolding pfxm_mask_def[symmetric]
+     unfolding mask_def2_symmetric
+     apply(simp)
+     unfolding Let_def
+     thm pfxm_mask_def
+     using assms[simplified valid_prefix_def] by (metis helper3 word_bw_comms(2)) 
+    
+    show ?thesis by (metis ipv4range_set_from_netmask_bitmask local.prefix_match_if_in_corny_set prefix_to_range_set_eq) 
+qed
+
 definition pfxes :: "nat list" where "pfxes \<equiv> map nat [0..32]"
 
 (* Split of one range *)
@@ -86,7 +124,7 @@ proof(unfold ipv4range_eq_set_eq)
   ultimately show "ipv4range_to_set (ipv4range_union (prefix_to_range s) u) = ipv4range_to_set r" by auto
 qed
 
-value "((a,b),(c,d)) = ((a,b),c,d)" (* Fuck. *)
+lemma "((a,b),(c,d)) = ((a,b),c,d)" by simp (* Fuck. *)
 
 lemma prefix_never_empty: "\<not>ipv4range_empty (prefix_to_range d)"
 proof -
@@ -188,6 +226,7 @@ value "ipv4range_split (Bitrange 0 (ipv4addr_of_dotteddecimal (255,255,255,254))
 
 
 lemma "(\<Union> (base, len) \<in> set (ipv4range_split (ipv4range_range start end)). ipv4range_set_from_bitmask base len) = {start .. end}"
+using [[simp_trace, simp_trace_depth_limit=10]]
   apply(simp) (*simp: "Tactic failed"*)
   oops
 end
