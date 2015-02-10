@@ -1,14 +1,15 @@
 theory NumberWangCaesar
-imports IPv4Addr
+imports "./IPv4Addr"
   "./autocorres-0.98/lib/WordLemmaBucket"
 begin
 
 (*Contributed by Julius Michaelis*)
 
 type_synonym prefix_match = "(ipv4addr \<times> nat)"
-abbreviation "pfxm_prefix p \<equiv> fst p"
-abbreviation "pfxm_length p \<equiv> snd p"
-abbreviation "pfxm_mask x \<equiv> mask (32 - pfxm_length x)"
+definition "pfxm_prefix p \<equiv> fst p"
+definition "pfxm_length p \<equiv> snd p"
+definition "pfxm_mask x \<equiv> mask (32 - pfxm_length x)"
+lemmas pfxm_defs = pfxm_prefix_def pfxm_mask_def pfxm_length_def
 
 definition valid_prefix where
   "valid_prefix pf = ((pfxm_mask pf) AND pfxm_prefix pf = 0)"
@@ -20,7 +21,9 @@ lemma valid_preifx_alt_def: "valid_prefix p = (pfxm_prefix p AND (2 ^ (32 - pfxm
   using word_bw_comms(1)
    arg_cong[where f = "\<lambda>x. (pfxm_prefix p AND x - 1 = 0)"]
    shiftl_1
+  unfolding pfxm_prefix_def pfxm_mask_def mask_def
   by metis
+  
 
 subsection{*Address Semantics*}
 
@@ -76,11 +79,11 @@ proof -
     moreover
     { assume "\<not> pfxm_prefix match \<le> addr AND NOT pfxm_mask match"
       hence "\<not> (pfxm_prefix match \<le> addr \<and> addr \<le> pfxm_prefix match OR pfxm_mask match)"
-        using f1 neg_mask_mono_le by metis }
+        using f1 neg_mask_mono_le unfolding pfxm_prefix_def pfxm_mask_def by metis }
     moreover
     { assume "pfxm_prefix match \<le> addr AND NOT pfxm_mask match \<and> addr AND NOT pfxm_mask match \<noteq> (pfxm_prefix match OR pfxm_mask match) AND NOT pfxm_mask match"
       hence "\<exists>x\<^sub>0. \<not> addr AND NOT mask x\<^sub>0 \<le> (pfxm_prefix match OR pfxm_mask match) AND NOT mask x\<^sub>0"
-        using f2 by (metis dual_order.antisym word_bool_alg.conj_cancel_right word_log_esimps(3))
+        using f2 unfolding pfxm_prefix_def pfxm_mask_def by (metis dual_order.antisym word_bool_alg.conj_cancel_right word_log_esimps(3))
       hence "\<not> (pfxm_prefix match \<le> addr \<and> addr \<le> pfxm_prefix match OR pfxm_mask match)"
         using neg_mask_mono_le by auto }
     ultimately show "?case"
@@ -147,7 +150,7 @@ proof -
     have "pfxm_prefix match = (pfxm_prefix match OR pfxm_mask match) AND NOT pfxm_mask match"
       using f5 by auto
     hence "pfxm_prefix match = addr AND NOT pfxm_mask match"
-      using f2 f4 f6 by (metis eq_iff)
+      using f2 f4 f6 unfolding pfxm_prefix_def pfxm_mask_def by (metis eq_iff)
     thus "pfxm_prefix match = NOT pfxm_mask match AND addr"
       by (metis word_bw_comms(1))
   qed
@@ -280,7 +283,7 @@ lemma "(m1 \<or> m2) \<and> (m3 \<or> m4) \<longleftrightarrow> (m1 \<and> m3) \
 lemmas caesar_proof_unfolded = prefix_match_if_in_corny_set[unfolded valid_prefix_def prefix_match_semantics_def Let_def, symmetric]
 lemma caesar_proof_without_structures: "mask (32 - l) AND pfxm_p = 0 \<Longrightarrow>
            (a \<in> ipv4range_set_from_netmask (pfxm_p) (NOT mask (32 - l))) = (pfxm_p = NOT mask (32 - l) AND a)"
-using caesar_proof_unfolded by force
+using caesar_proof_unfolded unfolding pfxm_defs by force
 
 lemma mask_and_not_mask_helper: "mask (32 - m) AND base AND NOT mask (32 - m) = 0"
   by(simp add: word_bw_lcs)
