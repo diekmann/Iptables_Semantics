@@ -139,7 +139,7 @@ proof -
   then show ?thesis by force
 qed
 
-function ipv4range_split where
+function ipv4range_split :: "32 bitrange \<Rightarrow> (ipv4addr \<times> nat) list"where
   "ipv4range_split rs = (if \<not>ipv4range_empty rs then case ipv4range_split1 rs of (Some s, u) \<Rightarrow> s # ipv4range_split u | _ \<Rightarrow> [] else [])"
   by(simp, blast)
 
@@ -186,4 +186,8 @@ qed
 value "ipv4range_split (RangeUnion (Bitrange (ipv4addr_of_dotteddecimal (64,0,0,0)) 0x5FEFBBCC) (Bitrange 0x5FEEBB1C (ipv4addr_of_dotteddecimal (127,255,255,255))))"
 value "ipv4range_split (Bitrange 0 (ipv4addr_of_dotteddecimal (255,255,255,254)))"
 
+
+lemma "(\<Union> (base, len) \<in> set (ipv4range_split (ipv4range_range start end)). ipv4range_set_from_bitmask base len) = {start .. end}"
+  apply(simp) (*simp: "Tactic failed"*)
+  oops
 end
