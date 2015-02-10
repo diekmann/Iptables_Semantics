@@ -223,9 +223,35 @@ corollary ipv4range_split: "(\<Union> (prefix_to_ipset ` (set (ipv4range_split (
   using ipv4range_eq_eliminator by auto
 qed
 
+lemma prefix_to_ipset_subset_ipv4range_set_from_bitmask_helper:
+  "(\<Union>x\<in>X. prefix_to_ipset x) \<subseteq> (\<Union>x\<in>X. case x of (x, xa) \<Rightarrow> ipv4range_set_from_bitmask x xa)"
+  apply(rule)
+  using prefix_to_ipset_subset_ipv4range_set_from_bitmask[simplified pfxm_prefix_def pfxm_length_def] by fastforce
+
+
+lemma ipv4range_set_from_bitmask_subseteq_prefix_to_ipset_helper:
+  "\<forall> x \<in> X. valid_prefix x \<Longrightarrow> (\<Union>x\<in>X. case x of (x, xa) \<Rightarrow> ipv4range_set_from_bitmask x xa) \<subseteq> (\<Union>x\<in>X. prefix_to_ipset x)"
+  apply(rule)
+  apply(rename_tac x)
+  apply(safe)
+  apply(rename_tac a b)
+  apply(erule_tac x="(a,b)" in ballE)
+   apply(simp_all)
+  apply(drule bitrange_to_set_ipv4range_set_from_bitmask)
+  apply(rule_tac x="(a, b)" in bexI)
+  apply(simp_all add: pfxm_prefix_def pfxm_length_def)
+  done
+  
+
 lemma "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipv4range_split (ipv4range_range start end)))) ) = {start .. end}"
+  unfolding ipv4range_split[symmetric]
   apply(simp add: ipv4range_range_def)
-  using ipv4range_split 
+  apply(rule)
+   prefer 2
+   using prefix_to_ipset_subset_ipv4range_set_from_bitmask_helper apply simp
+  apply(subst ipv4range_set_from_bitmask_subseteq_prefix_to_ipset_helper)
+   apply(simp_all)
+  (*sqrl: this would be nice :) *)
   oops
 
 
@@ -233,7 +259,5 @@ lemma "(\<Union> (base, len) \<in> set (ipv4range_split (ipv4range_range start e
 (*using [[simp_trace, simp_trace_depth_limit=10]]*)
 using [[simproc del: list_to_set_comprehension]] (* okay, simplifier is a bit broken **)
   apply(simp del: ) (*simp: "Tactic failed"*)
-  apply(intro impI conjI)
-  apply(simp)
   oops
 end
