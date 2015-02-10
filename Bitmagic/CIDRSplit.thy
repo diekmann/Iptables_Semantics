@@ -193,9 +193,38 @@ qed
 value "ipv4range_split (RangeUnion (Bitrange (ipv4addr_of_dotteddecimal (64,0,0,0)) 0x5FEFBBCC) (Bitrange 0x5FEEBB1C (ipv4addr_of_dotteddecimal (127,255,255,255))))"
 value "ipv4range_split (Bitrange 0 (ipv4addr_of_dotteddecimal (255,255,255,254)))"
 
+declare ipv4range_split.simps[simp del]
+
+corollary ipv4range_split: "(\<Union> (prefix_to_ipset ` (set (ipv4range_split (Bitrange start end))))) = {start .. end}"
+  proof -
+  have prefix_to_range_set_eq_fun: "prefix_to_ipset = (bitrange_to_set \<circ> prefix_to_range)"
+    by(simp add: prefix_to_range_set_eq fun_eq_iff)
+
+  { fix r
+    have "\<Union>((bitrange_to_set \<circ> prefix_to_range) ` set (ipv4range_split r))= 
+        (bitrange_to_set (list_to_bitrange (map prefix_to_range (ipv4range_split r))))"
+        by (metis (erased, lifting) list.map_comp list_to_bitrange_set_eq set_map)
+    also have "\<dots> = (bitrange_to_set r)"
+      by (metis ipv4range_eq_set_eq ipv4range_split_union ipv4range_to_set_def)
+    finally have "\<Union>((bitrange_to_set \<circ> prefix_to_range) ` set (ipv4range_split r)) = bitrange_to_set r" .
+  } note ipv4range_eq_eliminator=this[of "(Bitrange start end)"]
+
+  show ?thesis
+  unfolding prefix_to_range_set_eq_fun
+  using ipv4range_eq_eliminator by auto
+qed
+
+lemma "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipv4range_split (ipv4range_range start end)))) ) = {start .. end}"
+  apply(simp add: ipv4range_range_def)
+  using ipv4range_split 
+  oops
+
 
 lemma "(\<Union> (base, len) \<in> set (ipv4range_split (ipv4range_range start end)). ipv4range_set_from_bitmask base len) = {start .. end}"
-using [[simp_trace, simp_trace_depth_limit=10]]
-  apply(simp) (*simp: "Tactic failed"*)
+(*using [[simp_trace, simp_trace_depth_limit=10]]*)
+using [[simproc del: list_to_set_comprehension]] (* okay, simplifier is a bit broken **)
+  apply(simp del: ) (*simp: "Tactic failed"*)
+  apply(intro impI conjI)
+  apply(simp)
   oops
 end
