@@ -77,6 +77,9 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
 
   lemma list_to_bitrange_set_eq: "(\<Union>set (map bitrange_to_set rs)) = bitrange_to_set (list_to_bitrange rs)"
     by(induction rs rule: list_to_bitrange.induct) simp_all
+  
+  lemma list_to_bitrange_set_eq_simp[simp]: "bitrange_to_set (list_to_bitrange (a # as)) = bitrange_to_set (bitrange_union a (list_to_bitrange as))"
+    by(cases as) auto
     
     
   fun bitrange_linearize where "bitrange_linearize rs = list_to_bitrange (bitrange_to_list rs)"
