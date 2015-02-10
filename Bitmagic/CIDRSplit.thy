@@ -15,6 +15,15 @@ lemma prefix_to_range_ipv4range_range: "prefix_to_range pfx = ipv4range_range (p
 corollary "valid_prefix pfx \<Longrightarrow> bitrange_to_set (prefix_to_range pfx) = ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
 using bitrange_to_set_ipv4range_set_from_bitmask prefix_to_range_set_eq by simp
 
+(*TODO: move*)
+lemma prefix_to_ipset_subset_ipv4range_set_from_bitmask: 
+    "prefix_to_ipset pfx \<subseteq> ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
+  apply(rule)
+  apply(simp add: prefix_to_ipset_def addr_in_ipv4range_set_from_bitmask_code)
+  apply(intro impI conjI)
+   apply (metis (erased, hide_lams) order_trans word_and_le2)
+  by (metis pfxm_mask_def)
+
 
 definition pfxes :: "nat list" where "pfxes \<equiv> map nat [0..32]"
 
