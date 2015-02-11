@@ -117,7 +117,7 @@ subsection{*Simple Match to MatchExpr*}
 fun simple_match_to_ipportiface_match :: "simple_match \<Rightarrow> ipportiface_rule_match match_expr" where
   "simple_match_to_ipportiface_match \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> = 
     MatchAnd (Match (IIface iif)) (MatchAnd (Match (OIface oif)) 
-    (MatchAnd (match_list_to_match_expr (map (Match \<circ> Src) (helper_construct_ip_matchexp sip)) ) (*WARNING: result is ugly!*)
+    (MatchAnd (match_list_to_match_expr (map (Match \<circ> Src) (helper_construct_ip_matchexp sip)) ) (*TODO**)
     (MatchAnd (match_list_to_match_expr (map (Match \<circ> Dst) (helper_construct_ip_matchexp dip)) )
     (MatchAnd (Match (Prot p))
     (MatchAnd (Match (Src_Ports [sps]))
@@ -432,12 +432,18 @@ subsubsection{*Merging Simple Matches*}
 text{*@{typ "simple_match"} @{text \<and>} @{typ "simple_match"}*}
 
 
-  fun simple_match_and :: "simple_match \<Rightarrow> simple_match \<Rightarrow> simple_match list" where
+
+
+  (*Why option? Well, we need a list because of merging IP ranges may return a list.*)
+  (*TODO: reuse the bitranges here*)
+  fun simple_match_and :: "simple_match \<Rightarrow> simple_match \<Rightarrow> simple_match option" where
     "simple_match_and \<lparr>iiface=iif1, oiface=oif1, src=sip1, dst=dip1, proto=p1, sports=sps1, dports=dps1 \<rparr> 
                       \<lparr>iiface=iif2, oiface=oif2, src=sip2, dst=dip2, proto=p2, sports=sps2, dports=dps2 \<rparr> = 
-      (case iface_conjunct iif1 iif2 of None \<Rightarrow> [] | Some iif \<Rightarrow>
-      (case iface_conjunct oif1 oif2 of None \<Rightarrow> [] | Some oif \<Rightarrow>
-      [\<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p2, sports=simpl_ports_conjunct sps1 sps2, dports=simpl_ports_conjunct sps1 sps2 \<rparr>.
-        sip \<leftarrow> simple_ips_conjunct sip1 sip2, dip \<leftarrow> simple_ips_conjunct dip1 dip2]))"
+      (case simple_ips_conjunct sip1 sip2 of None \<Rightarrow> None | Some sip \<Rightarrow> 
+      (case simple_ips_conjunct dip1 dip2 of None \<Rightarrow> None | Some dip \<Rightarrow> 
+      (case iface_conjunct iif1 iif2 of None \<Rightarrow> None | Some iif \<Rightarrow>
+      (case iface_conjunct oif1 oif2 of None \<Rightarrow> None | Some oif \<Rightarrow>
+      Some \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p2, sports=simpl_ports_conjunct sps1 sps2, dports=simpl_ports_conjunct sps1 sps2 \<rparr>))))"
+                      (*add list comprehension to multiply out the interface blowup? hopefully not necessary*)
 
 end

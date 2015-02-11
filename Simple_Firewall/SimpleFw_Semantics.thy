@@ -19,10 +19,12 @@ text{*Very TODO*}
   record simple_match =
     iiface :: "iface" --"in-interface" (*TODO: we cannot (and don't want to, see history) express negated interfaces*)
     oiface :: "iface" --"out-interface"
-    src :: "(ipv4addr \<times> ipv4addr) " --"source IP address (start, end) inclusive" (*TODO: 
+
+    (*TODO: need to convert complex firewall such that negated ips do not occur! Use CIDR split*)
+    src :: "(ipv4addr \<times> nat) " --"source IP address" (*TODO: 
       for reference, the commit where the negation type was removed is 823703ceb9363deb60ecd4923c39ea6c8901f368
       the last commit with CIDR notation was 0969c2f99afefb316e4f279863b717fd40e0923c*)
-    dst :: "(ipv4addr \<times> ipv4addr) " --"destination"
+    dst :: "(ipv4addr \<times> nat) " --"destination"
     proto :: "protocol"
     sports :: "(16 word \<times> 16 word)" --"source-port first:last"
     dports :: "(16 word \<times> 16 word)" --"destination-port first:last"
@@ -81,8 +83,8 @@ text{*Very TODO*}
 
 subsection{*Simple Firewall Semantics*}
 
-  fun simple_match_ip :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> ipv4addr \<Rightarrow> bool" where
-    "simple_match_ip (start, end) p_ip \<longleftrightarrow> p_ip \<in> {start .. end}"
+  fun simple_match_ip :: "(ipv4addr \<times> nat) \<Rightarrow> ipv4addr \<Rightarrow> bool" where
+    "simple_match_ip (base, len) p_ip \<longleftrightarrow> p_ip \<in> ipv4range_set_from_bitmask base len"
 
   --"by the way, the words do not wrap around"
   lemma "{(253::8 word) .. 8} = {}" by simp 
@@ -108,7 +110,7 @@ subsection{*Simple Firewall Semantics*}
 
 
   definition simple_match_any :: "simple_match" where
-    "simple_match_any \<equiv> \<lparr>iiface=IfaceAny, oiface=IfaceAny, src=(0,max_ipv4_addr), dst=(0,max_ipv4_addr), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
+    "simple_match_any \<equiv> \<lparr>iiface=IfaceAny, oiface=IfaceAny, src=(0,0), dst=(0,0), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
 
   lemma simple_match_any: "simple_matches simple_match_any p"
     apply(simp add: simple_match_any_def ipv4range_set_from_bitmask_0)
@@ -130,10 +132,21 @@ subsection{*Simple Ports*}
 
 subsection{*Simple IPs*}
 
-  fun simple_ips_conjunct :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> (ipv4addr \<times> ipv4addr) \<Rightarrow> (ipv4addr \<times> ipv4addr) list" where 
-    "simple_ips_conjunct (s1, e1) (s2, e2) = br2l (ipv4range_intersection (ipv4range_range s1 e1) (ipv4range_range s2 e2))"
+  lemma simple_match_ip_conjunct: "simple_match_ip ip1 p_ip \<and> simple_match_ip ip2 p_ip \<longleftrightarrow> 
+         (case simple_ips_conjunct ip1 ip2 of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
+  proof -
+  {
+    fix b1 m1 b2 m2
+    have "simple_match_ip (b1, m1) p_ip \<and> simple_match_ip (b2, m2) p_ip \<longleftrightarrow> 
+          p_ip \<in> ipv4range_set_from_bitmask b1 m1 \<inter> ipv4range_set_from_bitmask b2 m2"
+    by simp
+    also have "\<dots> \<longleftrightarrow> p_ip \<in> (case simple_ips_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> {} | Some (bx, mx) \<Rightarrow> ipv4range_set_from_bitmask bx mx)"
+      using simple_ips_conjunct_correct by blast
+    also have "\<dots> \<longleftrightarrow> (case simple_ips_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
+      by(simp split: option.split)
+    finally have "simple_match_ip (b1, m1) p_ip \<and> simple_match_ip (b2, m2) p_ip \<longleftrightarrow> 
+         (case simple_ips_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)" .
+   } thus ?thesis by(cases ip1, cases ip2, simp)
+  qed
 
-  lemma simple_ips_conjunct: "l_br_toset (simple_ips_conjunct (s1, e1) (s2, e2)) = {s1 .. e1} \<inter> {s2 .. e2}"
-    by(simp add: l_br_toset l2br_br2l ipv4range_intersection_def ipv4range_range_def)
-    
 end
