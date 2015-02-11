@@ -57,50 +57,41 @@ subsection{*Translate IP Addresses*}
 fun helper_construct_ip_matchexp :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> ipt_ipv4range list" where
   "helper_construct_ip_matchexp (s, e) = map (Ip4Addr \<circ> dotteddecimal_of_ipv4addr) (ipv4addr_upto s e)"
 *)
-thm ipv4range_split_bitmask
 
 fun helper_construct_ip_matchexp :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> ipt_ipv4range list" where
   "helper_construct_ip_matchexp (s, e) = map (\<lambda>(ip, n). Ip4AddrNetmask (dotteddecimal_of_ipv4addr ip) n) (ipv4range_split (ipv4range_range s e))"
 declare helper_construct_ip_matchexp.simps[simp del]
 
-
-lemma clarify_ipv4range_split_Ex_tuple: "(\<exists>m\<in>set (ipv4range_split r). P m) \<longleftrightarrow> (\<exists>(i,j)\<in>set (ipv4range_split r). P (i,j))"
-by fast
-lemma hlp2: "(ipv4s_to_set (case m of (ip, n) \<Rightarrow> Ip4AddrNetmask (dotteddecimal_of_ipv4addr ip) n)) = 
-        (ipv4range_set_from_bitmask (fst m) (snd m))"
-      by(cases m, simp add: ipv4addr_of_dotteddecimal_dotteddecimal_of_ipv4addr)
-
-lemma hlp1: "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Src) (ips::ipt_ipv4range list)) a p \<longleftrightarrow> p_src p \<in> (\<Union> (ipv4s_to_set ` (set ips)))"
-            "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Dst) (ips::ipt_ipv4range list)) a p \<longleftrightarrow> p_dst p \<in> (\<Union> (ipv4s_to_set ` (set ips)))"
-  by(simp_all add: match_list_matches IPPortIfaceSpace_Matcher.match_simplematcher_SrcDst)
-lemma hlp3: "(\<Union>(ipv4s_to_set ` set (helper_construct_ip_matchexp r))) = 
-       (\<Union>((\<lambda>(base, len). ipv4range_set_from_bitmask base len) ` set (ipv4range_split (ipv4range_range (fst r) (snd r)))))"
-apply(cases r, simp)
-apply(simp add: helper_construct_ip_matchexp.simps)
-apply(simp add: hlp2)
-by fastforce
-
-thm match_list_matches[of "(ipportiface_matcher, \<alpha>)" "(map (Match \<circ> Src) (ips::ipt_ipv4range list))" a p]
-thm IPPortIfaceSpace_Matcher.match_simplematcher_SrcDst
-
+  
+  lemma match_list_match_SrcDst:
+      "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Src) (ips::ipt_ipv4range list)) a p \<longleftrightarrow> p_src p \<in> (\<Union> (ipv4s_to_set ` (set ips)))"
+      "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Dst) (ips::ipt_ipv4range list)) a p \<longleftrightarrow> p_dst p \<in> (\<Union> (ipv4s_to_set ` (set ips)))"
+    by(simp_all add: match_list_matches IPPortIfaceSpace_Matcher.match_simplematcher_SrcDst)
+  lemma helper_construct_ip_matchexp_set: "(\<Union> (ipv4s_to_set ` (set (helper_construct_ip_matchexp r)))) = {fst r .. snd r}"
+    proof -
+      have hlp1: "\<And>m. (ipv4s_to_set (case m of (ip, n) \<Rightarrow> Ip4AddrNetmask (dotteddecimal_of_ipv4addr ip) n)) = 
+          (ipv4range_set_from_bitmask (fst m) (snd m))"
+        by(case_tac m, simp add: ipv4addr_of_dotteddecimal_dotteddecimal_of_ipv4addr)
+  
+      have hlp2: "(\<Union>(ipv4s_to_set ` set (helper_construct_ip_matchexp r))) = 
+             (\<Union>((\<lambda>(base, len). ipv4range_set_from_bitmask base len) ` set (ipv4range_split (ipv4range_range (fst r) (snd r)))))"
+        apply(cases r, simp)
+        apply(simp add: helper_construct_ip_matchexp.simps)
+        apply(simp add: hlp1)
+        by fastforce
+      show ?thesis
+        unfolding hlp2
+        unfolding ipv4range_split_bitmask
+        by(simp)
+    qed
 lemma helper_construct_ip_matchexp_SrcDst_match_list:
   "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Src) (helper_construct_ip_matchexp ip)) a p \<longleftrightarrow> simple_match_ip ip (p_src p)"
   "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Dst) (helper_construct_ip_matchexp ip)) a p \<longleftrightarrow> simple_match_ip ip (p_dst p)"
    apply(case_tac [!] ip, rename_tac i j)
-
-   apply(subst hlp1)
-   apply(subst hlp3)
-   apply(subst ipv4range_split_bitmask)
-   apply(simp)
-
-   apply(subst hlp1)
-   apply(subst hlp3)
-   apply(subst ipv4range_split_bitmask)
-   apply(simp)
+   apply(subst match_list_match_SrcDst, subst helper_construct_ip_matchexp_set, simp)+
    done
 
-
-thm match_list_to_match_expr_disjunction
+hide_fact match_list_match_SrcDst helper_construct_ip_matchexp_set
 
 lemma matches_SrcDst_simple_match:
       "matches (ipportiface_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src) (helper_construct_ip_matchexp sip))) a p \<longleftrightarrow>
