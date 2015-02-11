@@ -371,7 +371,7 @@ subsection{*IP ranges*}
 
 
   thm iffD1[OF ipv4range_eq_set_eq]
-  declare iffD1[OF ipv4range_eq_set_eq, simp]
+  declare iffD1[OF ipv4range_eq_set_eq, cong]
   lemma ipv4range_eq_comm: "ipv4range_eq r1 r2 \<longleftrightarrow> ipv4range_eq r2 r1"
     unfolding ipv4range_eq_def bitrange_eq_set_eq by blast
   lemma ipv4range_to_set_alt: "ipv4range_to_set r = {x. ipv4range_element x r}"
