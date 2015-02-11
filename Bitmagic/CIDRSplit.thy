@@ -274,8 +274,9 @@ next
 qed
 
 
-
-lemma "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipv4range_split (ipv4range_range start end)))) ) = {start .. end}"
+(*also works with corny definitions*)
+corollary ipv4range_split_bitmask: 
+  "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipv4range_split (ipv4range_range start end)))) ) = {start .. end}"
   proof -
   --"without valid prefix assumption"
   have prefix_to_ipset_subset_ipv4range_set_from_bitmask_helper:
