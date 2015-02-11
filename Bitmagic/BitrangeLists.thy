@@ -11,14 +11,29 @@ text{*A list of @{text "(start, end)"} tuples.*}
   
   fun l2br :: "('a::len word \<times> 'a::len word) list \<Rightarrow> 'a::len bitrange" where
     "l2br [] = Empty_Bitrange" | 
+    "l2br [(s,e)] = (Bitrange s e)" | 
     "l2br ((s,e)#rs) = (RangeUnion (Bitrange s e) (l2br rs))"
   
 
   lemma l2br_append: "bitrange_to_set (l2br (l1@l2)) = bitrange_to_set (l2br l1) \<union> bitrange_to_set (l2br l2)"
-    by(induction l1) (auto)
+    apply(induction l1 arbitrary: l2 rule:l2br.induct)
+      apply(simp_all)
+     apply(case_tac l2)
+      apply(simp_all)
+    by blast
   
   lemma l2br_br2l: "bitrange_to_set (l2br (br2l r)) = bitrange_to_set r"
     by(induction r) (simp_all add: l2br_append)
 
+
+  definition l_br_toset :: "('a::len word \<times> 'a::len word) list \<Rightarrow> ('a::len word) set" where
+    "l_br_toset l \<equiv> \<Union> (i,j) \<in> set l. {i .. j}"
+
+  lemma l_br_toset: "l_br_toset l = bitrange_to_set (l2br l)"
+    unfolding l_br_toset_def
+    apply(induction l rule: l2br.induct)
+      apply(simp_all)
+    done
+  
 
 end

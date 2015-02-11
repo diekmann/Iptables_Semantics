@@ -9,12 +9,22 @@ begin
 fun ipv4_word_netmask_to_ipt_ipv4range :: "(ipv4addr \<times> nat) \<Rightarrow> ipt_ipv4range" where
   "ipv4_word_netmask_to_ipt_ipv4range (ip, n) = Ip4AddrNetmask (dotteddecimal_of_ipv4addr ip) n"
 
-fun ipt_ipv4range_to_ipv4_word_netmask :: " ipt_ipv4range \<Rightarrow> (ipv4addr \<times> ipv4addr)" where
+fun ipt_ipv4range_to_ipv4_word_netmask :: "ipt_ipv4range \<Rightarrow> (ipv4addr \<times> ipv4addr)" where
   "ipt_ipv4range_to_ipv4_word_netmask (Ip4Addr ip_ddecim) = (ipv4addr_of_dotteddecimal ip_ddecim, ipv4addr_of_dotteddecimal ip_ddecim)" | 
   "ipt_ipv4range_to_ipv4_word_netmask (Ip4AddrNetmask pre len) = 
     (((ipv4addr_of_dotteddecimal pre) AND ((mask len) << (32 - len))), (ipv4addr_of_dotteddecimal pre) OR (mask (32 - len)))"
 (*from ipv4range_set_from_bitmask_alt*)
 (*TODO: this looks horrible! How are caesar's ranges constructed?*)
+
+fun invert_ipv4intervall :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> (ipv4addr \<times> ipv4addr) list" where
+  "invert_ipv4intervall (i, j) = br2l (ipv4range_invert (ipv4range_range i j))"
+
+lemma helper_ipv4range_range_l2br: "ipv4range_range i j = l2br [(i,j)]"
+  by(simp add: ipv4range_range_def)
+lemma "(l_br_toset (invert_ipv4intervall (i, j))) = - {i .. j}"
+  apply(simp add: l2br_br2l ipv4range_UNIV_def ipv4range_setminus_def ipv4range_invert_def helper_ipv4range_range_l2br l_br_toset)
+  by blast
+  
 
 
 (*do I need monads?*)
@@ -231,7 +241,8 @@ subsubsection{*Normalizing ports*}
   done
   
   (* [ [(1,2) \<or> (3,4)]  \<and>  [] ]*)
-  definition ipt_ports_andlist_compress :: "ipt_ports list \<Rightarrow> ipt_ports" where
+  text{* @{typ "ipt_ports list \<Rightarrow> ipt_ports list"} *}
+  definition ipt_ports_andlist_compress :: "('a::len word \<times> 'a::len word) list list \<Rightarrow> ('a::len word \<times> 'a::len word) list" where
     "ipt_ports_andlist_compress pss = br2l (fold (\<lambda>ps accu. (bitrange_intersection (l2br ps) accu)) pss bitrange_UNIV)"
   
   lemma ipt_ports_andlist_compress_correct: "ports_to_set (ipt_ports_andlist_compress pss) = \<Inter> set (map ports_to_set pss)"
