@@ -2,7 +2,7 @@ theory SimpleFw_Compliance
 imports SimpleFw_Semantics "../Primitive_Matchers/IPPortIfaceSpace_Matcher" "../Semantics_Ternary"
         "../Output_Format/Negation_Type_Matching"
         "../Bitmagic/Numberwang_Ln" (*unused?*)
-        (*"../Bitmagic/CIDRSplit"*)
+        "../Bitmagic/CIDRSplit"
 begin
 
 (*unused?*)
@@ -25,6 +25,8 @@ fun negation_type_to_match_expr :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a negat
 
 
 
+
+(*Move to motivation of CIDR split*)
 value "map (ipv4addr_of_nat \<circ> nat) [1 .. 4]"
 
 definition ipv4addr_upto :: "ipv4addr \<Rightarrow> ipv4addr \<Rightarrow> ipv4addr list" where
@@ -50,64 +52,53 @@ lemma ipv4addr_upto: "set (ipv4addr_upto i j) = {i .. j}"
 by (metis atLeastAtMost_iff image_eqI word_le_nat_alt word_unat.Rep_inverse)
   
 
+subsection{*Translate IP Addresses*}
 (*
-function ipv4addr_upto :: "ipv4addr \<Rightarrow> ipv4addr \<Rightarrow> ipv4addr list" where
-  "ipv4addr_upto i j = (if i < j then i # ipv4addr_upto (i + 1) j else if i = j then [i] else [])"
-by auto
-lemma helper_unat_minus1_32bitword: "unat ((- 1)::ipv4addr) = 4294967295" by(eval)
-termination
-apply(relation "measure (\<lambda>(i::ipv4addr, j). card {unat i ..  unat j})")
-apply(auto)
-apply(simp add: word_less_nat_alt)
-apply(subst unat_Suc2)
-defer
-apply linarith
-apply unat_arith
-apply(simp)
-apply(simp add: helper_unat_minus1_32bitword)
-done
-
-value "ipv4addr_upto 1 4"
-
-            
-lemma "(m::ipv4addr) \<le> n \<Longrightarrow> insert m {m+1 .. n} = {m .. n}"
-apply(intro set_eqI)
-apply(rule)
- apply(simp)
- apply(elim disjE)
-  apply(simp)
- apply(simp)
- apply(elim conjE)
- apply(subgoal_tac "m \<noteq> -1")
-  apply (metis (erased, hide_lams) add.commute less_trans not_le overflow_plus_one_self)
-oops
-
-lemma "set (ipv4addr_upto i j) = {i .. j}"
-proof(induct i j rule:ipv4addr_upto.induct)
-  case (1 i j)
-  from this show ?case
-    unfolding ipv4addr_upto.simps[of i j]
-    apply(cases "i = j")
-     apply(simp)
-    apply(cases "i > j")
-     apply(simp)
-    apply(simp)
-    apply(intro impI)
-    oops
-*)
-
-subsection{*Simple Match to MatchExpr*}
-
 fun helper_construct_ip_matchexp :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> ipt_ipv4range list" where
   "helper_construct_ip_matchexp (s, e) = map (Ip4Addr \<circ> dotteddecimal_of_ipv4addr) (ipv4addr_upto s e)"
+*)
+thm ipv4range_split_bitmask
 
-(*TODO! okay, brute-force construction of match_expressions seems like a `good' idea*)
+fun helper_construct_ip_matchexp :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> ipt_ipv4range list" where
+  "helper_construct_ip_matchexp (s, e) = map (\<lambda>(ip, n). Ip4AddrNetmask (dotteddecimal_of_ipv4addr ip) n) (ipv4range_split (ipv4range_range s e))"
+declare helper_construct_ip_matchexp.simps[simp del]
+
+
+lemma clarify_ipv4range_split_Ex_tuple: "(\<exists>m\<in>set (ipv4range_split r). P m) \<longleftrightarrow> (\<exists>(i,j)\<in>set (ipv4range_split r). P (i,j))"
+by fast
+lemma hlp2: "(ipv4s_to_set (case m of (ip, n) \<Rightarrow> Ip4AddrNetmask (dotteddecimal_of_ipv4addr ip) n)) = 
+        (ipv4range_set_from_bitmask (fst m) (snd m))"
+      by(cases m, simp add: ipv4addr_of_dotteddecimal_dotteddecimal_of_ipv4addr)
+
+lemma hlp1: "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Src) (ips::ipt_ipv4range list)) a p \<longleftrightarrow> p_src p \<in> (\<Union> (ipv4s_to_set ` (set ips)))"
+            "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Dst) (ips::ipt_ipv4range list)) a p \<longleftrightarrow> p_dst p \<in> (\<Union> (ipv4s_to_set ` (set ips)))"
+  by(simp_all add: match_list_matches IPPortIfaceSpace_Matcher.match_simplematcher_SrcDst)
+lemma hlp3: "(\<Union>(ipv4s_to_set ` set (helper_construct_ip_matchexp r))) = 
+       (\<Union>((\<lambda>(base, len). ipv4range_set_from_bitmask base len) ` set (ipv4range_split (ipv4range_range (fst r) (snd r)))))"
+apply(cases r, simp)
+apply(simp add: helper_construct_ip_matchexp.simps)
+apply(simp add: hlp2)
+by fastforce
+
+thm match_list_matches[of "(ipportiface_matcher, \<alpha>)" "(map (Match \<circ> Src) (ips::ipt_ipv4range list))" a p]
+thm IPPortIfaceSpace_Matcher.match_simplematcher_SrcDst
+
 lemma helper_construct_ip_matchexp_SrcDst_match_list:
   "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Src) (helper_construct_ip_matchexp ip)) a p \<longleftrightarrow> simple_match_ip ip (p_src p)"
   "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Dst) (helper_construct_ip_matchexp ip)) a p \<longleftrightarrow> simple_match_ip ip (p_dst p)"
-  apply(case_tac [!] ip, rename_tac i j)
-  apply(simp_all add: ipv4addr_upto match_list_matches  IPPortIfaceSpace_Matcher.match_simplematcher_SrcDst ipv4addr_of_dotteddecimal_dotteddecimal_of_ipv4addr)
-  done
+   apply(case_tac [!] ip, rename_tac i j)
+
+   apply(subst hlp1)
+   apply(subst hlp3)
+   apply(subst ipv4range_split_bitmask)
+   apply(simp)
+
+   apply(subst hlp1)
+   apply(subst hlp3)
+   apply(subst ipv4range_split_bitmask)
+   apply(simp)
+   done
+
 
 thm match_list_to_match_expr_disjunction
 
@@ -118,7 +109,9 @@ lemma matches_SrcDst_simple_match:
        simple_match_ip dip (p_dst p)"
   apply(simp_all add: match_list_to_match_expr_disjunction helper_construct_ip_matchexp_SrcDst_match_list[where \<alpha>=\<alpha> and a=a, symmetric])
   done
-  
+
+
+subsection{*Simple Match to MatchExpr*}
 
 fun simple_match_to_ipportiface_match :: "simple_match \<Rightarrow> ipportiface_rule_match match_expr" where
   "simple_match_to_ipportiface_match \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> = 
@@ -131,11 +124,11 @@ fun simple_match_to_ipportiface_match :: "simple_match \<Rightarrow> ipportiface
     )))))"
 
 value "normalize_match (simple_match_to_ipportiface_match 
-    \<lparr>iiface=Iface ''+'', oiface=Iface ''+'', src=(2,5), dst=(0,1), proto=Proto (Pos TCP), 
+    \<lparr>iiface=Iface ''+'', oiface=Iface ''+'', src=(0,65536), dst=(0,1), proto=Proto (Pos TCP), 
       sports=(22,22), dports=(1024,65535) \<rparr>)"
-text{*when we normalize, we get one match expression for the size of the src ip range times size dst ip range*}
+text{*when we normalize, we get at most one match expression for the size of the src ip range times size dst ip range. The CIDR range optimization is cool*}
 value "normalize_match (simple_match_to_ipportiface_match 
-    \<lparr>iiface=Iface ''+'', oiface=Iface ''+'', src=(2,5), dst=(0,1), proto=Proto (Pos TCP), 
+    \<lparr>iiface=Iface ''+'', oiface=Iface ''+'', src=(0,65536), dst=(0,1), proto=Proto (Pos TCP), 
       sports=(22,22), dports=(1024,65535) \<rparr>)"
 
 (* broken since ip type change

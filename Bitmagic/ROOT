@@ -12,4 +12,4 @@ session "Bitmagic" = HOL +
   theories
     IPv4Addr
     Numberwang_Ln
-
+    CIDRSplit
