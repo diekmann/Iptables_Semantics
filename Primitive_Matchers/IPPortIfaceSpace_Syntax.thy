@@ -48,7 +48,7 @@ lemma ports_to_set: "ports_to_set pts = \<Union> {{s..e} | s e . (s,e) \<in> set
 
 text{*We can reuse the bitrange theory to reason about ports*}
 lemma ports_to_set_bitrange: "ports_to_set ps = bitrange_to_set (l2br ps)"
-  by(induction ps) (auto)
+  by(induction ps rule: l2br.induct) (auto)
 
 
 end

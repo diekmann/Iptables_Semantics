@@ -171,29 +171,31 @@ subsection{*MatchExpr to Simple Match*}
 (*Unfinished*)
 text{*Unfinished*}
 
-fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Rightarrow> simple_match option" where
-  "ipportiface_match_to_simple_match MatchAny = Some simple_match_any" |
-  "ipportiface_match_to_simple_match (MatchNot MatchAny) = None" |
-  "ipportiface_match_to_simple_match (Match (IIface iif)) = Some (simple_match_any\<lparr> iiface := iif \<rparr>)" |
-  "ipportiface_match_to_simple_match (Match (OIface oif)) = Some (simple_match_any\<lparr> oiface := oif \<rparr>)" |
-  "ipportiface_match_to_simple_match (Match (Src ip)) = Some (simple_match_any\<lparr> src := (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>)" |
-  "ipportiface_match_to_simple_match (Match (Dst ip)) = Some (simple_match_any\<lparr> dst := (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>)" |
-  "ipportiface_match_to_simple_match (Match (Prot p)) = Some (simple_match_any\<lparr> proto := p \<rparr>)" |
-  "ipportiface_match_to_simple_match (Match (Src_Ports [])) = Some (simple_match_any)" |
-  "ipportiface_match_to_simple_match (Match (Src_Ports [(s,e)])) = Some (simple_match_any\<lparr> sports := (s,e) \<rparr>)" |
-  "ipportiface_match_to_simple_match (Match (Dst_Ports [])) = Some (simple_match_any)" |
-  "ipportiface_match_to_simple_match (Match (Dst_Ports [(s,e)])) = Some (simple_match_any\<lparr> dports := (s,e) \<rparr>)" |
-  "ipportiface_match_to_simple_match (MatchNot (Match (Prot ProtoAny))) = None" |
-  "ipportiface_match_to_simple_match (MatchNot (Match (Prot (Proto (Pos p))))) =  Some (simple_match_any\<lparr> proto := Proto (Neg p) \<rparr>)" |
-  "ipportiface_match_to_simple_match (MatchNot (Match (Prot (Proto (Neg p))))) =  Some (simple_match_any\<lparr> proto := Proto (Pos p) \<rparr>)" |
+fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Rightarrow> simple_match list" where
+  "ipportiface_match_to_simple_match MatchAny = [simple_match_any]" |
+  "ipportiface_match_to_simple_match (MatchNot MatchAny) = []" |
+  "ipportiface_match_to_simple_match (Match (IIface iif)) = [simple_match_any\<lparr> iiface := iif \<rparr>]" |
+  "ipportiface_match_to_simple_match (Match (OIface oif)) = [simple_match_any\<lparr> oiface := oif \<rparr>]" |
+  "ipportiface_match_to_simple_match (Match (Src ip)) = [simple_match_any\<lparr> src := (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>]" |
+  "ipportiface_match_to_simple_match (Match (Dst ip)) = [simple_match_any\<lparr> dst := (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>]" |
+  "ipportiface_match_to_simple_match (Match (Prot p)) = [simple_match_any\<lparr> proto := p \<rparr>]" |
+  "ipportiface_match_to_simple_match (Match (Src_Ports [])) = [simple_match_any]" |
+  "ipportiface_match_to_simple_match (Match (Src_Ports [(s,e)])) = [simple_match_any\<lparr> sports := (s,e) \<rparr>]" |
+  "ipportiface_match_to_simple_match (Match (Dst_Ports [])) = [simple_match_any]" |
+  "ipportiface_match_to_simple_match (Match (Dst_Ports [(s,e)])) = [simple_match_any\<lparr> dports := (s,e) \<rparr>]" |
+  "ipportiface_match_to_simple_match (MatchNot (Match (Prot ProtoAny))) = []" |
+  "ipportiface_match_to_simple_match (MatchNot (Match (Prot (Proto (Pos p))))) =  [simple_match_any\<lparr> proto := Proto (Neg p) \<rparr>]" |
+  "ipportiface_match_to_simple_match (MatchNot (Match (Prot (Proto (Neg p))))) =  [simple_match_any\<lparr> proto := Proto (Pos p) \<rparr>]" |
+  (*wut? The following clauses are redundant (covered by preceding clauses):*)
+  "ipportiface_match_to_simple_match (MatchNot (Match (Src ip))) = [simple_match_any\<lparr> src := (s,e) \<rparr>. 
+        (s,e) \<leftarrow> invert_ipv4intervall (ipt_ipv4range_to_ipv4_word_netmask ip)]" | 
+  "ipportiface_match_to_simple_match (MatchNot (Match (Dst ip))) = [simple_match_any\<lparr> dst := (s,e) \<rparr>. 
+        (s,e) \<leftarrow> invert_ipv4intervall (ipt_ipv4range_to_ipv4_word_netmask ip)]" |
   --"TODO:"
   "ipportiface_match_to_simple_match (MatchAnd m1 m2) =  undefined" | (*TODO*)
   (*NOOOOO: what to do about this? Assume: no negated interfaces, I don't know of a better solution now. Just define that this must not happen*)
-  "ipportiface_match_to_simple_match (MatchNot (Match (IIface iif))) = undefined (*Some (simple_match_any\<lparr> iiface := Iface (Neg eth) \<rparr>)*)" |
+  "ipportiface_match_to_simple_match (MatchNot (Match (IIface iif))) = undefined (*[simple_match_any\<lparr> iiface := Iface (Neg eth) \<rparr>]*)" |
   "ipportiface_match_to_simple_match (MatchNot (Match (OIface oif))) = undefined" |
-  (*TODO: need to enable negation type again. Nope, test CIDR ranges*)
-  "ipportiface_match_to_simple_match (MatchNot (Match (Src ip))) = undefined" |
-  "ipportiface_match_to_simple_match (MatchNot (Match (Dst ip))) = undefined" |
   --"undefined cases, normalize before!"
   "ipportiface_match_to_simple_match (MatchNot (MatchAnd _ _)) = undefined" |
   "ipportiface_match_to_simple_match (MatchNot (MatchNot _)) = undefined" |
