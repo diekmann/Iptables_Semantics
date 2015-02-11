@@ -159,8 +159,8 @@ by (metis Int_assoc intersect_ips_Some)
 (*TODO TODO: refactor whole mess above to this simple proof? *)
 
 (*from IPSpace_Operations.intersect_ips*)
-  fun todo_simplifie_proof_ips_conjunct :: "(ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) option" where 
-    "todo_simplifie_proof_ips_conjunct (base1, m1) (base2, m2) = (if ipv4range_set_from_bitmask base1 m1 \<inter> ipv4range_set_from_bitmask base2 m2 = {}
+  fun simple_ips_conjunct :: "(ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) option" where 
+    "simple_ips_conjunct (base1, m1) (base2, m2) = (if ipv4range_set_from_bitmask base1 m1 \<inter> ipv4range_set_from_bitmask base2 m2 = {}
        then
         None
        else if 
@@ -172,12 +172,12 @@ by (metis Int_assoc intersect_ips_Some)
       )"
   
   (*this proof appears simpler than the other one, maybe refactor?*)
-  lemma todo_simplifie_proof_ips_conjunct_correct: "(case todo_simplifie_proof_ips_conjunct (b1, m1) (b2, m2) of Some (bx, mx) \<Rightarrow> ipv4range_set_from_bitmask bx mx | None \<Rightarrow> {}) = 
+  lemma simple_ips_conjunct_correct: "(case simple_ips_conjunct (b1, m1) (b2, m2) of Some (bx, mx) \<Rightarrow> ipv4range_set_from_bitmask bx mx | None \<Rightarrow> {}) = 
       (ipv4range_set_from_bitmask b1 m1) \<inter> (ipv4range_set_from_bitmask b2 m2)"
     apply(simp split: split_if_asm)
     using ipv4range_bitmask_intersect apply fast+
     done
-  declare todo_simplifie_proof_ips_conjunct.simps[simp del]
+  declare simple_ips_conjunct.simps[simp del]
   
 
 (*End Scratch*)
