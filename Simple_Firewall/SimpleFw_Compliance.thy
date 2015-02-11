@@ -124,11 +124,11 @@ fun simple_match_to_ipportiface_match :: "simple_match \<Rightarrow> ipportiface
     )))))"
 
 value "normalize_match (simple_match_to_ipportiface_match 
-    \<lparr>iiface=Iface ''+'', oiface=Iface ''+'', src=(0,65536), dst=(0,1), proto=Proto (Pos TCP), 
+    \<lparr>iiface=Iface ''+'', oiface=Iface ''+'', src=(0,65535), dst=(0,1), proto=Proto (Pos TCP), 
       sports=(22,22), dports=(1024,65535) \<rparr>)"
 text{*when we normalize, we get at most one match expression for the size of the src ip range times size dst ip range. The CIDR range optimization is cool*}
 value "normalize_match (simple_match_to_ipportiface_match 
-    \<lparr>iiface=Iface ''+'', oiface=Iface ''+'', src=(0,65536), dst=(0,1), proto=Proto (Pos TCP), 
+    \<lparr>iiface=Iface ''+'', oiface=Iface ''+'', src=(0,65535), dst=(0,1), proto=Proto (Pos TCP), 
       sports=(22,22), dports=(1024,65535) \<rparr>)"
 
 (* broken since ip type change
