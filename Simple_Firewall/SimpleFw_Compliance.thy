@@ -186,11 +186,11 @@ fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Ri
   "ipportiface_match_to_simple_match (MatchNot (Match (Prot ProtoAny))) = []" |
   "ipportiface_match_to_simple_match (MatchNot (Match (Prot (Proto (Pos p))))) =  [simple_match_any\<lparr> proto := Proto (Neg p) \<rparr>]" |
   "ipportiface_match_to_simple_match (MatchNot (Match (Prot (Proto (Neg p))))) =  [simple_match_any\<lparr> proto := Proto (Pos p) \<rparr>]" |
-  (*wut? The following clauses are redundant (covered by preceding clauses):*)
-  "ipportiface_match_to_simple_match (MatchNot (Match (Src ip))) = [simple_match_any\<lparr> src := (s,e) \<rparr>. 
-        (s,e) \<leftarrow> invert_ipv4intervall (ipt_ipv4range_to_ipv4_word_netmask ip)]" | 
-  "ipportiface_match_to_simple_match (MatchNot (Match (Dst ip))) = [simple_match_any\<lparr> dst := (s,e) \<rparr>. 
-        (s,e) \<leftarrow> invert_ipv4intervall (ipt_ipv4range_to_ipv4_word_netmask ip)]" |
+  (*splitting negated ip ranges*)
+  "ipportiface_match_to_simple_match (MatchNot (Match (Src ip))) = [(simple_match_any\<lparr> src := iptuple \<rparr>). 
+        iptuple \<leftarrow> invert_ipv4intervall (ipt_ipv4range_to_ipv4_word_netmask ip)]" |
+  "ipportiface_match_to_simple_match (MatchNot (Match (Dst ip))) = [simple_match_any\<lparr> dst := iptuple \<rparr>. 
+        iptuple \<leftarrow> invert_ipv4intervall (ipt_ipv4range_to_ipv4_word_netmask ip)]" |
   --"TODO:"
   "ipportiface_match_to_simple_match (MatchAnd m1 m2) =  undefined" | (*TODO*)
   (*NOOOOO: what to do about this? Assume: no negated interfaces, I don't know of a better solution now. Just define that this must not happen*)
@@ -432,18 +432,12 @@ subsubsection{*Merging Simple Matches*}
 text{*@{typ "simple_match"} @{text \<and>} @{typ "simple_match"}*}
 
 
-
-
-  (*Why option? Well, we need a list because of merging IP ranges may return a list.*)
-  (*TODO: reuse the bitranges here*)
-  fun simple_match_and :: "simple_match \<Rightarrow> simple_match \<Rightarrow> simple_match option" where
+  fun simple_match_and :: "simple_match \<Rightarrow> simple_match \<Rightarrow> simple_match list" where
     "simple_match_and \<lparr>iiface=iif1, oiface=oif1, src=sip1, dst=dip1, proto=p1, sports=sps1, dports=dps1 \<rparr> 
                       \<lparr>iiface=iif2, oiface=oif2, src=sip2, dst=dip2, proto=p2, sports=sps2, dports=dps2 \<rparr> = 
-      (case simple_ips_conjunct sip1 sip2 of None \<Rightarrow> None | Some sip \<Rightarrow> 
-      (case simple_ips_conjunct dip1 dip2 of None \<Rightarrow> None | Some dip \<Rightarrow> 
-      (case iface_conjunct iif1 iif2 of None \<Rightarrow> None | Some iif \<Rightarrow>
-      (case iface_conjunct oif1 oif2 of None \<Rightarrow> None | Some oif \<Rightarrow>
-      Some \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p2, sports=simpl_ports_conjunct sps1 sps2, dports=simpl_ports_conjunct sps1 sps2 \<rparr>))))"
-                      (*add list comprehension to multiply out the interface blowup? hopefully not necessary*)
+      (case iface_conjunct iif1 iif2 of None \<Rightarrow> [] | Some iif \<Rightarrow>
+      (case iface_conjunct oif1 oif2 of None \<Rightarrow> [] | Some oif \<Rightarrow>
+      [\<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p2, sports=simpl_ports_conjunct sps1 sps2, dports=simpl_ports_conjunct sps1 sps2 \<rparr>.
+        sip \<leftarrow> simple_ips_conjunct sip1 sip2, dip \<leftarrow> simple_ips_conjunct dip1 dip2]))"
 
 end

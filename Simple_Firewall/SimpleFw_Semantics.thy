@@ -129,25 +129,11 @@ subsection{*Simple Ports*}
     by blast
 
 subsection{*Simple IPs*}
-  (*conjunction of two negations? PROBLEM*)
 
-  (*! !PROBLEM ! !*)
+  fun simple_ips_conjunct :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> (ipv4addr \<times> ipv4addr) \<Rightarrow> (ipv4addr \<times> ipv4addr) list" where 
+    "simple_ips_conjunct (s1, e1) (s2, e2) = br2l (ipv4range_intersection (ipv4range_range s1 e1) (ipv4range_range s2 e2))"
 
-  lemma simple_match_ip_conjunct: "simple_match_ip ip1 p_ip \<and> simple_match_ip ip2 p_ip \<longleftrightarrow> 
-         (case simple_ips_conjunct ip1 ip2 of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
-  proof -
-  {
-    fix b1 m1 b2 m2
-    have "simple_match_ip (b1, m1) p_ip \<and> simple_match_ip (b2, m2) p_ip \<longleftrightarrow> 
-          p_ip \<in> ipv4range_set_from_bitmask b1 m1 \<inter> ipv4range_set_from_bitmask b2 m2"
-    by simp
-    also have "\<dots> \<longleftrightarrow> p_ip \<in> (case simple_ips_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> {} | Some (bx, mx) \<Rightarrow> ipv4range_set_from_bitmask bx mx)"
-      using simple_ips_conjunct_correct by blast
-    also have "\<dots> \<longleftrightarrow> (case simple_ips_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
-      by(simp split: option.split)
-    finally have "simple_match_ip (b1, m1) p_ip \<and> simple_match_ip (b2, m2) p_ip \<longleftrightarrow> 
-         (case simple_ips_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)" .
-   } thus ?thesis by(cases ip1, cases ip2, simp)
-  qed
-
+  lemma simple_ips_conjunct: "l_br_toset (simple_ips_conjunct (s1, e1) (s2, e2)) = {s1 .. e1} \<inter> {s2 .. e2}"
+    by(simp add: l_br_toset l2br_br2l ipv4range_intersection_def ipv4range_range_def)
+    
 end
