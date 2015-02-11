@@ -205,6 +205,14 @@ qed
 value "ipv4range_split (RangeUnion (Bitrange (ipv4addr_of_dotteddecimal (64,0,0,0)) 0x5FEFBBCC) (Bitrange 0x5FEEBB1C (ipv4addr_of_dotteddecimal (127,255,255,255))))"
 value "ipv4range_split (Bitrange 0 (ipv4addr_of_dotteddecimal (255,255,255,254)))"
 
+
+text{* @{text "10.0.0.0/8 - 10.8.0.0/16"}*}
+lemma "map (\<lambda>(ip,n). (dotteddecimal_of_ipv4addr ip, n)) (ipv4range_split (ipv4range_setminus
+          (ipv4range_range (ipv4addr_of_dotteddecimal (10,0,0,0)) (ipv4addr_of_dotteddecimal (10,255,255,255)))
+          (ipv4range_range (ipv4addr_of_dotteddecimal (10,8,0,0)) (ipv4addr_of_dotteddecimal (10,8,255,255))))) =
+ [((10, 0, 0, 0), 13), ((10, 9, 0, 0), 16), ((10, 10, 0, 0), 15), ((10, 12, 0, 0), 14), ((10, 16, 0, 0), 12), ((10, 32, 0, 0), 11), ((10, 64, 0, 0), 10),
+  ((10, 128, 0, 0), 9)]" by eval
+
 declare ipv4range_split.simps[simp del]
 
 corollary ipv4range_split: "(\<Union> (prefix_to_ipset ` (set (ipv4range_split (Bitrange start end))))) = {start .. end}"
@@ -226,24 +234,6 @@ corollary ipv4range_split: "(\<Union> (prefix_to_ipset ` (set (ipv4range_split (
   using ipv4range_eq_eliminator by auto
 qed
 
-lemma prefix_to_ipset_subset_ipv4range_set_from_bitmask_helper:
-  "(\<Union>x\<in>X. prefix_to_ipset x) \<subseteq> (\<Union>x\<in>X. case x of (x, xa) \<Rightarrow> ipv4range_set_from_bitmask x xa)"
-  apply(rule)
-  using prefix_to_ipset_subset_ipv4range_set_from_bitmask[simplified pfxm_prefix_def pfxm_length_def] by fastforce
-
-
-lemma ipv4range_set_from_bitmask_subseteq_prefix_to_ipset_helper:
-  "\<forall> x \<in> X. valid_prefix x \<Longrightarrow> (\<Union>x\<in>X. case x of (x, xa) \<Rightarrow> ipv4range_set_from_bitmask x xa) \<subseteq> (\<Union>x\<in>X. prefix_to_ipset x)"
-  apply(rule)
-  apply(rename_tac x)
-  apply(safe)
-  apply(rename_tac a b)
-  apply(erule_tac x="(a,b)" in ballE)
-   apply(simp_all)
-  apply(drule bitrange_to_set_ipv4range_set_from_bitmask)
-  apply(rule_tac x="(a, b)" in bexI)
-  apply(simp_all add: pfxm_prefix_def pfxm_length_def)
-  done
 
 lemma all_valid_Ball: "Ball (set (ipv4range_split r)) valid_prefix"
 proof(induction r rule: ipv4range_split.induct, subst ipv4range_split.simps, case_tac "ipv4range_empty rs")
@@ -283,15 +273,38 @@ next
     by blast
 qed
 
+
+
 lemma "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipv4range_split (ipv4range_range start end)))) ) = {start .. end}"
-  unfolding ipv4range_split[symmetric]
-  apply(simp add: ipv4range_range_def)
-  apply(rule)
-   prefer 2
-   using prefix_to_ipset_subset_ipv4range_set_from_bitmask_helper apply simp
-  apply(subst ipv4range_set_from_bitmask_subseteq_prefix_to_ipset_helper)
-   apply(simp_all add: all_valid_Ball)
-  done
+  proof -
+  --"without valid prefix assumption"
+  have prefix_to_ipset_subset_ipv4range_set_from_bitmask_helper:
+    "\<And>X. (\<Union>x\<in>X. prefix_to_ipset x) \<subseteq> (\<Union>x\<in>X. case x of (x, xa) \<Rightarrow> ipv4range_set_from_bitmask x xa)"
+    apply(rule)
+    using prefix_to_ipset_subset_ipv4range_set_from_bitmask[simplified pfxm_prefix_def pfxm_length_def] by fastforce
+
+  have ipv4range_set_from_bitmask_subseteq_prefix_to_ipset_helper:
+    "\<And>X. \<forall> x \<in> X. valid_prefix x \<Longrightarrow> (\<Union>x\<in>X. case x of (x, xa) \<Rightarrow> ipv4range_set_from_bitmask x xa) \<subseteq> (\<Union>x\<in>X. prefix_to_ipset x)"
+    apply(rule)
+    apply(rename_tac x)
+    apply(safe)
+    apply(rename_tac a b)
+    apply(erule_tac x="(a,b)" in ballE)
+     apply(simp_all)
+    apply(drule bitrange_to_set_ipv4range_set_from_bitmask)
+    apply(rule_tac x="(a, b)" in bexI)
+    apply(simp_all add: pfxm_prefix_def pfxm_length_def)
+    done
+
+  show ?thesis
+    unfolding ipv4range_split[symmetric]
+    apply(simp add: ipv4range_range_def)
+    apply(rule)
+     apply(simp add: ipv4range_set_from_bitmask_subseteq_prefix_to_ipset_helper all_valid_Ball)
+    apply(simp add: prefix_to_ipset_subset_ipv4range_set_from_bitmask_helper)
+    done
+qed
+
 
 lemma "(\<Union> (base, len) \<in> set (ipv4range_split (ipv4range_range start end)). ipv4range_set_from_bitmask base len) = {start .. end}"
 (*using [[simp_trace, simp_trace_depth_limit=10]]*)
