@@ -172,6 +172,11 @@ proof(relation "measure (card \<circ> ipv4range_to_set)", rule wf_measure, unfol
     by (metis add.commute add_left_cancel card_0_eq finite linorder_neqE_nat monoid_add_class.add.right_neutral not_add_less1)
 qed
 
+lemma unfold_rsplit_case:
+  assumes su: "(Some s, u) = ipv4range_split1 rs"
+  shows "(case ipv4range_split1 rs of (None, u) \<Rightarrow> [] | (Some s, u) \<Rightarrow> s # ipv4range_split u) = s # ipv4range_split u"
+using su by (metis option.simps(5) split_conv)
+
 lemma ipv4range_split_union: "ipv4range_eq (list_to_bitrange (map prefix_to_range (ipv4range_split r))) r"
 proof(induction r rule: ipv4range_split.induct, subst ipv4range_split.simps, case_tac "ipv4range_empty rs")
   case goal1
@@ -182,12 +187,10 @@ next
   case goal2
   obtain u s where su: "(Some s, u) = ipv4range_split1 rs" using r_split1_not_none[OF goal2(2)] by (metis option.collapse surjective_pairing)
   note mIH = goal2(1)[OF goal2(2) su, of s]
-  have uf: "(case ipv4range_split1 rs of (None, u) \<Rightarrow> [] | (Some s, u) \<Rightarrow> s # ipv4range_split u) = s # ipv4range_split u"
-    using su by (metis option.simps(5) split_conv)
   show ?case
     unfolding eqTrueI[OF goal2(2)]
     unfolding if_True
-    unfolding uf
+    unfolding unfold_rsplit_case[OF su]
     unfolding ipv4range_eq_set_eq
     unfolding ipv4range_to_set_def
     unfolding list.map
@@ -241,7 +244,44 @@ lemma ipv4range_set_from_bitmask_subseteq_prefix_to_ipset_helper:
   apply(rule_tac x="(a, b)" in bexI)
   apply(simp_all add: pfxm_prefix_def pfxm_length_def)
   done
-  
+
+lemma all_valid_Ball: "Ball (set (ipv4range_split r)) valid_prefix"
+proof(induction r rule: ipv4range_split.induct, subst ipv4range_split.simps, case_tac "ipv4range_empty rs")
+  case goal1 thus ?case
+    by(simp only: not_True_eq_False if_False Ball_def set_simps empty_iff) clarify
+next
+  case goal2
+  obtain u s where su: "(Some s, u) = ipv4range_split1 rs" using r_split1_not_none[OF goal2(2)] by (metis option.collapse surjective_pairing)
+  note mIH = goal2(1)[OF goal2(2) su refl]
+  have vpfx: "valid_prefix s"
+  proof -
+    obtain a where a: "ipv4range_lowest_element rs = Some a"
+      using goal2(2)[unfolded flipnot[OF ipv4range_lowest_none_empty, symmetric]]
+      by force
+    obtain m where m: "find (const True) [s\<leftarrow>map (Pair a) pfxes . valid_prefix s \<and> ipv4range_subset (prefix_to_range s) rs] = Some m"
+      using ipv4range_split_innard_helper[OF a, unfolded flipnot[OF find_const_True, symmetric]]
+      by force
+    note su[unfolded ipv4range_split1_def Let_def]
+    then have "(Some s, u) =
+          (case find (const True) [s\<leftarrow>map (Pair a) pfxes . valid_prefix s \<and> ipv4range_subset (prefix_to_range s) rs] of None \<Rightarrow> (None, rs)
+           | Some m \<Rightarrow> (find (const True) [s\<leftarrow>map (Pair a) pfxes . valid_prefix s \<and> ipv4range_subset (prefix_to_range s) rs], ipv4range_setminus rs (prefix_to_range m)))"
+       unfolding a by simp
+    then have "(Some s, u) =
+          (Some m, ipv4range_setminus rs (prefix_to_range m))"
+       unfolding m by simp
+    moreover
+    note find_in[OF m[symmetric]]
+    ultimately
+    show "valid_prefix s" by simp
+  qed
+  show ?case
+    unfolding eqTrueI[OF goal2(2)]
+    unfolding if_True
+    unfolding unfold_rsplit_case[OF su]
+    unfolding list.set
+    using mIH vpfx
+    by blast
+qed
 
 lemma "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipv4range_split (ipv4range_range start end)))) ) = {start .. end}"
   unfolding ipv4range_split[symmetric]
@@ -250,14 +290,13 @@ lemma "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) `
    prefer 2
    using prefix_to_ipset_subset_ipv4range_set_from_bitmask_helper apply simp
   apply(subst ipv4range_set_from_bitmask_subseteq_prefix_to_ipset_helper)
-   apply(simp_all)
-  (*sqrl: this would be nice :) *)
-  oops
-
+   apply(simp_all add: all_valid_Ball)
+  done
 
 lemma "(\<Union> (base, len) \<in> set (ipv4range_split (ipv4range_range start end)). ipv4range_set_from_bitmask base len) = {start .. end}"
 (*using [[simp_trace, simp_trace_depth_limit=10]]*)
 using [[simproc del: list_to_set_comprehension]] (* okay, simplifier is a bit broken **)
   apply(simp del: ) (*simp: "Tactic failed"*)
   oops
+
 end
