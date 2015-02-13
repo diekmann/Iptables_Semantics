@@ -6,6 +6,12 @@ datatype primitive_protocol = TCP | UDP | ICMP
 
 datatype protocol = ProtoAny | Proto "primitive_protocol" (*probably negation_type?*)
 
+(*TODO add negation type. Conjunction is still easy since we don't have wildcards
+  E.g. TCP \<and> \<not> UDP \<longleftrightarrow> TCP
+       TCP \<and> \<not> TCP \<longleftrightarrow> False
+       TCP \<and> UDP \<longleftrightarrow> TCP = UDP
+*)
+
 fun match_proto :: "protocol \<Rightarrow> primitive_protocol \<Rightarrow> bool" where
   "match_proto ProtoAny _ \<longleftrightarrow> True" |
   "match_proto (Proto (p)) p_p \<longleftrightarrow> p_p = p"
