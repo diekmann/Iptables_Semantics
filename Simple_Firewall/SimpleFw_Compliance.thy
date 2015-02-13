@@ -235,6 +235,7 @@ declare helper_construct_ip_matchexp.simps[simp del]
         unfolding ipv4range_split_bitmask
         by(simp)
     qed
+(*
 lemma helper_construct_ip_matchexp_SrcDst_match_list:
   "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Src) (helper_construct_ip_matchexp ip)) a p \<longleftrightarrow> simple_match_ip ip (p_src p)"
   "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Dst) (helper_construct_ip_matchexp ip)) a p \<longleftrightarrow> simple_match_ip ip (p_dst p)"
@@ -251,8 +252,8 @@ lemma matches_SrcDst_simple_match:
        simple_match_ip dip (p_dst p)"
   apply(simp_all add: match_list_to_match_expr_disjunction helper_construct_ip_matchexp_SrcDst_match_list[where \<alpha>=\<alpha> and a=a, symmetric])
   done
-
-
+*)
+(*
 value "normalize_match (simple_match_to_ipportiface_match 
     \<lparr>iiface=Iface ''+'', oiface=Iface ''+'', src=(0,65535), dst=(0,1), proto=Proto (Pos TCP), 
       sports=(22,22), dports=(1024,65535) \<rparr>)"
@@ -260,7 +261,7 @@ text{*when we normalize, we get at most one match expression for the size of the
 value "normalize_match (simple_match_to_ipportiface_match 
     \<lparr>iiface=Iface ''+'', oiface=Iface ''+'', src=(0,65535), dst=(0,1), proto=Proto (Pos TCP), 
       sports=(22,22), dports=(1024,65535) \<rparr>)"
-
+*)
 
 
 subsubsection{*Normalizing ports*}

@@ -16,7 +16,9 @@ lemma ipv4range_set_from_bitmask_to_executable_ipv4range_simps:
       "ipv4range_to_set (ipv4range_set_from_bitmask_to_executable_ipv4range (Ip4AddrNetmask base m)) = 
        ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal base) m"
       "ipv4range_to_set (ipv4range_set_from_bitmask_to_executable_ipv4range (Ip4Addr ip)) = {ipv4addr_of_dotteddecimal ip}"
-  by(simp_all add: ipv4range_set_from_bitmask_alt ipv4range_range_set_eq ipv4range_single_set_eq)
+  unfolding ipv4range_set_from_bitmask_to_executable_ipv4range.simps
+  apply(simp_all add: ipv4range_set_from_bitmask_alt ipv4range_range_set_eq ipv4range_single_set_eq)
+  done
 
 declare ipv4range_set_from_bitmask_to_executable_ipv4range.simps[simp del]
 
@@ -210,7 +212,7 @@ export_code compress_ips in SML
 lemma ipv4range_set_from_bitmask_to_executable_ipv4range: 
   "ipv4range_to_set (ipv4range_set_from_bitmask_to_executable_ipv4range a) = ipv4s_to_set a"
 apply(case_tac a)
- apply(simp_all add:ipv4range_set_from_bitmask_to_executable_ipv4range_simps)
+ apply(auto simp add:ipv4range_set_from_bitmask_to_executable_ipv4range_simps)
 done
 
 lemma ipv4range_to_set_collect_to_range: "ipv4range_to_set (collect_to_range ips) = (\<Union>x\<in>set ips. ipv4s_to_set x)"
@@ -222,7 +224,7 @@ lemma ipv4range_to_set_collect_to_range: "ipv4range_to_set (collect_to_range ips
 
 lemma compress_ips_None: "getPos ips \<noteq> [] \<Longrightarrow> compress_ips ips = None \<longleftrightarrow> (\<Inter> (ipv4s_to_set ` set (getPos ips))) - (\<Union> (ipv4s_to_set ` set (getNeg ips))) = {}"
   apply(simp split: split_if)
-   apply(simp)
+  apply(simp)
    (*getPos on empty should be the UNIV*)
   apply(simp split: option.split)
   apply(intro conjI impI allI)
@@ -230,14 +232,14 @@ lemma compress_ips_None: "getPos ips \<noteq> [] \<Longrightarrow> compress_ips 
    apply(rename_tac a)
    apply(frule compress_pos_ips_Some)
    apply(case_tac a)
-    apply(simp add:  ipv4range_set_from_bitmask_to_executable_ipv4range_simps)
-   apply(simp add: ipv4range_to_set_collect_to_range ipv4range_set_from_bitmask_to_executable_ipv4range_simps)
-  apply(simp add: ipv4range_to_set_collect_to_range ipv4range_set_from_bitmask_to_executable_ipv4range_simps)
+    (* why won't it apply  ipv4range_set_from_bitmask_to_executable_ipv4range_simps in the simplifier?*)
+    apply(auto simp add: ipv4range_set_from_bitmask_to_executable_ipv4range_simps)[1]
+    apply(simp add: ipv4range_to_set_collect_to_range ipv4range_set_from_bitmask_to_executable_ipv4range_simps)
+   apply(auto simp add: ipv4range_to_set_collect_to_range ipv4range_set_from_bitmask_to_executable_ipv4range_simps)[1]
   apply(rename_tac a)
   apply(frule compress_pos_ips_Some)
   apply(case_tac a)
-   apply(simp add: ipv4range_to_set_collect_to_range ipv4range_set_from_bitmask_to_executable_ipv4range_simps)
-  apply(simp add: ipv4range_to_set_collect_to_range ipv4range_set_from_bitmask_to_executable_ipv4range_simps)
+   apply(auto simp add: ipv4range_to_set_collect_to_range ipv4range_set_from_bitmask_to_executable_ipv4range_simps)
 done
 
 
