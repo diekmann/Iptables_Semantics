@@ -103,23 +103,57 @@ text{*@{typ "simple_match"} @{text \<and>} @{typ "simple_match"}*}
       (case simple_ips_conjunct dip1 dip2 of None \<Rightarrow> None | Some dip \<Rightarrow> 
       (case iface_conjunct iif1 iif2 of None \<Rightarrow> None | Some iif \<Rightarrow>
       (case iface_conjunct oif1 oif2 of None \<Rightarrow> None | Some oif \<Rightarrow>
-      Some \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p2, sports=simpl_ports_conjunct sps1 sps2, dports=simpl_ports_conjunct sps1 sps2 \<rparr>))))"
+      (case simple_proto_conjunct p1 p2 of None \<Rightarrow> None | Some p \<Rightarrow>
+      Some \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p,
+            sports=simpl_ports_conjunct sps1 sps2, dports=simpl_ports_conjunct dps1 dps2 \<rparr>)))))"
 
-   lemma "simple_matches m1 p \<and> simple_matches m2 p \<longleftrightarrow> 
+   lemma simple_match_and_correct: "simple_matches m1 p \<and> simple_matches m2 p \<longleftrightarrow> 
     (case simple_match_and m1 m2 of None \<Rightarrow> False | Some m \<Rightarrow> simple_matches m p)"
-    thm simple_match_ip_conjunct
-   apply(simp)
-   apply(simp add: simple_match_ip_conjunct)
-   apply(cases m1, cases m2)
-   apply(simp)
-   apply(simp add: simple_match_ip_conjunct)
-   apply(simp split: option.split)
-   apply(simp add: simple_match_ip_conjunct)
-   apply(clarsimp split: option.split_asm option.split)
-   apply(safe)
+   proof -
+    obtain iif1 oif1 sip1 dip1 p1 sps1 dps1 where m1:
+      "m1 = \<lparr>iiface=iif1, oiface=oif1, src=sip1, dst=dip1, proto=p1, sports=sps1, dports=dps1 \<rparr>" by(cases m1, blast)
+    obtain iif2 oif2 sip2 dip2 p2 sps2 dps2 where m2:
+      "m2 = \<lparr>iiface=iif2, oiface=oif2, src=sip2, dst=dip2, proto=p2, sports=sps2, dports=dps2 \<rparr>" by(cases m2, blast)
 
-   apply(simp_all)
-   oops
+    have sip_None: "simple_ips_conjunct sip1 sip2 = None \<Longrightarrow> \<not> simple_match_ip sip1 (p_src p) \<or> \<not> simple_match_ip sip2 (p_src p)"
+      using simple_match_ip_conjunct[of sip1 "p_src p" sip2] by simp
+    have dip_None: "simple_ips_conjunct dip1 dip2 = None \<Longrightarrow> \<not> simple_match_ip dip1 (p_dst p) \<or> \<not> simple_match_ip dip2 (p_dst p)"
+      using simple_match_ip_conjunct[of dip1 "p_dst p" dip2] by simp
+    have sip_Some: "\<And>ip. simple_ips_conjunct sip1 sip2 = Some ip \<Longrightarrow>
+      simple_match_ip ip (p_src p) \<longleftrightarrow> simple_match_ip sip1 (p_src p) \<and> simple_match_ip sip2 (p_src p)"
+      using simple_match_ip_conjunct[of sip1 "p_src p" sip2] by simp
+    have dip_Some: "\<And>ip. simple_ips_conjunct dip1 dip2 = Some ip \<Longrightarrow>
+      simple_match_ip ip (p_dst p) \<longleftrightarrow> simple_match_ip dip1 (p_dst p) \<and> simple_match_ip dip2 (p_dst p)"
+      using simple_match_ip_conjunct[of dip1 "p_dst p" dip2] by simp
+
+    have iiface_None: "iface_conjunct iif1 iif2 = None \<Longrightarrow> \<not> match_iface iif1 (p_iiface p) \<or> \<not> match_iface iif2 (p_iiface p)"
+      using iface_conjunct[of iif1 "(p_iiface p)" iif2] by simp
+    have oiface_None: "iface_conjunct oif1 oif2 = None \<Longrightarrow> \<not> match_iface oif1 (p_oiface p) \<or> \<not> match_iface oif2 (p_oiface p)"
+      using iface_conjunct[of oif1 "(p_oiface p)" oif2] by simp
+    have iiface_Some: "\<And>iface. iface_conjunct iif1 iif2 = Some iface \<Longrightarrow> 
+      match_iface iface (p_iiface p) \<longleftrightarrow> match_iface iif1 (p_iiface p) \<and> match_iface iif2 (p_iiface p)"
+      using iface_conjunct[of iif1 "(p_iiface p)" iif2] by simp
+    have oiface_Some: "\<And>iface. iface_conjunct oif1 oif2 = Some iface \<Longrightarrow> 
+      match_iface iface (p_oiface p) \<longleftrightarrow> match_iface oif1 (p_oiface p) \<and> match_iface oif2 (p_oiface p)"
+      using iface_conjunct[of oif1 "(p_oiface p)" oif2] by simp
+
+    have proto_None: "simple_proto_conjunct p1 p2 = None \<Longrightarrow> \<not> match_proto p1 (p_proto p) \<or> \<not> match_proto p2 (p_proto p)"
+      using simple_proto_conjunct_correct[of p1 "(p_proto p)" p2] by simp
+    have proto_Some: "\<And>proto. simple_proto_conjunct p1 p2 = Some proto \<Longrightarrow>
+      match_proto proto (p_proto p) \<longleftrightarrow> match_proto p1 (p_proto p) \<and> match_proto p2 (p_proto p)"
+      using simple_proto_conjunct_correct[of p1 "(p_proto p)" p2] by simp
+
+    thm simpl_ports_conjunct_correct
+    show ?thesis
+     apply(simp add: m1 m2)
+     apply(simp split: option.split)
+     apply(auto)
+     apply(auto dest: sip_None dip_None sip_Some dip_Some)
+     apply(auto dest: iiface_None oiface_None iiface_Some oiface_Some)
+     apply(auto dest: proto_None proto_Some)
+     using simpl_ports_conjunct_correct apply(blast)+
+     done
+   qed
 
 
 fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Rightarrow> simple_match option" where
@@ -135,13 +169,13 @@ fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Ri
   "ipportiface_match_to_simple_match (Match (Dst_Ports [])) = Some (simple_match_any)" |
   "ipportiface_match_to_simple_match (Match (Dst_Ports [(s,e)])) = Some (simple_match_any\<lparr> dports := (s,e) \<rparr>)" |
   "ipportiface_match_to_simple_match (MatchNot (Match (Prot ProtoAny))) = None" |
-  "ipportiface_match_to_simple_match (MatchNot (Match (Prot (Proto (Pos p))))) = Some (simple_match_any\<lparr> proto := Proto (Neg p) \<rparr>)" |
-  "ipportiface_match_to_simple_match (MatchNot (Match (Prot (Proto (Neg p))))) = Some (simple_match_any\<lparr> proto := Proto (Pos p) \<rparr>)" |
   --"TODO:"
   "ipportiface_match_to_simple_match (MatchAnd m1 m2) = (case (ipportiface_match_to_simple_match m1, ipportiface_match_to_simple_match m2) of 
       (None, _) \<Rightarrow> None
     | (_, None) \<Rightarrow> None
     | (Some m1', Some m2') \<Rightarrow> simple_match_and m1' m2')" |
+  (*TODO: normalize protocols by assumption!*)
+  "ipportiface_match_to_simple_match (MatchNot (Match (Prot _))) = undefined" |
   (*NOOOOO: what to do about this? Assume: no negated interfaces, I don't know of a better solution now. Just define that this must not happen*)
   "ipportiface_match_to_simple_match (MatchNot (Match (IIface iif))) = undefined (*[simple_match_any\<lparr> iiface := Iface (Neg eth) \<rparr>]*)" |
   "ipportiface_match_to_simple_match (MatchNot (Match (OIface oif))) = undefined" |
