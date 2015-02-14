@@ -352,7 +352,8 @@ subsection{*Normalizing IP Addresses*}
       finally show ?thesis .
     qed
 
-  (* okay, this is how we want to rewrite one negated ip range. need to show that result is normalized *)
+  (* okay, this is how we want to rewrite one negated ip range. need to show that result is normalized. Well, it will not be normalized, we need to split so several
+     match expressions to get a normalized (non-negated) ip*)
   lemma "matches (ipportiface_matcher, \<alpha>) (match_list_to_match_expr 
             (map (Match \<circ> Src \<circ> (\<lambda>(ip, n). Ip4AddrNetmask (dotteddecimal_of_ipv4addr ip) n)) (ipt_ipv4range_invert ip))) a p \<longleftrightarrow> 
          matches (ipportiface_matcher, \<alpha>) (MatchNot (Match (Src ip))) a p"
@@ -436,7 +437,7 @@ subsubsection{*Normalizing ports*}
   done
   
   (* [ [(1,2) \<or> (3,4)]  \<and>  [] ]*)
-  text{* @{typ "ipt_ports list \<Rightarrow> ipt_ports list"} *}
+  text{* @{typ "ipt_ports list \<Rightarrow> ipt_ports"} *}
   definition ipt_ports_andlist_compress :: "('a::len word \<times> 'a::len word) list list \<Rightarrow> ('a::len word \<times> 'a::len word) list" where
     "ipt_ports_andlist_compress pss = br2l (fold (\<lambda>ps accu. (bitrange_intersection (l2br ps) accu)) pss bitrange_UNIV)"
   
