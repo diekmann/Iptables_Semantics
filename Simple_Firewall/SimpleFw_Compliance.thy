@@ -351,7 +351,15 @@ subsection{*Normalizing IP Addresses*}
       also have "\<dots> = ?m2" using match_simplematcher_SrcDst_not by simp
       finally show ?thesis .
     qed
-        
+
+  (* okay, this is how we want to rewrite one negated ip range. need to show that result is normalized *)
+  lemma "matches (ipportiface_matcher, \<alpha>) (match_list_to_match_expr 
+            (map (Match \<circ> Src \<circ> (\<lambda>(ip, n). Ip4AddrNetmask (dotteddecimal_of_ipv4addr ip) n)) (ipt_ipv4range_invert ip))) a p \<longleftrightarrow> 
+         matches (ipportiface_matcher, \<alpha>) (MatchNot (Match (Src ip))) a p"
+    apply(subst match_list_ipt_ipv4range_invert[symmetric])
+    apply(simp add: match_list_to_match_expr_disjunction)
+    done
+
 
   (*
   fun helper_construct_ip_matchexp :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> ipt_ipv4range list" where
