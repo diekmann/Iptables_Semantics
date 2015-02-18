@@ -18,6 +18,13 @@ fun negation_type_to_match_expr :: "'a negation_type \<Rightarrow> 'a match_expr
 lemma alist_and_negation_type_to_match_expr: "alist_and (n#es) =  MatchAnd (negation_type_to_match_expr n) (alist_and es)"
 by(cases n, simp_all)
 
+
+(*do I need monads?*)
+(*TODO ? ?*)
+fun negation_type_to_match_expr_f :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a negation_type \<Rightarrow> 'b match_expr" where
+  "negation_type_to_match_expr_f f (Pos a) = Match (f a)" |
+  "negation_type_to_match_expr_f f (Neg a) = MatchNot (Match (f a))"
+
 lemma alist_and_append: "matches \<gamma> (alist_and (l1 @ l2)) a p \<longleftrightarrow> matches \<gamma>  (MatchAnd (alist_and l1)  (alist_and l2)) a p"
   apply(induction l1)
    apply(simp_all add: bunch_of_lemmata_about_matches)

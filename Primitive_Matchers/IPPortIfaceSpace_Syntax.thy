@@ -1,5 +1,5 @@
 theory IPPortIfaceSpace_Syntax
-imports Main String "../Bitmagic/IPv4Addr" "../Bitmagic/BitrangeLists" IPSpace_Syntax Protocol Iface Simple_Packet
+imports Main String "../Bitmagic/IPv4Addr" IPSpace_Syntax Protocol Iface Ports Simple_Packet
 begin
 
 (*TODO: unify protocol types*)
@@ -10,9 +10,6 @@ section{*Primitive Matchers: Interfaces, IP Space, Layer 4 Ports Matcher*}
 
 text{*Primitive Match Conditions which only support interfaces, IPv4 addresses,  layer 4 protocols, and layer 4 ports.
 *}
-
-(*list of (start, end) port ranges*)
-type_synonym ipt_ports = "(16 word \<times> 16 word) list"
 
 
 datatype_new common_primitive = Src ipt_ipv4range | Dst ipt_ipv4range | IIface iface | OIface iface | Prot protocol | 
@@ -35,20 +32,6 @@ lemma wf_disc_sel_common_primitive[simp]:
          p_proto=TCP, p_sport=2065, p_dport=80\<rparr>"
 
 
-fun ports_to_set :: "ipt_ports \<Rightarrow> (16 word) set" where
-  "ports_to_set [] = {}" |
-  "ports_to_set ((s,e)#ps) = {s..e} \<union> ports_to_set ps"
-
-lemma ports_to_set: "ports_to_set pts = \<Union> {{s..e} | s e . (s,e) \<in> set pts}"
-  apply(induction pts)
-   apply(simp)
-  apply(rename_tac p pts, case_tac p)
-  apply(simp)
-  by blast
-
-text{*We can reuse the bitrange theory to reason about ports*}
-lemma ports_to_set_bitrange: "ports_to_set ps = bitrange_to_set (l2br ps)"
-  by(induction ps rule: l2br.induct) (auto)
 
 
 end
