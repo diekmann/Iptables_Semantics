@@ -190,9 +190,9 @@ subsection{*Normalizing ports*}
     "normalized_dst_ports (MatchNot (MatchAnd _ _)) = False" |
     "normalized_dst_ports (MatchNot _) = True" 
 
-  lemma "normalized_src_ports ms = normalized_n_primitive (is_Src_Ports, src_ports_sel) (\<lambda>pts. length pts \<le> 1) ms"
+  lemma normalized_src_ports_def2: "normalized_src_ports ms = normalized_n_primitive (is_Src_Ports, src_ports_sel) (\<lambda>pts. length pts \<le> 1) ms"
     by(induction ms rule: normalized_src_ports.induct, simp_all)
-  lemma "normalized_dst_ports ms = normalized_n_primitive (is_Dst_Ports, dst_ports_sel) (\<lambda>pts. length pts \<le> 1) ms"
+  lemma normalized_dst_ports_def2: "normalized_dst_ports ms = normalized_n_primitive (is_Dst_Ports, dst_ports_sel) (\<lambda>pts. length pts \<le> 1) ms"
     by(induction ms rule: normalized_dst_ports.induct, simp_all)
   
   (*unused? TODO: Move?*)
@@ -205,7 +205,8 @@ subsection{*Normalizing ports*}
   lemma "\<forall>spt \<in> set (ipt_ports_compress spts). normalized_src_ports (Match (Src_Ports [spt]))" by(simp)
   
 
-  lemma assumes normalize_ports_step_src_normalized: "normalized_match m"
+  lemma normalize_ports_step_src_normalized:
+    assumes "normalized_match m"
     shows "\<forall>mn \<in> set (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m). normalized_src_ports mn \<and> normalized_match mn"
     proof
       fix mn
@@ -223,5 +224,17 @@ subsection{*Normalizing ports*}
       with `normalized_match mn` show "normalized_src_ports mn \<and> normalized_match mn" by simp
     qed
 
+  (*using the generalized version, we can push through normalized conditions*)
+  lemma "normalized_match m \<Longrightarrow> normalized_dst_ports m \<Longrightarrow>
+    \<forall>mn \<in> set (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m). normalized_src_ports mn \<and> normalized_dst_ports mn \<and> normalized_match mn"
+  apply(frule normalize_ports_step_src_normalized)
+  apply(simp add: normalized_dst_ports_def2 normalize_ports_step_def2)
+  apply(frule(1) normalize_primitive_extract_maintains_normalized[OF _ _ wf_disc_sel_common_primitive(1), where f="(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))"])
+   apply(simp_all)
+  done
+  
 
+
+  lemma assumes normalize_ports_step_dst_normalized: "normalized_match m"
+    shows "\<forall>mn \<in> set (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports m). normalized_dst_ports mn \<and> normalized_match mn"
 end

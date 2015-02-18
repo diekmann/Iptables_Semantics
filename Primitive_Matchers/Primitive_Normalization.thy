@@ -40,7 +40,8 @@ fun primitive_extractor :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 
  "primitive_extractor C (MatchAnd ms1 ms2) = (
         let (a1', ms1') = primitive_extractor C ms1; 
             (a2', ms2') = primitive_extractor C ms2
-        in (a1'@a2', MatchAnd ms1' ms2'))"
+        in (a1'@a2', MatchAnd ms1' ms2'))" |
+ "primitive_extractor _ _ = undefined"
 
 text{*
   The first part returned by @{const primitive_extractor}, here @{text as}:
