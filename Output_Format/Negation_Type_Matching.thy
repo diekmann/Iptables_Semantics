@@ -228,4 +228,50 @@ text{*The lemmas @{thm primitive_extractor_matchesE} and @{thm primitive_extract
   They should be used as @{text "primitive_extractor_matchesE[OF wf_disc_sel_for_first_extracted_thing]"}.
   *}
 
+
+
+
+
+subsection{*Normalizing and Optimizing Primitives*}
+  text{*
+    Normalize primitives by a function @{text f} with type @{typ "'b negation_type list \<Rightarrow> 'b list"}.
+    @{typ "'b"} is a primitive type, e.g. ipt_ipv4range.
+    @{text f} takes a conjunction list of negated primitives and must compress them such that:
+      * no negation occurs in the output
+      * the output is a disjunction of the primitives, i.e. multiple primitives in one rule are compressed to at most one primitive (leading to multiple rules)
+
+    Example with IP addresses:
+      f [10.8.0.0/16, 10.0.0.0/8] = [10.0.0.0/8]  f compresses to one range
+      f [10.0.0.0, 192.168.0.01] = []    range is empty, rule can be dropped
+      f [Neg 41] = [{0..40}, {42..ipv4max}]   one rule is translated into multiple rules to translate negation
+      f [Neg 41, {20..50}, {30..50}] = [{30..40}, {42..50}]   input: conjunction list, output disjunction list!
+  *}
+  definition normalize_primitive_extract :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow>
+                               ('b \<Rightarrow> 'a) \<Rightarrow>
+                               ('b negation_type list \<Rightarrow> 'b list) \<Rightarrow>
+                               'a match_expr \<Rightarrow> 
+                               'a match_expr list" where 
+    "normalize_primitive_extract (disc_sel) C f m = (case primitive_extractor (disc_sel) m 
+                of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (C spt))) rst) (f spts))"
+  
+  
+  text{*
+    If @{text f} has the properties described above, then @{const normalize_primitive_extract} is a valid transformation of a match expression*}
+  lemma normalize_primitive_extract: assumes "normalized_match m" and "wf_disc_sel disc_sel C" and
+        "\<forall>ml. (match_list \<gamma> (map (Match \<circ> C) (f ml)) a p \<longleftrightarrow> matches \<gamma> (alist_and (NegPos_map C ml)) a p)"
+        shows "match_list \<gamma> (normalize_primitive_extract disc_sel C f m) a p \<longleftrightarrow> matches \<gamma> m a p"
+    proof -
+      obtain as ms where pe: "primitive_extractor disc_sel m = (as, ms)" by fastforce
+
+      from pe primitive_extractor_correct(1)[OF assms(1), where \<gamma>=\<gamma> and  a=a and p=p] assms(2) have 
+        "matches \<gamma> m a p \<longleftrightarrow> matches \<gamma> (alist_and (NegPos_map C as)) a p \<and> matches \<gamma> ms a p" by(cases disc_sel, blast)
+      also have "\<dots> \<longleftrightarrow> match_list \<gamma> (map (Match \<circ> C) (f as)) a p \<and> matches \<gamma> ms a p" using assms(3) by simp
+      also have "\<dots> \<longleftrightarrow> match_list \<gamma> (map (\<lambda>spt. MatchAnd (Match (C spt)) ms) (f as)) a p"
+        by(simp add: match_list_matches bunch_of_lemmata_about_matches)
+      also have "... \<longleftrightarrow> match_list \<gamma> (normalize_primitive_extract disc_sel C f m) a p"
+        by(simp add: normalize_primitive_extract_def pe) 
+      finally show ?thesis by simp
+    qed
+
+
 end
