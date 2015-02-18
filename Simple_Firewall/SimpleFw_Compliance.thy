@@ -579,11 +579,17 @@ subsubsection{*Normalizing ports*}
                                ipportiface_rule_match match_expr \<Rightarrow> ipportiface_rule_match match_expr list" where 
     "normalize_ports_step (disc_sel) C  m = (case primitive_extractor (disc_sel) m 
                 of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (C [spt]))) rst) (ipt_ports_compress spts))"
-  
+
+  (*TODO: We can use the generalized version. TODO: remove above def, simplify proofs with it*)
+  lemma normalize_ports_step_def2:
+    "normalize_ports_step disc_sel C m = normalize_primitive_extract disc_sel C (\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me)) m"
+    apply(simp add: normalize_ports_step_def normalize_primitive_extract_def)
+    by(cases "primitive_extractor disc_sel m", simp)
   
   lemma normalize_ports_step_Src: assumes "normalized_match m" shows
         "match_list (ipportiface_matcher, \<alpha>) (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m) a p \<longleftrightarrow>
          matches (ipportiface_matcher, \<alpha>) m a p"
+         (*apply(simp add: normalize_ports_step_def2,rule normalize_primitive_extract[OF assms wf_disc_sel_ipportiface_rule_match(1)])*)
     proof -
       obtain as ms where pe: "primitive_extractor (is_Src_Ports, src_ports_sel) m = (as, ms)" by fastforce
       from pe have normalize_ports_step: "normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m = 
