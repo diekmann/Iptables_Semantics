@@ -189,6 +189,11 @@ subsection{*Normalizing ports*}
     "normalized_dst_ports (MatchAnd m1 m2) = (normalized_dst_ports m1 \<and> normalized_dst_ports m2)" |
     "normalized_dst_ports (MatchNot (MatchAnd _ _)) = False" |
     "normalized_dst_ports (MatchNot _) = True" 
+
+  lemma "normalized_src_ports ms = normalized_n_primitive (is_Src_Ports, src_ports_sel) (\<lambda>pts. length pts \<le> 1) ms"
+    by(induction ms rule: normalized_src_ports.induct, simp_all)
+  lemma "normalized_dst_ports ms = normalized_n_primitive (is_Dst_Ports, dst_ports_sel) (\<lambda>pts. length pts \<le> 1) ms"
+    by(induction ms rule: normalized_dst_ports.induct, simp_all)
   
   (*unused? TODO: Move?*)
   lemma normalized_match_MatchNot_D: "normalized_match (MatchNot m) \<Longrightarrow> normalized_match m"

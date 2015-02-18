@@ -84,6 +84,14 @@ fun has_disc :: "('a \<Rightarrow> bool) \<Rightarrow> 'a match_expr \<Rightarro
 
 
 
+fun normalized_n_primitive :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> ('b \<Rightarrow> bool) \<Rightarrow> 'a match_expr \<Rightarrow> bool" where
+  "normalized_n_primitive _ _ MatchAny = True" |
+  "normalized_n_primitive (disc, sel) n (Match (P)) = (if disc P then n (sel P) else True)" |
+  "normalized_n_primitive (disc, sel) n (MatchNot (Match (P))) = (if disc P then False else True)" |
+  "normalized_n_primitive (disc, sel) n (MatchAnd m1 m2) = (normalized_n_primitive (disc, sel) n m1 \<and> normalized_n_primitive (disc, sel) n m2)" |
+  "normalized_n_primitive _ _ (MatchNot (MatchAnd _ _)) = False" |
+  "normalized_n_primitive _ _ (MatchNot _) = True" 
+
 
 text{*
   The following function takes a tuple of functions (@{typ "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b))"}) and a @{typ "'a match_expr"}.
@@ -119,6 +127,7 @@ theorem primitive_extractor_correct: assumes
   and "normalized_match ms"
   and "\<not> has_disc disc ms"
   and "\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms"
+  and "\<forall>disc2 sel2. normalized_n_primitive (disc2, sel2) P m \<longrightarrow> normalized_n_primitive (disc2, sel2) P ms"
 proof -
   --"better simplification rule"
   from assms have assm3': "(as, ms) = primitive_extractor (disc, sel) m" by simp
@@ -147,6 +156,17 @@ proof -
           by(simp_all split: split_if_asm split_split_asm)
 
   from assms(1) assm3' show "\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms"
+    apply(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+          apply(simp)
+         apply(simp split: split_if_asm)
+        apply(simp split: split_if_asm)
+       apply(clarify) (*the simplifier loops*)
+       apply(simp split: split_split_asm)
+      apply(simp_all)
+    done
+
+
+  from assms(1) assm3' show "\<forall>disc2 sel2. normalized_n_primitive (disc2, sel2) P m \<longrightarrow> normalized_n_primitive (disc2, sel2) P ms"
     apply(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
           apply(simp)
          apply(simp split: split_if_asm)
@@ -238,7 +258,9 @@ text{*The lemmas @{thm primitive_extractor_matchesE} and @{thm primitive_extract
 
 
 
-
+(*TODO: make generic primitive normalization thy
+  add word intervall optimizations
+  use for ports and ip addresses*)
 subsection{*Normalizing and Optimizing Primitives*}
   text{*
     Normalize primitives by a function @{text f} with type @{typ "'b negation_type list \<Rightarrow> 'b list"}.
@@ -280,5 +302,34 @@ subsection{*Normalizing and Optimizing Primitives*}
       finally show ?thesis by simp
     qed
 
+
+  lemma normalize_primitive_extract_maintains_normalized:
+  assumes "normalized_match m"
+      and "normalized_n_primitive (disc2, sel2) P m"
+      and "wf_disc_sel (disc1, sel1) C"
+      and "\<forall>a. \<not> disc2 (C a)" --"disc1 and disc2 match for different stuff. e.g. Src_Ports and Dst_Ports"
+    shows "\<forall>mn \<in> set (normalize_primitive_extract (disc1, sel1) C f m). normalized_n_primitive (disc2, sel2) P mn \<and> normalized_match mn"
+    proof
+      fix mn
+      assume assm2: "mn \<in> set (normalize_primitive_extract (disc1, sel1) C f m)"
+      obtain as ms where as_ms: "primitive_extractor (disc1, sel1) m = (as, ms)" by fastforce
+      from as_ms primitive_extractor_correct[OF assms(1) assms(3)] have "normalized_match ms"
+                  and "\<not> has_disc disc1 ms"
+                  and "normalized_n_primitive (disc2, sel2) P ms"
+        apply -
+        apply(fast, fast)
+        using assms(2) by(fast)
+      from assm2 as_ms have normalize_primitive_extract_unfolded: "mn \<in> ((\<lambda>spt. MatchAnd (Match (C spt)) ms) ` set (f as))"
+        unfolding normalize_primitive_extract_def by force
+      with `normalized_match ms` have "normalized_match mn" by fastforce
+      
+      from normalize_primitive_extract_unfolded obtain Casms where Casms: "mn = (MatchAnd (Match (C Casms)) ms)" (*and "Casms \<in> set (f as)"*) by blast
+
+      from `normalized_n_primitive (disc2, sel2) P ms` assms(4) have "normalized_n_primitive (disc2, sel2) P (MatchAnd (Match (C Casms)) ms)"
+        by(simp)
+
+      with Casms have "normalized_n_primitive (disc2, sel2) P mn" by blast
+      with `normalized_match mn` show "normalized_n_primitive (disc2, sel2) P mn \<and> normalized_match mn" by simp
+    qed
 
 end
