@@ -44,7 +44,7 @@ by(simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary 
 
 subsection{*Simple Match to MatchExpr*}
 
-fun simple_match_to_ipportiface_match :: "simple_match \<Rightarrow> ipportiface_rule_match match_expr" where
+fun simple_match_to_ipportiface_match :: "simple_match \<Rightarrow> common_primitive match_expr" where
   "simple_match_to_ipportiface_match \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> = 
     MatchAnd (Match (IIface iif)) (MatchAnd (Match (OIface oif)) 
     (MatchAnd (Match (Src (ipv4_word_netmask_to_ipt_ipv4range sip)))
@@ -156,7 +156,7 @@ text{*@{typ "simple_match"} @{text \<and>} @{typ "simple_match"}*}
    qed
 
 
-fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Rightarrow> simple_match option" where
+fun ipportiface_match_to_simple_match :: "common_primitive match_expr \<Rightarrow> simple_match option" where
   "ipportiface_match_to_simple_match MatchAny = Some (simple_match_any)" |
   "ipportiface_match_to_simple_match (MatchNot MatchAny) = None" |
   "ipportiface_match_to_simple_match (Match (IIface iif)) = Some (simple_match_any\<lparr> iiface := iif \<rparr>)" |
@@ -193,55 +193,11 @@ fun ipportiface_match_to_simple_match :: "ipportiface_rule_match match_expr \<Ri
 (*\<dots>*)
 
 
-(*scratch: normalize*)
-
-  text{*
-    Normalize primitives by a function @{text f} with type @{typ "'b negation_type list \<Rightarrow> 'b list"}.
-    @{typ "'b"} is a primitive type, e.g. @{typ ipt_ipv4range}.
-    @{text f} takes a conjunction list of negated primitives and must compress them such that:
-      * no negation occurs in the output
-      * the output is a disjunction of the primitives, i.e. multiple primitives in one rule are compressed to at most one primitive (leading to multiple rules)
-
-    Example with IP addresses:
-      f [10.8.0.0/16, 10.0.0.0/8] = [10.0.0.0/8]  f compresses to one range
-      f [10.0.0.0, 192.168.0.01] = []    range is empty, rule can be dropped
-      f [Neg 41] = [{0..40}, {42..ipv4max}]   one rule is translated into multiple rules to translate negation
-      f [Neg 41, {20..50}, {30..50}] = [{30..40}, {42..50}]   input: conjunction list, output disjunction list!
-  *}
-  definition normalize_primitive_extract :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow>
-                               ('b \<Rightarrow> 'a) \<Rightarrow>
-                               ('b negation_type list \<Rightarrow> 'b list) \<Rightarrow>
-                               'a match_expr \<Rightarrow> 
-                               'a match_expr list" where 
-    "normalize_primitive_extract (disc_sel) C f m = (case primitive_extractor (disc_sel) m 
-                of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (C spt))) rst) (f spts))"
-  
-  
-  text{*
-    If @{text f} has the properties described above, then @{const normalize_primitive_extract} is a valid transformation of a match expression*}
-  lemma normalize_primitive_extract: assumes "normalized_match m" and "wf_disc_sel disc_sel C" and
-        "\<forall>ml. (match_list \<gamma> (map (Match \<circ> C) (f ml)) a p \<longleftrightarrow> matches \<gamma> (alist_and (NegPos_map C ml)) a p)"
-        shows "match_list \<gamma> (normalize_primitive_extract disc_sel C f m) a p \<longleftrightarrow> matches \<gamma> m a p"
-    proof -
-      obtain as ms where pe: "primitive_extractor disc_sel m = (as, ms)" by fastforce
-
-      from pe primitive_extractor_correct(1)[OF assms(1), where \<gamma>=\<gamma> and  a=a and p=p] assms(2) have 
-        "matches \<gamma> m a p \<longleftrightarrow> matches \<gamma> (alist_and (NegPos_map C as)) a p \<and> matches \<gamma> ms a p" by(cases disc_sel, blast)
-      also have "\<dots> \<longleftrightarrow> match_list \<gamma> (map (Match \<circ> C) (f as)) a p \<and> matches \<gamma> ms a p" using assms(3) by simp
-      also have "\<dots> \<longleftrightarrow> match_list \<gamma> (map (\<lambda>spt. MatchAnd (Match (C spt)) ms) (f as)) a p"
-        by(simp add: match_list_matches bunch_of_lemmata_about_matches)
-      also have "... \<longleftrightarrow> match_list \<gamma> (normalize_primitive_extract disc_sel C f m) a p"
-        by(simp add: normalize_primitive_extract_def pe) 
-      finally show ?thesis by simp
-    qed
-  
-
-(*normalize*)
 
 subsubsection{*Normalizing Interfaces*}
 text{*As for now, negated interfaces are simply not allowed*}
 
-  fun normalized_ifaces :: "ipportiface_rule_match match_expr \<Rightarrow> bool" where
+  fun normalized_ifaces :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_ifaces MatchAny = True" |
     "normalized_ifaces (Match _) = True" |
     "normalized_ifaces (MatchNot (Match (IIface _))) = False" |
@@ -252,7 +208,7 @@ text{*As for now, negated interfaces are simply not allowed*}
 
 
 subsection{*Normalizing IP Addresses*}
-  fun normalized_src_ips :: "ipportiface_rule_match match_expr \<Rightarrow> bool" where
+  fun normalized_src_ips :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_src_ips MatchAny = True" |
     "normalized_src_ips (Match _) = True" |
     "normalized_src_ips (MatchNot (Match (Src _))) = False" |
@@ -262,7 +218,7 @@ subsection{*Normalizing IP Addresses*}
   
 
 
-  fun normalized_dst_ips :: "ipportiface_rule_match match_expr \<Rightarrow> bool" where
+  fun normalized_dst_ips :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_dst_ips MatchAny = True" |
     "normalized_dst_ips (Match _) = True" |
     "normalized_dst_ips (MatchNot (Match (Dst _))) = False" |
@@ -574,9 +530,9 @@ subsubsection{*Normalizing ports*}
   
   
   text{*Normalizing match expressions such that at most one port will exist in it. Returns a list of match expressions (splits one firewall rule into several rules).*}
-  definition normalize_ports_step :: "((ipportiface_rule_match \<Rightarrow> bool) \<times> (ipportiface_rule_match \<Rightarrow> ipt_ports)) \<Rightarrow> 
-                               (ipt_ports \<Rightarrow> ipportiface_rule_match) \<Rightarrow>
-                               ipportiface_rule_match match_expr \<Rightarrow> ipportiface_rule_match match_expr list" where 
+  definition normalize_ports_step :: "((common_primitive \<Rightarrow> bool) \<times> (common_primitive \<Rightarrow> ipt_ports)) \<Rightarrow> 
+                               (ipt_ports \<Rightarrow> common_primitive) \<Rightarrow>
+                               common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where 
     "normalize_ports_step (disc_sel) C  m = (case primitive_extractor (disc_sel) m 
                 of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (C [spt]))) rst) (ipt_ports_compress spts))"
 
@@ -589,13 +545,13 @@ subsubsection{*Normalizing ports*}
   lemma normalize_ports_step_Src: assumes "normalized_match m" shows
         "match_list (ipportiface_matcher, \<alpha>) (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m) a p \<longleftrightarrow>
          matches (ipportiface_matcher, \<alpha>) m a p"
-         (*apply(simp add: normalize_ports_step_def2,rule normalize_primitive_extract[OF assms wf_disc_sel_ipportiface_rule_match(1)])*)
+         (*apply(simp add: normalize_ports_step_def2,rule normalize_primitive_extract[OF assms wf_disc_sel_common_primitive(1)])*)
     proof -
       obtain as ms where pe: "primitive_extractor (is_Src_Ports, src_ports_sel) m = (as, ms)" by fastforce
       from pe have normalize_ports_step: "normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m = 
             (map (\<lambda>spt. MatchAnd (Match (Src_Ports [spt])) ms) (ipt_ports_compress as))"
         by(simp add: normalize_ports_step_def)
-      from pe  primitive_extractor_correct(1)[OF assms wf_disc_sel_ipportiface_rule_match(1), where \<gamma>="(ipportiface_matcher, \<alpha>)" and a=a and p=p] have 
+      from pe  primitive_extractor_correct(1)[OF assms wf_disc_sel_common_primitive(1), where \<gamma>="(ipportiface_matcher, \<alpha>)" and a=a and p=p] have 
         "matches (ipportiface_matcher, \<alpha>) m a p \<longleftrightarrow> 
           (matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map Src_Ports as)) a p \<and> matches (ipportiface_matcher, \<alpha>) ms a p)"
       by simp
@@ -611,7 +567,7 @@ subsubsection{*Normalizing ports*}
       from pe have normalize_ports_step: "normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports m =
           (map (\<lambda>spt. MatchAnd (Match (Dst_Ports [spt])) ms) (ipt_ports_compress as))"
         by(simp add: normalize_ports_step_def)
-      from pe  primitive_extractor_correct(1)[OF assms wf_disc_sel_ipportiface_rule_match(2), where \<gamma>="(ipportiface_matcher, \<alpha>)" and a=a and p=p] have 
+      from pe  primitive_extractor_correct(1)[OF assms wf_disc_sel_common_primitive(2), where \<gamma>="(ipportiface_matcher, \<alpha>)" and a=a and p=p] have 
         "matches (ipportiface_matcher, \<alpha>) m a p \<longleftrightarrow>
           (matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map Dst_Ports as)) a p \<and> matches (ipportiface_matcher, \<alpha>) ms a p)"
       by simp
@@ -621,7 +577,7 @@ subsubsection{*Normalizing ports*}
     qed
   
   
-  fun normalized_src_ports :: "ipportiface_rule_match match_expr \<Rightarrow> bool" where
+  fun normalized_src_ports :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_src_ports MatchAny = True" |
     "normalized_src_ports (Match (Src_Ports [])) = True" |
     "normalized_src_ports (Match (Src_Ports [_])) = True" |
@@ -632,7 +588,7 @@ subsubsection{*Normalizing ports*}
     "normalized_src_ports (MatchNot (MatchAnd _ _)) = False" |
     "normalized_src_ports (MatchNot _) = True"
   
-  fun normalized_dst_ports :: "ipportiface_rule_match match_expr \<Rightarrow> bool" where
+  fun normalized_dst_ports :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_dst_ports MatchAny = True" |
     "normalized_dst_ports (Match (Dst_Ports [])) = True" |
     "normalized_dst_ports (Match (Dst_Ports [_])) = True" |
@@ -660,7 +616,7 @@ subsubsection{*Normalizing ports*}
       assume assm2: "mn \<in> set (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m)"
       obtain pts ms where pts_ms: "primitive_extractor (is_Src_Ports, src_ports_sel) m = (pts, ms)" by fastforce
       from pts_ms have "normalized_match ms" and "\<not> has_disc is_Src_Ports ms"
-        using primitive_extractor_correct[OF assms wf_disc_sel_ipportiface_rule_match(1)] by simp_all
+        using primitive_extractor_correct[OF assms wf_disc_sel_common_primitive(1)] by simp_all
       from assm2 pts_ms have normalize_ports_step_unfolded: "mn \<in> (\<lambda>spt. MatchAnd (Match (Src_Ports [spt])) ms) ` set (ipt_ports_compress pts)"
         unfolding normalize_ports_step_def by force
       with `normalized_match ms` have "normalized_match mn" by fastforce

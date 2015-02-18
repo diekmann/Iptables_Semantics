@@ -5,7 +5,7 @@ begin
 
 subsection{*Primitive Matchers: IP Port Iface Matcher*}
 
-fun ipportiface_matcher :: "(ipportiface_rule_match, simple_packet) exact_match_tac" where
+fun ipportiface_matcher :: "(common_primitive, simple_packet) exact_match_tac" where
   "ipportiface_matcher (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))" |
   "ipportiface_matcher (OIface i) p = bool_to_ternary (match_iface i (p_oiface p))" |
 
