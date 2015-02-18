@@ -1,6 +1,6 @@
 theory Ports_Normalize
 imports "IPPortIfaceSpace_Matcher" "../Semantics_Ternary"
-        "../Output_Format/Negation_Type_Matching"
+        "Primitive_Normalization"
         "../Bitmagic/Numberwang_Ln" (*unused?*)
         "../Bitmagic/CIDRSplit"
 begin
