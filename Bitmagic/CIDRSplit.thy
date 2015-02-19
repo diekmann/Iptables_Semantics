@@ -2,6 +2,36 @@ theory CIDRSplit
 imports IPv4Addr NumberWangCaesar
 begin
 
+section{*CIDR Split Motivation*}
+  text{*When talking about ranges of IP addresses, we can make the ranges explicit by listing them.*}
+
+  value "map (ipv4addr_of_nat \<circ> nat) [1 .. 4]"
+  definition ipv4addr_upto :: "ipv4addr \<Rightarrow> ipv4addr \<Rightarrow> ipv4addr list" where
+    "ipv4addr_upto i j \<equiv> map (ipv4addr_of_nat \<circ> nat) [int (nat_of_ipv4addr i) .. int (nat_of_ipv4addr j)]"
+  lemma ipv4addr_upto: "set (ipv4addr_upto i j) = {i .. j}"
+    proof -
+    have helpX:"\<And>f (i::nat) (j::nat). (f \<circ> nat) ` {int i..int j} = f ` {i .. j}"
+      apply(intro set_eqI)
+      apply(safe)
+       apply(force)
+      by (metis Set_Interval.transfer_nat_int_set_functions(2) image_comp image_eqI)
+    have ipv4addr_of_nat_def': "ipv4addr_of_nat = of_nat" using ipv4addr_of_nat_def fun_eq_iff by presburger
+    show ?thesis
+      unfolding ipv4addr_upto_def
+      apply(intro set_eqI)
+      apply(simp add: ipv4addr_of_nat_def' nat_of_ipv4addr_def)
+      apply(safe)
+        apply(simp_all)
+        apply (metis (no_types, hide_lams) le_unat_uoi nat_mono uint_nat unat_def word_le_nat_alt)
+       apply (metis (no_types, hide_lams) le_unat_uoi nat_mono uint_nat unat_def word_le_nat_alt)
+      apply(simp add: helpX)
+      by (metis atLeastAtMost_iff image_eqI word_le_nat_alt word_unat.Rep_inverse)
+    qed
+
+  text{*The function @{const ipv4addr_upto} gives back a list of all the ips in the list.
+        This list can be pretty huge! In the following, we will use CIDR notation (e.g. 192.168.0.0/24)
+        to describe the list more compactly. *}
+
 subsection{*Prefix Match Range stuff*}
 
 definition prefix_to_range :: "prefix_match \<Rightarrow> 32 bitrange" where
@@ -14,6 +44,20 @@ lemma prefix_to_range_ipv4range_range: "prefix_to_range pfx = ipv4range_range (p
 
 corollary "valid_prefix pfx \<Longrightarrow> bitrange_to_set (prefix_to_range pfx) = ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
 using bitrange_to_set_ipv4range_set_from_bitmask prefix_to_range_set_eq by simp
+
+
+lemma prefix_bitrang_list_union: "\<forall> pfx \<in> set cidrlist. (valid_prefix pfx) \<Longrightarrow>
+       bitrange_to_set (list_to_bitrange (map prefix_to_range cidrlist)) = \<Union>((\<lambda>(base, len). ipv4range_set_from_bitmask base len) ` set (cidrlist))"
+       apply(induction cidrlist)
+        apply(simp)
+       apply(simp)
+       apply(subst prefix_to_range_set_eq)
+       apply(subst bitrange_to_set_ipv4range_set_from_bitmask)
+        apply(simp)
+       apply(simp add: pfxm_prefix_def pfxm_length_def)
+       apply(clarify)
+       apply(simp)
+       done
 
 (*TODO: move*)
 lemma prefix_to_ipset_subset_ipv4range_set_from_bitmask: 

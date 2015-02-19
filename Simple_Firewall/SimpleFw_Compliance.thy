@@ -228,29 +228,6 @@ subsection{*Normalizing IP Addresses*}
   
 
   
-  (*Move to motivation of CIDR split*)
-  value "map (ipv4addr_of_nat \<circ> nat) [1 .. 4]"
-  definition ipv4addr_upto :: "ipv4addr \<Rightarrow> ipv4addr \<Rightarrow> ipv4addr list" where
-    "ipv4addr_upto i j \<equiv> map (ipv4addr_of_nat \<circ> nat) [int (nat_of_ipv4addr i) .. int (nat_of_ipv4addr j)]"
-  lemma helpX:"(f \<circ> nat) ` {int i..int j} = f ` {i .. j}"
-    apply(intro set_eqI)
-    apply(safe)
-     apply(force)
-    by (metis Set_Interval.transfer_nat_int_set_functions(2) image_comp image_eqI)
-  lemma ipv4addr_of_nat_def': "ipv4addr_of_nat = of_nat" using ipv4addr_of_nat_def fun_eq_iff by presburger
-  lemma ipv4addr_upto: "set (ipv4addr_upto i j) = {i .. j}"
-    unfolding ipv4addr_upto_def
-    apply(intro set_eqI)
-    apply(simp add: ipv4addr_of_nat_def' nat_of_ipv4addr_def)
-    apply(safe)
-    apply(simp_all)
-    thm le_unat_uoi nat_mono uint_nat unat_def word_le_nat_alt
-     apply (metis (no_types, hide_lams) le_unat_uoi nat_mono uint_nat unat_def word_le_nat_alt)
-     apply (metis (no_types, hide_lams) le_unat_uoi nat_mono uint_nat unat_def word_le_nat_alt)
-    apply(simp add: helpX)
-  by (metis atLeastAtMost_iff image_eqI word_le_nat_alt word_unat.Rep_inverse)
-    
-  
   (*
   fun helper_construct_ip_matchexp :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> ipt_ipv4range list" where
     "helper_construct_ip_matchexp (s, e) = map (Ip4Addr \<circ> dotteddecimal_of_ipv4addr) (ipv4addr_upto s e)"
@@ -275,21 +252,7 @@ subsection{*Normalizing IP Addresses*}
     apply(simp add: pfxm_mask_def pfxm_length_def)
     done
 
-  (*TODO: move? to caesar*)
-  lemma prefix_bitrang_list_union: "\<forall> pfx \<in> set cidrlist. (valid_prefix pfx) \<Longrightarrow>
-         bitrange_to_set (list_to_bitrange (map prefix_to_range cidrlist)) =
-         \<Union>((\<lambda>(base, len). ipv4range_set_from_bitmask base len) ` set (cidrlist))"
-         apply(induction cidrlist)
-          apply(simp)
-         apply(simp)
-         apply(subst prefix_to_range_set_eq)
-         apply(subst bitrange_to_set_ipv4range_set_from_bitmask)
-          defer
-          apply(simp add: pfxm_prefix_def pfxm_length_def)
-          apply(clarify)
-          apply(simp)
-         apply(simp)
-         done
+
   
   lemma ipt_ipv4range_invert_case_Ip4AddrNetmask:
       "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipt_ipv4range_invert (Ip4AddrNetmask base len))) )) = 

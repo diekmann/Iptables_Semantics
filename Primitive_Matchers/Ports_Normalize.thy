@@ -232,9 +232,5 @@ subsection{*Normalizing ports*}
   apply(frule(1) normalize_primitive_extract_maintains_normalized[OF _ _ wf_disc_sel_common_primitive(1), where f="(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))"])
    apply(simp_all)
   done
-  
 
-
-  lemma assumes normalize_ports_step_dst_normalized: "normalized_match m"
-    shows "\<forall>mn \<in> set (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports m). normalized_dst_ports mn \<and> normalized_match mn"
 end
