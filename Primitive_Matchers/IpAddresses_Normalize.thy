@@ -181,7 +181,7 @@ subsection{*Normalizing IP Addresses*}
 
   (*TODO TODO TODO we have the IPspace operations which can do a REAL compression first! TODO TODO TODO FIXME TODO *)
   fun ipt_ipv4range_compress :: "ipt_ipv4range negation_type list \<Rightarrow> ipt_ipv4range list" where
-    "ipt_ipv4range_compress [] = []" |
+    "ipt_ipv4range_compress [] = [Ip4AddrNetmask (0,0,0,0) 0]" | -- "UNIV?"
     "ipt_ipv4range_compress ((Pos ip)#ips) = ip#(ipt_ipv4range_compress ips)" |
     "ipt_ipv4range_compress ((Neg ip)#ips) = (map (\<lambda> (base, len). Ip4AddrNetmask (dotteddecimal_of_ipv4addr base) len) (ipt_ipv4range_invert ip))@
                                                 (ipt_ipv4range_compress ips)"
@@ -193,5 +193,18 @@ subsection{*Normalizing IP Addresses*}
 
   value "normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress
       (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (10,0,0,0) 2)))) (Match (Src_Ports [(1,2)])))"
+
+  thm normalize_primitive_extract[OF _ wf_disc_sel_common_primitive(3), where f=ipt_ipv4range_compress and \<gamma>="(ipportiface_matcher, \<alpha>)"]
+
+  lemma "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Src) (ipt_ipv4range_compress ml)) a p \<longleftrightarrow>
+         matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map Src ml)) a p"
+    apply(induction ml rule: ipt_ipv4range_compress.induct)
+      apply(simp add: bunch_of_lemmata_about_matches ipv4range_set_from_bitmask_0)
+     apply(simp) (*I don't like the implication the simplifier gives us*)
+     using[[simp_trace]]
+     apply(simp add: bunch_of_lemmata_about_matches(1))
+     apply(simp add: bunch_of_lemmata_about_matches(1) IPPortIfaceSpace_Matcher.match_simplematcher_SrcDst)
+  oops
+      
 
 end
