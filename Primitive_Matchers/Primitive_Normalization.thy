@@ -190,10 +190,6 @@ text{*The lemmas @{thm primitive_extractor_matchesE} and @{thm primitive_extract
 
 
 
-
-(*TODO: make generic primitive normalization thy
-  add word intervall optimizations
-  use for ports and ip addresses*)
 subsection{*Normalizing and Optimizing Primitives*}
   text{*
     Normalize primitives by a function @{text f} with type @{typ "'b negation_type list \<Rightarrow> 'b list"}.
@@ -216,6 +212,7 @@ subsection{*Normalizing and Optimizing Primitives*}
     "normalize_primitive_extract (disc_sel) C f m = (case primitive_extractor (disc_sel) m 
                 of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (C spt))) rst) (f spts))"
   
+                (*TODO: if f spts is empty, we get back an empty list. problem? *)
   
   text{*
     If @{text f} has the properties described above, then @{const normalize_primitive_extract} is a valid transformation of a match expression*}

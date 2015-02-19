@@ -15,7 +15,8 @@ subsection{*Normalizing IP Addresses*}
     "normalized_src_ips (MatchNot (MatchAnd _ _)) = False" |
     "normalized_src_ips (MatchNot _) = True" 
   
-
+  lemma normalized_src_ips_def2: "normalized_src_ips ms = normalized_n_primitive (is_Src, src_sel) (\<lambda>ip. True) ms"
+    by(induction ms rule: normalized_src_ips.induct, simp_all)
 
   fun normalized_dst_ips :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_dst_ips MatchAny = True" |
@@ -25,7 +26,8 @@ subsection{*Normalizing IP Addresses*}
     "normalized_dst_ips (MatchNot (MatchAnd _ _)) = False" |
     "normalized_dst_ips (MatchNot _) = True" 
   
-
+  lemma normalized_dst_ips_def2: "normalized_dst_ips ms = normalized_n_primitive (is_Dst, dst_sel) (\<lambda>ip. True) ms"
+    by(induction ms rule: normalized_dst_ips.induct, simp_all)
   
   (*
   fun helper_construct_ip_matchexp :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> ipt_ipv4range list" where
@@ -176,4 +178,20 @@ subsection{*Normalizing IP Addresses*}
         sports=(22,22), dports=(1024,65535) \<rparr>)"
   *)
   
+
+  (*TODO TODO TODO we have the IPspace operations which can do a REAL compression first! TODO TODO TODO FIXME TODO *)
+  fun ipt_ipv4range_compress :: "ipt_ipv4range negation_type list \<Rightarrow> ipt_ipv4range list" where
+    "ipt_ipv4range_compress [] = []" |
+    "ipt_ipv4range_compress ((Pos ip)#ips) = ip#(ipt_ipv4range_compress ips)" |
+    "ipt_ipv4range_compress ((Neg ip)#ips) = (map (\<lambda> (base, len). Ip4AddrNetmask (dotteddecimal_of_ipv4addr base) len) (ipt_ipv4range_invert ip))@
+                                                (ipt_ipv4range_compress ips)"
+
+  value "normalize_primitive_extract disc_sel C ipt_ipv4range_compress m"
+  (* TODO: fix empty list here? *)
+  value "normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress (MatchAnd (MatchNot (Match (Src_Ports [(1,2)]))) (Match (Src_Ports [(1,2)])))"
+
+
+  value "normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress
+      (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (10,0,0,0) 2)))) (Match (Src_Ports [(1,2)])))"
+
 end

@@ -165,6 +165,12 @@ subsection{*Normalizing ports*}
       finally show ?thesis by simp
     qed
   
+
+  value "normalized_match (MatchAnd (MatchNot (Match (Src_Ports [(1,2)]))) (Match (Src_Ports [(1,2)])))"
+  value "normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports (MatchAnd (MatchNot (Match (Src_Ports [(5,9)]))) (Match (Src_Ports [(1,2)])))"
+
+  (*TODO: probably we should optimize away the (Match (Src_Ports [(0, 65535)]))*)
+  value "normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports (MatchAnd (MatchNot (Match (Prot (Proto TCP)))) (Match (Prot (ProtoAny))))"
   
   fun normalized_src_ports :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_src_ports MatchAny = True" |
