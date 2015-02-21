@@ -10,7 +10,7 @@ definition transform_strict :: "common_primitive rule list \<Rightarrow> common_
     "transform_strict = optimize_matches opt_MatchAny_match_expr(*^^10)*) \<circ> normalize_rules_dnf \<circ> optimize_matches optimize_primitive_univ \<circ> rw_Reject \<circ> rm_LogEmpty"
 
 
-lemma assumes goodrs: "good_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
+theorem transform_strict: assumes goodrs: "good_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
       shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
       and "simple_ruleset (transform_strict rs)"
       and "\<forall> r \<in> set (transform_strict rs). normalized_nnf_match (get_match r)"
@@ -33,10 +33,15 @@ lemma assumes goodrs: "good_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<
          apply(simp)
         apply(rename_tac r rs, case_tac r)
         using normalized_nnf_match_normalize_match by fastforce
-      } hence normalized_rs4: "\<forall> r \<in> set (normalize_rules_dnf ?rs4). normalized_nnf_match (get_match r)" by auto
+      } hence normalized_rs4: "\<forall> r \<in> set ?rs4. normalized_nnf_match (get_match r)" by auto
 
     let ?rs5="optimize_matches opt_MatchAny_match_expr ?rs4"
     from simple_rs4 optimize_matches_simple_ruleset have simple_rs5: "simple_ruleset ?rs5" by auto
+    { fix m::"'a match_expr"
+      have "normalized_nnf_match m \<Longrightarrow> normalized_nnf_match (opt_MatchAny_match_expr m)"
+        by(induction m rule: opt_MatchAny_match_expr.induct) (auto)
+    } hence "\<forall>m. normalized_nnf_match m \<longrightarrow> normalized_nnf_match (opt_MatchAny_match_expr m)" by blast
+    from optimize_matches_normalized_nnf_match[OF normalized_rs4 this] have normalized_rs5: "\<forall> r \<in> set ?rs5. normalized_nnf_match (get_match r)" .
 
     from approximating_semantics_iff_fun_good_ruleset simple_rs5 simple_imp_good_ruleset have 2: 
       "?fw ?rs5 = t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>transform_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
@@ -58,7 +63,8 @@ lemma assumes goodrs: "good_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<
     from simple_rs5 show "simple_ruleset (transform_strict rs)"
       by(simp add: transform_strict_def)
 
-    show "\<forall> r \<in> set (transform_strict rs). normalized_nnf_match (get_match r)"  oops
-  (*qed*)
+    from normalized_rs5 show "\<forall> r \<in> set (transform_strict rs). normalized_nnf_match (get_match r)"  
+      by(simp add: transform_strict_def)
+  qed
 
 end

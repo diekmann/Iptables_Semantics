@@ -633,4 +633,20 @@ text{*Example*}
 lemma "normalize_match (MatchNot (MatchAnd (Match ip_src) (Match tcp))) = [MatchNot (Match ip_src), MatchNot (Match tcp)]" by simp
 
 
+
+
+(* TODO: we need a place where we collect what functions maintain the normalized structure *)
+lemma optimize_matches_normalized_nnf_match: "\<lbrakk>\<forall> r \<in> set rs. normalized_nnf_match (get_match r); \<forall>m. normalized_nnf_match m \<longrightarrow> normalized_nnf_match (f m) \<rbrakk> \<Longrightarrow>
+      \<forall> r \<in> set (optimize_matches f rs). normalized_nnf_match (get_match r)"
+    proof(induction rs)
+      case Nil thus ?case unfolding optimize_matches_def by simp
+    next
+      case (Cons r rs)
+      from Cons.IH Cons.prems have IH: "\<forall>r\<in>set (optimize_matches f rs). normalized_nnf_match (get_match r)" by simp
+      from Cons.prems have "\<forall>r\<in>set (optimize_matches f [r]). normalized_nnf_match (get_match r)"
+        by(simp add: optimize_matches_def)
+      with IH show ?case by(simp add: optimize_matches_def)
+    qed
+    
+
 end
