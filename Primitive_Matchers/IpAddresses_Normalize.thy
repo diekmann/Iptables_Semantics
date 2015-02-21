@@ -39,72 +39,16 @@ begin
     "br_2_cidr_ipt_ipv4range_list r = map (\<lambda> (base, len). Ip4AddrNetmask (dotteddecimal_of_ipv4addr base) len) (ipv4range_split r)"
 
 
-(*MOVE, generalization of ipv4range_split*)
-corollary ipv4range_split: "(\<Union> (prefix_to_ipset ` (set (ipv4range_split r)))) = bitrange_to_set r"
-  proof -
-  have prefix_to_range_set_eq_fun: "prefix_to_ipset = (bitrange_to_set \<circ> prefix_to_range)"
-    by(simp add: prefix_to_range_set_eq fun_eq_iff)
-
-  { fix r
-    have "\<Union>((bitrange_to_set \<circ> prefix_to_range) ` set (ipv4range_split r))= 
-        (bitrange_to_set (list_to_bitrange (map prefix_to_range (ipv4range_split r))))"
-        by (metis (erased, lifting) list.map_comp list_to_bitrange_set_eq set_map)
-    also have "\<dots> = (bitrange_to_set r)"
-      by (metis ipv4range_eq_set_eq ipv4range_split_union ipv4range_to_set_def)
-    finally have "\<Union>((bitrange_to_set \<circ> prefix_to_range) ` set (ipv4range_split r)) = bitrange_to_set r" .
-  } note ipv4range_eq_eliminator=this[of "r"]
-
-  show ?thesis
-  unfolding prefix_to_range_set_eq_fun
-  using ipv4range_eq_eliminator by auto
-qed
-
-
-(*MOVE, generalization of ipv4range_split_bitmask*)
-corollary ipv4range_split_bitmask: 
-  "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipv4range_split r))) ) = bitrange_to_set r"
-  proof -
-  --"without valid prefix assumption"
-  have prefix_to_ipset_subset_ipv4range_set_from_bitmask_helper:
-    "\<And>X. (\<Union>x\<in>X. prefix_to_ipset x) \<subseteq> (\<Union>x\<in>X. case x of (x, xa) \<Rightarrow> ipv4range_set_from_bitmask x xa)"
-    apply(rule)
-    using prefix_to_ipset_subset_ipv4range_set_from_bitmask[simplified pfxm_prefix_def pfxm_length_def] by fastforce
-
-  have ipv4range_set_from_bitmask_subseteq_prefix_to_ipset_helper:
-    "\<And>X. \<forall> x \<in> X. valid_prefix x \<Longrightarrow> (\<Union>x\<in>X. case x of (x, xa) \<Rightarrow> ipv4range_set_from_bitmask x xa) \<subseteq> (\<Union>x\<in>X. prefix_to_ipset x)"
-    apply(rule)
-    apply(rename_tac x)
-    apply(safe)
-    apply(rename_tac a b)
-    apply(erule_tac x="(a,b)" in ballE)
-     apply(simp_all)
-    apply(drule bitrange_to_set_ipv4range_set_from_bitmask)
-    apply(rule_tac x="(a, b)" in bexI)
-    apply(simp_all add: pfxm_prefix_def pfxm_length_def)
-    done
-
-  show ?thesis
-    unfolding ipv4range_split[symmetric]
-    apply(simp)
-    apply(rule)
-     apply(simp add: ipv4range_set_from_bitmask_subseteq_prefix_to_ipset_helper all_valid_Ball)
-    apply(simp add: prefix_to_ipset_subset_ipv4range_set_from_bitmask_helper)
-    done
-qed
-
-
   lemma br_2_cidr_ipt_ipv4range_list: "(\<Union> ip \<in> set (br_2_cidr_ipt_ipv4range_list r). ipv4s_to_set ip) = bitrange_to_set r"
     proof -
-    have Union_rule: "\<And>P Q S. \<forall>a. P a = Q a \<Longrightarrow> (\<Union>a\<in>S. P a) = (\<Union>x\<in>S. Q x)" by presburger
-    show ?thesis
-    unfolding br_2_cidr_ipt_ipv4range_list_def
-    apply(subst ipv4range_split_bitmask[symmetric])
-    apply(simp)
-    apply(rule Union_rule)
-    apply(intro allI)
-    apply(clarify)
-    apply(simp add: ipv4addr_of_dotteddecimal_dotteddecimal_of_ipv4addr)
-    done
+    (*have Union_rule: "\<And>P Q S. \<forall>a. P a = Q a \<Longrightarrow> (\<Union>a\<in>S. P a) = (\<Union>x\<in>S. Q x)" by presburger*)
+    have "\<And>a. ipv4s_to_set (case a of (base, x) \<Rightarrow> Ip4AddrNetmask (dotteddecimal_of_ipv4addr base) x) = (case a of (x, xa) \<Rightarrow> ipv4range_set_from_bitmask x xa)"
+      by(clarsimp simp add: ipv4addr_of_dotteddecimal_dotteddecimal_of_ipv4addr)
+    hence "(\<Union> ip \<in> set (br_2_cidr_ipt_ipv4range_list r). ipv4s_to_set ip) = \<Union>((\<lambda>(x, y). ipv4range_set_from_bitmask x y) ` set (ipv4range_split r))"
+      unfolding br_2_cidr_ipt_ipv4range_list_def by(simp)
+    thus ?thesis
+    using ipv4range_split_bitmask by presburger
+  qed
 
 
 subsection{*Normalizing IP Addresses*}

@@ -259,7 +259,7 @@ lemma "map (\<lambda>(ip,n). (dotteddecimal_of_ipv4addr ip, n)) (ipv4range_split
 
 declare ipv4range_split.simps[simp del]
 
-corollary ipv4range_split: "(\<Union> (prefix_to_ipset ` (set (ipv4range_split (Bitrange start end))))) = {start .. end}"
+corollary ipv4range_split: "(\<Union> (prefix_to_ipset ` (set (ipv4range_split r)))) = bitrange_to_set r"
   proof -
   have prefix_to_range_set_eq_fun: "prefix_to_ipset = (bitrange_to_set \<circ> prefix_to_range)"
     by(simp add: prefix_to_range_set_eq fun_eq_iff)
@@ -271,13 +271,14 @@ corollary ipv4range_split: "(\<Union> (prefix_to_ipset ` (set (ipv4range_split (
     also have "\<dots> = (bitrange_to_set r)"
       by (metis ipv4range_eq_set_eq ipv4range_split_union ipv4range_to_set_def)
     finally have "\<Union>((bitrange_to_set \<circ> prefix_to_range) ` set (ipv4range_split r)) = bitrange_to_set r" .
-  } note ipv4range_eq_eliminator=this[of "(Bitrange start end)"]
+  } note ipv4range_eq_eliminator=this[of r]
 
   show ?thesis
   unfolding prefix_to_range_set_eq_fun
   using ipv4range_eq_eliminator by auto
 qed
-
+corollary ipv4range_split_single: "(\<Union> (prefix_to_ipset ` (set (ipv4range_split (Bitrange start end))))) = {start .. end}"
+  using ipv4range_split by simp
 
 lemma all_valid_Ball: "Ball (set (ipv4range_split r)) valid_prefix"
 proof(induction r rule: ipv4range_split.induct, subst ipv4range_split.simps, case_tac "ipv4range_empty rs")
@@ -320,7 +321,7 @@ qed
 
 (*also works with corny definitions*)
 corollary ipv4range_split_bitmask: 
-  "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipv4range_split (ipv4range_range start end)))) ) = {start .. end}"
+  "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipv4range_split r))) ) = bitrange_to_set r"
   proof -
   --"without valid prefix assumption"
   have prefix_to_ipset_subset_ipv4range_set_from_bitmask_helper:
@@ -349,12 +350,17 @@ corollary ipv4range_split_bitmask:
     apply(simp add: prefix_to_ipset_subset_ipv4range_set_from_bitmask_helper)
     done
 qed
+corollary ipv4range_split_bitmask_single: 
+  "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipv4range_split (ipv4range_range start end)))) ) = {start .. end}"
+using ipv4range_split_bitmask ipv4range_range_def by simp
 
 
+(*
 lemma "(\<Union> (base, len) \<in> set (ipv4range_split (ipv4range_range start end)). ipv4range_set_from_bitmask base len) = {start .. end}"
 (*using [[simp_trace, simp_trace_depth_limit=10]]*)
 using [[simproc del: list_to_set_comprehension]] (* okay, simplifier is a bit broken **)
   apply(simp del: ) (*simp: "Tactic failed"*)
   oops
+*)
 
 end
