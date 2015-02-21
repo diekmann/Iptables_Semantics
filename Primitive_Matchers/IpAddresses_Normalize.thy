@@ -51,6 +51,46 @@ begin
   qed
 
 
+
+  definition ipt_ipv4range_compress :: "ipt_ipv4range negation_type list \<Rightarrow> ipt_ipv4range list" where
+    "ipt_ipv4range_compress = br_2_cidr_ipt_ipv4range_list \<circ> ipt_ipv4range_negation_type_to_br_intersect"
+
+  value "normalize_primitive_extract disc_sel C ipt_ipv4range_compress m"
+  value "normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress (MatchAnd (MatchNot (Match (Src_Ports [(1,2)]))) (Match (Src_Ports [(1,2)])))"
+
+  value "normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress
+      (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (10,0,0,0) 2)))) (Match (Src_Ports [(1,2)])))"
+
+
+  lemma ipt_ipv4range_compress: "(\<Union> ip \<in> set (ipt_ipv4range_compress l). ipv4s_to_set ip) =
+      (\<Inter> ip \<in> set (getPos l). ipv4s_to_set ip) - (\<Union> ip \<in> set (getNeg l). ipv4s_to_set ip)"
+    by (metis br_2_cidr_ipt_ipv4range_list comp_apply ipt_ipv4range_compress_def ipt_ipv4range_negation_type_to_br_intersect)
+      
+
+  thm normalize_primitive_extract[OF _ wf_disc_sel_common_primitive(3), where f=ipt_ipv4range_compress and \<gamma>="(ipportiface_matcher, \<alpha>)"]
+  
+  lemma ipt_ipv4range_compress_matching: "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Src) (ipt_ipv4range_compress ml)) a p \<longleftrightarrow>
+         matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map Src ml)) a p"
+    proof -
+      have "matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map common_primitive.Src ml)) a p \<longleftrightarrow>
+            (\<forall>m \<in> set (getPos ml). matches (ipportiface_matcher, \<alpha>) (Match (Src m)) a p) \<and>
+            (\<forall>m \<in> set (getNeg ml). matches (ipportiface_matcher, \<alpha>) (MatchNot (Match (Src m))) a p)"
+        apply(induction ml rule: alist_and.induct)
+          apply(simp add: bunch_of_lemmata_about_matches)
+         apply(simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+        apply(auto simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+        done
+      also have "\<dots> \<longleftrightarrow>  p_src p \<in>  (\<Inter> ip \<in> set (getPos ml). ipv4s_to_set ip) - (\<Union> ip \<in> set (getNeg ml). ipv4s_to_set ip)"
+       by(simp add: IPPortIfaceSpace_Matcher.match_simplematcher_SrcDst match_simplematcher_SrcDst_not)
+      also have "\<dots> \<longleftrightarrow> p_src p \<in> (\<Union> ip \<in> set (ipt_ipv4range_compress ml). ipv4s_to_set ip)" using ipt_ipv4range_compress by presburger
+      also have "\<dots> \<longleftrightarrow> (\<exists>ip \<in> set (ipt_ipv4range_compress ml). matches (ipportiface_matcher, \<alpha>) (Match (Src ip)) a p)"
+       by(simp add: IPPortIfaceSpace_Matcher.match_simplematcher_SrcDst)
+      finally show ?thesis using match_list_matches by fastforce
+  qed
+      
+(* old stuf from here: *)
+
+
 subsection{*Normalizing IP Addresses*}
   fun normalized_src_ips :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_src_ips MatchAny = True" |
