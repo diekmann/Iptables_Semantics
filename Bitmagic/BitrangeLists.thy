@@ -28,9 +28,9 @@ text{*A list of @{text "(start, end)"} tuples.*}
   lemma l2br: "bitrange_to_set (l2br l) = (\<Union> (i,j) \<in> set l. {i .. j})"
     by(induction l rule: l2br.induct, simp_all)
 
+  (*TODO: delete?*)
   definition l_br_toset :: "('a::len word \<times> 'a::len word) list \<Rightarrow> ('a::len word) set" where
     "l_br_toset l \<equiv> \<Union> (i,j) \<in> set l. {i .. j}"
-
   lemma l_br_toset: "l_br_toset l = bitrange_to_set (l2br l)"
     unfolding l_br_toset_def
     apply(induction l rule: l2br.induct)
