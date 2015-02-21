@@ -505,62 +505,78 @@ proof(induction m rule: normalize_match.induct)
   case 7 thus ?case by(simp_all add: wf_ruleset_append)
   qed
 
-
-
-
-(*TODO: generalize!*)
-fun normalize_rules :: "'a rule list \<Rightarrow> 'a rule list" where
-  "normalize_rules [] = []" |
-  "normalize_rules ((Rule m a)#rs) = (map (\<lambda>m. Rule m a) (normalize_match m))@(normalize_rules rs)"
-
-lemma normalize_rules_singleton: "normalize_rules [Rule m a] = map (\<lambda>m. Rule m a) (normalize_match m)" by simp
-
-lemma normalize_rules_fst: "(normalize_rules (r # rs)) = (normalize_rules [r]) @ (normalize_rules rs)"
-  by(cases r) (simp)
-
-
 lemma good_ruleset_normalize_match: "good_ruleset [(Rule m a)] \<Longrightarrow> good_ruleset (map (\<lambda>m. Rule m a) (normalize_match m))"
 by(simp add: good_ruleset_def)
 
+section{*Normalizing rules instead of only match expressions*}
+  fun normalize_rules :: "('a match_expr \<Rightarrow> 'a match_expr list) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
+    "normalize_rules _ [] = []" |
+    "normalize_rules f ((Rule m a)#rs) = (map (\<lambda>m. Rule m a) (f m))@(normalize_rules f rs)"
+  
+  lemma normalize_rules_singleton: "normalize_rules f [Rule m a] = map (\<lambda>m. Rule m a) (f m)" by(simp)
+  lemma normalize_rules_fst: "(normalize_rules f (r # rs)) = (normalize_rules f [r]) @ (normalize_rules f rs)"
+    by(cases r) (simp)
 
 
-lemma wf_ruleset_normalize_rules: "wf_ruleset \<gamma> p rs \<Longrightarrow> wf_ruleset \<gamma> p (normalize_rules rs)"
+  lemma good_ruleset_normalize_rules: "good_ruleset rs \<Longrightarrow> good_ruleset (normalize_rules f rs)"
+    proof(induction rs)
+    case Nil thus ?case by (simp)
+    next
+    case(Cons r rs)
+      from Cons have IH: "good_ruleset (normalize_rules f rs)" using good_ruleset_tail by blast
+      from Cons.prems have "good_ruleset [r]" using good_ruleset_fst by fast
+      hence "good_ruleset (normalize_rules f [r])" by(cases r) (simp add: good_ruleset_alt)
+      with IH good_ruleset_append have "good_ruleset (normalize_rules f [r] @ normalize_rules f rs)" by blast
+      thus ?case using normalize_rules_fst by metis
+    qed
+
+  lemma simple_ruleset_normalize_rules: "simple_ruleset rs \<Longrightarrow> simple_ruleset (normalize_rules f rs)"
+    proof(induction rs)
+    case Nil thus ?case by (simp)
+    next
+    case(Cons r rs)
+      from Cons have IH: "simple_ruleset (normalize_rules f rs)" using simple_ruleset_tail by blast
+      from Cons.prems have "simple_ruleset [r]" using simple_ruleset_append by fastforce
+      hence "simple_ruleset (normalize_rules f [r])" by(cases r) (simp add: simple_ruleset_def) 
+      with IH simple_ruleset_append have  "simple_ruleset (normalize_rules f [r] @ normalize_rules f rs)" by blast
+      thus ?case using normalize_rules_fst by metis
+    qed
+    
+
+(*TODO: generalize!*)
+fun normalize_rules_dnf :: "'a rule list \<Rightarrow> 'a rule list" where
+  "normalize_rules_dnf [] = []" |
+  "normalize_rules_dnf ((Rule m a)#rs) = (map (\<lambda>m. Rule m a) (normalize_match m))@(normalize_rules_dnf rs)"
+
+lemma normalize_rules_dnf_def2: "normalize_rules_dnf = normalize_rules normalize_match"
+  apply(simp add: fun_eq_iff)
+  apply(intro allI)
+  apply(induct_tac x)
+   apply(simp_all)
+  apply(rename_tac r rs)
+  apply(case_tac r, simp)
+  done
+
+lemma wf_ruleset_normalize_rules_dnf: "wf_ruleset \<gamma> p rs \<Longrightarrow> wf_ruleset \<gamma> p (normalize_rules_dnf rs)"
   proof(induction rs)
   case Nil thus ?case by simp
   next
   case(Cons r rs)
-    from Cons have IH: "wf_ruleset \<gamma> p (normalize_rules rs)" by(auto dest: wf_rulesetD) 
+    from Cons have IH: "wf_ruleset \<gamma> p (normalize_rules_dnf rs)" by(auto dest: wf_rulesetD) 
     from Cons.prems have "wf_ruleset \<gamma> p [r]" by(auto dest: wf_rulesetD) 
-    hence "wf_ruleset \<gamma> p (normalize_rules [r])" using wf_ruleset_normalize_match by(cases r) simp
-    with IH wf_ruleset_append have "wf_ruleset \<gamma> p (normalize_rules [r] @ normalize_rules rs)" by fast
-    thus ?case by(subst normalize_rules_fst)
+    hence "wf_ruleset \<gamma> p (normalize_rules_dnf [r])" using wf_ruleset_normalize_match by(cases r) simp
+    with IH wf_ruleset_append have "wf_ruleset \<gamma> p (normalize_rules_dnf [r] @ normalize_rules_dnf rs)" by fast
+    thus ?case using normalize_rules_dnf_def2 normalize_rules_fst by metis
   qed
 
-lemma good_ruleset_normalize_rules: "good_ruleset rs \<Longrightarrow> good_ruleset (normalize_rules rs)"
-  proof(induction rs)
-  case Nil thus ?case by (simp add: good_ruleset_tail)
-  next
-  case(Cons r rs)
-    from Cons have IH: "good_ruleset (normalize_rules rs)" using good_ruleset_tail by blast
-    from Cons.prems have "good_ruleset [r]" using good_ruleset_fst by fast
-    hence "good_ruleset (normalize_rules [r])" by(cases r) (simp add: good_ruleset_normalize_match)
-    with IH good_ruleset_append have  "good_ruleset (normalize_rules [r] @ normalize_rules rs)" by blast
-    thus ?case by(subst normalize_rules_fst)
-  qed
+lemma good_ruleset_normalize_rules_dnf: "good_ruleset rs \<Longrightarrow> good_ruleset (normalize_rules_dnf rs)"
+  using normalize_rules_dnf_def2 good_ruleset_normalize_rules by metis
 
-lemma simple_ruleset_normalize_rules: "simple_ruleset rs \<Longrightarrow> simple_ruleset (normalize_rules rs)"
-  proof(induction rs)
-  case Nil thus ?case by (simp)
-  next
-  case(Cons r rs)
-    from Cons have IH: "simple_ruleset (normalize_rules rs)" using simple_ruleset_tail by blast
-    from Cons.prems have "simple_ruleset [r]" using simple_ruleset_append by fastforce
-    hence "simple_ruleset (normalize_rules [r])" by(cases r) (simp add: simple_ruleset_def) 
-    with IH simple_ruleset_append have  "simple_ruleset (normalize_rules [r] @ normalize_rules rs)" by blast
-    thus ?case by(subst normalize_rules_fst)
-  qed
+lemma simple_ruleset_normalize_rules_dnf: "simple_ruleset rs \<Longrightarrow> simple_ruleset (normalize_rules_dnf rs)"
+  using normalize_rules_dnf_def2 simple_ruleset_normalize_rules by metis
 
-lemma normalize_rules_correct: "wf_ruleset \<gamma> p rs \<Longrightarrow> approximating_bigstep_fun \<gamma> p (normalize_rules rs) s = approximating_bigstep_fun \<gamma> p rs s"
+
+lemma normalize_rules_dnf_correct: "wf_ruleset \<gamma> p rs \<Longrightarrow> approximating_bigstep_fun \<gamma> p (normalize_rules_dnf rs) s = approximating_bigstep_fun \<gamma> p rs s"
   proof(induction rs)
   case Nil thus ?case by simp
   next
@@ -571,43 +587,43 @@ lemma normalize_rules_correct: "wf_ruleset \<gamma> p rs \<Longrightarrow> appro
       by(simp add: Decision_approximating_bigstep_fun)
     next
     case Undecided
-    from Cons wf_rulesetD(2) have IH: "approximating_bigstep_fun \<gamma> p (normalize_rules rs) s = approximating_bigstep_fun \<gamma> p rs s" by fast
-    from Cons.prems have "wf_ruleset \<gamma> p [r]" and "wf_ruleset \<gamma> p (normalize_rules [r])"
-      by(auto dest: wf_rulesetD simp: wf_ruleset_normalize_rules)
+    from Cons wf_rulesetD(2) have IH: "approximating_bigstep_fun \<gamma> p (normalize_rules_dnf rs) s = approximating_bigstep_fun \<gamma> p rs s" by fast
+    from Cons.prems have "wf_ruleset \<gamma> p [r]" and "wf_ruleset \<gamma> p (normalize_rules_dnf [r])"
+      by(auto dest: wf_rulesetD simp: wf_ruleset_normalize_rules_dnf)
     with IH Undecided have
-      "approximating_bigstep_fun \<gamma> p (normalize_rules rs) (approximating_bigstep_fun \<gamma> p (normalize_rules [r]) Undecided) = approximating_bigstep_fun \<gamma> p (r # rs) Undecided"
+      "approximating_bigstep_fun \<gamma> p (normalize_rules_dnf rs) (approximating_bigstep_fun \<gamma> p (normalize_rules_dnf [r]) Undecided) = approximating_bigstep_fun \<gamma> p (r # rs) Undecided"
       apply(case_tac r, rename_tac m a)
       apply(simp)
       apply(case_tac a)
              apply(simp_all add: normalize_match_correct Decision_approximating_bigstep_fun wf_ruleset_singleton)
       done
-    hence "approximating_bigstep_fun \<gamma> p (normalize_rules [r] @ normalize_rules rs) s = approximating_bigstep_fun \<gamma> p (r # rs) s"
-      using Undecided `wf_ruleset \<gamma> p [r]` `wf_ruleset \<gamma> p (normalize_rules [r])` 
+    hence "approximating_bigstep_fun \<gamma> p (normalize_rules_dnf [r] @ normalize_rules_dnf rs) s = approximating_bigstep_fun \<gamma> p (r # rs) s"
+      using Undecided `wf_ruleset \<gamma> p [r]` `wf_ruleset \<gamma> p (normalize_rules_dnf [r])` 
       by(simp add: approximating_bigstep_fun_seq_wf)
-    thus ?goal using normalize_rules_fst by metis
+    thus ?goal using normalize_rules_fst normalize_rules_dnf_def2 by metis
     qed
   qed
 
 (*
-value "normalize_rules
+value "normalize_rules_dnf
   [(Rule (MatchNot (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16)))) (MatchAnd (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) (MatchAnd (Match (Prot ipt_protocol.ProtTCP)) (Match (Extra ''reject-with tcp-reset'')))))) Drop)]
  "
 *)
 
-fun normalized_match :: "'a match_expr \<Rightarrow> bool" where
-  "normalized_match MatchAny = True" |
-  "normalized_match (Match _ ) = True" |
-  "normalized_match (MatchNot (Match _)) = True" |
-  "normalized_match (MatchAnd m1 m2) = ((normalized_match m1) \<and> (normalized_match m2))" |
-  "normalized_match _ = False"
+fun normalized_nnf_match :: "'a match_expr \<Rightarrow> bool" where
+  "normalized_nnf_match MatchAny = True" |
+  "normalized_nnf_match (Match _ ) = True" |
+  "normalized_nnf_match (MatchNot (Match _)) = True" |
+  "normalized_nnf_match (MatchAnd m1 m2) = ((normalized_nnf_match m1) \<and> (normalized_nnf_match m2))" |
+  "normalized_nnf_match _ = False"
 
 
-text{*Essentially, @{term normalized_match} checks for a negation normal form: Only AND is at toplevel, negation only occurs in front of literals.
+text{*Essentially, @{term normalized_nnf_match} checks for a negation normal form: Only AND is at toplevel, negation only occurs in front of literals.
  Since @{typ "'a match_expr"} does not support OR, the result is in conjunction normal form.
  Applying @{const normalize_match}, the reuslt is a list. Essentially, this is the disjunctive normal form.*}
 
 
-lemma normalized_match_normalize_match: "\<forall> m' \<in> set (normalize_match m). normalized_match m'"
+lemma normalized_nnf_match_normalize_match: "\<forall> m' \<in> set (normalize_match m). normalized_nnf_match m'"
   proof(induction m arbitrary: rule: normalize_match.induct)
   case 4 thus ?case by fastforce
   qed (simp_all)

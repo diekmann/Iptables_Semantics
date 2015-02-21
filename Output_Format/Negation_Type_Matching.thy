@@ -41,7 +41,7 @@ fun to_negation_type_nnf :: "'a match_expr \<Rightarrow> 'a negation_type list" 
  "to_negation_type_nnf (MatchAnd a b) = (to_negation_type_nnf a) @ (to_negation_type_nnf b)"
 
 
-lemma "normalized_match m \<Longrightarrow> matches \<gamma> (alist_and (to_negation_type_nnf m)) a p  = matches \<gamma> m a p"
+lemma "normalized_nnf_match m \<Longrightarrow> matches \<gamma> (alist_and (to_negation_type_nnf m)) a p  = matches \<gamma> m a p"
   apply(induction m rule: to_negation_type_nnf.induct)
   apply(simp_all add: bunch_of_lemmata_about_matches alist_and_append)
   done

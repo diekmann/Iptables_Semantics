@@ -130,7 +130,7 @@ value "format_Ln_rules_uncompressed example_ruleset_simplified"
 
 value "length (example_ruleset_simplified)"
 text{*Wow, normalization has exponential?? blowup!!*}
-value "length (normalize_rules example_ruleset_simplified)"
+value "length (normalize_rules_dnf example_ruleset_simplified)"
 value "length (format_Ln_rules_uncompressed example_ruleset_simplified)"
 
 thm format_Ln_rules_uncompressed_correct

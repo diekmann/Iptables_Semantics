@@ -112,7 +112,7 @@ subsection{*Normalizing IP Addresses*}
        by(simp add: match_simplematcher_SrcDst)
       finally show ?thesis using match_list_matches by fastforce
   qed
-  lemma normalize_src_ips: "normalized_match m \<Longrightarrow> 
+  lemma normalize_src_ips: "normalized_nnf_match m \<Longrightarrow> 
       match_list (common_matcher, \<alpha>) (normalize_src_ips m) a p = matches (common_matcher, \<alpha>) m a p"
     unfolding normalize_src_ips_def
     using normalize_primitive_extract[OF _ wf_disc_sel_common_primitive(3), where f=ipt_ipv4range_compress and \<gamma>="(common_matcher, \<alpha>)"]
@@ -136,7 +136,7 @@ subsection{*Normalizing IP Addresses*}
        by(simp add: match_simplematcher_SrcDst)
       finally show ?thesis using match_list_matches by fastforce
   qed
-  lemma normalize_dst_ips: "normalized_match m \<Longrightarrow> 
+  lemma normalize_dst_ips: "normalized_nnf_match m \<Longrightarrow> 
       match_list (common_matcher, \<alpha>) (normalize_dst_ips m) a p = matches (common_matcher, \<alpha>) m a p"
     unfolding normalize_dst_ips_def
     using normalize_primitive_extract[OF _ wf_disc_sel_common_primitive(4), where f=ipt_ipv4range_compress and \<gamma>="(common_matcher, \<alpha>)"]

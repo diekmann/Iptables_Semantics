@@ -882,10 +882,6 @@ fun normalize_match MatchAny = [MatchAny]
   | normalize_match (MatchNot MatchAny) = []
   | normalize_match (MatchNot (Match m)) = [MatchNot (Match m)];
 
-fun normalize_rules [] = []
-  | normalize_rules (Rule (m, a) :: rs) =
-    map (fn ma => Rule (ma, a)) (normalize_match m) @ normalize_rules rs;
-
 fun insort_key B_ f x [] = [x]
   | insort_key B_ f x (y :: ys) =
     (if less_eq ((ord_preorder o preorder_order o order_linorder) B_) (f x)
@@ -1167,6 +1163,10 @@ val packet_set_UNIV : 'a packet_set = PacketSet [[]];
 
 fun shiftr_word A_ w n = funpow n (shiftr1 A_) w;
 
+fun normalize_rules_dnf [] = []
+  | normalize_rules_dnf (Rule (m, a) :: rs) =
+    map (fn ma => Rule (ma, a)) (normalize_match m) @ normalize_rules_dnf rs;
+
 fun equal_packet_set A_ (PacketSet x) (PacketSet ya) =
   equal_lista
     (equal_list
@@ -1329,14 +1329,18 @@ fun opt_MatchAny_match_expr MatchAny = MatchAny
   | opt_MatchAny_match_expr (MatchNot MatchAny) =
     MatchNot (opt_MatchAny_match_expr MatchAny)
   | opt_MatchAny_match_expr (MatchAnd (MatchAny, MatchAny)) = MatchAny
-  | opt_MatchAny_match_expr (MatchAnd (MatchAny, Match v)) = Match v
-  | opt_MatchAny_match_expr (MatchAnd (MatchAny, MatchNot v)) = MatchNot v
+  | opt_MatchAny_match_expr (MatchAnd (MatchAny, Match v)) =
+    opt_MatchAny_match_expr (Match v)
+  | opt_MatchAny_match_expr (MatchAnd (MatchAny, MatchNot v)) =
+    opt_MatchAny_match_expr (MatchNot v)
   | opt_MatchAny_match_expr (MatchAnd (MatchAny, MatchAnd (v, va))) =
-    MatchAnd (v, va)
-  | opt_MatchAny_match_expr (MatchAnd (Match v, MatchAny)) = Match v
-  | opt_MatchAny_match_expr (MatchAnd (MatchNot v, MatchAny)) = MatchNot v
+    opt_MatchAny_match_expr (MatchAnd (v, va))
+  | opt_MatchAny_match_expr (MatchAnd (Match v, MatchAny)) =
+    opt_MatchAny_match_expr (Match v)
+  | opt_MatchAny_match_expr (MatchAnd (MatchNot v, MatchAny)) =
+    opt_MatchAny_match_expr (MatchNot v)
   | opt_MatchAny_match_expr (MatchAnd (MatchAnd (v, va), MatchAny)) =
-    MatchAnd (v, va)
+    opt_MatchAny_match_expr (MatchAnd (v, va))
   | opt_MatchAny_match_expr (MatchAnd (Match v, MatchNot MatchAny)) =
     MatchNot MatchAny
   | opt_MatchAny_match_expr (MatchAnd (MatchNot v, MatchNot MatchAny)) =
@@ -1661,7 +1665,7 @@ fun upper_closure rs =
 
 fun format_Ln_rules_uncompressed rs =
   map (fn r => (format_Ln_match (get_match r), get_action r))
-    (normalize_rules rs);
+    (normalize_rules_dnf rs);
 
 fun does_I_has_compressed_prots [] = []
   | does_I_has_compressed_prots

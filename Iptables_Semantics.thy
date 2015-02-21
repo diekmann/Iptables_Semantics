@@ -3,15 +3,15 @@ imports Semantics_Embeddings Fixed_Action
 begin
 
 section{*Normalizing Rulesets in the Boolean Big Step Semantics*}
-corollary normalize_rules_correct_BooleanSemantics: 
+corollary normalize_rules_dnf_correct_BooleanSemantics: 
   assumes "good_ruleset rs"
-  shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>normalize_rules rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+  shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>normalize_rules_dnf rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
 proof -
-  from assms have assm': "good_ruleset (normalize_rules rs)" by (metis good_ruleset_normalize_rules) 
-  from normalize_rules_correct assms good_imp_wf_ruleset have
-    "\<forall>\<beta> \<alpha>. approximating_bigstep_fun (\<beta>,\<alpha>) p (normalize_rules rs) s = approximating_bigstep_fun (\<beta>,\<alpha>) p rs s" by fast
+  from assms have assm': "good_ruleset (normalize_rules_dnf rs)" by (metis good_ruleset_normalize_rules_dnf) 
+  from normalize_rules_dnf_correct assms good_imp_wf_ruleset have
+    "\<forall>\<beta> \<alpha>. approximating_bigstep_fun (\<beta>,\<alpha>) p (normalize_rules_dnf rs) s = approximating_bigstep_fun (\<beta>,\<alpha>) p rs s" by fast
   hence 
-    "\<forall>\<alpha>. approximating_bigstep_fun (\<beta>\<^sub>m\<^sub>a\<^sub>g\<^sub>i\<^sub>c \<gamma>,\<alpha>) p (normalize_rules rs) s = approximating_bigstep_fun (\<beta>\<^sub>m\<^sub>a\<^sub>g\<^sub>i\<^sub>c \<gamma>,\<alpha>) p rs s" by fast
+    "\<forall>\<alpha>. approximating_bigstep_fun (\<beta>\<^sub>m\<^sub>a\<^sub>g\<^sub>i\<^sub>c \<gamma>,\<alpha>) p (normalize_rules_dnf rs) s = approximating_bigstep_fun (\<beta>\<^sub>m\<^sub>a\<^sub>g\<^sub>i\<^sub>c \<gamma>,\<alpha>) p rs s" by fast
   with \<beta>\<^sub>m\<^sub>a\<^sub>g\<^sub>i\<^sub>c_approximating_bigstep_fun_iff_iptables_bigstep assms assm' show ?thesis
   by metis
 qed

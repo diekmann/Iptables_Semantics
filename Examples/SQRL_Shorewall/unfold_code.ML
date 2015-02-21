@@ -747,10 +747,6 @@ fun normalize_match MatchAny = [MatchAny]
   | normalize_match (MatchNot MatchAny) = []
   | normalize_match (MatchNot (Match m)) = [MatchNot (Match m)];
 
-fun normalize_rules [] = []
-  | normalize_rules (Rule (m, a) :: rs) =
-    map (fn ma => Rule (ma, a)) (normalize_match m) @ normalize_rules rs;
-
 fun rm_LogEmpty [] = []
   | rm_LogEmpty (Rule (uu, Empty) :: rs) = rm_LogEmpty rs
   | rm_LogEmpty (Rule (uv, Log) :: rs) = rm_LogEmpty rs
@@ -932,6 +928,10 @@ fun compress_ips l =
                      (collect_to_range (getNeg l)))
                then NONE else SOME (Pos ip :: map Neg (getNeg l)))));
 
+fun normalize_rules_dnf [] = []
+  | normalize_rules_dnf (Rule (m, a) :: rs) =
+    map (fn ma => Rule (ma, a)) (normalize_match m) @ normalize_rules_dnf rs;
+
 fun process_ret [] = []
   | process_ret (Rule (m, Return) :: rs) =
     add_match (MatchNot m) (process_ret rs)
@@ -1041,14 +1041,18 @@ fun opt_MatchAny_match_expr MatchAny = MatchAny
   | opt_MatchAny_match_expr (MatchNot MatchAny) =
     MatchNot (opt_MatchAny_match_expr MatchAny)
   | opt_MatchAny_match_expr (MatchAnd (MatchAny, MatchAny)) = MatchAny
-  | opt_MatchAny_match_expr (MatchAnd (MatchAny, Match v)) = Match v
-  | opt_MatchAny_match_expr (MatchAnd (MatchAny, MatchNot v)) = MatchNot v
+  | opt_MatchAny_match_expr (MatchAnd (MatchAny, Match v)) =
+    opt_MatchAny_match_expr (Match v)
+  | opt_MatchAny_match_expr (MatchAnd (MatchAny, MatchNot v)) =
+    opt_MatchAny_match_expr (MatchNot v)
   | opt_MatchAny_match_expr (MatchAnd (MatchAny, MatchAnd (v, va))) =
-    MatchAnd (v, va)
-  | opt_MatchAny_match_expr (MatchAnd (Match v, MatchAny)) = Match v
-  | opt_MatchAny_match_expr (MatchAnd (MatchNot v, MatchAny)) = MatchNot v
+    opt_MatchAny_match_expr (MatchAnd (v, va))
+  | opt_MatchAny_match_expr (MatchAnd (Match v, MatchAny)) =
+    opt_MatchAny_match_expr (Match v)
+  | opt_MatchAny_match_expr (MatchAnd (MatchNot v, MatchAny)) =
+    opt_MatchAny_match_expr (MatchNot v)
   | opt_MatchAny_match_expr (MatchAnd (MatchAnd (v, va), MatchAny)) =
-    MatchAnd (v, va)
+    opt_MatchAny_match_expr (MatchAnd (v, va))
   | opt_MatchAny_match_expr (MatchAnd (Match v, MatchNot MatchAny)) =
     MatchNot MatchAny
   | opt_MatchAny_match_expr (MatchAnd (MatchNot v, MatchNot MatchAny)) =
@@ -1376,7 +1380,7 @@ fun upper_closure rs =
 
 fun format_Ln_rules_uncompressed rs =
   map (fn r => (format_Ln_match (get_match r), get_action r))
-    (normalize_rules rs);
+    (normalize_rules_dnf rs);
 
 fun unfold_ruleset_OUTPUT rs =
   funpow (nat_of_integer (10 : IntInf.int))
