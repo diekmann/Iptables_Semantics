@@ -6,6 +6,35 @@ imports IPPortIfaceSpace_Matcher
 begin
 
 
+
+(* TODO: Move! *)
+  fun l2br_negation_type_intersect :: "('a::len word \<times> 'a::len word) negation_type list \<Rightarrow> 'a::len bitrange" where
+    "l2br_negation_type_intersect [] = bitrange_UNIV" |
+    "l2br_negation_type_intersect ((Pos (s,e))#ls) = bitrange_intersection (Bitrange s e) (l2br_negation_type_intersect ls)" |
+    "l2br_negation_type_intersect ((Neg (s,e))#ls) = bitrange_intersection (bitrange_invert (Bitrange s e)) (l2br_negation_type_intersect ls)"
+
+  lemma l2br_negation_type_intersect_alt: "bitrange_to_set (l2br_negation_type_intersect l) = 
+                  bitrange_to_set (bitrange_setminus (l2br_intersect (getPos l)) (l2br (getNeg l)))"
+    apply(simp add: l2br_intersect l2br)
+    apply(induction l rule :l2br_negation_type_intersect.induct)
+       apply(simp_all)
+      apply(fast)+
+    done
+
+  lemma l2br_negation_type_intersect: "bitrange_to_set (l2br_negation_type_intersect l) = 
+                        (\<Inter> (i,j) \<in> set (getPos l). {i .. j}) - (\<Union> (i,j) \<in> set (getNeg l). {i .. j})"
+    by(simp add: l2br_negation_type_intersect_alt l2br_intersect l2br)
+
+
+  definition ipt_ipv4range_negation_type_to_br_intersect :: "ipt_ipv4range negation_type list \<Rightarrow> 32 bitrange" where
+    "ipt_ipv4range_negation_type_to_br_intersect l = l2br_negation_type_intersect (NegPos_map ipt_ipv4range_to_intervall l)" 
+
+  lemma ipt_ipv4range_negation_type_to_br_intersect: "bitrange_to_set (ipt_ipv4range_negation_type_to_br_intersect l) =
+      (\<Inter> ip \<in> set (getPos l). ipv4s_to_set ip) - (\<Union> ip \<in> set (getNeg l). ipv4s_to_set ip)"
+    apply(simp add: ipt_ipv4range_negation_type_to_br_intersect_def l2br_negation_type_intersect NegPos_map_simps)
+    using ipt_ipv4range_to_intervall by blast
+
+
 subsection{*Normalizing IP Addresses*}
   fun normalized_src_ips :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_src_ips MatchAny = True" |

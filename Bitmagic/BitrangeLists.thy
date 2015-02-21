@@ -25,6 +25,8 @@ text{*A list of @{text "(start, end)"} tuples.*}
   lemma l2br_br2l: "bitrange_to_set (l2br (br2l r)) = bitrange_to_set r"
     by(induction r) (simp_all add: l2br_append)
 
+  lemma l2br: "bitrange_to_set (l2br l) = (\<Union> (i,j) \<in> set l. {i .. j})"
+    by(induction l rule: l2br.induct, simp_all)
 
   definition l_br_toset :: "('a::len word \<times> 'a::len word) list \<Rightarrow> ('a::len word) set" where
     "l_br_toset l \<equiv> \<Union> (i,j) \<in> set l. {i .. j}"
@@ -51,6 +53,6 @@ text{*A list of @{text "(start, end)"} tuples.*}
     } thus ?thesis
       unfolding l2br_intersect_def by simp
     qed
-    
+
 
 end

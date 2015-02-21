@@ -80,4 +80,24 @@ apply(simp add: ipv4range_set_from_netmask_def)
 done
 
 
+(*We need a separate ipv4addr syntax thy*)
+ (*TODO: Move*)
+ fun ipt_ipv4range_to_intervall :: "ipt_ipv4range \<Rightarrow> (ipv4addr \<times> ipv4addr)" where
+    "ipt_ipv4range_to_intervall (Ip4Addr addr) = (ipv4addr_of_dotteddecimal addr, ipv4addr_of_dotteddecimal addr)" |
+    "ipt_ipv4range_to_intervall (Ip4AddrNetmask pre len) = (
+      let netmask = (mask len) << (32 - len);
+          network_prefix = (ipv4addr_of_dotteddecimal pre AND netmask)
+      in (network_prefix, network_prefix OR (NOT netmask))
+     )" 
+
+  
+lemma ipt_ipv4range_to_intervall: "ipt_ipv4range_to_intervall ip = (s,e) \<Longrightarrow> {s .. e} = ipv4s_to_set ip"
+  apply(cases ip)
+   apply auto[1]
+  apply(simp add: Let_def)
+  apply(subst ipv4range_set_from_bitmask_alt)
+  apply(subst(asm) NOT_mask_len32)
+  by (metis NOT_mask_len32 ipv4range_set_from_bitmask_alt ipv4range_set_from_bitmask_alt1 ipv4range_set_from_netmask_def)
+
+
 end
