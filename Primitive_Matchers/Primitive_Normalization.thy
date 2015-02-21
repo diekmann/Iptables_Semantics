@@ -1,5 +1,5 @@
 theory Primitive_Normalization
-imports  "../Output_Format/Negation_Type_Matching" (*"../Datatype_Selectors" "../Fixed_Action"*)
+imports  "../Output_Format/Negation_Type_Matching" 
 begin
 
 section{*Primitive Normalization*}

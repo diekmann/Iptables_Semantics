@@ -1,10 +1,6 @@
-theory IPPortIfaceSpace_Syntax
-imports Main String "../Bitmagic/IPv4Addr" IPSpace_Syntax Protocol Iface Ports Simple_Packet
+theory Common_Primitive_Syntax
+imports "../Datatype_Selectors" IpAddresses Iface Protocol Ports Simple_Packet
 begin
-
-(*TODO: unify protocol types*)
-hide_type(open) ipt_protocol
-hide_const(open) ProtAll ProtTCP ProtUDP
 
 section{*Primitive Matchers: Interfaces, IP Space, Layer 4 Ports Matcher*}
 
@@ -14,7 +10,10 @@ text{*Primitive Match Conditions which only support interfaces, IPv4 addresses, 
 
 datatype_new common_primitive =
   is_Src: Src (src_sel: ipt_ipv4range) | 
-  is_Dst: Dst (dst_sel: ipt_ipv4range) | IIface iface | OIface iface | Prot protocol | 
+  is_Dst: Dst (dst_sel: ipt_ipv4range) |
+  IIface iface |
+  OIface iface |
+  Prot protocol | 
   is_Src_Ports: Src_Ports (src_ports_sel: ipt_ports) | 
   is_Dst_Ports: Dst_Ports (dst_ports_sel: ipt_ports) | 
   Extra string

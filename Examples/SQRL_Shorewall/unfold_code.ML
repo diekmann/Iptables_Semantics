@@ -3,9 +3,9 @@ structure Test : sig
   type nat
   val integer_of_nat : nat -> IntInf.int
   val nat_of_integer : IntInf.int -> nat
+  datatype ipt_protocol = ProtAll | ProtTCP | ProtUDP
   datatype ipt_ipv4range = Ip4Addr of (nat * (nat * (nat * nat))) |
     Ip4AddrNetmask of (nat * (nat * (nat * nat))) * nat
-  datatype ipt_protocol = ProtAll | ProtTCP | ProtUDP
   datatype iptrule_match = Src of ipt_ipv4range | Dst of ipt_ipv4range |
     Prot of ipt_protocol | Extra of char list
   type nibble
@@ -394,6 +394,18 @@ fun equal_proda A_ B_ (x1, x2) (y1, y2) = eq A_ x1 y1 andalso eq B_ x2 y2;
 
 fun equal_prod A_ B_ = {equal = equal_proda A_ B_} : ('a * 'b) equal;
 
+datatype ipt_protocol = ProtAll | ProtTCP | ProtUDP;
+
+fun equal_ipt_protocol ProtTCP ProtUDP = false
+  | equal_ipt_protocol ProtUDP ProtTCP = false
+  | equal_ipt_protocol ProtAll ProtUDP = false
+  | equal_ipt_protocol ProtUDP ProtAll = false
+  | equal_ipt_protocol ProtAll ProtTCP = false
+  | equal_ipt_protocol ProtTCP ProtAll = false
+  | equal_ipt_protocol ProtUDP ProtUDP = true
+  | equal_ipt_protocol ProtTCP ProtTCP = true
+  | equal_ipt_protocol ProtAll ProtAll = true;
+
 datatype ipt_ipv4range = Ip4Addr of (nat * (nat * (nat * nat))) |
   Ip4AddrNetmask of (nat * (nat * (nat * nat))) * nat;
 
@@ -407,18 +419,6 @@ fun equal_ipt_ipv4range (Ip4Addr proda) (Ip4AddrNetmask (prod, nat)) = false
   | equal_ipt_ipv4range (Ip4Addr proda) (Ip4Addr prod) =
     equal_proda equal_nat
       (equal_prod equal_nat (equal_prod equal_nat equal_nat)) proda prod;
-
-datatype ipt_protocol = ProtAll | ProtTCP | ProtUDP;
-
-fun equal_ipt_protocol ProtTCP ProtUDP = false
-  | equal_ipt_protocol ProtUDP ProtTCP = false
-  | equal_ipt_protocol ProtAll ProtUDP = false
-  | equal_ipt_protocol ProtUDP ProtAll = false
-  | equal_ipt_protocol ProtAll ProtTCP = false
-  | equal_ipt_protocol ProtTCP ProtAll = false
-  | equal_ipt_protocol ProtUDP ProtUDP = true
-  | equal_ipt_protocol ProtTCP ProtTCP = true
-  | equal_ipt_protocol ProtAll ProtAll = true;
 
 datatype iptrule_match = Src of ipt_ipv4range | Dst of ipt_ipv4range |
   Prot of ipt_protocol | Extra of char list;

@@ -1,6 +1,6 @@
 theory Ports_Normalize
-imports "IPPortIfaceSpace_Matcher" "../Semantics_Ternary"
-        "Primitive_Normalization"
+imports Common_Primitive_Matcher
+        Primitive_Normalization
 begin
 
 
@@ -17,10 +17,10 @@ subsection{*Normalizing ports*}
   declare ipt_ports_negation_type_normalize.simps[simp del]
   
   lemma ipt_ports_negation_type_normalize_correct:
-        "matches (ipportiface_matcher, \<alpha>) (negation_type_to_match_expr_f (Src_Ports) ps) a p \<longleftrightarrow>
-         matches (ipportiface_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_negation_type_normalize ps))) a p"
-        "matches (ipportiface_matcher, \<alpha>) (negation_type_to_match_expr_f (Dst_Ports) ps) a p \<longleftrightarrow>
-         matches (ipportiface_matcher, \<alpha>) (Match (Dst_Ports (ipt_ports_negation_type_normalize ps))) a p"
+        "matches (common_matcher, \<alpha>) (negation_type_to_match_expr_f (Src_Ports) ps) a p \<longleftrightarrow>
+         matches (common_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_negation_type_normalize ps))) a p"
+        "matches (common_matcher, \<alpha>) (negation_type_to_match_expr_f (Dst_Ports) ps) a p \<longleftrightarrow>
+         matches (common_matcher, \<alpha>) (Match (Dst_Ports (ipt_ports_negation_type_normalize ps))) a p"
   apply(case_tac [!] ps)
   apply(simp_all add: ipt_ports_negation_type_normalize.simps matches_case_ternaryvalue_tuple
           bunch_of_lemmata_about_matches bool_to_ternary_simps l2br_br2l ports_to_set_bitrange split: ternaryvalue.split)
@@ -50,7 +50,7 @@ subsection{*Normalizing ports*}
   
   (*TODO: only for src*)
   lemma ipt_ports_compress_src_correct:
-    "matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map Src_Ports ms)) a p \<longleftrightarrow> matches (ipportiface_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_compress ms))) a p"
+    "matches (common_matcher, \<alpha>) (alist_and (NegPos_map Src_Ports ms)) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_compress ms))) a p"
   proof(induction ms)
     case Nil thus ?case by(simp add: ipt_ports_compress_def bunch_of_lemmata_about_matches ipt_ports_andlist_compress_correct)
     next
@@ -70,7 +70,7 @@ subsection{*Normalizing ports*}
         qed
   qed
   lemma ipt_ports_compress_dst_correct:
-    "matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map Dst_Ports ms)) a p \<longleftrightarrow> matches (ipportiface_matcher, \<alpha>) (Match (Dst_Ports (ipt_ports_compress ms))) a p"
+    "matches (common_matcher, \<alpha>) (alist_and (NegPos_map Dst_Ports ms)) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) (Match (Dst_Ports (ipt_ports_compress ms))) a p"
   proof(induction ms)
     case Nil thus ?case by(simp add: ipt_ports_compress_def bunch_of_lemmata_about_matches ipt_ports_andlist_compress_correct)
     next
@@ -91,7 +91,7 @@ subsection{*Normalizing ports*}
   qed
   
   
-  lemma ipt_ports_compress_matches_set: "matches (ipportiface_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_compress ips))) a p \<longleftrightarrow>
+  lemma ipt_ports_compress_matches_set: "matches (common_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_compress ips))) a p \<longleftrightarrow>
          p_sport p \<in> \<Inter> set (map (ports_to_set \<circ> ipt_ports_negation_type_normalize) ips)"
   apply(simp add: ipt_ports_compress_def)
   apply(induction ips)
@@ -105,10 +105,10 @@ subsection{*Normalizing ports*}
   
   
   (*spliting the primitives: multiport list (a list of disjunction!)*)
-  lemma singletonize_SrcDst_Ports: "match_list (ipportiface_matcher, \<alpha>) (map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) ms) (spts)) a p \<longleftrightarrow>
-         matches (ipportiface_matcher, \<alpha>) (MatchAnd (Match (Src_Ports spts)) ms) a p"
-         "match_list (ipportiface_matcher, \<alpha>) (map (\<lambda>spt. (MatchAnd (Match (Dst_Ports [spt]))) ms) (dpts)) a p \<longleftrightarrow>
-         matches (ipportiface_matcher, \<alpha>) (MatchAnd (Match (Dst_Ports dpts)) ms) a p"
+  lemma singletonize_SrcDst_Ports: "match_list (common_matcher, \<alpha>) (map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) ms) (spts)) a p \<longleftrightarrow>
+         matches (common_matcher, \<alpha>) (MatchAnd (Match (Src_Ports spts)) ms) a p"
+         "match_list (common_matcher, \<alpha>) (map (\<lambda>spt. (MatchAnd (Match (Dst_Ports [spt]))) ms) (dpts)) a p \<longleftrightarrow>
+         matches (common_matcher, \<alpha>) (MatchAnd (Match (Dst_Ports dpts)) ms) a p"
     apply(simp_all add: match_list_matches bunch_of_lemmata_about_matches(1) multiports_disjuction)
   done
   
@@ -132,35 +132,35 @@ subsection{*Normalizing ports*}
     by(cases "primitive_extractor disc_sel m", simp)
   
   lemma normalize_ports_step_Src: assumes "normalized_match m" shows
-        "match_list (ipportiface_matcher, \<alpha>) (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m) a p \<longleftrightarrow>
-         matches (ipportiface_matcher, \<alpha>) m a p"
+        "match_list (common_matcher, \<alpha>) (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m) a p \<longleftrightarrow>
+         matches (common_matcher, \<alpha>) m a p"
          (*apply(simp add: normalize_ports_step_def2,rule normalize_primitive_extract[OF assms wf_disc_sel_common_primitive(1)])*)
     proof -
       obtain as ms where pe: "primitive_extractor (is_Src_Ports, src_ports_sel) m = (as, ms)" by fastforce
       from pe have normalize_ports_step: "normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m = 
             (map (\<lambda>spt. MatchAnd (Match (Src_Ports [spt])) ms) (ipt_ports_compress as))"
         by(simp add: normalize_ports_step_def)
-      from pe  primitive_extractor_correct(1)[OF assms wf_disc_sel_common_primitive(1), where \<gamma>="(ipportiface_matcher, \<alpha>)" and a=a and p=p] have 
-        "matches (ipportiface_matcher, \<alpha>) m a p \<longleftrightarrow> 
-          (matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map Src_Ports as)) a p \<and> matches (ipportiface_matcher, \<alpha>) ms a p)"
+      from pe  primitive_extractor_correct(1)[OF assms wf_disc_sel_common_primitive(1), where \<gamma>="(common_matcher, \<alpha>)" and a=a and p=p] have 
+        "matches (common_matcher, \<alpha>) m a p \<longleftrightarrow> 
+          (matches (common_matcher, \<alpha>) (alist_and (NegPos_map Src_Ports as)) a p \<and> matches (common_matcher, \<alpha>) ms a p)"
       by simp
-      also have "... \<longleftrightarrow> match_list (ipportiface_matcher, \<alpha>) (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m) a p"
+      also have "... \<longleftrightarrow> match_list (common_matcher, \<alpha>) (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m) a p"
         by(simp add: normalize_ports_step singletonize_SrcDst_Ports(1) bunch_of_lemmata_about_matches(1) ipt_ports_compress_src_correct)
       finally show ?thesis by simp
     qed
   lemma normalize_ports_step_Dst: assumes "normalized_match m" shows
-        "match_list (ipportiface_matcher, \<alpha>) (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports m) a p \<longleftrightarrow>
-         matches (ipportiface_matcher, \<alpha>) m a p"
+        "match_list (common_matcher, \<alpha>) (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports m) a p \<longleftrightarrow>
+         matches (common_matcher, \<alpha>) m a p"
     proof -
       obtain as ms where pe: "primitive_extractor (is_Dst_Ports, dst_ports_sel) m = (as, ms)" by fastforce
       from pe have normalize_ports_step: "normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports m =
           (map (\<lambda>spt. MatchAnd (Match (Dst_Ports [spt])) ms) (ipt_ports_compress as))"
         by(simp add: normalize_ports_step_def)
-      from pe  primitive_extractor_correct(1)[OF assms wf_disc_sel_common_primitive(2), where \<gamma>="(ipportiface_matcher, \<alpha>)" and a=a and p=p] have 
-        "matches (ipportiface_matcher, \<alpha>) m a p \<longleftrightarrow>
-          (matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map Dst_Ports as)) a p \<and> matches (ipportiface_matcher, \<alpha>) ms a p)"
+      from pe  primitive_extractor_correct(1)[OF assms wf_disc_sel_common_primitive(2), where \<gamma>="(common_matcher, \<alpha>)" and a=a and p=p] have 
+        "matches (common_matcher, \<alpha>) m a p \<longleftrightarrow>
+          (matches (common_matcher, \<alpha>) (alist_and (NegPos_map Dst_Ports as)) a p \<and> matches (common_matcher, \<alpha>) ms a p)"
       by simp
-      also have "... \<longleftrightarrow> match_list (ipportiface_matcher, \<alpha>) (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports m) a p"
+      also have "... \<longleftrightarrow> match_list (common_matcher, \<alpha>) (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports m) a p"
         by(simp add: normalize_ports_step singletonize_SrcDst_Ports(2) bunch_of_lemmata_about_matches(1) ipt_ports_compress_dst_correct)
       finally show ?thesis by simp
     qed

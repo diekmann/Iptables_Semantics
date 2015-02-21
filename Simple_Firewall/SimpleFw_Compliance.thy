@@ -1,6 +1,6 @@
 theory SimpleFw_Compliance
-imports SimpleFw_Semantics "../Primitive_Matchers/IPPortIfaceSpace_Matcher" "../Semantics_Ternary"
-        "../Output_Format/Negation_Type_Matching"
+imports SimpleFw_Semantics (*"../Primitive_Matchers/IPPortIfaceSpace_Matcher" "../Semantics_Ternary"
+        "../Output_Format/Negation_Type_Matching"*)
         "../Primitive_Matchers/Ports_Normalize"
         "../Primitive_Matchers/IpAddresses_Normalize"
 begin
@@ -74,7 +74,7 @@ lemma ports_to_set_singleton_simple_match_port: "p \<in> ports_to_set [a] \<long
   by(cases a, simp)
 
 
-theorem simple_match_to_ipportiface_match_correct: "matches (ipportiface_matcher, \<alpha>) (simple_match_to_ipportiface_match sm) a p \<longleftrightarrow> simple_matches sm p"
+theorem simple_match_to_ipportiface_match_correct: "matches (common_matcher, \<alpha>) (simple_match_to_ipportiface_match sm) a p \<longleftrightarrow> simple_matches sm p"
   apply(cases sm)
   apply(rename_tac iif oif sip dip pro sps dps)
   apply(simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)

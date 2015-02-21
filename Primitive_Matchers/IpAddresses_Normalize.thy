@@ -1,5 +1,5 @@
 theory IpAddresses_Normalize
-imports IPPortIfaceSpace_Matcher
+imports Common_Primitive_Matcher
         "../Bitmagic/Numberwang_Ln" (*ipv4addr_of_dotteddecimal_dotteddecimal_of_ipv4addr, we should move this lemma?*)
         "../Bitmagic/CIDRSplit"
         "Primitive_Normalization"
@@ -7,7 +7,31 @@ begin
 
 
 
-(* TODO: Move! *)
+subsection{*Normalizing IP Addresses*}
+  fun normalized_src_ips :: "common_primitive match_expr \<Rightarrow> bool" where
+    "normalized_src_ips MatchAny = True" |
+    "normalized_src_ips (Match _) = True" |
+    "normalized_src_ips (MatchNot (Match (Src _))) = False" |
+    "normalized_src_ips (MatchAnd m1 m2) = (normalized_src_ips m1 \<and> normalized_src_ips m2)" |
+    "normalized_src_ips (MatchNot (MatchAnd _ _)) = False" |
+    "normalized_src_ips (MatchNot _) = True" 
+  
+  lemma normalized_src_ips_def2: "normalized_src_ips ms = normalized_n_primitive (is_Src, src_sel) (\<lambda>ip. True) ms"
+    by(induction ms rule: normalized_src_ips.induct, simp_all)
+
+  fun normalized_dst_ips :: "common_primitive match_expr \<Rightarrow> bool" where
+    "normalized_dst_ips MatchAny = True" |
+    "normalized_dst_ips (Match _) = True" |
+    "normalized_dst_ips (MatchNot (Match (Dst _))) = False" |
+    "normalized_dst_ips (MatchAnd m1 m2) = (normalized_dst_ips m1 \<and> normalized_dst_ips m2)" |
+    "normalized_dst_ips (MatchNot (MatchAnd _ _)) = False" |
+    "normalized_dst_ips (MatchNot _) = True" 
+  
+  lemma normalized_dst_ips_def2: "normalized_dst_ips ms = normalized_n_primitive (is_Dst, dst_sel) (\<lambda>ip. True) ms"
+    by(induction ms rule: normalized_dst_ips.induct, simp_all)
+  
+
+
   fun l2br_negation_type_intersect :: "('a::len word \<times> 'a::len word) negation_type list \<Rightarrow> 'a::len bitrange" where
     "l2br_negation_type_intersect [] = bitrange_UNIV" |
     "l2br_negation_type_intersect ((Pos (s,e))#ls) = bitrange_intersection (Bitrange s e) (l2br_negation_type_intersect ls)" |
@@ -60,6 +84,10 @@ begin
 
   value "normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress
       (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (10,0,0,0) 2)))) (Match (Src_Ports [(1,2)])))"
+  value "normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress
+      (MatchAnd (Match (Src (Ip4AddrNetmask (10,0,0,0) 2))) (MatchAnd (Match (Src (Ip4AddrNetmask (10,0,0,0) 8))) (Match (Src_Ports [(1,2)]))))"
+  value "normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress
+      (MatchAnd (Match (Src (Ip4AddrNetmask (10,0,0,0) 2))) (MatchAnd (Match (Src (Ip4AddrNetmask (192,0,0,0) 8))) (Match (Src_Ports [(1,2)]))))"
 
 
   lemma ipt_ipv4range_compress: "(\<Union> ip \<in> set (ipt_ipv4range_compress l). ipv4s_to_set ip) =
@@ -67,53 +95,67 @@ begin
     by (metis br_2_cidr_ipt_ipv4range_list comp_apply ipt_ipv4range_compress_def ipt_ipv4range_negation_type_to_br_intersect)
       
 
-  thm normalize_primitive_extract[OF _ wf_disc_sel_common_primitive(3), where f=ipt_ipv4range_compress and \<gamma>="(ipportiface_matcher, \<alpha>)"]
+  definition normalize_src_ips :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where
+    "normalize_src_ips = normalize_primitive_extract (common_primitive.is_Src, src_sel) common_primitive.Src ipt_ipv4range_compress"
   
-  lemma ipt_ipv4range_compress_matching: "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Src) (ipt_ipv4range_compress ml)) a p \<longleftrightarrow>
-         matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map Src ml)) a p"
+  lemma ipt_ipv4range_compress_src_matching: "match_list (common_matcher, \<alpha>) (map (Match \<circ> Src) (ipt_ipv4range_compress ml)) a p \<longleftrightarrow>
+         matches (common_matcher, \<alpha>) (alist_and (NegPos_map Src ml)) a p"
     proof -
-      have "matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map common_primitive.Src ml)) a p \<longleftrightarrow>
-            (\<forall>m \<in> set (getPos ml). matches (ipportiface_matcher, \<alpha>) (Match (Src m)) a p) \<and>
-            (\<forall>m \<in> set (getNeg ml). matches (ipportiface_matcher, \<alpha>) (MatchNot (Match (Src m))) a p)"
-        apply(induction ml rule: alist_and.induct)
-          apply(simp add: bunch_of_lemmata_about_matches)
-         apply(simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
-        apply(auto simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
-        done
+      have "matches (common_matcher, \<alpha>) (alist_and (NegPos_map common_primitive.Src ml)) a p \<longleftrightarrow>
+            (\<forall>m \<in> set (getPos ml). matches (common_matcher, \<alpha>) (Match (Src m)) a p) \<and>
+            (\<forall>m \<in> set (getNeg ml). matches (common_matcher, \<alpha>) (MatchNot (Match (Src m))) a p)"
+        by(induction ml rule: alist_and.induct) (auto simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
       also have "\<dots> \<longleftrightarrow>  p_src p \<in>  (\<Inter> ip \<in> set (getPos ml). ipv4s_to_set ip) - (\<Union> ip \<in> set (getNeg ml). ipv4s_to_set ip)"
-       by(simp add: IPPortIfaceSpace_Matcher.match_simplematcher_SrcDst match_simplematcher_SrcDst_not)
+       by(simp add: match_simplematcher_SrcDst match_simplematcher_SrcDst_not)
       also have "\<dots> \<longleftrightarrow> p_src p \<in> (\<Union> ip \<in> set (ipt_ipv4range_compress ml). ipv4s_to_set ip)" using ipt_ipv4range_compress by presburger
-      also have "\<dots> \<longleftrightarrow> (\<exists>ip \<in> set (ipt_ipv4range_compress ml). matches (ipportiface_matcher, \<alpha>) (Match (Src ip)) a p)"
-       by(simp add: IPPortIfaceSpace_Matcher.match_simplematcher_SrcDst)
+      also have "\<dots> \<longleftrightarrow> (\<exists>ip \<in> set (ipt_ipv4range_compress ml). matches (common_matcher, \<alpha>) (Match (Src ip)) a p)"
+       by(simp add: match_simplematcher_SrcDst)
       finally show ?thesis using match_list_matches by fastforce
   qed
-      
+  lemma normalize_src_ips: "normalized_match m \<Longrightarrow> 
+      match_list (common_matcher, \<alpha>) (normalize_src_ips m) a p = matches (common_matcher, \<alpha>) m a p"
+    unfolding normalize_src_ips_def
+    using normalize_primitive_extract[OF _ wf_disc_sel_common_primitive(3), where f=ipt_ipv4range_compress and \<gamma>="(common_matcher, \<alpha>)"]
+      ipt_ipv4range_compress_src_matching by simp
+
+
+  definition normalize_dst_ips :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where
+    "normalize_dst_ips = normalize_primitive_extract (common_primitive.is_Dst, dst_sel) common_primitive.Dst ipt_ipv4range_compress"
+
+  lemma ipt_ipv4range_compress_dst_matching: "match_list (common_matcher, \<alpha>) (map (Match \<circ> Dst) (ipt_ipv4range_compress ml)) a p \<longleftrightarrow>
+         matches (common_matcher, \<alpha>) (alist_and (NegPos_map Dst ml)) a p"
+    proof -
+      have "matches (common_matcher, \<alpha>) (alist_and (NegPos_map common_primitive.Dst ml)) a p \<longleftrightarrow>
+            (\<forall>m \<in> set (getPos ml). matches (common_matcher, \<alpha>) (Match (Dst m)) a p) \<and>
+            (\<forall>m \<in> set (getNeg ml). matches (common_matcher, \<alpha>) (MatchNot (Match (Dst m))) a p)"
+        by(induction ml rule: alist_and.induct) (auto simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+      also have "\<dots> \<longleftrightarrow>  p_dst p \<in>  (\<Inter> ip \<in> set (getPos ml). ipv4s_to_set ip) - (\<Union> ip \<in> set (getNeg ml). ipv4s_to_set ip)"
+       by(simp add: match_simplematcher_SrcDst match_simplematcher_SrcDst_not)
+      also have "\<dots> \<longleftrightarrow> p_dst p \<in> (\<Union> ip \<in> set (ipt_ipv4range_compress ml). ipv4s_to_set ip)" using ipt_ipv4range_compress by presburger
+      also have "\<dots> \<longleftrightarrow> (\<exists>ip \<in> set (ipt_ipv4range_compress ml). matches (common_matcher, \<alpha>) (Match (Dst ip)) a p)"
+       by(simp add: match_simplematcher_SrcDst)
+      finally show ?thesis using match_list_matches by fastforce
+  qed
+  lemma normalize_dst_ips: "normalized_match m \<Longrightarrow> 
+      match_list (common_matcher, \<alpha>) (normalize_dst_ips m) a p = matches (common_matcher, \<alpha>) m a p"
+    unfolding normalize_dst_ips_def
+    using normalize_primitive_extract[OF _ wf_disc_sel_common_primitive(4), where f=ipt_ipv4range_compress and \<gamma>="(common_matcher, \<alpha>)"]
+      ipt_ipv4range_compress_dst_matching by simp
+
+
+
+
+
+
+
+
+
+
+
 (* old stuf from here: *)
 
-
-subsection{*Normalizing IP Addresses*}
-  fun normalized_src_ips :: "common_primitive match_expr \<Rightarrow> bool" where
-    "normalized_src_ips MatchAny = True" |
-    "normalized_src_ips (Match _) = True" |
-    "normalized_src_ips (MatchNot (Match (Src _))) = False" |
-    "normalized_src_ips (MatchAnd m1 m2) = (normalized_src_ips m1 \<and> normalized_src_ips m2)" |
-    "normalized_src_ips (MatchNot (MatchAnd _ _)) = False" |
-    "normalized_src_ips (MatchNot _) = True" 
-  
-  lemma normalized_src_ips_def2: "normalized_src_ips ms = normalized_n_primitive (is_Src, src_sel) (\<lambda>ip. True) ms"
-    by(induction ms rule: normalized_src_ips.induct, simp_all)
-
-  fun normalized_dst_ips :: "common_primitive match_expr \<Rightarrow> bool" where
-    "normalized_dst_ips MatchAny = True" |
-    "normalized_dst_ips (Match _) = True" |
-    "normalized_dst_ips (MatchNot (Match (Dst _))) = False" |
-    "normalized_dst_ips (MatchAnd m1 m2) = (normalized_dst_ips m1 \<and> normalized_dst_ips m2)" |
-    "normalized_dst_ips (MatchNot (MatchAnd _ _)) = False" |
-    "normalized_dst_ips (MatchNot _) = True" 
-  
-  lemma normalized_dst_ips_def2: "normalized_dst_ips ms = normalized_n_primitive (is_Dst, dst_sel) (\<lambda>ip. True) ms"
-    by(induction ms rule: normalized_dst_ips.induct, simp_all)
-  
+subsection{*Inverting single network ranges*}
+text{*unused*}
   (*
   fun helper_construct_ip_matchexp :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> ipt_ipv4range list" where
     "helper_construct_ip_matchexp (s, e) = map (Ip4Addr \<circ> dotteddecimal_of_ipv4addr) (ipv4addr_upto s e)"
@@ -173,16 +215,16 @@ subsection{*Normalizing IP Addresses*}
     done
 
  
-  lemma "matches (ipportiface_matcher, \<alpha>) (MatchNot (Match (Src ip))) a p \<longleftrightarrow> p_src p \<in> (- (ipv4s_to_set ip))"
+  lemma "matches (common_matcher, \<alpha>) (MatchNot (Match (Src ip))) a p \<longleftrightarrow> p_src p \<in> (- (ipv4s_to_set ip))"
     using match_simplematcher_SrcDst_not by simp
   lemma match_list_match_SrcDst:
-      "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Src) (ips::ipt_ipv4range list)) a p \<longleftrightarrow> p_src p \<in> (\<Union> (ipv4s_to_set ` (set ips)))"
-      "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Dst) (ips::ipt_ipv4range list)) a p \<longleftrightarrow> p_dst p \<in> (\<Union> (ipv4s_to_set ` (set ips)))"
-    by(simp_all add: match_list_matches IPPortIfaceSpace_Matcher.match_simplematcher_SrcDst)
+      "match_list (common_matcher, \<alpha>) (map (Match \<circ> Src) (ips::ipt_ipv4range list)) a p \<longleftrightarrow> p_src p \<in> (\<Union> (ipv4s_to_set ` (set ips)))"
+      "match_list (common_matcher, \<alpha>) (map (Match \<circ> Dst) (ips::ipt_ipv4range list)) a p \<longleftrightarrow> p_dst p \<in> (\<Union> (ipv4s_to_set ` (set ips)))"
+    by(simp_all add: match_list_matches match_simplematcher_SrcDst)
 
   lemma match_list_ipt_ipv4range_invert:
-        "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Src \<circ> (\<lambda>(ip, n). Ip4AddrNetmask (dotteddecimal_of_ipv4addr ip) n)) (ipt_ipv4range_invert ip)) a p \<longleftrightarrow> 
-         matches (ipportiface_matcher, \<alpha>) (MatchNot (Match (Src ip))) a p" (is "?m1 = ?m2")
+        "match_list (common_matcher, \<alpha>) (map (Match \<circ> Src \<circ> (\<lambda>(ip, n). Ip4AddrNetmask (dotteddecimal_of_ipv4addr ip) n)) (ipt_ipv4range_invert ip)) a p \<longleftrightarrow> 
+         matches (common_matcher, \<alpha>) (MatchNot (Match (Src ip))) a p" (is "?m1 = ?m2")
     proof -
       {fix ips
       have "ipv4s_to_set ` set (map (\<lambda>(ip, n). Ip4AddrNetmask (dotteddecimal_of_ipv4addr ip) n) ips) =
@@ -204,9 +246,9 @@ subsection{*Normalizing IP Addresses*}
 
   (* okay, this is how we want to rewrite one negated ip range. need to show that result is normalized. Well, it will not be normalized, we need to split so several
      match expressions to get a normalized (non-negated) ip*)
-  lemma "matches (ipportiface_matcher, \<alpha>) (match_list_to_match_expr 
+  lemma "matches (common_matcher, \<alpha>) (match_list_to_match_expr 
             (map (Match \<circ> Src \<circ> (\<lambda>(ip, n). Ip4AddrNetmask (dotteddecimal_of_ipv4addr ip) n)) (ipt_ipv4range_invert ip))) a p \<longleftrightarrow> 
-         matches (ipportiface_matcher, \<alpha>) (MatchNot (Match (Src ip))) a p"
+         matches (common_matcher, \<alpha>) (MatchNot (Match (Src ip))) a p"
     apply(subst match_list_ipt_ipv4range_invert[symmetric])
     apply(simp add: match_list_to_match_expr_disjunction)
     done
@@ -237,8 +279,8 @@ subsection{*Normalizing IP Addresses*}
    *)
   (*
   lemma helper_construct_ip_matchexp_SrcDst_match_list:
-    "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Src) (helper_construct_ip_matchexp ip)) a p \<longleftrightarrow> simple_match_ip ip (p_src p)"
-    "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Dst) (helper_construct_ip_matchexp ip)) a p \<longleftrightarrow> simple_match_ip ip (p_dst p)"
+    "match_list (common_matcher, \<alpha>) (map (Match \<circ> Src) (helper_construct_ip_matchexp ip)) a p \<longleftrightarrow> simple_match_ip ip (p_src p)"
+    "match_list (common_matcher, \<alpha>) (map (Match \<circ> Dst) (helper_construct_ip_matchexp ip)) a p \<longleftrightarrow> simple_match_ip ip (p_dst p)"
      apply(case_tac [!] ip, rename_tac i j)
      apply(subst match_list_match_SrcDst, subst helper_construct_ip_matchexp_set, simp)+
      done
@@ -246,9 +288,9 @@ subsection{*Normalizing IP Addresses*}
   hide_fact match_list_match_SrcDst helper_construct_ip_matchexp_set
   
   lemma matches_SrcDst_simple_match:
-        "matches (ipportiface_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src) (helper_construct_ip_matchexp sip))) a p \<longleftrightarrow>
+        "matches (common_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src) (helper_construct_ip_matchexp sip))) a p \<longleftrightarrow>
          simple_match_ip sip (p_src p)"
-        "matches (ipportiface_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Dst) (helper_construct_ip_matchexp dip))) a p \<longleftrightarrow>
+        "matches (common_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Dst) (helper_construct_ip_matchexp dip))) a p \<longleftrightarrow>
          simple_match_ip dip (p_dst p)"
     apply(simp_all add: match_list_to_match_expr_disjunction helper_construct_ip_matchexp_SrcDst_match_list[where \<alpha>=\<alpha> and a=a, symmetric])
     done
@@ -264,36 +306,5 @@ subsection{*Normalizing IP Addresses*}
   *)
   
 
-  fun ipt_ipv4range_compress :: "ipt_ipv4range negation_type list \<Rightarrow> ipt_ipv4range list" where
-    "ipt_ipv4range_compress = ipt_ipv4range_negation_type_to_br_intersect "
-
-  (*TODO TODO TODO we have the IPspace operations which can do a REAL compression first! TODO TODO TODO FIXME TODO *)
-  fun ipt_ipv4range_compress :: "ipt_ipv4range negation_type list \<Rightarrow> ipt_ipv4range list" where
-    "ipt_ipv4range_compress [] = [Ip4AddrNetmask (0,0,0,0) 0]" | -- "UNIV?"
-    "ipt_ipv4range_compress ((Pos ip)#ips) = ip#(ipt_ipv4range_compress ips)" |
-    "ipt_ipv4range_compress ((Neg ip)#ips) = (map (\<lambda> (base, len). Ip4AddrNetmask (dotteddecimal_of_ipv4addr base) len) (ipt_ipv4range_invert ip))@
-                                                (ipt_ipv4range_compress ips)"
-
-  value "normalize_primitive_extract disc_sel C ipt_ipv4range_compress m"
-  (* TODO: fix empty list here? *)
-  value "normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress (MatchAnd (MatchNot (Match (Src_Ports [(1,2)]))) (Match (Src_Ports [(1,2)])))"
-
-
-  value "normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress
-      (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (10,0,0,0) 2)))) (Match (Src_Ports [(1,2)])))"
-
-  thm normalize_primitive_extract[OF _ wf_disc_sel_common_primitive(3), where f=ipt_ipv4range_compress and \<gamma>="(ipportiface_matcher, \<alpha>)"]
-
-(*this wont work! matchlist is disjunction alistand is conjunction. need to do to bitrange of input first, intersect, then from bitrange. and do ip cidr intersect optimization first!*)
-  lemma "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Src) (ipt_ipv4range_compress ml)) a p \<longleftrightarrow>
-         matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map Src ml)) a p"
-    apply(induction ml rule: ipt_ipv4range_compress.induct)
-      apply(simp add: bunch_of_lemmata_about_matches ipv4range_set_from_bitmask_0)
-     apply(simp) (*I don't like the implication the simplifier gives us*)
-     using[[simp_trace]]
-     apply(simp add: bunch_of_lemmata_about_matches(1))
-     apply(simp add: bunch_of_lemmata_about_matches(1) IPPortIfaceSpace_Matcher.match_simplematcher_SrcDst)
-  oops
-      
 
 end
