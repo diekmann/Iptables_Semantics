@@ -196,6 +196,7 @@ subsection{*Normalizing IP Addresses*}
 
   thm normalize_primitive_extract[OF _ wf_disc_sel_common_primitive(3), where f=ipt_ipv4range_compress and \<gamma>="(ipportiface_matcher, \<alpha>)"]
 
+(*this wont work! matchlist is disjunction alistand is conjunction. need to do to bitrange of input first, intersect, then from bitrange. and do ip cidr intersect optimization first!*)
   lemma "match_list (ipportiface_matcher, \<alpha>) (map (Match \<circ> Src) (ipt_ipv4range_compress ml)) a p \<longleftrightarrow>
          matches (ipportiface_matcher, \<alpha>) (alist_and (NegPos_map Src ml)) a p"
     apply(induction ml rule: ipt_ipv4range_compress.induct)

@@ -81,12 +81,12 @@ theorem simple_match_to_ipportiface_match_correct: "matches (ipportiface_matcher
   apply(rule refl_conj_eq)+
   apply(simp add: matches_SrcDst_simple_match)
   apply(rule refl_conj_eq)+
-(*brute force proof from here*)
-apply(case_tac [!] sps)
-apply(simp_all)
-apply(case_tac [!] dps)
-apply(simp_all)
-done
+  (*brute force proof from here*)
+  apply(case_tac sps)
+  apply(simp)
+  apply(case_tac dps)
+  apply(simp)
+  done
 
 
 subsection{*MatchExpr to Simple Match*}

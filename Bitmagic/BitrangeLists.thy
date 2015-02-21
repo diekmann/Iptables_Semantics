@@ -36,4 +36,21 @@ text{*A list of @{text "(start, end)"} tuples.*}
     done
   
 
+
+
+  definition l2br_intersect :: "('a::len word \<times> 'a::len word) list \<Rightarrow> 'a::len bitrange" where
+    "l2br_intersect = foldl (\<lambda> acc (s,e). bitrange_intersection (Bitrange s e) acc) bitrange_UNIV"
+
+  lemma l2br_intersect: "bitrange_to_set (l2br_intersect l) = (\<Inter> (i,j) \<in> set l. {i .. j})"
+    proof -
+    { fix U --{*@{const bitrange_UNIV} generalized*}
+      have "bitrange_to_set (foldl (\<lambda>acc (s, e). bitrange_intersection (Bitrange s e) acc) U l) = (bitrange_to_set U) \<inter> (\<Inter>(i, j)\<in>set l. {i..j})"
+          apply(induction l arbitrary: U)
+           apply(simp)
+          by force
+    } thus ?thesis
+      unfolding l2br_intersect_def by simp
+    qed
+    
+
 end
