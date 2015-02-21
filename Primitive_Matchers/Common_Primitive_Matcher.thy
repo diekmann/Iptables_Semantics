@@ -101,4 +101,30 @@ lemma multiports_disjuction:
   
 
 
+
+
+(*TODO: basically a copy! *)
+text{*Perform very basic optimization. Remove matches to primitives which are essentially @{const MatchAny}*}
+fun optimize_primitive_univ :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
+  "optimize_primitive_univ (Match (Src (Ip4AddrNetmask (0,0,0,0) 0))) = MatchAny" |
+  "optimize_primitive_univ (Match (Dst (Ip4AddrNetmask (0,0,0,0) 0))) = MatchAny" |
+  "optimize_primitive_univ (Match (Prot ProtoAny)) = MatchAny" |
+  "optimize_primitive_univ (Match m) = Match m" |
+  "optimize_primitive_univ (MatchNot m) = (MatchNot (optimize_primitive_univ m))" |
+  "optimize_primitive_univ (MatchAnd m1 m2) = MatchAnd (optimize_primitive_univ m1) (optimize_primitive_univ m2)" |
+  "optimize_primitive_univ MatchAny = MatchAny"
+
+
+lemma optimize_primitive_univ_correct_matchexpr: "matches (common_matcher, \<alpha>) m = matches (common_matcher, \<alpha>) (optimize_primitive_univ m)"
+  apply(simp add: fun_eq_iff, clarify, rename_tac a p)
+  apply(rule matches_iff_apply_f)
+  apply(simp)
+  apply(induction m rule: optimize_primitive_univ.induct)
+                              apply(simp_all add: eval_ternary_simps ip_in_ipv4range_set_from_bitmask_UNIV)
+  done
+corollary optimize_primitive_univ_correct: "approximating_bigstep_fun (common_matcher, \<alpha>) p (optimize_matches optimize_primitive_univ rs) s = 
+                                            approximating_bigstep_fun (common_matcher, \<alpha>) p rs s"
+using optimize_matches optimize_primitive_univ_correct_matchexpr by metis
+
+
 end

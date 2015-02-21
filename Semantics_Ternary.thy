@@ -577,7 +577,7 @@ apply(case_tac a)
 done
 
 
-lemma "good_ruleset rs \<Longrightarrow> simple_ruleset (rw_Reject (rm_LogEmpty rs))"
+lemma rmLogEmpty_rwReject_good_to_simple: "good_ruleset rs \<Longrightarrow> simple_ruleset (rw_Reject (rm_LogEmpty rs))"
   apply(drule rm_LogEmpty_simple_but_Reject)
   apply(simp add: simple_ruleset_def)
   apply(induction rs)
@@ -603,6 +603,9 @@ lemma optimize_matches: "\<forall>m. matches \<gamma> m = matches \<gamma> (f m)
          apply(simp_all)
   done
 
+
+lemma optimize_matches_simple_ruleset: "simple_ruleset rs \<Longrightarrow> simple_ruleset (optimize_matches f rs)"
+  by(simp add: optimize_matches_def simple_ruleset_def)
 
 lemma optimize_matches_opt_MatchAny_match_expr: "approximating_bigstep_fun \<gamma> p (optimize_matches opt_MatchAny_match_expr rs) s = approximating_bigstep_fun \<gamma> p rs s"
 using optimize_matches opt_MatchAny_match_expr_correct by metis

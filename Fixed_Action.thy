@@ -508,6 +508,7 @@ proof(induction m rule: normalize_match.induct)
 
 
 
+(*TODO: generalize!*)
 fun normalize_rules :: "'a rule list \<Rightarrow> 'a rule list" where
   "normalize_rules [] = []" |
   "normalize_rules ((Rule m a)#rs) = (map (\<lambda>m. Rule m a) (normalize_match m))@(normalize_rules rs)"
@@ -547,6 +548,17 @@ lemma good_ruleset_normalize_rules: "good_ruleset rs \<Longrightarrow> good_rule
     thus ?case by(subst normalize_rules_fst)
   qed
 
+lemma simple_ruleset_normalize_rules: "simple_ruleset rs \<Longrightarrow> simple_ruleset (normalize_rules rs)"
+  proof(induction rs)
+  case Nil thus ?case by (simp)
+  next
+  case(Cons r rs)
+    from Cons have IH: "simple_ruleset (normalize_rules rs)" using simple_ruleset_tail by blast
+    from Cons.prems have "simple_ruleset [r]" using simple_ruleset_append by fastforce
+    hence "simple_ruleset (normalize_rules [r])" by(cases r) (simp add: simple_ruleset_def) 
+    with IH simple_ruleset_append have  "simple_ruleset (normalize_rules [r] @ normalize_rules rs)" by blast
+    thus ?case by(subst normalize_rules_fst)
+  qed
 
 lemma normalize_rules_correct: "wf_ruleset \<gamma> p rs \<Longrightarrow> approximating_bigstep_fun \<gamma> p (normalize_rules rs) s = approximating_bigstep_fun \<gamma> p rs s"
   proof(induction rs)

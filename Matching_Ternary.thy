@@ -179,10 +179,10 @@ fun opt_MatchAny_match_expr :: "'a match_expr \<Rightarrow> 'a match_expr" where
   "opt_MatchAny_match_expr (MatchNot (MatchNot m)) = (opt_MatchAny_match_expr m)" |
   "opt_MatchAny_match_expr (MatchNot m) = MatchNot (opt_MatchAny_match_expr m)" |
   "opt_MatchAny_match_expr (MatchAnd MatchAny MatchAny) = MatchAny" |
-  "opt_MatchAny_match_expr (MatchAnd MatchAny m) = m" | (*TODO: one could add: opt_MatchAny_match_expr*)
-  "opt_MatchAny_match_expr (MatchAnd m MatchAny) = m" |
-  "opt_MatchAny_match_expr (MatchAnd m (MatchNot MatchAny)) = (MatchNot MatchAny)" |
-  "opt_MatchAny_match_expr (MatchAnd (MatchNot MatchAny) m) = (MatchNot MatchAny)" |
+  "opt_MatchAny_match_expr (MatchAnd MatchAny m) = (opt_MatchAny_match_expr m)" | (*TODO: remove recursive call to opt_MatchAny_match_expr to make it faster*)
+  "opt_MatchAny_match_expr (MatchAnd m MatchAny) = (opt_MatchAny_match_expr m)" |
+  "opt_MatchAny_match_expr (MatchAnd _ (MatchNot MatchAny)) = (MatchNot MatchAny)" |
+  "opt_MatchAny_match_expr (MatchAnd (MatchNot MatchAny) _) = (MatchNot MatchAny)" |
   "opt_MatchAny_match_expr (MatchAnd m1 m2) = MatchAnd (opt_MatchAny_match_expr m1) (opt_MatchAny_match_expr m2)"
 text{*need to apply multiple times until it stabelizes*}
 
