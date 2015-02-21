@@ -32,7 +32,7 @@ definition deny_set :: "iptrule_match rule list \<Rightarrow> iptrule_match pack
 
 
 definition bitmask_to_strange_inverse_cisco_mask:: "nat \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat)" where
- "bitmask_to_strange_inverse_cisco_mask n \<equiv> dotteddecimal_of_ipv4addr ( (NOT (((mask n)::ipv4addr) << (32 - n))) )"
+ "bitmask_to_strange_inverse_cisco_mask n \<equiv> dotdecimal_of_ipv4addr ( (NOT (((mask n)::ipv4addr) << (32 - n))) )"
 lemma "bitmask_to_strange_inverse_cisco_mask 16 = (0, 0, 255, 255)" by eval
 lemma "bitmask_to_strange_inverse_cisco_mask 24 = (0, 0, 0, 255)" by eval
 lemma "bitmask_to_strange_inverse_cisco_mask 8 = (0, 255, 255, 255)" by eval
@@ -158,10 +158,10 @@ writeln(String.concat ["It took ", Time.toString(Time.-(t1,t0)), " seconds"])
 text{*on my system, less than five seconds.*}
 
 ML{*
-fun dump_dotteddecimal_ip (a,(b,(c,d))) = ""^ Int.toString (integer_of_nat a)^"."^ Int.toString (integer_of_nat b)^"."^ Int.toString (integer_of_nat c)^"."^ Int.toString (integer_of_nat d);
+fun dump_dotdecimal_ip (a,(b,(c,d))) = ""^ Int.toString (integer_of_nat a)^"."^ Int.toString (integer_of_nat b)^"."^ Int.toString (integer_of_nat c)^"."^ Int.toString (integer_of_nat d);
 
-fun dump_ip (Ip4Addr ip) = (dump_dotteddecimal_ip ip)^"/32"
-  | dump_ip (Ip4AddrNetmask (ip, nm)) = (dump_dotteddecimal_ip ip)^"/"^ Int.toString (integer_of_nat nm);
+fun dump_ip (Ip4Addr ip) = (dump_dotdecimal_ip ip)^"/32"
+  | dump_ip (Ip4AddrNetmask (ip, nm)) = (dump_dotdecimal_ip ip)^"/"^ Int.toString (integer_of_nat nm);
 
 fun dump_prot ProtAll = "all"
   | dump_prot ProtTCP = "tcp"
@@ -333,8 +333,8 @@ fun dump_prot_cisco [] = "ip"
 
 
 local
-  fun dump_ip_cisco (Ip4Addr ip) = "host "^(dump_dotteddecimal_ip ip)
-    | dump_ip_cisco (Ip4AddrNetmask (ip, nm)) = (dump_dotteddecimal_ip ip)^" "^(dump_dotteddecimal_ip (bitmask_to_strange_inverse_cisco_mask nm));
+  fun dump_ip_cisco (Ip4Addr ip) = "host "^(dump_dotdecimal_ip ip)
+    | dump_ip_cisco (Ip4AddrNetmask (ip, nm)) = (dump_dotdecimal_ip ip)^" "^(dump_dotdecimal_ip (bitmask_to_strange_inverse_cisco_mask nm));
 in
   fun dump_ip_list_cisco [] = "any"
     | dump_ip_list_cisco [Pos ip] = dump_ip_cisco ip
@@ -373,8 +373,8 @@ fun dump_action_flowtable Accept = "flood"
 ;
 
 local
-  fun dump_ip_flowtable (Ip4Addr ip) = (dump_dotteddecimal_ip ip)
-    | dump_ip_flowtable (Ip4AddrNetmask (ip, nm)) = (dump_dotteddecimal_ip ip)^"/"^ Int.toString (integer_of_nat nm);
+  fun dump_ip_flowtable (Ip4Addr ip) = (dump_dotdecimal_ip ip)
+    | dump_ip_flowtable (Ip4AddrNetmask (ip, nm)) = (dump_dotdecimal_ip ip)^"/"^ Int.toString (integer_of_nat nm);
 in
   fun dump_ip_list_flowtable [] = "*"
     | dump_ip_list_flowtable [Pos ip] = dump_ip_flowtable ip

@@ -4,18 +4,18 @@ begin
 
 definition intersect_netmask_empty :: "nat \<times> nat \<times> nat \<times> nat \<Rightarrow> nat \<Rightarrow> nat \<times> nat \<times> nat \<times> nat \<Rightarrow> nat \<Rightarrow> bool" where
   "intersect_netmask_empty base1 m1 base2 m2 \<equiv> 
-    ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal base1) m1 \<inter> ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal base2) m2 = {}"
+    ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal base1) m1 \<inter> ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal base2) m2 = {}"
 
-fun ipv4range_set_from_bitmask_to_executable_ipv4range :: "ipt_ipv4range \<Rightarrow> 32 bitrange" where
+fun ipv4range_set_from_bitmask_to_executable_ipv4range :: "ipt_ipv4range \<Rightarrow> 32 wordinterval" where
    "ipv4range_set_from_bitmask_to_executable_ipv4range (Ip4AddrNetmask pre len) = 
-      ipv4range_range (((ipv4addr_of_dotteddecimal pre) AND ((mask len) << (32 - len))))  ((ipv4addr_of_dotteddecimal pre) OR (mask (32 - len)))" |
-   "ipv4range_set_from_bitmask_to_executable_ipv4range (Ip4Addr ip) = ipv4range_single (ipv4addr_of_dotteddecimal ip)"
+      ipv4range_range (((ipv4addr_of_dotdecimal pre) AND ((mask len) << (32 - len))))  ((ipv4addr_of_dotdecimal pre) OR (mask (32 - len)))" |
+   "ipv4range_set_from_bitmask_to_executable_ipv4range (Ip4Addr ip) = ipv4range_single (ipv4addr_of_dotdecimal ip)"
 
 
 lemma ipv4range_set_from_bitmask_to_executable_ipv4range_simps: 
       "ipv4range_to_set (ipv4range_set_from_bitmask_to_executable_ipv4range (Ip4AddrNetmask base m)) = 
-       ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal base) m"
-      "ipv4range_to_set (ipv4range_set_from_bitmask_to_executable_ipv4range (Ip4Addr ip)) = {ipv4addr_of_dotteddecimal ip}"
+       ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal base) m"
+      "ipv4range_to_set (ipv4range_set_from_bitmask_to_executable_ipv4range (Ip4Addr ip)) = {ipv4addr_of_dotdecimal ip}"
   unfolding ipv4range_set_from_bitmask_to_executable_ipv4range.simps
   apply(simp_all add: ipv4range_set_from_bitmask_alt ipv4range_range_set_eq ipv4range_single_set_eq)
   done
@@ -38,7 +38,7 @@ export_code intersect_netmask_empty in SML
 
 definition subset_netmask :: "nat \<times> nat \<times> nat \<times> nat \<Rightarrow> nat \<Rightarrow> nat \<times> nat \<times> nat \<times> nat \<Rightarrow> nat \<Rightarrow> bool" where
   "subset_netmask base1 m1 base2 m2 \<equiv> 
-    ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal base1) m1 \<subseteq> ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal base2) m2"
+    ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal base1) m1 \<subseteq> ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal base2) m2"
 
 definition subset_netmask_executable :: "nat \<times> nat \<times> nat \<times> nat \<Rightarrow> nat \<Rightarrow> nat \<times> nat \<times> nat \<times> nat \<Rightarrow> nat \<Rightarrow> bool" where
   "subset_netmask_executable \<equiv> (\<lambda> base1 m1 base2 m2. ipv4range_subset
@@ -56,25 +56,25 @@ done
 (*None means empty, Some range otherwise*)
 fun intersect_ips :: "ipt_ipv4range \<Rightarrow> ipt_ipv4range \<Rightarrow> ipt_ipv4range option" where
   "intersect_ips (Ip4Addr ip) (Ip4AddrNetmask base m) =
-    (if (ipv4addr_of_dotteddecimal ip) \<in> (ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal base) m) 
+    (if (ipv4addr_of_dotdecimal ip) \<in> (ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal base) m) 
      then 
       Some (Ip4Addr ip)
      else
       None)" |
   "intersect_ips (Ip4AddrNetmask base m) (Ip4Addr ip) =
-    (if (ipv4addr_of_dotteddecimal ip) \<in> (ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal base) m) 
+    (if (ipv4addr_of_dotdecimal ip) \<in> (ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal base) m) 
      then 
       Some (Ip4Addr ip)
      else
       None)" |
   "intersect_ips (Ip4Addr ip1) (Ip4Addr ip2) =
-    (if ipv4addr_of_dotteddecimal ip2 = ipv4addr_of_dotteddecimal ip1 (*there might be overflows if someone uses values > 256*)
+    (if ipv4addr_of_dotdecimal ip2 = ipv4addr_of_dotdecimal ip1 (*there might be overflows if someone uses values > 256*)
      then 
       Some (Ip4Addr ip1)
      else
       None)" |
   "intersect_ips (Ip4AddrNetmask base1 m1) (Ip4AddrNetmask base2 m2) = 
-    (if (*ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal base1) m1 \<inter> ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal base2) m2 = {}*)
+    (if (*ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal base1) m1 \<inter> ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal base2) m2 = {}*)
         intersect_netmask_empty base1 m1 base2 m2
      then
       None
@@ -184,8 +184,8 @@ by (metis Int_assoc intersect_ips_Some)
 
 (*End Scratch*)
 
-fun collect_to_range :: "ipt_ipv4range list \<Rightarrow> 32 bitrange" where
- "collect_to_range [] = Empty_Bitrange" |
+fun collect_to_range :: "ipt_ipv4range list \<Rightarrow> 32 wordinterval" where
+ "collect_to_range [] = Empty_WordInterval" |
  "collect_to_range (r#rs) = RangeUnion (ipv4range_set_from_bitmask_to_executable_ipv4range r) (collect_to_range rs)"
 
 

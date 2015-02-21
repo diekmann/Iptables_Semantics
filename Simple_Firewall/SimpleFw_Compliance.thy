@@ -1,16 +1,15 @@
 theory SimpleFw_Compliance
 imports SimpleFw_Semantics (*"../Primitive_Matchers/IPPortIfaceSpace_Matcher" "../Semantics_Ternary"
         "../Output_Format/Negation_Type_Matching"*)
-        "../Primitive_Matchers/Ports_Normalize"
-        "../Primitive_Matchers/IpAddresses_Normalize"
+        "../Primitive_Matchers/Transform"
 begin
 
 fun ipv4_word_netmask_to_ipt_ipv4range :: "(ipv4addr \<times> nat) \<Rightarrow> ipt_ipv4range" where
-  "ipv4_word_netmask_to_ipt_ipv4range (ip, n) = Ip4AddrNetmask (dotteddecimal_of_ipv4addr ip) n"
+  "ipv4_word_netmask_to_ipt_ipv4range (ip, n) = Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) n"
 
 fun ipt_ipv4range_to_ipv4_word_netmask :: "ipt_ipv4range \<Rightarrow> (ipv4addr \<times> nat)" where
-  "ipt_ipv4range_to_ipv4_word_netmask (Ip4Addr ip_ddecim) = (ipv4addr_of_dotteddecimal ip_ddecim, 32)" | 
-  "ipt_ipv4range_to_ipv4_word_netmask (Ip4AddrNetmask pre len) = (ipv4addr_of_dotteddecimal pre, len)"
+  "ipt_ipv4range_to_ipv4_word_netmask (Ip4Addr ip_ddecim) = (ipv4addr_of_dotdecimal ip_ddecim, 32)" | 
+  "ipt_ipv4range_to_ipv4_word_netmask (Ip4AddrNetmask pre len) = (ipv4addr_of_dotdecimal pre, len)"
   (*we could make sure here that this is a @{term valid_prefix}, \<dots>*)
 
 (*from ipv4range_set_from_bitmask_alt*)
@@ -40,7 +39,7 @@ lemma matches_SrcDst_simple_match: "p_src p \<in> ipv4s_to_set (ipv4_word_netmas
     "p_dst p \<in> ipv4s_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_dst p)"
 apply(case_tac [!] ip)
 apply(rename_tac b m)
-by(simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary ipv4addr_of_dotteddecimal_dotteddecimal_of_ipv4addr)
+by(simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
 
 
 subsection{*Simple Match to MatchExpr*}

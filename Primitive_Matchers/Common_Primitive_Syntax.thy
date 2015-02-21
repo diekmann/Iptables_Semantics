@@ -31,7 +31,7 @@ lemma wf_disc_sel_common_primitive[simp]:
 (*subsection{*Example Packet*}*)
  (*TODO: unify: packet + *)
 
-  value "\<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotteddecimal (192,168,2,45), p_dst= ipv4addr_of_dotteddecimal (173,194,112,111),
+  value "\<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
          p_proto=TCP, p_sport=2065, p_dport=80\<rparr>"
 
 

@@ -1,5 +1,5 @@
 theory SimpleFw_Semantics
-imports Main "../Bitmagic/IPv4Addr" "../Bitmagic/BitrangeLists" "../Output_Format/Negation_Type"
+imports Main "../Bitmagic/IPv4Addr" "../Bitmagic/WordInterval_Lists" "../Output_Format/Negation_Type"
   "../Firewall_Common_Decision_State"
   "../Primitive_Matchers/Iface"
   "../Primitive_Matchers/Protocol"

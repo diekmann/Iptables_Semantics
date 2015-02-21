@@ -9,10 +9,10 @@ subsection{*Primitive Matchers: IP Space Matcher*}
 
 (*for the first 4 cases, we set up better simp rules. this formulation is required such that simple_matcher is executable*)
 fun simple_matcher :: "(iptrule_match, packet) exact_match_tac" where
-  "simple_matcher (Src (Ip4Addr ip)) p = bool_to_ternary (ipv4addr_of_dotteddecimal ip = src_ip p)" |
-  "simple_matcher (Src (Ip4AddrNetmask ip n)) p = bool_to_ternary (src_ip p \<in> ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal ip) n)" |
-  "simple_matcher (Dst (Ip4Addr ip)) p = bool_to_ternary (ipv4addr_of_dotteddecimal ip = dst_ip p)" |
-  "simple_matcher (Dst (Ip4AddrNetmask ip n)) p = bool_to_ternary (dst_ip p \<in> ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal ip) n)" |
+  "simple_matcher (Src (Ip4Addr ip)) p = bool_to_ternary (ipv4addr_of_dotdecimal ip = src_ip p)" |
+  "simple_matcher (Src (Ip4AddrNetmask ip n)) p = bool_to_ternary (src_ip p \<in> ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal ip) n)" |
+  "simple_matcher (Dst (Ip4Addr ip)) p = bool_to_ternary (ipv4addr_of_dotdecimal ip = dst_ip p)" |
+  "simple_matcher (Dst (Ip4AddrNetmask ip n)) p = bool_to_ternary (dst_ip p \<in> ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal ip) n)" |
 
   "simple_matcher (Prot ProtAll) _ = TernaryTrue" |
   "simple_matcher (Prot ipt_protocol.ProtTCP) p = bool_to_ternary (prot p = protPacket.ProtTCP)" |

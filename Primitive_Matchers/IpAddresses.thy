@@ -12,8 +12,8 @@ datatype ipt_ipv4range = Ip4Addr "nat \<times> nat \<times> nat \<times> nat"
 
 
 fun ipv4s_to_set :: "ipt_ipv4range \<Rightarrow> ipv4addr set" where
-  "ipv4s_to_set (Ip4AddrNetmask base m) = ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal base) m" |
-  "ipv4s_to_set (Ip4Addr ip) = { ipv4addr_of_dotteddecimal ip }"
+  "ipv4s_to_set (Ip4AddrNetmask base m) = ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal base) m" |
+  "ipv4s_to_set (Ip4Addr ip) = { ipv4addr_of_dotdecimal ip }"
 
 text{*@{term ipv4s_to_set} cannot represent an empty set.*}
 lemma ipv4s_to_set_nonempty: "ipv4s_to_set ip \<noteq> {}"
@@ -25,8 +25,8 @@ lemma ipv4s_to_set_nonempty: "ipv4s_to_set ip \<noteq> {}"
 
 text{*maybe this is necessary as code equation?*}
 lemma element_ipv4s_to_set: "addr \<in> ipv4s_to_set X = (
-  case X of (Ip4AddrNetmask pre len) \<Rightarrow> ((ipv4addr_of_dotteddecimal pre) AND ((mask len) << (32 - len))) \<le> addr \<and> addr \<le> (ipv4addr_of_dotteddecimal pre) OR (mask (32 - len))
-  | Ip4Addr ip \<Rightarrow> (addr = (ipv4addr_of_dotteddecimal ip)) )"
+  case X of (Ip4AddrNetmask pre len) \<Rightarrow> ((ipv4addr_of_dotdecimal pre) AND ((mask len) << (32 - len))) \<le> addr \<and> addr \<le> (ipv4addr_of_dotdecimal pre) OR (mask (32 - len))
+  | Ip4Addr ip \<Rightarrow> (addr = (ipv4addr_of_dotdecimal ip)) )"
 apply(cases X)
  apply(simp)
 apply(simp add: ipv4range_set_from_bitmask_alt)
@@ -35,8 +35,8 @@ done
 
 --"Misc"
 (*we dont't have an empty ip space, but a space which only contains the 0 address. We will use the option type to denote the empty space in some functions.*)
-lemma "ipv4range_set_from_bitmask (ipv4addr_of_dotteddecimal (0, 0, 0, 0)) 33 = {0}"
-apply(simp add: ipv4addr_of_dotteddecimal.simps ipv4addr_of_nat_def)
+lemma "ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 33 = {0}"
+apply(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
 apply(simp add: ipv4range_set_from_bitmask_def)
 apply(simp add: ipv4range_set_from_netmask_def)
 done
@@ -45,10 +45,10 @@ done
 (*We need a separate ipv4addr syntax thy*)
  (*TODO: Move*)
  fun ipt_ipv4range_to_intervall :: "ipt_ipv4range \<Rightarrow> (ipv4addr \<times> ipv4addr)" where
-    "ipt_ipv4range_to_intervall (Ip4Addr addr) = (ipv4addr_of_dotteddecimal addr, ipv4addr_of_dotteddecimal addr)" |
+    "ipt_ipv4range_to_intervall (Ip4Addr addr) = (ipv4addr_of_dotdecimal addr, ipv4addr_of_dotdecimal addr)" |
     "ipt_ipv4range_to_intervall (Ip4AddrNetmask pre len) = (
       let netmask = (mask len) << (32 - len);
-          network_prefix = (ipv4addr_of_dotteddecimal pre AND netmask)
+          network_prefix = (ipv4addr_of_dotdecimal pre AND netmask)
       in (network_prefix, network_prefix OR (NOT netmask))
      )" 
 

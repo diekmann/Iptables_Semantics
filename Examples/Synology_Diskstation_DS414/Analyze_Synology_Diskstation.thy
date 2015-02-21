@@ -35,19 +35,19 @@ abbreviation MatchAndInfix :: "'a match_expr \<Rightarrow> 'a match_expr \<Right
   lemma "simple_ruleset example_ruleset_simplified" by eval
 
   text{*packets from the local lan are allowed (in doubt)*}
-  value "approximating_bigstep_fun (simple_matcher, in_doubt_allow) \<lparr>src_ip=ipv4addr_of_dotteddecimal (192,168,3,5), dst_ip=0, prot=protPacket.ProtTCP\<rparr>
+  value "approximating_bigstep_fun (simple_matcher, in_doubt_allow) \<lparr>src_ip=ipv4addr_of_dotdecimal (192,168,3,5), dst_ip=0, prot=protPacket.ProtTCP\<rparr>
         example_ruleset_simplified
         Undecided = Decision FinalAllow"
-  lemma "approximating_bigstep_fun (simple_matcher, in_doubt_allow) \<lparr>src_ip=ipv4addr_of_dotteddecimal (192,168,3,5), dst_ip=0, prot=protPacket.ProtTCP\<rparr>
+  lemma "approximating_bigstep_fun (simple_matcher, in_doubt_allow) \<lparr>src_ip=ipv4addr_of_dotdecimal (192,168,3,5), dst_ip=0, prot=protPacket.ProtTCP\<rparr>
         example_ruleset_simplified
         Undecided = Decision FinalAllow" by eval
   text{*However, they might also be rate-limited, ... (we don't know about icmp)*}
-  lemma "approximating_bigstep_fun (simple_matcher, in_doubt_deny) \<lparr>src_ip=ipv4addr_of_dotteddecimal (192,168,3,5), dst_ip=0, prot=protPacket.ProtTCP\<rparr>
+  lemma "approximating_bigstep_fun (simple_matcher, in_doubt_deny) \<lparr>src_ip=ipv4addr_of_dotdecimal (192,168,3,5), dst_ip=0, prot=protPacket.ProtTCP\<rparr>
         example_ruleset_simplified
         Undecided = Decision FinalDeny" by eval
   
   text{*But we can guarantee that packets from the outside are blocked!*}
-  lemma "approximating_bigstep_fun (simple_matcher, in_doubt_allow) \<lparr>src_ip=ipv4addr_of_dotteddecimal (8,8,3,5), dst_ip=0, prot=protPacket.ProtTCP\<rparr>
+  lemma "approximating_bigstep_fun (simple_matcher, in_doubt_allow) \<lparr>src_ip=ipv4addr_of_dotdecimal (8,8,3,5), dst_ip=0, prot=protPacket.ProtTCP\<rparr>
         example_ruleset_simplified
         Undecided = Decision FinalDeny" by eval
 
@@ -86,12 +86,12 @@ apply(subst rmshadow.simps)
 apply(simp del: rmshadow.simps)
 apply(simp add: Matching_Ternary.matches_def)
 apply(intro conjI impI)
-apply(rule_tac x="\<lparr>src_ip=ipv4addr_of_dotteddecimal (8,8,3,5), dst_ip=0, prot=protPacket.ProtTCP\<rparr>" in exI)
-apply(simp add: ipv4addr_of_dotteddecimal.simps ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def Let_def ipv4addr_of_nat_def)
+apply(rule_tac x="\<lparr>src_ip=ipv4addr_of_dotdecimal (8,8,3,5), dst_ip=0, prot=protPacket.ProtTCP\<rparr>" in exI)
+apply(simp add: ipv4addr_of_dotdecimal.simps ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def Let_def ipv4addr_of_nat_def)
 
 apply(thin_tac "\<exists>p. ?x p")
-apply(rule_tac x="\<lparr>src_ip=ipv4addr_of_dotteddecimal (192,168,99,0), dst_ip=0, prot=protPacket.ProtTCP\<rparr>" in exI)
-apply(simp add: ipv4addr_of_dotteddecimal.simps ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def Let_def ipv4addr_of_nat_def)
+apply(rule_tac x="\<lparr>src_ip=ipv4addr_of_dotdecimal (192,168,99,0), dst_ip=0, prot=protPacket.ProtTCP\<rparr>" in exI)
+apply(simp add: ipv4addr_of_dotdecimal.simps ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def Let_def ipv4addr_of_nat_def)
 done
 
 

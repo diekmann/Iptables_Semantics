@@ -265,7 +265,7 @@ lemma size_mask_32word': "size ((mask (32 - m))::32 word) = 32" by(simp add:word
 
 (*declare[[show_types]]
 declare[[unify_trace_failure]]*)
-lemma bitrange_to_set_ipv4range_set_from_bitmask: assumes "valid_prefix pfx"
+lemma wordinterval_to_set_ipv4range_set_from_bitmask: assumes "valid_prefix pfx"
       shows "prefix_to_ipset pfx = ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
 proof-
   have prefix_match_if_in_corny_set: "(prefix_to_ipset pfx) = ipv4range_set_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx)"

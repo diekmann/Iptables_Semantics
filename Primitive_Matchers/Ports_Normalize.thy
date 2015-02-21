@@ -9,7 +9,7 @@ subsection{*Normalizing ports*}
 
   fun ipt_ports_negation_type_normalize :: "ipt_ports negation_type \<Rightarrow> ipt_ports" where
     "ipt_ports_negation_type_normalize (Pos ps) = ps" |
-    "ipt_ports_negation_type_normalize (Neg ps) = br2l (bitrange_invert (l2br ps))"  
+    "ipt_ports_negation_type_normalize (Neg ps) = br2l (wordinterval_invert (l2br ps))"  
   
   
   lemma "ipt_ports_negation_type_normalize (Neg [(0,65535)]) = []" by eval
@@ -23,24 +23,24 @@ subsection{*Normalizing ports*}
          matches (common_matcher, \<alpha>) (Match (Dst_Ports (ipt_ports_negation_type_normalize ps))) a p"
   apply(case_tac [!] ps)
   apply(simp_all add: ipt_ports_negation_type_normalize.simps matches_case_ternaryvalue_tuple
-          bunch_of_lemmata_about_matches bool_to_ternary_simps l2br_br2l ports_to_set_bitrange split: ternaryvalue.split)
+          bunch_of_lemmata_about_matches bool_to_ternary_simps l2br_br2l ports_to_set_wordinterval split: ternaryvalue.split)
   done
   
   (* [ [(1,2) \<or> (3,4)]  \<and>  [] ]*)
   text{* @{typ "ipt_ports list \<Rightarrow> ipt_ports"} *}
   definition ipt_ports_andlist_compress :: "('a::len word \<times> 'a::len word) list list \<Rightarrow> ('a::len word \<times> 'a::len word) list" where
-    "ipt_ports_andlist_compress pss = br2l (fold (\<lambda>ps accu. (bitrange_intersection (l2br ps) accu)) pss bitrange_UNIV)"
+    "ipt_ports_andlist_compress pss = br2l (fold (\<lambda>ps accu. (wordinterval_intersection (l2br ps) accu)) pss wordinterval_UNIV)"
   
   lemma ipt_ports_andlist_compress_correct: "ports_to_set (ipt_ports_andlist_compress pss) = \<Inter> set (map ports_to_set pss)"
     proof -
       { fix accu
-        have "ports_to_set (br2l (fold (\<lambda>ps accu. (bitrange_intersection (l2br ps) accu)) pss accu)) = (\<Inter> set (map ports_to_set pss)) \<inter> (ports_to_set (br2l accu))"
+        have "ports_to_set (br2l (fold (\<lambda>ps accu. (wordinterval_intersection (l2br ps) accu)) pss accu)) = (\<Inter> set (map ports_to_set pss)) \<inter> (ports_to_set (br2l accu))"
           apply(induction pss arbitrary: accu)
-           apply(simp_all add: ports_to_set_bitrange l2br_br2l)
+           apply(simp_all add: ports_to_set_wordinterval l2br_br2l)
           by fast
       }
-      from this[of bitrange_UNIV] show ?thesis
-        unfolding ipt_ports_andlist_compress_def by(simp add: ports_to_set_bitrange l2br_br2l)
+      from this[of wordinterval_UNIV] show ?thesis
+        unfolding ipt_ports_andlist_compress_def by(simp add: ports_to_set_wordinterval l2br_br2l)
     qed
   
   
@@ -65,7 +65,7 @@ subsection{*Normalizing ports*}
           thus ?goal using Cons.IH
           apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
           apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps l2br_br2l
-                  ports_to_set_bitrange ipt_ports_negation_type_normalize.simps split: ternaryvalue.split)
+                  ports_to_set_wordinterval ipt_ports_negation_type_normalize.simps split: ternaryvalue.split)
           done
         qed
   qed
@@ -84,7 +84,7 @@ subsection{*Normalizing ports*}
         case (Neg a)
           thus ?goal using Cons.IH
           apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
-          apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps l2br_br2l ports_to_set_bitrange
+          apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps l2br_br2l ports_to_set_wordinterval
               ipt_ports_negation_type_normalize.simps split: ternaryvalue.split)
           done
         qed

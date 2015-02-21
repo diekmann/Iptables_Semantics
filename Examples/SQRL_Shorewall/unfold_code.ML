@@ -346,27 +346,6 @@ fun semiring_1_word A_ =
 
 val equal_char = {equal = (fn a => fn b => ((a : char) = b))} : char equal;
 
-fun equal_int k l = (((integer_of_int k) : IntInf.int) = (integer_of_int l));
-
-fun equal_word A_ k l = equal_int (uint A_ k) (uint A_ l);
-
-datatype 'a bitrange = Bitrange of 'a word * 'a word |
-  RangeUnion of 'a bitrange * 'a bitrange;
-
-fun equal_bitrangea A_ (Bitrange (word1, word2))
-  (RangeUnion (bitrange1, bitrange2)) = false
-  | equal_bitrangea A_ (RangeUnion (bitrange1, bitrange2))
-    (Bitrange (word1, word2)) = false
-  | equal_bitrangea A_ (RangeUnion (bitrange1a, bitrange2a))
-    (RangeUnion (bitrange1, bitrange2)) =
-    equal_bitrangea A_ bitrange1a bitrange1 andalso
-      equal_bitrangea A_ bitrange2a bitrange2
-  | equal_bitrangea A_ (Bitrange (word1a, word2a)) (Bitrange (word1, word2)) =
-    equal_word (len0_len A_) word1a word1 andalso
-      equal_word (len0_len A_) word2a word2;
-
-fun equal_bitrange A_ = {equal = equal_bitrangea A_} : 'a bitrange equal;
-
 fun times_nat m n = Nat (IntInf.* (integer_of_nat m, integer_of_nat n));
 
 fun nat_of_integer k = Nat (max ord_integer 0 k);
@@ -393,6 +372,29 @@ val len_num1 = {len0_len = len0_num1} : num1 len;
 fun equal_proda A_ B_ (x1, x2) (y1, y2) = eq A_ x1 y1 andalso eq B_ x2 y2;
 
 fun equal_prod A_ B_ = {equal = equal_proda A_ B_} : ('a * 'b) equal;
+
+datatype 'a wordinterval = WordInterval of 'a word * 'a word |
+  RangeUnion of 'a wordinterval * 'a wordinterval;
+
+fun equal_int k l = (((integer_of_int k) : IntInf.int) = (integer_of_int l));
+
+fun equal_word A_ k l = equal_int (uint A_ k) (uint A_ l);
+
+fun equal_wordintervala A_ (WordInterval (word1, word2))
+  (RangeUnion (wordinterval1, wordinterval2)) = false
+  | equal_wordintervala A_ (RangeUnion (wordinterval1, wordinterval2))
+    (WordInterval (word1, word2)) = false
+  | equal_wordintervala A_ (RangeUnion (wordinterval1a, wordinterval2a))
+    (RangeUnion (wordinterval1, wordinterval2)) =
+    equal_wordintervala A_ wordinterval1a wordinterval1 andalso
+      equal_wordintervala A_ wordinterval2a wordinterval2
+  | equal_wordintervala A_ (WordInterval (word1a, word2a))
+    (WordInterval (word1, word2)) =
+    equal_word (len0_len A_) word1a word1 andalso
+      equal_word (len0_len A_) word2a word2;
+
+fun equal_wordinterval A_ = {equal = equal_wordintervala A_} :
+  'a wordinterval equal;
 
 datatype ipt_protocol = ProtAll | ProtTCP | ProtUDP;
 
@@ -516,15 +518,6 @@ fun max_word A_ =
 
 fun the (SOME x2) = x2;
 
-fun word_next A_ a =
-  (if equal_word (len0_len A_) a (max_word A_) then max_word A_
-    else plus_worda (len0_len A_) a (one_worda (len0_len A_)));
-
-fun word_prev A_ a =
-  (if equal_word (len0_len A_) a (zero_worda (len0_len A_))
-    then zero_worda (len0_len A_)
-    else minus_word (len0_len A_) a (one_worda (len0_len A_)));
-
 fun mod_nat m n = Nat (mod_integer (integer_of_nat m) (integer_of_nat n));
 
 fun fst (x1, x2) = x1;
@@ -545,16 +538,14 @@ fun getPos [] = []
   | getPos (Pos x :: xs) = x :: getPos xs
   | getPos (Neg v :: xs) = getPos xs;
 
-fun bitrange_UNIV A_ = Bitrange (zero_worda (len0_len A_), max_word A_);
+fun word_next A_ a =
+  (if equal_word (len0_len A_) a (max_word A_) then max_word A_
+    else plus_worda (len0_len A_) a (one_worda (len0_len A_)));
 
-fun empty_Bitrange A_ =
-  Bitrange (one_worda (len0_len A_), zero_worda (len0_len A_));
-
-fun bitrange_empty A_ (Bitrange (s, e)) = less_word (len0_len A_) e s
-  | bitrange_empty A_ (RangeUnion (r1, r2)) =
-    bitrange_empty A_ r1 andalso bitrange_empty A_ r2;
-
-fun bitrange_union A_ r1 r2 = RangeUnion (r1, r2);
+fun word_prev A_ a =
+  (if equal_word (len0_len A_) a (zero_worda (len0_len A_))
+    then zero_worda (len0_len A_)
+    else minus_word (len0_len A_) a (one_worda (len0_len A_)));
 
 fun rmMatchFalse [] = []
   | rmMatchFalse (Rule (MatchNot MatchAny, uu) :: rs) = rmMatchFalse rs
@@ -572,38 +563,6 @@ fun rmMatchFalse [] = []
     Rule (MatchAny, va) :: rmMatchFalse rs;
 
 fun min A_ a b = (if less_eq A_ a b then a else b);
-
-fun bitrange_setminus A_ (Bitrange (s, e)) (Bitrange (ms, me)) =
-  (if less_word (len0_len A_) e s orelse less_word (len0_len A_) me ms
-    then Bitrange (s, e)
-    else (if less_eq_word (len0_len A_) e me
-           then Bitrange
-                  ((if equal_word (len0_len A_) ms (zero_worda (len0_len A_))
-                     then one_worda (len0_len A_) else s),
-                    min (ord_word (len0_len A_)) e (word_prev A_ ms))
-           else (if less_eq_word (len0_len A_) ms s
-                  then Bitrange
-                         (max (ord_word (len0_len A_)) s (word_next A_ me),
-                           (if equal_word (len0_len A_) me (max_word A_)
-                             then zero_worda (len0_len A_) else e))
-                  else RangeUnion
-                         (Bitrange
-                            ((if equal_word (len0_len A_) ms
-                                   (zero_worda (len0_len A_))
-                               then one_worda (len0_len A_) else s),
-                              word_prev A_ ms),
-                           Bitrange
-                             (word_next A_ me,
-                               (if equal_word (len0_len A_) me (max_word A_)
-                                 then zero_worda (len0_len A_) else e))))))
-  | bitrange_setminus A_ (RangeUnion (r1, r2)) t =
-    RangeUnion (bitrange_setminus A_ r1 t, bitrange_setminus A_ r2 t)
-  | bitrange_setminus A_ (Bitrange (v, va)) (RangeUnion (r1, r2)) =
-    bitrange_setminus A_ (bitrange_setminus A_ (Bitrange (v, va)) r1) r2;
-
-fun bitrange_invert A_ r = bitrange_setminus A_ (bitrange_UNIV A_) r;
-
-fun bitrange_subset A_ r1 r2 = bitrange_empty A_ (bitrange_setminus A_ r1 r2);
 
 fun numeral A_ (Bit1 n) =
   let
@@ -653,21 +612,15 @@ fun ipv4addr_of_nat n =
       (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))))
     n;
 
+fun wordinterval_empty A_ (WordInterval (s, e)) = less_word (len0_len A_) e s
+  | wordinterval_empty A_ (RangeUnion (r1, r2)) =
+    wordinterval_empty A_ r1 andalso wordinterval_empty A_ r2;
+
 fun ipv4range_empty rg =
-  bitrange_empty (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-    rg;
+  wordinterval_empty
+    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) rg;
 
-fun ipv4range_range ip_start ip_end = Bitrange (ip_start, ip_end);
-
-fun bitrange_to_list A_ (RangeUnion (r1, r2)) =
-  bitrange_to_list A_ r1 @ bitrange_to_list A_ r2
-  | bitrange_to_list A_ (Bitrange (v, va)) =
-    (if bitrange_empty A_ (Bitrange (v, va)) then [] else [Bitrange (v, va)]);
-
-fun list_to_bitrange A_ [r] = r
-  | list_to_bitrange A_ (r :: v :: va) =
-    RangeUnion (r, list_to_bitrange A_ (v :: va))
-  | list_to_bitrange A_ [] = empty_Bitrange A_;
+fun ipv4range_range ip_start ip_end = WordInterval (ip_start, ip_end);
 
 fun match_Ln_uncompressed_append
   (UncompressedFormattedMatch (src1, dst1, proto1, extra1))
@@ -707,10 +660,42 @@ fun iptrule_match_collect MatchAny accu = accu
 fun format_Ln_match m =
   iptrule_match_collect m (UncompressedFormattedMatch ([], [], [], []));
 
-fun ipv4range_single ip = Bitrange (ip, ip);
+fun ipv4range_single ip = WordInterval (ip, ip);
+
+fun wordinterval_setminus A_ (WordInterval (s, e)) (WordInterval (ms, me)) =
+  (if less_word (len0_len A_) e s orelse less_word (len0_len A_) me ms
+    then WordInterval (s, e)
+    else (if less_eq_word (len0_len A_) e me
+           then WordInterval
+                  ((if equal_word (len0_len A_) ms (zero_worda (len0_len A_))
+                     then one_worda (len0_len A_) else s),
+                    min (ord_word (len0_len A_)) e (word_prev A_ ms))
+           else (if less_eq_word (len0_len A_) ms s
+                  then WordInterval
+                         (max (ord_word (len0_len A_)) s (word_next A_ me),
+                           (if equal_word (len0_len A_) me (max_word A_)
+                             then zero_worda (len0_len A_) else e))
+                  else RangeUnion
+                         (WordInterval
+                            ((if equal_word (len0_len A_) ms
+                                   (zero_worda (len0_len A_))
+                               then one_worda (len0_len A_) else s),
+                              word_prev A_ ms),
+                           WordInterval
+                             (word_next A_ me,
+                               (if equal_word (len0_len A_) me (max_word A_)
+                                 then zero_worda (len0_len A_) else e))))))
+  | wordinterval_setminus A_ (RangeUnion (r1, r2)) t =
+    RangeUnion (wordinterval_setminus A_ r1 t, wordinterval_setminus A_ r2 t)
+  | wordinterval_setminus A_ (WordInterval (v, va)) (RangeUnion (r1, r2)) =
+    wordinterval_setminus A_
+      (wordinterval_setminus A_ (WordInterval (v, va)) r1) r2;
+
+fun wordinterval_subset A_ r1 r2 =
+  wordinterval_empty A_ (wordinterval_setminus A_ r1 r2);
 
 fun ipv4range_subset r1 r2 =
-  bitrange_subset
+  wordinterval_subset
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
 
 fun bin_last w =
@@ -723,7 +708,7 @@ fun div_int k l =
 fun bin_rest w = div_int w (Int_of_integer (2 : IntInf.int));
 
 fun ipv4range_setminus r1 r2 =
-  bitrange_setminus
+  wordinterval_setminus
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
 
 fun rw_Reject [] = []
@@ -773,21 +758,15 @@ fun bitOR_int x =
 
 fun bitOR_word A_ a b = word_of_int A_ (bitOR_int (uint A_ a) (uint A_ b));
 
-fun bitrange_optimize_same A_ rs =
-  list_to_bitrange A_ (remdups (equal_bitrange A_) (bitrange_to_list A_ rs));
-
-fun bitrange_intersection A_ r1 r2 =
-  bitrange_optimize_same A_
-    (bitrange_setminus A_ (bitrange_union A_ r1 r2)
-      (bitrange_union A_ (bitrange_invert A_ r1) (bitrange_invert A_ r2)));
-
 fun get_match (Rule (x1, x2)) = x1;
 
 fun bitAND_word A_ a b = word_of_int A_ (bitAND_int (uint A_ a) (uint A_ b));
 
+fun wordinterval_UNIV A_ = WordInterval (zero_worda (len0_len A_), max_word A_);
+
 fun get_action (Rule (x1, x2)) = x2;
 
-fun ipv4addr_of_dotteddecimal (a, (b, (c, d))) =
+fun ipv4addr_of_dotdecimal (a, (b, (c, d))) =
   ipv4addr_of_nat
     (plus_nat
       (plus_nat (plus_nat d (times_nat (nat_of_integer (256 : IntInf.int)) c))
@@ -799,7 +778,7 @@ fun ipv4range_set_from_bitmask_to_executable_ipv4range
   ipv4range_range
     (bitAND_word
       (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-      (ipv4addr_of_dotteddecimal pre)
+      (ipv4addr_of_dotdecimal pre)
       (shiftl_word
         (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
         (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
@@ -807,14 +786,43 @@ fun ipv4range_set_from_bitmask_to_executable_ipv4range
         (minus_nat (nat_of_integer (32 : IntInf.int)) len)))
     (bitOR_word
       (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-      (ipv4addr_of_dotteddecimal pre)
+      (ipv4addr_of_dotdecimal pre)
       (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
         (minus_nat (nat_of_integer (32 : IntInf.int)) len)))
   | ipv4range_set_from_bitmask_to_executable_ipv4range (Ip4Addr ip) =
-    ipv4range_single (ipv4addr_of_dotteddecimal ip);
+    ipv4range_single (ipv4addr_of_dotdecimal ip);
+
+fun wordinterval_to_list A_ (RangeUnion (r1, r2)) =
+  wordinterval_to_list A_ r1 @ wordinterval_to_list A_ r2
+  | wordinterval_to_list A_ (WordInterval (v, va)) =
+    (if wordinterval_empty A_ (WordInterval (v, va)) then []
+      else [WordInterval (v, va)]);
+
+fun empty_WordInterval A_ =
+  WordInterval (one_worda (len0_len A_), zero_worda (len0_len A_));
+
+fun list_to_wordinterval A_ [r] = r
+  | list_to_wordinterval A_ (r :: v :: va) =
+    RangeUnion (r, list_to_wordinterval A_ (v :: va))
+  | list_to_wordinterval A_ [] = empty_WordInterval A_;
+
+fun wordinterval_optimize_same A_ rs =
+  list_to_wordinterval A_
+    (remdups (equal_wordinterval A_) (wordinterval_to_list A_ rs));
+
+fun wordinterval_invert A_ r =
+  wordinterval_setminus A_ (wordinterval_UNIV A_) r;
+
+fun wordinterval_union A_ r1 r2 = RangeUnion (r1, r2);
+
+fun wordinterval_intersection A_ r1 r2 =
+  wordinterval_optimize_same A_
+    (wordinterval_setminus A_ (wordinterval_union A_ r1 r2)
+      (wordinterval_union A_ (wordinterval_invert A_ r1)
+        (wordinterval_invert A_ r2)));
 
 fun ipv4range_intersection r1 r2 =
-  bitrange_intersection
+  wordinterval_intersection
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
 
 fun intersect_netmask_empty_executable x =
@@ -845,7 +853,7 @@ fun intersect_ips (Ip4Addr ip) (Ip4AddrNetmask (base, m)) =
         (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
         (bitAND_word
           (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-          (ipv4addr_of_dotteddecimal base)
+          (ipv4addr_of_dotdecimal base)
           (shiftl_word
             (len0_bit0
               (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
@@ -853,14 +861,14 @@ fun intersect_ips (Ip4Addr ip) (Ip4AddrNetmask (base, m)) =
                     (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
               m)
             (minus_nat (nat_of_integer (32 : IntInf.int)) m)))
-        (ipv4addr_of_dotteddecimal ip) andalso
+        (ipv4addr_of_dotdecimal ip) andalso
         less_eq_word
           (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-          (ipv4addr_of_dotteddecimal ip)
+          (ipv4addr_of_dotdecimal ip)
           (bitOR_word
             (len0_bit0
               (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-            (ipv4addr_of_dotteddecimal base)
+            (ipv4addr_of_dotdecimal base)
             (mask (len_bit0
                     (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
               (minus_nat (nat_of_integer (32 : IntInf.int)) m)))
@@ -871,7 +879,7 @@ fun intersect_ips (Ip4Addr ip) (Ip4AddrNetmask (base, m)) =
           (bitAND_word
             (len0_bit0
               (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-            (ipv4addr_of_dotteddecimal base)
+            (ipv4addr_of_dotdecimal base)
             (shiftl_word
               (len0_bit0
                 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
@@ -879,15 +887,15 @@ fun intersect_ips (Ip4Addr ip) (Ip4AddrNetmask (base, m)) =
                       (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
                 m)
               (minus_nat (nat_of_integer (32 : IntInf.int)) m)))
-          (ipv4addr_of_dotteddecimal ip) andalso
+          (ipv4addr_of_dotdecimal ip) andalso
           less_eq_word
             (len0_bit0
               (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-            (ipv4addr_of_dotteddecimal ip)
+            (ipv4addr_of_dotdecimal ip)
             (bitOR_word
               (len0_bit0
                 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-              (ipv4addr_of_dotteddecimal base)
+              (ipv4addr_of_dotdecimal base)
               (mask (len_bit0
                       (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
                 (minus_nat (nat_of_integer (32 : IntInf.int)) m)))
@@ -895,7 +903,7 @@ fun intersect_ips (Ip4Addr ip) (Ip4AddrNetmask (base, m)) =
   | intersect_ips (Ip4Addr ip1) (Ip4Addr ip2) =
     (if equal_word
           (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-          (ipv4addr_of_dotteddecimal ip2) (ipv4addr_of_dotteddecimal ip1)
+          (ipv4addr_of_dotdecimal ip2) (ipv4addr_of_dotdecimal ip1)
       then SOME (Ip4Addr ip1) else NONE)
   | intersect_ips (Ip4AddrNetmask (base1, m1)) (Ip4AddrNetmask (base2, m2)) =
     (if intersect_netmask_empty base1 m1 base2 m2 then NONE
@@ -912,7 +920,8 @@ fun compress_pos_ips [] =
       | SOME x => compress_pos_ips (x :: cs));
 
 fun collect_to_range [] =
-  empty_Bitrange (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+  empty_WordInterval
+    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
   | collect_to_range (r :: rs) =
     RangeUnion
       (ipv4range_set_from_bitmask_to_executable_ipv4range r,

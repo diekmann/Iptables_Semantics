@@ -29,8 +29,8 @@ by(subst Word.word_uint_eq_iff, simp add: shiftr_div_2n uint_div)+
 *)
 
 
-lemma ipv4addr_of_dotteddecimal_dotteddecimal_of_ipv4addr: 
-  "(ipv4addr_of_dotteddecimal (dotteddecimal_of_ipv4addr ip)) = ip"
+lemma ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr: 
+  "(ipv4addr_of_dotdecimal (dotdecimal_of_ipv4addr ip)) = ip"
 proof -
   have ip_and_mask8_bl_drop24: "(ip::ipv4addr) AND mask 8 = of_bl (drop 24 (to_bl ip))"
     by(simp add: WordLemmaBucket.of_drop_to_bl size_ipv4addr)
@@ -62,10 +62,10 @@ proof -
     apply(thin_tac "blip = ?x",rename_tac blip,case_tac blip,simp_all)+ (*I'm so sorry for this ...*)
     done
 
-  have "ipv4addr_of_dotteddecimal (dotteddecimal_of_ipv4addr ip) = of_bl (to_bl ip)"
+  have "ipv4addr_of_dotdecimal (dotdecimal_of_ipv4addr ip) = of_bl (to_bl ip)"
     apply(subst blip_split)
      apply(simp)
-    apply(simp add: ipv4addr_of_dotteddecimal_bit dotteddecimal_of_ipv4addr.simps)
+    apply(simp add: ipv4addr_of_dotdecimal_bit dotdecimal_of_ipv4addr.simps)
     apply(simp add: ipv4addr_of_nat_nat_of_ipv4addr)
     apply(simp add: bit_equality)
     done

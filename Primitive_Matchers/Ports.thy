@@ -1,7 +1,7 @@
 theory Ports
 imports String 
   "~~/src/HOL/Word/Word"
-  "../Bitmagic/BitrangeLists" 
+  "../Bitmagic/WordInterval_Lists" 
 begin
 
 section{*Ports (layer 4)*}
@@ -21,8 +21,8 @@ lemma ports_to_set: "ports_to_set pts = \<Union> {{s..e} | s e . (s,e) \<in> set
   apply(simp)
   by blast
 
-text{*We can reuse the bitrange theory to reason about ports*}
-lemma ports_to_set_bitrange: "ports_to_set ps = bitrange_to_set (l2br ps)"
+text{*We can reuse the wordinterval theory to reason about ports*}
+lemma ports_to_set_wordinterval: "ports_to_set ps = wordinterval_to_set (l2br ps)"
   by(induction ps rule: l2br.induct) (auto)
 
 end
