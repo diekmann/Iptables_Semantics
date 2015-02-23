@@ -110,6 +110,7 @@ fun optimize_primitive_univ :: "common_primitive match_expr \<Rightarrow> common
   "optimize_primitive_univ (Match (Dst (Ip4AddrNetmask (0,0,0,0) 0))) = MatchAny" |
   "optimize_primitive_univ (Match (Prot ProtoAny)) = MatchAny" |
   "optimize_primitive_univ (Match m) = Match m" |
+  (*"optimize_primitive_univ (MatchNot (MatchNot m)) = (optimize_primitive_univ m)" | --"needed to preserve normalized condition"*)
   "optimize_primitive_univ (MatchNot m) = (MatchNot (optimize_primitive_univ m))" |
   "optimize_primitive_univ (MatchAnd m1 m2) = MatchAnd (optimize_primitive_univ m1) (optimize_primitive_univ m2)" |
   "optimize_primitive_univ MatchAny = MatchAny"
@@ -120,7 +121,7 @@ lemma optimize_primitive_univ_correct_matchexpr: "matches (common_matcher, \<alp
   apply(rule matches_iff_apply_f)
   apply(simp)
   apply(induction m rule: optimize_primitive_univ.induct)
-                              apply(simp_all add: eval_ternary_simps ip_in_ipv4range_set_from_bitmask_UNIV)
+                              apply(simp_all add: eval_ternary_simps ip_in_ipv4range_set_from_bitmask_UNIV eval_ternary_idempotence_Not)
   done
 corollary optimize_primitive_univ_correct: "approximating_bigstep_fun (common_matcher, \<alpha>) p (optimize_matches optimize_primitive_univ rs) s = 
                                             approximating_bigstep_fun (common_matcher, \<alpha>) p rs s"
