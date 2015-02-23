@@ -647,6 +647,14 @@ lemma optimize_matches_normalized_nnf_match: "\<lbrakk>\<forall> r \<in> set rs.
         by(simp add: optimize_matches_def)
       with IH show ?case by(simp add: optimize_matches_def)
     qed
-    
+
+
+lemma normalize_rules_dnf_normalized_nnf_match: "\<forall>x \<in> set (normalize_rules_dnf rs).  normalized_nnf_match (get_match x)"
+  apply(induction rs)
+   apply(simp)
+  apply(rename_tac r rs)
+  apply(case_tac r)
+  apply(simp)
+  using normalized_nnf_match_normalize_match by fastforce
 
 end
