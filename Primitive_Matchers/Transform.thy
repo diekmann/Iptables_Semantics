@@ -163,6 +163,33 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
   qed
 
 
+definition transform_remove_unknowns_generic :: "('a, 'packet) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where 
+    "transform_remove_unknowns_generic \<gamma> = optimize_matches_a (remove_unknowns_generic \<gamma>) "
+theorem transform_remove_unknowns_generic: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
+      shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_remove_unknowns_generic (common_matcher, \<alpha>) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+      and "simple_ruleset (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs)"
+      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc C m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). \<not> has_disc C m"
+      (*may return MatchNot MatchAny*)
+      (*and "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). normalized_nnf_match m"*)
+      and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). normalized_n_primitive disc_sel f m"
+  proof -
+    let ?\<gamma>="(common_matcher, \<alpha>)"
+    let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
+
+    show simplers1: "simple_ruleset (transform_remove_unknowns_generic ?\<gamma> rs)"
+      unfolding transform_remove_unknowns_generic_def
+      using simplers optimize_matches_a_simple_ruleset by blast
+
+    show "?\<gamma>,p\<turnstile> \<langle>transform_remove_unknowns_generic ?\<gamma> rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers1]]
+      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
+      unfolding transform_remove_unknowns_generic_def
+      using optimize_matches_a_simplers[OF simplers] remove_unknowns_generic by metis
+oops
+
 definition transform_strict :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where 
     "transform_strict = optimize_matches opt_MatchAny_match_expr(*^^10)*) \<circ> normalize_rules_dnf \<circ> optimize_matches optimize_primitive_univ \<circ> rw_Reject \<circ> rm_LogEmpty"
 

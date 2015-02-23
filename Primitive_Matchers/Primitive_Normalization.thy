@@ -276,4 +276,21 @@ subsection{*Normalizing and Optimizing Primitives*}
       with `normalized_nnf_match mn` show "normalized_n_primitive (disc2, sel2) P mn \<and> normalized_nnf_match mn" by simp
     qed
 
+
+
+lemma "normalized_n_primitive disc_sel f m \<Longrightarrow>  normalized_nnf_match m"
+  apply(induction disc_sel f m rule: normalized_n_primitive.induct)
+        apply(simp_all)
+        oops
+
+
+lemma remove_unknowns_generic_not_has_disc: "\<not> has_disc C m \<Longrightarrow> \<not> has_disc C (remove_unknowns_generic \<gamma> a m)"
+  by(induction \<gamma> a m rule: remove_unknowns_generic.induct) (simp_all)
+
+lemma remove_unknowns_generic_normalized_n_primitive: "normalized_n_primitive disc_sel f m \<Longrightarrow> 
+    normalized_n_primitive disc_sel f (remove_unknowns_generic \<gamma> a m)"
+  apply(induction \<gamma> a m rule: remove_unknowns_generic.induct)
+        apply(simp_all)
+  by(case_tac disc_sel, simp)
+
 end

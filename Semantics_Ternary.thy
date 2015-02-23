@@ -613,6 +613,9 @@ using optimize_matches opt_MatchAny_match_expr_correct by metis
 definition optimize_matches_a :: "(action \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
   "optimize_matches_a f rs = map (\<lambda>r. Rule (f (get_action r) (get_match r)) (get_action r)) rs"
 
+lemma optimize_matches_a_simple_ruleset: "simple_ruleset rs \<Longrightarrow> simple_ruleset (optimize_matches_a f rs)"
+  by(simp add: optimize_matches_a_def simple_ruleset_def)
+
 lemma optimize_matches_a: "\<forall>a m. matches \<gamma> m a = matches \<gamma> (f a m) a \<Longrightarrow> approximating_bigstep_fun \<gamma> p (optimize_matches_a f rs) s = approximating_bigstep_fun \<gamma> p rs s"
   apply(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
      apply(simp add: optimize_matches_a_def)
@@ -623,8 +626,28 @@ lemma optimize_matches_a: "\<forall>a m. matches \<gamma> m a = matches \<gamma>
          apply(simp_all)
   done
 
+lemma optimize_matches_a_simplers_very_ugly_helper: "wf_ruleset \<gamma> p rs \<Longrightarrow> simple_ruleset rs \<Longrightarrow>
+   \<forall>a m. a = Accept \<or> a = Drop \<longrightarrow> matches \<gamma> (f a m) a = matches \<gamma> m a\<Longrightarrow> 
+   approximating_bigstep_fun \<gamma> p (optimize_matches_a f rs) s = approximating_bigstep_fun \<gamma> p rs s"
+  apply(cases s)
+   prefer 2
+   apply(simp add: Decision_approximating_bigstep_fun)
+  apply(simp)
+  apply(thin_tac "s = ?un")
+  apply(induction \<gamma> p rs "Undecided" rule: approximating_bigstep_fun_induct_wf)
+        apply(simp_all add: optimize_matches_a_def simple_ruleset_tail)
+   apply(simp_all add: simple_ruleset_def)
+  apply(safe)
+   apply(simp_all)
+  done
 
 
-
+lemma optimize_matches_a_simplers: "simple_ruleset rs \<Longrightarrow>
+   \<forall>a m. a = Accept \<or> a = Drop \<longrightarrow> matches \<gamma> (f a m) a = matches \<gamma> m a\<Longrightarrow> 
+   approximating_bigstep_fun \<gamma> p (optimize_matches_a f rs) s = approximating_bigstep_fun \<gamma> p rs s"
+apply(frule simple_imp_good_ruleset)
+apply(drule good_imp_wf_ruleset)
+apply(drule(3) optimize_matches_a_simplers_very_ugly_helper)
+done
 
 end

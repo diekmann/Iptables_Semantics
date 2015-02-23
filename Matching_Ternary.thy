@@ -292,9 +292,9 @@ apply(simp)
 apply(simp add: bunch_of_lemmata_about_matches matches_case_ternaryvalue_tuple)
 by presburger
 
-lemma "a = Accept \<or> a = Drop \<Longrightarrow> \<gamma> = (\<beta>, \<alpha>) \<Longrightarrow>
-      matches (\<beta>, \<alpha>) (remove_unknowns_generic \<gamma> a m) a =
-      matches (\<beta>, \<alpha>) m a"
+lemma remove_unknowns_generic: "a = Accept \<or> a = Drop \<Longrightarrow>
+      matches \<gamma> (remove_unknowns_generic \<gamma> a m) a =
+      matches \<gamma> m a"
   apply(simp add: fun_eq_iff, clarify)
   apply(rename_tac p)
   apply(induction \<gamma> a m rule: remove_unknowns_generic.induct)
@@ -306,6 +306,7 @@ lemma "a = Accept \<or> a = Drop \<Longrightarrow> \<gamma> = (\<beta>, \<alpha>
   apply safe
                apply(simp_all add : ternary_to_bool_Some ternary_to_bool_None)
 done
+
 
 
 end
