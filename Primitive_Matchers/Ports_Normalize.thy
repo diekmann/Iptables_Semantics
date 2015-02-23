@@ -179,9 +179,11 @@ subsection{*Normalizing ports*}
     "normalized_src_ports (Match (Src_Ports _)) = False" |
     "normalized_src_ports (Match _) = True" |
     "normalized_src_ports (MatchNot (Match (Src_Ports _))) = False" |
+    "normalized_src_ports (MatchNot (Match _)) = True" |
     "normalized_src_ports (MatchAnd m1 m2) = (normalized_src_ports m1 \<and> normalized_src_ports m2)" |
     "normalized_src_ports (MatchNot (MatchAnd _ _)) = False" |
-    "normalized_src_ports (MatchNot _) = True"
+    "normalized_src_ports (MatchNot (MatchNot _)) = False" |
+    "normalized_src_ports (MatchNot MatchAny) = True"
   
   fun normalized_dst_ports :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_dst_ports MatchAny = True" |
@@ -190,9 +192,11 @@ subsection{*Normalizing ports*}
     "normalized_dst_ports (Match (Dst_Ports _)) = False" |
     "normalized_dst_ports (Match _) = True" |
     "normalized_dst_ports (MatchNot (Match (Dst_Ports _))) = False" |
+    "normalized_dst_ports (MatchNot (Match _)) = True" |
     "normalized_dst_ports (MatchAnd m1 m2) = (normalized_dst_ports m1 \<and> normalized_dst_ports m2)" |
     "normalized_dst_ports (MatchNot (MatchAnd _ _)) = False" |
-    "normalized_dst_ports (MatchNot _) = True" 
+    "normalized_dst_ports (MatchNot (MatchNot _)) = False" |
+    "normalized_dst_ports (MatchNot MatchAny) = True" 
 
   lemma normalized_src_ports_def2: "normalized_src_ports ms = normalized_n_primitive (is_Src_Ports, src_ports_sel) (\<lambda>pts. length pts \<le> 1) ms"
     by(induction ms rule: normalized_src_ports.induct, simp_all)

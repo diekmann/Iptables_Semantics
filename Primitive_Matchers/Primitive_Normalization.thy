@@ -22,7 +22,9 @@ fun normalized_n_primitive :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarro
   "normalized_n_primitive (disc, sel) n (MatchNot (Match (P))) = (if disc P then False else True)" |
   "normalized_n_primitive (disc, sel) n (MatchAnd m1 m2) = (normalized_n_primitive (disc, sel) n m1 \<and> normalized_n_primitive (disc, sel) n m2)" |
   "normalized_n_primitive _ _ (MatchNot (MatchAnd _ _)) = False" |
-  "normalized_n_primitive _ _ (MatchNot _) = True" 
+  (*"normalized_n_primitive _ _ (MatchNot _) = True" *)
+  "normalized_n_primitive _ _ (MatchNot (MatchNot _)) = False" | (*not nnf normalized*)
+  "normalized_n_primitive _ _ (MatchNot MatchAny) = True"
 
 
 text{*

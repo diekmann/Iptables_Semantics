@@ -12,9 +12,11 @@ subsection{*Normalizing IP Addresses*}
     "normalized_src_ips MatchAny = True" |
     "normalized_src_ips (Match _) = True" |
     "normalized_src_ips (MatchNot (Match (Src _))) = False" |
+    "normalized_src_ips (MatchNot (Match _)) = True" |
     "normalized_src_ips (MatchAnd m1 m2) = (normalized_src_ips m1 \<and> normalized_src_ips m2)" |
     "normalized_src_ips (MatchNot (MatchAnd _ _)) = False" |
-    "normalized_src_ips (MatchNot _) = True" 
+    "normalized_src_ips (MatchNot (MatchNot _)) = False" |
+    "normalized_src_ips (MatchNot (MatchAny)) = True" 
   
   lemma normalized_src_ips_def2: "normalized_src_ips ms = normalized_n_primitive (is_Src, src_sel) (\<lambda>ip. True) ms"
     by(induction ms rule: normalized_src_ips.induct, simp_all)
@@ -23,9 +25,11 @@ subsection{*Normalizing IP Addresses*}
     "normalized_dst_ips MatchAny = True" |
     "normalized_dst_ips (Match _) = True" |
     "normalized_dst_ips (MatchNot (Match (Dst _))) = False" |
+    "normalized_dst_ips (MatchNot (Match _)) = True" |
     "normalized_dst_ips (MatchAnd m1 m2) = (normalized_dst_ips m1 \<and> normalized_dst_ips m2)" |
     "normalized_dst_ips (MatchNot (MatchAnd _ _)) = False" |
-    "normalized_dst_ips (MatchNot _) = True" 
+    "normalized_dst_ips (MatchNot (MatchNot _)) = False" |
+    "normalized_dst_ips (MatchNot MatchAny) = True" 
   
   lemma normalized_dst_ips_def2: "normalized_dst_ips ms = normalized_n_primitive (is_Dst, dst_sel) (\<lambda>ip. True) ms"
     by(induction ms rule: normalized_dst_ips.induct, simp_all)

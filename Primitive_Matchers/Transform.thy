@@ -9,76 +9,150 @@ begin
 (*closure bounds*)
 
 (*def: transform_optimize = optimize_matches opt_MatchAny_match_expr \<circ> optimize_matches optimize_primitive_univ
-apply before and after nralizatin and closures
+apply before and after initialization and closures
 *)
 
-(*this cannot be normalized as it can contain MatchNot MatchAny*)
-definition transform_optimize_strict :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where 
-    "transform_optimize_strict = optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ)"
+(*without normalize_rules_dnf, the result cannot be normalized as optimize_primitive_univ can contain MatchNot MatchAny*)
+definition transform_optimize_dnf_strict :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where 
+    "transform_optimize_dnf_strict = optimize_matches opt_MatchAny_match_expr \<circ> 
+        normalize_rules_dnf \<circ> (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ))"
 
-theorem transform_optimize_strict: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
-      shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_optimize_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
-      and "simple_ruleset (transform_optimize_strict rs)"
-      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc C m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_strict rs). \<not> has_disc C m"
-      and "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_strict rs). normalized_nnf_match m"
-      and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_strict rs). normalized_n_primitive disc_sel f m"
+
+(* TODO: move? *)
+lemma normalized_n_primitive_opt_MatchAny_match_expr: "normalized_n_primitive disc_sel f m \<Longrightarrow> normalized_n_primitive disc_sel f (opt_MatchAny_match_expr m)"
+  proof-
+  { fix disc::"('a \<Rightarrow> bool)" and sel::"('a \<Rightarrow> 'b)" and n m1 m2
+    have "normalized_n_primitive (disc, sel) n (opt_MatchAny_match_expr m1) \<Longrightarrow>
+         normalized_n_primitive (disc, sel) n (opt_MatchAny_match_expr m2) \<Longrightarrow>
+         normalized_n_primitive (disc, sel) n m1 \<and> normalized_n_primitive (disc, sel) n m2 \<Longrightarrow>
+         normalized_n_primitive (disc, sel) n (opt_MatchAny_match_expr (MatchAnd m1 m2))"
+  by(induction "(MatchAnd m1 m2)" rule: opt_MatchAny_match_expr.induct) (auto)
+  }note x=this
+  assume "normalized_n_primitive disc_sel f m"
+  thus ?thesis
+  apply(induction disc_sel f m rule: normalized_n_primitive.induct)
+  apply simp_all
+  using x by simp
+  qed
+  
+
+theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
+      shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+      and "simple_ruleset (transform_optimize_dnf_strict rs)"
+      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc C m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc C m"
+      and "\<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_nnf_match m"
+      and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_n_primitive disc_sel f m"
   proof -
     let ?\<gamma>="(common_matcher, \<alpha>)"
     let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
 
-    show simplers_transform: "simple_ruleset (transform_optimize_strict rs)"
-      unfolding transform_optimize_strict_def
-      using simplers optimize_matches_simple_ruleset by fast
+    have simplers1: "simple_ruleset (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs)"
+      using simplers optimize_matches_simple_ruleset by (metis)
+
+    show simplers_transform: "simple_ruleset (transform_optimize_dnf_strict rs)"
+      unfolding transform_optimize_dnf_strict_def
+      using simplers optimize_matches_simple_ruleset simple_ruleset_normalize_rules_dnf by (metis comp_apply)
+
 
     have 1: "?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?fw rs = t"
       using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]] by fast
-    have rs: "?fw rs = ?fw (transform_optimize_strict rs)"
-      unfolding transform_optimize_strict_def
+
+    have "?fw rs = ?fw (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs)"
       apply(rule optimize_matches[symmetric])
       using optimize_primitive_univ_correct_matchexpr opt_MatchAny_match_expr_correct by (metis comp_apply)
-    have 2: "?fw (transform_optimize_strict rs) = t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>transform_optimize_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t "
-      using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_transform], symmetric] by fast
-    from 1 2 rs show "?\<gamma>,p\<turnstile> \<langle>transform_optimize_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t" by simp
+    also have "\<dots> = ?fw (normalize_rules_dnf (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs))"
+      apply(rule normalize_rules_dnf_correct[symmetric])
+      using simplers1 by (metis good_imp_wf_ruleset simple_imp_good_ruleset)
+    also have "\<dots> = ?fw (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs)))"
+      apply(rule optimize_matches[symmetric])
+      using opt_MatchAny_match_expr_correct by (metis)
+    finally have rs: "?fw rs = ?fw (transform_optimize_dnf_strict rs)"
+      unfolding transform_optimize_dnf_strict_def by auto
 
+    have 2: "?fw (transform_optimize_dnf_strict rs) = t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t "
+      using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_transform], symmetric] by fast
+    from 1 2 rs show "?\<gamma>,p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t" by simp
+
+    --"if the individual optimization functions preserve a property, then the whole thing does"
     { fix P m
       assume p1: "\<forall>m. P m \<longrightarrow> P (optimize_primitive_univ m)"
       assume p2: "\<forall>m. P m \<longrightarrow> P (opt_MatchAny_match_expr m)"
-      from p1 p2 have "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_strict rs). P m"
-        unfolding transform_optimize_strict_def optimize_matches_def
-        by(induction rs) (simp_all)
+      assume p3: "\<forall>m. P m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). P m')"
+      have tf1: "\<And>r rs. transform_optimize_dnf_strict (r#rs) =
+        (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) [r])))@
+          transform_optimize_dnf_strict rs"
+        unfolding transform_optimize_dnf_strict_def by(simp add: optimize_matches_def)
+      { fix rs
+        have "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs). P m"
+          apply(induction rs)
+           apply(simp add: optimize_matches_def)
+          apply(simp add: optimize_matches_def)
+          using p1 p2 p3 by simp
+      } note opt1=this
+      have "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). P m"
+        apply(drule opt1)
+        apply(induction rs)
+         apply(simp add: optimize_matches_def transform_optimize_dnf_strict_def)
+        apply(simp add: tf1 optimize_matches_def)
+        apply(safe)
+         apply(simp_all)
+        using p1 p2 p3  by(simp)
     } note matchpred_rule=this
 
     { fix m
       have "\<not> has_disc C m \<Longrightarrow> \<not> has_disc C (optimize_primitive_univ m)"
       by(induction m rule: optimize_primitive_univ.induct) simp_all
-    } moreover { fix m 
+    }  moreover { fix m 
       have "\<not> has_disc C m \<Longrightarrow> \<not> has_disc C (opt_MatchAny_match_expr m)"
       by(induction m rule: opt_MatchAny_match_expr.induct) simp_all
-    } ultimately show "\<forall> m \<in> get_match ` set rs. \<not> has_disc C m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_strict rs). \<not> has_disc C m"
+    }  moreover { fix m
+      have "\<not> has_disc C m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). \<not> has_disc C m')"
+      by(induction m rule: normalize_match.induct) (safe,auto) --"need safe, otherwise simplifier loops"
+    } ultimately show "\<forall> m \<in> get_match ` set rs. \<not> has_disc C m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc C m"
       using matchpred_rule[of "\<lambda>m. \<not> has_disc C m"] by fast
+   
+   { fix P a
+     have "(optimize_primitive_univ (Match a)) = (Match a) \<or> (optimize_primitive_univ (Match a)) = MatchAny"
+       by(induction "(Match a)" rule: optimize_primitive_univ.induct) (auto)
+     hence "((optimize_primitive_univ (Match a)) = Match a \<Longrightarrow> P a) \<Longrightarrow> (optimize_primitive_univ (Match a) = MatchAny \<Longrightarrow> P a) \<Longrightarrow> P a" by blast
+   } note optimize_primitive_univ_match_cases=this
+
+   { fix m
+      have "normalized_n_primitive disc_sel f m \<Longrightarrow> normalized_n_primitive disc_sel f (optimize_primitive_univ m)"
+      apply(induction disc_sel f m rule: normalized_n_primitive.induct)
+      apply(simp_all split: split_if_asm)
+      apply(rule optimize_primitive_univ_match_cases, simp_all)+
+      done
+    }  moreover { fix m
+      have "normalized_n_primitive disc_sel f m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). normalized_n_primitive disc_sel f  m')"
+      apply(induction m rule: normalize_match.induct)
+      apply(simp_all)[2]
+
+      apply(case_tac disc_sel) --"no idea why the simplifier loops and this stuff and stuff and shit"
+      apply(clarify)
+      apply(simp)
+      apply(clarify)
+      apply(subst normalized_n_primitive.simps)
+      apply(simp)
+
+      apply(safe)
+      apply(simp_all)
+      done
+    } ultimately show "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow> 
+        \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_n_primitive disc_sel f m"
+      using matchpred_rule[of "\<lambda>m. normalized_n_primitive disc_sel f m"] normalized_n_primitive_opt_MatchAny_match_expr by fast
     
-    { fix m
-      {fix a
-       have "optimize_primitive_univ (Match a) = Match a \<or> optimize_primitive_univ (Match a) = MatchAny"
-        by(induction "(Match a)" rule: optimize_primitive_univ.induct) auto
-      } note matcha_cases=this
-      have "normalized_nnf_match m \<Longrightarrow> normalized_nnf_match (optimize_primitive_univ m)"
-      apply(induction m rule: optimize_primitive_univ.induct)
-      apply simp_all
-      apply(case_tac m)
-          apply(simp_all)
-      apply(case_tac "optimize_primitive_univ (Match a) = Match a")
-       apply(simp)
-      apply(case_tac "optimize_primitive_univ (Match a) = MatchAny")
-       apply(simp)
-      
-      
-    } moreover { fix m 
-      have "\<not> has_disc C m \<Longrightarrow> \<not> has_disc C (opt_MatchAny_match_expr m)"
-    } ultimately show "\<forall> m \<in> get_match ` set rs. \<not> has_disc C m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_strict rs). \<not> has_disc C m"
-      using matchpred_rule[of "\<lambda>m. \<not> has_disc C m"] by fast
-  
-  qed
+
+    {  fix m::"'a match_expr"
+       have "normalized_nnf_match m \<Longrightarrow> normalized_nnf_match (opt_MatchAny_match_expr m)"
+         by(induction m rule: opt_MatchAny_match_expr.induct) (simp_all)
+    }
+    from this
+    show "\<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_nnf_match m"
+    unfolding transform_optimize_dnf_strict_def
+      (*TODO*)
+  oops
 
 
 definition transform_strict :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where 
@@ -141,5 +215,39 @@ theorem transform_strict: assumes goodrs: "good_ruleset rs" and wf\<alpha>: "wf_
     from normalized_rs5 show "\<forall> r \<in> set (transform_strict rs). normalized_nnf_match (get_match r)"  
       by(simp add: transform_strict_def)
   qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(*scratch:*)
+fun is_False :: "'a match_expr \<Rightarrow> bool" where
+  "is_False (MatchAny) = False" |
+  "is_False (Match m) = False" |
+  "is_False (MatchAnd m1 m2) = (is_False m1 \<or> is_False m2)" |
+  "is_False (MatchNot (MatchAnd m1 m2)) = (is_False (MatchNot m1) \<or> is_False (MatchNot m2))" | (*DeMorgan*)
+  "is_False (MatchNot (MatchNot m)) = is_False m" | (*idem*)
+  "is_False (MatchNot (MatchAny)) = True" |
+  "is_False (MatchNot (Match m)) = False"
+
+lemma "normalized_nnf_match m \<Longrightarrow> normalized_nnf_match (optimize_primitive_univ m) \<or> is_False ((optimize_primitive_univ m))"
+  apply(induction m rule: optimize_primitive_univ.induct)
+  apply(simp_all)
+  apply(safe)
+  apply(drule normalized_nnf_match_MatchNot_D)
+  apply(simp)
+  apply(safe)
+  oops
 
 end
