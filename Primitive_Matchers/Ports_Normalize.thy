@@ -237,7 +237,7 @@ subsection{*Normalizing ports*}
     \<forall>mn \<in> set (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m). normalized_src_ports mn \<and> normalized_dst_ports mn \<and> normalized_nnf_match mn"
   apply(frule normalize_ports_step_src_normalized)
   apply(simp add: normalized_dst_ports_def2 normalize_ports_step_def2)
-  apply(frule(1) normalize_primitive_extract_maintains_normalized[OF _ _ wf_disc_sel_common_primitive(1), where f="(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))"])
+  apply(frule(1) normalize_primitive_extract_preserves_normalized[OF _ _ wf_disc_sel_common_primitive(1), where f="(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))"])
    apply(simp_all)
   done
 
