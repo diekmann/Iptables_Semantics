@@ -210,12 +210,88 @@ qed
 
 
 
+(*TODO: move?*)
+lemma normalize_rules_match_list_semantics: 
+  assumes "\<forall>m a. match_list \<gamma> (f m) a p = matches \<gamma> m a p" and "simple_ruleset rs"
+  shows "approximating_bigstep_fun \<gamma> p (normalize_rules f rs) s = approximating_bigstep_fun \<gamma> p rs s"
+  proof -
+  { fix m a s
+    from assms(1) have "match_list \<gamma> (f m) a p \<longleftrightarrow> match_list \<gamma> [m] a p" by simp
+    with match_list_semantics[of \<gamma> "f m" a p "[m]"] have
+      "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (f m)) s = approximating_bigstep_fun \<gamma> p [Rule m a] s" by simp
+  } note ar=this {
+    fix r s
+    from ar[of "get_action r" "get_match r"] have 
+     "(approximating_bigstep_fun \<gamma> p (normalize_rules f [r]) s) = approximating_bigstep_fun \<gamma> p [r] s"
+      by(cases r) (simp)
+  } note a=this
 
+  note a=this
+
+  from assms(2) show ?thesis
+    proof(induction rs arbitrary: s)
+      case Nil thus ?case by (simp)
+    next
+      case (Cons r rs)
+      from Cons.prems have "simple_ruleset [r]" by(simp add: simple_ruleset_def)
+      with simple_imp_good_ruleset good_imp_wf_ruleset have wf_r: "wf_ruleset \<gamma> p [r]" by fast
+
+      from `simple_ruleset [r]` simple_imp_good_ruleset good_imp_wf_ruleset have wf_r: 
+        "wf_ruleset \<gamma> p [r]" by fast
+      from simple_ruleset_normalize_rules[OF `simple_ruleset [r]`] have "simple_ruleset (normalize_rules f [r])"
+        apply(subst(asm) normalize_rules_fst)
+        by(simp add: simple_ruleset_append) 
+      with simple_imp_good_ruleset good_imp_wf_ruleset have wf_nr: "wf_ruleset \<gamma> p (normalize_rules f [r])" by fast
+
+      from Cons have IH: "\<And>s. approximating_bigstep_fun \<gamma> p (normalize_rules f rs) s = approximating_bigstep_fun \<gamma> p rs s"
+        using simple_ruleset_tail by force
+
+      show ?case
+        apply(cases s)
+         prefer 2
+         apply (metis approximating_semantics_imp_fun decision)
+        apply(subst normalize_rules_fst)
+        apply(simp)
+        apply(simp add: approximating_bigstep_fun_seq_wf[OF wf_nr])
+        apply(subst approximating_bigstep_fun_seq_wf[OF wf_r, simplified])
+        apply(simp add: a)
+        apply(simp add: IH)
+        done
+qed
 
 
 (* TODO *)
-definition transform_normalize_primitives :: "('a, 'packet) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where 
-    "transform_normalize_primitives \<gamma> = optimize_matches_a (remove_unknowns_generic \<gamma>) "
+definition transform_normalize_primitives :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where 
+    "transform_normalize_primitives =
+      normalize_rules normalize_dst_ips \<circ>
+      normalize_rules normalize_src_ips \<circ>
+      normalize_rules (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports) \<circ>
+      normalize_rules (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports)"
+
+
+theorem transform_normalize_primitives: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
+      shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_normalize_primitives rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+      and "simple_ruleset (transform_normalize_primitives rs)"
+      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc C m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc C m"
+      and "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m"
+      and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_n_primitive disc_sel f m"
+  proof -
+    let ?\<gamma>="(common_matcher, \<alpha>)"
+    let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
+
+    show simplers: "simple_ruleset (transform_normalize_primitives rs)"
+      unfolding transform_normalize_primitives_def
+      by(simp add: simple_ruleset_normalize_rules simplers)
+
+    show "?\<gamma>,p\<turnstile> \<langle>transform_normalize_primitives rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
+     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
+     unfolding transform_normalize_primitives_def
+     apply(simp)
+oops
+
 
 
 

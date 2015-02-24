@@ -247,7 +247,7 @@ subsection{*Normalizing and Optimizing Primitives*}
     finally show ?thesis using match_list_semantics[of \<gamma> "(normalize_primitive_extract disc_sel C f m)" a p "[m]"] by simp
   qed
 
-  lemma normalize_primitive_extract_maintains_normalized:
+  lemma normalize_primitive_extract_preserves_normalized:
   assumes "normalized_nnf_match m"
       and "normalized_n_primitive (disc2, sel2) P m"
       and "wf_disc_sel (disc1, sel1) C"
