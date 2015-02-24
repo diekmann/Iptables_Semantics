@@ -188,11 +188,43 @@ theorem transform_remove_unknowns_generic: assumes simplers: "simple_ruleset rs"
       unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
       unfolding transform_remove_unknowns_generic_def
       using optimize_matches_a_simplers[OF simplers] remove_unknowns_generic by metis
-oops
+
+    { fix a m
+      have "\<not> has_disc C m \<Longrightarrow> \<not> has_disc C (remove_unknowns_generic ?\<gamma> a m)"
+      by(induction ?\<gamma> a m rule: remove_unknowns_generic.induct) simp_all
+    } thus "\<forall> m \<in> get_match ` set rs. \<not> has_disc C m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_disc C m"
+      unfolding transform_remove_unknowns_generic_def
+      by(induction rs) (simp_all add: optimize_matches_a_def)
+
+      { fix a m
+        have "normalized_n_primitive disc_sel f m \<Longrightarrow> 
+                normalized_n_primitive disc_sel f (remove_unknowns_generic ?\<gamma> a m)"
+      by(induction ?\<gamma> a m rule: remove_unknowns_generic.induct) (simp_all,cases disc_sel, simp)
+    } thus "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). normalized_n_primitive disc_sel f m"
+      unfolding transform_remove_unknowns_generic_def
+      by(induction rs) (simp_all add: optimize_matches_a_def)
+qed
+
+
+
+
+
+
+
+(* TODO *)
+definition transform_normalize_primitives :: "('a, 'packet) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where 
+    "transform_normalize_primitives \<gamma> = optimize_matches_a (remove_unknowns_generic \<gamma>) "
+
+
+
+
+
+
 
 definition transform_strict :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where 
     "transform_strict = optimize_matches opt_MatchAny_match_expr(*^^10)*) \<circ> normalize_rules_dnf \<circ> optimize_matches optimize_primitive_univ \<circ> rw_Reject \<circ> rm_LogEmpty"
-
 
 theorem transform_strict: assumes goodrs: "good_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
       shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
@@ -250,10 +282,6 @@ theorem transform_strict: assumes goodrs: "good_ruleset rs" and wf\<alpha>: "wf_
     from normalized_rs5 show "\<forall> r \<in> set (transform_strict rs). normalized_nnf_match (get_match r)"  
       by(simp add: transform_strict_def)
   qed
-
-
-
-
 
 
 
