@@ -219,6 +219,15 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
       normalize_rules (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports) \<circ>
       normalize_rules (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports)"
 
+ (*tuned version for usage with normalize_primitive_extract*)
+ lemma normalize_rules_match_list_semantics_3: 
+    assumes "\<forall>r \<in> set rs. normalized_nnf_match (get_match r) \<longrightarrow> match_list \<gamma> (f (get_match r)) (get_action r) p = matches \<gamma> (get_match r) (get_action r) p"
+    and "simple_ruleset rs"
+    and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
+    shows "approximating_bigstep_fun \<gamma> p (normalize_rules f rs) s = approximating_bigstep_fun \<gamma> p rs s"
+    apply(rule normalize_rules_match_list_semantics_2)
+     using normalized assms(1) apply blast
+    using assms(2) by simp
 
 theorem transform_normalize_primitives: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
       and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
@@ -241,7 +250,7 @@ theorem transform_normalize_primitives: assumes simplers: "simple_ruleset rs" an
      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
      unfolding transform_normalize_primitives_def
      apply(simp)
-     apply(subst normalize_rules_match_list_semantics)
+     apply(subst normalize_rules_match_list_semantics_3)
      using normalize_dst_ips normalized 
      apply(simp add: normalize_rules_match_list_semantics simple_ruleset_normalize_rules simplers)
      thm normalize_rules_match_list_semantics
