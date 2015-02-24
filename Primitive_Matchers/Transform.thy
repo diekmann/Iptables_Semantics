@@ -221,11 +221,11 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
 
 
 theorem transform_normalize_primitives: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
+      and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
       shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_normalize_primitives rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
       and "simple_ruleset (transform_normalize_primitives rs)"
       and "\<forall> m \<in> get_match ` set rs. \<not> has_disc C m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc C m"
-      and "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m"
+      and "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m"
       and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_n_primitive disc_sel f m"
   proof -
@@ -241,7 +241,11 @@ theorem transform_normalize_primitives: assumes simplers: "simple_ruleset rs" an
      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
      unfolding transform_normalize_primitives_def
      apply(simp)
+     apply(subst normalize_rules_match_list_semantics)
+     using normalize_dst_ips normalized 
+     apply(simp add: normalize_rules_match_list_semantics simple_ruleset_normalize_rules simplers)
      thm normalize_rules_match_list_semantics
+     thm normalize_dst_ips
 oops
 
 

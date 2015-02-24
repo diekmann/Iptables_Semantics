@@ -591,6 +591,54 @@ section{*Normalizing rules instead of only match expressions*}
       qed
   qed
 
+ (* same proof again but f limited to rs. *)
+ lemma normalize_rules_match_list_semantics_2: 
+    assumes "\<forall>r \<in> set rs. match_list \<gamma> (f (get_match r)) (get_action r) p = matches \<gamma> (get_match r) (get_action r) p" and "simple_ruleset rs"
+    shows "approximating_bigstep_fun \<gamma> p (normalize_rules f rs) s = approximating_bigstep_fun \<gamma> p rs s"
+    proof -
+    { fix r s
+      assume "r \<in> set rs"
+      with assms(1) have "match_list \<gamma> (f (get_match r)) (get_action r) p \<longleftrightarrow> match_list \<gamma> [(get_match r)] (get_action r) p" by simp
+      with match_list_semantics[of \<gamma> "f (get_match r)" "(get_action r)" p "[(get_match r)]"] have
+        "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m (get_action r)) (f (get_match r))) s = 
+         approximating_bigstep_fun \<gamma> p [Rule (get_match r) (get_action r)] s" by simp
+      hence "(approximating_bigstep_fun \<gamma> p (normalize_rules f [r]) s) = approximating_bigstep_fun \<gamma> p [r] s"
+        by(cases r) (simp)
+    } 
+  
+    with assms show ?thesis
+      proof(induction rs arbitrary: s)
+        case Nil thus ?case by (simp)
+      next
+        case (Cons r rs)
+        from Cons.prems have "simple_ruleset [r]" by(simp add: simple_ruleset_def)
+        with simple_imp_good_ruleset good_imp_wf_ruleset have wf_r: "wf_ruleset \<gamma> p [r]" by fast
+  
+        from `simple_ruleset [r]` simple_imp_good_ruleset good_imp_wf_ruleset have wf_r: 
+          "wf_ruleset \<gamma> p [r]" by fast
+        from simple_ruleset_normalize_rules[OF `simple_ruleset [r]`] have "simple_ruleset (normalize_rules f [r])"
+          by(simp) 
+        with simple_imp_good_ruleset good_imp_wf_ruleset have wf_nr: "wf_ruleset \<gamma> p (normalize_rules f [r])" by fast
+  
+        from Cons have IH: "\<And>s. approximating_bigstep_fun \<gamma> p (normalize_rules f rs) s = approximating_bigstep_fun \<gamma> p rs s"
+          using simple_ruleset_tail by force
+        
+        from Cons have a: "\<And>s. approximating_bigstep_fun \<gamma> p (normalize_rules f [r]) s = approximating_bigstep_fun \<gamma> p [r] s" by simp
+
+        show ?case
+          apply(cases s)
+           prefer 2
+           apply (metis approximating_semantics_imp_fun decision)
+          apply(subst normalize_rules_fst)
+          apply(simp)
+          apply(simp add: approximating_bigstep_fun_seq_wf[OF wf_nr])
+          apply(subst approximating_bigstep_fun_seq_wf[OF wf_r, simplified])
+          apply(simp add: a)
+          apply(simp add: IH)  
+          done
+      qed
+  qed
+
 
 (*TODO: generalize!*)
 fun normalize_rules_dnf :: "'a rule list \<Rightarrow> 'a rule list" where

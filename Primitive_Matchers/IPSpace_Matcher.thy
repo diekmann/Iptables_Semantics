@@ -142,6 +142,8 @@ fun has_unknowns :: " ('a, 'p) exact_match_tac \<Rightarrow> 'a match_expr \<Rig
   "has_unknowns \<beta> MatchAny = False" |
   "has_unknowns \<beta> (MatchAnd m1 m2) = (has_unknowns \<beta> m1 \<or> has_unknowns \<beta> m2)"
 
+(*
+lemma "has_unknowns \<beta> = has_disc"*)
 
 lemma simple_matcher_prot_not_unkown: "simple_matcher (Prot v) p \<noteq> TernaryUnknown"
   apply(cases v)
