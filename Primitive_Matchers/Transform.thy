@@ -217,7 +217,7 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
       normalize_rules normalize_dst_ips \<circ>
       normalize_rules normalize_src_ips \<circ>
       normalize_rules (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports) \<circ>
-      normalize_rules (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports)"
+      normalize_rules normalize_src_ports"
 
 
  (*TODO: move*)
@@ -291,13 +291,12 @@ theorem transform_normalize_primitives:
       unfolding transform_normalize_primitives_def
       by(simp add: simple_ruleset_normalize_rules simplers)
 
-    from normalize_rules_primitive_extract_preserves_nnf_normalized[OF normalized wf_disc_sel_common_primitive(1)]
-         normalize_ports_step_def2[of "(is_Src_Ports, src_ports_sel)" Src_Ports]
-    have "\<forall>m \<in> get_match ` set (normalize_rules (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports) rs).
+    from normalize_rules_primitive_extract_preserves_nnf_normalized[OF normalized wf_disc_sel_common_primitive(1)] normalize_src_ports_def normalize_ports_step_def
+    have "\<forall>m \<in> get_match ` set (normalize_rules normalize_src_ports rs).
             normalized_nnf_match m" by presburger
     from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(2)]
-         normalize_ports_step_def2[of "(is_Dst_Ports, dst_ports_sel)" Dst_Ports]
-    have "\<forall>m \<in> get_match ` set (normalize_rules (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports) (normalize_rules (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports) rs)).
+         normalize_ports_step_def[of "(is_Dst_Ports, dst_ports_sel)" Dst_Ports]
+    have "\<forall>m \<in> get_match ` set (normalize_rules (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports) (normalize_rules normalize_src_ports rs)).
             normalized_nnf_match m" by presburger
 
     show "?\<gamma>,p\<turnstile> \<langle>transform_normalize_primitives rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"

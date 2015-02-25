@@ -122,31 +122,31 @@ subsection{*Normalizing ports*}
   definition normalize_ports_step :: "((common_primitive \<Rightarrow> bool) \<times> (common_primitive \<Rightarrow> ipt_ports)) \<Rightarrow> 
                                (ipt_ports \<Rightarrow> common_primitive) \<Rightarrow>
                                common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where 
-    "normalize_ports_step (disc_sel) C  m = (case primitive_extractor (disc_sel) m 
-                of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (C [spt]))) rst) (ipt_ports_compress spts))"
+    "normalize_ports_step (disc_sel) C  m = normalize_primitive_extract disc_sel C (\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me)) m"
 
-  (*TODO: We can use the generalized version. TODO: remove above def, simplify proofs with it*)
-  lemma normalize_ports_step_def2:
-    "normalize_ports_step disc_sel C m = normalize_primitive_extract disc_sel C (\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me)) m"
-    apply(simp add: normalize_ports_step_def normalize_primitive_extract_def)
-    by(cases "primitive_extractor disc_sel m", simp)
+  (*TODO: We can use the generalized version. TODO:  simplify proofs with it*)
+
+  definition normalize_src_ports :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where
+    "normalize_src_ports = normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports"
+  
   
   lemma normalize_ports_step_Src: assumes "normalized_nnf_match m" shows
-        "match_list (common_matcher, \<alpha>) (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m) a p \<longleftrightarrow>
+        "match_list (common_matcher, \<alpha>) (normalize_src_ports m) a p \<longleftrightarrow>
          matches (common_matcher, \<alpha>) m a p"
-         (*apply(simp add: normalize_ports_step_def2,rule normalize_primitive_extract[OF assms wf_disc_sel_common_primitive(1)])*)
+         (*apply(simp add: normalize_ports_step_def2)
+         apply(rule normalize_primitive_extract[OF assms wf_disc_sel_common_primitive(1)])*)
     proof -
       obtain as ms where pe: "primitive_extractor (is_Src_Ports, src_ports_sel) m = (as, ms)" by fastforce
       from pe have normalize_ports_step: "normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m = 
             (map (\<lambda>spt. MatchAnd (Match (Src_Ports [spt])) ms) (ipt_ports_compress as))"
-        by(simp add: normalize_ports_step_def)
-      from pe  primitive_extractor_correct(1)[OF assms wf_disc_sel_common_primitive(1), where \<gamma>="(common_matcher, \<alpha>)" and a=a and p=p] have 
+        by(simp add: normalize_ports_step_def normalize_primitive_extract_def)
+      from pe primitive_extractor_correct(1)[OF assms wf_disc_sel_common_primitive(1), where \<gamma>="(common_matcher, \<alpha>)" and a=a and p=p] have 
         "matches (common_matcher, \<alpha>) m a p \<longleftrightarrow> 
           (matches (common_matcher, \<alpha>) (alist_and (NegPos_map Src_Ports as)) a p \<and> matches (common_matcher, \<alpha>) ms a p)"
       by simp
       also have "... \<longleftrightarrow> match_list (common_matcher, \<alpha>) (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m) a p"
         by(simp add: normalize_ports_step singletonize_SrcDst_Ports(1) bunch_of_lemmata_about_matches(1) ipt_ports_compress_src_correct)
-      finally show ?thesis by simp
+      finally show ?thesis unfolding normalize_src_ports_def by simp
     qed
   lemma normalize_ports_step_Dst: assumes "normalized_nnf_match m" shows
         "match_list (common_matcher, \<alpha>) (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports m) a p \<longleftrightarrow>
@@ -155,7 +155,7 @@ subsection{*Normalizing ports*}
       obtain as ms where pe: "primitive_extractor (is_Dst_Ports, dst_ports_sel) m = (as, ms)" by fastforce
       from pe have normalize_ports_step: "normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports m =
           (map (\<lambda>spt. MatchAnd (Match (Dst_Ports [spt])) ms) (ipt_ports_compress as))"
-        by(simp add: normalize_ports_step_def)
+        by(simp add: normalize_ports_step_def normalize_primitive_extract_def)
       from pe  primitive_extractor_correct(1)[OF assms wf_disc_sel_common_primitive(2), where \<gamma>="(common_matcher, \<alpha>)" and a=a and p=p] have 
         "matches (common_matcher, \<alpha>) m a p \<longleftrightarrow>
           (matches (common_matcher, \<alpha>) (alist_and (NegPos_map Dst_Ports as)) a p \<and> matches (common_matcher, \<alpha>) ms a p)"
@@ -223,7 +223,7 @@ subsection{*Normalizing ports*}
       from pts_ms have "normalized_nnf_match ms" and "\<not> has_disc is_Src_Ports ms"
         using primitive_extractor_correct[OF assms wf_disc_sel_common_primitive(1)] by simp_all
       from assm2 pts_ms have normalize_ports_step_unfolded: "mn \<in> (\<lambda>spt. MatchAnd (Match (Src_Ports [spt])) ms) ` set (ipt_ports_compress pts)"
-        unfolding normalize_ports_step_def by force
+        unfolding normalize_ports_step_def normalize_primitive_extract_def by force
       with `normalized_nnf_match ms` have "normalized_nnf_match mn" by fastforce
       from `normalized_nnf_match ms` `\<not> has_disc is_Src_Ports ms` have "normalized_src_ports ms"
         by(induction ms rule: normalized_src_ports.induct, simp_all)
@@ -237,7 +237,7 @@ subsection{*Normalizing ports*}
     \<forall>mn \<in> set (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m). normalized_src_ports mn \<and> normalized_dst_ports mn \<and> normalized_nnf_match mn"
   apply(frule normalize_ports_step_src_normalized)
   apply(simp)
-  apply(simp add: normalized_dst_ports_def2 normalize_ports_step_def2)
+  apply(simp add: normalized_dst_ports_def2 normalize_ports_step_def)
   apply(frule(1) normalize_primitive_extract_preserves_unrelated_normalized_n_primitive[OF _ _ wf_disc_sel_common_primitive(1), where f="(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))"])
    apply(simp_all)
   done
