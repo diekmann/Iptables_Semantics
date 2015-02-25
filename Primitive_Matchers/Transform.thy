@@ -273,6 +273,7 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
   apply(cases disc_sel)
   using normalize_primitive_extract_preserves_nnf_normalized normalize_rules_preserves_nnf_normalized by metis
 
+
 theorem transform_normalize_primitives:
   assumes simplers: "simple_ruleset rs"
       and wf\<alpha>: "wf_unknown_match_tac \<alpha>"

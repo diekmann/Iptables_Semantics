@@ -293,8 +293,7 @@ apply(simp add: bunch_of_lemmata_about_matches matches_case_ternaryvalue_tuple)
 by presburger
 
 lemma remove_unknowns_generic: "a = Accept \<or> a = Drop \<Longrightarrow>
-      matches \<gamma> (remove_unknowns_generic \<gamma> a m) a =
-      matches \<gamma> m a"
+      matches \<gamma> (remove_unknowns_generic \<gamma> a m) a = matches \<gamma> m a"
   apply(simp add: fun_eq_iff, clarify)
   apply(rename_tac p)
   apply(induction \<gamma> a m rule: remove_unknowns_generic.induct)
@@ -308,5 +307,46 @@ lemma remove_unknowns_generic: "a = Accept \<or> a = Drop \<Longrightarrow>
 done
 
 
+
+
+
+fun has_unknowns :: " ('a, 'p) exact_match_tac \<Rightarrow> 'a match_expr \<Rightarrow> bool" where
+  "has_unknowns \<beta> (Match A) = (\<exists>p. ternary_ternary_eval (map_match_tac \<beta> p (Match A)) = TernaryUnknown)" |
+  "has_unknowns \<beta> (MatchNot m) = has_unknowns \<beta> m" |
+  "has_unknowns \<beta> MatchAny = False" |
+  "has_unknowns \<beta> (MatchAnd m1 m2) = (has_unknowns \<beta> m1 \<or> has_unknowns \<beta> m2)"
+
+
+definition packet_independent_\<alpha> :: "'p unknown_match_tac \<Rightarrow> bool" where
+  "packet_independent_\<alpha> \<alpha> = (\<forall>a p1 p2. \<alpha> a p1 \<longleftrightarrow> \<alpha> a p2)"
+
+definition unknown_match_all :: "'a unknown_match_tac \<Rightarrow> action \<Rightarrow> bool" where
+   "unknown_match_all \<alpha> a = (\<forall>p. \<alpha> a p)"
+definition unknown_not_match_any :: "'a unknown_match_tac \<Rightarrow> action \<Rightarrow> bool" where
+   "unknown_not_match_any \<alpha> a = (\<forall>p. \<not> \<alpha> a p)"
+
+lemma packet_independent_unknown_match: "packet_independent_\<alpha> \<alpha> \<Longrightarrow> \<not> unknown_not_match_any \<alpha> a \<longleftrightarrow> unknown_match_all \<alpha> a"
+  by(auto simp add: packet_independent_\<alpha>_def unknown_match_all_def unknown_not_match_any_def)
+
+lemma remove_unknowns_generic_simp2: "remove_unknowns_generic (\<beta>, \<alpha>) a (Match A) = (if
+      (\<forall>p. ternary_ternary_eval (map_match_tac \<beta> p (Match A)) = TernaryUnknown)
+    then
+      if unknown_match_all \<alpha> a then MatchAny else if unknown_not_match_any \<alpha> a then MatchNot MatchAny else Match A
+    else (Match A))"
+  by(auto simp add: unknown_match_all_def unknown_not_match_any_def)
+
+
+lemma "a = Accept \<or> a = Drop \<Longrightarrow> packet_independent_\<alpha> \<alpha> \<Longrightarrow> \<not> has_unknowns \<beta> (remove_unknowns_generic (\<beta>, \<alpha>) a m)"
+  apply(induction "(\<beta>, \<alpha>)" a m rule: remove_unknowns_generic.induct)
+        apply(simp_all)[2]
+      defer
+      defer
+      apply(simp_all)[3]
+   apply(subst remove_unknowns_generic_simp2)
+   apply(simp)
+   apply(simp add: packet_independent_unknown_match)
+   (*needs assumption that \<beta> returns unknown every time for some primitive or never, independent of packet
+      it may still dependent on the packet whether it is true or false (if not unknown)*)
+oops
 
 end
