@@ -230,43 +230,48 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
     apply(rule normalize_rules_match_list_semantics_2)
      using normalized assms(1) apply blast
     using assms(2) by simp
+    
 
- thm normalize_primitive_extract_preserves_normalized
- lemma assumes "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" 
-           and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel P m"
-           and "\<forall>m. normalized_nnf_match m \<longrightarrow> (\<forall>m' \<in> set (f m). normalized_nnf_match m')"
-    shows "\<forall>m \<in> get_match ` set (normalize_rules f rs). normalized_nnf_match m \<and> normalized_n_primitive disc_sel P m"
+ (*TODO: move*)
+ thm normalize_primitive_extract_preserves_nnf_normalized
+ thm normalize_primitive_extract_preserves_unrelated_normalized_n_primitive
+ lemma normalize_rules_preserves_nnf_normalized:
+   assumes "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" 
+           (*and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel P m"*)
+       and "\<forall>m. normalized_nnf_match m \<longrightarrow> (\<forall>m' \<in> set (f m). normalized_nnf_match m')"
+    shows "\<forall>m \<in> get_match ` set (normalize_rules f rs). normalized_nnf_match m (*\<and> normalized_n_primitive disc_sel P m*)"
     proof
-      fix m
-      assume a: "m \<in> get_match ` set (normalize_rules f rs)"
-      
-      from a assms(3) assms(1) have "normalized_nnf_match m"
-        proof(induction rs)
-        case Nil thus ?case by simp
-        next
-        case (Cons r rs)
-          {
-            assume "m \<in> get_match ` set (normalize_rules f rs)"
-            from Cons.IH this have "normalized_nnf_match m"
-              using Cons.prems(2) Cons.prems(3) by simp
-          } note 1=this
-          {
-            assume "m \<in> get_match ` set (normalize_rules f [r])"
-            hence a: "m \<in> set (f (get_match r))"
-              apply(cases r)
-              by(auto)
-            with Cons.prems(2) Cons.prems(3) have "\<forall>m'\<in>set (f (get_match r)). normalized_nnf_match m'" by auto
-            with a have "normalized_nnf_match m" by blast
-          } note 2=this
-          from Cons.prems(1) have "m \<in> get_match ` set (normalize_rules f [r]) \<or> m \<in> get_match ` set (normalize_rules f rs)"
-            apply(subst(asm) normalize_rules_fst) by auto
-          with 1 2 show ?case
-            apply(elim disjE)
-            by(simp_all)
-            
-        
-        
- oops
+      fix m assume a: "m \<in> get_match ` set (normalize_rules f rs)"
+      from a assms show "normalized_nnf_match m"
+      proof(induction rs)
+      case Nil thus ?case by simp
+      next
+      case (Cons r rs)
+        {
+          assume "m \<in> get_match ` set (normalize_rules f rs)"
+          from Cons.IH this have "normalized_nnf_match m"
+            using Cons.prems(2) Cons.prems(3) by fastforce
+        } note 1=this
+        {
+          assume "m \<in> get_match ` set (normalize_rules f [r])"
+          hence a: "m \<in> set (f (get_match r))"
+            apply(cases r)
+            by(auto)
+          with Cons.prems(2) Cons.prems(3) have "\<forall>m'\<in>set (f (get_match r)). normalized_nnf_match m'" by auto
+          with a have "normalized_nnf_match m" by blast
+        } note 2=this
+        from Cons.prems(1) have "m \<in> get_match ` set (normalize_rules f [r]) \<or> m \<in> get_match ` set (normalize_rules f rs)"
+          apply(subst(asm) normalize_rules_fst) by auto
+        with 1 2 show ?case
+          apply(elim disjE)
+          by(simp_all)
+      qed
+  qed
+
+  lemma normalize_rules_primitive_extract_preserves_nnf_normalized: "\<forall>m\<in>get_match ` set rs. normalized_nnf_match m \<Longrightarrow> wf_disc_sel disc_sel C \<Longrightarrow>
+     \<forall>m\<in>get_match ` set (normalize_rules (normalize_primitive_extract disc_sel C f) rs). normalized_nnf_match m"
+  apply(cases disc_sel)
+  using normalize_primitive_extract_preserves_nnf_normalized normalize_rules_preserves_nnf_normalized by metis
 
 theorem transform_normalize_primitives:
   assumes simplers: "simple_ruleset rs"
@@ -285,6 +290,15 @@ theorem transform_normalize_primitives:
     show simplers_t: "simple_ruleset (transform_normalize_primitives rs)"
       unfolding transform_normalize_primitives_def
       by(simp add: simple_ruleset_normalize_rules simplers)
+
+    from normalize_rules_primitive_extract_preserves_nnf_normalized[OF normalized wf_disc_sel_common_primitive(1)]
+         normalize_ports_step_def2[of "(is_Src_Ports, src_ports_sel)" Src_Ports]
+    have "\<forall>m \<in> get_match ` set (normalize_rules (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports) rs).
+            normalized_nnf_match m" by presburger
+    from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(2)]
+         normalize_ports_step_def2[of "(is_Dst_Ports, dst_ports_sel)" Dst_Ports]
+    have "\<forall>m \<in> get_match ` set (normalize_rules (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports) (normalize_rules (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports) rs)).
+            normalized_nnf_match m" by presburger
 
     show "?\<gamma>,p\<turnstile> \<langle>transform_normalize_primitives rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_t]]
