@@ -216,7 +216,7 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
     "transform_normalize_primitives =
       normalize_rules normalize_dst_ips \<circ>
       normalize_rules normalize_src_ips \<circ>
-      normalize_rules (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports) \<circ>
+      normalize_rules normalize_dst_ports \<circ>
       normalize_rules normalize_src_ports"
 
 
@@ -291,13 +291,25 @@ theorem transform_normalize_primitives:
       unfolding transform_normalize_primitives_def
       by(simp add: simple_ruleset_normalize_rules simplers)
 
-    from normalize_rules_primitive_extract_preserves_nnf_normalized[OF normalized wf_disc_sel_common_primitive(1)] normalize_src_ports_def normalize_ports_step_def
+    from normalize_rules_primitive_extract_preserves_nnf_normalized[OF normalized wf_disc_sel_common_primitive(1)]
+         normalize_src_ports_def normalize_ports_step_def
     have "\<forall>m \<in> get_match ` set (normalize_rules normalize_src_ports rs).
             normalized_nnf_match m" by presburger
     from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(2)]
-         normalize_ports_step_def[of "(is_Dst_Ports, dst_ports_sel)" Dst_Ports]
-    have "\<forall>m \<in> get_match ` set (normalize_rules (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports) (normalize_rules normalize_src_ports rs)).
+         normalize_dst_ports_def normalize_ports_step_def
+    have "\<forall>m \<in> get_match ` set (normalize_rules normalize_dst_ports (normalize_rules normalize_src_ports rs)).
             normalized_nnf_match m" by presburger
+    from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(3)]
+         normalize_src_ips_def
+    have "\<forall>m \<in> get_match ` set (normalize_rules normalize_src_ips (normalize_rules normalize_dst_ports (normalize_rules normalize_src_ports rs))).
+            normalized_nnf_match m" by presburger
+    from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(4)]
+         normalize_dst_ips_def
+    have "\<forall>m \<in> get_match ` set (normalize_rules normalize_dst_ips (normalize_rules normalize_src_ips 
+            (normalize_rules normalize_dst_ports (normalize_rules normalize_src_ports rs)))).
+              normalized_nnf_match m" by presburger
+    thus "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m"
+      unfolding transform_normalize_primitives_def by simp
 
     show "?\<gamma>,p\<turnstile> \<langle>transform_normalize_primitives rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_t]]
