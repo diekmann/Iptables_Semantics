@@ -219,9 +219,11 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
       normalize_rules (normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports) \<circ>
       normalize_rules (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports)"
 
+
+ (*TODO: move*)
  (*tuned version for usage with normalize_primitive_extract*)
  lemma normalize_rules_match_list_semantics_3: 
-    assumes "\<forall>r \<in> set rs. normalized_nnf_match (get_match r) \<longrightarrow> match_list \<gamma> (f (get_match r)) (get_action r) p = matches \<gamma> (get_match r) (get_action r) p"
+    assumes "\<forall>m a. normalized_nnf_match m \<longrightarrow> match_list \<gamma> (f m) a p = matches \<gamma> m a p"
     and "simple_ruleset rs"
     and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
     shows "approximating_bigstep_fun \<gamma> p (normalize_rules f rs) s = approximating_bigstep_fun \<gamma> p rs s"
@@ -229,30 +231,71 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
      using normalized assms(1) apply blast
     using assms(2) by simp
 
-theorem transform_normalize_primitives: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
+ thm normalize_primitive_extract_preserves_normalized
+ lemma assumes "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" 
+           and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel P m"
+           and "\<forall>m. normalized_nnf_match m \<longrightarrow> (\<forall>m' \<in> set (f m). normalized_nnf_match m')"
+    shows "\<forall>m \<in> get_match ` set (normalize_rules f rs). normalized_nnf_match m \<and> normalized_n_primitive disc_sel P m"
+    proof
+      fix m
+      assume a: "m \<in> get_match ` set (normalize_rules f rs)"
+      
+      from a assms(3) assms(1) have "normalized_nnf_match m"
+        proof(induction rs)
+        case Nil thus ?case by simp
+        next
+        case (Cons r rs)
+          {
+            assume "m \<in> get_match ` set (normalize_rules f rs)"
+            from Cons.IH this have "normalized_nnf_match m"
+              using Cons.prems(2) Cons.prems(3) by simp
+          } note 1=this
+          {
+            assume "m \<in> get_match ` set (normalize_rules f [r])"
+            hence a: "m \<in> set (f (get_match r))"
+              apply(cases r)
+              by(auto)
+            with Cons.prems(2) Cons.prems(3) have "\<forall>m'\<in>set (f (get_match r)). normalized_nnf_match m'" by auto
+            with a have "normalized_nnf_match m" by blast
+          } note 2=this
+          from Cons.prems(1) have "m \<in> get_match ` set (normalize_rules f [r]) \<or> m \<in> get_match ` set (normalize_rules f rs)"
+            apply(subst(asm) normalize_rules_fst) by auto
+          with 1 2 show ?case
+            apply(elim disjE)
+            by(simp_all)
+            
+        
+        
+ oops
+
+theorem transform_normalize_primitives:
+  assumes simplers: "simple_ruleset rs"
+      and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
       and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
-      shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_normalize_primitives rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
-      and "simple_ruleset (transform_normalize_primitives rs)"
-      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc C m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc C m"
-      and "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m"
-      and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_n_primitive disc_sel f m"
+  shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_normalize_primitives rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+    and "simple_ruleset (transform_normalize_primitives rs)"
+    and "\<forall> m \<in> get_match ` set rs. \<not> has_disc C m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc C m"
+    and "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m"
+    and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
+          \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_n_primitive disc_sel f m"
   proof -
     let ?\<gamma>="(common_matcher, \<alpha>)"
     let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
 
-    show simplers: "simple_ruleset (transform_normalize_primitives rs)"
+    show simplers_t: "simple_ruleset (transform_normalize_primitives rs)"
       unfolding transform_normalize_primitives_def
       by(simp add: simple_ruleset_normalize_rules simplers)
 
     show "?\<gamma>,p\<turnstile> \<langle>transform_normalize_primitives rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
-     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
-     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
+     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_t]]
+     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_t]]
      unfolding transform_normalize_primitives_def
      apply(simp)
      apply(subst normalize_rules_match_list_semantics_3)
-     using normalize_dst_ips normalized 
-     apply(simp add: normalize_rules_match_list_semantics simple_ruleset_normalize_rules simplers)
+        using normalize_dst_ips apply simp
+       using simplers simple_ruleset_normalize_rules apply blast
+      apply(simp)
+      apply(simp add: normalize_rules_match_list_semantics simple_ruleset_normalize_rules simplers)
      thm normalize_rules_match_list_semantics
      thm normalize_dst_ips
 oops

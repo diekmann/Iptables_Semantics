@@ -247,7 +247,7 @@ subsection{*Normalizing and Optimizing Primitives*}
     finally show ?thesis using match_list_semantics[of \<gamma> "(normalize_primitive_extract disc_sel C f m)" a p "[m]"] by simp
   qed
 
-  lemma normalize_primitive_extract_preserves_normalized:
+  (*lemma normalize_primitive_extract_preserves_normalized:
   assumes "normalized_nnf_match m"
       and "normalized_n_primitive (disc2, sel2) P m"
       and "wf_disc_sel (disc1, sel1) C"
@@ -274,7 +274,51 @@ subsection{*Normalizing and Optimizing Primitives*}
 
       with Casms have "normalized_n_primitive (disc2, sel2) P mn" by blast
       with `normalized_nnf_match mn` show "normalized_n_primitive (disc2, sel2) P mn \<and> normalized_nnf_match mn" by simp
+    qed*)
+
+
+  lemma normalize_primitive_extract_preserves_nnf_normalized:
+  assumes "normalized_nnf_match m"
+      and "wf_disc_sel (disc, sel) C"
+    shows "\<forall>mn \<in> set (normalize_primitive_extract (disc, sel) C f m). normalized_nnf_match mn"
+    proof
+      fix mn
+      assume assm2: "mn \<in> set (normalize_primitive_extract (disc, sel) C f m)"
+      obtain as ms where as_ms: "primitive_extractor (disc, sel) m = (as, ms)" by fastforce
+      from as_ms primitive_extractor_correct[OF assms(1) assms(2)] have "normalized_nnf_match ms" by simp
+      from assm2 as_ms have normalize_primitive_extract_unfolded: "mn \<in> ((\<lambda>spt. MatchAnd (Match (C spt)) ms) ` set (f as))"
+        unfolding normalize_primitive_extract_def by force
+      with `normalized_nnf_match ms` show "normalized_nnf_match mn" by fastforce
     qed
+
+  text{*If something is normalized for disc2 and disc2 @{text \<noteq>} disc1 and we do something on disc1, then disc2 remains normalized*}
+  lemma normalize_primitive_extract_preserves_unrelated_normalized_n_primitive:
+  assumes "normalized_nnf_match m"
+      and "normalized_n_primitive (disc2, sel2) P m"
+      and "wf_disc_sel (disc1, sel1) C"
+      and "\<forall>a. \<not> disc2 (C a)" --"disc1 and disc2 match for different stuff. e.g. Src_Ports and Dst_Ports"
+    shows "\<forall>mn \<in> set (normalize_primitive_extract (disc1, sel1) C f m). normalized_n_primitive (disc2, sel2) P mn"
+    proof
+      fix mn
+      assume assm2: "mn \<in> set (normalize_primitive_extract (disc1, sel1) C f m)"
+      obtain as ms where as_ms: "primitive_extractor (disc1, sel1) m = (as, ms)" by fastforce
+      from as_ms primitive_extractor_correct[OF assms(1) assms(3)] have 
+                      "\<not> has_disc disc1 ms"
+                  and "normalized_n_primitive (disc2, sel2) P ms"
+        apply -
+        apply(fast)
+        using assms(2) by(fast)
+      from assm2 as_ms have normalize_primitive_extract_unfolded: "mn \<in> ((\<lambda>spt. MatchAnd (Match (C spt)) ms) ` set (f as))"
+        unfolding normalize_primitive_extract_def by force
+      
+      from normalize_primitive_extract_unfolded obtain Casms where Casms: "mn = (MatchAnd (Match (C Casms)) ms)" by blast
+
+      from `normalized_n_primitive (disc2, sel2) P ms` assms(4) have "normalized_n_primitive (disc2, sel2) P (MatchAnd (Match (C Casms)) ms)"
+        by(simp)
+
+      with Casms show "normalized_n_primitive (disc2, sel2) P mn" by blast
+    qed
+
 
 
 
