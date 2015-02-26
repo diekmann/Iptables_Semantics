@@ -163,6 +163,17 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
   qed
 
 
+
+(*TODO move?*)
+lemma has_unknowns_common_matcher: "has_unknowns common_matcher m \<longleftrightarrow> has_disc is_Extra m"
+  proof -
+  { fix A p
+    have "common_matcher A p = TernaryUnknown \<longleftrightarrow> is_Extra A"
+      by(induction A p rule: common_matcher.induct) (simp_all add: bool_to_ternary_Unknown)
+  } thus ?thesis
+  by(induction common_matcher m rule: has_unknowns.induct) (simp_all)
+qed
+
 definition transform_remove_unknowns_generic :: "('a, 'packet) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where 
     "transform_remove_unknowns_generic \<gamma> = optimize_matches_a (remove_unknowns_generic \<gamma>) "
 theorem transform_remove_unknowns_generic: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"

@@ -128,6 +128,13 @@ corollary optimize_primitive_univ_correct: "approximating_bigstep_fun (common_ma
 using optimize_matches optimize_primitive_univ_correct_matchexpr by metis
 
 
+lemma packet_independent_\<beta>_unknown_common_matcher: "packet_independent_\<beta>_unknown common_matcher"
+  apply(simp add: packet_independent_\<beta>_unknown_def)
+  apply(clarify)
+  apply(rename_tac A p1 p2)
+  apply(case_tac A)
+  by(simp_all add: bool_to_ternary_Unknown)
+
 
 
 end
