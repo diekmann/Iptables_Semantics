@@ -24,6 +24,7 @@ lemma wf_disc_sel_common_primitive[simp]:
       "wf_disc_sel (is_Src_Ports, src_ports_sel) Src_Ports"
       "wf_disc_sel (is_Dst_Ports, dst_ports_sel) Dst_Ports"
       "wf_disc_sel (is_Src, src_sel) Src"
+      "wf_disc_sel (is_Dst, dst_sel) Dst"
       "wf_disc_sel (is_Iiface, iiface_sel) IIface"
       "wf_disc_sel (is_Oiface, oiface_sel) OIface"
       "wf_disc_sel (is_Prot, prot_sel) Prot"

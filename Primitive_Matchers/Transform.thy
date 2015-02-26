@@ -176,11 +176,13 @@ qed
 
 definition transform_remove_unknowns_generic :: "('a, 'packet) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where 
     "transform_remove_unknowns_generic \<gamma> = optimize_matches_a (remove_unknowns_generic \<gamma>) "
-theorem transform_remove_unknowns_generic: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
-      shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_remove_unknowns_generic (common_matcher, \<alpha>) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+theorem transform_remove_unknowns_generic:
+   assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>" and packet_independent_\<alpha>: "packet_independent_\<alpha> \<alpha>"
+    shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_remove_unknowns_generic (common_matcher, \<alpha>) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
       and "simple_ruleset (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs)"
       and "\<forall> m \<in> get_match ` set rs. \<not> has_disc C m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). \<not> has_disc C m"
+      and "\<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). \<not> has_unknowns common_matcher m"
       (*may return MatchNot MatchAny*)
       (*and "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). normalized_nnf_match m"*)
@@ -216,6 +218,15 @@ theorem transform_remove_unknowns_generic: assumes simplers: "simple_ruleset rs"
             \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). normalized_n_primitive disc_sel f m"
       unfolding transform_remove_unknowns_generic_def
       by(induction rs) (simp_all add: optimize_matches_a_def)
+
+    from simplers show "\<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). \<not> has_unknowns common_matcher m"
+      unfolding transform_remove_unknowns_generic_def
+      apply(induction rs)
+       apply(simp add: optimize_matches_a_def)
+      apply(simp add: optimize_matches_a_def simple_ruleset_tail)
+      apply(rule remove_unknowns_generic_specification[OF _ packet_independent_\<alpha> packet_independent_\<beta>_unknown_common_matcher])
+      apply(simp add: simple_ruleset_def)
+      done
 qed
 
 

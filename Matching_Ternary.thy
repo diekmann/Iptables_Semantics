@@ -340,11 +340,11 @@ fun has_unknowns :: " ('a, 'p) exact_match_tac \<Rightarrow> 'a match_expr \<Rig
   "has_unknowns \<beta> MatchAny = False" |
   "has_unknowns \<beta> (MatchAnd m1 m2) = (has_unknowns \<beta> m1 \<or> has_unknowns \<beta> m2)"
 
-
+(* assumes simple_ruleset, thus we only care about Accept/Drop *)
 definition packet_independent_\<alpha> :: "'p unknown_match_tac \<Rightarrow> bool" where
-  "packet_independent_\<alpha> \<alpha> = (\<forall>a p1 p2. \<alpha> a p1 \<longleftrightarrow> \<alpha> a p2)"
+  "packet_independent_\<alpha> \<alpha> = (\<forall>a p1 p2. a = Accept \<or> a = Drop \<longrightarrow> \<alpha> a p1 \<longleftrightarrow> \<alpha> a p2)"
 
-lemma packet_independent_unknown_match: "packet_independent_\<alpha> \<alpha> \<Longrightarrow> \<not> unknown_not_match_any \<alpha> a \<longleftrightarrow> unknown_match_all \<alpha> a"
+lemma packet_independent_unknown_match: "a = Accept \<or> a = Drop \<Longrightarrow> packet_independent_\<alpha> \<alpha> \<Longrightarrow> \<not> unknown_not_match_any \<alpha> a \<longleftrightarrow> unknown_match_all \<alpha> a"
   by(auto simp add: packet_independent_\<alpha>_def unknown_match_all_def unknown_not_match_any_def)
 
 text{*If for some type the exact matcher returns unknown, then it returns unknown for all these types*}
