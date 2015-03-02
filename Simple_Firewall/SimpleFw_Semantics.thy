@@ -15,7 +15,7 @@ text{*Very TODO*}
 
   datatype simple_action = Accept | Drop
   
-  (*TODO: can we get rid of the negation types?*)
+  (*TODO: Discuss: how did we get rid of the negation types?*)
   record simple_match =
     iiface :: "iface" --"in-interface" (*TODO: we cannot (and don't want to, see history) express negated interfaces*)
     oiface :: "iface" --"out-interface"
