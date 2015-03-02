@@ -320,9 +320,99 @@ subsection{*Normalizing and Optimizing Primitives*}
     qed
 
 
+(*those should hold*)
+thm wf_disc_sel.simps 
+lemma "wf_disc_sel (disc, sel) C \<Longrightarrow> \<forall>x. disc (C x)" quickcheck oops
+lemma "wf_disc_sel (disc, sel) C \<Longrightarrow> disc (C x) \<longrightarrow> sel (C x) = x" quickcheck oops
+  
+  lemma normalize_primitive_extract_normalizes_n_primitive:
+  fixes disc::"('a \<Rightarrow> bool)" and sel::"('a \<Rightarrow> 'b)" and f::"('b negation_type list \<Rightarrow> 'b list)"
+  assumes "normalized_nnf_match m"
+      and "wf_disc_sel (disc, sel) C"
+      and np: "\<forall>as. (\<forall> a' \<in> set (f as). P a')" (*not quite, sel f   \<forall>as \<in> {x. disc (v x)}. *)
+    shows "\<forall>m' \<in> set (normalize_primitive_extract (disc, sel) C f m). normalized_n_primitive (disc, sel) P m'"
+    proof
+    fix m' assume a: "m'\<in>set (normalize_primitive_extract (disc, sel) C f m)"
+
+    have nnf: "\<forall>m' \<in> set (normalize_primitive_extract (disc, sel) C f m). normalized_nnf_match m'"
+      using normalize_primitive_extract_preserves_nnf_normalized assms by blast
+    with a have normalized_m': "normalized_nnf_match m'" by simp
+
+    from a obtain as ms where as_ms: "primitive_extractor (disc, sel) m = (as, ms)"
+      unfolding normalize_primitive_extract_def by fastforce
+    with a have prems: "m' \<in> set (map (\<lambda>spt. MatchAnd (Match (C spt)) ms) (f as))"
+      unfolding normalize_primitive_extract_def by simp
 
 
-lemma "normalized_n_primitive disc_sel f m \<Longrightarrow>  normalized_nnf_match m"
+    from primitive_extractor_correct(2)[OF assms(1) assms(2) as_ms] have "normalized_nnf_match ms" .
+    
+    show "normalized_n_primitive (disc, sel) P m'"
+    proof(cases "f as = []")
+    case True thus "normalized_n_primitive (disc, sel) P m'" using prems by simp
+    next
+    case False
+      with prems obtain spt where "m' = MatchAnd (Match (C spt)) ms" and "spt \<in> set (f as)" by auto
+
+      from primitive_extractor_correct(3)[OF assms(1) assms(2) as_ms] have "\<not> has_disc disc ms" .
+      with `normalized_nnf_match ms` have "normalized_n_primitive (disc, sel) P ms"
+        by(induction "(disc, sel)" P ms rule: normalized_n_primitive.induct) simp_all
+
+      (*
+      from primitive_extractor_correct(4)[OF assms(1) assms(2) as_ms] have "\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms" .*)
+
+      have "(sel (C spt)) = spt" sorry
+      with np `spt \<in> set (f as)` have "P (sel (C spt))" by simp
+
+      show "normalized_n_primitive (disc, sel) P m'"
+      apply(simp add: `m' = MatchAnd (Match (C spt)) ms`)
+      apply(rule conjI)
+       apply(simp_all add: `normalized_n_primitive (disc, sel) P ms`)
+      apply(simp add: `P (sel (C spt))`)
+      done
+      (*
+    hence "\<exists>spt \<in> set (f ms). m1 = Match (C spt)" by blast
+
+
+    from normalized_m' a have "normalized_n_primitive (disc, sel) P m'"
+    proof(induction "(disc, sel)" P m' arbitrary: m rule: normalized_n_primitive.induct)
+    print_cases
+      case 1 thus ?case by simp
+    next
+      case (2 P a)
+        from a 
+        show ?case
+        apply(simp)
+        using np sorry
+    next
+      case 3 thus ?case sorry
+    next
+      case (4 P m1 m2)
+      (*from 4(3) obtain as ms where ms_as: "primitive_extractor (disc, sel) m = (ms, as)"
+        unfolding normalize_primitive_extract_def by fastforce
+      with 4(3) have prems: "MatchAnd m1 m2 \<in> (\<lambda>spt. MatchAnd (Match (C spt)) as) ` set (f ms)"
+        unfolding normalize_primitive_extract_def by(simp)
+      hence "\<exists>spt \<in> set (f ms). m1 = Match (C spt)" by blast
+
+      from prems have "as = m2" by fast
+      with ms_as have "primitive_extractor (disc, sel) m = (ms, m2)" by simp
+      (*m2 should not have disc and is thus normalized*)
+      from primitive_extractor_correct[OF _ assms(2) ms_as] `as = m2` have "\<not> has_disc disc m2" sorry
+      hence "(normalize_primitive_extract (disc, sel) C f m2) = []" (*cannot use IH*)
+        unfolding normalize_primitive_extract_def
+        sorry*)
+
+      from 4 show ?case by(simp)
+    next
+      case 5 thus ?case (*using nnf*) by fastforce
+    next
+      case 6 thus ?case (*using nnf*) by fastforce
+    next
+      case 7 thus ?case by simp
+    qed*)
+    qed
+  oops
+
+lemma "normalized_n_primitive disc_sel f m \<Longrightarrow> normalized_nnf_match m"
   apply(induction disc_sel f m rule: normalized_n_primitive.induct)
         apply(simp_all)
         oops

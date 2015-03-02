@@ -254,38 +254,6 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
     using assms(2) by simp
     
 
-  (*TODO: move? ?*)
-   lemma normalize_rules_preserves:
-   assumes "\<forall> m \<in> get_match ` set rs. P m"
-       and "\<forall>m. P m \<longrightarrow> (\<forall>m' \<in> set (f m). P m')"
-    shows "\<forall>m \<in> get_match ` set (normalize_rules f rs). P m"
-    proof
-      fix m assume a: "m \<in> get_match ` set (normalize_rules f rs)"
-      from a assms show "P m"
-      proof(induction rs)
-      case Nil thus ?case by simp
-      next
-      case (Cons r rs)
-        {
-          assume "m \<in> get_match ` set (normalize_rules f rs)"
-          from Cons.IH this have "P m" using Cons.prems(2) Cons.prems(3) by fastforce
-        } note 1=this
-        {
-          assume "m \<in> get_match ` set (normalize_rules f [r])"
-          hence a: "m \<in> set (f (get_match r))"
-            apply(cases r)
-            by(auto)
-          with Cons.prems(2) Cons.prems(3) have "\<forall>m'\<in>set (f (get_match r)). P m'" by auto
-          with a have "P m" by blast
-        } note 2=this
-        from Cons.prems(1) have "m \<in> get_match ` set (normalize_rules f [r]) \<or> m \<in> get_match ` set (normalize_rules f rs)"
-          apply(subst(asm) normalize_rules_fst) by auto
-        with 1 2 show ?case
-          apply(elim disjE)
-          by(simp_all)
-      qed
-  qed
-
  (*TODO: move and*)
   lemma normalize_rules_primitive_extract_preserves_nnf_normalized: "\<forall>m\<in>get_match ` set rs. normalized_nnf_match m \<Longrightarrow> wf_disc_sel disc_sel C \<Longrightarrow>
      \<forall>m\<in>get_match ` set (normalize_rules (normalize_primitive_extract disc_sel C f) rs). normalized_nnf_match m"
