@@ -122,9 +122,11 @@ subsection{*Normalizing IP Addresses*}
     using normalize_primitive_extract[OF _ wf_disc_sel_common_primitive(3), where f=ipt_ipv4range_compress and \<gamma>="(common_matcher, \<alpha>)"]
       ipt_ipv4range_compress_src_matching by simp
 
-  lemma "normalized_nnf_match m \<Longrightarrow> \<forall>m' \<in> set (normalize_src_ips m). normalized_src_ips m'"
+  lemma normalize_src_ips_normalized_n_primitive: "normalized_nnf_match m \<Longrightarrow> \<forall>m' \<in> set (normalize_src_ips m). normalized_src_ips m'"
   unfolding normalize_src_ips_def
-  oops (*TODO*)
+  unfolding normalized_src_ips_def2
+  apply(rule normalize_primitive_extract_normalizes_n_primitive[OF _ wf_disc_sel_common_primitive(3)])
+   by(simp_all)
 
 
   definition normalize_dst_ips :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where
@@ -156,6 +158,16 @@ subsection{*Normalizing IP Addresses*}
    unfolding normalized_src_ips_def2
    apply(rule normalize_primitive_extract_preserves_unrelated_normalized_n_primitive)
    by(simp_all)
+
+
+
+  lemma normalize_dst_ips_normalized_n_primitive: "normalized_nnf_match m \<Longrightarrow> \<forall>m' \<in> set (normalize_dst_ips m). normalized_dst_ips m'"
+  unfolding normalize_dst_ips_def
+  unfolding normalized_dst_ips_def2
+  apply(rule normalize_primitive_extract_normalizes_n_primitive[OF _ wf_disc_sel_common_primitive(4)])
+   by(simp_all)
+
+
 
 
 
