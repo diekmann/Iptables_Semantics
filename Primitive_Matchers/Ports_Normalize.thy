@@ -155,10 +155,10 @@ subsection{*Normalizing ports*}
 
 
   value "normalized_nnf_match (MatchAnd (MatchNot (Match (Src_Ports [(1,2)]))) (Match (Src_Ports [(1,2)])))"
-  value "normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports (MatchAnd (MatchNot (Match (Src_Ports [(5,9)]))) (Match (Src_Ports [(1,2)])))"
+  value "normalize_src_ports (MatchAnd (MatchNot (Match (Src_Ports [(5,9)]))) (Match (Src_Ports [(1,2)])))"
 
   (*TODO: probably we should optimize away the (Match (Src_Ports [(0, 65535)]))*)
-  value "normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports (MatchAnd (MatchNot (Match (Prot (Proto TCP)))) (Match (Prot (ProtoAny))))"
+  value "normalize_src_ports (MatchAnd (MatchNot (Match (Prot (Proto TCP)))) (Match (Prot (ProtoAny))))"
   
   fun normalized_src_ports :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_src_ports MatchAny = True" |
@@ -201,9 +201,16 @@ subsection{*Normalizing ports*}
   lemma "\<forall>spt \<in> set (ipt_ports_compress spts). normalized_src_ports (Match (Src_Ports [spt]))" by(simp)
   
 
-  lemma normalize_ports_step_src_normalized:
+  (* version using generalized lemma below
+    the nnf normalization of the result follows from 
+    thm normalize_primitive_extract_preserves_nnf_normalized
+
+    see below for a lemma which obtains the same result
+
+    lemma normalize_ports_step_src_normalized:
     assumes "normalized_nnf_match m"
-    shows "\<forall>mn \<in> set (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m). normalized_src_ports mn \<and> normalized_nnf_match mn"
+    shows "\<forall>mn \<in> set (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m).
+              normalized_src_ports mn \<and> normalized_nnf_match mn"
     proof
       fix mn
       assume assm2: "mn \<in> set (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m)"
@@ -219,13 +226,38 @@ subsection{*Normalizing ports*}
       by(induction pts) (fastforce)+
       with `normalized_nnf_match mn` show "normalized_src_ports mn \<and> normalized_nnf_match mn" by simp
     qed
+ *)
+
+
+
+  lemma normalize_src_ports_normalized_n_primitive: "normalized_nnf_match m \<Longrightarrow> 
+      \<forall>m' \<in> set (normalize_src_ports m). normalized_src_ports m'"
+  unfolding normalize_src_ports_def normalize_ports_step_def
+  unfolding normalized_src_ports_def2
+  apply(rule normalize_primitive_extract_normalizes_n_primitive[OF _ wf_disc_sel_common_primitive(1)])
+   by(simp_all)
+
+
+  lemma "normalized_nnf_match m \<Longrightarrow>
+      \<forall>m' \<in> set (normalize_src_ports m). normalized_src_ports m' \<and> normalized_nnf_match m'"
+  apply(intro ballI, rename_tac mn)
+  apply(rule conjI)
+   apply(simp add: normalize_src_ports_normalized_n_primitive)
+  unfolding normalize_src_ports_def normalize_ports_step_def
+  unfolding normalized_dst_ports_def2
+   by(auto dest: normalize_primitive_extract_preserves_nnf_normalized[OF _ wf_disc_sel_common_primitive(1)])
+
+  lemma normalize_dst_ports_normalized_n_primitive: "normalized_nnf_match m \<Longrightarrow> 
+      \<forall>m' \<in> set (normalize_dst_ports m). normalized_dst_ports m'"
+  unfolding normalize_dst_ports_def normalize_ports_step_def
+  unfolding normalized_dst_ports_def2
+  apply(rule normalize_primitive_extract_normalizes_n_primitive[OF _ wf_disc_sel_common_primitive(2)])
+   by(simp_all)
 
   (*using the generalized version, we can push through normalized conditions*)
   lemma "normalized_nnf_match m \<Longrightarrow> normalized_dst_ports m \<Longrightarrow>
-    \<forall>mn \<in> set (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m). normalized_src_ports mn \<and> normalized_dst_ports mn \<and> normalized_nnf_match mn"
-  apply(frule normalize_ports_step_src_normalized)
-  apply(simp)
-  apply(simp add: normalized_dst_ports_def2 normalize_ports_step_def)
+    \<forall>mn \<in> set (normalize_src_ports m). normalized_dst_ports mn"
+  unfolding normalized_dst_ports_def2 normalize_src_ports_def normalize_ports_step_def
   apply(frule(1) normalize_primitive_extract_preserves_unrelated_normalized_n_primitive[OF _ _ wf_disc_sel_common_primitive(1), where f="(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))"])
    apply(simp_all)
   done

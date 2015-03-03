@@ -345,6 +345,16 @@ theorem transform_normalize_primitives:
      by simp
 
 
+    (*from normalize_src_ports_normalized_n_primitive normalized 
+    have "\<forall>m \<in> get_match ` set (normalize_rules normalize_src_ports rs).
+            normalized_src_ports m"
+    from normalized_result1
+      normalize_primitive_extract_preserves_unrelated_normalized_n_primitive[OF _ _ wf_disc_sel_common_primitive(1)]
+      
+         normalize_dst_ports_def normalize_ports_step_def
+    have "\<forall>m \<in> get_match ` set (normalize_rules normalize_dst_ports (normalize_rules normalize_src_ports rs)).
+            normalized_src_ports m" by presburger
+   *)
    show  "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
           \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_n_primitive disc_sel f m"
 oops
