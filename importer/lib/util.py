@@ -1,4 +1,10 @@
-from termcolor import colored
+try:
+    from termcolor import colored
+except ImportError:
+    def colored(message, color, attrs):
+        return message
+    pass
+
 from sys import stderr
 from functools import wraps
 
