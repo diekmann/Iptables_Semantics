@@ -17,67 +17,19 @@ text{*Very TODO*}
   
   (*TODO: Discuss: how did we get rid of the negation types?*)
   record simple_match =
-    iiface :: "iface" --"in-interface" (*TODO: we cannot (and don't want to, see history) express negated interfaces*)
+    iiface :: "iface" --"in-interface" (*TODO: we cannot (and don't want to, c.f. git history) express negated interfaces*)
     oiface :: "iface" --"out-interface"
 
-    (*TODO: need to convert complex firewall such that negated ips do not occur! Use CIDR split*)
-    src :: "(ipv4addr \<times> nat) " --"source IP address" (*TODO: 
-      for reference, the commit where the negation type was removed is 823703ceb9363deb60ecd4923c39ea6c8901f368
-      the last commit with CIDR notation was 0969c2f99afefb316e4f279863b717fd40e0923c*)
+    (*Negated IP ranges may not occur. Use CIDR split*)
+    src :: "(ipv4addr \<times> nat) " --"source IP address"
     dst :: "(ipv4addr \<times> nat) " --"destination"
     proto :: "protocol"
     sports :: "(16 word \<times> 16 word)" --"source-port first:last"
     dports :: "(16 word \<times> 16 word)" --"destination-port first:last"
     (*ports have no negation type as this can be represented by multiple firewall rules
-      for example: !(3,4)
-      is representable by
-      (1,2) and (4,65535)
+      for example: !(3,4) is representable by (1,2) and (4,65535)
       *)
 
-(*
-(*scratch: testing ip range normalize*)
-(*TODO move:*)
- lemma "- {4::nat .. 8::nat} = {0..3} \<union> {9..}" by force
-
- (*hardly expressible with ip/n syntax*)
- lemma "(- (ipv4range_set_from_bitmask 0x11330000 16)) = {0 .. 0x1132FFFF} \<union> {0x11340000 ..}"
-   apply(simp add: ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def)
-   apply(rule)
-    apply(rule)
-    apply(simp add: not_le less_le)
-    apply(elim disjE conjE)
-     apply(simp_all)
-     apply(unat_arith)
-    apply(unat_arith)
-   apply(rule)
-    apply(rule)
-    apply(simp)
-    apply(unat_arith)+
-   done
-(*hmm, ip range normalizing with these types will result in a horrible blowup
- we probably need the negation types again
-  we could show that Neg corresponds to an inverse bitmask, something like the cisco stuff
-
- we cannot simply merge two Negs, see below
-
- do we want some ranges like in the ports?
-  but translating back an arbitrary range to the syntax used in the (complex) match_expr will get hard
-  {a..b} can be translated into b - a single ips (easy)
-  optimize (needed!):
-    compress to one large ip range and then add a bunch of single ips
-    oh boy, this is gonna be some work to do!
-  downside: not possible to print it back directly to CIDR notation
-  but we need cidr notation!
-  so, the optimized {a..b} to [IP x, IP y, foo/n, IP z] must be really good
-  and we need a print function then
-    print {a..a} \<rightarrow> a
-    print {a..b} \<rightarrow> base/mask
-       base is longest prefix of a and b appended with zeros, mask is the length of the prefix
-    all other ways to store an ip range (i.e. we cannot directly translate it to CIDR notation) must be normalized away (splitting rules)
-  the longest prefix CIDR stuff is an optimization we may skip for now
-*)
-(*end: scratch: testing ip range normalize*)
-*)
 
   datatype simple_rule = SimpleRule simple_match simple_action
 
