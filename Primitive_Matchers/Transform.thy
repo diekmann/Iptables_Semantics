@@ -281,7 +281,15 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
     using normalize_primitive_extract_preserves_unrelated_normalized_n_primitive[OF _ _ assms(2) assms(3)] by blast
 
 
-
+  lemma normalize_rules_normalized_n_primitive:
+   assumes "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
+       and "\<forall>m. normalized_nnf_match m \<longrightarrow>
+             (\<forall>m' \<in> set (normalize_primitive_extract (disc, sel) C f m). normalized_n_primitive (disc, sel) P m')"
+    shows "\<forall>m \<in> get_match ` set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs).
+           normalized_n_primitive (disc, sel) P m"
+    apply(rule normalize_rules_property[where P=normalized_nnf_match and f="normalize_primitive_extract (disc, sel) C f"])
+     using assms(1) apply simp
+    using assms(2) by simp
 
 theorem transform_normalize_primitives:
   assumes simplers: "simple_ruleset rs"
@@ -293,6 +301,8 @@ theorem transform_normalize_primitives:
     and "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m"
     and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
           \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_n_primitive disc_sel f m"
+    and "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs).
+          normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m"
   proof -
     let ?\<gamma>="(common_matcher, \<alpha>)"
     let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
@@ -345,16 +355,21 @@ theorem transform_normalize_primitives:
      by simp
 
 
-    (*from normalize_src_ports_normalized_n_primitive normalized 
+    from normalize_src_ports_normalized_n_primitive
     have "\<forall>m \<in> get_match ` set (normalize_rules normalize_src_ports rs).
             normalized_src_ports m"
-    from normalized_result1
-      normalize_primitive_extract_preserves_unrelated_normalized_n_primitive[OF _ _ wf_disc_sel_common_primitive(1)]
-      
-         normalize_dst_ports_def normalize_ports_step_def
+    using normalize_rules_property[OF normalized, where f=normalize_src_ports and Q=normalized_src_ports] by fast
+      (*why u no rule?*)
+
+    thm normalize_rules_preserves_unrelated_normalized_n_primitive
+    thm normalize_primitive_extract_preserves_unrelated_normalized_n_primitive[OF _ _ wf_disc_sel_common_primitive(2), 
+          of _ is_Src_Ports src_ports_sel "(\<lambda>pts. length pts \<le> 1)" "(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))",
+          folded normalized_src_ports_def2 normalize_ports_step_def normalize_dst_ports_def]
+    with normalized_result2
     have "\<forall>m \<in> get_match ` set (normalize_rules normalize_dst_ports (normalize_rules normalize_src_ports rs)).
-            normalized_src_ports m" by presburger
-   *)
+            normalized_src_ports m" 
+    oops
+   
    show  "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
           \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_n_primitive disc_sel f m"
 oops

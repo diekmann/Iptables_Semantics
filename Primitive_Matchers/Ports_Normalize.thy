@@ -122,7 +122,7 @@ subsection{*Normalizing ports*}
   definition normalize_ports_step :: "((common_primitive \<Rightarrow> bool) \<times> (common_primitive \<Rightarrow> ipt_ports)) \<Rightarrow> 
                                (ipt_ports \<Rightarrow> common_primitive) \<Rightarrow>
                                common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where 
-    "normalize_ports_step (disc_sel) C  m = normalize_primitive_extract disc_sel C (\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me)) m"
+    "normalize_ports_step (disc_sel) C = normalize_primitive_extract disc_sel C (\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))"
 
   definition normalize_src_ports :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where
     "normalize_src_ports = normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports"  
