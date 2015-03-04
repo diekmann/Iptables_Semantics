@@ -156,40 +156,40 @@ text{*@{typ "simple_match"} @{text \<and>} @{typ "simple_match"}*}
    qed
 
 
-fun ipportiface_match_to_simple_match :: "common_primitive match_expr \<Rightarrow> simple_match option" where
-  "ipportiface_match_to_simple_match MatchAny = Some (simple_match_any)" |
-  "ipportiface_match_to_simple_match (MatchNot MatchAny) = None" |
-  "ipportiface_match_to_simple_match (Match (IIface iif)) = Some (simple_match_any\<lparr> iiface := iif \<rparr>)" |
-  "ipportiface_match_to_simple_match (Match (OIface oif)) = Some (simple_match_any\<lparr> oiface := oif \<rparr>)" |
-  "ipportiface_match_to_simple_match (Match (Src ip)) = Some (simple_match_any\<lparr> src := (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>)" |
-  "ipportiface_match_to_simple_match (Match (Dst ip)) = Some (simple_match_any\<lparr> dst := (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>)" |
-  "ipportiface_match_to_simple_match (Match (Prot p)) = Some (simple_match_any\<lparr> proto := p \<rparr>)" |
-  "ipportiface_match_to_simple_match (Match (Src_Ports [])) = Some (simple_match_any)" |
-  "ipportiface_match_to_simple_match (Match (Src_Ports [(s,e)])) = Some (simple_match_any\<lparr> sports := (s,e) \<rparr>)" |
-  "ipportiface_match_to_simple_match (Match (Dst_Ports [])) = Some (simple_match_any)" |
-  "ipportiface_match_to_simple_match (Match (Dst_Ports [(s,e)])) = Some (simple_match_any\<lparr> dports := (s,e) \<rparr>)" |
-  "ipportiface_match_to_simple_match (MatchNot (Match (Prot ProtoAny))) = None" |
+fun common_primitive_match_to_simple_match :: "common_primitive match_expr \<Rightarrow> simple_match option" where
+  "common_primitive_match_to_simple_match MatchAny = Some (simple_match_any)" |
+  "common_primitive_match_to_simple_match (MatchNot MatchAny) = None" |
+  "common_primitive_match_to_simple_match (Match (IIface iif)) = Some (simple_match_any\<lparr> iiface := iif \<rparr>)" |
+  "common_primitive_match_to_simple_match (Match (OIface oif)) = Some (simple_match_any\<lparr> oiface := oif \<rparr>)" |
+  "common_primitive_match_to_simple_match (Match (Src ip)) = Some (simple_match_any\<lparr> src := (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>)" |
+  "common_primitive_match_to_simple_match (Match (Dst ip)) = Some (simple_match_any\<lparr> dst := (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>)" |
+  "common_primitive_match_to_simple_match (Match (Prot p)) = Some (simple_match_any\<lparr> proto := p \<rparr>)" |
+  "common_primitive_match_to_simple_match (Match (Src_Ports [])) = None" |
+  "common_primitive_match_to_simple_match (Match (Src_Ports [(s,e)])) = Some (simple_match_any\<lparr> sports := (s,e) \<rparr>)" |
+  "common_primitive_match_to_simple_match (Match (Dst_Ports [])) = None" |
+  "common_primitive_match_to_simple_match (Match (Dst_Ports [(s,e)])) = Some (simple_match_any\<lparr> dports := (s,e) \<rparr>)" |
+  "common_primitive_match_to_simple_match (MatchNot (Match (Prot ProtoAny))) = None" |
   --"TODO:"
-  "ipportiface_match_to_simple_match (MatchAnd m1 m2) = (case (ipportiface_match_to_simple_match m1, ipportiface_match_to_simple_match m2) of 
+  "common_primitive_match_to_simple_match (MatchAnd m1 m2) = (case (common_primitive_match_to_simple_match m1, common_primitive_match_to_simple_match m2) of 
       (None, _) \<Rightarrow> None
     | (_, None) \<Rightarrow> None
     | (Some m1', Some m2') \<Rightarrow> simple_match_and m1' m2')" |
   (*TODO: normalize protocols by assumption!*)
-  "ipportiface_match_to_simple_match (MatchNot (Match (Prot _))) = undefined" |
+  "common_primitive_match_to_simple_match (MatchNot (Match (Prot _))) = undefined" |
   (*NOOOOO: what to do about this? Assume: no negated interfaces, I don't know of a better solution now. Just define that this must not happen*)
-  "ipportiface_match_to_simple_match (MatchNot (Match (IIface iif))) = undefined (*[simple_match_any\<lparr> iiface := Iface (Neg eth) \<rparr>]*)" |
-  "ipportiface_match_to_simple_match (MatchNot (Match (OIface oif))) = undefined" |
+  "common_primitive_match_to_simple_match (MatchNot (Match (IIface iif))) = undefined (*[simple_match_any\<lparr> iiface := Iface (Neg eth) \<rparr>]*)" |
+  "common_primitive_match_to_simple_match (MatchNot (Match (OIface oif))) = undefined" |
   --"undefined cases, normalize before!"
-  "ipportiface_match_to_simple_match (MatchNot (Match (Src _))) = undefined" |
-  "ipportiface_match_to_simple_match (MatchNot (Match (Dst _))) = undefined" |
-  "ipportiface_match_to_simple_match (MatchNot (MatchAnd _ _)) = undefined" |
-  "ipportiface_match_to_simple_match (MatchNot (MatchNot _)) = undefined" |
-  "ipportiface_match_to_simple_match (Match (Src_Ports (_#_))) = undefined" |
-  "ipportiface_match_to_simple_match (Match (Dst_Ports (_#_))) = undefined" |
-  "ipportiface_match_to_simple_match (MatchNot (Match (Src_Ports _))) = undefined" |
-  "ipportiface_match_to_simple_match (MatchNot (Match (Dst_Ports _))) = undefined" |
-  "ipportiface_match_to_simple_match (Match (Extra _)) = undefined" |
-  "ipportiface_match_to_simple_match (MatchNot (Match (Extra _))) = undefined"
+  "common_primitive_match_to_simple_match (MatchNot (Match (Src _))) = undefined" |
+  "common_primitive_match_to_simple_match (MatchNot (Match (Dst _))) = undefined" |
+  "common_primitive_match_to_simple_match (MatchNot (MatchAnd _ _)) = undefined" |
+  "common_primitive_match_to_simple_match (MatchNot (MatchNot _)) = undefined" |
+  "common_primitive_match_to_simple_match (Match (Src_Ports (_#_))) = undefined" |
+  "common_primitive_match_to_simple_match (Match (Dst_Ports (_#_))) = undefined" |
+  "common_primitive_match_to_simple_match (MatchNot (Match (Src_Ports _))) = undefined" |
+  "common_primitive_match_to_simple_match (MatchNot (Match (Dst_Ports _))) = undefined" |
+  "common_primitive_match_to_simple_match (Match (Extra _)) = undefined" |
+  "common_primitive_match_to_simple_match (MatchNot (Match (Extra _))) = undefined"
 (*\<dots>*)
 
 
@@ -207,6 +207,81 @@ text{*As for now, negated interfaces are simply not allowed*}
     "normalized_ifaces (MatchNot _) = True" 
 
 
+subsubsection{*Normalizing Protocols*}
+text{*As for now, negated protocols are simply not allowed*}
+  fun normalized_protocols :: "common_primitive match_expr \<Rightarrow> bool" where
+    "normalized_protocols MatchAny = True" |
+    "normalized_protocols (Match _) = True" |
+    "normalized_protocols (MatchNot (Match (Prot _))) = False" |
+    "normalized_protocols (MatchAnd m1 m2) = (normalized_protocols m1 \<and> normalized_protocols m2)" |
+    "normalized_protocols (MatchNot (MatchAnd _ _)) = False" |
+    "normalized_protocols (MatchNot _) = True" 
 
+
+
+lemma match_iface_simple_match_any_simps:
+     "match_iface (iiface simple_match_any) (p_iiface p)"
+     "match_iface (oiface simple_match_any) (p_oiface p)"
+     "simple_match_ip (src simple_match_any) (p_src p)"
+     "simple_match_ip (dst simple_match_any) (p_dst p)"
+     "match_proto (proto simple_match_any) (p_proto p)"
+     "simple_match_port (sports simple_match_any) (p_sport p)"
+     "simple_match_port (dports simple_match_any) (p_dport p)"
+  apply(simp_all add: simple_match_any_def match_IfaceAny ipv4range_set_from_bitmask_0)
+  apply(subgoal_tac [!] "(65535::16 word) = max_word")
+     apply(simp_all)
+   apply(simp_all add: max_word_def)
+  done
+     
+
+text{*basically the other direction of @{thm matches_SrcDst_simple_match}*}
+lemma matches_SrcDst_simple_match2: "p_src p \<in> ipv4s_to_set ip \<longleftrightarrow> simple_match_ip (ipt_ipv4range_to_ipv4_word_netmask ip) (p_src p)"
+  "p_dst p \<in> ipv4s_to_set ip \<longleftrightarrow> simple_match_ip (ipt_ipv4range_to_ipv4_word_netmask ip) (p_dst p)"
+apply(case_tac [!] ip)
+apply(simp_all add:  ipv4range_set_from_bitmask_32)
+done
+
+
+
+theorem "normalized_src_ports m \<Longrightarrow> normalized_dst_ports m \<Longrightarrow> normalized_src_ips m \<Longrightarrow> normalized_dst_ips m \<Longrightarrow> normalized_ifaces m \<Longrightarrow> 
+  normalized_protocols m \<Longrightarrow>
+  (*normalized_nnf_match m \<Longrightarrow> *) \<not> has_disc is_Extra m \<Longrightarrow>  (*sm = foo \<and> bar = m \<Longrightarrow>*)
+  (common_primitive_match_to_simple_match m) = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p"
+  apply(induction m rule: common_primitive_match_to_simple_match.induct)
+  apply(simp_all add: match_iface_simple_match_any_simps bunch_of_lemmata_about_matches(2))
+  apply(simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary matches_SrcDst_simple_match2)
+oops
+
+theorem "normalized_src_ports m \<Longrightarrow> normalized_dst_ports m \<Longrightarrow> normalized_src_ips m \<Longrightarrow> normalized_dst_ips m \<Longrightarrow> normalized_ifaces m \<Longrightarrow> 
+  normalized_protocols m \<Longrightarrow>
+  (*normalized_nnf_match m \<Longrightarrow> *) \<not> has_disc is_Extra m \<Longrightarrow> (*sm = foo \<and> bar = m \<Longrightarrow>*)
+  Some sm = (common_primitive_match_to_simple_match m) \<Longrightarrow> matches (common_matcher, \<alpha>) m a p \<longleftrightarrow> simple_matches sm p"
+  apply(induction m arbitrary: sm rule: common_primitive_match_to_simple_match.induct)
+  apply(simp_all add: match_iface_simple_match_any_simps bunch_of_lemmata_about_matches(2))
+  apply(simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary matches_SrcDst_simple_match2)
+ oops
+
+thm simple_match_and_correct[of m1 p m2]
+
+theorem "normalized_src_ports m \<Longrightarrow> normalized_dst_ports m \<Longrightarrow> normalized_src_ips m \<Longrightarrow> normalized_dst_ips m \<Longrightarrow> normalized_ifaces m \<Longrightarrow> 
+  normalized_protocols m \<Longrightarrow> \<not> has_disc is_Extra m \<Longrightarrow> (*sm = foo \<and> bar = m \<Longrightarrow>*)
+  (Some sm = (common_primitive_match_to_simple_match m) \<longrightarrow> matches (common_matcher, \<alpha>) m a p \<longleftrightarrow> simple_matches sm p) \<and>
+  ((common_primitive_match_to_simple_match m) = None \<longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p)"
+  apply(induction m arbitrary: sm rule: common_primitive_match_to_simple_match.induct)
+  prefer 13 (*match_and*)
+  apply(simp only: common_primitive_match_to_simple_match.simps)
+  apply(simp del: simple_matches.simps split: option.split option.split_asm)
+  apply(intro allI impI conjI)
+     apply(simp del: simple_matches.simps add: bunch_of_lemmata_about_matches)
+    apply(simp del: simple_matches.simps add: bunch_of_lemmata_about_matches)
+   apply(simp del: simple_matches.simps add: simple_match_and_correct bunch_of_lemmata_about_matches)
+   apply(simp del: simple_matches.simps split: option.split)
+   apply fastforce
+  using simple_match_and_correct apply(simp)
+
+
+  apply(simp_all add: match_iface_simple_match_any_simps bunch_of_lemmata_about_matches(2))
+  apply(simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary matches_SrcDst_simple_match2)
+ done
 
 end
