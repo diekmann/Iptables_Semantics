@@ -1,5 +1,5 @@
 theory Analyze_TUM_Net_Firewall_new
-imports Main "../../Primitive_Matchers/Transform" "../../Call_Return_Unfolding"
+imports Main "../../Primitive_Matchers/Transform" "../../Call_Return_Unfolding" "../../Simple_Firewall/SimpleFw_Compliance"
 "~~/src/HOL/Library/Code_Target_Nat"
 "~~/src/HOL/Library/Code_Target_Int"
 "~~/src/HOL/Library/Code_Char"
@@ -18,17 +18,9 @@ definition map_of_string :: "(string \<times> common_primitive rule list) list \
 
 
 definition upper_closure :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
-  "upper_closure rs == transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a upper_closure_matchexpr rs))"
+  "upper_closure rs == transform_optimize_dnf_strict (transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a upper_closure_matchexpr rs)))"
 (*definition lower_closure :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
   "lower_closure rs == rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^2000) (optimize_matches_a lower_closure_matchexpr rs))"*)
-
-
-definition bitmask_to_strange_inverse_cisco_mask:: "nat \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat)" where
- "bitmask_to_strange_inverse_cisco_mask n \<equiv> dotdecimal_of_ipv4addr ( (NOT (((mask n)::ipv4addr) << (32 - n))) )"
-lemma "bitmask_to_strange_inverse_cisco_mask 16 = (0, 0, 255, 255)" by eval
-lemma "bitmask_to_strange_inverse_cisco_mask 24 = (0, 0, 0, 255)" by eval
-lemma "bitmask_to_strange_inverse_cisco_mask 8 = (0, 255, 255, 255)" by eval
-lemma "bitmask_to_strange_inverse_cisco_mask 32 = (0, 0, 0, 0)" by eval
 
 
 export_code unfold_ruleset_FORWARD map_of_string upper_closure  
@@ -40,7 +32,8 @@ export_code unfold_ruleset_FORWARD map_of_string upper_closure
   Src Dst Prot Extra
   nat_of_integer integer_of_nat
   Pos Neg
-  bitmask_to_strange_inverse_cisco_mask
+  check_simple_fw_preconditions
+  to_simple_firewall
   in SML module_name "Test" file "unfold_code.ML"
 
 ML_file "unfold_code.ML"
@@ -78,6 +71,22 @@ val t1= Time.now();
 writeln(String.concat ["It took ", Time.toString(Time.-(t1,t0)), " seconds"])
 *}
 text{*on my system, less than 20 seconds.*}
+
+
+ML_val{*
+check_simple_fw_preconditions upper
+*}
+
+ML_val{*
+(take 1 upper)
+*}
+
+(*fails, ...*)
+ML_val{*
+to_simple_firewall (take 1 upper)
+*}
+
+ML_val{*true*}
 
 
 end

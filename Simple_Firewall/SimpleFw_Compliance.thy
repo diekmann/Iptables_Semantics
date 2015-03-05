@@ -242,27 +242,7 @@ apply(simp_all add:  ipv4range_set_from_bitmask_32)
 done
 
 
-
-theorem "normalized_src_ports m \<Longrightarrow> normalized_dst_ports m \<Longrightarrow> normalized_src_ips m \<Longrightarrow> normalized_dst_ips m \<Longrightarrow> normalized_ifaces m \<Longrightarrow> 
-  normalized_protocols m \<Longrightarrow>
-  (*normalized_nnf_match m \<Longrightarrow> *) \<not> has_disc is_Extra m \<Longrightarrow>  (*sm = foo \<and> bar = m \<Longrightarrow>*)
-  (common_primitive_match_to_simple_match m) = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p"
-  apply(induction m rule: common_primitive_match_to_simple_match.induct)
-  apply(simp_all add: match_iface_simple_match_any_simps bunch_of_lemmata_about_matches(2))
-  apply(simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary matches_SrcDst_simple_match2)
-oops
-
-theorem "normalized_src_ports m \<Longrightarrow> normalized_dst_ports m \<Longrightarrow> normalized_src_ips m \<Longrightarrow> normalized_dst_ips m \<Longrightarrow> normalized_ifaces m \<Longrightarrow> 
-  normalized_protocols m \<Longrightarrow>
-  (*normalized_nnf_match m \<Longrightarrow> *) \<not> has_disc is_Extra m \<Longrightarrow> (*sm = foo \<and> bar = m \<Longrightarrow>*)
-  Some sm = (common_primitive_match_to_simple_match m) \<Longrightarrow> matches (common_matcher, \<alpha>) m a p \<longleftrightarrow> simple_matches sm p"
-  apply(induction m arbitrary: sm rule: common_primitive_match_to_simple_match.induct)
-  apply(simp_all add: match_iface_simple_match_any_simps bunch_of_lemmata_about_matches(2))
-  apply(simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary matches_SrcDst_simple_match2)
- oops
-
-thm simple_match_and_correct[of m1 p m2]
-
+(* TODO main correctness theoreom, redo because proof is ugly *)
 theorem "normalized_src_ports m \<Longrightarrow> normalized_dst_ports m \<Longrightarrow> normalized_src_ips m \<Longrightarrow> normalized_dst_ips m \<Longrightarrow> normalized_ifaces m \<Longrightarrow> 
   normalized_protocols m \<Longrightarrow> \<not> has_disc is_Extra m \<Longrightarrow> (*sm = foo \<and> bar = m \<Longrightarrow>*)
   (Some sm = (common_primitive_match_to_simple_match m) \<longrightarrow> matches (common_matcher, \<alpha>) m a p \<longleftrightarrow> simple_matches sm p) \<and>
@@ -283,5 +263,29 @@ theorem "normalized_src_ports m \<Longrightarrow> normalized_dst_ports m \<Longr
   apply(simp_all add: match_iface_simple_match_any_simps bunch_of_lemmata_about_matches(2))
   apply(simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary matches_SrcDst_simple_match2)
  done
+
+
+
+
+
+
+definition check_simple_fw_preconditions :: "common_primitive rule list \<Rightarrow> bool" where
+  "check_simple_fw_preconditions rs \<equiv> \<forall>r \<in> set rs. (case r of (Rule m a) \<Rightarrow> normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> normalized_ifaces m \<and> 
+  normalized_protocols m \<and> \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop))"
+definition to_simple_firewall :: "common_primitive rule list \<Rightarrow> (simple_match option \<times> action) list" where
+  "to_simple_firewall rs \<equiv> map (\<lambda>r. case r of Rule m a \<Rightarrow> (common_primitive_match_to_simple_match m, a)) rs"
+
+
+value "check_simple_fw_preconditions
+     [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8)))
+                          (MatchAnd (Match (Dst_Ports [(0, 65535)]))
+                                    (Match (Src_Ports [(0, 65535)]))))
+                Drop]"
+value "to_simple_firewall
+     [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8)))
+                          (MatchAnd (Match (Dst_Ports [(0, 65535)]))
+                                    (Match (Src_Ports [(0, 65535)]))))
+                Drop]"
+
 
 end
