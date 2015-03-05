@@ -285,22 +285,11 @@ value "to_simple_firewall
      [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8)))
                           (MatchAnd (Match (Dst_Ports [(0, 65535)]))
                                     (Match (Src_Ports [(0, 65535)]))))
-                Drop]"  (*fails*)
+                Drop]"
 value "check_simple_fw_preconditions [Rule (MatchAnd MatchAny MatchAny) Drop]"
-value "to_simple_firewall [Rule (MatchAnd MatchAny MatchAny) Drop]"  (*fails*)
+value "to_simple_firewall [Rule (MatchAnd MatchAny MatchAny) Drop]"
 value "to_simple_firewall
      [Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) Drop]"
 
-value "common_primitive_match_to_simple_match MatchAny"
-
-value "common_primitive_match_to_simple_match (MatchAnd MatchAny MatchAny)" (*fails*)
-
-value "simple_match_and \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0, 0), dst = (0, 0), proto = ProtoAny, sports = (0, 0xFFFF), dports = (0, 0xFFFF)\<rparr> 
-                        \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0, 0), dst = (0, 0), proto = ProtoAny, sports = (0, 0xFFFF), dports = (0, 0xFFFF)\<rparr>"  (*fails*)
-thm simple_match_and.simps
-value "simple_ips_conjunct (0,0) (0,0)" (*here it fails*)
-value "iface_conjunct (Iface ''+'') (Iface ''+'')"
-value "simple_proto_conjunct ProtoAny ProtoAny"
-value "simpl_ports_conjunct (0, 0xFFFF) (0, 0xFFFF)"
 
 end
