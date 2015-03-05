@@ -419,6 +419,11 @@ theorem transform_normalize_primitives:
    
    show  "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
           \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_n_primitive disc_sel f m"
+   proof
+     assume a: "\<forall>m\<in>get_match ` set rs. normalized_n_primitive disc_sel f m"
+
+     from a normalized normalize_rules_preserves_unrelated_normalized_n_primitive
+
 oops
 
 

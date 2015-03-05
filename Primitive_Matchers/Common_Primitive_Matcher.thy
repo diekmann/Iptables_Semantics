@@ -137,4 +137,38 @@ lemma packet_independent_\<beta>_unknown_common_matcher: "packet_independent_\<b
 
 
 
+
+
+text{*remove @{const Extra} (i.e. @{const TernaryUnknown}) match expressions*}
+fun upper_closure_matchexpr :: "action \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
+  "upper_closure_matchexpr _ MatchAny = MatchAny" |
+  "upper_closure_matchexpr Accept (Match (Extra _)) = MatchAny" |
+  "upper_closure_matchexpr Reject (Match (Extra _)) = MatchNot MatchAny" |
+  "upper_closure_matchexpr Drop (Match (Extra _)) = MatchNot MatchAny" |
+  "upper_closure_matchexpr _ (Match m) = Match m" |
+  "upper_closure_matchexpr Accept (MatchNot (Match (Extra _))) = MatchAny" |
+  "upper_closure_matchexpr Drop (MatchNot (Match (Extra _))) = MatchNot MatchAny" |
+  "upper_closure_matchexpr Reject (MatchNot (Match (Extra _))) = MatchNot MatchAny" |
+  "upper_closure_matchexpr a (MatchNot (MatchNot m)) = upper_closure_matchexpr a m" |
+  "upper_closure_matchexpr a (MatchNot (MatchAnd m1 m2)) = 
+    (let m1' = upper_closure_matchexpr a (MatchNot m1); m2' = upper_closure_matchexpr a (MatchNot m2) in
+    (if m1' = MatchAny \<or> m2' = MatchAny
+     then MatchAny
+     else 
+        if m1' = MatchNot MatchAny then m2' else
+        if m2' = MatchNot MatchAny then m1'
+     else
+        MatchNot (MatchAnd (MatchNot m1') (MatchNot m2')))
+       )" |
+  "upper_closure_matchexpr _ (MatchNot m) = MatchNot m" | 
+  "upper_closure_matchexpr a (MatchAnd m1 m2) = MatchAnd (upper_closure_matchexpr a m1) (upper_closure_matchexpr a m2)"
+
+
+
+lemma upper_closure_matchexpr_generic: 
+  "a = Accept \<or> a = Drop \<Longrightarrow> remove_unknowns_generic (common_matcher, in_doubt_allow) a m = upper_closure_matchexpr a m"
+  by(induction a m rule: upper_closure_matchexpr.induct)
+  (simp_all add: unknown_match_all_def unknown_not_match_any_def bool_to_ternary_Unknown)
+
+
 end

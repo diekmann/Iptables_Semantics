@@ -129,7 +129,7 @@ proof -
       apply(case_tac [!] A)
       apply(case_tac [!] a)
       apply(simp_all)
-      apply(simp_all add: simple_matcher_packet_exists)
+      apply(simp_all add: unknown_match_all_def unknown_not_match_any_def simple_matcher_packet_exists)
       done
    } thus ?thesis using `a = Accept \<or> a = Drop` by simp
 qed
