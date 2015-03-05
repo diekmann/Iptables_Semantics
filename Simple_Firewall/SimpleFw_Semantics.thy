@@ -135,7 +135,7 @@ subsection{*Simple IPs*}
      apply(simp_all add: ipv4range_to_set_ipv4_cidr_tuple_to_intervall simple_ips_conjunct.simps split:split_if_asm)
    apply fast+
   done
-  value "simple_ips_conjunct (0,0) (0,0)" (*with the code_unfold lema before, this works!*)
+  value "simple_ips_conjunct (0,0) (8,1)" (*with the code_unfold lema before, this works!*)
 
 
   lemma simple_match_ip_conjunct: "simple_match_ip ip1 p_ip \<and> simple_match_ip ip2 p_ip \<longleftrightarrow> 

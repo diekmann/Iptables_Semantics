@@ -31,9 +31,11 @@ export_code unfold_ruleset_FORWARD map_of_string upper_closure
   ProtoAny Proto TCP UDP
   Src Dst Prot Extra
   nat_of_integer integer_of_nat
-  Pos Neg
+  dotdecimal_of_ipv4addr
   check_simple_fw_preconditions
   to_simple_firewall
+  SimpleRule simple_action.Accept simple_action.Drop 
+  iiface oiface src dst proto sports dports
   in SML module_name "Test" file "unfold_code.ML"
 
 ML_file "unfold_code.ML"
@@ -78,13 +80,39 @@ check_simple_fw_preconditions upper
 *}
 
 ML_val{*
-(take 1 upper)
-*}
-
-(*fails, ...*)
-ML_val{*
+length (to_simple_firewall upper);
 to_simple_firewall upper
 *}
+
+
+ML{*
+fun dump_dotdecimal_ip (a,(b,(c,d))) = ""^ Int.toString (integer_of_nat a)^"."^ Int.toString (integer_of_nat b)^"."^ Int.toString (integer_of_nat c)^"."^ Int.toString (integer_of_nat d);
+
+fun dump_ip (base, n) = (dump_dotdecimal_ip (dotdecimal_of_ipv4addr base))^"/"^ Int.toString (integer_of_nat n);
+
+fun dump_prot ProtoAny = "all"
+  | dump_prot (Proto TCP) = "tcp"
+  | dump_prot (Proto UDP) = "udp";
+
+
+fun dump_action (Accepta : simple_action) = "ACCEPT"
+  | dump_action (Dropa   : simple_action) = "DROP";
+
+
+fun dump_iptables [] = ()
+  | dump_iptables (SimpleRule (m, a) :: rs) =
+      (writeln (dump_action a ^ "     " ^
+               (dump_ip (src m)) ^ "     " ^
+               (dump_ip (dst m)) ^ "     " ^
+               (dump_prot (proto m)) ^ "     " ^
+                "also dump here: iiface oiface sports dports"); dump_iptables rs);
+
+*}
+
+ML_val{*
+dump_iptables (to_simple_firewall upper);
+*}
+
 
 ML_val{*true*}
 

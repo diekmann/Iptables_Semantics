@@ -1,4 +1,5 @@
 structure Test : sig
+  type int
   type num
   type nat
   val integer_of_nat : nat -> IntInf.int
@@ -24,11 +25,23 @@ structure Test : sig
   datatype action = Accept | Drop | Log | Reject | Call of char list | Return |
     Empty | Unknown
   datatype 'a rule = Rule of 'a match_expr * action
-  datatype 'a negation_type = Pos of 'a | Neg of 'a
-  datatype simple_action = Accepta | Dropa
   type 'a simple_match_ext
-  val to_simple_firewall :
-    common_primitive rule list -> (unit simple_match_ext option * action) list
+  datatype simple_action = Accepta | Dropa
+  datatype simple_rule = SimpleRule of unit simple_match_ext * simple_action
+  val dotdecimal_of_ipv4addr :
+    num1 bit0 bit0 bit0 bit0 bit0 word -> nat * (nat * (nat * nat))
+  val dst : 'a simple_match_ext -> num1 bit0 bit0 bit0 bit0 bit0 word * nat
+  val src : 'a simple_match_ext -> num1 bit0 bit0 bit0 bit0 bit0 word * nat
+  val proto : 'a simple_match_ext -> protocol
+  val to_simple_firewall : common_primitive rule list -> simple_rule list
+  val dports :
+    'a simple_match_ext ->
+      num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word
+  val iiface : 'a simple_match_ext -> iface
+  val oiface : 'a simple_match_ext -> iface
+  val sports :
+    'a simple_match_ext ->
+      num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word
   val map_of_string :
     (char list * common_primitive rule list) list ->
       char list -> (common_primitive rule list) option
@@ -543,14 +556,16 @@ datatype 'a rule = Rule of 'a match_expr * action;
 
 datatype 'a negation_type = Pos of 'a | Neg of 'a;
 
-datatype simple_action = Accepta | Dropa;
-
 datatype 'a simple_match_ext =
   Simple_match_ext of
     iface * iface * (num1 bit0 bit0 bit0 bit0 bit0 word * nat) *
       (num1 bit0 bit0 bit0 bit0 bit0 word * nat) * protocol *
       (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) *
       (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) * 'a;
+
+datatype simple_action = Accepta | Dropa;
+
+datatype simple_rule = SimpleRule of unit simple_match_ext * simple_action;
 
 fun id x = (fn xa => xa) x;
 
@@ -651,6 +666,10 @@ val pfxes : nat list =
 
 fun gen_length n (x :: xs) = gen_length (suc n) xs
   | gen_length n [] = n;
+
+fun map_filter f [] = []
+  | map_filter f (x :: xs) =
+    (case f x of NONE => map_filter f xs | SOME y => y :: map_filter f xs);
 
 fun internal_iface_name_match [] [] = true
   | internal_iface_name_match (i :: is) [] = ((i : char) = #"+") andalso null is
@@ -1154,6 +1173,14 @@ fun is_Src_Ports (Src x1) = false
 fun normalize_src_ports x =
   normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports x;
 
+fun dst
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  dst;
+
+fun src
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  src;
+
 val simple_match_any : unit simple_match_ext =
   Simple_match_ext
     (ifaceAny, ifaceAny,
@@ -1301,6 +1328,10 @@ fun normalized_ifaces MatchAny = true
   | normalized_ifaces (MatchNot (MatchNot v)) = true
   | normalized_ifaces (MatchNot MatchAny) = true;
 
+fun proto
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  proto;
+
 fun ipt_ipv4range_to_intervall (Ip4Addr addr) =
   (ipv4addr_of_dotdecimal addr, ipv4addr_of_dotdecimal addr)
   | ipt_ipv4range_to_intervall (Ip4AddrNetmask (pre, len)) =
@@ -1418,8 +1449,37 @@ fun common_primitive_match_to_simple_match MatchAny = SOME simple_match_any
   | common_primitive_match_to_simple_match (MatchNot (Match (Extra vh))) =
     (raise Fail "undefined");
 
+fun action_to_simple_action Accept = Accepta
+  | action_to_simple_action Drop = Dropa
+  | action_to_simple_action Log = (raise Fail "undefined")
+  | action_to_simple_action Reject = (raise Fail "undefined")
+  | action_to_simple_action (Call v) = (raise Fail "undefined")
+  | action_to_simple_action Return = (raise Fail "undefined")
+  | action_to_simple_action Empty = (raise Fail "undefined")
+  | action_to_simple_action Unknown = (raise Fail "undefined");
+
 fun to_simple_firewall rs =
-  map (fn Rule (m, a) => (common_primitive_match_to_simple_match m, a)) rs;
+  map_filter
+    (fn Rule (m, a) =>
+      (case common_primitive_match_to_simple_match m of NONE => NONE
+        | SOME sm => SOME (SimpleRule (sm, action_to_simple_action a))))
+    rs;
+
+fun dports
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  dports;
+
+fun iiface
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  iiface;
+
+fun oiface
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  oiface;
+
+fun sports
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  sports;
 
 fun dst_sel (Dst x2) = x2;
 

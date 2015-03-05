@@ -267,13 +267,18 @@ theorem "normalized_src_ports m \<Longrightarrow> normalized_dst_ports m \<Longr
 
 
 
-
+fun action_to_simple_action :: "action \<Rightarrow> simple_action" where
+  "action_to_simple_action action.Accept = simple_action.Accept" |
+  "action_to_simple_action action.Drop   = simple_action.Drop" |
+  "action_to_simple_action _ = undefined"
 
 definition check_simple_fw_preconditions :: "common_primitive rule list \<Rightarrow> bool" where
   "check_simple_fw_preconditions rs \<equiv> \<forall>r \<in> set rs. (case r of (Rule m a) \<Rightarrow> normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> normalized_ifaces m \<and> 
   normalized_protocols m \<and> \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop))"
-definition to_simple_firewall :: "common_primitive rule list \<Rightarrow> (simple_match option \<times> action) list" where
-  "to_simple_firewall rs \<equiv> map (\<lambda>r. case r of Rule m a \<Rightarrow> (common_primitive_match_to_simple_match m, a)) rs"
+definition to_simple_firewall :: "common_primitive rule list \<Rightarrow> simple_rule list" where
+  "to_simple_firewall rs \<equiv> List.map_filter (\<lambda>r. case r of Rule m a \<Rightarrow> 
+      (case (common_primitive_match_to_simple_match m) of None \<Rightarrow> None |
+                  Some sm \<Rightarrow> Some (SimpleRule sm (action_to_simple_action a)))) rs"
 
 
 value "check_simple_fw_preconditions
