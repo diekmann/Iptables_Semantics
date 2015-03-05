@@ -268,8 +268,6 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
    assumes "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) P m" 
        and "wf_disc_sel (disc1, sel1) C"
        and "\<forall>a. \<not> disc2 (C a)"
-       and "\<forall>m. normalized_nnf_match m \<longrightarrow> normalized_n_primitive (disc2, sel2) P2 m \<longrightarrow>
-                (\<forall>m' \<in> set (normalize_primitive_extract (disc1, sel1) C f m). normalized_n_primitive (disc2, sel2) P m')"
     shows "\<forall>m \<in> get_match ` set (normalize_rules (normalize_primitive_extract (disc1, sel1) C f) rs). normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) P m"
     thm normalize_rules_preserves[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive  (disc2, sel2) P m"
         and f="normalize_primitive_extract (disc1, sel1) C f"]
@@ -291,6 +289,7 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
      using assms(1) apply simp
     using assms(2) by simp
 
+
 theorem transform_normalize_primitives:
   assumes simplers: "simple_ruleset rs"
       and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
@@ -311,23 +310,23 @@ theorem transform_normalize_primitives:
       unfolding transform_normalize_primitives_def
       by(simp add: simple_ruleset_normalize_rules simplers)
 
+    let ?rs1="normalize_rules normalize_src_ports rs"
+    let ?rs2="normalize_rules normalize_dst_ports ?rs1"
+    let ?rs3="normalize_rules normalize_src_ips ?rs2"
+    let ?rs4="normalize_rules normalize_dst_ips ?rs3"
+
     from normalize_rules_primitive_extract_preserves_nnf_normalized[OF normalized wf_disc_sel_common_primitive(1)]
          normalize_src_ports_def normalize_ports_step_def
-    have normalized_result1: "\<forall>m \<in> get_match ` set (normalize_rules normalize_src_ports rs).
-            normalized_nnf_match m" by presburger
+    have normalized_rs1: "\<forall>m \<in> get_match ` set ?rs1. normalized_nnf_match m" by presburger
     from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(2)]
          normalize_dst_ports_def normalize_ports_step_def
-    have normalized_result2: "\<forall>m \<in> get_match ` set (normalize_rules normalize_dst_ports (normalize_rules normalize_src_ports rs)).
-            normalized_nnf_match m" by presburger
+    have normalized_rs2: "\<forall>m \<in> get_match ` set ?rs2. normalized_nnf_match m" by presburger
     from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(3)]
          normalize_src_ips_def
-    have normalized_result3: "\<forall>m \<in> get_match ` set (normalize_rules normalize_src_ips (normalize_rules normalize_dst_ports (normalize_rules normalize_src_ports rs))).
-            normalized_nnf_match m" by presburger
+    have normalized_rs3: "\<forall>m \<in> get_match ` set ?rs3. normalized_nnf_match m" by presburger
     from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(4)]
          normalize_dst_ips_def
-    have normalized_result4: "\<forall>m \<in> get_match ` set (normalize_rules normalize_dst_ips (normalize_rules normalize_src_ips 
-            (normalize_rules normalize_dst_ports (normalize_rules normalize_src_ports rs)))).
-              normalized_nnf_match m" by presburger
+    have normalized_rs4: "\<forall>m \<in> get_match ` set ?rs4. normalized_nnf_match m" by presburger
     thus "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m"
       unfolding transform_normalize_primitives_def by simp
 
@@ -339,15 +338,15 @@ theorem transform_normalize_primitives:
      apply(subst normalize_rules_match_list_semantics_3)
         using normalize_dst_ips apply simp
        using simplers simple_ruleset_normalize_rules apply blast
-      using normalized_result3 apply simp
+      using normalized_rs3 apply simp
      apply(subst normalize_rules_match_list_semantics_3)
         using normalize_src_ips apply simp
        using simplers simple_ruleset_normalize_rules apply blast
-      using normalized_result2 apply simp
+      using normalized_rs2 apply simp
      apply(subst normalize_rules_match_list_semantics_3)
         using normalize_ports_step_Dst apply simp
        using simplers simple_ruleset_normalize_rules apply blast
-      using normalized_result1 apply simp
+      using normalized_rs1 apply simp
      apply(subst normalize_rules_match_list_semantics_3)
         using normalize_ports_step_Src apply simp
        using simplers simple_ruleset_normalize_rules apply blast
@@ -356,19 +355,67 @@ theorem transform_normalize_primitives:
 
 
     from normalize_src_ports_normalized_n_primitive
-    have "\<forall>m \<in> get_match ` set (normalize_rules normalize_src_ports rs).
-            normalized_src_ports m"
+    have normalized_src_ports: "\<forall>m \<in> get_match ` set ?rs1.  normalized_src_ports m"
     using normalize_rules_property[OF normalized, where f=normalize_src_ports and Q=normalized_src_ports] by fast
       (*why u no rule?*)
+    from normalize_dst_ports_normalized_n_primitive
+         normalize_rules_property[OF normalized_rs1, where f=normalize_dst_ports and Q=normalized_dst_ports]
+    have normalized_dst_ports: "\<forall>m \<in> get_match ` set ?rs2.  normalized_dst_ports m" by fast
+    from normalize_src_ips_normalized_n_primitive
+         normalize_rules_property[OF normalized_rs2, where f=normalize_src_ips and Q=normalized_src_ips]
+    have normalized_src_ips: "\<forall>m \<in> get_match ` set ?rs3.  normalized_src_ips m" by fast
+    from normalize_dst_ips_normalized_n_primitive
+         normalize_rules_property[OF normalized_rs3, where f=normalize_dst_ips and Q=normalized_dst_ips]
+    have normalized_dst_ips: "\<forall>m \<in> get_match ` set ?rs4.  normalized_dst_ips m" by fast
 
-    thm normalize_rules_preserves_unrelated_normalized_n_primitive
-    thm normalize_primitive_extract_preserves_unrelated_normalized_n_primitive[OF _ _ wf_disc_sel_common_primitive(2), 
-          of _ is_Src_Ports src_ports_sel "(\<lambda>pts. length pts \<le> 1)" "(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))",
-          folded normalized_src_ports_def2 normalize_ports_step_def normalize_dst_ports_def]
-    with normalized_result2
-    have "\<forall>m \<in> get_match ` set (normalize_rules normalize_dst_ports (normalize_rules normalize_src_ports rs)).
-            normalized_src_ports m" 
-    oops
+
+    from normalize_rules_preserves_unrelated_normalized_n_primitive[of _ is_Src_Ports src_ports_sel "(\<lambda>pts. length pts \<le> 1)",
+         folded normalized_src_ports_def2 normalize_ports_step_def]
+    have preserve_normalized_src_ports: "\<And>rs disc sel C f. 
+      \<forall>m\<in>get_match ` set rs. normalized_nnf_match m  \<Longrightarrow>
+      \<forall>m\<in>get_match ` set rs. normalized_src_ports m \<Longrightarrow>
+      wf_disc_sel (disc, sel) C \<Longrightarrow>
+      \<forall>a. \<not> is_Src_Ports (C a) \<Longrightarrow>
+      \<forall>m\<in>get_match ` set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs). normalized_src_ports m"
+      by metis
+    from preserve_normalized_src_ports[OF normalized_rs1 normalized_src_ports wf_disc_sel_common_primitive(2),
+         where f="(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))",
+         folded normalize_ports_step_def normalize_dst_ports_def]
+    have normalized_src_ports_rs2: "\<forall>m \<in> get_match ` set ?rs2.  normalized_src_ports m" by force
+    from preserve_normalized_src_ports[OF normalized_rs2 normalized_src_ports_rs2 wf_disc_sel_common_primitive(3),
+         where f=ipt_ipv4range_compress, folded normalize_src_ips_def]
+    have normalized_src_ports_rs3: "\<forall>m \<in> get_match ` set ?rs3.  normalized_src_ports m" by force
+    from preserve_normalized_src_ports[OF normalized_rs3 normalized_src_ports_rs3 wf_disc_sel_common_primitive(4),
+         where f=ipt_ipv4range_compress, folded normalize_dst_ips_def]
+    have normalized_src_ports_rs4: "\<forall>m \<in> get_match ` set ?rs4.  normalized_src_ports m" by force
+
+    from normalize_rules_preserves_unrelated_normalized_n_primitive[of _ is_Dst_Ports dst_ports_sel "(\<lambda>pts. length pts \<le> 1)",
+         folded normalized_dst_ports_def2 normalize_ports_step_def]
+    have preserve_normalized_dst_ports: "\<And>rs disc sel C f. 
+      \<forall>m\<in>get_match ` set rs. normalized_nnf_match m  \<Longrightarrow>
+      \<forall>m\<in>get_match ` set rs. normalized_dst_ports m \<Longrightarrow>
+      wf_disc_sel (disc, sel) C \<Longrightarrow>
+      \<forall>a. \<not> is_Dst_Ports (C a) \<Longrightarrow>
+      \<forall>m\<in>get_match ` set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs). normalized_dst_ports m"
+      by metis
+    from preserve_normalized_dst_ports[OF normalized_rs2 normalized_dst_ports wf_disc_sel_common_primitive(3),
+         where f=ipt_ipv4range_compress, folded normalize_src_ips_def]
+    have normalized_dst_ports_rs3: "\<forall>m \<in> get_match ` set ?rs3.  normalized_dst_ports m" by force
+    from preserve_normalized_dst_ports[OF normalized_rs3 normalized_dst_ports_rs3 wf_disc_sel_common_primitive(4),
+         where f=ipt_ipv4range_compress, folded normalize_dst_ips_def]
+    have normalized_dst_ports_rs4: "\<forall>m \<in> get_match ` set ?rs4.  normalized_dst_ports m" by force
+
+    from normalize_rules_preserves_unrelated_normalized_n_primitive[of ?rs3 is_Src src_sel "\<lambda>_. True",
+         OF _ wf_disc_sel_common_primitive(4),
+         where f=ipt_ipv4range_compress, folded normalize_dst_ips_def normalized_src_ips_def2]
+         normalized_rs3 normalized_src_ips
+    have normalized_src_rs4: "\<forall>m \<in> get_match ` set ?rs4.  normalized_src_ips m" by force
+
+
+    from normalized_src_ports_rs4 normalized_dst_ports_rs4 normalized_src_rs4 normalized_dst_ips
+    show "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs).
+          normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m"
+      unfolding transform_normalize_primitives_def by force
    
    show  "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
           \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_n_primitive disc_sel f m"
