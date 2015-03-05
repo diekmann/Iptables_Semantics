@@ -83,7 +83,7 @@ ML_val{*
 
 (*fails, ...*)
 ML_val{*
-to_simple_firewall (take 1 upper)
+to_simple_firewall upper
 *}
 
 ML_val{*true*}

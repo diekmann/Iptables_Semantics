@@ -156,68 +156,6 @@ lemma compress_pos_ips_Some: "compress_pos_ips ips = Some X \<Longrightarrow> \<
 by (metis Int_assoc intersect_ips_Some)
 
 
-(**************************************isolate only this***********************************************************)
-(*SCRATCH: *)
-(*TODO TODO: refactor whole mess above to this simple proof? *)
-
-(*from IPSpace_Operations.intersect_ips*)
-  fun simple_ips_conjunct :: "(ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) option" where 
-    "simple_ips_conjunct (base1, m1) (base2, m2) = (if ipv4range_set_from_bitmask base1 m1 \<inter> ipv4range_set_from_bitmask base2 m2 = {}
-       then
-        None
-       else if 
-        ipv4range_set_from_bitmask base1 m1 \<subseteq> ipv4range_set_from_bitmask base2 m2
-       then 
-        Some (base1, m1)
-       else
-        Some (base2, m2)
-      )"
-  
-  (*this proof appears simpler than the other one, maybe refactor?*)
-  lemma simple_ips_conjunct_correct: "(case simple_ips_conjunct (b1, m1) (b2, m2) of Some (bx, mx) \<Rightarrow> ipv4range_set_from_bitmask bx mx | None \<Rightarrow> {}) = 
-      (ipv4range_set_from_bitmask b1 m1) \<inter> (ipv4range_set_from_bitmask b2 m2)"
-    apply(simp split: split_if_asm)
-    using ipv4range_bitmask_intersect apply fast+
-    done
-  declare simple_ips_conjunct.simps[simp del]
-
-  fun ipv4_cidr_tuple_to_intervall :: "(ipv4addr \<times> nat) \<Rightarrow> 32 wordinterval" where
-    "ipv4_cidr_tuple_to_intervall (pre, len) = (
-      let netmask = (mask len) << (32 - len);
-          network_prefix = (pre AND netmask)
-      in ipv4range_range network_prefix (network_prefix OR (NOT netmask))
-     )"
-  declare ipv4_cidr_tuple_to_intervall.simps[simp del]
-
-  lemma ipv4range_to_set_ipv4_cidr_tuple_to_intervall: "ipv4range_to_set (ipv4_cidr_tuple_to_intervall (b, m)) = ipv4range_set_from_bitmask b m"
-    unfolding ipv4_cidr_tuple_to_intervall.simps
-    apply(simp add: ipv4range_set_from_bitmask_alt)
-    by (metis helper3 ipv4range_range_set_eq maskshift_eq_not_mask word_bw_comms(2) word_not_not)
-
-  lemma [code_unfold]: 
-  "simple_ips_conjunct ips1 ips2 = (if ipv4range_empty (ipv4range_intersection (ipv4_cidr_tuple_to_intervall ips1) (ipv4_cidr_tuple_to_intervall ips2))
-       then
-        None
-       else if 
-        ipv4range_subset (ipv4_cidr_tuple_to_intervall ips1) (ipv4_cidr_tuple_to_intervall ips2)
-       then 
-        Some ips1
-       else
-        Some ips2
-      )"
-  apply(simp)
-  apply(cases ips1, cases ips2, rename_tac b1 m1 b2 m2, simp)
-  apply(safe)
-  apply(simp_all add: ipv4range_to_set_ipv4_cidr_tuple_to_intervall simple_ips_conjunct.simps split:split_if_asm)
-  apply fast+
-  done
-  
-  value "simple_ips_conjunct (0,0) (0,0)" (*with the code_unfold lema before, this works!*)
-
-(*End Scratch*)
-
-(**************************************isolate only this END***********************************************************)
-
 
 fun collect_to_range :: "ipt_ipv4range list \<Rightarrow> 32 wordinterval" where
  "collect_to_range [] = Empty_WordInterval" |
