@@ -242,7 +242,7 @@ apply(simp_all add:  ipv4range_set_from_bitmask_32)
 done
 
 
-(* TODO main correctness theoreom, redo because proof is ugly *)
+(* ISAR style below *)
 theorem "normalized_src_ports m \<Longrightarrow> normalized_dst_ports m \<Longrightarrow> normalized_src_ips m \<Longrightarrow> normalized_dst_ips m \<Longrightarrow> normalized_ifaces m \<Longrightarrow> 
   normalized_protocols m \<Longrightarrow> \<not> has_disc is_Extra m \<Longrightarrow> (*sm = foo \<and> bar = m \<Longrightarrow>*)
   (Some sm = (common_primitive_match_to_simple_match m) \<longrightarrow> matches (common_matcher, \<alpha>) m a p \<longleftrightarrow> simple_matches sm p) \<and>
@@ -263,6 +263,72 @@ theorem "normalized_src_ports m \<Longrightarrow> normalized_dst_ports m \<Longr
   apply(simp_all add: match_iface_simple_match_any_simps bunch_of_lemmata_about_matches(2))
   apply(simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary matches_SrcDst_simple_match2)
  done
+
+
+
+theorem common_primitive_match_to_simple_match:
+  assumes "normalized_src_ports m" 
+      and "normalized_dst_ports m"
+      and "normalized_src_ips m"
+      and "normalized_dst_ips m"
+      and "normalized_ifaces m"
+      and "normalized_protocols m"
+      and "\<not> has_disc is_Extra m"
+  shows "(Some sm = common_primitive_match_to_simple_match m \<longrightarrow>
+             matches (common_matcher, \<alpha>) m a p \<longleftrightarrow> simple_matches sm p) \<and>
+         (common_primitive_match_to_simple_match m = None \<longrightarrow>
+             \<not> matches (common_matcher, \<alpha>) m a p)"
+  using assms proof(induction m arbitrary: sm rule: common_primitive_match_to_simple_match.induct)
+  case 1 thus ?case 
+    by(simp_all add: match_iface_simple_match_any_simps bunch_of_lemmata_about_matches(2))
+  next
+  case (13 m1 m2)
+    let ?caseSome="Some sm = common_primitive_match_to_simple_match (MatchAnd m1 m2)"
+    let ?caseNone="common_primitive_match_to_simple_match (MatchAnd m1 m2) = None"
+    let ?goal="(?caseSome \<longrightarrow> matches (common_matcher, \<alpha>) (MatchAnd m1 m2) a p = simple_matches sm p) \<and> 
+               (?caseNone \<longrightarrow> \<not> matches (common_matcher, \<alpha>) (MatchAnd m1 m2) a p)"
+
+    {  assume caseNone: ?caseNone
+      { fix sm1 sm2
+        assume sm1: "common_primitive_match_to_simple_match m1 = Some sm1"
+           and sm2: "common_primitive_match_to_simple_match m2 = Some sm2"
+           and sma: "simple_match_and sm1 sm2 = None"
+        from sma simple_match_and_correct have 1: "\<not> (simple_matches sm1 p \<and> simple_matches sm2 p)" by simp
+        from sm1 sm2 13 have 2: "(matches (common_matcher, \<alpha>) m1 a p \<longleftrightarrow> simple_matches sm1 p) \<and> 
+                              (matches (common_matcher, \<alpha>) m2 a p \<longleftrightarrow> simple_matches sm2 p)" by force
+        hence 2: "matches (common_matcher, \<alpha>) (MatchAnd m1 m2) a p \<longleftrightarrow> simple_matches sm1 p \<and> simple_matches sm2 p"
+          by(simp add: bunch_of_lemmata_about_matches)
+        from 1 2 have "\<not> matches (common_matcher, \<alpha>) (MatchAnd m1 m2) a p" by blast 
+      }
+      with caseNone have "common_primitive_match_to_simple_match m1 = None \<or>
+                          common_primitive_match_to_simple_match m2 = None \<or>
+                          \<not> matches (common_matcher, \<alpha>) (MatchAnd m1 m2) a p"
+        by(simp split:option.split_asm)
+      hence "\<not> matches (common_matcher, \<alpha>) (MatchAnd m1 m2) a p" 
+        apply(elim disjE)
+          apply(simp_all)
+         using 13 apply(simp_all add: bunch_of_lemmata_about_matches(1))
+        done
+    }note caseNone=this
+
+    { assume caseSome: ?caseSome
+      hence "\<exists> sm1. common_primitive_match_to_simple_match m1 = Some sm1" and
+            "\<exists> sm2. common_primitive_match_to_simple_match m2 = Some sm2"
+        by(simp_all split: option.split_asm)
+      from this obtain sm1 sm2 where sm1: "Some sm1 = common_primitive_match_to_simple_match m1"
+                                 and sm2: "Some sm2 = common_primitive_match_to_simple_match m2" by fastforce+
+      with 13 have "matches (common_matcher, \<alpha>) m1 a p = simple_matches sm1 p \<and>
+                    matches (common_matcher, \<alpha>) m2 a p = simple_matches sm2 p" by simp
+      hence 1: "matches (common_matcher, \<alpha>) (MatchAnd m1 m2) a p \<longleftrightarrow> simple_matches sm1 p \<and> simple_matches sm2 p"
+        by(simp add: bunch_of_lemmata_about_matches)
+      from caseSome sm1 sm2 have "simple_match_and sm1 sm2 = Some sm" by(simp split: option.split_asm)
+      with simple_match_and_correct have 2: "simple_matches sm p \<longleftrightarrow> simple_matches sm1 p \<and> simple_matches sm2 p" by simp
+      from 1 2 have "matches (common_matcher, \<alpha>) (MatchAnd m1 m2) a p = simple_matches sm p" by simp
+    } note caseSome=this
+
+    from caseNone caseSome show ?goal by blast
+  qed(simp_all add: match_iface_simple_match_any_simps, 
+    simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary matches_SrcDst_simple_match2)
 
 
 
