@@ -257,21 +257,23 @@ done
 
 subsubsection{*Append, Prepend, Postpend, Composition*}
   lemma approximating_bigstep_fun_seq_wf: "\<lbrakk> wf_ruleset \<gamma> p rs\<^sub>1\<rbrakk> \<Longrightarrow>
-      approximating_bigstep_fun \<gamma> p (rs\<^sub>1 @ rs\<^sub>2) Undecided = approximating_bigstep_fun \<gamma> p rs\<^sub>2 (approximating_bigstep_fun \<gamma> p rs\<^sub>1 Undecided)"
+      approximating_bigstep_fun \<gamma> p (rs\<^sub>1 @ rs\<^sub>2) s = approximating_bigstep_fun \<gamma> p rs\<^sub>2 (approximating_bigstep_fun \<gamma> p rs\<^sub>1 s)"
+    apply(case_tac s)
+     prefer 2
+     apply(simp add: Decision_approximating_bigstep_fun)
     apply(induction rs\<^sub>1 arbitrary: )
-    apply simp_all
+     apply simp_all
     apply(rename_tac r rs1)
     apply(case_tac r, rename_tac x1 x2)
     apply(clarify)
     apply(case_tac "\<not> matches \<gamma> x1 x2 p")
-    apply(simp add: wf_ruleset_def)
+     apply(simp add: wf_ruleset_def)
     apply(simp add: wf_ruleset_def)
     apply(case_tac x2)
-    apply simp_all
-    apply(simp_all add: Decision_approximating_bigstep_fun)
+           apply simp_all
+       apply(simp_all add: Decision_approximating_bigstep_fun)
     apply auto
     done
-
 
   lemma approximating_bigstep_fun_seq_Undecided_wf: "\<lbrakk> wf_ruleset \<gamma> p (rs1@rs2)\<rbrakk> \<Longrightarrow> 
       approximating_bigstep_fun \<gamma> p (rs1@rs2) Undecided = Undecided \<longleftrightarrow> 
@@ -312,15 +314,9 @@ subsubsection{*Append, Prepend, Postpend, Composition*}
   lemma approximating_bigstep_fun_wf_postpend: "wf_ruleset \<gamma> p rsA \<Longrightarrow> wf_ruleset \<gamma> p rsB \<Longrightarrow> 
       approximating_bigstep_fun \<gamma> p rsA s = approximating_bigstep_fun \<gamma> p rsB s \<Longrightarrow> 
       approximating_bigstep_fun \<gamma> p (rsA@rsC) s = approximating_bigstep_fun \<gamma> p (rsB@rsC) s"
-  apply(case_tac s)
-   prefer 2
-   apply(simp add: Decision_approximating_bigstep_fun)
-  apply(simp)
-  apply(thin_tac "s = ?un")
-  apply(induction \<gamma> p rsA "Undecided" rule: approximating_bigstep_fun_induct_wf)
-  apply(simp_all)
-  apply (metis approximating_bigstep_fun_seq_wf)
-  apply (metis Decision_approximating_bigstep_fun approximating_bigstep_fun_seq_wf)+
+  apply(induction \<gamma> p rsA "s" rule: approximating_bigstep_fun_induct_wf)
+         apply(simp_all add: approximating_bigstep_fun_seq_wf)
+     apply (metis Decision_approximating_bigstep_fun)+
   done
 
 lemma approximating_bigstep_fun_singleton_prepend: "approximating_bigstep_fun \<gamma> p rsB s = approximating_bigstep_fun \<gamma> p rsC s \<Longrightarrow> 
@@ -629,13 +625,8 @@ lemma optimize_matches_a: "\<forall>a m. matches \<gamma> m a = matches \<gamma>
 lemma optimize_matches_a_simplers_very_ugly_helper: "wf_ruleset \<gamma> p rs \<Longrightarrow> simple_ruleset rs \<Longrightarrow>
    \<forall>a m. a = Accept \<or> a = Drop \<longrightarrow> matches \<gamma> (f a m) a = matches \<gamma> m a\<Longrightarrow> 
    approximating_bigstep_fun \<gamma> p (optimize_matches_a f rs) s = approximating_bigstep_fun \<gamma> p rs s"
-  apply(cases s)
-   prefer 2
-   apply(simp add: Decision_approximating_bigstep_fun)
-  apply(simp)
-  apply(thin_tac "s = ?un")
-  apply(induction \<gamma> p rs "Undecided" rule: approximating_bigstep_fun_induct_wf)
-        apply(simp_all add: optimize_matches_a_def simple_ruleset_tail)
+  apply(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct_wf)
+         apply(simp_all add: optimize_matches_a_def simple_ruleset_tail)
    apply(simp_all add: simple_ruleset_def)
   apply(safe)
    apply(simp_all)

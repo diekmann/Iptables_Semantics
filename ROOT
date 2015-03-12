@@ -19,3 +19,5 @@ session "Iptables_Semantics" = Bitmagic +
     "Examples/SQRL_Shorewall/Analyze_SQRL_Shorewall"
     "Examples/Synology_Diskstation_DS414/Analyze_Synology_Diskstation"
     "Examples/Ringofsaturn_com/Analyze_Ringofsaturn_com"
+    "Primitive_Matchers/Transform"
+    "Simple_Firewall/SimpleFw_Compliance"

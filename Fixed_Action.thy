@@ -578,11 +578,7 @@ section{*Normalizing rules instead of only match expressions*}
           using simple_ruleset_tail by force
   
         show ?case
-          apply(cases s)
-           prefer 2
-           apply (metis approximating_semantics_imp_fun decision)
           apply(subst normalize_rules_fst)
-          apply(simp)
           apply(simp add: approximating_bigstep_fun_seq_wf[OF wf_nr])
           apply(subst approximating_bigstep_fun_seq_wf[OF wf_r, simplified])
           apply(simp add: a)
@@ -626,11 +622,7 @@ section{*Normalizing rules instead of only match expressions*}
         from Cons have a: "\<And>s. approximating_bigstep_fun \<gamma> p (normalize_rules f [r]) s = approximating_bigstep_fun \<gamma> p [r] s" by simp
 
         show ?case
-          apply(cases s)
-           prefer 2
-           apply (metis approximating_semantics_imp_fun decision)
           apply(subst normalize_rules_fst)
-          apply(simp)
           apply(simp add: approximating_bigstep_fun_seq_wf[OF wf_nr])
           apply(subst approximating_bigstep_fun_seq_wf[OF wf_r, simplified])
           apply(simp add: a)
