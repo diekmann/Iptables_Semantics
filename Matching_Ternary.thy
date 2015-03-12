@@ -184,7 +184,7 @@ fun opt_MatchAny_match_expr :: "'a match_expr \<Rightarrow> 'a match_expr" where
   "opt_MatchAny_match_expr (MatchAnd _ (MatchNot MatchAny)) = (MatchNot MatchAny)" |
   "opt_MatchAny_match_expr (MatchAnd (MatchNot MatchAny) _) = (MatchNot MatchAny)" |
   "opt_MatchAny_match_expr (MatchAnd m1 m2) = MatchAnd (opt_MatchAny_match_expr m1) (opt_MatchAny_match_expr m2)"
-text{*need to apply multiple times until it stabelizes*}
+(* without recursive call: need to apply multiple times until it stabelizes *)
 
 lemma opt_MatchAny_match_expr_correct: "matches \<gamma> (opt_MatchAny_match_expr m) = matches \<gamma> m"
   apply(case_tac \<gamma>, rename_tac \<beta> \<alpha>, clarify)

@@ -419,10 +419,36 @@ theorem transform_normalize_primitives:
    
    show  "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
           \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_n_primitive disc_sel f m"
+   unfolding transform_normalize_primitives_def
    proof
      assume a: "\<forall>m\<in>get_match ` set rs. normalized_n_primitive disc_sel f m"
+     obtain disc2 sel2 where disc_sel: "disc_sel = (disc2, sel2)" by(cases disc_sel, simp)
+     with a normalized have a': "\<forall>m\<in>get_match ` set rs. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) f m" by blast
 
-     from a normalized normalize_rules_preserves_unrelated_normalized_n_primitive
+
+     assume a_Src_Ports: "\<forall>a. \<not> disc2 (Src_Ports a)"
+     assume a_Dst_Ports: "\<forall>a. \<not> disc2 (Dst_Ports a)"
+     assume a_Src: "\<forall>a. \<not> disc2 (Src a)"
+     assume a_Dst: "\<forall>a. \<not> disc2 (Dst a)"
+
+     thm wf_disc_sel.simps
+
+     from normalize_rules_preserves_unrelated_normalized_n_primitive[OF a' wf_disc_sel_common_primitive(1),
+       of "(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))",
+       folded normalize_src_ports_def normalize_ports_step_def] a_Src_Ports
+     have "\<forall>m\<in>get_match ` set ?rs1. normalized_n_primitive (disc2, sel2) f m" by simp
+     with normalized_rs1 normalize_rules_preserves_unrelated_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(2) a_Dst_Ports,
+       of ?rs1 sel2 f "(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))",
+       folded normalize_dst_ports_def normalize_ports_step_def]
+     have "\<forall>m\<in>get_match ` set ?rs2. normalized_n_primitive (disc2, sel2) f m" by blast
+     with normalized_rs2 normalize_rules_preserves_unrelated_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(3) a_Src,
+       of ?rs2 sel2 f ipt_ipv4range_compress,
+       folded normalize_src_ips_def]
+     have "\<forall>m\<in>get_match ` set ?rs3. normalized_n_primitive (disc2, sel2) f m" by blast
+     with normalized_rs3 normalize_rules_preserves_unrelated_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(4) a_Dst,
+       of ?rs3 sel2 f ipt_ipv4range_compress,
+       folded normalize_dst_ips_def]
+     have "\<forall>m\<in>get_match ` set ?rs4. normalized_n_primitive (disc2, sel2) f m" by blast
 
 oops
 
