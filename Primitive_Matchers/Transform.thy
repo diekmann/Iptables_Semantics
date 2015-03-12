@@ -576,33 +576,4 @@ theorem transform_strict: assumes goodrs: "good_ruleset rs" and wf\<alpha>: "wf_
   qed
 
 
-
-
-
-
-
-
-
-
-
-
-(*scratch:*)
-fun is_False :: "'a match_expr \<Rightarrow> bool" where
-  "is_False (MatchAny) = False" |
-  "is_False (Match m) = False" |
-  "is_False (MatchAnd m1 m2) = (is_False m1 \<or> is_False m2)" |
-  "is_False (MatchNot (MatchAnd m1 m2)) = (is_False (MatchNot m1) \<or> is_False (MatchNot m2))" | (*DeMorgan*)
-  "is_False (MatchNot (MatchNot m)) = is_False m" | (*idem*)
-  "is_False (MatchNot (MatchAny)) = True" |
-  "is_False (MatchNot (Match m)) = False"
-
-lemma "normalized_nnf_match m \<Longrightarrow> normalized_nnf_match (optimize_primitive_univ m) \<or> is_False ((optimize_primitive_univ m))"
-  apply(induction m rule: optimize_primitive_univ.induct)
-  apply(simp_all)
-  apply(safe)
-  apply(drule normalized_nnf_match_MatchNot_D)
-  apply(simp)
-  apply(safe)
-  oops
-
 end

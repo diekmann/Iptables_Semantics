@@ -244,77 +244,57 @@ lemma approximating_bigstep_fun_induct_wf[case_names Empty Decision Nomatch Matc
 (\<And>\<gamma> p m a rs.
     matches \<gamma> m a p \<Longrightarrow> a = Empty \<Longrightarrow> P \<gamma> p rs Undecided \<Longrightarrow> P \<gamma> p (Rule m a # rs) Undecided) \<Longrightarrow>
 P \<gamma> p rs s"
-apply(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
-apply blast
-apply blast
-apply(auto dest:wf_rulesetD)[1]
-apply(frule wf_rulesetD(1), drule wf_rulesetD(2))
-apply(simp)
-apply(case_tac a)
-apply(simp_all)
-apply(auto simp add: wf_ruleset_def)
-done
+  proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
+  case Empty thus ?case by blast
+  next
+  case Decision thus ?case by blast
+  next
+  case Nomatch thus ?case by(simp add: wf_ruleset_def)
+  next
+  case (Match \<gamma> p m a) thus ?case
+    apply -
+    apply(frule wf_rulesetD(1), drule wf_rulesetD(2))
+    apply(simp)
+    apply(cases a)
+           apply(simp_all)
+      apply(auto simp add: wf_ruleset_def)
+    done
+  qed
+
 
 subsubsection{*Append, Prepend, Postpend, Composition*}
   lemma approximating_bigstep_fun_seq_wf: "\<lbrakk> wf_ruleset \<gamma> p rs\<^sub>1\<rbrakk> \<Longrightarrow>
       approximating_bigstep_fun \<gamma> p (rs\<^sub>1 @ rs\<^sub>2) s = approximating_bigstep_fun \<gamma> p rs\<^sub>2 (approximating_bigstep_fun \<gamma> p rs\<^sub>1 s)"
-    apply(case_tac s)
-     prefer 2
-     apply(simp add: Decision_approximating_bigstep_fun)
-    apply(induction rs\<^sub>1 arbitrary: )
-     apply simp_all
-    apply(rename_tac r rs1)
-    apply(case_tac r, rename_tac x1 x2)
-    apply(clarify)
-    apply(case_tac "\<not> matches \<gamma> x1 x2 p")
-     apply(simp add: wf_ruleset_def)
-    apply(simp add: wf_ruleset_def)
-    apply(case_tac x2)
-           apply simp_all
-       apply(simp_all add: Decision_approximating_bigstep_fun)
-    apply auto
-    done
+   apply(induction \<gamma> p rs\<^sub>1 s rule: approximating_bigstep_fun_induct)
+      apply(simp_all add: wf_ruleset_def Decision_approximating_bigstep_fun split: action.split)
+   done
 
-  lemma approximating_bigstep_fun_seq_Undecided_wf: "\<lbrakk> wf_ruleset \<gamma> p (rs1@rs2)\<rbrakk> \<Longrightarrow> 
+  text{*The state transitions from @{const Undecided} to @{const Undecided} if ll intermediate states are @{const Undecided}*}
+ lemma approximating_bigstep_fun_seq_Undecided_wf: "\<lbrakk> wf_ruleset \<gamma> p (rs1@rs2)\<rbrakk> \<Longrightarrow> 
       approximating_bigstep_fun \<gamma> p (rs1@rs2) Undecided = Undecided \<longleftrightarrow> 
   approximating_bigstep_fun \<gamma> p rs1 Undecided = Undecided \<and> approximating_bigstep_fun \<gamma> p rs2 Undecided = Undecided"
-    apply(induction "rs1" arbitrary:)
-    apply(simp add: wf_ruleset_def)
-    apply(rename_tac r rs1)
-    apply(case_tac r, rename_tac x1 x2)
-    apply(clarify)
-    apply(case_tac "\<not> matches \<gamma> x1 x2 p")
-    apply(simp add: wf_ruleset_def)
-    apply(simp add: wf_ruleset_def)
-    apply(case_tac x2)
-    apply simp_all
-    apply auto
+    apply(induction \<gamma> p rs1 Undecided rule: approximating_bigstep_fun_induct)
+      apply(simp_all add: wf_ruleset_def split: action.split)
     done
+
 
   lemma approximating_bigstep_fun_seq_Undecided_t_wf: "\<lbrakk> wf_ruleset \<gamma> p (rs1@rs2)\<rbrakk> \<Longrightarrow> 
       approximating_bigstep_fun \<gamma> p (rs1@rs2) Undecided = t \<longleftrightarrow> 
   approximating_bigstep_fun \<gamma> p rs1 Undecided = Undecided \<and> approximating_bigstep_fun \<gamma> p rs2 Undecided = t \<or>
   approximating_bigstep_fun \<gamma> p rs1 Undecided = t \<and> t \<noteq> Undecided"
-    apply(induction "rs1" arbitrary:)
-    apply simp_all
-    apply(case_tac t)
-    apply(simp_all add: Decision_approximating_bigstep_fun)
-
-    apply(rename_tac r rs1)
-    apply(case_tac r, rename_tac x1 x2)
-    apply(clarify)
-    apply(case_tac "\<not> matches \<gamma> x1 x2 p")
-    apply(simp add: wf_ruleset_def)
-    apply(simp add: wf_ruleset_def)
-    apply(case_tac x2)
-    apply simp_all
-    apply auto
-    done
+  proof(induction \<gamma> p rs1 Undecided rule: approximating_bigstep_fun_induct)
+  case Empty thus ?case by(cases t) simp_all
+  next
+  case Nomatch thus ?case by(simp add: wf_ruleset_def)
+  next
+  case Match thus ?case by(auto simp add: wf_ruleset_def split: action.split)
+  qed
+ 
 
   lemma approximating_bigstep_fun_wf_postpend: "wf_ruleset \<gamma> p rsA \<Longrightarrow> wf_ruleset \<gamma> p rsB \<Longrightarrow> 
       approximating_bigstep_fun \<gamma> p rsA s = approximating_bigstep_fun \<gamma> p rsB s \<Longrightarrow> 
       approximating_bigstep_fun \<gamma> p (rsA@rsC) s = approximating_bigstep_fun \<gamma> p (rsB@rsC) s"
-  apply(induction \<gamma> p rsA "s" rule: approximating_bigstep_fun_induct_wf)
+  apply(induction \<gamma> p rsA s rule: approximating_bigstep_fun_induct_wf)
          apply(simp_all add: approximating_bigstep_fun_seq_wf)
      apply (metis Decision_approximating_bigstep_fun)+
   done
@@ -404,10 +384,7 @@ lemma approximating_bigstep_fun_seq_semantics: "\<lbrakk> \<gamma>,p\<turnstile>
 
 lemma approximating_semantics_imp_fun: "\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<Longrightarrow> approximating_bigstep_fun \<gamma> p rs s = t"
   apply(induction rs s t rule: approximating_bigstep_induct)
-  apply(auto)[7]
-  apply(case_tac rs)
-  apply(simp_all)
-  apply(simp add: approximating_bigstep_fun_seq_semantics)
+  apply(auto simp add: approximating_bigstep_fun_seq_semantics Decision_approximating_bigstep_fun)
   done
 
 lemma approximating_fun_imp_semantics: assumes "wf_ruleset \<gamma> p rs"
@@ -484,26 +461,19 @@ fun rm_LogEmpty :: "'a rule list \<Rightarrow> 'a rule list" where
 
 lemma rm_LogEmpty_fun_semantics: 
   "approximating_bigstep_fun \<gamma> p (rm_LogEmpty rs) s = approximating_bigstep_fun \<gamma> p rs s"
-apply(induction rs)
-apply(simp_all)
-apply(rename_tac r rs)
-apply(case_tac r)
-apply(rename_tac m a)
-apply(simp)
-apply(case_tac a)
-apply(simp_all)
-apply(case_tac [!] s)
-apply(simp_all)
-apply (metis Decision_approximating_bigstep_fun)
-by (metis Decision_approximating_bigstep_fun)
+    apply(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
+        apply(simp_all add: Decision_approximating_bigstep_fun)
+      apply(case_tac a, simp_all)+
+    done
 
 lemma rm_LogEmpty_seq: "rm_LogEmpty (rs1@rs2) = rm_LogEmpty rs1 @ rm_LogEmpty rs2"
   apply(induction rs1)
+   apply(simp_all)
+  apply(rename_tac r rs)
+  apply(case_tac r, rename_tac m a)
   apply(simp_all)
   apply(case_tac a)
-  apply(simp_all)
-  apply(case_tac x2)
-  apply(simp_all)
+         apply(simp_all)
   done
 
 
