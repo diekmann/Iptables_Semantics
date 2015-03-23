@@ -29,7 +29,8 @@ export_code unfold_ruleset_FORWARD map_of_string upper_closure
   Match MatchNot MatchAnd MatchAny
   Ip4Addr Ip4AddrNetmask
   ProtoAny Proto TCP UDP
-  Src Dst Prot Extra
+  Src Dst Prot Extra OIface IIface
+  Iface
   nat_of_integer integer_of_nat
   dotdecimal_of_ipv4addr
   check_simple_fw_preconditions
@@ -98,14 +99,18 @@ fun dump_prot ProtoAny = "all"
 fun dump_action (Accepta : simple_action) = "ACCEPT"
   | dump_action (Dropa   : simple_action) = "DROP";
 
+fun dump_iface_name (descr: string) (Iface name) = (let val iface=String.implode name in (if iface = "" orelse iface = "+" then "" else descr^" "^iface) end)
+
 
 fun dump_iptables [] = ()
   | dump_iptables (SimpleRule (m, a) :: rs) =
       (writeln (dump_action a ^ "     " ^
-               (dump_ip (src m)) ^ "     " ^
+               (dump_prot (proto m)) ^ "  --  " ^
+               (dump_ip (src m)) ^ "            " ^
                (dump_ip (dst m)) ^ "     " ^
-               (dump_prot (proto m)) ^ "     " ^
-                "also dump here: iiface oiface sports dports"); dump_iptables rs);
+               (dump_iface_name "in:" (iiface m)) ^ " " ^
+               (dump_iface_name "out:" (oiface m)) ^ " " ^
+                "also dump here: sports dports"); dump_iptables rs);
 
 *}
 
@@ -113,6 +118,18 @@ ML_val{*
 dump_iptables (to_simple_firewall upper);
 *}
 
+text{*iptables -L -n*}
+
+ML_val{*
+writeln "Chain INPUT (policy ACCEPT)";
+writeln "target     prot opt source               destination";
+writeln "";
+writeln "Chain FORWARD (policy ACCEPT)";
+writeln "target     prot opt source               destination";
+dump_iptables (to_simple_firewall upper);
+writeln "Chain OUTPUT (policy ACCEPT)";
+writeln "target     prot opt source               destination"
+*}
 
 ML_val{*true*}
 
