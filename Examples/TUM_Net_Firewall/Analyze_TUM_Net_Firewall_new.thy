@@ -22,6 +22,8 @@ definition upper_closure :: "common_primitive rule list \<Rightarrow> common_pri
 (*definition lower_closure :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
   "lower_closure rs == rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^2000) (optimize_matches_a lower_closure_matchexpr rs))"*)
 
+definition port_to_nat :: "16 word \<Rightarrow> nat" where
+  "port_to_nat p = unat p"
 
 export_code unfold_ruleset_FORWARD map_of_string upper_closure  
   Rule
@@ -29,9 +31,10 @@ export_code unfold_ruleset_FORWARD map_of_string upper_closure
   Match MatchNot MatchAnd MatchAny
   Ip4Addr Ip4AddrNetmask
   ProtoAny Proto TCP UDP
-  Src Dst Prot Extra OIface IIface
+  Src Dst Prot Extra OIface IIface Src_Ports Dst_Ports
   Iface
   nat_of_integer integer_of_nat
+  port_to_nat
   dotdecimal_of_ipv4addr
   check_simple_fw_preconditions
   to_simple_firewall
@@ -95,12 +98,14 @@ fun dump_prot ProtoAny = "all"
   | dump_prot (Proto TCP) = "tcp"
   | dump_prot (Proto UDP) = "udp";
 
-
 fun dump_action (Accepta : simple_action) = "ACCEPT"
   | dump_action (Dropa   : simple_action) = "DROP";
 
 fun dump_iface_name (descr: string) (Iface name) = (let val iface=String.implode name in (if iface = "" orelse iface = "+" then "" else descr^" "^iface) end)
 
+fun dump_port p = Int.toString (integer_of_nat (port_to_nat p))
+
+fun dump_ports descr (s,e) = (let val ports = "("^dump_port s^","^dump_port e^")" in (if ports = "(0,65535)" then "" else descr^" "^ports) end)
 
 fun dump_iptables [] = ()
   | dump_iptables (SimpleRule (m, a) :: rs) =
@@ -110,16 +115,13 @@ fun dump_iptables [] = ()
                (dump_ip (dst m)) ^ "     " ^
                (dump_iface_name "in:" (iiface m)) ^ " " ^
                (dump_iface_name "out:" (oiface m)) ^ " " ^
-                "also dump here: sports dports"); dump_iptables rs);
+               (dump_ports "srcports:" (sports m)) ^ " " ^
+               (dump_ports "dstports:" (dports m)) ^ " "); dump_iptables rs);
 
 *}
 
-ML_val{*
-dump_iptables (to_simple_firewall upper);
-*}
 
 text{*iptables -L -n*}
-
 ML_val{*
 writeln "Chain INPUT (policy ACCEPT)";
 writeln "target     prot opt source               destination";

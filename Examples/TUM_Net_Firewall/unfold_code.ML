@@ -42,6 +42,7 @@ structure Test : sig
   val sports :
     'a simple_match_ext ->
       num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word
+  val port_to_nat : num1 bit0 bit0 bit0 bit0 word -> nat
   val map_of_string :
     (char list * common_primitive rule list) list ->
       char list -> (common_primitive rule list) option
@@ -1748,6 +1749,9 @@ fun transform_optimize_dnf_strict x =
   (optimize_matches opt_MatchAny_match_expr o normalize_rules_dnf o
     optimize_matches (opt_MatchAny_match_expr o optimize_primitive_univ))
     x;
+
+fun port_to_nat p =
+  unat (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) p;
 
 fun normalized_dst_ips MatchAny = true
   | normalized_dst_ips (Match uu) = true
