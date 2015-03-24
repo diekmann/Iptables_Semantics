@@ -1422,7 +1422,24 @@ fun transform_normalize_primitives x =
     normalize_rules normalize_src_ports)
     x;
 
-fun optimize_primitive_univ (Match (Prot ProtoAny)) = MatchAny
+fun optimize_primitive_univ (Match (Src_Ports [(s, e)])) =
+  (if equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) s
+        (zero_worda
+          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) andalso
+        equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) e
+          (word_of_int (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))
+            (Int_of_integer (65535 : IntInf.int)))
+    then MatchAny else Match (Src_Ports [(s, e)]))
+  | optimize_primitive_univ (Match (Dst_Ports [(s, e)])) =
+    (if equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) s
+          (zero_worda
+            (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) andalso
+          equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))
+            e (word_of_int
+                (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))
+                (Int_of_integer (65535 : IntInf.int)))
+      then MatchAny else Match (Dst_Ports [(s, e)]))
+  | optimize_primitive_univ (Match (Prot ProtoAny)) = MatchAny
   | optimize_primitive_univ (Match (Src (Ip4Addr va))) =
     Match (Src (Ip4Addr va))
   | optimize_primitive_univ (Match (Dst (Ip4Addr va))) =
@@ -1430,8 +1447,12 @@ fun optimize_primitive_univ (Match (Prot ProtoAny)) = MatchAny
   | optimize_primitive_univ (Match (IIface v)) = Match (IIface v)
   | optimize_primitive_univ (Match (OIface v)) = Match (OIface v)
   | optimize_primitive_univ (Match (Prot (Proto va))) = Match (Prot (Proto va))
-  | optimize_primitive_univ (Match (Src_Ports v)) = Match (Src_Ports v)
-  | optimize_primitive_univ (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | optimize_primitive_univ (Match (Src_Ports [])) = Match (Src_Ports [])
+  | optimize_primitive_univ (Match (Src_Ports (va :: vc :: vd))) =
+    Match (Src_Ports (va :: vc :: vd))
+  | optimize_primitive_univ (Match (Dst_Ports [])) = Match (Dst_Ports [])
+  | optimize_primitive_univ (Match (Dst_Ports (va :: vc :: vd))) =
+    Match (Dst_Ports (va :: vc :: vd))
   | optimize_primitive_univ (Match (Extra v)) = Match (Extra v)
   | optimize_primitive_univ (MatchNot m) = MatchNot (optimize_primitive_univ m)
   | optimize_primitive_univ (MatchAnd (m1, m2)) =
@@ -2092,7 +2113,7 @@ fun unfold_ruleset_FORWARD rs =
     (optimize_matches optimize_primitive_univ
       (rw_Reject
         (rm_LogEmpty
-          (funpow (nat_of_integer (5 : IntInf.int)) (process_call rs)
+          (funpow (nat_of_integer (10 : IntInf.int)) (process_call rs)
             [Rule (MatchAny,
                     Call [#"F", #"O", #"R", #"W", #"A", #"R", #"D"])]))));
 

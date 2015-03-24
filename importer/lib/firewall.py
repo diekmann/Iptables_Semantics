@@ -77,9 +77,9 @@ class Known_Proto(Proto, Enum):
 
     def raw_serialize(self, serializer):
         table = {
-            Known_Proto.tcp: "ProtTCP",
-            Known_Proto.udp: "ProtUDP",
-            Known_Proto.all: "ProtAll"
+            Known_Proto.tcp: "Proto TCP",
+            Known_Proto.udp: "Proto UDP",
+            Known_Proto.all: "ProtoAny"
         }
 
         return serializer.constr("Prot", table[self])
@@ -116,7 +116,7 @@ class Std_Action(Action, Enum):
             Std_Action.empty: "Empty",
             Std_Action.unknown: "Unknown"
         }
-        return table[self]
+        return "action.{0}".format(table[self])
 
 class Custom_Action(Action):
     def __init__(self, action):

@@ -1,5 +1,8 @@
 theory Code_Interface
-imports Main "../Primitive_Matchers/Transform" "../Call_Return_Unfolding" "../Simple_Firewall/SimpleFw_Compliance"
+imports 
+"../Call_Return_Unfolding"
+"../Primitive_Matchers/Transform"
+"../Simple_Firewall/SimpleFw_Compliance"
 "~~/src/HOL/Library/Code_Target_Nat"
 "~~/src/HOL/Library/Code_Target_Int"
 "~~/src/HOL/Library/Code_Char"
@@ -10,7 +13,12 @@ section{*Code Interface*}
 
 definition unfold_ruleset_FORWARD :: "common_primitive ruleset \<Rightarrow> common_primitive rule list" where
 "unfold_ruleset_FORWARD rs = ((optimize_matches opt_MatchAny_match_expr)^^10) 
-  (optimize_matches optimize_primitive_univ (rw_Reject (rm_LogEmpty (((process_call rs)^^5) [Rule MatchAny (Call ''FORWARD'')]))))"
+  (optimize_matches optimize_primitive_univ (rw_Reject (rm_LogEmpty (((process_call rs)^^10) [Rule MatchAny (Call ''FORWARD'')]))))"
+
+
+definition unfold_ruleset_INUPUT :: "common_primitive ruleset \<Rightarrow> common_primitive rule list" where
+"unfold_ruleset_INUPUT rs = ((optimize_matches opt_MatchAny_match_expr)^^10) 
+  (optimize_matches optimize_primitive_univ (rw_Reject (rm_LogEmpty (((process_call rs)^^10) [Rule MatchAny (Call ''INPUT'')]))))"
 
 definition map_of_string :: "(string \<times> common_primitive rule list) list \<Rightarrow> string \<rightharpoonup> common_primitive rule list" where
 "map_of_string rs = map_of rs"
