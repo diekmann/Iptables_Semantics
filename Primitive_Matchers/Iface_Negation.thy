@@ -1,5 +1,5 @@
 theory Iface_Negation
-imports String "../Output_Format/Negation_Type"
+imports String
   Iface_Attic (* old and unused stuff, just proof-check it *)
 begin
 

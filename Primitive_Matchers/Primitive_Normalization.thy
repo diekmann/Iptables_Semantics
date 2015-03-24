@@ -1,5 +1,5 @@
 theory Primitive_Normalization
-imports  "../Output_Format/Negation_Type_Matching" 
+imports  "../Semantics_Ternary/Negation_Type_Matching" 
 begin
 
 section{*Primitive Normalization*}

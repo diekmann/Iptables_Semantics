@@ -1,5 +1,5 @@
 theory Negation_Type_DNF
-imports Fixed_Action "Output_Format/Negation_Type_Matching" Datatype_Selectors
+imports Fixed_Action Negation_Type_Matching "../Datatype_Selectors"
 begin
 
 section{*Negation Type DNF -- Draft*}

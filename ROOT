@@ -7,11 +7,18 @@ session "Iptables_Semantics" = Bitmagic +
     Semantics
     "Examples/Example_Semantics"
     Call_Return_Unfolding
-    Semantics_Ternary
+    "Semantics_Ternary/Negation_Type_DNF"
+    "Semantics_Ternary/Packet_Set"
+    "Semantics_Ternary/Semantics_Ternary"
     Matching_Embeddings
     Semantics_Embeddings
     Iptables_Semantics
-    Optimizing
+    "Semantics_Ternary/Optimizing"
+
+
+session "Iptables_Semantics_Examples" = Iptables_Semantics +
+   theories
+    "Primitive_Matchers/Iface_Negation"
     "Output_Format/IPSpace_Operations"
     "Output_Format/Format_Ln"
     "Output_Format/IPSpace_Format_Ln"
@@ -21,3 +28,4 @@ session "Iptables_Semantics" = Bitmagic +
     "Examples/Ringofsaturn_com/Analyze_Ringofsaturn_com"
     "Primitive_Matchers/Transform"
     "Simple_Firewall/SimpleFw_Compliance"
+    "Examples/TUM_Net_Firewall/Analyze_TUM_Net_Firewall_new"

@@ -1,5 +1,5 @@
 theory IPSpace_Operations
-imports Negation_Type "../Bitmagic/Numberwang_Ln" "../Primitive_Matchers/IPSpace_Syntax" "../Bitmagic/IPv4Addr"
+imports "../Semantics_Ternary/Negation_Type" "../Bitmagic/Numberwang_Ln" "../Primitive_Matchers/IPSpace_Syntax" "../Bitmagic/IPv4Addr"
 begin
 
 definition intersect_netmask_empty :: "nat \<times> nat \<times> nat \<times> nat \<Rightarrow> nat \<Rightarrow> nat \<times> nat \<times> nat \<times> nat \<Rightarrow> nat \<Rightarrow> bool" where

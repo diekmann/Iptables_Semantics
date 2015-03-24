@@ -1,5 +1,5 @@
 theory Packet_Set_Impl
-imports Fixed_Action "Output_Format/Negation_Type_Matching" Datatype_Selectors
+imports Fixed_Action Negation_Type_Matching "../Datatype_Selectors"
 begin
 
 

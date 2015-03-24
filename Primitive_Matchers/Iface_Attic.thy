@@ -1,5 +1,5 @@
 theory Iface_Attic
-imports String "../Output_Format/Negation_Type"
+imports String "../Semantics_Ternary/Negation_Type"
 begin
 
 

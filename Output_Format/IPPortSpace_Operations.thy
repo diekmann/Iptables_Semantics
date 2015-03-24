@@ -1,5 +1,5 @@
 theory IPPortSpace_Operations
-imports IPSpace_Operations "../Primitive_Matchers/Common_Primitive_Matcher" "../Matching_Ternary"
+imports IPSpace_Operations "../Primitive_Matchers/Common_Primitive_Matcher" "../Semantics_Ternary/Matching_Ternary"
 begin
 
 

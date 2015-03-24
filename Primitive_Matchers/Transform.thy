@@ -1,7 +1,7 @@
 theory Transform
 imports "Common_Primitive_Matcher"
-        "../Semantics_Ternary"
-        "../Output_Format/Negation_Type_Matching"
+        "../Semantics_Ternary/Semantics_Ternary"
+        "../Semantics_Ternary/Negation_Type_Matching"
         "../Primitive_Matchers/Ports_Normalize"
         "../Primitive_Matchers/IpAddresses_Normalize"
 begin

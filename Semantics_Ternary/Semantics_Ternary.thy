@@ -1,5 +1,5 @@
 theory Semantics_Ternary
-imports Matching_Ternary Misc
+imports Matching_Ternary "../Misc"
 begin
 
 (*

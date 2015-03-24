@@ -1,9 +1,9 @@
 theory Analyze_TUM_Net_Firewall
-imports Main "../../Output_Format/IPSpace_Format_Ln" "../../Call_Return_Unfolding" "../../Optimizing"
+imports Main "../../Output_Format/IPSpace_Format_Ln" "../../Call_Return_Unfolding" "../../Semantics_Ternary/Optimizing"
 "~~/src/HOL/Library/Code_Target_Nat"
 "~~/src/HOL/Library/Code_Target_Int"
 "~~/src/HOL/Library/Code_Char"
-  "../../Packet_Set"
+  "../../Semantics_Ternary/Packet_Set"
 begin
 
 

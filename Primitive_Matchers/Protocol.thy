@@ -1,5 +1,5 @@
 theory Protocol
-imports "../Output_Format/Negation_Type"
+imports "../Semantics_Ternary/Negation_Type"
 begin
 
 datatype primitive_protocol = TCP | UDP | ICMP

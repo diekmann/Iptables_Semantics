@@ -1,9 +1,9 @@
 theory Analyze_Ringofsaturn_com
 imports
   "../../Call_Return_Unfolding"
-  "../../Optimizing"
+  "../../Semantics_Ternary/Optimizing"
   "../../Output_Format/IPSpace_Format_Ln"
-  "../../Packet_Set"
+  "../../Semantics_Ternary/Packet_Set"
 begin
 
 section{*Example: ringofsaturn.com*}
