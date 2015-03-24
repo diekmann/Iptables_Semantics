@@ -43,7 +43,9 @@ class Serializer:
 class HOL(Serializer):
     def __init__(self, module, import_module):
         if import_module is None:
-            error("Import module name required")
+            default_import = "Code_Interface" #file Code_Interface.thy
+            warning("HOL: Import module name not specified. Using `%s'" % default_import)
+            import_module = default_import
 
         super().__init__(module, import_module, Constr_Syntax.fun)
 

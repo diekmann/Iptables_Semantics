@@ -1,5 +1,5 @@
 theory Analyze_Synology_Diskstation
-imports iptables_Ln_tuned_parsed"../../Output_Format/IPSpace_Format_Ln" "../../Call_Return_Unfolding" "../../Semantics_Ternary/Optimizing"
+imports iptables_Ln_tuned_parsed "../../Output_Format/IPSpace_Format_Ln" "../../Call_Return_Unfolding" "../../Semantics_Ternary/Optimizing"
   "../../Semantics_Ternary/Packet_Set"
 begin
 

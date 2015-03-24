@@ -31,6 +31,11 @@ export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure
 
 ML_file "unfold_code.ML"
 
+
+ML{*
+open Test; (*put the exported code into current namespace such that the following firewall definition loads*)
+*}
+
 (*we search replaced brute-forcely to adapt to the new constructor names
 *)
 ML_file "iptables_Ln_29.11.2013_new_deletemeaftertesting.ML"
@@ -46,10 +51,10 @@ ML_file "iptables_Ln_29.11.2013_new_deletemeaftertesting.ML"
  ACCEPT     tcp  --  131.159.14.208       0.0.0.0/0            multiport sports 389,636
 *)
 
-
 ML{*
-open Test;
+open Test; 
 *}
+
 declare[[ML_print_depth=50]]
 ML{*
 val rules = unfold_ruleset_FORWARD (map_of_string firewall_chains)
