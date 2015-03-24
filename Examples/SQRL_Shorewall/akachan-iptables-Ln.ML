@@ -1,4 +1,4 @@
-structure test = struct
+structure Test = struct
 
 val firewall_chains = [(String.explode "Broadcast", [Rule((MatchAnd((Match((Src((Ip4AddrNetmask((((nat_of_integer 0), ((nat_of_integer 0), ((nat_of_integer 0), (nat_of_integer 0))))),((nat_of_integer 0)))))))),(MatchAnd((Match((Dst((Ip4AddrNetmask((((nat_of_integer 0), ((nat_of_integer 0), ((nat_of_integer 0), (nat_of_integer 0))))),((nat_of_integer 0)))))))),(MatchAnd((Match((Prot((ProtoAny))))),(Match((Extra((String.explode "ADDRTYPE match dst-type BROADCAST"))))))))))),(Drop)),
 Rule((MatchAnd((Match((Src((Ip4AddrNetmask((((nat_of_integer 0), ((nat_of_integer 0), ((nat_of_integer 0), (nat_of_integer 0))))),((nat_of_integer 0)))))))),(MatchAnd((Match((Dst((Ip4AddrNetmask((((nat_of_integer 0), ((nat_of_integer 0), ((nat_of_integer 0), (nat_of_integer 0))))),((nat_of_integer 0)))))))),(MatchAnd((Match((Prot((ProtoAny))))),(Match((Extra((String.explode "ADDRTYPE match dst-type MULTICAST"))))))))))),(Drop)),
