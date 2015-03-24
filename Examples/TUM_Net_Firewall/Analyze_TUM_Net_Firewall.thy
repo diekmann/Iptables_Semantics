@@ -71,7 +71,6 @@ ML_file "iptables_Ln_29.11.2013.ML"
  LOG_DROP   all  --  127.0.0.0/8          0.0.0.0/0
  ACCEPT     tcp  --  131.159.14.206       0.0.0.0/0            multiport sports 389,636
  ACCEPT     tcp  --  131.159.14.208       0.0.0.0/0            multiport sports 389,636
-
 *)
 
 
