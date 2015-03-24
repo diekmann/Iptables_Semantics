@@ -24,7 +24,7 @@ lemma ipv4s_to_set_nonempty: "ipv4s_to_set ip \<noteq> {}"
   done
 
 text{*maybe this is necessary as code equation?*}
-lemma element_ipv4s_to_set: "addr \<in> ipv4s_to_set X = (
+lemma element_ipv4s_to_set[code_unfold]: "addr \<in> ipv4s_to_set X = (
   case X of (Ip4AddrNetmask pre len) \<Rightarrow> ((ipv4addr_of_dotdecimal pre) AND ((mask len) << (32 - len))) \<le> addr \<and> addr \<le> (ipv4addr_of_dotdecimal pre) OR (mask (32 - len))
   | Ip4Addr ip \<Rightarrow> (addr = (ipv4addr_of_dotdecimal ip)) )"
 apply(cases X)
