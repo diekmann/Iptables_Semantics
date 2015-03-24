@@ -43,6 +43,7 @@ structure Test : sig
     'a simple_match_ext ->
       num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word
   val port_to_nat : num1 bit0 bit0 bit0 bit0 word -> nat
+  val lower_closure : common_primitive rule list -> common_primitive rule list
   val map_of_string :
     (char list * common_primitive rule list) list ->
       char list -> (common_primitive rule list) option
@@ -1807,8 +1808,6 @@ fun transform_normalize_primitives x =
     normalize_rules normalize_src_ports)
     x;
 
-fun map_of_string rs = map_of (equal_list equal_char) rs;
-
 fun equal_match_expr A_ (MatchAnd (match_expr1, match_expr2)) MatchAny = false
   | equal_match_expr A_ MatchAny (MatchAnd (match_expr1, match_expr2)) = false
   | equal_match_expr A_ (MatchNot match_expr) MatchAny = false
@@ -1831,6 +1830,123 @@ fun equal_match_expr A_ (MatchAnd (match_expr1, match_expr2)) MatchAny = false
     equal_match_expr A_ match_expra match_expr
   | equal_match_expr A_ (Match aa) (Match a) = eq A_ aa a
   | equal_match_expr A_ MatchAny MatchAny = true;
+
+fun lower_closure_matchexpr uu MatchAny = MatchAny
+  | lower_closure_matchexpr Accept (Match (Extra uv)) = MatchNot MatchAny
+  | lower_closure_matchexpr Reject (Match (Extra uw)) = MatchAny
+  | lower_closure_matchexpr Drop (Match (Extra ux)) = MatchAny
+  | lower_closure_matchexpr Drop (Match (Src v)) = Match (Src v)
+  | lower_closure_matchexpr Drop (Match (Dst v)) = Match (Dst v)
+  | lower_closure_matchexpr Drop (Match (IIface v)) = Match (IIface v)
+  | lower_closure_matchexpr Drop (Match (OIface v)) = Match (OIface v)
+  | lower_closure_matchexpr Drop (Match (Prot v)) = Match (Prot v)
+  | lower_closure_matchexpr Drop (Match (Src_Ports v)) = Match (Src_Ports v)
+  | lower_closure_matchexpr Drop (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | lower_closure_matchexpr Log (Match m) = Match m
+  | lower_closure_matchexpr Reject (Match (Src v)) = Match (Src v)
+  | lower_closure_matchexpr Reject (Match (Dst v)) = Match (Dst v)
+  | lower_closure_matchexpr Reject (Match (IIface v)) = Match (IIface v)
+  | lower_closure_matchexpr Reject (Match (OIface v)) = Match (OIface v)
+  | lower_closure_matchexpr Reject (Match (Prot v)) = Match (Prot v)
+  | lower_closure_matchexpr Reject (Match (Src_Ports v)) = Match (Src_Ports v)
+  | lower_closure_matchexpr Reject (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | lower_closure_matchexpr (Call v) (Match m) = Match m
+  | lower_closure_matchexpr Return (Match m) = Match m
+  | lower_closure_matchexpr Empty (Match m) = Match m
+  | lower_closure_matchexpr Unknown (Match m) = Match m
+  | lower_closure_matchexpr uy (Match (Src v)) = Match (Src v)
+  | lower_closure_matchexpr uy (Match (Dst v)) = Match (Dst v)
+  | lower_closure_matchexpr uy (Match (IIface v)) = Match (IIface v)
+  | lower_closure_matchexpr uy (Match (OIface v)) = Match (OIface v)
+  | lower_closure_matchexpr uy (Match (Prot v)) = Match (Prot v)
+  | lower_closure_matchexpr uy (Match (Src_Ports v)) = Match (Src_Ports v)
+  | lower_closure_matchexpr uy (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | lower_closure_matchexpr Accept (MatchNot (Match (Extra uz))) =
+    MatchNot MatchAny
+  | lower_closure_matchexpr Drop (MatchNot (Match (Extra va))) = MatchAny
+  | lower_closure_matchexpr Reject (MatchNot (Match (Extra vb))) = MatchAny
+  | lower_closure_matchexpr a (MatchNot (MatchNot m)) =
+    lower_closure_matchexpr a m
+  | lower_closure_matchexpr a (MatchNot (MatchAnd (m1, m2))) =
+    let
+      val m1a = lower_closure_matchexpr a (MatchNot m1);
+      val m2a = lower_closure_matchexpr a (MatchNot m2);
+    in
+      (if equal_match_expr equal_common_primitive m1a MatchAny orelse
+            equal_match_expr equal_common_primitive m2a MatchAny
+        then MatchAny
+        else (if equal_match_expr equal_common_primitive m1a (MatchNot MatchAny)
+               then m2a
+               else (if equal_match_expr equal_common_primitive m2a
+                          (MatchNot MatchAny)
+                      then m1a
+                      else MatchNot (MatchAnd (MatchNot m1a, MatchNot m2a)))))
+    end
+  | lower_closure_matchexpr Drop (MatchNot (Match (Src va))) =
+    MatchNot (Match (Src va))
+  | lower_closure_matchexpr Drop (MatchNot (Match (Dst va))) =
+    MatchNot (Match (Dst va))
+  | lower_closure_matchexpr Drop (MatchNot (Match (IIface va))) =
+    MatchNot (Match (IIface va))
+  | lower_closure_matchexpr Drop (MatchNot (Match (OIface va))) =
+    MatchNot (Match (OIface va))
+  | lower_closure_matchexpr Drop (MatchNot (Match (Prot va))) =
+    MatchNot (Match (Prot va))
+  | lower_closure_matchexpr Drop (MatchNot (Match (Src_Ports va))) =
+    MatchNot (Match (Src_Ports va))
+  | lower_closure_matchexpr Drop (MatchNot (Match (Dst_Ports va))) =
+    MatchNot (Match (Dst_Ports va))
+  | lower_closure_matchexpr Drop (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr Log (MatchNot (Match v)) = MatchNot (Match v)
+  | lower_closure_matchexpr Log (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr Reject (MatchNot (Match (Src va))) =
+    MatchNot (Match (Src va))
+  | lower_closure_matchexpr Reject (MatchNot (Match (Dst va))) =
+    MatchNot (Match (Dst va))
+  | lower_closure_matchexpr Reject (MatchNot (Match (IIface va))) =
+    MatchNot (Match (IIface va))
+  | lower_closure_matchexpr Reject (MatchNot (Match (OIface va))) =
+    MatchNot (Match (OIface va))
+  | lower_closure_matchexpr Reject (MatchNot (Match (Prot va))) =
+    MatchNot (Match (Prot va))
+  | lower_closure_matchexpr Reject (MatchNot (Match (Src_Ports va))) =
+    MatchNot (Match (Src_Ports va))
+  | lower_closure_matchexpr Reject (MatchNot (Match (Dst_Ports va))) =
+    MatchNot (Match (Dst_Ports va))
+  | lower_closure_matchexpr Reject (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr (Call v) (MatchNot (Match va)) = MatchNot (Match va)
+  | lower_closure_matchexpr (Call v) (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr Return (MatchNot (Match v)) = MatchNot (Match v)
+  | lower_closure_matchexpr Return (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr Empty (MatchNot (Match v)) = MatchNot (Match v)
+  | lower_closure_matchexpr Empty (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr Unknown (MatchNot (Match v)) = MatchNot (Match v)
+  | lower_closure_matchexpr Unknown (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr vc (MatchNot (Match (Src va))) =
+    MatchNot (Match (Src va))
+  | lower_closure_matchexpr vc (MatchNot (Match (Dst va))) =
+    MatchNot (Match (Dst va))
+  | lower_closure_matchexpr vc (MatchNot (Match (IIface va))) =
+    MatchNot (Match (IIface va))
+  | lower_closure_matchexpr vc (MatchNot (Match (OIface va))) =
+    MatchNot (Match (OIface va))
+  | lower_closure_matchexpr vc (MatchNot (Match (Prot va))) =
+    MatchNot (Match (Prot va))
+  | lower_closure_matchexpr vc (MatchNot (Match (Src_Ports va))) =
+    MatchNot (Match (Src_Ports va))
+  | lower_closure_matchexpr vc (MatchNot (Match (Dst_Ports va))) =
+    MatchNot (Match (Dst_Ports va))
+  | lower_closure_matchexpr vc (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr a (MatchAnd (m1, m2)) =
+    MatchAnd (lower_closure_matchexpr a m1, lower_closure_matchexpr a m2);
+
+fun lower_closure rs =
+  transform_optimize_dnf_strict
+    (transform_normalize_primitives
+      (transform_optimize_dnf_strict
+        (optimize_matches_a lower_closure_matchexpr rs)));
+
+fun map_of_string rs = map_of (equal_list equal_char) rs;
 
 fun upper_closure_matchexpr uu MatchAny = MatchAny
   | upper_closure_matchexpr Accept (Match (Extra uv)) = MatchAny

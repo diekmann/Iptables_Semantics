@@ -19,13 +19,15 @@ definition map_of_string :: "(string \<times> common_primitive rule list) list \
 
 definition upper_closure :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
   "upper_closure rs == transform_optimize_dnf_strict (transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a upper_closure_matchexpr rs)))"
+definition lower_closure :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
+  "lower_closure rs == transform_optimize_dnf_strict (transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a lower_closure_matchexpr rs)))"
 (*definition lower_closure :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
   "lower_closure rs == rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^2000) (optimize_matches_a lower_closure_matchexpr rs))"*)
 
 definition port_to_nat :: "16 word \<Rightarrow> nat" where
   "port_to_nat p = unat p"
 
-export_code unfold_ruleset_FORWARD map_of_string upper_closure  
+export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure
   Rule
   Accept Drop Log Reject Call Return Empty  Unknown
   Match MatchNot MatchAnd MatchAny
@@ -58,7 +60,9 @@ val rules = unfold_ruleset_FORWARD (map_of_string firewall_chains)
 ML{*
 length rules;
 val upper = upper_closure rules;
-length upper;*}
+val lower = lower_closure rules;
+length upper;
+length lower;*}
 
 text{*How long does the unfolding take?*}
 ML_val{*
@@ -80,12 +84,13 @@ text{*on my system, less than 20 seconds.*}
 
 
 ML_val{*
-check_simple_fw_preconditions upper
+check_simple_fw_preconditions upper;
+check_simple_fw_preconditions lower;
 *}
 
 ML_val{*
 length (to_simple_firewall upper);
-to_simple_firewall upper
+length (to_simple_firewall lower);
 *}
 
 
@@ -112,11 +117,11 @@ fun dump_iptables [] = ()
       (writeln (dump_action a ^ "     " ^
                (dump_prot (proto m)) ^ "  --  " ^
                (dump_ip (src m)) ^ "            " ^
-               (dump_ip (dst m)) ^ "     " ^
+               (dump_ip (dst m)) ^ " " ^
                (dump_iface_name "in:" (iiface m)) ^ " " ^
                (dump_iface_name "out:" (oiface m)) ^ " " ^
                (dump_ports "srcports:" (sports m)) ^ " " ^
-               (dump_ports "dstports:" (dports m)) ^ " "); dump_iptables rs);
+               (dump_ports "dstports:" (dports m)) ); dump_iptables rs);
 
 *}
 
@@ -129,6 +134,19 @@ writeln "";
 writeln "Chain FORWARD (policy ACCEPT)";
 writeln "target     prot opt source               destination";
 dump_iptables (to_simple_firewall upper);
+writeln "Chain OUTPUT (policy ACCEPT)";
+writeln "target     prot opt source               destination"
+*}
+
+
+text{*iptables -L -n*}
+ML_val{*
+writeln "Chain INPUT (policy ACCEPT)";
+writeln "target     prot opt source               destination";
+writeln "";
+writeln "Chain FORWARD (policy ACCEPT)";
+writeln "target     prot opt source               destination";
+dump_iptables (to_simple_firewall lower);
 writeln "Chain OUTPUT (policy ACCEPT)";
 writeln "target     prot opt source               destination"
 *}

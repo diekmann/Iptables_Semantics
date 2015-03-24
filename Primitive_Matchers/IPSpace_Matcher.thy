@@ -1,5 +1,5 @@
 theory IPSpace_Matcher
-imports "../Semantics_Ternary" IPSpace_Syntax "../Bitmagic/IPv4Addr" "../Unknown_Match_Tacs"
+imports "../Semantics_Ternary/Semantics_Ternary" IPSpace_Syntax "../Bitmagic/IPv4Addr" "../Semantics_Ternary/Unknown_Match_Tacs"
 begin
 
 

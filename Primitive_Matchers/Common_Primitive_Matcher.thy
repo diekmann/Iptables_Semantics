@@ -163,12 +163,39 @@ fun upper_closure_matchexpr :: "action \<Rightarrow> common_primitive match_expr
   "upper_closure_matchexpr _ (MatchNot m) = MatchNot m" | 
   "upper_closure_matchexpr a (MatchAnd m1 m2) = MatchAnd (upper_closure_matchexpr a m1) (upper_closure_matchexpr a m2)"
 
-
-
 lemma upper_closure_matchexpr_generic: 
   "a = Accept \<or> a = Drop \<Longrightarrow> remove_unknowns_generic (common_matcher, in_doubt_allow) a m = upper_closure_matchexpr a m"
   by(induction a m rule: upper_closure_matchexpr.induct)
   (simp_all add: unknown_match_all_def unknown_not_match_any_def bool_to_ternary_Unknown)
 
+
+
+fun lower_closure_matchexpr :: "action \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
+  "lower_closure_matchexpr _ MatchAny = MatchAny" |
+  "lower_closure_matchexpr Accept (Match (Extra _)) = MatchNot MatchAny" |
+  "lower_closure_matchexpr Reject (Match (Extra _)) = MatchAny" |
+  "lower_closure_matchexpr Drop (Match (Extra _)) = MatchAny" |
+  "lower_closure_matchexpr _ (Match m) = Match m" |
+  "lower_closure_matchexpr Accept (MatchNot (Match (Extra _))) = MatchNot MatchAny" |
+  "lower_closure_matchexpr Drop (MatchNot (Match (Extra _))) = MatchAny" |
+  "lower_closure_matchexpr Reject (MatchNot (Match (Extra _))) = MatchAny" |
+  "lower_closure_matchexpr a (MatchNot (MatchNot m)) = lower_closure_matchexpr a m" |
+  "lower_closure_matchexpr a (MatchNot (MatchAnd m1 m2)) = 
+    (let m1' = lower_closure_matchexpr a (MatchNot m1); m2' = lower_closure_matchexpr a (MatchNot m2) in
+    (if m1' = MatchAny \<or> m2' = MatchAny
+     then MatchAny
+     else 
+        if m1' = MatchNot MatchAny then m2' else
+        if m2' = MatchNot MatchAny then m1'
+     else
+        MatchNot (MatchAnd (MatchNot m1') (MatchNot m2')))
+       )" |
+  "lower_closure_matchexpr _ (MatchNot m) = MatchNot m" | 
+  "lower_closure_matchexpr a (MatchAnd m1 m2) = MatchAnd (lower_closure_matchexpr a m1) (lower_closure_matchexpr a m2)"
+
+lemma lower_closure_matchexpr_generic: 
+  "a = Accept \<or> a = Drop \<Longrightarrow> remove_unknowns_generic (common_matcher, in_doubt_deny) a m = lower_closure_matchexpr a m"
+  by(induction a m rule: lower_closure_matchexpr.induct)
+  (simp_all add: unknown_match_all_def unknown_not_match_any_def bool_to_ternary_Unknown)
 
 end
