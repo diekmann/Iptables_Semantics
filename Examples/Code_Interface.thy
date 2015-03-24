@@ -15,10 +15,14 @@ definition unfold_ruleset_FORWARD :: "common_primitive ruleset \<Rightarrow> com
 "unfold_ruleset_FORWARD rs = ((optimize_matches opt_MatchAny_match_expr)^^10) 
   (optimize_matches optimize_primitive_univ (rw_Reject (rm_LogEmpty (((process_call rs)^^10) [Rule MatchAny (Call ''FORWARD'')]))))"
 
-
 definition unfold_ruleset_INUPUT :: "common_primitive ruleset \<Rightarrow> common_primitive rule list" where
 "unfold_ruleset_INUPUT rs = ((optimize_matches opt_MatchAny_match_expr)^^10) 
   (optimize_matches optimize_primitive_univ (rw_Reject (rm_LogEmpty (((process_call rs)^^10) [Rule MatchAny (Call ''INPUT'')]))))"
+
+definition unfold_ruleset_OUTPUT :: "common_primitive ruleset \<Rightarrow> common_primitive rule list" where
+"unfold_ruleset_OUTPUT rs = ((optimize_matches opt_MatchAny_match_expr)^^10) 
+  (optimize_matches optimize_primitive_univ (rw_Reject (rm_LogEmpty (((process_call rs)^^10) [Rule MatchAny (Call ''OUTPUT'')]))))"
+
 
 definition map_of_string :: "(string \<times> common_primitive rule list) list \<Rightarrow> string \<rightharpoonup> common_primitive rule list" where
 "map_of_string rs = map_of rs"

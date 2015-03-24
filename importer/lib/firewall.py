@@ -116,7 +116,8 @@ class Std_Action(Action, Enum):
             Std_Action.empty: "Empty",
             Std_Action.unknown: "Unknown"
         }
-        return "action.{0}".format(table[self])
+        action = table[self]
+        return serializer.action(action)
 
 class Custom_Action(Action):
     def __init__(self, action):

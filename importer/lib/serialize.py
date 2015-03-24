@@ -39,6 +39,10 @@ class Serializer:
             assert False
             
         return "{}".format(n)
+    
+    def action(self, action):
+        assert type(action) == type("")
+        return action
 
 class HOL(Serializer):
     def __init__(self, module, import_module):
@@ -71,6 +75,9 @@ class HOL(Serializer):
 
     def footer(self):
         return "\nend\n"
+    
+    def action(self, action):
+        return "action.{0}".format(action)
 
 class ML(Serializer):
     def __init__(self, module, import_module):

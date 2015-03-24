@@ -1,5 +1,6 @@
 theory Analyze_SQRL_Shorewall
-imports Main "../../Output_Format/IPSpace_Format_Ln" "../../Call_Return_Unfolding" "../../Semantics_Ternary/Optimizing"
+imports "../Code_Interface"
+"../../Semantics_Ternary/Optimizing"
 "~~/src/HOL/Library/Code_Target_Nat"
 "~~/src/HOL/Library/Code_Target_Int"
 "~~/src/HOL/Library/Code_Char"
@@ -8,44 +9,30 @@ begin
 
 section{*Example: SQRL Shorewall*}
 
-definition unfold_ruleset_FORWARD :: "iptrule_match ruleset \<Rightarrow> iptrule_match rule list" where
-"unfold_ruleset_FORWARD rs = ((optimize_matches opt_MatchAny_match_expr)^^10) 
-  (optimize_matches opt_simple_matcher (rw_Reject (rm_LogEmpty (((process_call rs)^^20) [Rule MatchAny (Call ''FORWARD'')]))))"
-
-
-definition unfold_ruleset_OUTPUT :: "iptrule_match ruleset \<Rightarrow> iptrule_match rule list" where
-"unfold_ruleset_OUTPUT rs = ((optimize_matches opt_MatchAny_match_expr)^^10) 
-  (optimize_matches opt_simple_matcher (rw_Reject (rm_LogEmpty (((process_call rs)^^20) [Rule MatchAny (Call ''OUTPUT'')]))))"
-
-
-definition map_of_string :: "(string \<times> iptrule_match rule list) list \<Rightarrow> string \<rightharpoonup> iptrule_match rule list" where
-"map_of_string rs = map_of rs"
-
-
-
-definition upper_closure :: "iptrule_match rule list \<Rightarrow> iptrule_match rule list" where
-  "upper_closure rs == rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^2000) (optimize_matches_a upper_closure_matchexpr rs))"
-definition lower_closure :: "iptrule_match rule list \<Rightarrow> iptrule_match rule list" where
-  "lower_closure rs == rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^2000) (optimize_matches_a lower_closure_matchexpr rs))"
-
-export_code unfold_ruleset_OUTPUT map_of_string upper_closure lower_closure format_Ln_rules_uncompressed compress_Ln_ips does_I_has_compressed_rules 
+export_code unfold_ruleset_OUTPUT map_of_string upper_closure lower_closure
   Rule
   Accept Drop Log Reject Call Return Empty  Unknown
   Match MatchNot MatchAnd MatchAny
   Ip4Addr Ip4AddrNetmask
-  ProtAll ProtTCP ProtUDP
-  Src Dst Prot Extra
+  ProtoAny Proto TCP UDP
+  Src Dst Prot Extra OIface IIface Src_Ports Dst_Ports
+  Iface
   nat_of_integer integer_of_nat
-  UncompressedFormattedMatch Pos Neg
-  does_I_has_compressed_prots
+  port_to_nat
+  dotdecimal_of_ipv4addr
+  check_simple_fw_preconditions
+  to_simple_firewall
+  SimpleRule simple_action.Accept simple_action.Drop 
+  iiface oiface src dst proto sports dports
   in SML module_name "Test" file "unfold_code.ML"
 
 ML_file "unfold_code.ML"
 
+ML{*
+open Test; (*put the exported code into current namespace such that the following firewall definition loads*)
+*}
 
-(*../main.py -t ml --module Test akachan-iptables-Ln akachan-iptables-Ln.ML
-File generated 1. Sept 2014
-add "open Test" to second line
+(*./main.py -t ml --module=test  ../Examples/SQRL_Shorewall/akachan-iptables-Ln ../Examples/SQRL_Shorewall/akachan-iptables-Ln.ML
 *)
 ML_file "akachan-iptables-Ln.ML"
 
