@@ -1,7 +1,5 @@
 theory SimpleFw_Compliance
-imports SimpleFw_Semantics (*"../Primitive_Matchers/IPPortIfaceSpace_Matcher" "../Semantics_Ternary"
-        "../Output_Format/Negation_Type_Matching"*)
-        "../Primitive_Matchers/Transform"
+imports SimpleFw_Semantics "../Primitive_Matchers/Transform"
 begin
 
 fun ipv4_word_netmask_to_ipt_ipv4range :: "(ipv4addr \<times> nat) \<Rightarrow> ipt_ipv4range" where
@@ -23,16 +21,7 @@ lemma helper_ipv4range_range_l2br: "ipv4range_range i j = l2br [(i,j)]"
 lemma "(l_br_toset (invert_ipv4intervall (i, j))) = - {i .. j}"
   apply(simp add: l2br_br2l ipv4range_UNIV_def ipv4range_setminus_def ipv4range_invert_def helper_ipv4range_range_l2br l_br_toset)
   by blast
-  
 
-(*
-(*do I need monads?*)
-(*TODO: move*)
-(*TODO: name clash, duplication*)
-fun negation_type_to_match_expr :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a negation_type \<Rightarrow> 'b match_expr" where
-  "negation_type_to_match_expr f (Pos a) = Match (f a)" |
-  "negation_type_to_match_expr f (Neg a) = MatchNot (Match (f a))"
-*)
 
 (*TODO: smelly duplication*)
 lemma matches_SrcDst_simple_match: "p_src p \<in> ipv4s_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_src p)"
@@ -59,12 +48,8 @@ lemma "matches \<gamma> (simple_match_to_ipportiface_match \<lparr>iiface=iif, o
       matches \<gamma> (alist_and ([Pos (IIface iif), Pos (OIface oif)] @ [Pos (Src (ipv4_word_netmask_to_ipt_ipv4range sip))]
         @ [Pos (Dst (ipv4_word_netmask_to_ipt_ipv4range dip))] @ [Pos (Prot p)]
         @ [Pos (Src_Ports [sps])] @ [Pos (Dst_Ports [dps])])) a p"
-apply(simp add:)
-apply(cases sip)
-apply(simp_all)
-apply(case_tac [!] dip)
-apply(simp_all)
-apply(simp_all add: bunch_of_lemmata_about_matches)
+apply(cases sip,cases dip)
+apply(simp add: bunch_of_lemmata_about_matches)
 done
 
 
@@ -79,17 +64,12 @@ theorem simple_match_to_ipportiface_match_correct: "matches (common_matcher, \<a
   apply(rule refl_conj_eq)+
   apply(simp add: matches_SrcDst_simple_match)
   apply(rule refl_conj_eq)+
-  (*brute force proof from here*)
-  apply(case_tac sps)
-  apply(simp)
-  apply(case_tac dps)
+  apply(case_tac sps,case_tac dps)
   apply(simp)
   done
 
 
 subsection{*MatchExpr to Simple Match*}
-(*Unfinished*)
-text{*Unfinished*}
 
 
 subsubsection{*Merging Simple Matches*}
@@ -142,7 +122,6 @@ text{*@{typ "simple_match"} @{text \<and>} @{typ "simple_match"}*}
       match_proto proto (p_proto p) \<longleftrightarrow> match_proto p1 (p_proto p) \<and> match_proto p2 (p_proto p)"
       using simple_proto_conjunct_correct[of p1 "(p_proto p)" p2] by simp
 
-    thm simpl_ports_conjunct_correct
     show ?thesis
      apply(simp add: m1 m2)
      apply(simp split: option.split)
@@ -193,7 +172,6 @@ fun common_primitive_match_to_simple_match :: "common_primitive match_expr \<Rig
 
 subsubsection{*Normalizing Interfaces*}
 text{*As for now, negated interfaces are simply not allowed*}
-
   fun normalized_ifaces :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_ifaces MatchAny = True" |
     "normalized_ifaces (Match _) = True" |
@@ -226,17 +204,16 @@ lemma match_iface_simple_match_any_simps:
      "simple_match_port (dports simple_match_any) (p_dport p)"
   apply(simp_all add: simple_match_any_def match_IfaceAny ipv4range_set_from_bitmask_0)
   apply(subgoal_tac [!] "(65535::16 word) = max_word")
-     apply(simp_all)
-   apply(simp_all add: max_word_def)
+    apply(simp_all)
+  apply(simp_all add: max_word_def)
   done
      
 
 text{*basically the other direction of @{thm matches_SrcDst_simple_match}*}
 lemma matches_SrcDst_simple_match2: "p_src p \<in> ipv4s_to_set ip \<longleftrightarrow> simple_match_ip (ipt_ipv4range_to_ipv4_word_netmask ip) (p_src p)"
   "p_dst p \<in> ipv4s_to_set ip \<longleftrightarrow> simple_match_ip (ipt_ipv4range_to_ipv4_word_netmask ip) (p_dst p)"
-apply(case_tac [!] ip)
-apply(simp_all add:  ipv4range_set_from_bitmask_32)
-done
+by(case_tac [!] ip)(simp_all add: ipv4range_set_from_bitmask_32)
+
 
 theorem common_primitive_match_to_simple_match:
   assumes "normalized_src_ports m" 

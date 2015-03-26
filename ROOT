@@ -14,18 +14,14 @@ session "Iptables_Semantics" = Bitmagic +
     Semantics_Embeddings
     Iptables_Semantics
     "Semantics_Ternary/Optimizing"
+    "Primitive_Matchers/Transform"
+    "Simple_Firewall/SimpleFw_Compliance"
 
 
 session "Iptables_Semantics_Examples" = Iptables_Semantics +
    theories
     "Primitive_Matchers/Iface_Negation"
-    "Output_Format/IPSpace_Operations"
-    "Output_Format/Format_Ln"
-    "Output_Format/IPSpace_Format_Ln"
     "Examples/TUM_Net_Firewall/Analyze_TUM_Net_Firewall"
     "Examples/SQRL_Shorewall/Analyze_SQRL_Shorewall"
     "Examples/Synology_Diskstation_DS414/Analyze_Synology_Diskstation"
     "Examples/Ringofsaturn_com/Analyze_Ringofsaturn_com"
-    "Primitive_Matchers/Transform"
-    "Simple_Firewall/SimpleFw_Compliance"
-    "Examples/TUM_Net_Firewall/Analyze_TUM_Net_Firewall_new"

@@ -1,66 +1,44 @@
 theory Analyze_TUM_Net_Firewall
-imports Main "../../Output_Format/IPSpace_Format_Ln" "../../Call_Return_Unfolding" "../../Semantics_Ternary/Optimizing"
-"~~/src/HOL/Library/Code_Target_Nat"
-"~~/src/HOL/Library/Code_Target_Int"
-"~~/src/HOL/Library/Code_Char"
+imports "../Code_Interface"
   "../../Semantics_Ternary/Packet_Set"
 begin
 
 
 section{*Example: Chair for Network Architectures and Services (TUM)*}
 
-definition unfold_ruleset_FORWARD :: "iptrule_match ruleset \<Rightarrow> iptrule_match rule list" where
-"unfold_ruleset_FORWARD rs = ((optimize_matches opt_MatchAny_match_expr)^^10) 
-  (optimize_matches opt_simple_matcher (rw_Reject (rm_LogEmpty (((process_call rs)^^5) [Rule MatchAny (Call ''FORWARD'')]))))"
-
-
-definition map_of_string :: "(string \<times> iptrule_match rule list) list \<Rightarrow> string \<rightharpoonup> iptrule_match rule list" where
-"map_of_string rs = map_of rs"
-
-
-definition upper_closure :: "iptrule_match rule list \<Rightarrow> iptrule_match rule list" where
-  "upper_closure rs == rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^2000) (optimize_matches_a upper_closure_matchexpr rs))"
-definition lower_closure :: "iptrule_match rule list \<Rightarrow> iptrule_match rule list" where
-  "lower_closure rs == rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^2000) (optimize_matches_a lower_closure_matchexpr rs))"
-
-
-
-definition deny_set :: "iptrule_match rule list \<Rightarrow> iptrule_match packet_set list" where
+(*this is just for testing*)
+definition deny_set :: "common_primitive rule list \<Rightarrow> common_primitive packet_set list" where
   "deny_set rs \<equiv> filter (\<lambda>a. a \<noteq> packet_set_UNIV) (map packet_set_opt (allow_set_not_inter rs))"
-(*definition allow_set_debug :: "iptrule_match rule list \<Rightarrow> iptrule_match packet_set" where
-  "allow_set_debug rs \<equiv> collect_allow_impl_debug rs packet_set_UNIV"*)
 
-
-definition bitmask_to_strange_inverse_cisco_mask:: "nat \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat)" where
- "bitmask_to_strange_inverse_cisco_mask n \<equiv> dotdecimal_of_ipv4addr ( (NOT (((mask n)::ipv4addr) << (32 - n))) )"
-lemma "bitmask_to_strange_inverse_cisco_mask 16 = (0, 0, 255, 255)" by eval
-lemma "bitmask_to_strange_inverse_cisco_mask 24 = (0, 0, 0, 255)" by eval
-lemma "bitmask_to_strange_inverse_cisco_mask 8 = (0, 255, 255, 255)" by eval
-lemma "bitmask_to_strange_inverse_cisco_mask 32 = (0, 0, 0, 0)" by eval
-
-
-export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure format_Ln_rules_uncompressed compress_Ln_ips does_I_has_compressed_rules 
+export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure
   Rule
   Accept Drop Log Reject Call Return Empty  Unknown
   Match MatchNot MatchAnd MatchAny
   Ip4Addr Ip4AddrNetmask
-  ProtAll ProtTCP ProtUDP
-  Src Dst Prot Extra
+  ProtoAny Proto TCP UDP
+  Src Dst Prot Extra OIface IIface Src_Ports Dst_Ports
+  Iface
   nat_of_integer integer_of_nat
-  UncompressedFormattedMatch Pos Neg
-  does_I_has_compressed_prots
+  port_to_nat
+  dotdecimal_of_ipv4addr
+  check_simple_fw_preconditions
+  to_simple_firewall
+  SimpleRule simple_action.Accept simple_action.Drop 
+  iiface oiface src dst proto sports dports
   bitmask_to_strange_inverse_cisco_mask
   deny_set
   in SML module_name "Test" file "unfold_code.ML"
 
 ML_file "unfold_code.ML"
 
-(*ML_file "iptables_Ln_29.11.2013_cheating.ML"*)
 
-(*../main.py -t ml --module Test iptables_Ln_29.11.2013_cheating iptables_Ln_29.11.2013.ML
-add "open Test" to second line
+ML{*
+open Test; (*put the exported code into current namespace such that the following firewall definition loads*)
+*}
+
+(*we search replaced brute-forcely to adapt to the new constructor names
 *)
-ML_file "iptables_Ln_29.11.2013.ML"
+ML_file "iptables_Ln_29.11.2013_new_deletemeaftertesting.ML"
 
 (*This is the diff for the _cheating rule set
  Chain FORWARD (policy ACCEPT)
@@ -73,58 +51,10 @@ ML_file "iptables_Ln_29.11.2013.ML"
  ACCEPT     tcp  --  131.159.14.208       0.0.0.0/0            multiport sports 389,636
 *)
 
-
-(*iptables_Ln_29.11.2013 netnetwork*)
-
-text{*
-This is the firewall ruleset (excerpt, 24 of 2800 rules displayed) we are going to analyze:
-*}
-text_raw{*
-\begin{footnotesize}
-\begin{verbatim}
-Chain FORWARD (policy ACCEPT)
-target   prot source            destination
-LOG_DROP all  127.0.0.0/8       0.0.0.0/0
-ACCEPT   tcp  131.159.14.206    0.0.0.0/0         multiport sports 389,636
-ACCEPT   tcp  131.159.14.208    0.0.0.0/0         multiport sports 389,636
-ACCEPT   udp  131.159.14.206    0.0.0.0/0         udp spt:88
-ACCEPT   udp  131.159.14.208    0.0.0.0/0         udp spt:88
-ACCEPT   tcp  131.159.14.192/27 0.0.0.0/0         tcp spt:3260
-ACCEPT   tcp  131.159.14.0/23   131.159.14.192/27 tcp dpt:3260
-ACCEPT   tcp  131.159.20.0/24   131.159.14.192/27 tcp dpt:3260
-ACCEPT   udp  131.159.15.252    0.0.0.0/0
-ACCEPT   udp  0.0.0.0/0         131.159.15.252    multiport 
-                                                      dports 4569,5000:65535
-ACCEPT   all  131.159.15.247    0.0.0.0/0
-ACCEPT   all  0.0.0.0/0         131.159.15.247
-ACCEPT   all  131.159.15.248    0.0.0.0/0
-ACCEPT   all  0.0.0.0/0         131.159.15.248
-         tcp  0.0.0.0/0         131.159.14.0/23   state NEW tcp 
-               dpt:22flags: 0x17/0x02 recent: SET name: ratessh side: source
-         tcp  0.0.0.0/0         131.159.20.0/23   state NEW tcp 
-               dpt:22flags: 0x17/0x02 recent: SET name: ratessh side: source
-mac_96   all  131.159.14.0/25   0.0.0.0/0
-LOG_DROP all !131.159.14.0/25   0.0.0.0/0
-
-Chain LOG_DROP (21 references)
-target   prot source            destination
-LOG      all  0.0.0.0/0         0.0.0.0/0         limit: avg 100/min 
-                           burst 5  LOG flags 0 level 4 prefix "[IPT_DROP]:"
-DROP     all  0.0.0.0/0         0.0.0.0/0
-
-Chain mac_96 (1 references)
-target   prot source            destination
-RETURN   all  131.159.14.92     0.0.0.0/0         MAC XX:XX:XX:XX:XX:XX
-DROP     all  131.159.14.92     0.0.0.0/0
-RETURN   all  131.159.14.65     0.0.0.0/0         MAC XX:XX:XX:XX:XX:XX
-DROP     all  131.159.14.65     0.0.0.0/0
-\end{verbatim}
-\end{footnotesize}
-*}
-
 ML{*
-open Test;
+open Test; 
 *}
+
 declare[[ML_print_depth=50]]
 ML{*
 val rules = unfold_ruleset_FORWARD (map_of_string firewall_chains)
@@ -132,9 +62,8 @@ val rules = unfold_ruleset_FORWARD (map_of_string firewall_chains)
 ML{*
 length rules;
 val upper = upper_closure rules;
-length upper;*}
-ML{*
 val lower = lower_closure rules;
+length upper;
 length lower;*}
 
 text{*How long does the unfolding take?*}
@@ -146,164 +75,97 @@ writeln(String.concat ["It took ", Time.toString(Time.-(t1,t0)), " seconds"])
 *}
 text{*on my system, less than 1 second.*}
 
-text{*Time required for calculating both closures*}
+text{*Time required for calculating and normalizing closure*}
 ML_val{*
 val t0 = Time.now();
 val _ = upper_closure rules;
-val _ = lower_closure rules;
 val t1= Time.now();
 writeln(String.concat ["It took ", Time.toString(Time.-(t1,t0)), " seconds"])
 *}
-text{*on my system, less than five seconds.*}
+text{*on my system, less than 20 seconds.*}
+
+
+ML_val{*
+check_simple_fw_preconditions upper;
+check_simple_fw_preconditions lower;
+*}
+
+ML_val{*
+length (to_simple_firewall upper);
+length (to_simple_firewall lower);
+*}
+
 
 ML{*
 fun dump_dotdecimal_ip (a,(b,(c,d))) = ""^ Int.toString (integer_of_nat a)^"."^ Int.toString (integer_of_nat b)^"."^ Int.toString (integer_of_nat c)^"."^ Int.toString (integer_of_nat d);
 
-fun dump_ip (Ip4Addr ip) = (dump_dotdecimal_ip ip)^"/32"
-  | dump_ip (Ip4AddrNetmask (ip, nm)) = (dump_dotdecimal_ip ip)^"/"^ Int.toString (integer_of_nat nm);
+fun dump_ip (base, n) = (dump_dotdecimal_ip (dotdecimal_of_ipv4addr base))^"/"^ Int.toString (integer_of_nat n);
 
-fun dump_prot ProtAll = "all"
-  | dump_prot ProtTCP = "tcp"
-  | dump_prot ProtUDP = "udp";
+fun dump_prot ProtoAny = "all"
+  | dump_prot (Proto TCP) = "tcp"
+  | dump_prot (Proto UDP) = "udp";
 
-fun dump_prots [] = "all"
-  | dump_prots [Pos p] = dump_prot p
-  | dump_prots [Neg p] = "!"^dump_prot p;
-  (*undefined otherwise*)
+fun dump_action (Accepta : simple_action) = "ACCEPT"
+  | dump_action (Dropa   : simple_action) = "DROP";
 
-fun dump_extra [] = "";
-   (*undefined case checks that we have no Extra (i.e. unknown in here)*)
+fun dump_iface_name (descr: string) (Iface name) = (let val iface=String.implode name in (if iface = "" orelse iface = "+" then "" else descr^" "^iface) end)
 
-fun dump_action Accept = "ACCEPT"
-  | dump_action Drop = "DROP"
-  | dump_action Log = "LOG"
-  | dump_action Reject = "REJECT"
-;
+fun dump_port p = Int.toString (integer_of_nat (port_to_nat p))
 
-local
-  fun dump_ip_list_hlp [] = ""
-    | dump_ip_list_hlp ((Pos ip)::ips) = ((dump_ip ip) ^ dump_ip_list_hlp ips)
-    | dump_ip_list_hlp ((Neg ip)::ips) = ("!" ^ (dump_ip ip) ^ dump_ip_list_hlp ips)
-in
-  fun dump_ip_list [] = "0.0.0.0/0"
-    | dump_ip_list rs = dump_ip_list_hlp rs
-end;
-  
+fun dump_ports descr (s,e) = (let val ports = "("^dump_port s^","^dump_port e^")" in (if ports = "(0,65535)" then "" else descr^" "^ports) end)
 
 fun dump_iptables [] = ()
-  | dump_iptables ((UncompressedFormattedMatch (src, dst, proto, extra), a) :: rs) =
+  | dump_iptables (SimpleRule (m, a) :: rs) =
       (writeln (dump_action a ^ "     " ^
-                "" ^ dump_prots proto ^ "  --  "^ 
-                "" ^ dump_ip_list src ^ "            " ^
-                "" ^ dump_ip_list dst ^ "    " ^
-                "" ^ dump_extra extra); dump_iptables rs);
+               (dump_prot (proto m)) ^ "  --  " ^
+               (dump_ip (src m)) ^ "            " ^
+               (dump_ip (dst m)) ^ " " ^
+               (dump_iface_name "in:" (iiface m)) ^ " " ^
+               (dump_iface_name "out:" (oiface m)) ^ " " ^
+               (dump_ports "srcports:" (sports m)) ^ " " ^
+               (dump_ports "dstports:" (dports m)) ); dump_iptables rs);
 
+*}
+
+
+text{*iptables -L -n*}
+ML_val{*
+writeln "Chain INPUT (policy ACCEPT)";
+writeln "target     prot opt source               destination";
+writeln "";
+writeln "Chain FORWARD (policy ACCEPT)";
+writeln "target     prot opt source               destination";
+dump_iptables (to_simple_firewall upper);
+writeln "Chain OUTPUT (policy ACCEPT)";
+writeln "target     prot opt source               destination"
+*}
+
+
+text{*iptables -L -n*}
+ML_val{*
+writeln "Chain INPUT (policy ACCEPT)";
+writeln "target     prot opt source               destination";
+writeln "";
+writeln "Chain FORWARD (policy ACCEPT)";
+writeln "target     prot opt source               destination";
+dump_iptables (to_simple_firewall lower);
+writeln "Chain OUTPUT (policy ACCEPT)";
+writeln "target     prot opt source               destination"
+*}
+
+subsection{*Different output formats*}
+
+ML{*
 fun dump_iptables_save [] = ()
-  | dump_iptables_save ((UncompressedFormattedMatch (src, dst, proto, []), a) :: rs) =
-      (writeln ("-A FORWARD  " ^
-                (if List.length src = 1 then "-s " ^ dump_ip_list src ^ " " else if List.length src > 1 then "ERROR" else "")^
-                (if List.length dst = 1 then "-d " ^ dump_ip_list dst ^ " " else if List.length dst > 1 then "ERROR" else "")^
-                (if List.length proto = 1 then "-p " ^ dump_prots proto ^ " " else if List.length proto > 1 then "ERROR" else "")^
+  | dump_iptables_save (SimpleRule (m, a) :: rs) =
+      (writeln ("-A FORWARD  " ^ "-s " ^ dump_ip (src m) ^ " " ^
+                "-d " ^ dump_ip (dst m) ^ " " ^
+                "-p " ^ dump_prot (proto m) ^ " " ^
+                (if (dump_iface_name "in:" (iiface m))^(dump_iface_name "out:" (oiface m))^(dump_ports "srcports:" (sports m))^
+                    (dump_ports "dstports:" (dports m)) <> "TODO: more fields to dump" then "" else "") ^
                 "" ^ " -j " ^ dump_action a); dump_iptables_save rs);
 *}
 
-ML_val{*
-length (format_Ln_rules_uncompressed upper);
-(format_Ln_rules_uncompressed upper);
-*}
---"optimized upper closure, roughly 1k rules"
-ML_val{*
-length (compress_Ln_ips (format_Ln_rules_uncompressed upper));
-*}
-ML_val{*
-(compress_Ln_ips (format_Ln_rules_uncompressed upper));
-*}
-ML_val{*
-length (does_I_has_compressed_rules (compress_Ln_ips (format_Ln_rules_uncompressed upper)));
-does_I_has_compressed_rules (compress_Ln_ips (format_Ln_rules_uncompressed upper));
-*}
-ML_val{*
-does_I_has_compressed_prots (compress_Ln_ips (format_Ln_rules_uncompressed upper));
-*}
-
-text{*iptables -L -n*}
-
-ML_val{*
-writeln "Chain INPUT (policy ACCEPT)";
-writeln "target     prot opt source               destination";
-writeln "";
-writeln "Chain FORWARD (policy ACCEPT)";
-writeln "target     prot opt source               destination";
-dump_iptables (compress_Ln_ips (format_Ln_rules_uncompressed upper));
-
-writeln "Chain OUTPUT (policy ACCEPT)";
-writeln "target     prot opt source               destination"
-*}
-
-text{*
-Upper Closure (excerpt)
-*}
-
-text_raw{*
-
-\begin{footnotesize}
-\begin{verbatim}
-Chain FORWARD (policy ACCEPT) 
-target  prot source              destination
-DROP    all  127.0.0.0/8         0.0.0.0/0
-ACCEPT  tcp  131.159.14.206/32   0.0.0.0/0
-ACCEPT  tcp  131.159.14.208/32   0.0.0.0/0
-ACCEPT  udp  131.159.14.206/32   0.0.0.0/0
-ACCEPT  udp  131.159.14.208/32   0.0.0.0/0
-ACCEPT  tcp  131.159.14.192/27   0.0.0.0/0
-ACCEPT  tcp  131.159.14.0/23     131.159.14.192/27
-ACCEPT  tcp  131.159.20.0/24     131.159.14.192/27
-ACCEPT  udp  131.159.15.252/32   0.0.0.0/0
-ACCEPT  udp  0.0.0.0/0           131.159.15.252/32
-ACCEPT  all  131.159.15.247/32   0.0.0.0/0
-ACCEPT  all  0.0.0.0/0           131.159.15.247/32
-ACCEPT  all  131.159.15.248/32   0.0.0.0/0
-ACCEPT  all  0.0.0.0/0           131.159.15.248/32
-DROP    all  !131.159.14.0/25    0.0.0.0/0
-\end{verbatim}
-\end{footnotesize}
-*}
-
-text{*iptables -L -n*}
-ML_val{*
-writeln "Chain INPUT (policy ACCEPT)";
-writeln "target     prot opt source               destination";
-writeln "";
-writeln "Chain FORWARD (policy ACCEPT)";
-writeln "target     prot opt source               destination";
-dump_iptables (compress_Ln_ips (format_Ln_rules_uncompressed lower));
-
-writeln "Chain OUTPUT (policy ACCEPT)";
-writeln "target     prot opt source               destination"
-*}
-
-text{*
-Lower Closure (excerpt)
-*}
-text_raw{*
-
-\begin{footnotesize}
-\begin{verbatim}
-Chain FORWARD (policy ACCEPT) 
-target  prot source              destination 
-DROP    all  127.0.0.0/8         0.0.0.0/0
-ACCEPT  udp  131.159.15.252/32   0.0.0.0/0
-ACCEPT  all  131.159.15.247/32   0.0.0.0/0
-ACCEPT  all  0.0.0.0/0           131.159.15.247/32
-ACCEPT  all  131.159.15.248/32   0.0.0.0/0
-ACCEPT  all  0.0.0.0/0           131.159.15.248/32
-DROP    all  131.159.14.92/32    0.0.0.0/0
-DROP    all  131.159.14.65/32    0.0.0.0/0
-...  (unfolded DROPs from chain mac_96
-DROP    all  !131.159.14.0/25    0.0.0.0/0
-\end{verbatim}
-\end{footnotesize}
-*}
 
 text{*iptables-save*}
 ML_val{*
@@ -312,40 +174,39 @@ writeln "*filter";
 writeln ":INPUT ACCEPT [0:0]";
 writeln ":FORWARD ACCEPT [0:0]";
 writeln ":OUTPUT ACCEPT [0:0]";
-dump_iptables_save (compress_Ln_ips (format_Ln_rules_uncompressed upper));
+dump_iptables_save (to_simple_firewall upper);
 writeln "COMMIT";
 writeln "# Completed on Wed Sep  3 18:02:01 2014";
 *}
 
-
 text{*Cisco*}
 ML{*
-fun dump_action_cisco Accept = "permit"
-  | dump_action_cisco Drop = "deny"
+fun dump_action_cisco Accepta = "permit"
+  | dump_action_cisco Dropa = "deny"
 ;
 
 
-fun dump_prot_cisco [] = "ip"
-  | dump_prot_cisco [Pos ProtAll] = "ip"
-  | dump_prot_cisco [Pos ProtTCP] = "tcp"
-  | dump_prot_cisco [Pos ProtUDP] = "udp";
+fun dump_prot_cisco ProtoAny = "ip"
+  | dump_prot_cisco (Proto TCP) = "tcp"
+  | dump_prot_cisco (Proto UDP) = "udp";
 
 
 local
-  fun dump_ip_cisco (Ip4Addr ip) = "host "^(dump_dotdecimal_ip ip)
-    | dump_ip_cisco (Ip4AddrNetmask (ip, nm)) = (dump_dotdecimal_ip ip)^" "^(dump_dotdecimal_ip (bitmask_to_strange_inverse_cisco_mask nm));
+  fun dump_ip_cisco_helper (ip, nm) = (dump_dotdecimal_ip (dotdecimal_of_ipv4addr ip))^" "^(dump_dotdecimal_ip (bitmask_to_strange_inverse_cisco_mask nm));
+    (*dump_ip_cisco_helper (ip, (nat_of_integer 32)) = "host "^(dump_dotdecimal_ip ip)*)
 in
-  fun dump_ip_list_cisco [] = "any"
-    | dump_ip_list_cisco [Pos ip] = dump_ip_cisco ip
-    | dump_ip_list_cisco [Neg ip] = "TODO"^dump_ip_cisco ip
-end;
+  fun dump_ip_cisco ip = dump_ip_cisco_helper ip
+end; (*TODO: add any for UNIV range*)
 
 
 fun dump_cisco [] = ()
-  | dump_cisco ((UncompressedFormattedMatch (src, dst, proto, []), a) :: rs) =
-      (writeln ("access-list 101 " ^ dump_action_cisco a ^ 
-                (if List.length proto <= 1 then " " ^ dump_prot_cisco proto ^ " " else "ERROR")^
-                (dump_ip_list_cisco src)^" "^(dump_ip_list_cisco dst)); dump_cisco rs);
+  | dump_cisco (SimpleRule (m, a) :: rs) =
+      (writeln ("access-list 101 " ^ dump_action_cisco a ^ " " ^
+                (dump_prot_cisco (proto m)) ^ " " ^
+               (dump_ip_cisco (src m))^" "^(dump_ip_cisco (dst m))^
+               (if (dump_iface_name "in:" (iiface m))^(dump_iface_name "out:" (oiface m))^(dump_ports "srcports:" (sports m))^
+                    (dump_ports "dstports:" (dports m)) <> "TODO: more fields to dump" then "" else "")
+               ); dump_cisco rs);
 *}
 
 ML_val{*
@@ -353,7 +214,7 @@ writeln "interface fe0";
 writeln "ip address 10.1.1.1 255.255.255.254";
 writeln "ip access-group 101 in";
 writeln "!";
-dump_cisco (compress_Ln_ips (format_Ln_rules_uncompressed upper));
+dump_cisco (to_simple_firewall upper);
 (*access-list 101 deny ip host 10.1.1.2 any
 access-list 101 permit tcp any host 192.168.5.10 eq 80
 access-list 101 permit tcp any host 192.168.5.11 eq 25
@@ -364,34 +225,31 @@ writeln "end";
 
 *}
 
-(* openvswitch flow table entries *)
+
+
+text{*OpenVSwitch flow table entries *}
 ML{*
 
-fun dump_action_flowtable Accept = "flood"
-  | dump_action_flowtable Drop = "drop"
+fun dump_action_flowtable Accepta = "flood"
+  | dump_action_flowtable Dropa = "drop"
 ;
 
-local
-  fun dump_ip_flowtable (Ip4Addr ip) = (dump_dotdecimal_ip ip)
-    | dump_ip_flowtable (Ip4AddrNetmask (ip, nm)) = (dump_dotdecimal_ip ip)^"/"^ Int.toString (integer_of_nat nm);
-in
-  fun dump_ip_list_flowtable [] = "*"
-    | dump_ip_list_flowtable [Pos ip] = dump_ip_flowtable ip
-    | dump_ip_list_flowtable [Neg ip] = "TODO"^dump_ip_flowtable ip
-end;
+
+fun dump_ip_flowtable (ip, nm) = (dump_dotdecimal_ip (dotdecimal_of_ipv4addr ip))^"/"^ Int.toString (integer_of_nat nm);
+
 
 fun dump_flowtable [] = ()
-  | dump_flowtable ((UncompressedFormattedMatch (src, dst, proto, []), a) :: rs) =
-      (writeln ((if List.length proto <= 1 then "" ^ dump_prot_cisco proto ^ " " else "ERROR")^
-                "nw_src="^(dump_ip_list_flowtable src)^" nw_dst="^(dump_ip_list_flowtable dst) ^
+  | dump_flowtable (SimpleRule (m, a) :: rs) =
+      (writeln (dump_prot_cisco (proto m) ^ " " ^
+                "nw_src="^(dump_ip_flowtable (src m))^" nw_dst="^(dump_ip_flowtable (dst m)) ^
                 " priority="^Int.toString (List.length rs)^
-                " action="^dump_action_flowtable a
+                " action="^dump_action_flowtable a ^
+                (if (dump_iface_name "in:" (iiface m))^(dump_iface_name "out:" (oiface m))^(dump_ports "srcports:" (sports m))^
+                    (dump_ports "dstports:" (dports m)) <> "TODO: more fields to dump" then "" else "")
                 ); dump_flowtable rs);
 *}
 ML_val{*
-(*ip nw_src=10.0.0.1/32 nw_dst=* priority=30000 action=flood*)
-
-dump_flowtable (compress_Ln_ips (format_Ln_rules_uncompressed upper));
+dump_flowtable (to_simple_firewall upper);
 *}
 
 
@@ -403,16 +261,9 @@ val t1= Time.now();
 writeln(String.concat ["It took ", Time.toString(Time.-(t1,t0)), " seconds"])
 *}
 
-(*result when packet_set_opt2_internal was not recursive within 2 minutes: 95.949 seconds 
-no results for recursive packet_set_opt2_internal now
-  ("packet_set_opt2_internal (as#ps) = (as#((filter (\<lambda>ass. \<not> set as \<subseteq> set ass) (packet_set_opt2_internal ps))))"
-
-first filter than recursive call  943.219seconds (15 min) 
-
-without opt2:  502.838 seconds (8min)
-
-with opt2 for subset tests \<le> 5: 97.725 seconds
-"packet_set_opt2_internal (as#ps) = as# (if length as \<le> 5 then packet_set_opt2_internal ((filter (\<lambda>ass. \<not> set as \<subseteq> set ass) ps)) else packet_set_opt2_internal ps)"
+(*
+less than 3 seconds on my system.
+It was a problem when packet_set_opt2_internal recursive
 *)
 
 ML_val{*

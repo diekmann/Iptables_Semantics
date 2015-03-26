@@ -37,9 +37,9 @@ structure Test : sig
     (char list * common_primitive rule list) list ->
       char list -> (common_primitive rule list) option
   val upper_closure : common_primitive rule list -> common_primitive rule list
+  val deny_set : common_primitive rule list -> common_primitive packet_set list
   val dst : 'a simple_match_ext -> num1 bit0 bit0 bit0 bit0 bit0 word * nat
   val src : 'a simple_match_ext -> num1 bit0 bit0 bit0 bit0 bit0 word * nat
-  val deny_set : common_primitive rule list -> common_primitive packet_set list
   val unfold_ruleset_FORWARD :
     (char list -> (common_primitive rule list) option) ->
       common_primitive rule list
@@ -1930,6 +1930,18 @@ fun has_disc uu MatchAny = false
   | has_disc disc (MatchAnd (m1, m2)) =
     has_disc disc m1 orelse has_disc disc m2;
 
+fun equal_packet_set A_ (PacketSet x) (PacketSet ya) =
+  equal_lista
+    (equal_list
+      (equal_prod (equal_negation_type A_) (equal_negation_type equal_action)))
+    x ya;
+
+fun deny_set rs =
+  filter
+    (fn a => not (equal_packet_set equal_common_primitive a packet_set_UNIV))
+    (map (packet_set_opt equal_common_primitive)
+      (allow_set_not_inter equal_common_primitive rs));
+
 fun process_ret [] = []
   | process_ret (Rule (m, Return) :: rs) =
     add_match (MatchNot m) (process_ret rs)
@@ -2094,18 +2106,6 @@ fun simple_match_and
                              (iif, oif, sip, dip, p,
                                simpl_ports_conjunct sps1 sps2,
                                simpl_ports_conjunct dps1 dps2, ())))))));
-
-fun equal_packet_set A_ (PacketSet x) (PacketSet ya) =
-  equal_lista
-    (equal_list
-      (equal_prod (equal_negation_type A_) (equal_negation_type equal_action)))
-    x ya;
-
-fun deny_set rs =
-  filter
-    (fn a => not (equal_packet_set equal_common_primitive a packet_set_UNIV))
-    (map (packet_set_opt equal_common_primitive)
-      (allow_set_not_inter equal_common_primitive rs));
 
 fun unfold_ruleset_FORWARD rs =
   funpow (nat_of_integer (10 : IntInf.int))
