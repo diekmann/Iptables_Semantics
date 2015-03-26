@@ -38,8 +38,7 @@ fun negation_type_to_match_expr :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a negat
 lemma matches_SrcDst_simple_match: "p_src p \<in> ipv4s_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_src p)"
     "p_dst p \<in> ipv4s_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_dst p)"
 apply(case_tac [!] ip)
-apply(rename_tac b m)
-by(simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
+ by(simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
 
 
 subsection{*Simple Match to MatchExpr*}
@@ -56,7 +55,7 @@ fun simple_match_to_ipportiface_match :: "simple_match \<Rightarrow> common_prim
 
 
 (*is this usefull?*)
-lemma xxx: "matches \<gamma> (simple_match_to_ipportiface_match \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr>) a p \<longleftrightarrow> 
+lemma "matches \<gamma> (simple_match_to_ipportiface_match \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr>) a p \<longleftrightarrow> 
       matches \<gamma> (alist_and ([Pos (IIface iif), Pos (OIface oif)] @ [Pos (Src (ipv4_word_netmask_to_ipt_ipv4range sip))]
         @ [Pos (Dst (ipv4_word_netmask_to_ipt_ipv4range dip))] @ [Pos (Prot p)]
         @ [Pos (Src_Ports [sps])] @ [Pos (Dst_Ports [dps])])) a p"
@@ -174,12 +173,10 @@ fun common_primitive_match_to_simple_match :: "common_primitive match_expr \<Rig
       (None, _) \<Rightarrow> None
     | (_, None) \<Rightarrow> None
     | (Some m1', Some m2') \<Rightarrow> simple_match_and m1' m2')" |
-  (*TODO: normalize protocols by assumption!*)
-  "common_primitive_match_to_simple_match (MatchNot (Match (Prot _))) = undefined" |
-  (*NOOOOO: what to do about this? Assume: no negated interfaces, I don't know of a better solution now. Just define that this must not happen*)
-  "common_primitive_match_to_simple_match (MatchNot (Match (IIface iif))) = undefined (*[simple_match_any\<lparr> iiface := Iface (Neg eth) \<rparr>]*)" |
-  "common_primitive_match_to_simple_match (MatchNot (Match (OIface oif))) = undefined" |
   --"undefined cases, normalize before!"
+  "common_primitive_match_to_simple_match (MatchNot (Match (Prot _))) = undefined" |
+  "common_primitive_match_to_simple_match (MatchNot (Match (IIface iif))) = undefined" |
+  "common_primitive_match_to_simple_match (MatchNot (Match (OIface oif))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (Src _))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (Dst _))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (MatchAnd _ _)) = undefined" |
@@ -240,31 +237,6 @@ lemma matches_SrcDst_simple_match2: "p_src p \<in> ipv4s_to_set ip \<longleftrig
 apply(case_tac [!] ip)
 apply(simp_all add:  ipv4range_set_from_bitmask_32)
 done
-
-
-(* ISAR style below *)
-theorem "normalized_src_ports m \<Longrightarrow> normalized_dst_ports m \<Longrightarrow> normalized_src_ips m \<Longrightarrow> normalized_dst_ips m \<Longrightarrow> normalized_ifaces m \<Longrightarrow> 
-  normalized_protocols m \<Longrightarrow> \<not> has_disc is_Extra m \<Longrightarrow> (*sm = foo \<and> bar = m \<Longrightarrow>*)
-  (Some sm = (common_primitive_match_to_simple_match m) \<longrightarrow> matches (common_matcher, \<alpha>) m a p \<longleftrightarrow> simple_matches sm p) \<and>
-  ((common_primitive_match_to_simple_match m) = None \<longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p)"
-  apply(induction m arbitrary: sm rule: common_primitive_match_to_simple_match.induct)
-  prefer 13 (*match_and*)
-  apply(simp only: common_primitive_match_to_simple_match.simps)
-  apply(simp del: simple_matches.simps split: option.split option.split_asm)
-  apply(intro allI impI conjI)
-     apply(simp del: simple_matches.simps add: bunch_of_lemmata_about_matches)
-    apply(simp del: simple_matches.simps add: bunch_of_lemmata_about_matches)
-   apply(simp del: simple_matches.simps add: simple_match_and_correct bunch_of_lemmata_about_matches)
-   apply(simp del: simple_matches.simps split: option.split)
-   apply fastforce
-  using simple_match_and_correct apply(simp)
-
-
-  apply(simp_all add: match_iface_simple_match_any_simps bunch_of_lemmata_about_matches(2))
-  apply(simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary matches_SrcDst_simple_match2)
- done
-
-
 
 theorem common_primitive_match_to_simple_match:
   assumes "normalized_src_ports m" 

@@ -9,7 +9,6 @@ begin
 
 
 section{*Simple Firewall Syntax (IPv4 only)*}
-(*TODO*)
 
 
   datatype simple_action = Accept | Drop
@@ -51,6 +50,9 @@ section{*Simple Firewall Syntax (IPv4 only)*}
         common_primitive_match_to_simple_match (MatchAny e1 e2) =
           simple_match_and (common_primitive_match_to_simple_match e1) (common_primitive_match_to_simple_match e2)
         This is key to translate common_primitive_match to simple_match
+
+        It may seem a simple enhancement to support iiface :: "iface negation_type", but then you
+        can no longer for the conjunction of two simple_matches.
         *)
   record simple_match =
     iiface :: "iface" --"in-interface" (*TODO: we cannot (and don't want to, c.f. git history) express negated interfaces*)
@@ -96,23 +98,20 @@ subsection{*Simple Firewall Semantics*}
     "simple_match_any \<equiv> \<lparr>iiface=IfaceAny, oiface=IfaceAny, src=(0,0), dst=(0,0), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
 
   lemma simple_match_any: "simple_matches simple_match_any p"
-    apply(simp add: simple_match_any_def ipv4range_set_from_bitmask_0)
-    apply(subgoal_tac "(65535::16 word) = max_word")
-     apply(simp add: match_IfaceAny)
-    apply(simp add: max_word_def)
-    done
-
+    proof -
+      have "(65535::16 word) = max_word" by(simp add: max_word_def)
+      thus ?thesis by(simp add: simple_match_any_def ipv4range_set_from_bitmask_0 match_IfaceAny)
+    qed
 
   text{*we specify only one empty port range*}
   definition simple_match_none :: "simple_match" where
     "simple_match_none \<equiv> \<lparr>iiface=IfaceAny, oiface=IfaceAny, src=(1,0), dst=(0,0), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
 
   lemma simple_match_none: "simple_matches simple_match_any p"
-    apply(simp add: simple_match_any_def ipv4range_set_from_bitmask_0)
-    apply(subgoal_tac "(65535::16 word) = max_word")
-     apply(simp add: match_IfaceAny)
-    apply(simp add: max_word_def)
-    done
+    proof -
+      have "(65535::16 word) = max_word" by(simp add: max_word_def)
+      thus ?thesis by(simp add: simple_match_any_def ipv4range_set_from_bitmask_0 match_IfaceAny)
+    qed
 
 
 subsection{*Simple Ports*}
@@ -144,8 +143,7 @@ subsection{*Simple IPs*}
   lemma simple_ips_conjunct_correct: "(case simple_ips_conjunct (b1, m1) (b2, m2) of Some (bx, mx) \<Rightarrow> ipv4range_set_from_bitmask bx mx | None \<Rightarrow> {}) = 
       (ipv4range_set_from_bitmask b1 m1) \<inter> (ipv4range_set_from_bitmask b2 m2)"
     apply(simp split: split_if_asm)
-    using ipv4range_bitmask_intersect apply fast+
-    done
+    using ipv4range_bitmask_intersect by fast
   declare simple_ips_conjunct.simps[simp del]
 
   fun ipv4_cidr_tuple_to_intervall :: "(ipv4addr \<times> nat) \<Rightarrow> 32 wordinterval" where
@@ -176,7 +174,7 @@ subsection{*Simple IPs*}
   apply(cases ips1, cases ips2, rename_tac b1 m1 b2 m2, simp)
   apply(safe)
      apply(simp_all add: ipv4range_to_set_ipv4_cidr_tuple_to_intervall simple_ips_conjunct.simps split:split_if_asm)
-   apply fast+
+    apply fast+
   done
   value "simple_ips_conjunct (0,0) (8,1)" (*with the code_unfold lema before, this works!*)
 
