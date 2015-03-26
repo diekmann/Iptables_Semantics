@@ -1,4 +1,5 @@
 structure Test : sig
+  type int
   type num
   type nat
   val integer_of_nat : nat -> IntInf.int
@@ -8,40 +9,51 @@ structure Test : sig
   type num1
   datatype action = Accept | Drop | Log | Reject | Call of char list | Return |
     Empty | Unknown
-  datatype 'a negation_type = Pos of 'a | Neg of 'a
   datatype ipt_ipv4range = Ip4Addr of (nat * (nat * (nat * nat))) |
     Ip4AddrNetmask of (nat * (nat * (nat * nat))) * nat
-  datatype ipt_protocol = ProtAll | ProtTCP | ProtUDP
-  datatype iptrule_match = Src of ipt_ipv4range | Dst of ipt_ipv4range |
-    Prot of ipt_protocol | Extra of char list
+  datatype primitive_protocol = TCP | UDP | ICMP
+  datatype protocol = ProtoAny | Proto of primitive_protocol
+  datatype iface = Iface of char list
+  datatype common_primitive = Src of ipt_ipv4range | Dst of ipt_ipv4range |
+    IIface of iface | OIface of iface | Prot of protocol |
+    Src_Ports of
+      (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) list
+    | Dst_Ports of
+        (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) list
+    | Extra of char list
   type nibble
   datatype 'a match_expr = Match of 'a | MatchNot of 'a match_expr |
     MatchAnd of 'a match_expr * 'a match_expr | MatchAny
   datatype 'a rule = Rule of 'a match_expr * action
   type 'a packet_set
-  datatype match_Ln_uncompressed =
-    UncompressedFormattedMatch of
-      ipt_ipv4range negation_type list * ipt_ipv4range negation_type list *
-        ipt_protocol negation_type list * (char list) negation_type list
-  val deny_set : iptrule_match rule list -> iptrule_match packet_set list
-  val compress_Ln_ips :
-    (match_Ln_uncompressed * action) list ->
-      (match_Ln_uncompressed * action) list
-  val lower_closure : iptrule_match rule list -> iptrule_match rule list
+  type 'a simple_match_ext
+  datatype simple_action = Accepta | Dropa
+  datatype simple_rule = SimpleRule of unit simple_match_ext * simple_action
+  val port_to_nat : num1 bit0 bit0 bit0 bit0 word -> nat
+  val dotdecimal_of_ipv4addr :
+    num1 bit0 bit0 bit0 bit0 bit0 word -> nat * (nat * (nat * nat))
+  val lower_closure : common_primitive rule list -> common_primitive rule list
   val map_of_string :
-    (char list * iptrule_match rule list) list ->
-      char list -> (iptrule_match rule list) option
-  val upper_closure : iptrule_match rule list -> iptrule_match rule list
-  val format_Ln_rules_uncompressed :
-    iptrule_match rule list -> (match_Ln_uncompressed * action) list
-  val does_I_has_compressed_prots :
-    (match_Ln_uncompressed * action) list ->
-      (match_Ln_uncompressed * action) list
-  val does_I_has_compressed_rules :
-    (match_Ln_uncompressed * action) list ->
-      (match_Ln_uncompressed * action) list
+    (char list * common_primitive rule list) list ->
+      char list -> (common_primitive rule list) option
+  val upper_closure : common_primitive rule list -> common_primitive rule list
+  val deny_set : common_primitive rule list -> common_primitive packet_set list
+  val dst : 'a simple_match_ext -> num1 bit0 bit0 bit0 bit0 bit0 word * nat
+  val src : 'a simple_match_ext -> num1 bit0 bit0 bit0 bit0 bit0 word * nat
   val unfold_ruleset_FORWARD :
-    (char list -> (iptrule_match rule list) option) -> iptrule_match rule list
+    (char list -> (common_primitive rule list) option) ->
+      common_primitive rule list
+  val proto : 'a simple_match_ext -> protocol
+  val to_simple_firewall : common_primitive rule list -> simple_rule list
+  val dports :
+    'a simple_match_ext ->
+      num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word
+  val iiface : 'a simple_match_ext -> iface
+  val oiface : 'a simple_match_ext -> iface
+  val sports :
+    'a simple_match_ext ->
+      num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word
+  val check_simple_fw_preconditions : common_primitive rule list -> bool
   val bitmask_to_strange_inverse_cisco_mask : nat -> nat * (nat * (nat * nat))
 end = struct
 
@@ -118,10 +130,20 @@ fun equal_lista A_ [] (x21 :: x22) = false
 
 fun equal_list A_ = {equal = equal_lista A_} : ('a list) equal;
 
+fun equal_int k l = (((integer_of_int k) : IntInf.int) = (integer_of_int l));
+
 datatype 'a itself = Type;
 
 type 'a len0 = {len_of : 'a itself -> nat};
 val len_of = #len_of : 'a len0 -> 'a itself -> nat;
+
+datatype 'a word = Word of int;
+
+fun uint A_ (Word x) = x;
+
+fun equal_worda A_ k l = equal_int (uint A_ k) (uint A_ l);
+
+fun equal_word A_ = {equal = equal_worda A_} : 'a word equal;
 
 fun sgn_integer k =
   (if ((k : IntInf.int) = 0) then 0
@@ -173,8 +195,6 @@ fun power one times a n =
 
 fun powera A_ = power (one (one_power A_)) (times (times_power A_));
 
-datatype 'a word = Word of int;
-
 fun word_of_int A_ k =
   Word (mod_int k
          (powera power_int (Int_of_integer (2 : IntInf.int)) (len_of A_ Type)));
@@ -185,8 +205,6 @@ fun one_word A_ = {one = one_worda A_} : 'a word one;
 
 fun plus_int k l =
   Int_of_integer (IntInf.+ (integer_of_int k, integer_of_int l));
-
-fun uint A_ (Word x) = x;
 
 fun plus_worda A_ a b = word_of_int A_ (plus_int (uint A_ a) (uint A_ b));
 
@@ -373,27 +391,6 @@ fun semiring_1_word A_ =
 
 val equal_char = {equal = (fn a => fn b => ((a : char) = b))} : char equal;
 
-fun equal_int k l = (((integer_of_int k) : IntInf.int) = (integer_of_int l));
-
-fun equal_word A_ k l = equal_int (uint A_ k) (uint A_ l);
-
-datatype 'a bitrange = Bitrange of 'a word * 'a word |
-  RangeUnion of 'a bitrange * 'a bitrange;
-
-fun equal_bitrangea A_ (Bitrange (word1, word2))
-  (RangeUnion (bitrange1, bitrange2)) = false
-  | equal_bitrangea A_ (RangeUnion (bitrange1, bitrange2))
-    (Bitrange (word1, word2)) = false
-  | equal_bitrangea A_ (RangeUnion (bitrange1a, bitrange2a))
-    (RangeUnion (bitrange1, bitrange2)) =
-    equal_bitrangea A_ bitrange1a bitrange1 andalso
-      equal_bitrangea A_ bitrange2a bitrange2
-  | equal_bitrangea A_ (Bitrange (word1a, word2a)) (Bitrange (word1, word2)) =
-    equal_word (len0_len A_) word1a word1 andalso
-      equal_word (len0_len A_) word2a word2;
-
-fun equal_bitrange A_ = {equal = equal_bitrangea A_} : 'a bitrange equal;
-
 fun times_nat m n = Nat (IntInf.* (integer_of_nat m, integer_of_nat n));
 
 fun nat_of_integer k = Nat (max ord_integer 0 k);
@@ -492,6 +489,25 @@ fun equal_actiona Empty Unknown = false
 
 val equal_action = {equal = equal_actiona} : action equal;
 
+datatype 'a wordinterval = WordInterval of 'a word * 'a word |
+  RangeUnion of 'a wordinterval * 'a wordinterval;
+
+fun equal_wordintervala A_ (WordInterval (word1, word2))
+  (RangeUnion (wordinterval1, wordinterval2)) = false
+  | equal_wordintervala A_ (RangeUnion (wordinterval1, wordinterval2))
+    (WordInterval (word1, word2)) = false
+  | equal_wordintervala A_ (RangeUnion (wordinterval1a, wordinterval2a))
+    (RangeUnion (wordinterval1, wordinterval2)) =
+    equal_wordintervala A_ wordinterval1a wordinterval1 andalso
+      equal_wordintervala A_ wordinterval2a wordinterval2
+  | equal_wordintervala A_ (WordInterval (word1a, word2a))
+    (WordInterval (word1, word2)) =
+    equal_worda (len0_len A_) word1a word1 andalso
+      equal_worda (len0_len A_) word2a word2;
+
+fun equal_wordinterval A_ = {equal = equal_wordintervala A_} :
+  'a wordinterval equal;
+
 datatype 'a negation_type = Pos of 'a | Neg of 'a;
 
 fun equal_negation_typea A_ (Pos aa) (Neg a) = false
@@ -516,39 +532,116 @@ fun equal_ipt_ipv4range (Ip4Addr proda) (Ip4AddrNetmask (prod, nat)) = false
     equal_proda equal_nat
       (equal_prod equal_nat (equal_prod equal_nat equal_nat)) proda prod;
 
-datatype ipt_protocol = ProtAll | ProtTCP | ProtUDP;
+datatype primitive_protocol = TCP | UDP | ICMP;
 
-fun equal_ipt_protocol ProtTCP ProtUDP = false
-  | equal_ipt_protocol ProtUDP ProtTCP = false
-  | equal_ipt_protocol ProtAll ProtUDP = false
-  | equal_ipt_protocol ProtUDP ProtAll = false
-  | equal_ipt_protocol ProtAll ProtTCP = false
-  | equal_ipt_protocol ProtTCP ProtAll = false
-  | equal_ipt_protocol ProtUDP ProtUDP = true
-  | equal_ipt_protocol ProtTCP ProtTCP = true
-  | equal_ipt_protocol ProtAll ProtAll = true;
+datatype protocol = ProtoAny | Proto of primitive_protocol;
 
-datatype iptrule_match = Src of ipt_ipv4range | Dst of ipt_ipv4range |
-  Prot of ipt_protocol | Extra of char list;
+datatype iface = Iface of char list;
 
-fun equal_iptrule_matcha (Prot x3) (Extra x4) = false
-  | equal_iptrule_matcha (Extra x4) (Prot x3) = false
-  | equal_iptrule_matcha (Dst x2) (Extra x4) = false
-  | equal_iptrule_matcha (Extra x4) (Dst x2) = false
-  | equal_iptrule_matcha (Dst x2) (Prot x3) = false
-  | equal_iptrule_matcha (Prot x3) (Dst x2) = false
-  | equal_iptrule_matcha (Src x1) (Extra x4) = false
-  | equal_iptrule_matcha (Extra x4) (Src x1) = false
-  | equal_iptrule_matcha (Src x1) (Prot x3) = false
-  | equal_iptrule_matcha (Prot x3) (Src x1) = false
-  | equal_iptrule_matcha (Src x1) (Dst x2) = false
-  | equal_iptrule_matcha (Dst x2) (Src x1) = false
-  | equal_iptrule_matcha (Extra x4) (Extra y4) = equal_lista equal_char x4 y4
-  | equal_iptrule_matcha (Prot x3) (Prot y3) = equal_ipt_protocol x3 y3
-  | equal_iptrule_matcha (Dst x2) (Dst y2) = equal_ipt_ipv4range x2 y2
-  | equal_iptrule_matcha (Src x1) (Src y1) = equal_ipt_ipv4range x1 y1;
+datatype common_primitive = Src of ipt_ipv4range | Dst of ipt_ipv4range |
+  IIface of iface | OIface of iface | Prot of protocol |
+  Src_Ports of
+    (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) list
+  | Dst_Ports of
+      (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) list
+  | Extra of char list;
 
-val equal_iptrule_match = {equal = equal_iptrule_matcha} : iptrule_match equal;
+fun equal_primitive_protocol UDP ICMP = false
+  | equal_primitive_protocol ICMP UDP = false
+  | equal_primitive_protocol TCP ICMP = false
+  | equal_primitive_protocol ICMP TCP = false
+  | equal_primitive_protocol TCP UDP = false
+  | equal_primitive_protocol UDP TCP = false
+  | equal_primitive_protocol ICMP ICMP = true
+  | equal_primitive_protocol UDP UDP = true
+  | equal_primitive_protocol TCP TCP = true;
+
+fun equal_protocol ProtoAny (Proto primitive_protocol) = false
+  | equal_protocol (Proto primitive_protocol) ProtoAny = false
+  | equal_protocol (Proto primitive_protocola) (Proto primitive_protocol) =
+    equal_primitive_protocol primitive_protocola primitive_protocol
+  | equal_protocol ProtoAny ProtoAny = true;
+
+fun equal_iface (Iface listaa) (Iface lista) =
+  equal_lista equal_char listaa lista;
+
+fun equal_common_primitivea (Dst_Ports x7) (Extra x8) = false
+  | equal_common_primitivea (Extra x8) (Dst_Ports x7) = false
+  | equal_common_primitivea (Src_Ports x6) (Extra x8) = false
+  | equal_common_primitivea (Extra x8) (Src_Ports x6) = false
+  | equal_common_primitivea (Src_Ports x6) (Dst_Ports x7) = false
+  | equal_common_primitivea (Dst_Ports x7) (Src_Ports x6) = false
+  | equal_common_primitivea (Prot x5) (Extra x8) = false
+  | equal_common_primitivea (Extra x8) (Prot x5) = false
+  | equal_common_primitivea (Prot x5) (Dst_Ports x7) = false
+  | equal_common_primitivea (Dst_Ports x7) (Prot x5) = false
+  | equal_common_primitivea (Prot x5) (Src_Ports x6) = false
+  | equal_common_primitivea (Src_Ports x6) (Prot x5) = false
+  | equal_common_primitivea (OIface x4) (Extra x8) = false
+  | equal_common_primitivea (Extra x8) (OIface x4) = false
+  | equal_common_primitivea (OIface x4) (Dst_Ports x7) = false
+  | equal_common_primitivea (Dst_Ports x7) (OIface x4) = false
+  | equal_common_primitivea (OIface x4) (Src_Ports x6) = false
+  | equal_common_primitivea (Src_Ports x6) (OIface x4) = false
+  | equal_common_primitivea (OIface x4) (Prot x5) = false
+  | equal_common_primitivea (Prot x5) (OIface x4) = false
+  | equal_common_primitivea (IIface x3) (Extra x8) = false
+  | equal_common_primitivea (Extra x8) (IIface x3) = false
+  | equal_common_primitivea (IIface x3) (Dst_Ports x7) = false
+  | equal_common_primitivea (Dst_Ports x7) (IIface x3) = false
+  | equal_common_primitivea (IIface x3) (Src_Ports x6) = false
+  | equal_common_primitivea (Src_Ports x6) (IIface x3) = false
+  | equal_common_primitivea (IIface x3) (Prot x5) = false
+  | equal_common_primitivea (Prot x5) (IIface x3) = false
+  | equal_common_primitivea (IIface x3) (OIface x4) = false
+  | equal_common_primitivea (OIface x4) (IIface x3) = false
+  | equal_common_primitivea (Dst x2) (Extra x8) = false
+  | equal_common_primitivea (Extra x8) (Dst x2) = false
+  | equal_common_primitivea (Dst x2) (Dst_Ports x7) = false
+  | equal_common_primitivea (Dst_Ports x7) (Dst x2) = false
+  | equal_common_primitivea (Dst x2) (Src_Ports x6) = false
+  | equal_common_primitivea (Src_Ports x6) (Dst x2) = false
+  | equal_common_primitivea (Dst x2) (Prot x5) = false
+  | equal_common_primitivea (Prot x5) (Dst x2) = false
+  | equal_common_primitivea (Dst x2) (OIface x4) = false
+  | equal_common_primitivea (OIface x4) (Dst x2) = false
+  | equal_common_primitivea (Dst x2) (IIface x3) = false
+  | equal_common_primitivea (IIface x3) (Dst x2) = false
+  | equal_common_primitivea (Src x1) (Extra x8) = false
+  | equal_common_primitivea (Extra x8) (Src x1) = false
+  | equal_common_primitivea (Src x1) (Dst_Ports x7) = false
+  | equal_common_primitivea (Dst_Ports x7) (Src x1) = false
+  | equal_common_primitivea (Src x1) (Src_Ports x6) = false
+  | equal_common_primitivea (Src_Ports x6) (Src x1) = false
+  | equal_common_primitivea (Src x1) (Prot x5) = false
+  | equal_common_primitivea (Prot x5) (Src x1) = false
+  | equal_common_primitivea (Src x1) (OIface x4) = false
+  | equal_common_primitivea (OIface x4) (Src x1) = false
+  | equal_common_primitivea (Src x1) (IIface x3) = false
+  | equal_common_primitivea (IIface x3) (Src x1) = false
+  | equal_common_primitivea (Src x1) (Dst x2) = false
+  | equal_common_primitivea (Dst x2) (Src x1) = false
+  | equal_common_primitivea (Extra x8) (Extra y8) = equal_lista equal_char x8 y8
+  | equal_common_primitivea (Dst_Ports x7) (Dst_Ports y7) =
+    equal_lista
+      (equal_prod
+        (equal_word (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        (equal_word (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))))
+      x7 y7
+  | equal_common_primitivea (Src_Ports x6) (Src_Ports y6) =
+    equal_lista
+      (equal_prod
+        (equal_word (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        (equal_word (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))))
+      x6 y6
+  | equal_common_primitivea (Prot x5) (Prot y5) = equal_protocol x5 y5
+  | equal_common_primitivea (OIface x4) (OIface y4) = equal_iface x4 y4
+  | equal_common_primitivea (IIface x3) (IIface y3) = equal_iface x3 y3
+  | equal_common_primitivea (Dst x2) (Dst y2) = equal_ipt_ipv4range x2 y2
+  | equal_common_primitivea (Src x1) (Src y1) = equal_ipt_ipv4range x1 y1;
+
+val equal_common_primitive = {equal = equal_common_primitivea} :
+  common_primitive equal;
 
 datatype nibble = Nibble0 | Nibble1 | Nibble2 | Nibble3 | Nibble4 | Nibble5 |
   Nibble6 | Nibble7 | Nibble8 | Nibble9 | NibbleA | NibbleB | NibbleC | NibbleD
@@ -562,10 +655,16 @@ datatype 'a rule = Rule of 'a match_expr * action;
 datatype 'a packet_set =
   PacketSet of (('a negation_type * action negation_type) list) list;
 
-datatype match_Ln_uncompressed =
-  UncompressedFormattedMatch of
-    ipt_ipv4range negation_type list * ipt_ipv4range negation_type list *
-      ipt_protocol negation_type list * (char list) negation_type list;
+datatype 'a simple_match_ext =
+  Simple_match_ext of
+    iface * iface * (num1 bit0 bit0 bit0 bit0 bit0 word * nat) *
+      (num1 bit0 bit0 bit0 bit0 bit0 word * nat) * protocol *
+      (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) *
+      (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) * 'a;
+
+datatype simple_action = Accepta | Dropa;
+
+datatype simple_rule = SimpleRule of unit simple_match_ext * simple_action;
 
 fun id x = (fn xa => xa) x;
 
@@ -575,14 +674,32 @@ fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
 
 fun suc n = plus_nat n one_nat;
 
+fun find f [] = NONE
+  | find f (x :: xs) = (if f x then SOME x else find f xs);
+
+fun const x = (fn _ => x);
+
+fun fold f (x :: xs) s = fold f xs (f x s)
+  | fold f [] s = s;
+
 fun maps f [] = []
   | maps f (x :: xs) = f x @ maps f xs;
 
 fun null [] = true
   | null (x :: xs) = false;
 
+fun take n [] = []
+  | take n (x :: xs) =
+    (if equal_nata n zero_nat then [] else x :: take (minus_nat n one_nat) xs);
+
 fun minus_int k l =
   Int_of_integer (IntInf.- (integer_of_int k, integer_of_int l));
+
+fun upto_aux i j js =
+  (if less_int j i then js
+    else upto_aux i (minus_int j (Int_of_integer (1 : IntInf.int))) (j :: js));
+
+fun upto i j = upto_aux i j [];
 
 fun minus_word A_ a b = word_of_int A_ (minus_int (uint A_ a) (uint A_ b));
 
@@ -641,22 +758,31 @@ fun max_word A_ =
         (len_of (len0_len A_) Type))
       (Int_of_integer (1 : IntInf.int)));
 
+val ifaceAny : iface = Iface [#"+"];
+
 fun pred_list p [] = true
   | pred_list p (x :: xs) = p x andalso pred_list p xs;
+
+val pfxes : nat list =
+  map nat (upto zero_int (Int_of_integer (32 : IntInf.int)));
 
 fun gen_length n (x :: xs) = gen_length (suc n) xs
   | gen_length n [] = n;
 
+fun map_filter f [] = []
+  | map_filter f (x :: xs) =
+    (case f x of NONE => map_filter f xs | SOME y => y :: map_filter f xs);
+
+fun internal_iface_name_match [] [] = true
+  | internal_iface_name_match (i :: is) [] = ((i : char) = #"+") andalso null is
+  | internal_iface_name_match [] (uu :: uv) = false
+  | internal_iface_name_match (i :: is) (p_i :: p_is) =
+    (if ((i : char) = #"+") andalso null is then true
+      else ((p_i : char) = i) andalso internal_iface_name_match is p_is);
+
+fun match_iface (Iface i) p_iface = internal_iface_name_match i p_iface;
+
 fun the (SOME x2) = x2;
-
-fun word_next A_ a =
-  (if equal_word (len0_len A_) a (max_word A_) then max_word A_
-    else plus_worda (len0_len A_) a (one_worda (len0_len A_)));
-
-fun word_prev A_ a =
-  (if equal_word (len0_len A_) a (zero_worda (len0_len A_))
-    then zero_worda (len0_len A_)
-    else minus_word (len0_len A_) a (one_worda (len0_len A_)));
 
 fun mod_nat m n = Nat (mod_integer (integer_of_nat m) (integer_of_nat n));
 
@@ -666,78 +792,64 @@ fun divmod_nat m n = (div_nat m n, mod_nat m n);
 
 fun add_match m rs = map (fn Rule (ma, a) => Rule (MatchAnd (m, ma), a)) rs;
 
-fun getNeg [] = []
-  | getNeg (Neg x :: xs) = x :: getNeg xs
-  | getNeg (Pos v :: xs) = getNeg xs;
+fun size_list x = gen_length zero_nat x;
 
-fun getPos [] = []
-  | getPos (Pos x :: xs) = x :: getPos xs
-  | getPos (Neg v :: xs) = getPos xs;
+fun min A_ a b = (if less_eq A_ a b then a else b);
+
+fun internal_iface_name_wildcard_longest i1 i2 =
+  (if equal_lista equal_char
+        (take (min ord_nat (minus_nat (size_list i1) one_nat)
+                (minus_nat (size_list i2) one_nat))
+          i1)
+        (take (min ord_nat (minus_nat (size_list i1) one_nat)
+                (minus_nat (size_list i2) one_nat))
+          i2)
+    then SOME (if less_eq_nat (size_list i1) (size_list i2) then i2 else i1)
+    else NONE);
+
+fun iface_name_is_wildcard [] = false
+  | iface_name_is_wildcard [s] = ((s : char) = #"+")
+  | iface_name_is_wildcard (uu :: v :: va) = iface_name_is_wildcard (v :: va);
+
+fun map_option fi NONE = NONE
+  | map_option fi (SOME x2a) = SOME (fi x2a);
+
+fun iface_conjunct (Iface i1) (Iface i2) =
+  (case (iface_name_is_wildcard i1, iface_name_is_wildcard i2)
+    of (true, true) =>
+      map_option Iface (internal_iface_name_wildcard_longest i1 i2)
+    | (true, false) =>
+      (if match_iface (Iface i1) i2 then SOME (Iface i2) else NONE)
+    | (false, true) =>
+      (if match_iface (Iface i2) i1 then SOME (Iface i1) else NONE)
+    | (false, false) =>
+      (if equal_lista equal_char i1 i2 then SOME (Iface i1) else NONE));
 
 fun invert (Pos x) = Neg x
   | invert (Neg x) = Pos x;
 
-fun bitrange_UNIV A_ = Bitrange (zero_worda (len0_len A_), max_word A_);
+fun word_next A_ a =
+  (if equal_worda (len0_len A_) a (max_word A_) then max_word A_
+    else plus_worda (len0_len A_) a (one_worda (len0_len A_)));
 
-fun empty_Bitrange A_ =
-  Bitrange (one_worda (len0_len A_), zero_worda (len0_len A_));
-
-fun bitrange_empty A_ (Bitrange (s, e)) = less_word (len0_len A_) e s
-  | bitrange_empty A_ (RangeUnion (r1, r2)) =
-    bitrange_empty A_ r1 andalso bitrange_empty A_ r2;
-
-fun bitrange_union A_ r1 r2 = RangeUnion (r1, r2);
-
-fun rmMatchFalse [] = []
-  | rmMatchFalse (Rule (MatchNot MatchAny, uu) :: rs) = rmMatchFalse rs
-  | rmMatchFalse (Rule (Match vb, va) :: rs) =
-    Rule (Match vb, va) :: rmMatchFalse rs
-  | rmMatchFalse (Rule (MatchNot (Match vc), va) :: rs) =
-    Rule (MatchNot (Match vc), va) :: rmMatchFalse rs
-  | rmMatchFalse (Rule (MatchNot (MatchNot vc), va) :: rs) =
-    Rule (MatchNot (MatchNot vc), va) :: rmMatchFalse rs
-  | rmMatchFalse (Rule (MatchNot (MatchAnd (vc, vd)), va) :: rs) =
-    Rule (MatchNot (MatchAnd (vc, vd)), va) :: rmMatchFalse rs
-  | rmMatchFalse (Rule (MatchAnd (vb, vc), va) :: rs) =
-    Rule (MatchAnd (vb, vc), va) :: rmMatchFalse rs
-  | rmMatchFalse (Rule (MatchAny, va) :: rs) =
-    Rule (MatchAny, va) :: rmMatchFalse rs;
-
-fun min A_ a b = (if less_eq A_ a b then a else b);
+fun word_prev A_ a =
+  (if equal_worda (len0_len A_) a (zero_worda (len0_len A_))
+    then zero_worda (len0_len A_)
+    else minus_word (len0_len A_) a (one_worda (len0_len A_)));
 
 fun invertt (n, a) = (n, invert a);
 
-fun bitrange_setminus A_ (Bitrange (s, e)) (Bitrange (ms, me)) =
-  (if less_word (len0_len A_) e s orelse less_word (len0_len A_) me ms
-    then Bitrange (s, e)
-    else (if less_eq_word (len0_len A_) e me
-           then Bitrange
-                  ((if equal_word (len0_len A_) ms (zero_worda (len0_len A_))
-                     then one_worda (len0_len A_) else s),
-                    min (ord_word (len0_len A_)) e (word_prev A_ ms))
-           else (if less_eq_word (len0_len A_) ms s
-                  then Bitrange
-                         (max (ord_word (len0_len A_)) s (word_next A_ me),
-                           (if equal_word (len0_len A_) me (max_word A_)
-                             then zero_worda (len0_len A_) else e))
-                  else RangeUnion
-                         (Bitrange
-                            ((if equal_word (len0_len A_) ms
-                                   (zero_worda (len0_len A_))
-                               then one_worda (len0_len A_) else s),
-                              word_prev A_ ms),
-                           Bitrange
-                             (word_next A_ me,
-                               (if equal_word (len0_len A_) me (max_word A_)
-                                 then zero_worda (len0_len A_) else e))))))
-  | bitrange_setminus A_ (RangeUnion (r1, r2)) t =
-    RangeUnion (bitrange_setminus A_ r1 t, bitrange_setminus A_ r2 t)
-  | bitrange_setminus A_ (Bitrange (v, va)) (RangeUnion (r1, r2)) =
-    bitrange_setminus A_ (bitrange_setminus A_ (Bitrange (v, va)) r1) r2;
+fun br2l A_ (RangeUnion (r1, r2)) = br2l A_ r1 @ br2l A_ r2
+  | br2l A_ (WordInterval (s, e)) =
+    (if less_word (len0_len A_) e s then [] else [(s, e)]);
 
-fun bitrange_invert A_ r = bitrange_setminus A_ (bitrange_UNIV A_) r;
+fun empty_WordInterval A_ =
+  WordInterval (one_worda (len0_len A_), zero_worda (len0_len A_));
 
-fun bitrange_subset A_ r1 r2 = bitrange_empty A_ (bitrange_setminus A_ r1 r2);
+fun l2br A_ [] = empty_WordInterval A_
+  | l2br A_ [(s, e)] = WordInterval (s, e)
+  | l2br A_ ((s, e) :: v :: va) =
+    RangeUnion (WordInterval (s, e), l2br A_ (v :: va));
 
 fun numeral A_ (Bit1 n) =
   let
@@ -787,76 +899,149 @@ fun ipv4addr_of_nat n =
       (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))))
     n;
 
-fun ipv4range_empty rg =
-  bitrange_empty (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-    rg;
+fun wordinterval_empty A_ (WordInterval (s, e)) = less_word (len0_len A_) e s
+  | wordinterval_empty A_ (RangeUnion (r1, r2)) =
+    wordinterval_empty A_ r1 andalso wordinterval_empty A_ r2;
 
-fun ipv4range_range ip_start ip_end = Bitrange (ip_start, ip_end);
+fun ipv4range_empty rg =
+  wordinterval_empty
+    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) rg;
+
+fun ipv4range_range ip_start ip_end = WordInterval (ip_start, ip_end);
 
 fun nat_of_ipv4addr a =
   unat (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) a;
 
-fun bitrange_to_list A_ (RangeUnion (r1, r2)) =
-  bitrange_to_list A_ r1 @ bitrange_to_list A_ r2
-  | bitrange_to_list A_ (Bitrange (v, va)) =
-    (if bitrange_empty A_ (Bitrange (v, va)) then [] else [Bitrange (v, va)]);
+fun negPos_map uu [] = []
+  | negPos_map f (Pos a :: asa) = Pos (f a) :: negPos_map f asa
+  | negPos_map f (Neg a :: asa) = Neg (f a) :: negPos_map f asa;
 
-fun list_to_bitrange A_ [r] = r
-  | list_to_bitrange A_ (r :: v :: va) =
-    RangeUnion (r, list_to_bitrange A_ (v :: va))
-  | list_to_bitrange A_ [] = empty_Bitrange A_;
+fun ipv4range_lowest_element (WordInterval (s, e)) =
+  (if less_eq_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) s
+        e
+    then SOME s else NONE)
+  | ipv4range_lowest_element (RangeUnion (a, b)) =
+    (case (ipv4range_lowest_element a, ipv4range_lowest_element b)
+      of (NONE, NONE) => NONE | (NONE, SOME aa) => SOME aa
+      | (SOME aa, NONE) => SOME aa
+      | (SOME aa, SOME ba) =>
+        SOME (if less_word
+                   (len0_bit0
+                     (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+                   aa ba
+               then aa else ba));
 
-fun match_Ln_uncompressed_append
-  (UncompressedFormattedMatch (src1, dst1, proto1, extra1))
-  (UncompressedFormattedMatch (src2, dst2, proto2, extra2)) =
-  UncompressedFormattedMatch
-    (src1 @ src2, dst1 @ dst2, proto1 @ proto2, extra1 @ extra2);
-
-fun iptrule_match_collect MatchAny accu = accu
-  | iptrule_match_collect (Match (Src ip))
-    (UncompressedFormattedMatch (src, dst, proto, extra)) =
-    UncompressedFormattedMatch (Pos ip :: src, dst, proto, extra)
-  | iptrule_match_collect (Match (Dst ip))
-    (UncompressedFormattedMatch (src, dst, proto, extra)) =
-    UncompressedFormattedMatch (src, Pos ip :: dst, proto, extra)
-  | iptrule_match_collect (Match (Prot p))
-    (UncompressedFormattedMatch (src, dst, proto, extra)) =
-    UncompressedFormattedMatch (src, dst, Pos p :: proto, extra)
-  | iptrule_match_collect (Match (Extra e))
-    (UncompressedFormattedMatch (src, dst, proto, extra)) =
-    UncompressedFormattedMatch (src, dst, proto, Pos e :: extra)
-  | iptrule_match_collect (MatchNot (Match (Src ip)))
-    (UncompressedFormattedMatch (src, dst, proto, extra)) =
-    UncompressedFormattedMatch (Neg ip :: src, dst, proto, extra)
-  | iptrule_match_collect (MatchNot (Match (Dst ip)))
-    (UncompressedFormattedMatch (src, dst, proto, extra)) =
-    UncompressedFormattedMatch (src, Neg ip :: dst, proto, extra)
-  | iptrule_match_collect (MatchNot (Match (Prot p)))
-    (UncompressedFormattedMatch (src, dst, proto, extra)) =
-    UncompressedFormattedMatch (src, dst, Neg p :: proto, extra)
-  | iptrule_match_collect (MatchNot (Match (Extra e)))
-    (UncompressedFormattedMatch (src, dst, proto, extra)) =
-    UncompressedFormattedMatch (src, dst, proto, Neg e :: extra)
-  | iptrule_match_collect (MatchAnd (m1, m2)) fmt =
-    match_Ln_uncompressed_append (iptrule_match_collect m1 fmt)
-      (match_Ln_uncompressed_append (iptrule_match_collect m2 fmt) fmt);
-
-fun format_Ln_match m =
-  iptrule_match_collect m (UncompressedFormattedMatch ([], [], [], []));
-
-fun ipv4range_single ip = Bitrange (ip, ip);
-
-fun ipv4range_subset r1 r2 =
-  bitrange_subset
-    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
+fun uminus_int k = Int_of_integer (IntInf.~ (integer_of_int k));
 
 fun bin_last w =
   equal_int (mod_int w (Int_of_integer (2 : IntInf.int)))
     (Int_of_integer (1 : IntInf.int));
 
+fun bitAND_int x y =
+  (if equal_int x zero_int then zero_int
+    else (if equal_int x (uminus_int (Int_of_integer (1 : IntInf.int))) then y
+           else bit (bitAND_int (bin_rest x) (bin_rest y))
+                  (bin_last x andalso bin_last y)));
+
+fun bitAND_word A_ a b = word_of_int A_ (bitAND_int (uint A_ a) (uint A_ b));
+
+fun pfxm_prefix p = fst p;
+
+fun pfxm_length p = snd p;
+
+fun pfxm_mask B_ x =
+  mask B_ (minus_nat (nat_of_integer (32 : IntInf.int)) (pfxm_length x));
+
+fun valid_prefix A_ pf =
+  equal_worda (len0_len A_)
+    (bitAND_word (len0_len A_) (pfxm_mask A_ pf) (pfxm_prefix pf))
+    (zero_worda (len0_len A_));
+
+fun wordinterval_setminus A_ (WordInterval (s, e)) (WordInterval (ms, me)) =
+  (if less_word (len0_len A_) e s orelse less_word (len0_len A_) me ms
+    then WordInterval (s, e)
+    else (if less_eq_word (len0_len A_) e me
+           then WordInterval
+                  ((if equal_worda (len0_len A_) ms (zero_worda (len0_len A_))
+                     then one_worda (len0_len A_) else s),
+                    min (ord_word (len0_len A_)) e (word_prev A_ ms))
+           else (if less_eq_word (len0_len A_) ms s
+                  then WordInterval
+                         (max (ord_word (len0_len A_)) s (word_next A_ me),
+                           (if equal_worda (len0_len A_) me (max_word A_)
+                             then zero_worda (len0_len A_) else e))
+                  else RangeUnion
+                         (WordInterval
+                            ((if equal_worda (len0_len A_) ms
+                                   (zero_worda (len0_len A_))
+                               then one_worda (len0_len A_) else s),
+                              word_prev A_ ms),
+                           WordInterval
+                             (word_next A_ me,
+                               (if equal_worda (len0_len A_) me (max_word A_)
+                                 then zero_worda (len0_len A_) else e))))))
+  | wordinterval_setminus A_ (RangeUnion (r1, r2)) t =
+    RangeUnion (wordinterval_setminus A_ r1 t, wordinterval_setminus A_ r2 t)
+  | wordinterval_setminus A_ (WordInterval (v, va)) (RangeUnion (r1, r2)) =
+    wordinterval_setminus A_
+      (wordinterval_setminus A_ (WordInterval (v, va)) r1) r2;
+
 fun ipv4range_setminus r1 r2 =
-  bitrange_setminus
+  wordinterval_setminus
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
+
+fun wordinterval_subset A_ r1 r2 =
+  wordinterval_empty A_ (wordinterval_setminus A_ r1 r2);
+
+fun ipv4range_subset r1 r2 =
+  wordinterval_subset
+    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
+
+fun bitNOT_int x =
+  (fn xa => minus_int (uminus_int xa) (Int_of_integer (1 : IntInf.int))) x;
+
+fun bitOR_int x =
+  (fn xa => fn y => bitNOT_int (bitAND_int (bitNOT_int xa) (bitNOT_int y))) x;
+
+fun bitOR_word A_ a b = word_of_int A_ (bitOR_int (uint A_ a) (uint A_ b));
+
+fun prefix_to_range pfx =
+  WordInterval
+    (pfxm_prefix pfx,
+      bitOR_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        (pfxm_prefix pfx)
+        (pfxm_mask
+          (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) pfx));
+
+fun ipv4range_split1 r =
+  (case ipv4range_lowest_element r of NONE => (NONE, r)
+    | SOME a =>
+      let
+        val cs = map (fn b => (a, b)) pfxes;
+        val cfs =
+          filter
+            (fn s =>
+              valid_prefix
+                (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+                s andalso
+                ipv4range_subset (prefix_to_range s) r)
+            cs;
+        val mc = find (const true) cfs;
+      in
+        (case mc of NONE => (NONE, r)
+          | SOME m => (mc, ipv4range_setminus r (prefix_to_range m)))
+      end);
+
+fun ipv4range_split rs =
+  (if not (ipv4range_empty rs)
+    then (case ipv4range_split1 rs of (NONE, u) => []
+           | (SOME s, u) => s :: ipv4range_split u)
+    else []);
+
+fun port_to_nat p =
+  unat (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) p;
 
 fun listprepend [] ns = []
   | listprepend (a :: asa) ns = map (fn b => a :: b) ns @ listprepend asa ns;
@@ -871,410 +1056,251 @@ fun rw_Reject [] = []
   | rw_Reject (Rule (v, Empty) :: rs) = Rule (v, Empty) :: rw_Reject rs
   | rw_Reject (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rw_Reject rs;
 
-fun normalize_match MatchAny = [MatchAny]
-  | normalize_match (Match m) = [Match m]
-  | normalize_match (MatchAnd (m1, m2)) =
-    maps (fn x => map (fn a => MatchAnd (x, a)) (normalize_match m2))
-      (normalize_match m1)
-  | normalize_match (MatchNot (MatchAnd (m1, m2))) =
-    normalize_match (MatchNot m1) @ normalize_match (MatchNot m2)
-  | normalize_match (MatchNot (MatchNot m)) = normalize_match m
-  | normalize_match (MatchNot MatchAny) = []
-  | normalize_match (MatchNot (Match m)) = [MatchNot (Match m)];
+fun equal_match_expr A_ (MatchAnd (match_expr1, match_expr2)) MatchAny = false
+  | equal_match_expr A_ MatchAny (MatchAnd (match_expr1, match_expr2)) = false
+  | equal_match_expr A_ (MatchNot match_expr) MatchAny = false
+  | equal_match_expr A_ MatchAny (MatchNot match_expr) = false
+  | equal_match_expr A_ (MatchNot match_expr)
+    (MatchAnd (match_expr1, match_expr2)) = false
+  | equal_match_expr A_ (MatchAnd (match_expr1, match_expr2))
+    (MatchNot match_expr) = false
+  | equal_match_expr A_ (Match a) MatchAny = false
+  | equal_match_expr A_ MatchAny (Match a) = false
+  | equal_match_expr A_ (Match a) (MatchAnd (match_expr1, match_expr2)) = false
+  | equal_match_expr A_ (MatchAnd (match_expr1, match_expr2)) (Match a) = false
+  | equal_match_expr A_ (Match a) (MatchNot match_expr) = false
+  | equal_match_expr A_ (MatchNot match_expr) (Match a) = false
+  | equal_match_expr A_ (MatchAnd (match_expr1a, match_expr2a))
+    (MatchAnd (match_expr1, match_expr2)) =
+    equal_match_expr A_ match_expr1a match_expr1 andalso
+      equal_match_expr A_ match_expr2a match_expr2
+  | equal_match_expr A_ (MatchNot match_expra) (MatchNot match_expr) =
+    equal_match_expr A_ match_expra match_expr
+  | equal_match_expr A_ (Match aa) (Match a) = eq A_ aa a
+  | equal_match_expr A_ MatchAny MatchAny = true;
 
-fun normalize_rules [] = []
-  | normalize_rules (Rule (m, a) :: rs) =
-    map (fn ma => Rule (ma, a)) (normalize_match m) @ normalize_rules rs;
+fun lower_closure_matchexpr uu MatchAny = MatchAny
+  | lower_closure_matchexpr Accept (Match (Extra uv)) = MatchNot MatchAny
+  | lower_closure_matchexpr Reject (Match (Extra uw)) = MatchAny
+  | lower_closure_matchexpr Drop (Match (Extra ux)) = MatchAny
+  | lower_closure_matchexpr Drop (Match (Src v)) = Match (Src v)
+  | lower_closure_matchexpr Drop (Match (Dst v)) = Match (Dst v)
+  | lower_closure_matchexpr Drop (Match (IIface v)) = Match (IIface v)
+  | lower_closure_matchexpr Drop (Match (OIface v)) = Match (OIface v)
+  | lower_closure_matchexpr Drop (Match (Prot v)) = Match (Prot v)
+  | lower_closure_matchexpr Drop (Match (Src_Ports v)) = Match (Src_Ports v)
+  | lower_closure_matchexpr Drop (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | lower_closure_matchexpr Log (Match m) = Match m
+  | lower_closure_matchexpr Reject (Match (Src v)) = Match (Src v)
+  | lower_closure_matchexpr Reject (Match (Dst v)) = Match (Dst v)
+  | lower_closure_matchexpr Reject (Match (IIface v)) = Match (IIface v)
+  | lower_closure_matchexpr Reject (Match (OIface v)) = Match (OIface v)
+  | lower_closure_matchexpr Reject (Match (Prot v)) = Match (Prot v)
+  | lower_closure_matchexpr Reject (Match (Src_Ports v)) = Match (Src_Ports v)
+  | lower_closure_matchexpr Reject (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | lower_closure_matchexpr (Call v) (Match m) = Match m
+  | lower_closure_matchexpr Return (Match m) = Match m
+  | lower_closure_matchexpr Empty (Match m) = Match m
+  | lower_closure_matchexpr Unknown (Match m) = Match m
+  | lower_closure_matchexpr uy (Match (Src v)) = Match (Src v)
+  | lower_closure_matchexpr uy (Match (Dst v)) = Match (Dst v)
+  | lower_closure_matchexpr uy (Match (IIface v)) = Match (IIface v)
+  | lower_closure_matchexpr uy (Match (OIface v)) = Match (OIface v)
+  | lower_closure_matchexpr uy (Match (Prot v)) = Match (Prot v)
+  | lower_closure_matchexpr uy (Match (Src_Ports v)) = Match (Src_Ports v)
+  | lower_closure_matchexpr uy (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | lower_closure_matchexpr Accept (MatchNot (Match (Extra uz))) =
+    MatchNot MatchAny
+  | lower_closure_matchexpr Drop (MatchNot (Match (Extra va))) = MatchAny
+  | lower_closure_matchexpr Reject (MatchNot (Match (Extra vb))) = MatchAny
+  | lower_closure_matchexpr a (MatchNot (MatchNot m)) =
+    lower_closure_matchexpr a m
+  | lower_closure_matchexpr a (MatchNot (MatchAnd (m1, m2))) =
+    let
+      val m1a = lower_closure_matchexpr a (MatchNot m1);
+      val m2a = lower_closure_matchexpr a (MatchNot m2);
+    in
+      (if equal_match_expr equal_common_primitive m1a MatchAny orelse
+            equal_match_expr equal_common_primitive m2a MatchAny
+        then MatchAny
+        else (if equal_match_expr equal_common_primitive m1a (MatchNot MatchAny)
+               then m2a
+               else (if equal_match_expr equal_common_primitive m2a
+                          (MatchNot MatchAny)
+                      then m1a
+                      else MatchNot (MatchAnd (MatchNot m1a, MatchNot m2a)))))
+    end
+  | lower_closure_matchexpr Drop (MatchNot (Match (Src va))) =
+    MatchNot (Match (Src va))
+  | lower_closure_matchexpr Drop (MatchNot (Match (Dst va))) =
+    MatchNot (Match (Dst va))
+  | lower_closure_matchexpr Drop (MatchNot (Match (IIface va))) =
+    MatchNot (Match (IIface va))
+  | lower_closure_matchexpr Drop (MatchNot (Match (OIface va))) =
+    MatchNot (Match (OIface va))
+  | lower_closure_matchexpr Drop (MatchNot (Match (Prot va))) =
+    MatchNot (Match (Prot va))
+  | lower_closure_matchexpr Drop (MatchNot (Match (Src_Ports va))) =
+    MatchNot (Match (Src_Ports va))
+  | lower_closure_matchexpr Drop (MatchNot (Match (Dst_Ports va))) =
+    MatchNot (Match (Dst_Ports va))
+  | lower_closure_matchexpr Drop (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr Log (MatchNot (Match v)) = MatchNot (Match v)
+  | lower_closure_matchexpr Log (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr Reject (MatchNot (Match (Src va))) =
+    MatchNot (Match (Src va))
+  | lower_closure_matchexpr Reject (MatchNot (Match (Dst va))) =
+    MatchNot (Match (Dst va))
+  | lower_closure_matchexpr Reject (MatchNot (Match (IIface va))) =
+    MatchNot (Match (IIface va))
+  | lower_closure_matchexpr Reject (MatchNot (Match (OIface va))) =
+    MatchNot (Match (OIface va))
+  | lower_closure_matchexpr Reject (MatchNot (Match (Prot va))) =
+    MatchNot (Match (Prot va))
+  | lower_closure_matchexpr Reject (MatchNot (Match (Src_Ports va))) =
+    MatchNot (Match (Src_Ports va))
+  | lower_closure_matchexpr Reject (MatchNot (Match (Dst_Ports va))) =
+    MatchNot (Match (Dst_Ports va))
+  | lower_closure_matchexpr Reject (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr (Call v) (MatchNot (Match va)) = MatchNot (Match va)
+  | lower_closure_matchexpr (Call v) (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr Return (MatchNot (Match v)) = MatchNot (Match v)
+  | lower_closure_matchexpr Return (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr Empty (MatchNot (Match v)) = MatchNot (Match v)
+  | lower_closure_matchexpr Empty (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr Unknown (MatchNot (Match v)) = MatchNot (Match v)
+  | lower_closure_matchexpr Unknown (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr vc (MatchNot (Match (Src va))) =
+    MatchNot (Match (Src va))
+  | lower_closure_matchexpr vc (MatchNot (Match (Dst va))) =
+    MatchNot (Match (Dst va))
+  | lower_closure_matchexpr vc (MatchNot (Match (IIface va))) =
+    MatchNot (Match (IIface va))
+  | lower_closure_matchexpr vc (MatchNot (Match (OIface va))) =
+    MatchNot (Match (OIface va))
+  | lower_closure_matchexpr vc (MatchNot (Match (Prot va))) =
+    MatchNot (Match (Prot va))
+  | lower_closure_matchexpr vc (MatchNot (Match (Src_Ports va))) =
+    MatchNot (Match (Src_Ports va))
+  | lower_closure_matchexpr vc (MatchNot (Match (Dst_Ports va))) =
+    MatchNot (Match (Dst_Ports va))
+  | lower_closure_matchexpr vc (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr a (MatchAnd (m1, m2)) =
+    MatchAnd (lower_closure_matchexpr a m1, lower_closure_matchexpr a m2);
 
-fun insort_key B_ f x [] = [x]
-  | insort_key B_ f x (y :: ys) =
-    (if less_eq ((ord_preorder o preorder_order o order_linorder) B_) (f x)
-          (f y)
-      then x :: y :: ys else y :: insort_key B_ f x ys);
+fun primitive_extractor uu MatchAny = ([], MatchAny)
+  | primitive_extractor (disc, sel) (Match a) =
+    (if disc a then ([Pos (sel a)], MatchAny) else ([], Match a))
+  | primitive_extractor (disc, sel) (MatchNot (Match a)) =
+    (if disc a then ([Neg (sel a)], MatchAny) else ([], MatchNot (Match a)))
+  | primitive_extractor c (MatchAnd (ms1, ms2)) =
+    let
+      val (a1, ms1a) = primitive_extractor c ms1;
+      val (a2, ms2a) = primitive_extractor c ms2;
+    in
+      (a1 @ a2, MatchAnd (ms1a, ms2a))
+    end
+  | primitive_extractor uv (MatchNot (MatchNot va)) = (raise Fail "undefined")
+  | primitive_extractor uv (MatchNot (MatchAnd (va, vb))) =
+    (raise Fail "undefined")
+  | primitive_extractor uv (MatchNot MatchAny) = (raise Fail "undefined");
 
-fun sort_key B_ f xs = foldr (insort_key B_ f) xs [];
+fun normalize_primitive_extract disc_sel c f m =
+  let
+    val (spts, rst) = primitive_extractor disc_sel m;
+  in
+    map (fn spt => MatchAnd (Match (c spt), rst)) (f spts)
+  end;
 
-fun size_list x = gen_length zero_nat x;
+fun src_sel (Src x1) = x1;
 
-fun to_negation_type_nnf MatchAny = []
-  | to_negation_type_nnf (Match a) = [Pos a]
-  | to_negation_type_nnf (MatchNot (Match a)) = [Neg a]
-  | to_negation_type_nnf (MatchAnd (a, b)) =
-    to_negation_type_nnf a @ to_negation_type_nnf b;
+fun is_Src (Src x1) = true
+  | is_Src (Dst x2) = false
+  | is_Src (IIface x3) = false
+  | is_Src (OIface x4) = false
+  | is_Src (Prot x5) = false
+  | is_Src (Src_Ports x6) = false
+  | is_Src (Dst_Ports x7) = false
+  | is_Src (Extra x8) = false;
 
-fun to_packet_set a m =
-  PacketSet
-    (map (map (fn ma => (ma, Pos a)) o to_negation_type_nnf)
-      (normalize_match m));
+fun wordinterval_to_list A_ (RangeUnion (r1, r2)) =
+  wordinterval_to_list A_ r1 @ wordinterval_to_list A_ r2
+  | wordinterval_to_list A_ (WordInterval (v, va)) =
+    (if wordinterval_empty A_ (WordInterval (v, va)) then []
+      else [WordInterval (v, va)]);
 
-fun rm_LogEmpty [] = []
-  | rm_LogEmpty (Rule (uu, Empty) :: rs) = rm_LogEmpty rs
-  | rm_LogEmpty (Rule (uv, Log) :: rs) = rm_LogEmpty rs
-  | rm_LogEmpty (Rule (v, Accept) :: rs) = Rule (v, Accept) :: rm_LogEmpty rs
-  | rm_LogEmpty (Rule (v, Drop) :: rs) = Rule (v, Drop) :: rm_LogEmpty rs
-  | rm_LogEmpty (Rule (v, Reject) :: rs) = Rule (v, Reject) :: rm_LogEmpty rs
-  | rm_LogEmpty (Rule (v, Call vb) :: rs) = Rule (v, Call vb) :: rm_LogEmpty rs
-  | rm_LogEmpty (Rule (v, Return) :: rs) = Rule (v, Return) :: rm_LogEmpty rs
-  | rm_LogEmpty (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rm_LogEmpty rs;
+fun list_to_wordinterval A_ [r] = r
+  | list_to_wordinterval A_ (r :: v :: va) =
+    RangeUnion (r, list_to_wordinterval A_ (v :: va))
+  | list_to_wordinterval A_ [] = empty_WordInterval A_;
 
-fun uminus_int k = Int_of_integer (IntInf.~ (integer_of_int k));
+fun wordinterval_optimize_same A_ rs =
+  list_to_wordinterval A_
+    (remdups (equal_wordinterval A_) (wordinterval_to_list A_ rs));
 
-fun bitNOT_int x =
-  (fn xa => minus_int (uminus_int xa) (Int_of_integer (1 : IntInf.int))) x;
+fun wordinterval_UNIV A_ = WordInterval (zero_worda (len0_len A_), max_word A_);
 
-fun bitAND_int x y =
-  (if equal_int x zero_int then zero_int
-    else (if equal_int x (uminus_int (Int_of_integer (1 : IntInf.int))) then y
-           else bit (bitAND_int (bin_rest x) (bin_rest y))
-                  (bin_last x andalso bin_last y)));
+fun wordinterval_invert A_ r =
+  wordinterval_setminus A_ (wordinterval_UNIV A_) r;
 
-fun bitOR_int x =
-  (fn xa => fn y => bitNOT_int (bitAND_int (bitNOT_int xa) (bitNOT_int y))) x;
+fun wordinterval_union A_ r1 r2 = RangeUnion (r1, r2);
 
-fun bitOR_word A_ a b = word_of_int A_ (bitOR_int (uint A_ a) (uint A_ b));
+fun wordinterval_intersection A_ r1 r2 =
+  wordinterval_optimize_same A_
+    (wordinterval_setminus A_ (wordinterval_union A_ r1 r2)
+      (wordinterval_union A_ (wordinterval_invert A_ r1)
+        (wordinterval_invert A_ r2)));
 
-fun bitrange_optimize_same A_ rs =
-  list_to_bitrange A_ (remdups (equal_bitrange A_) (bitrange_to_list A_ rs));
+fun l2br_negation_type_intersect A_ [] = wordinterval_UNIV A_
+  | l2br_negation_type_intersect A_ (Pos (s, e) :: ls) =
+    wordinterval_intersection A_ (WordInterval (s, e))
+      (l2br_negation_type_intersect A_ ls)
+  | l2br_negation_type_intersect A_ (Neg (s, e) :: ls) =
+    wordinterval_intersection A_ (wordinterval_invert A_ (WordInterval (s, e)))
+      (l2br_negation_type_intersect A_ ls);
 
-fun bitrange_intersection A_ r1 r2 =
-  bitrange_optimize_same A_
-    (bitrange_setminus A_ (bitrange_union A_ r1 r2)
-      (bitrange_union A_ (bitrange_invert A_ r1) (bitrange_invert A_ r2)));
-
-fun get_match (Rule (x1, x2)) = x1;
-
-fun packet_set_union (PacketSet olist1) (PacketSet olist2) =
-  PacketSet (olist1 @ olist2);
-
-fun packet_set_opt4_internal_internal A_ cs =
-  pred_list
-    (fn (m, a) =>
-      not (member
-            (equal_prod (equal_negation_type A_)
-              (equal_negation_type equal_action))
-            cs (m, invert a)))
-    cs;
-
-fun packet_set_opt4 A_ (PacketSet ps) =
-  PacketSet (filter (packet_set_opt4_internal_internal A_) ps);
-
-fun packet_set_opt3 (PacketSet ps) =
-  PacketSet (sort_key linorder_nat size_list ps);
-
-fun packet_set_opt2_internal A_ [] = []
-  | packet_set_opt2_internal A_ ([] :: ps) = [[]]
-  | packet_set_opt2_internal A_ ((v :: va) :: ps) =
-    (v :: va) ::
-      (if less_eq_nat (size_list (v :: va)) (nat_of_integer (5 : IntInf.int))
-        then packet_set_opt2_internal A_
-               (filter
-                 (fn ass =>
-                   not (pred_list
-                         (member
-                           (equal_prod (equal_negation_type A_)
-                             (equal_negation_type equal_action))
-                           ass)
-                         (v :: va)))
-                 ps)
-        else packet_set_opt2_internal A_ ps);
-
-fun packet_set_opt2 A_ (PacketSet ps) =
-  PacketSet (packet_set_opt2_internal A_ ps);
-
-fun packet_set_opt1 A_ (PacketSet ps) =
-  PacketSet
-    (map (remdups
-           (equal_prod (equal_negation_type A_)
-             (equal_negation_type equal_action)))
-      (remdups
-        (equal_list
-          (equal_prod (equal_negation_type A_)
-            (equal_negation_type equal_action)))
-        ps));
-
-fun packet_set_opt A_ ps =
-  packet_set_opt1 A_
-    (packet_set_opt2 A_ (packet_set_opt3 (packet_set_opt4 A_ ps)));
-
-fun packet_set_not_internal [] = [[]]
-  | packet_set_not_internal (ns :: nss) =
-    listprepend (map invertt ns) (packet_set_not_internal nss);
-
-fun packet_set_not (PacketSet ps) = PacketSet (packet_set_not_internal ps);
-
-fun collect_allow_compl_impl_tailrec A_ [] p pAs = pAs
-  | collect_allow_compl_impl_tailrec A_ (Rule (m, Accept) :: rs) p pAs =
-    collect_allow_compl_impl_tailrec A_ rs
-      (packet_set_opt A_ (packet_set_union p (to_packet_set Accept m)))
-      (packet_set_union p (packet_set_not (to_packet_set Accept m)) :: pAs)
-  | collect_allow_compl_impl_tailrec A_ (Rule (m, Drop) :: rs) p pAs =
-    collect_allow_compl_impl_tailrec A_ rs
-      (packet_set_opt A_ (packet_set_union p (to_packet_set Drop m))) pAs;
-
-val packet_set_Empty : 'a packet_set = PacketSet [];
-
-fun allow_set_not_inter A_ rs =
-  collect_allow_compl_impl_tailrec A_ rs packet_set_Empty [];
-
-fun bitAND_word A_ a b = word_of_int A_ (bitAND_int (uint A_ a) (uint A_ b));
-
-fun bitNOT_word A_ a = word_of_int A_ (bitNOT_int (uint A_ a));
-
-fun get_action (Rule (x1, x2)) = x2;
-
-fun ipv4addr_of_dotteddecimal (a, (b, (c, d))) =
+fun ipv4addr_of_dotdecimal (a, (b, (c, d))) =
   ipv4addr_of_nat
     (plus_nat
       (plus_nat (plus_nat d (times_nat (nat_of_integer (256 : IntInf.int)) c))
         (times_nat (nat_of_integer (65536 : IntInf.int)) b))
       (times_nat (nat_of_integer (16777216 : IntInf.int)) a));
 
-fun ipv4range_set_from_bitmask_to_executable_ipv4range
-  (Ip4AddrNetmask (pre, len)) =
-  ipv4range_range
-    (bitAND_word
-      (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-      (ipv4addr_of_dotteddecimal pre)
-      (shiftl_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-        (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-          len)
-        (minus_nat (nat_of_integer (32 : IntInf.int)) len)))
-    (bitOR_word
-      (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-      (ipv4addr_of_dotteddecimal pre)
-      (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-        (minus_nat (nat_of_integer (32 : IntInf.int)) len)))
-  | ipv4range_set_from_bitmask_to_executable_ipv4range (Ip4Addr ip) =
-    ipv4range_single (ipv4addr_of_dotteddecimal ip);
+fun bitNOT_word A_ a = word_of_int A_ (bitNOT_int (uint A_ a));
 
-fun ipv4range_intersection r1 r2 =
-  bitrange_intersection
-    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
-
-fun intersect_netmask_empty_executable x =
-  (fn base1 => fn m1 => fn base2 => fn m2 =>
-    ipv4range_empty
-      (ipv4range_intersection
-        (ipv4range_set_from_bitmask_to_executable_ipv4range
-          (Ip4AddrNetmask (base1, m1)))
-        (ipv4range_set_from_bitmask_to_executable_ipv4range
-          (Ip4AddrNetmask (base2, m2)))))
-    x;
-
-fun intersect_netmask_empty x = intersect_netmask_empty_executable x;
-
-fun subset_netmask_executable x =
-  (fn base1 => fn m1 => fn base2 => fn m2 =>
-    ipv4range_subset
-      (ipv4range_set_from_bitmask_to_executable_ipv4range
-        (Ip4AddrNetmask (base1, m1)))
-      (ipv4range_set_from_bitmask_to_executable_ipv4range
-        (Ip4AddrNetmask (base2, m2))))
-    x;
-
-fun subset_netmask x = subset_netmask_executable x;
-
-fun intersect_ips (Ip4Addr ip) (Ip4AddrNetmask (base, m)) =
-  (if less_eq_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-        (bitAND_word
+fun ipt_ipv4range_to_intervall (Ip4Addr addr) =
+  (ipv4addr_of_dotdecimal addr, ipv4addr_of_dotdecimal addr)
+  | ipt_ipv4range_to_intervall (Ip4AddrNetmask (pre, len)) =
+    let
+      val netmask =
+        shiftl_word
           (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-          (ipv4addr_of_dotteddecimal base)
-          (shiftl_word
+          (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+            len)
+          (minus_nat (nat_of_integer (32 : IntInf.int)) len);
+      val network_prefix =
+        bitAND_word
+          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+          (ipv4addr_of_dotdecimal pre) netmask;
+    in
+      (network_prefix,
+        bitOR_word
+          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+          network_prefix
+          (bitNOT_word
             (len0_bit0
               (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-            (mask (len_bit0
-                    (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-              m)
-            (minus_nat (nat_of_integer (32 : IntInf.int)) m)))
-        (ipv4addr_of_dotteddecimal ip) andalso
-        less_eq_word
-          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-          (ipv4addr_of_dotteddecimal ip)
-          (bitOR_word
-            (len0_bit0
-              (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-            (ipv4addr_of_dotteddecimal base)
-            (mask (len_bit0
-                    (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-              (minus_nat (nat_of_integer (32 : IntInf.int)) m)))
-    then SOME (Ip4Addr ip) else NONE)
-  | intersect_ips (Ip4AddrNetmask (base, m)) (Ip4Addr ip) =
-    (if less_eq_word
-          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-          (bitAND_word
-            (len0_bit0
-              (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-            (ipv4addr_of_dotteddecimal base)
-            (shiftl_word
-              (len0_bit0
-                (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-              (mask (len_bit0
-                      (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-                m)
-              (minus_nat (nat_of_integer (32 : IntInf.int)) m)))
-          (ipv4addr_of_dotteddecimal ip) andalso
-          less_eq_word
-            (len0_bit0
-              (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-            (ipv4addr_of_dotteddecimal ip)
-            (bitOR_word
-              (len0_bit0
-                (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-              (ipv4addr_of_dotteddecimal base)
-              (mask (len_bit0
-                      (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-                (minus_nat (nat_of_integer (32 : IntInf.int)) m)))
-      then SOME (Ip4Addr ip) else NONE)
-  | intersect_ips (Ip4Addr ip1) (Ip4Addr ip2) =
-    (if equal_word
-          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-          (ipv4addr_of_dotteddecimal ip2) (ipv4addr_of_dotteddecimal ip1)
-      then SOME (Ip4Addr ip1) else NONE)
-  | intersect_ips (Ip4AddrNetmask (base1, m1)) (Ip4AddrNetmask (base2, m2)) =
-    (if intersect_netmask_empty base1 m1 base2 m2 then NONE
-      else (if subset_netmask base1 m1 base2 m2
-             then SOME (Ip4AddrNetmask (base1, m1))
-             else (if subset_netmask base2 m2 base1 m1
-                    then SOME (Ip4AddrNetmask (base2, m2)) else NONE)));
+            netmask))
+    end;
 
-fun compress_pos_ips [] =
-  SOME (Ip4AddrNetmask ((zero_nat, (zero_nat, (zero_nat, zero_nat))), zero_nat))
-  | compress_pos_ips [ip] = SOME ip
-  | compress_pos_ips (a :: b :: cs) =
-    (case intersect_ips a b of NONE => NONE
-      | SOME x => compress_pos_ips (x :: cs));
-
-fun collect_to_range [] =
-  empty_Bitrange (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-  | collect_to_range (r :: rs) =
-    RangeUnion
-      (ipv4range_set_from_bitmask_to_executable_ipv4range r,
-        collect_to_range rs);
-
-fun compress_ips l =
-  (if null (getPos l) then SOME l
-    else (case compress_pos_ips (getPos l) of NONE => NONE
-           | SOME ip =>
-             (if ipv4range_empty
-                   (ipv4range_setminus
-                     (ipv4range_set_from_bitmask_to_executable_ipv4range ip)
-                     (collect_to_range (getNeg l)))
-               then NONE else SOME (Pos ip :: map Neg (getNeg l)))));
-
-val packet_set_UNIV : 'a packet_set = PacketSet [[]];
+fun ipt_ipv4range_negation_type_to_br_intersect l =
+  l2br_negation_type_intersect
+    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+    (negPos_map ipt_ipv4range_to_intervall l);
 
 fun shiftr_word A_ w n = funpow n (shiftr1 A_) w;
 
-fun equal_packet_set A_ (PacketSet x) (PacketSet ya) =
-  equal_lista
-    (equal_list
-      (equal_prod (equal_negation_type A_) (equal_negation_type equal_action)))
-    x ya;
-
-fun deny_set rs =
-  filter (fn a => not (equal_packet_set equal_iptrule_match a packet_set_UNIV))
-    (map (packet_set_opt equal_iptrule_match)
-      (allow_set_not_inter equal_iptrule_match rs));
-
-fun process_ret [] = []
-  | process_ret (Rule (m, Return) :: rs) =
-    add_match (MatchNot m) (process_ret rs)
-  | process_ret (Rule (v, Accept) :: rs) = Rule (v, Accept) :: process_ret rs
-  | process_ret (Rule (v, Drop) :: rs) = Rule (v, Drop) :: process_ret rs
-  | process_ret (Rule (v, Log) :: rs) = Rule (v, Log) :: process_ret rs
-  | process_ret (Rule (v, Reject) :: rs) = Rule (v, Reject) :: process_ret rs
-  | process_ret (Rule (v, Call vb) :: rs) = Rule (v, Call vb) :: process_ret rs
-  | process_ret (Rule (v, Empty) :: rs) = Rule (v, Empty) :: process_ret rs
-  | process_ret (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: process_ret rs;
-
-fun compress_Ln_ips [] = []
-  | compress_Ln_ips
-    ((UncompressedFormattedMatch (src, dst, proto, extra), a) :: rs) =
-    (case (compress_ips src, compress_ips dst)
-      of (NONE, xa) => compress_Ln_ips rs
-      | (SOME aa, NONE) => compress_Ln_ips rs
-      | (SOME aa, SOME dsta) =>
-        (UncompressedFormattedMatch (aa, dsta, proto, extra), a) ::
-          compress_Ln_ips rs);
-
-fun process_call gamma [] = []
-  | process_call gamma (Rule (m, Call chain) :: rs) =
-    add_match m (process_ret (the (gamma chain))) @ process_call gamma rs
-  | process_call gamma (Rule (v, Accept) :: rs) =
-    Rule (v, Accept) :: process_call gamma rs
-  | process_call gamma (Rule (v, Drop) :: rs) =
-    Rule (v, Drop) :: process_call gamma rs
-  | process_call gamma (Rule (v, Log) :: rs) =
-    Rule (v, Log) :: process_call gamma rs
-  | process_call gamma (Rule (v, Reject) :: rs) =
-    Rule (v, Reject) :: process_call gamma rs
-  | process_call gamma (Rule (v, Return) :: rs) =
-    Rule (v, Return) :: process_call gamma rs
-  | process_call gamma (Rule (v, Empty) :: rs) =
-    Rule (v, Empty) :: process_call gamma rs
-  | process_call gamma (Rule (v, Unknown) :: rs) =
-    Rule (v, Unknown) :: process_call gamma rs;
-
-fun opt_simple_matcher (Match (Prot ProtAll)) = MatchAny
-  | opt_simple_matcher (Match (Src (Ip4Addr va))) = Match (Src (Ip4Addr va))
-  | opt_simple_matcher (Match (Dst (Ip4Addr va))) = Match (Dst (Ip4Addr va))
-  | opt_simple_matcher (Match (Prot ProtTCP)) = Match (Prot ProtTCP)
-  | opt_simple_matcher (Match (Prot ProtUDP)) = Match (Prot ProtUDP)
-  | opt_simple_matcher (Match (Extra v)) = Match (Extra v)
-  | opt_simple_matcher (MatchNot m) = MatchNot (opt_simple_matcher m)
-  | opt_simple_matcher (MatchAnd (m1, m2)) =
-    MatchAnd (opt_simple_matcher m1, opt_simple_matcher m2)
-  | opt_simple_matcher MatchAny = MatchAny
-  | opt_simple_matcher
-    (Match (Src (Ip4AddrNetmask ((ve, (vg, (vi, via))), vc)))) =
-    (if equal_nata vc zero_nat
-      then (if equal_nata via zero_nat
-             then (if equal_nata vi zero_nat
-                    then (if equal_nata vg zero_nat
-                           then (if equal_nata ve zero_nat then MatchAny
-                                  else Match
- (Src (Ip4AddrNetmask
-        ((suc (minus_nat ve one_nat), (zero_nat, (zero_nat, zero_nat))),
-          zero_nat))))
-                           else Match (Src
-(Ip4AddrNetmask
-  ((ve, (suc (minus_nat vg one_nat), (zero_nat, zero_nat))), zero_nat))))
-                    else Match (Src (Ip4AddrNetmask
-                                      ((ve,
- (vg, (suc (minus_nat vi one_nat), zero_nat))),
-zero_nat))))
-             else Match (Src (Ip4AddrNetmask
-                               ((ve, (vg, (vi, suc (minus_nat via one_nat)))),
-                                 zero_nat))))
-      else Match (Src (Ip4AddrNetmask
-                        ((ve, (vg, (vi, via))), suc (minus_nat vc one_nat)))))
-  | opt_simple_matcher
-    (Match (Dst (Ip4AddrNetmask ((ve, (vg, (vi, via))), vc)))) =
-    (if equal_nata vc zero_nat
-      then (if equal_nata via zero_nat
-             then (if equal_nata vi zero_nat
-                    then (if equal_nata vg zero_nat
-                           then (if equal_nata ve zero_nat then MatchAny
-                                  else Match
- (Dst (Ip4AddrNetmask
-        ((suc (minus_nat ve one_nat), (zero_nat, (zero_nat, zero_nat))),
-          zero_nat))))
-                           else Match (Dst
-(Ip4AddrNetmask
-  ((ve, (suc (minus_nat vg one_nat), (zero_nat, zero_nat))), zero_nat))))
-                    else Match (Dst (Ip4AddrNetmask
-                                      ((ve,
- (vg, (suc (minus_nat vi one_nat), zero_nat))),
-zero_nat))))
-             else Match (Dst (Ip4AddrNetmask
-                               ((ve, (vg, (vi, suc (minus_nat via one_nat)))),
-                                 zero_nat))))
-      else Match (Dst (Ip4AddrNetmask
-                        ((ve, (vg, (vi, via))), suc (minus_nat vc one_nat)))));
-
-fun dotteddecimal_of_ipv4addr a =
+fun dotdecimal_of_ipv4addr a =
   (nat_of_ipv4addr
      (bitAND_word
        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
@@ -1313,137 +1339,171 @@ fun dotteddecimal_of_ipv4addr a =
                   (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
                 (Int_of_integer (255 : IntInf.int)))))));
 
-fun optimize_matches f rs =
-  map (fn r => Rule (f (get_match r), get_action r)) rs;
+fun br_2_cidr_ipt_ipv4range_list r =
+  map (fn (base, a) => Ip4AddrNetmask (dotdecimal_of_ipv4addr base, a))
+    (ipv4range_split r);
 
-fun optimize_matches_a f rs =
-  map (fn r => Rule (f (get_action r) (get_match r), get_action r)) rs;
+fun ipt_ipv4range_compress x =
+  (br_2_cidr_ipt_ipv4range_list o ipt_ipv4range_negation_type_to_br_intersect)
+    x;
 
-fun equal_match_expr A_ (MatchAnd (match_expr1, match_expr2)) MatchAny = false
-  | equal_match_expr A_ MatchAny (MatchAnd (match_expr1, match_expr2)) = false
-  | equal_match_expr A_ (MatchNot match_expr) MatchAny = false
-  | equal_match_expr A_ MatchAny (MatchNot match_expr) = false
-  | equal_match_expr A_ (MatchNot match_expr)
-    (MatchAnd (match_expr1, match_expr2)) = false
-  | equal_match_expr A_ (MatchAnd (match_expr1, match_expr2))
-    (MatchNot match_expr) = false
-  | equal_match_expr A_ (Match a) MatchAny = false
-  | equal_match_expr A_ MatchAny (Match a) = false
-  | equal_match_expr A_ (Match a) (MatchAnd (match_expr1, match_expr2)) = false
-  | equal_match_expr A_ (MatchAnd (match_expr1, match_expr2)) (Match a) = false
-  | equal_match_expr A_ (Match a) (MatchNot match_expr) = false
-  | equal_match_expr A_ (MatchNot match_expr) (Match a) = false
-  | equal_match_expr A_ (MatchAnd (match_expr1a, match_expr2a))
-    (MatchAnd (match_expr1, match_expr2)) =
-    equal_match_expr A_ match_expr1a match_expr1 andalso
-      equal_match_expr A_ match_expr2a match_expr2
-  | equal_match_expr A_ (MatchNot match_expra) (MatchNot match_expr) =
-    equal_match_expr A_ match_expra match_expr
-  | equal_match_expr A_ (Match aa) (Match a) = eq A_ aa a
-  | equal_match_expr A_ MatchAny MatchAny = true;
+fun normalize_src_ips x =
+  normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress x;
 
-fun opt_simple_matcher_in_doubt_deny_extra uu MatchAny = MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Accept (Match (Extra uv)) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Reject (Match (Extra uw)) = MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Drop (Match (Extra ux)) = MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Drop (Match (Src v)) = Match (Src v)
-  | opt_simple_matcher_in_doubt_deny_extra Drop (Match (Dst v)) = Match (Dst v)
-  | opt_simple_matcher_in_doubt_deny_extra Drop (Match (Prot v)) =
-    Match (Prot v)
-  | opt_simple_matcher_in_doubt_deny_extra Log (Match m) = Match m
-  | opt_simple_matcher_in_doubt_deny_extra Reject (Match (Src v)) =
-    Match (Src v)
-  | opt_simple_matcher_in_doubt_deny_extra Reject (Match (Dst v)) =
-    Match (Dst v)
-  | opt_simple_matcher_in_doubt_deny_extra Reject (Match (Prot v)) =
-    Match (Prot v)
-  | opt_simple_matcher_in_doubt_deny_extra (Call v) (Match m) = Match m
-  | opt_simple_matcher_in_doubt_deny_extra Return (Match m) = Match m
-  | opt_simple_matcher_in_doubt_deny_extra Empty (Match m) = Match m
-  | opt_simple_matcher_in_doubt_deny_extra Unknown (Match m) = Match m
-  | opt_simple_matcher_in_doubt_deny_extra uy (Match (Src v)) = Match (Src v)
-  | opt_simple_matcher_in_doubt_deny_extra uy (Match (Dst v)) = Match (Dst v)
-  | opt_simple_matcher_in_doubt_deny_extra uy (Match (Prot v)) = Match (Prot v)
-  | opt_simple_matcher_in_doubt_deny_extra Reject (MatchNot (Match (Extra uz)))
-    = MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Drop (MatchNot (Match (Extra va))) =
-    MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Accept (MatchNot (Match (Extra vb)))
-    = MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra a (MatchNot (MatchNot m)) =
-    opt_simple_matcher_in_doubt_deny_extra a m
-  | opt_simple_matcher_in_doubt_deny_extra a (MatchNot (MatchAnd (m1, m2))) =
-    (if equal_match_expr equal_iptrule_match
-          (opt_simple_matcher_in_doubt_deny_extra a (MatchNot m1))
-          MatchAny orelse
-          equal_match_expr equal_iptrule_match
-            (opt_simple_matcher_in_doubt_deny_extra a (MatchNot m2)) MatchAny
-      then MatchAny
-      else (if equal_match_expr equal_iptrule_match
-                 (opt_simple_matcher_in_doubt_deny_extra a (MatchNot m1))
-                 (MatchNot MatchAny)
-             then opt_simple_matcher_in_doubt_deny_extra a (MatchNot m2)
-             else (if equal_match_expr equal_iptrule_match
-                        (opt_simple_matcher_in_doubt_deny_extra a (MatchNot m2))
-                        (MatchNot MatchAny)
-                    then opt_simple_matcher_in_doubt_deny_extra a (MatchNot m1)
-                    else MatchNot
-                           (MatchAnd
-                             (MatchNot
-                                (opt_simple_matcher_in_doubt_deny_extra a
-                                  (MatchNot m1)),
-                               MatchNot
-                                 (opt_simple_matcher_in_doubt_deny_extra a
-                                   (MatchNot m2)))))))
-  | opt_simple_matcher_in_doubt_deny_extra Accept (MatchNot (Match (Src va))) =
-    MatchNot (Match (Src va))
-  | opt_simple_matcher_in_doubt_deny_extra Accept (MatchNot (Match (Dst va))) =
-    MatchNot (Match (Dst va))
-  | opt_simple_matcher_in_doubt_deny_extra Accept (MatchNot (Match (Prot va))) =
-    MatchNot (Match (Prot va))
-  | opt_simple_matcher_in_doubt_deny_extra Accept (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Drop (MatchNot (Match (Src va))) =
-    MatchNot (Match (Src va))
-  | opt_simple_matcher_in_doubt_deny_extra Drop (MatchNot (Match (Dst va))) =
-    MatchNot (Match (Dst va))
-  | opt_simple_matcher_in_doubt_deny_extra Drop (MatchNot (Match (Prot va))) =
-    MatchNot (Match (Prot va))
-  | opt_simple_matcher_in_doubt_deny_extra Drop (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Log (MatchNot (Match v)) =
-    MatchNot (Match v)
-  | opt_simple_matcher_in_doubt_deny_extra Log (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra (Call v) (MatchNot (Match va)) =
-    MatchNot (Match va)
-  | opt_simple_matcher_in_doubt_deny_extra (Call v) (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Return (MatchNot (Match v)) =
-    MatchNot (Match v)
-  | opt_simple_matcher_in_doubt_deny_extra Return (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Empty (MatchNot (Match v)) =
-    MatchNot (Match v)
-  | opt_simple_matcher_in_doubt_deny_extra Empty (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra Unknown (MatchNot (Match v)) =
-    MatchNot (Match v)
-  | opt_simple_matcher_in_doubt_deny_extra Unknown (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra vc (MatchNot (Match (Src va))) =
-    MatchNot (Match (Src va))
-  | opt_simple_matcher_in_doubt_deny_extra vc (MatchNot (Match (Dst va))) =
-    MatchNot (Match (Dst va))
-  | opt_simple_matcher_in_doubt_deny_extra vc (MatchNot (Match (Prot va))) =
-    MatchNot (Match (Prot va))
-  | opt_simple_matcher_in_doubt_deny_extra vc (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_deny_extra a (MatchAnd (m1, m2)) =
-    MatchAnd
-      (opt_simple_matcher_in_doubt_deny_extra a m1,
-        opt_simple_matcher_in_doubt_deny_extra a m2);
+fun dst_sel (Dst x2) = x2;
+
+fun is_Dst (Src x1) = false
+  | is_Dst (Dst x2) = true
+  | is_Dst (IIface x3) = false
+  | is_Dst (OIface x4) = false
+  | is_Dst (Prot x5) = false
+  | is_Dst (Src_Ports x6) = false
+  | is_Dst (Dst_Ports x7) = false
+  | is_Dst (Extra x8) = false;
+
+fun normalize_dst_ips x =
+  normalize_primitive_extract (is_Dst, dst_sel) Dst ipt_ipv4range_compress x;
+
+fun src_ports_sel (Src_Ports x6) = x6;
+
+fun is_Src_Ports (Src x1) = false
+  | is_Src_Ports (Dst x2) = false
+  | is_Src_Ports (IIface x3) = false
+  | is_Src_Ports (OIface x4) = false
+  | is_Src_Ports (Prot x5) = false
+  | is_Src_Ports (Src_Ports x6) = true
+  | is_Src_Ports (Dst_Ports x7) = false
+  | is_Src_Ports (Extra x8) = false;
+
+fun ipt_ports_negation_type_normalize (Pos ps) = ps
+  | ipt_ports_negation_type_normalize (Neg ps) =
+    br2l (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))
+      (wordinterval_invert (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))
+        (l2br (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))) ps));
+
+fun ipt_ports_andlist_compress A_ pss =
+  br2l A_
+    (fold (fn ps => wordinterval_intersection A_ (l2br A_ ps)) pss
+      (wordinterval_UNIV A_));
+
+fun ipt_ports_compress pss =
+  ipt_ports_andlist_compress
+    (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))
+    (map ipt_ports_negation_type_normalize pss);
+
+fun normalize_ports_step disc_sel c =
+  normalize_primitive_extract disc_sel c
+    (fn me => map (fn pt => [pt]) (ipt_ports_compress me));
+
+fun normalize_src_ports x =
+  normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports x;
+
+fun dst_ports_sel (Dst_Ports x7) = x7;
+
+fun is_Dst_Ports (Src x1) = false
+  | is_Dst_Ports (Dst x2) = false
+  | is_Dst_Ports (IIface x3) = false
+  | is_Dst_Ports (OIface x4) = false
+  | is_Dst_Ports (Prot x5) = false
+  | is_Dst_Ports (Src_Ports x6) = false
+  | is_Dst_Ports (Dst_Ports x7) = true
+  | is_Dst_Ports (Extra x8) = false;
+
+fun normalize_dst_ports x =
+  normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports x;
+
+fun normalize_rules uu [] = []
+  | normalize_rules f (Rule (m, a) :: rs) =
+    map (fn ma => Rule (ma, a)) (f m) @ normalize_rules f rs;
+
+fun transform_normalize_primitives x =
+  (normalize_rules normalize_dst_ips o normalize_rules normalize_src_ips o
+     normalize_rules normalize_dst_ports o
+    normalize_rules normalize_src_ports)
+    x;
+
+fun optimize_primitive_univ (Match (Src_Ports [(s, e)])) =
+  (if equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) s
+        (zero_worda
+          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) andalso
+        equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) e
+          (word_of_int (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))
+            (Int_of_integer (65535 : IntInf.int)))
+    then MatchAny else Match (Src_Ports [(s, e)]))
+  | optimize_primitive_univ (Match (Dst_Ports [(s, e)])) =
+    (if equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) s
+          (zero_worda
+            (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) andalso
+          equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))
+            e (word_of_int
+                (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))
+                (Int_of_integer (65535 : IntInf.int)))
+      then MatchAny else Match (Dst_Ports [(s, e)]))
+  | optimize_primitive_univ (Match (Prot ProtoAny)) = MatchAny
+  | optimize_primitive_univ (Match (Src (Ip4Addr va))) =
+    Match (Src (Ip4Addr va))
+  | optimize_primitive_univ (Match (Dst (Ip4Addr va))) =
+    Match (Dst (Ip4Addr va))
+  | optimize_primitive_univ (Match (IIface v)) = Match (IIface v)
+  | optimize_primitive_univ (Match (OIface v)) = Match (OIface v)
+  | optimize_primitive_univ (Match (Prot (Proto va))) = Match (Prot (Proto va))
+  | optimize_primitive_univ (Match (Src_Ports [])) = Match (Src_Ports [])
+  | optimize_primitive_univ (Match (Src_Ports (va :: vc :: vd))) =
+    Match (Src_Ports (va :: vc :: vd))
+  | optimize_primitive_univ (Match (Dst_Ports [])) = Match (Dst_Ports [])
+  | optimize_primitive_univ (Match (Dst_Ports (va :: vc :: vd))) =
+    Match (Dst_Ports (va :: vc :: vd))
+  | optimize_primitive_univ (Match (Extra v)) = Match (Extra v)
+  | optimize_primitive_univ (MatchNot m) = MatchNot (optimize_primitive_univ m)
+  | optimize_primitive_univ (MatchAnd (m1, m2)) =
+    MatchAnd (optimize_primitive_univ m1, optimize_primitive_univ m2)
+  | optimize_primitive_univ MatchAny = MatchAny
+  | optimize_primitive_univ
+    (Match (Src (Ip4AddrNetmask ((ve, (vg, (vi, via))), vc)))) =
+    (if equal_nata vc zero_nat
+      then (if equal_nata via zero_nat
+             then (if equal_nata vi zero_nat
+                    then (if equal_nata vg zero_nat
+                           then (if equal_nata ve zero_nat then MatchAny
+                                  else Match
+ (Src (Ip4AddrNetmask
+        ((suc (minus_nat ve one_nat), (zero_nat, (zero_nat, zero_nat))),
+          zero_nat))))
+                           else Match (Src
+(Ip4AddrNetmask
+  ((ve, (suc (minus_nat vg one_nat), (zero_nat, zero_nat))), zero_nat))))
+                    else Match (Src (Ip4AddrNetmask
+                                      ((ve,
+ (vg, (suc (minus_nat vi one_nat), zero_nat))),
+zero_nat))))
+             else Match (Src (Ip4AddrNetmask
+                               ((ve, (vg, (vi, suc (minus_nat via one_nat)))),
+                                 zero_nat))))
+      else Match (Src (Ip4AddrNetmask
+                        ((ve, (vg, (vi, via))), suc (minus_nat vc one_nat)))))
+  | optimize_primitive_univ
+    (Match (Dst (Ip4AddrNetmask ((ve, (vg, (vi, via))), vc)))) =
+    (if equal_nata vc zero_nat
+      then (if equal_nata via zero_nat
+             then (if equal_nata vi zero_nat
+                    then (if equal_nata vg zero_nat
+                           then (if equal_nata ve zero_nat then MatchAny
+                                  else Match
+ (Dst (Ip4AddrNetmask
+        ((suc (minus_nat ve one_nat), (zero_nat, (zero_nat, zero_nat))),
+          zero_nat))))
+                           else Match (Dst
+(Ip4AddrNetmask
+  ((ve, (suc (minus_nat vg one_nat), (zero_nat, zero_nat))), zero_nat))))
+                    else Match (Dst (Ip4AddrNetmask
+                                      ((ve,
+ (vg, (suc (minus_nat vi one_nat), zero_nat))),
+zero_nat))))
+             else Match (Dst (Ip4AddrNetmask
+                               ((ve, (vg, (vi, suc (minus_nat via one_nat)))),
+                                 zero_nat))))
+      else Match (Dst (Ip4AddrNetmask
+                        ((ve, (vg, (vi, via))), suc (minus_nat vc one_nat)))));
 
 fun opt_MatchAny_match_expr MatchAny = MatchAny
   | opt_MatchAny_match_expr (Match a) = Match a
@@ -1455,14 +1515,18 @@ fun opt_MatchAny_match_expr MatchAny = MatchAny
   | opt_MatchAny_match_expr (MatchNot MatchAny) =
     MatchNot (opt_MatchAny_match_expr MatchAny)
   | opt_MatchAny_match_expr (MatchAnd (MatchAny, MatchAny)) = MatchAny
-  | opt_MatchAny_match_expr (MatchAnd (MatchAny, Match v)) = Match v
-  | opt_MatchAny_match_expr (MatchAnd (MatchAny, MatchNot v)) = MatchNot v
+  | opt_MatchAny_match_expr (MatchAnd (MatchAny, Match v)) =
+    opt_MatchAny_match_expr (Match v)
+  | opt_MatchAny_match_expr (MatchAnd (MatchAny, MatchNot v)) =
+    opt_MatchAny_match_expr (MatchNot v)
   | opt_MatchAny_match_expr (MatchAnd (MatchAny, MatchAnd (v, va))) =
-    MatchAnd (v, va)
-  | opt_MatchAny_match_expr (MatchAnd (Match v, MatchAny)) = Match v
-  | opt_MatchAny_match_expr (MatchAnd (MatchNot v, MatchAny)) = MatchNot v
+    opt_MatchAny_match_expr (MatchAnd (v, va))
+  | opt_MatchAny_match_expr (MatchAnd (Match v, MatchAny)) =
+    opt_MatchAny_match_expr (Match v)
+  | opt_MatchAny_match_expr (MatchAnd (MatchNot v, MatchAny)) =
+    opt_MatchAny_match_expr (MatchNot v)
   | opt_MatchAny_match_expr (MatchAnd (MatchAnd (v, va), MatchAny)) =
-    MatchAnd (v, va)
+    opt_MatchAny_match_expr (MatchAnd (v, va))
   | opt_MatchAny_match_expr (MatchAnd (Match v, MatchNot MatchAny)) =
     MatchNot MatchAny
   | opt_MatchAny_match_expr (MatchAnd (MatchNot v, MatchNot MatchAny)) =
@@ -1593,207 +1657,682 @@ fun opt_MatchAny_match_expr MatchAny = MatchAny
       (opt_MatchAny_match_expr (MatchAnd (v, va)),
         opt_MatchAny_match_expr (MatchAnd (vb, vc)));
 
+fun get_action (Rule (x1, x2)) = x2;
+
+fun get_match (Rule (x1, x2)) = x1;
+
+fun optimize_matches f rs =
+  map (fn r => Rule (f (get_match r), get_action r)) rs;
+
+fun normalize_match MatchAny = [MatchAny]
+  | normalize_match (Match m) = [Match m]
+  | normalize_match (MatchAnd (m1, m2)) =
+    maps (fn x => map (fn a => MatchAnd (x, a)) (normalize_match m2))
+      (normalize_match m1)
+  | normalize_match (MatchNot (MatchAnd (m1, m2))) =
+    normalize_match (MatchNot m1) @ normalize_match (MatchNot m2)
+  | normalize_match (MatchNot (MatchNot m)) = normalize_match m
+  | normalize_match (MatchNot MatchAny) = []
+  | normalize_match (MatchNot (Match m)) = [MatchNot (Match m)];
+
+fun normalize_rules_dnf [] = []
+  | normalize_rules_dnf (Rule (m, a) :: rs) =
+    map (fn ma => Rule (ma, a)) (normalize_match m) @ normalize_rules_dnf rs;
+
+fun transform_optimize_dnf_strict x =
+  (optimize_matches opt_MatchAny_match_expr o normalize_rules_dnf o
+    optimize_matches (opt_MatchAny_match_expr o optimize_primitive_univ))
+    x;
+
+fun optimize_matches_a f rs =
+  map (fn r => Rule (f (get_action r) (get_match r), get_action r)) rs;
+
 fun lower_closure rs =
-  rmMatchFalse
-    (funpow (nat_of_integer (2000 : IntInf.int))
-      (optimize_matches opt_MatchAny_match_expr)
-      (optimize_matches_a opt_simple_matcher_in_doubt_deny_extra rs));
+  transform_optimize_dnf_strict
+    (transform_normalize_primitives
+      (transform_optimize_dnf_strict
+        (optimize_matches_a lower_closure_matchexpr rs)));
 
 fun map_of_string rs = map_of (equal_list equal_char) rs;
 
-fun opt_simple_matcher_in_doubt_allow_extra uu MatchAny = MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Accept (Match (Extra uv)) = MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Reject (Match (Extra uw)) =
+fun upper_closure_matchexpr uu MatchAny = MatchAny
+  | upper_closure_matchexpr Accept (Match (Extra uv)) = MatchAny
+  | upper_closure_matchexpr Reject (Match (Extra uw)) = MatchNot MatchAny
+  | upper_closure_matchexpr Drop (Match (Extra ux)) = MatchNot MatchAny
+  | upper_closure_matchexpr Drop (Match (Src v)) = Match (Src v)
+  | upper_closure_matchexpr Drop (Match (Dst v)) = Match (Dst v)
+  | upper_closure_matchexpr Drop (Match (IIface v)) = Match (IIface v)
+  | upper_closure_matchexpr Drop (Match (OIface v)) = Match (OIface v)
+  | upper_closure_matchexpr Drop (Match (Prot v)) = Match (Prot v)
+  | upper_closure_matchexpr Drop (Match (Src_Ports v)) = Match (Src_Ports v)
+  | upper_closure_matchexpr Drop (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | upper_closure_matchexpr Log (Match m) = Match m
+  | upper_closure_matchexpr Reject (Match (Src v)) = Match (Src v)
+  | upper_closure_matchexpr Reject (Match (Dst v)) = Match (Dst v)
+  | upper_closure_matchexpr Reject (Match (IIface v)) = Match (IIface v)
+  | upper_closure_matchexpr Reject (Match (OIface v)) = Match (OIface v)
+  | upper_closure_matchexpr Reject (Match (Prot v)) = Match (Prot v)
+  | upper_closure_matchexpr Reject (Match (Src_Ports v)) = Match (Src_Ports v)
+  | upper_closure_matchexpr Reject (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | upper_closure_matchexpr (Call v) (Match m) = Match m
+  | upper_closure_matchexpr Return (Match m) = Match m
+  | upper_closure_matchexpr Empty (Match m) = Match m
+  | upper_closure_matchexpr Unknown (Match m) = Match m
+  | upper_closure_matchexpr uy (Match (Src v)) = Match (Src v)
+  | upper_closure_matchexpr uy (Match (Dst v)) = Match (Dst v)
+  | upper_closure_matchexpr uy (Match (IIface v)) = Match (IIface v)
+  | upper_closure_matchexpr uy (Match (OIface v)) = Match (OIface v)
+  | upper_closure_matchexpr uy (Match (Prot v)) = Match (Prot v)
+  | upper_closure_matchexpr uy (Match (Src_Ports v)) = Match (Src_Ports v)
+  | upper_closure_matchexpr uy (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | upper_closure_matchexpr Accept (MatchNot (Match (Extra uz))) = MatchAny
+  | upper_closure_matchexpr Drop (MatchNot (Match (Extra va))) =
     MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Drop (Match (Extra ux)) =
+  | upper_closure_matchexpr Reject (MatchNot (Match (Extra vb))) =
     MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Drop (Match (Src v)) = Match (Src v)
-  | opt_simple_matcher_in_doubt_allow_extra Drop (Match (Dst v)) = Match (Dst v)
-  | opt_simple_matcher_in_doubt_allow_extra Drop (Match (Prot v)) =
-    Match (Prot v)
-  | opt_simple_matcher_in_doubt_allow_extra Log (Match m) = Match m
-  | opt_simple_matcher_in_doubt_allow_extra Reject (Match (Src v)) =
-    Match (Src v)
-  | opt_simple_matcher_in_doubt_allow_extra Reject (Match (Dst v)) =
-    Match (Dst v)
-  | opt_simple_matcher_in_doubt_allow_extra Reject (Match (Prot v)) =
-    Match (Prot v)
-  | opt_simple_matcher_in_doubt_allow_extra (Call v) (Match m) = Match m
-  | opt_simple_matcher_in_doubt_allow_extra Return (Match m) = Match m
-  | opt_simple_matcher_in_doubt_allow_extra Empty (Match m) = Match m
-  | opt_simple_matcher_in_doubt_allow_extra Unknown (Match m) = Match m
-  | opt_simple_matcher_in_doubt_allow_extra uy (Match (Src v)) = Match (Src v)
-  | opt_simple_matcher_in_doubt_allow_extra uy (Match (Dst v)) = Match (Dst v)
-  | opt_simple_matcher_in_doubt_allow_extra uy (Match (Prot v)) = Match (Prot v)
-  | opt_simple_matcher_in_doubt_allow_extra Accept (MatchNot (Match (Extra uz)))
-    = MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Drop (MatchNot (Match (Extra va))) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Reject (MatchNot (Match (Extra vb)))
-    = MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra a (MatchNot (MatchNot m)) =
-    opt_simple_matcher_in_doubt_allow_extra a m
-  | opt_simple_matcher_in_doubt_allow_extra a (MatchNot (MatchAnd (m1, m2))) =
-    (if equal_match_expr equal_iptrule_match
-          (opt_simple_matcher_in_doubt_allow_extra a (MatchNot m1))
-          MatchAny orelse
-          equal_match_expr equal_iptrule_match
-            (opt_simple_matcher_in_doubt_allow_extra a (MatchNot m2)) MatchAny
-      then MatchAny
-      else (if equal_match_expr equal_iptrule_match
-                 (opt_simple_matcher_in_doubt_allow_extra a (MatchNot m1))
-                 (MatchNot MatchAny)
-             then opt_simple_matcher_in_doubt_allow_extra a (MatchNot m2)
-             else (if equal_match_expr equal_iptrule_match
-                        (opt_simple_matcher_in_doubt_allow_extra a
-                          (MatchNot m2))
-                        (MatchNot MatchAny)
-                    then opt_simple_matcher_in_doubt_allow_extra a (MatchNot m1)
-                    else MatchNot
-                           (MatchAnd
-                             (MatchNot
-                                (opt_simple_matcher_in_doubt_allow_extra a
-                                  (MatchNot m1)),
-                               MatchNot
-                                 (opt_simple_matcher_in_doubt_allow_extra a
-                                   (MatchNot m2)))))))
-  | opt_simple_matcher_in_doubt_allow_extra Drop (MatchNot (Match (Src va))) =
+  | upper_closure_matchexpr a (MatchNot (MatchNot m)) =
+    upper_closure_matchexpr a m
+  | upper_closure_matchexpr a (MatchNot (MatchAnd (m1, m2))) =
+    let
+      val m1a = upper_closure_matchexpr a (MatchNot m1);
+      val m2a = upper_closure_matchexpr a (MatchNot m2);
+    in
+      (if equal_match_expr equal_common_primitive m1a MatchAny orelse
+            equal_match_expr equal_common_primitive m2a MatchAny
+        then MatchAny
+        else (if equal_match_expr equal_common_primitive m1a (MatchNot MatchAny)
+               then m2a
+               else (if equal_match_expr equal_common_primitive m2a
+                          (MatchNot MatchAny)
+                      then m1a
+                      else MatchNot (MatchAnd (MatchNot m1a, MatchNot m2a)))))
+    end
+  | upper_closure_matchexpr Drop (MatchNot (Match (Src va))) =
     MatchNot (Match (Src va))
-  | opt_simple_matcher_in_doubt_allow_extra Drop (MatchNot (Match (Dst va))) =
+  | upper_closure_matchexpr Drop (MatchNot (Match (Dst va))) =
     MatchNot (Match (Dst va))
-  | opt_simple_matcher_in_doubt_allow_extra Drop (MatchNot (Match (Prot va))) =
+  | upper_closure_matchexpr Drop (MatchNot (Match (IIface va))) =
+    MatchNot (Match (IIface va))
+  | upper_closure_matchexpr Drop (MatchNot (Match (OIface va))) =
+    MatchNot (Match (OIface va))
+  | upper_closure_matchexpr Drop (MatchNot (Match (Prot va))) =
     MatchNot (Match (Prot va))
-  | opt_simple_matcher_in_doubt_allow_extra Drop (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Log (MatchNot (Match v)) =
-    MatchNot (Match v)
-  | opt_simple_matcher_in_doubt_allow_extra Log (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Reject (MatchNot (Match (Src va))) =
+  | upper_closure_matchexpr Drop (MatchNot (Match (Src_Ports va))) =
+    MatchNot (Match (Src_Ports va))
+  | upper_closure_matchexpr Drop (MatchNot (Match (Dst_Ports va))) =
+    MatchNot (Match (Dst_Ports va))
+  | upper_closure_matchexpr Drop (MatchNot MatchAny) = MatchNot MatchAny
+  | upper_closure_matchexpr Log (MatchNot (Match v)) = MatchNot (Match v)
+  | upper_closure_matchexpr Log (MatchNot MatchAny) = MatchNot MatchAny
+  | upper_closure_matchexpr Reject (MatchNot (Match (Src va))) =
     MatchNot (Match (Src va))
-  | opt_simple_matcher_in_doubt_allow_extra Reject (MatchNot (Match (Dst va))) =
+  | upper_closure_matchexpr Reject (MatchNot (Match (Dst va))) =
     MatchNot (Match (Dst va))
-  | opt_simple_matcher_in_doubt_allow_extra Reject (MatchNot (Match (Prot va)))
-    = MatchNot (Match (Prot va))
-  | opt_simple_matcher_in_doubt_allow_extra Reject (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra (Call v) (MatchNot (Match va)) =
-    MatchNot (Match va)
-  | opt_simple_matcher_in_doubt_allow_extra (Call v) (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Return (MatchNot (Match v)) =
-    MatchNot (Match v)
-  | opt_simple_matcher_in_doubt_allow_extra Return (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Empty (MatchNot (Match v)) =
-    MatchNot (Match v)
-  | opt_simple_matcher_in_doubt_allow_extra Empty (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra Unknown (MatchNot (Match v)) =
-    MatchNot (Match v)
-  | opt_simple_matcher_in_doubt_allow_extra Unknown (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra vc (MatchNot (Match (Src va))) =
-    MatchNot (Match (Src va))
-  | opt_simple_matcher_in_doubt_allow_extra vc (MatchNot (Match (Dst va))) =
-    MatchNot (Match (Dst va))
-  | opt_simple_matcher_in_doubt_allow_extra vc (MatchNot (Match (Prot va))) =
+  | upper_closure_matchexpr Reject (MatchNot (Match (IIface va))) =
+    MatchNot (Match (IIface va))
+  | upper_closure_matchexpr Reject (MatchNot (Match (OIface va))) =
+    MatchNot (Match (OIface va))
+  | upper_closure_matchexpr Reject (MatchNot (Match (Prot va))) =
     MatchNot (Match (Prot va))
-  | opt_simple_matcher_in_doubt_allow_extra vc (MatchNot MatchAny) =
-    MatchNot MatchAny
-  | opt_simple_matcher_in_doubt_allow_extra a (MatchAnd (m1, m2)) =
-    MatchAnd
-      (opt_simple_matcher_in_doubt_allow_extra a m1,
-        opt_simple_matcher_in_doubt_allow_extra a m2);
+  | upper_closure_matchexpr Reject (MatchNot (Match (Src_Ports va))) =
+    MatchNot (Match (Src_Ports va))
+  | upper_closure_matchexpr Reject (MatchNot (Match (Dst_Ports va))) =
+    MatchNot (Match (Dst_Ports va))
+  | upper_closure_matchexpr Reject (MatchNot MatchAny) = MatchNot MatchAny
+  | upper_closure_matchexpr (Call v) (MatchNot (Match va)) = MatchNot (Match va)
+  | upper_closure_matchexpr (Call v) (MatchNot MatchAny) = MatchNot MatchAny
+  | upper_closure_matchexpr Return (MatchNot (Match v)) = MatchNot (Match v)
+  | upper_closure_matchexpr Return (MatchNot MatchAny) = MatchNot MatchAny
+  | upper_closure_matchexpr Empty (MatchNot (Match v)) = MatchNot (Match v)
+  | upper_closure_matchexpr Empty (MatchNot MatchAny) = MatchNot MatchAny
+  | upper_closure_matchexpr Unknown (MatchNot (Match v)) = MatchNot (Match v)
+  | upper_closure_matchexpr Unknown (MatchNot MatchAny) = MatchNot MatchAny
+  | upper_closure_matchexpr vc (MatchNot (Match (Src va))) =
+    MatchNot (Match (Src va))
+  | upper_closure_matchexpr vc (MatchNot (Match (Dst va))) =
+    MatchNot (Match (Dst va))
+  | upper_closure_matchexpr vc (MatchNot (Match (IIface va))) =
+    MatchNot (Match (IIface va))
+  | upper_closure_matchexpr vc (MatchNot (Match (OIface va))) =
+    MatchNot (Match (OIface va))
+  | upper_closure_matchexpr vc (MatchNot (Match (Prot va))) =
+    MatchNot (Match (Prot va))
+  | upper_closure_matchexpr vc (MatchNot (Match (Src_Ports va))) =
+    MatchNot (Match (Src_Ports va))
+  | upper_closure_matchexpr vc (MatchNot (Match (Dst_Ports va))) =
+    MatchNot (Match (Dst_Ports va))
+  | upper_closure_matchexpr vc (MatchNot MatchAny) = MatchNot MatchAny
+  | upper_closure_matchexpr a (MatchAnd (m1, m2)) =
+    MatchAnd (upper_closure_matchexpr a m1, upper_closure_matchexpr a m2);
 
 fun upper_closure rs =
-  rmMatchFalse
-    (funpow (nat_of_integer (2000 : IntInf.int))
-      (optimize_matches opt_MatchAny_match_expr)
-      (optimize_matches_a opt_simple_matcher_in_doubt_allow_extra rs));
+  transform_optimize_dnf_strict
+    (transform_normalize_primitives
+      (transform_optimize_dnf_strict
+        (optimize_matches_a upper_closure_matchexpr rs)));
 
-fun format_Ln_rules_uncompressed rs =
-  map (fn r => (format_Ln_match (get_match r), get_action r))
-    (normalize_rules rs);
+fun insort_key B_ f x [] = [x]
+  | insort_key B_ f x (y :: ys) =
+    (if less_eq ((ord_preorder o preorder_order o order_linorder) B_) (f x)
+          (f y)
+      then x :: y :: ys else y :: insort_key B_ f x ys);
 
-fun does_I_has_compressed_prots [] = []
-  | does_I_has_compressed_prots
-    ((UncompressedFormattedMatch (src, dst, [], []), a) :: rs) =
-    does_I_has_compressed_prots rs
-  | does_I_has_compressed_prots
-    ((UncompressedFormattedMatch (src, dst, [proto], []), a) :: rs) =
-    does_I_has_compressed_prots rs
-  | does_I_has_compressed_prots
-    ((UncompressedFormattedMatch (vb, vc, vf :: v :: vd, ve), va) :: rs) =
-    (UncompressedFormattedMatch (vb, vc, vf :: v :: vd, ve), va) ::
-      does_I_has_compressed_prots rs
-  | does_I_has_compressed_prots
-    ((UncompressedFormattedMatch (vb, vc, vf :: vg, v :: vd), va) :: rs) =
-    (UncompressedFormattedMatch (vb, vc, vf :: vg, v :: vd), va) ::
-      does_I_has_compressed_prots rs
-  | does_I_has_compressed_prots
-    ((UncompressedFormattedMatch (vb, vc, vd, vf :: vg), va) :: rs) =
-    (UncompressedFormattedMatch (vb, vc, vd, vf :: vg), va) ::
-      does_I_has_compressed_prots rs;
+fun sort_key B_ f xs = foldr (insort_key B_ f) xs [];
 
-fun does_I_has_compressed_rules [] = []
-  | does_I_has_compressed_rules
-    ((UncompressedFormattedMatch ([], [dst], proto, []), a) :: rs) =
-    does_I_has_compressed_rules rs
-  | does_I_has_compressed_rules
-    ((UncompressedFormattedMatch ([src], [], proto, []), a) :: rs) =
-    does_I_has_compressed_rules rs
-  | does_I_has_compressed_rules
-    ((UncompressedFormattedMatch ([src], [dst], proto, []), a) :: rs) =
-    does_I_has_compressed_rules rs
-  | does_I_has_compressed_rules
-    ((UncompressedFormattedMatch ([], [], proto, []), a) :: rs) =
-    does_I_has_compressed_rules rs
-  | does_I_has_compressed_rules
-    ((UncompressedFormattedMatch (vf :: v :: vb, vc, vd, ve), va) :: rs) =
-    (UncompressedFormattedMatch (vf :: v :: vb, vc, vd, ve), va) ::
-      does_I_has_compressed_rules rs
-  | does_I_has_compressed_rules
-    ((UncompressedFormattedMatch (vf :: vg, v :: vc :: vh, vd, ve), va) :: rs) =
-    (UncompressedFormattedMatch (vf :: vg, v :: vc :: vh, vd, ve), va) ::
-      does_I_has_compressed_rules rs
-  | does_I_has_compressed_rules
-    ((UncompressedFormattedMatch (vf :: vg, v :: vb, vd, vc :: vh), va) :: rs) =
-    (UncompressedFormattedMatch (vf :: vg, v :: vb, vd, vc :: vh), va) ::
-      does_I_has_compressed_rules rs
-  | does_I_has_compressed_rules
-    ((UncompressedFormattedMatch (vf :: vg, vc, vd, v :: vb), va) :: rs) =
-    (UncompressedFormattedMatch (vf :: vg, vc, vd, v :: vb), va) ::
-      does_I_has_compressed_rules rs
-  | does_I_has_compressed_rules
-    ((UncompressedFormattedMatch ([], [], vd, v :: vb), va) :: rs) =
-    (UncompressedFormattedMatch ([], [], vd, v :: vb), va) ::
-      does_I_has_compressed_rules rs
-  | does_I_has_compressed_rules
-    ((UncompressedFormattedMatch (vb, [], vd, v :: vc), va) :: rs) =
-    (UncompressedFormattedMatch (vb, [], vd, v :: vc), va) ::
-      does_I_has_compressed_rules rs
-  | does_I_has_compressed_rules
-    ((UncompressedFormattedMatch (vb, vf :: vh :: vi, vd, ve), va) :: rs) =
-    (UncompressedFormattedMatch (vb, vf :: vh :: vi, vd, ve), va) ::
-      does_I_has_compressed_rules rs
-  | does_I_has_compressed_rules
-    ((UncompressedFormattedMatch (vb, vc, vd, vf :: vg), va) :: rs) =
-    (UncompressedFormattedMatch (vb, vc, vd, vf :: vg), va) ::
-      does_I_has_compressed_rules rs;
+fun to_negation_type_nnf MatchAny = []
+  | to_negation_type_nnf (Match a) = [Pos a]
+  | to_negation_type_nnf (MatchNot (Match a)) = [Neg a]
+  | to_negation_type_nnf (MatchAnd (a, b)) =
+    to_negation_type_nnf a @ to_negation_type_nnf b;
+
+fun to_packet_set a m =
+  PacketSet
+    (map (map (fn ma => (ma, Pos a)) o to_negation_type_nnf)
+      (normalize_match m));
+
+fun rm_LogEmpty [] = []
+  | rm_LogEmpty (Rule (uu, Empty) :: rs) = rm_LogEmpty rs
+  | rm_LogEmpty (Rule (uv, Log) :: rs) = rm_LogEmpty rs
+  | rm_LogEmpty (Rule (v, Accept) :: rs) = Rule (v, Accept) :: rm_LogEmpty rs
+  | rm_LogEmpty (Rule (v, Drop) :: rs) = Rule (v, Drop) :: rm_LogEmpty rs
+  | rm_LogEmpty (Rule (v, Reject) :: rs) = Rule (v, Reject) :: rm_LogEmpty rs
+  | rm_LogEmpty (Rule (v, Call vb) :: rs) = Rule (v, Call vb) :: rm_LogEmpty rs
+  | rm_LogEmpty (Rule (v, Return) :: rs) = Rule (v, Return) :: rm_LogEmpty rs
+  | rm_LogEmpty (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rm_LogEmpty rs;
+
+fun packet_set_union (PacketSet olist1) (PacketSet olist2) =
+  PacketSet (olist1 @ olist2);
+
+fun packet_set_opt4_internal_internal A_ cs =
+  pred_list
+    (fn (m, a) =>
+      not (member
+            (equal_prod (equal_negation_type A_)
+              (equal_negation_type equal_action))
+            cs (m, invert a)))
+    cs;
+
+fun packet_set_opt4 A_ (PacketSet ps) =
+  PacketSet (filter (packet_set_opt4_internal_internal A_) ps);
+
+fun packet_set_opt3 (PacketSet ps) =
+  PacketSet (sort_key linorder_nat size_list ps);
+
+fun packet_set_opt2_internal A_ [] = []
+  | packet_set_opt2_internal A_ ([] :: ps) = [[]]
+  | packet_set_opt2_internal A_ ((v :: va) :: ps) =
+    (v :: va) ::
+      (if less_eq_nat (size_list (v :: va)) (nat_of_integer (5 : IntInf.int))
+        then packet_set_opt2_internal A_
+               (filter
+                 (fn ass =>
+                   not (pred_list
+                         (member
+                           (equal_prod (equal_negation_type A_)
+                             (equal_negation_type equal_action))
+                           ass)
+                         (v :: va)))
+                 ps)
+        else packet_set_opt2_internal A_ ps);
+
+fun packet_set_opt2 A_ (PacketSet ps) =
+  PacketSet (packet_set_opt2_internal A_ ps);
+
+fun packet_set_opt1 A_ (PacketSet ps) =
+  PacketSet
+    (map (remdups
+           (equal_prod (equal_negation_type A_)
+             (equal_negation_type equal_action)))
+      (remdups
+        (equal_list
+          (equal_prod (equal_negation_type A_)
+            (equal_negation_type equal_action)))
+        ps));
+
+fun packet_set_opt A_ ps =
+  packet_set_opt1 A_
+    (packet_set_opt2 A_ (packet_set_opt3 (packet_set_opt4 A_ ps)));
+
+fun packet_set_not_internal [] = [[]]
+  | packet_set_not_internal (ns :: nss) =
+    listprepend (map invertt ns) (packet_set_not_internal nss);
+
+fun packet_set_not (PacketSet ps) = PacketSet (packet_set_not_internal ps);
+
+fun collect_allow_compl_impl_tailrec A_ [] p pAs = pAs
+  | collect_allow_compl_impl_tailrec A_ (Rule (m, Accept) :: rs) p pAs =
+    collect_allow_compl_impl_tailrec A_ rs
+      (packet_set_opt A_ (packet_set_union p (to_packet_set Accept m)))
+      (packet_set_union p (packet_set_not (to_packet_set Accept m)) :: pAs)
+  | collect_allow_compl_impl_tailrec A_ (Rule (m, Drop) :: rs) p pAs =
+    collect_allow_compl_impl_tailrec A_ rs
+      (packet_set_opt A_ (packet_set_union p (to_packet_set Drop m))) pAs;
+
+val packet_set_Empty : 'a packet_set = PacketSet [];
+
+fun allow_set_not_inter A_ rs =
+  collect_allow_compl_impl_tailrec A_ rs packet_set_Empty [];
+
+fun simple_proto_conjunct ProtoAny proto = SOME proto
+  | simple_proto_conjunct (Proto v) ProtoAny = SOME (Proto v)
+  | simple_proto_conjunct (Proto p1) (Proto p2) =
+    (if equal_primitive_protocol p1 p2 then SOME (Proto p1) else NONE);
+
+fun ipv4range_intersection r1 r2 =
+  wordinterval_intersection
+    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
+
+val packet_set_UNIV : 'a packet_set = PacketSet [[]];
+
+fun has_disc uu MatchAny = false
+  | has_disc disc (Match a) = disc a
+  | has_disc disc (MatchNot m) = has_disc disc m
+  | has_disc disc (MatchAnd (m1, m2)) =
+    has_disc disc m1 orelse has_disc disc m2;
+
+fun equal_packet_set A_ (PacketSet x) (PacketSet ya) =
+  equal_lista
+    (equal_list
+      (equal_prod (equal_negation_type A_) (equal_negation_type equal_action)))
+    x ya;
+
+fun deny_set rs =
+  filter
+    (fn a => not (equal_packet_set equal_common_primitive a packet_set_UNIV))
+    (map (packet_set_opt equal_common_primitive)
+      (allow_set_not_inter equal_common_primitive rs));
+
+fun process_ret [] = []
+  | process_ret (Rule (m, Return) :: rs) =
+    add_match (MatchNot m) (process_ret rs)
+  | process_ret (Rule (v, Accept) :: rs) = Rule (v, Accept) :: process_ret rs
+  | process_ret (Rule (v, Drop) :: rs) = Rule (v, Drop) :: process_ret rs
+  | process_ret (Rule (v, Log) :: rs) = Rule (v, Log) :: process_ret rs
+  | process_ret (Rule (v, Reject) :: rs) = Rule (v, Reject) :: process_ret rs
+  | process_ret (Rule (v, Call vb) :: rs) = Rule (v, Call vb) :: process_ret rs
+  | process_ret (Rule (v, Empty) :: rs) = Rule (v, Empty) :: process_ret rs
+  | process_ret (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: process_ret rs;
+
+fun process_call gamma [] = []
+  | process_call gamma (Rule (m, Call chain) :: rs) =
+    add_match m (process_ret (the (gamma chain))) @ process_call gamma rs
+  | process_call gamma (Rule (v, Accept) :: rs) =
+    Rule (v, Accept) :: process_call gamma rs
+  | process_call gamma (Rule (v, Drop) :: rs) =
+    Rule (v, Drop) :: process_call gamma rs
+  | process_call gamma (Rule (v, Log) :: rs) =
+    Rule (v, Log) :: process_call gamma rs
+  | process_call gamma (Rule (v, Reject) :: rs) =
+    Rule (v, Reject) :: process_call gamma rs
+  | process_call gamma (Rule (v, Return) :: rs) =
+    Rule (v, Return) :: process_call gamma rs
+  | process_call gamma (Rule (v, Empty) :: rs) =
+    Rule (v, Empty) :: process_call gamma rs
+  | process_call gamma (Rule (v, Unknown) :: rs) =
+    Rule (v, Unknown) :: process_call gamma rs;
+
+fun dst
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  dst;
+
+fun src
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  src;
+
+val simple_match_any : unit simple_match_ext =
+  Simple_match_ext
+    (ifaceAny, ifaceAny,
+      (zero_worda
+         (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))),
+        zero_nat),
+      (zero_worda
+         (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))),
+        zero_nat),
+      ProtoAny,
+      (zero_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))),
+        word_of_int (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))
+          (Int_of_integer (65535 : IntInf.int))),
+      (zero_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))),
+        word_of_int (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))
+          (Int_of_integer (65535 : IntInf.int))),
+      ());
+
+fun normalized_dst_ports MatchAny = true
+  | normalized_dst_ports (Match (Dst_Ports [])) = true
+  | normalized_dst_ports (Match (Dst_Ports [uu])) = true
+  | normalized_dst_ports (Match (Dst_Ports (v :: vb :: vc))) = false
+  | normalized_dst_ports (Match (Src v)) = true
+  | normalized_dst_ports (Match (Dst v)) = true
+  | normalized_dst_ports (Match (IIface v)) = true
+  | normalized_dst_ports (Match (OIface v)) = true
+  | normalized_dst_ports (Match (Prot v)) = true
+  | normalized_dst_ports (Match (Src_Ports v)) = true
+  | normalized_dst_ports (Match (Extra v)) = true
+  | normalized_dst_ports (MatchNot (Match (Dst_Ports ux))) = false
+  | normalized_dst_ports (MatchNot (Match (Src v))) = true
+  | normalized_dst_ports (MatchNot (Match (Dst v))) = true
+  | normalized_dst_ports (MatchNot (Match (IIface v))) = true
+  | normalized_dst_ports (MatchNot (Match (OIface v))) = true
+  | normalized_dst_ports (MatchNot (Match (Prot v))) = true
+  | normalized_dst_ports (MatchNot (Match (Src_Ports v))) = true
+  | normalized_dst_ports (MatchNot (Match (Extra v))) = true
+  | normalized_dst_ports (MatchAnd (m1, m2)) =
+    normalized_dst_ports m1 andalso normalized_dst_ports m2
+  | normalized_dst_ports (MatchNot (MatchAnd (uz, va))) = false
+  | normalized_dst_ports (MatchNot (MatchNot vb)) = false
+  | normalized_dst_ports (MatchNot MatchAny) = true;
+
+fun normalized_src_ports MatchAny = true
+  | normalized_src_ports (Match (Src_Ports [])) = true
+  | normalized_src_ports (Match (Src_Ports [uu])) = true
+  | normalized_src_ports (Match (Src_Ports (v :: vb :: vc))) = false
+  | normalized_src_ports (Match (Src v)) = true
+  | normalized_src_ports (Match (Dst v)) = true
+  | normalized_src_ports (Match (IIface v)) = true
+  | normalized_src_ports (Match (OIface v)) = true
+  | normalized_src_ports (Match (Prot v)) = true
+  | normalized_src_ports (Match (Dst_Ports v)) = true
+  | normalized_src_ports (Match (Extra v)) = true
+  | normalized_src_ports (MatchNot (Match (Src_Ports ux))) = false
+  | normalized_src_ports (MatchNot (Match (Src v))) = true
+  | normalized_src_ports (MatchNot (Match (Dst v))) = true
+  | normalized_src_ports (MatchNot (Match (IIface v))) = true
+  | normalized_src_ports (MatchNot (Match (OIface v))) = true
+  | normalized_src_ports (MatchNot (Match (Prot v))) = true
+  | normalized_src_ports (MatchNot (Match (Dst_Ports v))) = true
+  | normalized_src_ports (MatchNot (Match (Extra v))) = true
+  | normalized_src_ports (MatchAnd (m1, m2)) =
+    normalized_src_ports m1 andalso normalized_src_ports m2
+  | normalized_src_ports (MatchNot (MatchAnd (uz, va))) = false
+  | normalized_src_ports (MatchNot (MatchNot vb)) = false
+  | normalized_src_ports (MatchNot MatchAny) = true;
+
+fun ipv4_cidr_tuple_to_intervall (pre, len) =
+  let
+    val netmask =
+      shiftl_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+          len)
+        (minus_nat (nat_of_integer (32 : IntInf.int)) len);
+    val network_prefix =
+      bitAND_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        pre netmask;
+  in
+    ipv4range_range network_prefix
+      (bitOR_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        network_prefix
+        (bitNOT_word
+          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+          netmask))
+  end;
+
+fun simpl_ports_conjunct (p1s, p1e) (p2s, p2e) =
+  (max (ord_word (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) p1s
+     p2s,
+    min (ord_word (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) p1e
+      p2e);
+
+fun simple_match_and
+  (Simple_match_ext (iif1, oif1, sip1, dip1, p1, sps1, dps1, ()))
+  (Simple_match_ext (iif2, oif2, sip2, dip2, p2, sps2, dps2, ())) =
+  (case (if ipv4range_empty
+              (ipv4range_intersection (ipv4_cidr_tuple_to_intervall sip1)
+                (ipv4_cidr_tuple_to_intervall sip2))
+          then NONE
+          else (if ipv4range_subset (ipv4_cidr_tuple_to_intervall sip1)
+                     (ipv4_cidr_tuple_to_intervall sip2)
+                 then SOME sip1 else SOME sip2))
+    of NONE => NONE
+    | SOME sip =>
+      (case (if ipv4range_empty
+                  (ipv4range_intersection (ipv4_cidr_tuple_to_intervall dip1)
+                    (ipv4_cidr_tuple_to_intervall dip2))
+              then NONE
+              else (if ipv4range_subset (ipv4_cidr_tuple_to_intervall dip1)
+                         (ipv4_cidr_tuple_to_intervall dip2)
+                     then SOME dip1 else SOME dip2))
+        of NONE => NONE
+        | SOME dip =>
+          (case iface_conjunct iif1 iif2 of NONE => NONE
+            | SOME iif =>
+              (case iface_conjunct oif1 oif2 of NONE => NONE
+                | SOME oif =>
+                  (case simple_proto_conjunct p1 p2 of NONE => NONE
+                    | SOME p =>
+                      SOME (Simple_match_ext
+                             (iif, oif, sip, dip, p,
+                               simpl_ports_conjunct sps1 sps2,
+                               simpl_ports_conjunct dps1 dps2, ())))))));
 
 fun unfold_ruleset_FORWARD rs =
   funpow (nat_of_integer (10 : IntInf.int))
     (optimize_matches opt_MatchAny_match_expr)
-    (optimize_matches opt_simple_matcher
+    (optimize_matches optimize_primitive_univ
       (rw_Reject
         (rm_LogEmpty
-          (funpow (nat_of_integer (5 : IntInf.int)) (process_call rs)
+          (funpow (nat_of_integer (10 : IntInf.int)) (process_call rs)
             [Rule (MatchAny,
                     Call [#"F", #"O", #"R", #"W", #"A", #"R", #"D"])]))));
 
+fun normalized_ifaces MatchAny = true
+  | normalized_ifaces (Match uu) = true
+  | normalized_ifaces (MatchNot (Match (IIface uv))) = false
+  | normalized_ifaces (MatchNot (Match (OIface uw))) = false
+  | normalized_ifaces (MatchAnd (m1, m2)) =
+    normalized_ifaces m1 andalso normalized_ifaces m2
+  | normalized_ifaces (MatchNot (MatchAnd (ux, uy))) = false
+  | normalized_ifaces (MatchNot (Match (Src va))) = true
+  | normalized_ifaces (MatchNot (Match (Dst va))) = true
+  | normalized_ifaces (MatchNot (Match (Prot va))) = true
+  | normalized_ifaces (MatchNot (Match (Src_Ports va))) = true
+  | normalized_ifaces (MatchNot (Match (Dst_Ports va))) = true
+  | normalized_ifaces (MatchNot (Match (Extra va))) = true
+  | normalized_ifaces (MatchNot (MatchNot v)) = true
+  | normalized_ifaces (MatchNot MatchAny) = true;
+
+fun proto
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  proto;
+
+fun ipt_ipv4range_to_ipv4_word_netmask (Ip4Addr ip_ddecim) =
+  (ipv4addr_of_dotdecimal ip_ddecim, nat_of_integer (32 : IntInf.int))
+  | ipt_ipv4range_to_ipv4_word_netmask (Ip4AddrNetmask (pre, len)) =
+    (ipv4addr_of_dotdecimal pre, len);
+
+fun sports_update sportsa
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  Simple_match_ext
+    (iiface, oiface, src, dst, proto, sportsa sports, dports, more);
+
+fun oiface_update oifacea
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  Simple_match_ext
+    (iiface, oifacea oiface, src, dst, proto, sports, dports, more);
+
+fun iiface_update iifacea
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  Simple_match_ext
+    (iifacea iiface, oiface, src, dst, proto, sports, dports, more);
+
+fun dports_update dportsa
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  Simple_match_ext
+    (iiface, oiface, src, dst, proto, sports, dportsa dports, more);
+
+fun proto_update protoa
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  Simple_match_ext
+    (iiface, oiface, src, dst, protoa proto, sports, dports, more);
+
+fun src_update srca
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  Simple_match_ext (iiface, oiface, srca src, dst, proto, sports, dports, more);
+
+fun dst_update dsta
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  Simple_match_ext (iiface, oiface, src, dsta dst, proto, sports, dports, more);
+
+fun common_primitive_match_to_simple_match MatchAny = SOME simple_match_any
+  | common_primitive_match_to_simple_match (MatchNot MatchAny) = NONE
+  | common_primitive_match_to_simple_match (Match (IIface iif)) =
+    SOME (iiface_update (fn _ => iif) simple_match_any)
+  | common_primitive_match_to_simple_match (Match (OIface oif)) =
+    SOME (oiface_update (fn _ => oif) simple_match_any)
+  | common_primitive_match_to_simple_match (Match (Src ip)) =
+    SOME (src_update (fn _ => ipt_ipv4range_to_ipv4_word_netmask ip)
+           simple_match_any)
+  | common_primitive_match_to_simple_match (Match (Dst ip)) =
+    SOME (dst_update (fn _ => ipt_ipv4range_to_ipv4_word_netmask ip)
+           simple_match_any)
+  | common_primitive_match_to_simple_match (Match (Prot p)) =
+    SOME (proto_update (fn _ => p) simple_match_any)
+  | common_primitive_match_to_simple_match (Match (Src_Ports [])) = NONE
+  | common_primitive_match_to_simple_match (Match (Src_Ports [(s, e)])) =
+    SOME (sports_update (fn _ => (s, e)) simple_match_any)
+  | common_primitive_match_to_simple_match (Match (Dst_Ports [])) = NONE
+  | common_primitive_match_to_simple_match (Match (Dst_Ports [(s, e)])) =
+    SOME (dports_update (fn _ => (s, e)) simple_match_any)
+  | common_primitive_match_to_simple_match (MatchNot (Match (Prot ProtoAny))) =
+    NONE
+  | common_primitive_match_to_simple_match (MatchAnd (m1, m2)) =
+    (case (common_primitive_match_to_simple_match m1,
+            common_primitive_match_to_simple_match m2)
+      of (NONE, xa) => NONE | (SOME a, NONE) => NONE
+      | (SOME a, SOME b) => simple_match_and a b)
+  | common_primitive_match_to_simple_match (MatchNot (Match (Prot (Proto v)))) =
+    (raise Fail "undefined")
+  | common_primitive_match_to_simple_match (MatchNot (Match (IIface iif))) =
+    (raise Fail "undefined")
+  | common_primitive_match_to_simple_match (MatchNot (Match (OIface oif))) =
+    (raise Fail "undefined")
+  | common_primitive_match_to_simple_match (MatchNot (Match (Src uv))) =
+    (raise Fail "undefined")
+  | common_primitive_match_to_simple_match (MatchNot (Match (Dst uw))) =
+    (raise Fail "undefined")
+  | common_primitive_match_to_simple_match (MatchNot (MatchAnd (ux, uy))) =
+    (raise Fail "undefined")
+  | common_primitive_match_to_simple_match (MatchNot (MatchNot uz)) =
+    (raise Fail "undefined")
+  | common_primitive_match_to_simple_match (Match (Src_Ports (va :: v :: vc))) =
+    (raise Fail "undefined")
+  | common_primitive_match_to_simple_match (Match (Dst_Ports (vc :: v :: va))) =
+    (raise Fail "undefined")
+  | common_primitive_match_to_simple_match (MatchNot (Match (Src_Ports ve))) =
+    (raise Fail "undefined")
+  | common_primitive_match_to_simple_match (MatchNot (Match (Dst_Ports vf))) =
+    (raise Fail "undefined")
+  | common_primitive_match_to_simple_match (Match (Extra vg)) =
+    (raise Fail "undefined")
+  | common_primitive_match_to_simple_match (MatchNot (Match (Extra vh))) =
+    (raise Fail "undefined");
+
+fun action_to_simple_action Accept = Accepta
+  | action_to_simple_action Drop = Dropa
+  | action_to_simple_action Log = (raise Fail "undefined")
+  | action_to_simple_action Reject = (raise Fail "undefined")
+  | action_to_simple_action (Call v) = (raise Fail "undefined")
+  | action_to_simple_action Return = (raise Fail "undefined")
+  | action_to_simple_action Empty = (raise Fail "undefined")
+  | action_to_simple_action Unknown = (raise Fail "undefined");
+
+fun to_simple_firewall rs =
+  map_filter
+    (fn Rule (m, a) =>
+      (case common_primitive_match_to_simple_match m of NONE => NONE
+        | SOME sm => SOME (SimpleRule (sm, action_to_simple_action a))))
+    rs;
+
+fun dports
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  dports;
+
+fun iiface
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  iiface;
+
+fun oiface
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  oiface;
+
+fun sports
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  sports;
+
+fun normalized_dst_ips MatchAny = true
+  | normalized_dst_ips (Match uu) = true
+  | normalized_dst_ips (MatchNot (Match (Dst uv))) = false
+  | normalized_dst_ips (MatchNot (Match (Src v))) = true
+  | normalized_dst_ips (MatchNot (Match (IIface v))) = true
+  | normalized_dst_ips (MatchNot (Match (OIface v))) = true
+  | normalized_dst_ips (MatchNot (Match (Prot v))) = true
+  | normalized_dst_ips (MatchNot (Match (Src_Ports v))) = true
+  | normalized_dst_ips (MatchNot (Match (Dst_Ports v))) = true
+  | normalized_dst_ips (MatchNot (Match (Extra v))) = true
+  | normalized_dst_ips (MatchAnd (m1, m2)) =
+    normalized_dst_ips m1 andalso normalized_dst_ips m2
+  | normalized_dst_ips (MatchNot (MatchAnd (ux, uy))) = false
+  | normalized_dst_ips (MatchNot (MatchNot uz)) = false
+  | normalized_dst_ips (MatchNot MatchAny) = true;
+
+fun normalized_src_ips MatchAny = true
+  | normalized_src_ips (Match uu) = true
+  | normalized_src_ips (MatchNot (Match (Src uv))) = false
+  | normalized_src_ips (MatchNot (Match (Dst v))) = true
+  | normalized_src_ips (MatchNot (Match (IIface v))) = true
+  | normalized_src_ips (MatchNot (Match (OIface v))) = true
+  | normalized_src_ips (MatchNot (Match (Prot v))) = true
+  | normalized_src_ips (MatchNot (Match (Src_Ports v))) = true
+  | normalized_src_ips (MatchNot (Match (Dst_Ports v))) = true
+  | normalized_src_ips (MatchNot (Match (Extra v))) = true
+  | normalized_src_ips (MatchAnd (m1, m2)) =
+    normalized_src_ips m1 andalso normalized_src_ips m2
+  | normalized_src_ips (MatchNot (MatchAnd (ux, uy))) = false
+  | normalized_src_ips (MatchNot (MatchNot uz)) = false
+  | normalized_src_ips (MatchNot MatchAny) = true;
+
+fun normalized_protocols MatchAny = true
+  | normalized_protocols (Match uu) = true
+  | normalized_protocols (MatchNot (Match (Prot uv))) = false
+  | normalized_protocols (MatchAnd (m1, m2)) =
+    normalized_protocols m1 andalso normalized_protocols m2
+  | normalized_protocols (MatchNot (MatchAnd (uw, ux))) = false
+  | normalized_protocols (MatchNot (Match (Src va))) = true
+  | normalized_protocols (MatchNot (Match (Dst va))) = true
+  | normalized_protocols (MatchNot (Match (IIface va))) = true
+  | normalized_protocols (MatchNot (Match (OIface va))) = true
+  | normalized_protocols (MatchNot (Match (Src_Ports va))) = true
+  | normalized_protocols (MatchNot (Match (Dst_Ports va))) = true
+  | normalized_protocols (MatchNot (Match (Extra va))) = true
+  | normalized_protocols (MatchNot (MatchNot v)) = true
+  | normalized_protocols (MatchNot MatchAny) = true;
+
+fun is_Extra (Src x1) = false
+  | is_Extra (Dst x2) = false
+  | is_Extra (IIface x3) = false
+  | is_Extra (OIface x4) = false
+  | is_Extra (Prot x5) = false
+  | is_Extra (Src_Ports x6) = false
+  | is_Extra (Dst_Ports x7) = false
+  | is_Extra (Extra x8) = true;
+
+fun check_simple_fw_preconditions rs =
+  pred_list
+    (fn Rule (m, a) =>
+      normalized_src_ports m andalso
+        (normalized_dst_ports m andalso
+          (normalized_src_ips m andalso
+            (normalized_dst_ips m andalso
+              (normalized_ifaces m andalso
+                (normalized_protocols m andalso
+                  (not (has_disc is_Extra m) andalso
+                    (equal_actiona a Accept orelse equal_actiona a Drop))))))))
+    rs;
+
 fun bitmask_to_strange_inverse_cisco_mask n =
-  dotteddecimal_of_ipv4addr
+  dotdecimal_of_ipv4addr
     (bitNOT_word
       (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
       (shiftl_word

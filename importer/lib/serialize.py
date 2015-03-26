@@ -39,11 +39,17 @@ class Serializer:
             assert False
             
         return "{}".format(n)
+    
+    def action(self, action):
+        assert type(action) == type("")
+        return action
 
 class HOL(Serializer):
     def __init__(self, module, import_module):
         if import_module is None:
-            error("Import module name required")
+            default_import = "Code_Interface" #file Code_Interface.thy
+            print("HOL: Import module name not specified. Using `%s'" % default_import)
+            import_module = default_import
 
         super().__init__(module, import_module, Constr_Syntax.fun)
 
@@ -69,6 +75,9 @@ class HOL(Serializer):
 
     def footer(self):
         return "\nend\n"
+    
+    def action(self, action):
+        return "action.{0}".format(action)
 
 class ML(Serializer):
     def __init__(self, module, import_module):

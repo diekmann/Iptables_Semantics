@@ -1,0 +1,49 @@
+ML_val{*
+dump_iptables (compress_Ln_ips (format_Ln_rules_uncompressed upper));
+*}
+
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            !224.0.0.0/4     
+ACCEPT     all  --  0.0.0.0/0            !224.0.0.0/4     
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            !224.0.0.0/4     
+ACCEPT     all  --  0.0.0.0/0            !224.0.0.0/4     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            !224.0.0.0/4     
+ACCEPT     all  --  0.0.0.0/0            !224.0.0.0/4     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0     
+DROP     all  --  0.0.0.0/0            0.0.0.0/0     
+val it = (): unit
+
+
+

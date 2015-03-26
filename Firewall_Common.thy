@@ -17,6 +17,7 @@ We list the primitives to an algebra. Note that we do not have an Or expression.
 datatype 'a match_expr = Match 'a | MatchNot "'a match_expr" | MatchAnd "'a match_expr" "'a match_expr" | MatchAny
 
 datatype_new 'a rule = Rule (get_match: "'a match_expr") (get_action: action)
+(*TODO: remove datatype_compat*)
 datatype_compat rule
 
 

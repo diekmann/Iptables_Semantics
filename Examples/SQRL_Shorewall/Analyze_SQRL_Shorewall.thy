@@ -1,5 +1,6 @@
 theory Analyze_SQRL_Shorewall
-imports Main "../../Output_Format/IPSpace_Format_Ln" "../../Call_Return_Unfolding" "../../Optimizing"
+imports "../Code_Interface"
+"../../Semantics_Ternary/Optimizing"
 "~~/src/HOL/Library/Code_Target_Nat"
 "~~/src/HOL/Library/Code_Target_Int"
 "~~/src/HOL/Library/Code_Char"
@@ -8,44 +9,30 @@ begin
 
 section{*Example: SQRL Shorewall*}
 
-definition unfold_ruleset_FORWARD :: "iptrule_match ruleset \<Rightarrow> iptrule_match rule list" where
-"unfold_ruleset_FORWARD rs = ((optimize_matches opt_MatchAny_match_expr)^^10) 
-  (optimize_matches opt_simple_matcher (rw_Reject (rm_LogEmpty (((process_call rs)^^20) [Rule MatchAny (Call ''FORWARD'')]))))"
-
-
-definition unfold_ruleset_OUTPUT :: "iptrule_match ruleset \<Rightarrow> iptrule_match rule list" where
-"unfold_ruleset_OUTPUT rs = ((optimize_matches opt_MatchAny_match_expr)^^10) 
-  (optimize_matches opt_simple_matcher (rw_Reject (rm_LogEmpty (((process_call rs)^^20) [Rule MatchAny (Call ''OUTPUT'')]))))"
-
-
-definition map_of_string :: "(string \<times> iptrule_match rule list) list \<Rightarrow> string \<rightharpoonup> iptrule_match rule list" where
-"map_of_string rs = map_of rs"
-
-
-
-definition upper_closure :: "iptrule_match rule list \<Rightarrow> iptrule_match rule list" where
-  "upper_closure rs == rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^2000) (optimize_matches_a opt_simple_matcher_in_doubt_allow_extra rs))"
-definition lower_closure :: "iptrule_match rule list \<Rightarrow> iptrule_match rule list" where
-  "lower_closure rs == rmMatchFalse (((optimize_matches opt_MatchAny_match_expr)^^2000) (optimize_matches_a opt_simple_matcher_in_doubt_deny_extra rs))"
-
-export_code unfold_ruleset_OUTPUT map_of_string upper_closure lower_closure format_Ln_rules_uncompressed compress_Ln_ips does_I_has_compressed_rules 
+export_code unfold_ruleset_OUTPUT map_of_string upper_closure lower_closure
   Rule
   Accept Drop Log Reject Call Return Empty  Unknown
   Match MatchNot MatchAnd MatchAny
   Ip4Addr Ip4AddrNetmask
-  ProtAll ProtTCP ProtUDP
-  Src Dst Prot Extra
+  ProtoAny Proto TCP UDP
+  Src Dst Prot Extra OIface IIface Src_Ports Dst_Ports
+  Iface
   nat_of_integer integer_of_nat
-  UncompressedFormattedMatch Pos Neg
-  does_I_has_compressed_prots
+  port_to_nat
+  dotdecimal_of_ipv4addr
+  check_simple_fw_preconditions
+  to_simple_firewall
+  SimpleRule simple_action.Accept simple_action.Drop 
+  iiface oiface src dst proto sports dports
   in SML module_name "Test" file "unfold_code.ML"
 
 ML_file "unfold_code.ML"
 
+ML{*
+open Test; (*put the exported code into current namespace such that the following firewall definition loads*)
+*}
 
-(*../main.py -t ml --module Test akachan-iptables-Ln akachan-iptables-Ln.ML
-File generated 1. Sept 2014
-add "open Test" to second line
+(*./main.py -t ml --module=Test  ../Examples/SQRL_Shorewall/akachan-iptables-Ln ../Examples/SQRL_Shorewall/akachan-iptables-Ln.ML
 *)
 ML_file "akachan-iptables-Ln.ML"
 
@@ -53,87 +40,85 @@ ML{*
 open Test;
 *}
 declare[[ML_print_depth=50]]
+
+
+
 ML{*
 val rules = unfold_ruleset_OUTPUT (map_of_string firewall_chains)
 *}
 ML{*
 length rules;
 val upper = upper_closure rules;
-length upper;*}
-ML{*
 val lower = lower_closure rules;
+length upper;
 length lower;*}
 
+
+ML_val{*
+check_simple_fw_preconditions upper;
+check_simple_fw_preconditions lower;
+*}
+
+ML_val{*
+length (to_simple_firewall upper);
+length (to_simple_firewall lower);
+*}
+
+
 ML{*
-fun dump_ip (Ip4Addr (a,(b,(c,d)))) = ""^ Int.toString (integer_of_nat a)^"."^ Int.toString (integer_of_nat b)^"."^ Int.toString (integer_of_nat c)^"."^ Int.toString (integer_of_nat d)^"/32"
-  | dump_ip (Ip4AddrNetmask ((a,(b,(c,d))), nm)) = 
-      ""^ Int.toString (integer_of_nat a)^"."^ Int.toString (integer_of_nat b)^"."^ Int.toString (integer_of_nat c)^"."^ Int.toString (integer_of_nat d)^"/"^ Int.toString (integer_of_nat nm);
+fun dump_dotdecimal_ip (a,(b,(c,d))) = ""^ Int.toString (integer_of_nat a)^"."^ Int.toString (integer_of_nat b)^"."^ Int.toString (integer_of_nat c)^"."^ Int.toString (integer_of_nat d);
 
-fun dump_prot ProtAll = "all"
-  | dump_prot ProtTCP = "tcp"
-  | dump_prot ProtUDP = "udp";
+fun dump_ip (base, n) = (dump_dotdecimal_ip (dotdecimal_of_ipv4addr base))^"/"^ Int.toString (integer_of_nat n);
 
-fun dump_prots [] = "all"
-  | dump_prots [Pos p] = dump_prot p
-  | dump_prots [Neg p] = "!"^dump_prot p;
-  (*undefined otherwise*)
+fun dump_prot ProtoAny = "all"
+  | dump_prot (Proto TCP) = "tcp"
+  | dump_prot (Proto UDP) = "udp";
 
-fun dump_extra [] = "";
+fun dump_action (Accepta : simple_action) = "ACCEPT"
+  | dump_action (Dropa   : simple_action) = "DROP";
 
-fun dump_action Accept = "ACCEPT"
-  | dump_action Drop = "DROP"
-  | dump_action Log = "LOG"
-  | dump_action Reject = "REJECT"
-;
+fun dump_iface_name (descr: string) (Iface name) = (let val iface=String.implode name in (if iface = "" orelse iface = "+" then "" else descr^" "^iface) end)
 
-local
-  fun dump_ip_list_hlp [] = ""
-    | dump_ip_list_hlp ((Pos ip)::ips) = ((dump_ip ip) ^ dump_ip_list_hlp ips)
-    | dump_ip_list_hlp ((Neg ip)::ips) = ("!" ^ (dump_ip ip) ^ dump_ip_list_hlp ips)
-in
-  fun dump_ip_list [] = "0.0.0.0/0"
-    | dump_ip_list rs = dump_ip_list_hlp rs
-end;
-  
+fun dump_port p = Int.toString (integer_of_nat (port_to_nat p))
+
+fun dump_ports descr (s,e) = (let val ports = "("^dump_port s^","^dump_port e^")" in (if ports = "(0,65535)" then "" else descr^" "^ports) end)
 
 fun dump_iptables [] = ()
-  | dump_iptables ((UncompressedFormattedMatch (src, dst, proto, extra), a) :: rs) =
+  | dump_iptables (SimpleRule (m, a) :: rs) =
       (writeln (dump_action a ^ "     " ^
-                "" ^ dump_prots proto ^ "  --  "^ 
-                "" ^ dump_ip_list src ^ "            " ^
-                "" ^ dump_ip_list dst ^ "    " ^
-                "" ^ dump_extra extra); dump_iptables rs);
-*}
+               (dump_prot (proto m)) ^ "  --  " ^
+               (dump_ip (src m)) ^ "            " ^
+               (dump_ip (dst m)) ^ " " ^
+               (dump_iface_name "in:" (iiface m)) ^ " " ^
+               (dump_iface_name "out:" (oiface m)) ^ " " ^
+               (dump_ports "srcports:" (sports m)) ^ " " ^
+               (dump_ports "dstports:" (dports m)) ); dump_iptables rs);
 
-ML_val{*
-length (format_Ln_rules_uncompressed upper);
-(format_Ln_rules_uncompressed upper);
-*}
-ML_val{*
-(compress_Ln_ips (format_Ln_rules_uncompressed upper));
-*}
-ML_val{*
-length (does_I_has_compressed_rules (compress_Ln_ips (format_Ln_rules_uncompressed upper)));
-does_I_has_compressed_rules (compress_Ln_ips (format_Ln_rules_uncompressed upper));
-*}
-ML_val{*
-does_I_has_compressed_prots (compress_Ln_ips (format_Ln_rules_uncompressed upper));
-*}
-ML_val{*
-dump_iptables (compress_Ln_ips (format_Ln_rules_uncompressed upper));
 *}
 
 
+text{*iptables -L -n*}
 ML_val{*
-compress_Ln_ips (format_Ln_rules_uncompressed lower);
-*}
-ML_val{*
-length (does_I_has_compressed_rules (compress_Ln_ips (format_Ln_rules_uncompressed lower)));
-does_I_has_compressed_rules (compress_Ln_ips (format_Ln_rules_uncompressed lower));
-*}
-ML_val{*
-does_I_has_compressed_prots (compress_Ln_ips (format_Ln_rules_uncompressed lower));
+writeln "Chain INPUT (policy ACCEPT)";
+writeln "target     prot opt source               destination";
+writeln "";
+writeln "Chain FORWARD (policy ACCEPT)";
+writeln "target     prot opt source               destination";
+dump_iptables (to_simple_firewall upper);
+writeln "Chain OUTPUT (policy ACCEPT)";
+writeln "target     prot opt source               destination"
 *}
 
 
+text{*iptables -L -n*}
+ML_val{*
+writeln "Chain INPUT (policy ACCEPT)";
+writeln "target     prot opt source               destination";
+writeln "";
+writeln "Chain FORWARD (policy ACCEPT)";
+writeln "target     prot opt source               destination";
+dump_iptables (to_simple_firewall lower);
+writeln "Chain OUTPUT (policy ACCEPT)";
+writeln "target     prot opt source               destination"
+*}
 end

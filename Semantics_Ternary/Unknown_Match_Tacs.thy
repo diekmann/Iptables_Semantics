@@ -29,5 +29,8 @@ fun in_doubt_deny :: "'packet unknown_match_tac" where
 lemma wf_in_doubt_deny: "wf_unknown_match_tac in_doubt_deny"
   unfolding wf_unknown_match_tac_def by(simp add: fun_eq_iff)
 
+lemma packet_independent_unknown_match_tacs: "packet_independent_\<alpha> in_doubt_allow"
+    "packet_independent_\<alpha> in_doubt_deny"
+  by(simp_all add: packet_independent_\<alpha>_def)
 
 end

@@ -1,5 +1,5 @@
 theory Matching_Embeddings
-imports Matching_Ternary Matching Unknown_Match_Tacs
+imports "Semantics_Ternary/Matching_Ternary" Matching "Semantics_Ternary/Unknown_Match_Tacs"
 begin
 
 section{*Boolean Matching vs. Ternary Matching*}

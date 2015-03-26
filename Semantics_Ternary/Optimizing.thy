@@ -126,7 +126,7 @@ lemma rmMatchFalse_correct: "approximating_bigstep_fun \<gamma> p (rmMatchFalse 
   apply(simp split:action.split)
   apply(thin_tac "a = ?x \<Longrightarrow> ?y")
   apply(thin_tac "a = ?x \<Longrightarrow> ?y")
-  by (metis bunch_of_lemmata_about_matches(3) surj_pair)
+  by (metis bunch_of_lemmata_about_matches(3))
   
 
 

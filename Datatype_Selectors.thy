@@ -18,7 +18,8 @@ text{*
   The are well-formed if the belong together.
 *}
 fun wf_disc_sel :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> ('b \<Rightarrow> 'a) \<Rightarrow> bool" where
-  "wf_disc_sel (disc, sel) C = (\<forall>a. disc a \<longrightarrow> C (sel a) = a)"
+  "wf_disc_sel (disc, sel) C \<longleftrightarrow> (\<forall>a. disc a \<longrightarrow> C (sel a) = a) \<and> (\<forall>a. (*disc (C a) \<longrightarrow>*) sel (C a) = a)"
+
 declare wf_disc_sel.simps[simp del]
 
 end
