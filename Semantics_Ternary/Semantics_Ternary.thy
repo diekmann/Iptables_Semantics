@@ -157,8 +157,8 @@ lemma seqE_fst:
 
 lemma seq_fst: "\<gamma>,p\<turnstile> \<langle>[r], s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<Longrightarrow> \<gamma>,p\<turnstile> \<langle>rs, t\<rangle> \<Rightarrow>\<^sub>\<alpha> t' \<Longrightarrow> \<gamma>,p\<turnstile> \<langle>r # rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t'"
 apply(cases s)
-apply(simp)
-using seq apply fastforce
+ apply(simp)
+ using seq apply fastforce
 apply(simp)
 apply(drule decisionD)
 apply(simp)
@@ -195,7 +195,7 @@ lemma approximating_bigstep_fun_induct[case_names Empty Decision Nomatch Match] 
     matches \<gamma> m a p \<Longrightarrow> (a = Log \<Longrightarrow> P \<gamma> p rs Undecided) \<Longrightarrow> (a = Empty \<Longrightarrow> P \<gamma> p rs Undecided) \<Longrightarrow> P \<gamma> p (Rule m a # rs) Undecided) \<Longrightarrow>
 P \<gamma> p rs s"
 apply (rule approximating_bigstep_fun.induct[of P \<gamma> p rs s])
-apply (simp_all)
+  apply (simp_all)
 by metis
 
 lemma Decision_approximating_bigstep_fun: "approximating_bigstep_fun \<gamma> p rs (Decision X) = Decision X"
@@ -299,15 +299,15 @@ subsubsection{*Append, Prepend, Postpend, Composition*}
      apply (metis Decision_approximating_bigstep_fun)+
   done
 
-lemma approximating_bigstep_fun_singleton_prepend: "approximating_bigstep_fun \<gamma> p rsB s = approximating_bigstep_fun \<gamma> p rsC s \<Longrightarrow> 
-      approximating_bigstep_fun \<gamma> p (r#rsB) s = approximating_bigstep_fun \<gamma> p (r#rsC) s"
-  apply(case_tac s)
-   prefer 2
-   apply(simp add: Decision_approximating_bigstep_fun)
-  apply(simp)
-  apply(cases r)
-  apply(simp split: action.split)
-  done
+lemma approximating_bigstep_fun_singleton_prepend:
+    assumes "approximating_bigstep_fun \<gamma> p rsB s = approximating_bigstep_fun \<gamma> p rsC s"
+    shows "approximating_bigstep_fun \<gamma> p (r#rsB) s = approximating_bigstep_fun \<gamma> p (r#rsC) s"
+  proof(cases s)
+  case Decision thus ?thesis by(simp add: Decision_approximating_bigstep_fun)
+  next
+  case Undecided
+  with assms show ?thesis by(cases r)(simp split: action.split)
+  qed
 
 subsection{*Equality with @{term "\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"} semantics*}
   lemma approximating_bigstep_wf: "\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Undecided \<Longrightarrow> wf_ruleset \<gamma> p rs"
@@ -378,14 +378,12 @@ subsection{*Equality with @{term "\<gamma>,p\<turnstile> \<langle>rs, s\<rangle>
 
 lemma approximating_bigstep_fun_seq_semantics: "\<lbrakk> \<gamma>,p\<turnstile> \<langle>rs\<^sub>1, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<rbrakk> \<Longrightarrow> 
     approximating_bigstep_fun \<gamma> p (rs\<^sub>1 @ rs\<^sub>2) s = approximating_bigstep_fun \<gamma> p rs\<^sub>2 t"
-  apply(induction rs\<^sub>1 s t arbitrary: rs\<^sub>2 rule: approximating_bigstep.induct)
-  apply(simp_all add: Decision_approximating_bigstep_fun)
-  done
+  proof(induction rs\<^sub>1 s t arbitrary: rs\<^sub>2 rule: approximating_bigstep.induct)
+  qed(simp_all add: Decision_approximating_bigstep_fun)
 
 lemma approximating_semantics_imp_fun: "\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<Longrightarrow> approximating_bigstep_fun \<gamma> p rs s = t"
-  apply(induction rs s t rule: approximating_bigstep_induct)
-  apply(auto simp add: approximating_bigstep_fun_seq_semantics Decision_approximating_bigstep_fun)
-  done
+  proof(induction rs s t rule: approximating_bigstep_induct)
+  qed(auto simp add: approximating_bigstep_fun_seq_semantics Decision_approximating_bigstep_fun)
 
 lemma approximating_fun_imp_semantics: assumes "wf_ruleset \<gamma> p rs"
       shows "approximating_bigstep_fun \<gamma> p rs s = t \<Longrightarrow> \<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
@@ -445,11 +443,11 @@ corollary approximating_semantics_iff_fun_good_ruleset: "good_ruleset rs \<Longr
     \<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> approximating_bigstep_fun \<gamma> p rs s = t"
   by (metis approximating_semantics_iff_fun good_imp_wf_ruleset)
 
-
 lemma approximating_bigstep_deterministic: "\<lbrakk> \<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t; \<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t' \<rbrakk> \<Longrightarrow> t = t'"
-  apply(induction arbitrary: t' rule: approximating_bigstep_induct)
-  apply(auto dest: approximating_bigstepD)[6]
-by (metis (hide_lams, mono_tags) append_Nil2 approximating_bigstep_fun.simps(1) approximating_bigstep_fun_seq_semantics)
+  proof(induction arbitrary: t' rule: approximating_bigstep_induct)
+  case Seq thus ?case
+    by (metis (hide_lams, mono_tags) append_Nil2 approximating_bigstep_fun.simps(1) approximating_bigstep_fun_seq_semantics)
+  qed(auto dest: approximating_bigstepD)
 
 
 text{*The actions Log and Empty do not modify the packet processing in any way. They can be removed.*}
@@ -461,10 +459,15 @@ fun rm_LogEmpty :: "'a rule list \<Rightarrow> 'a rule list" where
 
 lemma rm_LogEmpty_fun_semantics: 
   "approximating_bigstep_fun \<gamma> p (rm_LogEmpty rs) s = approximating_bigstep_fun \<gamma> p rs s"
-    apply(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
-        apply(simp_all add: Decision_approximating_bigstep_fun)
-      apply(case_tac a, simp_all)+
-    done
+  proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
+    case Empty thus ?case by(simp)
+    next
+    case Decision thus ?case by(simp add: Decision_approximating_bigstep_fun)
+    next
+    case (Nomatch \<gamma> p m a rs) thus ?case by(cases a,simp_all)
+    next
+    case (Match \<gamma> p m a rs) thus ?case by(cases a,simp_all)
+  qed
 
 lemma rm_LogEmpty_seq: "rm_LogEmpty (rs1@rs2) = rm_LogEmpty rs1 @ rm_LogEmpty rs2"
   apply(induction rs1)
@@ -477,6 +480,7 @@ lemma rm_LogEmpty_seq: "rm_LogEmpty (rs1@rs2) = rm_LogEmpty rs1 @ rm_LogEmpty rs
   done
 
 
+(*we probably don't need them*)
 lemma rm_LogEmpty_semantics: "\<gamma>,p\<turnstile> \<langle>rm_LogEmpty rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> \<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
 apply(rule iffI)
 
