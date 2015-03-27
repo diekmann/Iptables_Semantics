@@ -205,7 +205,8 @@ subsection{*Matching*}
      apply(drule match_iface_case_wildcard_prefix[of i1 p_i])
      apply(drule_tac i=x in match_iface_case_wildcard_prefix[of _ p_i])
      apply(simp add: butlast_conv_take)
-     apply (metis min_def take_take)
+     apply (metis min.absorb_iff1 take_take)
+     (*apply (metis min_def take_take)*)
     apply(case_tac "internal_iface_name_match x p_i")
      apply(simp_all)
     apply(frule match_iface_case_wildcard_prefix[of i2 p_i])
@@ -213,7 +214,8 @@ subsection{*Matching*}
     apply(simp add: butlast_conv_take min_def split:split_if_asm)
     by (metis min.commute min_def take_take)
 
-(* TODO
+
+
   lemma assumes "iface_name_is_wildcard i1" and "iface_name_is_wildcard i2" and "internal_iface_name_wildcard_longest i1 i2 = None" 
         shows "\<not> (internal_iface_name_match i1 p_i \<and> internal_iface_name_match i2 p_i)"
   proof -
@@ -225,27 +227,56 @@ subsection{*Matching*}
      by(simp add: internal_iface_name_wildcard_longest_def split: split_if_asm)
     from 3 show ?thesis using 1 2 min.commute take_take by metis
   qed
+
   lemma assumes "iface_name_is_wildcard i1" and "iface_name_is_wildcard i2" and "internal_iface_name_wildcard_longest i1 i2 = Some X"
         shows "(internal_iface_name_match i1 p_i \<and> internal_iface_name_match i2 p_i) \<longleftrightarrow> internal_iface_name_match X p_i"
    proof -
    from assms(3) have assm3': "take (min (length i1 - 1) (length i2 - 1)) i1 = take (min (length i1 - 1) (length i2 - 1)) i2"
      unfolding internal_iface_name_wildcard_longest_def by(simp split: split_if_asm)
+
+  { fix i1 i2
+    assume iw1: "iface_name_is_wildcard i1" and iw2: "iface_name_is_wildcard i2" and len: "length i1 \<le> length i2" and
+           take_i1i2: "take (length i1 - 1) i1 = take (length i1 - 1) i2"
+    from len have len': "length i1 - 1 \<le> length i2 - 1" by fastforce
+    { fix x::string
+     from len' have "take (length i1 - 1) x = take (length i1 - 1) (take (length i2 - 1) x)" by(simp add: min_def)
+    } note takei1=this
+
+    { fix m::nat and n::nat and a::string and b c
+      have "m \<le> n \<Longrightarrow> take n a = take n b \<Longrightarrow> take m a = take m c \<Longrightarrow> take m c = take m b" by (metis min_absorb1 take_take)
+    } note takesmaller=this
+
+    from match_iface_case_wildcard_prefix[OF iw1, simplified] have 1:
+        "internal_iface_name_match i1 p_i \<longleftrightarrow> take (length i1 - 1) i1 = take (length i1 - 1) p_i" by(simp add: butlast_conv_take)
+    also have "\<dots> \<longleftrightarrow> take (length i1 - 1) (take (length i2 - 1) i1) = take (length i1 - 1) (take (length i2 - 1) p_i)" using takei1 by simp
+    finally have  "internal_iface_name_match i1 p_i = (take (length i1 - 1) (take (length i2 - 1) i1) = take (length i1 - 1) (take (length i2 - 1) p_i))" .
+    from match_iface_case_wildcard_prefix[OF iw2, simplified] have 2:
+        "internal_iface_name_match i2 p_i \<longleftrightarrow> take (length i2 - 1) i2 = take (length i2 - 1) p_i" by(simp add: butlast_conv_take)
+
+    have "internal_iface_name_match i2 p_i \<Longrightarrow> internal_iface_name_match i1 p_i"
+      unfolding 1 2 
+      apply(rule takesmaller[of "(length i1 - 1)" "(length i2 - 1)" i2 p_i])
+        using len' apply (simp)
+       apply simp
+      using take_i1i2 apply simp
+      done
+  } note longer_iface_imp_shorter=this
+
    show ?thesis
     proof(cases "length i1 \<le> length i2")
     case True
       with assms(3) have "X = i2" unfolding internal_iface_name_wildcard_longest_def by(simp split: split_if_asm)
       from True assm3' have take_i1i2: "take (length i1 - 1) i1 = take (length i1 - 1) i2" by linarith
-      from match_iface_case_wildcard_prefix[OF assms(1), simplified] have
-        "internal_iface_name_match i1 p_i \<longleftrightarrow> take (length i1 - 1) i1 = take (length i1 - 1) p_i" by(simp add: butlast_conv_take) 
-      also have "\<dots> \<longleftrightarrow> take (length i1 - 1) i2 = take (length i1 - 1) p_i" using take_i1i2 by presburger
-      finally have 1: "internal_iface_name_match i1 p_i = (take (length i1 - 1) i2 = take (length i1 - 1) p_i)" .
-      from match_iface_case_wildcard_prefix[OF assms(2), simplified] have 2:
-        "internal_iface_name_match i2 p_i \<longleftrightarrow> take (length i2 - 1) i2 = take (length i2 - 1) p_i" by(simp add: butlast_conv_take)
-
-      from True assms show "(internal_iface_name_match i1 p_i \<and> internal_iface_name_match i2 p_i) \<longleftrightarrow> internal_iface_name_match X p_i"
-       unfolding internal_iface_name_wildcard_longest_def
-       apply(case_tac "internal_iface_name_match X p_i")
-oops*)
+      from longer_iface_imp_shorter[OF assms(1) assms(2) True take_i1i2] `X = i2`
+      show "(internal_iface_name_match i1 p_i \<and> internal_iface_name_match i2 p_i) \<longleftrightarrow> internal_iface_name_match X p_i" by fastforce
+    next
+    case False
+      with assms(3) have "X = i1" unfolding internal_iface_name_wildcard_longest_def by(simp split: split_if_asm)
+      from False assm3' have take_i1i2: "take (length i2 - 1) i2 = take (length i2 - 1) i1" by (metis min_def min_diff)
+      from longer_iface_imp_shorter[OF assms(2) assms(1) _ take_i1i2] False `X = i1`
+      show "(internal_iface_name_match i1 p_i \<and> internal_iface_name_match i2 p_i) \<longleftrightarrow> internal_iface_name_match X p_i" by auto
+    qed
+  qed
 
   fun iface_conjunct :: "iface \<Rightarrow> iface \<Rightarrow> iface option" where
     "iface_conjunct (Iface i1) (Iface i2) = (case (iface_name_is_wildcard i1, iface_name_is_wildcard i2) of
