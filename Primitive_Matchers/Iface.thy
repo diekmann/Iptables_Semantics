@@ -4,10 +4,9 @@ begin
 
 section{*Network Interfaces*}
 
-(*TODO: add some rule that says an interface starting with ! is invalid (because we want to fail if negation occurs!)*)
-
+(*TODO: add some rule that says an interface starting with ! is invalid (because we want to fail if negation occurs!) See man iptables.
+  But the parser/lexer should handle this*)
 datatype iface = Iface "string"  --"no negation supported, but wildcards"
-
 
 definition IfaceAny :: iface where
   "IfaceAny \<equiv> Iface ''+''"
@@ -188,6 +187,7 @@ subsection{*Matching*}
     by(simp add: internal_iface_name_wildcard_longest_def)
     
 
+  (*Isar TODO below*)
   lemma internal_iface_name_wildcard_longest_correct: "iface_name_is_wildcard i1 \<Longrightarrow> iface_name_is_wildcard i2 \<Longrightarrow> 
          match_iface (Iface i1) p_i \<and> match_iface (Iface i2) p_i \<longleftrightarrow>
          (case internal_iface_name_wildcard_longest i1 i2 of None \<Rightarrow> False | Some x \<Rightarrow> match_iface (Iface x) p_i)"
@@ -201,9 +201,9 @@ subsection{*Matching*}
     apply(simp add: internal_iface_name_wildcard_longest_def split: split_if_asm)
      apply(simp add: min_def split: split_if_asm)
      apply(case_tac "internal_iface_name_match x p_i")
-      apply(simp_all)
-     apply(frule match_iface_case_wildcard_prefix[of i1 p_i])
-     apply(frule_tac i=x in match_iface_case_wildcard_prefix[of _ p_i])
+      apply(simp_all)[2]
+     apply(drule match_iface_case_wildcard_prefix[of i1 p_i])
+     apply(drule_tac i=x in match_iface_case_wildcard_prefix[of _ p_i])
      apply(simp add: butlast_conv_take)
      apply (metis min_def take_take)
     apply(case_tac "internal_iface_name_match x p_i")
@@ -212,6 +212,40 @@ subsection{*Matching*}
     apply(frule_tac i=x in match_iface_case_wildcard_prefix[of _ p_i])
     apply(simp add: butlast_conv_take min_def split:split_if_asm)
     by (metis min.commute min_def take_take)
+
+(* TODO
+  lemma assumes "iface_name_is_wildcard i1" and "iface_name_is_wildcard i2" and "internal_iface_name_wildcard_longest i1 i2 = None" 
+        shows "\<not> (internal_iface_name_match i1 p_i \<and> internal_iface_name_match i2 p_i)"
+  proof -
+    from match_iface_case_wildcard_prefix[OF assms(1)] have 1:
+      "internal_iface_name_match i1 p_i = (take (length i1 - 1) i1 = take (length i1 - 1) p_i)" by(simp add: butlast_conv_take)
+    from match_iface_case_wildcard_prefix[OF assms(2)] have 2:
+      "internal_iface_name_match i2 p_i = (take (length i2 - 1) i2 = take (length i2 - 1) p_i)" by(simp add: butlast_conv_take)
+    from assms(3) have 3: "take (min (length i1 - 1) (length i2 - 1)) i1 \<noteq> take (min (length i1 - 1) (length i2 - 1)) i2"
+     by(simp add: internal_iface_name_wildcard_longest_def split: split_if_asm)
+    from 3 show ?thesis using 1 2 min.commute take_take by metis
+  qed
+  lemma assumes "iface_name_is_wildcard i1" and "iface_name_is_wildcard i2" and "internal_iface_name_wildcard_longest i1 i2 = Some X"
+        shows "(internal_iface_name_match i1 p_i \<and> internal_iface_name_match i2 p_i) \<longleftrightarrow> internal_iface_name_match X p_i"
+   proof -
+   from assms(3) have assm3': "take (min (length i1 - 1) (length i2 - 1)) i1 = take (min (length i1 - 1) (length i2 - 1)) i2"
+     unfolding internal_iface_name_wildcard_longest_def by(simp split: split_if_asm)
+   show ?thesis
+    proof(cases "length i1 \<le> length i2")
+    case True
+      with assms(3) have "X = i2" unfolding internal_iface_name_wildcard_longest_def by(simp split: split_if_asm)
+      from True assm3' have take_i1i2: "take (length i1 - 1) i1 = take (length i1 - 1) i2" by linarith
+      from match_iface_case_wildcard_prefix[OF assms(1), simplified] have
+        "internal_iface_name_match i1 p_i \<longleftrightarrow> take (length i1 - 1) i1 = take (length i1 - 1) p_i" by(simp add: butlast_conv_take) 
+      also have "\<dots> \<longleftrightarrow> take (length i1 - 1) i2 = take (length i1 - 1) p_i" using take_i1i2 by presburger
+      finally have 1: "internal_iface_name_match i1 p_i = (take (length i1 - 1) i2 = take (length i1 - 1) p_i)" .
+      from match_iface_case_wildcard_prefix[OF assms(2), simplified] have 2:
+        "internal_iface_name_match i2 p_i \<longleftrightarrow> take (length i2 - 1) i2 = take (length i2 - 1) p_i" by(simp add: butlast_conv_take)
+
+      from True assms show "(internal_iface_name_match i1 p_i \<and> internal_iface_name_match i2 p_i) \<longleftrightarrow> internal_iface_name_match X p_i"
+       unfolding internal_iface_name_wildcard_longest_def
+       apply(case_tac "internal_iface_name_match X p_i")
+oops*)
 
   fun iface_conjunct :: "iface \<Rightarrow> iface \<Rightarrow> iface option" where
     "iface_conjunct (Iface i1) (Iface i2) = (case (iface_name_is_wildcard i1, iface_name_is_wildcard i2) of
@@ -231,8 +265,8 @@ subsection{*Matching*}
     done
 
 
-    hide_const (open) internal_iface_name_wildcard_longest
+    hide_const (open) internal_iface_name_wildcard_longest iface_name_is_wildcard internal_iface_name_to_set
 
-hide_const (open) internal_iface_name_match
+hide_const (open) internal_iface_name_match 
 
 end
