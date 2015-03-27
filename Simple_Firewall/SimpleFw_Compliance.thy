@@ -10,24 +10,6 @@ fun ipt_ipv4range_to_ipv4_word_netmask :: "ipt_ipv4range \<Rightarrow> (ipv4addr
   "ipt_ipv4range_to_ipv4_word_netmask (Ip4AddrNetmask pre len) = (ipv4addr_of_dotdecimal pre, len)"
   (*we could make sure here that this is a @{term valid_prefix}, \<dots>*)
 
-(*from ipv4range_set_from_bitmask_alt*)
-(*TODO: this looks horrible! How are caesar's ranges constructed?*)
-
-fun invert_ipv4intervall :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> (ipv4addr \<times> ipv4addr) list" where
-  "invert_ipv4intervall (i, j) = br2l (ipv4range_invert (ipv4range_range i j))"
-
-lemma helper_ipv4range_range_l2br: "ipv4range_range i j = l2br [(i,j)]"
-  by(simp add: ipv4range_range_def)
-lemma "(l_br_toset (invert_ipv4intervall (i, j))) = - {i .. j}"
-  apply(simp add: l2br_br2l ipv4range_UNIV_def ipv4range_setminus_def ipv4range_invert_def helper_ipv4range_range_l2br l_br_toset)
-  by blast
-
-
-(*TODO: smelly duplication*)
-lemma matches_SrcDst_simple_match: "p_src p \<in> ipv4s_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_src p)"
-    "p_dst p \<in> ipv4s_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_dst p)"
-apply(case_tac [!] ip)
- by(simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
 
 
 subsection{*Simple Match to MatchExpr*}
@@ -56,17 +38,24 @@ done
 lemma ports_to_set_singleton_simple_match_port: "p \<in> ports_to_set [a] \<longleftrightarrow> simple_match_port a p"
   by(cases a, simp)
 
-
 theorem simple_match_to_ipportiface_match_correct: "matches (common_matcher, \<alpha>) (simple_match_to_ipportiface_match sm) a p \<longleftrightarrow> simple_matches sm p"
-  apply(cases sm)
-  apply(rename_tac iif oif sip dip pro sps dps)
-  apply(simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
-  apply(rule refl_conj_eq)+
-  apply(simp add: matches_SrcDst_simple_match)
-  apply(rule refl_conj_eq)+
-  apply(case_tac sps,case_tac dps)
-  apply(simp)
-  done
+  proof -
+  obtain iif oif sip dip pro sps dps where sm: "sm = \<lparr>iiface = iif, oiface = oif, src = sip, dst = dip, proto = pro, sports = sps, dports = dps\<rparr>" by (cases sm)
+  { fix ip
+    have "p_src p \<in> ipv4s_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_src p)"
+    and  "p_dst p \<in> ipv4s_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_dst p)"
+     apply(case_tac [!]  ip)
+     by(simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
+  } note simple_match_ips=this
+  { fix ps
+    have "p_sport p \<in> ports_to_set [ps] \<longleftrightarrow> simple_match_port ps (p_sport p)"
+    and  "p_dport p \<in> ports_to_set [ps] \<longleftrightarrow> simple_match_port ps (p_dport p)"
+      apply(case_tac [!] ps)
+      by(simp_all)
+  } note simple_match_ports=this
+  show ?thesis unfolding sm
+  by(simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary simple_match_ips simple_match_ports)
+qed
 
 
 subsection{*MatchExpr to Simple Match*}
@@ -207,13 +196,6 @@ lemma match_iface_simple_match_any_simps:
     apply(simp_all)
   apply(simp_all add: max_word_def)
   done
-     
-
-text{*basically the other direction of @{thm matches_SrcDst_simple_match}*}
-lemma matches_SrcDst_simple_match2: "p_src p \<in> ipv4s_to_set ip \<longleftrightarrow> simple_match_ip (ipt_ipv4range_to_ipv4_word_netmask ip) (p_src p)"
-  "p_dst p \<in> ipv4s_to_set ip \<longleftrightarrow> simple_match_ip (ipt_ipv4range_to_ipv4_word_netmask ip) (p_dst p)"
-by(case_tac [!] ip)(simp_all add: ipv4range_set_from_bitmask_32)
-
 
 theorem common_primitive_match_to_simple_match:
   assumes "normalized_src_ports m" 
@@ -227,6 +209,13 @@ theorem common_primitive_match_to_simple_match:
              matches (common_matcher, \<alpha>) m a p \<longleftrightarrow> simple_matches sm p) \<and>
          (common_primitive_match_to_simple_match m = None \<longrightarrow>
              \<not> matches (common_matcher, \<alpha>) m a p)"
+proof -
+  { fix ip
+    have "p_src p \<in> ipv4s_to_set ip \<longleftrightarrow> simple_match_ip (ipt_ipv4range_to_ipv4_word_netmask ip) (p_src p)"
+    and  "p_dst p \<in> ipv4s_to_set ip \<longleftrightarrow> simple_match_ip (ipt_ipv4range_to_ipv4_word_netmask ip) (p_dst p)"
+    by(case_tac [!] ip)(simp_all add: ipv4range_set_from_bitmask_32)
+  }note matches_SrcDst_simple_match2=this
+  show ?thesis
   using assms proof(induction m arbitrary: sm rule: common_primitive_match_to_simple_match.induct)
   case 1 thus ?case 
     by(simp_all add: match_iface_simple_match_any_simps bunch_of_lemmata_about_matches(2))
@@ -278,7 +267,7 @@ theorem common_primitive_match_to_simple_match:
     from caseNone caseSome show ?goal by blast
   qed(simp_all add: match_iface_simple_match_any_simps, 
     simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary matches_SrcDst_simple_match2)
-
+qed
 
 
 

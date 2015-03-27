@@ -87,16 +87,14 @@ subsection{*Simple Firewall Semantics*}
       (simple_match_port (sports m) (p_sport p)) \<and>
       (simple_match_port (dports m) (p_dport p))"
 
+  text{*The semantics of a simple firewall: just iterate over the rules sequentially*}
   fun simple_fw :: "simple_rule list \<Rightarrow> simple_packet \<Rightarrow> state" where
     "simple_fw [] _ = Undecided" |
     "simple_fw ((SimpleRule m Accept)#rs) p = (if simple_matches m p then Decision FinalAllow else simple_fw rs p)" |
     "simple_fw ((SimpleRule m Drop)#rs) p = (if simple_matches m p then Decision FinalDeny else simple_fw rs p)"
 
-
-
   definition simple_match_any :: "simple_match" where
     "simple_match_any \<equiv> \<lparr>iiface=IfaceAny, oiface=IfaceAny, src=(0,0), dst=(0,0), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
-
   lemma simple_match_any: "simple_matches simple_match_any p"
     proof -
       have "(65535::16 word) = max_word" by(simp add: max_word_def)
@@ -106,7 +104,6 @@ subsection{*Simple Firewall Semantics*}
   text{*we specify only one empty port range*}
   definition simple_match_none :: "simple_match" where
     "simple_match_none \<equiv> \<lparr>iiface=IfaceAny, oiface=IfaceAny, src=(1,0), dst=(0,0), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
-
   lemma simple_match_none: "simple_matches simple_match_any p"
     proof -
       have "(65535::16 word) = max_word" by(simp add: max_word_def)
@@ -125,8 +122,6 @@ subsection{*Simple Ports*}
     by blast
 
 subsection{*Simple IPs*}
-
-  (* originally from IPSpace_Operations.intersect_ips, simplified*)
   fun simple_ips_conjunct :: "(ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) option" where 
     "simple_ips_conjunct (base1, m1) (base2, m2) = (if ipv4range_set_from_bitmask base1 m1 \<inter> ipv4range_set_from_bitmask base2 m2 = {}
        then
@@ -139,7 +134,6 @@ subsection{*Simple IPs*}
         Some (base2, m2)
       )"
   
-  (*this proof appears simpler than the other one, maybe refactor?*)
   lemma simple_ips_conjunct_correct: "(case simple_ips_conjunct (b1, m1) (b2, m2) of Some (bx, mx) \<Rightarrow> ipv4range_set_from_bitmask bx mx | None \<Rightarrow> {}) = 
       (ipv4range_set_from_bitmask b1 m1) \<inter> (ipv4range_set_from_bitmask b2 m2)"
     apply(simp split: split_if_asm)

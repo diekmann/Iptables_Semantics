@@ -510,11 +510,7 @@ qed
 
 
 
-
-
-
-
-
+(*
 definition transform_strict :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where 
     "transform_strict = optimize_matches opt_MatchAny_match_expr(*^^10)*) \<circ> normalize_rules_dnf \<circ> optimize_matches optimize_primitive_univ \<circ> rw_Reject \<circ> rm_LogEmpty"
 
@@ -574,6 +570,6 @@ theorem transform_strict: assumes goodrs: "good_ruleset rs" and wf\<alpha>: "wf_
     from normalized_rs5 show "\<forall> r \<in> set (transform_strict rs). normalized_nnf_match (get_match r)"  
       by(simp add: transform_strict_def)
   qed
-
+*)
 
 end
