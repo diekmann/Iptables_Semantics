@@ -480,8 +480,8 @@ lemma rm_LogEmpty_seq: "rm_LogEmpty (rs1@rs2) = rm_LogEmpty rs1 @ rm_LogEmpty rs
   done
 
 
-(*we probably don't need them*)
-lemma rm_LogEmpty_semantics: "\<gamma>,p\<turnstile> \<langle>rm_LogEmpty rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> \<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+(*we probably don't need the following*)
+lemma "\<gamma>,p\<turnstile> \<langle>rm_LogEmpty rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> \<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
 apply(rule iffI)
 
 apply(induction rs arbitrary: s t)
@@ -513,13 +513,13 @@ done
 lemma rm_LogEmpty_simple_but_Reject: 
   "good_ruleset rs \<Longrightarrow> \<forall>r \<in> set (rm_LogEmpty rs). get_action r = Accept \<or> get_action r = Reject \<or> get_action r = Drop"
   apply(induction rs)
-  apply(simp_all add: good_ruleset_def simple_ruleset_def)
+   apply(simp_all add: good_ruleset_def simple_ruleset_def)
   apply(clarify)
+  apply(rename_tac r rs r')
+  apply(case_tac r, rename_tac m a, simp)
   apply(case_tac a)
-  apply(simp)
-  apply(case_tac x2)
-  apply(simp_all)
-  apply fastforce+
+         apply(simp_all)
+       apply fastforce+
   done
 
 text{*Rewrite @{const Reject} actions to @{const Drop} actions*}
@@ -528,24 +528,20 @@ fun rw_Reject :: "'a rule list \<Rightarrow> 'a rule list" where
   "rw_Reject ((Rule m Reject)#rs) = (Rule m Drop)#rw_Reject rs" |
   "rw_Reject (r#rs) = r # rw_Reject rs"
 
-
 lemma rw_Reject_fun_semantics: 
   "wf_unknown_match_tac \<alpha> \<Longrightarrow> 
   (approximating_bigstep_fun (\<beta>, \<alpha>) p (rw_Reject rs) s = approximating_bigstep_fun (\<beta>, \<alpha>) p rs s)"
-apply(induction rs)
- apply(simp_all)
-apply(rename_tac r rs)
-apply(case_tac r)
-apply(rename_tac m a)
-apply(simp)
-apply(case_tac a)
-       apply(simp_all)
-       (*the proof from here is very very ugly!!! redo this!!*)
-       apply(case_tac [!] s)
-               apply(simp_all)
- apply(auto dest: wf_unknown_match_tacD_False1 wf_unknown_match_tacD_False2)
-done
-
+  proof(induction rs)
+  case Nil thus ?case by simp
+  next
+  case (Cons r rs)
+    thus ?case
+      apply(case_tac r, rename_tac m a, simp)
+      apply(case_tac a)
+             apply(case_tac [!] s)
+                    apply(auto dest: wf_unknown_match_tacD_False1 wf_unknown_match_tacD_False2)
+      done
+    qed
 
 lemma rmLogEmpty_rwReject_good_to_simple: "good_ruleset rs \<Longrightarrow> simple_ruleset (rw_Reject (rm_LogEmpty rs))"
   apply(drule rm_LogEmpty_simple_but_Reject)
@@ -564,15 +560,9 @@ definition optimize_matches :: "('a match_expr \<Rightarrow> 'a match_expr) \<Ri
   "optimize_matches f rs = map (\<lambda>r. Rule (f (get_match r)) (get_action r)) rs"
 
 lemma optimize_matches: "\<forall>m. matches \<gamma> m = matches \<gamma> (f m) \<Longrightarrow> approximating_bigstep_fun \<gamma> p (optimize_matches f rs) s = approximating_bigstep_fun \<gamma> p rs s"
-  apply(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
-     apply(simp add: optimize_matches_def)
-    apply(simp add: optimize_matches_def)
-   apply(simp add: optimize_matches_def)
-  apply(simp add: optimize_matches_def)
-  apply(case_tac a)
-         apply(simp_all)
-  done
-
+  proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
+    case (Match \<gamma> p m a rs) thus ?case by(case_tac a)(simp_all add: optimize_matches_def)
+  qed(simp_all add: optimize_matches_def)
 
 lemma optimize_matches_simple_ruleset: "simple_ruleset rs \<Longrightarrow> simple_ruleset (optimize_matches f rs)"
   by(simp add: optimize_matches_def simple_ruleset_def)
@@ -587,32 +577,25 @@ lemma optimize_matches_a_simple_ruleset: "simple_ruleset rs \<Longrightarrow> si
   by(simp add: optimize_matches_a_def simple_ruleset_def)
 
 lemma optimize_matches_a: "\<forall>a m. matches \<gamma> m a = matches \<gamma> (f a m) a \<Longrightarrow> approximating_bigstep_fun \<gamma> p (optimize_matches_a f rs) s = approximating_bigstep_fun \<gamma> p rs s"
-  apply(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
-     apply(simp add: optimize_matches_a_def)
-    apply(simp add: optimize_matches_a_def)
-   apply(simp add: optimize_matches_a_def)
-  apply(simp add: optimize_matches_a_def)
-  apply(case_tac a)
-         apply(simp_all)
-  done
+  proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
+    case (Match \<gamma> p m a rs) thus ?case by(case_tac a)(simp_all add: optimize_matches_a_def)
+  qed(simp_all add: optimize_matches_a_def)
 
-lemma optimize_matches_a_simplers_very_ugly_helper: "wf_ruleset \<gamma> p rs \<Longrightarrow> simple_ruleset rs \<Longrightarrow>
-   \<forall>a m. a = Accept \<or> a = Drop \<longrightarrow> matches \<gamma> (f a m) a = matches \<gamma> m a\<Longrightarrow> 
-   approximating_bigstep_fun \<gamma> p (optimize_matches_a f rs) s = approximating_bigstep_fun \<gamma> p rs s"
-  apply(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct_wf)
-         apply(simp_all add: optimize_matches_a_def simple_ruleset_tail)
-   apply(simp_all add: simple_ruleset_def)
-  apply(safe)
-   apply(simp_all)
-  done
-
-
-lemma optimize_matches_a_simplers: "simple_ruleset rs \<Longrightarrow>
-   \<forall>a m. a = Accept \<or> a = Drop \<longrightarrow> matches \<gamma> (f a m) a = matches \<gamma> m a\<Longrightarrow> 
-   approximating_bigstep_fun \<gamma> p (optimize_matches_a f rs) s = approximating_bigstep_fun \<gamma> p rs s"
-apply(frule simple_imp_good_ruleset)
-apply(drule good_imp_wf_ruleset)
-apply(drule(3) optimize_matches_a_simplers_very_ugly_helper)
-done
+lemma optimize_matches_a_simplers:
+  assumes "simple_ruleset rs" and "\<forall>a m. a = Accept \<or> a = Drop \<longrightarrow> matches \<gamma> (f a m) a = matches \<gamma> m a"
+  shows "approximating_bigstep_fun \<gamma> p (optimize_matches_a f rs) s = approximating_bigstep_fun \<gamma> p rs s"
+proof -
+  from assms(1) have "wf_ruleset \<gamma> p rs" by(simp add: simple_imp_good_ruleset good_imp_wf_ruleset)
+  from `wf_ruleset \<gamma> p rs` assms show "approximating_bigstep_fun \<gamma> p (optimize_matches_a f rs) s = approximating_bigstep_fun \<gamma> p rs s"
+    proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct_wf)
+    case Nomatch thus ?case
+     apply(simp add: optimize_matches_a_def simple_ruleset_def)
+     apply(safe)
+      apply(simp_all)
+    done
+    next
+    case MatchReject thus ?case by(simp add: optimize_matches_a_def simple_ruleset_def)
+    qed(simp_all add: optimize_matches_a_def simple_ruleset_tail)
+qed
 
 end
