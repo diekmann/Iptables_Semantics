@@ -195,16 +195,19 @@ text{*The lemmas @{thm primitive_extractor_matchesE} and @{thm primitive_extract
 subsection{*Normalizing and Optimizing Primitives*}
   text{*
     Normalize primitives by a function @{text f} with type @{typ "'b negation_type list \<Rightarrow> 'b list"}.
-    @{typ "'b"} is a primitive type, e.g. ipt_ipv4range.
+    @{typ "'b"} is a primitive type, e.g. ipt-ipv4range.
     @{text f} takes a conjunction list of negated primitives and must compress them such that:
-      * no negation occurs in the output
-      * the output is a disjunction of the primitives, i.e. multiple primitives in one rule are compressed to at most one primitive (leading to multiple rules)
-
+    \begin{enumerate}
+      \item no negation occurs in the output
+      \item the output is a disjunction of the primitives, i.e. multiple primitives in one rule are compressed to at most one primitive (leading to multiple rules)
+    \end{enumerate}
     Example with IP addresses:
+    \begin{verbatim}
       f [10.8.0.0/16, 10.0.0.0/8] = [10.0.0.0/8]  f compresses to one range
       f [10.0.0.0, 192.168.0.01] = []    range is empty, rule can be dropped
       f [Neg 41] = [{0..40}, {42..ipv4max}]   one rule is translated into multiple rules to translate negation
       f [Neg 41, {20..50}, {30..50}] = [{30..40}, {42..50}]   input: conjunction list, output disjunction list!
+    \end{verbatim}
   *}
   definition normalize_primitive_extract :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow>
                                ('b \<Rightarrow> 'a) \<Rightarrow>
@@ -296,7 +299,7 @@ subsection{*Normalizing and Optimizing Primitives*}
   assumes "normalized_nnf_match m"
       and "normalized_n_primitive (disc2, sel2) P m"
       and "wf_disc_sel (disc1, sel1) C"
-      and "\<forall>a. \<not> disc2 (C a)" --"disc1 and disc2 match for different stuff. e.g. Src_Ports and Dst_Ports"
+      and "\<forall>a. \<not> disc2 (C a)" --{*disc1 and disc2 match for different stuff. e.g. @{text Src_Ports} and @{text Dst_Ports}*}
     shows "\<forall>mn \<in> set (normalize_primitive_extract (disc1, sel1) C f m). normalized_n_primitive (disc2, sel2) P mn"
     proof
       fix mn

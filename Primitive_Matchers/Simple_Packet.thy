@@ -3,7 +3,7 @@ imports "../Bitmagic/IPv4Addr" Protocol
 begin
 
 section{*Simple Packet*}
-  text{*Packet constants are prefixed with p_*}
+  text{*Packet constants are prefixed with @{text p}*}
   record simple_packet = p_iiface :: string
                          p_oiface :: string
                          p_src :: ipv4addr

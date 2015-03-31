@@ -269,7 +269,7 @@ subsubsection{*Append, Prepend, Postpend, Composition*}
       apply(simp_all add: wf_ruleset_def Decision_approximating_bigstep_fun split: action.split)
    done
 
-  text{*The state transitions from @{const Undecided} to @{const Undecided} if ll intermediate states are @{const Undecided}*}
+  text{*The state transitions from @{const Undecided} to @{const Undecided} if all intermediate states are @{const Undecided}*}
  lemma approximating_bigstep_fun_seq_Undecided_wf: "\<lbrakk> wf_ruleset \<gamma> p (rs1@rs2)\<rbrakk> \<Longrightarrow> 
       approximating_bigstep_fun \<gamma> p (rs1@rs2) Undecided = Undecided \<longleftrightarrow> 
   approximating_bigstep_fun \<gamma> p rs1 Undecided = Undecided \<and> approximating_bigstep_fun \<gamma> p rs2 Undecided = Undecided"
