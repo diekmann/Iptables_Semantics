@@ -19,7 +19,6 @@ export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure
   Src Dst Prot Extra OIface IIface Src_Ports Dst_Ports
   Iface
   nat_of_integer integer_of_nat
-  port_to_nat
   dotdecimal_of_ipv4addr
   check_simple_fw_preconditions
   to_simple_firewall
@@ -27,6 +26,7 @@ export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure
   iiface oiface src dst proto sports dports
   bitmask_to_strange_inverse_cisco_mask
   deny_set
+  ipv4_cidr_toString protocol_toString simple_action_toString port_toString iface_toString ports_toString
   in SML module_name "Test" file "unfold_code.ML"
 
 ML_file "unfold_code.ML"
@@ -110,20 +110,20 @@ fun dump_action (Accepta : simple_action) = "ACCEPT"
 
 fun dump_iface_name (descr: string) (Iface name) = (let val iface=String.implode name in (if iface = "" orelse iface = "+" then "" else descr^" "^iface) end)
 
-fun dump_port p = Int.toString (integer_of_nat (port_to_nat p))
+(*fun dump_port p = Int.toString (integer_of_nat (port_to_nat p))*)
 
-fun dump_ports descr (s,e) = (let val ports = "("^dump_port s^","^dump_port e^")" in (if ports = "(0,65535)" then "" else descr^" "^ports) end)
+fun dump_ports descr (s,e) = (let val ports = "("^String.implode (port_toString s)^","^String.implode (port_toString e)^")" in (if ports = "(0,65535)" then "" else descr^" "^ports) end)
 
 fun dump_iptables [] = ()
   | dump_iptables (SimpleRule (m, a) :: rs) =
-      (writeln (dump_action a ^ "     " ^
-               (dump_prot (proto m)) ^ "  --  " ^
-               (dump_ip (src m)) ^ "            " ^
-               (dump_ip (dst m)) ^ " " ^
-               (dump_iface_name "in:" (iiface m)) ^ " " ^
-               (dump_iface_name "out:" (oiface m)) ^ " " ^
-               (dump_ports "srcports:" (sports m)) ^ " " ^
-               (dump_ports "dstports:" (dports m)) ); dump_iptables rs);
+      (writeln (String.implode (simple_action_toString a) ^ "     " ^
+               (String.implode (protocol_toString (proto m))) ^ "  --  " ^
+               (String.implode (ipv4_cidr_toString (src m))) ^ "            " ^
+               (String.implode (ipv4_cidr_toString (dst m))) ^ " " ^
+               (String.implode (iface_toString (String.explode "in:") (iiface m))) ^ " " ^
+               (String.implode (iface_toString (String.explode "out:") (oiface m))) ^ " " ^
+               (String.implode (ports_toString (String.explode "srcports:") (sports m))) ^ " " ^
+               (String.implode (ports_toString (String.explode "dstports:") (dports m))) ); dump_iptables rs);
 
 *}
 
