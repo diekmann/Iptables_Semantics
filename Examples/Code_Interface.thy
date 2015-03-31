@@ -96,7 +96,18 @@ fun simple_rule_toString :: "simple_rule \<Rightarrow> string" where
       iface_toString ''in: '' iif @ '' '' @ 
       iface_toString ''out: '' oif @ '' '' @ 
       ports_toString ''sports: '' sps @ '' '' @ 
-      ports_toString ''dports: '' dps "
+      ports_toString ''dports: '' dps"
+
+
+fun simple_rule_iptables_save_toString :: "string \<Rightarrow> simple_rule \<Rightarrow> string" where
+  "simple_rule_iptables_save_toString chain (SimpleRule \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> a) = 
+    ''-A ''@chain@'' -s '' @ ipv4_cidr_toString sip @ '' '' @
+                  ''-d '' @ ipv4_cidr_toString dip @ '' '' @
+                  ''-p '' @ protocol_toString p @ '' '' @
+                  (if (iface_toString ''in:'' iif)@(iface_toString ''out:'' oif)@
+                      (ports_toString ''srcports:'' sps)@(ports_toString ''dstports:'' dps) \<noteq> ''''
+                   then ''TODO: more fields to dump'' else '''') @
+                  '' -j '' @ simple_action_toString a"
 
 
 end

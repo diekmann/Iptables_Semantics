@@ -61,6 +61,7 @@ structure Test : sig
   val sports :
     'a simple_match_ext ->
       num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word
+  val simple_rule_iptables_save_toString : char list -> simple_rule -> char list
   val check_simple_fw_preconditions : common_primitive rule list -> bool
   val bitmask_to_strange_inverse_cisco_mask : nat -> nat * (nat * (nat * nat))
 end = struct
@@ -2388,6 +2389,30 @@ fun normalized_protocols MatchAny = true
   | normalized_protocols (MatchNot (Match (Extra va))) = true
   | normalized_protocols (MatchNot (MatchNot v)) = true
   | normalized_protocols (MatchNot MatchAny) = true;
+
+fun simple_rule_iptables_save_toString chain
+  (SimpleRule (Simple_match_ext (iif, oif, sip, dip, p, sps, dps, ()), a)) =
+  [#"-", #"A", #" "] @
+    chain @
+      [#" ", #"-", #"s", #" "] @
+        ipv4_cidr_toString sip @
+          [#" "] @
+            [#"-", #"d", #" "] @
+              ipv4_cidr_toString dip @
+                [#" "] @
+                  [#"-", #"p", #" "] @
+                    protocol_toString p @
+                      [#" "] @
+                        (if not (null (iface_toString [#"i", #"n", #":"] iif @
+iface_toString [#"o", #"u", #"t", #":"] oif @
+  ports_toString [#"s", #"r", #"c", #"p", #"o", #"r", #"t", #"s", #":"] sps @
+    ports_toString [#"d", #"s", #"t", #"p", #"o", #"r", #"t", #"s", #":"] dps))
+                          then [#"T", #"O", #"D", #"O", #":", #" ", #"m", #"o",
+                                 #"r", #"e", #" ", #"f", #"i", #"e", #"l", #"d",
+                                 #"s", #" ", #"t", #"o", #" ", #"d", #"u", #"m",
+                                 #"p"]
+                          else []) @
+                          [#" ", #"-", #"j", #" "] @ simple_action_toString a;
 
 fun is_Extra (Src x1) = false
   | is_Extra (Dst x2) = false

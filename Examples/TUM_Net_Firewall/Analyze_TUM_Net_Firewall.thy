@@ -28,6 +28,7 @@ export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure
   deny_set
   ipv4_cidr_toString protocol_toString simple_action_toString port_toString iface_toString ports_toString
   simple_rule_toString
+  simple_rule_iptables_save_toString
   in SML module_name "Test" file "unfold_code.ML"
 
 ML_file "unfold_code.ML"
@@ -148,18 +149,6 @@ writeln "target     prot opt source               destination"
 
 subsection{*Different output formats*}
 
-ML{*
-fun dump_iptables_save [] = ()
-  | dump_iptables_save (SimpleRule (m, a) :: rs) =
-      (writeln ("-A FORWARD  " ^ "-s " ^ dump_ip (src m) ^ " " ^
-                "-d " ^ dump_ip (dst m) ^ " " ^
-                "-p " ^ dump_prot (proto m) ^ " " ^
-                (if (dump_iface_name "in:" (iiface m))^(dump_iface_name "out:" (oiface m))^(dump_ports "srcports:" (sports m))^
-                    (dump_ports "dstports:" (dports m)) <> "TODO: more fields to dump" then "" else "") ^
-                "" ^ " -j " ^ dump_action a); dump_iptables_save rs);
-*}
-
-
 text{*iptables-save*}
 ML_val{* 
 local
@@ -173,10 +162,13 @@ writeln "*filter";
 writeln ":INPUT ACCEPT [0:0]";
 writeln ":FORWARD ACCEPT [0:0]";
 writeln ":OUTPUT ACCEPT [0:0]";
-dump_iptables_save (to_simple_firewall upper);
+val _ = map (fn r => writeln (String.implode (simple_rule_iptables_save_toString (String.explode "FORWARD") r))) (to_simple_firewall upper);
 writeln "COMMIT";
+writeln "# make sure no space is after COMMIT";
 writeln "# Completed on Wed Sep  3 18:02:01 2014";
 *}
+
+
 
 text{*Cisco*}
 ML{*
