@@ -27,6 +27,7 @@ export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure
   bitmask_to_strange_inverse_cisco_mask
   deny_set
   ipv4_cidr_toString protocol_toString simple_action_toString port_toString iface_toString ports_toString
+  simple_rule_toString
   in SML module_name "Test" file "unfold_code.ML"
 
 ML_file "unfold_code.ML"
@@ -138,6 +139,13 @@ writeln "target     prot opt source               destination";
 dump_iptables (to_simple_firewall upper);
 writeln "Chain OUTPUT (policy ACCEPT)";
 writeln "target     prot opt source               destination"
+*}
+ML_val{*
+local
+  val putLn = writeln o String.implode o simple_rule_toString
+in
+  val _ = map putLn (to_simple_firewall upper)
+end;
 *}
 
 

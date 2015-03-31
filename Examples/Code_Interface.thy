@@ -87,4 +87,16 @@ lemma "ports_toString ''src: '' (0,65535) = ''''" by eval
 lemma "ports_toString ''src: '' (1024,2048) = ''src: (1024,2048)''" by eval
 
 
+fun simple_rule_toString :: "simple_rule \<Rightarrow> string" where
+  "simple_rule_toString (SimpleRule \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> a) = 
+      simple_action_toString a @ ''     '' @ 
+      protocol_toString p @ ''  --  '' @ 
+      ipv4_cidr_toString sip @ ''            '' @
+      ipv4_cidr_toString dip @ '' '' @ 
+      iface_toString ''in: '' iif @ '' '' @ 
+      iface_toString ''out: '' oif @ '' '' @ 
+      ports_toString ''sports: '' sps @ '' '' @ 
+      ports_toString ''dports: '' dps "
+
+
 end

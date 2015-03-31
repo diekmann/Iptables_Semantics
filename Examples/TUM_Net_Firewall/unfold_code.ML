@@ -44,9 +44,10 @@ structure Test : sig
   val protocol_toString : protocol -> char list
   val deny_set : common_primitive rule list -> common_primitive packet_set list
   val ipv4_cidr_toString : num1 bit0 bit0 bit0 bit0 bit0 word * nat -> char list
+  val simple_action_toString : simple_action -> char list
+  val simple_rule_toString : simple_rule -> char list
   val dst : 'a simple_match_ext -> num1 bit0 bit0 bit0 bit0 bit0 word * nat
   val src : 'a simple_match_ext -> num1 bit0 bit0 bit0 bit0 bit0 word * nat
-  val simple_action_toString : simple_action -> char list
   val unfold_ruleset_FORWARD :
     (char list -> (common_primitive rule list) option) ->
       common_primitive rule list
@@ -2024,6 +2025,32 @@ fun process_call gamma [] = []
   | process_call gamma (Rule (v, Unknown) :: rs) =
     Rule (v, Unknown) :: process_call gamma rs;
 
+fun simple_action_toString Accepta = [#"A", #"C", #"C", #"E", #"P", #"T"]
+  | simple_action_toString Dropa = [#"D", #"R", #"O", #"P"];
+
+fun simple_rule_toString
+  (SimpleRule (Simple_match_ext (iif, oif, sip, dip, p, sps, dps, ()), a)) =
+  simple_action_toString a @
+    [#" ", #" ", #" ", #" ", #" "] @
+      protocol_toString p @
+        [#" ", #" ", #"-", #"-", #" ", #" "] @
+          ipv4_cidr_toString sip @
+            [#" ", #" ", #" ", #" ", #" ", #" ", #" ", #" ", #" ", #" ", #" ",
+              #" "] @
+              ipv4_cidr_toString dip @
+                [#" "] @
+                  iface_toString [#"i", #"n", #":", #" "] iif @
+                    [#" "] @
+                      iface_toString [#"o", #"u", #"t", #":", #" "] oif @
+                        [#" "] @
+                          ports_toString
+                            [#"s", #"p", #"o", #"r", #"t", #"s", #":", #" "]
+                            sps @
+                            [#" "] @
+                              ports_toString
+                                [#"d", #"p", #"o", #"r", #"t", #"s", #":", #" "]
+                                dps;
+
 fun dst
   (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
   dst;
@@ -2159,9 +2186,6 @@ fun simple_match_and
                              (iif, oif, sip, dip, p,
                                simpl_ports_conjunct sps1 sps2,
                                simpl_ports_conjunct dps1 dps2, ())))))));
-
-fun simple_action_toString Accepta = [#"A", #"C", #"C", #"E", #"P", #"T"]
-  | simple_action_toString Dropa = [#"D", #"R", #"O", #"P"];
 
 fun unfold_ruleset_FORWARD rs =
   funpow (nat_of_integer (10 : IntInf.int))
