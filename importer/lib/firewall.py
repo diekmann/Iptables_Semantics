@@ -143,6 +143,18 @@ class Rule(object):
         self.ipdst = ipdst
         self.extra = extra
 
+    def __combine_MatchAnd(self, serializer, ls):
+        ls = [l for l in ls if l is not None]
+        if len(ls) == 0:
+            return "MatchAny"
+        elif len(ls) == 1:
+            return ls[0]
+        elif len(ls) == 2:
+            return serializer.constr("MatchAnd", ls[0], ls[1])
+        else:
+            return serializer.constr("MatchAnd", ls[0], self.__combine_MatchAnd(serializer, ls[1:]))
+            
+
     def serialize(self, chain_names, serializer):
         action = self.action.serialize(chain_names, serializer)
         proto = self.proto.serialize(serializer)
@@ -150,12 +162,12 @@ class Rule(object):
         ipdst = self.ipdst.serialize(Src_Or_Dst.dst, serializer)
         
         if hasattr(self, 'sports'):
-            print("TODO: this Rule object has sports set. Unhandled!")
+            print("TODO: this Rule object has sports set. Untested! Unhandled!")
             assert isinstance(self.sports, SPorts)
-            print(self.sports.serialize(serializer))
+            sports = self.sports.serialize(serializer)
 
         if hasattr(self, 'dports'):
-            print("TODO: this Rule object has dports set. Unhandled!")
+            print("TODO: this Rule object has dports set. Untested! Unhandled!")
             assert isinstance(self.dports, DPorts)
             print(self.dports.serialize(serializer))
         
@@ -164,7 +176,7 @@ class Rule(object):
         else:
             extra = serializer.constr("Match", serializer.constr("Extra", serializer.string(self.extra)))
 
-        raw = serializer.constr("MatchAnd", ipsrc, serializer.constr("MatchAnd", ipdst, serializer.constr("MatchAnd", proto, extra)))
+        raw = self.__combine_MatchAnd(serializer, [ipsrc, ipdst, proto, extra])
 
         return serializer.constr("Rule", raw, action)
 
