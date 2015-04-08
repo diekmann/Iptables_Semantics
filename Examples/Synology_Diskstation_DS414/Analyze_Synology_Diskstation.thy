@@ -80,13 +80,40 @@ apply(simp add: Matching_Ternary.matches_def)
 done
 
 
-value "to_simple_firewall (upper_closure (unfold_ruleset_INUPUT example_ruleset))"
-value "to_simple_firewall (lower_closure (unfold_ruleset_INUPUT example_ruleset))"
+value "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INUPUT example_ruleset)))"
+value "map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_INUPUT example_ruleset)))"
 
 
 value "length (unfold_ruleset_INUPUT example_ruleset)"
 text{*Wow, normalization has exponential(?) blowup here.*}
 value "length (normalize_rules_dnf (unfold_ruleset_INUPUT example_ruleset))"
 
+
+
+subsection{*With parsed ports*}
+
+value "map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_INUPUT  [''DOS_PROTECT'' \<mapsto> [Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Extra (''Prot icmp''))) (Match (Extra (''icmptype 8 limit: avg 1/sec burst 5'')))))) (action.Return),
+Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Extra (''Prot icmp''))) (Match (Extra (''icmptype 8'')))))) (action.Drop),
+Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (Match (Extra (''tcp flags:0x17/0x04 limit: avg 1/sec burst 5'')))))) (action.Return),
+Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (Match (Extra (''tcp flags:0x17/0x04'')))))) (action.Drop),
+Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (Match (Extra (''tcp flags:0x17/0x02 limit: avg 10000/sec burst 100'')))))) (action.Return),
+Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (Match (Extra (''tcp flags:0x17/0x02'')))))) (action.Drop),
+Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Extra (''Prot icmp''))) (Match (Extra (''icmptype 8 limit: avg 1/sec burst 5'')))))) (action.Return),
+Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Extra (''Prot icmp''))) (Match (Extra (''icmptype 8'')))))) (action.Drop),
+Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (Match (Extra (''tcp flags:0x17/0x04 limit: avg 1/sec burst 5'')))))) (action.Return),
+Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (Match (Extra (''tcp flags:0x17/0x04'')))))) (action.Drop),
+Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (Match (Extra (''tcp flags:0x17/0x02 limit: avg 10000/sec burst 100'')))))) (action.Return),
+Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (Match (Extra (''tcp flags:0x17/0x02'')))))) (action.Drop)],
+''INPUT'' \<mapsto> [Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (ProtoAny))) (MatchAny)))) (Call (''DOS_PROTECT'')),
+Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (ProtoAny))) (MatchAny)))) (Call (''DOS_PROTECT'')),
+Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (ProtoAny))) (Match (Extra (''state RELATED,ESTABLISHED'')))))) (action.Accept),
+Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (MatchAnd (Match (Dst_Ports ([(22,22)]))) (Match (Extra (''tcp ''))))))) (action.Drop),
+Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (MatchAnd (Match (Dst_Ports ([(21,21),(873,873),(5005,5005),(5006,5006),(80,80),(548,548),(111,111),(2049,2049),(892,892)]))) (Match (Extra (''''))))))) (action.Drop),
+Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto UDP))) (MatchAnd (Match (Dst_Ports ([(123,123),(111,111),(2049,2049),(892,892),(5353,5353)]))) (Match (Extra (''''))))))) (action.Drop),
+Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((192,168,0,0)) (16)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (ProtoAny))) (MatchAny)))) (action.Accept),
+Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (ProtoAny))) (MatchAny)))) (action.Drop),
+Rule (MatchAny) (action.Accept)],
+''FORWARD'' \<mapsto> [Rule (MatchAny) (action.Accept)],
+''OUTPUT'' \<mapsto> [Rule (MatchAny) (action.Accept)]])))"
 
 end

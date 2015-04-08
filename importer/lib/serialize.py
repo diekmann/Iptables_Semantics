@@ -21,6 +21,12 @@ class Serializer:
             braces = " {}"
 
         return f + braces.format(fmt.join(["({})".format(arg) for arg in args]))
+    
+    def list(self, items, newline=True):
+        if newline:
+            return "[{}]".format(",\n".join(items))
+        else:
+            return "[{}]".format(",".join(items))
 
     def quote(self, string):
         return string.replace('"', '\\"')
@@ -61,9 +67,6 @@ class HOL(Serializer):
     def tup(self, *args):
         return "({})".format(",".join(args))
 
-    def list(self, items):
-        return "[{}]".format(",\n".join(items))
-
     def map(self, items):
         return "[{}]".format(",\n".join(["""{} \<mapsto> {}""".format(k, v) for k, v in items]))
 
@@ -95,9 +98,6 @@ class ML(Serializer):
 
         return "({}, {})".format(args[0], tail)
 
-    def list(self, items):
-        return "[{}]".format(",\n".join(items))
-
     def map(self, items):
         # Actually a list of tuples, but oh well
         return "[{}]".format(",\n".join(["({}, {})".format(k, v) for k, v in items]))
@@ -127,6 +127,7 @@ class Scala(Serializer):
         return "({})".format(",".join(args))
 
     def list(self, items):
+        #TODO: newline!
         return "List({})".format(",\n".join(items))
 
     def map(self, items):

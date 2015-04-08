@@ -18,15 +18,17 @@ class Ports(object):
             assert end >= 0
         self.ports = ports
 
-    def serialize(self, serializer):
+    def raw_serialize(self, serializer):
         ports = [serializer.tup(serializer.nat(start), serializer.nat(end)) for (start,end) in self.ports]
-        return serializer.list(ports)
-
-class DPorts(Ports):
-    pass
+        return serializer.list(ports, newline=False)
 
 class SPorts(Ports):
-    pass
+    def serialize(self, serializer):
+        return serializer.constr("Match", serializer.constr("Src_Ports", self.raw_serialize(serializer)))
+
+class DPorts(Ports):
+    def serialize(self, serializer):
+        return serializer.constr("Match", serializer.constr("Dst_Ports", self.raw_serialize(serializer)))
 
 class Src_Or_Dst(Enum):
     src = 1
@@ -161,22 +163,22 @@ class Rule(object):
         ipsrc = self.ipsrc.serialize(Src_Or_Dst.src, serializer)
         ipdst = self.ipdst.serialize(Src_Or_Dst.dst, serializer)
         
+        sports = None
         if hasattr(self, 'sports'):
-            print("TODO: this Rule object has sports set. Untested! Unhandled!")
             assert isinstance(self.sports, SPorts)
             sports = self.sports.serialize(serializer)
 
+        dports = None
         if hasattr(self, 'dports'):
-            print("TODO: this Rule object has dports set. Untested! Unhandled!")
             assert isinstance(self.dports, DPorts)
-            print(self.dports.serialize(serializer))
+            dports = self.dports.serialize(serializer)
         
         if self.extra is None:
-            extra = "MatchAny"
+            extra = "MatchAny" #TODO: is setting to None better code?
         else:
             extra = serializer.constr("Match", serializer.constr("Extra", serializer.string(self.extra)))
 
-        raw = self.__combine_MatchAnd(serializer, [ipsrc, ipdst, proto, extra])
+        raw = self.__combine_MatchAnd(serializer, [ipsrc, ipdst, proto, sports, dports, extra])
 
         return serializer.constr("Rule", raw, action)
 
