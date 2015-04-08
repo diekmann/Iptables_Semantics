@@ -38,9 +38,8 @@ ML{*
 open Test; (*put the exported code into current namespace such that the following firewall definition loads*)
 *}
 
-(*we search replaced brute-forcely to adapt to the new constructor names
-*)
-ML_file "iptables_Ln_29.11.2013_new_deletemeaftertesting.ML"
+(* ../../importer/main.py --type ml --module Test iptables_Ln_29.11.2013_cheating iptables_Ln_29.11.2013_cheating.ML *)
+ML_file "iptables_Ln_29.11.2013_cheating.ML"
 
 (*This is the diff for the _cheating rule set
  Chain FORWARD (policy ACCEPT)
