@@ -173,7 +173,7 @@ class Rule(object):
             assert isinstance(self.dports, DPorts)
             dports = self.dports.serialize(serializer)
         
-        if self.extra is None:
+        if self.extra is None or self.extra == "":
             extra = "MatchAny" #TODO: is setting to None better code?
         else:
             extra = serializer.constr("Match", serializer.constr("Extra", serializer.string(self.extra)))

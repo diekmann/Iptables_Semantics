@@ -112,6 +112,7 @@ def parse_extra(rule):
         ports = []
         
         # dpt:22
+        #TODO: "tcp dpt:22"
         p = re.compile(d+r'pt:(?P<port>\d+)')
         m = p.search(extra)
         if m is not None:
