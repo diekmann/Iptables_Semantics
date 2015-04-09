@@ -74,7 +74,7 @@ class HOL(Serializer):
         return 'definition "{} = {}"'.format(name, value)
 
     def header(self):
-        return "theory {}\nimports matching {}\nbegin\n".format(self.module, self.import_module)
+        return "theory {}\nimports \"{}\"\nbegin\n".format(self.module, self.import_module)
 
     def footer(self):
         return "\nend\n"

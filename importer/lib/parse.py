@@ -95,27 +95,44 @@ def parse_action(action):
     # could as well be a call to a custom chain, but we don't know yet
     return mapping[action] if action in mapping else Custom_Action(action)
 
+
 def parse_extra(rule):
     """parses the right side of an `iptables -L -n' format (everything after destination). Argument: a Rule"""
     
     extra = rule.extra
     if extra is None:
         return rule
-    
-    def parse_ports(d, extra):
-        """d - dport or sport
-           extra - string
-           side-effect-free function"""
+        
+    """
+    try to parse ports
+    side-effect-free function
+    Parameters:
+        d - d for dst and s for src
+        extra - the string of unparsed extra option
+        proto (optional) - the protocol which was parsed
+                           Use case: "tcp dpt:22" is submitted, if the parsed protocol is already tcp, we can ignore the tcp specification here
+        
+    """
+    def parse_ports(d, extra, proto=None):
         assert(d == 'd' or d == 's')
+        
+        #only work with protocols we know for sure, don't touch the rest
+        if not proto in [Known_Proto.tcp, Known_Proto.udp]:
+            proto = None
+            
         
         #list of tuples [(star,end), (start,end)]
         ports = []
         
         # dpt:22
-        #TODO: "tcp dpt:22"
-        p = re.compile(d+r'pt:(?P<port>\d+)')
+        # or "tcp dpt:22" or "udp dpt:22" but only if it corresponds to the supplied proto
+        p = re.compile(r'(?P<protocol>(?:tcp|udp))? ?'+d+r'pt:(?P<port>\d+)')
         m = p.search(extra)
         if m is not None:
+            if m.group('protocol') is not None:
+                print("found protocol `%s' should correspond to previously parsed `%s'" % (m.group('protocol'), proto))
+                print("TODO: test me")
+                assert(parse_proto(m.group('protocol')) == proto)
             ports.append((m.group('port'), m.group('port')))
             extra = nonmatching_rest(m, extra)
         assert(p.search(extra) is None) # only one dpt can be specified
@@ -124,6 +141,7 @@ def parse_extra(rule):
         p = re.compile(d+r'pts:(?P<port_start>\d+):(?P<port_end>\d+)')
         m = p.search(extra)
         if m is not None:
+            print("TODO: add dpts protocol parsing according to dpt parsing")
             ports.append((m.group('port_start'), m.group('port_end')))
             extra = nonmatching_rest(m, extra)
         assert(p.search(extra) is None) # only one dpt can be specified
@@ -149,10 +167,10 @@ def parse_extra(rule):
             assert(start <= end)
         return (extra, ports)
     
-    (extra, dports) = parse_ports('d', extra)
+    (extra, dports) = parse_ports('d', extra, rule.proto)
     if dports:
         rule.dports = DPorts(dports)
-    (extra, sports) = parse_ports('s', extra)
+    (extra, sports) = parse_ports('s', extra, rule.proto)
     if sports:
         rule.sports = SPorts(sports)
     
