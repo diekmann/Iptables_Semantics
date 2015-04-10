@@ -284,6 +284,12 @@ definition to_simple_firewall :: "common_primitive rule list \<Rightarrow> simpl
       (case (common_primitive_match_to_simple_match m) of None \<Rightarrow> None |
                   Some sm \<Rightarrow> Some (SimpleRule sm (action_to_simple_action a)))) rs"
 
+lemma to_simple_firewall_simps:
+      "to_simple_firewall [] = []"
+      "to_simple_firewall ((Rule m a)#rs) = (case common_primitive_match_to_simple_match m of
+          None \<Rightarrow> to_simple_firewall rs
+          | Some sm \<Rightarrow> (SimpleRule sm (action_to_simple_action a)) # to_simple_firewall rs)"
+  by(simp_all add: to_simple_firewall_def List.map_filter_simps split: option.split)
 
 value "check_simple_fw_preconditions
      [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8)))
@@ -300,5 +306,24 @@ value "to_simple_firewall [Rule (MatchAnd MatchAny MatchAny) Drop]"
 value "to_simple_firewall
      [Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) Drop]"
 
+
+
+theorem to_simple_firewall: "check_simple_fw_preconditions rs \<Longrightarrow> approximating_bigstep_fun (common_matcher, \<alpha>) p rs Undecided = simple_fw (to_simple_firewall rs) p"
+  proof(induction rs)
+  case Nil thus ?case by(simp add: to_simple_firewall_simps)
+  next
+  case (Cons r rs)
+    from Cons have IH: "approximating_bigstep_fun (common_matcher, \<alpha>) p rs Undecided = simple_fw (to_simple_firewall rs) p"
+    by(simp add: check_simple_fw_preconditions_def)
+    obtain m a where r: "r = Rule m a" by(cases r, simp)
+    from Cons.prems have "check_simple_fw_preconditions [r]" by(simp add: check_simple_fw_preconditions_def)
+    with r common_primitive_match_to_simple_match 
+    have match: "\<And> sm. common_primitive_match_to_simple_match m = Some sm \<Longrightarrow> matches (common_matcher, \<alpha>) m a p = simple_matches sm p" and
+         nomatch: "common_primitive_match_to_simple_match m = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p"
+      unfolding check_simple_fw_preconditions_def by simp_all
+    from `check_simple_fw_preconditions [r]` have "a = action.Accept \<or> a = action.Drop" by(simp add: r check_simple_fw_preconditions_def)
+    thus ?case
+      by(auto simp add: r to_simple_firewall_simps IH match nomatch split: option.split action.split)
+  qed
 
 end
