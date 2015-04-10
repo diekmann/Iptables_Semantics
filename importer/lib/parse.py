@@ -119,7 +119,12 @@ def parse_extra(rule):
         #only work with protocols we know for sure, don't touch the rest
         if not proto in [Known_Proto.tcp, Known_Proto.udp]:
             proto = None
-            
+        
+        """before the ports are specified, sometimes the protocol is written again"""
+        def check_protocol(parsed_protocol):
+            if parsed_protocol is not None:
+                #print("found protocol `%s' should correspond to previously parsed `%s'" % (m.group('protocol'), proto))
+                assert(parse_proto(m.group('protocol')) == proto)
         
         #list of tuples [(star,end), (start,end)]
         ports = []
@@ -129,19 +134,16 @@ def parse_extra(rule):
         p = re.compile(r'(?P<protocol>(?:tcp|udp))? ?'+d+r'pt:(?P<port>\d+)')
         m = p.search(extra)
         if m is not None:
-            if m.group('protocol') is not None:
-                print("found protocol `%s' should correspond to previously parsed `%s'" % (m.group('protocol'), proto))
-                print("TODO: test me")
-                assert(parse_proto(m.group('protocol')) == proto)
+            check_protocol(m.group('protocol'))
             ports.append((m.group('port'), m.group('port')))
             extra = nonmatching_rest(m, extra)
         assert(p.search(extra) is None) # only one dpt can be specified
         
         #dpts:1:65535
-        p = re.compile(d+r'pts:(?P<port_start>\d+):(?P<port_end>\d+)')
+        p = re.compile(r'(?P<protocol>(?:tcp|udp))? ?'+d+r'pts:(?P<port_start>\d+):(?P<port_end>\d+)')
         m = p.search(extra)
         if m is not None:
-            print("TODO: add dpts protocol parsing according to dpt parsing")
+            check_protocol(m.group('protocol'))
             ports.append((m.group('port_start'), m.group('port_end')))
             extra = nonmatching_rest(m, extra)
         assert(p.search(extra) is None) # only one dpt can be specified

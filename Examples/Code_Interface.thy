@@ -37,6 +37,10 @@ definition port_to_nat :: "16 word \<Rightarrow> nat" where
   "port_to_nat p = unat p"
 *)
 
+(* only used for ML code to convert types *)
+definition integer_to_16word :: "integer \<Rightarrow> 16 word" where
+  "integer_to_16word i \<equiv> of_nat (nat_of_integer i)"
+
 
 
 definition bitmask_to_strange_inverse_cisco_mask:: "nat \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat)" where

@@ -18,7 +18,7 @@ export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure
   ProtoAny Proto TCP UDP
   Src Dst Prot Extra OIface IIface Src_Ports Dst_Ports
   Iface
-  nat_of_integer integer_of_nat
+  nat_of_integer integer_of_nat integer_to_16word
   dotdecimal_of_ipv4addr
   check_simple_fw_preconditions
   to_simple_firewall

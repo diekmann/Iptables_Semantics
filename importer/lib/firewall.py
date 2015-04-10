@@ -19,7 +19,7 @@ class Ports(object):
         self.ports = ports
 
     def raw_serialize(self, serializer):
-        ports = [serializer.tup(serializer.nat(start), serializer.nat(end)) for (start,end) in self.ports]
+        ports = [serializer.tup(serializer.word(start), serializer.word(end)) for (start,end) in self.ports]
         return serializer.list(ports, newline=False)
 
 class SPorts(Ports):

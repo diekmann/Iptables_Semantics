@@ -41,6 +41,7 @@ structure Test : sig
   val ports_toString :
     char list ->
       num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word -> char list
+  val integer_to_16word : IntInf.int -> num1 bit0 bit0 bit0 bit0 word
   val protocol_toString : protocol -> char list
   val deny_set : common_primitive rule list -> common_primitive packet_set list
   val ipv4_cidr_toString : num1 bit0 bit0 bit0 bit0 bit0 word * nat -> char list
@@ -1960,6 +1961,10 @@ fun ipv4range_intersection r1 r2 =
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
 
 val packet_set_UNIV : 'a packet_set = PacketSet [[]];
+
+fun integer_to_16word i =
+  of_nat (semiring_1_word (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+    (nat_of_integer i);
 
 fun protocol_toString ProtoAny = [#"a", #"l", #"l"]
   | protocol_toString (Proto TCP) = [#"t", #"c", #"p"]

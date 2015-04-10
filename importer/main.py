@@ -27,8 +27,7 @@ if __name__ == '__main__':
 
     mapping = {
         'hol': HOL,
-        'ml': ML,
-        'scala': Scala
+        'ml': ML
     }
 
     if args.typ in mapping:

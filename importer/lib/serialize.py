@@ -46,6 +46,9 @@ class Serializer:
             
         return "{}".format(n)
     
+    def word(self, n, length=16):
+        return self.nat(n)
+    
     def action(self, action):
         assert type(action) == type("")
         return action
@@ -111,34 +114,11 @@ class ML(Serializer):
 
     def nat(self, n):
         return "(nat_of_integer {})".format(n)
+        
+    def word(self, n, length=16):
+        #the function integer_to_16_word is written in isabelle and needs to be exported
+        return "(integer_to_{}word {})".format(length, n)
 
     def footer(self):
         return "\nend\n"
 
-class Scala(Serializer):
-    def __init__(self, import_module, module):
-        error("unmaintained scala serializer")
-        super().__init__(module, import_module, Constr_Syntax.imp)
-
-    def string(self, string):
-        return '"{}"'.format(string)
-
-    def tup(self, *args):
-        return "({})".format(",".join(args))
-
-    def list(self, items):
-        #TODO: newline!
-        return "List({})".format(",\n".join(items))
-
-    def map(self, items):
-        return "Map({})".format(",\n".join(["{} -> {}".format(k, v) for k, v in items]))
-
-    def definition(self, name, value):
-        return 'val {} = {};'.format(name, value)
-
-    def header(self):
-        import_str = "import {}._".format(self.import_module) if self.import_module is not None else ""
-        return "object {} {{\n{}\n".format(self.module, import_str)
-
-    def footer(self):
-        return "\n}\n"
