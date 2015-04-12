@@ -101,7 +101,7 @@ lemma packet_ipset_prefix_eq2:
   shows "addr \<in> (fst (ipset_prefix_match match addrrg))"
 using assms
   apply(subst ipset_prefix_match_def)
-  apply(simp only: Let_def fst_def Case_def)
+  apply(simp only: Let_def fst_def)
   apply(simp add: prefix_to_ipset_def)
   apply(transfer)
   apply(simp only: prefix_match_semantics_def valid_prefix_def)
@@ -116,7 +116,7 @@ lemma packet_ipset_prefix_eq3:
   shows "\<not>prefix_match_semantics match addr"
 using assms
   apply(subst(asm) ipset_prefix_match_def)
-  apply(simp only: Let_def fst_def Case_def)
+  apply(simp only: Let_def fst_def)
   apply(simp)
   apply(subst(asm) prefix_to_ipset_def)
   apply(transfer)

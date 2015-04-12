@@ -226,7 +226,7 @@ text{*unused*}
         apply(simp only: ipt_ipv4range_invert.simps)
         apply(simp add: prefix_to_range_set_eq)
         apply(simp add: cornys_hacky_call_to_prefix_to_range_to_start_with_a_valid_prefix pfxm_length_def pfxm_prefix_def wordinterval_to_set_ipv4range_set_from_bitmask)
-        apply(thin_tac "?X")
+        (*apply(thin_tac "?X")*)
         by (metis ipv4range_set_from_bitmask_alt1 ipv4range_set_from_netmask_base_mask_consume maskshift_eq_not_mask)
      qed
 

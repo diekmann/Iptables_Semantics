@@ -72,7 +72,7 @@ lemma is_aligned_to_bl:
     apply (erule exE)
     apply (rule_tac x=j in exI)
     apply clarsimp
-   apply (thin_tac "w !! ?t")
+   apply (thin_tac "w !! (len_of TYPE('a) - Suc i)")
    apply (rule_tac x="i + n - len_of TYPE('a)" in exI)
    apply clarsimp
    apply arith

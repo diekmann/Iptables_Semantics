@@ -333,7 +333,7 @@ subsection{*Equality with @{term "\<gamma>,p\<turnstile> \<langle>rs, s\<rangle>
     apply(induction rs)
      apply(simp add: good_ruleset_def)
     apply(simp add: good_ruleset_def)
-    apply(thin_tac "?x = ?y") (*IH*)
+    (*apply(thin_tac "?x = ?y") (*IH*)*)
     apply(rename_tac r rs)
     apply(case_tac "get_action r")
            apply(simp_all)

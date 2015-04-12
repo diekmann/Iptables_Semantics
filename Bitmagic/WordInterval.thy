@@ -211,7 +211,7 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
      apply(simp only: wordinterval_setminus.simps)
      apply(case_tac [!] "r1e \<le> r2e", case_tac [!] "r2s \<le> r1s")
            apply(auto)
-     apply(metis (hide_lams, no_types) comm_semiring_1_class.normalizing_semiring_rules(24) inc_i word_prev_def le_minus min.absorb_iff1 word_le_sub1 word_zero_le)
+     apply (metis add.commute inc_i le_minus min_absorb1 word_le_sub1 word_prev_def word_zero_le)
     apply(metis inc_le word_next_def max.order_iff)
   done
 

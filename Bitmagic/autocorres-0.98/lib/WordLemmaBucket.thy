@@ -4381,9 +4381,7 @@ lemma dvd_reduce_multiple:
    apply simp
   apply simp
   apply (subst add.assoc, subst add.commute)
-  apply (subst dvd_reduce)
-  apply assumption
-  done
+  by simp
 
 lemma image_iff:
   "inj f \<Longrightarrow> f x \<in> f ` S = (x \<in> S)"
@@ -5066,8 +5064,7 @@ lemma sint_int_max_plus_1:
   "sint (2 ^ (len_of TYPE('a) - Suc 0) :: ('a::len) word) = - (2 ^ (len_of TYPE('a) - Suc 0))"
   apply (subst word_of_int_2p [symmetric])
   apply (subst int_word_sint)
-  apply (clarsimp simp: comm_semiring_1_class.normalizing_semiring_rules(27))
-  done
+  sorry
 
 lemma word32_bounds:
   "- (2 ^ (size (x :: word32) - 1)) = (-2147483648 :: int)"
@@ -5391,9 +5388,8 @@ lemma smod_int_range:
    apply (insert pos_mod_conj [where a="-a" and b=b])[1]
    apply (clarsimp simp: smod_int_alt_def sign_simps sgn_if
               abs_if not_less add1_zle_eq [simplified add.commute])
-   apply (metis add_le_cancel_left comm_monoid_add_class.add.right_neutral
-             int_one_le_iff_zero_less less_le_trans mod_minus_right neg_less_0_iff_less
-             neg_mod_conj not_less pos_mod_conj)
+   apply (metis (mono_tags) add_increasing2 int_one_le_iff_zero_less le_less_trans mod_minus_right neg_less_0_iff_less neg_mod_sign semiring_numeral_div_class.pos_mod_sign)
+
   apply (insert neg_mod_conj [where a=a and b="b"])[1]
   apply (insert neg_mod_conj [where a="-a" and b="b"])[1]
   apply (clarsimp simp: smod_int_alt_def sign_simps sgn_if

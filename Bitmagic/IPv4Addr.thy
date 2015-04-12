@@ -84,11 +84,11 @@ subsection{*Representing IPv4 Adresses*}
     "ipv4addr_of_dotdecimal (a,b,c,d) = (ipv4addr_of_nat a << 24) + (ipv4addr_of_nat b << 16) + (ipv4addr_of_nat c << 8) + ipv4addr_of_nat d"
   proof -
     have a: "(ipv4addr_of_nat a) << 24 = ipv4addr_of_nat (a * 16777216)"
-      by(simp add: ipv4addr_of_nat_def shiftl_t2n, metis Abs_fnat_hom_mult comm_semiring_1_class.normalizing_semiring_rules(7) of_nat_numeral)
+      by(simp add: ipv4addr_of_nat_def shiftl_t2n of_nat_mult)
     have b: "(ipv4addr_of_nat b) << 16 = ipv4addr_of_nat (b * 65536)"
-      by(simp add: ipv4addr_of_nat_def shiftl_t2n, metis Abs_fnat_hom_mult comm_semiring_1_class.normalizing_semiring_rules(7) of_nat_numeral)
+      by(simp add: ipv4addr_of_nat_def shiftl_t2n of_nat_mult)
     have c: "(ipv4addr_of_nat c) << 8 = ipv4addr_of_nat (c * 256)"
-      by(simp add: ipv4addr_of_nat_def shiftl_t2n, metis Abs_fnat_hom_mult comm_semiring_1_class.normalizing_semiring_rules(7) of_nat_numeral)
+      by(simp add: ipv4addr_of_nat_def shiftl_t2n of_nat_mult)
     have ipv4addr_of_nat_suc: "\<And>x. ipv4addr_of_nat (Suc x) = word_succ (ipv4addr_of_nat (x))"
       by(simp add: ipv4addr_of_nat_def, metis Abs_fnat_hom_Suc of_nat_Suc)
     { fix x y
@@ -96,11 +96,10 @@ subsection{*Representing IPv4 Adresses*}
       apply(induction x arbitrary: y)
       apply(simp add: ipv4addr_of_nat_def)
       apply(simp add: ipv4addr_of_nat_suc)
-      by (metis (hide_lams, no_types) comm_semiring_1_class.normalizing_semiring_rules(22) comm_semiring_1_class.normalizing_semiring_rules(24) word_succ_p1)
+      by (metis add_Suc ipv4addr_of_nat_def ipv4addr_of_nat_suc of_nat_add)
     } from this a b c
     show ?thesis
     apply(simp add: ipv4addr_of_dotdecimal.simps)
-    apply(thin_tac "?x")+
     apply(rule ipv4addr_of_nat_eq)
     by presburger
   qed

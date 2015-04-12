@@ -59,7 +59,8 @@ proof -
   have blip_split: "\<And> blip. length blip = 32 \<Longrightarrow> blip = (take 8 blip) @ (take 8 (drop 8 blip)) @ (take 8 (drop 16 blip)) @ (take 8 (drop 24 blip))"
     apply(case_tac blip)
     apply(simp_all)
-    apply(thin_tac "blip = ?x",rename_tac blip,case_tac blip,simp_all)+ (*I'm so sorry for this ...*)
+    (*thin_tac "blip = ?x",*)
+    apply(rename_tac blip,case_tac blip,simp_all)+ (*I'm so sorry for this ...*)
     done
 
   have "ipv4addr_of_dotdecimal (dotdecimal_of_ipv4addr ip) = of_bl (to_bl ip)"

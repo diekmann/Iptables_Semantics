@@ -403,10 +403,10 @@ theorem transform_normalize_primitives:
       \<forall>m\<in>get_match ` set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs). normalized_dst_ports m"
       by metis
     from preserve_normalized_dst_ports[OF normalized_rs2 normalized_dst_ports wf_disc_sel_common_primitive(3),
-         where f=ipt_ipv4range_compress, folded normalize_src_ips_def]
+         where f1=ipt_ipv4range_compress, folded normalize_src_ips_def]
     have normalized_dst_ports_rs3: "\<forall>m \<in> get_match ` set ?rs3.  normalized_dst_ports m" by force
     from preserve_normalized_dst_ports[OF normalized_rs3 normalized_dst_ports_rs3 wf_disc_sel_common_primitive(4),
-         where f=ipt_ipv4range_compress, folded normalize_dst_ips_def]
+         where f1=ipt_ipv4range_compress, folded normalize_dst_ips_def] (*TODO: why is this f1 and not f in 2015-RC0?*)
     have normalized_dst_ports_rs4: "\<forall>m \<in> get_match ` set ?rs4.  normalized_dst_ports m" by force
 
     from normalize_rules_preserves_unrelated_normalized_n_primitive[of ?rs3 is_Src src_sel "\<lambda>_. True",
