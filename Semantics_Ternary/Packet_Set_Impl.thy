@@ -30,7 +30,7 @@ text{*Symbolic (executable) representation. inner is @{text \<and>}, outer is @{
 (*the @{typ "'a"} negation type tells whether to negate the match expression*)
 (*test: the action negation tells whether to negate the result of the match*)
 (*due to unknowns, this may make a huge difference!*)
-datatype_new 'a packet_set = PacketSet (packet_set_repr: "(('a negation_type \<times> action negation_type) list) list")
+datatype 'a packet_set = PacketSet (packet_set_repr: "(('a negation_type \<times> action negation_type) list) list")
 
 text{*Essentially, the @{typ "'a list list"} structure represents a DNF. See @{file "Negation_Type_DNF.thy"} for a pure Boolean version (without matching).*}
 
@@ -362,7 +362,7 @@ subsubsection{*Optimizing*}
 
 
 subsection{*Conjunction Normal Form Packet Set*}
-datatype_new 'a packet_set_cnf = PacketSetCNF (packet_set_repr_cnf: "(('a negation_type \<times> action negation_type) list) list")
+datatype 'a packet_set_cnf = PacketSetCNF (packet_set_repr_cnf: "(('a negation_type \<times> action negation_type) list) list")
 
 
 lemma "\<not> ((a \<and> b) \<or> (c \<and> d)) \<longleftrightarrow> (\<not>a \<or> \<not>b) \<and> (\<not>c \<or> \<not> d)" by blast
