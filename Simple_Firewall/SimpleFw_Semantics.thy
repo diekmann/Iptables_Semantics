@@ -64,7 +64,7 @@ section{*Simple Firewall Syntax (IPv4 only)*}
     dports :: "(16 word \<times> 16 word)" --"destination-port first:last"
 
 
-  datatype_new simple_rule = SimpleRule (match_sel: simple_match) (action_sel: simple_action)
+  datatype simple_rule = SimpleRule (match_sel: simple_match) (action_sel: simple_action)
 
 subsection{*Simple Firewall Semantics*}
 

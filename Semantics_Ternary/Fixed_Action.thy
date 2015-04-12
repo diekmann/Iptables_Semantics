@@ -249,7 +249,7 @@ subsection{*@{term match_list}*}
      prefer 2
      apply(simp add: Decision_approximating_bigstep_fun)
     apply(simp)
-    apply(thin_tac "s = ?un")
+    apply(thin_tac "s = Undecided")
     apply(induction ms2)
      apply(simp)
      apply(induction ms1)
