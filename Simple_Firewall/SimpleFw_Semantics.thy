@@ -64,7 +64,7 @@ section{*Simple Firewall Syntax (IPv4 only)*}
     dports :: "(16 word \<times> 16 word)" --"destination-port first:last"
 
 
-  datatype simple_rule = SimpleRule simple_match simple_action
+  datatype_new simple_rule = SimpleRule (match_sel: simple_match) (action_sel: simple_action)
 
 subsection{*Simple Firewall Semantics*}
 
@@ -87,11 +87,13 @@ subsection{*Simple Firewall Semantics*}
       (simple_match_port (sports m) (p_sport p)) \<and>
       (simple_match_port (dports m) (p_dport p))"
 
+
   text{*The semantics of a simple firewall: just iterate over the rules sequentially*}
   fun simple_fw :: "simple_rule list \<Rightarrow> simple_packet \<Rightarrow> state" where
     "simple_fw [] _ = Undecided" |
     "simple_fw ((SimpleRule m Accept)#rs) p = (if simple_matches m p then Decision FinalAllow else simple_fw rs p)" |
     "simple_fw ((SimpleRule m Drop)#rs) p = (if simple_matches m p then Decision FinalDeny else simple_fw rs p)"
+
 
   definition simple_match_any :: "simple_match" where
     "simple_match_any \<equiv> \<lparr>iiface=IfaceAny, oiface=IfaceAny, src=(0,0), dst=(0,0), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
@@ -189,5 +191,13 @@ subsection{*Simple IPs*}
          (case simple_ips_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)" .
    } thus ?thesis by(cases ip1, cases ip2, simp)
   qed
+
+
+
+declare simple_matches.simps[simp del]
+
+
+lemma nomatch: "\<not> simple_matches m p \<Longrightarrow> simple_fw (SimpleRule m a # rs) p = simple_fw rs p"
+  by(cases a, simp_all)
 
 end

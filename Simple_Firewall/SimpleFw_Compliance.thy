@@ -54,7 +54,7 @@ theorem simple_match_to_ipportiface_match_correct: "matches (common_matcher, \<a
       by(simp_all)
   } note simple_match_ports=this
   show ?thesis unfolding sm
-  by(simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary simple_match_ips simple_match_ports)
+  by(simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary simple_match_ips simple_match_ports simple_matches.simps)
 qed
 
 
@@ -114,7 +114,7 @@ text{*@{typ "simple_match"} @{text \<and>} @{typ "simple_match"}*}
     show ?thesis
      apply(simp add: m1 m2)
      apply(simp split: option.split)
-     apply(auto)
+     apply(auto simp add: simple_matches.simps)
      apply(auto dest: sip_None dip_None sip_Some dip_Some)
      apply(auto dest: iiface_None oiface_None iiface_Some oiface_Some)
      apply(auto dest: proto_None proto_Some)
@@ -218,7 +218,7 @@ proof -
   show ?thesis
   using assms proof(induction m arbitrary: sm rule: common_primitive_match_to_simple_match.induct)
   case 1 thus ?case 
-    by(simp_all add: match_iface_simple_match_any_simps bunch_of_lemmata_about_matches(2))
+    by(simp_all add: match_iface_simple_match_any_simps bunch_of_lemmata_about_matches(2) simple_matches.simps)
   next
   case (13 m1 m2)
     let ?caseSome="Some sm = common_primitive_match_to_simple_match (MatchAnd m1 m2)"
@@ -265,7 +265,7 @@ proof -
     } note caseSome=this
 
     from caseNone caseSome show ?goal by blast
-  qed(simp_all add: match_iface_simple_match_any_simps, 
+  qed(simp_all add: match_iface_simple_match_any_simps simple_matches.simps, 
     simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary matches_SrcDst_simple_match2)
 qed
 
