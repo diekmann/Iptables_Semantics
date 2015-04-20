@@ -1,0 +1,3 @@
+[submodule "Bitmagic/l4v"]
+	path = Bitmagic/l4v
+	url = https://github.com/seL4/l4v.git

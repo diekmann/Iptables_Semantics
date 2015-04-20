@@ -39,9 +39,9 @@ lemma dnf_and_correct: "dnf_to_bool \<gamma> (dnf_and d1 d2) \<longleftrightarro
  apply(simp_all)
  apply(case_tac [!] "cnf_to_bool \<gamma> aa")
  apply(simp_all)
-apply (smt2 concat.simps(1) dnf_to_bool.simps(1) list.simps(8))
-apply (smt2 concat.simps(1) dnf_to_bool.simps(1) list.simps(8))
-by (smt2 concat.simps(1) dnf_to_bool.simps(1) list.simps(8))
+apply (smt concat.simps(1) dnf_to_bool.simps(1) list.simps(8))
+apply (smt concat.simps(1) dnf_to_bool.simps(1) list.simps(8))
+by (smt concat.simps(1) dnf_to_bool.simps(1) list.simps(8))
 
  
 text{*inverting a DNF*}

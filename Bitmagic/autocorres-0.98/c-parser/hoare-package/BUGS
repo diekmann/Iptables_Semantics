@@ -1,8 +1,0 @@
-the print translations for
-
-may_only_modify_global
-and
-p->next :== CALL ... 
-
-are broken. They are broken in the orginal, too, though.
-

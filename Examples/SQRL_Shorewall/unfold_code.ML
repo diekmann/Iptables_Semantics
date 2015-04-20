@@ -113,16 +113,18 @@ fun equal_worda A_ k l = equal_int (uint A_ k) (uint A_ l);
 fun equal_word A_ = {equal = equal_worda A_} : 'a word equal;
 
 fun sgn_integer k =
-  (if ((k : IntInf.int) = 0) then 0
-    else (if IntInf.< (k, 0) then (~1 : IntInf.int) else (1 : IntInf.int)));
+  (if ((k : IntInf.int) = (0 : IntInf.int)) then (0 : IntInf.int)
+    else (if IntInf.< (k, (0 : IntInf.int)) then (~1 : IntInf.int)
+           else (1 : IntInf.int)));
 
-fun abs_integer k = (if IntInf.< (k, 0) then IntInf.~ k else k);
+fun abs_integer k = (if IntInf.< (k, (0 : IntInf.int)) then IntInf.~ k else k);
 
 fun apsnd f (x, y) = (x, f y);
 
 fun divmod_integer k l =
-  (if ((k : IntInf.int) = 0) then (0, 0)
-    else (if ((l : IntInf.int) = 0) then (0, k)
+  (if ((k : IntInf.int) = (0 : IntInf.int))
+    then ((0 : IntInf.int), (0 : IntInf.int))
+    else (if ((l : IntInf.int) = (0 : IntInf.int)) then ((0 : IntInf.int), k)
            else (apsnd o (fn a => fn b => IntInf.* (a, b)) o sgn_integer) l
                   (if (((sgn_integer k) : IntInf.int) = (sgn_integer l))
                     then IntInf.divMod (IntInf.abs k, IntInf.abs l)
@@ -130,7 +132,8 @@ fun divmod_integer k l =
                            val (r, s) =
                              IntInf.divMod (IntInf.abs k, IntInf.abs l);
                          in
-                           (if ((s : IntInf.int) = 0) then (IntInf.~ r, 0)
+                           (if ((s : IntInf.int) = (0 : IntInf.int))
+                             then (IntInf.~ r, (0 : IntInf.int))
                              else (IntInf.- (IntInf.~ r, (1 : IntInf.int)),
                                     IntInf.- (abs_integer l, s)))
                          end)));
@@ -150,9 +153,10 @@ val ord_integer =
   : IntInf.int ord;
 
 fun minus_nat m n =
-  Nat (max ord_integer 0 (IntInf.- (integer_of_nat m, integer_of_nat n)));
+  Nat (max ord_integer (0 : IntInf.int)
+        (IntInf.- (integer_of_nat m, integer_of_nat n)));
 
-val zero_nat : nat = Nat 0;
+val zero_nat : nat = Nat (0 : IntInf.int);
 
 val one_nat : nat = Nat (1 : IntInf.int);
 
@@ -180,7 +184,7 @@ val plus = #plus : 'a plus -> 'a -> 'a -> 'a;
 
 fun plus_word A_ = {plus = plus_worda A_} : 'a word plus;
 
-val zero_int : int = Int_of_integer 0;
+val zero_int : int = Int_of_integer (0 : IntInf.int);
 
 fun zero_worda A_ = word_of_int A_ zero_int;
 
@@ -360,7 +364,7 @@ val equal_char = {equal = (fn a => fn b => ((a : char) = b))} : char equal;
 
 fun times_nat m n = Nat (IntInf.* (integer_of_nat m, integer_of_nat n));
 
-fun nat_of_integer k = Nat (max ord_integer 0 k);
+fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
 
 type 'a finite = {};
 
@@ -388,18 +392,14 @@ fun equal_prod A_ B_ = {equal = equal_proda A_ B_} : ('a * 'b) equal;
 datatype 'a wordinterval = WordInterval of 'a word * 'a word |
   RangeUnion of 'a wordinterval * 'a wordinterval;
 
-fun equal_wordintervala A_ (WordInterval (word1, word2))
-  (RangeUnion (wordinterval1, wordinterval2)) = false
-  | equal_wordintervala A_ (RangeUnion (wordinterval1, wordinterval2))
-    (WordInterval (word1, word2)) = false
-  | equal_wordintervala A_ (RangeUnion (wordinterval1a, wordinterval2a))
-    (RangeUnion (wordinterval1, wordinterval2)) =
-    equal_wordintervala A_ wordinterval1a wordinterval1 andalso
-      equal_wordintervala A_ wordinterval2a wordinterval2
-  | equal_wordintervala A_ (WordInterval (word1a, word2a))
-    (WordInterval (word1, word2)) =
-    equal_worda (len0_len A_) word1a word1 andalso
-      equal_worda (len0_len A_) word2a word2;
+fun equal_wordintervala A_ (WordInterval (x11, x12)) (RangeUnion (x21, x22)) =
+  false
+  | equal_wordintervala A_ (RangeUnion (x21, x22)) (WordInterval (x11, x12)) =
+    false
+  | equal_wordintervala A_ (RangeUnion (x21, x22)) (RangeUnion (y21, y22)) =
+    equal_wordintervala A_ x21 y21 andalso equal_wordintervala A_ x22 y22
+  | equal_wordintervala A_ (WordInterval (x11, x12)) (WordInterval (y11, y12)) =
+    equal_worda (len0_len A_) x11 y11 andalso equal_worda (len0_len A_) x12 y12;
 
 fun equal_wordinterval A_ = {equal = equal_wordintervala A_} :
   'a wordinterval equal;
@@ -407,16 +407,15 @@ fun equal_wordinterval A_ = {equal = equal_wordintervala A_} :
 datatype ipt_ipv4range = Ip4Addr of (nat * (nat * (nat * nat))) |
   Ip4AddrNetmask of (nat * (nat * (nat * nat))) * nat;
 
-fun equal_ipt_ipv4range (Ip4Addr proda) (Ip4AddrNetmask (prod, nat)) = false
-  | equal_ipt_ipv4range (Ip4AddrNetmask (proda, nat)) (Ip4Addr prod) = false
-  | equal_ipt_ipv4range (Ip4AddrNetmask (proda, nata))
-    (Ip4AddrNetmask (prod, nat)) =
+fun equal_ipt_ipv4range (Ip4Addr x1) (Ip4AddrNetmask (x21, x22)) = false
+  | equal_ipt_ipv4range (Ip4AddrNetmask (x21, x22)) (Ip4Addr x1) = false
+  | equal_ipt_ipv4range (Ip4AddrNetmask (x21, x22)) (Ip4AddrNetmask (y21, y22))
+    = equal_proda equal_nat
+        (equal_prod equal_nat (equal_prod equal_nat equal_nat)) x21 y21 andalso
+        equal_nata x22 y22
+  | equal_ipt_ipv4range (Ip4Addr x1) (Ip4Addr y1) =
     equal_proda equal_nat
-      (equal_prod equal_nat (equal_prod equal_nat equal_nat)) proda prod andalso
-      equal_nata nata nat
-  | equal_ipt_ipv4range (Ip4Addr proda) (Ip4Addr prod) =
-    equal_proda equal_nat
-      (equal_prod equal_nat (equal_prod equal_nat equal_nat)) proda prod;
+      (equal_prod equal_nat (equal_prod equal_nat equal_nat)) x1 y1;
 
 datatype primitive_protocol = TCP | UDP | ICMP;
 
@@ -442,14 +441,12 @@ fun equal_primitive_protocol UDP ICMP = false
   | equal_primitive_protocol UDP UDP = true
   | equal_primitive_protocol TCP TCP = true;
 
-fun equal_protocol ProtoAny (Proto primitive_protocol) = false
-  | equal_protocol (Proto primitive_protocol) ProtoAny = false
-  | equal_protocol (Proto primitive_protocola) (Proto primitive_protocol) =
-    equal_primitive_protocol primitive_protocola primitive_protocol
+fun equal_protocol ProtoAny (Proto x2) = false
+  | equal_protocol (Proto x2) ProtoAny = false
+  | equal_protocol (Proto x2) (Proto y2) = equal_primitive_protocol x2 y2
   | equal_protocol ProtoAny ProtoAny = true;
 
-fun equal_iface (Iface listaa) (Iface lista) =
-  equal_lista equal_char listaa lista;
+fun equal_iface (Iface x) (Iface ya) = equal_lista equal_char x ya;
 
 fun equal_common_primitivea (Dst_Ports x7) (Extra x8) = false
   | equal_common_primitivea (Extra x8) (Dst_Ports x7) = false
@@ -633,8 +630,8 @@ fun bin_rest w = div_int w (Int_of_integer (2 : IntInf.int));
 
 fun shiftr1 A_ w = word_of_int A_ (bin_rest (uint A_ w));
 
-fun map fi [] = []
-  | map fi (x21a :: x22) = fi x21a :: map fi x22;
+fun map f [] = []
+  | map f (x21 :: x22) = f x21 :: map f x22;
 
 fun max_word A_ =
   word_of_int (len0_len A_)
@@ -698,8 +695,8 @@ fun iface_name_is_wildcard [] = false
   | iface_name_is_wildcard [s] = ((s : char) = #"+")
   | iface_name_is_wildcard (uu :: v :: va) = iface_name_is_wildcard (v :: va);
 
-fun map_option fi NONE = NONE
-  | map_option fi (SOME x2a) = SOME (fi x2a);
+fun map_option f NONE = NONE
+  | map_option f (SOME x2) = SOME (f x2);
 
 fun iface_conjunct (Iface i1) (Iface i2) =
   (case (iface_name_is_wildcard i1, iface_name_is_wildcard i2)
@@ -898,27 +895,32 @@ fun prefix_to_range pfx =
           (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) pfx));
 
 fun ipv4range_split1 r =
-  (case ipv4range_lowest_element r of NONE => (NONE, r)
-    | SOME a =>
-      let
-        val cs = map (fn b => (a, b)) pfxes;
-        val cfs =
-          filter
-            (fn s =>
-              valid_prefix
-                (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-                s andalso
-                ipv4range_subset (prefix_to_range s) r)
-            cs;
-        val mc = find (const true) cfs;
-      in
-        (case mc of NONE => (NONE, r)
-          | SOME m => (mc, ipv4range_setminus r (prefix_to_range m)))
-      end);
+  let
+    val a = ipv4range_lowest_element r;
+  in
+    (case a of NONE => (NONE, r)
+      | SOME aa =>
+        let
+          val cs = map (fn b => (aa, b)) pfxes;
+          val cfs =
+            filter
+              (fn s =>
+                valid_prefix
+                  (len_bit0
+                    (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+                  s andalso
+                  ipv4range_subset (prefix_to_range s) r)
+              cs;
+          val mc = find (const true) cfs;
+        in
+          (case mc of NONE => (NONE, r)
+            | SOME m => (mc, ipv4range_setminus r (prefix_to_range m)))
+        end)
+  end;
 
 fun ipv4range_split rs =
   (if not (ipv4range_empty rs)
-    then (case ipv4range_split1 rs of (NONE, u) => []
+    then (case ipv4range_split1 rs of (NONE, _) => []
            | (SOME s, u) => s :: ipv4range_split u)
     else []);
 
@@ -932,27 +934,22 @@ fun rw_Reject [] = []
   | rw_Reject (Rule (v, Empty) :: rs) = Rule (v, Empty) :: rw_Reject rs
   | rw_Reject (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rw_Reject rs;
 
-fun equal_match_expr A_ (MatchAnd (match_expr1, match_expr2)) MatchAny = false
-  | equal_match_expr A_ MatchAny (MatchAnd (match_expr1, match_expr2)) = false
-  | equal_match_expr A_ (MatchNot match_expr) MatchAny = false
-  | equal_match_expr A_ MatchAny (MatchNot match_expr) = false
-  | equal_match_expr A_ (MatchNot match_expr)
-    (MatchAnd (match_expr1, match_expr2)) = false
-  | equal_match_expr A_ (MatchAnd (match_expr1, match_expr2))
-    (MatchNot match_expr) = false
-  | equal_match_expr A_ (Match a) MatchAny = false
-  | equal_match_expr A_ MatchAny (Match a) = false
-  | equal_match_expr A_ (Match a) (MatchAnd (match_expr1, match_expr2)) = false
-  | equal_match_expr A_ (MatchAnd (match_expr1, match_expr2)) (Match a) = false
-  | equal_match_expr A_ (Match a) (MatchNot match_expr) = false
-  | equal_match_expr A_ (MatchNot match_expr) (Match a) = false
-  | equal_match_expr A_ (MatchAnd (match_expr1a, match_expr2a))
-    (MatchAnd (match_expr1, match_expr2)) =
-    equal_match_expr A_ match_expr1a match_expr1 andalso
-      equal_match_expr A_ match_expr2a match_expr2
-  | equal_match_expr A_ (MatchNot match_expra) (MatchNot match_expr) =
-    equal_match_expr A_ match_expra match_expr
-  | equal_match_expr A_ (Match aa) (Match a) = eq A_ aa a
+fun equal_match_expr A_ (MatchAnd (x31, x32)) MatchAny = false
+  | equal_match_expr A_ MatchAny (MatchAnd (x31, x32)) = false
+  | equal_match_expr A_ (MatchNot x2) MatchAny = false
+  | equal_match_expr A_ MatchAny (MatchNot x2) = false
+  | equal_match_expr A_ (MatchNot x2) (MatchAnd (x31, x32)) = false
+  | equal_match_expr A_ (MatchAnd (x31, x32)) (MatchNot x2) = false
+  | equal_match_expr A_ (Match x1) MatchAny = false
+  | equal_match_expr A_ MatchAny (Match x1) = false
+  | equal_match_expr A_ (Match x1) (MatchAnd (x31, x32)) = false
+  | equal_match_expr A_ (MatchAnd (x31, x32)) (Match x1) = false
+  | equal_match_expr A_ (Match x1) (MatchNot x2) = false
+  | equal_match_expr A_ (MatchNot x2) (Match x1) = false
+  | equal_match_expr A_ (MatchAnd (x31, x32)) (MatchAnd (y31, y32)) =
+    equal_match_expr A_ x31 y31 andalso equal_match_expr A_ x32 y32
+  | equal_match_expr A_ (MatchNot x2) (MatchNot y2) = equal_match_expr A_ x2 y2
+  | equal_match_expr A_ (Match x1) (Match y1) = eq A_ x1 y1
   | equal_match_expr A_ MatchAny MatchAny = true;
 
 fun lower_closure_matchexpr uu MatchAny = MatchAny
@@ -1760,13 +1757,15 @@ fun process_ret [] = []
 fun ipv4_cidr_toString ip_n =
   let
     val (base, n) = ip_n;
-    val (a, (b, (c, d))) = dotdecimal_of_ipv4addr base;
+    val (a, b) = dotdecimal_of_ipv4addr base;
+    val (ba, c) = b;
+    val (ca, d) = c;
   in
     string_of_nat a @
       [#"."] @
-        string_of_nat b @
+        string_of_nat ba @
           [#"."] @
-            string_of_nat c @
+            string_of_nat ca @
               [#"."] @ string_of_nat d @ [#"/"] @ string_of_nat n
   end;
 
@@ -2030,7 +2029,7 @@ fun common_primitive_match_to_simple_match MatchAny = SOME simple_match_any
   | common_primitive_match_to_simple_match (MatchAnd (m1, m2)) =
     (case (common_primitive_match_to_simple_match m1,
             common_primitive_match_to_simple_match m2)
-      of (NONE, xa) => NONE | (SOME a, NONE) => NONE
+      of (NONE, _) => NONE | (SOME _, NONE) => NONE
       | (SOME a, SOME b) => simple_match_and a b)
   | common_primitive_match_to_simple_match (MatchNot (Match (Prot (Proto v)))) =
     (raise Fail "undefined")
@@ -2129,28 +2128,28 @@ fun equal_action Empty Unknown = false
   | equal_action Unknown Return = false
   | equal_action Return Empty = false
   | equal_action Empty Return = false
-  | equal_action (Call lista) Unknown = false
-  | equal_action Unknown (Call lista) = false
-  | equal_action (Call lista) Empty = false
-  | equal_action Empty (Call lista) = false
-  | equal_action (Call lista) Return = false
-  | equal_action Return (Call lista) = false
+  | equal_action (Call x5) Unknown = false
+  | equal_action Unknown (Call x5) = false
+  | equal_action (Call x5) Empty = false
+  | equal_action Empty (Call x5) = false
+  | equal_action (Call x5) Return = false
+  | equal_action Return (Call x5) = false
   | equal_action Reject Unknown = false
   | equal_action Unknown Reject = false
   | equal_action Reject Empty = false
   | equal_action Empty Reject = false
   | equal_action Reject Return = false
   | equal_action Return Reject = false
-  | equal_action Reject (Call lista) = false
-  | equal_action (Call lista) Reject = false
+  | equal_action Reject (Call x5) = false
+  | equal_action (Call x5) Reject = false
   | equal_action Log Unknown = false
   | equal_action Unknown Log = false
   | equal_action Log Empty = false
   | equal_action Empty Log = false
   | equal_action Log Return = false
   | equal_action Return Log = false
-  | equal_action Log (Call lista) = false
-  | equal_action (Call lista) Log = false
+  | equal_action Log (Call x5) = false
+  | equal_action (Call x5) Log = false
   | equal_action Log Reject = false
   | equal_action Reject Log = false
   | equal_action Drop Unknown = false
@@ -2159,8 +2158,8 @@ fun equal_action Empty Unknown = false
   | equal_action Empty Drop = false
   | equal_action Drop Return = false
   | equal_action Return Drop = false
-  | equal_action Drop (Call lista) = false
-  | equal_action (Call lista) Drop = false
+  | equal_action Drop (Call x5) = false
+  | equal_action (Call x5) Drop = false
   | equal_action Drop Reject = false
   | equal_action Reject Drop = false
   | equal_action Drop Log = false
@@ -2171,16 +2170,15 @@ fun equal_action Empty Unknown = false
   | equal_action Empty Accept = false
   | equal_action Accept Return = false
   | equal_action Return Accept = false
-  | equal_action Accept (Call lista) = false
-  | equal_action (Call lista) Accept = false
+  | equal_action Accept (Call x5) = false
+  | equal_action (Call x5) Accept = false
   | equal_action Accept Reject = false
   | equal_action Reject Accept = false
   | equal_action Accept Log = false
   | equal_action Log Accept = false
   | equal_action Accept Drop = false
   | equal_action Drop Accept = false
-  | equal_action (Call listaa) (Call lista) =
-    equal_lista equal_char listaa lista
+  | equal_action (Call x5) (Call y5) = equal_lista equal_char x5 y5
   | equal_action Unknown Unknown = true
   | equal_action Empty Empty = true
   | equal_action Return Return = true

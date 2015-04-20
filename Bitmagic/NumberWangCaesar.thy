@@ -1,6 +1,6 @@
 theory NumberWangCaesar
 imports "./IPv4Addr"
-  "./autocorres-0.98/lib/WordLemmaBucket"
+  "./l4v/lib/WordLemmaBucket"
 begin
 
 (*Contributed by Julius Michaelis*)
