@@ -435,7 +435,7 @@ lemma normalize_match_empty: "normalize_match m = [] \<Longrightarrow> \<not> ma
   next
   case 5 thus ?case using matches_not_idem by fastforce
   next
-  case 6 thus ?case by (metis bunch_of_lemmata_about_matches(3) matches_def matches_tuple)
+  case 6 thus ?case by (metis bunch_of_lemmata_about_matches(3))
   qed(simp_all)
 
 
