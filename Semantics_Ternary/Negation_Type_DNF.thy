@@ -1,5 +1,5 @@
 theory Negation_Type_DNF
-imports Fixed_Action Negation_Type_Matching "../Datatype_Selectors"
+imports Negation_Type
 begin
 
 section{*Negation Type DNF -- Draft*}
@@ -52,28 +52,6 @@ lemma dnf_to_bool_seteq: "set ` set d1 = set ` set d2 \<Longrightarrow> dnf_to_b
       done
   qed
 
-lemma dnf_and_symmetric: "dnf_to_bool \<gamma> (dnf_and d1 d2) \<longleftrightarrow> dnf_to_bool \<gamma> (dnf_and d2 d1)"
-proof(induction d1 arbitrary: d2)
-case Nil thus ?case by(simp add: empty_concat dnf_and_def)
-next
-case (Cons d d1)
-  have 1: "dnf_to_bool \<gamma> (dnf_and (d # d1) d2) \<longleftrightarrow> dnf_to_bool \<gamma> (map (op @ d) d2) \<or> dnf_to_bool \<gamma> (dnf_and d1 d2)"
-    by(simp add: dnf_and_def dnf_to_bool_append)
-
-  have "set (dnf_and d2 (d # d1)) = set ((map (\<lambda>x. x @ d) d2) @ (dnf_and d2 d1))"
-    by(simp add: dnf_and_def) blast
-  with dnf_to_bool_seteq dnf_to_bool_append have 2: "dnf_to_bool \<gamma> (dnf_and d2 (d # d1)) \<longleftrightarrow> dnf_to_bool \<gamma> (map (\<lambda>x. x @ d) d2) \<or> dnf_to_bool \<gamma> (dnf_and d2 d1)" by metis
-
-  have 3: "dnf_to_bool \<gamma> (map (\<lambda>x. x @ d) d2) \<longleftrightarrow> dnf_to_bool \<gamma> (map (op @ d) d2)"
-    apply(rule dnf_to_bool_seteq)
-    apply(induction d2)
-     apply auto
-    done
-
-  from 1 2 3 Cons.IH show ?case by simp
-qed
-
-
 lemma dnf_and_correct: "dnf_to_bool \<gamma> (dnf_and d1 d2) \<longleftrightarrow> dnf_to_bool \<gamma> d1 \<and> dnf_to_bool \<gamma> d2"
  apply(simp add: dnf_and_def)
  apply(induction d1)
@@ -81,6 +59,9 @@ lemma dnf_and_correct: "dnf_to_bool \<gamma> (dnf_and d1 d2) \<longleftrightarro
  apply(simp add: dnf_to_bool_append)
  apply(simp add: dnf_to_bool_set cnf_to_bool_set)
  by (meson UnCI UnE)
+
+lemma dnf_and_symmetric: "dnf_to_bool \<gamma> (dnf_and d1 d2) \<longleftrightarrow> dnf_to_bool \<gamma> (dnf_and d2 d1)"
+using dnf_and_correct by blast
 
  
 text{*inverting a DNF*}
