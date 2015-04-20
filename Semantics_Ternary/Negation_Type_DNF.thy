@@ -27,21 +27,60 @@ definition dnf_and :: "'a dnf \<Rightarrow> 'a dnf \<Rightarrow> 'a dnf" where
 
 value "dnf_and ([[a,b], [c,d]]) ([[v,w], [x,y]])"
 
+lemma cnf_to_bool_set: "cnf_to_bool f cnf \<longleftrightarrow> (\<forall> c \<in> set cnf. (case c of Pos a \<Rightarrow> f a | Neg a \<Rightarrow> \<not> f a))"
+  proof(induction cnf)
+  case Nil thus ?case by simp
+  next
+  case Cons thus ?case by (simp split: negation_type.split)
+  qed
+lemma dnf_to_bool_set: "dnf_to_bool \<gamma> dnf \<longleftrightarrow> (\<exists> d \<in> set dnf. cnf_to_bool \<gamma> d)"
+  proof(induction dnf)
+  case Nil thus ?case by simp
+  next
+  case (Cons d d1) thus ?case by(simp)
+  qed
+
+lemma dnf_to_bool_seteq: "set ` set d1 = set ` set d2 \<Longrightarrow> dnf_to_bool \<gamma> d1 \<longleftrightarrow> dnf_to_bool \<gamma> d2"
+  proof -
+    assume assm: "set ` set d1 = set ` set d2"
+    have helper1: "\<And>P d. (\<exists>d\<in>set d. \<forall>c\<in>set d. P c) \<longleftrightarrow> (\<exists>d\<in>set ` set d. \<forall>c\<in>d. P c)" by blast
+    from assm show ?thesis
+      apply(simp add: dnf_to_bool_set cnf_to_bool_set)
+      apply(subst helper1)
+      apply(subst helper1)
+      apply(simp)
+      done
+  qed
+
+lemma dnf_and_symmetric: "dnf_to_bool \<gamma> (dnf_and d1 d2) \<longleftrightarrow> dnf_to_bool \<gamma> (dnf_and d2 d1)"
+proof(induction d1 arbitrary: d2)
+case Nil thus ?case by(simp add: empty_concat dnf_and_def)
+next
+case (Cons d d1)
+  have 1: "dnf_to_bool \<gamma> (dnf_and (d # d1) d2) \<longleftrightarrow> dnf_to_bool \<gamma> (map (op @ d) d2) \<or> dnf_to_bool \<gamma> (dnf_and d1 d2)"
+    by(simp add: dnf_and_def dnf_to_bool_append)
+
+  have "set (dnf_and d2 (d # d1)) = set ((map (\<lambda>x. x @ d) d2) @ (dnf_and d2 d1))"
+    by(simp add: dnf_and_def) blast
+  with dnf_to_bool_seteq dnf_to_bool_append have 2: "dnf_to_bool \<gamma> (dnf_and d2 (d # d1)) \<longleftrightarrow> dnf_to_bool \<gamma> (map (\<lambda>x. x @ d) d2) \<or> dnf_to_bool \<gamma> (dnf_and d2 d1)" by metis
+
+  have 3: "dnf_to_bool \<gamma> (map (\<lambda>x. x @ d) d2) \<longleftrightarrow> dnf_to_bool \<gamma> (map (op @ d) d2)"
+    apply(rule dnf_to_bool_seteq)
+    apply(induction d2)
+     apply auto
+    done
+
+  from 1 2 3 Cons.IH show ?case by simp
+qed
+
 
 lemma dnf_and_correct: "dnf_to_bool \<gamma> (dnf_and d1 d2) \<longleftrightarrow> dnf_to_bool \<gamma> d1 \<and> dnf_to_bool \<gamma> d2"
  apply(simp add: dnf_and_def)
  apply(induction d1)
- apply(simp_all)
- apply(induction d2)
- apply(simp_all)
- apply(simp add: cnf_to_bool_append dnf_to_bool_append)
- apply(case_tac "cnf_to_bool \<gamma> a")
- apply(simp_all)
- apply(case_tac [!] "cnf_to_bool \<gamma> aa")
- apply(simp_all)
-apply (smt concat.simps(1) dnf_to_bool.simps(1) list.simps(8))
-apply (smt concat.simps(1) dnf_to_bool.simps(1) list.simps(8))
-by (smt concat.simps(1) dnf_to_bool.simps(1) list.simps(8))
+  apply(simp)
+ apply(simp add: dnf_to_bool_append)
+ apply(simp add: dnf_to_bool_set cnf_to_bool_set)
+ by (meson UnCI UnE)
 
  
 text{*inverting a DNF*}
