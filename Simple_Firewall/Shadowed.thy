@@ -55,24 +55,33 @@ value "rmshadow [SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', 
 subsection{*A datastructure for sets of packets*}
   text{*Previous algorithm is not executable because we have no code for @{typ "simple_packet set"}.*}
   
-  text{*A set of simple packets is represented by a DNF expression of simple matches.*}
-  type_synonym simple_packet_set="simple_match dnf"
+  (*assume: no interface wildcards
+    then we should be able to store a packet set in the following*)
+  (*TODO: accessors colide with simple_match*)
+  record simple_packet_set =
+      iiface :: "iface dnf"
+      oiface :: "iface dnf"
+      src :: "(ipv4addr \<times> nat) list"
+      dst :: "(ipv4addr \<times> nat) list"
+      proto :: "protocol list"
+      sports :: "(16 word \<times> 16 word) list"
+      dports :: "(16 word \<times> 16 word) list"
   
-  definition simple_packet_set :: "simple_packet_set \<Rightarrow> simple_packet set" where
-    "simple_packet_set sps \<equiv> {p. dnf_to_bool (\<lambda>m. simple_matches m p) sps}"
+  fun simple_packet_set_toSet :: "simple_packet_set \<Rightarrow> simple_packet set" where
+    "simple_packet_set_toSet \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> = 
+        {p. dnf_to_bool (\<lambda>m. match_iface m (p_iiface p)) iif \<and>
+            dnf_to_bool (\<lambda>m. match_iface m (p_oiface p)) oif \<and> 
+            (\<exists>rng \<in> set sip. simple_match_ip rng (p_src p))}"
+            (*\<dots>*)
+  (*
+    what can we do with this representation?
+                            \<union>    \<inter>                   negate                            is_empty
+    iface dnf               @    dnf_and              dnf_not                          ? \<rightarrow> no iface wildcards, should be doable
+    cidr list               @    smallest prefix      to bitrange, negate, cidrsplit   []
+    protocol                @    ?              ?                          ?
+    port-interval list      @    intersect bitrange   bitrange negate                  []
+  *)
   
-  lemma simple_packet_set_alt: "simple_packet_set sps =
-    (\<Union> cnf \<in> set sps. 
-          {p. \<forall> c \<in> set cnf. case c of Pos x \<Rightarrow> simple_matches x p
-                                    |  Neg x \<Rightarrow> \<not> simple_matches x p})"
-    unfolding simple_packet_set_def
-    using dnf_to_bool_set cnf_to_bool_set by blast
-  
-  definition simple_packet_set_UNIV :: simple_packet_set where
-    "simple_packet_set_UNIV \<equiv> dnf_True"
-  lemma "simple_packet_set simple_packet_set_UNIV = UNIV"
-    unfolding simple_packet_set_UNIV_def simple_packet_set_def using dnf_True by blast
-
   (*Idea: replace (\<forall>p\<in>P. \<not> simple_matches m p) by something with uses simple_packet_set*)
   lemma "(\<forall>p\<in>P. \<not> simple_matches m p) \<longleftrightarrow> P \<inter> {p. simple_matches m p} = {}" by auto
   (*simple_packet_set_is_empty
@@ -82,18 +91,6 @@ subsection{*A datastructure for sets of packets*}
       of the rmshadow algorithm because if the set is not empty, the ruleset is not modified.
       *)
 
-(*assume: no interface wildcards
-then we should be able to store a packet set in the following
-record simple_match =
-    iiface :: "iface dnf"
-    oiface :: "iface dnf"
-    src :: "(ipv4addr \<times> nat) list"
-    dst :: "(ipv4addr \<times> nat) list"
-    proto :: "protocol"
-    sports :: "(16 word \<times> 16 word) list"
-    dports :: "(16 word \<times> 16 word) list"
-
-*)
 
 
 end
