@@ -7,7 +7,7 @@ session "Iptables_Semantics" = Bitmagic +
     Semantics
     "Examples/Example_Semantics"
     Call_Return_Unfolding
-    "Semantics_Ternary/Negation_Type_DNF"
+    "Common/Negation_Type_DNF"
     "Semantics_Ternary/Packet_Set"
     "Semantics_Ternary/Semantics_Ternary"
     Matching_Embeddings
