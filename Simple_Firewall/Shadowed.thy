@@ -73,12 +73,14 @@ subsection{*A datastructure for sets of packets*}
   lemma "simple_packet_set simple_packet_set_UNIV = UNIV"
     unfolding simple_packet_set_UNIV_def simple_packet_set_def using dnf_True by blast
 
-  (*Idea: replace (\<forall>p\<in>P. \<not> simple_matches m p) by something with uses simple_packet_set:
-    simple_packet_set_is_empty
+  (*Idea: replace (\<forall>p\<in>P. \<not> simple_matches m p) by something with uses simple_packet_set*)
+  lemma "(\<forall>p\<in>P. \<not> simple_matches m p) \<longleftrightarrow> P \<inter> {p. simple_matches m p} = {}" by auto
+  (*simple_packet_set_is_empty
     We can approximate simple_packet_set_is_empty.
       Only if simple_packet_set_is_empty returns True, then the set must be empty
       Other direction (if it is empty, the it must return true) can be ignored for the soundness (not completeness)
       of the rmshadow algorithm because if the set is not empty, the ruleset is not modified.
       *)
+
 
 end

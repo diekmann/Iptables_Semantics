@@ -134,6 +134,19 @@ subsubsection{*inverting a DNF*}
     apply(simp add: cnf_invert_singelton cnf_singleton_false)
     done
 
+subsubsection{*Optimizing*}
+  (*there is probably a way better way to represent the set in the Collection framework
+    A list of lists can be quite inefficient
+    A better datastructure can help as we actually only use a set of sets*)
+  definition optimize_dfn :: "'a dnf \<Rightarrow> 'a dnf" where
+    "optimize_dfn dnf = map remdups (remdups dnf)"
+
+  lemma "dnf_to_bool f (optimize_dfn dnf) = dnf_to_bool f dnf"
+    unfolding optimize_dfn_def
+    apply(rule dnf_to_bool_seteq)
+    apply(simp)
+    by (metis image_cong image_image set_remdups)
+    
 
 
 end
