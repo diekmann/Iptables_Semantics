@@ -80,7 +80,10 @@ apply(simp add: Matching_Ternary.matches_def)
 done
 
 
+
+lemma "check_simple_fw_preconditions (upper_closure (unfold_ruleset_INUPUT example_ruleset))" by eval
 value "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INUPUT example_ruleset)))"
+lemma "check_simple_fw_preconditions (lower_closure (unfold_ruleset_INUPUT example_ruleset))" by eval
 value "map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_INUPUT example_ruleset)))"
 
 

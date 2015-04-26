@@ -90,9 +90,6 @@ lemma upper: "upper_closure (unfold_ruleset_INUPUT firewall_chains) =
   Rule (Match (Prot (Proto TCP))) action.Accept, Rule (Match (Prot (Proto UDP))) action.Accept, Rule (Match (Prot (Proto TCP))) action.Accept,
   Rule (Match (Prot (Proto UDP))) action.Accept, Rule MatchAny action.Drop, Rule MatchAny action.Accept]" by eval
 
-(*<*)
-(*please skip over this one!*)
-(*>*)
 
 lemma "rmshadow (common_matcher, in_doubt_allow) (upper_closure (unfold_ruleset_INUPUT firewall_chains)) UNIV = 
       [Rule MatchAny action.Accept]"
@@ -121,16 +118,23 @@ text{*We removed the first matches on state*}
 definition "example_firewall2 \<equiv> firewall_chains(''INPUT'' \<mapsto> tl (the (firewall_chains ''INPUT'')))"
 
 
-value(code) "(unfold_ruleset_INUPUT example_firewall2)"
-value(code) "zip (upto 0 (int (length (unfold_ruleset_INUPUT example_firewall2)))) (unfold_ruleset_INUPUT example_firewall2)"
-lemma "good_ruleset (unfold_ruleset_INUPUT example_firewall2)" by eval
-lemma "simple_ruleset (unfold_ruleset_INUPUT example_firewall2)" by eval
-
 text{*in doubt allow closure*}
-value(code) "upper_closure (unfold_ruleset_INUPUT example_firewall2)"
+definition "upper = upper_closure (unfold_ruleset_INUPUT example_firewall2)"
+value(code) "upper"
+
+
+value(code) "zip (upto 0 (int (length upper))) upper"
+lemma "good_ruleset upper" by eval
+lemma "simple_ruleset upper" by eval
+
+lemma "check_simple_fw_preconditions upper" by eval
+value "map simple_rule_toString (to_simple_firewall upper)"
+
 
 text{*in doubt deny closure*}
 value(code) "lower_closure (unfold_ruleset_INUPUT example_firewall2)"
+
+
 
 
 text{*Allowed Packets*}

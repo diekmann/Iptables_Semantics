@@ -32,7 +32,7 @@ text{*Symbolic (executable) representation. inner is @{text \<and>}, outer is @{
 (*due to unknowns, this may make a huge difference!*)
 datatype 'a packet_set = PacketSet (packet_set_repr: "(('a negation_type \<times> action negation_type) list) list")
 
-text{*Essentially, the @{typ "'a list list"} structure represents a DNF. See @{file "Negation_Type_DNF.thy"} for a pure Boolean version (without matching).*}
+text{*Essentially, the @{typ "'a list list"} structure represents a DNF. See @{file "../Common/Negation_Type_DNF.thy"} for a pure Boolean version (without matching).*}
 
 definition to_packet_set :: "action \<Rightarrow> 'a match_expr \<Rightarrow> 'a packet_set" where
  "to_packet_set a m = PacketSet (map (map (\<lambda>m'. (m',Pos a)) o to_negation_type_nnf) (normalize_match m))"
