@@ -78,14 +78,13 @@ begin
     private lemma iface_name_is_wildcard_fst: "iface_name_is_wildcard (i # is) \<Longrightarrow> is \<noteq> [] \<Longrightarrow> iface_name_is_wildcard is"
       by(simp add: iface_name_is_wildcard_alt)
   
-  
     private fun internal_iface_name_to_set :: "string \<Rightarrow> string set" where
       "internal_iface_name_to_set i = (if \<not> iface_name_is_wildcard i
         then
           {i}
         else
           {(butlast i)@cs | cs. True})"
-    lemma "{(butlast i)@cs | cs. True} = (\<lambda>s. (butlast i)@s) ` (UNIV::string set)" by fastforce
+    private lemma "{(butlast i)@cs | cs. True} = (\<lambda>s. (butlast i)@s) ` (UNIV::string set)" by fastforce
     private lemma internal_iface_name_to_set: "internal_iface_name_match i p_iface \<longleftrightarrow> p_iface \<in> internal_iface_name_to_set i"
       apply(induction i p_iface rule: internal_iface_name_match.induct)
          apply(simp_all)
@@ -94,14 +93,13 @@ begin
        apply (metis (full_types) iface_name_is_wildcard.simps(3) list.exhaust)
       by (metis append_butlast_last_id)
   
-     private  lemma internal_iface_name_match_refl: "internal_iface_name_match i i"
-      proof -
-      { fix i j
-        have "i=j \<Longrightarrow> internal_iface_name_match i j"
-          apply(induction i j rule: internal_iface_name_match.induct)
-          by(simp_all)
-      } thus ?thesis by simp
-      qed
+    private lemma internal_iface_name_match_refl: "internal_iface_name_match i i"
+     proof -
+     { fix i j
+       have "i=j \<Longrightarrow> internal_iface_name_match i j"
+         by(induction i j rule: internal_iface_name_match.induct)(simp_all)
+     } thus ?thesis by simp
+     qed
   
   subsection{*Matching*}
     fun match_iface :: "iface \<Rightarrow> string \<Rightarrow> bool" where
@@ -174,9 +172,9 @@ begin
           Some (if length i1 \<le> length i2 then i2 else i1)
         else
           None)"
-    lemma "internal_iface_name_wildcard_longest ''eth+'' ''eth3+'' = Some ''eth3+''" by eval
-    lemma "internal_iface_name_wildcard_longest ''eth+'' ''e+'' = Some ''eth+''" by eval
-    lemma "internal_iface_name_wildcard_longest ''eth+'' ''lo'' = None" by eval
+    private lemma "internal_iface_name_wildcard_longest ''eth+'' ''eth3+'' = Some ''eth3+''" by eval
+    private lemma "internal_iface_name_wildcard_longest ''eth+'' ''e+'' = Some ''eth+''" by eval
+    private lemma "internal_iface_name_wildcard_longest ''eth+'' ''lo'' = None" by eval
   
     private  lemma internal_iface_name_wildcard_longest_commute: "iface_name_is_wildcard i1 \<Longrightarrow> iface_name_is_wildcard i2 \<Longrightarrow> 
       internal_iface_name_wildcard_longest i1 i2 = internal_iface_name_wildcard_longest i2 i1"
@@ -189,7 +187,7 @@ begin
       by(simp add: internal_iface_name_wildcard_longest_def)
   
   
-    lemma internal_iface_name_wildcard_longest_correct: "iface_name_is_wildcard i1 \<Longrightarrow> iface_name_is_wildcard i2 \<Longrightarrow> 
+    private lemma internal_iface_name_wildcard_longest_correct: "iface_name_is_wildcard i1 \<Longrightarrow> iface_name_is_wildcard i2 \<Longrightarrow> 
              match_iface (Iface i1) p_i \<and> match_iface (Iface i2) p_i \<longleftrightarrow>
              (case internal_iface_name_wildcard_longest i1 i2 of None \<Rightarrow> False | Some x \<Rightarrow> match_iface (Iface x) p_i)"
     proof -

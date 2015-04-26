@@ -84,12 +84,13 @@ val t1= Time.now();
 writeln(String.concat ["It took ", Time.toString(Time.-(t1,t0)), " seconds"])
 *}
 text{*on my system, less than 20 seconds.*}
+text{*on my system, less than 25 seconds if we also included l4 ports.*}
 
 
 ML_val{*
 check_simple_fw_preconditions upper;
 check_simple_fw_preconditions lower;
-*}
+*} (*also true if ports included*)
 
 ML_val{*
 length (to_simple_firewall upper);

@@ -82,5 +82,18 @@ subsection{*A datastructure for sets of packets*}
       of the rmshadow algorithm because if the set is not empty, the ruleset is not modified.
       *)
 
+(*assume: no interface wildcards
+then we should be able to store a packet set in the following
+record simple_match =
+    iiface :: "iface dnf"
+    oiface :: "iface dnf"
+    src :: "(ipv4addr \<times> nat) list"
+    dst :: "(ipv4addr \<times> nat) list"
+    proto :: "protocol"
+    sports :: "(16 word \<times> 16 word) list"
+    dports :: "(16 word \<times> 16 word) list"
+
+*)
+
 
 end
