@@ -52,14 +52,21 @@ value "rmshadow [SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', 
         SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0, 0), dst = (0, 0), proto = Proto TCP, sports = (0, 0xFFFF), dports = (0x138E, 0x138E)\<rparr>
           simple_action.Drop] UNIV"
 
-
+(*
 subsection{*A datastructure for sets of packets*}
 text{*Previous algorithm is not executable because we have no code for @{typ "simple_packet set"}.*}
-  
+
+  datatype basic_set_operation = UnionOP | IntersectOP
+(* doesn't work this way
+TODO:
+back to old version, simple_match dnf
+is_empty \<longleftrightarrow> is_empty get_iiface \<and> is_empty get sip ...
+*)
   (*assume: no interface wildcards
     then we should be able to store a packet set in the following*)
   (*TODO: accessors colide with simple_match*)
   record simple_packet_set =
+      set_type :: basic_set_operation
       iiface :: "iface dnf"
       oiface :: "iface dnf"
       src :: "(ipv4addr \<times> nat) list"
@@ -77,24 +84,40 @@ text{*Previous algorithm is not executable because we have no code for @{typ "si
   *)
 
   fun simple_packet_set_toSet :: "simple_packet_set \<Rightarrow> simple_packet set" where
-    "simple_packet_set_toSet \<lparr>iiface=iifs, oiface=oifs, src=sips, dst=dips, proto=protocols, sports=spss, dports=dpss \<rparr> = 
+    "simple_packet_set_toSet \<lparr>set_type = IntersectOP, iiface=iifs, oiface=oifs, src=sips, dst=dips, proto=protocols, sports=spss, dports=dpss \<rparr> = 
         {p. (dnf_to_bool (\<lambda>m. match_iface m (p_iiface p)) iifs) \<and>
             (dnf_to_bool (\<lambda>m. match_iface m (p_oiface p)) oifs) \<and> 
             (\<exists>rng \<in> set sips. simple_match_ip rng (p_src p)) \<and>
             (\<exists>rng \<in> set dips. simple_match_ip rng (p_dst p)) \<and>
             (\<exists>proto \<in> protocols. match_proto proto (p_proto p)) \<and>
             (\<exists>rng \<in> set spss. simple_match_port rng (p_sport p)) \<and>
+            (\<exists>rng \<in> set dpss. simple_match_port rng (p_dport p)) }" |
+    "simple_packet_set_toSet \<lparr>set_type = UnionOP, iiface=iifs, oiface=oifs, src=sips, dst=dips, proto=protocols, sports=spss, dports=dpss \<rparr> = 
+        {p. (dnf_to_bool (\<lambda>m. match_iface m (p_iiface p)) iifs) \<or>
+            (dnf_to_bool (\<lambda>m. match_iface m (p_oiface p)) oifs) \<or> 
+            (\<exists>rng \<in> set sips. simple_match_ip rng (p_src p)) \<or>
+            (\<exists>rng \<in> set dips. simple_match_ip rng (p_dst p)) \<or>
+            (\<exists>proto \<in> protocols. match_proto proto (p_proto p)) \<or>
+            (\<exists>rng \<in> set spss. simple_match_port rng (p_sport p)) \<or>
             (\<exists>rng \<in> set dpss. simple_match_port rng (p_dport p)) }"
 
   text{*Did we forget anything? no.*}
   lemma "p \<in> (simple_packet_set_toSet
-                \<lparr>simple_packet_set.iiface=[[Pos iif]], oiface=[[Pos oif]], src=[sip], dst=[dip], proto={protocol}, sports=[sps], dports=[dps] \<rparr>) \<longleftrightarrow>
+                \<lparr>set_type = IntersectOP, simple_packet_set.iiface=[[Pos iif]], oiface=[[Pos oif]], src=[sip], dst=[dip], proto={protocol}, sports=[sps], dports=[dps] \<rparr>) \<longleftrightarrow>
          simple_matches \<lparr>simple_match.iiface=iif, oiface=oif, src=sip, dst=dip, proto=protocol, sports=sps, dports=dps \<rparr> p"
     by(simp add: simple_matches.simps)
+  lemma "p \<notin> (simple_packet_set_toSet
+                \<lparr>set_type = UnionOP, simple_packet_set.iiface=[[Pos iif]], oiface=[[Pos oif]], src=[sip], dst=[dip], proto={protocol}, sports=[sps], dports=[dps] \<rparr>) \<longleftrightarrow>
+          \<not> simple_matches \<lparr>simple_match.iiface=iif, oiface=oif, src=sip, dst=dip, proto=protocol, sports=sps, dports=dps \<rparr> p"
+    apply(simp add: simple_matches.simps)
+    apply(rule iffI)
+     apply(simp)
+    apply(intro impI)
+    
 
   fun optimize :: "simple_packet_set \<Rightarrow> simple_packet_set" where
-    "optimize \<lparr>iiface=iifs, oiface=oifs, src=sips, dst=dips, proto=protocols, sports=spss, dports=dpss \<rparr> = 
-      \<lparr>iiface=iifs, oiface=oifs, (*todo*)
+    "optimize \<lparr>set_type = t, iiface=iifs, oiface=oifs, src=sips, dst=dips, proto=protocols, sports=spss, dports=dpss \<rparr> = 
+      \<lparr>set_type = t, iiface=iifs, oiface=oifs, (*todo*)
        src= remdups sips, dst= remdups dips, (*todo: implode ranges?*)
        proto=protocols, 
        sports = filter (\<lambda>(s,e). s \<le> e) spss,
@@ -110,7 +133,7 @@ text{*Previous algorithm is not executable because we have no code for @{typ "si
   qed
 
   fun is_empty :: "simple_packet_set \<Rightarrow> bool" where
-    "is_empty \<lparr>iiface=iifs, oiface=oifs, src=sips, dst=dips, proto=protocols, sports=spss, dports=dpss \<rparr> \<longleftrightarrow>
+    "is_empty \<lparr>set_type = t, iiface=iifs, oiface=oifs, src=sips, dst=dips, proto=protocols, sports=spss, dports=dpss \<rparr> \<longleftrightarrow>
         iifs = [] (*todo*) \<or> oifs = [] \<or> (*todo*)
         sips = [] \<or> dips = [] \<or>
         protocols = {} \<or>
@@ -123,8 +146,8 @@ text{*Previous algorithm is not executable because we have no code for @{typ "si
      oops (* \<longrightarrow> direction holds*)
 
   fun invert :: "simple_packet_set \<Rightarrow> simple_packet_set" where
-    "invert \<lparr>iiface=iifs, oiface=oifs, src=sips, dst=dips, proto=protocols, sports=spss, dports=dpss \<rparr> = 
-      \<lparr>iiface=dnf_not iifs, oiface=dnf_not oifs,
+    "invert \<lparr>set_type = IntersectOP, iiface=iifs, oiface=oifs, src=sips, dst=dips, proto=protocols, sports=spss, dports=dpss \<rparr> = 
+      \<lparr>set_type = UnionOP, iiface=dnf_not iifs, oiface=dnf_not oifs,
              src= sips, dst=  dips, (*todo*)
              proto=-protocols, 
              sports = ports_invert spss,
@@ -148,6 +171,6 @@ text{*Previous algorithm is not executable because we have no code for @{typ "si
       Other direction (if it is empty, the it must return true) can be ignored for the soundness (not completeness)
       of the rmshadow algorithm because if the set is not empty, the ruleset is not modified.
       *)
-
+*)
 
 end

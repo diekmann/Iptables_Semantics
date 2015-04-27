@@ -348,11 +348,11 @@ theorem transform_normalize_primitives:
        using simplers simple_ruleset_normalize_rules apply blast
       using normalized_rs2 apply simp
      apply(subst normalize_rules_match_list_semantics_3)
-        using normalize_ports_step_Dst apply simp
+        using normalize_dst_ports apply simp
        using simplers simple_ruleset_normalize_rules apply blast
       using normalized_rs1 apply simp
      apply(subst normalize_rules_match_list_semantics_3)
-        using normalize_ports_step_Src apply simp
+        using normalize_src_ports apply simp
        using simplers simple_ruleset_normalize_rules apply blast
       using normalized apply simp
      by simp

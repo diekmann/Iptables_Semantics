@@ -6,7 +6,7 @@ section{*Network Interfaces*}
 
 (*TODO: add some rule that says an interface starting with ! is invalid (because we want to fail if negation occurs!) See man iptables.
   But the parser/lexer should handle this*)
-datatype iface = Iface "string"  --"no negation supported, but wildcards"
+datatype iface = Iface (iface_sel: "string")  --"no negation supported, but wildcards"
 
 definition IfaceAny :: iface where
   "IfaceAny \<equiv> Iface ''+''"
