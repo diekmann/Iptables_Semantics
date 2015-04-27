@@ -37,11 +37,6 @@ subsection{*Normalizing IP Addresses*}
 
   
 
-
-
-  definition ipt_ipv4range_compress :: "ipt_ipv4range negation_type list \<Rightarrow> ipt_ipv4range list" where
-    "ipt_ipv4range_compress = br_2_cidr_ipt_ipv4range_list \<circ> ipt_ipv4range_negation_type_to_br_intersect"
-
   value "normalize_primitive_extract disc_sel C ipt_ipv4range_compress m"
   value "normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress (MatchAnd (MatchNot (Match (Src_Ports [(1,2)]))) (Match (Src_Ports [(1,2)])))"
 
@@ -52,11 +47,6 @@ subsection{*Normalizing IP Addresses*}
   value "normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress
       (MatchAnd (Match (Src (Ip4AddrNetmask (10,0,0,0) 2))) (MatchAnd (Match (Src (Ip4AddrNetmask (192,0,0,0) 8))) (Match (Src_Ports [(1,2)]))))"
 
-
-  lemma ipt_ipv4range_compress: "(\<Union> ip \<in> set (ipt_ipv4range_compress l). ipv4s_to_set ip) =
-      (\<Inter> ip \<in> set (getPos l). ipv4s_to_set ip) - (\<Union> ip \<in> set (getNeg l). ipv4s_to_set ip)"
-    by (metis br_2_cidr_ipt_ipv4range_list comp_apply ipt_ipv4range_compress_def ipt_ipv4range_negation_type_to_br_intersect)
-      
 
   definition normalize_src_ips :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where
     "normalize_src_ips = normalize_primitive_extract (common_primitive.is_Src, src_sel) common_primitive.Src ipt_ipv4range_compress"

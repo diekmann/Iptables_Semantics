@@ -116,7 +116,19 @@ subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
   lemma ipt_ipv4range_to_intervall: "ipt_ipv4range_to_intervall ip = (s,e) \<Longrightarrow> {s .. e} = ipv4s_to_set ip"
     by(cases ip) (auto simp add: ipv4cidr_to_intervall)
 
+  text{*A list of IPv4 address ranges to a @{typ "32 wordinterval"}.
+        The nice thing is: the usual set operations are defined on this type.
+        We can use the existing function @{const l2br_intersect} if we want the intersection of the supplied list*}
+  lemma "wordinterval_to_set (l2br_intersect (map ipt_ipv4range_to_intervall ips)) = (\<Inter> ip \<in> set ips. ipv4s_to_set ip)"
+    apply(simp add: l2br_intersect)
+    using ipt_ipv4range_to_intervall by blast
+  
+  text{*We can use @{const l2br} if we want the union of the supplied list*}
+  lemma "wordinterval_to_set (l2br (map ipt_ipv4range_to_intervall ips)) = (\<Union> ip \<in> set ips. ipv4s_to_set ip)"
+    apply(simp add: l2br)
+    using ipt_ipv4range_to_intervall by blast
 
+  text{*A list of (negated) IPv4 address to a @{typ "32 wordinterval"}.*}
   definition ipt_ipv4range_negation_type_to_br_intersect :: "ipt_ipv4range negation_type list \<Rightarrow> 32 wordinterval" where
     "ipt_ipv4range_negation_type_to_br_intersect l = l2br_negation_type_intersect (NegPos_map ipt_ipv4range_to_intervall l)" 
 
@@ -125,13 +137,14 @@ subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
     apply(simp add: ipt_ipv4range_negation_type_to_br_intersect_def l2br_negation_type_intersect NegPos_map_simps)
     using ipt_ipv4range_to_intervall by blast
 
-
+  text{*The @{typ "32 wordinterval"} can be translated back into a list of IP ranges.
+        If a list of intervals is enough, we can use @{const br2l}.
+        If we need it in @{typ ipt_ipv4range}, we can use this function.*}
   definition br_2_cidr_ipt_ipv4range_list :: "32 wordinterval \<Rightarrow> ipt_ipv4range list" where
     "br_2_cidr_ipt_ipv4range_list r = map (\<lambda> (base, len). Ip4AddrNetmask (dotdecimal_of_ipv4addr base) len) (ipv4range_split r)"
 
   lemma br_2_cidr_ipt_ipv4range_list: "(\<Union> ip \<in> set (br_2_cidr_ipt_ipv4range_list r). ipv4s_to_set ip) = wordinterval_to_set r"
     proof -
-    (*have Union_rule: "\<And>P Q S. \<forall>a. P a = Q a \<Longrightarrow> (\<Union>a\<in>S. P a) = (\<Union>x\<in>S. Q x)" by presburger*)
     have "\<And>a. ipv4s_to_set (case a of (base, x) \<Rightarrow> Ip4AddrNetmask (dotdecimal_of_ipv4addr base) x) = (case a of (x, xa) \<Rightarrow> ipv4range_set_from_bitmask x xa)"
       by(clarsimp simp add: ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
     hence "(\<Union> ip \<in> set (br_2_cidr_ipt_ipv4range_list r). ipv4s_to_set ip) = \<Union>((\<lambda>(x, y). ipv4range_set_from_bitmask x y) ` set (ipv4range_split r))"
@@ -139,5 +152,14 @@ subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
     thus ?thesis
     using ipv4range_split_bitmask by presburger
   qed
+
+  text{*For example, this allows the following transformation*}
+  definition ipt_ipv4range_compress :: "ipt_ipv4range negation_type list \<Rightarrow> ipt_ipv4range list" where
+    "ipt_ipv4range_compress = br_2_cidr_ipt_ipv4range_list \<circ> ipt_ipv4range_negation_type_to_br_intersect"
+
+  lemma ipt_ipv4range_compress: "(\<Union> ip \<in> set (ipt_ipv4range_compress l). ipv4s_to_set ip) =
+      (\<Inter> ip \<in> set (getPos l). ipv4s_to_set ip) - (\<Union> ip \<in> set (getNeg l). ipv4s_to_set ip)"
+    by (metis br_2_cidr_ipt_ipv4range_list comp_apply ipt_ipv4range_compress_def ipt_ipv4range_negation_type_to_br_intersect)
+      
 
 end
