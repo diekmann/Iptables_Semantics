@@ -127,7 +127,7 @@ subsubsection{*inverting a DNF*}
     "dnf_not [] = [[]]" | (*False goes to True*)
     "dnf_not (ns#nss) = listprepend (map invert ns) (dnf_not nss)"
   
-  lemma dnf_not_correct: "dnf_to_bool \<gamma> (dnf_not d) \<longleftrightarrow> \<not> dnf_to_bool \<gamma> d"
+  lemma dnf_not: "dnf_to_bool \<gamma> (dnf_not d) \<longleftrightarrow> \<not> dnf_to_bool \<gamma> d"
     apply(induction d)
      apply(simp_all)
     apply(simp add: listprepend_correct)

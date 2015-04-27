@@ -1,6 +1,7 @@
 theory Shadowed
 imports SimpleFw_Semantics
   "../Common/Negation_Type_DNF"
+  "../Primitive_Matchers/Ports"
 begin
 
 
@@ -126,8 +127,18 @@ text{*Previous algorithm is not executable because we have no code for @{typ "si
       \<lparr>iiface=dnf_not iifs, oiface=dnf_not oifs,
              src= sips, dst=  dips, (*todo*)
              proto=-protocols, 
-             sports = filter (\<lambda>(s,e). s \<le> e) spss,
-             dports = filter (\<lambda>(s,e). s \<le> e) dpss \<rparr>"
+             sports = ports_invert spss,
+             dports = ports_invert dpss \<rparr>"
+  lemma "simple_packet_set_toSet (invert pkts) = - simple_packet_set_toSet pkts"
+     apply(cases pkts, rename_tac iifs oifs sips dips protocols spss dpss)
+     apply(simp)
+     apply(subst Collect_neg_eq[symmetric])
+     apply(rule Collect_cong)
+     apply(subst HOL.de_Morgan_conj)+
+     apply(subst dnf_not)+
+     (*apply(rule refl_conj_eq)+
+     apply(rule conj_left_cong)+*)
+     oops (*we cannot invert it!*)
   
   (*Idea: replace (\<forall>p\<in>P. \<not> simple_matches m p) by something with uses simple_packet_set*)
   lemma "(\<forall>p\<in>P. \<not> simple_matches m p) \<longleftrightarrow> P \<inter> {p. simple_matches m p} = {}" by auto
