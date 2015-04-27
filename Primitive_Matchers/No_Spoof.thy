@@ -40,5 +40,10 @@ and now code to check this ....
   check collected src_ips subseteq ipassignment(iface)
 *)
 
+  fun no_spoofing_algorithm :: "iface \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> (ipv4addr \<times> nat) set \<Rightarrow> bool" where
+    "no_spoofing_algorithm iface ipass [] allowed = 
+      ((\<Union>(base, len) \<in> allowed. ipv4range_set_from_bitmask base len) \<subseteq> (\<Union>(base, len) \<in> the (ipass iface). ipv4range_set_from_bitmask base len))" |
+    "no_spoofing_algorithm iface ipass ((Rule m a)#rs) allowed = True"
+
 
 end
