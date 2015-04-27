@@ -650,17 +650,14 @@ section{*Normalizing rules instead of only match expressions*}
       } note 1=this
       {
         assume "m \<in> get_match ` set (normalize_rules f [r])"
-        hence a: "m \<in> set (f (get_match r))"
-          apply(cases r)
-          by(auto)
+        hence a: "m \<in> set (f (get_match r))" by(cases r) (auto)
         with Cons.prems(2) Cons.prems(3) have "\<forall>m'\<in>set (f (get_match r)). Q m'" by auto
         with a have "Q m" by blast
       } note 2=this
       from Cons.prems(1) have "m \<in> get_match ` set (normalize_rules f [r]) \<or> m \<in> get_match ` set (normalize_rules f rs)"
-        apply(subst(asm) normalize_rules_fst) by auto
+        by(subst(asm) normalize_rules_fst) auto
       with 1 2 show ?case
-        apply(elim disjE)
-        by(simp_all)
+        by(elim disjE)(simp)
     qed
  qed
 
@@ -793,11 +790,10 @@ lemma optimize_matches_normalized_nnf_match: "\<lbrakk>\<forall> r \<in> set rs.
 
 
 lemma normalize_rules_dnf_normalized_nnf_match: "\<forall>x \<in> set (normalize_rules_dnf rs).  normalized_nnf_match (get_match x)"
-  apply(induction rs)
-   apply(simp)
-  apply(rename_tac r rs)
-  apply(case_tac r)
-  apply(simp)
-  using normalized_nnf_match_normalize_match by fastforce
+  proof(induction rs)
+  case Nil thus ?case by simp
+  next
+  case (Cons r rs) thus ?case using normalized_nnf_match_normalize_match by(cases r) fastforce
+  qed
 
 end

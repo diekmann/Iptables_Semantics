@@ -265,17 +265,15 @@ P \<gamma> p rs s"
 subsubsection{*Append, Prepend, Postpend, Composition*}
   lemma approximating_bigstep_fun_seq_wf: "\<lbrakk> wf_ruleset \<gamma> p rs\<^sub>1\<rbrakk> \<Longrightarrow>
       approximating_bigstep_fun \<gamma> p (rs\<^sub>1 @ rs\<^sub>2) s = approximating_bigstep_fun \<gamma> p rs\<^sub>2 (approximating_bigstep_fun \<gamma> p rs\<^sub>1 s)"
-   apply(induction \<gamma> p rs\<^sub>1 s rule: approximating_bigstep_fun_induct)
-      apply(simp_all add: wf_ruleset_def Decision_approximating_bigstep_fun split: action.split)
-   done
+   proof(induction \<gamma> p rs\<^sub>1 s rule: approximating_bigstep_fun_induct)
+   qed(simp_all add: wf_ruleset_def Decision_approximating_bigstep_fun split: action.split)
 
   text{*The state transitions from @{const Undecided} to @{const Undecided} if all intermediate states are @{const Undecided}*}
  lemma approximating_bigstep_fun_seq_Undecided_wf: "\<lbrakk> wf_ruleset \<gamma> p (rs1@rs2)\<rbrakk> \<Longrightarrow> 
       approximating_bigstep_fun \<gamma> p (rs1@rs2) Undecided = Undecided \<longleftrightarrow> 
   approximating_bigstep_fun \<gamma> p rs1 Undecided = Undecided \<and> approximating_bigstep_fun \<gamma> p rs2 Undecided = Undecided"
-    apply(induction \<gamma> p rs1 Undecided rule: approximating_bigstep_fun_induct)
-      apply(simp_all add: wf_ruleset_def split: action.split)
-    done
+    proof(induction \<gamma> p rs1 Undecided rule: approximating_bigstep_fun_induct)
+    qed(simp_all add: wf_ruleset_def split: action.split)
 
 
   lemma approximating_bigstep_fun_seq_Undecided_t_wf: "\<lbrakk> wf_ruleset \<gamma> p (rs1@rs2)\<rbrakk> \<Longrightarrow> 
@@ -330,14 +328,16 @@ subsection{*Equality with @{term "\<gamma>,p\<turnstile> \<langle>rs, s\<rangle>
     "good_ruleset rs \<equiv> \<forall>r \<in> set rs. (\<not>(\<exists>chain. get_action r = Call chain) \<and> get_action r \<noteq> Return \<and> get_action r \<noteq> Unknown)"
 
   lemma[code_unfold]: "good_ruleset rs \<equiv> (\<forall>r\<in>set rs. (case get_action r of Call chain \<Rightarrow> False | Return \<Rightarrow> False | Unknown \<Rightarrow> False | _ \<Rightarrow> True))"
-    apply(induction rs)
-     apply(simp add: good_ruleset_def)
-    apply(simp add: good_ruleset_def)
-    (*apply(thin_tac "?x = ?y") (*IH*)*)
-    apply(rename_tac r rs)
-    apply(case_tac "get_action r")
-           apply(simp_all)
-    done
+    proof(induction rs)
+    case Nil thus ?case by(simp add: good_ruleset_def)
+    next
+    case (Cons r rs) thus ?case
+      apply(simp add: good_ruleset_def)
+      apply(thin_tac "_ = _")
+      apply(case_tac "get_action r")
+             apply(simp_all)
+      done
+    qed
 
   lemma good_ruleset_alt: "good_ruleset rs = (\<forall>r\<in>set rs. get_action r = Accept \<or> get_action r = Drop \<or>
                                                 get_action r = Reject \<or> get_action r = Log  \<or> get_action r = Empty)"
@@ -470,42 +470,46 @@ lemma rm_LogEmpty_fun_semantics:
   qed
 
 lemma rm_LogEmpty_seq: "rm_LogEmpty (rs1@rs2) = rm_LogEmpty rs1 @ rm_LogEmpty rs2"
-  apply(induction rs1)
-   apply(simp_all)
-  apply(rename_tac r rs)
-  apply(case_tac r, rename_tac m a)
-  apply(simp_all)
-  apply(case_tac a)
-         apply(simp_all)
-  done
+  proof(induction rs1)
+  case Nil thus ?case by simp
+  next
+  case (Cons r rs) thus ?case
+    apply(cases r, rename_tac m a)
+    apply(simp)
+    apply(case_tac a)
+           apply(simp_all)
+    done
+  qed
 
 
 (*we probably don't need the following*)
 lemma "\<gamma>,p\<turnstile> \<langle>rm_LogEmpty rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> \<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
 apply(rule iffI)
-
-apply(induction rs arbitrary: s t)
-apply(simp_all)
-apply(case_tac a)
-apply(simp)
-apply(case_tac x2)
-apply(simp_all)
-apply(auto intro: approximating_bigstep.intros)
-apply(erule seqE_fst, simp add: seq_fst)
-apply(erule seqE_fst, simp add: seq_fst)
-apply (metis decision log nomatch_fst seq_fst state.exhaust)
-apply(erule seqE_fst, simp add: seq_fst)
-apply(erule seqE_fst, simp add: seq_fst)
-apply(erule seqE_fst, simp add: seq_fst)
-apply (metis decision empty nomatch_fst seq_fst state.exhaust)
-apply(erule seqE_fst, simp add: seq_fst)
-
+ apply(induction rs arbitrary: s t)
+  apply(simp_all)
+ apply(rename_tac r rs s t)
+ apply(case_tac r)
+ apply(simp)
+ apply(rename_tac m a)
+ apply(case_tac a)
+        apply(simp_all)
+        apply(auto intro: approximating_bigstep.intros)
+        apply(erule seqE_fst, simp add: seq_fst)
+       apply(erule seqE_fst, simp add: seq_fst)
+      apply (metis decision log nomatch_fst seq_fst state.exhaust)
+     apply(erule seqE_fst, simp add: seq_fst)
+    apply(erule seqE_fst, simp add: seq_fst)
+   apply(erule seqE_fst, simp add: seq_fst)
+  apply (metis decision empty nomatch_fst seq_fst state.exhaust)
+ apply(erule seqE_fst, simp add: seq_fst)
 apply(induction rs s t rule: approximating_bigstep_induct)
-apply(auto intro: approximating_bigstep.intros)
-apply(case_tac a)
-apply(auto intro: approximating_bigstep.intros)
+      apply(auto intro: approximating_bigstep.intros)
+ apply(rename_tac m a)
+ apply(case_tac a)
+        apply(auto intro: approximating_bigstep.intros)
+apply(rename_tac rs\<^sub>1 rs\<^sub>2 t t')
 apply(drule_tac rs\<^sub>1="rm_LogEmpty rs\<^sub>1" and rs\<^sub>2="rm_LogEmpty rs\<^sub>2" in seq)
-apply(simp_all)
+ apply(simp_all)
 using rm_LogEmpty_seq apply metis
 done
 

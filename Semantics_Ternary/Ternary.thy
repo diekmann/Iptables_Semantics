@@ -79,8 +79,8 @@ fun eval_ternary_Imp :: "ternaryvalue \<Rightarrow> ternaryvalue \<Rightarrow> t
   "eval_ternary_Imp TernaryUnknown TernaryUnknown = TernaryUnknown"
 lemma "eval_ternary_Imp a b = eval_ternary_Or (eval_ternary_Not a) b"
 apply(case_tac a)
-apply(case_tac [!] b)
-apply(simp_all)
+  apply(case_tac [!] b)
+        apply(simp_all)
 done
 
 
@@ -123,15 +123,15 @@ by(case_tac [!] x)(simp_all)
 lemma eval_ternary_simps_2: "eval_ternary_And (bool_to_ternary P) T = TernaryTrue \<longleftrightarrow> P \<and> T = TernaryTrue"
       "eval_ternary_And T (bool_to_ternary P) = TernaryTrue \<longleftrightarrow> P \<and> T = TernaryTrue"
   apply(case_tac [!] P)
-  apply(simp_all add: eval_ternary_simps_simple)
+     apply(simp_all add: eval_ternary_simps_simple)
   done
 
 lemma eval_ternary_simps_3: "eval_ternary_And (ternary_ternary_eval x) T = TernaryTrue \<longleftrightarrow> (ternary_ternary_eval x = TernaryTrue) \<and> (T = TernaryTrue)"
       "eval_ternary_And T (ternary_ternary_eval x) = TernaryTrue \<longleftrightarrow> (ternary_ternary_eval x = TernaryTrue) \<and> (T = TernaryTrue)"
   apply(case_tac [!] T)
-  apply(simp_all add: eval_ternary_simps_simple)
-  apply(case_tac [!] "(ternary_ternary_eval x)")
-  apply(simp_all)
+       apply(simp_all add: eval_ternary_simps_simple)
+   apply(case_tac [!] "(ternary_ternary_eval x)")
+       apply(simp_all)
   done
 
 lemmas eval_ternary_simps = eval_ternary_simps_simple eval_ternary_simps_2 eval_ternary_simps_3
@@ -160,14 +160,12 @@ fun NNF_ternary :: "ternaryformula \<Rightarrow> ternaryformula" where
 
 
 lemma NNF_ternary_correct: "ternary_ternary_eval (NNF_ternary t) = ternary_ternary_eval t"
-  apply(induction t rule: NNF_ternary.induct)
-        apply(simp_all add: eval_ternary_DeMorgan eval_ternary_idempotence_Not)
-  done
+  proof(induction t rule: NNF_ternary.induct)
+  qed(simp_all add: eval_ternary_DeMorgan eval_ternary_idempotence_Not)
 
 lemma NNF_ternary_NegationNormalForm: "NegationNormalForm (NNF_ternary t)"
-  apply(induction t rule: NNF_ternary.induct)
-        apply(auto simp add: eval_ternary_DeMorgan eval_ternary_idempotence_Not intro: NegationNormalForm.intros)
-  done
+  proof(induction t rule: NNF_ternary.induct)
+  qed(auto simp add: eval_ternary_DeMorgan eval_ternary_idempotence_Not intro: NegationNormalForm.intros)
 
 
 

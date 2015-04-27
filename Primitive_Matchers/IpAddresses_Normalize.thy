@@ -141,10 +141,6 @@ text{*unused*}
     "ipt_ipv4range_invert (Ip4AddrNetmask base len) = ipv4range_split (wordinterval_invert 
         (prefix_to_range (ipv4addr_of_dotdecimal base AND NOT mask (32 - len), len)))"
 
-    (*the bitmagic (pfxm_prefix pfx) AND pfxm_mask pfx). we just want to make sure to get a valid_prefix*)
-    lemma cornys_hacky_call_to_prefix_to_range_to_start_with_a_valid_prefix: "valid_prefix (base AND NOT mask (32 - len), len)"
-      apply(simp add: valid_prefix_def pfxm_mask_def pfxm_length_def pfxm_prefix_def)
-      by (metis mask_and_not_mask_helper)
       
 
   (* okay, we only need to focus in the generic case *)

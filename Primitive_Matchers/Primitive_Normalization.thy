@@ -67,38 +67,37 @@ proof -
   --"better simplification rule"
   from assms have assm3': "(as, ms) = primitive_extractor (disc, sel) m" by simp
   with assms(1) assms(2) show "matches \<gamma> (alist_and (NegPos_map C as)) a p \<and> matches \<gamma> ms a p \<longleftrightarrow> matches \<gamma> m a p"
-    apply(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
-          apply(simp_all add: bunch_of_lemmata_about_matches wf_disc_sel.simps split: split_if_asm)
-    apply(simp split: split_if_asm split_split_asm add: NegPos_map_append)
-    apply(auto simp add: alist_and_append bunch_of_lemmata_about_matches)
-    done
+    proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+    case 4 thus ?case
+      apply(simp split: split_if_asm split_split_asm add: NegPos_map_append)
+      apply(auto simp add: alist_and_append bunch_of_lemmata_about_matches)
+      done
+    qed(simp_all add: bunch_of_lemmata_about_matches wf_disc_sel.simps split: split_if_asm)
 
   from assms(1) assm3' show "normalized_nnf_match ms"
-    apply(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
-          apply(simp)
-         apply(simp)
-         apply(simp split: split_if_asm)
-        apply(simp split: split_if_asm)
-       apply(clarify) (*if i don't clarify, the simplifier loops*)
-       apply(simp split: split_split_asm)
-      apply(simp)
-     apply(simp)
-    apply(simp)
-    done
+    proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+         case 2 thus ?case by(simp split: split_if_asm)
+         next
+         case 3 thus ?case by(simp split: split_if_asm)
+         next
+         case 4 thus ?case 
+           apply(clarify) (*if i don't clarify, the simplifier loops*)
+           apply(simp split: split_split_asm)
+           done
+    qed(simp_all)
 
   from assms(1) assm3' show "\<not> has_disc disc ms"
-    apply(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
-          by(simp_all split: split_if_asm split_split_asm)
+    proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+    qed(simp_all split: split_if_asm split_split_asm)
 
   from assms(1) assm3' show "\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms"
-    apply(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
-          apply(simp)
-         apply(simp split: split_if_asm)
-        apply(simp split: split_if_asm)
-       apply(clarify) (*the simplifier loops*)
-       apply(simp split: split_split_asm)
-      apply(simp_all)
-    done
+    proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+         case 2 thus ?case by(simp split: split_if_asm)
+         next
+         case 3 thus ?case by(simp split: split_if_asm)
+         next
+         case 4 thus ?case by(simp split: split_split_asm)
+    qed(simp_all)
 
 
   from assms(1) assm3' show "\<forall>disc2 sel2. normalized_n_primitive (disc2, sel2) P m \<longrightarrow> normalized_n_primitive (disc2, sel2) P ms"
@@ -106,7 +105,6 @@ proof -
           apply(simp)
          apply(simp split: split_if_asm)
         apply(simp split: split_if_asm)
-       apply(clarify) (*the simplifier loops*)
        apply(simp split: split_split_asm)
       apply(simp_all)
     done
@@ -387,8 +385,8 @@ lemma remove_unknowns_generic_not_has_disc: "\<not> has_disc C m \<Longrightarro
 
 lemma remove_unknowns_generic_normalized_n_primitive: "normalized_n_primitive disc_sel f m \<Longrightarrow> 
     normalized_n_primitive disc_sel f (remove_unknowns_generic \<gamma> a m)"
-  apply(induction \<gamma> a m rule: remove_unknowns_generic.induct)
-        apply(simp_all)
-  by(case_tac disc_sel, simp)
+  proof(induction \<gamma> a m rule: remove_unknowns_generic.induct)
+    case 6 thus ?case by(case_tac disc_sel, simp)
+  qed(simp_all)
 
 end
