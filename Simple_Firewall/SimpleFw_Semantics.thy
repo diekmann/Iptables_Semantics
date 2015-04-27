@@ -56,6 +56,7 @@ section{*Simple Firewall Syntax (IPv4 only)*}
         *)
   record simple_match =
     iiface :: "iface" --"in-interface" (*TODO: we cannot (and don't want to, c.f. git history) express negated interfaces*)
+      (*We could also drop interface wildcard support and try negated interfaces again \<dots>*)
     oiface :: "iface" --"out-interface"
     src :: "(ipv4addr \<times> nat) " --"source IP address"
     dst :: "(ipv4addr \<times> nat) " --"destination"

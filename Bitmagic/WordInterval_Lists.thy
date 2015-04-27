@@ -1,5 +1,6 @@
 theory WordInterval_Lists
 imports WordInterval
+  "../Semantics_Ternary/Negation_Type"
 begin
 
 subsection{*WordInterval to List*}
@@ -55,4 +56,22 @@ text{*A list of @{text "(start, end)"} tuples.*}
     qed
 
 
+
+
+  fun l2br_negation_type_intersect :: "('a::len word \<times> 'a::len word) negation_type list \<Rightarrow> 'a::len wordinterval" where
+    "l2br_negation_type_intersect [] = wordinterval_UNIV" |
+    "l2br_negation_type_intersect ((Pos (s,e))#ls) = wordinterval_intersection (WordInterval s e) (l2br_negation_type_intersect ls)" |
+    "l2br_negation_type_intersect ((Neg (s,e))#ls) = wordinterval_intersection (wordinterval_invert (WordInterval s e)) (l2br_negation_type_intersect ls)"
+
+  lemma l2br_negation_type_intersect_alt: "wordinterval_to_set (l2br_negation_type_intersect l) = 
+                  wordinterval_to_set (wordinterval_setminus (l2br_intersect (getPos l)) (l2br (getNeg l)))"
+    apply(simp add: l2br_intersect l2br)
+    apply(induction l rule :l2br_negation_type_intersect.induct)
+       apply(simp_all)
+      apply(fast)+
+    done
+
+  lemma l2br_negation_type_intersect: "wordinterval_to_set (l2br_negation_type_intersect l) = 
+                        (\<Inter> (i,j) \<in> set (getPos l). {i .. j}) - (\<Union> (i,j) \<in> set (getNeg l). {i .. j})"
+    by(simp add: l2br_negation_type_intersect_alt l2br_intersect l2br)
 end
