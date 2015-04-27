@@ -26,4 +26,11 @@ text{*We can reuse the wordinterval theory to reason about ports*}
 lemma ports_to_set_wordinterval: "ports_to_set ps = wordinterval_to_set (l2br ps)"
   by(induction ps rule: l2br.induct) (auto)
 
+
+definition "ports_invert" :: "ipt_ports \<Rightarrow> ipt_ports" where
+  "ports_invert ps = br2l (wordinterval_invert (l2br ps))"
+
+lemma ports_invert: "ports_to_set (ports_invert ps) = - ports_to_set ps"
+  by(auto simp add: ports_invert_def l2br_br2l ports_to_set_wordinterval)
+
 end

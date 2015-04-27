@@ -9,7 +9,7 @@ subsection{*Normalizing ports*}
 
   fun ipt_ports_negation_type_normalize :: "ipt_ports negation_type \<Rightarrow> ipt_ports" where
     "ipt_ports_negation_type_normalize (Pos ps) = ps" |
-    "ipt_ports_negation_type_normalize (Neg ps) = br2l (wordinterval_invert (l2br ps))"  
+    "ipt_ports_negation_type_normalize (Neg ps) = ports_invert ps"  
   
   
   lemma "ipt_ports_negation_type_normalize (Neg [(0,65535)]) = []" by eval
@@ -23,7 +23,7 @@ subsection{*Normalizing ports*}
          matches (common_matcher, \<alpha>) (Match (Dst_Ports (ipt_ports_negation_type_normalize ps))) a p"
   apply(case_tac [!] ps)
   apply(simp_all add: ipt_ports_negation_type_normalize.simps matches_case_ternaryvalue_tuple
-          bunch_of_lemmata_about_matches bool_to_ternary_simps l2br_br2l ports_to_set_wordinterval split: ternaryvalue.split)
+          bunch_of_lemmata_about_matches bool_to_ternary_simps ports_invert split: ternaryvalue.split)
   done
   
   (* [ [(1,2) \<or> (3,4)]  \<and>  [] ]*)
@@ -64,8 +64,8 @@ subsection{*Normalizing ports*}
         case (Neg a)
           thus ?goal using Cons.IH
           apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
-          apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps l2br_br2l
-                  ports_to_set_wordinterval ipt_ports_negation_type_normalize.simps split: ternaryvalue.split)
+          apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps
+                  ports_invert ipt_ports_negation_type_normalize.simps split: ternaryvalue.split)
           done
         qed
   qed
@@ -84,7 +84,7 @@ subsection{*Normalizing ports*}
         case (Neg a)
           thus ?goal using Cons.IH
           apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
-          apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps l2br_br2l ports_to_set_wordinterval
+          apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps ports_invert
               ipt_ports_negation_type_normalize.simps split: ternaryvalue.split)
           done
         qed
