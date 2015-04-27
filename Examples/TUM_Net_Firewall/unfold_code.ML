@@ -954,7 +954,7 @@ fun ipv4range_empty rg =
   wordinterval_empty
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) rg;
 
-fun ipv4range_range ip_start ip_end = WordInterval (ip_start, ip_end);
+fun ipv4range_range (ip_start, ip_end) = WordInterval (ip_start, ip_end);
 
 fun nat_of_ipv4addr a =
   unat (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) a;
@@ -1271,7 +1271,7 @@ fun l2br_negation_type_intersect A_ [] = wordinterval_UNIV A_
 
 fun bitNOT_word A_ a = word_of_int A_ (bitNOT_int (uint A_ a));
 
-fun ipv4cidr_to_intervall (pre, len) =
+fun ipv4cidr_to_interval (pre, len) =
   let
     val netmask =
       shiftl_word
@@ -1300,15 +1300,15 @@ fun ipv4addr_of_dotdecimal (a, (b, (c, d))) =
         (times_nat (nat_of_integer (65536 : IntInf.int)) b))
       (times_nat (nat_of_integer (16777216 : IntInf.int)) a));
 
-fun ipt_ipv4range_to_intervall (Ip4Addr addr) =
+fun ipt_ipv4range_to_interval (Ip4Addr addr) =
   (ipv4addr_of_dotdecimal addr, ipv4addr_of_dotdecimal addr)
-  | ipt_ipv4range_to_intervall (Ip4AddrNetmask (pre, len)) =
-    ipv4cidr_to_intervall (ipv4addr_of_dotdecimal pre, len);
+  | ipt_ipv4range_to_interval (Ip4AddrNetmask (pre, len)) =
+    ipv4cidr_to_interval (ipv4addr_of_dotdecimal pre, len);
 
 fun ipt_ipv4range_negation_type_to_br_intersect l =
   l2br_negation_type_intersect
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-    (negPos_map ipt_ipv4range_to_intervall l);
+    (negPos_map ipt_ipv4range_to_interval l);
 
 fun shiftr_word A_ w n = funpow n (shiftr1 A_) w;
 
@@ -2135,37 +2135,33 @@ fun normalized_src_ports MatchAny = true
   | normalized_src_ports (MatchNot (MatchNot vb)) = false
   | normalized_src_ports (MatchNot MatchAny) = true;
 
-fun ipv4_cidr_tuple_to_intervall base_len =
-  let
-    val (a, b) = ipv4cidr_to_intervall base_len;
-  in
-    ipv4range_range a b
-  end;
-
 fun simpl_ports_conjunct (p1s, p1e) (p2s, p2e) =
   (max (ord_word (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) p1s
      p2s,
     min (ord_word (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) p1e
       p2e);
 
+fun ipv4_cidr_tuple_to_interval iprng =
+  ipv4range_range (ipv4cidr_to_interval iprng);
+
 fun simple_match_and
   (Simple_match_ext (iif1, oif1, sip1, dip1, p1, sps1, dps1, ()))
   (Simple_match_ext (iif2, oif2, sip2, dip2, p2, sps2, dps2, ())) =
   (case (if ipv4range_empty
-              (ipv4range_intersection (ipv4_cidr_tuple_to_intervall sip1)
-                (ipv4_cidr_tuple_to_intervall sip2))
+              (ipv4range_intersection (ipv4_cidr_tuple_to_interval sip1)
+                (ipv4_cidr_tuple_to_interval sip2))
           then NONE
-          else (if ipv4range_subset (ipv4_cidr_tuple_to_intervall sip1)
-                     (ipv4_cidr_tuple_to_intervall sip2)
+          else (if ipv4range_subset (ipv4_cidr_tuple_to_interval sip1)
+                     (ipv4_cidr_tuple_to_interval sip2)
                  then SOME sip1 else SOME sip2))
     of NONE => NONE
     | SOME sip =>
       (case (if ipv4range_empty
-                  (ipv4range_intersection (ipv4_cidr_tuple_to_intervall dip1)
-                    (ipv4_cidr_tuple_to_intervall dip2))
+                  (ipv4range_intersection (ipv4_cidr_tuple_to_interval dip1)
+                    (ipv4_cidr_tuple_to_interval dip2))
               then NONE
-              else (if ipv4range_subset (ipv4_cidr_tuple_to_intervall dip1)
-                         (ipv4_cidr_tuple_to_intervall dip2)
+              else (if ipv4range_subset (ipv4_cidr_tuple_to_interval dip1)
+                         (ipv4_cidr_tuple_to_interval dip2)
                      then SOME dip1 else SOME dip2))
         of NONE => NONE
         | SOME dip =>

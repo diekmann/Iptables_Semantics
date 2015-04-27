@@ -13,9 +13,9 @@ text{*Intervals of consecutive words*}
 value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
 
   datatype ('a::len) wordinterval = WordInterval
-                "('a::len) word" --"start (inclusive)"
-                "('a::len) word" --"end (inclusive)"
-                | RangeUnion "'a wordinterval" "'a wordinterval"
+                                        "('a::len) word" --"start (inclusive)"
+                                        "('a::len) word" --"end (inclusive)"
+                                  | RangeUnion "'a wordinterval" "'a wordinterval"
 
   fun wordinterval_to_set :: "'a::len wordinterval \<Rightarrow> ('a::len word) set" where
     "wordinterval_to_set (WordInterval start end) = {start .. end}" |
@@ -91,15 +91,15 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
    by(simp, subst list_to_wordinterval_set_eq[symmetric]) (metis image_set wordinterval_to_list_set_eq set_remdups)
 
   fun wordinterval_is_simple where "wordinterval_is_simple (WordInterval _ _) = True" | "wordinterval_is_simple (RangeUnion _ _) = False"
-  fun wordintervallist_union_free where
-    "wordintervallist_union_free (r#rs) = (wordinterval_is_simple r \<and> wordintervallist_union_free rs)" |
-    "wordintervallist_union_free [] = True"
-  lemma wordintervallist_union_freeX: "wordintervallist_union_free (r # rs) \<Longrightarrow> \<exists> s e. r = WordInterval s e"
+  fun wordintervalist_union_free where
+    "wordintervalist_union_free (r#rs) = (wordinterval_is_simple r \<and> wordintervalist_union_free rs)" |
+    "wordintervalist_union_free [] = True"
+  lemma wordintervalist_union_freeX: "wordintervalist_union_free (r # rs) \<Longrightarrow> \<exists> s e. r = WordInterval s e"
     by (induction rs) (cases r, simp, simp)+
-  lemma wordintervallist_union_free_append: "wordintervallist_union_free (a@b) = (wordintervallist_union_free a \<and> wordintervallist_union_free b)"
+  lemma wordintervalist_union_free_append: "wordintervalist_union_free (a@b) = (wordintervalist_union_free a \<and> wordintervalist_union_free b)"
     by (induction a) (auto)
-  lemma wordinterval_to_list_union_free: "l = wordinterval_to_list r \<Longrightarrow> wordintervallist_union_free l"
-    by(induction r arbitrary: l) (simp_all add: wordintervallist_union_free_append)
+  lemma wordinterval_to_list_union_free: "l = wordinterval_to_list r \<Longrightarrow> wordintervalist_union_free l"
+    by(induction r arbitrary: l) (simp_all add: wordintervalist_union_free_append)
 
 
 

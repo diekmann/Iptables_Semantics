@@ -41,9 +41,9 @@ and now code to check this ....
 *)
 
   fun no_spoofing_algorithm :: "iface \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> (ipv4addr \<times> nat) set \<Rightarrow> bool" where
-    "no_spoofing_algorithm iface ipass [] allowed = 
-      ((\<Union>(base, len) \<in> allowed. ipv4range_set_from_bitmask base len) \<subseteq> (\<Union>(base, len) \<in> the (ipass iface). ipv4range_set_from_bitmask base len))" |
-    "no_spoofing_algorithm iface ipass ((Rule m a)#rs) allowed = True"
+    "no_spoofing_algorithm iface ipassmt [] allowed = (ipv4cidr_union_set allowed \<subseteq> ipv4cidr_union_set (the (ipassmt iface)))" |
+    "no_spoofing_algorithm iface ipassmt ((Rule m a)#rs) allowed = True(*(if iface_matches iface m then
+        no_spoofing_algorithm iface ipassmt rs (allowed \<union> *)" (*probably have allowed and denied set? Start with UNIV or {}?*)
 
 
 end

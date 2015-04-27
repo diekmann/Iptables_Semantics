@@ -39,8 +39,8 @@ definition prefix_to_range :: "prefix_match \<Rightarrow> 32 wordinterval" where
 lemma prefix_to_range_set_eq: "wordinterval_to_set (prefix_to_range pfx) = prefix_to_ipset pfx"
   unfolding prefix_to_range_def prefix_to_ipset_def by simp
 
-lemma prefix_to_range_ipv4range_range: "prefix_to_range pfx = ipv4range_range (pfxm_prefix pfx) (pfxm_prefix pfx OR pfxm_mask pfx)"
-  unfolding ipv4range_range_def prefix_to_range_def by simp
+lemma prefix_to_range_ipv4range_range: "prefix_to_range pfx = ipv4range_range ((pfxm_prefix pfx), (pfxm_prefix pfx OR pfxm_mask pfx))"
+  unfolding ipv4range_range.simps prefix_to_range_def by simp
 
 corollary "valid_prefix pfx \<Longrightarrow> wordinterval_to_set (prefix_to_range pfx) = ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
 using wordinterval_to_set_ipv4range_set_from_bitmask prefix_to_range_set_eq by simp
@@ -252,8 +252,8 @@ value "ipv4range_split (WordInterval 0 (ipv4addr_of_dotdecimal (255,255,255,254)
 
 text{* @{text "10.0.0.0/8 - 10.8.0.0/16"}*}
 lemma "map (\<lambda>(ip,n). (dotdecimal_of_ipv4addr ip, n)) (ipv4range_split (ipv4range_setminus
-          (ipv4range_range (ipv4addr_of_dotdecimal (10,0,0,0)) (ipv4addr_of_dotdecimal (10,255,255,255)))
-          (ipv4range_range (ipv4addr_of_dotdecimal (10,8,0,0)) (ipv4addr_of_dotdecimal (10,8,255,255))))) =
+          (ipv4range_range ((ipv4addr_of_dotdecimal (10,0,0,0)), (ipv4addr_of_dotdecimal (10,255,255,255))))
+          (ipv4range_range ((ipv4addr_of_dotdecimal (10,8,0,0)), (ipv4addr_of_dotdecimal (10,8,255,255)))))) =
  [((10, 0, 0, 0), 13), ((10, 9, 0, 0), 16), ((10, 10, 0, 0), 15), ((10, 12, 0, 0), 14), ((10, 16, 0, 0), 12), ((10, 32, 0, 0), 11), ((10, 64, 0, 0), 10),
   ((10, 128, 0, 0), 9)]" by eval
 
@@ -351,8 +351,8 @@ corollary ipv4range_split_bitmask:
     done
 qed
 corollary ipv4range_split_bitmask_single: 
-  "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipv4range_split (ipv4range_range start end)))) ) = {start .. end}"
-using ipv4range_split_bitmask ipv4range_range_def by simp
+  "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipv4range_split (ipv4range_range (start, end))))) ) = {start .. end}"
+using ipv4range_split_bitmask ipv4range_range.simps by simp
 
 
 (*

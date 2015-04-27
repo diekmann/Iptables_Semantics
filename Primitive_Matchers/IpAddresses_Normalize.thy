@@ -151,7 +151,7 @@ text{*unused*}
   lemma ipt_ipv4range_invert_case_Ip4Addr: "ipt_ipv4range_invert (Ip4Addr addr) = ipt_ipv4range_invert (Ip4AddrNetmask addr 32)"
     apply(simp add: prefix_to_range_ipv4range_range pfxm_prefix_def ipv4range_single_def)
     apply(subgoal_tac "pfxm_mask (ipv4addr_of_dotdecimal addr, 32) = (0::ipv4addr)")
-     apply(simp add: ipv4range_range_def)
+     apply(simp add: ipv4range_range.simps)
     apply(simp add: pfxm_mask_def pfxm_length_def)
     done
 

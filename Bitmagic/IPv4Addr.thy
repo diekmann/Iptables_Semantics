@@ -57,7 +57,7 @@ section {*Modelling IPv4 Adresses*}
   lemma "\<lbrakk> n \<le> nat_of_ipv4addr max_ipv4_addr \<rbrakk> \<Longrightarrow> nat_of_ipv4addr (ipv4addr_of_nat n) = n"
     apply(simp add: nat_of_ipv4addr_def ipv4addr_of_nat_def)
     apply(induction n)
-    apply(simp_all)
+     apply(simp_all)
     by(unat_arith)
 
   lemma ipv4addr_of_nat_eq: "x = y \<Longrightarrow> ipv4addr_of_nat x = ipv4addr_of_nat y"
@@ -135,7 +135,7 @@ subsection{*Representing IPv4 Adresses*}
     apply(simp add: word_of_nat) (*us this to get rid of of_nat. All thm are with word_of_int*)
     apply(simp add: uint_word_of_int)
     apply(subst mod_mod_cancel)
-    apply simp
+     apply simp
     apply(simp add: zmod_int)
     done
  
@@ -151,11 +151,11 @@ subsection{*Representing IPv4 Adresses*}
       apply(simp add: shiftr_div_2n)
       apply(simp add: uint_word_of_int)
       apply(subst mod_pos_pos_trivial)
-      apply simp_all
+        apply simp_all
       apply(subst mod_pos_pos_trivial)
-      apply simp_all
+        apply simp_all
       apply(subst mod_pos_pos_trivial)
-      apply simp_all
+        apply simp_all
       done
     from assms have b: "nat_of_ipv4addr ((ipv4addr_of_nat (d + 256 * c + 65536 * b + 16777216 * a) >> 16) AND mask 8) = b"
       apply(simp add: ipv4addr_of_nat_def word_of_nat)
@@ -164,9 +164,9 @@ subsection{*Representing IPv4 Adresses*}
       apply(simp add: shiftr_div_2n)
       apply(simp add: uint_word_of_int)
       apply(subst mod_pos_pos_trivial)
-      apply simp_all
+        apply simp_all
       apply(subst mod_pos_pos_trivial[where b="4294967296"])
-      apply simp_all
+        apply simp_all
       apply(simp add: NumberWang.div65536)
       done
     from assms have c: "nat_of_ipv4addr ((ipv4addr_of_nat (d + 256 * c + 65536 * b + 16777216 * a) >> 8) AND mask 8) = c"
@@ -176,9 +176,9 @@ subsection{*Representing IPv4 Adresses*}
       apply(simp add: shiftr_div_2n)
       apply(simp add: uint_word_of_int)
       apply(subst mod_pos_pos_trivial)
-      apply simp_all
+        apply simp_all
       apply(subst mod_pos_pos_trivial[where b="4294967296"])
-      apply simp_all
+        apply simp_all
       apply(simp add: NumberWang.div256)
       done
     from `d < 256` have d: "nat_of_ipv4addr (ipv4addr_of_nat (d + 256 * c + 65536 * b + 16777216 * a) AND mask 8) = d"
@@ -187,7 +187,7 @@ subsection{*Representing IPv4 Adresses*}
       apply(simp add: nat_of_ipv4addr_def)
       apply(subgoal_tac "(d + 256 * c + 65536 * b + 16777216 * a) mod 256 = d")
       prefer 2
-      apply(simp add: NumberWang.mod256)
+       apply(simp add: NumberWang.mod256)
       apply(simp)
       apply(simp add: unat_def)
       apply(simp add: uint_word_of_int)
@@ -259,7 +259,7 @@ subsection{*IP ranges*}
 
   lemma ipv4range_set_from_bitmask_0: "ipv4range_set_from_bitmask foo 0 = UNIV"
     apply(rule)
-    apply(simp_all)
+     apply(simp_all)
     apply(simp add: ipv4range_set_from_bitmask_alt1 ipv4range_set_from_netmask_def Let_def)
     apply(simp add: range_0_max_UNIV[symmetric] del: range_0_max_UNIV)
     apply(simp add: mask_def)
@@ -267,11 +267,11 @@ subsection{*IP ranges*}
 
   lemma ipv4range_set_from_bitmask_32: "ipv4range_set_from_bitmask foo 32 = {foo}"
     apply(rule)
-    apply(simp_all)
-    apply(simp_all add: ipv4range_set_from_bitmask_alt1 ipv4range_set_from_netmask_def Let_def)
-    apply(simp_all add: mask_def)
-    apply(simp_all only: max_ipv4_addr_number[symmetric] max_ipv4_addr_max_word Word.word_and_max)
-    apply(simp_all add: word32_or_NOT4294967296)
+     apply(simp_all)
+     apply(simp_all add: ipv4range_set_from_bitmask_alt1 ipv4range_set_from_netmask_def Let_def)
+     apply(simp_all add: mask_def)
+     apply(simp_all only: max_ipv4_addr_number[symmetric] max_ipv4_addr_max_word Word.word_and_max)
+     apply(simp_all add: word32_or_NOT4294967296)
     done
 
   lemma ipv4range_set_from_bitmask_alt: "ipv4range_set_from_bitmask pre len = {(pre AND ((mask len) << (32 - len))) .. pre OR (mask (32 - len))}"
@@ -300,8 +300,9 @@ subsection{*IP ranges*}
   definition ipv4range_single :: "ipv4addr \<Rightarrow> 32 wordinterval" where
     "ipv4range_single ip \<equiv> WordInterval ip ip"
 
-  definition ipv4range_range :: "ipv4addr \<Rightarrow> ipv4addr \<Rightarrow> 32 wordinterval" where
-    "ipv4range_range ip_start ip_end \<equiv> WordInterval ip_start ip_end"
+  fun ipv4range_range :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> 32 wordinterval" where
+    "ipv4range_range (ip_start, ip_end) = WordInterval ip_start ip_end"
+  declare ipv4range_range.simps[simp del]
 
   definition ipv4range_to_set :: "32 wordinterval \<Rightarrow> (ipv4addr) set" where
     "ipv4range_to_set rg = wordinterval_to_set rg"
@@ -343,8 +344,8 @@ subsection{*IP ranges*}
 
   lemma ipv4range_single_set_eq: "ipv4range_to_set (ipv4range_single ip) = {ip}"
     by(simp add: ipv4range_single_def ipv4range_to_set_def)
-  lemma ipv4range_range_set_eq: "ipv4range_to_set (ipv4range_range ip1 ip2) = {ip1 .. ip2}"
-    by(simp add: ipv4range_range_def ipv4range_to_set_def)
+  lemma ipv4range_range_set_eq: "ipv4range_to_set (ipv4range_range (ip1, ip2)) = {ip1 .. ip2}"
+    by(simp add: ipv4range_range.simps ipv4range_to_set_def)
   
   lemma ipv4range_element_set_eq[simp]: "ipv4range_element el rg = (el \<in> ipv4range_to_set rg)"
     by(simp add: ipv4range_element_def ipv4range_to_set_def)
@@ -365,7 +366,7 @@ subsection{*IP ranges*}
   lemma ipv4range_eq_set_eq: "ipv4range_eq r1 r2 \<longleftrightarrow> ipv4range_to_set r1 = ipv4range_to_set r2"
     unfolding ipv4range_eq_def ipv4range_to_set_def using wordinterval_eq_set_eq by blast
 
-  declare ipv4range_range_set_eq[unfolded ipv4range_range_def, simp]
+  declare ipv4range_range_set_eq[unfolded ipv4range_range.simps, simp]
   declare ipv4range_union_set_eq[unfolded ipv4range_union_def wordinterval_union.simps, simp]
 
 
