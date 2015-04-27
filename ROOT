@@ -14,6 +14,7 @@ session "Iptables_Semantics" = Bitmagic +
     Semantics_Embeddings
     Iptables_Semantics
     "Semantics_Ternary/Optimizing"
+    "Primitive_Matchers/No_Spoof"
     "Primitive_Matchers/Transform"
     "Simple_Firewall/SimpleFw_Compliance"
     "Simple_Firewall/Shadowed"

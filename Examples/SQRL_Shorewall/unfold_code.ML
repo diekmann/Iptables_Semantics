@@ -674,11 +674,71 @@ fun divmod_nat m n = (div_nat m n, mod_nat m n);
 
 fun add_match m rs = map (fn Rule (ma, a) => Rule (MatchAnd (m, ma), a)) rs;
 
+fun min A_ a b = (if less_eq A_ a b then a else b);
+
+fun word_prev A_ a =
+  (if equal_worda (len0_len A_) a (zero_worda (len0_len A_))
+    then zero_worda (len0_len A_)
+    else minus_word (len0_len A_) a (one_worda (len0_len A_)));
+
+fun word_next A_ a =
+  (if equal_worda (len0_len A_) a (max_word A_) then max_word A_
+    else plus_worda (len0_len A_) a (one_worda (len0_len A_)));
+
+fun wordinterval_setminus A_ (WordInterval (s, e)) (WordInterval (ms, me)) =
+  (if less_word (len0_len A_) e s orelse less_word (len0_len A_) me ms
+    then WordInterval (s, e)
+    else (if less_eq_word (len0_len A_) e me
+           then WordInterval
+                  ((if equal_worda (len0_len A_) ms (zero_worda (len0_len A_))
+                     then one_worda (len0_len A_) else s),
+                    min (ord_word (len0_len A_)) e (word_prev A_ ms))
+           else (if less_eq_word (len0_len A_) ms s
+                  then WordInterval
+                         (max (ord_word (len0_len A_)) s (word_next A_ me),
+                           (if equal_worda (len0_len A_) me (max_word A_)
+                             then zero_worda (len0_len A_) else e))
+                  else RangeUnion
+                         (WordInterval
+                            ((if equal_worda (len0_len A_) ms
+                                   (zero_worda (len0_len A_))
+                               then one_worda (len0_len A_) else s),
+                              word_prev A_ ms),
+                           WordInterval
+                             (word_next A_ me,
+                               (if equal_worda (len0_len A_) me (max_word A_)
+                                 then zero_worda (len0_len A_) else e))))))
+  | wordinterval_setminus A_ (RangeUnion (r1, r2)) t =
+    RangeUnion (wordinterval_setminus A_ r1 t, wordinterval_setminus A_ r2 t)
+  | wordinterval_setminus A_ (WordInterval (v, va)) (RangeUnion (r1, r2)) =
+    wordinterval_setminus A_
+      (wordinterval_setminus A_ (WordInterval (v, va)) r1) r2;
+
+fun wordinterval_UNIV A_ = WordInterval (zero_worda (len0_len A_), max_word A_);
+
+fun wordinterval_invert A_ r =
+  wordinterval_setminus A_ (wordinterval_UNIV A_) r;
+
+fun empty_WordInterval A_ =
+  WordInterval (one_worda (len0_len A_), zero_worda (len0_len A_));
+
+fun l2br A_ [] = empty_WordInterval A_
+  | l2br A_ [(s, e)] = WordInterval (s, e)
+  | l2br A_ ((s, e) :: v :: va) =
+    RangeUnion (WordInterval (s, e), l2br A_ (v :: va));
+
+fun br2l A_ (RangeUnion (r1, r2)) = br2l A_ r1 @ br2l A_ r2
+  | br2l A_ (WordInterval (s, e)) =
+    (if less_word (len0_len A_) e s then [] else [(s, e)]);
+
+fun ports_invert ps =
+  br2l (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))
+    (wordinterval_invert (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))
+      (l2br (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))) ps));
+
 fun char_of_nat x = ((Char.chr o IntInf.toInt) o integer_of_nat) x;
 
 fun size_list x = gen_length zero_nat x;
-
-fun min A_ a b = (if less_eq A_ a b then a else b);
 
 fun internal_iface_name_wildcard_longest i1 i2 =
   (if equal_lista equal_char
@@ -708,27 +768,6 @@ fun iface_conjunct (Iface i1) (Iface i2) =
       (if match_iface (Iface i2) i1 then SOME (Iface i1) else NONE)
     | (false, false) =>
       (if equal_lista equal_char i1 i2 then SOME (Iface i1) else NONE));
-
-fun word_next A_ a =
-  (if equal_worda (len0_len A_) a (max_word A_) then max_word A_
-    else plus_worda (len0_len A_) a (one_worda (len0_len A_)));
-
-fun word_prev A_ a =
-  (if equal_worda (len0_len A_) a (zero_worda (len0_len A_))
-    then zero_worda (len0_len A_)
-    else minus_word (len0_len A_) a (one_worda (len0_len A_)));
-
-fun br2l A_ (RangeUnion (r1, r2)) = br2l A_ r1 @ br2l A_ r2
-  | br2l A_ (WordInterval (s, e)) =
-    (if less_word (len0_len A_) e s then [] else [(s, e)]);
-
-fun empty_WordInterval A_ =
-  WordInterval (one_worda (len0_len A_), zero_worda (len0_len A_));
-
-fun l2br A_ [] = empty_WordInterval A_
-  | l2br A_ [(s, e)] = WordInterval (s, e)
-  | l2br A_ ((s, e) :: v :: va) =
-    RangeUnion (WordInterval (s, e), l2br A_ (v :: va));
 
 fun numeral A_ (Bit1 n) =
   let
@@ -836,35 +875,6 @@ fun valid_prefix A_ pf =
   equal_worda (len0_len A_)
     (bitAND_word (len0_len A_) (pfxm_mask A_ pf) (pfxm_prefix pf))
     (zero_worda (len0_len A_));
-
-fun wordinterval_setminus A_ (WordInterval (s, e)) (WordInterval (ms, me)) =
-  (if less_word (len0_len A_) e s orelse less_word (len0_len A_) me ms
-    then WordInterval (s, e)
-    else (if less_eq_word (len0_len A_) e me
-           then WordInterval
-                  ((if equal_worda (len0_len A_) ms (zero_worda (len0_len A_))
-                     then one_worda (len0_len A_) else s),
-                    min (ord_word (len0_len A_)) e (word_prev A_ ms))
-           else (if less_eq_word (len0_len A_) ms s
-                  then WordInterval
-                         (max (ord_word (len0_len A_)) s (word_next A_ me),
-                           (if equal_worda (len0_len A_) me (max_word A_)
-                             then zero_worda (len0_len A_) else e))
-                  else RangeUnion
-                         (WordInterval
-                            ((if equal_worda (len0_len A_) ms
-                                   (zero_worda (len0_len A_))
-                               then one_worda (len0_len A_) else s),
-                              word_prev A_ ms),
-                           WordInterval
-                             (word_next A_ me,
-                               (if equal_worda (len0_len A_) me (max_word A_)
-                                 then zero_worda (len0_len A_) else e))))))
-  | wordinterval_setminus A_ (RangeUnion (r1, r2)) t =
-    RangeUnion (wordinterval_setminus A_ r1 t, wordinterval_setminus A_ r2 t)
-  | wordinterval_setminus A_ (WordInterval (v, va)) (RangeUnion (r1, r2)) =
-    wordinterval_setminus A_
-      (wordinterval_setminus A_ (WordInterval (v, va)) r1) r2;
 
 fun ipv4range_setminus r1 r2 =
   wordinterval_setminus
@@ -1111,11 +1121,6 @@ fun wordinterval_optimize_same A_ rs =
   list_to_wordinterval A_
     (remdups (equal_wordinterval A_) (wordinterval_to_list A_ rs));
 
-fun wordinterval_UNIV A_ = WordInterval (zero_worda (len0_len A_), max_word A_);
-
-fun wordinterval_invert A_ r =
-  wordinterval_setminus A_ (wordinterval_UNIV A_) r;
-
 fun wordinterval_union A_ r1 r2 = RangeUnion (r1, r2);
 
 fun wordinterval_intersection A_ r1 r2 =
@@ -1132,6 +1137,30 @@ fun l2br_negation_type_intersect A_ [] = wordinterval_UNIV A_
     wordinterval_intersection A_ (wordinterval_invert A_ (WordInterval (s, e)))
       (l2br_negation_type_intersect A_ ls);
 
+fun bitNOT_word A_ a = word_of_int A_ (bitNOT_int (uint A_ a));
+
+fun ipv4cidr_to_intervall (pre, len) =
+  let
+    val netmask =
+      shiftl_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+          len)
+        (minus_nat (nat_of_integer (32 : IntInf.int)) len);
+    val network_prefix =
+      bitAND_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        pre netmask;
+  in
+    (network_prefix,
+      bitOR_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        network_prefix
+        (bitNOT_word
+          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+          netmask))
+  end;
+
 fun ipv4addr_of_dotdecimal (a, (b, (c, d))) =
   ipv4addr_of_nat
     (plus_nat
@@ -1139,32 +1168,10 @@ fun ipv4addr_of_dotdecimal (a, (b, (c, d))) =
         (times_nat (nat_of_integer (65536 : IntInf.int)) b))
       (times_nat (nat_of_integer (16777216 : IntInf.int)) a));
 
-fun bitNOT_word A_ a = word_of_int A_ (bitNOT_int (uint A_ a));
-
 fun ipt_ipv4range_to_intervall (Ip4Addr addr) =
   (ipv4addr_of_dotdecimal addr, ipv4addr_of_dotdecimal addr)
   | ipt_ipv4range_to_intervall (Ip4AddrNetmask (pre, len)) =
-    let
-      val netmask =
-        shiftl_word
-          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-          (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-            len)
-          (minus_nat (nat_of_integer (32 : IntInf.int)) len);
-      val network_prefix =
-        bitAND_word
-          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-          (ipv4addr_of_dotdecimal pre) netmask;
-    in
-      (network_prefix,
-        bitOR_word
-          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-          network_prefix
-          (bitNOT_word
-            (len0_bit0
-              (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-            netmask))
-    end;
+    ipv4cidr_to_intervall (ipv4addr_of_dotdecimal pre, len);
 
 fun ipt_ipv4range_negation_type_to_br_intersect l =
   l2br_negation_type_intersect
@@ -1249,10 +1256,7 @@ fun is_Src_Ports (Src x1) = false
   | is_Src_Ports (Extra x8) = false;
 
 fun ipt_ports_negation_type_normalize (Pos ps) = ps
-  | ipt_ports_negation_type_normalize (Neg ps) =
-    br2l (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))
-      (wordinterval_invert (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))
-        (l2br (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))) ps));
+  | ipt_ports_negation_type_normalize (Neg ps) = ports_invert ps;
 
 fun ipt_ports_andlist_compress A_ pss =
   br2l A_
@@ -1890,26 +1894,11 @@ fun normalized_src_ports MatchAny = true
   | normalized_src_ports (MatchNot (MatchNot vb)) = false
   | normalized_src_ports (MatchNot MatchAny) = true;
 
-fun ipv4_cidr_tuple_to_intervall (pre, len) =
+fun ipv4_cidr_tuple_to_intervall base_len =
   let
-    val netmask =
-      shiftl_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-        (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-          len)
-        (minus_nat (nat_of_integer (32 : IntInf.int)) len);
-    val network_prefix =
-      bitAND_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-        pre netmask;
+    val (a, b) = ipv4cidr_to_intervall base_len;
   in
-    ipv4range_range network_prefix
-      (bitOR_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-        network_prefix
-        (bitNOT_word
-          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-          netmask))
+    ipv4range_range a b
   end;
 
 fun simpl_ports_conjunct (p1s, p1e) (p2s, p2e) =
