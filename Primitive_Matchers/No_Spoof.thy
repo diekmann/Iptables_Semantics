@@ -74,7 +74,11 @@ and now code to check this ....
     "in_iface_matches iiface m = True" (*todo: primitive extractor and (match_iface i (p_iiface p)) for any packet?*)
       (*ANY packet? well any with iiface, this should be straight forward*)*)
 
-  (*TODO: verify this algorithm first*)
+  (*TODO: verify this algorithm first. 
+    The denied set does not work this way: we could first allow everything and afterwards deny spoofing, \<dots>
+    The denied could be a match_expr of packets which have not matched yet (start with MatchAny). Then
+    \<exists>p \<in> {p. \<not> matches not_matched_yet}. Problem of unknowns and \<not> MatchNot
+    probably the packet_set type can solve this. But it needs to be optimized! Or, check below, try to make this algorithm more incomplete.*)
   (*will not be complete, but sound!*)
   private fun no_spoofing_algorithm :: "iface \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr set \<Rightarrow> bool" where
     "no_spoofing_algorithm iface ipassmt [] allowed denied \<longleftrightarrow> 
@@ -171,7 +175,7 @@ and now code to check this ....
       apply(simp add: helper1)
       apply(rule)
        prefer 2
-       apply blast
+       apply blast (*have ?r \<subseteq> ?l. would this suffice for an approximation (sound but not complete) of nospoof?*)
       apply(simp)
       apply(safe)
       apply(drule notin_setbydecisionD)
