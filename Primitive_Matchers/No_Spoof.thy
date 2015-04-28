@@ -33,12 +33,16 @@ section{*No Spoofing*}
         ((common_matcher, in_doubt_allow),p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow) \<longrightarrow>
             p_src p \<in> (ipv4cidr_union_set (the (ipassmt iface)))"
 
-  (*should be sound:
-      if no_spoofing certifies your ruleset, then your ruleset prohibits spoofing
-    may not be complete:
-      no_spoofing may return False even though your ruleset prevents spoofing
-      (should only occur if some strange and unknown primitives occur)*)
+  text{* The definition is sound (if that can be said about a definition):
+          if @{const no_spoofing} certifies your ruleset, then your ruleset prohibits spoofing.
+         The definition may not be complete:
+          @{const no_spoofing} may return @{const False} even though your ruleset prevents spoofing
+          (should only occur if some strange and unknown primitives occur)*}
 
+
+text{*everything in the following context is just an unfinished draft*}
+context
+begin
 (*
 and now code to check this ....
   only need to trace: src_ip and iiface
@@ -46,7 +50,7 @@ and now code to check this ....
   collect all src_ips allowed for a specific iiface?
   check collected src_ips subseteq ipassignment(iface)
 *)
-(*
+  (*
   definition get_matching_src_ips :: "common_primitive match_expr \<Rightarrow> ipv4addr set" where
     "get_matching_src_ips m \<equiv> \<Union> ips \<in> set (fst (primitive_extractor (is_Src, src_sel) m)).  
                                   (case ips of Pos ip \<Rightarrow> ipv4s_to_set ip | Neg ip \<Rightarrow> - ipv4s_to_set ip)"
@@ -64,49 +68,83 @@ and now code to check this ....
       apply(simp)
      apply(simp)
      apply(simp split: negation_type.split_asm)
-    oops
+    oops*)
 
-  definition in_iface_matches :: "iface \<Rightarrow> common_primitive match_expr \<Rightarrow> bool" where
+  (*definition in_iface_matches :: "iface \<Rightarrow> common_primitive match_expr \<Rightarrow> bool" where
     "in_iface_matches iiface m = True" (*todo: primitive extractor and (match_iface i (p_iiface p)) for any packet?*)
-      (*ANY packet? well any with iiface, this should be straight forward*)
+      (*ANY packet? well any with iiface, this should be straight forward*)*)
 
   (*TODO: verify this algorithm first*)
-  fun no_spoofing_algorithm :: "iface \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr set \<Rightarrow> bool" where
+  private fun no_spoofing_algorithm :: "iface \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr set \<Rightarrow> bool" where
     "no_spoofing_algorithm iface ipassmt [] allowed denied \<longleftrightarrow> 
       (allowed - denied) \<subseteq> ipv4cidr_union_set (the (ipassmt iface))" |
-    "no_spoofing_algorithm iface ipassmt ((Rule m Accept)#rs) allowed denied = (if in_iface_matches iface m
-        then
-          no_spoofing_algorithm iface ipassmt rs (allowed \<union> {ip. \<exists>p. matches (common_matcher, in_doubt_allow) m Accept (p\<lparr>p_src:= ip\<rparr>)}) denied
-        else
-          no_spoofing_algorithm iface ipassmt rs allowed denied)" |
-    "no_spoofing_algorithm iface ipassmt ((Rule m Drop)#rs) allowed denied = (if in_iface_matches iface m
-        then
-          no_spoofing_algorithm iface ipassmt rs allowed (denied \<union> {ip. \<exists>p. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_src:= ip\<rparr>)})
-        else
-          no_spoofing_algorithm iface ipassmt rs allowed denied)"  |
+    "no_spoofing_algorithm iface ipassmt ((Rule m Accept)#rs) allowed denied = no_spoofing_algorithm iface ipassmt rs 
+        (allowed \<union> {ip. \<exists>p. matches (common_matcher, in_doubt_allow) m Accept (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>)}) denied" |
+    "no_spoofing_algorithm iface ipassmt ((Rule m Drop)#rs) allowed denied = no_spoofing_algorithm iface ipassmt rs
+         allowed (denied \<union> {ip. \<forall>p. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>)})"  |
     "no_spoofing_algorithm _ _ _ _ _ = undefined"
 
   (*implementation could store ipv4addr set as 32 wordinterval*)
 
 
-  definition "nospoof iface ipassmt rs = (\<forall>p.
+  private definition "nospoof iface ipassmt rs = (\<forall>p.
           (approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface\<rparr>) rs Undecided = Decision FinalAllow) \<longrightarrow>
               p_src p \<in> (ipv4cidr_union_set (the (ipassmt iface))))"
-  definition "setbydecition iface rs dec = {ip. \<exists>p. approximating_bigstep_fun (common_matcher, in_doubt_allow) 
+  private definition "setbydecision iface rs dec = {ip. \<exists>p. approximating_bigstep_fun (common_matcher, in_doubt_allow) 
                            (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs Undecided = Decision dec}"
-  lemma "simple_ruleset rs2 \<Longrightarrow>
+
+  private lemma packet_update_simp: "p\<lparr>p_iiface := iface_sel iface, p_src := x\<rparr> = p\<lparr>p_src := x, p_iiface := iface_sel iface\<rparr>" by simp
+ 
+  private lemma nospoof_setbydecision: "nospoof iface ipassmt rs \<longleftrightarrow> setbydecision iface rs FinalAllow \<subseteq> (ipv4cidr_union_set (the (ipassmt iface)))"
+  proof
+    assume a: "nospoof iface ipassmt rs"
+    from a show "setbydecision iface rs FinalAllow \<subseteq> ipv4cidr_union_set (the (ipassmt iface))"
+      apply(simp add: nospoof_def setbydecision_def)
+      apply(safe)
+      apply(rename_tac x p)
+      apply(erule_tac x="p\<lparr>p_iiface := iface_sel iface, p_src := x\<rparr>" in allE)
+      apply(simp)
+      apply(simp add: packet_update_simp)
+      done
+  next
+    assume a1: "setbydecision iface rs FinalAllow \<subseteq> ipv4cidr_union_set (the (ipassmt iface))"
+    show "nospoof iface ipassmt rs"
+      unfolding nospoof_def
+      proof(safe)
+        fix p
+        assume a2: "approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface := iface_sel iface\<rparr>) rs Undecided = Decision FinalAllow"
+        --{*In @{text setbydecision_fix_p}the @{text \<exists>} quantifier is gone and we consider this set for @{term p}.*}
+        let ?setbydecision_fix_p="{ip. approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>) rs Undecided = Decision FinalAllow}"
+        from a1 a2 have 1: "?setbydecision_fix_p \<subseteq> ipv4cidr_union_set (the (ipassmt iface))" by(simp add: nospoof_def setbydecision_def) blast
+        from a2 have 2: "p_src p \<in> ?setbydecision_fix_p" by simp
+        from 1 2 show "p_src p \<in> ipv4cidr_union_set (the (ipassmt iface))" by blast
+      qed
+  qed
+
+
+  private definition "setbydecision_all iface rs dec = {ip. \<forall>p. approximating_bigstep_fun (common_matcher, in_doubt_allow) 
+                           (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs Undecided = Decision dec}"
+
+  lemma setbydecision_setbydecision_all: "(setbydecision iface rs FinalAllow - setbydecision_all iface rs FinalDeny) = setbydecision iface rs FinalAllow"
+    apply(safe)
+    apply(simp add: setbydecision_def setbydecision_all_def)
+    done
+
+  (*private lemma "simple_ruleset rs2 \<Longrightarrow>
         iface \<in> dom ipassmt \<Longrightarrow>
-        allowed = setbydecition iface rs1 FinalAllow \<Longrightarrow>
-        denied = setbydecition iface rs1 FinalDeny \<Longrightarrow>
+        allowed = setbydecision iface rs1 FinalAllow \<Longrightarrow>
+        denied = setbydecision_all iface rs1 FinalDeny \<Longrightarrow>
         no_spoofing_algorithm iface ipassmt rs2 allowed denied \<longleftrightarrow> 
         nospoof iface ipassmt (rs1@rs2)"
   apply(induction iface ipassmt rs2 allowed denied arbitrary: rs1 allowed denied rule: no_spoofing_algorithm.induct)
           apply(simp_all add: simple_ruleset_def)
-    apply(simp add: setbydecition_def nospoof_def)
+    apply(simp add: nospoof_setbydecision setbydecision_setbydecision_all)
     defer
     apply safe
     apply(simp_all)
     
-  oops
-*)
+  oops*)
+end
+
+
 end
