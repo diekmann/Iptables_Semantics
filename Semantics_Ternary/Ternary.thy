@@ -84,6 +84,7 @@ apply(case_tac a)
 done
 
 
+
 lemma eval_ternary_Not_UnknownD: "eval_ternary_Not t = TernaryUnknown \<Longrightarrow> t = TernaryUnknown"
 by (cases t) auto
 
@@ -93,6 +94,56 @@ by (cases a b rule: ternaryvalue.exhaust[case_product ternaryvalue.exhaust],auto
 
 lemma eval_ternary_idempotence_Not: "eval_ternary_Not (eval_ternary_Not a) = a"
 by (cases a) simp_all
+
+
+lemma eval_ternary_simps_simple: 
+  "eval_ternary_And TernaryTrue x = x"
+  "eval_ternary_And x TernaryTrue = x"
+  "eval_ternary_And TernaryFalse x = TernaryFalse"
+  "eval_ternary_And x TernaryFalse = TernaryFalse"
+by(case_tac [!] x)(simp_all)
+
+
+context
+begin
+  private lemma bool_to_ternary_simp1: "bool_to_ternary X = TernaryTrue \<longleftrightarrow> X"
+    by (metis bool_to_ternary.elims ternaryvalue.distinct(1))
+  private lemma bool_to_ternary_simp2:  "bool_to_ternary Y = TernaryFalse \<longleftrightarrow> \<not> Y"
+    by (metis bool_to_ternary.elims ternaryvalue.distinct(1))
+  private lemma bool_to_ternary_simp3: "eval_ternary_Not (bool_to_ternary X) = TernaryTrue \<longleftrightarrow> \<not> X"
+    by (metis (full_types) bool_to_ternary_simp2 eval_ternary_Not.simps(1) eval_ternary_idempotence_Not)
+  private lemma bool_to_ternary_simp4: "eval_ternary_Not (bool_to_ternary X) = TernaryFalse \<longleftrightarrow> X"
+    by (metis bool_to_ternary_simp1 eval_ternary_Not.simps(1) eval_ternary_idempotence_Not)
+  private lemma bool_to_ternary_simp5: "\<not> (eval_ternary_Not (bool_to_ternary X) = TernaryUnknown)"
+    by (metis bool_to_ternary_Unknown eval_ternary_Not_UnknownD)
+
+  (*New lemma, does it break anything?*)
+  private lemma bool_to_ternary_simp6: "bool_to_ternary X \<noteq> TernaryUnknown"
+    by (metis (full_types) bool_to_ternary.simps(1) bool_to_ternary.simps(2) ternaryvalue.distinct(3) ternaryvalue.distinct(5))
+
+  lemmas bool_to_ternary_simps = bool_to_ternary_simp1 bool_to_ternary_simp2 bool_to_ternary_simp3 bool_to_ternary_simp4 bool_to_ternary_simp5 bool_to_ternary_simp6
+end
+
+context
+begin
+  (*new facts, to they break something?*)
+  private lemma bool_to_ternary_pullup1: "eval_ternary_Not (bool_to_ternary X) = bool_to_ternary (\<not> X)"
+    by(cases X)(simp_all)
+  
+  private lemma bool_to_ternary_pullup2: "eval_ternary_And (bool_to_ternary X1) (bool_to_ternary X2) = bool_to_ternary (X1 \<and> X2)"
+    by (metis bool_to_ternary_simps(1) bool_to_ternary_simps(2) eval_ternary_simps_simple(2) eval_ternary_simps_simple(4))
+
+  private lemma bool_to_ternary_pullup3: "eval_ternary_Imp (bool_to_ternary X1) (bool_to_ternary X2) = bool_to_ternary (X1 \<longrightarrow> X2)"
+    by (metis bool_to_ternary_simps(1) bool_to_ternary_simps(2) eval_ternary_Imp.simps(1) 
+        eval_ternary_Imp.simps(2) eval_ternary_Imp.simps(3) eval_ternary_Imp.simps(4))
+    
+  private lemma bool_to_ternary_pullup4: "eval_ternary_Or (bool_to_ternary X1) (bool_to_ternary X2) = bool_to_ternary (X1 \<or> X2)"
+    by (metis (full_types) bool_to_ternary.simps(1) bool_to_ternary.simps(2) eval_ternary_Or.simps(1) eval_ternary_Or.simps(2) eval_ternary_Or.simps(3) eval_ternary_Or.simps(4))  
+  
+  lemmas bool_to_ternary_pullup = bool_to_ternary_pullup1 bool_to_ternary_pullup2 bool_to_ternary_pullup3 bool_to_ternary_pullup4
+end
+
+
 
 fun ternary_ternary_eval :: "ternaryformula \<Rightarrow> ternaryvalue" where
   "ternary_ternary_eval (TernaryAnd t1 t2) = eval_ternary_And (ternary_ternary_eval t1) (ternary_ternary_eval t2)" |
@@ -112,12 +163,6 @@ by (simp add: eval_ternary_And_comm)
 
 lemma "eval_ternary_Not (ternary_ternary_eval t) = (ternary_ternary_eval (TernaryNot t))" by simp
 
-lemma eval_ternary_simps_simple: 
-  "eval_ternary_And TernaryTrue x = x"
-  "eval_ternary_And x TernaryTrue = x"
-  "eval_ternary_And TernaryFalse x = TernaryFalse"
-  "eval_ternary_And x TernaryFalse = TernaryFalse"
-by(case_tac [!] x)(simp_all)
 
 
 lemma eval_ternary_simps_2: "eval_ternary_And (bool_to_ternary P) T = TernaryTrue \<longleftrightarrow> P \<and> T = TernaryTrue"

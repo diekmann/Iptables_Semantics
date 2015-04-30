@@ -78,12 +78,16 @@ and now code to check this ....
     "no_spoofing_algorithm iface ipassmt ((Rule m Accept)#rs) allowed denied = no_spoofing_algorithm iface ipassmt rs 
         (allowed \<union> {ip. (\<exists>p. matches (common_matcher, in_doubt_allow) m Accept (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))}) denied" |
     "no_spoofing_algorithm iface ipassmt ((Rule m Drop)#rs) allowed denied = no_spoofing_algorithm iface ipassmt rs
-         allowed (denied \<union> ({ip.(\<forall>p. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))} - allowed))"  |
+         allowed (denied \<union> ({ip.(\<forall>p. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))} - allowed)
+                         (*\<union> (-{ip.(\<forall>p. \<not> match_iface iface (p_iiface p) \<longrightarrow> matches (common_matcher, in_doubt_allow) m Drop (p\<lparr> p_src:= ip\<rparr>))} - allowed)*))"  |
     "no_spoofing_algorithm _ _ _ _ _ = undefined"
 
   (*implementation could store ipv4addr set as 32 wordinterval*)
 
   (*we can tune accuracy when only adding to allowed if it is not in denied?*)
+
+  (*we could add to the denied set: {ip. (\<forall>p. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_src:= ip\<rparr>))}*)
+
 
   text{*Examples*}
   text{*
@@ -102,7 +106,7 @@ and now code to check this ....
         
       have ipset: "{ip. \<exists>p. matches (common_matcher, in_doubt_allow) (MatchAnd (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 24))) (Match (IIface (Iface ''eth0'')))) Accept
               (p\<lparr>p_iiface := ''eth0'', p_src := ip\<rparr>)} = ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal (192,168,0,0)) 24"
-         by(auto simp add: localrng eval_ternary_simps bool_to_ternary_simps matches_case_ternaryvalue_tuple
+         by(auto simp add: localrng eval_ternary_simps bool_to_ternary_simps matches_case_ternaryvalue_tuple match_iface.simps
                       split: ternaryvalue.split ternaryvalue.split_asm)
        show ?thesis
         apply(simp add: ipset ipv4cidr_union_set_def)
@@ -127,11 +131,27 @@ and now code to check this ....
        have ipset2: "{ip. \<forall>p. matches (common_matcher, in_doubt_allow)
                      (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 24)))) (Match (IIface (Iface ''eth0'')))) Drop
                      (p\<lparr>p_iiface := ''eth0'', p_src := ip\<rparr>)} = - ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal (192,168,0,0)) 24"
-         by(auto simp add:  eval_ternary_simps bool_to_ternary_simps matches_case_ternaryvalue_tuple
+         by(auto simp add:  eval_ternary_simps bool_to_ternary_simps matches_case_ternaryvalue_tuple match_iface.simps
                       split: ternaryvalue.split ternaryvalue.split_asm)
+       have i2: "(\<forall>p. match_iface (Iface ''eth0'') (p_iiface p)) \<longleftrightarrow> False"
+        apply(simp add: match_iface.simps)
+        apply(rule_tac x="p\<lparr>p_iiface := ''eth1''\<rparr>" in exI)
+        apply(simp)
+        done
+       have i1: "match_iface (Iface ''eth0'') ''eth0''" by(simp add: match_iface.simps)
+       have ipset3: "{ip. \<forall>p. \<not> match_iface (Iface ''eth0'') (p_iiface p) \<longrightarrow>
+                     matches (common_matcher, in_doubt_allow)
+                      (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 24)))) (Match (IIface (Iface ''eth0'')))) Drop (p\<lparr>p_src := ip\<rparr>)}
+                      = {}"
+         apply(simp add: bool_to_ternary_pullup eval_ternary_simps bool_to_ternary_simps matches_case_ternaryvalue_tuple
+                      split: ternaryvalue.split ternaryvalue.split_asm)
+         using i2 apply auto
+         done
        show ?thesis
         apply(simp add: ipset1)
-        apply(simp add: ipset2 ipv4cidr_union_set_def)
+        apply(simp add: ipset2)
+        (*apply(simp add: ipset3)*)
+        apply(simp add: ipv4cidr_union_set_def)
         done
       qed
 
@@ -153,12 +173,32 @@ and now code to check this ....
        have ipset2: "{ip. \<forall>p. matches (common_matcher, in_doubt_allow)
                      (MatchAnd (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 24))) (MatchNot (Match (IIface (Iface ''eth0''))))) Drop
                      (p\<lparr>p_iiface := ''eth0'', p_src := ip\<rparr>)} = {}"
-         by(simp add:  eval_ternary_simps bool_to_ternary_simps matches_case_ternaryvalue_tuple
+         by(simp add:  eval_ternary_simps bool_to_ternary_simps matches_case_ternaryvalue_tuple match_iface.simps
                       split: ternaryvalue.split ternaryvalue.split_asm)
+       
+       have i2: "(\<forall>p. match_iface (Iface ''eth0'') (p_iiface p)) \<longleftrightarrow> False"
+        apply(simp add: match_iface.simps)
+        apply(rule_tac x="p\<lparr>p_iiface := ''eth1''\<rparr>" in exI)
+        apply(simp)
+        done
+       have i1: "match_iface (Iface ''eth0'') ''eth0''" by(simp add: match_iface.simps)
+       have ipset3: "{ip. \<forall>p. \<not> match_iface (Iface ''eth0'') (p_iiface p) \<longrightarrow>
+                    matches (common_matcher, in_doubt_allow)
+                     (MatchAnd (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 24))) (MatchNot (Match (IIface (Iface ''eth0''))))) Drop (p\<lparr>p_src := ip\<rparr>)}
+                     = ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal (192, 168, 0, 0)) 24"
+         apply(simp add: bool_to_ternary_pullup eval_ternary_simps bool_to_ternary_simps matches_case_ternaryvalue_tuple
+                      split: ternaryvalue.split ternaryvalue.split_asm)
+         apply(simp add: i1 i2)
+         done
        show ?thesis
-        apply(simp add: ipset1)
-        apply(simp add: ipset2 ipv4cidr_union_set_def)
+        apply(subst no_spoofing_algorithm.simps)
+        apply(simp add: ipset1 ipset2 ipset3 del: no_spoofing_algorithm.simps)
+        apply(subst no_spoofing_algorithm.simps)
+        apply(simp add: ipset1 ipset2 ipset3 del: no_spoofing_algorithm.simps)
+        apply(simp)
+        apply(simp add: ipv4cidr_union_set_def)
         oops
+   
 
   private definition "nospoof iface ipassmt rs = (\<forall>p.
           (approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface\<rparr>) rs Undecided = Decision FinalAllow) \<longrightarrow>
@@ -357,6 +397,16 @@ and now code to check this ....
        apply(simp_all)
     oops
 
+
+
+  lemma "- {ip. \<exists>p. \<not> match_iface iface (p_iiface p) \<or> \<not> matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_src := ip\<rparr>)}
+      \<subseteq> setbydecision_all iface ([Rule m Drop]) FinalDeny"
+      apply(simp add: setbydecision_all_def)
+      apply(subst Collect_neg_eq[symmetric])
+      apply(rule Set.Collect_mono)
+      apply(simp)
+      done
+
   private lemma no_spoofing_algorithm_sound_generalized: "simple_ruleset rs1 \<Longrightarrow> simple_ruleset rs2 \<Longrightarrow>
         iface \<in> dom ipassmt \<Longrightarrow>
         setbydecision iface rs1 FinalAllow \<subseteq> allowed \<Longrightarrow> (* = *)
@@ -418,9 +468,11 @@ and now code to check this ....
       setbydecision_all iface (rs1 @ [Rule m Drop]) FinalDeny"
       by blast
 
+
     from 3(7) have no_spoofing_algorithm_prems: "no_spoofing_algorithm iface ipassmt rs allowed
      (denied \<union> ({ip. \<forall>p. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)} - allowed))"
-      by(simp)
+      apply(simp)
+      done
 
     from IH[OF simple_rs' allowed denied no_spoofing_algorithm_prems] have "nospoof iface ipassmt ((rs1 @ [Rule m Drop]) @ rs)" by blast
     thus ?case by(simp)

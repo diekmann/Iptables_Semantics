@@ -278,6 +278,8 @@ begin
                apply (metis match_iface.simps match_iface_case_nowildcard)+
       done
 
+    declare match_iface.simps[simp del]
+    declare iface_name_is_wildcard.simps[simp del]
 end
 
 end

@@ -217,23 +217,7 @@ apply(case_tac "(ternary_ternary_eval (map_match_tac \<beta> p m))")
 apply(simp)
 done
 
-
-
-lemma bool_to_ternary_simp1: "bool_to_ternary X = TernaryTrue \<longleftrightarrow> X"
-by (metis bool_to_ternary.elims ternaryvalue.distinct(1))
-lemma bool_to_ternary_simp2:  "bool_to_ternary Y = TernaryFalse \<longleftrightarrow> \<not> Y"
-by (metis bool_to_ternary.elims ternaryvalue.distinct(1))
-lemma bool_to_ternary_simp3: "eval_ternary_Not (bool_to_ternary X) = TernaryTrue \<longleftrightarrow> \<not> X"
-by (metis (full_types) bool_to_ternary_simp2 eval_ternary_Not.simps(1) eval_ternary_idempotence_Not)
-lemma bool_to_ternary_simp4: "eval_ternary_Not (bool_to_ternary X) = TernaryFalse \<longleftrightarrow> X"
-by (metis bool_to_ternary_simp1 eval_ternary_Not.simps(1) eval_ternary_idempotence_Not)
-lemma bool_to_ternary_simp5: "\<not> eval_ternary_Not (bool_to_ternary X) = TernaryUnknown"
-by (metis bool_to_ternary_Unknown eval_ternary_Not_UnknownD)
-lemmas bool_to_ternary_simps = bool_to_ternary_simp1 bool_to_ternary_simp2 bool_to_ternary_simp3 bool_to_ternary_simp4 bool_to_ternary_simp5
-hide_fact bool_to_ternary_simp1 bool_to_ternary_simp2 bool_to_ternary_simp3 bool_to_ternary_simp4 bool_to_ternary_simp5
-
-
-
+thm eval_ternary_simps_simple
 
 
 subsection{*Removing Unknown Primitives*}
