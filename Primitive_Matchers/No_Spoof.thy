@@ -86,7 +86,8 @@ and now code to check this ....
 
   (*we can tune accuracy when only adding to allowed if it is not in denied?*)
 
-  (*we could add to the denied set: {ip. (\<forall>p. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_src:= ip\<rparr>))}*)
+  (*TODO: we could add a second denied set: {ip. (\<forall>p. p not from iface \<rightarrow> matches p(p_src := ip)}*)
+  (*TODO: test if this suffices to make example 3 work*)
 
 
   text{*Examples*}
