@@ -224,7 +224,9 @@ and now code to check this ....
   lemma "no_spoofing_algorithm 
           (Iface ''eth0'') 
           [Iface ''eth0'' \<mapsto> {(ipv4addr_of_dotdecimal (192,168,0,0), 24)}]
-          [Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0'')))) action.Drop,
+          [Rule (MatchAnd (Match (IIface (Iface ''wlan+''))) (Match (Extra ''no idea what this is''))) action.Accept,
+           Rule (MatchNot (Match (IIface (Iface ''eth0+'')))) action.Accept,
+           Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0'')))) action.Drop,
            Rule MatchAny action.Accept]
           {} {}
           "
@@ -257,10 +259,25 @@ and now code to check this ....
        show ?thesis
         apply(simp add: ipset1)
         apply(simp add: ipset2)
+        apply(simp add: get_matching_src_ips_def match_iface.simps)
         (*apply(simp add: ipset3)*)
         apply(simp add: ipv4cidr_union_set_def)
         done
       qed
+
+   private lemma iprange_example: "ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal (192, 168, 0, 0)) 24 = {0xC0A80000..0xC0A800FF}"
+     by(simp add: ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
+   lemma "no_spoofing_algorithm 
+          (Iface ''eth0'') 
+          [Iface ''eth0'' \<mapsto> {(ipv4addr_of_dotdecimal (192,168,0,0), 24)}]
+          [Rule (MatchNot (Match (IIface (Iface ''wlan+'')))) action.Accept, (*accidently allow everything for eth0*)
+           Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0'')))) action.Drop,
+           Rule MatchAny action.Accept]
+          {} {} \<longleftrightarrow> False
+          "
+        apply(simp add: get_matching_src_ips_def match_iface.simps)
+        apply(simp add: range_0_max_UNIV[symmetric] ipv4cidr_union_set_def iprange_example del:range_0_max_UNIV)
+        done
 
   text{*
     Ruleset: Drop packets coming from the wrong interface, allow rest.
