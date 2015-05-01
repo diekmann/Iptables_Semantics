@@ -103,7 +103,13 @@ and now code to check this ....
   (*we can tune accuracy when only adding to allowed if it is not in denied?*)
 
   (*TODO: we could add a second denied set: {ip. (\<forall>p. p not from iface \<rightarrow> matches p(p_src := ip)}*)
-  (*TODO: test if this suffices to make example 3 work*)
+  (*TODO: test if this suffices to make example 3 work
+    
+    possible invariant: allowed \<inter> denied2 = {}
+    only add to allowed if not in denied 2
+    only add to denied2 if not in allowed
+  
+      *)
 
 
   text{*Examples*}
@@ -539,7 +545,8 @@ and now code to check this ....
       apply(simp)
       done
 
-
+  lemma "a - (d1 \<union> (d2 - a)) = a - d1" by auto
+  
   private lemma xxhlpsubset1: "Y \<subseteq> X \<Longrightarrow> \<forall> x. S x \<subseteq> S' x \<Longrightarrow> (\<Inter>x\<in>X. S x) \<subseteq> (\<Inter>x\<in>Y. S' x)" by auto
   private lemma xxhlpsubset2: "X \<subseteq> Y \<Longrightarrow> \<forall> x. S x \<subseteq> S' x \<Longrightarrow> (\<Union>x\<in>X. S x) \<subseteq> (\<Union>x\<in>Y. S' x)" by auto
 
