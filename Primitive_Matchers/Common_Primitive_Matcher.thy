@@ -81,9 +81,15 @@ lemma match_simplematcher_SrcDst_not:
 lemma common_matcher_SrcDst_Inter:
   "(\<forall>m\<in>set X. matches (common_matcher, \<alpha>) (Match (Src m)) a p) \<longleftrightarrow> p_src p \<in> (\<Inter>x\<in>set X. ipv4s_to_set x)"
   "(\<forall>m\<in>set X. matches (common_matcher, \<alpha>) (Match (Dst m)) a p) \<longleftrightarrow> p_dst p \<in> (\<Inter>x\<in>set X. ipv4s_to_set x)"
-  apply(simp_all)
-  apply(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_Unknown bool_to_ternary_simps split: ternaryvalue.split)
- done
+  by(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_Unknown bool_to_ternary_simps split: ternaryvalue.split)
+lemma match_simplematcher_Iface:
+  "matches (common_matcher, \<alpha>) (Match (IIface X)) a p \<longleftrightarrow> match_iface X (p_iiface p)"
+  "matches (common_matcher, \<alpha>) (Match (OIface X)) a p \<longleftrightarrow> match_iface X (p_oiface p)"
+   by(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_Unknown bool_to_ternary_simps split: ternaryvalue.split)
+lemma match_simplematcher_Iface_not:
+  "matches (common_matcher, \<alpha>) (MatchNot (Match (IIface X))) a p \<longleftrightarrow> \<not> match_iface X (p_iiface p)"
+  "matches (common_matcher, \<alpha>) (MatchNot (Match (OIface X))) a p \<longleftrightarrow> \<not> match_iface X (p_oiface p)"
+   by(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_simps split: ternaryvalue.split)
 
 
 
@@ -102,7 +108,7 @@ lemma multiports_disjuction:
 
 
 
-text{*Since matching on the iface cannot be @{const TernaryUnknown}*, we can pull out negations.}
+text{*Since matching on the iface cannot be @{const TernaryUnknown}*, we can pull out negations.*}
 lemma common_matcher_MatchNot_Iface:
       "matches (common_matcher, \<alpha>) (MatchNot (Match (IIface iface))) a p \<longleftrightarrow> \<not> match_iface iface (p_iiface p)"
       "matches (common_matcher, \<alpha>) (MatchNot (Match (OIface iface))) a p \<longleftrightarrow> \<not> match_iface iface (p_oiface p)"
