@@ -45,12 +45,7 @@ context
 begin
 (*
 and now code to check this ....
-  only need to trace: src_ip and iiface
-  try some packet_set dnf with this?
-  collect all src_ips allowed for a specific iiface?
-  check collected src_ips subseteq ipassignment(iface)
 *)
-  
 
 
   private definition get_matching_src_ips :: "common_primitive match_expr \<Rightarrow> ipv4addr set" where
@@ -60,11 +55,11 @@ and now code to check this ....
                                     UNIV
                                   else
                                     \<Union> ips \<in> set (ip_matches). (case ips of Pos ip \<Rightarrow> ipv4s_to_set ip | Neg ip \<Rightarrow> - ipv4s_to_set ip)"
-                (*todo: primitive extractor and 32wordinterval?*)
 
-                (* only makes sense if there is a packet which can match*)
+  (*when we replace the set by a 32 wordinterval, we should get executable code*)
+  value(code) "primitive_extractor (is_Src, src_sel) (MatchAnd (Match (Src (Ip4AddrNetmask (0,0,0,0) 30))) (Match (IIface (Iface ''eth0''))))"
 
-  private lemma match_simplematcher_Src_getPos: "(\<forall>m\<in>set (map Src (getPos ip_matches)). matches (common_matcher, \<alpha>) (Match m) Accept p)
+  private lemma match_simplematcher_Src_getPos: "(\<forall>m\<in>set (map Src (getPos ip_matches)). matches (common_matcher, \<alpha>) (Match m) a p)
          \<longleftrightarrow>
          (\<forall>ip\<in>set (getPos ip_matches). p_src p \<in> ipv4s_to_set ip)"
   apply(induction ip_matches)
@@ -75,7 +70,7 @@ and now code to check this ....
    apply(simp_all)
   apply(simp add: Common_Primitive_Matcher.match_simplematcher_SrcDst)
   done
-  private lemma match_simplematcher_Src_getNeg: "(\<forall>m\<in>set (map Src (getNeg ip_matches)). matches (common_matcher, \<alpha>) (MatchNot (Match m)) Accept p)
+  private lemma match_simplematcher_Src_getNeg: "(\<forall>m\<in>set (map Src (getNeg ip_matches)). matches (common_matcher, \<alpha>) (MatchNot (Match m)) a p)
          \<longleftrightarrow>
          (\<forall>ip\<in>set (getNeg ip_matches). p_src p \<in> - ipv4s_to_set ip)"
   apply(induction ip_matches)
@@ -89,30 +84,30 @@ and now code to check this ....
 
  private lemma get_matching_src_ips_subset: 
     assumes "normalized_nnf_match m"
-    shows "{ip. (\<exists>p. matches (common_matcher, in_doubt_allow) m Accept (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))} \<subseteq>
+    shows "{ip. (\<exists>p. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))} \<subseteq>
            get_matching_src_ips m"
   unfolding get_matching_src_ips_def
   proof(clarsimp)
     fix ip_matches p rest src_ip
     assume a1: "primitive_extractor (is_Src, src_sel) m = (ip_matches, rest)"
-    and a2: "matches (common_matcher, in_doubt_allow) m Accept (p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
+    and a2: "matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
     and a3: "ip_matches \<noteq> []"
     let ?p="(p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
     let ?\<gamma>="(common_matcher, in_doubt_allow)"
 
     from primitive_extractor_correct(1)[OF assms wf_disc_sel_common_primitive(3) a1] have 
-      "\<And>p. matches (common_matcher, in_doubt_allow) (alist_and (NegPos_map Src ip_matches)) Accept p \<and> 
-            matches (common_matcher, in_doubt_allow) rest Accept p \<longleftrightarrow>
-            matches (common_matcher, in_doubt_allow) m Accept p" by fast
-    with a2 have "matches (common_matcher, in_doubt_allow) (alist_and (NegPos_map Src ip_matches)) Accept ?p \<and> 
-            matches (common_matcher, in_doubt_allow) rest Accept ?p" by simp
-    hence "matches (common_matcher, in_doubt_allow) (alist_and (NegPos_map Src ip_matches)) Accept ?p" by blast
+      "\<And>p. matches (common_matcher, in_doubt_allow) (alist_and (NegPos_map Src ip_matches)) a p \<and> 
+            matches (common_matcher, in_doubt_allow) rest a p \<longleftrightarrow>
+            matches (common_matcher, in_doubt_allow) m a p" by fast
+    with a2 have "matches (common_matcher, in_doubt_allow) (alist_and (NegPos_map Src ip_matches)) a ?p \<and> 
+            matches (common_matcher, in_doubt_allow) rest a ?p" by simp
+    hence "matches (common_matcher, in_doubt_allow) (alist_and (NegPos_map Src ip_matches)) a ?p" by blast
     with Negation_Type_Matching.matches_alist_and have
-      "(\<forall>m\<in>set (getPos (NegPos_map Src ip_matches)). matches ?\<gamma> (Match m) Accept ?p) \<and> 
-       (\<forall>m\<in>set (getNeg (NegPos_map Src ip_matches)). matches ?\<gamma> (MatchNot (Match m)) Accept ?p)" by metis
+      "(\<forall>m\<in>set (getPos (NegPos_map Src ip_matches)). matches ?\<gamma> (Match m) a ?p) \<and> 
+       (\<forall>m\<in>set (getNeg (NegPos_map Src ip_matches)). matches ?\<gamma> (MatchNot (Match m)) a ?p)" by metis
     with getPos_NegPos_map_simp2 getNeg_NegPos_map_simp2 have 
-      "(\<forall>m\<in>set (map Src (getPos ip_matches)). matches ?\<gamma> (Match m) Accept ?p) \<and> 
-       (\<forall>m\<in>set (map Src (getNeg ip_matches)). matches ?\<gamma> (MatchNot (Match m)) Accept ?p)" by metis
+      "(\<forall>m\<in>set (map Src (getPos ip_matches)). matches ?\<gamma> (Match m) a ?p) \<and> 
+       (\<forall>m\<in>set (map Src (getNeg ip_matches)). matches ?\<gamma> (MatchNot (Match m)) a ?p)" by metis
     with match_simplematcher_Src_getPos match_simplematcher_Src_getNeg have inset:
       "(\<forall>ip\<in>set (getPos ip_matches). p_src ?p \<in> ipv4s_to_set ip) \<and> (\<forall>ip\<in>set (getNeg ip_matches). p_src ?p \<in> - ipv4s_to_set ip)" by presburger
 
@@ -126,6 +121,45 @@ and now code to check this ....
       by blast
   qed
 
+ private lemma (*This does also hold but we need some approximation where the subset relationship is the other way round.
+    Probably check that the rest in primitive_extractor is equal to MatchAny*)
+    assumes "normalized_nnf_match m"
+    shows "{ip. (\<forall>p. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))} \<subseteq>
+           get_matching_src_ips m"
+  unfolding get_matching_src_ips_def
+  proof(clarsimp)
+    fix ip_matches rest src_ip
+    assume a1: "primitive_extractor (is_Src, src_sel) m = (ip_matches, rest)"
+    and a2: "\<forall>p. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
+    and a3: "ip_matches \<noteq> []"
+    let ?p="\<lambda>p. (p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
+    let ?\<gamma>="(common_matcher, in_doubt_allow)"
+
+    from primitive_extractor_correct(1)[OF assms wf_disc_sel_common_primitive(3) a1] have 
+      "\<And>p. matches (common_matcher, in_doubt_allow) (alist_and (NegPos_map Src ip_matches)) a p \<and> 
+            matches (common_matcher, in_doubt_allow) rest a p \<longleftrightarrow>
+            matches (common_matcher, in_doubt_allow) m a p" by fast
+    with a2 have "\<forall>p. matches (common_matcher, in_doubt_allow) (alist_and (NegPos_map Src ip_matches)) a (?p p)\<and> 
+            matches (common_matcher, in_doubt_allow) rest a (?p p)" by simp
+    hence "\<forall>p. matches (common_matcher, in_doubt_allow) (alist_and (NegPos_map Src ip_matches)) a (?p p)" by blast
+    with Negation_Type_Matching.matches_alist_and have
+      "\<forall>p. (\<forall>m\<in>set (getPos (NegPos_map Src ip_matches)). matches ?\<gamma> (Match m) a (?p p)) \<and> 
+       (\<forall>m\<in>set (getNeg (NegPos_map Src ip_matches)). matches ?\<gamma> (MatchNot (Match m)) a (?p p))" by metis
+    with getPos_NegPos_map_simp2 getNeg_NegPos_map_simp2 have 
+      "\<forall>p. (\<forall>m\<in>set (map Src (getPos ip_matches)). matches ?\<gamma> (Match m) a (?p p)) \<and> 
+       (\<forall>m\<in>set (map Src (getNeg ip_matches)). matches ?\<gamma> (MatchNot (Match m)) a (?p p))" by metis
+    with match_simplematcher_Src_getPos match_simplematcher_Src_getNeg have inset:
+      "\<forall>p. (\<forall>ip\<in>set (getPos ip_matches). p_src (?p p) \<in> ipv4s_to_set ip) \<and> (\<forall>ip\<in>set (getNeg ip_matches). p_src (?p p) \<in> - ipv4s_to_set ip)" by auto
+
+    from a3 obtain witness where "witness \<in> set ip_matches" by fastforce
+    with inset have "src_ip \<in> (case witness of Pos x \<Rightarrow> ipv4s_to_set x | Neg ip \<Rightarrow> - ipv4s_to_set ip)"
+      apply(simp add: split: negation_type.split)
+      apply(safe)
+      using NegPos_set apply fast+
+    done
+    with `witness \<in> set ip_matches` show "\<exists>xa\<in>set ip_matches. src_ip \<in> (case xa of Pos x \<Rightarrow> ipv4s_to_set x | Neg ip \<Rightarrow> - ipv4s_to_set ip)"
+      by blast
+  qed
 
 
 
@@ -721,6 +755,14 @@ and now code to check this ....
     apply(simp add: setbydecision_def)
     done
     
+
+  text{*The @{const nospoof} definition used throughout the proofs corresponds to checking @{const no_spoofing} for all interfaces*}
+  lemma nospoof: "simple_ruleset rs \<Longrightarrow> (\<forall>iface \<in> dom ipassmt. nospoof iface ipassmt rs) \<longleftrightarrow> no_spoofing ipassmt rs"
+    unfolding nospoof_def no_spoofing_def
+    apply(drule simple_imp_good_ruleset)
+    apply(subst approximating_semantics_iff_fun_good_ruleset)
+    apply(simp_all)
+    done
   
 end
 
