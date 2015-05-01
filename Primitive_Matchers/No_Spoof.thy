@@ -71,18 +71,32 @@ and now code to check this ....
     oops*)
 
 
+  private lemma "{ip. \<forall>p \<in> {p. \<not> match_iface iface (p_iiface p)}. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr> p_src:= ip\<rparr>)} =
+                 {ip. \<forall>p. \<not> match_iface iface (p_iiface p) \<longrightarrow> matches (common_matcher, in_doubt_allow) m Drop (p\<lparr> p_src:= ip\<rparr>)}" by blast
+  private lemma p_iiface_update: "p\<lparr>p_iiface := p_iiface p, p_src := x\<rparr> = p\<lparr>p_src := x\<rparr>" by(simp)
+  private lemma "(\<Inter> if' \<in> {if'. \<not> match_iface iface if'}. {ip. \<forall>p. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr> p_iiface := if', p_src:= ip\<rparr>)}) = 
+                 {ip. \<forall>p \<in> {p. \<not> match_iface iface (p_iiface p)}. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr> p_src:= ip\<rparr>)}"
+    apply(simp)
+    apply(safe)
+     apply(simp_all)
+    apply(erule_tac x="(p_iiface p)" in allE)
+    apply(simp)
+    using p_iiface_update by metis
+     
+
   text{* The following algorithm sound but not complete.*}
   (*alowed: set ip ips potentially allowed for iface
-    denied: set of ips definetely dropped for iface*)
-  private fun no_spoofing_algorithm :: "iface \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr set \<Rightarrow> bool" where
-    "no_spoofing_algorithm iface ipassmt [] allowed denied \<longleftrightarrow> 
-      (allowed - denied) \<subseteq> ipv4cidr_union_set (the (ipassmt iface))" |
-    "no_spoofing_algorithm iface ipassmt ((Rule m Accept)#rs) allowed denied = no_spoofing_algorithm iface ipassmt rs 
-        (allowed \<union> {ip. (\<exists>p. matches (common_matcher, in_doubt_allow) m Accept (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))}) denied" |
-    "no_spoofing_algorithm iface ipassmt ((Rule m Drop)#rs) allowed denied = no_spoofing_algorithm iface ipassmt rs
-         allowed (denied \<union> ({ip.(\<forall>p. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))} - allowed)
-                         (*\<union> (-{ip.(\<forall>p. \<not> match_iface iface (p_iiface p) \<longrightarrow> matches (common_matcher, in_doubt_allow) m Drop (p\<lparr> p_src:= ip\<rparr>))} - allowed)*))"  |
-    "no_spoofing_algorithm _ _ _ _ _ = undefined"
+    denied1: set of ips definetely dropped for iface*)
+  private fun no_spoofing_algorithm :: "iface \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr set \<Rightarrow> (*ipv4addr set \<Rightarrow>*) bool" where
+    "no_spoofing_algorithm iface ipassmt [] allowed denied1 (*denied2*) \<longleftrightarrow> 
+      (allowed - (denied1 (*\<union> - denied2*))) \<subseteq> ipv4cidr_union_set (the (ipassmt iface))" |
+    "no_spoofing_algorithm iface ipassmt ((Rule m Accept)#rs) allowed denied1 (*denied2*) = no_spoofing_algorithm iface ipassmt rs 
+        (allowed \<union> {ip. (\<exists>p. matches (common_matcher, in_doubt_allow) m Accept (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))}) denied1 (*denied2*)" |
+    "no_spoofing_algorithm iface ipassmt ((Rule m Drop)#rs) allowed denied1 (*denied2*) = no_spoofing_algorithm iface ipassmt rs
+         allowed
+         (denied1 \<union> ({ip.(\<forall>p. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))} - allowed))
+         (*(denied2 \<union> ({ip. \<forall>p. \<not> match_iface iface (p_iiface p) \<longrightarrow> matches (common_matcher, in_doubt_allow) m Drop (p\<lparr> p_src:= ip\<rparr>)} - allowed))*)"  |
+    "no_spoofing_algorithm _ _ _ _ _  = undefined"
 
   (*implementation could store ipv4addr set as 32 wordinterval*)
 
@@ -143,12 +157,14 @@ and now code to check this ....
         done
        have i1: "match_iface (Iface ''eth0'') ''eth0''" by(simp add: match_iface.simps)
        have ipset3: "{ip. \<forall>p. \<not> match_iface (Iface ''eth0'') (p_iiface p) \<longrightarrow>
-                     matches (common_matcher, in_doubt_allow)
-                      (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 24)))) (Match (IIface (Iface ''eth0'')))) Drop (p\<lparr>p_src := ip\<rparr>)}
+                       matches (common_matcher, in_doubt_allow)
+                        (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 24)))) (Match (IIface (Iface ''eth0'')))) Drop (p\<lparr>p_src := ip\<rparr>)}
                       = {}"
          apply(simp add: bool_to_ternary_pullup eval_ternary_simps bool_to_ternary_simps matches_case_ternaryvalue_tuple
                       split: ternaryvalue.split ternaryvalue.split_asm)
-         using i2 apply auto
+          apply(simp add: match_iface.simps)
+          apply(rule_tac x="p\<lparr>p_iiface := ''eth1''\<rparr>" in exI)
+          apply(simp)
          done
        show ?thesis
         apply(simp add: ipset1)
@@ -186,8 +202,8 @@ and now code to check this ....
         done
        have i1: "match_iface (Iface ''eth0'') ''eth0''" by(simp add: match_iface.simps)
        have ipset3: "{ip. \<forall>p. \<not> match_iface (Iface ''eth0'') (p_iiface p) \<longrightarrow>
-                    matches (common_matcher, in_doubt_allow)
-                     (MatchAnd (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 24))) (MatchNot (Match (IIface (Iface ''eth0''))))) Drop (p\<lparr>p_src := ip\<rparr>)}
+              matches (common_matcher, in_doubt_allow)
+               (MatchAnd (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 24))) (MatchNot (Match (IIface (Iface ''eth0''))))) Drop (p\<lparr>p_src := ip\<rparr>)}
                      = ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal (192, 168, 0, 0)) 24"
          apply(simp add: bool_to_ternary_pullup eval_ternary_simps bool_to_ternary_simps matches_case_ternaryvalue_tuple
                       split: ternaryvalue.split ternaryvalue.split_asm)
@@ -209,7 +225,7 @@ and now code to check this ....
   private definition "setbydecision iface rs dec = {ip. \<exists>p. approximating_bigstep_fun (common_matcher, in_doubt_allow) 
                            (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs Undecided = Decision dec}"
 
-  private lemma packet_update_simp: "p\<lparr>p_iiface := iface_sel iface, p_src := x\<rparr> = p\<lparr>p_src := x, p_iiface := iface_sel iface\<rparr>" by simp
+  private lemma packet_update_iface_simp: "p\<lparr>p_iiface := iface_sel iface, p_src := x\<rparr> = p\<lparr>p_src := x, p_iiface := iface_sel iface\<rparr>" by simp
  
   private lemma nospoof_setbydecision: "nospoof iface ipassmt rs \<longleftrightarrow> setbydecision iface rs FinalAllow \<subseteq> (ipv4cidr_union_set (the (ipassmt iface)))"
   proof
@@ -220,7 +236,7 @@ and now code to check this ....
       apply(rename_tac x p)
       apply(erule_tac x="p\<lparr>p_iiface := iface_sel iface, p_src := x\<rparr>" in allE)
       apply(simp)
-      apply(simp add: packet_update_simp)
+      apply(simp add: packet_update_iface_simp)
       done
   next
     assume a1: "setbydecision iface rs FinalAllow \<subseteq> ipv4cidr_union_set (the (ipassmt iface))"
@@ -272,6 +288,14 @@ and now code to check this ....
       by blast
 
   private lemma not_FinalAllow: "foo \<noteq> Decision FinalAllow \<longleftrightarrow> foo = Decision FinalDeny \<or> foo = Undecided"
+    apply(cases foo)
+     apply simp_all
+    apply(rename_tac x2)
+    apply(case_tac x2)
+     apply(simp_all)
+    done
+
+  private lemma foo_not_FinalDeny: "foo \<noteq> Decision FinalDeny \<longleftrightarrow> foo = Undecided \<or> foo = Decision FinalAllow"
     apply(cases foo)
      apply simp_all
     apply(rename_tac x2)
@@ -341,6 +365,8 @@ and now code to check this ....
        apply(simp)
       by blast
 
+
+
   private lemma notin_setbydecisionD: "ip \<notin> setbydecision iface rs FinalAllow \<Longrightarrow> (\<forall>p.
       approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs Undecided = Decision FinalDeny \<or>
       approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs Undecided = Undecided)"
@@ -402,7 +428,7 @@ and now code to check this ....
 
 
 
-  lemma "- {ip. \<exists>p. \<not> match_iface iface (p_iiface p) \<or> \<not> matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_src := ip\<rparr>)}
+  private lemma "- {ip. \<exists>p. \<not> match_iface iface (p_iiface p) \<or> \<not> matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_src := ip\<rparr>)}
       \<subseteq> setbydecision_all iface ([Rule m Drop]) FinalDeny"
       apply(simp add: setbydecision_all_def)
       apply(subst Collect_neg_eq[symmetric])
@@ -410,53 +436,84 @@ and now code to check this ....
       apply(simp)
       done
 
+  private lemma setbydecision_all_not_iface: "(\<Inter> if' \<in> {if'. \<not> match_iface iface if'}. setbydecision_all (Iface if') rs1 FinalDeny) = 
+      {ip. \<forall>p. \<not> match_iface iface (p_iiface p) \<longrightarrow> 
+          approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs1 Undecided = Decision FinalDeny}"
+    apply(simp add: setbydecision_all_def)
+    apply(safe)
+     apply(simp_all)
+    apply(erule_tac x="(p_iiface p)" in allE)
+    apply(simp)
+    using p_iiface_update by metis
+
+
+  private lemma "setbydecision_all iface rs FinalDeny \<subseteq> - setbydecision iface rs FinalAllow"
+      apply(simp add: setbydecision_def setbydecision_all_def)
+      apply(subst Set.Collect_neg_eq[symmetric])
+      apply(rule Set.Collect_mono)
+      apply(simp)
+      done
+
+
   private lemma no_spoofing_algorithm_sound_generalized: "simple_ruleset rs1 \<Longrightarrow> simple_ruleset rs2 \<Longrightarrow>
         iface \<in> dom ipassmt \<Longrightarrow>
         setbydecision iface rs1 FinalAllow \<subseteq> allowed \<Longrightarrow> (* = *)
-        denied \<subseteq> setbydecision_all iface rs1 FinalDeny \<Longrightarrow>
-        no_spoofing_algorithm iface ipassmt rs2 allowed denied \<Longrightarrow> (*\<longleftrightarrow>*)
+        denied1 \<subseteq> setbydecision_all iface rs1 FinalDeny \<Longrightarrow>
+        (*(\<Inter> if' \<in> {if'. \<not> match_iface iface if'}. setbydecision_all (Iface if') rs1 FinalDeny) \<subseteq> denied2\<Longrightarrow>*)
+        no_spoofing_algorithm iface ipassmt rs2 allowed denied1  \<Longrightarrow> (*\<longleftrightarrow>*)
         nospoof iface ipassmt (rs1@rs2)"
-  proof(induction iface ipassmt rs2 allowed denied arbitrary: rs1 allowed denied rule: no_spoofing_algorithm.induct)
+  proof(induction iface ipassmt rs2 allowed denied1 arbitrary: rs1 allowed denied1 rule: no_spoofing_algorithm.induct)
   case (1 iface ipassmt)
-    from 1 have "allowed - denied \<subseteq> ipv4cidr_union_set (the (ipassmt iface))"
+    from 1 have "allowed - denied1 \<subseteq> ipv4cidr_union_set (the (ipassmt iface))"
       by(simp)
-    with 1 have "setbydecision iface rs1 FinalAllow - setbydecision_all iface rs1 FinalDeny \<subseteq> ipv4cidr_union_set (the (ipassmt iface))"
+    with 1 have "setbydecision iface rs1 FinalAllow - setbydecision_all iface rs1 FinalDeny
+          \<subseteq> ipv4cidr_union_set (the (ipassmt iface))"
       by blast
-    thus ?case by(simp add: nospoof_setbydecision setbydecision_setbydecision_all_Allow)
+    (*hence "setbydecision iface rs1 FinalAllow -
+      - (\<Inter> if' \<in> {if'. \<not> match_iface iface if'}. setbydecision_all (Iface if') rs1 FinalDeny)
+          \<subseteq> ipv4cidr_union_set (the (ipassmt iface))" 
+       apply(subst(asm) Set.Diff_Un)
+       apply(simp add: setbydecision_setbydecision_all_Allow)
+       apply(subst(asm) Set.Int_absorb1)
+        apply(blast)
+       by blast*)
+       
+    thus ?case 
+      by(simp add: nospoof_setbydecision setbydecision_setbydecision_all_Allow)
   next
   case (2 iface ipassmt m rs)
     from 2(2) have simple_rs1: "simple_ruleset rs1" by(simp add: simple_ruleset_def)
     hence simple_rs': "simple_ruleset (rs1 @ [Rule m Accept])" by(simp add: simple_ruleset_def)
     from 2(3) have simple_rs: "simple_ruleset rs" by(simp add: simple_ruleset_def)
-    with 2 have IH: "\<And>rs' allowed denied.
+    with 2 have IH: "\<And>rs' allowed denied1.
       simple_ruleset rs' \<Longrightarrow>
       setbydecision iface rs' FinalAllow \<subseteq> allowed \<Longrightarrow>
-      denied \<subseteq> setbydecision_all iface rs' FinalDeny \<Longrightarrow> 
-      no_spoofing_algorithm iface ipassmt rs allowed denied \<Longrightarrow> nospoof iface ipassmt (rs' @ rs)"
+      denied1 \<subseteq> setbydecision_all iface rs' FinalDeny \<Longrightarrow> 
+      no_spoofing_algorithm iface ipassmt rs allowed denied1 \<Longrightarrow> nospoof iface ipassmt (rs' @ rs)"
       by(simp)
     from 2(5) simple_rs' have allowed: "setbydecision iface (rs1 @ [Rule m Accept]) FinalAllow \<subseteq> 
       (allowed \<union> {ip. \<exists>p. matches (common_matcher, in_doubt_allow) m Accept (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)})" 
       apply(simp add: setbydecision_append)
       apply(simp add: helper1)
       by blast
-    from 2(6) setbydecision_all_appendAccept[OF simple_rs'] have denied: "denied \<subseteq> setbydecision_all iface (rs1 @ [Rule m Accept]) FinalDeny" by simp
+    from 2(6) setbydecision_all_appendAccept[OF simple_rs'] have denied1: "denied1 \<subseteq> setbydecision_all iface (rs1 @ [Rule m Accept]) FinalDeny" by simp
 
     from 2(7) have no_spoofing_algorithm_prems: "no_spoofing_algorithm iface ipassmt rs
-         (allowed \<union> {ip. \<exists>p. matches (common_matcher, in_doubt_allow) m Accept (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)}) denied"
+         (allowed \<union> {ip. \<exists>p. matches (common_matcher, in_doubt_allow) m Accept (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)}) denied1"
       by(simp)
 
-    from IH[OF simple_rs' allowed denied no_spoofing_algorithm_prems] have "nospoof iface ipassmt ((rs1 @ [Rule m Accept]) @ rs)" by blast
+    from IH[OF simple_rs' allowed denied1 no_spoofing_algorithm_prems] have "nospoof iface ipassmt ((rs1 @ [Rule m Accept]) @ rs)" by blast
     thus ?case by(simp)
   next
   case (3 iface ipassmt m rs)
     from 3(2) have simple_rs1: "simple_ruleset rs1" by(simp add: simple_ruleset_def)
     hence simple_rs': "simple_ruleset (rs1 @ [Rule m Drop])" by(simp add: simple_ruleset_def)
     from 3(3) have simple_rs: "simple_ruleset rs" by(simp add: simple_ruleset_def)
-    with 3 have IH: "\<And>rs' allowed denied.
+    with 3 have IH: "\<And>rs' allowed denied1.
       simple_ruleset rs' \<Longrightarrow>
       setbydecision iface rs' FinalAllow \<subseteq> allowed \<Longrightarrow>
-      denied \<subseteq> setbydecision_all iface rs' FinalDeny \<Longrightarrow> 
-      no_spoofing_algorithm iface ipassmt rs allowed denied \<Longrightarrow> nospoof iface ipassmt (rs' @ rs)"
+      denied1 \<subseteq> setbydecision_all iface rs' FinalDeny \<Longrightarrow> 
+      no_spoofing_algorithm iface ipassmt rs allowed denied1 \<Longrightarrow> nospoof iface ipassmt (rs' @ rs)"
       by(simp)
     from 3(5) simple_rs' have allowed: "setbydecision iface (rs1 @ [Rule m Drop]) FinalAllow \<subseteq> allowed "
       by(simp add: setbydecision_append)
@@ -466,18 +523,18 @@ and now code to check this ....
     with 3(5) have "setbydecision_all iface rs1 FinalDeny \<union> ({ip. \<forall>p. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)} - allowed) \<subseteq>
           setbydecision_all iface rs1 FinalDeny \<union> (setbydecision_all iface [Rule m Drop] FinalDeny - setbydecision iface rs1 FinalAllow)"
       by blast
-    with 3(6) setbydecision_all_append_subset2[OF simple_rs', of iface] have denied:
-     "denied \<union> ({ip. \<forall>p. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)} - allowed) \<subseteq>
+    with 3(6) setbydecision_all_append_subset2[OF simple_rs', of iface] have denied1:
+     "denied1 \<union> ({ip. \<forall>p. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)} - allowed) \<subseteq>
       setbydecision_all iface (rs1 @ [Rule m Drop]) FinalDeny"
       by blast
 
 
     from 3(7) have no_spoofing_algorithm_prems: "no_spoofing_algorithm iface ipassmt rs allowed
-     (denied \<union> ({ip. \<forall>p. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)} - allowed))"
+     (denied1 \<union> ({ip. \<forall>p. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)} - allowed))"
       apply(simp)
       done
 
-    from IH[OF simple_rs' allowed denied no_spoofing_algorithm_prems] have "nospoof iface ipassmt ((rs1 @ [Rule m Drop]) @ rs)" by blast
+    from IH[OF simple_rs' allowed denied1 no_spoofing_algorithm_prems] have "nospoof iface ipassmt ((rs1 @ [Rule m Drop]) @ rs)" by blast
     thus ?case by(simp)
   next
   case "4_1" thus ?case by(simp add: simple_ruleset_def)

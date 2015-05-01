@@ -98,7 +98,16 @@ lemma multiports_disjuction:
   apply(safe) (*ugly proof*)
      apply force+
   done
-  
+
+
+
+
+text{*Since matching on the iface cannot be @{const TernaryUnknown}*, we can pull out negations.}
+lemma common_matcher_MatchNot_Iface:
+      "matches (common_matcher, \<alpha>) (MatchNot (Match (IIface iface))) a p \<longleftrightarrow> \<not> match_iface iface (p_iiface p)"
+      "matches (common_matcher, \<alpha>) (MatchNot (Match (OIface iface))) a p \<longleftrightarrow> \<not> match_iface iface (p_oiface p)"
+  by(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_simps split: ternaryvalue.split)
+
 
 
 
