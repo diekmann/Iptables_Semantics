@@ -71,7 +71,9 @@ and now code to check this ....
     oops*)
 
 
-  (*will not be complete, but sound!*)
+  text{* The following algorithm sound but not complete.*}
+  (*alowed: set ip ips potentially allowed for iface
+    denied: set of ips definetely dropped for iface*)
   private fun no_spoofing_algorithm :: "iface \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr set \<Rightarrow> bool" where
     "no_spoofing_algorithm iface ipassmt [] allowed denied \<longleftrightarrow> 
       (allowed - denied) \<subseteq> ipv4cidr_union_set (the (ipassmt iface))" |
