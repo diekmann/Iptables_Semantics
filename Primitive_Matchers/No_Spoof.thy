@@ -447,12 +447,101 @@ and now code to check this ....
     using p_iiface_update by metis
 
 
+  private lemma setbydecision_all2: "setbydecision_all iface rs dec = 
+      {ip. \<forall>p. (iface_sel iface) = (p_iiface p) \<longrightarrow> approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs Undecided = Decision dec}"
+    apply(simp add: setbydecision_all_def)
+    apply(rule Set.Collect_cong)
+    apply(rule iffI)
+     apply(clarify)
+     apply(erule_tac x=p in allE)
+     apply(simp)
+    apply(clarify)
+    apply(erule_tac x="p\<lparr>p_iiface := iface_sel iface\<rparr>" in allE)
+    apply(simp)
+    done
+  private lemma "{ip. approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs Undecided = Decision dec} =
+                 {ip | ip. approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs Undecided = Decision dec}" by simp
+
+  private lemma setbydecision_all2': "setbydecision_all iface rs dec = 
+      {ip. \<forall>p. (iface_sel iface) = (p_iiface p) \<longrightarrow> p_src p = ip \<longrightarrow> approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision dec}"
+    apply(simp add: setbydecision_all_def)
+    apply(rule Set.Collect_cong)
+    apply(rule iffI)
+     apply(clarify)
+     apply(erule_tac x=p in allE)
+     apply(simp)
+    apply(clarify)
+    apply(erule_tac x="p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>" in allE)
+    apply(simp)
+    done
+
+  private lemma setbydecision_all3: "setbydecision_all iface rs dec = (\<Inter> p \<in> {p. (iface_sel iface) = (p_iiface p)}. 
+        {ip. approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs Undecided = Decision dec})"
+    apply(simp add: setbydecision_all2)
+    by blast
+
+  (*WTF?*)
+  private lemma setbydecision_all3': "setbydecision_all iface rs dec = (\<Inter> p \<in> {p. (iface_sel iface) = (p_iiface p)}. 
+        {ip | ip. p_src p = ip \<longrightarrow> approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision dec})"
+    apply(simp add: setbydecision_all3)
+    apply(safe)
+    apply(simp_all)
+    by fastforce
+
+  (*this is a bit WTF*)
+  private lemma setbydecision_all4: "setbydecision_all iface rs dec =
+    (\<Inter> p \<in> {p. \<not> approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision dec}. 
+            {ip. p_src p = ip \<longrightarrow> (iface_sel iface) \<noteq> (p_iiface p)})"
+    apply(simp add: setbydecision_all2')
+    apply(safe)
+    apply(simp_all)
+    by blast
+
+
+  private lemma setbydecision2: "setbydecision iface rs dec = 
+      {ip. \<exists>p. (iface_sel iface) = (p_iiface p) \<and> approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs Undecided = Decision dec}"
+    apply(simp add: setbydecision_def)
+    apply(rule Set.Collect_cong)
+    apply(rule iffI)
+     apply(clarify)
+     apply(rule_tac x="p\<lparr>p_iiface := iface_sel iface\<rparr>" in exI)
+     apply(simp)
+    apply(clarify)
+    apply(rule_tac x="p" in exI)
+    apply(simp)
+    done
+
+  private lemma setbydecision3: "setbydecision iface rs dec = (\<Union> p \<in> {p. (iface_sel iface) = (p_iiface p)}. 
+        {ip. approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs Undecided = Decision dec})"
+    apply(simp add: setbydecision2)
+    by blast
+
+  private lemma "{ip. (iface_sel iface) = (p_iiface p) \<and> p_src p = ip} = {ip | ip. (iface_sel iface) = (p_iiface p) \<and> p_src p = ip}" by simp
+
+  private lemma setbydecision4: "setbydecision iface rs dec = 
+    (\<Union> p \<in> {p. approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision dec}. 
+            {ip. (iface_sel iface) = (p_iiface p) \<and> p_src p = ip})"
+    apply(simp add: setbydecision2)
+    by fastforce
+
+  (*lemma "- {ip. \<forall>p. \<not> match_iface iface (p_iiface p) \<longrightarrow> 
+          approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs1 Undecided = Decision FinalDeny} = {ip. P ip}"
+    apply(subst Collect_neg_eq[symmetric])
+    apply(rule Set.Collect_cong)
+    apply(simp)
+    oops*)
+
+
   private lemma "setbydecision_all iface rs FinalDeny \<subseteq> - setbydecision iface rs FinalAllow"
       apply(simp add: setbydecision_def setbydecision_all_def)
       apply(subst Set.Collect_neg_eq[symmetric])
       apply(rule Set.Collect_mono)
       apply(simp)
       done
+
+
+  private lemma xxhlpsubset1: "Y \<subseteq> X \<Longrightarrow> \<forall> x. S x \<subseteq> S' x \<Longrightarrow> (\<Inter>x\<in>X. S x) \<subseteq> (\<Inter>x\<in>Y. S' x)" by auto
+  private lemma xxhlpsubset2: "X \<subseteq> Y \<Longrightarrow> \<forall> x. S x \<subseteq> S' x \<Longrightarrow> (\<Union>x\<in>X. S x) \<subseteq> (\<Union>x\<in>Y. S' x)" by auto
 
 
   private lemma no_spoofing_algorithm_sound_generalized: "simple_ruleset rs1 \<Longrightarrow> simple_ruleset rs2 \<Longrightarrow>
