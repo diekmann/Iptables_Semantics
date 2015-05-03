@@ -39,6 +39,23 @@ section{*No Spoofing*}
           @{const no_spoofing} may return @{const False} even though your ruleset prevents spoofing
           (should only occur if some strange and unknown primitives occur)*}
 
+  text{*Technical note: The definition can can be thought of as protection from OUTGOING spoofing.
+        OUTGOING means: I define my interfaces and their IP addresses. For all interfaces,
+                        only the assigned IP addresses may pass the firewall.
+                        This definition is simple for e.g. local sub-networks.
+                        Example: @{term "[Iface ''eth0'' \<mapsto> {(ipv4addr_of_dotdecimal (192,168,0,0), 24)}]"}
+        If I want spoofing protection from the Internet, I need to specify the range of the Internet IP addresses.
+        Example: @{term "[Iface ''evil_internet'' \<mapsto> {everything_that_does_not_belong_to_me}]"}.
+          This is also a good opportunity to exclude the private IP space, link local, and probably multicast space.
+
+        See examples below. Check Example 3 why it can be thought of as OUTGOING spoofing.*}
+
+  (*TODO: make a definition of the `good' Internet IP address space.
+        parameterized with a list of IP ranges that belong `me' (the institution that runs the firewall), which are hence
+        excluded from the `good' Internet IP address sapce (because this is the local space, if such packets
+        come from the Internet, they are spoofed!
+    e.g. UNIV - 10/8 - 172.16/12 - 192.168/16 - institutes_range - \<dots>
+    luckily, there is CIDR_split and we can easily have an executable representation of this set ...)*)
 
 text{*everything in the following context is just an unfinished draft*}
 context
@@ -195,6 +212,7 @@ and now code to check this ....
 
 
   text{*Examples*}
+  text{*Example 1*}
   text{*
     Ruleset: Accept all non-spoofed packets, drop rest.
   *}
@@ -218,15 +236,16 @@ and now code to check this ....
         by blast
       qed
 
+  text{*Example 2*}
   text{*
     Ruleset: Drop packets from a spoofed IP range, allow rest.
   *}
   lemma "no_spoofing_algorithm 
           (Iface ''eth0'') 
           [Iface ''eth0'' \<mapsto> {(ipv4addr_of_dotdecimal (192,168,0,0), 24)}]
-          [Rule (MatchAnd (Match (IIface (Iface ''wlan+''))) (Match (Extra ''no idea what this is''))) action.Accept,
-           Rule (MatchNot (Match (IIface (Iface ''eth0+'')))) action.Accept,
-           Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0'')))) action.Drop,
+          [Rule (MatchAnd (Match (IIface (Iface ''wlan+''))) (Match (Extra ''no idea what this is''))) action.Accept, (*not interesting for spoofing*)
+           Rule (MatchNot (Match (IIface (Iface ''eth0+'')))) action.Accept, (*not interesting for spoofing*)
+           Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0'')))) action.Drop, (*spoof-protect here*)
            Rule MatchAny action.Accept]
           {} {}
           "
@@ -279,8 +298,12 @@ and now code to check this ....
         apply(simp add: range_0_max_UNIV[symmetric] ipv4cidr_union_set_def iprange_example del:range_0_max_UNIV)
         done
 
+  text{*Example 3*}
   text{*
     Ruleset: Drop packets coming from the wrong interface, allow the rest.
+    Warning: this does not prevent spoofing for eth0!
+    Explanation: someone on eth0 can send a packet e.g. with source IP 8.8.8.8
+    The ruleset only prevents spoofing of 192.168.0.0/24 for other interfaces
   *}
    lemma "no_spoofing [Iface ''eth0'' \<mapsto> {(ipv4addr_of_dotdecimal (192,168,0,0), 24)}]
           [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (MatchNot (Match (IIface (Iface ''eth0''))))) action.Drop,
@@ -296,19 +319,33 @@ and now code to check this ....
      have 2: "\<forall>p. \<not> matches (common_matcher, in_doubt_allow) (MatchNot (Match (IIface (Iface ''eth0'')))) Drop (p\<lparr>p_iiface := ''eth0''\<rparr>)"
      by(simp add: match_simplematcher_Iface_not match_iface.simps)
      
+     text{*The @{const no_spoofing} definition requires that all packets from @{term "''eth0''"} are from 192.168.0.0/24*}
+     have "no_spoofing ?ipassmt ?rs \<longleftrightarrow> 
+      (\<forall>p. approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface := ''eth0''\<rparr>) ?rs  Undecided = Decision FinalAllow \<longrightarrow>
+            p_src p \<in> ipv4cidr_union_set {(ipv4addr_of_dotdecimal (192, 168, 0, 0), 24)})"
+      unfolding no_spoofing_def
+       apply(subst 1)
+       by(simp)
+     text{*In this example however, all packets for all IPs from @{term "''eth0''"} are allowed.*}
+     have "\<forall>p. approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface := ''eth0''\<rparr>) ?rs  Undecided = Decision FinalAllow"
+       by(simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary 2)
+
+     have 3: "no_spoofing ?ipassmt ?rs \<longleftrightarrow> (\<forall>p::simple_packet. p_src p \<in> ipv4cidr_union_set {(ipv4addr_of_dotdecimal (192, 168, 0, 0), 24)})"
+       unfolding no_spoofing_def
+       apply(subst 1)
+       apply(simp)
+       apply(simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+       apply(simp add: 2)
+       done
+     
      show ?thesis
-     unfolding no_spoofing_def
-     apply(subst 1)
-     apply(simp)
-     apply(simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
-     apply(simp add: 2)
+     unfolding 3
      apply(simp add: ipv4cidr_union_set_def)
      apply(simp add: iprange_example)
      apply(rule_tac x="p\<lparr>p_src := 0\<rparr>" in exI) (*any p*)
      apply(simp)
      done
    qed
-  (*fails*)
   lemma "no_spoofing_algorithm 
           (Iface ''eth0'') 
           [Iface ''eth0'' \<mapsto> {(ipv4addr_of_dotdecimal (192,168,0,0), 24)}]
