@@ -233,6 +233,44 @@ and now code to check this ....
       using very_stupid_helper by fast
   qed
 
+  private definition get_exists_matching_src_ips_executable :: "iface \<Rightarrow> common_primitive match_expr \<Rightarrow> 32 wordinterval" where
+    "get_exists_matching_src_ips_executable iface m \<equiv> let (i_matches, _) = (primitive_extractor (is_Iiface, iiface_sel) m) in
+              if (\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface) | Neg i \<Rightarrow> \<not>match_iface i (iface_sel iface)))
+              then
+                (let (ip_matches, _) = (primitive_extractor (is_Src, src_sel) m) in
+                if ip_matches = []
+                then
+                  ipv4range_UNIV
+                else
+                  l2br_negation_type_union (NegPos_map ipt_ipv4range_to_interval ip_matches))
+              else
+                Empty_WordInterval"
+
+  (*WOW, such horrible proof!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*)
+  lemma get_exists_matching_src_ips_executable: 
+    "wordinterval_to_set (get_exists_matching_src_ips_executable iface m) = get_exists_matching_src_ips iface m"
+    apply(simp add: get_exists_matching_src_ips_executable_def get_exists_matching_src_ips_def)
+    apply(case_tac "primitive_extractor (is_Iiface, iiface_sel) m")
+    apply(case_tac "primitive_extractor (is_Src, src_sel) m")
+    apply(simp)
+    apply(simp add: l2br_negation_type_union)
+    apply(simp add: ipv4range_UNIV_def NegPos_map_simps)
+    apply(simp add: ipt_ipv4range_to_interval)
+    apply(safe)
+         apply(simp_all add: ipt_ipv4range_to_interval)
+      apply(rename_tac a b aa ba x ab xa y, rule_tac x="Pos ab" in bexI)
+       apply(simp_all add: NegPos_set)
+     apply(rename_tac a b aa ba x ab xa y, rule_tac x="Neg ab" in bexI)
+      apply(simp_all add: NegPos_set)
+    apply(rename_tac a b aa ba x xa)
+    apply(case_tac xa)
+     apply(simp_all add: NegPos_set)
+     using ipt_ipv4range_to_interval apply fast+
+    done
+      
+
+
+
   text{*The set of ip addresses which definitely match for a fixed @{text iface} (underapproximation)*}
   private definition get_all_matching_src_ips :: "iface \<Rightarrow> common_primitive match_expr \<Rightarrow> ipv4addr set" where
     "get_all_matching_src_ips iface m \<equiv> let (i_matches, rest1) = (primitive_extractor (is_Iiface, iiface_sel) m) in

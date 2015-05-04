@@ -120,6 +120,7 @@ subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
   lemma ipt_ipv4range_to_interval: "ipt_ipv4range_to_interval ip = (s,e) \<Longrightarrow> {s .. e} = ipv4s_to_set ip"
     by(cases ip) (auto simp add: ipv4cidr_to_interval)
 
+
   text{*A list of IPv4 address ranges to a @{typ "32 wordinterval"}.
         The nice thing is: the usual set operations are defined on this type.
         We can use the existing function @{const l2br_intersect} if we want the intersection of the supplied list*}
