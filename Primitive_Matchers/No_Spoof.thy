@@ -245,7 +245,6 @@ and now code to check this ....
                   l2br_negation_type_union (NegPos_map ipt_ipv4range_to_interval ip_matches))
               else
                 Empty_WordInterval"
-
   (*WOW, such horrible proof!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*)
   lemma get_exists_matching_src_ips_executable: 
     "wordinterval_to_set (get_exists_matching_src_ips_executable iface m) = get_exists_matching_src_ips iface m"
@@ -267,7 +266,8 @@ and now code to check this ....
      apply(simp_all add: NegPos_set)
      using ipt_ipv4range_to_interval apply fast+
     done
-      
+  value(code) "(get_exists_matching_src_ips_executable (Iface ''eth0'')
+      (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0'')))))"
 
 
 
