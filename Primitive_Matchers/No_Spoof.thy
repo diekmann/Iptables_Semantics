@@ -482,6 +482,44 @@ and now code to check this ....
          allowed (denied1 \<union> (get_all_matching_src_ips iface m - allowed))"  |
     "no_spoofing_algorithm _ _ _ _ _  = undefined"
 
+
+
+  private fun no_spoofing_algorithm_executable :: "iface \<Rightarrow> (iface \<rightharpoonup> (ipv4addr \<times> nat) list) \<Rightarrow> common_primitive rule list \<Rightarrow> 32 wordinterval \<Rightarrow> 32 wordinterval \<Rightarrow> bool" where
+    "no_spoofing_algorithm_executable iface ipassmt [] allowed denied1  \<longleftrightarrow> 
+      wordinterval_subset (wordinterval_setminus allowed denied1) (l2br (map ipv4cidr_to_interval (the (ipassmt iface))))" |
+    "no_spoofing_algorithm_executable iface ipassmt ((Rule m Accept)#rs) allowed denied1 = no_spoofing_algorithm_executable iface ipassmt rs 
+        (wordinterval_union allowed (get_exists_matching_src_ips_executable iface m)) denied1" |
+    "no_spoofing_algorithm_executable iface ipassmt ((Rule m Drop)#rs) allowed denied1 = no_spoofing_algorithm_executable iface ipassmt rs
+         allowed (wordinterval_union denied1 (wordinterval_setminus (get_all_matching_src_ips_executable iface m) allowed))"  |
+    "no_spoofing_algorithm_executable _ _ _ _ _  = undefined"
+
+  lemma "iface \<in> dom ipassmt_lst \<Longrightarrow>
+         no_spoofing_algorithm_executable iface ipassmt_lst rs allowed denied \<longleftrightarrow> 
+         no_spoofing_algorithm iface (\<lambda>iface. case ipassmt_lst iface of Some i \<Rightarrow> Some (set i) | None \<Rightarrow> None) 
+            rs (wordinterval_to_set allowed) (wordinterval_to_set denied)"
+  apply(induction iface ipassmt_lst rs allowed denied rule: no_spoofing_algorithm_executable.induct)
+          apply(simp_all)
+    apply(simp_all add: get_exists_matching_src_ips_executable get_all_matching_src_ips_executable)
+  apply(simp add: ipv4cidr_union_set_def l2br)
+  apply(subgoal_tac "(\<Union>a\<in>set (the (ipassmt iface)). case ipv4cidr_to_interval a of (x, xa) \<Rightarrow> {x..xa}) = 
+        (\<Union>x\<in>the (case ipassmt iface of None \<Rightarrow> None | Some i \<Rightarrow> Some (set i)). case x of (base, len) \<Rightarrow> ipv4range_set_from_bitmask base len)")
+   apply(simp_all)
+  apply(safe)
+   apply(simp_all)
+   apply(rule_tac x="(a, b)" in bexI)
+    apply(simp_all add: ipv4cidr_to_interval)
+  apply(rule_tac x="(a, b)" in bexI)
+   apply(simp_all)
+  using ipv4cidr_to_interval by blast
+
+  lemma "no_spoofing_algorithm_executable
+      (Iface ''eth0'') 
+          [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
+          [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (Match (IIface (Iface ''eth0'')))) action.Accept,
+           Rule MatchAny action.Drop]
+          Empty_WordInterval Empty_WordInterval" by eval
+    
+
   (*implementation could store ipv4addr set as 32 wordinterval*)
 
 
