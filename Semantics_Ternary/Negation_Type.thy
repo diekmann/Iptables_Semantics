@@ -84,6 +84,13 @@ lemmas NegPos_set = getPos_set getNeg_set getPosgetNeg_subset set_Pos_getPos_sub
 hide_fact getPos_set getNeg_set getPosgetNeg_subset set_Pos_getPos_subset set_Neg_getNeg_subset
 
 
+lemma negation_type_forall_split: "(\<forall>is\<in>set Ms. case is of Pos i \<Rightarrow> P i | Neg i \<Rightarrow> Q i) \<longleftrightarrow> (\<forall>i\<in>set (getPos Ms). P i) \<and> (\<forall>i\<in>set (getNeg Ms). Q i)"
+  apply(rule)
+   apply(simp split: negation_type.split_asm)
+   using NegPos_set(1) NegPos_set(2) apply force
+  apply(simp split: negation_type.split)
+  using NegPos_set(1) NegPos_set(2) by fastforce
+
 fun invert :: "'a negation_type \<Rightarrow> 'a negation_type" where
   "invert (Pos x) = Neg x" |
   "invert (Neg x) = (Pos x)"
