@@ -9,7 +9,7 @@ section{*No Spoofing*}
   text{*assumes: @{const simple_ruleset}*}
 
   text{*A mapping from an interface to its assigned ip addresses in CIDR notation*}
-  type_synonym ipassignment="iface \<rightharpoonup> (ipv4addr \<times> nat) set"
+  type_synonym ipassignment="iface \<rightharpoonup> (ipv4addr \<times> nat) list" (*technically, a set*)
 
   (*
   check wool: warning if zone-spanning
@@ -31,7 +31,7 @@ section{*No Spoofing*}
   definition no_spoofing :: "ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> bool" where
     "no_spoofing ipassmt rs \<equiv> \<forall> iface \<in> dom ipassmt. \<forall>p.
         ((common_matcher, in_doubt_allow),p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow) \<longrightarrow>
-            p_src p \<in> (ipv4cidr_union_set (the (ipassmt iface)))"
+            p_src p \<in> (ipv4cidr_union_set (set (the (ipassmt iface))))"
 
   text{* The definition is sound (if that can be said about a definition):
           if @{const no_spoofing} certifies your ruleset, then your ruleset prohibits spoofing.
@@ -475,7 +475,7 @@ and now code to check this ....
     denied: set of ips definitely dropped for iface*)
   private fun no_spoofing_algorithm :: "iface \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr set \<Rightarrow> (*ipv4addr set \<Rightarrow>*) bool" where
     "no_spoofing_algorithm iface ipassmt [] allowed denied1  \<longleftrightarrow> 
-      (allowed - denied1) \<subseteq> ipv4cidr_union_set (the (ipassmt iface))" |
+      (allowed - denied1) \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))" |
     "no_spoofing_algorithm iface ipassmt ((Rule m Accept)#rs) allowed denied1 = no_spoofing_algorithm iface ipassmt rs 
         (allowed \<union> get_exists_matching_src_ips iface m) denied1" |
     "no_spoofing_algorithm iface ipassmt ((Rule m Drop)#rs) allowed denied1 = no_spoofing_algorithm iface ipassmt rs
@@ -493,16 +493,15 @@ and now code to check this ....
          allowed (wordinterval_union denied1 (wordinterval_setminus (get_all_matching_src_ips_executable iface m) allowed))"  |
     "no_spoofing_algorithm_executable _ _ _ _ _  = undefined"
 
-  lemma "iface \<in> dom ipassmt_lst \<Longrightarrow>
-         no_spoofing_algorithm_executable iface ipassmt_lst rs allowed denied \<longleftrightarrow> 
-         no_spoofing_algorithm iface (\<lambda>iface. case ipassmt_lst iface of Some i \<Rightarrow> Some (set i) | None \<Rightarrow> None) 
-            rs (wordinterval_to_set allowed) (wordinterval_to_set denied)"
-  apply(induction iface ipassmt_lst rs allowed denied rule: no_spoofing_algorithm_executable.induct)
+
+  lemma no_spoofing_algorithm_executable: "no_spoofing_algorithm_executable iface ipassmt rs allowed denied \<longleftrightarrow> 
+         no_spoofing_algorithm iface ipassmt rs (wordinterval_to_set allowed) (wordinterval_to_set denied)"
+  apply(induction iface ipassmt rs allowed denied rule: no_spoofing_algorithm_executable.induct)
           apply(simp_all)
     apply(simp_all add: get_exists_matching_src_ips_executable get_all_matching_src_ips_executable)
   apply(simp add: ipv4cidr_union_set_def l2br)
   apply(subgoal_tac "(\<Union>a\<in>set (the (ipassmt iface)). case ipv4cidr_to_interval a of (x, xa) \<Rightarrow> {x..xa}) = 
-        (\<Union>x\<in>the (case ipassmt iface of None \<Rightarrow> None | Some i \<Rightarrow> Some (set i)). case x of (base, len) \<Rightarrow> ipv4range_set_from_bitmask base len)")
+        (\<Union>x\<in>set (the (ipassmt iface)). case x of (base, len) \<Rightarrow> ipv4range_set_from_bitmask base len)")
    apply(simp_all)
   apply(safe)
    apply(simp_all)
@@ -530,7 +529,7 @@ and now code to check this ....
   *}
   lemma "no_spoofing_algorithm 
           (Iface ''eth0'') 
-          [Iface ''eth0'' \<mapsto> {(ipv4addr_of_dotdecimal (192,168,0,0), 24)}]
+          [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
           [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (Match (IIface (Iface ''eth0'')))) action.Accept,
            Rule MatchAny action.Drop]
           {} {}
@@ -554,7 +553,7 @@ and now code to check this ....
   *}
   lemma "no_spoofing_algorithm 
           (Iface ''eth0'') 
-          [Iface ''eth0'' \<mapsto> {(ipv4addr_of_dotdecimal (192,168,0,0), 24)}]
+          [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
           [Rule (MatchAnd (Match (IIface (Iface ''wlan+''))) (Match (Extra ''no idea what this is''))) action.Accept, (*not interesting for spoofing*)
            Rule (MatchNot (Match (IIface (Iface ''eth0+'')))) action.Accept, (*not interesting for spoofing*)
            Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0'')))) action.Drop, (*spoof-protect here*)
@@ -569,7 +568,7 @@ and now code to check this ....
      by(simp add: ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
    lemma "no_spoofing_algorithm 
           (Iface ''eth0'') 
-          [Iface ''eth0'' \<mapsto> {(ipv4addr_of_dotdecimal (192,168,0,0), 24)}]
+          [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
           [Rule (MatchNot (Match (IIface (Iface ''wlan+'')))) action.Accept, (*accidently allow everything for eth0*)
            Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0'')))) action.Drop,
            Rule MatchAny action.Accept]
@@ -586,7 +585,7 @@ and now code to check this ....
     Explanation: someone on eth0 can send a packet e.g. with source IP 8.8.8.8
     The ruleset only prevents spoofing of 192.168.0.0/24 for other interfaces
   *}
-   lemma "no_spoofing [Iface ''eth0'' \<mapsto> {(ipv4addr_of_dotdecimal (192,168,0,0), 24)}]
+   lemma "no_spoofing [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
           [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (MatchNot (Match (IIface (Iface ''eth0''))))) action.Drop,
            Rule MatchAny action.Accept] \<longleftrightarrow> False" (is "no_spoofing ?ipassmt ?rs \<longleftrightarrow> False")
    proof -
@@ -629,7 +628,7 @@ and now code to check this ....
    qed
   lemma "no_spoofing_algorithm 
           (Iface ''eth0'') 
-          [Iface ''eth0'' \<mapsto> {(ipv4addr_of_dotdecimal (192,168,0,0), 24)}]
+          [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
           [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (MatchNot (Match (IIface (Iface ''eth0''))))) action.Drop,
            Rule MatchAny action.Accept]
           {} {} \<longleftrightarrow> False"
@@ -647,16 +646,16 @@ and now code to check this ....
 
   private definition "nospoof iface ipassmt rs = (\<forall>p.
           (approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface\<rparr>) rs Undecided = Decision FinalAllow) \<longrightarrow>
-              p_src p \<in> (ipv4cidr_union_set (the (ipassmt iface))))"
+              p_src p \<in> (ipv4cidr_union_set (set (the (ipassmt iface)))))"
   private definition "setbydecision iface rs dec = {ip. \<exists>p. approximating_bigstep_fun (common_matcher, in_doubt_allow) 
                            (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs Undecided = Decision dec}"
 
   private lemma packet_update_iface_simp: "p\<lparr>p_iiface := iface_sel iface, p_src := x\<rparr> = p\<lparr>p_src := x, p_iiface := iface_sel iface\<rparr>" by simp
  
-  private lemma nospoof_setbydecision: "nospoof iface ipassmt rs \<longleftrightarrow> setbydecision iface rs FinalAllow \<subseteq> (ipv4cidr_union_set (the (ipassmt iface)))"
+  private lemma nospoof_setbydecision: "nospoof iface ipassmt rs \<longleftrightarrow> setbydecision iface rs FinalAllow \<subseteq> (ipv4cidr_union_set (set (the (ipassmt iface))))"
   proof
     assume a: "nospoof iface ipassmt rs"
-    from a show "setbydecision iface rs FinalAllow \<subseteq> ipv4cidr_union_set (the (ipassmt iface))"
+    from a show "setbydecision iface rs FinalAllow \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))"
       apply(simp add: nospoof_def setbydecision_def)
       apply(safe)
       apply(rename_tac x p)
@@ -665,7 +664,7 @@ and now code to check this ....
       apply(simp add: packet_update_iface_simp)
       done
   next
-    assume a1: "setbydecision iface rs FinalAllow \<subseteq> ipv4cidr_union_set (the (ipassmt iface))"
+    assume a1: "setbydecision iface rs FinalAllow \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))"
     show "nospoof iface ipassmt rs"
       unfolding nospoof_def
       proof(safe)
@@ -673,9 +672,9 @@ and now code to check this ....
         assume a2: "approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface := iface_sel iface\<rparr>) rs Undecided = Decision FinalAllow"
         --{*In @{text setbydecision_fix_p}the @{text \<exists>} quantifier is gone and we consider this set for @{term p}.*}
         let ?setbydecision_fix_p="{ip. approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>) rs Undecided = Decision FinalAllow}"
-        from a1 a2 have 1: "?setbydecision_fix_p \<subseteq> ipv4cidr_union_set (the (ipassmt iface))" by(simp add: nospoof_def setbydecision_def) blast
+        from a1 a2 have 1: "?setbydecision_fix_p \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))" by(simp add: nospoof_def setbydecision_def) blast
         from a2 have 2: "p_src p \<in> ?setbydecision_fix_p" by simp
-        from 1 2 show "p_src p \<in> ipv4cidr_union_set (the (ipassmt iface))" by blast
+        from 1 2 show "p_src p \<in> ipv4cidr_union_set (set (the (ipassmt iface)))" by blast
       qed
   qed
 
@@ -940,21 +939,20 @@ and now code to check this ....
   shows "simple_ruleset rs1 \<Longrightarrow> simple_ruleset rs2 \<Longrightarrow>
         (\<forall>r \<in> set rs2. normalized_nnf_match (get_match r)) \<Longrightarrow>
         iface \<in> dom ipassmt \<Longrightarrow>
-        setbydecision iface rs1 FinalAllow \<subseteq> allowed \<Longrightarrow> (* = *)
+        setbydecision iface rs1 FinalAllow \<subseteq> allowed \<Longrightarrow>
         denied1 \<subseteq> setbydecision_all iface rs1 FinalDeny \<Longrightarrow>
-        (*(\<Inter> if' \<in> {if'. \<not> match_iface iface if'}. setbydecision_all (Iface if') rs1 FinalDeny) \<subseteq> \<Longrightarrow>*)
-        no_spoofing_algorithm iface ipassmt rs2 allowed denied1  \<Longrightarrow> (*\<longleftrightarrow>*)
+        no_spoofing_algorithm iface ipassmt rs2 allowed denied1 \<Longrightarrow>
         nospoof iface ipassmt (rs1@rs2)"
   proof(induction iface ipassmt rs2 allowed denied1 arbitrary: rs1 allowed denied1 rule: no_spoofing_algorithm.induct)
   case (1 iface ipassmt)
-    from 1 have "allowed - denied1 \<subseteq> ipv4cidr_union_set (the (ipassmt iface))"
+    from 1 have "allowed - denied1 \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))"
       by(simp)
     with 1 have "setbydecision iface rs1 FinalAllow - setbydecision_all iface rs1 FinalDeny
-          \<subseteq> ipv4cidr_union_set (the (ipassmt iface))"
+          \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))"
       by blast
     (*hence "setbydecision iface rs1 FinalAllow -
       - (\<Inter> if' \<in> {if'. \<not> match_iface iface if'}. setbydecision_all (Iface if') rs1 FinalDeny)
-          \<subseteq> ipv4cidr_union_set (the (ipassmt iface))" 
+          \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))" 
        apply(subst(asm) Set.Diff_Un)
        apply(simp add: setbydecision_setbydecision_all_Allow)
        apply(subst(asm) Set.Int_absorb1)
