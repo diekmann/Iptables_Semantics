@@ -1031,7 +1031,7 @@ and now code to check this ....
   definition no_spoofing_iface :: "iface \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> bool" where
     "no_spoofing_iface iface ipassmt rs \<equiv> no_spoofing_algorithm iface ipassmt rs {} {}"
 
-  lemma[code_unfold]: "no_spoofing_iface iface ipassmt rs = 
+  lemma[code]: "no_spoofing_iface iface ipassmt rs = 
       no_spoofing_algorithm_executable iface ipassmt rs Empty_WordInterval Empty_WordInterval"
     by(simp add: no_spoofing_iface_def no_spoofing_algorithm_executable)
 
@@ -1065,6 +1065,15 @@ and now code to check this ....
           [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (Match (IIface (Iface ''eth0'')))) action.Accept,
            Rule MatchAny action.Drop]" by eval
 end
+
+
+value(code) "no_spoofing_iface (Iface ''eth1.1011'') ([Iface ''eth1.1011'' \<mapsto> [(ipv4addr_of_dotdecimal (131,159,14,0), 24)]]:: ipassignment)
+  [Rule (MatchNot (Match (IIface (Iface ''eth1.1011+'')))) action.Accept,
+           Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (131,159,14,0) 24)))) (Match (IIface (Iface ''eth1.101'')))) action.Drop,
+           Rule MatchAny action.Accept]"
+
+value(code) "no_spoofing_iface (Iface ''eth1.1011'') ([Iface ''eth1.1011'' \<mapsto> [(ipv4addr_of_dotdecimal (131,159,14,0), 24)]]:: ipassignment)
+  [Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) Drop]"
 
 
 end
