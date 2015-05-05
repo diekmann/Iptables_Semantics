@@ -104,7 +104,7 @@ class Iface(object):
 
     def raw_serialize(self, serializer):
         if self.iface == '*':
-            return serializer.string("IfaceAny")
+            return "ifaceAny" #TODO: actually, it should be a capital I but sml code wants a lower-case i
         else:
             return serializer.constr("Iface", serializer.string(self.iface))
 
