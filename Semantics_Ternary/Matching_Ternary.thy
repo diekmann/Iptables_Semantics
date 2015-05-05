@@ -192,6 +192,8 @@ lemma opt_MatchAny_match_expr_correct: "matches \<gamma> (opt_MatchAny_match_exp
                               apply(simp_all add: eval_ternary_simps eval_ternary_idempotence_Not)
   done
 
+text{*It is still a good idea to apply @{const opt_MatchAny_match_expr} multiple times. Example:*}
+lemma "MatchNot (opt_MatchAny_match_expr (MatchAnd MatchAny (MatchNot MatchAny))) = MatchNot (MatchNot MatchAny)" by simp
 
 
 text{*An @{typ "'p unknown_match_tac"} is wf if it behaves equal for @{const Reject} and @{const Drop} *}
