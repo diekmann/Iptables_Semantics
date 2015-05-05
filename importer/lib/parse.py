@@ -251,13 +251,16 @@ def parse_rule(line, parse_ports, dumpformat):
     ipsrc = parse_ip(m.group('ipsrc'))
     ipdst = parse_ip(m.group('ipdst'))
 
-    print(m.groups())
-    if 'iniface' in m.groups():
-        print(m.group('iniface'))
-    if 'outiface' in m.groups():
-        print(m.group('outiface'))
-    
     rule = Rule(action, proto, ipsrc, ipdst, extra)
+
+
+    # this format mus always have interfaces set!
+    if dumpformat == "Lnv":
+        assert 'iniface' in m.groupdict().keys()
+        assert 'outiface' in m.groupdict().keys()
+        rule.iniface = In_Iface(m.group('iniface'))
+        rule.outiface = Out_Iface(m.group('outiface'))
+
     if parse_ports:
         return parse_extra(rule)
     else:
