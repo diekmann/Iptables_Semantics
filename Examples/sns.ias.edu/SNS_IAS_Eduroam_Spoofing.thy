@@ -25,9 +25,11 @@ lemma "ipv4cidr_union_set (set everything_but_my_ip) = UNIV - ipv4range_set_from
   done
 
 
-(* only my local interface *)
-definition "example_ipassignment_nospoof = 
-    no_spoofing_iface (Iface ''wlan0'') ([Iface ''wlan0'' \<mapsto> everything_but_my_ip]:: ipassignment)"
+(* Incoming: everything but my ip *)
+definition "ipassignment_incoming = ([Iface ''wlan0'' \<mapsto> everything_but_my_ip]:: ipassignment)"
+
+(* Outgoing: only my IP*)
+definition "ipassignment_outgoing = ([Iface ''wlan0'' \<mapsto> [(ipv4addr_of_dotdecimal (131,159,207,206), 32)]]:: ipassignment)"
 
 
 (* ../../importer/main.py --import "../Code_Interface" test_Lnv test_Lnv.thy *)
@@ -35,12 +37,17 @@ definition "example_ipassignment_nospoof =
 
 value(code) "unfold_ruleset_INPUT firewall_chains"
 
+text{*Ruleset prevents spoofed incoming packets*}
 value(code) "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT firewall_chains)))"
-
-
 lemma "transform_optimize_dnf_strict (unfold_ruleset_INPUT firewall_chains) = unfold_ruleset_INPUT firewall_chains" by eval
+lemma "no_spoofing_iface (Iface ''wlan0'') ipassignment_incoming (unfold_ruleset_INPUT firewall_chains)" by eval
 
-lemma "example_ipassignment_nospoof (unfold_ruleset_INPUT firewall_chains)" by eval
+
+text{*Ruleset does not prevent that I'm spofing (which is not necessary anyways since I need root right to spoof, which 
+      would also enable me to deactivate the firewall). This is only a one-user laptop!*}
+value(code) "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_OUTPUT firewall_chains)))"
+lemma "transform_optimize_dnf_strict (unfold_ruleset_OUTPUT firewall_chains) = unfold_ruleset_OUTPUT firewall_chains" by eval
+lemma "\<not> no_spoofing_iface (Iface ''wlan0'') ipassignment_outgoing (unfold_ruleset_OUTPUT firewall_chains)" by eval
 
 
 end
