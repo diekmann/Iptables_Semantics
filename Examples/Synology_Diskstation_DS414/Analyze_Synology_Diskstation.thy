@@ -13,39 +13,39 @@ text{*we removed the established,related rule*}
 
 abbreviation MatchAndInfix :: "'a match_expr \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr" (infixr "MATCHAND" 65) where "MatchAndInfix m1 m2 \<equiv> MatchAnd m1 m2" (*(infixr "_ MATCHAND _" 65) *)
 
-  value(code) "unfold_ruleset_INUPUT example_ruleset"
+  value(code) "unfold_ruleset_INPUT example_ruleset"
 
-  lemma "good_ruleset (unfold_ruleset_INUPUT example_ruleset)" by eval
-  lemma "simple_ruleset (unfold_ruleset_INUPUT example_ruleset)" by eval
+  lemma "good_ruleset (unfold_ruleset_INPUT example_ruleset)" by eval
+  lemma "simple_ruleset (unfold_ruleset_INPUT example_ruleset)" by eval
 
 
   text{*packets from the local lan are allowed (in doubt)*}
   value(code) "approximating_bigstep_fun (common_matcher, in_doubt_allow)
     \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (8,8,8,8),
          p_proto=TCP, p_sport=2065, p_dport=80\<rparr>
-        (unfold_ruleset_INUPUT example_ruleset)
+        (unfold_ruleset_INPUT example_ruleset)
         Undecided = Decision FinalAllow"
   text{*However, they might also be rate-limited, ... (we don't know about icmp)*}
   lemma "approximating_bigstep_fun (common_matcher, in_doubt_deny)
     \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (8,8,8,8),
          p_proto=TCP, p_sport=2065, p_dport=80\<rparr>
-        (unfold_ruleset_INUPUT example_ruleset)
+        (unfold_ruleset_INPUT example_ruleset)
         Undecided = Decision FinalDeny" by eval
   
   text{*But we can guarantee that packets from the outside are blocked!*}
   lemma "approximating_bigstep_fun (common_matcher, in_doubt_allow)
     \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (8,8,8,8), p_dst= 0, p_proto=TCP, p_sport=2065, p_dport=80\<rparr> 
-        (unfold_ruleset_INUPUT example_ruleset)
+        (unfold_ruleset_INPUT example_ruleset)
         Undecided = Decision FinalDeny" by eval
 
 
 
 text{*in doubt allow closure*}
-lemma upper: "upper_closure (unfold_ruleset_INUPUT example_ruleset) =
+lemma upper: "upper_closure (unfold_ruleset_INPUT example_ruleset) =
   [Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16))) action.Accept, Rule MatchAny action.Drop, Rule MatchAny action.Accept]" by eval
 
 text{*in doubt deny closure*}
-lemma lower: "lower_closure (unfold_ruleset_INUPUT example_ruleset) =
+lemma lower: "lower_closure (unfold_ruleset_INPUT example_ruleset) =
  [Rule MatchAny action.Drop, Rule (Match (Prot (Proto TCP))) action.Drop, Rule (Match (Prot (Proto TCP))) action.Drop, Rule MatchAny action.Drop,
   Rule (Match (Prot (Proto TCP))) action.Drop, Rule (Match (Prot (Proto TCP))) action.Drop, Rule MatchAny action.Drop, Rule (Match (Prot (Proto TCP))) action.Drop,
   Rule (Match (Prot (Proto TCP))) action.Drop, Rule MatchAny action.Drop, Rule (Match (Prot (Proto TCP))) action.Drop, Rule (Match (Prot (Proto TCP))) action.Drop,
@@ -55,7 +55,7 @@ lemma lower: "lower_closure (unfold_ruleset_INUPUT example_ruleset) =
 
 
 text{*upper closure*}
-lemma "rmshadow (common_matcher, in_doubt_allow) (upper_closure (unfold_ruleset_INUPUT example_ruleset)) UNIV = 
+lemma "rmshadow (common_matcher, in_doubt_allow) (upper_closure (unfold_ruleset_INPUT example_ruleset)) UNIV = 
   [Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16))) action.Accept, Rule MatchAny action.Drop]"
 (*<*)apply(subst upper)
 apply(subst rmshadow.simps)
@@ -71,7 +71,7 @@ done(*>*)
 
 
 text{*lower closure*}
-lemma "rmshadow (common_matcher, in_doubt_deny) (lower_closure (unfold_ruleset_INUPUT example_ruleset)) UNIV =  
+lemma "rmshadow (common_matcher, in_doubt_deny) (lower_closure (unfold_ruleset_INPUT example_ruleset)) UNIV =  
   [Rule MatchAny action.Drop]"
 apply(subst lower)
 apply(subst rmshadow.simps)
@@ -81,22 +81,22 @@ done
 
 
 
-lemma "check_simple_fw_preconditions (upper_closure (unfold_ruleset_INUPUT example_ruleset))" by eval
-value "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INUPUT example_ruleset)))"
-lemma "check_simple_fw_preconditions (lower_closure (unfold_ruleset_INUPUT example_ruleset))" by eval
-value "map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_INUPUT example_ruleset)))"
+lemma "check_simple_fw_preconditions (upper_closure (unfold_ruleset_INPUT example_ruleset))" by eval
+value "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT example_ruleset)))"
+lemma "check_simple_fw_preconditions (lower_closure (unfold_ruleset_INPUT example_ruleset))" by eval
+value "map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_INPUT example_ruleset)))"
 
 
-value "length (unfold_ruleset_INUPUT example_ruleset)"
+value "length (unfold_ruleset_INPUT example_ruleset)"
 text{*Wow, normalization has exponential(?) blowup here.*}
-value "length (normalize_rules_dnf (unfold_ruleset_INUPUT example_ruleset))"
+value "length (normalize_rules_dnf (unfold_ruleset_INPUT example_ruleset))"
 
 
 
 subsection{*With parsed ports*}
 
 (*../../importer/main.py --import "../Code_Interface" --parse_ports iptables_Ln_tuned iptables_Ln_tuned_parse_ports.thy*)
-value "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INUPUT [''DOS_PROTECT'' \<mapsto> [Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Extra (''Prot icmp''))) (Match (Extra (''icmptype 8 limit: avg 1/sec burst 5'')))))) (action.Return),
+value "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT [''DOS_PROTECT'' \<mapsto> [Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Extra (''Prot icmp''))) (Match (Extra (''icmptype 8 limit: avg 1/sec burst 5'')))))) (action.Return),
 Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Extra (''Prot icmp''))) (Match (Extra (''icmptype 8'')))))) (action.Drop),
 Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (Match (Extra (''tcp flags:0x17/0x04 limit: avg 1/sec burst 5'')))))) (action.Return),
 Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (Match (Extra (''tcp flags:0x17/0x04'')))))) (action.Drop),

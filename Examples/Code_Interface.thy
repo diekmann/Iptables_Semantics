@@ -15,8 +15,8 @@ definition unfold_ruleset_FORWARD :: "common_primitive ruleset \<Rightarrow> com
 "unfold_ruleset_FORWARD rs = ((optimize_matches opt_MatchAny_match_expr)^^10) 
   (optimize_matches optimize_primitive_univ (rw_Reject (rm_LogEmpty (((process_call rs)^^10) [Rule MatchAny (Call ''FORWARD'')]))))"
 
-definition unfold_ruleset_INUPUT :: "common_primitive ruleset \<Rightarrow> common_primitive rule list" where
-"unfold_ruleset_INUPUT rs = ((optimize_matches opt_MatchAny_match_expr)^^10) 
+definition unfold_ruleset_INPUT :: "common_primitive ruleset \<Rightarrow> common_primitive rule list" where
+"unfold_ruleset_INPUT rs = ((optimize_matches opt_MatchAny_match_expr)^^10) 
   (optimize_matches optimize_primitive_univ (rw_Reject (rm_LogEmpty (((process_call rs)^^10) [Rule MatchAny (Call ''INPUT'')]))))"
 
 definition unfold_ruleset_OUTPUT :: "common_primitive ruleset \<Rightarrow> common_primitive rule list" where

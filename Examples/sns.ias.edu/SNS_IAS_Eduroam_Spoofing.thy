@@ -33,14 +33,14 @@ definition "example_ipassignment_nospoof =
 (* ../../importer/main.py --import "../Code_Interface" test_Lnv test_Lnv.thy *)
 
 
-value(code) "unfold_ruleset_INUPUT firewall_chains"
+value(code) "unfold_ruleset_INPUT firewall_chains"
 
-value(code) "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INUPUT firewall_chains)))"
+value(code) "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT firewall_chains)))"
 
 
-lemma "transform_optimize_dnf_strict (unfold_ruleset_INUPUT firewall_chains) = unfold_ruleset_INUPUT firewall_chains" by eval
+lemma "transform_optimize_dnf_strict (unfold_ruleset_INPUT firewall_chains) = unfold_ruleset_INPUT firewall_chains" by eval
 
-lemma "example_ipassignment_nospoof (unfold_ruleset_INUPUT firewall_chains)" by eval
+lemma "example_ipassignment_nospoof (unfold_ruleset_INPUT firewall_chains)" by eval
 
 
 end
