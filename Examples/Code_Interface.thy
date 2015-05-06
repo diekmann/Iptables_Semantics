@@ -80,7 +80,7 @@ definition port_toString :: "16 word \<Rightarrow> string" where
   "port_toString p \<equiv> string_of_nat (unat p)"
 
 definition iface_toString :: "string \<Rightarrow> iface \<Rightarrow> string" where
-  "iface_toString descr iface = (if iface = IfaceAny then '''' else
+  "iface_toString descr iface = (if iface = ifaceAny then '''' else
       (case iface of (Iface name) \<Rightarrow> descr@name))"
 lemma "iface_toString ''src: '' (Iface ''+'') = ''''" by eval
 lemma "iface_toString ''src: '' (Iface ''eth0'') = ''src: eth0''" by eval

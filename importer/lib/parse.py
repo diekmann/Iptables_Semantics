@@ -20,7 +20,7 @@ iptables_format = {
                         (?P<action>[\w\-~]+)?        #action, may be empty
                         \ *                     #spaces
                         (?P<proto>(?:\w\w\w\w?)|(?:\d\d)|(?:\d))    # 3-4 char proto, tcp,udp,esp,sctp,... or some strange number
-                        \ ? \ ? \ ? \ -- \ \ ?
+                        \ ? \ ? \ ? \ (?P<opt>-[f-]) \ \ ?        #opt, usually just -- sometimes the f flag tells about ip fragments
                         (?P<ipsrc>!?"""+reIPv4Netmask+r""")  # ip src including /xx An ip address might be negated with a !
                         \ +
                         (?P<ipdst>!?"""+reIPv4Netmask+r""")
@@ -37,7 +37,7 @@ iptables_format = {
                         (?P<action>[\w\-~]+)?        #action, may be empty
                         \ *                     #spaces
                         (?P<proto>(?:\w\w\w\w?)|(?:\d\d)|(?:\d))    # 3-4 char proto, tcp,udp,esp,sctp,... or some strange number
-                        \ ? \ ? \ ? \ -- \ \ ?
+                        \ ? \ ? \ ? \ (?P<opt>-[f-]) \ \ ?
                         (?P<iniface>"""+reIFACE+""") \ \ *
                         (?P<outiface>"""+reIFACE+""") \ \ *
                         (?P<ipsrc>!?"""+reIPv4Netmask+r""")  # ip src including /xx An ip address might be negated with a !
@@ -245,6 +245,15 @@ def parse_rule(line, parse_ports, dumpformat):
         extra = m.group('extra').strip()
         if extra is "":
             extra = None
+
+    opt = m.group('opt')
+    if opt == "--":
+        opt = None
+
+    if extra is not None and opt is not None:
+        extra = extra + " opt-flags: " + opt
+    elif opt is not None: #extra is none
+        extra = "opt-flags: opt"
 
     action = parse_action(m.group('action'))
     proto = parse_proto(m.group('proto'))

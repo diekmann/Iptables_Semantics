@@ -191,7 +191,7 @@ lemma match_iface_simple_match_any_simps:
      "match_proto (proto simple_match_any) (p_proto p)"
      "simple_match_port (sports simple_match_any) (p_sport p)"
      "simple_match_port (dports simple_match_any) (p_dport p)"
-  apply(simp_all add: simple_match_any_def match_IfaceAny ipv4range_set_from_bitmask_0)
+  apply(simp_all add: simple_match_any_def match_ifaceAny ipv4range_set_from_bitmask_0)
   apply(subgoal_tac [!] "(65535::16 word) = max_word")
     apply(simp_all)
   apply(simp_all add: max_word_def)

@@ -8,8 +8,8 @@ section{*Network Interfaces*}
   But the parser/lexer should handle this*)
 datatype iface = Iface (iface_sel: "string")  --"no negation supported, but wildcards"
 
-definition IfaceAny :: iface where
-  "IfaceAny \<equiv> Iface ''+''"
+definition ifaceAny :: iface where
+  "ifaceAny \<equiv> Iface ''+''"
 (* there is no IfaceFalse, proof below *)
 
 text_raw{*If the interface name ends in a ``+'', then any interface which begins with this name will match. (man iptables)
@@ -122,8 +122,8 @@ begin
             "\<not> match_iface (Iface '''')      ''loX''"
             (*<*)by eval+(*>*)
   
-    lemma match_IfaceAny: "match_iface IfaceAny i"
-      by(cases i, simp_all add: IfaceAny_def)
+    lemma match_ifaceAny: "match_iface ifaceAny i"
+      by(cases i, simp_all add: ifaceAny_def)
     lemma match_IfaceFalse: "\<not>(\<exists> IfaceFalse. (\<forall>i. \<not> match_iface IfaceFalse i))"
       apply(simp)
       apply(intro allI, rename_tac IfaceFalse)

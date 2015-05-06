@@ -18,8 +18,8 @@ text_raw{*I don't think I can find a good way to support negated interfaces.
 
 datatype iface = Iface "string negation_type"
 
-definition IfaceAny :: iface where
-  "IfaceAny \<equiv> Iface (Pos ''+'')"
+definition ifaceAny :: iface where
+  "ifaceAny \<equiv> Iface (Pos ''+'')"
 definition IfaceFalse :: iface where
   "IfaceFalse \<equiv> Iface (Neg ''+'')"
 
@@ -126,8 +126,8 @@ subsection{*Matching*}
           "  match_iface (Iface (Neg ''''))      ''loX''"
           "\<not> match_iface (Iface (Pos ''foobar+''))     ''foo''" by eval+
 
-  lemma match_IfaceAny: "match_iface IfaceAny i"
-    by(cases i, simp_all add: IfaceAny_def)
+  lemma match_ifaceAny: "match_iface ifaceAny i"
+    by(cases i, simp_all add: ifaceAny_def)
   lemma match_IfaceFalse: "\<not> match_iface IfaceFalse i"
     by(cases i, simp_all add: IfaceFalse_def)
 

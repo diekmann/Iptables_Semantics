@@ -29,7 +29,7 @@ export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure
   simple_rule_toString
   simple_rule_iptables_save_toString
 
-  IfaceAny no_spoofing_iface example_ipassignment_nospoof
+  ifaceAny no_spoofing_iface example_ipassignment_nospoof
   in SML module_name "Test" file "unfold_code.ML"
 
 ML_file "unfold_code.ML"

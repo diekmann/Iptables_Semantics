@@ -1,7 +1,7 @@
 theory SNS_IAS_Eduroam_Spoofing
 imports "../Code_Interface"
   "../../Primitive_Matchers/No_Spoof"
-  test_Lnv_cheating
+  test_Lnv
 begin
 
 
@@ -30,7 +30,7 @@ definition "example_ipassignment_nospoof =
     no_spoofing_iface (Iface ''wlan0'') ([Iface ''wlan0'' \<mapsto> everything_but_my_ip]:: ipassignment)"
 
 
-(* ../../importer/main.py --import "../Code_Interface" test_Lnv_cheating test_Lnv_cheating.thy *)
+(* ../../importer/main.py --import "../Code_Interface" test_Lnv test_Lnv.thy *)
 
 
 value(code) "unfold_ruleset_INUPUT firewall_chains"

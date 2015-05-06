@@ -97,20 +97,20 @@ subsection{*Simple Firewall Semantics*}
 
 
   definition simple_match_any :: "simple_match" where
-    "simple_match_any \<equiv> \<lparr>iiface=IfaceAny, oiface=IfaceAny, src=(0,0), dst=(0,0), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
+    "simple_match_any \<equiv> \<lparr>iiface=ifaceAny, oiface=ifaceAny, src=(0,0), dst=(0,0), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
   lemma simple_match_any: "simple_matches simple_match_any p"
     proof -
       have "(65535::16 word) = max_word" by(simp add: max_word_def)
-      thus ?thesis by(simp add: simple_match_any_def ipv4range_set_from_bitmask_0 match_IfaceAny)
+      thus ?thesis by(simp add: simple_match_any_def ipv4range_set_from_bitmask_0 match_ifaceAny)
     qed
 
   text{*we specify only one empty port range*}
   definition simple_match_none :: "simple_match" where
-    "simple_match_none \<equiv> \<lparr>iiface=IfaceAny, oiface=IfaceAny, src=(1,0), dst=(0,0), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
+    "simple_match_none \<equiv> \<lparr>iiface=ifaceAny, oiface=ifaceAny, src=(1,0), dst=(0,0), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
   lemma simple_match_none: "simple_matches simple_match_any p"
     proof -
       have "(65535::16 word) = max_word" by(simp add: max_word_def)
-      thus ?thesis by(simp add: simple_match_any_def ipv4range_set_from_bitmask_0 match_IfaceAny)
+      thus ?thesis by(simp add: simple_match_any_def ipv4range_set_from_bitmask_0 match_ifaceAny)
     qed
 
 

@@ -123,8 +123,8 @@ text{*Perform very basic optimization. Remove matches to primitives which are es
 fun optimize_primitive_univ :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
   "optimize_primitive_univ (Match (Src (Ip4AddrNetmask (0,0,0,0) 0))) = MatchAny" |
   "optimize_primitive_univ (Match (Dst (Ip4AddrNetmask (0,0,0,0) 0))) = MatchAny" |
-  "optimize_primitive_univ (Match (IIface iface)) = (if iface = IfaceAny then MatchAny else (Match (IIface iface)))" |
-  "optimize_primitive_univ (Match (OIface iface)) = (if iface = IfaceAny then MatchAny else (Match (OIface iface)))" |
+  "optimize_primitive_univ (Match (IIface iface)) = (if iface = ifaceAny then MatchAny else (Match (IIface iface)))" |
+  "optimize_primitive_univ (Match (OIface iface)) = (if iface = ifaceAny then MatchAny else (Match (OIface iface)))" |
   "optimize_primitive_univ (Match (Src_Ports [(s, e)])) = (if s = 0 \<and> e = 0xFFFF then MatchAny else (Match (Src_Ports [(s, e)])))" |
   "optimize_primitive_univ (Match (Dst_Ports [(s, e)])) = (if s = 0 \<and> e = 0xFFFF then MatchAny else (Match (Dst_Ports [(s, e)])))" |
   "optimize_primitive_univ (Match (Prot ProtoAny)) = MatchAny" |
@@ -140,7 +140,7 @@ lemma optimize_primitive_univ_correct_matchexpr: "matches (common_matcher, \<alp
   apply(rule matches_iff_apply_f)
   apply(simp)
   apply(induction m rule: optimize_primitive_univ.induct)
-                              apply(simp_all add: match_IfaceAny eval_ternary_simps ip_in_ipv4range_set_from_bitmask_UNIV eval_ternary_idempotence_Not bool_to_ternary_simps)
+                              apply(simp_all add: match_ifaceAny eval_ternary_simps ip_in_ipv4range_set_from_bitmask_UNIV eval_ternary_idempotence_Not bool_to_ternary_simps)
    apply(subgoal_tac "(max_word::16 word) =  65535",simp,simp add: max_word_def)+
   done
 corollary optimize_primitive_univ_correct: "approximating_bigstep_fun (common_matcher, \<alpha>) p (optimize_matches optimize_primitive_univ rs) s = 
