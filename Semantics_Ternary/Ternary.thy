@@ -163,13 +163,17 @@ by (simp add: eval_ternary_And_comm)
 lemma "eval_ternary_Not (ternary_ternary_eval t) = (ternary_ternary_eval (TernaryNot t))" by simp
 
 
-lemma eval_ternary_simps_2: "eval_ternary_And (bool_to_ternary P) T = TernaryTrue \<longleftrightarrow> P \<and> T = TernaryTrue"
+context
+begin
+  private lemma eval_ternary_simps_2:
+      "eval_ternary_And (bool_to_ternary P) T = TernaryTrue \<longleftrightarrow> P \<and> T = TernaryTrue"
       "eval_ternary_And T (bool_to_ternary P) = TernaryTrue \<longleftrightarrow> P \<and> T = TernaryTrue"
   apply(case_tac [!] P)
      apply(simp_all add: eval_ternary_simps_simple)
   done
 
-lemma eval_ternary_simps_3: "eval_ternary_And (ternary_ternary_eval x) T = TernaryTrue \<longleftrightarrow> (ternary_ternary_eval x = TernaryTrue) \<and> (T = TernaryTrue)"
+  private lemma eval_ternary_simps_3:
+      "eval_ternary_And (ternary_ternary_eval x) T = TernaryTrue \<longleftrightarrow> (ternary_ternary_eval x = TernaryTrue) \<and> (T = TernaryTrue)"
       "eval_ternary_And T (ternary_ternary_eval x) = TernaryTrue \<longleftrightarrow> (ternary_ternary_eval x = TernaryTrue) \<and> (T = TernaryTrue)"
   apply(case_tac [!] T)
        apply(simp_all add: eval_ternary_simps_simple)
@@ -177,7 +181,8 @@ lemma eval_ternary_simps_3: "eval_ternary_And (ternary_ternary_eval x) T = Terna
        apply(simp_all)
   done
 
-lemmas eval_ternary_simps = eval_ternary_simps_simple eval_ternary_simps_2 eval_ternary_simps_3
+  lemmas eval_ternary_simps = eval_ternary_simps_simple eval_ternary_simps_2 eval_ternary_simps_3
+end
 
 definition ternary_eval :: "ternaryformula \<Rightarrow> bool option" where
   "ternary_eval t = ternary_to_bool (ternary_ternary_eval t)"
