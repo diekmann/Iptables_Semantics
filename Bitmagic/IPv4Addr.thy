@@ -305,7 +305,7 @@ subsection{*IP ranges*}
   definition ipv4range_to_set :: "32 wordinterval \<Rightarrow> (ipv4addr) set" where
     "ipv4range_to_set rg = wordinterval_to_set rg"
 
-  definition ipv4range_element  :: "'a::len word \<Rightarrow> 'a::len wordinterval \<Rightarrow> bool" where
+  definition ipv4range_element :: "'a::len word \<Rightarrow> 'a::len wordinterval \<Rightarrow> bool" where
     "ipv4range_element el rg = wordinterval_element el rg"
 
   definition ipv4range_union :: "32 wordinterval \<Rightarrow> 32 wordinterval \<Rightarrow> 32 wordinterval" where 
@@ -379,9 +379,6 @@ subsection{*IP ranges*}
 
 
   definition "is_lowest_element x S = (x \<in> S \<and> (\<forall>y\<in>S. y \<le> x \<longrightarrow> y = x))"
-  lemma is_lowest_elment_alt: "(x \<in> S \<and> (\<forall>y\<in>S. x \<le> y)) = is_lowest_element x S"
-    unfolding is_lowest_element_def
-    oops
     
   fun ipv4range_lowest_element :: "32 wordinterval \<Rightarrow> ipv4addr option" where
     "ipv4range_lowest_element (WordInterval s e) = (if s \<le> e then Some s else None)" | 
@@ -389,13 +386,14 @@ subsection{*IP ranges*}
       (Some a, Some b) \<Rightarrow> Some (if a < b then a else b) |
       (None, Some b) \<Rightarrow> Some b |
       (Some a, None) \<Rightarrow> Some a |
-      (None, None) \<Rightarrow> None)
-    "
+      (None, None) \<Rightarrow> None)"
+
   lemma ipv4range_lowest_none_empty: "ipv4range_lowest_element r = None \<longleftrightarrow> ipv4range_empty r"
-    apply(induction r)
-     apply(simp_all)
-    apply(force)
-  done
+    proof(induction r)
+    case WordInterval thus ?case by simp
+    next
+    case RangeUnion thus ?case by fastforce
+    qed
     
 
   lemma ipv4range_lowest_element_correct_A: "ipv4range_lowest_element r = Some x \<Longrightarrow> ipv4range_element x r \<and> (\<forall>y \<in> ipv4range_to_set r. (y \<le> x \<longrightarrow> y = x))"
@@ -412,43 +410,47 @@ subsection{*IP ranges*}
   lemma smallerequalgreater: "((y :: ipv4addr) \<le> s \<longrightarrow> y = s) = (y \<ge> s)" by fastforce
   lemma somecase: "x = Some y \<Longrightarrow> case x of None \<Rightarrow> a | Some z \<Rightarrow> b z = b y" by simp
 
-  lemma ipv4range_lowest_element_set_eq: "
-    \<not>ipv4range_empty r \<Longrightarrow>
-    (ipv4range_lowest_element r = Some x) = (is_lowest_element x (ipv4range_to_set r))"
+  lemma ipv4range_lowest_element_set_eq: assumes "\<not> ipv4range_empty r"
+    shows "(ipv4range_lowest_element r = Some x) = (is_lowest_element x (ipv4range_to_set r))"
     unfolding is_lowest_element_def
-    apply(rule iffI)
-     using ipv4range_lowest_element_correct_A ipv4range_lowest_none_empty apply simp
-    apply(induction r arbitrary: x rule: ipv4range_lowest_element.induct)
-     apply simp 
-    apply(rename_tac A B x)
-    apply(case_tac     "ipv4range_lowest_element B")
-     apply(case_tac[!] "ipv4range_lowest_element A")
-       apply(auto)[3]
-    apply(subgoal_tac "\<not> ipv4range_empty A \<and> \<not> ipv4range_empty B")
-     prefer 2
-     using arg_cong[where f = Not, OF ipv4range_lowest_none_empty] apply(simp, metis)
-    apply(clarsimp simp add: ipv4range_lowest_none_empty)
-    proof - (* TODO: be rid of *)
-      fix A :: "32 wordinterval" and B :: "32 wordinterval" and xa :: "32 word" and a :: "32 word" and aa :: "32 word"
-      assume a1: "\<And>x. x \<in> ipv4range_to_set B \<and> (\<forall>y\<in>ipv4range_to_set B. y \<le> x \<longrightarrow> y = x) \<Longrightarrow> a = x"
-      assume a2: "ipv4range_lowest_element B = Some a"
-      assume a3: "ipv4range_lowest_element A = Some aa"
-      assume a4: "xa \<in> ipv4range_to_set A \<or> xa \<in> ipv4range_to_set B"
-      assume a5: "\<forall>y\<in>ipv4range_to_set A \<union> ipv4range_to_set B. y \<le> xa \<longrightarrow> y = xa"
-      obtain sk\<^sub>0 :: "32 word \<Rightarrow> 32 word" where f1: "\<forall>x\<^sub>0. x\<^sub>0 \<notin> ipv4range_to_set B \<or> sk\<^sub>0 x\<^sub>0 \<in> ipv4range_to_set B \<and> sk\<^sub>0 x\<^sub>0 \<le> x\<^sub>0 \<and> sk\<^sub>0 x\<^sub>0 \<noteq> x\<^sub>0 \<or> a = x\<^sub>0"
-        using a1 by (metis (lifting))
-      have "\<forall>x\<^sub>0. x\<^sub>0 \<notin> {uub. uub \<in> ipv4range_to_set A \<or> uub \<in> ipv4range_to_set B} \<or> \<not> x\<^sub>0 \<le> xa \<or> xa = x\<^sub>0"
-        using a5 by blast
-      hence f2: "\<forall>x\<^sub>0. \<not> (x\<^sub>0 \<in> ipv4range_to_set A \<or> x\<^sub>0 \<in> ipv4range_to_set B) \<or> xa = x\<^sub>0 \<or> \<not> x\<^sub>0 \<le> xa"
-        by blast
-      hence "xa \<notin> ipv4range_to_set B \<or> a = xa"
-        using f1 by (metis (lifting))
-      hence "aa = xa \<or> a = xa"
-        using f2 a3 a4 by (metis (lifting) ipv4range_element_set_eq ipv4range_lowest_element_correct_A le_less_linear less_asym')
-      thus "(aa < a \<longrightarrow> aa = xa) \<and> (\<not> aa < a \<longrightarrow> a = xa)"
-        using a2 f2 a3 by (metis (lifting) ipv4range_element_set_eq ipv4range_lowest_element_correct_A le_less_linear less_asym')
+    proof(rule iffI)
+      assume "ipv4range_lowest_element r = Some x"
+      thus "x \<in> ipv4range_to_set r \<and> (\<forall>y\<in>ipv4range_to_set r. y \<le> x \<longrightarrow> y = x)"
+     using ipv4range_lowest_element_correct_A ipv4range_lowest_none_empty by simp
+    next
+      assume "x \<in> ipv4range_to_set r \<and> (\<forall>y\<in>ipv4range_to_set r. y \<le> x \<longrightarrow> y = x)"
+      with assms show "(ipv4range_lowest_element r = Some x)"
+        apply(induction r arbitrary: x rule: ipv4range_lowest_element.induct)
+         apply simp 
+        apply(rename_tac A B x)
+        apply(case_tac     "ipv4range_lowest_element B")
+         apply(case_tac[!] "ipv4range_lowest_element A")
+           apply(auto)[3]
+        apply(subgoal_tac "\<not> ipv4range_empty A \<and> \<not> ipv4range_empty B")
+         prefer 2
+         using arg_cong[where f = Not, OF ipv4range_lowest_none_empty] apply(simp, metis)
+        apply(clarsimp simp add: ipv4range_lowest_none_empty)
+        proof - (* TODO: be rid of *)
+          fix A :: "32 wordinterval" and B :: "32 wordinterval" and xa :: "32 word" and a :: "32 word" and aa :: "32 word"
+          assume a1: "\<And>x. x \<in> ipv4range_to_set B \<and> (\<forall>y\<in>ipv4range_to_set B. y \<le> x \<longrightarrow> y = x) \<Longrightarrow> a = x"
+          assume a2: "ipv4range_lowest_element B = Some a"
+          assume a3: "ipv4range_lowest_element A = Some aa"
+          assume a4: "xa \<in> ipv4range_to_set A \<or> xa \<in> ipv4range_to_set B"
+          assume a5: "\<forall>y\<in>ipv4range_to_set A \<union> ipv4range_to_set B. y \<le> xa \<longrightarrow> y = xa"
+          obtain sk\<^sub>0 :: "32 word \<Rightarrow> 32 word" where f1: "\<forall>x\<^sub>0. x\<^sub>0 \<notin> ipv4range_to_set B \<or> sk\<^sub>0 x\<^sub>0 \<in> ipv4range_to_set B \<and> sk\<^sub>0 x\<^sub>0 \<le> x\<^sub>0 \<and> sk\<^sub>0 x\<^sub>0 \<noteq> x\<^sub>0 \<or> a = x\<^sub>0"
+            using a1 by (metis (lifting))
+          have "\<forall>x\<^sub>0. x\<^sub>0 \<notin> {uub. uub \<in> ipv4range_to_set A \<or> uub \<in> ipv4range_to_set B} \<or> \<not> x\<^sub>0 \<le> xa \<or> xa = x\<^sub>0"
+            using a5 by blast
+          hence f2: "\<forall>x\<^sub>0. \<not> (x\<^sub>0 \<in> ipv4range_to_set A \<or> x\<^sub>0 \<in> ipv4range_to_set B) \<or> xa = x\<^sub>0 \<or> \<not> x\<^sub>0 \<le> xa"
+            by blast
+          hence "xa \<notin> ipv4range_to_set B \<or> a = xa"
+            using f1 by (metis (lifting))
+          hence "aa = xa \<or> a = xa"
+            using f2 a3 a4 by (metis (lifting) ipv4range_element_set_eq ipv4range_lowest_element_correct_A le_less_linear less_asym')
+          thus "(aa < a \<longrightarrow> aa = xa) \<and> (\<not> aa < a \<longrightarrow> a = xa)"
+            using a2 f2 a3 by (metis (lifting) ipv4range_element_set_eq ipv4range_lowest_element_correct_A le_less_linear less_asym')
+        qed
     qed
-
    
 
 end

@@ -1864,7 +1864,11 @@ fun to_negation_type_nnf MatchAny = []
   | to_negation_type_nnf (Match a) = [Pos a]
   | to_negation_type_nnf (MatchNot (Match a)) = [Neg a]
   | to_negation_type_nnf (MatchAnd (a, b)) =
-    to_negation_type_nnf a @ to_negation_type_nnf b;
+    to_negation_type_nnf a @ to_negation_type_nnf b
+  | to_negation_type_nnf (MatchNot (MatchNot va)) = (raise Fail "undefined")
+  | to_negation_type_nnf (MatchNot (MatchAnd (va, vb))) =
+    (raise Fail "undefined")
+  | to_negation_type_nnf (MatchNot MatchAny) = (raise Fail "undefined");
 
 fun to_packet_set a m =
   PacketSet
