@@ -27,3 +27,4 @@ session "Iptables_Semantics_Examples" = Iptables_Semantics +
     "Examples/SQRL_Shorewall/Analyze_SQRL_Shorewall"
     "Examples/Synology_Diskstation_DS414/Analyze_Synology_Diskstation"
     "Examples/Ringofsaturn_com/Analyze_Ringofsaturn_com"
+    "Examples/sns.ias.edu/SNS_IAS_Eduroam_Spoofing"

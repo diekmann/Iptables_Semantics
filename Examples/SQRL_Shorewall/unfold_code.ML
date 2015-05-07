@@ -1299,14 +1299,19 @@ fun transform_normalize_primitives x =
     normalize_rules normalize_src_ports)
     x;
 
-fun optimize_primitive_univ (Match (Src_Ports [(s, e)])) =
-  (if equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) s
-        (zero_worda
-          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) andalso
-        equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) e
-          (word_of_int (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))
-            (Int_of_integer (65535 : IntInf.int)))
-    then MatchAny else Match (Src_Ports [(s, e)]))
+fun optimize_primitive_univ (Match (IIface iface)) =
+  (if equal_iface iface ifaceAny then MatchAny else Match (IIface iface))
+  | optimize_primitive_univ (Match (OIface iface)) =
+    (if equal_iface iface ifaceAny then MatchAny else Match (OIface iface))
+  | optimize_primitive_univ (Match (Src_Ports [(s, e)])) =
+    (if equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) s
+          (zero_worda
+            (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) andalso
+          equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))
+            e (word_of_int
+                (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))
+                (Int_of_integer (65535 : IntInf.int)))
+      then MatchAny else Match (Src_Ports [(s, e)]))
   | optimize_primitive_univ (Match (Dst_Ports [(s, e)])) =
     (if equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) s
           (zero_worda
@@ -1321,8 +1326,6 @@ fun optimize_primitive_univ (Match (Src_Ports [(s, e)])) =
     Match (Src (Ip4Addr va))
   | optimize_primitive_univ (Match (Dst (Ip4Addr va))) =
     Match (Dst (Ip4Addr va))
-  | optimize_primitive_univ (Match (IIface v)) = Match (IIface v)
-  | optimize_primitive_univ (Match (OIface v)) = Match (OIface v)
   | optimize_primitive_univ (Match (Prot (Proto va))) = Match (Prot (Proto va))
   | optimize_primitive_univ (Match (Src_Ports [])) = Match (Src_Ports [])
   | optimize_primitive_univ (Match (Src_Ports (va :: vc :: vd))) =

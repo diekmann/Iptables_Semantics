@@ -429,13 +429,13 @@ using match_list_normalize_match by fastforce
 
 lemma normalize_match_empty: "normalize_match m = [] \<Longrightarrow> \<not> matches \<gamma> m a p"
   proof(induction m rule: normalize_match.induct)
-  case 3 thus ?case by (simp) (metis ex_in_conv matches_simp2 matches_simp22 set_empty)
+  case 3 thus ?case by(fastforce dest: matches_dest)
   next
-  case 4 thus ?case using match_list_normalize_match by (metis match_list.simps)
+  case 4 thus ?case using match_list_normalize_match by (simp add: matches_DeMorgan)
   next
   case 5 thus ?case using matches_not_idem by fastforce
   next
-  case 6 thus ?case by (metis bunch_of_lemmata_about_matches(3))
+  case 6 thus ?case by(simp add: bunch_of_lemmata_about_matches)
   qed(simp_all)
 
 
@@ -448,11 +448,7 @@ proof(induction m rule: normalize_match.induct)
   next
   case 2 thus ?case by simp
   next
-  case 3 thus ?case
-    apply(simp add: fixedaction_wf_ruleset )
-    apply(unfold wf_ruleset_singleton)
-    apply(simp add: matches_to_match_list_normalize)
-    done
+  case 3 thus ?case by(simp add: fixedaction_wf_ruleset wf_ruleset_singleton matches_to_match_list_normalize)
   next
   case 4 thus ?case 
     apply(simp add: wf_ruleset_append)
@@ -463,10 +459,7 @@ proof(induction m rule: normalize_match.induct)
          apply(simp_all add: match_list_append)
     done
   next
-  case 5 thus ?case 
-    apply(unfold wf_ruleset_singleton)
-    apply(simp add: matches_to_match_list_normalize)
-    done
+  case 5 thus ?case by(simp add: wf_ruleset_singleton matches_to_match_list_normalize)
   next
   case 6 thus ?case by(simp add: wf_ruleset_def)
   next
@@ -480,11 +473,7 @@ proof(induction m rule: normalize_match.induct)
   next
   case 2 thus ?case by simp
   next
-  case 3 thus ?case
-    apply(simp add: fixedaction_wf_ruleset )
-    apply(unfold wf_ruleset_singleton)
-    apply(simp add: matches_to_match_list_normalize)
-    done
+  case 3 thus ?case by(simp add: fixedaction_wf_ruleset wf_ruleset_singleton matches_to_match_list_normalize)
   next
   case 4 thus ?case 
     apply(simp add: wf_ruleset_append)
@@ -496,9 +485,7 @@ proof(induction m rule: normalize_match.induct)
     done
   next
   case 5 thus ?case 
-    apply(unfold wf_ruleset_singleton)
-    apply(simp add: matches_to_match_list_normalize)
-    done
+    unfolding wf_ruleset_singleton by(simp add: matches_to_match_list_normalize)
   next
   case 6 thus ?case unfolding wf_ruleset_singleton using bunch_of_lemmata_about_matches(3) by metis
   next
@@ -677,13 +664,12 @@ fun normalize_rules_dnf :: "'a rule list \<Rightarrow> 'a rule list" where
   "normalize_rules_dnf ((Rule m a)#rs) = (map (\<lambda>m. Rule m a) (normalize_match m))@(normalize_rules_dnf rs)"
 
 lemma normalize_rules_dnf_def2: "normalize_rules_dnf = normalize_rules normalize_match"
-  apply(simp add: fun_eq_iff)
-  apply(intro allI)
-  apply(induct_tac x)
-   apply(simp_all)
-  apply(rename_tac r rs)
-  apply(case_tac r, simp)
-  done
+  proof(simp add: fun_eq_iff, intro allI)
+    fix x::"'a rule list" show "normalize_rules_dnf x = normalize_rules normalize_match x"
+    proof(induction x)
+    case (Cons r rs) thus ?case by (cases r) simp
+    qed(simp)
+  qed
 
 lemma wf_ruleset_normalize_rules_dnf: "wf_ruleset \<gamma> p rs \<Longrightarrow> wf_ruleset \<gamma> p (normalize_rules_dnf rs)"
   proof(induction rs)
@@ -732,7 +718,7 @@ lemma normalize_rules_dnf_correct: "wf_ruleset \<gamma> p rs \<Longrightarrow>
       by(auto dest: wf_rulesetD simp: wf_ruleset_normalize_rules_dnf)
     with IH Undecided have
       "approximating_bigstep_fun \<gamma> p (normalize_rules_dnf rs) (approximating_bigstep_fun \<gamma> p (normalize_rules_dnf [r]) Undecided) = approximating_bigstep_fun \<gamma> p (r # rs) Undecided"
-      apply(case_tac r, rename_tac m a)
+      apply(cases r, rename_tac m a)
       apply(simp)
       apply(case_tac a)
              apply(simp_all add: normalize_match_correct Decision_approximating_bigstep_fun wf_ruleset_singleton)
