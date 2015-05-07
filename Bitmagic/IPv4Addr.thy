@@ -411,8 +411,9 @@ subsection{*IP ranges*}
   lemma smallerequalgreater: "((y :: ipv4addr) \<le> s \<longrightarrow> y = s) = (y \<ge> s)" by fastforce
   lemma somecase: "x = Some y \<Longrightarrow> case x of None \<Rightarrow> a | Some z \<Rightarrow> b z = b y" by simp
 
-  (*lemma is_lowest_RangeUnion: " is_lowest_element x (ipv4range_to_set A \<union> ipv4range_to_set B) \<Longrightarrow> 
-    is_lowest_element x (ipv4range_to_set A) \<or> is_lowest_element x (ipv4range_to_set B)" sorry*)
+  lemma is_lowest_RangeUnion: "is_lowest_element x (ipv4range_to_set A \<union> ipv4range_to_set B) \<Longrightarrow> 
+    is_lowest_element x (ipv4range_to_set A) \<or> is_lowest_element x (ipv4range_to_set B)"
+    by(simp add: is_lowest_element_def)
 
    lemma ipv4range_lowest_element_RangeUnion: "ipv4range_lowest_element A = Some a \<Longrightarrow> ipv4range_lowest_element B = Some b \<Longrightarrow>
             ipv4range_lowest_element (RangeUnion A B) = Some (min a b)"
@@ -440,16 +441,17 @@ subsection{*IP ranges*}
         apply(subgoal_tac "\<not> ipv4range_empty A \<and> \<not> ipv4range_empty B")
          prefer 2
          using arg_cong[where f = Not, OF ipv4range_lowest_none_empty] apply(simp, metis)
-        (*apply(drule(1) ipv4range_lowest_element_RangeUnion)
+        apply(drule(1) ipv4range_lowest_element_RangeUnion)
         apply(simp split: option.split_asm add: min_def)
-        apply(drule is_lowest_RangeUnion)
-        apply(elim disjE)*)
+         apply(drule is_lowest_RangeUnion)
+         apply(elim disjE)
+          apply(simp add: is_lowest_element_def)
+         apply(clarsimp simp add: ipv4range_lowest_none_empty)
         
         apply(simp add: is_lowest_element_def)
         apply(clarsimp simp add: ipv4range_lowest_none_empty)
         using ipv4range_lowest_element_correct_A[simplified is_lowest_element_def]
-
-        by (metis (full_types) Un_iff ipv4range_element_set_eq not_le smallerequalgreater)
+        by (metis Un_iff not_le)
         (*proof - (* TODO: be rid of *)
           fix A :: "32 wordinterval" and B :: "32 wordinterval" and xa :: "32 word" and a :: "32 word" and aa :: "32 word"
           assume a1: "\<And>x. x \<in> ipv4range_to_set B \<and> (\<forall>y\<in>ipv4range_to_set B. y \<le> x \<longrightarrow> y = x) \<Longrightarrow> a = x"
