@@ -120,13 +120,12 @@ begin
 end
 
 
+
+(*
+and now code to check spoofing protection
+*)
 context
 begin
-(*
-and now code to check this ....
-*)
-
-
   text{*The set of any ip addresses which may match for a fixed @{text iface} (overapproximation)*}
   private definition get_exists_matching_src_ips :: "iface \<Rightarrow> common_primitive match_expr \<Rightarrow> ipv4addr set" where
     "get_exists_matching_src_ips iface m \<equiv> let (i_matches, _) = (primitive_extractor (is_Iiface, iiface_sel) m) in

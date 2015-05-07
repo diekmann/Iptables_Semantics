@@ -58,7 +58,6 @@ fun eval_ternary_Or :: "ternaryvalue \<Rightarrow> ternaryvalue \<Rightarrow> te
   "eval_ternary_Or TernaryUnknown TernaryFalse = TernaryUnknown" | 
   "eval_ternary_Or TernaryUnknown TernaryUnknown = TernaryUnknown"
 
-
 fun eval_ternary_Not :: "ternaryvalue \<Rightarrow>  ternaryvalue" where
   "eval_ternary_Not TernaryTrue = TernaryFalse" |
   "eval_ternary_Not TernaryFalse = TernaryTrue" |
@@ -162,7 +161,6 @@ lemma ternary_ternary_eval_TernaryAnd_comm: "ternary_ternary_eval (TernaryAnd t1
 by (simp add: eval_ternary_And_comm)
 
 lemma "eval_ternary_Not (ternary_ternary_eval t) = (ternary_ternary_eval (TernaryNot t))" by simp
-
 
 
 lemma eval_ternary_simps_2: "eval_ternary_And (bool_to_ternary P) T = TernaryTrue \<longleftrightarrow> P \<and> T = TernaryTrue"

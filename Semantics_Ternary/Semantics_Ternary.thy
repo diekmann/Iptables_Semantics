@@ -155,16 +155,13 @@ lemma seqE_fst:
   obtains t' where "\<gamma>,p\<turnstile> \<langle>[r],s\<rangle> \<Rightarrow>\<^sub>\<alpha> t'" "\<gamma>,p\<turnstile> \<langle>rs,t'\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
   using assms seq_split by (metis append_Cons append_Nil)
 
-lemma seq_fst: "\<gamma>,p\<turnstile> \<langle>[r], s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<Longrightarrow> \<gamma>,p\<turnstile> \<langle>rs, t\<rangle> \<Rightarrow>\<^sub>\<alpha> t' \<Longrightarrow> \<gamma>,p\<turnstile> \<langle>r # rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t'"
-apply(cases s)
- apply(simp)
- using seq apply fastforce
-apply(simp)
-apply(drule decisionD)
-apply(simp)
-apply(drule decisionD)
-apply(simp)
-using decision by fast
+lemma seq_fst: assumes "\<gamma>,p\<turnstile> \<langle>[r], s\<rangle> \<Rightarrow>\<^sub>\<alpha> t" and "\<gamma>,p\<turnstile> \<langle>rs, t\<rangle> \<Rightarrow>\<^sub>\<alpha> t'" shows "\<gamma>,p\<turnstile> \<langle>r # rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t'"
+proof(cases s)
+  case Undecided with assms seq show "\<gamma>,p\<turnstile> \<langle>r # rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t'" by fastforce
+  next
+  case Decision with assms show "\<gamma>,p\<turnstile> \<langle>r # rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t'"
+  by(auto simp: decision dest!: decisionD)
+qed
 
 
 fun approximating_bigstep_fun :: "('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> 'a rule list \<Rightarrow> state \<Rightarrow> state" where
@@ -184,7 +181,7 @@ fun approximating_bigstep_fun :: "('a, 'p) match_tac \<Rightarrow> 'p \<Rightarr
               )"
 
 
-thm approximating_bigstep_fun.induct[of P \<gamma> p rs s]
+
 (*tuned induction rule*)
 lemma approximating_bigstep_fun_induct[case_names Empty Decision Nomatch Match] : "
 (\<And>\<gamma> p s. P \<gamma> p [] s) \<Longrightarrow>
@@ -327,30 +324,21 @@ subsection{*Equality with @{term "\<gamma>,p\<turnstile> \<langle>rs, s\<rangle>
   definition good_ruleset :: "'a rule list \<Rightarrow> bool" where
     "good_ruleset rs \<equiv> \<forall>r \<in> set rs. (\<not>(\<exists>chain. get_action r = Call chain) \<and> get_action r \<noteq> Return \<and> get_action r \<noteq> Unknown)"
 
-  lemma[code_unfold]: "good_ruleset rs \<equiv> (\<forall>r\<in>set rs. (case get_action r of Call chain \<Rightarrow> False | Return \<Rightarrow> False | Unknown \<Rightarrow> False | _ \<Rightarrow> True))"
-    proof(induction rs)
-    case Nil thus ?case by(simp add: good_ruleset_def)
-    next
-    case (Cons r rs) thus ?case
-      apply(simp add: good_ruleset_def)
-      apply(thin_tac "_ = _")
-      apply(case_tac "get_action r")
-             apply(simp_all)
-      done
-    qed
+  lemma[code_unfold]: "good_ruleset rs = (\<forall>r\<in>set rs. (case get_action r of Call chain \<Rightarrow> False | Return \<Rightarrow> False | Unknown \<Rightarrow> False | _ \<Rightarrow> True))"
+      unfolding good_ruleset_def
+      apply(rule Set.ball_cong)
+       apply(simp_all)
+      apply(rename_tac r)
+      by(case_tac "get_action r")(simp_all)
+      
 
   lemma good_ruleset_alt: "good_ruleset rs = (\<forall>r\<in>set rs. get_action r = Accept \<or> get_action r = Drop \<or>
                                                 get_action r = Reject \<or> get_action r = Log  \<or> get_action r = Empty)"
-    apply(simp add: good_ruleset_def)
-    apply(rule iffI)
-     apply(clarify)
-     apply(case_tac "get_action r")
-            apply(simp_all)
-    apply(clarify)
-    apply(case_tac "get_action r")
-          apply(simp_all)
-      apply(fastforce)+
-    done
+      unfolding good_ruleset_def
+      apply(rule Set.ball_cong)
+       apply(simp_all)
+      apply(rename_tac r)
+      by(case_tac "get_action r")(simp_all)
 
 
   lemma good_ruleset_append: "good_ruleset (rs\<^sub>1 @ rs\<^sub>2) \<longleftrightarrow> good_ruleset rs\<^sub>1 \<and> good_ruleset rs\<^sub>2"
@@ -516,15 +504,14 @@ done
 
 lemma rm_LogEmpty_simple_but_Reject: 
   "good_ruleset rs \<Longrightarrow> \<forall>r \<in> set (rm_LogEmpty rs). get_action r = Accept \<or> get_action r = Reject \<or> get_action r = Drop"
-  apply(induction rs)
-   apply(simp_all add: good_ruleset_def simple_ruleset_def)
-  apply(clarify)
-  apply(rename_tac r rs r')
-  apply(case_tac r, rename_tac m a, simp)
-  apply(case_tac a)
-         apply(simp_all)
-       apply fastforce+
-  done
+  proof(induction rs)
+  case Nil thus ?case by(simp add: good_ruleset_def)
+  next
+  case (Cons r rs) thus ?case
+    apply(clarify)
+    apply(cases r, rename_tac m a, simp)
+    by(case_tac a) (auto simp add: good_ruleset_def)
+  qed
 
 text{*Rewrite @{const Reject} actions to @{const Drop} actions*}
 fun rw_Reject :: "'a rule list \<Rightarrow> 'a rule list" where

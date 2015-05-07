@@ -775,7 +775,7 @@ lemma optimize_matches_normalized_nnf_match: "\<lbrakk>\<forall> r \<in> set rs.
     qed
 
 
-lemma normalize_rules_dnf_normalized_nnf_match: "\<forall>x \<in> set (normalize_rules_dnf rs).  normalized_nnf_match (get_match x)"
+lemma normalize_rules_dnf_normalized_nnf_match: "\<forall>x \<in> set (normalize_rules_dnf rs). normalized_nnf_match (get_match x)"
   proof(induction rs)
   case Nil thus ?case by simp
   next

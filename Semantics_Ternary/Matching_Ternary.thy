@@ -145,7 +145,7 @@ begin
   
   private lemma matches_simp2: "matches \<gamma> (MatchAnd m m') a p \<Longrightarrow> \<not> matches \<gamma> m a p \<Longrightarrow> False"
     by (metis bunch_of_lemmata_about_matches(1))
-  lemma matches_simp22: "matches \<gamma> (MatchAnd m m') a p \<Longrightarrow> \<not> matches \<gamma> m' a p \<Longrightarrow> False"
+  private lemma matches_simp22: "matches \<gamma> (MatchAnd m m') a p \<Longrightarrow> \<not> matches \<gamma> m' a p \<Longrightarrow> False"
     by (metis bunch_of_lemmata_about_matches(1))
   
   (*m simplifies to MatchUnknown*)
