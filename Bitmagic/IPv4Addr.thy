@@ -408,17 +408,6 @@ subsection{*IP ranges*}
     apply fastforce
   done
 
-  lemma smallerequalgreater: "((y :: ipv4addr) \<le> s \<longrightarrow> y = s) = (y \<ge> s)" by fastforce
-  lemma somecase: "x = Some y \<Longrightarrow> case x of None \<Rightarrow> a | Some z \<Rightarrow> b z = b y" by simp
-
-  lemma is_lowest_RangeUnion: "is_lowest_element x (ipv4range_to_set A \<union> ipv4range_to_set B) \<Longrightarrow> 
-    is_lowest_element x (ipv4range_to_set A) \<or> is_lowest_element x (ipv4range_to_set B)"
-    by(simp add: is_lowest_element_def)
-
-   lemma ipv4range_lowest_element_RangeUnion: "ipv4range_lowest_element A = Some a \<Longrightarrow> ipv4range_lowest_element B = Some b \<Longrightarrow>
-            ipv4range_lowest_element (RangeUnion A B) = Some (min a b)"
-     by(auto dest!: ipv4range_lowest_element_correct_A simp add: is_lowest_element_def min_def)
-     
 
   lemma ipv4range_lowest_element_set_eq: assumes "\<not> ipv4range_empty r"
     shows "(ipv4range_lowest_element r = Some x) = (is_lowest_element x (ipv4range_to_set r))"
@@ -434,6 +423,16 @@ subsection{*IP ranges*}
         case 1 thus ?case by(simp add: is_lowest_element_def)
         next
         case (2 A B x)
+
+        have is_lowest_RangeUnion: "is_lowest_element x (ipv4range_to_set A \<union> ipv4range_to_set B) \<Longrightarrow> 
+          is_lowest_element x (ipv4range_to_set A) \<or> is_lowest_element x (ipv4range_to_set B)"
+          by(simp add: is_lowest_element_def)
+      
+         (*why \<And> A B?*)
+         have ipv4range_lowest_element_RangeUnion: "\<And>a b A B. ipv4range_lowest_element A = Some a \<Longrightarrow> ipv4range_lowest_element B = Some b \<Longrightarrow>
+                  ipv4range_lowest_element (RangeUnion A B) = Some (min a b)"
+           by(auto dest!: ipv4range_lowest_element_correct_A simp add: is_lowest_element_def min_def)
+         
         from 2 show ?case
         apply(case_tac     "ipv4range_lowest_element B")
          apply(case_tac[!] "ipv4range_lowest_element A")
@@ -452,26 +451,6 @@ subsection{*IP ranges*}
         apply(clarsimp simp add: ipv4range_lowest_none_empty)
         using ipv4range_lowest_element_correct_A[simplified is_lowest_element_def]
         by (metis Un_iff not_le)
-        (*proof - (* TODO: be rid of *)
-          fix A :: "32 wordinterval" and B :: "32 wordinterval" and xa :: "32 word" and a :: "32 word" and aa :: "32 word"
-          assume a1: "\<And>x. x \<in> ipv4range_to_set B \<and> (\<forall>y\<in>ipv4range_to_set B. y \<le> x \<longrightarrow> y = x) \<Longrightarrow> a = x"
-          assume a2: "ipv4range_lowest_element B = Some a"
-          assume a3: "ipv4range_lowest_element A = Some aa"
-          assume a4: "xa \<in> ipv4range_to_set A \<or> xa \<in> ipv4range_to_set B"
-          assume a5: "\<forall>y\<in>ipv4range_to_set A \<union> ipv4range_to_set B. y \<le> xa \<longrightarrow> y = xa"
-          obtain sk\<^sub>0 :: "32 word \<Rightarrow> 32 word" where f1: "\<forall>x\<^sub>0. x\<^sub>0 \<notin> ipv4range_to_set B \<or> sk\<^sub>0 x\<^sub>0 \<in> ipv4range_to_set B \<and> sk\<^sub>0 x\<^sub>0 \<le> x\<^sub>0 \<and> sk\<^sub>0 x\<^sub>0 \<noteq> x\<^sub>0 \<or> a = x\<^sub>0"
-            using a1 by (metis (lifting))
-          have "\<forall>x\<^sub>0. x\<^sub>0 \<notin> {uub. uub \<in> ipv4range_to_set A \<or> uub \<in> ipv4range_to_set B} \<or> \<not> x\<^sub>0 \<le> xa \<or> xa = x\<^sub>0"
-            using a5 by blast
-          hence f2: "\<forall>x\<^sub>0. \<not> (x\<^sub>0 \<in> ipv4range_to_set A \<or> x\<^sub>0 \<in> ipv4range_to_set B) \<or> xa = x\<^sub>0 \<or> \<not> x\<^sub>0 \<le> xa"
-            by blast
-          hence "xa \<notin> ipv4range_to_set B \<or> a = xa"
-            using f1 by (metis (lifting))
-          hence "aa = xa \<or> a = xa"
-            using f2 a3 a4 by (metis (lifting) ipv4range_element_set_eq ipv4range_lowest_element_correct_A le_less_linear less_asym')
-          thus "(aa < a \<longrightarrow> aa = xa) \<and> (\<not> aa < a \<longrightarrow> a = xa)"
-            using a2 f2 a3 by (metis (lifting) ipv4range_element_set_eq ipv4range_lowest_element_correct_A le_less_linear less_asym')
-        qed*)
       qed
     qed
    
