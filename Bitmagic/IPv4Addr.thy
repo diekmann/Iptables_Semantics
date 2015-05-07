@@ -396,7 +396,8 @@ subsection{*IP ranges*}
     qed
     
 
-  lemma ipv4range_lowest_element_correct_A: "ipv4range_lowest_element r = Some x \<Longrightarrow> ipv4range_element x r \<and> (\<forall>y \<in> ipv4range_to_set r. (y \<le> x \<longrightarrow> y = x))"
+  lemma ipv4range_lowest_element_correct_A: "ipv4range_lowest_element r = Some x \<Longrightarrow> is_lowest_element x (ipv4range_to_set r)"
+    unfolding is_lowest_element_def
     apply(induction r arbitrary: x rule: ipv4range_lowest_element.induct)
      apply(rename_tac rs re x, case_tac "rs \<le> re", auto)[1]
     apply(subst(asm) ipv4range_lowest_element.simps(2))
@@ -410,27 +411,46 @@ subsection{*IP ranges*}
   lemma smallerequalgreater: "((y :: ipv4addr) \<le> s \<longrightarrow> y = s) = (y \<ge> s)" by fastforce
   lemma somecase: "x = Some y \<Longrightarrow> case x of None \<Rightarrow> a | Some z \<Rightarrow> b z = b y" by simp
 
+  (*lemma is_lowest_RangeUnion: " is_lowest_element x (ipv4range_to_set A \<union> ipv4range_to_set B) \<Longrightarrow> 
+    is_lowest_element x (ipv4range_to_set A) \<or> is_lowest_element x (ipv4range_to_set B)" sorry*)
+
+   lemma ipv4range_lowest_element_RangeUnion: "ipv4range_lowest_element A = Some a \<Longrightarrow> ipv4range_lowest_element B = Some b \<Longrightarrow>
+            ipv4range_lowest_element (RangeUnion A B) = Some (min a b)"
+     by(auto dest!: ipv4range_lowest_element_correct_A simp add: is_lowest_element_def min_def)
+     
+
   lemma ipv4range_lowest_element_set_eq: assumes "\<not> ipv4range_empty r"
     shows "(ipv4range_lowest_element r = Some x) = (is_lowest_element x (ipv4range_to_set r))"
-    unfolding is_lowest_element_def
+    (*unfolding is_lowest_element_def*)
     proof(rule iffI)
       assume "ipv4range_lowest_element r = Some x"
-      thus "x \<in> ipv4range_to_set r \<and> (\<forall>y\<in>ipv4range_to_set r. y \<le> x \<longrightarrow> y = x)"
+      thus "is_lowest_element x (ipv4range_to_set r)"
      using ipv4range_lowest_element_correct_A ipv4range_lowest_none_empty by simp
     next
-      assume "x \<in> ipv4range_to_set r \<and> (\<forall>y\<in>ipv4range_to_set r. y \<le> x \<longrightarrow> y = x)"
+      assume "is_lowest_element x (ipv4range_to_set r)"
       with assms show "(ipv4range_lowest_element r = Some x)"
-        apply(induction r arbitrary: x rule: ipv4range_lowest_element.induct)
-         apply simp 
-        apply(rename_tac A B x)
+        proof(induction r arbitrary: x rule: ipv4range_lowest_element.induct)
+        case 1 thus ?case by(simp add: is_lowest_element_def)
+        next
+        case (2 A B x)
+        from 2 show ?case
         apply(case_tac     "ipv4range_lowest_element B")
          apply(case_tac[!] "ipv4range_lowest_element A")
-           apply(auto)[3]
+           apply(auto simp add: is_lowest_element_def)[3]
         apply(subgoal_tac "\<not> ipv4range_empty A \<and> \<not> ipv4range_empty B")
          prefer 2
          using arg_cong[where f = Not, OF ipv4range_lowest_none_empty] apply(simp, metis)
+        (*apply(drule(1) ipv4range_lowest_element_RangeUnion)
+        apply(simp split: option.split_asm add: min_def)
+        apply(drule is_lowest_RangeUnion)
+        apply(elim disjE)*)
+        
+        apply(simp add: is_lowest_element_def)
         apply(clarsimp simp add: ipv4range_lowest_none_empty)
-        proof - (* TODO: be rid of *)
+        using ipv4range_lowest_element_correct_A[simplified is_lowest_element_def]
+
+        by (metis (full_types) Un_iff ipv4range_element_set_eq not_le smallerequalgreater)
+        (*proof - (* TODO: be rid of *)
           fix A :: "32 wordinterval" and B :: "32 wordinterval" and xa :: "32 word" and a :: "32 word" and aa :: "32 word"
           assume a1: "\<And>x. x \<in> ipv4range_to_set B \<and> (\<forall>y\<in>ipv4range_to_set B. y \<le> x \<longrightarrow> y = x) \<Longrightarrow> a = x"
           assume a2: "ipv4range_lowest_element B = Some a"
@@ -449,7 +469,8 @@ subsection{*IP ranges*}
             using f2 a3 a4 by (metis (lifting) ipv4range_element_set_eq ipv4range_lowest_element_correct_A le_less_linear less_asym')
           thus "(aa < a \<longrightarrow> aa = xa) \<and> (\<not> aa < a \<longrightarrow> a = xa)"
             using a2 f2 a3 by (metis (lifting) ipv4range_element_set_eq ipv4range_lowest_element_correct_A le_less_linear less_asym')
-        qed
+        qed*)
+      qed
     qed
    
 
