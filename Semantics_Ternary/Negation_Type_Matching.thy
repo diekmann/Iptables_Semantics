@@ -37,7 +37,8 @@ fun to_negation_type_nnf :: "'a match_expr \<Rightarrow> 'a negation_type list" 
  "to_negation_type_nnf MatchAny = []" |
  "to_negation_type_nnf (Match a) = [Pos a]" |
  "to_negation_type_nnf (MatchNot (Match a)) = [Neg a]" |
- "to_negation_type_nnf (MatchAnd a b) = (to_negation_type_nnf a) @ (to_negation_type_nnf b)"
+ "to_negation_type_nnf (MatchAnd a b) = (to_negation_type_nnf a) @ (to_negation_type_nnf b)" |
+ "to_negation_type_nnf _ = undefined"
 
 
 lemma "normalized_nnf_match m \<Longrightarrow> matches \<gamma> (alist_and (to_negation_type_nnf m)) a p  = matches \<gamma> m a p"

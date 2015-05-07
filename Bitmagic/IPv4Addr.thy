@@ -41,7 +41,7 @@ section {*Modelling IPv4 Adresses*}
     by(simp add: max_ipv4_addr_number max_word_def)
   lemma max_ipv4_addr_max[simp]: "\<forall>a. a \<le> max_ipv4_addr"
     by(simp add: max_ipv4_addr_max_word)
-  lemma range_0_max_UNIV[simp]: "{0 .. max_ipv4_addr} = UNIV"
+  lemma range_0_max_UNIV: "UNIV = {0 .. max_ipv4_addr}" (*not in the simp set, for a reason*)
     by(simp add: max_ipv4_addr_max_word) fastforce
 
   text{*identity functions*}
@@ -261,7 +261,7 @@ subsection{*IP ranges*}
     apply(rule)
      apply(simp_all)
     apply(simp add: ipv4range_set_from_bitmask_alt1 ipv4range_set_from_netmask_def Let_def)
-    apply(simp add: range_0_max_UNIV[symmetric] del: range_0_max_UNIV)
+    apply(simp add: range_0_max_UNIV)
     apply(simp add: mask_def)
     done
 

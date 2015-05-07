@@ -222,7 +222,7 @@ private lemma ipv4addr_andnotmask_eq_ormaskandnot: "((base::32 word) AND NOT mas
   apply (simp add: upto_code upto_aux_rec, presburger)
 done
 
-
+(* we needed this lemma once. It is commented out because the proof is slow. No comment about its overwhelming elegance.
 private lemma ipv4addr_andnot_eq_takem: "(a::32 word) AND NOT mask (32 - m) = b AND NOT mask (32 - m) \<longleftrightarrow> (take (m) (to_bl a)) = (take (m) (to_bl b))"
   apply word_bitwise
   apply (subgoal_tac "m > 32 \<or> m \<in> set (map nat (upto 0 32))")
@@ -262,6 +262,7 @@ private lemma ipv4addr_andnot_eq_takem: "(a::32 word) AND NOT mask (32 - m) = b 
    apply satx
   apply (simp add: upto_code upto_aux_rec, presburger)
 done
+*)
 
 private lemma size_mask_32word': "size ((mask (32 - m))::32 word) = 32" by(simp add:word_size)
 

@@ -1,6 +1,5 @@
 theory No_Spoof
 imports Common_Primitive_Matcher
-  "../Common/Negation_Type_DNF"
         Primitive_Normalization
 begin
 
@@ -574,7 +573,7 @@ begin
           {} {} \<longleftrightarrow> False
           "
         apply(simp add: get_exists_matching_src_ips_def match_iface.simps)
-        apply(simp add: range_0_max_UNIV[symmetric] ipv4cidr_union_set_def iprange_example del:range_0_max_UNIV)
+        apply(simp add: range_0_max_UNIV ipv4cidr_union_set_def iprange_example)
         done
 
   text{*Example 3*}
@@ -639,7 +638,7 @@ begin
     apply(simp add: get_exists_matching_src_ips_def get_all_matching_src_ips_def match_iface.simps del: no_spoofing_algorithm.simps)
     apply(simp add: ipv4cidr_union_set_def)
     apply(simp add: iprange_example)
-    apply(simp add: range_0_max_UNIV[symmetric] del: range_0_max_UNIV)
+    apply(simp add: range_0_max_UNIV)
     done
    
 
