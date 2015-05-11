@@ -287,7 +287,7 @@ begin
 
 
 
-    fun internal_iface_name_subset :: "string \<Rightarrow> string \<Rightarrow> bool" where
+    private definition internal_iface_name_subset :: "string \<Rightarrow> string \<Rightarrow> bool" where
       "internal_iface_name_subset i1 i2 = (case (iface_name_is_wildcard i1, iface_name_is_wildcard i2) of
         (True,  True) \<Rightarrow> length i1 \<ge> length i2 \<and> take ((length i2) - 1) i1 = butlast i2 |
         (True,  False) \<Rightarrow> False |
@@ -296,14 +296,16 @@ begin
         )"
 
 
-    lemma hlp1: "{x. \<exists>cs. x = i1 @ cs} \<subseteq> {x. \<exists>cs. x = i2 @ cs} \<Longrightarrow> length i2 \<le> length i1"
+    private lemma hlp1: "{x. \<exists>cs. x = i1 @ cs} \<subseteq> {x. \<exists>cs. x = i2 @ cs} \<Longrightarrow> length i2 \<le> length i1"
       apply(simp add: Set.Collect_mono_iff)
       by force
-    lemma hlp2: "{x. \<exists>cs. x = i1 @ cs} \<subseteq> {x. \<exists>cs. x = i2 @ cs} \<Longrightarrow> take (length i2) i1 = i2"
+    private lemma hlp2: "{x. \<exists>cs. x = i1 @ cs} \<subseteq> {x. \<exists>cs. x = i2 @ cs} \<Longrightarrow> take (length i2) i1 = i2"
       apply(simp add: Set.Collect_mono_iff)
       by force
 
-    lemma internal_iface_name_subset: "internal_iface_name_subset i1 i2 \<longleftrightarrow> {i. internal_iface_name_match i1 i} \<subseteq> {i. internal_iface_name_match i2 i}"
+    private lemma internal_iface_name_subset: "internal_iface_name_subset i1 i2 \<longleftrightarrow> 
+        {i. internal_iface_name_match i1 i} \<subseteq> {i. internal_iface_name_match i2 i}"
+      unfolding internal_iface_name_subset_def
       apply(case_tac "iface_name_is_wildcard i1")
        apply(case_tac [!] "iface_name_is_wildcard i2")
          apply(simp_all)
@@ -327,9 +329,14 @@ begin
       by (metis One_nat_def butlast_conv_take length_butlast length_take take_take)
       
        
-      
-        
-         
+    
+    definition iface_subset :: "iface \<Rightarrow> iface \<Rightarrow> bool" where
+      "iface_subset i1 i2 \<longleftrightarrow> internal_iface_name_subset (iface_sel i1) (iface_sel i2)"
+    
+    lemma iface_subset: "iface_subset i1 i2 \<longleftrightarrow> {i. match_iface i1 i} \<subseteq> {i. match_iface i2 i}"
+      unfolding iface_subset_def
+      apply(cases i1, cases i2)
+      by(simp add: internal_iface_name_subset)
 
 
 

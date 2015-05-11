@@ -91,7 +91,7 @@ value "rmshadow [SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', 
           simple_action.Drop] UNIV"
 
 
-(*
+
 subsection{*A datastructure for sets of packets*}
 text{*Previous algorithm is not executable because we have no code for @{typ "simple_packet set"}.*}
 
@@ -107,20 +107,53 @@ text{*Previous algorithm is not executable because we have no code for @{typ "si
     "simple_packet_set_toSet ms = {p. \<exists>m \<in> set ms. simple_matches m p}"
 
   fun simple_packet_set_union :: "simple_packet_set \<Rightarrow> simple_match \<Rightarrow> simple_packet_set" where
-    "simple_packet_set_union ps m = m #ps"
+    "simple_packet_set_union ps m = m # ps"
 
   lemma "simple_packet_set_toSet (simple_packet_set_union ps m) = simple_packet_set_toSet ps \<union> {p. simple_matches m p}"
     apply(simp) by blast
 
 
-  
-  definition "iface_subset = undefined"
-  lemma "iface_subset ifce1 ifce2 \<longleftrightarrow> {i. match_iface ifce1 i} \<subseteq> {i. match_iface ifce2 i}" sorry
-
-  fun simple_packet_set_subset :: "simple_match \<Rightarrow> simple_packet_set \<Rightarrow> bool" where
-    "simple_packet_set_subset m [] \<longleftrightarrow> empty_match m" |
+  (*fun simple_packet_set_subset :: "simple_match \<Rightarrow> simple_packet_set \<Rightarrow> bool" where
+    (*"simple_packet_set_subset m [] \<longleftrightarrow> empty_match m" |*)
     "simple_packet_set_subset \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=protocol, sports=sps, dports=dps \<rparr> ms \<longleftrightarrow> 
-        (\<exists>m' \<in> set ms. iface_subset iif (iiface m')) \<and>
-        (\<exists>m' \<in> set ms. iface_subset oif (oiface m')) \<and> undefined" (*TODO: continue!*)
-*)
+        {i. match_iface iif i} \<subseteq> (\<Union> ifce \<in> iiface ` set ms. {i. match_iface ifce i}) \<and>
+        {i. match_iface oif i} \<subseteq> (\<Union> ifce \<in> oiface ` set ms. {i. match_iface ifce i}) \<and>
+        {ip. simple_match_ip sip ip} \<subseteq> (\<Union> ips \<in> src ` set ms. {ip. simple_match_ip ips ip}) \<and>
+        {ip. simple_match_ip dip ip} \<subseteq> (\<Union> ips \<in> dst ` set ms. {ip. simple_match_ip ips ip}) \<and>
+        {p. match_proto protocol p} \<subseteq> (\<Union> ps \<in> proto ` set ms. {p. match_proto ps p}) \<and>
+        {p. simple_match_port sps p} \<subseteq> (\<Union> ps \<in> sports ` set ms. {p. simple_match_port ps p}) \<and>
+        {p. simple_match_port dps p} \<subseteq> (\<Union> ps \<in> dports ` set ms. {p. simple_match_port ps p})
+        " (*TODO: continue!*)
+    (*"simple_packet_set_subset \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=protocol, sports=sps, dports=dps \<rparr> ms \<longleftrightarrow> 
+      (\<exists>m' \<in> set ms.
+        {i. match_iface iif i} \<subseteq> {i. match_iface (iiface m') i} \<and>
+        {i. match_iface oif i} \<subseteq> {i. match_iface (oiface m') i} \<and>
+        {ip. simple_match_ip sip ip} \<subseteq> {ip. simple_match_ip (src m') ip} \<and>
+        {ip. simple_match_ip dip ip} \<subseteq> {ip. simple_match_ip (dst m') ip} \<and>
+        {p. match_proto protocol p} \<subseteq> {p. match_proto (proto m') p} \<and>
+        {p. simple_match_port sps p} \<subseteq> {p. simple_match_port (sports m') p} \<and>
+        {p. simple_match_port dps p} \<subseteq> {p. simple_match_port (dports m') p}
+      )"*)*)
+
+   value "(\<exists>m' \<in> set ms. iface_subset iif (iiface m')) \<and>
+        (\<exists>m' \<in> set ms. iface_subset oif (oiface m')) \<and>
+        ipv4range_subset (ipv4_cidr_tuple_to_interval sip) (l2br (map ipv4cidr_to_interval (map src ms)))"
+
+   (*TODO: either a sound but not complete executable implementation or a better idea to implement subset*)
+   lemma "(\<exists>m' \<in> set ms.
+        {i. match_iface iif i} \<subseteq> {i. match_iface (iiface m') i} \<and>
+        {i. match_iface oif i} \<subseteq> {i. match_iface (oiface m') i} \<and>
+        {ip. simple_match_ip sip ip} \<subseteq> {ip. simple_match_ip (src m') ip} \<and>
+        {ip. simple_match_ip dip ip} \<subseteq> {ip. simple_match_ip (dst m') ip} \<and>
+        {p. match_proto protocol p} \<subseteq> {p. match_proto (proto m') p} \<and>
+        {p. simple_match_port sps p} \<subseteq> {p. simple_match_port (sports m') p} \<and>
+        {p. simple_match_port dps p} \<subseteq> {p. simple_match_port (dports m') p}
+      )
+    \<Longrightarrow> {p. simple_matches \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=protocol, sports=sps, dports=dps \<rparr> p} \<subseteq> (simple_packet_set_toSet ms)"
+    apply(simp)
+    apply(simp add: simple_matches.simps)
+    apply(simp add: Set.Collect_mono_iff)
+    apply clarify
+    apply meson
+    done
 end
