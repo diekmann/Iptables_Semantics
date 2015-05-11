@@ -92,55 +92,36 @@ value "rmshadow [SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', 
 
 
 
-subsection{*A datastructure for sets of packets*}
-text{*Previous algorithm is not executable because we have no code for @{typ "simple_packet set"}.*}
+text{*Previous algorithm is not executable because we have no code for @{typ "simple_packet set"}.
+      To get some code, some efficient set operations would be necessary.
+        We either need union and subset or intersection and negation.
+        Both subset and negation are complicated.
+      Probably the BDDs which related work uses is really necessary.
+     *}
 
+context
+begin
+  private type_synonym simple_packet_set = "simple_match list"
 
-  (*assume: no interface wildcards
-    then we should be able to store a packet set in the following*)
-  (*TODO: accessors colide with simple_match*)
-
-
-  type_synonym simple_packet_set = "simple_match list"
-
-  fun simple_packet_set_toSet :: "simple_packet_set \<Rightarrow> simple_packet set" where
+  private definition simple_packet_set_toSet :: "simple_packet_set \<Rightarrow> simple_packet set" where
     "simple_packet_set_toSet ms = {p. \<exists>m \<in> set ms. simple_matches m p}"
 
-  fun simple_packet_set_union :: "simple_packet_set \<Rightarrow> simple_match \<Rightarrow> simple_packet_set" where
+  private lemma simple_packet_set_toSet_alt: "simple_packet_set_toSet ms = (\<Union> m \<in> set ms. {p. simple_matches m p})"
+    unfolding simple_packet_set_toSet_def by blast
+
+  private definition simple_packet_set_union :: "simple_packet_set \<Rightarrow> simple_match \<Rightarrow> simple_packet_set" where
     "simple_packet_set_union ps m = m # ps"
 
-  lemma "simple_packet_set_toSet (simple_packet_set_union ps m) = simple_packet_set_toSet ps \<union> {p. simple_matches m p}"
-    apply(simp) by blast
+  private lemma "simple_packet_set_toSet (simple_packet_set_union ps m) = simple_packet_set_toSet ps \<union> {p. simple_matches m p}"
+    unfolding simple_packet_set_toSet_def simple_packet_set_union_def  by simp blast
 
 
-  (*fun simple_packet_set_subset :: "simple_match \<Rightarrow> simple_packet_set \<Rightarrow> bool" where
-    (*"simple_packet_set_subset m [] \<longleftrightarrow> empty_match m" |*)
-    "simple_packet_set_subset \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=protocol, sports=sps, dports=dps \<rparr> ms \<longleftrightarrow> 
-        {i. match_iface iif i} \<subseteq> (\<Union> ifce \<in> iiface ` set ms. {i. match_iface ifce i}) \<and>
-        {i. match_iface oif i} \<subseteq> (\<Union> ifce \<in> oiface ` set ms. {i. match_iface ifce i}) \<and>
-        {ip. simple_match_ip sip ip} \<subseteq> (\<Union> ips \<in> src ` set ms. {ip. simple_match_ip ips ip}) \<and>
-        {ip. simple_match_ip dip ip} \<subseteq> (\<Union> ips \<in> dst ` set ms. {ip. simple_match_ip ips ip}) \<and>
-        {p. match_proto protocol p} \<subseteq> (\<Union> ps \<in> proto ` set ms. {p. match_proto ps p}) \<and>
-        {p. simple_match_port sps p} \<subseteq> (\<Union> ps \<in> sports ` set ms. {p. simple_match_port ps p}) \<and>
-        {p. simple_match_port dps p} \<subseteq> (\<Union> ps \<in> dports ` set ms. {p. simple_match_port ps p})
-        " (*TODO: continue!*)
-    (*"simple_packet_set_subset \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=protocol, sports=sps, dports=dps \<rparr> ms \<longleftrightarrow> 
-      (\<exists>m' \<in> set ms.
-        {i. match_iface iif i} \<subseteq> {i. match_iface (iiface m') i} \<and>
-        {i. match_iface oif i} \<subseteq> {i. match_iface (oiface m') i} \<and>
-        {ip. simple_match_ip sip ip} \<subseteq> {ip. simple_match_ip (src m') ip} \<and>
-        {ip. simple_match_ip dip ip} \<subseteq> {ip. simple_match_ip (dst m') ip} \<and>
-        {p. match_proto protocol p} \<subseteq> {p. match_proto (proto m') p} \<and>
-        {p. simple_match_port sps p} \<subseteq> {p. simple_match_port (sports m') p} \<and>
-        {p. simple_match_port dps p} \<subseteq> {p. simple_match_port (dports m') p}
-      )"*)*)
-
-   value "(\<exists>m' \<in> set ms. iface_subset iif (iiface m')) \<and>
+  value "(\<exists>m' \<in> set ms. iface_subset iif (iiface m')) \<and>
         (\<exists>m' \<in> set ms. iface_subset oif (oiface m')) \<and>
         ipv4range_subset (ipv4_cidr_tuple_to_interval sip) (l2br (map ipv4cidr_to_interval (map src ms)))"
 
    (*TODO: either a sound but not complete executable implementation or a better idea to implement subset*)
-   lemma "(\<exists>m' \<in> set ms.
+   private lemma "(\<exists>m' \<in> set ms.
         {i. match_iface iif i} \<subseteq> {i. match_iface (iiface m') i} \<and>
         {i. match_iface oif i} \<subseteq> {i. match_iface (oiface m') i} \<and>
         {ip. simple_match_ip sip ip} \<subseteq> {ip. simple_match_ip (src m') ip} \<and>
@@ -150,10 +131,23 @@ text{*Previous algorithm is not executable because we have no code for @{typ "si
         {p. simple_match_port dps p} \<subseteq> {p. simple_match_port (dports m') p}
       )
     \<Longrightarrow> {p. simple_matches \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=protocol, sports=sps, dports=dps \<rparr> p} \<subseteq> (simple_packet_set_toSet ms)"
-    apply(simp)
-    apply(simp add: simple_matches.simps)
-    apply(simp add: Set.Collect_mono_iff)
-    apply clarify
-    apply meson
-    done
+      unfolding simple_packet_set_toSet_def simple_packet_set_union_def
+      apply(simp add: simple_matches.simps)
+      apply(simp add: Set.Collect_mono_iff)
+      apply clarify
+      apply meson
+      done
+
+    text{*subset or negation ... One efficient implementation would suffice.*}
+    private lemma "{p. simple_matches m p} \<subseteq> (simple_packet_set_toSet ms) \<longleftrightarrow>
+      {p. simple_matches m p} \<inter> (\<Inter> m \<in> set ms. {p. \<not> simple_matches m p}) = {}" (is "?l \<longleftrightarrow> ?r")
+    proof - 
+      have "?l \<longleftrightarrow> {p. simple_matches m p} - (simple_packet_set_toSet ms) = {}" by blast
+      also have "\<dots> \<longleftrightarrow> {p. simple_matches m p} - (\<Union> m \<in> set ms. {p. simple_matches m p}) = {}"
+      using simple_packet_set_toSet_alt by simp
+      also have "\<dots> \<longleftrightarrow> ?r" by blast
+      finally show ?thesis .
+    qed
+
+end
 end
