@@ -92,6 +92,9 @@ begin
              apply(simp_all add: iface_name_is_wildcard_fst)
        apply (metis (full_types) iface_name_is_wildcard.simps(3) list.exhaust)
       by (metis append_butlast_last_id)
+    private lemma internal_iface_name_to_set2: "internal_iface_name_to_set ifce = {i. internal_iface_name_match ifce i}"
+      by (simp add: internal_iface_name_to_set)
+      
   
     private lemma internal_iface_name_match_refl: "internal_iface_name_match i i"
      proof -
@@ -279,6 +282,56 @@ begin
       done
 
     lemma match_iface_refl: "match_iface (Iface x) x" by (simp add: internal_iface_name_match_refl)
+
+
+
+
+
+    fun internal_iface_name_subset :: "string \<Rightarrow> string \<Rightarrow> bool" where
+      "internal_iface_name_subset i1 i2 = (case (iface_name_is_wildcard i1, iface_name_is_wildcard i2) of
+        (True,  True) \<Rightarrow> length i1 \<ge> length i2 \<and> take ((length i2) - 1) i1 = butlast i2 |
+        (True,  False) \<Rightarrow> False |
+        (False, True) \<Rightarrow> take (length i2 - 1) i1 = butlast i2 |
+        (False, False) \<Rightarrow> i1 = i2
+        )"
+
+
+    lemma hlp1: "{x. \<exists>cs. x = i1 @ cs} \<subseteq> {x. \<exists>cs. x = i2 @ cs} \<Longrightarrow> length i2 \<le> length i1"
+      apply(simp add: Set.Collect_mono_iff)
+      by force
+    lemma hlp2: "{x. \<exists>cs. x = i1 @ cs} \<subseteq> {x. \<exists>cs. x = i2 @ cs} \<Longrightarrow> take (length i2) i1 = i2"
+      apply(simp add: Set.Collect_mono_iff)
+      by force
+
+    lemma internal_iface_name_subset: "internal_iface_name_subset i1 i2 \<longleftrightarrow> {i. internal_iface_name_match i1 i} \<subseteq> {i. internal_iface_name_match i2 i}"
+      apply(case_tac "iface_name_is_wildcard i1")
+       apply(case_tac [!] "iface_name_is_wildcard i2")
+         apply(simp_all)
+         defer
+         using internal_iface_name_match_refl match_iface_case_nowildcard apply fastforce
+        using match_iface_case_nowildcard match_iface_case_wildcard_prefix apply force
+       using match_iface_case_nowildcard  apply force
+      apply(rule)
+       apply(clarify, rename_tac x)
+       apply(drule_tac p_i=x in match_iface_case_wildcard_prefix)+
+       apply(simp)
+       apply (smt One_nat_def append_take_drop_id butlast_conv_take cancel_comm_monoid_add_class.diff_cancel diff_commute diff_diff_cancel diff_is_0_eq drop_take length_butlast take_append)
+      apply(subst(asm) internal_iface_name_to_set2[symmetric])+
+      apply(simp add: internal_iface_name_to_set)
+      apply(safe)
+       apply(drule hlp1)
+       apply(simp)
+       apply (metis One_nat_def Suc_pred diff_Suc_eq_diff_pred diff_is_0_eq iface_name_is_wildcard.simps(1) length_greater_0_conv)
+      apply(drule hlp2)
+      apply(simp)
+      by (metis One_nat_def butlast_conv_take length_butlast length_take take_take)
+      
+       
+      
+        
+         
+
+
 
     declare match_iface.simps[simp del]
     declare iface_name_is_wildcard.simps[simp del]
