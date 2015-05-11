@@ -278,6 +278,8 @@ begin
                apply (metis match_iface.simps match_iface_case_nowildcard)+
       done
 
+    lemma match_iface_refl: "match_iface (Iface x) x" by (simp add: internal_iface_name_match_refl)
+
     declare match_iface.simps[simp del]
     declare iface_name_is_wildcard.simps[simp del]
 end

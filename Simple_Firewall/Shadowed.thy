@@ -45,6 +45,44 @@ subsubsection{*Soundness*}
   qed
 
 
+
+text{*A different approach where we start with the empty set of packets and collect packets which are already ``matched-away''.*}
+fun rmshadow' :: "simple_rule list \<Rightarrow> simple_packet set \<Rightarrow> simple_rule list" where
+  "rmshadow' [] _ = []" |
+  "rmshadow' ((SimpleRule m a)#rs) P = (if {p. simple_matches m p} \<subseteq> P
+    then 
+      rmshadow' rs P
+    else
+      (SimpleRule m a) # (rmshadow' rs (P \<union> {p. simple_matches m p})))"
+
+  lemma rmshadow'_sound: 
+    "p \<notin> P \<Longrightarrow> simple_fw (rmshadow' rs P) p = simple_fw rs p"
+  proof(induction rs arbitrary: P)
+  case Nil thus ?case by simp
+  next
+  case (Cons r rs)
+    from Cons.IH Cons.prems have IH1: "simple_fw (rmshadow' rs P) p = simple_fw rs p" by (simp)
+    let ?P'="{p. simple_matches (match_sel r) p}"
+    from Cons.IH Cons.prems have IH2: "\<And>m. p \<notin> (Collect (simple_matches m)) \<Longrightarrow> simple_fw (rmshadow' rs (P \<union> Collect (simple_matches m))) p = simple_fw rs p" by simp
+    have nomatch_m: "\<And>m. p \<notin> P \<Longrightarrow> {p. simple_matches m p} \<subseteq> P \<Longrightarrow> \<not> simple_matches m p" by blast
+    from Cons.prems show ?case
+      apply(cases r, rename_tac m a)
+      apply(simp)
+      apply(case_tac "{p. simple_matches m p} \<subseteq> P")
+       apply(simp add: IH1)
+       apply(drule_tac m=m in nomatch_m)
+        apply(simp)
+       apply(simp add: nomatch)
+      apply(simp)
+      apply(case_tac a)
+       apply(simp_all)
+       apply(simp_all add: IH2)
+      done
+  qed
+
+corollary "simple_fw (rmshadow rs UNIV) p = simple_fw (rmshadow' rs {}) p"
+  using rmshadow'_sound rmshadow_sound by auto
+
 value "rmshadow [SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0, 0), dst = (0, 0), proto = Proto TCP, sports = (0, 0xFFFF), dports = (0x16, 0x16)\<rparr>
           simple_action.Drop,
         SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0, 0), dst = (0, 0), proto = ProtoAny, sports = (0, 0xFFFF), dports = (0, 0xFFFF)\<rparr>
@@ -52,125 +90,37 @@ value "rmshadow [SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', 
         SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0, 0), dst = (0, 0), proto = Proto TCP, sports = (0, 0xFFFF), dports = (0x138E, 0x138E)\<rparr>
           simple_action.Drop] UNIV"
 
+
 (*
 subsection{*A datastructure for sets of packets*}
 text{*Previous algorithm is not executable because we have no code for @{typ "simple_packet set"}.*}
 
-  datatype basic_set_operation = UnionOP | IntersectOP
-(* doesn't work this way
-TODO:
-back to old version, simple_match dnf
-is_empty \<longleftrightarrow> is_empty get_iiface \<and> is_empty get sip ...
-*)
+
   (*assume: no interface wildcards
     then we should be able to store a packet set in the following*)
   (*TODO: accessors colide with simple_match*)
-  record simple_packet_set =
-      set_type :: basic_set_operation
-      iiface :: "iface dnf"
-      oiface :: "iface dnf"
-      src :: "(ipv4addr \<times> nat) list"
-      dst :: "(ipv4addr \<times> nat) list"
-      proto :: "protocol set"
-      sports :: "(16 word \<times> 16 word) list"
-      dports :: "(16 word \<times> 16 word) list"
-    (*
-    what can we do with this representation?
-                            \<union>    \<inter>                   negate                            is_empty
-    iface dnf               @    dnf_and              dnf_not                          ? \<rightarrow> no iface wildcards, should be doable
-    cidr list               @    smallest prefix      to bitrange, negate, cidrsplit   []
-    protocol                \<union>    \<inter>                   -                                 = {}
-    port-interval list      @    intersect bitrange   bitrange negate                  []
-  *)
+
+
+  type_synonym simple_packet_set = "simple_match list"
 
   fun simple_packet_set_toSet :: "simple_packet_set \<Rightarrow> simple_packet set" where
-    "simple_packet_set_toSet \<lparr>set_type = IntersectOP, iiface=iifs, oiface=oifs, src=sips, dst=dips, proto=protocols, sports=spss, dports=dpss \<rparr> = 
-        {p. (dnf_to_bool (\<lambda>m. match_iface m (p_iiface p)) iifs) \<and>
-            (dnf_to_bool (\<lambda>m. match_iface m (p_oiface p)) oifs) \<and> 
-            (\<exists>rng \<in> set sips. simple_match_ip rng (p_src p)) \<and>
-            (\<exists>rng \<in> set dips. simple_match_ip rng (p_dst p)) \<and>
-            (\<exists>proto \<in> protocols. match_proto proto (p_proto p)) \<and>
-            (\<exists>rng \<in> set spss. simple_match_port rng (p_sport p)) \<and>
-            (\<exists>rng \<in> set dpss. simple_match_port rng (p_dport p)) }" |
-    "simple_packet_set_toSet \<lparr>set_type = UnionOP, iiface=iifs, oiface=oifs, src=sips, dst=dips, proto=protocols, sports=spss, dports=dpss \<rparr> = 
-        {p. (dnf_to_bool (\<lambda>m. match_iface m (p_iiface p)) iifs) \<or>
-            (dnf_to_bool (\<lambda>m. match_iface m (p_oiface p)) oifs) \<or> 
-            (\<exists>rng \<in> set sips. simple_match_ip rng (p_src p)) \<or>
-            (\<exists>rng \<in> set dips. simple_match_ip rng (p_dst p)) \<or>
-            (\<exists>proto \<in> protocols. match_proto proto (p_proto p)) \<or>
-            (\<exists>rng \<in> set spss. simple_match_port rng (p_sport p)) \<or>
-            (\<exists>rng \<in> set dpss. simple_match_port rng (p_dport p)) }"
+    "simple_packet_set_toSet ms = {p. \<exists>m \<in> set ms. simple_matches m p}"
 
-  text{*Did we forget anything? no.*}
-  lemma "p \<in> (simple_packet_set_toSet
-                \<lparr>set_type = IntersectOP, simple_packet_set.iiface=[[Pos iif]], oiface=[[Pos oif]], src=[sip], dst=[dip], proto={protocol}, sports=[sps], dports=[dps] \<rparr>) \<longleftrightarrow>
-         simple_matches \<lparr>simple_match.iiface=iif, oiface=oif, src=sip, dst=dip, proto=protocol, sports=sps, dports=dps \<rparr> p"
-    by(simp add: simple_matches.simps)
-  lemma "p \<notin> (simple_packet_set_toSet
-                \<lparr>set_type = UnionOP, simple_packet_set.iiface=[[Pos iif]], oiface=[[Pos oif]], src=[sip], dst=[dip], proto={protocol}, sports=[sps], dports=[dps] \<rparr>) \<longleftrightarrow>
-          \<not> simple_matches \<lparr>simple_match.iiface=iif, oiface=oif, src=sip, dst=dip, proto=protocol, sports=sps, dports=dps \<rparr> p"
-    apply(simp add: simple_matches.simps)
-    apply(rule iffI)
-     apply(simp)
-    apply(intro impI)
-    
+  fun simple_packet_set_union :: "simple_packet_set \<Rightarrow> simple_match \<Rightarrow> simple_packet_set" where
+    "simple_packet_set_union ps m = m #ps"
 
-  fun optimize :: "simple_packet_set \<Rightarrow> simple_packet_set" where
-    "optimize \<lparr>set_type = t, iiface=iifs, oiface=oifs, src=sips, dst=dips, proto=protocols, sports=spss, dports=dpss \<rparr> = 
-      \<lparr>set_type = t, iiface=iifs, oiface=oifs, (*todo*)
-       src= remdups sips, dst= remdups dips, (*todo: implode ranges?*)
-       proto=protocols, 
-       sports = filter (\<lambda>(s,e). s \<le> e) spss,
-       dports = filter (\<lambda>(s,e). s \<le> e) dpss \<rparr>"
-  lemma "simple_packet_set_toSet (optimize pkts) = simple_packet_set_toSet pkts"
-    proof -
-    { fix pss p
-      have "(\<exists>rng \<in> set (filter (\<lambda>(s,e). s \<le> e) pss). simple_match_port rng p) \<longleftrightarrow> (\<exists>rng \<in> set pss. simple_match_port rng p)"
-        by(induction pss)(auto) }
-    thus ?thesis
-    apply(cases pkts, rename_tac iifs oifs sips dips protocols spss dpss)
-    by simp
-  qed
+  lemma "simple_packet_set_toSet (simple_packet_set_union ps m) = simple_packet_set_toSet ps \<union> {p. simple_matches m p}"
+    apply(simp) by blast
 
-  fun is_empty :: "simple_packet_set \<Rightarrow> bool" where
-    "is_empty \<lparr>set_type = t, iiface=iifs, oiface=oifs, src=sips, dst=dips, proto=protocols, sports=spss, dports=dpss \<rparr> \<longleftrightarrow>
-        iifs = [] (*todo*) \<or> oifs = [] \<or> (*todo*)
-        sips = [] \<or> dips = [] \<or>
-        protocols = {} \<or>
-        spss = [] \<or> dpss = [] (*TODO*)"
-   lemma "is_empty pkts \<longleftrightarrow> simple_packet_set_toSet pkts = {}"
-     apply(cases pkts, rename_tac iifs oifs sips dips protocols spss dpss)
-     apply(simp)
-     apply(rule iffI)
-      apply(elim disjE, simp_all)
-     oops (* \<longrightarrow> direction holds*)
 
-  fun invert :: "simple_packet_set \<Rightarrow> simple_packet_set" where
-    "invert \<lparr>set_type = IntersectOP, iiface=iifs, oiface=oifs, src=sips, dst=dips, proto=protocols, sports=spss, dports=dpss \<rparr> = 
-      \<lparr>set_type = UnionOP, iiface=dnf_not iifs, oiface=dnf_not oifs,
-             src= sips, dst=  dips, (*todo*)
-             proto=-protocols, 
-             sports = ports_invert spss,
-             dports = ports_invert dpss \<rparr>"
-  lemma "simple_packet_set_toSet (invert pkts) = - simple_packet_set_toSet pkts"
-     apply(cases pkts, rename_tac iifs oifs sips dips protocols spss dpss)
-     apply(simp)
-     apply(subst Collect_neg_eq[symmetric])
-     apply(rule Collect_cong)
-     apply(subst HOL.de_Morgan_conj)+
-     apply(subst dnf_not)+
-     (*apply(rule refl_conj_eq)+
-     apply(rule conj_left_cong)+*)
-     oops (*we cannot invert it!*)
   
-  (*Idea: replace (\<forall>p\<in>P. \<not> simple_matches m p) by something with uses simple_packet_set*)
-  lemma "(\<forall>p\<in>P. \<not> simple_matches m p) \<longleftrightarrow> P \<inter> {p. simple_matches m p} = {}" by auto
-  (*simple_packet_set_is_empty
-    We can approximate simple_packet_set_is_empty.
-      Only if simple_packet_set_is_empty returns True, then the set must be empty
-      Other direction (if it is empty, the it must return true) can be ignored for the soundness (not completeness)
-      of the rmshadow algorithm because if the set is not empty, the ruleset is not modified.
-      *)
-*)
+  definition "iface_subset = undefined"
+  lemma "iface_subset ifce1 ifce2 \<longleftrightarrow> {i. match_iface ifce1 i} \<subseteq> {i. match_iface ifce2 i}" sorry
 
+  fun simple_packet_set_subset :: "simple_match \<Rightarrow> simple_packet_set \<Rightarrow> bool" where
+    "simple_packet_set_subset m [] \<longleftrightarrow> empty_match m" |
+    "simple_packet_set_subset \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=protocol, sports=sps, dports=dps \<rparr> ms \<longleftrightarrow> 
+        (\<exists>m' \<in> set ms. iface_subset iif (iiface m')) \<and>
+        (\<exists>m' \<in> set ms. iface_subset oif (oiface m')) \<and> undefined" (*TODO: continue!*)
+*)
 end

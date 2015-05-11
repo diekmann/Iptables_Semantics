@@ -41,17 +41,6 @@ open Test; (*put the exported code into current namespace such that the followin
 
 ML_file "iptables_Lnv_test_iface.ML"
 
-(*This is the diff for the _cheating rule set
- Chain FORWARD (policy ACCEPT)
- target     prot opt source               destination
--ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0            state RELATED,ESTABLISHED,UNTRACKED
--LOG_RECENT_DROP  all  --  0.0.0.0/0            0.0.0.0/0            recent: UPDATE seconds: 60 name: DEFAULT side: source
--LOG_RECENT_DROP  tcp  --  0.0.0.0/0            0.0.0.0/0            state NEW tcp dpt:22flags: 0x17/0x02 recent: UPDATE seconds: 360 hit_count: 41 name: ratessh side: source
- LOG_DROP   all  --  127.0.0.0/8          0.0.0.0/0
- ACCEPT     tcp  --  131.159.14.206       0.0.0.0/0            multiport sports 389,636
- ACCEPT     tcp  --  131.159.14.208       0.0.0.0/0            multiport sports 389,636
-*)
-
 ML{*
 open Test; 
 *}
