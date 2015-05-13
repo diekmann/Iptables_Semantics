@@ -4,8 +4,8 @@ structure Test : sig
   type nat
   val integer_of_nat : nat -> IntInf.int
   type 'a word
-  datatype iface = Iface of char list
   val nat_of_integer : IntInf.int -> nat
+  datatype iface = Iface of char list
   type 'a bit0
   type num1
   type 'a wordinterval
@@ -26,9 +26,12 @@ structure Test : sig
   datatype action = Accept | Drop | Log | Reject | Call of char list | Return |
     Empty | Unknown
   datatype 'a rule = Rule of 'a match_expr * action
+  type ternaryvalue
   type 'a simple_match_ext
   datatype simple_action = Accepta | Dropa
   datatype simple_rule = SimpleRule of unit simple_match_ext * simple_action
+  type state
+  type 'a simple_packet_ext
   val ifaceAny : iface
   val no_spoofing_iface :
     iface ->
@@ -42,6 +45,7 @@ structure Test : sig
       char list -> (common_primitive rule list) option
   val port_toString : num1 bit0 bit0 bit0 bit0 word -> char list
   val upper_closure : common_primitive rule list -> common_primitive rule list
+  val counter_example : common_primitive rule list -> state
   val iface_toString : char list -> iface -> char list
   val ports_toString :
     char list ->
@@ -110,6 +114,16 @@ val equal = #equal : 'a equal -> 'a -> 'a -> bool;
 
 val equal_nat = {equal = equal_nata} : nat equal;
 
+val one_nata : nat = Nat (1 : IntInf.int);
+
+val one_nat = {one = one_nata} : nat one;
+
+fun times_nata m n = Nat (IntInf.* (integer_of_nat m, integer_of_nat n));
+
+val times_nat = {times = times_nata} : nat times;
+
+val power_nat = {one_power = one_nat, times_power = times_nat} : nat power;
+
 fun less_eq_nat m n = IntInf.<= (integer_of_nat m, integer_of_nat n);
 
 type 'a ord = {less_eq : 'a -> 'a -> bool, less : 'a -> 'a -> bool};
@@ -130,7 +144,14 @@ fun equal_lista A_ [] (x21 :: x22) = false
 
 fun equal_list A_ = {equal = equal_lista A_} : ('a list) equal;
 
-fun equal_int k l = (((integer_of_int k) : IntInf.int) = (integer_of_int l));
+datatype 'a set = Set of 'a list | Coset of 'a list;
+
+val top_set : 'a set = Coset [];
+
+fun pred_list p [] = true
+  | pred_list p (x :: xs) = p x andalso pred_list p xs;
+
+fun ball (Set xs) p = pred_list p xs;
 
 datatype 'a itself = Type;
 
@@ -139,11 +160,59 @@ val len_of = #len_of : 'a len0 -> 'a itself -> nat;
 
 datatype 'a word = Word of int;
 
-fun uint A_ (Word x) = x;
+type 'a len = {len0_len : 'a len0};
+val len0_len = #len0_len : 'a len -> 'a len0;
 
-fun equal_worda A_ k l = equal_int (uint A_ k) (uint A_ l);
+fun enum_all_word A_ p = ball top_set p;
 
-fun equal_word A_ = {equal = equal_worda A_} : 'a word equal;
+fun list_ex p [] = false
+  | list_ex p (x :: xs) = p x orelse list_ex p xs;
+
+fun bex (Set xs) p = list_ex p xs;
+
+fun enum_ex_word A_ p = bex top_set p;
+
+fun max A_ a b = (if less_eq A_ a b then b else a);
+
+val ord_integer =
+  {less_eq = (fn a => fn b => IntInf.<= (a, b)),
+    less = (fn a => fn b => IntInf.< (a, b))}
+  : IntInf.int ord;
+
+fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
+
+val zero_nat : nat = Nat (0 : IntInf.int);
+
+type 'a plus = {plus : 'a -> 'a -> 'a};
+val plus = #plus : 'a plus -> 'a -> 'a -> 'a;
+
+type 'a semigroup_add = {plus_semigroup_add : 'a plus};
+val plus_semigroup_add = #plus_semigroup_add : 'a semigroup_add -> 'a plus;
+
+type 'a numeral =
+  {one_numeral : 'a one, semigroup_add_numeral : 'a semigroup_add};
+val one_numeral = #one_numeral : 'a numeral -> 'a one;
+val semigroup_add_numeral = #semigroup_add_numeral :
+  'a numeral -> 'a semigroup_add;
+
+fun numeral A_ (Bit1 n) =
+  let
+    val m = numeral A_ n;
+  in
+    plus ((plus_semigroup_add o semigroup_add_numeral) A_)
+      (plus ((plus_semigroup_add o semigroup_add_numeral) A_) m m)
+      (one (one_numeral A_))
+  end
+  | numeral A_ (Bit0 n) =
+    let
+      val m = numeral A_ n;
+    in
+      plus ((plus_semigroup_add o semigroup_add_numeral) A_) m m
+    end
+  | numeral A_ One = one (one_numeral A_);
+
+type 'a zero = {zero : 'a};
+val zero = #zero : 'a zero -> 'a;
 
 fun sgn_integer k =
   (if ((k : IntInf.int) = (0 : IntInf.int)) then (0 : IntInf.int)
@@ -175,98 +244,30 @@ fun snd (x1, x2) = x2;
 
 fun mod_integer k l = snd (divmod_integer k l);
 
-fun mod_int k l =
-  Int_of_integer (mod_integer (integer_of_int k) (integer_of_int l));
+fun mod_nat m n = Nat (mod_integer (integer_of_nat m) (integer_of_nat n));
 
-fun max A_ a b = (if less_eq A_ a b then b else a);
+fun fst (x1, x2) = x1;
 
-val ord_integer =
-  {less_eq = (fn a => fn b => IntInf.<= (a, b)),
-    less = (fn a => fn b => IntInf.< (a, b))}
-  : IntInf.int ord;
+fun div_integer k l = fst (divmod_integer k l);
 
-fun minus_nat m n =
-  Nat (max ord_integer (0 : IntInf.int)
-        (IntInf.- (integer_of_nat m, integer_of_nat n)));
+fun div_nat m n = Nat (div_integer (integer_of_nat m) (integer_of_nat n));
 
-val zero_nat : nat = Nat (0 : IntInf.int);
-
-val one_nat : nat = Nat (1 : IntInf.int);
-
-fun power one times a n =
-  (if equal_nata n zero_nat then one
-    else times a (power one times a (minus_nat n one_nat)));
-
-fun powera A_ = power (one (one_power A_)) (times (times_power A_));
-
-fun word_of_int A_ k =
-  Word (mod_int k
-         (powera power_int (Int_of_integer (2 : IntInf.int)) (len_of A_ Type)));
-
-fun one_worda A_ = word_of_int A_ (Int_of_integer (1 : IntInf.int));
-
-fun one_word A_ = {one = one_worda A_} : 'a word one;
-
-fun plus_int k l =
-  Int_of_integer (IntInf.+ (integer_of_int k, integer_of_int l));
-
-fun plus_worda A_ a b = word_of_int A_ (plus_int (uint A_ a) (uint A_ b));
-
-type 'a plus = {plus : 'a -> 'a -> 'a};
-val plus = #plus : 'a plus -> 'a -> 'a -> 'a;
-
-fun plus_word A_ = {plus = plus_worda A_} : 'a word plus;
-
-val zero_int : int = Int_of_integer (0 : IntInf.int);
-
-fun zero_worda A_ = word_of_int A_ zero_int;
-
-type 'a zero = {zero : 'a};
-val zero = #zero : 'a zero -> 'a;
-
-fun zero_word A_ = {zero = zero_worda A_} : 'a word zero;
-
-type 'a semigroup_add = {plus_semigroup_add : 'a plus};
-val plus_semigroup_add = #plus_semigroup_add : 'a semigroup_add -> 'a plus;
-
-type 'a numeral =
-  {one_numeral : 'a one, semigroup_add_numeral : 'a semigroup_add};
-val one_numeral = #one_numeral : 'a numeral -> 'a one;
-val semigroup_add_numeral = #semigroup_add_numeral :
-  'a numeral -> 'a semigroup_add;
-
-fun semigroup_add_word A_ = {plus_semigroup_add = plus_word A_} :
-  'a word semigroup_add;
-
-fun numeral_word A_ =
-  {one_numeral = one_word A_, semigroup_add_numeral = semigroup_add_word A_} :
-  'a word numeral;
-
-fun times_worda A_ a b = word_of_int A_ (times_inta (uint A_ a) (uint A_ b));
-
-fun times_word A_ = {times = times_worda A_} : 'a word times;
-
-fun power_word A_ = {one_power = one_word A_, times_power = times_word A_} :
-  'a word power;
-
-fun less_eq_int k l = IntInf.<= (integer_of_int k, integer_of_int l);
-
-fun less_eq_word A_ a b = less_eq_int (uint A_ a) (uint A_ b);
-
-fun less_int k l = IntInf.< (integer_of_int k, integer_of_int l);
-
-fun less_word A_ a b = less_int (uint A_ a) (uint A_ b);
-
-fun ord_word A_ = {less_eq = less_eq_word A_, less = less_word A_} :
-  'a word ord;
-
-type 'a ab_semigroup_add = {semigroup_add_ab_semigroup_add : 'a semigroup_add};
-val semigroup_add_ab_semigroup_add = #semigroup_add_ab_semigroup_add :
-  'a ab_semigroup_add -> 'a semigroup_add;
+fun divmod_nat m n = (div_nat m n, mod_nat m n);
 
 type 'a semigroup_mult = {times_semigroup_mult : 'a times};
 val times_semigroup_mult = #times_semigroup_mult :
   'a semigroup_mult -> 'a times;
+
+type 'a monoid_mult =
+  {semigroup_mult_monoid_mult : 'a semigroup_mult,
+    power_monoid_mult : 'a power};
+val semigroup_mult_monoid_mult = #semigroup_mult_monoid_mult :
+  'a monoid_mult -> 'a semigroup_mult;
+val power_monoid_mult = #power_monoid_mult : 'a monoid_mult -> 'a power;
+
+type 'a ab_semigroup_add = {semigroup_add_ab_semigroup_add : 'a semigroup_add};
+val semigroup_add_ab_semigroup_add = #semigroup_add_ab_semigroup_add :
+  'a ab_semigroup_add -> 'a semigroup_add;
 
 type 'a semiring =
   {ab_semigroup_add_semiring : 'a ab_semigroup_add,
@@ -275,72 +276,6 @@ val ab_semigroup_add_semiring = #ab_semigroup_add_semiring :
   'a semiring -> 'a ab_semigroup_add;
 val semigroup_mult_semiring = #semigroup_mult_semiring :
   'a semiring -> 'a semigroup_mult;
-
-fun ab_semigroup_add_word A_ =
-  {semigroup_add_ab_semigroup_add = semigroup_add_word A_} :
-  'a word ab_semigroup_add;
-
-fun semigroup_mult_word A_ = {times_semigroup_mult = times_word A_} :
-  'a word semigroup_mult;
-
-fun semiring_word A_ =
-  {ab_semigroup_add_semiring = ab_semigroup_add_word A_,
-    semigroup_mult_semiring = semigroup_mult_word A_}
-  : 'a word semiring;
-
-type 'a mult_zero = {times_mult_zero : 'a times, zero_mult_zero : 'a zero};
-val times_mult_zero = #times_mult_zero : 'a mult_zero -> 'a times;
-val zero_mult_zero = #zero_mult_zero : 'a mult_zero -> 'a zero;
-
-fun mult_zero_word A_ =
-  {times_mult_zero = times_word A_, zero_mult_zero = zero_word A_} :
-  'a word mult_zero;
-
-type 'a monoid_add =
-  {semigroup_add_monoid_add : 'a semigroup_add, zero_monoid_add : 'a zero};
-val semigroup_add_monoid_add = #semigroup_add_monoid_add :
-  'a monoid_add -> 'a semigroup_add;
-val zero_monoid_add = #zero_monoid_add : 'a monoid_add -> 'a zero;
-
-type 'a comm_monoid_add =
-  {ab_semigroup_add_comm_monoid_add : 'a ab_semigroup_add,
-    monoid_add_comm_monoid_add : 'a monoid_add};
-val ab_semigroup_add_comm_monoid_add = #ab_semigroup_add_comm_monoid_add :
-  'a comm_monoid_add -> 'a ab_semigroup_add;
-val monoid_add_comm_monoid_add = #monoid_add_comm_monoid_add :
-  'a comm_monoid_add -> 'a monoid_add;
-
-type 'a semiring_0 =
-  {comm_monoid_add_semiring_0 : 'a comm_monoid_add,
-    mult_zero_semiring_0 : 'a mult_zero, semiring_semiring_0 : 'a semiring};
-val comm_monoid_add_semiring_0 = #comm_monoid_add_semiring_0 :
-  'a semiring_0 -> 'a comm_monoid_add;
-val mult_zero_semiring_0 = #mult_zero_semiring_0 :
-  'a semiring_0 -> 'a mult_zero;
-val semiring_semiring_0 = #semiring_semiring_0 : 'a semiring_0 -> 'a semiring;
-
-fun monoid_add_word A_ =
-  {semigroup_add_monoid_add = semigroup_add_word A_,
-    zero_monoid_add = zero_word A_}
-  : 'a word monoid_add;
-
-fun comm_monoid_add_word A_ =
-  {ab_semigroup_add_comm_monoid_add = ab_semigroup_add_word A_,
-    monoid_add_comm_monoid_add = monoid_add_word A_}
-  : 'a word comm_monoid_add;
-
-fun semiring_0_word A_ =
-  {comm_monoid_add_semiring_0 = comm_monoid_add_word A_,
-    mult_zero_semiring_0 = mult_zero_word A_,
-    semiring_semiring_0 = semiring_word A_}
-  : 'a word semiring_0;
-
-type 'a monoid_mult =
-  {semigroup_mult_monoid_mult : 'a semigroup_mult,
-    power_monoid_mult : 'a power};
-val semigroup_mult_monoid_mult = #semigroup_mult_monoid_mult :
-  'a monoid_mult -> 'a semigroup_mult;
-val power_monoid_mult = #power_monoid_mult : 'a monoid_mult -> 'a power;
 
 type 'a semiring_numeral =
   {monoid_mult_semiring_numeral : 'a monoid_mult,
@@ -357,6 +292,33 @@ type 'a zero_neq_one = {one_zero_neq_one : 'a one, zero_zero_neq_one : 'a zero};
 val one_zero_neq_one = #one_zero_neq_one : 'a zero_neq_one -> 'a one;
 val zero_zero_neq_one = #zero_zero_neq_one : 'a zero_neq_one -> 'a zero;
 
+type 'a monoid_add =
+  {semigroup_add_monoid_add : 'a semigroup_add, zero_monoid_add : 'a zero};
+val semigroup_add_monoid_add = #semigroup_add_monoid_add :
+  'a monoid_add -> 'a semigroup_add;
+val zero_monoid_add = #zero_monoid_add : 'a monoid_add -> 'a zero;
+
+type 'a comm_monoid_add =
+  {ab_semigroup_add_comm_monoid_add : 'a ab_semigroup_add,
+    monoid_add_comm_monoid_add : 'a monoid_add};
+val ab_semigroup_add_comm_monoid_add = #ab_semigroup_add_comm_monoid_add :
+  'a comm_monoid_add -> 'a ab_semigroup_add;
+val monoid_add_comm_monoid_add = #monoid_add_comm_monoid_add :
+  'a comm_monoid_add -> 'a monoid_add;
+
+type 'a mult_zero = {times_mult_zero : 'a times, zero_mult_zero : 'a zero};
+val times_mult_zero = #times_mult_zero : 'a mult_zero -> 'a times;
+val zero_mult_zero = #zero_mult_zero : 'a mult_zero -> 'a zero;
+
+type 'a semiring_0 =
+  {comm_monoid_add_semiring_0 : 'a comm_monoid_add,
+    mult_zero_semiring_0 : 'a mult_zero, semiring_semiring_0 : 'a semiring};
+val comm_monoid_add_semiring_0 = #comm_monoid_add_semiring_0 :
+  'a semiring_0 -> 'a comm_monoid_add;
+val mult_zero_semiring_0 = #mult_zero_semiring_0 :
+  'a semiring_0 -> 'a mult_zero;
+val semiring_semiring_0 = #semiring_semiring_0 : 'a semiring_0 -> 'a semiring;
+
 type 'a semiring_1 =
   {semiring_numeral_semiring_1 : 'a semiring_numeral,
     semiring_0_semiring_1 : 'a semiring_0,
@@ -368,13 +330,105 @@ val semiring_0_semiring_1 = #semiring_0_semiring_1 :
 val zero_neq_one_semiring_1 = #zero_neq_one_semiring_1 :
   'a semiring_1 -> 'a zero_neq_one;
 
-type 'a len = {len0_len : 'a len0};
-val len0_len = #len0_len : 'a len -> 'a len0;
+fun of_nat A_ n =
+  (if equal_nata n zero_nat
+    then zero ((zero_mult_zero o mult_zero_semiring_0 o semiring_0_semiring_1)
+                A_)
+    else let
+           val (m, q) = divmod_nat n (nat_of_integer (2 : IntInf.int));
+           val ma =
+             times ((times_power o power_monoid_mult o
+                      monoid_mult_semiring_numeral o
+                      semiring_numeral_semiring_1)
+                     A_)
+               (numeral
+                 ((numeral_semiring_numeral o semiring_numeral_semiring_1) A_)
+                 (Bit0 One))
+               (of_nat A_ m);
+         in
+           (if equal_nata q zero_nat then ma
+             else plus ((plus_semigroup_add o semigroup_add_numeral o
+                          numeral_semiring_numeral o
+                          semiring_numeral_semiring_1)
+                         A_)
+                    ma (one ((one_numeral o numeral_semiring_numeral o
+                               semiring_numeral_semiring_1)
+                              A_)))
+         end);
+
+fun minus_nat m n =
+  Nat (max ord_integer (0 : IntInf.int)
+        (IntInf.- (integer_of_nat m, integer_of_nat n)));
+
+fun power one times a n =
+  (if equal_nata n zero_nat then one
+    else times a (power one times a (minus_nat n one_nata)));
+
+fun powera A_ = power (one (one_power A_)) (times (times_power A_));
+
+fun map f [] = []
+  | map f (x21 :: x22) = f x21 :: map f x22;
+
+fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
+
+fun suc n = plus_nat n one_nata;
+
+fun upt i j = (if less_nat i j then i :: upt (suc i) j else []);
+
+fun mod_int k l =
+  Int_of_integer (mod_integer (integer_of_int k) (integer_of_int l));
+
+fun word_of_int A_ k =
+  Word (mod_int k
+         (powera power_int (Int_of_integer (2 : IntInf.int)) (len_of A_ Type)));
+
+fun uint A_ (Word x) = x;
+
+fun times_worda A_ a b = word_of_int A_ (times_inta (uint A_ a) (uint A_ b));
+
+val zero_int : int = Int_of_integer (0 : IntInf.int);
+
+fun zero_worda A_ = word_of_int A_ zero_int;
+
+fun plus_int k l =
+  Int_of_integer (IntInf.+ (integer_of_int k, integer_of_int l));
+
+fun plus_worda A_ a b = word_of_int A_ (plus_int (uint A_ a) (uint A_ b));
+
+fun one_worda A_ = word_of_int A_ (Int_of_integer (1 : IntInf.int));
+
+fun times_word A_ = {times = times_worda A_} : 'a word times;
+
+fun semigroup_mult_word A_ = {times_semigroup_mult = times_word A_} :
+  'a word semigroup_mult;
+
+fun one_word A_ = {one = one_worda A_} : 'a word one;
+
+fun power_word A_ = {one_power = one_word A_, times_power = times_word A_} :
+  'a word power;
 
 fun monoid_mult_word A_ =
   {semigroup_mult_monoid_mult = semigroup_mult_word A_,
     power_monoid_mult = power_word A_}
   : 'a word monoid_mult;
+
+fun plus_word A_ = {plus = plus_worda A_} : 'a word plus;
+
+fun semigroup_add_word A_ = {plus_semigroup_add = plus_word A_} :
+  'a word semigroup_add;
+
+fun ab_semigroup_add_word A_ =
+  {semigroup_add_ab_semigroup_add = semigroup_add_word A_} :
+  'a word ab_semigroup_add;
+
+fun semiring_word A_ =
+  {ab_semigroup_add_semiring = ab_semigroup_add_word A_,
+    semigroup_mult_semiring = semigroup_mult_word A_}
+  : 'a word semiring;
+
+fun numeral_word A_ =
+  {one_numeral = one_word A_, semigroup_add_numeral = semigroup_add_word A_} :
+  'a word numeral;
 
 fun semiring_numeral_word A_ =
   {monoid_mult_semiring_numeral = monoid_mult_word (len0_len A_),
@@ -382,16 +436,78 @@ fun semiring_numeral_word A_ =
     semiring_semiring_numeral = semiring_word (len0_len A_)}
   : 'a word semiring_numeral;
 
+fun zero_word A_ = {zero = zero_worda A_} : 'a word zero;
+
 fun zero_neq_one_word A_ =
   {one_zero_neq_one = one_word (len0_len A_),
     zero_zero_neq_one = zero_word (len0_len A_)}
   : 'a word zero_neq_one;
+
+fun monoid_add_word A_ =
+  {semigroup_add_monoid_add = semigroup_add_word A_,
+    zero_monoid_add = zero_word A_}
+  : 'a word monoid_add;
+
+fun comm_monoid_add_word A_ =
+  {ab_semigroup_add_comm_monoid_add = ab_semigroup_add_word A_,
+    monoid_add_comm_monoid_add = monoid_add_word A_}
+  : 'a word comm_monoid_add;
+
+fun mult_zero_word A_ =
+  {times_mult_zero = times_word A_, zero_mult_zero = zero_word A_} :
+  'a word mult_zero;
+
+fun semiring_0_word A_ =
+  {comm_monoid_add_semiring_0 = comm_monoid_add_word A_,
+    mult_zero_semiring_0 = mult_zero_word A_,
+    semiring_semiring_0 = semiring_word A_}
+  : 'a word semiring_0;
 
 fun semiring_1_word A_ =
   {semiring_numeral_semiring_1 = semiring_numeral_word A_,
     semiring_0_semiring_1 = semiring_0_word (len0_len A_),
     zero_neq_one_semiring_1 = zero_neq_one_word A_}
   : 'a word semiring_1;
+
+fun enum_worda A_ =
+  map (of_nat (semiring_1_word A_))
+    (upt zero_nat
+      (powera power_nat (nat_of_integer (2 : IntInf.int))
+        (len_of (len0_len A_) Type)));
+
+type 'a finite = {};
+
+type 'a enum =
+  {finite_enum : 'a finite, enum : 'a list, enum_all : ('a -> bool) -> bool,
+    enum_ex : ('a -> bool) -> bool};
+val finite_enum = #finite_enum : 'a enum -> 'a finite;
+val enum = #enum : 'a enum -> 'a list;
+val enum_all = #enum_all : 'a enum -> ('a -> bool) -> bool;
+val enum_ex = #enum_ex : 'a enum -> ('a -> bool) -> bool;
+
+fun finite_word A_ = {} : 'a word finite;
+
+fun enum_word A_ =
+  {finite_enum = finite_word (len0_len A_), enum = enum_worda A_,
+    enum_all = enum_all_word A_, enum_ex = enum_ex_word A_}
+  : 'a word enum;
+
+fun equal_int k l = (((integer_of_int k) : IntInf.int) = (integer_of_int l));
+
+fun equal_worda A_ k l = equal_int (uint A_ k) (uint A_ l);
+
+fun equal_word A_ = {equal = equal_worda A_} : 'a word equal;
+
+fun less_eq_int k l = IntInf.<= (integer_of_int k, integer_of_int l);
+
+fun less_eq_word A_ a b = less_eq_int (uint A_ a) (uint A_ b);
+
+fun less_int k l = IntInf.< (integer_of_int k, integer_of_int l);
+
+fun less_word A_ a b = less_int (uint A_ a) (uint A_ b);
+
+fun ord_word A_ = {less_eq = less_eq_word A_, less = less_word A_} :
+  'a word ord;
 
 datatype iface = Iface of char list;
 
@@ -401,16 +517,10 @@ fun equal_ifacea (Iface x) (Iface ya) = equal_lista equal_char x ya;
 
 val equal_iface = {equal = equal_ifacea} : iface equal;
 
-fun times_nat m n = Nat (IntInf.* (integer_of_nat m, integer_of_nat n));
-
-fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
-
-type 'a finite = {};
-
 datatype 'a bit0 = Abs_bit0 of int;
 
 fun len_of_bit0 A_ x =
-  times_nat (nat_of_integer (2 : IntInf.int)) (len_of A_ Type);
+  times_nata (nat_of_integer (2 : IntInf.int)) (len_of A_ Type);
 
 fun len0_bit0 A_ = {len_of = len_of_bit0 A_} : 'a bit0 len0;
 
@@ -418,7 +528,7 @@ fun len_bit0 A_ = {len0_len = len0_bit0 (len0_len A_)} : 'a bit0 len;
 
 datatype num1 = One_num1;
 
-fun len_of_num1 x = one_nat;
+fun len_of_num1 x = one_nata;
 
 val len0_num1 = {len_of = len_of_num1} : num1 len0;
 
@@ -573,6 +683,12 @@ datatype action = Accept | Drop | Log | Reject | Call of char list | Return |
 
 datatype 'a rule = Rule of 'a match_expr * action;
 
+datatype ternaryvalue = TernaryTrue | TernaryFalse | TernaryUnknown;
+
+datatype ternaryformula = TernaryAnd of ternaryformula * ternaryformula |
+  TernaryOr of ternaryformula * ternaryformula | TernaryNot of ternaryformula |
+  TernaryValue of ternaryvalue;
+
 datatype 'a negation_type = Pos of 'a | Neg of 'a;
 
 datatype 'a simple_match_ext =
@@ -586,13 +702,19 @@ datatype simple_action = Accepta | Dropa;
 
 datatype simple_rule = SimpleRule of unit simple_match_ext * simple_action;
 
+datatype final_decision = FinalAllow | FinalDeny;
+
+datatype state = Undecided | Decision of final_decision;
+
+datatype 'a simple_packet_ext =
+  Simple_packet_ext of
+    char list * char list * num1 bit0 bit0 bit0 bit0 bit0 word *
+      num1 bit0 bit0 bit0 bit0 bit0 word * primitive_protocol *
+      num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word * 'a;
+
 fun id x = (fn xa => xa) x;
 
 fun nat x = (nat_of_integer o integer_of_int) x;
-
-fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
-
-fun suc n = plus_nat n one_nat;
 
 fun find f [] = NONE
   | find f (x :: xs) = (if f x then SOME x else find f xs);
@@ -610,7 +732,7 @@ fun null [] = true
 
 fun take n [] = []
   | take n (x :: xs) =
-    (if equal_nata n zero_nat then [] else x :: take (minus_nat n one_nat) xs);
+    (if equal_nata n zero_nat then [] else x :: take (minus_nat n one_nata) xs);
 
 fun minus_int k l =
   Int_of_integer (IntInf.- (integer_of_int k, integer_of_int l));
@@ -630,7 +752,7 @@ fun bit k b =
 fun shiftl1 A_ w = word_of_int A_ (bit (uint A_ w) false);
 
 fun funpow n f =
-  (if equal_nata n zero_nat then id else f o funpow (minus_nat n one_nat) f);
+  (if equal_nata n zero_nat then id else f o funpow (minus_nat n one_nata) f);
 
 fun shiftl_word A_ w n = funpow n (shiftl1 A_) w;
 
@@ -644,21 +766,34 @@ fun unat A_ w = nat (uint A_ w);
 fun map_of A_ ((l, v) :: ps) k = (if eq A_ l k then SOME v else map_of A_ ps k)
   | map_of A_ [] k = NONE;
 
+fun removeAll A_ x [] = []
+  | removeAll A_ x (y :: xs) =
+    (if eq A_ x y then removeAll A_ x xs else y :: removeAll A_ x xs);
+
+fun membera A_ [] y = false
+  | membera A_ (x :: xs) y = eq A_ x y orelse membera A_ xs y;
+
+fun inserta A_ x xs = (if membera A_ xs x then xs else x :: xs);
+
+fun insert A_ x (Coset xs) = Coset (removeAll A_ x xs)
+  | insert A_ x (Set xs) = Set (inserta A_ x xs);
+
+fun member A_ x (Coset xs) = not (membera A_ xs x)
+  | member A_ x (Set xs) = membera A_ xs x;
+
+fun remove A_ x (Coset xs) = Coset (inserta A_ x xs)
+  | remove A_ x (Set xs) = Set (removeAll A_ x xs);
+
 fun fun_upd A_ f a b = (fn x => (if eq A_ x a then b else f x));
 
 fun filter p [] = []
   | filter p (x :: xs) = (if p x then x :: filter p xs else filter p xs);
 
-fun member A_ [] y = false
-  | member A_ (x :: xs) y = eq A_ x y orelse member A_ xs y;
+fun collect A_ p = Set (filter p (enum A_));
 
 fun remdups A_ [] = []
   | remdups A_ (x :: xs) =
-    (if member A_ xs x then remdups A_ xs else x :: remdups A_ xs);
-
-fun fst (x1, x2) = x1;
-
-fun div_integer k l = fst (divmod_integer k l);
+    (if membera A_ xs x then remdups A_ xs else x :: remdups A_ xs);
 
 fun div_int k l =
   Int_of_integer (div_integer (integer_of_int k) (integer_of_int l));
@@ -666,9 +801,6 @@ fun div_int k l =
 fun bin_rest w = div_int w (Int_of_integer (2 : IntInf.int));
 
 fun shiftr1 A_ w = word_of_int A_ (bin_rest (uint A_ w));
-
-fun map f [] = []
-  | map f (x21 :: x22) = f x21 :: map f x22;
 
 fun max_word A_ =
   word_of_int (len0_len A_)
@@ -678,9 +810,6 @@ fun max_word A_ =
       (Int_of_integer (1 : IntInf.int)));
 
 val ifaceAny : iface = Iface [#"+"];
-
-fun pred_list p [] = true
-  | pred_list p (x :: xs) = p x andalso pred_list p xs;
 
 val pfxes : nat list =
   map nat (upto zero_int (Int_of_integer (32 : IntInf.int)));
@@ -702,12 +831,6 @@ fun internal_iface_name_match [] [] = true
 fun match_iface (Iface i) p_iface = internal_iface_name_match i p_iface;
 
 fun the (SOME x2) = x2;
-
-fun mod_nat m n = Nat (mod_integer (integer_of_nat m) (integer_of_nat n));
-
-fun div_nat m n = Nat (div_integer (integer_of_nat m) (integer_of_nat n));
-
-fun divmod_nat m n = (div_nat m n, mod_nat m n);
 
 fun add_match m rs = map (fn Rule (ma, a) => Rule (MatchAnd (m, ma), a)) rs;
 
@@ -773,17 +896,45 @@ fun ports_invert ps =
     (wordinterval_invert (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))
       (l2br (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))) ps));
 
+fun atLeast (A1_, A2_) l = collect A1_ (less_eq A2_ l);
+
+fun atMost (A1_, A2_) u = collect A1_ (fn x => less_eq A2_ x u);
+
+fun inf_set A_ a (Coset xs) = fold (remove A_) xs a
+  | inf_set A_ a (Set xs) = Set (filter (fn x => member A_ x a) xs);
+
+fun atLeastAtMost (A1_, A2_, A3_) l u =
+  inf_set A2_ (atLeast (A1_, A3_) l) (atMost (A1_, A3_) u);
+
+fun sup_set A_ (Coset xs) a = Coset (filter (fn x => not (member A_ x a)) xs)
+  | sup_set A_ (Set xs) a = fold (insert A_) xs a;
+
+val bot_set : 'a set = Set [];
+
+fun ports_to_set [] = bot_set
+  | ports_to_set ((s, e) :: ps) =
+    sup_set
+      (equal_word (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+      (atLeastAtMost
+        (enum_word (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))),
+          equal_word
+            (len0_len (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))),
+          ord_word
+            (len0_len (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))))
+        s e)
+      (ports_to_set ps);
+
 fun char_of_nat x = ((Char.chr o IntInf.toInt) o integer_of_nat) x;
 
 fun size_list x = gen_length zero_nat x;
 
 fun internal_iface_name_wildcard_longest i1 i2 =
   (if equal_lista equal_char
-        (take (min ord_nat (minus_nat (size_list i1) one_nat)
-                (minus_nat (size_list i2) one_nat))
+        (take (min ord_nat (minus_nat (size_list i1) one_nata)
+                (minus_nat (size_list i2) one_nata))
           i1)
-        (take (min ord_nat (minus_nat (size_list i1) one_nat)
-                (minus_nat (size_list i2) one_nat))
+        (take (min ord_nat (minus_nat (size_list i1) one_nata)
+                (minus_nat (size_list i2) one_nata))
           i2)
     then SOME (if less_eq_nat (size_list i1) (size_list i2) then i2 else i1)
     else NONE);
@@ -806,53 +957,27 @@ fun iface_conjunct (Iface i1) (Iface i2) =
     | (false, false) =>
       (if equal_lista equal_char i1 i2 then SOME (Iface i1) else NONE));
 
+fun match_proto ProtoAny uu = true
+  | match_proto (Proto p) p_p = equal_primitive_protocol p_p p;
+
 fun iface_sel (Iface x) = x;
 
 val ipv4range_UNIV : num1 bit0 bit0 bit0 bit0 bit0 wordinterval =
   wordinterval_UNIV
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))));
 
-fun numeral A_ (Bit1 n) =
-  let
-    val m = numeral A_ n;
-  in
-    plus ((plus_semigroup_add o semigroup_add_numeral) A_)
-      (plus ((plus_semigroup_add o semigroup_add_numeral) A_) m m)
-      (one (one_numeral A_))
-  end
-  | numeral A_ (Bit0 n) =
-    let
-      val m = numeral A_ n;
-    in
-      plus ((plus_semigroup_add o semigroup_add_numeral) A_) m m
-    end
-  | numeral A_ One = one (one_numeral A_);
+fun bool_to_ternary true = TernaryTrue
+  | bool_to_ternary false = TernaryFalse;
 
-fun of_nat A_ n =
-  (if equal_nata n zero_nat
-    then zero ((zero_mult_zero o mult_zero_semiring_0 o semiring_0_semiring_1)
-                A_)
-    else let
-           val (m, q) = divmod_nat n (nat_of_integer (2 : IntInf.int));
-           val ma =
-             times ((times_power o power_monoid_mult o
-                      monoid_mult_semiring_numeral o
-                      semiring_numeral_semiring_1)
-                     A_)
-               (numeral
-                 ((numeral_semiring_numeral o semiring_numeral_semiring_1) A_)
-                 (Bit0 One))
-               (of_nat A_ m);
-         in
-           (if equal_nata q zero_nat then ma
-             else plus ((plus_semigroup_add o semigroup_add_numeral o
-                          numeral_semiring_numeral o
-                          semiring_numeral_semiring_1)
-                         A_)
-                    ma (one ((one_numeral o numeral_semiring_numeral o
-                               semiring_numeral_semiring_1)
-                              A_)))
-         end);
+fun eval_ternary_Or TernaryTrue TernaryTrue = TernaryTrue
+  | eval_ternary_Or TernaryTrue TernaryFalse = TernaryTrue
+  | eval_ternary_Or TernaryFalse TernaryTrue = TernaryTrue
+  | eval_ternary_Or TernaryFalse TernaryFalse = TernaryFalse
+  | eval_ternary_Or TernaryTrue TernaryUnknown = TernaryTrue
+  | eval_ternary_Or TernaryFalse TernaryUnknown = TernaryUnknown
+  | eval_ternary_Or TernaryUnknown TernaryTrue = TernaryTrue
+  | eval_ternary_Or TernaryUnknown TernaryFalse = TernaryUnknown
+  | eval_ternary_Or TernaryUnknown TernaryUnknown = TernaryUnknown;
 
 fun ipv4addr_of_nat n =
   of_nat
@@ -872,6 +997,42 @@ fun ipv4range_range (ip_start, ip_end) = WordInterval (ip_start, ip_end);
 
 fun nat_of_ipv4addr a =
   unat (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) a;
+
+fun ternary_to_bool_unknown_match_tac uu uv uw TernaryTrue = true
+  | ternary_to_bool_unknown_match_tac ux uy uz TernaryFalse = false
+  | ternary_to_bool_unknown_match_tac alpha a p TernaryUnknown = alpha a p;
+
+fun map_match_tac beta p (MatchAnd (m1, m2)) =
+  TernaryAnd (map_match_tac beta p m1, map_match_tac beta p m2)
+  | map_match_tac beta p (MatchNot m) = TernaryNot (map_match_tac beta p m)
+  | map_match_tac beta p (Match m) = TernaryValue (beta m p)
+  | map_match_tac uu uv MatchAny = TernaryValue TernaryTrue;
+
+fun eval_ternary_Not TernaryTrue = TernaryFalse
+  | eval_ternary_Not TernaryFalse = TernaryTrue
+  | eval_ternary_Not TernaryUnknown = TernaryUnknown;
+
+fun eval_ternary_And TernaryTrue TernaryTrue = TernaryTrue
+  | eval_ternary_And TernaryTrue TernaryFalse = TernaryFalse
+  | eval_ternary_And TernaryFalse TernaryTrue = TernaryFalse
+  | eval_ternary_And TernaryFalse TernaryFalse = TernaryFalse
+  | eval_ternary_And TernaryFalse TernaryUnknown = TernaryFalse
+  | eval_ternary_And TernaryTrue TernaryUnknown = TernaryUnknown
+  | eval_ternary_And TernaryUnknown TernaryFalse = TernaryFalse
+  | eval_ternary_And TernaryUnknown TernaryTrue = TernaryUnknown
+  | eval_ternary_And TernaryUnknown TernaryUnknown = TernaryUnknown;
+
+fun ternary_ternary_eval (TernaryAnd (t1, t2)) =
+  eval_ternary_And (ternary_ternary_eval t1) (ternary_ternary_eval t2)
+  | ternary_ternary_eval (TernaryOr (t1, t2)) =
+    eval_ternary_Or (ternary_ternary_eval t1) (ternary_ternary_eval t2)
+  | ternary_ternary_eval (TernaryNot t) =
+    eval_ternary_Not (ternary_ternary_eval t)
+  | ternary_ternary_eval (TernaryValue t) = t;
+
+fun matches gamma m a p =
+  ternary_to_bool_unknown_match_tac (snd gamma) a p
+    (ternary_ternary_eval (map_match_tac (fst gamma) p m));
 
 fun negPos_map uu [] = []
   | negPos_map f (Pos a :: asa) = Pos (f a) :: negPos_map f asa
@@ -1058,9 +1219,9 @@ fun ipv4cidr_to_interval (pre, len) =
 fun ipv4addr_of_dotdecimal (a, (b, (c, d))) =
   ipv4addr_of_nat
     (plus_nat
-      (plus_nat (plus_nat d (times_nat (nat_of_integer (256 : IntInf.int)) c))
-        (times_nat (nat_of_integer (65536 : IntInf.int)) b))
-      (times_nat (nat_of_integer (16777216 : IntInf.int)) a));
+      (plus_nat (plus_nat d (times_nata (nat_of_integer (256 : IntInf.int)) c))
+        (times_nata (nat_of_integer (65536 : IntInf.int)) b))
+      (times_nata (nat_of_integer (16777216 : IntInf.int)) a));
 
 fun ipt_ipv4range_to_interval (Ip4Addr addr) =
   (ipv4addr_of_dotdecimal addr, ipv4addr_of_dotdecimal addr)
@@ -1546,20 +1707,20 @@ fun optimize_primitive_univ (Match (IIface iface)) =
                            then (if equal_nata ve zero_nat then MatchAny
                                   else Match
  (Src (Ip4AddrNetmask
-        ((suc (minus_nat ve one_nat), (zero_nat, (zero_nat, zero_nat))),
+        ((suc (minus_nat ve one_nata), (zero_nat, (zero_nat, zero_nat))),
           zero_nat))))
                            else Match (Src
 (Ip4AddrNetmask
-  ((ve, (suc (minus_nat vg one_nat), (zero_nat, zero_nat))), zero_nat))))
+  ((ve, (suc (minus_nat vg one_nata), (zero_nat, zero_nat))), zero_nat))))
                     else Match (Src (Ip4AddrNetmask
                                       ((ve,
- (vg, (suc (minus_nat vi one_nat), zero_nat))),
+ (vg, (suc (minus_nat vi one_nata), zero_nat))),
 zero_nat))))
              else Match (Src (Ip4AddrNetmask
-                               ((ve, (vg, (vi, suc (minus_nat via one_nat)))),
+                               ((ve, (vg, (vi, suc (minus_nat via one_nata)))),
                                  zero_nat))))
       else Match (Src (Ip4AddrNetmask
-                        ((ve, (vg, (vi, via))), suc (minus_nat vc one_nat)))))
+                        ((ve, (vg, (vi, via))), suc (minus_nat vc one_nata)))))
   | optimize_primitive_univ
     (Match (Dst (Ip4AddrNetmask ((ve, (vg, (vi, via))), vc)))) =
     (if equal_nata vc zero_nat
@@ -1569,20 +1730,20 @@ zero_nat))))
                            then (if equal_nata ve zero_nat then MatchAny
                                   else Match
  (Dst (Ip4AddrNetmask
-        ((suc (minus_nat ve one_nat), (zero_nat, (zero_nat, zero_nat))),
+        ((suc (minus_nat ve one_nata), (zero_nat, (zero_nat, zero_nat))),
           zero_nat))))
                            else Match (Dst
 (Ip4AddrNetmask
-  ((ve, (suc (minus_nat vg one_nat), (zero_nat, zero_nat))), zero_nat))))
+  ((ve, (suc (minus_nat vg one_nata), (zero_nat, zero_nat))), zero_nat))))
                     else Match (Dst (Ip4AddrNetmask
                                       ((ve,
- (vg, (suc (minus_nat vi one_nat), zero_nat))),
+ (vg, (suc (minus_nat vi one_nata), zero_nat))),
 zero_nat))))
              else Match (Dst (Ip4AddrNetmask
-                               ((ve, (vg, (vi, suc (minus_nat via one_nat)))),
+                               ((ve, (vg, (vi, suc (minus_nat via one_nata)))),
                                  zero_nat))))
       else Match (Dst (Ip4AddrNetmask
-                        ((ve, (vg, (vi, via))), suc (minus_nat vc one_nat)))));
+                        ((ve, (vg, (vi, via))), suc (minus_nat vc one_nata)))));
 
 fun opt_MatchAny_match_expr MatchAny = MatchAny
   | opt_MatchAny_match_expr (Match a) = Match a
@@ -1901,6 +2062,166 @@ fun upper_closure rs =
     (transform_normalize_primitives
       (transform_optimize_dnf_strict
         (optimize_matches_a upper_closure_matchexpr rs)));
+
+fun approximating_bigstep_fun gamma p [] s = s
+  | approximating_bigstep_fun gamma p (v :: va) (Decision x) = Decision x
+  | approximating_bigstep_fun gamma p (Rule (m, a) :: rs) Undecided =
+    (if not (matches gamma m a p)
+      then approximating_bigstep_fun gamma p rs Undecided
+      else (case a of Accept => Decision FinalAllow | Drop => Decision FinalDeny
+             | Log => approximating_bigstep_fun gamma p rs Undecided
+             | Reject => Decision FinalDeny
+             | Empty => approximating_bigstep_fun gamma p rs Undecided));
+
+fun p_oiface
+  (Simple_packet_ext
+    (p_iiface, p_oiface, p_src, p_dst, p_proto, p_sport, p_dport, more))
+  = p_oiface;
+
+fun p_iiface
+  (Simple_packet_ext
+    (p_iiface, p_oiface, p_src, p_dst, p_proto, p_sport, p_dport, more))
+  = p_iiface;
+
+fun p_sport
+  (Simple_packet_ext
+    (p_iiface, p_oiface, p_src, p_dst, p_proto, p_sport, p_dport, more))
+  = p_sport;
+
+fun p_proto
+  (Simple_packet_ext
+    (p_iiface, p_oiface, p_src, p_dst, p_proto, p_sport, p_dport, more))
+  = p_proto;
+
+fun p_dport
+  (Simple_packet_ext
+    (p_iiface, p_oiface, p_src, p_dst, p_proto, p_sport, p_dport, more))
+  = p_dport;
+
+fun p_src
+  (Simple_packet_ext
+    (p_iiface, p_oiface, p_src, p_dst, p_proto, p_sport, p_dport, more))
+  = p_src;
+
+fun p_dst
+  (Simple_packet_ext
+    (p_iiface, p_oiface, p_src, p_dst, p_proto, p_sport, p_dport, more))
+  = p_dst;
+
+fun common_matcher (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))
+  | common_matcher (OIface i) p = bool_to_ternary (match_iface i (p_oiface p))
+  | common_matcher (Src ip) p =
+    bool_to_ternary
+      (case ip
+        of Ip4Addr ipa =>
+          equal_worda
+            (len0_bit0
+              (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+            (p_src p) (ipv4addr_of_dotdecimal ipa)
+        | Ip4AddrNetmask (pre, len) =>
+          less_eq_word
+            (len0_bit0
+              (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+            (bitAND_word
+              (len0_bit0
+                (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+              (ipv4addr_of_dotdecimal pre)
+              (shiftl_word
+                (len0_bit0
+                  (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+                (mask (len_bit0
+                        (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+                  len)
+                (minus_nat (nat_of_integer (32 : IntInf.int)) len)))
+            (p_src p) andalso
+            less_eq_word
+              (len0_bit0
+                (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+              (p_src p)
+              (bitOR_word
+                (len0_bit0
+                  (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+                (ipv4addr_of_dotdecimal pre)
+                (mask (len_bit0
+                        (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+                  (minus_nat (nat_of_integer (32 : IntInf.int)) len))))
+  | common_matcher (Dst ip) p =
+    bool_to_ternary
+      (case ip
+        of Ip4Addr ipa =>
+          equal_worda
+            (len0_bit0
+              (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+            (p_dst p) (ipv4addr_of_dotdecimal ipa)
+        | Ip4AddrNetmask (pre, len) =>
+          less_eq_word
+            (len0_bit0
+              (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+            (bitAND_word
+              (len0_bit0
+                (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+              (ipv4addr_of_dotdecimal pre)
+              (shiftl_word
+                (len0_bit0
+                  (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+                (mask (len_bit0
+                        (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+                  len)
+                (minus_nat (nat_of_integer (32 : IntInf.int)) len)))
+            (p_dst p) andalso
+            less_eq_word
+              (len0_bit0
+                (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+              (p_dst p)
+              (bitOR_word
+                (len0_bit0
+                  (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+                (ipv4addr_of_dotdecimal pre)
+                (mask (len_bit0
+                        (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+                  (minus_nat (nat_of_integer (32 : IntInf.int)) len))))
+  | common_matcher (Prot proto) p =
+    bool_to_ternary (match_proto proto (p_proto p))
+  | common_matcher (Src_Ports ps) p =
+    bool_to_ternary
+      (member
+        (equal_word (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        (p_sport p) (ports_to_set ps))
+  | common_matcher (Dst_Ports ps) p =
+    bool_to_ternary
+      (member
+        (equal_word (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        (p_dport p) (ports_to_set ps))
+  | common_matcher (Extra uu) p = TernaryUnknown;
+
+fun in_doubt_allow Accept uu = true
+  | in_doubt_allow Drop uv = false
+  | in_doubt_allow Reject uw = false
+  | in_doubt_allow Log uy = (raise Fail "undefined")
+  | in_doubt_allow (Call v) uy = (raise Fail "undefined")
+  | in_doubt_allow Return uy = (raise Fail "undefined")
+  | in_doubt_allow Empty uy = (raise Fail "undefined")
+  | in_doubt_allow Unknown uy = (raise Fail "undefined");
+
+fun counter_example rs =
+  approximating_bigstep_fun (common_matcher, in_doubt_allow)
+    (Simple_packet_ext
+      ([#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"7"],
+        [#"e", #"t", #"h", #"1", #".", #"9", #"6"],
+        zero_worda
+          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))),
+        ipv4addr_of_dotdecimal
+          (nat_of_integer (131 : IntInf.int),
+            (nat_of_integer (159 : IntInf.int),
+              (nat_of_integer (14 : IntInf.int),
+                nat_of_integer (9 : IntInf.int)))),
+        TCP,
+        word_of_int (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))
+          (Int_of_integer (12345 : IntInf.int)),
+        word_of_int (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))
+          (Int_of_integer (22 : IntInf.int)),
+        ()))
+    rs Undecided;
 
 fun iface_toString descr iface =
   (if equal_ifacea iface ifaceAny then []
@@ -2338,14 +2659,15 @@ fun normalized_protocols MatchAny = true
 
 fun example_ipassignment_nospoof x =
   no_spoofing_iface
-    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"1"])
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"7"])
     (fun_upd equal_iface (fn _ => NONE)
-      (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"1"])
+      (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"7"])
       (SOME [(ipv4addr_of_dotdecimal
                 (nat_of_integer (131 : IntInf.int),
                   (nat_of_integer (159 : IntInf.int),
-                    (nat_of_integer (14 : IntInf.int), zero_nat))),
-               nat_of_integer (24 : IntInf.int))]))
+                    (nat_of_integer (14 : IntInf.int),
+                      nat_of_integer (240 : IntInf.int)))),
+               nat_of_integer (28 : IntInf.int))]))
     x;
 
 fun equal_action Empty Unknown = false
