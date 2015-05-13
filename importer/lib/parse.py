@@ -216,7 +216,12 @@ def parse_extra(rule):
         ports = [(int(start), int(end)) for (start, end) in ports]
         for (start, end) in ports:
             assert(type(start) == type(0))
-            assert(start <= end)
+            assert(start <= end), "ports: start <= end; "\
+                "ports: {} parsed: {} {}".format(ports, start, end)
+            # we actually triggered this assertion in our rule set!
+            # Here is what our ruleset contained: dpts:60000:29
+            # Parsing was correct
+            # TODO: handle! probably only add a warning?
         return (extra, ports)
     
     (extra, dports) = parse_ports('d', extra, rule.proto)

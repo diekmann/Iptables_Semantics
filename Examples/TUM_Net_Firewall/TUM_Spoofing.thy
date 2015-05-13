@@ -39,6 +39,8 @@ ML{*
 open Test; (*put the exported code into current namespace such that the following firewall definition loads*)
 *}
 
+(*../../importer/main.py --type ml --module Test  iptables_Lnv_test_iface iptables_Lnv_test_iface.ML*)
+(*This is a CHEATING rule set. seee readme cheating.*)
 ML_file "iptables_Lnv_test_iface.ML"
 
 ML{*
