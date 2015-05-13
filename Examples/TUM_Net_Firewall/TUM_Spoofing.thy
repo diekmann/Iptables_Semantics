@@ -10,6 +10,8 @@ section{*Example: Chair for Network Architectures and Services (TUM)*}
 definition "example_ipassignment_nospoof = 
     no_spoofing_iface (Iface ''eth1.1017'') ([Iface ''eth1.1017'' \<mapsto> [(ipv4addr_of_dotdecimal (131,159,14,240), 28)]]:: ipassignment)"
 
+
+
 text{*
 This will be a counter example that the spoofing protection fails.
 The IPv4 src clearly is not for the range of the interface!

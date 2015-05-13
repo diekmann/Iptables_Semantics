@@ -339,6 +339,8 @@ begin
       by(simp add: internal_iface_name_subset)
 
 
+    definition iface_is_wildcard :: "iface \<Rightarrow> bool" where
+      "iface_is_wildcard ifce \<equiv> iface_name_is_wildcard (iface_sel ifce)"
 
     declare match_iface.simps[simp del]
     declare iface_name_is_wildcard.simps[simp del]

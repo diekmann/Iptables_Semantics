@@ -27,5 +27,5 @@ if __name__ == '__main__':
                 ip1, ip2, ip3, ip4 = ip_parts.split('.')
                 result.append("(Iface ''{}'', [(ipv4addr_of_dotdecimal ({},{},{},{}), {})])".format(m.group('iface'), ip1, ip2, ip3, ip4, netlen))
     
-    print("[{}]".format("\n".join(result)))
+    print("[{}]".format(",\n".join(result)))
             
