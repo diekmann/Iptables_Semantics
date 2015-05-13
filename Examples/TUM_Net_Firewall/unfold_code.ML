@@ -73,6 +73,7 @@ structure Test : sig
       num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word
   val example_ipassignment_nospoof :
     char list -> common_primitive rule list -> bool
+  val example_ipassmt_sanity_defined : common_primitive rule list -> bool
   val simple_rule_iptables_save_toString : char list -> simple_rule -> char list
   val check_simple_fw_preconditions : common_primitive rule list -> bool
   val bitmask_to_strange_inverse_cisco_mask : nat -> nat * (nat * (nat * nat))
@@ -696,6 +697,9 @@ val ifaceAny : iface = Iface [#"+"];
 fun pred_list p [] = true
   | pred_list p (x :: xs) = p x andalso pred_list p xs;
 
+fun is_none (SOME x) = false
+  | is_none NONE = true;
+
 val pfxes : nat list =
   map nat (upto zero_int (Int_of_integer (32 : IntInf.int)));
 
@@ -825,6 +829,54 @@ fun iface_sel (Iface x) = x;
 val ipv4range_UNIV : num1 bit0 bit0 bit0 bit0 bit0 wordinterval =
   wordinterval_UNIV
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))));
+
+fun oiface_sel (OIface x4) = x4;
+
+fun iiface_sel (IIface x3) = x3;
+
+fun is_Oiface (Src x1) = false
+  | is_Oiface (Dst x2) = false
+  | is_Oiface (IIface x3) = false
+  | is_Oiface (OIface x4) = true
+  | is_Oiface (Prot x5) = false
+  | is_Oiface (Src_Ports x6) = false
+  | is_Oiface (Dst_Ports x7) = false
+  | is_Oiface (Extra x8) = false;
+
+fun is_Iiface (Src x1) = false
+  | is_Iiface (Dst x2) = false
+  | is_Iiface (IIface x3) = true
+  | is_Iiface (OIface x4) = false
+  | is_Iiface (Prot x5) = false
+  | is_Iiface (Src_Ports x6) = false
+  | is_Iiface (Dst_Ports x7) = false
+  | is_Iiface (Extra x8) = false;
+
+fun primitive_extractor uu MatchAny = ([], MatchAny)
+  | primitive_extractor (disc, sel) (Match a) =
+    (if disc a then ([Pos (sel a)], MatchAny) else ([], Match a))
+  | primitive_extractor (disc, sel) (MatchNot (Match a)) =
+    (if disc a then ([Neg (sel a)], MatchAny) else ([], MatchNot (Match a)))
+  | primitive_extractor c (MatchAnd (ms1, ms2)) =
+    let
+      val (a1, ms1a) = primitive_extractor c ms1;
+      val (a2, ms2a) = primitive_extractor c ms2;
+    in
+      (a1 @ a2, MatchAnd (ms1a, ms2a))
+    end
+  | primitive_extractor uv (MatchNot (MatchNot va)) = (raise Fail "undefined")
+  | primitive_extractor uv (MatchNot (MatchAnd (va, vb))) =
+    (raise Fail "undefined")
+  | primitive_extractor uv (MatchNot MatchAny) = (raise Fail "undefined");
+
+fun collect_ifaces [] = []
+  | collect_ifaces (Rule (m, a) :: rs) =
+    filter (fn iface => not (equal_ifacea iface ifaceAny))
+      (map (fn aa => (case aa of Pos i => i | Neg i => i))
+         (fst (primitive_extractor (is_Iiface, iiface_sel) m)) @
+        map (fn aa => (case aa of Pos i => i | Neg i => i))
+          (fst (primitive_extractor (is_Oiface, oiface_sel) m)) @
+          collect_ifaces rs);
 
 fun numeral A_ (Bit1 n) =
   let
@@ -1146,17 +1198,6 @@ fun matcheq_matachAny MatchAny = true
     matcheq_matachAny m1 andalso matcheq_matachAny m2
   | matcheq_matachAny (Match uu) = (raise Fail "undefined");
 
-fun iiface_sel (IIface x3) = x3;
-
-fun is_Iiface (Src x1) = false
-  | is_Iiface (Dst x2) = false
-  | is_Iiface (IIface x3) = true
-  | is_Iiface (OIface x4) = false
-  | is_Iiface (Prot x5) = false
-  | is_Iiface (Src_Ports x6) = false
-  | is_Iiface (Dst_Ports x7) = false
-  | is_Iiface (Extra x8) = false;
-
 fun src_sel (Src x1) = x1;
 
 fun is_Src (Src x1) = true
@@ -1176,23 +1217,6 @@ fun l2br_negation_type_union A_ [] = empty_WordInterval A_
   | l2br_negation_type_union A_ (Neg (s, e) :: ls) =
     wordinterval_union A_ (wordinterval_invert A_ (WordInterval (s, e)))
       (l2br_negation_type_union A_ ls);
-
-fun primitive_extractor uu MatchAny = ([], MatchAny)
-  | primitive_extractor (disc, sel) (Match a) =
-    (if disc a then ([Pos (sel a)], MatchAny) else ([], Match a))
-  | primitive_extractor (disc, sel) (MatchNot (Match a)) =
-    (if disc a then ([Neg (sel a)], MatchAny) else ([], MatchNot (Match a)))
-  | primitive_extractor c (MatchAnd (ms1, ms2)) =
-    let
-      val (a1, ms1a) = primitive_extractor c ms1;
-      val (a2, ms2a) = primitive_extractor c ms2;
-    in
-      (a1 @ a2, MatchAnd (ms1a, ms2a))
-    end
-  | primitive_extractor uv (MatchNot (MatchNot va)) = (raise Fail "undefined")
-  | primitive_extractor uv (MatchNot (MatchAnd (va, vb))) =
-    (raise Fail "undefined")
-  | primitive_extractor uv (MatchNot MatchAny) = (raise Fail "undefined");
 
 fun bitNOT_word A_ a = word_of_int A_ (bitNOT_int (uint A_ a));
 
@@ -1262,15 +1286,6 @@ fun is_Dst_Ports (Src x1) = false
   | is_Dst_Ports (Src_Ports x6) = false
   | is_Dst_Ports (Dst_Ports x7) = true
   | is_Dst_Ports (Extra x8) = false;
-
-fun is_Oiface (Src x1) = false
-  | is_Oiface (Dst x2) = false
-  | is_Oiface (IIface x3) = false
-  | is_Oiface (OIface x4) = true
-  | is_Oiface (Prot x5) = false
-  | is_Oiface (Src_Ports x6) = false
-  | is_Oiface (Dst_Ports x7) = false
-  | is_Oiface (Extra x8) = false;
 
 fun is_Extra (Src x1) = false
   | is_Extra (Dst x2) = false
@@ -2094,6 +2109,9 @@ fun ipv4range_intersection r1 r2 =
   wordinterval_intersection
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
 
+fun ipassmt_sanity_defined rs ipassmt =
+  pred_list (fn iface => not (is_none (ipassmt iface))) (collect_ifaces rs);
+
 fun integer_to_16word i =
   of_nat (semiring_1_word (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
     (nat_of_integer i);
@@ -2559,6 +2577,9 @@ fun equal_action Empty Unknown = false
   | equal_action Log Log = true
   | equal_action Drop Drop = true
   | equal_action Accept Accept = true;
+
+fun example_ipassmt_sanity_defined rs =
+  ipassmt_sanity_defined rs (map_of equal_iface (ipassmt numeral_nat));
 
 fun simple_rule_iptables_save_toString chain
   (SimpleRule (Simple_match_ext (iif, oif, sip, dip, p, sps, dps, ()), a)) =

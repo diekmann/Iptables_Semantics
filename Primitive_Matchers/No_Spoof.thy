@@ -24,21 +24,23 @@ section{*No Spoofing*}
     lemma[code_unfold]: "ipassmt_sanity_haswildcards (map_of ipassmt) \<longleftrightarrow> (\<forall> iface \<in> fst` set ipassmt. \<not> iface_is_wildcard iface)"
       by(simp add: ipassmt_sanity_haswildcards_def Map.dom_map_of_conv_image_fst)
 
-    value "ipassmt_sanity_haswildcards (map_of [(Iface ''eth1.1017'', [(ipv4addr_of_dotdecimal (131,159,14,240), 28)])])"
+    value(code) "ipassmt_sanity_haswildcards (map_of [(Iface ''eth1.1017'', [(ipv4addr_of_dotdecimal (131,159,14,240), 28)])])"
 
   fun collect_ifaces :: "common_primitive rule list \<Rightarrow> iface list" where
     "collect_ifaces [] = []" |
-    "collect_ifaces ((Rule m a)#rs) = (map (\<lambda>x. case x of Pos i \<Rightarrow> i | Neg i \<Rightarrow> i) (fst (primitive_extractor (is_Iiface, iiface_sel) m))) @
-                                      (map (\<lambda>x. case x of Pos i \<Rightarrow> i | Neg i \<Rightarrow> i) (fst (primitive_extractor (is_Oiface, oiface_sel) m))) @ collect_ifaces rs"
+    "collect_ifaces ((Rule m a)#rs) = filter (\<lambda>iface. iface \<noteq> ifaceAny) (
+                                      (map (\<lambda>x. case x of Pos i \<Rightarrow> i | Neg i \<Rightarrow> i) (fst (primitive_extractor (is_Iiface, iiface_sel) m))) @
+                                      (map (\<lambda>x. case x of Pos i \<Rightarrow> i | Neg i \<Rightarrow> i) (fst (primitive_extractor (is_Oiface, oiface_sel) m))) @ collect_ifaces rs)"
 
   definition ipassmt_sanity_defined :: "common_primitive rule list \<Rightarrow> ipassignment \<Rightarrow> bool" where
     "ipassmt_sanity_defined rs ipassmt \<equiv> \<forall> iface \<in> set (collect_ifaces rs). iface \<in> dom ipassmt"
 
     text{*Executable code*}
-    lemma[code_unfold]: "ipassmt_sanity_defined rs ipassmt \<longleftrightarrow> (\<forall> iface \<in> set (collect_ifaces rs). ipassmt iface \<noteq> None)"
+    lemma[code]: "ipassmt_sanity_defined rs ipassmt \<longleftrightarrow> (\<forall> iface \<in> set (collect_ifaces rs). ipassmt iface \<noteq> None)"
       by(simp add: ipassmt_sanity_defined_def Map.domIff)
   
-    value "ipassmt_sanity_defined [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (Match (IIface (Iface ''eth1.1017'')))) action.Accept,
+    value(code) "ipassmt_sanity_defined [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (Match (IIface (Iface ''eth1.1017'')))) action.Accept,
+             Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (Match (IIface (ifaceAny)))) action.Accept,
              Rule MatchAny action.Drop]
              (map_of [(Iface ''eth1.1017'', [(ipv4addr_of_dotdecimal (131,159,14,240), 28)])])"
 

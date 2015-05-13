@@ -26,12 +26,16 @@ definition "ipassmt = [(Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,213,4)
 (Iface ''eth1.1023'', [(ipv4addr_of_dotdecimal (188,95,236,2), 22)]),
 (Iface ''eth1.1025'', [(ipv4addr_of_dotdecimal (185,86,232,2), 22)]),
 (Iface ''eth1.1024'', [(ipv4addr_of_dotdecimal (188,95,232,61), 29)])]"
+(*TODO: not in this list: inet 131.159.252.150/30 scope global eth1.110*)
 
 lemma "ipassmt_sanity_haswildcards (map_of ipassmt)" by eval
 
 (*this is just for testing*)
 definition "example_ipassignment_nospoof ifce = 
     no_spoofing_iface (Iface ifce) (map_of ipassmt:: ipassignment)"
+
+
+definition "example_ipassmt_sanity_defined rs = ipassmt_sanity_defined rs (map_of ipassmt)"
 
 
 export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure
@@ -54,7 +58,7 @@ export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure
   simple_rule_iptables_save_toString
 
   ifaceAny no_spoofing_iface example_ipassignment_nospoof
-  map_of ipassmt
+  map_of ipassmt example_ipassmt_sanity_defined
   in SML module_name "Test" file "unfold_code.ML"
 
 ML_file "unfold_code.ML"
@@ -134,6 +138,10 @@ check_simple_fw_preconditions upper;
 *}
 
 ML_val{*
+example_ipassmt_sanity_defined upper;
+*}
+
+ML_val{*
 length (to_simple_firewall upper);
 *}
 
@@ -173,5 +181,8 @@ text{*vlan 96 is protected, all other following are not!*}
 (* example where rp_filter will fail: 10./8 
   admin: will iber reverse path explizit als sich auf rp_filter zu verlassen. real life: router mit firewall der kein rp_filter aus haben kann
   (address range ueber mehrer interfaces)*)
+(*an example where we need to disbale rp_filter:
+  https://www.tolaris.com/2009/07/13/disabling-reverse-path-filtering-in-complex-networks/
+  ``However, you can safely disable it [rp_filter] if you perform the same sanity checks in your iptables firewall (and you do, right?).''*)
 
 end
