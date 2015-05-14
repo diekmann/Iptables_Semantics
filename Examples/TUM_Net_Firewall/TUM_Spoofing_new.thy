@@ -184,5 +184,9 @@ text{*vlan 96 is protected, all other following are not!*}
 (*an example where we need to disbale rp_filter:
   https://www.tolaris.com/2009/07/13/disabling-reverse-path-filtering-in-complex-networks/
   ``However, you can safely disable it [rp_filter] if you perform the same sanity checks in your iptables firewall (and you do, right?).''*)
+(*
+``Some setups, notably with asymmetric routing, may not be eligible to use RPF however.'' http://inai.de/documents/Perfect_Ruleset.pdf
+or failover, or other stuff, ...
+*)
 
 end
