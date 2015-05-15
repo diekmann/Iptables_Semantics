@@ -979,6 +979,13 @@ fun ipassmt A_ =
               (nat_of_integer (20 : IntInf.int),
                 nat_of_integer (11 : IntInf.int)))),
          numeral A_ (Bit0 (Bit0 (Bit0 (Bit1 One)))))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"1", #"0"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (131 : IntInf.int),
+            (nat_of_integer (159 : IntInf.int),
+              (nat_of_integer (252 : IntInf.int),
+                nat_of_integer (150 : IntInf.int)))),
+         numeral A_ (Bit0 (Bit1 (Bit1 (Bit1 One)))))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"1", #"6"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 : IntInf.int),
@@ -1021,6 +1028,13 @@ fun ipassmt A_ =
               (nat_of_integer (14 : IntInf.int),
                 nat_of_integer (194 : IntInf.int)))),
          numeral A_ (Bit1 (Bit1 (Bit0 (Bit1 One)))))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"2"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (131 : IntInf.int),
+            (nat_of_integer (159 : IntInf.int),
+              (nat_of_integer (14 : IntInf.int),
+                nat_of_integer (238 : IntInf.int)))),
+         numeral A_ (Bit0 (Bit0 (Bit1 (Bit1 One)))))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"4"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 : IntInf.int),

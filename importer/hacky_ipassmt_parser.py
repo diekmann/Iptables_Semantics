@@ -4,7 +4,8 @@ import argparse
 import re
 from lib.relib import *
 
-p = re.compile(r'^\s+inet (?P<iprng>'+reIPv4Netmask+r') brd '+reIPv4+r' scope global (?P<iface>'+reIFACE+r').*$')
+#secondary?
+p = re.compile(r'^\s+inet (?P<iprng>'+reIPv4Netmask+r')(:? brd '+reIPv4+r')? scope global (?P<iface>'+reIFACE+r')$')
 
 
 if __name__ == '__main__':
