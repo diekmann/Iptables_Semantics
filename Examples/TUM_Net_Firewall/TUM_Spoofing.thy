@@ -109,7 +109,7 @@ text{*on my system, less than 30 seconds (with interfaces).*}
 ML_val{*
 check_simple_fw_preconditions upper;
 check_simple_fw_preconditions lower;
-*} (*also true if ports included*)
+*}
 
 ML_val{*
 length (to_simple_firewall upper);
