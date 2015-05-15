@@ -1,4 +1,4 @@
-theory TUM_Spoofing_new
+theory TUM_Spoofing_new3
 imports "../Code_Interface"
   "../../Primitive_Matchers/No_Spoof"
 begin
@@ -6,11 +6,37 @@ begin
 
 section{*Example: Chair for Network Architectures and Services (TUM)*}
 
+(*
+
+    0     0 LOG_DROP   all  --  *      *       131.159.14.0/23      0.0.0.0/0           
+    0     0 LOG_DROP   all  --  *      *       131.159.20.0/23      0.0.0.0/0           
+    0     0 LOG_DROP   all  --  *      *       192.168.212.0/23     0.0.0.0/0           
+    0     0 LOG_DROP   all  --  *      *       188.95.233.0/24      0.0.0.0/0           
+    0     0 LOG_DROP   all  --  *      *       188.95.232.192/27    0.0.0.0/0           
+    0     0 LOG_DROP   all  --  *      *       188.95.234.0/23      0.0.0.0/0           
+    0     0 LOG_DROP   all  --  *      *       192.48.107.0/24      0.0.0.0/0           
+    0     0 LOG_DROP   all  --  *      *       188.95.236.0/22      0.0.0.0/0           
+    0     0 LOG_DROP   all  --  *      *       185.86.232.0/22      0.0.0.0/0           
+ 2756  273K RETURN     all  --  *      *       0.0.0.0/0            0.0.0.0/0  
+*)
+definition "everything_but_my_ips = ipv4range_split (ipv4range_invert (l2br (map ipv4cidr_to_interval [
+  (ipv4addr_of_dotdecimal (131,159,14,0), 23),
+  (ipv4addr_of_dotdecimal (131,159,20,0), 23),
+  (ipv4addr_of_dotdecimal (192,168,212,0), 23),
+  (ipv4addr_of_dotdecimal (188,95,233,0), 24),
+  (ipv4addr_of_dotdecimal (188,95,232,192), 27),
+  (ipv4addr_of_dotdecimal (188,95,234,0), 23),
+  (ipv4addr_of_dotdecimal (192,48,107,0), 24),
+  (ipv4addr_of_dotdecimal (188,95,236,0), 22),
+  (ipv4addr_of_dotdecimal (185,86,232,0), 22)
+  ])))"
+
+
 definition "ipassmt = [(Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,213,4), 24)]),
 (Iface ''eth1.96'', [(ipv4addr_of_dotdecimal (131,159,14,3), 25)]),
 (Iface ''eth1.108'', [(ipv4addr_of_dotdecimal (131,159,14,129), 26)]),
 (Iface ''eth1.109'', [(ipv4addr_of_dotdecimal (131,159,20,11), 24)]),
-(Iface ''eth1.110'', [(ipv4addr_of_dotdecimal (131,159,252,150), 30)]),
+(Iface ''eth1.110'', everything_but_my_ips), (*INET*)
 (Iface ''eth1.116'', [(ipv4addr_of_dotdecimal (131,159,15,131), 26)]),
 (Iface ''eth1.152'', [(ipv4addr_of_dotdecimal (131,159,15,252), 28)]),
 (Iface ''eth1.171'', [(ipv4addr_of_dotdecimal (131,159,15,2), 26)]),
@@ -27,8 +53,7 @@ definition "ipassmt = [(Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,213,4)
 (Iface ''eth1.1020'', [(ipv4addr_of_dotdecimal (192,48,107,2), 24)]),
 (Iface ''eth1.1023'', [(ipv4addr_of_dotdecimal (188,95,236,2), 22)]),
 (Iface ''eth1.1025'', [(ipv4addr_of_dotdecimal (185,86,232,2), 22)]),
-(Iface ''eth1.1024'', [(ipv4addr_of_dotdecimal (188,95,232,61), 29)])]"
-(*TODO: not in this list: inet iface*)
+(Iface ''eth1.1024'', everything_but_my_ips) (*transfer net*)]"
 
 lemma "ipassmt_sanity_haswildcards (map_of ipassmt)" by eval
 
@@ -70,31 +95,12 @@ ML{*
 open Test; (*put the exported code into current namespace such that the following firewall definition loads*)
 *}
 
-(*../../importer/main.py --type ml --module Test  iptables_Lnv_test_iface iptables_Lnv_test_iface.ML*)
+(* ../../importer/main.py --type ml --module Test  iptables-Lnv-2015-05-15_15-23-41_cheating iptables-Lnv-2015-05-15_15-23-41_cheating.ML *)
 
 
-ML_file "iptables-Lnv-2015-05-13_10-53-20_cheating.ML"
+ML_file "iptables-Lnv-2015-05-15_15-23-41_cheating.ML"
 
-(*
-$ diff -u ~/git/net-network/iptables-Lnv-2015-05-13_10-53-20 iptables-Lnv-2015-05-13_10-53-20_cheating
---- /home/diekmann/git/net-network/iptables-Lnv-2015-05-13_10-53-20	2015-05-13 11:19:16.669193827 +0200
-+++ iptables-Lnv-2015-05-13_10-53-20_cheating	2015-05-13 13:11:18.463582107 +0200
-@@ -13,14 +13,12 @@
- 
- Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
-  pkts bytes target     prot opt in     out     source               destination         
--2633M 3879G ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            state RELATED,ESTABLISHED,UNTRACKED
-     0     0 LOG_RECENT_DROP2  all  --  *      *       0.0.0.0/0            0.0.0.0/0            recent: UPDATE seconds: 60 name: DEFAULT side: source
-  563K   26M LOG_RECENT_DROP  tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            state NEW tcp dpt:22flags: 0x17/0x02 recent: UPDATE seconds: 360 hit_count: 41 name: ratessh side: source
-     0     0 LOG_DROP   all  --  *      *       127.0.0.0/8          0.0.0.0/0           
-     0     0 ACCEPT     all  --  eth1.1011 *       131.159.14.197       0.0.0.0/0           
-     0     0 ACCEPT     all  --  eth1.1011 *       131.159.14.221       0.0.0.0/0           
-     0     0 ACCEPT     udp  --  eth1.152 *       131.159.15.252       0.0.0.0/0           
--    0     0 ACCEPT     udp  --  *      eth1.152  0.0.0.0/0            131.159.15.252       multiport dports 4569,5000:65535
-   209  9376 ACCEPT     all  --  eth1.152 eth1.110  131.159.15.247       0.0.0.0/0           
- 11332  694K ACCEPT     all  --  eth1.110 eth1.152  0.0.0.0/0            131.159.15.247      
-   173  6948 ACCEPT     all  --  eth1.152 eth1.110  131.159.15.248       0.0.0.0/0           
-*)
+(*DIFF*)
 
 (*
 The second rule we needed to remove war for an asterisk. It is probably an error because this rule prevents any spoofing protection!
@@ -168,27 +174,57 @@ writeln "target     prot opt source               destination"
 
 ML_val{*
 example_ipassignment_nospoof (String.explode "eth1.96") upper;
-*} (*success*)
+*}
+
+
+ML_val{*
+example_ipassignment_nospoof (String.explode "eth1.97") upper;
+*} (*TODO*)
 
 
 ML_val{*
 example_ipassignment_nospoof (String.explode "eth1.108") upper;
-*} (*fail. reason: filter_96 allows spoofed packets*)
+example_ipassignment_nospoof (String.explode "eth1.109") upper;
+*}
 
-text{*vlan 96 is protected, all other following are not!*}
-(* rp filter still blocks most spoofing attempts. most! when we disable it, we can spoof (tested) *)
-(* our firewall also has a MAC address filter, constructed analogously to the ip spoofing filter.
-   the MAC address filter had the same problems, rp_filter could not prevent them. *)
-(* rp filter for some cases not applicable*)
-(* example where rp_filter will fail: 10./8 
-  admin: will iber reverse path explizit als sich auf rp_filter zu verlassen. real life: router mit firewall der kein rp_filter aus haben kann
-  (address range ueber mehrer interfaces)*)
-(*an example where we need to disbale rp_filter:
-  https://www.tolaris.com/2009/07/13/disabling-reverse-path-filtering-in-complex-networks/
-  ``However, you can safely disable it [rp_filter] if you perform the same sanity checks in your iptables firewall (and you do, right?).''*)
-(*
-``Some setups, notably with asymmetric routing, may not be eligible to use RPF however.'' http://inai.de/documents/Perfect_Ruleset.pdf
-or failover, or other stuff, ...
-*)
+
+ML_val{*
+example_ipassignment_nospoof (String.explode "eth1.110") upper;
+example_ipassignment_nospoof (String.explode "eth1.1024") upper;
+*} (*works!*)
+
+
+ML_val{*
+example_ipassignment_nospoof (String.explode "eth1.116") upper;
+example_ipassignment_nospoof (String.explode "eth1.152") upper;
+example_ipassignment_nospoof (String.explode "eth1.171") upper;
+example_ipassignment_nospoof (String.explode "eth1.173") upper;
+*}
+
+
+
+ML_val{*
+example_ipassignment_nospoof (String.explode "eth1.1010") upper;
+example_ipassignment_nospoof (String.explode "eth1.1011") upper;
+example_ipassignment_nospoof (String.explode "eth1.1012") upper;
+example_ipassignment_nospoof (String.explode "eth1.1014") upper;
+example_ipassignment_nospoof (String.explode "eth1.1016") upper;
+example_ipassignment_nospoof (String.explode "eth1.1017") upper;
+*}
+
+
+ML_val{*
+example_ipassignment_nospoof (String.explode "eth1.1111") upper;
+*}
+
+
+ML_val{*
+example_ipassignment_nospoof (String.explode "eth1.1019") upper;
+example_ipassignment_nospoof (String.explode "eth1.1020") upper;
+example_ipassignment_nospoof (String.explode "eth1.1023") upper;
+example_ipassignment_nospoof (String.explode "eth1.1025") upper;
+*}
+
+
 
 end

@@ -32,7 +32,7 @@ definition "ipassmt = [(Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,213,4)
 
 lemma "ipassmt_sanity_haswildcards (map_of ipassmt)" by eval
 
-(*this is just for testing*)
+
 definition "example_ipassignment_nospoof ifce = 
     no_spoofing_iface (Iface ifce) (map_of ipassmt:: ipassignment)"
 

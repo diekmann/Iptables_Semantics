@@ -1064,7 +1064,7 @@ fun ipv4addr_of_dotdecimal (a, (b, (c, d))) =
         (times_nat (nat_of_integer (65536 : IntInf.int)) b))
       (times_nat (nat_of_integer (16777216 : IntInf.int)) a));
 
-val everything_but_my_ip : (num1 bit0 bit0 bit0 bit0 bit0 word * nat) list =
+val everything_but_my_ips : (num1 bit0 bit0 bit0 bit0 bit0 word * nat) list =
   ipv4range_split
     (ipv4range_invert
       (l2br (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
@@ -1091,7 +1091,7 @@ val everything_but_my_ip : (num1 bit0 bit0 bit0 bit0 bit0 word * nat) list =
               nat_of_integer (24 : IntInf.int)),
             (ipv4addr_of_dotdecimal
                (nat_of_integer (188 : IntInf.int),
-                 (nat_of_integer (93 : IntInf.int),
+                 (nat_of_integer (95 : IntInf.int),
                    (nat_of_integer (232 : IntInf.int),
                      nat_of_integer (192 : IntInf.int)))),
               nat_of_integer (27 : IntInf.int)),
@@ -1146,7 +1146,7 @@ val ipassmt : (iface * (num1 bit0 bit0 bit0 bit0 bit0 word * nat) list) list =
                 nat_of_integer (11 : IntInf.int)))),
          nat_of_integer (24 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"1", #"0"],
-      everything_but_my_ip),
+      everything_but_my_ips),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"1", #"6"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 : IntInf.int),
@@ -1260,12 +1260,7 @@ val ipassmt : (iface * (num1 bit0 bit0 bit0 bit0 bit0 word * nat) list) list =
                 nat_of_integer (2 : IntInf.int)))),
          nat_of_integer (22 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"2", #"4"],
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (188 : IntInf.int),
-            (nat_of_integer (95 : IntInf.int),
-              (nat_of_integer (232 : IntInf.int),
-                nat_of_integer (61 : IntInf.int)))),
-         nat_of_integer (29 : IntInf.int))])];
+      everything_but_my_ips)];
 
 fun matcheq_matachAny MatchAny = true
   | matcheq_matachAny (MatchNot m) = not (matcheq_matachAny m)
