@@ -76,8 +76,8 @@ open Test; (*put the exported code into current namespace such that the followin
 ML_file "iptables-Lnv-2015-05-13_10-53-20_cheating.ML"
 
 (*
-$ diff -u ~/git/net-network-private/iptables-Lnv-2015-05-13_10-53-20 iptables-Lnv-2015-05-13_10-53-20_cheating
---- /home/diekmann/git/net-network-private/iptables-Lnv-2015-05-13_10-53-20	2015-05-13 11:19:16.669193827 +0200
+$ diff -u ~/git/net-network/iptables-Lnv-2015-05-13_10-53-20 iptables-Lnv-2015-05-13_10-53-20_cheating
+--- /home/diekmann/git/net-network/iptables-Lnv-2015-05-13_10-53-20	2015-05-13 11:19:16.669193827 +0200
 +++ iptables-Lnv-2015-05-13_10-53-20_cheating	2015-05-13 13:11:18.463582107 +0200
 @@ -13,14 +13,12 @@
  

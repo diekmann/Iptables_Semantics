@@ -75,7 +75,24 @@ open Test; (*put the exported code into current namespace such that the followin
 
 ML_file "iptables-Lnv-2015-05-15_14-14-46_cheating.ML"
 
-(*DIFF*)
+(*$ diff -u ~/git/net-network/iptables-Lnv-2015-05-15_14-14-46 iptables-Lnv-2015-05-15_14-14-46_cheating
+--- /home/diekmann/git/net-network/iptables-Lnv-2015-05-15_14-14-46	2015-05-15 14:41:37.880808467 +0200
++++ iptables-Lnv-2015-05-15_14-14-46_cheating	2015-05-15 14:18:06.276868863 +0200
+@@ -13,14 +13,12 @@
+ 
+ Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
+  pkts bytes target     prot opt in     out     source               destination         
+-1533K 1345M ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            state RELATED,ESTABLISHED,UNTRACKED
+     0     0 LOG_RECENT_DROP2  all  --  *      *       0.0.0.0/0            0.0.0.0/0            recent: UPDATE seconds: 60 name: DEFAULT side: source
+   340 13780 LOG_RECENT_DROP  tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            state NEW tcp dpt:22flags: 0x17/0x02 recent: UPDATE seconds: 360 hit_count: 41 name: ratessh side: source
+     0     0 LOG_DROP   all  --  *      *       127.0.0.0/8          0.0.0.0/0           
+     0     0 ACCEPT     all  --  eth1.1011 *       131.159.14.197       0.0.0.0/0           
+     0     0 ACCEPT     all  --  eth1.1011 *       131.159.14.221       0.0.0.0/0           
+     0     0 ACCEPT     udp  --  eth1.152 *       131.159.15.252       0.0.0.0/0           
+-    0     0 ACCEPT     udp  --  *      eth1.152  0.0.0.0/0            131.159.15.252       multiport dports 4569,5000:65535
+     0     0 ACCEPT     all  --  eth1.152 eth1.110  131.159.15.247       0.0.0.0/0           
+     7   324 ACCEPT     all  --  eth1.110 eth1.152  0.0.0.0/0            131.159.15.247      
+     1    40 ACCEPT     all  --  eth1.152 eth1.110  131.159.15.248       0.0.0.0/0   *)
 
 (*
 The second rule we needed to remove war for an asterisk. It is probably an error because this rule prevents any spoofing protection!
