@@ -161,7 +161,7 @@ begin
                 then
                   UNIV
                 else
-                  \<Union> ips \<in> set (ip_matches). (case ips of Pos ip \<Rightarrow> ipv4s_to_set ip | Neg ip \<Rightarrow> - ipv4s_to_set ip))
+                  \<Inter> ips \<in> set (ip_matches). (case ips of Pos ip \<Rightarrow> ipv4s_to_set ip | Neg ip \<Rightarrow> - ipv4s_to_set ip))
               else
                 {}"
 
@@ -246,15 +246,9 @@ begin
       done
     } note 2=this
 
-    have very_stupid_helper: "\<And>aaa. aaa \<noteq> [] \<Longrightarrow> \<exists>x. x \<in> set aaa"
-      apply(case_tac aaa)
-       apply(simp_all)
-      by blast
-
     from 1 2 show ?thesis
       unfolding get_exists_matching_src_ips_def
-      apply(clarsimp)
-      using very_stupid_helper by fast
+      by(clarsimp)
   qed
 
 
@@ -404,7 +398,7 @@ begin
                 then
                   ipv4range_UNIV
                 else
-                  l2br_negation_type_union (NegPos_map ipt_ipv4range_to_interval ip_matches))
+                  l2br_negation_type_intersect (NegPos_map ipt_ipv4range_to_interval ip_matches))
               else
                 Empty_WordInterval"
   (*WOW, such horrible proof!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*)
@@ -414,20 +408,20 @@ begin
     apply(case_tac "primitive_extractor (is_Iiface, iiface_sel) m")
     apply(case_tac "primitive_extractor (is_Src, src_sel) m")
     apply(simp)
-    apply(simp add: l2br_negation_type_union)
+    apply(simp add: l2br_negation_type_intersect)
     apply(simp add: ipv4range_UNIV_def NegPos_map_simps)
     apply(simp add: ipt_ipv4range_to_interval)
     apply(safe)
          apply(simp_all add: ipt_ipv4range_to_interval)
-      apply(rename_tac a b aa ba x ab xa y, rule_tac x="Pos ab" in bexI)
+      apply(rename_tac i_matches rest1 a b x xa)
+      apply(case_tac xa)
        apply(simp_all add: NegPos_set)
-     apply(rename_tac a b aa ba x ab xa y, rule_tac x="Neg ab" in bexI)
+       using ipt_ipv4range_to_interval apply fast+
+     apply(rename_tac i_matches rest1 a b x aa ab ba)
+     apply(erule_tac x="Pos aa" in ballE)
       apply(simp_all add: NegPos_set)
-    apply(rename_tac a b aa ba x xa)
-    apply(case_tac xa)
-     apply(simp_all add: NegPos_set)
-     using ipt_ipv4range_to_interval apply fast+
-    done
+    using NegPos_set(2) by fastforce
+
   value(code) "(get_exists_matching_src_ips_executable (Iface ''eth0'')
       (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0'')))))"
 
