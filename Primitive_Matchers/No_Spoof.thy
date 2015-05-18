@@ -660,7 +660,39 @@ begin
     apply(simp add: iprange_example)
     apply(simp add: range_0_max_UNIV)
     done
-   
+
+  text{*Example 4: spoofing protection but the algorithm fails (it is only sound, not complete).*}
+  lemma "no_spoofing [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
+          [Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (MatchAnd (Match (IIface (Iface ''eth0''))) (Match (Prot (Proto TCP))))) action.Drop,
+           Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (MatchAnd (Match (IIface (Iface ''eth0''))) (MatchNot (Match (Prot (Proto TCP)))))) action.Drop,
+           Rule MatchAny action.Accept]" (is "no_spoofing ?ipassmt ?rs")
+   proof -
+     have "simple_ruleset ?rs" by(simp add: simple_ruleset_def)
+     hence 1: "\<forall>p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>?rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<longleftrightarrow>
+                approximating_bigstep_fun (common_matcher, in_doubt_allow) p ?rs Undecided = Decision FinalAllow"
+       apply -
+       apply(drule simple_imp_good_ruleset)
+       apply(simp add: approximating_semantics_iff_fun_good_ruleset)
+       done
+     show ?thesis
+       unfolding no_spoofing_def
+       apply(subst 1)
+       apply(simp)
+       apply(simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+       apply(simp add: match_iface.simps)
+       apply(simp add: match_simplematcher_SrcDst_not)
+       apply(auto simp add: eval_ternary_simps bool_to_ternary_simps matches_case_ternaryvalue_tuple match_iface.simps
+                      split: ternaryvalue.split ternaryvalue.split_asm)
+       apply(simp add: ipv4cidr_union_set_def)
+       done
+   qed
+  lemma "\<not> no_spoofing_algorithm 
+          (Iface ''eth0'') 
+          [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
+          [Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (MatchAnd (Match (IIface (Iface ''eth0''))) (Match (Prot (Proto TCP))))) action.Drop,
+           Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (MatchAnd (Match (IIface (Iface ''eth0''))) (MatchNot (Match (Prot (Proto TCP)))))) action.Drop,
+           Rule MatchAny action.Accept] {} {}"
+    by(simp add: get_exists_matching_src_ips_def get_all_matching_src_ips_def match_iface.simps ipv4cidr_union_set_def iprange_example range_0_max_UNIV)
 
   private definition "nospoof iface ipassmt rs = (\<forall>p.
           (approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface\<rparr>) rs Undecided = Decision FinalAllow) \<longrightarrow>
