@@ -1,7 +1,7 @@
 Q: What are those "_cheating" files?
-A: As the name suggests, we manually modified the rulesets to yield better results.
+A: As the name suggests, we manually modified the rulesets to yield better results. Whenever wo load a _cheating file, we include the diff to the unmodified ruleset.
 
-We removed three rules at the beginning. Here is the diff to to unmodified ruleset:
+For example, we removed three rules at the beginning. Here is the diff to to unmodified ruleset:
 
  Chain FORWARD (policy ACCEPT)
  target     prot opt source               destination
