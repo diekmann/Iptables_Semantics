@@ -1,5 +1,5 @@
 Q: What are those "_cheating" files?
-A: As the name suggests, we manually modified the rulesets to yield better results. Whenever wo load a _cheating file, we include the diff to the unmodified ruleset.
+A: As the name suggests, we manually modified the rulesets to yield better results. Whenever we load a _cheating file, we include the diff to the unmodified ruleset.
 
 For example, we removed three rules at the beginning. Here is the diff to to unmodified ruleset:
 
