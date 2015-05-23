@@ -1,7 +1,8 @@
 theory No_Spoof
-imports Common_Primitive_Matcher
-        Primitive_Normalization
+imports 
         "../Semantics_Embeddings"
+        Common_Primitive_Matcher
+        Primitive_Normalization
 begin
 
 section{*No Spoofing*}

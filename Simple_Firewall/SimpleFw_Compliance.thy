@@ -303,8 +303,7 @@ value "to_simple_firewall
                 Drop]"
 value "check_simple_fw_preconditions [Rule (MatchAnd MatchAny MatchAny) Drop]"
 value "to_simple_firewall [Rule (MatchAnd MatchAny MatchAny) Drop]"
-value "to_simple_firewall
-     [Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) Drop]"
+value "to_simple_firewall [Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) Drop]"
 
 
 
