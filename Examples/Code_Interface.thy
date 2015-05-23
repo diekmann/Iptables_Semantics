@@ -11,6 +11,10 @@ begin
 
 section{*Code Interface*}
 
+(*TODO TODO TODO
+  all the unfold_ruleset_* don't add the chain's default action at the end.
+*)
+
 definition unfold_ruleset_FORWARD :: "common_primitive ruleset \<Rightarrow> common_primitive rule list" where
 "unfold_ruleset_FORWARD rs = ((optimize_matches opt_MatchAny_match_expr)^^10) 
   (optimize_matches optimize_primitive_univ (rw_Reject (rm_LogEmpty (((process_call rs)^^10) [Rule MatchAny (Call ''FORWARD'')]))))"
