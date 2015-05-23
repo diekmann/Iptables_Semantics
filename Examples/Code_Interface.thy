@@ -13,6 +13,8 @@ section{*Code Interface*}
 
 (*TODO TODO TODO
   all the unfold_ruleset_* don't add the chain's default action at the end.
+  But it should be added. This would be the responsibility of the parser.
+  How it should look like: [Rule MatchAny (Call ''FORWARD''), Rule MatchAny Drop/Allow]
 *)
 
 definition unfold_ruleset_FORWARD :: "common_primitive ruleset \<Rightarrow> common_primitive rule list" where
