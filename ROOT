@@ -18,6 +18,9 @@ session "Iptables_Semantics" = Bitmagic +
     "Primitive_Matchers/Transform"
     "Simple_Firewall/SimpleFw_Compliance"
     "Simple_Firewall/Shadowed"
+  document_files
+    "root.tex"
+    "mathpartir.sty"
 
 
 session "Iptables_Semantics_Examples" = Iptables_Semantics +
@@ -28,3 +31,7 @@ session "Iptables_Semantics_Examples" = Iptables_Semantics +
     "Examples/Synology_Diskstation_DS414/Analyze_Synology_Diskstation"
     "Examples/Ringofsaturn_com/Analyze_Ringofsaturn_com"
     "Examples/sns.ias.edu/SNS_IAS_Eduroam_Spoofing"
+  document_files
+    "root.tex"
+    "mathpartir.sty"
+
