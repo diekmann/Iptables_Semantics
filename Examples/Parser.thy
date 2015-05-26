@@ -5,8 +5,6 @@ begin
 (*Incomplete: An ML Parser for iptables-save*)
 
 ML{*
-
-(*TODO, library function?*)
 fun takeWhile p xs = fst (take_prefix p xs);
 
 fun dropWhile p xs = snd (take_prefix p xs);
@@ -57,7 +55,8 @@ end;
 
 ML{*
 String.explode "sasd";
-raw_explode "as\"d"
+(($$ "a") ::: (Scan.many (fn x => x = "s"))) (raw_explode "asdf");
+Scan.this_string "" (raw_explode "asdf");
 *}
 
 ML{*
@@ -89,27 +88,25 @@ local
   fun is_target_char x = Symbol.is_ascii x andalso
       (Symbol.is_ascii_letter x orelse x = "-" orelse x = "~")
 in
+  (*TODO: assert max size?*)
   fun mk_nat i = (HOLogic.mk_number HOLogic.natT i)
 
   fun mk_quadrupel (((a,b),c),d) = HOLogic.mk_prod (mk_nat a, HOLogic.mk_prod (mk_nat b, HOLogic.mk_prod (mk_nat c, mk_nat d)));
 
   fun ip_to_hol (ip,len) = @{const Ip4AddrNetmask} $ mk_quadrupel ip $ mk_nat len;
 
-  fun conv f (a, s:string list) = (f a, s);
-
   val parser_ip = (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
                  (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
                  (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
                  (Scan.many1 Symbol.is_ascii_digit >> extract_int);
   
-  val parser_ip_cidr = parser_ip --| ($$ "/") -- (Scan.many1 Symbol.is_ascii_digit >> extract_int)
-                       #> conv ip_to_hol;
+  val parser_ip_cidr = parser_ip --| ($$ "/") -- (Scan.many1 Symbol.is_ascii_digit >> extract_int) >> ip_to_hol;
 
-  val parser_interface = (Scan.many1 is_iface_char >> implode #> conv (fn x => @{const Iface} $ HOLogic.mk_string x));
+  val parser_interface = Scan.many1 is_iface_char >> (implode #> (fn x => @{const Iface} $ HOLogic.mk_string x));
 
-  val parser_target = (Scan.many1 is_target_char >> implode);
+  val parser_target = Scan.many1 is_target_char >> implode;
 
-  val parser_extra = (Scan.many1 (fn x => x <> " ") >> implode #> conv HOLogic.mk_string);
+  val parser_extra = Scan.many1 (fn x => x <> " " andalso Symbol.not_eof x) >> (implode #> HOLogic.mk_string);
 
   val is_whitespace = Scan.many (fn x => x = " ");
 end;
@@ -141,16 +138,11 @@ fun debug_print [] = []
 
 (*TODO: probably parse (from right? or with eol? the target, then parse all remaining options*)
 
-val (x, rest) = (Scan.repeat option_parser) (ipt_explode "-d 0.31.123.213/88 --foo_bar \"hehe\" -i eth0+ -s 0.31.123.213/88 unparsed");
+val (x, rest) = (Scan.repeat option_parser) (ipt_explode "-d 0.31.123.213/88 --foo_bar \"hehe\" -i eth0+ -s 0.31.123.213/88 moreextra");
 debug_type_of x;
 debug_print x;
 *}
 
 ML_val{* @{const MatchAnd (common_primitive)} $ (@{const Src} $ @{term undefined}) $ @{term undefined} |> fastype_of *}
-
-ML_val{*
-Symbol.explode;
-Scan.many1 Symbol.is_ascii_digit (ipt_explode "212sdas34")
-*}
 
 end
