@@ -7,20 +7,21 @@ begin
 ML{*
 
 (*TODO, library function?*)
-fun takeWhile _ [] = []
-  | takeWhile pred (x::xs) = 
-        if  pred x  then  x :: takeWhile pred xs  
-        else  [];
+fun takeWhile p xs = fst (take_prefix p xs);
 
+fun dropWhile p xs = snd (take_prefix p xs);
 
-fun dropWhile _ [] = []
-  | dropWhile pred (x::xs) = 
-        if  pred x then dropWhile pred xs  
-        else xs;
+local
+  fun drop1 _ [] = []
+   |  drop1 p (x::xs) = if p x then x::xs else xs
+in
+  fun dropWhileInclusive p xs = drop1 p (dropWhile p xs)
+end
 
-fun span p xs = (takeWhile p xs, dropWhile p xs);
+fun split_at p xs = (takeWhile p xs, dropWhileInclusive p xs);
 
-span (fn x => x <> " ") (raw_explode "foo bar")
+(*split at the predicate, do NOT keep the position where it was split*)
+split_at (fn x => x <> " ") (raw_explode "foo bar")
 *}
 
 ML{*
@@ -67,7 +68,7 @@ ML{*
 (*keep quoted strings as one token*)
 local
   fun collapse_quotes [] = []
-   |  collapse_quotes ("\""::ss) = let val (quoted, rest) = span (fn x => x <> "\"") ss in
+   |  collapse_quotes ("\""::ss) = let val (quoted, rest) = split_at (fn x => x <> "\"") ss in
                                           "\"" ^ implode quoted^"\"" :: rest end
    |  collapse_quotes (s::ss) = s :: collapse_quotes ss;
 in
