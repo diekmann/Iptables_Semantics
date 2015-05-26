@@ -7,10 +7,20 @@ begin
 ML{*
 
 (*TODO, library function?*)
-fun takewhile _ [] = []
-  | takewhile pred (x::xs) = 
-        if  pred x  then  x :: takewhile pred xs  
+fun takeWhile _ [] = []
+  | takeWhile pred (x::xs) = 
+        if  pred x  then  x :: takeWhile pred xs  
         else  [];
+
+
+fun dropWhile _ [] = []
+  | dropWhile pred (x::xs) = 
+        if  pred x then dropWhile pred xs  
+        else xs;
+
+fun span p xs = (takeWhile p xs, dropWhile p xs);
+
+span (fn x => x <> " ") (raw_explode "foo bar")
 *}
 
 ML{*
@@ -27,7 +37,7 @@ local
 in
   fun extract_filter_table [] = []
    |  extract_filter_table (r::rs) = if not (is_start_of_filter_table r) then extract_filter_table rs else
-                                     takewhile (fn x => not (is_end_of_table x)) rs
+                                     takeWhile (fn x => not (is_end_of_table x)) rs
 end;
 
 val filter_table = extract_filter_table iptables_save;
@@ -54,8 +64,19 @@ raw_explode "as\"d"
 *}
 
 ML{*
-(*TODO: it should keep quoted stings as one token*)
-val ipt_explode = raw_explode
+(*keep quoted strings as one token*)
+local
+  fun collapse_quotes [] = []
+   |  collapse_quotes ("\""::ss) = let val (quoted, rest) = span (fn x => x <> "\"") ss in
+                                          "\"" ^ implode quoted^"\"" :: rest end
+   |  collapse_quotes (s::ss) = s :: collapse_quotes ss;
+in
+  val ipt_explode = raw_explode #> collapse_quotes;
+end
+*}
+
+ML_val{*
+ipt_explode "ad \"foobar  --boo\" boo";
 *}
 
 ML{*
@@ -117,11 +138,14 @@ val option_parser = parse_src_ip || parse_dst_ip || parse_in_iface || parse_out_
 
 fun debug_type_of [] = []
  |  debug_type_of ((_, t)::ts) = type_of t :: debug_type_of ts;
+fun debug_print [] = []
+ |  debug_print ((_, t)::ts) = Pretty.writeln (Syntax.pretty_term @{context} t) :: debug_print ts;
 
 (*TODO: probably parse (from right? or with eol? the target, then parse all remaining options*)
 
-val (x, rest) = (Scan.repeat option_parser) (ipt_explode "-d 0.31.123.213/88 --foo_bar -i eth0+ -s 0.31.123.213/88 unparsed");
+val (x, rest) = (Scan.repeat option_parser) (ipt_explode "-d 0.31.123.213/88 --foo_bar \"hehe\" -i eth0+ -s 0.31.123.213/88 unparsed");
 debug_type_of x;
+debug_print x;
 *}
 
 ML_val{* @{const MatchAnd (common_primitive)} $ (@{const Src} $ @{term undefined}) $ @{term undefined} |> fastype_of *}
