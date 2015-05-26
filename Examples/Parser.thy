@@ -70,37 +70,61 @@ local
   fun is_target_char x = Symbol.is_ascii x andalso
       (Symbol.is_ascii_letter x orelse x = "-" orelse x = "~")
 in
+  fun mk_nat i = (HOLogic.mk_number HOLogic.natT i)
+
+  fun mk_quadrupel (((a,b),c),d) = HOLogic.mk_prod (mk_nat a, HOLogic.mk_prod (mk_nat b, HOLogic.mk_prod (mk_nat c, mk_nat d)));
+
+  fun ip_to_hol (ip,len) = @{const Ip4AddrNetmask} $ mk_quadrupel ip $ mk_nat len;
+
+  fun conv f (a, s:string list) = (f a, s);
+
   val parser_ip = (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
                  (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
                  (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
                  (Scan.many1 Symbol.is_ascii_digit >> extract_int);
   
   val parser_ip_cidr = parser_ip --| ($$ "/") -- (Scan.many1 Symbol.is_ascii_digit >> extract_int)
+                       #> conv ip_to_hol;
 
-  val parser_interface = (Scan.many1 is_iface_char >> implode);
+  val parser_interface = (Scan.many1 is_iface_char >> implode #> conv (fn x => @{const Iface} $ HOLogic.mk_string x));
 
   val parser_target = (Scan.many1 is_target_char >> implode);
+
+  val parser_extra = (Scan.many1 (fn x => x <> " ") >> implode #> conv HOLogic.mk_string);
+
+  val is_whitespace = Scan.many (fn x => x = " ");
 end;
 
-fun parse_cmd_option (s: string) (parser: string list -> ('a * string list)) = 
-    Scan.finite Symbol.stopper (Scan.this_string s -- parser)
+fun parse_cmd_option (s: string) (t: term) (parser: string list -> (term * string list)) = 
+    Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string s -- (parser >> (fn r => t $ r)))
 
-(*scan src ip*)
-val parse_src_ip = parse_cmd_option "-s " parser_ip_cidr;
-val parse_dst_ip = parse_cmd_option "-d " parser_ip_cidr;
 
-val parse_in_iface = parse_cmd_option "-i " parser_interface;
-val parse_out_iface = parse_cmd_option "-o " parser_interface;
+val parse_src_ip = parse_cmd_option "-s " @{const Src} parser_ip_cidr;
+val parse_dst_ip = parse_cmd_option "-d " @{const Dst} parser_ip_cidr;
 
+
+val parse_in_iface = parse_cmd_option "-i " @{const IIface} parser_interface;
+val parse_out_iface = parse_cmd_option "-o " @{const OIface} parser_interface;
+
+(*
 val parse_target = parse_cmd_option "-j " parser_target;
+*)
 
-val parse_unknown = Scan.many (fn x => x = " ") -- Scan.many1 (fn x => x <> " ");
+val parse_unknown = parse_cmd_option "" @{const Extra} parser_extra;
 
 
-val option_parser = parse_src_ip || parse_dst_ip (*|| parse_in_iface*);
+val option_parser = parse_src_ip || parse_dst_ip || parse_in_iface || parse_out_iface || parse_unknown;
 
-Scan.repeat option_parser (ipt_explode "-d 0.31.123.213/88 --foo -s ");
+fun debug_type_of [] = []
+ |  debug_type_of ((_, t)::ts) = type_of t :: debug_type_of ts;
+
+(*TODO: probably parse (from right? or with eol? the target, then parse all remaining options*)
+
+val (x, rest) = (Scan.repeat option_parser) (ipt_explode "-d 0.31.123.213/88 --foo_bar -i eth0+ -s 0.31.123.213/88 unparsed");
+debug_type_of x;
 *}
+
+ML_val{* @{const MatchAnd (common_primitive)} $ (@{const Src} $ @{term undefined}) $ @{term undefined} |> fastype_of *}
 
 ML_val{*
 Symbol.explode;
