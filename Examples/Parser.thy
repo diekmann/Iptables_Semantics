@@ -11,16 +11,12 @@ fun takeWhile p xs = fst (take_prefix p xs);
 
 fun dropWhile p xs = snd (take_prefix p xs);
 
-local
-  fun drop1 _ [] = []
-   |  drop1 p (x::xs) = if p x then x::xs else xs
-in
-  fun dropWhileInclusive p xs = drop1 p (dropWhile p xs)
-end
-
-fun split_at p xs = (takeWhile p xs, dropWhileInclusive p xs);
+fun dropWhileInclusive p xs = drop 1 (dropWhile p xs)
 
 (*split at the predicate, do NOT keep the position where it was split*)
+fun split_at p xs = (takeWhile p xs, dropWhileInclusive p xs);
+*}
+ML_val{*
 split_at (fn x => x <> " ") (raw_explode "foo bar")
 *}
 
@@ -77,7 +73,8 @@ end
 *}
 
 ML_val{*
-ipt_explode "ad \"foobar  --boo\" boo";
+ipt_explode "ad \"foobar   --boo\" boo";
+ipt_explode "ad \"foobar --boo boo";
 *}
 
 ML{*
