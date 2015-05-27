@@ -342,8 +342,123 @@ begin
     definition iface_is_wildcard :: "iface \<Rightarrow> bool" where
       "iface_is_wildcard ifce \<equiv> iface_name_is_wildcard (iface_sel ifce)"
 
-    declare match_iface.simps[simp del]
-    declare iface_name_is_wildcard.simps[simp del]
+
+
+
+
+  subsection{*Enumerating Interfaces*}
+    private definition all_chars :: "char list" where
+      "all_chars \<equiv> Enum.enum"
+    private lemma all_chars: "set all_chars = (UNIV::char set)"
+       by(simp add: all_chars_def enum_UNIV)
+  
+    text{*we can compute this, but its horribly inefficient!*}
+    (*TODO: reduce size of valid chars to the printable ones*)
+    private lemma strings_of_length_n: "set (List.n_lists n all_chars) = {s::string. length s = n}"
+      apply(induction n)
+       apply(simp)
+      apply(simp add: all_chars)
+      apply(safe)
+       apply(simp)
+      apply(simp)
+      apply(rename_tac n x)
+      apply(rule_tac x="drop 1 x" in exI)
+      apply(simp)
+      apply(case_tac x)
+       apply(simp_all)
+      done
+  
+    text{*Non-wildacrd interfaces of length @{term n}*}
+    private definition non_wildcard_ifaces :: "nat \<Rightarrow> string list" where
+     "non_wildcard_ifaces n \<equiv> filter (\<lambda>i. \<not> iface_name_is_wildcard i) (List.n_lists n all_chars)"
+
+    text{*Example: (any number higher than zero are probably too inefficient)*}
+    private lemma "non_wildcard_ifaces 0 = ['''']" by eval
+
+    private lemma non_wildcard_ifaces: "set (non_wildcard_ifaces n) = {s::string. length s = n \<and> \<not> iface_name_is_wildcard s}"
+      using strings_of_length_n non_wildcard_ifaces_def by auto
+  
+    private lemma  "(\<Union> i \<in> set (non_wildcard_ifaces n). internal_iface_name_to_set i) = {s::string. length s = n \<and> \<not> iface_name_is_wildcard s}"
+     apply(simp_all only: internal_iface_name_to_set.simps if_True if_False not_True_eq_False not_False_eq_True non_wildcard_ifaces)
+     apply(simp_all split: split_if_asm split_if)
+     done
+  
+    text{*Non-wildacrd interfaces up to length @{term n}*}
+    private fun non_wildcard_ifaces_upto :: "nat \<Rightarrow> string list" where
+      "non_wildcard_ifaces_upto 0 = [[]]" |
+      "non_wildcard_ifaces_upto (Suc n) = (non_wildcard_ifaces (Suc n)) @ non_wildcard_ifaces_upto n"
+    private lemma non_wildcard_ifaces_upto: "set (non_wildcard_ifaces_upto n) = {s::string. length s \<le> n \<and> \<not> iface_name_is_wildcard s}"
+      apply(induction n)
+       apply(simp)
+       apply fastforce
+      apply(simp add: non_wildcard_ifaces)
+      by fastforce
+
+
+  subsection{*Negating Interfaces*}
+    private lemma inv_i_wildcard: "- {i@cs | cs. True} = {c | c. length c < length i} \<union> {c@cs | c cs. length c = length i \<and> c \<noteq> i}"
+      apply(rule)
+       prefer 2
+       apply(safe)[1]
+        apply(simp add:)
+       apply(simp add:)
+      apply(simp)
+      apply(rule Compl_anti_mono[where B="{i @ cs |cs. True}" and A="- ({c | c. length c < length i} \<union> {c@cs | c cs. length c = length i \<and> c \<noteq> i})", simplified])
+      apply(safe)
+      apply(simp)
+      apply(case_tac "(length i) = length x")
+       apply(erule_tac x=x in allE, simp)
+       apply(blast)
+      apply(erule_tac x="take (length i) x" in allE)
+      apply(simp add: min_def)
+      by (metis append_take_drop_id)
+    private lemma inv_i_nowildcard: "- {i::string} = {c | c. length c < length i} \<union> {c@cs | c cs. length c \<ge> length i \<and> c \<noteq> i}"
+    proof -
+      have x: "{c | c. length c = length i \<and> c \<noteq> i}  \<union> {c | c. length c > length i} = {c@cs | c cs. length c \<ge> length i \<and> c \<noteq> i}"
+      apply(safe)
+      apply force+
+      done
+      have "- {i::string} = {c |c . c \<noteq> i}"
+       by(safe, simp)
+      also have "\<dots> = {c | c. length c < length i} \<union> {c | c. length c = length i \<and> c \<noteq> i}  \<union> {c | c. length c > length i}"
+      by(auto)
+      finally show ?thesis using x by auto
+    qed
+  
+     
+    private lemma inv_iface_name_set: "- (internal_iface_name_to_set i) = (
+      if iface_name_is_wildcard i
+      then
+        {c |c. length c < length (butlast i)} \<union> {c @ cs |c cs. length c = length (butlast i) \<and> c \<noteq> butlast i}
+      else
+        {c | c. length c < length i} \<union> {c@cs | c cs. length c \<ge> length i \<and> c \<noteq> i}
+    )"
+    apply(case_tac "iface_name_is_wildcard i")
+     apply(simp_all only: internal_iface_name_to_set.simps if_True if_False not_True_eq_False not_False_eq_True)
+     apply(subst inv_i_wildcard)
+     apply(simp)
+    apply(subst inv_i_nowildcard)
+    apply(simp)
+    done
+
+    text{*Negating is really not intuitive.
+          The Interface @{term "''et''"} is in the negated set of @{term "''eth+''"}.
+          And the Interface @{term "''et+''"} is also in this set! This is because @{term "''+''"}
+          is a normal interface character and not a wildcard here!
+          In contrast, the set described by @{term "''et+''"} (with @{term "''+''"} a wildcard)
+          is not a subset of the previously negated set.*}
+    lemma "''et'' \<in> - (internal_iface_name_to_set ''eth+'')" by(simp)
+    lemma "''et+'' \<in> - (internal_iface_name_to_set ''eth+'')" by(simp)
+    lemma "\<not> {i. match_iface (Iface ''et+'') i} \<subseteq> - (internal_iface_name_to_set ''eth+'')" by force
+
+    text{*Because @{term "''+''"} can appear as interface wildcard and normal interface character,
+          we cannot take negate an @{term "Iface i"} such that we get back @{typ "iface list"} which
+          describe the negated interface.*}
+    lemma "''+'' \<in> - (internal_iface_name_to_set ''eth+'')" by(simp)
+
+
+  declare match_iface.simps[simp del]
+  declare iface_name_is_wildcard.simps[simp del]
 end
 
 end
