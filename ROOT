@@ -7,21 +7,34 @@ session "Iptables_Semantics" = Bitmagic +
     Semantics
     "Examples/Example_Semantics"
     Call_Return_Unfolding
-    "Semantics_Ternary/Negation_Type_DNF"
+    "Common/Negation_Type_DNF"
     "Semantics_Ternary/Packet_Set"
     "Semantics_Ternary/Semantics_Ternary"
     Matching_Embeddings
     Semantics_Embeddings
     Iptables_Semantics
     "Semantics_Ternary/Optimizing"
+    "Primitive_Matchers/No_Spoof"
     "Primitive_Matchers/Transform"
+    "Primitive_Matchers/Iface_Attic"
     "Simple_Firewall/SimpleFw_Compliance"
+    "Simple_Firewall/Shadowed"
+  document_files
+    "root.tex"
+    "mathpartir.sty"
 
 
 session "Iptables_Semantics_Examples" = Iptables_Semantics +
    theories
-    "Primitive_Matchers/Iface_Negation"
     "Examples/TUM_Net_Firewall/Analyze_TUM_Net_Firewall"
     "Examples/SQRL_Shorewall/Analyze_SQRL_Shorewall"
     "Examples/Synology_Diskstation_DS414/Analyze_Synology_Diskstation"
     "Examples/Ringofsaturn_com/Analyze_Ringofsaturn_com"
+    "Examples/sns.ias.edu/SNS_IAS_Eduroam_Spoofing"
+    "Examples/TUM_Net_Firewall/TUM_Spoofing_new"
+    "Examples/TUM_Net_Firewall/TUM_Spoofing_new2"
+    "Examples/TUM_Net_Firewall/TUM_Spoofing_new3"
+  document_files
+    "root.tex"
+    "mathpartir.sty"
+

@@ -1,7 +1,5 @@
 theory IpAddresses_Normalize
 imports Common_Primitive_Matcher
-        "../Bitmagic/Numberwang_Ln" (*ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr, we should move this lemma?*)
-        "../Bitmagic/CIDRSplit"
         "Primitive_Normalization"
 begin
 
@@ -35,57 +33,8 @@ subsection{*Normalizing IP Addresses*}
     by(induction ms rule: normalized_dst_ips.induct, simp_all)
   
 
-
-  fun l2br_negation_type_intersect :: "('a::len word \<times> 'a::len word) negation_type list \<Rightarrow> 'a::len wordinterval" where
-    "l2br_negation_type_intersect [] = wordinterval_UNIV" |
-    "l2br_negation_type_intersect ((Pos (s,e))#ls) = wordinterval_intersection (WordInterval s e) (l2br_negation_type_intersect ls)" |
-    "l2br_negation_type_intersect ((Neg (s,e))#ls) = wordinterval_intersection (wordinterval_invert (WordInterval s e)) (l2br_negation_type_intersect ls)"
-
-  lemma l2br_negation_type_intersect_alt: "wordinterval_to_set (l2br_negation_type_intersect l) = 
-                  wordinterval_to_set (wordinterval_setminus (l2br_intersect (getPos l)) (l2br (getNeg l)))"
-    apply(simp add: l2br_intersect l2br)
-    apply(induction l rule :l2br_negation_type_intersect.induct)
-       apply(simp_all)
-      apply(fast)+
-    done
-
-  lemma l2br_negation_type_intersect: "wordinterval_to_set (l2br_negation_type_intersect l) = 
-                        (\<Inter> (i,j) \<in> set (getPos l). {i .. j}) - (\<Union> (i,j) \<in> set (getNeg l). {i .. j})"
-    by(simp add: l2br_negation_type_intersect_alt l2br_intersect l2br)
-
-
-  definition ipt_ipv4range_negation_type_to_br_intersect :: "ipt_ipv4range negation_type list \<Rightarrow> 32 wordinterval" where
-    "ipt_ipv4range_negation_type_to_br_intersect l = l2br_negation_type_intersect (NegPos_map ipt_ipv4range_to_intervall l)" 
-
-  lemma ipt_ipv4range_negation_type_to_br_intersect: "wordinterval_to_set (ipt_ipv4range_negation_type_to_br_intersect l) =
-      (\<Inter> ip \<in> set (getPos l). ipv4s_to_set ip) - (\<Union> ip \<in> set (getNeg l). ipv4s_to_set ip)"
-    apply(simp add: ipt_ipv4range_negation_type_to_br_intersect_def l2br_negation_type_intersect NegPos_map_simps)
-    using ipt_ipv4range_to_intervall by blast
-
-
-  definition br_2_cidr_ipt_ipv4range_list :: "32 wordinterval \<Rightarrow> ipt_ipv4range list" where
-    "br_2_cidr_ipt_ipv4range_list r = map (\<lambda> (base, len). Ip4AddrNetmask (dotdecimal_of_ipv4addr base) len) (ipv4range_split r)"
-
-
-  lemma br_2_cidr_ipt_ipv4range_list: "(\<Union> ip \<in> set (br_2_cidr_ipt_ipv4range_list r). ipv4s_to_set ip) = wordinterval_to_set r"
-    proof -
-    (*have Union_rule: "\<And>P Q S. \<forall>a. P a = Q a \<Longrightarrow> (\<Union>a\<in>S. P a) = (\<Union>x\<in>S. Q x)" by presburger*)
-    have "\<And>a. ipv4s_to_set (case a of (base, x) \<Rightarrow> Ip4AddrNetmask (dotdecimal_of_ipv4addr base) x) = (case a of (x, xa) \<Rightarrow> ipv4range_set_from_bitmask x xa)"
-      by(clarsimp simp add: ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
-    hence "(\<Union> ip \<in> set (br_2_cidr_ipt_ipv4range_list r). ipv4s_to_set ip) = \<Union>((\<lambda>(x, y). ipv4range_set_from_bitmask x y) ` set (ipv4range_split r))"
-      unfolding br_2_cidr_ipt_ipv4range_list_def by(simp)
-    thus ?thesis
-    using ipv4range_split_bitmask by presburger
-  qed
-
-
-
-  definition ipt_ipv4range_compress :: "ipt_ipv4range negation_type list \<Rightarrow> ipt_ipv4range list" where
-    "ipt_ipv4range_compress = br_2_cidr_ipt_ipv4range_list \<circ> ipt_ipv4range_negation_type_to_br_intersect"
-
-  value "normalize_primitive_extract disc_sel C ipt_ipv4range_compress m"
-  value "normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress (MatchAnd (MatchNot (Match (Src_Ports [(1,2)]))) (Match (Src_Ports [(1,2)])))"
-
+  value "normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress
+      (MatchAnd (MatchNot (Match (Src_Ports [(1,2)]))) (Match (Src_Ports [(1,2)])))"
   value "normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress
       (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (10,0,0,0) 2)))) (Match (Src_Ports [(1,2)])))"
   value "normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress
@@ -93,11 +42,6 @@ subsection{*Normalizing IP Addresses*}
   value "normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress
       (MatchAnd (Match (Src (Ip4AddrNetmask (10,0,0,0) 2))) (MatchAnd (Match (Src (Ip4AddrNetmask (192,0,0,0) 8))) (Match (Src_Ports [(1,2)]))))"
 
-
-  lemma ipt_ipv4range_compress: "(\<Union> ip \<in> set (ipt_ipv4range_compress l). ipv4s_to_set ip) =
-      (\<Inter> ip \<in> set (getPos l). ipv4s_to_set ip) - (\<Union> ip \<in> set (getNeg l). ipv4s_to_set ip)"
-    by (metis br_2_cidr_ipt_ipv4range_list comp_apply ipt_ipv4range_compress_def ipt_ipv4range_negation_type_to_br_intersect)
-      
 
   definition normalize_src_ips :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where
     "normalize_src_ips = normalize_primitive_extract (common_primitive.is_Src, src_sel) common_primitive.Src ipt_ipv4range_compress"
@@ -155,19 +99,15 @@ subsection{*Normalizing IP Addresses*}
 
    text{*Normalizing the dst ips preserves the normalized src ips*}
    lemma "normalized_nnf_match m \<Longrightarrow> normalized_src_ips m \<Longrightarrow> \<forall>mn\<in>set (normalize_dst_ips m). normalized_src_ips mn"
-   unfolding normalize_dst_ips_def
-   unfolding normalized_src_ips_def2
-   apply(rule normalize_primitive_extract_preserves_unrelated_normalized_n_primitive)
-   by(simp_all)
+   unfolding normalize_dst_ips_def normalized_src_ips_def2
+   by(rule normalize_primitive_extract_preserves_unrelated_normalized_n_primitive) (simp_all)
 
 
 
   lemma normalize_dst_ips_normalized_n_primitive: "normalized_nnf_match m \<Longrightarrow>
     \<forall>m' \<in> set (normalize_dst_ips m). normalized_dst_ips m'"
-  unfolding normalize_dst_ips_def
-  unfolding normalized_dst_ips_def2
-  apply(rule normalize_primitive_extract_normalizes_n_primitive[OF _ wf_disc_sel_common_primitive(4)])
-   by(simp_all)
+  unfolding normalize_dst_ips_def normalized_dst_ips_def2
+  by(rule normalize_primitive_extract_normalizes_n_primitive[OF _ wf_disc_sel_common_primitive(4)]) (simp_all)
 
 
 
@@ -192,17 +132,13 @@ text{*unused*}
     "ipt_ipv4range_invert (Ip4AddrNetmask base len) = ipv4range_split (wordinterval_invert 
         (prefix_to_range (ipv4addr_of_dotdecimal base AND NOT mask (32 - len), len)))"
 
-    (*the bitmagic (pfxm_prefix pfx) AND pfxm_mask pfx). we just want to make sure to get a valid_prefix*)
-    lemma cornys_hacky_call_to_prefix_to_range_to_start_with_a_valid_prefix: "valid_prefix (base AND NOT mask (32 - len), len)"
-      apply(simp add: valid_prefix_def pfxm_mask_def pfxm_length_def pfxm_prefix_def)
-      by (metis mask_and_not_mask_helper)
       
 
   (* okay, we only need to focus in the generic case *)
   lemma ipt_ipv4range_invert_case_Ip4Addr: "ipt_ipv4range_invert (Ip4Addr addr) = ipt_ipv4range_invert (Ip4AddrNetmask addr 32)"
     apply(simp add: prefix_to_range_ipv4range_range pfxm_prefix_def ipv4range_single_def)
     apply(subgoal_tac "pfxm_mask (ipv4addr_of_dotdecimal addr, 32) = (0::ipv4addr)")
-     apply(simp add: ipv4range_range_def)
+     apply(simp add: ipv4range_range.simps)
     apply(simp add: pfxm_mask_def pfxm_length_def)
     done
 
@@ -226,7 +162,7 @@ text{*unused*}
         apply(simp only: ipt_ipv4range_invert.simps)
         apply(simp add: prefix_to_range_set_eq)
         apply(simp add: cornys_hacky_call_to_prefix_to_range_to_start_with_a_valid_prefix pfxm_length_def pfxm_prefix_def wordinterval_to_set_ipv4range_set_from_bitmask)
-        apply(thin_tac "?X")
+        (*apply(thin_tac "?X")*)
         by (metis ipv4range_set_from_bitmask_alt1 ipv4range_set_from_netmask_base_mask_consume maskshift_eq_not_mask)
      qed
 

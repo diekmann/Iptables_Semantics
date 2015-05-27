@@ -1,6 +1,6 @@
 theory NumberWangCebewee
 imports
-  "./autocorres-0.98/lib/WordLemmaBucket"
+  "./l4v/lib/WordLemmaBucket"
   NumberWangCaesar
 begin
 

@@ -71,7 +71,7 @@ The semantic rules again in pretty format:
   
   Luckily, our model is correct for the filtering behaviour and explicitly does not support any actions with packet modification.
   Thus, the described scenario is not a counterexample that our model is wrong but a hint for future features
-  we may want to support. Luckily, we introduced the @{term Decision} state, which should make adding packet modification states easy.
+  we may want to support. Luckily, we introduced the @{term "Decision state"}, which should make adding packet modification states easy.
 *)
 
 lemma deny:
@@ -248,18 +248,28 @@ lemma nomatch':
     with assms Undecided show ?thesis by simp
   qed (blast intro: decision)
 
-lemma no_free_return_hlp: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>a,s\<rangle> \<Rightarrow> t \<Longrightarrow> matches \<gamma> m p \<Longrightarrow>  s = Undecided \<Longrightarrow> a = [Rule m Return] \<Longrightarrow> False"
-  proof (induction rule: iptables_bigstep.induct)
-    case (seq rs\<^sub>1)
-    thus ?case
-      by (cases rs\<^sub>1) (auto dest: skipD)
-  qed simp_all
 
-lemma no_free_return: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m Return], Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> matches \<gamma> m p \<Longrightarrow> False"
-  by (metis no_free_return_hlp)
+text{*there are only two cases when there can be a Return on top-level:
+\begin{enumerate}
+  \item the firewall is in a Decision state
+  \item the return does not match
+\end{enumerate}
+In both cases, it is not applied!
+*}
+lemma no_free_return: assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m Return], Undecided\<rangle> \<Rightarrow> t" and "matches \<gamma> m p" shows "False"
+  proof -
+  { fix a s
+    have no_free_return_hlp: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>a,s\<rangle> \<Rightarrow> t \<Longrightarrow> matches \<gamma> m p \<Longrightarrow>  s = Undecided \<Longrightarrow> a = [Rule m Return] \<Longrightarrow> False"
+    proof (induction rule: iptables_bigstep.induct)
+      case (seq rs\<^sub>1)
+      thus ?case
+        by (cases rs\<^sub>1) (auto dest: skipD)
+    qed simp_all
+  } with assms show ?thesis by blast
+  qed
 
 
-(* TODO corny: seq_split?! *)
+(* seq_split is elim, seq_progress is dest *)
 lemma seq_progress: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<Longrightarrow> rs = rs\<^sub>1@rs\<^sub>2 \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, s\<rangle> \<Rightarrow> t' \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, t'\<rangle> \<Rightarrow> t"
   proof(induction arbitrary: rs\<^sub>1 rs\<^sub>2 t' rule: iptables_bigstep_induct)
     case Allow
@@ -307,7 +317,7 @@ lemma seq_progress: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<R
           \<Gamma>,\<gamma>,p\<turnstile> \<langle>rsa, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow>
           t' = Undecided"
       apply(erule callD)
-      apply(simp_all)
+           apply(simp_all)
       apply(erule seqE)
       apply(erule seqE_cons)
       by (metis Call_return.IH no_free_return self_append_conv skipD)
@@ -339,45 +349,32 @@ lemma seq_progress: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<R
           using Call_result
           apply(auto simp add: iptables_bigstep.skip iptables_bigstep.call_result dest: skipD)
           apply(drule callD, simp_all)
-          apply blast
+           apply blast
           by (metis Cons_eq_appendI append_self_conv2 no_free_return seq_split)
       qed (fastforce intro: iptables_bigstep.intros dest: skipD)
   qed (auto dest: iptables_bigstepD)
 
-lemma no_free_return_seq:
-  assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r1 @ Rule m Return # r2, Undecided\<rangle> \<Rightarrow> t" "matches \<gamma> m p" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r1,Undecided\<rangle> \<Rightarrow> Undecided"
-  shows False
-  proof -
-    from assms have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m Return # r2, Undecided\<rangle> \<Rightarrow> t"
-      by (blast intro: seq_progress)
-    hence "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m Return] @ r2, Undecided\<rangle> \<Rightarrow> t"
-      by simp
-    with assms show False
-      by (blast intro: no_free_return elim: seq_split)
-  qed
 
-text{*there are only two cases when there can be a Return on top-level:
-\begin{enumerate}
-  \item the firewall is in a Decision state
-  \item the return does not match
-\end{enumerate}
-In both cases, it is not applied!
-*}
-lemma no_free_return_fst:
-  assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r#rs, s\<rangle> \<Rightarrow> t"
-  obtains (decision) X where "s = Decision X"
-        | (nomatch) m a where "r = Rule m a" "a \<noteq> Return \<or> \<not> matches \<gamma> m p"
-  using assms
-  proof (induction "r#rs" s t rule: iptables_bigstep_induct)
-    case Seq thus ?case
-      by (metis no_free_return_seq seq skip rule.exhaust)
-  qed auto
-
-lemma iptables_bigstep_deterministic: "\<lbrakk> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t; \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t' \<rbrakk> \<Longrightarrow> t = t'"
+theorem iptables_bigstep_deterministic: assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" and "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t'" shows "t = t'"
+proof -
+  { fix r1 r2 m t
+    assume a1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r1 @ Rule m Return # r2, Undecided\<rangle> \<Rightarrow> t" and a2: "matches \<gamma> m p" and a3: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r1,Undecided\<rangle> \<Rightarrow> Undecided"
+    have False
+    proof -
+      from a1 a3 have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m Return # r2, Undecided\<rangle> \<Rightarrow> t"
+        by (blast intro: seq_progress)
+      hence "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m Return] @ r2, Undecided\<rangle> \<Rightarrow> t"
+        by simp
+      from seqE[OF this] obtain ti where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m Return], Undecided\<rangle> \<Rightarrow> ti" by blast
+      with no_free_return a2 show False by fast (*by (blast intro: no_free_return elim: seq_split)*)
+    qed
+  } note no_free_return_seq=this
+  
+  from assms show ?thesis
   proof (induction arbitrary: t' rule: iptables_bigstep_induct)
     case Seq
     thus ?case
-      by (metis seq_split)
+      by (metis seq_progress)
   next
     case Call_result
     thus ?case
@@ -387,6 +384,7 @@ lemma iptables_bigstep_deterministic: "\<lbrakk> \<Gamma>,\<gamma>,p\<turnstile>
     thus ?case
       by (metis append_Cons callD no_free_return_seq)
   qed (auto dest: iptables_bigstepD)
+qed
 
 lemma iptables_bigstep_to_undecided: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> Undecided \<Longrightarrow> s = Undecided"
   by (metis decisionD state.exhaust)
@@ -417,7 +415,7 @@ lemma Rule_DecisionE:
       by (cases rs\<^sub>1) (auto dest: skipD)
   qed simp_all
 
-(*TODO: tune*)
+
 lemma log_remove:
   assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1 @ [Rule m Log] @ rs\<^sub>2, s\<rangle> \<Rightarrow> t"
   shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1 @ rs\<^sub>2, s\<rangle> \<Rightarrow> t"
@@ -484,12 +482,12 @@ locale iptables_bigstep_fixedbackground =
   
   lemma "wf_\<Gamma> rs \<Longrightarrow> p\<turnstile>' \<langle>rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
     apply(rule iffI)
-    apply(rotate_tac 1)
-    apply(induction rs s t rule: iptables_bigstep'.induct)
-    apply(auto intro: iptables_bigstep.intros simp: wf_\<Gamma>_append dest!: wf_\<Gamma>_Call)[11]
+     apply(rotate_tac 1)
+     apply(induction rs s t rule: iptables_bigstep'.induct)
+               apply(auto intro: iptables_bigstep.intros simp: wf_\<Gamma>_append dest!: wf_\<Gamma>_Call)[11]
     apply(rotate_tac 1)
     apply(induction rs s t rule: iptables_bigstep.induct)
-    apply(auto intro: iptables_bigstep'.intros simp: wf_\<Gamma>_append dest!: wf_\<Gamma>_Call)[11]
+              apply(auto intro: iptables_bigstep'.intros simp: wf_\<Gamma>_append dest!: wf_\<Gamma>_Call)[11]
     done
     
   end

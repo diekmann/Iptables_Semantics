@@ -179,7 +179,7 @@ proof (induction rs)
         next
           case Return
           with Cons Rule show ?thesis
-            by simp (metis matches.simps(2) matches_add_match_simp no_free_return_seq nomatchD seq seqE_cons skip)
+            by simp (metis matches.simps(2) matches_add_match_simp no_free_return nomatchD seqE_cons)
         next
           case Empty
           show ?thesis
@@ -586,7 +586,7 @@ lemma update_Gamma_nochange1:
           apply simp
           apply(cases "rs\<^sub>1")
           apply(simp)
-          using assms apply (metis no_free_return_hlp) (*gives False*)
+          using assms apply (metis no_free_return) (*gives False*)
           apply(rule_tac rs\<^sub>1="list" and m'="m'" and rs\<^sub>2="rs\<^sub>2" in call_return)
           apply(simp)
           apply(simp)

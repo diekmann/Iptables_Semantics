@@ -7,9 +7,12 @@ session "Bitmagic" = HOL +
     "~~/src/HOL/Word/WordBitwise"
     "~~/src/HOL/Library/Code_Target_Int"
     "~~/src/HOL/Library/Code_Char"
-    "autocorres-0.98/lib/WordLemmaBucket"
+    "l4v/lib/WordLemmaBucket"
     NumberWang
   theories
     IPv4Addr
     Numberwang_Ln
     CIDRSplit
+  document_files
+    "root.tex"
+

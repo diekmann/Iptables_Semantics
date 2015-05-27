@@ -3,17 +3,17 @@ structure Test : sig
   type num
   type nat
   val integer_of_nat : nat -> IntInf.int
+  type 'a equal
   type 'a word
+  datatype iface = Iface of char list
   val nat_of_integer : IntInf.int -> nat
   type 'a bit0
   type num1
-  datatype action = Accept | Drop | Log | Reject | Call of char list | Return |
-    Empty | Unknown
+  type 'a wordinterval
   datatype ipt_ipv4range = Ip4Addr of (nat * (nat * (nat * nat))) |
     Ip4AddrNetmask of (nat * (nat * (nat * nat))) * nat
   datatype primitive_protocol = TCP | UDP | ICMP
   datatype protocol = ProtoAny | Proto of primitive_protocol
-  datatype iface = Iface of char list
   datatype common_primitive = Src of ipt_ipv4range | Dst of ipt_ipv4range |
     IIface of iface | OIface of iface | Prot of protocol |
     Src_Ports of
@@ -24,20 +24,36 @@ structure Test : sig
   type nibble
   datatype 'a match_expr = Match of 'a | MatchNot of 'a match_expr |
     MatchAnd of 'a match_expr * 'a match_expr | MatchAny
+  datatype action = Accept | Drop | Log | Reject | Call of char list | Return |
+    Empty | Unknown
   datatype 'a rule = Rule of 'a match_expr * action
-  type 'a packet_set
   type 'a simple_match_ext
   datatype simple_action = Accepta | Dropa
   datatype simple_rule = SimpleRule of unit simple_match_ext * simple_action
-  val port_to_nat : num1 bit0 bit0 bit0 bit0 word -> nat
+  val map_of : 'a equal -> ('a * 'b) list -> 'a -> 'b option
+  val ifaceAny : iface
+  val ipassmt : (iface * (num1 bit0 bit0 bit0 bit0 bit0 word * nat) list) list
+  val no_spoofing_iface :
+    iface ->
+      (iface -> ((num1 bit0 bit0 bit0 bit0 bit0 word * nat) list) option) ->
+        common_primitive rule list -> bool
   val dotdecimal_of_ipv4addr :
     num1 bit0 bit0 bit0 bit0 bit0 word -> nat * (nat * (nat * nat))
   val lower_closure : common_primitive rule list -> common_primitive rule list
   val map_of_string :
     (char list * common_primitive rule list) list ->
       char list -> (common_primitive rule list) option
+  val port_toString : num1 bit0 bit0 bit0 bit0 word -> char list
   val upper_closure : common_primitive rule list -> common_primitive rule list
-  val deny_set : common_primitive rule list -> common_primitive packet_set list
+  val iface_toString : char list -> iface -> char list
+  val ports_toString :
+    char list ->
+      num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word -> char list
+  val integer_to_16word : IntInf.int -> num1 bit0 bit0 bit0 bit0 word
+  val protocol_toString : protocol -> char list
+  val ipv4_cidr_toString : num1 bit0 bit0 bit0 bit0 bit0 word * nat -> char list
+  val simple_action_toString : simple_action -> char list
+  val simple_rule_toString : simple_rule -> char list
   val dst : 'a simple_match_ext -> num1 bit0 bit0 bit0 bit0 bit0 word * nat
   val src : 'a simple_match_ext -> num1 bit0 bit0 bit0 bit0 bit0 word * nat
   val unfold_ruleset_FORWARD :
@@ -53,6 +69,10 @@ structure Test : sig
   val sports :
     'a simple_match_ext ->
       num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word
+  val example_ipassignment_nospoof :
+    char list -> common_primitive rule list -> bool
+  val example_ipassmt_sanity_defined : common_primitive rule list -> bool
+  val simple_rule_iptables_save_toString : char list -> simple_rule -> char list
   val check_simple_fw_preconditions : common_primitive rule list -> bool
   val bitmask_to_strange_inverse_cisco_mask : nat -> nat * (nat * (nat * nat))
 end = struct
@@ -105,21 +125,6 @@ fun less_nat m n = IntInf.< (integer_of_nat m, integer_of_nat n);
 
 val ord_nat = {less_eq = less_eq_nat, less = less_nat} : nat ord;
 
-type 'a preorder = {ord_preorder : 'a ord};
-val ord_preorder = #ord_preorder : 'a preorder -> 'a ord;
-
-type 'a order = {preorder_order : 'a preorder};
-val preorder_order = #preorder_order : 'a order -> 'a preorder;
-
-val preorder_nat = {ord_preorder = ord_nat} : nat preorder;
-
-val order_nat = {preorder_order = preorder_nat} : nat order;
-
-type 'a linorder = {order_linorder : 'a order};
-val order_linorder = #order_linorder : 'a linorder -> 'a order;
-
-val linorder_nat = {order_linorder = order_nat} : nat linorder;
-
 fun eq A_ a b = equal A_ a b;
 
 fun equal_lista A_ [] (x21 :: x22) = false
@@ -146,16 +151,18 @@ fun equal_worda A_ k l = equal_int (uint A_ k) (uint A_ l);
 fun equal_word A_ = {equal = equal_worda A_} : 'a word equal;
 
 fun sgn_integer k =
-  (if ((k : IntInf.int) = 0) then 0
-    else (if IntInf.< (k, 0) then (~1 : IntInf.int) else (1 : IntInf.int)));
+  (if ((k : IntInf.int) = (0 : IntInf.int)) then (0 : IntInf.int)
+    else (if IntInf.< (k, (0 : IntInf.int)) then (~1 : IntInf.int)
+           else (1 : IntInf.int)));
 
-fun abs_integer k = (if IntInf.< (k, 0) then IntInf.~ k else k);
+fun abs_integer k = (if IntInf.< (k, (0 : IntInf.int)) then IntInf.~ k else k);
 
 fun apsnd f (x, y) = (x, f y);
 
 fun divmod_integer k l =
-  (if ((k : IntInf.int) = 0) then (0, 0)
-    else (if ((l : IntInf.int) = 0) then (0, k)
+  (if ((k : IntInf.int) = (0 : IntInf.int))
+    then ((0 : IntInf.int), (0 : IntInf.int))
+    else (if ((l : IntInf.int) = (0 : IntInf.int)) then ((0 : IntInf.int), k)
            else (apsnd o (fn a => fn b => IntInf.* (a, b)) o sgn_integer) l
                   (if (((sgn_integer k) : IntInf.int) = (sgn_integer l))
                     then IntInf.divMod (IntInf.abs k, IntInf.abs l)
@@ -163,7 +170,8 @@ fun divmod_integer k l =
                            val (r, s) =
                              IntInf.divMod (IntInf.abs k, IntInf.abs l);
                          in
-                           (if ((s : IntInf.int) = 0) then (IntInf.~ r, 0)
+                           (if ((s : IntInf.int) = (0 : IntInf.int))
+                             then (IntInf.~ r, (0 : IntInf.int))
                              else (IntInf.- (IntInf.~ r, (1 : IntInf.int)),
                                     IntInf.- (abs_integer l, s)))
                          end)));
@@ -183,9 +191,10 @@ val ord_integer =
   : IntInf.int ord;
 
 fun minus_nat m n =
-  Nat (max ord_integer 0 (IntInf.- (integer_of_nat m, integer_of_nat n)));
+  Nat (max ord_integer (0 : IntInf.int)
+        (IntInf.- (integer_of_nat m, integer_of_nat n)));
 
-val zero_nat : nat = Nat 0;
+val zero_nat : nat = Nat (0 : IntInf.int);
 
 val one_nat : nat = Nat (1 : IntInf.int);
 
@@ -213,7 +222,7 @@ val plus = #plus : 'a plus -> 'a -> 'a -> 'a;
 
 fun plus_word A_ = {plus = plus_worda A_} : 'a word plus;
 
-val zero_int : int = Int_of_integer 0;
+val zero_int : int = Int_of_integer (0 : IntInf.int);
 
 fun zero_worda A_ = word_of_int A_ zero_int;
 
@@ -389,11 +398,17 @@ fun semiring_1_word A_ =
     zero_neq_one_semiring_1 = zero_neq_one_word A_}
   : 'a word semiring_1;
 
+datatype iface = Iface of char list;
+
 val equal_char = {equal = (fn a => fn b => ((a : char) = b))} : char equal;
+
+fun equal_ifacea (Iface x) (Iface ya) = equal_lista equal_char x ya;
+
+val equal_iface = {equal = equal_ifacea} : iface equal;
 
 fun times_nat m n = Nat (IntInf.* (integer_of_nat m, integer_of_nat n));
 
-fun nat_of_integer k = Nat (max ord_integer 0 k);
+fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
 
 type 'a finite = {};
 
@@ -418,125 +433,37 @@ fun equal_proda A_ B_ (x1, x2) (y1, y2) = eq A_ x1 y1 andalso eq B_ x2 y2;
 
 fun equal_prod A_ B_ = {equal = equal_proda A_ B_} : ('a * 'b) equal;
 
-datatype action = Accept | Drop | Log | Reject | Call of char list | Return |
-  Empty | Unknown;
-
-fun equal_actiona Empty Unknown = false
-  | equal_actiona Unknown Empty = false
-  | equal_actiona Return Unknown = false
-  | equal_actiona Unknown Return = false
-  | equal_actiona Return Empty = false
-  | equal_actiona Empty Return = false
-  | equal_actiona (Call lista) Unknown = false
-  | equal_actiona Unknown (Call lista) = false
-  | equal_actiona (Call lista) Empty = false
-  | equal_actiona Empty (Call lista) = false
-  | equal_actiona (Call lista) Return = false
-  | equal_actiona Return (Call lista) = false
-  | equal_actiona Reject Unknown = false
-  | equal_actiona Unknown Reject = false
-  | equal_actiona Reject Empty = false
-  | equal_actiona Empty Reject = false
-  | equal_actiona Reject Return = false
-  | equal_actiona Return Reject = false
-  | equal_actiona Reject (Call lista) = false
-  | equal_actiona (Call lista) Reject = false
-  | equal_actiona Log Unknown = false
-  | equal_actiona Unknown Log = false
-  | equal_actiona Log Empty = false
-  | equal_actiona Empty Log = false
-  | equal_actiona Log Return = false
-  | equal_actiona Return Log = false
-  | equal_actiona Log (Call lista) = false
-  | equal_actiona (Call lista) Log = false
-  | equal_actiona Log Reject = false
-  | equal_actiona Reject Log = false
-  | equal_actiona Drop Unknown = false
-  | equal_actiona Unknown Drop = false
-  | equal_actiona Drop Empty = false
-  | equal_actiona Empty Drop = false
-  | equal_actiona Drop Return = false
-  | equal_actiona Return Drop = false
-  | equal_actiona Drop (Call lista) = false
-  | equal_actiona (Call lista) Drop = false
-  | equal_actiona Drop Reject = false
-  | equal_actiona Reject Drop = false
-  | equal_actiona Drop Log = false
-  | equal_actiona Log Drop = false
-  | equal_actiona Accept Unknown = false
-  | equal_actiona Unknown Accept = false
-  | equal_actiona Accept Empty = false
-  | equal_actiona Empty Accept = false
-  | equal_actiona Accept Return = false
-  | equal_actiona Return Accept = false
-  | equal_actiona Accept (Call lista) = false
-  | equal_actiona (Call lista) Accept = false
-  | equal_actiona Accept Reject = false
-  | equal_actiona Reject Accept = false
-  | equal_actiona Accept Log = false
-  | equal_actiona Log Accept = false
-  | equal_actiona Accept Drop = false
-  | equal_actiona Drop Accept = false
-  | equal_actiona (Call listaa) (Call lista) =
-    equal_lista equal_char listaa lista
-  | equal_actiona Unknown Unknown = true
-  | equal_actiona Empty Empty = true
-  | equal_actiona Return Return = true
-  | equal_actiona Reject Reject = true
-  | equal_actiona Log Log = true
-  | equal_actiona Drop Drop = true
-  | equal_actiona Accept Accept = true;
-
-val equal_action = {equal = equal_actiona} : action equal;
-
 datatype 'a wordinterval = WordInterval of 'a word * 'a word |
   RangeUnion of 'a wordinterval * 'a wordinterval;
 
-fun equal_wordintervala A_ (WordInterval (word1, word2))
-  (RangeUnion (wordinterval1, wordinterval2)) = false
-  | equal_wordintervala A_ (RangeUnion (wordinterval1, wordinterval2))
-    (WordInterval (word1, word2)) = false
-  | equal_wordintervala A_ (RangeUnion (wordinterval1a, wordinterval2a))
-    (RangeUnion (wordinterval1, wordinterval2)) =
-    equal_wordintervala A_ wordinterval1a wordinterval1 andalso
-      equal_wordintervala A_ wordinterval2a wordinterval2
-  | equal_wordintervala A_ (WordInterval (word1a, word2a))
-    (WordInterval (word1, word2)) =
-    equal_worda (len0_len A_) word1a word1 andalso
-      equal_worda (len0_len A_) word2a word2;
+fun equal_wordintervala A_ (WordInterval (x11, x12)) (RangeUnion (x21, x22)) =
+  false
+  | equal_wordintervala A_ (RangeUnion (x21, x22)) (WordInterval (x11, x12)) =
+    false
+  | equal_wordintervala A_ (RangeUnion (x21, x22)) (RangeUnion (y21, y22)) =
+    equal_wordintervala A_ x21 y21 andalso equal_wordintervala A_ x22 y22
+  | equal_wordintervala A_ (WordInterval (x11, x12)) (WordInterval (y11, y12)) =
+    equal_worda (len0_len A_) x11 y11 andalso equal_worda (len0_len A_) x12 y12;
 
 fun equal_wordinterval A_ = {equal = equal_wordintervala A_} :
   'a wordinterval equal;
 
-datatype 'a negation_type = Pos of 'a | Neg of 'a;
-
-fun equal_negation_typea A_ (Pos aa) (Neg a) = false
-  | equal_negation_typea A_ (Neg aa) (Pos a) = false
-  | equal_negation_typea A_ (Neg aa) (Neg a) = eq A_ aa a
-  | equal_negation_typea A_ (Pos aa) (Pos a) = eq A_ aa a;
-
-fun equal_negation_type A_ = {equal = equal_negation_typea A_} :
-  'a negation_type equal;
-
 datatype ipt_ipv4range = Ip4Addr of (nat * (nat * (nat * nat))) |
   Ip4AddrNetmask of (nat * (nat * (nat * nat))) * nat;
 
-fun equal_ipt_ipv4range (Ip4Addr proda) (Ip4AddrNetmask (prod, nat)) = false
-  | equal_ipt_ipv4range (Ip4AddrNetmask (proda, nat)) (Ip4Addr prod) = false
-  | equal_ipt_ipv4range (Ip4AddrNetmask (proda, nata))
-    (Ip4AddrNetmask (prod, nat)) =
+fun equal_ipt_ipv4range (Ip4Addr x1) (Ip4AddrNetmask (x21, x22)) = false
+  | equal_ipt_ipv4range (Ip4AddrNetmask (x21, x22)) (Ip4Addr x1) = false
+  | equal_ipt_ipv4range (Ip4AddrNetmask (x21, x22)) (Ip4AddrNetmask (y21, y22))
+    = equal_proda equal_nat
+        (equal_prod equal_nat (equal_prod equal_nat equal_nat)) x21 y21 andalso
+        equal_nata x22 y22
+  | equal_ipt_ipv4range (Ip4Addr x1) (Ip4Addr y1) =
     equal_proda equal_nat
-      (equal_prod equal_nat (equal_prod equal_nat equal_nat)) proda prod andalso
-      equal_nata nata nat
-  | equal_ipt_ipv4range (Ip4Addr proda) (Ip4Addr prod) =
-    equal_proda equal_nat
-      (equal_prod equal_nat (equal_prod equal_nat equal_nat)) proda prod;
+      (equal_prod equal_nat (equal_prod equal_nat equal_nat)) x1 y1;
 
 datatype primitive_protocol = TCP | UDP | ICMP;
 
 datatype protocol = ProtoAny | Proto of primitive_protocol;
-
-datatype iface = Iface of char list;
 
 datatype common_primitive = Src of ipt_ipv4range | Dst of ipt_ipv4range |
   IIface of iface | OIface of iface | Prot of protocol |
@@ -556,14 +483,10 @@ fun equal_primitive_protocol UDP ICMP = false
   | equal_primitive_protocol UDP UDP = true
   | equal_primitive_protocol TCP TCP = true;
 
-fun equal_protocol ProtoAny (Proto primitive_protocol) = false
-  | equal_protocol (Proto primitive_protocol) ProtoAny = false
-  | equal_protocol (Proto primitive_protocola) (Proto primitive_protocol) =
-    equal_primitive_protocol primitive_protocola primitive_protocol
+fun equal_protocol ProtoAny (Proto x2) = false
+  | equal_protocol (Proto x2) ProtoAny = false
+  | equal_protocol (Proto x2) (Proto y2) = equal_primitive_protocol x2 y2
   | equal_protocol ProtoAny ProtoAny = true;
-
-fun equal_iface (Iface listaa) (Iface lista) =
-  equal_lista equal_char listaa lista;
 
 fun equal_common_primitivea (Dst_Ports x7) (Extra x8) = false
   | equal_common_primitivea (Extra x8) (Dst_Ports x7) = false
@@ -635,8 +558,8 @@ fun equal_common_primitivea (Dst_Ports x7) (Extra x8) = false
         (equal_word (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))))
       x6 y6
   | equal_common_primitivea (Prot x5) (Prot y5) = equal_protocol x5 y5
-  | equal_common_primitivea (OIface x4) (OIface y4) = equal_iface x4 y4
-  | equal_common_primitivea (IIface x3) (IIface y3) = equal_iface x3 y3
+  | equal_common_primitivea (OIface x4) (OIface y4) = equal_ifacea x4 y4
+  | equal_common_primitivea (IIface x3) (IIface y3) = equal_ifacea x3 y3
   | equal_common_primitivea (Dst x2) (Dst y2) = equal_ipt_ipv4range x2 y2
   | equal_common_primitivea (Src x1) (Src y1) = equal_ipt_ipv4range x1 y1;
 
@@ -650,10 +573,12 @@ datatype nibble = Nibble0 | Nibble1 | Nibble2 | Nibble3 | Nibble4 | Nibble5 |
 datatype 'a match_expr = Match of 'a | MatchNot of 'a match_expr |
   MatchAnd of 'a match_expr * 'a match_expr | MatchAny;
 
+datatype action = Accept | Drop | Log | Reject | Call of char list | Return |
+  Empty | Unknown;
+
 datatype 'a rule = Rule of 'a match_expr * action;
 
-datatype 'a packet_set =
-  PacketSet of (('a negation_type * action negation_type) list) list;
+datatype 'a negation_type = Pos of 'a | Neg of 'a;
 
 datatype 'a simple_match_ext =
   Simple_match_ext of
@@ -721,9 +646,6 @@ fun mask A_ n =
 
 fun unat A_ w = nat (uint A_ w);
 
-fun foldr f [] = id
-  | foldr f (x :: xs) = f x o foldr f xs;
-
 fun map_of A_ ((l, v) :: ps) k = (if eq A_ l k then SOME v else map_of A_ ps k)
   | map_of A_ [] k = NONE;
 
@@ -748,8 +670,8 @@ fun bin_rest w = div_int w (Int_of_integer (2 : IntInf.int));
 
 fun shiftr1 A_ w = word_of_int A_ (bin_rest (uint A_ w));
 
-fun map fi [] = []
-  | map fi (x21a :: x22) = fi x21a :: map fi x22;
+fun map f [] = []
+  | map f (x21 :: x22) = f x21 :: map f x22;
 
 fun max_word A_ =
   word_of_int (len0_len A_)
@@ -762,6 +684,9 @@ val ifaceAny : iface = Iface [#"+"];
 
 fun pred_list p [] = true
   | pred_list p (x :: xs) = p x andalso pred_list p xs;
+
+fun is_none (SOME x) = false
+  | is_none NONE = true;
 
 val pfxes : nat list =
   map nat (upto zero_int (Int_of_integer (32 : IntInf.int)));
@@ -792,9 +717,71 @@ fun divmod_nat m n = (div_nat m n, mod_nat m n);
 
 fun add_match m rs = map (fn Rule (ma, a) => Rule (MatchAnd (m, ma), a)) rs;
 
-fun size_list x = gen_length zero_nat x;
-
 fun min A_ a b = (if less_eq A_ a b then a else b);
+
+fun word_prev A_ a =
+  (if equal_worda (len0_len A_) a (zero_worda (len0_len A_))
+    then zero_worda (len0_len A_)
+    else minus_word (len0_len A_) a (one_worda (len0_len A_)));
+
+fun word_next A_ a =
+  (if equal_worda (len0_len A_) a (max_word A_) then max_word A_
+    else plus_worda (len0_len A_) a (one_worda (len0_len A_)));
+
+fun wordinterval_setminus A_ (WordInterval (s, e)) (WordInterval (ms, me)) =
+  (if less_word (len0_len A_) e s orelse less_word (len0_len A_) me ms
+    then WordInterval (s, e)
+    else (if less_eq_word (len0_len A_) e me
+           then WordInterval
+                  ((if equal_worda (len0_len A_) ms (zero_worda (len0_len A_))
+                     then one_worda (len0_len A_) else s),
+                    min (ord_word (len0_len A_)) e (word_prev A_ ms))
+           else (if less_eq_word (len0_len A_) ms s
+                  then WordInterval
+                         (max (ord_word (len0_len A_)) s (word_next A_ me),
+                           (if equal_worda (len0_len A_) me (max_word A_)
+                             then zero_worda (len0_len A_) else e))
+                  else RangeUnion
+                         (WordInterval
+                            ((if equal_worda (len0_len A_) ms
+                                   (zero_worda (len0_len A_))
+                               then one_worda (len0_len A_) else s),
+                              word_prev A_ ms),
+                           WordInterval
+                             (word_next A_ me,
+                               (if equal_worda (len0_len A_) me (max_word A_)
+                                 then zero_worda (len0_len A_) else e))))))
+  | wordinterval_setminus A_ (RangeUnion (r1, r2)) t =
+    RangeUnion (wordinterval_setminus A_ r1 t, wordinterval_setminus A_ r2 t)
+  | wordinterval_setminus A_ (WordInterval (v, va)) (RangeUnion (r1, r2)) =
+    wordinterval_setminus A_
+      (wordinterval_setminus A_ (WordInterval (v, va)) r1) r2;
+
+fun wordinterval_UNIV A_ = WordInterval (zero_worda (len0_len A_), max_word A_);
+
+fun wordinterval_invert A_ r =
+  wordinterval_setminus A_ (wordinterval_UNIV A_) r;
+
+fun empty_WordInterval A_ =
+  WordInterval (one_worda (len0_len A_), zero_worda (len0_len A_));
+
+fun l2br A_ [] = empty_WordInterval A_
+  | l2br A_ [(s, e)] = WordInterval (s, e)
+  | l2br A_ ((s, e) :: v :: va) =
+    RangeUnion (WordInterval (s, e), l2br A_ (v :: va));
+
+fun br2l A_ (RangeUnion (r1, r2)) = br2l A_ r1 @ br2l A_ r2
+  | br2l A_ (WordInterval (s, e)) =
+    (if less_word (len0_len A_) e s then [] else [(s, e)]);
+
+fun ports_invert ps =
+  br2l (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))
+    (wordinterval_invert (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))
+      (l2br (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))) ps));
+
+fun char_of_nat x = ((Char.chr o IntInf.toInt) o integer_of_nat) x;
+
+fun size_list x = gen_length zero_nat x;
 
 fun internal_iface_name_wildcard_longest i1 i2 =
   (if equal_lista equal_char
@@ -811,8 +798,8 @@ fun iface_name_is_wildcard [] = false
   | iface_name_is_wildcard [s] = ((s : char) = #"+")
   | iface_name_is_wildcard (uu :: v :: va) = iface_name_is_wildcard (v :: va);
 
-fun map_option fi NONE = NONE
-  | map_option fi (SOME x2a) = SOME (fi x2a);
+fun map_option f NONE = NONE
+  | map_option f (SOME x2) = SOME (f x2);
 
 fun iface_conjunct (Iface i1) (Iface i2) =
   (case (iface_name_is_wildcard i1, iface_name_is_wildcard i2)
@@ -825,31 +812,59 @@ fun iface_conjunct (Iface i1) (Iface i2) =
     | (false, false) =>
       (if equal_lista equal_char i1 i2 then SOME (Iface i1) else NONE));
 
-fun invert (Pos x) = Neg x
-  | invert (Neg x) = Pos x;
+fun iface_sel (Iface x) = x;
 
-fun word_next A_ a =
-  (if equal_worda (len0_len A_) a (max_word A_) then max_word A_
-    else plus_worda (len0_len A_) a (one_worda (len0_len A_)));
+val ipv4range_UNIV : num1 bit0 bit0 bit0 bit0 bit0 wordinterval =
+  wordinterval_UNIV
+    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))));
 
-fun word_prev A_ a =
-  (if equal_worda (len0_len A_) a (zero_worda (len0_len A_))
-    then zero_worda (len0_len A_)
-    else minus_word (len0_len A_) a (one_worda (len0_len A_)));
+fun oiface_sel (OIface x4) = x4;
 
-fun invertt (n, a) = (n, invert a);
+fun iiface_sel (IIface x3) = x3;
 
-fun br2l A_ (RangeUnion (r1, r2)) = br2l A_ r1 @ br2l A_ r2
-  | br2l A_ (WordInterval (s, e)) =
-    (if less_word (len0_len A_) e s then [] else [(s, e)]);
+fun is_Oiface (Src x1) = false
+  | is_Oiface (Dst x2) = false
+  | is_Oiface (IIface x3) = false
+  | is_Oiface (OIface x4) = true
+  | is_Oiface (Prot x5) = false
+  | is_Oiface (Src_Ports x6) = false
+  | is_Oiface (Dst_Ports x7) = false
+  | is_Oiface (Extra x8) = false;
 
-fun empty_WordInterval A_ =
-  WordInterval (one_worda (len0_len A_), zero_worda (len0_len A_));
+fun is_Iiface (Src x1) = false
+  | is_Iiface (Dst x2) = false
+  | is_Iiface (IIface x3) = true
+  | is_Iiface (OIface x4) = false
+  | is_Iiface (Prot x5) = false
+  | is_Iiface (Src_Ports x6) = false
+  | is_Iiface (Dst_Ports x7) = false
+  | is_Iiface (Extra x8) = false;
 
-fun l2br A_ [] = empty_WordInterval A_
-  | l2br A_ [(s, e)] = WordInterval (s, e)
-  | l2br A_ ((s, e) :: v :: va) =
-    RangeUnion (WordInterval (s, e), l2br A_ (v :: va));
+fun primitive_extractor uu MatchAny = ([], MatchAny)
+  | primitive_extractor (disc, sel) (Match a) =
+    (if disc a then ([Pos (sel a)], MatchAny) else ([], Match a))
+  | primitive_extractor (disc, sel) (MatchNot (Match a)) =
+    (if disc a then ([Neg (sel a)], MatchAny) else ([], MatchNot (Match a)))
+  | primitive_extractor c (MatchAnd (ms1, ms2)) =
+    let
+      val (a1, ms1a) = primitive_extractor c ms1;
+      val (a2, ms2a) = primitive_extractor c ms2;
+    in
+      (a1 @ a2, MatchAnd (ms1a, ms2a))
+    end
+  | primitive_extractor uv (MatchNot (MatchNot va)) = (raise Fail "undefined")
+  | primitive_extractor uv (MatchNot (MatchAnd (va, vb))) =
+    (raise Fail "undefined")
+  | primitive_extractor uv (MatchNot MatchAny) = (raise Fail "undefined");
+
+fun collect_ifaces [] = []
+  | collect_ifaces (Rule (m, a) :: rs) =
+    filter (fn iface => not (equal_ifacea iface ifaceAny))
+      (map (fn aa => (case aa of Pos i => i | Neg i => i))
+         (fst (primitive_extractor (is_Iiface, iiface_sel) m)) @
+        map (fn aa => (case aa of Pos i => i | Neg i => i))
+          (fst (primitive_extractor (is_Oiface, oiface_sel) m)) @
+          collect_ifaces rs);
 
 fun numeral A_ (Bit1 n) =
   let
@@ -907,7 +922,7 @@ fun ipv4range_empty rg =
   wordinterval_empty
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) rg;
 
-fun ipv4range_range ip_start ip_end = WordInterval (ip_start, ip_end);
+fun ipv4range_range (ip_start, ip_end) = WordInterval (ip_start, ip_end);
 
 fun nat_of_ipv4addr a =
   unat (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) a;
@@ -958,35 +973,6 @@ fun valid_prefix A_ pf =
     (bitAND_word (len0_len A_) (pfxm_mask A_ pf) (pfxm_prefix pf))
     (zero_worda (len0_len A_));
 
-fun wordinterval_setminus A_ (WordInterval (s, e)) (WordInterval (ms, me)) =
-  (if less_word (len0_len A_) e s orelse less_word (len0_len A_) me ms
-    then WordInterval (s, e)
-    else (if less_eq_word (len0_len A_) e me
-           then WordInterval
-                  ((if equal_worda (len0_len A_) ms (zero_worda (len0_len A_))
-                     then one_worda (len0_len A_) else s),
-                    min (ord_word (len0_len A_)) e (word_prev A_ ms))
-           else (if less_eq_word (len0_len A_) ms s
-                  then WordInterval
-                         (max (ord_word (len0_len A_)) s (word_next A_ me),
-                           (if equal_worda (len0_len A_) me (max_word A_)
-                             then zero_worda (len0_len A_) else e))
-                  else RangeUnion
-                         (WordInterval
-                            ((if equal_worda (len0_len A_) ms
-                                   (zero_worda (len0_len A_))
-                               then one_worda (len0_len A_) else s),
-                              word_prev A_ ms),
-                           WordInterval
-                             (word_next A_ me,
-                               (if equal_worda (len0_len A_) me (max_word A_)
-                                 then zero_worda (len0_len A_) else e))))))
-  | wordinterval_setminus A_ (RangeUnion (r1, r2)) t =
-    RangeUnion (wordinterval_setminus A_ r1 t, wordinterval_setminus A_ r2 t)
-  | wordinterval_setminus A_ (WordInterval (v, va)) (RangeUnion (r1, r2)) =
-    wordinterval_setminus A_
-      (wordinterval_setminus A_ (WordInterval (v, va)) r1) r2;
-
 fun ipv4range_setminus r1 r2 =
   wordinterval_setminus
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
@@ -1016,35 +1002,468 @@ fun prefix_to_range pfx =
           (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) pfx));
 
 fun ipv4range_split1 r =
-  (case ipv4range_lowest_element r of NONE => (NONE, r)
-    | SOME a =>
-      let
-        val cs = map (fn b => (a, b)) pfxes;
-        val cfs =
-          filter
-            (fn s =>
-              valid_prefix
-                (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-                s andalso
-                ipv4range_subset (prefix_to_range s) r)
-            cs;
-        val mc = find (const true) cfs;
-      in
-        (case mc of NONE => (NONE, r)
-          | SOME m => (mc, ipv4range_setminus r (prefix_to_range m)))
-      end);
+  let
+    val a = ipv4range_lowest_element r;
+  in
+    (case a of NONE => (NONE, r)
+      | SOME aa =>
+        let
+          val cs = map (fn b => (aa, b)) pfxes;
+          val cfs =
+            filter
+              (fn s =>
+                valid_prefix
+                  (len_bit0
+                    (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+                  s andalso
+                  ipv4range_subset (prefix_to_range s) r)
+              cs;
+          val mc = find (const true) cfs;
+        in
+          (case mc of NONE => (NONE, r)
+            | SOME m => (mc, ipv4range_setminus r (prefix_to_range m)))
+        end)
+  end;
 
 fun ipv4range_split rs =
   (if not (ipv4range_empty rs)
-    then (case ipv4range_split1 rs of (NONE, u) => []
+    then (case ipv4range_split1 rs of (NONE, _) => []
            | (SOME s, u) => s :: ipv4range_split u)
     else []);
 
-fun port_to_nat p =
-  unat (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) p;
+fun ipv4range_invert r = ipv4range_setminus ipv4range_UNIV r;
 
-fun listprepend [] ns = []
-  | listprepend (a :: asa) ns = map (fn b => a :: b) ns @ listprepend asa ns;
+fun bitNOT_word A_ a = word_of_int A_ (bitNOT_int (uint A_ a));
+
+fun ipv4cidr_to_interval (pre, len) =
+  let
+    val netmask =
+      shiftl_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+          len)
+        (minus_nat (nat_of_integer (32 : IntInf.int)) len);
+    val network_prefix =
+      bitAND_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        pre netmask;
+  in
+    (network_prefix,
+      bitOR_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        network_prefix
+        (bitNOT_word
+          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+          netmask))
+  end;
+
+fun ipv4addr_of_dotdecimal (a, (b, (c, d))) =
+  ipv4addr_of_nat
+    (plus_nat
+      (plus_nat (plus_nat d (times_nat (nat_of_integer (256 : IntInf.int)) c))
+        (times_nat (nat_of_integer (65536 : IntInf.int)) b))
+      (times_nat (nat_of_integer (16777216 : IntInf.int)) a));
+
+val everything_but_my_ips : (num1 bit0 bit0 bit0 bit0 bit0 word * nat) list =
+  ipv4range_split
+    (ipv4range_invert
+      (l2br (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+        (map ipv4cidr_to_interval
+          [(ipv4addr_of_dotdecimal
+              (nat_of_integer (131 : IntInf.int),
+                (nat_of_integer (159 : IntInf.int),
+                  (nat_of_integer (14 : IntInf.int), zero_nat))),
+             nat_of_integer (23 : IntInf.int)),
+            (ipv4addr_of_dotdecimal
+               (nat_of_integer (131 : IntInf.int),
+                 (nat_of_integer (159 : IntInf.int),
+                   (nat_of_integer (20 : IntInf.int), zero_nat))),
+              nat_of_integer (23 : IntInf.int)),
+            (ipv4addr_of_dotdecimal
+               (nat_of_integer (192 : IntInf.int),
+                 (nat_of_integer (168 : IntInf.int),
+                   (nat_of_integer (212 : IntInf.int), zero_nat))),
+              nat_of_integer (23 : IntInf.int)),
+            (ipv4addr_of_dotdecimal
+               (nat_of_integer (188 : IntInf.int),
+                 (nat_of_integer (95 : IntInf.int),
+                   (nat_of_integer (233 : IntInf.int), zero_nat))),
+              nat_of_integer (24 : IntInf.int)),
+            (ipv4addr_of_dotdecimal
+               (nat_of_integer (188 : IntInf.int),
+                 (nat_of_integer (95 : IntInf.int),
+                   (nat_of_integer (232 : IntInf.int),
+                     nat_of_integer (192 : IntInf.int)))),
+              nat_of_integer (27 : IntInf.int)),
+            (ipv4addr_of_dotdecimal
+               (nat_of_integer (188 : IntInf.int),
+                 (nat_of_integer (95 : IntInf.int),
+                   (nat_of_integer (234 : IntInf.int), zero_nat))),
+              nat_of_integer (23 : IntInf.int)),
+            (ipv4addr_of_dotdecimal
+               (nat_of_integer (192 : IntInf.int),
+                 (nat_of_integer (48 : IntInf.int),
+                   (nat_of_integer (107 : IntInf.int), zero_nat))),
+              nat_of_integer (24 : IntInf.int)),
+            (ipv4addr_of_dotdecimal
+               (nat_of_integer (188 : IntInf.int),
+                 (nat_of_integer (95 : IntInf.int),
+                   (nat_of_integer (236 : IntInf.int), zero_nat))),
+              nat_of_integer (22 : IntInf.int)),
+            (ipv4addr_of_dotdecimal
+               (nat_of_integer (185 : IntInf.int),
+                 (nat_of_integer (86 : IntInf.int),
+                   (nat_of_integer (232 : IntInf.int), zero_nat))),
+              nat_of_integer (22 : IntInf.int))])));
+
+val ipassmt : (iface * (num1 bit0 bit0 bit0 bit0 bit0 word * nat) list) list =
+  [(Iface [#"e", #"t", #"h", #"0"],
+     [(ipv4addr_of_dotdecimal
+         (nat_of_integer (192 : IntInf.int),
+           (nat_of_integer (168 : IntInf.int),
+             (nat_of_integer (213 : IntInf.int),
+               nat_of_integer (4 : IntInf.int)))),
+        nat_of_integer (24 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"9", #"6"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (131 : IntInf.int),
+            (nat_of_integer (159 : IntInf.int),
+              (nat_of_integer (14 : IntInf.int),
+                nat_of_integer (3 : IntInf.int)))),
+         nat_of_integer (25 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"8"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (131 : IntInf.int),
+            (nat_of_integer (159 : IntInf.int),
+              (nat_of_integer (14 : IntInf.int),
+                nat_of_integer (129 : IntInf.int)))),
+         nat_of_integer (26 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"9"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (131 : IntInf.int),
+            (nat_of_integer (159 : IntInf.int),
+              (nat_of_integer (20 : IntInf.int),
+                nat_of_integer (11 : IntInf.int)))),
+         nat_of_integer (24 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"1", #"0"],
+      everything_but_my_ips),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"1", #"6"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (131 : IntInf.int),
+            (nat_of_integer (159 : IntInf.int),
+              (nat_of_integer (15 : IntInf.int),
+                nat_of_integer (131 : IntInf.int)))),
+         nat_of_integer (26 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"5", #"2"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (131 : IntInf.int),
+            (nat_of_integer (159 : IntInf.int),
+              (nat_of_integer (15 : IntInf.int),
+                nat_of_integer (252 : IntInf.int)))),
+         nat_of_integer (28 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"7", #"1"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (131 : IntInf.int),
+            (nat_of_integer (159 : IntInf.int),
+              (nat_of_integer (15 : IntInf.int),
+                nat_of_integer (2 : IntInf.int)))),
+         nat_of_integer (26 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"7", #"3"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (131 : IntInf.int),
+            (nat_of_integer (159 : IntInf.int),
+              (nat_of_integer (21 : IntInf.int),
+                nat_of_integer (252 : IntInf.int)))),
+         nat_of_integer (24 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"0"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (131 : IntInf.int),
+            (nat_of_integer (159 : IntInf.int),
+              (nat_of_integer (15 : IntInf.int),
+                nat_of_integer (227 : IntInf.int)))),
+         nat_of_integer (28 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"1"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (131 : IntInf.int),
+            (nat_of_integer (159 : IntInf.int),
+              (nat_of_integer (14 : IntInf.int),
+                nat_of_integer (194 : IntInf.int)))),
+         nat_of_integer (27 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"2"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (131 : IntInf.int),
+            (nat_of_integer (159 : IntInf.int),
+              (nat_of_integer (14 : IntInf.int),
+                nat_of_integer (238 : IntInf.int)))),
+         nat_of_integer (28 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"4"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (131 : IntInf.int),
+            (nat_of_integer (159 : IntInf.int),
+              (nat_of_integer (15 : IntInf.int),
+                nat_of_integer (217 : IntInf.int)))),
+         nat_of_integer (27 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"6"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (131 : IntInf.int),
+            (nat_of_integer (159 : IntInf.int),
+              (nat_of_integer (15 : IntInf.int),
+                nat_of_integer (66 : IntInf.int)))),
+         nat_of_integer (26 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"7"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (131 : IntInf.int),
+            (nat_of_integer (159 : IntInf.int),
+              (nat_of_integer (14 : IntInf.int),
+                nat_of_integer (242 : IntInf.int)))),
+         nat_of_integer (28 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"1", #"1", #"1"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (192 : IntInf.int),
+            (nat_of_integer (168 : IntInf.int),
+              (nat_of_integer (212 : IntInf.int),
+                nat_of_integer (4 : IntInf.int)))),
+         nat_of_integer (24 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"9", #"7"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (188 : IntInf.int),
+            (nat_of_integer (95 : IntInf.int),
+              (nat_of_integer (233 : IntInf.int),
+                nat_of_integer (2 : IntInf.int)))),
+         nat_of_integer (24 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"9"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (188 : IntInf.int),
+            (nat_of_integer (95 : IntInf.int),
+              (nat_of_integer (234 : IntInf.int),
+                nat_of_integer (2 : IntInf.int)))),
+         nat_of_integer (23 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"2", #"0"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (192 : IntInf.int),
+            (nat_of_integer (48 : IntInf.int),
+              (nat_of_integer (107 : IntInf.int),
+                nat_of_integer (2 : IntInf.int)))),
+         nat_of_integer (24 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"2", #"3"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (188 : IntInf.int),
+            (nat_of_integer (95 : IntInf.int),
+              (nat_of_integer (236 : IntInf.int),
+                nat_of_integer (2 : IntInf.int)))),
+         nat_of_integer (22 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"2", #"5"],
+      [(ipv4addr_of_dotdecimal
+          (nat_of_integer (185 : IntInf.int),
+            (nat_of_integer (86 : IntInf.int),
+              (nat_of_integer (232 : IntInf.int),
+                nat_of_integer (2 : IntInf.int)))),
+         nat_of_integer (22 : IntInf.int))]),
+    (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"2", #"4"],
+      everything_but_my_ips)];
+
+fun matcheq_matachAny MatchAny = true
+  | matcheq_matachAny (MatchNot m) = not (matcheq_matachAny m)
+  | matcheq_matachAny (MatchAnd (m1, m2)) =
+    matcheq_matachAny m1 andalso matcheq_matachAny m2
+  | matcheq_matachAny (Match uu) = (raise Fail "undefined");
+
+fun src_sel (Src x1) = x1;
+
+fun wordinterval_to_list A_ (RangeUnion (r1, r2)) =
+  wordinterval_to_list A_ r1 @ wordinterval_to_list A_ r2
+  | wordinterval_to_list A_ (WordInterval (v, va)) =
+    (if wordinterval_empty A_ (WordInterval (v, va)) then []
+      else [WordInterval (v, va)]);
+
+fun list_to_wordinterval A_ [r] = r
+  | list_to_wordinterval A_ (r :: v :: va) =
+    RangeUnion (r, list_to_wordinterval A_ (v :: va))
+  | list_to_wordinterval A_ [] = empty_WordInterval A_;
+
+fun wordinterval_optimize_same A_ rs =
+  list_to_wordinterval A_
+    (remdups (equal_wordinterval A_) (wordinterval_to_list A_ rs));
+
+fun wordinterval_union A_ r1 r2 = RangeUnion (r1, r2);
+
+fun wordinterval_intersection A_ r1 r2 =
+  wordinterval_optimize_same A_
+    (wordinterval_setminus A_ (wordinterval_union A_ r1 r2)
+      (wordinterval_union A_ (wordinterval_invert A_ r1)
+        (wordinterval_invert A_ r2)));
+
+fun l2br_negation_type_intersect A_ [] = wordinterval_UNIV A_
+  | l2br_negation_type_intersect A_ (Pos (s, e) :: ls) =
+    wordinterval_intersection A_ (WordInterval (s, e))
+      (l2br_negation_type_intersect A_ ls)
+  | l2br_negation_type_intersect A_ (Neg (s, e) :: ls) =
+    wordinterval_intersection A_ (wordinterval_invert A_ (WordInterval (s, e)))
+      (l2br_negation_type_intersect A_ ls);
+
+fun is_Src (Src x1) = true
+  | is_Src (Dst x2) = false
+  | is_Src (IIface x3) = false
+  | is_Src (OIface x4) = false
+  | is_Src (Prot x5) = false
+  | is_Src (Src_Ports x6) = false
+  | is_Src (Dst_Ports x7) = false
+  | is_Src (Extra x8) = false;
+
+fun ipt_ipv4range_to_interval (Ip4Addr addr) =
+  (ipv4addr_of_dotdecimal addr, ipv4addr_of_dotdecimal addr)
+  | ipt_ipv4range_to_interval (Ip4AddrNetmask (pre, len)) =
+    ipv4cidr_to_interval (ipv4addr_of_dotdecimal pre, len);
+
+fun get_exists_matching_src_ips_executable iface m =
+  let
+    val (i_matches, _) = primitive_extractor (is_Iiface, iiface_sel) m;
+  in
+    (if pred_list
+          (fn a =>
+            (case a of Pos i => match_iface i (iface_sel iface)
+              | Neg i => not (match_iface i (iface_sel iface))))
+          i_matches
+      then let
+             val (ip_matches, _) = primitive_extractor (is_Src, src_sel) m;
+           in
+             (if null ip_matches then ipv4range_UNIV
+               else l2br_negation_type_intersect
+                      (len_bit0
+                        (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+                      (negPos_map ipt_ipv4range_to_interval ip_matches))
+           end
+      else empty_WordInterval
+             (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))))
+  end;
+
+fun is_Src_Ports (Src x1) = false
+  | is_Src_Ports (Dst x2) = false
+  | is_Src_Ports (IIface x3) = false
+  | is_Src_Ports (OIface x4) = false
+  | is_Src_Ports (Prot x5) = false
+  | is_Src_Ports (Src_Ports x6) = true
+  | is_Src_Ports (Dst_Ports x7) = false
+  | is_Src_Ports (Extra x8) = false;
+
+fun is_Dst_Ports (Src x1) = false
+  | is_Dst_Ports (Dst x2) = false
+  | is_Dst_Ports (IIface x3) = false
+  | is_Dst_Ports (OIface x4) = false
+  | is_Dst_Ports (Prot x5) = false
+  | is_Dst_Ports (Src_Ports x6) = false
+  | is_Dst_Ports (Dst_Ports x7) = true
+  | is_Dst_Ports (Extra x8) = false;
+
+fun is_Extra (Src x1) = false
+  | is_Extra (Dst x2) = false
+  | is_Extra (IIface x3) = false
+  | is_Extra (OIface x4) = false
+  | is_Extra (Prot x5) = false
+  | is_Extra (Src_Ports x6) = false
+  | is_Extra (Dst_Ports x7) = false
+  | is_Extra (Extra x8) = true;
+
+fun is_Prot (Src x1) = false
+  | is_Prot (Dst x2) = false
+  | is_Prot (IIface x3) = false
+  | is_Prot (OIface x4) = false
+  | is_Prot (Prot x5) = true
+  | is_Prot (Src_Ports x6) = false
+  | is_Prot (Dst_Ports x7) = false
+  | is_Prot (Extra x8) = false;
+
+fun is_Dst (Src x1) = false
+  | is_Dst (Dst x2) = true
+  | is_Dst (IIface x3) = false
+  | is_Dst (OIface x4) = false
+  | is_Dst (Prot x5) = false
+  | is_Dst (Src_Ports x6) = false
+  | is_Dst (Dst_Ports x7) = false
+  | is_Dst (Extra x8) = false;
+
+fun has_disc uu MatchAny = false
+  | has_disc disc (Match a) = disc a
+  | has_disc disc (MatchNot m) = has_disc disc m
+  | has_disc disc (MatchAnd (m1, m2)) =
+    has_disc disc m1 orelse has_disc disc m2;
+
+fun get_all_matching_src_ips_executable iface m =
+  let
+    val (i_matches, rest1) = primitive_extractor (is_Iiface, iiface_sel) m;
+  in
+    (if pred_list
+          (fn a =>
+            (case a of Pos i => match_iface i (iface_sel iface)
+              | Neg i => not (match_iface i (iface_sel iface))))
+          i_matches
+      then let
+             val (ip_matches, rest2) =
+               primitive_extractor (is_Src, src_sel) rest1;
+           in
+             (if not (has_disc is_Dst rest2) andalso
+                   (not (has_disc is_Oiface rest2) andalso
+                     (not (has_disc is_Prot rest2) andalso
+                       (not (has_disc is_Src_Ports rest2) andalso
+                         (not (has_disc is_Dst_Ports rest2) andalso
+                           (not (has_disc is_Extra rest2) andalso
+                             matcheq_matachAny rest2)))))
+               then (if null ip_matches then ipv4range_UNIV
+                      else l2br_negation_type_intersect
+                             (len_bit0
+                               (len_bit0
+                                 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+                             (negPos_map ipt_ipv4range_to_interval ip_matches))
+               else empty_WordInterval
+                      (len_bit0
+                        (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))))
+           end
+      else empty_WordInterval
+             (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))))
+  end;
+
+fun no_spoofing_algorithm_executable iface ipassmt [] allowed denied1 =
+  wordinterval_subset
+    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+    (wordinterval_setminus
+      (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) allowed
+      denied1)
+    (l2br (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+      (map ipv4cidr_to_interval (the (ipassmt iface))))
+  | no_spoofing_algorithm_executable iface ipassmt (Rule (m, Accept) :: rs)
+    allowed denied1 =
+    no_spoofing_algorithm_executable iface ipassmt rs
+      (wordinterval_union
+        (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) allowed
+        (get_exists_matching_src_ips_executable iface m))
+      denied1
+  | no_spoofing_algorithm_executable iface ipassmt (Rule (m, Drop) :: rs)
+    allowed denied1 =
+    no_spoofing_algorithm_executable iface ipassmt rs allowed
+      (wordinterval_union
+        (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) denied1
+        (wordinterval_setminus
+          (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+          (get_all_matching_src_ips_executable iface m) allowed))
+  | no_spoofing_algorithm_executable uu uv (Rule (vb, Log) :: va) ux uy =
+    (raise Fail "undefined")
+  | no_spoofing_algorithm_executable uu uv (Rule (vb, Reject) :: va) ux uy =
+    (raise Fail "undefined")
+  | no_spoofing_algorithm_executable uu uv (Rule (vb, Call vd) :: va) ux uy =
+    (raise Fail "undefined")
+  | no_spoofing_algorithm_executable uu uv (Rule (vb, Return) :: va) ux uy =
+    (raise Fail "undefined")
+  | no_spoofing_algorithm_executable uu uv (Rule (vb, Empty) :: va) ux uy =
+    (raise Fail "undefined")
+  | no_spoofing_algorithm_executable uu uv (Rule (vb, Unknown) :: va) ux uy =
+    (raise Fail "undefined");
+
+fun no_spoofing_iface iface ipassmt rs =
+  no_spoofing_algorithm_executable iface ipassmt rs
+    (empty_WordInterval
+      (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))))
+    (empty_WordInterval
+      (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))));
 
 fun rw_Reject [] = []
   | rw_Reject (Rule (m, Reject) :: rs) = Rule (m, Drop) :: rw_Reject rs
@@ -1056,27 +1475,22 @@ fun rw_Reject [] = []
   | rw_Reject (Rule (v, Empty) :: rs) = Rule (v, Empty) :: rw_Reject rs
   | rw_Reject (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rw_Reject rs;
 
-fun equal_match_expr A_ (MatchAnd (match_expr1, match_expr2)) MatchAny = false
-  | equal_match_expr A_ MatchAny (MatchAnd (match_expr1, match_expr2)) = false
-  | equal_match_expr A_ (MatchNot match_expr) MatchAny = false
-  | equal_match_expr A_ MatchAny (MatchNot match_expr) = false
-  | equal_match_expr A_ (MatchNot match_expr)
-    (MatchAnd (match_expr1, match_expr2)) = false
-  | equal_match_expr A_ (MatchAnd (match_expr1, match_expr2))
-    (MatchNot match_expr) = false
-  | equal_match_expr A_ (Match a) MatchAny = false
-  | equal_match_expr A_ MatchAny (Match a) = false
-  | equal_match_expr A_ (Match a) (MatchAnd (match_expr1, match_expr2)) = false
-  | equal_match_expr A_ (MatchAnd (match_expr1, match_expr2)) (Match a) = false
-  | equal_match_expr A_ (Match a) (MatchNot match_expr) = false
-  | equal_match_expr A_ (MatchNot match_expr) (Match a) = false
-  | equal_match_expr A_ (MatchAnd (match_expr1a, match_expr2a))
-    (MatchAnd (match_expr1, match_expr2)) =
-    equal_match_expr A_ match_expr1a match_expr1 andalso
-      equal_match_expr A_ match_expr2a match_expr2
-  | equal_match_expr A_ (MatchNot match_expra) (MatchNot match_expr) =
-    equal_match_expr A_ match_expra match_expr
-  | equal_match_expr A_ (Match aa) (Match a) = eq A_ aa a
+fun equal_match_expr A_ (MatchAnd (x31, x32)) MatchAny = false
+  | equal_match_expr A_ MatchAny (MatchAnd (x31, x32)) = false
+  | equal_match_expr A_ (MatchNot x2) MatchAny = false
+  | equal_match_expr A_ MatchAny (MatchNot x2) = false
+  | equal_match_expr A_ (MatchNot x2) (MatchAnd (x31, x32)) = false
+  | equal_match_expr A_ (MatchAnd (x31, x32)) (MatchNot x2) = false
+  | equal_match_expr A_ (Match x1) MatchAny = false
+  | equal_match_expr A_ MatchAny (Match x1) = false
+  | equal_match_expr A_ (Match x1) (MatchAnd (x31, x32)) = false
+  | equal_match_expr A_ (MatchAnd (x31, x32)) (Match x1) = false
+  | equal_match_expr A_ (Match x1) (MatchNot x2) = false
+  | equal_match_expr A_ (MatchNot x2) (Match x1) = false
+  | equal_match_expr A_ (MatchAnd (x31, x32)) (MatchAnd (y31, y32)) =
+    equal_match_expr A_ x31 y31 andalso equal_match_expr A_ x32 y32
+  | equal_match_expr A_ (MatchNot x2) (MatchNot y2) = equal_match_expr A_ x2 y2
+  | equal_match_expr A_ (Match x1) (Match y1) = eq A_ x1 y1
   | equal_match_expr A_ MatchAny MatchAny = true;
 
 fun lower_closure_matchexpr uu MatchAny = MatchAny
@@ -1188,23 +1602,6 @@ fun lower_closure_matchexpr uu MatchAny = MatchAny
   | lower_closure_matchexpr a (MatchAnd (m1, m2)) =
     MatchAnd (lower_closure_matchexpr a m1, lower_closure_matchexpr a m2);
 
-fun primitive_extractor uu MatchAny = ([], MatchAny)
-  | primitive_extractor (disc, sel) (Match a) =
-    (if disc a then ([Pos (sel a)], MatchAny) else ([], Match a))
-  | primitive_extractor (disc, sel) (MatchNot (Match a)) =
-    (if disc a then ([Neg (sel a)], MatchAny) else ([], MatchNot (Match a)))
-  | primitive_extractor c (MatchAnd (ms1, ms2)) =
-    let
-      val (a1, ms1a) = primitive_extractor c ms1;
-      val (a2, ms2a) = primitive_extractor c ms2;
-    in
-      (a1 @ a2, MatchAnd (ms1a, ms2a))
-    end
-  | primitive_extractor uv (MatchNot (MatchNot va)) = (raise Fail "undefined")
-  | primitive_extractor uv (MatchNot (MatchAnd (va, vb))) =
-    (raise Fail "undefined")
-  | primitive_extractor uv (MatchNot MatchAny) = (raise Fail "undefined");
-
 fun normalize_primitive_extract disc_sel c f m =
   let
     val (spts, rst) = primitive_extractor disc_sel m;
@@ -1212,91 +1609,10 @@ fun normalize_primitive_extract disc_sel c f m =
     map (fn spt => MatchAnd (Match (c spt), rst)) (f spts)
   end;
 
-fun src_sel (Src x1) = x1;
-
-fun is_Src (Src x1) = true
-  | is_Src (Dst x2) = false
-  | is_Src (IIface x3) = false
-  | is_Src (OIface x4) = false
-  | is_Src (Prot x5) = false
-  | is_Src (Src_Ports x6) = false
-  | is_Src (Dst_Ports x7) = false
-  | is_Src (Extra x8) = false;
-
-fun wordinterval_to_list A_ (RangeUnion (r1, r2)) =
-  wordinterval_to_list A_ r1 @ wordinterval_to_list A_ r2
-  | wordinterval_to_list A_ (WordInterval (v, va)) =
-    (if wordinterval_empty A_ (WordInterval (v, va)) then []
-      else [WordInterval (v, va)]);
-
-fun list_to_wordinterval A_ [r] = r
-  | list_to_wordinterval A_ (r :: v :: va) =
-    RangeUnion (r, list_to_wordinterval A_ (v :: va))
-  | list_to_wordinterval A_ [] = empty_WordInterval A_;
-
-fun wordinterval_optimize_same A_ rs =
-  list_to_wordinterval A_
-    (remdups (equal_wordinterval A_) (wordinterval_to_list A_ rs));
-
-fun wordinterval_UNIV A_ = WordInterval (zero_worda (len0_len A_), max_word A_);
-
-fun wordinterval_invert A_ r =
-  wordinterval_setminus A_ (wordinterval_UNIV A_) r;
-
-fun wordinterval_union A_ r1 r2 = RangeUnion (r1, r2);
-
-fun wordinterval_intersection A_ r1 r2 =
-  wordinterval_optimize_same A_
-    (wordinterval_setminus A_ (wordinterval_union A_ r1 r2)
-      (wordinterval_union A_ (wordinterval_invert A_ r1)
-        (wordinterval_invert A_ r2)));
-
-fun l2br_negation_type_intersect A_ [] = wordinterval_UNIV A_
-  | l2br_negation_type_intersect A_ (Pos (s, e) :: ls) =
-    wordinterval_intersection A_ (WordInterval (s, e))
-      (l2br_negation_type_intersect A_ ls)
-  | l2br_negation_type_intersect A_ (Neg (s, e) :: ls) =
-    wordinterval_intersection A_ (wordinterval_invert A_ (WordInterval (s, e)))
-      (l2br_negation_type_intersect A_ ls);
-
-fun ipv4addr_of_dotdecimal (a, (b, (c, d))) =
-  ipv4addr_of_nat
-    (plus_nat
-      (plus_nat (plus_nat d (times_nat (nat_of_integer (256 : IntInf.int)) c))
-        (times_nat (nat_of_integer (65536 : IntInf.int)) b))
-      (times_nat (nat_of_integer (16777216 : IntInf.int)) a));
-
-fun bitNOT_word A_ a = word_of_int A_ (bitNOT_int (uint A_ a));
-
-fun ipt_ipv4range_to_intervall (Ip4Addr addr) =
-  (ipv4addr_of_dotdecimal addr, ipv4addr_of_dotdecimal addr)
-  | ipt_ipv4range_to_intervall (Ip4AddrNetmask (pre, len)) =
-    let
-      val netmask =
-        shiftl_word
-          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-          (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-            len)
-          (minus_nat (nat_of_integer (32 : IntInf.int)) len);
-      val network_prefix =
-        bitAND_word
-          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-          (ipv4addr_of_dotdecimal pre) netmask;
-    in
-      (network_prefix,
-        bitOR_word
-          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-          network_prefix
-          (bitNOT_word
-            (len0_bit0
-              (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-            netmask))
-    end;
-
 fun ipt_ipv4range_negation_type_to_br_intersect l =
   l2br_negation_type_intersect
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-    (negPos_map ipt_ipv4range_to_intervall l);
+    (negPos_map ipt_ipv4range_to_interval l);
 
 fun shiftr_word A_ w n = funpow n (shiftr1 A_) w;
 
@@ -1352,34 +1668,13 @@ fun normalize_src_ips x =
 
 fun dst_sel (Dst x2) = x2;
 
-fun is_Dst (Src x1) = false
-  | is_Dst (Dst x2) = true
-  | is_Dst (IIface x3) = false
-  | is_Dst (OIface x4) = false
-  | is_Dst (Prot x5) = false
-  | is_Dst (Src_Ports x6) = false
-  | is_Dst (Dst_Ports x7) = false
-  | is_Dst (Extra x8) = false;
-
 fun normalize_dst_ips x =
   normalize_primitive_extract (is_Dst, dst_sel) Dst ipt_ipv4range_compress x;
 
 fun src_ports_sel (Src_Ports x6) = x6;
 
-fun is_Src_Ports (Src x1) = false
-  | is_Src_Ports (Dst x2) = false
-  | is_Src_Ports (IIface x3) = false
-  | is_Src_Ports (OIface x4) = false
-  | is_Src_Ports (Prot x5) = false
-  | is_Src_Ports (Src_Ports x6) = true
-  | is_Src_Ports (Dst_Ports x7) = false
-  | is_Src_Ports (Extra x8) = false;
-
 fun ipt_ports_negation_type_normalize (Pos ps) = ps
-  | ipt_ports_negation_type_normalize (Neg ps) =
-    br2l (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))
-      (wordinterval_invert (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))
-        (l2br (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))) ps));
+  | ipt_ports_negation_type_normalize (Neg ps) = ports_invert ps;
 
 fun ipt_ports_andlist_compress A_ pss =
   br2l A_
@@ -1400,15 +1695,6 @@ fun normalize_src_ports x =
 
 fun dst_ports_sel (Dst_Ports x7) = x7;
 
-fun is_Dst_Ports (Src x1) = false
-  | is_Dst_Ports (Dst x2) = false
-  | is_Dst_Ports (IIface x3) = false
-  | is_Dst_Ports (OIface x4) = false
-  | is_Dst_Ports (Prot x5) = false
-  | is_Dst_Ports (Src_Ports x6) = false
-  | is_Dst_Ports (Dst_Ports x7) = true
-  | is_Dst_Ports (Extra x8) = false;
-
 fun normalize_dst_ports x =
   normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports x;
 
@@ -1422,14 +1708,19 @@ fun transform_normalize_primitives x =
     normalize_rules normalize_src_ports)
     x;
 
-fun optimize_primitive_univ (Match (Src_Ports [(s, e)])) =
-  (if equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) s
-        (zero_worda
-          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) andalso
-        equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) e
-          (word_of_int (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))
-            (Int_of_integer (65535 : IntInf.int)))
-    then MatchAny else Match (Src_Ports [(s, e)]))
+fun optimize_primitive_univ (Match (IIface iface)) =
+  (if equal_ifacea iface ifaceAny then MatchAny else Match (IIface iface))
+  | optimize_primitive_univ (Match (OIface iface)) =
+    (if equal_ifacea iface ifaceAny then MatchAny else Match (OIface iface))
+  | optimize_primitive_univ (Match (Src_Ports [(s, e)])) =
+    (if equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) s
+          (zero_worda
+            (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) andalso
+          equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))
+            e (word_of_int
+                (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))
+                (Int_of_integer (65535 : IntInf.int)))
+      then MatchAny else Match (Src_Ports [(s, e)]))
   | optimize_primitive_univ (Match (Dst_Ports [(s, e)])) =
     (if equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) s
           (zero_worda
@@ -1444,8 +1735,6 @@ fun optimize_primitive_univ (Match (Src_Ports [(s, e)])) =
     Match (Src (Ip4Addr va))
   | optimize_primitive_univ (Match (Dst (Ip4Addr va))) =
     Match (Dst (Ip4Addr va))
-  | optimize_primitive_univ (Match (IIface v)) = Match (IIface v)
-  | optimize_primitive_univ (Match (OIface v)) = Match (OIface v)
   | optimize_primitive_univ (Match (Prot (Proto va))) = Match (Prot (Proto va))
   | optimize_primitive_univ (Match (Src_Ports [])) = Match (Src_Ports [])
   | optimize_primitive_univ (Match (Src_Ports (va :: vc :: vd))) =
@@ -1695,6 +1984,18 @@ fun lower_closure rs =
 
 fun map_of_string rs = map_of (equal_list equal_char) rs;
 
+fun string_of_nat n =
+  (if less_nat n (nat_of_integer (10 : IntInf.int))
+    then [char_of_nat (plus_nat (nat_of_integer (48 : IntInf.int)) n)]
+    else string_of_nat (div_nat n (nat_of_integer (10 : IntInf.int))) @
+           [char_of_nat
+              (plus_nat (nat_of_integer (48 : IntInf.int))
+                (mod_nat n (nat_of_integer (10 : IntInf.int))))]);
+
+fun port_toString p =
+  string_of_nat
+    (unat (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) p);
+
 fun upper_closure_matchexpr uu MatchAny = MatchAny
   | upper_closure_matchexpr Accept (Match (Extra uv)) = MatchAny
   | upper_closure_matchexpr Reject (Match (Extra uw)) = MatchNot MatchAny
@@ -1811,24 +2112,22 @@ fun upper_closure rs =
       (transform_optimize_dnf_strict
         (optimize_matches_a upper_closure_matchexpr rs)));
 
-fun insort_key B_ f x [] = [x]
-  | insort_key B_ f x (y :: ys) =
-    (if less_eq ((ord_preorder o preorder_order o order_linorder) B_) (f x)
-          (f y)
-      then x :: y :: ys else y :: insort_key B_ f x ys);
+fun iface_toString descr iface =
+  (if equal_ifacea iface ifaceAny then []
+    else let
+           val Iface a = iface;
+         in
+           descr @ a
+         end);
 
-fun sort_key B_ f xs = foldr (insort_key B_ f) xs [];
-
-fun to_negation_type_nnf MatchAny = []
-  | to_negation_type_nnf (Match a) = [Pos a]
-  | to_negation_type_nnf (MatchNot (Match a)) = [Neg a]
-  | to_negation_type_nnf (MatchAnd (a, b)) =
-    to_negation_type_nnf a @ to_negation_type_nnf b;
-
-fun to_packet_set a m =
-  PacketSet
-    (map (map (fn ma => (ma, Pos a)) o to_negation_type_nnf)
-      (normalize_match m));
+fun ports_toString descr (s, e) =
+  (if equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) s
+        (zero_worda
+          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) andalso
+        equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) e
+          (max_word (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+    then []
+    else descr @ [#"("] @ port_toString s @ [#","] @ port_toString e @ [#")"]);
 
 fun rm_LogEmpty [] = []
   | rm_LogEmpty (Rule (uu, Empty) :: rs) = rm_LogEmpty rs
@@ -1840,79 +2139,6 @@ fun rm_LogEmpty [] = []
   | rm_LogEmpty (Rule (v, Return) :: rs) = Rule (v, Return) :: rm_LogEmpty rs
   | rm_LogEmpty (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rm_LogEmpty rs;
 
-fun packet_set_union (PacketSet olist1) (PacketSet olist2) =
-  PacketSet (olist1 @ olist2);
-
-fun packet_set_opt4_internal_internal A_ cs =
-  pred_list
-    (fn (m, a) =>
-      not (member
-            (equal_prod (equal_negation_type A_)
-              (equal_negation_type equal_action))
-            cs (m, invert a)))
-    cs;
-
-fun packet_set_opt4 A_ (PacketSet ps) =
-  PacketSet (filter (packet_set_opt4_internal_internal A_) ps);
-
-fun packet_set_opt3 (PacketSet ps) =
-  PacketSet (sort_key linorder_nat size_list ps);
-
-fun packet_set_opt2_internal A_ [] = []
-  | packet_set_opt2_internal A_ ([] :: ps) = [[]]
-  | packet_set_opt2_internal A_ ((v :: va) :: ps) =
-    (v :: va) ::
-      (if less_eq_nat (size_list (v :: va)) (nat_of_integer (5 : IntInf.int))
-        then packet_set_opt2_internal A_
-               (filter
-                 (fn ass =>
-                   not (pred_list
-                         (member
-                           (equal_prod (equal_negation_type A_)
-                             (equal_negation_type equal_action))
-                           ass)
-                         (v :: va)))
-                 ps)
-        else packet_set_opt2_internal A_ ps);
-
-fun packet_set_opt2 A_ (PacketSet ps) =
-  PacketSet (packet_set_opt2_internal A_ ps);
-
-fun packet_set_opt1 A_ (PacketSet ps) =
-  PacketSet
-    (map (remdups
-           (equal_prod (equal_negation_type A_)
-             (equal_negation_type equal_action)))
-      (remdups
-        (equal_list
-          (equal_prod (equal_negation_type A_)
-            (equal_negation_type equal_action)))
-        ps));
-
-fun packet_set_opt A_ ps =
-  packet_set_opt1 A_
-    (packet_set_opt2 A_ (packet_set_opt3 (packet_set_opt4 A_ ps)));
-
-fun packet_set_not_internal [] = [[]]
-  | packet_set_not_internal (ns :: nss) =
-    listprepend (map invertt ns) (packet_set_not_internal nss);
-
-fun packet_set_not (PacketSet ps) = PacketSet (packet_set_not_internal ps);
-
-fun collect_allow_compl_impl_tailrec A_ [] p pAs = pAs
-  | collect_allow_compl_impl_tailrec A_ (Rule (m, Accept) :: rs) p pAs =
-    collect_allow_compl_impl_tailrec A_ rs
-      (packet_set_opt A_ (packet_set_union p (to_packet_set Accept m)))
-      (packet_set_union p (packet_set_not (to_packet_set Accept m)) :: pAs)
-  | collect_allow_compl_impl_tailrec A_ (Rule (m, Drop) :: rs) p pAs =
-    collect_allow_compl_impl_tailrec A_ rs
-      (packet_set_opt A_ (packet_set_union p (to_packet_set Drop m))) pAs;
-
-val packet_set_Empty : 'a packet_set = PacketSet [];
-
-fun allow_set_not_inter A_ rs =
-  collect_allow_compl_impl_tailrec A_ rs packet_set_Empty [];
-
 fun simple_proto_conjunct ProtoAny proto = SOME proto
   | simple_proto_conjunct (Proto v) ProtoAny = SOME (Proto v)
   | simple_proto_conjunct (Proto p1) (Proto p2) =
@@ -1922,25 +2148,17 @@ fun ipv4range_intersection r1 r2 =
   wordinterval_intersection
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
 
-val packet_set_UNIV : 'a packet_set = PacketSet [[]];
+fun ipassmt_sanity_defined rs ipassmt =
+  pred_list (fn iface => not (is_none (ipassmt iface))) (collect_ifaces rs);
 
-fun has_disc uu MatchAny = false
-  | has_disc disc (Match a) = disc a
-  | has_disc disc (MatchNot m) = has_disc disc m
-  | has_disc disc (MatchAnd (m1, m2)) =
-    has_disc disc m1 orelse has_disc disc m2;
+fun integer_to_16word i =
+  of_nat (semiring_1_word (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+    (nat_of_integer i);
 
-fun equal_packet_set A_ (PacketSet x) (PacketSet ya) =
-  equal_lista
-    (equal_list
-      (equal_prod (equal_negation_type A_) (equal_negation_type equal_action)))
-    x ya;
-
-fun deny_set rs =
-  filter
-    (fn a => not (equal_packet_set equal_common_primitive a packet_set_UNIV))
-    (map (packet_set_opt equal_common_primitive)
-      (allow_set_not_inter equal_common_primitive rs));
+fun protocol_toString ProtoAny = [#"a", #"l", #"l"]
+  | protocol_toString (Proto TCP) = [#"t", #"c", #"p"]
+  | protocol_toString (Proto UDP) = [#"u", #"d", #"p"]
+  | protocol_toString (Proto ICMP) = [#"i", #"c", #"m", #"p"];
 
 fun process_ret [] = []
   | process_ret (Rule (m, Return) :: rs) =
@@ -1952,6 +2170,21 @@ fun process_ret [] = []
   | process_ret (Rule (v, Call vb) :: rs) = Rule (v, Call vb) :: process_ret rs
   | process_ret (Rule (v, Empty) :: rs) = Rule (v, Empty) :: process_ret rs
   | process_ret (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: process_ret rs;
+
+fun ipv4_cidr_toString ip_n =
+  let
+    val (base, n) = ip_n;
+    val (a, b) = dotdecimal_of_ipv4addr base;
+    val (ba, c) = b;
+    val (ca, d) = c;
+  in
+    string_of_nat a @
+      [#"."] @
+        string_of_nat ba @
+          [#"."] @
+            string_of_nat ca @
+              [#"."] @ string_of_nat d @ [#"/"] @ string_of_nat n
+  end;
 
 fun process_call gamma [] = []
   | process_call gamma (Rule (m, Call chain) :: rs) =
@@ -1970,6 +2203,32 @@ fun process_call gamma [] = []
     Rule (v, Empty) :: process_call gamma rs
   | process_call gamma (Rule (v, Unknown) :: rs) =
     Rule (v, Unknown) :: process_call gamma rs;
+
+fun simple_action_toString Accepta = [#"A", #"C", #"C", #"E", #"P", #"T"]
+  | simple_action_toString Dropa = [#"D", #"R", #"O", #"P"];
+
+fun simple_rule_toString
+  (SimpleRule (Simple_match_ext (iif, oif, sip, dip, p, sps, dps, ()), a)) =
+  simple_action_toString a @
+    [#" ", #" ", #" ", #" ", #" "] @
+      protocol_toString p @
+        [#" ", #" ", #"-", #"-", #" ", #" "] @
+          ipv4_cidr_toString sip @
+            [#" ", #" ", #" ", #" ", #" ", #" ", #" ", #" ", #" ", #" ", #" ",
+              #" "] @
+              ipv4_cidr_toString dip @
+                [#" "] @
+                  iface_toString [#"i", #"n", #":", #" "] iif @
+                    [#" "] @
+                      iface_toString [#"o", #"u", #"t", #":", #" "] oif @
+                        [#" "] @
+                          ports_toString
+                            [#"s", #"p", #"o", #"r", #"t", #"s", #":", #" "]
+                            sps @
+                            [#" "] @
+                              ports_toString
+                                [#"d", #"p", #"o", #"r", #"t", #"s", #":", #" "]
+                                dps;
 
 fun dst
   (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
@@ -2047,52 +2306,33 @@ fun normalized_src_ports MatchAny = true
   | normalized_src_ports (MatchNot (MatchNot vb)) = false
   | normalized_src_ports (MatchNot MatchAny) = true;
 
-fun ipv4_cidr_tuple_to_intervall (pre, len) =
-  let
-    val netmask =
-      shiftl_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-        (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-          len)
-        (minus_nat (nat_of_integer (32 : IntInf.int)) len);
-    val network_prefix =
-      bitAND_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-        pre netmask;
-  in
-    ipv4range_range network_prefix
-      (bitOR_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-        network_prefix
-        (bitNOT_word
-          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-          netmask))
-  end;
-
 fun simpl_ports_conjunct (p1s, p1e) (p2s, p2e) =
   (max (ord_word (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) p1s
      p2s,
     min (ord_word (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) p1e
       p2e);
 
+fun ipv4_cidr_tuple_to_interval iprng =
+  ipv4range_range (ipv4cidr_to_interval iprng);
+
 fun simple_match_and
   (Simple_match_ext (iif1, oif1, sip1, dip1, p1, sps1, dps1, ()))
   (Simple_match_ext (iif2, oif2, sip2, dip2, p2, sps2, dps2, ())) =
   (case (if ipv4range_empty
-              (ipv4range_intersection (ipv4_cidr_tuple_to_intervall sip1)
-                (ipv4_cidr_tuple_to_intervall sip2))
+              (ipv4range_intersection (ipv4_cidr_tuple_to_interval sip1)
+                (ipv4_cidr_tuple_to_interval sip2))
           then NONE
-          else (if ipv4range_subset (ipv4_cidr_tuple_to_intervall sip1)
-                     (ipv4_cidr_tuple_to_intervall sip2)
+          else (if ipv4range_subset (ipv4_cidr_tuple_to_interval sip1)
+                     (ipv4_cidr_tuple_to_interval sip2)
                  then SOME sip1 else SOME sip2))
     of NONE => NONE
     | SOME sip =>
       (case (if ipv4range_empty
-                  (ipv4range_intersection (ipv4_cidr_tuple_to_intervall dip1)
-                    (ipv4_cidr_tuple_to_intervall dip2))
+                  (ipv4range_intersection (ipv4_cidr_tuple_to_interval dip1)
+                    (ipv4_cidr_tuple_to_interval dip2))
               then NONE
-              else (if ipv4range_subset (ipv4_cidr_tuple_to_intervall dip1)
-                         (ipv4_cidr_tuple_to_intervall dip2)
+              else (if ipv4range_subset (ipv4_cidr_tuple_to_interval dip1)
+                         (ipv4_cidr_tuple_to_interval dip2)
                      then SOME dip1 else SOME dip2))
         of NONE => NONE
         | SOME dip =>
@@ -2200,7 +2440,7 @@ fun common_primitive_match_to_simple_match MatchAny = SOME simple_match_any
   | common_primitive_match_to_simple_match (MatchAnd (m1, m2)) =
     (case (common_primitive_match_to_simple_match m1,
             common_primitive_match_to_simple_match m2)
-      of (NONE, xa) => NONE | (SOME a, NONE) => NONE
+      of (NONE, _) => NONE | (SOME _, NONE) => NONE
       | (SOME a, SOME b) => simple_match_and a b)
   | common_primitive_match_to_simple_match (MatchNot (Match (Prot (Proto v)))) =
     (raise Fail "undefined")
@@ -2309,14 +2549,100 @@ fun normalized_protocols MatchAny = true
   | normalized_protocols (MatchNot (MatchNot v)) = true
   | normalized_protocols (MatchNot MatchAny) = true;
 
-fun is_Extra (Src x1) = false
-  | is_Extra (Dst x2) = false
-  | is_Extra (IIface x3) = false
-  | is_Extra (OIface x4) = false
-  | is_Extra (Prot x5) = false
-  | is_Extra (Src_Ports x6) = false
-  | is_Extra (Dst_Ports x7) = false
-  | is_Extra (Extra x8) = true;
+fun equal_action Empty Unknown = false
+  | equal_action Unknown Empty = false
+  | equal_action Return Unknown = false
+  | equal_action Unknown Return = false
+  | equal_action Return Empty = false
+  | equal_action Empty Return = false
+  | equal_action (Call x5) Unknown = false
+  | equal_action Unknown (Call x5) = false
+  | equal_action (Call x5) Empty = false
+  | equal_action Empty (Call x5) = false
+  | equal_action (Call x5) Return = false
+  | equal_action Return (Call x5) = false
+  | equal_action Reject Unknown = false
+  | equal_action Unknown Reject = false
+  | equal_action Reject Empty = false
+  | equal_action Empty Reject = false
+  | equal_action Reject Return = false
+  | equal_action Return Reject = false
+  | equal_action Reject (Call x5) = false
+  | equal_action (Call x5) Reject = false
+  | equal_action Log Unknown = false
+  | equal_action Unknown Log = false
+  | equal_action Log Empty = false
+  | equal_action Empty Log = false
+  | equal_action Log Return = false
+  | equal_action Return Log = false
+  | equal_action Log (Call x5) = false
+  | equal_action (Call x5) Log = false
+  | equal_action Log Reject = false
+  | equal_action Reject Log = false
+  | equal_action Drop Unknown = false
+  | equal_action Unknown Drop = false
+  | equal_action Drop Empty = false
+  | equal_action Empty Drop = false
+  | equal_action Drop Return = false
+  | equal_action Return Drop = false
+  | equal_action Drop (Call x5) = false
+  | equal_action (Call x5) Drop = false
+  | equal_action Drop Reject = false
+  | equal_action Reject Drop = false
+  | equal_action Drop Log = false
+  | equal_action Log Drop = false
+  | equal_action Accept Unknown = false
+  | equal_action Unknown Accept = false
+  | equal_action Accept Empty = false
+  | equal_action Empty Accept = false
+  | equal_action Accept Return = false
+  | equal_action Return Accept = false
+  | equal_action Accept (Call x5) = false
+  | equal_action (Call x5) Accept = false
+  | equal_action Accept Reject = false
+  | equal_action Reject Accept = false
+  | equal_action Accept Log = false
+  | equal_action Log Accept = false
+  | equal_action Accept Drop = false
+  | equal_action Drop Accept = false
+  | equal_action (Call x5) (Call y5) = equal_lista equal_char x5 y5
+  | equal_action Unknown Unknown = true
+  | equal_action Empty Empty = true
+  | equal_action Return Return = true
+  | equal_action Reject Reject = true
+  | equal_action Log Log = true
+  | equal_action Drop Drop = true
+  | equal_action Accept Accept = true;
+
+fun example_ipassignment_nospoof ifce =
+  no_spoofing_iface (Iface ifce) (map_of equal_iface ipassmt);
+
+fun example_ipassmt_sanity_defined rs =
+  ipassmt_sanity_defined rs (map_of equal_iface ipassmt);
+
+fun simple_rule_iptables_save_toString chain
+  (SimpleRule (Simple_match_ext (iif, oif, sip, dip, p, sps, dps, ()), a)) =
+  [#"-", #"A", #" "] @
+    chain @
+      [#" ", #"-", #"s", #" "] @
+        ipv4_cidr_toString sip @
+          [#" "] @
+            [#"-", #"d", #" "] @
+              ipv4_cidr_toString dip @
+                [#" "] @
+                  [#"-", #"p", #" "] @
+                    protocol_toString p @
+                      [#" "] @
+                        (if not (null (iface_toString [#"i", #"n", #":"] iif @
+iface_toString [#"o", #"u", #"t", #":"] oif @
+  ports_toString [#"s", #"r", #"c", #"p", #"o", #"r", #"t", #"s", #":"] sps @
+    ports_toString [#"d", #"s", #"t", #"p", #"o", #"r", #"t", #"s", #":"] dps))
+                          then [#"T", #"O", #"D", #"O", #":", #" ", #"m", #"o",
+                                 #"r", #"e", #" ", #"f", #"i", #"e", #"l", #"d",
+                                 #"s", #" ", #"t", #"o", #" ", #"d", #"u", #"m",
+                                 #"p"]
+                          else []) @
+                          [#" ", #"-", #"j", #" "] @ simple_action_toString a;
 
 fun check_simple_fw_preconditions rs =
   pred_list
@@ -2328,7 +2654,7 @@ fun check_simple_fw_preconditions rs =
               (normalized_ifaces m andalso
                 (normalized_protocols m andalso
                   (not (has_disc is_Extra m) andalso
-                    (equal_actiona a Accept orelse equal_actiona a Drop))))))))
+                    (equal_action a Accept orelse equal_action a Drop))))))))
     rs;
 
 fun bitmask_to_strange_inverse_cisco_mask n =

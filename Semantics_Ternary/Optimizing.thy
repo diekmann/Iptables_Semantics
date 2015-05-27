@@ -124,8 +124,8 @@ lemma rmMatchFalse_correct: "approximating_bigstep_fun \<gamma> p (rmMatchFalse 
   apply(subgoal_tac "m \<noteq> MatchNot MatchAny")
   apply(drule_tac a=a and rs=rs in rmMatchFalse_helper)
   apply(simp split:action.split)
-  apply(thin_tac "a = ?x \<Longrightarrow> ?y")
-  apply(thin_tac "a = ?x \<Longrightarrow> ?y")
+  apply(thin_tac "a = x \<Longrightarrow> _" for x)
+  apply(thin_tac "a = x \<Longrightarrow> _" for x)
   by (metis bunch_of_lemmata_about_matches(3))
   
 

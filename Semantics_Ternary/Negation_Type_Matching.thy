@@ -1,5 +1,5 @@
 theory Negation_Type_Matching
-imports  Negation_Type Matching_Ternary "../Datatype_Selectors" Fixed_Action
+imports  "../Common/Negation_Type" Matching_Ternary "../Datatype_Selectors" Fixed_Action
 begin
 
 section{*Negation Type Matching*}
@@ -16,7 +16,7 @@ fun negation_type_to_match_expr :: "'a negation_type \<Rightarrow> 'a match_expr
   "negation_type_to_match_expr (Pos e) = (Match e)" |
   "negation_type_to_match_expr (Neg e) = (MatchNot (Match e))"
 lemma alist_and_negation_type_to_match_expr: "alist_and (n#es) =  MatchAnd (negation_type_to_match_expr n) (alist_and es)"
-by(cases n, simp_all)
+  by(cases n, simp_all)
 
 
 (*do I need monads?*)
@@ -26,26 +26,24 @@ fun negation_type_to_match_expr_f :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a neg
   "negation_type_to_match_expr_f f (Neg a) = MatchNot (Match (f a))"
 
 lemma alist_and_append: "matches \<gamma> (alist_and (l1 @ l2)) a p \<longleftrightarrow> matches \<gamma>  (MatchAnd (alist_and l1)  (alist_and l2)) a p"
-  apply(induction l1)
-   apply(simp_all add: bunch_of_lemmata_about_matches)
-  apply(rename_tac l l1)
-  apply(case_tac l)
-   apply(simp_all add: bunch_of_lemmata_about_matches)
-  done
+  proof(induction l1)
+  case Nil thus ?case by (simp_all add: bunch_of_lemmata_about_matches)
+  next
+  case (Cons l l1) thus ?case by (cases l) (simp_all add: bunch_of_lemmata_about_matches)
+  qed
 
 
 fun to_negation_type_nnf :: "'a match_expr \<Rightarrow> 'a negation_type list" where
  "to_negation_type_nnf MatchAny = []" |
  "to_negation_type_nnf (Match a) = [Pos a]" |
  "to_negation_type_nnf (MatchNot (Match a)) = [Neg a]" |
- "to_negation_type_nnf (MatchAnd a b) = (to_negation_type_nnf a) @ (to_negation_type_nnf b)"
+ "to_negation_type_nnf (MatchAnd a b) = (to_negation_type_nnf a) @ (to_negation_type_nnf b)" |
+ "to_negation_type_nnf _ = undefined"
 
 
 lemma "normalized_nnf_match m \<Longrightarrow> matches \<gamma> (alist_and (to_negation_type_nnf m)) a p  = matches \<gamma> m a p"
-  apply(induction m rule: to_negation_type_nnf.induct)
-  apply(simp_all add: bunch_of_lemmata_about_matches alist_and_append)
-  done
-  
+  proof(induction m rule: to_negation_type_nnf.induct)
+  qed(simp_all add: bunch_of_lemmata_about_matches alist_and_append)
 
 
 text{*Isolating the matching semantics*}
@@ -56,20 +54,19 @@ fun nt_match_list :: "('a, 'packet) match_tac \<Rightarrow> action \<Rightarrow>
 
 lemma nt_match_list_matches: "nt_match_list \<gamma> a p l \<longleftrightarrow> matches \<gamma> (alist_and l) a p"
   apply(induction l rule: alist_and.induct)
-  apply(simp_all)
-  apply(case_tac [!] \<gamma>)
-  apply(simp_all add: bunch_of_lemmata_about_matches)
-done
+    apply(case_tac [!] \<gamma>)
+    apply(simp_all add: bunch_of_lemmata_about_matches)
+  done
 
 
 lemma nt_match_list_simp: "nt_match_list \<gamma> a p ms \<longleftrightarrow> 
       (\<forall>m \<in> set (getPos ms). matches \<gamma> (Match m) a p) \<and> (\<forall>m \<in> set (getNeg ms). matches \<gamma> (MatchNot (Match m)) a p)"
-apply(induction \<gamma> a p ms rule: nt_match_list.induct)
-apply(simp_all)
-by fastforce
+  proof(induction \<gamma> a p ms rule: nt_match_list.induct)
+  case 3 thus ?case by fastforce
+  qed(simp_all)
 
 lemma matches_alist_and: "matches \<gamma> (alist_and l) a p \<longleftrightarrow> (\<forall>m \<in> set (getPos l). matches \<gamma> (Match m) a p) \<and> (\<forall>m \<in> set (getNeg l). matches \<gamma> (MatchNot (Match m)) a p)"
-by (metis (poly_guards_query) nt_match_list_matches nt_match_list_simp)
+  using nt_match_list_matches nt_match_list_simp by fast
 
 
 end

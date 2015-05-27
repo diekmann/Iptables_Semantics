@@ -7,31 +7,34 @@ begin
 
 subsection{*Normalizing ports*}
 
-  fun ipt_ports_negation_type_normalize :: "ipt_ports negation_type \<Rightarrow> ipt_ports" where
+context
+begin
+
+  private fun ipt_ports_negation_type_normalize :: "ipt_ports negation_type \<Rightarrow> ipt_ports" where
     "ipt_ports_negation_type_normalize (Pos ps) = ps" |
-    "ipt_ports_negation_type_normalize (Neg ps) = br2l (wordinterval_invert (l2br ps))"  
+    "ipt_ports_negation_type_normalize (Neg ps) = ports_invert ps"  
   
   
-  lemma "ipt_ports_negation_type_normalize (Neg [(0,65535)]) = []" by eval
+  private lemma "ipt_ports_negation_type_normalize (Neg [(0,65535)]) = []" by eval
 
   declare ipt_ports_negation_type_normalize.simps[simp del]
   
-  lemma ipt_ports_negation_type_normalize_correct:
+  private lemma ipt_ports_negation_type_normalize_correct:
         "matches (common_matcher, \<alpha>) (negation_type_to_match_expr_f (Src_Ports) ps) a p \<longleftrightarrow>
          matches (common_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_negation_type_normalize ps))) a p"
         "matches (common_matcher, \<alpha>) (negation_type_to_match_expr_f (Dst_Ports) ps) a p \<longleftrightarrow>
          matches (common_matcher, \<alpha>) (Match (Dst_Ports (ipt_ports_negation_type_normalize ps))) a p"
   apply(case_tac [!] ps)
   apply(simp_all add: ipt_ports_negation_type_normalize.simps matches_case_ternaryvalue_tuple
-          bunch_of_lemmata_about_matches bool_to_ternary_simps l2br_br2l ports_to_set_wordinterval split: ternaryvalue.split)
+          bunch_of_lemmata_about_matches bool_to_ternary_simps ports_invert split: ternaryvalue.split)
   done
   
   (* [ [(1,2) \<or> (3,4)]  \<and>  [] ]*)
   text{* @{typ "ipt_ports list \<Rightarrow> ipt_ports"} *}
-  definition ipt_ports_andlist_compress :: "('a::len word \<times> 'a::len word) list list \<Rightarrow> ('a::len word \<times> 'a::len word) list" where
+  private definition ipt_ports_andlist_compress :: "('a::len word \<times> 'a::len word) list list \<Rightarrow> ('a::len word \<times> 'a::len word) list" where
     "ipt_ports_andlist_compress pss = br2l (fold (\<lambda>ps accu. (wordinterval_intersection (l2br ps) accu)) pss wordinterval_UNIV)"
   
-  lemma ipt_ports_andlist_compress_correct: "ports_to_set (ipt_ports_andlist_compress pss) = \<Inter> set (map ports_to_set pss)"
+  private lemma ipt_ports_andlist_compress_correct: "ports_to_set (ipt_ports_andlist_compress pss) = \<Inter> set (map ports_to_set pss)"
     proof -
       { fix accu
         have "ports_to_set (br2l (fold (\<lambda>ps accu. (wordinterval_intersection (l2br ps) accu)) pss accu)) = (\<Inter> set (map ports_to_set pss)) \<inter> (ports_to_set (br2l accu))"
@@ -49,7 +52,7 @@ subsection{*Normalizing ports*}
   
   
   (*TODO: only for src*)
-  lemma ipt_ports_compress_src_correct:
+  private lemma ipt_ports_compress_src_correct:
     "matches (common_matcher, \<alpha>) (alist_and (NegPos_map Src_Ports ms)) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_compress ms))) a p"
   proof(induction ms)
     case Nil thus ?case by(simp add: ipt_ports_compress_def bunch_of_lemmata_about_matches ipt_ports_andlist_compress_correct)
@@ -64,12 +67,12 @@ subsection{*Normalizing ports*}
         case (Neg a)
           thus ?goal using Cons.IH
           apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
-          apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps l2br_br2l
-                  ports_to_set_wordinterval ipt_ports_negation_type_normalize.simps split: ternaryvalue.split)
+          apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps
+                  ports_invert ipt_ports_negation_type_normalize.simps split: ternaryvalue.split)
           done
         qed
   qed
-  lemma ipt_ports_compress_dst_correct:
+  private lemma ipt_ports_compress_dst_correct:
     "matches (common_matcher, \<alpha>) (alist_and (NegPos_map Dst_Ports ms)) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) (Match (Dst_Ports (ipt_ports_compress ms))) a p"
   proof(induction ms)
     case Nil thus ?case by(simp add: ipt_ports_compress_def bunch_of_lemmata_about_matches ipt_ports_andlist_compress_correct)
@@ -84,14 +87,14 @@ subsection{*Normalizing ports*}
         case (Neg a)
           thus ?goal using Cons.IH
           apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
-          apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps l2br_br2l ports_to_set_wordinterval
+          apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps ports_invert
               ipt_ports_negation_type_normalize.simps split: ternaryvalue.split)
           done
         qed
   qed
   
   
-  lemma ipt_ports_compress_matches_set: "matches (common_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_compress ips))) a p \<longleftrightarrow>
+  private lemma ipt_ports_compress_matches_set: "matches (common_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_compress ips))) a p \<longleftrightarrow>
          p_sport p \<in> \<Inter> set (map (ports_to_set \<circ> ipt_ports_negation_type_normalize) ips)"
   apply(simp add: ipt_ports_compress_def)
   apply(induction ips)
@@ -105,7 +108,7 @@ subsection{*Normalizing ports*}
   
   
   (*spliting the primitives: multiport list (a list of disjunction!)*)
-  lemma singletonize_SrcDst_Ports: "match_list (common_matcher, \<alpha>) (map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) ms) (spts)) a p \<longleftrightarrow>
+  private lemma singletonize_SrcDst_Ports: "match_list (common_matcher, \<alpha>) (map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) ms) (spts)) a p \<longleftrightarrow>
          matches (common_matcher, \<alpha>) (MatchAnd (Match (Src_Ports spts)) ms) a p"
          "match_list (common_matcher, \<alpha>) (map (\<lambda>spt. (MatchAnd (Match (Dst_Ports [spt]))) ms) (dpts)) a p \<longleftrightarrow>
          matches (common_matcher, \<alpha>) (MatchAnd (Match (Dst_Ports dpts)) ms) a p"
@@ -129,7 +132,7 @@ subsection{*Normalizing ports*}
   definition normalize_dst_ports :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where
     "normalize_dst_ports = normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports"
 
-  lemma normalize_ports_step_Src: assumes "normalized_nnf_match m" shows
+  lemma normalize_src_ports: assumes "normalized_nnf_match m" shows
         "match_list (common_matcher, \<alpha>) (normalize_src_ports m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
     proof -
       { fix ml
@@ -141,7 +144,7 @@ subsection{*Normalizing ports*}
         unfolding normalize_src_ports_def normalize_ports_step_def by simp
     qed
 
-    lemma normalize_ports_step_Dst: assumes "normalized_nnf_match m" shows
+    lemma normalize_dst_ports: assumes "normalized_nnf_match m" shows
         "match_list (common_matcher, \<alpha>) (normalize_dst_ports m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
     proof -
       { fix ml
@@ -192,13 +195,13 @@ subsection{*Normalizing ports*}
     by(induction ms rule: normalized_dst_ports.induct, simp_all)
   
   (*unused? TODO: Move?*)
-  lemma normalized_nnf_match_MatchNot_D: "normalized_nnf_match (MatchNot m) \<Longrightarrow> normalized_nnf_match m"
+  private lemma normalized_nnf_match_MatchNot_D: "normalized_nnf_match (MatchNot m) \<Longrightarrow> normalized_nnf_match m"
   apply(induction m)
   apply(simp_all)
   done
   
   
-  lemma "\<forall>spt \<in> set (ipt_ports_compress spts). normalized_src_ports (Match (Src_Ports [spt]))" by(simp)
+  private lemma "\<forall>spt \<in> set (ipt_ports_compress spts). normalized_src_ports (Match (Src_Ports [spt]))" by(simp)
   
 
   (* version using generalized lemma below
@@ -262,4 +265,5 @@ subsection{*Normalizing ports*}
    apply(simp_all)
   done
 
+end
 end

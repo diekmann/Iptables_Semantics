@@ -2,6 +2,9 @@ theory CIDRSplit
 imports IPv4Addr NumberWangCaesar
 begin
 
+context
+begin
+
 section{*CIDR Split Motivation*}
   text{*When talking about ranges of IP addresses, we can make the ranges explicit by listing them.*}
 
@@ -39,8 +42,8 @@ definition prefix_to_range :: "prefix_match \<Rightarrow> 32 wordinterval" where
 lemma prefix_to_range_set_eq: "wordinterval_to_set (prefix_to_range pfx) = prefix_to_ipset pfx"
   unfolding prefix_to_range_def prefix_to_ipset_def by simp
 
-lemma prefix_to_range_ipv4range_range: "prefix_to_range pfx = ipv4range_range (pfxm_prefix pfx) (pfxm_prefix pfx OR pfxm_mask pfx)"
-  unfolding ipv4range_range_def prefix_to_range_def by simp
+lemma prefix_to_range_ipv4range_range: "prefix_to_range pfx = ipv4range_range ((pfxm_prefix pfx), (pfxm_prefix pfx OR pfxm_mask pfx))"
+  unfolding ipv4range_range.simps prefix_to_range_def by simp
 
 corollary "valid_prefix pfx \<Longrightarrow> wordinterval_to_set (prefix_to_range pfx) = ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
 using wordinterval_to_set_ipv4range_set_from_bitmask prefix_to_range_set_eq by simp
@@ -69,7 +72,7 @@ lemma prefix_to_ipset_subset_ipv4range_set_from_bitmask:
   by (metis pfxm_mask_def)
 
 
-definition pfxes :: "nat list" where "pfxes \<equiv> map nat [0..32]"
+private definition pfxes :: "nat list" where "pfxes \<equiv> map nat [0..32]"
 
 (* Split of one range *)
 definition "ipv4range_split1 r \<equiv> (
@@ -81,11 +84,11 @@ definition "ipv4range_split1 r \<equiv> (
                         (case mc of None \<Rightarrow> (None, r) |
                                   Some m \<Rightarrow> (mc, ipv4range_setminus r (prefix_to_range m))))"
 
-lemma flipnot: "a=b \<Longrightarrow> (\<not>a)=(\<not>b)" by simp (* not flipknot *)
+private lemma flipnot: "a=b \<Longrightarrow> (\<not>a)=(\<not>b)" by simp (* not flipknot *)
 
-lemma find_const_True: "find (const True) l = None \<longleftrightarrow> l = []"
+private lemma find_const_True: "find (const True) l = None \<longleftrightarrow> l = []"
   by(cases l, simp_all add: const_def) 
-lemma ipv4range_split_innard_helper: "ipv4range_lowest_element r = Some a \<Longrightarrow> 
+private lemma ipv4range_split_innard_helper: "ipv4range_lowest_element r = Some a \<Longrightarrow> 
   [s\<leftarrow>map (Pair a) pfxes . valid_prefix s \<and> ipv4range_to_set (prefix_to_range s) \<subseteq> ipv4range_to_set r] \<noteq> []"
 proof -
   assume a: "ipv4range_lowest_element r = Some a"
@@ -104,7 +107,7 @@ proof -
     unfolding set_filter
     using b c d by blast
 qed
-lemma r_split1_not_none: "\<not>ipv4range_empty r \<Longrightarrow> fst (ipv4range_split1 r) \<noteq> None"
+private lemma r_split1_not_none: "\<not>ipv4range_empty r \<Longrightarrow> fst (ipv4range_split1 r) \<noteq> None"
   unfolding ipv4range_split1_def Let_def
   apply(cases "ipv4range_lowest_element r")
    apply(simp add: ipv4range_lowest_none_empty)
@@ -113,7 +116,7 @@ lemma r_split1_not_none: "\<not>ipv4range_empty r \<Longrightarrow> fst (ipv4ran
    apply(simp add: find_const_True ipv4range_split_innard_helper)
   apply(simp)
 done
-lemma find_in: "Some a = find f s \<Longrightarrow> a \<in> {x \<in> set s. f x}"
+private lemma find_in: "Some a = find f s \<Longrightarrow> a \<in> {x \<in> set s. f x}"
   by (metis findSomeD mem_Collect_eq)
 theorem ipv4range_split1_preserve: "(Some s, u) = ipv4range_split1 r \<Longrightarrow> ipv4range_eq (ipv4range_union (prefix_to_range s) u) r"
 proof(unfold ipv4range_eq_set_eq)
@@ -146,9 +149,9 @@ proof(unfold ipv4range_eq_set_eq)
   ultimately show "ipv4range_to_set (ipv4range_union (prefix_to_range s) u) = ipv4range_to_set r" by auto
 qed
 
-lemma "((a,b),(c,d)) = ((a,b),c,d)" by simp (* Fuck. *)
+private lemma "((a,b),(c,d)) = ((a,b),c,d)" by simp (* Fuck. *)
 
-lemma prefix_never_empty: "\<not>ipv4range_empty (prefix_to_range d)"
+private lemma prefix_never_empty: "\<not>ipv4range_empty (prefix_to_range d)"
 proof -
   have ie: "pfxm_prefix d \<le> pfxm_prefix d || pfxm_mask d" by (metis le_word_or2)
   have "ipv4range_element (fst d) (prefix_to_range d)"
@@ -252,8 +255,8 @@ value "ipv4range_split (WordInterval 0 (ipv4addr_of_dotdecimal (255,255,255,254)
 
 text{* @{text "10.0.0.0/8 - 10.8.0.0/16"}*}
 lemma "map (\<lambda>(ip,n). (dotdecimal_of_ipv4addr ip, n)) (ipv4range_split (ipv4range_setminus
-          (ipv4range_range (ipv4addr_of_dotdecimal (10,0,0,0)) (ipv4addr_of_dotdecimal (10,255,255,255)))
-          (ipv4range_range (ipv4addr_of_dotdecimal (10,8,0,0)) (ipv4addr_of_dotdecimal (10,8,255,255))))) =
+          (ipv4range_range ((ipv4addr_of_dotdecimal (10,0,0,0)), (ipv4addr_of_dotdecimal (10,255,255,255))))
+          (ipv4range_range ((ipv4addr_of_dotdecimal (10,8,0,0)), (ipv4addr_of_dotdecimal (10,8,255,255)))))) =
  [((10, 0, 0, 0), 13), ((10, 9, 0, 0), 16), ((10, 10, 0, 0), 15), ((10, 12, 0, 0), 14), ((10, 16, 0, 0), 12), ((10, 32, 0, 0), 11), ((10, 64, 0, 0), 10),
   ((10, 128, 0, 0), 9)]" by eval
 
@@ -351,8 +354,8 @@ corollary ipv4range_split_bitmask:
     done
 qed
 corollary ipv4range_split_bitmask_single: 
-  "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipv4range_split (ipv4range_range start end)))) ) = {start .. end}"
-using ipv4range_split_bitmask ipv4range_range_def by simp
+  "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipv4range_split (ipv4range_range (start, end))))) ) = {start .. end}"
+using ipv4range_split_bitmask ipv4range_range.simps by simp
 
 
 (*
@@ -362,5 +365,7 @@ using [[simproc del: list_to_set_comprehension]] (* okay, simplifier is a bit br
   apply(simp del: ) (*simp: "Tactic failed"*)
   oops
 *)
+
+end
 
 end

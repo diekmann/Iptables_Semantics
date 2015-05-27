@@ -1,5 +1,5 @@
 theory Matching_Ternary
-imports Ternary "../Firewall_Common"
+imports "../Common/Ternary" "../Firewall_Common"
 begin
 
 
@@ -27,14 +27,18 @@ fun map_match_tac :: "('a, 'packet) exact_match_tac \<Rightarrow> 'packet \<Righ
   "map_match_tac _ _ MatchAny = TernaryValue TernaryTrue"
 
 
-text{*the @{term ternaryformula}s we construct never have Or expressions.*}
-fun ternary_has_or :: "ternaryformula \<Rightarrow> bool" where
-  "ternary_has_or (TernaryOr _ _) \<longleftrightarrow> True" |
-  "ternary_has_or (TernaryAnd t1 t2) \<longleftrightarrow> ternary_has_or t1 \<or> ternary_has_or t2" |
-  "ternary_has_or (TernaryNot t) \<longleftrightarrow> ternary_has_or t" |
-  "ternary_has_or (TernaryValue _) \<longleftrightarrow> False"
-lemma map_match_tac__does_not_use_TernaryOr: "\<not> (ternary_has_or (map_match_tac \<beta> p m))"
-  by(induction m, simp_all)
+context
+begin
+  text{*the @{term ternaryformula}s we construct never have Or expressions.*}
+  private fun ternary_has_or :: "ternaryformula \<Rightarrow> bool" where
+    "ternary_has_or (TernaryOr _ _) \<longleftrightarrow> True" |
+    "ternary_has_or (TernaryAnd t1 t2) \<longleftrightarrow> ternary_has_or t1 \<or> ternary_has_or t2" |
+    "ternary_has_or (TernaryNot t) \<longleftrightarrow> ternary_has_or t" |
+    "ternary_has_or (TernaryValue _) \<longleftrightarrow> False"
+  private lemma map_match_tac__does_not_use_TernaryOr: "\<not> (ternary_has_or (map_match_tac \<beta> p m))"
+    by(induction m, simp_all)
+  declare ternary_has_or.simps[simp del]
+end
 
 
 fun ternary_to_bool_unknown_match_tac :: "'packet unknown_match_tac \<Rightarrow> action \<Rightarrow> 'packet \<Rightarrow> ternaryvalue \<Rightarrow> bool" where
@@ -88,9 +92,8 @@ lemma matches_casesE:
     (ternary_ternary_eval (map_match_tac \<beta> p m) = TernaryUnknown \<Longrightarrow> \<alpha> a p \<Longrightarrow> P) \<Longrightarrow> 
     (ternary_ternary_eval (map_match_tac \<beta> p m) = TernaryTrue \<Longrightarrow> P)
   \<Longrightarrow> P"
-apply(induction m)
-apply(auto split: option.split_asm simp: matches_case_tuple ternary_eval_def ternary_to_bool_bool_to_ternary elim: ternary_to_bool.elims)
-done
+proof(induction m)
+qed(auto split: option.split_asm simp: matches_case_tuple ternary_eval_def ternary_to_bool_bool_to_ternary elim: ternary_to_bool.elims)
 
 
 text{*
@@ -107,8 +110,8 @@ lemma bunch_of_lemmata_about_matches:
   "matches (\<beta>, \<alpha>) (Match expr) a p = (case ternary_to_bool (\<beta> expr p) of Some r \<Rightarrow> r | None \<Rightarrow> (\<alpha> a p))" (*Match raw*)
   "matches (\<beta>, \<alpha>) (Match expr) a p = (case (\<beta> expr p) of TernaryTrue \<Rightarrow> True | TernaryFalse \<Rightarrow> False | TernaryUnknown \<Rightarrow> (\<alpha> a p))" (*Match raw explicit*)
   "matches \<gamma> (MatchNot (MatchNot m)) a p \<longleftrightarrow> matches \<gamma> m a p" (*idempotence*)
-apply(case_tac [!] \<gamma>)
-by (simp_all split: ternaryvalue.split add: matches_case_ternaryvalue_tuple)
+proof(case_tac [!] \<gamma>)
+qed (simp_all split: ternaryvalue.split add: matches_case_ternaryvalue_tuple)
 
 
 (*kind of the DeMorgan Rule for matches*)
@@ -121,8 +124,7 @@ subsection{*Ternary Matcher Algebra*}
 
 lemma matches_and_comm: "matches \<gamma> (MatchAnd m m') a p \<longleftrightarrow> matches \<gamma> (MatchAnd m' m) a p"
 apply(cases \<gamma>, rename_tac \<beta> \<alpha>, clarify)
-apply(simp split: ternaryvalue.split add: matches_case_ternaryvalue_tuple)
-by (metis eval_ternary_And_comm ternaryvalue.distinct(1) ternaryvalue.distinct(3) ternaryvalue.distinct(5))
+by(simp split: ternaryvalue.split add: matches_case_ternaryvalue_tuple eval_ternary_And_comm)
 
 lemma matches_not_idem: "matches \<gamma> (MatchNot (MatchNot m)) a p \<longleftrightarrow> matches \<gamma> m a p"
 by (metis bunch_of_lemmata_about_matches(6))
@@ -131,43 +133,41 @@ by (metis bunch_of_lemmata_about_matches(6))
 lemma "(TernaryNot (map_match_tac \<beta> p (m))) = (map_match_tac \<beta> p (MatchNot m))"
 by (metis map_match_tac.simps(2))
 
-
-lemma matches_simp1: "matches \<gamma> m a p \<Longrightarrow> matches \<gamma> (MatchAnd m m') a p \<longleftrightarrow> matches \<gamma> m' a p"
-  apply(cases \<gamma>, rename_tac \<beta> \<alpha>, clarify)
-  apply(simp split: ternaryvalue.split_asm ternaryvalue.split add: matches_case_ternaryvalue_tuple)
-  done
-
-lemma matches_simp11: "matches \<gamma> m a p \<Longrightarrow> matches \<gamma> (MatchAnd m' m) a p \<longleftrightarrow> matches \<gamma> m' a p"
-  by(simp_all add: matches_and_comm matches_simp1)
-
-lemma matches_simp2: "matches \<gamma> (MatchAnd m m') a p \<Longrightarrow> \<not> matches \<gamma> m a p \<Longrightarrow> False"
-by (metis bunch_of_lemmata_about_matches(1))
-lemma matches_simp22: "matches \<gamma> (MatchAnd m m') a p \<Longrightarrow> \<not> matches \<gamma> m' a p \<Longrightarrow> False"
-by (metis bunch_of_lemmata_about_matches(1))
-
-(*m simplifies to MatchUnknown*)
-lemma matches_simp3: "matches \<gamma> (MatchNot m) a p \<Longrightarrow> matches \<gamma> m a p \<Longrightarrow> (snd \<gamma>) a p"
-  apply(cases \<gamma>, rename_tac \<beta> \<alpha>, clarify)
-  apply(simp split: ternaryvalue.split_asm ternaryvalue.split add: matches_case_ternaryvalue_tuple)
-  done
-lemma "matches \<gamma> (MatchNot m) a p \<Longrightarrow> matches \<gamma> m a p \<Longrightarrow> (ternary_eval (map_match_tac (fst \<gamma>) p m)) = None"
-  apply(cases \<gamma>, rename_tac \<beta> \<alpha>, clarify)
-  apply(simp split: ternaryvalue.split_asm ternaryvalue.split add: matches_case_ternaryvalue_tuple ternary_eval_def)
-  done
-
-lemmas matches_simps = matches_simp1 matches_simp11
-
-lemmas matches_dest = matches_simp2 matches_simp22
-
+context
+begin
+  private lemma matches_simp1: "matches \<gamma> m a p \<Longrightarrow> matches \<gamma> (MatchAnd m m') a p \<longleftrightarrow> matches \<gamma> m' a p"
+    apply(cases \<gamma>, rename_tac \<beta> \<alpha>, clarify)
+    apply(simp split: ternaryvalue.split_asm ternaryvalue.split add: matches_case_ternaryvalue_tuple)
+    done
+  
+  private lemma matches_simp11: "matches \<gamma> m a p \<Longrightarrow> matches \<gamma> (MatchAnd m' m) a p \<longleftrightarrow> matches \<gamma> m' a p"
+    by(simp_all add: matches_and_comm matches_simp1)
+  
+  private lemma matches_simp2: "matches \<gamma> (MatchAnd m m') a p \<Longrightarrow> \<not> matches \<gamma> m a p \<Longrightarrow> False"
+    by (metis bunch_of_lemmata_about_matches(1))
+  private lemma matches_simp22: "matches \<gamma> (MatchAnd m m') a p \<Longrightarrow> \<not> matches \<gamma> m' a p \<Longrightarrow> False"
+    by (metis bunch_of_lemmata_about_matches(1))
+  
+  (*m simplifies to MatchUnknown*)
+ private  lemma matches_simp3: "matches \<gamma> (MatchNot m) a p \<Longrightarrow> matches \<gamma> m a p \<Longrightarrow> (snd \<gamma>) a p"
+    apply(cases \<gamma>, rename_tac \<beta> \<alpha>, clarify)
+    apply(simp split: ternaryvalue.split_asm ternaryvalue.split add: matches_case_ternaryvalue_tuple)
+    done
+  private lemma "matches \<gamma> (MatchNot m) a p \<Longrightarrow> matches \<gamma> m a p \<Longrightarrow> (ternary_eval (map_match_tac (fst \<gamma>) p m)) = None"
+    apply(cases \<gamma>, rename_tac \<beta> \<alpha>, clarify)
+    apply(simp split: ternaryvalue.split_asm ternaryvalue.split add: matches_case_ternaryvalue_tuple ternary_eval_def)
+    done
+  
+  lemmas matches_simps = matches_simp1 matches_simp11
+  lemmas matches_dest = matches_simp2 matches_simp22
+end
 
 
 lemma matches_iff_apply_f_generic: "ternary_ternary_eval (map_match_tac \<beta> p (f (\<beta>,\<alpha>) a m)) = ternary_ternary_eval (map_match_tac \<beta> p m) \<Longrightarrow> matches (\<beta>,\<alpha>) (f (\<beta>,\<alpha>) a m) a p \<longleftrightarrow> matches (\<beta>,\<alpha>) m a p"
-  apply(simp split: ternaryvalue.split_asm ternaryvalue.split add: matches_case_ternaryvalue_tuple)
-  done
+  by(simp split: ternaryvalue.split_asm ternaryvalue.split add: matches_case_ternaryvalue_tuple)
 
 lemma matches_iff_apply_f: "ternary_ternary_eval (map_match_tac \<beta> p (f m)) = ternary_ternary_eval (map_match_tac \<beta> p m) \<Longrightarrow> matches (\<beta>,\<alpha>) (f m) a p \<longleftrightarrow> matches (\<beta>,\<alpha>) m a p"
-  apply(simp split: ternaryvalue.split_asm ternaryvalue.split add: matches_case_ternaryvalue_tuple)
-  done
+  by(simp split: ternaryvalue.split_asm ternaryvalue.split add: matches_case_ternaryvalue_tuple)
 
 
 
@@ -195,6 +195,8 @@ lemma opt_MatchAny_match_expr_correct: "matches \<gamma> (opt_MatchAny_match_exp
                               apply(simp_all add: eval_ternary_simps eval_ternary_idempotence_Not)
   done
 
+text{*It is still a good idea to apply @{const opt_MatchAny_match_expr} multiple times. Example:*}
+lemma "MatchNot (opt_MatchAny_match_expr (MatchAnd MatchAny (MatchNot MatchAny))) = MatchNot (MatchNot MatchAny)" by simp
 
 
 text{*An @{typ "'p unknown_match_tac"} is wf if it behaves equal for @{const Reject} and @{const Drop} *}
@@ -220,23 +222,7 @@ apply(case_tac "(ternary_ternary_eval (map_match_tac \<beta> p m))")
 apply(simp)
 done
 
-
-
-lemma bool_to_ternary_simp1: "bool_to_ternary X = TernaryTrue \<longleftrightarrow> X"
-by (metis bool_to_ternary.elims ternaryvalue.distinct(1))
-lemma bool_to_ternary_simp2:  "bool_to_ternary Y = TernaryFalse \<longleftrightarrow> \<not> Y"
-by (metis bool_to_ternary.elims ternaryvalue.distinct(1))
-lemma bool_to_ternary_simp3: "eval_ternary_Not (bool_to_ternary X) = TernaryTrue \<longleftrightarrow> \<not> X"
-by (metis (full_types) bool_to_ternary_simp2 eval_ternary_Not.simps(1) eval_ternary_idempotence_Not)
-lemma bool_to_ternary_simp4: "eval_ternary_Not (bool_to_ternary X) = TernaryFalse \<longleftrightarrow> X"
-by (metis bool_to_ternary_simp1 eval_ternary_Not.simps(1) eval_ternary_idempotence_Not)
-lemma bool_to_ternary_simp5: "\<not> eval_ternary_Not (bool_to_ternary X) = TernaryUnknown"
-by (metis bool_to_ternary_Unknown eval_ternary_Not_UnknownD)
-lemmas bool_to_ternary_simps = bool_to_ternary_simp1 bool_to_ternary_simp2 bool_to_ternary_simp3 bool_to_ternary_simp4 bool_to_ternary_simp5
-hide_fact bool_to_ternary_simp1 bool_to_ternary_simp2 bool_to_ternary_simp3 bool_to_ternary_simp4 bool_to_ternary_simp5
-
-
-
+thm eval_ternary_simps_simple
 
 
 subsection{*Removing Unknown Primitives*}
@@ -287,9 +273,7 @@ lemma[code_unfold]: "remove_unknowns_generic \<gamma> a (MatchNot (MatchAnd m1 m
      else
         MatchNot (MatchAnd (MatchNot m1') (MatchNot m2')))
        )"
-apply(cases \<gamma>)
-apply(simp)
-done
+by(cases \<gamma>)(simp)
 
 
 lemma remove_unknowns_generic_simp_3_4_unfolded: "remove_unknowns_generic (\<beta>, \<alpha>) a (Match A) = (if
@@ -354,9 +338,12 @@ definition packet_independent_\<beta>_unknown :: "('a, 'packet) exact_match_tac 
 
 lemma remove_unknowns_generic_specification: "a = Accept \<or> a = Drop \<Longrightarrow> packet_independent_\<alpha> \<alpha> \<Longrightarrow> packet_independent_\<beta>_unknown \<beta> \<Longrightarrow>
    \<not> has_unknowns \<beta> (remove_unknowns_generic (\<beta>, \<alpha>) a m)"
-  apply(induction "(\<beta>, \<alpha>)" a m rule: remove_unknowns_generic.induct)
-        apply(simp_all)
-   apply(simp_all add: packet_independent_unknown_match packet_independent_\<beta>_unknown_def)
-   done
+  proof(induction "(\<beta>, \<alpha>)" a m rule: remove_unknowns_generic.induct)
+  case 3 thus ?case by(simp add: packet_independent_unknown_match packet_independent_\<beta>_unknown_def)
+  next
+  case 4 thus ?case by(simp add: packet_independent_unknown_match packet_independent_\<beta>_unknown_def)
+  qed(simp_all)
+
+
 
 end

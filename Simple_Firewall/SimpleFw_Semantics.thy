@@ -1,10 +1,10 @@
 theory SimpleFw_Semantics
-imports Main "../Bitmagic/IPv4Addr" "../Bitmagic/WordInterval_Lists" "../Semantics_Ternary/Negation_Type"
+imports Main "../Common/Negation_Type"
   "../Firewall_Common_Decision_State"
+  "../Primitive_Matchers/IpAddresses"
   "../Primitive_Matchers/Iface"
   "../Primitive_Matchers/Protocol"
   "../Primitive_Matchers/Simple_Packet"
-  "../Bitmagic/Numberwang_Ln"
 begin
 
 
@@ -56,6 +56,7 @@ section{*Simple Firewall Syntax (IPv4 only)*}
         *)
   record simple_match =
     iiface :: "iface" --"in-interface" (*TODO: we cannot (and don't want to, c.f. git history) express negated interfaces*)
+      (*We could also drop interface wildcard support and try negated interfaces again \<dots>*)
     oiface :: "iface" --"out-interface"
     src :: "(ipv4addr \<times> nat) " --"source IP address"
     dst :: "(ipv4addr \<times> nat) " --"destination"
@@ -64,7 +65,7 @@ section{*Simple Firewall Syntax (IPv4 only)*}
     dports :: "(16 word \<times> 16 word)" --"destination-port first:last"
 
 
-  datatype simple_rule = SimpleRule simple_match simple_action
+  datatype simple_rule = SimpleRule (match_sel: simple_match) (action_sel: simple_action)
 
 subsection{*Simple Firewall Semantics*}
 
@@ -87,32 +88,73 @@ subsection{*Simple Firewall Semantics*}
       (simple_match_port (sports m) (p_sport p)) \<and>
       (simple_match_port (dports m) (p_dport p))"
 
+
+  text{*The semantics of a simple firewall: just iterate over the rules sequentially*}
   fun simple_fw :: "simple_rule list \<Rightarrow> simple_packet \<Rightarrow> state" where
     "simple_fw [] _ = Undecided" |
     "simple_fw ((SimpleRule m Accept)#rs) p = (if simple_matches m p then Decision FinalAllow else simple_fw rs p)" |
     "simple_fw ((SimpleRule m Drop)#rs) p = (if simple_matches m p then Decision FinalDeny else simple_fw rs p)"
 
 
-
   definition simple_match_any :: "simple_match" where
-    "simple_match_any \<equiv> \<lparr>iiface=IfaceAny, oiface=IfaceAny, src=(0,0), dst=(0,0), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
-
+    "simple_match_any \<equiv> \<lparr>iiface=ifaceAny, oiface=ifaceAny, src=(0,0), dst=(0,0), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
   lemma simple_match_any: "simple_matches simple_match_any p"
     proof -
       have "(65535::16 word) = max_word" by(simp add: max_word_def)
-      thus ?thesis by(simp add: simple_match_any_def ipv4range_set_from_bitmask_0 match_IfaceAny)
+      thus ?thesis by(simp add: simple_match_any_def ipv4range_set_from_bitmask_0 match_ifaceAny)
     qed
 
   text{*we specify only one empty port range*}
   definition simple_match_none :: "simple_match" where
-    "simple_match_none \<equiv> \<lparr>iiface=IfaceAny, oiface=IfaceAny, src=(1,0), dst=(0,0), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
-
-  lemma simple_match_none: "simple_matches simple_match_any p"
+    "simple_match_none \<equiv> \<lparr>iiface=ifaceAny, oiface=ifaceAny, src=(1,0), dst=(0,0), proto=ProtoAny, sports=(1,0), dports=(0,65535) \<rparr>"
+  lemma simple_match_none: "\<not> simple_matches simple_match_none p"
     proof -
-      have "(65535::16 word) = max_word" by(simp add: max_word_def)
-      thus ?thesis by(simp add: simple_match_any_def ipv4range_set_from_bitmask_0 match_IfaceAny)
+      show ?thesis by(simp add: simple_match_none_def)
     qed
 
+
+  fun empty_match :: "simple_match \<Rightarrow> bool" where
+    "empty_match \<lparr>iiface=_, oiface=_, src=_, dst=_, proto=_, sports=(sps1, sps2), dports=(dps1, dps2) \<rparr> \<longleftrightarrow> (sps1 > sps2) \<or>  (dps1 > dps2)"
+
+  (*this is quite an ugly proof!*)
+  lemma empty_match: "empty_match m \<longleftrightarrow> (\<forall>p. \<not> simple_matches m p)"
+    apply(cases m, rename_tac iif oif sip dip protocol sps dps, case_tac sps,case_tac dps,rename_tac sps1 sps2 dps1 dps2)
+    apply(rule iffI)
+     apply fastforce
+    apply(simp)
+    proof -
+      fix iif oif sip dip protocol sps dps sps1 sps2 dps1 dps2
+      let ?x="\<lambda>p. dps1 \<le> p_dport p \<longrightarrow> p_sport p \<le> sps2 \<longrightarrow> sps1 \<le> p_sport p \<longrightarrow> 
+          match_proto protocol (p_proto p) \<longrightarrow> simple_match_ip dip (p_dst p) \<longrightarrow> simple_match_ip sip (p_src p) \<longrightarrow>
+          match_iface oif (p_oiface p) \<longrightarrow> match_iface iif (p_iiface p) \<longrightarrow> \<not> p_dport p \<le> dps2"
+      assume m: "m = \<lparr>iiface = iif, oiface = oif, src = sip, dst = dip, proto = protocol, sports = (sps1, sps2), dports = (dps1, dps2)\<rparr>"
+      and nomatch: "\<forall>p::simple_packet. ?x p"
+
+      have "\<And>a b. a \<in> ipv4range_set_from_bitmask a b" using ip_set_def ipv4range_set_from_bitmask_eq_ip_set by blast
+      hence ips: "\<And>ips. simple_match_ip ips (fst ips)" by force
+      have proto: "match_proto protocol (case protocol of ProtoAny \<Rightarrow> TCP | Proto p \<Rightarrow> p)"
+        by(simp split: protocol.split)
+      have ifaces: "\<And>ifce. match_iface ifce (iface_sel ifce)"
+        apply(case_tac ifce)
+        by(simp add: match_iface_refl)
+
+      { fix p::simple_packet
+        from nomatch have "?x p"
+         apply -
+         apply(erule_tac x=p in allE)
+         by simp
+      }note pkt=this[of "\<lparr>p_iiface = iface_sel iif,
+                        p_oiface = iface_sel oif,
+                        p_src = fst sip,
+                        p_dst = fst dip,
+                        p_proto = case protocol of ProtoAny \<Rightarrow> primitive_protocol.TCP | Proto p \<Rightarrow> p,
+                        p_sport = sps1,
+                        p_dport = dps1\<rparr>", simplified]
+      from pkt ips proto ifaces have " sps1 \<le> sps2 \<longrightarrow> \<not> dps1 \<le> dps2" by blast
+
+      thus "sps2 < sps1 \<or> dps2 < dps1" by fastforce
+  qed
+    
 
 subsection{*Simple Ports*}
   fun simpl_ports_conjunct :: "(16 word \<times> 16 word) \<Rightarrow> (16 word \<times> 16 word) \<Rightarrow> (16 word \<times> 16 word)" where
@@ -125,75 +167,28 @@ subsection{*Simple Ports*}
     by blast
 
 subsection{*Simple IPs*}
-
-  (* originally from IPSpace_Operations.intersect_ips, simplified*)
-  fun simple_ips_conjunct :: "(ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) option" where 
-    "simple_ips_conjunct (base1, m1) (base2, m2) = (if ipv4range_set_from_bitmask base1 m1 \<inter> ipv4range_set_from_bitmask base2 m2 = {}
-       then
-        None
-       else if 
-        ipv4range_set_from_bitmask base1 m1 \<subseteq> ipv4range_set_from_bitmask base2 m2
-       then 
-        Some (base1, m1)
-       else
-        Some (base2, m2)
-      )"
-  
-  (*this proof appears simpler than the other one, maybe refactor?*)
-  lemma simple_ips_conjunct_correct: "(case simple_ips_conjunct (b1, m1) (b2, m2) of Some (bx, mx) \<Rightarrow> ipv4range_set_from_bitmask bx mx | None \<Rightarrow> {}) = 
-      (ipv4range_set_from_bitmask b1 m1) \<inter> (ipv4range_set_from_bitmask b2 m2)"
-    apply(simp split: split_if_asm)
-    using ipv4range_bitmask_intersect by fast
-  declare simple_ips_conjunct.simps[simp del]
-
-  fun ipv4_cidr_tuple_to_intervall :: "(ipv4addr \<times> nat) \<Rightarrow> 32 wordinterval" where
-    "ipv4_cidr_tuple_to_intervall (pre, len) = (
-      let netmask = (mask len) << (32 - len);
-          network_prefix = (pre AND netmask)
-      in ipv4range_range network_prefix (network_prefix OR (NOT netmask))
-     )"
-  declare ipv4_cidr_tuple_to_intervall.simps[simp del]
-
-  lemma ipv4range_to_set_ipv4_cidr_tuple_to_intervall: "ipv4range_to_set (ipv4_cidr_tuple_to_intervall (b, m)) = ipv4range_set_from_bitmask b m"
-    unfolding ipv4_cidr_tuple_to_intervall.simps
-    apply(simp add: ipv4range_set_from_bitmask_alt)
-    by (metis helper3 ipv4range_range_set_eq maskshift_eq_not_mask word_bw_comms(2) word_not_not)
-
-  lemma [code_unfold]: 
-  "simple_ips_conjunct ips1 ips2 = (if ipv4range_empty (ipv4range_intersection (ipv4_cidr_tuple_to_intervall ips1) (ipv4_cidr_tuple_to_intervall ips2))
-       then
-        None
-       else if 
-        ipv4range_subset (ipv4_cidr_tuple_to_intervall ips1) (ipv4_cidr_tuple_to_intervall ips2)
-       then 
-        Some ips1
-       else
-        Some ips2
-      )"
-  apply(simp)
-  apply(cases ips1, cases ips2, rename_tac b1 m1 b2 m2, simp)
-  apply(safe)
-     apply(simp_all add: ipv4range_to_set_ipv4_cidr_tuple_to_intervall simple_ips_conjunct.simps split:split_if_asm)
-    apply fast+
-  done
-  value "simple_ips_conjunct (0,0) (8,1)" (*with the code_unfold lema before, this works!*)
-
-
   lemma simple_match_ip_conjunct: "simple_match_ip ip1 p_ip \<and> simple_match_ip ip2 p_ip \<longleftrightarrow> 
-         (case simple_ips_conjunct ip1 ip2 of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
+         (case ipv4cidr_conjunct ip1 ip2 of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
   proof -
   {
     fix b1 m1 b2 m2
     have "simple_match_ip (b1, m1) p_ip \<and> simple_match_ip (b2, m2) p_ip \<longleftrightarrow> 
           p_ip \<in> ipv4range_set_from_bitmask b1 m1 \<inter> ipv4range_set_from_bitmask b2 m2"
     by simp
-    also have "\<dots> \<longleftrightarrow> p_ip \<in> (case simple_ips_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> {} | Some (bx, mx) \<Rightarrow> ipv4range_set_from_bitmask bx mx)"
-      using simple_ips_conjunct_correct by blast
-    also have "\<dots> \<longleftrightarrow> (case simple_ips_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
+    also have "\<dots> \<longleftrightarrow> p_ip \<in> (case ipv4cidr_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> {} | Some (bx, mx) \<Rightarrow> ipv4range_set_from_bitmask bx mx)"
+      using ipv4cidr_conjunct_correct by blast
+    also have "\<dots> \<longleftrightarrow> (case ipv4cidr_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
       by(simp split: option.split)
     finally have "simple_match_ip (b1, m1) p_ip \<and> simple_match_ip (b2, m2) p_ip \<longleftrightarrow> 
-         (case simple_ips_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)" .
+         (case ipv4cidr_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)" .
    } thus ?thesis by(cases ip1, cases ip2, simp)
   qed
+
+
+declare simple_matches.simps[simp del]
+
+
+lemma nomatch: "\<not> simple_matches m p \<Longrightarrow> simple_fw (SimpleRule m a # rs) p = simple_fw rs p"
+  by(cases a, simp_all)
 
 end

@@ -41,7 +41,7 @@ section {*Modelling IPv4 Adresses*}
     by(simp add: max_ipv4_addr_number max_word_def)
   lemma max_ipv4_addr_max[simp]: "\<forall>a. a \<le> max_ipv4_addr"
     by(simp add: max_ipv4_addr_max_word)
-  lemma range_0_max_UNIV[simp]: "{0 .. max_ipv4_addr} = UNIV"
+  lemma range_0_max_UNIV: "UNIV = {0 .. max_ipv4_addr}" (*not in the simp set, for a reason*)
     by(simp add: max_ipv4_addr_max_word) fastforce
 
   text{*identity functions*}
@@ -57,7 +57,7 @@ section {*Modelling IPv4 Adresses*}
   lemma "\<lbrakk> n \<le> nat_of_ipv4addr max_ipv4_addr \<rbrakk> \<Longrightarrow> nat_of_ipv4addr (ipv4addr_of_nat n) = n"
     apply(simp add: nat_of_ipv4addr_def ipv4addr_of_nat_def)
     apply(induction n)
-    apply(simp_all)
+     apply(simp_all)
     by(unat_arith)
 
   lemma ipv4addr_of_nat_eq: "x = y \<Longrightarrow> ipv4addr_of_nat x = ipv4addr_of_nat y"
@@ -84,23 +84,22 @@ subsection{*Representing IPv4 Adresses*}
     "ipv4addr_of_dotdecimal (a,b,c,d) = (ipv4addr_of_nat a << 24) + (ipv4addr_of_nat b << 16) + (ipv4addr_of_nat c << 8) + ipv4addr_of_nat d"
   proof -
     have a: "(ipv4addr_of_nat a) << 24 = ipv4addr_of_nat (a * 16777216)"
-      by(simp add: ipv4addr_of_nat_def shiftl_t2n, metis Abs_fnat_hom_mult comm_semiring_1_class.normalizing_semiring_rules(7) of_nat_numeral)
+      by(simp add: ipv4addr_of_nat_def shiftl_t2n of_nat_mult)
     have b: "(ipv4addr_of_nat b) << 16 = ipv4addr_of_nat (b * 65536)"
-      by(simp add: ipv4addr_of_nat_def shiftl_t2n, metis Abs_fnat_hom_mult comm_semiring_1_class.normalizing_semiring_rules(7) of_nat_numeral)
+      by(simp add: ipv4addr_of_nat_def shiftl_t2n of_nat_mult)
     have c: "(ipv4addr_of_nat c) << 8 = ipv4addr_of_nat (c * 256)"
-      by(simp add: ipv4addr_of_nat_def shiftl_t2n, metis Abs_fnat_hom_mult comm_semiring_1_class.normalizing_semiring_rules(7) of_nat_numeral)
+      by(simp add: ipv4addr_of_nat_def shiftl_t2n of_nat_mult)
     have ipv4addr_of_nat_suc: "\<And>x. ipv4addr_of_nat (Suc x) = word_succ (ipv4addr_of_nat (x))"
       by(simp add: ipv4addr_of_nat_def, metis Abs_fnat_hom_Suc of_nat_Suc)
     { fix x y
     have "ipv4addr_of_nat x + ipv4addr_of_nat y = ipv4addr_of_nat (x+y)"
       apply(induction x arbitrary: y)
-      apply(simp add: ipv4addr_of_nat_def)
-      apply(simp add: ipv4addr_of_nat_suc)
-      by (metis (hide_lams, no_types) comm_semiring_1_class.normalizing_semiring_rules(22) comm_semiring_1_class.normalizing_semiring_rules(24) word_succ_p1)
+       apply(simp add: ipv4addr_of_nat_def)
+      apply(simp add: ipv4addr_of_nat_suc word_succ_p1)
+      done
     } from this a b c
     show ?thesis
     apply(simp add: ipv4addr_of_dotdecimal.simps)
-    apply(thin_tac "?x")+
     apply(rule ipv4addr_of_nat_eq)
     by presburger
   qed
@@ -136,7 +135,7 @@ subsection{*Representing IPv4 Adresses*}
     apply(simp add: word_of_nat) (*us this to get rid of of_nat. All thm are with word_of_int*)
     apply(simp add: uint_word_of_int)
     apply(subst mod_mod_cancel)
-    apply simp
+     apply simp
     apply(simp add: zmod_int)
     done
  
@@ -152,11 +151,11 @@ subsection{*Representing IPv4 Adresses*}
       apply(simp add: shiftr_div_2n)
       apply(simp add: uint_word_of_int)
       apply(subst mod_pos_pos_trivial)
-      apply simp_all
+        apply simp_all
       apply(subst mod_pos_pos_trivial)
-      apply simp_all
+        apply simp_all
       apply(subst mod_pos_pos_trivial)
-      apply simp_all
+        apply simp_all
       done
     from assms have b: "nat_of_ipv4addr ((ipv4addr_of_nat (d + 256 * c + 65536 * b + 16777216 * a) >> 16) AND mask 8) = b"
       apply(simp add: ipv4addr_of_nat_def word_of_nat)
@@ -165,9 +164,9 @@ subsection{*Representing IPv4 Adresses*}
       apply(simp add: shiftr_div_2n)
       apply(simp add: uint_word_of_int)
       apply(subst mod_pos_pos_trivial)
-      apply simp_all
+        apply simp_all
       apply(subst mod_pos_pos_trivial[where b="4294967296"])
-      apply simp_all
+        apply simp_all
       apply(simp add: NumberWang.div65536)
       done
     from assms have c: "nat_of_ipv4addr ((ipv4addr_of_nat (d + 256 * c + 65536 * b + 16777216 * a) >> 8) AND mask 8) = c"
@@ -177,9 +176,9 @@ subsection{*Representing IPv4 Adresses*}
       apply(simp add: shiftr_div_2n)
       apply(simp add: uint_word_of_int)
       apply(subst mod_pos_pos_trivial)
-      apply simp_all
+        apply simp_all
       apply(subst mod_pos_pos_trivial[where b="4294967296"])
-      apply simp_all
+        apply simp_all
       apply(simp add: NumberWang.div256)
       done
     from `d < 256` have d: "nat_of_ipv4addr (ipv4addr_of_nat (d + 256 * c + 65536 * b + 16777216 * a) AND mask 8) = d"
@@ -188,7 +187,7 @@ subsection{*Representing IPv4 Adresses*}
       apply(simp add: nat_of_ipv4addr_def)
       apply(subgoal_tac "(d + 256 * c + 65536 * b + 16777216 * a) mod 256 = d")
       prefer 2
-      apply(simp add: NumberWang.mod256)
+       apply(simp add: NumberWang.mod256)
       apply(simp)
       apply(simp add: unat_def)
       apply(simp add: uint_word_of_int)
@@ -246,33 +245,31 @@ subsection{*IP ranges*}
   lemma ipv4range_set_from_bitmask_alt1: 
     "ipv4range_set_from_bitmask addr bitmask = ipv4range_set_from_netmask addr ((mask bitmask) << (32 - bitmask))"
     apply(simp add: ipv4range_set_from_bitmask_def mask_bl)
-    apply(simp add:  Word.shiftl_of_bl)
+    apply(simp add: Word.shiftl_of_bl)
     done
 
   lemma "ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal (192,168,0,42)) 16 = 
           {ipv4addr_of_dotdecimal (192,168,0,0) .. ipv4addr_of_dotdecimal (192,168,255,255)}"
    by(simp add: ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
   lemma ipv4range_set_from_bitmask_UNIV: "ipv4range_set_from_bitmask 0 0 = UNIV"
-    apply(simp add: ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def)
-    by (metis max_ipv4_addr_max_word range_0_max_UNIV)
+    apply(simp add: ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def )
+    by (simp add: UNIV_ipv4addrset max_ipv4_addr_max_word)
   lemma ip_in_ipv4range_set_from_bitmask_UNIV: "ip \<in> (ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 0)"
     by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4range_set_from_bitmask_UNIV)
 
   lemma ipv4range_set_from_bitmask_0: "ipv4range_set_from_bitmask foo 0 = UNIV"
     apply(rule)
-    apply(simp_all)
+     apply(simp_all)
     apply(simp add: ipv4range_set_from_bitmask_alt1 ipv4range_set_from_netmask_def Let_def)
-    apply(simp add: range_0_max_UNIV[symmetric] del: range_0_max_UNIV)
+    apply(simp add: range_0_max_UNIV)
     apply(simp add: mask_def)
     done
 
   lemma ipv4range_set_from_bitmask_32: "ipv4range_set_from_bitmask foo 32 = {foo}"
-    apply(rule)
-    apply(simp_all)
-    apply(simp_all add: ipv4range_set_from_bitmask_alt1 ipv4range_set_from_netmask_def Let_def)
-    apply(simp_all add: mask_def)
-    apply(simp_all only: max_ipv4_addr_number[symmetric] max_ipv4_addr_max_word Word.word_and_max)
-    apply(simp_all add: word32_or_NOT4294967296)
+    apply(simp add: ipv4range_set_from_bitmask_alt1 ipv4range_set_from_netmask_def Let_def)
+    apply(simp add: mask_def)
+    apply(simp only: max_ipv4_addr_number[symmetric] max_ipv4_addr_max_word Word.word_and_max)
+    apply(simp add: word32_or_NOT4294967296)
     done
 
   lemma ipv4range_set_from_bitmask_alt: "ipv4range_set_from_bitmask pre len = {(pre AND ((mask len) << (32 - len))) .. pre OR (mask (32 - len))}"
@@ -301,40 +298,35 @@ subsection{*IP ranges*}
   definition ipv4range_single :: "ipv4addr \<Rightarrow> 32 wordinterval" where
     "ipv4range_single ip \<equiv> WordInterval ip ip"
 
-  definition ipv4range_range :: "ipv4addr \<Rightarrow> ipv4addr \<Rightarrow> 32 wordinterval" where
-    "ipv4range_range ip_start ip_end \<equiv> WordInterval ip_start ip_end"
+  fun ipv4range_range :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> 32 wordinterval" where
+    "ipv4range_range (ip_start, ip_end) = WordInterval ip_start ip_end"
+  declare ipv4range_range.simps[simp del]
 
   definition ipv4range_to_set :: "32 wordinterval \<Rightarrow> (ipv4addr) set" where
     "ipv4range_to_set rg = wordinterval_to_set rg"
 
-  definition ipv4range_element  :: "'a::len word \<Rightarrow> 'a::len wordinterval \<Rightarrow> bool" where
+  definition ipv4range_element :: "'a::len word \<Rightarrow> 'a::len wordinterval \<Rightarrow> bool" where
     "ipv4range_element el rg = wordinterval_element el rg"
 
   definition ipv4range_union :: "32 wordinterval \<Rightarrow> 32 wordinterval \<Rightarrow> 32 wordinterval" where 
     "ipv4range_union r1 r2 = wordinterval_union r1 r2"
 
-
   definition ipv4range_empty :: "32 wordinterval \<Rightarrow> bool" where
     "ipv4range_empty rg = wordinterval_empty rg"
 
-
   definition ipv4range_setminus :: "32 wordinterval \<Rightarrow> 32 wordinterval \<Rightarrow> 32 wordinterval" where
     "ipv4range_setminus r1 r2 = wordinterval_setminus r1 r2"
-
 
   definition ipv4range_UNIV :: "32 wordinterval" where "ipv4range_UNIV \<equiv> wordinterval_UNIV"
     
   definition ipv4range_invert :: "32 wordinterval \<Rightarrow> 32 wordinterval" where 
     "ipv4range_invert r = ipv4range_setminus ipv4range_UNIV r"
 
-
   definition ipv4range_intersection :: "32 wordinterval \<Rightarrow> 32 wordinterval \<Rightarrow> 32 wordinterval" where
     "ipv4range_intersection r1 r2 = wordinterval_intersection r1 r2"
 
-
   definition ipv4range_subset:: "32 wordinterval \<Rightarrow> 32 wordinterval \<Rightarrow> bool" where
     "ipv4range_subset r1 r2 \<equiv> wordinterval_subset r1 r2"
-
 
   definition ipv4range_eq :: "32 wordinterval \<Rightarrow> 32 wordinterval \<Rightarrow> bool" where 
     "ipv4range_eq r1 r2 = wordinterval_eq r1 r2"
@@ -344,8 +336,8 @@ subsection{*IP ranges*}
 
   lemma ipv4range_single_set_eq: "ipv4range_to_set (ipv4range_single ip) = {ip}"
     by(simp add: ipv4range_single_def ipv4range_to_set_def)
-  lemma ipv4range_range_set_eq: "ipv4range_to_set (ipv4range_range ip1 ip2) = {ip1 .. ip2}"
-    by(simp add: ipv4range_range_def ipv4range_to_set_def)
+  lemma ipv4range_range_set_eq: "ipv4range_to_set (ipv4range_range (ip1, ip2)) = {ip1 .. ip2}"
+    by(simp add: ipv4range_range.simps ipv4range_to_set_def)
   
   lemma ipv4range_element_set_eq[simp]: "ipv4range_element el rg = (el \<in> ipv4range_to_set rg)"
     by(simp add: ipv4range_element_def ipv4range_to_set_def)
@@ -366,7 +358,7 @@ subsection{*IP ranges*}
   lemma ipv4range_eq_set_eq: "ipv4range_eq r1 r2 \<longleftrightarrow> ipv4range_to_set r1 = ipv4range_to_set r2"
     unfolding ipv4range_eq_def ipv4range_to_set_def using wordinterval_eq_set_eq by blast
 
-  declare ipv4range_range_set_eq[unfolded ipv4range_range_def, simp]
+  declare ipv4range_range_set_eq[unfolded ipv4range_range.simps, simp]
   declare ipv4range_union_set_eq[unfolded ipv4range_union_def wordinterval_union.simps, simp]
 
 
@@ -387,9 +379,6 @@ subsection{*IP ranges*}
 
 
   definition "is_lowest_element x S = (x \<in> S \<and> (\<forall>y\<in>S. y \<le> x \<longrightarrow> y = x))"
-  lemma is_lowest_elment_alt: "(x \<in> S \<and> (\<forall>y\<in>S. x \<le> y)) = is_lowest_element x S"
-    unfolding is_lowest_element_def
-    oops
     
   fun ipv4range_lowest_element :: "32 wordinterval \<Rightarrow> ipv4addr option" where
     "ipv4range_lowest_element (WordInterval s e) = (if s \<le> e then Some s else None)" | 
@@ -397,16 +386,18 @@ subsection{*IP ranges*}
       (Some a, Some b) \<Rightarrow> Some (if a < b then a else b) |
       (None, Some b) \<Rightarrow> Some b |
       (Some a, None) \<Rightarrow> Some a |
-      (None, None) \<Rightarrow> None)
-    "
+      (None, None) \<Rightarrow> None)"
+
   lemma ipv4range_lowest_none_empty: "ipv4range_lowest_element r = None \<longleftrightarrow> ipv4range_empty r"
-    apply(induction r)
-     apply(simp_all)
-    apply(force)
-  done
+    proof(induction r)
+    case WordInterval thus ?case by simp
+    next
+    case RangeUnion thus ?case by fastforce
+    qed
     
 
-  lemma ipv4range_lowest_element_correct_A: "ipv4range_lowest_element r = Some x \<Longrightarrow> ipv4range_element x r \<and> (\<forall>y \<in> ipv4range_to_set r. (y \<le> x \<longrightarrow> y = x))"
+  lemma ipv4range_lowest_element_correct_A: "ipv4range_lowest_element r = Some x \<Longrightarrow> is_lowest_element x (ipv4range_to_set r)"
+    unfolding is_lowest_element_def
     apply(induction r arbitrary: x rule: ipv4range_lowest_element.induct)
      apply(rename_tac rs re x, case_tac "rs \<le> re", auto)[1]
     apply(subst(asm) ipv4range_lowest_element.simps(2))
@@ -417,46 +408,51 @@ subsection{*IP ranges*}
     apply fastforce
   done
 
-  lemma smallerequalgreater: "((y :: ipv4addr) \<le> s \<longrightarrow> y = s) = (y \<ge> s)" by fastforce
-  lemma somecase: "x = Some y \<Longrightarrow> case x of None \<Rightarrow> a | Some z \<Rightarrow> b z = b y" by simp
 
-  lemma ipv4range_lowest_element_set_eq: "
-    \<not>ipv4range_empty r \<Longrightarrow>
-    (ipv4range_lowest_element r = Some x) = (is_lowest_element x (ipv4range_to_set r))"
-    unfolding is_lowest_element_def
-    apply(rule iffI)
-    using ipv4range_lowest_element_correct_A ipv4range_lowest_none_empty apply simp
-    apply(induction r arbitrary: x rule: ipv4range_lowest_element.induct)
-    apply simp 
-    apply(rename_tac A B x)
-    apply(case_tac     "ipv4range_lowest_element B")
-     apply(case_tac[!] "ipv4range_lowest_element A")
-       apply(auto)[3]
-    apply(subgoal_tac "\<not> ipv4range_empty A \<and> \<not> ipv4range_empty B")
-     prefer 2
-     using arg_cong[where f = Not, OF ipv4range_lowest_none_empty] apply(simp, metis)
-    apply(clarsimp simp add: ipv4range_lowest_none_empty)
-    proof - (* TODO: be rid of *)
-      fix A :: "32 wordinterval" and B :: "32 wordinterval" and xa :: "32 word" and a :: "32 word" and aa :: "32 word"
-      assume a1: "\<And>x. x \<in> ipv4range_to_set B \<and> (\<forall>y\<in>ipv4range_to_set B. y \<le> x \<longrightarrow> y = x) \<Longrightarrow> a = x"
-      assume a2: "ipv4range_lowest_element B = Some a"
-      assume a3: "ipv4range_lowest_element A = Some aa"
-      assume a4: "xa \<in> ipv4range_to_set A \<or> xa \<in> ipv4range_to_set B"
-      assume a5: "\<forall>y\<in>ipv4range_to_set A \<union> ipv4range_to_set B. y \<le> xa \<longrightarrow> y = xa"
-      obtain sk\<^sub>0 :: "32 word \<Rightarrow> 32 word" where f1: "\<forall>x\<^sub>0. x\<^sub>0 \<notin> ipv4range_to_set B \<or> sk\<^sub>0 x\<^sub>0 \<in> ipv4range_to_set B \<and> sk\<^sub>0 x\<^sub>0 \<le> x\<^sub>0 \<and> sk\<^sub>0 x\<^sub>0 \<noteq> x\<^sub>0 \<or> a = x\<^sub>0"
-        using a1 by (metis (lifting))
-      have "\<forall>x\<^sub>0. x\<^sub>0 \<notin> {uub. uub \<in> ipv4range_to_set A \<or> uub \<in> ipv4range_to_set B} \<or> \<not> x\<^sub>0 \<le> xa \<or> xa = x\<^sub>0"
-        using a5 by blast
-      hence f2: "\<forall>x\<^sub>0. \<not> (x\<^sub>0 \<in> ipv4range_to_set A \<or> x\<^sub>0 \<in> ipv4range_to_set B) \<or> xa = x\<^sub>0 \<or> \<not> x\<^sub>0 \<le> xa"
-        by blast
-      hence "xa \<notin> ipv4range_to_set B \<or> a = xa"
-        using f1 by (metis (lifting))
-      hence "aa = xa \<or> a = xa"
-        using f2 a3 a4 by (metis (lifting) ipv4range_element_set_eq ipv4range_lowest_element_correct_A le_less_linear less_asym')
-      thus "(aa < a \<longrightarrow> aa = xa) \<and> (\<not> aa < a \<longrightarrow> a = xa)"
-        using a2 f2 a3 by (metis (lifting) ipv4range_element_set_eq ipv4range_lowest_element_correct_A le_less_linear less_asym')
+  lemma ipv4range_lowest_element_set_eq: assumes "\<not> ipv4range_empty r"
+    shows "(ipv4range_lowest_element r = Some x) = (is_lowest_element x (ipv4range_to_set r))"
+    (*unfolding is_lowest_element_def*)
+    proof(rule iffI)
+      assume "ipv4range_lowest_element r = Some x"
+      thus "is_lowest_element x (ipv4range_to_set r)"
+     using ipv4range_lowest_element_correct_A ipv4range_lowest_none_empty by simp
+    next
+      assume "is_lowest_element x (ipv4range_to_set r)"
+      with assms show "(ipv4range_lowest_element r = Some x)"
+        proof(induction r arbitrary: x rule: ipv4range_lowest_element.induct)
+        case 1 thus ?case by(simp add: is_lowest_element_def)
+        next
+        case (2 A B x)
+
+        have is_lowest_RangeUnion: "is_lowest_element x (ipv4range_to_set A \<union> ipv4range_to_set B) \<Longrightarrow> 
+          is_lowest_element x (ipv4range_to_set A) \<or> is_lowest_element x (ipv4range_to_set B)"
+          by(simp add: is_lowest_element_def)
+      
+         (*why \<And> A B?*)
+         have ipv4range_lowest_element_RangeUnion: "\<And>a b A B. ipv4range_lowest_element A = Some a \<Longrightarrow> ipv4range_lowest_element B = Some b \<Longrightarrow>
+                  ipv4range_lowest_element (RangeUnion A B) = Some (min a b)"
+           by(auto dest!: ipv4range_lowest_element_correct_A simp add: is_lowest_element_def min_def)
+         
+        from 2 show ?case
+        apply(case_tac     "ipv4range_lowest_element B")
+         apply(case_tac[!] "ipv4range_lowest_element A")
+           apply(auto simp add: is_lowest_element_def)[3]
+        apply(subgoal_tac "\<not> ipv4range_empty A \<and> \<not> ipv4range_empty B")
+         prefer 2
+         using arg_cong[where f = Not, OF ipv4range_lowest_none_empty] apply(simp, metis)
+        apply(drule(1) ipv4range_lowest_element_RangeUnion)
+        apply(simp split: option.split_asm add: min_def)
+         apply(drule is_lowest_RangeUnion)
+         apply(elim disjE)
+          apply(simp add: is_lowest_element_def)
+         apply(clarsimp simp add: ipv4range_lowest_none_empty)
+        
+        apply(simp add: is_lowest_element_def)
+        apply(clarsimp simp add: ipv4range_lowest_none_empty)
+        using ipv4range_lowest_element_correct_A[simplified is_lowest_element_def]
+        by (metis Un_iff not_le)
+      qed
     qed
-
    
 
 end

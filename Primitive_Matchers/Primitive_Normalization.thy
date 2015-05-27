@@ -67,38 +67,37 @@ proof -
   --"better simplification rule"
   from assms have assm3': "(as, ms) = primitive_extractor (disc, sel) m" by simp
   with assms(1) assms(2) show "matches \<gamma> (alist_and (NegPos_map C as)) a p \<and> matches \<gamma> ms a p \<longleftrightarrow> matches \<gamma> m a p"
-    apply(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
-          apply(simp_all add: bunch_of_lemmata_about_matches wf_disc_sel.simps split: split_if_asm)
-    apply(simp split: split_if_asm split_split_asm add: NegPos_map_append)
-    apply(auto simp add: alist_and_append bunch_of_lemmata_about_matches)
-    done
+    proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+    case 4 thus ?case
+      apply(simp split: split_if_asm split_split_asm add: NegPos_map_append)
+      apply(auto simp add: alist_and_append bunch_of_lemmata_about_matches)
+      done
+    qed(simp_all add: bunch_of_lemmata_about_matches wf_disc_sel.simps split: split_if_asm)
 
   from assms(1) assm3' show "normalized_nnf_match ms"
-    apply(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
-          apply(simp)
-         apply(simp)
-         apply(simp split: split_if_asm)
-        apply(simp split: split_if_asm)
-       apply(clarify) (*if i don't clarify, the simplifier loops*)
-       apply(simp split: split_split_asm)
-      apply(simp)
-     apply(simp)
-    apply(simp)
-    done
+    proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+         case 2 thus ?case by(simp split: split_if_asm)
+         next
+         case 3 thus ?case by(simp split: split_if_asm)
+         next
+         case 4 thus ?case 
+           apply(clarify) (*if i don't clarify, the simplifier loops*)
+           apply(simp split: split_split_asm)
+           done
+    qed(simp_all)
 
   from assms(1) assm3' show "\<not> has_disc disc ms"
-    apply(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
-          by(simp_all split: split_if_asm split_split_asm)
+    proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+    qed(simp_all split: split_if_asm split_split_asm)
 
   from assms(1) assm3' show "\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms"
-    apply(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
-          apply(simp)
-         apply(simp split: split_if_asm)
-        apply(simp split: split_if_asm)
-       apply(clarify) (*the simplifier loops*)
-       apply(simp split: split_split_asm)
-      apply(simp_all)
-    done
+    proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+         case 2 thus ?case by(simp split: split_if_asm)
+         next
+         case 3 thus ?case by(simp split: split_if_asm)
+         next
+         case 4 thus ?case by(simp split: split_split_asm)
+    qed(simp_all)
 
 
   from assms(1) assm3' show "\<forall>disc2 sel2. normalized_n_primitive (disc2, sel2) P m \<longrightarrow> normalized_n_primitive (disc2, sel2) P ms"
@@ -106,7 +105,6 @@ proof -
           apply(simp)
          apply(simp split: split_if_asm)
         apply(simp split: split_if_asm)
-       apply(clarify) (*the simplifier loops*)
        apply(simp split: split_split_asm)
       apply(simp_all)
     done
@@ -195,16 +193,19 @@ text{*The lemmas @{thm primitive_extractor_matchesE} and @{thm primitive_extract
 subsection{*Normalizing and Optimizing Primitives*}
   text{*
     Normalize primitives by a function @{text f} with type @{typ "'b negation_type list \<Rightarrow> 'b list"}.
-    @{typ "'b"} is a primitive type, e.g. ipt_ipv4range.
+    @{typ "'b"} is a primitive type, e.g. ipt-ipv4range.
     @{text f} takes a conjunction list of negated primitives and must compress them such that:
-      * no negation occurs in the output
-      * the output is a disjunction of the primitives, i.e. multiple primitives in one rule are compressed to at most one primitive (leading to multiple rules)
-
+    \begin{enumerate}
+      \item no negation occurs in the output
+      \item the output is a disjunction of the primitives, i.e. multiple primitives in one rule are compressed to at most one primitive (leading to multiple rules)
+    \end{enumerate}
     Example with IP addresses:
+    \begin{verbatim}
       f [10.8.0.0/16, 10.0.0.0/8] = [10.0.0.0/8]  f compresses to one range
       f [10.0.0.0, 192.168.0.01] = []    range is empty, rule can be dropped
       f [Neg 41] = [{0..40}, {42..ipv4max}]   one rule is translated into multiple rules to translate negation
       f [Neg 41, {20..50}, {30..50}] = [{30..40}, {42..50}]   input: conjunction list, output disjunction list!
+    \end{verbatim}
   *}
   definition normalize_primitive_extract :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow>
                                ('b \<Rightarrow> 'a) \<Rightarrow>
@@ -296,7 +297,7 @@ subsection{*Normalizing and Optimizing Primitives*}
   assumes "normalized_nnf_match m"
       and "normalized_n_primitive (disc2, sel2) P m"
       and "wf_disc_sel (disc1, sel1) C"
-      and "\<forall>a. \<not> disc2 (C a)" --"disc1 and disc2 match for different stuff. e.g. Src_Ports and Dst_Ports"
+      and "\<forall>a. \<not> disc2 (C a)" --{*disc1 and disc2 match for different stuff. e.g. @{text Src_Ports} and @{text Dst_Ports}*}
     shows "\<forall>mn \<in> set (normalize_primitive_extract (disc1, sel1) C f m). normalized_n_primitive (disc2, sel2) P mn"
     proof
       fix mn
@@ -384,8 +385,8 @@ lemma remove_unknowns_generic_not_has_disc: "\<not> has_disc C m \<Longrightarro
 
 lemma remove_unknowns_generic_normalized_n_primitive: "normalized_n_primitive disc_sel f m \<Longrightarrow> 
     normalized_n_primitive disc_sel f (remove_unknowns_generic \<gamma> a m)"
-  apply(induction \<gamma> a m rule: remove_unknowns_generic.induct)
-        apply(simp_all)
-  by(case_tac disc_sel, simp)
+  proof(induction \<gamma> a m rule: remove_unknowns_generic.induct)
+    case 6 thus ?case by(case_tac disc_sel, simp)
+  qed(simp_all)
 
 end

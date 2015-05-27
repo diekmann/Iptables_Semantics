@@ -73,12 +73,12 @@ Rule (MatchAny) (action.Accept)]]"
 
 
 text{*It accepts everything in state RELATED,ESTABLISHED,NEW*}
-value(code) "unfold_ruleset_INUPUT firewall_chains"
-lemma "good_ruleset (unfold_ruleset_INUPUT firewall_chains)" by eval
-lemma "simple_ruleset (unfold_ruleset_INUPUT firewall_chains)" by eval
+value(code) "unfold_ruleset_INPUT firewall_chains"
+lemma "good_ruleset (unfold_ruleset_INPUT firewall_chains)" by eval
+lemma "simple_ruleset (unfold_ruleset_INPUT firewall_chains)" by eval
 
 (*Hmm, this ruleset is the Allow-All ruleset!*)
-lemma upper: "upper_closure (unfold_ruleset_INUPUT firewall_chains) =
+lemma upper: "upper_closure (unfold_ruleset_INPUT firewall_chains) =
  [Rule MatchAny action.Accept, Rule MatchAny action.Accept, Rule MatchAny action.Drop, Rule MatchAny action.Accept,
   Rule (Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8))) action.Drop, Rule (Match (Src (Ip4AddrNetmask (10, 0, 0, 0) 8))) action.Drop,
   Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) action.Drop, Rule (Match (Src (Ip4AddrNetmask (169, 254, 0, 0) 16))) action.Drop,
@@ -90,11 +90,8 @@ lemma upper: "upper_closure (unfold_ruleset_INUPUT firewall_chains) =
   Rule (Match (Prot (Proto TCP))) action.Accept, Rule (Match (Prot (Proto UDP))) action.Accept, Rule (Match (Prot (Proto TCP))) action.Accept,
   Rule (Match (Prot (Proto UDP))) action.Accept, Rule MatchAny action.Drop, Rule MatchAny action.Accept]" by eval
 
-(*<*)
-(*please skip over this one!*)
-(*>*)
 
-lemma "rmshadow (common_matcher, in_doubt_allow) (upper_closure (unfold_ruleset_INUPUT firewall_chains)) UNIV = 
+lemma "rmshadow (common_matcher, in_doubt_allow) (upper_closure (unfold_ruleset_INPUT firewall_chains)) UNIV = 
       [Rule MatchAny action.Accept]"
 unfolding upper
 apply(subst rmshadow.simps)
@@ -108,7 +105,7 @@ done
 lemma "approximating_bigstep_fun (common_matcher, in_doubt_allow)
         \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
          p_proto=TCP, p_sport=2065, p_dport=80\<rparr>
-          (unfold_ruleset_INUPUT firewall_chains)
+          (unfold_ruleset_INPUT firewall_chains)
          Undecided
         = Decision FinalAllow" by eval
 
@@ -121,23 +118,30 @@ text{*We removed the first matches on state*}
 definition "example_firewall2 \<equiv> firewall_chains(''INPUT'' \<mapsto> tl (the (firewall_chains ''INPUT'')))"
 
 
-value(code) "(unfold_ruleset_INUPUT example_firewall2)"
-value(code) "zip (upto 0 (int (length (unfold_ruleset_INUPUT example_firewall2)))) (unfold_ruleset_INUPUT example_firewall2)"
-lemma "good_ruleset (unfold_ruleset_INUPUT example_firewall2)" by eval
-lemma "simple_ruleset (unfold_ruleset_INUPUT example_firewall2)" by eval
-
 text{*in doubt allow closure*}
-value(code) "upper_closure (unfold_ruleset_INUPUT example_firewall2)"
+definition "upper = upper_closure (unfold_ruleset_INPUT example_firewall2)"
+value(code) "upper"
+
+
+value(code) "zip (upto 0 (int (length upper))) upper"
+lemma "good_ruleset upper" by eval
+lemma "simple_ruleset upper" by eval
+
+lemma "check_simple_fw_preconditions upper" by eval
+value "map simple_rule_toString (to_simple_firewall upper)"
+
 
 text{*in doubt deny closure*}
-value(code) "lower_closure (unfold_ruleset_INUPUT example_firewall2)"
+value(code) "lower_closure (unfold_ruleset_INPUT example_firewall2)"
+
+
 
 
 text{*Allowed Packets*}
-lemma "collect_allow_impl_v2 (unfold_ruleset_INUPUT example_firewall2) packet_set_UNIV = packet_set_UNIV" by eval
+lemma "collect_allow_impl_v2 (unfold_ruleset_INPUT example_firewall2) packet_set_UNIV = packet_set_UNIV" by eval
 
-value(code) "allow_set_not_inter (unfold_ruleset_INUPUT example_firewall2)"
+value(code) "allow_set_not_inter (unfold_ruleset_INPUT example_firewall2)"
 
-value(code) "map packet_set_opt (allow_set_not_inter (unfold_ruleset_INUPUT example_firewall2))"
+value(code) "map packet_set_opt (allow_set_not_inter (unfold_ruleset_INPUT example_firewall2))"
 
 end

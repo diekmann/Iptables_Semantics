@@ -1,0 +1,67 @@
+Chain INPUT (policy DROP 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+    8  2095 ACCEPT     all  --  lo     *       0.0.0.0/0            0.0.0.0/0           
+    0     0 syn-flood  tcp  --  wlan0  *       0.0.0.0/0            0.0.0.0/0            tcp flags:0x17/0x02
+   18  1986 DROP       tcp  --  wlan0  *       0.0.0.0/0            0.0.0.0/0            tcp flags:!0x17/0x02 state NEW
+    0     0 LOG        all  -f  wlan0  *       0.0.0.0/0            0.0.0.0/0            LOG flags 0 level 4 prefix "IPTABLES FRAGMENTS: "
+    0     0 DROP       all  -f  wlan0  *       0.0.0.0/0            0.0.0.0/0           
+    0     0 DROP       all  --  wlan0  *       131.159.207.206      0.0.0.0/0           
+    0     0 DROP       all  --  wlan0  *       10.0.0.0/8           0.0.0.0/0           
+    0     0 DROP       all  --  wlan0  *       172.16.0.0/12        0.0.0.0/0           
+    0     0 DROP       all  --  wlan0  *       192.168.0.0/16       0.0.0.0/0           
+    0     0 DROP       all  --  wlan0  *       224.0.0.0/4          0.0.0.0/0           
+    0     0 DROP       all  --  wlan0  *       240.0.0.0/5          0.0.0.0/0           
+    0     0 DROP       all  --  wlan0  *       0.0.0.0/0            127.0.0.0/8         
+    0     0 DROP       all  --  wlan0  *       0.0.0.0/0            131.159.207.255     
+    1   533 ACCEPT     udp  --  wlan0  *       131.159.254.1        0.0.0.0/0            udp spt:53 state ESTABLISHED
+    4  1829 ACCEPT     udp  --  wlan0  *       131.159.254.2        0.0.0.0/0            udp spt:53 state ESTABLISHED
+    0     0 ACCEPT     tcp  --  wlan0  *       0.0.0.0/0            0.0.0.0/0            tcp spt:22 state ESTABLISHED
+    0     0 ACCEPT     tcp  --  wlan0  *       0.0.0.0/0            0.0.0.0/0            tcp spt:80 state ESTABLISHED
+   83 29564 ACCEPT     tcp  --  wlan0  *       0.0.0.0/0            0.0.0.0/0            tcp spt:443 state ESTABLISHED
+    0     0 ACCEPT     tcp  --  wlan0  *       0.0.0.0/0            0.0.0.0/0            tcp spt:23 state ESTABLISHED
+    0     0 ACCEPT     tcp  --  wlan0  *       0.0.0.0/0            0.0.0.0/0            tcp spt:21 state ESTABLISHED
+    0     0 ACCEPT     tcp  --  wlan0  *       0.0.0.0/0            0.0.0.0/0            tcp spt:20 state RELATED,ESTABLISHED
+    0     0 ACCEPT     tcp  --  wlan0  *       0.0.0.0/0            0.0.0.0/0            tcp spts:1024:65535 dpts:1024:65535 state ESTABLISHED
+    0     0 ACCEPT     tcp  --  wlan0  *       0.0.0.0/0            0.0.0.0/0            tcp spt:25 state ESTABLISHED
+    0     0 REJECT     tcp  --  wlan0  *       0.0.0.0/0            0.0.0.0/0            tcp dpt:113 reject-with tcp-reset
+    0     0 ACCEPT     icmp --  wlan0  *       0.0.0.0/0            0.0.0.0/0            state RELATED,ESTABLISHED
+ 1418  198K LOG        udp  --  wlan0  *       0.0.0.0/0            0.0.0.0/0            LOG flags 0 level 4 prefix "IPTABLES UDP-IN: "
+ 1418  198K DROP       udp  --  wlan0  *       0.0.0.0/0            0.0.0.0/0           
+    1    60 LOG        icmp --  wlan0  *       0.0.0.0/0            0.0.0.0/0            LOG flags 0 level 4 prefix "IPTABLES ICMP-IN: "
+    1    60 DROP       icmp --  wlan0  *       0.0.0.0/0            0.0.0.0/0           
+    0     0 LOG        tcp  --  wlan0  *       0.0.0.0/0            0.0.0.0/0            LOG flags 0 level 4 prefix "IPTABLES TCP-IN: "
+    0     0 DROP       tcp  --  wlan0  *       0.0.0.0/0            0.0.0.0/0           
+   80  5224 LOG        all  --  wlan0  *       0.0.0.0/0            0.0.0.0/0            LOG flags 0 level 4 prefix "IPTABLES PROTOCOL-X-IN: "
+   80  5224 DROP       all  --  wlan0  *       0.0.0.0/0            0.0.0.0/0           
+
+Chain FORWARD (policy DROP 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+
+Chain OUTPUT (policy DROP 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+    8  2095 ACCEPT     all  --  *      lo      0.0.0.0/0            0.0.0.0/0           
+    1    73 ACCEPT     udp  --  *      wlan0   0.0.0.0/0            131.159.254.1        udp dpt:53 state NEW,ESTABLISHED
+    4   266 ACCEPT     udp  --  *      wlan0   0.0.0.0/0            131.159.254.2        udp dpt:53 state NEW,ESTABLISHED
+    0     0 ACCEPT     tcp  --  *      wlan0   0.0.0.0/0            0.0.0.0/0            tcp dpt:22 state NEW,ESTABLISHED
+    0     0 ACCEPT     tcp  --  *      wlan0   0.0.0.0/0            0.0.0.0/0            tcp dpt:80 state NEW,ESTABLISHED
+   89 18790 ACCEPT     tcp  --  *      wlan0   0.0.0.0/0            0.0.0.0/0            tcp dpt:443 state NEW,ESTABLISHED
+    0     0 ACCEPT     tcp  --  *      wlan0   0.0.0.0/0            0.0.0.0/0            tcp dpt:23 state NEW,ESTABLISHED
+    0     0 ACCEPT     tcp  --  *      wlan0   0.0.0.0/0            0.0.0.0/0            tcp dpt:21 state NEW,ESTABLISHED
+    0     0 ACCEPT     tcp  --  *      wlan0   0.0.0.0/0            0.0.0.0/0            tcp dpt:20 state ESTABLISHED
+    0     0 ACCEPT     tcp  --  *      wlan0   0.0.0.0/0            0.0.0.0/0            tcp spts:1024:65535 dpts:1024:65535 state RELATED,ESTABLISHED
+    0     0 ACCEPT     tcp  --  *      wlan0   0.0.0.0/0            0.0.0.0/0            tcp dpt:25 state NEW,ESTABLISHED
+    0     0 ACCEPT     udp  --  *      wlan0   0.0.0.0/0            0.0.0.0/0            udp spts:32769:65535 dpts:33434:33523 state NEW
+    0     0 ACCEPT     icmp --  *      wlan0   0.0.0.0/0            0.0.0.0/0            state NEW,RELATED,ESTABLISHED
+    9  8424 LOG        udp  --  *      wlan0   0.0.0.0/0            0.0.0.0/0            LOG flags 0 level 4 prefix "IPTABLES UDP-OUT: "
+    9  8424 DROP       udp  --  *      wlan0   0.0.0.0/0            0.0.0.0/0           
+    0     0 LOG        icmp --  *      wlan0   0.0.0.0/0            0.0.0.0/0            LOG flags 0 level 4 prefix "IPTABLES ICMP-OUT: "
+    0     0 DROP       icmp --  *      wlan0   0.0.0.0/0            0.0.0.0/0           
+    0     0 LOG        tcp  --  *      wlan0   0.0.0.0/0            0.0.0.0/0            LOG flags 0 level 4 prefix "IPTABLES TCP-OUT: "
+    0     0 DROP       tcp  --  *      wlan0   0.0.0.0/0            0.0.0.0/0           
+    0     0 LOG        all  --  *      wlan0   0.0.0.0/0            0.0.0.0/0            LOG flags 0 level 4 prefix "IPTABLES PROTOCOL-X-OUT: "
+    0     0 DROP       all  --  *      wlan0   0.0.0.0/0            0.0.0.0/0           
+
+Chain syn-flood (1 references)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 RETURN     all  --  *      *       0.0.0.0/0            0.0.0.0/0            limit: avg 1/sec burst 4
+    0     0 DROP       all  --  *      *       0.0.0.0/0            0.0.0.0/0           

@@ -6,8 +6,7 @@ lemma ipv4range_bitmask_intersect: " \<not> ipv4range_set_from_bitmask b2 m2 \<s
        \<not> ipv4range_set_from_bitmask b1 m1 \<subseteq> ipv4range_set_from_bitmask b2 m2 \<Longrightarrow>
        ipv4range_set_from_bitmask b1 m1 \<inter> ipv4range_set_from_bitmask b2 m2 = {}"
 apply(simp add: ipv4range_set_from_bitmask_eq_ip_set)
-using ip_set_notsubset_empty_inter 
-by presburger
+using ip_set_notsubset_empty_inter by presburger
 
 
 (*
@@ -59,7 +58,8 @@ proof -
   have blip_split: "\<And> blip. length blip = 32 \<Longrightarrow> blip = (take 8 blip) @ (take 8 (drop 8 blip)) @ (take 8 (drop 16 blip)) @ (take 8 (drop 24 blip))"
     apply(case_tac blip)
     apply(simp_all)
-    apply(thin_tac "blip = ?x",rename_tac blip,case_tac blip,simp_all)+ (*I'm so sorry for this ...*)
+    (*thin_tac "blip = ?x",*)
+    apply(rename_tac blip,case_tac blip,simp_all)+ (*I'm so sorry for this ...*)
     done
 
   have "ipv4addr_of_dotdecimal (dotdecimal_of_ipv4addr ip) = of_bl (to_bl ip)"

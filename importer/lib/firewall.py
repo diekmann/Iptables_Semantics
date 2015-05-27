@@ -18,15 +18,17 @@ class Ports(object):
             assert end >= 0
         self.ports = ports
 
-    def serialize(self, serializer):
-        ports = [serializer.tup(serializer.nat(start), serializer.nat(end)) for (start,end) in self.ports]
-        return serializer.list(ports)
-
-class DPorts(Ports):
-    pass
+    def raw_serialize(self, serializer):
+        ports = [serializer.tup(serializer.word(start), serializer.word(end)) for (start,end) in self.ports]
+        return serializer.list(ports, newline=False)
 
 class SPorts(Ports):
-    pass
+    def serialize(self, serializer):
+        return serializer.constr("Match", serializer.constr("Src_Ports", self.raw_serialize(serializer)))
+
+class DPorts(Ports):
+    def serialize(self, serializer):
+        return serializer.constr("Match", serializer.constr("Dst_Ports", self.raw_serialize(serializer)))
 
 class Src_Or_Dst(Enum):
     src = 1
@@ -93,6 +95,37 @@ class Unknown_Proto(Proto):
         return serializer.constr("Extra", serializer.string("Prot {0}".format(self.proto)))
 
 
+
+class Iface(object):
+    def __init__(self, iface):
+        assert type(iface) is str
+        assert len(iface) > 0
+        self.iface = iface
+
+    def raw_serialize(self, serializer):
+        if self.iface == '*':
+            return "ifaceAny"
+        else:
+            return serializer.constr("Iface", serializer.string(self.iface))
+
+class In_Iface(Iface):
+    def __init__(self, iface):
+        Iface.__init__(self, iface)
+
+    def serialize(self, serializer):
+        iface = self.raw_serialize(serializer)
+        return serializer.constr("Match", serializer.constr("IIface", iface))
+
+class Out_Iface(Iface):
+    def __init__(self, iface):
+        Iface.__init__(self, iface)
+
+    def serialize(self, serializer):
+        iface = self.raw_serialize(serializer)
+        return serializer.constr("Match", serializer.constr("OIface", iface))
+
+
+
 class Action:
     def serialize(self, chain_names, serializer):
         pass
@@ -143,28 +176,52 @@ class Rule(object):
         self.ipdst = ipdst
         self.extra = extra
 
+    def __combine_MatchAnd(self, serializer, ls):
+        ls = [l for l in ls if l is not None]
+        if len(ls) == 0:
+            return "MatchAny"
+        elif len(ls) == 1:
+            return ls[0]
+        elif len(ls) == 2:
+            return serializer.constr("MatchAnd", ls[0], ls[1])
+        else:
+            return serializer.constr("MatchAnd", ls[0], self.__combine_MatchAnd(serializer, ls[1:]))
+            
+
     def serialize(self, chain_names, serializer):
         action = self.action.serialize(chain_names, serializer)
         proto = self.proto.serialize(serializer)
         ipsrc = self.ipsrc.serialize(Src_Or_Dst.src, serializer)
         ipdst = self.ipdst.serialize(Src_Or_Dst.dst, serializer)
         
+        sports = None
         if hasattr(self, 'sports'):
-            print("TODO: this Rule object has sports set. Unhandled!")
             assert isinstance(self.sports, SPorts)
-            print(self.sports.serialize(serializer))
+            sports = self.sports.serialize(serializer)
 
+        dports = None
         if hasattr(self, 'dports'):
-            print("TODO: this Rule object has dports set. Unhandled!")
             assert isinstance(self.dports, DPorts)
-            print(self.dports.serialize(serializer))
-        
-        if self.extra is None:
-            extra = "MatchAny"
+            dports = self.dports.serialize(serializer)
+
+        iniface = None
+        if hasattr(self, 'iniface'):
+            assert isinstance(self.iniface, In_Iface)
+            iniface = self.iniface.serialize(serializer)
+            #print(iniface)
+
+        outiface = None
+        if hasattr(self, 'outiface'):
+            assert isinstance(self.outiface, Out_Iface)
+            outiface = self.outiface.serialize(serializer)
+            #print(outiface)
+
+        if self.extra is None or self.extra == "":
+            extra = "MatchAny" #TODO: is setting to None better code?
         else:
             extra = serializer.constr("Match", serializer.constr("Extra", serializer.string(self.extra)))
 
-        raw = serializer.constr("MatchAnd", ipsrc, serializer.constr("MatchAnd", ipdst, serializer.constr("MatchAnd", proto, extra)))
+        raw = self.__combine_MatchAnd(serializer, [iniface, outiface, ipsrc, ipdst, proto, sports, dports, extra])
 
         return serializer.constr("Rule", raw, action)
 

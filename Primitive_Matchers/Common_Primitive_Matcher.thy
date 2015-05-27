@@ -81,9 +81,15 @@ lemma match_simplematcher_SrcDst_not:
 lemma common_matcher_SrcDst_Inter:
   "(\<forall>m\<in>set X. matches (common_matcher, \<alpha>) (Match (Src m)) a p) \<longleftrightarrow> p_src p \<in> (\<Inter>x\<in>set X. ipv4s_to_set x)"
   "(\<forall>m\<in>set X. matches (common_matcher, \<alpha>) (Match (Dst m)) a p) \<longleftrightarrow> p_dst p \<in> (\<Inter>x\<in>set X. ipv4s_to_set x)"
-  apply(simp_all)
-  apply(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_Unknown bool_to_ternary_simps split: ternaryvalue.split)
- done
+  by(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_Unknown bool_to_ternary_simps split: ternaryvalue.split)
+lemma match_simplematcher_Iface:
+  "matches (common_matcher, \<alpha>) (Match (IIface X)) a p \<longleftrightarrow> match_iface X (p_iiface p)"
+  "matches (common_matcher, \<alpha>) (Match (OIface X)) a p \<longleftrightarrow> match_iface X (p_oiface p)"
+   by(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_Unknown bool_to_ternary_simps split: ternaryvalue.split)
+lemma match_simplematcher_Iface_not:
+  "matches (common_matcher, \<alpha>) (MatchNot (Match (IIface X))) a p \<longleftrightarrow> \<not> match_iface X (p_iiface p)"
+  "matches (common_matcher, \<alpha>) (MatchNot (Match (OIface X))) a p \<longleftrightarrow> \<not> match_iface X (p_oiface p)"
+   by(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_simps split: ternaryvalue.split)
 
 
 
@@ -98,7 +104,16 @@ lemma multiports_disjuction:
   apply(safe) (*ugly proof*)
      apply force+
   done
-  
+
+
+
+
+text{*Since matching on the iface cannot be @{const TernaryUnknown}*, we can pull out negations.*}
+lemma common_matcher_MatchNot_Iface:
+      "matches (common_matcher, \<alpha>) (MatchNot (Match (IIface iface))) a p \<longleftrightarrow> \<not> match_iface iface (p_iiface p)"
+      "matches (common_matcher, \<alpha>) (MatchNot (Match (OIface iface))) a p \<longleftrightarrow> \<not> match_iface iface (p_oiface p)"
+  by(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_simps split: ternaryvalue.split)
+
 
 
 
@@ -108,6 +123,8 @@ text{*Perform very basic optimization. Remove matches to primitives which are es
 fun optimize_primitive_univ :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
   "optimize_primitive_univ (Match (Src (Ip4AddrNetmask (0,0,0,0) 0))) = MatchAny" |
   "optimize_primitive_univ (Match (Dst (Ip4AddrNetmask (0,0,0,0) 0))) = MatchAny" |
+  "optimize_primitive_univ (Match (IIface iface)) = (if iface = ifaceAny then MatchAny else (Match (IIface iface)))" |
+  "optimize_primitive_univ (Match (OIface iface)) = (if iface = ifaceAny then MatchAny else (Match (OIface iface)))" |
   "optimize_primitive_univ (Match (Src_Ports [(s, e)])) = (if s = 0 \<and> e = 0xFFFF then MatchAny else (Match (Src_Ports [(s, e)])))" |
   "optimize_primitive_univ (Match (Dst_Ports [(s, e)])) = (if s = 0 \<and> e = 0xFFFF then MatchAny else (Match (Dst_Ports [(s, e)])))" |
   "optimize_primitive_univ (Match (Prot ProtoAny)) = MatchAny" |
@@ -123,7 +140,7 @@ lemma optimize_primitive_univ_correct_matchexpr: "matches (common_matcher, \<alp
   apply(rule matches_iff_apply_f)
   apply(simp)
   apply(induction m rule: optimize_primitive_univ.induct)
-                              apply(simp_all add: eval_ternary_simps ip_in_ipv4range_set_from_bitmask_UNIV eval_ternary_idempotence_Not bool_to_ternary_simps)
+                              apply(simp_all add: match_ifaceAny eval_ternary_simps ip_in_ipv4range_set_from_bitmask_UNIV eval_ternary_idempotence_Not bool_to_ternary_simps)
    apply(subgoal_tac "(max_word::16 word) =  65535",simp,simp add: max_word_def)+
   done
 corollary optimize_primitive_univ_correct: "approximating_bigstep_fun (common_matcher, \<alpha>) p (optimize_matches optimize_primitive_univ rs) s = 
