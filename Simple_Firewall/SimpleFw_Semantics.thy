@@ -116,43 +116,47 @@ subsection{*Simple Firewall Semantics*}
   fun empty_match :: "simple_match \<Rightarrow> bool" where
     "empty_match \<lparr>iiface=_, oiface=_, src=_, dst=_, proto=_, sports=(sps1, sps2), dports=(dps1, dps2) \<rparr> \<longleftrightarrow> (sps1 > sps2) \<or>  (dps1 > dps2)"
 
-  (*this is quite an ugly proof!*)
   lemma empty_match: "empty_match m \<longleftrightarrow> (\<forall>p. \<not> simple_matches m p)"
-    apply(cases m, rename_tac iif oif sip dip protocol sps dps, case_tac sps,case_tac dps,rename_tac sps1 sps2 dps1 dps2)
-    apply(rule iffI)
-     apply fastforce
-    apply(simp)
-    proof -
-      fix iif oif sip dip protocol sps dps sps1 sps2 dps1 dps2
-      let ?x="\<lambda>p. dps1 \<le> p_dport p \<longrightarrow> p_sport p \<le> sps2 \<longrightarrow> sps1 \<le> p_sport p \<longrightarrow> 
-          match_proto protocol (p_proto p) \<longrightarrow> simple_match_ip dip (p_dst p) \<longrightarrow> simple_match_ip sip (p_src p) \<longrightarrow>
-          match_iface oif (p_oiface p) \<longrightarrow> match_iface iif (p_iiface p) \<longrightarrow> \<not> p_dport p \<le> dps2"
-      assume m: "m = \<lparr>iiface = iif, oiface = oif, src = sip, dst = dip, proto = protocol, sports = (sps1, sps2), dports = (dps1, dps2)\<rparr>"
-      and nomatch: "\<forall>p::simple_packet. ?x p"
+    proof
+      assume "empty_match m"
+      thus "\<forall>p. \<not> simple_matches m p" by(cases m) fastforce
+    next
+      assume assm: "\<forall>p. \<not> simple_matches m p"
+      obtain iif oif sip dip protocol sps1 sps2 dps1 dps2 where m:
+        "m = \<lparr>iiface = iif, oiface = oif, src = sip, dst = dip, proto = protocol, sports = (sps1, sps2), dports = (dps1, dps2)\<rparr>"
+          by(cases m) force
 
-      have "\<And>a b. a \<in> ipv4range_set_from_bitmask a b" using ip_set_def ipv4range_set_from_bitmask_eq_ip_set by blast
-      hence ips: "\<And>ips. simple_match_ip ips (fst ips)" by force
-      have proto: "match_proto protocol (case protocol of ProtoAny \<Rightarrow> TCP | Proto p \<Rightarrow> p)"
-        by(simp split: protocol.split)
-      have ifaces: "\<And>ifce. match_iface ifce (iface_sel ifce)"
-        apply(case_tac ifce)
-        by(simp add: match_iface_refl)
-
-      { fix p::simple_packet
-        from nomatch have "?x p"
-         apply -
-         apply(erule_tac x=p in allE)
-         by simp
-      }note pkt=this[of "\<lparr>p_iiface = iface_sel iif,
-                        p_oiface = iface_sel oif,
-                        p_src = fst sip,
-                        p_dst = fst dip,
-                        p_proto = case protocol of ProtoAny \<Rightarrow> primitive_protocol.TCP | Proto p \<Rightarrow> p,
-                        p_sport = sps1,
-                        p_dport = dps1\<rparr>", simplified]
-      from pkt ips proto ifaces have " sps1 \<le> sps2 \<longrightarrow> \<not> dps1 \<le> dps2" by blast
-
-      thus "sps2 < sps1 \<or> dps2 < dps1" by fastforce
+      show "empty_match m"
+        proof(simp add: m)
+          let ?x="\<lambda>p. dps1 \<le> p_dport p \<longrightarrow> p_sport p \<le> sps2 \<longrightarrow> sps1 \<le> p_sport p \<longrightarrow> 
+              match_proto protocol (p_proto p) \<longrightarrow> simple_match_ip dip (p_dst p) \<longrightarrow> simple_match_ip sip (p_src p) \<longrightarrow>
+              match_iface oif (p_oiface p) \<longrightarrow> match_iface iif (p_iiface p) \<longrightarrow> \<not> p_dport p \<le> dps2"
+          from assm have nomatch: "\<forall>p::simple_packet. ?x p" by(simp add: m)
+    
+          have "\<And>a b. a \<in> ipv4range_set_from_bitmask a b" using ip_set_def ipv4range_set_from_bitmask_eq_ip_set by blast
+          hence ips: "\<And>ips. simple_match_ip ips (fst ips)" by force
+          have proto: "match_proto protocol (case protocol of ProtoAny \<Rightarrow> TCP | Proto p \<Rightarrow> p)"
+            by(simp split: protocol.split)
+          have ifaces: "\<And>ifce. match_iface ifce (iface_sel ifce)"
+            apply(case_tac ifce)
+            by(simp add: match_iface_refl)
+    
+          { fix p::simple_packet
+            from nomatch have "?x p"
+             apply -
+             apply(erule_tac x=p in allE)
+             by simp
+          }note pkt=this[of "\<lparr>p_iiface = iface_sel iif,
+                            p_oiface = iface_sel oif,
+                            p_src = fst sip,
+                            p_dst = fst dip,
+                            p_proto = case protocol of ProtoAny \<Rightarrow> primitive_protocol.TCP | Proto p \<Rightarrow> p,
+                            p_sport = sps1,
+                            p_dport = dps1\<rparr>", simplified]
+          from pkt ips proto ifaces have " sps1 \<le> sps2 \<longrightarrow> \<not> dps1 \<le> dps2" by blast
+    
+          thus "sps2 < sps1 \<or> dps2 < dps1" by fastforce
+      qed
   qed
     
 
