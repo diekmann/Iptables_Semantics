@@ -396,36 +396,6 @@ begin
 
 
   subsection{*Negating Interfaces*}
-    private lemma inv_i_wildcard: "- {i@cs | cs. True} = {c | c. length c < length i} \<union> {c@cs | c cs. length c = length i \<and> c \<noteq> i}"
-      apply(rule)
-       prefer 2
-       apply(safe)[1]
-        apply(simp add:)
-       apply(simp add:)
-      apply(simp)
-      apply(rule Compl_anti_mono[where B="{i @ cs |cs. True}" and A="- ({c | c. length c < length i} \<union> {c@cs | c cs. length c = length i \<and> c \<noteq> i})", simplified])
-      apply(safe)
-      apply(simp)
-      apply(case_tac "(length i) = length x")
-       apply(erule_tac x=x in allE, simp)
-       apply(blast)
-      apply(erule_tac x="take (length i) x" in allE)
-      apply(simp add: min_def)
-      by (metis append_take_drop_id)
-    private lemma inv_i_nowildcard: "- {i::string} = {c | c. length c < length i} \<union> {c@cs | c cs. length c \<ge> length i \<and> c \<noteq> i}"
-    proof -
-      have x: "{c | c. length c = length i \<and> c \<noteq> i}  \<union> {c | c. length c > length i} = {c@cs | c cs. length c \<ge> length i \<and> c \<noteq> i}"
-      apply(safe)
-      apply force+
-      done
-      have "- {i::string} = {c |c . c \<noteq> i}"
-       by(safe, simp)
-      also have "\<dots> = {c | c. length c < length i} \<union> {c | c. length c = length i \<and> c \<noteq> i}  \<union> {c | c. length c > length i}"
-      by(auto)
-      finally show ?thesis using x by auto
-    qed
-  
-     
     private lemma inv_iface_name_set: "- (internal_iface_name_to_set i) = (
       if iface_name_is_wildcard i
       then
@@ -433,6 +403,40 @@ begin
       else
         {c | c. length c < length i} \<union> {c@cs | c cs. length c \<ge> length i \<and> c \<noteq> i}
     )"
+    proof -
+      { fix i::string
+        have inv_i_wildcard: "- {i@cs | cs. True} = {c | c. length c < length i} \<union> {c@cs | c cs. length c = length i \<and> c \<noteq> i}"
+          apply(rule)
+           prefer 2
+           apply(safe)[1]
+            apply(simp add:)
+           apply(simp add:)
+          apply(simp)
+          apply(rule Compl_anti_mono[where B="{i @ cs |cs. True}" and A="- ({c | c. length c < length i} \<union> {c@cs | c cs. length c = length i \<and> c \<noteq> i})", simplified])
+          apply(safe)
+          apply(simp)
+          apply(case_tac "(length i) = length x")
+           apply(erule_tac x=x in allE, simp)
+           apply(blast)
+          apply(erule_tac x="take (length i) x" in allE)
+          apply(simp add: min_def)
+          by (metis append_take_drop_id)
+      } note inv_i_wildcard=this
+      { fix i::string
+        have inv_i_nowildcard: "- {i::string} = {c | c. length c < length i} \<union> {c@cs | c cs. length c \<ge> length i \<and> c \<noteq> i}"
+        proof -
+          have x: "{c | c. length c = length i \<and> c \<noteq> i}  \<union> {c | c. length c > length i} = {c@cs | c cs. length c \<ge> length i \<and> c \<noteq> i}"
+          apply(safe)
+          apply force+
+          done
+          have "- {i::string} = {c |c . c \<noteq> i}"
+           by(safe, simp)
+          also have "\<dots> = {c | c. length c < length i} \<union> {c | c. length c = length i \<and> c \<noteq> i}  \<union> {c | c. length c > length i}"
+          by(auto)
+          finally show ?thesis using x by auto
+        qed
+      } note inv_i_nowildcard=this
+    show ?thesis
     apply(case_tac "iface_name_is_wildcard i")
      apply(simp_all only: internal_iface_name_to_set.simps if_True if_False not_True_eq_False not_False_eq_True)
      apply(subst inv_i_wildcard)
@@ -440,6 +444,7 @@ begin
     apply(subst inv_i_nowildcard)
     apply(simp)
     done
+    qed
 
     text{*Negating is really not intuitive.
           The Interface @{term "''et''"} is in the negated set of @{term "''eth+''"}.
