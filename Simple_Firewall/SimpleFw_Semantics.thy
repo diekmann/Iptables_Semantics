@@ -132,21 +132,19 @@ subsection{*Simple Firewall Semantics*}
               match_proto protocol (p_proto p) \<longrightarrow> simple_match_ip dip (p_dst p) \<longrightarrow> simple_match_ip sip (p_src p) \<longrightarrow>
               match_iface oif (p_oiface p) \<longrightarrow> match_iface iif (p_iiface p) \<longrightarrow> \<not> p_dport p \<le> dps2"
           from assm have nomatch: "\<forall>p::simple_packet. ?x p" by(simp add: m)
-    
-          have "\<And>a b. a \<in> ipv4range_set_from_bitmask a b" using ip_set_def ipv4range_set_from_bitmask_eq_ip_set by blast
-          hence ips: "\<And>ips. simple_match_ip ips (fst ips)" by force
+          { fix ips
+            have "\<And>a b. a \<in> ipv4range_set_from_bitmask a b" using ip_set_def ipv4range_set_from_bitmask_eq_ip_set by blast
+            hence "simple_match_ip ips (fst ips)" by(cases ips) simp
+          } note ips=this
           have proto: "match_proto protocol (case protocol of ProtoAny \<Rightarrow> TCP | Proto p \<Rightarrow> p)"
             by(simp split: protocol.split)
-          have ifaces: "\<And>ifce. match_iface ifce (iface_sel ifce)"
-            apply(case_tac ifce)
-            by(simp add: match_iface_refl)
-    
+          { fix ifce
+            have " match_iface ifce (iface_sel ifce)"
+            by(cases ifce) (simp add: match_iface_refl)
+          } note ifaces=this
           { fix p::simple_packet
-            from nomatch have "?x p"
-             apply -
-             apply(erule_tac x=p in allE)
-             by simp
-          }note pkt=this[of "\<lparr>p_iiface = iface_sel iif,
+            from nomatch have "?x p" by blast
+          } note pkt=this[of "\<lparr>p_iiface = iface_sel iif,
                             p_oiface = iface_sel oif,
                             p_src = fst sip,
                             p_dst = fst dip,
@@ -154,7 +152,6 @@ subsection{*Simple Firewall Semantics*}
                             p_sport = sps1,
                             p_dport = dps1\<rparr>", simplified]
           from pkt ips proto ifaces have " sps1 \<le> sps2 \<longrightarrow> \<not> dps1 \<le> dps2" by blast
-    
           thus "sps2 < sps1 \<or> dps2 < dps1" by fastforce
       qed
   qed
