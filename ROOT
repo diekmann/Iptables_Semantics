@@ -26,12 +26,14 @@ session "Iptables_Semantics" = Bitmagic +
 
 session "Iptables_Semantics_Examples" = Iptables_Semantics +
    theories
-    "Primitive_Matchers/Iface_Negation"
     "Examples/TUM_Net_Firewall/Analyze_TUM_Net_Firewall"
     "Examples/SQRL_Shorewall/Analyze_SQRL_Shorewall"
     "Examples/Synology_Diskstation_DS414/Analyze_Synology_Diskstation"
     "Examples/Ringofsaturn_com/Analyze_Ringofsaturn_com"
     "Examples/sns.ias.edu/SNS_IAS_Eduroam_Spoofing"
+    "Examples/TUM_Net_Firewall/TUM_Spoofing_new"
+    "Examples/TUM_Net_Firewall/TUM_Spoofing_new2"
+    "Examples/TUM_Net_Firewall/TUM_Spoofing_new3"
   document_files
     "root.tex"
     "mathpartir.sty"
