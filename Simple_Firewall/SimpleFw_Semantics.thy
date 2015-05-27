@@ -1,5 +1,5 @@
 theory SimpleFw_Semantics
-imports Main "../Semantics_Ternary/Negation_Type"
+imports Main "../Common/Negation_Type"
   "../Firewall_Common_Decision_State"
   "../Primitive_Matchers/IpAddresses"
   "../Primitive_Matchers/Iface"

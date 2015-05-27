@@ -1,5 +1,5 @@
 theory Matching_Ternary
-imports Ternary "../Firewall_Common"
+imports "../Common/Ternary" "../Firewall_Common"
 begin
 
 

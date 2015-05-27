@@ -1,5 +1,5 @@
 theory Iface
-imports String "../Semantics_Ternary/Negation_Type"
+imports String "../Common/Negation_Type"
 begin
 
 section{*Network Interfaces*}

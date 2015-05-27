@@ -1,5 +1,5 @@
 theory Negation_Type_Matching
-imports  Negation_Type Matching_Ternary "../Datatype_Selectors" Fixed_Action
+imports  "../Common/Negation_Type" Matching_Ternary "../Datatype_Selectors" Fixed_Action
 begin
 
 section{*Negation Type Matching*}

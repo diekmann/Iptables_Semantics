@@ -16,6 +16,8 @@ session "Iptables_Semantics" = Bitmagic +
     "Semantics_Ternary/Optimizing"
     "Primitive_Matchers/No_Spoof"
     "Primitive_Matchers/Transform"
+    "Primitive_Matchers/Iface_Attic"
+    "Primitive_Matchers/Iface_Negation" (*combine these 2*)
     "Simple_Firewall/SimpleFw_Compliance"
     "Simple_Firewall/Shadowed"
   document_files

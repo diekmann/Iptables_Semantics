@@ -1,6 +1,6 @@
 theory WordInterval_Lists
 imports WordInterval
-  "../Semantics_Ternary/Negation_Type"
+  "../Common/Negation_Type"
 begin
 
 subsection{*WordInterval to List*}

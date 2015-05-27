@@ -1,5 +1,5 @@
 theory Negation_Type_DNF
-imports "../Semantics_Ternary/Negation_Type" (*TODO: move negation_type to this folder*)
+imports Negation_Type
 begin
 
 section{*Negation Type DNF*}
