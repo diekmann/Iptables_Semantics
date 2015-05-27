@@ -262,6 +262,14 @@ apply(induction rs s t rule: approximating_bigstep_induct)
 by (metis good_ruleset_append iptables_bigstep.seq)
 
 
+(*TODO: we can show LukassLemma with \<longleftrightarrow>*)
+lemma "
+matcher_agree_on_exact_matches \<gamma> \<beta> \<Longrightarrow>
+(\<forall> r \<in> set rs. ternary_ternary_eval (map_match_tac \<beta> p (get_match r)) \<noteq> TernaryUnknown) \<Longrightarrow>
+good_ruleset rs \<Longrightarrow>
+ \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<Longrightarrow> (\<beta>,\<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+by (metis LukassLemma approximating_fun_imp_semantics good_imp_wf_ruleset iptables_bigstep_deterministic)
+
 
 text{*
 For rulesets without @{term Call}s, the approximating ternary semantics can perfectly simulate the Boolean semantics.
@@ -285,6 +293,7 @@ apply(subst approximating_semantics_iff_fun_good_ruleset[symmetric])
 apply(subst \<beta>\<^sub>m\<^sub>a\<^sub>g\<^sub>i\<^sub>c_approximating_bigstep_iff_iptables_bigstep[where \<Gamma>=\<Gamma>])
  using assms apply (simp add: good_ruleset_def)
 by simp
+
 
 
 end
