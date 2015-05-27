@@ -6,31 +6,31 @@ section{*Semantics Embedding*}
 
 subsection{*Tactic @{const in_doubt_allow}*}
 
-lemma iptables_bigstep_undecided_to_undecided_in_doubt_allow_approx: "matcher_agree_on_exact_matches \<gamma> \<beta> \<Longrightarrow>
-       good_ruleset rs \<Longrightarrow>
-       \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow>
-       (\<beta>, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Undecided \<or> (\<beta>, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow"
-apply(rotate_tac 2)
-apply(induction rs Undecided Undecided rule: iptables_bigstep_induct)
-     apply(simp_all)
-     apply (metis approximating_bigstep.skip)
-    apply (metis approximating_bigstep.empty approximating_bigstep.log approximating_bigstep.nomatch)
-   apply(case_tac "a = Log")
-    apply (metis approximating_bigstep.log approximating_bigstep.nomatch)
-   apply(case_tac "a = Empty")
-    apply (metis approximating_bigstep.empty approximating_bigstep.nomatch)
-   apply(drule_tac a=a in not_exact_match_in_doubt_allow_approx_match)
-     apply(simp_all)
-    apply(simp add: good_ruleset_alt)
-    apply fast
-   apply (metis approximating_bigstep.accept approximating_bigstep.nomatch)
-  apply(frule iptables_bigstep_to_undecided)
-  apply(simp)
-  apply(simp add: good_ruleset_append)
-  apply (metis (hide_lams, no_types) approximating_bigstep.decision Semantics_Ternary.seq')
- apply(simp add: good_ruleset_def)
-apply(simp add: good_ruleset_def)
-done
+lemma iptables_bigstep_undecided_to_undecided_in_doubt_allow_approx:
+  assumes agree: "matcher_agree_on_exact_matches \<gamma> \<beta>"
+      and good: "good_ruleset rs" and semantics: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided"
+    shows "(\<beta>, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Undecided \<or> (\<beta>, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow"
+  proof -
+    from semantics good show ?thesis
+    proof(induction rs Undecided Undecided rule: iptables_bigstep_induct)
+      case Skip thus ?case by(auto intro: approximating_bigstep.skip)
+    next
+      case Log thus ?case by(auto intro: approximating_bigstep.empty approximating_bigstep.log approximating_bigstep.nomatch)
+    next
+      case (Nomatch m a)
+      with not_exact_match_in_doubt_allow_approx_match[OF agree] have
+        "a \<noteq> Log \<Longrightarrow> a \<noteq> Empty \<Longrightarrow> a = Accept \<and> Matching_Ternary.matches (\<beta>, in_doubt_allow) m a p \<or> \<not> Matching_Ternary.matches (\<beta>, in_doubt_allow) m a p"
+      by(simp add: good_ruleset_alt) blast
+      thus ?case
+        by(cases a) (auto intro: approximating_bigstep.empty approximating_bigstep.log approximating_bigstep.accept approximating_bigstep.nomatch)
+    next
+      case (Seq rs rs1 rs2 t)
+        from Seq have "good_ruleset rs1" and "good_ruleset rs2"
+        by(simp_all add: good_ruleset_append)
+        also from Seq iptables_bigstep_to_undecided have "t = Undecided" by simp
+        ultimately show ?case using Seq by(fastforce intro: approximating_bigstep.decision Semantics_Ternary.seq')
+    qed(simp_all add: good_ruleset_def)
+  qed
 
 lemma FinalAllow_approximating_in_doubt_allow: "matcher_agree_on_exact_matches \<gamma> \<beta> \<Longrightarrow>
    good_ruleset rs \<Longrightarrow>
