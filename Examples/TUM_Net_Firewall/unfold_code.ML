@@ -4,7 +4,6 @@ structure Test : sig
   type nat
   val integer_of_nat : nat -> IntInf.int
   type 'a equal
-  type 'a numeral
   type 'a word
   datatype iface = Iface of char list
   val nat_of_integer : IntInf.int -> nat
@@ -33,8 +32,7 @@ structure Test : sig
   datatype simple_rule = SimpleRule of unit simple_match_ext * simple_action
   val map_of : 'a equal -> ('a * 'b) list -> 'a -> 'b option
   val ifaceAny : iface
-  val ipassmt :
-    'a numeral -> (iface * (num1 bit0 bit0 bit0 bit0 bit0 word * 'a) list) list
+  val ipassmt : (iface * (num1 bit0 bit0 bit0 bit0 bit0 word * nat) list) list
   val no_spoofing_iface :
     iface ->
       (iface -> ((num1 bit0 bit0 bit0 bit0 bit0 word * nat) list) option) ->
@@ -117,32 +115,6 @@ val equal = #equal : 'a equal -> 'a -> 'a -> bool;
 
 val equal_nat = {equal = equal_nata} : nat equal;
 
-val one_nata : nat = Nat (1 : IntInf.int);
-
-val one_nat = {one = one_nata} : nat one;
-
-fun plus_nata m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
-
-type 'a plus = {plus : 'a -> 'a -> 'a};
-val plus = #plus : 'a plus -> 'a -> 'a -> 'a;
-
-val plus_nat = {plus = plus_nata} : nat plus;
-
-type 'a semigroup_add = {plus_semigroup_add : 'a plus};
-val plus_semigroup_add = #plus_semigroup_add : 'a semigroup_add -> 'a plus;
-
-type 'a numeral =
-  {one_numeral : 'a one, semigroup_add_numeral : 'a semigroup_add};
-val one_numeral = #one_numeral : 'a numeral -> 'a one;
-val semigroup_add_numeral = #semigroup_add_numeral :
-  'a numeral -> 'a semigroup_add;
-
-val semigroup_add_nat = {plus_semigroup_add = plus_nat} : nat semigroup_add;
-
-val numeral_nat =
-  {one_numeral = one_nat, semigroup_add_numeral = semigroup_add_nat} :
-  nat numeral;
-
 fun less_eq_nat m n = IntInf.<= (integer_of_nat m, integer_of_nat n);
 
 type 'a ord = {less_eq : 'a -> 'a -> bool, less : 'a -> 'a -> bool};
@@ -224,9 +196,11 @@ fun minus_nat m n =
 
 val zero_nat : nat = Nat (0 : IntInf.int);
 
+val one_nat : nat = Nat (1 : IntInf.int);
+
 fun power one times a n =
   (if equal_nata n zero_nat then one
-    else times a (power one times a (minus_nat n one_nata)));
+    else times a (power one times a (minus_nat n one_nat)));
 
 fun powera A_ = power (one (one_power A_)) (times (times_power A_));
 
@@ -243,6 +217,9 @@ fun plus_int k l =
 
 fun plus_worda A_ a b = word_of_int A_ (plus_int (uint A_ a) (uint A_ b));
 
+type 'a plus = {plus : 'a -> 'a -> 'a};
+val plus = #plus : 'a plus -> 'a -> 'a -> 'a;
+
 fun plus_word A_ = {plus = plus_worda A_} : 'a word plus;
 
 val zero_int : int = Int_of_integer (0 : IntInf.int);
@@ -253,6 +230,15 @@ type 'a zero = {zero : 'a};
 val zero = #zero : 'a zero -> 'a;
 
 fun zero_word A_ = {zero = zero_worda A_} : 'a word zero;
+
+type 'a semigroup_add = {plus_semigroup_add : 'a plus};
+val plus_semigroup_add = #plus_semigroup_add : 'a semigroup_add -> 'a plus;
+
+type 'a numeral =
+  {one_numeral : 'a one, semigroup_add_numeral : 'a semigroup_add};
+val one_numeral = #one_numeral : 'a numeral -> 'a one;
+val semigroup_add_numeral = #semigroup_add_numeral :
+  'a numeral -> 'a semigroup_add;
 
 fun semigroup_add_word A_ = {plus_semigroup_add = plus_word A_} :
   'a word semigroup_add;
@@ -437,7 +423,7 @@ fun len_bit0 A_ = {len0_len = len0_bit0 (len0_len A_)} : 'a bit0 len;
 
 datatype num1 = One_num1;
 
-fun len_of_num1 x = one_nata;
+fun len_of_num1 x = one_nat;
 
 val len0_num1 = {len_of = len_of_num1} : num1 len0;
 
@@ -609,7 +595,9 @@ fun id x = (fn xa => xa) x;
 
 fun nat x = (nat_of_integer o integer_of_int) x;
 
-fun suc n = plus_nata n one_nata;
+fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
+
+fun suc n = plus_nat n one_nat;
 
 fun find f [] = NONE
   | find f (x :: xs) = (if f x then SOME x else find f xs);
@@ -627,7 +615,7 @@ fun null [] = true
 
 fun take n [] = []
   | take n (x :: xs) =
-    (if equal_nata n zero_nat then [] else x :: take (minus_nat n one_nata) xs);
+    (if equal_nata n zero_nat then [] else x :: take (minus_nat n one_nat) xs);
 
 fun minus_int k l =
   Int_of_integer (IntInf.- (integer_of_int k, integer_of_int l));
@@ -647,7 +635,7 @@ fun bit k b =
 fun shiftl1 A_ w = word_of_int A_ (bit (uint A_ w) false);
 
 fun funpow n f =
-  (if equal_nata n zero_nat then id else f o funpow (minus_nat n one_nata) f);
+  (if equal_nata n zero_nat then id else f o funpow (minus_nat n one_nat) f);
 
 fun shiftl_word A_ w n = funpow n (shiftl1 A_) w;
 
@@ -797,11 +785,11 @@ fun size_list x = gen_length zero_nat x;
 
 fun internal_iface_name_wildcard_longest i1 i2 =
   (if equal_lista equal_char
-        (take (min ord_nat (minus_nat (size_list i1) one_nata)
-                (minus_nat (size_list i2) one_nata))
+        (take (min ord_nat (minus_nat (size_list i1) one_nat)
+                (minus_nat (size_list i2) one_nat))
           i1)
-        (take (min ord_nat (minus_nat (size_list i1) one_nata)
-                (minus_nat (size_list i2) one_nata))
+        (take (min ord_nat (minus_nat (size_list i1) one_nat)
+                (minus_nat (size_list i2) one_nat))
           i2)
     then SOME (if less_eq_nat (size_list i1) (size_list i2) then i2 else i1)
     else NONE);
@@ -1043,168 +1031,236 @@ fun ipv4range_split rs =
            | (SOME s, u) => s :: ipv4range_split u)
     else []);
 
+fun ipv4range_invert r = ipv4range_setminus ipv4range_UNIV r;
+
+fun bitNOT_word A_ a = word_of_int A_ (bitNOT_int (uint A_ a));
+
+fun ipv4cidr_to_interval (pre, len) =
+  let
+    val netmask =
+      shiftl_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+          len)
+        (minus_nat (nat_of_integer (32 : IntInf.int)) len);
+    val network_prefix =
+      bitAND_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        pre netmask;
+  in
+    (network_prefix,
+      bitOR_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        network_prefix
+        (bitNOT_word
+          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+          netmask))
+  end;
+
 fun ipv4addr_of_dotdecimal (a, (b, (c, d))) =
   ipv4addr_of_nat
-    (plus_nata
-      (plus_nata (plus_nata d (times_nat (nat_of_integer (256 : IntInf.int)) c))
+    (plus_nat
+      (plus_nat (plus_nat d (times_nat (nat_of_integer (256 : IntInf.int)) c))
         (times_nat (nat_of_integer (65536 : IntInf.int)) b))
       (times_nat (nat_of_integer (16777216 : IntInf.int)) a));
 
-fun ipassmt A_ =
+val everything_but_my_ips : (num1 bit0 bit0 bit0 bit0 bit0 word * nat) list =
+  ipv4range_split
+    (ipv4range_invert
+      (l2br (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+        (map ipv4cidr_to_interval
+          [(ipv4addr_of_dotdecimal
+              (nat_of_integer (131 : IntInf.int),
+                (nat_of_integer (159 : IntInf.int),
+                  (nat_of_integer (14 : IntInf.int), zero_nat))),
+             nat_of_integer (23 : IntInf.int)),
+            (ipv4addr_of_dotdecimal
+               (nat_of_integer (131 : IntInf.int),
+                 (nat_of_integer (159 : IntInf.int),
+                   (nat_of_integer (20 : IntInf.int), zero_nat))),
+              nat_of_integer (23 : IntInf.int)),
+            (ipv4addr_of_dotdecimal
+               (nat_of_integer (192 : IntInf.int),
+                 (nat_of_integer (168 : IntInf.int),
+                   (nat_of_integer (212 : IntInf.int), zero_nat))),
+              nat_of_integer (23 : IntInf.int)),
+            (ipv4addr_of_dotdecimal
+               (nat_of_integer (188 : IntInf.int),
+                 (nat_of_integer (95 : IntInf.int),
+                   (nat_of_integer (233 : IntInf.int), zero_nat))),
+              nat_of_integer (24 : IntInf.int)),
+            (ipv4addr_of_dotdecimal
+               (nat_of_integer (188 : IntInf.int),
+                 (nat_of_integer (95 : IntInf.int),
+                   (nat_of_integer (232 : IntInf.int),
+                     nat_of_integer (192 : IntInf.int)))),
+              nat_of_integer (27 : IntInf.int)),
+            (ipv4addr_of_dotdecimal
+               (nat_of_integer (188 : IntInf.int),
+                 (nat_of_integer (95 : IntInf.int),
+                   (nat_of_integer (234 : IntInf.int), zero_nat))),
+              nat_of_integer (23 : IntInf.int)),
+            (ipv4addr_of_dotdecimal
+               (nat_of_integer (192 : IntInf.int),
+                 (nat_of_integer (48 : IntInf.int),
+                   (nat_of_integer (107 : IntInf.int), zero_nat))),
+              nat_of_integer (24 : IntInf.int)),
+            (ipv4addr_of_dotdecimal
+               (nat_of_integer (188 : IntInf.int),
+                 (nat_of_integer (95 : IntInf.int),
+                   (nat_of_integer (236 : IntInf.int), zero_nat))),
+              nat_of_integer (22 : IntInf.int)),
+            (ipv4addr_of_dotdecimal
+               (nat_of_integer (185 : IntInf.int),
+                 (nat_of_integer (86 : IntInf.int),
+                   (nat_of_integer (232 : IntInf.int), zero_nat))),
+              nat_of_integer (22 : IntInf.int))])));
+
+val ipassmt : (iface * (num1 bit0 bit0 bit0 bit0 bit0 word * nat) list) list =
   [(Iface [#"e", #"t", #"h", #"0"],
      [(ipv4addr_of_dotdecimal
          (nat_of_integer (192 : IntInf.int),
            (nat_of_integer (168 : IntInf.int),
              (nat_of_integer (213 : IntInf.int),
                nat_of_integer (4 : IntInf.int)))),
-        numeral A_ (Bit0 (Bit0 (Bit0 (Bit1 One)))))]),
+        nat_of_integer (24 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"9", #"6"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 : IntInf.int),
             (nat_of_integer (159 : IntInf.int),
               (nat_of_integer (14 : IntInf.int),
                 nat_of_integer (3 : IntInf.int)))),
-         numeral A_ (Bit1 (Bit0 (Bit0 (Bit1 One)))))]),
+         nat_of_integer (25 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"8"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 : IntInf.int),
             (nat_of_integer (159 : IntInf.int),
               (nat_of_integer (14 : IntInf.int),
                 nat_of_integer (129 : IntInf.int)))),
-         numeral A_ (Bit0 (Bit1 (Bit0 (Bit1 One)))))]),
+         nat_of_integer (26 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"9"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 : IntInf.int),
             (nat_of_integer (159 : IntInf.int),
               (nat_of_integer (20 : IntInf.int),
                 nat_of_integer (11 : IntInf.int)))),
-         numeral A_ (Bit0 (Bit0 (Bit0 (Bit1 One)))))]),
+         nat_of_integer (24 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"1", #"0"],
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (131 : IntInf.int),
-            (nat_of_integer (159 : IntInf.int),
-              (nat_of_integer (252 : IntInf.int),
-                nat_of_integer (150 : IntInf.int)))),
-         numeral A_ (Bit0 (Bit1 (Bit1 (Bit1 One)))))]),
+      everything_but_my_ips),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"1", #"6"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 : IntInf.int),
             (nat_of_integer (159 : IntInf.int),
               (nat_of_integer (15 : IntInf.int),
                 nat_of_integer (131 : IntInf.int)))),
-         numeral A_ (Bit0 (Bit1 (Bit0 (Bit1 One)))))]),
+         nat_of_integer (26 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"5", #"2"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 : IntInf.int),
             (nat_of_integer (159 : IntInf.int),
               (nat_of_integer (15 : IntInf.int),
                 nat_of_integer (252 : IntInf.int)))),
-         numeral A_ (Bit0 (Bit0 (Bit1 (Bit1 One)))))]),
+         nat_of_integer (28 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"7", #"1"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 : IntInf.int),
             (nat_of_integer (159 : IntInf.int),
               (nat_of_integer (15 : IntInf.int),
                 nat_of_integer (2 : IntInf.int)))),
-         numeral A_ (Bit0 (Bit1 (Bit0 (Bit1 One)))))]),
+         nat_of_integer (26 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"7", #"3"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 : IntInf.int),
             (nat_of_integer (159 : IntInf.int),
               (nat_of_integer (21 : IntInf.int),
                 nat_of_integer (252 : IntInf.int)))),
-         numeral A_ (Bit0 (Bit0 (Bit0 (Bit1 One)))))]),
+         nat_of_integer (24 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"0"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 : IntInf.int),
             (nat_of_integer (159 : IntInf.int),
               (nat_of_integer (15 : IntInf.int),
                 nat_of_integer (227 : IntInf.int)))),
-         numeral A_ (Bit0 (Bit0 (Bit1 (Bit1 One)))))]),
+         nat_of_integer (28 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"1"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 : IntInf.int),
             (nat_of_integer (159 : IntInf.int),
               (nat_of_integer (14 : IntInf.int),
                 nat_of_integer (194 : IntInf.int)))),
-         numeral A_ (Bit1 (Bit1 (Bit0 (Bit1 One)))))]),
+         nat_of_integer (27 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"2"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 : IntInf.int),
             (nat_of_integer (159 : IntInf.int),
               (nat_of_integer (14 : IntInf.int),
                 nat_of_integer (238 : IntInf.int)))),
-         numeral A_ (Bit0 (Bit0 (Bit1 (Bit1 One)))))]),
+         nat_of_integer (28 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"4"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 : IntInf.int),
             (nat_of_integer (159 : IntInf.int),
               (nat_of_integer (15 : IntInf.int),
                 nat_of_integer (217 : IntInf.int)))),
-         numeral A_ (Bit1 (Bit1 (Bit0 (Bit1 One)))))]),
+         nat_of_integer (27 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"6"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 : IntInf.int),
             (nat_of_integer (159 : IntInf.int),
               (nat_of_integer (15 : IntInf.int),
                 nat_of_integer (66 : IntInf.int)))),
-         numeral A_ (Bit0 (Bit1 (Bit0 (Bit1 One)))))]),
+         nat_of_integer (26 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"7"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 : IntInf.int),
             (nat_of_integer (159 : IntInf.int),
               (nat_of_integer (14 : IntInf.int),
                 nat_of_integer (242 : IntInf.int)))),
-         numeral A_ (Bit0 (Bit0 (Bit1 (Bit1 One)))))]),
+         nat_of_integer (28 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"1", #"1", #"1"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (192 : IntInf.int),
             (nat_of_integer (168 : IntInf.int),
               (nat_of_integer (212 : IntInf.int),
                 nat_of_integer (4 : IntInf.int)))),
-         numeral A_ (Bit0 (Bit0 (Bit0 (Bit1 One)))))]),
+         nat_of_integer (24 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"9", #"7"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (188 : IntInf.int),
             (nat_of_integer (95 : IntInf.int),
               (nat_of_integer (233 : IntInf.int),
                 nat_of_integer (2 : IntInf.int)))),
-         numeral A_ (Bit0 (Bit0 (Bit0 (Bit1 One)))))]),
+         nat_of_integer (24 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"1", #"9"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (188 : IntInf.int),
             (nat_of_integer (95 : IntInf.int),
               (nat_of_integer (234 : IntInf.int),
                 nat_of_integer (2 : IntInf.int)))),
-         numeral A_ (Bit1 (Bit1 (Bit1 (Bit0 One)))))]),
+         nat_of_integer (23 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"2", #"0"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (192 : IntInf.int),
             (nat_of_integer (48 : IntInf.int),
               (nat_of_integer (107 : IntInf.int),
                 nat_of_integer (2 : IntInf.int)))),
-         numeral A_ (Bit0 (Bit0 (Bit0 (Bit1 One)))))]),
+         nat_of_integer (24 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"2", #"3"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (188 : IntInf.int),
             (nat_of_integer (95 : IntInf.int),
               (nat_of_integer (236 : IntInf.int),
                 nat_of_integer (2 : IntInf.int)))),
-         numeral A_ (Bit0 (Bit1 (Bit1 (Bit0 One)))))]),
+         nat_of_integer (22 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"2", #"5"],
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (185 : IntInf.int),
             (nat_of_integer (86 : IntInf.int),
               (nat_of_integer (232 : IntInf.int),
                 nat_of_integer (2 : IntInf.int)))),
-         numeral A_ (Bit0 (Bit1 (Bit1 (Bit0 One)))))]),
+         nat_of_integer (22 : IntInf.int))]),
     (Iface [#"e", #"t", #"h", #"1", #".", #"1", #"0", #"2", #"4"],
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (188 : IntInf.int),
-            (nat_of_integer (95 : IntInf.int),
-              (nat_of_integer (232 : IntInf.int),
-                nat_of_integer (61 : IntInf.int)))),
-         numeral A_ (Bit1 (Bit0 (Bit1 (Bit1 One)))))])];
+      everything_but_my_ips)];
 
 fun matcheq_matachAny MatchAny = true
   | matcheq_matachAny (MatchNot m) = not (matcheq_matachAny m)
@@ -1253,30 +1309,6 @@ fun is_Src (Src x1) = true
   | is_Src (Src_Ports x6) = false
   | is_Src (Dst_Ports x7) = false
   | is_Src (Extra x8) = false;
-
-fun bitNOT_word A_ a = word_of_int A_ (bitNOT_int (uint A_ a));
-
-fun ipv4cidr_to_interval (pre, len) =
-  let
-    val netmask =
-      shiftl_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-        (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-          len)
-        (minus_nat (nat_of_integer (32 : IntInf.int)) len);
-    val network_prefix =
-      bitAND_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-        pre netmask;
-  in
-    (network_prefix,
-      bitOR_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-        network_prefix
-        (bitNOT_word
-          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-          netmask))
-  end;
 
 fun ipt_ipv4range_to_interval (Ip4Addr addr) =
   (ipv4addr_of_dotdecimal addr, ipv4addr_of_dotdecimal addr)
@@ -1724,20 +1756,20 @@ fun optimize_primitive_univ (Match (IIface iface)) =
                            then (if equal_nata ve zero_nat then MatchAny
                                   else Match
  (Src (Ip4AddrNetmask
-        ((suc (minus_nat ve one_nata), (zero_nat, (zero_nat, zero_nat))),
+        ((suc (minus_nat ve one_nat), (zero_nat, (zero_nat, zero_nat))),
           zero_nat))))
                            else Match (Src
 (Ip4AddrNetmask
-  ((ve, (suc (minus_nat vg one_nata), (zero_nat, zero_nat))), zero_nat))))
+  ((ve, (suc (minus_nat vg one_nat), (zero_nat, zero_nat))), zero_nat))))
                     else Match (Src (Ip4AddrNetmask
                                       ((ve,
- (vg, (suc (minus_nat vi one_nata), zero_nat))),
+ (vg, (suc (minus_nat vi one_nat), zero_nat))),
 zero_nat))))
              else Match (Src (Ip4AddrNetmask
-                               ((ve, (vg, (vi, suc (minus_nat via one_nata)))),
+                               ((ve, (vg, (vi, suc (minus_nat via one_nat)))),
                                  zero_nat))))
       else Match (Src (Ip4AddrNetmask
-                        ((ve, (vg, (vi, via))), suc (minus_nat vc one_nata)))))
+                        ((ve, (vg, (vi, via))), suc (minus_nat vc one_nat)))))
   | optimize_primitive_univ
     (Match (Dst (Ip4AddrNetmask ((ve, (vg, (vi, via))), vc)))) =
     (if equal_nata vc zero_nat
@@ -1747,20 +1779,20 @@ zero_nat))))
                            then (if equal_nata ve zero_nat then MatchAny
                                   else Match
  (Dst (Ip4AddrNetmask
-        ((suc (minus_nat ve one_nata), (zero_nat, (zero_nat, zero_nat))),
+        ((suc (minus_nat ve one_nat), (zero_nat, (zero_nat, zero_nat))),
           zero_nat))))
                            else Match (Dst
 (Ip4AddrNetmask
-  ((ve, (suc (minus_nat vg one_nata), (zero_nat, zero_nat))), zero_nat))))
+  ((ve, (suc (minus_nat vg one_nat), (zero_nat, zero_nat))), zero_nat))))
                     else Match (Dst (Ip4AddrNetmask
                                       ((ve,
- (vg, (suc (minus_nat vi one_nata), zero_nat))),
+ (vg, (suc (minus_nat vi one_nat), zero_nat))),
 zero_nat))))
              else Match (Dst (Ip4AddrNetmask
-                               ((ve, (vg, (vi, suc (minus_nat via one_nata)))),
+                               ((ve, (vg, (vi, suc (minus_nat via one_nat)))),
                                  zero_nat))))
       else Match (Dst (Ip4AddrNetmask
-                        ((ve, (vg, (vi, via))), suc (minus_nat vc one_nata)))));
+                        ((ve, (vg, (vi, via))), suc (minus_nat vc one_nat)))));
 
 fun opt_MatchAny_match_expr MatchAny = MatchAny
   | opt_MatchAny_match_expr (Match a) = Match a
@@ -1954,10 +1986,10 @@ fun map_of_string rs = map_of (equal_list equal_char) rs;
 
 fun string_of_nat n =
   (if less_nat n (nat_of_integer (10 : IntInf.int))
-    then [char_of_nat (plus_nata (nat_of_integer (48 : IntInf.int)) n)]
+    then [char_of_nat (plus_nat (nat_of_integer (48 : IntInf.int)) n)]
     else string_of_nat (div_nat n (nat_of_integer (10 : IntInf.int))) @
            [char_of_nat
-              (plus_nata (nat_of_integer (48 : IntInf.int))
+              (plus_nat (nat_of_integer (48 : IntInf.int))
                 (mod_nat n (nat_of_integer (10 : IntInf.int))))]);
 
 fun port_toString p =
@@ -2583,10 +2615,10 @@ fun equal_action Empty Unknown = false
   | equal_action Accept Accept = true;
 
 fun example_ipassignment_nospoof ifce =
-  no_spoofing_iface (Iface ifce) (map_of equal_iface (ipassmt numeral_nat));
+  no_spoofing_iface (Iface ifce) (map_of equal_iface ipassmt);
 
 fun example_ipassmt_sanity_defined rs =
-  ipassmt_sanity_defined rs (map_of equal_iface (ipassmt numeral_nat));
+  ipassmt_sanity_defined rs (map_of equal_iface ipassmt);
 
 fun simple_rule_iptables_save_toString chain
   (SimpleRule (Simple_match_ext (iif, oif, sip, dip, p, sps, dps, ()), a)) =

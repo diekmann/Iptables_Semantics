@@ -100,7 +100,7 @@ subsection{*Normalizing IP Addresses*}
    text{*Normalizing the dst ips preserves the normalized src ips*}
    lemma "normalized_nnf_match m \<Longrightarrow> normalized_src_ips m \<Longrightarrow> \<forall>mn\<in>set (normalize_dst_ips m). normalized_src_ips mn"
    unfolding normalize_dst_ips_def normalized_src_ips_def2
-   by(rule normalize_primitive_extract_preserves_unrelated_normalized_n_primitive) (simp_all)
+   by(rule normalize_primitive_extract_preserves_unrelated_normalized_n_primitive)(simp_all add: wf_disc_sel_common_primitive)
 
 
 

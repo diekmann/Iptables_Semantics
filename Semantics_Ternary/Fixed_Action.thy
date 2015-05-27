@@ -21,36 +21,35 @@ by fastforce
 
 
 text{*utility lemmas*}
-  lemma fixedaction_Log: "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m Log) ms) Undecided = Undecided"
-  apply(induction ms, simp_all)
-  done
-  lemma fixedaction_Empty:"approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m Empty) ms) Undecided = Undecided"
-  apply(induction ms, simp_all)
-  done
-  lemma helperX1_Log: "matches \<gamma> m' Log p \<Longrightarrow> 
+context
+begin
+  private lemma fixedaction_Log: "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m Log) ms) Undecided = Undecided"
+    by(induction ms, simp_all)
+
+  private lemma fixedaction_Empty:"approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m Empty) ms) Undecided = Undecided"
+    by(induction ms, simp_all)
+
+  private lemma helperX1_Log: "matches \<gamma> m' Log p \<Longrightarrow> 
          approximating_bigstep_fun \<gamma> p (map ((\<lambda>m. Rule m Log) \<circ> MatchAnd m') m2' @ rs2) Undecided =
          approximating_bigstep_fun \<gamma> p rs2 Undecided"
-  apply(induction m2')
-  apply(simp_all split: action.split)
-  done
-  lemma helperX1_Empty: "matches \<gamma> m' Empty p \<Longrightarrow> 
+    by(induction m2')(simp_all split: action.split)
+
+  private lemma helperX1_Empty: "matches \<gamma> m' Empty p \<Longrightarrow> 
          approximating_bigstep_fun \<gamma> p (map ((\<lambda>m. Rule m Empty) \<circ> MatchAnd m') m2' @ rs2) Undecided =
          approximating_bigstep_fun \<gamma> p rs2 Undecided"
-  apply(induction m2')
-  apply(simp_all split: action.split)
-  done
-  lemma helperX3: "matches \<gamma> m' a p \<Longrightarrow>
+    by(induction m2')(simp_all split: action.split)
+
+  private lemma helperX3: "matches \<gamma> m' a p \<Longrightarrow>
        approximating_bigstep_fun \<gamma> p (map ((\<lambda>m. Rule m a) \<circ> MatchAnd m') m2' @ rs2 ) Undecided =
        approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m2' @ rs2) Undecided"
-  apply(induction m2')
-   apply(simp)
-  apply(case_tac a)
-  apply(simp_all add: matches_simps)
-  done
+  proof(induction m2')
+    case Nil thus ?case by simp
+    next
+    case Cons thus ?case by(cases a) (simp_all add: matches_simps)
+  qed
   
-  lemmas fixed_action_simps = helperX1_Log helperX1_Empty helperX3
-  hide_fact helperX1_Log helperX1_Empty helperX3
-
+  lemmas fixed_action_simps = fixedaction_Log fixedaction_Empty helperX1_Log helperX1_Empty helperX3
+end
 
 lemma fixedaction_swap:
    "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m1@m2)) s = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m2@m1)) s"
@@ -234,7 +233,7 @@ subsection{*@{term match_list}*}
     apply(induction ms)
      apply(simp)
     apply(simp split: split_if_asm action.split)
-    apply(simp add: fixedaction_Log fixedaction_Empty)
+    apply(simp add: fixed_action_simps)
     done
   lemma match_list_False: "\<not> match_list \<gamma> ms a p \<Longrightarrow> approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) ms) Undecided = Undecided"
     apply(induction ms)
@@ -258,7 +257,7 @@ subsection{*@{term match_list}*}
     apply(rename_tac m ms2)
     apply(simp del: approximating_bigstep_fun.simps)
     apply(simp split: split_if_asm del: approximating_bigstep_fun.simps)
-     apply(simp split: action.split add: match_list_True fixedaction_Log fixedaction_Empty)
+     apply(simp split: action.split add: match_list_True fixed_action_simps)
     apply(simp)
     done
 

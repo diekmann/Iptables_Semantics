@@ -136,7 +136,6 @@ fun common_primitive_match_to_simple_match :: "common_primitive match_expr \<Rig
   "common_primitive_match_to_simple_match (Match (Dst_Ports [])) = None" |
   "common_primitive_match_to_simple_match (Match (Dst_Ports [(s,e)])) = Some (simple_match_any\<lparr> dports := (s,e) \<rparr>)" |
   "common_primitive_match_to_simple_match (MatchNot (Match (Prot ProtoAny))) = None" |
-  --"TODO:"
   "common_primitive_match_to_simple_match (MatchAnd m1 m2) = (case (common_primitive_match_to_simple_match m1, common_primitive_match_to_simple_match m2) of 
       (None, _) \<Rightarrow> None
     | (_, None) \<Rightarrow> None
@@ -205,16 +204,14 @@ theorem common_primitive_match_to_simple_match:
       and "normalized_ifaces m"
       and "normalized_protocols m"
       and "\<not> has_disc is_Extra m"
-  shows "(Some sm = common_primitive_match_to_simple_match m \<longrightarrow>
-             matches (common_matcher, \<alpha>) m a p \<longleftrightarrow> simple_matches sm p) \<and>
-         (common_primitive_match_to_simple_match m = None \<longrightarrow>
-             \<not> matches (common_matcher, \<alpha>) m a p)"
+  shows "(Some sm = common_primitive_match_to_simple_match m \<longrightarrow> matches (common_matcher, \<alpha>) m a p \<longleftrightarrow> simple_matches sm p) \<and>
+         (common_primitive_match_to_simple_match m = None \<longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p)"
 proof -
   { fix ip
     have "p_src p \<in> ipv4s_to_set ip \<longleftrightarrow> simple_match_ip (ipt_ipv4range_to_ipv4_word_netmask ip) (p_src p)"
     and  "p_dst p \<in> ipv4s_to_set ip \<longleftrightarrow> simple_match_ip (ipt_ipv4range_to_ipv4_word_netmask ip) (p_dst p)"
     by(case_tac [!] ip)(simp_all add: ipv4range_set_from_bitmask_32)
-  }note matches_SrcDst_simple_match2=this
+  } note matches_SrcDst_simple_match2=this
   show ?thesis
   using assms proof(induction m arbitrary: sm rule: common_primitive_match_to_simple_match.induct)
   case 1 thus ?case 
