@@ -245,31 +245,28 @@ by (metis FinalDeny_approximating_in_doubt_deny assms mem_Collect_eq subsetI)
 
 subsection{*Exact Embedding*}
 
-thm matcher_agree_on_exact_matches_def[of \<gamma> \<beta>]
-lemma LukassLemma:  "
-matcher_agree_on_exact_matches \<gamma> \<beta> \<Longrightarrow>
-(\<forall> r \<in> set rs. ternary_ternary_eval (map_match_tac \<beta> p (get_match r)) \<noteq> TernaryUnknown) \<Longrightarrow>
-good_ruleset rs \<Longrightarrow>
-(\<beta>,\<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<Longrightarrow>  \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
-apply(simp add: matcher_agree_on_exact_matches_def)
-apply(rotate_tac 3)
-apply(induction rs s t rule: approximating_bigstep_induct)
-      apply(auto intro: approximating_bigstep.intros iptables_bigstep.intros dest: iptables_bigstepD)
-    apply (metis iptables_bigstep.accept matcher_agree_on_exact_matches_def matches_comply_exact)
-   apply (metis deny matcher_agree_on_exact_matches_def matches_comply_exact)
-  apply (metis iptables_bigstep.reject matcher_agree_on_exact_matches_def matches_comply_exact)
- apply (metis iptables_bigstep.nomatch matcher_agree_on_exact_matches_def matches_comply_exact)
-by (metis good_ruleset_append iptables_bigstep.seq)
-
-
-(*TODO: we can show LukassLemma with \<longleftrightarrow>*)
-lemma "
-matcher_agree_on_exact_matches \<gamma> \<beta> \<Longrightarrow>
-(\<forall> r \<in> set rs. ternary_ternary_eval (map_match_tac \<beta> p (get_match r)) \<noteq> TernaryUnknown) \<Longrightarrow>
-good_ruleset rs \<Longrightarrow>
- \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<Longrightarrow> (\<beta>,\<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
-by (metis LukassLemma approximating_fun_imp_semantics good_imp_wf_ruleset iptables_bigstep_deterministic)
-
+lemma LukassLemma: assumes agree: "matcher_agree_on_exact_matches \<gamma> \<beta>"
+        and noUnknown: "(\<forall> r \<in> set rs. ternary_ternary_eval (map_match_tac \<beta> p (get_match r)) \<noteq> TernaryUnknown)"
+        and good: "good_ruleset rs"
+      shows "(\<beta>,\<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow>  \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+proof -
+  { fix t --{*if we show it for arbitrary @{term t}, we can reuse this fact for the other direction.*}
+    assume a: "(\<beta>,\<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+    from a good agree noUnknown have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+      proof(induction rs s t rule: approximating_bigstep_induct)
+      qed(auto intro: approximating_bigstep.intros iptables_bigstep.intros dest: iptables_bigstepD dest: matches_comply_exact simp: good_ruleset_append)
+  } note 1=this
+  {
+    assume a: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+    obtain x where "approximating_bigstep_fun (\<beta>,\<alpha>) p rs s = x" by simp
+    with approximating_fun_imp_semantics[OF good_imp_wf_ruleset[OF good]] have x: "(\<beta>,\<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> x" by fast
+    with 1 have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> x" by simp
+    with a iptables_bigstep_deterministic have "x = t" by metis
+    hence "(\<beta>,\<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t" using x by blast
+  } note 2=this
+  from 1 2 show ?thesis by blast
+qed
+  
 
 text{*
 For rulesets without @{term Call}s, the approximating ternary semantics can perfectly simulate the Boolean semantics.
