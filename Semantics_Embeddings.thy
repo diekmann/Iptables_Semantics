@@ -248,11 +248,11 @@ good_ruleset rs \<Longrightarrow>
 apply(simp add: matcher_agree_on_exact_matches_def)
 apply(rotate_tac 3)
 apply(induction rs s t rule: approximating_bigstep_induct)
-apply(auto intro: approximating_bigstep.intros iptables_bigstep.intros dest: iptables_bigstepD)
-apply (metis iptables_bigstep.accept matcher_agree_on_exact_matches_def matches_comply_exact)
-apply (metis deny matcher_agree_on_exact_matches_def matches_comply_exact)
-apply (metis iptables_bigstep.reject matcher_agree_on_exact_matches_def matches_comply_exact)
-apply (metis iptables_bigstep.nomatch matcher_agree_on_exact_matches_def matches_comply_exact)
+      apply(auto intro: approximating_bigstep.intros iptables_bigstep.intros dest: iptables_bigstepD)
+    apply (metis iptables_bigstep.accept matcher_agree_on_exact_matches_def matches_comply_exact)
+   apply (metis deny matcher_agree_on_exact_matches_def matches_comply_exact)
+  apply (metis iptables_bigstep.reject matcher_agree_on_exact_matches_def matches_comply_exact)
+ apply (metis iptables_bigstep.nomatch matcher_agree_on_exact_matches_def matches_comply_exact)
 by (metis good_ruleset_append iptables_bigstep.seq)
 
 

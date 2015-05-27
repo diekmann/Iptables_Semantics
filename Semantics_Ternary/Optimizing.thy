@@ -106,28 +106,30 @@ fun rmMatchFalse :: "'a rule list \<Rightarrow> 'a rule list" where
   "rmMatchFalse ((Rule (MatchNot MatchAny) _)#rs) = rmMatchFalse rs" |
   "rmMatchFalse (r#rs) = r # rmMatchFalse rs"
 
-lemma rmMatchFalse_helper: "m \<noteq> MatchNot MatchAny \<Longrightarrow> (rmMatchFalse (Rule m a # rs)) = Rule m a # (rmMatchFalse rs)"
-  apply(case_tac m)
-  apply(simp_all)
-  apply(rename_tac match_expr)
-  apply(case_tac match_expr)
-  apply(simp_all)
-done
-
 lemma rmMatchFalse_correct: "approximating_bigstep_fun \<gamma> p (rmMatchFalse rs) s = approximating_bigstep_fun \<gamma> p rs s"
-  apply(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
-     apply(simp)
-    apply (metis Decision_approximating_bigstep_fun)
-   apply(case_tac "m = MatchNot MatchAny")
-    apply(simp)
-   apply(simp add: rmMatchFalse_helper)
-  apply(subgoal_tac "m \<noteq> MatchNot MatchAny")
-  apply(drule_tac a=a and rs=rs in rmMatchFalse_helper)
-  apply(simp split:action.split)
-  apply(thin_tac "a = x \<Longrightarrow> _" for x)
-  apply(thin_tac "a = x \<Longrightarrow> _" for x)
-  by (metis bunch_of_lemmata_about_matches(3))
-  
+  proof-
+    { fix m::"'a match_expr" and a and rs
+      assume assm: "m \<noteq> MatchNot MatchAny"
+      have "rmMatchFalse (Rule m a # rs) = Rule m a # (rmMatchFalse rs)" (is ?hlp)
+      proof(cases m)
+        case (MatchNot mexpr) with assm show ?hlp by(cases mexpr) simp_all
+        qed(simp_all)
+    } note rmMatchFalse_helper=this
+  show ?thesis
+    proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
+      case Empty thus ?case by(simp)
+      next
+      case Decision thus ?case by(metis Decision_approximating_bigstep_fun)
+      next
+      case (Nomatch \<gamma> p m a) thus ?case
+        by(cases "m = MatchNot MatchAny") (simp_all add: rmMatchFalse_helper)
+      next
+      case (Match \<gamma> p m a rs) 
+        from Match(1) have "m \<noteq> MatchNot MatchAny" using bunch_of_lemmata_about_matches(3) by fast
+        with Match rmMatchFalse_helper show ?case by(simp split:action.split)
+    qed
+  qed
+
 
 
 
