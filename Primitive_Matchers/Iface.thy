@@ -138,10 +138,8 @@ begin
   
     --{*@{const match_iface} explained by the individual cases*}
     lemma match_iface_case_nowildcard: "\<not> iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface i) p_i \<longleftrightarrow> i = p_i"
-      apply(simp)
-      apply(induction i p_i rule: internal_iface_name_match.induct)
-         apply(auto simp add: iface_name_is_wildcard_alt split: split_if_asm)
-      done
+      proof(induction i p_i rule: internal_iface_name_match.induct)
+      qed(auto simp add: iface_name_is_wildcard_alt split: split_if_asm)
     lemma match_iface_case_wildcard_prefix:
       "iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface i) p_i \<longleftrightarrow> butlast i = take (length i - 1) p_i"
       apply(simp)
@@ -154,11 +152,8 @@ begin
       apply(simp add: iface_name_is_wildcard_fst)
       by (metis One_nat_def length_0_conv list.sel(1) list.sel(3) take_Cons')
     lemma match_iface_case_wildcard_length: "iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface i) p_i \<Longrightarrow> length p_i \<ge> (length i - 1)"
-      apply(simp)
-      apply(induction i p_i rule: internal_iface_name_match.induct)
-         apply(simp_all)
-       apply(simp add: iface_name_is_wildcard_alt split: split_if_asm)
-      done
+      proof(induction i p_i rule: internal_iface_name_match.induct)
+      qed(simp_all add: iface_name_is_wildcard_alt split: split_if_asm)
     corollary match_iface_case_wildcard:
       "iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface i) p_i \<longleftrightarrow> butlast i = take (length i - 1) p_i \<and> length p_i \<ge> (length i - 1)"
       using match_iface_case_wildcard_length match_iface_case_wildcard_prefix by blast
@@ -378,10 +373,8 @@ begin
     private lemma non_wildcard_ifaces: "set (non_wildcard_ifaces n) = {s::string. length s = n \<and> \<not> iface_name_is_wildcard s}"
       using strings_of_length_n non_wildcard_ifaces_def by auto
   
-    private lemma  "(\<Union> i \<in> set (non_wildcard_ifaces n). internal_iface_name_to_set i) = {s::string. length s = n \<and> \<not> iface_name_is_wildcard s}"
-     apply(simp_all only: internal_iface_name_to_set.simps if_True if_False not_True_eq_False not_False_eq_True non_wildcard_ifaces)
-     apply(simp_all split: split_if_asm split_if)
-     done
+    private lemma "(\<Union> i \<in> set (non_wildcard_ifaces n). internal_iface_name_to_set i) = {s::string. length s = n \<and> \<not> iface_name_is_wildcard s}"
+     by(simp add: non_wildcard_ifaces)
   
     text{*Non-wildacrd interfaces up to length @{term n}*}
     private fun non_wildcard_ifaces_upto :: "nat \<Rightarrow> string list" where
@@ -389,10 +382,8 @@ begin
       "non_wildcard_ifaces_upto (Suc n) = (non_wildcard_ifaces (Suc n)) @ non_wildcard_ifaces_upto n"
     private lemma non_wildcard_ifaces_upto: "set (non_wildcard_ifaces_upto n) = {s::string. length s \<le> n \<and> \<not> iface_name_is_wildcard s}"
       apply(induction n)
-       apply(simp)
        apply fastforce
-      apply(simp add: non_wildcard_ifaces)
-      by fastforce
+      using non_wildcard_ifaces by fastforce
 
 
   subsection{*Negating Interfaces*}
@@ -406,11 +397,11 @@ begin
     proof -
       { fix i::string
         have inv_i_wildcard: "- {i@cs | cs. True} = {c | c. length c < length i} \<union> {c@cs | c cs. length c = length i \<and> c \<noteq> i}"
-          apply(rule)
+          apply(rule Set.equalityI)
            prefer 2
            apply(safe)[1]
-            apply(simp add:)
-           apply(simp add:)
+            apply(simp)
+           apply(simp)
           apply(simp)
           apply(rule Compl_anti_mono[where B="{i @ cs |cs. True}" and A="- ({c | c. length c < length i} \<union> {c@cs | c cs. length c = length i \<and> c \<noteq> i})", simplified])
           apply(safe)
@@ -426,24 +417,22 @@ begin
         have inv_i_nowildcard: "- {i::string} = {c | c. length c < length i} \<union> {c@cs | c cs. length c \<ge> length i \<and> c \<noteq> i}"
         proof -
           have x: "{c | c. length c = length i \<and> c \<noteq> i}  \<union> {c | c. length c > length i} = {c@cs | c cs. length c \<ge> length i \<and> c \<noteq> i}"
-          apply(safe)
-          apply force+
-          done
+            apply(safe)
+            apply force+
+            done
           have "- {i::string} = {c |c . c \<noteq> i}"
            by(safe, simp)
           also have "\<dots> = {c | c. length c < length i} \<union> {c | c. length c = length i \<and> c \<noteq> i}  \<union> {c | c. length c > length i}"
-          by(auto)
+            by(auto)
           finally show ?thesis using x by auto
         qed
       } note inv_i_nowildcard=this
     show ?thesis
-    apply(case_tac "iface_name_is_wildcard i")
-     apply(simp_all only: internal_iface_name_to_set.simps if_True if_False not_True_eq_False not_False_eq_True)
-     apply(subst inv_i_wildcard)
-     apply(simp)
-    apply(subst inv_i_nowildcard)
-    apply(simp)
-    done
+      proof(cases "iface_name_is_wildcard i")
+      case True with inv_i_wildcard show ?thesis by force
+      next
+      case False with inv_i_nowildcard show ?thesis by force
+      qed
     qed
 
     text{*Negating is really not intuitive.
