@@ -17,11 +17,13 @@ text{*A list of @{text "(start, end)"} tuples.*}
   
 
   lemma l2br_append: "wordinterval_to_set (l2br (l1@l2)) = wordinterval_to_set (l2br l1) \<union> wordinterval_to_set (l2br l2)"
-    apply(induction l1 arbitrary: l2 rule:l2br.induct)
-      apply(simp_all)
-     apply(case_tac l2)
-      apply(simp_all)
-    by blast
+    proof(induction l1 arbitrary: l2 rule:l2br.induct)
+    case 1 thus ?case by simp
+    next
+    case (2 s e l2) thus ?case by (cases l2) simp_all
+    next
+    case 3 thus ?case by force
+    qed
   
   lemma l2br_br2l: "wordinterval_to_set (l2br (br2l r)) = wordinterval_to_set r"
     by(induction r) (simp_all add: l2br_append)
