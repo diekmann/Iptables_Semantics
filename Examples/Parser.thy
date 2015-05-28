@@ -39,19 +39,8 @@ val filter_table = extract_filter_table iptables_save;
 
 val _ = "Parsed "^ Int.toString (length filter_table) ^" entries" |> writeln;
 (*val _ = filter_table |> map writeln;*)
-
-local
-
-  datatype RuleType = ChainDecl | Rule
-  fun rule_type s = if String.isPrefix ":" s then ChainDecl else
-                    if String.isPrefix "-A" s then Rule else
-                    raise Fail "could not parse rule"
-in
-  val _ = "Parsed "^ Int.toString (length (filter (fn r => case rule_type r of Rule => true | _ => false) filter_table)) ^" rules" |> writeln;
-end;
-
-
 *}
+
 
 ML{*
 String.explode "sasd";
@@ -131,6 +120,12 @@ val parse_unknown = parse_cmd_option "" @{const Extra} parser_extra;
 
 val option_parser = parse_src_ip || parse_dst_ip || parse_in_iface || parse_out_iface || parse_unknown;
 
+
+
+val parse_table_append : (string list -> (string * string list)) = Scan.this_string "-A " |-- parser_target --| is_whitespace;
+
+
+
 fun debug_type_of [] = []
  |  debug_type_of ((_, t)::ts) = type_of t :: debug_type_of ts;
 fun debug_print [] = []
@@ -141,6 +136,44 @@ fun debug_print [] = []
 val (x, rest) = (Scan.repeat option_parser) (ipt_explode "-d 0.31.123.213/88 --foo_bar \"hehe\" -i eth0+ -s 0.31.123.213/88 moreextra");
 debug_type_of x;
 debug_print x;
+*}
+
+
+ML{*
+
+
+local
+  datatype RuleType = ChainDecl | Rule
+  fun rule_type s = if String.isPrefix ":" s then ChainDecl else
+                    if String.isPrefix "-A" s then Rule else
+                    raise Fail "could not parse rule"
+
+  (*parse a rule. The parser returns ((string, term) list, unparsed_rest)
+    For example: ([("-s", @{term "Src (Ip4AddrNetmask (0, 31, 123, 213) 88)"}), [])*)
+  fun parse_rule_options (s: string list) : term list = let val (t, rest) = (Scan.repeat option_parser) s
+            in
+            if rest <> []
+            then
+              raise Fail ("Unparsed: "^implode rest)
+            else
+              map snd t
+            end;
+
+   fun parse_rule (s: string) : (string * term list) = let val (chainname, cmd) = s |> ipt_explode |> parse_table_append
+      in
+        (chainname, parse_rule_options cmd)
+      end
+    ;
+
+in
+  val _ = "Parsed "^ Int.toString (length (filter (fn r => case rule_type r of Rule => true | _ => false) filter_table)) ^" rules" |> writeln;
+
+  fun parse_filter_table [] = []
+   |  parse_filter_table (s::ss) = case rule_type s of ChainDecl => parse_filter_table ss
+                                                    | Rule => parse_rule s :: parse_filter_table ss;
+end;
+
+map (fn (a,b) => let val _= writeln a in map (Syntax.pretty_term @{context} #> Pretty.writeln) b end) (parse_filter_table filter_table);
 *}
 
 ML_val{* @{const MatchAnd (common_primitive)} $ (@{const Src} $ @{term undefined}) $ @{term undefined} |> fastype_of *}
