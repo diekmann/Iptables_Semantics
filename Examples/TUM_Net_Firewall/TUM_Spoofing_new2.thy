@@ -95,8 +95,8 @@ ML_file "iptables-Lnv-2015-05-15_14-14-46_cheating.ML"
      1    40 ACCEPT     all  --  eth1.152 eth1.110  131.159.15.248       0.0.0.0/0   *)
 
 (*
-The second rule we needed to remove war for an asterisk. It is probably an error because this rule prevents any spoofing protection!
-This rule is probably an error, we are investigating
+The second rule we removed was for an asterisk server. This rule is probably an error because this rule prevents any spoofing protection!
+It was a temprary rule and it should have been removed but was forgotten, we are investigating ...
 *)
 
 ML{*

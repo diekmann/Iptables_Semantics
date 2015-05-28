@@ -6,18 +6,16 @@ begin
 
 section{*Example: Chair for Network Architectures and Services (TUM)*}
 
-(*
-
-    0     0 LOG_DROP   all  --  *      *       131.159.14.0/23      0.0.0.0/0           
-    0     0 LOG_DROP   all  --  *      *       131.159.20.0/23      0.0.0.0/0           
-    0     0 LOG_DROP   all  --  *      *       192.168.212.0/23     0.0.0.0/0           
-    0     0 LOG_DROP   all  --  *      *       188.95.233.0/24      0.0.0.0/0           
-    0     0 LOG_DROP   all  --  *      *       188.95.232.192/27    0.0.0.0/0           
-    0     0 LOG_DROP   all  --  *      *       188.95.234.0/23      0.0.0.0/0           
-    0     0 LOG_DROP   all  --  *      *       192.48.107.0/24      0.0.0.0/0           
-    0     0 LOG_DROP   all  --  *      *       188.95.236.0/22      0.0.0.0/0           
-    0     0 LOG_DROP   all  --  *      *       185.86.232.0/22      0.0.0.0/0           
- 2756  273K RETURN     all  --  *      *       0.0.0.0/0            0.0.0.0/0  
+(* My IP ranges. If a packet comes from there from the wrong interface, it is spoofed.
+    131.159.14.0/23
+    131.159.20.0/23
+    192.168.212.0/23
+    188.95.233.0/24
+    188.95.232.192/27
+    188.95.234.0/23
+    192.48.107.0/24
+    188.95.236.0/22
+    185.86.232.0/22
 *)
 definition "everything_but_my_ips = ipv4range_split (ipv4range_invert (l2br (map ipv4cidr_to_interval [
   (ipv4addr_of_dotdecimal (131,159,14,0), 23),
@@ -100,11 +98,33 @@ open Test; (*put the exported code into current namespace such that the followin
 
 ML_file "iptables-Lnv-2015-05-15_15-23-41_cheating.ML"
 
-(*DIFF*)
+(*DIFF
+
+$ diff -u ~/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-Lnv-2015-05-15_15-23-41 iptables-Lnv-2015-05-15_15-23-41_cheating
+--- /home/diekmann/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-Lnv-2015-05-15_15-23-41	2015-05-15 15:24:23.224698000 +0200
++++ iptables-Lnv-2015-05-15_15-23-41_cheating	2015-05-27 11:08:10.122472029 +0200
+@@ -13,7 +13,6 @@
+ 
+ Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
+  pkts bytes target     prot opt in     out     source               destination         
+- 278K  265M ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            state RELATED,ESTABLISHED,UNTRACKED
+  3151  206K NOTFROMHERE  all  --  eth1.110 *       0.0.0.0/0            0.0.0.0/0           
+ 12501  844K NOTFROMHERE  all  --  eth1.1024 *       0.0.0.0/0            0.0.0.0/0           
+     0     0 LOG_RECENT_DROP2  all  --  *      *       0.0.0.0/0            0.0.0.0/0            recent: UPDATE seconds: 60 name: DEFAULT side: source
+@@ -22,7 +21,6 @@
+     0     0 ACCEPT     all  --  eth1.1011 *       131.159.14.197       0.0.0.0/0           
+     0     0 ACCEPT     all  --  eth1.1011 *       131.159.14.221       0.0.0.0/0           
+     0     0 ACCEPT     udp  --  eth1.152 *       131.159.15.252       0.0.0.0/0           
+-    0     0 ACCEPT     udp  --  *      eth1.152  0.0.0.0/0            131.159.15.252       multiport dports 4569,5000:65535
+     0     0 ACCEPT     all  --  eth1.152 eth1.110  131.159.15.247       0.0.0.0/0           
+     1    40 ACCEPT     all  --  eth1.110 eth1.152  0.0.0.0/0            131.159.15.247      
+     0     0 ACCEPT     all  --  eth1.152 eth1.110  131.159.15.248       0.0.0.0/0
+
+*)
 
 (*
-The second rule we needed to remove war for an asterisk. It is probably an error because this rule prevents any spoofing protection!
-This rule is probably an error, we are investigating
+The second rule we removed was for an asterisk server. This rule is probably an error because this rule prevents any spoofing protection!
+It was a temprary rule and it should have been removed but was forgotten, we are investigating ...
 *)
 
 ML{*

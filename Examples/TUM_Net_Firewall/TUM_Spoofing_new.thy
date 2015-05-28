@@ -96,9 +96,10 @@ $ diff -u ~/git/net-network/iptables-Lnv-2015-05-13_10-53-20 iptables-Lnv-2015-0
    173  6948 ACCEPT     all  --  eth1.152 eth1.110  131.159.15.248       0.0.0.0/0           
 *)
 
+
 (*
-The second rule we needed to remove war for an asterisk. It is probably an error because this rule prevents any spoofing protection!
-This rule is probably an error, we are investigating
+The second rule we removed was for an asterisk server. This rule is probably an error because this rule prevents any spoofing protection!
+It was a temprary rule and it should have been removed but was forgotten, we are investigating ...
 *)
 
 ML{*
