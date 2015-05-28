@@ -61,7 +61,7 @@ end
 *}
 
 ML_val{*
-ipt_explode "ad \"foobar   --boo\" boo";
+ipt_explode "ad asdas boo";
 ipt_explode "ad \"foobar --boo boo";
 *}
 
@@ -111,19 +111,21 @@ val parse_dst_ip = parse_cmd_option "-d " @{const Dst} parser_ip_cidr;
 val parse_in_iface = parse_cmd_option "-i " @{const IIface} parser_interface;
 val parse_out_iface = parse_cmd_option "-o " @{const OIface} parser_interface;
 
-(*
-val parse_target = parse_cmd_option "-j " parser_target;
-*)
-
 val parse_unknown = parse_cmd_option "" @{const Extra} parser_extra;
 
 
-val option_parser = parse_src_ip || parse_dst_ip || parse_in_iface || parse_out_iface || parse_unknown;
-
-
-
+(*parses: -A FORWARD*)
 val parse_table_append : (string list -> (string * string list)) = Scan.this_string "-A " |-- parser_target --| is_whitespace;
 
+(*parses: -j MY_CUSTOM_CHAIN*)
+(*TODO: parse until eol, ugly hack here!*)
+val parse_target : (string list -> (string * string list)) = is_whitespace |-- Scan.this_string "-j " |-- parser_target;
+
+(*parses: -s 0.31.123.213/88 --foo_bar*)
+val option_parser : (string list -> (string * term) * string list) = 
+    parse_src_ip || parse_dst_ip || parse_in_iface || parse_out_iface || parse_unknown;
+
+(*parse_table_append and parse_target should be called first, otherwise those are unknown options for option_parser*)
 
 
 fun debug_type_of [] = []
@@ -159,9 +161,9 @@ local
               map snd t
             end;
 
-   fun parse_rule (s: string) : (string * term list) = let val (chainname, cmd) = s |> ipt_explode |> parse_table_append
+   fun parse_rule (s: string) : (string * term) = let val (chainname, cmd) = s |> ipt_explode |> parse_table_append
       in
-        (chainname, parse_rule_options cmd)
+        (chainname, parse_rule_options cmd |> HOLogic.mk_list @{typ "common_primitive"})
       end
     ;
 
@@ -172,8 +174,10 @@ in
    |  parse_filter_table (s::ss) = case rule_type s of ChainDecl => parse_filter_table ss
                                                     | Rule => parse_rule s :: parse_filter_table ss;
 end;
+*}
 
-map (fn (a,b) => let val _= writeln a in map (Syntax.pretty_term @{context} #> Pretty.writeln) b end) (parse_filter_table filter_table);
+ML_val{*
+map (fn (a,b) => let val _= writeln a in (Syntax.pretty_term @{context} #> Pretty.writeln) b end) (parse_filter_table filter_table);
 *}
 
 ML_val{* @{const MatchAnd (common_primitive)} $ (@{const Src} $ @{term undefined}) $ @{term undefined} |> fastype_of *}
