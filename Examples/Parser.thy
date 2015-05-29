@@ -18,6 +18,28 @@ ML_val{*
 split_at (fn x => x <> " ") (raw_explode "foo bar")
 *}
 
+
+ML{*
+local
+  fun skip_until_r _ beginning [] = (false, beginning, [])
+   |  skip_until_r k beginning ss =
+      let val (_, rest) = Scan.catch (Scan.this_string k) ss
+      in
+        (true, beginning, rest)
+      end
+      handle Fail _ => skip_until_r k (beginning @ [hd ss]) (tl ss);
+in
+  fun skip_until (k: string) (ss: string list) : (string list * string list) option = let
+    val (found, beginning, rest) = skip_until_r k [] ss in
+      if found then SOME (beginning, rest) else NONE
+    end;
+end;
+*}
+ML_val{*
+skip_until " -j " (raw_explode "asdf -j foo");
+skip_until " -xx " (raw_explode "a - foo");
+*}
+
 ML{*
 val path = Path.append Path.root (Path.make ["home", "diekmann", "git", "net-network-private", "iptables-save-2015-05-15_15-23-41"]);
 val _ = "loading file "^File.platform_path path |> writeln;
@@ -45,7 +67,7 @@ val _ = "Parsed "^ Int.toString (length filter_table) ^" entries" |> writeln;
 ML{*
 String.explode "sasd";
 (($$ "a") ::: (Scan.many (fn x => x = "s"))) (raw_explode "asdf");
-Scan.this_string "" (raw_explode "asdf");
+Scan.this_string "as" (raw_explode "asdf");
 *}
 
 ML{*
