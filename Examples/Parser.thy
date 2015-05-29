@@ -97,7 +97,7 @@ local
       (Symbol.is_ascii_letter x orelse Symbol.is_ascii_digit x orelse x = "+" orelse x = "*" orelse x = ".")
 
   fun is_target_char x = Symbol.is_ascii x andalso
-      (Symbol.is_ascii_letter x orelse x = "-" orelse x = "~")
+      (Symbol.is_ascii_letter x orelse Symbol.is_ascii_digit x orelse x = "-" orelse x = "_" orelse x = "~")
 in
   (*TODO: assert max size?*)
   fun mk_nat i = (HOLogic.mk_number HOLogic.natT i)
@@ -139,27 +139,41 @@ val parse_unknown = parse_cmd_option "" @{const Extra} parser_extra;
 (*parses: -A FORWARD*)
 val parse_table_append : (string list -> (string * string list)) = Scan.this_string "-A " |-- parser_target --| is_whitespace;
 
-(*parses: -j MY_CUSTOM_CHAIN*)
-(*TODO: parse until eol, ugly hack here!*)
-val parse_target : (string list -> (string * string list)) = is_whitespace |-- Scan.this_string "-j " |-- parser_target;
+(*parses: -j MY_CUSTOM_CHAIN at the end of the line*)
+(*TODO: the check is too strict. example: -j LOG --log-prefix "[IPT_DROP]:"*)
+fun parse_target (ss: string list): (string option * string list) = case skip_until " -j " ss
+    of  NONE => (NONE, ss)
+    |   SOME (start, rest) => (*make sure that only the valid target chars occur and that we can parse until the end of the line.
+                                Therefore, we do not loose anything in the line*)
+                              let val (parsed_target, rest_target) = (Scan.finite Symbol.stopper parser_target) rest in
+                                if (raw_explode parsed_target) = rest andalso rest_target = [] then (SOME parsed_target, start)
+                                else raise Fail ("unparsable target; start: `"^implode start^"' rest: `"^implode rest^"'")
+                              end
+    ;
 
 (*parses: -s 0.31.123.213/88 --foo_bar*)
 val option_parser : (string list -> (string * term) * string list) = 
     parse_src_ip || parse_dst_ip || parse_in_iface || parse_out_iface || parse_unknown;
 
 (*parse_table_append and parse_target should be called first, otherwise those are unknown options for option_parser*)
+*}
 
 
+ML_val{*
 fun debug_type_of [] = []
  |  debug_type_of ((_, t)::ts) = type_of t :: debug_type_of ts;
 fun debug_print [] = []
  |  debug_print ((_, t)::ts) = Pretty.writeln (Syntax.pretty_term @{context} t) :: debug_print ts;
 
-(*TODO: probably parse (from right? or with eol? the target, then parse all remaining options*)
 
 val (x, rest) = (Scan.repeat option_parser) (ipt_explode "-d 0.31.123.213/88 --foo_bar \"hehe\" -i eth0+ -s 0.31.123.213/88 moreextra");
 debug_type_of x;
 debug_print x;
+
+*}
+ML_val{*
+parse_target (ipt_explode "-d 0 -j foobar");
+parse_target (ipt_explode "-d 0 -joo");
 *}
 
 
@@ -183,10 +197,10 @@ local
               map snd t
             end;
 
-   fun parse_rule (s: string) : (string * term) = let val (chainname, cmd) = s |> ipt_explode |> parse_table_append
-      in
-        (chainname, parse_rule_options cmd |> HOLogic.mk_list @{typ "common_primitive"})
-      end
+   fun parse_rule (s: string) : (string * string option * term) = let val (chainname, rest1) = s |> ipt_explode |> parse_table_append
+      in let val (target_option, rest2) = parse_target rest1 in
+        (chainname, target_option, parse_rule_options rest2 |> HOLogic.mk_list @{typ "common_primitive"})
+      end end
     ;
 
 in
@@ -199,7 +213,7 @@ end;
 *}
 
 ML_val{*
-map (fn (a,b) => let val _= writeln a in (Syntax.pretty_term @{context} #> Pretty.writeln) b end) (parse_filter_table filter_table);
+map (fn (a,target,b) => let val _= writeln a in (Syntax.pretty_term @{context} #> Pretty.writeln) b end) (parse_filter_table filter_table);
 *}
 
 ML_val{* @{const MatchAnd (common_primitive)} $ (@{const Src} $ @{term undefined}) $ @{term undefined} |> fastype_of *}
