@@ -148,11 +148,13 @@ val parse_target : (string list -> parsed_match_action * string list) =
               Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string "-j " |-- (parser_target >> ParsedAction ));
 
 
-(*parses: -s 0.31.123.213/88 --foo_bar -j chain --foobar*)
+(*parses: -s 0.31.123.213/88 --foo_bar -j chain --foobar
+ First tries to parse a known field, afterwards, it parses something unknown until a blank space appears
+*)
 val option_parser : (string list -> (parsed_match_action) * string list) = 
-    parse_src_ip || parse_dst_ip || parse_in_iface || parse_out_iface || parse_target || parse_unknown;
+    Scan.recover (parse_src_ip || parse_dst_ip || parse_in_iface || parse_out_iface || parse_target) (K parse_unknown);
 
-(*parse_table_append should be called first, otherwise those are unknown options for option_parser*)
+(*parse_table_append should be called before option_parser, otherwise -A will simply be an unknown for option_parser*)
 *}
 
 
