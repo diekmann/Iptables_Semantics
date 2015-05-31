@@ -19,7 +19,7 @@ split_at (fn x => x <> " ") (raw_explode "foo bar")
 *}
 
 
-ML{*
+ML{* (*unused*)
 local
   fun skip_until_r _ beginning [] = (false, beginning, [])
    |  skip_until_r k beginning ss =
@@ -37,7 +37,7 @@ end;
 *}
 ML_val{*
 skip_until " -j " (raw_explode "asdf -j foo");
-skip_until " -xx " (raw_explode "a - foo");
+skip_until " -xx " (raw_explode "a -x foo");
 *}
 
 ML{*
@@ -83,7 +83,7 @@ end
 *}
 
 ML_val{*
-ipt_explode "ad asdas boo";
+ipt_explode "ad \"asdas\" boo";
 ipt_explode "ad \"foobar --boo boo";
 *}
 
@@ -122,8 +122,10 @@ in
   val is_whitespace = Scan.many (fn x => x = " ");
 end;
 
+datatype parsed_match_action = ParsedMatch of term | ParsedAction of string;
+
 fun parse_cmd_option (s: string) (t: term) (parser: string list -> (term * string list)) = 
-    Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string s -- (parser >> (fn r => t $ r)))
+    Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string s |-- (parser >> (fn r => ParsedMatch (t $ r))))
 
 
 val parse_src_ip = parse_cmd_option "-s " @{const Src} parser_ip_cidr;
@@ -139,81 +141,77 @@ val parse_unknown = parse_cmd_option "" @{const Extra} parser_extra;
 (*parses: -A FORWARD*)
 val parse_table_append : (string list -> (string * string list)) = Scan.this_string "-A " |-- parser_target --| is_whitespace;
 
-(*parses: -j MY_CUSTOM_CHAIN at the end of the line*)
-(*TODO: the check is too strict. example: -j LOG --log-prefix "[IPT_DROP]:"*)
-fun parse_target (ss: string list): (string option * string list) = case skip_until " -j " ss
-    of  NONE => (NONE, ss)
-    |   SOME (start, rest) => (*make sure that only the valid target chars occur and that we can parse until the end of the line.
-                                Therefore, we do not loose anything in the line*)
-                              let val (parsed_target, rest_target) = (Scan.finite Symbol.stopper parser_target) rest in
-                                if (raw_explode parsed_target) = rest andalso rest_target = [] then (SOME parsed_target, start)
-                                else raise Fail ("unparsable target; start: `"^implode start^"' rest: `"^implode rest^"'")
-                              end
-    ;
 
-(*parses: -s 0.31.123.213/88 --foo_bar*)
-val option_parser : (string list -> (string * term) * string list) = 
-    parse_src_ip || parse_dst_ip || parse_in_iface || parse_out_iface || parse_unknown;
+(*parses: -j MY_CUSTOM_CHAIN*)
+(*The -j may not be the end of the line. example: -j LOG --log-prefix "[IPT_DROP]:"*)
+val parse_target : (string list -> parsed_match_action * string list) = 
+              Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string "-j " |-- (parser_target >> ParsedAction ));
 
-(*parse_table_append and parse_target should be called first, otherwise those are unknown options for option_parser*)
+
+(*parses: -s 0.31.123.213/88 --foo_bar -j chain --foobar*)
+val option_parser : (string list -> (parsed_match_action) * string list) = 
+    parse_src_ip || parse_dst_ip || parse_in_iface || parse_out_iface || parse_target || parse_unknown;
+
+(*parse_table_append should be called first, otherwise those are unknown options for option_parser*)
 *}
 
 
 ML_val{*
-fun debug_type_of [] = []
- |  debug_type_of ((_, t)::ts) = type_of t :: debug_type_of ts;
-fun debug_print [] = []
- |  debug_print ((_, t)::ts) = Pretty.writeln (Syntax.pretty_term @{context} t) :: debug_print ts;
-
-
-val (x, rest) = (Scan.repeat option_parser) (ipt_explode "-d 0.31.123.213/88 --foo_bar \"hehe\" -i eth0+ -s 0.31.123.213/88 moreextra");
-debug_type_of x;
-debug_print x;
-
+val (x, rest) = (Scan.repeat option_parser) (ipt_explode "-d 0.31.123.213/88 --foo_bar \"he he\" -f -i eth0+ -s 0.31.123.213/88 moreextra -j foobar --log");
+map (fn p => case p of ParsedMatch t => type_of t | ParsedAction _ => dummyT) x;
+map (fn p => case p of ParsedMatch t => Pretty.writeln (Syntax.pretty_term @{context} t) | ParsedAction a => writeln ("action: "^a)) x;
 *}
-ML_val{*
-parse_target (ipt_explode "-d 0 -j foobar");
-parse_target (ipt_explode "-d 0 -joo");
-*}
-
 
 ML{*
-
-
 local
-  datatype RuleType = ChainDecl | Rule
-  fun rule_type s = if String.isPrefix ":" s then ChainDecl else
-                    if String.isPrefix "-A" s then Rule else
-                    raise Fail "could not parse rule"
-
-  (*parse a rule. The parser returns ((string, term) list, unparsed_rest)
-    For example: ([("-s", @{term "Src (Ip4AddrNetmask (0, 31, 123, 213) 88)"}), [])*)
-  fun parse_rule_options (s: string list) : term list = let val (t, rest) = (Scan.repeat option_parser) s
+  fun parse_rule_options (s: string list) : parsed_match_action list = let val (parsed, rest) = (Scan.repeat option_parser) s
             in
             if rest <> []
             then
               raise Fail ("Unparsed: "^implode rest)
             else
-              map snd t
+              parsed
             end;
 
-   fun parse_rule (s: string) : (string * string option * term) = let val (chainname, rest1) = s |> ipt_explode |> parse_table_append
-      in let val (target_option, rest2) = parse_target rest1 in
-        (chainname, target_option, parse_rule_options rest2 |> HOLogic.mk_list @{typ "common_primitive"})
+   fun get_target (ps : parsed_match_action list) : string option = let val actions = List.mapPartial (fn p => case p of ParsedAction a => SOME a | _ => NONE) ps
+      in case actions of [] => NONE
+                      |  [action] => SOME action
+                      | _ => raise Fail "there can be at most one target"
+      end;
+
+   val get_matches : (parsed_match_action list -> term) =
+        List.mapPartial (fn p => case p of ParsedMatch m => SOME m | _ => NONE) #> HOLogic.mk_list @{typ "common_primitive"};
+in
+   (*returns: (chainname the rule was appended to, target, matches)*)
+   fun parse_rule (s: string) : (string * string option * term) = let val (chainname, rest) = s |> ipt_explode |> parse_table_append
+      in let val parsed = parse_rule_options rest in
+        (chainname, get_target parsed, get_matches parsed)
       end end
     ;
+end
+*}
 
+
+ML{*
+local
+  datatype RuleType = ChainDecl | Rule
+  fun rule_type s = if String.isPrefix ":" s then ChainDecl else
+                    if String.isPrefix "-A" s then Rule else
+                    raise Fail "could not parse rule"
 in
   val _ = "Parsed "^ Int.toString (length (filter (fn r => case rule_type r of Rule => true | _ => false) filter_table)) ^" rules" |> writeln;
 
   fun parse_filter_table [] = []
-   |  parse_filter_table (s::ss) = case rule_type s of ChainDecl => parse_filter_table ss
+   |  parse_filter_table (s::ss) = case rule_type s of ChainDecl => parse_filter_table ss (*TODO*)
                                                     | Rule => parse_rule s :: parse_filter_table ss;
 end;
 *}
 
 ML_val{*
-map (fn (a,target,b) => let val _= writeln a in (Syntax.pretty_term @{context} #> Pretty.writeln) b end) (parse_filter_table filter_table);
+
+val toString = (fn (a,target,b) => "-A "^a^" "^((Syntax.pretty_term @{context} #> Pretty.string_of) b)^(case target of NONE => "" | SOME t => " -j "^t));
+
+map (toString #> writeln) (parse_filter_table filter_table);
 *}
 
 ML_val{* @{const MatchAnd (common_primitive)} $ (@{const Src} $ @{term undefined}) $ @{term undefined} |> fastype_of *}
