@@ -108,7 +108,7 @@ open Test;
 
 declare[[ML_print_depth=50]]
 ML{*
-val rules = unfold_ruleset_FORWARD (map_of_string firewall_chains)
+val rules = unfold_ruleset_FORWARD Accept (map_of_string firewall_chains)
 *}
 ML{*
 length rules;
@@ -118,22 +118,11 @@ length upper;*}
 text{*How long does the unfolding take?*}
 ML_val{*
 val t0 = Time.now();
-val _ = unfold_ruleset_FORWARD (map_of_string firewall_chains);
+val _ = unfold_ruleset_FORWARD Accept (map_of_string firewall_chains);
 val t1= Time.now();
 writeln(String.concat ["It took ", Time.toString(Time.-(t1,t0)), " seconds"])
 *}
 text{*on my system, less than 1 second.*}
-
-(*
-text{*Time required for calculating and normalizing closure*}
-ML_val{*
-val t0 = Time.now();
-val _ = upper_closure rules;
-val t1= Time.now();
-writeln(String.concat ["It took ", Time.toString(Time.-(t1,t0)), " seconds"])
-*}
-text{*on my system, less than 100 seconds.*}
-*)
 
 
 ML_val{*

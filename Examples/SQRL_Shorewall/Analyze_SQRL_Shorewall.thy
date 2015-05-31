@@ -21,6 +21,7 @@ export_code unfold_ruleset_OUTPUT map_of_string upper_closure lower_closure
   check_simple_fw_preconditions
   to_simple_firewall
   simple_rule_toString
+  Drop
   in SML module_name "Test" file "unfold_code.ML"
 
 ML_file "unfold_code.ML"
@@ -41,7 +42,7 @@ declare[[ML_print_depth=50]]
 
 
 ML{*
-val rules = unfold_ruleset_OUTPUT (map_of_string firewall_chains)
+val rules = unfold_ruleset_OUTPUT Drop (map_of_string firewall_chains)
 *}
 ML{*
 length rules;
@@ -69,26 +70,26 @@ val putLn = writeln o String.implode o simple_rule_toString;
 
 text{*iptables -L -n*}
 ML_val{*
-writeln "Chain INPUT (policy ACCEPT)";
+writeln "Chain INPUT (policy DROP)";
 writeln "target     prot opt source               destination";
 writeln "";
-writeln "Chain FORWARD (policy ACCEPT)";
+writeln "Chain FORWARD (policy DROP)";
 writeln "target     prot opt source               destination";
 val _ = map putLn (to_simple_firewall upper);
-writeln "Chain OUTPUT (policy ACCEPT)";
+writeln "Chain OUTPUT (policy DROP)";
 writeln "target     prot opt source               destination"
 *}
 
 
 text{*iptables -L -n*}
 ML_val{*
-writeln "Chain INPUT (policy ACCEPT)";
+writeln "Chain INPUT (policy DROP)";
 writeln "target     prot opt source               destination";
 writeln "";
-writeln "Chain FORWARD (policy ACCEPT)";
+writeln "Chain FORWARD (policy DROP)";
 writeln "target     prot opt source               destination";
 val _ = map putLn (to_simple_firewall lower);
-writeln "Chain OUTPUT (policy ACCEPT)";
+writeln "Chain OUTPUT (policy DROP)";
 writeln "target     prot opt source               destination"
 *}
 end

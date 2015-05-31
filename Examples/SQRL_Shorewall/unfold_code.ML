@@ -33,8 +33,9 @@ structure Test : sig
   val upper_closure : common_primitive rule list -> common_primitive rule list
   val simple_rule_toString : simple_rule -> char list
   val unfold_ruleset_OUTPUT :
-    (char list -> (common_primitive rule list) option) ->
-      common_primitive rule list
+    action ->
+      (char list -> (common_primitive rule list) option) ->
+        common_primitive rule list
   val to_simple_firewall : common_primitive rule list -> simple_rule list
   val check_simple_fw_preconditions : common_primitive rule list -> bool
 end = struct
@@ -1838,14 +1839,15 @@ val simple_match_any : unit simple_match_ext =
           (Int_of_integer (65535 : IntInf.int))),
       ());
 
-fun unfold_ruleset_OUTPUT rs =
+fun unfold_ruleset_OUTPUT default_action rs =
   funpow (nat_of_integer (10 : IntInf.int))
     (optimize_matches opt_MatchAny_match_expr)
     (optimize_matches optimize_primitive_univ
       (rw_Reject
         (rm_LogEmpty
           (funpow (nat_of_integer (10 : IntInf.int)) (process_call rs)
-            [Rule (MatchAny, Call [#"O", #"U", #"T", #"P", #"U", #"T"])]))));
+            [Rule (MatchAny, Call [#"O", #"U", #"T", #"P", #"U", #"T"]),
+              Rule (MatchAny, default_action)]))));
 
 fun normalized_dst_ports MatchAny = true
   | normalized_dst_ports (Match (Dst_Ports [])) = true
