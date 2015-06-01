@@ -282,13 +282,14 @@ val parsed_ruleset = fold (fn rule => fn accu => append_rule accu rule) parsed_r
 *}
 
 ML{*
-fun mk_Ruleset (tbl: firewall_table) = FirewallTable.dest_list tbl |> map (fn (k,v) => HOLogic.mk_prod (HOLogic.mk_string k, v)) |> HOLogic.mk_list @{typ "string \<times> common_primitive rule"}
+fun mk_Ruleset (tbl: firewall_table) = FirewallTable.dest tbl
+    |> map (fn (k,v) => HOLogic.mk_prod (HOLogic.mk_string k, HOLogic.mk_list @{typ "common_primitive rule"} v))
+    |> HOLogic.mk_list @{typ "string \<times> common_primitive rule list"}
 *}
 
 ML_val{*
 type_of (mk_Ruleset parsed_ruleset);
 Pretty.writeln (Syntax.pretty_term @{context} (mk_Ruleset parsed_ruleset));
-(*ALMOST! FirewallTable.dest_list is probably not the right thing to do*)
 *}
 
 ML_val{* @{const MatchAnd (common_primitive)} $ (@{const Src} $ @{term undefined}) $ @{term undefined} |> fastype_of *}
