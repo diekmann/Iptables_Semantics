@@ -39,7 +39,7 @@ lemma normalized_n_primitive_opt_MatchAny_match_expr: "normalized_n_primitive di
 theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
       shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
       and "simple_ruleset (transform_optimize_dnf_strict rs)"
-      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc C m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc C m"
+      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc disc m"
       and "\<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_nnf_match m"
       and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_n_primitive disc_sel f m"
@@ -102,17 +102,21 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
         using p1 p2 p3  by(simp)
     } note matchpred_rule=this
 
+    (*let ?disc_assumption="disc \<in> {is_Src, is_Dst, is_Iiface, is_Oiface, is_Prot, is_Src_Ports, is_Dst_Ports, is_Extra}"*)
     { fix m
-      have "\<not> has_disc C m \<Longrightarrow> \<not> has_disc C (optimize_primitive_univ m)"
-      by(induction m rule: optimize_primitive_univ.induct) simp_all
+      (*assume ?disc_assumption
+      hence disc_extra: "\<And>e1 e2. (\<not> disc (Extra (e1 @ CHR '' '' # e2)) \<Longrightarrow> True) \<Longrightarrow> \<not> disc (Extra e1) \<and> \<not> disc (Extra e2) \<Longrightarrow> \<not> disc (Extra (e1 @ CHR '' '' # e2))"
+        by force*)
+      have "\<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (optimize_primitive_univ m)"
+      by(induction m rule: optimize_primitive_univ.induct) (simp_all)
     }  moreover { fix m 
-      have "\<not> has_disc C m \<Longrightarrow> \<not> has_disc C (opt_MatchAny_match_expr m)"
+      have "\<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (opt_MatchAny_match_expr m)"
       by(induction m rule: opt_MatchAny_match_expr.induct) simp_all
     }  moreover { fix m
-      have "\<not> has_disc C m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). \<not> has_disc C m')"
+      have "\<not> has_disc disc m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). \<not> has_disc disc m')"
       by(induction m rule: normalize_match.induct) (safe,auto) --"need safe, otherwise simplifier loops"
-    } ultimately show "\<forall> m \<in> get_match ` set rs. \<not> has_disc C m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc C m"
-      using matchpred_rule[of "\<lambda>m. \<not> has_disc C m"] by fast
+    } ultimately show "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc disc m"
+      using matchpred_rule[of "\<lambda>m. \<not> has_disc disc m"] by fast
    
    { fix P a
      have "(optimize_primitive_univ (Match a)) = (Match a) \<or> (optimize_primitive_univ (Match a)) = MatchAny"
@@ -131,7 +135,7 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
       apply(induction m rule: normalize_match.induct)
             apply(simp_all)[2]
 
-          apply(case_tac disc_sel) --"no idea why the simplifier loops and this stuff and stuff and shit"
+          apply(case_tac disc_sel) --"no idea why the simplifier loops"
           apply(clarify)
           apply(simp)
           apply(clarify)
@@ -180,8 +184,8 @@ theorem transform_remove_unknowns_generic:
    assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>" and packet_independent_\<alpha>: "packet_independent_\<alpha> \<alpha>"
     shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_remove_unknowns_generic (common_matcher, \<alpha>) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
       and "simple_ruleset (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs)"
-      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc C m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). \<not> has_disc C m"
+      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). \<not> has_disc disc m"
       and "\<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). \<not> has_unknowns common_matcher m"
       (*may return MatchNot MatchAny*)
       (*and "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m \<Longrightarrow>
@@ -203,10 +207,10 @@ theorem transform_remove_unknowns_generic:
       using optimize_matches_a_simplers[OF simplers] remove_unknowns_generic by metis
 
     { fix a m
-      have "\<not> has_disc C m \<Longrightarrow> \<not> has_disc C (remove_unknowns_generic ?\<gamma> a m)"
+      have "\<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (remove_unknowns_generic ?\<gamma> a m)"
       by(induction ?\<gamma> a m rule: remove_unknowns_generic.induct) simp_all
-    } thus "\<forall> m \<in> get_match ` set rs. \<not> has_disc C m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_disc C m"
+    } thus "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_disc disc m"
       unfolding transform_remove_unknowns_generic_def
       by(induction rs) (simp_all add: optimize_matches_a_def)
 

@@ -131,18 +131,25 @@ fun optimize_primitive_univ :: "common_primitive match_expr \<Rightarrow> common
   "optimize_primitive_univ (Match m) = Match m" |
   (*"optimize_primitive_univ (MatchNot (MatchNot m)) = (optimize_primitive_univ m)" | --"needed to preserve normalized condition"*)
   "optimize_primitive_univ (MatchNot m) = (MatchNot (optimize_primitive_univ m))" |
+  (*"optimize_primitive_univ (MatchAnd (Match (Extra e1)) (Match (Extra e2))) = optimize_primitive_univ (Match (Extra (e1@'' ''@e2)))" |
+    -- "can be done but normalization does not work afterwards"*)
   "optimize_primitive_univ (MatchAnd m1 m2) = MatchAnd (optimize_primitive_univ m1) (optimize_primitive_univ m2)" |
   "optimize_primitive_univ MatchAny = MatchAny"
 
 
 lemma optimize_primitive_univ_correct_matchexpr: "matches (common_matcher, \<alpha>) m = matches (common_matcher, \<alpha>) (optimize_primitive_univ m)"
-  apply(simp add: fun_eq_iff, clarify, rename_tac a p)
-  apply(rule matches_iff_apply_f)
-  apply(simp)
-  apply(induction m rule: optimize_primitive_univ.induct)
-                              apply(simp_all add: match_ifaceAny eval_ternary_simps ip_in_ipv4range_set_from_bitmask_UNIV eval_ternary_idempotence_Not bool_to_ternary_simps)
-   apply(subgoal_tac "(max_word::16 word) =  65535",simp,simp add: max_word_def)+
-  done
+  proof(simp add: fun_eq_iff, clarify, rename_tac a p)
+    fix a p
+    have "(max_word::16 word) =  65535" by(simp add: max_word_def)
+    hence port_range: "\<And>s e port. s = 0 \<and> e = 0xFFFF \<longrightarrow> (port::16 word) \<le> 0xFFFF" by simp
+    have "ternary_ternary_eval (map_match_tac common_matcher p m) = ternary_ternary_eval (map_match_tac common_matcher p (optimize_primitive_univ m))"
+      apply(induction m rule: optimize_primitive_univ.induct)
+      apply(simp_all add: port_range match_ifaceAny ip_in_ipv4range_set_from_bitmask_UNIV )
+      done
+    thus "matches (common_matcher, \<alpha>) m a p = matches (common_matcher, \<alpha>) (optimize_primitive_univ m) a p"
+      by(rule matches_iff_apply_f)
+    qed
+
 corollary optimize_primitive_univ_correct: "approximating_bigstep_fun (common_matcher, \<alpha>) p (optimize_matches optimize_primitive_univ rs) s = 
                                             approximating_bigstep_fun (common_matcher, \<alpha>) p rs s"
 using optimize_matches optimize_primitive_univ_correct_matchexpr by metis
