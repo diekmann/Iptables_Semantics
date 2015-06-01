@@ -51,7 +51,8 @@ skip_until " -xx " (raw_explode "a -x foo");
 *}
 
 ML{*
-val path = Path.append Path.root (Path.make ["home", "diekmann", "git", "net-network-private", "iptables-save-2015-05-15_15-23-41"]);
+(*val path = Path.append Path.root (Path.make ["home", "diekmann", "git", "net-network-private", "iptables-save-2015-05-15_15-23-41"]);*)
+val path = Path.append Path.root (Path.make ["home", "diekmann", "git", "Iptables_Semantics", "Examples", "SQRL_Shorewall", "iptables-saveakachan"]);
 val _ = "loading file "^File.platform_path path |> writeln;
 if not (File.exists path) orelse (File.is_dir path) then writeln "Not found" else ();
 val iptables_save = File.read_lines path;
@@ -171,6 +172,10 @@ val option_parser : (string list -> (parsed_match_action) * string list) =
 val chain_decl_parser = ($$ ":") |-- parser_target #> fst;
 *}
 
+ML_val{*(Scan.repeat option_parser) (ipt_explode "-i lup -j net-fw")*}
+ML_val{*(Scan.repeat option_parser) (ipt_explode "")*}
+ML_val{*(Scan.repeat option_parser) (ipt_explode "-j LOG --log-prefix \"Shorewall:INPUT:REJECT:\" --log-level 6")*}
+
 
 ML_val{*
 val (x, rest) = (Scan.repeat option_parser) (ipt_explode "-d 0.31.123.213/88 --foo_bar \"he he\" -f -i eth0+ -s 0.31.123.213/88 moreextra -j foobar --log");
@@ -178,16 +183,19 @@ map (fn p => case p of ParsedMatch t => type_of t | ParsedAction _ => dummyT) x;
 map (fn p => case p of ParsedMatch t => Pretty.writeln (Syntax.pretty_term @{context} t) | ParsedAction a => writeln ("action: "^a)) x;
 *}
 
+(*declare [[ML_exception_trace]]*)
+
 ML{*
 local
-  fun parse_rule_options (s: string list) : parsed_match_action list = let val (parsed, rest) = (Scan.repeat option_parser) s
+  fun parse_rule_options (s: string list) : parsed_match_action list = let val (parsed, rest) = (case try (Scan.catch (Scan.repeat option_parser)) s of SOME x => x | NONE => raise Fail "scanning")
             in
             if rest <> []
             then
-              raise Fail ("Unparsed: "^implode rest)
+              raise Fail ("Unparsed: `"^implode rest^"'")
             else
               parsed
-            end;
+            end
+            handle Fail m => raise Fail ("parse_rule_options: "^m^" for rule `"^implode s^"'");
 
    fun get_target (ps : parsed_match_action list) : string option = let val actions = List.mapPartial (fn p => case p of ParsedAction a => SOME a | _ => NONE) ps
       in case actions of [] => NONE
@@ -199,7 +207,7 @@ local
         List.mapPartial (fn p => case p of ParsedMatch m => SOME m | _ => NONE) #> HOLogic.mk_list @{typ "common_primitive"};
 in
    (*returns: (chainname the rule was appended to, target, matches)*)
-   fun parse_rule (s: string) : (string * string option * term) = let val (chainname, rest) = s |> ipt_explode |> parse_table_append
+   fun parse_rule (s: string) : (string * string option * term) = let val (chainname, rest) = (case try (ipt_explode #> parse_table_append) s of SOME x => x | NONE => raise Fail ("parse_rule: parse_table_append: "^s))
       in let val parsed = parse_rule_options rest in
         (chainname, get_target parsed, get_matches parsed)
       end end
@@ -292,6 +300,28 @@ type_of (mk_Ruleset parsed_ruleset);
 Pretty.writeln (Syntax.pretty_term @{context} (mk_Ruleset parsed_ruleset));
 *}
 
-ML_val{* @{const MatchAnd (common_primitive)} $ (@{const Src} $ @{term undefined}) $ @{term undefined} |> fastype_of *}
+
+local_setup \<open>fn lthy =>
+let
+   val ((_, (_, thm)), lthy) =
+    Local_Theory.define ((@{binding foo}, NoSyn),
+        ((Binding.empty, []), (mk_Ruleset parsed_ruleset))) lthy
+    val (_, lthy) =
+       Local_Theory.note ((@{binding foo_def}, []), [thm]) lthy
+   in
+     lthy
+   end
+ \<close>
+
+
+term foo
+thm foo_def
+declare foo_def[code_unfold]
+ML{*Code_Evaluation.dynamic_conv @{context} @{cterm "unfold_ruleset_FORWARD action.Accept (map_of foo)"}*}
+
+value "True"
+
+value(code) "(map_of foo) ''FORWARD''"
+
 
 end
