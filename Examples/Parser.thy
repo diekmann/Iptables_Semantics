@@ -303,12 +303,14 @@ type_of (mk_Ruleset parsed_ruleset);
 Pretty.writeln (Syntax.pretty_term @{context} (mk_Ruleset parsed_ruleset));
 *}
 
+(*TODO: probably already add @{const map_of ("string", "common_primitive rule list")}*)
 
 local_setup \<open>fn lthy =>
 let
    val ((_, (_, thm)), lthy) =
     Local_Theory.define ((@{binding foo}, NoSyn),
-        ((Binding.empty, []), (mk_Ruleset parsed_ruleset))) lthy
+        (*this takes a while*)
+        ((Binding.empty, []), (Code_Evaluation.dynamic_value_strict @{context} (mk_Ruleset parsed_ruleset)))) lthy
     val (_, lthy) =
        Local_Theory.note ((@{binding foo_def}, []), [thm]) lthy
    in
@@ -325,9 +327,14 @@ ML\<open>
 Code_Simp.dynamic_conv @{context} @{cterm foo}
 \<close>
 
+value(code) "(map_of foo) ''FORWARD''"
+value(code) "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_FORWARD action.Accept (map_of foo))))"
+
+(*
 ML\<open>
 Code_Evaluation.dynamic_conv @{context} @{cterm foo}
 \<close>
+*)
 
 (*
 value "True"
