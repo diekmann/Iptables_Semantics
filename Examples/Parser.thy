@@ -51,8 +51,8 @@ skip_until " -xx " (raw_explode "a -x foo");
 *}
 
 ML{*
-(*val path = Path.append Path.root (Path.make ["home", "diekmann", "git", "net-network-private", "iptables-save-2015-05-15_15-23-41"]);*)
-val path = Path.append Path.root (Path.make ["home", "diekmann", "git", "Iptables_Semantics", "Examples", "SQRL_Shorewall", "iptables-saveakachan"]);
+val path = Path.append Path.root (Path.make ["home", "diekmann", "git", "net-network-private", "iptables-save-2015-05-15_15-23-41"]);
+(*val path = Path.append Path.root (Path.make ["home", "diekmann", "git", "Iptables_Semantics", "Examples", "SQRL_Shorewall", "iptables-saveakachan"]);*)
 val _ = "loading file "^File.platform_path path |> writeln;
 if not (File.exists path) orelse (File.is_dir path) then writeln "Not found" else ();
 val iptables_save = File.read_lines path;
@@ -207,7 +207,7 @@ local
         List.mapPartial (fn p => case p of ParsedMatch m => SOME m | _ => NONE) #> HOLogic.mk_list @{typ "common_primitive"};
 in
    (*returns: (chainname the rule was appended to, target, matches)*)
-   fun parse_rule (s: string) : (string * string option * term) = let val (chainname, rest) = (case try (ipt_explode #> parse_table_append) s of SOME x => x | NONE => raise Fail ("parse_rule: parse_table_append: "^s))
+   fun parse_rule (s: string) : (string * string option * term) = let val (chainname, rest) = (case try (ipt_explode #> Scan.finite Symbol.stopper parse_table_append) s of SOME x => x | NONE => raise Fail ("parse_rule: parse_table_append: "^s))
       in let val parsed = parse_rule_options rest in
         (chainname, get_target parsed, get_matches parsed)
       end end
@@ -251,7 +251,10 @@ type firewall_table = term list FirewallTable.table;
 
 fun FirewallTable_init chain_decls :firewall_table = fold (fn entry => fn accu => FirewallTable.update_new (entry, []) accu) chain_decls FirewallTable.empty;
 
-fun mk_MatchExpr t = if type_of t <> @{typ "common_primitive list"} then raise Fail "Type Error" else @{const foldMatchAnd (common_primitive)} $ t;
+(* this takes like forever! *)
+fun hacky_hack t = (*Code_Evaluation.dynamic_value_strict @{context}*) (@{const compress_extra} $ t)
+
+fun mk_MatchExpr t = if type_of t <> @{typ "common_primitive list"} then raise Fail "Type Error" else hacky_hack (@{const foldMatchAnd (common_primitive)} $ t);
 fun mk_Rule_help t a = let val r = @{const Rule (common_primitive)} $ (mk_MatchExpr t) $ a in
     if type_of r <> @{typ "common_primitive rule"} then raise Fail "Type error in mk_Rule_help"
     else r end;
@@ -277,7 +280,7 @@ fun mk_Rule (tbl: firewall_table) (chain: string, target : string option, t : te
 
 ML_val{*
 val init = FirewallTable_init parsed_chain_decls;
-map type_of (map (mk_Rule init) parsed_rules);
+(*map type_of (map (mk_Rule init) parsed_rules);*)
 *}
 
 ML{*
@@ -316,12 +319,24 @@ let
 
 term foo
 thm foo_def
-declare foo_def[code_unfold]
-ML{*Code_Evaluation.dynamic_conv @{context} @{cterm "unfold_ruleset_FORWARD action.Accept (map_of foo)"}*}
+declare foo_def[code]
 
+ML\<open>
+Code_Simp.dynamic_conv @{context} @{cterm foo}
+\<close>
+
+ML\<open>
+Code_Evaluation.dynamic_conv @{context} @{cterm foo}
+\<close>
+
+(*
 value "True"
 
 value(code) "(map_of foo) ''FORWARD''"
 
+value(code) "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_FORWARD action.Accept (map_of foo))))"
+
+ML{*Code_Evaluation.dynamic_conv @{context} @{cterm "unfold_ruleset_FORWARD action.Accept (map_of foo)"}*}
+*)
 
 end
