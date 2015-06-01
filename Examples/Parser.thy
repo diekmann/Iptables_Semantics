@@ -2,6 +2,16 @@ theory Parser
 imports Code_Interface
 begin
 
+
+
+fun foldMatchAnd :: "'a list => 'a match_expr" where
+  "foldMatchAnd [] = MatchAny" |
+  "foldMatchAnd (m#ms) = MatchAnd (Match m) (foldMatchAnd ms)"
+
+lemma "foldMatchAnd as = alist_and (map Pos as)"
+  by(induction as)(simp_all)
+
+
 (*Incomplete: An ML Parser for iptables-save*)
 
 ML{*
@@ -155,6 +165,10 @@ val option_parser : (string list -> (parsed_match_action) * string list) =
     Scan.recover (parse_src_ip || parse_dst_ip || parse_in_iface || parse_out_iface || parse_target) (K parse_unknown);
 
 (*parse_table_append should be called before option_parser, otherwise -A will simply be an unknown for option_parser*)
+
+
+(*:INPUT ACCEPT [130:12050]*)
+val chain_decl_parser = ($$ ":") |-- parser_target #> fst;
 *}
 
 
@@ -196,24 +210,85 @@ end
 
 ML{*
 local
-  datatype RuleType = ChainDecl | Rule
-  fun rule_type s = if String.isPrefix ":" s then ChainDecl else
-                    if String.isPrefix "-A" s then Rule else
-                    raise Fail "could not parse rule"
-in
-  val _ = "Parsed "^ Int.toString (length (filter (fn r => case rule_type r of Rule => true | _ => false) filter_table)) ^" rules" |> writeln;
+  (*returns (chain declarations, appended rules*)
+  fun rule_type_partition (rs : string list) : (string list * string list) = let val (chain_decl, rules) = List.partition (String.isPrefix ":") rs in
+      if not (List.all (String.isPrefix "-A") rules) then raise Fail "could not partition rules" else
+        (chain_decl, rules)
+      end
 
-  fun parse_filter_table [] = []
-   |  parse_filter_table (s::ss) = case rule_type s of ChainDecl => parse_filter_table ss (*TODO*)
-                                                    | Rule => parse_rule s :: parse_filter_table ss;
+in
+  val _ = "Parsed "^ Int.toString (length (snd (rule_type_partition filter_table))) ^" rules" |> writeln;
+
+  val (chain_decls, rules) = rule_type_partition filter_table;
+
+  val parsed_chain_decls = map (ipt_explode #> chain_decl_parser) chain_decls;
+
+  val parsed_rules = map parse_rule rules;
 end;
 *}
 
 ML_val{*
-
 val toString = (fn (a,target,b) => "-A "^a^" "^((Syntax.pretty_term @{context} #> Pretty.string_of) b)^(case target of NONE => "" | SOME t => " -j "^t));
+map (toString #> writeln) parsed_rules;
+*}
 
-map (toString #> writeln) (parse_filter_table filter_table);
+ML_val{*
+map (fn (_,_,b) =>  type_of b) parsed_rules;
+*}
+
+
+ML{*
+structure FirewallTable = Table(type key = string; val ord = Library.string_ord);
+type firewall_table = term list FirewallTable.table;
+
+fun FirewallTable_init chain_decls :firewall_table = fold (fn entry => fn accu => FirewallTable.update_new (entry, []) accu) chain_decls FirewallTable.empty;
+
+fun mk_MatchExpr t = if type_of t <> @{typ "common_primitive list"} then raise Fail "Type Error" else @{const foldMatchAnd (common_primitive)} $ t;
+fun mk_Rule_help t a = let val r = @{const Rule (common_primitive)} $ (mk_MatchExpr t) $ a in
+    if type_of r <> @{typ "common_primitive rule"} then raise Fail "Type error in mk_Rule_help"
+    else r end;
+
+fun append table chain rule = case FirewallTable.lookup table chain
+    of NONE => raise Fail ("uninitialized cahin: "^chain)
+    |  SOME rules => FirewallTable.update (chain, rules@[rule]) table
+*}
+
+ML{*
+fun mk_Rule (tbl: firewall_table) (chain: string, target : string option, t : term) =
+  if not (FirewallTable.defined tbl chain) then raise Fail ("undefined chain to be appended: "^chain) else
+  case target
+  of NONE => mk_Rule_help t @{const action.Empty}
+   | SOME "ACCEPT" => mk_Rule_help t @{const action.Accept}
+   | SOME "DROP" => mk_Rule_help t @{const action.Drop}
+   | SOME "REJECT" => mk_Rule_help t @{const action.Reject}
+   | SOME "LOG" => mk_Rule_help t @{const action.Log}
+   | SOME "RETURN" => mk_Rule_help t @{const action.Return}
+   | SOME custom => if not (FirewallTable.defined tbl custom) then raise Fail ("unknown action: "^custom) else
+                    mk_Rule_help t (@{const action.Call} $ HOLogic.mk_string custom);
+*}
+
+ML_val{*
+val init = FirewallTable_init parsed_chain_decls;
+map type_of (map (mk_Rule init) parsed_rules);
+*}
+
+ML{*
+fun append_rule (tbl: firewall_table) (chain: string, target : string option, t : term) = append tbl chain (mk_Rule tbl (chain, target, t))
+*}
+
+
+ML{*
+val parsed_ruleset = fold (fn rule => fn accu => append_rule accu rule) parsed_rules (FirewallTable_init parsed_chain_decls);
+*}
+
+ML{*
+fun mk_Ruleset (tbl: firewall_table) = FirewallTable.dest_list tbl |> map (fn (k,v) => HOLogic.mk_prod (HOLogic.mk_string k, v)) |> HOLogic.mk_list @{typ "string \<times> common_primitive rule"}
+*}
+
+ML_val{*
+type_of (mk_Ruleset parsed_ruleset);
+Pretty.writeln (Syntax.pretty_term @{context} (mk_Ruleset parsed_ruleset));
+(*ALMOST! FirewallTable.dest_list is probably not the right thing to do*)
 *}
 
 ML_val{* @{const MatchAnd (common_primitive)} $ (@{const Src} $ @{term undefined}) $ @{term undefined} |> fastype_of *}
