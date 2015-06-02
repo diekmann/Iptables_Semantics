@@ -359,7 +359,7 @@ thm foo_def
 declare foo_def[code]
 
 
-value(code) "(map_of foo) ''FORWARD''"
+value(code) "(map_of foo) ''FORWARD''" (*takes forever*)
 value(code) "unfold_ruleset_FORWARD action.Accept (map_of foo)"
 value(code) "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_FORWARD action.Accept (map_of foo))))"
 value(code) "map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_FORWARD action.Accept (map_of foo))))"
