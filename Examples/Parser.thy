@@ -93,8 +93,8 @@ end;
 
 ML{*
 (*val filter_table = load_filter_table ["home", "diekmann", "git", "Iptables_Semantics", "Examples", "SQRL_Shorewall", "iptables-saveakachan"];*)
-(*val filter_table = load_filter_table ["home", "diekmann", "git", "net-network-private", "iptables-save-2015-05-15_15-23-41"];*)
-val filter_table = load_filter_table ["home", "diekmann", "git", "Iptables_Semantics", "Examples", "Parser_Test", "iptables-save"];
+val filter_table = load_filter_table ["home", "diekmann", "git", "net-network-private", "iptables-save-2015-05-15_15-23-41"];
+(*val filter_table = load_filter_table ["home", "diekmann", "git", "Iptables_Semantics", "Examples", "Parser_Test", "iptables-save"];*)
 *}
 
 
@@ -290,7 +290,7 @@ fun hacky_hack t = (*Code_Evaluation.dynamic_value_strict @{context}*) (@{const 
 
 fun mk_MatchExpr t = if fastype_of t <> @{typ "common_primitive negation_type list"} then raise Fail "Type Error" else hacky_hack (@{const alist_and ("common_primitive")} $ t);
 fun mk_Rule_help t a = let val r = @{const Rule (common_primitive)} $ (mk_MatchExpr t) $ a in
-    if type_of r <> @{typ "common_primitive rule"} then raise Fail "Type error in mk_Rule_help"
+    if fastype_of r <> @{typ "common_primitive rule"} then raise Fail "Type error in mk_Rule_help"
     else r end;
 
 fun append table chain rule = case FirewallTable.lookup table chain
