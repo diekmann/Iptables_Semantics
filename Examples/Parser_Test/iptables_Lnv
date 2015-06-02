@@ -1,0 +1,18 @@
+Chain INPUT (policy ACCEPT 283 packets, 94158 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+
+Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 DROP       all  --  *      *       127.0.0.0/8          0.0.0.0/0           
+    0     0 DOS~Pro-t_ect  tcp  --  *      *       100.0.0.0/24         0.0.0.0/0           
+    0     0 DROP       all  --  *      *      !131.159.0.0/16       0.0.0.0/0           
+    0     0 RETURN     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            multiport dports 80,443
+
+Chain OUTPUT (policy ACCEPT 243 packets, 86418 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+
+Chain DOS~Pro-t_ect (1 references)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 ACCEPT     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            state NEW tcp dpts:1:65535 flags:0x17/0x02
+    0     0 RETURN     udp  --  *      *       0.0.0.0/0            0.0.0.0/0           
+    0     0 ACCEPT     icmp --  *      *       0.0.0.0/0            0.0.0.0/0           

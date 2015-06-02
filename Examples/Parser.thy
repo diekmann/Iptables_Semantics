@@ -95,7 +95,8 @@ end;
 
 ML{*
 (*val filter_table = load_filter_table ["home", "diekmann", "git", "Iptables_Semantics", "Examples", "SQRL_Shorewall", "iptables-saveakachan"];*)
-val filter_table = load_filter_table ["home", "diekmann", "git", "net-network-private", "iptables-save-2015-05-15_15-23-41"];
+(*val filter_table = load_filter_table ["home", "diekmann", "git", "net-network-private", "iptables-save-2015-05-15_15-23-41"];*)
+val filter_table = load_filter_table ["home", "diekmann", "git", "Iptables_Semantics", "Examples", "Parser_Test", "iptables-save"];
 *}
 
 
@@ -354,7 +355,9 @@ declare foo_def[code]
 
 
 value(code) "(map_of foo) ''mac_96''"
+value(code) "unfold_ruleset_FORWARD action.Accept (map_of foo)"
 value(code) "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_FORWARD action.Accept (map_of foo))))"
+value(code) "map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_FORWARD action.Accept (map_of foo))))"
 
 
 ML\<open>
