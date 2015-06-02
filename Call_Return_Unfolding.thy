@@ -1137,4 +1137,8 @@ discussion: http://marc.info/?l=netfilter-devel&m=105190848425334&w=2
 \end{verbatim}
 *}
 
+text{*Example*}
+lemma "process_call [''X'' \<mapsto> [Rule (Match b) Return, Rule (Match c) Accept]] [Rule (Match a) (Call ''X'')] =
+       [Rule (MatchAnd (Match a) (MatchAnd (MatchNot (Match b)) (Match c))) Accept]" by (simp add: add_match_def)
+
 end

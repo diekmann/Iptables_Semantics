@@ -198,7 +198,7 @@ in
   
   (*:INPUT ACCEPT [130:12050]*)
   val chain_decl_parser = ($$ ":") |-- parser_target #> fst;
-end
+end;
 *}
 
 ML_val{*(Scan.repeat option_parser) (ipt_explode "-i lup -j net-fw")*}
@@ -211,8 +211,6 @@ val (x, rest) = (Scan.repeat option_parser) (ipt_explode "-d 0.31.123.213/88 --f
 map (fn p => case p of ParsedMatch t => type_of t | ParsedAction _ => dummyT) x;
 map (fn p => case p of ParsedMatch t => Pretty.writeln (Syntax.pretty_term @{context} t) | ParsedAction a => writeln ("action: "^a)) x;
 *}
-
-(*declare [[ML_exception_trace]]*)
 
 ML{*
 local
@@ -234,34 +232,30 @@ local
 
    val get_matches : (parsed_match_action list -> term) =
         List.mapPartial (fn p => case p of ParsedMatch m => SOME m | _ => NONE) #> HOLogic.mk_list @{typ "common_primitive"};
-in
+
+
    (*returns: (chainname the rule was appended to, target, matches)*)
    fun parse_rule (s: string) : (string * string option * term) = let val (chainname, rest) = (case try (ipt_explode #> Scan.finite Symbol.stopper parse_table_append) s of SOME x => x | NONE => raise Fail ("parse_rule: parse_table_append: "^s))
       in let val parsed = parse_rule_options rest in
         (chainname, get_target parsed, get_matches parsed)
-      end end
-    ;
-end
+      end end;
+in
+  (*returns (parsed chain declarations, parsed appended rules*)
+  fun rule_type_partition (rs : string list) : (string list * (string * string option * term) list) =
+      let val (chain_decl, rules) = List.partition (String.isPrefix ":") rs in
+      if not (List.all (String.isPrefix "-A") rules) then raise Fail "could not partition rules" else
+        let val parsed_chain_decls = map (ipt_explode #> chain_decl_parser) chain_decl in
+        let val parsed_rules = map parse_rule rules in
+            let val  _ = "Parsed "^ Int.toString (length parsed_chain_decls) ^" chain declarations" |> writeln in
+            let val  _ = "Parsed "^ Int.toString (length parsed_rules) ^" rules" |> writeln in
+              (parsed_chain_decls, parsed_rules)
+            end end end end
+      end
+end;
 *}
 
-
 ML{*
-local
-  (*returns (chain declarations, appended rules*)
-  fun rule_type_partition (rs : string list) : (string list * string list) = let val (chain_decl, rules) = List.partition (String.isPrefix ":") rs in
-      if not (List.all (String.isPrefix "-A") rules) then raise Fail "could not partition rules" else
-        (chain_decl, rules)
-      end
-
-in
-  val _ = "Parsed "^ Int.toString (length (snd (rule_type_partition filter_table))) ^" rules" |> writeln;
-
-  val (chain_decls, rules) = rule_type_partition filter_table;
-
-  val parsed_chain_decls = map (ipt_explode #> chain_decl_parser) chain_decls;
-
-  val parsed_rules = map parse_rule rules;
-end;
+  val (parsed_chain_decls, parsed_rules) = rule_type_partition filter_table;
 *}
 
 ML_val{*
