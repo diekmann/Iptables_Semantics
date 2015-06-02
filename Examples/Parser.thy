@@ -110,12 +110,16 @@ local
   fun is_target_char x = Symbol.is_ascii x andalso
       (Symbol.is_ascii_letter x orelse Symbol.is_ascii_digit x orelse x = "-" orelse x = "_" orelse x = "~")
 in
-  (*TODO: assert max size?*)
-  fun mk_nat i = (HOLogic.mk_number HOLogic.natT i)
+  fun mk_nat maxval i = if i < 0 orelse i > maxval
+            then
+              raise Fail("nat ("^Int.toString i^") must be between 0 and "^Int.toString maxval)
+            else (HOLogic.mk_number HOLogic.natT i);
+  val mk_nat255 = mk_nat 255;
 
-  fun mk_quadrupel (((a,b),c),d) = HOLogic.mk_prod (mk_nat a, HOLogic.mk_prod (mk_nat b, HOLogic.mk_prod (mk_nat c, mk_nat d)));
+  fun mk_quadrupel (((a,b),c),d) = HOLogic.mk_prod
+           (mk_nat255 a, HOLogic.mk_prod (mk_nat255 b, HOLogic.mk_prod (mk_nat255 c, mk_nat255 d)));
 
-  fun ip_to_hol (ip,len) = @{const Ip4AddrNetmask} $ mk_quadrupel ip $ mk_nat len;
+  fun ip_to_hol (ip,len) = @{const Ip4AddrNetmask} $ mk_quadrupel ip $ mk_nat 32 len;
 
   val parser_ip = (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
                  (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
@@ -318,17 +322,20 @@ let
    end
  \<close>
 
+(*todo: probably add foo_map_of*)
 
 term foo
 thm foo_def
 declare foo_def[code]
 
-ML\<open>
-Code_Simp.dynamic_conv @{context} @{cterm foo}
-\<close>
 
 value(code) "(map_of foo) ''FORWARD''"
 value(code) "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_FORWARD action.Accept (map_of foo))))"
+
+
+ML\<open>
+Code_Simp.dynamic_conv @{context} @{cterm foo}
+\<close>
 
 (*
 ML\<open>
