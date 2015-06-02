@@ -8,8 +8,24 @@ fun foldMatchAnd :: "'a list => 'a match_expr" where
   "foldMatchAnd [] = MatchAny" |
   "foldMatchAnd (m#ms) = MatchAnd (Match m) (foldMatchAnd ms)"
 
-lemma "foldMatchAnd as = alist_and (map Pos as)"
+lemma foldMatchAnd_alist_and: "foldMatchAnd as = alist_and (map Pos as)"
   by(induction as)(simp_all)
+
+fun compress_parsed_extra :: "common_primitive list \<Rightarrow> common_primitive list" where
+  "compress_parsed_extra [] = []" |
+  "compress_parsed_extra ((Extra e1)#(Extra e2)#as) = compress_parsed_extra ((Extra (e1@'' ''@e2))#as)" |
+  "compress_parsed_extra (a#as) = a#compress_parsed_extra as"
+
+value "compress_parsed_extra [Extra ''-m'', Extra ''recent'', Extra ''--update'', Extra ''--seconds'', Extra ''60'', Extra ''--name'', Extra ''DEFAULT'', Extra ''--rsource'']"
+
+lemma compress_parsed_extra_matchexpr: "matches (common_matcher, \<alpha>) (foldMatchAnd (compress_parsed_extra m)) = matches (common_matcher, \<alpha>) (foldMatchAnd m)"
+  apply(simp add: fun_eq_iff)
+  apply(intro allI)
+  apply(rule matches_iff_apply_f)
+  apply(simp add: foldMatchAnd_alist_and )
+  apply(induction m rule: compress_parsed_extra.induct)
+  apply (simp_all)
+oops
 
 
 (*Incomplete: An ML Parser for iptables-save*)
@@ -51,35 +67,37 @@ skip_until " -xx " (raw_explode "a -x foo");
 *}
 
 ML{*
-val path = Path.append Path.root (Path.make ["home", "diekmann", "git", "net-network-private", "iptables-save-2015-05-15_15-23-41"]);
-(*val path = Path.append Path.root (Path.make ["home", "diekmann", "git", "Iptables_Semantics", "Examples", "SQRL_Shorewall", "iptables-saveakachan"]);*)
-val _ = "loading file "^File.platform_path path |> writeln;
-if not (File.exists path) orelse (File.is_dir path) then writeln "Not found" else ();
-val iptables_save = File.read_lines path;
+
 
 local
   fun is_start_of_filter_table s = s = "*filter";
   fun is_end_of_table s = s = "COMMIT";
   (*fun is_comment s = String.isPrefix "#" s*)
 
-in
+  fun load_file (path: string list) =
+      let val p = Path.append Path.root (Path.make path); in
+      let val _ = "loading file "^File.platform_path p |> writeln; in
+        if not (File.exists p) orelse (File.is_dir p) then raise Fail "File not found" else File.read_lines p
+      end end;
+
   fun extract_filter_table [] = []
    |  extract_filter_table (r::rs) = if not (is_start_of_filter_table r) then extract_filter_table rs else
                                      takeWhile (fn x => not (is_end_of_table x)) rs
+
+  fun writenumloaded filter_table =
+    let val _ = "Loaded "^ Int.toString (length filter_table) ^" lines of the filter table" |> writeln; in
+      filter_table
+    end;
+in
+  val load_filter_table = load_file #> extract_filter_table #> writenumloaded;
 end;
-
-val filter_table = extract_filter_table iptables_save;
-
-val _ = "Parsed "^ Int.toString (length filter_table) ^" entries" |> writeln;
-(*val _ = filter_table |> map writeln;*)
 *}
-
 
 ML{*
-String.explode "sasd";
-(($$ "a") ::: (Scan.many (fn x => x = "s"))) (raw_explode "asdf");
-Scan.this_string "as" (raw_explode "asdf");
+(*val filter_table = load_filter_table ["home", "diekmann", "git", "Iptables_Semantics", "Examples", "SQRL_Shorewall", "iptables-saveakachan"];*)
+val filter_table = load_filter_table ["home", "diekmann", "git", "net-network-private", "iptables-save-2015-05-15_15-23-41"];
 *}
+
 
 ML{*
 (*keep quoted strings as one token*)
@@ -92,88 +110,94 @@ in
   val ipt_explode = raw_explode #> collapse_quotes;
 end
 *}
-
 ML_val{*
-ipt_explode "ad \"asdas\" boo";
+ipt_explode "ad \"as das\" boo";
 ipt_explode "ad \"foobar --boo boo";
 *}
 
+
 ML{*
-
-local
-  fun extract_int ss = case ss |> implode |> Int.fromString of SOME i => i
-                                                             | NONE => raise Fail "unparsable int";
-
-  fun is_iface_char x = Symbol.is_ascii x andalso
-      (Symbol.is_ascii_letter x orelse Symbol.is_ascii_digit x orelse x = "+" orelse x = "*" orelse x = ".")
-
-  fun is_target_char x = Symbol.is_ascii x andalso
-      (Symbol.is_ascii_letter x orelse Symbol.is_ascii_digit x orelse x = "-" orelse x = "_" orelse x = "~")
-in
-  fun mk_nat maxval i = if i < 0 orelse i > maxval
-            then
-              raise Fail("nat ("^Int.toString i^") must be between 0 and "^Int.toString maxval)
-            else (HOLogic.mk_number HOLogic.natT i);
-  val mk_nat255 = mk_nat 255;
-
-  fun mk_quadrupel (((a,b),c),d) = HOLogic.mk_prod
-           (mk_nat255 a, HOLogic.mk_prod (mk_nat255 b, HOLogic.mk_prod (mk_nat255 c, mk_nat255 d)));
-
-  fun ip_to_hol (ip,len) = @{const Ip4AddrNetmask} $ mk_quadrupel ip $ mk_nat 32 len;
-
-  val parser_ip = (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
-                 (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
-                 (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
-                 (Scan.many1 Symbol.is_ascii_digit >> extract_int);
-  
-  val parser_ip_cidr = parser_ip --| ($$ "/") -- (Scan.many1 Symbol.is_ascii_digit >> extract_int) >> ip_to_hol;
-
-  val parser_interface = Scan.many1 is_iface_char >> (implode #> (fn x => @{const Iface} $ HOLogic.mk_string x));
-
-  val parser_target = Scan.many1 is_target_char >> implode;
-
-  val parser_extra = Scan.many1 (fn x => x <> " " andalso Symbol.not_eof x) >> (implode #> HOLogic.mk_string);
-
-  val is_whitespace = Scan.many (fn x => x = " ");
-end;
-
 datatype parsed_match_action = ParsedMatch of term | ParsedAction of string;
-
-fun parse_cmd_option (s: string) (t: term) (parser: string list -> (term * string list)) = 
-    Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string s |-- (parser >> (fn r => ParsedMatch (t $ r))))
-
-
-val parse_src_ip = parse_cmd_option "-s " @{const Src} parser_ip_cidr;
-val parse_dst_ip = parse_cmd_option "-d " @{const Dst} parser_ip_cidr;
-
-
-val parse_in_iface = parse_cmd_option "-i " @{const IIface} parser_interface;
-val parse_out_iface = parse_cmd_option "-o " @{const OIface} parser_interface;
-
-val parse_unknown = parse_cmd_option "" @{const Extra} parser_extra;
-
-
-(*parses: -A FORWARD*)
-val parse_table_append : (string list -> (string * string list)) = Scan.this_string "-A " |-- parser_target --| is_whitespace;
-
-
-(*parses: -j MY_CUSTOM_CHAIN*)
-(*The -j may not be the end of the line. example: -j LOG --log-prefix "[IPT_DROP]:"*)
-val parse_target : (string list -> parsed_match_action * string list) = 
-              Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string "-j " |-- (parser_target >> ParsedAction ));
-
-
-(*parses: -s 0.31.123.213/88 --foo_bar -j chain --foobar
- First tries to parse a known field, afterwards, it parses something unknown until a blank space appears
-*)
-val option_parser : (string list -> (parsed_match_action) * string list) = 
-    Scan.recover (parse_src_ip || parse_dst_ip || parse_in_iface || parse_out_iface || parse_target) (K parse_unknown);
-
-(*parse_table_append should be called before option_parser, otherwise -A will simply be an unknown for option_parser*)
-
-
-(*:INPUT ACCEPT [130:12050]*)
-val chain_decl_parser = ($$ ":") |-- parser_target #> fst;
+local (*iptables-save parsers*)
+  val is_whitespace = Scan.many (fn x => x = " ");
+  
+  local (*parser for matches*)
+    local
+      fun extract_int ss = case ss |> implode |> Int.fromString of SOME i => i
+                                                                 | NONE => raise Fail "unparsable int";
+    
+      fun is_iface_char x = Symbol.is_ascii x andalso
+          (Symbol.is_ascii_letter x orelse Symbol.is_ascii_digit x orelse x = "+" orelse x = "*" orelse x = ".")
+    in
+      fun mk_nat maxval i = if i < 0 orelse i > maxval
+                then
+                  raise Fail("nat ("^Int.toString i^") must be between 0 and "^Int.toString maxval)
+                else (HOLogic.mk_number HOLogic.natT i);
+      val mk_nat255 = mk_nat 255;
+    
+      fun mk_quadrupel (((a,b),c),d) = HOLogic.mk_prod
+               (mk_nat255 a, HOLogic.mk_prod (mk_nat255 b, HOLogic.mk_prod (mk_nat255 c, mk_nat255 d)));
+    
+      fun ip_to_hol (ip,len) = @{const Ip4AddrNetmask} $ mk_quadrupel ip $ mk_nat 32 len;
+    
+      val parser_ip = (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
+                     (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
+                     (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
+                     (Scan.many1 Symbol.is_ascii_digit >> extract_int);
+      
+      val parser_ip_cidr = parser_ip --| ($$ "/") -- (Scan.many1 Symbol.is_ascii_digit >> extract_int) >> ip_to_hol;
+    
+      val parser_interface = Scan.many1 is_iface_char >> (implode #> (fn x => @{const Iface} $ HOLogic.mk_string x));
+    
+      val parser_extra = Scan.many1 (fn x => x <> " " andalso Symbol.not_eof x) >> (implode #> HOLogic.mk_string);
+    
+    end;
+  in
+    fun parse_cmd_option (s: string) (t: term) (parser: string list -> (term * string list)) = 
+        Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string s |-- (parser >> (fn r => ParsedMatch (t $ r))))
+    
+    
+    val parse_src_ip = parse_cmd_option "-s " @{const Src} parser_ip_cidr;
+    val parse_dst_ip = parse_cmd_option "-d " @{const Dst} parser_ip_cidr;
+    
+    
+    val parse_in_iface = parse_cmd_option "-i " @{const IIface} parser_interface;
+    val parse_out_iface = parse_cmd_option "-o " @{const OIface} parser_interface;
+    
+    val parse_unknown = parse_cmd_option "" @{const Extra} parser_extra;
+  end;
+  
+  
+  local (*parser for target/action*)
+    fun is_target_char x = Symbol.is_ascii x andalso
+        (Symbol.is_ascii_letter x orelse Symbol.is_ascii_digit x orelse x = "-" orelse x = "_" orelse x = "~")
+  in
+    val parser_target = Scan.many1 is_target_char >> implode;
+  
+    (*parses: -j MY_CUSTOM_CHAIN*)
+    (*The -j may not be the end of the line. example: -j LOG --log-prefix "[IPT_DROP]:"*)
+    val parse_target : (string list -> parsed_match_action * string list) = 
+                  Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string "-j " |-- (parser_target >> ParsedAction ));
+  end;
+in
+  (*parses: -A FORWARD*)
+  val parse_table_append : (string list -> (string * string list)) = Scan.this_string "-A " |-- parser_target --| is_whitespace;
+  
+  
+  (*parses: -s 0.31.123.213/88 --foo_bar -j chain --foobar
+   First tries to parse a known field, afterwards, it parses something unknown until a blank space appears
+  *)
+  (*TODO: not parsed: negated IPs, ports, protocols, ...*)
+  (*TODO: the new rulesets don't have negated IP addresses, but definetely test this!*)
+  val option_parser : (string list -> (parsed_match_action) * string list) = 
+      Scan.recover (parse_src_ip || parse_dst_ip || parse_in_iface || parse_out_iface || parse_target) (K parse_unknown);
+  
+  
+  (*parse_table_append should be called before option_parser, otherwise -A will simply be an unknown for option_parser*)
+  
+  (*:INPUT ACCEPT [130:12050]*)
+  val chain_decl_parser = ($$ ":") |-- parser_target #> fst;
+end
 *}
 
 ML_val{*(Scan.repeat option_parser) (ipt_explode "-i lup -j net-fw")*}
@@ -329,7 +353,7 @@ thm foo_def
 declare foo_def[code]
 
 
-value(code) "(map_of foo) ''FORWARD''"
+value(code) "(map_of foo) ''mac_96''"
 value(code) "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_FORWARD action.Accept (map_of foo))))"
 
 
