@@ -67,8 +67,6 @@ skip_until " -xx " (raw_explode "a -x foo");
 *}
 
 ML{*
-
-
 local
   fun is_start_of_filter_table s = s = "*filter";
   fun is_end_of_table s = s = "COMMIT";
@@ -118,7 +116,7 @@ ipt_explode "ad \"foobar --boo boo";
 
 
 ML{*
-datatype parsed_match_action = ParsedMatch of term | ParsedAction of string;
+datatype parsed_match_action = ParsedMatch of term | ParsedNegatedMatch of term | ParsedAction of string;
 local (*iptables-save parsers*)
   val is_whitespace = Scan.many (fn x => x = " ");
   
@@ -153,14 +151,19 @@ local (*iptables-save parsers*)
       val parser_extra = Scan.many1 (fn x => x <> " " andalso Symbol.not_eof x) >> (implode #> HOLogic.mk_string);
     
     end;
+    fun parse_cmd_option_generic (d: term -> parsed_match_action) (s: string) (t: term) (parser: string list -> (term * string list)) = 
+        Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string s |-- (parser >> (fn r => d (t $ r))))
+
+    fun parse_cmd_option (s: string) (t: term) (parser: string list -> (term * string list)) = parse_cmd_option_generic ParsedMatch s t parser;
+
+    fun parse_cmd_option_negated (s: string) (t: term) (parser: string list -> (term * string list)) = parse_cmd_option_generic ParsedNegatedMatch s t parser;
   in
-    fun parse_cmd_option (s: string) (t: term) (parser: string list -> (term * string list)) = 
-        Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string s |-- (parser >> (fn r => ParsedMatch (t $ r))))
-    
     
     val parse_src_ip = parse_cmd_option "-s " @{const Src} parser_ip_cidr;
     val parse_dst_ip = parse_cmd_option "-d " @{const Dst} parser_ip_cidr;
-    
+
+    val parse_src_ip_negated = parse_cmd_option_negated "! -s " @{const Src} parser_ip_cidr;
+    val parse_dst_ip_negated = parse_cmd_option_negated "! -d " @{const Dst} parser_ip_cidr;    
     
     val parse_in_iface = parse_cmd_option "-i " @{const IIface} parser_interface;
     val parse_out_iface = parse_cmd_option "-o " @{const OIface} parser_interface;
@@ -191,7 +194,8 @@ in
   (*TODO: not parsed: negated IPs, ports, protocols, ...*)
   (*TODO: the new rulesets don't have negated IP addresses, but definetely test this!*)
   val option_parser : (string list -> (parsed_match_action) * string list) = 
-      Scan.recover (parse_src_ip || parse_dst_ip || parse_in_iface || parse_out_iface || parse_target) (K parse_unknown);
+      Scan.recover (parse_src_ip || parse_dst_ip || parse_in_iface || parse_out_iface ||
+                    parse_target || parse_src_ip_negated || parse_dst_ip_negated) (K parse_unknown);
   
   
   (*parse_table_append should be called before option_parser, otherwise -A will simply be an unknown for option_parser*)
@@ -231,11 +235,17 @@ local
       end;
 
    val get_matches : (parsed_match_action list -> term) =
-        List.mapPartial (fn p => case p of ParsedMatch m => SOME m | _ => NONE) #> HOLogic.mk_list @{typ "common_primitive"};
+        List.mapPartial (fn p => case p of
+                            ParsedMatch m => SOME (@{const Pos (common_primitive)} $ m)
+                          | ParsedNegatedMatch m => SOME (@{const Neg (common_primitive)} $ m)
+                          | ParsedAction _ => NONE)
+                         #> HOLogic.mk_list @{typ "common_primitive negation_type"};
 
 
    (*returns: (chainname the rule was appended to, target, matches)*)
-   fun parse_rule (s: string) : (string * string option * term) = let val (chainname, rest) = (case try (ipt_explode #> Scan.finite Symbol.stopper parse_table_append) s of SOME x => x | NONE => raise Fail ("parse_rule: parse_table_append: "^s))
+   fun parse_rule (s: string) : (string * string option * term) = let
+      val (chainname, rest) =
+        (case try (ipt_explode #> Scan.finite Symbol.stopper parse_table_append) s of SOME x => x | NONE => raise Fail ("parse_rule: parse_table_append: "^s))
       in let val parsed = parse_rule_options rest in
         (chainname, get_target parsed, get_matches parsed)
       end end;
@@ -275,9 +285,10 @@ type firewall_table = term list FirewallTable.table;
 fun FirewallTable_init chain_decls :firewall_table = fold (fn entry => fn accu => FirewallTable.update_new (entry, []) accu) chain_decls FirewallTable.empty;
 
 (* this takes like forever! *)
+(* apply compress_parsed_extra here?*)
 fun hacky_hack t = (*Code_Evaluation.dynamic_value_strict @{context}*) (@{const compress_extra} $ t)
 
-fun mk_MatchExpr t = if type_of t <> @{typ "common_primitive list"} then raise Fail "Type Error" else hacky_hack (@{const foldMatchAnd (common_primitive)} $ t);
+fun mk_MatchExpr t = if fastype_of t <> @{typ "common_primitive negation_type list"} then raise Fail "Type Error" else hacky_hack (@{const alist_and ("common_primitive")} $ t);
 fun mk_Rule_help t a = let val r = @{const Rule (common_primitive)} $ (mk_MatchExpr t) $ a in
     if type_of r <> @{typ "common_primitive rule"} then raise Fail "Type error in mk_Rule_help"
     else r end;
@@ -348,7 +359,7 @@ thm foo_def
 declare foo_def[code]
 
 
-value(code) "(map_of foo) ''mac_96''"
+value(code) "(map_of foo) ''FORWARD''"
 value(code) "unfold_ruleset_FORWARD action.Accept (map_of foo)"
 value(code) "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_FORWARD action.Accept (map_of foo))))"
 value(code) "map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_FORWARD action.Accept (map_of foo))))"
