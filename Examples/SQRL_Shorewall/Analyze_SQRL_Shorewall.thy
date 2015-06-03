@@ -1,15 +1,12 @@
 theory Analyze_SQRL_Shorewall
 imports "../Code_Interface"
 "../../Semantics_Ternary/Optimizing"
-"~~/src/HOL/Library/Code_Target_Nat"
-"~~/src/HOL/Library/Code_Target_Int"
-"~~/src/HOL/Library/Code_Char"
 begin
 
 
 section{*Example: SQRL Shorewall*}
 
-export_code unfold_ruleset_OUTPUT map_of_string upper_closure lower_closure
+export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure
   Rule
   Accept Drop Log Reject Call Return Empty  Unknown
   Match MatchNot MatchAnd MatchAny
@@ -22,6 +19,7 @@ export_code unfold_ruleset_OUTPUT map_of_string upper_closure lower_closure
   to_simple_firewall
   simple_rule_toString
   Drop
+  common_primitive_rule_toString
   in SML module_name "Test" file "unfold_code.ML"
 
 ML_file "unfold_code.ML"
@@ -42,8 +40,13 @@ declare[[ML_print_depth=50]]
 
 
 ML{*
-val rules = unfold_ruleset_OUTPUT Drop (map_of_string firewall_chains)
+val rules = unfold_ruleset_FORWARD Drop (map_of_string firewall_chains)
 *}
+
+ML_val{*
+map (common_primitive_rule_toString #> String.implode #> writeln) rules
+*}
+
 ML{*
 length rules;
 val upper = upper_closure rules;
@@ -51,6 +54,10 @@ val lower = lower_closure rules;
 length upper;
 length lower;*}
 
+
+ML_val{*
+map (common_primitive_rule_toString #> String.implode #> writeln) lower
+*}
 
 ML_val{*
 check_simple_fw_preconditions upper;

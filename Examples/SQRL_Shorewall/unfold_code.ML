@@ -32,11 +32,12 @@ structure Test : sig
       char list -> (common_primitive rule list) option
   val upper_closure : common_primitive rule list -> common_primitive rule list
   val simple_rule_toString : simple_rule -> char list
-  val unfold_ruleset_OUTPUT :
+  val unfold_ruleset_FORWARD :
     action ->
       (char list -> (common_primitive rule list) option) ->
         common_primitive rule list
   val to_simple_firewall : common_primitive rule list -> simple_rule list
+  val common_primitive_rule_toString : common_primitive rule -> char list
   val check_simple_fw_preconditions : common_primitive rule list -> bool
 end = struct
 
@@ -607,14 +608,23 @@ fun mask A_ n =
 
 fun unat A_ w = nat (uint A_ w);
 
+fun foldr f [] = id
+  | foldr f (x :: xs) = f x o foldr f xs;
+
 fun map_of A_ ((l, v) :: ps) k = (if eq A_ l k then SOME v else map_of A_ ps k)
   | map_of A_ [] k = NONE;
+
+fun concat xss = foldr (fn a => fn b => a @ b) xss [];
 
 fun filter p [] = []
   | filter p (x :: xs) = (if p x then x :: filter p xs else filter p xs);
 
 fun member A_ [] y = false
   | member A_ (x :: xs) y = eq A_ x y orelse member A_ xs y;
+
+fun splice (x :: xs) (y :: ys) = x :: y :: splice xs ys
+  | splice [] ys = ys
+  | splice xs [] = xs;
 
 fun remdups A_ [] = []
   | remdups A_ (x :: xs) =
@@ -645,6 +655,10 @@ val ifaceAny : iface = Iface [#"+"];
 
 fun pred_list p [] = true
   | pred_list p (x :: xs) = p x andalso pred_list p xs;
+
+fun replicate n x =
+  (if equal_nata n zero_nat then []
+    else x :: replicate (minus_nat n one_nat) x);
 
 val pfxes : nat list =
   map nat (upto zero_int (Int_of_integer (32 : IntInf.int)));
@@ -944,6 +958,13 @@ fun rw_Reject [] = []
   | rw_Reject (Rule (v, Return) :: rs) = Rule (v, Return) :: rw_Reject rs
   | rw_Reject (Rule (v, Empty) :: rs) = Rule (v, Empty) :: rw_Reject rs
   | rw_Reject (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rw_Reject rs;
+
+fun list_toString toStr ls =
+  [#"["] @
+    concat
+      (splice (map toStr ls)
+        (replicate (minus_nat (size_list ls) one_nat) [#",", #" "])) @
+      [#"]"];
 
 fun equal_match_expr A_ (MatchAnd (x31, x32)) MatchAny = false
   | equal_match_expr A_ MatchAny (MatchAnd (x31, x32)) = false
@@ -1731,6 +1752,20 @@ fun rm_LogEmpty [] = []
   | rm_LogEmpty (Rule (v, Return) :: rs) = Rule (v, Return) :: rm_LogEmpty rs
   | rm_LogEmpty (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rm_LogEmpty rs;
 
+fun action_toString Accept = [#"A", #"C", #"C", #"E", #"P", #"T"]
+  | action_toString Drop = [#"D", #"R", #"O", #"P"]
+  | action_toString Reject = [#"R", #"E", #"J", #"E", #"C", #"T"]
+  | action_toString (Call target) = [#"C", #"a", #"l", #"l", #" "] @ target
+  | action_toString Empty =
+    [#"(", #"a", #"m", #"p", #"t", #"y", #" ", #"a", #"c", #"t", #"i", #"o",
+      #"n", #")"]
+  | action_toString Log = [#"L", #"O", #"G"]
+  | action_toString Return = [#"R", #"E", #"T", #"U", #"N", #"R", #"N"]
+  | action_toString Unknown =
+    [#"!", #"!", #"!", #"!", #"!", #"!", #"!", #"!", #"!", #"!", #"!", #" ",
+      #"U", #"N", #"K", #"N", #"O", #"W", #"N", #" ", #"!", #"!", #"!", #"!",
+      #"!", #"!", #"!", #"!", #"!", #"!", #"!"];
+
 fun simple_proto_conjunct ProtoAny proto = SOME proto
   | simple_proto_conjunct (Proto v) ProtoAny = SOME (Proto v)
   | simple_proto_conjunct (Proto p1) (Proto p2) =
@@ -1839,16 +1874,6 @@ val simple_match_any : unit simple_match_ext =
           (Int_of_integer (65535 : IntInf.int))),
       ());
 
-fun unfold_ruleset_OUTPUT default_action rs =
-  funpow (nat_of_integer (10 : IntInf.int))
-    (optimize_matches opt_MatchAny_match_expr)
-    (optimize_matches optimize_primitive_univ
-      (rw_Reject
-        (rm_LogEmpty
-          (funpow (nat_of_integer (10 : IntInf.int)) (process_call rs)
-            [Rule (MatchAny, Call [#"O", #"U", #"T", #"P", #"U", #"T"]),
-              Rule (MatchAny, default_action)]))));
-
 fun normalized_dst_ports MatchAny = true
   | normalized_dst_ports (Match (Dst_Ports [])) = true
   | normalized_dst_ports (Match (Dst_Ports [uu])) = true
@@ -1939,6 +1964,16 @@ fun simple_match_and
                              (iif, oif, sip, dip, p,
                                simpl_ports_conjunct sps1 sps2,
                                simpl_ports_conjunct dps1 dps2, ())))))));
+
+fun unfold_ruleset_FORWARD default_action rs =
+  funpow (nat_of_integer (10 : IntInf.int))
+    (optimize_matches opt_MatchAny_match_expr)
+    (optimize_matches optimize_primitive_univ
+      (rw_Reject
+        (rm_LogEmpty
+          (funpow (nat_of_integer (10 : IntInf.int)) (process_call rs)
+            [Rule (MatchAny, Call [#"F", #"O", #"R", #"W", #"A", #"R", #"D"]),
+              Rule (MatchAny, default_action)]))));
 
 fun normalized_ifaces MatchAny = true
   | normalized_ifaces (Match uu) = true
@@ -2064,6 +2099,43 @@ fun to_simple_firewall rs =
         | SOME sm => SOME (SimpleRule (sm, action_to_simple_action a))))
     rs;
 
+fun common_primitive_toString (Src (Ip4Addr (a, (b, (c, d))))) =
+  [#"s", #"r", #"c", #"="] @
+    string_of_nat a @
+      [#"."] @
+        string_of_nat b @ [#"."] @ string_of_nat c @ [#"."] @ string_of_nat d
+  | common_primitive_toString (Dst (Ip4Addr (a, (b, (c, d))))) =
+    [#"d", #"s", #"t", #"="] @
+      string_of_nat a @
+        [#"."] @
+          string_of_nat b @ [#"."] @ string_of_nat c @ [#"."] @ string_of_nat d
+  | common_primitive_toString (Src (Ip4AddrNetmask ((a, (b, (c, d))), n))) =
+    [#"s", #"r", #"c", #"="] @
+      string_of_nat a @
+        [#"."] @
+          string_of_nat b @
+            [#"."] @
+              string_of_nat c @
+                [#"."] @ string_of_nat d @ [#"/"] @ string_of_nat n
+  | common_primitive_toString (Dst (Ip4AddrNetmask ((a, (b, (c, d))), n))) =
+    [#"d", #"s", #"t", #"="] @
+      string_of_nat a @
+        [#"."] @
+          string_of_nat b @
+            [#"."] @
+              string_of_nat c @
+                [#"."] @ string_of_nat d @ [#"/"] @ string_of_nat n
+  | common_primitive_toString (IIface ifce) =
+    iface_toString [#"i", #"n", #"="] ifce
+  | common_primitive_toString (OIface ifce) =
+    iface_toString [#"o", #"u", #"t", #"="] ifce
+  | common_primitive_toString (Prot prot) = protocol_toString prot
+  | common_primitive_toString (Src_Ports pts) =
+    list_toString (ports_toString [#"s", #"p", #"t", #"s", #"="]) pts
+  | common_primitive_toString (Dst_Ports pts) =
+    list_toString (ports_toString [#"d", #"p", #"t", #"s", #"="]) pts
+  | common_primitive_toString (Extra e) = [#"`"] @ e @ [#"`"];
+
 fun normalized_dst_ips MatchAny = true
   | normalized_dst_ips (Match uu) = true
   | normalized_dst_ips (MatchNot (Match (Dst uv))) = false
@@ -2111,6 +2183,19 @@ fun normalized_protocols MatchAny = true
   | normalized_protocols (MatchNot (Match (Extra va))) = true
   | normalized_protocols (MatchNot (MatchNot v)) = true
   | normalized_protocols (MatchNot MatchAny) = true;
+
+fun common_primitive_match_expr_toString MatchAny = []
+  | common_primitive_match_expr_toString (Match m) = common_primitive_toString m
+  | common_primitive_match_expr_toString (MatchAnd (m1, m2)) =
+    common_primitive_match_expr_toString m1 @
+      [#" "] @ common_primitive_match_expr_toString m2
+  | common_primitive_match_expr_toString (MatchNot m) =
+    [#"N", #"O", #"T", #" ", #"("] @
+      common_primitive_match_expr_toString m @ [#")"];
+
+fun common_primitive_rule_toString (Rule (m, a)) =
+  common_primitive_match_expr_toString m @
+    [#" ", #"a", #"c", #"t", #"i", #"o", #"n", #":", #" "] @ action_toString a;
 
 fun equal_action Empty Unknown = false
   | equal_action Unknown Empty = false

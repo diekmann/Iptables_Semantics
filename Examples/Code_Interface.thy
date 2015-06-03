@@ -65,6 +65,11 @@ definition string_of_int :: "int \<Rightarrow> string" where
   "string_of_int i = (if i < 0 then ''-'' @ string_of_nat (nat (- i)) else 
      string_of_nat (nat i))"
 
+definition list_toString :: "('a \<Rightarrow> string) \<Rightarrow> 'a list \<Rightarrow> string" where
+  "list_toString toStr ls = ''[''@ concat (splice (map toStr ls) (replicate (length ls - 1) '', ''))  @'']''"
+
+lemma "list_toString string_of_nat [1,2,3] = ''[1, 2, 3]''" by eval
+
 definition ipv4_cidr_toString :: "(ipv4addr \<times> nat) \<Rightarrow> string" where
   "ipv4_cidr_toString ip_n = (case ip_n of (base, n) \<Rightarrow> 
       (case dotdecimal_of_ipv4addr base of (a,b,c,d) \<Rightarrow> string_of_nat a @''.''@ string_of_nat b @''.''@ string_of_nat c @''.''@ string_of_nat d
@@ -81,20 +86,56 @@ fun simple_action_toString :: "simple_action \<Rightarrow> string" where
   "simple_action_toString Accept = ''ACCEPT''" |
   "simple_action_toString Drop = ''DROP''"
 
+
+fun action_toString :: "action \<Rightarrow> string" where
+  "action_toString action.Accept = ''ACCEPT''" |
+  "action_toString action.Drop = ''DROP''" |
+  "action_toString action.Reject = ''REJECT''" |
+  "action_toString (action.Call target) = ''Call ''@target" |
+  "action_toString action.Empty = ''(ampty action)''" |
+  "action_toString action.Log = ''LOG''" |
+  "action_toString action.Return = ''RETUNRN''" |
+  "action_toString action.Unknown = ''!!!!!!!!!!! UNKNOWN !!!!!!!!!!!''"
+
 definition port_toString :: "16 word \<Rightarrow> string" where
   "port_toString p \<equiv> string_of_nat (unat p)"
 
 definition iface_toString :: "string \<Rightarrow> iface \<Rightarrow> string" where
   "iface_toString descr iface = (if iface = ifaceAny then '''' else
       (case iface of (Iface name) \<Rightarrow> descr@name))"
-lemma "iface_toString ''src: '' (Iface ''+'') = ''''" by eval
-lemma "iface_toString ''src: '' (Iface ''eth0'') = ''src: eth0''" by eval
+lemma "iface_toString ''in: '' (Iface ''+'') = ''''" by eval
+lemma "iface_toString ''in: '' (Iface ''eth0'') = ''in: eth0''" by eval
 
 fun ports_toString :: "string \<Rightarrow> (16 word \<times> 16 word) \<Rightarrow> string" where
   "ports_toString descr (s,e) = (if s = 0 \<and> e = max_word then '''' else descr@''(''@port_toString s@'',''@port_toString e@'')'')"
-lemma "ports_toString ''src: '' (0,65535) = ''''" by eval
-lemma "ports_toString ''src: '' (1024,2048) = ''src: (1024,2048)''" by eval
+lemma "ports_toString ''spt: '' (0,65535) = ''''" by eval
+lemma "ports_toString ''spt: '' (1024,2048) = ''spt: (1024,2048)''" by eval
 
+
+fun common_primitive_toString :: "common_primitive \<Rightarrow> string" where
+  "common_primitive_toString (Src (Ip4Addr (a,b,c,d))) = ''src=''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d" |
+  "common_primitive_toString (Dst (Ip4Addr (a,b,c,d))) = ''dst=''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d" |
+  "common_primitive_toString (Src (Ip4AddrNetmask (a,b,c,d) n)) =
+      ''src=''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d@''/''@string_of_nat n"  |
+  "common_primitive_toString (Dst (Ip4AddrNetmask (a,b,c,d) n)) =
+      ''dst=''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d@''/''@string_of_nat n"  |
+  "common_primitive_toString (IIface ifce) = iface_toString ''in='' ifce" |
+  "common_primitive_toString (OIface ifce) = iface_toString ''out='' ifce" |
+  "common_primitive_toString (Prot prot) = protocol_toString prot" |
+  "common_primitive_toString (Src_Ports pts) = list_toString (ports_toString ''spts='') pts" |
+  "common_primitive_toString (Dst_Ports pts) = list_toString (ports_toString ''dpts='') pts" |
+  "common_primitive_toString (Extra e) = ''`''@e@''`''"
+
+
+fun common_primitive_match_expr_toString :: "common_primitive match_expr \<Rightarrow> string" where
+  "common_primitive_match_expr_toString MatchAny = ''''" |
+  "common_primitive_match_expr_toString (Match m) = common_primitive_toString m" |
+  "common_primitive_match_expr_toString (MatchAnd m1 m2) = common_primitive_match_expr_toString m1 @'' '' @ common_primitive_match_expr_toString m2" |
+  "common_primitive_match_expr_toString (MatchNot m) = ''NOT (''@common_primitive_match_expr_toString m@'')''"
+
+fun common_primitive_rule_toString :: "common_primitive rule \<Rightarrow> string" where
+  "common_primitive_rule_toString (Rule m a) = common_primitive_match_expr_toString m @'' action: ''@action_toString a"
+  
 
 fun simple_rule_toString :: "simple_rule \<Rightarrow> string" where
   "simple_rule_toString (SimpleRule \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> a) = 
