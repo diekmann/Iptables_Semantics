@@ -78,7 +78,7 @@ local
   fun is_end_of_table s = s = "COMMIT";
 
   fun load_file (path: string list) =
-      let val p = Path.append Path.root (Path.make path); in
+      let val p =  File.full_path (File.pwd ()) (Path.make path); in
       let val _ = "loading file "^File.platform_path p |> writeln; in
         if not (File.exists p) orelse (File.is_dir p) then raise Fail "File not found" else File.read_lines p
       end end;
@@ -97,9 +97,9 @@ end;
 *}
 
 ML{*
-(*val filter_table = load_filter_table ["home", "diekmann", "git", "Iptables_Semantics", "Examples", "SQRL_Shorewall", "iptables-saveakachan"];*)
-val filter_table = load_filter_table ["home", "diekmann", "git", "net-network-private", "iptables-save-2015-05-15_15-23-41"];
-(*val filter_table = load_filter_table ["home", "diekmann", "git", "Iptables_Semantics", "Examples", "Parser_Test", "iptables-save"];*)
+(*val filter_table = load_filter_table ["Examples", "SQRL_Shorewall", "iptables-saveakachan"];*)
+(*val filter_table = load_filter_table ["..", "net-network-private", "iptables-save-2015-05-15_15-23-41"];*)
+val filter_table = load_filter_table ["Examples", "Parser_Test", "iptables-save"];
 *}
 
 
@@ -370,7 +370,7 @@ fun parse_iptables_save (file: string list) =
 *}
 
 ML{*
-val example = parse_iptables_save ["home", "diekmann", "git", "net-network-private", "iptables-save-2015-05-15_15-23-41"];
+val example = parse_iptables_save ["Examples", "Parser_Test", "iptables-save"];
 
 Pretty.writeln (Syntax.pretty_term @{context} example);
 *}
@@ -378,17 +378,22 @@ Pretty.writeln (Syntax.pretty_term @{context} example);
 
 (*TODO: probably already add @{const map_of ("string", "common_primitive rule list")}*)
 
-local_setup \<open>fn lthy =>
-let
-   val ((_, (_, thm)), lthy) =
-    Local_Theory.define ((@{binding foo}, NoSyn),
-        (*this takes a while*)
-        ((Binding.empty, []), example (*(Code_Evaluation.dynamic_value_strict @{context} (mk_Ruleset parsed_ruleset))*))) lthy
-    val (_, lthy) =
-       Local_Theory.note ((@{binding foo_def}, []), [thm]) lthy
-   in
-     lthy
-   end
+ML{*
+fun local_setup_parse_iptables_save path = fn lthy =>
+          let
+             val ((_, (_, thm)), lthy) =
+              Local_Theory.define ((@{binding foo}, NoSyn),
+                  (*this takes a while*)
+                  ((Binding.empty, []), parse_iptables_save path)) lthy
+              val (_, lthy) =
+                 Local_Theory.note ((@{binding foo_def}, []), [thm]) lthy
+             in
+               lthy
+             end
+*}
+
+local_setup \<open>
+  local_setup_parse_iptables_save ["Examples", "Parser_Test", "iptables-save"]
  \<close>
 
 declare foo_def[code]
