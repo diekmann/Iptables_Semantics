@@ -278,52 +278,55 @@ map (fn (_,_,b) =>  type_of b) parsed_rules;
 *}
 
 
-ML{*
+ML{* (*create a table with the firewall definition*)
 structure FirewallTable = Table(type key = string; val ord = Library.string_ord);
 type firewall_table = term list FirewallTable.table;
 
-fun FirewallTable_init chain_decls :firewall_table = fold (fn entry => fn accu => FirewallTable.update_new (entry, []) accu) chain_decls FirewallTable.empty;
+local
+  (* Initialize the table. Create a key for every declared chain. *)
+  fun FirewallTable_init chain_decls : firewall_table = fold (fn entry => fn accu => FirewallTable.update_new (entry, []) accu) chain_decls FirewallTable.empty;
+  
+  (* this takes like forever! *)
+  (* apply compress_parsed_extra here?*)
+  fun hacky_hack t = (*Code_Evaluation.dynamic_value_strict @{context}*) (@{const compress_extra} $ t)
+  
+  fun mk_MatchExpr t = if fastype_of t <> @{typ "common_primitive negation_type list"} then raise Fail "Type Error" else hacky_hack (@{const alist_and ("common_primitive")} $ t);
+  fun mk_Rule_help t a = let val r = @{const Rule (common_primitive)} $ (mk_MatchExpr t) $ a in
+      if fastype_of r <> @{typ "common_primitive rule"} then raise Fail "Type error in mk_Rule_help"
+      else r end;
+  
+  fun append table chain rule = case FirewallTable.lookup table chain
+      of NONE => raise Fail ("uninitialized cahin: "^chain)
+      |  SOME rules => FirewallTable.update (chain, rules@[rule]) table
+  
+  fun mk_Rule (tbl: firewall_table) (chain: string, target : string option, t : term) =
+    if not (FirewallTable.defined tbl chain) then raise Fail ("undefined chain to be appended: "^chain) else
+    case target
+    of NONE => mk_Rule_help t @{const action.Empty}
+     | SOME "ACCEPT" => mk_Rule_help t @{const action.Accept}
+     | SOME "DROP" => mk_Rule_help t @{const action.Drop}
+     | SOME "REJECT" => mk_Rule_help t @{const action.Reject}
+     | SOME "LOG" => mk_Rule_help t @{const action.Log}
+     | SOME "RETURN" => mk_Rule_help t @{const action.Return}
+     | SOME custom => if not (FirewallTable.defined tbl custom) then raise Fail ("unknown action: "^custom) else
+                      mk_Rule_help t (@{const action.Call} $ HOLogic.mk_string custom);
+  
+  (*val init = FirewallTable_init parsed_chain_decls;*)
+  (*map type_of (map (mk_Rule init) parsed_rules);*)
 
-(* this takes like forever! *)
-(* apply compress_parsed_extra here?*)
-fun hacky_hack t = (*Code_Evaluation.dynamic_value_strict @{context}*) (@{const compress_extra} $ t)
-
-fun mk_MatchExpr t = if fastype_of t <> @{typ "common_primitive negation_type list"} then raise Fail "Type Error" else hacky_hack (@{const alist_and ("common_primitive")} $ t);
-fun mk_Rule_help t a = let val r = @{const Rule (common_primitive)} $ (mk_MatchExpr t) $ a in
-    if fastype_of r <> @{typ "common_primitive rule"} then raise Fail "Type error in mk_Rule_help"
-    else r end;
-
-fun append table chain rule = case FirewallTable.lookup table chain
-    of NONE => raise Fail ("uninitialized cahin: "^chain)
-    |  SOME rules => FirewallTable.update (chain, rules@[rule]) table
+in
+  local
+    fun append_rule (tbl: firewall_table) (chain: string, target : string option, t : term) = append tbl chain (mk_Rule tbl (chain, target, t))
+  in
+    fun make_firewall_table (parsed_chain_decls : string list, parsed_rules : (string * string option * term) list) = 
+      fold (fn rule => fn accu => append_rule accu rule) parsed_rules (FirewallTable_init parsed_chain_decls);
+  end
+end
 *}
+
 
 ML{*
-fun mk_Rule (tbl: firewall_table) (chain: string, target : string option, t : term) =
-  if not (FirewallTable.defined tbl chain) then raise Fail ("undefined chain to be appended: "^chain) else
-  case target
-  of NONE => mk_Rule_help t @{const action.Empty}
-   | SOME "ACCEPT" => mk_Rule_help t @{const action.Accept}
-   | SOME "DROP" => mk_Rule_help t @{const action.Drop}
-   | SOME "REJECT" => mk_Rule_help t @{const action.Reject}
-   | SOME "LOG" => mk_Rule_help t @{const action.Log}
-   | SOME "RETURN" => mk_Rule_help t @{const action.Return}
-   | SOME custom => if not (FirewallTable.defined tbl custom) then raise Fail ("unknown action: "^custom) else
-                    mk_Rule_help t (@{const action.Call} $ HOLogic.mk_string custom);
-*}
-
-ML_val{*
-val init = FirewallTable_init parsed_chain_decls;
-(*map type_of (map (mk_Rule init) parsed_rules);*)
-*}
-
-ML{*
-fun append_rule (tbl: firewall_table) (chain: string, target : string option, t : term) = append tbl chain (mk_Rule tbl (chain, target, t))
-*}
-
-
-ML{*
-val parsed_ruleset = fold (fn rule => fn accu => append_rule accu rule) parsed_rules (FirewallTable_init parsed_chain_decls);
+val parsed_ruleset = rule_type_partition filter_table |> make_firewall_table;
 *}
 
 ML{*
@@ -332,9 +335,20 @@ fun mk_Ruleset (tbl: firewall_table) = FirewallTable.dest tbl
     |> HOLogic.mk_list @{typ "string \<times> common_primitive rule list"}
 *}
 
-ML_val{*
-type_of (mk_Ruleset parsed_ruleset);
-Pretty.writeln (Syntax.pretty_term @{context} (mk_Ruleset parsed_ruleset));
+
+ML{* (*putting it all together*)
+fun parse_iptables_save (file: string list) : term = 
+    load_filter_table file
+    |> rule_type_partition
+    |> make_firewall_table
+    |> mk_Ruleset
+*}
+
+ML{*
+val example = parse_iptables_save ["home", "diekmann", "git", "net-network-private", "iptables-save-2015-05-15_15-23-41"];
+
+type_of example;
+Pretty.writeln (Syntax.pretty_term @{context} example);
 *}
 
 (*TODO: probably already add @{const map_of ("string", "common_primitive rule list")}*)
@@ -344,7 +358,7 @@ let
    val ((_, (_, thm)), lthy) =
     Local_Theory.define ((@{binding foo}, NoSyn),
         (*this takes a while*)
-        ((Binding.empty, []), (Code_Evaluation.dynamic_value_strict @{context} (mk_Ruleset parsed_ruleset)))) lthy
+        ((Binding.empty, []), (mk_Ruleset parsed_ruleset) (*(Code_Evaluation.dynamic_value_strict @{context} (mk_Ruleset parsed_ruleset))*))) lthy
     val (_, lthy) =
        Local_Theory.note ((@{binding foo_def}, []), [thm]) lthy
    in
