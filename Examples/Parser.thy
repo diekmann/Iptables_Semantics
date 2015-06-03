@@ -3,51 +3,54 @@ imports Code_Interface
 begin
 
 
-definition is_pos_Extra :: "common_primitive negation_type \<Rightarrow> bool" where
-  "is_pos_Extra a \<equiv> (case a of Pos (Extra _) \<Rightarrow> True | _ \<Rightarrow> False)"
-definition get_pos_Extra :: "common_primitive negation_type \<Rightarrow> string" where
-  "get_pos_Extra a \<equiv> (case a of Pos (Extra e) \<Rightarrow> e | _ \<Rightarrow> undefined)"
-
-fun compress_parsed_extra :: "common_primitive negation_type list \<Rightarrow> common_primitive negation_type list" where
-  "compress_parsed_extra [] = []" |
-  "compress_parsed_extra (a1#a2#as) = (if is_pos_Extra a1 \<and> is_pos_Extra a2
-      then compress_parsed_extra (Pos (Extra (get_pos_Extra a1@'' ''@get_pos_Extra a2))#as)
-      else a1#compress_parsed_extra (a2#as)
-      )" |
-  "compress_parsed_extra (a#as) = a#compress_parsed_extra as"
-
-value "compress_parsed_extra
-  (map Pos [Extra ''-m'', Extra ''recent'', Extra ''--update'', Extra ''--seconds'', Extra ''60'', IIface (Iface ''foobar''),
-            Extra ''--name'', Extra ''DEFAULT'', Extra ''--rsource''])"
-
-lemma eval_ternary_And_Unknown_Unkown: "eval_ternary_And TernaryUnknown (eval_ternary_And TernaryUnknown tv) = (eval_ternary_And TernaryUnknown tv)"
-  by(cases tv) (simp_all)
-
-lemma is_pos_Extra_alist_and: "is_pos_Extra a \<Longrightarrow> alist_and (a#as) = MatchAnd (Match (Extra (get_pos_Extra a))) (alist_and as)"
-  apply(cases a)
-   apply(simp_all add: get_pos_Extra_def is_pos_Extra_def)
-  apply(rename_tac e)
-  by(case_tac e)(simp_all)
-
-lemma compress_parsed_extra_matchexpr_helper: "ternary_ternary_eval (map_match_tac common_matcher p (alist_and (compress_parsed_extra as))) =
-       ternary_ternary_eval (map_match_tac common_matcher p (alist_and as))"
- apply(induction as rule: compress_parsed_extra.induct)
-   apply(simp_all split: match_expr.split match_expr.split_asm common_primitive.split)
- apply(simp_all add: is_pos_Extra_alist_and)
- apply(safe)
-   apply(simp_all add: eval_ternary_And_Unknown_Unkown bool_to_ternary_simps)
-  apply(rename_tac a1 a2 as)
-  apply(case_tac [!] a1)
-    apply(simp_all)
- done
-
-lemma compress_parsed_extra_matchexpr: "matches (common_matcher, \<alpha>) (alist_and (compress_parsed_extra as)) = matches (common_matcher, \<alpha>) (alist_and as)"
-  apply(simp add: fun_eq_iff)
-  apply(intro allI)
-  apply(rule matches_iff_apply_f)
-  apply(simp add: compress_parsed_extra_matchexpr_helper)
-  done
-
+context
+begin
+  private definition is_pos_Extra :: "common_primitive negation_type \<Rightarrow> bool" where
+    "is_pos_Extra a \<equiv> (case a of Pos (Extra _) \<Rightarrow> True | _ \<Rightarrow> False)"
+  private definition get_pos_Extra :: "common_primitive negation_type \<Rightarrow> string" where
+    "get_pos_Extra a \<equiv> (case a of Pos (Extra e) \<Rightarrow> e | _ \<Rightarrow> undefined)"
+  
+  fun compress_parsed_extra :: "common_primitive negation_type list \<Rightarrow> common_primitive negation_type list" where
+    "compress_parsed_extra [] = []" |
+    "compress_parsed_extra (a1#a2#as) = (if is_pos_Extra a1 \<and> is_pos_Extra a2
+        then compress_parsed_extra (Pos (Extra (get_pos_Extra a1@'' ''@get_pos_Extra a2))#as)
+        else a1#compress_parsed_extra (a2#as)
+        )" |
+    "compress_parsed_extra (a#as) = a#compress_parsed_extra as"
+  
+  value "compress_parsed_extra
+    (map Pos [Extra ''-m'', Extra ''recent'', Extra ''--update'', Extra ''--seconds'', Extra ''60'', IIface (Iface ''foobar''),
+              Extra ''--name'', Extra ''DEFAULT'', Extra ''--rsource''])"
+  
+  private lemma eval_ternary_And_Unknown_Unkown: "eval_ternary_And TernaryUnknown (eval_ternary_And TernaryUnknown tv) = (eval_ternary_And TernaryUnknown tv)"
+    by(cases tv) (simp_all)
+  
+  private lemma is_pos_Extra_alist_and: "is_pos_Extra a \<Longrightarrow> alist_and (a#as) = MatchAnd (Match (Extra (get_pos_Extra a))) (alist_and as)"
+    apply(cases a)
+     apply(simp_all add: get_pos_Extra_def is_pos_Extra_def)
+    apply(rename_tac e)
+    by(case_tac e)(simp_all)
+  
+  private lemma compress_parsed_extra_matchexpr_helper: "ternary_ternary_eval (map_match_tac common_matcher p (alist_and (compress_parsed_extra as))) =
+         ternary_ternary_eval (map_match_tac common_matcher p (alist_and as))"
+   apply(induction as rule: compress_parsed_extra.induct)
+     apply(simp_all split: match_expr.split match_expr.split_asm common_primitive.split)
+   apply(simp_all add: is_pos_Extra_alist_and)
+   apply(safe)
+     apply(simp_all add: eval_ternary_And_Unknown_Unkown bool_to_ternary_simps)
+    apply(rename_tac a1 a2 as)
+    apply(case_tac [!] a1)
+      apply(simp_all)
+   done
+  
+  text{*This lemma justifies that it is okay to fold together the parsed unknown tokens*}
+  lemma compress_parsed_extra_matchexpr: "matches (common_matcher, \<alpha>) (alist_and (compress_parsed_extra as)) = matches (common_matcher, \<alpha>) (alist_and as)"
+    apply(simp add: fun_eq_iff)
+    apply(intro allI)
+    apply(rule matches_iff_apply_f)
+    apply(simp add: compress_parsed_extra_matchexpr_helper)
+    done
+end
 
 
 
@@ -415,6 +418,29 @@ declare foo_map_of_def[code]
 
 term foo
 thm foo_def
+
+export_code foo_map_of
+  map simple_rule_toString
+  to_simple_firewall
+  lower_closure
+  unfold_ruleset_FORWARD action.Accept 
+   in SML module_name "Test" file "delete_me_test.ML"
+
+ML_file "delete_me_test.ML"
+
+
+ML{*
+open Test; (*put the exported code into current namespace such that the following firewall definition loads*)
+*}
+
+
+ML{*
+unfold_ruleset_FORWARD Accept foo_map_of;
+*}
+
+ML{*
+map (String.implode #> writeln) (map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_FORWARD Accept foo_map_of))));
+*}
 
 value(code) "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_FORWARD action.Accept foo_map_of)))"
 value(code) "map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_FORWARD action.Accept foo_map_of)))"
