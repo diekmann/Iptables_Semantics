@@ -3,14 +3,6 @@ imports Code_Interface
 begin
 
 
-
-fun foldMatchAnd :: "'a list => 'a match_expr" where
-  "foldMatchAnd [] = MatchAny" |
-  "foldMatchAnd (m#ms) = MatchAnd (Match m) (foldMatchAnd ms)"
-
-lemma foldMatchAnd_alist_and: "foldMatchAnd as = alist_and (map Pos as)"
-  by(induction as)(simp_all)
-
 definition is_pos_Extra :: "common_primitive negation_type \<Rightarrow> bool" where
   "is_pos_Extra a \<equiv> (case a of Pos (Extra _) \<Rightarrow> True | _ \<Rightarrow> False)"
 definition get_pos_Extra :: "common_primitive negation_type \<Rightarrow> string" where
@@ -28,14 +20,34 @@ value "compress_parsed_extra
   (map Pos [Extra ''-m'', Extra ''recent'', Extra ''--update'', Extra ''--seconds'', Extra ''60'', IIface (Iface ''foobar''),
             Extra ''--name'', Extra ''DEFAULT'', Extra ''--rsource''])"
 
-lemma compress_parsed_extra_matchexpr: "matches (common_matcher, \<alpha>) (foldMatchAnd (compress_parsed_extra m)) = matches (common_matcher, \<alpha>) (foldMatchAnd m)"
+lemma eval_ternary_And_Unknown_Unkown: "eval_ternary_And TernaryUnknown (eval_ternary_And TernaryUnknown tv) = (eval_ternary_And TernaryUnknown tv)"
+  by(cases tv) (simp_all)
+
+lemma is_pos_Extra_alist_and: "is_pos_Extra a \<Longrightarrow> alist_and (a#as) = MatchAnd (Match (Extra (get_pos_Extra a))) (alist_and as)"
+  apply(cases a)
+   apply(simp_all add: get_pos_Extra_def is_pos_Extra_def)
+  apply(rename_tac e)
+  by(case_tac e)(simp_all)
+
+lemma compress_parsed_extra_matchexpr_helper: "ternary_ternary_eval (map_match_tac common_matcher p (alist_and (compress_parsed_extra as))) =
+       ternary_ternary_eval (map_match_tac common_matcher p (alist_and as))"
+ apply(induction as rule: compress_parsed_extra.induct)
+   apply(simp_all split: match_expr.split match_expr.split_asm common_primitive.split)
+ apply(simp_all add: is_pos_Extra_alist_and)
+ apply(safe)
+   apply(simp_all add: eval_ternary_And_Unknown_Unkown bool_to_ternary_simps)
+  apply(rename_tac a1 a2 as)
+  apply(case_tac [!] a1)
+    apply(simp_all)
+ done
+
+lemma compress_parsed_extra_matchexpr: "matches (common_matcher, \<alpha>) (alist_and (compress_parsed_extra as)) = matches (common_matcher, \<alpha>) (alist_and as)"
   apply(simp add: fun_eq_iff)
   apply(intro allI)
   apply(rule matches_iff_apply_f)
-  apply(simp add: foldMatchAnd_alist_and )
-  apply(induction m rule: compress_parsed_extra.induct)
-  apply (simp_all)
-oops
+  apply(simp add: compress_parsed_extra_matchexpr_helper)
+  done
+
 
 
 
@@ -331,9 +343,13 @@ fun trace_timing (printstr : string) (f : 'a -> 'b) (a : 'a) : 'b =
       result
     end end end end;
 
-fun simplify (ctx: Proof.context) = let val _ = writeln "unfolding (this may take a while) ..." in 
+fun simplify_code (ctx: Proof.context) = let val _ = writeln "unfolding (this may take a while) ..." in 
       trace_timing "Simplified term" (Code_Evaluation.dynamic_value_strict ctx)
     end
+
+(*fun simplify_simp(ctx: Proof.context) = let val _ = writeln "unfolding (this may take a while) ..." in 
+      trace_timing "Simplified term" (Code_Simp.dynamic_conv ctx #> prop_of)
+    end*)
 
 fun certify_term (ctx: Proof.context) (t: term) = trace_timing "Certified term" (Thm.cterm_of ctx) t
 *}
@@ -344,15 +360,18 @@ fun parse_iptables_save (file: string list) =
     |> rule_type_partition
     |> make_firewall_table
     |> mk_Ruleset
-    |> simplify @{context}
+    |> simplify_code @{context}
+    (*|> (fn t => simplify_code @{context} (@{const map_of (string, "common_primitive rule list")} $ t))*)
+    (*|> (fn t => simplify_code @{context} (@{const unfold_ruleset_FORWARD} $ @{const action.Accept} $ (@{const map_of (string, "common_primitive rule list")} $ t)))*)
     (*|> certify_term @{context}*)
 *}
 
 ML{*
 val example = parse_iptables_save ["home", "diekmann", "git", "net-network-private", "iptables-save-2015-05-15_15-23-41"];
 
-(*Pretty.writeln (Syntax.pretty_term @{context} example);*)
+Pretty.writeln (Syntax.pretty_term @{context} example);
 *}
+
 
 (*TODO: probably already add @{const map_of ("string", "common_primitive rule list")}*)
 
@@ -369,22 +388,44 @@ let
    end
  \<close>
 
+declare foo_def[code]
+ML{*
+fun conv_result cv ct = Thm.prop_of (cv ct) |> Logic.dest_equals |> snd;
+
+val foo_map_of = conv_result (Code_Simp.dynamic_conv @{context}) @{cterm "map_of foo"};
+
+Pretty.writeln (Syntax.pretty_term @{context} foo_map_of);
+*}
 (*todo: probably add foo_map_of*)
+
+local_setup \<open>fn lthy =>
+let
+   val ((_, (_, thm)), lthy) =
+    Local_Theory.define ((@{binding foo_map_of}, NoSyn),
+        (*this takes a while*)
+        ((Binding.empty, []), foo_map_of)) lthy
+    val (_, lthy) =
+       Local_Theory.note ((@{binding foo_map_of_def}, []), [thm]) lthy
+   in
+     lthy
+   end
+ \<close>
+
+declare foo_map_of_def[code]
 
 term foo
 thm foo_def
-declare foo_def[code]
+
+value(code) "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_FORWARD action.Accept foo_map_of)))"
+value(code) "map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_FORWARD action.Accept foo_map_of)))"
+
+value(code) "(foo_map_of) ''FORWARD''"
+value(code) "unfold_ruleset_FORWARD action.Accept foo_map_of" (*takes forever*)
 
 
-value(code) "(map_of foo) ''FORWARD''" (*takes forever*)
-value(code) "unfold_ruleset_FORWARD action.Accept (map_of foo)"
-value(code) "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_FORWARD action.Accept (map_of foo))))"
-value(code) "map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_FORWARD action.Accept (map_of foo))))"
-
-
-ML\<open>
+(*ML\<open>
 Code_Simp.dynamic_conv @{context} @{cterm foo}
-\<close>
+\<close>*)
 
 (*
 ML\<open>
