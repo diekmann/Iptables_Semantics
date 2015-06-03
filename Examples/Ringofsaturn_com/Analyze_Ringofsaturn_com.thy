@@ -73,7 +73,7 @@ Rule (MatchAny) (action.Accept)]]"
 
 
 text{*It accepts everything in state RELATED,ESTABLISHED,NEW*}
-value(code) "unfold_ruleset_INPUT action.Accept firewall_chains"
+value[code] "unfold_ruleset_INPUT action.Accept firewall_chains"
 lemma "good_ruleset (unfold_ruleset_INPUT action.Accept firewall_chains)" by eval
 lemma "simple_ruleset (unfold_ruleset_INPUT action.Accept firewall_chains)" by eval
 
@@ -120,10 +120,10 @@ definition "example_firewall2 \<equiv> firewall_chains(''INPUT'' \<mapsto> tl (t
 
 text{*in doubt allow closure*}
 definition "upper = upper_closure (unfold_ruleset_INPUT action.Accept example_firewall2)"
-value(code) "upper"
+value[code] "upper"
 
 
-value(code) "zip (upto 0 (int (length upper))) upper"
+value[code] "zip (upto 0 (int (length upper))) upper"
 lemma "good_ruleset upper" by eval
 lemma "simple_ruleset upper" by eval
 
@@ -132,7 +132,7 @@ value "map simple_rule_toString (to_simple_firewall upper)"
 
 
 text{*in doubt deny closure*}
-value(code) "lower_closure (unfold_ruleset_INPUT action.Accept example_firewall2)"
+value[code] "lower_closure (unfold_ruleset_INPUT action.Accept example_firewall2)"
 
 
 
@@ -140,8 +140,8 @@ value(code) "lower_closure (unfold_ruleset_INPUT action.Accept example_firewall2
 text{*Allowed Packets*}
 lemma "collect_allow_impl_v2 (unfold_ruleset_INPUT action.Accept example_firewall2) packet_set_UNIV = packet_set_UNIV" by eval
 
-value(code) "allow_set_not_inter (unfold_ruleset_INPUT action.Accept example_firewall2)"
+value[code] "allow_set_not_inter (unfold_ruleset_INPUT action.Accept example_firewall2)"
 
-value(code) "map packet_set_opt (allow_set_not_inter (unfold_ruleset_INPUT action.Accept example_firewall2))"
+value[code] "map packet_set_opt (allow_set_not_inter (unfold_ruleset_INPUT action.Accept example_firewall2))"
 
 end

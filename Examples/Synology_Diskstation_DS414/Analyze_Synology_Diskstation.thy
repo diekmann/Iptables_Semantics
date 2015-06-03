@@ -13,14 +13,14 @@ text{*we removed the established,related rule*}
 
 abbreviation MatchAndInfix :: "'a match_expr \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr" (infixr "MATCHAND" 65) where "MatchAndInfix m1 m2 \<equiv> MatchAnd m1 m2" (*(infixr "_ MATCHAND _" 65) *)
 
-  value(code) "unfold_ruleset_INPUT action.Accept example_ruleset"
+  value[code] "unfold_ruleset_INPUT action.Accept example_ruleset"
 
   lemma "good_ruleset (unfold_ruleset_INPUT action.Accept example_ruleset)" by eval
   lemma "simple_ruleset (unfold_ruleset_INPUT action.Accept example_ruleset)" by eval
 
 
   text{*packets from the local lan are allowed (in doubt)*}
-  value(code) "approximating_bigstep_fun (common_matcher, in_doubt_allow)
+  value[code] "approximating_bigstep_fun (common_matcher, in_doubt_allow)
     \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (8,8,8,8),
          p_proto=TCP, p_sport=2065, p_dport=80\<rparr>
         (unfold_ruleset_INPUT action.Accept example_ruleset)

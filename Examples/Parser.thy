@@ -392,7 +392,8 @@ let
  \<close>
 
 declare foo_def[code]
-ML{*
+
+(*ML{*
 fun conv_result cv ct = Thm.prop_of (cv ct) |> Logic.dest_equals |> snd;
 
 val foo_map_of = conv_result (Code_Simp.dynamic_conv @{context}) @{cterm "map_of foo"};
@@ -414,15 +415,17 @@ let
    end
  \<close>
 
-declare foo_map_of_def[code]
+declare foo_map_of_def[code]*)
 
 term foo
 thm foo_def
 
-export_code foo_map_of
+export_code
+  foo
+  map_of_string
   map simple_rule_toString
   to_simple_firewall
-  lower_closure
+  lower_closure upper_closure
   unfold_ruleset_FORWARD action.Accept 
    in SML module_name "Test" file "delete_me_test.ML"
 
@@ -430,24 +433,24 @@ ML_file "delete_me_test.ML"
 
 
 ML{*
-open Test; (*put the exported code into current namespace such that the following firewall definition loads*)
+open Test;
 *}
 
 
 ML{*
-unfold_ruleset_FORWARD Accept foo_map_of;
+val unfolded = unfold_ruleset_FORWARD Accept (map_of_string foo);
 *}
 
 ML{*
-map (String.implode #> writeln) (map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_FORWARD Accept foo_map_of))));
+map (String.implode #> writeln) (map simple_rule_toString (to_simple_firewall (upper_closure (unfolded))));
 *}
 
-value(code) "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_FORWARD action.Accept foo_map_of)))"
-value(code) "map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_FORWARD action.Accept foo_map_of)))"
+value[code] "take 1 (map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_FORWARD action.Accept (map_of_string foo)))))"
+(*value[code] "take 1 (map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_FORWARD action.Accept (map_of_string foo)))))"
 
-value(code) "(foo_map_of) ''FORWARD''"
-value(code) "unfold_ruleset_FORWARD action.Accept foo_map_of" (*takes forever*)
-
+value[code] "((map_of_string foo)) ''FORWARD''"
+value[code] "take 1 (unfold_ruleset_FORWARD action.Accept (map_of_string foo))" (*takes forever*)
+*)
 
 (*ML\<open>
 Code_Simp.dynamic_conv @{context} @{cterm foo}
@@ -462,9 +465,9 @@ Code_Evaluation.dynamic_conv @{context} @{cterm foo}
 (*
 value "True"
 
-value(code) "(map_of foo) ''FORWARD''"
+value[code] "(map_of foo) ''FORWARD''"
 
-value(code) "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_FORWARD action.Accept (map_of foo))))"
+value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_FORWARD action.Accept (map_of foo))))"
 
 ML{*Code_Evaluation.dynamic_conv @{context} @{cterm "unfold_ruleset_FORWARD action.Accept (map_of foo)"}*}
 *)

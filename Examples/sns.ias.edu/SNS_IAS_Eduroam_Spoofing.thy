@@ -35,17 +35,17 @@ definition "ipassignment_outgoing = ([Iface ''wlan0'' \<mapsto> [(ipv4addr_of_do
 (* ../../importer/main.py --import "../Code_Interface" test_Lnv test_Lnv.thy *)
 
 
-value(code) "unfold_ruleset_INPUT action.Drop firewall_chains"
+value[code] "unfold_ruleset_INPUT action.Drop firewall_chains"
 
 text{*Ruleset prevents spoofed incoming packets*}
-value(code) "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT action.Drop firewall_chains)))"
+value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT action.Drop firewall_chains)))"
 lemma "transform_optimize_dnf_strict (unfold_ruleset_INPUT action.Drop firewall_chains) = unfold_ruleset_INPUT action.Drop firewall_chains" by eval
 lemma "no_spoofing_iface (Iface ''wlan0'') ipassignment_incoming (unfold_ruleset_INPUT action.Drop firewall_chains)" by eval
 
 
 text{*Ruleset does not prevent that I'm spoofing (which is not necessary anyways since I need root right to spoof, which 
       would also enable me to deactivate the firewall). This is only a one-user laptop!*}
-value(code) "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_OUTPUT action.Drop firewall_chains)))"
+value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_OUTPUT action.Drop firewall_chains)))"
 lemma "transform_optimize_dnf_strict (unfold_ruleset_OUTPUT action.Drop firewall_chains) = unfold_ruleset_OUTPUT action.Drop firewall_chains" by eval
 lemma "\<not> no_spoofing_iface (Iface ''wlan0'') ipassignment_outgoing (unfold_ruleset_OUTPUT action.Drop firewall_chains)" by eval
 
