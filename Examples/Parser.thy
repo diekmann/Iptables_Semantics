@@ -11,12 +11,22 @@ fun foldMatchAnd :: "'a list => 'a match_expr" where
 lemma foldMatchAnd_alist_and: "foldMatchAnd as = alist_and (map Pos as)"
   by(induction as)(simp_all)
 
-fun compress_parsed_extra :: "common_primitive list \<Rightarrow> common_primitive list" where
+definition is_pos_Extra :: "common_primitive negation_type \<Rightarrow> bool" where
+  "is_pos_Extra a \<equiv> (case a of Pos (Extra _) \<Rightarrow> True | _ \<Rightarrow> False)"
+definition get_pos_Extra :: "common_primitive negation_type \<Rightarrow> string" where
+  "get_pos_Extra a \<equiv> (case a of Pos (Extra e) \<Rightarrow> e | _ \<Rightarrow> undefined)"
+
+fun compress_parsed_extra :: "common_primitive negation_type list \<Rightarrow> common_primitive negation_type list" where
   "compress_parsed_extra [] = []" |
-  "compress_parsed_extra ((Extra e1)#(Extra e2)#as) = compress_parsed_extra ((Extra (e1@'' ''@e2))#as)" |
+  "compress_parsed_extra (a1#a2#as) = (if is_pos_Extra a1 \<and> is_pos_Extra a2
+      then compress_parsed_extra (Pos (Extra (get_pos_Extra a1@'' ''@get_pos_Extra a2))#as)
+      else a1#compress_parsed_extra (a2#as)
+      )" |
   "compress_parsed_extra (a#as) = a#compress_parsed_extra as"
 
-value "compress_parsed_extra [Extra ''-m'', Extra ''recent'', Extra ''--update'', Extra ''--seconds'', Extra ''60'', Extra ''--name'', Extra ''DEFAULT'', Extra ''--rsource'']"
+value "compress_parsed_extra
+  (map Pos [Extra ''-m'', Extra ''recent'', Extra ''--update'', Extra ''--seconds'', Extra ''60'', IIface (Iface ''foobar''),
+            Extra ''--name'', Extra ''DEFAULT'', Extra ''--rsource''])"
 
 lemma compress_parsed_extra_matchexpr: "matches (common_matcher, \<alpha>) (foldMatchAnd (compress_parsed_extra m)) = matches (common_matcher, \<alpha>) (foldMatchAnd m)"
   apply(simp add: fun_eq_iff)
@@ -29,7 +39,7 @@ oops
 
 
 
-ML{*
+ML{* (*my personal small library*)
 fun takeWhile p xs = fst (take_prefix p xs);
 
 fun dropWhile p xs = snd (take_prefix p xs);
@@ -45,13 +55,12 @@ split_at (fn x => x <> " ") (raw_explode "foo bar")
 *}
 
 
-(*An (incomplete) SML Parser for iptables-save*)
+section{**An (incomplete) SML Parser for iptables-save*}
 
 ML{*
 local
   fun is_start_of_filter_table s = s = "*filter";
   fun is_end_of_table s = s = "COMMIT";
-  (*fun is_comment s = String.isPrefix "#" s*)
 
   fun load_file (path: string list) =
       let val p = Path.append Path.root (Path.make path); in
@@ -245,16 +254,12 @@ in
 end;
 *}
 
-ML{*
-  val (parsed_chain_decls, parsed_rules) = rule_type_partition filter_table;
-*}
-
 ML_val{*
+val (parsed_chain_decls, parsed_rules) = rule_type_partition filter_table;
+
 val toString = (fn (a,target,b) => "-A "^a^" "^((Syntax.pretty_term @{context} #> Pretty.string_of) b)^(case target of NONE => "" | SOME t => " -j "^t));
 map (toString #> writeln) parsed_rules;
-*}
 
-ML_val{*
 map (fn (_,_,b) =>  type_of b) parsed_rules;
 *}
 
@@ -269,9 +274,10 @@ local
   
   (* this takes like forever! *)
   (* apply compress_parsed_extra here?*)
-  fun hacky_hack t = (*Code_Evaluation.dynamic_value_strict @{context}*) (@{const compress_extra} $ t)
+  fun hacky_hack t = (*Code_Evaluation.dynamic_value_strict @{context} (@{const compress_extra} $ t)*)
+    @{const alist_and ("common_primitive")} $ (@{const compress_parsed_extra} $ t)
   
-  fun mk_MatchExpr t = if fastype_of t <> @{typ "common_primitive negation_type list"} then raise Fail "Type Error" else hacky_hack (@{const alist_and ("common_primitive")} $ t);
+  fun mk_MatchExpr t = if fastype_of t <> @{typ "common_primitive negation_type list"} then raise Fail "Type Error" else hacky_hack t;
   fun mk_Rule_help t a = let val r = @{const Rule (common_primitive)} $ (mk_MatchExpr t) $ a in
       if fastype_of r <> @{typ "common_primitive rule"} then raise Fail "Type error in mk_Rule_help"
       else r end;
@@ -316,20 +322,36 @@ fun mk_Ruleset (tbl: firewall_table) = FirewallTable.dest tbl
     |> HOLogic.mk_list @{typ "string \<times> common_primitive rule list"}
 *}
 
+ML{*
+fun trace_timing (printstr : string) (f : 'a -> 'b) (a : 'a) : 'b =
+  let val t0 = Time.now(); in
+    let val result =  f a; in
+    let val t1= Time.now(); in
+    let val _ = writeln(String.concat [printstr^" (", Time.toString(Time.-(t1,t0)), " seconds)"]) in
+      result
+    end end end end;
+
+fun simplify (ctx: Proof.context) = let val _ = writeln "unfolding (this may take a while) ..." in 
+      trace_timing "Simplified term" (Code_Evaluation.dynamic_value_strict ctx)
+    end
+
+fun certify_term (ctx: Proof.context) (t: term) = trace_timing "Certified term" (Thm.cterm_of ctx) t
+*}
 
 ML{* (*putting it all together*)
-fun parse_iptables_save (file: string list) : term = 
+fun parse_iptables_save (file: string list) = 
     load_filter_table file
     |> rule_type_partition
     |> make_firewall_table
     |> mk_Ruleset
+    |> simplify @{context}
+    (*|> certify_term @{context}*)
 *}
 
 ML{*
 val example = parse_iptables_save ["home", "diekmann", "git", "net-network-private", "iptables-save-2015-05-15_15-23-41"];
 
-type_of example;
-Pretty.writeln (Syntax.pretty_term @{context} example);
+(*Pretty.writeln (Syntax.pretty_term @{context} example);*)
 *}
 
 (*TODO: probably already add @{const map_of ("string", "common_primitive rule list")}*)
@@ -339,7 +361,7 @@ let
    val ((_, (_, thm)), lthy) =
     Local_Theory.define ((@{binding foo}, NoSyn),
         (*this takes a while*)
-        ((Binding.empty, []), (mk_Ruleset parsed_ruleset) (*(Code_Evaluation.dynamic_value_strict @{context} (mk_Ruleset parsed_ruleset))*))) lthy
+        ((Binding.empty, []), example (*(Code_Evaluation.dynamic_value_strict @{context} (mk_Ruleset parsed_ruleset))*))) lthy
     val (_, lthy) =
        Local_Theory.note ((@{binding foo_def}, []), [thm]) lthy
    in
