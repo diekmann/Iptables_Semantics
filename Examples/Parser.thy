@@ -28,7 +28,6 @@ lemma compress_parsed_extra_matchexpr: "matches (common_matcher, \<alpha>) (fold
 oops
 
 
-(*Incomplete: An ML Parser for iptables-save*)
 
 ML{*
 fun takeWhile p xs = fst (take_prefix p xs);
@@ -40,31 +39,13 @@ fun dropWhileInclusive p xs = drop 1 (dropWhile p xs)
 (*split at the predicate, do NOT keep the position where it was split*)
 fun split_at p xs = (takeWhile p xs, dropWhileInclusive p xs);
 *}
+
 ML_val{*
 split_at (fn x => x <> " ") (raw_explode "foo bar")
 *}
 
 
-ML{* (*unused*)
-local
-  fun skip_until_r _ beginning [] = (false, beginning, [])
-   |  skip_until_r k beginning ss =
-      let val (_, rest) = Scan.catch (Scan.this_string k) ss
-      in
-        (true, beginning, rest)
-      end
-      handle Fail _ => skip_until_r k (beginning @ [hd ss]) (tl ss);
-in
-  fun skip_until (k: string) (ss: string list) : (string list * string list) option = let
-    val (found, beginning, rest) = skip_until_r k [] ss in
-      if found then SOME (beginning, rest) else NONE
-    end;
-end;
-*}
-ML_val{*
-skip_until " -j " (raw_explode "asdf -j foo");
-skip_until " -xx " (raw_explode "a -x foo");
-*}
+(*An (incomplete) SML Parser for iptables-save*)
 
 ML{*
 local
