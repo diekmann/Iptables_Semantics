@@ -187,7 +187,8 @@ proof (induction rs)
             apply(erule seqE_cons)
             apply (rename_tac ti)
             apply(case_tac ti)
-            apply (metis process_ret.simps(8) seq'_cons)
+            apply (simp add: seq_cons)
+            apply (metis process_ret.simps(8) seq'_cons)s
             apply (metis Rule_DecisionE emptyD state.distinct(1))
             done
         next

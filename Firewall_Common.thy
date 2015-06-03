@@ -7,7 +7,7 @@ section{*Firewall Basic Syntax*}
 text{*
 Our firewall model supports the following actions.
 *}
-datatype action = Accept | Drop | Log | Reject | Call string | Return | Empty | Unknown
+datatype action = Accept | Drop | Log | Reject | Call string | Return | Goto string | Empty | Unknown
 
 text{*
 The type parameter @{typ 'a} denotes the primitive match condition For example, matching
