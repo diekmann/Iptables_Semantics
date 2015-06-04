@@ -113,8 +113,41 @@ lemma gotoD: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r, s\<rangle> \<Rightarro
                 \<exists> rs. \<Gamma> chain = Some rs \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,s\<rangle> \<Rightarrow> t"
 by (induction rule: iptables_bigstep.induct) (auto dest: skipD elim: list_app_singletonE)
 
-lemma not_no_matching_Goto_singleton_cases: "\<not> no_matching_Goto \<gamma> p [Rule m a] \<Longrightarrow> (\<exists> chain. a = (Goto chain)) \<or> \<not> matches \<gamma> m p"
+lemma not_no_matching_Goto_singleton_cases: "\<not> no_matching_Goto \<gamma> p [Rule m a] \<longleftrightarrow> (\<exists> chain. a = (Goto chain)) \<and> matches \<gamma> m p"
       by(case_tac a) (simp_all)
+
+lemma not_no_matching_Goto_cases:
+  assumes "\<not> no_matching_Goto \<gamma> p rs" "rs \<noteq> []"
+  obtains rs1 m chain rs2 where "rs = rs1@(Rule m (Goto chain))#rs2" "no_matching_Goto \<gamma> p rs1" "matches \<gamma> m p"
+    using assms
+    proof(induction rs)
+    case Nil thus ?case by simp
+    next
+    case (Cons r rs)
+      note Cons_outer=this
+      show ?case
+      proof(cases rs)
+      case Nil
+        obtain m a where "r = Rule m a" by (cases r) simp
+        with Cons(3) Nil not_no_matching_Goto_singleton_cases have "(\<exists> chain. a = (Goto chain)) \<and> matches \<gamma> m p" by metis
+        from this obtain chain where "a = (Goto chain)" and "matches \<gamma> m p" by blast
+        have "r # rs = [] @ Rule m (Goto chain) # []" "no_matching_Goto \<gamma> p []" "matches \<gamma> m p"
+          by (simp_all add: `a = Goto chain` `r = Rule m a` Nil `matches \<gamma> m p`)
+        thus ?thesis by fact
+      next
+      case(Cons r' rs')
+        with Cons_outer have "r # rs =  r # r' # rs'" by simp
+        have "\<not> no_matching_Goto \<gamma> p rs" sorry
+        have "rs \<noteq> []" using Cons by simp
+        from Cons_outer(1)[OF _ `\<not> no_matching_Goto \<gamma> p rs` `rs \<noteq> []`] obtain
+          rs1 m chain rs2 where "rs = rs1 @ Rule m (Goto chain) # rs2" "no_matching_Goto \<gamma> p rs1" "matches \<gamma> m p" sorry
+        thm Cons_outer(1)[of ]
+        show ?thesis
+          proof(cases "no_matching_Goto \<gamma> p [r']")
+          case True
+          
+    
+    oops
 
 lemma seq_cons_Goto_Undecided: 
   "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)], Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow>
@@ -222,7 +255,8 @@ lemma no_matching_Goto_take: "no_matching_Goto \<gamma> p rs \<Longrightarrow> n
 
 lemma seq_split:
   assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" "rs = rs\<^sub>1@rs\<^sub>2"
-  obtains t' where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t'" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t'\<rangle> \<Rightarrow> t"
+  obtains (no_matching_Goto) t' where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t'" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t'\<rangle> \<Rightarrow> t" "no_matching_Goto \<gamma> p rs\<^sub>1"
+        | (matching_Goto) "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t" "no_matching_Goto \<gamma> p rs\<^sub>1"
   using assms
   proof (induction rs s t arbitrary: rs\<^sub>1 rs\<^sub>2 thesis rule: iptables_bigstep_induct)
     case Allow thus ?case by (cases rs\<^sub>1) (auto intro: iptables_bigstep.intros)
@@ -308,6 +342,22 @@ lemma seq_split:
     from Goto_no_Decision have rs1rs2: "Rule m (Goto chain) # rest = rs\<^sub>1 @ rs\<^sub>2" by simp
     from goto_no_decision[OF Goto_no_Decision(1)]  Goto_no_Decision(3)  Goto_no_Decision(4)
       have x: "\<And>rest. \<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m (Goto chain) # rest, Undecided\<rangle> \<Rightarrow> Undecided" by simp
+    show ?case
+      proof (cases rs\<^sub>1)
+        case Nil
+        with Goto_no_Decision have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Undecided\<rangle> \<Rightarrow> Undecided"
+          by (auto intro: iptables_bigstep.intros)
+        thus ?thesis by fact
+      next
+        case (Cons rs\<^sub>1a rs\<^sub>1s)
+        with rs1rs2 have "rs\<^sub>1 = Rule m (Goto chain) # (take (length rs\<^sub>1s) rest)" by simp
+        from Cons rs1rs2 have"rs\<^sub>2 = drop (length rs\<^sub>1s) rest" by simp
+        
+        from Cons Goto_no_Decision have 1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided"
+          using x by auto[1]
+        have 2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Undecided\<rangle> \<Rightarrow> Undecided" sorry
+        from 1 2 show ?thesis by fact
+      qed
 
     from x rs1rs2 have 1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" by (metis append_eq_Cons_conv skip)
     have 2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Undecided\<rangle> \<Rightarrow> Undecided" sorry
