@@ -26,7 +26,7 @@ fun no_Goto :: "'a rule list \<Rightarrow> bool" where
 
 fun no_matching_Goto :: "('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> 'a rule list \<Rightarrow> bool" where
   "no_matching_Goto _ _ [] \<longleftrightarrow> True" |
-  "no_matching_Goto \<gamma> p ((Rule m (Goto _))#rs) \<longleftrightarrow> \<not> matches \<gamma> m p" |
+  "no_matching_Goto \<gamma> p ((Rule m (Goto _))#rs) \<longleftrightarrow> \<not> matches \<gamma> m p \<and> no_matching_Goto \<gamma> p rs" |
   "no_matching_Goto \<gamma> p (_#rs) \<longleftrightarrow> no_matching_Goto \<gamma> p rs"
 
 inductive iptables_bigstep :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> 'a rule list \<Rightarrow> state \<Rightarrow> state \<Rightarrow> bool"
@@ -70,23 +70,6 @@ The semantic rules again in pretty format:
 @{thm[mode=Rule] goto_no_decision [no_vars]}
 \end{center}
 *}
-
-
-(*future work:
-  Add abstraction function for unknown actions. At the moment, only the explicitly listed actions are supported.
-  This would also require a @{text "Decision FinalUnknown"} state
-  Problem: An unknown action may modify a packet.
-  Assume that we have a firewall which accepts the packets A->B and rewrites the header to A->C.
-  After that firewall, there is another firewall which only accepts packets for A->C.
-  A can send through both firewalls.
-  
-  If our model says that the firewall accepts packets A->B but does not consider packet modification,
-  A might not be able to pass the second firewall with this model.
-  
-  Luckily, our model is correct for the filtering behaviour and explicitly does not support any actions with packet modification.
-  Thus, the described scenario is not a counterexample that our model is wrong but a hint for future features
-  we may want to support. Luckily, we introduced the @{term "Decision state"}, which should make adding packet modification states easy.
-*)
 
 lemma deny:
   "matches \<gamma> m p \<Longrightarrow> a = Drop \<or> a = Reject \<Longrightarrow> iptables_bigstep \<Gamma> \<gamma> p [Rule m a] Undecided (Decision FinalDeny)"
@@ -156,6 +139,18 @@ lemma seq_cons_Goto_t:
     apply(auto intro: Semantics.iptables_bigstep.intros)
 done
 
+
+lemma no_matching_Goto_append: "no_matching_Goto \<gamma> p (rs1@rs2) \<longleftrightarrow> no_matching_Goto \<gamma> p rs1 \<and>  no_matching_Goto \<gamma> p rs2"
+  by(induction \<gamma> p rs1 rule: no_matching_Goto.induct) (simp_all)
+
+lemma no_matching_Goto_append1: "no_matching_Goto \<gamma> p (rs1@rs2) \<Longrightarrow> no_matching_Goto \<gamma> p rs1"
+  using no_matching_Goto_append by fast
+lemma no_matching_Goto_append2: "no_matching_Goto \<gamma> p (rs1@rs2) \<Longrightarrow> no_matching_Goto \<gamma> p rs2"
+  using no_matching_Goto_append by fast
+
+
+
+
 lemma seq_cons:
   assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r],Undecided\<rangle> \<Rightarrow> t" and "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,t\<rangle> \<Rightarrow> t'" and "no_matching_Goto \<gamma> p [r]"
   shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r#rs, Undecided\<rangle> \<Rightarrow> t'"
@@ -203,12 +198,26 @@ end
 lemmas iptables_bigstepD = skipD acceptD dropD rejectD logD emptyD nomatchD decisionD callD gotoD
 
 lemma seq':
-  assumes "rs = rs\<^sub>1 @ rs\<^sub>2" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t\<rangle> \<Rightarrow> t'" and "no_Goto rs\<^sub>1"
+  assumes "rs = rs\<^sub>1 @ rs\<^sub>2" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t\<rangle> \<Rightarrow> t'" and "no_matching_Goto \<gamma> p rs\<^sub>1"
   shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,s\<rangle> \<Rightarrow> t'"
 using assms by (cases s) (auto intro: seq decision dest: decisionD)
 
-lemma seq'_cons: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r],s\<rangle> \<Rightarrow> t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,t\<rangle> \<Rightarrow> t' \<Longrightarrow> no_Goto [r] \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>r#rs, s\<rangle> \<Rightarrow> t'"
+lemma seq'_cons: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r],s\<rangle> \<Rightarrow> t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,t\<rangle> \<Rightarrow> t' \<Longrightarrow> no_matching_Goto \<gamma> p [r] \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>r#rs, s\<rangle> \<Rightarrow> t'"
 by (metis decision decisionD state.exhaust seq_cons)
+
+
+lemma no_matching_Goto_take: "no_matching_Goto \<gamma> p rs \<Longrightarrow> no_matching_Goto \<gamma> p  (take n rs)"
+  apply(induction n arbitrary: rs)
+   apply(simp_all)
+  apply(case_tac rs)
+   apply(simp_all)
+  apply(rename_tac r' rs')
+  apply(case_tac r')
+  apply(simp)
+  apply(rename_tac m a)
+  by(case_tac a) (simp_all)
+
+             
 
 lemma seq_split:
   assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" "rs = rs\<^sub>1@rs\<^sub>2"
@@ -241,7 +250,7 @@ lemma seq_split:
           by simp
       next
         case shorter
-        with rs have rsa': "rsa = rs\<^sub>1 @ take (length rsa - length rs\<^sub>1) rs\<^sub>2"
+        from shorter rs have rsa': "rsa = rs\<^sub>1 @ take (length rsa - length rs\<^sub>1) rs\<^sub>2"
           by (metis append_eq_conv_conj length_drop)
         from shorter rs have rsb': "rsb = drop (length rsa - length rs\<^sub>1) rs\<^sub>2"
           by (metis append_eq_conv_conj length_drop)
@@ -251,10 +260,14 @@ lemma seq_split:
           by blast
         from rsb' Seq.hyps have t2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>drop (length rsa - length rs\<^sub>1) rs\<^sub>2,t\<rangle> \<Rightarrow> t'"
           by blast
-        with seq' t1b have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t1\<rangle> \<Rightarrow> t'"
-          by s fastforce
-        with Seq t1a show ?thesis
-          by fast
+
+        from Seq.hyps(4) rsa' no_matching_Goto_append2 have
+            "no_matching_Goto \<gamma> p (take (length rsa - length rs\<^sub>1) rs\<^sub>2)" by metis
+          with t2 seq' t1b have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t1\<rangle> \<Rightarrow> t'"
+            by  fastforce
+          with Seq t1a have ?thesis
+            by fast
+        thus ?thesis by simp
       qed
   next
     case Call_return
