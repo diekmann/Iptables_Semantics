@@ -113,7 +113,7 @@ lemma gotoD: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r, s\<rangle> \<Rightarro
                 \<exists> rs. \<Gamma> chain = Some rs \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,s\<rangle> \<Rightarrow> t"
 by (induction rule: iptables_bigstep.induct) (auto dest: skipD elim: list_app_singletonE)
 
-lemma not_no_matching_Goto_cases: "\<not> no_matching_Goto \<gamma> p [Rule m a] \<Longrightarrow> (\<exists> chain. a = (Goto chain)) \<or> \<not> matches \<gamma> m p"
+lemma not_no_matching_Goto_singleton_cases: "\<not> no_matching_Goto \<gamma> p [Rule m a] \<Longrightarrow> (\<exists> chain. a = (Goto chain)) \<or> \<not> matches \<gamma> m p"
       by(case_tac a) (simp_all)
 
 lemma seq_cons_Goto_Undecided: 
@@ -201,6 +201,7 @@ lemma seq':
   assumes "rs = rs\<^sub>1 @ rs\<^sub>2" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t\<rangle> \<Rightarrow> t'" and "no_matching_Goto \<gamma> p rs\<^sub>1"
   shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,s\<rangle> \<Rightarrow> t'"
 using assms by (cases s) (auto intro: seq decision dest: decisionD)
+
 
 lemma seq'_cons: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r],s\<rangle> \<Rightarrow> t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,t\<rangle> \<Rightarrow> t' \<Longrightarrow> no_matching_Goto \<gamma> p [r] \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>r#rs, s\<rangle> \<Rightarrow> t'"
 by (metis decision decisionD state.exhaust seq_cons)
@@ -303,8 +304,14 @@ lemma seq_split:
         thus ?thesis by fact
       qed
   next
-    case (Goto_no_Decision m a chain rs rest X)
-    thus ?case sorry
+    case (Goto_no_Decision m a chain rs rest rs\<^sub>1)
+    from Goto_no_Decision have rs1rs2: "Rule m (Goto chain) # rest = rs\<^sub>1 @ rs\<^sub>2" by simp
+    from goto_no_decision[OF Goto_no_Decision(1)]  Goto_no_Decision(3)  Goto_no_Decision(4)
+      have x: "\<And>rest. \<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m (Goto chain) # rest, Undecided\<rangle> \<Rightarrow> Undecided" by simp
+
+    from x rs1rs2 have 1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" by (metis append_eq_Cons_conv skip)
+    have 2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Undecided\<rangle> \<Rightarrow> Undecided" sorry
+    from 1 2 show ?case using Goto_no_Decision by simp
   qed (auto intro: iptables_bigstep.intros)
 
 
