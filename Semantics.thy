@@ -116,38 +116,59 @@ by (induction rule: iptables_bigstep.induct) (auto dest: skipD elim: list_app_si
 lemma not_no_matching_Goto_singleton_cases: "\<not> no_matching_Goto \<gamma> p [Rule m a] \<longleftrightarrow> (\<exists> chain. a = (Goto chain)) \<and> matches \<gamma> m p"
       by(case_tac a) (simp_all)
 
+lemma no_matching_Goto_Cons: "no_matching_Goto \<gamma> p [r] \<Longrightarrow> no_matching_Goto \<gamma> p rs \<Longrightarrow> no_matching_Goto \<gamma> p (r#rs)"
+  by(cases r)(rename_tac m a, case_tac a, simp_all)
+
+(*
 lemma not_no_matching_Goto_cases:
   assumes "\<not> no_matching_Goto \<gamma> p rs" "rs \<noteq> []"
-  obtains rs1 m chain rs2 where "rs = rs1@(Rule m (Goto chain))#rs2" "no_matching_Goto \<gamma> p rs1" "matches \<gamma> m p"
+  obtains rs1 m chain rs2 where "rs = rs1@(Rule m (Goto chain))#rs2" "no_matching_Goto \<gamma> p rs1" "matches \<gamma> m p"*)
+
+lemma not_no_matching_Goto_cases:
+  assumes "\<not> no_matching_Goto \<gamma> p rs" "rs \<noteq> []"
+  shows "\<exists>rs1 m chain rs2. rs = rs1@(Rule m (Goto chain))#rs2 \<and> no_matching_Goto \<gamma> p rs1 \<and> matches \<gamma> m p"
     using assms
     proof(induction rs)
     case Nil thus ?case by simp
     next
     case (Cons r rs)
       note Cons_outer=this
+      from Cons have "\<not> no_matching_Goto \<gamma> p (r # rs)" by simp
       show ?case
       proof(cases rs)
       case Nil
         obtain m a where "r = Rule m a" by (cases r) simp
-        with Cons(3) Nil not_no_matching_Goto_singleton_cases have "(\<exists> chain. a = (Goto chain)) \<and> matches \<gamma> m p" by metis
+        with `\<not> no_matching_Goto \<gamma> p (r # rs)` Nil not_no_matching_Goto_singleton_cases have "(\<exists> chain. a = (Goto chain)) \<and> matches \<gamma> m p" by metis
         from this obtain chain where "a = (Goto chain)" and "matches \<gamma> m p" by blast
         have "r # rs = [] @ Rule m (Goto chain) # []" "no_matching_Goto \<gamma> p []" "matches \<gamma> m p"
           by (simp_all add: `a = Goto chain` `r = Rule m a` Nil `matches \<gamma> m p`)
-        thus ?thesis by fact
+        thus ?thesis by blast
       next
       case(Cons r' rs')
         with Cons_outer have "r # rs =  r # r' # rs'" by simp
-        have "\<not> no_matching_Goto \<gamma> p rs" sorry
-        have "rs \<noteq> []" using Cons by simp
-        from Cons_outer(1)[OF _ `\<not> no_matching_Goto \<gamma> p rs` `rs \<noteq> []`] obtain
-          rs1 m chain rs2 where "rs = rs1 @ Rule m (Goto chain) # rs2" "no_matching_Goto \<gamma> p rs1" "matches \<gamma> m p" sorry
-        thm Cons_outer(1)[of ]
         show ?thesis
-          proof(cases "no_matching_Goto \<gamma> p [r']")
-          case True
-          
-    
-    oops
+        proof(cases"no_matching_Goto \<gamma> p [r]")
+        case True 
+          with `\<not> no_matching_Goto \<gamma> p (r # rs)` have "\<not> no_matching_Goto \<gamma> p rs" by (meson no_matching_Goto_Cons)
+          have "rs \<noteq> []" using Cons by simp
+          from Cons_outer(1)[OF `\<not> no_matching_Goto \<gamma> p rs` `rs \<noteq> []`]
+            obtain rs1 m chain rs2 where "rs = rs1 @ Rule m (Goto chain) # rs2" "no_matching_Goto \<gamma> p rs1" "matches \<gamma> m p" by blast
+          with `r # rs =  r # r' # rs'` `no_matching_Goto \<gamma> p [r]` no_matching_Goto_Cons
+              have "r # rs = r # rs1 @ Rule m (Goto chain) # rs2 \<and> no_matching_Goto \<gamma> p (r#rs1) \<and> matches \<gamma> m p" by fast
+          thus ?thesis
+            apply(rule_tac x="r#rs1" in exI)
+            by auto
+        next
+        case False
+          obtain m a where "r = Rule m a" by (cases r) simp
+          with False not_no_matching_Goto_singleton_cases have "(\<exists> chain. a = (Goto chain)) \<and> matches \<gamma> m p" by metis
+          from this obtain chain where "a = (Goto chain)" and "matches \<gamma> m p" by blast
+          have "r # rs = [] @ Rule m (Goto chain) # rs" "no_matching_Goto \<gamma> p []" "matches \<gamma> m p"
+            by (simp_all add: `a = Goto chain` `r = Rule m a` `matches \<gamma> m p`)
+          thus ?thesis by blast
+        qed
+      qed
+    qed
 
 lemma seq_cons_Goto_Undecided: 
   "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)], Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow>
