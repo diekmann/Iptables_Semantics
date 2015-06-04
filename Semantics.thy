@@ -289,20 +289,24 @@ lemma seq_split:
         thus ?thesis by fact
       qed
   next
-    case (Goto _ _ _ _ t) (*a copy of Call_result*)
-    show ?case
+    case (Goto_Decision m a chain rs rest X)
+    thus ?case
       proof (cases rs\<^sub>1)
         case Nil
-        with Goto have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Undecided\<rangle> \<Rightarrow> t"
+        with Goto_Decision have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Undecided\<rangle> \<Rightarrow> Decision X"
           by (auto intro: iptables_bigstep.intros)
         thus ?thesis by fact
       next
         case Cons
-        with Goto have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> t" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, t\<rangle> \<Rightarrow> t"
-          by (auto intro: iptables_bigstep.intros)
+        with Goto_Decision have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Decision X" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Decision X\<rangle> \<Rightarrow> Decision X"
+          by (auto intro: iptables_bigstep.intros) 
         thus ?thesis by fact
       qed
+  next
+    case (Goto_no_Decision m a chain rs rest X)
+    thus ?case sorry
   qed (auto intro: iptables_bigstep.intros)
+
 
 lemma seqE:
   assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1@rs\<^sub>2, s\<rangle> \<Rightarrow> t"
