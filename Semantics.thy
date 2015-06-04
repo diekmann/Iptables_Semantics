@@ -272,48 +272,66 @@ lemma no_matching_Goto_take: "no_matching_Goto \<gamma> p rs \<Longrightarrow> n
   apply(rename_tac m a)
   by(case_tac a) (simp_all)
 
-             
 
+(*
 lemma seq_split:
   assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" "rs = rs\<^sub>1@rs\<^sub>2"
   obtains (no_matching_Goto) t' where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t'" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t'\<rangle> \<Rightarrow> t" "no_matching_Goto \<gamma> p rs\<^sub>1"
-        | (matching_Goto) "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t" "no_matching_Goto \<gamma> p rs\<^sub>1"
+        | (matching_Goto) "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t" "\<not> no_matching_Goto \<gamma> p rs\<^sub>1"
+*)
+lemma seq_split:
+  assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" "rs = rs\<^sub>1@rs\<^sub>2"
+  shows "(\<exists>t'. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t' \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t'\<rangle> \<Rightarrow> t \<and> no_matching_Goto \<gamma> p rs\<^sub>1) \<or> (\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t \<and> \<not> no_matching_Goto \<gamma> p rs\<^sub>1)"
   using assms
-  proof (induction rs s t arbitrary: rs\<^sub>1 rs\<^sub>2 thesis rule: iptables_bigstep_induct)
-    case Allow thus ?case by (cases rs\<^sub>1) (auto intro: iptables_bigstep.intros)
+  proof (induction rs s t arbitrary: rs\<^sub>1 rs\<^sub>2 rule: iptables_bigstep_induct)
+    case Allow thus ?case by (cases rs\<^sub>1) (auto intro: iptables_bigstep.intros simp add: accept)
   next
-    case Deny thus ?case by (cases rs\<^sub>1) (auto intro: iptables_bigstep.intros)
+    case Deny thus ?case by (cases rs\<^sub>1) (auto intro: iptables_bigstep.intros simp add: deny)
   next
-    case Log thus ?case by (cases rs\<^sub>1) (auto intro: iptables_bigstep.intros)
+    case Log thus ?case by (cases rs\<^sub>1) (auto intro: iptables_bigstep.intros simp add: log empty)
   next
-    case Nomatch thus ?case by (cases rs\<^sub>1) (auto intro: iptables_bigstep.intros)
+    case Nomatch thus ?case by (cases rs\<^sub>1) (auto intro: iptables_bigstep.intros simp add: not_no_matching_Goto_singleton_cases)
   next
     case (Seq rs rsa rsb t t')
     hence rs: "rsa @ rsb = rs\<^sub>1 @ rs\<^sub>2" by simp
     note List.append_eq_append_conv_if[simp]
-    from rs show ?case
+    from rs have ?case
       proof (cases rule: list_app_eq_cases)
         case longer
         with Seq have t1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>take (length rsa) rs\<^sub>1, Undecided\<rangle> \<Rightarrow> t"
           by simp
-        from Seq longer obtain t2
-          where t2a: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>drop (length rsa) rs\<^sub>1,t\<rangle> \<Rightarrow> t2"
-            and rs2_t2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t2\<rangle> \<Rightarrow> t'"
-          by blast
-        with t1 rs2_t2 have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>take (length rsa) rs\<^sub>1 @ drop (length rsa) rs\<^sub>1,Undecided\<rangle> \<Rightarrow> t2"
-          using Seq.hyps(4) longer(1) seq by fastforce
-        with Seq rs2_t2 show ?thesis
-          by simp
+        from Seq.IH(2)[OF longer(2)] have IH:
+          "(\<exists>t'a. \<Gamma>,\<gamma>,p\<turnstile> \<langle>drop (length rsa) rs\<^sub>1, t\<rangle> \<Rightarrow> t'a \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, t'a\<rangle> \<Rightarrow> t' \<and> no_matching_Goto \<gamma> p (drop (length rsa) rs\<^sub>1)) \<or>
+           \<Gamma>,\<gamma>,p\<turnstile> \<langle>drop (length rsa) rs\<^sub>1, t\<rangle> \<Rightarrow> t' \<and> \<not> no_matching_Goto \<gamma> p (drop (length rsa) rs\<^sub>1)" (is "?IH_no_Goto \<or> ?IH_Goto") by simp
+        thus ?thesis
+          proof(rule disjE)
+            assume IH: ?IH_no_Goto
+            from IH obtain t2
+              where t2a: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>drop (length rsa) rs\<^sub>1,t\<rangle> \<Rightarrow> t2"
+                and rs_part2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t2\<rangle> \<Rightarrow> t'"
+                and "no_matching_Goto \<gamma> p (drop (length rsa) rs\<^sub>1)"
+              by blast
+            with t1 rs_part2 have rs_part1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>take (length rsa) rs\<^sub>1 @ drop (length rsa) rs\<^sub>1, Undecided\<rangle> \<Rightarrow> t2"
+              using Seq.hyps(4) longer(1) seq by fastforce
+            have "no_matching_Goto \<gamma> p (take (length rsa) rs\<^sub>1 @ drop (length rsa) rs\<^sub>1)"
+              using Seq.hyps(4) `no_matching_Goto \<gamma> p (drop (length rsa) rs\<^sub>1)` longer(1)
+                    no_matching_Goto_append by fastforce 
+            with Seq rs_part1 rs_part2 show ?thesis by auto
+          next
+            assume ?IH_Goto
+            thus ?thesis by (metis Seq.hyps(2) Seq.hyps(4) append_take_drop_id longer(1) no_matching_Goto_append2 seq')
+          qed
       next
+        (*TODO from here, but should be similar*)
         case shorter
         from shorter rs have rsa': "rsa = rs\<^sub>1 @ take (length rsa - length rs\<^sub>1) rs\<^sub>2"
-          by (metis append_eq_conv_conj length_drop)
+          by s (metis append_eq_conv_conj length_drop)
         from shorter rs have rsb': "rsb = drop (length rsa - length rs\<^sub>1) rs\<^sub>2"
-          by (metis append_eq_conv_conj length_drop)
+          by s (metis append_eq_conv_conj length_drop)
         from Seq rsa' obtain t1
           where t1a: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,Undecided\<rangle> \<Rightarrow> t1"
             and t1b: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>take (length rsa - length rs\<^sub>1) rs\<^sub>2,t1\<rangle> \<Rightarrow> t"
-          by blast
+          by f blast
         from rsb' Seq.hyps have t2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>drop (length rsa - length rs\<^sub>1) rs\<^sub>2,t\<rangle> \<Rightarrow> t'"
           by blast
 
