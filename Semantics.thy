@@ -19,13 +19,38 @@ fun matches :: "('a, 'p) matcher \<Rightarrow> 'a match_expr \<Rightarrow> 'p \<
 "matches \<gamma> (Match e) p \<longleftrightarrow> \<gamma> e p" |
 "matches _ MatchAny _ \<longleftrightarrow> True"
 
-fun no_Goto :: "'a rule list \<Rightarrow> bool" where
+(*fun no_Goto :: "'a rule list \<Rightarrow> bool" where
   "no_Goto [] = True" |
   "no_Goto ((Rule _ (Goto _))#rs) = False" |
-  "no_Goto (_#rs) = no_Goto rs"
+  "no_Goto (_#rs) = no_Goto rs"*)
 
+(*
+main:
+  call foo
+  deny-all
+foo:
+  goto bar
+bar:
+  [nothing]
+
+main does not have a matching goto. The deny-all will be executed!
+Chain OUTPUT (policy ACCEPT 98 packets, 34936 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+    1    84            all  --  *      *       0.0.0.0/0            127.42.0.1          
+    1    84 foo        all  --  *      *       0.0.0.0/0            127.42.0.1          
+    1    84            all  --  *      *       0.0.0.0/0            127.42.0.1          
+
+Chain bar (1 references)
+ pkts bytes target     prot opt in     out     source               destination         
+
+Chain foo (1 references)
+ pkts bytes target     prot opt in     out     source               destination         
+    1    84 bar        all  --  *      *       0.0.0.0/0            0.0.0.0/0           [goto] 
+
+*)
 fun no_matching_Goto :: "('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> 'a rule list \<Rightarrow> bool" where
   "no_matching_Goto _ _ [] \<longleftrightarrow> True" |
+  (*"no_matching_Goto \<gamma> p ((Rule m (Call chain))#rs) \<longleftrightarrow> (matches \<gamma> m p \<longrightarrow> no_matching_Goto \<gamma> p (\<Gamma> chain)) \<and> no_matching_Goto \<gamma> p rs" |*)
   "no_matching_Goto \<gamma> p ((Rule m (Goto _))#rs) \<longleftrightarrow> \<not> matches \<gamma> m p \<and> no_matching_Goto \<gamma> p rs" |
   "no_matching_Goto \<gamma> p (_#rs) \<longleftrightarrow> no_matching_Goto \<gamma> p rs"
 
@@ -43,10 +68,11 @@ nomatch: "\<not> matches \<gamma> m p \<Longrightarrow> \<Gamma>,\<gamma>,p\<tur
 decision: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Decision X\<rangle> \<Rightarrow> Decision X" |
 seq:      "\<lbrakk>\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> t; \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, t\<rangle> \<Rightarrow> t'; no_matching_Goto \<gamma> p rs\<^sub>1\<rbrakk> \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1@rs\<^sub>2, Undecided\<rangle> \<Rightarrow> t'" |
 call_return:  "\<lbrakk> matches \<gamma> m p; \<Gamma> chain = Some (rs\<^sub>1@[Rule m' Return]@rs\<^sub>2);
-                 matches \<gamma> m' p; \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided \<rbrakk> \<Longrightarrow>
+                 matches \<gamma> m' p; \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided;
+                 no_matching_Goto \<gamma> p rs\<^sub>1\<rbrakk> \<Longrightarrow>
                \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> Undecided" |
 call_result:  "\<lbrakk> matches \<gamma> m p; \<Gamma> chain = Some rs; \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<rbrakk> \<Longrightarrow>
-               \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> t" |
+               \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> t" | (*goto handling here seems okay*)
 goto_decision:  "\<lbrakk> matches \<gamma> m p; \<Gamma> chain = Some rs; \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision X \<rbrakk> \<Longrightarrow>
                \<Gamma>,\<gamma>,p\<turnstile> \<langle>(Rule m (Goto chain))#rest, Undecided\<rangle> \<Rightarrow> Decision X" |
 goto_no_decision:  "\<lbrakk> matches \<gamma> m p; \<Gamma> chain = Some rs; \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<rbrakk> \<Longrightarrow>
@@ -87,7 +113,7 @@ lemma iptables_bigstep_induct
      \<And>m a. \<not> matches \<gamma> m p \<Longrightarrow> P [Rule m a] Undecided Undecided;
      \<And>rs X. P rs (Decision X) (Decision X);
      \<And>rs rs\<^sub>1 rs\<^sub>2 t t'. rs = rs\<^sub>1 @ rs\<^sub>2 \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> P rs\<^sub>1 Undecided t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t\<rangle> \<Rightarrow> t' \<Longrightarrow> P rs\<^sub>2 t t' \<Longrightarrow> no_matching_Goto \<gamma> p rs\<^sub>1 \<Longrightarrow> P rs Undecided t';
-     \<And>m a chain rs\<^sub>1 m' rs\<^sub>2. matches \<gamma> m p \<Longrightarrow> a = Call chain \<Longrightarrow> \<Gamma> chain = Some (rs\<^sub>1 @ [Rule m' Return] @ rs\<^sub>2) \<Longrightarrow> matches \<gamma> m' p \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> P rs\<^sub>1 Undecided Undecided \<Longrightarrow> P [Rule m a] Undecided Undecided;
+     \<And>m a chain rs\<^sub>1 m' rs\<^sub>2. matches \<gamma> m p \<Longrightarrow> a = Call chain \<Longrightarrow> \<Gamma> chain = Some (rs\<^sub>1 @ [Rule m' Return] @ rs\<^sub>2) \<Longrightarrow> matches \<gamma> m' p \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> no_matching_Goto \<gamma> p rs\<^sub>1 \<Longrightarrow>  P rs\<^sub>1 Undecided Undecided \<Longrightarrow> P [Rule m a] Undecided Undecided;
      \<And>m a chain rs t. matches \<gamma> m p \<Longrightarrow> a = Call chain \<Longrightarrow> \<Gamma> chain = Some rs \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> P rs Undecided t \<Longrightarrow> P [Rule m a] Undecided t;
      \<And>m a chain rs rest X. matches \<gamma> m p \<Longrightarrow> a = Goto chain \<Longrightarrow> \<Gamma> chain = Some rs \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,Undecided\<rangle> \<Rightarrow> (Decision X) \<Longrightarrow> P rs Undecided (Decision X) \<Longrightarrow> P (Rule m a#rest) Undecided (Decision X);
      \<And>m a chain rs rest. matches \<gamma> m p \<Longrightarrow> a = Goto chain \<Longrightarrow> \<Gamma> chain = Some rs \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> P rs Undecided Undecided \<Longrightarrow> P (Rule m a#rest) Undecided Undecided\<rbrakk> \<Longrightarrow>
@@ -240,7 +266,7 @@ by (induction rule: iptables_bigstep.induct) auto
 lemma callD:
   assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r, s\<rangle> \<Rightarrow> t" "r = [Rule m (Call chain)]" "s = Undecided" "matches \<gamma> m p" "\<Gamma> chain = Some rs"
   obtains "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,s\<rangle> \<Rightarrow> t"
-        | rs\<^sub>1 rs\<^sub>2 m' where "rs = rs\<^sub>1 @ Rule m' Return # rs\<^sub>2" "matches \<gamma> m' p" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> Undecided" "t = Undecided"
+        | rs\<^sub>1 rs\<^sub>2 m' where "rs = rs\<^sub>1 @ Rule m' Return # rs\<^sub>2" "matches \<gamma> m' p" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> Undecided" "no_matching_Goto \<gamma> p rs\<^sub>1" "t = Undecided"
   using assms
   proof (induction r s t arbitrary: rs rule: iptables_bigstep.induct)
     case (seq rs\<^sub>1)
@@ -469,10 +495,18 @@ lemma no_free_return: assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m 
   } with assms show ?thesis by blast
   qed
 
+lemma "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> no_matching_Goto \<gamma> p rs \<Longrightarrow> t = Undecided"
+  apply(induction rs Undecided Undecided arbitrary: rule: iptables_bigstep_induct)
+  apply(auto intro:  dest: skipD logD emptyD nomatchD decisionD)
+  apply(erule seqE)
+  apply(simp_all)
+apply (metis decisionD no_matching_Goto_append state.exhaust)
+oops
+
 
 (* seq_split is elim, seq_progress is dest *)
-lemma seq_progress: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<Longrightarrow> rs = rs\<^sub>1@rs\<^sub>2 \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, s\<rangle> \<Rightarrow> t' \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, t'\<rangle> \<Rightarrow> t"
-  proof(induction arbitrary: rs\<^sub>1 rs\<^sub>2 t' rule: iptables_bigstep_induct)
+lemma seq_progress: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<Longrightarrow> rs = rs\<^sub>1@rs\<^sub>2 \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, s\<rangle> \<Rightarrow> t' \<Longrightarrow> no_matching_Goto \<gamma> p rs\<^sub>1 \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, t'\<rangle> \<Rightarrow> t"
+  proof(induction rs s t arbitrary: rs\<^sub>1 rs\<^sub>2 t' rule: iptables_bigstep_induct)
     case Allow
     thus ?case
       by (cases "rs\<^sub>1") (auto intro: iptables_bigstep.intros dest: iptables_bigstepD)
@@ -504,11 +538,11 @@ lemma seq_progress: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<R
         have "rs\<^sub>1 = take (length rsa) rs\<^sub>1 @ drop (length rsa) rs\<^sub>1"
           by auto
         with Seq longer show ?thesis
-          by (metis append_Nil2 skipD seq_split)
+          by (metis append_Nil2 no_matching_Goto_append2 seqE skipD)
       next
         case shorter
         with Seq(7) Seq.hyps(3) Seq.IH(1) rs show ?thesis
-          by (metis Seq.hyps(4) Seq.prems(2) append_take_drop_id no_matching_Goto_append2 seq') 
+          by (metis Seq.hyps(4) Seq.prems(2) Seq.prems(3) append_take_drop_id no_matching_Goto_append2 seq')
       qed
   next
     case(Call_return m a chain rsa m' rsb)
@@ -516,12 +550,14 @@ lemma seq_progress: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<R
           \<Gamma> chain = Some (rsa @ Rule m' Return # rsb) \<Longrightarrow>
           matches \<gamma> m' p \<Longrightarrow>
           \<Gamma>,\<gamma>,p\<turnstile> \<langle>rsa, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow>
+          no_matching_Goto \<gamma> p rsa \<Longrightarrow>
           t' = Undecided"
       apply(erule callD)
            apply(simp_all)
       apply(erule seqE)
-        apply (metis Call_return.IH append_Nil2 no_free_return seqE_cons skipD)
-      by (metis Call_return.IH self_append_conv skipD)
+       apply (metis Call_return.IH append_Nil2 no_free_return seqE_cons skipD)
+      by blast 
+      (*by (metis Call_return.IH self_append_conv skipD)*)
 
     show ?case
       proof (cases rs\<^sub>1)
@@ -536,7 +572,7 @@ lemma seq_progress: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<R
         case Nil
         moreover hence "t' = Undecided" using Call_return.prems(2) skipD by fastforce 
         moreover have "\<And>m. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> Undecided"
-          by (metis (no_types) Call_return(2) Call_return.hyps(3) Call_return.hyps(4) Call_return.hyps(5) call_return nomatch)
+          by (metis Call_return.hyps(2) Call_return.hyps(3) Call_return.hyps(4) Call_return.hyps(5) Call_return.hyps(6) call_return nomatch)
         ultimately show ?thesis
           using Call_return.prems(1) by auto
       qed
@@ -545,12 +581,16 @@ lemma seq_progress: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<R
     thus ?case
       proof (cases rs\<^sub>1)
         case Cons
+        have skip_rule: "t' = t \<Longrightarrow>  \<Gamma>,\<gamma>,p\<turnstile> \<langle>[], t'\<rangle> \<Rightarrow> t " using iptables_bigstep.skip by fast
+        from seq_split[OF Call_result(4), of "rs" "[]"]
+        have no_goto_rs: "no_matching_Goto \<gamma> p rs" sorry
+        from Cons Call_result.prems have "rs\<^sub>1 = [Rule m a]" "rs\<^sub>2 = []" by auto
         thus ?thesis
-          using Call_result
-          apply(auto simp add: iptables_bigstep.skip iptables_bigstep.call_result dest: skipD) (*TODO*)
+          using Call_result(1) Call_result(2) Call_result(3) Call_result(7)
+          apply(simp)
           apply(drule callD, simp_all)
-           apply blast
-          by (metis Cons_eq_appendI append_self_conv2 no_free_return seq_split)
+           using no_goto_rs Call_result.IH apply simp
+          by (metis no_free_return seqE_cons Call_result.IH)
       qed (fastforce intro: iptables_bigstep.intros dest: skipD)
   next
     case(Goto_no_Decision m a chain rs t)
@@ -558,7 +598,7 @@ lemma seq_progress: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<R
   next
     case(Goto_Decision)
     thus ?case sorry
-  qed (auto dest: iptables_bigstepD)
+  qed s (auto dest: iptables_bigstepD)
 
 
 theorem iptables_bigstep_deterministic: assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" and "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t'" shows "t = t'"
