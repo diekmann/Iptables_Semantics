@@ -186,7 +186,11 @@ local (*iptables-save parsers*)
     (*parses: -j MY_CUSTOM_CHAIN*)
     (*The -j may not be the end of the line. example: -j LOG --log-prefix "[IPT_DROP]:"*)
     val parse_target : (string list -> parsed_match_action * string list) = 
-                  Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string "-j " |-- (parser_target >> ParsedAction ));
+                  Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string "-j " |-- (parser_target >> ParsedAction));
+
+    val parse_target_goto : (string list -> parsed_match_action * string list) = 
+                  Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string "-g " 
+                    |-- (parser_target >> (fn s => raise Fail ("goto is not supported `"^s^"'"))));
   end;
 in
   (*parses: -A FORWARD*)
@@ -198,9 +202,11 @@ in
   *)
   (*TODO: not parsed: negated IPs, ports, protocols, ...*)
   (*TODO: the new rulesets don't have negated IP addresses, but definetely test this!*)
+  (*TODO: better way to fail on goto action*)
   val option_parser : (string list -> (parsed_match_action) * string list) = 
       Scan.recover (parse_src_ip || parse_dst_ip || parse_in_iface || parse_out_iface ||
-                    parse_target || parse_src_ip_negated || parse_dst_ip_negated) (K parse_unknown);
+                    parse_target || parse_src_ip_negated || 
+                    parse_dst_ip_negated) (K (parse_target_goto || parse_unknown));
   
   
   (*parse_table_append should be called before option_parser, otherwise -A will simply be an unknown for option_parser*)
@@ -368,6 +374,11 @@ fun parse_iptables_save (file: string list) =
     (*|> (fn t => simplify_code @{context} (@{const unfold_ruleset_FORWARD} $ @{const action.Accept} $ (@{const map_of (string, "common_primitive rule list")} $ t)))*)
     (*|> certify_term @{context}*)
 *}
+
+(*ML{*
+val example = parse_iptables_save ["Examples", "SQRL_Shorewall", "iptables-saveakachan"];
+Pretty.writeln (Syntax.pretty_term @{context} example);
+*}*)
 
 ML{*
 val example = parse_iptables_save ["Examples", "Parser_Test", "iptables-save"];
