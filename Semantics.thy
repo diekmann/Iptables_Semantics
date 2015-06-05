@@ -284,6 +284,8 @@ lemma seq_split:
   shows "(\<exists>t'. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t' \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t'\<rangle> \<Rightarrow> t \<and> no_matching_Goto \<gamma> p rs\<^sub>1) \<or> (\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t \<and> \<not> no_matching_Goto \<gamma> p rs\<^sub>1)"
   using assms
   proof (induction rs s t arbitrary: rs\<^sub>1 rs\<^sub>2 rule: iptables_bigstep_induct)
+    case Skip thus ?case by (auto intro: iptables_bigstep.intros simp add: accept)
+  next
     case Allow thus ?case by (cases rs\<^sub>1) (auto intro: iptables_bigstep.intros simp add: accept)
   next
     case Deny thus ?case by (cases rs\<^sub>1) (auto intro: iptables_bigstep.intros simp add: deny)
@@ -292,10 +294,12 @@ lemma seq_split:
   next
     case Nomatch thus ?case by (cases rs\<^sub>1) (auto intro: iptables_bigstep.intros simp add: not_no_matching_Goto_singleton_cases)
   next
+    case Decision thus ?case by (auto intro: iptables_bigstep.intros)
+  next
     case (Seq rs rsa rsb t t')
     hence rs: "rsa @ rsb = rs\<^sub>1 @ rs\<^sub>2" by simp
     note List.append_eq_append_conv_if[simp]
-    from rs have ?case
+    from rs show ?case
       proof (cases rule: list_app_eq_cases)
         case longer
         with Seq have t1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>take (length rsa) rs\<^sub>1, Undecided\<rangle> \<Rightarrow> t"
@@ -354,7 +358,7 @@ lemma seq_split:
               with t1a rs2 `no_matching_Goto \<gamma> p rs\<^sub>1` show ?thesis by fast
           next
             assume ?IH_Goto
-            thus ?thesis using no_matching_Goto_append2 seq' by (metis Seq.hyps(4) no_matching_Goto_append1 rsa') 
+            thus ?thesis by (metis Seq.hyps(4) no_matching_Goto_append1 rsa') 
           qed
       qed
   next
@@ -408,15 +412,11 @@ lemma seq_split:
         
         from Cons Goto_no_Decision have 1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided"
           using x by auto[1]
-        have 2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Undecided\<rangle> \<Rightarrow> Undecided" sorry (*need to try the other ex*)
+        have 2: "\<not> no_matching_Goto \<gamma> p rs\<^sub>1"
+          by (simp add: Goto_no_Decision.hyps(1) `rs\<^sub>1 = Rule m (Goto chain) # take (length rs\<^sub>1s) rest`) 
         from 1 2 show ?thesis by fast
       qed
-
-    from x rs1rs2 have 1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" by (metis append_eq_Cons_conv skip)
-    have 2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Undecided\<rangle> \<Rightarrow> Undecided" sorry
-    from 1 2 show ?case using Goto_no_Decision by simp
-  qed (auto intro: iptables_bigstep.intros)
-
+  qed
 
 lemma seqE:
   assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1@rs\<^sub>2, s\<rangle> \<Rightarrow> t"
