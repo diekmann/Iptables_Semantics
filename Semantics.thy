@@ -69,7 +69,16 @@ decision: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Decision X\<rangle> \<Ri
 seq:      "\<lbrakk>\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> t; \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, t\<rangle> \<Rightarrow> t'; no_matching_Goto \<gamma> p rs\<^sub>1\<rbrakk> \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1@rs\<^sub>2, Undecided\<rangle> \<Rightarrow> t'" |
 call_return:  "\<lbrakk> matches \<gamma> m p; \<Gamma> chain = Some (rs\<^sub>1@[Rule m' Return]@rs\<^sub>2);
                  matches \<gamma> m' p; \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided;
-                 no_matching_Goto \<gamma> p rs\<^sub>1\<rbrakk> \<Longrightarrow>
+                 no_matching_Goto \<gamma> p rs\<^sub>1\<rbrakk> \<Longrightarrow> (*we do not support a goto in the first part if you want to return
+                 probably unhanlded case:
+                 main:
+                   call foo
+                 foo:
+                   goto bar
+                 bar:
+                   Return //returns to `call foo'
+                 But this would be a really awkward ruleset!
+                 *)
                \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> Undecided" |
 call_result:  "\<lbrakk> matches \<gamma> m p; \<Gamma> chain = Some rs; \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<rbrakk> \<Longrightarrow>
                \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> t" | (*goto handling here seems okay*)
@@ -621,38 +630,11 @@ by (smt append_Cons append_Nil goto_no_decision list.sel(1) neq_Nil_conv no_matc
 
 
 theorem iptables_bigstep_deterministic: assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" and "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t'" shows "t = t'"
-proof -
-  { fix r1 r2 m t
-    assume a1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r1 @ Rule m Return # r2, Undecided\<rangle> \<Rightarrow> t" and a2: "matches \<gamma> m p" and a3: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r1,Undecided\<rangle> \<Rightarrow> Undecided"
-    have False
-    proof -
-      from a1 a3 have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m Return # r2, Undecided\<rangle> \<Rightarrow> t"
-        by (blast intro: seq_progress)
-      hence "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m Return] @ r2, Undecided\<rangle> \<Rightarrow> t"
-        by simp
-      from seqE[OF this] obtain ti where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m Return], Undecided\<rangle> \<Rightarrow> ti" by blast
-      with no_free_return a2 show False by fast (*by (blast intro: no_free_return elim: seq_split)*)
-    qed
-  } note no_free_return_seq=this
-  
-  from assms show ?thesis
-  proof (induction arbitrary: t' rule: iptables_bigstep_induct)
-    case Seq
-    thus ?case
-      by (metis seq_progress)
-  next
-    case Call_result
-    thus ?case
-      by (metis no_free_return_seq callD)
-  next
-    case Call_return
-    thus ?case
-      by (metis append_Cons callD no_free_return_seq)
-  next
-    case Goto
-    thus ?case by (metis gotoD)
-  qed (auto dest: iptables_bigstepD)
-qed
+using assms
+  apply(cases s)
+   apply(simp add: iptables_bigstep_Undecided_deterministic)
+  apply(simp)
+  by (metis decisionD)
 
 
 lemma Rule_UndecidedE:
@@ -680,6 +662,7 @@ lemma Rule_DecisionE:
   qed simp_all
 
 
+(*
 lemma log_remove:
   assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1 @ [Rule m Log] @ rs\<^sub>2, s\<rangle> \<Rightarrow> t"
   shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1 @ rs\<^sub>2, s\<rangle> \<Rightarrow> t"
@@ -706,7 +689,7 @@ lemma empty_empty:
     with t' show ?thesis
       by (metis state.exhaust iptables_bigstep_deterministic decision empty nomatch seq)
   qed
-
+*)
 
 (* TODO: add goto
 text{*
