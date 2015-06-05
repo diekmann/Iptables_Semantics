@@ -419,13 +419,15 @@ qed
 lemma seqE:
   assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1@rs\<^sub>2, s\<rangle> \<Rightarrow> t"
   obtains (no_matching_Goto) ti where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> ti" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,ti\<rangle> \<Rightarrow> t" "no_matching_Goto \<gamma> p rs\<^sub>1"
-         | (matching_Goto) "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t" "\<not> no_matching_Goto \<gamma> p rs\<^sub>1"
+        | (matching_Goto) "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t" "\<not> no_matching_Goto \<gamma> p rs\<^sub>1"
   using assms by (force elim: seq_split)
 
 lemma seqE_cons:
   assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r#rs, s\<rangle> \<Rightarrow> t"
-  obtains ti where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r],s\<rangle> \<Rightarrow> ti" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,ti\<rangle> \<Rightarrow> t"
-  using assms by s (metis append_Cons append_Nil seqE)
+  obtains (no_matching_Goto)ti where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r],s\<rangle> \<Rightarrow> ti" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,ti\<rangle> \<Rightarrow> t" "no_matching_Goto \<gamma> p [r]"
+        | (matching_Goto) "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r],s\<rangle> \<Rightarrow> t" "\<not> no_matching_Goto \<gamma> p [r]"
+           (*TODO: explicitely split the r into Rule m (Goto chain)*)
+  using assms by (metis append_Cons append_Nil seqE)
 
 lemma nomatch':
   assumes "\<And>r. r \<in> set rs \<Longrightarrow> \<not> matches \<gamma> (get_match r) p"
@@ -441,7 +443,8 @@ lemma nomatch':
         hence "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r], Undecided\<rangle> \<Rightarrow> Undecided"
           by (cases r) (auto intro: nomatch)
         with Cons show ?case
-          by (fastforce intro: seq_cons)
+          by (metis list.set_intros(1) list.set_intros(2) not_no_matching_Goto_singleton_cases rule.collapse seq'_cons)
+          (*by (fastforce intro: seq_cons)*) (*TODO*)
       qed
     with assms Undecided show ?thesis by simp
   qed (blast intro: decision)
@@ -505,7 +508,7 @@ lemma seq_progress: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<R
       next
         case shorter
         with Seq(7) Seq.hyps(3) Seq.IH(1) rs show ?thesis
-          by (metis seq' append_eq_conv_conj)
+          by (metis Seq.hyps(4) Seq.prems(2) append_take_drop_id no_matching_Goto_append2 seq') 
       qed
   next
     case(Call_return m a chain rsa m' rsb)
@@ -517,8 +520,8 @@ lemma seq_progress: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<R
       apply(erule callD)
            apply(simp_all)
       apply(erule seqE)
-      apply(erule seqE_cons)
-      by (metis Call_return.IH no_free_return self_append_conv skipD)
+        apply (metis Call_return.IH append_Nil2 no_free_return seqE_cons skipD)
+      by (metis Call_return.IH self_append_conv skipD)
 
     show ?case
       proof (cases rs\<^sub>1)
@@ -531,8 +534,7 @@ lemma seq_progress: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<R
           using xx by blast
       next
         case Nil
-        moreover hence "t' = Undecided"
-          by (metis Call_return.hyps(1) Call_return.prems(2) append.simps(1) decision no_free_return seq state.exhaust)
+        moreover hence "t' = Undecided" using Call_return.prems(2) skipD by fastforce 
         moreover have "\<And>m. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> Undecided"
           by (metis (no_types) Call_return(2) Call_return.hyps(3) Call_return.hyps(4) Call_return.hyps(5) call_return nomatch)
         ultimately show ?thesis
@@ -545,22 +547,17 @@ lemma seq_progress: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<R
         case Cons
         thus ?thesis
           using Call_result
-          apply(auto simp add: iptables_bigstep.skip iptables_bigstep.call_result dest: skipD)
+          apply(auto simp add: iptables_bigstep.skip iptables_bigstep.call_result dest: skipD) (*TODO*)
           apply(drule callD, simp_all)
            apply blast
           by (metis Cons_eq_appendI append_self_conv2 no_free_return seq_split)
       qed (fastforce intro: iptables_bigstep.intros dest: skipD)
   next
-    case(Goto m a chain rs t)
-    thus ?case
-      proof (cases rs\<^sub>1)
-        case Cons
-        thus ?thesis
-          using Goto
-          apply(auto simp add: iptables_bigstep.skip iptables_bigstep.goto dest: skipD)
-          apply(drule gotoD, simp_all)
-           by blast
-      qed (fastforce intro: iptables_bigstep.intros dest: skipD)
+    case(Goto_no_Decision m a chain rs t)
+    thus ?case sorry (*here we will need to split it again whether a matching goto occurs in the first part. it is probably better to make two lemmas out of it*)
+  next
+    case(Goto_Decision)
+    thus ?case sorry
   qed (auto dest: iptables_bigstepD)
 
 
