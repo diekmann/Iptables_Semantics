@@ -495,13 +495,20 @@ lemma no_free_return: assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m 
   } with assms show ?thesis by blast
   qed
 
-lemma "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> no_matching_Goto \<gamma> p rs \<Longrightarrow> t = Undecided"
-  apply(induction rs Undecided Undecided arbitrary: rule: iptables_bigstep_induct)
-  apply(auto intro:  dest: skipD logD emptyD nomatchD decisionD)
-  apply(erule seqE)
-  apply(simp_all)
-apply (metis decisionD no_matching_Goto_append state.exhaust)
-oops
+lemma iptables_bigstep_Undecided_deterministic: 
+  "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow>  t = Undecided" (*no_matching_Goto \<gamma> p rs \<Longrightarrow>*)
+  apply(induction rs Undecided Undecided arbitrary: t rule: iptables_bigstep_induct)
+        apply(fastforce  dest: skipD logD emptyD nomatchD decisionD)
+       apply(fastforce  dest: skipD logD emptyD nomatchD decisionD)
+      apply(fastforce  dest: skipD logD emptyD nomatchD decisionD)
+     apply (metis iptables_bigstep_to_undecided seqE)
+    apply(simp_all)
+    apply(frule_tac rs\<^sub>1=rs\<^sub>1 and m'=m' and chain=chain in call_return)
+        apply(simp_all)
+    apply (metis callD no_free_return seqE seqE_cons)
+   apply (meson callD)
+  by (metis gotoD no_matching_Goto.simps(2) option.sel seqE_cons)
+
 
 
 (* seq_split is elim, seq_progress is dest *)
