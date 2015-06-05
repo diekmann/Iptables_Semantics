@@ -322,32 +322,46 @@ lemma seq_split:
             thus ?thesis by (metis Seq.hyps(2) Seq.hyps(4) append_take_drop_id longer(1) no_matching_Goto_append2 seq')
           qed
       next
-        (*TODO from here, but should be similar*)
         case shorter
         from shorter rs have rsa': "rsa = rs\<^sub>1 @ take (length rsa - length rs\<^sub>1) rs\<^sub>2"
-          by s (metis append_eq_conv_conj length_drop)
+          by (metis append_eq_conv_conj length_drop)
         from shorter rs have rsb': "rsb = drop (length rsa - length rs\<^sub>1) rs\<^sub>2"
-          by s (metis append_eq_conv_conj length_drop)
-        from Seq rsa' obtain t1
-          where t1a: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,Undecided\<rangle> \<Rightarrow> t1"
-            and t1b: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>take (length rsa - length rs\<^sub>1) rs\<^sub>2,t1\<rangle> \<Rightarrow> t"
-          by f blast
+          by (metis append_eq_conv_conj length_drop)
+
+        from Seq.hyps(4) rsa' no_matching_Goto_append2 have
+            no_matching_Goto_rs2: "no_matching_Goto \<gamma> p (take (length rsa - length rs\<^sub>1) rs\<^sub>2)" by metis
+
         from rsb' Seq.hyps have t2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>drop (length rsa - length rs\<^sub>1) rs\<^sub>2,t\<rangle> \<Rightarrow> t'"
           by blast
 
-        from Seq.hyps(4) rsa' no_matching_Goto_append2 have
-            "no_matching_Goto \<gamma> p (take (length rsa - length rs\<^sub>1) rs\<^sub>2)" by metis
-          with t2 seq' t1b have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t1\<rangle> \<Rightarrow> t'"
-            by  fastforce
-          with Seq t1a have ?thesis
-            by fast
-        thus ?thesis by simp
+        from Seq.IH(1)[OF rsa'] have IH:
+          "(\<exists>t'. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> t' \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>take (length rsa - length rs\<^sub>1) rs\<^sub>2, t'\<rangle> \<Rightarrow> t \<and> no_matching_Goto \<gamma> p rs\<^sub>1) \<or>
+            \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> t \<and> \<not> no_matching_Goto \<gamma> p rs\<^sub>1" (is "?IH_no_Goto \<or> ?IH_Goto") by simp
+
+        thus ?thesis
+          proof(rule disjE)
+            assume IH: ?IH_no_Goto
+            from IH obtain t1
+              where t1a: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,Undecided\<rangle> \<Rightarrow> t1"
+                and t1b: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>take (length rsa - length rs\<^sub>1) rs\<^sub>2,t1\<rangle> \<Rightarrow> t"
+                and "no_matching_Goto \<gamma> p rs\<^sub>1"
+              by blast
+    
+              from no_matching_Goto_rs2 t2 seq' t1b have rs2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t1\<rangle> \<Rightarrow> t'"
+                by  fastforce
+    
+    
+              with t1a rs2 `no_matching_Goto \<gamma> p rs\<^sub>1` show ?thesis by fast
+          next
+            assume ?IH_Goto
+            thus ?thesis using no_matching_Goto_append2 seq' by (metis Seq.hyps(4) no_matching_Goto_append1 rsa') 
+          qed
       qed
   next
     case Call_return
     hence "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Undecided\<rangle> \<Rightarrow> Undecided"
       by (case_tac [!] rs\<^sub>1) (auto intro: iptables_bigstep.skip iptables_bigstep.call_return)
-    thus ?case by fact
+    thus ?case by fast
   next
     case (Call_result _ _ _ _ t)
     show ?case
@@ -355,12 +369,12 @@ lemma seq_split:
         case Nil
         with Call_result have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Undecided\<rangle> \<Rightarrow> t"
           by (auto intro: iptables_bigstep.intros)
-        thus ?thesis by fact
+        thus ?thesis using local.Nil by auto 
       next
         case Cons
         with Call_result have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> t" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, t\<rangle> \<Rightarrow> t"
           by (auto intro: iptables_bigstep.intros)
-        thus ?thesis by fact
+        thus ?thesis by fast
       qed
   next
     case (Goto_Decision m a chain rs rest X)
@@ -369,12 +383,12 @@ lemma seq_split:
         case Nil
         with Goto_Decision have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Undecided\<rangle> \<Rightarrow> Decision X"
           by (auto intro: iptables_bigstep.intros)
-        thus ?thesis by fact
+        thus ?thesis using local.Nil by auto
       next
         case Cons
         with Goto_Decision have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Decision X" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Decision X\<rangle> \<Rightarrow> Decision X"
           by (auto intro: iptables_bigstep.intros) 
-        thus ?thesis by fact
+        thus ?thesis by fast
       qed
   next
     case (Goto_no_Decision m a chain rs rest rs\<^sub>1)
@@ -386,7 +400,7 @@ lemma seq_split:
         case Nil
         with Goto_no_Decision have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Undecided\<rangle> \<Rightarrow> Undecided"
           by (auto intro: iptables_bigstep.intros)
-        thus ?thesis by fact
+        thus ?thesis by fast
       next
         case (Cons rs\<^sub>1a rs\<^sub>1s)
         with rs1rs2 have "rs\<^sub>1 = Rule m (Goto chain) # (take (length rs\<^sub>1s) rest)" by simp
@@ -394,8 +408,8 @@ lemma seq_split:
         
         from Cons Goto_no_Decision have 1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided"
           using x by auto[1]
-        have 2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Undecided\<rangle> \<Rightarrow> Undecided" sorry
-        from 1 2 show ?thesis by fact
+        have 2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Undecided\<rangle> \<Rightarrow> Undecided" sorry (*need to try the other ex*)
+        from 1 2 show ?thesis by fast
       qed
 
     from x rs1rs2 have 1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" by (metis append_eq_Cons_conv skip)
