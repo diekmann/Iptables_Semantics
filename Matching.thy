@@ -112,6 +112,29 @@ lemma matches_add_match_no_matching_Goto_simp: "matches \<gamma> m p \<Longright
   done
 
 
+lemma matches_add_match_no_matching_Goto_simp2: "matches \<gamma> m p \<Longrightarrow>  no_matching_Goto \<gamma> p rs \<Longrightarrow> no_matching_Goto \<gamma> p (add_match m rs)"
+  apply(induction rs)
+   apply(simp add: add_match_def)
+  apply(rename_tac r rs)
+  apply(case_tac r)
+  apply(simp add: add_match_split_fst no_matching_Goto_tail)
+  apply(rename_tac m' a')
+  apply(case_tac a')
+          apply simp_all
+  done
+
+lemma matches_add_match_MatchNot_no_matching_Goto_simp: "\<not> matches \<gamma> m p \<Longrightarrow> no_matching_Goto \<gamma> p (add_match m rs)"
+  apply(induction rs)
+   apply(simp add: add_match_def)
+  apply(rename_tac r rs)
+  apply(case_tac r)
+  apply(simp add: add_match_split_fst no_matching_Goto_tail)
+  apply(rename_tac m' a')
+  apply(case_tac a')
+          apply simp_all
+  done
+
+
 lemma not_matches_add_match_simp:
   assumes "\<not> matches \<gamma> m p"
   shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m rs, Undecided\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>[], Undecided\<rangle> \<Rightarrow> t"
@@ -251,134 +274,57 @@ lemma not_matches_add_matchNot_simp:
   by (simp add: matches_add_match_simp)
 
 
-lemma unfold_Goto_Undecided:
-    assumes "\<Gamma> chain = Some rs"
+(*
+This theorem allows us to unfold the deepest goto in a ruleset.
+This can be iterated to get to the higher-level gotos.
+*)
+theorem unfold_Goto_Undecided:
+    assumes chain_defined: "\<Gamma> chain = Some rs" and no_matching_Goto_rs: "no_matching_Goto \<gamma> p rs"
     shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>(Rule m (Goto chain))#rest, Undecided\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m rs @ add_match (MatchNot m) rest, Undecided\<rangle> \<Rightarrow> t"
           (is "?l \<longleftrightarrow> ?r")
 proof
   assume ?l
   thus ?r
-  proof(cases rule: seqE_cons)
-  case (no_matching_Goto ti)
-    from no_matching_Goto have "\<not> matches \<gamma> m p" by simp
-    with no_matching_Goto have ti: "ti = Undecided" using nomatchD by metis
-    from `\<not> matches \<gamma> m p` have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m rs, Undecided\<rangle> \<Rightarrow> Undecided"
-      using not_matches_add_match_simp skip by fast
-    from no_matching_Goto ti have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rest, Undecided\<rangle> \<Rightarrow> t" by simp
-    with matches_add_match_MatchNot_simp
-  apply -
-  apply(drule seqE_cons)
-    apply(simp_all)
-   apply(subgoal_tac "ti = Undecided")
-    prefer 2
-   apply(simp)
- thm not_matches_add_match_simp
- apply(simp add: not_matches_add_match_simp) 
- 
-thm gotoD seqE_cons
-oops
-
-
-lemma matches_add_match_MatchNot_simp:
-  assumes m: "matches \<gamma> m p"
-  shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match (MatchNot m) rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>[], s\<rangle> \<Rightarrow> t" (is "?l s \<longleftrightarrow> ?r s")
-  proof (cases s)
-    case Undecided
-    have "?l Undecided \<longleftrightarrow> ?r Undecided"
-      proof
-        assume "?l Undecided" with m show "?r Undecided"
-          proof (induction rs)
-            case Nil
-            thus ?case
-              unfolding add_match_def by simp
-          next
-            case (Cons r rs)
-            thus ?case
-              by (cases r) (metis matches_MatchNotAnd_simp skipD seqE_cons add_match_split_fst)
-          qed
-      next
-        assume "?r Undecided" with m show "?l Undecided"
-          proof (induction rs)
-            case Nil
-            thus ?case
-              unfolding add_match_def by simp
-          next
-            case (Cons r rs)
-            thus ?case
-              by (cases r) (metis matches_MatchNotAnd_simp skipD seq'_cons add_match_split_fst)
-          qed
-      qed
-    with Undecided show ?thesis by fast
-  next
-    case (Decision d)
-    thus ?thesis
-      by(metis decision decisionD)
-  qed
-
-lemma not_matches_add_match_simp:
-  assumes "\<not> matches \<gamma> m p"
-  shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m rs, Undecided\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>[], Undecided\<rangle> \<Rightarrow> t"
-  proof(induction rs)
-    case Nil
-    thus ?case
-      unfolding add_match_def by simp
-  next
-    case (Cons r rs)
-    thus ?case
-      by (cases r) (metis assms add_match_split_fst matches.simps(1) nomatch seq'_cons nomatchD seqE_cons)
-  qed
-
-lemma iptables_bigstep_add_match_notnot_simp: 
-  "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match (MatchNot (MatchNot m)) rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m rs, s\<rangle> \<Rightarrow> t"
-  proof(induction rs)
-    case Nil
-    thus ?case
-      unfolding add_match_def by simp
-  next
-    case (Cons r rs)
-    thus ?case
-      by (cases r)
-         (metis decision decisionD state.exhaust matches.simps(2) matches_add_match_simp not_matches_add_match_simp)
-  qed
-
-lemma not_matches_add_matchNot_simp:
-  "\<not> matches \<gamma> m p \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match (MatchNot m) rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
-  by (simp add: matches_add_match_simp)
-
-lemma iptables_bigstep_add_match_and:
-  "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m1 (add_match m2 rs), s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match (MatchAnd m1 m2) rs, s\<rangle> \<Rightarrow> t"
-  proof(induction rs arbitrary: s t)
-    case Nil
-    thus ?case
-      unfolding add_match_def by simp
-  next
-    case(Cons r rs)
-    show ?case
-    proof (cases r, simp only: add_match_split_fst)
-      fix m a
-      show "\<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule (MatchAnd m1 (MatchAnd m2 m)) a # add_match m1 (add_match m2 rs), s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule (MatchAnd (MatchAnd m1 m2) m) a # add_match (MatchAnd m1 m2) rs, s\<rangle> \<Rightarrow> t" (is "?l \<longleftrightarrow> ?r")
-      proof
-        assume ?l with Cons.IH show ?r
-          apply -
-          apply(erule seqE_cons)
-          apply(case_tac s)
-          apply(case_tac ti)
-          apply (metis matches.simps(1) matches_rule_and_simp matches_rule_and_simp_help nomatch seq'_cons)
-          apply (metis add_match_split_fst matches.simps(1) matches_add_match_simp not_matches_add_match_simp seq_cons)
-          apply (metis decision decisionD)
-          done
-      next
-        assume ?r with Cons.IH show ?l
-          apply -
-          apply(erule seqE_cons)
-          apply(case_tac s)
-          apply(case_tac ti)
-          apply (metis matches.simps(1) matches_rule_and_simp matches_rule_and_simp_help nomatch seq'_cons)
-          apply (metis add_match_split_fst matches.simps(1) matches_add_match_simp not_matches_add_match_simp seq_cons)
-          apply (metis decision decisionD)
-          done
-        qed
+    proof(cases rule: seqE_cons_Undecided)
+    case (no_matching_Goto ti)
+      from no_matching_Goto have "\<not> matches \<gamma> m p" by simp
+      with no_matching_Goto have ti: "ti = Undecided" using nomatchD by metis
+      from `\<not> matches \<gamma> m p` have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m rs, Undecided\<rangle> \<Rightarrow> Undecided"
+        using not_matches_add_match_simp skip by fast
+      from `\<not> matches \<gamma> m p` matches_add_match_MatchNot_no_matching_Goto_simp have "no_matching_Goto \<gamma> p (add_match m rs)" by force
+      from no_matching_Goto ti have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rest, Undecided\<rangle> \<Rightarrow> t" by simp
+      with not_matches_add_matchNot_simp[OF `\<not> matches \<gamma> m p`] have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match (MatchNot m) rest, Undecided\<rangle> \<Rightarrow> t" by simp
+      show ?thesis
+        by (meson `\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match (MatchNot m) rest, Undecided\<rangle> \<Rightarrow> t` `\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m rs, Undecided\<rangle> \<Rightarrow> Undecided` `no_matching_Goto \<gamma> p (add_match m rs)` seq)
+    next
+    case (matching_Goto m chain rs')
+      from matching_Goto gotoD assms have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t" by fastforce
+      hence 1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m rs, Undecided\<rangle> \<Rightarrow> t" by (simp add: matches_add_match_simp matching_Goto(3))
+      have 2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match (MatchNot m) rest, t\<rangle> \<Rightarrow> t" by (simp add: matches_add_match_MatchNot_simp matching_Goto(3) skip)
+      from no_matching_Goto_rs matches_add_match_no_matching_Goto_simp2 matching_Goto have 3: "no_matching_Goto \<gamma> p (add_match m rs)" by fast
+      from 1 2 3 show ?thesis using matching_Goto(1) seq by fastforce
     qed
-  qed
+next
+  assume ?r
+  thus ?l
+    proof(cases "matches \<gamma> m p")
+    case True
+      have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t"
+        by (metis True `\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m rs @ add_match (MatchNot m) rest, Undecided\<rangle> \<Rightarrow> t`
+            matches_add_match_MatchNot_simp matches_add_match_simp_helper self_append_conv seq' seqE)
+      show ?l
+      apply(cases t)
+       using goto_no_decision[OF True] chain_defined apply (metis `\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t`)
+      using goto_decision[OF True, of \<Gamma> chain rs _ rest] chain_defined apply (metis `\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t`)
+      done
+    next
+    case False
+      with `?r` have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match (MatchNot m) rest, Undecided\<rangle> \<Rightarrow> t"
+        by (meson matches_add_match_MatchNot_no_matching_Goto_simp not_matches_add_match_simp seq_progress skip)
+      with False have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rest, Undecided\<rangle> \<Rightarrow> t" by (meson not_matches_add_matchNot_simp) 
+      show ?l by (meson False `\<Gamma>,\<gamma>,p\<turnstile> \<langle>rest, Undecided\<rangle> \<Rightarrow> t` nomatch not_no_matching_Goto_singleton_cases seq_cons)
+    qed
+qed
+       
 
 end
