@@ -523,6 +523,7 @@ lemma iptables_bigstep_Undecided_deterministic:
 
 
 (* seq_split is elim, seq_progress is dest *)
+(*we already have a deterministic lemma, do we really need this lemma? it is only used in the next determinism lemma*)
 lemma seq_progress: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<Longrightarrow> rs = rs\<^sub>1@rs\<^sub>2 \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, s\<rangle> \<Rightarrow> t' \<Longrightarrow> no_matching_Goto \<gamma> p rs\<^sub>1 \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, t'\<rangle> \<Rightarrow> t"
   proof(induction rs s t arbitrary: rs\<^sub>1 rs\<^sub>2 t' rule: iptables_bigstep_induct)
     case Allow
@@ -605,22 +606,18 @@ lemma seq_progress: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<R
         from Cons Call_result.prems have "rs\<^sub>1 = [Rule m a]" "rs\<^sub>2 = []" by auto
         with seq_split[OF rs1rs2_t] have "(\<exists>t'. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> t' \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, t'\<rangle> \<Rightarrow> t) \<or> (\<not> no_matching_Goto \<gamma> p rs\<^sub>1)" by metis
         with Call_result(8) have "\<exists>t'. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> t' \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, t'\<rangle> \<Rightarrow> t" by auto
-
-        have no_goto_rs: "no_matching_Goto \<gamma> p rs" sorry
-        from `rs\<^sub>1 = [Rule m a]` `rs\<^sub>2 = []` show ?thesis
-          using Call_result(1) Call_result(2) Call_result(3) Call_result(7)
-          apply(simp)
-          apply(drule callD, simp_all)
-           using no_goto_rs Call_result.IH apply simp
-          by (metis no_free_return seqE_cons Call_result.IH)
+        with iptables_bigstep_Undecided_deterministic show ?thesis
+        using Call_result.prems(2) by fastforce 
       qed (fastforce intro: iptables_bigstep.intros dest: skipD)
   next
     case(Goto_no_Decision m a chain rs t)
-    thus ?case sorry (*here we will need to split it again whether a matching goto occurs in the first part. it is probably better to make two lemmas out of it*)
+    thus ?case (*TODO smt*)
+by (smt append_Cons append_Nil goto_no_decision list.sel(1) neq_Nil_conv no_matching_Goto.simps(2) skipD)
+     (*here we will need to split it again whether a matching goto occurs in the first part. it is probably better to make two lemmas out of it*)
   next
     case(Goto_Decision)
-    thus ?case sorry
-  qed s (auto dest: iptables_bigstepD)
+    thus ?case by (metis goto_decision iptables_bigstep_Undecided_deterministic seq_split) 
+  qed (auto dest: iptables_bigstepD)
 
 
 theorem iptables_bigstep_deterministic: assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" and "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t'" shows "t = t'"
