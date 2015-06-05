@@ -495,8 +495,8 @@ lemma no_free_return: assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m 
   } with assms show ?thesis by blast
   qed
 
-lemma iptables_bigstep_Undecided_deterministic: 
-  "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow>  t = Undecided" (*no_matching_Goto \<gamma> p rs \<Longrightarrow>*)
+lemma iptables_bigstep_Undecided_Undecided_deterministic: 
+  "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow>  t = Undecided"
   apply(induction rs Undecided Undecided arbitrary: t rule: iptables_bigstep_induct)
         apply(fastforce  dest: skipD logD emptyD nomatchD decisionD)
        apply(fastforce  dest: skipD logD emptyD nomatchD decisionD)
@@ -508,6 +508,17 @@ lemma iptables_bigstep_Undecided_deterministic:
     apply (metis callD no_free_return seqE seqE_cons)
    apply (meson callD)
   by (metis gotoD no_matching_Goto.simps(2) option.sel seqE_cons)
+
+lemma iptables_bigstep_Undecided_deterministic:
+  "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t' \<Longrightarrow>  t' = t"
+  apply(induction rs Undecided t arbitrary: t' rule: iptables_bigstep_induct)
+           apply(fastforce  dest: skipD logD emptyD nomatchD decisionD)
+          apply (auto intro: iptables_bigstep.intros dest: iptables_bigstepD)[4]
+      apply (metis decisionD seqE state.exhaust)
+     apply (meson call_return iptables_bigstep_Undecided_Undecided_deterministic)
+    apply (metis callD call_result iptables_bigstep_Undecided_Undecided_deterministic)
+   apply (metis gotoD no_matching_Goto.simps(2) option.sel seqE_cons)
+  by (meson goto_no_decision iptables_bigstep_Undecided_Undecided_deterministic)
 
 
 
@@ -585,14 +596,18 @@ lemma seq_progress: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<R
       qed
   next
     case(Call_result m a chain rs t)
-    thus ?case
+    from Call_result call_result[OF Call_result(1) _ Call_result(4)] have rs1rs2_t: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1 @ rs\<^sub>2, Undecided\<rangle> \<Rightarrow> t" by metis
+    from Call_result(4) have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t" .
+    from Call_result show ?case
       proof (cases rs\<^sub>1)
         case Cons
-        have skip_rule: "t' = t \<Longrightarrow>  \<Gamma>,\<gamma>,p\<turnstile> \<langle>[], t'\<rangle> \<Rightarrow> t " using iptables_bigstep.skip by fast
-        from seq_split[OF Call_result(4), of "rs" "[]"]
-        have no_goto_rs: "no_matching_Goto \<gamma> p rs" sorry
+        have skip_rule: "t' = t \<Longrightarrow>  \<Gamma>,\<gamma>,p\<turnstile> \<langle>[], t'\<rangle> \<Rightarrow> t" using iptables_bigstep.skip by fast
         from Cons Call_result.prems have "rs\<^sub>1 = [Rule m a]" "rs\<^sub>2 = []" by auto
-        thus ?thesis
+        with seq_split[OF rs1rs2_t] have "(\<exists>t'. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> t' \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, t'\<rangle> \<Rightarrow> t) \<or> (\<not> no_matching_Goto \<gamma> p rs\<^sub>1)" by metis
+        with Call_result(8) have "\<exists>t'. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> t' \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, t'\<rangle> \<Rightarrow> t" by auto
+
+        have no_goto_rs: "no_matching_Goto \<gamma> p rs" sorry
+        from `rs\<^sub>1 = [Rule m a]` `rs\<^sub>2 = []` show ?thesis
           using Call_result(1) Call_result(2) Call_result(3) Call_result(7)
           apply(simp)
           apply(drule callD, simp_all)
