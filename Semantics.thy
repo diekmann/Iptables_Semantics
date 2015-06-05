@@ -273,15 +273,13 @@ lemma no_matching_Goto_take: "no_matching_Goto \<gamma> p rs \<Longrightarrow> n
   by(case_tac a) (simp_all)
 
 
-(*
+
 lemma seq_split:
   assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" "rs = rs\<^sub>1@rs\<^sub>2"
   obtains (no_matching_Goto) t' where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t'" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t'\<rangle> \<Rightarrow> t" "no_matching_Goto \<gamma> p rs\<^sub>1"
         | (matching_Goto) "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t" "\<not> no_matching_Goto \<gamma> p rs\<^sub>1"
-*)
-lemma seq_split:
-  assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" "rs = rs\<^sub>1@rs\<^sub>2"
-  shows "(\<exists>t'. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t' \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t'\<rangle> \<Rightarrow> t \<and> no_matching_Goto \<gamma> p rs\<^sub>1) \<or> (\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t \<and> \<not> no_matching_Goto \<gamma> p rs\<^sub>1)"
+proof -
+  have "(\<exists>t'. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t' \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t'\<rangle> \<Rightarrow> t \<and> no_matching_Goto \<gamma> p rs\<^sub>1) \<or> (\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t \<and> \<not> no_matching_Goto \<gamma> p rs\<^sub>1)"
   using assms
   proof (induction rs s t arbitrary: rs\<^sub>1 rs\<^sub>2 rule: iptables_bigstep_induct)
     case Skip thus ?case by (auto intro: iptables_bigstep.intros simp add: accept)
@@ -415,19 +413,14 @@ lemma seq_split:
         from 1 2 show ?thesis by fast
       qed
   qed
-
-
-lemma seq_split2:
-  assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" "rs = rs\<^sub>1@rs\<^sub>2"
-  obtains (no_matching_Goto) t' where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t'" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t'\<rangle> \<Rightarrow> t" "no_matching_Goto \<gamma> p rs\<^sub>1"
-        | (matching_Goto) "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t" "\<not> no_matching_Goto \<gamma> p rs\<^sub>1"
-  using seq_split assms by metis
+thus ?thesis using matching_Goto no_matching_Goto by blast 
+qed
 
 lemma seqE:
   assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1@rs\<^sub>2, s\<rangle> \<Rightarrow> t"
   obtains (no_matching_Goto) ti where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> ti" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,ti\<rangle> \<Rightarrow> t" "no_matching_Goto \<gamma> p rs\<^sub>1"
          | (matching_Goto) "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t" "\<not> no_matching_Goto \<gamma> p rs\<^sub>1"
-  using assms by (force elim: seq_split2)
+  using assms by (force elim: seq_split)
 
 lemma seqE_cons:
   assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r#rs, s\<rangle> \<Rightarrow> t"
