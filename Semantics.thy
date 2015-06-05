@@ -154,6 +154,11 @@ lemma not_no_matching_Goto_singleton_cases: "\<not> no_matching_Goto \<gamma> p 
 lemma no_matching_Goto_Cons: "no_matching_Goto \<gamma> p [r] \<Longrightarrow> no_matching_Goto \<gamma> p rs \<Longrightarrow> no_matching_Goto \<gamma> p (r#rs)"
   by(cases r)(rename_tac m a, case_tac a, simp_all)
 
+lemma no_matching_Goto_head: "no_matching_Goto \<gamma> p (r#rs) \<Longrightarrow> no_matching_Goto \<gamma> p [r]"
+  by(cases r)(rename_tac m a, case_tac a, simp_all)
+lemma no_matching_Goto_tail: "no_matching_Goto \<gamma> p (r#rs) \<Longrightarrow> no_matching_Goto \<gamma> p rs"
+  by(cases r)(rename_tac m a, case_tac a, simp_all)
+
 (*
 lemma not_no_matching_Goto_cases:
   assumes "\<not> no_matching_Goto \<gamma> p rs" "rs \<noteq> []"
@@ -459,10 +464,28 @@ lemma seqE:
 
 lemma seqE_cons:
   assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r#rs, s\<rangle> \<Rightarrow> t"
-  obtains (no_matching_Goto)ti where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r],s\<rangle> \<Rightarrow> ti" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,ti\<rangle> \<Rightarrow> t" "no_matching_Goto \<gamma> p [r]"
+  obtains (no_matching_Goto) ti where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r],s\<rangle> \<Rightarrow> ti" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,ti\<rangle> \<Rightarrow> t" "no_matching_Goto \<gamma> p [r]"
         | (matching_Goto) "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r],s\<rangle> \<Rightarrow> t" "\<not> no_matching_Goto \<gamma> p [r]"
            (*TODO: explicitely split the r into Rule m (Goto chain)*)
   using assms by (metis append_Cons append_Nil seqE)
+
+
+lemma seqE_cons_Undecided:
+  assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r#rs, Undecided\<rangle> \<Rightarrow> t"
+  obtains (no_matching_Goto) ti where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r],Undecided\<rangle> \<Rightarrow> ti" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,ti\<rangle> \<Rightarrow> t" "no_matching_Goto \<gamma> p [r]"
+        | (matching_Goto) m chain rs' where "r = Rule m (Goto chain)" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)],Undecided\<rangle> \<Rightarrow> t" "matches \<gamma> m p" "\<Gamma> chain = Some rs'"
+  using assms
+  proof(cases rule: seqE_cons)
+  case no_matching_Goto thus ?thesis using local.that by simp
+  next
+  case matching_Goto
+    from this not_no_matching_Goto_singleton_cases obtain chain m where r: "r = Rule m (Goto chain)" "matches \<gamma> m p"
+      by (smt list.distinct(2) list.inject list_app_singletonE not_no_matching_Goto_cases)
+    from matching_Goto r have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)],Undecided\<rangle> \<Rightarrow> t" by simp
+    from gotoD[OF matching_Goto(1)] r `matches \<gamma> m p` obtain rs' where "\<Gamma> chain = Some rs'" by blast
+  from local.that 
+  show ?thesis using `\<Gamma> chain = Some rs'` `\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)], Undecided\<rangle> \<Rightarrow> t` r(1) r(2) by blast
+qed
 
 lemma nomatch':
   assumes "\<And>r. r \<in> set rs \<Longrightarrow> \<not> matches \<gamma> (get_match r) p"
@@ -661,84 +684,5 @@ lemma Rule_DecisionE:
       by (cases rs\<^sub>1) (auto dest: skipD)
   qed simp_all
 
-
-(*
-lemma log_remove:
-  assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1 @ [Rule m Log] @ rs\<^sub>2, s\<rangle> \<Rightarrow> t"
-  shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1 @ rs\<^sub>2, s\<rangle> \<Rightarrow> t"
-  proof -
-    from assms obtain t' where t': "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, s\<rangle> \<Rightarrow> t'" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m Log] @ rs\<^sub>2, t'\<rangle> \<Rightarrow> t"
-      by (blast elim: seqE)
-    hence "\<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m Log # rs\<^sub>2, t'\<rangle> \<Rightarrow> t"
-      by simp
-    then obtain t'' where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m Log], t'\<rangle> \<Rightarrow> t''" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, t''\<rangle> \<Rightarrow> t"
-      by (blast elim: seqE_cons)
-    with t' show ?thesis
-      by (metis state.exhaust iptables_bigstep_deterministic decision log nomatch seq)
-  qed
-lemma empty_empty:
-  assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1 @ [Rule m Empty] @ rs\<^sub>2, s\<rangle> \<Rightarrow> t"
-  shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1 @ rs\<^sub>2, s\<rangle> \<Rightarrow> t"
-  proof -
-    from assms obtain t' where t': "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, s\<rangle> \<Rightarrow> t'" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m Empty] @ rs\<^sub>2, t'\<rangle> \<Rightarrow> t"
-      by (blast elim: seqE)
-    hence "\<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m Empty # rs\<^sub>2, t'\<rangle> \<Rightarrow> t"
-      by simp
-    then obtain t'' where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m Empty], t'\<rangle> \<Rightarrow> t''" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, t''\<rangle> \<Rightarrow> t"
-      by (blast elim: seqE_cons)
-    with t' show ?thesis
-      by (metis state.exhaust iptables_bigstep_deterministic decision empty nomatch seq)
-  qed
-*)
-
-(* TODO: add goto
-text{*
-The notation we prefer in the paper. The semantics are defined for fixed @{text \<Gamma>} and @{text \<gamma>}
-*}
-locale iptables_bigstep_fixedbackground =
-  fixes \<Gamma>::"'a ruleset"
-  and \<gamma>::"('a, 'p) matcher"
-  begin
-
-  inductive iptables_bigstep' :: "'p \<Rightarrow> 'a rule list \<Rightarrow> state \<Rightarrow> state \<Rightarrow> bool"
-    ("_\<turnstile>' \<langle>_, _\<rangle> \<Rightarrow> _"  [60,20,98,98] 89)
-    for p where
-  skip:    "p\<turnstile>' \<langle>[], t\<rangle> \<Rightarrow> t" |
-  accept:  "matches \<gamma> m p \<Longrightarrow> p\<turnstile>' \<langle>[Rule m Accept], Undecided\<rangle> \<Rightarrow> Decision FinalAllow" |
-  drop:    "matches \<gamma> m p \<Longrightarrow> p\<turnstile>' \<langle>[Rule m Drop], Undecided\<rangle> \<Rightarrow> Decision FinalDeny" |
-  reject:  "matches \<gamma> m p \<Longrightarrow>  p\<turnstile>' \<langle>[Rule m Reject], Undecided\<rangle> \<Rightarrow> Decision FinalDeny" |
-  log:     "matches \<gamma> m p \<Longrightarrow> p\<turnstile>' \<langle>[Rule m Log], Undecided\<rangle> \<Rightarrow> Undecided" |
-  empty:   "matches \<gamma> m p \<Longrightarrow> p\<turnstile>' \<langle>[Rule m Empty], Undecided\<rangle> \<Rightarrow> Undecided" |
-  nomatch: "\<not> matches \<gamma> m p \<Longrightarrow> p\<turnstile>' \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> Undecided" |
-  decision: "p\<turnstile>' \<langle>rs, Decision X\<rangle> \<Rightarrow> Decision X" |
-  seq:      "\<lbrakk>p\<turnstile>' \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> t; p\<turnstile>' \<langle>rs\<^sub>2, t\<rangle> \<Rightarrow> t'\<rbrakk> \<Longrightarrow> p\<turnstile>' \<langle>rs\<^sub>1@rs\<^sub>2, Undecided\<rangle> \<Rightarrow> t'" |
-  call_return:  "\<lbrakk> matches \<gamma> m p; \<Gamma> chain = Some (rs\<^sub>1@[Rule m' Return]@rs\<^sub>2);
-                   matches \<gamma> m' p; p\<turnstile>' \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided \<rbrakk> \<Longrightarrow>
-                 p\<turnstile>' \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> Undecided" |
-  call_result:  "\<lbrakk> matches \<gamma> m p; p\<turnstile>' \<langle>the (\<Gamma> chain), Undecided\<rangle> \<Rightarrow> t \<rbrakk> \<Longrightarrow>
-                 p\<turnstile>' \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> t"
-
-  definition wf_\<Gamma>:: "'a rule list \<Rightarrow> bool" where
-    "wf_\<Gamma> rs \<equiv> \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. (\<forall>r \<in> set rsg. \<forall> chain. get_action r = Call chain \<longrightarrow> \<Gamma> chain \<noteq> None)"
-
-  lemma wf_\<Gamma>_append: "wf_\<Gamma> (rs1@rs2) \<longleftrightarrow> wf_\<Gamma> rs1 \<and> wf_\<Gamma> rs2"
-    by(simp add: wf_\<Gamma>_def, blast)
-  lemma wf_\<Gamma>_tail: "wf_\<Gamma> (r # rs) \<Longrightarrow> wf_\<Gamma> rs" by(simp add: wf_\<Gamma>_def)
-  lemma wf_\<Gamma>_Call: "wf_\<Gamma> [Rule m (Call chain)] \<Longrightarrow> wf_\<Gamma> (the (\<Gamma> chain)) \<and> (\<exists>rs. \<Gamma> chain = Some rs)"
-    apply(simp add: wf_\<Gamma>_def)
-    by (metis option.collapse ranI)
-  
-  lemma "wf_\<Gamma> rs \<Longrightarrow> p\<turnstile>' \<langle>rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
-    apply(rule iffI)
-     apply(rotate_tac 1)
-     apply(induction rs s t rule: iptables_bigstep'.induct)
-               apply(auto intro: iptables_bigstep.intros simp: wf_\<Gamma>_append dest!: wf_\<Gamma>_Call)[11]
-    apply(rotate_tac 1)
-    apply(induction rs s t rule: iptables_bigstep.induct)
-              apply(auto intro: iptables_bigstep'.intros simp: wf_\<Gamma>_append dest!: wf_\<Gamma>_Call)[11]
-    done
-    
-  end
-*)
 
 end
