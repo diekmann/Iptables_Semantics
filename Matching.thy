@@ -274,11 +274,7 @@ lemma not_matches_add_matchNot_simp:
   by (simp add: matches_add_match_simp)
 
 
-(*
-This theorem allows us to unfold the deepest goto in a ruleset.
-This can be iterated to get to the higher-level gotos.
-*)
-theorem unfold_Goto_Undecided:
+lemma unfold_Goto_Undecided:
     assumes chain_defined: "\<Gamma> chain = Some rs" and no_matching_Goto_rs: "no_matching_Goto \<gamma> p rs"
     shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>(Rule m (Goto chain))#rest, Undecided\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m rs @ add_match (MatchNot m) rest, Undecided\<rangle> \<Rightarrow> t"
           (is "?l \<longleftrightarrow> ?r")
@@ -325,6 +321,107 @@ next
       show ?l by (meson False `\<Gamma>,\<gamma>,p\<turnstile> \<langle>rest, Undecided\<rangle> \<Rightarrow> t` nomatch not_no_matching_Goto_singleton_cases seq_cons)
     qed
 qed
-       
+
+
+(*
+This theorem allows us to unfold the deepest goto in a ruleset.
+This can be iterated to get to the higher-level gotos.
+*)
+theorem unfold_Goto:
+    assumes chain_defined: "\<Gamma> chain = Some rs" and no_matching_Goto_rs: "no_matching_Goto \<gamma> p rs"
+    shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>(Rule m (Goto chain))#rest, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m rs @ add_match (MatchNot m) rest, s\<rangle> \<Rightarrow> t"
+  apply(rule just_show_all_bigstep_semantics_equalities_with_start_Undecided)
+  using assms unfold_Goto_Undecided by fast
+
+
+
+text{*A chain that will definitely come to a direct decision*}
+fun terminal_chain :: "'a rule list \<Rightarrow> bool" where
+  "terminal_chain [] = False" |
+  "terminal_chain [Rule MatchAny Accept] = True" |
+  "terminal_chain [Rule MatchAny Drop] = True" |
+  "terminal_chain [Rule MatchAny Reject] = True" |
+  "terminal_chain ((Rule _ (Goto _))#rs) = False" |
+  "terminal_chain ((Rule _ (Call _))#rs) = False" |
+  "terminal_chain ((Rule _ Return)#rs) = False" |
+  "terminal_chain ((Rule _ Unknown)#rs) = False" |
+  "terminal_chain (_#rs) = terminal_chain rs"
+
+lemma terminal_chain_no_matching_Goto: "terminal_chain rs \<Longrightarrow> no_matching_Goto \<gamma> p rs"
+   by(induction rs rule: terminal_chain.induct)  simp_all
+
+lemma "terminal_chain rs \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> \<exists>X. t = Decision X"
+        apply(induction rs)
+         apply(simp)
+        apply(rename_tac r rs)
+        apply(case_tac r)
+        apply(rename_tac m a)
+        apply(simp)
+        apply(frule_tac \<gamma>=\<gamma> and p=p in terminal_chain_no_matching_Goto)
+        apply(case_tac a)
+                apply(simp_all)
+            apply(erule seqE_cons, simp_all,
+                   metis iptables_bigstepD matches.elims terminal_chain.simps terminal_chain.simps terminal_chain.simps)+
+        done
+
+lemma replace_Goto_with_Call_in_terminal_chain_Undecided:
+    assumes chain_defined: "\<Gamma> chain = Some rs" and terminal_chain: "terminal_chain rs"
+    shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)], Undecided\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> t"
+          (is "?l \<longleftrightarrow> ?r")
+proof
+  assume ?l
+  thus ?r
+    proof(cases rule: seqE_cons_Undecided)
+    case (no_matching_Goto ti)
+      from no_matching_Goto have "\<not> matches \<gamma> m p" by simp
+      with nomatch have 1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)], Undecided\<rangle> \<Rightarrow> Undecided" by fast
+      from `\<not> matches \<gamma> m p` nomatch have 2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> Undecided" by fast
+      from 1 2 show ?thesis
+        using `?l` iptables_bigstep_Undecided_Undecided_deterministic by fastforce 
+    next
+    case (matching_Goto m chain rs')
+      from matching_Goto gotoD assms have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t" by fastforce
+      from call_result[OF `matches \<gamma> m p` chain_defined `\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t`] show ?thesis
+        by (metis matching_Goto(1) rule.sel(1))
+    qed
+next
+  assume ?r
+  thus ?l
+    proof(cases "matches \<gamma> m p")
+    case True
+      {fix rs1::"'a rule list" and  m' and rs2
+        have "terminal_chain (rs1 @ Rule m' Return # rs2) \<Longrightarrow> False"
+        apply(induction rs1)
+         apply(simp_all)
+        apply(rename_tac r' rs')
+        apply(case_tac r')
+        apply(rename_tac m a)
+        apply(simp_all)
+        apply(case_tac a)
+                apply(simp_all)
+          apply (metis append_is_Nil_conv hd_Cons_tl terminal_chain.simps)+
+        done
+      } note no_return=this
+      have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t"
+      apply(rule callD[OF `?r` _ _ True chain_defined])
+         apply(simp_all)
+      using no_return terminal_chain by blast
+      show ?l
+      apply(cases t)
+       using goto_no_decision[OF True] chain_defined apply (metis `\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t`)
+      using goto_decision[OF True, of \<Gamma> chain rs _ "[]"] chain_defined apply (metis `\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t`)
+      done
+    next
+    case False
+      show ?l using False `\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> t` nomatch nomatchD by fastforce 
+    qed
+qed
+
+
+theorem replace_Goto_with_Call_in_terminal_chain:
+    assumes chain_defined: "\<Gamma> chain = Some rs" and terminal_chain: "terminal_chain rs"
+    shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)], Undecided\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> t"
+  apply(rule just_show_all_bigstep_semantics_equalities_with_start_Undecided)
+  using assms replace_Goto_with_Call_in_terminal_chain_Undecided by fast
 
 end
