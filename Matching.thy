@@ -366,7 +366,7 @@ lemma "terminal_chain rs \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<lan
 
 lemma replace_Goto_with_Call_in_terminal_chain_Undecided:
     assumes chain_defined: "\<Gamma> chain = Some rs" and terminal_chain: "terminal_chain rs"
-    shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)], s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain)], s\<rangle> \<Rightarrow> t"
+    shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)], Undecided\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> t"
           (is "?l \<longleftrightarrow> ?r")
 proof
   assume ?l
