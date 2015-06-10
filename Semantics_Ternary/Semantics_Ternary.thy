@@ -465,7 +465,7 @@ lemma rm_LogEmpty_seq: "rm_LogEmpty (rs1@rs2) = rm_LogEmpty rs1 @ rm_LogEmpty rs
     apply(cases r, rename_tac m a)
     apply(simp)
     apply(case_tac a)
-           apply(simp_all)
+            apply(simp_all)
     done
   qed
 
@@ -495,7 +495,7 @@ apply(induction rs s t rule: approximating_bigstep_induct)
       apply(auto intro: approximating_bigstep.intros)
  apply(rename_tac m a)
  apply(case_tac a)
-        apply(auto intro: approximating_bigstep.intros)
+         apply(auto intro: approximating_bigstep.intros)
 apply(rename_tac rs\<^sub>1 rs\<^sub>2 t t')
 apply(drule_tac rs\<^sub>1="rm_LogEmpty rs\<^sub>1" and rs\<^sub>2="rm_LogEmpty rs\<^sub>2" in seq)
  apply(simp_all)
@@ -530,8 +530,8 @@ lemma rw_Reject_fun_semantics:
     thus ?case
       apply(case_tac r, rename_tac m a, simp)
       apply(case_tac a)
-             apply(case_tac [!] s)
-                    apply(auto dest: wf_unknown_match_tacD_False1 wf_unknown_match_tacD_False2)
+              apply(case_tac [!] s)
+                      apply(auto dest: wf_unknown_match_tacD_False1 wf_unknown_match_tacD_False2)
       done
     qed
 
@@ -544,7 +544,7 @@ lemma rmLogEmpty_rwReject_good_to_simple: "good_ruleset rs \<Longrightarrow> sim
   apply(case_tac r)
   apply(rename_tac m a)
   apply(case_tac a)
-         apply(simp_all)
+          apply(simp_all)
   done
 
 

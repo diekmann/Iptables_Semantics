@@ -30,8 +30,8 @@ subsection{*The set of all accepted packets*}
   apply(rename_tac r rs P)
   apply(case_tac r, rename_tac m a)
   apply(case_tac a)
-  apply(simp_all add: simple_ruleset_def)
-  apply(fast)
+          apply(simp_all add: simple_ruleset_def)
+   apply(fast)
   apply blast
   done
   
@@ -144,8 +144,8 @@ subsection{*The set of all dropped packets*}
   apply(rename_tac r rs P)
   apply(case_tac r, rename_tac m a)
   apply(case_tac a)
-  apply(simp_all add: simple_ruleset_def)
-  apply(fast)
+          apply(simp_all add: simple_ruleset_def)
+   apply(fast)
   apply blast
   done
   
@@ -257,7 +257,7 @@ subsection{*Rulesets with default rules*}
    apply(simp add: bunch_of_lemmata_about_matches)
   apply(case_tac r, rename_tac m a)
   apply(case_tac a)
-         apply(auto simp: good_ruleset_def)
+          apply(auto simp: good_ruleset_def)
   done
 
 

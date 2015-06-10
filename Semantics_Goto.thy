@@ -1,4 +1,4 @@
-theory Semantics
+theory Semantics_Goto
 imports Main Firewall_Common Misc "~~/src/HOL/Library/LaTeXsugar"
 begin
 

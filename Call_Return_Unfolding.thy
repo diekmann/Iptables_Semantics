@@ -125,7 +125,7 @@ lemma process_call_split: "process_call \<Gamma> (rs1 @ rs2) = process_call \<Ga
     thus ?case
       apply(cases r, rename_tac m a)
       apply(case_tac a)
-             apply(simp_all)
+              apply(simp_all)
       done
   qed simp
 
@@ -245,16 +245,16 @@ lemma process_ret_cases:
     thus ?case
       apply(cases r, rename_tac m' a')
       apply(case_tac a')
-      apply(simp_all)
-      apply(erule disjE,simp,rule disjI2,elim exE,simp add: process_ret_split_obvious,
-        metis append_Cons process_ret_split_obvious process_ret.simps(2))+
-      apply(rule disjI2)
-      apply(rule_tac x="[]" in exI)
-      apply(rule_tac x="rs" in exI)
-      apply(rule_tac x="m'" in exI)
-      apply(simp)
-      apply(erule disjE,simp,rule disjI2,elim exE,simp add: process_ret_split_obvious,
-        metis append_Cons process_ret_split_obvious process_ret.simps(2))+
+              apply(simp_all)
+              apply(erule disjE,simp,rule disjI2,elim exE,simp add: process_ret_split_obvious,
+                metis append_Cons process_ret_split_obvious process_ret.simps(2))+
+         apply(rule disjI2)
+         apply(rule_tac x="[]" in exI)
+         apply(rule_tac x="rs" in exI)
+         apply(rule_tac x="m'" in exI)
+         apply(simp)
+        apply(erule disjE,simp,rule disjI2,elim exE,simp add: process_ret_split_obvious,
+           metis append_Cons process_ret_split_obvious process_ret.simps(2))+
       done
   qed simp
 
@@ -746,7 +746,7 @@ apply(case_tac r)
 apply(rename_tac m' a')
 apply(simp)
 apply(case_tac a')
-apply(simp_all add: add_match_split_fst)
+        apply(simp_all add: add_match_split_fst)
         apply(erule seqE_cons)
         using seq' apply(fastforce)
        apply(erule seqE_cons)
@@ -777,7 +777,7 @@ apply(case_tac r)
 apply(rename_tac m' a')
 apply(simp)
 apply(case_tac a')
-apply(simp_all add: add_match_split_fst)
+        apply(simp_all add: add_match_split_fst)
         apply(erule seqE_cons)
         using seq' apply(fastforce)
        apply(erule seqE_cons)
@@ -987,7 +987,7 @@ lemma process_ret_result_empty: "[] = process_ret rs \<Longrightarrow> \<forall>
       apply(case_tac r)
       apply(rename_tac m a)
       apply(case_tac a)
-      apply(simp_all add: add_match_def)
+              apply(simp_all add: add_match_def)
       done
   qed simp
 
@@ -1037,8 +1037,8 @@ lemma wf_chain_process_ret: "wf_chain \<Gamma> rs \<Longrightarrow> wf_chain \<G
   apply(simp add: wf_chain_def add_match_def)
   apply(case_tac a)
   apply(case_tac "x2 \<noteq> Return")
-  apply(simp add: process_ret_split_fst_NeqReturn)
-  using wf_chain_append apply (metis Cons_eq_appendI append_Nil)
+   apply(simp add: process_ret_split_fst_NeqReturn)
+   using wf_chain_append apply (metis Cons_eq_appendI append_Nil)
   apply(simp add: process_ret_split_fst_Return)
   apply(simp add: wf_chain_def add_match_def get_action_case_simp)
   done
@@ -1057,20 +1057,20 @@ proof (induction rs arbitrary: s t)
     unfolding wf_chain_def
     apply(case_tac r, rename_tac m a)
     apply(case_tac a)
-    apply(simp_all add: seq'_cons)
+            apply(simp_all add: seq'_cons)
 
     apply(case_tac s)
-    defer
-    apply (metis decision decisionD)
+     defer
+     apply (metis decision decisionD)
     apply(case_tac "matches \<gamma> m p")
-    defer
-    apply(simp add: not_matches_add_match_simp)
-    apply(drule skipD, simp)
-    apply (metis nomatch seq_cons)
+     defer
+     apply(simp add: not_matches_add_match_simp)
+     apply(drule skipD, simp)
+     apply (metis nomatch seq_cons)
     apply(clarify)
     apply(simp add: matches_add_match_simp)
     apply(rule_tac t=ti in seq_cons)
-    apply(simp_all)
+     apply(simp_all)
 
     using process_ret_sound'
     by (metis fun_upd_triv matches_add_match_simp process_ret_add_match_dist)
@@ -1107,7 +1107,7 @@ corollary unfolding_n_sound_complete: "\<forall>rsg \<in> ran \<Gamma> \<union> 
               apply(cases r)
               apply(rename_tac m a, clarify)
               apply(case_tac a)
-              apply(simp_all)
+                      apply(simp_all)
               apply(simp add: wf_chain_append)
               apply(clarify)
               apply(simp add: `wf_chain \<Gamma> (process_call \<Gamma> rs)`)
