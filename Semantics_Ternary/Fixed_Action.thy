@@ -353,7 +353,8 @@ subsection{*@{term match_list}*}
     done
     
 
-lemma fixedaction_wf_ruleset: "wf_ruleset \<gamma> p (map (\<lambda>m. Rule m a) ms) \<longleftrightarrow> \<not> match_list \<gamma> ms a p \<or> \<not> (\<exists>chain. a = Call chain) \<and> a \<noteq> Return \<and> a \<noteq> Unknown"
+lemma fixedaction_wf_ruleset: "wf_ruleset \<gamma> p (map (\<lambda>m. Rule m a) ms) \<longleftrightarrow>
+  \<not> match_list \<gamma> ms a p \<or> \<not> (\<exists>chain. a = Call chain) \<and> a \<noteq> Return \<and> \<not> (\<exists>chain. a = Goto chain) \<and> a \<noteq> Unknown"
   proof -
   have helper: "\<And>a b c. a \<longleftrightarrow> c \<Longrightarrow> (a \<longrightarrow> b) = (c \<longrightarrow> b)" by fast
   show ?thesis
@@ -365,7 +366,7 @@ lemma fixedaction_wf_ruleset: "wf_ruleset \<gamma> p (map (\<lambda>m. Rule m a)
     done
   qed
 
-lemma wf_ruleset_singleton: "wf_ruleset \<gamma> p [Rule m a] \<longleftrightarrow> \<not> matches \<gamma> m a p \<or> \<not> (\<exists>chain. a = Call chain) \<and> a \<noteq> Return \<and> a \<noteq> Unknown"
+lemma wf_ruleset_singleton: "wf_ruleset \<gamma> p [Rule m a] \<longleftrightarrow> \<not> matches \<gamma> m a p \<or> \<not> (\<exists>chain. a = Call chain) \<and> a \<noteq> Return \<and> \<not> (\<exists>chain. a = Goto chain) \<and> a \<noteq> Unknown"
   by(simp add: wf_ruleset_def)
 
 

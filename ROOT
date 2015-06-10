@@ -6,6 +6,7 @@ session "Iptables_Semantics" = Bitmagic +
   theories
     Semantics
     "Examples/Example_Semantics"
+    Semantics_Goto
     Call_Return_Unfolding
     "Common/Negation_Type_DNF"
     "Semantics_Ternary/Packet_Set"
