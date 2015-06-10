@@ -313,8 +313,6 @@ subsubsection{*Forward reasoning*}
     apply(rename_tac m a)
     by(case_tac a) (simp_all)
   
-  
-  
   lemma seq_split:
     assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" "rs = rs\<^sub>1@rs\<^sub>2"
     obtains (no_matching_Goto) t' where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t'" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t'\<rangle> \<Rightarrow> t" "no_matching_Goto \<gamma> p rs\<^sub>1"
@@ -554,113 +552,12 @@ subsection{*Determinism*}
      apply (metis gotoD no_matching_Goto.simps(2) option.sel seqE_cons)
     by (meson goto_no_decision iptables_bigstep_Undecided_Undecided_deterministic)
   
-  
-  
-  (* seq_split is elim, seq_progress is dest *)
-  (*we already have a deterministic lemma, do we really need this lemma? it is only used in the next determinism lemma*)
-  lemma seq_progress: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<Longrightarrow> rs = rs\<^sub>1@rs\<^sub>2 \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, s\<rangle> \<Rightarrow> t' \<Longrightarrow> no_matching_Goto \<gamma> p rs\<^sub>1 \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, t'\<rangle> \<Rightarrow> t"
-    proof(induction rs s t arbitrary: rs\<^sub>1 rs\<^sub>2 t' rule: iptables_bigstep_induct)
-      case Allow
-      thus ?case
-        by (cases "rs\<^sub>1") (auto intro: iptables_bigstep.intros dest: iptables_bigstepD)
-    next
-      case Deny
-      thus ?case
-        by (cases "rs\<^sub>1") (auto intro: iptables_bigstep.intros dest: iptables_bigstepD)
-    next
-      case Log
-      thus ?case
-        by (cases "rs\<^sub>1") (auto intro: iptables_bigstep.intros dest: iptables_bigstepD)
-    next
-      case Nomatch
-      thus ?case
-        by (cases "rs\<^sub>1") (auto intro: iptables_bigstep.intros dest: iptables_bigstepD)
-    next
-      case Decision
-      thus ?case
-        by (cases "rs\<^sub>1") (auto intro: iptables_bigstep.intros dest: iptables_bigstepD)
-    next
-      case(Seq rs rsa rsb t t' rs\<^sub>1 rs\<^sub>2 t'')
-      hence rs: "rsa @ rsb = rs\<^sub>1 @ rs\<^sub>2" by simp
-      note List.append_eq_append_conv_if[simp]
-      (* TODO larsrh custom case distinction rule *)
-  
-      from rs show "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t''\<rangle> \<Rightarrow> t'"
-        proof(cases rule: list_app_eq_cases)
-          case longer
-          have "rs\<^sub>1 = take (length rsa) rs\<^sub>1 @ drop (length rsa) rs\<^sub>1"
-            by auto
-          with Seq longer show ?thesis
-            by (metis append_Nil2 no_matching_Goto_append2 seqE skipD)
-        next
-          case shorter
-          with Seq(7) Seq.hyps(3) Seq.IH(1) rs show ?thesis
-            by (metis Seq.hyps(4) Seq.prems(2) Seq.prems(3) append_take_drop_id no_matching_Goto_append2 seq')
-        qed
-    next
-      case(Call_return m a chain rsa m' rsb)
-      have xx: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> t' \<Longrightarrow> matches \<gamma> m p \<Longrightarrow>
-            \<Gamma> chain = Some (rsa @ Rule m' Return # rsb) \<Longrightarrow>
-            matches \<gamma> m' p \<Longrightarrow>
-            \<Gamma>,\<gamma>,p\<turnstile> \<langle>rsa, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow>
-            no_matching_Goto \<gamma> p rsa \<Longrightarrow>
-            t' = Undecided"
-        apply(erule callD)
-             apply(simp_all)
-        apply(erule seqE)
-         apply (metis Call_return.IH append_Nil2 no_free_return seqE_cons skipD)
-        by blast 
-        (*by (metis Call_return.IH self_append_conv skipD)*)
-  
-      show ?case
-        proof (cases rs\<^sub>1)
-          case (Cons r rs)
-          thus ?thesis
-            using Call_return
-            apply(case_tac "[Rule m a] = rs\<^sub>2")
-             apply(simp)
-            apply(simp)
-            using xx by blast
-        next
-          case Nil
-          moreover hence "t' = Undecided" using Call_return.prems(2) skipD by fastforce 
-          moreover have "\<And>m. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> Undecided"
-            by (metis Call_return.hyps(2) Call_return.hyps(3) Call_return.hyps(4) Call_return.hyps(5) Call_return.hyps(6) call_return nomatch)
-          ultimately show ?thesis
-            using Call_return.prems(1) by auto
-        qed
-    next
-      case(Call_result m a chain rs t)
-      from Call_result call_result[OF Call_result(1) _ Call_result(4)] have rs1rs2_t: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1 @ rs\<^sub>2, Undecided\<rangle> \<Rightarrow> t" by metis
-      from Call_result(4) have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t" .
-      from Call_result show ?case
-        proof (cases rs\<^sub>1)
-          case Cons
-          have skip_rule: "t' = t \<Longrightarrow>  \<Gamma>,\<gamma>,p\<turnstile> \<langle>[], t'\<rangle> \<Rightarrow> t" using iptables_bigstep.skip by fast
-          from Cons Call_result.prems have "rs\<^sub>1 = [Rule m a]" "rs\<^sub>2 = []" by auto
-          with seq_split[OF rs1rs2_t] have "(\<exists>t'. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> t' \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, t'\<rangle> \<Rightarrow> t) \<or> (\<not> no_matching_Goto \<gamma> p rs\<^sub>1)" by metis
-          with Call_result(8) have "\<exists>t'. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> t' \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, t'\<rangle> \<Rightarrow> t" by auto
-          with iptables_bigstep_Undecided_deterministic show ?thesis
-          using Call_result.prems(2) by fastforce 
-        qed (fastforce intro: iptables_bigstep.intros dest: skipD)
-    next
-      case(Goto_no_Decision m a chain rs t)
-      thus ?case (*TODO smt*)
-  by (smt append_Cons append_Nil goto_no_decision list.sel(1) neq_Nil_conv no_matching_Goto.simps(2) skipD)
-       (*here we will need to split it again whether a matching goto occurs in the first part. it is probably better to make two lemmas out of it*)
-    next
-      case(Goto_Decision)
-      thus ?case by (metis goto_decision iptables_bigstep_Undecided_deterministic seq_split) 
-    qed (auto dest: iptables_bigstepD)
-  
-  
   theorem iptables_bigstep_deterministic: assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" and "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t'" shows "t = t'"
   using assms
     apply(cases s)
      apply(simp add: iptables_bigstep_Undecided_deterministic)
     apply(simp)
     by (metis decisionD)
-
 
 subsection{*Matching*}
   
@@ -950,7 +847,7 @@ subsection{*Goto Unfolding*}
       next
       case False
         with `?r` have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match (MatchNot m) rest, Undecided\<rangle> \<Rightarrow> t"
-          by (meson matches_add_match_MatchNot_no_matching_Goto_simp not_matches_add_match_simp seq_progress skip)
+          by (metis matches_add_match_MatchNot_no_matching_Goto_simp not_matches_add_match_simp seqE skipD)
         with False have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rest, Undecided\<rangle> \<Rightarrow> t" by (meson not_matches_add_matchNot_simp) 
         show ?l by (meson False `\<Gamma>,\<gamma>,p\<turnstile> \<langle>rest, Undecided\<rangle> \<Rightarrow> t` nomatch not_no_matching_Goto_singleton_cases seq_cons)
       qed
