@@ -49,7 +49,7 @@ begin
       "no_matching_Goto \<gamma> p ((Rule m (Goto _))#rs) \<longleftrightarrow> \<not> matches \<gamma> m p \<and> no_matching_Goto \<gamma> p rs" |
       "no_matching_Goto \<gamma> p (_#rs) \<longleftrightarrow> no_matching_Goto \<gamma> p rs"
     
-    inductive iptables_bigstep :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> 'a rule list \<Rightarrow> state \<Rightarrow> state \<Rightarrow> bool"
+    inductive iptables_goto_bigstep :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> 'a rule list \<Rightarrow> state \<Rightarrow> state \<Rightarrow> bool"
       ("_,_,_\<turnstile> \<langle>_, _\<rangle> \<Rightarrow> _"  [60,60,60,20,98,98] 89)
       for \<Gamma> and \<gamma> and p where
     skip:    "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[], t\<rangle> \<Rightarrow> t" |
@@ -102,14 +102,14 @@ begin
     *}
     
     private lemma deny:
-      "matches \<gamma> m p \<Longrightarrow> a = Drop \<or> a = Reject \<Longrightarrow> iptables_bigstep \<Gamma> \<gamma> p [Rule m a] Undecided (Decision FinalDeny)"
+      "matches \<gamma> m p \<Longrightarrow> a = Drop \<or> a = Reject \<Longrightarrow> iptables_goto_bigstep \<Gamma> \<gamma> p [Rule m a] Undecided (Decision FinalDeny)"
     by (auto intro: drop reject)
     
     
-    private lemma iptables_bigstep_induct
+    private lemma iptables_goto_bigstep_induct
       [case_names
         Skip Allow Deny Log Nomatch Decision Seq Call_return Call_result Goto_Decision Goto_no_Decision,
-       induct pred: iptables_bigstep]:
+       induct pred: iptables_goto_bigstep]:
       "\<lbrakk> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,s\<rangle> \<Rightarrow> t;
          \<And>t. P [] t t;
          \<And>m a. matches \<gamma> m p \<Longrightarrow> a = Accept \<Longrightarrow> P [Rule m a] Undecided (Decision FinalAllow);
@@ -134,28 +134,28 @@ begin
                              \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> P rs Undecided Undecided \<Longrightarrow>
                              P (Rule m a#rest) Undecided Undecided\<rbrakk> \<Longrightarrow>
        P rs s t"
-    by (induction rule: iptables_bigstep.induct) auto
+    by (induction rule: iptables_goto_bigstep.induct) auto
     
   
   subsubsection{*Forward reasoning*}
   
     private lemma decisionD: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r, s\<rangle> \<Rightarrow> t \<Longrightarrow> s = Decision X \<Longrightarrow> t = Decision X"
-    by (induction rule: iptables_bigstep_induct) auto
+    by (induction rule: iptables_goto_bigstep_induct) auto
     
-    private lemma iptables_bigstep_to_undecided: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> Undecided \<Longrightarrow> s = Undecided"
+    private lemma iptables_goto_bigstep_to_undecided: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> Undecided \<Longrightarrow> s = Undecided"
       by (metis decisionD state.exhaust)
     
-    private lemma iptables_bigstep_to_decision: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Decision Y\<rangle> \<Rightarrow> Decision X \<Longrightarrow> Y = X"
+    private lemma iptables_goto_bigstep_to_decision: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Decision Y\<rangle> \<Rightarrow> Decision X \<Longrightarrow> Y = X"
       by (metis decisionD state.inject)
     
     
     private lemma skipD: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r, s\<rangle> \<Rightarrow> t \<Longrightarrow> r = [] \<Longrightarrow> s = t"
-    by (induction rule: iptables_bigstep.induct) auto
+    by (induction rule: iptables_goto_bigstep.induct) auto
     
     
     private lemma gotoD: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r, s\<rangle> \<Rightarrow> t \<Longrightarrow> r = [Rule m (Goto chain)] \<Longrightarrow> s = Undecided \<Longrightarrow> matches \<gamma> m p \<Longrightarrow>
                     \<exists> rs. \<Gamma> chain = Some rs \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,s\<rangle> \<Rightarrow> t"
-    by (induction rule: iptables_bigstep.induct) (auto dest: skipD elim: list_app_singletonE)
+    by (induction rule: iptables_goto_bigstep.induct) (auto dest: skipD elim: list_app_singletonE)
     
     private lemma not_no_matching_Goto_singleton_cases: "\<not> no_matching_Goto \<gamma> p [Rule m a] \<longleftrightarrow> (\<exists> chain. a = (Goto chain)) \<and> matches \<gamma> m p"
           by(case_tac a) (simp_all)
@@ -234,7 +234,7 @@ begin
           apply(simp_all)
        apply(clarify)
        apply(cases t)
-        apply(auto intro: iptables_bigstep.intros)
+        apply(auto intro: iptables_goto_bigstep.intros)
     done
     
     
@@ -259,36 +259,36 @@ begin
     begin
     
     lemma acceptD: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r, s\<rangle> \<Rightarrow> t \<Longrightarrow> r = [Rule m Accept] \<Longrightarrow> matches \<gamma> m p \<Longrightarrow> s = Undecided \<Longrightarrow> t = Decision FinalAllow"
-    by (induction rule: iptables_bigstep.induct) auto
+    by (induction rule: iptables_goto_bigstep.induct) auto
     
     lemma dropD: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r, s\<rangle> \<Rightarrow> t \<Longrightarrow> r = [Rule m Drop] \<Longrightarrow> matches \<gamma> m p \<Longrightarrow> s = Undecided \<Longrightarrow> t = Decision FinalDeny"
-    by (induction rule: iptables_bigstep.induct) auto
+    by (induction rule: iptables_goto_bigstep.induct) auto
     
     lemma rejectD: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r, s\<rangle> \<Rightarrow> t \<Longrightarrow> r = [Rule m Reject] \<Longrightarrow> matches \<gamma> m p \<Longrightarrow> s = Undecided \<Longrightarrow> t = Decision FinalDeny"
-    by (induction rule: iptables_bigstep.induct) auto
+    by (induction rule: iptables_goto_bigstep.induct) auto
     
     lemma logD: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r, s\<rangle> \<Rightarrow> t \<Longrightarrow> r = [Rule m Log] \<Longrightarrow> matches \<gamma> m p \<Longrightarrow> s = Undecided \<Longrightarrow> t = Undecided"
-    by (induction rule: iptables_bigstep.induct) auto
+    by (induction rule: iptables_goto_bigstep.induct) auto
     
     lemma emptyD: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r, s\<rangle> \<Rightarrow> t \<Longrightarrow> r = [Rule m Empty] \<Longrightarrow> matches \<gamma> m p \<Longrightarrow> s = Undecided \<Longrightarrow> t = Undecided"
-    by (induction rule: iptables_bigstep.induct) auto
+    by (induction rule: iptables_goto_bigstep.induct) auto
     
     lemma nomatchD: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r, s\<rangle> \<Rightarrow> t \<Longrightarrow> r = [Rule m a] \<Longrightarrow> s = Undecided \<Longrightarrow> \<not> matches \<gamma> m p \<Longrightarrow> t = Undecided"
-    by (induction rule: iptables_bigstep.induct) auto
+    by (induction rule: iptables_goto_bigstep.induct) auto
     
     lemma callD:
       assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r, s\<rangle> \<Rightarrow> t" "r = [Rule m (Call chain)]" "s = Undecided" "matches \<gamma> m p" "\<Gamma> chain = Some rs"
       obtains "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,s\<rangle> \<Rightarrow> t"
             | rs\<^sub>1 rs\<^sub>2 m' where "rs = rs\<^sub>1 @ Rule m' Return # rs\<^sub>2" "matches \<gamma> m' p" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> Undecided" "no_matching_Goto \<gamma> p rs\<^sub>1" "t = Undecided"
       using assms
-      proof (induction r s t arbitrary: rs rule: iptables_bigstep.induct)
+      proof (induction r s t arbitrary: rs rule: iptables_goto_bigstep.induct)
         case (seq rs\<^sub>1)
         thus ?case by (cases rs\<^sub>1) auto
       qed auto
     
     end
     
-    private lemmas iptables_bigstepD = skipD acceptD dropD rejectD logD emptyD nomatchD decisionD callD gotoD
+    private lemmas iptables_goto_bigstepD = skipD acceptD dropD rejectD logD emptyD nomatchD decisionD callD gotoD
     
     private lemma seq':
       assumes "rs = rs\<^sub>1 @ rs\<^sub>2" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t\<rangle> \<Rightarrow> t'" and "no_matching_Goto \<gamma> p rs\<^sub>1"
@@ -318,18 +318,18 @@ begin
     proof -
       have "(\<exists>t'. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t' \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2,t'\<rangle> \<Rightarrow> t \<and> no_matching_Goto \<gamma> p rs\<^sub>1) \<or> (\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1,s\<rangle> \<Rightarrow> t \<and> \<not> no_matching_Goto \<gamma> p rs\<^sub>1)"
       using assms
-      proof (induction rs s t arbitrary: rs\<^sub>1 rs\<^sub>2 rule: iptables_bigstep_induct)
-        case Skip thus ?case by (auto intro: iptables_bigstep.intros simp add: accept)
+      proof (induction rs s t arbitrary: rs\<^sub>1 rs\<^sub>2 rule: iptables_goto_bigstep_induct)
+        case Skip thus ?case by (auto intro: iptables_goto_bigstep.intros simp add: accept)
       next
-        case Allow thus ?case by (cases rs\<^sub>1) (auto intro: iptables_bigstep.intros simp add: accept)
+        case Allow thus ?case by (cases rs\<^sub>1) (auto intro: iptables_goto_bigstep.intros simp add: accept)
       next
-        case Deny thus ?case by (cases rs\<^sub>1) (auto intro: iptables_bigstep.intros simp add: deny)
+        case Deny thus ?case by (cases rs\<^sub>1) (auto intro: iptables_goto_bigstep.intros simp add: deny)
       next
-        case Log thus ?case by (cases rs\<^sub>1) (auto intro: iptables_bigstep.intros simp add: log empty)
+        case Log thus ?case by (cases rs\<^sub>1) (auto intro: iptables_goto_bigstep.intros simp add: log empty)
       next
-        case Nomatch thus ?case by (cases rs\<^sub>1) (auto intro: iptables_bigstep.intros simp add: not_no_matching_Goto_singleton_cases)
+        case Nomatch thus ?case by (cases rs\<^sub>1) (auto intro: iptables_goto_bigstep.intros simp add: not_no_matching_Goto_singleton_cases)
       next
-        case Decision thus ?case by (auto intro: iptables_bigstep.intros)
+        case Decision thus ?case by (auto intro: iptables_goto_bigstep.intros)
       next
         case (Seq rs rsa rsb t t')
         hence rs: "rsa @ rsb = rs\<^sub>1 @ rs\<^sub>2" by simp
@@ -397,7 +397,7 @@ begin
       next
         case Call_return
         hence "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Undecided\<rangle> \<Rightarrow> Undecided"
-          by (case_tac [!] rs\<^sub>1) (auto intro: iptables_bigstep.skip iptables_bigstep.call_return)
+          by (case_tac [!] rs\<^sub>1) (auto intro: iptables_goto_bigstep.skip iptables_goto_bigstep.call_return)
         thus ?case by fast
       next
         case (Call_result _ _ _ _ t)
@@ -405,12 +405,12 @@ begin
           proof (cases rs\<^sub>1)
             case Nil
             with Call_result have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Undecided\<rangle> \<Rightarrow> t"
-              by (auto intro: iptables_bigstep.intros)
+              by (auto intro: iptables_goto_bigstep.intros)
             thus ?thesis using local.Nil by auto 
           next
             case Cons
             with Call_result have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> t" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, t\<rangle> \<Rightarrow> t"
-              by (auto intro: iptables_bigstep.intros)
+              by (auto intro: iptables_goto_bigstep.intros)
             thus ?thesis by fast
           qed
       next
@@ -419,12 +419,12 @@ begin
           proof (cases rs\<^sub>1)
             case Nil
             with Goto_Decision have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Undecided\<rangle> \<Rightarrow> Decision X"
-              by (auto intro: iptables_bigstep.intros)
+              by (auto intro: iptables_goto_bigstep.intros)
             thus ?thesis using local.Nil by auto
           next
             case Cons
             with Goto_Decision have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Decision X" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Decision X\<rangle> \<Rightarrow> Decision X"
-              by (auto intro: iptables_bigstep.intros) 
+              by (auto intro: iptables_goto_bigstep.intros) 
             thus ?thesis by fast
           qed
       next
@@ -436,7 +436,7 @@ begin
           proof (cases rs\<^sub>1)
             case Nil
             with Goto_no_Decision have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>2, Undecided\<rangle> \<Rightarrow> Undecided"
-              by (auto intro: iptables_bigstep.intros)
+              by (auto intro: iptables_goto_bigstep.intros)
             thus ?thesis by fast
           next
             case (Cons rs\<^sub>1a rs\<^sub>1s)
@@ -516,7 +516,7 @@ begin
       proof -
       { fix a s
         have no_free_return_hlp: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>a,s\<rangle> \<Rightarrow> t \<Longrightarrow> matches \<gamma> m p \<Longrightarrow>  s = Undecided \<Longrightarrow> a = [Rule m Return] \<Longrightarrow> False"
-        proof (induction rule: iptables_bigstep.induct)
+        proof (induction rule: iptables_goto_bigstep.induct)
           case (seq rs\<^sub>1)
           thus ?case
             by (cases rs\<^sub>1) (auto dest: skipD)
@@ -525,13 +525,13 @@ begin
       qed
   
   subsection{*Determinism*}
-    private lemma iptables_bigstep_Undecided_Undecided_deterministic: 
+    private lemma iptables_goto_bigstep_Undecided_Undecided_deterministic: 
       "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow>  t = Undecided"
-      apply(induction rs Undecided Undecided arbitrary: t rule: iptables_bigstep_induct)
+      apply(induction rs Undecided Undecided arbitrary: t rule: iptables_goto_bigstep_induct)
             apply(fastforce  dest: skipD logD emptyD nomatchD decisionD)
            apply(fastforce  dest: skipD logD emptyD nomatchD decisionD)
           apply(fastforce  dest: skipD logD emptyD nomatchD decisionD)
-         apply (metis iptables_bigstep_to_undecided seqE)
+         apply (metis iptables_goto_bigstep_to_undecided seqE)
         apply(simp_all)
         apply(frule_tac rs\<^sub>1=rs\<^sub>1 and m'=m' and chain=chain in call_return)
             apply(simp_all)
@@ -539,21 +539,21 @@ begin
        apply (meson callD)
       by (metis gotoD no_matching_Goto.simps(2) option.sel seqE_cons)
     
-    private lemma iptables_bigstep_Undecided_deterministic:
+    private lemma iptables_goto_bigstep_Undecided_deterministic:
       "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t' \<Longrightarrow>  t' = t"
-      apply(induction rs Undecided t arbitrary: t' rule: iptables_bigstep_induct)
+      apply(induction rs Undecided t arbitrary: t' rule: iptables_goto_bigstep_induct)
                apply(fastforce  dest: skipD logD emptyD nomatchD decisionD)
-              apply (auto intro: iptables_bigstep.intros dest: iptables_bigstepD)[4]
+              apply (auto intro: iptables_goto_bigstep.intros dest: iptables_goto_bigstepD)[4]
           apply (metis decisionD seqE state.exhaust)
-         apply (meson call_return iptables_bigstep_Undecided_Undecided_deterministic)
-        apply (metis callD call_result iptables_bigstep_Undecided_Undecided_deterministic)
+         apply (meson call_return iptables_goto_bigstep_Undecided_Undecided_deterministic)
+        apply (metis callD call_result iptables_goto_bigstep_Undecided_Undecided_deterministic)
        apply (metis gotoD no_matching_Goto.simps(2) option.sel seqE_cons)
-      by (meson goto_no_decision iptables_bigstep_Undecided_Undecided_deterministic)
+      by (meson goto_no_decision iptables_goto_bigstep_Undecided_Undecided_deterministic)
     
-    qualified theorem iptables_bigstep_deterministic: assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" and "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t'" shows "t = t'"
+    qualified theorem iptables_goto_bigstep_deterministic: assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" and "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t'" shows "t = t'"
     using assms
       apply(cases s)
-       apply(simp add: iptables_bigstep_Undecided_deterministic)
+       apply(simp add: iptables_goto_bigstep_Undecided_deterministic)
       apply(simp)
       by (metis decisionD)
   
@@ -564,12 +564,12 @@ begin
       shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule (MatchAnd m m') a'], s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m' a'], s\<rangle> \<Rightarrow> t" (is "?l \<longleftrightarrow>?r")
       proof
         assume ?l thus ?r
-          by (induction "[Rule (MatchAnd m m') a']" s t rule: iptables_bigstep_induct)
-             (auto intro: iptables_bigstep.intros simp: assms Cons_eq_append_conv dest: skipD)
+          by (induction "[Rule (MatchAnd m m') a']" s t rule: iptables_goto_bigstep_induct)
+             (auto intro: iptables_goto_bigstep.intros simp: assms Cons_eq_append_conv dest: skipD)
       next
         assume ?r thus ?l
-          by (induction "[Rule m' a']" s t rule: iptables_bigstep_induct)
-             (auto intro: iptables_bigstep.intros simp: assms Cons_eq_append_conv dest: skipD)
+          by (induction "[Rule m' a']" s t rule: iptables_goto_bigstep_induct)
+             (auto intro: iptables_goto_bigstep.intros simp: assms Cons_eq_append_conv dest: skipD)
       qed
     
     private lemma matches_MatchNot_simp: 
@@ -577,8 +577,8 @@ begin
       shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule (MatchNot m) a], Undecided\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>[], Undecided\<rangle> \<Rightarrow> t" (is "?l \<longleftrightarrow> ?r")
       proof
         assume ?l thus ?r
-          by (induction "[Rule (MatchNot m) a]" "Undecided" t rule: iptables_bigstep_induct)
-             (auto intro: iptables_bigstep.intros simp: assms Cons_eq_append_conv dest: skipD)
+          by (induction "[Rule (MatchNot m) a]" "Undecided" t rule: iptables_goto_bigstep_induct)
+             (auto intro: iptables_goto_bigstep.intros simp: assms Cons_eq_append_conv dest: skipD)
       next
         assume ?r
         hence "t = Undecided"
@@ -592,8 +592,8 @@ begin
       shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule (MatchAnd (MatchNot m) m') a], Undecided\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>[], Undecided\<rangle> \<Rightarrow> t" (is "?l \<longleftrightarrow> ?r")
       proof
         assume ?l thus ?r
-          by (induction "[Rule (MatchAnd (MatchNot m) m') a]" "Undecided" t rule: iptables_bigstep_induct)
-             (auto intro: iptables_bigstep.intros simp add: assms Cons_eq_append_conv dest: skipD)
+          by (induction "[Rule (MatchAnd (MatchNot m) m') a]" "Undecided" t rule: iptables_goto_bigstep_induct)
+             (auto intro: iptables_goto_bigstep.intros simp add: assms Cons_eq_append_conv dest: skipD)
       next
         assume ?r
         hence "t = Undecided"
@@ -761,7 +761,7 @@ begin
                apply(erule seqE_cons_Undecided)
                apply(simp only: matches_rule_and_simp)
                apply(subgoal_tac "no_matching_Goto \<gamma> p [Rule (x1) x2]")
-                apply (metis decision state.exhaust iptables_bigstep_deterministic seq_cons)
+                apply (metis decision state.exhaust iptables_goto_bigstep_deterministic seq_cons)
                apply (metis matches.simps(1) not_no_matching_Goto_singleton_cases)
               apply(simp)
               apply(clarify)
@@ -889,7 +889,7 @@ begin
             apply(case_tac a)
                     apply(simp_all)
                 apply(erule seqE_cons, simp_all,
-                       metis iptables_bigstepD matches.elims terminal_chain.simps terminal_chain.simps terminal_chain.simps)+
+                       metis iptables_goto_bigstepD matches.elims terminal_chain.simps terminal_chain.simps terminal_chain.simps)+
             done
     
     private lemma replace_Goto_with_Call_in_terminal_chain_Undecided:
@@ -905,7 +905,7 @@ begin
             with nomatch have 1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)], Undecided\<rangle> \<Rightarrow> Undecided" by fast
             from `\<not> matches \<gamma> m p` nomatch have 2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> Undecided" by fast
             from 1 2 show ?thesis
-              using `?l` iptables_bigstep_Undecided_Undecided_deterministic by fastforce 
+              using `?l` iptables_goto_bigstep_Undecided_Undecided_deterministic by fastforce 
           next
           case (matching_Goto m chain rs')
             from matching_Goto gotoD assms have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t" by fastforce
