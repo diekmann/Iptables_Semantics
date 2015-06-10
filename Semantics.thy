@@ -3,6 +3,23 @@ imports Main Firewall_Common Misc "~~/src/HOL/Library/LaTeXsugar"
 begin
 
 section{*Big Step Semantics with Goto*}
+text{*
+  We extend the iptables semantics to support the goto action.
+  A goto directly continues processing at the start of the called chain.
+  It does not change the call stack.
+  In contrast to calls, goto does not return.
+  Consequently, everything behind a matching goto cannot be reached.
+*}
+text{*
+  This theory is structured as follows.
+  Fist, the goto semantics are introduced.
+  Then, we show that those semantics are deterministic.
+  Finally, we present two methods to remove gotos.
+   The first unfolds goto.
+   The second replaces gotos with calls.
+  Finally, since the goto rules makes all proofs quite ugly, we never mention the goto semantics again.
+  As we have shown, we can get rid of the gotos easily, thus, we stick to the nicer iptables semantics without goto.
+*}
 
 context
 begin
