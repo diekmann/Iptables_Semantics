@@ -25,7 +25,7 @@ structure Test : sig
   datatype 'a match_expr = Match of 'a | MatchNot of 'a match_expr |
     MatchAnd of 'a match_expr * 'a match_expr | MatchAny
   datatype action = Accept | Drop | Log | Reject | Call of char list | Return |
-    Empty | Unknown
+    Goto of char list | Empty | Unknown
   datatype 'a rule = Rule of 'a match_expr * action
   type 'a simple_match_ext
   datatype simple_action = Accepta | Dropa
@@ -575,7 +575,7 @@ datatype 'a match_expr = Match of 'a | MatchNot of 'a match_expr |
   MatchAnd of 'a match_expr * 'a match_expr | MatchAny;
 
 datatype action = Accept | Drop | Log | Reject | Call of char list | Return |
-  Empty | Unknown;
+  Goto of char list | Empty | Unknown;
 
 datatype 'a rule = Rule of 'a match_expr * action;
 
@@ -1454,6 +1454,8 @@ fun no_spoofing_algorithm_executable iface ipassmt [] allowed denied1 =
     (raise Fail "undefined")
   | no_spoofing_algorithm_executable uu uv (Rule (vb, Return) :: va) ux uy =
     (raise Fail "undefined")
+  | no_spoofing_algorithm_executable uu uv (Rule (vb, Goto vd) :: va) ux uy =
+    (raise Fail "undefined")
   | no_spoofing_algorithm_executable uu uv (Rule (vb, Empty) :: va) ux uy =
     (raise Fail "undefined")
   | no_spoofing_algorithm_executable uu uv (Rule (vb, Unknown) :: va) ux uy =
@@ -1473,6 +1475,7 @@ fun rw_Reject [] = []
   | rw_Reject (Rule (v, Log) :: rs) = Rule (v, Log) :: rw_Reject rs
   | rw_Reject (Rule (v, Call vb) :: rs) = Rule (v, Call vb) :: rw_Reject rs
   | rw_Reject (Rule (v, Return) :: rs) = Rule (v, Return) :: rw_Reject rs
+  | rw_Reject (Rule (v, Goto vb) :: rs) = Rule (v, Goto vb) :: rw_Reject rs
   | rw_Reject (Rule (v, Empty) :: rs) = Rule (v, Empty) :: rw_Reject rs
   | rw_Reject (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rw_Reject rs;
 
@@ -1515,6 +1518,7 @@ fun lower_closure_matchexpr uu MatchAny = MatchAny
   | lower_closure_matchexpr Reject (Match (Dst_Ports v)) = Match (Dst_Ports v)
   | lower_closure_matchexpr (Call v) (Match m) = Match m
   | lower_closure_matchexpr Return (Match m) = Match m
+  | lower_closure_matchexpr (Goto v) (Match m) = Match m
   | lower_closure_matchexpr Empty (Match m) = Match m
   | lower_closure_matchexpr Unknown (Match m) = Match m
   | lower_closure_matchexpr uy (Match (Src v)) = Match (Src v)
@@ -1581,6 +1585,8 @@ fun lower_closure_matchexpr uu MatchAny = MatchAny
   | lower_closure_matchexpr (Call v) (MatchNot MatchAny) = MatchNot MatchAny
   | lower_closure_matchexpr Return (MatchNot (Match v)) = MatchNot (Match v)
   | lower_closure_matchexpr Return (MatchNot MatchAny) = MatchNot MatchAny
+  | lower_closure_matchexpr (Goto v) (MatchNot (Match va)) = MatchNot (Match va)
+  | lower_closure_matchexpr (Goto v) (MatchNot MatchAny) = MatchNot MatchAny
   | lower_closure_matchexpr Empty (MatchNot (Match v)) = MatchNot (Match v)
   | lower_closure_matchexpr Empty (MatchNot MatchAny) = MatchNot MatchAny
   | lower_closure_matchexpr Unknown (MatchNot (Match v)) = MatchNot (Match v)
@@ -2018,6 +2024,7 @@ fun upper_closure_matchexpr uu MatchAny = MatchAny
   | upper_closure_matchexpr Reject (Match (Dst_Ports v)) = Match (Dst_Ports v)
   | upper_closure_matchexpr (Call v) (Match m) = Match m
   | upper_closure_matchexpr Return (Match m) = Match m
+  | upper_closure_matchexpr (Goto v) (Match m) = Match m
   | upper_closure_matchexpr Empty (Match m) = Match m
   | upper_closure_matchexpr Unknown (Match m) = Match m
   | upper_closure_matchexpr uy (Match (Src v)) = Match (Src v)
@@ -2085,6 +2092,8 @@ fun upper_closure_matchexpr uu MatchAny = MatchAny
   | upper_closure_matchexpr (Call v) (MatchNot MatchAny) = MatchNot MatchAny
   | upper_closure_matchexpr Return (MatchNot (Match v)) = MatchNot (Match v)
   | upper_closure_matchexpr Return (MatchNot MatchAny) = MatchNot MatchAny
+  | upper_closure_matchexpr (Goto v) (MatchNot (Match va)) = MatchNot (Match va)
+  | upper_closure_matchexpr (Goto v) (MatchNot MatchAny) = MatchNot MatchAny
   | upper_closure_matchexpr Empty (MatchNot (Match v)) = MatchNot (Match v)
   | upper_closure_matchexpr Empty (MatchNot MatchAny) = MatchNot MatchAny
   | upper_closure_matchexpr Unknown (MatchNot (Match v)) = MatchNot (Match v)
@@ -2138,6 +2147,7 @@ fun rm_LogEmpty [] = []
   | rm_LogEmpty (Rule (v, Reject) :: rs) = Rule (v, Reject) :: rm_LogEmpty rs
   | rm_LogEmpty (Rule (v, Call vb) :: rs) = Rule (v, Call vb) :: rm_LogEmpty rs
   | rm_LogEmpty (Rule (v, Return) :: rs) = Rule (v, Return) :: rm_LogEmpty rs
+  | rm_LogEmpty (Rule (v, Goto vb) :: rs) = Rule (v, Goto vb) :: rm_LogEmpty rs
   | rm_LogEmpty (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rm_LogEmpty rs;
 
 fun simple_proto_conjunct ProtoAny proto = SOME proto
@@ -2161,6 +2171,95 @@ fun protocol_toString ProtoAny = [#"a", #"l", #"l"]
   | protocol_toString (Proto UDP) = [#"u", #"d", #"p"]
   | protocol_toString (Proto ICMP) = [#"i", #"c", #"m", #"p"];
 
+fun equal_action Empty Unknown = false
+  | equal_action Unknown Empty = false
+  | equal_action (Goto x7) Unknown = false
+  | equal_action Unknown (Goto x7) = false
+  | equal_action (Goto x7) Empty = false
+  | equal_action Empty (Goto x7) = false
+  | equal_action Return Unknown = false
+  | equal_action Unknown Return = false
+  | equal_action Return Empty = false
+  | equal_action Empty Return = false
+  | equal_action Return (Goto x7) = false
+  | equal_action (Goto x7) Return = false
+  | equal_action (Call x5) Unknown = false
+  | equal_action Unknown (Call x5) = false
+  | equal_action (Call x5) Empty = false
+  | equal_action Empty (Call x5) = false
+  | equal_action (Call x5) (Goto x7) = false
+  | equal_action (Goto x7) (Call x5) = false
+  | equal_action (Call x5) Return = false
+  | equal_action Return (Call x5) = false
+  | equal_action Reject Unknown = false
+  | equal_action Unknown Reject = false
+  | equal_action Reject Empty = false
+  | equal_action Empty Reject = false
+  | equal_action Reject (Goto x7) = false
+  | equal_action (Goto x7) Reject = false
+  | equal_action Reject Return = false
+  | equal_action Return Reject = false
+  | equal_action Reject (Call x5) = false
+  | equal_action (Call x5) Reject = false
+  | equal_action Log Unknown = false
+  | equal_action Unknown Log = false
+  | equal_action Log Empty = false
+  | equal_action Empty Log = false
+  | equal_action Log (Goto x7) = false
+  | equal_action (Goto x7) Log = false
+  | equal_action Log Return = false
+  | equal_action Return Log = false
+  | equal_action Log (Call x5) = false
+  | equal_action (Call x5) Log = false
+  | equal_action Log Reject = false
+  | equal_action Reject Log = false
+  | equal_action Drop Unknown = false
+  | equal_action Unknown Drop = false
+  | equal_action Drop Empty = false
+  | equal_action Empty Drop = false
+  | equal_action Drop (Goto x7) = false
+  | equal_action (Goto x7) Drop = false
+  | equal_action Drop Return = false
+  | equal_action Return Drop = false
+  | equal_action Drop (Call x5) = false
+  | equal_action (Call x5) Drop = false
+  | equal_action Drop Reject = false
+  | equal_action Reject Drop = false
+  | equal_action Drop Log = false
+  | equal_action Log Drop = false
+  | equal_action Accept Unknown = false
+  | equal_action Unknown Accept = false
+  | equal_action Accept Empty = false
+  | equal_action Empty Accept = false
+  | equal_action Accept (Goto x7) = false
+  | equal_action (Goto x7) Accept = false
+  | equal_action Accept Return = false
+  | equal_action Return Accept = false
+  | equal_action Accept (Call x5) = false
+  | equal_action (Call x5) Accept = false
+  | equal_action Accept Reject = false
+  | equal_action Reject Accept = false
+  | equal_action Accept Log = false
+  | equal_action Log Accept = false
+  | equal_action Accept Drop = false
+  | equal_action Drop Accept = false
+  | equal_action (Goto x7) (Goto y7) = equal_lista equal_char x7 y7
+  | equal_action (Call x5) (Call y5) = equal_lista equal_char x5 y5
+  | equal_action Unknown Unknown = true
+  | equal_action Empty Empty = true
+  | equal_action Return Return = true
+  | equal_action Reject Reject = true
+  | equal_action Log Log = true
+  | equal_action Drop Drop = true
+  | equal_action Accept Accept = true;
+
+fun simple_ruleset rs =
+  pred_list
+    (fn r =>
+      equal_action (get_action r) Accept orelse
+        equal_action (get_action r) Drop)
+    rs;
+
 fun process_ret [] = []
   | process_ret (Rule (m, Return) :: rs) =
     add_match (MatchNot m) (process_ret rs)
@@ -2169,6 +2268,7 @@ fun process_ret [] = []
   | process_ret (Rule (v, Log) :: rs) = Rule (v, Log) :: process_ret rs
   | process_ret (Rule (v, Reject) :: rs) = Rule (v, Reject) :: process_ret rs
   | process_ret (Rule (v, Call vb) :: rs) = Rule (v, Call vb) :: process_ret rs
+  | process_ret (Rule (v, Goto vb) :: rs) = Rule (v, Goto vb) :: process_ret rs
   | process_ret (Rule (v, Empty) :: rs) = Rule (v, Empty) :: process_ret rs
   | process_ret (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: process_ret rs;
 
@@ -2200,10 +2300,15 @@ fun process_call gamma [] = []
     Rule (v, Reject) :: process_call gamma rs
   | process_call gamma (Rule (v, Return) :: rs) =
     Rule (v, Return) :: process_call gamma rs
+  | process_call gamma (Rule (v, Goto vb) :: rs) =
+    Rule (v, Goto vb) :: process_call gamma rs
   | process_call gamma (Rule (v, Empty) :: rs) =
     Rule (v, Empty) :: process_call gamma rs
   | process_call gamma (Rule (v, Unknown) :: rs) =
     Rule (v, Unknown) :: process_call gamma rs;
+
+fun check_simple_ruleset rs =
+  (if simple_ruleset rs then rs else (raise Fail "undefined"));
 
 fun simple_action_toString Accepta = [#"A", #"C", #"C", #"E", #"P", #"T"]
   | simple_action_toString Dropa = [#"D", #"R", #"O", #"P"];
@@ -2349,14 +2454,15 @@ fun simple_match_and
                                simpl_ports_conjunct dps1 dps2, ())))))));
 
 fun unfold_ruleset_FORWARD default_action rs =
-  funpow (nat_of_integer (10 : IntInf.int))
-    (optimize_matches opt_MatchAny_match_expr)
-    (optimize_matches optimize_primitive_univ
-      (rw_Reject
-        (rm_LogEmpty
-          (funpow (nat_of_integer (10 : IntInf.int)) (process_call rs)
-            [Rule (MatchAny, Call [#"F", #"O", #"R", #"W", #"A", #"R", #"D"]),
-              Rule (MatchAny, default_action)]))));
+  check_simple_ruleset
+    (funpow (nat_of_integer (10 : IntInf.int))
+      (optimize_matches opt_MatchAny_match_expr)
+      (optimize_matches optimize_primitive_univ
+        (rw_Reject
+          (rm_LogEmpty
+            (funpow (nat_of_integer (10 : IntInf.int)) (process_call rs)
+              [Rule (MatchAny, Call [#"F", #"O", #"R", #"W", #"A", #"R", #"D"]),
+                Rule (MatchAny, default_action)])))));
 
 fun normalized_ifaces MatchAny = true
   | normalized_ifaces (Match uu) = true
@@ -2476,6 +2582,7 @@ fun action_to_simple_action Accept = Accepta
   | action_to_simple_action Reject = (raise Fail "undefined")
   | action_to_simple_action (Call v) = (raise Fail "undefined")
   | action_to_simple_action Return = (raise Fail "undefined")
+  | action_to_simple_action (Goto v) = (raise Fail "undefined")
   | action_to_simple_action Empty = (raise Fail "undefined")
   | action_to_simple_action Unknown = (raise Fail "undefined");
 
@@ -2549,71 +2656,6 @@ fun normalized_protocols MatchAny = true
   | normalized_protocols (MatchNot (Match (Extra va))) = true
   | normalized_protocols (MatchNot (MatchNot v)) = true
   | normalized_protocols (MatchNot MatchAny) = true;
-
-fun equal_action Empty Unknown = false
-  | equal_action Unknown Empty = false
-  | equal_action Return Unknown = false
-  | equal_action Unknown Return = false
-  | equal_action Return Empty = false
-  | equal_action Empty Return = false
-  | equal_action (Call x5) Unknown = false
-  | equal_action Unknown (Call x5) = false
-  | equal_action (Call x5) Empty = false
-  | equal_action Empty (Call x5) = false
-  | equal_action (Call x5) Return = false
-  | equal_action Return (Call x5) = false
-  | equal_action Reject Unknown = false
-  | equal_action Unknown Reject = false
-  | equal_action Reject Empty = false
-  | equal_action Empty Reject = false
-  | equal_action Reject Return = false
-  | equal_action Return Reject = false
-  | equal_action Reject (Call x5) = false
-  | equal_action (Call x5) Reject = false
-  | equal_action Log Unknown = false
-  | equal_action Unknown Log = false
-  | equal_action Log Empty = false
-  | equal_action Empty Log = false
-  | equal_action Log Return = false
-  | equal_action Return Log = false
-  | equal_action Log (Call x5) = false
-  | equal_action (Call x5) Log = false
-  | equal_action Log Reject = false
-  | equal_action Reject Log = false
-  | equal_action Drop Unknown = false
-  | equal_action Unknown Drop = false
-  | equal_action Drop Empty = false
-  | equal_action Empty Drop = false
-  | equal_action Drop Return = false
-  | equal_action Return Drop = false
-  | equal_action Drop (Call x5) = false
-  | equal_action (Call x5) Drop = false
-  | equal_action Drop Reject = false
-  | equal_action Reject Drop = false
-  | equal_action Drop Log = false
-  | equal_action Log Drop = false
-  | equal_action Accept Unknown = false
-  | equal_action Unknown Accept = false
-  | equal_action Accept Empty = false
-  | equal_action Empty Accept = false
-  | equal_action Accept Return = false
-  | equal_action Return Accept = false
-  | equal_action Accept (Call x5) = false
-  | equal_action (Call x5) Accept = false
-  | equal_action Accept Reject = false
-  | equal_action Reject Accept = false
-  | equal_action Accept Log = false
-  | equal_action Log Accept = false
-  | equal_action Accept Drop = false
-  | equal_action Drop Accept = false
-  | equal_action (Call x5) (Call y5) = equal_lista equal_char x5 y5
-  | equal_action Unknown Unknown = true
-  | equal_action Empty Empty = true
-  | equal_action Return Return = true
-  | equal_action Reject Reject = true
-  | equal_action Log Log = true
-  | equal_action Drop Drop = true
-  | equal_action Accept Accept = true;
 
 fun example_ipassignment_nospoof ifce =
   no_spoofing_iface (Iface ifce) (map_of equal_iface ipassmt);

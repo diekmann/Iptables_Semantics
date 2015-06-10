@@ -11,22 +11,25 @@ begin
 
 section{*Code Interface*}
 
+definition check_simple_ruleset :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
+  "check_simple_ruleset rs \<equiv> if simple_ruleset rs then rs else undefined"
+
 (*TODO TODO TODO
   all the unfold_ruleset_* don't add the chain's default action at the end automatically
   This would be the responsibility of the parser.
 *)
 
 definition unfold_ruleset_FORWARD :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
-"unfold_ruleset_FORWARD default_action rs = ((optimize_matches opt_MatchAny_match_expr)^^10) 
-  (optimize_matches optimize_primitive_univ (rw_Reject (rm_LogEmpty (((process_call rs)^^10) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny default_action]))))"
+"unfold_ruleset_FORWARD default_action rs = check_simple_ruleset (((optimize_matches opt_MatchAny_match_expr)^^10) 
+  (optimize_matches optimize_primitive_univ (rw_Reject (rm_LogEmpty (((process_call rs)^^10) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny default_action])))))"
 
 definition unfold_ruleset_INPUT :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
-"unfold_ruleset_INPUT default_action rs = ((optimize_matches opt_MatchAny_match_expr)^^10) 
-  (optimize_matches optimize_primitive_univ (rw_Reject (rm_LogEmpty (((process_call rs)^^10) [Rule MatchAny (Call ''INPUT''), Rule MatchAny default_action]))))"
+"unfold_ruleset_INPUT default_action rs = check_simple_ruleset (((optimize_matches opt_MatchAny_match_expr)^^10) 
+  (optimize_matches optimize_primitive_univ (rw_Reject (rm_LogEmpty (((process_call rs)^^10) [Rule MatchAny (Call ''INPUT''), Rule MatchAny default_action])))))"
 
 definition unfold_ruleset_OUTPUT :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
-"unfold_ruleset_OUTPUT default_action rs = ((optimize_matches opt_MatchAny_match_expr)^^10) 
-  (optimize_matches optimize_primitive_univ (rw_Reject (rm_LogEmpty (((process_call rs)^^10) [Rule MatchAny (Call ''OUTPUT''), Rule MatchAny default_action]))))"
+"unfold_ruleset_OUTPUT default_action rs = check_simple_ruleset (((optimize_matches opt_MatchAny_match_expr)^^10) 
+  (optimize_matches optimize_primitive_univ (rw_Reject (rm_LogEmpty (((process_call rs)^^10) [Rule MatchAny (Call ''OUTPUT''), Rule MatchAny default_action])))))"
 
 
 definition map_of_string :: "(string \<times> common_primitive rule list) list \<Rightarrow> string \<rightharpoonup> common_primitive rule list" where
