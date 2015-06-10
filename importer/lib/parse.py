@@ -240,6 +240,8 @@ def parse_rule(line, parse_ports, dumpformat):
     if line == "" or line == '\n':
         return None
     
+    assert not "[goto]" in line, "the goto action is not supported `{}'".format(line) 
+    
     r = iptables_format[dumpformat]['rule']
     m = re.match(r, line)
     if not m:
