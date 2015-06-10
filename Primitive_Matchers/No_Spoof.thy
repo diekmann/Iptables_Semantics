@@ -1101,6 +1101,8 @@ begin
   case "4_5" thus ?case by(simp add: simple_ruleset_def)
   next
   case "4_6" thus ?case by(simp add: simple_ruleset_def)
+  next
+  case "4_7" thus ?case by(simp add: simple_ruleset_def)
   qed
 
   definition no_spoofing_iface :: "iface \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> bool" where

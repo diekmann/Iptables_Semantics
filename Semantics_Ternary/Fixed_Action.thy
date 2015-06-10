@@ -353,7 +353,8 @@ subsection{*@{term match_list}*}
     done
     
 
-lemma fixedaction_wf_ruleset: "wf_ruleset \<gamma> p (map (\<lambda>m. Rule m a) ms) \<longleftrightarrow> \<not> match_list \<gamma> ms a p \<or> \<not> (\<exists>chain. a = Call chain) \<and> a \<noteq> Return \<and> a \<noteq> Unknown"
+lemma fixedaction_wf_ruleset: "wf_ruleset \<gamma> p (map (\<lambda>m. Rule m a) ms) \<longleftrightarrow>
+  \<not> match_list \<gamma> ms a p \<or> \<not> (\<exists>chain. a = Call chain) \<and> a \<noteq> Return \<and> \<not> (\<exists>chain. a = Goto chain) \<and> a \<noteq> Unknown"
   proof -
   have helper: "\<And>a b c. a \<longleftrightarrow> c \<Longrightarrow> (a \<longrightarrow> b) = (c \<longrightarrow> b)" by fast
   show ?thesis
@@ -365,7 +366,7 @@ lemma fixedaction_wf_ruleset: "wf_ruleset \<gamma> p (map (\<lambda>m. Rule m a)
     done
   qed
 
-lemma wf_ruleset_singleton: "wf_ruleset \<gamma> p [Rule m a] \<longleftrightarrow> \<not> matches \<gamma> m a p \<or> \<not> (\<exists>chain. a = Call chain) \<and> a \<noteq> Return \<and> a \<noteq> Unknown"
+lemma wf_ruleset_singleton: "wf_ruleset \<gamma> p [Rule m a] \<longleftrightarrow> \<not> matches \<gamma> m a p \<or> \<not> (\<exists>chain. a = Call chain) \<and> a \<noteq> Return \<and> \<not> (\<exists>chain. a = Goto chain) \<and> a \<noteq> Unknown"
   by(simp add: wf_ruleset_def)
 
 
@@ -720,7 +721,7 @@ lemma normalize_rules_dnf_correct: "wf_ruleset \<gamma> p rs \<Longrightarrow>
       apply(cases r, rename_tac m a)
       apply(simp)
       apply(case_tac a)
-             apply(simp_all add: normalize_match_correct Decision_approximating_bigstep_fun wf_ruleset_singleton)
+              apply(simp_all add: normalize_match_correct Decision_approximating_bigstep_fun wf_ruleset_singleton)
       done
     hence "approximating_bigstep_fun \<gamma> p (normalize_rules_dnf [r] @ normalize_rules_dnf rs) s = approximating_bigstep_fun \<gamma> p (r # rs) s"
       using Undecided `wf_ruleset \<gamma> p [r]` `wf_ruleset \<gamma> p (normalize_rules_dnf [r])` 

@@ -210,7 +210,7 @@ subsection{*wf ruleset*}
   definition wf_ruleset :: "('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> 'a rule list \<Rightarrow> bool" where
     "wf_ruleset \<gamma> p rs \<equiv> \<forall>r \<in> set rs. 
       (\<not> matches \<gamma> (get_match r) (get_action r) p) \<or> 
-      (\<not>(\<exists>chain. get_action r = Call chain) \<and> get_action r \<noteq> Return \<and> get_action r \<noteq> Unknown)"
+      (\<not>(\<exists>chain. get_action r = Call chain) \<and> get_action r \<noteq> Return \<and> \<not>(\<exists>chain. get_action r = Goto chain) \<and> get_action r \<noteq> Unknown)"
 
   lemma wf_ruleset_append: "wf_ruleset \<gamma> p (rs1@rs2) \<longleftrightarrow> wf_ruleset \<gamma> p rs1 \<and> wf_ruleset \<gamma> p rs2"
     by(auto simp add: wf_ruleset_def)
@@ -322,9 +322,9 @@ subsection{*Equality with @{term "\<gamma>,p\<turnstile> \<langle>rs, s\<rangle>
 
   text{*only valid actions appear in this ruleset*}
   definition good_ruleset :: "'a rule list \<Rightarrow> bool" where
-    "good_ruleset rs \<equiv> \<forall>r \<in> set rs. (\<not>(\<exists>chain. get_action r = Call chain) \<and> get_action r \<noteq> Return \<and> get_action r \<noteq> Unknown)"
+    "good_ruleset rs \<equiv> \<forall>r \<in> set rs. (\<not>(\<exists>chain. get_action r = Call chain) \<and> get_action r \<noteq> Return \<and> \<not>(\<exists>chain. get_action r = Goto chain) \<and> get_action r \<noteq> Unknown)"
 
-  lemma[code_unfold]: "good_ruleset rs = (\<forall>r\<in>set rs. (case get_action r of Call chain \<Rightarrow> False | Return \<Rightarrow> False | Unknown \<Rightarrow> False | _ \<Rightarrow> True))"
+  lemma[code_unfold]: "good_ruleset rs = (\<forall>r\<in>set rs. (case get_action r of Call chain \<Rightarrow> False | Return \<Rightarrow> False | Goto chain \<Rightarrow> False | Unknown \<Rightarrow> False | _ \<Rightarrow> True))"
       unfolding good_ruleset_def
       apply(rule Set.ball_cong)
        apply(simp_all)
@@ -465,7 +465,7 @@ lemma rm_LogEmpty_seq: "rm_LogEmpty (rs1@rs2) = rm_LogEmpty rs1 @ rm_LogEmpty rs
     apply(cases r, rename_tac m a)
     apply(simp)
     apply(case_tac a)
-           apply(simp_all)
+            apply(simp_all)
     done
   qed
 
@@ -480,11 +480,12 @@ apply(rule iffI)
  apply(simp)
  apply(rename_tac m a)
  apply(case_tac a)
-        apply(simp_all)
-        apply(auto intro: approximating_bigstep.intros)
+         apply(simp_all)
+         apply(auto intro: approximating_bigstep.intros)
+         apply(erule seqE_fst, simp add: seq_fst)
         apply(erule seqE_fst, simp add: seq_fst)
-       apply(erule seqE_fst, simp add: seq_fst)
-      apply (metis decision log nomatch_fst seq_fst state.exhaust)
+       apply (metis decision log nomatch_fst seq_fst state.exhaust)
+      apply(erule seqE_fst, simp add: seq_fst)
      apply(erule seqE_fst, simp add: seq_fst)
     apply(erule seqE_fst, simp add: seq_fst)
    apply(erule seqE_fst, simp add: seq_fst)
@@ -494,7 +495,7 @@ apply(induction rs s t rule: approximating_bigstep_induct)
       apply(auto intro: approximating_bigstep.intros)
  apply(rename_tac m a)
  apply(case_tac a)
-        apply(auto intro: approximating_bigstep.intros)
+         apply(auto intro: approximating_bigstep.intros)
 apply(rename_tac rs\<^sub>1 rs\<^sub>2 t t')
 apply(drule_tac rs\<^sub>1="rm_LogEmpty rs\<^sub>1" and rs\<^sub>2="rm_LogEmpty rs\<^sub>2" in seq)
  apply(simp_all)
@@ -529,8 +530,8 @@ lemma rw_Reject_fun_semantics:
     thus ?case
       apply(case_tac r, rename_tac m a, simp)
       apply(case_tac a)
-             apply(case_tac [!] s)
-                    apply(auto dest: wf_unknown_match_tacD_False1 wf_unknown_match_tacD_False2)
+              apply(case_tac [!] s)
+                      apply(auto dest: wf_unknown_match_tacD_False1 wf_unknown_match_tacD_False2)
       done
     qed
 
@@ -543,7 +544,7 @@ lemma rmLogEmpty_rwReject_good_to_simple: "good_ruleset rs \<Longrightarrow> sim
   apply(case_tac r)
   apply(rename_tac m a)
   apply(case_tac a)
-         apply(simp_all)
+          apply(simp_all)
   done
 
 

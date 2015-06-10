@@ -172,8 +172,8 @@ subsubsection{*Basic Set Operations*}
       apply(induction ds)
        apply(simp_all add: packet_set_to_set_def)
       apply(case_tac a)
-       apply(simp_all)
-       apply blast+
+      apply(simp_all)
+      apply blast+
       done
     lemma listprepend_correct: "packet_set_to_set \<gamma> (PacketSet (listprepend as ds)) = packet_set_to_set \<gamma> (PacketSet (map (\<lambda>a. [a]) as)) \<inter> packet_set_to_set \<gamma> (PacketSet ds)"
       apply(induction as arbitrary: )
