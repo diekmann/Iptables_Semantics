@@ -444,6 +444,26 @@ lemma empty_empty:
   qed
 
 
+
+lemma Unknown_actions_False: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r # rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> r = Rule m a \<Longrightarrow> matches \<gamma> m p \<Longrightarrow> a = Unknown \<or> (\<exists>chain. a = Goto chain) \<Longrightarrow> False"
+proof -
+  have 1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m Unknown], Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> matches \<gamma> m p \<Longrightarrow> False"
+  by (induction "[Rule m Unknown]" Undecided t rule: iptables_bigstep.induct)
+     (auto elim: list_app_singletonE dest: skipD)
+  
+  { fix chain
+    have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)], Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> matches \<gamma> m p \<Longrightarrow> False"
+    by (induction "[Rule m (Goto chain)]" Undecided t rule: iptables_bigstep.induct)
+       (auto elim: list_app_singletonE dest: skipD)
+  }note 2=this
+  show "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r # rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> r = Rule m a \<Longrightarrow> matches \<gamma> m p \<Longrightarrow> a = Unknown \<or> (\<exists>chain. a = Goto chain) \<Longrightarrow> False"
+  apply(erule seqE_cons)
+  apply(case_tac ti)
+   apply(simp_all)
+   using Rule_UndecidedE apply fastforce
+  by (metis "1" "2" decision iptables_bigstep_deterministic)
+qed
+
 text{*
 The notation we prefer in the paper. The semantics are defined for fixed @{text \<Gamma>} and @{text \<gamma>}
 *}

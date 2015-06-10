@@ -182,24 +182,21 @@ proof (induction rs)
             by simp (metis matches.simps(2) matches_add_match_simp no_free_return nomatchD seqE_cons)
         next
           case Empty
-          show ?thesis
+          show ?thesis 
             apply (insert Empty Cons Rule)
             apply(erule seqE_cons)
             apply (rename_tac ti)
             apply(case_tac ti)
-            apply (simp add: seq_cons)
-            apply (metis process_ret.simps(8) seq'_cons)s
+             apply (simp add: seq_cons)
             apply (metis Rule_DecisionE emptyD state.distinct(1))
             done
         next
           case Unknown
-          show ?thesis
-            apply (insert Unknown Cons Rule)
-            apply(erule seqE_cons)
-            apply(case_tac ti)
-            apply (metis process_ret.simps(9) seq'_cons)
-            apply (metis decision iptables_bigstep_deterministic process_ret.simps(9) seq_cons)
-            done
+          show ?thesis using Unknown_actions_False
+            by (metis Cons.IH Cons.prems Rule Unknown nomatchD process_ret.simps(10) seqE_cons seq_cons)
+        next
+          case Goto thus ?thesis  using Unknown_actions_False
+            by (metis Cons.IH Cons.prems Rule Goto nomatchD process_ret.simps(8) seqE_cons seq_cons) 
         qed
     qed
 qed simp
@@ -743,61 +740,65 @@ lemma update_Gamma_remove_call_undecided:
 subsection{*@{const process_ret} correctness*}
 lemma process_ret_add_match_dist1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>process_ret (add_match m rs), s\<rangle> \<Rightarrow> t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m (process_ret rs), s\<rangle> \<Rightarrow> t"
 apply(induction rs arbitrary: s t)
-apply(simp add: add_match_def)
+ apply(simp add: add_match_def)
 apply(rename_tac r rs s t)
 apply(case_tac r)
 apply(rename_tac m' a')
 apply(simp)
 apply(case_tac a')
 apply(simp_all add: add_match_split_fst)
-apply(erule seqE_cons)
-using seq' apply(fastforce)
-apply(erule seqE_cons)
-using seq' apply(fastforce)
-apply(erule seqE_cons)
-using seq' apply(fastforce)
-apply(erule seqE_cons)
-using seq' apply(fastforce)
-apply(erule seqE_cons)
-using seq' apply(fastforce)
-defer
-apply(erule seqE_cons)
-using seq' apply(fastforce)
-apply(erule seqE_cons)
-using seq' apply(fastforce)
-apply(case_tac "matches \<gamma> (MatchNot (MatchAnd m m')) p")
-apply(simp)
-apply (metis decision decisionD state.exhaust matches.simps(1) matches.simps(2) matches_add_match_simp not_matches_add_match_simp)
-by (metis add_match_distrib matches.simps(1) matches.simps(2) matches_add_match_MatchNot_simp)
+        apply(erule seqE_cons)
+        using seq' apply(fastforce)
+       apply(erule seqE_cons)
+       using seq' apply(fastforce)
+      apply(erule seqE_cons)
+      using seq' apply(fastforce)
+     apply(erule seqE_cons)
+     using seq' apply(fastforce)
+    apply(erule seqE_cons)
+    using seq' apply(fastforce)
+   defer
+   apply(erule seqE_cons)
+   using seq' apply(fastforce)
+  apply(erule seqE_cons)
+  using seq' apply(fastforce)
+ apply(case_tac "matches \<gamma> (MatchNot (MatchAnd m m')) p")
+  apply(simp)
+  apply (meson seq'_cons seqE_cons)
+ apply (meson seq'_cons seqE_cons)
+by (metis decision decisionD matches.simps(1) matches_add_match_MatchNot_simp matches_add_match_simp
+  not_matches_add_matchNot_simp not_matches_add_match_simp state.exhaust)
 
 lemma process_ret_add_match_dist2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m (process_ret rs), s\<rangle> \<Rightarrow> t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>process_ret (add_match m rs), s\<rangle> \<Rightarrow> t"
 apply(induction rs arbitrary: s t)
-apply(simp add: add_match_def)
+ apply(simp add: add_match_def)
 apply(rename_tac r rs s t)
 apply(case_tac r)
 apply(rename_tac m' a')
 apply(simp)
 apply(case_tac a')
 apply(simp_all add: add_match_split_fst)
-apply(erule seqE_cons)
-using seq' apply(fastforce)
-apply(erule seqE_cons)
-using seq' apply(fastforce)
-apply(erule seqE_cons)
-using seq' apply(fastforce)
-apply(erule seqE_cons)
-using seq' apply(fastforce)
-apply(erule seqE_cons)
-using seq' apply(fastforce)
-defer
-apply(erule seqE_cons)
-using seq' apply(fastforce)
-apply(erule seqE_cons)
-using seq' apply(fastforce)
-apply(case_tac "matches \<gamma> (MatchNot (MatchAnd m m')) p")
-apply(simp)
-apply (metis decision decisionD state.exhaust matches.simps(1) matches.simps(2) matches_add_match_simp not_matches_add_match_simp)
-by (metis add_match_distrib matches.simps(1) matches.simps(2) matches_add_match_MatchNot_simp)
+        apply(erule seqE_cons)
+        using seq' apply(fastforce)
+       apply(erule seqE_cons)
+       using seq' apply(fastforce)
+      apply(erule seqE_cons)
+      using seq' apply(fastforce)
+     apply(erule seqE_cons)
+     using seq' apply(fastforce)
+    apply(erule seqE_cons)
+    using seq' apply(fastforce)
+   defer
+   apply(erule seqE_cons)
+   using seq' apply(fastforce)
+  apply(erule seqE_cons)
+  using seq' apply(fastforce)
+ apply(case_tac "matches \<gamma> (MatchNot (MatchAnd m m')) p")
+  apply(simp)
+  apply (meson seq'_cons seqE_cons)
+ apply (meson seq'_cons seqE_cons)
+by (metis decision decisionD matches.simps(1) matches_add_match_MatchNot_simp matches_add_match_simp
+  not_matches_add_matchNot_simp not_matches_add_match_simp state.exhaust)
 
 (*such fuckup*)
 lemma process_ret_add_match_dist: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>process_ret (add_match m rs), s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m (process_ret rs), s\<rangle> \<Rightarrow> t"
