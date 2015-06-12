@@ -189,6 +189,8 @@ local (*iptables-save parsers*)
     val parse_target : (string list -> parsed_match_action * string list) = 
                   Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string "-j " |-- (parser_target >> (fn s => ParsedAction (TypeCall, s))));
 
+    (*TODO: parse REJECT --reject-with type*)
+
     val parse_target_goto : (string list -> parsed_match_action * string list) = 
                   Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string "-g " 
                     |-- (parser_target >> (fn s => let val _ = writeln ("WARNING: goto in `"^s^"'") in ParsedAction (TypeGoto, s) end)));
@@ -206,8 +208,8 @@ in
   (*TODO: better way to fail on goto action*)
   val option_parser : (string list -> (parsed_match_action) * string list) = 
       Scan.recover (parse_src_ip || parse_dst_ip || parse_in_iface || parse_out_iface ||
-                    parse_target || parse_src_ip_negated || 
-                    parse_dst_ip_negated) (K (parse_target_goto || parse_unknown));
+                    parse_target || parse_target_goto || parse_src_ip_negated || 
+                    parse_dst_ip_negated) (K parse_unknown);
   
   
   (*parse_table_append should be called before option_parser, otherwise -A will simply be an unknown for option_parser*)
