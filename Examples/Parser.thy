@@ -121,7 +121,8 @@ ipt_explode "ad \"foobar --boo boo";
 
 
 ML{*
-datatype parsed_match_action = ParsedMatch of term | ParsedNegatedMatch of term | ParsedAction of string;
+datatype parsed_action_type = TypeCall | TypeGoto
+datatype parsed_match_action = ParsedMatch of term | ParsedNegatedMatch of term | ParsedAction of parsed_action_type * string;
 local (*iptables-save parsers*)
   val is_whitespace = Scan.many (fn x => x = " ");
   
@@ -186,11 +187,11 @@ local (*iptables-save parsers*)
     (*parses: -j MY_CUSTOM_CHAIN*)
     (*The -j may not be the end of the line. example: -j LOG --log-prefix "[IPT_DROP]:"*)
     val parse_target : (string list -> parsed_match_action * string list) = 
-                  Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string "-j " |-- (parser_target >> ParsedAction));
+                  Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string "-j " |-- (parser_target >> (fn s => ParsedAction (TypeCall, s))));
 
     val parse_target_goto : (string list -> parsed_match_action * string list) = 
                   Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string "-g " 
-                    |-- (parser_target >> (fn s => raise Fail ("goto is not supported `"^s^"'"))));
+                    |-- (parser_target >> (fn s => let val _ = writeln ("WARNING: goto in `"^s^"'") in ParsedAction (TypeGoto, s) end)));
   end;
 in
   (*parses: -A FORWARD*)
@@ -223,8 +224,8 @@ ML_val{*(Scan.repeat option_parser) (ipt_explode "-j LOG --log-prefix \"Shorewal
 
 ML_val{*
 val (x, rest) = (Scan.repeat option_parser) (ipt_explode "-d 0.31.123.213/88 --foo_bar \"he he\" -f -i eth0+ -s 0.31.123.213/88 moreextra -j foobar --log");
-map (fn p => case p of ParsedMatch t => type_of t | ParsedAction _ => dummyT) x;
-map (fn p => case p of ParsedMatch t => Pretty.writeln (Syntax.pretty_term @{context} t) | ParsedAction a => writeln ("action: "^a)) x;
+map (fn p => case p of ParsedMatch t => type_of t | ParsedAction (_,_) => dummyT) x;
+map (fn p => case p of ParsedMatch t => Pretty.writeln (Syntax.pretty_term @{context} t) | ParsedAction (_,a) => writeln ("action: "^a)) x;
 *}
 
 ML{*
@@ -239,7 +240,7 @@ local
             end
             handle Fail m => raise Fail ("parse_rule_options: "^m^" for rule `"^implode s^"'");
 
-   fun get_target (ps : parsed_match_action list) : string option = let val actions = List.mapPartial (fn p => case p of ParsedAction a => SOME a | _ => NONE) ps
+   fun get_target (ps : parsed_match_action list) : (parsed_action_type * string) option = let val actions = List.mapPartial (fn p => case p of ParsedAction a => SOME a | _ => NONE) ps
       in case actions of [] => NONE
                       |  [action] => SOME action
                       | _ => raise Fail "there can be at most one target"
@@ -254,7 +255,7 @@ local
 
 
    (*returns: (chainname the rule was appended to, target, matches)*)
-   fun parse_rule (s: string) : (string * string option * term) = let
+   fun parse_rule (s: string) : (string * (parsed_action_type * string) option * term) = let
       val (chainname, rest) =
         (case try (ipt_explode #> Scan.finite Symbol.stopper parse_table_append) s of SOME x => x | NONE => raise Fail ("parse_rule: parse_table_append: "^s))
       in let val parsed = parse_rule_options rest in
@@ -262,7 +263,7 @@ local
       end end;
 in
   (*returns (parsed chain declarations, parsed appended rules*)
-  fun rule_type_partition (rs : string list) : (string list * (string * string option * term) list) =
+  fun rule_type_partition (rs : string list) : (string list * (string * (parsed_action_type * string) option * term) list) =
       let val (chain_decl, rules) = List.partition (String.isPrefix ":") rs in
       if not (List.all (String.isPrefix "-A") rules) then raise Fail "could not partition rules" else
         let val parsed_chain_decls = map (ipt_explode #> chain_decl_parser) chain_decl in
@@ -278,7 +279,7 @@ end;
 ML_val{*
 val (parsed_chain_decls, parsed_rules) = rule_type_partition filter_table;
 
-val toString = (fn (a,target,b) => "-A "^a^" "^((Syntax.pretty_term @{context} #> Pretty.string_of) b)^(case target of NONE => "" | SOME t => " -j "^t));
+val toString = (fn (a,target,b) => "-A "^a^" "^((Syntax.pretty_term @{context} #> Pretty.string_of) b)^(case target of NONE => "" | SOME (TypeCall, t) => " -j "^t | SOME (TypeGoto, t) => " -g "^t));
 map (toString #> writeln) parsed_rules;
 
 map (fn (_,_,b) =>  type_of b) parsed_rules;
@@ -307,26 +308,33 @@ local
       of NONE => raise Fail ("uninitialized cahin: "^chain)
       |  SOME rules => FirewallTable.update (chain, rules@[rule]) table
   
-  fun mk_Rule (tbl: firewall_table) (chain: string, target : string option, t : term) =
+  fun mk_Rule (tbl: firewall_table) (chain: string, target : (parsed_action_type * string) option, t : term) =
     if not (FirewallTable.defined tbl chain) then raise Fail ("undefined chain to be appended: "^chain) else
     case target
     of NONE => mk_Rule_help t @{const action.Empty}
-     | SOME "ACCEPT" => mk_Rule_help t @{const action.Accept}
-     | SOME "DROP" => mk_Rule_help t @{const action.Drop}
-     | SOME "REJECT" => mk_Rule_help t @{const action.Reject}
-     | SOME "LOG" => mk_Rule_help t @{const action.Log}
-     | SOME "RETURN" => mk_Rule_help t @{const action.Return}
-     | SOME custom => if not (FirewallTable.defined tbl custom) then raise Fail ("unknown action: "^custom) else
-                      mk_Rule_help t (@{const action.Call} $ HOLogic.mk_string custom);
+     | SOME (TypeCall, "ACCEPT") => mk_Rule_help t @{const action.Accept}
+     | SOME (TypeCall, "DROP") => mk_Rule_help t @{const action.Drop}
+     | SOME (TypeCall, "REJECT") => mk_Rule_help t @{const action.Reject}
+     | SOME (TypeCall, "LOG") => mk_Rule_help t @{const action.Log}
+     | SOME (TypeCall, "RETURN") => mk_Rule_help t @{const action.Return}
+     | SOME (TypeCall, custom) => if not (FirewallTable.defined tbl custom) then raise Fail ("unknown action: "^custom) else
+                      mk_Rule_help t (@{const action.Call} $ HOLogic.mk_string custom)
+     | SOME (TypeGoto, "ACCEPT") => raise Fail "Unexpected"
+     | SOME (TypeGoto, "DROP") => raise Fail "Unexpected"
+     | SOME (TypeGoto, "REJECT") => raise Fail "Unexpected"
+     | SOME (TypeGoto, "LOG") => raise Fail "Unexpected"
+     | SOME (TypeGoto, "RETURN") => raise Fail "Unexpected"
+     | SOME (TypeGoto, custom) => if not (FirewallTable.defined tbl custom) then raise Fail ("unknown action: "^custom) else
+                      mk_Rule_help t (@{const action.Goto} $ HOLogic.mk_string custom);
   
   (*val init = FirewallTable_init parsed_chain_decls;*)
   (*map type_of (map (mk_Rule init) parsed_rules);*)
 
 in
   local
-    fun append_rule (tbl: firewall_table) (chain: string, target : string option, t : term) = append tbl chain (mk_Rule tbl (chain, target, t))
+    fun append_rule (tbl: firewall_table) (chain: string, target : (parsed_action_type * string) option, t : term) = append tbl chain (mk_Rule tbl (chain, target, t))
   in
-    fun make_firewall_table (parsed_chain_decls : string list, parsed_rules : (string * string option * term) list) = 
+    fun make_firewall_table (parsed_chain_decls : string list, parsed_rules : (string * (parsed_action_type * string) option * term) list) = 
       fold (fn rule => fn accu => append_rule accu rule) parsed_rules (FirewallTable_init parsed_chain_decls);
   end
 end

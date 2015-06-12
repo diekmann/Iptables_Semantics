@@ -1,10 +1,25 @@
 theory Analyze_SQRL_Shorewall
 imports "../Code_Interface"
 "../../Semantics_Ternary/Optimizing"
+"../Parser"
+"../../Semantics_Goto"
 begin
 
 
 section{*Example: SQRL Shorewall*}
+
+local_setup \<open>
+  local_setup_parse_iptables_save ["Examples", "SQRL_Shorewall", "iptables-saveakachan"]
+ \<close>
+declare foo_def[code]
+
+thm foo_def
+
+lemma "Semantics_Goto.terminal_chain (the ((map_of_string foo) ''smurflog''))" by eval
+lemma "Semantics_Goto.terminal_chain (the ((map_of_string foo) ''logflags''))" by eval
+(*removing  (Extra ''--reject-with icmp-host-prohibited''*)
+lemma "Semantics_Goto.terminal_chain (butlast (the ((map_of_string foo) ''reject'')) @ [Rule MatchAny Reject])" by eval
+
 
 export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure
   Rule
