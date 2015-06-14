@@ -221,11 +221,11 @@ in
     val builtin_chain_decl_parser = ($$ ":") |--
       (Scan.this_string "INPUT" || Scan.this_string "FORWARD" || Scan.this_string "OUTPUT") --|
       ($$ " ") -- (Scan.this_string "ACCEPT" || Scan.this_string "DROP") --| ($$ " ") #> fst;
-    val get_builtin_chain = fst;
+    val wrap_builtin_chain = (fn (name, policy) => (name, SOME policy));
+    val wrap_custom_chain = (fn name => (name, NONE));
   in
-    val chain_decl_parser : (string list -> string) =
-          Scan.recover (builtin_chain_decl_parser #> get_builtin_chain) (K custom_chain_decl_parser);
-    val chain_decl_default_policy_parser : (string list -> string * string) = builtin_chain_decl_parser;
+    val chain_decl_parser : (string list -> string * string option) =
+          Scan.recover (builtin_chain_decl_parser #> wrap_builtin_chain) (K (custom_chain_decl_parser #> wrap_custom_chain));
   end
 end;
 *}
@@ -276,7 +276,7 @@ local
       end end;
 in
   (*returns (parsed chain declarations, parsed appended rules*)
-  fun rule_type_partition (rs : string list) : (string list * (string * (parsed_action_type * string) option * term) list) =
+  fun rule_type_partition (rs : string list) : ((string * string option) list * (string * (parsed_action_type * string) option * term) list) =
       let val (chain_decl, rules) = List.partition (String.isPrefix ":") rs in
       if not (List.all (String.isPrefix "-A") rules) then raise Fail "could not partition rules" else
         let val parsed_chain_decls = (case try (map (ipt_explode #> chain_decl_parser)) chain_decl of SOME x => x | NONE =>
@@ -287,6 +287,11 @@ in
               (parsed_chain_decls, parsed_rules)
             end end end end
       end
+   fun get_chain_decls_policy (ls: ((string * string option) list * (string * (parsed_action_type * string) option * term) list)) = fst ls
+   fun get_parsed_rules (ls: ((string * string option) list * (string * (parsed_action_type * string) option * term) list)) = snd ls
+   val filter_chain_decls_names_only : 
+         ((string * string option) list * (string * (parsed_action_type * string) option * term) list) ->
+           (string list * (string * (parsed_action_type * string) option * term) list) = (fn (a,b) => (map fst a, b))
 end;
 *}
 
@@ -356,7 +361,7 @@ end
 
 
 ML{*
-val parsed_ruleset = rule_type_partition filter_table |> make_firewall_table;
+val parsed_ruleset = filter_table |> rule_type_partition |> filter_chain_decls_names_only |> make_firewall_table;
 *}
 
 ML{*
@@ -382,9 +387,10 @@ fun certify_term (ctx: Proof.context) (t: term) = trace_timing "Certified term" 
 *}
 
 ML{* (*putting it all together*)
-fun parse_iptables_save (file: string list) = 
+fun parse_iptables_save (file: string list) : term = 
     load_filter_table file
     |> rule_type_partition
+    |> filter_chain_decls_names_only
     |> make_firewall_table
     |> mk_Ruleset
     |> simplify_code @{context}
@@ -402,17 +408,18 @@ Pretty.writeln (Syntax.pretty_term @{context} example);
 *}
 
 ML{*
-fun local_setup_parse_iptables_save (name: binding) path = fn lthy =>
-          let
-             val ((_, (_, thm)), lthy) =
-              Local_Theory.define ((name, NoSyn),
-                  (*this takes a while*)
-                  ((Binding.empty, []), parse_iptables_save path)) lthy
-              val (_, lthy) =
-                 Local_Theory.note ((Binding.suffix_name "_def" name, []), [thm]) lthy
-             in
-               lthy
-             end
+local
+  fun define_const (t: term) (name: binding) (lthy: local_theory) : local_theory = let
+        val _ = writeln ("Defining constant `"^Binding.name_of name^"' ("^Binding.name_of name^"_def')");
+        val ((_, (_, thm)), lthy) = Local_Theory.define ((name, NoSyn), ((Binding.empty, []), t)) lthy;
+        val (_, lthy) = Local_Theory.note ((Binding.suffix_name "_def" name, []), [thm]) lthy;
+       in
+         lthy
+       end
+in
+  (*this may a while*)
+  fun local_setup_parse_iptables_save (name: binding) path = define_const (parse_iptables_save path) name
+end
 *}
 
 local_setup \<open>
