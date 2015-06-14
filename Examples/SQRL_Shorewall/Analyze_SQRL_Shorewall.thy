@@ -15,6 +15,8 @@ declare SQRL_fw_def[code]
 
 thm SQRL_fw_def
 
+thm SQRL_fw_FORWARD_default_policy_def
+
 lemma "Semantics_Goto.terminal_chain (the ((map_of_string SQRL_fw) ''smurflog''))" by eval
 lemma "Semantics_Goto.terminal_chain (the ((map_of_string SQRL_fw) ''logflags''))" by eval
 (*removing  (Extra ''--reject-with icmp-host-prohibited''*)

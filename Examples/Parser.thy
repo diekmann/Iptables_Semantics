@@ -430,19 +430,22 @@ local
        end
 in
   fun local_setup_parse_iptables_save (name: binding) path lthy =
-    let val prepared =
-      path
-      |> load_filter_table
-      |> rule_type_partition in
-    let val firewall =
-      prepared
-      |> filter_chain_decls_names_only
-      |> make_firewall_table
-      |> mk_Ruleset
-      (*this may a while*)
-      |> simplify_code @{context}
+    let val prepared = path
+            |> load_filter_table
+            |> rule_type_partition in
+    let val firewall = prepared
+            |> filter_chain_decls_names_only
+            |> make_firewall_table
+            |> mk_Ruleset
+            (*this may a while*)
+            |> simplify_code @{context}
+        val default_policis = prepared
+            |> get_chain_decls_policy
+            |> preparedefault_policies
     in
-      define_const firewall name lthy
+      lthy
+      |> define_const firewall name
+      |> fold (fn (chain_name, policy) => fn lthy => define_const policy (Binding.name (Binding.name_of name^"_"^chain_name^"_default_policy")) lthy) default_policis
     end end
 end
 *}
@@ -452,6 +455,7 @@ local_setup \<open>
  \<close>
 
 declare foo_def[code]
+thm foo_FORWARD_default_policy_def
 
 (*ML{*
 fun conv_result cv ct = Thm.prop_of (cv ct) |> Logic.dest_equals |> snd;
