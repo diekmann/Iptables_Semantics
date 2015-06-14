@@ -214,8 +214,19 @@ in
   
   (*parse_table_append should be called before option_parser, otherwise -A will simply be an unknown for option_parser*)
   
-  (*:INPUT ACCEPT [130:12050]*)
-  val chain_decl_parser = ($$ ":") |-- parser_target #> fst;
+  local
+    (*:DOS_PROTECT - [0:0]*)
+    val custom_chain_decl_parser = ($$ ":") |-- parser_target --| Scan.this_string " - " #> fst;
+    (*:INPUT ACCEPT [130:12050]*)
+    val builtin_chain_decl_parser = ($$ ":") |--
+      (Scan.this_string "INPUT" || Scan.this_string "FORWARD" || Scan.this_string "OUTPUT") --|
+      ($$ " ") -- (Scan.this_string "ACCEPT" || Scan.this_string "DROP") --| ($$ " ") #> fst;
+    val get_builtin_chain = fst;
+  in
+    val chain_decl_parser : (string list -> string) =
+          Scan.recover (builtin_chain_decl_parser #> get_builtin_chain) (K custom_chain_decl_parser);
+    val chain_decl_default_policy_parser : (string list -> string * string) = builtin_chain_decl_parser;
+  end
 end;
 *}
 
@@ -268,7 +279,8 @@ in
   fun rule_type_partition (rs : string list) : (string list * (string * (parsed_action_type * string) option * term) list) =
       let val (chain_decl, rules) = List.partition (String.isPrefix ":") rs in
       if not (List.all (String.isPrefix "-A") rules) then raise Fail "could not partition rules" else
-        let val parsed_chain_decls = map (ipt_explode #> chain_decl_parser) chain_decl in
+        let val parsed_chain_decls = (case try (map (ipt_explode #> chain_decl_parser)) chain_decl of SOME x => x | NONE =>
+                                                      raise Fail ("could not parse chain declarations: "^implode chain_decl)) in
         let val parsed_rules = map parse_rule rules in
             let val  _ = "Parsed "^ Int.toString (length parsed_chain_decls) ^" chain declarations" |> writeln in
             let val  _ = "Parsed "^ Int.toString (length parsed_rules) ^" rules" |> writeln in
@@ -366,10 +378,6 @@ fun simplify_code (ctx: Proof.context) = let val _ = writeln "unfolding (this ma
       trace_timing "Simplified term" (Code_Evaluation.dynamic_value_strict ctx)
     end
 
-(*fun simplify_simp(ctx: Proof.context) = let val _ = writeln "unfolding (this may take a while) ..." in 
-      trace_timing "Simplified term" (Code_Simp.dynamic_conv ctx #> prop_of)
-    end*)
-
 fun certify_term (ctx: Proof.context) (t: term) = trace_timing "Certified term" (Thm.cterm_of ctx) t
 *}
 
@@ -380,9 +388,6 @@ fun parse_iptables_save (file: string list) =
     |> make_firewall_table
     |> mk_Ruleset
     |> simplify_code @{context}
-    (*|> (fn t => simplify_code @{context} (@{const map_of (string, "common_primitive rule list")} $ t))*)
-    (*|> (fn t => simplify_code @{context} (@{const unfold_ruleset_FORWARD} $ @{const action.Accept} $ (@{const map_of (string, "common_primitive rule list")} $ t)))*)
-    (*|> certify_term @{context}*)
 *}
 
 (*ML{*
@@ -396,8 +401,6 @@ val example = parse_iptables_save ["Examples", "Parser_Test", "iptables-save"];
 Pretty.writeln (Syntax.pretty_term @{context} example);
 *}
 
-
-(*TODO: probably already add @{const map_of ("string", "common_primitive rule list")}*)
 
 ML{*
 fun local_setup_parse_iptables_save path = fn lthy =>
