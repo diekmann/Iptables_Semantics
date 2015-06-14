@@ -401,23 +401,22 @@ val example = parse_iptables_save ["Examples", "Parser_Test", "iptables-save"];
 Pretty.writeln (Syntax.pretty_term @{context} example);
 *}
 
-
 ML{*
-fun local_setup_parse_iptables_save path = fn lthy =>
+fun local_setup_parse_iptables_save (name: binding) path = fn lthy =>
           let
              val ((_, (_, thm)), lthy) =
-              Local_Theory.define ((@{binding foo}, NoSyn),
+              Local_Theory.define ((name, NoSyn),
                   (*this takes a while*)
                   ((Binding.empty, []), parse_iptables_save path)) lthy
               val (_, lthy) =
-                 Local_Theory.note ((@{binding foo_def}, []), [thm]) lthy
+                 Local_Theory.note ((Binding.suffix_name "_def" name, []), [thm]) lthy
              in
                lthy
              end
 *}
 
 local_setup \<open>
-  local_setup_parse_iptables_save ["Examples", "Parser_Test", "iptables-save"]
+  local_setup_parse_iptables_save @{binding foo} ["Examples", "Parser_Test", "iptables-save"]
  \<close>
 
 declare foo_def[code]
@@ -500,5 +499,8 @@ value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (unfold
 
 ML{*Code_Evaluation.dynamic_conv @{context} @{cterm "unfold_ruleset_FORWARD action.Accept (map_of foo)"}*}
 *)
+
+hide_const foo
+hide_fact foo_def
 
 end

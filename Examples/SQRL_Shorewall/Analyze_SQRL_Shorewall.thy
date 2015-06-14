@@ -9,16 +9,16 @@ begin
 section{*Example: SQRL Shorewall*}
 
 local_setup \<open>
-  local_setup_parse_iptables_save ["Examples", "SQRL_Shorewall", "iptables-saveakachan"]
+  local_setup_parse_iptables_save @{binding SQRL_fw}["Examples", "SQRL_Shorewall", "iptables-saveakachan"]
  \<close>
-declare foo_def[code]
+declare SQRL_fw_def[code]
 
-thm foo_def
+thm SQRL_fw_def
 
-lemma "Semantics_Goto.terminal_chain (the ((map_of_string foo) ''smurflog''))" by eval
-lemma "Semantics_Goto.terminal_chain (the ((map_of_string foo) ''logflags''))" by eval
+lemma "Semantics_Goto.terminal_chain (the ((map_of_string SQRL_fw) ''smurflog''))" by eval
+lemma "Semantics_Goto.terminal_chain (the ((map_of_string SQRL_fw) ''logflags''))" by eval
 (*removing  (Extra ''--reject-with icmp-host-prohibited''*)
-lemma "Semantics_Goto.terminal_chain (butlast (the ((map_of_string foo) ''reject'')) @ [Rule MatchAny Reject])" by eval
+lemma "Semantics_Goto.terminal_chain (butlast (the ((map_of_string SQRL_fw) ''reject'')) @ [Rule MatchAny Reject])" by eval
 
 
 export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure
