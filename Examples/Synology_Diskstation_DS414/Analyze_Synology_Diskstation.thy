@@ -2,10 +2,31 @@ theory Analyze_Synology_Diskstation
 imports iptables_Ln_tuned_parsed
  "../Code_Interface"
  "../../Semantics_Ternary/Optimizing"
+ "../Parser"
 begin
 
 
 section{*Example: Synology Diskstation*}
+
+local_setup \<open>
+  local_setup_parse_iptables_save @{binding ds_fw} ["Examples", "Synology_Diskstation_DS414", "iptables-save"]
+ \<close>
+thm ds_fw_def
+declare ds_fw_def[code]
+thm ds_fw_INPUT_default_policy_def
+declare ds_fw_INPUT_default_policy_def[code]
+
+text{*we removed the established,related rule*}
+
+definition "firewall \<equiv> (map_of ds_fw)(''DEFAULT_INPUT'' \<mapsto> 
+  remove1 (Rule (MatchAnd (Match (Extra ''-m state --state RELATED,ESTABLISHED'')) MatchAny) action.Accept) (the ((map_of ds_fw) ''DEFAULT_INPUT'')))"
+
+value[code] "map common_primitive_rule_toString (unfold_ruleset_INPUT ds_fw_INPUT_default_policy firewall)"
+
+lemma "check_simple_fw_preconditions (upper_closure (unfold_ruleset_INPUT ds_fw_INPUT_default_policy firewall))" by eval
+value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT ds_fw_INPUT_default_policy firewall)))"
+
+
 
 text{*we removed the established,related rule*}
   definition "example_ruleset == firewall_chains(''INPUT'' \<mapsto> 

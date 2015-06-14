@@ -116,18 +116,18 @@ lemma "ports_toString ''spt: '' (1024,2048) = ''spt: (1024,2048)''" by eval
 
 
 fun common_primitive_toString :: "common_primitive \<Rightarrow> string" where
-  "common_primitive_toString (Src (Ip4Addr (a,b,c,d))) = ''src=''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d" |
-  "common_primitive_toString (Dst (Ip4Addr (a,b,c,d))) = ''dst=''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d" |
+  "common_primitive_toString (Src (Ip4Addr (a,b,c,d))) = ''-s ''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d" |
+  "common_primitive_toString (Dst (Ip4Addr (a,b,c,d))) = ''-d ''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d" |
   "common_primitive_toString (Src (Ip4AddrNetmask (a,b,c,d) n)) =
       ''src=''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d@''/''@string_of_nat n"  |
   "common_primitive_toString (Dst (Ip4AddrNetmask (a,b,c,d) n)) =
       ''dst=''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d@''/''@string_of_nat n"  |
-  "common_primitive_toString (IIface ifce) = iface_toString ''in='' ifce" |
-  "common_primitive_toString (OIface ifce) = iface_toString ''out='' ifce" |
+  "common_primitive_toString (IIface ifce) = iface_toString ''-i '' ifce" |
+  "common_primitive_toString (OIface ifce) = iface_toString ''-o '' ifce" |
   "common_primitive_toString (Prot prot) = protocol_toString prot" |
-  "common_primitive_toString (Src_Ports pts) = list_toString (ports_toString ''spts='') pts" |
-  "common_primitive_toString (Dst_Ports pts) = list_toString (ports_toString ''dpts='') pts" |
-  "common_primitive_toString (Extra e) = ''`''@e@''`''"
+  "common_primitive_toString (Src_Ports pts) = list_toString (ports_toString ''--spts '') pts" |
+  "common_primitive_toString (Dst_Ports pts) = list_toString (ports_toString ''--dpts '') pts" |
+  "common_primitive_toString (Extra e) = ''[''@e@'']''"
 
 
 fun common_primitive_match_expr_toString :: "common_primitive match_expr \<Rightarrow> string" where

@@ -2205,12 +2205,12 @@ fun to_simple_firewall rs =
     rs;
 
 fun common_primitive_toString (Src (Ip4Addr (a, (b, (c, d))))) =
-  [#"s", #"r", #"c", #"="] @
+  [#"-", #"s", #" "] @
     string_of_nat a @
       [#"."] @
         string_of_nat b @ [#"."] @ string_of_nat c @ [#"."] @ string_of_nat d
   | common_primitive_toString (Dst (Ip4Addr (a, (b, (c, d))))) =
-    [#"d", #"s", #"t", #"="] @
+    [#"-", #"d", #" "] @
       string_of_nat a @
         [#"."] @
           string_of_nat b @ [#"."] @ string_of_nat c @ [#"."] @ string_of_nat d
@@ -2231,15 +2231,17 @@ fun common_primitive_toString (Src (Ip4Addr (a, (b, (c, d))))) =
               string_of_nat c @
                 [#"."] @ string_of_nat d @ [#"/"] @ string_of_nat n
   | common_primitive_toString (IIface ifce) =
-    iface_toString [#"i", #"n", #"="] ifce
+    iface_toString [#"-", #"i", #" "] ifce
   | common_primitive_toString (OIface ifce) =
-    iface_toString [#"o", #"u", #"t", #"="] ifce
+    iface_toString [#"-", #"o", #" "] ifce
   | common_primitive_toString (Prot prot) = protocol_toString prot
   | common_primitive_toString (Src_Ports pts) =
-    list_toString (ports_toString [#"s", #"p", #"t", #"s", #"="]) pts
+    list_toString (ports_toString [#"-", #"-", #"s", #"p", #"t", #"s", #" "])
+      pts
   | common_primitive_toString (Dst_Ports pts) =
-    list_toString (ports_toString [#"d", #"p", #"t", #"s", #"="]) pts
-  | common_primitive_toString (Extra e) = [#"`"] @ e @ [#"`"];
+    list_toString (ports_toString [#"-", #"-", #"d", #"p", #"t", #"s", #" "])
+      pts
+  | common_primitive_toString (Extra e) = [#"["] @ e @ [#"]"];
 
 fun normalized_dst_ips MatchAny = true
   | normalized_dst_ips (Match uu) = true
