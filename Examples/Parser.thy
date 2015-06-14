@@ -370,6 +370,23 @@ fun mk_Ruleset (tbl: firewall_table) = FirewallTable.dest tbl
     |> HOLogic.mk_list @{typ "string \<times> common_primitive rule list"}
 *}
 
+
+(*default policies*)
+ML{*
+local
+  fun default_policy_action_to_term "ACCEPT" = @{const "action.Accept"}
+   |  default_policy_action_to_term "DROP" = @{const "action.Drop"}
+   |  default_policy_action_to_term a = raise Fail ("Not a valid default policy `"^a^"'")
+in
+  (*chain_name * default_policy*)
+  fun preparedefault_policies [] = []
+   |  preparedefault_policies ((chain_name, SOME default_policy)::ls) =
+          (chain_name, default_policy_action_to_term default_policy) :: preparedefault_policies ls
+   |  preparedefault_policies ((_, NONE)::ls) = preparedefault_policies ls
+end
+*}
+
+
 ML{*
 fun trace_timing (printstr : string) (f : 'a -> 'b) (a : 'a) : 'b =
   let val t0 = Time.now(); in
@@ -386,7 +403,8 @@ fun simplify_code (ctx: Proof.context) = let val _ = writeln "unfolding (this ma
 fun certify_term (ctx: Proof.context) (t: term) = trace_timing "Certified term" (Thm.cterm_of ctx) t
 *}
 
-ML{* (*putting it all together*)
+
+ML_val{*(*putting it all together*)
 fun parse_iptables_save (file: string list) : term = 
     load_filter_table file
     |> rule_type_partition
@@ -394,14 +412,8 @@ fun parse_iptables_save (file: string list) : term =
     |> make_firewall_table
     |> mk_Ruleset
     |> simplify_code @{context}
-*}
 
-(*ML{*
-val example = parse_iptables_save ["Examples", "SQRL_Shorewall", "iptables-saveakachan"];
-Pretty.writeln (Syntax.pretty_term @{context} example);
-*}*)
 
-ML{*
 val example = parse_iptables_save ["Examples", "Parser_Test", "iptables-save"];
 
 Pretty.writeln (Syntax.pretty_term @{context} example);
@@ -417,8 +429,21 @@ local
          lthy
        end
 in
-  (*this may a while*)
-  fun local_setup_parse_iptables_save (name: binding) path = define_const (parse_iptables_save path) name
+  fun local_setup_parse_iptables_save (name: binding) path lthy =
+    let val prepared =
+      path
+      |> load_filter_table
+      |> rule_type_partition in
+    let val firewall =
+      prepared
+      |> filter_chain_decls_names_only
+      |> make_firewall_table
+      |> mk_Ruleset
+      (*this may a while*)
+      |> simplify_code @{context}
+    in
+      define_const firewall name lthy
+    end end
 end
 *}
 
