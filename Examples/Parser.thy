@@ -169,13 +169,20 @@ local (*iptables-save parsers*)
                          || Scan.this_string "udp" >> K @{const primitive_protocol.UDP}
                          || Scan.this_string "icmp" >> K @{const primitive_protocol.ICMP}
 
-      val mk_port_single = extract_int #> mk_nat 65535 #> (fn n => @{const nat_to_16word} $ n)
-      val parse_port_raw = Scan.many1 Symbol.is_ascii_digit >> mk_port_single
-      (*TODO*)
-      val parser_port_single_tup =
-          (     (parse_port_raw --| $$ ":" -- parse_port_raw) >> HOLogic.mk_prod
-            || (parse_port_raw  >> (fn p => (p,p))) >> HOLogic.mk_prod
-          ) >> ((fn x => [x]) #> HOLogic.mk_list @{typ "16 word \<times> 16 word"})
+      local
+        val mk_port_single = mk_nat 65535 #> (fn n => @{const nat_to_16word} $ n)
+        val parse_port_raw = Scan.many1 Symbol.is_ascii_digit >> extract_int
+        fun port_tuple_warn (p1,p2) = if p1 >= p2 then let val _= writeln ("WARNING (in ports): "^Int.toString p1^" >= "^Int.toString p2) in (p1, p2) end else (p1, p2);
+      in
+        val parser_port_single_tup = (
+                 (parse_port_raw --| $$ ":" -- parse_port_raw) >> (port_tuple_warn #> (fn (p1,p2) => (mk_port_single p1, mk_port_single p2)))
+              || (parse_port_raw  >> (fn p => (mk_port_single p, mk_port_single p)))
+            ) >> HOLogic.mk_prod
+        end
+      val parser_port_single_tup_term = parser_port_single_tup >> ((fn x => [x]) #> HOLogic.mk_list @{typ "16 word \<times> 16 word"})
+
+      fun parse_comma_separated_list parser =  Scan.repeat1 (parser --| $$ ",") @@@ (parser >> (fn p => [p]))
+      val parser_port_many1_tup = parse_comma_separated_list parser_port_single_tup  >> HOLogic.mk_list @{typ "16 word \<times> 16 word"}
     
       val parser_extra = Scan.many1 (fn x => x <> " " andalso Symbol.not_eof x) >> (implode #> HOLogic.mk_string);
     end;
@@ -197,10 +204,12 @@ local (*iptables-save parsers*)
 
     val parse_protocol = parse_cmd_option "-p " @{term "Prot \<circ> Proto"} parser_protocol;
 
-    val parse_src_ports = parse_cmd_option "-m tcp --sport " @{const Src_Ports} parser_port_single_tup
-                       || parse_cmd_option "-m udp --sport " @{const Src_Ports} parser_port_single_tup;
-    val parse_dst_ports = parse_cmd_option "-m tcp --dport " @{const Dst_Ports} parser_port_single_tup
-                       || parse_cmd_option "-m udp --dport " @{const Dst_Ports} parser_port_single_tup;
+    val parse_src_ports = parse_cmd_option "-m tcp --sport " @{const Src_Ports} parser_port_single_tup_term
+                       || parse_cmd_option "-m udp --sport " @{const Src_Ports} parser_port_single_tup_term
+                       || parse_cmd_option "-m multiport --sports  " @{const Src_Ports} parser_port_many1_tup;
+    val parse_dst_ports = parse_cmd_option "-m tcp --dport " @{const Dst_Ports} parser_port_single_tup_term
+                       || parse_cmd_option "-m udp --dport " @{const Dst_Ports} parser_port_single_tup_term
+                       || parse_cmd_option "-m multiport --dports " @{const Dst_Ports} parser_port_many1_tup;
     (*-m tcp requires that there is already an -p tcp*)
     
     val parse_unknown = parse_cmd_option "" @{const Extra} parser_extra;
