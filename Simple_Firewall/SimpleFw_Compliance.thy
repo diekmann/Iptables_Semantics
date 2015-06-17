@@ -322,9 +322,12 @@ theorem to_simple_firewall: "check_simple_fw_preconditions rs \<Longrightarrow> 
     have match: "\<And> sm. common_primitive_match_to_simple_match m = Some sm \<Longrightarrow> matches (common_matcher, \<alpha>) m a p = simple_matches sm p" and
          nomatch: "common_primitive_match_to_simple_match m = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p"
       unfolding check_simple_fw_preconditions_def by simp_all
+    from to_simple_firewall_simps r Cons.prems have to_simple_firewall_simps': "to_simple_firewall (Rule m a # rs) =
+        (case common_primitive_match_to_simple_match m of None \<Rightarrow> to_simple_firewall rs
+                       | Some sm \<Rightarrow> SimpleRule sm (action_to_simple_action a) # to_simple_firewall rs)" by simp
     from `check_simple_fw_preconditions [r]` have "a = action.Accept \<or> a = action.Drop" by(simp add: r check_simple_fw_preconditions_def)
     thus ?case
-      by(auto simp add: r to_simple_firewall_simps IH match nomatch split: option.split action.split)
+      by(auto simp add: r to_simple_firewall_simps' IH match nomatch split: option.split action.split)
   qed
 
 end
