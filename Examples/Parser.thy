@@ -158,6 +158,10 @@ local (*iptables-save parsers*)
       val parser_ip_cidr = parser_ip --| ($$ "/") -- (Scan.many1 Symbol.is_ascii_digit >> extract_int) >> ip_to_hol;
     
       val parser_interface = Scan.many1 is_iface_char >> (implode #> (fn x => @{const Iface} $ HOLogic.mk_string x));
+
+      val parser_protocol = Scan.this_string "tcp" >> K @{const primitive_protocol.TCP}
+                         || Scan.this_string "udp" >> K @{const primitive_protocol.UDP}
+                         || Scan.this_string "icmp" >> K @{const primitive_protocol.ICMP}
     
       val parser_extra = Scan.many1 (fn x => x <> " " andalso Symbol.not_eof x) >> (implode #> HOLogic.mk_string);
     
@@ -178,6 +182,8 @@ local (*iptables-save parsers*)
     
     val parse_in_iface = parse_cmd_option "-i " @{const IIface} parser_interface;
     val parse_out_iface = parse_cmd_option "-o " @{const OIface} parser_interface;
+
+    val parse_protocol = parse_cmd_option "-p " @{term "Prot \<circ> Proto"} parser_protocol;
     
     val parse_unknown = parse_cmd_option "" @{const Extra} parser_extra;
   end;
@@ -218,12 +224,13 @@ in
   (*parses: -s 0.31.123.213/88 --foo_bar -j chain --foobar
    First tries to parse a known field, afterwards, it parses something unknown until a blank space appears
   *)
-  (*TODO: not parsed: negated IPs, ports, protocols, ...*)
-  (*TODO: the new rulesets don't have negated IP addresses, but definetely test this!*)
+  (*TODO: not parsed: ports, protocols, ...*)
+  (*TODO: parse_options*)
   val option_parser : (string list -> (parsed_match_action) * string list) = 
       Scan.recover (parse_src_ip || parse_dst_ip || parse_src_ip_negated || parse_dst_ip_negated
-                 || parse_in_iface || parse_out_iface ||
-                    parse_target ) (K parse_unknown);
+                 || parse_in_iface || parse_out_iface
+                 || parse_protocol
+                 || parse_target ) (K parse_unknown);
   
   
   (*parse_table_append should be called before option_parser, otherwise -A will simply be an unknown for option_parser*)
