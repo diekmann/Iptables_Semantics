@@ -506,30 +506,6 @@ local_setup \<open>
 declare foo_def[code]
 thm foo_FORWARD_default_policy_def
 
-(*ML{*
-fun conv_result cv ct = Thm.prop_of (cv ct) |> Logic.dest_equals |> snd;
-
-val foo_map_of = conv_result (Code_Simp.dynamic_conv @{context}) @{cterm "map_of foo"};
-
-Pretty.writeln (Syntax.pretty_term @{context} foo_map_of);
-*}
-(*todo: probably add foo_map_of*)
-
-local_setup \<open>fn lthy =>
-let
-   val ((_, (_, thm)), lthy) =
-    Local_Theory.define ((@{binding foo_map_of}, NoSyn),
-        (*this takes a while*)
-        ((Binding.empty, []), foo_map_of)) lthy
-    val (_, lthy) =
-       Local_Theory.note ((@{binding foo_map_of_def}, []), [thm]) lthy
-   in
-     lthy
-   end
- \<close>
-
-declare foo_map_of_def[code]*)
-
 term foo
 thm foo_def
 
