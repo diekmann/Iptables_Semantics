@@ -19,8 +19,7 @@ thm SQRL_fw_FORWARD_default_policy_def
 
 lemma "Semantics_Goto.terminal_chain (the ((map_of_string SQRL_fw) ''smurflog''))" by eval
 lemma "Semantics_Goto.terminal_chain (the ((map_of_string SQRL_fw) ''logflags''))" by eval
-(*removing  (Extra ''--reject-with icmp-host-prohibited''*)
-lemma "Semantics_Goto.terminal_chain (butlast (the ((map_of_string SQRL_fw) ''reject'')) @ [Rule MatchAny Reject])" by eval
+lemma "Semantics_Goto.terminal_chain (the ((map_of_string SQRL_fw) ''reject''))" by eval
 
 
 export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure

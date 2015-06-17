@@ -70,7 +70,12 @@ split_at (fn x => x <> " ") (raw_explode "foo bar")
 *}
 
 
-section{**An (incomplete) SML Parser for iptables-save*}
+section{*An SML Parser for iptables-save*}
+text{*Work in Progress*}
+
+ML{*
+datatype parse_options = ParseOption_Interfaces | ParseOption_Ports
+*}
 
 ML{*
 local
@@ -181,19 +186,29 @@ local (*iptables-save parsers*)
   local (*parser for target/action*)
     fun is_target_char x = Symbol.is_ascii x andalso
         (Symbol.is_ascii_letter x orelse Symbol.is_ascii_digit x orelse x = "-" orelse x = "_" orelse x = "~")
+
+    fun parse_finite_skipwhite parser = Scan.finite Symbol.stopper (is_whitespace |-- parser);
+
+    val is_icmp_type = fn x => Symbol.is_ascii_letter x orelse x = "-"
   in
     val parser_target = Scan.many1 is_target_char >> implode;
   
     (*parses: -j MY_CUSTOM_CHAIN*)
     (*The -j may not be the end of the line. example: -j LOG --log-prefix "[IPT_DROP]:"*)
-    val parse_target : (string list -> parsed_match_action * string list) = 
-                  Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string "-j " |-- (parser_target >> (fn s => ParsedAction (TypeCall, s))));
+    val parse_target_generic : (string list -> parsed_match_action * string list) =  parse_finite_skipwhite
+      (Scan.this_string "-j " |-- (parser_target >> (fn s => ParsedAction (TypeCall, s))));
 
-    (*TODO: parse REJECT --reject-with type*)
+    (*parses: REJECT --reject-with type*)
+    val parse_target_reject : (string list -> parsed_match_action * string list) =  parse_finite_skipwhite
+      (Scan.this_string "-j " |-- (Scan.this_string "REJECT" >> (fn s => ParsedAction (TypeCall, s)))
+       --| ((Scan.this_string " --reject-with " --| Scan.many1 is_icmp_type) || Scan.this_string ""));
 
-    val parse_target_goto : (string list -> parsed_match_action * string list) = 
-                  Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string "-g " 
-                    |-- (parser_target >> (fn s => let val _ = writeln ("WARNING: goto in `"^s^"'") in ParsedAction (TypeGoto, s) end)));
+
+    val parse_target_goto : (string list -> parsed_match_action * string list) = parse_finite_skipwhite
+      (Scan.this_string "-g " |-- (parser_target >> (fn s => let val _ = writeln ("WARNING: goto in `"^s^"'") in ParsedAction (TypeGoto, s) end)));
+
+
+    val parse_target : (string list -> parsed_match_action * string list) = parse_target_reject || parse_target_goto || parse_target_generic;
   end;
 in
   (*parses: -A FORWARD*)
@@ -205,11 +220,10 @@ in
   *)
   (*TODO: not parsed: negated IPs, ports, protocols, ...*)
   (*TODO: the new rulesets don't have negated IP addresses, but definetely test this!*)
-  (*TODO: better way to fail on goto action*)
   val option_parser : (string list -> (parsed_match_action) * string list) = 
-      Scan.recover (parse_src_ip || parse_dst_ip || parse_in_iface || parse_out_iface ||
-                    parse_target || parse_target_goto || parse_src_ip_negated || 
-                    parse_dst_ip_negated) (K parse_unknown);
+      Scan.recover (parse_src_ip || parse_dst_ip || parse_src_ip_negated || parse_dst_ip_negated
+                 || parse_in_iface || parse_out_iface ||
+                    parse_target ) (K parse_unknown);
   
   
   (*parse_table_append should be called before option_parser, otherwise -A will simply be an unknown for option_parser*)
@@ -500,7 +514,7 @@ ML{*
 open Test;
 *}
 
-
+(*fails due to goto*)
 ML{*
 val unfolded = unfold_ruleset_FORWARD Accept (map_of_string foo);
 *}
