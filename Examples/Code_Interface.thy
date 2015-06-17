@@ -46,8 +46,12 @@ definition port_to_nat :: "16 word \<Rightarrow> nat" where
 *)
 
 (* only used for ML code to convert types *)
+definition nat_to_16word :: "nat \<Rightarrow> 16 word" where
+  "nat_to_16word i \<equiv> of_nat i"
+
 definition integer_to_16word :: "integer \<Rightarrow> 16 word" where
-  "integer_to_16word i \<equiv> of_nat (nat_of_integer i)"
+  "integer_to_16word i \<equiv> nat_to_16word (nat_of_integer i)"
+
 
 
 

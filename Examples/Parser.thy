@@ -124,6 +124,12 @@ ipt_explode "ad \"as das\" boo";
 ipt_explode "ad \"foobar --boo boo";
 *}
 
+(*TEST TODO remove*)
+ML_val{*
+type_of (@{const Src_Ports} $ ([HOLogic.mk_prod (@{const nat_to_16word} $ HOLogic.mk_nat 22, @{term "44::16 word"})] |> HOLogic.mk_list @{typ "16 word \<times> 16 word"}));
+Scan.ahead ($$ " ") (raw_explode " foo")
+*}
+
 
 ML{*
 datatype parsed_action_type = TypeCall | TypeGoto
@@ -162,9 +168,16 @@ local (*iptables-save parsers*)
       val parser_protocol = Scan.this_string "tcp" >> K @{const primitive_protocol.TCP}
                          || Scan.this_string "udp" >> K @{const primitive_protocol.UDP}
                          || Scan.this_string "icmp" >> K @{const primitive_protocol.ICMP}
+
+      val mk_port_single = extract_int #> mk_nat 65535 #> (fn n => @{const nat_to_16word} $ n)
+      val parse_port_raw = Scan.many1 Symbol.is_ascii_digit >> mk_port_single
+      (*TODO*)
+      val parser_port_single_tup =
+          (     (parse_port_raw --| $$ ":" -- parse_port_raw) >> HOLogic.mk_prod
+            || (parse_port_raw  >> (fn p => (p,p))) >> HOLogic.mk_prod
+          ) >> ((fn x => [x]) #> HOLogic.mk_list @{typ "16 word \<times> 16 word"})
     
       val parser_extra = Scan.many1 (fn x => x <> " " andalso Symbol.not_eof x) >> (implode #> HOLogic.mk_string);
-    
     end;
     fun parse_cmd_option_generic (d: term -> parsed_match_action) (s: string) (t: term) (parser: string list -> (term * string list)) = 
         Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string s |-- (parser >> (fn r => d (t $ r))))
@@ -184,6 +197,12 @@ local (*iptables-save parsers*)
     val parse_out_iface = parse_cmd_option "-o " @{const OIface} parser_interface;
 
     val parse_protocol = parse_cmd_option "-p " @{term "Prot \<circ> Proto"} parser_protocol;
+
+    val parse_src_ports = parse_cmd_option "-m tcp --sport " @{const Src_Ports} parser_port_single_tup
+                       || parse_cmd_option "-m udp --sport " @{const Src_Ports} parser_port_single_tup;
+    val parse_dst_ports = parse_cmd_option "-m tcp --dport " @{const Dst_Ports} parser_port_single_tup
+                       || parse_cmd_option "-m udp --dport " @{const Dst_Ports} parser_port_single_tup;
+    (*-m tcp requires that there is already an -p tcp*)
     
     val parse_unknown = parse_cmd_option "" @{const Extra} parser_extra;
   end;
@@ -230,6 +249,7 @@ in
       Scan.recover (parse_src_ip || parse_dst_ip || parse_src_ip_negated || parse_dst_ip_negated
                  || parse_in_iface || parse_out_iface
                  || parse_protocol
+                 || parse_src_ports || parse_dst_ports
                  || parse_target ) (K parse_unknown);
   
   
