@@ -23,6 +23,17 @@ lemma "Semantics_Goto.terminal_chain (the ((map_of_string SQRL_fw) ''smurflog'')
 lemma "Semantics_Goto.terminal_chain (the ((map_of_string SQRL_fw) ''logflags''))" by eval
 lemma "Semantics_Goto.terminal_chain (the ((map_of_string SQRL_fw) ''reject''))" by eval
 
+fun rewrite_Goto_chain :: "(string \<rightharpoonup> 'a rule list) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
+  "rewrite_Goto_chain _ [] = []" |
+  "rewrite_Goto_chain \<Gamma> ((Rule m (Goto chain))#rs) =
+      (if Semantics_Goto.terminal_chain (the (\<Gamma> chain)) then Rule m (Call chain) else undefined)#rewrite_Goto_chain \<Gamma> rs" |
+  "rewrite_Goto_chain \<Gamma> (r#rs) = r#rewrite_Goto_chain \<Gamma> rs"
+
+definition rewrite_Goto :: "(string \<times> 'a rule list) list \<Rightarrow> (string \<times> 'a rule list) list" where
+  "rewrite_Goto cs = map (\<lambda>(chain_name, rs). (chain_name, rewrite_Goto_chain (map_of cs) rs)) cs"
+
+value[code] "rewrite_Goto SQRL_fw"  
+
 
 export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure
   Rule

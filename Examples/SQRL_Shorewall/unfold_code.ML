@@ -1764,8 +1764,9 @@ fun action_toString Accept = [#"A", #"C", #"C", #"E", #"P", #"T"]
   | action_toString Drop = [#"D", #"R", #"O", #"P"]
   | action_toString Reject = [#"R", #"E", #"J", #"E", #"C", #"T"]
   | action_toString (Call target) = [#"C", #"a", #"l", #"l", #" "] @ target
+  | action_toString (Goto target) = [#"G", #"o", #"t", #"o", #" "] @ target
   | action_toString Empty =
-    [#"(", #"a", #"m", #"p", #"t", #"y", #" ", #"a", #"c", #"t", #"i", #"o",
+    [#"(", #"e", #"m", #"p", #"t", #"y", #" ", #"a", #"c", #"t", #"i", #"o",
       #"n", #")"]
   | action_toString Log = [#"L", #"O", #"G"]
   | action_toString Return = [#"R", #"E", #"T", #"U", #"N", #"R", #"N"]
@@ -2241,7 +2242,7 @@ fun common_primitive_toString (Src (Ip4Addr (a, (b, (c, d))))) =
   | common_primitive_toString (Dst_Ports pts) =
     list_toString (ports_toString [#"-", #"-", #"d", #"p", #"t", #"s", #" "])
       pts
-  | common_primitive_toString (Extra e) = [#"["] @ e @ [#"]"];
+  | common_primitive_toString (Extra e) = [#"~", #"~"] @ e @ [#"~", #"~"];
 
 fun normalized_dst_ips MatchAny = true
   | normalized_dst_ips (Match uu) = true

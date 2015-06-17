@@ -73,9 +73,9 @@ split_at (fn x => x <> " ") (raw_explode "foo bar")
 section{*An SML Parser for iptables-save*}
 text{*Work in Progress*}
 
-ML{*
+(*ML{*
 datatype parse_options = ParseOption_Interfaces | ParseOption_Ports
-*}
+*}*)
 
 ML{*
 local
