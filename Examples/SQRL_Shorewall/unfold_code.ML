@@ -36,9 +36,9 @@ structure Test : sig
     action ->
       (char list -> (common_primitive rule list) option) ->
         common_primitive rule list
+  val check_simple_fw_preconditions : common_primitive rule list -> bool
   val to_simple_firewall : common_primitive rule list -> simple_rule list
   val common_primitive_rule_toString : common_primitive rule -> char list
-  val check_simple_fw_preconditions : common_primitive rule list -> bool
 end = struct
 
 datatype int = Int_of_integer of IntInf.int;
@@ -2190,6 +2190,76 @@ fun common_primitive_match_to_simple_match MatchAny = SOME simple_match_any
   | common_primitive_match_to_simple_match (MatchNot (Match (Extra vh))) =
     (raise Fail "undefined");
 
+fun is_Extra (Src x1) = false
+  | is_Extra (Dst x2) = false
+  | is_Extra (IIface x3) = false
+  | is_Extra (OIface x4) = false
+  | is_Extra (Prot x5) = false
+  | is_Extra (Src_Ports x6) = false
+  | is_Extra (Dst_Ports x7) = false
+  | is_Extra (Extra x8) = true;
+
+fun normalized_protocols MatchAny = true
+  | normalized_protocols (Match uu) = true
+  | normalized_protocols (MatchNot (Match (Prot uv))) = false
+  | normalized_protocols (MatchAnd (m1, m2)) =
+    normalized_protocols m1 andalso normalized_protocols m2
+  | normalized_protocols (MatchNot (MatchAnd (uw, ux))) = false
+  | normalized_protocols (MatchNot (Match (Src va))) = true
+  | normalized_protocols (MatchNot (Match (Dst va))) = true
+  | normalized_protocols (MatchNot (Match (IIface va))) = true
+  | normalized_protocols (MatchNot (Match (OIface va))) = true
+  | normalized_protocols (MatchNot (Match (Src_Ports va))) = true
+  | normalized_protocols (MatchNot (Match (Dst_Ports va))) = true
+  | normalized_protocols (MatchNot (Match (Extra va))) = true
+  | normalized_protocols (MatchNot (MatchNot v)) = true
+  | normalized_protocols (MatchNot MatchAny) = true;
+
+fun normalized_src_ips MatchAny = true
+  | normalized_src_ips (Match uu) = true
+  | normalized_src_ips (MatchNot (Match (Src uv))) = false
+  | normalized_src_ips (MatchNot (Match (Dst v))) = true
+  | normalized_src_ips (MatchNot (Match (IIface v))) = true
+  | normalized_src_ips (MatchNot (Match (OIface v))) = true
+  | normalized_src_ips (MatchNot (Match (Prot v))) = true
+  | normalized_src_ips (MatchNot (Match (Src_Ports v))) = true
+  | normalized_src_ips (MatchNot (Match (Dst_Ports v))) = true
+  | normalized_src_ips (MatchNot (Match (Extra v))) = true
+  | normalized_src_ips (MatchAnd (m1, m2)) =
+    normalized_src_ips m1 andalso normalized_src_ips m2
+  | normalized_src_ips (MatchNot (MatchAnd (ux, uy))) = false
+  | normalized_src_ips (MatchNot (MatchNot uz)) = false
+  | normalized_src_ips (MatchNot MatchAny) = true;
+
+fun normalized_dst_ips MatchAny = true
+  | normalized_dst_ips (Match uu) = true
+  | normalized_dst_ips (MatchNot (Match (Dst uv))) = false
+  | normalized_dst_ips (MatchNot (Match (Src v))) = true
+  | normalized_dst_ips (MatchNot (Match (IIface v))) = true
+  | normalized_dst_ips (MatchNot (Match (OIface v))) = true
+  | normalized_dst_ips (MatchNot (Match (Prot v))) = true
+  | normalized_dst_ips (MatchNot (Match (Src_Ports v))) = true
+  | normalized_dst_ips (MatchNot (Match (Dst_Ports v))) = true
+  | normalized_dst_ips (MatchNot (Match (Extra v))) = true
+  | normalized_dst_ips (MatchAnd (m1, m2)) =
+    normalized_dst_ips m1 andalso normalized_dst_ips m2
+  | normalized_dst_ips (MatchNot (MatchAnd (ux, uy))) = false
+  | normalized_dst_ips (MatchNot (MatchNot uz)) = false
+  | normalized_dst_ips (MatchNot MatchAny) = true;
+
+fun check_simple_fw_preconditions rs =
+  pred_list
+    (fn Rule (m, a) =>
+      normalized_src_ports m andalso
+        (normalized_dst_ports m andalso
+          (normalized_src_ips m andalso
+            (normalized_dst_ips m andalso
+              (normalized_ifaces m andalso
+                (normalized_protocols m andalso
+                  (not (has_disc is_Extra m) andalso
+                    (equal_action a Accept orelse equal_action a Drop))))))))
+    rs;
+
 fun action_to_simple_action Accept = Accepta
   | action_to_simple_action Drop = Dropa
   | action_to_simple_action Log = (raise Fail "undefined")
@@ -2201,11 +2271,13 @@ fun action_to_simple_action Accept = Accepta
   | action_to_simple_action Unknown = (raise Fail "undefined");
 
 fun to_simple_firewall rs =
-  map_filter
-    (fn Rule (m, a) =>
-      (case common_primitive_match_to_simple_match m of NONE => NONE
-        | SOME sm => SOME (SimpleRule (sm, action_to_simple_action a))))
-    rs;
+  (if check_simple_fw_preconditions rs
+    then map_filter
+           (fn Rule (m, a) =>
+             (case common_primitive_match_to_simple_match m of NONE => NONE
+               | SOME sm => SOME (SimpleRule (sm, action_to_simple_action a))))
+           rs
+    else (raise Fail "undefined"));
 
 fun common_primitive_toString (Src (Ip4Addr (a, (b, (c, d))))) =
   [#"-", #"s", #" "] @
@@ -2247,54 +2319,6 @@ fun common_primitive_toString (Src (Ip4Addr (a, (b, (c, d))))) =
       pts
   | common_primitive_toString (Extra e) = [#"~", #"~"] @ e @ [#"~", #"~"];
 
-fun normalized_dst_ips MatchAny = true
-  | normalized_dst_ips (Match uu) = true
-  | normalized_dst_ips (MatchNot (Match (Dst uv))) = false
-  | normalized_dst_ips (MatchNot (Match (Src v))) = true
-  | normalized_dst_ips (MatchNot (Match (IIface v))) = true
-  | normalized_dst_ips (MatchNot (Match (OIface v))) = true
-  | normalized_dst_ips (MatchNot (Match (Prot v))) = true
-  | normalized_dst_ips (MatchNot (Match (Src_Ports v))) = true
-  | normalized_dst_ips (MatchNot (Match (Dst_Ports v))) = true
-  | normalized_dst_ips (MatchNot (Match (Extra v))) = true
-  | normalized_dst_ips (MatchAnd (m1, m2)) =
-    normalized_dst_ips m1 andalso normalized_dst_ips m2
-  | normalized_dst_ips (MatchNot (MatchAnd (ux, uy))) = false
-  | normalized_dst_ips (MatchNot (MatchNot uz)) = false
-  | normalized_dst_ips (MatchNot MatchAny) = true;
-
-fun normalized_src_ips MatchAny = true
-  | normalized_src_ips (Match uu) = true
-  | normalized_src_ips (MatchNot (Match (Src uv))) = false
-  | normalized_src_ips (MatchNot (Match (Dst v))) = true
-  | normalized_src_ips (MatchNot (Match (IIface v))) = true
-  | normalized_src_ips (MatchNot (Match (OIface v))) = true
-  | normalized_src_ips (MatchNot (Match (Prot v))) = true
-  | normalized_src_ips (MatchNot (Match (Src_Ports v))) = true
-  | normalized_src_ips (MatchNot (Match (Dst_Ports v))) = true
-  | normalized_src_ips (MatchNot (Match (Extra v))) = true
-  | normalized_src_ips (MatchAnd (m1, m2)) =
-    normalized_src_ips m1 andalso normalized_src_ips m2
-  | normalized_src_ips (MatchNot (MatchAnd (ux, uy))) = false
-  | normalized_src_ips (MatchNot (MatchNot uz)) = false
-  | normalized_src_ips (MatchNot MatchAny) = true;
-
-fun normalized_protocols MatchAny = true
-  | normalized_protocols (Match uu) = true
-  | normalized_protocols (MatchNot (Match (Prot uv))) = false
-  | normalized_protocols (MatchAnd (m1, m2)) =
-    normalized_protocols m1 andalso normalized_protocols m2
-  | normalized_protocols (MatchNot (MatchAnd (uw, ux))) = false
-  | normalized_protocols (MatchNot (Match (Src va))) = true
-  | normalized_protocols (MatchNot (Match (Dst va))) = true
-  | normalized_protocols (MatchNot (Match (IIface va))) = true
-  | normalized_protocols (MatchNot (Match (OIface va))) = true
-  | normalized_protocols (MatchNot (Match (Src_Ports va))) = true
-  | normalized_protocols (MatchNot (Match (Dst_Ports va))) = true
-  | normalized_protocols (MatchNot (Match (Extra va))) = true
-  | normalized_protocols (MatchNot (MatchNot v)) = true
-  | normalized_protocols (MatchNot MatchAny) = true;
-
 fun common_primitive_match_expr_toString MatchAny = []
   | common_primitive_match_expr_toString (Match m) = common_primitive_toString m
   | common_primitive_match_expr_toString (MatchAnd (m1, m2)) =
@@ -2306,27 +2330,5 @@ fun common_primitive_match_expr_toString MatchAny = []
 
 fun common_primitive_rule_toString (Rule (m, a)) =
   common_primitive_match_expr_toString m @ [#" "] @ action_toString a;
-
-fun is_Extra (Src x1) = false
-  | is_Extra (Dst x2) = false
-  | is_Extra (IIface x3) = false
-  | is_Extra (OIface x4) = false
-  | is_Extra (Prot x5) = false
-  | is_Extra (Src_Ports x6) = false
-  | is_Extra (Dst_Ports x7) = false
-  | is_Extra (Extra x8) = true;
-
-fun check_simple_fw_preconditions rs =
-  pred_list
-    (fn Rule (m, a) =>
-      normalized_src_ports m andalso
-        (normalized_dst_ports m andalso
-          (normalized_src_ips m andalso
-            (normalized_dst_ips m andalso
-              (normalized_ifaces m andalso
-                (normalized_protocols m andalso
-                  (not (has_disc is_Extra m) andalso
-                    (equal_action a Accept orelse equal_action a Drop))))))))
-    rs;
 
 end; (*struct Test*)

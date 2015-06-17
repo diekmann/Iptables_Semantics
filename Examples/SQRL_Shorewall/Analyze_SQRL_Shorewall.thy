@@ -31,6 +31,12 @@ value[code] "map (quote_rewrite \<circ> common_primitive_rule_toString)
                (upper_closure (unfold_ruleset_FORWARD SQRL_fw_FORWARD_default_policy (map_of_string (Semantics_Goto.rewrite_Goto SQRL_fw))))" 
 
 
+(*16.334s*)
+value[code] "map simple_rule_toString
+              (to_simple_firewall
+               (upper_closure (unfold_ruleset_FORWARD SQRL_fw_FORWARD_default_policy (map_of_string (Semantics_Goto.rewrite_Goto SQRL_fw)))))" 
+
+
 export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure
   Rule
   Accept Drop Log Reject Call Return Empty  Unknown
