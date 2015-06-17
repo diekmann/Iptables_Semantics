@@ -77,6 +77,11 @@ definition list_toString :: "('a \<Rightarrow> string) \<Rightarrow> 'a list \<R
 
 lemma "list_toString string_of_nat [1,2,3] = ''[1, 2, 3]''" by eval
 
+(*HACK: rewrite quotes wuch that they are better printable by Isabelle*)
+definition quote_rewrite :: "string \<Rightarrow> string" where
+  "quote_rewrite \<equiv> map (\<lambda>c. if c = Char Nibble2 Nibble2 then CHR ''~'' else c)"
+value "quote_rewrite (''foo''@[Char Nibble2 Nibble2])"
+
 definition ipv4_cidr_toString :: "(ipv4addr \<times> nat) \<Rightarrow> string" where
   "ipv4_cidr_toString ip_n = (case ip_n of (base, n) \<Rightarrow> 
       (case dotdecimal_of_ipv4addr base of (a,b,c,d) \<Rightarrow> string_of_nat a @''.''@ string_of_nat b @''.''@ string_of_nat c @''.''@ string_of_nat d
@@ -99,7 +104,8 @@ fun action_toString :: "action \<Rightarrow> string" where
   "action_toString action.Drop = ''DROP''" |
   "action_toString action.Reject = ''REJECT''" |
   "action_toString (action.Call target) = ''Call ''@target" |
-  "action_toString action.Empty = ''(ampty action)''" |
+  "action_toString (action.Goto target) = ''Goto ''@target" |
+  "action_toString action.Empty = ''(empty action)''" |
   "action_toString action.Log = ''LOG''" |
   "action_toString action.Return = ''RETUNRN''" |
   "action_toString action.Unknown = ''!!!!!!!!!!! UNKNOWN !!!!!!!!!!!''"
@@ -131,7 +137,7 @@ fun common_primitive_toString :: "common_primitive \<Rightarrow> string" where
   "common_primitive_toString (Prot prot) = protocol_toString prot" |
   "common_primitive_toString (Src_Ports pts) = list_toString (ports_toString ''--spts '') pts" |
   "common_primitive_toString (Dst_Ports pts) = list_toString (ports_toString ''--dpts '') pts" |
-  "common_primitive_toString (Extra e) = ''[''@e@'']''"
+  "common_primitive_toString (Extra e) = ''~~''@e@''~~''"
 
 
 fun common_primitive_match_expr_toString :: "common_primitive match_expr \<Rightarrow> string" where

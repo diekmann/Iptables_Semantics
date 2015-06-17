@@ -1,5 +1,6 @@
 theory TUM_Spoofing_new3
 imports "../Code_Interface"
+  "../Parser"
   "../../Primitive_Matchers/No_Spoof"
 begin
 
@@ -61,6 +62,31 @@ definition "example_ipassignment_nospoof ifce =
 
 
 definition "example_ipassmt_sanity_defined rs = ipassmt_sanity_defined rs (map_of ipassmt)"
+
+
+
+(*test*)
+local_setup \<open>
+  local_setup_parse_iptables_save @{binding net_fw} ["Examples", "TUM_Net_Firewall", "iptables-save-2015-05-15_15-23-41_cheating"]
+ \<close>
+declare net_fw_def[code]
+declare net_fw_FORWARD_default_policy_def[code]
+thm net_fw_def
+thm net_fw_FORWARD_default_policy_def
+value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw"
+
+(*194.439s*)
+value[code] "upper_closure (unfold_ruleset_FORWARD net_fw_FORWARD_default_policy (map_of_string net_fw))"
+
+(*146.691s*)
+value[code] "example_ipassignment_nospoof ''eth1.96'' (upper_closure (unfold_ruleset_FORWARD net_fw_FORWARD_default_policy (map_of_string net_fw)))"
+
+
+(*179.619s*)
+value[code] "let fw=(upper_closure (unfold_ruleset_FORWARD net_fw_FORWARD_default_policy (map_of_string net_fw))) in
+                  map (\<lambda>ifce. example_ipassignment_nospoof ifce fw) (map (iface_sel \<circ> fst) ipassmt)"
+value "(map (iface_sel \<circ> fst) ipassmt)"
+
 
 
 export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure

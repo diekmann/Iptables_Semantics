@@ -1991,6 +1991,10 @@ fun lower_closure rs =
 
 fun map_of_string rs = map_of (equal_list equal_char) rs;
 
+fun nat_to_16word i =
+  of_nat (semiring_1_word (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+    i;
+
 fun string_of_nat n =
   (if less_nat n (nat_of_integer (10 : IntInf.int))
     then [char_of_nat (plus_nat (nat_of_integer (48 : IntInf.int)) n)]
@@ -2162,9 +2166,7 @@ fun ipv4range_intersection r1 r2 =
 fun ipassmt_sanity_defined rs ipassmt =
   pred_list (fn iface => not (is_none (ipassmt iface))) (collect_ifaces rs);
 
-fun integer_to_16word i =
-  of_nat (semiring_1_word (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-    (nat_of_integer i);
+fun integer_to_16word i = nat_to_16word (nat_of_integer i);
 
 fun protocol_toString ProtoAny = [#"a", #"l", #"l"]
   | protocol_toString (Proto TCP) = [#"t", #"c", #"p"]

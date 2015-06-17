@@ -521,16 +521,11 @@ export_code
 ML_file "delete_me_test.ML"
 
 
-ML{*
+ML_val{*
 open Test;
-*}
-
 (*fails due to goto*)
-ML{*
 val unfolded = unfold_ruleset_FORWARD Accept (map_of_string foo);
-*}
 
-ML{*
 map (String.implode #> writeln) (map simple_rule_toString (to_simple_firewall (upper_closure (unfolded))));
 *}
 
