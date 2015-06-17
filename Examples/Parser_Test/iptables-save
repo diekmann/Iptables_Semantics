@@ -6,10 +6,12 @@
 :DOS~Pro-t_ect - [0:0]
 :Terminal - [0:0]
 -A FORWARD -s 127.0.0.0/8 -j DROP
+-A FORWARD ! -i eth+ -j DROP
 -A FORWARD -s 100.0.0.0/24 -p tcp -j DOS~Pro-t_ect
 -A DOS~Pro-t_ect -p tcp -m tcp --dport 22 -j ACCEPT
 -A FORWARD ! -s 131.159.0.0/16 -j DROP
 -A FORWARD -p tcp -m multiport --dports 80,443 -j RETURN
+-A FORWARD -d 127.0.0.1/32 -o eth1.152 -p udp -m multiport --dports 4569,5000:65535 -j ACCEPT
 -A FORWARD -g Terminal
 -A DOS~Pro-t_ect -p tcp -m state --state NEW -m tcp --dport 1:65535 --tcp-flags FIN,SYN,RST,ACK SYN -j ACCEPT
 -A DOS~Pro-t_ect -p udp -j RETURN
