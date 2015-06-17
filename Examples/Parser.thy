@@ -189,12 +189,13 @@ local (*iptables-save parsers*)
     
     val parse_src_ip = parse_cmd_option "-s " @{const Src} parser_ip_cidr;
     val parse_dst_ip = parse_cmd_option "-d " @{const Dst} parser_ip_cidr;
-
     val parse_src_ip_negated = parse_cmd_option_negated "! -s " @{const Src} parser_ip_cidr;
-    val parse_dst_ip_negated = parse_cmd_option_negated "! -d " @{const Dst} parser_ip_cidr;    
+    val parse_dst_ip_negated = parse_cmd_option_negated "! -d " @{const Dst} parser_ip_cidr; 
     
     val parse_in_iface = parse_cmd_option "-i " @{const IIface} parser_interface;
     val parse_out_iface = parse_cmd_option "-o " @{const OIface} parser_interface;
+    val parse_in_iface_negated = parse_cmd_option_negated "! -i " @{const IIface} parser_interface;
+    val parse_out_iface_negated = parse_cmd_option_negated "! -o " @{const OIface} parser_interface;
 
     val parse_protocol = parse_cmd_option "-p " @{term "Prot \<circ> Proto"} parser_protocol;
 
@@ -247,7 +248,7 @@ in
   (*TODO: parse_options*)
   val option_parser : (string list -> (parsed_match_action) * string list) = 
       Scan.recover (parse_src_ip || parse_dst_ip || parse_src_ip_negated || parse_dst_ip_negated
-                 || parse_in_iface || parse_out_iface
+                 || parse_in_iface || parse_out_iface || parse_in_iface_negated || parse_out_iface_negated
                  || parse_protocol
                  || parse_src_ports || parse_dst_ports
                  || parse_target ) (K parse_unknown);
