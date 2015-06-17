@@ -1760,16 +1760,18 @@ fun rm_LogEmpty [] = []
   | rm_LogEmpty (Rule (v, Goto vb) :: rs) = Rule (v, Goto vb) :: rm_LogEmpty rs
   | rm_LogEmpty (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rm_LogEmpty rs;
 
-fun action_toString Accept = [#"A", #"C", #"C", #"E", #"P", #"T"]
-  | action_toString Drop = [#"D", #"R", #"O", #"P"]
-  | action_toString Reject = [#"R", #"E", #"J", #"E", #"C", #"T"]
-  | action_toString (Call target) = [#"C", #"a", #"l", #"l", #" "] @ target
-  | action_toString (Goto target) = [#"G", #"o", #"t", #"o", #" "] @ target
-  | action_toString Empty =
-    [#"(", #"e", #"m", #"p", #"t", #"y", #" ", #"a", #"c", #"t", #"i", #"o",
-      #"n", #")"]
-  | action_toString Log = [#"L", #"O", #"G"]
-  | action_toString Return = [#"R", #"E", #"T", #"U", #"N", #"R", #"N"]
+fun action_toString Accept =
+  [#"-", #"j", #" ", #"A", #"C", #"C", #"E", #"P", #"T"]
+  | action_toString Drop = [#"-", #"j", #" ", #"D", #"R", #"O", #"P"]
+  | action_toString Reject =
+    [#"-", #"j", #" ", #"R", #"E", #"J", #"E", #"C", #"T"]
+  | action_toString (Call target) =
+    [#"-", #"j", #" "] @ target @ [#" ", #"(", #"c", #"a", #"l", #"l", #")"]
+  | action_toString (Goto target) = [#"-", #"g", #" "] @ target
+  | action_toString Empty = []
+  | action_toString Log = [#"-", #"j", #" ", #"L", #"O", #"G"]
+  | action_toString Return =
+    [#"-", #"j", #" ", #"R", #"E", #"T", #"U", #"N", #"R", #"N"]
   | action_toString Unknown =
     [#"!", #"!", #"!", #"!", #"!", #"!", #"!", #"!", #"!", #"!", #"!", #" ",
       #"U", #"N", #"K", #"N", #"O", #"W", #"N", #" ", #"!", #"!", #"!", #"!",
@@ -2216,7 +2218,7 @@ fun common_primitive_toString (Src (Ip4Addr (a, (b, (c, d))))) =
         [#"."] @
           string_of_nat b @ [#"."] @ string_of_nat c @ [#"."] @ string_of_nat d
   | common_primitive_toString (Src (Ip4AddrNetmask ((a, (b, (c, d))), n))) =
-    [#"s", #"r", #"c", #"="] @
+    [#"-", #"s", #" "] @
       string_of_nat a @
         [#"."] @
           string_of_nat b @
@@ -2224,7 +2226,7 @@ fun common_primitive_toString (Src (Ip4Addr (a, (b, (c, d))))) =
               string_of_nat c @
                 [#"."] @ string_of_nat d @ [#"/"] @ string_of_nat n
   | common_primitive_toString (Dst (Ip4AddrNetmask ((a, (b, (c, d))), n))) =
-    [#"d", #"s", #"t", #"="] @
+    [#"-", #"d", #" "] @
       string_of_nat a @
         [#"."] @
           string_of_nat b @
@@ -2235,7 +2237,8 @@ fun common_primitive_toString (Src (Ip4Addr (a, (b, (c, d))))) =
     iface_toString [#"-", #"i", #" "] ifce
   | common_primitive_toString (OIface ifce) =
     iface_toString [#"-", #"o", #" "] ifce
-  | common_primitive_toString (Prot prot) = protocol_toString prot
+  | common_primitive_toString (Prot prot) =
+    [#"-", #"p", #" "] @ protocol_toString prot
   | common_primitive_toString (Src_Ports pts) =
     list_toString (ports_toString [#"-", #"-", #"s", #"p", #"t", #"s", #" "])
       pts
@@ -2302,8 +2305,7 @@ fun common_primitive_match_expr_toString MatchAny = []
       common_primitive_match_expr_toString m @ [#")"];
 
 fun common_primitive_rule_toString (Rule (m, a)) =
-  common_primitive_match_expr_toString m @
-    [#" ", #"a", #"c", #"t", #"i", #"o", #"n", #":", #" "] @ action_toString a;
+  common_primitive_match_expr_toString m @ [#" "] @ action_toString a;
 
 fun is_Extra (Src x1) = false
   | is_Extra (Dst x2) = false

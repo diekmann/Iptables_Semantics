@@ -276,17 +276,22 @@ fun action_to_simple_action :: "action \<Rightarrow> simple_action" where
 definition check_simple_fw_preconditions :: "common_primitive rule list \<Rightarrow> bool" where
   "check_simple_fw_preconditions rs \<equiv> \<forall>r \<in> set rs. (case r of (Rule m a) \<Rightarrow> normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> normalized_ifaces m \<and> 
   normalized_protocols m \<and> \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop))"
+
 definition to_simple_firewall :: "common_primitive rule list \<Rightarrow> simple_rule list" where
-  "to_simple_firewall rs \<equiv> List.map_filter (\<lambda>r. case r of Rule m a \<Rightarrow> 
-      (case (common_primitive_match_to_simple_match m) of None \<Rightarrow> None |
-                  Some sm \<Rightarrow> Some (SimpleRule sm (action_to_simple_action a)))) rs"
+  "to_simple_firewall rs \<equiv> if check_simple_fw_preconditions rs then
+      List.map_filter (\<lambda>r. case r of Rule m a \<Rightarrow> 
+        (case (common_primitive_match_to_simple_match m) of None \<Rightarrow> None |
+                    Some sm \<Rightarrow> Some (SimpleRule sm (action_to_simple_action a)))) rs
+    else undefined"
 
 lemma to_simple_firewall_simps:
       "to_simple_firewall [] = []"
-      "to_simple_firewall ((Rule m a)#rs) = (case common_primitive_match_to_simple_match m of
+      "check_simple_fw_preconditions ((Rule m a)#rs) \<Longrightarrow> to_simple_firewall ((Rule m a)#rs) = (case common_primitive_match_to_simple_match m of
           None \<Rightarrow> to_simple_firewall rs
           | Some sm \<Rightarrow> (SimpleRule sm (action_to_simple_action a)) # to_simple_firewall rs)"
-  by(simp_all add: to_simple_firewall_def List.map_filter_simps split: option.split)
+      "\<not> check_simple_fw_preconditions rs' \<Longrightarrow> to_simple_firewall rs' = undefined"
+   by(auto simp add: to_simple_firewall_def List.map_filter_simps check_simple_fw_preconditions_def split: option.split)
+
 
 value "check_simple_fw_preconditions
      [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8)))

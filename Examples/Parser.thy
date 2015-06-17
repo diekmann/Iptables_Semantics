@@ -509,53 +509,6 @@ thm foo_FORWARD_default_policy_def
 term foo
 thm foo_def
 
-export_code
-  foo
-  map_of_string
-  map simple_rule_toString
-  to_simple_firewall
-  lower_closure upper_closure
-  unfold_ruleset_FORWARD action.Accept 
-   in SML module_name "Test" file "delete_me_test.ML"
-
-ML_file "delete_me_test.ML"
-
-
-ML_val{*
-open Test;
-(*fails due to goto*)
-val unfolded = unfold_ruleset_FORWARD Accept (map_of_string foo);
-
-map (String.implode #> writeln) (map simple_rule_toString (to_simple_firewall (upper_closure (unfolded))));
-*}
-
-value[code] "take 1 (map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_FORWARD action.Accept (map_of_string foo)))))"
-(*value[code] "take 1 (map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_FORWARD action.Accept (map_of_string foo)))))"
-
-value[code] "((map_of_string foo)) ''FORWARD''"
-value[code] "take 1 (unfold_ruleset_FORWARD action.Accept (map_of_string foo))" (*takes forever*)
-*)
-
-(*ML\<open>
-Code_Simp.dynamic_conv @{context} @{cterm foo}
-\<close>*)
-
-(*
-ML\<open>
-Code_Evaluation.dynamic_conv @{context} @{cterm foo}
-\<close>
-*)
-
-(*
-value "True"
-
-value[code] "(map_of foo) ''FORWARD''"
-
-value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_FORWARD action.Accept (map_of foo))))"
-
-ML{*Code_Evaluation.dynamic_conv @{context} @{cterm "unfold_ruleset_FORWARD action.Accept (map_of foo)"}*}
-*)
-
 hide_const foo
 hide_fact foo_def
 

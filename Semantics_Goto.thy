@@ -954,7 +954,15 @@ begin
         shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)], s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain)], s\<rangle> \<Rightarrow> t"
       apply(rule just_show_all_bigstep_semantics_equalities_with_start_Undecided)
       using assms replace_Goto_with_Call_in_terminal_chain_Undecided by fast
+    
+  private fun rewrite_Goto_chain :: "(string \<rightharpoonup> 'a rule list) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
+    "rewrite_Goto_chain _ [] = []" |
+    "rewrite_Goto_chain \<Gamma> ((Rule m (Goto chain))#rs) =
+        (if terminal_chain (the (\<Gamma> chain)) then Rule m (Call chain) else undefined)#rewrite_Goto_chain \<Gamma> rs" |
+    "rewrite_Goto_chain \<Gamma> (r#rs) = r#rewrite_Goto_chain \<Gamma> rs"
   
+  qualified definition rewrite_Goto :: "(string \<times> 'a rule list) list \<Rightarrow> (string \<times> 'a rule list) list" where
+    "rewrite_Goto cs = map (\<lambda>(chain_name, rs). (chain_name, rewrite_Goto_chain (map_of cs) rs)) cs"
 end
 
 

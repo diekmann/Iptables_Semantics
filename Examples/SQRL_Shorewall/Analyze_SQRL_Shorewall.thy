@@ -12,6 +12,7 @@ local_setup \<open>
   local_setup_parse_iptables_save @{binding SQRL_fw} ["Examples", "SQRL_Shorewall", "iptables-saveakachan"]
  \<close>
 declare SQRL_fw_def[code]
+declare SQRL_fw_FORWARD_default_policy_def[code]
 
 thm SQRL_fw_def
 
@@ -23,16 +24,11 @@ lemma "Semantics_Goto.terminal_chain (the ((map_of_string SQRL_fw) ''smurflog'')
 lemma "Semantics_Goto.terminal_chain (the ((map_of_string SQRL_fw) ''logflags''))" by eval
 lemma "Semantics_Goto.terminal_chain (the ((map_of_string SQRL_fw) ''reject''))" by eval
 
-fun rewrite_Goto_chain :: "(string \<rightharpoonup> 'a rule list) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
-  "rewrite_Goto_chain _ [] = []" |
-  "rewrite_Goto_chain \<Gamma> ((Rule m (Goto chain))#rs) =
-      (if Semantics_Goto.terminal_chain (the (\<Gamma> chain)) then Rule m (Call chain) else undefined)#rewrite_Goto_chain \<Gamma> rs" |
-  "rewrite_Goto_chain \<Gamma> (r#rs) = r#rewrite_Goto_chain \<Gamma> rs"
+value[code] "Semantics_Goto.rewrite_Goto SQRL_fw"
 
-definition rewrite_Goto :: "(string \<times> 'a rule list) list \<Rightarrow> (string \<times> 'a rule list) list" where
-  "rewrite_Goto cs = map (\<lambda>(chain_name, rs). (chain_name, rewrite_Goto_chain (map_of cs) rs)) cs"
-
-value[code] "rewrite_Goto SQRL_fw"  
+(*11.918s*)
+value[code] "map (quote_rewrite \<circ> common_primitive_rule_toString) 
+               (upper_closure (unfold_ruleset_FORWARD SQRL_fw_FORWARD_default_policy (map_of_string (Semantics_Goto.rewrite_Goto SQRL_fw))))" 
 
 
 export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure

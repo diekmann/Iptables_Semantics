@@ -100,14 +100,14 @@ fun simple_action_toString :: "simple_action \<Rightarrow> string" where
 
 
 fun action_toString :: "action \<Rightarrow> string" where
-  "action_toString action.Accept = ''ACCEPT''" |
-  "action_toString action.Drop = ''DROP''" |
-  "action_toString action.Reject = ''REJECT''" |
-  "action_toString (action.Call target) = ''Call ''@target" |
-  "action_toString (action.Goto target) = ''Goto ''@target" |
-  "action_toString action.Empty = ''(empty action)''" |
-  "action_toString action.Log = ''LOG''" |
-  "action_toString action.Return = ''RETUNRN''" |
+  "action_toString action.Accept = ''-j ACCEPT''" |
+  "action_toString action.Drop = ''-j DROP''" |
+  "action_toString action.Reject = ''-j REJECT''" |
+  "action_toString (action.Call target) = ''-j ''@target@'' (call)''" |
+  "action_toString (action.Goto target) = ''-g ''@target" |
+  "action_toString action.Empty = ''''" |
+  "action_toString action.Log = ''-j LOG''" |
+  "action_toString action.Return = ''-j RETUNRN''" |
   "action_toString action.Unknown = ''!!!!!!!!!!! UNKNOWN !!!!!!!!!!!''"
 
 definition port_toString :: "16 word \<Rightarrow> string" where
@@ -129,12 +129,12 @@ fun common_primitive_toString :: "common_primitive \<Rightarrow> string" where
   "common_primitive_toString (Src (Ip4Addr (a,b,c,d))) = ''-s ''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d" |
   "common_primitive_toString (Dst (Ip4Addr (a,b,c,d))) = ''-d ''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d" |
   "common_primitive_toString (Src (Ip4AddrNetmask (a,b,c,d) n)) =
-      ''src=''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d@''/''@string_of_nat n"  |
+      ''-s ''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d@''/''@string_of_nat n"  |
   "common_primitive_toString (Dst (Ip4AddrNetmask (a,b,c,d) n)) =
-      ''dst=''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d@''/''@string_of_nat n"  |
+      ''-d ''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d@''/''@string_of_nat n"  |
   "common_primitive_toString (IIface ifce) = iface_toString ''-i '' ifce" |
   "common_primitive_toString (OIface ifce) = iface_toString ''-o '' ifce" |
-  "common_primitive_toString (Prot prot) = protocol_toString prot" |
+  "common_primitive_toString (Prot prot) = ''-p ''@protocol_toString prot" |
   "common_primitive_toString (Src_Ports pts) = list_toString (ports_toString ''--spts '') pts" |
   "common_primitive_toString (Dst_Ports pts) = list_toString (ports_toString ''--dpts '') pts" |
   "common_primitive_toString (Extra e) = ''~~''@e@''~~''"
@@ -147,7 +147,7 @@ fun common_primitive_match_expr_toString :: "common_primitive match_expr \<Right
   "common_primitive_match_expr_toString (MatchNot m) = ''NOT (''@common_primitive_match_expr_toString m@'')''"
 
 fun common_primitive_rule_toString :: "common_primitive rule \<Rightarrow> string" where
-  "common_primitive_rule_toString (Rule m a) = common_primitive_match_expr_toString m @'' action: ''@action_toString a"
+  "common_primitive_rule_toString (Rule m a) = common_primitive_match_expr_toString m @'' ''@action_toString a"
   
 
 fun simple_rule_toString :: "simple_rule \<Rightarrow> string" where
