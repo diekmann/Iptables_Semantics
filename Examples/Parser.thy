@@ -479,12 +479,13 @@ val example = parse_iptables_save ["Examples", "Parser_Test", "iptables-save"];
 Pretty.writeln (Syntax.pretty_term @{context} example);
 *}
 
+
 ML{*
 local
   fun define_const (t: term) (name: binding) (lthy: local_theory) : local_theory = let
         val _ = writeln ("Defining constant `"^Binding.name_of name^"' ("^Binding.name_of name^"_def')");
         val ((_, (_, thm)), lthy) = Local_Theory.define ((name, NoSyn), ((Binding.empty, []), t)) lthy;
-        val (_, lthy) = Local_Theory.note ((Binding.suffix_name "_def" name, []), [thm]) lthy;
+        val (_, lthy) = Local_Theory.note ((Binding.suffix_name "_def" name, @{attributes [code]}), [thm]) lthy;
        in
          lthy
        end
@@ -513,8 +514,6 @@ end
 local_setup \<open>
   local_setup_parse_iptables_save @{binding parser_test_firewall} ["Examples", "Parser_Test", "iptables-save"]
  \<close>
-declare parser_test_firewall_def[code]
-declare parser_test_firewall_FORWARD_default_policy_def[code]
 
 term parser_test_firewall
 thm parser_test_firewall_def
@@ -549,6 +548,9 @@ lemma "parser_test_firewall \<equiv>
    Rule (Match (Dst (Ip4AddrNetmask (127, 42, 0, 1) 32))) Reject, Rule MatchAny Reject])]" by eval
 
 value[code] "map (\<lambda>(c,rs). (c, map (common_primitive_rule_toString) rs)) parser_test_firewall"
+
+
+
 
 
 
