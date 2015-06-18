@@ -217,4 +217,39 @@ lemma NNF_ternary_NegationNormalForm: "NegationNormalForm (NNF_ternary t)"
 
 
 
+
+
+
+(*TODO: the following are unused*)
+context
+begin
+  private lemma ternary_lift1: "eval_ternary_Not tv \<noteq> TernaryFalse \<longleftrightarrow> tv = TernaryFalse \<or> tv = TernaryUnknown"
+    using eval_ternary_Not.elims by blast
+  private lemma ternary_lift2: "eval_ternary_Not tv \<noteq> TernaryTrue \<longleftrightarrow> tv = TernaryTrue \<or> tv = TernaryUnknown"
+    using eval_ternary_Not.elims by blast
+  private lemma ternary_lift3: "eval_ternary_Not tv = TernaryFalse \<longleftrightarrow> tv = TernaryTrue"
+    by (metis eval_ternary_Not.simps(1) eval_ternary_idempotence_Not)
+  private lemma ternary_lift4: "eval_ternary_Not tv = TernaryTrue \<longleftrightarrow> tv = TernaryFalse"
+    by (metis eval_ternary_Not.simps(1) eval_ternary_idempotence_Not)
+  private lemma ternary_lift5: "eval_ternary_Not tv = TernaryUnknown \<longleftrightarrow> tv = TernaryUnknown"
+    by (metis eval_ternary_Not.simps(3) eval_ternary_idempotence_Not)
+
+  private lemma ternary_lift6: "eval_ternary_And t1 t2 = TernaryFalse \<longleftrightarrow> t1 = TernaryFalse \<or> t2 = TernaryFalse"
+    using eval_ternary_And.elims by blast
+  private lemma ternary_lift7: "eval_ternary_And t1 t2 = TernaryTrue \<longleftrightarrow> t1 = TernaryTrue \<and> t2 = TernaryTrue"
+    using eval_ternary_And.elims by blast
+
+  lemmas ternary_lift = ternary_lift1 ternary_lift2 ternary_lift3 ternary_lift4 ternary_lift5 ternary_lift6 ternary_lift7
+end
+
+context
+begin
+  private lemma l1: "eval_ternary_Not tv = TernaryTrue \<Longrightarrow> tv = TernaryFalse"
+    by (metis eval_ternary_Not.simps(1) eval_ternary_idempotence_Not)
+  private lemma l2: "eval_ternary_And t1 t2 = TernaryFalse \<Longrightarrow> t1 = TernaryFalse \<or> t2 = TernaryFalse"
+    using eval_ternary_And.elims by blast
+  
+  lemmas eval_ternaryD = l1 l2
+end
+
 end

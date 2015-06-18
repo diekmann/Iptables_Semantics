@@ -72,9 +72,9 @@ lemma normalized_n_primitive_opt_MatchAny_match_expr: "normalized_n_primitive di
   }note x=this
   assume "normalized_n_primitive disc_sel f m"
   thus ?thesis
-  apply(induction disc_sel f m rule: normalized_n_primitive.induct)
-  apply simp_all
-  using x by simp
+    apply(induction disc_sel f m rule: normalized_n_primitive.induct)
+          apply simp_all
+    using x by simp
   qed
   
 
