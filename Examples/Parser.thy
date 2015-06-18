@@ -551,7 +551,10 @@ value[code] "map (\<lambda>(c,rs). (c, map (common_primitive_rule_toString) rs))
 
 
 
+value[code] "(upper_closure (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
+                  (map_of_string (Semantics_Goto.rewrite_Goto parser_test_firewall))))"
 
+(*this made up example cannot be transformed to_simple_firewall because it has negated interfaces/protocols*)
 
 
 hide_const parser_test_firewall
