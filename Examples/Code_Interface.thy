@@ -3,6 +3,7 @@ imports
 "../Call_Return_Unfolding"
 "../Primitive_Matchers/Transform"
 "../Simple_Firewall/SimpleFw_Compliance"
+"../Semantics_Goto"
 "~~/src/HOL/Library/Code_Target_Nat"
 "~~/src/HOL/Library/Code_Target_Int"
 "~~/src/HOL/Library/Code_Char"
@@ -13,11 +14,6 @@ section{*Code Interface*}
 
 definition check_simple_ruleset :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
   "check_simple_ruleset rs \<equiv> if simple_ruleset rs then rs else undefined"
-
-(*TODO TODO TODO
-  all the unfold_ruleset_* don't add the chain's default action at the end automatically
-  This would be the responsibility of the parser.
-*)
 
 definition unfold_ruleset_FORWARD :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
 "unfold_ruleset_FORWARD default_action rs = check_simple_ruleset (((optimize_matches opt_MatchAny_match_expr)^^10) 

@@ -50,6 +50,17 @@ begin
     apply(rule matches_iff_apply_f)
     apply(simp add: compress_parsed_extra_matchexpr_helper)
     done
+
+  text{*This version of @{const alist_and} avoids the trailing @{const MatchAny}*}
+  fun alist_and' :: "'a negation_type list \<Rightarrow> 'a match_expr" where
+    "alist_and' [] = MatchAny" |
+    "alist_and' [Pos e] = Match e" |
+    "alist_and' [Neg e] = MatchNot (Match e)"|
+    "alist_and' ((Pos e)#es) = MatchAnd (Match e) (alist_and' es)" |
+    "alist_and' ((Neg e)#es) = MatchAnd (MatchNot (Match e)) (alist_and' es)"
+
+  lemma alist_and': "matches (\<gamma>, \<alpha>) (alist_and' as) = matches (\<gamma>, \<alpha>) (alist_and as)"
+    by(induction as rule: alist_and'.induct) (simp_all add: bunch_of_lemmata_about_matches)
 end
 
 
@@ -365,7 +376,7 @@ local
   (* this takes like forever! *)
   (* apply compress_parsed_extra here?*)
   fun hacky_hack t = (*Code_Evaluation.dynamic_value_strict @{context} (@{const compress_extra} $ t)*)
-    @{const alist_and ("common_primitive")} $ (@{const compress_parsed_extra} $ t)
+    @{const alist_and' ("common_primitive")} $ (@{const compress_parsed_extra} $ t)
   
   fun mk_MatchExpr t = if fastype_of t <> @{typ "common_primitive negation_type list"} then raise Fail "Type Error" else hacky_hack t;
   fun mk_Rule_help t a = let val r = @{const Rule (common_primitive)} $ (mk_MatchExpr t) $ a in
@@ -500,16 +511,54 @@ end
 *}
 
 local_setup \<open>
-  local_setup_parse_iptables_save @{binding foo} ["Examples", "Parser_Test", "iptables-save"]
+  local_setup_parse_iptables_save @{binding parser_test_firewall} ["Examples", "Parser_Test", "iptables-save"]
  \<close>
+declare parser_test_firewall_def[code]
+declare parser_test_firewall_FORWARD_default_policy_def[code]
 
-declare foo_def[code]
-thm foo_FORWARD_default_policy_def
+term parser_test_firewall
+thm parser_test_firewall_def
+thm parser_test_firewall_FORWARD_default_policy_def
 
-term foo
-thm foo_def
+lemma "parser_test_firewall \<equiv>
+[(''DOS~Pro-t_ect'',
+  [Rule (MatchAnd (Match (Prot (Proto TCP))) (Match (Dst_Ports [(0x16, 0x16)]))) action.Accept,
+   Rule (MatchAnd (Match (Prot (Proto TCP))) (MatchAnd (Match (Extra ''-m state --state NEW''))
+        (MatchAnd (Match (Dst_Ports [(1, 0xFFFF)])) (Match (Extra ''--tcp-flags FIN,SYN,RST,ACK SYN'')))))
+        action.Accept,
+   Rule (Match (Prot (Proto UDP))) Return, Rule (Match (Prot (Proto ICMP))) action.Accept]),
+(''FORWARD'',
+  [Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) action.Drop, Rule (MatchNot (Match (IIface (Iface ''eth+'')))) action.Drop,
+   Rule (MatchAnd (Match (Src (Ip4AddrNetmask (100, 0, 0, 0) 24))) (Match (Prot (Proto TCP)))) (Call ''DOS~Pro-t_ect''),
+   Rule (MatchNot (Match (Src (Ip4AddrNetmask (131, 159, 0, 0) 16)))) action.Drop,
+   Rule (MatchAnd (Match (Prot (Proto TCP))) (Match (Dst_Ports [(0x50, 0x50), (0x1BB, 0x1BB)]))) Return,
+   Rule (MatchAnd (Match (Dst (Ip4AddrNetmask (127, 0, 0, 1) 32))) (MatchAnd (Match (OIface (Iface ''eth1.152'')))
+        (MatchAnd (Match (Prot (Proto UDP))) (Match (Dst_Ports [(0x11D9, 0x11D9), (0x1388, 0xFFFF)])))))
+        action.Accept,
+   Rule (MatchAnd (Match (IIface (Iface ''eth0''))) (MatchAnd (Match (Prot (Proto TCP)))
+        (Match (Dst_Ports [(0x15, 0x15), (0x369, 0x36A), (0x138D, 0x138D), (0x138E, 0x138E), (0x50, 0x50),
+                           (0x224, 0x224), (0x6F, 0x6F), (0x37C, 0x37C), (0x801, 0x801)]))))
+        action.Drop,
+   Rule MatchAny (Goto ''Terminal'')]),
+(''INPUT'', []),
+(''OUTPUT'', []),
+(''Terminal'',
+  [Rule (MatchAnd (Match (Dst (Ip4AddrNetmask (127, 0, 0, 1) 32))) (MatchAnd (Match (Prot (Proto UDP)))
+        (Match (Src_Ports [(0x35, 0x35)]))))
+        action.Drop,
+   Rule (Match (Dst (Ip4AddrNetmask (127, 42, 0, 1) 32))) Reject, Rule MatchAny Reject])]" by eval
 
-hide_const foo
-hide_fact foo_def
+value[code] "map (\<lambda>(c,rs). (c, map (common_primitive_rule_toString) rs)) parser_test_firewall"
+
+
+
+hide_const parser_test_firewall
+           parser_test_firewall_INPUT_default_policy
+           parser_test_firewall_FORWARD_default_policy
+           parser_test_firewall_OUTPUT_default_policy
+hide_fact parser_test_firewall_def
+           parser_test_firewall_INPUT_default_policy_def
+           parser_test_firewall_FORWARD_default_policy_def
+           parser_test_firewall_OUTPUT_default_policy_def
 
 end
