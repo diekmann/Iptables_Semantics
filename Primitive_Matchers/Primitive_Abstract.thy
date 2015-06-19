@@ -3,6 +3,7 @@ imports "../Examples/Code_Interface"
 begin
 
 (*DRAFT*)
+(*TODO: die primitive toStrings in eigene thy und diese dann mit weniger dependencies*)
 
 fun abstract_negated_interfaces_protocols :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
   "abstract_negated_interfaces_protocols MatchAny = MatchAny" |
@@ -35,7 +36,8 @@ done
 text{*The following lemmas show that @{const abstract_negated_interfaces_protocols}
       can be applied to relax the ruleset. It does not harm the closure properties.*}
 
-lemma "normalized_nnf_match m \<Longrightarrow> 
+lemma abstract_negated_interfaces_protocols_Allow: 
+  "normalized_nnf_match m \<Longrightarrow> 
     matches (common_matcher, in_doubt_allow) m action.Accept p \<Longrightarrow>
     matches (common_matcher, in_doubt_allow) (abstract_negated_interfaces_protocols m) action.Accept p"
    apply(induction m rule: abstract_negated_interfaces_protocols.induct)
@@ -43,8 +45,53 @@ lemma "normalized_nnf_match m \<Longrightarrow>
    apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: ternaryvalue.split)
    done
 
+lemma abstract_negated_interfaces_protocols_Allow2: 
+  "normalized_nnf_match m \<Longrightarrow> 
+    \<not> matches (common_matcher, in_doubt_allow) m action.Drop p \<Longrightarrow>
+    \<not> matches (common_matcher, in_doubt_allow) (abstract_negated_interfaces_protocols m) action.Drop p"
+   apply(induction m rule: abstract_negated_interfaces_protocols.induct)
+                 apply (simp_all add: bunch_of_lemmata_about_matches)
+   apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: ternaryvalue.split)
+   done
 
-lemma "normalized_nnf_match m \<Longrightarrow> 
+
+
+lemma assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
+      and prem: "approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision FinalAllow"
+      shows "approximating_bigstep_fun (common_matcher, in_doubt_allow) p (optimize_matches abstract_negated_interfaces_protocols rs) Undecided = Decision FinalAllow"
+  proof -
+    let ?\<gamma>="(common_matcher, in_doubt_allow) :: (common_primitive \<Rightarrow> simple_packet \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> simple_packet \<Rightarrow> bool)"
+      --{*type signature is needed, otherwise @{const in_doubt_allow} would be for arbitrary packet*}
+
+    from simple have "wf_ruleset ?\<gamma> p rs" using good_imp_wf_ruleset simple_imp_good_ruleset by fast
+    from this simple prem n show ?thesis
+      proof(induction ?\<gamma> p rs Undecided rule: approximating_bigstep_fun_induct_wf)
+      case (MatchAccept p m a rs)
+        from MatchAccept.prems abstract_negated_interfaces_protocols_Allow MatchAccept.hyps have
+          "matches ?\<gamma> (abstract_negated_interfaces_protocols m) action.Accept p" by simp
+        thus ?case by(simp add: optimize_matches_def MatchAccept.hyps)
+      next
+      case (Nomatch p m a rs) thus ?case (is ?goal)
+        proof(cases "matches ?\<gamma> (abstract_negated_interfaces_protocols m) a p")
+          case False with Nomatch show ?goal
+            apply(simp add: optimize_matches_def)
+            using simple_ruleset_tail by blast
+          next
+          case True
+            from Nomatch simple_ruleset_tail have
+              "approximating_bigstep_fun ?\<gamma> p (optimize_matches abstract_negated_interfaces_protocols rs) Undecided = Decision FinalAllow" by auto
+            from Nomatch.prems simple_ruleset_def have "a = action.Accept \<or> a = action.Drop" by force
+            from Nomatch.hyps(1) Nomatch.prems(3) abstract_negated_interfaces_protocols_Allow2 have
+              "a = action.Drop \<Longrightarrow> \<not> matches ?\<gamma> (abstract_negated_interfaces_protocols m) action.Drop p" by simp
+            with True `a = action.Accept \<or> a = action.Drop` have "a = action.Accept" by blast
+            with True show ?goal by(simp add: optimize_matches_def)
+          qed
+      qed(simp_all add: simple_ruleset_def)
+qed
+(*TODO from this, show closure property*)
+
+lemma abstract_negated_interfaces_protocols_Deny:
+  "normalized_nnf_match m \<Longrightarrow> 
     matches (common_matcher, in_doubt_deny) m action.Drop p \<Longrightarrow>
     matches (common_matcher, in_doubt_deny) (abstract_negated_interfaces_protocols m) action.Drop p"
    apply(induction m rule: abstract_negated_interfaces_protocols.induct)
