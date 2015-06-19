@@ -10,7 +10,7 @@ section{*Example: SQRL Shorewall*}
 
 
 local_setup \<open>
-  local_setup_parse_iptables_save @{binding SQRL_fw} ["Examples", "SQRL_Shorewall", "iptables-saveakachan"]
+  local_setup_parse_iptables_save @{binding SQRL_fw} ["iptables-saveakachan"]
  \<close>
 
 thm SQRL_fw_def

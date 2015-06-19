@@ -93,8 +93,8 @@ local
   fun is_start_of_filter_table s = s = "*filter";
   fun is_end_of_table s = s = "COMMIT";
 
-  fun load_file (path: string list) =
-      let val p =  File.full_path (File.pwd ()) (Path.make path); in
+  fun load_file (thy: theory) (path: string list) =
+      let val p =  File.full_path (Resources.master_directory thy) (Path.make path); in
       let val _ = "loading file "^File.platform_path p |> writeln; in
         if not (File.exists p) orelse (File.is_dir p) then raise Fail "File not found" else File.read_lines p
       end end;
@@ -108,14 +108,13 @@ local
       filter_table
     end;
 in
-  val load_filter_table = load_file #> extract_filter_table #> writenumloaded;
+  fun load_filter_table thy = load_file thy #> extract_filter_table #> writenumloaded;
 end;
 *}
 
 ML{*
-(*val filter_table = load_filter_table ["Examples", "SQRL_Shorewall", "iptables-saveakachan"];*)
-(*val filter_table = load_filter_table ["..", "net-network-private", "iptables-save-2015-05-15_15-23-41"];*)
-val filter_table = load_filter_table ["Examples", "Parser_Test", "iptables-save"];
+(*val filter_table = load_filter_table ["SQRL_Shorewall", "iptables-saveakachan"];*)
+val filter_table = load_filter_table @{theory} ["Parser_Test", "iptables-save"];
 *}
 
 
@@ -133,12 +132,6 @@ end
 ML_val{*
 ipt_explode "ad \"as das\" boo";
 ipt_explode "ad \"foobar --boo boo";
-*}
-
-(*TEST TODO remove*)
-ML_val{*
-type_of (@{const Src_Ports} $ ([HOLogic.mk_prod (@{const nat_to_16word} $ HOLogic.mk_nat 22, @{term "44::16 word"})] |> HOLogic.mk_list @{typ "16 word \<times> 16 word"}));
-Scan.ahead ($$ " ") (raw_explode " foo")
 *}
 
 
@@ -465,8 +458,8 @@ fun certify_term (ctx: Proof.context) (t: term) = trace_timing "Certified term" 
 
 
 ML_val{*(*putting it all together*)
-fun parse_iptables_save (file: string list) : term = 
-    load_filter_table file
+fun parse_iptables_save (thy: theory) (file: string list) : term = 
+    load_filter_table thy file
     |> rule_type_partition
     |> filter_chain_decls_names_only
     |> make_firewall_table
@@ -474,7 +467,7 @@ fun parse_iptables_save (file: string list) : term =
     |> simplify_code @{context}
 
 
-val example = parse_iptables_save ["Examples", "Parser_Test", "iptables-save"];
+val example = parse_iptables_save @{theory} ["Parser_Test", "iptables-save"];
 
 Pretty.writeln (Syntax.pretty_term @{context} example);
 *}
@@ -492,7 +485,7 @@ local
 in
   fun local_setup_parse_iptables_save (name: binding) path lthy =
     let val prepared = path
-            |> load_filter_table
+            |> load_filter_table (Local_Theory.exit_global lthy) (*TODO what does exit_global do? but it works, ...*)
             |> rule_type_partition in
     let val firewall = prepared
             |> filter_chain_decls_names_only
@@ -512,7 +505,7 @@ end
 *}
 
 local_setup \<open>
-  local_setup_parse_iptables_save @{binding parser_test_firewall} ["Examples", "Parser_Test", "iptables-save"]
+  local_setup_parse_iptables_save @{binding parser_test_firewall} ["Parser_Test", "iptables-save"]
  \<close>
 
 term parser_test_firewall
