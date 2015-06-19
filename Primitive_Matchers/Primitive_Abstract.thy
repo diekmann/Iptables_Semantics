@@ -55,8 +55,8 @@ lemma abstract_negated_interfaces_protocols_Allow2:
    done
 
 
-
-lemma assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
+(*TODO: rename*)
+lemma help1: assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
       and prem: "approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision FinalAllow"
       shows "approximating_bigstep_fun (common_matcher, in_doubt_allow) p (optimize_matches abstract_negated_interfaces_protocols rs) Undecided = Decision FinalAllow"
   proof -
@@ -88,7 +88,19 @@ lemma assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" 
           qed
       qed(simp_all add: simple_ruleset_def)
 qed
-(*TODO from this, show closure property*)
+
+(*TODO: in_doubt_deny lower bound to closure property*)
+lemma assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
+  shows   "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow} \<subseteq>
+           {p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>optimize_matches abstract_negated_interfaces_protocols rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow}"
+  proof -
+    let ?\<gamma>="(common_matcher, in_doubt_allow) :: (common_primitive \<Rightarrow> simple_packet \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> simple_packet \<Rightarrow> bool)"
+    from simple have "good_ruleset rs" using simple_imp_good_ruleset by fast
+    from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
+      "good_ruleset (optimize_matches abstract_negated_interfaces_protocols rs)" by fast
+    with approximating_semantics_iff_fun_good_ruleset help1[OF n simple] `good_ruleset rs` show ?thesis by fast
+  qed
+
 
 lemma abstract_negated_interfaces_protocols_Deny:
   "normalized_nnf_match m \<Longrightarrow> 
