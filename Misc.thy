@@ -55,7 +55,7 @@ begin
   private lemma help6: "rev (removeAll r (rev rs)) = removeAll r rs"
   by (simp add: removeAll_filter_not_eq rev_filter)
   
-  lemma remdups_rev_fst: "remdups_rev (r#rs) = (if r \<in> set rs then r#remdups_rev ( (removeAll r ( rs))) else r#remdups_rev rs)"
+  lemma remdups_rev_fst: "remdups_rev (r#rs) = (if r \<in> set rs then r#remdups_rev (removeAll r rs) else r#remdups_rev rs)"
   using help5 help6 by metis
 end
 

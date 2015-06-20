@@ -4,8 +4,54 @@ imports "Common_Primitive_Matcher"
         "../Semantics_Ternary/Negation_Type_Matching"
         "../Primitive_Matchers/Ports_Normalize"
         "../Primitive_Matchers/IpAddresses_Normalize"
+        "../Misc"
 begin
 
+
+
+
+(*TODO: move*)
+lemma not_matches_removeAll: "\<not> matches \<gamma> m a p \<Longrightarrow>
+  approximating_bigstep_fun \<gamma> p (removeAll (Rule m a) rs) Undecided = approximating_bigstep_fun \<gamma> p rs Undecided"
+  apply(induction \<gamma> p rs Undecided rule: approximating_bigstep_fun.induct)
+   apply(simp)
+  apply(simp split: action.split)
+  apply blast
+  done
+
+(*TODO: move*)
+lemma remdups_rev_removeAll: "remdups_rev (removeAll r rs) = removeAll r (remdups_rev rs)"
+by (simp add: remdups_filter remdups_rev_def removeAll_filter_not_eq rev_filter)
+
+lemma rm_LogEmpty_filter: "rm_LogEmpty rs = filter (\<lambda>r. get_action r \<noteq> Log \<and> get_action r \<noteq> Empty) rs"
+ by(induction rs rule: rm_LogEmpty.induct) (simp_all)
+
+lemma helper_Log: "approximating_bigstep_fun \<gamma> p (filter (op \<noteq> (Rule m Log)) rs) s = approximating_bigstep_fun \<gamma> p rs s"
+  proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
+  qed(auto simp add: Decision_approximating_bigstep_fun split: action.split)
+ 
+lemma helper_Empty: "approximating_bigstep_fun \<gamma> p (filter (op \<noteq> (Rule m Empty)) rs) s = approximating_bigstep_fun \<gamma> p rs s"
+  proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
+  qed(auto simp add: Decision_approximating_bigstep_fun split: action.split)
+
+(*TODO: use this optimization*)
+lemma approximating_bigstep_fun_remdups_rev:
+  "approximating_bigstep_fun \<gamma> p (remdups_rev rs) s = approximating_bigstep_fun \<gamma> p rs s"
+  apply(induction \<gamma> p rs s rule: approximating_bigstep_fun.induct)
+    apply(simp add: remdups_rev_def)
+   apply (simp add: Decision_approximating_bigstep_fun)
+  apply(case_tac "\<not> matches \<gamma> m a p")
+   apply(simp)
+   apply(simp add: remdups_rev_fst)
+   apply(simp add: remdups_rev_removeAll not_matches_removeAll)
+  apply(simp)
+  apply(simp add: remdups_rev_fst)
+  apply(simp split: action.split)
+  apply(safe)
+   apply(simp_all)
+   apply(simp_all add: remdups_rev_removeAll)
+   apply(simp_all add: removeAll_filter_not_eq helper_Empty helper_Log)
+  done
 
 
 (*TODO: move
