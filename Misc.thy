@@ -50,13 +50,21 @@ begin
   apply(induction rs)
    apply(simp_all)
   apply(simp add: removeAll_filter_not_eq help3)
-  by (smt filter_cong)
+  apply(safe)
+    apply(simp_all)
+   apply metis
+  apply metis
+  done
   
   private lemma help6: "rev (removeAll r (rev rs)) = removeAll r rs"
   by (simp add: removeAll_filter_not_eq rev_filter)
   
   lemma remdups_rev_fst: "remdups_rev (r#rs) = (if r \<in> set rs then r#remdups_rev (removeAll r rs) else r#remdups_rev rs)"
-  using help5 help6 by metis
+    using help5 help6 by metis
+
+
+  lemma remdups_rev_removeAll: "remdups_rev (removeAll r rs) = removeAll r (remdups_rev rs)"
+    by (simp add: remdups_filter remdups_rev_def removeAll_filter_not_eq rev_filter)
 end
 
 end

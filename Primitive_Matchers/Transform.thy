@@ -19,9 +19,6 @@ lemma not_matches_removeAll: "\<not> matches \<gamma> m a p \<Longrightarrow>
   apply blast
   done
 
-(*TODO: move*)
-lemma remdups_rev_removeAll: "remdups_rev (removeAll r rs) = removeAll r (remdups_rev rs)"
-by (simp add: remdups_filter remdups_rev_def removeAll_filter_not_eq rev_filter)
 
 lemma rm_LogEmpty_filter: "rm_LogEmpty rs = filter (\<lambda>r. get_action r \<noteq> Log \<and> get_action r \<noteq> Empty) rs"
  by(induction rs rule: rm_LogEmpty.induct) (simp_all)
