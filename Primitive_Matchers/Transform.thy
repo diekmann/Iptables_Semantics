@@ -34,17 +34,25 @@ lemma helper_Empty: "approximating_bigstep_fun \<gamma> p (filter (op \<noteq> (
 (*TODO: use this optimization*)
 lemma approximating_bigstep_fun_remdups_rev:
   "approximating_bigstep_fun \<gamma> p (remdups_rev rs) s = approximating_bigstep_fun \<gamma> p rs s"
-  apply(induction \<gamma> p rs s rule: approximating_bigstep_fun.induct)
-    apply(simp add: remdups_rev_def)
-   apply (simp add: Decision_approximating_bigstep_fun)
-  apply(case_tac "\<not> matches \<gamma> m a p")
-   apply(simp add: remdups_rev_fst remdups_rev_removeAll not_matches_removeAll)
-  apply(simp add: remdups_rev_fst split: action.split)
-  apply(safe)
-     apply(simp_all)
-   apply(simp_all add: remdups_rev_removeAll)
-   apply(simp_all add: removeAll_filter_not_eq helper_Empty helper_Log)
-  done
+  proof(induction \<gamma> p rs s rule: approximating_bigstep_fun.induct)
+    case 1 thus ?case by(simp add: remdups_rev_def)
+    next
+    case 2 thus ?case by (simp add: Decision_approximating_bigstep_fun)
+    next
+    case (3 \<gamma> p m a) thus ?case
+      proof(cases "matches \<gamma> m a p")
+        case False with 3 show ?thesis
+         by(simp add: remdups_rev_fst remdups_rev_removeAll not_matches_removeAll) 
+        next
+        case True with 3 show ?thesis
+          apply(simp add: remdups_rev_fst split: action.split)
+          apply(safe)
+             apply(simp_all)
+           apply(simp_all add: remdups_rev_removeAll)
+           apply(simp_all add: removeAll_filter_not_eq helper_Empty helper_Log)
+          done
+        qed
+  qed
 
 
 (*TODO: move
