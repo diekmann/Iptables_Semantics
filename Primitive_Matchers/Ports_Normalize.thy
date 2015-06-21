@@ -58,14 +58,14 @@ begin
     case Nil thus ?case by(simp add: ipt_ports_compress_def bunch_of_lemmata_about_matches ipt_ports_andlist_compress_correct)
     next
     case (Cons m ms)
-      thus ?case (is ?goal)
+      thus ?case
       proof(cases m)
-        case Pos thus ?goal using Cons.IH
+        case Pos thus ?thesis using Cons.IH
           by(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches
               ternary_to_bool_bool_to_ternary ipt_ports_negation_type_normalize.simps)
         next
         case (Neg a)
-          thus ?goal using Cons.IH
+          thus ?thesis using Cons.IH
           apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
           apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps
                   ports_invert ipt_ports_negation_type_normalize.simps split: ternaryvalue.split)
@@ -78,14 +78,14 @@ begin
     case Nil thus ?case by(simp add: ipt_ports_compress_def bunch_of_lemmata_about_matches ipt_ports_andlist_compress_correct)
     next
     case (Cons m ms)
-      thus ?case (is ?goal)
+      thus ?case
       proof(cases m)
-        case Pos thus ?goal using Cons.IH
+        case Pos thus ?thesis using Cons.IH
           by(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches
                 ternary_to_bool_bool_to_ternary ipt_ports_negation_type_normalize.simps)
         next
         case (Neg a)
-          thus ?goal using Cons.IH
+          thus ?thesis using Cons.IH
           apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
           apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps ports_invert
               ipt_ports_negation_type_normalize.simps split: ternaryvalue.split)

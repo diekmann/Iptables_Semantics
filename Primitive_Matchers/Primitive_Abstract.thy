@@ -71,9 +71,9 @@ lemma help1: assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_ma
           "matches ?\<gamma> (abstract_negated_interfaces_protocols m) action.Accept p" by simp
         thus ?case by(simp add: optimize_matches_def MatchAccept.hyps)
       next
-      case (Nomatch p m a rs) thus ?case (is ?goal)
+      case (Nomatch p m a rs) thus ?case
         proof(cases "matches ?\<gamma> (abstract_negated_interfaces_protocols m) a p")
-          case False with Nomatch show ?goal
+          case False with Nomatch show ?thesis
             apply(simp add: optimize_matches_def)
             using simple_ruleset_tail by blast
           next
@@ -84,7 +84,7 @@ lemma help1: assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_ma
             from Nomatch.hyps(1) Nomatch.prems(3) abstract_negated_interfaces_protocols_Allow2 have
               "a = action.Drop \<Longrightarrow> \<not> matches ?\<gamma> (abstract_negated_interfaces_protocols m) action.Drop p" by simp
             with True `a = action.Accept \<or> a = action.Drop` have "a = action.Accept" by blast
-            with True show ?goal by(simp add: optimize_matches_def)
+            with True show ?thesis by(simp add: optimize_matches_def)
           qed
       qed(simp_all add: simple_ruleset_def)
 qed

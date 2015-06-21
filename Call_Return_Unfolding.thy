@@ -284,12 +284,13 @@ proof -
          apply(simp_all add: process_ret_split_fst_NeqReturn)
          apply(erule seqE_cons, frule iptables_bigstep_to_undecided, simp)+
          done
-        from prems_rs Cons.IH have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<or> (\<exists>rs\<^sub>1 rs\<^sub>2 m. rs = rs\<^sub>1 @ [Rule m Return] @ rs\<^sub>2 \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided \<and> matches \<gamma> m p)" by simp
-        thus "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r # rs, Undecided\<rangle> \<Rightarrow> Undecided \<or> (\<exists>rs\<^sub>1 rs\<^sub>2 m. r # rs = rs\<^sub>1 @ [Rule m Return] @ rs\<^sub>2 \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided \<and> matches \<gamma> m p)" (is ?goal)
+        from prems_rs Cons.IH have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<or>
+                      (\<exists>rs\<^sub>1 rs\<^sub>2 m. rs = rs\<^sub>1 @ [Rule m Return] @ rs\<^sub>2 \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided \<and> matches \<gamma> m p)" by simp
+        thus "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r # rs, Undecided\<rangle> \<Rightarrow> Undecided \<or> (\<exists>rs\<^sub>1 rs\<^sub>2 m. r # rs = rs\<^sub>1 @ [Rule m Return] @ rs\<^sub>2 \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided \<and> matches \<gamma> m p)"
           proof(elim disjE)
             assume "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided"
             hence "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r # rs, Undecided\<rangle> \<Rightarrow> Undecided" using prems_r by (metis r seq'_cons) 
-            thus ?goal by simp
+            thus ?thesis by simp
           next
             assume "(\<exists>rs\<^sub>1 rs\<^sub>2 m. rs = rs\<^sub>1 @ [Rule m Return] @ rs\<^sub>2 \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided \<and> matches \<gamma> m p)"
             from this obtain rs\<^sub>1 rs\<^sub>2 m' where "rs = rs\<^sub>1 @ [Rule m' Return] @ rs\<^sub>2" and "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" and "matches \<gamma> m' p" by blast
@@ -299,13 +300,13 @@ proof -
               apply(rule_tac x=m' in exI)
               apply(simp add: r)
               using prems_r seq'_cons by fast
-            thus ?goal by simp
+            thus ?thesis by simp
           qed
       next
       case False
         hence "a = Return" by simp
         with Cons.prems r have prems: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match (MatchNot m) (process_ret rs), Undecided\<rangle> \<Rightarrow> Undecided" by simp
-        show "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r # rs, Undecided\<rangle> \<Rightarrow> Undecided \<or> (\<exists>rs\<^sub>1 rs\<^sub>2 m. r # rs = rs\<^sub>1 @ [Rule m Return] @ rs\<^sub>2 \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided \<and> matches \<gamma> m p)" (is ?goal)
+        show "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r # rs, Undecided\<rangle> \<Rightarrow> Undecided \<or> (\<exists>rs\<^sub>1 rs\<^sub>2 m. r # rs = rs\<^sub>1 @ [Rule m Return] @ rs\<^sub>2 \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided \<and> matches \<gamma> m p)"
           proof(cases "matches \<gamma> m p")
           case True
             (*the Cons premises are useless in this case*)
@@ -315,18 +316,18 @@ proof -
                apply(rule_tac x="m" in exI)
                apply(simp add: skip r `a = Return`)
                done
-            thus ?goal by simp
+            thus ?thesis by simp
           next
           case False
             with nomatch seq_cons False r have r_nomatch: "\<And>rs. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>r # rs, Undecided\<rangle> \<Rightarrow> Undecided" by fast
             note r_nomatch'=r_nomatch[simplified r `a = Return`] --"r unfolded"
             from False not_matches_add_matchNot_simp prems have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>process_ret rs, Undecided\<rangle> \<Rightarrow> Undecided" by fast
             with Cons.IH have IH: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<or> (\<exists>rs\<^sub>1 rs\<^sub>2 m. rs = rs\<^sub>1 @ [Rule m Return] @ rs\<^sub>2 \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided \<and> matches \<gamma> m p)" .
-            thus ?goal
+            thus ?thesis
               proof(elim disjE)
                 assume "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided"
                 hence "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r # rs, Undecided\<rangle> \<Rightarrow> Undecided" using r_nomatch by simp
-                thus ?goal by simp
+                thus ?thesis by simp
               next
                 assume "\<exists>rs\<^sub>1 rs\<^sub>2 m. rs = rs\<^sub>1 @ [Rule m Return] @ rs\<^sub>2 \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided \<and> matches \<gamma> m p"
                 from this obtain rs\<^sub>1 rs\<^sub>2 m' where "rs = rs\<^sub>1 @ [Rule m' Return] @ rs\<^sub>2" and "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided" and "matches \<gamma> m' p" by blast
@@ -335,7 +336,7 @@ proof -
                   apply(rule_tac x="rs\<^sub>2" in exI)
                   apply(rule_tac x="m'" in exI)
                   by(simp add:  `a = Return` False r r_nomatch')
-                thus ?goal by simp
+                thus ?thesis by simp
               qed
           qed
        qed
