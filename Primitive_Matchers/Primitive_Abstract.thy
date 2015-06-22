@@ -108,7 +108,50 @@ lemma abstract_negated_interfaces_protocols_Deny:
     matches (common_matcher, in_doubt_deny) (abstract_negated_interfaces_protocols m) action.Drop p"
    apply(induction m rule: abstract_negated_interfaces_protocols.induct)
                  apply (simp_all add: bunch_of_lemmata_about_matches)
-   apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: ternaryvalue.split)
+   apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps split: ternaryvalue.split)
    done
 
+lemma abstract_negated_interfaces_protocols_Deny2: 
+  "normalized_nnf_match m \<Longrightarrow> 
+    \<not> matches (common_matcher, in_doubt_deny) m action.Accept p \<Longrightarrow>
+    \<not> matches (common_matcher, in_doubt_deny) (abstract_negated_interfaces_protocols m) action.Accept p"
+   apply(induction m rule: abstract_negated_interfaces_protocols.induct)
+                 apply (simp_all add: bunch_of_lemmata_about_matches)
+   apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: ternaryvalue.split)
+   done
+
+
+(*TODO: rename*)
+lemma help2: assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
+      and prem: "approximating_bigstep_fun (common_matcher, in_doubt_deny) p rs Undecided = Decision FinalDeny"
+      shows "approximating_bigstep_fun (common_matcher, in_doubt_deny) p (optimize_matches abstract_negated_interfaces_protocols rs) Undecided = Decision FinalDeny"
+  proof -
+    let ?\<gamma>="(common_matcher, in_doubt_deny) :: (common_primitive \<Rightarrow> simple_packet \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> simple_packet \<Rightarrow> bool)"
+      --{*type signature is needed, otherwise @{const in_doubt_allow} would be for arbitrary packet*}
+
+    from simple have "wf_ruleset ?\<gamma> p rs" using good_imp_wf_ruleset simple_imp_good_ruleset by fast
+    from this simple prem n show ?thesis
+      proof(induction ?\<gamma> p rs Undecided rule: approximating_bigstep_fun_induct_wf)
+      case (MatchDrop p m a rs)
+        from MatchDrop.prems abstract_negated_interfaces_protocols_Deny MatchDrop.hyps have
+          "matches ?\<gamma> (abstract_negated_interfaces_protocols m) action.Drop p" by simp
+        thus ?case by(simp add: optimize_matches_def MatchDrop.hyps)
+      next
+      case (Nomatch p m a rs) thus ?case
+        proof(cases "matches ?\<gamma> (abstract_negated_interfaces_protocols m) a p")
+          case False with Nomatch show ?thesis
+            apply(simp add: optimize_matches_def)
+            using simple_ruleset_tail by blast
+          next
+          case True
+            from Nomatch simple_ruleset_tail have
+              "approximating_bigstep_fun ?\<gamma> p (optimize_matches abstract_negated_interfaces_protocols rs) Undecided = Decision FinalDeny" by auto
+            from Nomatch.prems simple_ruleset_def have "a = action.Accept \<or> a = action.Drop" by force
+            from Nomatch.hyps(1) Nomatch.prems(3) abstract_negated_interfaces_protocols_Deny2 have
+              "a = action.Accept \<Longrightarrow> \<not> matches ?\<gamma> (abstract_negated_interfaces_protocols m) action.Accept p" by(simp)
+            with True `a = action.Accept \<or> a = action.Drop` have "a = action.Drop" by blast
+            with True show ?thesis by(simp add: optimize_matches_def)
+          qed
+      qed(simp_all add: simple_ruleset_def)
+qed
 end
