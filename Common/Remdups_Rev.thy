@@ -48,4 +48,58 @@ qed
 lemma remdups_rev_removeAll: "remdups_rev (removeAll r rs) = removeAll r (remdups_rev rs)"
   by (simp add: remdups_filter remdups_rev_def removeAll_filter_not_eq rev_filter)
 
+fun remdups_rev_code :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+  "remdups_rev_code _ [] = []" |
+  "remdups_rev_code ps (r#rs) = (if r \<in> set ps then remdups_rev_code ps rs else r#remdups_rev_code (r#ps) rs)"
+
+lemma  remdups_rev_code_ps_seteq: "set ps1 = set ps2 \<Longrightarrow> remdups_rev_code ps1 rs = remdups_rev_code ps2 rs"
+  apply(induction rs arbitrary: ps1 ps2)
+   apply(simp)
+  apply(subst remdups_rev_code.simps)+
+  apply(case_tac "a \<in> set ps1")
+   apply metis (*simplifier loops*)
+  apply(simp)
+  done
+
+lemma remdups_rev_code_ps_append: "remdups_rev_code (ps1@ps2) rs = remdups_rev_code ps2 (filter (\<lambda>r. r \<notin> set ps1) rs)"
+  proof(induction rs arbitrary: ps1 ps2)
+  case (Cons r rs)
+    have "remdups_rev_code (r # ps1 @ ps2) rs = remdups_rev_code (ps1 @ r # ps2) rs"
+      apply(rule remdups_rev_code_ps_seteq)
+      by simp
+    with Cons.IH have "remdups_rev_code (r # ps1 @ ps2) rs = remdups_rev_code (r#ps2) [r\<leftarrow>rs . r \<notin> set ps1]" by simp
+    from this show ?case by(simp add: Cons)
+  qed(simp add: remdups_rev_def)
+
+lemma remdups_rev_code_ps_fst: "remdups_rev_code (p # ps) rs = remdups_rev_code ps (removeAll p rs)"
+  apply(simp add: remdups_rev_code_ps_append[of "[p]" "ps" rs, simplified] removeAll_filter_not_eq)
+  by metis
+
+lemma remdups_rev_code_removeAll: "remdups_rev_code ps (removeAll p rs) = removeAll p (remdups_rev_code ps rs)"
+  apply(induction rs arbitrary: ps)
+   apply(simp_all)
+  apply(safe)
+   apply(simp_all)
+  apply(simp add: remdups_rev_code_ps_fst removeAll_filter_not_eq)
+  done
+
+lemma [code_unfold]:"remdups_rev rs = remdups_rev_code [] rs"
+proof -
+  {fix ps
+    have "\<forall>p \<in> set ps. p \<notin> set rs \<Longrightarrow> remdups_rev rs = remdups_rev_code ps rs"
+      apply(induction rs arbitrary: ps)
+       apply(simp add: remdups_rev_def)
+      apply(simp add: remdups_rev_fst remdups_rev_removeAll)
+      apply safe
+        apply(simp_all)
+       defer
+       apply blast
+      apply(simp_all add: remdups_rev_code_ps_fst)
+      apply(simp add: remdups_rev_code_removeAll)
+      by metis
+  }
+  thus ?thesis by simp
+qed
+  
+
 end
