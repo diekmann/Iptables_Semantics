@@ -54,6 +54,11 @@ lemma approximating_bigstep_fun_remdups_rev:
         qed
   qed
 
+lemma remdups_rev_simplers: "simple_ruleset rs \<Longrightarrow> simple_ruleset (remdups_rev rs)"
+  by(induction rs) (simp_all add: remdups_rev_def simple_ruleset_def)
+
+lemma remdups_rev_preserve_matches: "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (remdups_rev rs). P m"
+  by(induction rs) (simp_all add: remdups_rev_def simple_ruleset_def)
 
 (*TODO: move
   TODO: this is currently not used.*)
@@ -141,8 +146,7 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
 
     show simplers_transform: "simple_ruleset (transform_optimize_dnf_strict rs)"
       unfolding transform_optimize_dnf_strict_def
-      using simplers optimize_matches_simple_ruleset simple_ruleset_normalize_rules_dnf by (metis comp_apply)
-
+      using simplers by (simp add: optimize_matches_simple_ruleset simple_ruleset_normalize_rules_dnf)
 
     have 1: "?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?fw rs = t"
       using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]] by fast
@@ -157,7 +161,7 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
       apply(rule optimize_matches[symmetric])
       using opt_MatchAny_match_expr_correct by (metis)
     finally have rs: "?fw rs = ?fw (transform_optimize_dnf_strict rs)"
-      unfolding transform_optimize_dnf_strict_def by auto
+      unfolding transform_optimize_dnf_strict_def by(simp)
 
     have 2: "?fw (transform_optimize_dnf_strict rs) = t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t "
       using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_transform], symmetric] by fast
@@ -191,11 +195,7 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
         using p1 p2 p3  by(simp)
     } note matchpred_rule=this
 
-    (*let ?disc_assumption="disc \<in> {is_Src, is_Dst, is_Iiface, is_Oiface, is_Prot, is_Src_Ports, is_Dst_Ports, is_Extra}"*)
     { fix m
-      (*assume ?disc_assumption
-      hence disc_extra: "\<And>e1 e2. (\<not> disc (Extra (e1 @ CHR '' '' # e2)) \<Longrightarrow> True) \<Longrightarrow> \<not> disc (Extra e1) \<and> \<not> disc (Extra e2) \<Longrightarrow> \<not> disc (Extra (e1 @ CHR '' '' # e2))"
-        by force*)
       have "\<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (optimize_primitive_univ m)"
       by(induction m rule: optimize_primitive_univ.induct) (simp_all)
     }  moreover { fix m 
