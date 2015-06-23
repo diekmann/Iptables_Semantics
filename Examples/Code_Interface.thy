@@ -58,9 +58,11 @@ definition map_of_string :: "(string \<times> common_primitive rule list) list \
 "map_of_string rs = map_of rs"
 
 definition upper_closure :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
-  "upper_closure rs == transform_optimize_dnf_strict (transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a upper_closure_matchexpr rs)))"
+  "upper_closure rs == remdups_rev (transform_optimize_dnf_strict
+      (transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a upper_closure_matchexpr rs))))"
 definition lower_closure :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
-  "lower_closure rs == transform_optimize_dnf_strict (transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a lower_closure_matchexpr rs)))"
+  "lower_closure rs == remdups_rev (transform_optimize_dnf_strict
+      (transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a lower_closure_matchexpr rs))))"
 
 (*
 definition port_to_nat :: "16 word \<Rightarrow> nat" where
