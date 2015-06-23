@@ -79,16 +79,12 @@ lemma "simple_ruleset (unfold_ruleset_INPUT action.Accept firewall_chains)" by e
 
 (*Hmm, this ruleset is the Allow-All ruleset!*)
 lemma upper: "upper_closure (unfold_ruleset_INPUT action.Accept firewall_chains) =
- [Rule MatchAny action.Accept, Rule MatchAny action.Accept, Rule MatchAny action.Drop, Rule MatchAny action.Accept,
-  Rule (Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8))) action.Drop, Rule (Match (Src (Ip4AddrNetmask (10, 0, 0, 0) 8))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) action.Drop, Rule (Match (Src (Ip4AddrNetmask (169, 254, 0, 0) 16))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (172, 16, 0, 0) 12))) action.Drop, Rule (Match (Src (Ip4AddrNetmask (224, 0, 0, 0) 3))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (240, 0, 0, 0) 8))) action.Drop, Rule (Match (Src (Ip4AddrNetmask (160, 86, 0, 0) 16))) action.Accept, Rule MatchAny action.Drop,
-  Rule MatchAny action.Accept, Rule MatchAny action.Accept, Rule MatchAny action.Accept, Rule MatchAny action.Accept, Rule (Match (Prot (Proto TCP))) action.Accept,
-  Rule (Match (Prot (Proto TCP))) action.Accept, Rule (Match (Prot (Proto TCP))) action.Accept, Rule (Match (Prot (Proto UDP))) action.Accept,
-  Rule (Match (Prot (Proto UDP))) action.Accept, Rule (Match (Prot (Proto TCP))) action.Accept, Rule (Match (Prot (Proto UDP))) action.Accept,
-  Rule (Match (Prot (Proto TCP))) action.Accept, Rule (Match (Prot (Proto UDP))) action.Accept, Rule (Match (Prot (Proto TCP))) action.Accept,
-  Rule (Match (Prot (Proto UDP))) action.Accept, Rule MatchAny action.Drop, Rule MatchAny action.Accept, Rule MatchAny action.Accept]" by eval
+ [Rule MatchAny action.Accept, Rule MatchAny action.Drop, Rule (Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8))) action.Drop,
+  Rule (Match (Src (Ip4AddrNetmask (10, 0, 0, 0) 8))) action.Drop, Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) action.Drop,
+  Rule (Match (Src (Ip4AddrNetmask (169, 254, 0, 0) 16))) action.Drop, Rule (Match (Src (Ip4AddrNetmask (172, 16, 0, 0) 12))) action.Drop,
+  Rule (Match (Src (Ip4AddrNetmask (224, 0, 0, 0) 3))) action.Drop, Rule (Match (Src (Ip4AddrNetmask (240, 0, 0, 0) 8))) action.Drop,
+  Rule (Match (Src (Ip4AddrNetmask (160, 86, 0, 0) 16))) action.Accept, Rule (Match (Prot (Proto TCP))) action.Accept,
+  Rule (Match (Prot (Proto UDP))) action.Accept]" by eval
 
 
 lemma "rmshadow (common_matcher, in_doubt_allow) (upper_closure (unfold_ruleset_INPUT action.Accept firewall_chains)) UNIV = 

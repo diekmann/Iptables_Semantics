@@ -9,12 +9,10 @@ begin
 section{*Example: Synology Diskstation*}
 
 local_setup \<open>
-  local_setup_parse_iptables_save @{binding ds_fw} ["Examples", "Synology_Diskstation_DS414", "iptables-save"]
+  local_setup_parse_iptables_save @{binding ds_fw} ["iptables-save"]
  \<close>
 thm ds_fw_def
-declare ds_fw_def[code]
 thm ds_fw_INPUT_default_policy_def
-declare ds_fw_INPUT_default_policy_def[code]
 
 text{*we removed the established,related rule*}
 
@@ -63,15 +61,12 @@ abbreviation MatchAndInfix :: "'a match_expr \<Rightarrow> 'a match_expr \<Right
 
 text{*in doubt allow closure*}
 lemma upper: "upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset) =
-  [Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16))) action.Accept, Rule MatchAny action.Drop, Rule MatchAny action.Accept, Rule MatchAny action.Accept]" by eval
+  [Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16))) action.Accept, Rule MatchAny action.Drop, Rule MatchAny action.Accept]" by eval
 
 text{*in doubt deny closure*}
 lemma lower: "lower_closure (unfold_ruleset_INPUT action.Accept example_ruleset) =
- [Rule MatchAny action.Drop, Rule (Match (Prot (Proto TCP))) action.Drop, Rule (Match (Prot (Proto TCP))) action.Drop, Rule MatchAny action.Drop,
-  Rule (Match (Prot (Proto TCP))) action.Drop, Rule (Match (Prot (Proto TCP))) action.Drop, Rule MatchAny action.Drop, Rule (Match (Prot (Proto TCP))) action.Drop,
-  Rule (Match (Prot (Proto TCP))) action.Drop, Rule MatchAny action.Drop, Rule (Match (Prot (Proto TCP))) action.Drop, Rule (Match (Prot (Proto TCP))) action.Drop,
-  Rule (Match (Prot (Proto TCP))) action.Drop, Rule (Match (Prot (Proto TCP))) action.Drop, Rule (Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16))) action.Accept, Rule MatchAny action.Drop, Rule MatchAny action.Accept, Rule MatchAny action.Accept]" by eval
+ [Rule MatchAny action.Drop, Rule (Match (Prot (Proto TCP))) action.Drop, Rule (Match (Prot (Proto UDP))) action.Drop,
+  Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16))) action.Accept, Rule MatchAny action.Accept]" by eval
 
 
 

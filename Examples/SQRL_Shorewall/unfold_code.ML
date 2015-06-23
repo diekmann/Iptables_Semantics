@@ -669,12 +669,10 @@ fun suc n = plus_nat n one_nat;
 fun find f [] = NONE
   | find f (x :: xs) = (if f x then SOME x else find f xs);
 
+fun const x = (fn _ => x);
+
 fun fold f (x :: xs) s = fold f xs (f x s)
   | fold f [] s = s;
-
-fun rev xs = fold (fn a => fn b => a :: b) xs [];
-
-fun const x = (fn _ => x);
 
 fun maps f [] = []
   | maps f (x :: xs) = f x @ maps f xs;
@@ -890,8 +888,6 @@ fun iface_conjunct (Iface i1) (Iface i2) =
       (if match_iface (Iface i2) i1 then SOME (Iface i1) else NONE)
     | (false, false) =>
       (if equal_lista equal_char i1 i2 then SOME (Iface i1) else NONE));
-
-fun remdups_rev A_ rs = rev (remdups A_ (rev rs));
 
 fun numeral A_ (Bit1 n) =
   let
@@ -1684,8 +1680,13 @@ fun transform_optimize_dnf_strict x =
 fun optimize_matches_a f rs =
   map (fn r => Rule (f (get_action r) (get_match r), get_action r)) rs;
 
+fun remdups_rev_code A_ uu [] = []
+  | remdups_rev_code A_ ps (r :: rs) =
+    (if member A_ ps r then remdups_rev_code A_ ps rs
+      else r :: remdups_rev_code A_ (r :: ps) rs);
+
 fun lower_closure rs =
-  remdups_rev (equal_rule equal_common_primitive)
+  remdups_rev_code (equal_rule equal_common_primitive) []
     (transform_optimize_dnf_strict
       (transform_normalize_primitives
         (transform_optimize_dnf_strict
@@ -1819,7 +1820,7 @@ fun upper_closure_matchexpr uu MatchAny = MatchAny
     MatchAnd (upper_closure_matchexpr a m1, upper_closure_matchexpr a m2);
 
 fun upper_closure rs =
-  remdups_rev (equal_rule equal_common_primitive)
+  remdups_rev_code (equal_rule equal_common_primitive) []
     (transform_optimize_dnf_strict
       (transform_normalize_primitives
         (transform_optimize_dnf_strict
