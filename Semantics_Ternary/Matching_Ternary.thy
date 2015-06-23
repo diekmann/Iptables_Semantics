@@ -200,6 +200,7 @@ lemma "MatchNot (opt_MatchAny_match_expr (MatchAnd MatchAny (MatchNot MatchAny))
 lemma "m = (MatchAnd (MatchAnd MatchAny MatchAny) (MatchAnd MatchAny MatchAny)) \<Longrightarrow> 
   (opt_MatchAny_match_expr^^2) m \<noteq> opt_MatchAny_match_expr m" by(simp add: funpow_def)
 
+
 text{*An @{typ "'p unknown_match_tac"} is wf if it behaves equal for @{const Reject} and @{const Drop} *}
 definition wf_unknown_match_tac :: "'p unknown_match_tac \<Rightarrow> bool" where
   "wf_unknown_match_tac \<alpha> \<equiv> (\<alpha> Drop = \<alpha> Reject)"

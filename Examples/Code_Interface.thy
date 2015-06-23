@@ -15,6 +15,19 @@ section{*Code Interface*}
 definition check_simple_ruleset :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
   "check_simple_ruleset rs \<equiv> if simple_ruleset rs then rs else undefined"
 
+text{*repeat the application at most n times (param 1) until it stabilize*}
+fun repeat_stabilize :: "nat \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'a" where
+  "repeat_stabilize 0 _ v = v" |
+  "repeat_stabilize (Suc n) f v = (let v_new = f v in if v = v_new then v else repeat_stabilize n f v_new)"
+
+lemma "repeat_stabilize n f v = (f^^n) v"
+  proof(induction n arbitrary: v)
+  case (Suc n)
+    have "f v = v \<Longrightarrow> (f^^n) v = v" by(induction n) simp_all
+    with Suc show ?case by(simp add: Let_def funpow_swap1)
+  qed(simp)
+  
+
 (*TODO replace constant number of process_call with number of chain decls *)
 definition unfold_ruleset_FORWARD :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
 "unfold_ruleset_FORWARD default_action rs = check_simple_ruleset (((optimize_matches opt_MatchAny_match_expr)^^10) 
