@@ -445,6 +445,9 @@ fun rm_LogEmpty :: "'a rule list \<Rightarrow> 'a rule list" where
   "rm_LogEmpty ((Rule _ Log)#rs) = rm_LogEmpty rs" |
   "rm_LogEmpty (r#rs) = r # rm_LogEmpty rs"
 
+lemma rm_LogEmpty_filter: "rm_LogEmpty rs = filter (\<lambda>r. get_action r \<noteq> Log \<and> get_action r \<noteq> Empty) rs"
+ by(induction rs rule: rm_LogEmpty.induct) (simp_all)
+
 lemma rm_LogEmpty_fun_semantics: 
   "approximating_bigstep_fun \<gamma> p (rm_LogEmpty rs) s = approximating_bigstep_fun \<gamma> p rs s"
   proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)

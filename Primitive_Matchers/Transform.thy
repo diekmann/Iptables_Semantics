@@ -20,17 +20,6 @@ lemma not_matches_removeAll: "\<not> matches \<gamma> m a p \<Longrightarrow>
   done
 
 
-lemma rm_LogEmpty_filter: "rm_LogEmpty rs = filter (\<lambda>r. get_action r \<noteq> Log \<and> get_action r \<noteq> Empty) rs"
- by(induction rs rule: rm_LogEmpty.induct) (simp_all)
-
-lemma helper_Log: "approximating_bigstep_fun \<gamma> p (filter (op \<noteq> (Rule m Log)) rs) s = approximating_bigstep_fun \<gamma> p rs s"
-  proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
-  qed(auto simp add: Decision_approximating_bigstep_fun split: action.split)
- 
-lemma helper_Empty: "approximating_bigstep_fun \<gamma> p (filter (op \<noteq> (Rule m Empty)) rs) s = approximating_bigstep_fun \<gamma> p rs s"
-  proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
-  qed(auto simp add: Decision_approximating_bigstep_fun split: action.split)
-
 (*TODO: use this optimization*)
 lemma approximating_bigstep_fun_remdups_rev:
   "approximating_bigstep_fun \<gamma> p (remdups_rev rs) s = approximating_bigstep_fun \<gamma> p rs s"
@@ -39,12 +28,23 @@ lemma approximating_bigstep_fun_remdups_rev:
     next
     case 2 thus ?case by (simp add: Decision_approximating_bigstep_fun)
     next
-    case (3 \<gamma> p m a) thus ?case
+    case (3 \<gamma> p m a rs) thus ?case
       proof(cases "matches \<gamma> m a p")
         case False with 3 show ?thesis
          by(simp add: remdups_rev_fst remdups_rev_removeAll not_matches_removeAll) 
         next
-        case True with 3 show ?thesis
+        case True
+        { fix rs s
+          have "approximating_bigstep_fun \<gamma> p (filter (op \<noteq> (Rule m Log)) rs) s = approximating_bigstep_fun \<gamma> p rs s"
+          proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
+          qed(auto simp add: Decision_approximating_bigstep_fun split: action.split)
+        } note helper_Log=this
+        { fix rs s
+          have "approximating_bigstep_fun \<gamma> p (filter (op \<noteq> (Rule m Empty)) rs) s = approximating_bigstep_fun \<gamma> p rs s"
+          proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
+          qed(auto simp add: Decision_approximating_bigstep_fun split: action.split)
+        } note helper_Empty=this
+        from True 3 show ?thesis
           apply(simp add: remdups_rev_fst split: action.split)
           apply(safe)
              apply(simp_all)
