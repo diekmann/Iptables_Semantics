@@ -20,7 +20,6 @@ lemma not_matches_removeAll: "\<not> matches \<gamma> m a p \<Longrightarrow>
   done
 
 
-(*TODO: use this optimization*)
 lemma approximating_bigstep_fun_remdups_rev:
   "approximating_bigstep_fun \<gamma> p (remdups_rev rs) s = approximating_bigstep_fun \<gamma> p rs s"
   proof(induction \<gamma> p rs s rule: approximating_bigstep_fun.induct)

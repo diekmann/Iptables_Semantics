@@ -33,17 +33,20 @@ lemma "length unfolded = 2649" by eval
 
 (*11.918s*)
 value[code] "map (quote_rewrite \<circ> common_primitive_rule_toString) (upper_closure unfolded)"
-lemma "length (upper_closure unfolded) = 1683" by eval
+lemma "length (upper_closure unfolded) = 1430" by eval
+
 
 (*53.507s*)
-lemma "length (lower_closure unfolded) = 14138" by eval
-
+lemma "length (lower_closure unfolded) = 9574" by eval
 
 (*16.334s*)
 value[code] "map simple_rule_toString (to_simple_firewall (upper_closure unfolded))" 
-lemma "length (to_simple_firewall (upper_closure unfolded)) = 1683" by eval
+lemma "length (to_simple_firewall (upper_closure unfolded)) = 1430" by eval
+
 (*81.437s*)
-lemma "length (to_simple_firewall (lower_closure unfolded)) = 11212" by eval
+lemma "length (to_simple_firewall (lower_closure unfolded)) = 6648" by eval
+
+value[code] "length (remdups_rev (to_simple_firewall (lower_closure unfolded)))" (*even smaller*)
 
 
 export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure
