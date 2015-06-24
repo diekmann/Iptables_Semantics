@@ -267,6 +267,19 @@ proof -
 qed
 
 
+lemma simple_fw_not_matches_removeAll: "\<not> simple_matches m p \<Longrightarrow> simple_fw (removeAll (SimpleRule m a) rs) p = simple_fw rs p"
+  apply(induction rs p rule: simple_fw.induct)
+    apply(simp)
+   apply(simp_all)
+   apply blast+
+  done
+  
+lemma simple_fw_remdups_Rev: "simple_fw (remdups_rev rs) p = simple_fw rs p"
+  apply(induction rs p rule: simple_fw.induct)
+    apply(simp add: remdups_rev_def)
+   apply(simp_all add: remdups_rev_fst remdups_rev_removeAll simple_fw_not_matches_removeAll)
+  done
+
 
 fun action_to_simple_action :: "action \<Rightarrow> simple_action" where
   "action_to_simple_action action.Accept = simple_action.Accept" |

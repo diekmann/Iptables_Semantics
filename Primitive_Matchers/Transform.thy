@@ -4,9 +4,60 @@ imports "Common_Primitive_Matcher"
         "../Semantics_Ternary/Negation_Type_Matching"
         "../Primitive_Matchers/Ports_Normalize"
         "../Primitive_Matchers/IpAddresses_Normalize"
+        "../Common/Remdups_Rev"
 begin
 
 
+
+
+(*TODO: move*)
+lemma not_matches_removeAll: "\<not> matches \<gamma> m a p \<Longrightarrow>
+  approximating_bigstep_fun \<gamma> p (removeAll (Rule m a) rs) Undecided = approximating_bigstep_fun \<gamma> p rs Undecided"
+  apply(induction \<gamma> p rs Undecided rule: approximating_bigstep_fun.induct)
+   apply(simp)
+  apply(simp split: action.split)
+  apply blast
+  done
+
+
+lemma approximating_bigstep_fun_remdups_rev:
+  "approximating_bigstep_fun \<gamma> p (remdups_rev rs) s = approximating_bigstep_fun \<gamma> p rs s"
+  proof(induction \<gamma> p rs s rule: approximating_bigstep_fun.induct)
+    case 1 thus ?case by(simp add: remdups_rev_def)
+    next
+    case 2 thus ?case by (simp add: Decision_approximating_bigstep_fun)
+    next
+    case (3 \<gamma> p m a rs) thus ?case
+      proof(cases "matches \<gamma> m a p")
+        case False with 3 show ?thesis
+         by(simp add: remdups_rev_fst remdups_rev_removeAll not_matches_removeAll) 
+        next
+        case True
+        { fix rs s
+          have "approximating_bigstep_fun \<gamma> p (filter (op \<noteq> (Rule m Log)) rs) s = approximating_bigstep_fun \<gamma> p rs s"
+          proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
+          qed(auto simp add: Decision_approximating_bigstep_fun split: action.split)
+        } note helper_Log=this
+        { fix rs s
+          have "approximating_bigstep_fun \<gamma> p (filter (op \<noteq> (Rule m Empty)) rs) s = approximating_bigstep_fun \<gamma> p rs s"
+          proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
+          qed(auto simp add: Decision_approximating_bigstep_fun split: action.split)
+        } note helper_Empty=this
+        from True 3 show ?thesis
+          apply(simp add: remdups_rev_fst split: action.split)
+          apply(safe)
+             apply(simp_all)
+           apply(simp_all add: remdups_rev_removeAll)
+           apply(simp_all add: removeAll_filter_not_eq helper_Empty helper_Log)
+          done
+        qed
+  qed
+
+lemma remdups_rev_simplers: "simple_ruleset rs \<Longrightarrow> simple_ruleset (remdups_rev rs)"
+  by(induction rs) (simp_all add: remdups_rev_def simple_ruleset_def)
+
+lemma remdups_rev_preserve_matches: "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (remdups_rev rs). P m"
+  by(induction rs) (simp_all add: remdups_rev_def simple_ruleset_def)
 
 (*TODO: move
   TODO: this is currently not used.*)
@@ -72,9 +123,9 @@ lemma normalized_n_primitive_opt_MatchAny_match_expr: "normalized_n_primitive di
   }note x=this
   assume "normalized_n_primitive disc_sel f m"
   thus ?thesis
-  apply(induction disc_sel f m rule: normalized_n_primitive.induct)
-  apply simp_all
-  using x by simp
+    apply(induction disc_sel f m rule: normalized_n_primitive.induct)
+          apply simp_all
+    using x by simp
   qed
   
 
@@ -94,8 +145,7 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
 
     show simplers_transform: "simple_ruleset (transform_optimize_dnf_strict rs)"
       unfolding transform_optimize_dnf_strict_def
-      using simplers optimize_matches_simple_ruleset simple_ruleset_normalize_rules_dnf by (metis comp_apply)
-
+      using simplers by (simp add: optimize_matches_simple_ruleset simple_ruleset_normalize_rules_dnf)
 
     have 1: "?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?fw rs = t"
       using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]] by fast
@@ -110,7 +160,7 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
       apply(rule optimize_matches[symmetric])
       using opt_MatchAny_match_expr_correct by (metis)
     finally have rs: "?fw rs = ?fw (transform_optimize_dnf_strict rs)"
-      unfolding transform_optimize_dnf_strict_def by auto
+      unfolding transform_optimize_dnf_strict_def by(simp)
 
     have 2: "?fw (transform_optimize_dnf_strict rs) = t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t "
       using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_transform], symmetric] by fast
@@ -144,11 +194,7 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
         using p1 p2 p3  by(simp)
     } note matchpred_rule=this
 
-    (*let ?disc_assumption="disc \<in> {is_Src, is_Dst, is_Iiface, is_Oiface, is_Prot, is_Src_Ports, is_Dst_Ports, is_Extra}"*)
     { fix m
-      (*assume ?disc_assumption
-      hence disc_extra: "\<And>e1 e2. (\<not> disc (Extra (e1 @ CHR '' '' # e2)) \<Longrightarrow> True) \<Longrightarrow> \<not> disc (Extra e1) \<and> \<not> disc (Extra e2) \<Longrightarrow> \<not> disc (Extra (e1 @ CHR '' '' # e2))"
-        by force*)
       have "\<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (optimize_primitive_univ m)"
       by(induction m rule: optimize_primitive_univ.induct) (simp_all)
     }  moreover { fix m 

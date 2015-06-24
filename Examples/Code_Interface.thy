@@ -3,6 +3,7 @@ imports
 "../Call_Return_Unfolding"
 "../Primitive_Matchers/Transform"
 "../Simple_Firewall/SimpleFw_Compliance"
+"../Semantics_Goto"
 "~~/src/HOL/Library/Code_Target_Nat"
 "~~/src/HOL/Library/Code_Target_Int"
 "~~/src/HOL/Library/Code_Char"
@@ -14,31 +15,54 @@ section{*Code Interface*}
 definition check_simple_ruleset :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
   "check_simple_ruleset rs \<equiv> if simple_ruleset rs then rs else undefined"
 
-(*TODO TODO TODO
-  all the unfold_ruleset_* don't add the chain's default action at the end automatically
-  This would be the responsibility of the parser.
-*)
+text{*repeat the application at most n times (param 1) until it stabilize*}
+fun repeat_stabilize :: "nat \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'a" where
+  "repeat_stabilize 0 _ v = v" |
+  "repeat_stabilize (Suc n) f v = (let v_new = f v in if v = v_new then v else repeat_stabilize n f v_new)"
+
+lemma "repeat_stabilize n f v = (f^^n) v"
+  proof(induction n arbitrary: v)
+  case (Suc n)
+    have "f v = v \<Longrightarrow> (f^^n) v = v" by(induction n) simp_all
+    with Suc show ?case by(simp add: Let_def funpow_swap1)
+  qed(simp)
+
+(*TODO replace constant number of process_call with number of chain decls *)
 
 definition unfold_ruleset_FORWARD :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
-"unfold_ruleset_FORWARD default_action rs = check_simple_ruleset (((optimize_matches opt_MatchAny_match_expr)^^10) 
-  (optimize_matches optimize_primitive_univ (rw_Reject (rm_LogEmpty (((process_call rs)^^10) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny default_action])))))"
+"unfold_ruleset_FORWARD default_action rs = check_simple_ruleset
+  (repeat_stabilize 1000 (optimize_matches opt_MatchAny_match_expr)
+    (optimize_matches optimize_primitive_univ
+      (rw_Reject (rm_LogEmpty (repeat_stabilize 10000 (process_call rs)
+        [Rule MatchAny (Call ''FORWARD''), Rule MatchAny default_action]
+  )))))"
 
 definition unfold_ruleset_INPUT :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
-"unfold_ruleset_INPUT default_action rs = check_simple_ruleset (((optimize_matches opt_MatchAny_match_expr)^^10) 
-  (optimize_matches optimize_primitive_univ (rw_Reject (rm_LogEmpty (((process_call rs)^^10) [Rule MatchAny (Call ''INPUT''), Rule MatchAny default_action])))))"
+"unfold_ruleset_INPUT default_action rs = check_simple_ruleset
+  (repeat_stabilize 10000 (optimize_matches opt_MatchAny_match_expr) 
+    (optimize_matches optimize_primitive_univ
+      (rw_Reject (rm_LogEmpty (repeat_stabilize 10000 (process_call rs)
+        [Rule MatchAny (Call ''INPUT''), Rule MatchAny default_action]
+  )))))"
 
 definition unfold_ruleset_OUTPUT :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
-"unfold_ruleset_OUTPUT default_action rs = check_simple_ruleset (((optimize_matches opt_MatchAny_match_expr)^^10) 
-  (optimize_matches optimize_primitive_univ (rw_Reject (rm_LogEmpty (((process_call rs)^^10) [Rule MatchAny (Call ''OUTPUT''), Rule MatchAny default_action])))))"
+"unfold_ruleset_OUTPUT default_action rs = check_simple_ruleset 
+  (repeat_stabilize 10000 (optimize_matches opt_MatchAny_match_expr)
+    (optimize_matches optimize_primitive_univ
+      (rw_Reject (rm_LogEmpty (repeat_stabilize 10000 (process_call rs)
+        [Rule MatchAny (Call ''OUTPUT''), Rule MatchAny default_action]
+  )))))"
 
 
 definition map_of_string :: "(string \<times> common_primitive rule list) list \<Rightarrow> string \<rightharpoonup> common_primitive rule list" where
 "map_of_string rs = map_of rs"
 
 definition upper_closure :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
-  "upper_closure rs == transform_optimize_dnf_strict (transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a upper_closure_matchexpr rs)))"
+  "upper_closure rs == remdups_rev (transform_optimize_dnf_strict
+      (transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a upper_closure_matchexpr rs))))"
 definition lower_closure :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
-  "lower_closure rs == transform_optimize_dnf_strict (transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a lower_closure_matchexpr rs)))"
+  "lower_closure rs == remdups_rev (transform_optimize_dnf_strict
+      (transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a lower_closure_matchexpr rs))))"
 
 (*
 definition port_to_nat :: "16 word \<Rightarrow> nat" where

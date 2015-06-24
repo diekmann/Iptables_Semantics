@@ -9,6 +9,11 @@ structure Test : sig
   val nat_of_integer : IntInf.int -> nat
   type 'a bit0
   type num1
+  datatype 'a match_expr = Match of 'a | MatchNot of 'a match_expr |
+    MatchAnd of 'a match_expr * 'a match_expr | MatchAny
+  datatype action = Accept | Drop | Log | Reject | Call of char list | Return |
+    Goto of char list | Empty | Unknown
+  datatype 'a rule = Rule of 'a match_expr * action
   type 'a wordinterval
   datatype ipt_ipv4range = Ip4Addr of (nat * (nat * (nat * nat))) |
     Ip4AddrNetmask of (nat * (nat * (nat * nat))) * nat
@@ -22,11 +27,6 @@ structure Test : sig
         (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) list
     | Extra of char list
   type nibble
-  datatype 'a match_expr = Match of 'a | MatchNot of 'a match_expr |
-    MatchAnd of 'a match_expr * 'a match_expr | MatchAny
-  datatype action = Accept | Drop | Log | Reject | Call of char list | Return |
-    Goto of char list | Empty | Unknown
-  datatype 'a rule = Rule of 'a match_expr * action
   type 'a simple_match_ext
   datatype simple_action = Accepta | Dropa
   datatype simple_rule = SimpleRule of unit simple_match_ext * simple_action
@@ -61,6 +61,7 @@ structure Test : sig
       (char list -> (common_primitive rule list) option) ->
         common_primitive rule list
   val proto : 'a simple_match_ext -> protocol
+  val check_simple_fw_preconditions : common_primitive rule list -> bool
   val to_simple_firewall : common_primitive rule list -> simple_rule list
   val dports :
     'a simple_match_ext ->
@@ -74,7 +75,6 @@ structure Test : sig
     char list -> common_primitive rule list -> bool
   val example_ipassmt_sanity_defined : common_primitive rule list -> bool
   val simple_rule_iptables_save_toString : char list -> simple_rule -> char list
-  val check_simple_fw_preconditions : common_primitive rule list -> bool
   val bitmask_to_strange_inverse_cisco_mask : nat -> nat * (nat * (nat * nat))
 end = struct
 
@@ -434,6 +434,119 @@ fun equal_proda A_ B_ (x1, x2) (y1, y2) = eq A_ x1 y1 andalso eq B_ x2 y2;
 
 fun equal_prod A_ B_ = {equal = equal_proda A_ B_} : ('a * 'b) equal;
 
+datatype 'a match_expr = Match of 'a | MatchNot of 'a match_expr |
+  MatchAnd of 'a match_expr * 'a match_expr | MatchAny;
+
+fun equal_match_expr A_ (MatchAnd (x31, x32)) MatchAny = false
+  | equal_match_expr A_ MatchAny (MatchAnd (x31, x32)) = false
+  | equal_match_expr A_ (MatchNot x2) MatchAny = false
+  | equal_match_expr A_ MatchAny (MatchNot x2) = false
+  | equal_match_expr A_ (MatchNot x2) (MatchAnd (x31, x32)) = false
+  | equal_match_expr A_ (MatchAnd (x31, x32)) (MatchNot x2) = false
+  | equal_match_expr A_ (Match x1) MatchAny = false
+  | equal_match_expr A_ MatchAny (Match x1) = false
+  | equal_match_expr A_ (Match x1) (MatchAnd (x31, x32)) = false
+  | equal_match_expr A_ (MatchAnd (x31, x32)) (Match x1) = false
+  | equal_match_expr A_ (Match x1) (MatchNot x2) = false
+  | equal_match_expr A_ (MatchNot x2) (Match x1) = false
+  | equal_match_expr A_ (MatchAnd (x31, x32)) (MatchAnd (y31, y32)) =
+    equal_match_expr A_ x31 y31 andalso equal_match_expr A_ x32 y32
+  | equal_match_expr A_ (MatchNot x2) (MatchNot y2) = equal_match_expr A_ x2 y2
+  | equal_match_expr A_ (Match x1) (Match y1) = eq A_ x1 y1
+  | equal_match_expr A_ MatchAny MatchAny = true;
+
+datatype action = Accept | Drop | Log | Reject | Call of char list | Return |
+  Goto of char list | Empty | Unknown;
+
+fun equal_action Empty Unknown = false
+  | equal_action Unknown Empty = false
+  | equal_action (Goto x7) Unknown = false
+  | equal_action Unknown (Goto x7) = false
+  | equal_action (Goto x7) Empty = false
+  | equal_action Empty (Goto x7) = false
+  | equal_action Return Unknown = false
+  | equal_action Unknown Return = false
+  | equal_action Return Empty = false
+  | equal_action Empty Return = false
+  | equal_action Return (Goto x7) = false
+  | equal_action (Goto x7) Return = false
+  | equal_action (Call x5) Unknown = false
+  | equal_action Unknown (Call x5) = false
+  | equal_action (Call x5) Empty = false
+  | equal_action Empty (Call x5) = false
+  | equal_action (Call x5) (Goto x7) = false
+  | equal_action (Goto x7) (Call x5) = false
+  | equal_action (Call x5) Return = false
+  | equal_action Return (Call x5) = false
+  | equal_action Reject Unknown = false
+  | equal_action Unknown Reject = false
+  | equal_action Reject Empty = false
+  | equal_action Empty Reject = false
+  | equal_action Reject (Goto x7) = false
+  | equal_action (Goto x7) Reject = false
+  | equal_action Reject Return = false
+  | equal_action Return Reject = false
+  | equal_action Reject (Call x5) = false
+  | equal_action (Call x5) Reject = false
+  | equal_action Log Unknown = false
+  | equal_action Unknown Log = false
+  | equal_action Log Empty = false
+  | equal_action Empty Log = false
+  | equal_action Log (Goto x7) = false
+  | equal_action (Goto x7) Log = false
+  | equal_action Log Return = false
+  | equal_action Return Log = false
+  | equal_action Log (Call x5) = false
+  | equal_action (Call x5) Log = false
+  | equal_action Log Reject = false
+  | equal_action Reject Log = false
+  | equal_action Drop Unknown = false
+  | equal_action Unknown Drop = false
+  | equal_action Drop Empty = false
+  | equal_action Empty Drop = false
+  | equal_action Drop (Goto x7) = false
+  | equal_action (Goto x7) Drop = false
+  | equal_action Drop Return = false
+  | equal_action Return Drop = false
+  | equal_action Drop (Call x5) = false
+  | equal_action (Call x5) Drop = false
+  | equal_action Drop Reject = false
+  | equal_action Reject Drop = false
+  | equal_action Drop Log = false
+  | equal_action Log Drop = false
+  | equal_action Accept Unknown = false
+  | equal_action Unknown Accept = false
+  | equal_action Accept Empty = false
+  | equal_action Empty Accept = false
+  | equal_action Accept (Goto x7) = false
+  | equal_action (Goto x7) Accept = false
+  | equal_action Accept Return = false
+  | equal_action Return Accept = false
+  | equal_action Accept (Call x5) = false
+  | equal_action (Call x5) Accept = false
+  | equal_action Accept Reject = false
+  | equal_action Reject Accept = false
+  | equal_action Accept Log = false
+  | equal_action Log Accept = false
+  | equal_action Accept Drop = false
+  | equal_action Drop Accept = false
+  | equal_action (Goto x7) (Goto y7) = equal_lista equal_char x7 y7
+  | equal_action (Call x5) (Call y5) = equal_lista equal_char x5 y5
+  | equal_action Unknown Unknown = true
+  | equal_action Empty Empty = true
+  | equal_action Return Return = true
+  | equal_action Reject Reject = true
+  | equal_action Log Log = true
+  | equal_action Drop Drop = true
+  | equal_action Accept Accept = true;
+
+datatype 'a rule = Rule of 'a match_expr * action;
+
+fun equal_rulea A_ (Rule (x1, x2)) (Rule (y1, y2)) =
+  equal_match_expr A_ x1 y1 andalso equal_action x2 y2;
+
+fun equal_rule A_ = {equal = equal_rulea A_} : 'a rule equal;
+
 datatype 'a wordinterval = WordInterval of 'a word * 'a word |
   RangeUnion of 'a wordinterval * 'a wordinterval;
 
@@ -570,14 +683,6 @@ val equal_common_primitive = {equal = equal_common_primitivea} :
 datatype nibble = Nibble0 | Nibble1 | Nibble2 | Nibble3 | Nibble4 | Nibble5 |
   Nibble6 | Nibble7 | Nibble8 | Nibble9 | NibbleA | NibbleB | NibbleC | NibbleD
   | NibbleE | NibbleF;
-
-datatype 'a match_expr = Match of 'a | MatchNot of 'a match_expr |
-  MatchAnd of 'a match_expr * 'a match_expr | MatchAny;
-
-datatype action = Accept | Drop | Log | Reject | Call of char list | Return |
-  Goto of char list | Empty | Unknown;
-
-datatype 'a rule = Rule of 'a match_expr * action;
 
 datatype 'a negation_type = Pos of 'a | Neg of 'a;
 
@@ -1479,24 +1584,6 @@ fun rw_Reject [] = []
   | rw_Reject (Rule (v, Empty) :: rs) = Rule (v, Empty) :: rw_Reject rs
   | rw_Reject (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rw_Reject rs;
 
-fun equal_match_expr A_ (MatchAnd (x31, x32)) MatchAny = false
-  | equal_match_expr A_ MatchAny (MatchAnd (x31, x32)) = false
-  | equal_match_expr A_ (MatchNot x2) MatchAny = false
-  | equal_match_expr A_ MatchAny (MatchNot x2) = false
-  | equal_match_expr A_ (MatchNot x2) (MatchAnd (x31, x32)) = false
-  | equal_match_expr A_ (MatchAnd (x31, x32)) (MatchNot x2) = false
-  | equal_match_expr A_ (Match x1) MatchAny = false
-  | equal_match_expr A_ MatchAny (Match x1) = false
-  | equal_match_expr A_ (Match x1) (MatchAnd (x31, x32)) = false
-  | equal_match_expr A_ (MatchAnd (x31, x32)) (Match x1) = false
-  | equal_match_expr A_ (Match x1) (MatchNot x2) = false
-  | equal_match_expr A_ (MatchNot x2) (Match x1) = false
-  | equal_match_expr A_ (MatchAnd (x31, x32)) (MatchAnd (y31, y32)) =
-    equal_match_expr A_ x31 y31 andalso equal_match_expr A_ x32 y32
-  | equal_match_expr A_ (MatchNot x2) (MatchNot y2) = equal_match_expr A_ x2 y2
-  | equal_match_expr A_ (Match x1) (Match y1) = eq A_ x1 y1
-  | equal_match_expr A_ MatchAny MatchAny = true;
-
 fun lower_closure_matchexpr uu MatchAny = MatchAny
   | lower_closure_matchexpr Accept (Match (Extra uv)) = MatchNot MatchAny
   | lower_closure_matchexpr Reject (Match (Extra uw)) = MatchAny
@@ -1983,11 +2070,17 @@ fun transform_optimize_dnf_strict x =
 fun optimize_matches_a f rs =
   map (fn r => Rule (f (get_action r) (get_match r), get_action r)) rs;
 
+fun remdups_rev_code A_ uu [] = []
+  | remdups_rev_code A_ ps (r :: rs) =
+    (if member A_ ps r then remdups_rev_code A_ ps rs
+      else r :: remdups_rev_code A_ (r :: ps) rs);
+
 fun lower_closure rs =
-  transform_optimize_dnf_strict
-    (transform_normalize_primitives
-      (transform_optimize_dnf_strict
-        (optimize_matches_a lower_closure_matchexpr rs)));
+  remdups_rev_code (equal_rule equal_common_primitive) []
+    (transform_optimize_dnf_strict
+      (transform_normalize_primitives
+        (transform_optimize_dnf_strict
+          (optimize_matches_a lower_closure_matchexpr rs))));
 
 fun map_of_string rs = map_of (equal_list equal_char) rs;
 
@@ -2121,10 +2214,11 @@ fun upper_closure_matchexpr uu MatchAny = MatchAny
     MatchAnd (upper_closure_matchexpr a m1, upper_closure_matchexpr a m2);
 
 fun upper_closure rs =
-  transform_optimize_dnf_strict
-    (transform_normalize_primitives
-      (transform_optimize_dnf_strict
-        (optimize_matches_a upper_closure_matchexpr rs)));
+  remdups_rev_code (equal_rule equal_common_primitive) []
+    (transform_optimize_dnf_strict
+      (transform_normalize_primitives
+        (transform_optimize_dnf_strict
+          (optimize_matches_a upper_closure_matchexpr rs))));
 
 fun iface_toString descr iface =
   (if equal_ifacea iface ifaceAny then []
@@ -2159,6 +2253,15 @@ fun simple_proto_conjunct ProtoAny proto = SOME proto
   | simple_proto_conjunct (Proto p1) (Proto p2) =
     (if equal_primitive_protocol p1 p2 then SOME (Proto p1) else NONE);
 
+fun repeat_stabilize A_ n uu v =
+  (if equal_nata n zero_nat then v
+    else let
+           val v_new = uu v;
+         in
+           (if eq A_ v v_new then v
+             else repeat_stabilize A_ (minus_nat n one_nat) uu v_new)
+         end);
+
 fun ipv4range_intersection r1 r2 =
   wordinterval_intersection
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
@@ -2172,88 +2275,6 @@ fun protocol_toString ProtoAny = [#"a", #"l", #"l"]
   | protocol_toString (Proto TCP) = [#"t", #"c", #"p"]
   | protocol_toString (Proto UDP) = [#"u", #"d", #"p"]
   | protocol_toString (Proto ICMP) = [#"i", #"c", #"m", #"p"];
-
-fun equal_action Empty Unknown = false
-  | equal_action Unknown Empty = false
-  | equal_action (Goto x7) Unknown = false
-  | equal_action Unknown (Goto x7) = false
-  | equal_action (Goto x7) Empty = false
-  | equal_action Empty (Goto x7) = false
-  | equal_action Return Unknown = false
-  | equal_action Unknown Return = false
-  | equal_action Return Empty = false
-  | equal_action Empty Return = false
-  | equal_action Return (Goto x7) = false
-  | equal_action (Goto x7) Return = false
-  | equal_action (Call x5) Unknown = false
-  | equal_action Unknown (Call x5) = false
-  | equal_action (Call x5) Empty = false
-  | equal_action Empty (Call x5) = false
-  | equal_action (Call x5) (Goto x7) = false
-  | equal_action (Goto x7) (Call x5) = false
-  | equal_action (Call x5) Return = false
-  | equal_action Return (Call x5) = false
-  | equal_action Reject Unknown = false
-  | equal_action Unknown Reject = false
-  | equal_action Reject Empty = false
-  | equal_action Empty Reject = false
-  | equal_action Reject (Goto x7) = false
-  | equal_action (Goto x7) Reject = false
-  | equal_action Reject Return = false
-  | equal_action Return Reject = false
-  | equal_action Reject (Call x5) = false
-  | equal_action (Call x5) Reject = false
-  | equal_action Log Unknown = false
-  | equal_action Unknown Log = false
-  | equal_action Log Empty = false
-  | equal_action Empty Log = false
-  | equal_action Log (Goto x7) = false
-  | equal_action (Goto x7) Log = false
-  | equal_action Log Return = false
-  | equal_action Return Log = false
-  | equal_action Log (Call x5) = false
-  | equal_action (Call x5) Log = false
-  | equal_action Log Reject = false
-  | equal_action Reject Log = false
-  | equal_action Drop Unknown = false
-  | equal_action Unknown Drop = false
-  | equal_action Drop Empty = false
-  | equal_action Empty Drop = false
-  | equal_action Drop (Goto x7) = false
-  | equal_action (Goto x7) Drop = false
-  | equal_action Drop Return = false
-  | equal_action Return Drop = false
-  | equal_action Drop (Call x5) = false
-  | equal_action (Call x5) Drop = false
-  | equal_action Drop Reject = false
-  | equal_action Reject Drop = false
-  | equal_action Drop Log = false
-  | equal_action Log Drop = false
-  | equal_action Accept Unknown = false
-  | equal_action Unknown Accept = false
-  | equal_action Accept Empty = false
-  | equal_action Empty Accept = false
-  | equal_action Accept (Goto x7) = false
-  | equal_action (Goto x7) Accept = false
-  | equal_action Accept Return = false
-  | equal_action Return Accept = false
-  | equal_action Accept (Call x5) = false
-  | equal_action (Call x5) Accept = false
-  | equal_action Accept Reject = false
-  | equal_action Reject Accept = false
-  | equal_action Accept Log = false
-  | equal_action Log Accept = false
-  | equal_action Accept Drop = false
-  | equal_action Drop Accept = false
-  | equal_action (Goto x7) (Goto y7) = equal_lista equal_char x7 y7
-  | equal_action (Call x5) (Call y5) = equal_lista equal_char x5 y5
-  | equal_action Unknown Unknown = true
-  | equal_action Empty Empty = true
-  | equal_action Return Return = true
-  | equal_action Reject Reject = true
-  | equal_action Log Log = true
-  | equal_action Drop Drop = true
-  | equal_action Accept Accept = true;
 
 fun simple_ruleset rs =
   pred_list
@@ -2457,12 +2478,14 @@ fun simple_match_and
 
 fun unfold_ruleset_FORWARD default_action rs =
   check_simple_ruleset
-    (funpow (nat_of_integer (10 : IntInf.int))
+    (repeat_stabilize (equal_list (equal_rule equal_common_primitive))
+      (nat_of_integer (1000 : IntInf.int))
       (optimize_matches opt_MatchAny_match_expr)
       (optimize_matches optimize_primitive_univ
         (rw_Reject
           (rm_LogEmpty
-            (funpow (nat_of_integer (10 : IntInf.int)) (process_call rs)
+            (repeat_stabilize (equal_list (equal_rule equal_common_primitive))
+              (nat_of_integer (10000 : IntInf.int)) (process_call rs)
               [Rule (MatchAny, Call [#"F", #"O", #"R", #"W", #"A", #"R", #"D"]),
                 Rule (MatchAny, default_action)])))));
 
@@ -2578,54 +2601,21 @@ fun common_primitive_match_to_simple_match MatchAny = SOME simple_match_any
   | common_primitive_match_to_simple_match (MatchNot (Match (Extra vh))) =
     (raise Fail "undefined");
 
-fun action_to_simple_action Accept = Accepta
-  | action_to_simple_action Drop = Dropa
-  | action_to_simple_action Log = (raise Fail "undefined")
-  | action_to_simple_action Reject = (raise Fail "undefined")
-  | action_to_simple_action (Call v) = (raise Fail "undefined")
-  | action_to_simple_action Return = (raise Fail "undefined")
-  | action_to_simple_action (Goto v) = (raise Fail "undefined")
-  | action_to_simple_action Empty = (raise Fail "undefined")
-  | action_to_simple_action Unknown = (raise Fail "undefined");
-
-fun to_simple_firewall rs =
-  map_filter
-    (fn Rule (m, a) =>
-      (case common_primitive_match_to_simple_match m of NONE => NONE
-        | SOME sm => SOME (SimpleRule (sm, action_to_simple_action a))))
-    rs;
-
-fun dports
-  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
-  dports;
-
-fun iiface
-  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
-  iiface;
-
-fun oiface
-  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
-  oiface;
-
-fun sports
-  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
-  sports;
-
-fun normalized_dst_ips MatchAny = true
-  | normalized_dst_ips (Match uu) = true
-  | normalized_dst_ips (MatchNot (Match (Dst uv))) = false
-  | normalized_dst_ips (MatchNot (Match (Src v))) = true
-  | normalized_dst_ips (MatchNot (Match (IIface v))) = true
-  | normalized_dst_ips (MatchNot (Match (OIface v))) = true
-  | normalized_dst_ips (MatchNot (Match (Prot v))) = true
-  | normalized_dst_ips (MatchNot (Match (Src_Ports v))) = true
-  | normalized_dst_ips (MatchNot (Match (Dst_Ports v))) = true
-  | normalized_dst_ips (MatchNot (Match (Extra v))) = true
-  | normalized_dst_ips (MatchAnd (m1, m2)) =
-    normalized_dst_ips m1 andalso normalized_dst_ips m2
-  | normalized_dst_ips (MatchNot (MatchAnd (ux, uy))) = false
-  | normalized_dst_ips (MatchNot (MatchNot uz)) = false
-  | normalized_dst_ips (MatchNot MatchAny) = true;
+fun normalized_protocols MatchAny = true
+  | normalized_protocols (Match uu) = true
+  | normalized_protocols (MatchNot (Match (Prot uv))) = false
+  | normalized_protocols (MatchAnd (m1, m2)) =
+    normalized_protocols m1 andalso normalized_protocols m2
+  | normalized_protocols (MatchNot (MatchAnd (uw, ux))) = false
+  | normalized_protocols (MatchNot (Match (Src va))) = true
+  | normalized_protocols (MatchNot (Match (Dst va))) = true
+  | normalized_protocols (MatchNot (Match (IIface va))) = true
+  | normalized_protocols (MatchNot (Match (OIface va))) = true
+  | normalized_protocols (MatchNot (Match (Src_Ports va))) = true
+  | normalized_protocols (MatchNot (Match (Dst_Ports va))) = true
+  | normalized_protocols (MatchNot (Match (Extra va))) = true
+  | normalized_protocols (MatchNot (MatchNot v)) = true
+  | normalized_protocols (MatchNot MatchAny) = true;
 
 fun normalized_src_ips MatchAny = true
   | normalized_src_ips (Match uu) = true
@@ -2643,21 +2633,69 @@ fun normalized_src_ips MatchAny = true
   | normalized_src_ips (MatchNot (MatchNot uz)) = false
   | normalized_src_ips (MatchNot MatchAny) = true;
 
-fun normalized_protocols MatchAny = true
-  | normalized_protocols (Match uu) = true
-  | normalized_protocols (MatchNot (Match (Prot uv))) = false
-  | normalized_protocols (MatchAnd (m1, m2)) =
-    normalized_protocols m1 andalso normalized_protocols m2
-  | normalized_protocols (MatchNot (MatchAnd (uw, ux))) = false
-  | normalized_protocols (MatchNot (Match (Src va))) = true
-  | normalized_protocols (MatchNot (Match (Dst va))) = true
-  | normalized_protocols (MatchNot (Match (IIface va))) = true
-  | normalized_protocols (MatchNot (Match (OIface va))) = true
-  | normalized_protocols (MatchNot (Match (Src_Ports va))) = true
-  | normalized_protocols (MatchNot (Match (Dst_Ports va))) = true
-  | normalized_protocols (MatchNot (Match (Extra va))) = true
-  | normalized_protocols (MatchNot (MatchNot v)) = true
-  | normalized_protocols (MatchNot MatchAny) = true;
+fun normalized_dst_ips MatchAny = true
+  | normalized_dst_ips (Match uu) = true
+  | normalized_dst_ips (MatchNot (Match (Dst uv))) = false
+  | normalized_dst_ips (MatchNot (Match (Src v))) = true
+  | normalized_dst_ips (MatchNot (Match (IIface v))) = true
+  | normalized_dst_ips (MatchNot (Match (OIface v))) = true
+  | normalized_dst_ips (MatchNot (Match (Prot v))) = true
+  | normalized_dst_ips (MatchNot (Match (Src_Ports v))) = true
+  | normalized_dst_ips (MatchNot (Match (Dst_Ports v))) = true
+  | normalized_dst_ips (MatchNot (Match (Extra v))) = true
+  | normalized_dst_ips (MatchAnd (m1, m2)) =
+    normalized_dst_ips m1 andalso normalized_dst_ips m2
+  | normalized_dst_ips (MatchNot (MatchAnd (ux, uy))) = false
+  | normalized_dst_ips (MatchNot (MatchNot uz)) = false
+  | normalized_dst_ips (MatchNot MatchAny) = true;
+
+fun check_simple_fw_preconditions rs =
+  pred_list
+    (fn Rule (m, a) =>
+      normalized_src_ports m andalso
+        (normalized_dst_ports m andalso
+          (normalized_src_ips m andalso
+            (normalized_dst_ips m andalso
+              (normalized_ifaces m andalso
+                (normalized_protocols m andalso
+                  (not (has_disc is_Extra m) andalso
+                    (equal_action a Accept orelse equal_action a Drop))))))))
+    rs;
+
+fun action_to_simple_action Accept = Accepta
+  | action_to_simple_action Drop = Dropa
+  | action_to_simple_action Log = (raise Fail "undefined")
+  | action_to_simple_action Reject = (raise Fail "undefined")
+  | action_to_simple_action (Call v) = (raise Fail "undefined")
+  | action_to_simple_action Return = (raise Fail "undefined")
+  | action_to_simple_action (Goto v) = (raise Fail "undefined")
+  | action_to_simple_action Empty = (raise Fail "undefined")
+  | action_to_simple_action Unknown = (raise Fail "undefined");
+
+fun to_simple_firewall rs =
+  (if check_simple_fw_preconditions rs
+    then map_filter
+           (fn Rule (m, a) =>
+             (case common_primitive_match_to_simple_match m of NONE => NONE
+               | SOME sm => SOME (SimpleRule (sm, action_to_simple_action a))))
+           rs
+    else (raise Fail "undefined"));
+
+fun dports
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  dports;
+
+fun iiface
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  iiface;
+
+fun oiface
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  oiface;
+
+fun sports
+  (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
+  sports;
 
 fun example_ipassignment_nospoof ifce =
   no_spoofing_iface (Iface ifce) (map_of equal_iface ipassmt);
@@ -2688,19 +2726,6 @@ iface_toString [#"o", #"u", #"t", #":"] oif @
                                  #"p"]
                           else []) @
                           [#" ", #"-", #"j", #" "] @ simple_action_toString a;
-
-fun check_simple_fw_preconditions rs =
-  pred_list
-    (fn Rule (m, a) =>
-      normalized_src_ports m andalso
-        (normalized_dst_ports m andalso
-          (normalized_src_ips m andalso
-            (normalized_dst_ips m andalso
-              (normalized_ifaces m andalso
-                (normalized_protocols m andalso
-                  (not (has_disc is_Extra m) andalso
-                    (equal_action a Accept orelse equal_action a Drop))))))))
-    rs;
 
 fun bitmask_to_strange_inverse_cisco_mask n =
   dotdecimal_of_ipv4addr

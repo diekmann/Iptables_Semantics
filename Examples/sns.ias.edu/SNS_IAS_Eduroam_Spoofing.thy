@@ -5,7 +5,7 @@ imports "../Code_Interface"
 begin
 
 
-section{*Example: Chair for Network Architectures and Services (TUM)*}
+section{*Example: ...*}
 
 
 definition "everything_but_my_ip = ipv4range_split (ipv4range_invert (ipv4_cidr_tuple_to_interval (ipv4addr_of_dotdecimal (131,159,207,206), 32)))"

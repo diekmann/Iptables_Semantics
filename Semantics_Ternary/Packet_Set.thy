@@ -44,14 +44,14 @@ subsection{*The set of all accepted packets*}
     from Cons obtain m a where r: "r = Rule m a" by (cases r) simp
     from Cons.prems have simple_rs: "simple_ruleset rs" by (simp add: r simple_ruleset_def)
     from Cons.prems r have a_cases: "a = Accept \<or> a = Drop" by (simp add: r simple_ruleset_def)
-    show ?case (is ?goal)
+    show ?case
     proof(cases a)
       case Accept
         from Accept Cons.IH[where P="{p \<in> P. \<not> matches \<gamma> m Accept p}"] simple_rs have IH:
           "p \<in> collect_allow \<gamma> rs {p \<in> P. \<not> matches \<gamma> m Accept p} \<Longrightarrow> approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow" by simp
         from Accept Cons.prems have "(p \<in> P \<and> matches \<gamma> m Accept p) \<or> p \<in> collect_allow \<gamma> rs {p \<in> P. \<not> matches \<gamma> m Accept p}"
           by(simp add: r)
-        with Accept show ?goal
+        with Accept show ?thesis
         apply -
         apply(erule disjE)
          apply(simp add: r)
@@ -62,7 +62,7 @@ subsection{*The set of all accepted packets*}
         from Drop Cons.prems have "p \<in> collect_allow \<gamma> rs {p \<in> P. \<not> matches \<gamma> m Drop p}"
           by(simp add: r)
         with Cons.IH simple_rs have "approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow" by simp
-        with Cons show ?goal
+        with Cons show ?thesis
          apply(simp add: r Drop del: approximating_bigstep_fun.simps)
          apply(simp)
          using collect_allow_subset[OF simple_rs] by fast
@@ -78,18 +78,18 @@ subsection{*The set of all accepted packets*}
     from Cons obtain m a where r: "r = Rule m a" by (cases r) simp
     from Cons.prems have simple_rs: "simple_ruleset rs" by (simp add: r simple_ruleset_def)
     from Cons.prems r have a_cases: "a = Accept \<or> a = Drop" by (simp add: r simple_ruleset_def)
-    show ?case (is ?goal)
+    show ?case
     proof(cases a)
       case Accept
         from Accept Cons.IH simple_rs have IH: "\<forall>P. approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow \<longrightarrow> p \<in> P \<longrightarrow> p \<in> collect_allow \<gamma> rs P" by simp
-        with Accept Cons.prems show ?goal
+        with Accept Cons.prems show ?thesis
           apply(cases "matches \<gamma> m Accept p")
            apply(simp add: r)
           apply(simp add: r)
           done
       next
       case Drop
-        with Cons show ?goal 
+        with Cons show ?thesis 
           apply(case_tac "matches \<gamma> m Drop p")
            apply(simp add: r)
           apply(simp add: r simple_rs)
@@ -158,14 +158,14 @@ subsection{*The set of all dropped packets*}
     from Cons obtain m a where r: "r = Rule m a" by (cases r) simp
     from Cons.prems have simple_rs: "simple_ruleset rs" by (simp add: r simple_ruleset_def)
     from Cons.prems r have a_cases: "a = Accept \<or> a = Drop" by (simp add: r simple_ruleset_def)
-    show ?case (is ?goal)
+    show ?case
     proof(cases a)
       case Drop
         from Drop Cons.IH[where P="{p \<in> P. \<not> matches \<gamma> m Drop p}"] simple_rs have IH:
           "p \<in> collect_deny \<gamma> rs {p \<in> P. \<not> matches \<gamma> m Drop p} \<Longrightarrow> approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalDeny" by simp
         from Drop Cons.prems have "(p \<in> P \<and> matches \<gamma> m Drop p) \<or> p \<in> collect_deny \<gamma> rs {p \<in> P. \<not> matches \<gamma> m Drop p}"
           by(simp add: r)
-        with Drop show ?goal
+        with Drop show ?thesis
         apply -
         apply(erule disjE)
          apply(simp add: r)
@@ -176,7 +176,7 @@ subsection{*The set of all dropped packets*}
         from Accept Cons.prems have "p \<in> collect_deny \<gamma> rs {p \<in> P. \<not> matches \<gamma> m Accept p}"
           by(simp add: r)
         with Cons.IH simple_rs have "approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalDeny" by simp
-        with Cons show ?goal
+        with Cons show ?thesis
          apply(simp add: r Accept del: approximating_bigstep_fun.simps)
          apply(simp)
          using collect_deny_subset[OF simple_rs] by fast
@@ -192,18 +192,18 @@ subsection{*The set of all dropped packets*}
     from Cons obtain m a where r: "r = Rule m a" by (cases r) simp
     from Cons.prems have simple_rs: "simple_ruleset rs" by (simp add: r simple_ruleset_def)
     from Cons.prems r have a_cases: "a = Accept \<or> a = Drop" by (simp add: r simple_ruleset_def)
-    show ?case (is ?goal)
+    show ?case
     proof(cases a)
       case Accept
         from Accept Cons.IH simple_rs have IH: "\<forall>P. approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalDeny \<longrightarrow> p \<in> P \<longrightarrow> p \<in> collect_deny \<gamma> rs P" by simp
-        with Accept Cons.prems show ?goal
+        with Accept Cons.prems show ?thesis
           apply(cases "matches \<gamma> m Accept p")
            apply(simp add: r)
           apply(simp add: r)
           done
       next
       case Drop
-        with Cons show ?goal 
+        with Cons show ?thesis 
           apply(case_tac "matches \<gamma> m Drop p")
            apply(simp add: r)
           apply(simp add: r simple_rs)

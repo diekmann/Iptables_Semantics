@@ -74,10 +74,10 @@ case Undecided
         by(induction m) (simp_all)
       } note Empty_helper=this
       
-      show ?case (is ?goal)
+      show ?case
         proof(cases "matches \<gamma> m a p")
           case True
-            thus ?goal
+            thus ?thesis
               proof(induction m2)
                 case Nil thus ?case by simp
               next
@@ -87,7 +87,7 @@ case Undecided
               qed
           next
           case False
-            thus ?goal
+            thus ?thesis
              apply(simp)
              apply(simp add: Cons.IH)
              apply(induction m2)
@@ -146,20 +146,20 @@ case Undecided
    case Nil thus ?case by simp
    next
    case (Cons m m1)
-    show ?case (is ?goal)
+    show ?case
       proof (cases "m \<in> set m1")
       case True
         from True have "set m1 = set (m # m1)" by auto
         from Cons.IH[OF `set m1 = set (m # m1)`] have "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m # m1)) Undecided = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m1)) Undecided" ..
-        thus ?goal by (metis Cons.IH Cons.prems `set m1 = set (m # m1)`)
+        thus ?thesis by (metis Cons.IH Cons.prems `set m1 = set (m # m1)`)
       next
       case False
         from False have "m \<notin> set m1" .
-        show ?goal
+        show ?thesis
         proof (cases "m \<notin> set m2")
           case True
           from True `m \<notin> set m1` Cons.prems have "set m1 = set m2" by auto
-          from Cons.IH[OF this] show ?goal by (metis Cons.IH Cons.prems `set m1 = set m2`)
+          from Cons.IH[OF this] show ?thesis by (metis Cons.IH Cons.prems `set m1 = set m2`)
         next
         case False
           hence "m \<in> set m2" by simp
@@ -203,7 +203,7 @@ case Undecided
                 apply(simp)
                 done
             qed
-          finally show ?goal .
+          finally show ?thesis .
         qed
       qed
   qed
@@ -707,9 +707,9 @@ lemma normalize_rules_dnf_correct: "wf_ruleset \<gamma> p rs \<Longrightarrow>
   case Nil thus ?case by simp
   next
   case (Cons r rs)
-    thus ?case (is ?goal)
+    thus ?case
     proof(cases s)
-    case Decision thus ?goal
+    case Decision thus ?thesis
       by(simp add: Decision_approximating_bigstep_fun)
     next
     case Undecided
@@ -726,7 +726,7 @@ lemma normalize_rules_dnf_correct: "wf_ruleset \<gamma> p rs \<Longrightarrow>
     hence "approximating_bigstep_fun \<gamma> p (normalize_rules_dnf [r] @ normalize_rules_dnf rs) s = approximating_bigstep_fun \<gamma> p (r # rs) s"
       using Undecided `wf_ruleset \<gamma> p [r]` `wf_ruleset \<gamma> p (normalize_rules_dnf [r])` 
       by(simp add: approximating_bigstep_fun_seq_wf)
-    thus ?goal using normalize_rules_fst normalize_rules_dnf_def2 by metis
+    thus ?thesis using normalize_rules_fst normalize_rules_dnf_def2 by metis
     qed
   qed
 
