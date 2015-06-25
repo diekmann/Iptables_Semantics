@@ -171,6 +171,9 @@ writeln "# Completed on Wed Sep  3 18:02:01 2014";
 
 
 text{*Cisco*}
+text{*The following can be loaded by Margrave. It seems that Margrave does not support the `range' command for ports
+      but if the protocol is TCP or UDP, it expects the `eq' keyword.
+      Therefore, we set everything to ip*}
 ML{*
 fun dump_action_cisco Accepta = "permit"
   | dump_action_cisco Dropa = "deny"
@@ -193,10 +196,11 @@ end; (*TODO: add any for UNIV range*)
 fun dump_cisco [] = ()
   | dump_cisco (SimpleRule (m, a) :: rs) =
       (writeln ("access-list 101 " ^ dump_action_cisco a ^ " " ^
-                (dump_prot_cisco (proto m)) ^ " " ^
+                (*dump_prot_cisco (proto m)*)"ip" ^ " " ^ (*hack hack*)
                (dump_ip_cisco (src m))^" "^(dump_ip_cisco (dst m))^
                (if (dump_iface_name "in:" (iiface m))^(dump_iface_name "out:" (oiface m))^(dump_ports "srcports:" (sports m))^
                     (dump_ports "dstports:" (dports m)) <> "TODO: more fields to dump" then "" else "")
+               (*^ if (proto m) = (Proto TCP) orelse (proto m) = (Proto UDP) then " range 0 65535" else "") (*hack hack*)*)
                ); dump_cisco rs);
 *}
 
@@ -206,14 +210,9 @@ writeln "ip address 10.1.1.1 255.255.255.254";
 writeln "ip access-group 101 in";
 writeln "!";
 dump_cisco (to_simple_firewall upper);
-(*access-list 101 deny ip host 10.1.1.2 any
-access-list 101 permit tcp any host 192.168.5.10 eq 80
-access-list 101 permit tcp any host 192.168.5.11 eq 25
-access-list 101 deny any*)
 writeln "!";
 writeln "! // need to give the end command";
 writeln "end";
-
 *}
 
 
