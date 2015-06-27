@@ -485,7 +485,7 @@ local
 in
   fun local_setup_parse_iptables_save (name: binding) path lthy =
     let val prepared = path
-            |> load_filter_table (Local_Theory.exit_global lthy) (*TODO what does exit_global do? but it works, ...*)
+            |> load_filter_table (Proof_Context.theory_of lthy) (*TODO what does exit_global do? but it works, ...*)
             |> rule_type_partition in
     let val firewall = prepared
             |> filter_chain_decls_names_only
