@@ -206,8 +206,6 @@ lemma abstract_negated_primitive_help1: assumes n: "\<forall> m \<in> get_match 
             using simple_ruleset_tail by blast
           next
           case True
-            from Nomatch simple_ruleset_tail have
-              "approximating_bigstep_fun ?\<gamma> p (optimize_matches (abstract_negated_primitive disc) rs) Undecided = Decision FinalAllow" by auto
             from Nomatch.prems simple_ruleset_def have "a = action.Accept \<or> a = action.Drop" by force
             from Nomatch.hyps(1) Nomatch.prems(3) abstract_negated_primitive_in_doubt_allow_Allow2 have
               "a = action.Drop \<Longrightarrow> \<not> matches ?\<gamma> (abstract_negated_primitive disc m) action.Drop p" by simp
@@ -250,9 +248,9 @@ lemma abstract_negated_primitive_in_doubt_allow:
     with approximating_semantics_iff_fun_good_ruleset abstract_negated_primitive_help1[OF n simple] `good_ruleset rs` show ?thesis by fast
   qed
 
-(*
+
 (*TODO: rename*)
-lemma abstract_negated_primitive_help2: assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
+lemma abstract_negated_primitive_in_doubt_allow_help2: assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
       and prem: "approximating_bigstep_fun (common_matcher, in_doubt_allow) p (optimize_matches (abstract_negated_primitive disc) rs) Undecided = Decision FinalDeny"
       shows "approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision FinalDeny"
   proof -
@@ -262,14 +260,16 @@ lemma abstract_negated_primitive_help2: assumes n: "\<forall> m \<in> get_match 
     from simple have "wf_ruleset ?\<gamma> p rs" using good_imp_wf_ruleset simple_imp_good_ruleset by fast
     from this simple prem n show ?thesis
       proof(induction ?\<gamma> p rs Undecided rule: approximating_bigstep_fun_induct_wf)
+      case Empty thus ?case by(simp add: optimize_matches_def)
+      next
       case (MatchAccept p m a rs)
-        from MatchAccept have " approximating_bigstep_fun ?\<gamma> p
-          (Rule (abstract_negated_primitive disc m) a # (optimize_matches (abstract_negated_primitive disc) rs)) Undecided = Decision FinalDeny"
-        apply(simp add: optimize_matches_def)
-        done
-        from MatchAccept.prems abstract_negated_primitive_in_doubt_allow_Deny MatchAccept.hyps have
-          "matches ?\<gamma> (abstract_negated_primitive disc m) action.Drop p" by simp
-        thus ?case by(simp add: optimize_matches_def MatchAccept.hyps)
+        from MatchAccept.prems abstract_negated_primitive_in_doubt_allow_Allow MatchAccept.hyps have
+          1: "matches ?\<gamma> (abstract_negated_primitive disc m) action.Accept p" by simp
+        from MatchAccept have "approximating_bigstep_fun ?\<gamma> p
+          (Rule (abstract_negated_primitive disc m) action.Accept # (optimize_matches (abstract_negated_primitive disc) rs)) Undecided = Decision FinalDeny"
+          by(simp add: optimize_matches_def)
+        with 1 have False by(simp)
+        thus ?case ..
       next
       case (Nomatch p m a rs) thus ?case
         proof(cases "matches ?\<gamma> (abstract_negated_primitive disc m) a p")
@@ -278,18 +278,20 @@ lemma abstract_negated_primitive_help2: assumes n: "\<forall> m \<in> get_match 
             using simple_ruleset_tail by blast
           next
           case True
-            from Nomatch simple_ruleset_tail have
-              "approximating_bigstep_fun ?\<gamma> p (optimize_matches (abstract_negated_primitive disc) rs) Undecided = Decision FinalAllow" by auto
+            from Nomatch.prems(2) have 1:"approximating_bigstep_fun ?\<gamma> p
+              (Rule (abstract_negated_primitive disc m) a # (optimize_matches (abstract_negated_primitive disc) rs)) Undecided = Decision FinalDeny"
+              by(simp add: optimize_matches_def)
             from Nomatch.prems simple_ruleset_def have "a = action.Accept \<or> a = action.Drop" by force
-            from Nomatch.hyps(1) Nomatch.prems(3) abstract_negated_primitive_Allow2 have
+            from Nomatch.hyps(1) Nomatch.prems(3) abstract_negated_primitive_in_doubt_allow_Allow2 have
               "a = action.Drop \<Longrightarrow> \<not> matches ?\<gamma> (abstract_negated_primitive disc m) action.Drop p" by simp
             with True `a = action.Accept \<or> a = action.Drop` have "a = action.Accept" by blast
-            with True show ?thesis by(simp add: optimize_matches_def)
+            with 1 True have False by simp
+            thus ?thesis ..
           qed
       qed(simp_all add: simple_ruleset_def)
 qed
 
-*)
+
 
 
 lemma abstract_negated_primitive_in_doubt_deny_Deny:
@@ -310,7 +312,7 @@ lemma abstract_negated_primitive_in_doubt_deny_Deny2:
 
 
 (*TODO: rename*)
-lemma abstract_negated_primitive_help2: assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
+lemma abstract_negated_primitivein_doubt_deny__help2: assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
       and prem: "approximating_bigstep_fun (common_matcher, in_doubt_deny) p rs Undecided = Decision FinalDeny"
       shows "approximating_bigstep_fun (common_matcher, in_doubt_deny) p (optimize_matches (abstract_negated_primitive disc) rs) Undecided = Decision FinalDeny"
   proof -
@@ -332,8 +334,6 @@ lemma abstract_negated_primitive_help2: assumes n: "\<forall> m \<in> get_match 
             using simple_ruleset_tail by blast
           next
           case True
-            from Nomatch simple_ruleset_tail have
-              "approximating_bigstep_fun ?\<gamma> p (optimize_matches (abstract_negated_primitive disc) rs) Undecided = Decision FinalDeny" by auto
             from Nomatch.prems simple_ruleset_def have "a = action.Accept \<or> a = action.Drop" by force
             from Nomatch.hyps(1) Nomatch.prems(3) abstract_negated_primitive_in_doubt_deny_Deny2 have
               "a = action.Accept \<Longrightarrow> \<not> matches ?\<gamma> (abstract_negated_primitive disc m) action.Accept p" by(simp)
@@ -353,7 +353,7 @@ lemma abstract_negated_primitive_in_doubt_deny:
     from simple have "good_ruleset rs" using simple_imp_good_ruleset by fast
     from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
       "good_ruleset (optimize_matches (abstract_negated_primitive disc) rs)" by fast
-    with approximating_semantics_iff_fun_good_ruleset abstract_negated_primitive_help2[OF n simple] `good_ruleset rs` show ?thesis by fast
+    with approximating_semantics_iff_fun_good_ruleset abstract_negated_primitive_in_doubt_deny_help2[OF n simple] `good_ruleset rs` show ?thesis oops
   qed
 
 
