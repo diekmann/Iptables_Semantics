@@ -85,9 +85,6 @@ split_at (fn x => x <> " ") (raw_explode "foo bar")
 section{*An SML Parser for iptables-save*}
 text{*Work in Progress*}
 
-(*ML{*
-datatype parse_options = ParseOption_Interfaces | ParseOption_Ports
-*}*)
 
 ML{*
 local
@@ -256,8 +253,6 @@ in
   (*parses: -s 0.31.123.213/88 --foo_bar -j chain --foobar
    First tries to parse a known field, afterwards, it parses something unknown until a blank space appears
   *)
-  (*TODO: not parsed: ports, protocols, ...*)
-  (*TODO: parse_options*)
   val option_parser : (string list -> (parsed_match_action) * string list) = 
       Scan.recover (parse_src_ip_negated || parse_dst_ip_negated
                  || parse_in_iface_negated || parse_out_iface_negated
