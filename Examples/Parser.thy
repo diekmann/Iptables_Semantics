@@ -1,5 +1,6 @@
 theory Parser
 imports Code_Interface
+  "../Primitive_Matchers/Primitive_Abstract"
   keywords "parse_iptables_save"::thy_decl
 begin
 
@@ -542,6 +543,10 @@ value[code] "map (\<lambda>(c,rs). (c, map (common_primitive_rule_toString) rs))
 
 value[code] "(upper_closure (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
                   (map_of_string (Semantics_Goto.rewrite_Goto parser_test_firewall))))"
+
+value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (optimize_matches (abstract_negated_primitive (\<lambda>r. is_Iiface r \<or> is_Oiface r \<or> is_Prot r))
+                (upper_closure (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
+                  (map_of_string (Semantics_Goto.rewrite_Goto parser_test_firewall)))))))" 
 
 (*this made up example cannot be transformed to_simple_firewall because it has negated interfaces/protocols*)
 
