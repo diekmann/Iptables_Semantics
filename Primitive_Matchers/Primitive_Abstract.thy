@@ -235,20 +235,6 @@ lemma abstract_negated_primitive_in_doubt_allow_Deny2:
    done
 
 
-(*TODO: in_doubt_deny lower bound to closure property*)
-lemma abstract_negated_primitive_in_doubt_allow:
-  assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
-  shows   "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow} \<subseteq>
-           {p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>optimize_matches (abstract_negated_primitive disc) rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow}"
-  proof -
-    let ?\<gamma>="(common_matcher, in_doubt_allow) :: (common_primitive \<Rightarrow> simple_packet \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> simple_packet \<Rightarrow> bool)"
-    from simple have "good_ruleset rs" using simple_imp_good_ruleset by fast
-    from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
-      "good_ruleset (optimize_matches (abstract_negated_primitive disc) rs)" by fast
-    with approximating_semantics_iff_fun_good_ruleset abstract_negated_primitive_help1[OF n simple] `good_ruleset rs` show ?thesis by fast
-  qed
-
-
 (*TODO: rename*)
 lemma abstract_negated_primitive_in_doubt_allow_help2: assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
       and prem: "approximating_bigstep_fun (common_matcher, in_doubt_allow) p (optimize_matches (abstract_negated_primitive disc) rs) Undecided = Decision FinalDeny"
@@ -278,7 +264,7 @@ lemma abstract_negated_primitive_in_doubt_allow_help2: assumes n: "\<forall> m \
             using simple_ruleset_tail by blast
           next
           case True
-            from Nomatch.prems(2) have 1:"approximating_bigstep_fun ?\<gamma> p
+            from Nomatch.prems(2) have 1: "approximating_bigstep_fun ?\<gamma> p
               (Rule (abstract_negated_primitive disc m) a # (optimize_matches (abstract_negated_primitive disc) rs)) Undecided = Decision FinalDeny"
               by(simp add: optimize_matches_def)
             from Nomatch.prems simple_ruleset_def have "a = action.Accept \<or> a = action.Drop" by force
@@ -292,8 +278,28 @@ lemma abstract_negated_primitive_in_doubt_allow_help2: assumes n: "\<forall> m \
 qed
 
 
+theorem abstract_negated_primitive_in_doubt_allow:
+  assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
+  shows   "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>optimize_matches (abstract_negated_primitive disc) rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny} \<subseteq>
+           {p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny}"
+           (is ?deny)
+  and     "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow} \<subseteq>
+           {p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>optimize_matches (abstract_negated_primitive disc) rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow}"
+           (is ?allow)
+  proof -
+    let ?\<gamma>="(common_matcher, in_doubt_allow) :: (common_primitive \<Rightarrow> simple_packet \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> simple_packet \<Rightarrow> bool)"
+    from simple have "good_ruleset rs" using simple_imp_good_ruleset by fast
+    from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
+      "good_ruleset (optimize_matches (abstract_negated_primitive disc) rs)" by fast
+    with approximating_semantics_iff_fun_good_ruleset abstract_negated_primitive_help1[OF n simple] `good_ruleset rs` show ?allow by fast
+    from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
+      "good_ruleset (optimize_matches (abstract_negated_primitive disc) rs)" by fast
+    with approximating_semantics_iff_fun_good_ruleset abstract_negated_primitive_in_doubt_allow_help2[OF n simple] `good_ruleset rs` show ?deny by fast
+  qed
 
 
+
+(*TODO: in_doubt_deny closure property*)
 lemma abstract_negated_primitive_in_doubt_deny_Deny:
   "normalized_nnf_match m \<Longrightarrow> 
     matches (common_matcher, in_doubt_deny) m action.Drop p \<Longrightarrow>
