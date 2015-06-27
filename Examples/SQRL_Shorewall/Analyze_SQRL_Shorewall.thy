@@ -9,7 +9,7 @@ begin
 section{*Example: SQRL Shorewall*}
 
 
-local_setup_parse_iptables_save SQRL_fw="iptables-saveakachan"
+parse_iptables_save SQRL_fw="iptables-saveakachan"
 
 
 thm SQRL_fw_def
