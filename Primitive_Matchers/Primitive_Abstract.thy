@@ -156,7 +156,8 @@ qed
 
 
 
-
+(*TODO: give the disc a negation_type such that we can abstract over non-negated primitives also
+  and that we don not duplicate proofs toooooooooooo much*)
 fun abstract_negated_primitive :: "(common_primitive  \<Rightarrow> bool) \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
   "abstract_negated_primitive _ MatchAny = MatchAny" |
   "abstract_negated_primitive _ (Match a) = Match a" |
