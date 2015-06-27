@@ -281,21 +281,21 @@ qed
 
 theorem abstract_negated_primitive_in_doubt_allow:
   assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
-  shows   "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>optimize_matches (abstract_negated_primitive disc) rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny} \<subseteq>
-           {p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny}"
-           (is ?deny)
-  and     "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow} \<subseteq>
-           {p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>optimize_matches (abstract_negated_primitive disc) rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow}"
-           (is ?allow)
+  defines "\<gamma> \<equiv> (common_matcher, in_doubt_allow)" and "abstract disc \<equiv> optimize_matches (abstract_negated_primitive disc)"
+  shows   "{p. \<gamma>,p\<turnstile> \<langle>abstract disc rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny} \<subseteq> {p. \<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny}"
+              (is ?deny)
+    and   "{p. \<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow} \<subseteq> {p. \<gamma>,p\<turnstile> \<langle>abstract disc rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow}"
+              (is ?allow)
   proof -
-    let ?\<gamma>="(common_matcher, in_doubt_allow) :: (common_primitive \<Rightarrow> simple_packet \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> simple_packet \<Rightarrow> bool)"
     from simple have "good_ruleset rs" using simple_imp_good_ruleset by fast
     from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
       "good_ruleset (optimize_matches (abstract_negated_primitive disc) rs)" by fast
-    with approximating_semantics_iff_fun_good_ruleset abstract_negated_primitive_help1[OF n simple] `good_ruleset rs` show ?allow by fast
+    with approximating_semantics_iff_fun_good_ruleset abstract_negated_primitive_help1[OF n simple] `good_ruleset rs` show ?allow
+      unfolding \<gamma>_def abstract_def by fast
     from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
       "good_ruleset (optimize_matches (abstract_negated_primitive disc) rs)" by fast
-    with approximating_semantics_iff_fun_good_ruleset abstract_negated_primitive_in_doubt_allow_help2[OF n simple] `good_ruleset rs` show ?deny by fast
+    with approximating_semantics_iff_fun_good_ruleset abstract_negated_primitive_in_doubt_allow_help2[OF n simple] `good_ruleset rs` \<gamma>_def show ?deny 
+      unfolding \<gamma>_def abstract_def by fast
   qed
 
 
