@@ -319,7 +319,7 @@ lemma abstract_negated_primitive_in_doubt_deny_Deny2:
 
 
 (*TODO: rename*)
-lemma abstract_negated_primitivein_doubt_deny__help2: assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
+lemma abstract_negated_primitive_in_doubt_deny_help2: assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
       and prem: "approximating_bigstep_fun (common_matcher, in_doubt_deny) p rs Undecided = Decision FinalDeny"
       shows "approximating_bigstep_fun (common_matcher, in_doubt_deny) p (optimize_matches (abstract_negated_primitive disc) rs) Undecided = Decision FinalDeny"
   proof -
@@ -360,7 +360,7 @@ lemma abstract_negated_primitive_in_doubt_deny:
     from simple have "good_ruleset rs" using simple_imp_good_ruleset by fast
     from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
       "good_ruleset (optimize_matches (abstract_negated_primitive disc) rs)" by fast
-    with approximating_semantics_iff_fun_good_ruleset abstract_negated_primitive_in_doubt_deny_help2[OF n simple] `good_ruleset rs` show ?thesis oops
+    with approximating_semantics_iff_fun_good_ruleset abstract_negated_primitive_in_doubt_deny_help2[OF n simple] `good_ruleset rs` show ?thesis by fast
   qed
 
 
