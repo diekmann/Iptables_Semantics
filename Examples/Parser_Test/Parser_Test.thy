@@ -11,6 +11,8 @@ local_setup \<open>
   local_setup_parse_iptables_save @{binding parser_test_firewall} ["data" ,"iptables-save"]
  \<close>
 
+text{*The command @{text parse_iptables_save} would provide nicer syntax (but does not support paths at the moment)*}
+
 term parser_test_firewall
 thm parser_test_firewall_def
 thm parser_test_firewall_FORWARD_default_policy_def
