@@ -142,10 +142,11 @@ value[code] "example_ipassignment_nospoof ''eth1.96'' (upper_closure (unfold_rul
 *)
 
 text{*sanity check that @{const ipassmt} is complete*}
+(*192.886s*)
 lemma "ipassmt_sanity_defined (preprocess net_fw_FORWARD_default_policy net_fw) (map_of ipassmt)" by eval
 
 
-(*179.619s*)
+(*204.591s*)
 lemma "spoofing_protection (preprocess net_fw_FORWARD_default_policy net_fw) =
  [(''eth1.96'', True),
   (''eth1.108'', True),
