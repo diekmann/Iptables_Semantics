@@ -8,7 +8,8 @@ begin
 section{*Example: Chair for Network Architectures and Services (TUM)*}
 subsection{*General Setup*}
   
-  (* My IP ranges. If a packet comes from there from the wrong interface, it is spoofed.
+  text{*Our IP ranges. If a packet comes from there but from a wrong interface, it is spoofed.*}
+  (* 
       131.159.14.0/23
       131.159.20.0/23
       192.168.212.0/23
@@ -74,6 +75,13 @@ subsection{*General Setup*}
   
   definition "preprocess default_policy fw \<equiv> (upper_closure (unfold_ruleset_FORWARD default_policy (map_of_string fw)))"
 
+text{*In all three iterations, we have removed two rules from the ruleset. The first rule excluded
+from analysis is the ESTABLISHED rule, as discussed earlier.
+The second rule we removed was an exception for an asterisk server. This rule is probably an error 
+because this rule prevents any spoofing protection. It was a temporary rule and it should have been
+removed but was forgotten. We are investigating ...
+*}
+
 subsubsection{*Try 1*}
 
   parse_iptables_save net_fw_1="iptables-save-2015-05-13_10-53-20_cheating"
@@ -120,11 +128,6 @@ subsubsection{*Try 1*}
    -A FORWARD -s 131.159.15.248/32 -i eth1.152 -o eth1.110 -j ACCEPT
   *)
   
-  
-  (*
-  The second rule we removed was for an asterisk server. This rule is probably an error because this rule prevents any spoofing protection!
-  It was a temprary rule and it should have been removed but was forgotten, we are investigating ...
-  *)
 
   text{*the parsed firewall:*}
   value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw_1"
@@ -157,6 +160,15 @@ subsubsection{*Try 1*}
     (''eth1.1025'', False),
     (''eth1.1024'', False)
    ]" by eval
+   text{*Spoofing protection fails for all but the 96 VLAN.
+   The reason is that the @{text filter_96} chain allows spoofed packets.
+   
+   An empirical test reveal that the kernel's automatic reverse-path filter (rp) blocks most spoofing attempts.
+   Without rp, spoofed packets pass the firewall. We got lucky that rp could be used in our scenario.
+   However, the firewall ruleset also features a MAC address filter. This filter was constructed 
+   analogously to the spoofing protection filter and, hence, was also broken. rp cannot help in this
+   sittuation.
+   *}
   
 
 subsubsection{*Try 2*}
