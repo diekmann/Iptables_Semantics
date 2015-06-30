@@ -25,6 +25,8 @@ lemma "check_simple_fw_preconditions (upper_closure (unfold_ruleset_INPUT ds_fw_
 value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT ds_fw_INPUT_default_policy firewall)))"
 
 
+(*the following is based on the old , not iptables-save, dump*)
+
 
 text{*we removed the established,related rule*}
   definition "example_ruleset == firewall_chains(''INPUT'' \<mapsto> 
