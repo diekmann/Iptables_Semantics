@@ -57,72 +57,50 @@ definition "ipassmt = [(Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,213,4)
 lemma "ipassmt_sanity_haswildcards (map_of ipassmt)" by eval
 
 
-definition "example_ipassignment_nospoof ifce = 
-    no_spoofing_iface (Iface ifce) (map_of ipassmt:: ipassignment)"
+text{*We check for all interfaces, except for @{term "Iface ''eth0''"}, which does not need spoofing protection.*}
+definition "interfaces = tl (map (iface_sel \<circ> fst) ipassmt)"
+
+lemma "interfaces = 
+  [''eth1.96'', ''eth1.108'', ''eth1.109'', ''eth1.110'',
+   ''eth1.116'', ''eth1.152'', ''eth1.171'', ''eth1.173'', ''eth1.1010'',
+   ''eth1.1011'', ''eth1.1012'', ''eth1.1014'', ''eth1.1016'', ''eth1.1017'',
+   ''eth1.1111'', ''eth1.97'', ''eth1.1019'', ''eth1.1020'', ''eth1.1023'',
+   ''eth1.1025'', ''eth1.1024'']" by eval
 
 
-definition "example_ipassmt_sanity_defined rs = ipassmt_sanity_defined rs (map_of ipassmt)"
+
+definition "spoofing_protection fw \<equiv> map (\<lambda>ifce. (ifce, no_spoofing_iface (Iface ifce) (map_of ipassmt) fw)) interfaces"
+
+definition "preprocess default_policy fw \<equiv> (upper_closure (unfold_ruleset_FORWARD default_policy (map_of_string fw)))"
+
 
 
 
 (*test*)
 parse_iptables_save net_fw="iptables-save-2015-05-15_15-23-41_cheating"
+(* DIFF iptables-save
 
-
-thm net_fw_def
-thm net_fw_FORWARD_default_policy_def
-value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw"
-
-(*194.439s*)
-value[code] "upper_closure (unfold_ruleset_FORWARD net_fw_FORWARD_default_policy (map_of_string net_fw))"
-
-(*146.691s*)
-value[code] "example_ipassignment_nospoof ''eth1.96'' (upper_closure (unfold_ruleset_FORWARD net_fw_FORWARD_default_policy (map_of_string net_fw)))"
-
-
-(*179.619s*)
-value[code] "let fw=(upper_closure (unfold_ruleset_FORWARD net_fw_FORWARD_default_policy (map_of_string net_fw))) in
-                  map (\<lambda>ifce. example_ipassignment_nospoof ifce fw) (map (iface_sel \<circ> fst) ipassmt)"
-value "(map (iface_sel \<circ> fst) ipassmt)"
-
-
-
-export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure
-  Rule
-  Accept Drop Log Reject Call Return Empty  Unknown
-  Match MatchNot MatchAnd MatchAny
-  Ip4Addr Ip4AddrNetmask
-  ProtoAny Proto TCP UDP
-  Src Dst Prot Extra OIface IIface Src_Ports Dst_Ports
-  Iface
-  nat_of_integer integer_of_nat integer_to_16word
-  dotdecimal_of_ipv4addr
-  check_simple_fw_preconditions
-  to_simple_firewall
-  SimpleRule simple_action.Accept simple_action.Drop 
-  iiface oiface src dst proto sports dports
-  bitmask_to_strange_inverse_cisco_mask
-  ipv4_cidr_toString protocol_toString simple_action_toString port_toString iface_toString ports_toString
-  simple_rule_toString
-  simple_rule_iptables_save_toString
-
-  ifaceAny no_spoofing_iface example_ipassignment_nospoof
-  map_of ipassmt example_ipassmt_sanity_defined
-  in SML module_name "Test" file "unfold_code.ML"
-
-ML_file "unfold_code.ML"
-
-
-ML{*
-open Test; (*put the exported code into current namespace such that the following firewall definition loads*)
-*}
-
-(* ../../importer/main.py --type ml --module Test  iptables-Lnv-2015-05-15_15-23-41_cheating iptables-Lnv-2015-05-15_15-23-41_cheating.ML *)
-
-
-ML_file "iptables-Lnv-2015-05-15_15-23-41_cheating.ML"
-
-(*DIFF
+$ diff -u ~/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-save-2015-05-15_15-23-41 iptables-save-2015-05-15_15-23-41_cheating
+--- /home/diekmann/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-save-2015-05-15_15-23-41	2015-05-15 15:24:23.180698000 +0200
++++ iptables-save-2015-05-15_15-23-41_cheating	2015-06-17 14:25:52.485704347 +0200
+@@ -141,7 +141,6 @@
+ -A INPUT -s 127.0.0.0/8 -j LOG_DROP
+ -A INPUT -i eth1.110 -j filter_INPUT
+ -A INPUT -i eth1.1024 -j filter_INPUT
+--A FORWARD -m state --state RELATED,ESTABLISHED,UNTRACKED -j ACCEPT
+ -A FORWARD -i eth1.110 -j NOTFROMHERE
+ -A FORWARD -i eth1.1024 -j NOTFROMHERE
+ -A FORWARD -m recent --update --seconds 60 --name DEFAULT --rsource -j LOG_RECENT_DROP2
+@@ -150,7 +149,6 @@
+ -A FORWARD -s 131.159.14.197/32 -i eth1.1011 -j ACCEPT
+ -A FORWARD -s 131.159.14.221/32 -i eth1.1011 -j ACCEPT
+ -A FORWARD -s 131.159.15.252/32 -i eth1.152 -p udp -j ACCEPT
+--A FORWARD -d 131.159.15.252/32 -o eth1.152 -p udp -m multiport --dports 4569,5000:65535 -j ACCEPT
+ -A FORWARD -s 131.159.15.247/32 -i eth1.152 -o eth1.110 -j ACCEPT
+ -A FORWARD -d 131.159.15.247/32 -i eth1.110 -o eth1.152 -j ACCEPT
+ -A FORWARD -s 131.159.15.248/32 -i eth1.152 -o eth1.110 -j ACCEPT
+*)
+(*DIFF iptables -L -n -v
 
 $ diff -u ~/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-Lnv-2015-05-15_15-23-41 iptables-Lnv-2015-05-15_15-23-41_cheating
 --- /home/diekmann/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-Lnv-2015-05-15_15-23-41	2015-05-15 15:24:23.224698000 +0200
@@ -147,127 +125,50 @@ $ diff -u ~/git/net-network/configs_chair_for_Network_Architectures_and_Services
 *)
 
 (*
-The second rule we removed was for an asterisk server. This rule is probably an error because this rule prevents any spoofing protection!
+The second rule we removed was for an asterisk server. This rule is probably an error because this rule prevents any spoofing protection.
 It was a temprary rule and it should have been removed but was forgotten, we are investigating ...
 *)
 
-ML{*
-open Test; 
-*}
+text{*the parsed firewall:*}
+value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw"
 
-declare[[ML_print_depth=50]]
-ML{*
-val rules = unfold_ruleset_FORWARD Accept (map_of_string firewall_chains)
-*}
-ML{*
-length rules;
-val upper = upper_closure rules;
-length upper;*}
-
-text{*How long does the unfolding take?*}
-ML_val{*
-val t0 = Time.now();
-val _ = unfold_ruleset_FORWARD Accept (map_of_string firewall_chains);
-val t1= Time.now();
-writeln(String.concat ["It took ", Time.toString(Time.-(t1,t0)), " seconds"])
-*}
-text{*on my system, less than 1 second.*}
 
 (*
-text{*Time required for calculating and normalizing closure*}
-ML_val{*
-val t0 = Time.now();
-val _ = upper_closure rules;
-val t1= Time.now();
-writeln(String.concat ["It took ", Time.toString(Time.-(t1,t0)), " seconds"])
-*}
-text{*on my system, less than 100 seconds.*}
+(*194.439s*)
+value[code] "upper_closure (unfold_ruleset_FORWARD net_fw_FORWARD_default_policy (map_of_string net_fw))"
+
+(*146.691s*)
+value[code] "example_ipassignment_nospoof ''eth1.96'' (upper_closure (unfold_ruleset_FORWARD net_fw_FORWARD_default_policy (map_of_string net_fw)))"
 *)
 
-
-ML_val{*
-check_simple_fw_preconditions upper;
-*} (*true*)
-
-ML_val{*
-example_ipassmt_sanity_defined upper;
-*} (*true*)
-
-ML_val{*
-length (to_simple_firewall upper);
-*}
+text{*sanity check that @{const ipassmt} is complete*}
+lemma "ipassmt_sanity_defined (preprocess net_fw_FORWARD_default_policy net_fw) (map_of ipassmt)" by eval
 
 
-
-ML{*
-val putLn = writeln o String.implode o simple_rule_toString
-*}
-
-text{*iptables -L -n*}
-ML_val{*
-writeln "Chain INPUT (policy ACCEPT)";
-writeln "target     prot opt source               destination";
-writeln "";
-writeln "Chain FORWARD (policy ACCEPT)";
-writeln "target     prot opt source               destination";
-val _ = map putLn (to_simple_firewall upper);
-writeln "Chain OUTPUT (policy ACCEPT)";
-writeln "target     prot opt source               destination"
-*}
-
-
-ML_val{*
-example_ipassignment_nospoof (String.explode "eth1.96") upper;
-*}
-
-
-ML_val{*
-example_ipassignment_nospoof (String.explode "eth1.97") upper;
-*} (*TODO*)
-
-
-ML_val{*
-example_ipassignment_nospoof (String.explode "eth1.108") upper;
-example_ipassignment_nospoof (String.explode "eth1.109") upper;
-*}
-
-
-ML_val{*
-example_ipassignment_nospoof (String.explode "eth1.110") upper;
-example_ipassignment_nospoof (String.explode "eth1.1024") upper;
-*} (*works!*)
-
-
-ML_val{*
-example_ipassignment_nospoof (String.explode "eth1.116") upper;
-example_ipassignment_nospoof (String.explode "eth1.152") upper;
-example_ipassignment_nospoof (String.explode "eth1.171") upper;
-example_ipassignment_nospoof (String.explode "eth1.173") upper;
-*}
-
-
-
-ML_val{*
-example_ipassignment_nospoof (String.explode "eth1.1010") upper;
-example_ipassignment_nospoof (String.explode "eth1.1011") upper;
-example_ipassignment_nospoof (String.explode "eth1.1012") upper;
-example_ipassignment_nospoof (String.explode "eth1.1014") upper;
-example_ipassignment_nospoof (String.explode "eth1.1016") upper;
-example_ipassignment_nospoof (String.explode "eth1.1017") upper;
-*}
-
-
-ML_val{*
-example_ipassignment_nospoof (String.explode "eth1.1111") upper;
-*}
-
-
-ML_val{*
-example_ipassignment_nospoof (String.explode "eth1.1019") upper;
-example_ipassignment_nospoof (String.explode "eth1.1020") upper;
-example_ipassignment_nospoof (String.explode "eth1.1023") upper;
-example_ipassignment_nospoof (String.explode "eth1.1025") upper;
-*}
+(*179.619s*)
+lemma "spoofing_protection (preprocess net_fw_FORWARD_default_policy net_fw) =
+ [(''eth1.96'', True),
+  (''eth1.108'', True),
+  (''eth1.109'', True),
+  (''eth1.110'', True), (*INET*)
+  (''eth1.116'', True),
+  (''eth1.152'', True),
+  (''eth1.171'', True),
+  (''eth1.173'', True),
+  (''eth1.1010'', True),
+  (''eth1.1011'', True),
+  (''eth1.1012'', True),
+  (''eth1.1014'', True),
+  (''eth1.1016'', True),
+  (''eth1.1017'', True),
+  (''eth1.1111'', True),
+  (''eth1.97'', False), (*VLAN for internal testing, no spoofing protection*)
+  (''eth1.1019'', True),
+  (''eth1.1020'', True),
+  (''eth1.1023'', True),
+  (''eth1.1025'', True),
+  (''eth1.1024'', True) (*transfer net*)
+ ]" by eval
 
 
 

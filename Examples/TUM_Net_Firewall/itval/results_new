@@ -1,0 +1,10 @@
+LD_PRELOAD=./FDDL/.libs/libFDDL.so.0 ./memusg ./ITVal -f ../iptables_Ln_29.11.2013_cheating.upper -q doc/Examples/Classes.fw
+
+terminate called after throwing an instance of 'std::bad_alloc'
+  what():  std::bad_alloc
+Aborted
+root@vm-10-155-208-13:~/ITVal-1.0#
+memusg: peak=63954124
+
+
+on paranoia, runs for more than 51 hours, aborted after 128GB RAM usage
