@@ -1049,106 +1049,6 @@ fun negPos_map uu [] = []
   | negPos_map f (Pos a :: asa) = Pos (f a) :: negPos_map f asa
   | negPos_map f (Neg a :: asa) = Neg (f a) :: negPos_map f asa;
 
-fun ipv4range_lowest_element (WordInterval (s, e)) =
-  (if less_eq_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) s
-        e
-    then SOME s else NONE)
-  | ipv4range_lowest_element (RangeUnion (a, b)) =
-    (case (ipv4range_lowest_element a, ipv4range_lowest_element b)
-      of (NONE, NONE) => NONE | (NONE, SOME aa) => SOME aa
-      | (SOME aa, NONE) => SOME aa
-      | (SOME aa, SOME ba) =>
-        SOME (if less_word
-                   (len0_bit0
-                     (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-                   aa ba
-               then aa else ba));
-
-fun uminus_int k = Int_of_integer (IntInf.~ (integer_of_int k));
-
-fun bin_last w =
-  equal_int (mod_int w (Int_of_integer (2 : IntInf.int)))
-    (Int_of_integer (1 : IntInf.int));
-
-fun bitAND_int x y =
-  (if equal_int x zero_int then zero_int
-    else (if equal_int x (uminus_int (Int_of_integer (1 : IntInf.int))) then y
-           else bit (bitAND_int (bin_rest x) (bin_rest y))
-                  (bin_last x andalso bin_last y)));
-
-fun bitAND_word A_ a b = word_of_int A_ (bitAND_int (uint A_ a) (uint A_ b));
-
-fun pfxm_prefix p = fst p;
-
-fun pfxm_length p = snd p;
-
-fun pfxm_mask B_ x =
-  mask B_ (minus_nat (nat_of_integer (32 : IntInf.int)) (pfxm_length x));
-
-fun valid_prefix A_ pf =
-  equal_worda (len0_len A_)
-    (bitAND_word (len0_len A_) (pfxm_mask A_ pf) (pfxm_prefix pf))
-    (zero_worda (len0_len A_));
-
-fun ipv4range_setminus r1 r2 =
-  wordinterval_setminus
-    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
-
-fun wordinterval_subset A_ r1 r2 =
-  wordinterval_empty A_ (wordinterval_setminus A_ r1 r2);
-
-fun ipv4range_subset r1 r2 =
-  wordinterval_subset
-    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
-
-fun bitNOT_int x =
-  (fn xa => minus_int (uminus_int xa) (Int_of_integer (1 : IntInf.int))) x;
-
-fun bitOR_int x =
-  (fn xa => fn y => bitNOT_int (bitAND_int (bitNOT_int xa) (bitNOT_int y))) x;
-
-fun bitOR_word A_ a b = word_of_int A_ (bitOR_int (uint A_ a) (uint A_ b));
-
-fun prefix_to_range pfx =
-  WordInterval
-    (pfxm_prefix pfx,
-      bitOR_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-        (pfxm_prefix pfx)
-        (pfxm_mask
-          (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) pfx));
-
-fun ipv4range_split1 r =
-  let
-    val a = ipv4range_lowest_element r;
-  in
-    (case a of NONE => (NONE, r)
-      | SOME aa =>
-        let
-          val cs = map (fn b => (aa, b)) pfxes;
-          val cfs =
-            filter
-              (fn s =>
-                valid_prefix
-                  (len_bit0
-                    (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-                  s andalso
-                  ipv4range_subset (prefix_to_range s) r)
-              cs;
-          val mc = find (const true) cfs;
-        in
-          (case mc of NONE => (NONE, r)
-            | SOME m => (mc, ipv4range_setminus r (prefix_to_range m)))
-        end)
-  end;
-
-fun ipv4range_split rs =
-  (if not (ipv4range_empty rs)
-    then (case ipv4range_split1 rs of (NONE, _) => []
-           | (SOME s, u) => s :: ipv4range_split u)
-    else []);
-
 fun ipv4addr_of_dotdecimal (a, (b, (c, d))) =
   ipv4addr_of_nat
     (plus_nata
@@ -1311,6 +1211,106 @@ fun ipassmt A_ =
               (nat_of_integer (232 : IntInf.int),
                 nat_of_integer (61 : IntInf.int)))),
          numeral A_ (Bit1 (Bit0 (Bit1 (Bit1 One)))))])];
+
+fun ipv4range_lowest_element (WordInterval (s, e)) =
+  (if less_eq_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) s
+        e
+    then SOME s else NONE)
+  | ipv4range_lowest_element (RangeUnion (a, b)) =
+    (case (ipv4range_lowest_element a, ipv4range_lowest_element b)
+      of (NONE, NONE) => NONE | (NONE, SOME aa) => SOME aa
+      | (SOME aa, NONE) => SOME aa
+      | (SOME aa, SOME ba) =>
+        SOME (if less_word
+                   (len0_bit0
+                     (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+                   aa ba
+               then aa else ba));
+
+fun uminus_int k = Int_of_integer (IntInf.~ (integer_of_int k));
+
+fun bin_last w =
+  equal_int (mod_int w (Int_of_integer (2 : IntInf.int)))
+    (Int_of_integer (1 : IntInf.int));
+
+fun bitAND_int x y =
+  (if equal_int x zero_int then zero_int
+    else (if equal_int x (uminus_int (Int_of_integer (1 : IntInf.int))) then y
+           else bit (bitAND_int (bin_rest x) (bin_rest y))
+                  (bin_last x andalso bin_last y)));
+
+fun bitAND_word A_ a b = word_of_int A_ (bitAND_int (uint A_ a) (uint A_ b));
+
+fun pfxm_prefix p = fst p;
+
+fun pfxm_length p = snd p;
+
+fun pfxm_mask B_ x =
+  mask B_ (minus_nat (nat_of_integer (32 : IntInf.int)) (pfxm_length x));
+
+fun valid_prefix A_ pf =
+  equal_worda (len0_len A_)
+    (bitAND_word (len0_len A_) (pfxm_mask A_ pf) (pfxm_prefix pf))
+    (zero_worda (len0_len A_));
+
+fun ipv4range_setminus r1 r2 =
+  wordinterval_setminus
+    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
+
+fun wordinterval_subset A_ r1 r2 =
+  wordinterval_empty A_ (wordinterval_setminus A_ r1 r2);
+
+fun ipv4range_subset r1 r2 =
+  wordinterval_subset
+    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
+
+fun bitNOT_int x =
+  (fn xa => minus_int (uminus_int xa) (Int_of_integer (1 : IntInf.int))) x;
+
+fun bitOR_int x =
+  (fn xa => fn y => bitNOT_int (bitAND_int (bitNOT_int xa) (bitNOT_int y))) x;
+
+fun bitOR_word A_ a b = word_of_int A_ (bitOR_int (uint A_ a) (uint A_ b));
+
+fun prefix_to_range pfx =
+  WordInterval
+    (pfxm_prefix pfx,
+      bitOR_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        (pfxm_prefix pfx)
+        (pfxm_mask
+          (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) pfx));
+
+fun ipv4range_split1 r =
+  let
+    val a = ipv4range_lowest_element r;
+  in
+    (case a of NONE => (NONE, r)
+      | SOME aa =>
+        let
+          val cs = map (fn b => (aa, b)) pfxes;
+          val cfs =
+            filter
+              (fn s =>
+                valid_prefix
+                  (len_bit0
+                    (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+                  s andalso
+                  ipv4range_subset (prefix_to_range s) r)
+              cs;
+          val mc = find (const true) cfs;
+        in
+          (case mc of NONE => (NONE, r)
+            | SOME m => (mc, ipv4range_setminus r (prefix_to_range m)))
+        end)
+  end;
+
+fun ipv4range_split rs =
+  (if not (ipv4range_empty rs)
+    then (case ipv4range_split1 rs of (NONE, _) => []
+           | (SOME s, u) => s :: ipv4range_split u)
+    else []);
 
 fun matcheq_matachAny MatchAny = true
   | matcheq_matachAny (MatchNot m) = not (matcheq_matachAny m)

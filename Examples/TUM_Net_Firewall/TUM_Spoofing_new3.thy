@@ -73,6 +73,90 @@ subsection{*General Setup*}
   definition "spoofing_protection fw \<equiv> map (\<lambda>ifce. (ifce, no_spoofing_iface (Iface ifce) (map_of ipassmt) fw)) interfaces"
   
   definition "preprocess default_policy fw \<equiv> (upper_closure (unfold_ruleset_FORWARD default_policy (map_of_string fw)))"
+
+subsubsection{*Try 1*}
+
+  parse_iptables_save net_fw_1="iptables-save-2015-05-13_10-53-20_cheating"
+
+  (*
+  $ diff -u ~/git/net-network/iptables-Lnv-2015-05-13_10-53-20 iptables-Lnv-2015-05-13_10-53-20_cheating
+  --- /home/diekmann/git/net-network/iptables-Lnv-2015-05-13_10-53-20	2015-05-13 11:19:16.669193827 +0200
+  +++ iptables-Lnv-2015-05-13_10-53-20_cheating	2015-05-13 13:11:18.463582107 +0200
+  @@ -13,14 +13,12 @@
+   
+   Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
+    pkts bytes target     prot opt in     out     source               destination         
+  -2633M 3879G ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            state RELATED,ESTABLISHED,UNTRACKED
+       0     0 LOG_RECENT_DROP2  all  --  *      *       0.0.0.0/0            0.0.0.0/0            recent: UPDATE seconds: 60 name: DEFAULT side: source
+    563K   26M LOG_RECENT_DROP  tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            state NEW tcp dpt:22flags: 0x17/0x02 recent: UPDATE seconds: 360 hit_count: 41 name: ratessh side: source
+       0     0 LOG_DROP   all  --  *      *       127.0.0.0/8          0.0.0.0/0           
+       0     0 ACCEPT     all  --  eth1.1011 *       131.159.14.197       0.0.0.0/0           
+       0     0 ACCEPT     all  --  eth1.1011 *       131.159.14.221       0.0.0.0/0           
+       0     0 ACCEPT     udp  --  eth1.152 *       131.159.15.252       0.0.0.0/0           
+  -    0     0 ACCEPT     udp  --  *      eth1.152  0.0.0.0/0            131.159.15.252       multiport dports 4569,5000:65535
+     209  9376 ACCEPT     all  --  eth1.152 eth1.110  131.159.15.247       0.0.0.0/0           
+   11332  694K ACCEPT     all  --  eth1.110 eth1.152  0.0.0.0/0            131.159.15.247      
+     173  6948 ACCEPT     all  --  eth1.152 eth1.110  131.159.15.248       0.0.0.0/0           
+  *)
+  
+  (*
+  $ diff -u ~/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-save-2015-05-13_10-53-20 iptables-save-2015-05-13_10-53-20_cheating 
+  --- /home/diekmann/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-save-2015-05-13_10-53-20	2015-05-15 15:24:22.768698000 +0200
+  +++ iptables-save-2015-05-13_10-53-20_cheating	2015-06-30 11:29:38.520024251 +0200
+  @@ -141,14 +141,12 @@
+   -A INPUT -i eth1.110 -j filter_INPUT
+   -A INPUT -i eth1.1024 -j NOTFROMHERE
+   -A INPUT -i eth1.1024 -j filter_INPUT
+  --A FORWARD -m state --state RELATED,ESTABLISHED,UNTRACKED -j ACCEPT
+   -A FORWARD -m recent --update --seconds 60 --name DEFAULT --rsource -j LOG_RECENT_DROP2
+   -A FORWARD -p tcp -m state --state NEW -m tcp --dport 22 --tcp-flags FIN,SYN,RST,ACK SYN -m recent --update --seconds 360 --hitcount 41 --name ratessh --rsource -j LOG_RECENT_DROP
+   -A FORWARD -s 127.0.0.0/8 -j LOG_DROP
+   -A FORWARD -s 131.159.14.197/32 -i eth1.1011 -j ACCEPT
+   -A FORWARD -s 131.159.14.221/32 -i eth1.1011 -j ACCEPT
+   -A FORWARD -s 131.159.15.252/32 -i eth1.152 -p udp -j ACCEPT
+  --A FORWARD -d 131.159.15.252/32 -o eth1.152 -p udp -m multiport --dports 4569,5000:65535 -j ACCEPT
+   -A FORWARD -s 131.159.15.247/32 -i eth1.152 -o eth1.110 -j ACCEPT
+   -A FORWARD -d 131.159.15.247/32 -i eth1.110 -o eth1.152 -j ACCEPT
+   -A FORWARD -s 131.159.15.248/32 -i eth1.152 -o eth1.110 -j ACCEPT
+  *)
+  
+  
+  (*
+  The second rule we removed was for an asterisk server. This rule is probably an error because this rule prevents any spoofing protection!
+  It was a temprary rule and it should have been removed but was forgotten, we are investigating ...
+  *)
+
+  text{*the parsed firewall:*}
+  value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw_1"
+  
+  text{*sanity check that @{const ipassmt} is complete*}
+  (*184.837s*)
+  lemma "ipassmt_sanity_defined (preprocess net_fw_1_FORWARD_default_policy net_fw_1) (map_of ipassmt)" by eval
+  
+  (*252.330s*)
+  lemma "spoofing_protection (preprocess net_fw_1_FORWARD_default_policy net_fw_1) =
+   [(''eth1.96'',   True),
+    (''eth1.108'',  False),
+    (''eth1.109'',  False),
+    (''eth1.110'',  False),
+    (''eth1.116'',  False),
+    (''eth1.152'',  False),
+    (''eth1.171'',  False),
+    (''eth1.173'',  False),
+    (''eth1.1010'', False),
+    (''eth1.1011'', False),
+    (''eth1.1012'', False),
+    (''eth1.1014'', False),
+    (''eth1.1016'', False),
+    (''eth1.1017'', False),
+    (''eth1.1111'', False),
+    (''eth1.97'',   False),
+    (''eth1.1019'', False),
+    (''eth1.1020'', False),
+    (''eth1.1023'', False),
+    (''eth1.1025'', False),
+    (''eth1.1024'', False)
+   ]" by eval
   
 
 subsubsection{*Try 2*}
@@ -149,9 +233,6 @@ subsubsection{*Try 2*}
     (''eth1.1025'', True),
     (''eth1.1024'', False) (*transfer net*)
    ]" by eval
-  
-  
-
 
 
 subsection{*Try 3*}
