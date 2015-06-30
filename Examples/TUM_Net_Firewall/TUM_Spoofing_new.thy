@@ -96,6 +96,27 @@ $ diff -u ~/git/net-network/iptables-Lnv-2015-05-13_10-53-20 iptables-Lnv-2015-0
    173  6948 ACCEPT     all  --  eth1.152 eth1.110  131.159.15.248       0.0.0.0/0           
 *)
 
+(*
+$ diff -u ~/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-save-2015-05-13_10-53-20 iptables-save-2015-05-13_10-53-20_cheating 
+--- /home/diekmann/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-save-2015-05-13_10-53-20	2015-05-15 15:24:22.768698000 +0200
++++ iptables-save-2015-05-13_10-53-20_cheating	2015-06-30 11:29:38.520024251 +0200
+@@ -141,14 +141,12 @@
+ -A INPUT -i eth1.110 -j filter_INPUT
+ -A INPUT -i eth1.1024 -j NOTFROMHERE
+ -A INPUT -i eth1.1024 -j filter_INPUT
+--A FORWARD -m state --state RELATED,ESTABLISHED,UNTRACKED -j ACCEPT
+ -A FORWARD -m recent --update --seconds 60 --name DEFAULT --rsource -j LOG_RECENT_DROP2
+ -A FORWARD -p tcp -m state --state NEW -m tcp --dport 22 --tcp-flags FIN,SYN,RST,ACK SYN -m recent --update --seconds 360 --hitcount 41 --name ratessh --rsource -j LOG_RECENT_DROP
+ -A FORWARD -s 127.0.0.0/8 -j LOG_DROP
+ -A FORWARD -s 131.159.14.197/32 -i eth1.1011 -j ACCEPT
+ -A FORWARD -s 131.159.14.221/32 -i eth1.1011 -j ACCEPT
+ -A FORWARD -s 131.159.15.252/32 -i eth1.152 -p udp -j ACCEPT
+--A FORWARD -d 131.159.15.252/32 -o eth1.152 -p udp -m multiport --dports 4569,5000:65535 -j ACCEPT
+ -A FORWARD -s 131.159.15.247/32 -i eth1.152 -o eth1.110 -j ACCEPT
+ -A FORWARD -d 131.159.15.247/32 -i eth1.110 -o eth1.152 -j ACCEPT
+ -A FORWARD -s 131.159.15.248/32 -i eth1.152 -o eth1.110 -j ACCEPT
+*)
+
 
 (*
 The second rule we removed was for an asterisk server. This rule is probably an error because this rule prevents any spoofing protection!
