@@ -167,8 +167,17 @@ subsubsection{*Try 1*}
    Without rp, spoofed packets pass the firewall. We got lucky that rp could be used in our scenario.
    However, the firewall ruleset also features a MAC address filter. This filter was constructed 
    analogously to the spoofing protection filter and, hence, was also broken. rp cannot help in this
-   sittuation.
+   situation.
    *}
+
+   text{*Here is a spoofed packet from IP address @{term "0::ipv4addr"} which is (probably, @{const in_doubt_allow}) accepted in 
+         the @{text filter_96} chain.
+         Manual inspection of the ruleset and an empirical test demonstrate that this kind of packets is actually accepted.*}
+   lemma "approximating_bigstep_fun (common_matcher, in_doubt_allow)
+    \<lparr>p_iiface = ''anything but 1.96'', p_oiface = ''eth1.96'', p_src = 0, p_dst = ipv4addr_of_dotdecimal (131,159,14,9), p_proto = TCP, p_sport = 12345, p_dport = 22\<rparr>
+     (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of_string net_fw_1)) Undecided
+    = Decision FinalAllow" by eval (*81.915s*)
+
   
 
 subsubsection{*Try 2*}
