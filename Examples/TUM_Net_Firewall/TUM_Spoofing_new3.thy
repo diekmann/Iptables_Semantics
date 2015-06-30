@@ -246,6 +246,8 @@ subsubsection{*Try 2*}
     (''eth1.1024'', False) (*transfer net*)
    ]" by eval
 
+   text{*Success for all internal VLANs*}
+
 
 subsection{*Try 3*}
   parse_iptables_save net_fw_3="iptables-save-2015-05-15_15-23-41_cheating"
