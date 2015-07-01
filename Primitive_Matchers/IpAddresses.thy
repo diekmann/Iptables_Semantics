@@ -72,8 +72,7 @@ subsection{*IPv4 Addresses in CIDR Notation*}
   apply(simp)
   apply(cases ips1, cases ips2, rename_tac b1 m1 b2 m2, simp)
   apply(safe)
-     apply(simp_all add: ipv4range_to_set_ipv4_cidr_tuple_to_interval ipv4cidr_conjunct.simps split:split_if_asm)
-    apply fast+
+     apply(auto simp add: ipv4range_to_set_ipv4_cidr_tuple_to_interval ipv4cidr_conjunct.simps split:split_if_asm)
   done
   value "ipv4cidr_conjunct (0,0) (8,1)" (*with the code_unfold lema before, this works!*)
 
