@@ -19,7 +19,7 @@ text{*we removed the established,related rule*}
             (MatchAnd (Match (Prot (ProtoAny)))
             (Match (Extra (''state RELATED,ESTABLISHED'')))))) (action.Accept)) (the (firewall_chains ''INPUT'')))"
 
-text{*Infix pretty-printing for @{const MatchAnd}, @{const MatchNot}, and @{const Match}.*}
+text{*Infix pretty-printing for @{const MatchAnd} and @{const MatchNot}.*}
 abbreviation MatchAndInfix :: "'a match_expr \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr" (infixr "MATCHAND" 65) where
   "MatchAndInfix m1 m2 \<equiv> MatchAnd m1 m2"
 abbreviation MatchNotPrefix :: "'a match_expr \<Rightarrow> 'a match_expr" ("\<not> \<langle>_\<rangle>" 66) where
