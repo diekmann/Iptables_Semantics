@@ -11,10 +11,7 @@ section{*IPv4 Addresses*}
 --"Misc"
 (*we dont't have an empty ip space, but a space which only contains the 0 address. We will use the option type to denote the empty space in some functions.*)
 lemma "ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 33 = {0}"
-apply(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
-apply(simp add: ipv4range_set_from_bitmask_def)
-apply(simp add: ipv4range_set_from_netmask_def)
-done
+by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def)
 
 
 subsection{*IPv4 Addresses in CIDR Notation*}
@@ -97,8 +94,7 @@ subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
   lemma ipv4s_to_set_nonempty: "ipv4s_to_set ip \<noteq> {}"
     apply(cases ip)
      apply(simp)
-    apply(simp add: ipv4range_set_from_bitmask_alt)
-    apply(simp add: bitmagic_zeroLast_leq_or1Last)
+    apply(simp add: ipv4range_set_from_bitmask_alt bitmagic_zeroLast_leq_or1Last)
     done
   
   text{*maybe this is necessary as code equation?*}
