@@ -9,7 +9,7 @@ begin
 section{*Example: Synology Diskstation 2014*}
 text{*We analyze a dump of a NAS. The dump was created 2014. Unfortunately, we don't have an 
       @{text "iptables-save"} dump from that time and have to rely on the @{text "iptables -L -n"}
-      dump. This dump was translated by our legacy pythn importer.*}
+      dump. This dump was translated by our legacy python importer.*}
 
 
 text{*we removed the established,related rule*}

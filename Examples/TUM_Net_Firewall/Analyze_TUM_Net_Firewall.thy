@@ -4,7 +4,12 @@ imports "../Code_Interface"
 begin
 
 
-section{*Example: Chair for Network Architectures and Services (TUM)*}
+section{*Example: Chair for Network Architectures and Services (TUM) 2013*}
+
+
+text{*We analyze a dump from 2013. Unfortunately, we don't have an 
+      @{text "iptables-save"} dump from that time and have to rely on the @{text "iptables -L -n"}
+      dump. This dump was translated by our legacy python importer.*}
 
 (*this is just for testing*)
 definition deny_set :: "common_primitive rule list \<Rightarrow> common_primitive packet_set list" where
