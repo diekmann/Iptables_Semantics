@@ -12,6 +12,37 @@ begin
 
 section{*Code Interface*}
 
+
+text{*The parser returns the @{typ "common_primitive ruleset"} not as a map but as an association list.
+      This function converts it*}
+definition map_of_string :: "(string \<times> common_primitive rule list) list \<Rightarrow> string \<rightharpoonup> common_primitive rule list" where
+  "map_of_string rs = map_of rs"
+
+
+(*
+text{*Remove an ESTABLISHED RELATED rule if it occurs in the first @{term "n::nat"} rules*}
+fun remove_ESTABLISHED_RELATED_chain :: "nat \<Rightarrow> common_primitive rule list \<Rightarrow> common_primitive rule list" where
+  "remove_ESTABLISHED_RELATED_chain _ [] = []" |
+  "remove_ESTABLISHED_RELATED_chain 0 rs = rs" |
+  "remove_ESTABLISHED_RELATED_chain (Suc n) ((Rule m a)#rs) = (
+    if opt_MatchAny_match_expr (optimize_primitive_univ m) = (Match (Extra (''state RELATED,ESTABLISHED''))) \<and> a = action.Accept
+    then rs
+    else (Rule m a)#remove_ESTABLISHED_RELATED_chain n rs)"
+
+lemma "length (remove_ESTABLISHED_RELATED_chain n rs) = length rs \<or>
+       length (remove_ESTABLISHED_RELATED_chain n rs) = length rs - 1"
+  apply(induction n rs rule: remove_ESTABLISHED_RELATED_chain.induct)
+    apply(simp_all)
+  by linarith
+
+text{*Remove RELATED,ESTABLISHED rules from the built-in chains if the rule is in the first five rules*}
+definition remove_ESTABLISHED_RELATED :: "(string \<times> common_primitive rule list) list \<Rightarrow> (string \<times> common_primitive rule list) list" where
+  "remove_ESTABLISHED_RELATED fw = map (\<lambda> (decl, rs).
+    if decl \<in> {''INPUT'', ''FORWARD'', ''OUTPUT''} then (decl, remove_ESTABLISHED_RELATED_chain 5 rs)
+    else (decl, rs)) fw"
+*)
+
+
 definition check_simple_ruleset :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
   "check_simple_ruleset rs \<equiv> if simple_ruleset rs then rs else undefined"
 
@@ -54,8 +85,7 @@ definition unfold_ruleset_OUTPUT :: "action \<Rightarrow> common_primitive rules
   )))))"
 
 
-definition map_of_string :: "(string \<times> common_primitive rule list) list \<Rightarrow> string \<rightharpoonup> common_primitive rule list" where
-"map_of_string rs = map_of rs"
+
 
 definition upper_closure :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
   "upper_closure rs == remdups_rev (transform_optimize_dnf_strict

@@ -1,49 +1,120 @@
 theory Analyze_Synology_Diskstation
-imports iptables_Ln_tuned_parsed
+imports iptables_Ln_tuned_parsed (*2014 firewall dump*)
  "../Code_Interface"
  "../../Semantics_Ternary/Optimizing"
  "../Parser"
 begin
 
 
-section{*Example: Synology Diskstation*}
-
-local_setup \<open>
-  local_setup_parse_iptables_save @{binding ds_fw} ["iptables-save"]
- \<close>
-thm ds_fw_def
-thm ds_fw_INPUT_default_policy_def
-
-text{*we removed the established,related rule*}
-
-definition "firewall \<equiv> (map_of ds_fw)(''DEFAULT_INPUT'' \<mapsto> 
-  remove1 (Rule (MatchAnd (Match (Extra ''-m state --state RELATED,ESTABLISHED'')) MatchAny) action.Accept) (the ((map_of ds_fw) ''DEFAULT_INPUT'')))"
-
-value[code] "map common_primitive_rule_toString (unfold_ruleset_INPUT ds_fw_INPUT_default_policy firewall)"
-
-lemma "check_simple_fw_preconditions (upper_closure (unfold_ruleset_INPUT ds_fw_INPUT_default_policy firewall))" by eval
-value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT ds_fw_INPUT_default_policy firewall)))"
-
+section{*Example: Synology Diskstation 2014*}
+text{*We analyze a dump of a NAS. The dump was created 2014. Unfortunately, we don't have an 
+      @{text "iptables-save"} dump from that time and have to rely on the @{text "iptables -L -n"}
+      dump. This dump was translated by our legacy python importer.*}
 
 
 text{*we removed the established,related rule*}
   definition "example_ruleset == firewall_chains(''INPUT'' \<mapsto> 
-    remove1 (Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (ProtoAny))) (Match (Extra (''state RELATED,ESTABLISHED'')))))) (action.Accept)) (the (firewall_chains ''INPUT'')))"
+    remove1 (Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0))))
+            (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0))))
+            (MatchAnd (Match (Prot (ProtoAny)))
+            (Match (Extra (''state RELATED,ESTABLISHED'')))))) (action.Accept)) (the (firewall_chains ''INPUT'')))"
 
-abbreviation MatchAndInfix :: "'a match_expr \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr" (infixr "MATCHAND" 65) where "MatchAndInfix m1 m2 \<equiv> MatchAnd m1 m2" (*(infixr "_ MATCHAND _" 65) *)
+text{*Infix pretty-printing for @{const MatchAnd} and @{const MatchNot}.*}
+abbreviation MatchAndInfix :: "'a match_expr \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr" (infixr "MATCHAND" 65) where
+  "MatchAndInfix m1 m2 \<equiv> MatchAnd m1 m2"
+abbreviation MatchNotPrefix :: "'a match_expr \<Rightarrow> 'a match_expr" ("\<not> \<langle>_\<rangle>" 66) where
+  "MatchNotPrefix m \<equiv> MatchNot m"
+(*abbreviation MatchPrefix :: "'a \<Rightarrow> 'a match_expr" ("\<lozenge> _" 67) where (*This is too slow*)
+  "MatchPrefix m \<equiv> Match m"*)
+(*This syntax can be pretty confusing when mixing it with other theories. Do not use outside this example!*)
 
-  value[code] "unfold_ruleset_INPUT action.Accept example_ruleset"
+
+lemma "unfold_ruleset_INPUT action.Accept example_ruleset =
+ [Rule (\<not> \<langle>Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8''))
+   action.Drop,
+  Rule (\<not> \<langle>Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x04 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x04''))
+   action.Drop,
+  Rule (\<not> \<langle>Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x04 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x02 limit: avg 10000/sec burst 100'')\<rangle> MATCHAND
+        Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x02''))
+   action.Drop,
+  Rule (\<not> \<langle>Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x04 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x02 limit: avg 10000/sec burst 100'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8''))
+   action.Drop,
+  Rule (\<not> \<langle>Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x04 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x02 limit: avg 10000/sec burst 100'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x04 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x04''))
+   action.Drop,
+  Rule (\<not> \<langle>Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x04 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x02 limit: avg 10000/sec burst 100'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x04 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x02 limit: avg 10000/sec burst 100'')\<rangle> MATCHAND
+        Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x02''))
+   action.Drop,
+  Rule (\<not> \<langle>Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8''))
+   action.Drop,
+  Rule (\<not> \<langle>Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x04 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x04''))
+   action.Drop,
+  Rule (\<not> \<langle>Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x04 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x02 limit: avg 10000/sec burst 100'')\<rangle> MATCHAND
+        Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x02''))
+   action.Drop,
+  Rule (\<not> \<langle>Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x04 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x02 limit: avg 10000/sec burst 100'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8''))
+   action.Drop,
+  Rule (\<not> \<langle>Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x04 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x02 limit: avg 10000/sec burst 100'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x04 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x04''))
+   action.Drop,
+  Rule (\<not> \<langle>Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x04 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x02 limit: avg 10000/sec burst 100'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Extra ''Prot icmp'') MATCHAND Match (Extra ''icmptype 8 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x04 limit: avg 1/sec burst 5'')\<rangle> MATCHAND
+        \<not> \<langle>Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x02 limit: avg 10000/sec burst 100'')\<rangle> MATCHAND
+        Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp flags:0x17/0x02''))
+   action.Drop,
+  Rule (Match (Prot (Proto TCP)) MATCHAND Match (Extra ''tcp dpt:22'')) action.Drop,
+  Rule (Match (Prot (Proto TCP)) MATCHAND Match (Extra ''multiport dports 21,873,5005,5006,80,548,111,2049,892''))
+   action.Drop,
+  Rule (Match (Prot (Proto UDP)) MATCHAND Match (Extra ''multiport dports 123,111,2049,892,5353'')) action.Drop,
+  Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16))) action.Accept, Rule MatchAny action.Drop,
+  Rule MatchAny action.Accept, Rule MatchAny action.Accept]
+  " by eval
 
   lemma "good_ruleset (unfold_ruleset_INPUT action.Accept example_ruleset)" by eval
   lemma "simple_ruleset (unfold_ruleset_INPUT action.Accept example_ruleset)" by eval
 
 
-  text{*packets from the local lan are allowed (in doubt)*}
+  text{*packets from the local LAN are allowed (@{const in_doubt_allow})*}
   value[code] "approximating_bigstep_fun (common_matcher, in_doubt_allow)
     \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (8,8,8,8),
          p_proto=TCP, p_sport=2065, p_dport=80\<rparr>
         (unfold_ruleset_INPUT action.Accept example_ruleset)
         Undecided = Decision FinalAllow"
+
   text{*However, they might also be rate-limited, ... (we don't know about icmp)*}
   lemma "approximating_bigstep_fun (common_matcher, in_doubt_deny)
     \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (8,8,8,8),
@@ -78,8 +149,8 @@ apply(subst rmshadow.simps)
 apply(simp del: rmshadow.simps)
 apply(simp add: Matching_Ternary.matches_def)
 apply(intro conjI impI)
-apply(rule_tac x="\<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (8,8,8,8), p_dst= 0, p_proto=TCP, p_sport=2065, p_dport=80\<rparr> " in exI)
-apply(simp add: ipv4addr_of_dotdecimal.simps ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def Let_def ipv4addr_of_nat_def)
+ apply(rule_tac x="\<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (8,8,8,8), p_dst= 0, p_proto=TCP, p_sport=2065, p_dport=80\<rparr> " in exI)
+ apply(simp add: ipv4addr_of_dotdecimal.simps ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def Let_def ipv4addr_of_nat_def)
 apply(thin_tac "\<exists>p. x p" for x)
 apply(rule_tac x="\<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,8,8), p_dst= 0, p_proto=TCP, p_sport=2065, p_dport=80\<rparr> " in exI)
 apply(simp add: ipv4addr_of_dotdecimal.simps ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def Let_def ipv4addr_of_nat_def)
@@ -98,42 +169,112 @@ done
 
 
 lemma "check_simple_fw_preconditions (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset))" by eval
-value "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset)))"
+
+value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset)))"
+lemma "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset))) =
+  [''ACCEPT     all  --  192.168.0.0/16            0.0.0.0/0    '',
+   ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '',
+   ''ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0    '']" by eval (*will break when simple_rule_toString is changed*)
+
 lemma "check_simple_fw_preconditions (lower_closure (unfold_ruleset_INPUT action.Accept example_ruleset))" by eval
 value "map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_INPUT action.Accept example_ruleset)))"
 
 
-value "length (unfold_ruleset_INPUT action.Accept example_ruleset)"
+lemma "length (unfold_ruleset_INPUT action.Accept example_ruleset) = 19" by eval
 text{*Wow, normalization has exponential(?) blowup here.*}
-value "length (normalize_rules_dnf (unfold_ruleset_INPUT action.Accept example_ruleset))"
+lemma "length (normalize_rules_dnf (unfold_ruleset_INPUT action.Accept example_ruleset)) = 259" by eval
 
 
+section{*Synology Diskstation 2015*}
+text{*This is a snapshot from 2015, available as @{text "iptables-save"} format. The firewall definition
+      and structure has changed with various firmware updates to the device.
+      Also, the new parser also parses ports and interfaces*}
 
-subsection{*With parsed ports*}
+parse_iptables_save ds2015_fw="iptables-save"
 
-(*../../importer/main.py --import "../Code_Interface" --parse_ports iptables_Ln_tuned iptables_Ln_tuned_parse_ports.thy*)
-value "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT action.Accept [''DOS_PROTECT'' \<mapsto> [Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Extra (''Prot icmp''))) (Match (Extra (''icmptype 8 limit: avg 1/sec burst 5'')))))) (action.Return),
-Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Extra (''Prot icmp''))) (Match (Extra (''icmptype 8'')))))) (action.Drop),
-Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (Match (Extra (''tcp flags:0x17/0x04 limit: avg 1/sec burst 5'')))))) (action.Return),
-Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (Match (Extra (''tcp flags:0x17/0x04'')))))) (action.Drop),
-Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (Match (Extra (''tcp flags:0x17/0x02 limit: avg 10000/sec burst 100'')))))) (action.Return),
-Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (Match (Extra (''tcp flags:0x17/0x02'')))))) (action.Drop),
-Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Extra (''Prot icmp''))) (Match (Extra (''icmptype 8 limit: avg 1/sec burst 5'')))))) (action.Return),
-Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Extra (''Prot icmp''))) (Match (Extra (''icmptype 8'')))))) (action.Drop),
-Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (Match (Extra (''tcp flags:0x17/0x04 limit: avg 1/sec burst 5'')))))) (action.Return),
-Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (Match (Extra (''tcp flags:0x17/0x04'')))))) (action.Drop),
-Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (Match (Extra (''tcp flags:0x17/0x02 limit: avg 10000/sec burst 100'')))))) (action.Return),
-Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (Match (Extra (''tcp flags:0x17/0x02'')))))) (action.Drop)],
-''INPUT'' \<mapsto> [Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (ProtoAny))) (MatchAny)))) (Call (''DOS_PROTECT'')),
-Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (ProtoAny))) (MatchAny)))) (Call (''DOS_PROTECT'')),
-(*Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (ProtoAny))) (Match (Extra (''state RELATED,ESTABLISHED'')))))) (action.Accept),*)
-Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (MatchAnd (Match (Dst_Ports ([(22,22)]))) (MatchAny))))) (action.Drop),
-Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto TCP))) (MatchAnd (Match (Dst_Ports ([(21,21),(873,873),(5005,5005),(5006,5006),(80,80),(548,548),(111,111),(2049,2049),(892,892)]))) (MatchAny))))) (action.Drop),
-Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (Proto UDP))) (MatchAnd (Match (Dst_Ports ([(123,123),(111,111),(2049,2049),(892,892),(5353,5353)]))) (MatchAny))))) (action.Drop),
-Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((192,168,0,0)) (16)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (ProtoAny))) (MatchAny)))) (action.Accept),
-Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0)))) (MatchAnd (Match (Prot (ProtoAny))) (MatchAny)))) (action.Drop),
-Rule (MatchAny) (action.Accept)],
-''FORWARD'' \<mapsto> [Rule (MatchAny) (action.Accept)],
-''OUTPUT'' \<mapsto> [Rule (MatchAny) (action.Accept)]])))"
+thm ds2015_fw_def
+thm ds2015_fw_INPUT_default_policy_def
+
+text{*we removed the established,related rule*}
+
+definition "firewall \<equiv> (map_of ds2015_fw)(''DEFAULT_INPUT'' \<mapsto> 
+  remove1 (Rule (Match (Extra ''-m state --state RELATED,ESTABLISHED'')) action.Accept)
+  (the ((map_of ds2015_fw) ''DEFAULT_INPUT'')))"
+
+text{* one rule got removed *}
+lemma "length (the (firewall ''DEFAULT_INPUT'')) = length (the ((map_of ds2015_fw) ''DEFAULT_INPUT'')) - 1" by eval
+
+
+lemma "(unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy firewall) =
+[Rule (\<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND Match (Prot (Proto ICMP)) MATCHAND
+          Match (Extra ''-m icmp --icmp-type 8 -m limit --limit 1/sec'')\<rangle> MATCHAND
+        Match (IIface (Iface ''eth1'')) MATCHAND Match (Prot (Proto ICMP)) MATCHAND Match (Extra ''-m icmp --icmp-type 8''))
+   action.Drop,
+  Rule (\<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND Match (Prot (Proto ICMP)) MATCHAND Match (Extra ''-m icmp --icmp-type 8 -m limit --limit 1/sec'')\<rangle> MATCHAND
+        \<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND
+           Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK RST -m limit --limit 1/sec'')\<rangle> MATCHAND
+        Match (IIface (Iface ''eth1'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK RST''))
+   action.Drop,
+  Rule (\<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND Match (Prot (Proto ICMP)) MATCHAND
+           Match (Extra ''-m icmp --icmp-type 8 -m limit --limit 1/sec'')\<rangle> MATCHAND
+        \<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND
+           Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK RST -m limit --limit 1/sec'')\<rangle> MATCHAND
+        \<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND
+           Match (Prot (Proto TCP)) MATCHAND Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m limit --limit 10000/sec --limit-burst 100'')\<rangle> MATCHAND
+        Match (IIface (Iface ''eth1'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK SYN''))
+   action.Drop,
+  Rule (\<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND Match (Prot (Proto ICMP)) MATCHAND
+           Match (Extra ''-m icmp --icmp-type 8 -m limit --limit 1/sec'')\<rangle> MATCHAND
+        \<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND
+           Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK RST -m limit --limit 1/sec'')\<rangle> MATCHAND
+        \<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND
+           Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m limit --limit 10000/sec --limit-burst 100'')\<rangle> MATCHAND
+        \<not> \<langle>Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto ICMP)) MATCHAND
+           Match (Extra ''-m icmp --icmp-type 8 -m limit --limit 1/sec'')\<rangle> MATCHAND
+        Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto ICMP)) MATCHAND Match (Extra ''-m icmp --icmp-type 8''))
+   action.Drop,
+  Rule (\<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND Match (Prot (Proto ICMP)) MATCHAND
+           Match (Extra ''-m icmp --icmp-type 8 -m limit --limit 1/sec'')\<rangle> MATCHAND
+        \<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND
+           Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK RST -m limit --limit 1/sec'')\<rangle> MATCHAND
+        \<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND
+           Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m limit --limit 10000/sec --limit-burst 100'')\<rangle> MATCHAND
+        \<not> \<langle>Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto ICMP)) MATCHAND
+           Match (Extra ''-m icmp --icmp-type 8 -m limit --limit 1/sec'')\<rangle> MATCHAND
+        \<not> \<langle>Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND
+           Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK RST -m limit --limit 1/sec'')\<rangle> MATCHAND
+        Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK RST''))
+   action.Drop,
+  Rule (\<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND Match (Prot (Proto ICMP)) MATCHAND
+           Match (Extra ''-m icmp --icmp-type 8 -m limit --limit 1/sec'')\<rangle> MATCHAND
+        \<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND
+           Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK RST -m limit --limit 1/sec'')\<rangle> MATCHAND
+        \<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND
+           Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m limit --limit 10000/sec --limit-burst 100'')\<rangle> MATCHAND
+        \<not> \<langle>Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto ICMP)) MATCHAND
+           Match (Extra ''-m icmp --icmp-type 8 -m limit --limit 1/sec'')\<rangle> MATCHAND
+        \<not> \<langle>Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND
+           Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK RST -m limit --limit 1/sec'')\<rangle> MATCHAND
+        \<not> \<langle>Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND
+           Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m limit --limit 10000/sec --limit-burst 100'')\<rangle> MATCHAND
+        Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK SYN''))
+   action.Drop,
+  Rule (Match (IIface (Iface ''lo''))) action.Accept,
+  Rule (Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND Match (Dst_Ports [(0x16, 0x16)])) action.Drop,
+  Rule (Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND
+        Match (Dst_Ports [(0x15, 0x15), (0x369, 0x369), (0x138D, 0x138D), (0x138E, 0x138E), (0x50, 0x50), (0x224, 0x224), (0x6F, 0x6F), (0x37C, 0x37C), (0x801, 0x801)]))
+   action.Drop,
+  Rule (Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP)) MATCHAND
+        Match (Dst_Ports [(0x7B, 0x7B), (0x6F, 0x6F), (0x37C, 0x37C), (0x801, 0x801), (0x14E9, 0x14E9)]))
+   action.Drop,
+  Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16)) MATCHAND Match (IIface (Iface ''eth0''))) action.Accept, Rule (Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule MatchAny action.Accept]" by eval
+
+value[code] "map common_primitive_rule_toString (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy firewall)"
+
+lemma "check_simple_fw_preconditions (upper_closure (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy firewall))" by eval
+value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy firewall)))"
+
+
 
 end

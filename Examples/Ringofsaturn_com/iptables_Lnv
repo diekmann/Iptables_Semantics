@@ -1,6 +1,6 @@
 Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
  pkts bytes target     prot opt in     out     source               destination         
-   23  3021 STATEFUL   all  --  *      *       0.0.0.0/0            0.0.0.0/0           
+32996  127M STATEFUL   all  --  *      *       0.0.0.0/0            0.0.0.0/0           
     0     0 ACCEPT     all  --  lo     *       0.0.0.0/0            0.0.0.0/0           
     0     0 DUMP       all  --  eth0   *       0.0.0.0/8            0.0.0.0/0           
     0     0 DUMP       all  --  eth0   *       10.0.0.0/8           0.0.0.0/0           
@@ -36,21 +36,20 @@ Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
 Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
  pkts bytes target     prot opt in     out     source               destination         
 
-Chain OUTPUT (policy ACCEPT 5 packets, 674 bytes)
+Chain OUTPUT (policy ACCEPT 56 packets, 4494 bytes)
  pkts bytes target     prot opt in     out     source               destination         
-    0     0 ACCEPT     all  --  *      lo      0.0.0.0/0            0.0.0.0/0           
+30540  127M ACCEPT     all  --  *      lo      0.0.0.0/0            0.0.0.0/0           
 
 Chain DUMP (9 references)
  pkts bytes target     prot opt in     out     source               destination         
-    0     0 LOG        tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            LOG flags 0 level 4
+    1    44 LOG        tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            LOG flags 0 level 4
     0     0 LOG        udp  --  *      *       0.0.0.0/0            0.0.0.0/0            LOG flags 0 level 4
-    0     0 REJECT     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            reject-with tcp-reset
+    1    44 REJECT     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            reject-with tcp-reset
     0     0 REJECT     udp  --  *      *       0.0.0.0/0            0.0.0.0/0            reject-with icmp-port-unreachable
     0     0 DROP       all  --  *      *       0.0.0.0/0            0.0.0.0/0           
 
 Chain STATEFUL (1 references)
  pkts bytes target     prot opt in     out     source               destination         
-    4  1171 ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            state RELATED,ESTABLISHED
-   19  1850 ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            state NEW
-    0     0 DUMP       all  --  *      *       0.0.0.0/0            0.0.0.0/0           
-
+30424  127M ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            state RELATED,ESTABLISHED
+ 2571  384K ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            state NEW
+    1    44 DUMP       all  --  *      *       0.0.0.0/0            0.0.0.0/0           

@@ -1,5 +1,7 @@
 theory Parser
 imports Code_Interface
+  "../Primitive_Matchers/Primitive_Abstract"
+  keywords "parse_iptables_save"::thy_decl
 begin
 
 
@@ -84,9 +86,6 @@ split_at (fn x => x <> " ") (raw_explode "foo bar")
 section{*An SML Parser for iptables-save*}
 text{*Work in Progress*}
 
-(*ML{*
-datatype parse_options = ParseOption_Interfaces | ParseOption_Ports
-*}*)
 
 ML{*
 local
@@ -110,11 +109,6 @@ local
 in
   fun load_filter_table thy = load_file thy #> extract_filter_table #> writenumloaded;
 end;
-*}
-
-ML{*
-(*val filter_table = load_filter_table ["SQRL_Shorewall", "iptables-saveakachan"];*)
-val filter_table = load_filter_table @{theory} ["Parser_Test", "iptables-save"];
 *}
 
 
@@ -255,8 +249,6 @@ in
   (*parses: -s 0.31.123.213/88 --foo_bar -j chain --foobar
    First tries to parse a known field, afterwards, it parses something unknown until a blank space appears
   *)
-  (*TODO: not parsed: ports, protocols, ...*)
-  (*TODO: parse_options*)
   val option_parser : (string list -> (parsed_match_action) * string list) = 
       Scan.recover (parse_src_ip_negated || parse_dst_ip_negated
                  || parse_in_iface_negated || parse_out_iface_negated
@@ -348,15 +340,6 @@ in
 end;
 *}
 
-ML_val{*
-val (parsed_chain_decls, parsed_rules) = rule_type_partition filter_table;
-
-val toString = (fn (a,target,b) => "-A "^a^" "^((Syntax.pretty_term @{context} #> Pretty.string_of) b)^(case target of NONE => "" | SOME (TypeCall, t) => " -j "^t | SOME (TypeGoto, t) => " -g "^t));
-map (toString #> writeln) parsed_rules;
-
-map (fn (_,_,b) =>  type_of b) parsed_rules;
-*}
-
 
 ML{* (*create a table with the firewall definition*)
 structure FirewallTable = Table(type key = string; val ord = Library.string_ord);
@@ -413,9 +396,18 @@ end
 *}
 
 
-ML{*
+ML_val{* (*Example: the functions*)
+val filter_table = load_filter_table @{theory} ["Parser_Test", "data", "iptables-save"];
 val parsed_ruleset = filter_table |> rule_type_partition |> filter_chain_decls_names_only |> make_firewall_table;
+
+val (parsed_chain_decls, parsed_rules) = rule_type_partition filter_table;
+
+val toString = (fn (a,target,b) => "-A "^a^" "^((Syntax.pretty_term @{context} #> Pretty.string_of) b)^(case target of NONE => "" | SOME (TypeCall, t) => " -j "^t | SOME (TypeGoto, t) => " -g "^t));
+map (toString #> writeln) parsed_rules;
+
+map (fn (_,_,b) =>  type_of b) parsed_rules;
 *}
+
 
 ML{*
 fun mk_Ruleset (tbl: firewall_table) = FirewallTable.dest tbl
@@ -457,7 +449,7 @@ fun certify_term (ctx: Proof.context) (t: term) = trace_timing "Certified term" 
 *}
 
 
-ML_val{*(*putting it all together*)
+ML_val{*(*Example: putting it all together*)
 fun parse_iptables_save (thy: theory) (file: string list) : term = 
     load_filter_table thy file
     |> rule_type_partition
@@ -467,7 +459,7 @@ fun parse_iptables_save (thy: theory) (file: string list) : term =
     |> simplify_code @{context}
 
 
-val example = parse_iptables_save @{theory} ["Parser_Test", "iptables-save"];
+val example = parse_iptables_save @{theory} ["Parser_Test", "data", "iptables-save"];
 
 Pretty.writeln (Syntax.pretty_term @{context} example);
 *}
@@ -485,7 +477,7 @@ local
 in
   fun local_setup_parse_iptables_save (name: binding) path lthy =
     let val prepared = path
-            |> load_filter_table (Local_Theory.exit_global lthy) (*TODO what does exit_global do? but it works, ...*)
+            |> load_filter_table (Proof_Context.theory_of lthy) (*TODO what does exit_global do? but it works, ...*)
             |> rule_type_partition in
     let val firewall = prepared
             |> filter_chain_decls_names_only
@@ -504,59 +496,13 @@ in
 end
 *}
 
-local_setup \<open>
-  local_setup_parse_iptables_save @{binding parser_test_firewall} ["Parser_Test", "iptables-save"]
- \<close>
 
-term parser_test_firewall
-thm parser_test_firewall_def
-thm parser_test_firewall_FORWARD_default_policy_def
-
-lemma "parser_test_firewall \<equiv>
-[(''DOS~Pro-t_ect'',
-  [Rule (MatchAnd (Match (Prot (Proto TCP))) (Match (Dst_Ports [(0x16, 0x16)]))) action.Accept,
-   Rule (MatchAnd (Match (Prot (Proto TCP))) (MatchAnd (Match (Extra ''-m state --state NEW''))
-        (MatchAnd (Match (Dst_Ports [(1, 0xFFFF)])) (Match (Extra ''--tcp-flags FIN,SYN,RST,ACK SYN'')))))
-        action.Accept,
-   Rule (Match (Prot (Proto UDP))) Return, Rule (Match (Prot (Proto ICMP))) action.Accept]),
-(''FORWARD'',
-  [Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) action.Drop, Rule (MatchNot (Match (IIface (Iface ''eth+'')))) action.Drop,
-   Rule (MatchAnd (Match (Src (Ip4AddrNetmask (100, 0, 0, 0) 24))) (Match (Prot (Proto TCP)))) (Call ''DOS~Pro-t_ect''),
-   Rule (MatchNot (Match (Src (Ip4AddrNetmask (131, 159, 0, 0) 16)))) action.Drop,
-   Rule (MatchAnd (Match (Prot (Proto TCP))) (Match (Dst_Ports [(0x50, 0x50), (0x1BB, 0x1BB)]))) Return,
-   Rule (MatchAnd (Match (Dst (Ip4AddrNetmask (127, 0, 0, 1) 32))) (MatchAnd (Match (OIface (Iface ''eth1.152'')))
-        (MatchAnd (Match (Prot (Proto UDP))) (Match (Dst_Ports [(0x11D9, 0x11D9), (0x1388, 0xFFFF)])))))
-        action.Accept,
-   Rule (MatchAnd (Match (IIface (Iface ''eth0''))) (MatchAnd (Match (Prot (Proto TCP)))
-        (Match (Dst_Ports [(0x15, 0x15), (0x369, 0x36A), (0x138D, 0x138D), (0x138E, 0x138E), (0x50, 0x50),
-                           (0x224, 0x224), (0x6F, 0x6F), (0x37C, 0x37C), (0x801, 0x801)]))))
-        action.Drop,
-   Rule MatchAny (Goto ''Terminal'')]),
-(''INPUT'', []),
-(''OUTPUT'', []),
-(''Terminal'',
-  [Rule (MatchAnd (Match (Dst (Ip4AddrNetmask (127, 0, 0, 1) 32))) (MatchAnd (Match (Prot (Proto UDP)))
-        (Match (Src_Ports [(0x35, 0x35)]))))
-        action.Drop,
-   Rule (Match (Dst (Ip4AddrNetmask (127, 42, 0, 1) 32))) Reject, Rule MatchAny Reject])]" by eval
-
-value[code] "map (\<lambda>(c,rs). (c, map (common_primitive_rule_toString) rs)) parser_test_firewall"
+ML\<open>
+  Outer_Syntax.local_theory @{command_keyword parse_iptables_save}
+  "Load a file generated by iptables-save and make the firewall definition available as isabelle term"
+    (Parse.binding --| @{keyword "="} -- Parse.string >> (fn (binding,path) => local_setup_parse_iptables_save binding [path]))
+\<close>
 
 
-
-value[code] "(upper_closure (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
-                  (map_of_string (Semantics_Goto.rewrite_Goto parser_test_firewall))))"
-
-(*this made up example cannot be transformed to_simple_firewall because it has negated interfaces/protocols*)
-
-
-hide_const parser_test_firewall
-           parser_test_firewall_INPUT_default_policy
-           parser_test_firewall_FORWARD_default_policy
-           parser_test_firewall_OUTPUT_default_policy
-hide_fact parser_test_firewall_def
-           parser_test_firewall_INPUT_default_policy_def
-           parser_test_firewall_FORWARD_default_policy_def
-           parser_test_firewall_OUTPUT_default_policy_def
 
 end
