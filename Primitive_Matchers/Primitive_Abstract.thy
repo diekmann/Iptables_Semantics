@@ -1,5 +1,7 @@
 theory Primitive_Abstract
-imports "../Examples/Code_Interface"
+imports
+  "../Examples/Firewall_toString"
+  "../Primitive_Matchers/Transform"
 begin
 
 (*DRAFT*)
@@ -167,14 +169,14 @@ lemma abstract_primitive_in_doubt_deny_Deny:
   "normalized_nnf_match m \<Longrightarrow> 
     matches (common_matcher, in_doubt_deny) m action.Drop p \<Longrightarrow>
     matches (common_matcher, in_doubt_deny) (abstract_primitive disc m) action.Drop p"
-   by(induction m rule: abstract_negated_interfaces_protocols.induct)
+   by(induction disc m rule: abstract_primitive.induct)
      (simp_all add: bunch_of_lemmata_about_matches)
 
 lemma abstract_primitive_in_doubt_deny_Deny2:
   "normalized_nnf_match m \<Longrightarrow> 
     \<not> matches (common_matcher, in_doubt_deny) m action.Accept p \<Longrightarrow>
     \<not> matches (common_matcher, in_doubt_deny) (abstract_primitive disc m) action.Accept p"
-   apply(induction m rule: abstract_negated_interfaces_protocols.induct)
+   apply(induction disc m rule: abstract_primitive.induct)
                  apply (simp_all add: bunch_of_lemmata_about_matches)
    apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: ternaryvalue.split)
    done
