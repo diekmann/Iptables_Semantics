@@ -52,11 +52,15 @@ value[code] "map (\<lambda>(c,rs). (c, map (common_primitive_rule_toString) rs))
 value[code] "(upper_closure (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
                   (map_of_string (Semantics_Goto.rewrite_Goto parser_test_firewall))))"
 
-text{*@{const abstract_negated_primitive} requires @{const normalized_nnf_match} primitives, 
+text{*@{const abstract_for_simple_firewall} requires @{const normalized_nnf_match} primitives, 
       therefore @{const upper_closure} is called first. Afterwards, the match expressions can 
       @{const has_unknowns}, therefore, @{const upper_closure} is called again.*}
+value[code] "(optimize_matches abstract_for_simple_firewall
+                  (upper_closure (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
+                    (map_of_string (Semantics_Goto.rewrite_Goto parser_test_firewall)))))"
+
 value[code] "map simple_rule_toString (to_simple_firewall (upper_closure
-                (optimize_matches (abstract_negated_primitive (\<lambda>r. is_Iiface r \<or> is_Oiface r \<or> is_Prot r))
+                (optimize_matches abstract_for_simple_firewall
                   (upper_closure (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
                     (map_of_string (Semantics_Goto.rewrite_Goto parser_test_firewall)))))))" 
 
