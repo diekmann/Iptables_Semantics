@@ -1,7 +1,6 @@
 theory Firewall_toString
 imports 
         "../Primitive_Matchers/Common_Primitive_Matcher"
-        "../Semantics_Ternary/Semantics_Ternary"
         "../Simple_Firewall/SimpleFw_Semantics"
 begin
 

@@ -1,6 +1,5 @@
 theory Parser
 imports Code_Interface
-  "../Primitive_Matchers/Primitive_Abstract"
   keywords "parse_iptables_save"::thy_decl
 begin
 
