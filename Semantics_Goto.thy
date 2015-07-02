@@ -483,8 +483,8 @@ begin
     
     private lemma seqE_cons_Undecided:
       assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>r#rs, Undecided\<rangle> \<Rightarrow> t"
-      obtains (no_matching_Goto) ti where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r],Undecided\<rangle> \<Rightarrow> ti" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,ti\<rangle> \<Rightarrow> t" "no_matching_Goto \<gamma> p [r]"
-            | (matching_Goto) m chain rs' where "r = Rule m (Goto chain)" "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)],Undecided\<rangle> \<Rightarrow> t" "matches \<gamma> m p" "\<Gamma> chain = Some rs'"
+      obtains (no_matching_Goto) ti where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r],Undecided\<rangle> \<Rightarrow> ti" and "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,ti\<rangle> \<Rightarrow> t" and "no_matching_Goto \<gamma> p [r]"
+            | (matching_Goto) m chain rs' where "r = Rule m (Goto chain)" and "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)],Undecided\<rangle> \<Rightarrow> t" and "matches \<gamma> m p" "\<Gamma> chain = Some rs'"
       using assms
       proof(cases rule: seqE_cons)
       case no_matching_Goto thus ?thesis using local.that by simp
@@ -781,16 +781,23 @@ begin
               unfolding add_match_def by simp
           next
             case (Cons r rs)
-            thus ?case
-              apply(cases r)
-              apply(simp add: add_match_split_fst)
-              apply(erule seqE_cons_Undecided)
-               apply(subst(asm) matches_rule_and_simp[symmetric])
-                apply(simp)
-               apply(case_tac ti)
-                apply (metis matches.simps(1) not_no_matching_Goto_singleton_cases seq_cons)
-               apply (metis decision decisionD matches.simps(1) not_no_matching_Goto_singleton_cases seq_cons)
-              by (simp add: matches_rule_and_simp_help seq_cons_Goto_t)
+             obtain m' a where r: "r = Rule m' a" by(cases r, simp)
+             from Cons have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m' a # rs, Undecided\<rangle> \<Rightarrow> t" by(simp add: r)
+             from this have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule (MatchAnd m m') a # add_match m rs, Undecided\<rangle> \<Rightarrow> t"
+                proof(cases \<Gamma> \<gamma> p "Rule m' a" rs t rule: seqE_cons_Undecided)
+                case (no_matching_Goto ti)
+                  from no_matching_Goto Cons.prems matches_rule_and_simp[symmetric] have
+                    "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule (MatchAnd m m') a], Undecided\<rangle> \<Rightarrow> ti" by fast
+                  with Cons.prems Cons.IH no_matching_Goto show ?thesis
+                   apply(cases ti)
+                    apply (metis matches.simps(1) not_no_matching_Goto_singleton_cases seq_cons)
+                   apply (metis decision decisionD matches.simps(1) not_no_matching_Goto_singleton_cases seq_cons)
+                   done
+                next
+                case (matching_Goto) with Cons show ?thesis
+                  by (simp add: matches_rule_and_simp_help seq_cons_Goto_t)
+             qed
+             thus ?case by(simp add: r add_match_split_fst)
           qed
       qed
     
