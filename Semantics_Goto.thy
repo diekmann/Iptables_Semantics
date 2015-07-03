@@ -531,18 +531,30 @@ begin
   
   subsection{*Determinism*}
     private lemma iptables_goto_bigstep_Undecided_Undecided_deterministic: 
-      "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow>  t = Undecided"
-      apply(induction rs Undecided Undecided arbitrary: t rule: iptables_goto_bigstep_induct)
-            apply(fastforce  dest: skipD logD emptyD nomatchD decisionD)
-           apply(fastforce  dest: skipD logD emptyD nomatchD decisionD)
-          apply(fastforce  dest: skipD logD emptyD nomatchD decisionD)
-         apply (metis iptables_goto_bigstep_to_undecided seqE)
-        apply(simp_all)
-        apply(frule_tac rs\<^sub>1=rs\<^sub>1 and m'=m' and chain=chain in call_return)
-            apply(simp_all)
-        apply (metis callD no_free_return seqE seqE_cons)
-       apply (meson callD)
-      by (metis gotoD no_matching_Goto.simps(2) option.sel seqE_cons)
+      "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> t = Undecided"
+    proof(induction rs Undecided Undecided arbitrary: t rule: iptables_goto_bigstep_induct)
+      case Skip thus ?case by(fastforce  dest: skipD logD emptyD nomatchD decisionD)
+      next
+      case Log thus ?case by(fastforce  dest: skipD logD emptyD nomatchD decisionD)
+      next
+      case Nomatch thus ?case by(fastforce  dest: skipD logD emptyD nomatchD decisionD)
+      next
+      case Seq thus ?case by (metis iptables_goto_bigstep_to_undecided seqE)
+      next
+      case (Call_return m a chain rs\<^sub>1 m' rs\<^sub>2) 
+        from Call_return have " \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> Undecided"
+          apply(simp)
+          apply(frule_tac rs\<^sub>1=rs\<^sub>1 and m'=m' and chain=chain in call_return)
+              by(simp_all)
+        with Call_return show ?case
+          apply simp
+          apply (metis callD no_free_return seqE seqE_cons)
+          done
+      next
+      case Call_result thus ?case by (meson callD)
+      next
+      case Goto_no_Decision thus ?case by (metis gotoD no_matching_Goto.simps(2) option.sel seqE_cons)
+    qed
     
     private lemma iptables_goto_bigstep_Undecided_deterministic:
       "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t' \<Longrightarrow>  t' = t"
