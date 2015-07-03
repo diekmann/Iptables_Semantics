@@ -759,19 +759,27 @@ begin
               unfolding add_match_def by simp
           next
             case (Cons r rs)
-            thus ?case
-              apply(cases r)
-              apply(simp add: add_match_split_fst)
-               apply(erule seqE_cons_Undecided)
-               apply(simp add: matches_rule_and_simp)
-               apply(subgoal_tac "no_matching_Goto \<gamma> p [Rule (x1) x2]")
-                apply (metis decision state.exhaust iptables_goto_bigstep_deterministic seq_cons)
-               apply (metis matches.simps(1) not_no_matching_Goto_singleton_cases)
-              apply(simp)
-              apply(clarify)
-              apply(simp)
-              apply(simp add: matches_rule_and_simp_help)
-              by (simp add: seq_cons_Goto_t)
+             obtain m' a where r: "r = Rule m' a" by(cases r, simp)
+             from Cons have " \<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule (MatchAnd m m') a # add_match m rs, Undecided\<rangle> \<Rightarrow> t"
+               by(simp add: r add_match_split_fst)
+             from this Cons have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m' a # rs, Undecided\<rangle> \<Rightarrow> t"
+             proof(cases rule: seqE_cons_Undecided)
+               case (no_matching_Goto ti)
+                 with Cons show ?thesis
+                 apply(simp add: matches_rule_and_simp)
+                 apply(subgoal_tac "no_matching_Goto \<gamma> p [Rule m' a]")
+                  apply (metis decision state.exhaust iptables_goto_bigstep_deterministic seq_cons)
+                 apply (metis matches.simps(1) not_no_matching_Goto_singleton_cases)
+                 done
+               next
+               case (matching_Goto) with Cons show ?thesis
+                apply(simp)
+                apply(clarify)
+                apply(simp)
+                apply(simp add: matches_rule_and_simp_help)
+                by (simp add: seq_cons_Goto_t)
+             qed
+             thus ?case by(simp add: r)
           qed
       next
         assume ?r with m show ?l
