@@ -229,15 +229,19 @@ fun dump_action_flowtable Accepta = "flood"
   | dump_action_flowtable Dropa = "drop"
 ;
 
+local
+  fun dump_ip_flowtable_help (ip, nm) = (dump_dotdecimal_ip (dotdecimal_of_ipv4addr ip))^"/"^ Int.toString (integer_of_nat nm);
+in
+  fun dump_ip_flowtable desc (ip, nm) = let val ip = dump_ip_flowtable_help (ip, nm) in 
+      if ip = "0.0.0.0/0" then "" else desc^"="^ip^" " end;
+end
 
-fun dump_ip_flowtable (ip, nm) = (dump_dotdecimal_ip (dotdecimal_of_ipv4addr ip))^"/"^ Int.toString (integer_of_nat nm);
-
-
+(*0 is the lowest priority, 65535 the highest. we need to make sure that all entries have a different priority*)
 fun dump_flowtable [] = ()
   | dump_flowtable (SimpleRule (m, a) :: rs) =
       (writeln (dump_prot_cisco (proto m) ^ " " ^
-                "nw_src="^(dump_ip_flowtable (src m))^" nw_dst="^(dump_ip_flowtable (dst m)) ^
-                " priority="^Int.toString (List.length rs)^
+                (dump_ip_flowtable "nw_src" (src m))^(dump_ip_flowtable "nw_dst" (dst m)) ^
+                "priority="^Int.toString (List.length rs)^
                 " action="^dump_action_flowtable a ^
                 (if (dump_iface_name "in:" (iiface m))^(dump_iface_name "out:" (oiface m))^(dump_ports "srcports:" (sports m))^
                     (dump_ports "dstports:" (dports m)) <> "TODO: more fields to dump" then "" else "")
@@ -245,7 +249,7 @@ fun dump_flowtable [] = ()
 *}
 ML_val{*
 dump_flowtable (to_simple_firewall upper);
-*}
+*} (*this was loaded without errors by `dpctl add-flows [filename]'*)
 
 
 text{*packet set (test)*}
