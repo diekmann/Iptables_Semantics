@@ -250,6 +250,7 @@ fun dump_flowtable [] = ()
 ML_val{*
 dump_flowtable (to_simple_firewall upper);
 *} (*this was loaded without errors by `dpctl add-flows [filename]'*)
+(*when using `sudo ovs-ofctl add-flows [switch_name] [filename]', one can also add 'check_overlap' before the action*)
 
 
 text{*packet set (test)*}
