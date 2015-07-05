@@ -44,9 +44,37 @@ OFP 1.0.0 also stated that non-wildcarded matches implicitly have the highest pr
   Defined (Some a) \<longleftrightarrow> Match and instruction is a
   Undefined \<longleftrightarrow> Undefined*)
 definition OF_same_priority_match :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> ('m match_fields \<times> 'a) list \<Rightarrow> 'p \<Rightarrow> ('a option) undefined_behavior" where
-  "OF_same_priority_match \<gamma> flow_entries packet \<equiv> case (filter (\<lambda>(m, _). OF_match \<gamma> m packet) flow_entries) of [] \<Rightarrow> Defined None
+  "OF_same_priority_match \<gamma> flow_entries packet \<equiv> case [(m, action)\<leftarrow>flow_entries . OF_match \<gamma> m packet] of [] \<Rightarrow> Defined None
                             | [(_, action)] \<Rightarrow> Defined (Some action)
                             | _ \<Rightarrow> Undefined "
+
+text{*The flow entries should always be distinct*}
+lemma "\<not> distinct flow_entries \<Longrightarrow> flow_entries \<noteq> [] \<Longrightarrow> \<exists>\<gamma> p. OF_same_priority_match \<gamma> flow_entries p = Undefined"
+  apply(simp add: OF_same_priority_match_def)
+  apply(rule_tac x="\<lambda>_ _. True" in exI)
+  apply(simp add: OF_match_def)
+  apply(case_tac flow_entries)
+   apply(simp_all)
+  apply(rename_tac l list)
+  apply(case_tac list)
+   apply(simp_all)
+  done
+
+lemma OF_same_priority_match_defined:
+  "(\<forall>p. OF_same_priority_match \<gamma> flow_entries p \<noteq> Undefined) \<longleftrightarrow> (\<forall>p. length [(m, action)\<leftarrow>flow_entries . OF_match \<gamma> m p] \<le> 1)"
+  apply(simp add: OF_same_priority_match_def)
+  apply(rule iffI)
+   apply(intro allI)
+   apply(erule_tac x=p in allE)
+   defer
+   apply(intro allI)
+   apply(erule_tac x=p in allE)
+   apply(case_tac [!] "[(m, action)\<leftarrow>flow_entries . OF_match \<gamma> m p]")
+      apply(simp_all)
+   apply(rename_tac [!] l list)
+   apply(case_tac [!] list)
+      apply(simp_all split: split_split)
+  done
 
 lemma distinct_set_collect_singleton: "distinct xs \<Longrightarrow>
        {x. x \<in> set xs \<and> P x} = {x} \<Longrightarrow>
@@ -87,6 +115,7 @@ apply(safe)
 apply(subgoal_tac "length [(m, action)\<leftarrow>flow_entries . OF_match \<gamma> m packet] > 1")
  apply(case_tac "[(m, action)\<leftarrow>flow_entries . OF_match \<gamma> m packet]")
   apply(simp)
+ apply(rename_tac l list)
  apply(case_tac list)
   apply(simp)
  apply(simp)
