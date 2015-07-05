@@ -22,16 +22,18 @@ into the OpenFlow switch."
   This corresponds to OpenFlow 1.0.0
 *)
 
+datatype 'm match_fields = MatchFields (match_fields_sel: "'m set")
+
 (*priority \<times> Match Fields \<times> instructions
  not modeled: counters, timeouts, cookie ("Not used when processing packets"), flags,
      instructions (only an output list of egress ports will be modeled)
 *)
-type_synonym ('m, 'a) flow_entry_match="16 word \<times> 'm set \<times> 'a"
+type_synonym ('m, 'a) flow_entry_match="16 word \<times> 'm match_fields \<times> 'a"
 
 
 (*the packet also contains the ingress port*)
-definition OF_match :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> 'm set \<Rightarrow> 'p \<Rightarrow> bool" where
-  "OF_match \<gamma> match_fields packet \<equiv> \<forall> field \<in> match_fields. \<gamma> field packet"
+definition OF_match :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> 'm match_fields \<Rightarrow> 'p \<Rightarrow> bool" where
+  "OF_match \<gamma> match_fields packet \<equiv> \<forall> field \<in> match_fields_sel match_fields. \<gamma> field packet"
 
 
 (*
@@ -41,7 +43,7 @@ OFP 1.0.0 also stated that non-wildcarded matches implicitly have the highest pr
 (*Defined None \<longleftrightarrow> No match
   Defined (Some a) \<longleftrightarrow> Match and instruction is a
   Undefined \<longleftrightarrow> Undefined*)
-definition OF_same_priority_match :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> ('m set \<times> 'a) list \<Rightarrow> 'p \<Rightarrow> ('a option) undefined_behavior" where
+definition OF_same_priority_match :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> ('m match_fields \<times> 'a) list \<Rightarrow> 'p \<Rightarrow> ('a option) undefined_behavior" where
   "OF_same_priority_match \<gamma> flow_entries packet \<equiv> let matching_entries = (filter (\<lambda>(m, _). OF_match \<gamma> m packet) flow_entries) in 
     case matching_entries of [] \<Rightarrow> Defined None
                             | [(_, action)] \<Rightarrow> Defined (Some action)
@@ -56,7 +58,7 @@ definition group_descending_priority :: "('m, 'a) flow_entry_match list \<Righta
 
 
 (*assumes: sorted_descending flow_table and partitioned by same priority*)
-fun internal_OF_match_table :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> (('m set \<times> 'a) list) list \<Rightarrow> 'p \<Rightarrow> 'a undefined_behavior" where
+fun internal_OF_match_table :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> (('m match_fields \<times> 'a) list) list \<Rightarrow> 'p \<Rightarrow> 'a undefined_behavior" where
   "internal_OF_match_table \<gamma> [] packet = Undefined" |
   "internal_OF_match_table \<gamma> (same_priority_flow_table#ts) packet =
       (case OF_same_priority_match \<gamma> same_priority_flow_table packet
@@ -78,7 +80,7 @@ match both, and both entries have the same priority. If an overlap conflict exis
 flow entry and the add request, the switch must refuse the addition and respond with an Overlap error
 message (see 7.5.4.6)."*)
 (*this definition is slightly stricter, OpenVSwitch does not throw an error for two identical entries.*)
-definition OFPFF_CHECK_OVERLAP_same_priority :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> ('m set) list \<Rightarrow> 'm set \<Rightarrow> bool" where
+definition OFPFF_CHECK_OVERLAP_same_priority :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> ('m match_fields) list \<Rightarrow> 'm match_fields \<Rightarrow> bool" where
   "OFPFF_CHECK_OVERLAP_same_priority \<gamma> flow_entries_match new_entry_match \<equiv>
       \<exists>packet. \<exists>entrie \<in> set flow_entries_match. OF_match \<gamma> new_entry_match packet \<and> OF_match \<gamma> entrie packet"
 
@@ -134,7 +136,7 @@ The table-miss flow entry is identified by its match and its priority (see 5.2),
 fields (all fields omitted) and has the lowest priority (0).*)
 
 definition has_table_miss_entry :: " ('m, 'a) flow_entry_match list \<Rightarrow> bool" where
-  "has_table_miss_entry flow_table \<equiv> \<exists> table_miss_action. (0,{},table_miss_action) \<in> set flow_table"
+  "has_table_miss_entry flow_table \<equiv> \<exists> table_miss_action. (0, MatchFields {}, table_miss_action) \<in> set flow_table"
 
 lemma "has_table_miss_entry flow_table \<Longrightarrow>
   \<forall> same_priority_matches \<in> set ((map (map (\<lambda>(_, match, _). match))) (group_descending_priority flow_table)).
