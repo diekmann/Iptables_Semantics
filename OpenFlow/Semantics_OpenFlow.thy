@@ -1,6 +1,6 @@
 theory Semantics_OpenFlow
-imports Main Firewall_Common Misc Semantics 
-  "Primitive_Matchers/IpAddresses"
+imports List_Group Sort_Descending
+  "../Bitmagic/IPv4Addr"
 begin
 
 section{*OpenFlow*}
@@ -44,64 +44,9 @@ definition OF_same_priority_match :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \
     "
 
 
-  (*TODO: move*)
-  text{* sorting descending *}
-  context linorder
-  begin
-  fun sorted_descending :: "'a list \<Rightarrow> bool" where
-    "sorted_descending [] \<longleftrightarrow> True" |
-    "sorted_descending (a#as) \<longleftrightarrow> (\<forall>x \<in> set as. a \<ge> x) \<and> sorted_descending as"
-  
-  definition sort_descending_key :: "('b \<Rightarrow> 'a) \<Rightarrow> 'b list \<Rightarrow> 'b list" where
-    "sort_descending_key f xs \<equiv> rev (sort_key f xs)"
-  end
-  lemma sorted_descending_Cons: "sorted_descending (x#xs) \<longleftrightarrow> sorted_descending xs \<and> (\<forall>y\<in>set xs. y \<le> x)"
-  by(induction xs) auto
-  
-  lemma sorted_descending_tail: "sorted_descending (xs@[x]) \<longleftrightarrow> sorted_descending xs \<and> (\<forall>y\<in>set xs. x \<le> y)"
-  by(induction xs) auto
-  
-  lemma sorted_descending: "sorted_descending (rev xs) \<longleftrightarrow> sorted xs"
-  apply(induction xs)
-   apply(simp)
-  apply(simp add: sorted_Cons sorted_descending_tail)
-  done
-  
-  lemma sort_descending: "sorted_descending (sort_descending_key (\<lambda>x. x) xs)"
-    by(simp add: sort_descending_key_def sorted_descending)
-
-
-
 (*"The packet is matched against the table and only the highest priority flow entry that matches the
 packet must be selected" *)
 
-function (sequential) list_group_eq :: "'a list \<Rightarrow> 'a list list" where
-  "list_group_eq [] = []" |
-  "list_group_eq (x#xs) = [x # takeWhile (op = x) xs] @ list_group_eq (dropWhile (op = x) xs)"
-by pat_completeness auto
-termination list_group_eq
-apply (relation "measure (\<lambda>N. length N )")
-apply(simp_all add: le_imp_less_Suc length_dropWhile_le)
-done
-
-value "list_group_eq [1::int,2,2,2,3,1,4,5,5,5]"
-
-
-function (sequential) list_group_eq_key :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'a list list" where
-  "list_group_eq_key _ [] = []" |
-  "list_group_eq_key f (x#xs) = [x # takeWhile (\<lambda>y. f x = f y) xs] @ list_group_eq_key f (dropWhile (\<lambda>y. f x = f y) xs)"
-by pat_completeness auto
-termination list_group_eq_key
-apply (relation "measure (\<lambda>(f,N). length N )")
-apply(simp_all add: le_imp_less_Suc length_dropWhile_le)
-done
-
-value "list_group_eq_key fst [(1::int, ''''), (2,''a''), (2,''b''), (2, ''c''), (3, ''c''), (1,''''), (4,'''')]"
-
-lemma "list_group_eq_key id xs = list_group_eq xs"
-apply(induction xs)
- apply(simp_all add: id_def)
-by (smt append.simps(1) append.simps(2) dropWhile.simps(1) dropWhile.simps(2) dropWhile_cong list.sel(3) list_group_eq.elims list_group_eq_key.elims takeWhile_cong)
 
 (*assumes: sorted_descending flow_table and partitioned by same priority*)
 fun internal_OF_match_table :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> (('m set \<times> 'a) list) list \<Rightarrow> 'p \<Rightarrow> 'a" where
