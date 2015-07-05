@@ -155,12 +155,20 @@ done
 lemma helper_foo5: "\<forall>(x, y)\<in>set list. \<not> OF_match \<gamma> x p \<Longrightarrow> [(m, action)\<leftarrow>list . OF_match \<gamma> m p] = []"
  by(induction list) auto
 
-lemma "distinct flow_entries \<Longrightarrow> 
+
+definition "overlapping_entries \<gamma> flow_entries \<equiv> (\<exists>p. \<exists>(entry1,a1) \<in> set flow_entries. \<exists>(entry2,a2) \<in> set flow_entries. 
+          (entry1,a1) \<noteq> (entry2,a2) \<and> OF_match \<gamma> entry1 p \<and> OF_match \<gamma> entry2 p)"
+
+lemma not_overlapping_entries_fst: "\<not> overlapping_entries \<gamma> (x#xs) \<Longrightarrow> \<not> overlapping_entries \<gamma> xs"
+   apply(simp add: overlapping_entries_def)
+   by blast
+
+lemma leq_1_match_iff_not_overlapping_entries: "distinct flow_entries \<Longrightarrow> 
       (\<forall>p. length [(m, action) \<leftarrow> flow_entries . OF_match \<gamma> m p] \<le> 1) \<longleftrightarrow> 
-      \<not> (\<exists>p. \<exists>(entry1,a1) \<in> set flow_entries. \<exists>(entry2,a2) \<in> set flow_entries. 
-          entry1 \<noteq> entry2 \<and> OF_match \<gamma> entry1 p \<and> OF_match \<gamma> entry2 p)"
+      \<not> overlapping_entries \<gamma> flow_entries"
   apply(simp)
   apply(rule iffI)
+   apply(simp add: overlapping_entries_def)
    apply(intro allI)
    apply(erule_tac x=p in allE)
    apply(case_tac "[(m, action)\<leftarrow>flow_entries . OF_match \<gamma> m p]")
@@ -174,21 +182,18 @@ lemma "distinct flow_entries \<Longrightarrow>
    apply(frule_tac y="(m3, a3)" in list_filter_singleton_element_eq)
      apply(simp_all)
   apply(intro allI)
-  apply(erule_tac x=p in allE)
-  apply(simp split: split_split_asm)
+  (*apply(erule_tac x=p in allE)*)
+  (*apply(simp split: split_split_asm)*)
   apply(induction flow_entries)
    apply(simp)
   apply(rename_tac l list p)
+  apply(simp add: not_overlapping_entries_fst)
+  apply(safe)
+  apply(simp add: overlapping_entries_def)
+  apply(erule_tac x=p in allE)
   apply(simp)
   apply(safe)
-   apply(simp_all)
-  apply(safe)
-   apply(simp_all add: )
-   apply(auto)[1]
-  apply(drule(1) helper_foo4)
-  apply(safe)
-   apply(simp add: helper_foo5)
-  oops
+  by (smt case_prodE filter_False splitI)
 
 (*"The packet is matched against the table and only the highest priority flow entry that matches the
 packet must be selected" *)
