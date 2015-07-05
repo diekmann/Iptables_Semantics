@@ -24,6 +24,8 @@ into the OpenFlow switch."
 
 datatype 'm match_fields = MatchFields (match_fields_sel: "'m set")
 
+(*TODO: probably don't have an 'm set but just a record?*)
+
 (*priority \<times> Match Fields \<times> instructions
  not modeled: counters, timeouts, cookie ("Not used when processing packets"), flags,
      instructions (only an output list of egress ports will be modeled)
