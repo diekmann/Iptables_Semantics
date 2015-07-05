@@ -249,33 +249,24 @@ lemma no_OFPFF_CHECK_OVERLAP_same_priority:
       (\<forall>entry \<in> set flow_entries_match.
         \<not> OFPFF_CHECK_OVERLAP_same_priority \<gamma> (remove1 entry flow_entries_match) entry)
       \<longleftrightarrow>
-      \<not> (\<exists>packet. \<exists>entry1 \<in> set flow_entries_match. \<exists>entry2 \<in> set flow_entries_match. entry1 \<noteq> entry2 \<and> OF_match \<gamma> entry1 packet \<and> OF_match \<gamma> entry2 packet)"
+      \<not> overlapping_entries \<gamma> flow_entries_match"
+  unfolding overlapping_entries_def
   apply(simp add: OF_same_priority_match_def)
   apply(simp add: OFPFF_CHECK_OVERLAP_same_priority_def OF_match_table_def
                   group_descending_priority_def sort_descending_key_def
              split: option.split)
   by blast
 
-lemma "distinct (map (\<lambda>(m, _). m) same_priority_match) \<Longrightarrow>
+lemma OFPFF_CHECK_OVERLAP_same_priority_defined: "distinct (map (\<lambda>(m, _). m) same_priority_match) \<Longrightarrow>
       (\<forall>entry \<in> set (map (\<lambda>(m, _). m) same_priority_match).
         \<not> OFPFF_CHECK_OVERLAP_same_priority \<gamma> (remove1 entry (map (\<lambda>(m, _). m) same_priority_match)) entry)
       \<longleftrightarrow>
       (\<forall>packet. OF_same_priority_match \<gamma> same_priority_match packet \<noteq> Undefined)"
   apply(subst no_OFPFF_CHECK_OVERLAP_same_priority)
    apply(simp)
-  apply(simp)
-  apply(simp add: OF_same_priority_match_def)
-  apply(rule iffI)
-   apply(intro allI)
-   apply(erule_tac x=packet in allE)
-   apply(case_tac "[(m, _)\<leftarrow>same_priority_match . OF_match \<gamma> m packet]")
-    apply(simp)
-   apply(simp)
-   apply(case_tac list)
-    apply(simp)
-    apply fast
-   apply(simp)
-   oops
+  apply(simp add: leq_1_match_iff_not_overlapping_entries[symmetric])
+  apply(subst OF_same_priority_match_defined)
+  by simp
 
 
 
