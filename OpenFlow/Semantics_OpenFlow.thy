@@ -43,13 +43,22 @@ OFP 1.0.0 also stated that non-wildcarded matches implicitly have the highest pr
 (*Defined None \<longleftrightarrow> No match
   Defined (Some a) \<longleftrightarrow> Match and instruction is a
   Undefined \<longleftrightarrow> Undefined*)
-definition OF_same_priority_match :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> ('m match_fields \<times> 'a) list \<Rightarrow> 'p \<Rightarrow> ('a option) undefined_behavior" where
-  "OF_same_priority_match \<gamma> flow_entries packet \<equiv> let matching_entries = (filter (\<lambda>(m, _). OF_match \<gamma> m packet) flow_entries) in 
-    case matching_entries of [] \<Rightarrow> Defined None
-                            | [(_, action)] \<Rightarrow> Defined (Some action)
-                            | _ \<Rightarrow> Undefined
+definition OF_same_priority_match :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> ('m match_fields \<times> 'a) set \<Rightarrow> 'p \<Rightarrow> ('a option) undefined_behavior" where
+  "OF_same_priority_match \<gamma> flow_entries packet \<equiv> let matching_entries = {(m,action) \<in> flow_entries. OF_match \<gamma> m packet} in 
+    if matching_entries = {} then Defined None else
+    if \<exists>x. matching_entries = {x} then Defined (Some (snd (the_elem matching_entries))) else
+       Undefined
     "
 
+lemma "distinct flow_entries \<Longrightarrow> OF_same_priority_match \<gamma> (set flow_entries) packet = (
+    case (filter (\<lambda>(m, _). OF_match \<gamma> m packet) flow_entries) of [] \<Rightarrow> Defined None
+                            | [(_, action)] \<Rightarrow> Defined (Some action)
+                            | _ \<Rightarrow> Undefined)"
+apply(simp add: OF_same_priority_match_def  Let_def)
+apply(safe)
+apply(simp_all)
+apply blast
+oops
 
 (*"The packet is matched against the table and only the highest priority flow entry that matches the
 packet must be selected" *)
@@ -58,7 +67,7 @@ definition group_descending_priority :: "('m, 'a) flow_entry_match list \<Righta
 
 
 (*assumes: sorted_descending flow_table and partitioned by same priority*)
-fun internal_OF_match_table :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> (('m match_fields \<times> 'a) list) list \<Rightarrow> 'p \<Rightarrow> 'a undefined_behavior" where
+fun internal_OF_match_table :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> (('m match_fields \<times> 'a) set) list \<Rightarrow> 'p \<Rightarrow> 'a undefined_behavior" where
   "internal_OF_match_table \<gamma> [] packet = Undefined" |
   "internal_OF_match_table \<gamma> (same_priority_flow_table#ts) packet =
       (case OF_same_priority_match \<gamma> same_priority_flow_table packet
@@ -69,7 +78,7 @@ fun internal_OF_match_table :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Right
 
 definition OF_match_table :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> ('m, 'a) flow_entry_match list \<Rightarrow> 'p \<Rightarrow> 'a undefined_behavior" where
   "OF_match_table \<gamma> flow_table packet = internal_OF_match_table \<gamma>
-      (map (map (\<lambda>(_, match, action). (match,action))) (group_descending_priority flow_table))
+      (map set (map (map (\<lambda>(_, match, action). (match,action))) (group_descending_priority flow_table)))
       packet"
 
 
@@ -87,11 +96,16 @@ definition OFPFF_CHECK_OVERLAP_same_priority :: "('m \<Rightarrow> 'p \<Rightarr
 
 
 text{*If @{const OFPFF_CHECK_OVERLAP_same_priority} is @{const True}, there may be a packet which triggers the undefined behavior.*}
-lemma "OFPFF_CHECK_OVERLAP_same_priority \<gamma> [entry1] entry2 \<Longrightarrow> \<exists>packet. OF_match_table \<gamma> [(priority, entry2, a1), (priority, entry1, a2)] packet = Undefined"
+lemma "OFPFF_CHECK_OVERLAP_same_priority \<gamma> [entry1] entry2 \<Longrightarrow> \<exists>packet. OF_match_table \<gamma> [(priority, entry2, a2), (priority, entry1, a1)] packet = Undefined"
   apply(simp add: OFPFF_CHECK_OVERLAP_same_priority_def OF_match_table_def
                   group_descending_priority_def sort_descending_key_def
              split: option.split)
-  apply(simp add: OF_same_priority_match_def OF_match_def)
+  apply(simp add: OF_same_priority_match_def )
+  apply(simp add: Let_def)
+  apply(erule exE)
+  apply(rule_tac x=packet in exI)
+  apply(clarify)
+  apply(simp)
   by fast
 
 
