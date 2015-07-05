@@ -55,25 +55,44 @@ apply(induction xs)
  apply(simp)
 apply(simp)
 apply(case_tac "x=a")
-apply simp_all
-apply (smt DiffD2 Diff_insert_absorb filter_False insert_compr mem_Collect_eq)
+ apply simp_all
+ apply (smt DiffD2 Diff_insert_absorb filter_False insert_compr mem_Collect_eq)
 by (smt Collect_cong ball_empty insert_iff mem_Collect_eq)
 
-
-lemma "distinct flow_entries \<Longrightarrow> OF_same_priority_match \<gamma> flow_entries packet = (
+lemma set_collect_ge_singleton: "\<forall>x. {x \<in> set xs. P x} \<noteq> {x} \<Longrightarrow>
+       P x \<Longrightarrow> x \<in> set xs \<Longrightarrow> length [x\<leftarrow>xs . P x] > 1"
+apply(induction xs)
+ apply(simp)
+apply(simp)
+apply(case_tac "x=a")
+ apply simp_all
+ apply (smt Collect_cong Collect_conv_if2 filter_empty_conv)
+by (smt Collect_cong filter_empty_conv)
+ 
+text{*set representation*}
+lemma OF_same_priority_match_set: "distinct flow_entries \<Longrightarrow> OF_same_priority_match \<gamma> flow_entries packet = (
   let matching_entries = {(m,action) \<in> set flow_entries. OF_match \<gamma> m packet} in 
     if matching_entries = {} then Defined None else
     if \<exists>x. matching_entries = {x} then Defined (Some (snd (the_elem matching_entries))) else
        Undefined)"
 apply(simp add: OF_same_priority_match_def  Let_def)
 apply(safe)
-apply(simp_all)
-apply blast
-apply(drule_tac P="\<lambda>(m,action). OF_match \<gamma> m packet" and x="(a,b)" in distinct_set_collect_singleton)
- apply blast
-apply simp
-apply (metis (no_types, lifting) case_prodE filter_False list.simps(4))
-oops
+   apply(simp_all)
+   apply blast
+  apply(rename_tac a b aa bb)
+  apply(drule_tac P="\<lambda>(m,action). OF_match \<gamma> m packet" and x="(a,b)" in distinct_set_collect_singleton)
+   apply blast
+  apply simp
+ apply (metis (no_types, lifting) case_prodE filter_False list.simps(4))
+apply(subgoal_tac "length [(m, action)\<leftarrow>flow_entries . OF_match \<gamma> m packet] > 1")
+ apply(case_tac "[(m, action)\<leftarrow>flow_entries . OF_match \<gamma> m packet]")
+  apply(simp)
+ apply(case_tac list)
+  apply(simp)
+ apply(simp)
+apply(rule set_collect_ge_singleton)
+  apply(simp_all)
+by blast
 
 (*"The packet is matched against the table and only the highest priority flow entry that matches the
 packet must be selected" *)
