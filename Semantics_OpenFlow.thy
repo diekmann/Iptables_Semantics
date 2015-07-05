@@ -125,6 +125,10 @@ match both, and both entries have the same priority. If an overlap conflict exis
 flow entry and the add request, the switch must refuse the addition and respond with an Overlap error
 message (see 7.5.4.6)."*)
 
+definition OFPFF_CHECK_OVERLAP_same_priority :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> ('m set) list \<Rightarrow> 'm set \<Rightarrow> bool" where
+  "OFPFF_CHECK_OVERLAP_same_priority \<gamma> flow_entries_match new_entry_match \<equiv>
+      \<exists>packet. \<exists>entrie \<in> set flow_entries_match. OF_match \<gamma> new_entry_match packet \<and> OF_match \<gamma> entrie packet"
+
 
 (*Every flow table must support a table-miss flow entry to process table misses.
 The table-miss flow entry is identified by its match and its priority (see 5.2), it wildcards all match
