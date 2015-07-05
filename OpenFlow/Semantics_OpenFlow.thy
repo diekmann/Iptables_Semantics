@@ -71,6 +71,9 @@ apply(safe)
 apply(simp_all)
 apply blast
 apply(drule_tac P="\<lambda>(m,action). OF_match \<gamma> m packet" and x="(a,b)" in distinct_set_collect_singleton)
+ apply blast
+apply simp
+apply (metis (no_types, lifting) case_prodE filter_False list.simps(4))
 oops
 
 (*"The packet is matched against the table and only the highest priority flow entry that matches the
