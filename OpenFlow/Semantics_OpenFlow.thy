@@ -76,6 +76,7 @@ lemma OF_same_priority_match_defined:
       apply(simp_all split: split_split)
   done
 
+
 lemma distinct_set_collect_singleton: "distinct xs \<Longrightarrow>
        {x. x \<in> set xs \<and> P x} = {x} \<Longrightarrow>
        [x\<leftarrow>xs . P x] = [x]"
@@ -122,6 +123,72 @@ apply(subgoal_tac "length [(m, action)\<leftarrow>flow_entries . OF_match \<gamm
 apply(rule set_collect_ge_singleton)
   apply(simp_all)
 by blast
+
+
+lemma list_filter_singleton_element_eq: "[x\<leftarrow>xs. P x] = [x] \<Longrightarrow>
+       y \<in> set xs \<Longrightarrow> P y \<Longrightarrow> x = y"
+apply(induction xs)
+ apply(simp)
+apply(simp)
+by (metis filter_empty_conv list.inject)
+
+lemma helper_foo: "\<not> (\<forall>x2. l \<noteq> (fst l, x2))"
+by (meson eq_fst_iff)
+
+lemma helper_foo2: "\<not> (\<forall>x2. ba \<noteq> x2)" by simp
+
+lemma helper_foo3: "(\<forall>x\<in>set list. \<forall>x1. (\<forall>x2. x \<noteq> (x1, x2)) \<or> P x1) \<longleftrightarrow> 
+       (\<forall>(x,y)\<in>set list. P x)"
+by blast
+
+
+lemma helper_foo4: "
+       \<forall>x\<in>set list. \<forall>x1. (\<forall>x2. x \<noteq> (x1, x2)) \<or> a = x1 \<or> \<not> OF_match \<gamma> x1 p \<Longrightarrow>
+       (a, b) \<notin> set list \<Longrightarrow>
+       (\<forall>(x,y)\<in>set list. \<not> OF_match \<gamma> x p) \<or> (\<exists>b'. (a, b') \<in> set list)"
+apply(subst(asm) helper_foo3)
+apply(induction list)
+ apply(simp)
+apply(auto)
+done
+
+lemma helper_foo5: "\<forall>(x, y)\<in>set list. \<not> OF_match \<gamma> x p \<Longrightarrow> [(m, action)\<leftarrow>list . OF_match \<gamma> m p] = []"
+ by(induction list) auto
+
+lemma "distinct flow_entries \<Longrightarrow> 
+      (\<forall>p. length [(m, action) \<leftarrow> flow_entries . OF_match \<gamma> m p] \<le> 1) \<longleftrightarrow> 
+      \<not> (\<exists>p. \<exists>(entry1,a1) \<in> set flow_entries. \<exists>(entry2,a2) \<in> set flow_entries. 
+          entry1 \<noteq> entry2 \<and> OF_match \<gamma> entry1 p \<and> OF_match \<gamma> entry2 p)"
+  apply(simp)
+  apply(rule iffI)
+   apply(intro allI)
+   apply(erule_tac x=p in allE)
+   apply(case_tac "[(m, action)\<leftarrow>flow_entries . OF_match \<gamma> m p]")
+    apply(simp_all)
+    apply(clarify)
+    apply (metis case_prodI filter_empty_conv)
+   apply(clarify)
+   apply(rename_tac p m1 a1 unused m2 a2 m3 a3)
+   apply(frule_tac y="(m2, a2)" in list_filter_singleton_element_eq)
+     apply(simp_all)
+   apply(frule_tac y="(m3, a3)" in list_filter_singleton_element_eq)
+     apply(simp_all)
+  apply(intro allI)
+  apply(erule_tac x=p in allE)
+  apply(simp split: split_split_asm)
+  apply(induction flow_entries)
+   apply(simp)
+  apply(rename_tac l list p)
+  apply(simp)
+  apply(safe)
+   apply(simp_all)
+  apply(safe)
+   apply(simp_all add: )
+   apply(auto)[1]
+  apply(drule(1) helper_foo4)
+  apply(safe)
+   apply(simp add: helper_foo5)
+  oops
 
 (*"The packet is matched against the table and only the highest priority flow entry that matches the
 packet must be selected" *)
