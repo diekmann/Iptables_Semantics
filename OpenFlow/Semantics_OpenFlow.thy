@@ -50,6 +50,18 @@ definition OF_same_priority_match :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \
        Undefined
     "
 
+lemma distinct_set_collect_singleton: "distinct xs \<Longrightarrow>
+       {x. x \<in> set xs \<and> P x} = {x} \<Longrightarrow>
+       [x\<leftarrow>xs . P x] = [x]"
+apply(induction xs)
+ apply(simp)
+apply(simp)
+apply(case_tac "x=a")
+apply simp_all
+apply (smt DiffD2 Diff_insert_absorb filter_False insert_compr mem_Collect_eq)
+by (smt Collect_cong ball_empty insert_iff mem_Collect_eq)
+
+
 lemma "distinct flow_entries \<Longrightarrow> OF_same_priority_match \<gamma> (set flow_entries) packet = (
     case (filter (\<lambda>(m, _). OF_match \<gamma> m packet) flow_entries) of [] \<Rightarrow> Defined None
                             | [(_, action)] \<Rightarrow> Defined (Some action)
@@ -58,6 +70,7 @@ apply(simp add: OF_same_priority_match_def  Let_def)
 apply(safe)
 apply(simp_all)
 apply blast
+apply(drule_tac P="\<lambda>(m,action). OF_match \<gamma> m packet" and x="(a,b)" in distinct_set_collect_singleton)
 oops
 
 (*"The packet is matched against the table and only the highest priority flow entry that matches the
