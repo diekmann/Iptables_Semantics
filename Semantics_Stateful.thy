@@ -23,28 +23,83 @@ inductive semantics_stateful ::
 
 context
 begin
-  datatype packet = SSHpacket | OtherPacket
+  text{*SomePacket with source and destination port or something we don't know about*}
+  datatype packet = SomePacket "nat \<times> nat" | OtherPacket
   datatype primitive_matches = New | Established | IsSSH
 
   definition stateful_matcher :: "packet set \<Rightarrow> (primitive_matches, packet) matcher" where
     "stateful_matcher state_table \<equiv> \<lambda>m p. m = Established \<and> p \<in> state_table \<or>
                                            m = New \<and> p \<notin> state_table \<or>
-                                           m = IsSSH \<and> p = SSHpacket"
+                                           m = IsSSH \<and> (\<exists>dst_port. p = SomePacket (22, dst_port))"
 
-  fun state_update :: "'p set \<Rightarrow> final_decision \<Rightarrow> 'p \<Rightarrow> 'p set" where
-    "state_update state_table FinalAllow p = state_table \<union> {p}" |
+  fun reverse_direction :: "packet \<Rightarrow> packet" where
+    "reverse_direction OtherPacket = OtherPacket" |
+    "reverse_direction (SomePacket (src, dst)) = SomePacket (dst,src)"
+
+  fun state_update :: "packet set \<Rightarrow> final_decision \<Rightarrow> packet \<Rightarrow> packet set" where
+    "state_update state_table FinalAllow p = state_table \<union> {p, reverse_direction p}" |
     "state_update state_table FinalDeny p = state_table"
 
-  lemma "semantics_stateful [''INPUT'' \<mapsto> [Rule (Match Established) Accept, Rule (MatchAnd (Match IsSSH) (Match New)) Accept]]
+  definition "ruleset == [''INPUT'' \<mapsto> [Rule (Match Established) Accept, Rule (MatchAnd (Match IsSSH) (Match New)) Accept]]"
+
+  text{*The @{const ruleset} does not allow @{const OtherPacket}*}
+  lemma "semantics_stateful ruleset
           stateful_matcher state_update (''INPUT'', Drop) {} OtherPacket ({}, FinalDeny)"
+    unfolding ruleset_def
     apply(rule semantics_stateful_intro)
      apply(simp_all)
-    apply(rule seq_cons[where t="Undecided"])
+    apply(rule seq_cons)
      apply(rule call_result)
        apply(simp_all)
-      apply(rule seq_cons[where t="Undecided"])
+      apply(rule seq_cons)
        apply(auto intro: iptables_bigstep.intros simp add: stateful_matcher_def)
     done
+
+
+  text{*The @{const ruleset} allows ssh packets, i.e. any packets with destination port 22 in the @{const New} rule.
+        The state is updated such that everything with belongs to the connection will now be accepted.*}
+  lemma "semantics_stateful ruleset
+          stateful_matcher state_update (''INPUT'', Drop) {} 
+              (SomePacket (22, 1024)) ({SomePacket (1024, 22), SomePacket (22, 1024)}, FinalAllow)"
+    unfolding ruleset_def
+    apply(rule semantics_stateful_intro)
+     apply(simp_all)
+    apply(rule seq_cons)
+     apply(rule call_result)
+       apply(simp_all)
+      apply(rule seq_cons)
+       apply(auto intro: iptables_bigstep.intros simp add: stateful_matcher_def)
+    done
+
+  text{*If we continue with this state, answer packets are now allowed*}
+  lemma "semantics_stateful ruleset
+          stateful_matcher state_update (''INPUT'', Drop) {SomePacket (1024, 22), SomePacket (22, 1024)} 
+              (SomePacket (22, 1024)) ({SomePacket (1024, 22), SomePacket (22, 1024)}, FinalAllow)"
+    unfolding ruleset_def
+    apply(rule semantics_stateful_intro)
+     apply(simp_all)
+    apply(rule seq_cons)
+     apply(rule call_result)
+       apply(simp_all)
+      apply(rule seq_cons)
+       apply(auto intro: iptables_bigstep.intros simp add: stateful_matcher_def)
+    done
+
+  text{*In contrast, without having previously established a state, answer packets are prohibited*}
+  lemma "semantics_stateful ruleset
+          stateful_matcher state_update (''INPUT'', Drop) {} (SomePacket (1024, 22)) ({}, FinalDeny)"
+    unfolding ruleset_def
+    apply(rule semantics_stateful_intro)
+     apply(simp_all)
+    apply(rule seq_cons)
+     apply(rule call_result)
+       apply(simp_all)
+      apply(rule seq_cons)
+       apply(auto intro: iptables_bigstep.intros simp add: stateful_matcher_def)
+    done
+
+
+
 
 end
 
