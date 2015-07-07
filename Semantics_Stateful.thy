@@ -133,7 +133,9 @@ end
 
 subsection{*Model 2*}
 
-(*TODO: describe*)
+text{*In this model, the matcher is completely stateless but packets are previously tagged with the 
+      right (static) stateful information. *}
+
 inductive semantics_stateful_packet_tagging ::
   "'a ruleset \<Rightarrow> ('a, 'ptagged) matcher \<Rightarrow> ('\<sigma> \<Rightarrow> 'p \<Rightarrow> 'ptagged) \<Rightarrow> ('\<sigma> \<Rightarrow> final_decision \<Rightarrow> 'p \<Rightarrow> '\<sigma>) \<Rightarrow>
    (string \<times> action) \<Rightarrow> '\<sigma> \<Rightarrow> 'p \<Rightarrow>
@@ -141,6 +143,58 @@ inductive semantics_stateful_packet_tagging ::
   "\<Gamma>,\<gamma>,(packet_tagger \<sigma> p)\<turnstile> \<langle>[Rule MatchAny (Call built_in_chain), Rule MatchAny default_policy],Undecided\<rangle> \<Rightarrow> Decision X \<Longrightarrow>
     semantics_stateful_packet_tagging \<Gamma> \<gamma> packet_tagger state_update (built_in_chain, default_policy) \<sigma> p (state_update \<sigma> X p, X)"
 
+
+lemma semantics_bigstep_state_vs_tagged: 
+  assumes "\<forall>m::'m. stateful_matcher' \<sigma> m p = stateful_matcher_tagged' m (packet_tagger' \<sigma> p)" 
+  shows "\<Gamma>,stateful_matcher' \<sigma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<longleftrightarrow>
+         \<Gamma>,stateful_matcher_tagged',packet_tagger' \<sigma> p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t"
+proof -
+  { fix m::"'m match_expr"
+   from assms have
+    "matches (stateful_matcher' \<sigma>) m p \<longleftrightarrow> matches stateful_matcher_tagged' m (packet_tagger' \<sigma> p)"
+      apply(induction m)
+       apply(simp_all)
+      done
+  } note matches_stateful_matcher_stateful_matcher_tagged=this
+
+  
+  show ?thesis
+    apply(rule iffI)
+     apply(induction rs Undecided t rule: iptables_bigstep_induct)
+     apply(auto intro: iptables_bigstep.intros simp add: matches_stateful_matcher_stateful_matcher_tagged)[8]
+     apply(case_tac t)
+      apply (simp add: seq)
+     apply(auto simp add: decision seq dest: decisionD)[1]
+    apply(induction rs Undecided t rule: iptables_bigstep_induct)
+    apply(auto intro: iptables_bigstep.intros simp add: matches_stateful_matcher_stateful_matcher_tagged)[8]
+    apply(case_tac t)
+     apply (simp add: seq)
+    apply(auto simp add: decision seq dest: decisionD)[1]
+    done
+qed
+   
+
+
+text{*Both semantics are equal*}
+theorem semantics_stateful_vs_tagged:
+  assumes "\<forall>m. stateful_matcher' \<sigma> m p = stateful_matcher_tagged' m (packet_tagger' \<sigma> p)" 
+  shows "semantics_stateful rs stateful_matcher' state_update' start \<sigma> p t =
+       semantics_stateful_packet_tagging rs stateful_matcher_tagged' packet_tagger' state_update' start \<sigma> p t"
+    using assms 
+    apply -
+    apply(rule iffI)
+     apply(rotate_tac)
+     apply(induction rule: semantics_stateful.induct)
+     apply(subst(asm) semantics_bigstep_state_vs_tagged[of stateful_matcher' _ _ stateful_matcher_tagged' packet_tagger'])
+      apply(simp)
+     apply(auto intro: semantics_stateful_packet_tagging.intros)[1]
+    apply(rotate_tac)
+    apply(induction rule: semantics_stateful_packet_tagging.induct)
+    apply(rule semantics_stateful_intro, simp_all)
+    apply(subst semantics_bigstep_state_vs_tagged[of stateful_matcher' _ _ stateful_matcher_tagged' packet_tagger'])
+     apply(simp_all)
+    done
+    
 
 subsection{*Example: Conntrack with packet tagging*}
 context
@@ -170,10 +224,11 @@ begin
     "state_update_tagged (State state_table) FinalDeny p = State state_table"
 
 
-  lemma matches_stateful_matcher_stateful_matcher_tagged:
-  "matches (stateful_matcher \<sigma>) m p \<longleftrightarrow> matches stateful_matcher_tagged m (packet_tagger \<sigma> p)"
-    apply(induction m)
-       apply(simp_all)
+  
+  text{*Both semantics are equal*}
+  lemma "semantics_stateful rs stateful_matcher state_update start \<sigma> p t =
+    semantics_stateful_packet_tagging rs stateful_matcher_tagged packet_tagger state_update start \<sigma> p t"
+    apply(rule semantics_stateful_vs_tagged) 
     apply(cases p)
      apply(simp_all add: stateful_matcher_tagged_def)
      apply(case_tac \<sigma>)
@@ -181,30 +236,6 @@ begin
      apply force
     apply(case_tac \<sigma>)
     apply(simp)
-    done
-
-  lemma semantics_bigstep_state_vs_tagged: "\<Gamma>,stateful_matcher \<sigma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<longleftrightarrow>
-         \<Gamma>,stateful_matcher_tagged,packet_tagger \<sigma> p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t"
-  apply(rule iffI)
-   apply(induction rs Undecided t rule: iptables_bigstep_induct)
-   apply(auto intro: iptables_bigstep.intros simp add: matches_stateful_matcher_stateful_matcher_tagged)[8]
-   apply (metis  decision decisionD  seq    state.exhaust)
-  apply(induction rs Undecided t rule: iptables_bigstep_induct)
-  apply(auto intro: iptables_bigstep.intros simp add: matches_stateful_matcher_stateful_matcher_tagged)[8]
-  apply (metis  decision decisionD  seq    state.exhaust)
-  done
-   
-  
-  text{*Both semantics are equal*}
-  lemma "semantics_stateful rs stateful_matcher state_update start \<sigma> p t =
-    semantics_stateful_packet_tagging rs stateful_matcher_tagged packet_tagger state_update start \<sigma> p t"
-    apply(rule iffI)
-     apply(induction rule: semantics_stateful.induct)
-     apply(simp add: semantics_bigstep_state_vs_tagged)
-     apply(auto intro: semantics_stateful_packet_tagging.intros)[1]
-    apply(induction rule: semantics_stateful_packet_tagging.induct)
-    apply(rule semantics_stateful_intro, simp_all)
-    apply(simp add: semantics_bigstep_state_vs_tagged)
     done
     
 
