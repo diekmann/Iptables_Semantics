@@ -196,10 +196,8 @@ begin
    
   
   text{*Both semantics are equal*}
-  lemma "semantics_stateful rs stateful_matcher state_update (''INPUT'', Drop)
-    (State {}) OtherPacket t=
-    semantics_stateful_packet_tagging rs stateful_matcher_tagged packet_tagger state_update (''INPUT'', Drop)
-    (State {}) OtherPacket t"
+  lemma "semantics_stateful rs stateful_matcher state_update start \<sigma> p t =
+    semantics_stateful_packet_tagging rs stateful_matcher_tagged packet_tagger state_update start \<sigma> p t"
     apply(rule iffI)
      apply(induction rule: semantics_stateful.induct)
      apply(simp add: semantics_bigstep_state_vs_tagged)
