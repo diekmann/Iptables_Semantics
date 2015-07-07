@@ -25,10 +25,10 @@ inductive semantics_stateful ::
     semantics_stateful \<Gamma> \<gamma>\<^sub>\<sigma> state_update (built_in_chain, default_policy) \<sigma> p (state_update \<sigma> X p, X)"
 
 
-  lemma semantics_stateful_intro: "\<Gamma>,\<gamma>\<^sub>\<sigma> \<sigma>,p\<turnstile> \<langle>[Rule MatchAny (Call state_update), Rule MatchAny default_policy], Undecided\<rangle> \<Rightarrow> Decision X \<Longrightarrow>
-         \<sigma>' = state_upate \<sigma> X p \<Longrightarrow>
-         semantics_stateful \<Gamma> \<gamma>\<^sub>\<sigma> state_upate (state_update, default_policy) \<sigma> p (\<sigma>', X)"
-    by(auto intro: semantics_stateful.intros)
+lemma semantics_stateful_intro: "\<Gamma>,\<gamma>\<^sub>\<sigma> \<sigma>,p\<turnstile> \<langle>[Rule MatchAny (Call state_update), Rule MatchAny default_policy], Undecided\<rangle> \<Rightarrow> Decision X \<Longrightarrow>
+       \<sigma>' = state_upate \<sigma> X p \<Longrightarrow>
+       semantics_stateful \<Gamma> \<gamma>\<^sub>\<sigma> state_upate (state_update, default_policy) \<sigma> p (\<sigma>', X)"
+  by(auto intro: semantics_stateful.intros)
 
 
 subsection{*Example: Conntrack*}
@@ -142,7 +142,6 @@ inductive semantics_stateful_packet_tagging ::
     semantics_stateful_packet_tagging \<Gamma> \<gamma> packet_tagger state_update (built_in_chain, default_policy) \<sigma> p (state_update \<sigma> X p, X)"
 
 
-
 subsection{*Example: Conntrack with packet tagging*}
 context
 begin
@@ -195,20 +194,20 @@ begin
   apply (metis  decision decisionD  seq    state.exhaust)
   done
    
-       
+  
+  text{*Both semantics are equal*}
   lemma "semantics_stateful rs stateful_matcher state_update (''INPUT'', Drop)
     (State {}) OtherPacket t=
     semantics_stateful_packet_tagging rs stateful_matcher_tagged packet_tagger state_update (''INPUT'', Drop)
     (State {}) OtherPacket t"
     apply(rule iffI)
      apply(induction rule: semantics_stateful.induct)
-     defer
+     apply(simp add: semantics_bigstep_state_vs_tagged)
+     apply(auto intro: semantics_stateful_packet_tagging.intros)[1]
     apply(induction rule: semantics_stateful_packet_tagging.induct)
     apply(rule semantics_stateful_intro, simp_all)
     apply(simp add: semantics_bigstep_state_vs_tagged)
-
-    apply(simp add: semantics_bigstep_state_vs_tagged)
-    oops
+    done
     
 
 end
