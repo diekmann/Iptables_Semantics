@@ -4,7 +4,7 @@ begin
 
 section{*Semantics Stateful*}
 
-subsection{*Model 1*}
+subsection{*Model 1 -- Curried Stateful Matcher*}
 
 text{*Processing a packet with state can be modeled as follows:
   The state is @{term \<sigma>}.
@@ -44,6 +44,7 @@ begin
 
   datatype primitive_matches = New | Established | IsSSH
 
+  text{*In the state, we remember the packets which belong to an established connection.*}
   datatype conntrack_state = State "packet set"
 
   text{*The stateful primitive matcher: It is given the current state table. 
@@ -71,7 +72,9 @@ begin
 
   text{*The @{const ruleset} does not allow @{const OtherPacket}*}
   lemma "semantics_stateful ruleset stateful_matcher state_update (''INPUT'', Drop)
-    (State {}) OtherPacket ((State {}), FinalDeny)"
+    (State {})
+    OtherPacket
+    ((State {}), FinalDeny)"
     unfolding ruleset_def
     apply(rule semantics_stateful_intro)
      apply(simp_all)
@@ -131,10 +134,10 @@ begin
 end
 
 
-subsection{*Model 2*}
+subsection{*Model 2 -- Packets Tagged with State Information*}
 
-text{*In this model, the matcher is completely stateless but packets are previously tagged with the 
-      right (static) stateful information. *}
+text{*In this model, the matcher is completely stateless but packets are previously tagged with
+      (static) stateful information. *}
 
 inductive semantics_stateful_packet_tagging ::
   "'a ruleset \<Rightarrow> ('a, 'ptagged) matcher \<Rightarrow> ('\<sigma> \<Rightarrow> 'p \<Rightarrow> 'ptagged) \<Rightarrow> ('\<sigma> \<Rightarrow> final_decision \<Rightarrow> 'p \<Rightarrow> '\<sigma>) \<Rightarrow>
@@ -152,25 +155,34 @@ proof -
   { fix m::"'m match_expr"
    from assms have
     "matches (stateful_matcher' \<sigma>) m p \<longleftrightarrow> matches stateful_matcher_tagged' m (packet_tagger' \<sigma> p)"
-      apply(induction m)
-       apply(simp_all)
-      done
+      by(induction m) (simp_all)
   } note matches_stateful_matcher_stateful_matcher_tagged=this
 
   
-  show ?thesis
-    apply(rule iffI)
-     apply(induction rs Undecided t rule: iptables_bigstep_induct)
-     apply(auto intro: iptables_bigstep.intros simp add: matches_stateful_matcher_stateful_matcher_tagged)[8]
-     apply(case_tac t)
-      apply (simp add: seq)
-     apply(auto simp add: decision seq dest: decisionD)[1]
-    apply(induction rs Undecided t rule: iptables_bigstep_induct)
-    apply(auto intro: iptables_bigstep.intros simp add: matches_stateful_matcher_stateful_matcher_tagged)[8]
-    apply(case_tac t)
-     apply (simp add: seq)
-    apply(auto simp add: decision seq dest: decisionD)[1]
-    done
+  show ?thesis (is "?lhs \<longleftrightarrow> ?rhs")
+  proof
+    assume ?lhs
+    thus ?rhs
+     proof(induction rs Undecided t rule: iptables_bigstep_induct)
+     case (Seq _ _ _ t)
+       thus ?case
+         apply(cases t)
+          apply (simp add: seq)
+         apply(auto simp add: decision seq dest: decisionD)
+         done
+     qed(auto intro: iptables_bigstep.intros simp add: matches_stateful_matcher_stateful_matcher_tagged)
+  next
+    assume ?rhs
+    thus ?lhs
+     proof(induction rs Undecided t rule: iptables_bigstep_induct)
+     case (Seq _ _ _ t)
+       thus ?case
+         apply(cases t)
+          apply (simp add: seq)
+         apply(auto  simp add: decision seq dest: decisionD)
+         done
+     qed(auto intro: iptables_bigstep.intros simp add: matches_stateful_matcher_stateful_matcher_tagged)
+  qed
 qed
    
 
