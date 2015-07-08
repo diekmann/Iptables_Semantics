@@ -560,13 +560,13 @@ begin
     proof(induction rs Undecided t arbitrary: t' rule: iptables_goto_bigstep_induct)
       case Skip thus ?case by(fastforce  dest: skipD logD emptyD nomatchD decisionD)
       next
-      case Allow thus ?case by (auto intro: iptables_goto_bigstep.intros dest: iptables_goto_bigstepD)
+      case Allow thus ?case by (auto dest: iptables_goto_bigstepD)
       next
-      case Deny thus ?case by (auto intro: iptables_goto_bigstep.intros dest: iptables_goto_bigstepD)
+      case Deny thus ?case by (auto dest: iptables_goto_bigstepD)
       next
-      case Log thus ?case by (auto intro: iptables_goto_bigstep.intros dest: iptables_goto_bigstepD)
+      case Log thus ?case by (auto dest: iptables_goto_bigstepD)
       next
-      case Nomatch thus ?case by (auto intro: iptables_goto_bigstep.intros dest: iptables_goto_bigstepD)
+      case Nomatch thus ?case by (auto dest: iptables_goto_bigstepD)
       next
       case Seq thus ?case by (metis decisionD seqE state.exhaust)
       next
