@@ -35,25 +35,25 @@ structure Test : sig
   val map_of_string :
     (char list * common_primitive rule list) list ->
       char list -> (common_primitive rule list) option
-  val port_toString : num1 bit0 bit0 bit0 bit0 word -> char list
   val upper_closure : common_primitive rule list -> common_primitive rule list
+  val port_toString : num1 bit0 bit0 bit0 bit0 word -> char list
+  val integer_to_16word : IntInf.int -> num1 bit0 bit0 bit0 bit0 word
   val iface_toString : char list -> iface -> char list
   val ports_toString :
     char list ->
       num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word -> char list
-  val integer_to_16word : IntInf.int -> num1 bit0 bit0 bit0 bit0 word
-  val protocol_toString : protocol -> char list
   val deny_set : common_primitive rule list -> common_primitive packet_set list
-  val ipv4_cidr_toString : num1 bit0 bit0 bit0 bit0 bit0 word * nat -> char list
-  val simple_action_toString : simple_action -> char list
-  val simple_rule_toString : simple_rule -> char list
+  val protocol_toString : protocol -> char list
   val dst : 'a simple_match_ext -> num1 bit0 bit0 bit0 bit0 bit0 word * nat
   val src : 'a simple_match_ext -> num1 bit0 bit0 bit0 bit0 bit0 word * nat
+  val ipv4_cidr_toString : num1 bit0 bit0 bit0 bit0 bit0 word * nat -> char list
   val unfold_ruleset_FORWARD :
     action ->
       (char list -> (common_primitive rule list) option) ->
         common_primitive rule list
   val proto : 'a simple_match_ext -> protocol
+  val simple_action_toString : simple_action -> char list
+  val simple_rule_toString : simple_rule -> char list
   val check_simple_fw_preconditions : common_primitive rule list -> bool
   val to_simple_firewall : common_primitive rule list -> simple_rule list
   val dports :
@@ -64,8 +64,8 @@ structure Test : sig
   val sports :
     'a simple_match_ext ->
       num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word
-  val simple_rule_iptables_save_toString : char list -> simple_rule -> char list
   val bitmask_to_strange_inverse_cisco_mask : nat -> nat * (nat * (nat * nat))
+  val simple_rule_iptables_save_toString : char list -> simple_rule -> char list
 end = struct
 
 datatype int = Int_of_integer of IntInf.int;
@@ -1378,12 +1378,12 @@ fun dotdecimal_of_ipv4addr a =
                   (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
                 (Int_of_integer (255 : IntInf.int)))))));
 
-fun br_2_cidr_ipt_ipv4range_list r =
+fun wi_2_cidr_ipt_ipv4range_list r =
   map (fn (base, a) => Ip4AddrNetmask (dotdecimal_of_ipv4addr base, a))
     (ipv4range_split r);
 
 fun ipt_ipv4range_compress x =
-  (br_2_cidr_ipt_ipv4range_list o ipt_ipv4range_negation_type_to_br_intersect)
+  (wi_2_cidr_ipt_ipv4range_list o ipt_ipv4range_negation_type_to_br_intersect)
     x;
 
 fun normalize_src_ips x =
@@ -1744,18 +1744,6 @@ fun nat_to_16word i =
   of_nat (semiring_1_word (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
     i;
 
-fun string_of_nat n =
-  (if less_nat n (nat_of_integer (10 : IntInf.int))
-    then [char_of_nat (plus_nat (nat_of_integer (48 : IntInf.int)) n)]
-    else string_of_nat (div_nat n (nat_of_integer (10 : IntInf.int))) @
-           [char_of_nat
-              (plus_nat (nat_of_integer (48 : IntInf.int))
-                (mod_nat n (nat_of_integer (10 : IntInf.int))))]);
-
-fun port_toString p =
-  string_of_nat
-    (unat (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) p);
-
 fun upper_closure_matchexpr uu MatchAny = MatchAny
   | upper_closure_matchexpr Accept (Match (Extra uv)) = MatchAny
   | upper_closure_matchexpr Reject (Match (Extra uw)) = MatchNot MatchAny
@@ -1884,23 +1872,6 @@ fun insort_key B_ f x [] = [x]
 
 fun sort_key B_ f xs = foldr (insort_key B_ f) xs [];
 
-fun iface_toString descr iface =
-  (if equal_iface iface ifaceAny then []
-    else let
-           val Iface a = iface;
-         in
-           descr @ a
-         end);
-
-fun ports_toString descr (s, e) =
-  (if equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) s
-        (zero_worda
-          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) andalso
-        equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) e
-          (max_word (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-    then []
-    else descr @ [#"("] @ port_toString s @ [#","] @ port_toString e @ [#")"]);
-
 fun to_negation_type_nnf MatchAny = []
   | to_negation_type_nnf (Match a) = [Pos a]
   | to_negation_type_nnf (MatchNot (Match a)) = [Neg a]
@@ -2014,6 +1985,18 @@ fun repeat_stabilize A_ n uu v =
              else repeat_stabilize A_ (minus_nat n one_nat) uu v_new)
          end);
 
+fun string_of_nat n =
+  (if less_nat n (nat_of_integer (10 : IntInf.int))
+    then [char_of_nat (plus_nat (nat_of_integer (48 : IntInf.int)) n)]
+    else string_of_nat (div_nat n (nat_of_integer (10 : IntInf.int))) @
+           [char_of_nat
+              (plus_nat (nat_of_integer (48 : IntInf.int))
+                (mod_nat n (nat_of_integer (10 : IntInf.int))))]);
+
+fun port_toString p =
+  string_of_nat
+    (unat (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) p);
+
 fun ipv4range_intersection r1 r2 =
   wordinterval_intersection
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
@@ -2022,10 +2005,22 @@ val packet_set_UNIV : 'a packet_set = PacketSet [[]];
 
 fun integer_to_16word i = nat_to_16word (nat_of_integer i);
 
-fun protocol_toString ProtoAny = [#"a", #"l", #"l"]
-  | protocol_toString (Proto TCP) = [#"t", #"c", #"p"]
-  | protocol_toString (Proto UDP) = [#"u", #"d", #"p"]
-  | protocol_toString (Proto ICMP) = [#"i", #"c", #"m", #"p"];
+fun iface_toString descr iface =
+  (if equal_iface iface ifaceAny then []
+    else let
+           val Iface a = iface;
+         in
+           descr @ a
+         end);
+
+fun ports_toString descr (s, e) =
+  (if equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) s
+        (zero_worda
+          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) andalso
+        equal_worda (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))) e
+          (max_word (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+    then []
+    else descr @ [#"("] @ port_toString s @ [#","] @ port_toString e @ [#")"]);
 
 fun has_disc uu MatchAny = false
   | has_disc disc (Match a) = disc a
@@ -2064,21 +2059,6 @@ fun process_ret [] = []
   | process_ret (Rule (v, Empty) :: rs) = Rule (v, Empty) :: process_ret rs
   | process_ret (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: process_ret rs;
 
-fun ipv4_cidr_toString ip_n =
-  let
-    val (base, n) = ip_n;
-    val (a, b) = dotdecimal_of_ipv4addr base;
-    val (ba, c) = b;
-    val (ca, d) = c;
-  in
-    string_of_nat a @
-      [#"."] @
-        string_of_nat ba @
-          [#"."] @
-            string_of_nat ca @
-              [#"."] @ string_of_nat d @ [#"/"] @ string_of_nat n
-  end;
-
 fun process_call gamma [] = []
   | process_call gamma (Rule (m, Call chain) :: rs) =
     add_match m (process_ret (the (gamma chain))) @ process_call gamma rs
@@ -2102,31 +2082,10 @@ fun process_call gamma [] = []
 fun check_simple_ruleset rs =
   (if simple_ruleset rs then rs else (raise Fail "undefined"));
 
-fun simple_action_toString Accepta = [#"A", #"C", #"C", #"E", #"P", #"T"]
-  | simple_action_toString Dropa = [#"D", #"R", #"O", #"P"];
-
-fun simple_rule_toString
-  (SimpleRule (Simple_match_ext (iif, oif, sip, dip, p, sps, dps, ()), a)) =
-  simple_action_toString a @
-    [#" ", #" ", #" ", #" ", #" "] @
-      protocol_toString p @
-        [#" ", #" ", #"-", #"-", #" ", #" "] @
-          ipv4_cidr_toString sip @
-            [#" ", #" ", #" ", #" ", #" ", #" ", #" ", #" ", #" ", #" ", #" ",
-              #" "] @
-              ipv4_cidr_toString dip @
-                [#" "] @
-                  iface_toString [#"i", #"n", #":", #" "] iif @
-                    [#" "] @
-                      iface_toString [#"o", #"u", #"t", #":", #" "] oif @
-                        [#" "] @
-                          ports_toString
-                            [#"s", #"p", #"o", #"r", #"t", #"s", #":", #" "]
-                            sps @
-                            [#" "] @
-                              ports_toString
-                                [#"d", #"p", #"o", #"r", #"t", #"s", #":", #" "]
-                                dps;
+fun protocol_toString ProtoAny = [#"a", #"l", #"l"]
+  | protocol_toString (Proto TCP) = [#"t", #"c", #"p"]
+  | protocol_toString (Proto UDP) = [#"u", #"d", #"p"]
+  | protocol_toString (Proto ICMP) = [#"i", #"c", #"m", #"p"];
 
 fun dst
   (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
@@ -2153,6 +2112,21 @@ val simple_match_any : unit simple_match_ext =
         word_of_int (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))
           (Int_of_integer (65535 : IntInf.int))),
       ());
+
+fun ipv4_cidr_toString ip_n =
+  let
+    val (base, n) = ip_n;
+    val (a, b) = dotdecimal_of_ipv4addr base;
+    val (ba, c) = b;
+    val (ca, d) = c;
+  in
+    string_of_nat a @
+      [#"."] @
+        string_of_nat ba @
+          [#"."] @
+            string_of_nat ca @
+              [#"."] @ string_of_nat d @ [#"/"] @ string_of_nat n
+  end;
 
 fun normalized_dst_ports MatchAny = true
   | normalized_dst_ports (Match (Dst_Ports [])) = true
@@ -2277,6 +2251,32 @@ fun normalized_ifaces MatchAny = true
 fun proto
   (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
   proto;
+
+fun simple_action_toString Accepta = [#"A", #"C", #"C", #"E", #"P", #"T"]
+  | simple_action_toString Dropa = [#"D", #"R", #"O", #"P"];
+
+fun simple_rule_toString
+  (SimpleRule (Simple_match_ext (iif, oif, sip, dip, p, sps, dps, ()), a)) =
+  simple_action_toString a @
+    [#" ", #" ", #" ", #" ", #" "] @
+      protocol_toString p @
+        [#" ", #" ", #"-", #"-", #" ", #" "] @
+          ipv4_cidr_toString sip @
+            [#" ", #" ", #" ", #" ", #" ", #" ", #" ", #" ", #" ", #" ", #" ",
+              #" "] @
+              ipv4_cidr_toString dip @
+                [#" "] @
+                  iface_toString [#"i", #"n", #":", #" "] iif @
+                    [#" "] @
+                      iface_toString [#"o", #"u", #"t", #":", #" "] oif @
+                        [#" "] @
+                          ports_toString
+                            [#"s", #"p", #"o", #"r", #"t", #"s", #":", #" "]
+                            sps @
+                            [#" "] @
+                              ports_toString
+                                [#"d", #"p", #"o", #"r", #"t", #"s", #":", #" "]
+                                dps;
 
 fun ipt_ipv4range_to_ipv4_word_netmask (Ip4Addr ip_ddecim) =
   (ipv4addr_of_dotdecimal ip_ddecim, nat_of_integer (32 : IntInf.int))
@@ -2475,6 +2475,15 @@ fun sports
   (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
   sports;
 
+fun bitmask_to_strange_inverse_cisco_mask n =
+  dotdecimal_of_ipv4addr
+    (bitNOT_word
+      (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+      (shiftl_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) n)
+        (minus_nat (nat_of_integer (32 : IntInf.int)) n)));
+
 fun simple_rule_iptables_save_toString chain
   (SimpleRule (Simple_match_ext (iif, oif, sip, dip, p, sps, dps, ()), a)) =
   [#"-", #"A", #" "] @
@@ -2498,14 +2507,5 @@ iface_toString [#"o", #"u", #"t", #":"] oif @
                                  #"p"]
                           else []) @
                           [#" ", #"-", #"j", #" "] @ simple_action_toString a;
-
-fun bitmask_to_strange_inverse_cisco_mask n =
-  dotdecimal_of_ipv4addr
-    (bitNOT_word
-      (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-      (shiftl_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-        (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) n)
-        (minus_nat (nat_of_integer (32 : IntInf.int)) n)));
 
 end; (*struct Test*)
