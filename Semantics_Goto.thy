@@ -543,7 +543,6 @@ begin
       next
       case (Call_return m a chain rs\<^sub>1 m' rs\<^sub>2) 
         from Call_return have " \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> Undecided"
-          apply(simp)
           apply(frule_tac rs\<^sub>1=rs\<^sub>1 and m'=m' and chain=chain in call_return)
               by(simp_all)
         with Call_return show ?case
@@ -558,14 +557,27 @@ begin
     
     private lemma iptables_goto_bigstep_Undecided_deterministic:
       "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t' \<Longrightarrow>  t' = t"
-      apply(induction rs Undecided t arbitrary: t' rule: iptables_goto_bigstep_induct)
-               apply(fastforce  dest: skipD logD emptyD nomatchD decisionD)
-              apply (auto intro: iptables_goto_bigstep.intros dest: iptables_goto_bigstepD)[4]
-          apply (metis decisionD seqE state.exhaust)
-         apply (meson call_return iptables_goto_bigstep_Undecided_Undecided_deterministic)
-        apply (metis callD call_result iptables_goto_bigstep_Undecided_Undecided_deterministic)
-       apply (metis gotoD no_matching_Goto.simps(2) option.sel seqE_cons)
-      by (meson goto_no_decision iptables_goto_bigstep_Undecided_Undecided_deterministic)
+    proof(induction rs Undecided t arbitrary: t' rule: iptables_goto_bigstep_induct)
+      case Skip thus ?case by(fastforce  dest: skipD logD emptyD nomatchD decisionD)
+      next
+      case Allow thus ?case by (auto intro: iptables_goto_bigstep.intros dest: iptables_goto_bigstepD)
+      next
+      case Deny thus ?case by (auto intro: iptables_goto_bigstep.intros dest: iptables_goto_bigstepD)
+      next
+      case Log thus ?case by (auto intro: iptables_goto_bigstep.intros dest: iptables_goto_bigstepD)
+      next
+      case Nomatch thus ?case by (auto intro: iptables_goto_bigstep.intros dest: iptables_goto_bigstepD)
+      next
+      case Seq thus ?case by (metis decisionD seqE state.exhaust)
+      next
+      case Call_return thus ?case by (meson call_return iptables_goto_bigstep_Undecided_Undecided_deterministic)
+      next
+      case Call_result thus ?case by (metis callD call_result iptables_goto_bigstep_Undecided_Undecided_deterministic)
+      next
+      case Goto_Decision thus ?case by (metis gotoD no_matching_Goto.simps(2) option.sel seqE_cons)
+      next
+      case Goto_no_Decision thus ?case by (meson goto_no_decision iptables_goto_bigstep_Undecided_Undecided_deterministic)
+    qed
     
     qualified theorem iptables_goto_bigstep_deterministic: assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" and "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t'" shows "t = t'"
     using assms
