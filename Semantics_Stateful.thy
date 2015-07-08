@@ -158,7 +158,6 @@ proof -
       by(induction m) (simp_all)
   } note matches_stateful_matcher_stateful_matcher_tagged=this
 
-  
   show ?thesis (is "?lhs \<longleftrightarrow> ?rhs")
   proof
     assume ?lhs
@@ -192,21 +191,22 @@ theorem semantics_stateful_vs_tagged:
   assumes "\<forall>m. stateful_matcher' \<sigma> m p = stateful_matcher_tagged' m (packet_tagger' \<sigma> p)" 
   shows "semantics_stateful rs stateful_matcher' state_update' start \<sigma> p t =
        semantics_stateful_packet_tagging rs stateful_matcher_tagged' packet_tagger' state_update' start \<sigma> p t"
-    using assms 
-    apply -
-    apply(rule iffI)
-     apply(rotate_tac)
-     apply(induction rule: semantics_stateful.induct)
-     apply(subst(asm) semantics_bigstep_state_vs_tagged[of stateful_matcher' _ _ stateful_matcher_tagged' packet_tagger'])
-      apply(simp)
-     apply(auto intro: semantics_stateful_packet_tagging.intros)[1]
-    apply(rotate_tac)
-    apply(induction rule: semantics_stateful_packet_tagging.induct)
-    apply(rule semantics_stateful_intro, simp_all)
-    apply(subst semantics_bigstep_state_vs_tagged[of stateful_matcher' _ _ stateful_matcher_tagged' packet_tagger'])
-     apply(simp_all)
-    done
-    
+  proof -
+  note vs_tagged=semantics_bigstep_state_vs_tagged[of stateful_matcher' _ _ stateful_matcher_tagged' packet_tagger']
+  show ?thesis (is "?lhs \<longleftrightarrow> ?rhs")
+    proof
+      assume ?lhs
+      from this assms show ?rhs
+       by(induction rule: semantics_stateful.induct)
+         (auto simp add: vs_tagged intro: semantics_stateful_packet_tagging.intros)
+    next
+      assume ?rhs
+      from this assms show ?lhs
+      by(induction rule: semantics_stateful_packet_tagging.induct)
+        (auto intro!: semantics_stateful_intro simp add: vs_tagged)
+    qed
+  qed
+  
 
 subsection{*Example: Conntrack with packet tagging*}
 context
@@ -241,16 +241,12 @@ begin
   lemma "semantics_stateful rs stateful_matcher state_update start \<sigma> p t =
     semantics_stateful_packet_tagging rs stateful_matcher_tagged packet_tagger state_update start \<sigma> p t"
     apply(rule semantics_stateful_vs_tagged) 
+    apply(cases \<sigma>)
+    apply(simp)
     apply(cases p)
      apply(simp_all add: stateful_matcher_tagged_def)
-     apply(case_tac \<sigma>)
-     apply(simp_all)
-     apply force
-    apply(case_tac \<sigma>)
-    apply(simp)
+    apply force
     done
-    
-
 end
 
 end
