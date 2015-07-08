@@ -236,20 +236,13 @@ begin
       and "\<not> matches \<gamma> m p \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided"
       shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m (Goto chain) # rs, Undecided\<rangle> \<Rightarrow> Undecided"
       proof(cases "matches \<gamma> m p")
-        case True from this assms show ?thesis
-          apply -
-          apply(drule gotoD)
-             apply(simp_all)
-          using goto_no_decision apply fast
-          done
+        case True
+          from True assms have "\<exists>rs. \<Gamma> chain = Some rs \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided" by(auto dest: gotoD)
+          with True show ?thesis using goto_no_decision by fast
       next
-        case False with assms show ?thesis
-          apply -
-          apply(drule_tac t'=Undecided and rs\<^sub>2=rs in seq)
-            apply(simp)
-           apply(simp)
-          apply(simp)
-         done
+        case False
+        with assms have " \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)] @ rs, Undecided\<rangle> \<Rightarrow> Undecided" by(auto dest: seq)
+        with False show ?thesis by simp
       qed
 
     private lemma seq_cons_Goto_t: 
