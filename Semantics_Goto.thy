@@ -531,18 +531,30 @@ begin
   
   subsection{*Determinism*}
     private lemma iptables_goto_bigstep_Undecided_Undecided_deterministic: 
-      "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow>  t = Undecided"
-      apply(induction rs Undecided Undecided arbitrary: t rule: iptables_goto_bigstep_induct)
-            apply(fastforce  dest: skipD logD emptyD nomatchD decisionD)
-           apply(fastforce  dest: skipD logD emptyD nomatchD decisionD)
-          apply(fastforce  dest: skipD logD emptyD nomatchD decisionD)
-         apply (metis iptables_goto_bigstep_to_undecided seqE)
-        apply(simp_all)
-        apply(frule_tac rs\<^sub>1=rs\<^sub>1 and m'=m' and chain=chain in call_return)
-            apply(simp_all)
-        apply (metis callD no_free_return seqE seqE_cons)
-       apply (meson callD)
-      by (metis gotoD no_matching_Goto.simps(2) option.sel seqE_cons)
+      "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> t = Undecided"
+    proof(induction rs Undecided Undecided arbitrary: t rule: iptables_goto_bigstep_induct)
+      case Skip thus ?case by(fastforce  dest: skipD logD emptyD nomatchD decisionD)
+      next
+      case Log thus ?case by(fastforce  dest: skipD logD emptyD nomatchD decisionD)
+      next
+      case Nomatch thus ?case by(fastforce  dest: skipD logD emptyD nomatchD decisionD)
+      next
+      case Seq thus ?case by (metis iptables_goto_bigstep_to_undecided seqE)
+      next
+      case (Call_return m a chain rs\<^sub>1 m' rs\<^sub>2) 
+        from Call_return have " \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> Undecided"
+          apply(simp)
+          apply(frule_tac rs\<^sub>1=rs\<^sub>1 and m'=m' and chain=chain in call_return)
+              by(simp_all)
+        with Call_return show ?case
+          apply simp
+          apply (metis callD no_free_return seqE seqE_cons)
+          done
+      next
+      case Call_result thus ?case by (meson callD)
+      next
+      case Goto_no_Decision thus ?case by (metis gotoD no_matching_Goto.simps(2) option.sel seqE_cons)
+    qed
     
     private lemma iptables_goto_bigstep_Undecided_deterministic:
       "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t' \<Longrightarrow>  t' = t"
@@ -671,29 +683,27 @@ begin
       assumes "\<not> matches \<gamma> m p"
       shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m rs, Undecided\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>[], Undecided\<rangle> \<Rightarrow> t"
       proof(induction rs)
-        case Nil
-        thus ?case
-          unfolding add_match_def by simp
+      case Nil thus ?case unfolding add_match_def by simp
       next
-        case (Cons r rs)
-        thus ?case
-          apply (cases r)
-          apply(simp add: add_match_split_fst)
-          apply(rule iffI)
-           apply(erule seqE_cons)
-            apply(simp_all)
-            apply(subgoal_tac "ti = Undecided")
-             apply(simp)
-            apply (simp add: assms nomatchD)
-           apply(simp add: not_no_matching_Goto_singleton_cases)
-           apply(clarify)
-           apply(simp)
-           using assms apply blast
-          apply(subgoal_tac "t = Undecided")
-           prefer 2
-           using skipD apply metis
-         apply(simp)
-         by (meson assms matches.simps(1) nomatch not_no_matching_Goto_singleton_cases seq_cons)  
+      case (Cons r rs)
+        obtain m' a where r: "r = Rule m' a" by(cases r, simp)
+        let ?lhs="\<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule (MatchAnd m m') a # add_match m rs, Undecided\<rangle> \<Rightarrow> t"
+        let ?rhs="\<Gamma>,\<gamma>,p\<turnstile> \<langle>[], Undecided\<rangle> \<Rightarrow> t"
+        { assume ?lhs
+          from `?lhs` Cons have ?rhs
+           proof(cases  \<Gamma> \<gamma> p "Rule (MatchAnd m m') a" "add_match m rs"  t rule: seqE_cons_Undecided)
+           case (no_matching_Goto ti)
+             hence "ti = Undecided"  by (simp add: assms nomatchD)
+             with no_matching_Goto Cons show ?thesis by simp
+           next
+           case (matching_Goto) with Cons assms show ?thesis by force
+         qed
+        } note 1=this
+        { assume ?rhs
+          hence "t = Undecided" using skipD by metis
+          with Cons.IH `?rhs` have ?lhs 
+           by (meson assms matches.simps(1) nomatch not_no_matching_Goto_singleton_cases seq_cons)  
+        } with 1 show ?case by(auto simp add: r add_match_split_fst)
       qed
     
     private lemma matches_add_match_MatchNot_simp:
@@ -721,13 +731,10 @@ begin
                   unfolding add_match_def by simp
               next
                 case (Cons r rs)
-                thus ?case
-                  apply (cases r) 
+                hence "t = Undecided" using skipD by metis
+                with Cons show ?case
+                  apply (cases r)
                   apply(simp add: add_match_split_fst)
-                  apply(subgoal_tac "t = Undecided")
-                   prefer 2
-                   using skipD apply metis
-                  apply(simp)
                   by (metis matches.simps(1) matches.simps(2) matches_MatchNotAnd_simp not_no_matching_Goto_singleton_cases seq_cons)
               qed
           qed
@@ -759,19 +766,26 @@ begin
               unfolding add_match_def by simp
           next
             case (Cons r rs)
-            thus ?case
-              apply(cases r)
-              apply(simp add: add_match_split_fst)
-               apply(erule seqE_cons_Undecided)
-               apply(simp add: matches_rule_and_simp)
-               apply(subgoal_tac "no_matching_Goto \<gamma> p [Rule (x1) x2]")
-                apply (metis decision state.exhaust iptables_goto_bigstep_deterministic seq_cons)
-               apply (metis matches.simps(1) not_no_matching_Goto_singleton_cases)
-              apply(simp)
-              apply(clarify)
-              apply(simp)
-              apply(simp add: matches_rule_and_simp_help)
-              by (simp add: seq_cons_Goto_t)
+             obtain m' a where r: "r = Rule m' a" by(cases r, simp)
+             from Cons have " \<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule (MatchAnd m m') a # add_match m rs, Undecided\<rangle> \<Rightarrow> t"
+               by(simp add: r add_match_split_fst)
+             from this Cons have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m' a # rs, Undecided\<rangle> \<Rightarrow> t"
+             proof(cases rule: seqE_cons_Undecided)
+               case (no_matching_Goto ti)
+                from no_matching_Goto(3) Cons.prems(1) not_no_matching_Goto_singleton_cases
+                  have "no_matching_Goto \<gamma> p [Rule m' a]" by (metis matches.simps(1))
+                with no_matching_Goto Cons show ?thesis
+                 apply(simp add: matches_rule_and_simp)
+                 apply(cases ti)
+                  apply (simp add: seq'_cons)
+                 by (metis decision decisionD seq'_cons)
+               next
+               case (matching_Goto) with Cons show ?thesis
+                apply(clarify)
+                apply(simp add: matches_rule_and_simp_help)
+                by (simp add: seq_cons_Goto_t)
+             qed
+             thus ?case by(simp add: r)
           qed
       next
         assume ?r with m show ?l
