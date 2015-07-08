@@ -232,19 +232,26 @@ begin
         qed
     
     private lemma seq_cons_Goto_Undecided: 
-      "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)], Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow>
-        (\<not> matches \<gamma> m p \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided) \<Longrightarrow>
-          \<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m (Goto chain) # rs, Undecided\<rangle> \<Rightarrow> Undecided"
-      apply(cases "matches \<gamma> m p")
-       apply(drule gotoD)
-          apply(simp_all)
-       using goto_no_decision apply fast
-      apply(drule_tac t'=Undecided and rs\<^sub>2=rs in seq)
-        apply(simp)
-       apply(simp)
-      apply(simp)
-     done
-    
+      assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)], Undecided\<rangle> \<Rightarrow> Undecided"
+      and "\<not> matches \<gamma> m p \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided"
+      shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m (Goto chain) # rs, Undecided\<rangle> \<Rightarrow> Undecided"
+      proof(cases "matches \<gamma> m p")
+        case True from this assms show ?thesis
+          apply -
+          apply(drule gotoD)
+             apply(simp_all)
+          using goto_no_decision apply fast
+          done
+      next
+        case False with assms show ?thesis
+          apply -
+          apply(drule_tac t'=Undecided and rs\<^sub>2=rs in seq)
+            apply(simp)
+           apply(simp)
+          apply(simp)
+         done
+      qed
+
     private lemma seq_cons_Goto_t: 
       "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)], Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> matches \<gamma> m p \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m (Goto chain) # rs, Undecided\<rangle> \<Rightarrow> t"
        apply(frule gotoD)
