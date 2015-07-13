@@ -1,7 +1,6 @@
 theory Semantics_OpenFlow
 imports List_Group Sort_Descending
   "../Bitmagic/IPv4Addr"
-  "~~/src/HOL/Library/FSet"
 begin
 
 datatype 'a undefined_behavior = Defined 'a | Undefined
@@ -23,7 +22,7 @@ into the OpenFlow switch."
   This corresponds to OpenFlow 1.0.0
 *)
 
-datatype 'm match_fields = MatchFields (match_fields_sel: "'m fset")
+datatype 'm match_fields = MatchFields (match_fields_sel: "'m set")
 
 (*TODO: probably don't have an 'm set but just a record?*)
 
@@ -36,14 +35,8 @@ type_synonym ('m, 'a) flow_entry_match="16 word \<times> 'm match_fields \<times
 
 (*the packet also contains the ingress port*)
 definition OF_match :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> 'm match_fields \<Rightarrow> 'p \<Rightarrow> bool" where
-  "OF_match \<gamma> match_fields packet \<equiv> \<forall> field \<in> fset (match_fields_sel match_fields). \<gamma> field packet"
+  "OF_match \<gamma> match_fields packet \<equiv> \<forall> field \<in> match_fields_sel match_fields. \<gamma> field packet"
 
-lemma "OF_match \<gamma> match_fields packet \<longleftrightarrow> (\<forall> field. field |\<in>| match_fields_sel match_fields\<longrightarrow> \<gamma> field packet)"
-  apply(simp add: OF_match_def)
-  by (meson notin_fset)
-  (*how do I solve this in general?*)
-
-value[code] "{| 1::int,2,3 |} |-| {| 1,2 |}"
 
 (*
 "If there are multiple matching flow entries with the same highest priority, the selected flow entry is explicitly undefined."
@@ -284,7 +277,7 @@ The table-miss flow entry is identified by its match and its priority (see 5.2),
 fields (all fields omitted) and has the lowest priority (0).*)
 
 definition has_table_miss_entry :: " ('m, 'a) flow_entry_match list \<Rightarrow> bool" where
-  "has_table_miss_entry flow_table \<equiv> \<exists> table_miss_action. (0, MatchFields {||}, table_miss_action) \<in> set flow_table"
+  "has_table_miss_entry flow_table \<equiv> \<exists> table_miss_action. (0, MatchFields {}, table_miss_action) \<in> set flow_table"
 
 lemma "has_table_miss_entry flow_table \<Longrightarrow>
   \<forall> same_priority_matches \<in> set ((map (map (\<lambda>(_, match, _). match))) (group_descending_priority flow_table)).
