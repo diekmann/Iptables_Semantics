@@ -99,16 +99,16 @@ apply(case_tac "x=a")
  apply simp_all
  apply (smt Collect_cong Collect_conv_if2 filter_empty_conv)
 by (smt Collect_cong filter_empty_conv)
- 
+
 text{*set representation*}
 lemma OF_same_priority_match_set: "distinct flow_entries \<Longrightarrow> OF_same_priority_match \<gamma> flow_entries packet = (
   let matching_entries = {(m,action) \<in> set flow_entries. OF_match \<gamma> m packet} in 
     if matching_entries = {} then Defined None else
-    if \<exists>x. matching_entries = {x} then Defined (Some (snd (the_elem matching_entries))) else
+    if \<exists>! x. matching_entries = {x} then Defined (Some (snd (the_elem matching_entries))) else
        Undefined)"
 apply(simp add: OF_same_priority_match_def  Let_def)
 apply(safe)
-   apply(simp_all)
+       apply(simp_all)
    apply blast
   apply(rename_tac a b aa bb)
   apply(drule_tac P="\<lambda>(m,action). OF_match \<gamma> m packet" and x="(a,b)" in distinct_set_collect_singleton)
