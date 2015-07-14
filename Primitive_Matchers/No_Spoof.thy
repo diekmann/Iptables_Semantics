@@ -291,6 +291,7 @@ begin
                    \<not> has_disc is_Prot rest2 \<and>
                    \<not> has_disc is_Src_Ports rest2 \<and>
                    \<not> has_disc is_Dst_Ports rest2 \<and>
+                   \<not> has_disc is_CT_State rest2 \<and>
                    \<not> has_disc is_Extra rest2 \<and> 
                    matcheq_matachAny rest2
                 then
@@ -329,7 +330,9 @@ begin
       let ?noDisc="\<not> has_disc is_Dst rest2 \<and>
                       \<not> has_disc is_Oiface rest2 \<and>
                       \<not> has_disc is_Prot rest2 \<and>
-                      \<not> has_disc is_Src_Ports rest2 \<and> \<not> has_disc is_Dst_Ports rest2 \<and> \<not> has_disc is_Extra rest2"
+                      \<not> has_disc is_Src_Ports rest2 \<and> \<not> has_disc is_Dst_Ports rest2 \<and>
+                      \<not> has_disc is_CT_State rest2 \<and>
+                      \<not> has_disc is_Extra rest2"
 
       have get_all_matching_src_ips_caseTrue: "get_all_matching_src_ips iface m = (if ?noDisc \<and> matcheq_matachAny rest2
                    then if ip_matches = [] then UNIV else INTER (set ip_matches) (case_negation_type ipv4s_to_set (\<lambda>ip. - ipv4s_to_set ip)) else {})"
@@ -460,6 +463,7 @@ begin
                    \<not> has_disc is_Prot rest2 \<and>
                    \<not> has_disc is_Src_Ports rest2 \<and>
                    \<not> has_disc is_Dst_Ports rest2 \<and>
+                   \<not> has_disc is_CT_State rest2 \<and>
                    \<not> has_disc is_Extra rest2 \<and> 
                    matcheq_matachAny rest2
                 then
