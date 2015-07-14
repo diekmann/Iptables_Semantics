@@ -283,13 +283,21 @@ fields (all fields omitted) and has the lowest priority (0).*)
 definition has_table_miss_entry :: " ('m, 'a) flow_entry_match list \<Rightarrow> bool" where
   "has_table_miss_entry flow_table \<equiv> \<exists> table_miss_action. (0, MatchFields {}, table_miss_action) \<in> set flow_table"
 
-definition "all_not_OFPFF_CHECK_OVERLAP \<gamma> same_priority_matches \<equiv> \<forall> same_priority_matches \<in> same_priority_matches.
+lemma has_table_miss_entry_fst: 
+  "has_table_miss_entry ((priority, matches, action) # flow_table) \<Longrightarrow> priority = 0 \<and> matches = MatchFields {} \<or> has_table_miss_entry flow_table"
+  apply(simp add: has_table_miss_entry_def)
+  by blast
+
+lemma "distinct (map (map (\<lambda>(_, match, _). match)) (group_descending_priority (f#fs))) \<Longrightarrow>
+       distinct (map (map (\<lambda>(_, match, _). match)) (group_descending_priority fs))"
+apply(simp add: group_descending_priority_def sort_descending_key_def)
+oops
+
+definition "all_not_OFPFF_CHECK_OVERLAP \<gamma> grouped_matches \<equiv> \<forall> same_priority_matches \<in> grouped_matches.
        (\<forall> entry \<in> set same_priority_matches. \<not> OFPFF_CHECK_OVERLAP_same_priority \<gamma> (remove1 entry same_priority_matches) entry)"
 
 lemma "has_table_miss_entry flow_table \<Longrightarrow> distinct ((map (map (\<lambda>(_, match, _). match))) (group_descending_priority flow_table)) \<Longrightarrow>
- ( \<forall> same_priority_matches \<in> set ((map (map (\<lambda>(_, match, _). match))) (group_descending_priority flow_table)).
-     (\<forall> entry \<in> set same_priority_matches. \<not> OFPFF_CHECK_OVERLAP_same_priority \<gamma> (remove1 entry same_priority_matches) entry)
-  )
+ all_not_OFPFF_CHECK_OVERLAP \<gamma> (set ((map (map (\<lambda>(_, match, _). match))) (group_descending_priority flow_table)))
   \<Longrightarrow>
   OF_match_table \<gamma> flow_table packet \<noteq> Undefined"
   apply(rule iffI)
@@ -297,6 +305,10 @@ lemma "has_table_miss_entry flow_table \<Longrightarrow> distinct ((map (map (\<
    apply(induction flow_table)
     apply(simp add: has_table_miss_entry_def)
    apply(clarify)
+   apply(drule has_table_miss_entry_fst)
+   apply(safe)
+    defer
+    apply(simp)
    thm OFPFF_CHECK_OVERLAP_same_priority_defined
    apply(subst(asm) OFPFF_CHECK_OVERLAP_same_priority_defined)
 oops
