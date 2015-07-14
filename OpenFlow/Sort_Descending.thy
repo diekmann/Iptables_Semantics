@@ -27,4 +27,10 @@ section{* sorting descending *}
   lemma sort_descending: "sorted_descending (sort_descending_key (\<lambda>x. x) xs)"
     by(simp add: sort_descending_key_def sorted_descending)
 
+  lemma sort_descending_key_distinct: "distinct xs \<Longrightarrow> distinct (sort_descending_key f xs)"
+    by(simp add: sort_descending_key_def)
+
+  lemma sorted_descending_sort_descending_key: "sorted_descending (map f (sort_descending_key f xs))"
+    apply(simp add: sort_descending_key_def)
+    using sorted_descending by (metis rev_map sorted_sort_key)
 end

@@ -1,5 +1,5 @@
 theory List_Group
-imports Main
+imports Sort_Descending
 begin
 
 section{*List Group*}
@@ -31,5 +31,16 @@ lemma "list_group_eq_key id xs = list_group_eq xs"
 apply(induction xs)
  apply(simp_all add: id_def)
 by (smt append.simps(1) append.simps(2) dropWhile.simps(1) dropWhile.simps(2) dropWhile_cong list.sel(3) list_group_eq.elims list_group_eq_key.elims takeWhile_cong)
+
+
+(*
+lemma "sorted (map f (x#xs)) \<Longrightarrow> list_group_eq_key f (x#xs) = [x # filter (\<lambda>y. f x = f y) xs] @ list_group_eq_key f (filter (\<lambda>y. f x \<noteq> f y) xs)"
+  apply(simp)
+  oops
+lemma "sorted (x#xs) \<Longrightarrow> distinct (list_group_eq_key f (x#xs)) \<Longrightarrow> distinct (list_group_eq_key f xs)"
+  apply(induction xs)
+   apply(simp)
+oops
+*)
 
 end

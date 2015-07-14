@@ -288,9 +288,14 @@ lemma has_table_miss_entry_fst:
   apply(simp add: has_table_miss_entry_def)
   by blast
 
+lemma "distinct (sort (x#xs)) \<Longrightarrow> distinct (sort xs)"
+by (meson distinct.simps(2) distinct_sort)
+
+
 lemma "distinct (map (map (\<lambda>(_, match, _). match)) (group_descending_priority (f#fs))) \<Longrightarrow>
        distinct (map (map (\<lambda>(_, match, _). match)) (group_descending_priority fs))"
 apply(simp add: group_descending_priority_def sort_descending_key_def)
+apply(simp add: distinct_sort)
 oops
 
 definition "all_not_OFPFF_CHECK_OVERLAP \<gamma> grouped_matches \<equiv> \<forall> same_priority_matches \<in> grouped_matches.
