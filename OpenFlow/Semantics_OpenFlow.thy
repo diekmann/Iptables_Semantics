@@ -245,11 +245,9 @@ lemma "OFPFF_CHECK_OVERLAP_same_priority \<gamma> [entry1] entry2 \<Longrightarr
   done
 
 
-(*TODO: why distinct?*)
 lemma no_OFPFF_CHECK_OVERLAP_same_priority: 
       "distinct flow_entries_match \<Longrightarrow>
-      (\<forall>entry \<in> set flow_entries_match.
-        \<not> OFPFF_CHECK_OVERLAP_same_priority \<gamma> (remove1 entry flow_entries_match) entry)
+      (\<forall>entry \<in> set flow_entries_match. \<not> OFPFF_CHECK_OVERLAP_same_priority \<gamma> (remove1 entry flow_entries_match) entry)
       \<longleftrightarrow>
       \<not> overlapping_entries \<gamma> flow_entries_match"
   unfolding overlapping_entries_def
@@ -259,16 +257,22 @@ lemma no_OFPFF_CHECK_OVERLAP_same_priority:
              split: option.split)
   by blast
 
-lemma OFPFF_CHECK_OVERLAP_same_priority_defined: "distinct (map (\<lambda>(m, _). m) same_priority_match) \<Longrightarrow>
+lemma no_overlapping_entries_same_priority_defined: "distinct (map (\<lambda>(m, _). m) same_priority_match) \<Longrightarrow>
+        \<not> overlapping_entries \<gamma> (map (\<lambda>(m, _). m) same_priority_match)
+      \<longleftrightarrow>
+        (\<forall>packet. OF_same_priority_match \<gamma> same_priority_match packet \<noteq> Undefined)"
+  by(simp add: leq_1_match_iff_not_overlapping_entries[symmetric] OF_same_priority_match_defined)
+
+
+corollary OFPFF_CHECK_OVERLAP_same_priority_defined: "distinct (map (\<lambda>(m, _). m) same_priority_match) \<Longrightarrow>
       (\<forall>entry \<in> set (map (\<lambda>(m, _). m) same_priority_match).
         \<not> OFPFF_CHECK_OVERLAP_same_priority \<gamma> (remove1 entry (map (\<lambda>(m, _). m) same_priority_match)) entry)
       \<longleftrightarrow>
       (\<forall>packet. OF_same_priority_match \<gamma> same_priority_match packet \<noteq> Undefined)"
   apply(subst no_OFPFF_CHECK_OVERLAP_same_priority)
    apply(simp)
-  apply(simp add: leq_1_match_iff_not_overlapping_entries[symmetric])
-  apply(subst OF_same_priority_match_defined)
-  by simp
+  apply(simp add: no_overlapping_entries_same_priority_defined)
+  done
 
 
 
@@ -279,12 +283,37 @@ fields (all fields omitted) and has the lowest priority (0).*)
 definition has_table_miss_entry :: " ('m, 'a) flow_entry_match list \<Rightarrow> bool" where
   "has_table_miss_entry flow_table \<equiv> \<exists> table_miss_action. (0, MatchFields {}, table_miss_action) \<in> set flow_table"
 
-lemma "has_table_miss_entry flow_table \<Longrightarrow>
-  \<forall> same_priority_matches \<in> set ((map (map (\<lambda>(_, match, _). match))) (group_descending_priority flow_table)).
-     \<forall> entry \<in> set same_priority_matches.
-    OFPFF_CHECK_OVERLAP_same_priority \<gamma> (remove1 entry same_priority_matches) entry \<Longrightarrow> OF_match_table \<gamma> flow_table packet \<noteq> Undefined"
+definition "all_not_OFPFF_CHECK_OVERLAP \<gamma> same_priority_matches \<equiv> \<forall> same_priority_matches \<in> same_priority_matches.
+       (\<forall> entry \<in> set same_priority_matches. \<not> OFPFF_CHECK_OVERLAP_same_priority \<gamma> (remove1 entry same_priority_matches) entry)"
+
+lemma "has_table_miss_entry flow_table \<Longrightarrow> distinct ((map (map (\<lambda>(_, match, _). match))) (group_descending_priority flow_table)) \<Longrightarrow>
+ ( \<forall> same_priority_matches \<in> set ((map (map (\<lambda>(_, match, _). match))) (group_descending_priority flow_table)).
+     (\<forall> entry \<in> set same_priority_matches. \<not> OFPFF_CHECK_OVERLAP_same_priority \<gamma> (remove1 entry same_priority_matches) entry)
+  )
+  \<Longrightarrow>
+  OF_match_table \<gamma> flow_table packet \<noteq> Undefined"
+  apply(rule iffI)
+   unfolding OF_match_table_def
+   apply(induction flow_table)
+    apply(simp add: has_table_miss_entry_def)
+   apply(clarify)
+   thm OFPFF_CHECK_OVERLAP_same_priority_defined
+   apply(subst(asm) OFPFF_CHECK_OVERLAP_same_priority_defined)
 oops
 
+
+lemma defines "same_priority_match flow_table \<equiv> ((map (map (\<lambda>(_, match, _). match))) (group_descending_priority flow_table))"
+  assumes "has_table_miss_entry flow_table" and "distinct (same_priority_match flow_table)"
+   and "\<forall> same_priority_matches \<in> set (same_priority_match flow_table).
+       (\<forall> entry \<in> set same_priority_matches. \<not> OFPFF_CHECK_OVERLAP_same_priority \<gamma> (remove1 entry same_priority_matches) entry)"
+ shows "OF_match_table \<gamma> flow_table packet \<noteq> Undefined"
+  proof -
+    from assms have "\<forall>m \<in> set (same_priority_match flow_table). \<not> overlapping_entries \<gamma> m"
+      unfolding same_priority_match_def
+      using no_OFPFF_CHECK_OVERLAP_same_priority
+   thm OFPFF_CHECK_OVERLAP_same_priority_defined
+   apply(subst(asm) OFPFF_CHECK_OVERLAP_same_priority_defined)
+oops
 
 
 
