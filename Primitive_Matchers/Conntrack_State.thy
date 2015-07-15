@@ -21,6 +21,8 @@ lemma ctstate_conjunct_correct: "match_ctstate S1 pkt \<and> match_ctstate S2 pk
   apply simp
   by blast
 
+lemma UNIV_ctstate: "UNIV = {CT_New, CT_Established, CT_Untracked}" using ctstate.exhaust by auto 
+
 function ctstate_set_toString_list :: "ctstate set \<Rightarrow> string list" where
   "ctstate_set_toString_list S = (if S = {} then [] else
     if CT_New \<in> S then ''NEW''#ctstate_set_toString_list (S - {CT_New}) else
@@ -30,8 +32,7 @@ by(pat_completeness) auto
 
 instance ctstate :: finite
 proof
-  have "UNIV = {CT_New, CT_Established, CT_Untracked}" using ctstate.exhaust by auto 
-  thus "finite (UNIV:: ctstate set)" using finite.simps by auto 
+  from UNIV_ctstate show "finite (UNIV:: ctstate set)" using finite.simps by auto 
 qed
   
 lemma "finite (S :: ctstate set)" by simp
@@ -45,5 +46,28 @@ definition ctstate_set_toString :: "ctstate set \<Rightarrow> string" where
   "ctstate_set_toString S = concat (splice (ctstate_set_toString_list S) (replicate (length (ctstate_set_toString_list S) - 1) '',''))"
 
 value[code] "ctstate_set_toString {CT_New, CT_New, CT_Established}"
+
+
+instantiation "ctstate" :: enum
+begin
+  definition "enum_ctstate = [CT_New, CT_Established, CT_Untracked]"
+
+  definition "enum_all_ctstate P \<longleftrightarrow> P CT_New \<and> P CT_Established \<and> P CT_Untracked"
+  
+  definition "enum_ex_ctstate P \<longleftrightarrow> P CT_New \<or> P CT_Established \<or> P CT_Untracked"
+instance proof
+  show "UNIV = set (enum_class.enum :: ctstate list)"
+    by(simp add: UNIV_ctstate enum_ctstate_def)
+  next
+  show "distinct (enum_class.enum :: ctstate list)"
+    by(simp add: enum_ctstate_def)
+  next
+  show "\<And>P. (enum_class.enum_all :: (ctstate \<Rightarrow> bool) \<Rightarrow> bool) P = Ball UNIV P"
+    by(simp add: UNIV_ctstate enum_all_ctstate_def)
+  next
+  show "\<And>P. (enum_class.enum_ex :: (ctstate \<Rightarrow> bool) \<Rightarrow> bool) P = Bex UNIV P"
+    by(simp add: UNIV_ctstate enum_ex_ctstate_def)
+qed
+end
 
 end
