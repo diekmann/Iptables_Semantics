@@ -80,6 +80,7 @@ fun common_primitive_toString :: "common_primitive \<Rightarrow> string" where
   "common_primitive_toString (Prot prot) = ''-p ''@protocol_toString prot" |
   "common_primitive_toString (Src_Ports pts) = list_toString (ports_toString ''--spts '') pts" |
   "common_primitive_toString (Dst_Ports pts) = list_toString (ports_toString ''--dpts '') pts" |
+  "common_primitive_toString (CT_State S) = ''-m state --state ''@ctstate_set_toString S" |
   "common_primitive_toString (Extra e) = ''~~''@e@''~~''"
 
 

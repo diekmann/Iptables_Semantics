@@ -24,7 +24,7 @@ fun abstract_primitive :: "(common_primitive negation_type \<Rightarrow> bool) \
 text{*For example, a simple firewall requires that no negated interfaces and protocols occur in the 
       expression. *}
 definition abstract_for_simple_firewall :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr"
-  where "abstract_for_simple_firewall \<equiv> abstract_primitive (\<lambda>r. case r of Pos _ \<Rightarrow> False | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a)"
+  where "abstract_for_simple_firewall \<equiv> abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_CT_State a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_CT_State a)"
 
 
 context

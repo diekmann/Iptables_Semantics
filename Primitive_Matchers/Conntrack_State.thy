@@ -21,11 +21,11 @@ lemma ctstate_conjunct_correct: "match_ctstate S1 pkt \<and> match_ctstate S2 pk
   apply simp
   by blast
 
-function ctstate_set_toString :: "ctstate set \<Rightarrow> string" where
-  "ctstate_set_toString S = (if S = {} then ''ERROR-no-ct-state'' else
-    if CT_New \<in> S then ''NEW''@ctstate_set_toString (S - {CT_New}) else
-    if CT_Established \<in> S then ''ESTABLISHED''@ctstate_set_toString (S - {CT_Established}) else
-    if CT_Untracked \<in> S then ''UNTRACKED''@ctstate_set_toString (S - {CT_Untracked}) else ''ERROR-unkown-ctstate'')"
+function ctstate_set_toString_list :: "ctstate set \<Rightarrow> string list" where
+  "ctstate_set_toString_list S = (if S = {} then [] else
+    if CT_New \<in> S then ''NEW''#ctstate_set_toString_list (S - {CT_New}) else
+    if CT_Established \<in> S then ''ESTABLISHED''#ctstate_set_toString_list (S - {CT_Established}) else
+    if CT_Untracked \<in> S then ''UNTRACKED''#ctstate_set_toString_list (S - {CT_Untracked}) else [''ERROR-unkown-ctstate''])"
 by(pat_completeness) auto
 
 instance ctstate :: finite
@@ -36,9 +36,14 @@ qed
   
 lemma "finite (S :: ctstate set)" by simp
 
-termination ctstate_set_toString
+termination ctstate_set_toString_list
 apply (relation "measure (\<lambda>(S). card S)")
 apply(simp_all add: card_gt_0_iff)
 done
+
+definition ctstate_set_toString :: "ctstate set \<Rightarrow> string" where
+  "ctstate_set_toString S = concat (splice (ctstate_set_toString_list S) (replicate (length (ctstate_set_toString_list S) - 1) '',''))"
+
+value[code] "ctstate_set_toString {CT_New, CT_New, CT_Established}"
 
 end
