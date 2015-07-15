@@ -1027,7 +1027,7 @@ lemma get_action_case_simp: "get_action (case r of Rule m' x \<Rightarrow> Rule 
 by (metis rule.case_eq_if rule.sel(2))
 
 text{*
-  We call a ruleset wf iff all Calls are into actually existing chains.
+  We call a ruleset well-formed (wf) iff all @{const Call}s are into actually existing chains.
 *}
 definition wf_chain :: "'a ruleset \<Rightarrow> 'a rule list \<Rightarrow> bool" where
   "wf_chain \<Gamma> rs \<equiv> (\<forall>r \<in> set rs. \<forall> chain. get_action r = Call chain \<longrightarrow> \<Gamma> chain \<noteq> None)"
@@ -1143,5 +1143,96 @@ discussion: http://marc.info/?l=netfilter-devel&m=105190848425334&w=2
 text{*Example*}
 lemma "process_call [''X'' \<mapsto> [Rule (Match b) Return, Rule (Match c) Accept]] [Rule (Match a) (Call ''X'')] =
        [Rule (MatchAnd (Match a) (MatchAnd (MatchNot (Match b)) (Match c))) Accept]" by (simp add: add_match_def)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+lemma wf_chain_fst: "wf_chain \<Gamma> (r # rs) \<Longrightarrow>  wf_chain \<Gamma> (rs)"
+  by(simp add: wf_chain_def)
+
+
+lemma "\<forall>rsg \<in> ran \<Gamma> \<union> {rs}. wf_chain \<Gamma> rsg \<Longrightarrow>
+  \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. \<forall> r \<in> set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Empty \<and> get_action r \<noteq> Unknown \<Longrightarrow>
+  \<forall> r \<in> set rs. get_action r \<noteq> Return (*no toplevel return*) \<Longrightarrow>
+  \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+apply(simp)
+apply(induction rs)
+ apply(simp_all)
+ apply(rule_tac x=s in exI)
+ apply(simp add: skip)
+
+apply(rename_tac r rs)
+apply(elim conjE)
+apply(simp add: wf_chain_fst)
+apply(elim exE)
+apply(rename_tac t')
+apply(case_tac r)
+apply(rename_tac m a)
+apply(simp)
+apply(case_tac "\<not> matches \<gamma> m p")
+ apply(rule_tac x=t' in exI)
+ apply(rule_tac t=s in seq'_cons)
+  apply (metis empty_iff empty_set insert_iff list.simps(15) nomatch' rule.sel(1)) 
+ apply(simp)
+apply(simp)
+apply(case_tac s)
+ prefer 2
+ apply(simp)
+ apply(rule_tac x="Decision x2" in exI)
+ apply(simp add: decision)
+apply(simp)
+apply(case_tac a)
+apply(simp_all)
+ apply(rule_tac x="Decision FinalAllow" in exI)
+ apply(rule_tac t="Decision FinalAllow" in seq'_cons)
+ apply(auto intro: iptables_bigstep.intros)[2]
+
+ apply(rule_tac x="Decision FinalDeny" in exI)
+ apply(rule_tac t="Decision FinalDeny" in seq'_cons)
+ apply(auto intro: iptables_bigstep.intros)[2]
+
+ apply(rule_tac x=t' in exI)
+ apply(rule_tac t=Undecided in seq'_cons)
+ apply(auto intro: iptables_bigstep.intros)[2]
+
+ apply(rule_tac x="Decision FinalDeny" in exI)
+ apply(rule_tac t="Decision FinalDeny" in seq'_cons)
+ apply(auto intro: iptables_bigstep.intros)[2]
+
+ prefer 2 apply fast
+
+(** here we need something about the return**)
+oops
+
+(*Scratch: showing that semantics are defined*)
+definition calls_chain :: "'a ruleset \<Rightarrow> (string \<times> string) set" where
+  "calls_chain \<Gamma> = {(r, s). case \<Gamma> r of Some rs \<Rightarrow> \<exists>m. Rule m (Call s) \<in> set rs | None \<Rightarrow> False}"
+thm wf_induct
+thm wf_induct_rule
+
+
+lemma "wf (calls_chain \<Gamma>) \<Longrightarrow>
+  \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. wf_chain \<Gamma> rsg \<Longrightarrow>
+  \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. \<forall> r \<in> set rsg. (\<not>(\<exists>chain. get_action r = Goto chain)) \<and> get_action r \<noteq> Empty \<and> get_action r \<noteq> Unknown \<Longrightarrow>
+  \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t"
+apply(induction rule: wf_induct_rule)
+apply(rename_tac chain_name)
+apply(simp)
+apply(induction rs)
+ apply(simp_all)
+ apply(rule_tac x=Undecided in exI)
+ apply(simp add: skip)
+apply(rename_tac r rs chain_name)
+oops
 
 end
