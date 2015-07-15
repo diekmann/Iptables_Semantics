@@ -1161,9 +1161,10 @@ lemma wf_chain_fst: "wf_chain \<Gamma> (r # rs) \<Longrightarrow>  wf_chain \<Ga
   by(simp add: wf_chain_def)
 
 
-lemma "\<forall>rsg \<in> ran \<Gamma> \<union> {rs}. wf_chain \<Gamma> rsg \<Longrightarrow>
+lemma semantics_bigstep_defined: "\<forall>rsg \<in> ran \<Gamma> \<union> {rs}. wf_chain \<Gamma> rsg \<Longrightarrow>
   \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. \<forall> r \<in> set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Empty \<and> get_action r \<noteq> Unknown \<Longrightarrow>
   \<forall> r \<in> set rs. get_action r \<noteq> Return (*no toplevel return*) \<Longrightarrow>
+  (\<forall>name \<in> dom \<Gamma>. \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>the (\<Gamma> name), Undecided\<rangle> \<Rightarrow> t) (*defined for all chains in the background ruleset*) \<Longrightarrow>
   \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
 apply(simp)
 apply(induction rs)
@@ -1210,9 +1211,32 @@ apply(simp_all)
  apply(auto intro: iptables_bigstep.intros)[2]
 
  prefer 2 apply fast
+ 
+(** here we need something about the call**)
+ apply(rename_tac chain_name)
+ apply(subgoal_tac "\<exists> rs'. \<Gamma> chain_name = Some rs'")
+  prefer 2
+  apply(simp add: wf_chain_def)
+ apply(elim exE)
+ apply(rename_tac rs')
+ apply(erule_tac x="chain_name" in ballE)
+  prefer 2
+  apply fast
+ apply(simp)
+ apply(erule exE)
+ apply(rename_tac t'')
+ apply(drule(2) call_result)
+ apply(case_tac t'')
+  apply simp
+  apply(rule_tac x="t'" in exI)
+  apply(rule_tac t=Undecided in seq'_cons)
+  apply(auto intro: iptables_bigstep.intros)[2]
+ apply(simp)
+ apply(rule_tac x="t''" in exI)
+ apply(rule_tac t=t'' in seq'_cons)
+ apply(auto intro: iptables_bigstep.intros)[2]
+done
 
-(** here we need something about the return**)
-oops
 
 (*Scratch: showing that semantics are defined*)
 definition calls_chain :: "'a ruleset \<Rightarrow> (string \<times> string) set" where
@@ -1221,18 +1245,77 @@ thm wf_induct
 thm wf_induct_rule
 
 
+lemma "\<exists>y. (y, chain_name) \<in> calls_chain \<Gamma> \<Longrightarrow> (\<And>y. (y, chain_name) \<in> calls_chain \<Gamma> \<Longrightarrow> Ex (iptables_bigstep \<Gamma> \<gamma> p rs s)) \<Longrightarrow>
+   Ex (iptables_bigstep \<Gamma> \<gamma> p rs s)"
+by blast
+
+
+lemma "wf (calls_chain \<Gamma>) \<Longrightarrow>
+  (x, y) \<in> calls_chain \<Gamma> \<Longrightarrow>
+  \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], s\<rangle> \<Rightarrow> t \<Longrightarrow>
+  \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x)], s\<rangle> \<Rightarrow> t"
+apply(induction rule: wf_induct_rule)
+apply(simp)
+
+oops
+
 lemma "wf (calls_chain \<Gamma>) \<Longrightarrow>
   \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. wf_chain \<Gamma> rsg \<Longrightarrow>
   \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. \<forall> r \<in> set rsg. (\<not>(\<exists>chain. get_action r = Goto chain)) \<and> get_action r \<noteq> Empty \<and> get_action r \<noteq> Unknown \<Longrightarrow>
-  \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t"
-apply(induction rule: wf_induct_rule)
-apply(rename_tac chain_name)
+  \<forall> r \<in> set rs. get_action r \<noteq> Return (*no toplevel return*) \<Longrightarrow>
+  \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
 apply(simp)
 apply(induction rs)
  apply(simp_all)
- apply(rule_tac x=Undecided in exI)
+ apply(rule_tac x=s in exI)
  apply(simp add: skip)
-apply(rename_tac r rs chain_name)
+
+apply(rename_tac r rs)
+apply(elim conjE)
+apply(simp add: wf_chain_fst)
+
+apply(elim exE)
+apply(rename_tac t')
+apply(case_tac r)
+apply(rename_tac m a)
+apply(simp)
+apply(case_tac "\<not> matches \<gamma> m p")
+ apply(rule_tac x=t' in exI)
+ apply(rule_tac t=s in seq'_cons)
+  apply (metis empty_iff empty_set insert_iff list.simps(15) nomatch' rule.sel(1)) 
+ apply(simp)
+apply(simp)
+apply(case_tac s)
+ prefer 2
+ apply(simp)
+ apply(rule_tac x="Decision x2" in exI)
+ apply(simp add: decision)
+apply(simp)
+apply(case_tac a)
+apply(simp_all)
+ apply(rule_tac x="Decision FinalAllow" in exI)
+ apply(rule_tac t="Decision FinalAllow" in seq'_cons)
+ apply(auto intro: iptables_bigstep.intros)[2]
+
+ apply(rule_tac x="Decision FinalDeny" in exI)
+ apply(rule_tac t="Decision FinalDeny" in seq'_cons)
+ apply(auto intro: iptables_bigstep.intros)[2]
+
+ apply(rule_tac x=t' in exI)
+ apply(rule_tac t=Undecided in seq'_cons)
+ apply(auto intro: iptables_bigstep.intros)[2]
+
+ apply(rule_tac x="Decision FinalDeny" in exI)
+ apply(rule_tac t="Decision FinalDeny" in seq'_cons)
+ apply(auto intro: iptables_bigstep.intros)[2]
+
+ prefer 2 apply fast
+
+apply(erule_tac r="(calls_chain \<Gamma>)" in wf_induct_rule)
+apply(induction rule: wf_induct_rule)
+apply(rename_tac chain_name chain_name_x)
+
+(** here we need something about the return**)
 oops
 
 end
