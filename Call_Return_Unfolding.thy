@@ -645,7 +645,7 @@ lemma update_gamme_remove_Undecidedpart:
         apply(erule_tac rs\<^sub>1="take (length rs1) rs\<^sub>1" and rs\<^sub>2="drop (length rs1) rs\<^sub>1" in seqE)
         apply(simp)
         apply(frule_tac rs="drop (length rs1) rs\<^sub>1" in iptables_bigstep_to_undecided)
-        apply(simp) (*oh wow*)
+        apply(simp; fail) (*oh wow*)
        using assms apply (auto intro: call_result call_return)
       done
   next
