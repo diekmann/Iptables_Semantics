@@ -1427,14 +1427,13 @@ case Call_return
 qed(auto intro: iptables_bigstep.intros)
 
 
-lemma iptables_bigstep_defined_if_singleton_rule: "\<forall> r. (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[r], s\<rangle> \<Rightarrow> t) \<Longrightarrow> \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+lemma iptables_bigstep_defined_if_singleton_rules: "\<forall> r \<in> set rs. (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[r], s\<rangle> \<Rightarrow> t) \<Longrightarrow> \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
   apply(induction rs arbitrary: s)
    apply(rule_tac x=s in exI)
    apply(simp add: skip)
   apply(rename_tac  r rs s)
   apply(subgoal_tac "Ex (iptables_bigstep \<Gamma> \<gamma> p [r] s)")
    prefer 2 apply simp
-  (*apply(erule_tac x=r in allE)*)
   apply(erule exE, rename_tac t)
   apply(case_tac t)
    prefer 2
@@ -1479,6 +1478,11 @@ case (Cons x xs)
     using Cons.prems(2) by (simp add: dom_map_of_conv_image_fst) 
 
   (*vielversprechend*)
+
+  show ?case
+    apply(rule iptables_bigstep_defined_if_singleton_rules)
+    apply(intro ballI, rename_tac r)
+    
 
 oops
 
