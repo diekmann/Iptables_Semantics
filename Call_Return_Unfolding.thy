@@ -391,11 +391,10 @@ lemma update_Gamma_nomatch:
               apply(cases "rs\<^sub>1")
               using assms apply fastforce
               apply(rule_tac rs\<^sub>1="list" and m'="m'" and rs\<^sub>2="rs\<^sub>2" in call_return)
+                 apply(simp)
+                apply(simp)
+               apply(simp)
               apply(simp)
-              apply(simp)
-              apply(simp)
-              apply(simp)
-
               apply(erule seqE_cons[where \<Gamma>="(\<lambda>a. if a = chain then Some rs else \<Gamma> a)"])
               apply(frule iptables_bigstep_to_undecided[where \<Gamma>="(\<lambda>a. if a = chain then Some rs else \<Gamma> a)"])
               apply(simp)
@@ -1289,11 +1288,59 @@ case(Cons r rs)
   with Cons.prems Cons.IH[of ?\<Gamma>' name] have "\<exists>a. ?\<Gamma>',\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> a" by simp
   thus ?case
 apply -
-apply(rename_tac r rs \<Gamma> xs name)
-apply(elim conjE)
-apply(simp add: wf_chain_fst)
 apply(elim exE)
+apply(rename_tac t')
+apply(case_tac r)
+apply(rename_tac m a)
+apply(simp)
+apply(case_tac "\<not> matches \<gamma> m p")
+ apply(rule_tac x=t' in exI)
+ apply(rule_tac t=s in seq'_cons)
+  apply (metis empty_iff empty_set insert_iff list.simps(15) nomatch' rule.sel(1))
+  
 oops
+
+
+lemma ran_gammaupdate_subset: "ran (\<Gamma>(chain \<mapsto> rs)) \<subseteq> ran (\<Gamma>(chain \<mapsto> r#rs)) \<union> {rs}"
+  apply(simp add: ran_def)
+  by blast
+
+lemma ruleset_assms_gammaupdate_fst: "ruleset_assms (\<Gamma>(chain \<mapsto> r # rs)) \<Longrightarrow> ruleset_assms (\<Gamma>(chain \<mapsto> rs))"
+unfolding ruleset_assms_def
+proof -
+  fix rsg :: "'a rule list"
+  assume 1: "\<forall>rsg\<in>ran (\<Gamma>(chain \<mapsto> r # rs)). wf_chain (\<Gamma>(chain \<mapsto> r # rs)) rsg \<and> (\<forall>r\<in>set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown)"
+  hence "\<forall>rsg\<in>ran (\<Gamma>(chain \<mapsto> r # rs)) \<union> {rs}. wf_chain (\<Gamma>(chain \<mapsto> r # rs)) rsg \<and> (\<forall>r\<in>set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown)"
+    proof(simp, intro conjI)
+      assume a: "\<forall>rsg\<in>ran (\<Gamma>(chain \<mapsto> r # rs)). wf_chain (\<Gamma>(chain \<mapsto> r # rs)) rsg \<and> (\<forall>r\<in>set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown)"
+      have "r#rs \<in> ran (\<Gamma>(chain \<mapsto> r # rs))"
+        apply(intro Map.ranI)
+        by auto
+      with a have "wf_chain (\<Gamma>(chain \<mapsto> r # rs)) (r#rs)" by simp
+      thus "wf_chain (\<Gamma>(chain \<mapsto> r # rs)) rs" by(simp add: wf_chain_fst)
+    next
+      assume a: "\<forall>rsg\<in>ran (\<Gamma>(chain \<mapsto> r # rs)). wf_chain (\<Gamma>(chain \<mapsto> r # rs)) rsg \<and> (\<forall>r\<in>set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown)"
+      thus "\<forall>r\<in>set rs. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown"
+      by (metis fun_upd_same insert_iff list.simps(15) ranI)
+    qed
+  from this ran_gammaupdate_subset
+  show "\<forall> rsg \<in> ran (\<Gamma>(chain \<mapsto> rs)). wf_chain (\<Gamma>(chain \<mapsto> rs)) rsg \<and> (\<forall>r\<in>set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown)"
+  by (smt fun_upd_def option.distinct(1) subsetCE wf_chain_def) (*TODO*)
+qed
+
+lemma assumes (*Gamma: "\<Gamma> = map_of xs" and*) ruleset_assms: "ruleset_assms (\<Gamma>(chain \<mapsto> rs))"
+  shows "\<exists>t. \<Gamma>(chain \<mapsto> rs),\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+using ruleset_assms proof(induction rs arbitrary: )
+case Nil thus ?case
+ apply(rule_tac x=s in exI)
+ apply(simp add: skip)
+ done
+next
+case(Cons r rs)
+  from ruleset_assms_gammaupdate_fst Cons.prems Cons.IH have "\<exists>a. \<Gamma>(chain \<mapsto> rs),\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> a" by blast
+  thus ?case
+oops
+
 
 
 lemma "\<Gamma> = map_of xs \<Longrightarrow>
