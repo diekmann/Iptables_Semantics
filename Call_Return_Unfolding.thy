@@ -603,17 +603,17 @@ lemma update_Gamma_nochange1:
         with Call_result show ?thesis
           apply(simp)
           apply(cases "rsa")
-          apply(simp)
-          apply(rule_tac rs=rs in call_result)
-          apply(simp_all)
+           apply(simp)
+           apply(rule_tac rs=rs in call_result)
+            apply(simp_all)
           apply(erule_tac seqE_cons[where \<Gamma>="(\<lambda>b. if b = chain then Some rs else \<Gamma> b)"])
           apply(case_tac t)
-          apply(simp)
-          apply(frule iptables_bigstep_to_undecided[where \<Gamma>="(\<lambda>b. if b = chain then Some rs else \<Gamma> b)"])
-          apply(simp)
+           apply(simp)
+           apply(frule iptables_bigstep_to_undecided[where \<Gamma>="(\<lambda>b. if b = chain then Some rs else \<Gamma> b)"])
+           apply(simp)
           apply(simp)
           apply(subgoal_tac "ti = Undecided")
-          apply(simp)
+           apply(simp)
           using assms(1)[simplified map_update_chain_if[symmetric]] iptables_bigstep_deterministic apply fast
           done
       qed (fastforce intro: call_result)
@@ -1162,6 +1162,7 @@ lemma semantics_bigstep_defined: "\<forall>rsg \<in> ran \<Gamma> \<union> {rs}.
   \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. \<forall> r \<in> set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
   \<forall> r \<in> set rs. get_action r \<noteq> Return (*no toplevel return*) \<Longrightarrow>
   (\<forall>name \<in> dom \<Gamma>. \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>the (\<Gamma> name), Undecided\<rangle> \<Rightarrow> t) (*defined for all chains in the background ruleset*) \<Longrightarrow>
+  (*could we apply unfolding_n_sound_complete to get rid of the call case?*)
   \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
 apply(simp)
 apply(induction rs)
@@ -1209,6 +1210,23 @@ apply(simp_all)
 
  prefer 2 apply fast
  
+
+(*test with process_call*)
+(*apply(subgoal_tac "Ex (iptables_bigstep \<Gamma> \<gamma> p (process_call \<Gamma> (Rule m (Call x5) # rs)) Undecided)")
+apply(elim exE)
+apply(rename_tac xxxx)
+apply(rule_tac x=xxxx in exI)
+using unfolding_n_sound_complete[symmetric, simplified wf_chain_def]
+thm unfolding_n_sound_complete[where n=1, simplified]
+apply(subst unfolding_n_sound_complete[where n=1 and \<Gamma>=\<Gamma>, simplified, symmetric])
+  apply(simp add: wf_chain_def)
+apply force
+
+apply(simp)
+*)(*the whole thing could work if stated as something with call?*)
+(*end test with process_call*)
+
+
 (** here we need something about the call**)
  apply(rename_tac chain_name)
  apply(subgoal_tac "\<exists> rs'. \<Gamma> chain_name = Some rs'")
