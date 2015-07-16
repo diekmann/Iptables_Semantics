@@ -1241,6 +1241,94 @@ apply(simp_all)
  apply(auto intro: iptables_bigstep.intros)[2]
 done
 
+thm finite_induct
+
+definition ruleset_assms :: "'a ruleset \<Rightarrow> bool" where
+  "ruleset_assms \<Gamma> \<equiv> \<forall>rsg \<in> ran \<Gamma>. wf_chain \<Gamma> rsg \<and> (\<forall> r \<in> set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown)"
+
+lemma assumes (*Gamma: "\<Gamma> = map_of xs" and*) ruleset_assms: "ruleset_assms \<Gamma>" and Gamma_chain: "\<Gamma> name = Some rs"
+  shows "\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+using Gamma_chain ruleset_assms proof(induction rs arbitrary: \<Gamma> name)
+case Nil thus ?case
+ apply(rule_tac x=s in exI)
+ apply(simp add: skip)
+ done
+next
+case(Cons r rs)
+  let ?\<Gamma>''="\<lambda>n. if n = name then Some (tl (the (\<Gamma> name))) else \<Gamma> n"
+  let ?\<Gamma>'="\<lambda>n. if n = name then Some rs else \<Gamma> n"
+  from `\<Gamma> name = Some (r#rs)` have x: "(tl (the (\<Gamma> name))) = rs" by simp
+  have "?\<Gamma>'' = ?\<Gamma>'" using x by auto
+  have y: "ran ?\<Gamma>' \<subseteq> ran \<Gamma> \<union> {rs}"
+    apply(simp add: ran_def)
+    by blast
+  { fix P
+    assume P: "\<forall>rsg\<in>ran \<Gamma>. (\<forall>r\<in>set rsg. P r)"
+    from `\<Gamma> name = Some (r # rs)` have "(r # rs) \<in> ran \<Gamma>" using Map.ranI by fast
+    with P have "(\<forall>r \<in> set rs. P r)" by fastforce
+  }note all_r_rs=this
+  have all_ran_splitand: "\<And>P Q. \<forall>rsg\<in>ran \<Gamma>. P rsg \<and> Q rsg \<Longrightarrow> (\<forall>rsg\<in>ran \<Gamma>. P rsg) \<and> (\<forall>rsg\<in>ran \<Gamma>. Q rsg)" by blast
+  from `ruleset_assms \<Gamma>` have "wf_chain ?\<Gamma>' rs \<and> (\<forall>r\<in>set rs. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown)"
+    apply -
+    apply(rule conjI)
+     apply(simp_all add: ruleset_assms_def)
+     apply(drule all_ran_splitand)
+     apply(simp add: wf_chain_def)
+     using all_r_rs apply auto[1]
+    apply(drule all_ran_splitand)
+    using all_r_rs apply auto[1]
+    done
+  with `ruleset_assms \<Gamma>` have "\<forall>rsg\<in>ran \<Gamma> \<union> {rs}.
+       wf_chain (\<lambda>n. if n = name then Some rs else \<Gamma> n) rsg \<and> (\<forall>r\<in>set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown)"
+    apply(simp add: ruleset_assms_def)
+    apply(simp add: wf_chain_def)
+    done
+  hence "ruleset_assms ?\<Gamma>'"
+    apply(simp add: ruleset_assms_def)
+    using y by blast
+  with Cons.prems Cons.IH[of ?\<Gamma>' name] have "\<exists>a. ?\<Gamma>',\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> a" by simp
+  thus ?case
+apply -
+apply(rename_tac r rs \<Gamma> xs name)
+apply(elim conjE)
+apply(simp add: wf_chain_fst)
+apply(elim exE)
+oops
+
+
+lemma "\<Gamma> = map_of xs \<Longrightarrow>
+  \<forall>rsg \<in> ran \<Gamma>. wf_chain \<Gamma> rsg \<Longrightarrow>
+  \<forall>rsg \<in> ran \<Gamma>. \<forall> r \<in> set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
+  \<Gamma> name = Some rs \<Longrightarrow>
+  \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+apply(induction xs arbitrary: \<Gamma>)
+ apply(simp)
+apply(simp)
+apply(rename_tac x xs \<Gamma>)
+apply(case_tac x)
+apply(rename_tac name' rs')
+apply(simp)
+apply(subgoal_tac "Ex (iptables_bigstep (map_of xs) \<gamma> p rs s)")
+prefer 2
+apply(case_tac "name = name'")
+ apply(simp)
+ 
+(*
+  finite (dom \<Gamma>) \<Longrightarrow> (*finite induct?*)
+  finite (ran \<Gamma>) \<Longrightarrow> (*finite induct?*)
+*)
+(*apply(rotate_tac 4)
+apply(induction "(ran \<Gamma>)" arbitrary: \<Gamma> rule: finite_induct)
+ apply(simp_all)
+ using ranI apply fastforce*)
+apply(simp)
+apply(rename_tac name' \<Gamma>' \<Gamma>)
+apply(case_tac "name = name'")
+apply(subgoal_tac "Ex (iptables_bigstep \<Gamma>' \<gamma> p rs s)")
+defer
+try0
+oops
+
 
 (*Scratch: showing that semantics are defined*)
 definition calls_chain :: "'a ruleset \<Rightarrow> (string \<times> string) set" where
