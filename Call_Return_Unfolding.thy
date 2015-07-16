@@ -1326,9 +1326,16 @@ proof -
   by (smt fun_upd_def option.distinct(1) subsetCE wf_chain_def) (*TODO*)
 qed
 
+
+lemma ruleset_assms_gammaupdate_ex_rsX: 
+  "ruleset_assms (\<Gamma>(chain \<mapsto> Rule m (Call chain_name) # rs)) \<Longrightarrow> \<exists>rsX. (\<Gamma>(chain \<mapsto> Rule m (Call chain_name) # rs)) chain_name = Some rsX"
+  apply(simp add: ruleset_assms_def wf_chain_def)
+  by (meson fun_upd_same list.set_intros(1) ranI rule.sel(2))
+  
+
 lemma assumes ruleset_assms: "ruleset_assms (\<Gamma>(chain \<mapsto> rs))"
-  shows "\<exists>t. \<Gamma>(chain \<mapsto> rs),\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t" (*Undecided = s*)
-using ruleset_assms proof(induction rs arbitrary: )
+  shows "\<exists>t. \<Gamma>(chain \<mapsto> rs(*'*)),\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t" (*Undecided = s*)
+using ruleset_assms proof(induction rs arbitrary: chain )
 case Nil thus ?case
  apply(rule_tac x=Undecided in exI)
  apply(simp add: skip)
@@ -1346,15 +1353,49 @@ apply(case_tac "\<not> matches \<gamma> m p")
  apply(rule_tac x=t' in exI)
  apply(rule_tac t=Undecided in seq'_cons)
   apply (simp add: nomatch)
- apply (simp add: map_update_chain_if update_Gamma_nomatch)
+ apply (simp add: map_update_chain_if update_Gamma_nomatch; fail)
 apply(simp)
 apply(simp add: map_update_chain_if)
-apply(case_tac s)
- prefer 2
- apply(simp)
- apply(rule_tac x="Decision x2" in exI)
- apply(simp add: decision)
-apply(simp)
+
+
+apply(case_tac a)
+apply(simp_all)
+ apply(rule_tac x="Decision FinalAllow" in exI)
+ apply(rule_tac t="Decision FinalAllow" in seq'_cons)
+ apply(auto intro: iptables_bigstep.intros)[2]
+
+ apply(rule_tac x="Decision FinalDeny" in exI)
+ apply(rule_tac t="Decision FinalDeny" in seq'_cons)
+ apply(auto intro: iptables_bigstep.intros)[2]
+
+ apply(rule_tac x=t' in exI)
+ apply(rule_tac t=Undecided in seq'_cons)
+ apply(auto intro: iptables_bigstep.intros)[2]
+ apply (simp add: update_Gamma_log_empty)
+
+ apply(rule_tac x="Decision FinalDeny" in exI)
+ apply(rule_tac t="Decision FinalDeny" in seq'_cons)
+ apply(auto intro: iptables_bigstep.intros)[2]
+
+
+(** here we need something about the call**)
+ apply(rename_tac chain_name)
+ apply (insert Cons.prems, simp add: map_update_chain_if)
+
+ apply(subgoal_tac "\<exists> rsX. (\<Gamma>(chain \<mapsto> Rule m (Call chain_name) # rs)) chain_name = Some rsX")
+  prefer 2
+  using ruleset_assms_gammaupdate_ex_rsX apply blast
+ apply(elim exE, rename_tac rsX)
+ apply(subgoal_tac "(\<Gamma>(chain \<mapsto> Rule m (Call chain_name) # rs)),\<gamma>,p\<turnstile> \<langle>rsX, Undecided\<rangle> \<Rightarrow> t''")(*sorry*)
+ thm call_result
+ apply(drule(2) call_result)
+  apply(rule_tac x="t''" in exI)
+  apply(rule_tac t=t'' in seq'_cons)
+  apply blast
+  apply(auto intro: iptables_bigstep.intros)[1]
+
+(*IT IS IMPOSSIBLE TO SOLVE THE RETURN CASE ANYWAY*)
+
 oops
 
 
