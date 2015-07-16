@@ -631,34 +631,32 @@ lemma update_gamme_remove_Undecidedpart:
     case (Call_return m a chaina rs\<^sub>1 m' rs\<^sub>2)
     thus ?case
       apply(cases "chaina = chain")
-      apply(simp)
-      apply(cases "length rs1 \<le> length rs\<^sub>1")
-      apply(simp add: List.append_eq_append_conv_if)
-      apply(rule_tac rs\<^sub>1="drop (length rs1) rs\<^sub>1" and m'=m' and rs\<^sub>2=rs\<^sub>2 in call_return)
-      apply(simp_all)[3]
-      apply(subgoal_tac "rs\<^sub>1 = (take (length rs1) rs\<^sub>1) @ drop (length rs1) rs\<^sub>1")
-      prefer 2 apply (metis append_take_drop_id)
-      apply(clarify)
-      apply(subgoal_tac "\<Gamma>(chain \<mapsto> drop (length rs1) rs\<^sub>1 @ Rule m' Return # rs\<^sub>2),\<gamma>,p\<turnstile> 
-          \<langle>(take (length rs1) rs\<^sub>1) @ drop (length rs1) rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided")
-      prefer 2 apply(auto)[1]
-      apply(erule_tac rs\<^sub>1="take (length rs1) rs\<^sub>1" and rs\<^sub>2="drop (length rs1) rs\<^sub>1" in seqE)
-      apply(simp)
-      apply(frule_tac rs="drop (length rs1) rs\<^sub>1" in iptables_bigstep_to_undecided)
-      apply(simp) (*oh wow*)
-  
-      using assms apply (auto intro: call_result call_return)
+       apply(simp)
+       apply(cases "length rs1 \<le> length rs\<^sub>1")
+        apply(simp add: List.append_eq_append_conv_if)
+        apply(rule_tac rs\<^sub>1="drop (length rs1) rs\<^sub>1" and m'=m' and rs\<^sub>2=rs\<^sub>2 in call_return)
+          apply(simp_all)[3]
+        apply(subgoal_tac "rs\<^sub>1 = (take (length rs1) rs\<^sub>1) @ drop (length rs1) rs\<^sub>1")
+         prefer 2 apply (metis append_take_drop_id)
+        apply(clarify)
+        apply(subgoal_tac "\<Gamma>(chain \<mapsto> drop (length rs1) rs\<^sub>1 @ Rule m' Return # rs\<^sub>2),\<gamma>,p\<turnstile> 
+            \<langle>(take (length rs1) rs\<^sub>1) @ drop (length rs1) rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided")
+         prefer 2 apply(auto)[1]
+        apply(erule_tac rs\<^sub>1="take (length rs1) rs\<^sub>1" and rs\<^sub>2="drop (length rs1) rs\<^sub>1" in seqE)
+        apply(simp)
+        apply(frule_tac rs="drop (length rs1) rs\<^sub>1" in iptables_bigstep_to_undecided)
+        apply(simp) (*oh wow*)
+       using assms apply (auto intro: call_result call_return)
       done
   next
     case (Call_result _ _ chain' rsa)
     thus ?case
       apply(cases "chain' = chain")
-      apply(simp)
-      apply(rule call_result)
-      apply(simp_all)[2]
-      apply (metis iptables_bigstep_to_undecided seqE)
+       apply(simp)
+       apply(rule call_result)
+         apply(simp_all)[2]
+       apply (metis iptables_bigstep_to_undecided seqE)
       apply (auto intro: call_result)
-
       done
   qed (auto intro: iptables_bigstep.intros)
 
@@ -1328,17 +1326,35 @@ proof -
   by (smt fun_upd_def option.distinct(1) subsetCE wf_chain_def) (*TODO*)
 qed
 
-lemma assumes (*Gamma: "\<Gamma> = map_of xs" and*) ruleset_assms: "ruleset_assms (\<Gamma>(chain \<mapsto> rs))"
-  shows "\<exists>t. \<Gamma>(chain \<mapsto> rs),\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+lemma assumes ruleset_assms: "ruleset_assms (\<Gamma>(chain \<mapsto> rs))"
+  shows "\<exists>t. \<Gamma>(chain \<mapsto> rs),\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t" (*Undecided = s*)
 using ruleset_assms proof(induction rs arbitrary: )
 case Nil thus ?case
- apply(rule_tac x=s in exI)
+ apply(rule_tac x=Undecided in exI)
  apply(simp add: skip)
  done
 next
 case(Cons r rs)
-  from ruleset_assms_gammaupdate_fst Cons.prems Cons.IH have "\<exists>a. \<Gamma>(chain \<mapsto> rs),\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> a" by blast
+  from ruleset_assms_gammaupdate_fst Cons.prems Cons.IH have "\<exists>a. \<Gamma>(chain \<mapsto> rs),\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> a" by blast
   thus ?case
+apply(elim exE)
+apply(rename_tac t')
+apply(case_tac r)
+apply(rename_tac m a)
+apply(simp)
+apply(case_tac "\<not> matches \<gamma> m p")
+ apply(rule_tac x=t' in exI)
+ apply(rule_tac t=Undecided in seq'_cons)
+  apply (simp add: nomatch)
+ apply (simp add: map_update_chain_if update_Gamma_nomatch)
+apply(simp)
+apply(simp add: map_update_chain_if)
+apply(case_tac s)
+ prefer 2
+ apply(simp)
+ apply(rule_tac x="Decision x2" in exI)
+ apply(simp add: decision)
+apply(simp)
 oops
 
 
