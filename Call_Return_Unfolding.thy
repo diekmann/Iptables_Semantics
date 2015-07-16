@@ -1456,8 +1456,8 @@ lemma "\<Gamma> = map_of xs \<Longrightarrow> distinct (map fst xs) \<Longrighta
   \<forall>chainnames \<in> dom \<Gamma>. some_validity_condition chainnames \<Longrightarrow>
   \<forall> r \<in> set rs. get_action r \<noteq> Return (*no toplevel return*) \<and> get_action r \<noteq> Unknown \<and>
                 (\<forall>c. get_action r \<noteq> Goto c) \<and> (\<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom \<Gamma>) \<Longrightarrow>
-  \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
-proof(induction xs arbitrary: \<Gamma>)
+  \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t"
+proof(induction xs arbitrary: \<Gamma> rs)
 case Nil thus ?case
   apply(simp)
   (*with \<Gamma>=map.Empty, this hopefully follows from semantics_bigstep_defined*)
@@ -1465,9 +1465,9 @@ case Nil thus ?case
 next
 case (Cons x xs)
   have "\<forall>a\<in>dom (map_of xs). some_validity_condition a" sorry
-  with Cons.IH[of "map_of xs"] Cons.prems have IH: "\<forall>r\<in>set rs. \<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom (map_of xs) \<Longrightarrow> \<exists>t. map_of xs,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" by simp
+  with Cons.IH[of "map_of xs"] Cons.prems have IH: "\<forall>r\<in>set rs. \<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom (map_of xs) \<Longrightarrow> \<exists>t. map_of xs,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t" by simp
   from Cons.prems have "\<forall>r\<in>set rs. \<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom (map_of (x#xs))" by meson
-  have "\<forall>r\<in>set rs. \<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom (map_of xs) \<Longrightarrow> ?case"
+  have 1: "\<forall>r\<in>set rs. \<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom (map_of xs) \<Longrightarrow> ?case"
     apply(drule IH)
     apply(simp add: Cons.prems map_update_chain_if)
     apply(elim exE)
@@ -1477,13 +1477,53 @@ case (Cons x xs)
      apply(simp)
     using Cons.prems(2) by (simp add: dom_map_of_conv_image_fst) 
 
+  from Cons have "\<forall>r\<in>set rs. \<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom (map_of (x # xs))" by blast
+  hence x: "(\<not> (\<forall>r\<in>set rs. \<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom (map_of xs))) \<longleftrightarrow>
+    (\<exists> r \<in> set rs. get_action r = Call (fst x))"
+    apply -
+    apply(rule iffI)
+     apply fastforce
+    by (metis Cons.prems(2) distinct.simps(2) dom_map_of_conv_image_fst list.simps(9) set_map)
+    
+
   (*vielversprechend*)
 
   show ?case
-    apply(rule iptables_bigstep_defined_if_singleton_rules)
-    apply(intro ballI, rename_tac r)
-    
+   (*apply(cases "\<not> (\<exists> r \<in> set rs. get_action r = Call (fst x))")
+    apply(subst(asm) x[symmetric])
+    using 1 apply blast
+   apply(simp)*)
+   apply(rule iptables_bigstep_defined_if_singleton_rules)
+   apply(intro ballI, rename_tac r)
 
+   apply(case_tac r)
+   apply(rename_tac m a)
+apply(case_tac "\<not> matches \<gamma> m p")
+ apply(rule_tac x=Undecided in exI)
+ using nomatch' apply force
+
+apply(simp)
+
+apply(case_tac a)
+apply(simp_all)
+ apply(auto intro: iptables_bigstep.intros)[4]
+ prefer 4
+ apply(auto intro: iptables_bigstep.intros)[1]
+
+ defer
+ using Cons.prems(4) rule.sel(2) apply blast
+ using Cons.prems(4) rule.sel(2) apply blast
+ using Cons.prems(4) rule.sel(2) apply blast
+
+(** here we need something about the call**)
+ apply(rename_tac chain_name)
+ apply(subgoal_tac "chain_name \<in> dom (map_of (x#xs))")
+  prefer 2 using `\<forall>r\<in>set rs. \<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom (map_of (x # xs))` rule.sel(2) apply blast
+ apply(case_tac "chain_name = fst x")
+
+ (*arbitrary rs nutzen?*)
+ defer
+ 
 oops
 
 
