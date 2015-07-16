@@ -1417,6 +1417,36 @@ apply(simp_all)
 oops
 
 
+lemma updategamma_insert_new: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<Longrightarrow> chain \<notin> dom \<Gamma> \<Longrightarrow> \<Gamma>(chain \<mapsto> rs'),\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+proof(induction rule: iptables_bigstep_induct)
+case (Call_result m a chain' rs t)
+  thus ?case by (metis call_result domI fun_upd_def)
+next
+case Call_return
+  thus ?case by (metis call_return domI fun_upd_def)
+qed(auto intro: iptables_bigstep.intros)
+
+
+lemma "\<Gamma> = map_of xs \<Longrightarrow> distinct (map fst xs) \<Longrightarrow>
+  \<forall>chainnames \<in> dom \<Gamma>. some_validity_condition chainnames \<Longrightarrow>
+  \<forall> r \<in> set rs. get_action r \<noteq> Return (*no toplevel return*) \<and> get_action r \<noteq> Unknown \<and>
+                (\<forall>c. get_action r \<noteq> Goto c) \<and> (\<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom \<Gamma>) \<Longrightarrow>
+  \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+proof(induction xs arbitrary: \<Gamma>)
+case Nil thus ?case
+  apply(simp)
+  (*with \<Gamma>=map.Empty, this hopefully follows from semantics_bigstep_defined*)
+  sorry
+next
+case (Cons x xs)
+  have "\<forall>a\<in>dom (map_of xs). some_validity_condition a" sorry
+  with Cons.IH[of "map_of xs"] Cons.prems have IH: "\<forall>r\<in>set rs. \<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom (map_of xs) \<Longrightarrow> \<exists>t. map_of xs,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" by simp
+  from Cons.prems have "\<forall>r\<in>set rs. \<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom (map_of (x#xs))" by meson
+
+  (*vielversprechend*)
+
+oops
+
 
 lemma "\<Gamma> = map_of xs \<Longrightarrow>
   \<forall>rsg \<in> ran \<Gamma>. wf_chain \<Gamma> rsg \<Longrightarrow>
