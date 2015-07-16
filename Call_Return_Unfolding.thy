@@ -1427,6 +1427,32 @@ case Call_return
 qed(auto intro: iptables_bigstep.intros)
 
 
+lemma iptables_bigstep_defined_if_singleton_rule: "\<forall> r. (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[r], s\<rangle> \<Rightarrow> t) \<Longrightarrow> \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+  apply(induction rs arbitrary: s)
+   apply(rule_tac x=s in exI)
+   apply(simp add: skip)
+  apply(rename_tac  r rs s)
+  apply(subgoal_tac "Ex (iptables_bigstep \<Gamma> \<gamma> p [r] s)")
+   prefer 2 apply simp
+  (*apply(erule_tac x=r in allE)*)
+  apply(erule exE, rename_tac t)
+  apply(case_tac t)
+   prefer 2
+   apply(simp)
+   apply (meson decision seq'_cons)
+  apply(simp)
+  apply(subgoal_tac "Ex (iptables_bigstep \<Gamma> \<gamma> p rs s)")
+   prefer 2 apply simp
+  apply(elim exE, rename_tac t')
+  apply(rule_tac x=t' in exI)
+  apply(rule seq'_cons)
+   apply(simp)
+  apply(simp)
+  using iptables_bigstep_to_undecided by fastforce
+
+  
+
+
 lemma "\<Gamma> = map_of xs \<Longrightarrow> distinct (map fst xs) \<Longrightarrow>
   \<forall>chainnames \<in> dom \<Gamma>. some_validity_condition chainnames \<Longrightarrow>
   \<forall> r \<in> set rs. get_action r \<noteq> Return (*no toplevel return*) \<and> get_action r \<noteq> Unknown \<and>
@@ -1442,6 +1468,15 @@ case (Cons x xs)
   have "\<forall>a\<in>dom (map_of xs). some_validity_condition a" sorry
   with Cons.IH[of "map_of xs"] Cons.prems have IH: "\<forall>r\<in>set rs. \<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom (map_of xs) \<Longrightarrow> \<exists>t. map_of xs,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" by simp
   from Cons.prems have "\<forall>r\<in>set rs. \<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom (map_of (x#xs))" by meson
+  have "\<forall>r\<in>set rs. \<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom (map_of xs) \<Longrightarrow> ?case"
+    apply(drule IH)
+    apply(simp add: Cons.prems map_update_chain_if)
+    apply(elim exE)
+    apply(rename_tac t)
+    apply(rule_tac x=t in exI)
+    apply(rule updategamma_insert_new)
+     apply(simp)
+    using Cons.prems(2) by (simp add: dom_map_of_conv_image_fst) 
 
   (*vielversprechend*)
 
