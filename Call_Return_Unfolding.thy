@@ -1464,7 +1464,7 @@ case Nil thus ?case
   sorry
 next
 case (Cons x xs)
-  have "\<forall>a\<in>dom (map_of xs). some_validity_condition a" sorry
+  have some_validity_condition: "\<forall>a\<in>dom (map_of xs). some_validity_condition a" sorry
   with Cons.IH[of "map_of xs"] Cons.prems have IH: "\<forall>r\<in>set rs. \<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom (map_of xs) \<Longrightarrow> \<exists>t. map_of xs,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t" by simp
   from Cons.prems have "\<forall>r\<in>set rs. \<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom (map_of (x#xs))" by meson
   have 1: "\<forall>r\<in>set rs. \<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom (map_of xs) \<Longrightarrow> ?case"
@@ -1484,7 +1484,39 @@ case (Cons x xs)
     apply(rule iffI)
      apply fastforce
     by (metis Cons.prems(2) distinct.simps(2) dom_map_of_conv_image_fst list.simps(9) set_map)
+
+  (*{ fix chain_name m chain
+    assume m: "matches \<gamma> m p" and "chain_name \<in> dom (map_of xs)"
+
+    have "\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain_name)], Undecided\<rangle> \<Rightarrow> t"
+
+  }*)
+  
+  { fix chain_name m chain
+    assume m: "matches \<gamma> m p" and "chain_name \<in> dom (map_of (x # xs))" and x: "x = (chain_name, chain)"
+
+    have "\<Gamma> = map_of (x # xs)" using Cons.prems by blast
+    hence "\<Gamma> chain_name = Some chain" using x by simp
+
+    have "\<Gamma>(chain_name \<mapsto> chain) = \<Gamma>" by (simp add: `\<Gamma> chain_name = Some chain` fun_upd_idem_iff)
+
+    thm no_recursive_calls_helper
+    thm call_result[OF m, of \<Gamma> chain_name "process_ret (add_match m chain)"] (*use those 2 below!*)
+    thm process_ret_Decision_sound[of \<Gamma> chain_name chain \<gamma> p m]
+    thm process_ret_Undecided_sound[of \<Gamma> chain_name chain \<gamma> p m]
+
+    (*\<Gamma>(chain \<mapsto> rs),\<gamma>,p\<turnstile> \<langle>process_ret (add_match m rs), Undecided\<rangle> \<Rightarrow> Undecided*)
+
+    (*remaining precondition must hopefully follow from some_validity_condition*)
+    from Cons.IH[of "map_of xs" "process_ret (add_match m chain)"] some_validity_condition Cons.prems have "
+      \<forall>r\<in>set (process_ret (add_match m chain)).
+        get_action r \<noteq> Return \<and> get_action r \<noteq> Unknown \<and> (\<forall>c. get_action r \<noteq> Goto c) \<and> (\<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom (map_of xs)) \<Longrightarrow>
+      \<exists>t. map_of xs,\<gamma>,p\<turnstile> \<langle>process_ret (add_match m chain), Undecided\<rangle> \<Rightarrow> t" by simp
+
+    (*Problem: (\<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom (map_of xs))*)
     
+    have "\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain_name)], Undecided\<rangle> \<Rightarrow> t" sorry
+  }
 
   (*vielversprechend*)
 
@@ -1521,10 +1553,52 @@ apply(simp_all)
   prefer 2 using `\<forall>r\<in>set rs. \<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom (map_of (x # xs))` rule.sel(2) apply blast
  apply(case_tac "chain_name = fst x")
 
+ defer
+ apply(subgoal_tac "chain_name \<in> dom (map_of xs)") 
+  prefer 2 apply force
+ 
+
  (*arbitrary rs nutzen?*)
  defer
  
 oops
+
+
+
+definition some_validity_condition :: "'a ruleset \<Rightarrow> bool" where
+  "some_validity_condition \<Gamma> \<equiv> \<forall>chainname \<in> dom \<Gamma>. \<forall>r \<in> set (the (\<Gamma> chainname)).
+      get_action r \<noteq> Unknown \<and>
+      (\<forall>c. get_action r \<noteq> Goto c) \<and>
+      (\<forall>c. get_action r = Call c \<longrightarrow> c \<in> dom \<Gamma>)"
+
+lemma helper_obtain_from_Gamma: assumes "c \<in> dom \<Gamma>" obtains rs where "\<Gamma> c = Some rs" using assms by blast
+lemma some_validity_condition_update_new:
+  "some_validity_condition (\<Gamma>(chain \<mapsto> rs')) \<Longrightarrow> chain \<notin> dom \<Gamma> \<Longrightarrow> some_validity_condition \<Gamma>"
+  apply(simp add: some_validity_condition_def)
+  apply(elim conjE)
+  apply(thin_tac "\<forall>r\<in>set rs'. P r rs'" for P) (*don't need updated*)
+  apply(intro ballI conjI)
+    apply(rename_tac c r)
+    apply(erule_tac x=c in ballE, simp_all)
+    apply(erule helper_obtain_from_Gamma, simp)
+    apply(erule_tac x=r in ballE, simp)
+    apply (metis (mono_tags, lifting) domI option.sel)
+   apply(rename_tac c r)
+   apply(erule_tac x=c in ballE, simp_all)
+   apply(erule helper_obtain_from_Gamma, simp)
+   apply(erule_tac x=r in ballE, simp)
+   apply (metis (mono_tags, lifting) domI option.sel)
+  apply(rename_tac c r)
+  apply(intro allI impI, rename_tac c')
+  apply(subgoal_tac " c' = chain \<or> c' \<in> dom \<Gamma>")
+   prefer 2
+   apply(erule_tac x=c in ballE, simp_all)
+   apply(erule helper_obtain_from_Gamma, simp)
+   apply (smt domI option.sel) (*SMT !*)
+  apply(elim disjE, simp_all)
+ oops
+
+
 
 
 lemma "\<Gamma> = map_of xs \<Longrightarrow>
