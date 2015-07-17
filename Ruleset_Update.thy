@@ -462,9 +462,10 @@ Not very important; I didn't find time to show this. But the rules are pretty ob
 
 
 
+(*the following three lemmas should be convincing that the semantics are always defined (for rulesets which
+  can be loaded by the Linux kernel)*)
 
-
-
+(*TODO: isar*)
 lemma semantics_bigstep_defined: "\<forall>rsg \<in> ran \<Gamma> \<union> {rs}. wf_chain \<Gamma> rsg \<Longrightarrow>
   \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. \<forall> r \<in> set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
   \<forall> r \<in> set rs. get_action r \<noteq> Return (*no toplevel return*) \<Longrightarrow>
@@ -517,23 +518,6 @@ apply(simp_all)
 
  prefer 2 apply fast
  
-
-(*test with process_call*)
-(*apply(subgoal_tac "Ex (iptables_bigstep \<Gamma> \<gamma> p (process_call \<Gamma> (Rule m (Call x5) # rs)) Undecided)")
-apply(elim exE)
-apply(rename_tac xxxx)
-apply(rule_tac x=xxxx in exI)
-using unfolding_n_sound_complete[symmetric, simplified wf_chain_def]
-thm unfolding_n_sound_complete[where n=1, simplified]
-apply(subst unfolding_n_sound_complete[where n=1 and \<Gamma>=\<Gamma>, simplified, symmetric])
-  apply(simp add: wf_chain_def)
-apply force
-
-apply(simp)
-*)(*the whole thing could work if stated as something with call?*)
-(*end test with process_call*)
-
-
 (** here we need something about the call**)
  apply(rename_tac chain_name)
  apply(subgoal_tac "\<exists> rs'. \<Gamma> chain_name = Some rs'")
@@ -562,6 +546,45 @@ apply(simp)
  apply(rule_tac t=Undecided in seq'_cons)
  apply(auto intro: iptables_bigstep.intros)[2]
 done
+
+
+
+
+lemma updategamma_insert_new: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<Longrightarrow> chain \<notin> dom \<Gamma> \<Longrightarrow> \<Gamma>(chain \<mapsto> rs'),\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+proof(induction rule: iptables_bigstep_induct)
+case (Call_result m a chain' rs t)
+  thus ?case by (metis call_result domI fun_upd_def)
+next
+case Call_return
+  thus ?case by (metis call_return domI fun_upd_def)
+qed(auto intro: iptables_bigstep.intros)
+
+
+lemma iptables_bigstep_defined_if_singleton_rules: "\<forall> r \<in> set rs. (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[r], s\<rangle> \<Rightarrow> t) \<Longrightarrow> \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+  apply(induction rs arbitrary: s)
+   apply(rule_tac x=s in exI)
+   apply(simp add: skip)
+  apply(rename_tac  r rs s)
+  apply(subgoal_tac "Ex (iptables_bigstep \<Gamma> \<gamma> p [r] s)")
+   prefer 2 apply simp
+  apply(erule exE, rename_tac t)
+  apply(case_tac t)
+   prefer 2
+   apply(simp)
+   apply (meson decision seq'_cons)
+  apply(simp)
+  apply(subgoal_tac "Ex (iptables_bigstep \<Gamma> \<gamma> p rs s)")
+   prefer 2 apply simp
+  apply(elim exE, rename_tac t')
+  apply(rule_tac x=t' in exI)
+  apply(rule seq'_cons)
+   apply(simp)
+  apply(simp)
+  using iptables_bigstep_to_undecided by fastforce
+
+
+(* only failed proofs below *)
+
 
 thm finite_induct
 
@@ -723,40 +746,6 @@ apply(simp_all)
 
 oops
 
-
-lemma updategamma_insert_new: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<Longrightarrow> chain \<notin> dom \<Gamma> \<Longrightarrow> \<Gamma>(chain \<mapsto> rs'),\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
-proof(induction rule: iptables_bigstep_induct)
-case (Call_result m a chain' rs t)
-  thus ?case by (metis call_result domI fun_upd_def)
-next
-case Call_return
-  thus ?case by (metis call_return domI fun_upd_def)
-qed(auto intro: iptables_bigstep.intros)
-
-
-lemma iptables_bigstep_defined_if_singleton_rules: "\<forall> r \<in> set rs. (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[r], s\<rangle> \<Rightarrow> t) \<Longrightarrow> \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
-  apply(induction rs arbitrary: s)
-   apply(rule_tac x=s in exI)
-   apply(simp add: skip)
-  apply(rename_tac  r rs s)
-  apply(subgoal_tac "Ex (iptables_bigstep \<Gamma> \<gamma> p [r] s)")
-   prefer 2 apply simp
-  apply(erule exE, rename_tac t)
-  apply(case_tac t)
-   prefer 2
-   apply(simp)
-   apply (meson decision seq'_cons)
-  apply(simp)
-  apply(subgoal_tac "Ex (iptables_bigstep \<Gamma> \<gamma> p rs s)")
-   prefer 2 apply simp
-  apply(elim exE, rename_tac t')
-  apply(rule_tac x=t' in exI)
-  apply(rule seq'_cons)
-   apply(simp)
-  apply(simp)
-  using iptables_bigstep_to_undecided by fastforce
-
-  
 
 (*
 lemma "\<Gamma> = map_of xs \<Longrightarrow> distinct (map fst xs) \<Longrightarrow>
