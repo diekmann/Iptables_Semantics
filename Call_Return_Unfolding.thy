@@ -1573,7 +1573,9 @@ definition some_validity_condition :: "'a ruleset \<Rightarrow> bool" where
 
 lemma helper_obtain_from_Gamma: assumes "c \<in> dom \<Gamma>" obtains rs where "\<Gamma> c = Some rs" using assms by blast
 lemma some_validity_condition_update_new:
-  "some_validity_condition (\<Gamma>(chain \<mapsto> rs')) \<Longrightarrow> chain \<notin> dom \<Gamma> \<Longrightarrow> some_validity_condition \<Gamma>"
+  "some_validity_condition (\<Gamma>(chain \<mapsto> rs')) \<Longrightarrow> chain \<notin> dom \<Gamma> \<Longrightarrow>
+    \<forall>rs \<in> ran \<Gamma>. \<forall>r \<in> set rs. \<forall>c. get_action r \<noteq> Call chain \<Longrightarrow> (* only true if all rules in \<Gamma> do not reference chain *)
+    some_validity_condition \<Gamma>"
   apply(simp add: some_validity_condition_def)
   apply(elim conjE)
   apply(thin_tac "\<forall>r\<in>set rs'. P r rs'" for P) (*don't need updated*)
@@ -1596,7 +1598,7 @@ lemma some_validity_condition_update_new:
    apply(erule helper_obtain_from_Gamma, simp)
    apply (smt domI option.sel) (*SMT !*)
   apply(elim disjE, simp_all)
- oops
+  by (metis domIff option.collapse ranI)
 
 
 
