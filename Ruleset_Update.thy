@@ -472,17 +472,15 @@ lemma semantics_bigstep_defined: assumes "\<forall>rsg \<in> ran \<Gamma> \<unio
   shows "\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
 using assms proof(induction rs)
 case Nil thus ?case
- apply(simp_all)
  apply(rule_tac x=s in exI)
- apply(simp add: skip)
- done
+ by(simp add: skip)
 next
 case (Cons r rs)
   from Cons.prems Cons.IH obtain t' where t': "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t'"
-  apply simp
-  apply(elim conjE)
-  apply(simp add: wf_chain_fst)
-  by blast
+    apply simp
+    apply(elim conjE)
+    apply(simp add: wf_chain_fst)
+    by blast
 
   obtain m a where r: "r = Rule m a" by(cases r) blast
 
