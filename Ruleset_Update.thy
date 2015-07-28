@@ -503,67 +503,70 @@ case (Cons r rs)
     show ?thesis
     proof(cases s)
     case (Decision X) thus ?thesis
-      apply(simp add: r)
       apply(rule_tac x="Decision X" in exI)
-      apply(simp add: decision)
-      done
+      by(simp add: decision)
     next
-    case Undecided with  t' True show ?thesis
-    apply(simp add: r)
-    apply(case_tac a)
-    apply(simp_all)
-     apply(rule_tac x="Decision FinalAllow" in exI)
-     apply(rule_tac t="Decision FinalAllow" in seq'_cons)
-     apply(auto intro: iptables_bigstep.intros)[2]
-    
-     apply(rule_tac x="Decision FinalDeny" in exI)
-     apply(rule_tac t="Decision FinalDeny" in seq'_cons)
-     apply(auto intro: iptables_bigstep.intros)[2]
-    
-     apply(rule_tac x=t' in exI)
-     apply(rule_tac t=Undecided in seq'_cons)
-     apply(auto intro: iptables_bigstep.intros)[2]
-    
-     apply(rule_tac x="Decision FinalDeny" in exI)
-     apply(rule_tac t="Decision FinalDeny" in seq'_cons)
-     apply(auto intro: iptables_bigstep.intros)[2]
-    
-     prefer 2 using Cons.prems(3)[simplified r] apply(simp; fail)
-     prefer 2 using Cons.prems(2)[simplified r] apply simp apply fast
-     
-    (** here we need something about the call**)
-     apply(insert Cons.prems)[1]
-     apply(simp add: r)
-     apply(rename_tac chain_name)
-     apply(subgoal_tac "\<exists> rs'. \<Gamma> chain_name = Some rs'")
-      prefer 2
-      apply(simp add: wf_chain_def)
-     apply(elim exE)
-     apply(rename_tac rs')
-     apply(erule_tac x="chain_name" in ballE)
-      prefer 2
-      apply fast
-     apply(simp)
-     apply(erule exE)
-     apply(rename_tac t'')
-     apply(drule(2) call_result)
-     apply(case_tac t'')
-      apply simp
-      apply(rule_tac x="t'" in exI)
-      apply(rule_tac t=Undecided in seq'_cons)
-      apply(auto intro: iptables_bigstep.intros)[2]
-     apply(simp)
-     apply(rule_tac x="t''" in exI)
-     apply(rule_tac t=t'' in seq'_cons)
-     apply(auto intro: iptables_bigstep.intros)[2]
-    
-     apply(rule_tac x=t' in exI)
-     apply(rule_tac t=Undecided in seq'_cons)
-     apply(auto intro: iptables_bigstep.intros)[2]
-
-
-     using Cons.prems(2)[simplified r] apply(simp)
-    done
+    case Undecided
+      have "\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m a # rs, Undecided\<rangle> \<Rightarrow> t"
+      proof(cases a)
+        case Accept with True show ?thesis
+          apply(rule_tac x="Decision FinalAllow" in exI)
+          apply(rule_tac t="Decision FinalAllow" in seq'_cons)
+          by(auto intro: iptables_bigstep.intros)
+        next
+        case Drop with True show ?thesis
+          apply(rule_tac x="Decision FinalDeny" in exI)
+          apply(rule_tac t="Decision FinalDeny" in seq'_cons)
+          by(auto intro: iptables_bigstep.intros)
+        next
+        case Log with True t' Undecided show ?thesis
+          apply(rule_tac x=t' in exI)
+          apply(rule_tac t=Undecided in seq'_cons)
+          by(auto intro: iptables_bigstep.intros)
+        next
+        case Reject with True show ?thesis
+          apply(rule_tac x="Decision FinalDeny" in exI)
+          apply(rule_tac t="Decision FinalDeny" in seq'_cons)
+          by(auto intro: iptables_bigstep.intros)[2]
+        next
+        case Return with Cons.prems(3)[simplified r] show ?thesis by simp
+        next
+        case Goto with Cons.prems(2)[simplified r] show ?thesis by auto
+        next
+        case (Call chain_name) with Cons.prems True t' Undecided show ?thesis
+          apply(simp add: r)
+          apply(subgoal_tac "\<exists> rs'. \<Gamma> chain_name = Some rs'")
+           prefer 2
+           apply(simp add: wf_chain_def)
+          apply(elim exE)
+          apply(rename_tac rs')
+          apply(erule_tac x="chain_name" in ballE)
+           prefer 2
+           apply fast
+          apply(simp)
+          apply(erule exE)
+          apply(rename_tac t'')
+          apply(drule(2) call_result)
+          apply(case_tac t'')
+           apply simp
+           apply(rule_tac x="t'" in exI)
+           apply(rule_tac t=Undecided in seq'_cons)
+           apply(auto intro: iptables_bigstep.intros)[2]
+          apply(simp)
+          apply(rule_tac x="t''" in exI)
+          apply(rule_tac t=t'' in seq'_cons)
+          apply(auto intro: iptables_bigstep.intros)
+         done
+        next
+        case Empty  with True t' Undecided show ?thesis
+         apply(rule_tac x=t' in exI)
+         apply(rule_tac t=Undecided in seq'_cons)
+         by(auto intro: iptables_bigstep.intros)
+        next
+        case Unknown with Cons.prems(2)[simplified r] show ?thesis by(simp)
+      qed
+      thus ?thesis
+      unfolding r Undecided by simp
     qed
   qed
 qed
