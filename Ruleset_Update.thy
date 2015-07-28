@@ -465,89 +465,108 @@ Not very important; I didn't find time to show this. But the rules are pretty ob
 (*the following three lemmas should be convincing that the semantics are always defined (for rulesets which
   can be loaded by the Linux kernel)*)
 
-(*TODO: isar*)
-lemma semantics_bigstep_defined: "\<forall>rsg \<in> ran \<Gamma> \<union> {rs}. wf_chain \<Gamma> rsg \<Longrightarrow>
-  \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. \<forall> r \<in> set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
-  \<forall> r \<in> set rs. get_action r \<noteq> Return (*no toplevel return*) \<Longrightarrow>
-  (\<forall>name \<in> dom \<Gamma>. \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>the (\<Gamma> name), Undecided\<rangle> \<Rightarrow> t) (*defined for all chains in the background ruleset*) \<Longrightarrow>
-  (*could we apply unfolding_n_sound_complete to get rid of the call case?*)
-  \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
-apply(simp)
-apply(induction rs)
+lemma semantics_bigstep_defined: assumes "\<forall>rsg \<in> ran \<Gamma> \<union> {rs}. wf_chain \<Gamma> rsg"
+  and "\<forall>rsg \<in> ran \<Gamma> \<union> {rs}. \<forall> r \<in> set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown"
+  and "\<forall> r \<in> set rs. get_action r \<noteq> Return (*no toplevel return*)"
+  and "(\<forall>name \<in> dom \<Gamma>. \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>the (\<Gamma> name), Undecided\<rangle> \<Rightarrow> t)" (*defined for all chains in the background ruleset*)
+  shows "\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+using assms proof(induction rs)
+case Nil thus ?case
  apply(simp_all)
  apply(rule_tac x=s in exI)
  apply(simp add: skip)
-
-apply(rename_tac r rs)
-apply(elim conjE)
-apply(simp add: wf_chain_fst)
-apply(elim exE)
-apply(rename_tac t')
-apply(case_tac r)
-apply(rename_tac m a)
-apply(simp)
-apply(case_tac "\<not> matches \<gamma> m p")
- apply(rule_tac x=t' in exI)
- apply(rule_tac t=s in seq'_cons)
-  apply (metis empty_iff empty_set insert_iff list.simps(15) nomatch' rule.sel(1)) 
- apply(simp)
-apply(simp)
-apply(case_tac s)
- prefer 2
- apply(simp)
- apply(rule_tac x="Decision x2" in exI)
- apply(simp add: decision)
-apply(simp)
-apply(case_tac a)
-apply(simp_all)
- apply(rule_tac x="Decision FinalAllow" in exI)
- apply(rule_tac t="Decision FinalAllow" in seq'_cons)
- apply(auto intro: iptables_bigstep.intros)[2]
-
- apply(rule_tac x="Decision FinalDeny" in exI)
- apply(rule_tac t="Decision FinalDeny" in seq'_cons)
- apply(auto intro: iptables_bigstep.intros)[2]
-
- apply(rule_tac x=t' in exI)
- apply(rule_tac t=Undecided in seq'_cons)
- apply(auto intro: iptables_bigstep.intros)[2]
-
- apply(rule_tac x="Decision FinalDeny" in exI)
- apply(rule_tac t="Decision FinalDeny" in seq'_cons)
- apply(auto intro: iptables_bigstep.intros)[2]
-
- prefer 2 apply fast
- 
-(** here we need something about the call**)
- apply(rename_tac chain_name)
- apply(subgoal_tac "\<exists> rs'. \<Gamma> chain_name = Some rs'")
-  prefer 2
-  apply(simp add: wf_chain_def)
- apply(elim exE)
- apply(rename_tac rs')
- apply(erule_tac x="chain_name" in ballE)
-  prefer 2
-  apply fast
- apply(simp)
- apply(erule exE)
- apply(rename_tac t'')
- apply(drule(2) call_result)
- apply(case_tac t'')
+ done
+next
+case (Cons r rs)
+  from Cons.prems Cons.IH obtain t' where t': "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t'"
   apply simp
-  apply(rule_tac x="t'" in exI)
-  apply(rule_tac t=Undecided in seq'_cons)
-  apply(auto intro: iptables_bigstep.intros)[2]
- apply(simp)
- apply(rule_tac x="t''" in exI)
- apply(rule_tac t=t'' in seq'_cons)
- apply(auto intro: iptables_bigstep.intros)[2]
+  apply(elim conjE)
+  apply(simp add: wf_chain_fst)
+  by blast
 
- apply(rule_tac x=t' in exI)
- apply(rule_tac t=Undecided in seq'_cons)
- apply(auto intro: iptables_bigstep.intros)[2]
-done
+  obtain m a where r: "r = Rule m a" by(cases r) blast
+
+  show ?case
+  proof(cases "matches \<gamma> m p")
+  case False
+    hence "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r], s\<rangle> \<Rightarrow> s"
+      apply(cases s)
+       apply(simp add: nomatch r)
+      by(simp add: decision)
+    thus ?thesis
+      apply(rule_tac x=t' in exI)
+      apply(rule_tac t=s in seq'_cons)
+       apply assumption
+      using t' by(simp)
+  next
+  case True
+    show ?thesis
+    proof(cases s)
+    case (Decision X) thus ?thesis
+      apply(simp add: r)
+      apply(rule_tac x="Decision X" in exI)
+      apply(simp add: decision)
+      done
+    next
+    case Undecided with  t' True show ?thesis
+    apply(simp add: r)
+    apply(case_tac a)
+    apply(simp_all)
+     apply(rule_tac x="Decision FinalAllow" in exI)
+     apply(rule_tac t="Decision FinalAllow" in seq'_cons)
+     apply(auto intro: iptables_bigstep.intros)[2]
+    
+     apply(rule_tac x="Decision FinalDeny" in exI)
+     apply(rule_tac t="Decision FinalDeny" in seq'_cons)
+     apply(auto intro: iptables_bigstep.intros)[2]
+    
+     apply(rule_tac x=t' in exI)
+     apply(rule_tac t=Undecided in seq'_cons)
+     apply(auto intro: iptables_bigstep.intros)[2]
+    
+     apply(rule_tac x="Decision FinalDeny" in exI)
+     apply(rule_tac t="Decision FinalDeny" in seq'_cons)
+     apply(auto intro: iptables_bigstep.intros)[2]
+    
+     prefer 2 using Cons.prems(3)[simplified r] apply(simp; fail)
+     prefer 2 using Cons.prems(2)[simplified r] apply simp apply fast
+     
+    (** here we need something about the call**)
+     apply(insert Cons.prems)[1]
+     apply(simp add: r)
+     apply(rename_tac chain_name)
+     apply(subgoal_tac "\<exists> rs'. \<Gamma> chain_name = Some rs'")
+      prefer 2
+      apply(simp add: wf_chain_def)
+     apply(elim exE)
+     apply(rename_tac rs')
+     apply(erule_tac x="chain_name" in ballE)
+      prefer 2
+      apply fast
+     apply(simp)
+     apply(erule exE)
+     apply(rename_tac t'')
+     apply(drule(2) call_result)
+     apply(case_tac t'')
+      apply simp
+      apply(rule_tac x="t'" in exI)
+      apply(rule_tac t=Undecided in seq'_cons)
+      apply(auto intro: iptables_bigstep.intros)[2]
+     apply(simp)
+     apply(rule_tac x="t''" in exI)
+     apply(rule_tac t=t'' in seq'_cons)
+     apply(auto intro: iptables_bigstep.intros)[2]
+    
+     apply(rule_tac x=t' in exI)
+     apply(rule_tac t=Undecided in seq'_cons)
+     apply(auto intro: iptables_bigstep.intros)[2]
 
 
+     using Cons.prems(2)[simplified r] apply(simp)
+    done
+    qed
+  qed
+qed
 
 
 lemma updategamma_insert_new: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<Longrightarrow> chain \<notin> dom \<Gamma> \<Longrightarrow> \<Gamma>(chain \<mapsto> rs'),\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
@@ -581,6 +600,10 @@ lemma iptables_bigstep_defined_if_singleton_rules: "\<forall> r \<in> set rs. (\
    apply(simp)
   apply(simp)
   using iptables_bigstep_to_undecided by fastforce
+
+
+
+
 
 
 (* only failed proofs below *)
