@@ -168,6 +168,7 @@ local (*iptables-save parsers*)
 
       val parser_ctstate = Scan.this_string "NEW" >> K @{const CT_New}
                          || Scan.this_string "ESTABLISHED" >> K @{const CT_Established}
+                         || Scan.this_string "RELATED" >> K @{const CT_Related}
                          || Scan.this_string "UNTRACKED" >> K @{const CT_Untracked}
 
       fun parse_comma_separated_list parser =  Scan.repeat (parser --| $$ ",") @@@ (parser >> (fn p => [p]))

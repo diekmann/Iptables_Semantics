@@ -127,7 +127,32 @@ subsubsection{*Try 1*}
    -A FORWARD -d 131.159.15.247/32 -i eth1.110 -o eth1.152 -j ACCEPT
    -A FORWARD -s 131.159.15.248/32 -i eth1.152 -o eth1.110 -j ACCEPT
   *)
+
+
+  value True
+  export_code unfold_ruleset_FORWARD in SML
+
+
+fun process_call' :: "'a ruleset \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list list" where
+  "process_call' \<Gamma> [] = []" |
+  "process_call' \<Gamma> (Rule m (Call chain) # rs) = add_match m (process_ret (the (\<Gamma> chain))) # process_call' \<Gamma> rs" |
+  "process_call' \<Gamma> (r#rs) = [r] # process_call' \<Gamma> rs"
+
+  value[code] "(process_call' (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept]"
+  value[code] "concat ((process_call' (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept])"
+  value[code] "process_call' (map_of_string net_fw_1) 
+        (concat ((process_call' (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept]))"
+  value[code] "optimize_matches id (concat ((process_call' (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept]))"
+  (*40s*)value[code] "(add_match MatchAny) (concat ((process_call' (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept]))"
+  (*400s*)value[code] "(add_match  (MatchAnd MatchAny (MatchAnd (Match (Dst (Ip4AddrNetmask (131, 159, 20, 0) 24))) (Match (OIface (Iface ''eth1.109'')))))) (concat ((process_call' (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept]))"
+  value[code] "(process_call (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept]"
+  value[code] "((process_call (map_of_string net_fw_1))^^2) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept]"
+  (*value[code] "((process_call (map_of_string 
+    (map (\<lambda>(c,rs). (c, optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_CT_State a | Neg a \<Rightarrow> is_CT_State a)) rs)) 
+      net_fw_1)))^^2) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept]"*)
+  (*value[code] "(preprocess net_fw_1_FORWARD_default_policy net_fw_1)"*)
   
+  thm net_fw_1_def
 
   text{*the parsed firewall:*}
   value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw_1"

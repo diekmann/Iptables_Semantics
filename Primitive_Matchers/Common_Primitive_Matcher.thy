@@ -130,6 +130,7 @@ fun optimize_primitive_univ :: "common_primitive match_expr \<Rightarrow> common
   "optimize_primitive_univ (Match (Src_Ports [(s, e)])) = (if s = 0 \<and> e = 0xFFFF then MatchAny else (Match (Src_Ports [(s, e)])))" |
   "optimize_primitive_univ (Match (Dst_Ports [(s, e)])) = (if s = 0 \<and> e = 0xFFFF then MatchAny else (Match (Dst_Ports [(s, e)])))" |
   "optimize_primitive_univ (Match (Prot ProtoAny)) = MatchAny" |
+  "optimize_primitive_univ (Match (CT_State ctstate)) = (if ctstate_is_UNIV ctstate then MatchAny else Match (CT_State ctstate))" |
   "optimize_primitive_univ (Match m) = Match m" |
   (*"optimize_primitive_univ (MatchNot (MatchNot m)) = (optimize_primitive_univ m)" | --"needed to preserve normalized condition"*)
   "optimize_primitive_univ (MatchNot m) = (MatchNot (optimize_primitive_univ m))" |
@@ -146,7 +147,7 @@ lemma optimize_primitive_univ_correct_matchexpr: "matches (common_matcher, \<alp
     hence port_range: "\<And>s e port. s = 0 \<and> e = 0xFFFF \<longrightarrow> (port::16 word) \<le> 0xFFFF" by simp
     have "ternary_ternary_eval (map_match_tac common_matcher p m) = ternary_ternary_eval (map_match_tac common_matcher p (optimize_primitive_univ m))"
       apply(induction m rule: optimize_primitive_univ.induct)
-      apply(simp_all add: port_range match_ifaceAny ip_in_ipv4range_set_from_bitmask_UNIV )
+      apply(simp_all add: port_range match_ifaceAny ip_in_ipv4range_set_from_bitmask_UNIV ctstate_is_UNIV)
       done
     thus "matches (common_matcher, \<alpha>) m a p = matches (common_matcher, \<alpha>) (optimize_primitive_univ m) a p"
       by(rule matches_iff_apply_f)

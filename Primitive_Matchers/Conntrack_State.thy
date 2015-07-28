@@ -70,4 +70,19 @@ instance proof
 qed
 end
 
+definition ctstate_is_UNIV :: "ctstate set \<Rightarrow> bool" where
+  "ctstate_is_UNIV c \<equiv> CT_New \<in> c \<and> CT_Established \<in> c \<and> CT_Related \<in> c \<and> CT_Untracked \<in> c"
+
+lemma ctstate_is_UNIV: "ctstate_is_UNIV c \<longleftrightarrow> c = UNIV"
+  unfolding ctstate_is_UNIV_def
+  apply(simp add: UNIV_ctstate)
+  apply(rule iffI)
+  apply(clarify)
+   using UNIV_ctstate apply fastforce
+   apply(simp)
+  done
+
+
+value[code] "ctstate_is_UNIV {CT_Established}"
+
 end
