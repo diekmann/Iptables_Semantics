@@ -573,26 +573,27 @@ qed(auto intro: iptables_bigstep.intros)
 
 
 lemma iptables_bigstep_defined_if_singleton_rules: "\<forall> r \<in> set rs. (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[r], s\<rangle> \<Rightarrow> t) \<Longrightarrow> \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
-  apply(induction rs arbitrary: s)
-   apply(rule_tac x=s in exI)
-   apply(simp add: skip)
-  apply(rename_tac  r rs s)
-  apply(subgoal_tac "Ex (iptables_bigstep \<Gamma> \<gamma> p [r] s)")
-   prefer 2 apply simp
-  apply(erule exE, rename_tac t)
-  apply(case_tac t)
-   prefer 2
-   apply(simp)
-   apply (meson decision seq'_cons)
-  apply(simp)
-  apply(subgoal_tac "Ex (iptables_bigstep \<Gamma> \<gamma> p rs s)")
-   prefer 2 apply simp
-  apply(elim exE, rename_tac t')
+proof(induction rs arbitrary: s)
+case Nil hence "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[], s\<rangle> \<Rightarrow> s" by(simp add: skip)
+   thus ?case by blast
+next
+case(Cons r rs s)
+  from Cons.prems obtain t where t: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r], s\<rangle> \<Rightarrow> t" by simp blast
+  with Cons show ?case
+  proof(cases t)
+  case Decision with t show ?thesis by (meson decision seq'_cons)
+  next
+  case Undecided
+  from Cons obtain t' where t': "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t'" by simp blast
+  with Undecided t show ?thesis
   apply(rule_tac x=t' in exI)
   apply(rule seq'_cons)
    apply(simp)
-  apply(simp)
   using iptables_bigstep_to_undecided by fastforce
+qed
+
+
+
 
 
 
