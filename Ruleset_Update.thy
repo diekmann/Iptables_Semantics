@@ -581,15 +581,16 @@ case(Cons r rs s)
   from Cons.prems obtain t where t: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r], s\<rangle> \<Rightarrow> t" by simp blast
   with Cons show ?case
   proof(cases t)
-  case Decision with t show ?thesis by (meson decision seq'_cons)
-  next
-  case Undecided
-  from Cons obtain t' where t': "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t'" by simp blast
-  with Undecided t show ?thesis
-  apply(rule_tac x=t' in exI)
-  apply(rule seq'_cons)
-   apply(simp)
-  using iptables_bigstep_to_undecided by fastforce
+    case Decision with t show ?thesis by (meson decision seq'_cons)
+    next
+    case Undecided
+    from Cons obtain t' where t': "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t'" by simp blast
+    with Undecided t show ?thesis
+    apply(rule_tac x=t' in exI)
+    apply(rule seq'_cons)
+     apply(simp)
+    using iptables_bigstep_to_undecided by fastforce
+  qed
 qed
 
 
