@@ -467,7 +467,7 @@ Not very important; I didn't find time to show this. But the rules are pretty ob
 
 lemma semantics_bigstep_defined: assumes "\<forall>rsg \<in> ran \<Gamma> \<union> {rs}. wf_chain \<Gamma> rsg"
   and "\<forall>rsg \<in> ran \<Gamma> \<union> {rs}. \<forall> r \<in> set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown"
-  and "\<forall> r \<in> set rs. get_action r \<noteq> Return (*no toplevel return*)"
+  and "\<forall> r \<in> set rs. get_action r \<noteq> Return" (*no toplevel return*)
   and "(\<forall>name \<in> dom \<Gamma>. \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>the (\<Gamma> name), Undecided\<rangle> \<Rightarrow> t)" (*defined for all chains in the background ruleset*)
   shows "\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
 using assms proof(induction rs)
@@ -512,56 +512,48 @@ case (Cons r rs)
         case Accept with True show ?thesis
           apply(rule_tac x="Decision FinalAllow" in exI)
           apply(rule_tac t="Decision FinalAllow" in seq'_cons)
-          by(auto intro: iptables_bigstep.intros)
+           by(auto intro: iptables_bigstep.intros)
         next
         case Drop with True show ?thesis
           apply(rule_tac x="Decision FinalDeny" in exI)
           apply(rule_tac t="Decision FinalDeny" in seq'_cons)
-          by(auto intro: iptables_bigstep.intros)
+           by(auto intro: iptables_bigstep.intros)
         next
         case Log with True t' Undecided show ?thesis
           apply(rule_tac x=t' in exI)
           apply(rule_tac t=Undecided in seq'_cons)
-          by(auto intro: iptables_bigstep.intros)
+           by(auto intro: iptables_bigstep.intros)
         next
         case Reject with True show ?thesis
           apply(rule_tac x="Decision FinalDeny" in exI)
           apply(rule_tac t="Decision FinalDeny" in seq'_cons)
-          by(auto intro: iptables_bigstep.intros)[2]
+           by(auto intro: iptables_bigstep.intros)[2]
         next
         case Return with Cons.prems(3)[simplified r] show ?thesis by simp
         next
         case Goto with Cons.prems(2)[simplified r] show ?thesis by auto
         next
-        case (Call chain_name) with Cons.prems True t' Undecided show ?thesis
+        case (Call chain_name)
+          from Call Cons.prems(1) obtain rs' where 1: "\<Gamma> chain_name = Some rs'" by(simp add: r wf_chain_def) blast
+          with Cons.prems(4) obtain t'' where 2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>the (\<Gamma> chain_name), Undecided\<rangle> \<Rightarrow> t''" by blast
+          from 1 2 True have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain_name)], Undecided\<rangle> \<Rightarrow> t''" by(auto dest: call_result)
+          with Call t' Undecided show ?thesis
           apply(simp add: r)
-          apply(subgoal_tac "\<exists> rs'. \<Gamma> chain_name = Some rs'")
-           prefer 2
-           apply(simp add: wf_chain_def)
-          apply(elim exE)
-          apply(rename_tac rs')
-          apply(erule_tac x="chain_name" in ballE)
-           prefer 2
-           apply fast
-          apply(simp)
-          apply(erule exE)
-          apply(rename_tac t'')
-          apply(drule(2) call_result)
-          apply(case_tac t'')
+          apply(cases t'')
            apply simp
-           apply(rule_tac x="t'" in exI)
+           apply(rule_tac x=t' in exI)
            apply(rule_tac t=Undecided in seq'_cons)
-           apply(auto intro: iptables_bigstep.intros)[2]
+            apply(auto intro: iptables_bigstep.intros)[2]
           apply(simp)
-          apply(rule_tac x="t''" in exI)
+          apply(rule_tac x=t'' in exI)
           apply(rule_tac t=t'' in seq'_cons)
-          apply(auto intro: iptables_bigstep.intros)
+           apply(auto intro: iptables_bigstep.intros)
          done
         next
         case Empty  with True t' Undecided show ?thesis
          apply(rule_tac x=t' in exI)
          apply(rule_tac t=Undecided in seq'_cons)
-         by(auto intro: iptables_bigstep.intros)
+          by(auto intro: iptables_bigstep.intros)
         next
         case Unknown with Cons.prems(2)[simplified r] show ?thesis by(simp)
       qed
