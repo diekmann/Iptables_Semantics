@@ -138,6 +138,14 @@ fun process_call' :: "'a ruleset \<Rightarrow> 'a rule list \<Rightarrow> 'a rul
   "process_call' \<Gamma> (Rule m (Call chain) # rs) = add_match m (process_ret (the (\<Gamma> chain))) # process_call' \<Gamma> rs" |
   "process_call' \<Gamma> (r#rs) = [r] # process_call' \<Gamma> rs"
 
+
+fun add_match2 :: "'a match_expr \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
+  "add_match2 MatchAny rs = rs" |
+  "add_match2 m rs = map (\<lambda>r. case r of Rule m' a' \<Rightarrow> Rule (MatchAnd m m') a') rs"
+
+lemma [code_unfold]: "add_match = add_match2" sorry
+export_code process_call' in SML
+
   value[code] "(process_call' (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept]"
   value[code] "concat ((process_call' (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept])"
   value[code] "process_call' (map_of_string net_fw_1) 
