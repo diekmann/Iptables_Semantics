@@ -133,10 +133,10 @@ subsubsection{*Try 1*}
   value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw_1"
   
   text{*sanity check that @{const ipassmt} is complete*}
-  (*184.837s*)
+  (*226.773s*)
   lemma "ipassmt_sanity_defined (preprocess net_fw_1_FORWARD_default_policy net_fw_1) (map_of ipassmt)" by eval
   
-  (*252.330s*)
+  (*287.938s*)
   lemma "spoofing_protection (preprocess net_fw_1_FORWARD_default_policy net_fw_1) =
    [(''eth1.96'',   True),
     (''eth1.108'',  False),
@@ -177,7 +177,7 @@ subsubsection{*Try 1*}
     \<lparr>p_iiface = ''anything but 1.96'', p_oiface = ''eth1.96'',
      p_src = 0, p_dst = ipv4addr_of_dotdecimal (131,159,14,9), p_proto = TCP, p_sport = 12345, p_dport = 22, p_tag_ctstate = CT_New\<rparr>
      (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of_string net_fw_1)) Undecided
-    = Decision FinalAllow" by eval (*81.915s*)
+    = Decision FinalAllow" by eval (*88.265s*)
 
   
 
@@ -228,10 +228,10 @@ subsubsection{*Try 2*}
   value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw_2"
   
   text{*sanity check that @{const ipassmt} is complete*}
-  (*192.886s*)
+  (*198.191s*)
   lemma "ipassmt_sanity_defined (preprocess net_fw_2_FORWARD_default_policy net_fw_2) (map_of ipassmt)" by eval
   
-  (*181.649s*)
+  (*255.760s*)
   lemma "spoofing_protection (preprocess net_fw_2_FORWARD_default_policy net_fw_2) =
    [(''eth1.96'',   True),
     (''eth1.108'',  True),
@@ -325,11 +325,11 @@ subsection{*Try 3*}
   *)
   
   text{*sanity check that @{const ipassmt} is complete*}
-  (*192.886s*)
+  (*177.848s*)
   lemma "ipassmt_sanity_defined (preprocess net_fw_3_FORWARD_default_policy net_fw_3) (map_of ipassmt)" by eval
   
   
-  (*204.591s*)
+  (*217.591s*)
   lemma "spoofing_protection (preprocess net_fw_3_FORWARD_default_policy net_fw_3) =
    [(''eth1.96'',   True),
     (''eth1.108'',  True),
