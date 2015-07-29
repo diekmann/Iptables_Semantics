@@ -41,11 +41,13 @@ value[code] "unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string
 
 text{*The ruleset*}
 
-value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw))))"
+value[code] "map simple_rule_toString (to_simple_firewall (ctstate_assume_new 
+                  (upper_closure (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)))))"
 
 text{*We do not need to call things such as @{const transform_optimize_dnf_strict} because the
      firewall already is in @{const normalized_nnf_match} (required for @{const no_spoofing_iface})*}
-lemma "transform_optimize_dnf_strict (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)) = unfold_ruleset_INPUT action.Drop (map_of_string eduroam_fw)" by eval
+lemma "transform_optimize_dnf_strict (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)) =
+          unfold_ruleset_INPUT action.Drop (map_of_string eduroam_fw)" by eval
 
 text{* The ruleset prevents spoofed incoming packets *}
 lemma "no_spoofing_iface (Iface ''wlan0'') ipassignment_incoming (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw))" by eval
@@ -54,7 +56,8 @@ lemma "no_spoofing_iface (Iface ''wlan0'') ipassignment_incoming (unfold_ruleset
 text{*Ruleset does not prevent that I'm spoofing (which is not necessary anyways since I need root right to spoof, which 
       would also enable me to deactivate the firewall). This is only a one-user laptop!*}
 
-lemma "transform_optimize_dnf_strict (unfold_ruleset_OUTPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)) = unfold_ruleset_OUTPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)" by eval
+lemma "transform_optimize_dnf_strict (unfold_ruleset_OUTPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)) =
+        unfold_ruleset_OUTPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)" by eval
 
 lemma "\<not> no_spoofing_iface (Iface ''wlan0'') ipassignment_outgoing (unfold_ruleset_OUTPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw))" by eval
 
