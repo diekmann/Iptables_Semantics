@@ -21,6 +21,7 @@ fun abstract_primitive :: "(common_primitive negation_type \<Rightarrow> bool) \
   "abstract_primitive disc (MatchNot m) = MatchNot (abstract_primitive disc m)" |
   "abstract_primitive disc (MatchAnd m1 m2) = MatchAnd (abstract_primitive disc m1) (abstract_primitive disc m2)"
 
+
 text{*For example, a simple firewall requires that no negated interfaces and protocols occur in the 
       expression. *}
 definition abstract_for_simple_firewall :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr"
@@ -287,5 +288,7 @@ begin
         unfolding \<gamma>_def abstract_def by fast
     qed
 end
+
+
 
 end

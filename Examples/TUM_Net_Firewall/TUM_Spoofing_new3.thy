@@ -129,65 +129,6 @@ subsubsection{*Try 1*}
   *)
 
 
-  value True
-  export_code unfold_ruleset_FORWARD in SML
-
-
-fun process_call' :: "'a ruleset \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list list" where
-  "process_call' \<Gamma> [] = []" |
-  "process_call' \<Gamma> (Rule m (Call chain) # rs) = add_match m (process_ret (the (\<Gamma> chain))) # process_call' \<Gamma> rs" |
-  "process_call' \<Gamma> (r#rs) = [r] # process_call' \<Gamma> rs"
-
-
-fun add_match2 :: "'a match_expr \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
-  "add_match2 MatchAny rs = rs" |
-  "add_match2 m rs = map (\<lambda>r. case r of Rule m' a' \<Rightarrow> Rule (MatchAnd m m') a') rs"
-
-
-fun process_call2 :: "'a ruleset \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list list" where
-  "process_call2 \<Gamma> [] = []" |
-  "process_call2 \<Gamma> (Rule m (Call chain) # rs) = add_match2 m (process_ret (the (\<Gamma> chain))) # process_call2 \<Gamma> rs" |
-  "process_call2 \<Gamma> (r#rs) = [r] # process_call2 \<Gamma> rs"
-
-lemma "(\<lambda> x. concat (process_call' rs x)) = process_call rs" oops
-
-export_code process_call2 in SML
-
-  value[code] "let x = repeat_stabilize 10000 (process_call (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept] in ()"
-  value[code] "let x = repeat_stabilize 10000 (\<lambda>x. concat (process_call' (map_of_string net_fw_1) x)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept] in ()"
- 
-
-  value[code] "let x = repeat_stabilize 1000 (optimize_matches opt_MatchAny_match_expr) 
-      (repeat_stabilize 10000 (process_call (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept]) in ()"
-
-  value[code] "let x = optimize_matches optimize_primitive_univ
-      (repeat_stabilize 10000 (process_call (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept]) in ()"
-
-
-  (*52s*)value[code] "let x = unfold_ruleset_FORWARD action.Accept (map_of_string net_fw_1) in ()"
-
-  (*148.716s*)value[code] "let x = preprocess net_fw_1_FORWARD_default_policy net_fw_1 in ()"
-
-
-  value[code] "(process_call' (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept]"
-  value[code] "concat ((process_call' (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept])"
-  value[code] "let x = process_call' (map_of_string net_fw_1) 
-        (concat ((process_call' (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept])) in ()"
-  value[code] "optimize_matches id (concat ((process_call' (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept]))"
-  (*49s*)value[code] "let x = 
-    (add_match MatchAny) (concat ((process_call' (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept])) in ()"
-  (*48s*)value[code] "let x = 
-  (add_match  (MatchAnd MatchAny (MatchAnd (Match (Dst (Ip4AddrNetmask (131, 159, 20, 0) 24))) (Match (OIface (Iface ''eth1.109''))))))
-    (concat ((process_call' (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept])) in ()"
-  value[code] "(process_call (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept]"
-  (*50s*)value[code] "let x = ((process_call (map_of_string net_fw_1))^^200) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept] in ()"
-  (*value[code] "((process_call (map_of_string 
-    (map (\<lambda>(c,rs). (c, optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_CT_State a | Neg a \<Rightarrow> is_CT_State a)) rs)) 
-      net_fw_1)))^^2) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept]"*)
-  (*value[code] "(preprocess net_fw_1_FORWARD_default_policy net_fw_1)"*)
-  
-  thm net_fw_1_def
-
   text{*the parsed firewall:*}
   value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw_1"
   

@@ -2,8 +2,9 @@ theory Transform
 imports "Common_Primitive_Matcher"
         "../Semantics_Ternary/Semantics_Ternary"
         "../Semantics_Ternary/Negation_Type_Matching"
-        "../Primitive_Matchers/Ports_Normalize"
-        "../Primitive_Matchers/IpAddresses_Normalize"
+        "Ports_Normalize"
+        "IpAddresses_Normalize"
+        "Conntrack_State_Transform"
         "../Common/Remdups_Rev"
 begin
 
@@ -600,5 +601,9 @@ theorem transform_normalize_primitives:
    using normalized by blast
 qed
 
+
+text{*The function @{const ctstate_assume_state} can be used to fix a state and hence remove all state matches from the ruleset*}
+lemma not_hasdisc_ctstate_assume_state: "\<not> has_disc is_CT_State (ctstate_assume_state s m)"
+  by(induction m rule: ctstate_assume_state.induct) (simp_all)
 
 end
