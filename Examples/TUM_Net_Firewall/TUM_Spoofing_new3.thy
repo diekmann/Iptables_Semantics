@@ -149,7 +149,25 @@ fun process_call2 :: "'a ruleset \<Rightarrow> 'a rule list \<Rightarrow> 'a rul
   "process_call2 \<Gamma> (Rule m (Call chain) # rs) = add_match2 m (process_ret (the (\<Gamma> chain))) # process_call2 \<Gamma> rs" |
   "process_call2 \<Gamma> (r#rs) = [r] # process_call2 \<Gamma> rs"
 
+lemma "(\<lambda> x. concat (process_call' rs x)) = process_call rs" oops
+
 export_code process_call2 in SML
+
+  value[code] "let x = repeat_stabilize 10000 (process_call (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept] in ()"
+  value[code] "let x = repeat_stabilize 10000 (\<lambda>x. concat (process_call' (map_of_string net_fw_1) x)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept] in ()"
+ 
+
+  value[code] "let x = repeat_stabilize 1000 (optimize_matches opt_MatchAny_match_expr) 
+      (repeat_stabilize 10000 (process_call (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept]) in ()"
+
+  value[code] "let x = optimize_matches optimize_primitive_univ
+      (repeat_stabilize 10000 (process_call (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept]) in ()"
+
+
+  (*52s*)value[code] "let x = unfold_ruleset_FORWARD action.Accept (map_of_string net_fw_1) in ()"
+
+  (*148.716s*)value[code] "let x = preprocess net_fw_1_FORWARD_default_policy net_fw_1 in ()"
+
 
   value[code] "(process_call' (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept]"
   value[code] "concat ((process_call' (map_of_string net_fw_1)) [Rule MatchAny (Call ''FORWARD''), Rule MatchAny action.Accept])"
