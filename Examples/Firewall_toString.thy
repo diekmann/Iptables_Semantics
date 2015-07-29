@@ -88,6 +88,7 @@ fun common_primitive_match_expr_toString :: "common_primitive match_expr \<Right
   "common_primitive_match_expr_toString MatchAny = ''''" |
   "common_primitive_match_expr_toString (Match m) = common_primitive_toString m" |
   "common_primitive_match_expr_toString (MatchAnd m1 m2) = common_primitive_match_expr_toString m1 @'' '' @ common_primitive_match_expr_toString m2" |
+  "common_primitive_match_expr_toString (MatchNot (Match m)) = ''! ''@common_primitive_toString m" |
   "common_primitive_match_expr_toString (MatchNot m) = ''NOT (''@common_primitive_match_expr_toString m@'')''"
 
 fun common_primitive_rule_toString :: "common_primitive rule \<Rightarrow> string" where
