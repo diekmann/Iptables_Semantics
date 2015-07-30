@@ -80,6 +80,7 @@ fun common_primitive_toString :: "common_primitive \<Rightarrow> string" where
   "common_primitive_toString (Prot prot) = ''-p ''@protocol_toString prot" |
   "common_primitive_toString (Src_Ports pts) = list_toString (ports_toString ''--spts '') pts" |
   "common_primitive_toString (Dst_Ports pts) = list_toString (ports_toString ''--dpts '') pts" |
+  "common_primitive_toString (CT_State S) = ''-m state --state ''@ctstate_set_toString S" |
   "common_primitive_toString (Extra e) = ''~~''@e@''~~''"
 
 
@@ -87,6 +88,7 @@ fun common_primitive_match_expr_toString :: "common_primitive match_expr \<Right
   "common_primitive_match_expr_toString MatchAny = ''''" |
   "common_primitive_match_expr_toString (Match m) = common_primitive_toString m" |
   "common_primitive_match_expr_toString (MatchAnd m1 m2) = common_primitive_match_expr_toString m1 @'' '' @ common_primitive_match_expr_toString m2" |
+  "common_primitive_match_expr_toString (MatchNot (Match m)) = ''! ''@common_primitive_toString m" |
   "common_primitive_match_expr_toString (MatchNot m) = ''NOT (''@common_primitive_match_expr_toString m@'')''"
 
 fun common_primitive_rule_toString :: "common_primitive rule \<Rightarrow> string" where

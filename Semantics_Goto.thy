@@ -758,7 +758,6 @@ begin
       qed
     
     
-    (*TODO: push this lemma also to the main semantics?*)
     private lemma just_show_all_bigstep_semantics_equalities_with_start_Undecided: 
           "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs1, Undecided\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs2, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> 
            \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs1, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs2, s\<rangle> \<Rightarrow> t"

@@ -203,6 +203,7 @@ theorem common_primitive_match_to_simple_match:
       and "normalized_dst_ips m"
       and "normalized_ifaces m"
       and "normalized_protocols m"
+      and "\<not> has_disc is_CT_State m"
       and "\<not> has_disc is_Extra m"
   shows "(Some sm = common_primitive_match_to_simple_match m \<longrightarrow> matches (common_matcher, \<alpha>) m a p \<longleftrightarrow> simple_matches sm p) \<and>
          (common_primitive_match_to_simple_match m = None \<longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p)"
@@ -287,8 +288,16 @@ fun action_to_simple_action :: "action \<Rightarrow> simple_action" where
   "action_to_simple_action _ = undefined"
 
 definition check_simple_fw_preconditions :: "common_primitive rule list \<Rightarrow> bool" where
-  "check_simple_fw_preconditions rs \<equiv> \<forall>r \<in> set rs. (case r of (Rule m a) \<Rightarrow> normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> normalized_ifaces m \<and> 
-  normalized_protocols m \<and> \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop))"
+  "check_simple_fw_preconditions rs \<equiv> \<forall>r \<in> set rs. (case r of (Rule m a) \<Rightarrow>
+      normalized_src_ports m \<and>
+      normalized_dst_ports m \<and>
+      normalized_src_ips m \<and>
+      normalized_dst_ips m \<and>
+      normalized_ifaces m \<and> 
+      normalized_protocols m \<and>
+      \<not> has_disc is_CT_State m \<and>
+      \<not> has_disc is_Extra m \<and>
+      (a = action.Accept \<or> a = action.Drop))"
 
 definition to_simple_firewall :: "common_primitive rule list \<Rightarrow> simple_rule list" where
   "to_simple_firewall rs \<equiv> if check_simple_fw_preconditions rs then

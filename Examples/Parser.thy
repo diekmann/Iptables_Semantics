@@ -166,6 +166,13 @@ local (*iptables-save parsers*)
                          || Scan.this_string "udp" >> K @{const primitive_protocol.UDP}
                          || Scan.this_string "icmp" >> K @{const primitive_protocol.ICMP}
 
+      val parser_ctstate = Scan.this_string "NEW" >> K @{const CT_New}
+                         || Scan.this_string "ESTABLISHED" >> K @{const CT_Established}
+                         || Scan.this_string "RELATED" >> K @{const CT_Related}
+                         || Scan.this_string "UNTRACKED" >> K @{const CT_Untracked}
+
+      fun parse_comma_separated_list parser =  Scan.repeat (parser --| $$ ",") @@@ (parser >> (fn p => [p]))
+
       local
         val mk_port_single = mk_nat 65535 #> (fn n => @{const nat_to_16word} $ n)
         val parse_port_raw = Scan.many1 Symbol.is_ascii_digit >> extract_int
@@ -178,8 +185,9 @@ local (*iptables-save parsers*)
         end
       val parser_port_single_tup_term = parser_port_single_tup >> ((fn x => [x]) #> HOLogic.mk_list @{typ "16 word \<times> 16 word"})
 
-      fun parse_comma_separated_list parser =  Scan.repeat1 (parser --| $$ ",") @@@ (parser >> (fn p => [p]))
-      val parser_port_many1_tup = parse_comma_separated_list parser_port_single_tup  >> HOLogic.mk_list @{typ "16 word \<times> 16 word"}
+      val parser_port_many1_tup = parse_comma_separated_list parser_port_single_tup >> HOLogic.mk_list @{typ "16 word \<times> 16 word"}
+
+      val parser_ctstate_set = parse_comma_separated_list parser_ctstate >> HOLogic.mk_set @{typ "ctstate"}
     
       val parser_extra = Scan.many1 (fn x => x <> " " andalso Symbol.not_eof x) >> (implode #> HOLogic.mk_string);
     end;
@@ -208,6 +216,9 @@ local (*iptables-save parsers*)
                        || parse_cmd_option "-m udp --dport " @{const Dst_Ports} parser_port_single_tup_term
                        || parse_cmd_option "-m multiport --dports " @{const Dst_Ports} parser_port_many1_tup;
     (*-m tcp requires that there is already an -p tcp*)
+
+    val parse_ctstate = parse_cmd_option "-m state --state " @{term "CT_State"} parser_ctstate_set
+                     || parse_cmd_option "-m conntrack --ctstate " @{term "CT_State"} parser_ctstate_set;
     
     val parse_unknown = parse_cmd_option "" @{const Extra} parser_extra;
   end;
@@ -253,7 +264,8 @@ in
                  || parse_in_iface_negated || parse_out_iface_negated
                  || parse_protocol
                  || parse_src_ports || parse_dst_ports
-                 || parse_target ) (K parse_unknown);
+                 || parse_ctstate
+                 || parse_target) (K parse_unknown);
   
   
   (*parse_table_append should be called before option_parser, otherwise -A will simply be an unknown for option_parser*)
