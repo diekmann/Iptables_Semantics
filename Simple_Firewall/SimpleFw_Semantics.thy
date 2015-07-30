@@ -114,7 +114,7 @@ subsection{*Simple Firewall Semantics*}
 
 
   fun empty_match :: "simple_match \<Rightarrow> bool" where
-    "empty_match \<lparr>iiface=_, oiface=_, src=_, dst=_, proto=_, sports=(sps1, sps2), dports=(dps1, dps2) \<rparr> \<longleftrightarrow> (sps1 > sps2) \<or>  (dps1 > dps2)"
+    "empty_match \<lparr>iiface=_, oiface=_, src=_, dst=_, proto=_, sports=(sps1, sps2), dports=(dps1, dps2) \<rparr> \<longleftrightarrow> (sps1 > sps2) \<or> (dps1 > dps2)"
 
   lemma empty_match: "empty_match m \<longleftrightarrow> (\<forall>p. \<not> simple_matches m p)"
     proof
@@ -150,7 +150,8 @@ subsection{*Simple Firewall Semantics*}
                             p_dst = fst dip,
                             p_proto = case protocol of ProtoAny \<Rightarrow> primitive_protocol.TCP | Proto p \<Rightarrow> p,
                             p_sport = sps1,
-                            p_dport = dps1\<rparr>", simplified]
+                            p_dport = dps1,
+                            p_tag_ctstate = anything_I_dont_care\<rparr>" for anything_I_dont_care, simplified]
           from pkt ips proto ifaces have " sps1 \<le> sps2 \<longrightarrow> \<not> dps1 \<le> dps2" by blast
           thus "sps2 < sps1 \<or> dps2 < dps1" by fastforce
       qed

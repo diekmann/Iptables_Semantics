@@ -6,6 +6,7 @@ begin
 section{*Optimizing*}
 
 subsection{*Removing Shadowed Rules*}
+text{*Note: there is no executable code for rmshadow at the moment*}
 
 text{*Assumes: @{term "simple_ruleset"}*}
 fun rmshadow :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'p set \<Rightarrow> 'a rule list" where
@@ -99,7 +100,7 @@ subsubsection{*Soundness*}
 
 
 
-
+subsection{*Removing rules which cannot apply*}
 
 fun rmMatchFalse :: "'a rule list \<Rightarrow> 'a rule list" where
   "rmMatchFalse [] = []" |
@@ -131,6 +132,17 @@ lemma rmMatchFalse_correct: "approximating_bigstep_fun \<gamma> p (rmMatchFalse 
   qed
 
 
+
+fun cutt_off_after_default :: "'a rule list \<Rightarrow> 'a rule list" where
+  "cutt_off_after_default [] = []" |
+  "cutt_off_after_default ((Rule MatchAny Accept)#_) = [Rule MatchAny Accept]" |
+  "cutt_off_after_default ((Rule MatchAny Drop)#_) = [Rule MatchAny Drop]" |
+  "cutt_off_after_default ((Rule MatchAny Reject)#_) = [Rule MatchAny Reject]" |
+  "cutt_off_after_default (r#rs) = r # cutt_off_after_default rs"
+
+lemma cutt_off_after_default_correct: "approximating_bigstep_fun \<gamma> p (cutt_off_after_default rs) s = approximating_bigstep_fun \<gamma> p rs s"
+apply(rule just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided)
+by(induction rs rule: cutt_off_after_default.induct) (simp_all add: bunch_of_lemmata_about_matches(2) split: action.split)
 
 
 end

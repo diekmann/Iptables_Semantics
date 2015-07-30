@@ -70,6 +70,7 @@ definition unfold_ruleset_FORWARD :: "action \<Rightarrow> common_primitive rule
         [Rule MatchAny (Call ''FORWARD''), Rule MatchAny default_action]
   )))))"
 
+
 definition unfold_ruleset_INPUT :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
 "unfold_ruleset_INPUT default_action rs = check_simple_ruleset
   (repeat_stabilize 10000 (optimize_matches opt_MatchAny_match_expr) 

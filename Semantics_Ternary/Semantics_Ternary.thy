@@ -554,7 +554,7 @@ lemma rmLogEmpty_rwReject_good_to_simple: "good_ruleset rs \<Longrightarrow> sim
 definition optimize_matches :: "('a match_expr \<Rightarrow> 'a match_expr) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
   "optimize_matches f rs = map (\<lambda>r. Rule (f (get_match r)) (get_action r)) rs"
 
-lemma optimize_matches: "\<forall>m. matches \<gamma> m = matches \<gamma> (f m) \<Longrightarrow> approximating_bigstep_fun \<gamma> p (optimize_matches f rs) s = approximating_bigstep_fun \<gamma> p rs s"
+lemma optimize_matches: "\<forall>m a. matches \<gamma> m a p = matches \<gamma> (f m) a p \<Longrightarrow> approximating_bigstep_fun \<gamma> p (optimize_matches f rs) s = approximating_bigstep_fun \<gamma> p rs s"
   proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
     case (Match \<gamma> p m a rs) thus ?case by(case_tac a)(simp_all add: optimize_matches_def)
   qed(simp_all add: optimize_matches_def)
@@ -592,5 +592,14 @@ proof -
     case MatchReject thus ?case by(simp add: optimize_matches_a_def simple_ruleset_def)
     qed(simp_all add: optimize_matches_a_def simple_ruleset_tail)
 qed
+
+
+(*TODO: this could be a useful rule, maybe it can simplify some proofs?*)
+lemma just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided: 
+      "approximating_bigstep_fun \<gamma> p rs1 Undecided = approximating_bigstep_fun \<gamma> p rs2 Undecided \<Longrightarrow> 
+       approximating_bigstep_fun \<gamma> p rs1 s = approximating_bigstep_fun \<gamma> p rs2 s"
+  apply(cases s)
+   apply(simp)
+  by (simp add: Decision_approximating_bigstep_fun)
 
 end

@@ -2,8 +2,8 @@ theory Transform
 imports "Common_Primitive_Matcher"
         "../Semantics_Ternary/Semantics_Ternary"
         "../Semantics_Ternary/Negation_Type_Matching"
-        "../Primitive_Matchers/Ports_Normalize"
-        "../Primitive_Matchers/IpAddresses_Normalize"
+        "Ports_Normalize"
+        "IpAddresses_Normalize"
         "../Common/Remdups_Rev"
 begin
 
@@ -599,6 +599,7 @@ theorem transform_normalize_primitives:
     \<forall> m \<in> get_match ` set rs. \<not> has_disc disc1 m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc disc1 m"
    using normalized by blast
 qed
+
 
 
 end

@@ -141,6 +141,7 @@ COMMIT
 -A INPUT -s 127.0.0.0/8 -j LOG_DROP
 -A INPUT -i eth1.110 -j filter_INPUT
 -A INPUT -i eth1.1024 -j filter_INPUT
+-A FORWARD -m state --state RELATED,ESTABLISHED,UNTRACKED -j ACCEPT
 -A FORWARD -i eth1.110 -j NOTFROMHERE
 -A FORWARD -i eth1.1024 -j NOTFROMHERE
 -A FORWARD -m recent --update --seconds 60 --name DEFAULT --rsource -j LOG_RECENT_DROP2
