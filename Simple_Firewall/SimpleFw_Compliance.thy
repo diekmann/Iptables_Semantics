@@ -128,7 +128,7 @@ fun common_primitive_match_to_simple_match :: "common_primitive match_expr \<Rig
   "common_primitive_match_to_simple_match (MatchNot MatchAny) = None" |
   "common_primitive_match_to_simple_match (Match (IIface iif)) = Some (simple_match_any\<lparr> iiface := iif \<rparr>)" |
   "common_primitive_match_to_simple_match (Match (OIface oif)) = Some (simple_match_any\<lparr> oiface := oif \<rparr>)" |
-  "common_primitive_match_to_simple_match (Match (Src ip)) = Some (simple_match_any\<lparr> src := (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>)" |
+  "common_primitive_match_to_simple_match (Match (Src (Ip4AddrNetmask pre len))) = Some (simple_match_any\<lparr> src := (ipv4addr_of_dotdecimal pre, len) \<rparr>)" |
   "common_primitive_match_to_simple_match (Match (Dst ip)) = Some (simple_match_any\<lparr> dst := (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>)" |
   "common_primitive_match_to_simple_match (Match (Prot p)) = Some (simple_match_any\<lparr> proto := p \<rparr>)" |
   "common_primitive_match_to_simple_match (Match (Src_Ports [])) = None" |
@@ -141,9 +141,11 @@ fun common_primitive_match_to_simple_match :: "common_primitive match_expr \<Rig
     | (_, None) \<Rightarrow> None
     | (Some m1', Some m2') \<Rightarrow> simple_match_and m1' m2')" |
   --"undefined cases, normalize before!"
+  "common_primitive_match_to_simple_match (Match (Src (Ip4Addr _))) = undefined" |
+  "common_primitive_match_to_simple_match (Match (Src (Ip4AddrRange _ _))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (Prot _))) = undefined" |
-  "common_primitive_match_to_simple_match (MatchNot (Match (IIface iif))) = undefined" |
-  "common_primitive_match_to_simple_match (MatchNot (Match (OIface oif))) = undefined" |
+  "common_primitive_match_to_simple_match (MatchNot (Match (IIface _))) = undefined" |
+  "common_primitive_match_to_simple_match (MatchNot (Match (OIface _))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (Src _))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (Dst _))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (MatchAnd _ _)) = undefined" |
@@ -152,8 +154,10 @@ fun common_primitive_match_to_simple_match :: "common_primitive match_expr \<Rig
   "common_primitive_match_to_simple_match (Match (Dst_Ports (_#_))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (Src_Ports _))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (Dst_Ports _))) = undefined" |
+  "common_primitive_match_to_simple_match (Match (CT_State _)) = undefined" |
   "common_primitive_match_to_simple_match (Match (Extra _)) = undefined" |
-  "common_primitive_match_to_simple_match (MatchNot (Match (Extra _))) = undefined"
+  "common_primitive_match_to_simple_match (MatchNot (Match (Extra _))) = undefined" |
+  "common_primitive_match_to_simple_match (MatchNot (Match (CT_State _))) = undefined"
 (*\<dots>*)
 
 
@@ -209,9 +213,8 @@ theorem common_primitive_match_to_simple_match:
          (common_primitive_match_to_simple_match m = None \<longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p)"
 proof -
   { fix ip
-    have "p_src p \<in> ipv4s_to_set ip \<longleftrightarrow> simple_match_ip (ipt_ipv4range_to_ipv4_word_netmask ip) (p_src p)"
-    and  "p_dst p \<in> ipv4s_to_set ip \<longleftrightarrow> simple_match_ip (ipt_ipv4range_to_ipv4_word_netmask ip) (p_dst p)"
-    by(case_tac [!] ip)(simp_all add: ipv4range_set_from_bitmask_32)
+    have "p_dst p \<in> ipv4s_to_set ip \<longleftrightarrow> simple_match_ip (ipt_ipv4range_to_ipv4_word_netmask ip) (p_dst p)"
+    apply(case_tac [!] ip) apply(simp_all add: ipv4range_set_from_bitmask_32) oops
   } note matches_SrcDst_simple_match2=this
   show ?thesis
   using assms proof(induction m arbitrary: sm rule: common_primitive_match_to_simple_match.induct)
