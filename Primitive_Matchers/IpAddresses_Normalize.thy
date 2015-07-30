@@ -8,6 +8,9 @@ begin
 subsection{*Normalizing IP Addresses*}
   fun normalized_src_ips :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_src_ips MatchAny = True" |
+    "normalized_src_ips (Match (Src (Ip4AddrRange _ _))) = False" |
+    "normalized_src_ips (Match (Src (Ip4Addr _))) = False" |
+    "normalized_src_ips (Match (Src (Ip4AddrNetmask _ _))) = True" |
     "normalized_src_ips (Match _) = True" |
     "normalized_src_ips (MatchNot (Match (Src _))) = False" |
     "normalized_src_ips (MatchNot (Match _)) = True" |
@@ -16,7 +19,7 @@ subsection{*Normalizing IP Addresses*}
     "normalized_src_ips (MatchNot (MatchNot _)) = False" |
     "normalized_src_ips (MatchNot (MatchAny)) = True" 
   
-  lemma normalized_src_ips_def2: "normalized_src_ips ms = normalized_n_primitive (is_Src, src_sel) (\<lambda>ip. True) ms"
+  lemma normalized_src_ips_def2: "normalized_src_ips ms = normalized_n_primitive (is_Src, src_sel) (\<lambda>ip. case ip of Ip4AddrNetmask _ _ \<Rightarrow> True | _ \<Rightarrow> False) ms"
     by(induction ms rule: normalized_src_ips.induct, simp_all)
 
   fun normalized_dst_ips :: "common_primitive match_expr \<Rightarrow> bool" where
@@ -71,7 +74,7 @@ subsection{*Normalizing IP Addresses*}
   unfolding normalize_src_ips_def
   unfolding normalized_src_ips_def2
   apply(rule normalize_primitive_extract_normalizes_n_primitive[OF _ wf_disc_sel_common_primitive(3)])
-   by(simp_all)
+   by(simp_all add: ipt_ipv4range_compress_normalized_Ip4AddrNetmask)
 
 
   definition normalize_dst_ips :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where
