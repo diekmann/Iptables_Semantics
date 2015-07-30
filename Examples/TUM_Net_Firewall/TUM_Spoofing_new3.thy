@@ -73,7 +73,8 @@ subsection{*General Setup*}
   
   definition "spoofing_protection fw \<equiv> map (\<lambda>ifce. (ifce, no_spoofing_iface (Iface ifce) (map_of ipassmt) fw)) interfaces"
   
-  definition "preprocess default_policy fw \<equiv> (upper_closure (unfold_ruleset_FORWARD default_policy (map_of_string fw)))"
+  text{*We only consider packets which are @{const CT_New}. Packets which already belong to an established connection are okay be definition.*}
+  definition "preprocess default_policy fw \<equiv> (upper_closure (ctstate_assume_new (unfold_ruleset_FORWARD default_policy (map_of_string fw))))"
 
 text{*In all three iterations, we have removed two rules from the ruleset. The first rule excluded
 from analysis is the ESTABLISHED rule, as discussed earlier.
@@ -86,39 +87,14 @@ subsubsection{*Try 1*}
 
   parse_iptables_save net_fw_1="iptables-save-2015-05-13_10-53-20_cheating"
 
-  (*
-  $ diff -u ~/git/net-network/iptables-Lnv-2015-05-13_10-53-20 iptables-Lnv-2015-05-13_10-53-20_cheating
-  --- /home/diekmann/git/net-network/iptables-Lnv-2015-05-13_10-53-20	2015-05-13 11:19:16.669193827 +0200
-  +++ iptables-Lnv-2015-05-13_10-53-20_cheating	2015-05-13 13:11:18.463582107 +0200
-  @@ -13,14 +13,12 @@
-   
-   Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
-    pkts bytes target     prot opt in     out     source               destination         
-  -2633M 3879G ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            state RELATED,ESTABLISHED,UNTRACKED
-       0     0 LOG_RECENT_DROP2  all  --  *      *       0.0.0.0/0            0.0.0.0/0            recent: UPDATE seconds: 60 name: DEFAULT side: source
-    563K   26M LOG_RECENT_DROP  tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            state NEW tcp dpt:22flags: 0x17/0x02 recent: UPDATE seconds: 360 hit_count: 41 name: ratessh side: source
-       0     0 LOG_DROP   all  --  *      *       127.0.0.0/8          0.0.0.0/0           
-       0     0 ACCEPT     all  --  eth1.1011 *       131.159.14.197       0.0.0.0/0           
-       0     0 ACCEPT     all  --  eth1.1011 *       131.159.14.221       0.0.0.0/0           
-       0     0 ACCEPT     udp  --  eth1.152 *       131.159.15.252       0.0.0.0/0           
-  -    0     0 ACCEPT     udp  --  *      eth1.152  0.0.0.0/0            131.159.15.252       multiport dports 4569,5000:65535
-     209  9376 ACCEPT     all  --  eth1.152 eth1.110  131.159.15.247       0.0.0.0/0           
-   11332  694K ACCEPT     all  --  eth1.110 eth1.152  0.0.0.0/0            131.159.15.247      
-     173  6948 ACCEPT     all  --  eth1.152 eth1.110  131.159.15.248       0.0.0.0/0           
-  *)
-  
-  (*
+  (* _cheating means we needed to remove one "temporary work around" rule.
+     This rule prevented all spoofing protection.
+     It was for an asterisk server, a temporary rule and it should have been removed but was forgotten, we are investigating ...
+
   $ diff -u ~/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-save-2015-05-13_10-53-20 iptables-save-2015-05-13_10-53-20_cheating 
   --- /home/diekmann/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-save-2015-05-13_10-53-20	2015-05-15 15:24:22.768698000 +0200
-  +++ iptables-save-2015-05-13_10-53-20_cheating	2015-06-30 11:29:38.520024251 +0200
-  @@ -141,14 +141,12 @@
-   -A INPUT -i eth1.110 -j filter_INPUT
-   -A INPUT -i eth1.1024 -j NOTFROMHERE
-   -A INPUT -i eth1.1024 -j filter_INPUT
-  --A FORWARD -m state --state RELATED,ESTABLISHED,UNTRACKED -j ACCEPT
-   -A FORWARD -m recent --update --seconds 60 --name DEFAULT --rsource -j LOG_RECENT_DROP2
-   -A FORWARD -p tcp -m state --state NEW -m tcp --dport 22 --tcp-flags FIN,SYN,RST,ACK SYN -m recent --update --seconds 360 --hitcount 41 --name ratessh --rsource -j LOG_RECENT_DROP
-   -A FORWARD -s 127.0.0.0/8 -j LOG_DROP
+  +++ iptables-save-2015-05-13_10-53-20_cheating	2015-07-30 11:12:27.515970799 +0200
+  @@ -148,7 +148,6 @@
    -A FORWARD -s 131.159.14.197/32 -i eth1.1011 -j ACCEPT
    -A FORWARD -s 131.159.14.221/32 -i eth1.1011 -j ACCEPT
    -A FORWARD -s 131.159.15.252/32 -i eth1.152 -p udp -j ACCEPT
@@ -163,7 +139,7 @@ subsubsection{*Try 1*}
    text{*Spoofing protection fails for all but the 96 VLAN.
    The reason is that the @{text filter_96} chain allows spoofed packets.
    
-   An empirical test reveal that the kernel's automatic reverse-path filter (rp) blocks most spoofing attempts.
+   An empirical test reveals that the kernel's automatic reverse-path filter (rp) blocks most spoofing attempts.
    Without rp, spoofed packets pass the firewall. We got lucky that rp could be used in our scenario.
    However, the firewall ruleset also features a MAC address filter. This filter was constructed 
    analogously to the spoofing protection filter and, hence, was also broken. rp cannot help in this
@@ -184,44 +160,17 @@ subsubsection{*Try 1*}
 subsubsection{*Try 2*}
 
   parse_iptables_save net_fw_2="iptables-save-2015-05-15_14-14-46_cheating"
-  (*$ diff -u ~/git/net-network/iptables-Lnv-2015-05-15_14-14-46 iptables-Lnv-2015-05-15_14-14-46_cheating
-  --- /home/diekmann/git/net-network/iptables-Lnv-2015-05-15_14-14-46	2015-05-15 14:41:37.880808467 +0200
-  +++ iptables-Lnv-2015-05-15_14-14-46_cheating	2015-05-15 14:18:06.276868863 +0200
-  @@ -13,14 +13,12 @@
-   
-   Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
-    pkts bytes target     prot opt in     out     source               destination         
-  -1533K 1345M ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            state RELATED,ESTABLISHED,UNTRACKED
-       0     0 LOG_RECENT_DROP2  all  --  *      *       0.0.0.0/0            0.0.0.0/0            recent: UPDATE seconds: 60 name: DEFAULT side: source
-     340 13780 LOG_RECENT_DROP  tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            state NEW tcp dpt:22flags: 0x17/0x02 recent: UPDATE seconds: 360 hit_count: 41 name: ratessh side: source
-       0     0 LOG_DROP   all  --  *      *       127.0.0.0/8          0.0.0.0/0           
-       0     0 ACCEPT     all  --  eth1.1011 *       131.159.14.197       0.0.0.0/0           
-       0     0 ACCEPT     all  --  eth1.1011 *       131.159.14.221       0.0.0.0/0           
-       0     0 ACCEPT     udp  --  eth1.152 *       131.159.15.252       0.0.0.0/0           
-  -    0     0 ACCEPT     udp  --  *      eth1.152  0.0.0.0/0            131.159.15.252       multiport dports 4569,5000:65535
-       0     0 ACCEPT     all  --  eth1.152 eth1.110  131.159.15.247       0.0.0.0/0           
-       7   324 ACCEPT     all  --  eth1.110 eth1.152  0.0.0.0/0            131.159.15.247      
-       1    40 ACCEPT     all  --  eth1.152 eth1.110  131.159.15.248       0.0.0.0/0   *)
-  
-  (*
-  $ diff -u ~/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-save-2015-05-15_14-14-46 iptables-save-2015-05-15_14-14-46_cheating 
-  --- /home/diekmann/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-save-2015-05-15_14-14-46	2015-05-15 15:24:22.948698000 +0200
-  +++ iptables-save-2015-05-15_14-14-46_cheating	2015-06-30 11:37:17.080044599 +0200
-  @@ -141,14 +141,12 @@
-   -A INPUT -i eth1.110 -j filter_INPUT
-   -A INPUT -i eth1.1024 -j NOTFROMHERE
-   -A INPUT -i eth1.1024 -j filter_INPUT
-  --A FORWARD -m state --state RELATED,ESTABLISHED,UNTRACKED -j ACCEPT
-   -A FORWARD -m recent --update --seconds 60 --name DEFAULT --rsource -j LOG_RECENT_DROP2
-   -A FORWARD -p tcp -m state --state NEW -m tcp --dport 22 --tcp-flags FIN,SYN,RST,ACK SYN -m recent --update --seconds 360 --hitcount 41 --name ratessh --rsource -j LOG_RECENT_DROP
-   -A FORWARD -s 127.0.0.0/8 -j LOG_DROP
-   -A FORWARD -s 131.159.14.197/32 -i eth1.1011 -j ACCEPT
-   -A FORWARD -s 131.159.14.221/32 -i eth1.1011 -j ACCEPT
-   -A FORWARD -s 131.159.15.252/32 -i eth1.152 -p udp -j ACCEPT
-  --A FORWARD -d 131.159.15.252/32 -o eth1.152 -p udp -m multiport --dports 4569,5000:65535 -j ACCEPT
-   -A FORWARD -s 131.159.15.247/32 -i eth1.152 -o eth1.110 -j ACCEPT
-   -A FORWARD -d 131.159.15.247/32 -i eth1.110 -o eth1.152 -j ACCEPT
-   -A FORWARD -s 131.159.15.248/32 -i eth1.152 -o eth1.110 -j ACCEPT
+  (*$ diff -u ~/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-save-2015-05-15_14-14-46 iptables-save-2015-05-15_14-14-46_cheating
+    --- /home/diekmann/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-save-2015-05-15_14-14-46	2015-05-15 15:24:22.948698000 +0200
+    +++ iptables-save-2015-05-15_14-14-46_cheating	2015-07-30 11:26:37.387934437 +0200
+    @@ -148,7 +148,6 @@
+     -A FORWARD -s 131.159.14.197/32 -i eth1.1011 -j ACCEPT
+     -A FORWARD -s 131.159.14.221/32 -i eth1.1011 -j ACCEPT
+     -A FORWARD -s 131.159.15.252/32 -i eth1.152 -p udp -j ACCEPT
+    --A FORWARD -d 131.159.15.252/32 -o eth1.152 -p udp -m multiport --dports 4569,5000:65535 -j ACCEPT
+     -A FORWARD -s 131.159.15.247/32 -i eth1.152 -o eth1.110 -j ACCEPT
+     -A FORWARD -d 131.159.15.247/32 -i eth1.110 -o eth1.152 -j ACCEPT
+     -A FORWARD -s 131.159.15.248/32 -i eth1.152 -o eth1.110 -j ACCEPT
   *)
 
   text{*the parsed firewall:*}
@@ -261,20 +210,10 @@ subsubsection{*Try 2*}
 
 subsection{*Try 3*}
   parse_iptables_save net_fw_3="iptables-save-2015-05-15_15-23-41_cheating"
-  (* DIFF iptables-save
-  
-  $ diff -u ~/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-save-2015-05-15_15-23-41 iptables-save-2015-05-15_15-23-41_cheating
+  (* $ diff -u ~/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-save-2015-05-15_15-23-41 iptables-save-2015-05-15_15-23-41_cheating
   --- /home/diekmann/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-save-2015-05-15_15-23-41	2015-05-15 15:24:23.180698000 +0200
-  +++ iptables-save-2015-05-15_15-23-41_cheating	2015-06-17 14:25:52.485704347 +0200
-  @@ -141,7 +141,6 @@
-   -A INPUT -s 127.0.0.0/8 -j LOG_DROP
-   -A INPUT -i eth1.110 -j filter_INPUT
-   -A INPUT -i eth1.1024 -j filter_INPUT
-  --A FORWARD -m state --state RELATED,ESTABLISHED,UNTRACKED -j ACCEPT
-   -A FORWARD -i eth1.110 -j NOTFROMHERE
-   -A FORWARD -i eth1.1024 -j NOTFROMHERE
-   -A FORWARD -m recent --update --seconds 60 --name DEFAULT --rsource -j LOG_RECENT_DROP2
-  @@ -150,7 +149,6 @@
+  +++ iptables-save-2015-05-15_15-23-41_cheating	2015-07-30 11:27:53.583931177 +0200
+  @@ -150,7 +150,6 @@
    -A FORWARD -s 131.159.14.197/32 -i eth1.1011 -j ACCEPT
    -A FORWARD -s 131.159.14.221/32 -i eth1.1011 -j ACCEPT
    -A FORWARD -s 131.159.15.252/32 -i eth1.152 -p udp -j ACCEPT
@@ -283,46 +222,11 @@ subsection{*Try 3*}
    -A FORWARD -d 131.159.15.247/32 -i eth1.110 -o eth1.152 -j ACCEPT
    -A FORWARD -s 131.159.15.248/32 -i eth1.152 -o eth1.110 -j ACCEPT
   *)
-  (*DIFF iptables -L -n -v
   
-  $ diff -u ~/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-Lnv-2015-05-15_15-23-41 iptables-Lnv-2015-05-15_15-23-41_cheating
-  --- /home/diekmann/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-Lnv-2015-05-15_15-23-41	2015-05-15 15:24:23.224698000 +0200
-  +++ iptables-Lnv-2015-05-15_15-23-41_cheating	2015-05-27 11:08:10.122472029 +0200
-  @@ -13,7 +13,6 @@
-   
-   Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
-    pkts bytes target     prot opt in     out     source               destination         
-  - 278K  265M ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            state RELATED,ESTABLISHED,UNTRACKED
-    3151  206K NOTFROMHERE  all  --  eth1.110 *       0.0.0.0/0            0.0.0.0/0           
-   12501  844K NOTFROMHERE  all  --  eth1.1024 *       0.0.0.0/0            0.0.0.0/0           
-       0     0 LOG_RECENT_DROP2  all  --  *      *       0.0.0.0/0            0.0.0.0/0            recent: UPDATE seconds: 60 name: DEFAULT side: source
-  @@ -22,7 +21,6 @@
-       0     0 ACCEPT     all  --  eth1.1011 *       131.159.14.197       0.0.0.0/0           
-       0     0 ACCEPT     all  --  eth1.1011 *       131.159.14.221       0.0.0.0/0           
-       0     0 ACCEPT     udp  --  eth1.152 *       131.159.15.252       0.0.0.0/0           
-  -    0     0 ACCEPT     udp  --  *      eth1.152  0.0.0.0/0            131.159.15.252       multiport dports 4569,5000:65535
-       0     0 ACCEPT     all  --  eth1.152 eth1.110  131.159.15.247       0.0.0.0/0           
-       1    40 ACCEPT     all  --  eth1.110 eth1.152  0.0.0.0/0            131.159.15.247      
-       0     0 ACCEPT     all  --  eth1.152 eth1.110  131.159.15.248       0.0.0.0/0
-  
-  *)
-  
-  (*
-  The second rule we removed was for an asterisk server. This rule is probably an error because this rule prevents any spoofing protection.
-  It was a temprary rule and it should have been removed but was forgotten, we are investigating ...
-  *)
   
   text{*the parsed firewall:*}
   value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw_3"
   
-  
-  (*
-  (*194.439s*)
-  value[code] "upper_closure (unfold_ruleset_FORWARD net_fw_3_FORWARD_default_policy (map_of_string net_fw_3))"
-  
-  (*146.691s*)
-  value[code] "example_ipassignment_nospoof ''eth1.96'' (upper_closure (unfold_ruleset_FORWARD net_fw_3_FORWARD_default_policy (map_of_string net_fw_3)))"
-  *)
   
   text{*sanity check that @{const ipassmt} is complete*}
   (*177.848s*)
