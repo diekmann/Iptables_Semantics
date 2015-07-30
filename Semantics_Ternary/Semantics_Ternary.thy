@@ -593,4 +593,13 @@ proof -
     qed(simp_all add: optimize_matches_a_def simple_ruleset_tail)
 qed
 
+
+(*TODO: this could be a useful rule, maybe it can simplify some proofs?*)
+lemma just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided: 
+      "approximating_bigstep_fun \<gamma> p rs1 Undecided = approximating_bigstep_fun \<gamma> p rs2 Undecided \<Longrightarrow> 
+       approximating_bigstep_fun \<gamma> p rs1 s = approximating_bigstep_fun \<gamma> p rs2 s"
+  apply(cases s)
+   apply(simp)
+  by (simp add: Decision_approximating_bigstep_fun)
+
 end
