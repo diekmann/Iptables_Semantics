@@ -501,7 +501,7 @@ theorem transform_normalize_primitives:
          where f1=ipt_ipv4range_compress, folded normalize_dst_ips_def] (*TODO: why is this f1 and not f in 2015-RC0?*)
     have normalized_dst_ports_rs4: "\<forall>m \<in> get_match ` set ?rs4.  normalized_dst_ports m" by force
 
-    from normalize_rules_preserves_unrelated_normalized_n_primitive[of ?rs3 is_Src src_sel "(\<lambda>ip. case ip of Ip4AddrNetmask _ _ \<Rightarrow> True | _ \<Rightarrow> False)",
+    from normalize_rules_preserves_unrelated_normalized_n_primitive[of ?rs3 is_Src src_sel normalized_cidr_ip,
          OF _ wf_disc_sel_common_primitive(4),
          where f=ipt_ipv4range_compress, folded normalize_dst_ips_def normalized_src_ips_def2]
          normalized_rs3 normalized_src_ips

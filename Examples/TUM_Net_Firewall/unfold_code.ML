@@ -12,18 +12,21 @@ structure Test : sig
   datatype action = Accept | Drop | Log | Reject | Call of char list | Return |
     Goto of char list | Empty | Unknown
   datatype 'a rule = Rule of 'a match_expr * action
+  type ctstate
   datatype ipt_ipv4range = Ip4Addr of (nat * (nat * (nat * nat))) |
-    Ip4AddrNetmask of (nat * (nat * (nat * nat))) * nat
+    Ip4AddrNetmask of (nat * (nat * (nat * nat))) * nat |
+    Ip4AddrRange of (nat * (nat * (nat * nat))) * (nat * (nat * (nat * nat)))
   datatype primitive_protocol = TCP | UDP | ICMP
   datatype protocol = ProtoAny | Proto of primitive_protocol
   datatype iface = Iface of char list
+  type 'a set
   datatype common_primitive = Src of ipt_ipv4range | Dst of ipt_ipv4range |
     IIface of iface | OIface of iface | Prot of protocol |
     Src_Ports of
       (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) list
     | Dst_Ports of
         (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) list
-    | Extra of char list
+    | CT_State of ctstate set | Extra of char list
   type nibble
   type 'a packet_set
   type 'a simple_match_ext
@@ -548,6 +551,27 @@ fun equal_rule A_ = {equal = equal_rulea A_} : 'a rule equal;
 
 val equal_action = {equal = equal_actiona} : action equal;
 
+datatype ctstate = CT_New | CT_Established | CT_Related | CT_Untracked;
+
+fun equal_ctstatea CT_Related CT_Untracked = false
+  | equal_ctstatea CT_Untracked CT_Related = false
+  | equal_ctstatea CT_Established CT_Untracked = false
+  | equal_ctstatea CT_Untracked CT_Established = false
+  | equal_ctstatea CT_Established CT_Related = false
+  | equal_ctstatea CT_Related CT_Established = false
+  | equal_ctstatea CT_New CT_Untracked = false
+  | equal_ctstatea CT_Untracked CT_New = false
+  | equal_ctstatea CT_New CT_Related = false
+  | equal_ctstatea CT_Related CT_New = false
+  | equal_ctstatea CT_New CT_Established = false
+  | equal_ctstatea CT_Established CT_New = false
+  | equal_ctstatea CT_Untracked CT_Untracked = true
+  | equal_ctstatea CT_Related CT_Related = true
+  | equal_ctstatea CT_Established CT_Established = true
+  | equal_ctstatea CT_New CT_New = true;
+
+val equal_ctstate = {equal = equal_ctstatea} : ctstate equal;
+
 datatype 'a wordinterval = WordInterval of 'a word * 'a word |
   RangeUnion of 'a wordinterval * 'a wordinterval;
 
@@ -574,10 +598,22 @@ fun equal_negation_type A_ = {equal = equal_negation_typea A_} :
   'a negation_type equal;
 
 datatype ipt_ipv4range = Ip4Addr of (nat * (nat * (nat * nat))) |
-  Ip4AddrNetmask of (nat * (nat * (nat * nat))) * nat;
+  Ip4AddrNetmask of (nat * (nat * (nat * nat))) * nat |
+  Ip4AddrRange of (nat * (nat * (nat * nat))) * (nat * (nat * (nat * nat)));
 
-fun equal_ipt_ipv4range (Ip4Addr x1) (Ip4AddrNetmask (x21, x22)) = false
+fun equal_ipt_ipv4range (Ip4AddrNetmask (x21, x22)) (Ip4AddrRange (x31, x32)) =
+  false
+  | equal_ipt_ipv4range (Ip4AddrRange (x31, x32)) (Ip4AddrNetmask (x21, x22)) =
+    false
+  | equal_ipt_ipv4range (Ip4Addr x1) (Ip4AddrRange (x31, x32)) = false
+  | equal_ipt_ipv4range (Ip4AddrRange (x31, x32)) (Ip4Addr x1) = false
+  | equal_ipt_ipv4range (Ip4Addr x1) (Ip4AddrNetmask (x21, x22)) = false
   | equal_ipt_ipv4range (Ip4AddrNetmask (x21, x22)) (Ip4Addr x1) = false
+  | equal_ipt_ipv4range (Ip4AddrRange (x31, x32)) (Ip4AddrRange (y31, y32)) =
+    equal_proda equal_nat
+      (equal_prod equal_nat (equal_prod equal_nat equal_nat)) x31 y31 andalso
+      equal_proda equal_nat
+        (equal_prod equal_nat (equal_prod equal_nat equal_nat)) x32 y32
   | equal_ipt_ipv4range (Ip4AddrNetmask (x21, x22)) (Ip4AddrNetmask (y21, y22))
     = equal_proda equal_nat
         (equal_prod equal_nat (equal_prod equal_nat equal_nat)) x21 y21 andalso
@@ -592,13 +628,15 @@ datatype protocol = ProtoAny | Proto of primitive_protocol;
 
 datatype iface = Iface of char list;
 
+datatype 'a set = Set of 'a list | Coset of 'a list;
+
 datatype common_primitive = Src of ipt_ipv4range | Dst of ipt_ipv4range |
   IIface of iface | OIface of iface | Prot of protocol |
   Src_Ports of
     (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) list
   | Dst_Ports of
       (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) list
-  | Extra of char list;
+  | CT_State of ctstate set | Extra of char list;
 
 fun equal_primitive_protocol UDP ICMP = false
   | equal_primitive_protocol ICMP UDP = false
@@ -617,28 +655,66 @@ fun equal_protocol ProtoAny (Proto x2) = false
 
 fun equal_iface (Iface x) (Iface ya) = equal_lista equal_char x ya;
 
-fun equal_common_primitivea (Dst_Ports x7) (Extra x8) = false
-  | equal_common_primitivea (Extra x8) (Dst_Ports x7) = false
-  | equal_common_primitivea (Src_Ports x6) (Extra x8) = false
-  | equal_common_primitivea (Extra x8) (Src_Ports x6) = false
+datatype nibble = Nibble0 | Nibble1 | Nibble2 | Nibble3 | Nibble4 | Nibble5 |
+  Nibble6 | Nibble7 | Nibble8 | Nibble9 | NibbleA | NibbleB | NibbleC | NibbleD
+  | NibbleE | NibbleF;
+
+fun pred_list p [] = true
+  | pred_list p (x :: xs) = p x andalso pred_list p xs;
+
+fun membera A_ [] y = false
+  | membera A_ (x :: xs) y = eq A_ x y orelse membera A_ xs y;
+
+fun member A_ x (Coset xs) = not (membera A_ xs x)
+  | member A_ x (Set xs) = membera A_ xs x;
+
+fun null [] = true
+  | null (x :: xs) = false;
+
+fun less_eq_set A_ (Coset xs) (Set ys) =
+  (if null xs andalso null ys then false
+    else (raise Fail
+           "subset_eq (List.coset _) (List.set _) requires type class instance card_UNIV")
+           (fn _ => less_eq_set A_ (Coset xs) (Set ys)))
+  | less_eq_set A_ a (Coset ys) = pred_list (fn y => not (member A_ y a)) ys
+  | less_eq_set A_ (Set xs) b = pred_list (fn x => member A_ x b) xs;
+
+fun equal_set A_ a b = less_eq_set A_ a b andalso less_eq_set A_ b a;
+
+fun equal_common_primitivea (CT_State x8) (Extra x9) = false
+  | equal_common_primitivea (Extra x9) (CT_State x8) = false
+  | equal_common_primitivea (Dst_Ports x7) (Extra x9) = false
+  | equal_common_primitivea (Extra x9) (Dst_Ports x7) = false
+  | equal_common_primitivea (Dst_Ports x7) (CT_State x8) = false
+  | equal_common_primitivea (CT_State x8) (Dst_Ports x7) = false
+  | equal_common_primitivea (Src_Ports x6) (Extra x9) = false
+  | equal_common_primitivea (Extra x9) (Src_Ports x6) = false
+  | equal_common_primitivea (Src_Ports x6) (CT_State x8) = false
+  | equal_common_primitivea (CT_State x8) (Src_Ports x6) = false
   | equal_common_primitivea (Src_Ports x6) (Dst_Ports x7) = false
   | equal_common_primitivea (Dst_Ports x7) (Src_Ports x6) = false
-  | equal_common_primitivea (Prot x5) (Extra x8) = false
-  | equal_common_primitivea (Extra x8) (Prot x5) = false
+  | equal_common_primitivea (Prot x5) (Extra x9) = false
+  | equal_common_primitivea (Extra x9) (Prot x5) = false
+  | equal_common_primitivea (Prot x5) (CT_State x8) = false
+  | equal_common_primitivea (CT_State x8) (Prot x5) = false
   | equal_common_primitivea (Prot x5) (Dst_Ports x7) = false
   | equal_common_primitivea (Dst_Ports x7) (Prot x5) = false
   | equal_common_primitivea (Prot x5) (Src_Ports x6) = false
   | equal_common_primitivea (Src_Ports x6) (Prot x5) = false
-  | equal_common_primitivea (OIface x4) (Extra x8) = false
-  | equal_common_primitivea (Extra x8) (OIface x4) = false
+  | equal_common_primitivea (OIface x4) (Extra x9) = false
+  | equal_common_primitivea (Extra x9) (OIface x4) = false
+  | equal_common_primitivea (OIface x4) (CT_State x8) = false
+  | equal_common_primitivea (CT_State x8) (OIface x4) = false
   | equal_common_primitivea (OIface x4) (Dst_Ports x7) = false
   | equal_common_primitivea (Dst_Ports x7) (OIface x4) = false
   | equal_common_primitivea (OIface x4) (Src_Ports x6) = false
   | equal_common_primitivea (Src_Ports x6) (OIface x4) = false
   | equal_common_primitivea (OIface x4) (Prot x5) = false
   | equal_common_primitivea (Prot x5) (OIface x4) = false
-  | equal_common_primitivea (IIface x3) (Extra x8) = false
-  | equal_common_primitivea (Extra x8) (IIface x3) = false
+  | equal_common_primitivea (IIface x3) (Extra x9) = false
+  | equal_common_primitivea (Extra x9) (IIface x3) = false
+  | equal_common_primitivea (IIface x3) (CT_State x8) = false
+  | equal_common_primitivea (CT_State x8) (IIface x3) = false
   | equal_common_primitivea (IIface x3) (Dst_Ports x7) = false
   | equal_common_primitivea (Dst_Ports x7) (IIface x3) = false
   | equal_common_primitivea (IIface x3) (Src_Ports x6) = false
@@ -647,8 +723,10 @@ fun equal_common_primitivea (Dst_Ports x7) (Extra x8) = false
   | equal_common_primitivea (Prot x5) (IIface x3) = false
   | equal_common_primitivea (IIface x3) (OIface x4) = false
   | equal_common_primitivea (OIface x4) (IIface x3) = false
-  | equal_common_primitivea (Dst x2) (Extra x8) = false
-  | equal_common_primitivea (Extra x8) (Dst x2) = false
+  | equal_common_primitivea (Dst x2) (Extra x9) = false
+  | equal_common_primitivea (Extra x9) (Dst x2) = false
+  | equal_common_primitivea (Dst x2) (CT_State x8) = false
+  | equal_common_primitivea (CT_State x8) (Dst x2) = false
   | equal_common_primitivea (Dst x2) (Dst_Ports x7) = false
   | equal_common_primitivea (Dst_Ports x7) (Dst x2) = false
   | equal_common_primitivea (Dst x2) (Src_Ports x6) = false
@@ -659,8 +737,10 @@ fun equal_common_primitivea (Dst_Ports x7) (Extra x8) = false
   | equal_common_primitivea (OIface x4) (Dst x2) = false
   | equal_common_primitivea (Dst x2) (IIface x3) = false
   | equal_common_primitivea (IIface x3) (Dst x2) = false
-  | equal_common_primitivea (Src x1) (Extra x8) = false
-  | equal_common_primitivea (Extra x8) (Src x1) = false
+  | equal_common_primitivea (Src x1) (Extra x9) = false
+  | equal_common_primitivea (Extra x9) (Src x1) = false
+  | equal_common_primitivea (Src x1) (CT_State x8) = false
+  | equal_common_primitivea (CT_State x8) (Src x1) = false
   | equal_common_primitivea (Src x1) (Dst_Ports x7) = false
   | equal_common_primitivea (Dst_Ports x7) (Src x1) = false
   | equal_common_primitivea (Src x1) (Src_Ports x6) = false
@@ -673,7 +753,9 @@ fun equal_common_primitivea (Dst_Ports x7) (Extra x8) = false
   | equal_common_primitivea (IIface x3) (Src x1) = false
   | equal_common_primitivea (Src x1) (Dst x2) = false
   | equal_common_primitivea (Dst x2) (Src x1) = false
-  | equal_common_primitivea (Extra x8) (Extra y8) = equal_lista equal_char x8 y8
+  | equal_common_primitivea (Extra x9) (Extra y9) = equal_lista equal_char x9 y9
+  | equal_common_primitivea (CT_State x8) (CT_State y8) =
+    equal_set equal_ctstate x8 y8
   | equal_common_primitivea (Dst_Ports x7) (Dst_Ports y7) =
     equal_lista
       (equal_prod
@@ -694,10 +776,6 @@ fun equal_common_primitivea (Dst_Ports x7) (Extra x8) = false
 
 val equal_common_primitive = {equal = equal_common_primitivea} :
   common_primitive equal;
-
-datatype nibble = Nibble0 | Nibble1 | Nibble2 | Nibble3 | Nibble4 | Nibble5 |
-  Nibble6 | Nibble7 | Nibble8 | Nibble9 | NibbleA | NibbleB | NibbleC | NibbleD
-  | NibbleE | NibbleF;
 
 datatype 'a packet_set =
   PacketSet of (('a negation_type * action negation_type) list) list;
@@ -731,9 +809,6 @@ fun fold f (x :: xs) s = fold f xs (f x s)
 
 fun maps f [] = []
   | maps f (x :: xs) = f x @ maps f xs;
-
-fun null [] = true
-  | null (x :: xs) = false;
 
 fun take n [] = []
   | take n (x :: xs) =
@@ -777,12 +852,9 @@ fun map_of A_ ((l, v) :: ps) k = (if eq A_ l k then SOME v else map_of A_ ps k)
 fun filter p [] = []
   | filter p (x :: xs) = (if p x then x :: filter p xs else filter p xs);
 
-fun member A_ [] y = false
-  | member A_ (x :: xs) y = eq A_ x y orelse member A_ xs y;
-
 fun remdups A_ [] = []
   | remdups A_ (x :: xs) =
-    (if member A_ xs x then remdups A_ xs else x :: remdups A_ xs);
+    (if membera A_ xs x then remdups A_ xs else x :: remdups A_ xs);
 
 fun fst (x1, x2) = x1;
 
@@ -806,9 +878,6 @@ fun max_word A_ =
       (Int_of_integer (1 : IntInf.int)));
 
 val ifaceAny : iface = Iface [#"+"];
-
-fun pred_list p [] = true
-  | pred_list p (x :: xs) = p x andalso pred_list p xs;
 
 val pfxes : nat list =
   map nat (upto zero_int (Int_of_integer (32 : IntInf.int)));
@@ -1129,6 +1198,7 @@ fun lower_closure_matchexpr uu MatchAny = MatchAny
   | lower_closure_matchexpr Drop (Match (Prot v)) = Match (Prot v)
   | lower_closure_matchexpr Drop (Match (Src_Ports v)) = Match (Src_Ports v)
   | lower_closure_matchexpr Drop (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | lower_closure_matchexpr Drop (Match (CT_State v)) = Match (CT_State v)
   | lower_closure_matchexpr Log (Match m) = Match m
   | lower_closure_matchexpr Reject (Match (Src v)) = Match (Src v)
   | lower_closure_matchexpr Reject (Match (Dst v)) = Match (Dst v)
@@ -1137,6 +1207,7 @@ fun lower_closure_matchexpr uu MatchAny = MatchAny
   | lower_closure_matchexpr Reject (Match (Prot v)) = Match (Prot v)
   | lower_closure_matchexpr Reject (Match (Src_Ports v)) = Match (Src_Ports v)
   | lower_closure_matchexpr Reject (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | lower_closure_matchexpr Reject (Match (CT_State v)) = Match (CT_State v)
   | lower_closure_matchexpr (Call v) (Match m) = Match m
   | lower_closure_matchexpr Return (Match m) = Match m
   | lower_closure_matchexpr (Goto v) (Match m) = Match m
@@ -1149,6 +1220,7 @@ fun lower_closure_matchexpr uu MatchAny = MatchAny
   | lower_closure_matchexpr uy (Match (Prot v)) = Match (Prot v)
   | lower_closure_matchexpr uy (Match (Src_Ports v)) = Match (Src_Ports v)
   | lower_closure_matchexpr uy (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | lower_closure_matchexpr uy (Match (CT_State v)) = Match (CT_State v)
   | lower_closure_matchexpr Accept (MatchNot (Match (Extra uz))) =
     MatchNot MatchAny
   | lower_closure_matchexpr Drop (MatchNot (Match (Extra va))) = MatchAny
@@ -1184,6 +1256,8 @@ fun lower_closure_matchexpr uu MatchAny = MatchAny
     MatchNot (Match (Src_Ports va))
   | lower_closure_matchexpr Drop (MatchNot (Match (Dst_Ports va))) =
     MatchNot (Match (Dst_Ports va))
+  | lower_closure_matchexpr Drop (MatchNot (Match (CT_State va))) =
+    MatchNot (Match (CT_State va))
   | lower_closure_matchexpr Drop (MatchNot MatchAny) = MatchNot MatchAny
   | lower_closure_matchexpr Log (MatchNot (Match v)) = MatchNot (Match v)
   | lower_closure_matchexpr Log (MatchNot MatchAny) = MatchNot MatchAny
@@ -1201,6 +1275,8 @@ fun lower_closure_matchexpr uu MatchAny = MatchAny
     MatchNot (Match (Src_Ports va))
   | lower_closure_matchexpr Reject (MatchNot (Match (Dst_Ports va))) =
     MatchNot (Match (Dst_Ports va))
+  | lower_closure_matchexpr Reject (MatchNot (Match (CT_State va))) =
+    MatchNot (Match (CT_State va))
   | lower_closure_matchexpr Reject (MatchNot MatchAny) = MatchNot MatchAny
   | lower_closure_matchexpr (Call v) (MatchNot (Match va)) = MatchNot (Match va)
   | lower_closure_matchexpr (Call v) (MatchNot MatchAny) = MatchNot MatchAny
@@ -1226,6 +1302,8 @@ fun lower_closure_matchexpr uu MatchAny = MatchAny
     MatchNot (Match (Src_Ports va))
   | lower_closure_matchexpr vc (MatchNot (Match (Dst_Ports va))) =
     MatchNot (Match (Dst_Ports va))
+  | lower_closure_matchexpr vc (MatchNot (Match (CT_State va))) =
+    MatchNot (Match (CT_State va))
   | lower_closure_matchexpr vc (MatchNot MatchAny) = MatchNot MatchAny
   | lower_closure_matchexpr a (MatchAnd (m1, m2)) =
     MatchAnd (lower_closure_matchexpr a m1, lower_closure_matchexpr a m2);
@@ -1263,7 +1341,8 @@ fun is_Src (Src x1) = true
   | is_Src (Prot x5) = false
   | is_Src (Src_Ports x6) = false
   | is_Src (Dst_Ports x7) = false
-  | is_Src (Extra x8) = false;
+  | is_Src (CT_State x8) = false
+  | is_Src (Extra x9) = false;
 
 fun wordinterval_to_list A_ (RangeUnion (r1, r2)) =
   wordinterval_to_list A_ r1 @ wordinterval_to_list A_ r2
@@ -1330,7 +1409,9 @@ fun ipv4addr_of_dotdecimal (a, (b, (c, d))) =
 fun ipt_ipv4range_to_interval (Ip4Addr addr) =
   (ipv4addr_of_dotdecimal addr, ipv4addr_of_dotdecimal addr)
   | ipt_ipv4range_to_interval (Ip4AddrNetmask (pre, len)) =
-    ipv4cidr_to_interval (ipv4addr_of_dotdecimal pre, len);
+    ipv4cidr_to_interval (ipv4addr_of_dotdecimal pre, len)
+  | ipt_ipv4range_to_interval (Ip4AddrRange (ip1, ip2)) =
+    (ipv4addr_of_dotdecimal ip1, ipv4addr_of_dotdecimal ip2);
 
 fun ipt_ipv4range_negation_type_to_br_intersect l =
   l2br_negation_type_intersect
@@ -1398,7 +1479,8 @@ fun is_Dst (Src x1) = false
   | is_Dst (Prot x5) = false
   | is_Dst (Src_Ports x6) = false
   | is_Dst (Dst_Ports x7) = false
-  | is_Dst (Extra x8) = false;
+  | is_Dst (CT_State x8) = false
+  | is_Dst (Extra x9) = false;
 
 fun normalize_dst_ips x =
   normalize_primitive_extract (is_Dst, dst_sel) Dst ipt_ipv4range_compress x;
@@ -1412,7 +1494,8 @@ fun is_Src_Ports (Src x1) = false
   | is_Src_Ports (Prot x5) = false
   | is_Src_Ports (Src_Ports x6) = true
   | is_Src_Ports (Dst_Ports x7) = false
-  | is_Src_Ports (Extra x8) = false;
+  | is_Src_Ports (CT_State x8) = false
+  | is_Src_Ports (Extra x9) = false;
 
 fun ipt_ports_negation_type_normalize (Pos ps) = ps
   | ipt_ports_negation_type_normalize (Neg ps) = ports_invert ps;
@@ -1443,7 +1526,8 @@ fun is_Dst_Ports (Src x1) = false
   | is_Dst_Ports (Prot x5) = false
   | is_Dst_Ports (Src_Ports x6) = false
   | is_Dst_Ports (Dst_Ports x7) = true
-  | is_Dst_Ports (Extra x8) = false;
+  | is_Dst_Ports (CT_State x8) = false
+  | is_Dst_Ports (Extra x9) = false;
 
 fun normalize_dst_ports x =
   normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports x;
@@ -1457,6 +1541,12 @@ fun transform_normalize_primitives x =
      normalize_rules normalize_dst_ports o
     normalize_rules normalize_src_ports)
     x;
+
+fun ctstate_is_UNIV c =
+  member equal_ctstate CT_New c andalso
+    (member equal_ctstate CT_Established c andalso
+      (member equal_ctstate CT_Related c andalso
+        member equal_ctstate CT_Untracked c));
 
 fun optimize_primitive_univ (Match (IIface iface)) =
   (if equal_iface iface ifaceAny then MatchAny else Match (IIface iface))
@@ -1481,10 +1571,16 @@ fun optimize_primitive_univ (Match (IIface iface)) =
                 (Int_of_integer (65535 : IntInf.int)))
       then MatchAny else Match (Dst_Ports [(s, e)]))
   | optimize_primitive_univ (Match (Prot ProtoAny)) = MatchAny
+  | optimize_primitive_univ (Match (CT_State ctstate)) =
+    (if ctstate_is_UNIV ctstate then MatchAny else Match (CT_State ctstate))
   | optimize_primitive_univ (Match (Src (Ip4Addr va))) =
     Match (Src (Ip4Addr va))
+  | optimize_primitive_univ (Match (Src (Ip4AddrRange (va, vb)))) =
+    Match (Src (Ip4AddrRange (va, vb)))
   | optimize_primitive_univ (Match (Dst (Ip4Addr va))) =
     Match (Dst (Ip4Addr va))
+  | optimize_primitive_univ (Match (Dst (Ip4AddrRange (va, vb)))) =
+    Match (Dst (Ip4AddrRange (va, vb)))
   | optimize_primitive_univ (Match (Prot (Proto va))) = Match (Prot (Proto va))
   | optimize_primitive_univ (Match (Src_Ports [])) = Match (Src_Ports [])
   | optimize_primitive_univ (Match (Src_Ports (va :: vc :: vd))) =
@@ -1728,7 +1824,7 @@ fun optimize_matches_a f rs =
 
 fun remdups_rev_code A_ uu [] = []
   | remdups_rev_code A_ ps (r :: rs) =
-    (if member A_ ps r then remdups_rev_code A_ ps rs
+    (if membera A_ ps r then remdups_rev_code A_ ps rs
       else r :: remdups_rev_code A_ (r :: ps) rs);
 
 fun lower_closure rs =
@@ -1755,6 +1851,7 @@ fun upper_closure_matchexpr uu MatchAny = MatchAny
   | upper_closure_matchexpr Drop (Match (Prot v)) = Match (Prot v)
   | upper_closure_matchexpr Drop (Match (Src_Ports v)) = Match (Src_Ports v)
   | upper_closure_matchexpr Drop (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | upper_closure_matchexpr Drop (Match (CT_State v)) = Match (CT_State v)
   | upper_closure_matchexpr Log (Match m) = Match m
   | upper_closure_matchexpr Reject (Match (Src v)) = Match (Src v)
   | upper_closure_matchexpr Reject (Match (Dst v)) = Match (Dst v)
@@ -1763,6 +1860,7 @@ fun upper_closure_matchexpr uu MatchAny = MatchAny
   | upper_closure_matchexpr Reject (Match (Prot v)) = Match (Prot v)
   | upper_closure_matchexpr Reject (Match (Src_Ports v)) = Match (Src_Ports v)
   | upper_closure_matchexpr Reject (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | upper_closure_matchexpr Reject (Match (CT_State v)) = Match (CT_State v)
   | upper_closure_matchexpr (Call v) (Match m) = Match m
   | upper_closure_matchexpr Return (Match m) = Match m
   | upper_closure_matchexpr (Goto v) (Match m) = Match m
@@ -1775,6 +1873,7 @@ fun upper_closure_matchexpr uu MatchAny = MatchAny
   | upper_closure_matchexpr uy (Match (Prot v)) = Match (Prot v)
   | upper_closure_matchexpr uy (Match (Src_Ports v)) = Match (Src_Ports v)
   | upper_closure_matchexpr uy (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | upper_closure_matchexpr uy (Match (CT_State v)) = Match (CT_State v)
   | upper_closure_matchexpr Accept (MatchNot (Match (Extra uz))) = MatchAny
   | upper_closure_matchexpr Drop (MatchNot (Match (Extra va))) =
     MatchNot MatchAny
@@ -1811,6 +1910,8 @@ fun upper_closure_matchexpr uu MatchAny = MatchAny
     MatchNot (Match (Src_Ports va))
   | upper_closure_matchexpr Drop (MatchNot (Match (Dst_Ports va))) =
     MatchNot (Match (Dst_Ports va))
+  | upper_closure_matchexpr Drop (MatchNot (Match (CT_State va))) =
+    MatchNot (Match (CT_State va))
   | upper_closure_matchexpr Drop (MatchNot MatchAny) = MatchNot MatchAny
   | upper_closure_matchexpr Log (MatchNot (Match v)) = MatchNot (Match v)
   | upper_closure_matchexpr Log (MatchNot MatchAny) = MatchNot MatchAny
@@ -1828,6 +1929,8 @@ fun upper_closure_matchexpr uu MatchAny = MatchAny
     MatchNot (Match (Src_Ports va))
   | upper_closure_matchexpr Reject (MatchNot (Match (Dst_Ports va))) =
     MatchNot (Match (Dst_Ports va))
+  | upper_closure_matchexpr Reject (MatchNot (Match (CT_State va))) =
+    MatchNot (Match (CT_State va))
   | upper_closure_matchexpr Reject (MatchNot MatchAny) = MatchNot MatchAny
   | upper_closure_matchexpr (Call v) (MatchNot (Match va)) = MatchNot (Match va)
   | upper_closure_matchexpr (Call v) (MatchNot MatchAny) = MatchNot MatchAny
@@ -1853,6 +1956,8 @@ fun upper_closure_matchexpr uu MatchAny = MatchAny
     MatchNot (Match (Src_Ports va))
   | upper_closure_matchexpr vc (MatchNot (Match (Dst_Ports va))) =
     MatchNot (Match (Dst_Ports va))
+  | upper_closure_matchexpr vc (MatchNot (Match (CT_State va))) =
+    MatchNot (Match (CT_State va))
   | upper_closure_matchexpr vc (MatchNot MatchAny) = MatchNot MatchAny
   | upper_closure_matchexpr a (MatchAnd (m1, m2)) =
     MatchAnd (upper_closure_matchexpr a m1, upper_closure_matchexpr a m2);
@@ -1904,7 +2009,7 @@ fun packet_set_union (PacketSet olist1) (PacketSet olist2) =
 fun packet_set_opt4_internal_internal A_ cs =
   pred_list
     (fn (m, a) =>
-      not (member
+      not (membera
             (equal_prod (equal_negation_type A_)
               (equal_negation_type equal_action))
             cs (m, invert a)))
@@ -1925,7 +2030,7 @@ fun packet_set_opt2_internal A_ [] = []
                (filter
                  (fn ass =>
                    not (pred_list
-                         (member
+                         (membera
                            (equal_prod (equal_negation_type A_)
                              (equal_negation_type equal_action))
                            ass)
@@ -2138,6 +2243,7 @@ fun normalized_dst_ports MatchAny = true
   | normalized_dst_ports (Match (OIface v)) = true
   | normalized_dst_ports (Match (Prot v)) = true
   | normalized_dst_ports (Match (Src_Ports v)) = true
+  | normalized_dst_ports (Match (CT_State v)) = true
   | normalized_dst_ports (Match (Extra v)) = true
   | normalized_dst_ports (MatchNot (Match (Dst_Ports ux))) = false
   | normalized_dst_ports (MatchNot (Match (Src v))) = true
@@ -2146,6 +2252,7 @@ fun normalized_dst_ports MatchAny = true
   | normalized_dst_ports (MatchNot (Match (OIface v))) = true
   | normalized_dst_ports (MatchNot (Match (Prot v))) = true
   | normalized_dst_ports (MatchNot (Match (Src_Ports v))) = true
+  | normalized_dst_ports (MatchNot (Match (CT_State v))) = true
   | normalized_dst_ports (MatchNot (Match (Extra v))) = true
   | normalized_dst_ports (MatchAnd (m1, m2)) =
     normalized_dst_ports m1 andalso normalized_dst_ports m2
@@ -2163,6 +2270,7 @@ fun normalized_src_ports MatchAny = true
   | normalized_src_ports (Match (OIface v)) = true
   | normalized_src_ports (Match (Prot v)) = true
   | normalized_src_ports (Match (Dst_Ports v)) = true
+  | normalized_src_ports (Match (CT_State v)) = true
   | normalized_src_ports (Match (Extra v)) = true
   | normalized_src_ports (MatchNot (Match (Src_Ports ux))) = false
   | normalized_src_ports (MatchNot (Match (Src v))) = true
@@ -2171,6 +2279,7 @@ fun normalized_src_ports MatchAny = true
   | normalized_src_ports (MatchNot (Match (OIface v))) = true
   | normalized_src_ports (MatchNot (Match (Prot v))) = true
   | normalized_src_ports (MatchNot (Match (Dst_Ports v))) = true
+  | normalized_src_ports (MatchNot (Match (CT_State v))) = true
   | normalized_src_ports (MatchNot (Match (Extra v))) = true
   | normalized_src_ports (MatchAnd (m1, m2)) =
     normalized_src_ports m1 andalso normalized_src_ports m2
@@ -2244,6 +2353,7 @@ fun normalized_ifaces MatchAny = true
   | normalized_ifaces (MatchNot (Match (Prot va))) = true
   | normalized_ifaces (MatchNot (Match (Src_Ports va))) = true
   | normalized_ifaces (MatchNot (Match (Dst_Ports va))) = true
+  | normalized_ifaces (MatchNot (Match (CT_State va))) = true
   | normalized_ifaces (MatchNot (Match (Extra va))) = true
   | normalized_ifaces (MatchNot (MatchNot v)) = true
   | normalized_ifaces (MatchNot MatchAny) = true;
@@ -2277,11 +2387,6 @@ fun simple_rule_toString
                               ports_toString
                                 [#"d", #"p", #"o", #"r", #"t", #"s", #":", #" "]
                                 dps;
-
-fun ipt_ipv4range_to_ipv4_word_netmask (Ip4Addr ip_ddecim) =
-  (ipv4addr_of_dotdecimal ip_ddecim, nat_of_integer (32 : IntInf.int))
-  | ipt_ipv4range_to_ipv4_word_netmask (Ip4AddrNetmask (pre, len)) =
-    (ipv4addr_of_dotdecimal pre, len);
 
 fun sports_update sportsa
   (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
@@ -2322,11 +2427,13 @@ fun common_primitive_match_to_simple_match MatchAny = SOME simple_match_any
     SOME (iiface_update (fn _ => iif) simple_match_any)
   | common_primitive_match_to_simple_match (Match (OIface oif)) =
     SOME (oiface_update (fn _ => oif) simple_match_any)
-  | common_primitive_match_to_simple_match (Match (Src ip)) =
-    SOME (src_update (fn _ => ipt_ipv4range_to_ipv4_word_netmask ip)
+  | common_primitive_match_to_simple_match
+    (Match (Src (Ip4AddrNetmask (pre, len)))) =
+    SOME (src_update (fn _ => (ipv4addr_of_dotdecimal pre, len))
            simple_match_any)
-  | common_primitive_match_to_simple_match (Match (Dst ip)) =
-    SOME (dst_update (fn _ => ipt_ipv4range_to_ipv4_word_netmask ip)
+  | common_primitive_match_to_simple_match
+    (Match (Dst (Ip4AddrNetmask (pre, len)))) =
+    SOME (dst_update (fn _ => (ipv4addr_of_dotdecimal pre, len))
            simple_match_any)
   | common_primitive_match_to_simple_match (Match (Prot p)) =
     SOME (proto_update (fn _ => p) simple_match_any)
@@ -2343,32 +2450,54 @@ fun common_primitive_match_to_simple_match MatchAny = SOME simple_match_any
             common_primitive_match_to_simple_match m2)
       of (NONE, _) => NONE | (SOME _, NONE) => NONE
       | (SOME a, SOME b) => simple_match_and a b)
+  | common_primitive_match_to_simple_match (Match (Src (Ip4Addr uu))) =
+    (raise Fail "undefined")
+  | common_primitive_match_to_simple_match (Match (Src (Ip4AddrRange (uv, uw))))
+    = (raise Fail "undefined")
+  | common_primitive_match_to_simple_match (Match (Dst (Ip4Addr ux))) =
+    (raise Fail "undefined")
+  | common_primitive_match_to_simple_match (Match (Dst (Ip4AddrRange (uy, uz))))
+    = (raise Fail "undefined")
   | common_primitive_match_to_simple_match (MatchNot (Match (Prot (Proto v)))) =
     (raise Fail "undefined")
-  | common_primitive_match_to_simple_match (MatchNot (Match (IIface iif))) =
+  | common_primitive_match_to_simple_match (MatchNot (Match (IIface vb))) =
     (raise Fail "undefined")
-  | common_primitive_match_to_simple_match (MatchNot (Match (OIface oif))) =
+  | common_primitive_match_to_simple_match (MatchNot (Match (OIface vc))) =
     (raise Fail "undefined")
-  | common_primitive_match_to_simple_match (MatchNot (Match (Src uv))) =
+  | common_primitive_match_to_simple_match (MatchNot (Match (Src vd))) =
     (raise Fail "undefined")
-  | common_primitive_match_to_simple_match (MatchNot (Match (Dst uw))) =
+  | common_primitive_match_to_simple_match (MatchNot (Match (Dst ve))) =
     (raise Fail "undefined")
-  | common_primitive_match_to_simple_match (MatchNot (MatchAnd (ux, uy))) =
+  | common_primitive_match_to_simple_match (MatchNot (MatchAnd (vf, vg))) =
     (raise Fail "undefined")
-  | common_primitive_match_to_simple_match (MatchNot (MatchNot uz)) =
+  | common_primitive_match_to_simple_match (MatchNot (MatchNot vh)) =
     (raise Fail "undefined")
-  | common_primitive_match_to_simple_match (Match (Src_Ports (va :: v :: vc))) =
+  | common_primitive_match_to_simple_match (Match (Src_Ports (vi :: v :: va))) =
     (raise Fail "undefined")
-  | common_primitive_match_to_simple_match (Match (Dst_Ports (vc :: v :: va))) =
+  | common_primitive_match_to_simple_match (Match (Dst_Ports (vk :: v :: va))) =
     (raise Fail "undefined")
-  | common_primitive_match_to_simple_match (MatchNot (Match (Src_Ports ve))) =
+  | common_primitive_match_to_simple_match (MatchNot (Match (Src_Ports vm))) =
     (raise Fail "undefined")
-  | common_primitive_match_to_simple_match (MatchNot (Match (Dst_Ports vf))) =
+  | common_primitive_match_to_simple_match (MatchNot (Match (Dst_Ports vn))) =
     (raise Fail "undefined")
-  | common_primitive_match_to_simple_match (Match (Extra vg)) =
+  | common_primitive_match_to_simple_match (Match (CT_State vo)) =
     (raise Fail "undefined")
-  | common_primitive_match_to_simple_match (MatchNot (Match (Extra vh))) =
+  | common_primitive_match_to_simple_match (Match (Extra vp)) =
+    (raise Fail "undefined")
+  | common_primitive_match_to_simple_match (MatchNot (Match (Extra vq))) =
+    (raise Fail "undefined")
+  | common_primitive_match_to_simple_match (MatchNot (Match (CT_State vr))) =
     (raise Fail "undefined");
+
+fun is_CT_State (Src x1) = false
+  | is_CT_State (Dst x2) = false
+  | is_CT_State (IIface x3) = false
+  | is_CT_State (OIface x4) = false
+  | is_CT_State (Prot x5) = false
+  | is_CT_State (Src_Ports x6) = false
+  | is_CT_State (Dst_Ports x7) = false
+  | is_CT_State (CT_State x8) = true
+  | is_CT_State (Extra x9) = false;
 
 fun is_Extra (Src x1) = false
   | is_Extra (Dst x2) = false
@@ -2377,7 +2506,8 @@ fun is_Extra (Src x1) = false
   | is_Extra (Prot x5) = false
   | is_Extra (Src_Ports x6) = false
   | is_Extra (Dst_Ports x7) = false
-  | is_Extra (Extra x8) = true;
+  | is_Extra (CT_State x8) = false
+  | is_Extra (Extra x9) = true;
 
 fun normalized_protocols MatchAny = true
   | normalized_protocols (Match uu) = true
@@ -2391,40 +2521,63 @@ fun normalized_protocols MatchAny = true
   | normalized_protocols (MatchNot (Match (OIface va))) = true
   | normalized_protocols (MatchNot (Match (Src_Ports va))) = true
   | normalized_protocols (MatchNot (Match (Dst_Ports va))) = true
+  | normalized_protocols (MatchNot (Match (CT_State va))) = true
   | normalized_protocols (MatchNot (Match (Extra va))) = true
   | normalized_protocols (MatchNot (MatchNot v)) = true
   | normalized_protocols (MatchNot MatchAny) = true;
 
 fun normalized_src_ips MatchAny = true
-  | normalized_src_ips (Match uu) = true
-  | normalized_src_ips (MatchNot (Match (Src uv))) = false
+  | normalized_src_ips (Match (Src (Ip4AddrRange (uu, uv)))) = false
+  | normalized_src_ips (Match (Src (Ip4Addr uw))) = false
+  | normalized_src_ips (Match (Src (Ip4AddrNetmask (ux, uy)))) = true
+  | normalized_src_ips (Match (Dst v)) = true
+  | normalized_src_ips (Match (IIface v)) = true
+  | normalized_src_ips (Match (OIface v)) = true
+  | normalized_src_ips (Match (Prot v)) = true
+  | normalized_src_ips (Match (Src_Ports v)) = true
+  | normalized_src_ips (Match (Dst_Ports v)) = true
+  | normalized_src_ips (Match (CT_State v)) = true
+  | normalized_src_ips (Match (Extra v)) = true
+  | normalized_src_ips (MatchNot (Match (Src va))) = false
   | normalized_src_ips (MatchNot (Match (Dst v))) = true
   | normalized_src_ips (MatchNot (Match (IIface v))) = true
   | normalized_src_ips (MatchNot (Match (OIface v))) = true
   | normalized_src_ips (MatchNot (Match (Prot v))) = true
   | normalized_src_ips (MatchNot (Match (Src_Ports v))) = true
   | normalized_src_ips (MatchNot (Match (Dst_Ports v))) = true
+  | normalized_src_ips (MatchNot (Match (CT_State v))) = true
   | normalized_src_ips (MatchNot (Match (Extra v))) = true
   | normalized_src_ips (MatchAnd (m1, m2)) =
     normalized_src_ips m1 andalso normalized_src_ips m2
-  | normalized_src_ips (MatchNot (MatchAnd (ux, uy))) = false
-  | normalized_src_ips (MatchNot (MatchNot uz)) = false
+  | normalized_src_ips (MatchNot (MatchAnd (vc, vd))) = false
+  | normalized_src_ips (MatchNot (MatchNot ve)) = false
   | normalized_src_ips (MatchNot MatchAny) = true;
 
 fun normalized_dst_ips MatchAny = true
-  | normalized_dst_ips (Match uu) = true
-  | normalized_dst_ips (MatchNot (Match (Dst uv))) = false
+  | normalized_dst_ips (Match (Dst (Ip4AddrRange (uu, uv)))) = false
+  | normalized_dst_ips (Match (Dst (Ip4Addr uw))) = false
+  | normalized_dst_ips (Match (Dst (Ip4AddrNetmask (ux, uy)))) = true
+  | normalized_dst_ips (Match (Src v)) = true
+  | normalized_dst_ips (Match (IIface v)) = true
+  | normalized_dst_ips (Match (OIface v)) = true
+  | normalized_dst_ips (Match (Prot v)) = true
+  | normalized_dst_ips (Match (Src_Ports v)) = true
+  | normalized_dst_ips (Match (Dst_Ports v)) = true
+  | normalized_dst_ips (Match (CT_State v)) = true
+  | normalized_dst_ips (Match (Extra v)) = true
+  | normalized_dst_ips (MatchNot (Match (Dst va))) = false
   | normalized_dst_ips (MatchNot (Match (Src v))) = true
   | normalized_dst_ips (MatchNot (Match (IIface v))) = true
   | normalized_dst_ips (MatchNot (Match (OIface v))) = true
   | normalized_dst_ips (MatchNot (Match (Prot v))) = true
   | normalized_dst_ips (MatchNot (Match (Src_Ports v))) = true
   | normalized_dst_ips (MatchNot (Match (Dst_Ports v))) = true
+  | normalized_dst_ips (MatchNot (Match (CT_State v))) = true
   | normalized_dst_ips (MatchNot (Match (Extra v))) = true
   | normalized_dst_ips (MatchAnd (m1, m2)) =
     normalized_dst_ips m1 andalso normalized_dst_ips m2
-  | normalized_dst_ips (MatchNot (MatchAnd (ux, uy))) = false
-  | normalized_dst_ips (MatchNot (MatchNot uz)) = false
+  | normalized_dst_ips (MatchNot (MatchAnd (vc, vd))) = false
+  | normalized_dst_ips (MatchNot (MatchNot ve)) = false
   | normalized_dst_ips (MatchNot MatchAny) = true;
 
 fun check_simple_fw_preconditions rs =
@@ -2436,8 +2589,10 @@ fun check_simple_fw_preconditions rs =
             (normalized_dst_ips m andalso
               (normalized_ifaces m andalso
                 (normalized_protocols m andalso
-                  (not (has_disc is_Extra m) andalso
-                    (equal_actiona a Accept orelse equal_actiona a Drop))))))))
+                  (not (has_disc is_CT_State m) andalso
+                    (not (has_disc is_Extra m) andalso
+                      (equal_actiona a Accept orelse
+                        equal_actiona a Drop)))))))))
     rs;
 
 fun action_to_simple_action Accept = Accepta

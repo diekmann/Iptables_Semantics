@@ -3,8 +3,6 @@ imports Common_Primitive_Matcher
         "Primitive_Normalization"
 begin
 
-
-
 subsection{*Normalizing IP Addresses*}
   fun normalized_src_ips :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_src_ips MatchAny = True" |
@@ -19,11 +17,14 @@ subsection{*Normalizing IP Addresses*}
     "normalized_src_ips (MatchNot (MatchNot _)) = False" |
     "normalized_src_ips (MatchNot (MatchAny)) = True" 
   
-  lemma normalized_src_ips_def2: "normalized_src_ips ms = normalized_n_primitive (is_Src, src_sel) (\<lambda>ip. case ip of Ip4AddrNetmask _ _ \<Rightarrow> True | _ \<Rightarrow> False) ms"
-    by(induction ms rule: normalized_src_ips.induct, simp_all)
+  lemma normalized_src_ips_def2: "normalized_src_ips ms = normalized_n_primitive (is_Src, src_sel) normalized_cidr_ip ms"
+    by(induction ms rule: normalized_src_ips.induct, simp_all add: normalized_cidr_ip_def)
 
   fun normalized_dst_ips :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_dst_ips MatchAny = True" |
+    "normalized_dst_ips (Match (Dst (Ip4AddrRange _ _))) = False" |
+    "normalized_dst_ips (Match (Dst (Ip4Addr _))) = False" |
+    "normalized_dst_ips (Match (Dst (Ip4AddrNetmask _ _))) = True" |
     "normalized_dst_ips (Match _) = True" |
     "normalized_dst_ips (MatchNot (Match (Dst _))) = False" |
     "normalized_dst_ips (MatchNot (Match _)) = True" |
@@ -32,8 +33,8 @@ subsection{*Normalizing IP Addresses*}
     "normalized_dst_ips (MatchNot (MatchNot _)) = False" |
     "normalized_dst_ips (MatchNot MatchAny) = True" 
   
-  lemma normalized_dst_ips_def2: "normalized_dst_ips ms = normalized_n_primitive (is_Dst, dst_sel) (\<lambda>ip. True) ms"
-    by(induction ms rule: normalized_dst_ips.induct, simp_all)
+  lemma normalized_dst_ips_def2: "normalized_dst_ips ms = normalized_n_primitive (is_Dst, dst_sel) normalized_cidr_ip ms"
+    by(induction ms rule: normalized_dst_ips.induct, simp_all add: normalized_cidr_ip_def)
   
 
   value "normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress
@@ -110,7 +111,7 @@ subsection{*Normalizing IP Addresses*}
   lemma normalize_dst_ips_normalized_n_primitive: "normalized_nnf_match m \<Longrightarrow>
     \<forall>m' \<in> set (normalize_dst_ips m). normalized_dst_ips m'"
   unfolding normalize_dst_ips_def normalized_dst_ips_def2
-  by(rule normalize_primitive_extract_normalizes_n_primitive[OF _ wf_disc_sel_common_primitive(4)]) (simp_all)
+  by(rule normalize_primitive_extract_normalizes_n_primitive[OF _ wf_disc_sel_common_primitive(4)]) (simp_all add: ipt_ipv4range_compress_normalized_Ip4AddrNetmask)
 
 
 

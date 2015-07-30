@@ -168,14 +168,17 @@ subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
       (\<Inter> ip \<in> set (getPos l). ipv4s_to_set ip) - (\<Union> ip \<in> set (getNeg l). ipv4s_to_set ip)"
     by (metis wi_2_cidr_ipt_ipv4range_list comp_apply ipt_ipv4range_compress_def ipt_ipv4range_negation_type_to_br_intersect)
   
+  definition normalized_cidr_ip :: "ipt_ipv4range \<Rightarrow> bool" where
+    "normalized_cidr_ip ip \<equiv> case ip of Ip4AddrNetmask _ _ \<Rightarrow> True | _ \<Rightarrow> False"
+
   lemma wi_2_cidr_ipt_ipv4range_list_normalized_Ip4AddrNetmask: 
-    "\<forall>a'\<in>set (wi_2_cidr_ipt_ipv4range_list as). case a' of Ip4AddrNetmask x xa \<Rightarrow> True | _ \<Rightarrow> False"
+    "\<forall>a'\<in>set (wi_2_cidr_ipt_ipv4range_list as). normalized_cidr_ip a'"
     apply(clarify)
-    apply(simp add: wi_2_cidr_ipt_ipv4range_list_def)
+    apply(simp add: wi_2_cidr_ipt_ipv4range_list_def normalized_cidr_ip_def)
     by force
 
   lemma ipt_ipv4range_compress_normalized_Ip4AddrNetmask:
-    "\<forall>a'\<in>set (ipt_ipv4range_compress as). case a' of Ip4AddrNetmask x xa \<Rightarrow> True | _ \<Rightarrow> False"
+    "\<forall>a'\<in>set (ipt_ipv4range_compress as). normalized_cidr_ip a'"
     by(simp add: ipt_ipv4range_compress_def wi_2_cidr_ipt_ipv4range_list_normalized_Ip4AddrNetmask)
 
 end
