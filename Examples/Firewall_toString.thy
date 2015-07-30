@@ -50,7 +50,7 @@ fun action_toString :: "action \<Rightarrow> string" where
   "action_toString (action.Goto target) = ''-g ''@target" |
   "action_toString action.Empty = ''''" |
   "action_toString action.Log = ''-j LOG''" |
-  "action_toString action.Return = ''-j RETUNRN''" |
+  "action_toString action.Return = ''-j RETURN''" |
   "action_toString action.Unknown = ''!!!!!!!!!!! UNKNOWN !!!!!!!!!!!''"
 
 definition port_toString :: "16 word \<Rightarrow> string" where
@@ -63,23 +63,26 @@ lemma "iface_toString ''in: '' (Iface ''+'') = ''''" by eval
 lemma "iface_toString ''in: '' (Iface ''eth0'') = ''in: eth0''" by eval
 
 fun ports_toString :: "string \<Rightarrow> (16 word \<times> 16 word) \<Rightarrow> string" where
-  "ports_toString descr (s,e) = (if s = 0 \<and> e = max_word then '''' else descr@''(''@port_toString s@'',''@port_toString e@'')'')"
+  "ports_toString descr (s,e) = (if s = 0 \<and> e = max_word then '''' else descr @ (if s=e then port_toString s else port_toString s@'':''@port_toString e))"
 lemma "ports_toString ''spt: '' (0,65535) = ''''" by eval
-lemma "ports_toString ''spt: '' (1024,2048) = ''spt: (1024,2048)''" by eval
+lemma "ports_toString ''spt: '' (1024,2048) = ''spt: 1024:2048''" by eval
+lemma "ports_toString ''spt: '' (1024,1024) = ''spt: 1024''" by eval
 
+fun dotteddecimal_toString :: "nat \<times> nat \<times> nat \<times> nat \<Rightarrow> string" where
+  "dotteddecimal_toString (a,b,c,d) = string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d"
 
 fun common_primitive_toString :: "common_primitive \<Rightarrow> string" where
-  "common_primitive_toString (Src (Ip4Addr (a,b,c,d))) = ''-s ''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d" |
-  "common_primitive_toString (Dst (Ip4Addr (a,b,c,d))) = ''-d ''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d" |
-  "common_primitive_toString (Src (Ip4AddrNetmask (a,b,c,d) n)) =
-      ''-s ''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d@''/''@string_of_nat n"  |
-  "common_primitive_toString (Dst (Ip4AddrNetmask (a,b,c,d) n)) =
-      ''-d ''@string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d@''/''@string_of_nat n"  |
+  "common_primitive_toString (Src (Ip4Addr ip)) = ''-s ''@dotteddecimal_toString ip" |
+  "common_primitive_toString (Dst (Ip4Addr ip)) = ''-d ''@dotteddecimal_toString ip" |
+  "common_primitive_toString (Src (Ip4AddrNetmask ip n)) = ''-s ''@dotteddecimal_toString ip@''/''@string_of_nat n"  |
+  "common_primitive_toString (Dst (Ip4AddrNetmask ip n)) = ''-d ''@dotteddecimal_toString ip@''/''@string_of_nat n"  |
+  "common_primitive_toString (Src (Ip4AddrRange ip1 ip2)) = ''-m iprange --src-range ''@dotteddecimal_toString ip1@''-''@dotteddecimal_toString ip2"  |
+  "common_primitive_toString (Dst (Ip4AddrRange ip1 ip2)) = ''-m iprange --dst-range ''@dotteddecimal_toString ip1@''-''@dotteddecimal_toString ip2"  |
   "common_primitive_toString (IIface ifce) = iface_toString ''-i '' ifce" |
   "common_primitive_toString (OIface ifce) = iface_toString ''-o '' ifce" |
   "common_primitive_toString (Prot prot) = ''-p ''@protocol_toString prot" |
-  "common_primitive_toString (Src_Ports pts) = list_toString (ports_toString ''--spts '') pts" |
-  "common_primitive_toString (Dst_Ports pts) = list_toString (ports_toString ''--dpts '') pts" |
+  "common_primitive_toString (Src_Ports pts) = ''--spts '' @ list_toString (ports_toString '''') pts" |
+  "common_primitive_toString (Dst_Ports pts) = ''--dpts '' @ list_toString (ports_toString '''') pts" |
   "common_primitive_toString (CT_State S) = ''-m state --state ''@ctstate_set_toString S" |
   "common_primitive_toString (Extra e) = ''~~''@e@''~~''"
 

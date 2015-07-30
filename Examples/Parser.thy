@@ -151,14 +151,17 @@ local (*iptables-save parsers*)
       fun mk_quadrupel (((a,b),c),d) = HOLogic.mk_prod
                (mk_nat255 a, HOLogic.mk_prod (mk_nat255 b, HOLogic.mk_prod (mk_nat255 c, mk_nat255 d)));
     
-      fun ip_to_hol (ip,len) = @{const Ip4AddrNetmask} $ mk_quadrupel ip $ mk_nat 32 len;
+      fun ipNetmask_to_hol (ip,len) = @{const Ip4AddrNetmask} $ mk_quadrupel ip $ mk_nat 32 len;
+      fun ipRange_to_hol (ip1,ip2) = @{const Ip4AddrRange} $ mk_quadrupel ip1 $ mk_quadrupel ip2;
     
       val parser_ip = (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
                      (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
                      (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
                      (Scan.many1 Symbol.is_ascii_digit >> extract_int);
       
-      val parser_ip_cidr = parser_ip --| ($$ "/") -- (Scan.many1 Symbol.is_ascii_digit >> extract_int) >> ip_to_hol;
+      val parser_ip_cidr = parser_ip --| ($$ "/") -- (Scan.many1 Symbol.is_ascii_digit >> extract_int) >> ipNetmask_to_hol;
+
+      val parser_ip_range = parser_ip --| ($$ "-") -- parser_ip >> ipRange_to_hol;
     
       val parser_interface = Scan.many1 is_iface_char >> (implode #> (fn x => @{const Iface} $ HOLogic.mk_string x));
 
@@ -201,8 +204,10 @@ local (*iptables-save parsers*)
           parse_cmd_option_generic ParsedNegatedMatch ("! "^s) t parser || parse_cmd_option s t parser;
   in
     
-    val parse_src_ip_negated = parse_cmd_option_negated "-s " @{const Src} parser_ip_cidr;
-    val parse_dst_ip_negated = parse_cmd_option_negated "-d " @{const Dst} parser_ip_cidr; 
+    val parse_src_ip_negated = parse_cmd_option_negated "-s " @{const Src} parser_ip_cidr
+                            || parse_cmd_option_negated "-m iprange --src-range " @{const Src} parser_ip_range;
+    val parse_dst_ip_negated = parse_cmd_option_negated "-d " @{const Dst} parser_ip_cidr
+                            || parse_cmd_option_negated "-m iprange --dst-range " @{const Dst} parser_ip_range; 
     
     val parse_in_iface_negated = parse_cmd_option_negated "-i " @{const IIface} parser_interface;
     val parse_out_iface_negated = parse_cmd_option_negated "-o " @{const OIface} parser_interface;
