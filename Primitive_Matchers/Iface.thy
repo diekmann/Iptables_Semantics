@@ -291,37 +291,81 @@ begin
         )"
 
 
-    private lemma hlp1: "{x. \<exists>cs. x = i1 @ cs} \<subseteq> {x. \<exists>cs. x = i2 @ cs} \<Longrightarrow> length i2 \<le> length i1"
-      apply(simp add: Set.Collect_mono_iff)
-      by force
-    private lemma hlp2: "{x. \<exists>cs. x = i1 @ cs} \<subseteq> {x. \<exists>cs. x = i2 @ cs} \<Longrightarrow> take (length i2) i1 = i2"
-      apply(simp add: Set.Collect_mono_iff)
-      by force
+    private lemma butlast_take_length_helper:
+      fixes x ::"char list"
+      assumes a1: "length i2 \<le> length i1"
+      assumes a2: "take (length i2 - Suc 0) i1 = butlast i2"
+      assumes a3: "butlast i1 = take (length i1 - Suc 0) x"
+      shows "butlast i2 = take (length i2 - Suc 0) x"
+    proof - (*sledgehammer spass Isar proof*)
+      have f4: "List.gen_length 0 i2 \<le> List.gen_length 0 i1"
+        using a1 by (simp add: length_code)
+      have f5: "\<And>cs. List.gen_length 0 (cs\<Colon>char list) - Suc 0 = List.gen_length 0 (tl cs)"
+        by (metis (no_types) One_nat_def length_code length_tl)
+      obtain nn :: "(nat \<Rightarrow> nat) \<Rightarrow> nat" where
+        "\<And>f. \<not> f (nn f) \<le> f (Suc (nn f)) \<or> f (List.gen_length 0 i2) \<le> f (List.gen_length 0 i1)"
+        using f4 by (meson lift_Suc_mono_le)
+      hence "\<not> nn (\<lambda>n. n - Suc 0) - Suc 0 \<le> nn (\<lambda>n. n - Suc 0) \<or> List.gen_length 0 (tl i2) \<le> List.gen_length 0 (tl i1)"
+        using f5 by (metis (lifting) diff_Suc_Suc diff_zero)
+      hence f6: "min (List.gen_length 0 (tl i2)) (List.gen_length 0 (tl i1)) = List.gen_length 0 (tl i2)"
+        using diff_le_self min.absorb1 by blast
+      { assume "take (List.gen_length 0 (tl i2)) i1 \<noteq> take (List.gen_length 0 (tl i2)) x"
+        have "List.gen_length 0 (tl i2) = 0 \<or> take (List.gen_length 0 (tl i2)) i1 = take (List.gen_length 0 (tl i2)) x"
+          using f6 f5 a3 by (metis (lifting) One_nat_def butlast_conv_take length_code take_take)
+        hence "take (List.gen_length 0 (tl i2)) i1 = take (List.gen_length 0 (tl i2)) x"
+          by force }
+      thus "butlast i2 = take (length i2 - Suc 0) x"
+        using f5 a2 by (metis (full_types) length_code)
+    qed
 
     private lemma internal_iface_name_subset: "internal_iface_name_subset i1 i2 \<longleftrightarrow> 
         {i. internal_iface_name_match i1 i} \<subseteq> {i. internal_iface_name_match i2 i}"
       unfolding internal_iface_name_subset_def
-      apply(case_tac "iface_name_is_wildcard i1")
-       apply(case_tac [!] "iface_name_is_wildcard i2")
-         apply(simp_all)
-         defer
-         using internal_iface_name_match_refl match_iface_case_nowildcard apply fastforce
-        using match_iface_case_nowildcard match_iface_case_wildcard_prefix apply force
-       using match_iface_case_nowildcard  apply force
-      apply(rule)
-       apply(clarify, rename_tac x)
-       apply(drule_tac p_i=x in match_iface_case_wildcard_prefix)+
-       apply(simp)
-       apply (smt One_nat_def append_take_drop_id butlast_conv_take cancel_comm_monoid_add_class.diff_cancel diff_commute diff_diff_cancel diff_is_0_eq drop_take length_butlast take_append)
-      apply(subst(asm) internal_iface_name_to_set2[symmetric])+
-      apply(simp add: internal_iface_name_to_set)
-      apply(safe)
-       apply(drule hlp1)
-       apply(simp)
-       apply (metis One_nat_def Suc_pred diff_Suc_eq_diff_pred diff_is_0_eq iface_name_is_wildcard.simps(1) length_greater_0_conv)
-      apply(drule hlp2)
-      apply(simp)
-      by (metis One_nat_def butlast_conv_take length_butlast length_take take_take)
+      proof(cases "iface_name_is_wildcard i1", case_tac [!] "iface_name_is_wildcard i2", simp_all)
+        assume a1: "iface_name_is_wildcard i1"
+        assume a2: "iface_name_is_wildcard i2"
+        show "(length i2 \<le> length i1 \<and> take (length i2 - Suc 0) i1 = butlast i2) \<longleftrightarrow>
+            ({i. internal_iface_name_match i1 i} \<subseteq> {i. internal_iface_name_match i2 i})" (is "?l \<longleftrightarrow> ?r")
+          proof(rule iffI)
+            assume ?l with a1 a2 show ?r
+             apply(clarify, rename_tac x)
+             apply(drule_tac p_i=x in match_iface_case_wildcard_prefix)+
+             apply(simp)
+             using butlast_take_length_helper by blast
+          next
+            assume ?r hence r': "internal_iface_name_to_set i1 \<subseteq> internal_iface_name_to_set i2 "
+              apply -
+              apply(subst(asm) internal_iface_name_to_set2[symmetric])+
+              by assumption
+            have hlp1: "\<And>i1 i2. {x. \<exists>cs. x = i1 @ cs} \<subseteq> {x. \<exists>cs. x = i2 @ cs} \<Longrightarrow> length i2 \<le> length i1"
+              apply(simp add: Set.Collect_mono_iff)
+              by force
+            have hlp2: "\<And>i1 i2. {x. \<exists>cs. x = i1 @ cs} \<subseteq> {x. \<exists>cs. x = i2 @ cs} \<Longrightarrow> take (length i2) i1 = i2"
+              apply(simp add: Set.Collect_mono_iff)
+              by force
+            from r' a1 a2 show ?l
+              apply(simp add: internal_iface_name_to_set)
+              apply(safe)
+               apply(drule hlp1)
+               apply(simp)
+               apply (metis One_nat_def Suc_pred diff_Suc_eq_diff_pred diff_is_0_eq iface_name_is_wildcard.simps(1) length_greater_0_conv)
+              apply(drule hlp2)
+              apply(simp)
+              by (metis One_nat_def butlast_conv_take length_butlast length_take take_take)
+          qed
+      next
+      show "iface_name_is_wildcard i1 \<Longrightarrow> \<not> iface_name_is_wildcard i2 \<Longrightarrow>
+            \<not> Collect (internal_iface_name_match i1) \<subseteq> Collect (internal_iface_name_match i2)"
+        using internal_iface_name_match_refl match_iface_case_nowildcard by fastforce
+      next
+      show "\<not> iface_name_is_wildcard i1 \<Longrightarrow> iface_name_is_wildcard i2 \<Longrightarrow>
+            (take (length i2 - Suc 0) i1 = butlast i2) \<longleftrightarrow> ({i. internal_iface_name_match i1 i} \<subseteq> {i. internal_iface_name_match i2 i})"
+        using match_iface_case_nowildcard match_iface_case_wildcard_prefix by force
+      next
+      show " \<not> iface_name_is_wildcard i1 \<Longrightarrow> \<not> iface_name_is_wildcard i2 \<Longrightarrow>
+           (i1 = i2) \<longleftrightarrow> ({i. internal_iface_name_match i1 i} \<subseteq> {i. internal_iface_name_match i2 i})"
+        using match_iface_case_nowildcard  by force
+      qed
       
        
     
