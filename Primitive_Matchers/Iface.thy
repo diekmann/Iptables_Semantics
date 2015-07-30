@@ -291,14 +291,6 @@ begin
         )"
 
 
-    private lemma hlp1: "{x. \<exists>cs. x = i1 @ cs} \<subseteq> {x. \<exists>cs. x = i2 @ cs} \<Longrightarrow> length i2 \<le> length i1"
-      apply(simp add: Set.Collect_mono_iff)
-      by force
-    private lemma hlp2: "{x. \<exists>cs. x = i1 @ cs} \<subseteq> {x. \<exists>cs. x = i2 @ cs} \<Longrightarrow> take (length i2) i1 = i2"
-      apply(simp add: Set.Collect_mono_iff)
-      by force
-
-
     private lemma butlast_take_length_helper:
       fixes x ::"char list"
       assumes a1: "length i2 \<le> length i1"
@@ -341,9 +333,17 @@ begin
              apply(simp)
              using butlast_take_length_helper by blast
           next
-            assume ?r with a1 a2 show ?l
+            assume ?r hence r': "internal_iface_name_to_set i1 \<subseteq> internal_iface_name_to_set i2 "
               apply -
               apply(subst(asm) internal_iface_name_to_set2[symmetric])+
+              by assumption
+            have hlp1: "\<And>i1 i2. {x. \<exists>cs. x = i1 @ cs} \<subseteq> {x. \<exists>cs. x = i2 @ cs} \<Longrightarrow> length i2 \<le> length i1"
+              apply(simp add: Set.Collect_mono_iff)
+              by force
+            have hlp2: "\<And>i1 i2. {x. \<exists>cs. x = i1 @ cs} \<subseteq> {x. \<exists>cs. x = i2 @ cs} \<Longrightarrow> take (length i2) i1 = i2"
+              apply(simp add: Set.Collect_mono_iff)
+              by force
+            from r' a1 a2 show ?l
               apply(simp add: internal_iface_name_to_set)
               apply(safe)
                apply(drule hlp1)
