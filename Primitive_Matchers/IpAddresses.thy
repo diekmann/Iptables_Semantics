@@ -84,33 +84,40 @@ subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
   (*src dst ipv4*)
   datatype ipt_ipv4range = Ip4Addr "nat \<times> nat \<times> nat \<times> nat"
                         | Ip4AddrNetmask "nat \<times> nat \<times> nat \<times> nat" nat -- "addr/xx"
+                        | Ip4AddrRange  "nat \<times> nat \<times> nat \<times> nat" "nat \<times> nat \<times> nat \<times> nat"-- "-m iprange --src-range a.b.c.d-e.f.g.h"
+                            (*the range is inclusive*)
   
   
   fun ipv4s_to_set :: "ipt_ipv4range \<Rightarrow> ipv4addr set" where
     "ipv4s_to_set (Ip4AddrNetmask base m) = ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal base) m" |
-    "ipv4s_to_set (Ip4Addr ip) = { ipv4addr_of_dotdecimal ip }"
+    "ipv4s_to_set (Ip4Addr ip) = { ipv4addr_of_dotdecimal ip }" |
+    "ipv4s_to_set (Ip4AddrRange ip1 ip2) = { ipv4addr_of_dotdecimal ip1 .. ipv4addr_of_dotdecimal ip2 }"
   
-  text{*@{term ipv4s_to_set} cannot represent an empty set.*}
-  lemma ipv4s_to_set_nonempty: "ipv4s_to_set ip \<noteq> {}"
+  text{*@{term ipv4s_to_set} can only represent an empty set if it is an empty range.*}
+  lemma ipv4s_to_set_nonempty: "ipv4s_to_set ip = {} \<longleftrightarrow> (\<exists>ip1 ip2. ip = Ip4AddrRange ip1 ip2 \<and> ipv4addr_of_dotdecimal ip1 > ipv4addr_of_dotdecimal ip2)"
     apply(cases ip)
-     apply(simp)
-    apply(simp add: ipv4range_set_from_bitmask_alt bitmagic_zeroLast_leq_or1Last)
+      apply(simp)
+     apply(simp add: ipv4range_set_from_bitmask_alt bitmagic_zeroLast_leq_or1Last)
+    apply(simp add:linorder_not_le)
     done
   
   text{*maybe this is necessary as code equation?*}
   lemma element_ipv4s_to_set[code_unfold]: "addr \<in> ipv4s_to_set X = (
     case X of (Ip4AddrNetmask pre len) \<Rightarrow> ((ipv4addr_of_dotdecimal pre) AND ((mask len) << (32 - len))) \<le> addr \<and> addr \<le> (ipv4addr_of_dotdecimal pre) OR (mask (32 - len))
-    | Ip4Addr ip \<Rightarrow> (addr = (ipv4addr_of_dotdecimal ip)) )"
+    | Ip4Addr ip \<Rightarrow> (addr = (ipv4addr_of_dotdecimal ip))
+    | Ip4AddrRange ip1 ip2 \<Rightarrow> ipv4addr_of_dotdecimal ip1 \<le> addr \<and> ipv4addr_of_dotdecimal ip2 \<ge> addr)"
   apply(cases X)
-   apply(simp)
-  apply(simp add: ipv4range_set_from_bitmask_alt)
+    apply(simp)
+   apply(simp add: ipv4range_set_from_bitmask_alt)
+  apply(simp)
   done
   
 
   text{*IPv4 address ranges to @{text "(start, end)"} notation*}
   fun ipt_ipv4range_to_interval :: "ipt_ipv4range \<Rightarrow> (ipv4addr \<times> ipv4addr)" where
     "ipt_ipv4range_to_interval (Ip4Addr addr) = (ipv4addr_of_dotdecimal addr, ipv4addr_of_dotdecimal addr)" |
-    "ipt_ipv4range_to_interval (Ip4AddrNetmask pre len) = ipv4cidr_to_interval ((ipv4addr_of_dotdecimal pre), len)" 
+    "ipt_ipv4range_to_interval (Ip4AddrNetmask pre len) = ipv4cidr_to_interval ((ipv4addr_of_dotdecimal pre), len)" |
+    "ipt_ipv4range_to_interval (Ip4AddrRange ip1 ip2) = (ipv4addr_of_dotdecimal ip1, ipv4addr_of_dotdecimal ip2)"
   
   lemma ipt_ipv4range_to_interval: "ipt_ipv4range_to_interval ip = (s,e) \<Longrightarrow> {s .. e} = ipv4s_to_set ip"
     by(cases ip) (auto simp add: ipv4cidr_to_interval)
