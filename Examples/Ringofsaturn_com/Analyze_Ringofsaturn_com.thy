@@ -1,8 +1,8 @@
 theory Analyze_Ringofsaturn_com
 imports
- "../Code_Interface"
- "../../Semantics_Ternary/Optimizing"
- "../Parser"
+  "../../Primitive_Matchers/Parser"
+  "../../Semantics_Ternary/Optimizing"
+  "../../Simple_Firewall/SimpleFw_toString"
 begin
 
 section{*Example: ringofsaturn.com*}

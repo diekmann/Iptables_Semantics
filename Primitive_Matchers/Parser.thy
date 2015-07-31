@@ -412,8 +412,11 @@ end
 *}
 
 
+
+(*TODO: think about the path handling in the parser again*)
+(*
 ML_val{* (*Example: the functions*)
-val filter_table = load_filter_table @{theory} ["Parser_Test", "data", "iptables-save"];
+val filter_table = load_filter_table @{theory} ["../", "Examples", "Parser_Test", "data", "iptables-save"];
 val parsed_ruleset = filter_table |> rule_type_partition |> filter_chain_decls_names_only |> make_firewall_table;
 
 val (parsed_chain_decls, parsed_rules) = rule_type_partition filter_table;
@@ -423,7 +426,7 @@ map (toString #> writeln) parsed_rules;
 
 map (fn (_,_,b) =>  type_of b) parsed_rules;
 *}
-
+*)
 
 ML{*
 fun mk_Ruleset (tbl: firewall_table) = FirewallTable.dest tbl
@@ -474,10 +477,10 @@ fun parse_iptables_save (thy: theory) (file: string list) : term =
     |> mk_Ruleset
     |> simplify_code @{context}
 
-
+(*
 val example = parse_iptables_save @{theory} ["Parser_Test", "data", "iptables-save"];
 
-Pretty.writeln (Syntax.pretty_term @{context} example);
+Pretty.writeln (Syntax.pretty_term @{context} example);*)
 *}
 
 
