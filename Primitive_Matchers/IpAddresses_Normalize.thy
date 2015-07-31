@@ -3,11 +3,12 @@ imports Common_Primitive_Matcher
         "Primitive_Normalization"
 begin
 
-
-
 subsection{*Normalizing IP Addresses*}
   fun normalized_src_ips :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_src_ips MatchAny = True" |
+    "normalized_src_ips (Match (Src (Ip4AddrRange _ _))) = False" |
+    "normalized_src_ips (Match (Src (Ip4Addr _))) = False" |
+    "normalized_src_ips (Match (Src (Ip4AddrNetmask _ _))) = True" |
     "normalized_src_ips (Match _) = True" |
     "normalized_src_ips (MatchNot (Match (Src _))) = False" |
     "normalized_src_ips (MatchNot (Match _)) = True" |
@@ -16,11 +17,14 @@ subsection{*Normalizing IP Addresses*}
     "normalized_src_ips (MatchNot (MatchNot _)) = False" |
     "normalized_src_ips (MatchNot (MatchAny)) = True" 
   
-  lemma normalized_src_ips_def2: "normalized_src_ips ms = normalized_n_primitive (is_Src, src_sel) (\<lambda>ip. True) ms"
-    by(induction ms rule: normalized_src_ips.induct, simp_all)
+  lemma normalized_src_ips_def2: "normalized_src_ips ms = normalized_n_primitive (is_Src, src_sel) normalized_cidr_ip ms"
+    by(induction ms rule: normalized_src_ips.induct, simp_all add: normalized_cidr_ip_def)
 
   fun normalized_dst_ips :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_dst_ips MatchAny = True" |
+    "normalized_dst_ips (Match (Dst (Ip4AddrRange _ _))) = False" |
+    "normalized_dst_ips (Match (Dst (Ip4Addr _))) = False" |
+    "normalized_dst_ips (Match (Dst (Ip4AddrNetmask _ _))) = True" |
     "normalized_dst_ips (Match _) = True" |
     "normalized_dst_ips (MatchNot (Match (Dst _))) = False" |
     "normalized_dst_ips (MatchNot (Match _)) = True" |
@@ -29,8 +33,8 @@ subsection{*Normalizing IP Addresses*}
     "normalized_dst_ips (MatchNot (MatchNot _)) = False" |
     "normalized_dst_ips (MatchNot MatchAny) = True" 
   
-  lemma normalized_dst_ips_def2: "normalized_dst_ips ms = normalized_n_primitive (is_Dst, dst_sel) (\<lambda>ip. True) ms"
-    by(induction ms rule: normalized_dst_ips.induct, simp_all)
+  lemma normalized_dst_ips_def2: "normalized_dst_ips ms = normalized_n_primitive (is_Dst, dst_sel) normalized_cidr_ip ms"
+    by(induction ms rule: normalized_dst_ips.induct, simp_all add: normalized_cidr_ip_def)
   
 
   value "normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress
@@ -71,7 +75,7 @@ subsection{*Normalizing IP Addresses*}
   unfolding normalize_src_ips_def
   unfolding normalized_src_ips_def2
   apply(rule normalize_primitive_extract_normalizes_n_primitive[OF _ wf_disc_sel_common_primitive(3)])
-   by(simp_all)
+   by(simp_all add: ipt_ipv4range_compress_normalized_Ip4AddrNetmask)
 
 
   definition normalize_dst_ips :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where
@@ -107,7 +111,7 @@ subsection{*Normalizing IP Addresses*}
   lemma normalize_dst_ips_normalized_n_primitive: "normalized_nnf_match m \<Longrightarrow>
     \<forall>m' \<in> set (normalize_dst_ips m). normalized_dst_ips m'"
   unfolding normalize_dst_ips_def normalized_dst_ips_def2
-  by(rule normalize_primitive_extract_normalizes_n_primitive[OF _ wf_disc_sel_common_primitive(4)]) (simp_all)
+  by(rule normalize_primitive_extract_normalizes_n_primitive[OF _ wf_disc_sel_common_primitive(4)]) (simp_all add: ipt_ipv4range_compress_normalized_Ip4AddrNetmask)
 
 
 
@@ -130,7 +134,9 @@ text{*unused*}
   fun ipt_ipv4range_invert :: "ipt_ipv4range \<Rightarrow> (ipv4addr \<times> nat) list" where
     "ipt_ipv4range_invert (Ip4Addr addr) = ipv4range_split (wordinterval_invert (ipv4range_single (ipv4addr_of_dotdecimal addr)))" | 
     "ipt_ipv4range_invert (Ip4AddrNetmask base len) = ipv4range_split (wordinterval_invert 
-        (prefix_to_range (ipv4addr_of_dotdecimal base AND NOT mask (32 - len), len)))"
+        (prefix_to_range (ipv4addr_of_dotdecimal base AND NOT mask (32 - len), len)))" | 
+    "ipt_ipv4range_invert (Ip4AddrRange ip1 ip2) = ipv4range_split (wordinterval_invert
+      (ipv4range_range (ipv4addr_of_dotdecimal ip1, ipv4addr_of_dotdecimal ip2)))"
 
       
 
@@ -143,8 +149,48 @@ text{*unused*}
     done
 
 
-  
-  lemma ipt_ipv4range_invert_case_Ip4AddrNetmask:
+  (*this should be the generic case we need to show*)
+  lemma ipt_ipv4range_invert_case_Ip4AddrRange:
+      "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipt_ipv4range_invert (Ip4AddrRange ip1 ip2))) )) = 
+        - {ipv4addr_of_dotdecimal ip1 ..  ipv4addr_of_dotdecimal ip2}"
+     proof - 
+      { fix r
+        have "\<forall>pfx\<in>set (ipv4range_split (wordinterval_invert r)). valid_prefix pfx" using all_valid_Ball by blast
+        with prefix_bitrang_list_union have
+        "\<Union>((\<lambda>(base, len). ipv4range_set_from_bitmask base len) ` set (ipv4range_split (wordinterval_invert r))) =
+        wordinterval_to_set (list_to_wordinterval (map prefix_to_range (ipv4range_split (wordinterval_invert r))))" by simp
+        also have "\<dots> = wordinterval_to_set (wordinterval_invert r)"
+          unfolding wordinterval_eq_set_eq[symmetric] using ipv4range_split_union[of "(wordinterval_invert r)"] ipv4range_eq_def by simp
+        also have "\<dots> = - wordinterval_to_set r" by auto
+        finally have "\<Union>((\<lambda>(base, len). ipv4range_set_from_bitmask base len) ` set (ipv4range_split (wordinterval_invert r))) = - wordinterval_to_set r" .
+      } from this[of "(ipv4range_range (ipv4addr_of_dotdecimal ip1, ipv4addr_of_dotdecimal ip2))"]
+        show ?thesis
+        apply(simp only: ipt_ipv4range_invert.simps)
+        apply(simp add: prefix_to_range_set_eq)
+        apply(simp add: ipv4range_range.simps)
+        done
+     qed
+
+
+  lemma prefix_to_range_eq_ipv4range_range: "(prefix_to_range (addr, len)) = (ipv4range_range (addr, (addr || pfxm_mask (addr, len))))"
+    apply(simp add: ipv4range_range.simps)
+    apply(simp add: pfxm_mask_def pfxm_length_def)
+    apply(simp add: prefix_to_range_def)
+    apply(simp add: pfxm_prefix_def pfxm_mask_def pfxm_length_def)
+    done
+
+  (* okay, we only need to focus in the generic case *)
+  lemma ipt_ipv4range_invert_case_Ip4AddrNetmask: "ipt_ipv4range_invert (Ip4AddrNetmask addr len) =
+        ipt_ipv4range_invert (Ip4AddrRange
+          (dotdecimal_of_ipv4addr (ipv4addr_of_dotdecimal addr && ~~ mask (32 - len)))
+          (dotdecimal_of_ipv4addr (ipv4addr_of_dotdecimal addr && ~~ mask (32 - len) || pfxm_mask (ipv4addr_of_dotdecimal addr && ~~ mask (32 - len), len))))"
+    apply(simp)
+    apply(simp add: prefix_to_range_eq_ipv4range_range)
+    apply(simp add: ipv4range_range.simps)
+    apply(simp add: ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
+    done
+
+  (*lemma ipt_ipv4range_invert_case_Ip4AddrNetmask:
       "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipt_ipv4range_invert (Ip4AddrNetmask base len))) )) = 
         - (ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal base) len)"
      proof - 
@@ -164,16 +210,25 @@ text{*unused*}
         apply(simp add: cornys_hacky_call_to_prefix_to_range_to_start_with_a_valid_prefix pfxm_length_def pfxm_prefix_def wordinterval_to_set_ipv4range_set_from_bitmask)
         (*apply(thin_tac "?X")*)
         by (metis ipv4range_set_from_bitmask_alt1 ipv4range_set_from_netmask_base_mask_consume maskshift_eq_not_mask)
-     qed
+     qed *)
 
   lemma ipt_ipv4range_invert: "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipt_ipv4range_invert ips)) )) = - ipv4s_to_set ips"
     apply(cases ips)
-     apply(simp_all only:)
-     prefer 2
-     using ipt_ipv4range_invert_case_Ip4AddrNetmask apply simp
-    apply(subst ipt_ipv4range_invert_case_Ip4Addr) (* yayyy, do the same proof again *)
-    apply(subst ipt_ipv4range_invert_case_Ip4AddrNetmask)
-    apply(simp add: ipv4range_set_from_bitmask_32)
+      apply(simp_all only:)
+      prefer 3
+      apply(subst ipt_ipv4range_invert_case_Ip4AddrRange)
+      apply(simp; fail)
+     apply(simp_all only: ipt_ipv4range_invert_case_Ip4AddrNetmask ipt_ipv4range_invert_case_Ip4Addr) (*yay, do the same proof again and again*)
+     apply(subst ipt_ipv4range_invert_case_Ip4AddrRange)
+     apply(simp)
+     apply(simp add: ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
+     apply(simp add: pfxm_mask_def pfxm_length_def)
+    apply(subst ipt_ipv4range_invert_case_Ip4AddrRange)
+    apply(simp)
+    apply(simp add: ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
+    apply(simp add: pfxm_mask_def pfxm_length_def)
+    apply(simp add: ipv4range_set_from_bitmask_alt maskshift_eq_not_mask) (*sledgehammer here uses more than 8GB ram*)
+    apply(simp add: maskshift_eq_not_mask word_bw_comms(2) word_oa_dist2)
     done
 
  
