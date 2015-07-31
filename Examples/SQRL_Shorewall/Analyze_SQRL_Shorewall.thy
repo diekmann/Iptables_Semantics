@@ -1,8 +1,8 @@
 theory Analyze_SQRL_Shorewall
-imports "../Code_Interface"
-"../../Semantics_Ternary/Optimizing"
-"../Parser"
-"../../Semantics_Goto"
+imports 
+  "../../Primitive_Matchers/Parser"
+  "../../Semantics_Ternary/Optimizing"
+  "../../Simple_Firewall/SimpleFw_toString"
 begin
 
 

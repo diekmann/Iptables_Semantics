@@ -1,8 +1,8 @@
 theory Primitive_Abstract
 imports
-  "../Examples/Firewall_toString"
-  "Transform"
-  "Conntrack_State_Transform"
+  Common_Primitive_toString
+  Transform
+  Conntrack_State_Transform
 begin
 
 section{*Abstracting over Primitives*}

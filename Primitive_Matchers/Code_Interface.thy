@@ -1,9 +1,10 @@
 theory Code_Interface
 imports 
-  Firewall_toString
+  Common_Primitive_toString
   "../Call_Return_Unfolding"
-  "../Primitive_Matchers/Transform"
-  "../Primitive_Matchers/Primitive_Abstract"
+  Transform
+  Primitive_Abstract
+  No_Spoof
   "../Simple_Firewall/SimpleFw_Compliance"
   "../Semantics_Goto"
   "~~/src/HOL/Library/Code_Target_Nat"

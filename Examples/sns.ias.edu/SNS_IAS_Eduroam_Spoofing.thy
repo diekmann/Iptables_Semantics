@@ -1,7 +1,7 @@
 theory SNS_IAS_Eduroam_Spoofing
-imports "../Code_Interface"
-  "../../Primitive_Matchers/No_Spoof"
-  "../Parser"
+imports 
+  "../../Primitive_Matchers/Parser"
+  "../../Simple_Firewall/SimpleFw_toString"
 begin
 
 
