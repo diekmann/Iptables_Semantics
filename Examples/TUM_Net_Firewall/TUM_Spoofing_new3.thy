@@ -30,7 +30,7 @@ subsection{*General Setup*}
     (ipv4addr_of_dotdecimal (192,48,107,0), 24),
     (ipv4addr_of_dotdecimal (188,95,236,0), 22),
     (ipv4addr_of_dotdecimal (185,86,232,0), 22)
-    ])))"
+    ]"
   
   
   definition "ipassmt = [(Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,213,4), 24)]),
