@@ -17,7 +17,9 @@ fun protocol_toString :: "protocol \<Rightarrow> string" where
   "protocol_toString (ProtoAny) = ''all''" |
   "protocol_toString (Proto TCP) = ''tcp''" |
   "protocol_toString (Proto UDP) = ''udp''" |
-  "protocol_toString (Proto ICMP) = ''icmp''"
+  "protocol_toString (Proto ICMP) = ''icmp''" |
+  "protocol_toString (Proto (OtherProtocol protid)) = ''protocolid:''@string_of_nat protid"
+  
 
 
 fun action_toString :: "action \<Rightarrow> string" where
