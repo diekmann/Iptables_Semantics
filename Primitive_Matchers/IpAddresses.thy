@@ -16,18 +16,41 @@ by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4range_set_from
 
 subsection{*IPv4 Addresses in CIDR Notation*}
   (*We need a separate ipv4addr syntax thy*)
-  fun ipv4cidr_to_interval :: "(ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> ipv4addr)" where
-    "ipv4cidr_to_interval (pre, len) = (
+
+  fun ipv4cidr_to_interval_start :: "(ipv4addr \<times> nat) \<Rightarrow> ipv4addr" where
+    "ipv4cidr_to_interval_start (pre, len) = (
       let netmask = (mask len) << (32 - len);
           network_prefix = (pre AND netmask)
-      in (network_prefix, network_prefix OR (NOT netmask))
-     )"
-  lemma ipv4cidr_to_interval: "ipv4cidr_to_interval (base, len) = (s,e) \<Longrightarrow> ipv4range_set_from_bitmask base len = {s .. e}"
-    apply(simp add: Let_def)
+      in network_prefix)"
+  fun ipv4cidr_to_interval_end :: "(ipv4addr \<times> nat) \<Rightarrow> ipv4addr" where
+    "ipv4cidr_to_interval_end (pre, len) = (
+      let netmask = (mask len) << (32 - len);
+          network_prefix = (pre AND netmask)
+      in network_prefix OR (NOT netmask))"
+  definition ipv4cidr_to_interval :: "(ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> ipv4addr)" where
+    "ipv4cidr_to_interval cidr = (ipv4cidr_to_interval_start cidr, ipv4cidr_to_interval_end cidr)"
+
+  lemma ipv4cidr_to_interval_simps[code_unfold]: "ipv4cidr_to_interval (pre, len) = (
+      let netmask = (mask len) << (32 - len);
+          network_prefix = (pre AND netmask)
+      in (network_prefix, network_prefix OR (NOT netmask)))"
+  by(simp add: ipv4cidr_to_interval_def Let_def)
+
+
+  lemma ipv4cidr_to_interval_ipv4range_set_from_bitmask:
+    "ipv4range_set_from_bitmask base len = {ipv4cidr_to_interval_start (base,len) .. ipv4cidr_to_interval_end (base,len)}"
+    apply(simp add: Let_def ipv4cidr_to_interval_def)
     apply(subst ipv4range_set_from_bitmask_alt)
-    apply(subst(asm) NOT_mask_len32)
-    by (metis NOT_mask_len32 ipv4range_set_from_bitmask_alt ipv4range_set_from_bitmask_alt1 ipv4range_set_from_netmask_def)
-  declare ipv4cidr_to_interval.simps[simp del]
+    by (metis ipv4range_set_from_bitmask_alt ipv4range_set_from_bitmask_alt1 ipv4range_set_from_netmask_def)
+
+  declare ipv4cidr_to_interval_start.simps[simp del] ipv4cidr_to_interval_end.simps[simp del]
+
+  (*TODO: remove this lemma?, refactor*)
+  lemma ipv4cidr_to_interval: "ipv4cidr_to_interval (base, len) = (s,e) \<Longrightarrow> ipv4range_set_from_bitmask base len = {s .. e}"
+    apply(simp add: Let_def ipv4cidr_to_interval_def)
+    using ipv4cidr_to_interval_ipv4range_set_from_bitmask by presburger
+
+
 
   fun ipv4cidr_conjunct :: "(ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) option" where 
     "ipv4cidr_conjunct (base1, m1) (base2, m2) = (if ipv4range_set_from_bitmask base1 m1 \<inter> ipv4range_set_from_bitmask base2 m2 = {}
@@ -71,12 +94,29 @@ subsection{*IPv4 Addresses in CIDR Notation*}
   apply(safe)
      apply(auto simp add: ipv4range_to_set_ipv4_cidr_tuple_to_interval ipv4cidr_conjunct.simps split:split_if_asm)
   done
-  value "ipv4cidr_conjunct (0,0) (8,1)" (*with the code_unfold lema before, this works!*)
+  value "ipv4cidr_conjunct (0,0) (8,1)" (*with the code_unfold lemma before, this works!*)
 
 
   definition ipv4cidr_union_set :: "(ipv4addr \<times> nat) set \<Rightarrow> ipv4addr set" where
     "ipv4cidr_union_set ips \<equiv> \<Union>(base, len) \<in> ips. ipv4range_set_from_bitmask base len"
 
+
+  (*helper we use for spoofing protection specification*)
+  definition all_but_those_ips :: "(ipv4addr \<times> nat) list \<Rightarrow> (ipv4addr \<times> nat) list" where
+    "all_but_those_ips cidrips = ipv4range_split (ipv4range_invert (l2br (map ipv4cidr_to_interval cidrips)))"
+  
+  lemma all_but_those_ips: "ipv4cidr_union_set (set (all_but_those_ips cidrips)) = UNIV - (\<Union> (ip,n) \<in> set cidrips. ipv4range_set_from_bitmask ip n)"
+    apply(simp add:)
+    unfolding ipv4cidr_union_set_def all_but_those_ips_def
+    apply(simp)
+    apply(simp add: ipv4range_split_bitmask[simplified])
+    apply(simp add: ipv4range_invert_def ipv4range_setminus_def)
+    apply(simp add: ipv4range_UNIV_def)
+    apply(simp add: l2br)
+    apply(simp add: ipv4cidr_to_interval_def)
+    apply(simp add: ipv4cidr_to_interval_ipv4range_set_from_bitmask)
+    done
+  
 
 
 
