@@ -540,17 +540,19 @@ begin
          allowed (wordinterval_union denied1 (wordinterval_setminus (get_all_matching_src_ips_executable iface m) allowed))"  |
     "no_spoofing_algorithm_executable _ _ _ _ _  = undefined"
 
-
   lemma no_spoofing_algorithm_executable: "no_spoofing_algorithm_executable iface ipassmt rs allowed denied \<longleftrightarrow> 
          no_spoofing_algorithm iface ipassmt rs (wordinterval_to_set allowed) (wordinterval_to_set denied)"
-  apply(induction iface ipassmt rs allowed denied rule: no_spoofing_algorithm_executable.induct)
-          apply(simp_all)
-    apply(simp_all add: get_exists_matching_src_ips_executable get_all_matching_src_ips_executable)
-  apply(simp add: ipv4cidr_union_set_def l2br)
-  apply(subgoal_tac "(\<Union>a\<in>set (the (ipassmt iface)). case ipv4cidr_to_interval a of (x, xa) \<Rightarrow> {x..xa}) = 
-        (\<Union>x\<in>set (the (ipassmt iface)). case x of (base, len) \<Rightarrow> ipv4range_set_from_bitmask base len)")
-   apply(simp)
-  using ipv4cidr_to_interval_ipv4range_set_from_bitmask ipv4cidr_to_interval_def by simp
+  proof(induction iface ipassmt rs allowed denied rule: no_spoofing_algorithm_executable.induct)
+  case (1 iface ipassmt allowed denied1)
+    have "(\<Union>a\<in>set (the (ipassmt iface)). case ipv4cidr_to_interval a of (x, xa) \<Rightarrow> {x..xa}) = 
+          (\<Union>x\<in>set (the (ipassmt iface)). case x of (base, len) \<Rightarrow> ipv4range_set_from_bitmask base len)" 
+    using ipv4cidr_to_interval_ipv4range_set_from_bitmask ipv4cidr_to_interval_def by simp
+    with 1 show ?case by(simp add: ipv4cidr_union_set_def l2br)
+  next
+  case 2 thus ?case by(simp add: get_exists_matching_src_ips_executable get_all_matching_src_ips_executable)
+  next
+  case 3 thus ?case by(simp add: get_exists_matching_src_ips_executable get_all_matching_src_ips_executable)
+  qed(simp_all)
 
   lemma "no_spoofing_algorithm_executable
       (Iface ''eth0'') 
