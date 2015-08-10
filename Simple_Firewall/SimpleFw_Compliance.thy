@@ -161,7 +161,6 @@ fun common_primitive_match_to_simple_match :: "common_primitive match_expr \<Rig
   "common_primitive_match_to_simple_match (Match (Extra _)) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (Extra _))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (CT_State _))) = undefined"
-(*\<dots>*)
 
 
 

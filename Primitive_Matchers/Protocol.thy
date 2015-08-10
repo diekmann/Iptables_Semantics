@@ -2,7 +2,7 @@ theory Protocol
 imports "../Common/Negation_Type"
 begin
 
-datatype primitive_protocol = TCP | UDP | ICMP
+datatype primitive_protocol = TCP | UDP | ICMP | OtherProtocol nat
 
 datatype protocol = ProtoAny | Proto "primitive_protocol" (*probably negation_type?*)
 
