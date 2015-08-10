@@ -168,6 +168,8 @@ subsection{*Simple Ports*}
     apply(cases p1, cases p2, simp)
     by blast
 
+  lemma simple_match_port_code[code] :"simple_match_port (s,e) p_p = (s \<le> p_p \<and> p_p \<le> e)" by simp
+
 subsection{*Simple IPs*}
   lemma simple_match_ip_conjunct: "simple_match_ip ip1 p_ip \<and> simple_match_ip ip2 p_ip \<longleftrightarrow> 
          (case ipv4cidr_conjunct ip1 ip2 of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
@@ -192,5 +194,15 @@ declare simple_matches.simps[simp del]
 
 lemma nomatch: "\<not> simple_matches m p \<Longrightarrow> simple_fw (SimpleRule m a # rs) p = simple_fw rs p"
   by(cases a, simp_all)
+
+
+
+
+(*export_code simple_fw in SML   not possible here*)
+value[code] "simple_fw [
+  SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0, 0), dst = (0, 0), proto = Proto TCP, sports = (0, 0x0), dports = (0, 0x0)\<rparr> simple_action.Drop]
+  
+  \<lparr>p_iiface = '''', p_oiface = '''',  p_src = 1, p_dst = 2, p_proto = TCP, p_sport = 8, p_dport = 9, p_tag_ctstate = CT_New\<rparr>"
+
 
 end
