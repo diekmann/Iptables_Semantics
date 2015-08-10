@@ -7,22 +7,7 @@ begin
 
 section{*Example: Eduroam and sns.ias Firewall Script*}
 
-
-definition "everything_but_my_ip = ipv4range_split (ipv4range_invert (ipv4_cidr_tuple_to_interval (ipv4addr_of_dotdecimal (131,159,207,206), 32)))"
-
-
-text{*This is really the range of everything but my IP*}
-lemma "ipv4cidr_union_set (set everything_but_my_ip) = UNIV - ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal (131,159,207,206)) 32"
-  apply(simp add: ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
-  unfolding ipv4cidr_union_set_def everything_but_my_ip_def
-  apply(simp)
-  apply(simp add: ipv4range_split_bitmask[simplified])
-  apply(simp add: ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
-  apply(simp add: ipv4range_invert_def ipv4range_setminus_def)
-  apply(simp add: ipv4range_to_set_ipv4_cidr_tuple_to_interval[simplified ipv4range_to_set_def])
-  apply(simp add: ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
-  apply(simp add: ipv4range_UNIV_def)
-  done
+definition "everything_but_my_ip = all_but_those_ips [(ipv4addr_of_dotdecimal (131,159,207,206), 32)]"
 
 
 text{* Incoming: everything but my IP *}

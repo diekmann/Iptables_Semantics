@@ -20,7 +20,7 @@ subsection{*General Setup*}
       188.95.236.0/22
       185.86.232.0/22
   *)
-  definition "everything_but_my_ips = ipv4range_split (ipv4range_invert (l2br (map ipv4cidr_to_interval [
+  definition "everything_but_my_ips = all_but_those_ips [
     (ipv4addr_of_dotdecimal (131,159,14,0), 23),
     (ipv4addr_of_dotdecimal (131,159,20,0), 23),
     (ipv4addr_of_dotdecimal (192,168,212,0), 23),
@@ -30,7 +30,7 @@ subsection{*General Setup*}
     (ipv4addr_of_dotdecimal (192,48,107,0), 24),
     (ipv4addr_of_dotdecimal (188,95,236,0), 22),
     (ipv4addr_of_dotdecimal (185,86,232,0), 22)
-    ])))"
+    ]"
   
   
   definition "ipassmt = [(Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,213,4), 24)]),
