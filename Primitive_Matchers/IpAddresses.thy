@@ -74,9 +74,8 @@ subsection{*IPv4 Addresses in CIDR Notation*}
     "ipv4_cidr_tuple_to_interval iprng = ipv4range_range (ipv4cidr_to_interval iprng)"
 
   lemma ipv4range_to_set_ipv4_cidr_tuple_to_interval: "ipv4range_to_set (ipv4_cidr_tuple_to_interval (b, m)) = ipv4range_set_from_bitmask b m"
-    unfolding ipv4_cidr_tuple_to_interval_def
-    apply(cases "ipv4cidr_to_interval (b, m)")
-    using ipv4cidr_to_interval ipv4range_range_set_eq by presburger
+    unfolding ipv4_cidr_tuple_to_interval_def ipv4cidr_to_interval_ipv4range_set_from_bitmask ipv4cidr_to_interval_def
+    using ipv4range_range_set_eq by blast
 
   lemma [code_unfold]: 
   "ipv4cidr_conjunct ips1 ips2 = (if ipv4range_empty (ipv4range_intersection (ipv4_cidr_tuple_to_interval ips1) (ipv4_cidr_tuple_to_interval ips2))

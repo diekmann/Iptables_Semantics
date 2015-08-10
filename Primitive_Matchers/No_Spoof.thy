@@ -549,14 +549,8 @@ begin
   apply(simp add: ipv4cidr_union_set_def l2br)
   apply(subgoal_tac "(\<Union>a\<in>set (the (ipassmt iface)). case ipv4cidr_to_interval a of (x, xa) \<Rightarrow> {x..xa}) = 
         (\<Union>x\<in>set (the (ipassmt iface)). case x of (base, len) \<Rightarrow> ipv4range_set_from_bitmask base len)")
-   apply(simp_all)
-  apply(safe)
-   apply(simp_all)
-   apply(rule_tac x="(a, b)" in bexI)
-    apply(simp_all add: ipv4cidr_to_interval)
-  apply(rule_tac x="(a, b)" in bexI)
-   apply(simp_all)
-  using ipv4cidr_to_interval by blast
+   apply(simp)
+  using ipv4cidr_to_interval_ipv4range_set_from_bitmask ipv4cidr_to_interval_def by simp
 
   lemma "no_spoofing_algorithm_executable
       (Iface ''eth0'') 
