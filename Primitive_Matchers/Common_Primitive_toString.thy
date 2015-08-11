@@ -7,10 +7,16 @@ begin
 
 section{*Firewall toString Functions*}
 
+fun dotteddecimal_toString :: "nat \<times> nat \<times> nat \<times> nat \<Rightarrow> string" where
+  "dotteddecimal_toString (a,b,c,d) = string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d"
+
+definition ipv4addr_toString :: "ipv4addr \<Rightarrow> string" where
+  "ipv4addr_toString ip = dotteddecimal_toString (dotdecimal_of_ipv4addr ip)"
+
+
 definition ipv4_cidr_toString :: "(ipv4addr \<times> nat) \<Rightarrow> string" where
-  "ipv4_cidr_toString ip_n = (case ip_n of (base, n) \<Rightarrow> 
-      (case dotdecimal_of_ipv4addr base of (a,b,c,d) \<Rightarrow> string_of_nat a @''.''@ string_of_nat b @''.''@ string_of_nat c @''.''@ string_of_nat d
-          @''/''@ string_of_nat n))"
+  "ipv4_cidr_toString ip_n = (case ip_n of (base, n) \<Rightarrow>  (ipv4addr_toString base @''/''@ string_of_nat n))"
+
 lemma "ipv4_cidr_toString (ipv4addr_of_dotdecimal (192,168,0,1), 22) = ''192.168.0.1/22''" by eval
 
 fun protocol_toString :: "protocol \<Rightarrow> string" where
@@ -47,9 +53,6 @@ fun ports_toString :: "string \<Rightarrow> (16 word \<times> 16 word) \<Rightar
 lemma "ports_toString ''spt: '' (0,65535) = ''''" by eval
 lemma "ports_toString ''spt: '' (1024,2048) = ''spt: 1024:2048''" by eval
 lemma "ports_toString ''spt: '' (1024,1024) = ''spt: 1024''" by eval
-
-fun dotteddecimal_toString :: "nat \<times> nat \<times> nat \<times> nat \<Rightarrow> string" where
-  "dotteddecimal_toString (a,b,c,d) = string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d"
 
 fun common_primitive_toString :: "common_primitive \<Rightarrow> string" where
   "common_primitive_toString (Src (Ip4Addr ip)) = ''-s ''@dotteddecimal_toString ip" |
