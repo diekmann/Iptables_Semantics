@@ -16,7 +16,7 @@ structure Test : sig
   datatype ipt_ipv4range = Ip4Addr of (nat * (nat * (nat * nat))) |
     Ip4AddrNetmask of (nat * (nat * (nat * nat))) * nat |
     Ip4AddrRange of (nat * (nat * (nat * nat))) * (nat * (nat * (nat * nat)))
-  datatype primitive_protocol = TCP | UDP | ICMP
+  datatype primitive_protocol = TCP | UDP | ICMP | OtherProtocol of nat
   datatype protocol = ProtoAny | Proto of primitive_protocol
   datatype iface = Iface of char list
   type 'a set
@@ -622,7 +622,7 @@ fun equal_ipt_ipv4range (Ip4AddrNetmask (x21, x22)) (Ip4AddrRange (x31, x32)) =
     equal_proda equal_nat
       (equal_prod equal_nat (equal_prod equal_nat equal_nat)) x1 y1;
 
-datatype primitive_protocol = TCP | UDP | ICMP;
+datatype primitive_protocol = TCP | UDP | ICMP | OtherProtocol of nat;
 
 datatype protocol = ProtoAny | Proto of primitive_protocol;
 
@@ -638,12 +638,20 @@ datatype common_primitive = Src of ipt_ipv4range | Dst of ipt_ipv4range |
       (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) list
   | CT_State of ctstate set | Extra of char list;
 
-fun equal_primitive_protocol UDP ICMP = false
+fun equal_primitive_protocol ICMP (OtherProtocol x4) = false
+  | equal_primitive_protocol (OtherProtocol x4) ICMP = false
+  | equal_primitive_protocol UDP (OtherProtocol x4) = false
+  | equal_primitive_protocol (OtherProtocol x4) UDP = false
+  | equal_primitive_protocol UDP ICMP = false
   | equal_primitive_protocol ICMP UDP = false
+  | equal_primitive_protocol TCP (OtherProtocol x4) = false
+  | equal_primitive_protocol (OtherProtocol x4) TCP = false
   | equal_primitive_protocol TCP ICMP = false
   | equal_primitive_protocol ICMP TCP = false
   | equal_primitive_protocol TCP UDP = false
   | equal_primitive_protocol UDP TCP = false
+  | equal_primitive_protocol (OtherProtocol x4) (OtherProtocol y4) =
+    equal_nata x4 y4
   | equal_primitive_protocol ICMP ICMP = true
   | equal_primitive_protocol UDP UDP = true
   | equal_primitive_protocol TCP TCP = true;
@@ -1383,30 +1391,6 @@ fun l2br_negation_type_intersect A_ [] = wordinterval_UNIV A_
     wordinterval_intersection A_ (wordinterval_invert A_ (WordInterval (s, e)))
       (l2br_negation_type_intersect A_ ls);
 
-fun bitNOT_word A_ a = word_of_int A_ (bitNOT_int (uint A_ a));
-
-fun ipv4cidr_to_interval (pre, len) =
-  let
-    val netmask =
-      shiftl_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-        (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-          len)
-        (minus_nat (nat_of_integer (32 : IntInf.int)) len);
-    val network_prefix =
-      bitAND_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-        pre netmask;
-  in
-    (network_prefix,
-      bitOR_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-        network_prefix
-        (bitNOT_word
-          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-          netmask))
-  end;
-
 fun ipv4addr_of_dotdecimal (a, (b, (c, d))) =
   ipv4addr_of_nat
     (plus_nat
@@ -1414,10 +1398,32 @@ fun ipv4addr_of_dotdecimal (a, (b, (c, d))) =
         (times_nat (nat_of_integer (65536 : IntInf.int)) b))
       (times_nat (nat_of_integer (16777216 : IntInf.int)) a));
 
+fun bitNOT_word A_ a = word_of_int A_ (bitNOT_int (uint A_ a));
+
 fun ipt_ipv4range_to_interval (Ip4Addr addr) =
   (ipv4addr_of_dotdecimal addr, ipv4addr_of_dotdecimal addr)
   | ipt_ipv4range_to_interval (Ip4AddrNetmask (pre, len)) =
-    ipv4cidr_to_interval (ipv4addr_of_dotdecimal pre, len)
+    let
+      val netmask =
+        shiftl_word
+          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+          (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+            len)
+          (minus_nat (nat_of_integer (32 : IntInf.int)) len);
+      val network_prefix =
+        bitAND_word
+          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+          (ipv4addr_of_dotdecimal pre) netmask;
+    in
+      (network_prefix,
+        bitOR_word
+          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+          network_prefix
+          (bitNOT_word
+            (len0_bit0
+              (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+            netmask))
+    end
   | ipt_ipv4range_to_interval (Ip4AddrRange (ip1, ip2)) =
     (ipv4addr_of_dotdecimal ip1, ipv4addr_of_dotdecimal ip2);
 
@@ -2106,6 +2112,46 @@ val packet_set_UNIV : 'a packet_set = PacketSet [[]];
 
 fun integer_to_16word i = nat_to_16word (nat_of_integer i);
 
+fun ipv4cidr_to_interval_start (pre, len) =
+  let
+    val netmask =
+      shiftl_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+          len)
+        (minus_nat (nat_of_integer (32 : IntInf.int)) len);
+    val network_prefix =
+      bitAND_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        pre netmask;
+  in
+    network_prefix
+  end;
+
+fun ipv4cidr_to_interval_end (pre, len) =
+  let
+    val netmask =
+      shiftl_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        (mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+          len)
+        (minus_nat (nat_of_integer (32 : IntInf.int)) len);
+    val network_prefix =
+      bitAND_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        pre netmask;
+  in
+    bitOR_word
+      (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+      network_prefix
+      (bitNOT_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        netmask)
+  end;
+
+fun ipv4cidr_to_interval cidr =
+  (ipv4cidr_to_interval_start cidr, ipv4cidr_to_interval_end cidr);
+
 fun has_disc uu MatchAny = false
   | has_disc disc (Match a) = disc a
   | has_disc disc (MatchNot m) = has_disc disc m
@@ -2581,7 +2627,10 @@ fun ipv4_cidr_toString ip_n =
 fun protocol_toString ProtoAny = [#"a", #"l", #"l"]
   | protocol_toString (Proto TCP) = [#"t", #"c", #"p"]
   | protocol_toString (Proto UDP) = [#"u", #"d", #"p"]
-  | protocol_toString (Proto ICMP) = [#"i", #"c", #"m", #"p"];
+  | protocol_toString (Proto ICMP) = [#"i", #"c", #"m", #"p"]
+  | protocol_toString (Proto (OtherProtocol protid)) =
+    [#"p", #"r", #"o", #"t", #"o", #"c", #"o", #"l", #"i", #"d", #":"] @
+      string_of_nat protid;
 
 fun simple_action_toString Accepta = [#"A", #"C", #"C", #"E", #"P", #"T"]
   | simple_action_toString Dropa = [#"D", #"R", #"O", #"P"];

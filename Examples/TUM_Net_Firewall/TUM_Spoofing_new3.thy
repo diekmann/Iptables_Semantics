@@ -105,6 +105,11 @@ subsubsection{*Try 1*}
   *)
 
 
+  text{*printing the simplified firewall*}
+  value[code] "let x = to_simple_firewall (upper_closure (ctstate_assume_new (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of net_fw_1))))
+               in map simple_rule_toString x" (*262.712s*)
+
+
   text{*the parsed firewall:*}
   value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw_1"
   
