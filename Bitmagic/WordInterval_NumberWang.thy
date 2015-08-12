@@ -41,4 +41,61 @@ context begin
     qed
 end
 
+
+
+(*minimizing wordintervals*)
+(*TODO*)
+context
+begin
+  fun get_overlap :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> (('a::len) word \<times> ('a::len) word) list \<Rightarrow> (('a::len) word \<times> ('a::len) word) option" where
+   "get_overlap _ [] = None" |
+   "get_overlap (s,e) ((s',e')#ss)= (if (*{s..e} \<inter> {s'..e'} \<noteq> {}*) (s \<le> e' \<and> s' \<le> e \<and> s \<le> e \<and> s' \<le> e') then Some (s',e') else get_overlap (s,e) ss)"
+
+  fun listinterval_minimize :: "(('a::len) word \<times> ('a::len) word) list \<Rightarrow> (('a::len) word \<times> ('a::len) word) list" where
+    "listinterval_minimize [] = []" |
+    "listinterval_minimize ((s,e)#ss) = (case get_overlap (s,e) ss of None \<Rightarrow> (s,e)#listinterval_minimize ss |
+                                                                Some (s',e') \<Rightarrow> (min s s', max e e')#listinterval_minimize (*remove1 (s',e') ss)*) ss)"
+
+  private lemma helper1: "{x. x = (min aa ab, max ba bb) \<or> x \<in> set (listinterval_minimize ss)} = {(min aa ab, max ba bb)} \<union> (set (listinterval_minimize ss))"
+    by blast
+
+  private lemma get_overlap_helper: "get_overlap (s,e) ss = Some (s',e') \<Longrightarrow> {min s s' .. max e e'} \<subseteq> (\<Union>(s,e) \<in> set ((s,e)#ss). {s .. e})"
+    apply(induction ss)
+     apply(simp)
+    apply(rename_tac x xs)
+    apply(case_tac x)
+    apply(simp)
+    apply(simp split: option.split split_if_asm)
+     apply(clarify)
+     apply(simp add: min_def max_def split: split_if_asm)
+    apply(clarify)
+    by blast
+
+  private lemma helper2: fixes s::"('a::len) word" shows "{min s s' .. max e e'} \<subseteq> (\<Union>(s,e) \<in> set ((s,e)#ss). {s .. e}) \<Longrightarrow>
+    {min s s' .. max e e'} \<union> (\<Union>(s,e) \<in> set ((s,e)#ss). {s .. e}) = {min s s' .. max e e'} \<union> (\<Union>(s,e) \<in> set (ss). {s .. e})"
+  apply(subgoal_tac "{s .. e} \<subseteq> {min s s' .. max e e'}")
+   prefer 2
+   apply simp
+  by fastforce (*>3s*)
+   
+  
+  lemma "(\<Union>(s,e) \<in> set ss. {s .. e}) = (\<Union>(s,e) \<in> set (listinterval_minimize ss). {s .. e})"
+    apply(induction ss)
+     apply(simp)
+    apply(rename_tac s ss)
+    apply(case_tac s)
+    apply(simp split: option.split)
+    apply(clarify)
+    apply(simp add: helper1)
+    apply(drule get_overlap_helper)
+    apply(subst helper2[symmetric])
+     apply(simp)
+    by auto
+
+  (*TODO: it does actually not minimize since we do not remove the merged interval*)
+  lemma "\<forall>(a,b) \<in> set (listinterval_minimize ss). \<forall> (c,d) \<in> set (listinterval_minimize ss). {a..b} \<inter> {c..d} = {}"
+    oops
+end 
+ 
+
 end

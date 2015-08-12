@@ -37,27 +37,30 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
   lemma wordinterval_empty_set_eq[simp]: "wordinterval_empty r \<longleftrightarrow> wordinterval_to_set r = {}"
     by(induction r) auto
 
-  fun wordinterval_optimize_empty where
-    "wordinterval_optimize_empty (RangeUnion r1 r2) = (let r1o = wordinterval_optimize_empty r1 in (let r2o = wordinterval_optimize_empty r2 in (
-      if wordinterval_empty r1o then r2o else (if wordinterval_empty r2o then r1o else (RangeUnion r1o r2o)))))" |
-    "wordinterval_optimize_empty r = r"
-  lemma wordinterval_optimize_empty_set_eq[simp]: "wordinterval_to_set (wordinterval_optimize_empty r) = wordinterval_to_set r"
-    by(induction r) (simp_all add: Let_def)
-  lemma wordinterval_optimize_empty_double[simp]: "wordinterval_optimize_empty (wordinterval_optimize_empty r) = wordinterval_optimize_empty r"
-    apply(induction r)
-    by(simp_all add: Let_def)
-  fun wordinterval_empty_shallow where
-    "wordinterval_empty_shallow (WordInterval s e) = (e < s)" |
-    "wordinterval_empty_shallow (RangeUnion _ _) = False"
-  lemma helper_optimize_shallow: "wordinterval_empty (wordinterval_optimize_empty r) = wordinterval_empty_shallow (wordinterval_optimize_empty r)"
-    by(induction r) fastforce+
-  fun wordinterval_optimize_empty2 where
-    "wordinterval_optimize_empty2 (RangeUnion r1 r2) = (let r1o = wordinterval_optimize_empty r1 in (let r2o = wordinterval_optimize_empty r2 in (
-      if wordinterval_empty_shallow r1o then r2o else (if wordinterval_empty_shallow r2o then r1o else (RangeUnion r1o r2o)))))" |
-    "wordinterval_optimize_empty2 r = r"
-  lemma wordinterval_optimize_empty_code[code_unfold]: "wordinterval_optimize_empty = wordinterval_optimize_empty2"
-    by (subst fun_eq_iff, clarify, rename_tac r, induct_tac r)
-       (unfold wordinterval_optimize_empty.simps wordinterval_optimize_empty2.simps Let_def helper_optimize_shallow[symmetric], simp_all)
+  context
+  begin
+    fun wordinterval_optimize_empty where
+      "wordinterval_optimize_empty (RangeUnion r1 r2) = (let r1o = wordinterval_optimize_empty r1 in (let r2o = wordinterval_optimize_empty r2 in (
+        if wordinterval_empty r1o then r2o else (if wordinterval_empty r2o then r1o else (RangeUnion r1o r2o)))))" |
+      "wordinterval_optimize_empty r = r"
+    lemma wordinterval_optimize_empty_set_eq[simp]: "wordinterval_to_set (wordinterval_optimize_empty r) = wordinterval_to_set r"
+      by(induction r) (simp_all add: Let_def)
+    lemma wordinterval_optimize_empty_double[simp]: "wordinterval_optimize_empty (wordinterval_optimize_empty r) = wordinterval_optimize_empty r"
+      apply(induction r)
+      by(simp_all add: Let_def)
+    private fun wordinterval_empty_shallow where
+      "wordinterval_empty_shallow (WordInterval s e) = (e < s)" |
+      "wordinterval_empty_shallow (RangeUnion _ _) = False"
+    private lemma helper_optimize_shallow: "wordinterval_empty (wordinterval_optimize_empty r) = wordinterval_empty_shallow (wordinterval_optimize_empty r)"
+      by(induction r) fastforce+
+    private fun wordinterval_optimize_empty2 where
+      "wordinterval_optimize_empty2 (RangeUnion r1 r2) = (let r1o = wordinterval_optimize_empty r1 in (let r2o = wordinterval_optimize_empty r2 in (
+        if wordinterval_empty_shallow r1o then r2o else (if wordinterval_empty_shallow r2o then r1o else (RangeUnion r1o r2o)))))" |
+      "wordinterval_optimize_empty2 r = r"
+    lemma wordinterval_optimize_empty_code[code_unfold]: "wordinterval_optimize_empty = wordinterval_optimize_empty2"
+      by (subst fun_eq_iff, clarify, rename_tac r, induct_tac r)
+         (unfold wordinterval_optimize_empty.simps wordinterval_optimize_empty2.simps Let_def helper_optimize_shallow[symmetric], simp_all)
+  end
 
   definition Empty_WordInterval :: "'a::len wordinterval" where  "Empty_WordInterval \<equiv> WordInterval 1 0"
   lemma wordinterval_empty_Empty_WordInterval: "wordinterval_empty Empty_WordInterval" by(simp add: Empty_WordInterval_def)
@@ -82,7 +85,8 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
     by(cases as) auto
     
     
-  fun wordinterval_linearize where "wordinterval_linearize rs = list_to_wordinterval (wordinterval_to_list rs)"
+  fun wordinterval_linearize :: "('a::len) wordinterval \<Rightarrow> ('a::len) wordinterval" where
+    "wordinterval_linearize rs = list_to_wordinterval (wordinterval_to_list rs)"
   lemma "wordinterval_to_set (wordinterval_linearize r) = wordinterval_to_set r"
     by(simp, metis list_to_wordinterval_set_eq wordinterval_to_list_set_eq)
 
