@@ -248,7 +248,7 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
     assumes "wordinterval_empty (wordinterval_intersection a b)" shows "wordinterval_eq (wordinterval_setminus a b) a"
     using wordinterval_setminus_intersection_empty_struct[OF assms] wordinterval_eq_set_eq[of a a] by simp
 
-  fun wordinterval_size where
+  fun wordinterval_size :: "('a::len) wordinterval \<Rightarrow> nat" where
     "wordinterval_size (RangeUnion a b) = wordinterval_size a + wordinterval_size b" |
     "wordinterval_size (WordInterval s e) = (if s \<le> e then 1 else 0)"
   lemma "wordinterval_size r = length (wordinterval_to_list r)"
