@@ -47,6 +47,71 @@ end
 (*TODO*)
 context
 begin
+
+  definition disjoint :: "'a set \<Rightarrow> 'a set \<Rightarrow> bool" where
+    "disjoint A B \<equiv> A \<inter> B = {}"
+
+  fun interval_of :: "('a::len) word \<times> 'a word \<Rightarrow> 'a word set" where
+    "interval_of (s,e) = {s .. e}"
+  declare interval_of.simps[simp del]
+
+  fun merge_overlap :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> ('a word \<times> 'a word) list \<Rightarrow> ('a word \<times> 'a word) list" where
+   "merge_overlap s [] = [s]" |
+   "merge_overlap (s,e) ((s',e')#ss) = (
+      if (*s \<le> e' \<and> s' \<le> e \<and> s \<le> e \<and> s' \<le> e'*) \<not> disjoint {s..e} {s'..e'}
+      then (min s s', max e e')#ss
+      else (s',e')#merge_overlap (s,e) ss)"
+
+  private lemma not_disjoint_union:
+      fixes s :: "('a::len) word"
+      shows "\<not> disjoint {s..e} {s'..e'} \<Longrightarrow> {s..e} \<union> {s'..e'} = {min s s' .. max e e'}"
+    by(auto simp add: disjoint_def min_def max_def)
+
+  private lemma disjoint_subset: "disjoint A B \<Longrightarrow> A \<subseteq> B \<union> C \<Longrightarrow> A \<subseteq> C"
+    unfolding disjoint_def
+    by blast
+
+  private lemma merge_overlap_helper: "interval_of A \<subseteq> (\<Union>s \<in> set ss. interval_of s) \<Longrightarrow>
+      (\<Union>s \<in> set ss. interval_of s) = (\<Union>s \<in> set (merge_overlap A ss). interval_of s)"
+    apply(induction ss)
+     apply(simp)
+    apply(rename_tac x xs)
+    apply(cases A, rename_tac a b)
+    apply(case_tac x)
+    apply(simp)
+    apply(intro impI conjI)
+     apply(drule not_disjoint_union)
+     apply(simp add: interval_of.simps[symmetric])
+     apply blast
+    apply(drule_tac C="(\<Union>x\<in>set xs. interval_of x)" in disjoint_subset)
+     apply(simp_all add: interval_of.simps)
+    done
+
+  lemma merge_overlap_length: "\<exists>s' \<in> set ss. \<not> disjoint (interval_of A) (interval_of s') \<Longrightarrow> length (merge_overlap A ss) = length ss"
+    apply(induction ss)
+     apply(simp)
+    apply(rename_tac x xs)
+    apply(cases A, rename_tac a b)
+    apply(case_tac x)
+    apply(simp add: interval_of.simps)
+    done
+
+  function listwordinterval_compress :: "(('a::len) word \<times> ('a::len) word) list \<Rightarrow> ('a word \<times> 'a word) list" where
+    "listwordinterval_compress [] = []" |
+    "listwordinterval_compress (s#ss) = (
+            if \<forall>s' \<in> set ss. disjoint (interval_of s) (interval_of s')
+            then s#listwordinterval_compress ss
+            else listwordinterval_compress (merge_overlap s ss))"
+  by(pat_completeness, auto)
+
+  termination listwordinterval_compress
+  apply (relation "measure length")
+    apply(rule wf_measure)
+   apply(simp)
+  using merge_overlap_length by fastforce
+
+
+
   fun get_overlap :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> (('a::len) word \<times> ('a::len) word) list \<Rightarrow> (('a::len) word \<times> ('a::len) word) option" where
    "get_overlap _ [] = None" |
    "get_overlap (s,e) ((s',e')#ss)= (if (*{s..e} \<inter> {s'..e'} \<noteq> {}*) (s \<le> e' \<and> s' \<le> e \<and> s \<le> e \<and> s' \<le> e') then Some (s',e') else get_overlap (s,e) ss)"
