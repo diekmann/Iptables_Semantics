@@ -49,30 +49,30 @@ end
 context
 begin
 
-  definition disjoint :: "'a set \<Rightarrow> 'a set \<Rightarrow> bool" where
+  private definition disjoint :: "'a set \<Rightarrow> 'a set \<Rightarrow> bool" where
     "disjoint A B \<equiv> A \<inter> B = {}"
 
-  fun interval_of :: "('a::len) word \<times> 'a word \<Rightarrow> 'a word set" where
+  private fun interval_of :: "('a::len) word \<times> 'a word \<Rightarrow> 'a word set" where
     "interval_of (s,e) = {s .. e}"
   declare interval_of.simps[simp del]
 
-  definition disjoint_intervals :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> ('a word \<times> 'a word) \<Rightarrow> bool" where
+  private definition disjoint_intervals :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> ('a word \<times> 'a word) \<Rightarrow> bool" where
     "disjoint_intervals A B \<equiv> disjoint (interval_of A) (interval_of B)"
 
-  definition not_disjoint_intervals :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> ('a word \<times> 'a word) \<Rightarrow> bool" where
+  private definition not_disjoint_intervals :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> ('a word \<times> 'a word) \<Rightarrow> bool" where
     "not_disjoint_intervals A B \<equiv> \<not> disjoint (interval_of A) (interval_of B)"
 
-  lemma [code]: "not_disjoint_intervals A B = (case A of (s,e) \<Rightarrow> case B of (s',e') \<Rightarrow> s \<le> e' \<and> s' \<le> e \<and> s \<le> e \<and> s' \<le> e')"
+  private lemma [code]: "not_disjoint_intervals A B = (case A of (s,e) \<Rightarrow> case B of (s',e') \<Rightarrow> s \<le> e' \<and> s' \<le> e \<and> s \<le> e \<and> s' \<le> e')"
     apply(cases A, cases B)
     apply(simp add: not_disjoint_intervals_def interval_of.simps disjoint_def)
     done
 
-  lemma [code]: "disjoint_intervals A B = (case A of (s,e) \<Rightarrow> case B of (s',e') \<Rightarrow> s > e' \<or> s' > e \<or> s > e \<or> s' > e')"
+  private lemma [code]: "disjoint_intervals A B = (case A of (s,e) \<Rightarrow> case B of (s',e') \<Rightarrow> s > e' \<or> s' > e \<or> s > e \<or> s' > e')"
     apply(cases A, cases B)
     apply(simp add: disjoint_intervals_def interval_of.simps disjoint_def)
     by fastforce
 
-  fun merge_overlap :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> ('a word \<times> 'a word) list \<Rightarrow> ('a word \<times> 'a word) list" where
+  private fun merge_overlap :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> ('a word \<times> 'a word) list \<Rightarrow> ('a word \<times> 'a word) list" where
    "merge_overlap s [] = [s]" |
    "merge_overlap (s,e) ((s',e')#ss) = (
       if not_disjoint_intervals (s,e) (s',e')
@@ -117,7 +117,7 @@ begin
     apply(simp)
     by blast
 
-  lemma merge_overlap_length: "\<exists>s' \<in> set ss. \<not> disjoint (interval_of A) (interval_of s') \<Longrightarrow> length (merge_overlap A ss) = length ss"
+  private lemma merge_overlap_length: "\<exists>s' \<in> set ss. \<not> disjoint (interval_of A) (interval_of s') \<Longrightarrow> length (merge_overlap A ss) = length ss"
     apply(induction ss)
      apply(simp)
     apply(rename_tac x xs)
@@ -128,7 +128,7 @@ begin
 
   value[code] "merge_overlap (1:: 16 word,2)"
 
-  function listwordinterval_compress :: "(('a::len) word \<times> ('a::len) word) list \<Rightarrow> ('a word \<times> 'a word) list" where
+  private function listwordinterval_compress :: "(('a::len) word \<times> ('a::len) word) list \<Rightarrow> ('a word \<times> 'a word) list" where
     "listwordinterval_compress [] = []" |
     "listwordinterval_compress (s#ss) = (
             if \<forall>s' \<in> set ss. disjoint_intervals s s'
@@ -136,13 +136,13 @@ begin
             else listwordinterval_compress (merge_overlap s ss))"
   by(pat_completeness, auto)
 
-  termination listwordinterval_compress
+  private termination listwordinterval_compress
   apply (relation "measure length")
     apply(rule wf_measure)
    apply(simp)
   using disjoint_intervals_def merge_overlap_length by fastforce
 
-  lemma listwordinterval_compress: "(\<Union>s \<in> set (listwordinterval_compress ss). interval_of s) = (\<Union>s \<in> set ss. interval_of s)"
+  private lemma listwordinterval_compress: "(\<Union>s \<in> set (listwordinterval_compress ss). interval_of s) = (\<Union>s \<in> set ss. interval_of s)"
     apply(induction ss rule: listwordinterval_compress.induct)
      apply(simp)
     apply(simp)
@@ -154,7 +154,7 @@ begin
 
   value[code] "listwordinterval_compress [(1::32 word,3), (8,10), (2,5), (3,7)]"
 
-  lemma "A \<in> set (listwordinterval_compress ss) \<Longrightarrow> B \<in> set (listwordinterval_compress ss) \<Longrightarrow> A \<noteq> B \<Longrightarrow> disjoint (interval_of A) (interval_of B)"
+  private lemma "A \<in> set (listwordinterval_compress ss) \<Longrightarrow> B \<in> set (listwordinterval_compress ss) \<Longrightarrow> A \<noteq> B \<Longrightarrow> disjoint (interval_of A) (interval_of B)"
     apply(induction ss arbitrary:  rule: listwordinterval_compress.induct)
      apply(simp)
     apply(simp split: split_if_asm)
@@ -167,61 +167,27 @@ begin
   definition wordinterval_compress :: "('a::len) wordinterval \<Rightarrow> 'a wordinterval" where
     "wordinterval_compress r \<equiv> l2br (listwordinterval_compress (br2l (wordinterval_optimize_empty r)))"
 
+  lemma wordinterval_compress: "wordinterval_to_set (wordinterval_compress r) = wordinterval_to_set r"
+    unfolding  wordinterval_compress_def
+    proof -
+      have interval_of': "\<And>s. interval_of s = (case s of (s,e) \<Rightarrow> {s .. e})" apply(case_tac s) using interval_of.simps by simp
 
-  value[code] "wordinterval_compress (RangeUnion (RangeUnion (WordInterval (1::32 word) 3) (WordInterval 8 10)) (WordInterval 3 7))"
+      have "wordinterval_to_set (l2br (listwordinterval_compress (br2l (wordinterval_optimize_empty r)))) =
+            (\<Union>x\<in>set (listwordinterval_compress (br2l (wordinterval_optimize_empty r))). interval_of x)"
+      using l2br interval_of.simps[symmetric] by blast
+      also have "\<dots> =  (\<Union>s\<in>set (br2l (wordinterval_optimize_empty r)). interval_of s)"
+        by(simp add: listwordinterval_compress)
+      also have "\<dots> = (\<Union>(i, j)\<in>set (br2l (wordinterval_optimize_empty r)). {i..j})" by(simp add: interval_of')
+      also have "\<dots> = wordinterval_to_set r" by(simp add: br2l)
+      finally show "wordinterval_to_set (l2br (listwordinterval_compress (br2l (wordinterval_optimize_empty r)))) = wordinterval_to_set r" .
+  qed
+
+end
+
+
+value[code] "wordinterval_compress (RangeUnion (RangeUnion (WordInterval (1::32 word) 3) (WordInterval 8 10)) (WordInterval 3 7))"
     
 
-
-
-  fun get_overlap :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> (('a::len) word \<times> ('a::len) word) list \<Rightarrow> (('a::len) word \<times> ('a::len) word) option" where
-   "get_overlap _ [] = None" |
-   "get_overlap (s,e) ((s',e')#ss)= (if (*{s..e} \<inter> {s'..e'} \<noteq> {}*) (s \<le> e' \<and> s' \<le> e \<and> s \<le> e \<and> s' \<le> e') then Some (s',e') else get_overlap (s,e) ss)"
-
-  fun listinterval_minimize :: "(('a::len) word \<times> ('a::len) word) list \<Rightarrow> (('a::len) word \<times> ('a::len) word) list" where
-    "listinterval_minimize [] = []" |
-    "listinterval_minimize ((s,e)#ss) = (case get_overlap (s,e) ss of None \<Rightarrow> (s,e)#listinterval_minimize ss |
-                                                                Some (s',e') \<Rightarrow> (min s s', max e e')#listinterval_minimize (*remove1 (s',e') ss)*) ss)"
-
-  private lemma helper1: "{x. x = (min aa ab, max ba bb) \<or> x \<in> set (listinterval_minimize ss)} = {(min aa ab, max ba bb)} \<union> (set (listinterval_minimize ss))"
-    by blast
-
-  private lemma get_overlap_helper: "get_overlap (s,e) ss = Some (s',e') \<Longrightarrow> {min s s' .. max e e'} \<subseteq> (\<Union>(s,e) \<in> set ((s,e)#ss). {s .. e})"
-    apply(induction ss)
-     apply(simp)
-    apply(rename_tac x xs)
-    apply(case_tac x)
-    apply(simp)
-    apply(simp split: option.split split_if_asm)
-     apply(clarify)
-     apply(simp add: min_def max_def split: split_if_asm)
-    apply(clarify)
-    by blast
-
-  private lemma helper2: fixes s::"('a::len) word" shows "{min s s' .. max e e'} \<subseteq> (\<Union>(s,e) \<in> set ((s,e)#ss). {s .. e}) \<Longrightarrow>
-    {min s s' .. max e e'} \<union> (\<Union>(s,e) \<in> set ((s,e)#ss). {s .. e}) = {min s s' .. max e e'} \<union> (\<Union>(s,e) \<in> set (ss). {s .. e})"
-  apply(subgoal_tac "{s .. e} \<subseteq> {min s s' .. max e e'}")
-   prefer 2
-   apply simp
-  by fastforce (*>3s*)
-   
-  
-  lemma "(\<Union>(s,e) \<in> set ss. {s .. e}) = (\<Union>(s,e) \<in> set (listinterval_minimize ss). {s .. e})"
-    apply(induction ss)
-     apply(simp)
-    apply(rename_tac s ss)
-    apply(case_tac s)
-    apply(simp split: option.split)
-    apply(clarify)
-    apply(simp add: helper1)
-    apply(drule get_overlap_helper)
-    apply(subst helper2[symmetric])
-     apply(simp)
-    by auto
-
-  (*TODO: it does actually not minimize since we do not remove the merged interval*)
-  lemma "\<forall>(a,b) \<in> set (listinterval_minimize ss). \<forall> (c,d) \<in> set (listinterval_minimize ss). {a..b} \<inter> {c..d} = {}"
-    oops
-end 
  
 
 end

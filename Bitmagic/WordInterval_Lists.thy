@@ -31,7 +31,8 @@ text{*A list of @{text "(start, end)"} tuples.*}
   lemma l2br: "wordinterval_to_set (l2br l) = (\<Union> (i,j) \<in> set l. {i .. j})"
     by(induction l rule: l2br.induct, simp_all)
 
-
+  lemma br2l: "(\<Union>(i,j)\<in>set (br2l r). {i .. j}) = wordinterval_to_set r"
+    by(induction r rule: br2l.induct, simp_all)
 
   definition l2br_intersect :: "('a::len word \<times> 'a::len word) list \<Rightarrow> 'a::len wordinterval" where
     "l2br_intersect = foldl (\<lambda> acc (s,e). wordinterval_intersection (WordInterval s e) acc) wordinterval_UNIV"
