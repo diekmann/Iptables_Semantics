@@ -18,6 +18,7 @@ term parser_test_firewall
 thm parser_test_firewall_def
 thm parser_test_firewall_FORWARD_default_policy_def
 
+value[code] "parser_test_firewall"
 lemma "parser_test_firewall \<equiv>
 [(''DOS~Pro-t_ect'',
   [Rule (MatchAnd (Match (Prot (Proto TCP))) (Match (Dst_Ports [(0x16, 0x16)]))) action.Accept,

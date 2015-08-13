@@ -71,8 +71,8 @@ begin
     unfolding disjoint_def
     by blast
 
-  private lemma merge_overlap_helper: "interval_of A \<subseteq> (\<Union>s \<in> set ss. interval_of s) \<Longrightarrow>
-      (\<Union>s \<in> set ss. interval_of s) = (\<Union>s \<in> set (merge_overlap A ss). interval_of s)"
+  private lemma merge_overlap_helper1: "interval_of A \<subseteq> (\<Union>s \<in> set ss. interval_of s) \<Longrightarrow>
+      (\<Union>s \<in> set (merge_overlap A ss). interval_of s) = (\<Union>s \<in> set ss. interval_of s)"
     apply(induction ss)
      apply(simp)
     apply(rename_tac x xs)
@@ -86,6 +86,21 @@ begin
     apply(drule_tac C="(\<Union>x\<in>set xs. interval_of x)" in disjoint_subset)
      apply(simp_all add: interval_of.simps)
     done
+
+  private lemma merge_overlap_helper2: "\<exists>s'\<in>set ss. \<not> disjoint (interval_of A) (interval_of s') \<Longrightarrow>
+          interval_of A \<union> (\<Union>s \<in> set ss. interval_of s) = (\<Union>s \<in> set (merge_overlap A ss). interval_of s)"
+    apply(induction ss)
+     apply(simp)
+    apply(rename_tac x xs)
+    apply(cases A, rename_tac a b)
+    apply(case_tac x)
+    apply(simp)
+    apply(intro impI conjI)
+     apply(drule not_disjoint_union)
+     apply(simp add: interval_of.simps[symmetric])
+     apply blast
+    apply(simp add: interval_of.simps[symmetric])
+    by blast
 
   lemma merge_overlap_length: "\<exists>s' \<in> set ss. \<not> disjoint (interval_of A) (interval_of s') \<Longrightarrow> length (merge_overlap A ss) = length ss"
     apply(induction ss)
@@ -109,6 +124,16 @@ begin
     apply(rule wf_measure)
    apply(simp)
   using merge_overlap_length by fastforce
+
+  lemma listwordinterval_compress: "(\<Union>s \<in> set (listwordinterval_compress ss). interval_of s) = (\<Union>s \<in> set ss. interval_of s)"
+    apply(induction ss rule: listwordinterval_compress.induct)
+     apply(simp)
+    apply(simp)
+    apply(intro impI)
+    apply(simp)
+    apply(drule merge_overlap_helper2)
+    apply(simp)
+    done
 
 
 
