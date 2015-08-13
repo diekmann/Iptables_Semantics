@@ -1,6 +1,7 @@
 theory WordInterval_NumberWang
 imports WordInterval
   "./l4v/lib/WordLemmaBucket"
+  WordInterval_Lists
 begin
 
 text{*Cardinality approximation for wordintervals*}
@@ -151,18 +152,23 @@ begin
     apply(simp)
     done
 
- value[code] "listwordinterval_compress [(1::32 word,3), (8,10), (2,5), (3,7)]"
+  value[code] "listwordinterval_compress [(1::32 word,3), (8,10), (2,5), (3,7)]"
 
   lemma "A \<in> set (listwordinterval_compress ss) \<Longrightarrow> B \<in> set (listwordinterval_compress ss) \<Longrightarrow> A \<noteq> B \<Longrightarrow> disjoint (interval_of A) (interval_of B)"
-    apply(induction ss rule: listwordinterval_compress.induct)
+    apply(induction ss arbitrary:  rule: listwordinterval_compress.induct)
      apply(simp)
     apply(simp split: split_if_asm)
-    try
-    apply(intro impI)
-    apply(simp)
-    apply(drule merge_overlap_helper2)
-    apply(simp)
-    done
+    apply(elim disjE)
+    apply(simp_all)
+    apply(simp_all add: disjoint_intervals_def disjoint_def)
+    
+    oops
+
+  definition wordinterval_compress :: "('a::len) wordinterval \<Rightarrow> 'a wordinterval" where
+    "wordinterval_compress r \<equiv> l2br (listwordinterval_compress (br2l (wordinterval_optimize_empty r)))"
+
+
+  value[code] "wordinterval_compress (RangeUnion (RangeUnion (WordInterval (1::32 word) 3) (WordInterval 8 10)) (WordInterval 3 7))"
     
 
 
