@@ -202,7 +202,7 @@ begin
   private lemma A_in_listwordinterval_compress: "A \<in> set (listwordinterval_compress ss) \<Longrightarrow> interval_of A \<subseteq> (\<Union>s \<in> set ss. interval_of s)"
     using listwordinterval_compress by blast
 
-  private lemma listwordinterval_compress_dijoint: 
+  private lemma listwordinterval_compress_disjoint: 
     "A \<in> set (listwordinterval_compress ss) \<Longrightarrow> B \<in> set (listwordinterval_compress ss) \<Longrightarrow> A \<noteq> B \<Longrightarrow> disjoint (interval_of A) (interval_of B)"
     apply(induction ss arbitrary: rule: listwordinterval_compress.induct)
      apply(simp)
