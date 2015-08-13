@@ -154,15 +154,20 @@ begin
 
   value[code] "listwordinterval_compress [(1::32 word,3), (8,10), (2,5), (3,7)]"
 
-  private lemma "A \<in> set (listwordinterval_compress ss) \<Longrightarrow> B \<in> set (listwordinterval_compress ss) \<Longrightarrow> A \<noteq> B \<Longrightarrow> disjoint (interval_of A) (interval_of B)"
-    apply(induction ss arbitrary:  rule: listwordinterval_compress.induct)
+  private lemma A_in_listwordinterval_compress: "A \<in> set (listwordinterval_compress ss) \<Longrightarrow> interval_of A \<subseteq> (\<Union>s \<in> set ss. interval_of s)"
+    using listwordinterval_compress by blast
+
+  private lemma listwordinterval_compress_dijoint: 
+    "A \<in> set (listwordinterval_compress ss) \<Longrightarrow> B \<in> set (listwordinterval_compress ss) \<Longrightarrow> A \<noteq> B \<Longrightarrow> disjoint (interval_of A) (interval_of B)"
+    apply(induction ss arbitrary: rule: listwordinterval_compress.induct)
      apply(simp)
     apply(simp split: split_if_asm)
     apply(elim disjE)
-    apply(simp_all)
-    apply(simp_all add: disjoint_intervals_def disjoint_def)
-    
-    oops
+       apply(simp_all)
+     apply(simp_all add: disjoint_intervals_def disjoint_def)
+     apply(thin_tac [!] "False \<Longrightarrow> _ \<Longrightarrow> _ \<Longrightarrow> _")
+     apply(blast dest: A_in_listwordinterval_compress)+
+    done
 
   definition wordinterval_compress :: "('a::len) wordinterval \<Rightarrow> 'a wordinterval" where
     "wordinterval_compress r \<equiv> l2br (listwordinterval_compress (br2l (wordinterval_optimize_empty r)))"
