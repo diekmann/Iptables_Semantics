@@ -19,8 +19,10 @@ export_code Rule
   CT_New CT_Established CT_Related CT_Untracked
   Accept Drop Log Reject Call Return Goto Empty Unknown
   dotteddecimal_toString ipv4addr_toString ipv4_cidr_toString action_toString
-  common_primitive_toString
+  common_primitive_toString common_primitive_match_expr_toString
   simple_rule_toString
+  Semantics_Goto.rewrite_Goto
+  (*parser helpers:*) alist_and' compress_parsed_extra Pos Neg
   unfold_ruleset_INPUT unfold_ruleset_FORWARD unfold_ruleset_OUTPUT map_of_string
   upper_closure
   ctstate_assume_new
