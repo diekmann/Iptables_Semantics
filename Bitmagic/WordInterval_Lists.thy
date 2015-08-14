@@ -88,7 +88,6 @@ text{*A list of @{text "(start, end)"} tuples.*}
 
 
 
-
 text{*minimizing @{typ "('a::len) wordinterval"}s*}
 (*TODO result has no empty intervals and all are disjoiint. merging things such as [1,7] [8,10] would still be possible*)
 context
@@ -240,7 +239,6 @@ end
 value[code] "wordinterval_compress (RangeUnion (RangeUnion (WordInterval (1::32 word) 3) (WordInterval 8 10)) (WordInterval 3 7))"
     
 
- 
 
 
 end
