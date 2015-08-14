@@ -105,9 +105,11 @@ subsubsection{*Try 1*}
   *)
 
 
-  text{*printing the simplified firewall*}
-  value[code] "let x = to_simple_firewall (upper_closure (ctstate_assume_new (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of net_fw_1))))
-               in map simple_rule_toString x" (*262.712s*)
+  text{*Just a test: printing the simplified firewall*}
+  value[code] "let x = to_simple_firewall (upper_closure
+                      (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))
+                      (ctstate_assume_new (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of net_fw_1)))))
+               in map simple_rule_toString x" (*169.498s with interface abstraction, otherwise 262.712s*)
 
 
   text{*the parsed firewall:*}

@@ -174,7 +174,7 @@ local (*iptables-save parsers*)
                          || Scan.this_string "RELATED" >> K @{const CT_Related}
                          || Scan.this_string "UNTRACKED" >> K @{const CT_Untracked}
 
-      fun parse_comma_separated_list parser =  Scan.repeat (parser --| $$ ",") @@@ (parser >> (fn p => [p]))
+      fun parse_comma_separated_list parser = Scan.repeat (parser --| $$ ",") @@@ (parser >> (fn p => [p]))
 
       local
         val mk_port_single = mk_nat 65535 #> (fn n => @{const nat_to_16word} $ n)
@@ -212,11 +212,11 @@ local (*iptables-save parsers*)
     val parse_in_iface_negated = parse_cmd_option_negated "-i " @{const IIface} parser_interface;
     val parse_out_iface_negated = parse_cmd_option_negated "-o " @{const OIface} parser_interface;
 
-    val parse_protocol = parse_cmd_option "-p " @{term "Prot \<circ> Proto"} parser_protocol;
+    val parse_protocol = parse_cmd_option "-p " @{term "Prot \<circ> Proto"} parser_protocol; (*negated?*)
 
     val parse_src_ports = parse_cmd_option "-m tcp --sport " @{const Src_Ports} parser_port_single_tup_term
                        || parse_cmd_option "-m udp --sport " @{const Src_Ports} parser_port_single_tup_term
-                       || parse_cmd_option "-m multiport --sports  " @{const Src_Ports} parser_port_many1_tup;
+                       || parse_cmd_option "-m multiport --sports " @{const Src_Ports} parser_port_many1_tup;
     val parse_dst_ports = parse_cmd_option "-m tcp --dport " @{const Dst_Ports} parser_port_single_tup_term
                        || parse_cmd_option "-m udp --dport " @{const Dst_Ports} parser_port_single_tup_term
                        || parse_cmd_option "-m multiport --dports " @{const Dst_Ports} parser_port_many1_tup;

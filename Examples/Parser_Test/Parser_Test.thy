@@ -18,6 +18,7 @@ term parser_test_firewall
 thm parser_test_firewall_def
 thm parser_test_firewall_FORWARD_default_policy_def
 
+value[code] "parser_test_firewall"
 lemma "parser_test_firewall \<equiv>
 [(''DOS~Pro-t_ect'',
   [Rule (MatchAnd (Match (Prot (Proto TCP))) (Match (Dst_Ports [(0x16, 0x16)]))) action.Accept,
@@ -62,6 +63,7 @@ lemma "parser_test_firewall \<equiv>
    Rule (MatchAnd (Match (Src (Ip4AddrNetmask (100, 0, 0, 0) 24))) (Match (Prot (Proto TCP))))
     (Call ''DOS~Pro-t_ect''),
    Rule (MatchNot (Match (Src (Ip4AddrNetmask (131, 159, 0, 0) 16)))) action.Drop,
+   Rule (MatchAnd (Match (Prot (Proto TCP))) (Match (Src_Ports [(0x50, 0x50), (0x1BB, 0x1BB)]))) Return,
    Rule (MatchAnd (Match (Prot (Proto TCP))) (Match (Dst_Ports [(0x50, 0x50), (0x1BB, 0x1BB)]))) Return,
    Rule (MatchAnd (Match (Dst (Ip4AddrNetmask (127, 0, 0, 1) 32)))
           (MatchAnd (Match (OIface (Iface ''eth1.152'')))
