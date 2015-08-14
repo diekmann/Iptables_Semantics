@@ -4,10 +4,17 @@ imports "../Primitive_Matchers/Parser"
   "../Semantics_Ternary/Optimizing"
 begin
 
-export_code Match MatchNot MatchAnd MatchAny
+definition word_less_eq :: "('a::len) word \<Rightarrow> ('a::len) word \<Rightarrow> bool" where
+  "word_less_eq a b \<equiv> a \<le> b"
+
+definition word_to_nat :: "('a::len) word \<Rightarrow> nat" where
+  "word_to_nat = Word.unat"
+
+export_code Rule
+  Match MatchNot MatchAnd MatchAny
   Src Dst IIface OIface Prot Src_Ports Dst_Ports CT_State Extra
-  ProtoAny Proto TCP UDP ICMP
-  integer_to_16word
+  ProtoAny Proto TCP UDP ICMP Iface
+  integer_to_16word nat_to_16word Nat word_less_eq word_to_nat
   Ip4AddrNetmask Ip4AddrRange
   CT_New CT_Established CT_Related CT_Untracked
   Accept Drop Log Reject Call Return Goto Empty Unknown

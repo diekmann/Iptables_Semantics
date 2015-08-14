@@ -15,6 +15,7 @@
 -A FORWARD ! -i eth+ -j DROP
 -A FORWARD -s 100.0.0.0/24 -p tcp -j DOS~Pro-t_ect
 -A FORWARD ! -s 131.159.0.0/16 -j DROP
+-A FORWARD -p tcp -m multiport --sports 80,443 -j RETURN
 -A FORWARD -p tcp -m multiport --dports 80,443 -j RETURN
 -A FORWARD -d 127.0.0.1/32 -o eth1.152 -p udp -m multiport --dports 4569,5000:65535 -j ACCEPT
 -A FORWARD -i eth0 -p tcp -m multiport --dports 22 -j DROP
