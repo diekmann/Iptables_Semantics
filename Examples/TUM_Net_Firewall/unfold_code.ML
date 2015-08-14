@@ -2609,19 +2609,18 @@ fun sports
   (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
   sports;
 
+fun dotteddecimal_toString (a, (b, (c, d))) =
+  string_of_nat a @
+    [#"."] @
+      string_of_nat b @ [#"."] @ string_of_nat c @ [#"."] @ string_of_nat d;
+
+fun ipv4addr_toString ip = dotteddecimal_toString (dotdecimal_of_ipv4addr ip);
+
 fun ipv4_cidr_toString ip_n =
   let
     val (base, n) = ip_n;
-    val (a, b) = dotdecimal_of_ipv4addr base;
-    val (ba, c) = b;
-    val (ca, d) = c;
   in
-    string_of_nat a @
-      [#"."] @
-        string_of_nat ba @
-          [#"."] @
-            string_of_nat ca @
-              [#"."] @ string_of_nat d @ [#"/"] @ string_of_nat n
+    ipv4addr_toString base @ [#"/"] @ string_of_nat n
   end;
 
 fun protocol_toString ProtoAny = [#"a", #"l", #"l"]
