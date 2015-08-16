@@ -53,7 +53,7 @@ The raw data of the iptables rulesets from the Examples is stored in [this](http
 
 
 ### Contributors
-   * [Cornelius Diekmann](www.net.in.tum.de/~diekmann/)
+   * [Cornelius Diekmann](http://www.net.in.tum.de/~diekmann/)
    * [Lars Hupel](http://lars.hupel.info/)
    * [Julius Michaelis](http://liftm.de)
    * Max Haslbeck
