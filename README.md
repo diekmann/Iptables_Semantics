@@ -29,6 +29,7 @@ Checking all proofs:
 ```
 $ isabelle build -v -d . -o document=pdf Iptables_Semantics_Examples
 ```
+This needs about 50min CPU time on my i7 1.8GHz laptop.
 
 ---
 
@@ -45,6 +46,16 @@ Check the Examples directory to get started
   * Cornelius Diekmann, Lars Hupel, and Georg Carle. Semantics-Preserving Simplification of Real-World Firewall Rule Sets. In 20th International Symposium on Formal Methods, June 2015. [[preprint]](http://www.net.in.tum.de/fileadmin/bibtex/publications/papers/fm15_Semantics-Preserving_Simplification_of_Real-World_Firewall_Rule_Sets.pdf), [[springer | paywall]](http://link.springer.com/chapter/10.1007%2F978-3-319-19249-9_13)
 
 The raw data of the iptables rulesets from the Examples is stored in [this](https://github.com/diekmann/net-network) repositoy.
+
+
+### Contributors
+   * [Cornelius Diekmann](www.net.in.tum.de/~diekmann/)
+   * [Lars Hupel](http://lars.hupel.info/)
+   * [Julius Michaelis](http://liftm.de)
+   * Max Haslbeck
+   * Stephan-A. Posselt
+   * Lars Noschinski
+
 
 
 
