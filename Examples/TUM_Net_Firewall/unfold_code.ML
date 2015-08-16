@@ -2212,6 +2212,19 @@ fun process_call gamma [] = []
 fun check_simple_ruleset rs =
   (if simple_ruleset rs then rs else (raise Fail "undefined"));
 
+fun unfold_ruleset_CHAIN chain_name default_action rs =
+  check_simple_ruleset
+    (repeat_stabilize (equal_list (equal_rule equal_common_primitive))
+      (nat_of_integer (1000 : IntInf.int))
+      (optimize_matches opt_MatchAny_match_expr)
+      (optimize_matches optimize_primitive_univ
+        (rw_Reject
+          (rm_LogEmpty
+            (repeat_stabilize (equal_list (equal_rule equal_common_primitive))
+              (nat_of_integer (10000 : IntInf.int)) (process_call rs)
+              [Rule (MatchAny, Call chain_name),
+                Rule (MatchAny, default_action)])))));
+
 fun dst
   (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
   dst;
@@ -2333,18 +2346,8 @@ fun simple_match_and
                                simpl_ports_conjunct sps1 sps2,
                                simpl_ports_conjunct dps1 dps2, ())))))));
 
-fun unfold_ruleset_FORWARD default_action rs =
-  check_simple_ruleset
-    (repeat_stabilize (equal_list (equal_rule equal_common_primitive))
-      (nat_of_integer (1000 : IntInf.int))
-      (optimize_matches opt_MatchAny_match_expr)
-      (optimize_matches optimize_primitive_univ
-        (rw_Reject
-          (rm_LogEmpty
-            (repeat_stabilize (equal_list (equal_rule equal_common_primitive))
-              (nat_of_integer (10000 : IntInf.int)) (process_call rs)
-              [Rule (MatchAny, Call [#"F", #"O", #"R", #"W", #"A", #"R", #"D"]),
-                Rule (MatchAny, default_action)])))));
+fun unfold_ruleset_FORWARD x =
+  unfold_ruleset_CHAIN [#"F", #"O", #"R", #"W", #"A", #"R", #"D"] x;
 
 fun normalized_ifaces MatchAny = true
   | normalized_ifaces (Match uu) = true
