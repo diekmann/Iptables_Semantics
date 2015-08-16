@@ -88,7 +88,7 @@ text{*Work in Progress*}
 
 ML{*
 local
-  fun is_start_of_filter_table s = s = "*filter";
+  fun is_start_of_table table s = s = ("*"^table);
   fun is_end_of_table s = s = "COMMIT";
 
   fun load_file (thy: theory) (path: string list) =
@@ -97,8 +97,8 @@ local
         if not (File.exists p) orelse (File.is_dir p) then raise Fail "File not found" else File.read_lines p
       end end;
 
-  fun extract_filter_table [] = []
-   |  extract_filter_table (r::rs) = if not (is_start_of_filter_table r) then extract_filter_table rs else
+  fun extract_table _ [] = []
+   |  extract_table table (r::rs) = if not (is_start_of_table table r) then extract_table table rs else
                                      takeWhile (fn x => not (is_end_of_table x)) rs
 
   fun writenumloaded filter_table =
@@ -106,7 +106,8 @@ local
       filter_table
     end;
 in
-  fun load_filter_table thy = load_file thy #> extract_filter_table #> writenumloaded;
+  fun load_table table thy = load_file thy #> extract_table table #> writenumloaded;
+  val load_filter_table = load_table "filter";
 end;
 *}
 
@@ -496,7 +497,7 @@ local
 in
   fun local_setup_parse_iptables_save (name: binding) path lthy =
     let val prepared = path
-            |> load_filter_table (Proof_Context.theory_of lthy) (*TODO what does exit_global do? but it works, ...*)
+            |> load_filter_table (Proof_Context.theory_of lthy)
             |> rule_type_partition in
     let val firewall = prepared
             |> filter_chain_decls_names_only
