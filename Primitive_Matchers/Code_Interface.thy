@@ -63,30 +63,24 @@ lemma "repeat_stabilize n f v = (f^^n) v"
 
 (*TODO replace constant number of process_call with number of chain decls *)
 
-definition unfold_ruleset_FORWARD :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
-"unfold_ruleset_FORWARD default_action rs = check_simple_ruleset
+definition unfold_ruleset_CHAIN :: "string \<Rightarrow> action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
+"unfold_ruleset_CHAIN chain_name default_action rs = check_simple_ruleset
   (repeat_stabilize 1000 (optimize_matches opt_MatchAny_match_expr)
     (optimize_matches optimize_primitive_univ
       (rw_Reject (rm_LogEmpty (repeat_stabilize 10000 (process_call rs)
-        [Rule MatchAny (Call ''FORWARD''), Rule MatchAny default_action]
+        [Rule MatchAny (Call chain_name), Rule MatchAny default_action]
   )))))"
+
+
+definition unfold_ruleset_FORWARD :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
+"unfold_ruleset_FORWARD = unfold_ruleset_CHAIN ''FORWARD''"
 
 
 definition unfold_ruleset_INPUT :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
-"unfold_ruleset_INPUT default_action rs = check_simple_ruleset
-  (repeat_stabilize 10000 (optimize_matches opt_MatchAny_match_expr) 
-    (optimize_matches optimize_primitive_univ
-      (rw_Reject (rm_LogEmpty (repeat_stabilize 10000 (process_call rs)
-        [Rule MatchAny (Call ''INPUT''), Rule MatchAny default_action]
-  )))))"
+"unfold_ruleset_INPUT = unfold_ruleset_CHAIN ''INPUT''"
 
 definition unfold_ruleset_OUTPUT :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
-"unfold_ruleset_OUTPUT default_action rs = check_simple_ruleset 
-  (repeat_stabilize 10000 (optimize_matches opt_MatchAny_match_expr)
-    (optimize_matches optimize_primitive_univ
-      (rw_Reject (rm_LogEmpty (repeat_stabilize 10000 (process_call rs)
-        [Rule MatchAny (Call ''OUTPUT''), Rule MatchAny default_action]
-  )))))"
+"unfold_ruleset_OUTPUT \<equiv> unfold_ruleset_CHAIN ''OUTPUT''"
 
 
 
