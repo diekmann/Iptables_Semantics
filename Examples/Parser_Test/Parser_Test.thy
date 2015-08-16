@@ -9,7 +9,7 @@ Argument 1: the name of the prefix for all constants which will be defined.
 Argument 2: The path to the firewall (iptables-save). A path is represented as list.
 *}
 local_setup \<open>
-  local_setup_parse_iptables_save @{binding parser_test_firewall} ["data" ,"iptables-save"]
+  local_setup_parse_iptables_save "filter" @{binding parser_test_firewall} ["data" ,"iptables-save"]
  \<close>
 
 text{*The command @{text parse_iptables_save} would provide nicer syntax (but does not support paths at the moment)*}
