@@ -12,6 +12,10 @@ It features
   * Certification of spoofing protection 
   * ...
 
+
+![isabelle/hol logo](https://raw.githubusercontent.com/diekmann/Iptables_Semantics/refactoring/images/isabelle.png "Isabelle/HOL")
+
+
 ### Usage
 
 Checkout:
