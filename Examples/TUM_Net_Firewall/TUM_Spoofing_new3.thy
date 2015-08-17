@@ -87,6 +87,7 @@ subsubsection{*Try 1*}
 
   parse_iptables_save net_fw_1="iptables-save-2015-05-13_10-53-20_cheating"
 
+
   (* _cheating means we needed to remove one "temporary work around" rule.
      This rule prevented all spoofing protection.
      It was for an asterisk server, a temporary rule and it should have been removed but was forgotten, we are investigating ...

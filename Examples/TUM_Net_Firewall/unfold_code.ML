@@ -40,6 +40,7 @@ structure Test : sig
       char list -> (common_primitive rule list) option
   val upper_closure : common_primitive rule list -> common_primitive rule list
   val integer_to_16word : IntInf.int -> num1 bit0 bit0 bit0 bit0 word
+  val sanity_wf_ruleset : (char list * 'a rule list) list -> bool
   val deny_set : common_primitive rule list -> common_primitive packet_set list
   val dst : 'a simple_match_ext -> num1 bit0 bit0 bit0 bit0 bit0 word * nat
   val src : 'a simple_match_ext -> num1 bit0 bit0 bit0 bit0 bit0 word * nat
@@ -874,6 +875,9 @@ fun div_int k l =
 fun bin_rest w = div_int w (Int_of_integer (2 : IntInf.int));
 
 fun shiftr1 A_ w = word_of_int A_ (bin_rest (uint A_ w));
+
+fun distinct A_ [] = true
+  | distinct A_ (x :: xs) = not (membera A_ xs x) andalso distinct A_ xs;
 
 fun map f [] = []
   | map f (x21 :: x22) = f x21 :: map f x22;
@@ -2157,6 +2161,22 @@ fun has_disc uu MatchAny = false
   | has_disc disc (MatchNot m) = has_disc disc m
   | has_disc disc (MatchAnd (m1, m2)) =
     has_disc disc m1 orelse has_disc disc m2;
+
+fun sanity_wf_ruleset gamma =
+  let
+    val dom = map fst gamma;
+    val ran = map snd gamma;
+  in
+    distinct (equal_list equal_char) dom andalso
+      pred_list
+        (pred_list
+          (fn r =>
+            (case get_action r of Accept => true | Drop => true | Log => true
+              | Reject => true | Call a => membera (equal_list equal_char) dom a
+              | Return => true | Goto a => membera (equal_list equal_char) dom a
+              | Empty => true | Unknown => false)))
+        ran
+  end;
 
 fun simple_ruleset rs =
   pred_list
