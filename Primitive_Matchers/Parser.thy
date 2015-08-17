@@ -500,6 +500,12 @@ local
       val _ = map (fn (name, _) => if name <> "INPUT" andalso name <> "FORWARD" andalso name <> "OUTPUT" then
                       writeln ("WARNING: the chain `"^name^"' is not a built-in chain of the filter table") else ()) ps
       in ps end;
+
+  fun sanity_check_ruleset t = let
+      val check = Code_Evaluation.dynamic_value_strict @{context} (@{const sanity_wf_ruleset (common_primitive)} $ t)
+    in
+      if check <> @{term "True"} then raise ERROR "sanity_wf_ruleset failed" else t
+    end;
 in
   fun local_setup_parse_iptables_save (table: string) (name: binding) path lthy =
     let val prepared = path
@@ -511,6 +517,7 @@ in
             |> mk_Ruleset
             (*this may a while*)
             |> simplify_code @{context}
+            |> trace_timing "checked sanity with sanity_wf_ruleset" sanity_check_ruleset
         val default_policis = prepared
             |> get_chain_decls_policy
             |> preparedefault_policies
