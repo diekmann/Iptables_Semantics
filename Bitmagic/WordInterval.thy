@@ -8,7 +8,7 @@ imports Main
   "~~/src/HOL/Library/Code_Target_Nat" (*!*)
 begin
 
-text{*Intervals of consecutive words*}
+section{*WordInterval: Intervals of consecutive words*}
 
 value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
 
@@ -37,6 +37,52 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
   lemma wordinterval_empty_set_eq[simp]: "wordinterval_empty r \<longleftrightarrow> wordinterval_to_set r = {}"
     by(induction r) auto
 
+
+  definition Empty_WordInterval :: "'a::len wordinterval" where  "Empty_WordInterval \<equiv> WordInterval 1 0"
+  lemma wordinterval_empty_Empty_WordInterval: "wordinterval_empty Empty_WordInterval"
+    by(simp add: Empty_WordInterval_def)
+  lemma Empty_WordInterval_set_eq[simp]: "wordinterval_to_set Empty_WordInterval = {}"
+    by(simp add: Empty_WordInterval_def)
+
+
+
+  subsection{*WordInterval to List*}
+  text{*A list of @{text "(start, end)"} tuples.*}
+  
+    fun br2l :: "'a::len wordinterval \<Rightarrow> ('a::len word \<times> 'a::len word) list" where
+      "br2l (RangeUnion r1 r2) = br2l r1 @ br2l r2" |
+      "br2l (WordInterval s e) = (if e < s then [] else [(s,e)])"
+    
+    fun l2br :: "('a::len word \<times> 'a::len word) list \<Rightarrow> 'a::len wordinterval" where
+      "l2br [] = Empty_WordInterval" | 
+      "l2br [(s,e)] = (WordInterval s e)" | 
+      "l2br ((s,e)#rs) = (RangeUnion (WordInterval s e) (l2br rs))"
+    
+  
+    lemma l2br_append: "wordinterval_to_set (l2br (l1@l2)) = wordinterval_to_set (l2br l1) \<union> wordinterval_to_set (l2br l2)"
+      proof(induction l1 arbitrary: l2 rule:l2br.induct)
+      case 1 thus ?case by simp
+      next
+      case (2 s e l2) thus ?case by (cases l2) simp_all
+      next
+      case 3 thus ?case by force
+      qed
+    
+    lemma l2br_br2l: "wordinterval_to_set (l2br (br2l r)) = wordinterval_to_set r"
+      by(induction r) (simp_all add: l2br_append)
+  
+    lemma l2br: "wordinterval_to_set (l2br l) = (\<Union> (i,j) \<in> set l. {i .. j})"
+      by(induction l rule: l2br.induct, simp_all)
+  
+    lemma br2l: "(\<Union>(i,j)\<in>set (br2l r). {i .. j}) = wordinterval_to_set r"
+      by(induction r rule: br2l.induct, simp_all)
+  
+    lemma l2br_remdups: "wordinterval_to_set (l2br (remdups ls)) = wordinterval_to_set (l2br ls)"
+      by(simp add: l2br)
+
+
+
+  subsection{*Optimizing and minimizing @{typ "('a::len) wordinterval"}s*}
   context
   begin
     fun wordinterval_optimize_empty where
@@ -62,10 +108,160 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
          (unfold wordinterval_optimize_empty.simps wordinterval_optimize_empty2.simps Let_def helper_optimize_shallow[symmetric], simp_all)
   end
 
-  definition Empty_WordInterval :: "'a::len wordinterval" where  "Empty_WordInterval \<equiv> WordInterval 1 0"
-  lemma wordinterval_empty_Empty_WordInterval: "wordinterval_empty Empty_WordInterval" by(simp add: Empty_WordInterval_def)
-  lemma Empty_WordInterval_set_eq[simp]: "wordinterval_to_set Empty_WordInterval = {}" by(simp add: Empty_WordInterval_def)
 
+
+  (*TODO result has no empty intervals and all are disjoiint. merging things such as [1,7] [8,10] would still be possible*)
+  context
+  begin
+  
+    private definition disjoint :: "'a set \<Rightarrow> 'a set \<Rightarrow> bool" where
+      "disjoint A B \<equiv> A \<inter> B = {}"
+  
+    private fun interval_of :: "('a::len) word \<times> 'a word \<Rightarrow> 'a word set" where
+      "interval_of (s,e) = {s .. e}"
+    declare interval_of.simps[simp del]
+  
+    private definition disjoint_intervals :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> ('a word \<times> 'a word) \<Rightarrow> bool" where
+      "disjoint_intervals A B \<equiv> disjoint (interval_of A) (interval_of B)"
+  
+    private definition not_disjoint_intervals :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> ('a word \<times> 'a word) \<Rightarrow> bool" where
+      "not_disjoint_intervals A B \<equiv> \<not> disjoint (interval_of A) (interval_of B)"
+  
+    private lemma [code]: "not_disjoint_intervals A B = (case A of (s,e) \<Rightarrow> case B of (s',e') \<Rightarrow> s \<le> e' \<and> s' \<le> e \<and> s \<le> e \<and> s' \<le> e')"
+      apply(cases A, cases B)
+      apply(simp add: not_disjoint_intervals_def interval_of.simps disjoint_def)
+      done
+  
+    private lemma [code]: "disjoint_intervals A B = (case A of (s,e) \<Rightarrow> case B of (s',e') \<Rightarrow> s > e' \<or> s' > e \<or> s > e \<or> s' > e')"
+      apply(cases A, cases B)
+      apply(simp add: disjoint_intervals_def interval_of.simps disjoint_def)
+      by fastforce
+  
+    private fun merge_overlap :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> ('a word \<times> 'a word) list \<Rightarrow> ('a word \<times> 'a word) list" where
+     "merge_overlap s [] = [s]" |
+     "merge_overlap (s,e) ((s',e')#ss) = (
+        if not_disjoint_intervals (s,e) (s',e')
+        then (min s s', max e e')#ss
+        else (s',e')#merge_overlap (s,e) ss)"
+  
+    private lemma not_disjoint_union:
+        fixes s :: "('a::len) word"
+        shows "\<not> disjoint {s..e} {s'..e'} \<Longrightarrow> {s..e} \<union> {s'..e'} = {min s s' .. max e e'}"
+      by(auto simp add: disjoint_def min_def max_def)
+  
+    private lemma disjoint_subset: "disjoint A B \<Longrightarrow> A \<subseteq> B \<union> C \<Longrightarrow> A \<subseteq> C"
+      unfolding disjoint_def
+      by blast
+  
+    private lemma merge_overlap_helper1: "interval_of A \<subseteq> (\<Union>s \<in> set ss. interval_of s) \<Longrightarrow>
+        (\<Union>s \<in> set (merge_overlap A ss). interval_of s) = (\<Union>s \<in> set ss. interval_of s)"
+      apply(induction ss)
+       apply(simp)
+      apply(rename_tac x xs)
+      apply(cases A, rename_tac a b)
+      apply(case_tac x)
+      apply(simp add: not_disjoint_intervals_def interval_of.simps)
+      apply(intro impI conjI)
+       apply(drule not_disjoint_union)
+       apply blast
+      apply(drule_tac C="(\<Union>x\<in>set xs. interval_of x)" in disjoint_subset)
+       apply(simp_all)
+      done
+  
+    private lemma merge_overlap_helper2: "\<exists>s'\<in>set ss. \<not> disjoint (interval_of A) (interval_of s') \<Longrightarrow>
+            interval_of A \<union> (\<Union>s \<in> set ss. interval_of s) = (\<Union>s \<in> set (merge_overlap A ss). interval_of s)"
+      apply(induction ss)
+       apply(simp)
+      apply(rename_tac x xs)
+      apply(cases A, rename_tac a b)
+      apply(case_tac x)
+      apply(simp add: not_disjoint_intervals_def interval_of.simps)
+      apply(intro impI conjI)
+       apply(drule not_disjoint_union)
+       apply blast
+      apply(simp)
+      by blast
+  
+    private lemma merge_overlap_length: "\<exists>s' \<in> set ss. \<not> disjoint (interval_of A) (interval_of s') \<Longrightarrow> length (merge_overlap A ss) = length ss"
+      apply(induction ss)
+       apply(simp)
+      apply(rename_tac x xs)
+      apply(cases A, rename_tac a b)
+      apply(case_tac x)
+      apply(simp add: not_disjoint_intervals_def interval_of.simps)
+      done
+  
+    value[code] "merge_overlap (1:: 16 word,2)"
+  
+    private function listwordinterval_compress :: "(('a::len) word \<times> ('a::len) word) list \<Rightarrow> ('a word \<times> 'a word) list" where
+      "listwordinterval_compress [] = []" |
+      "listwordinterval_compress (s#ss) = (
+              if \<forall>s' \<in> set ss. disjoint_intervals s s'
+              then s#listwordinterval_compress ss
+              else listwordinterval_compress (merge_overlap s ss))"
+    by(pat_completeness, auto)
+  
+    private termination listwordinterval_compress
+    apply (relation "measure length")
+      apply(rule wf_measure)
+     apply(simp)
+    using disjoint_intervals_def merge_overlap_length by fastforce
+  
+    private lemma listwordinterval_compress: "(\<Union>s \<in> set (listwordinterval_compress ss). interval_of s) = (\<Union>s \<in> set ss. interval_of s)"
+      apply(induction ss rule: listwordinterval_compress.induct)
+       apply(simp)
+      apply(simp)
+      apply(intro impI)
+      apply(simp add: disjoint_intervals_def)
+      apply(drule merge_overlap_helper2)
+      apply(simp)
+      done
+  
+    value[code] "listwordinterval_compress [(1::32 word,3), (8,10), (2,5), (3,7)]"
+  
+    private lemma A_in_listwordinterval_compress: "A \<in> set (listwordinterval_compress ss) \<Longrightarrow> interval_of A \<subseteq> (\<Union>s \<in> set ss. interval_of s)"
+      using listwordinterval_compress by blast
+  
+    private lemma listwordinterval_compress_disjoint: 
+      "A \<in> set (listwordinterval_compress ss) \<Longrightarrow> B \<in> set (listwordinterval_compress ss) \<Longrightarrow> A \<noteq> B \<Longrightarrow> disjoint (interval_of A) (interval_of B)"
+      apply(induction ss arbitrary: rule: listwordinterval_compress.induct)
+       apply(simp)
+      apply(simp split: split_if_asm)
+      apply(elim disjE)
+         apply(simp_all)
+       apply(simp_all add: disjoint_intervals_def disjoint_def)
+       apply(thin_tac [!] "False \<Longrightarrow> _ \<Longrightarrow> _ \<Longrightarrow> _")
+       apply(blast dest: A_in_listwordinterval_compress)+
+      done
+  
+    definition wordinterval_compress :: "('a::len) wordinterval \<Rightarrow> 'a wordinterval" where
+      "wordinterval_compress r \<equiv> l2br (remdups (listwordinterval_compress (br2l (wordinterval_optimize_empty r))))"
+  
+    lemma wordinterval_compress: "wordinterval_to_set (wordinterval_compress r) = wordinterval_to_set r"
+      unfolding wordinterval_compress_def
+      proof -
+        have interval_of': "\<And>s. interval_of s = (case s of (s,e) \<Rightarrow> {s .. e})" apply(case_tac s) using interval_of.simps by simp
+  
+        have "wordinterval_to_set (l2br (remdups (listwordinterval_compress (br2l (wordinterval_optimize_empty r))))) =
+              (\<Union>x\<in>set (listwordinterval_compress (br2l (wordinterval_optimize_empty r))). interval_of x)"
+        using l2br l2br_remdups interval_of.simps[symmetric] by blast
+        also have "\<dots> =  (\<Union>s\<in>set (br2l (wordinterval_optimize_empty r)). interval_of s)"
+          by(simp add: listwordinterval_compress)
+        also have "\<dots> = (\<Union>(i, j)\<in>set (br2l (wordinterval_optimize_empty r)). {i..j})" by(simp add: interval_of')
+        also have "\<dots> = wordinterval_to_set r" by(simp add: br2l)
+        finally show "wordinterval_to_set (l2br (remdups (listwordinterval_compress (br2l (wordinterval_optimize_empty r))))) = wordinterval_to_set r" .
+    qed
+  
+  end
+  
+  (*RangeUnion (WordInterval 8 0xA) (WordInterval 1 7)
+    this is not minimal, it would be possible to merge those two
+    *)
+  value[code] "wordinterval_compress (RangeUnion (RangeUnion (WordInterval (1::32 word) 3) (WordInterval 8 10)) (WordInterval 3 7))"
+
+
+
+  (*TODO: remove*)
   fun wordinterval_to_list  :: "'a::len wordinterval \<Rightarrow> ('a::len wordinterval) list" where
     "wordinterval_to_list (RangeUnion r1 r2) = wordinterval_to_list r1 @ wordinterval_to_list r2" |
     "wordinterval_to_list r = (if wordinterval_empty r then [] else [r])"
@@ -92,10 +288,11 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
   *)
 
   (*TODO: remove this*)
+  (*
   fun wordinterval_optimize_same where "wordinterval_optimize_same rs = list_to_wordinterval (remdups (wordinterval_to_list rs))"
   lemma wordinterval_optimize_same_set_eq[simp]: "wordinterval_to_set (wordinterval_optimize_same rs) = wordinterval_to_set rs"
    by(simp, subst list_to_wordinterval_set_eq) (metis image_set wordinterval_to_list_set_eq set_remdups)
-  
+  *)
 
   fun wordinterval_is_simple where "wordinterval_is_simple (WordInterval _ _) = True" | "wordinterval_is_simple (RangeUnion _ _) = False"
   fun wordintervalist_union_free where
@@ -111,6 +308,8 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
 
 
 
+  subsection{*Further operations*}
+
   text{*previous and next words addresses, without wrap around*}
     definition word_next :: "'a::len word \<Rightarrow> 'a::len word" where
       "word_next a \<equiv> if a = max_word then max_word else a + 1"
@@ -121,37 +320,40 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
     lemma "word_prev (2:: 8 word) = 1" by eval
     lemma "word_prev (0:: 8 word) = 0" by eval
 
-
-  fun wordinterval_setminus :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval \<Rightarrow> 'a::len wordinterval" where
-    "wordinterval_setminus (WordInterval s e) (WordInterval ms me) = (
-      if s > e \<or> ms > me then WordInterval s e else
-      if me \<ge> e
-        then
-          WordInterval (if ms = 0 then 1 else s) (min e (word_prev ms))
-        else if ms \<le> s
-        then
-          WordInterval (max s (word_next me)) (if me = max_word then 0 else e)
-        else
-          RangeUnion (WordInterval (if ms = 0 then 1 else s) (word_prev ms)) (WordInterval (word_next me) (if me = max_word then 0 else e))
-        )" |
-     "wordinterval_setminus (RangeUnion r1 r2) t = RangeUnion (wordinterval_setminus r1 t) (wordinterval_setminus r2 t)"|
-     "wordinterval_setminus t (RangeUnion r1 r2) = wordinterval_setminus (wordinterval_setminus t r1) r2"
-
-  lemma wordinterval_setminus_rr_set_eq[simp]: "wordinterval_to_set(wordinterval_setminus (WordInterval s e) (WordInterval ms me)) = 
-    wordinterval_to_set (WordInterval s e) - wordinterval_to_set (WordInterval ms me)"
-     apply(simp only: wordinterval_setminus.simps)
-     apply(case_tac "e < s") 
-      apply simp
-     apply(case_tac "me < ms") 
-      apply simp
-     apply(case_tac [!] "e \<le> me")
-      apply(case_tac [!] "ms = 0") 
-        apply(case_tac [!] "ms \<le> s") 
-            apply(case_tac [!] "me = max_word")
-                    apply(simp_all add: word_prev_def word_next_def min_def max_def)
-            apply(safe)
-                                  apply(auto)
-                          apply(uint_arith) 
+  context
+  begin
+    private fun wordinterval_setminus' :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval \<Rightarrow> 'a::len wordinterval" where
+      "wordinterval_setminus' (WordInterval s e) (WordInterval ms me) = (
+        if s > e \<or> ms > me then WordInterval s e else
+        if me \<ge> e
+          then
+            WordInterval (if ms = 0 then 1 else s) (min e (word_prev ms))
+          else if ms \<le> s
+          then
+            WordInterval (max s (word_next me)) (if me = max_word then 0 else e)
+          else
+            RangeUnion (WordInterval (if ms = 0 then 1 else s) (word_prev ms)) (WordInterval (word_next me) (if me = max_word then 0 else e))
+          )" |
+       "wordinterval_setminus' (RangeUnion r1 r2) t = RangeUnion (wordinterval_setminus' r1 t) (wordinterval_setminus' r2 t)"|
+       "wordinterval_setminus' t (RangeUnion r1 r2) = wordinterval_setminus' (wordinterval_setminus' t r1) r2"
+  
+    private lemma wordinterval_setminus'_rr_set_eq: "wordinterval_to_set(wordinterval_setminus' (WordInterval s e) (WordInterval ms me)) = 
+      wordinterval_to_set (WordInterval s e) - wordinterval_to_set (WordInterval ms me)"
+       apply(simp only: wordinterval_setminus'.simps)
+       apply(case_tac "e < s") 
+        apply simp
+       apply(case_tac "me < ms") 
+        apply simp
+       apply(case_tac [!] "e \<le> me")
+        apply(case_tac [!] "ms = 0") 
+          apply(case_tac [!] "ms \<le> s") 
+              apply(case_tac [!] "me = max_word")
+                      apply(simp_all add: word_prev_def word_next_def min_def max_def)
+              apply(safe)
+                                    apply(auto)
+                            apply(uint_arith) 
+                           apply(uint_arith)
+                          apply(uint_arith)
                          apply(uint_arith)
                         apply(uint_arith)
                        apply(uint_arith)
@@ -171,18 +373,25 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
          apply(uint_arith)
         apply(uint_arith)
        apply(uint_arith)
-      apply(uint_arith)
-     apply(uint_arith)
-   done
+     done
+  
+    private lemma wordinterval_setminus'_set_eq: "wordinterval_to_set (wordinterval_setminus' r1 r2) = 
+      wordinterval_to_set r1 - wordinterval_to_set r2"
+      apply(induction rule: wordinterval_setminus'.induct)
+        using wordinterval_setminus'_rr_set_eq apply blast
+       apply auto
+      done
+    lemma wordinterval_setminus'_empty_struct: "wordinterval_empty r2 \<Longrightarrow> wordinterval_setminus' r1 r2 = r1"
+      by(induction r1 r2 rule: wordinterval_setminus'.induct) auto
 
-  lemma wordinterval_setminus_set_eq[simp]: "wordinterval_to_set (wordinterval_setminus r1 r2) = 
-    wordinterval_to_set r1 - wordinterval_to_set r2"
-    apply(induction rule: wordinterval_setminus.induct)
-      using wordinterval_setminus_rr_set_eq apply blast
-     apply auto
-    done
-  lemma wordinterval_setminus_empty_struct: "wordinterval_empty r2 \<Longrightarrow> wordinterval_setminus r1 r2 = r1"
-    by(induction r1 r2 rule: wordinterval_setminus.induct) auto
+
+    definition wordinterval_setminus :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval \<Rightarrow> 'a::len wordinterval" where
+      "wordinterval_setminus r1 r2 = wordinterval_compress (wordinterval_setminus' r1 r2)"
+
+    lemma wordinterval_setminus_set_eq[simp]: "wordinterval_to_set (wordinterval_setminus r1 r2) = 
+      wordinterval_to_set r1 - wordinterval_to_set r2"
+      by(simp add: wordinterval_setminus_def wordinterval_compress wordinterval_setminus'_set_eq)
+  end
 
   definition "wordinterval_UNIV \<equiv> WordInterval 0 max_word"
   lemma wordinterval_UNIV_set_eq[simp]: "wordinterval_to_set wordinterval_UNIV = UNIV"
@@ -196,30 +405,46 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
   lemma wordinterval_invert_UNIV_empty: "wordinterval_empty (wordinterval_invert wordinterval_UNIV)" by simp
 
 
-  lemma "{(s::nat) .. e} \<inter> {s' .. e'} = {} \<longleftrightarrow> s > e' \<or> s' > e \<or> s > e \<or> s' > e'"
-    by simp linarith
-
-  fun wordinterval_intersection' :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval \<Rightarrow> 'a::len wordinterval" where
-    "wordinterval_intersection' (WordInterval s e) (WordInterval s' e') = (
-        if s > e \<or> s' > e' \<or> s > e' \<or> s' > e \<or> s > e \<or> s' > e'
-        then
-          Empty_WordInterval
-        else
-          WordInterval (max s s') (min e e')
-        )" |
-    "wordinterval_intersection' (RangeUnion r1 r2) t = RangeUnion (wordinterval_intersection' r1 t) (wordinterval_intersection' r2 t)"|
-    "wordinterval_intersection' t (RangeUnion r1 r2) = RangeUnion (wordinterval_intersection' t r1) (wordinterval_intersection' t r2)"
-
-  lemma wordinterval_intersection'_set_eq[simp]: 
-    "wordinterval_to_set (wordinterval_intersection' r1 r2) = wordinterval_to_set r1 \<inter> wordinterval_to_set r2"
-    by(induction r1 r2 rule: wordinterval_intersection'.induct) (auto)
+  text{*@{text "\<inter>"}*}
+  context
+  begin
+    private lemma "{(s::nat) .. e} \<inter> {s' .. e'} = {} \<longleftrightarrow> s > e' \<or> s' > e \<or> s > e \<or> s' > e'"
+      by simp linarith
+    private fun wordinterval_intersection' :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval \<Rightarrow> 'a::len wordinterval" where
+      "wordinterval_intersection' (WordInterval s e) (WordInterval s' e') = (
+          if s > e \<or> s' > e' \<or> s > e' \<or> s' > e \<or> s > e \<or> s' > e'
+          then
+            Empty_WordInterval
+          else
+            WordInterval (max s s') (min e e')
+          )" |
+      "wordinterval_intersection' (RangeUnion r1 r2) t = RangeUnion (wordinterval_intersection' r1 t) (wordinterval_intersection' r2 t)"|
+      "wordinterval_intersection' t (RangeUnion r1 r2) = RangeUnion (wordinterval_intersection' t r1) (wordinterval_intersection' t r2)"
   
+    private lemma wordinterval_intersection'_set_eq: 
+      "wordinterval_to_set (wordinterval_intersection' r1 r2) = wordinterval_to_set r1 \<inter> wordinterval_to_set r2"
+      by(induction r1 r2 rule: wordinterval_intersection'.induct) (auto)
   
-  lemma wordinterval_setminus_intersection_empty_struct_rr: 
-    "wordinterval_empty (wordinterval_intersection' (WordInterval r1s r1e) (WordInterval r2s r2e)) \<Longrightarrow> 
+    value[code] "wordinterval_intersection' (RangeUnion (RangeUnion (WordInterval (1::32 word) 3) (WordInterval 8 10)) (WordInterval 1 3)) (WordInterval 1 3)"
+
+    definition wordinterval_intersection :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval \<Rightarrow> 'a::len wordinterval" where 
+      "wordinterval_intersection r1 r2 \<equiv> wordinterval_compress (wordinterval_intersection' r1 r2)"
+  
+    lemma wordinterval_intersection_set_eq[simp]: 
+      "wordinterval_to_set (wordinterval_intersection r1 r2) = wordinterval_to_set r1 \<inter> wordinterval_to_set r2"
+      (*unfolding wordinterval_intersection_def wordinterval_optimize_same_set_eq by auto*)
+      by(simp add: wordinterval_intersection_def wordinterval_compress wordinterval_intersection'_set_eq)
+  
+    value[code] "wordinterval_intersection (RangeUnion (RangeUnion (WordInterval (1::32 word) 3) (WordInterval 8 10)) (WordInterval 1 3)) (WordInterval 1 3)"
+  end
+
+
+  
+  (*lemma wordinterval_setminus_intersection_empty_struct_rr: 
+    "wordinterval_empty (wordinterval_intersection (WordInterval r1s r1e) (WordInterval r2s r2e)) \<Longrightarrow> 
     wordinterval_setminus (WordInterval r1s r1e) (WordInterval r2s r2e) = (WordInterval r1s r1e)"
     apply(subst(asm) wordinterval_empty_set_eq) 
-    apply(subst(asm) wordinterval_intersection'_set_eq)
+    apply(subst(asm) wordinterval_intersection_set_eq)
     apply(unfold wordinterval_to_set.simps(1))
     apply(cases "wordinterval_empty (WordInterval r1s r1e)", case_tac [!] "wordinterval_empty (WordInterval r2s r2e)")
        apply(unfold wordinterval_empty.simps(1))
@@ -234,15 +459,16 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
            apply(auto)
      apply (metis add.commute inc_i le_minus min_absorb1 word_le_sub1 word_prev_def word_zero_le)
     apply(metis inc_le word_next_def max.order_iff)
-  done
-
-  declare wordinterval_intersection'.simps[simp del]
+  done*)
+  
+  (*
   declare wordinterval_setminus.simps(1)[simp del]
+  *)
 
-  lemma wordinterval_setminus_intersection_empty_struct:
-    "wordinterval_empty (wordinterval_intersection' r1 r2) \<Longrightarrow> 
+  (*lemma wordinterval_setminus_intersection_empty_struct:
+    "wordinterval_empty (wordinterval_intersection r1 r2) \<Longrightarrow> 
     wordinterval_setminus r1 r2 = r1"
-    by (induction r1 r2 rule: wordinterval_setminus.induct, auto simp add: wordinterval_setminus_intersection_empty_struct_rr) fastforce
+    by (induction r1 r2 rule: wordinterval_setminus.induct, auto simp add: wordinterval_setminus_intersection_empty_struct_rr) fastforce*)
 
   definition wordinterval_subset :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval \<Rightarrow> bool" where
     "wordinterval_subset r1 r2 \<equiv> wordinterval_empty (wordinterval_setminus r1 r2)"
@@ -266,8 +492,9 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
     by(subst wordinterval_eq_set_eq, simp)
   
   lemma wordinterval_Diff_triv: 
-    assumes "wordinterval_empty (wordinterval_intersection' a b)" shows "wordinterval_eq (wordinterval_setminus a b) a"
-    using wordinterval_setminus_intersection_empty_struct[OF assms] wordinterval_eq_set_eq[of a a] by simp
+    "wordinterval_empty (wordinterval_intersection a b) \<Longrightarrow> wordinterval_eq (wordinterval_setminus a b) a"
+    unfolding wordinterval_eq_set_eq
+    by simp blast
 
   fun wordinterval_size :: "('a::len) wordinterval \<Rightarrow> nat" where
     "wordinterval_size (RangeUnion a b) = wordinterval_size a + wordinterval_size b" |
