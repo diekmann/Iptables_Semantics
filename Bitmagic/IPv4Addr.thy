@@ -375,7 +375,8 @@ subsection{*IP ranges*}
     by(subst ipv4range_eq_set_eq, simp)
   
   lemma ipv4range_Diff_triv: "ipv4range_empty (ipv4range_intersection a b) \<Longrightarrow> ipv4range_eq (ipv4range_setminus a b) a"
-    by(simp only: wordinterval_Diff_triv ipv4range_eq_def ipv4range_setminus_def ipv4range_intersection_def wordinterval_intersection_def ipv4range_empty_def)
+    by (simp only: Diff_triv ipv4range_empty_set_eq ipv4range_eq_set_eq ipv4range_intersection_set_eq ipv4range_setminus_set_eq)
+    (*by(simp only: wordinterval_Diff_triv ipv4range_eq_def ipv4range_setminus_def ipv4range_intersection_def wordinterval_intersection_def ipv4range_empty_def)*)
 
 
   definition "is_lowest_element x S = (x \<in> S \<and> (\<forall>y\<in>S. y \<le> x \<longrightarrow> y = x))"
