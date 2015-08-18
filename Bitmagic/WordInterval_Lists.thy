@@ -212,14 +212,17 @@ value[code] "wordinterval_compress (RangeUnion (RangeUnion (WordInterval (1::32 
 
   (*definition wordinterval_intersection :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval \<Rightarrow> 'a::len wordinterval" where
     "wordinterval_intersection r1 r2 \<equiv> wordinterval_intersection' r1 r2"*)
+  (*definition wordinterval_intersection :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval \<Rightarrow> 'a::len wordinterval" where 
+    "wordinterval_intersection r1 r2 = 
+      wordinterval_optimize_same (wordinterval_setminus (wordinterval_union r1 r2) (wordinterval_union (wordinterval_invert r1) (wordinterval_invert r2)))"*)
   definition wordinterval_intersection :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval \<Rightarrow> 'a::len wordinterval" where 
     "wordinterval_intersection r1 r2 = 
-      wordinterval_optimize_same (wordinterval_setminus (wordinterval_union r1 r2) (wordinterval_union (wordinterval_invert r1) (wordinterval_invert r2)))"
+      wordinterval_compress (wordinterval_intersection' r1 r2)"
 
   lemma wordinterval_intersection_set_eq[simp]: 
     "wordinterval_to_set (wordinterval_intersection r1 r2) = wordinterval_to_set r1 \<inter> wordinterval_to_set r2"
-    unfolding wordinterval_intersection_def wordinterval_optimize_same_set_eq by auto
-    (*apply(simp add: wordinterval_intersection_def)*)
+    (*unfolding wordinterval_intersection_def wordinterval_optimize_same_set_eq by auto*)
+    by(simp add: wordinterval_intersection_def wordinterval_compress)
 
 
  definition l2br_intersect :: "('a::len word \<times> 'a::len word) list \<Rightarrow> 'a::len wordinterval" where
