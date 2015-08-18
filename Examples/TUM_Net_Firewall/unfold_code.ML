@@ -40,6 +40,7 @@ structure Test : sig
       char list -> (common_primitive rule list) option
   val upper_closure : common_primitive rule list -> common_primitive rule list
   val integer_to_16word : IntInf.int -> num1 bit0 bit0 bit0 bit0 word
+  val sanity_wf_ruleset : (char list * 'a rule list) list -> bool
   val deny_set : common_primitive rule list -> common_primitive packet_set list
   val dst : 'a simple_match_ext -> num1 bit0 bit0 bit0 bit0 bit0 word * nat
   val src : 'a simple_match_ext -> num1 bit0 bit0 bit0 bit0 bit0 word * nat
@@ -874,6 +875,9 @@ fun div_int k l =
 fun bin_rest w = div_int w (Int_of_integer (2 : IntInf.int));
 
 fun shiftr1 A_ w = word_of_int A_ (bin_rest (uint A_ w));
+
+fun distinct A_ [] = true
+  | distinct A_ (x :: xs) = not (membera A_ xs x) andalso distinct A_ xs;
 
 fun map f [] = []
   | map f (x21 :: x22) = f x21 :: map f x22;
@@ -2158,6 +2162,22 @@ fun has_disc uu MatchAny = false
   | has_disc disc (MatchAnd (m1, m2)) =
     has_disc disc m1 orelse has_disc disc m2;
 
+fun sanity_wf_ruleset gamma =
+  let
+    val dom = map fst gamma;
+    val ran = map snd gamma;
+  in
+    distinct (equal_list equal_char) dom andalso
+      pred_list
+        (pred_list
+          (fn r =>
+            (case get_action r of Accept => true | Drop => true | Log => true
+              | Reject => true | Call a => membera (equal_list equal_char) dom a
+              | Return => true | Goto a => membera (equal_list equal_char) dom a
+              | Empty => true | Unknown => false)))
+        ran
+  end;
+
 fun simple_ruleset rs =
   pred_list
     (fn r =>
@@ -2211,6 +2231,19 @@ fun process_call gamma [] = []
 
 fun check_simple_ruleset rs =
   (if simple_ruleset rs then rs else (raise Fail "undefined"));
+
+fun unfold_ruleset_CHAIN chain_name default_action rs =
+  check_simple_ruleset
+    (repeat_stabilize (equal_list (equal_rule equal_common_primitive))
+      (nat_of_integer (1000 : IntInf.int))
+      (optimize_matches opt_MatchAny_match_expr)
+      (optimize_matches optimize_primitive_univ
+        (rw_Reject
+          (rm_LogEmpty
+            (repeat_stabilize (equal_list (equal_rule equal_common_primitive))
+              (nat_of_integer (10000 : IntInf.int)) (process_call rs)
+              [Rule (MatchAny, Call chain_name),
+                Rule (MatchAny, default_action)])))));
 
 fun dst
   (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
@@ -2333,18 +2366,8 @@ fun simple_match_and
                                simpl_ports_conjunct sps1 sps2,
                                simpl_ports_conjunct dps1 dps2, ())))))));
 
-fun unfold_ruleset_FORWARD default_action rs =
-  check_simple_ruleset
-    (repeat_stabilize (equal_list (equal_rule equal_common_primitive))
-      (nat_of_integer (1000 : IntInf.int))
-      (optimize_matches opt_MatchAny_match_expr)
-      (optimize_matches optimize_primitive_univ
-        (rw_Reject
-          (rm_LogEmpty
-            (repeat_stabilize (equal_list (equal_rule equal_common_primitive))
-              (nat_of_integer (10000 : IntInf.int)) (process_call rs)
-              [Rule (MatchAny, Call [#"F", #"O", #"R", #"W", #"A", #"R", #"D"]),
-                Rule (MatchAny, default_action)])))));
+fun unfold_ruleset_FORWARD x =
+  unfold_ruleset_CHAIN [#"F", #"O", #"R", #"W", #"A", #"R", #"D"] x;
 
 fun normalized_ifaces MatchAny = true
   | normalized_ifaces (Match uu) = true

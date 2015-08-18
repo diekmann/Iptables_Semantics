@@ -78,21 +78,22 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
     "list_to_wordinterval (r#rs) = (RangeUnion r (list_to_wordinterval rs))" |
     "list_to_wordinterval [] = Empty_WordInterval"
 
-  lemma list_to_wordinterval_set_eq: "(\<Union>set (map wordinterval_to_set rs)) = wordinterval_to_set (list_to_wordinterval rs)"
+  lemma list_to_wordinterval_set_eq: "wordinterval_to_set (list_to_wordinterval rs) = (\<Union>set (map wordinterval_to_set rs)) "
     by(induction rs rule: list_to_wordinterval.induct) simp_all
   
   lemma list_to_wordinterval_set_eq_simp[simp]: "wordinterval_to_set (list_to_wordinterval (a # as)) = wordinterval_to_set (wordinterval_union a (list_to_wordinterval as))"
     by(cases as) auto
     
-    
+  (*
   fun wordinterval_linearize :: "('a::len) wordinterval \<Rightarrow> ('a::len) wordinterval" where
     "wordinterval_linearize rs = list_to_wordinterval (wordinterval_to_list rs)"
   lemma "wordinterval_to_set (wordinterval_linearize r) = wordinterval_to_set r"
     by(simp, metis list_to_wordinterval_set_eq wordinterval_to_list_set_eq)
+  *)
 
   fun wordinterval_optimize_same where "wordinterval_optimize_same rs = list_to_wordinterval (remdups (wordinterval_to_list rs))"
   lemma wordinterval_optimize_same_set_eq[simp]: "wordinterval_to_set (wordinterval_optimize_same rs) = wordinterval_to_set rs"
-   by(simp, subst list_to_wordinterval_set_eq[symmetric]) (metis image_set wordinterval_to_list_set_eq set_remdups)
+   by(simp, subst list_to_wordinterval_set_eq) (metis image_set wordinterval_to_list_set_eq set_remdups)
 
   fun wordinterval_is_simple where "wordinterval_is_simple (WordInterval _ _) = True" | "wordinterval_is_simple (RangeUnion _ _) = False"
   fun wordintervalist_union_free where

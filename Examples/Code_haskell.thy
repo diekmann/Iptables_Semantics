@@ -10,6 +10,15 @@ definition word_less_eq :: "('a::len) word \<Rightarrow> ('a::len) word \<Righta
 definition word_to_nat :: "('a::len) word \<Rightarrow> nat" where
   "word_to_nat = Word.unat"
 
+
+definition "to_simple_firewall_without_interfaces rs \<equiv>
+    to_simple_firewall
+    (upper_closure
+    (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))
+    (optimize_matches abstract_for_simple_firewall
+    (ctstate_assume_new
+    (upper_closure rs)))))"
+
 export_code Rule
   Match MatchNot MatchAnd MatchAny
   Src Dst IIface OIface Prot Src_Ports Dst_Ports CT_State Extra
@@ -25,8 +34,11 @@ export_code Rule
   (*parser helpers:*) alist_and' compress_parsed_extra Pos Neg
   unfold_ruleset_INPUT unfold_ruleset_FORWARD unfold_ruleset_OUTPUT map_of_string
   upper_closure
+  abstract_for_simple_firewall optimize_matches
   ctstate_assume_new
   to_simple_firewall
+  to_simple_firewall_without_interfaces
+  sanity_wf_ruleset
   in Haskell module_name "Network.IPTables.Generated" file "tmp/"
 
 end

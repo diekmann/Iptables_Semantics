@@ -445,9 +445,54 @@ lemma wf_chain_fst: "wf_chain \<Gamma> (r # rs) \<Longrightarrow>  wf_chain \<Ga
   by(simp add: wf_chain_def)
 
 
+definition sanity_wf_ruleset :: "(string \<times> 'a rule list) list \<Rightarrow> bool" where
+  "sanity_wf_ruleset \<Gamma> \<equiv> distinct (map fst \<Gamma>) \<and>
+          (\<forall> rs \<in> ran (map_of \<Gamma>). (\<forall>r \<in> set rs. case get_action r of Accept \<Rightarrow> True
+                                                                    | Drop \<Rightarrow> True
+                                                                    | Reject \<Rightarrow> True
+                                                                    | Log \<Rightarrow> True
+                                                                    | Empty \<Rightarrow> True
+                                                                    | Call chain \<Rightarrow> chain \<in> dom (map_of \<Gamma>)
+                                                                    | Goto chain \<Rightarrow> chain \<in> dom (map_of \<Gamma>)
+                                                                    | Return \<Rightarrow> True
+                                                                    | _ \<Rightarrow> False))"
+
+lemma "sanity_wf_ruleset \<Gamma> \<Longrightarrow> rs \<in> ran (map_of \<Gamma>) \<Longrightarrow> wf_chain (map_of \<Gamma>) rs"
+  apply(simp add: sanity_wf_ruleset_def wf_chain_def)
+  by fastforce
 
 
-
+lemma [code]: "sanity_wf_ruleset \<Gamma> =
+  (let dom = map fst \<Gamma>;
+       ran = map snd \<Gamma>
+   in distinct dom \<and>
+    (\<forall> rs \<in> set ran. (\<forall>r \<in> set rs. case get_action r of Accept \<Rightarrow> True
+                                                       | Drop \<Rightarrow> True
+                                                       | Reject \<Rightarrow> True
+                                                       | Log \<Rightarrow> True
+                                                       | Empty \<Rightarrow> True
+                                                       | Call chain \<Rightarrow> chain \<in> set dom
+                                                       | Goto chain \<Rightarrow> chain \<in> set dom
+                                                       | Return \<Rightarrow> True
+                                                       | _ \<Rightarrow> False)))"
+  proof -
+  have set_map_fst: "set (map fst \<Gamma>) = dom (map_of \<Gamma>)"
+    by (simp add: dom_map_of_conv_image_fst)
+  have set_map_snd: "distinct (map fst \<Gamma>) \<Longrightarrow> set (map snd \<Gamma>) = ran (map_of \<Gamma>)"
+    by (simp add: ran_distinct)
+  show ?thesis
+  unfolding sanity_wf_ruleset_def Let_def
+  apply(subst set_map_fst)+
+  apply(rule iffI)
+   apply(elim conjE)
+   apply(subst set_map_snd)
+    apply(simp)
+   apply(simp)
+  apply(elim conjE)
+  apply(subst(asm) set_map_snd)
+   apply(simp_all)
+  done
+qed
 
 
 
