@@ -91,9 +91,11 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
     by(simp, metis list_to_wordinterval_set_eq wordinterval_to_list_set_eq)
   *)
 
+  (*TODO: remove this*)
   fun wordinterval_optimize_same where "wordinterval_optimize_same rs = list_to_wordinterval (remdups (wordinterval_to_list rs))"
   lemma wordinterval_optimize_same_set_eq[simp]: "wordinterval_to_set (wordinterval_optimize_same rs) = wordinterval_to_set rs"
    by(simp, subst list_to_wordinterval_set_eq) (metis image_set wordinterval_to_list_set_eq set_remdups)
+  
 
   fun wordinterval_is_simple where "wordinterval_is_simple (WordInterval _ _) = True" | "wordinterval_is_simple (RangeUnion _ _) = False"
   fun wordintervalist_union_free where
@@ -193,17 +195,31 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
 
   lemma wordinterval_invert_UNIV_empty: "wordinterval_empty (wordinterval_invert wordinterval_UNIV)" by simp
 
-  fun wordinterval_intersection :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval \<Rightarrow> 'a::len wordinterval" where 
-    "wordinterval_intersection r1 r2 = 
-      wordinterval_optimize_same (wordinterval_setminus (wordinterval_union r1 r2) (wordinterval_union (wordinterval_invert r1) (wordinterval_invert r2)))"
-  lemma wordinterval_intersection_set_eq[simp]: "wordinterval_to_set (wordinterval_intersection r1 r2) = wordinterval_to_set r1 \<inter> wordinterval_to_set r2"
-    unfolding wordinterval_intersection.simps wordinterval_optimize_same_set_eq by auto
+
+  lemma "{(s::nat) .. e} \<inter> {s' .. e'} = {} \<longleftrightarrow> s > e' \<or> s' > e \<or> s > e \<or> s' > e'"
+    by simp linarith
+
+  fun wordinterval_intersection' :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval \<Rightarrow> 'a::len wordinterval" where
+    "wordinterval_intersection' (WordInterval s e) (WordInterval s' e') = (
+        if s > e \<or> s' > e' \<or> s > e' \<or> s' > e \<or> s > e \<or> s' > e'
+        then
+          Empty_WordInterval
+        else
+          WordInterval (max s s') (min e e')
+        )" |
+    "wordinterval_intersection' (RangeUnion r1 r2) t = RangeUnion (wordinterval_intersection' r1 t) (wordinterval_intersection' r2 t)"|
+    "wordinterval_intersection' t (RangeUnion r1 r2) = RangeUnion (wordinterval_intersection' t r1) (wordinterval_intersection' t r2)"
+
+  lemma wordinterval_intersection'_set_eq[simp]: 
+    "wordinterval_to_set (wordinterval_intersection' r1 r2) = wordinterval_to_set r1 \<inter> wordinterval_to_set r2"
+    by(induction r1 r2 rule: wordinterval_intersection'.induct) (auto)
+  
   
   lemma wordinterval_setminus_intersection_empty_struct_rr: 
-    "wordinterval_empty (wordinterval_intersection (WordInterval r1s r1e) (WordInterval r2s r2e)) \<Longrightarrow> 
+    "wordinterval_empty (wordinterval_intersection' (WordInterval r1s r1e) (WordInterval r2s r2e)) \<Longrightarrow> 
     wordinterval_setminus (WordInterval r1s r1e) (WordInterval r2s r2e) = (WordInterval r1s r1e)"
     apply(subst(asm) wordinterval_empty_set_eq) 
-    apply(subst(asm) wordinterval_intersection_set_eq)
+    apply(subst(asm) wordinterval_intersection'_set_eq)
     apply(unfold wordinterval_to_set.simps(1))
     apply(cases "wordinterval_empty (WordInterval r1s r1e)", case_tac [!] "wordinterval_empty (WordInterval r2s r2e)")
        apply(unfold wordinterval_empty.simps(1))
@@ -220,11 +236,11 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
     apply(metis inc_le word_next_def max.order_iff)
   done
 
-  declare wordinterval_intersection.simps[simp del]
+  declare wordinterval_intersection'.simps[simp del]
   declare wordinterval_setminus.simps(1)[simp del]
 
   lemma wordinterval_setminus_intersection_empty_struct:
-    "wordinterval_empty (wordinterval_intersection r1 r2) \<Longrightarrow> 
+    "wordinterval_empty (wordinterval_intersection' r1 r2) \<Longrightarrow> 
     wordinterval_setminus r1 r2 = r1"
     by (induction r1 r2 rule: wordinterval_setminus.induct, auto simp add: wordinterval_setminus_intersection_empty_struct_rr) fastforce
 
@@ -250,7 +266,7 @@ value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
     by(subst wordinterval_eq_set_eq, simp)
   
   lemma wordinterval_Diff_triv: 
-    assumes "wordinterval_empty (wordinterval_intersection a b)" shows "wordinterval_eq (wordinterval_setminus a b) a"
+    assumes "wordinterval_empty (wordinterval_intersection' a b)" shows "wordinterval_eq (wordinterval_setminus a b) a"
     using wordinterval_setminus_intersection_empty_struct[OF assms] wordinterval_eq_set_eq[of a a] by simp
 
   fun wordinterval_size :: "('a::len) wordinterval \<Rightarrow> nat" where

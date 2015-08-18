@@ -34,39 +34,9 @@ text{*A list of @{text "(start, end)"} tuples.*}
   lemma br2l: "(\<Union>(i,j)\<in>set (br2l r). {i .. j}) = wordinterval_to_set r"
     by(induction r rule: br2l.induct, simp_all)
 
-  definition l2br_intersect :: "('a::len word \<times> 'a::len word) list \<Rightarrow> 'a::len wordinterval" where
-    "l2br_intersect = foldl (\<lambda> acc (s,e). wordinterval_intersection (WordInterval s e) acc) wordinterval_UNIV"
+  lemma l2br_remdups: "wordinterval_to_set (l2br (remdups ls)) = wordinterval_to_set (l2br ls)"
+    by(simp add: l2br)
 
-  lemma l2br_intersect: "wordinterval_to_set (l2br_intersect l) = (\<Inter> (i,j) \<in> set l. {i .. j})"
-    proof -
-    { fix U --{*@{const wordinterval_UNIV} generalized*}
-      have "wordinterval_to_set (foldl (\<lambda>acc (s, e). wordinterval_intersection (WordInterval s e) acc) U l) = (wordinterval_to_set U) \<inter> (\<Inter>(i, j)\<in>set l. {i..j})"
-          apply(induction l arbitrary: U)
-           apply(simp)
-          by force
-    } thus ?thesis
-      unfolding l2br_intersect_def by simp
-    qed
-
-
-
-
-  fun l2br_negation_type_intersect :: "('a::len word \<times> 'a::len word) negation_type list \<Rightarrow> 'a::len wordinterval" where
-    "l2br_negation_type_intersect [] = wordinterval_UNIV" |
-    "l2br_negation_type_intersect ((Pos (s,e))#ls) = wordinterval_intersection (WordInterval s e) (l2br_negation_type_intersect ls)" |
-    "l2br_negation_type_intersect ((Neg (s,e))#ls) = wordinterval_intersection (wordinterval_invert (WordInterval s e)) (l2br_negation_type_intersect ls)"
-
-  lemma l2br_negation_type_intersect_alt: "wordinterval_to_set (l2br_negation_type_intersect l) = 
-                  wordinterval_to_set (wordinterval_setminus (l2br_intersect (getPos l)) (l2br (getNeg l)))"
-    apply(simp add: l2br_intersect l2br)
-    apply(induction l rule :l2br_negation_type_intersect.induct)
-       apply(simp_all)
-      apply(fast)+
-    done
-
-  lemma l2br_negation_type_intersect: "wordinterval_to_set (l2br_negation_type_intersect l) = 
-                        (\<Inter> (i,j) \<in> set (getPos l). {i .. j}) - (\<Union> (i,j) \<in> set (getNeg l). {i .. j})"
-    by(simp add: l2br_negation_type_intersect_alt l2br_intersect l2br)
 
 
   fun l2br_negation_type_union :: "('a::len word \<times> 'a::len word) negation_type list \<Rightarrow> 'a::len wordinterval" where
@@ -214,21 +184,21 @@ begin
     done
 
   definition wordinterval_compress :: "('a::len) wordinterval \<Rightarrow> 'a wordinterval" where
-    "wordinterval_compress r \<equiv> l2br (listwordinterval_compress (br2l (wordinterval_optimize_empty r)))"
+    "wordinterval_compress r \<equiv> l2br (remdups (listwordinterval_compress (br2l (wordinterval_optimize_empty r))))"
 
   lemma wordinterval_compress: "wordinterval_to_set (wordinterval_compress r) = wordinterval_to_set r"
-    unfolding  wordinterval_compress_def
+    unfolding wordinterval_compress_def
     proof -
       have interval_of': "\<And>s. interval_of s = (case s of (s,e) \<Rightarrow> {s .. e})" apply(case_tac s) using interval_of.simps by simp
 
-      have "wordinterval_to_set (l2br (listwordinterval_compress (br2l (wordinterval_optimize_empty r)))) =
+      have "wordinterval_to_set (l2br (remdups (listwordinterval_compress (br2l (wordinterval_optimize_empty r))))) =
             (\<Union>x\<in>set (listwordinterval_compress (br2l (wordinterval_optimize_empty r))). interval_of x)"
-      using l2br interval_of.simps[symmetric] by blast
+      using l2br l2br_remdups interval_of.simps[symmetric] by blast
       also have "\<dots> =  (\<Union>s\<in>set (br2l (wordinterval_optimize_empty r)). interval_of s)"
         by(simp add: listwordinterval_compress)
       also have "\<dots> = (\<Union>(i, j)\<in>set (br2l (wordinterval_optimize_empty r)). {i..j})" by(simp add: interval_of')
       also have "\<dots> = wordinterval_to_set r" by(simp add: br2l)
-      finally show "wordinterval_to_set (l2br (listwordinterval_compress (br2l (wordinterval_optimize_empty r)))) = wordinterval_to_set r" .
+      finally show "wordinterval_to_set (l2br (remdups (listwordinterval_compress (br2l (wordinterval_optimize_empty r))))) = wordinterval_to_set r" .
   qed
 
 end
@@ -237,8 +207,52 @@ end
   this is not minimal, it would be possible to merge those two
   *)
 value[code] "wordinterval_compress (RangeUnion (RangeUnion (WordInterval (1::32 word) 3) (WordInterval 8 10)) (WordInterval 3 7))"
-    
 
+
+
+  (*definition wordinterval_intersection :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval \<Rightarrow> 'a::len wordinterval" where
+    "wordinterval_intersection r1 r2 \<equiv> wordinterval_intersection' r1 r2"*)
+  definition wordinterval_intersection :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval \<Rightarrow> 'a::len wordinterval" where 
+    "wordinterval_intersection r1 r2 = 
+      wordinterval_optimize_same (wordinterval_setminus (wordinterval_union r1 r2) (wordinterval_union (wordinterval_invert r1) (wordinterval_invert r2)))"
+
+  lemma wordinterval_intersection_set_eq[simp]: 
+    "wordinterval_to_set (wordinterval_intersection r1 r2) = wordinterval_to_set r1 \<inter> wordinterval_to_set r2"
+    unfolding wordinterval_intersection_def wordinterval_optimize_same_set_eq by auto
+    (*apply(simp add: wordinterval_intersection_def)*)
+
+
+ definition l2br_intersect :: "('a::len word \<times> 'a::len word) list \<Rightarrow> 'a::len wordinterval" where
+    "l2br_intersect = foldl (\<lambda> acc (s,e). wordinterval_intersection (WordInterval s e) acc) wordinterval_UNIV"
+
+  lemma l2br_intersect: "wordinterval_to_set (l2br_intersect l) = (\<Inter> (i,j) \<in> set l. {i .. j})"
+    proof -
+    { fix U --{*@{const wordinterval_UNIV} generalized*}
+      have "wordinterval_to_set (foldl (\<lambda>acc (s, e). wordinterval_intersection (WordInterval s e) acc) U l) = (wordinterval_to_set U) \<inter> (\<Inter>(i, j)\<in>set l. {i..j})"
+          apply(induction l arbitrary: U)
+           apply(simp)
+          by force
+    } thus ?thesis
+      unfolding l2br_intersect_def by simp
+    qed
+
+
+  fun l2br_negation_type_intersect :: "('a::len word \<times> 'a::len word) negation_type list \<Rightarrow> 'a::len wordinterval" where
+    "l2br_negation_type_intersect [] = wordinterval_UNIV" |
+    "l2br_negation_type_intersect ((Pos (s,e))#ls) = wordinterval_intersection (WordInterval s e) (l2br_negation_type_intersect ls)" |
+    "l2br_negation_type_intersect ((Neg (s,e))#ls) = wordinterval_intersection (wordinterval_invert (WordInterval s e)) (l2br_negation_type_intersect ls)"
+
+  lemma l2br_negation_type_intersect_alt: "wordinterval_to_set (l2br_negation_type_intersect l) = 
+                  wordinterval_to_set (wordinterval_setminus (l2br_intersect (getPos l)) (l2br (getNeg l)))"
+    apply(simp add: l2br_intersect l2br)
+    apply(induction l rule :l2br_negation_type_intersect.induct)
+       apply(simp_all)
+      apply(fast)+
+    done
+
+  lemma l2br_negation_type_intersect: "wordinterval_to_set (l2br_negation_type_intersect l) = 
+                        (\<Inter> (i,j) \<in> set (getPos l). {i .. j}) - (\<Union> (i,j) \<in> set (getNeg l). {i .. j})"
+    by(simp add: l2br_negation_type_intersect_alt l2br_intersect l2br)
 
 
 end
