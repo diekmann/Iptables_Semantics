@@ -452,8 +452,10 @@ definition wordinterval_eq :: "'a::len wordinterval \<Rightarrow> 'a::len wordin
   "wordinterval_eq r1 r2 = (wordinterval_subset r1 r2 \<and> wordinterval_subset r2 r1)"
 lemma wordinterval_eq_set_eq: "wordinterval_eq r1 r2 \<longleftrightarrow> wordinterval_to_set r1 = wordinterval_to_set r2"
   unfolding wordinterval_eq_def by auto
+
 thm iffD1[OF wordinterval_eq_set_eq]
-declare iffD1[OF wordinterval_eq_set_eq, simp]
+(*declare iffD1[OF wordinterval_eq_set_eq, simp]*)
+
 lemma wordinterval_eq_comm: "wordinterval_eq r1 r2 \<longleftrightarrow> wordinterval_eq r2 r1"
   unfolding wordinterval_eq_def by fast
 lemma wordinterval_to_set_alt: "wordinterval_to_set r = {x. wordinterval_element x r}"
@@ -480,7 +482,7 @@ fun wordinterval_size :: "('a::len) wordinterval \<Rightarrow> nat" where
 lemma wordinterval_size_length: "wordinterval_size r = length (br2l r)"
   by(induction r) (auto)
 
-lemma [simp]: "\<exists>x::('a::len wordinterval). y \<in> wordinterval_to_set x"
+lemma Ex_wordinterval_nonempty: "\<exists>x::('a::len wordinterval). y \<in> wordinterval_to_set x"
 proof show "y \<in> wordinterval_to_set wordinterval_UNIV" by simp qed
 
 
