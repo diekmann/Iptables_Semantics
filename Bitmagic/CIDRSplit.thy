@@ -225,38 +225,31 @@ lemma unfold_rsplit_case:
   shows "(case ipv4range_split1 rs of (None, u) \<Rightarrow> [] | (Some s, u) \<Rightarrow> s # ipv4range_split u) = s # ipv4range_split u"
 using su by (metis option.simps(5) split_conv)
 
-(*TODO: remove this lemma or hide it*)
-lemma ipv4range_split_union': "ipv4range_eq (list_to_wordinterval (map prefix_to_range (ipv4range_split r))) r"
+lemma ipv4range_split_union'': "\<Union>set (map wordinterval_to_set (map prefix_to_range (ipv4range_split r))) = wordinterval_to_set r"
 proof(induction r rule: ipv4range_split.induct, subst ipv4range_split.simps, case_tac "ipv4range_empty rs")
   case goal1
-  thm Empty_WordInterval_set_eq ipv4range_eq_set_eq[of Empty_WordInterval rs, unfolded ipv4range_to_set_def Empty_WordInterval_set_eq]
-  show ?case using goal1(2)
-    by(simp add: ipv4range_eq_set_eq[of Empty_WordInterval rs, unfolded ipv4range_to_set_def Empty_WordInterval_set_eq] ipv4range_to_set_def)
+  show ?case using goal1(2) by (simp add: ipv4range_to_set_def)
 next
   case goal2
   obtain u s where su: "(Some s, u) = ipv4range_split1 rs" using r_split1_not_none[OF goal2(2)] by (metis option.collapse surjective_pairing)
-  note mIH = goal2(1)[OF goal2(2) su, of s]
+  from goal2(1)[OF goal2(2) su, of s] have mIH: "\<Union>set (map wordinterval_to_set (map prefix_to_range (ipv4range_split u))) = wordinterval_to_set u" by presburger
+  from ipv4range_split1_preserve[OF su, unfolded ipv4range_eq_set_eq ipv4range_to_set_def ipv4range_union_def] have
+    helper1: "wordinterval_to_set (prefix_to_range s) \<union> wordinterval_to_set u = wordinterval_to_set rs"
+    unfolding wordinterval_union_set_eq by simp
   show ?case
     unfolding eqTrueI[OF goal2(2)]
     unfolding if_True
     unfolding unfold_rsplit_case[OF su]
-    unfolding ipv4range_eq_set_eq
-    unfolding ipv4range_to_set_def
     unfolding list.map
-    unfolding list_to_wordinterval_set_eq_simp
-    using mIH[unfolded ipv4range_eq_set_eq ipv4range_to_set_def]
-    using ipv4range_split1_preserve[OF su, unfolded ipv4range_eq_set_eq ipv4range_to_set_def ipv4range_union_def]
-    unfolding wordinterval_union_set_eq
-    by presburger
+    using mIH helper1
+    by (metis Sup_insert list.set(2))
 qed
 
+(*TODO: only keep the previous lemma?*)
 lemma ipv4range_split_union: "(\<Union>x\<in>set (map prefix_to_range (ipv4range_split r)). wordinterval_to_set x) = wordinterval_to_set r"
 proof -
   have x: "\<And> ls. \<Union>set (map wordinterval_to_set ls) = (\<Union>x\<in>set ls. wordinterval_to_set x)" by simp
-  from ipv4range_split_union' have "wordinterval_to_set (list_to_wordinterval (map prefix_to_range (ipv4range_split r))) = wordinterval_to_set r"
-    by(simp add: ipv4range_eq_def)
-  thus ?thesis
-    apply(subst(asm) list_to_wordinterval_set_eq)
+  from ipv4range_split_union'' show ?thesis
     apply(subst(asm) x)
     by blast
 qed
