@@ -573,21 +573,6 @@ fun equal_ctstatea CT_Related CT_Untracked = false
 
 val equal_ctstate = {equal = equal_ctstatea} : ctstate equal;
 
-datatype 'a wordinterval = WordInterval of 'a word * 'a word |
-  RangeUnion of 'a wordinterval * 'a wordinterval;
-
-fun equal_wordintervala A_ (WordInterval (x11, x12)) (RangeUnion (x21, x22)) =
-  false
-  | equal_wordintervala A_ (RangeUnion (x21, x22)) (WordInterval (x11, x12)) =
-    false
-  | equal_wordintervala A_ (RangeUnion (x21, x22)) (RangeUnion (y21, y22)) =
-    equal_wordintervala A_ x21 y21 andalso equal_wordintervala A_ x22 y22
-  | equal_wordintervala A_ (WordInterval (x11, x12)) (WordInterval (y11, y12)) =
-    equal_worda (len0_len A_) x11 y11 andalso equal_worda (len0_len A_) x12 y12;
-
-fun equal_wordinterval A_ = {equal = equal_wordintervala A_} :
-  'a wordinterval equal;
-
 datatype 'a negation_type = Pos of 'a | Neg of 'a;
 
 fun equal_negation_typea A_ (Pos x1) (Neg x2) = false
@@ -786,6 +771,9 @@ fun equal_common_primitivea (CT_State x8) (Extra x9) = false
 val equal_common_primitive = {equal = equal_common_primitivea} :
   common_primitive equal;
 
+datatype 'a wordinterval = WordInterval of 'a word * 'a word |
+  RangeUnion of 'a wordinterval * 'a wordinterval;
+
 datatype 'a packet_set =
   PacketSet of (('a negation_type * action negation_type) list) list;
 
@@ -912,6 +900,18 @@ fun match_iface (Iface i) p_iface = internal_iface_name_match i p_iface;
 
 fun the (SOME x2) = x2;
 
+fun br2l A_ (RangeUnion (r1, r2)) = br2l A_ r1 @ br2l A_ r2
+  | br2l A_ (WordInterval (s, e)) =
+    (if less_word (len0_len A_) e s then [] else [(s, e)]);
+
+fun empty_WordInterval A_ =
+  WordInterval (one_worda (len0_len A_), zero_worda (len0_len A_));
+
+fun l2br A_ [] = empty_WordInterval A_
+  | l2br A_ [(s, e)] = WordInterval (s, e)
+  | l2br A_ ((s, e) :: v :: va) =
+    RangeUnion (WordInterval (s, e), l2br A_ (v :: va));
+
 fun mod_nat m n = Nat (mod_integer (integer_of_nat m) (integer_of_nat n));
 
 fun div_nat m n = Nat (div_integer (integer_of_nat m) (integer_of_nat n));
@@ -931,7 +931,7 @@ fun word_next A_ a =
   (if equal_worda (len0_len A_) a (max_word A_) then max_word A_
     else plus_worda (len0_len A_) a (one_worda (len0_len A_)));
 
-fun wordinterval_setminus A_ (WordInterval (s, e)) (WordInterval (ms, me)) =
+fun wordinterval_setminusa A_ (WordInterval (s, e)) (WordInterval (ms, me)) =
   (if less_word (len0_len A_) e s orelse less_word (len0_len A_) me ms
     then WordInterval (s, e)
     else (if less_eq_word (len0_len A_) e me
@@ -954,28 +954,76 @@ fun wordinterval_setminus A_ (WordInterval (s, e)) (WordInterval (ms, me)) =
                              (word_next A_ me,
                                (if equal_worda (len0_len A_) me (max_word A_)
                                  then zero_worda (len0_len A_) else e))))))
-  | wordinterval_setminus A_ (RangeUnion (r1, r2)) t =
-    RangeUnion (wordinterval_setminus A_ r1 t, wordinterval_setminus A_ r2 t)
-  | wordinterval_setminus A_ (WordInterval (v, va)) (RangeUnion (r1, r2)) =
-    wordinterval_setminus A_
-      (wordinterval_setminus A_ (WordInterval (v, va)) r1) r2;
+  | wordinterval_setminusa A_ (RangeUnion (r1, r2)) t =
+    RangeUnion (wordinterval_setminusa A_ r1 t, wordinterval_setminusa A_ r2 t)
+  | wordinterval_setminusa A_ (WordInterval (v, va)) (RangeUnion (r1, r2)) =
+    wordinterval_setminusa A_
+      (wordinterval_setminusa A_ (WordInterval (v, va)) r1) r2;
+
+fun wordinterval_empty_shallow A_ (WordInterval (s, e)) =
+  less_word (len0_len A_) e s
+  | wordinterval_empty_shallow A_ (RangeUnion (uu, uv)) = false;
+
+fun wordinterval_optimize_empty2 A_ (RangeUnion (r1, r2)) =
+  let
+    val r1o = wordinterval_optimize_empty2 A_ r1;
+    val r2o = wordinterval_optimize_empty2 A_ r2;
+  in
+    (if wordinterval_empty_shallow A_ r1o then r2o
+      else (if wordinterval_empty_shallow A_ r2o then r1o
+             else RangeUnion (r1o, r2o)))
+  end
+  | wordinterval_optimize_empty2 A_ (WordInterval (v, va)) =
+    WordInterval (v, va);
+
+fun disjoint_intervals A_ a b =
+  let
+    val (s, e) = a;
+    val (sa, ea) = b;
+  in
+    less_word (len0_len A_) ea s orelse
+      (less_word (len0_len A_) e sa orelse
+        (less_word (len0_len A_) e s orelse less_word (len0_len A_) ea sa))
+  end;
+
+fun not_disjoint_intervals A_ a b =
+  let
+    val (s, e) = a;
+    val (sa, ea) = b;
+  in
+    less_eq_word (len0_len A_) s ea andalso
+      (less_eq_word (len0_len A_) sa e andalso
+        (less_eq_word (len0_len A_) s e andalso
+          less_eq_word (len0_len A_) sa ea))
+  end;
+
+fun merge_overlap A_ s [] = [s]
+  | merge_overlap A_ (sa, ea) ((s, e) :: ss) =
+    (if not_disjoint_intervals A_ (sa, ea) (s, e)
+      then (min (ord_word (len0_len A_)) sa s,
+             max (ord_word (len0_len A_)) ea e) ::
+             ss
+      else (s, e) :: merge_overlap A_ (sa, ea) ss);
+
+fun listwordinterval_compress A_ [] = []
+  | listwordinterval_compress A_ (s :: ss) =
+    (if pred_list (disjoint_intervals A_ s) ss
+      then s :: listwordinterval_compress A_ ss
+      else listwordinterval_compress A_ (merge_overlap A_ s ss));
+
+fun wordinterval_compress A_ r =
+  l2br A_
+    (remdups (equal_prod (equal_word (len0_len A_)) (equal_word (len0_len A_)))
+      (listwordinterval_compress A_
+        (br2l A_ (wordinterval_optimize_empty2 A_ r))));
+
+fun wordinterval_setminus A_ r1 r2 =
+  wordinterval_compress A_ (wordinterval_setminusa A_ r1 r2);
 
 fun wordinterval_UNIV A_ = WordInterval (zero_worda (len0_len A_), max_word A_);
 
 fun wordinterval_invert A_ r =
   wordinterval_setminus A_ (wordinterval_UNIV A_) r;
-
-fun empty_WordInterval A_ =
-  WordInterval (one_worda (len0_len A_), zero_worda (len0_len A_));
-
-fun l2br A_ [] = empty_WordInterval A_
-  | l2br A_ [(s, e)] = WordInterval (s, e)
-  | l2br A_ ((s, e) :: v :: va) =
-    RangeUnion (WordInterval (s, e), l2br A_ (v :: va));
-
-fun br2l A_ (RangeUnion (r1, r2)) = br2l A_ r1 @ br2l A_ r2
-  | br2l A_ (WordInterval (s, e)) =
-    (if less_word (len0_len A_) e s then [] else [(s, e)]);
 
 fun ports_invert ps =
   br2l (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))
@@ -1364,28 +1412,27 @@ fun is_Src (Src x1) = true
   | is_Src (CT_State x8) = false
   | is_Src (Extra x9) = false;
 
-fun wordinterval_to_list A_ (RangeUnion (r1, r2)) =
-  wordinterval_to_list A_ r1 @ wordinterval_to_list A_ r2
-  | wordinterval_to_list A_ (WordInterval (v, va)) =
-    (if wordinterval_empty A_ (WordInterval (v, va)) then []
-      else [WordInterval (v, va)]);
-
-fun list_to_wordinterval A_ [r] = r
-  | list_to_wordinterval A_ (r :: v :: va) =
-    RangeUnion (r, list_to_wordinterval A_ (v :: va))
-  | list_to_wordinterval A_ [] = empty_WordInterval A_;
-
-fun wordinterval_optimize_same A_ rs =
-  list_to_wordinterval A_
-    (remdups (equal_wordinterval A_) (wordinterval_to_list A_ rs));
-
-fun wordinterval_union A_ r1 r2 = RangeUnion (r1, r2);
+fun wordinterval_intersectiona A_ (WordInterval (sa, ea)) (WordInterval (s, e))
+  = (if less_word (len0_len A_) ea sa orelse
+          (less_word (len0_len A_) e s orelse
+            (less_word (len0_len A_) e sa orelse
+              (less_word (len0_len A_) ea s orelse
+                (less_word (len0_len A_) ea sa orelse
+                  less_word (len0_len A_) e s))))
+      then empty_WordInterval A_
+      else WordInterval
+             (max (ord_word (len0_len A_)) sa s,
+               min (ord_word (len0_len A_)) ea e))
+  | wordinterval_intersectiona A_ (RangeUnion (r1, r2)) t =
+    RangeUnion
+      (wordinterval_intersectiona A_ r1 t, wordinterval_intersectiona A_ r2 t)
+  | wordinterval_intersectiona A_ (WordInterval (v, va)) (RangeUnion (r1, r2)) =
+    RangeUnion
+      (wordinterval_intersectiona A_ (WordInterval (v, va)) r1,
+        wordinterval_intersectiona A_ (WordInterval (v, va)) r2);
 
 fun wordinterval_intersection A_ r1 r2 =
-  wordinterval_optimize_same A_
-    (wordinterval_setminus A_ (wordinterval_union A_ r1 r2)
-      (wordinterval_union A_ (wordinterval_invert A_ r1)
-        (wordinterval_invert A_ r2)));
+  wordinterval_compress A_ (wordinterval_intersectiona A_ r1 r2);
 
 fun l2br_negation_type_intersect A_ [] = wordinterval_UNIV A_
   | l2br_negation_type_intersect A_ (Pos (s, e) :: ls) =
