@@ -158,7 +158,7 @@ text{*unused*}
         have "\<forall>pfx\<in>set (ipv4range_split (wordinterval_invert r)). valid_prefix pfx" using all_valid_Ball by blast
         with prefix_bitrang_list_union have
         "\<Union>((\<lambda>(base, len). ipv4range_set_from_bitmask base len) ` set (ipv4range_split (wordinterval_invert r))) =
-        wordinterval_to_set (list_to_wordinterval (map prefix_to_range (ipv4range_split (wordinterval_invert r))))" by simp
+        (\<Union> x \<in> set (map prefix_to_range (ipv4range_split (wordinterval_invert r))). wordinterval_to_set x)" by simp
         also have "\<dots> = wordinterval_to_set (wordinterval_invert r)"
           unfolding wordinterval_eq_set_eq[symmetric] using ipv4range_split_union[of "(wordinterval_invert r)"] ipv4range_eq_def by simp
         also have "\<dots> = - wordinterval_to_set r" by auto
@@ -190,27 +190,6 @@ text{*unused*}
     apply(simp add: ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
     done
 
-  (*lemma ipt_ipv4range_invert_case_Ip4AddrNetmask:
-      "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipt_ipv4range_invert (Ip4AddrNetmask base len))) )) = 
-        - (ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal base) len)"
-     proof - 
-      { fix r
-        have "\<forall>pfx\<in>set (ipv4range_split (wordinterval_invert r)). valid_prefix pfx" using all_valid_Ball by blast
-        with prefix_bitrang_list_union have
-        "\<Union>((\<lambda>(base, len). ipv4range_set_from_bitmask base len) ` set (ipv4range_split (wordinterval_invert r))) =
-        wordinterval_to_set (list_to_wordinterval (map prefix_to_range (ipv4range_split (wordinterval_invert r))))" by simp
-        also have "\<dots> = wordinterval_to_set (wordinterval_invert r)"
-          unfolding wordinterval_eq_set_eq[symmetric] using ipv4range_split_union[of "(wordinterval_invert r)"] ipv4range_eq_def by simp
-        also have "\<dots> = - wordinterval_to_set r" by auto
-        finally have "\<Union>((\<lambda>(base, len). ipv4range_set_from_bitmask base len) ` set (ipv4range_split (wordinterval_invert r))) = - wordinterval_to_set r" .
-      } from this[of "(prefix_to_range (ipv4addr_of_dotdecimal base  AND NOT mask (32 - len), len))"]
-        show ?thesis
-        apply(simp only: ipt_ipv4range_invert.simps)
-        apply(simp add: prefix_to_range_set_eq)
-        apply(simp add: cornys_hacky_call_to_prefix_to_range_to_start_with_a_valid_prefix pfxm_length_def pfxm_prefix_def wordinterval_to_set_ipv4range_set_from_bitmask)
-        (*apply(thin_tac "?X")*)
-        by (metis ipv4range_set_from_bitmask_alt1 ipv4range_set_from_netmask_base_mask_consume maskshift_eq_not_mask)
-     qed *)
 
   lemma ipt_ipv4range_invert: "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipt_ipv4range_invert ips)) )) = - ipv4s_to_set ips"
     apply(cases ips)
