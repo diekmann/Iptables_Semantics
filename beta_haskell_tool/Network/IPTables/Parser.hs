@@ -97,7 +97,7 @@ knownMatch = do
       <|> (probablyNegated $ lit "-m conntrack --ctstate " >> Isabelle.CT_State <$> ctstate)
       
       
-      <|> lookAheadEOT target
+      <|> target
       
     return $ p
     
@@ -177,7 +177,10 @@ eol = char '\n'
 ws  = " \t"
 
 -- loook ahead end of token
-lookAheadEOT parser = try (parser <* lookAhead (oneOf " \n\t")) 
+lookAheadEOT parser = do 
+    res <- parser
+    lookAhead (oneOf ws <|> eol)
+    return res
 
 nat = do
     n <- (read :: String -> Integer) <$> many1 (oneOf ['0'..'9']) -- ['0'..'9']++['-']
@@ -258,15 +261,15 @@ ctstate = token "ctstate" $ Isabelle.mk_Set <$> parseCommaSeparatedList ctstateO
 -- -A ranges_96 `ParsedAction -j LOG' `ParsedMatch ~~_DROP~~'
 target = token "target" $ ParsedAction <$> (
            try (string "-j REJECT --reject-with " >> many1 (oneOf $ ['a'..'z']++['-']) >> return (Isabelle.Reject))
-       <|> try (string "-g " >> Isabelle.Goto <$> chainName)
-       <|> try (string "-j " >> choice (map try
+       <|> try (string "-g " >> Isabelle.Goto <$> lookAheadEOT chainName)
+       <|> try (string "-j " >> choice (map (try. lookAheadEOT)
                                        [string "DROP" >> return Isabelle.Drop
                                        ,string "REJECT" >> return Isabelle.Reject
                                        ,string "ACCEPT" >> return Isabelle.Accept
                                        ,string "LOG" >> return Isabelle.Log
                                        ,string "RETURN" >> return Isabelle.Return
                                        ]))
-       <|> try (string "-j " >> Isabelle.Call <$> chainName)
+       <|> try (string "-j " >> Isabelle.Call <$> lookAheadEOT chainName)
        )
        
     
