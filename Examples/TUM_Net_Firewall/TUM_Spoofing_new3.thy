@@ -230,6 +230,12 @@ subsection{*Try 3*}
    -A FORWARD -d 131.159.15.247/32 -i eth1.110 -o eth1.152 -j ACCEPT
    -A FORWARD -s 131.159.15.248/32 -i eth1.152 -o eth1.110 -j ACCEPT
   *)
+
+
+  text{*In the simplified firewall, we see a lot of DROPs in the beginning now*}
+  value[code] "let x = to_simple_firewall (upper_closure
+                      (ctstate_assume_new (unfold_ruleset_FORWARD net_fw_3_FORWARD_default_policy (map_of net_fw_3))))
+               in map simple_rule_toString x" (*225.039s*)
   
   
   text{*the parsed firewall:*}
