@@ -66,6 +66,7 @@ chain = line $ do
 
     return ()
 
+-- TODO: make sure there is the eol or a whitesape after a parsed match!
 probablyNegated parser = ParsedNegatedMatch <$> try (lit "! " >> parser <* skipWS)
                      <|> ParsedMatch <$> (try parser <* skipWS)
                      
@@ -95,7 +96,7 @@ knownMatch = do
       <|> (probablyNegated $ lit "-m conntrack --ctstate " >> Isabelle.CT_State <$> ctstate)
       
       
-      <|> target
+      <|> lookAheadEOT target
       
     return $ p
     
@@ -113,7 +114,7 @@ rule = line $ do
     args    <- many (knownMatch <|> unknownMatch)
     unparsed <- restOfLine
 
-    let rest    = if unparsed == "" then [] else [ParsedMatch (Isabelle.Extra unparsed)]
+    let rest    = if unparsed == "" then [] else Debug.Trace.trace ("ERROR unparsable : " ++ unparsed) [ParsedMatch (Isabelle.Extra unparsed)]
         myArgs  = args ++ rest
         rl      = mkParseRule myArgs
 
@@ -169,6 +170,10 @@ skipWS = many $ oneOf ws
 
 eol = char '\n'
 ws  = " \t"
+
+-- loook ahead end of token
+lookAheadEOT parser = try (parser <* lookAhead (oneOf " \n\t")) 
+
 nat = do
     n <- (read :: String -> Integer) <$> many1 (oneOf ['0'..'9']) -- ['0'..'9']++['-']
     if n < 0
@@ -244,7 +249,7 @@ ctstate = token "ctstate" $ Isabelle.mk_Set <$> parseCommaSeparatedList ctstateO
                                    ,lit "UNTRACKED" >> return Isabelle.CT_Untracked]              
 
 
--- TODO: broken!!
+-- needs LookAheadEOT, otherwise, this might happen to the custom LOG_DROP target:
 -- -A ranges_96 `ParsedAction -j LOG' `ParsedMatch ~~_DROP~~'
 target = token "target" $ ParsedAction <$> (
            try (string "-j REJECT --reject-with " >> many1 (oneOf $ ['a'..'z']++['-']) >> return (Isabelle.Reject))
