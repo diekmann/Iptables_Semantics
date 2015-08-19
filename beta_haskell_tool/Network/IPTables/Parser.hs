@@ -219,7 +219,7 @@ ipv4cidr = token "ipv4 CIDR notation" $ do
     netmask <- natMaxval 32
     return (Isabelle.Ip4AddrNetmask ip netmask)
 
-ipv4addrOrCidr = try ipv4addr <|> try ipv4cidr
+ipv4addrOrCidr = try ipv4cidr <|> try ipv4addr
 
 ipv4range = token "ipv4 range notation" $ do
     ip1 <- ipv4dotdecimal
