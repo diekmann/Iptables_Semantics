@@ -68,15 +68,17 @@ chain = line $ do
 
 probablyNegated parser = ParsedNegatedMatch <$> try (lit "! " >> parser <* skipWS)
                      <|> ParsedMatch <$> (try parser <* skipWS)
+                     
+notNegated parser = ParsedMatch <$> (try parser <* skipWS)
     
 
 knownMatch = do
     p <-  (probablyNegated $ lit "-p " >> Isabelle.Prot <$> protocol)
     
-      <|> (probablyNegated $ lit "-s " >> Isabelle.Src <$> ipv4cidr)
-      <|> (probablyNegated $ lit "-m iprange --src-range " >> Isabelle.Src <$> ipv4range)
-      <|> (probablyNegated $ lit "-d " >> Isabelle.Dst <$> ipv4cidr)
-      <|> (probablyNegated $ lit "-m iprange --dst-range " >> Isabelle.Dst <$> ipv4range)
+      <|> (probablyNegated $ lit "-s " >> Isabelle.Src <$> ipv4addrOrCidr)
+      <|> (notNegated $ lit "-m iprange --src-range " >> Isabelle.Src <$> ipv4range)
+      <|> (probablyNegated $ lit "-d " >> Isabelle.Dst <$> ipv4addrOrCidr)
+      <|> (notNegated $ lit "-m iprange --dst-range " >> Isabelle.Dst <$> ipv4range)
       
       <|> (probablyNegated $ lit "-m tcp --sport " >> Isabelle.Src_Ports <$> (\p -> [p]) <$> parsePortOne)
       <|> (probablyNegated $ lit "-m udp --sport " >> Isabelle.Src_Ports <$> (\p -> [p]) <$> parsePortOne)
@@ -193,11 +195,18 @@ ipv4dotdecimal = token "ipv4 dotteddecimal" $ do
     d <- natMaxval 255
     return (a,(b,(c,d)))
 
+
+ipv4addr = token "singe ipv4 address" $ do
+    ip <- ipv4dotdecimal
+    return (Isabelle.Ip4Addr ip)
+
 ipv4cidr = token "ipv4 CIDR notation" $ do
     ip <- ipv4dotdecimal
     char '/'
     netmask <- natMaxval 32
     return (Isabelle.Ip4AddrNetmask ip netmask)
+
+ipv4addrOrCidr = try ipv4addr <|> try ipv4cidr
 
 ipv4range = token "ipv4 range notation" $ do
     ip1 <- ipv4dotdecimal
