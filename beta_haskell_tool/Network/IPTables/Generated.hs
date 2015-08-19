@@ -7,7 +7,7 @@ module
                               Protocol(..), Iface(..), Set,
                               Common_primitive(..), Nibble, Negation_type(..),
                               Simple_match_ext, Simple_action(..), Simple_rule,
-                              alist_and, word_to_nat, word_less_eq,
+                              alist_and, mk_Set, word_to_nat, word_less_eq,
                               rewrite_Goto, map_of_string, nat_to_16word,
                               optimize_matches, upper_closure,
                               compress_parsed_extra, integer_to_16word,
@@ -494,22 +494,6 @@ instance Eq Ctstate where {
   a == b = equal_ctstate a b;
 };
 
-data Wordinterval a = WordInterval (Word a) (Word a)
-  | RangeUnion (Wordinterval a) (Wordinterval a);
-
-equal_wordinterval ::
-  forall a. (Len a) => Wordinterval a -> Wordinterval a -> Bool;
-equal_wordinterval (WordInterval x11 x12) (RangeUnion x21 x22) = False;
-equal_wordinterval (RangeUnion x21 x22) (WordInterval x11 x12) = False;
-equal_wordinterval (RangeUnion x21 x22) (RangeUnion y21 y22) =
-  equal_wordinterval x21 y21 && equal_wordinterval x22 y22;
-equal_wordinterval (WordInterval x11 x12) (WordInterval y11 y12) =
-  equal_word x11 y11 && equal_word x12 y12;
-
-instance (Len a) => Eq (Wordinterval a) where {
-  a == b = equal_wordinterval a b;
-};
-
 data Ipt_ipv4range = Ip4Addr (Nat, (Nat, (Nat, Nat)))
   | Ip4AddrNetmask (Nat, (Nat, (Nat, Nat))) Nat
   | Ip4AddrRange (Nat, (Nat, (Nat, Nat))) (Nat, (Nat, (Nat, Nat)));
@@ -684,6 +668,9 @@ instance Eq Common_primitive where {
   a == b = equal_common_primitive a b;
 };
 
+data Wordinterval a = WordInterval (Word a) (Word a)
+  | RangeUnion (Wordinterval a) (Wordinterval a);
+
 data Negation_type a = Pos a | Neg a;
 
 data Simple_match_ext a =
@@ -852,6 +839,18 @@ alist_and [Neg e] = MatchNot (Match e);
 alist_and (Pos e : v : va) = MatchAnd (Match e) (alist_and (v : va));
 alist_and (Neg e : v : va) = MatchAnd (MatchNot (Match e)) (alist_and (v : va));
 
+br2l :: forall a. (Len a) => Wordinterval a -> [(Word a, Word a)];
+br2l (RangeUnion r1 r2) = br2l r1 ++ br2l r2;
+br2l (WordInterval s e) = (if less_word e s then [] else [(s, e)]);
+
+empty_WordInterval :: forall a. (Len a) => Wordinterval a;
+empty_WordInterval = WordInterval one_word zero_word;
+
+l2br :: forall a. (Len a) => [(Word a, Word a)] -> Wordinterval a;
+l2br [] = empty_WordInterval;
+l2br [(s, e)] = WordInterval s e;
+l2br ((s, e) : v : va) = RangeUnion (WordInterval s e) (l2br (v : va));
+
 mod_nat :: Nat -> Nat -> Nat;
 mod_nat m n = Nat (mod_integer (integer_of_nat m) (integer_of_nat n));
 
@@ -875,9 +874,9 @@ word_next :: forall a. (Len a) => Word a -> Word a;
 word_next a =
   (if equal_word a max_word then max_word else plus_word a one_word);
 
-wordinterval_setminus ::
+wordinterval_setminusa ::
   forall a. (Len a) => Wordinterval a -> Wordinterval a -> Wordinterval a;
-wordinterval_setminus (WordInterval s e) (WordInterval ms me) =
+wordinterval_setminusa (WordInterval s e) (WordInterval ms me) =
   (if less_word e s || less_word me ms then WordInterval s e
     else (if less_eq_word e me
            then WordInterval (if equal_word ms zero_word then one_word else s)
@@ -892,28 +891,73 @@ wordinterval_setminus (WordInterval s e) (WordInterval ms me) =
                          (WordInterval (word_next me)
                            (if equal_word me max_word then zero_word
                              else e)))));
-wordinterval_setminus (RangeUnion r1 r2) t =
-  RangeUnion (wordinterval_setminus r1 t) (wordinterval_setminus r2 t);
-wordinterval_setminus (WordInterval v va) (RangeUnion r1 r2) =
-  wordinterval_setminus (wordinterval_setminus (WordInterval v va) r1) r2;
+wordinterval_setminusa (RangeUnion r1 r2) t =
+  RangeUnion (wordinterval_setminusa r1 t) (wordinterval_setminusa r2 t);
+wordinterval_setminusa (WordInterval v va) (RangeUnion r1 r2) =
+  wordinterval_setminusa (wordinterval_setminusa (WordInterval v va) r1) r2;
+
+wordinterval_empty_shallow :: forall a. (Len a) => Wordinterval a -> Bool;
+wordinterval_empty_shallow (WordInterval s e) = less_word e s;
+wordinterval_empty_shallow (RangeUnion uu uv) = False;
+
+wordinterval_optimize_empty2 ::
+  forall a. (Len a) => Wordinterval a -> Wordinterval a;
+wordinterval_optimize_empty2 (RangeUnion r1 r2) =
+  let {
+    r1o = wordinterval_optimize_empty2 r1;
+    r2o = wordinterval_optimize_empty2 r2;
+  } in (if wordinterval_empty_shallow r1o then r2o
+         else (if wordinterval_empty_shallow r2o then r1o
+                else RangeUnion r1o r2o));
+wordinterval_optimize_empty2 (WordInterval v va) = WordInterval v va;
+
+disjoint_intervals ::
+  forall a. (Len a) => (Word a, Word a) -> (Word a, Word a) -> Bool;
+disjoint_intervals a b =
+  let {
+    (s, e) = a;
+    (sa, ea) = b;
+  } in less_word ea s || (less_word e sa || (less_word e s || less_word ea sa));
+
+not_disjoint_intervals ::
+  forall a. (Len a) => (Word a, Word a) -> (Word a, Word a) -> Bool;
+not_disjoint_intervals a b =
+  let {
+    (s, e) = a;
+    (sa, ea) = b;
+  } in less_eq_word s ea &&
+         less_eq_word sa e && less_eq_word s e && less_eq_word sa ea;
+
+merge_overlap ::
+  forall a.
+    (Len a) => (Word a, Word a) -> [(Word a, Word a)] -> [(Word a, Word a)];
+merge_overlap s [] = [s];
+merge_overlap (sa, ea) ((s, e) : ss) =
+  (if not_disjoint_intervals (sa, ea) (s, e) then (min sa s, max ea e) : ss
+    else (s, e) : merge_overlap (sa, ea) ss);
+
+listwordinterval_compress ::
+  forall a. (Len a) => [(Word a, Word a)] -> [(Word a, Word a)];
+listwordinterval_compress [] = [];
+listwordinterval_compress (s : ss) =
+  (if all (disjoint_intervals s) ss then s : listwordinterval_compress ss
+    else listwordinterval_compress (merge_overlap s ss));
+
+wordinterval_compress :: forall a. (Len a) => Wordinterval a -> Wordinterval a;
+wordinterval_compress r =
+  l2br (remdups
+         (listwordinterval_compress (br2l (wordinterval_optimize_empty2 r))));
+
+wordinterval_setminus ::
+  forall a. (Len a) => Wordinterval a -> Wordinterval a -> Wordinterval a;
+wordinterval_setminus r1 r2 =
+  wordinterval_compress (wordinterval_setminusa r1 r2);
 
 wordinterval_UNIV :: forall a. (Len a) => Wordinterval a;
 wordinterval_UNIV = WordInterval zero_word max_word;
 
 wordinterval_invert :: forall a. (Len a) => Wordinterval a -> Wordinterval a;
 wordinterval_invert r = wordinterval_setminus wordinterval_UNIV r;
-
-empty_WordInterval :: forall a. (Len a) => Wordinterval a;
-empty_WordInterval = WordInterval one_word zero_word;
-
-l2br :: forall a. (Len a) => [(Word a, Word a)] -> Wordinterval a;
-l2br [] = empty_WordInterval;
-l2br [(s, e)] = WordInterval s e;
-l2br ((s, e) : v : va) = RangeUnion (WordInterval s e) (l2br (v : va));
-
-br2l :: forall a. (Len a) => Wordinterval a -> [(Word a, Word a)];
-br2l (RangeUnion r1 r2) = br2l r1 ++ br2l r2;
-br2l (WordInterval s e) = (if less_word e s then [] else [(s, e)]);
 
 ports_invert ::
   [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
@@ -926,6 +970,9 @@ char_of_nat :: Nat -> Prelude.Char;
 char_of_nat =
   (let chr k | (0 <= k && k < 256) = Prelude.toEnum k :: Prelude.Char in chr . Prelude.fromInteger) .
     integer_of_nat;
+
+mk_Set :: forall a. [a] -> Set a;
+mk_Set = Set;
 
 is_pos_Extra :: Negation_type Common_primitive -> Bool;
 is_pos_Extra a =
@@ -1396,33 +1443,25 @@ is_Src (Dst_Ports x7) = False;
 is_Src (CT_State x8) = False;
 is_Src (Extra x9) = False;
 
-wordinterval_to_list :: forall a. (Len a) => Wordinterval a -> [Wordinterval a];
-wordinterval_to_list (RangeUnion r1 r2) =
-  wordinterval_to_list r1 ++ wordinterval_to_list r2;
-wordinterval_to_list (WordInterval v va) =
-  (if wordinterval_empty (WordInterval v va) then [] else [WordInterval v va]);
-
-list_to_wordinterval :: forall a. (Len a) => [Wordinterval a] -> Wordinterval a;
-list_to_wordinterval [r] = r;
-list_to_wordinterval (r : v : va) =
-  RangeUnion r (list_to_wordinterval (v : va));
-list_to_wordinterval [] = empty_WordInterval;
-
-wordinterval_optimize_same ::
-  forall a. (Len a) => Wordinterval a -> Wordinterval a;
-wordinterval_optimize_same rs =
-  list_to_wordinterval (remdups (wordinterval_to_list rs));
-
-wordinterval_union ::
+wordinterval_intersectiona ::
   forall a. (Len a) => Wordinterval a -> Wordinterval a -> Wordinterval a;
-wordinterval_union r1 r2 = RangeUnion r1 r2;
+wordinterval_intersectiona (WordInterval sa ea) (WordInterval s e) =
+  (if less_word ea sa ||
+        (less_word e s ||
+          (less_word e sa ||
+            (less_word ea s || (less_word ea sa || less_word e s))))
+    then empty_WordInterval else WordInterval (max sa s) (min ea e));
+wordinterval_intersectiona (RangeUnion r1 r2) t =
+  RangeUnion (wordinterval_intersectiona r1 t)
+    (wordinterval_intersectiona r2 t);
+wordinterval_intersectiona (WordInterval v va) (RangeUnion r1 r2) =
+  RangeUnion (wordinterval_intersectiona (WordInterval v va) r1)
+    (wordinterval_intersectiona (WordInterval v va) r2);
 
 wordinterval_intersection ::
   forall a. (Len a) => Wordinterval a -> Wordinterval a -> Wordinterval a;
 wordinterval_intersection r1 r2 =
-  wordinterval_optimize_same
-    (wordinterval_setminus (wordinterval_union r1 r2)
-      (wordinterval_union (wordinterval_invert r1) (wordinterval_invert r2)));
+  wordinterval_compress (wordinterval_intersectiona r1 r2);
 
 l2br_negation_type_intersect ::
   forall a. (Len a) => [Negation_type (Word a, Word a)] -> Wordinterval a;

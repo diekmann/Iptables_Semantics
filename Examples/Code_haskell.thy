@@ -19,6 +19,9 @@ definition "to_simple_firewall_without_interfaces rs \<equiv>
     (ctstate_assume_new
     (upper_closure rs)))))"
 
+definition mk_Set :: "'a list \<Rightarrow> 'a set" where
+  "mk_Set = set"
+
 export_code Rule
   Match MatchNot MatchAnd MatchAny
   Src Dst IIface OIface Prot Src_Ports Dst_Ports CT_State Extra
@@ -31,7 +34,7 @@ export_code Rule
   common_primitive_toString common_primitive_match_expr_toString
   simple_rule_toString
   Semantics_Goto.rewrite_Goto
-  (*parser helpers:*) alist_and' compress_parsed_extra Pos Neg
+  (*parser helpers:*) alist_and' compress_parsed_extra Pos Neg mk_Set
   unfold_ruleset_INPUT unfold_ruleset_FORWARD unfold_ruleset_OUTPUT map_of_string
   upper_closure
   abstract_for_simple_firewall optimize_matches

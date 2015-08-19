@@ -88,7 +88,10 @@ knownMatch = do
       <|> (probablyNegated $ lit "-i " >> Isabelle.IIface <$> iface)
       <|> (probablyNegated $ lit "-o " >> Isabelle.OIface <$> iface)
       
-      -- TODO: ctstate
+      -- TODO: can ctstate be negated? never seen or tested this
+      <|> (probablyNegated $ lit "-m state --state " >> Isabelle.CT_State <$> ctstate)
+      <|> (probablyNegated $ lit "-m conntrack --ctstate " >> Isabelle.CT_State <$> ctstate)
+      
       
       <|> target
       
@@ -223,7 +226,13 @@ parsePortOne = try tuple <|> single
                     ("WARNING: port " ++ show (Isabelle.word_to_nat p1) ++ " >= " ++ show (Isabelle.word_to_nat p2))
                     (p1,p2))
                   else return (p1,p2)
-              
+
+
+ctstate = token "ctstate" $ Isabelle.mk_Set <$> parseCommaSeparatedList ctstateOne
+    where ctstateOne = choice [lit "NEW" >> return Isabelle.CT_New
+                                   ,lit "ESTABLISHED" >> return Isabelle.CT_Established
+                                   ,lit "RELATED" >> return Isabelle.CT_Related
+                                   ,lit "UNTRACKED" >> return Isabelle.CT_Untracked]              
 
 
 target = token "target" $ ParsedAction <$> (
