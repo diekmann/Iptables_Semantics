@@ -89,8 +89,8 @@ knownMatch = do
       <|> (probablyNegated $ lit "-m udp --dport " >> Isabelle.Dst_Ports <$> (\p -> [p]) <$> parsePortOne)
       <|> (probablyNegated $ lit "-m multiport --dports " >> Isabelle.Dst_Ports <$> parseCommaSeparatedList parsePortOne)
       
-      <|> (probablyNegated $ lit "-i " >> Isabelle.IIface <$> iface)
-      <|> (probablyNegated $ lit "-o " >> Isabelle.OIface <$> iface)
+      <|> (probablyNegated $ lit "-i " >> Isabelle.IIface <$> lookAheadEOT iface)
+      <|> (probablyNegated $ lit "-o " >> Isabelle.OIface <$> lookAheadEOT iface)
       
       -- TODO: can ctstate be negated? never seen or tested this
       <|> (probablyNegated $ lit "-m state --state " >> Isabelle.CT_State <$> ctstate)
