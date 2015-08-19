@@ -19,19 +19,22 @@ definition "to_simple_firewall_without_interfaces rs \<equiv>
     (ctstate_assume_new
     (upper_closure rs)))))"
 
+definition mk_Set :: "'a list \<Rightarrow> 'a set" where
+  "mk_Set = set"
+
 export_code Rule
   Match MatchNot MatchAnd MatchAny
   Src Dst IIface OIface Prot Src_Ports Dst_Ports CT_State Extra
   ProtoAny Proto TCP UDP ICMP Iface
   integer_to_16word nat_to_16word Nat word_less_eq word_to_nat
-  Ip4AddrNetmask Ip4AddrRange
+  Ip4AddrNetmask Ip4AddrRange Ip4Addr
   CT_New CT_Established CT_Related CT_Untracked
   Accept Drop Log Reject Call Return Goto Empty Unknown
   dotteddecimal_toString ipv4addr_toString ipv4_cidr_toString action_toString
   common_primitive_toString common_primitive_match_expr_toString
   simple_rule_toString
   Semantics_Goto.rewrite_Goto
-  (*parser helpers:*) alist_and' compress_parsed_extra Pos Neg
+  (*parser helpers:*) alist_and' compress_parsed_extra Pos Neg mk_Set
   unfold_ruleset_INPUT unfold_ruleset_FORWARD unfold_ruleset_OUTPUT map_of_string
   upper_closure
   abstract_for_simple_firewall optimize_matches

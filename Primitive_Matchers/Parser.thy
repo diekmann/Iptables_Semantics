@@ -163,6 +163,8 @@ local (*iptables-save parsers*)
       val parser_ip_cidr = parser_ip --| ($$ "/") -- (Scan.many1 Symbol.is_ascii_digit >> extract_int) >> ipNetmask_to_hol;
 
       val parser_ip_range = parser_ip --| ($$ "-") -- parser_ip >> ipRange_to_hol;
+
+      val parser_ip_addr = parser_ip >> (fn ip => @{const Ip4Addr} $ mk_quadrupel ip);
     
       val parser_interface = Scan.many1 is_iface_char >> (implode #> (fn x => @{const Iface} $ HOLogic.mk_string x));
 
@@ -205,10 +207,11 @@ local (*iptables-save parsers*)
           parse_cmd_option_generic ParsedNegatedMatch ("! "^s) t parser || parse_cmd_option s t parser;
   in
     
-    val parse_src_ip_negated = parse_cmd_option_negated "-s " @{const Src} parser_ip_cidr
-                            || parse_cmd_option_negated "-m iprange --src-range " @{const Src} parser_ip_range;
-    val parse_dst_ip_negated = parse_cmd_option_negated "-d " @{const Dst} parser_ip_cidr
-                            || parse_cmd_option_negated "-m iprange --dst-range " @{const Dst} parser_ip_range; 
+    (*TODO: the syntac for negated ipranges is: -m iprange ! --dst-range*)
+    val parse_src_ip_negated = parse_cmd_option_negated "-s " @{const Src} (parser_ip_cidr || parser_ip_addr)
+                            || parse_cmd_option "-m iprange --src-range " @{const Src} parser_ip_range;
+    val parse_dst_ip_negated = parse_cmd_option_negated "-d " @{const Dst} (parser_ip_cidr || parser_ip_addr)
+                            || parse_cmd_option "-m iprange --dst-range " @{const Dst} parser_ip_range; 
     
     val parse_in_iface_negated = parse_cmd_option_negated "-i " @{const IIface} parser_interface;
     val parse_out_iface_negated = parse_cmd_option_negated "-o " @{const OIface} parser_interface;
