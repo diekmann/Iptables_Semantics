@@ -61,7 +61,8 @@ lemma "parser_test_firewall \<equiv>
      action.Drop,
     Rule (Match (Extra ''-m conntrack --ctstate NEW,INVALID'')) action.Drop,
     Rule (MatchAnd (Match (IIface (Iface ''wlan0'')))
-           (MatchAnd (Match (Prot (Proto ICMP))) (Match (CT_State {CT_Established, CT_New, CT_Related, CT_Untracked}))))
+           (MatchAnd (Match (Prot (Proto ICMP)))
+             (Match (CT_State {CT_Established, CT_New, CT_Related, CT_Untracked}))))
      action.Accept,
     Rule (Match (CT_State {CT_New, CT_Untracked})) action.Accept,
     Rule (Match (CT_State {CT_Established, CT_Related})) action.Accept,
@@ -81,13 +82,15 @@ lemma "parser_test_firewall \<equiv>
     Rule (MatchAnd (Match (IIface (Iface ''eth0'')))
            (MatchAnd (Match (Prot (Proto TCP)))
              (Match (Dst_Ports
-                      [(0x15, 0x15), (0x369, 0x36A), (0x138D, 0x138D), (0x138E, 0x138E), (0x50, 0x50), (0x224, 0x224),
-                       (0x6F, 0x6F), (0x37C, 0x37C), (0x801, 0x801)]))))
+                      [(0x15, 0x15), (0x369, 0x36A), (0x138D, 0x138D), (0x138E, 0x138E), (0x50, 0x50),
+                       (0x224, 0x224), (0x6F, 0x6F), (0x37C, 0x37C), (0x801, 0x801)]))))
      action.Drop,
+    Rule (Match (Src (Ip4Addr (192, 168, 0, 1)))) (Call ''LOGDROP''),
     Rule (Match (Src (Ip4AddrRange (127, 0, 0, 1) (127, 0, 10, 0)))) Return,
-    Rule (MatchNot (Match (Dst (Ip4AddrRange (127, 0, 0, 1) (127, 0, 10, 0))))) Return,
+    Rule (Match (Extra ''-m iprange ! --dst-range 127.0.0.1-127.0.10.0'')) Return,
     Rule MatchAny (Goto ''Terminal'')]),
-  (''INPUT'', []), (''OUTPUT'', []),
+  (''INPUT'', []),
+  (''LOGDROP'', [Rule MatchAny Empty, Rule MatchAny action.Drop]), (''OUTPUT'', []),
   (''Terminal'',
    [Rule (MatchAnd (Match (Dst (Ip4AddrNetmask (127, 0, 0, 1) 32)))
            (MatchAnd (Match (Prot (Proto UDP))) (Match (Src_Ports [(0x35, 0x35)]))))
