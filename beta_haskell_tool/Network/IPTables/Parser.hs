@@ -2,6 +2,7 @@
 module Network.IPTables.Parser where
 
 import Control.Applicative ((<$>),(<*>),(<*))
+import Data.List (isPrefixOf)
 
 import qualified Data.Map as M
 import qualified Control.Monad (when)
@@ -101,7 +102,11 @@ knownMatch = do
     return $ p
     
 unknownMatch = token "unknown match" $ do
-    ParsedMatch . Isabelle.Extra <$> (many1 (noneOf " \t\n\"") <|> try quotedString)
+    extra <- (many1 (noneOf " \t\n\"") <|> try quotedString)
+    let e = if "-j" `isPrefixOf` extra
+              then Debug.Trace.trace ("Warning: probaly a parse error at "++extra) extra
+              else extra
+    return $ ParsedMatch $ Isabelle.Extra $ e
     where quotedString = do
               a <- string "\""
               b <- many (noneOf "\"\n")
