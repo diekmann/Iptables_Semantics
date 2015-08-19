@@ -68,36 +68,38 @@ chain = line $ do
     return ()
 
 -- TODO: make sure there is the eol or a whitesape after a parsed match!
-probablyNegated parser = ParsedNegatedMatch <$> try (lit "! " >> parser <* skipWS)
-                     <|> ParsedMatch <$> (try parser <* skipWS)
+probablyNegated parser = ParsedNegatedMatch <$> try (lit "! " >> (lookAheadEOT parser) <* skipWS)
+                     <|> ParsedMatch <$> (try (lookAheadEOT parser) <* skipWS)
                      
-notNegated parser = ParsedMatch <$> (try parser <* skipWS)
+notNegated parser = ParsedMatch <$> (try (lookAheadEOT parser) <* skipWS)
     
 
 knownMatch = do
-    p <-  (probablyNegated $ lit "-p " >> Isabelle.Prot <$> lookAheadEOT protocol)
+    p <-  (probablyNegated $ lit "-p " >> Isabelle.Prot <$> protocol)
     
       <|> (probablyNegated $ lit "-s " >> Isabelle.Src <$> ipv4addrOrCidr)
+      -- TODO: negation syntax
       <|> (notNegated $ lit "-m iprange --src-range " >> Isabelle.Src <$> ipv4range)
       <|> (probablyNegated $ lit "-d " >> Isabelle.Dst <$> ipv4addrOrCidr)
       <|> (notNegated $ lit "-m iprange --dst-range " >> Isabelle.Dst <$> ipv4range)
       
       <|> (probablyNegated $ lit "-m tcp --sport " >> Isabelle.Src_Ports <$> (\p -> [p]) <$> parsePortOne)
       <|> (probablyNegated $ lit "-m udp --sport " >> Isabelle.Src_Ports <$> (\p -> [p]) <$> parsePortOne)
+      -- TODO: negation syntax?
       <|> (probablyNegated $ lit "-m multiport --sports " >> Isabelle.Src_Ports <$> parseCommaSeparatedList parsePortOne)
       <|> (probablyNegated $ lit "-m tcp --dport " >> Isabelle.Dst_Ports <$> (\p -> [p]) <$> parsePortOne)
       <|> (probablyNegated $ lit "-m udp --dport " >> Isabelle.Dst_Ports <$> (\p -> [p]) <$> parsePortOne)
       <|> (probablyNegated $ lit "-m multiport --dports " >> Isabelle.Dst_Ports <$> parseCommaSeparatedList parsePortOne)
       
-      <|> (probablyNegated $ lit "-i " >> Isabelle.IIface <$> lookAheadEOT iface)
-      <|> (probablyNegated $ lit "-o " >> Isabelle.OIface <$> lookAheadEOT iface)
+      <|> (probablyNegated $ lit "-i " >> Isabelle.IIface <$> iface)
+      <|> (probablyNegated $ lit "-o " >> Isabelle.OIface <$> iface)
       
       -- TODO: can ctstate be negated? never seen or tested this
       <|> (probablyNegated $ lit "-m state --state " >> Isabelle.CT_State <$> ctstate)
       <|> (probablyNegated $ lit "-m conntrack --ctstate " >> Isabelle.CT_State <$> ctstate)
       
       
-      <|> (target <* skipWS)
+      <|> (lookAheadEOT target <* skipWS)
       
     return $ p
     
