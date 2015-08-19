@@ -25,7 +25,7 @@ main = do
             putStrLn "-- unfolded FORWARD chain --"
             let unfolded = Isabelle.unfold_ruleset_FORWARD (policy_FORWARD) $ Isabelle.map_of_string (Isabelle.rewrite_Goto fw)
             putStrLn $ L.intercalate "\n" $ map show unfolded
-            putStrLn "-- unfolded FORWARD chain (uper closure) --"
+            putStrLn "-- unfolded FORWARD chain (upper closure) --"
             putStrLn $ L.intercalate "\n" $ map show (Isabelle.upper_closure $ unfolded)
             putStrLn "-- to simple firewall --"
             putStrLn $ L.intercalate "\n" $ map show (Isabelle.to_simple_firewall $ Isabelle.upper_closure $ Isabelle.optimize_matches Isabelle.abstract_for_simple_firewall $ Isabelle.ctstate_assume_new $ unfolded)
