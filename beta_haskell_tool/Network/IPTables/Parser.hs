@@ -1,7 +1,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 module Network.IPTables.Parser where
 
-import Control.Applicative ((<$>),(<*>),(<*))
+import Control.Applicative ((<$>),(<*>),(<*),(*>))
 import Data.List (isPrefixOf)
 
 import qualified Data.Map as M
@@ -75,7 +75,7 @@ notNegated parser = ParsedMatch <$> (try parser <* skipWS)
     
 
 knownMatch = do
-    p <-  (probablyNegated $ lit "-p " >> Isabelle.Prot <$> protocol)
+    p <-  (probablyNegated $ lit "-p " >> Isabelle.Prot <$> protocol)  -- why can't I use lookAheadEOT around protocol?
     
       <|> (probablyNegated $ lit "-s " >> Isabelle.Src <$> ipv4addrOrCidr)
       <|> (notNegated $ lit "-m iprange --src-range " >> Isabelle.Src <$> ipv4range)
