@@ -97,7 +97,7 @@ knownMatch = do
       <|> (probablyNegated $ lit "-m conntrack --ctstate " >> Isabelle.CT_State <$> ctstate)
       
       
-      <|> target
+      <|> (target <* skipWS)
       
     return $ p
     
@@ -201,7 +201,7 @@ natMaxval maxval = do
         then error ("nat `"++ show n ++ "' must be smaller than " ++ show maxval)
         else return (Isabelle.Nat n)
 
-ipv4dotdecimal = token "ipv4 dotteddecimal" $ do
+ipv4dotdecimal = do
     a <- natMaxval 255
     char '.'
     b <- natMaxval 255
@@ -212,11 +212,11 @@ ipv4dotdecimal = token "ipv4 dotteddecimal" $ do
     return (a,(b,(c,d)))
 
 
-ipv4addr = token "singe ipv4 address" $ do
+ipv4addr = do
     ip <- ipv4dotdecimal
     return (Isabelle.Ip4Addr ip)
 
-ipv4cidr = token "ipv4 CIDR notation" $ do
+ipv4cidr = do
     ip <- ipv4dotdecimal
     char '/'
     netmask <- natMaxval 32
@@ -224,7 +224,7 @@ ipv4cidr = token "ipv4 CIDR notation" $ do
 
 ipv4addrOrCidr = try ipv4cidr <|> try ipv4addr
 
-ipv4range = token "ipv4 range notation" $ do
+ipv4range = do
     ip1 <- ipv4dotdecimal
     char '-'
     ip2 <- ipv4dotdecimal
@@ -253,7 +253,7 @@ parsePortOne = try tuple <|> single
                   else return (p1,p2)
 
 
-ctstate = token "ctstate" $ Isabelle.mk_Set <$> parseCommaSeparatedList ctstateOne
+ctstate = Isabelle.mk_Set <$> parseCommaSeparatedList ctstateOne
     where ctstateOne = choice [string "NEW" >> return Isabelle.CT_New
                               ,string "ESTABLISHED" >> return Isabelle.CT_Established
                               ,string "RELATED" >> return Isabelle.CT_Related
@@ -262,7 +262,7 @@ ctstate = token "ctstate" $ Isabelle.mk_Set <$> parseCommaSeparatedList ctstateO
 
 -- needs LookAheadEOT, otherwise, this might happen to the custom LOG_DROP target:
 -- -A ranges_96 `ParsedAction -j LOG' `ParsedMatch ~~_DROP~~'
-target = token "target" $ ParsedAction <$> (
+target = ParsedAction <$> (
            try (string "-j REJECT --reject-with " >> many1 (oneOf $ ['a'..'z']++['-']) >> return (Isabelle.Reject))
        <|> try (string "-g " >> Isabelle.Goto <$> lookAheadEOT chainName)
        <|> try (string "-j " >> choice (map (try. lookAheadEOT)
