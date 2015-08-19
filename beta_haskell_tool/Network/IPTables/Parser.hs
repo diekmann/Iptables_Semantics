@@ -75,7 +75,7 @@ notNegated parser = ParsedMatch <$> (try parser <* skipWS)
     
 
 knownMatch = do
-    p <-  (probablyNegated $ lit "-p " >> Isabelle.Prot <$> protocol)  -- why can't I use lookAheadEOT around protocol?
+    p <-  (probablyNegated $ lit "-p " >> Isabelle.Prot <$> lookAheadEOT protocol)
     
       <|> (probablyNegated $ lit "-s " >> Isabelle.Src <$> ipv4addrOrCidr)
       <|> (notNegated $ lit "-m iprange --src-range " >> Isabelle.Src <$> ipv4range)
@@ -165,6 +165,8 @@ counter = token "counter" $ do
 
 
 -- Parsing Helper --
+
+-- cannot be combined with lookAheadEOT
 lit str = token str (string str)
 
 restOfLine = many (noneOf "\n")
@@ -177,6 +179,7 @@ eol = char '\n'
 ws  = " \t"
 
 -- loook ahead end of token
+-- cannot be combined with token
 lookAheadEOT parser = do 
     res <- parser
     lookAhead (oneOf ws <|> eol)
@@ -227,9 +230,9 @@ ipv4range = token "ipv4 range notation" $ do
     ip2 <- ipv4dotdecimal
     return (Isabelle.Ip4AddrRange ip1 ip2)
     
-protocol = Isabelle.Proto <$> choice [lit "tcp" >> return Isabelle.TCP
-                                     ,lit "udp" >> return Isabelle.UDP
-                                     ,lit "icmp" >> return Isabelle.ICMP
+protocol = Isabelle.Proto <$> choice [string "tcp" >> return Isabelle.TCP
+                                     ,string "udp" >> return Isabelle.UDP
+                                     ,string "icmp" >> return Isabelle.ICMP
                                      ]
 
 iface = Isabelle.Iface <$> many1 (oneOf $ ['A'..'Z']++['a'..'z']++['0'..'9']++['+','*','.'])
@@ -251,10 +254,10 @@ parsePortOne = try tuple <|> single
 
 
 ctstate = token "ctstate" $ Isabelle.mk_Set <$> parseCommaSeparatedList ctstateOne
-    where ctstateOne = choice [lit "NEW" >> return Isabelle.CT_New
-                                   ,lit "ESTABLISHED" >> return Isabelle.CT_Established
-                                   ,lit "RELATED" >> return Isabelle.CT_Related
-                                   ,lit "UNTRACKED" >> return Isabelle.CT_Untracked]              
+    where ctstateOne = choice [string "NEW" >> return Isabelle.CT_New
+                              ,string "ESTABLISHED" >> return Isabelle.CT_Established
+                              ,string "RELATED" >> return Isabelle.CT_Related
+                              ,string "UNTRACKED" >> return Isabelle.CT_Untracked]              
 
 
 -- needs LookAheadEOT, otherwise, this might happen to the custom LOG_DROP target:
