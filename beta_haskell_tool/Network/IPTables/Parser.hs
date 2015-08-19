@@ -235,6 +235,8 @@ ctstate = token "ctstate" $ Isabelle.mk_Set <$> parseCommaSeparatedList ctstateO
                                    ,lit "UNTRACKED" >> return Isabelle.CT_Untracked]              
 
 
+-- TODO: broken!!
+-- -A ranges_96 `ParsedAction -j LOG' `ParsedMatch ~~_DROP~~'
 target = token "target" $ ParsedAction <$> (
            try (string "-j REJECT --reject-with " >> many1 (oneOf $ ['a'..'z']++['-']) >> return (Isabelle.Reject))
        <|> try (string "-g " >> Isabelle.Goto <$> chainName)
