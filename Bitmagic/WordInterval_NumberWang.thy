@@ -73,12 +73,13 @@ context begin
     
 
   lemma word_atLeastLessThan_Suc_atLeastAtMost_union: 
-    fixes l::"'a::len word" shows "m \<noteq> max_word \<Longrightarrow> l \<le> m \<Longrightarrow> m \<le> u \<Longrightarrow> {l..m} \<union> {m+1..u} = {l..u}"
-    apply(subst ivl_disj_un_two(8)[symmetric])
-    back back
-    apply(simp_all)
-    apply(simp add: wordatLeastAtMost_Suc_greaterThanAtMost)
-    done
+    fixes l::"'a::len word"
+    assumes "m \<noteq> max_word" and "l \<le> m" and "m \<le> u"
+    shows "{l..m} \<union> {m+1..u} = {l..u}"
+    proof -
+    from ivl_disj_un_two(8)[OF assms(2) assms(3)] have "{l..u} = {l..m} \<union> {m<..u}" by blast
+    with assms show ?thesis by(simp add: wordatLeastAtMost_Suc_greaterThanAtMost)
+    qed
 
   (*WIP*)
   private fun merge_adjacent :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> ('a word \<times> 'a word) list \<Rightarrow> ('a word \<times> 'a word) list" where
