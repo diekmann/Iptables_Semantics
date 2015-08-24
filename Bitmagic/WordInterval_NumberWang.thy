@@ -110,7 +110,9 @@ context begin
     apply(simp add:  interval_of.simps)
     apply(intro impI conjI)
        apply (metis Un_assoc huuuu)
-      apply (smt Un_assoc Un_commute huuuu)
+      apply(elim conjE)
+      apply(drule(2) huuuu)
+      apply(blast)
      using huuuu apply blast
     by blast
 end
