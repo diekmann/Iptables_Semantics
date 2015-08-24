@@ -49,7 +49,6 @@ end
 
 
 context begin
-  thm ivl_disj_un_two(7)
   lemma shows "Suc e = m \<Longrightarrow> {l .. e} = {l..<m}"
     using atLeastLessThanSuc_atLeastAtMost by blast
 
@@ -68,7 +67,7 @@ context begin
     fixes l::"'a::len word" shows "u \<noteq> max_word \<Longrightarrow> {l..< u + 1} = {l..u}"
     by (simp add: atLeastAtMost_def atLeastLessThan_def word_lessThan_Suc_atMost)
 
-  lemma wordatLeastAtMost_Suc_greaterThanAtMost: fixes l::"'a::len word" shows "m \<noteq> max_word \<Longrightarrow> {m<..u} = {m + 1..u}"
+  lemma word_atLeastAtMost_Suc_greaterThanAtMost: fixes l::"'a::len word" shows "m \<noteq> max_word \<Longrightarrow> {m<..u} = {m + 1..u}"
     by(simp add: greaterThanAtMost_def greaterThan_def atLeastAtMost_def atLeast_def word_Suc_le)
     
 
@@ -78,18 +77,42 @@ context begin
     shows "{l..m} \<union> {m+1..u} = {l..u}"
     proof -
     from ivl_disj_un_two(8)[OF assms(2) assms(3)] have "{l..u} = {l..m} \<union> {m<..u}" by blast
-    with assms show ?thesis by(simp add: wordatLeastAtMost_Suc_greaterThanAtMost)
+    with assms show ?thesis by(simp add: word_atLeastAtMost_Suc_greaterThanAtMost)
     qed
+
+  lemma huuuu: "word_next e = s' \<Longrightarrow> s \<le> e \<Longrightarrow> s' \<le> e' \<Longrightarrow> {s..e} \<union> {s'..e'} = {s .. e'}"
+    by (metis Un_absorb2 atLeastatMost_subset_iff ivl_disj_un_two(7) max_word_max
+              word_atLeastLessThan_Suc_atLeastAtMost word_le_less_eq word_next_def word_not_le)
+    
 
   (*WIP*)
   private fun merge_adjacent :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> ('a word \<times> 'a word) list \<Rightarrow> ('a word \<times> 'a word) list" where
      "merge_adjacent s [] = [s]" |
      "merge_adjacent (s,e) ((s',e')#ss) = (
-        if  word_next e = s'
+        if s \<le>e \<and> s' \<le> e' \<and> word_next e = s'
         then (s, e')#ss
-        else if word_next e' = s
+        else if s \<le>e \<and> s' \<le> e' \<and> word_next e' = s
         then (s', e)#ss
         else (s',e')#merge_adjacent (s,e) ss)"
+
+
+  (*TODO: duplicate*)
+  private fun interval_of :: "('a::len) word \<times> 'a word \<Rightarrow> 'a word set" where
+    "interval_of (s,e) = {s .. e}"
+  declare interval_of.simps[simp del]
+
+  private lemma "interval_of A \<union> (\<Union>s \<in> set ss. interval_of s) = (\<Union>s \<in> set (merge_adjacent A ss). interval_of s)"
+    apply(induction ss)
+     apply(simp)
+    apply(rename_tac x xs)
+    apply(cases A, rename_tac a b)
+    apply(case_tac x)
+    apply(simp add:  interval_of.simps)
+    apply(intro impI conjI)
+       apply (metis Un_assoc huuuu)
+      apply (smt Un_assoc Un_commute huuuu)
+     using huuuu apply blast
+    by blast
 end
 
 
