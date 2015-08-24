@@ -47,4 +47,49 @@ end
 
 
 
+
+context begin
+  thm ivl_disj_un_two(7)
+  lemma shows "Suc e = m \<Longrightarrow> {l .. e} = {l..<m}"
+    using atLeastLessThanSuc_atLeastAtMost by blast
+
+  lemma word_Suc_leq: fixes k::"'a::len word" shows "k \<noteq> max_word \<Longrightarrow> x < k + 1 \<longleftrightarrow> x \<le> k"
+    using WordLemmaBucket.less_x_plus_1 word_le_less_eq by auto
+
+
+  lemma word_Suc_le: fixes k::"'a::len word" shows "x \<noteq> max_word \<Longrightarrow> x + 1 \<le> k \<longleftrightarrow> x < k"
+    by (meson not_less word_Suc_leq)
+    
+    
+  lemma word_lessThan_Suc_atMost: fixes k::"'a::len word" shows "k \<noteq> max_word \<Longrightarrow> {..< k + 1} = {..k}"
+    by(simp add: lessThan_def atMost_def word_Suc_leq)
+    
+  lemma word_atLeastLessThan_Suc_atLeastAtMost:
+    fixes l::"'a::len word" shows "u \<noteq> max_word \<Longrightarrow> {l..< u + 1} = {l..u}"
+    by (simp add: atLeastAtMost_def atLeastLessThan_def word_lessThan_Suc_atMost)
+
+  lemma wordatLeastAtMost_Suc_greaterThanAtMost: fixes l::"'a::len word" shows "m \<noteq> max_word \<Longrightarrow> {m<..u} = {m + 1..u}"
+    by(simp add: greaterThanAtMost_def greaterThan_def atLeastAtMost_def atLeast_def word_Suc_le)
+    
+
+  lemma word_atLeastLessThan_Suc_atLeastAtMost_union: 
+    fixes l::"'a::len word" shows "m \<noteq> max_word \<Longrightarrow> l \<le> m \<Longrightarrow> m \<le> u \<Longrightarrow> {l..m} \<union> {m+1..u} = {l..u}"
+    apply(subst ivl_disj_un_two(8)[symmetric])
+    back back
+    apply(simp_all)
+    apply(simp add: wordatLeastAtMost_Suc_greaterThanAtMost)
+    done
+
+  (*WIP*)
+  private fun merge_adjacent :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> ('a word \<times> 'a word) list \<Rightarrow> ('a word \<times> 'a word) list" where
+     "merge_adjacent s [] = [s]" |
+     "merge_adjacent (s,e) ((s',e')#ss) = (
+        if  word_next e = s'
+        then (s, e')#ss
+        else if word_next e' = s
+        then (s', e)#ss
+        else (s',e')#merge_adjacent (s,e) ss)"
+end
+
+
 end
