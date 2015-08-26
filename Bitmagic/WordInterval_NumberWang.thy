@@ -55,11 +55,9 @@ context begin
   lemma word_Suc_leq: fixes k::"'a::len word" shows "k \<noteq> max_word \<Longrightarrow> x < k + 1 \<longleftrightarrow> x \<le> k"
     using WordLemmaBucket.less_x_plus_1 word_le_less_eq by auto
 
-
   lemma word_Suc_le: fixes k::"'a::len word" shows "x \<noteq> max_word \<Longrightarrow> x + 1 \<le> k \<longleftrightarrow> x < k"
     by (meson not_less word_Suc_leq)
-    
-    
+  
   lemma word_lessThan_Suc_atMost: fixes k::"'a::len word" shows "k \<noteq> max_word \<Longrightarrow> {..< k + 1} = {..k}"
     by(simp add: lessThan_def atMost_def word_Suc_leq)
     
@@ -101,7 +99,8 @@ context begin
     "interval_of (s,e) = {s .. e}"
   declare interval_of.simps[simp del]
 
-  private lemma "interval_of A \<union> (\<Union>s \<in> set ss. interval_of s) = (\<Union>s \<in> set (merge_adjacent A ss). interval_of s)"
+  private lemma merge_adjacent_helper: 
+  "interval_of A \<union> (\<Union>s \<in> set ss. interval_of s) = (\<Union>s \<in> set (merge_adjacent A ss). interval_of s)"
     apply(induction ss)
      apply(simp)
     apply(rename_tac x xs)
@@ -115,6 +114,40 @@ context begin
       apply(blast)
      using huuuu apply blast
     by blast
+
+  private lemma merge_adjacent_length: "\<exists>(s', e')\<in>set ss. s \<le> e \<and> s' \<le> e' \<and> (word_next e = s' \<or> word_next e' = s)
+     \<Longrightarrow> length (merge_adjacent (s,e) ss) = length ss"
+    apply(induction ss)
+     apply(simp)
+    apply(rename_tac x xs)
+    apply(case_tac x)
+    apply(simp add: )
+    by blast
+
+  (*TODO: name is a duplicate!*)
+  private function listwordinterval_compress :: "(('a::len) word \<times> ('a::len) word) list \<Rightarrow> ('a word \<times> 'a word) list" where
+    "listwordinterval_compress [] = []" |
+    "listwordinterval_compress ((s,e)#ss) = (
+            if \<forall>(s',e') \<in> set ss. \<not> (s \<le>e \<and> s' \<le> e' \<and> (word_next e = s' \<or> word_next e' = s))
+            then (s,e)#listwordinterval_compress ss
+            else listwordinterval_compress (merge_adjacent (s,e) ss))"
+  by(pat_completeness, auto)
+
+  private termination listwordinterval_compress
+  apply (relation "measure length")
+    apply(rule wf_measure)
+   apply(simp)
+  apply(simp)
+  using merge_adjacent_length by fastforce
+
+  private lemma listwordinterval_compress: "(\<Union>s \<in> set (listwordinterval_compress ss). interval_of s) = (\<Union>s \<in> set ss. interval_of s)"
+    apply(induction ss rule: listwordinterval_compress.induct)
+     apply(simp)
+    apply(simp add: merge_adjacent_helper)
+    done
+
+  value[code] "listwordinterval_compress [(1::16 word, 3), (5, 10), (10,10), (4,4)]"
+
 end
 
 
