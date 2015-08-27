@@ -1,4 +1,18 @@
-module Network.IPTables.Ruleset where
+module Network.IPTables.Ruleset 
+( Ruleset
+, TableName
+, checkParsedTables
+, rulesetLookup
+, mkRuleset
+, rsetTablesM
+, tblChainsM
+, chnRulesM
+, mkTable
+, mkChain
+, mkParseRule
+, atMap
+, ParsedMatchAction(..)
+) where
 
 import           Data.List (intercalate)
 import           Data.Map (Map)

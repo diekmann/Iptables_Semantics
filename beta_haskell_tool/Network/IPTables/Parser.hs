@@ -1,5 +1,8 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
-module Network.IPTables.Parser where
+module Network.IPTables.Parser
+( ruleset
+, initRState
+) where
 
 import Control.Applicative ((<$>),(<*>),(<*),(*>))
 import Data.List (isPrefixOf)

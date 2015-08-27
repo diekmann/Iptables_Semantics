@@ -1,6 +1,6 @@
 module Main where
 
-import Text.Parsec
+import Text.Parsec (runParser)
 
 import Network.IPTables.Ruleset
 import Network.IPTables.Parser
@@ -11,7 +11,6 @@ import qualified Network.IPTables.Generated as Isabelle
 
 
 
-    
 instance Show Isabelle.Iface where
     show (Isabelle.Iface i) = i
 
@@ -46,7 +45,7 @@ main = do
             putStrLn "== to even-simpler firewall =="
             putStrLn $ L.intercalate "\n" $ map show (Isabelle.to_simple_firewall_without_interfaces unfolded)
             putStrLn "== checking spoofing protection (for the hard-coded example_TUM_i8_spoofing_ipassmt) =="
-            let fuc = preprocessForSpoofingProtection unfolded --Firewall Unter Certification
+            let fuc = preprocessForSpoofingProtection unfolded --Firewall Under Certification
             --putStrLn $ show fuc
             putStrLn $ "ipassmt_sanity_defined: " ++ show (Isabelle.ipassmt_sanity_defined fuc (Isabelle.map_of_ipassmt Isabelle.example_TUM_i8_spoofing_ipassmt))
             mapM_  (putStrLn . show) (exampleCertSpoof fuc)
