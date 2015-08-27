@@ -952,10 +952,36 @@ listwordinterval_compress (s : ss) =
   (if all (disjoint_intervals s) ss then s : listwordinterval_compress ss
     else listwordinterval_compress (merge_overlap s ss));
 
+merge_adjacent ::
+  forall a.
+    (Len a) => (Word a, Word a) -> [(Word a, Word a)] -> [(Word a, Word a)];
+merge_adjacent s [] = [s];
+merge_adjacent (sa, ea) ((s, e) : ss) =
+  (if less_eq_word sa ea && less_eq_word s e && equal_word (word_next ea) s
+    then (sa, e) : ss
+    else (if less_eq_word sa ea &&
+               less_eq_word s e && equal_word (word_next e) sa
+           then (s, ea) : ss else (s, e) : merge_adjacent (sa, ea) ss));
+
+listwordinterval_adjacent ::
+  forall a. (Len a) => [(Word a, Word a)] -> [(Word a, Word a)];
+listwordinterval_adjacent [] = [];
+listwordinterval_adjacent ((s, e) : ss) =
+  (if all (\ (sa, ea) ->
+            not (less_eq_word s e &&
+                  less_eq_word sa ea &&
+                    (equal_word (word_next e) sa ||
+                      equal_word (word_next ea) s)))
+        ss
+    then (s, e) : listwordinterval_adjacent ss
+    else listwordinterval_adjacent (merge_adjacent (s, e) ss));
+
 wordinterval_compress :: forall a. (Len a) => Wordinterval a -> Wordinterval a;
 wordinterval_compress r =
   l2br (remdups
-         (listwordinterval_compress (br2l (wordinterval_optimize_empty2 r))));
+         (listwordinterval_adjacent
+           (listwordinterval_compress
+             (br2l (wordinterval_optimize_empty2 r)))));
 
 wordinterval_setminus ::
   forall a. (Len a) => Wordinterval a -> Wordinterval a -> Wordinterval a;

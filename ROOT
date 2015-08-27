@@ -24,6 +24,7 @@ session "Iptables_Semantics" = Bitmagic +
     "Primitive_Matchers/Iface_Attic"
     "Simple_Firewall/SimpleFw_Compliance"
     "Simple_Firewall/Shadowed"
+    "Examples/Code_haskell"
   document_files
     "root.tex"
     "mathpartir.sty"

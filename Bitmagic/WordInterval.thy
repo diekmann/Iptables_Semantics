@@ -1,8 +1,9 @@
-(*  Title:      IPv4Addr.thy
+(*  Title:      WordInterval.thy
     Authors:    Julius Michaelis, Cornelius Diekmann
 *)
 theory WordInterval
 imports Main
+  Word_Next
   NumberWang
   "~~/src/HOL/Word/Word"
   "~~/src/HOL/Library/Code_Target_Nat" (*!*)
@@ -142,6 +143,8 @@ begin
     apply(simp add: disjoint_intervals_def interval_of.simps disjoint_def)
     by fastforce
 
+
+  text{*BEGIN merging overlapping intervals*}
   private fun merge_overlap :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> ('a word \<times> 'a word) list \<Rightarrow> ('a word \<times> 'a word) list" where
    "merge_overlap s [] = [s]" |
    "merge_overlap (s,e) ((s',e')#ss) = (
@@ -238,31 +241,94 @@ begin
      apply(thin_tac [!] "False \<Longrightarrow> _ \<Longrightarrow> _ \<Longrightarrow> _")
      apply(blast dest: A_in_listwordinterval_compress)+
     done
+  text{*END merging overlapping intervals*}
+
+
+
+
+  text{*BEGIN merging adjacent intervals*}
+  private fun merge_adjacent :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> ('a word \<times> 'a word) list \<Rightarrow> ('a word \<times> 'a word) list" where
+     "merge_adjacent s [] = [s]" |
+     "merge_adjacent (s,e) ((s',e')#ss) = (
+        if s \<le>e \<and> s' \<le> e' \<and> word_next e = s'
+        then (s, e')#ss
+        else if s \<le>e \<and> s' \<le> e' \<and> word_next e' = s
+        then (s', e)#ss
+        else (s',e')#merge_adjacent (s,e) ss)"
+
+  private lemma merge_adjacent_helper: 
+  "interval_of A \<union> (\<Union>s \<in> set ss. interval_of s) = (\<Union>s \<in> set (merge_adjacent A ss). interval_of s)"
+    apply(induction ss)
+     apply(simp)
+    apply(rename_tac x xs)
+    apply(cases A, rename_tac a b)
+    apply(case_tac x)
+    apply(simp add:  interval_of.simps)
+    apply(intro impI conjI)
+       apply (metis Un_assoc word_adjacent_union)
+      apply(elim conjE)
+      apply(drule(2) word_adjacent_union)
+      apply(blast)
+     using word_adjacent_union apply blast
+    by blast
+
+  private lemma merge_adjacent_length: "\<exists>(s', e')\<in>set ss. s \<le> e \<and> s' \<le> e' \<and> (word_next e = s' \<or> word_next e' = s)
+     \<Longrightarrow> length (merge_adjacent (s,e) ss) = length ss"
+    apply(induction ss)
+     apply(simp)
+    apply(rename_tac x xs)
+    apply(case_tac x)
+    apply(simp add: )
+    by blast
+
+  private function listwordinterval_adjacent :: "(('a::len) word \<times> ('a::len) word) list \<Rightarrow> ('a word \<times> 'a word) list" where
+    "listwordinterval_adjacent [] = []" |
+    "listwordinterval_adjacent ((s,e)#ss) = (
+            if \<forall>(s',e') \<in> set ss. \<not> (s \<le>e \<and> s' \<le> e' \<and> (word_next e = s' \<or> word_next e' = s))
+            then (s,e)#listwordinterval_adjacent ss
+            else listwordinterval_adjacent (merge_adjacent (s,e) ss))"
+  by(pat_completeness, auto)
+
+  private termination listwordinterval_adjacent
+  apply (relation "measure length")
+    apply(rule wf_measure)
+   apply(simp)
+  apply(simp)
+  using merge_adjacent_length by fastforce
+
+  private lemma listwordinterval_adjacent: "(\<Union>s \<in> set (listwordinterval_adjacent ss). interval_of s) = (\<Union>s \<in> set ss. interval_of s)"
+    apply(induction ss rule: listwordinterval_adjacent.induct)
+     apply(simp)
+    apply(simp add: merge_adjacent_helper)
+    done
+
+  value[code] "listwordinterval_adjacent [(1::16 word, 3), (5, 10), (10,10), (4,4)]"
+  text{*END merging adjacent intervals*}
+
 
   definition wordinterval_compress :: "('a::len) wordinterval \<Rightarrow> 'a wordinterval" where
-    "wordinterval_compress r \<equiv> l2br (remdups (listwordinterval_compress (br2l (wordinterval_optimize_empty r))))"
+    "wordinterval_compress r \<equiv> l2br (remdups (listwordinterval_adjacent (listwordinterval_compress (br2l (wordinterval_optimize_empty r)))))"
 
   lemma wordinterval_compress: "wordinterval_to_set (wordinterval_compress r) = wordinterval_to_set r"
     unfolding wordinterval_compress_def
     proof -
       have interval_of': "\<And>s. interval_of s = (case s of (s,e) \<Rightarrow> {s .. e})" apply(case_tac s) using interval_of.simps by simp
 
-      have "wordinterval_to_set (l2br (remdups (listwordinterval_compress (br2l (wordinterval_optimize_empty r))))) =
-            (\<Union>x\<in>set (listwordinterval_compress (br2l (wordinterval_optimize_empty r))). interval_of x)"
+      have "wordinterval_to_set (l2br (remdups (listwordinterval_adjacent (listwordinterval_compress (br2l (wordinterval_optimize_empty r)))))) =
+            (\<Union>x\<in>set (listwordinterval_adjacent (listwordinterval_compress (br2l (wordinterval_optimize_empty r)))). interval_of x)"
       using l2br l2br_remdups interval_of.simps[symmetric] by blast
       also have "\<dots> =  (\<Union>s\<in>set (br2l (wordinterval_optimize_empty r)). interval_of s)"
-        by(simp add: listwordinterval_compress)
+        by(simp add: listwordinterval_compress listwordinterval_adjacent)
       also have "\<dots> = (\<Union>(i, j)\<in>set (br2l (wordinterval_optimize_empty r)). {i..j})" by(simp add: interval_of')
       also have "\<dots> = wordinterval_to_set r" by(simp add: br2l)
-      finally show "wordinterval_to_set (l2br (remdups (listwordinterval_compress (br2l (wordinterval_optimize_empty r))))) = wordinterval_to_set r" .
+      finally show "wordinterval_to_set
+        (l2br (remdups (listwordinterval_adjacent (listwordinterval_compress (br2l (wordinterval_optimize_empty r))))))
+          = wordinterval_to_set r" .
   qed
 
 end
 
-(*RangeUnion (WordInterval 8 0xA) (WordInterval 1 7)
-  this is not minimal, it would be possible to merge those two
-  *)
-value[code] "wordinterval_compress (RangeUnion (RangeUnion (WordInterval (1::32 word) 3) (WordInterval 8 10)) (WordInterval 3 7))"
+lemma "wordinterval_compress (RangeUnion (RangeUnion (WordInterval (1::32 word) 5) (WordInterval 8 10)) (WordInterval 3 7)) = WordInterval 1 0xA" by eval
 
 
 
@@ -283,15 +349,6 @@ lemma wordinterval_optimize_same_set_eq[simp]: "wordinterval_to_set (wordinterva
 
 subsection{*Further operations*}
 
-text{*previous and next words addresses, without wrap around*}
-  definition word_next :: "'a::len word \<Rightarrow> 'a::len word" where
-    "word_next a \<equiv> if a = max_word then max_word else a + 1"
-  definition word_prev :: "'a::len word \<Rightarrow> 'a::len word" where
-    "word_prev a \<equiv> if a = 0 then 0 else a - 1"
-
-  lemma "word_next (2:: 8 word) = 3" by eval
-  lemma "word_prev (2:: 8 word) = 1" by eval
-  lemma "word_prev (0:: 8 word) = 0" by eval
 
 context
 begin
