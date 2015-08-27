@@ -1011,11 +1011,35 @@ fun listwordinterval_compress A_ [] = []
       then s :: listwordinterval_compress A_ ss
       else listwordinterval_compress A_ (merge_overlap A_ s ss));
 
+fun merge_adjacent A_ s [] = [s]
+  | merge_adjacent A_ (sa, ea) ((s, e) :: ss) =
+    (if less_eq_word (len0_len A_) sa ea andalso
+          (less_eq_word (len0_len A_) s e andalso
+            equal_worda (len0_len A_) (word_next A_ ea) s)
+      then (sa, e) :: ss
+      else (if less_eq_word (len0_len A_) sa ea andalso
+                 (less_eq_word (len0_len A_) s e andalso
+                   equal_worda (len0_len A_) (word_next A_ e) sa)
+             then (s, ea) :: ss else (s, e) :: merge_adjacent A_ (sa, ea) ss));
+
+fun listwordinterval_adjacent A_ [] = []
+  | listwordinterval_adjacent A_ ((s, e) :: ss) =
+    (if pred_list
+          (fn (sa, ea) =>
+            not (less_eq_word (len0_len A_) s e andalso
+                  (less_eq_word (len0_len A_) sa ea andalso
+                    (equal_worda (len0_len A_) (word_next A_ e) sa orelse
+                      equal_worda (len0_len A_) (word_next A_ ea) s))))
+          ss
+      then (s, e) :: listwordinterval_adjacent A_ ss
+      else listwordinterval_adjacent A_ (merge_adjacent A_ (s, e) ss));
+
 fun wordinterval_compress A_ r =
   l2br A_
     (remdups (equal_prod (equal_word (len0_len A_)) (equal_word (len0_len A_)))
-      (listwordinterval_compress A_
-        (br2l A_ (wordinterval_optimize_empty2 A_ r))));
+      (listwordinterval_adjacent A_
+        (listwordinterval_compress A_
+          (br2l A_ (wordinterval_optimize_empty2 A_ r)))));
 
 fun wordinterval_setminus A_ r1 r2 =
   wordinterval_compress A_ (wordinterval_setminusa A_ r1 r2);

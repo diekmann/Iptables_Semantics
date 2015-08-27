@@ -167,8 +167,10 @@ subsection{*Representing IPv4 Adresses*}
         apply simp_all
       apply(subst mod_pos_pos_trivial[where b="4294967296"])
         apply simp_all
-      apply(simp add: NumberWang.div65536)
+      apply(simp add: NumberWang.div65536[simplified]) (*we add the simplified because the WordLemmaBucket adds some additional simp rules*)
       done
+      --{*When @{file "./l4v/lib/WordLemmaBucket.thy"} is imported, some @{file "NumberWang.thy"} lemmas need the [simplified] attribute
+          because WordLemmaBucket adds some simp rules. This theory should also work without WordLemmaBucket*}
     from assms have c: "nat_of_ipv4addr ((ipv4addr_of_nat (d + 256 * c + 65536 * b + 16777216 * a) >> 8) AND mask 8) = c"
       apply(simp add: ipv4addr_of_nat_def word_of_nat)
       apply(simp add: nat_of_ipv4addr_def unat_def)
@@ -179,7 +181,7 @@ subsection{*Representing IPv4 Adresses*}
         apply simp_all
       apply(subst mod_pos_pos_trivial[where b="4294967296"])
         apply simp_all
-      apply(simp add: NumberWang.div256)
+      apply(simp add: NumberWang.div256[simplified])
       done
     from `d < 256` have d: "nat_of_ipv4addr (ipv4addr_of_nat (d + 256 * c + 65536 * b + 16777216 * a) AND mask 8) = d"
       apply(simp add: ipv4addr_of_nat_AND_mask8)
@@ -262,14 +264,14 @@ subsection{*IP ranges*}
      apply(simp_all)
     apply(simp add: ipv4range_set_from_bitmask_alt1 ipv4range_set_from_netmask_def Let_def)
     apply(simp add: range_0_max_UNIV)
-    apply(simp add: mask_def)
+    (*apply(simp add: mask_def)*)
     done
 
   lemma ipv4range_set_from_bitmask_32: "ipv4range_set_from_bitmask foo 32 = {foo}"
     apply(simp add: ipv4range_set_from_bitmask_alt1 ipv4range_set_from_netmask_def Let_def)
     apply(simp add: mask_def)
-    apply(simp only: max_ipv4_addr_number[symmetric] max_ipv4_addr_max_word Word.word_and_max)
-    apply(simp add: word32_or_NOT4294967296)
+    (*apply(simp only: max_ipv4_addr_number[symmetric] max_ipv4_addr_max_word Word.word_and_max)
+    apply(simp add: word32_or_NOT4294967296)*)
     done
 
   lemma ipv4range_set_from_bitmask_alt: "ipv4range_set_from_bitmask pre len = {(pre AND ((mask len) << (32 - len))) .. pre OR (mask (32 - len))}"
