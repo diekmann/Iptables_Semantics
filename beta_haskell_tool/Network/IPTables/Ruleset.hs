@@ -1,9 +1,24 @@
-module Network.IPTables.Ruleset where
+module Network.IPTables.Ruleset 
+( Ruleset
+, TableName
+, checkParsedTables
+, rulesetLookup
+, mkRuleset
+, rsetTablesM
+, tblChainsM
+, chnRulesM
+, mkTable
+, mkChain
+, mkParseRule
+, atMap
+, ParsedMatchAction(..)
+) where
 
 import           Data.List (intercalate)
 import           Data.Map (Map)
 import qualified Data.Map as M
 import qualified Debug.Trace
+import qualified Control.Exception
 
 
 import qualified Network.IPTables.Generated as Isabelle
@@ -124,6 +139,30 @@ filter_Isabelle_Action ps = case fAction ps of [] -> Isabelle.Empty
           fAction (ParsedNegatedMatch _ : ss) = fAction ss
           fAction (ParsedAction a : ss) = a : fAction ss
 
+
+
+-- this is just DEBUGING
+-- tries to catch exceptions of rulesetLookup
+checkParsedTables :: Ruleset -> IO ()
+checkParsedTables res = check tables
+    where tables = M.keys (rsetTables res)
+          check :: [TableName] -> IO ()
+          check [] = return ()
+          check (t:ts) = do
+                         let (chain, defaults) = rulesetLookup t res
+                         catch t (putStrLn (success t chain))
+                         check ts
+          catch :: String -> IO () -> IO ()
+          catch t fn = Control.Exception.catch fn (putStrLn . (error t))
+          error t msg = concat ["Table `", t ,"' caught exception: `"
+                               , show (msg::Control.Exception.SomeException)
+                               , "'. Analysis not possible for this table. "
+                               , "This is probably due to unsupportd actions "
+                               , "(or a bug in the parser)."]
+          success t chain = concat ["Parsed ", show (length chain)
+                                   , " chains in table ", t, ", a total of "
+                                   , show (length (concat (map snd chain)))
+                                   , " rules"]
 
 -- toString functions
 

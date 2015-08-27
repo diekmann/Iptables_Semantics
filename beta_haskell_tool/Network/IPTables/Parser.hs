@@ -1,5 +1,8 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
-module Network.IPTables.Parser where
+module Network.IPTables.Parser
+( ruleset
+, initRState
+) where
 
 import Control.Applicative ((<$>),(<*>),(<*),(*>))
 import Data.List (isPrefixOf)
@@ -55,7 +58,7 @@ table = line $ do
 
 chain = line $ do
     lit ":"
-    name   <- chainName
+    name   <- chainName <* skipWS
     defPol <- policy
     ctr    <- counter
     _      <- restOfLine
@@ -99,14 +102,14 @@ knownMatch = do
       <|> (probablyNegated $ lit "-m conntrack --ctstate " >> Isabelle.CT_State <$> ctstate)
       
       
-      <|> (lookAheadEOT target <* skipWS)
+      <|> ((lookAheadEOT target) <* skipWS)
       
     return $ p
     
 unknownMatch = token "unknown match" $ do
     extra <- (many1 (noneOf " \t\n\"") <|> try quotedString)
     let e = if "-j" `isPrefixOf` extra
-              then Debug.Trace.trace ("Warning: probaly a parse error at "++extra) extra
+              then Debug.Trace.trace ("Warning: probably a parse error at "++extra) extra
               else extra
     return $ ParsedMatch $ Isabelle.Extra $ e
     where quotedString = do
@@ -117,7 +120,7 @@ unknownMatch = token "unknown match" $ do
 
 rule = line $ do
     lit "-A"
-    chnname <- chainName
+    chnname <- chainName <* skipWS
     args    <- many (knownMatch <|> unknownMatch)
     unparsed <- restOfLine
 
@@ -150,7 +153,7 @@ safeJust msg f = maybe (fail msg) f
 
 
 tableName = token "table name" $ many1 $ oneOf $ ['A'..'Z']++['a'..'z']
-chainName = token "chain name" $ many1 $ oneOf $ ['A'..'Z']++['a'..'z']++['0'..'9']++['_','-','~']
+chainName = many1 $ oneOf $ ['A'..'Z']++['a'..'z']++['0'..'9']++['_','-','~']
 
 policy  =  token "policy"
         $  (string "ACCEPT" >> return (Just Isabelle.Accept))
