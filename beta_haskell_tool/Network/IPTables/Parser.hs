@@ -70,7 +70,6 @@ chain = line $ do
 
     return ()
 
--- TODO: make sure there is the eol or a whitesape after a parsed match!
 probablyNegated parser = ParsedNegatedMatch <$> try (lit "! " >> (lookAheadEOT parser) <* skipWS)
                      <|> ParsedMatch <$> (try (lookAheadEOT parser) <* skipWS)
                      
@@ -86,13 +85,19 @@ knownMatch = do
       <|> (probablyNegated $ lit "-d " >> Isabelle.Dst <$> ipv4addrOrCidr)
       <|> (notNegated $ lit "-m iprange --dst-range " >> Isabelle.Dst <$> ipv4range)
       
-      <|> (probablyNegated $ lit "-m tcp --sport " >> Isabelle.Src_Ports <$> (\p -> [p]) <$> parsePortOne)
-      <|> (probablyNegated $ lit "-m udp --sport " >> Isabelle.Src_Ports <$> (\p -> [p]) <$> parsePortOne)
+      <|> (probablyNegated $ lit "-m tcp --sport "
+                             >> Isabelle.Src_Ports <$> (\p -> [p]) <$> parsePortOne)
+      <|> (probablyNegated $ lit "-m udp --sport "
+                             >> Isabelle.Src_Ports <$> (\p -> [p]) <$> parsePortOne)
       -- TODO: negation syntax?
-      <|> (probablyNegated $ lit "-m multiport --sports " >> Isabelle.Src_Ports <$> parseCommaSeparatedList parsePortOne)
-      <|> (probablyNegated $ lit "-m tcp --dport " >> Isabelle.Dst_Ports <$> (\p -> [p]) <$> parsePortOne)
-      <|> (probablyNegated $ lit "-m udp --dport " >> Isabelle.Dst_Ports <$> (\p -> [p]) <$> parsePortOne)
-      <|> (probablyNegated $ lit "-m multiport --dports " >> Isabelle.Dst_Ports <$> parseCommaSeparatedList parsePortOne)
+      <|> (probablyNegated $ lit "-m multiport --sports "
+                             >> Isabelle.Src_Ports <$> parseCommaSeparatedList parsePortOne)
+      <|> (probablyNegated $ lit "-m tcp --dport "
+                             >> Isabelle.Dst_Ports <$> (\p -> [p]) <$> parsePortOne)
+      <|> (probablyNegated $ lit "-m udp --dport "
+                             >> Isabelle.Dst_Ports <$> (\p -> [p]) <$> parsePortOne)
+      <|> (probablyNegated $ lit "-m multiport --dports "
+                             >> Isabelle.Dst_Ports <$> parseCommaSeparatedList parsePortOne)
       
       <|> (probablyNegated $ lit "-i " >> Isabelle.IIface <$> iface)
       <|> (probablyNegated $ lit "-o " >> Isabelle.OIface <$> iface)
@@ -124,7 +129,10 @@ rule = line $ do
     args    <- many (knownMatch <|> unknownMatch)
     unparsed <- restOfLine
 
-    let rest    = if unparsed == "" then [] else Debug.Trace.trace ("ERROR unparsable : " ++ unparsed) [ParsedMatch (Isabelle.Extra unparsed)]
+    let rest    = if unparsed == ""
+                  then []
+                  else Debug.Trace.trace ("ERROR unparsable : " ++ unparsed)
+                       [ParsedMatch (Isabelle.Extra unparsed)]
         myArgs  = args ++ rest
         rl      = mkParseRule myArgs
 
@@ -252,9 +260,12 @@ parsePortOne = try tuple <|> single
               char ':'
               p2 <- port_raw
               if p2 `Isabelle.word_less_eq` p1 then
-                  return (Debug.Trace.trace
-                    ("WARNING: port " ++ show (Isabelle.word_to_nat p1) ++ " >= " ++ show (Isabelle.word_to_nat p2))
-                    (p1,p2))
+                  return (Debug.Trace.trace (concat
+                             ["WARNING: port "
+                             ,show (Isabelle.word_to_nat p1)
+                             ," >= " ++ show (Isabelle.word_to_nat p2)
+                             ])
+                         (p1,p2))
                   else return (p1,p2)
 
 
@@ -268,7 +279,8 @@ ctstate = Isabelle.mk_Set <$> parseCommaSeparatedList ctstateOne
 -- needs LookAheadEOT, otherwise, this might happen to the custom LOG_DROP target:
 -- -A ranges_96 `ParsedAction -j LOG' `ParsedMatch ~~_DROP~~'
 target = ParsedAction <$> (
-           try (string "-j REJECT --reject-with " >> many1 (oneOf $ ['a'..'z']++['-']) >> return (Isabelle.Reject))
+           try (string "-j REJECT --reject-with "
+                >> many1 (oneOf $ ['a'..'z']++['-']) >> return (Isabelle.Reject))
        <|> try (string "-g " >> Isabelle.Goto <$> lookAheadEOT chainName)
        <|> try (string "-j " >> choice (map (try. lookAheadEOT)
                                        [string "DROP" >> return Isabelle.Drop
