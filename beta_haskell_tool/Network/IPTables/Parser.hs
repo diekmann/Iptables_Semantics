@@ -1,7 +1,6 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 module Network.IPTables.Parser
-( ruleset
-, initRState
+( parseIptablesSave
 ) where
 
 import Control.Applicative ((<$>),(<*>),(<*),(*>))
@@ -24,6 +23,8 @@ data RState = RState { rstRules  :: Ruleset
                      }
     deriving (Show)
 
+parseIptablesSave :: SourceName -> String -> Either ParseError Ruleset
+parseIptablesSave = runParser ruleset initRState
 
 initRState = RState mkRuleset Nothing
 

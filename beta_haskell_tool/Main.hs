@@ -23,7 +23,7 @@ exampleCertSpoof fuc = map (\ifce -> (ifce, Isabelle.no_spoofing_iface ifce ipas
              
 main = do
     src <- getContents
-    case runParser ruleset initRState "<stdin>" src of
+    case parseIptablesSave "<stdin>" src of
         Left err -> print err
         Right res -> do
             putStrLn $ "== Parser output =="
