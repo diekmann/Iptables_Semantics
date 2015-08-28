@@ -295,5 +295,7 @@ target = ParsedAction <$> (
        
     
 -- Helper --
+atMap key f = M.adjust f key
+
 trim s = let rm = dropWhile (`elem` " \t")
          in  rm $ reverse $ rm $ reverse s

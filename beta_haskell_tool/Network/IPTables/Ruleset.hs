@@ -10,7 +10,6 @@ module Network.IPTables.Ruleset
 , mkTable
 , mkChain
 , mkParseRule
-, atMap
 , ParsedMatchAction(..)
 ) where
 
@@ -85,8 +84,6 @@ chnDefaultM f chn  = chn  { chnDefault = f (chnDefault chn ) }
 chnRulesM   f chn  = chn  { chnRules   = f (chnRules   chn ) }
 ruleArgsM   f rule = rule { ruleArgs   = f (ruleArgs   rule) }
 
-atMap key f = M.adjust f key
-atAL key f = map (\(k,v) -> (k,if k == key then f v else v))
 
 
 example = Ruleset $ M.fromList
