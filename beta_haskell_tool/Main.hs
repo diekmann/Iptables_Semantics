@@ -11,9 +11,9 @@ import qualified Network.IPTables.Generated as Isabelle
 
 preprocessForSpoofingProtection unfolded = Isabelle.upper_closure $ Isabelle.ctstate_assume_new unfolded
 
-exampleCertSpoof fuc = map (\ifce -> (ifce, Isabelle.no_spoofing_iface ifce ipassmt fuc)) interfaces
-    where interfaces = map fst Isabelle.example_TUM_i8_spoofing_ipassmt
-          ipassmt = Isabelle.map_of_ipassmt Isabelle.example_TUM_i8_spoofing_ipassmt
+exampleCertSpoof ipassmt fuc = map (\ifce -> (ifce, Isabelle.no_spoofing_iface ifce ipassmtMap fuc)) interfaces
+    where interfaces = map fst ipassmt
+          ipassmtMap = Isabelle.map_of_ipassmt ipassmt
 
 readIpAssmt = do
     let filename = "ipassmt"
@@ -24,7 +24,7 @@ readIpAssmt = do
         Right res -> do putStrLn "Parsed IpAssmt"
                         putStrLn (show res)
                         return $ ipAssmtToIsabelle res
-                       
+-- TODO: for the sake of example, default to Isabelle.example_TUM_i8_spoofing_ipassmt
 
              
 main = do
@@ -51,9 +51,9 @@ main = do
             putStrLn $ L.intercalate "\n" $ map show (Isabelle.to_simple_firewall $ Isabelle.upper_closure $ Isabelle.optimize_matches Isabelle.abstract_for_simple_firewall $ Isabelle.ctstate_assume_new $ unfolded)
             putStrLn "== to even-simpler firewall =="
             putStrLn $ L.intercalate "\n" $ map show (Isabelle.to_simple_firewall_without_interfaces unfolded)
-            putStrLn "== checking spoofing protection (for the hard-coded example_TUM_i8_spoofing_ipassmt) =="
+            putStrLn "== checking spoofing protection =="
             let fuc = preprocessForSpoofingProtection unfolded --Firewall Under Certification
             --putStrLn $ show fuc
-            putStrLn $ "ipassmt_sanity_defined: " ++ show (Isabelle.ipassmt_sanity_defined fuc (Isabelle.map_of_ipassmt Isabelle.example_TUM_i8_spoofing_ipassmt))
-            mapM_  (putStrLn . show) (exampleCertSpoof fuc)
+            putStrLn $ "ipassmt_sanity_defined: " ++ show (Isabelle.ipassmt_sanity_defined fuc (Isabelle.map_of_ipassmt ipassmt))
+            mapM_  (putStrLn . show) (exampleCertSpoof ipassmt fuc)
             return ()
