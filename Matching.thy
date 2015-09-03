@@ -3,6 +3,11 @@ imports Semantics
 begin
 
 subsection{*Boolean Matcher Algebra*}
+
+lemma MatchOr: "matches \<gamma> (MatchOr m1 m2) p \<longleftrightarrow> matches \<gamma> m1 p \<or> matches \<gamma> m2 p"
+  by(simp add: MatchOr_def)
+
+
 text{*Lemmas about matching in the @{const iptables_bigstep} semantics.*}
 
 lemma matches_rule_iptables_bigstep:

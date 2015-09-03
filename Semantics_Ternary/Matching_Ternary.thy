@@ -121,13 +121,17 @@ by (cases \<gamma>) (simp split: ternaryvalue.split add: matches_case_ternaryval
 
 subsection{*Ternary Matcher Algebra*}
 
-
 lemma matches_and_comm: "matches \<gamma> (MatchAnd m m') a p \<longleftrightarrow> matches \<gamma> (MatchAnd m' m) a p"
 apply(cases \<gamma>, rename_tac \<beta> \<alpha>, clarify)
 by(simp split: ternaryvalue.split add: matches_case_ternaryvalue_tuple eval_ternary_And_comm)
 
 lemma matches_not_idem: "matches \<gamma> (MatchNot (MatchNot m)) a p \<longleftrightarrow> matches \<gamma> m a p"
 by (metis bunch_of_lemmata_about_matches(6))
+
+
+lemma MatchOr: "matches \<gamma> (MatchOr m1 m2) a p \<longleftrightarrow> matches \<gamma> m1 a p \<or> matches \<gamma> m2 a p"
+  by(simp add: MatchOr_def matches_DeMorgan matches_not_idem)
+  
 
 
 lemma "(TernaryNot (map_match_tac \<beta> p (m))) = (map_match_tac \<beta> p (MatchNot m))"

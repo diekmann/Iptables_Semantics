@@ -19,4 +19,7 @@ datatype 'a match_expr = Match 'a | MatchNot "'a match_expr" | MatchAnd "'a matc
 datatype 'a rule = Rule (get_match: "'a match_expr") (get_action: action)
 
 
+definition MatchOr :: "'a match_expr \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr" where
+  "MatchOr m1 m2 = MatchNot (MatchAnd (MatchNot m1) (MatchNot m2))"
+
 end
