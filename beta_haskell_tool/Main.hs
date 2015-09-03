@@ -1,5 +1,6 @@
 module Main where
 
+import qualified System.Environment
 import Network.IPTables.Ruleset
 import Network.IPTables.Parser
 import Network.IPTables.IpassmtParser
@@ -15,8 +16,7 @@ exampleCertSpoof ipassmt fuc = map (\ifce -> (ifce, Isabelle.no_spoofing_iface i
     where interfaces = map fst ipassmt
           ipassmtMap = Isabelle.map_of_ipassmt ipassmt
 
-readIpAssmt = do
-    let filename = "ipassmt"
+readIpAssmt filename = do
     src <- readFile filename
     case parseIpAssmt filename src of
         Left err -> do print err
@@ -24,11 +24,24 @@ readIpAssmt = do
         Right res -> do putStrLn "Parsed IpAssmt"
                         putStrLn (show res)
                         return $ ipAssmtToIsabelle res
--- TODO: for the sake of example, default to Isabelle.example_TUM_i8_spoofing_ipassmt
 
+
+getIpAssmt = do
+    args <- System.Environment.getArgs
+    progName <- System.Environment.getProgName
+    case length args of
+      0 -> do putStrLn "no argument supplied"
+              putStrLn "for the sake of example, I'm loading TUM_i8_ipassmt"
+              putStrLn "Probably, this makes no sense!"
+              return (Isabelle.example_TUM_i8_spoofing_ipassmt)
+      1 -> do putStrLn $ "loading ipassmt from `" ++ filename ++ "'"
+              readIpAssmt filename
+                  where filename = head args
+      _ -> do putStrLn $ "Usage: " ++ progName ++ " ipassmt_file"
+              error "too many command line parameters"
              
 main = do
-    ipassmt <- readIpAssmt
+    ipassmt <- getIpAssmt
     src <- getContents
     case parseIptablesSave "<stdin>" src of
         Left err -> print err
