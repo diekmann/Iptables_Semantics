@@ -1,5 +1,5 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
-module IpassmtParser where
+module Network.IPTables.IpassmtParser(parseIpAssmt, IpAssmt, ipAssmtToIsabelle) where
 
 import           Text.Parsec hiding (token)
 import           Control.Applicative ((<$>),(<*),(*>))
@@ -12,6 +12,9 @@ type IpRange = Isabelle.Negation_type [Isabelle.Ipt_ipv4range]
 data IpAssmt =  IpAssmt [(Isabelle.Iface, IpRange)] deriving (Show)
 
 ipAssmtToIsabelle (IpAssmt assmt) = Isabelle.to_ipassmt assmt
+
+parseIpAssmt :: SourceName -> String -> Either ParseError IpAssmt
+parseIpAssmt = runParser ifconfig ()
 
 ifconfig = IpAssmt <$> many (skipWS *> ipAssmt <* skipWS)
 

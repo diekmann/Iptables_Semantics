@@ -2,6 +2,7 @@ module Main where
 
 import Network.IPTables.Ruleset
 import Network.IPTables.Parser
+import Network.IPTables.IpassmtParser
 import qualified Data.Map as M
 import qualified Data.List as L
 
@@ -14,8 +15,20 @@ exampleCertSpoof fuc = map (\ifce -> (ifce, Isabelle.no_spoofing_iface ifce ipas
     where interfaces = map fst Isabelle.example_TUM_i8_spoofing_ipassmt
           ipassmt = Isabelle.map_of_ipassmt Isabelle.example_TUM_i8_spoofing_ipassmt
 
+readIpAssmt = do
+    let filename = "ipassmt"
+    src <- readFile filename
+    case parseIpAssmt filename src of
+        Left err -> do print err
+                       error $ "could not parse " ++ filename
+        Right res -> do putStrLn "Parsed IpAssmt"
+                        putStrLn (show res)
+                        return $ ipAssmtToIsabelle res
+                       
+
              
 main = do
+    ipassmt <- readIpAssmt
     src <- getContents
     case parseIptablesSave "<stdin>" src of
         Left err -> print err
