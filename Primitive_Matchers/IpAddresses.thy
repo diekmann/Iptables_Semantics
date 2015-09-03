@@ -220,4 +220,14 @@ subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
     "\<forall>a'\<in>set (ipt_ipv4range_compress as). normalized_cidr_ip a'"
     by(simp add: ipt_ipv4range_compress_def wi_2_cidr_ipt_ipv4range_list_normalized_Ip4AddrNetmask)
 
+
+  
+  definition ipt_ipv4range_to_cidr :: "ipt_ipv4range \<Rightarrow> (ipv4addr \<times> nat) list" where
+    "ipt_ipv4range_to_cidr ips = ipv4range_split (ipv4range_range (ipt_ipv4range_to_interval ips))"
+
+  lemma ipt_ipv4range_to_cidr: "ipv4cidr_union_set (set (ipt_ipv4range_to_cidr ips)) = (ipv4s_to_set ips)"
+    apply(simp add: ipt_ipv4range_to_cidr_def)
+    by (metis (no_types, hide_lams) SUP_def ipt_ipv4range_to_interval ipv4cidr_union_set_def ipv4range_range.cases ipv4range_split_bitmask_single)
+    
+
 end

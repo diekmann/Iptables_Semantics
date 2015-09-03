@@ -10,7 +10,6 @@ module Network.IPTables.Ruleset
 , mkTable
 , mkChain
 , mkParseRule
-, atMap
 , ParsedMatchAction(..)
 ) where
 
@@ -19,32 +18,8 @@ import           Data.Map (Map)
 import qualified Data.Map as M
 import qualified Debug.Trace
 import qualified Control.Exception
-
-
 import qualified Network.IPTables.Generated as Isabelle
-
-instance Show Isabelle.Nat where
-    show (Isabelle.Nat n) = "Nat " ++ show n
-
-instance Show Isabelle.Common_primitive where
-    show = Isabelle.common_primitive_toString
-
-instance Show Isabelle.Action where
-    show = Isabelle.action_toString
-    
-instance Show Isabelle.Simple_rule where
-    show = Isabelle.simple_rule_toString
-
-instance Show a => Show (Isabelle.Match_expr a) where
-    --show = Isabelle.common_primitive_match_expr_toString -- TODO if we could fix the type, we could reuse this
-    show (Isabelle.MatchAny) = ""
-    show (Isabelle.Match a) = show a
-    show (Isabelle.MatchNot (Isabelle.Match a)) = "! " ++ show a
-    show (Isabelle.MatchNot m) = "! (" ++ show m ++ ")"
-    show (Isabelle.MatchAnd m1 m2) = show m1 ++ " " ++ show m2
-
-instance Show a => Show (Isabelle.Rule a) where
-    show (Isabelle.Rule m a) = "(" ++ show m ++ ", " ++ show a ++ ")"
+import           Network.IPTables.IsabelleToString()
 
 
 data Ruleset = Ruleset { rsetTables :: Map TableName Table } -- deriving (Ord)
@@ -85,8 +60,6 @@ chnDefaultM f chn  = chn  { chnDefault = f (chnDefault chn ) }
 chnRulesM   f chn  = chn  { chnRules   = f (chnRules   chn ) }
 ruleArgsM   f rule = rule { ruleArgs   = f (ruleArgs   rule) }
 
-atMap key f = M.adjust f key
-atAL key f = map (\(k,v) -> (k,if k == key then f v else v))
 
 
 example = Ruleset $ M.fromList

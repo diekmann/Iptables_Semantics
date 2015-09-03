@@ -1,21 +1,15 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 module Network.IPTables.Parser
-( ruleset
-, initRState
+( parseIptablesSave
 ) where
 
-import Control.Applicative ((<$>),(<*>),(<*),(*>))
-import Data.List (isPrefixOf)
-
+import           Control.Applicative ((<$>),(<*))
+import           Data.List (isPrefixOf)
 import qualified Data.Map as M
-import qualified Control.Monad (when)
 import qualified Debug.Trace
-
-
-import Text.Parsec hiding (token)
-
-import Network.IPTables.Ruleset
-
+import           Text.Parsec hiding (token)
+import           Network.IPTables.Ruleset
+import           Network.IPTables.ParserHelper
 import qualified Network.IPTables.Generated as Isabelle
 
 
@@ -24,6 +18,8 @@ data RState = RState { rstRules  :: Ruleset
                      }
     deriving (Show)
 
+parseIptablesSave :: SourceName -> String -> Either ParseError Ruleset
+parseIptablesSave = runParser ruleset initRState
 
 initRState = RState mkRuleset Nothing
 
@@ -198,57 +194,9 @@ lookAheadEOT parser = do
     lookAhead (oneOf ws <|> eol)
     return res
 
-nat = do
-    n <- (read :: String -> Integer) <$> many1 (oneOf ['0'..'9']) -- ['0'..'9']++['-']
-    if n < 0
-        then error ("nat `"++ show n ++ "' must be geq zero")
-        else return n
-
-
-parseCommaSeparatedList parser = sepBy parser (char ',')
-
--- Parsing Isabelle primitives --
-natMaxval maxval = do
-    n <- nat
-    if n > maxval
-        then error ("nat `"++ show n ++ "' must be smaller than " ++ show maxval)
-        else return (Isabelle.Nat n)
-
-ipv4dotdecimal = do
-    a <- natMaxval 255
-    char '.'
-    b <- natMaxval 255
-    char '.'
-    c <- natMaxval 255
-    char '.'
-    d <- natMaxval 255
-    return (a,(b,(c,d)))
-
-
-ipv4addr = do
-    ip <- ipv4dotdecimal
-    return (Isabelle.Ip4Addr ip)
-
-ipv4cidr = do
-    ip <- ipv4dotdecimal
-    char '/'
-    netmask <- natMaxval 32
-    return (Isabelle.Ip4AddrNetmask ip netmask)
-
 ipv4addrOrCidr = try ipv4cidr <|> try ipv4addr
 
-ipv4range = do
-    ip1 <- ipv4dotdecimal
-    char '-'
-    ip2 <- ipv4dotdecimal
-    return (Isabelle.Ip4AddrRange ip1 ip2)
-    
-protocol = Isabelle.Proto <$> choice [string "tcp" >> return Isabelle.TCP
-                                     ,string "udp" >> return Isabelle.UDP
-                                     ,string "icmp" >> return Isabelle.ICMP
-                                     ]
-
-iface = Isabelle.Iface <$> many1 (oneOf $ ['A'..'Z']++['a'..'z']++['0'..'9']++['+','*','.'])
+parseCommaSeparatedList parser = sepBy parser (char ',')
 
 parsePortOne = try tuple <|> single
     where port_raw = Isabelle.nat_to_16word <$> natMaxval 65535
@@ -268,13 +216,11 @@ parsePortOne = try tuple <|> single
                          (p1,p2))
                   else return (p1,p2)
 
-
 ctstate = Isabelle.mk_Set <$> parseCommaSeparatedList ctstateOne
     where ctstateOne = choice [string "NEW" >> return Isabelle.CT_New
                               ,string "ESTABLISHED" >> return Isabelle.CT_Established
                               ,string "RELATED" >> return Isabelle.CT_Related
                               ,string "UNTRACKED" >> return Isabelle.CT_Untracked]              
-
 
 -- needs LookAheadEOT, otherwise, this might happen to the custom LOG_DROP target:
 -- -A ranges_96 `ParsedAction -j LOG' `ParsedMatch ~~_DROP~~'
@@ -291,8 +237,6 @@ target = ParsedAction <$> (
                                        ]))
        <|> try (string "-j " >> Isabelle.Call <$> lookAheadEOT chainName)
        )
-       
     
 -- Helper --
-trim s = let rm = dropWhile (`elem` " \t")
-         in  rm $ reverse $ rm $ reverse s
+atMap key f = M.adjust f key
