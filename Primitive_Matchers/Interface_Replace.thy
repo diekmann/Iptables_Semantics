@@ -108,6 +108,10 @@ lemma xxxx_x:"\<forall>a. in_doubt_allow a p = (\<not> b) \<Longrightarrow> Fals
    apply fastforce
   by auto
 
+(*needs the p in assm*)
+lemma xxxx_xx:"\<alpha> Drop p \<noteq> \<alpha> Accept p \<Longrightarrow> \<forall>a. \<alpha> a p = (\<not> b) \<Longrightarrow> False"
+  by simp
+
 (*TODO: only holds for in_doubt_allow or on_doubt_deny because they have opposite results for some actions \<dots>
   generalize! add this to wf_unknown_match_tac:
   Drop \<noteq> Accept*)
@@ -144,27 +148,28 @@ apply(cases t1)
         apply(simp_all)
 done
 
+lemma ipassmt_sanity_haswildcards_helper1: "ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
+       ipassmt (Iface ifce2) = None \<Longrightarrow> ipassmt ifce = Some a \<Longrightarrow> \<not> match_iface ifce ifce2"
+apply(simp add: ipassmt_sanity_haswildcards_def)
+using iface_is_wildcard_def match_iface_case_nowildcard by fastforce
+
+
+lemma "ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
+       ipassmt ifce = Some a \<Longrightarrow> \<not> match_iface ifce ifce2"
+apply(simp add: ipassmt_sanity_haswildcards_def)
+
+
 (*need: no wildcards in ipassmt*)
-lemma "(case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)) \<Longrightarrow>
+(*need: ipassmt ips are disjoint?*)
+(*wants some wf_\<alpha> (see above)?*)
+lemma "ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
+       (case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)) \<Longrightarrow>
     matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
   proof(induction m)
   case MatchAny thus ?case by simp
   next
   case (MatchNot m)
     hence IH: "matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p = matches (common_matcher, \<alpha>) m a p" by blast
-    (*hence "ternary_to_bool_unknown_match_tac \<alpha> a p (ternary_ternary_eval (map_match_tac common_matcher p (rewrite_iiface ipassmt m))) =
-    ternary_to_bool_unknown_match_tac \<alpha> a p (ternary_ternary_eval (map_match_tac common_matcher p m))"
-     by(simp add: matches_tuple)
-    hence "(ternary_ternary_eval (map_match_tac common_matcher p (rewrite_iiface ipassmt m))) =
-    (ternary_ternary_eval (map_match_tac common_matcher p m))"
-     apply -
-     apply(subst(asm) ternary_to_bool_unknown_match_tac_eq_cases)
-     apply(safe)
-     apply(simp_all)
-     apply(case_tac "(ternary_ternary_eval (map_match_tac common_matcher p m))")
-     apply(case_tac [!] "(ternary_ternary_eval (map_match_tac common_matcher p (rewrite_iiface ipassmt m)))")
-     apply(simp_all)
-     sorry*)
     thus ?case
      apply -
      apply(simp)
@@ -182,11 +187,16 @@ lemma "(case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in
      apply(simp)
      apply(simp add: matches_ipassmt_iface_to_srcip_mexpr)
      apply(case_tac "ipassmt ifce")
-      apply(simp add: ; fail)
+      apply(simp; fail)
      apply(simp)
-     defer (*should be by ipassmt asm*)
+     apply(drule(2) ipassmt_sanity_haswildcards_helper1)
+     apply(simp)
+     defer (*should be by ipassmt assm*)
     apply(simp)
     apply(simp add: matches_ipassmt_iface_to_srcip_mexpr)
+    apply(case_tac "ipassmt ifce")
+     apply(simp; fail)
+    apply(simp)
     (*by assumption?*)
     sorry
   next
