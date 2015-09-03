@@ -133,10 +133,25 @@ lemma xxxx_x:"\<forall>a. in_doubt_allow a p = (\<not> b) \<Longrightarrow> Fals
 lemma xxxx_xx:"\<alpha> Drop p \<noteq> \<alpha> Accept p \<Longrightarrow> \<forall>a. \<alpha> a p = (\<not> b) \<Longrightarrow> False"
   by simp
 
+
+
+
+
+
+
+
+
+
+
+
+(*************THIS!****************)
+
+
+
 (*TODO: only holds for in_doubt_allow or on_doubt_deny because they have opposite results for some actions \<dots>
   generalize! add this to wf_unknown_match_tac:
   Drop \<noteq> Accept*)
-lemma "\<alpha> Drop \<noteq> \<alpha> Accept \<Longrightarrow> \<forall> a. matches (\<beta>,in_doubt_allow) m' a p = matches (\<beta>,in_doubt_allow) m a p \<Longrightarrow>
+lemma "(*\<alpha> Drop \<noteq> \<alpha> Accept \<Longrightarrow>*) \<forall> a. matches (\<beta>,in_doubt_allow) m' a p = matches (\<beta>,in_doubt_allow) m a p \<Longrightarrow>
     matches (\<beta>,in_doubt_allow) (MatchNot m') a p = matches (\<beta>,in_doubt_allow) (MatchNot m) a p"
 apply(simp add: matches_case_tuple)
 apply(case_tac "ternary_eval (TernaryNot (map_match_tac \<beta> p m'))")
@@ -192,7 +207,7 @@ lemma helper_es_ist_spaet:"matches (common_matcher, \<alpha>) (MatchNot (match_l
   apply(simp add: ipv4s_to_set_Ip4AddrNetmask_case)
 done
 
-lemma rewrite_iiface_matches_MatchNot:
+lemma rewrite_iiface_matches_MatchNot_Primitive:
         "matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt (Match x)) a p = matches (common_matcher, \<alpha>) (Match x) a p \<Longrightarrow>
          matches (common_matcher, \<alpha>) (MatchNot (rewrite_iiface ipassmt (Match x))) a p = matches (common_matcher, \<alpha>) (MatchNot (Match x)) a p"
      apply(case_tac x)
@@ -205,37 +220,80 @@ lemma rewrite_iiface_matches_MatchNot:
      apply(simp add: helper_es_ist_spaet; fail)
 done
 
+lemma rewrite_iiface_matches_Primitive:
+        "matches (common_matcher, \<alpha>) (MatchNot (rewrite_iiface ipassmt (Match x))) a p = matches (common_matcher, \<alpha>) (MatchNot (Match x)) a p \<Longrightarrow>
+         matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt (Match x)) a p = matches (common_matcher, \<alpha>) (Match x) a p"
+     apply(case_tac x)
+             apply(simp_all)
+     apply(simp add: matches_ipassmt_iface_to_srcip_mexpr)
+     apply(simp split: option.split)
+     apply(intro conjI)
+      apply(simp_all add: match_simplematcher_Iface_not match_simplematcher_Iface)
+      apply(simp_all add: ipassmt_iface_to_srcip_mexpr_def)
+      apply(simp split: option.split_asm)
+     apply(simp add: helper_es_ist_spaet; fail)
+done
+
+
+lemma   "matches (common_matcher, \<alpha>) (MatchNot (rewrite_iiface ipassmt m)) a p = matches (common_matcher, \<alpha>) (MatchNot m) a p \<longleftrightarrow>
+         matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p = matches (common_matcher, \<alpha>) m a p"
+     apply(induction m)
+        apply(simp_all add: rewrite_iiface_matches_Primitive)
+       apply(simp_all add: bunch_of_lemmata_about_matches(6))
+      using rewrite_iiface_matches_MatchNot_Primitive rewrite_iiface_matches_Primitive apply blast
+     apply(simp_all add: bunch_of_lemmata_about_matches matches_DeMorgan)
+     apply(safe)
+     apply(simp_all)
+     (**probably last case does not hold**)
+     oops
+
+lemma "matches (common_matcher, \<alpha>) m a p \<Longrightarrow> (*\<longleftrightarrow>*)
+        matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p"
+apply(induction m)
+apply(simp_all)
+     apply(case_tac x)
+             apply(simp_all)
+     apply(simp add: matches_ipassmt_iface_to_srcip_mexpr)
+     apply(simp split: option.split)
+     apply(intro conjI)
+      apply(simp_all add: match_simplematcher_Iface_not match_simplematcher_Iface)
+     defer (*needs*assm*)
+defer
+apply(simp add: bunch_of_lemmata_about_matches)
+defer
+oops
+
 (*need: no wildcards in ipassmt*)
 (*need: ipassmt ips are disjoint?*)
 (*wants some wf_\<alpha> (see above)? or do MatchNot case by hand?*)
 lemma "ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
        (case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)) \<Longrightarrow>
     matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
-  proof(induction m)
+  proof(induction m arbitrary: a)
   case MatchAny thus ?case by simp
   next
   case (MatchNot m)
-    hence IH: "matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p = matches (common_matcher, \<alpha>) m a p" by blast
+    hence IH: "\<forall>a. matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p = matches (common_matcher, \<alpha>) m a p" by blast
     thus ?case
-     apply(induction m)
-     apply(simp_all add: rewrite_iiface_matches_MatchNot)
+     (*apply(induction m)
+     apply(simp_all add: rewrite_iiface_matches_MatchNot_Primitive)
      
      apply(thin_tac "_ \<Longrightarrow> True")
      apply(simp_all add: bunch_of_lemmata_about_matches)
      defer
-     
-     defer
-     apply(simp add:bunch_of_lemmata_about_matches)
-     
-     apply -
+     apply(simp add: matches_DeMorgan)
+     apply(case_tac "(Matching_Ternary.matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m1) a p \<and> Matching_Ternary.matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m2) a p)")
      apply(simp)
-     apply(rule matches_MatchNot_no_unknowns)
-       apply(simp)
+     apply(simp)
+
+     apply(safe)
+     apply(simp_all)*)
+     
      sorry
   next
-  case(Match a)
+  case(Match x a)
    thus ?case
-    apply(cases a)
+    apply(cases x)
             apply(simp_all)
     apply(rename_tac ifce)
     apply(simp add: Common_Primitive_Matcher.match_simplematcher_Iface)
@@ -253,7 +311,12 @@ lemma "ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
     apply(case_tac "ipassmt ifce")
      apply(simp; fail)
     apply(simp)
-    (*by assumption?*)
+    apply(case_tac ifce)
+    apply(rename_tac ifce_str)
+    apply(case_tac "ifce_str = (p_iiface p)")
+     apply (simp add: match_iface_refl)
+    apply(simp)
+    (*by assumption*)
     sorry
   next
   case (MatchAnd m1 m2) thus ?case
