@@ -74,6 +74,14 @@ definition "example_TUM_i8_spoofing_ipassmt =
 definition map_of_ipassmt :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> iface \<rightharpoonup> (32 word \<times> nat) list" where
   "map_of_ipassmt ipassmt = map_of ipassmt"
 
+
+fun ipassmt_iprange_translate :: "ipt_ipv4range list negation_type \<Rightarrow> (32 word \<times> nat) list" where
+  "ipassmt_iprange_translate (Pos ips) = concat (map ipt_ipv4range_to_cidr ips)" |
+  "ipassmt_iprange_translate (Neg ips) = all_but_those_ips (concat (map ipt_ipv4range_to_cidr ips))"
+
+definition to_ipassmt :: "(iface \<times> ipt_ipv4range list negation_type) list \<Rightarrow> (iface \<times> (32 word \<times> nat) list) list" where
+  "to_ipassmt assmt = map (\<lambda>(ifce, ips). (ifce, ipassmt_iprange_translate ips)) assmt"
+
 export_code Rule
   Match MatchNot MatchAnd MatchAny
   Src Dst IIface OIface Prot Src_Ports Dst_Ports CT_State Extra
@@ -94,7 +102,8 @@ export_code Rule
   to_simple_firewall
   to_simple_firewall_without_interfaces
   sanity_wf_ruleset
-  (*spoofing:*) example_TUM_i8_spoofing_ipassmt no_spoofing_iface ipassmt_sanity_defined map_of_ipassmt
+  (*spoofing:*) example_TUM_i8_spoofing_ipassmt no_spoofing_iface ipassmt_sanity_defined map_of_ipassmt to_ipassmt
+  Pos Neg
   in Haskell module_name "Network.IPTables.Generated" file "generated_code/"
 
 end

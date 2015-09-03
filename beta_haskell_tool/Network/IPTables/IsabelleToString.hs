@@ -3,6 +3,11 @@ module Network.IPTables.IsabelleToString where
 import           Data.List (intercalate)
 import qualified Network.IPTables.Generated as Isabelle
 
+
+instance Show a => Show (Isabelle.Negation_type a) where
+    show (Isabelle.Pos x) = "Pos " ++ show x
+    show (Isabelle.Neg x) = "Neg " ++ show x
+
 instance Show Isabelle.Nat where
     show (Isabelle.Nat n) = "Nat " ++ show n
 

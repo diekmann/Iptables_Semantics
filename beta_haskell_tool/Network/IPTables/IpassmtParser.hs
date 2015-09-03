@@ -1,24 +1,30 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 module IpassmtParser where
 
-import qualified Data.Map as M
 import           Text.Parsec hiding (token)
-import           Control.Applicative ((<$>),(<*>),(<*),(*>))
+import           Control.Applicative ((<$>),(<*),(*>))
 import qualified Network.IPTables.Generated as Isabelle
 import           Network.IPTables.ParserHelper
 import           Network.IPTables.IsabelleToString()
 
-data IpRange = IpRange [Isabelle.Ipt_ipv4range]
+type IpRange = Isabelle.Negation_type [Isabelle.Ipt_ipv4range]
 
-type IpAssmt = M.Map Isabelle.Iface IpRange
+data IpAssmt =  IpAssmt [(Isabelle.Iface, IpRange)] deriving (Show)
 
-ifconfig = many (skipWS *> ipAssmt <* skipWS)
+ipAssmtToIsabelle (IpAssmt assmt) = Isabelle.to_ipassmt assmt
+
+ifconfig = IpAssmt <$> many (skipWS *> ipAssmt <* skipWS)
 
 ipAssmt = do
-  ifce <- iface
-  skipWS *> char '=' <* skipWS
-  rng <- ipRange
-  return (ifce, rng)
+    ifce <- iface
+    skipWS *> char '=' <* skipWS
+    rng <- choice [try neg, try pos]
+    return (ifce, rng)
+        where pos = do rng <- ipRange
+                       return (Isabelle.Pos rng)
+              neg = do skipWS *> string "all_but_those_ips" <* skipWS
+                       rng <- ipRange
+                       return (Isabelle.Neg rng)
 
 ipRange = enclosedList '[' ips ']'
     where ips = choice [try ipv4cidr, try ipv4range, try ipv4addr]
