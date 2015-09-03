@@ -1,7 +1,5 @@
 module Main where
 
-import Text.Parsec (runParser)
-
 import Network.IPTables.Ruleset
 import Network.IPTables.Parser
 import qualified Data.Map as M
@@ -9,10 +7,6 @@ import qualified Data.List as L
 
 import qualified Network.IPTables.Generated as Isabelle
 
-
-
-instance Show Isabelle.Iface where
-    show (Isabelle.Iface i) = i
 
 preprocessForSpoofingProtection unfolded = Isabelle.upper_closure $ Isabelle.ctstate_assume_new unfolded
 
