@@ -81,14 +81,56 @@ lemma no_unknowns_ternary_to_bool_Some: "\<not> has_unknowns \<beta> m \<Longrig
   using ternary_lift(6) ternary_to_bool_Some by auto
   
 
-(*TODO: move and redo proof!*)
+(*TODO: move*)
 lemma matches_MatchNot_no_unknowns: "matches (\<beta>,\<alpha>) m' a p = matches (\<beta>,\<alpha>) m a p \<Longrightarrow>
     \<not> has_unknowns \<beta> m' \<Longrightarrow> \<not> has_unknowns \<beta> m \<Longrightarrow>
     matches (\<beta>,\<alpha>) (MatchNot m') a p = matches (\<beta>,\<alpha>) (MatchNot m) a p"
 apply(auto split: option.split_asm simp: matches_case_tuple ternary_eval_def ternary_to_bool_bool_to_ternary elim: ternary_to_bool.elims)
-apply(simp_all add: no_unknowns_ternary_to_bool_Some)
-using ternary_to_bool_Some apply fastforce+
+apply(auto simp add: ternary_to_bool_Some no_unknowns_ternary_to_bool_Some)
 done
+
+lemma xx1: "ternary_eval (TernaryNot t) = None \<Longrightarrow> ternary_ternary_eval t = TernaryUnknown"
+by (simp add: eval_ternary_Not_UnknownD ternary_eval_def ternary_to_bool_None)
+
+
+lemma xx2: "ternary_eval (TernaryNot t) = None \<Longrightarrow> ternary_eval t = None"
+by (simp add: eval_ternary_Not_UnknownD ternary_eval_def ternary_to_bool_None)
+
+lemma xx3: "ternary_eval (TernaryNot t) = Some b \<Longrightarrow>  ternary_eval t = Some (\<not> b)"
+by (metis eval_ternary_Not.simps(1) eval_ternary_Not.simps(2) ternary_eval_def ternary_ternary_eval.simps(3) ternary_ternary_eval_idempotence_Not ternary_to_bool_Some)
+
+lemma xxxx_x:"\<forall>a. in_doubt_allow a p = (\<not> b) \<Longrightarrow> False"
+  apply(subgoal_tac "in_doubt_allow Accept p")
+   prefer 2
+   apply fastforce
+  apply(subgoal_tac "\<not> in_doubt_allow Drop p")
+   prefer 2
+   apply fastforce
+  by auto
+
+(*TODO: only holds for in_doubt_allow or on_doubt_deny because they have opposite results for some actions \<dots>
+  generalize! add this to wf_unknown_match_tac:
+  Drop \<noteq> Accept*)
+lemma "\<alpha> Drop \<noteq> \<alpha> Accept \<Longrightarrow> \<forall> a. matches (\<beta>,in_doubt_allow) m' a p = matches (\<beta>,in_doubt_allow) m a p \<Longrightarrow>
+    matches (\<beta>,in_doubt_allow) (MatchNot m') a p = matches (\<beta>,in_doubt_allow) (MatchNot m) a p"
+apply(simp add: matches_case_tuple)
+apply(case_tac "ternary_eval (TernaryNot (map_match_tac \<beta> p m'))")
+apply(case_tac [!] "ternary_eval (TernaryNot (map_match_tac \<beta> p m))")
+apply(simp_all)
+apply(drule xx2)
+apply(drule xx3)
+apply(simp)
+using xxxx_x apply metis
+
+apply(drule xx2)
+apply(drule xx3)
+apply(simp)
+using xxxx_x apply metis
+
+apply(drule xx3)+
+apply(simp)
+done
+
 
 (*TODO: move or delete*)
 lemma ternary_to_bool_unknown_match_tac_eq_cases:
