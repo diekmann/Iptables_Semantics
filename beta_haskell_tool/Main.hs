@@ -39,7 +39,10 @@ getIpAssmt = do
                   where filename = head args
       _ -> do putStrLn $ "Usage: " ++ progName ++ " ipassmt_file"
               error "too many command line parameters"
-             
+
+-- TODO: command line parameter handling
+-- select table and chain
+
 main = do
     ipassmt <- getIpAssmt
     src <- getContents
