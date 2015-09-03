@@ -263,6 +263,7 @@ subsection{*@{term match_list}*}
 
 
   text{*We can exploit de-morgan to get a disjunction in the match expression!*}
+  (*TODO we could use MatchOr*)
   fun match_list_to_match_expr :: "'a match_expr list \<Rightarrow> 'a match_expr" where
     "match_list_to_match_expr [] = MatchNot MatchAny" |
     "match_list_to_match_expr (m#ms) = MatchNot (MatchAnd (MatchNot m) (MatchNot (match_list_to_match_expr ms)))"
