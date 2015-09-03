@@ -89,6 +89,27 @@ apply(auto split: option.split_asm simp: matches_case_tuple ternary_eval_def ter
 apply(auto simp add: ternary_to_bool_Some no_unknowns_ternary_to_bool_Some)
 done
 
+
+lemma unknown_common_matcher_obtain_Extra: "\<exists>p. common_matcher x p = TernaryUnknown \<Longrightarrow> \<exists>y. x = Extra y"
+  apply(cases x)
+  by (simp_all add: bool_to_ternary_Unknown)
+
+lemma "matches (common_matcher,\<alpha>) (f m) a p = matches (common_matcher,\<alpha>) m a p \<Longrightarrow>
+    \<forall>m. f (MatchNot m) = MatchNot (f m) \<Longrightarrow>
+    has_unknowns common_matcher (f m) \<longleftrightarrow> has_unknowns common_matcher m \<Longrightarrow>
+    \<forall>x. (f (Match (Extra x))) = (Match (Extra x)) \<Longrightarrow>
+    matches (common_matcher,\<alpha>) (MatchNot (f m)) a p = matches (common_matcher,\<alpha>) (MatchNot m) a p"
+apply(induction m)
+   apply(simp_all)
+   apply(case_tac "\<not> has_unknowns common_matcher (f (Match x))")
+    apply(simp_all)
+    apply(rule matches_MatchNot_no_unknowns, simp_all)
+   apply(drule unknown_common_matcher_obtain_Extra)
+   apply(elim exE)
+   apply(simp)
+  apply(simp add: bunch_of_lemmata_about_matches)
+oops
+
 lemma xx1: "ternary_eval (TernaryNot t) = None \<Longrightarrow> ternary_ternary_eval t = TernaryUnknown"
 by (simp add: eval_ternary_Not_UnknownD ternary_eval_def ternary_to_bool_None)
 
@@ -154,14 +175,39 @@ apply(simp add: ipassmt_sanity_haswildcards_def)
 using iface_is_wildcard_def match_iface_case_nowildcard by fastforce
 
 
-lemma "ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
-       ipassmt ifce = Some a \<Longrightarrow> \<not> match_iface ifce ifce2"
-apply(simp add: ipassmt_sanity_haswildcards_def)
+(*lemma ipv4cidr_union_set_fooo: fixes p::simple_packet
+        shows "(p_src p \<notin> ipv4cidr_union_set ({aa} \<union> set x2)) \<longleftrightarrow>
+    p_src p \<notin> ((\<lambda>(base, len). ipv4range_set_from_bitmask base len) aa) \<and> p_src p \<notin> ipv4cidr_union_set (set x2)"
+by(simp add: ipv4cidr_union_set_def)*)
 
+lemma helper_es_ist_spaet:"matches (common_matcher, \<alpha>) (MatchNot (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) y)) x2))) a p \<longleftrightarrow>
+       (p_src p \<notin> ipv4cidr_union_set (set x2))"
+  thm match_list_to_match_expr_disjunction
+  apply(induction x2)
+   apply(simp add: bunch_of_lemmata_about_matches ipv4cidr_union_set_def)
+  apply(simp add: bunch_of_lemmata_about_matches)
+  apply(simp add: ipv4cidr_union_set_def)
+  apply(simp add: match_simplematcher_SrcDst_not)
+  apply(thin_tac _)
+  apply(simp add: ipv4s_to_set_Ip4AddrNetmask_case)
+done
+
+lemma rewrite_iiface_matches_MatchNot:
+        "matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt (Match x)) a p = matches (common_matcher, \<alpha>) (Match x) a p \<Longrightarrow>
+         matches (common_matcher, \<alpha>) (MatchNot (rewrite_iiface ipassmt (Match x))) a p = matches (common_matcher, \<alpha>) (MatchNot (Match x)) a p"
+     apply(case_tac x)
+             apply(simp_all)
+     apply(simp add: matches_ipassmt_iface_to_srcip_mexpr)
+     apply(simp split: option.split_asm)
+      apply(simp_all add: match_simplematcher_Iface_not match_simplematcher_Iface)
+      apply(simp_all add: ipassmt_iface_to_srcip_mexpr_def)
+      apply(simp add: match_simplematcher_Iface_not match_simplematcher_Iface; fail)
+     apply(simp add: helper_es_ist_spaet; fail)
+done
 
 (*need: no wildcards in ipassmt*)
 (*need: ipassmt ips are disjoint?*)
-(*wants some wf_\<alpha> (see above)?*)
+(*wants some wf_\<alpha> (see above)? or do MatchNot case by hand?*)
 lemma "ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
        (case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)) \<Longrightarrow>
     matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
@@ -171,6 +217,16 @@ lemma "ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
   case (MatchNot m)
     hence IH: "matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p = matches (common_matcher, \<alpha>) m a p" by blast
     thus ?case
+     apply(induction m)
+     apply(simp_all add: rewrite_iiface_matches_MatchNot)
+     
+     apply(thin_tac "_ \<Longrightarrow> True")
+     apply(simp_all add: bunch_of_lemmata_about_matches)
+     defer
+     
+     defer
+     apply(simp add:bunch_of_lemmata_about_matches)
+     
      apply -
      apply(simp)
      apply(rule matches_MatchNot_no_unknowns)
