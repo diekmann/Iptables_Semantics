@@ -2,6 +2,7 @@ theory TUM_Spoofing_new3
 imports 
   "../../Primitive_Matchers/Parser"
   "../../Simple_Firewall/SimpleFw_toString"
+  "../../Primitive_Matchers/Interface_Replace"
 begin
 
 
@@ -111,6 +112,21 @@ subsubsection{*Try 1*}
                       (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))
                       (ctstate_assume_new (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of net_fw_1)))))
                in map simple_rule_toString x" (*169.498s with interface abstraction, otherwise 262.712s*)
+
+
+  value[code] "let x = to_simple_firewall (upper_closure
+                      (*(optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))*)
+                      (optimize_matches (rewrite_iiface (map_of ipassmt))
+                      (ctstate_assume_new (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of net_fw_1)))))
+               in map simple_rule_toString x" (*251.806s*)
+
+
+  value[code] "let x = to_simple_firewall (upper_closure
+                      (*(optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))*)
+                      (*(optimize_matches (rewrite_iiface (map_of ipassmt))*)
+                      (ctstate_assume_new (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of net_fw_1))))
+               in map simple_rule_toString x" (*222.742s*)
+
 
 
   text{*the parsed firewall:*}

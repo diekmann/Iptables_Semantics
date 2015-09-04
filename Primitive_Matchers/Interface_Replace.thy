@@ -1,13 +1,11 @@
 theory Interface_Replace
 imports
-  No_Spoof (*TODO imports boolean semantics, get rid of!*)
+  No_Spoof
   Common_Primitive_toString
   Transform
 begin
 
 section{*Abstracting over Primitives*}
-
-term fold
 
 definition ipassmt_iface_constrain_srcip_mexpr :: "ipassignment \<Rightarrow> iface \<Rightarrow> common_primitive match_expr" where
   "ipassmt_iface_constrain_srcip_mexpr ipassmt ifce = (case ipassmt ifce of
@@ -324,7 +322,17 @@ lemma matches_rewrite_iiface:
     by(simp add: bunch_of_lemmata_about_matches)
   qed
     
-    
+
+
+(*nonsense. wie wird ausgedrückt dass wir annahmen, dass pakete vom richtigen iface kommen und wie kann das no_spoofing checken?*)
+lemma fixes p::simple_packet
+      shows "no_spoofing ipassmt rs \<Longrightarrow> (case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips))"
+  apply(simp add: no_spoofing_def)
+  apply(erule_tac x="(Iface (p_iiface p))" in ballE)
+  apply(simp_all)
+  apply(erule_tac x=p in allE)
+  apply(simp)
+oops
 
 
 end
