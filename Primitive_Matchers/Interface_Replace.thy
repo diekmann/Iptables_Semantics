@@ -19,18 +19,21 @@ lemma ipv4s_to_set_Ip4AddrNetmask_case: "ipv4s_to_set (case x of (ip, x) \<Right
        (case x of (x, xa) \<Rightarrow> ipv4range_set_from_bitmask x xa)"
   by(cases x) (simp add: ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
 
+
 lemma matches_ipassmt_iface_constrain_srcip_mexpr: 
     "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow> (case ipassmt ifce of
             None \<Rightarrow> match_iface ifce (p_iiface p)
           | Some ips \<Rightarrow> match_iface ifce (p_iiface p) \<and> p_src p \<in> ipv4cidr_union_set (set ips)
           )"
-  apply(simp split: option.split add: ipassmt_iface_constrain_srcip_mexpr_def)
-  apply(intro conjI allI)
-   apply(simp add: match_simplematcher_Iface; fail)
-   apply(simp add: bunch_of_lemmata_about_matches(1))
+proof(cases "ipassmt ifce")
+case None thus ?thesis by(simp add: ipassmt_iface_constrain_srcip_mexpr_def match_simplematcher_Iface; fail)
+next
+case (Some ips) thus ?thesis
+  apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def bunch_of_lemmata_about_matches(1))
   apply(simp add: match_list_to_match_expr_disjunction[symmetric] match_list_matches ipv4cidr_union_set_def)
   apply(simp add: match_simplematcher_SrcDst ipv4s_to_set_Ip4AddrNetmask_case match_simplematcher_Iface)
   done
+qed
   
 
 fun rewrite_iiface :: "ipassignment \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
@@ -60,17 +63,6 @@ by (metis (no_types, lifting) bool_to_ternary_simps(1) bool_to_ternary_simps(3) 
 (*wtf*)
 
 
-lemma "ternary_ternary_eval (map_match_tac common_matcher p (rewrite_iiface ipassmt m)) = TernaryUnknown \<longleftrightarrow>
-       ternary_ternary_eval (map_match_tac common_matcher p m) = TernaryUnknown"
-apply(induction m rule: rewrite_iiface.induct)
-apply(simp_all)
-apply(simp_all add: ipassmt_iface_constrain_srcip_mexpr_not_unknown)
-oops
-
-
-lemma MatchNot_helper: "(ternary_ternary_eval (map_match_tac \<beta> p m')) = (ternary_ternary_eval (map_match_tac \<beta> p m)) \<Longrightarrow>
-    matches (\<beta>,\<alpha>) (MatchNot m') a p = matches (\<beta>,\<alpha>) (MatchNot m) a p"
-by(simp add: matches_tuple)
 
 
 
@@ -83,34 +75,13 @@ lemma no_unknowns_ternary_to_bool_Some: "\<not> has_unknowns \<beta> m \<Longrig
   using ternary_lift(6) ternary_to_bool_Some by auto
   
 
-(*TODO: move*)
-lemma matches_MatchNot_no_unknowns: "matches (\<beta>,\<alpha>) m' a p = matches (\<beta>,\<alpha>) m a p \<Longrightarrow>
-    \<not> has_unknowns \<beta> m' \<Longrightarrow> \<not> has_unknowns \<beta> m \<Longrightarrow>
-    matches (\<beta>,\<alpha>) (MatchNot m') a p = matches (\<beta>,\<alpha>) (MatchNot m) a p"
-apply(auto split: option.split_asm simp: matches_case_tuple ternary_eval_def ternary_to_bool_bool_to_ternary elim: ternary_to_bool.elims)
-apply(auto simp add: ternary_to_bool_Some no_unknowns_ternary_to_bool_Some)
-done
 
 
 lemma unknown_common_matcher_obtain_Extra: "\<exists>p. common_matcher x p = TernaryUnknown \<Longrightarrow> \<exists>y. x = Extra y"
   apply(cases x)
   by (simp_all add: bool_to_ternary_Unknown)
 
-lemma "matches (common_matcher,\<alpha>) (f m) a p = matches (common_matcher,\<alpha>) m a p \<Longrightarrow>
-    \<forall>m. f (MatchNot m) = MatchNot (f m) \<Longrightarrow>
-    has_unknowns common_matcher (f m) \<longleftrightarrow> has_unknowns common_matcher m \<Longrightarrow>
-    \<forall>x. (f (Match (Extra x))) = (Match (Extra x)) \<Longrightarrow>
-    matches (common_matcher,\<alpha>) (MatchNot (f m)) a p = matches (common_matcher,\<alpha>) (MatchNot m) a p"
-apply(induction m)
-   apply(simp_all)
-   apply(case_tac "\<not> has_unknowns common_matcher (f (Match x))")
-    apply(simp_all)
-    apply(rule matches_MatchNot_no_unknowns, simp_all)
-   apply(drule unknown_common_matcher_obtain_Extra)
-   apply(elim exE)
-   apply(simp)
-  apply(simp add: bunch_of_lemmata_about_matches)
-oops
+
 
 lemma xx1: "ternary_eval (TernaryNot t) = None \<Longrightarrow> ternary_ternary_eval t = TernaryUnknown"
 by (simp add: eval_ternary_Not_UnknownD ternary_eval_def ternary_to_bool_None)
@@ -166,17 +137,22 @@ done
 
 
 
-(*TODO: move or delete*)
-lemma ternary_to_bool_unknown_match_tac_eq_cases:
-  "ternary_to_bool_unknown_match_tac \<alpha> a p t1 = ternary_to_bool_unknown_match_tac \<alpha> a p t2 \<longleftrightarrow>
-  t1 = t2 \<or>
-  t1 = TernaryUnknown \<and> (t2 = TernaryTrue \<longleftrightarrow> \<alpha> a p) \<or>
-  t2 = TernaryUnknown \<and> (t1 = TernaryTrue \<longleftrightarrow> \<alpha> a p)"
-apply(cases t1)
-  apply(simp_all)
-  apply(case_tac [!] t2)
-        apply(simp_all)
+(*TODO: move*)
+lemma matches_MatchNot_no_unknowns: "matches (\<beta>,\<alpha>) m' a p = matches (\<beta>,\<alpha>) m a p \<Longrightarrow>
+    \<not> has_unknowns \<beta> m' \<Longrightarrow> \<not> has_unknowns \<beta> m \<Longrightarrow>
+    matches (\<beta>,\<alpha>) (MatchNot m') a p = matches (\<beta>,\<alpha>) (MatchNot m) a p"
+apply(auto split: option.split_asm simp: matches_case_tuple ternary_eval_def ternary_to_bool_bool_to_ternary elim: ternary_to_bool.elims)
+apply(auto simp add: ternary_to_bool_Some no_unknowns_ternary_to_bool_Some)
 done
+
+lemma MatchNot_helper: "(ternary_ternary_eval (map_match_tac \<beta> p m')) = (ternary_ternary_eval (map_match_tac \<beta> p m)) \<Longrightarrow>
+    matches (\<beta>,\<alpha>) (MatchNot m') a p = matches (\<beta>,\<alpha>) (MatchNot m) a p"
+by(simp add: matches_tuple)
+
+
+
+
+
 
 lemma ipassmt_sanity_haswildcards_helper1: "ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
        ipassmt (Iface ifce2) = None \<Longrightarrow> ipassmt ifce = Some a \<Longrightarrow> \<not> match_iface ifce ifce2"
