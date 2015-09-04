@@ -28,10 +28,13 @@ lemma matches_ipassmt_iface_constrain_srcip_mexpr:
 proof(cases "ipassmt ifce")
 case None thus ?thesis by(simp add: ipassmt_iface_constrain_srcip_mexpr_def match_simplematcher_Iface; fail)
 next
-case (Some ips) thus ?thesis
+case (Some ips)
+  have "matches (common_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) y)) ips)) a p \<longleftrightarrow>
+       (\<exists>m\<in>set ips. p_src p \<in> (case m of (ip, y) \<Rightarrow> ipv4range_set_from_bitmask ip y))" 
+  by(simp add: match_list_to_match_expr_disjunction[symmetric] match_list_matches match_simplematcher_SrcDst ipv4s_to_set_Ip4AddrNetmask_case)
+  with Some show ?thesis
   apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def bunch_of_lemmata_about_matches(1))
-  apply(simp add: match_list_to_match_expr_disjunction[symmetric] match_list_matches ipv4cidr_union_set_def)
-  apply(simp add: match_simplematcher_SrcDst ipv4s_to_set_Ip4AddrNetmask_case match_simplematcher_Iface)
+  apply(simp add: match_simplematcher_Iface ipv4cidr_union_set_def)
   done
 qed
   
@@ -44,6 +47,7 @@ fun rewrite_iiface :: "ipassignment \<Rightarrow> common_primitive match_expr \<
   "rewrite_iiface ipassmt (MatchAnd m1 m2) = MatchAnd (rewrite_iiface ipassmt m1) (rewrite_iiface ipassmt m2)"
 
 
+(*
 lemma ternary_ternary_eval_match_list_to_match_expr_not_unknown:
       "ternary_ternary_eval (map_match_tac common_matcher p (match_list_to_match_expr (map (Match \<circ> Src) ips))) \<noteq>
            TernaryUnknown"
@@ -51,7 +55,6 @@ apply(induction ips)
  apply(simp)
 apply(simp)
 by (metis bool_to_ternary_simps(2) bool_to_ternary_simps(4) eval_ternary_And_comm eval_ternary_Not.simps(1) eval_ternary_Not_UnknownD eval_ternary_idempotence_Not eval_ternary_simps_simple(2) eval_ternary_simps_simple(4))
-
 
 lemma ipassmt_iface_constrain_srcip_mexpr_not_unknown: 
   "(ternary_ternary_eval (map_match_tac common_matcher p (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce)) \<noteq> TernaryUnknown)"
@@ -61,26 +64,16 @@ apply(intro conjI allI impI)
 apply(rename_tac ips)
 by (metis (no_types, lifting) bool_to_ternary_simps(1) bool_to_ternary_simps(3) eval_ternary_And_comm eval_ternary_DeMorgan(1) eval_ternary_Not.simps(2) eval_ternary_Not.simps(3) eval_ternary_simps_simple(2) eval_ternary_simps_simple(4) list.map_comp ternary_ternary_eval_match_list_to_match_expr_not_unknown ternaryvalue.distinct(3))
 (*wtf*)
+*)
 
 
 
 
-
-lemma no_unknowns_ternary_to_bool_Some: "\<not> has_unknowns \<beta> m \<Longrightarrow>
-       ternary_to_bool (ternary_ternary_eval (map_match_tac \<beta> p m)) \<noteq> None"
-  apply(induction m)
-     apply(simp_all)
-    using ternary_to_bool.elims apply blast
-   using ternary_to_bool_Some apply fastforce
-  using ternary_lift(6) ternary_to_bool_Some by auto
-  
-
-
-
+(*
 lemma unknown_common_matcher_obtain_Extra: "\<exists>p. common_matcher x p = TernaryUnknown \<Longrightarrow> \<exists>y. x = Extra y"
   apply(cases x)
   by (simp_all add: bool_to_ternary_Unknown)
-
+*)
 
 
 lemma xx1: "ternary_eval (TernaryNot t) = None \<Longrightarrow> ternary_ternary_eval t = TernaryUnknown"
@@ -138,6 +131,14 @@ done
 
 
 (*TODO: move*)
+lemma no_unknowns_ternary_to_bool_Some: "\<not> has_unknowns \<beta> m \<Longrightarrow>
+       ternary_to_bool (ternary_ternary_eval (map_match_tac \<beta> p m)) \<noteq> None"
+  apply(induction m)
+     apply(simp_all)
+    using ternary_to_bool.elims apply blast
+   using ternary_to_bool_Some apply fastforce
+  using ternary_lift(6) ternary_to_bool_Some by auto
+
 lemma matches_MatchNot_no_unknowns: "matches (\<beta>,\<alpha>) m' a p = matches (\<beta>,\<alpha>) m a p \<Longrightarrow>
     \<not> has_unknowns \<beta> m' \<Longrightarrow> \<not> has_unknowns \<beta> m \<Longrightarrow>
     matches (\<beta>,\<alpha>) (MatchNot m') a p = matches (\<beta>,\<alpha>) (MatchNot m) a p"
