@@ -135,16 +135,7 @@ lemma xxxx_xx:"\<alpha> Drop p \<noteq> \<alpha> Accept p \<Longrightarrow> \<fo
 
 
 
-
-
-
-
-
-
-
-
-
-(*************THIS!****************)
+(*************THIS! refactor and move****************)
 
 
 
@@ -263,17 +254,49 @@ apply(simp add: bunch_of_lemmata_about_matches)
 defer
 oops
 
+
+
+
+(*TODO: ambiguous?*)
+lemma fixes ifce::iface
+      shows "ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
+            case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips) \<Longrightarrow>
+            matches (common_matcher, \<alpha>) (ipassmt_iface_to_srcip_mexpr ipassmt ifce) a p =
+            Matching_Ternary.matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p"
+  apply(simp add: match_simplematcher_Iface)
+  apply(case_tac "ipassmt (Iface (p_iiface p))")
+   apply(simp)
+   apply(simp add: matches_ipassmt_iface_to_srcip_mexpr)
+   apply(case_tac "ipassmt ifce")
+    apply(simp; fail)
+   apply(simp)
+   apply(drule(2) ipassmt_sanity_haswildcards_helper1)
+   apply(simp)
+   defer (*should be by ipassmt assm*)
+  apply(simp)
+  apply(simp add: matches_ipassmt_iface_to_srcip_mexpr)
+  apply(case_tac "ipassmt ifce")
+   apply(simp; fail)
+  apply(simp)
+  apply(case_tac ifce)
+  apply(rename_tac ifce_str)
+  apply(case_tac "ifce_str = (p_iiface p)")
+   apply (simp add: match_iface_refl)
+  apply(simp)
+  (*by assumption*)
+oops
+
 (*need: no wildcards in ipassmt*)
 (*need: ipassmt ips are disjoint?*)
 (*wants some wf_\<alpha> (see above)? or do MatchNot case by hand?*)
-lemma "ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
+lemma "normalized_nnf_match m \<Longrightarrow> ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
        (case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)) \<Longrightarrow>
     matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
-  proof(induction m arbitrary: a)
+  proof(induction m (*arbitrary: a*))
   case MatchAny thus ?case by simp
   next
   case (MatchNot m)
-    hence IH: "\<forall>a. matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p = matches (common_matcher, \<alpha>) m a p" by blast
+    hence IH: "matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p = matches (common_matcher, \<alpha>) m a p" by blast
     thus ?case
      (*apply(induction m)
      apply(simp_all add: rewrite_iiface_matches_MatchNot_Primitive)
@@ -291,7 +314,7 @@ lemma "ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
      
      sorry
   next
-  case(Match x a)
+  case(Match x)
    thus ?case
     apply(cases x)
             apply(simp_all)

@@ -28,6 +28,8 @@ section{*Example: Implementing spoofing protection*}
   ]"
   
   lemma "ipassmt_sanity_haswildcards (map_of ipassmt)" by eval
+
+  lemma"ipassmt_sanity_complete (map_of ipassmt)" oops
   
   
   definition "interfaces = (map (iface_sel \<circ> fst) ipassmt)"

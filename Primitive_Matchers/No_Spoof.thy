@@ -12,9 +12,6 @@ section{*No Spoofing*}
   text{*A mapping from an interface to its assigned ip addresses in CIDR notation*}
   type_synonym ipassignment="iface \<rightharpoonup> (ipv4addr \<times> nat) list" (*technically, a set*)
 
-  (*
-  check wool: warning if zone-spanning (optional)
-  *)
 
   text{*Sanity checking for an @{typ ipassignment}. *}
 
@@ -25,6 +22,30 @@ section{*No Spoofing*}
     text{*Executable of the @{typ ipassignment} is given as a list.*}
     lemma[code_unfold]: "ipassmt_sanity_haswildcards (map_of ipassmt) \<longleftrightarrow> (\<forall> iface \<in> fst` set ipassmt. \<not> iface_is_wildcard iface)"
       by(simp add: ipassmt_sanity_haswildcards_def Map.dom_map_of_conv_image_fst)
+
+
+  (*
+  check wool: warning if zone-spanning (optional)
+  *)
+
+(***************TODO***************)
+(*TODO: move to nospoof zone spanning*)
+definition ipassmt_sanity_disjoint :: "ipassignment \<Rightarrow> bool" where
+  "ipassmt_sanity_disjoint ipassmt \<equiv> \<forall> i1 \<in> dom ipassmt. \<forall> i2 \<in> dom ipassmt. 
+        ipv4cidr_union_set (set (the (ipassmt i1))) \<inter> ipv4cidr_union_set (set (the (ipassmt i1))) = {}"
+
+(*TODO: check those in the code examples*)
+(*
+lemma[code_unfold]: "ipassmt_sanity_disjoint (map_of ipassmt) \<longleftrightarrow> (let Is = fst` set ipassmt in 
+    (\<forall> i1 \<in> Is. \<forall> i2 \<in> Is. ipv4cidr_union_set (set (the (map_of (ipassmt i1)))) \<inter> ipv4cidr_union_set (set (the (map_of (ipassmt i1)))) = {}))"
+  apply(simp add: ipassmt_sanity_disjoint_def Map.dom_map_of_conv_image_fst)*)
+
+(*TODO: move to nospoof and add those to the isabelle ipassm code generation and haskell tool!*)
+definition ipassmt_sanity_complete :: "ipassignment \<Rightarrow> bool" where
+  "ipassmt_sanity_complete ipassmt \<equiv> (ipv4cidr_union_set ` set ` (ran ipassmt)) = UNIV"
+(***************TODO***************)
+
+
 
     value[code] "ipassmt_sanity_haswildcards (map_of [(Iface ''eth1.1017'', [(ipv4addr_of_dotdecimal (131,159,14,240), 28)])])"
 
