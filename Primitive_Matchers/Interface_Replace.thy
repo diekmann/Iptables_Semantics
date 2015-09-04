@@ -218,15 +218,17 @@ lemma matches_ipassmt_iface_constrain_srcip_mexpr_case_Iface:
 proof -
   have "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p = match_iface ifce (p_iiface p)"
     proof(cases "ipassmt (Iface (p_iiface p))")
-    case None with assms show ?thesis
-     apply(simp)
-     apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-     apply(case_tac "ipassmt ifce")
-      apply(simp; fail)
-     apply(simp)
-     apply(drule(2) ipassmt_sanity_haswildcards_helper1)
-     apply(simp)
-     done
+    case None
+    from None show ?thesis
+    proof(cases "ipassmt ifce")
+      case None thus ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
+      next
+      case (Some a)
+       from assms(1) have "\<not> match_iface ifce (p_iiface p)"
+       apply(rule ipassmt_sanity_haswildcards_helper1)
+        by(simp_all add: Some None)
+      with Some show ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
+    qed
     next
     case (Some x) with assms show ?thesis
       apply(simp)
