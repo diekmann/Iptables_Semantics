@@ -209,42 +209,44 @@ qed(simp_all)
 
 
 
-(*TODO: ambiguous?*)
 lemma matches_ipassmt_iface_constrain_srcip_mexpr_case_Iface:
       fixes ifce::iface
       assumes "ipassmt_sanity_haswildcards ipassmt" and "case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)"
-       shows "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p =
-            matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p"
+      shows   "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow>
+               matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p"
 proof -
   have "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p = match_iface ifce (p_iiface p)"
     proof(cases "ipassmt (Iface (p_iiface p))")
     case None
     from None show ?thesis
-    proof(cases "ipassmt ifce")
-      case None thus ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-      next
-      case (Some a)
-       from assms(1) have "\<not> match_iface ifce (p_iiface p)"
-       apply(rule ipassmt_sanity_haswildcards_helper1)
-        by(simp_all add: Some None)
-      with Some show ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-    qed
+      proof(cases "ipassmt ifce")
+        case None thus ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
+        next
+        case (Some a)
+         from assms(1) have "\<not> match_iface ifce (p_iiface p)"
+         apply(rule ipassmt_sanity_haswildcards_helper1)
+          by(simp_all add: Some None)
+        with Some show ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
+      qed
     next
-    case (Some x) with assms show ?thesis
-      apply(simp)
-      apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-      apply(case_tac "ipassmt ifce")
-       apply(simp; fail)
-      apply(simp)
-      apply(case_tac ifce)
-      apply(rename_tac ifce_str)
-      apply(case_tac "ifce_str = (p_iiface p)")
-       apply (simp add: match_iface_refl)
-      apply(simp)
-      apply(subgoal_tac "\<not> match_iface (Iface ifce_str) (p_iiface p)")
-       apply(simp)
-      by (metis domI iface.sel iface_is_wildcard_def ipassmt_sanity_haswildcards_def match_iface_case_nowildcard)
-    qed
+    case (Some x)
+      with assms(2) have assms2: "p_src p \<in> ipv4cidr_union_set (set x)" by(simp) (*unused*)
+      show ?thesis
+      proof(cases "ipassmt ifce")
+        case None thus ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
+        next
+        case (Some y) with assms(2) have "(match_iface ifce (p_iiface p) \<and> p_src p \<in> ipv4cidr_union_set (set y)) = match_iface ifce (p_iiface p)"
+          apply(cases ifce)
+          apply(rename_tac ifce_str)
+          apply(case_tac "ifce_str = (p_iiface p)")
+           apply (simp add: match_iface_refl; fail)
+          apply(simp)
+          apply(subgoal_tac "\<not> match_iface (Iface ifce_str) (p_iiface p)")
+           apply(simp)
+          using assms(1) by (metis domI iface.sel iface_is_wildcard_def ipassmt_sanity_haswildcards_def match_iface_case_nowildcard)
+          with Some show ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
+      qed
+  qed
   thus ?thesis by(simp add: match_simplematcher_Iface)
 qed
   
