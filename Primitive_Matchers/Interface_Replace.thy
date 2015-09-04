@@ -9,32 +9,35 @@ section{*Abstracting over Primitives*}
 
 term fold
 
-definition ipassmt_iface_to_srcip_mexpr :: "ipassignment \<Rightarrow> iface \<Rightarrow> common_primitive match_expr" where
-  "ipassmt_iface_to_srcip_mexpr ipassmt ifce = (case ipassmt ifce of
+definition ipassmt_iface_constrain_srcip_mexpr :: "ipassignment \<Rightarrow> iface \<Rightarrow> common_primitive match_expr" where
+  "ipassmt_iface_constrain_srcip_mexpr ipassmt ifce = (case ipassmt ifce of
           None \<Rightarrow> Match (IIface ifce)
-        | Some ips \<Rightarrow> match_list_to_match_expr (map (Match \<circ> Src) (map (\<lambda>(ip, n). (Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) n)) ips))
+        | Some ips \<Rightarrow> MatchAnd
+            (Match (IIface ifce))
+            (match_list_to_match_expr (map (Match \<circ> Src) (map (\<lambda>(ip, n). (Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) n)) ips)))
         )"
 
 lemma ipv4s_to_set_Ip4AddrNetmask_case: "ipv4s_to_set (case x of (ip, x) \<Rightarrow> Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) x) =
        (case x of (x, xa) \<Rightarrow> ipv4range_set_from_bitmask x xa)"
   by(cases x) (simp add: ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
 
-lemma matches_ipassmt_iface_to_srcip_mexpr: 
-    "matches (common_matcher, \<alpha>) (ipassmt_iface_to_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow> (case ipassmt ifce of
+lemma matches_ipassmt_iface_constrain_srcip_mexpr: 
+    "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow> (case ipassmt ifce of
             None \<Rightarrow> match_iface ifce (p_iiface p)
-          | Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)
+          | Some ips \<Rightarrow> match_iface ifce (p_iiface p) \<and> p_src p \<in> ipv4cidr_union_set (set ips)
           )"
-  apply(simp split: option.split add: ipassmt_iface_to_srcip_mexpr_def)
+  apply(simp split: option.split add: ipassmt_iface_constrain_srcip_mexpr_def)
   apply(intro conjI allI)
    apply(simp add: match_simplematcher_Iface; fail)
+   apply(simp add: bunch_of_lemmata_about_matches(1))
   apply(simp add: match_list_to_match_expr_disjunction[symmetric] match_list_matches ipv4cidr_union_set_def)
-  apply(simp add: match_simplematcher_SrcDst ipv4s_to_set_Ip4AddrNetmask_case)
+  apply(simp add: match_simplematcher_SrcDst ipv4s_to_set_Ip4AddrNetmask_case match_simplematcher_Iface)
   done
   
 
 fun rewrite_iiface :: "ipassignment \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
   "rewrite_iiface _       MatchAny = MatchAny" |
-  "rewrite_iiface ipassmt (Match (IIface ifce)) = ipassmt_iface_to_srcip_mexpr ipassmt ifce" |
+  "rewrite_iiface ipassmt (Match (IIface ifce)) = ipassmt_iface_constrain_srcip_mexpr ipassmt ifce" |
   "rewrite_iiface ipassmt (Match a) = Match a" |
   "rewrite_iiface ipassmt (MatchNot m) = MatchNot (rewrite_iiface ipassmt m)" |
   "rewrite_iiface ipassmt (MatchAnd m1 m2) = MatchAnd (rewrite_iiface ipassmt m1) (rewrite_iiface ipassmt m2)"
@@ -49,20 +52,21 @@ apply(simp)
 by (metis bool_to_ternary_simps(2) bool_to_ternary_simps(4) eval_ternary_And_comm eval_ternary_Not.simps(1) eval_ternary_Not_UnknownD eval_ternary_idempotence_Not eval_ternary_simps_simple(2) eval_ternary_simps_simple(4))
 
 
-lemma ipassmt_iface_to_srcip_mexpr_not_unknown: 
-  "(ternary_ternary_eval (map_match_tac common_matcher p (ipassmt_iface_to_srcip_mexpr ipassmt ifce)) \<noteq> TernaryUnknown)"
-apply(simp add: ipassmt_iface_to_srcip_mexpr_def split: option.split)
+lemma ipassmt_iface_constrain_srcip_mexpr_not_unknown: 
+  "(ternary_ternary_eval (map_match_tac common_matcher p (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce)) \<noteq> TernaryUnknown)"
+apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def split: option.split)
 apply(intro conjI allI impI)
  apply (simp add: bool_to_ternary_Unknown)
 apply(rename_tac ips)
-by (metis List.map.compositionality ternary_ternary_eval_match_list_to_match_expr_not_unknown) (*wtf*)
+by (metis (no_types, lifting) bool_to_ternary_simps(1) bool_to_ternary_simps(3) eval_ternary_And_comm eval_ternary_DeMorgan(1) eval_ternary_Not.simps(2) eval_ternary_Not.simps(3) eval_ternary_simps_simple(2) eval_ternary_simps_simple(4) list.map_comp ternary_ternary_eval_match_list_to_match_expr_not_unknown ternaryvalue.distinct(3))
+(*wtf*)
 
 
 lemma "ternary_ternary_eval (map_match_tac common_matcher p (rewrite_iiface ipassmt m)) = TernaryUnknown \<longleftrightarrow>
        ternary_ternary_eval (map_match_tac common_matcher p m) = TernaryUnknown"
 apply(induction m rule: rewrite_iiface.induct)
 apply(simp_all)
-apply(simp_all add: ipassmt_iface_to_srcip_mexpr_not_unknown)
+apply(simp_all add: ipassmt_iface_constrain_srcip_mexpr_not_unknown)
 oops
 
 
@@ -198,15 +202,16 @@ lemma helper_es_ist_spaet:"matches (common_matcher, \<alpha>) (MatchNot (match_l
   apply(simp add: ipv4s_to_set_Ip4AddrNetmask_case)
 done
 
+(*
 lemma rewrite_iiface_matches_MatchNot_Primitive:
         "matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt (Match x)) a p = matches (common_matcher, \<alpha>) (Match x) a p \<Longrightarrow>
          matches (common_matcher, \<alpha>) (MatchNot (rewrite_iiface ipassmt (Match x))) a p = matches (common_matcher, \<alpha>) (MatchNot (Match x)) a p"
      apply(case_tac x)
              apply(simp_all)
-     apply(simp add: matches_ipassmt_iface_to_srcip_mexpr)
+     apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
      apply(simp split: option.split_asm)
       apply(simp_all add: match_simplematcher_Iface_not match_simplematcher_Iface)
-      apply(simp_all add: ipassmt_iface_to_srcip_mexpr_def)
+      apply(simp_all add: ipassmt_iface_constrain_srcip_mexpr_def)
       apply(simp add: match_simplematcher_Iface_not match_simplematcher_Iface; fail)
      apply(simp add: helper_es_ist_spaet; fail)
 done
@@ -216,11 +221,11 @@ lemma rewrite_iiface_matches_Primitive:
          matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt (Match x)) a p = matches (common_matcher, \<alpha>) (Match x) a p"
      apply(case_tac x)
              apply(simp_all)
-     apply(simp add: matches_ipassmt_iface_to_srcip_mexpr)
+     apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
      apply(simp split: option.split)
      apply(intro conjI)
       apply(simp_all add: match_simplematcher_Iface_not match_simplematcher_Iface)
-      apply(simp_all add: ipassmt_iface_to_srcip_mexpr_def)
+      apply(simp_all add: ipassmt_iface_constrain_srcip_mexpr_def)
       apply(simp split: option.split_asm)
      apply(simp add: helper_es_ist_spaet; fail)
 done
@@ -237,6 +242,7 @@ lemma   "matches (common_matcher, \<alpha>) (MatchNot (rewrite_iiface ipassmt m)
      apply(simp_all)
      (**probably last case does not hold**)
      oops
+*)
 
 lemma "matches (common_matcher, \<alpha>) m a p \<Longrightarrow> (*\<longleftrightarrow>*)
         matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p"
@@ -244,7 +250,7 @@ apply(induction m)
 apply(simp_all)
      apply(case_tac x)
              apply(simp_all)
-     apply(simp add: matches_ipassmt_iface_to_srcip_mexpr)
+     apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
      apply(simp split: option.split)
      apply(intro conjI)
       apply(simp_all add: match_simplematcher_Iface_not match_simplematcher_Iface)
@@ -258,23 +264,23 @@ oops
 
 
 (*TODO: ambiguous?*)
-lemma fixes ifce::iface
+lemma matches_ipassmt_iface_constrain_srcip_mexpr_case_Iface:
+      fixes ifce::iface
       shows "ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
             case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips) \<Longrightarrow>
-            matches (common_matcher, \<alpha>) (ipassmt_iface_to_srcip_mexpr ipassmt ifce) a p =
-            Matching_Ternary.matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p"
+            matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p =
+            matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p"
   apply(simp add: match_simplematcher_Iface)
   apply(case_tac "ipassmt (Iface (p_iiface p))")
    apply(simp)
-   apply(simp add: matches_ipassmt_iface_to_srcip_mexpr)
+   apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
    apply(case_tac "ipassmt ifce")
     apply(simp; fail)
    apply(simp)
    apply(drule(2) ipassmt_sanity_haswildcards_helper1)
    apply(simp)
-   defer (*should be by ipassmt assm*)
   apply(simp)
-  apply(simp add: matches_ipassmt_iface_to_srcip_mexpr)
+  apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
   apply(case_tac "ipassmt ifce")
    apply(simp; fail)
   apply(simp)
@@ -283,8 +289,10 @@ lemma fixes ifce::iface
   apply(case_tac "ifce_str = (p_iiface p)")
    apply (simp add: match_iface_refl)
   apply(simp)
-  (*by assumption*)
-oops
+  apply(subgoal_tac "\<not> match_iface (Iface ifce_str) (p_iiface p)")
+   apply(simp)
+  by (metis domI iface.sel iface_is_wildcard_def ipassmt_sanity_haswildcards_def match_iface_case_nowildcard)
+  
 
 (*need: no wildcards in ipassmt*)
 (*need: ipassmt ips are disjoint?*)
@@ -322,7 +330,7 @@ lemma "normalized_nnf_match m \<Longrightarrow> ipassmt_sanity_haswildcards ipas
     apply(simp add: Common_Primitive_Matcher.match_simplematcher_Iface)
     apply(case_tac "ipassmt (Iface (p_iiface p))")
      apply(simp)
-     apply(simp add: matches_ipassmt_iface_to_srcip_mexpr)
+     apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
      apply(case_tac "ipassmt ifce")
       apply(simp; fail)
      apply(simp)
@@ -330,7 +338,7 @@ lemma "normalized_nnf_match m \<Longrightarrow> ipassmt_sanity_haswildcards ipas
      apply(simp)
      defer (*should be by ipassmt assm*)
     apply(simp)
-    apply(simp add: matches_ipassmt_iface_to_srcip_mexpr)
+    apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
     apply(case_tac "ipassmt ifce")
      apply(simp; fail)
     apply(simp)
