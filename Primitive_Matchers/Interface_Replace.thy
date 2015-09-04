@@ -189,18 +189,6 @@ using iface_is_wildcard_def match_iface_case_nowildcard by fastforce
     p_src p \<notin> ((\<lambda>(base, len). ipv4range_set_from_bitmask base len) aa) \<and> p_src p \<notin> ipv4cidr_union_set (set x2)"
 by(simp add: ipv4cidr_union_set_def)*)
 
-lemma helper_es_ist_spaet:"matches (common_matcher, \<alpha>) (MatchNot (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) y)) x2))) a p \<longleftrightarrow>
-       (p_src p \<notin> ipv4cidr_union_set (set x2))"
-  thm match_list_to_match_expr_disjunction
-  apply(induction x2)
-   apply(simp add: bunch_of_lemmata_about_matches ipv4cidr_union_set_def)
-  apply(simp add: bunch_of_lemmata_about_matches)
-  apply(simp add: ipv4cidr_union_set_def)
-  apply(simp add: match_simplematcher_SrcDst_not)
-  apply(thin_tac _)
-  apply(simp add: ipv4s_to_set_Ip4AddrNetmask_case)
-done
-
 
 
 lemma rewrite_iiface_matches_Primitive:
@@ -216,13 +204,27 @@ case (IIface ifce)
      apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def match_simplematcher_Iface_not)
      done
    next
-   case (Some ips) thus ?thesis
-     apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-     apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def match_simplematcher_Iface_not)
-     apply(simp add: matches_DeMorgan)
-     apply(simp add: helper_es_ist_spaet)
-     apply(simp add: match_simplematcher_Iface_not)
-     by blast
+   case (Some ips)
+     {  fix ips
+        have "matches (common_matcher, \<alpha>)
+               (MatchNot (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) y)) ips))) a p \<longleftrightarrow>
+               (p_src p \<notin> ipv4cidr_union_set (set ips))"
+      apply(induction ips)
+       apply(simp add: bunch_of_lemmata_about_matches ipv4cidr_union_set_def)
+      apply(simp add: bunch_of_lemmata_about_matches)
+      apply(simp add: ipv4cidr_union_set_def)
+      apply(simp add: match_simplematcher_SrcDst_not)
+      apply(thin_tac _)
+      apply(simp add: ipv4s_to_set_Ip4AddrNetmask_case)
+      done
+     } note helper=this
+     from Some show ?thesis
+       apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
+       apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def match_simplematcher_Iface_not)
+       apply(simp add: matches_DeMorgan)
+       apply(simp add: helper)
+       apply(simp add: match_simplematcher_Iface_not)
+       by blast
    qed
    with IIface show ?thesis by(simp add: match_simplematcher_Iface_not match_simplematcher_Iface)
 qed(simp_all)
