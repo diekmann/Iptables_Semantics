@@ -31,11 +31,11 @@ next
 case (Some ips)
   have "matches (common_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) y)) ips)) a p \<longleftrightarrow>
        (\<exists>m\<in>set ips. p_src p \<in> (case m of (ip, y) \<Rightarrow> ipv4range_set_from_bitmask ip y))" 
-  by(simp add: match_list_to_match_expr_disjunction[symmetric] match_list_matches match_simplematcher_SrcDst ipv4s_to_set_Ip4AddrNetmask_case)
+       by(simp add: match_list_to_match_expr_disjunction[symmetric] match_list_matches match_simplematcher_SrcDst ipv4s_to_set_Ip4AddrNetmask_case)
   with Some show ?thesis
-  apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def bunch_of_lemmata_about_matches(1))
-  apply(simp add: match_simplematcher_Iface ipv4cidr_union_set_def)
-  done
+    apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def bunch_of_lemmata_about_matches(1))
+    apply(simp add: match_simplematcher_Iface ipv4cidr_union_set_def)
+    done
 qed
   
 
@@ -153,114 +153,110 @@ by(simp add: matches_tuple)
 
 
 
-lemma rewrite_iiface_matches_Primitive:
-        "matches (common_matcher, \<alpha>) (MatchNot (rewrite_iiface ipassmt (Match x))) a p = matches (common_matcher, \<alpha>) (MatchNot (Match x)) a p \<longleftrightarrow>
-         matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt (Match x)) a p = matches (common_matcher, \<alpha>) (Match x) a p"
-proof(cases x)
-case (IIface ifce)
-  have "(matches (common_matcher, \<alpha>) (MatchNot (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce)) a p = (\<not> match_iface ifce (p_iiface p))) \<longleftrightarrow>
-    (matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p = match_iface ifce (p_iiface p))"
-  proof(cases "ipassmt ifce")
-  case None thus ?thesis
-     apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-     apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def match_simplematcher_Iface_not)
-     done
-   next
-   case (Some ips)
-     {  fix ips
-        have "matches (common_matcher, \<alpha>)
-               (MatchNot (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) y)) ips))) a p \<longleftrightarrow>
-               (p_src p \<notin> ipv4cidr_union_set (set ips))"
-      apply(induction ips)
-       apply(simp add: bunch_of_lemmata_about_matches ipv4cidr_union_set_def)
-      apply(simp add: bunch_of_lemmata_about_matches)
-      apply(simp add: ipv4cidr_union_set_def)
-      apply(simp add: match_simplematcher_SrcDst_not)
-      apply(thin_tac _)
-      apply(simp add: ipv4s_to_set_Ip4AddrNetmask_case)
-      done
-     } note helper=this
-     from Some show ?thesis
+context
+begin
+  (*helper1: used in induction case MatchNot*)
+  private lemma rewrite_iiface_matches_Primitive:
+          "matches (common_matcher, \<alpha>) (MatchNot (rewrite_iiface ipassmt (Match x))) a p = matches (common_matcher, \<alpha>) (MatchNot (Match x)) a p \<longleftrightarrow>
+           matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt (Match x)) a p = matches (common_matcher, \<alpha>) (Match x) a p"
+  proof(cases x)
+  case (IIface ifce)
+    have "(matches (common_matcher, \<alpha>) (MatchNot (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce)) a p = (\<not> match_iface ifce (p_iiface p))) \<longleftrightarrow>
+      (matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p = match_iface ifce (p_iiface p))"
+    proof(cases "ipassmt ifce")
+    case None thus ?thesis
        apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
        apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def match_simplematcher_Iface_not)
-       apply(simp add: matches_DeMorgan)
-       apply(simp add: helper)
-       apply(simp add: match_simplematcher_Iface_not)
-       by blast
-   qed
-   with IIface show ?thesis by(simp add: match_simplematcher_Iface_not match_simplematcher_Iface)
-qed(simp_all)
-
-
-
-
-lemma matches_ipassmt_iface_constrain_srcip_mexpr_case_Iface:
-      fixes ifce::iface
-      assumes "ipassmt_sanity_haswildcards ipassmt" and "case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)"
-      shows   "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow>
-               matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p"
-proof -
-  have "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p = match_iface ifce (p_iiface p)"
-    proof(cases "ipassmt (Iface (p_iiface p))")
-    case None
-    from None show ?thesis
-      proof(cases "ipassmt ifce")
-        case None thus ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-        next
-        case (Some a)
-         from assms(1) have "\<not> match_iface ifce (p_iiface p)"
-         apply(rule ipassmt_sanity_haswildcards_match_iface)
-          by(simp_all add: Some None)
-        with Some show ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-      qed
-    next
-    case (Some x)
-      with assms(2) have assms2: "p_src p \<in> ipv4cidr_union_set (set x)" by(simp) (*unused*)
-      show ?thesis
-      proof(cases "ipassmt ifce")
-        case None thus ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-        next
-        case (Some y) with assms(2) have "(match_iface ifce (p_iiface p) \<and> p_src p \<in> ipv4cidr_union_set (set y)) = match_iface ifce (p_iiface p)"
-          apply(cases ifce)
-          apply(rename_tac ifce_str)
-          apply(case_tac "ifce_str = (p_iiface p)")
-           apply (simp add: match_iface_refl; fail)
-          apply(simp)
-          apply(subgoal_tac "\<not> match_iface (Iface ifce_str) (p_iiface p)")
-           apply(simp)
-          using assms(1) by (metis domI iface.sel iface_is_wildcard_def ipassmt_sanity_haswildcards_def match_iface_case_nowildcard)
-          with Some show ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-      qed
-  qed
-  thus ?thesis by(simp add: match_simplematcher_Iface)
-qed
+       done
+     next
+     case (Some ips)
+       {  fix ips
+          have "matches (common_matcher, \<alpha>)
+                 (MatchNot (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) y)) ips))) a p \<longleftrightarrow>
+                 (p_src p \<notin> ipv4cidr_union_set (set ips))"
+        apply(induction ips)
+         apply(simp add: bunch_of_lemmata_about_matches ipv4cidr_union_set_def)
+        apply(simp add: bunch_of_lemmata_about_matches)
+        apply(simp add: ipv4cidr_union_set_def)
+        apply(simp add: match_simplematcher_SrcDst_not)
+        apply(thin_tac _)
+        apply(simp add: ipv4s_to_set_Ip4AddrNetmask_case)
+        done
+       } note helper=this
+       from Some show ?thesis
+         apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
+         apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def match_simplematcher_Iface_not)
+         apply(simp add: matches_DeMorgan)
+         apply(simp add: helper)
+         apply(simp add: match_simplematcher_Iface_not)
+         by blast
+     qed
+     with IIface show ?thesis by(simp add: match_simplematcher_Iface_not match_simplematcher_Iface)
+  qed(simp_all)
   
-
-lemma matches_rewrite_iiface:
-     "normalized_nnf_match m \<Longrightarrow> ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
-      (case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)) \<Longrightarrow>
-      matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
-  proof(induction m (*arbitrary: a*))
-  case MatchAny thus ?case by simp
-  next
-  case (MatchNot m)
-    hence IH: "normalized_nnf_match m \<Longrightarrow> matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p = matches (common_matcher, \<alpha>) m a p" by blast
-    with MatchNot.prems IH show ?case
-     apply(induction m)
-     apply(simp_all add: rewrite_iiface_matches_Primitive)
-     done
-  next
-  case(Match x)
-   thus ?case
-    apply(cases x)
-            apply(simp_all)
-    apply(rename_tac ifce)
-    using matches_ipassmt_iface_constrain_srcip_mexpr_case_Iface by simp
-  next
-  case (MatchAnd m1 m2) thus ?case
-    by(simp add: bunch_of_lemmata_about_matches)
+  
+  (*helper2: used in induction base case*)
+  private lemma matches_ipassmt_iface_constrain_srcip_mexpr_case_Iface:
+        fixes ifce::iface
+        assumes "ipassmt_sanity_haswildcards ipassmt" and "case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)"
+        shows   "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow>
+                 matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p"
+  proof -
+    have "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p = match_iface ifce (p_iiface p)"
+      proof(cases "ipassmt (Iface (p_iiface p))")
+      case None
+      from None show ?thesis
+        proof(cases "ipassmt ifce")
+          case None thus ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
+          next
+          case (Some a)
+           from assms(1) have "\<not> match_iface ifce (p_iiface p)"
+           apply(rule ipassmt_sanity_haswildcards_match_iface)
+            by(simp_all add: Some None)
+          with Some show ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
+        qed
+      next
+      case (Some x)
+        with assms(2) have assms2: "p_src p \<in> ipv4cidr_union_set (set x)" by(simp) (*unused*)
+        show ?thesis
+        proof(cases "ipassmt ifce")
+          case None thus ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
+          next
+          case (Some y) with assms(2) have "(match_iface ifce (p_iiface p) \<and> p_src p \<in> ipv4cidr_union_set (set y)) = match_iface ifce (p_iiface p)"
+            apply(cases ifce)
+            apply(rename_tac ifce_str)
+            apply(case_tac "ifce_str = (p_iiface p)")
+             apply (simp add: match_iface_refl; fail)
+            apply(simp)
+            apply(subgoal_tac "\<not> match_iface (Iface ifce_str) (p_iiface p)")
+             apply(simp)
+            using assms(1) by (metis domI iface.sel iface_is_wildcard_def ipassmt_sanity_haswildcards_def match_iface_case_nowildcard)
+            with Some show ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
+        qed
+    qed
+    thus ?thesis by(simp add: match_simplematcher_Iface)
   qed
     
+
+  lemma matches_rewrite_iiface:
+       "normalized_nnf_match m \<Longrightarrow> ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
+        (case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)) \<Longrightarrow>
+        matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
+    proof(induction m)
+    case MatchAny thus ?case by simp
+    next
+    case (MatchNot m)
+      hence IH: "normalized_nnf_match m \<Longrightarrow> matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p = matches (common_matcher, \<alpha>) m a p" by blast
+      with MatchNot.prems IH show ?case by(induction m) (simp_all add: rewrite_iiface_matches_Primitive)
+    next
+    case(Match x) thus ?case
+      proof(cases x)
+        case (IIface ifce) with Match show ?thesis using matches_ipassmt_iface_constrain_srcip_mexpr_case_Iface by simp
+      qed(simp_all)
+    next
+    case (MatchAnd m1 m2) thus ?case by(simp add: bunch_of_lemmata_about_matches)
+    qed
+end
 
 
 (*nonsense. wie wird ausgedrückt dass wir annahmen, dass pakete vom richtigen iface kommen und wie kann das no_spoofing checken?*)
