@@ -202,66 +202,30 @@ lemma helper_es_ist_spaet:"matches (common_matcher, \<alpha>) (MatchNot (match_l
 done
 
 
-(*would be simpler if normalied_nnf is assumed*)
-lemma rewrite_iiface_matches_MatchNot_Primitive:
-        "matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt (Match x)) a p = matches (common_matcher, \<alpha>) (Match x) a p \<Longrightarrow>
-         matches (common_matcher, \<alpha>) (MatchNot (rewrite_iiface ipassmt (Match x))) a p = matches (common_matcher, \<alpha>) (MatchNot (Match x)) a p"
-     apply(case_tac x)
-             apply(simp_all)
-     apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-     apply(simp split: option.split_asm)
-      apply(simp_all add: match_simplematcher_Iface_not match_simplematcher_Iface)
-      apply(simp_all add: ipassmt_iface_constrain_srcip_mexpr_def)
-      apply(simp add: match_simplematcher_Iface_not match_simplematcher_Iface; fail)
-     apply(simp add: matches_DeMorgan)
-     apply(simp add: helper_es_ist_spaet)
-     apply(simp add: match_simplematcher_Iface_not)
-     by auto
 
 lemma rewrite_iiface_matches_Primitive:
-        "matches (common_matcher, \<alpha>) (MatchNot (rewrite_iiface ipassmt (Match x))) a p = matches (common_matcher, \<alpha>) (MatchNot (Match x)) a p \<Longrightarrow>
+        "matches (common_matcher, \<alpha>) (MatchNot (rewrite_iiface ipassmt (Match x))) a p = matches (common_matcher, \<alpha>) (MatchNot (Match x)) a p \<longleftrightarrow>
          matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt (Match x)) a p = matches (common_matcher, \<alpha>) (Match x) a p"
-     apply(case_tac x)
-             apply(simp_all)
+proof(cases x)
+case (IIface ifce)
+  have "(matches (common_matcher, \<alpha>) (MatchNot (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce)) a p = (\<not> match_iface ifce (p_iiface p))) \<longleftrightarrow>
+    (matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p = match_iface ifce (p_iiface p))"
+  proof(cases "ipassmt ifce")
+  case None thus ?thesis
      apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-     apply(simp split: option.split)
-     apply(intro conjI)
-      apply(simp_all add: match_simplematcher_Iface_not match_simplematcher_Iface)
-      apply(simp_all add: ipassmt_iface_constrain_srcip_mexpr_def)
-      apply(simp split: option.split_asm)
+     apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def match_simplematcher_Iface_not)
+     done
+   next
+   case (Some ips) thus ?thesis
+     apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
+     apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def match_simplematcher_Iface_not)
      apply(simp add: matches_DeMorgan)
      apply(simp add: helper_es_ist_spaet)
      apply(simp add: match_simplematcher_Iface_not)
      by blast
-
-
-lemma   "matches (common_matcher, \<alpha>) (MatchNot (rewrite_iiface ipassmt m)) a p = matches (common_matcher, \<alpha>) (MatchNot m) a p \<longleftrightarrow>
-         matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p = matches (common_matcher, \<alpha>) m a p"
-     apply(induction m)
-        apply(simp_all add: rewrite_iiface_matches_Primitive)
-       apply(simp_all add: bunch_of_lemmata_about_matches(6))
-      using rewrite_iiface_matches_MatchNot_Primitive rewrite_iiface_matches_Primitive apply blast
-     apply(simp_all add: bunch_of_lemmata_about_matches matches_DeMorgan)
-     apply(safe)
-     apply(simp_all)
-     (**probably last case does not hold**)
-     oops
-
-lemma "matches (common_matcher, \<alpha>) m a p \<Longrightarrow> (*\<longleftrightarrow>*)
-        matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p"
-apply(induction m)
-apply(simp_all)
-     apply(case_tac x)
-             apply(simp_all)
-     apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-     apply(simp split: option.split)
-     apply(intro conjI)
-      apply(simp_all add: match_simplematcher_Iface_not match_simplematcher_Iface)
-     defer (*needs*assm*)
-defer
-apply(simp add: bunch_of_lemmata_about_matches)
-defer
-oops
+   qed
+   with IIface show ?thesis by(simp add: match_simplematcher_Iface_not match_simplematcher_Iface)
+qed(simp_all)
 
 
 
@@ -269,32 +233,39 @@ oops
 (*TODO: ambiguous?*)
 lemma matches_ipassmt_iface_constrain_srcip_mexpr_case_Iface:
       fixes ifce::iface
-      shows "ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
-            case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips) \<Longrightarrow>
-            matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p =
+      assumes "ipassmt_sanity_haswildcards ipassmt" and "case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)"
+       shows "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p =
             matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p"
-  apply(simp add: match_simplematcher_Iface)
-  apply(case_tac "ipassmt (Iface (p_iiface p))")
-   apply(simp)
-   apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-   apply(case_tac "ipassmt ifce")
-    apply(simp; fail)
-   apply(simp)
-   apply(drule(2) ipassmt_sanity_haswildcards_helper1)
-   apply(simp)
-  apply(simp)
-  apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-  apply(case_tac "ipassmt ifce")
-   apply(simp; fail)
-  apply(simp)
-  apply(case_tac ifce)
-  apply(rename_tac ifce_str)
-  apply(case_tac "ifce_str = (p_iiface p)")
-   apply (simp add: match_iface_refl)
-  apply(simp)
-  apply(subgoal_tac "\<not> match_iface (Iface ifce_str) (p_iiface p)")
-   apply(simp)
-  by (metis domI iface.sel iface_is_wildcard_def ipassmt_sanity_haswildcards_def match_iface_case_nowildcard)
+proof -
+  have "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p = match_iface ifce (p_iiface p)"
+    proof(cases "ipassmt (Iface (p_iiface p))")
+    case None with assms show ?thesis
+     apply(simp)
+     apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
+     apply(case_tac "ipassmt ifce")
+      apply(simp; fail)
+     apply(simp)
+     apply(drule(2) ipassmt_sanity_haswildcards_helper1)
+     apply(simp)
+     done
+    next
+    case (Some x) with assms show ?thesis
+      apply(simp)
+      apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
+      apply(case_tac "ipassmt ifce")
+       apply(simp; fail)
+      apply(simp)
+      apply(case_tac ifce)
+      apply(rename_tac ifce_str)
+      apply(case_tac "ifce_str = (p_iiface p)")
+       apply (simp add: match_iface_refl)
+      apply(simp)
+      apply(subgoal_tac "\<not> match_iface (Iface ifce_str) (p_iiface p)")
+       apply(simp)
+      by (metis domI iface.sel iface_is_wildcard_def ipassmt_sanity_haswildcards_def match_iface_case_nowildcard)
+    qed
+  thus ?thesis by(simp add: match_simplematcher_Iface)
+qed
   
 
 lemma matches_rewrite_iiface:
@@ -308,7 +279,7 @@ lemma matches_rewrite_iiface:
     hence IH: "normalized_nnf_match m \<Longrightarrow> matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p = matches (common_matcher, \<alpha>) m a p" by blast
     with MatchNot.prems IH show ?case
      apply(induction m)
-     apply(simp_all add: rewrite_iiface_matches_MatchNot_Primitive)
+     apply(simp_all add: rewrite_iiface_matches_Primitive)
      done
   next
   case(Match x)
