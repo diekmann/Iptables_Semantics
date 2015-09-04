@@ -153,21 +153,6 @@ by(simp add: matches_tuple)
 
 
 
-
-
-lemma ipassmt_sanity_haswildcards_helper1: "ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
-       ipassmt (Iface ifce2) = None \<Longrightarrow> ipassmt ifce = Some a \<Longrightarrow> \<not> match_iface ifce ifce2"
-apply(simp add: ipassmt_sanity_haswildcards_def)
-using iface_is_wildcard_def match_iface_case_nowildcard by fastforce
-
-
-(*lemma ipv4cidr_union_set_fooo: fixes p::simple_packet
-        shows "(p_src p \<notin> ipv4cidr_union_set ({aa} \<union> set x2)) \<longleftrightarrow>
-    p_src p \<notin> ((\<lambda>(base, len). ipv4range_set_from_bitmask base len) aa) \<and> p_src p \<notin> ipv4cidr_union_set (set x2)"
-by(simp add: ipv4cidr_union_set_def)*)
-
-
-
 lemma rewrite_iiface_matches_Primitive:
         "matches (common_matcher, \<alpha>) (MatchNot (rewrite_iiface ipassmt (Match x))) a p = matches (common_matcher, \<alpha>) (MatchNot (Match x)) a p \<longleftrightarrow>
          matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt (Match x)) a p = matches (common_matcher, \<alpha>) (Match x) a p"
@@ -224,7 +209,7 @@ proof -
         next
         case (Some a)
          from assms(1) have "\<not> match_iface ifce (p_iiface p)"
-         apply(rule ipassmt_sanity_haswildcards_helper1)
+         apply(rule ipassmt_sanity_haswildcards_match_iface)
           by(simp_all add: Some None)
         with Some show ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
       qed

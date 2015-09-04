@@ -20,6 +20,13 @@ section{*No Spoofing*}
     text{*Executable of the @{typ ipassignment} is given as a list.*}
     lemma[code_unfold]: "ipassmt_sanity_haswildcards (map_of ipassmt) \<longleftrightarrow> (\<forall> iface \<in> fst` set ipassmt. \<not> iface_is_wildcard iface)"
       by(simp add: ipassmt_sanity_haswildcards_def Map.dom_map_of_conv_image_fst)
+  
+  lemma ipassmt_sanity_haswildcards_match_iface:
+      "ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
+       ipassmt (Iface ifce2) = None \<Longrightarrow>
+       ipassmt ifce = Some a \<Longrightarrow>
+       \<not> match_iface ifce ifce2"
+  unfolding ipassmt_sanity_haswildcards_def using iface_is_wildcard_def match_iface_case_nowildcard by fastforce
 
 
   (*
