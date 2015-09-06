@@ -259,15 +259,43 @@ begin
 end
 
 
-(*nonsense. wie wird ausgedrückt dass wir annahmen, dass pakete vom richtigen iface kommen und wie kann das no_spoofing checken?*)
-lemma fixes p::simple_packet
-      shows "no_spoofing ipassmt rs \<Longrightarrow> (case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips))"
+(*TODO: we need a good formulation of the assumption. the case stuff is so undefined fo the None case \<dots>
+        All-quantor is too strong*)
+lemma "(\<forall>ips. ipassmt (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipv4cidr_union_set (set ips)) \<Longrightarrow>
+       (case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips))"
+  apply(cases "ipassmt (Iface (p_iiface p))")
+   apply(simp_all)
+  done
+
+
+
+text{*Sanity check:
+      If we assume that there are no spoofed packets, spoofing protection is trivially fulfilled.*}
+lemma "\<forall> p::simple_packet. Iface (p_iiface p) \<in> dom ipassmt \<longrightarrow> p_src p \<in> ipv4cidr_union_set (set (the (ipassmt (Iface (p_iiface p))))) \<Longrightarrow> no_spoofing ipassmt rs"
   apply(simp add: no_spoofing_def)
-  apply(erule_tac x="(Iface (p_iiface p))" in ballE)
-  apply(simp_all)
-  apply(erule_tac x=p in allE)
-  apply(simp)
-oops
+  apply(clarify)
+  apply(rename_tac iface ips p)
+  apply(thin_tac "_,_\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow") (*not needed*)
+  apply(erule_tac x="p\<lparr>p_iiface := iface_sel iface\<rparr>" in allE)
+  apply(auto)
+  done
+
+text{*Sanity check:
+      If the firewall features spoofing protection and we look at a packet which was allowed by the firewall.
+      Then the packet's src ip must be according to ipassmt. (case Some)
+      We don't case about packets from an interface which are not defined in ipassmt. (case None)*}
+lemma "no_spoofing ipassmt rs \<Longrightarrow> (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<Longrightarrow>
+       case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips) | None \<Rightarrow> True"
+  apply(simp add: no_spoofing_def)
+  apply(case_tac "Iface (p_iiface p) \<in> dom ipassmt")
+   apply(erule_tac x="Iface (p_iiface p)" in ballE)
+    apply(simp_all)
+   apply(erule_tac x="p" in allE)
+   apply(simp)
+   apply fastforce
+  by (simp add: case_option_dom)
+
+
 
 
 end

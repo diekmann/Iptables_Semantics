@@ -34,6 +34,7 @@ section{*No Spoofing*}
   *)
 
 (***************TODO***************)
+text{* some additional (optional) sanity checks *}
 (*TODO: move to nospoof zone spanning*)
 definition ipassmt_sanity_disjoint :: "ipassignment \<Rightarrow> bool" where
   "ipassmt_sanity_disjoint ipassmt \<equiv> \<forall> i1 \<in> dom ipassmt. \<forall> i2 \<in> dom ipassmt. 
@@ -60,6 +61,8 @@ definition ipassmt_sanity_complete :: "ipassignment \<Rightarrow> bool" where
                                       (map (\<lambda>x. case x of Pos i \<Rightarrow> i | Neg i \<Rightarrow> i) (fst (primitive_extractor (is_Iiface, iiface_sel) m))) @
                                       (map (\<lambda>x. case x of Pos i \<Rightarrow> i | Neg i \<Rightarrow> i) (fst (primitive_extractor (is_Oiface, oiface_sel) m))) @ collect_ifaces rs)"
 
+  text{*sanity check that all interfaces mentioned in the ruleset are also listed in the ipassmt. May fail for wildcard interfaces in the ruleset.*}
+  (*TODO: wildcards*)
   definition ipassmt_sanity_defined :: "common_primitive rule list \<Rightarrow> ipassignment \<Rightarrow> bool" where
     "ipassmt_sanity_defined rs ipassmt \<equiv> \<forall> iface \<in> set (collect_ifaces rs). iface \<in> dom ipassmt"
 
