@@ -55,6 +55,8 @@ section{*Example: Implementing spoofing protection*}
   (*This actually caught a typo I made in the ipassmt!*)
   lemma "ipassmt_sanity_defined (preprocess raw_fw1_PREROUTING_default_policy raw_fw1) (map_of_ipassmt ipassmt)" by eval
 
+  value[code] "debug_ipassmt ipassmt (preprocess raw_fw1_PREROUTING_default_policy raw_fw1)"
+
   text{*The administrator wanted to make sure that he will not lock himself out of the firewall.
   Hence, we must verify that ssh packets are still accepted by the firewall.
   Therefore, we also load the filter table.*}

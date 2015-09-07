@@ -77,6 +77,9 @@ subsection{*General Setup*}
   text{*We only consider packets which are @{const CT_New}. Packets which already belong to an established connection are okay be definition.*}
   definition "preprocess default_policy fw \<equiv> (upper_closure (ctstate_assume_new (unfold_ruleset_FORWARD default_policy (map_of_string fw))))"
 
+
+  value[code] "debug_ipassmt ipassmt []"
+
 text{*In all three iterations, we have removed two rules from the ruleset. The first rule excluded
 from analysis is the ESTABLISHED rule, as discussed earlier.
 The second rule we removed was an exception for an asterisk server. This rule is probably an error 
@@ -128,7 +131,8 @@ subsubsection{*Try 1*}
                in map simple_rule_toString x" (*222.742s*)
 
 
-
+  value[code] "debug_ipassmt ipassmt (preprocess net_fw_1_FORWARD_default_policy net_fw_1)"
+  
   text{*the parsed firewall:*}
   value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw_1"
   

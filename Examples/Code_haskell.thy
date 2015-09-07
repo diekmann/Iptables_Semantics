@@ -100,7 +100,7 @@ export_code Rule
   to_simple_firewall_without_interfaces
   sanity_wf_ruleset
   (*spoofing:*) example_TUM_i8_spoofing_ipassmt
-  no_spoofing_iface ipassmt_sanity_defined map_of_ipassmt to_ipassmt ipassmt_sanity_nowildcards
+  no_spoofing_iface ipassmt_sanity_defined map_of_ipassmt to_ipassmt debug_ipassmt
   Pos Neg
   in Haskell module_name "Network.IPTables.Generated" file "generated_code/"
 

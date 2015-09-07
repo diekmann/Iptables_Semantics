@@ -69,6 +69,7 @@ definition ipassmt_sanity_complete :: "ipassignment \<Rightarrow> bool" where
 
   text{*sanity check that all interfaces mentioned in the ruleset are also listed in the ipassmt. May fail for wildcard interfaces in the ruleset.*}
   (*TODO: wildcards*)
+  (*primitive_extractor requires normalized_nnf_primitives*)
   definition ipassmt_sanity_defined :: "common_primitive rule list \<Rightarrow> ipassignment \<Rightarrow> bool" where
     "ipassmt_sanity_defined rs ipassmt \<equiv> \<forall> iface \<in> set (collect_ifaces rs). iface \<in> dom ipassmt"
 
