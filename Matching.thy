@@ -137,7 +137,6 @@ lemma add_match_split_fst': "add_match m (a # rs) = add_match m [a] @ add_match 
 
 
 
-(*TODO: this proof is really really ugly!*)
 lemma matches_add_match_simp:
   assumes m: "matches \<gamma> m p"
   shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" (is "?l \<longleftrightarrow> ?r")
@@ -164,14 +163,14 @@ lemma matches_add_match_simp:
           unfolding add_match_def by simp
       next
         case (Cons r rs)
-        thus ?case
-          apply(cases r)
-          apply(simp only: add_match_split_fst)
-          apply(erule seqE_cons)
-          apply(subst(asm) matches_rule_and_simp[symmetric])
-          apply(simp)
-          apply(metis decision state.exhaust iptables_bigstep_deterministic seq_cons)
-          done
+        hence IH: " \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m rs, s\<rangle> \<Rightarrow> t" by(simp add: add_match_split_fst)
+        obtain m' a where r: "r = Rule m' a" by (cases r)
+        with Cons.prems(2) obtain ti where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m' a], s\<rangle> \<Rightarrow> ti" and "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, ti\<rangle> \<Rightarrow> t"
+          by(auto elim:seqE_cons simp add: add_match_split_fst)
+        with Cons.prems(1) IH have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule (MatchAnd m m') a], s\<rangle> \<Rightarrow> ti" by(simp add: matches_rule_and_simp)
+        with `\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, ti\<rangle> \<Rightarrow> t` IH r show ?case 
+          apply(simp add: add_match_split_fst)
+          by(metis decision state.exhaust iptables_bigstep_deterministic seq_cons)
       qed
   qed
 
