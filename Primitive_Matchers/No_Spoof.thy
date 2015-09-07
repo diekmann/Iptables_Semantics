@@ -31,59 +31,59 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
   unfolding ipassmt_sanity_nowildcards_def using iface_is_wildcard_def match_iface_case_nowildcard by fastforce
 
 
-  (*TODO: use this in all exported code*)
+  (* use this in all exported code*)
   definition map_of_ipassmt :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> iface \<rightharpoonup> (32 word \<times> nat) list" where
     "map_of_ipassmt ipassmt = (if distinct (map fst ipassmt) \<and> ipassmt_sanity_nowildcards (map_of ipassmt) then map_of ipassmt else undefined)"
 
 
-  (*
-  check wool: warning if zone-spanning (optional)
-  *)
-
-(***************TODO***************)
-text{* some additional (optional) sanity checks *}
-(*TODO: move to nospoof zone spanning*)
-definition ipassmt_sanity_disjoint :: "ipassignment \<Rightarrow> bool" where
-  "ipassmt_sanity_disjoint ipassmt \<equiv> \<forall> i1 \<in> dom ipassmt. \<forall> i2 \<in> dom ipassmt. i1 \<noteq> i2 \<longrightarrow>
-        ipv4cidr_union_set (set (the (ipassmt i1))) \<inter> ipv4cidr_union_set (set (the (ipassmt i2))) = {}"
-
-(*TODO: check those in the code examples*)
-lemma[code_unfold]: "ipassmt_sanity_disjoint (map_of ipassmt) \<longleftrightarrow> (let Is = fst` set ipassmt in 
-    (\<forall> i1 \<in> Is. \<forall> i2 \<in> Is. i1 \<noteq> i2 \<longrightarrow> wordinterval_empty (wordinterval_intersection (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i1))))  (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i2)))))))"
-  apply(simp add: ipassmt_sanity_disjoint_def Map.dom_map_of_conv_image_fst)
-  apply(simp add: ipv4cidr_union_set_def)
-  apply(simp add: l2br)
-  apply(simp add: ipv4cidr_to_interval_def)
-  apply(simp add: ipv4cidr_to_interval_ipv4range_set_from_bitmask)
-  done
-
-
-(*TODO: move to nospoof and add those to the isabelle ipassm code generation and haskell tool!*)
-definition ipassmt_sanity_complete :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> bool" where
-  "ipassmt_sanity_complete ipassmt \<equiv> distinct (map fst ipassmt) \<and> (\<Union>(ipv4cidr_union_set ` set ` (ran (map_of ipassmt)))) = UNIV"
-
-(*TODO: move*)
-fun wordinterval_Union :: "('a::len) wordinterval list \<Rightarrow> 'a wordinterval" where
-  "wordinterval_Union [] = Empty_WordInterval" |
-  "wordinterval_Union (w#ws) = wordinterval_union w (wordinterval_Union ws)"
-lemma wordinterval_Union: "wordinterval_to_set (wordinterval_Union ws) = (\<Union> w \<in> (set ws). wordinterval_to_set w)"
-  by(induction ws) (simp_all)
+  text{* some additional (optional) sanity checks *}
+  
+  text{*sanity check that there are no zone-spanning interfaces*}
+  definition ipassmt_sanity_disjoint :: "ipassignment \<Rightarrow> bool" where
+    "ipassmt_sanity_disjoint ipassmt \<equiv> \<forall> i1 \<in> dom ipassmt. \<forall> i2 \<in> dom ipassmt. i1 \<noteq> i2 \<longrightarrow>
+          ipv4cidr_union_set (set (the (ipassmt i1))) \<inter> ipv4cidr_union_set (set (the (ipassmt i2))) = {}"
+  
+  lemma[code_unfold]: "ipassmt_sanity_disjoint (map_of ipassmt) \<longleftrightarrow> (let Is = fst` set ipassmt in 
+      (\<forall> i1 \<in> Is. \<forall> i2 \<in> Is. i1 \<noteq> i2 \<longrightarrow> wordinterval_empty (wordinterval_intersection (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i1))))  (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i2)))))))"
+    apply(simp add: ipassmt_sanity_disjoint_def Map.dom_map_of_conv_image_fst)
+    apply(simp add: ipv4cidr_union_set_def)
+    apply(simp add: l2br)
+    apply(simp add: ipv4cidr_to_interval_def)
+    apply(simp add: ipv4cidr_to_interval_ipv4range_set_from_bitmask)
+    done
+  
+  
+  text{*Checking that the ipassmt covers the complete ipv4 address space.*}
+  definition ipassmt_sanity_complete :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> bool" where
+    "ipassmt_sanity_complete ipassmt \<equiv> distinct (map fst ipassmt) \<and> (\<Union>(ipv4cidr_union_set ` set ` (ran (map_of ipassmt)))) = UNIV"
 
 
+  (*TODO: move*)
+  fun wordinterval_Union :: "('a::len) wordinterval list \<Rightarrow> 'a wordinterval" where
+    "wordinterval_Union [] = Empty_WordInterval" |
+    "wordinterval_Union (w#ws) = wordinterval_union w (wordinterval_Union ws)"
+  lemma wordinterval_Union: "wordinterval_to_set (wordinterval_Union ws) = (\<Union> w \<in> (set ws). wordinterval_to_set w)"
+    by(induction ws) (simp_all)
 
-lemma[code_unfold]: "ipassmt_sanity_complete ipassmt \<longleftrightarrow> distinct (map fst ipassmt) \<and> (let range = map snd ipassmt in 
-    wordinterval_eq (wordinterval_Union (map (l2br \<circ> (map ipv4cidr_to_interval)) range)) wordinterval_UNIV
-    )"
- apply(cases "distinct (map fst ipassmt)")
-  apply(simp add: ipassmt_sanity_complete_def)
-  apply(simp add: Map.ran_distinct)
-  apply(simp add:  wordinterval_eq_set_eq wordinterval_Union)
-  apply(simp add: l2br)
-  apply(simp add: ipv4cidr_to_interval_def)
-  apply(simp add: ipv4cidr_union_set_def ipv4cidr_to_interval_ipv4range_set_from_bitmask)
- apply(simp add: ipassmt_sanity_complete_def)
- done
-(***************TODO***************)
+
+  (*TODo: move*)
+  fun ipv4addr_wordinterval_toString :: "32 wordinterval \<Rightarrow> string" where
+    "ipv4addr_wordinterval_toString (WordInterval s e) = ''{''@ipv4addr_toString s@''..''@ipv4addr_toString e@''}''" |
+    "ipv4addr_wordinterval_toString (RangeUnion a b) = ipv4addr_wordinterval_toString a @ '' u ''@ipv4addr_wordinterval_toString b"
+
+  
+    lemma[code_unfold]: "ipassmt_sanity_complete ipassmt \<longleftrightarrow> distinct (map fst ipassmt) \<and> (let range = map snd ipassmt in 
+        wordinterval_eq (wordinterval_Union (map (l2br \<circ> (map ipv4cidr_to_interval)) range)) wordinterval_UNIV
+        )"
+     apply(cases "distinct (map fst ipassmt)")
+      apply(simp add: ipassmt_sanity_complete_def)
+      apply(simp add: Map.ran_distinct)
+      apply(simp add:  wordinterval_eq_set_eq wordinterval_Union)
+      apply(simp add: l2br)
+      apply(simp add: ipv4cidr_to_interval_def)
+      apply(simp add: ipv4cidr_union_set_def ipv4cidr_to_interval_ipv4range_set_from_bitmask)
+     apply(simp add: ipassmt_sanity_complete_def)
+     done
 
 
 
@@ -101,7 +101,6 @@ lemma[code_unfold]: "ipassmt_sanity_complete ipassmt \<longleftrightarrow> disti
   definition ipassmt_sanity_defined :: "common_primitive rule list \<Rightarrow> ipassignment \<Rightarrow> bool" where
     "ipassmt_sanity_defined rs ipassmt \<equiv> \<forall> iface \<in> set (collect_ifaces rs). iface \<in> dom ipassmt"
 
-    text{*Executable code*}
     lemma[code]: "ipassmt_sanity_defined rs ipassmt \<longleftrightarrow> (\<forall> iface \<in> set (collect_ifaces rs). ipassmt iface \<noteq> None)"
       by(simp add: ipassmt_sanity_defined_def Map.domIff)
   
@@ -112,13 +111,8 @@ lemma[code_unfold]: "ipassmt_sanity_complete ipassmt \<longleftrightarrow> disti
 
 
 
-  (*TODo: move*)
-  fun ipv4addr_wordinterval_toString :: "32 wordinterval \<Rightarrow> string" where
-    "ipv4addr_wordinterval_toString (WordInterval s e) = ''{''@ipv4addr_toString s@''..''@ipv4addr_toString e@''}''" |
-    "ipv4addr_wordinterval_toString (RangeUnion a b) = ipv4addr_wordinterval_toString a @ '' u ''@ipv4addr_wordinterval_toString b"
 
-
-  text{*Debug algorithm*}
+  text{*Debug algorithm with human-readable output*}
   definition debug_ipassmt :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> common_primitive rule list \<Rightarrow> string list" where
     "debug_ipassmt ipassmt rs \<equiv> let ifaces = (map fst ipassmt) in [
       ''distinct: '' @ (if distinct ifaces then ''passed'' else ''FAIL!'')
@@ -150,13 +144,15 @@ lemma[code_unfold]: "ipassmt_sanity_complete ipassmt \<longleftrightarrow> disti
        , ''ipassmt_sanity_complete: '' @ 
           (if ipassmt_sanity_complete ipassmt
            then ''passed''
-           else ipv4addr_wordinterval_toString (wordinterval_setminus wordinterval_UNIV (wordinterval_Union (map (l2br \<circ> (map ipv4cidr_to_interval)) (map snd ipassmt)))))
+           else ''the following is not covered: '' @ 
+            ipv4addr_wordinterval_toString (wordinterval_setminus wordinterval_UNIV (wordinterval_Union (map (l2br \<circ> (map ipv4cidr_to_interval)) (map snd ipassmt)))))
       , ''ipassmt_sanity_complete excluding UNIV interfaces: '' @
           (let ipassmt = filter (\<lambda>(_,ips). ips \<noteq> [(0,0)]) ipassmt
            in
           (if ipassmt_sanity_complete ipassmt
            then ''passed''
-           else ipv4addr_wordinterval_toString (wordinterval_setminus wordinterval_UNIV (wordinterval_Union (map (l2br \<circ> (map ipv4cidr_to_interval)) (map snd ipassmt))))))
+           else ''the following is not covered: '' @
+            ipv4addr_wordinterval_toString (wordinterval_setminus wordinterval_UNIV (wordinterval_Union (map (l2br \<circ> (map ipv4cidr_to_interval)) (map snd ipassmt))))))
       ]"
 
 subsection{*Spoofing Protection*}
