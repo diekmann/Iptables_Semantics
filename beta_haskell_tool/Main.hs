@@ -71,5 +71,6 @@ main = do
             let fuc = preprocessForSpoofingProtection unfolded --Firewall Under Certification
             --putStrLn $ show fuc
             putStrLn $ "ipassmt_sanity_defined: " ++ show (Isabelle.ipassmt_sanity_defined fuc (Isabelle.map_of_ipassmt ipassmt))
+            mapM_ putStrLn (Isabelle.debug_ipassmt ipassmt fuc)
             mapM_  (putStrLn . show) (exampleCertSpoof ipassmt fuc)
             return ()
