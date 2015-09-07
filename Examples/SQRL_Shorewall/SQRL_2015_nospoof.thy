@@ -27,7 +27,7 @@ section{*Example: Implementing spoofing protection*}
   (Iface ''lua'', [(0,0)])
   ]"
   
-  lemma "ipassmt_sanity_haswildcards (map_of ipassmt)" by eval
+  lemma "ipassmt_sanity_nowildcards (map_of ipassmt)" by eval
 
   lemma"ipassmt_sanity_complete (map_of ipassmt)" oops
   
@@ -36,7 +36,7 @@ section{*Example: Implementing spoofing protection*}
   
   lemma "interfaces = [''ldit'', ''lmd'', ''loben'', ''wg'', ''wt'', ''lup'', ''lo'', ''vpriv'', ''vshit'', ''vocb'', ''lua'']" by eval
   
-  definition "spoofing_protection fw \<equiv> map (\<lambda>ifce. (ifce, no_spoofing_iface (Iface ifce) (map_of ipassmt) fw)) interfaces"
+  definition "spoofing_protection fw \<equiv> map (\<lambda>ifce. (ifce, no_spoofing_iface (Iface ifce) (map_of_ipassmt ipassmt) fw)) interfaces"
   
   text{*We only consider packets which are @{const CT_New}. Packets which already belong to an established connection are okay be definition.
   A very interesting side aspect: In theory, this theory only supports the filter table.
@@ -53,7 +53,7 @@ section{*Example: Implementing spoofing protection*}
 
   text{*sanity check that @{const ipassmt} is complete*}
   (*This actually caught a typo I made in the ipassmt!*)
-  lemma "ipassmt_sanity_defined (preprocess raw_fw1_PREROUTING_default_policy raw_fw1) (map_of ipassmt)" by eval
+  lemma "ipassmt_sanity_defined (preprocess raw_fw1_PREROUTING_default_policy raw_fw1) (map_of_ipassmt ipassmt)" by eval
 
   text{*The administrator wanted to make sure that he will not lock himself out of the firewall.
   Hence, we must verify that ssh packets are still accepted by the firewall.
@@ -71,9 +71,9 @@ section{*Example: Implementing spoofing protection*}
 
   value[code] "remdups (collect_ifaces (unfold_ruleset_INPUT filter_fw1_INPUT_default_policy (map_of_string filter_fw1)))"
 
-  lemma "ipassmt_sanity_defined (unfold_ruleset_INPUT filter_fw1_INPUT_default_policy (map_of_string filter_fw1)) (map_of ipassmt)" by eval
-  lemma "ipassmt_sanity_defined (unfold_ruleset_FORWARD filter_fw1_FORWARD_default_policy (map_of_string filter_fw1)) (map_of ipassmt)" by eval
-  lemma "ipassmt_sanity_defined (unfold_ruleset_OUTPUT filter_fw1_OUTPUT_default_policy (map_of_string filter_fw1)) (map_of ipassmt)" by eval
+  lemma "ipassmt_sanity_defined (unfold_ruleset_INPUT filter_fw1_INPUT_default_policy (map_of_string filter_fw1)) (map_of_ipassmt ipassmt)" by eval
+  lemma "ipassmt_sanity_defined (unfold_ruleset_FORWARD filter_fw1_FORWARD_default_policy (map_of_string filter_fw1)) (map_of_ipassmt ipassmt)" by eval
+  lemma "ipassmt_sanity_defined (unfold_ruleset_OUTPUT filter_fw1_OUTPUT_default_policy (map_of_string filter_fw1)) (map_of_ipassmt ipassmt)" by eval
 
 
   text{*the parsed firewall raw table:*}

@@ -1,6 +1,7 @@
 theory No_Spoof
 imports Common_Primitive_Matcher
         Primitive_Normalization
+        "../Common/Lib_toString"
 begin
 
 section{*No Spoofing*}
@@ -11,22 +12,27 @@ section{*No Spoofing*}
   type_synonym ipassignment="iface \<rightharpoonup> (ipv4addr \<times> nat) list" (*technically, a set*)
 
 
-  text{*Sanity checking for an @{typ ipassignment}. *}
+subsection{*Sanity checking for an @{typ ipassignment}. *}
 
   text{*warning if interface map has wildcards*}
-  definition ipassmt_sanity_haswildcards :: "ipassignment \<Rightarrow> bool" where
-    "ipassmt_sanity_haswildcards ipassmt \<equiv> \<forall> iface \<in> dom ipassmt. \<not> iface_is_wildcard iface"
+  definition ipassmt_sanity_nowildcards :: "ipassignment \<Rightarrow> bool" where
+    "ipassmt_sanity_nowildcards ipassmt \<equiv> \<forall> iface \<in> dom ipassmt. \<not> iface_is_wildcard iface"
 
     text{*Executable of the @{typ ipassignment} is given as a list.*}
-    lemma[code_unfold]: "ipassmt_sanity_haswildcards (map_of ipassmt) \<longleftrightarrow> (\<forall> iface \<in> fst` set ipassmt. \<not> iface_is_wildcard iface)"
-      by(simp add: ipassmt_sanity_haswildcards_def Map.dom_map_of_conv_image_fst)
+    lemma[code_unfold]: "ipassmt_sanity_nowildcards (map_of ipassmt) \<longleftrightarrow> (\<forall> iface \<in> fst` set ipassmt. \<not> iface_is_wildcard iface)"
+      by(simp add: ipassmt_sanity_nowildcards_def Map.dom_map_of_conv_image_fst)
   
-  lemma ipassmt_sanity_haswildcards_match_iface:
-      "ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
+  lemma ipassmt_sanity_nowildcards_match_iface:
+      "ipassmt_sanity_nowildcards ipassmt \<Longrightarrow>
        ipassmt (Iface ifce2) = None \<Longrightarrow>
        ipassmt ifce = Some a \<Longrightarrow>
        \<not> match_iface ifce ifce2"
-  unfolding ipassmt_sanity_haswildcards_def using iface_is_wildcard_def match_iface_case_nowildcard by fastforce
+  unfolding ipassmt_sanity_nowildcards_def using iface_is_wildcard_def match_iface_case_nowildcard by fastforce
+
+
+  (*TODO: use this in all exported code*)
+  definition map_of_ipassmt :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> iface \<rightharpoonup> (32 word \<times> nat) list" where
+    "map_of_ipassmt ipassmt = (if distinct (map fst ipassmt) \<and> ipassmt_sanity_nowildcards (map_of ipassmt) then map_of ipassmt else undefined)"
 
 
   (*
@@ -53,7 +59,7 @@ definition ipassmt_sanity_complete :: "ipassignment \<Rightarrow> bool" where
 
 
 
-    value[code] "ipassmt_sanity_haswildcards (map_of [(Iface ''eth1.1017'', [(ipv4addr_of_dotdecimal (131,159,14,240), 28)])])"
+    value[code] "ipassmt_sanity_nowildcards (map_of [(Iface ''eth1.1017'', [(ipv4addr_of_dotdecimal (131,159,14,240), 28)])])"
 
   fun collect_ifaces :: "common_primitive rule list \<Rightarrow> iface list" where
     "collect_ifaces [] = []" |
@@ -75,6 +81,19 @@ definition ipassmt_sanity_complete :: "ipassignment \<Rightarrow> bool" where
              Rule MatchAny action.Drop]
              (map_of [(Iface ''eth1.1017'', [(ipv4addr_of_dotdecimal (131,159,14,240), 28)])])"
 
+
+  text{*Debug algorithm*}
+  definition debug_ipassmt :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> common_primitive rule list \<Rightarrow> string list" where
+    "debug_ipassmt ipassmt rs \<equiv> let ifaces = (map fst ipassmt) in [
+      ''distinct: '' @ (if distinct ifaces then ''passed'' else ''FAIL!'')
+      , ''ipassmt_sanity_nowildcards: '' @
+          (if ipassmt_sanity_nowildcards (map_of ipassmt)
+           then ''passed'' else list_toString iface_sel (filter iface_is_wildcard ifaces))
+      , ''ipassmt_sanity_defined: '' @ (if ipassmt_sanity_defined rs (map_of ipassmt)
+        then ''passed'' else list_toString iface_sel [i \<leftarrow> (collect_ifaces rs). i \<notin> set ifaces])
+      ]"
+
+subsection{*Spoofing Protection*}
   text{*
   No spoofing means:
   Every packet that is (potentially) allowed by the firewall and comes from an interface @{text iface} 

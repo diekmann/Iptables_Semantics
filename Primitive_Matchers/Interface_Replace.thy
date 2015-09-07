@@ -198,7 +198,7 @@ begin
   (*helper2: used in induction base case*)
   private lemma matches_ipassmt_iface_constrain_srcip_mexpr_case_Iface:
         fixes ifce::iface
-        assumes "ipassmt_sanity_haswildcards ipassmt" and "case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)"
+        assumes "ipassmt_sanity_nowildcards ipassmt" and "case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)"
         shows   "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow>
                  matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p"
   proof -
@@ -211,7 +211,7 @@ begin
           next
           case (Some a)
            from assms(1) have "\<not> match_iface ifce (p_iiface p)"
-           apply(rule ipassmt_sanity_haswildcards_match_iface)
+           apply(rule ipassmt_sanity_nowildcards_match_iface)
             by(simp_all add: Some None)
           with Some show ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
         qed
@@ -230,7 +230,7 @@ begin
             apply(simp)
             apply(subgoal_tac "\<not> match_iface (Iface ifce_str) (p_iiface p)")
              apply(simp)
-            using assms(1) by (metis domI iface.sel iface_is_wildcard_def ipassmt_sanity_haswildcards_def match_iface_case_nowildcard)
+            using assms(1) by (metis domI iface.sel iface_is_wildcard_def ipassmt_sanity_nowildcards_def match_iface_case_nowildcard)
             with Some show ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
         qed
     qed
@@ -239,7 +239,7 @@ begin
     
 
   lemma matches_rewrite_iiface:
-       "normalized_nnf_match m \<Longrightarrow> ipassmt_sanity_haswildcards ipassmt \<Longrightarrow>
+       "normalized_nnf_match m \<Longrightarrow> ipassmt_sanity_nowildcards ipassmt \<Longrightarrow>
         (case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)) \<Longrightarrow>
         matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
     proof(induction m)
