@@ -1,6 +1,7 @@
 theory No_Spoof
 imports Common_Primitive_Matcher
         Primitive_Normalization
+        Common_Primitive_toString
         "../Common/Lib_toString"
 begin
 
@@ -69,55 +70,6 @@ lemma wordinterval_Union: "wordinterval_to_set (wordinterval_Union ws) = (\<Unio
   by(induction ws) (simp_all)
 
 
-(*
-fun ran_of_helper :: "'a list \<Rightarrow> ('a \<times> 'b) list \<Rightarrow> 'b list" where
-  "ran_of_helper _ [] = []" |
-  "ran_of_helper keys ((k,v)#ms) = (if k \<in> set keys then ran_of_helper keys ms else v # ran_of_helper (k#keys) ms)"
-
-lemma "ran (map_of ([(1,2)]@[(1,3)])) = {2}" by(simp)
-
-lemma ran_map_add: "ran (m1 ++ m2) = ran m2 \<union> {v. \<exists> k \<in> dom m1. k \<notin> dom m2 \<and> m1 k = Some v}"
-apply(simp add: map_add_def)
-apply(simp add: ran_def dom_def)
-apply(rule)
- apply(clarify)
- apply(rename_tac x a)
- apply(case_tac "m2 a")
-  apply(simp_all)
-  apply force
- apply blast
-apply(safe)
- apply(rename_tac x a)
- apply(simp_all)
- apply(rule_tac x=a in exI)
- apply(simp)
-apply(rename_tac x k y)
-apply(rule_tac x=k in exI)
-apply(simp)
-done
-
-
-lemma "a \<in> dom (map_of m2) \<Longrightarrow>  ran (map_of ms1(a \<mapsto> b) ++ map_of m2) = ran (map_of ms1 ++ map_of m2)"
-  apply(induction ms1)
-   apply(simp_all add: ran_map_add)
-  by blast
-
-lemma "a \<notin> dom (map_of m2) \<Longrightarrow>  ran (map_of ms1(a \<mapsto> b) ++ map_of m2) = insert b (ran (map_of ms1 ++ map_of m2))"
-oops (*quickcheck*)
-  
-
-lemma "set keys = dom (map_of ms1) \<Longrightarrow> ran (map_of ms1) \<union> set (ran_of_helper keys (ms2)) = ran (map_of (ms1@ms2))"
-  apply(induction ms2 arbitrary: ms1)
-   apply(simp)
-  apply(simp)
-  apply(rename_tac m ms1 m2)
-  apply(case_tac m)
-  apply(simp)
-  apply(intro conjI impI)
-   apply(simp_all add: ran_map_add)
-   apply metis
-*)
-
 
 lemma[code_unfold]: "ipassmt_sanity_complete ipassmt \<longleftrightarrow> distinct (map fst ipassmt) \<and> (let range = map snd ipassmt in 
     wordinterval_eq (wordinterval_Union (map (l2br \<circ> (map ipv4cidr_to_interval)) range)) wordinterval_UNIV
@@ -159,6 +111,13 @@ lemma[code_unfold]: "ipassmt_sanity_complete ipassmt \<longleftrightarrow> disti
              (map_of [(Iface ''eth1.1017'', [(ipv4addr_of_dotdecimal (131,159,14,240), 28)])])"
 
 
+
+  (*TODo: move*)
+  fun ipv4addr_wordinterval_toString :: "32 wordinterval \<Rightarrow> string" where
+    "ipv4addr_wordinterval_toString (WordInterval s e) = ''{''@ipv4addr_toString s@''..''@ipv4addr_toString e@''}''" |
+    "ipv4addr_wordinterval_toString (RangeUnion a b) = ipv4addr_wordinterval_toString a @ '' u ''@ipv4addr_wordinterval_toString b"
+
+
   text{*Debug algorithm*}
   definition debug_ipassmt :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> common_primitive rule list \<Rightarrow> string list" where
     "debug_ipassmt ipassmt rs \<equiv> let ifaces = (map fst ipassmt) in [
@@ -188,6 +147,16 @@ lemma[code_unfold]: "ipassmt_sanity_complete ipassmt \<longleftrightarrow> disti
                                         (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i1))))
                                         (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i2)))))
           ]))
+       , ''ipassmt_sanity_complete: '' @ 
+          (if ipassmt_sanity_complete ipassmt
+           then ''passed''
+           else ipv4addr_wordinterval_toString (wordinterval_setminus wordinterval_UNIV (wordinterval_Union (map (l2br \<circ> (map ipv4cidr_to_interval)) (map snd ipassmt)))))
+      , ''ipassmt_sanity_complete excluding UNIV interfaces: '' @
+          (let ipassmt = filter (\<lambda>(_,ips). ips \<noteq> [(0,0)]) ipassmt
+           in
+          (if ipassmt_sanity_complete ipassmt
+           then ''passed''
+           else ipv4addr_wordinterval_toString (wordinterval_setminus wordinterval_UNIV (wordinterval_Union (map (l2br \<circ> (map ipv4cidr_to_interval)) (map snd ipassmt))))))
       ]"
 
 subsection{*Spoofing Protection*}

@@ -29,7 +29,7 @@ section{*Example: Implementing spoofing protection*}
   
   lemma "ipassmt_sanity_nowildcards (map_of ipassmt)" by eval
 
-  lemma"ipassmt_sanity_complete (map_of ipassmt)" oops
+  lemma"ipassmt_sanity_complete ipassmt" by eval (* obviously with all these 0/0 ifaces*)
   
   
   definition "interfaces = (map (iface_sel \<circ> fst) ipassmt)"
