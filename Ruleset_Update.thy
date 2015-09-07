@@ -2,41 +2,6 @@ theory Ruleset_Update
 imports Matching
 begin
 
-
-(*TODO: move*)
-lemma add_match_distrib:
-  "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m1 (add_match m2 rs), s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m2 (add_match m1 rs), s\<rangle> \<Rightarrow> t"
-proof -
-  {
-    fix m1 m2
-    have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m1 (add_match m2 rs), s\<rangle> \<Rightarrow> t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m2 (add_match m1 rs), s\<rangle> \<Rightarrow> t"
-      proof (induction rs arbitrary: s)
-        case Nil thus ?case by (simp add: add_match_def)
-        next
-        case (Cons r rs)
-        from Cons obtain m a where r: "r = Rule m a" by (cases r) simp
-        with Cons.prems obtain ti where 1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule (MatchAnd m1 (MatchAnd m2 m)) a], s\<rangle> \<Rightarrow> ti" and 2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m1 (add_match m2 rs), ti\<rangle> \<Rightarrow> t"
-          apply(simp add: add_match_split_fst)
-          apply(erule seqE_cons)
-          by simp
-        from 1 r have base: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule (MatchAnd m2 (MatchAnd m1 m)) a], s\<rangle> \<Rightarrow> ti"
-           by (metis matches.simps(1) matches_rule_iptables_bigstep)
-        from 2 Cons.IH have IH: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m2 (add_match m1 rs), ti\<rangle> \<Rightarrow> t" by simp
-        from base IH seq'_cons have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule (MatchAnd m2 (MatchAnd m1 m)) a # add_match m2 (add_match m1 rs), s\<rangle> \<Rightarrow> t" by fast
-        thus ?case using r by(simp add: add_match_split_fst[symmetric])
-      qed
-  }
-  thus ?thesis by blast
-qed
-
-lemma add_match_split_fst': "add_match m (a # rs) = add_match m [a] @ add_match m rs"
-  by (simp add: add_match_split[symmetric])
-
-
-lemma add_match_match_not_cases:
-  "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match (MatchNot m) rs, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> matches \<gamma> m p \<or> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided"
-  by (metis matches.simps(2) matches_add_match_simp)
-
 lemma free_return_not_match: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m Return], Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> \<not> matches \<gamma> m p"
   using no_free_return by fast
 
