@@ -42,4 +42,16 @@ lemma Drop_neq_Accept_unknown_match_tacs:
       "in_doubt_deny Drop \<noteq> in_doubt_deny Accept"
   by(simp_all add: fun_eq_iff)
 
+
+
+(************* TODO use this more often to simplify existing proofs? ****************)
+corollary matches_induction_case_MatchNot_in_doubt_allow:
+      "\<forall> a. matches (\<beta>,in_doubt_allow) m' a p = matches (\<beta>,in_doubt_allow) m a p \<Longrightarrow>
+      matches (\<beta>,in_doubt_allow) (MatchNot m') a p = matches (\<beta>,in_doubt_allow) (MatchNot m) a p"
+  by(rule  matches_induction_case_MatchNot) (simp_all add: Drop_neq_Accept_unknown_match_tacs packet_independent_unknown_match_tacs)
+corollary matches_induction_case_MatchNot_in_doubt_deny:
+      "\<forall> a. matches (\<beta>,in_doubt_deny) m' a p = matches (\<beta>,in_doubt_deny) m a p \<Longrightarrow>
+      matches (\<beta>,in_doubt_deny) (MatchNot m') a p = matches (\<beta>,in_doubt_deny) (MatchNot m) a p"
+  by(rule  matches_induction_case_MatchNot) (simp_all add: Drop_neq_Accept_unknown_match_tacs packet_independent_unknown_match_tacs)
+
 end

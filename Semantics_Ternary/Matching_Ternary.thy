@@ -443,5 +443,48 @@ by(simp add: matches_tuple)
 
 
 
+text{*For our @{typ "'p unknown_match_tac"}s @{text in_doubt_allow} and @{text in_doubt_deny},
+      when doing an induction over some function that modifies @{term "m::'a match_expr"},
+      we get the @{const MatchNot} case for free (if we can set arbitrary @{term "p::'p"}).
+      This does not hold for arbitrary @{typ "'p unknown_match_tac"}s.*}
+lemma matches_induction_case_MatchNot:
+      assumes "\<alpha> Drop \<noteq> \<alpha> Accept" and "packet_independent_\<alpha> \<alpha>"
+      and     "\<forall> a. matches (\<beta>,\<alpha>) m' a p = matches (\<beta>,\<alpha>) m a p"
+      shows   "matches (\<beta>,\<alpha>) (MatchNot m') a p = matches (\<beta>,\<alpha>) (MatchNot m) a p"
+proof -
+  from assms(1) assms(2) have xxxx_xxX: "\<And>b. \<forall>a. \<alpha> a p = (\<not> b) \<Longrightarrow> False"
+    apply(simp add: packet_independent_\<alpha>_def)
+    apply(case_tac "\<alpha> Accept p")
+     apply(simp_all)
+     apply(case_tac [!] "\<alpha> Drop p")
+       apply(simp_all add: fun_eq_iff)
+     apply blast+
+    done
+
+  have xx2: "\<And>t. ternary_eval (TernaryNot t) = None \<Longrightarrow> ternary_eval t = None"
+  by (simp add: eval_ternary_Not_UnknownD ternary_eval_def ternary_to_bool_None)
+  
+  have xx3: "\<And>t b. ternary_eval (TernaryNot t) = Some b \<Longrightarrow>  ternary_eval t = Some (\<not> b)"
+  by (metis eval_ternary_Not.simps(1) eval_ternary_Not.simps(2) ternary_eval_def ternary_ternary_eval.simps(3) ternary_ternary_eval_idempotence_Not ternary_to_bool_Some)
+
+  from assms show ?thesis
+    apply(simp add: matches_case_tuple)
+    apply(case_tac "ternary_eval (TernaryNot (map_match_tac \<beta> p m'))")
+     apply(case_tac [!] "ternary_eval (TernaryNot (map_match_tac \<beta> p m))")
+       apply(simp_all)
+      apply(drule xx2)
+      apply(drule xx3)
+      apply(simp)
+      using xxxx_xxX apply metis
+     apply(drule xx2)
+     apply(drule xx3)
+     apply(simp)
+     using xxxx_xxX apply metis
+    apply(drule xx3)+
+    apply(simp)
+    done
+qed
+
+
 
 end
