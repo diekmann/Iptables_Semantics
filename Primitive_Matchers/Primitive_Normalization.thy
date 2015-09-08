@@ -414,16 +414,4 @@ lemma remove_unknowns_generic_normalized_n_primitive: "normalized_n_primitive di
 
 
 
-
-(*TODO: move?*)
-(*tuned version for usage with normalize_primitive_extract*)
-lemma normalize_rules_match_list_semantics_3: 
-  assumes "\<forall>m a. normalized_nnf_match m \<longrightarrow> match_list \<gamma> (f m) a p = matches \<gamma> m a p"
-  and "simple_ruleset rs"
-  and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
-  shows "approximating_bigstep_fun \<gamma> p (normalize_rules f rs) s = approximating_bigstep_fun \<gamma> p rs s"
-  apply(rule normalize_rules_match_list_semantics_2)
-   using normalized assms(1) apply blast
-  using assms(2) by simp
-
 end

@@ -575,20 +575,25 @@ section{*Normalizing rules instead of only match expressions*}
       qed
   qed
 
- (* same proof again but f limited to rs. *)
- lemma normalize_rules_match_list_semantics_2: 
-    assumes "\<forall>r \<in> set rs. match_list \<gamma> (f (get_match r)) (get_action r) p = matches \<gamma> (get_match r) (get_action r) p" and "simple_ruleset rs"
+
+  (*TODO: combine with previous?*)
+  (*tuned version for usage with normalize_primitive_extract*)
+  lemma normalize_rules_match_list_semantics_3: 
+    assumes "\<forall>m a. P m \<longrightarrow> match_list \<gamma> (f m) a p = matches \<gamma> m a p"
+    and "simple_ruleset rs"
+    and P: "\<forall> m \<in> get_match ` set rs. P m"
     shows "approximating_bigstep_fun \<gamma> p (normalize_rules f rs) s = approximating_bigstep_fun \<gamma> p rs s"
     proof -
-    { fix r s
-      assume "r \<in> set rs"
-      with assms(1) have "match_list \<gamma> (f (get_match r)) (get_action r) p \<longleftrightarrow> match_list \<gamma> [(get_match r)] (get_action r) p" by simp
-      with match_list_semantics[of \<gamma> "f (get_match r)" "(get_action r)" p "[(get_match r)]"] have
-        "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m (get_action r)) (f (get_match r))) s = 
-         approximating_bigstep_fun \<gamma> p [Rule (get_match r) (get_action r)] s" by simp
-      hence "(approximating_bigstep_fun \<gamma> p (normalize_rules f [r]) s) = approximating_bigstep_fun \<gamma> p [r] s"
-        by(cases r) (simp)
-    } 
+      have assm_1: "\<forall>r\<in>set rs. match_list \<gamma> (f (get_match r)) (get_action r) p = matches \<gamma> (get_match r) (get_action r) p" using P assms(1) by blast
+      { fix r s
+        assume "r \<in> set rs"
+        with assm_1 have "match_list \<gamma> (f (get_match r)) (get_action r) p \<longleftrightarrow> match_list \<gamma> [(get_match r)] (get_action r) p" by simp
+        with match_list_semantics[of \<gamma> "f (get_match r)" "(get_action r)" p "[(get_match r)]"] have
+          "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m (get_action r)) (f (get_match r))) s = 
+           approximating_bigstep_fun \<gamma> p [Rule (get_match r) (get_action r)] s" by simp
+        hence "(approximating_bigstep_fun \<gamma> p (normalize_rules f [r]) s) = approximating_bigstep_fun \<gamma> p [r] s"
+          by(cases r) (simp)
+      }
   
     with assms show ?thesis
       proof(induction rs arbitrary: s)
@@ -617,7 +622,7 @@ section{*Normalizing rules instead of only match expressions*}
           apply(simp add: IH)  
           done
       qed
-  qed
+    qed
 
 
  text{*applying a function (with a prerequisite @{text Q}) to all rules*}
@@ -782,5 +787,6 @@ lemma normalize_rules_dnf_normalized_nnf_match: "\<forall>x \<in> set (normalize
   next
   case (Cons r rs) thus ?case using normalized_nnf_match_normalize_match by(cases r) fastforce
   qed
+
 
 end

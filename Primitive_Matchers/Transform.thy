@@ -381,19 +381,19 @@ theorem transform_normalize_primitives:
      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
      unfolding transform_normalize_primitives_def
      apply(simp)
-     apply(subst normalize_rules_match_list_semantics_3)
+     apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
         using normalize_dst_ips apply simp
        using simplers simple_ruleset_normalize_rules apply blast
       using normalized_rs3 apply simp
-     apply(subst normalize_rules_match_list_semantics_3)
+     apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
         using normalize_src_ips apply simp
        using simplers simple_ruleset_normalize_rules apply blast
       using normalized_rs2 apply simp
-     apply(subst normalize_rules_match_list_semantics_3)
+     apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
         using normalize_dst_ports apply simp
        using simplers simple_ruleset_normalize_rules apply blast
       using normalized_rs1 apply simp
-     apply(subst normalize_rules_match_list_semantics_3)
+     apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
         using normalize_src_ports apply simp
        using simplers simple_ruleset_normalize_rules apply blast
       using normalized apply simp
