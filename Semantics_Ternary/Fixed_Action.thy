@@ -581,7 +581,7 @@ section{*Normalizing rules instead of only match expressions*}
  corollary normalize_rules_match_list_semantics: 
   "(\<forall>m a. match_list \<gamma> (f m) a p = matches \<gamma> m a p) \<Longrightarrow> simple_ruleset rs \<Longrightarrow>
    approximating_bigstep_fun \<gamma> p (normalize_rules f rs) s = approximating_bigstep_fun \<gamma> p rs s"
-  apply(rule normalize_rules_match_list_semantics_3(1)[where P="\<lambda>_. True"])
+  apply(rule normalize_rules_match_list_semantics_3[where P="\<lambda>_. True"])
     using assms by(simp_all)
 
 

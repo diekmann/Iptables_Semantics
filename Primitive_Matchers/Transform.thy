@@ -332,6 +332,11 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
     using assms(2) by simp
 
 
+(*TODO: move or [simp] rule*)
+lemma approximating_bigstep_fun_eq: "(approximating_bigstep_fun \<gamma> p rs1 s = approximating_bigstep_fun \<gamma> p rs s)
+       \<Longrightarrow> (approximating_bigstep_fun \<gamma> p rs1 s = t) \<longleftrightarrow> (approximating_bigstep_fun \<gamma> p rs s = t)"
+by simp
+
 theorem transform_normalize_primitives:
   assumes simplers: "simple_ruleset rs"
       and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
@@ -381,6 +386,8 @@ theorem transform_normalize_primitives:
      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
      unfolding transform_normalize_primitives_def
      apply(simp)
+     (*TODO: sth better than subst?*)
+     apply(rule approximating_bigstep_fun_eq)
      apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
         using normalize_dst_ips apply(simp; fail)
        using simplers simple_ruleset_normalize_rules apply blast
