@@ -12,18 +12,23 @@ fun alist_and :: "'a negation_type list \<Rightarrow> 'a match_expr" where
   "alist_and ((Neg e)#es) = MatchAnd (MatchNot (Match e)) (alist_and es)"
 
 
-fun negation_type_to_match_expr :: "'a negation_type \<Rightarrow> 'a match_expr" where
-  "negation_type_to_match_expr (Pos e) = (Match e)" |
-  "negation_type_to_match_expr (Neg e) = (MatchNot (Match e))"
-lemma alist_and_negation_type_to_match_expr: "alist_and (n#es) =  MatchAnd (negation_type_to_match_expr n) (alist_and es)"
-  by(cases n, simp_all)
 
-
-(*do I need monads?*)
-(*TODO ? ?*)
 fun negation_type_to_match_expr_f :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a negation_type \<Rightarrow> 'b match_expr" where
   "negation_type_to_match_expr_f f (Pos a) = Match (f a)" |
   "negation_type_to_match_expr_f f (Neg a) = MatchNot (Match (f a))"
+
+definition negation_type_to_match_expr :: "'a negation_type \<Rightarrow> 'a match_expr" where
+  "negation_type_to_match_expr m \<equiv> negation_type_to_match_expr_f id m"
+
+lemma negation_type_to_match_expr_simps:
+  "negation_type_to_match_expr (Pos e) = (Match e)"
+  "negation_type_to_match_expr (Neg e) = (MatchNot (Match e))"
+by(simp_all add: negation_type_to_match_expr_def)
+
+lemma alist_and_negation_type_to_match_expr: "alist_and (n#es) =  MatchAnd (negation_type_to_match_expr n) (alist_and es)"
+  by(cases n, simp_all add: negation_type_to_match_expr_simps)
+
+
 
 lemma alist_and_append: "matches \<gamma> (alist_and (l1 @ l2)) a p \<longleftrightarrow> matches \<gamma>  (MatchAnd (alist_and l1)  (alist_and l2)) a p"
   proof(induction l1)

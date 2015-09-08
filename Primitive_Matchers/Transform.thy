@@ -386,7 +386,6 @@ theorem transform_normalize_primitives:
      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
      unfolding transform_normalize_primitives_def
      apply(simp)
-     (*TODO: sth better than subst?*)
      apply(rule approximating_bigstep_fun_eq)
      apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
         using normalize_dst_ips apply(simp; fail)
