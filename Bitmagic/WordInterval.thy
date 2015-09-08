@@ -117,7 +117,6 @@ end
 
 
 text{*Merging overlapping intervals*}
-(*TODO result has no empty intervals and all are disjoiint. merging things such as [1,7] [8,10] would still be possible*)
 context
 begin
 
@@ -146,6 +145,7 @@ begin
 
 
   text{*BEGIN merging overlapping intervals*}
+  (*result has no empty intervals and all are disjoiint. merging things such as [1,7] [8,10] would still be possible*)
   private fun merge_overlap :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> ('a word \<times> 'a word) list \<Rightarrow> ('a word \<times> 'a word) list" where
    "merge_overlap s [] = [s]" |
    "merge_overlap (s,e) ((s',e')#ss) = (
