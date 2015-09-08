@@ -216,7 +216,7 @@ lemma unfold_rsplit_case:
   shows "(case ipv4range_split1 rs of (None, u) \<Rightarrow> [] | (Some s, u) \<Rightarrow> s # ipv4range_split u) = s # ipv4range_split u"
 using su by (metis option.simps(5) split_conv)
 
-lemma ipv4range_split_union'': "\<Union>set (map wordinterval_to_set (map prefix_to_range (ipv4range_split r))) = wordinterval_to_set r"
+lemma ipv4range_split_union: "\<Union>set (map wordinterval_to_set (map prefix_to_range (ipv4range_split r))) = wordinterval_to_set r"
 proof(induction r rule: ipv4range_split.induct, subst ipv4range_split.simps, case_tac "ipv4range_empty rs")
   case goal1
   show ?case using goal1(2) by (simp add: ipv4range_to_set_def)
@@ -258,7 +258,7 @@ corollary ipv4range_split: "(\<Union> (prefix_to_ipset ` (set (ipv4range_split r
         UNION (set (map prefix_to_range (ipv4range_split r))) wordinterval_to_set"
     by(simp add: prefix_to_range_set_eq_fun)
   thus ?thesis
-   using ipv4range_split_union'' by simp
+   using ipv4range_split_union by simp
 qed
 corollary ipv4range_split_single: "(\<Union> (prefix_to_ipset ` (set (ipv4range_split (WordInterval start end))))) = {start .. end}"
   using ipv4range_split by simp
