@@ -176,7 +176,7 @@ begin
                  (p_src p \<notin> ipv4cidr_union_set (set ips))"
         apply(induction ips)
          apply(simp add: bunch_of_lemmata_about_matches ipv4cidr_union_set_def)
-        apply(simp add: bunch_of_lemmata_about_matches)
+        apply(simp add: MatchOr_MatchNot)
         apply(simp add: ipv4cidr_union_set_def)
         apply(simp add: match_simplematcher_SrcDst_not)
         apply(thin_tac _)

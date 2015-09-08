@@ -131,7 +131,9 @@ by (metis bunch_of_lemmata_about_matches(6))
 
 lemma MatchOr: "matches \<gamma> (MatchOr m1 m2) a p \<longleftrightarrow> matches \<gamma> m1 a p \<or> matches \<gamma> m2 a p"
   by(simp add: MatchOr_def matches_DeMorgan matches_not_idem)
-  
+
+lemma MatchOr_MatchNot: "matches \<gamma> (MatchNot (MatchOr m1 m2)) a p \<longleftrightarrow> matches \<gamma> (MatchNot m1) a p \<and> matches \<gamma> (MatchNot m2) a p"
+  by(simp add: MatchOr_def matches_DeMorgan bunch_of_lemmata_about_matches)
 
 
 lemma "(TernaryNot (map_match_tac \<beta> p (m))) = (map_match_tac \<beta> p (MatchNot m))"
