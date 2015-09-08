@@ -76,15 +76,9 @@ lemma unknown_common_matcher_obtain_Extra: "\<exists>p. common_matcher x p = Ter
 *)
 
 
-lemma xx1: "ternary_eval (TernaryNot t) = None \<Longrightarrow> ternary_ternary_eval t = TernaryUnknown"
+(*
+lemma xx1: "\<And>t. ternary_eval (TernaryNot t) = None \<Longrightarrow> ternary_ternary_eval t = TernaryUnknown"
 by (simp add: eval_ternary_Not_UnknownD ternary_eval_def ternary_to_bool_None)
-
-
-lemma xx2: "ternary_eval (TernaryNot t) = None \<Longrightarrow> ternary_eval t = None"
-by (simp add: eval_ternary_Not_UnknownD ternary_eval_def ternary_to_bool_None)
-
-lemma xx3: "ternary_eval (TernaryNot t) = Some b \<Longrightarrow>  ternary_eval t = Some (\<not> b)"
-by (metis eval_ternary_Not.simps(1) eval_ternary_Not.simps(2) ternary_eval_def ternary_ternary_eval.simps(3) ternary_ternary_eval_idempotence_Not ternary_to_bool_Some)
 
 lemma xxxx_x:"\<forall>a. in_doubt_allow a p = (\<not> b) \<Longrightarrow> False"
   apply(subgoal_tac "in_doubt_allow Accept p")
@@ -98,57 +92,54 @@ lemma xxxx_x:"\<forall>a. in_doubt_allow a p = (\<not> b) \<Longrightarrow> Fals
 (*needs the p in assm*)
 lemma xxxx_xx:"\<alpha> Drop p \<noteq> \<alpha> Accept p \<Longrightarrow> \<forall>a. \<alpha> a p = (\<not> b) \<Longrightarrow> False"
   by simp
+*)
 
+(*************TODO THIS! refactor and move****************)
 
-
-(*************THIS! refactor and move****************)
-
-
-
-(*TODO: only holds for in_doubt_allow or on_doubt_deny because they have opposite results for some actions \<dots>
-  generalize! add this to wf_unknown_match_tac:
-  Drop \<noteq> Accept*)
-lemma "(*\<alpha> Drop \<noteq> \<alpha> Accept \<Longrightarrow>*) \<forall> a. matches (\<beta>,in_doubt_allow) m' a p = matches (\<beta>,in_doubt_allow) m a p \<Longrightarrow>
-    matches (\<beta>,in_doubt_allow) (MatchNot m') a p = matches (\<beta>,in_doubt_allow) (MatchNot m) a p"
-apply(simp add: matches_case_tuple)
-apply(case_tac "ternary_eval (TernaryNot (map_match_tac \<beta> p m'))")
-apply(case_tac [!] "ternary_eval (TernaryNot (map_match_tac \<beta> p m))")
-apply(simp_all)
-apply(drule xx2)
-apply(drule xx3)
-apply(simp)
-using xxxx_x apply metis
-
-apply(drule xx2)
-apply(drule xx3)
-apply(simp)
-using xxxx_x apply metis
-
-apply(drule xx3)+
-apply(simp)
-done
-
-
-
-(*TODO: move*)
-lemma no_unknowns_ternary_to_bool_Some: "\<not> has_unknowns \<beta> m \<Longrightarrow>
-       ternary_to_bool (ternary_ternary_eval (map_match_tac \<beta> p m)) \<noteq> None"
-  apply(induction m)
+text{*For our @{typ "'p unknown_match_tac"}s @{const in_doubt_allow} and @{const in_doubt_deny},
+      when doing an induction over some function that modifies @{term "m::'a match_expr"},
+      we get the @{const MatchNot} case for free (if we can set arbitrary @{term "p::'p"}).
+      This does not hold for arbitrary @{typ "'p unknown_match_tac"}s.*}
+lemma matches_induction_case_MatchNot:
+      assumes "\<alpha> Drop \<noteq> \<alpha> Accept" and "packet_independent_\<alpha> \<alpha>"
+      and     "\<forall> a. matches (\<beta>,\<alpha>) m' a p = matches (\<beta>,\<alpha>) m a p"
+      shows   "matches (\<beta>,\<alpha>) (MatchNot m') a p = matches (\<beta>,\<alpha>) (MatchNot m) a p"
+proof -
+  from assms(1) assms(2) have xxxx_xxX: "\<And>b. \<forall>a. \<alpha> a p = (\<not> b) \<Longrightarrow> False"
+    apply(simp add: packet_independent_\<alpha>_def)
+    apply(case_tac "\<alpha> Accept p")
      apply(simp_all)
-    using ternary_to_bool.elims apply blast
-   using ternary_to_bool_Some apply fastforce
-  using ternary_lift(6) ternary_to_bool_Some by auto
+     apply(case_tac [!] "\<alpha> Drop p")
+       apply(simp_all add: fun_eq_iff)
+     apply blast+
+    done
 
-lemma matches_MatchNot_no_unknowns: "matches (\<beta>,\<alpha>) m' a p = matches (\<beta>,\<alpha>) m a p \<Longrightarrow>
-    \<not> has_unknowns \<beta> m' \<Longrightarrow> \<not> has_unknowns \<beta> m \<Longrightarrow>
-    matches (\<beta>,\<alpha>) (MatchNot m') a p = matches (\<beta>,\<alpha>) (MatchNot m) a p"
-apply(auto split: option.split_asm simp: matches_case_tuple ternary_eval_def ternary_to_bool_bool_to_ternary elim: ternary_to_bool.elims)
-apply(auto simp add: ternary_to_bool_Some no_unknowns_ternary_to_bool_Some)
-done
+  have xx2: "\<And>t. ternary_eval (TernaryNot t) = None \<Longrightarrow> ternary_eval t = None"
+  by (simp add: eval_ternary_Not_UnknownD ternary_eval_def ternary_to_bool_None)
+  
+  have xx3: "\<And>t b. ternary_eval (TernaryNot t) = Some b \<Longrightarrow>  ternary_eval t = Some (\<not> b)"
+  by (metis eval_ternary_Not.simps(1) eval_ternary_Not.simps(2) ternary_eval_def ternary_ternary_eval.simps(3) ternary_ternary_eval_idempotence_Not ternary_to_bool_Some)
 
-lemma MatchNot_helper: "(ternary_ternary_eval (map_match_tac \<beta> p m')) = (ternary_ternary_eval (map_match_tac \<beta> p m)) \<Longrightarrow>
-    matches (\<beta>,\<alpha>) (MatchNot m') a p = matches (\<beta>,\<alpha>) (MatchNot m) a p"
-by(simp add: matches_tuple)
+  from assms show ?thesis
+    apply(simp add: matches_case_tuple)
+    apply(case_tac "ternary_eval (TernaryNot (map_match_tac \<beta> p m'))")
+     apply(case_tac [!] "ternary_eval (TernaryNot (map_match_tac \<beta> p m))")
+       apply(simp_all)
+      apply(drule xx2)
+      apply(drule xx3)
+      apply(simp)
+      using xxxx_xxX apply metis
+     apply(drule xx2)
+     apply(drule xx3)
+     apply(simp)
+     using xxxx_xxX apply metis
+    apply(drule xx3)+
+    apply(simp)
+    done
+qed
+
+
+
 
 
 

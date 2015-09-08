@@ -57,21 +57,6 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
   definition ipassmt_sanity_complete :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> bool" where
     "ipassmt_sanity_complete ipassmt \<equiv> distinct (map fst ipassmt) \<and> (\<Union>(ipv4cidr_union_set ` set ` (ran (map_of ipassmt)))) = UNIV"
 
-
-  (*TODO: move*)
-  fun wordinterval_Union :: "('a::len) wordinterval list \<Rightarrow> 'a wordinterval" where
-    "wordinterval_Union [] = Empty_WordInterval" |
-    "wordinterval_Union (w#ws) = wordinterval_union w (wordinterval_Union ws)"
-  lemma wordinterval_Union: "wordinterval_to_set (wordinterval_Union ws) = (\<Union> w \<in> (set ws). wordinterval_to_set w)"
-    by(induction ws) (simp_all)
-
-
-  (*TODo: move*)
-  fun ipv4addr_wordinterval_toString :: "32 wordinterval \<Rightarrow> string" where
-    "ipv4addr_wordinterval_toString (WordInterval s e) = ''{''@ipv4addr_toString s@''..''@ipv4addr_toString e@''}''" |
-    "ipv4addr_wordinterval_toString (RangeUnion a b) = ipv4addr_wordinterval_toString a @ '' u ''@ipv4addr_wordinterval_toString b"
-
-  
     lemma[code_unfold]: "ipassmt_sanity_complete ipassmt \<longleftrightarrow> distinct (map fst ipassmt) \<and> (let range = map snd ipassmt in 
         wordinterval_eq (wordinterval_Union (map (l2br \<circ> (map ipv4cidr_to_interval)) range)) wordinterval_UNIV
         )"

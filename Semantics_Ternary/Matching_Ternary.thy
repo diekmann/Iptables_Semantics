@@ -416,4 +416,32 @@ begin
 end
 
 
+
+text{*Lemmas about @{const MatchNot} in ternary logic.*}
+
+lemma matches_MatchNot_no_unknowns:
+   assumes "\<not> has_unknowns \<beta> m"
+   shows "matches (\<beta>,\<alpha>) (MatchNot m) a p \<longleftrightarrow> \<not> matches (\<beta>,\<alpha>) m a p"
+proof -
+  { fix m have "\<not> has_unknowns \<beta> m \<Longrightarrow>
+       ternary_to_bool (ternary_ternary_eval (map_match_tac \<beta> p m)) \<noteq> None"
+    apply(induction m)
+       apply(simp_all)
+      using ternary_to_bool.elims apply blast
+     using ternary_to_bool_Some apply fastforce
+    using ternary_lift(6) ternary_to_bool_Some by auto
+  } note no_unknowns_ternary_to_bool_Some=this
+    from assms show ?thesis
+      by(auto split: option.split_asm
+              simp: matches_case_tuple no_unknowns_ternary_to_bool_Some ternary_to_bool_Some  ternary_eval_def ternary_to_bool_bool_to_ternary
+              elim: ternary_to_bool.elims)
+qed
+
+lemma MatchNot_ternary_ternary_eval: "(ternary_ternary_eval (map_match_tac \<beta> p m')) = (ternary_ternary_eval (map_match_tac \<beta> p m)) \<Longrightarrow>
+    matches (\<beta>,\<alpha>) (MatchNot m') a p = matches (\<beta>,\<alpha>) (MatchNot m) a p"
+by(simp add: matches_tuple)
+
+
+
+
 end
