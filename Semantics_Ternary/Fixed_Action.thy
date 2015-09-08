@@ -721,6 +721,11 @@ lemma normalized_nnf_match_normalize_match: "\<forall> m' \<in> set (normalize_m
   qed (simp_all)
 
 
+(*unused*)
+lemma normalized_nnf_match_MatchNot_D: "normalized_nnf_match (MatchNot m) \<Longrightarrow> normalized_nnf_match m"
+  by(induction m) (simp_all)
+
+
 text{*Example*}
 lemma "normalize_match (MatchNot (MatchAnd (Match ip_src) (Match tcp))) = [MatchNot (Match ip_src), MatchNot (Match tcp)]" by simp
 

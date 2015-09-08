@@ -181,80 +181,13 @@ subsection{*Spoofing Protection*}
                         only the assigned IP addresses may pass the firewall.
                         This definition is simple for e.g. local sub-networks.
                         Example: @{term "[Iface ''eth0'' \<mapsto> {(ipv4addr_of_dotdecimal (192,168,0,0), 24)}]"}
+
         If I want spoofing protection from the Internet, I need to specify the range of the Internet IP addresses.
         Example: @{term "[Iface ''evil_internet'' \<mapsto> {everything_that_does_not_belong_to_me}]"}.
           This is also a good opportunity to exclude the private IP space, link local, and probably multicast space.
+        See @{const all_but_those_ips} to easily specify these ranges.
 
         See examples below. Check Example 3 why it can be thought of as OUTGOING spoofing.*}
-
-  (*TODO: make a definition of the `good' Internet IP address space.
-        parameterized with a list of IP ranges that belong `me' (the institution that runs the firewall), which are hence
-        excluded from the `good' Internet IP address sapce (because this is the local space, if such packets
-        come from the Internet, they are spoofed!
-    e.g. UNIV - 10/8 - 172.16/12 - 192.168/16 - institutes_range - \<dots>
-    luckily, there is CIDR_split and we can easily have an executable representation of this set ...)*)
-
-
-
-context
-begin
-  (*TODO move*)
-
-  fun has_primitive :: "'a match_expr \<Rightarrow> bool" where
-    "has_primitive MatchAny = False" |
-    "has_primitive (Match a) = True" |
-    "has_primitive (MatchNot m) = has_primitive m" |
-    "has_primitive (MatchAnd m1 m2) = (has_primitive m1 \<or> has_primitive m2)"
-
-
-  text{*Is a match expression equal to the @{const MatchAny} expression?
-        Only applicable if no primitives are in the expression. *}
-  fun matcheq_matachAny :: "'a match_expr \<Rightarrow> bool" where
-    "matcheq_matachAny MatchAny \<longleftrightarrow> True" |
-    "matcheq_matachAny (MatchNot m) \<longleftrightarrow> \<not> (matcheq_matachAny m)" |
-    "matcheq_matachAny (MatchAnd m1 m2) \<longleftrightarrow> matcheq_matachAny m1 \<and> matcheq_matachAny m2" |
-    "matcheq_matachAny (Match _) = undefined"
-
-  private lemma no_primitives_no_unknown: "\<not> has_primitive m  \<Longrightarrow> (ternary_ternary_eval (map_match_tac \<beta> p m)) \<noteq> TernaryUnknown"
-  proof(induction m)
-  case Match thus ?case by auto
-  next
-  case MatchAny thus ?case by simp
-  next
-  case MatchAnd thus ?case by(auto elim: eval_ternary_And.elims)
-  next
-  case MatchNot thus ?case by(auto dest: eval_ternary_Not_UnknownD)
-  qed
-
-
-  private lemma no_primitives_matchNot: assumes "\<not> has_primitive m" shows "matches \<gamma> (MatchNot m) a p \<longleftrightarrow> \<not> matches \<gamma> m a p"
-  proof -
-    obtain \<beta> \<alpha> where "(\<beta>, \<alpha>) = \<gamma>" by (cases \<gamma>, simp)
-    from assms have "matches (\<beta>, \<alpha>) (MatchNot m) a p \<longleftrightarrow> \<not> matches (\<beta>, \<alpha>) m a p"
-      apply(induction m)
-         apply(simp_all add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
-      apply(rename_tac m1 m2)
-      using no_primitives_no_unknown by (metis (no_types, hide_lams) eval_ternary_simps_simple(1) eval_ternary_simps_simple(3) ternaryvalue.exhaust) 
-    with `(\<beta>, \<alpha>) = \<gamma>` assms show ?thesis by simp
-  qed
-  
-
-  lemma matcheq_matachAny: "\<not> has_primitive m \<Longrightarrow> matcheq_matachAny m \<longleftrightarrow> matches \<gamma> m a p"
-  proof(induction m)
-  case Match hence False by auto
-    thus ?case ..
-  next
-  case (MatchNot m)
-    from MatchNot.prems have "\<not> has_primitive m" by simp
-    with no_primitives_matchNot have "matches \<gamma> (MatchNot m) a p = (\<not> matches \<gamma> m a p)" by metis
-    with MatchNot show ?case by(simp)
-  next
-  case (MatchAnd m1 m2)
-    thus ?case by(simp add: Matching_Ternary.bunch_of_lemmata_about_matches)
-  next
-  case MatchAny show ?case by(simp add: Matching_Ternary.bunch_of_lemmata_about_matches)
-  qed
-end
 
 
 
@@ -324,10 +257,10 @@ begin
       with match_simplematcher_Src_getPos match_simplematcher_Src_getNeg have inset:
         "(\<forall>ip\<in>set (getPos ip_matches). p_src ?p \<in> ipv4s_to_set ip) \<and> (\<forall>ip\<in>set (getNeg ip_matches). p_src ?p \<in> - ipv4s_to_set ip)" by presburger
   
-      with inset have "\<forall>x \<in> set ip_matches. src_ip \<in> (case x of Pos x \<Rightarrow> ipv4s_to_set x | Neg ip \<Rightarrow> - ipv4s_to_set ip)"
-        apply(simp add: split: negation_type.split)
+      with inset  have "\<forall>x \<in> set ip_matches. src_ip \<in> (case x of Pos x \<Rightarrow> ipv4s_to_set x | Neg ip \<Rightarrow> - ipv4s_to_set ip)"
+        apply(simp  split: negation_type.split)
         apply(safe)
-        using NegPos_set apply fast+
+         using NegPos_set apply fast+
       done
     } note 1=this
 

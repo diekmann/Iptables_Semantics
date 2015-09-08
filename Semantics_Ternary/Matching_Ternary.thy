@@ -352,4 +352,66 @@ lemma remove_unknowns_generic_specification: "a = Accept \<or> a = Drop \<Longri
 
 
 
+
+
+text{*Checking is something matches unconditionally*}
+context
+begin
+  fun has_primitive :: "'a match_expr \<Rightarrow> bool" where
+    "has_primitive MatchAny = False" |
+    "has_primitive (Match a) = True" |
+    "has_primitive (MatchNot m) = has_primitive m" |
+    "has_primitive (MatchAnd m1 m2) = (has_primitive m1 \<or> has_primitive m2)"
+
+
+  text{*Is a match expression equal to the @{const MatchAny} expression?
+        Only applicable if no primitives are in the expression. *}
+  fun matcheq_matachAny :: "'a match_expr \<Rightarrow> bool" where
+    "matcheq_matachAny MatchAny \<longleftrightarrow> True" |
+    "matcheq_matachAny (MatchNot m) \<longleftrightarrow> \<not> (matcheq_matachAny m)" |
+    "matcheq_matachAny (MatchAnd m1 m2) \<longleftrightarrow> matcheq_matachAny m1 \<and> matcheq_matachAny m2" |
+    "matcheq_matachAny (Match _) = undefined"
+
+  private lemma no_primitives_no_unknown: "\<not> has_primitive m  \<Longrightarrow> (ternary_ternary_eval (map_match_tac \<beta> p m)) \<noteq> TernaryUnknown"
+  proof(induction m)
+  case Match thus ?case by auto
+  next
+  case MatchAny thus ?case by simp
+  next
+  case MatchAnd thus ?case by(auto elim: eval_ternary_And.elims)
+  next
+  case MatchNot thus ?case by(auto dest: eval_ternary_Not_UnknownD)
+  qed
+
+
+  private lemma no_primitives_matchNot: assumes "\<not> has_primitive m" shows "matches \<gamma> (MatchNot m) a p \<longleftrightarrow> \<not> matches \<gamma> m a p"
+  proof -
+    obtain \<beta> \<alpha> where "(\<beta>, \<alpha>) = \<gamma>" by (cases \<gamma>, simp)
+    from assms have "matches (\<beta>, \<alpha>) (MatchNot m) a p \<longleftrightarrow> \<not> matches (\<beta>, \<alpha>) m a p"
+      apply(induction m)
+         apply(simp_all add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
+      apply(rename_tac m1 m2)
+      using no_primitives_no_unknown by (metis (no_types, hide_lams) eval_ternary_simps_simple(1) eval_ternary_simps_simple(3) ternaryvalue.exhaust) 
+    with `(\<beta>, \<alpha>) = \<gamma>` assms show ?thesis by simp
+  qed
+  
+
+  lemma matcheq_matachAny: "\<not> has_primitive m \<Longrightarrow> matcheq_matachAny m \<longleftrightarrow> matches \<gamma> m a p"
+  proof(induction m)
+  case Match hence False by auto
+    thus ?case ..
+  next
+  case (MatchNot m)
+    from MatchNot.prems have "\<not> has_primitive m" by simp
+    with no_primitives_matchNot have "matches \<gamma> (MatchNot m) a p = (\<not> matches \<gamma> m a p)" by metis
+    with MatchNot show ?case by(simp)
+  next
+  case (MatchAnd m1 m2)
+    thus ?case by(simp add: Matching_Ternary.bunch_of_lemmata_about_matches)
+  next
+  case MatchAny show ?case by(simp add: Matching_Ternary.bunch_of_lemmata_about_matches)
+  qed
+end
+
+
 end
