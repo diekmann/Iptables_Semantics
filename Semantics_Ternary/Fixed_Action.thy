@@ -263,10 +263,9 @@ subsection{*@{term match_list}*}
 
 
   text{*We can exploit de-morgan to get a disjunction in the match expression!*}
-  (*TODO we could use MatchOr*)
   fun match_list_to_match_expr :: "'a match_expr list \<Rightarrow> 'a match_expr" where
     "match_list_to_match_expr [] = MatchNot MatchAny" |
-    "match_list_to_match_expr (m#ms) = MatchNot (MatchAnd (MatchNot m) (MatchNot (match_list_to_match_expr ms)))"
+    "match_list_to_match_expr (m#ms) = MatchOr m (match_list_to_match_expr ms)"
   text{*@{const match_list_to_match_expr} constructs a unwieldy @{typ "'a match_expr"} from a list.
         The semantics of the resulting match expression is the disjunction of the elements of the list.
         This is handy because the normal match expressions do not directly support disjunction.
@@ -274,8 +273,7 @@ subsection{*@{term match_list}*}
   lemma match_list_to_match_expr_disjunction: "match_list \<gamma> ms a p \<longleftrightarrow> matches \<gamma> (match_list_to_match_expr ms) a p"
     apply(induction ms rule: match_list_to_match_expr.induct)
      apply(simp add: bunch_of_lemmata_about_matches)
-    apply(simp)
-    apply (metis matches_DeMorgan matches_not_idem)+
+    apply(simp add: MatchOr)
   done
 
   lemma match_list_singleton: "match_list \<gamma> [m] a p \<longleftrightarrow> matches \<gamma> m a p" by(simp)
