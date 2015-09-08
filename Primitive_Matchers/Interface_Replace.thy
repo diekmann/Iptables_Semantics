@@ -47,60 +47,6 @@ fun rewrite_iiface :: "ipassignment \<Rightarrow> common_primitive match_expr \<
   "rewrite_iiface ipassmt (MatchAnd m1 m2) = MatchAnd (rewrite_iiface ipassmt m1) (rewrite_iiface ipassmt m2)"
 
 
-(*
-lemma ternary_ternary_eval_match_list_to_match_expr_not_unknown:
-      "ternary_ternary_eval (map_match_tac common_matcher p (match_list_to_match_expr (map (Match \<circ> Src) ips))) \<noteq>
-           TernaryUnknown"
-apply(induction ips)
- apply(simp)
-apply(simp)
-by (metis bool_to_ternary_simps(2) bool_to_ternary_simps(4) eval_ternary_And_comm eval_ternary_Not.simps(1) eval_ternary_Not_UnknownD eval_ternary_idempotence_Not eval_ternary_simps_simple(2) eval_ternary_simps_simple(4))
-
-lemma ipassmt_iface_constrain_srcip_mexpr_not_unknown: 
-  "(ternary_ternary_eval (map_match_tac common_matcher p (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce)) \<noteq> TernaryUnknown)"
-apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def split: option.split)
-apply(intro conjI allI impI)
- apply (simp add: bool_to_ternary_Unknown)
-apply(rename_tac ips)
-by (metis (no_types, lifting) bool_to_ternary_simps(1) bool_to_ternary_simps(3) eval_ternary_And_comm eval_ternary_DeMorgan(1) eval_ternary_Not.simps(2) eval_ternary_Not.simps(3) eval_ternary_simps_simple(2) eval_ternary_simps_simple(4) list.map_comp ternary_ternary_eval_match_list_to_match_expr_not_unknown ternaryvalue.distinct(3))
-(*wtf*)
-*)
-
-
-
-
-(*
-lemma unknown_common_matcher_obtain_Extra: "\<exists>p. common_matcher x p = TernaryUnknown \<Longrightarrow> \<exists>y. x = Extra y"
-  apply(cases x)
-  by (simp_all add: bool_to_ternary_Unknown)
-*)
-
-
-(*
-lemma xx1: "\<And>t. ternary_eval (TernaryNot t) = None \<Longrightarrow> ternary_ternary_eval t = TernaryUnknown"
-by (simp add: eval_ternary_Not_UnknownD ternary_eval_def ternary_to_bool_None)
-
-lemma xxxx_x:"\<forall>a. in_doubt_allow a p = (\<not> b) \<Longrightarrow> False"
-  apply(subgoal_tac "in_doubt_allow Accept p")
-   prefer 2
-   apply fastforce
-  apply(subgoal_tac "\<not> in_doubt_allow Drop p")
-   prefer 2
-   apply fastforce
-  by auto
-
-(*needs the p in assm*)
-lemma xxxx_xx:"\<alpha> Drop p \<noteq> \<alpha> Accept p \<Longrightarrow> \<forall>a. \<alpha> a p = (\<not> b) \<Longrightarrow> False"
-  by simp
-*)
-
-
-
-
-
-
-
-
 context
 begin
   (*helper1: used in induction case MatchNot*)
@@ -245,5 +191,29 @@ lemma "no_spoofing ipassmt rs \<Longrightarrow> (common_matcher, in_doubt_allow)
 
 
 
+
+(*TODO: move to Transform.thy ? fix imports*)
+theorem rewrite_iiface:
+  assumes simplers: "simple_ruleset rs"
+      and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
+      and wf_ipassmt: "ipassmt_sanity_nowildcards ipassmt"
+      and nospoofing: "case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)"
+  shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>optimize_matches (rewrite_iiface ipassmt) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+    and "simple_ruleset (optimize_matches (rewrite_iiface ipassmt) rs)"
+    (*TODO: and not has disc, ..*)
+  proof -
+    show simplers_t: "simple_ruleset (optimize_matches (rewrite_iiface ipassmt) rs)"
+      by (simp add: optimize_matches_simple_ruleset simplers)
+    
+    show "(common_matcher, \<alpha>),p\<turnstile> \<langle>optimize_matches (rewrite_iiface ipassmt) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_t]]
+     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
+     apply(rule approximating_bigstep_fun_eq)
+     apply(rule optimize_matches_generic[where P="\<lambda> m _. normalized_nnf_match m"])
+      apply(simp add: normalized)
+     apply(rule matches_rewrite_iiface)
+       apply(simp_all add: wf_ipassmt nospoofing)
+     done
+qed
 
 end
