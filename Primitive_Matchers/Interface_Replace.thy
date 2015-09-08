@@ -2,7 +2,6 @@ theory Interface_Replace
 imports
   No_Spoof
   Common_Primitive_toString
-  Transform
 begin
 
 section{*Abstracting over Primitives*}
@@ -189,31 +188,5 @@ lemma "no_spoofing ipassmt rs \<Longrightarrow> (common_matcher, in_doubt_allow)
    apply fastforce
   by (simp add: case_option_dom)
 
-
-
-
-(*TODO: move to Transform.thy ? fix imports*)
-theorem rewrite_iiface:
-  assumes simplers: "simple_ruleset rs"
-      and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
-      and wf_ipassmt: "ipassmt_sanity_nowildcards ipassmt"
-      and nospoofing: "case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)"
-  shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>optimize_matches (rewrite_iiface ipassmt) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
-    and "simple_ruleset (optimize_matches (rewrite_iiface ipassmt) rs)"
-    (*TODO: and not has disc, ..*)
-  proof -
-    show simplers_t: "simple_ruleset (optimize_matches (rewrite_iiface ipassmt) rs)"
-      by (simp add: optimize_matches_simple_ruleset simplers)
-    
-    show "(common_matcher, \<alpha>),p\<turnstile> \<langle>optimize_matches (rewrite_iiface ipassmt) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
-     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_t]]
-     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
-     apply(rule approximating_bigstep_fun_eq)
-     apply(rule optimize_matches_generic[where P="\<lambda> m _. normalized_nnf_match m"])
-      apply(simp add: normalized)
-     apply(rule matches_rewrite_iiface)
-       apply(simp_all add: wf_ipassmt nospoofing)
-     done
-qed
 
 end
