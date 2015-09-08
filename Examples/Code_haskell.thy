@@ -25,8 +25,7 @@ definition mk_Set :: "'a list \<Rightarrow> 'a set" where
 
 
 text{*The Example from @{file "TUM_Net_Firewall/TUM_Spoofing_new3.thy"}.
-  Only used for testing and demonstration purposes.
-  TODO: implement a cool haskell parser for those ip assignments. Pull request welcome.*}
+  Only used for testing and demonstration purposes.*}
 definition "example_TUM_i8_spoofing_ipassmt =
  [(Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,213,4), 24)]),
   (Iface ''eth1.96'', [(ipv4addr_of_dotdecimal (131,159,14,3), 25)]),
