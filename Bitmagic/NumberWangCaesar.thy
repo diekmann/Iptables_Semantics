@@ -26,7 +26,7 @@ private lemma valid_preifx_alt_def: "valid_prefix p = (pfxm_prefix p AND (2 ^ (3
    shiftl_1
   unfolding pfxm_prefix_def pfxm_mask_def mask_def
   by metis
-  
+
 
 subsection{*Address Semantics*}
 
@@ -54,6 +54,15 @@ private lemma ipset_prefix_match_complete: "rpm = ipset_prefix_match pfx rg \<Lo
   (fst rpm) \<union> (snd rpm) = rg" by force
 private lemma rpm_m_dup_simp: "rg \<inter> fst (ipset_prefix_match (routing_match r) rg) = fst (ipset_prefix_match (routing_match r) rg)"
   by simp
+
+
+lemma prefix_to_ipset_subset_ipv4range_set_from_bitmask: 
+    "prefix_to_ipset pfx \<subseteq> ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
+  apply(rule)
+  apply(simp add: prefix_to_ipset_def addr_in_ipv4range_set_from_bitmask_code)
+  apply(intro impI conjI)
+   apply (metis (erased, hide_lams) order_trans word_and_le2)
+  by (metis pfxm_mask_def)
 
 subsection{*Equivalence Proofs*}
 
