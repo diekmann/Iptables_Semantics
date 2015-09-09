@@ -25,8 +25,7 @@ definition mk_Set :: "'a list \<Rightarrow> 'a set" where
 
 
 text{*The Example from @{file "TUM_Net_Firewall/TUM_Spoofing_new3.thy"}.
-  Only used for testing and demonstration purposes.
-  TODO: implement a cool haskell parser for those ip assignments. Pull request welcome.*}
+  Only used for testing and demonstration purposes.*}
 definition "example_TUM_i8_spoofing_ipassmt =
  [(Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,213,4), 24)]),
   (Iface ''eth1.96'', [(ipv4addr_of_dotdecimal (131,159,14,3), 25)]),
@@ -71,9 +70,6 @@ definition "example_TUM_i8_spoofing_ipassmt =
     (ipv4addr_of_dotdecimal (185,86,232,0), 22)
     ]) (*transfer net*)]"
 
-definition map_of_ipassmt :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> iface \<rightharpoonup> (32 word \<times> nat) list" where
-  "map_of_ipassmt ipassmt = map_of ipassmt"
-
 
 fun ipassmt_iprange_translate :: "ipt_ipv4range list negation_type \<Rightarrow> (32 word \<times> nat) list" where
   "ipassmt_iprange_translate (Pos ips) = concat (map ipt_ipv4range_to_cidr ips)" |
@@ -102,7 +98,8 @@ export_code Rule
   to_simple_firewall
   to_simple_firewall_without_interfaces
   sanity_wf_ruleset
-  (*spoofing:*) example_TUM_i8_spoofing_ipassmt no_spoofing_iface ipassmt_sanity_defined map_of_ipassmt to_ipassmt
+  (*spoofing:*) example_TUM_i8_spoofing_ipassmt
+  no_spoofing_iface ipassmt_sanity_defined map_of_ipassmt to_ipassmt debug_ipassmt
   Pos Neg
   in Haskell module_name "Network.IPTables.Generated" file "generated_code/"
 

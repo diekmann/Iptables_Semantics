@@ -4,6 +4,8 @@ begin
 
 section{*Primitive Normalization*}
 
+subsection{*Normalized Primitives*}
+
 text{*
   Test if a @{text disc} is in the match expression.
   For example, it call tell whether there are some matches for @{text "Src ip"}.
@@ -26,6 +28,26 @@ fun normalized_n_primitive :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarro
   "normalized_n_primitive _ _ (MatchNot (MatchNot _)) = False" | (*not nnf normalized*)
   "normalized_n_primitive _ _ (MatchNot MatchAny) = True"
 
+
+
+lemma normalized_n_primitive_opt_MatchAny_match_expr: "normalized_n_primitive disc_sel f m \<Longrightarrow> normalized_n_primitive disc_sel f (opt_MatchAny_match_expr m)"
+  proof-
+  { fix disc::"('a \<Rightarrow> bool)" and sel::"('a \<Rightarrow> 'b)" and n m1 m2
+    have "normalized_n_primitive (disc, sel) n (opt_MatchAny_match_expr m1) \<Longrightarrow>
+         normalized_n_primitive (disc, sel) n (opt_MatchAny_match_expr m2) \<Longrightarrow>
+         normalized_n_primitive (disc, sel) n m1 \<and> normalized_n_primitive (disc, sel) n m2 \<Longrightarrow>
+         normalized_n_primitive (disc, sel) n (opt_MatchAny_match_expr (MatchAnd m1 m2))"
+  by(induction "(MatchAnd m1 m2)" rule: opt_MatchAny_match_expr.induct) (auto)
+  }note x=this
+  assume "normalized_n_primitive disc_sel f m"
+  thus ?thesis
+    apply(induction disc_sel f m rule: normalized_n_primitive.induct)
+          apply simp_all
+    using x by simp
+  qed
+
+
+subsection{*Primitive Extractor*}
 
 text{*
   The following function takes a tuple of functions (@{typ "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b))"}) and a @{typ "'a match_expr"}.
@@ -374,7 +396,8 @@ lemma "wf_disc_sel (disc, sel) C \<Longrightarrow> disc (C x) \<longrightarrow> 
     qed
   qed
 
-lemma "normalized_n_primitive disc_sel f m \<Longrightarrow> normalized_nnf_match m"
+(*TODO: mak EX lemma as ctr example*)
+lemma "normalized_n_primitive disc_sel f m \<longrightarrow> normalized_nnf_match m"
   apply(induction disc_sel f m rule: normalized_n_primitive.induct)
         apply(simp_all)
         oops
@@ -388,5 +411,7 @@ lemma remove_unknowns_generic_normalized_n_primitive: "normalized_n_primitive di
   proof(induction \<gamma> a m rule: remove_unknowns_generic.induct)
     case 6 thus ?case by(case_tac disc_sel, simp)
   qed(simp_all)
+
+
 
 end

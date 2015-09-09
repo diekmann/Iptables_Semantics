@@ -2,6 +2,7 @@ theory TUM_Spoofing_new3
 imports 
   "../../Primitive_Matchers/Parser"
   "../../Simple_Firewall/SimpleFw_toString"
+  "../../Primitive_Matchers/Interface_Replace"
 begin
 
 
@@ -56,7 +57,7 @@ subsection{*General Setup*}
   (Iface ''eth1.1025'', [(ipv4addr_of_dotdecimal (185,86,232,2), 22)]),
   (Iface ''eth1.1024'', everything_but_my_ips) (*transfer net*)]"
   
-  lemma "ipassmt_sanity_haswildcards (map_of ipassmt)" by eval
+  lemma "ipassmt_sanity_nowildcards (map_of ipassmt)" by eval
   
   
   text{*We check for all interfaces, except for @{term "Iface ''eth0''"}, which does not need spoofing protection.*}
@@ -71,10 +72,13 @@ subsection{*General Setup*}
   
   
   
-  definition "spoofing_protection fw \<equiv> map (\<lambda>ifce. (ifce, no_spoofing_iface (Iface ifce) (map_of ipassmt) fw)) interfaces"
+  definition "spoofing_protection fw \<equiv> map (\<lambda>ifce. (ifce, no_spoofing_iface (Iface ifce) (map_of_ipassmt ipassmt) fw)) interfaces"
   
   text{*We only consider packets which are @{const CT_New}. Packets which already belong to an established connection are okay be definition.*}
   definition "preprocess default_policy fw \<equiv> (upper_closure (ctstate_assume_new (unfold_ruleset_FORWARD default_policy (map_of_string fw))))"
+
+
+  value[code] "debug_ipassmt ipassmt []"
 
 text{*In all three iterations, we have removed two rules from the ruleset. The first rule excluded
 from analysis is the ESTABLISHED rule, as discussed earlier.
@@ -113,12 +117,28 @@ subsubsection{*Try 1*}
                in map simple_rule_toString x" (*169.498s with interface abstraction, otherwise 262.712s*)
 
 
+  value[code] "let x = to_simple_firewall (upper_closure
+                      (*(optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))*)
+                      (optimize_matches (rewrite_iiface (map_of_ipassmt ipassmt))
+                      (ctstate_assume_new (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of net_fw_1)))))
+               in map simple_rule_toString x" (*251.806s*)
+
+
+  value[code] "let x = to_simple_firewall (upper_closure
+                      (*(optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))*)
+                      (*(optimize_matches (rewrite_iiface (map_of_ipassmt ipassmt))*)
+                      (ctstate_assume_new (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of net_fw_1))))
+               in map simple_rule_toString x" (*222.742s*)
+
+
+  value[code] "debug_ipassmt ipassmt (preprocess net_fw_1_FORWARD_default_policy net_fw_1)"
+  
   text{*the parsed firewall:*}
   value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw_1"
   
   text{*sanity check that @{const ipassmt} is complete*}
   (*226.773s*)
-  lemma "ipassmt_sanity_defined (preprocess net_fw_1_FORWARD_default_policy net_fw_1) (map_of ipassmt)" by eval
+  lemma "ipassmt_sanity_defined (preprocess net_fw_1_FORWARD_default_policy net_fw_1) (map_of_ipassmt ipassmt)" by eval
   
   (*287.938s*)
   lemma "spoofing_protection (preprocess net_fw_1_FORWARD_default_policy net_fw_1) =
@@ -186,7 +206,7 @@ subsubsection{*Try 2*}
   
   text{*sanity check that @{const ipassmt} is complete*}
   (*198.191s*)
-  lemma "ipassmt_sanity_defined (preprocess net_fw_2_FORWARD_default_policy net_fw_2) (map_of ipassmt)" by eval
+  lemma "ipassmt_sanity_defined (preprocess net_fw_2_FORWARD_default_policy net_fw_2) (map_of_ipassmt ipassmt)" by eval
   
   (*255.760s*)
   lemma "spoofing_protection (preprocess net_fw_2_FORWARD_default_policy net_fw_2) =
@@ -244,7 +264,7 @@ subsection{*Try 3*}
   
   text{*sanity check that @{const ipassmt} is complete*}
   (*177.848s*)
-  lemma "ipassmt_sanity_defined (preprocess net_fw_3_FORWARD_default_policy net_fw_3) (map_of ipassmt)" by eval
+  lemma "ipassmt_sanity_defined (preprocess net_fw_3_FORWARD_default_policy net_fw_3) (map_of_ipassmt ipassmt)" by eval
   
   
   (*217.591s*)

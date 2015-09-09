@@ -33,7 +33,7 @@ Checking all proofs:
 ```
 $ isabelle build -v -d . -o document=pdf Iptables_Semantics_Examples
 ```
-This needs about 50min CPU time on my i7 1.8GHz laptop.
+This needs about 1h 10min CPU time on my i7 1.8GHz laptop.
 
 ---
 

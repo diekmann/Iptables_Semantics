@@ -23,4 +23,9 @@ definition quote_rewrite :: "string \<Rightarrow> string" where
   "quote_rewrite \<equiv> map (\<lambda>c. if c = Char Nibble2 Nibble2 then CHR ''~'' else c)"
 value "quote_rewrite (''foo''@[Char Nibble2 Nibble2])"
 
+
+fun bool_toString :: "bool \<Rightarrow> string" where
+  "bool_toString True = ''True''" |
+  "bool_toString False = ''False''"
+
 end

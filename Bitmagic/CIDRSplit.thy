@@ -63,15 +63,6 @@ lemma prefix_bitrang_list_union: "\<forall> pfx \<in> set cidrlist. (valid_prefi
        apply(simp)
        done
 
-(*TODO: move*)
-lemma prefix_to_ipset_subset_ipv4range_set_from_bitmask: 
-    "prefix_to_ipset pfx \<subseteq> ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
-  apply(rule)
-  apply(simp add: prefix_to_ipset_def addr_in_ipv4range_set_from_bitmask_code)
-  apply(intro impI conjI)
-   apply (metis (erased, hide_lams) order_trans word_and_le2)
-  by (metis pfxm_mask_def)
-
 
 private definition pfxes :: "nat list" where "pfxes \<equiv> map nat [0..32]"
 
@@ -225,7 +216,7 @@ lemma unfold_rsplit_case:
   shows "(case ipv4range_split1 rs of (None, u) \<Rightarrow> [] | (Some s, u) \<Rightarrow> s # ipv4range_split u) = s # ipv4range_split u"
 using su by (metis option.simps(5) split_conv)
 
-lemma ipv4range_split_union'': "\<Union>set (map wordinterval_to_set (map prefix_to_range (ipv4range_split r))) = wordinterval_to_set r"
+lemma ipv4range_split_union: "\<Union>set (map wordinterval_to_set (map prefix_to_range (ipv4range_split r))) = wordinterval_to_set r"
 proof(induction r rule: ipv4range_split.induct, subst ipv4range_split.simps, case_tac "ipv4range_empty rs")
   case goal1
   show ?case using goal1(2) by (simp add: ipv4range_to_set_def)
@@ -243,15 +234,6 @@ next
     unfolding list.map
     using mIH helper1
     by (metis Sup_insert list.set(2))
-qed
-
-(*TODO: only keep the previous lemma?*)
-lemma ipv4range_split_union: "(\<Union>x\<in>set (map prefix_to_range (ipv4range_split r)). wordinterval_to_set x) = wordinterval_to_set r"
-proof -
-  have x: "\<And> ls. \<Union>set (map wordinterval_to_set ls) = (\<Union>x\<in>set ls. wordinterval_to_set x)" by simp
-  from ipv4range_split_union'' show ?thesis
-    apply(subst(asm) x)
-    by blast
 qed
 
 (* Wolololo *)
@@ -276,7 +258,7 @@ corollary ipv4range_split: "(\<Union> (prefix_to_ipset ` (set (ipv4range_split r
         UNION (set (map prefix_to_range (ipv4range_split r))) wordinterval_to_set"
     by(simp add: prefix_to_range_set_eq_fun)
   thus ?thesis
-   using ipv4range_split_union by presburger
+   using ipv4range_split_union by simp
 qed
 corollary ipv4range_split_single: "(\<Union> (prefix_to_ipset ` (set (ipv4range_split (WordInterval start end))))) = {start .. end}"
   using ipv4range_split by simp

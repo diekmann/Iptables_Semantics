@@ -1,8 +1,8 @@
 theory No_Spoof
-imports 
-        "../Semantics_Embeddings"
-        Common_Primitive_Matcher
+imports Common_Primitive_Matcher
         Primitive_Normalization
+        Common_Primitive_toString
+        "../Common/Lib_toString"
 begin
 
 section{*No Spoofing*}
@@ -12,21 +12,67 @@ section{*No Spoofing*}
   text{*A mapping from an interface to its assigned ip addresses in CIDR notation*}
   type_synonym ipassignment="iface \<rightharpoonup> (ipv4addr \<times> nat) list" (*technically, a set*)
 
-  (*
-  check wool: warning if zone-spanning (optional)
-  *)
 
-  text{*Sanity checking for an @{typ ipassignment}. *}
+subsection{*Sanity checking for an @{typ ipassignment}. *}
 
   text{*warning if interface map has wildcards*}
-  definition ipassmt_sanity_haswildcards :: "ipassignment \<Rightarrow> bool" where
-    "ipassmt_sanity_haswildcards ipassmt \<equiv> \<forall> iface \<in> dom ipassmt. \<not> iface_is_wildcard iface"
+  definition ipassmt_sanity_nowildcards :: "ipassignment \<Rightarrow> bool" where
+    "ipassmt_sanity_nowildcards ipassmt \<equiv> \<forall> iface \<in> dom ipassmt. \<not> iface_is_wildcard iface"
 
     text{*Executable of the @{typ ipassignment} is given as a list.*}
-    lemma[code_unfold]: "ipassmt_sanity_haswildcards (map_of ipassmt) \<longleftrightarrow> (\<forall> iface \<in> fst` set ipassmt. \<not> iface_is_wildcard iface)"
-      by(simp add: ipassmt_sanity_haswildcards_def Map.dom_map_of_conv_image_fst)
+    lemma[code_unfold]: "ipassmt_sanity_nowildcards (map_of ipassmt) \<longleftrightarrow> (\<forall> iface \<in> fst` set ipassmt. \<not> iface_is_wildcard iface)"
+      by(simp add: ipassmt_sanity_nowildcards_def Map.dom_map_of_conv_image_fst)
+  
+  lemma ipassmt_sanity_nowildcards_match_iface:
+      "ipassmt_sanity_nowildcards ipassmt \<Longrightarrow>
+       ipassmt (Iface ifce2) = None \<Longrightarrow>
+       ipassmt ifce = Some a \<Longrightarrow>
+       \<not> match_iface ifce ifce2"
+  unfolding ipassmt_sanity_nowildcards_def using iface_is_wildcard_def match_iface_case_nowildcard by fastforce
 
-    value[code] "ipassmt_sanity_haswildcards (map_of [(Iface ''eth1.1017'', [(ipv4addr_of_dotdecimal (131,159,14,240), 28)])])"
+
+  (* use this in all exported code*)
+  definition map_of_ipassmt :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> iface \<rightharpoonup> (32 word \<times> nat) list" where
+    "map_of_ipassmt ipassmt = (if distinct (map fst ipassmt) \<and> ipassmt_sanity_nowildcards (map_of ipassmt) then map_of ipassmt else undefined)"
+
+
+  text{* some additional (optional) sanity checks *}
+  
+  text{*sanity check that there are no zone-spanning interfaces*}
+  definition ipassmt_sanity_disjoint :: "ipassignment \<Rightarrow> bool" where
+    "ipassmt_sanity_disjoint ipassmt \<equiv> \<forall> i1 \<in> dom ipassmt. \<forall> i2 \<in> dom ipassmt. i1 \<noteq> i2 \<longrightarrow>
+          ipv4cidr_union_set (set (the (ipassmt i1))) \<inter> ipv4cidr_union_set (set (the (ipassmt i2))) = {}"
+  
+  lemma[code_unfold]: "ipassmt_sanity_disjoint (map_of ipassmt) \<longleftrightarrow> (let Is = fst` set ipassmt in 
+      (\<forall> i1 \<in> Is. \<forall> i2 \<in> Is. i1 \<noteq> i2 \<longrightarrow> wordinterval_empty (wordinterval_intersection (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i1))))  (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i2)))))))"
+    apply(simp add: ipassmt_sanity_disjoint_def Map.dom_map_of_conv_image_fst)
+    apply(simp add: ipv4cidr_union_set_def)
+    apply(simp add: l2br)
+    apply(simp add: ipv4cidr_to_interval_def)
+    apply(simp add: ipv4cidr_to_interval_ipv4range_set_from_bitmask)
+    done
+  
+  
+  text{*Checking that the ipassmt covers the complete ipv4 address space.*}
+  definition ipassmt_sanity_complete :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> bool" where
+    "ipassmt_sanity_complete ipassmt \<equiv> distinct (map fst ipassmt) \<and> (\<Union>(ipv4cidr_union_set ` set ` (ran (map_of ipassmt)))) = UNIV"
+
+    lemma[code_unfold]: "ipassmt_sanity_complete ipassmt \<longleftrightarrow> distinct (map fst ipassmt) \<and> (let range = map snd ipassmt in 
+        wordinterval_eq (wordinterval_Union (map (l2br \<circ> (map ipv4cidr_to_interval)) range)) wordinterval_UNIV
+        )"
+     apply(cases "distinct (map fst ipassmt)")
+      apply(simp add: ipassmt_sanity_complete_def)
+      apply(simp add: Map.ran_distinct)
+      apply(simp add:  wordinterval_eq_set_eq wordinterval_Union)
+      apply(simp add: l2br)
+      apply(simp add: ipv4cidr_to_interval_def)
+      apply(simp add: ipv4cidr_union_set_def ipv4cidr_to_interval_ipv4range_set_from_bitmask)
+     apply(simp add: ipassmt_sanity_complete_def)
+     done
+
+
+
+    value[code] "ipassmt_sanity_nowildcards (map_of [(Iface ''eth1.1017'', [(ipv4addr_of_dotdecimal (131,159,14,240), 28)])])"
 
   fun collect_ifaces :: "common_primitive rule list \<Rightarrow> iface list" where
     "collect_ifaces [] = []" |
@@ -34,10 +80,12 @@ section{*No Spoofing*}
                                       (map (\<lambda>x. case x of Pos i \<Rightarrow> i | Neg i \<Rightarrow> i) (fst (primitive_extractor (is_Iiface, iiface_sel) m))) @
                                       (map (\<lambda>x. case x of Pos i \<Rightarrow> i | Neg i \<Rightarrow> i) (fst (primitive_extractor (is_Oiface, oiface_sel) m))) @ collect_ifaces rs)"
 
+  text{*sanity check that all interfaces mentioned in the ruleset are also listed in the ipassmt. May fail for wildcard interfaces in the ruleset.*}
+  (*TODO: wildcards*)
+  (*primitive_extractor requires normalized_nnf_primitives*)
   definition ipassmt_sanity_defined :: "common_primitive rule list \<Rightarrow> ipassignment \<Rightarrow> bool" where
     "ipassmt_sanity_defined rs ipassmt \<equiv> \<forall> iface \<in> set (collect_ifaces rs). iface \<in> dom ipassmt"
 
-    text{*Executable code*}
     lemma[code]: "ipassmt_sanity_defined rs ipassmt \<longleftrightarrow> (\<forall> iface \<in> set (collect_ifaces rs). ipassmt iface \<noteq> None)"
       by(simp add: ipassmt_sanity_defined_def Map.domIff)
   
@@ -46,6 +94,53 @@ section{*No Spoofing*}
              Rule MatchAny action.Drop]
              (map_of [(Iface ''eth1.1017'', [(ipv4addr_of_dotdecimal (131,159,14,240), 28)])])"
 
+
+
+
+  text{*Debug algorithm with human-readable output*}
+  definition debug_ipassmt :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> common_primitive rule list \<Rightarrow> string list" where
+    "debug_ipassmt ipassmt rs \<equiv> let ifaces = (map fst ipassmt) in [
+      ''distinct: '' @ (if distinct ifaces then ''passed'' else ''FAIL!'')
+      , ''ipassmt_sanity_nowildcards: '' @
+          (if ipassmt_sanity_nowildcards (map_of ipassmt)
+           then ''passed'' else list_toString iface_sel (filter iface_is_wildcard ifaces))
+      , ''ipassmt_sanity_defined (interfaces defined in the ruleset are also in ipassmt): '' @ 
+          (if ipassmt_sanity_defined rs (map_of ipassmt)
+           then ''passed'' else list_toString iface_sel [i \<leftarrow> (collect_ifaces rs). i \<notin> set ifaces])
+      , ''ipassmt_sanity_disjoint (no zone-spanning interfaces): '' @
+          (if ipassmt_sanity_disjoint (map_of ipassmt)
+           then ''passed'' else list_toString (\<lambda>(i1,i2). ''('' @ iface_sel i1 @ '','' @ iface_sel i2 @ '')'')
+               [(i1,i2) \<leftarrow> List.product ifaces ifaces. i1 \<noteq> i2 \<and>
+                \<not> wordinterval_empty (wordinterval_intersection
+                                        (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i1))))
+                                        (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i2)))))
+          ])
+      , ''ipassmt_sanity_disjoint excluding UNIV interfaces: '' @
+          (let ipassmt = filter (\<lambda>(_,ips). ips \<noteq> [(0,0)]) ipassmt;
+               ifaces = (map fst ipassmt)
+           in
+          (if ipassmt_sanity_disjoint (map_of ipassmt)
+           then ''passed'' else list_toString (\<lambda>(i1,i2). ''('' @ iface_sel i1 @ '','' @ iface_sel i2 @ '')'')
+               [(i1,i2) \<leftarrow> List.product ifaces ifaces. i1 \<noteq> i2 \<and>
+                \<not> wordinterval_empty (wordinterval_intersection
+                                        (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i1))))
+                                        (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i2)))))
+          ]))
+       , ''ipassmt_sanity_complete: '' @ 
+          (if ipassmt_sanity_complete ipassmt
+           then ''passed''
+           else ''the following is not covered: '' @ 
+            ipv4addr_wordinterval_toString (wordinterval_setminus wordinterval_UNIV (wordinterval_Union (map (l2br \<circ> (map ipv4cidr_to_interval)) (map snd ipassmt)))))
+      , ''ipassmt_sanity_complete excluding UNIV interfaces: '' @
+          (let ipassmt = filter (\<lambda>(_,ips). ips \<noteq> [(0,0)]) ipassmt
+           in
+          (if ipassmt_sanity_complete ipassmt
+           then ''passed''
+           else ''the following is not covered: '' @
+            ipv4addr_wordinterval_toString (wordinterval_setminus wordinterval_UNIV (wordinterval_Union (map (l2br \<circ> (map ipv4cidr_to_interval)) (map snd ipassmt))))))
+      ]"
+
+subsection{*Spoofing Protection*}
   text{*
   No spoofing means:
   Every packet that is (potentially) allowed by the firewall and comes from an interface @{text iface} 
@@ -71,103 +166,13 @@ section{*No Spoofing*}
                         only the assigned IP addresses may pass the firewall.
                         This definition is simple for e.g. local sub-networks.
                         Example: @{term "[Iface ''eth0'' \<mapsto> {(ipv4addr_of_dotdecimal (192,168,0,0), 24)}]"}
+
         If I want spoofing protection from the Internet, I need to specify the range of the Internet IP addresses.
         Example: @{term "[Iface ''evil_internet'' \<mapsto> {everything_that_does_not_belong_to_me}]"}.
           This is also a good opportunity to exclude the private IP space, link local, and probably multicast space.
+        See @{const all_but_those_ips} to easily specify these ranges.
 
         See examples below. Check Example 3 why it can be thought of as OUTGOING spoofing.*}
-
-  (*TODO: make a definition of the `good' Internet IP address space.
-        parameterized with a list of IP ranges that belong `me' (the institution that runs the firewall), which are hence
-        excluded from the `good' Internet IP address sapce (because this is the local space, if such packets
-        come from the Internet, they are spoofed!
-    e.g. UNIV - 10/8 - 172.16/12 - 192.168/16 - institutes_range - \<dots>
-    luckily, there is CIDR_split and we can easily have an executable representation of this set ...)*)
-
-
-  text{*If @{const no_spoofing} is shown in the ternary semantics, it implies that no spoofing
-        is possible in the Boolean semantics with magic oracle.
-        We only assume that the oracle agrees with the @{const common_matcher} on the not-unknown parts.*}
-  lemma approximating_imp_booloan_semantics_nospoofing: 
-      assumes "matcher_agree_on_exact_matches \<gamma> common_matcher" and "simple_ruleset rs" and no_spoofing: "no_spoofing ipassmt rs"
-      shows "\<forall> iface \<in> dom ipassmt. \<forall>p. (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow) \<longrightarrow>
-                p_src p \<in> (ipv4cidr_union_set (set (the (ipassmt iface))))"
-      unfolding no_spoofing_def
-      proof(intro ballI allI impI)
-        fix iface p
-        assume i: "iface \<in> dom ipassmt"
-           and a: "\<Gamma>,\<gamma>,p\<lparr>p_iiface := iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow"
-
-        from no_spoofing[unfolded no_spoofing_def] i have no_spoofing':
-          "(common_matcher, in_doubt_allow),p\<lparr>p_iiface := iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<longrightarrow>
-           p_src p \<in> ipv4cidr_union_set (set (the (ipassmt iface)))" by blast
-
-        from assms simple_imp_good_ruleset FinalAllows_subseteq_in_doubt_allow[where rs=rs] have
-          "{p. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow} \<subseteq> {p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow}" 
-          by blast
-        with a have "(common_matcher, in_doubt_allow),p\<lparr>p_iiface := iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow" by blast
-        with no_spoofing' show "p_src p \<in> ipv4cidr_union_set (set (the (ipassmt iface)))"by blast
-      qed
-
-context
-begin
-  (*TODO move*)
-
-  fun has_primitive :: "'a match_expr \<Rightarrow> bool" where
-    "has_primitive MatchAny = False" |
-    "has_primitive (Match a) = True" |
-    "has_primitive (MatchNot m) = has_primitive m" |
-    "has_primitive (MatchAnd m1 m2) = (has_primitive m1 \<or> has_primitive m2)"
-
-
-  text{*Is a match expression equal to the @{const MatchAny} expression?
-        Only applicable if no primitives are in the expression. *}
-  fun matcheq_matachAny :: "'a match_expr \<Rightarrow> bool" where
-    "matcheq_matachAny MatchAny \<longleftrightarrow> True" |
-    "matcheq_matachAny (MatchNot m) \<longleftrightarrow> \<not> (matcheq_matachAny m)" |
-    "matcheq_matachAny (MatchAnd m1 m2) \<longleftrightarrow> matcheq_matachAny m1 \<and> matcheq_matachAny m2" |
-    "matcheq_matachAny (Match _) = undefined"
-
-  private lemma no_primitives_no_unknown: "\<not> has_primitive m  \<Longrightarrow> (ternary_ternary_eval (map_match_tac \<beta> p m)) \<noteq> TernaryUnknown"
-  proof(induction m)
-  case Match thus ?case by auto
-  next
-  case MatchAny thus ?case by simp
-  next
-  case MatchAnd thus ?case by(auto elim: eval_ternary_And.elims)
-  next
-  case MatchNot thus ?case by(auto dest: eval_ternary_Not_UnknownD)
-  qed
-
-
-  private lemma no_primitives_matchNot: assumes "\<not> has_primitive m" shows "matches \<gamma> (MatchNot m) a p \<longleftrightarrow> \<not> matches \<gamma> m a p"
-  proof -
-    obtain \<beta> \<alpha> where "(\<beta>, \<alpha>) = \<gamma>" by (cases \<gamma>, simp)
-    from assms have "matches (\<beta>, \<alpha>) (MatchNot m) a p \<longleftrightarrow> \<not> matches (\<beta>, \<alpha>) m a p"
-      apply(induction m)
-         apply(simp_all add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
-      apply(rename_tac m1 m2)
-      using no_primitives_no_unknown by (metis (no_types, hide_lams) eval_ternary_simps_simple(1) eval_ternary_simps_simple(3) ternaryvalue.exhaust) 
-    with `(\<beta>, \<alpha>) = \<gamma>` assms show ?thesis by simp
-  qed
-  
-
-  lemma matcheq_matachAny: "\<not> has_primitive m \<Longrightarrow> matcheq_matachAny m \<longleftrightarrow> matches \<gamma> m a p"
-  proof(induction m)
-  case Match hence False by auto
-    thus ?case ..
-  next
-  case (MatchNot m)
-    from MatchNot.prems have "\<not> has_primitive m" by simp
-    with no_primitives_matchNot have "matches \<gamma> (MatchNot m) a p = (\<not> matches \<gamma> m a p)" by metis
-    with MatchNot show ?case by(simp)
-  next
-  case (MatchAnd m1 m2)
-    thus ?case by(simp add: Matching_Ternary.bunch_of_lemmata_about_matches)
-  next
-  case MatchAny show ?case by(simp add: Matching_Ternary.bunch_of_lemmata_about_matches)
-  qed
-end
 
 
 
@@ -237,10 +242,10 @@ begin
       with match_simplematcher_Src_getPos match_simplematcher_Src_getNeg have inset:
         "(\<forall>ip\<in>set (getPos ip_matches). p_src ?p \<in> ipv4s_to_set ip) \<and> (\<forall>ip\<in>set (getNeg ip_matches). p_src ?p \<in> - ipv4s_to_set ip)" by presburger
   
-      with inset have "\<forall>x \<in> set ip_matches. src_ip \<in> (case x of Pos x \<Rightarrow> ipv4s_to_set x | Neg ip \<Rightarrow> - ipv4s_to_set ip)"
-        apply(simp add: split: negation_type.split)
+      with inset  have "\<forall>x \<in> set ip_matches. src_ip \<in> (case x of Pos x \<Rightarrow> ipv4s_to_set x | Neg ip \<Rightarrow> - ipv4s_to_set ip)"
+        apply(simp  split: negation_type.split)
         apply(safe)
-        using NegPos_set apply fast+
+         using NegPos_set apply fast+
       done
     } note 1=this
 

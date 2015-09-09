@@ -361,7 +361,7 @@ subsection{*IP ranges*}
     unfolding ipv4range_eq_def ipv4range_to_set_def using wordinterval_eq_set_eq by blast
 
   declare ipv4range_range_set_eq[unfolded ipv4range_range.simps, simp]
-  declare ipv4range_union_set_eq[unfolded ipv4range_union_def wordinterval_union.simps, simp]
+  declare ipv4range_union_set_eq[unfolded ipv4range_union_def wordinterval_union_def, simp]
 
 
   thm iffD1[OF ipv4range_eq_set_eq]

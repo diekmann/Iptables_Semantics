@@ -114,7 +114,9 @@ text{*Since matching on the iface cannot be @{const TernaryUnknown}*, we can pul
 lemma common_matcher_MatchNot_Iface:
       "matches (common_matcher, \<alpha>) (MatchNot (Match (IIface iface))) a p \<longleftrightarrow> \<not> match_iface iface (p_iiface p)"
       "matches (common_matcher, \<alpha>) (MatchNot (Match (OIface iface))) a p \<longleftrightarrow> \<not> match_iface iface (p_oiface p)"
-  by(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_simps split: ternaryvalue.split)
+using match_simplematcher_Iface_not by simp_all
+(*TODO: duplication!*)
+  (*by(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_simps split: ternaryvalue.split)*)
 
 
 

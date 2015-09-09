@@ -1,23 +1,13 @@
 theory Transform
-imports "Common_Primitive_Matcher"
+imports Common_Primitive_Lemmas
         "../Semantics_Ternary/Semantics_Ternary"
         "../Semantics_Ternary/Negation_Type_Matching"
-        "Ports_Normalize"
-        "IpAddresses_Normalize"
+        Ports_Normalize
+        IpAddresses_Normalize
         "../Common/Remdups_Rev"
+        Interface_Replace
 begin
 
-
-
-
-(*TODO: move*)
-lemma not_matches_removeAll: "\<not> matches \<gamma> m a p \<Longrightarrow>
-  approximating_bigstep_fun \<gamma> p (removeAll (Rule m a) rs) Undecided = approximating_bigstep_fun \<gamma> p rs Undecided"
-  apply(induction \<gamma> p rs Undecided rule: approximating_bigstep_fun.induct)
-   apply(simp)
-  apply(simp split: action.split)
-  apply blast
-  done
 
 
 lemma approximating_bigstep_fun_remdups_rev:
@@ -111,23 +101,6 @@ definition transform_optimize_dnf_strict :: "common_primitive rule list \<Righta
         normalize_rules_dnf \<circ> (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ))"
 
 
-(* TODO: move? *)
-lemma normalized_n_primitive_opt_MatchAny_match_expr: "normalized_n_primitive disc_sel f m \<Longrightarrow> normalized_n_primitive disc_sel f (opt_MatchAny_match_expr m)"
-  proof-
-  { fix disc::"('a \<Rightarrow> bool)" and sel::"('a \<Rightarrow> 'b)" and n m1 m2
-    have "normalized_n_primitive (disc, sel) n (opt_MatchAny_match_expr m1) \<Longrightarrow>
-         normalized_n_primitive (disc, sel) n (opt_MatchAny_match_expr m2) \<Longrightarrow>
-         normalized_n_primitive (disc, sel) n m1 \<and> normalized_n_primitive (disc, sel) n m2 \<Longrightarrow>
-         normalized_n_primitive (disc, sel) n (opt_MatchAny_match_expr (MatchAnd m1 m2))"
-  by(induction "(MatchAnd m1 m2)" rule: opt_MatchAny_match_expr.induct) (auto)
-  }note x=this
-  assume "normalized_n_primitive disc_sel f m"
-  thus ?thesis
-    apply(induction disc_sel f m rule: normalized_n_primitive.induct)
-          apply simp_all
-    using x by simp
-  qed
-  
 
 theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
       shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
@@ -255,17 +228,6 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
   qed
 
 
-
-(*TODO move?*)
-lemma has_unknowns_common_matcher: "has_unknowns common_matcher m \<longleftrightarrow> has_disc is_Extra m"
-  proof -
-  { fix A p
-    have "common_matcher A p = TernaryUnknown \<longleftrightarrow> is_Extra A"
-      by(induction A p rule: common_matcher.induct) (simp_all add: bool_to_ternary_Unknown)
-  } thus ?thesis
-  by(induction common_matcher m rule: has_unknowns.induct) (simp_all)
-qed
-
 definition transform_remove_unknowns_generic :: "('a, 'packet) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where 
     "transform_remove_unknowns_generic \<gamma> = optimize_matches_a (remove_unknowns_generic \<gamma>) "
 theorem transform_remove_unknowns_generic:
@@ -333,17 +295,6 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
       normalize_rules normalize_dst_ports \<circ>
       normalize_rules normalize_src_ports"
 
-
- (*TODO: move*)
- (*tuned version for usage with normalize_primitive_extract*)
- lemma normalize_rules_match_list_semantics_3: 
-    assumes "\<forall>m a. normalized_nnf_match m \<longrightarrow> match_list \<gamma> (f m) a p = matches \<gamma> m a p"
-    and "simple_ruleset rs"
-    and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
-    shows "approximating_bigstep_fun \<gamma> p (normalize_rules f rs) s = approximating_bigstep_fun \<gamma> p rs s"
-    apply(rule normalize_rules_match_list_semantics_2)
-     using normalized assms(1) apply blast
-    using assms(2) by simp
     
 
  (*TODO: move and*)
@@ -381,6 +332,11 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
      using assms(1) apply simp
     using assms(2) by simp
 
+
+(*TODO: move or [simp] rule*)
+lemma approximating_bigstep_fun_eq: "(approximating_bigstep_fun \<gamma> p rs1 s = approximating_bigstep_fun \<gamma> p rs s)
+       \<Longrightarrow> (approximating_bigstep_fun \<gamma> p rs1 s = t) \<longleftrightarrow> (approximating_bigstep_fun \<gamma> p rs s = t)"
+by simp
 
 theorem transform_normalize_primitives:
   assumes simplers: "simple_ruleset rs"
@@ -431,22 +387,23 @@ theorem transform_normalize_primitives:
      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
      unfolding transform_normalize_primitives_def
      apply(simp)
-     apply(subst normalize_rules_match_list_semantics_3)
-        using normalize_dst_ips apply simp
+     apply(rule approximating_bigstep_fun_eq)
+     apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
+        using normalize_dst_ips apply(simp; fail)
        using simplers simple_ruleset_normalize_rules apply blast
-      using normalized_rs3 apply simp
-     apply(subst normalize_rules_match_list_semantics_3)
-        using normalize_src_ips apply simp
+      using normalized_rs3 apply(simp; fail)
+     apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
+        using normalize_src_ips apply(simp; fail)
        using simplers simple_ruleset_normalize_rules apply blast
-      using normalized_rs2 apply simp
-     apply(subst normalize_rules_match_list_semantics_3)
-        using normalize_dst_ports apply simp
+      using normalized_rs2 apply(simp; fail)
+     apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
+        using normalize_dst_ports apply(simp; fail)
        using simplers simple_ruleset_normalize_rules apply blast
-      using normalized_rs1 apply simp
-     apply(subst normalize_rules_match_list_semantics_3)
-        using normalize_src_ports apply simp
+      using normalized_rs1 apply(simp; fail)
+     apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
+        using normalize_src_ports apply(simp; fail)
        using simplers simple_ruleset_normalize_rules apply blast
-      using normalized apply simp
+      using normalized apply(simp; fail)
      by simp
 
 
@@ -601,5 +558,31 @@ theorem transform_normalize_primitives:
 qed
 
 
+
+
+
+
+theorem rewrite_iiface:
+  assumes simplers: "simple_ruleset rs"
+      and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
+      and wf_ipassmt: "ipassmt_sanity_nowildcards ipassmt"
+      and nospoofing: "case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)"
+  shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>optimize_matches (rewrite_iiface ipassmt) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+    and "simple_ruleset (optimize_matches (rewrite_iiface ipassmt) rs)"
+    (*TODO: and not has disc, ..*)
+  proof -
+    show simplers_t: "simple_ruleset (optimize_matches (rewrite_iiface ipassmt) rs)"
+      by (simp add: optimize_matches_simple_ruleset simplers)
+    
+    show "(common_matcher, \<alpha>),p\<turnstile> \<langle>optimize_matches (rewrite_iiface ipassmt) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_t]]
+     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
+     apply(rule approximating_bigstep_fun_eq)
+     apply(rule optimize_matches_generic[where P="\<lambda> m _. normalized_nnf_match m"])
+      apply(simp add: normalized)
+     apply(rule matches_rewrite_iiface)
+       apply(simp_all add: wf_ipassmt nospoofing)
+     done
+qed
 
 end

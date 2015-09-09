@@ -17,6 +17,7 @@ session "Iptables_Semantics" = Bitmagic +
     Iptables_Semantics
     "Semantics_Ternary/Optimizing"
     "Primitive_Matchers/No_Spoof"
+    No_Spoof_Embeddings
     "Primitive_Matchers/Transform"
     "Primitive_Matchers/Primitive_Abstract"
     "Primitive_Matchers/Code_Interface"

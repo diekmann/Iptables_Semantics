@@ -30,9 +30,10 @@ subsection{*Basic operations*}
   lemma wordinterval_element_set_eq[simp]: "wordinterval_element el rg = (el \<in> wordinterval_to_set rg)"
     by(induction rg rule: wordinterval_element.induct) simp_all
   
-  fun wordinterval_union :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval \<Rightarrow> 'a::len wordinterval" where 
+  definition wordinterval_union :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval \<Rightarrow> 'a::len wordinterval" where 
     "wordinterval_union r1 r2 = RangeUnion r1 r2"
-  lemma wordinterval_union_set_eq[simp]: "wordinterval_to_set (wordinterval_union r1 r2) = wordinterval_to_set r1 \<union> wordinterval_to_set r2" by simp
+  lemma wordinterval_union_set_eq[simp]: "wordinterval_to_set (wordinterval_union r1 r2) = wordinterval_to_set r1 \<union> wordinterval_to_set r2"
+    unfolding wordinterval_union_def by simp
   
   fun wordinterval_empty :: "'a::len wordinterval \<Rightarrow> bool" where
     "wordinterval_empty (WordInterval s e) = (e < s)" |
@@ -116,7 +117,6 @@ end
 
 
 text{*Merging overlapping intervals*}
-(*TODO result has no empty intervals and all are disjoiint. merging things such as [1,7] [8,10] would still be possible*)
 context
 begin
 
@@ -145,6 +145,7 @@ begin
 
 
   text{*BEGIN merging overlapping intervals*}
+  (*result has no empty intervals and all are disjoiint. merging things such as [1,7] [8,10] would still be possible*)
   private fun merge_overlap :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> ('a word \<times> 'a word) list \<Rightarrow> ('a word \<times> 'a word) list" where
    "merge_overlap s [] = [s]" |
    "merge_overlap (s,e) ((s',e')#ss) = (
@@ -348,6 +349,14 @@ lemma wordinterval_optimize_same_set_eq[simp]: "wordinterval_to_set (wordinterva
 
 
 subsection{*Further operations*}
+
+  text{*@{text "\<Union>"}*}
+  definition wordinterval_Union :: "('a::len) wordinterval list \<Rightarrow> 'a wordinterval" where
+    "wordinterval_Union ws = wordinterval_compress (foldr wordinterval_union ws Empty_WordInterval)"
+  
+  lemma wordinterval_Union: "wordinterval_to_set (wordinterval_Union ws) = (\<Union> w \<in> (set ws). wordinterval_to_set w)"
+    by(induction ws) (simp_all add: wordinterval_compress wordinterval_Union_def)
+   
 
 
 context
