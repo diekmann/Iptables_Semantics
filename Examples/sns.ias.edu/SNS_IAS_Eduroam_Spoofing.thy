@@ -35,6 +35,11 @@ value[code] "collect_ifaces (unfold_ruleset_INPUT eduroam_fw_INPUT_default_polic
 lemma "ipassmt_sanity_defined (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)) (map_of_ipassmt ipassignment_incoming)" by eval
 lemma "ipassmt_sanity_defined (unfold_ruleset_OUTPUT eduroam_fw_OUTPUT_default_policy (map_of_string eduroam_fw)) (map_of_ipassmt ipassignment_outgoing)" by eval
 
+
+value[code] "debug_ipassmt ipassignment_incoming (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw))"
+value[code] "debug_ipassmt ipassignment_outgoing (unfold_ruleset_OUTPUT eduroam_fw_OUTPUT_default_policy (map_of_string eduroam_fw))"
+
+
 text{*The ruleset*}
 
 value[code] "map simple_rule_toString (to_simple_firewall (ctstate_assume_new 
