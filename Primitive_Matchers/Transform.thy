@@ -286,11 +286,6 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
     using assms(2) by simp
 
 
-(*TODO: move or [simp] rule*)
-lemma approximating_bigstep_fun_eq: "(approximating_bigstep_fun \<gamma> p rs1 s = approximating_bigstep_fun \<gamma> p rs s)
-       \<Longrightarrow> (approximating_bigstep_fun \<gamma> p rs1 s = t) \<longleftrightarrow> (approximating_bigstep_fun \<gamma> p rs s = t)"
-by simp
-
 theorem transform_normalize_primitives:
   assumes simplers: "simple_ruleset rs"
       and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
@@ -340,7 +335,6 @@ theorem transform_normalize_primitives:
      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
      unfolding transform_normalize_primitives_def
      apply(simp)
-     apply(rule approximating_bigstep_fun_eq)
      apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
         using normalize_dst_ips apply(simp; fail)
        using simplers simple_ruleset_normalize_rules apply blast
@@ -510,11 +504,6 @@ theorem transform_normalize_primitives:
    using normalized by blast
 qed
 
-
-
-
-
-
 theorem rewrite_iiface:
   assumes simplers: "simple_ruleset rs"
       and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
@@ -526,11 +515,13 @@ theorem rewrite_iiface:
   proof -
     show simplers_t: "simple_ruleset (optimize_matches (rewrite_iiface ipassmt) rs)"
       by (simp add: optimize_matches_simple_ruleset simplers)
+
+    have my_arg_cong: "\<And>P Q. P s = Q s \<Longrightarrow> (P s = t) \<longleftrightarrow> (Q s = t)" by simp
     
     show "(common_matcher, \<alpha>),p\<turnstile> \<langle>optimize_matches (rewrite_iiface ipassmt) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_t]]
      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
-     apply(rule approximating_bigstep_fun_eq)
+     apply(rule my_arg_cong)
      apply(rule optimize_matches_generic[where P="\<lambda> m _. normalized_nnf_match m"])
       apply(simp add: normalized)
      apply(rule matches_rewrite_iiface)

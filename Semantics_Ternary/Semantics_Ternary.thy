@@ -438,7 +438,6 @@ lemma approximating_bigstep_deterministic: "\<lbrakk> \<gamma>,p\<turnstile> \<l
   qed(auto dest: approximating_bigstepD)
 
 
-
 text{*The actions Log and Empty do not modify the packet processing in any way. They can be removed.*}
 fun rm_LogEmpty :: "'a rule list \<Rightarrow> 'a rule list" where
   "rm_LogEmpty [] = []" |
