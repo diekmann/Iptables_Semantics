@@ -10,6 +10,10 @@ begin
 
 
 
+section{*Transforming rulesets*}
+
+subsection{*Optimizations*}
+
 lemma approximating_bigstep_fun_remdups_rev:
   "approximating_bigstep_fun \<gamma> p (remdups_rev rs) s = approximating_bigstep_fun \<gamma> p rs s"
   proof(induction \<gamma> p rs s rule: approximating_bigstep_fun.induct)
@@ -50,11 +54,10 @@ lemma remdups_rev_preserve_matches: "\<forall> m \<in> get_match ` set rs. P m \
   by(induction rs) (simp_all add: remdups_rev_def simple_ruleset_def)
 
 
-(*closure bounds*)
+(*TODO: closure bounds*)
 
-(*def: transform_optimize = optimize_matches opt_MatchAny_match_expr \<circ> optimize_matches optimize_primitive_univ
-apply before and after initialization and closures
-*)
+
+subsection{*Optimize and Normalize to NNF fomr*}
 
 (*without normalize_rules_dnf, the result cannot be normalized as optimize_primitive_univ can contain MatchNot MatchAny*)
 definition transform_optimize_dnf_strict :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where 
@@ -189,6 +192,8 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
   qed
 
 
+subsection{*Abstracting over unknowns*}
+
 definition transform_remove_unknowns_generic :: "('a, 'packet) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where 
     "transform_remove_unknowns_generic \<gamma> = optimize_matches_a (remove_unknowns_generic \<gamma>) "
 theorem transform_remove_unknowns_generic:
@@ -246,16 +251,15 @@ qed
 
 
 
+subsection{*Normalizing and Transforming Primitives*}
 
-
-(* TODO *)
+text{*Rewrite the primitives IPs and Ports such that can be used by the simple firewall.*}
 definition transform_normalize_primitives :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where 
     "transform_normalize_primitives =
       normalize_rules normalize_dst_ips \<circ>
       normalize_rules normalize_src_ips \<circ>
       normalize_rules normalize_dst_ports \<circ>
       normalize_rules normalize_src_ports"
-
 
 
 
@@ -402,7 +406,7 @@ theorem transform_normalize_primitives:
          where f1=ipt_ipv4range_compress, folded normalize_src_ips_def]
     have normalized_dst_ports_rs3: "\<forall>m \<in> get_match ` set ?rs3.  normalized_dst_ports m" by force
     from preserve_normalized_dst_ports[OF normalized_rs3 normalized_dst_ports_rs3 wf_disc_sel_common_primitive(4),
-         where f1=ipt_ipv4range_compress, folded normalize_dst_ips_def] (*TODO: why is this f1 and not f in 2015-RC0?*)
+         where f1=ipt_ipv4range_compress, folded normalize_dst_ips_def]
     have normalized_dst_ports_rs4: "\<forall>m \<in> get_match ` set ?rs4.  normalized_dst_ports m" by force
 
     from normalize_rules_preserves_unrelated_normalized_n_primitive[of ?rs3 is_Src src_sel normalized_cidr_ip,
