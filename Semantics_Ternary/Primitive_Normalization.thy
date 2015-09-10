@@ -404,11 +404,12 @@ lemma "wf_disc_sel (disc, sel) C \<Longrightarrow> disc (C x) \<longrightarrow> 
     qed
   qed
 
-(*TODO: mak EX lemma as ctr example*)
-lemma "normalized_n_primitive disc_sel f m \<longrightarrow> normalized_nnf_match m"
-  apply(induction disc_sel f m rule: normalized_n_primitive.induct)
-        apply(simp_all)
-        oops
+
+text{*@{const normalized_n_primitive} does NOT imply @{const normalized_nnf_match}*}
+lemma "\<exists>m. normalized_n_primitive disc_sel f m \<longrightarrow> \<not> normalized_nnf_match m"
+  apply(rule_tac x="MatchNot MatchAny" in exI)
+  apply(simp)
+  done
 
 
 lemma remove_unknowns_generic_not_has_disc: "\<not> has_disc C m \<Longrightarrow> \<not> has_disc C (remove_unknowns_generic \<gamma> a m)"
