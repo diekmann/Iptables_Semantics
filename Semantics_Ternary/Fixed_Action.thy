@@ -53,12 +53,10 @@ end
 
 lemma fixedaction_swap:
    "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m1@m2)) s = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m2@m1)) s"
-proof(cases s)
-case Decision thus "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m1 @ m2)) s = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m2 @ m1)) s" 
-  by(simp add: Decision_approximating_bigstep_fun)
-next
+proof(induction s rule: just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided)
 case Undecided
-  have "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m1 @ map (\<lambda>m. Rule m a) m2) Undecided = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m2 @ map (\<lambda>m. Rule m a) m1) Undecided"
+  have "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m1 @ map (\<lambda>m. Rule m a) m2) Undecided =
+        approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m2 @ map (\<lambda>m. Rule m a) m1) Undecided"
   proof(induction m1)
     case Nil thus ?case by simp
     next
@@ -97,7 +95,7 @@ case Undecided
             done
         qed
     qed
-  thus "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m1 @ m2)) s = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m2 @ m1)) s" using Undecided by simp
+  thus ?thesis using Undecided by simp
 qed
 
 corollary fixedaction_reorder: "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m1 @ m2 @ m3)) s = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m2 @ m1 @ m3)) s"
