@@ -88,6 +88,7 @@ lemma match_simplematcher_Iface:
   "matches (common_matcher, \<alpha>) (Match (IIface X)) a p \<longleftrightarrow> match_iface X (p_iiface p)"
   "matches (common_matcher, \<alpha>) (Match (OIface X)) a p \<longleftrightarrow> match_iface X (p_oiface p)"
    by(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_Unknown bool_to_ternary_simps split: ternaryvalue.split)
+text{*Since matching on the iface cannot be @{const TernaryUnknown}*, we can pull out negations.*}
 lemma match_simplematcher_Iface_not:
   "matches (common_matcher, \<alpha>) (MatchNot (Match (IIface X))) a p \<longleftrightarrow> \<not> match_iface X (p_iiface p)"
   "matches (common_matcher, \<alpha>) (MatchNot (Match (OIface X))) a p \<longleftrightarrow> \<not> match_iface X (p_oiface p)"
@@ -109,20 +110,6 @@ lemma multiports_disjuction:
 
 
 
-
-text{*Since matching on the iface cannot be @{const TernaryUnknown}*, we can pull out negations.*}
-lemma common_matcher_MatchNot_Iface:
-      "matches (common_matcher, \<alpha>) (MatchNot (Match (IIface iface))) a p \<longleftrightarrow> \<not> match_iface iface (p_iiface p)"
-      "matches (common_matcher, \<alpha>) (MatchNot (Match (OIface iface))) a p \<longleftrightarrow> \<not> match_iface iface (p_oiface p)"
-using match_simplematcher_Iface_not by simp_all
-(*TODO: duplication!*)
-  (*by(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_simps split: ternaryvalue.split)*)
-
-
-
-
-
-(*TODO: basically a copy! *)
 text{*Perform very basic optimization. Remove matches to primitives which are essentially @{const MatchAny}*}
 fun optimize_primitive_univ :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
   "optimize_primitive_univ (Match (Src (Ip4AddrNetmask (0,0,0,0) 0))) = MatchAny" |
@@ -163,9 +150,8 @@ using optimize_matches optimize_primitive_univ_correct_matchexpr by metis
 lemma packet_independent_\<beta>_unknown_common_matcher: "packet_independent_\<beta>_unknown common_matcher"
   apply(simp add: packet_independent_\<beta>_unknown_def)
   apply(clarify)
-  apply(rename_tac A p1 p2)
-  apply(case_tac A)
-  by(simp_all add: bool_to_ternary_Unknown)
+  apply(rename_tac a p1 p2)
+  by(case_tac a,simp_all add: bool_to_ternary_Unknown)
 
 
 
