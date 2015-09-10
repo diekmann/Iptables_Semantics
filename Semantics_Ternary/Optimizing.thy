@@ -47,10 +47,8 @@ subsubsection{*Soundness*}
           apply(rename_tac m a)
           apply(simp add: fun_eq_iff)
           apply(clarify)
-          apply(rename_tac s)
-          apply(case_tac s)
-           apply(simp)
-          apply(simp add: Decision_approximating_bigstep_fun)
+          apply(rule just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided)
+          apply(simp)
           done
         from this IH have "?fw p (?rm rs P) = ?fw p (r#rs) " by simp
         thus "?fw p (?rm (r#rs) P) = ?fw p (r#rs) " using 1 by simp
@@ -64,10 +62,8 @@ subsubsection{*Soundness*}
                 apply(rename_tac m a)
                 apply(simp add: fun_eq_iff)
                 apply(clarify)
-                apply(rename_tac s)
-                apply(case_tac s)
-                 apply(simp)
-                apply(simp add: Decision_approximating_bigstep_fun)
+                apply(rule just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided)
+                apply(simp)
                 done
             next
             case False
@@ -79,10 +75,9 @@ subsubsection{*Soundness*}
                 apply(simp add: fun_eq_iff)
                 apply(clarify)
                 apply(rename_tac s)
-                apply(case_tac s)
-                 apply(simp split:action.split)
-                 apply fast
-                apply(simp add: Decision_approximating_bigstep_fun)
+                apply(rule just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided)
+                apply(simp split:action.split)
+                apply fast
                 done
           qed
         from False this show ?thesis 
@@ -90,10 +85,8 @@ subsubsection{*Soundness*}
           apply(rename_tac m a)
           apply(simp add: fun_eq_iff)
           apply(clarify)
-          apply(rename_tac s)
-          apply(case_tac s)
-           apply(simp)
-          apply(simp add: Decision_approximating_bigstep_fun)
+          apply(rule just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided)
+          apply(simp)
           done
     qed
   qed
