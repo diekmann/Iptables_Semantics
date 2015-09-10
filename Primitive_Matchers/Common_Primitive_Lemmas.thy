@@ -1,6 +1,6 @@
 theory Common_Primitive_Lemmas
 imports Common_Primitive_Matcher
-        Primitive_Normalization
+        "../Semantics_Ternary/Primitive_Normalization"
 begin
 
 section{*Further Lemmas about the Common Matcher*}

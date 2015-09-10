@@ -1,6 +1,5 @@
 theory IpAddresses_Normalize
-imports Common_Primitive_Matcher
-        "Primitive_Normalization"
+imports Common_Primitive_Lemmas
 begin
 
 subsection{*Normalizing IP Addresses*}

@@ -1,6 +1,5 @@
 theory No_Spoof
-imports Common_Primitive_Matcher
-        Primitive_Normalization
+imports Common_Primitive_Lemmas
         Common_Primitive_toString
         "../Common/Lib_toString"
 begin
