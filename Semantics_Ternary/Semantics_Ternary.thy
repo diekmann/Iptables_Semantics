@@ -249,15 +249,14 @@ P \<gamma> p rs s"
     done
   qed
 
-
-(*TODO: this could be a useful rule, maybe it can simplify some proofs?*)
-(*TODO search for: state.exhaust and cases s case_tac s*)
 lemma just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided[case_names Undecided]: 
       assumes "s = Undecided \<Longrightarrow> approximating_bigstep_fun \<gamma> p rs1 s = approximating_bigstep_fun \<gamma> p rs2 s"
       shows "approximating_bigstep_fun \<gamma> p rs1 s = approximating_bigstep_fun \<gamma> p rs2 s"
-  using assms apply(cases s)
-   apply(simp)
-  by (simp add: Decision_approximating_bigstep_fun)
+  proof(cases s)
+  case Undecided thus ?thesis using assms by simp
+  next
+  case Decision thus ?thesis by (simp add: Decision_approximating_bigstep_fun)
+  qed
 
 subsubsection{*Append, Prepend, Postpend, Composition*}
   lemma approximating_bigstep_fun_seq_wf: "\<lbrakk> wf_ruleset \<gamma> p rs\<^sub>1\<rbrakk> \<Longrightarrow>
