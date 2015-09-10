@@ -314,6 +314,14 @@ subsection{*Normalizing and Optimizing Primitives*}
       with `normalized_nnf_match ms` show "normalized_nnf_match mn" by fastforce
     qed
 
+  lemma normalize_rules_primitive_extract_preserves_nnf_normalized:
+    "\<forall>m\<in>get_match ` set rs. normalized_nnf_match m \<Longrightarrow> wf_disc_sel disc_sel C \<Longrightarrow>
+     \<forall>m\<in>get_match ` set (normalize_rules (normalize_primitive_extract disc_sel C f) rs). normalized_nnf_match m"
+  apply(rule normalize_rules_preserves[where P="normalized_nnf_match" and f="(normalize_primitive_extract disc_sel C f)"])
+   apply(simp)
+  apply(cases disc_sel)
+  using normalize_primitive_extract_preserves_nnf_normalized by fast
+
   text{*If something is normalized for disc2 and disc2 @{text \<noteq>} disc1 and we do something on disc1, then disc2 remains normalized*}
   lemma normalize_primitive_extract_preserves_unrelated_normalized_n_primitive:
   assumes "normalized_nnf_match m"

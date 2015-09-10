@@ -49,45 +49,6 @@ lemma remdups_rev_simplers: "simple_ruleset rs \<Longrightarrow> simple_ruleset 
 lemma remdups_rev_preserve_matches: "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (remdups_rev rs). P m"
   by(induction rs) (simp_all add: remdups_rev_def simple_ruleset_def)
 
-(*TODO: move
-  TODO: this is currently not used.*)
-text{*Compress many @{const Extra} expressions to one expression.*}
-fun compress_extra :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
-  "compress_extra (Match x) = Match x" |
-  "compress_extra (MatchNot (Match (Extra e))) = Match (Extra (''NOT (''@e@'')''))" |
-  "compress_extra (MatchNot m) = (MatchNot (compress_extra m))" |
-  (*"compress_extra (MatchAnd (Match (Extra e1)) (Match (Extra e2))) = compress_extra (Match (Extra (e1@'' ''@e2)))" |*)
-  (*"compress_extra (MatchAnd (Match (Extra e1)) MatchAny) = Match (Extra e1)" |*)
-  "compress_extra (MatchAnd (Match (Extra e1)) m2) = (case compress_extra m2 of Match (Extra e2) \<Rightarrow> Match (Extra (e1@'' ''@e2)) | MatchAny \<Rightarrow> Match (Extra e1) | m2' \<Rightarrow> MatchAnd (Match (Extra e1)) m2')" |
-  "compress_extra (MatchAnd m1 m2) = MatchAnd (compress_extra m1) (compress_extra m2)" |
-  (*"compress_extra (MatchAnd m1 m2) = (case (compress_extra m1, compress_extra m2) of 
-        (Match (Extra e1), Match (Extra e2)) \<Rightarrow> Match (Extra (e1@'' ''@e2))
-      | (Match (Extra e1), MatchAny) \<Rightarrow> Match (Extra e1)
-      | (MatchAny, Match (Extra e2)) \<Rightarrow> Match (Extra e2)
-      | (m1', m2') \<Rightarrow> MatchAnd m1' m2')" |*)
-  "compress_extra MatchAny = MatchAny"
-
-thm compress_extra.simps
-
-value "compress_extra (MatchAnd (Match (Extra ''foo'')) (Match (Extra ''bar'')))"
-value "compress_extra (MatchAnd (Match (Extra ''foo'')) (MatchNot (Match (Extra ''bar''))))"
-value "compress_extra (MatchAnd (Match (Extra ''-m'')) (MatchAnd (Match (Extra ''addrtype'')) (MatchAnd (Match (Extra ''--dst-type'')) (MatchAnd (Match (Extra ''BROADCAST'')) MatchAny))))"
-
-lemma compress_extra_correct_matchexpr: "matches (common_matcher, \<alpha>) m = matches (common_matcher, \<alpha>) (compress_extra m)"
-  proof(simp add: fun_eq_iff, clarify, rename_tac a p)
-    fix a p
-    have "ternary_ternary_eval (map_match_tac common_matcher p m) = ternary_ternary_eval (map_match_tac common_matcher p (compress_extra m))"
-      apply(induction m rule: compress_extra.induct)
-      apply (simp_all)
-      (*apply(simp_all add: eval_ternary_simps)*)
-      apply(simp_all split: match_expr.split match_expr.split_asm common_primitive.split)
-      (*apply(simp_all add: eval_ternary_simps_simple)*)
-      done (*TODO: tune proof*)
-    thus "matches (common_matcher, \<alpha>) m a p = matches (common_matcher, \<alpha>) (compress_extra m) a p"
-      by(rule matches_iff_apply_f)
-    qed
-
-
 
 (*closure bounds*)
 
@@ -295,15 +256,7 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
       normalize_rules normalize_dst_ports \<circ>
       normalize_rules normalize_src_ports"
 
-    
 
- (*TODO: move and*)
-  lemma normalize_rules_primitive_extract_preserves_nnf_normalized: "\<forall>m\<in>get_match ` set rs. normalized_nnf_match m \<Longrightarrow> wf_disc_sel disc_sel C \<Longrightarrow>
-     \<forall>m\<in>get_match ` set (normalize_rules (normalize_primitive_extract disc_sel C f) rs). normalized_nnf_match m"
-  apply(rule normalize_rules_preserves[where P="normalized_nnf_match" and f="(normalize_primitive_extract disc_sel C f)"])
-   apply(simp)
-  apply(cases disc_sel)
-  using normalize_primitive_extract_preserves_nnf_normalized by fast
 
 
  thm normalize_primitive_extract_preserves_unrelated_normalized_n_primitive
