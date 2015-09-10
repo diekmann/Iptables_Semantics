@@ -99,10 +99,7 @@ case Undecided
 qed
 
 corollary fixedaction_reorder: "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m1 @ m2 @ m3)) s = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m2 @ m1 @ m3)) s"
-proof(cases s)
-case Decision thus " approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m1 @ m2 @ m3)) s = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m2 @ m1 @ m3)) s" 
-  by(simp add: Decision_approximating_bigstep_fun)
-next
+proof(induction s rule: just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided)
 case Undecided
 have "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m1 @ m2 @ m3)) Undecided = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m2 @ m1 @ m3)) Undecided"
   proof(induction m3)
@@ -125,7 +122,7 @@ have "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m1 @ m2 
         apply(subst append_assoc[symmetric])
         by simp
   qed
-  thus "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m1 @ m2 @ m3)) s = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m2 @ m1 @ m3)) s" using Undecided by simp
+  thus ?thesis using Undecided by simp
 qed
 
 
@@ -133,11 +130,8 @@ text{*If the actions are equal, the @{term set} (position and replication indepe
 lemma approximating_bigstep_fun_fixaction_matchseteq: "set m1 = set m2 \<Longrightarrow>
         approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m1) s = 
        approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m2) s"
-proof(cases s)
-case Decision thus "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m1) s = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m2) s" 
-  by(simp add: Decision_approximating_bigstep_fun)
-next
-case Undecided
+(*TODO: why doesn't it work with just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided*)
+proof -
   assume m1m2_seteq: "set m1 = set m2"
   hence "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m1) Undecided = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m2) Undecided"
   proof(induction m1 arbitrary: m2)
@@ -205,7 +199,10 @@ case Undecided
         qed
       qed
   qed
-  thus "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m1) s = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m2) s" using Undecided m1m2_seteq by simp
+  thus ?thesis
+  apply -
+  apply(rule just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided)
+  using m1m2_seteq by simp
 qed
 
 
@@ -669,11 +666,8 @@ lemma normalize_rules_dnf_correct: "wf_ruleset \<gamma> p rs \<Longrightarrow>
   case Nil thus ?case by simp
   next
   case (Cons r rs)
-    thus ?case
-    proof(cases s)
-    case Decision thus ?thesis
-      by(simp add: Decision_approximating_bigstep_fun)
-    next
+    show ?case
+    proof(induction s rule: just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided)
     case Undecided
     from Cons wf_rulesetD(2) have IH: "approximating_bigstep_fun \<gamma> p (normalize_rules_dnf rs) s = approximating_bigstep_fun \<gamma> p rs s" by fast
     from Cons.prems have "wf_ruleset \<gamma> p [r]" and "wf_ruleset \<gamma> p (normalize_rules_dnf [r])"
