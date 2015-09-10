@@ -251,7 +251,7 @@ P \<gamma> p rs s"
 
 
 (*TODO: this could be a useful rule, maybe it can simplify some proofs?*)
-(*TODO search for: state.exhaust and cases s*)
+(*TODO search for: state.exhaust and cases s case_tac s*)
 lemma just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided[case_names Undecided]: 
       assumes "s = Undecided \<Longrightarrow> approximating_bigstep_fun \<gamma> p rs1 s = approximating_bigstep_fun \<gamma> p rs2 s"
       shows "approximating_bigstep_fun \<gamma> p rs1 s = approximating_bigstep_fun \<gamma> p rs2 s"
