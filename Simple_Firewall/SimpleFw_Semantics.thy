@@ -55,7 +55,8 @@ section{*Simple Firewall Syntax (IPv4 only)*}
         can no longer for the conjunction of two simple_matches.
         *)
   record simple_match =
-    iiface :: "iface" --"in-interface" (*TODO: we cannot (and don't want to, c.f. git history) express negated interfaces*)
+    iiface :: "iface" --"in-interface"
+      (*we cannot (and don't want to, c.f. git history) express negated interfaces*)
       (*We could also drop interface wildcard support and try negated interfaces again \<dots>*)
     oiface :: "iface" --"out-interface"
     src :: "(ipv4addr \<times> nat) " --"source IP address"

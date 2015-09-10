@@ -1,6 +1,5 @@
 theory Ports_Normalize
-imports Common_Primitive_Matcher
-        Primitive_Normalization
+imports Common_Primitive_Lemmas
 begin
 
 

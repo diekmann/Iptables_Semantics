@@ -10,6 +10,10 @@ begin
 
 
 
+section{*Transforming rulesets*}
+
+subsection{*Optimizations*}
+
 lemma approximating_bigstep_fun_remdups_rev:
   "approximating_bigstep_fun \<gamma> p (remdups_rev rs) s = approximating_bigstep_fun \<gamma> p rs s"
   proof(induction \<gamma> p rs s rule: approximating_bigstep_fun.induct)
@@ -49,51 +53,11 @@ lemma remdups_rev_simplers: "simple_ruleset rs \<Longrightarrow> simple_ruleset 
 lemma remdups_rev_preserve_matches: "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (remdups_rev rs). P m"
   by(induction rs) (simp_all add: remdups_rev_def simple_ruleset_def)
 
-(*TODO: move
-  TODO: this is currently not used.*)
-text{*Compress many @{const Extra} expressions to one expression.*}
-fun compress_extra :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
-  "compress_extra (Match x) = Match x" |
-  "compress_extra (MatchNot (Match (Extra e))) = Match (Extra (''NOT (''@e@'')''))" |
-  "compress_extra (MatchNot m) = (MatchNot (compress_extra m))" |
-  (*"compress_extra (MatchAnd (Match (Extra e1)) (Match (Extra e2))) = compress_extra (Match (Extra (e1@'' ''@e2)))" |*)
-  (*"compress_extra (MatchAnd (Match (Extra e1)) MatchAny) = Match (Extra e1)" |*)
-  "compress_extra (MatchAnd (Match (Extra e1)) m2) = (case compress_extra m2 of Match (Extra e2) \<Rightarrow> Match (Extra (e1@'' ''@e2)) | MatchAny \<Rightarrow> Match (Extra e1) | m2' \<Rightarrow> MatchAnd (Match (Extra e1)) m2')" |
-  "compress_extra (MatchAnd m1 m2) = MatchAnd (compress_extra m1) (compress_extra m2)" |
-  (*"compress_extra (MatchAnd m1 m2) = (case (compress_extra m1, compress_extra m2) of 
-        (Match (Extra e1), Match (Extra e2)) \<Rightarrow> Match (Extra (e1@'' ''@e2))
-      | (Match (Extra e1), MatchAny) \<Rightarrow> Match (Extra e1)
-      | (MatchAny, Match (Extra e2)) \<Rightarrow> Match (Extra e2)
-      | (m1', m2') \<Rightarrow> MatchAnd m1' m2')" |*)
-  "compress_extra MatchAny = MatchAny"
 
-thm compress_extra.simps
-
-value "compress_extra (MatchAnd (Match (Extra ''foo'')) (Match (Extra ''bar'')))"
-value "compress_extra (MatchAnd (Match (Extra ''foo'')) (MatchNot (Match (Extra ''bar''))))"
-value "compress_extra (MatchAnd (Match (Extra ''-m'')) (MatchAnd (Match (Extra ''addrtype'')) (MatchAnd (Match (Extra ''--dst-type'')) (MatchAnd (Match (Extra ''BROADCAST'')) MatchAny))))"
-
-lemma compress_extra_correct_matchexpr: "matches (common_matcher, \<alpha>) m = matches (common_matcher, \<alpha>) (compress_extra m)"
-  proof(simp add: fun_eq_iff, clarify, rename_tac a p)
-    fix a p
-    have "ternary_ternary_eval (map_match_tac common_matcher p m) = ternary_ternary_eval (map_match_tac common_matcher p (compress_extra m))"
-      apply(induction m rule: compress_extra.induct)
-      apply (simp_all)
-      (*apply(simp_all add: eval_ternary_simps)*)
-      apply(simp_all split: match_expr.split match_expr.split_asm common_primitive.split)
-      (*apply(simp_all add: eval_ternary_simps_simple)*)
-      done (*TODO: tune proof*)
-    thus "matches (common_matcher, \<alpha>) m a p = matches (common_matcher, \<alpha>) (compress_extra m) a p"
-      by(rule matches_iff_apply_f)
-    qed
+(*TODO: closure bounds*)
 
 
-
-(*closure bounds*)
-
-(*def: transform_optimize = optimize_matches opt_MatchAny_match_expr \<circ> optimize_matches optimize_primitive_univ
-apply before and after initialization and closures
-*)
+subsection{*Optimize and Normalize to NNF fomr*}
 
 (*without normalize_rules_dnf, the result cannot be normalized as optimize_primitive_univ can contain MatchNot MatchAny*)
 definition transform_optimize_dnf_strict :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where 
@@ -228,6 +192,8 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
   qed
 
 
+subsection{*Abstracting over unknowns*}
+
 definition transform_remove_unknowns_generic :: "('a, 'packet) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where 
     "transform_remove_unknowns_generic \<gamma> = optimize_matches_a (remove_unknowns_generic \<gamma>) "
 theorem transform_remove_unknowns_generic:
@@ -285,9 +251,9 @@ qed
 
 
 
+subsection{*Normalizing and Transforming Primitives*}
 
-
-(* TODO *)
+text{*Rewrite the primitives IPs and Ports such that can be used by the simple firewall.*}
 definition transform_normalize_primitives :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where 
     "transform_normalize_primitives =
       normalize_rules normalize_dst_ips \<circ>
@@ -295,15 +261,6 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
       normalize_rules normalize_dst_ports \<circ>
       normalize_rules normalize_src_ports"
 
-    
-
- (*TODO: move and*)
-  lemma normalize_rules_primitive_extract_preserves_nnf_normalized: "\<forall>m\<in>get_match ` set rs. normalized_nnf_match m \<Longrightarrow> wf_disc_sel disc_sel C \<Longrightarrow>
-     \<forall>m\<in>get_match ` set (normalize_rules (normalize_primitive_extract disc_sel C f) rs). normalized_nnf_match m"
-  apply(rule normalize_rules_preserves[where P="normalized_nnf_match" and f="(normalize_primitive_extract disc_sel C f)"])
-   apply(simp)
-  apply(cases disc_sel)
-  using normalize_primitive_extract_preserves_nnf_normalized by fast
 
 
  thm normalize_primitive_extract_preserves_unrelated_normalized_n_primitive
@@ -332,11 +289,6 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
      using assms(1) apply simp
     using assms(2) by simp
 
-
-(*TODO: move or [simp] rule*)
-lemma approximating_bigstep_fun_eq: "(approximating_bigstep_fun \<gamma> p rs1 s = approximating_bigstep_fun \<gamma> p rs s)
-       \<Longrightarrow> (approximating_bigstep_fun \<gamma> p rs1 s = t) \<longleftrightarrow> (approximating_bigstep_fun \<gamma> p rs s = t)"
-by simp
 
 theorem transform_normalize_primitives:
   assumes simplers: "simple_ruleset rs"
@@ -387,7 +339,6 @@ theorem transform_normalize_primitives:
      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
      unfolding transform_normalize_primitives_def
      apply(simp)
-     apply(rule approximating_bigstep_fun_eq)
      apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
         using normalize_dst_ips apply(simp; fail)
        using simplers simple_ruleset_normalize_rules apply blast
@@ -455,7 +406,7 @@ theorem transform_normalize_primitives:
          where f1=ipt_ipv4range_compress, folded normalize_src_ips_def]
     have normalized_dst_ports_rs3: "\<forall>m \<in> get_match ` set ?rs3.  normalized_dst_ports m" by force
     from preserve_normalized_dst_ports[OF normalized_rs3 normalized_dst_ports_rs3 wf_disc_sel_common_primitive(4),
-         where f1=ipt_ipv4range_compress, folded normalize_dst_ips_def] (*TODO: why is this f1 and not f in 2015-RC0?*)
+         where f1=ipt_ipv4range_compress, folded normalize_dst_ips_def]
     have normalized_dst_ports_rs4: "\<forall>m \<in> get_match ` set ?rs4.  normalized_dst_ports m" by force
 
     from normalize_rules_preserves_unrelated_normalized_n_primitive[of ?rs3 is_Src src_sel normalized_cidr_ip,
@@ -557,11 +508,6 @@ theorem transform_normalize_primitives:
    using normalized by blast
 qed
 
-
-
-
-
-
 theorem rewrite_iiface:
   assumes simplers: "simple_ruleset rs"
       and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
@@ -573,11 +519,13 @@ theorem rewrite_iiface:
   proof -
     show simplers_t: "simple_ruleset (optimize_matches (rewrite_iiface ipassmt) rs)"
       by (simp add: optimize_matches_simple_ruleset simplers)
+
+    have my_arg_cong: "\<And>P Q. P s = Q s \<Longrightarrow> (P s = t) \<longleftrightarrow> (Q s = t)" by simp
     
     show "(common_matcher, \<alpha>),p\<turnstile> \<langle>optimize_matches (rewrite_iiface ipassmt) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_t]]
      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
-     apply(rule approximating_bigstep_fun_eq)
+     apply(rule my_arg_cong)
      apply(rule optimize_matches_generic[where P="\<lambda> m _. normalized_nnf_match m"])
       apply(simp add: normalized)
      apply(rule matches_rewrite_iiface)

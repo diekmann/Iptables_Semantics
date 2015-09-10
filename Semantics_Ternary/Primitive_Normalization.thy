@@ -1,5 +1,5 @@
 theory Primitive_Normalization
-imports  "../Semantics_Ternary/Negation_Type_Matching" 
+imports Negation_Type_Matching
 begin
 
 section{*Primitive Normalization*}
@@ -314,6 +314,14 @@ subsection{*Normalizing and Optimizing Primitives*}
       with `normalized_nnf_match ms` show "normalized_nnf_match mn" by fastforce
     qed
 
+  lemma normalize_rules_primitive_extract_preserves_nnf_normalized:
+    "\<forall>m\<in>get_match ` set rs. normalized_nnf_match m \<Longrightarrow> wf_disc_sel disc_sel C \<Longrightarrow>
+     \<forall>m\<in>get_match ` set (normalize_rules (normalize_primitive_extract disc_sel C f) rs). normalized_nnf_match m"
+  apply(rule normalize_rules_preserves[where P="normalized_nnf_match" and f="(normalize_primitive_extract disc_sel C f)"])
+   apply(simp)
+  apply(cases disc_sel)
+  using normalize_primitive_extract_preserves_nnf_normalized by fast
+
   text{*If something is normalized for disc2 and disc2 @{text \<noteq>} disc1 and we do something on disc1, then disc2 remains normalized*}
   lemma normalize_primitive_extract_preserves_unrelated_normalized_n_primitive:
   assumes "normalized_nnf_match m"
@@ -396,11 +404,12 @@ lemma "wf_disc_sel (disc, sel) C \<Longrightarrow> disc (C x) \<longrightarrow> 
     qed
   qed
 
-(*TODO: mak EX lemma as ctr example*)
-lemma "normalized_n_primitive disc_sel f m \<longrightarrow> normalized_nnf_match m"
-  apply(induction disc_sel f m rule: normalized_n_primitive.induct)
-        apply(simp_all)
-        oops
+
+text{*@{const normalized_n_primitive} does NOT imply @{const normalized_nnf_match}*}
+lemma "\<exists>m. normalized_n_primitive disc_sel f m \<longrightarrow> \<not> normalized_nnf_match m"
+  apply(rule_tac x="MatchNot MatchAny" in exI)
+  apply(simp)
+  done
 
 
 lemma remove_unknowns_generic_not_has_disc: "\<not> has_disc C m \<Longrightarrow> \<not> has_disc C (remove_unknowns_generic \<gamma> a m)"

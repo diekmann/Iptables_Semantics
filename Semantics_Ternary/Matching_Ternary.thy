@@ -58,14 +58,6 @@ Matching a packet and a rule:
 definition matches :: "('a, 'packet) match_tac \<Rightarrow> 'a match_expr \<Rightarrow> action \<Rightarrow> 'packet \<Rightarrow> bool" where
   "matches \<gamma> m a p \<equiv> ternary_to_bool_unknown_match_tac (snd \<gamma>) a p (ternary_ternary_eval (map_match_tac (fst \<gamma>) p m))"
 
-(*TODO:
- should \<alpha> really be that free or should it be a fixed mapping:
- Unknown, return, call should throw an exception
-
- Reject Drop \<rightarrow> something
- Allow \<rightarrow> something
-*)
-
 
 text{*Alternative matches definitions, some more or less convenient*}
 
@@ -185,7 +177,8 @@ fun opt_MatchAny_match_expr :: "'a match_expr \<Rightarrow> 'a match_expr" where
   "opt_MatchAny_match_expr (MatchNot (MatchNot m)) = (opt_MatchAny_match_expr m)" |
   "opt_MatchAny_match_expr (MatchNot m) = MatchNot (opt_MatchAny_match_expr m)" |
   "opt_MatchAny_match_expr (MatchAnd MatchAny MatchAny) = MatchAny" |
-  "opt_MatchAny_match_expr (MatchAnd MatchAny m) = (opt_MatchAny_match_expr m)" | (*TODO: remove recursive call to opt_MatchAny_match_expr to make it faster*)
+  "opt_MatchAny_match_expr (MatchAnd MatchAny m) = (opt_MatchAny_match_expr m)" |
+  (*note: remove recursive call to opt_MatchAny_match_expr to make it probably faster*)
   "opt_MatchAny_match_expr (MatchAnd m MatchAny) = (opt_MatchAny_match_expr m)" |
   "opt_MatchAny_match_expr (MatchAnd _ (MatchNot MatchAny)) = (MatchNot MatchAny)" |
   "opt_MatchAny_match_expr (MatchAnd (MatchNot MatchAny) _) = (MatchNot MatchAny)" |
@@ -193,13 +186,19 @@ fun opt_MatchAny_match_expr :: "'a match_expr \<Rightarrow> 'a match_expr" where
 (* without recursive call: need to apply multiple times until it stabelizes *)
 
 lemma opt_MatchAny_match_expr_correct: "matches \<gamma> (opt_MatchAny_match_expr m) = matches \<gamma> m"
-  apply(case_tac \<gamma>, rename_tac \<beta> \<alpha>, clarify)
-  apply(simp add: fun_eq_iff, clarify, rename_tac a p)
-  apply(rule_tac f="opt_MatchAny_match_expr" in matches_iff_apply_f)
-  apply(simp)
-  apply(induction m rule: opt_MatchAny_match_expr.induct)
-                              apply(simp_all add: eval_ternary_simps eval_ternary_idempotence_Not)
-  done
+  proof(case_tac \<gamma>, rename_tac \<beta> \<alpha>, clarify)
+  fix \<beta> \<alpha>
+  assume "\<gamma> = (\<beta>, \<alpha>)"
+  have "\<And>p. ternary_ternary_eval (map_match_tac \<beta> p (opt_MatchAny_match_expr m)) = ternary_ternary_eval (map_match_tac \<beta> p m)"
+    proof(induction m rule: opt_MatchAny_match_expr.induct)
+    qed(simp_all add: eval_ternary_simps eval_ternary_idempotence_Not)
+  thus "matches (\<beta>, \<alpha>) (opt_MatchAny_match_expr m) = matches (\<beta>, \<alpha>) m"
+    apply(simp add: fun_eq_iff)
+    apply(clarify, rename_tac a p)
+    apply(rule_tac f="opt_MatchAny_match_expr" in matches_iff_apply_f)
+    apply(simp)
+    done
+  qed
 
 text{*It is still a good idea to apply @{const opt_MatchAny_match_expr} multiple times. Example:*}
 lemma "MatchNot (opt_MatchAny_match_expr (MatchAnd MatchAny (MatchNot MatchAny))) = MatchNot (MatchNot MatchAny)" by simp

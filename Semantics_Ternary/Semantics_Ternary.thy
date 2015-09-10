@@ -2,18 +2,7 @@ theory Semantics_Ternary
 imports Matching_Ternary "../Misc"
 begin
 
-(*
-TODO TODO TODO
-
-rename the functions.
-
-*)
-
 section{*Embedded Ternary-Matching Big Step Semantics*}
-
-(* TODO larsrh *)
-lemma rules_singleton_rev_E: "[Rule m a] = rs\<^sub>1 @ rs\<^sub>2 \<Longrightarrow> (rs\<^sub>1 = [Rule m a] \<Longrightarrow> rs\<^sub>2 = [] \<Longrightarrow> P m a) \<Longrightarrow> (rs\<^sub>1 = [] \<Longrightarrow> rs\<^sub>2 = [Rule m a] \<Longrightarrow> P m a) \<Longrightarrow> P m a"
-by (cases rs\<^sub>1) auto
 
 subsection{*Ternary Semantics (Big Step)*}
 
@@ -260,6 +249,14 @@ P \<gamma> p rs s"
     done
   qed
 
+lemma just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided[case_names Undecided]: 
+      assumes "s = Undecided \<Longrightarrow> approximating_bigstep_fun \<gamma> p rs1 s = approximating_bigstep_fun \<gamma> p rs2 s"
+      shows "approximating_bigstep_fun \<gamma> p rs1 s = approximating_bigstep_fun \<gamma> p rs2 s"
+  proof(cases s)
+  case Undecided thus ?thesis using assms by simp
+  next
+  case Decision thus ?thesis by (simp add: Decision_approximating_bigstep_fun)
+  qed
 
 subsubsection{*Append, Prepend, Postpend, Composition*}
   lemma approximating_bigstep_fun_seq_wf: "\<lbrakk> wf_ruleset \<gamma> p rs\<^sub>1\<rbrakk> \<Longrightarrow>
@@ -295,6 +292,7 @@ subsubsection{*Append, Prepend, Postpend, Composition*}
          apply(simp_all add: approximating_bigstep_fun_seq_wf)
      apply (metis Decision_approximating_bigstep_fun)+
   done
+
 
 lemma approximating_bigstep_fun_singleton_prepend:
     assumes "approximating_bigstep_fun \<gamma> p rsB s = approximating_bigstep_fun \<gamma> p rsC s"
@@ -438,15 +436,6 @@ lemma approximating_bigstep_deterministic: "\<lbrakk> \<gamma>,p\<turnstile> \<l
   case Seq thus ?case
     by (metis (hide_lams, mono_tags) append_Nil2 approximating_bigstep_fun.simps(1) approximating_bigstep_fun_seq_semantics)
   qed(auto dest: approximating_bigstepD)
-
-(*TODO: this could be a useful rule, maybe it can simplify some proofs?*)
-(*TODO search for: state.exhaust*)
-lemma just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided: 
-      "approximating_bigstep_fun \<gamma> p rs1 Undecided = approximating_bigstep_fun \<gamma> p rs2 Undecided \<Longrightarrow> 
-       approximating_bigstep_fun \<gamma> p rs1 s = approximating_bigstep_fun \<gamma> p rs2 s"
-  apply(cases s)
-   apply(simp)
-  by (simp add: Decision_approximating_bigstep_fun)
 
 
 text{*The actions Log and Empty do not modify the packet processing in any way. They can be removed.*}

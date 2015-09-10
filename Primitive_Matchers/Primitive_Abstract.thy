@@ -48,10 +48,12 @@ begin
     "normalized_nnf_match m \<Longrightarrow> 
       \<not> matches (common_matcher, in_doubt_allow) m action.Drop p \<Longrightarrow>
       \<not> matches (common_matcher, in_doubt_allow) (abstract_primitive disc m) action.Drop p"
-     apply(induction disc m rule: abstract_primitive.induct)
-           apply (simp_all add: bunch_of_lemmata_about_matches)
-     apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: ternaryvalue.split)
-     done
+     proof(induction disc m rule: abstract_primitive.induct)
+     case(5 m1 m2) thus ?case
+           apply (simp add: bunch_of_lemmata_about_matches)
+           apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: ternaryvalue.split)
+           done
+     qed(simp_all add: bunch_of_lemmata_about_matches)
   
   private lemma abstract_primitive_help1: assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
         and prem: "approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision FinalAllow"
@@ -90,7 +92,7 @@ begin
       matches (common_matcher, in_doubt_allow) m action.Drop p"
      apply(induction disc m rule: abstract_primitive.induct)
            apply(simp_all add: bunch_of_lemmata_about_matches)
-     apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: split_if_asm ternaryvalue.split_asm ternaryvalue.split)
+      apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: split_if_asm ternaryvalue.split_asm ternaryvalue.split)
      done
   
   private lemma abstract_primitive_in_doubt_allow_Deny2: 
@@ -221,7 +223,7 @@ begin
       matches (common_matcher, in_doubt_deny) m action.Accept p"
      apply(induction disc m rule: abstract_primitive.induct)
            apply(simp_all add: bunch_of_lemmata_about_matches)
-     apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: split_if_asm ternaryvalue.split_asm ternaryvalue.split)
+      apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: split_if_asm ternaryvalue.split_asm ternaryvalue.split)
      done
   
   private lemma abstract_primitive_in_doubt_deny_Allow2: 
@@ -230,7 +232,7 @@ begin
       \<not> matches (common_matcher, in_doubt_deny) m action.Drop p"
      apply(induction disc m rule: abstract_primitive.induct)
            apply (simp_all add: bunch_of_lemmata_about_matches)
-      apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: split_if_asm ternaryvalue.split_asm ternaryvalue.split)
+       apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: split_if_asm ternaryvalue.split_asm ternaryvalue.split)
      done
   
   
