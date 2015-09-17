@@ -237,29 +237,28 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
     by (metis domI domIff dom_ipassmt_ignore_wildcard option.sel)
     
 
- lemma 
+ (*TODO: can this lemma be somehow useful?
+  maybe when rewriting, we can try to rewrite in the ignore_wildcard space and just constrain the the other area?*)
+ lemma ipassmt_disjoint_ignore_wildcard_nonempty_inj:
      assumes ipassmt_disjoint: "ipassmt_sanity_disjoint (ipassmt_ignore_wildcard ipassmt)"
         and ifce: "ipassmt ifce = Some i_ips"
         and a: "ipv4cidr_union_set (set i_ips) \<noteq> {}"
-        and k: "ipassmt k = Some i_ips"
+        and k: "(ipassmt_ignore_wildcard ipassmt) k = Some i_ips"
      shows "k = ifce"
      proof(rule ccontr)
        assume "k \<noteq> ifce"
-       with ifce k ipassmt_disjoint have ipassmt_disjoint': "ipv4cidr_union_set (set (the (ipassmt k))) \<noteq> UNIV \<Longrightarrow>
-                ipv4cidr_union_set (set (the (ipassmt ifce))) \<noteq> UNIV \<Longrightarrow> 
-                    ipv4cidr_union_set (set (the (ipassmt k))) \<inter> ipv4cidr_union_set (set (the (ipassmt ifce))) = {}"
-         unfolding ipassmt_sanity_disjoint_ignore_wildcards by fastforce
        show False
        proof(cases "(ipassmt_ignore_wildcard ipassmt) ifce")
        case (Some i_ips') (*TODO: proofs mainly by sledgehammer*)
          hence "i_ips' = i_ips" using ifce ipassmt_ignore_wildcard_the(2) by fastforce
          hence "(ipassmt_ignore_wildcard ipassmt) k = Some i_ips" using Some ifce ipassmt_ignore_wildcard_def k by auto 
-         thus False using a ifce ipassmt_disjoint' ipassmt_ignore_wildcard_the(3) k by auto
+         thus False using Some `i_ips' = i_ips` `k \<noteq> ifce` a ipassmt_disjoint ipassmt_disjoint_nonempty_inj by blast
        next
        case None
          with ipassmt_ignore_wildcard_None_Some have "ipv4cidr_union_set (set i_ips) = UNIV" using ifce by auto 
-         thus False  (*fail*)
-     oops
+         thus False using ipassmt_ignore_wildcard_the(3) k by blast 
+       qed
+     qed
 
  lemma ipassmt_disjoint_inj_k: 
      assumes ipassmt_disjoint: "ipassmt_sanity_disjoint ipassmt"
