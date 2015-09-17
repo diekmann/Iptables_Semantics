@@ -228,8 +228,8 @@ fun rewrite2_iiface :: "ipassignment \<Rightarrow> common_primitive match_expr \
   "rewrite2_iiface _       MatchAny = MatchAny" |
   "rewrite2_iiface ipassmt (Match (IIface ifce)) = ipassmt_iface_constrain_srcip_mexpr2 ipassmt ifce" |
   "rewrite2_iiface ipassmt (Match a) = Match a" |
-  "rewrite2_iiface ipassmt (MatchNot m) = MatchNot (rewrite_iiface ipassmt m)" |
-  "rewrite2_iiface ipassmt (MatchAnd m1 m2) = MatchAnd (rewrite_iiface ipassmt m1) (rewrite_iiface ipassmt m2)"
+  "rewrite2_iiface ipassmt (MatchNot m) = MatchNot (rewrite2_iiface ipassmt m)" |
+  "rewrite2_iiface ipassmt (MatchAnd m1 m2) = MatchAnd (rewrite2_iiface ipassmt m1) (rewrite2_iiface ipassmt m2)"
 
 
 context
@@ -324,5 +324,54 @@ begin
    qed
    
 
+  (*helper2: used in induction base case*)
+  private lemma matches_ipassmt_iface_constrain_srcip_mexpr2_case_Iface:
+        fixes ifce::iface
+        assumes "ipassmt_sanity_nowildcards ipassmt"
+            and "ipassmt_sanity_disjoint ipassmt"
+            and "ipassmt (Iface (p_iiface p)) = Some p_ips \<and> p_src p \<in> ipv4cidr_union_set (set p_ips)"
+        shows   "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr2 ipassmt ifce) a p \<longleftrightarrow>
+                 matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p"
+  proof -
+    have "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr2 ipassmt ifce) a p = match_iface ifce (p_iiface p)"
+      proof -
+        show ?thesis
+        proof(cases "ipassmt ifce")
+          case None thus ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr2)
+          next
+          case (Some y) with assms(2) have "p_src p \<in> ipv4cidr_union_set (set y) = match_iface ifce (p_iiface p)"
+            using assms(1) assms(3) ipassmt_disjoint_matcheq_iifce_srcip by blast
+            with Some show ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr2)
+        qed
+    qed
+    thus ?thesis by(simp add: match_simplematcher_Iface)
+  qed
+
+
+
+
+  lemma matches_rewrite2_iiface:
+       "normalized_nnf_match m \<Longrightarrow> ipassmt_sanity_nowildcards ipassmt \<Longrightarrow> ipassmt_sanity_disjoint ipassmt \<Longrightarrow>
+        (\<exists>p_ips. ipassmt (Iface (p_iiface p)) = Some p_ips \<and> p_src p \<in> ipv4cidr_union_set (set p_ips)) \<Longrightarrow>
+        matches (common_matcher, \<alpha>) (rewrite2_iiface ipassmt m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
+    proof(induction m)
+    case MatchAny thus ?case by simp
+    next
+    case (MatchNot m)
+      hence IH: "normalized_nnf_match m \<Longrightarrow> matches (common_matcher, \<alpha>) (rewrite2_iiface ipassmt m) a p = matches (common_matcher, \<alpha>) m a p" by blast
+      with MatchNot.prems IH show ?case by(induction m) (simp_all add: rewrite2_iiface_matches_Primitive)
+    next
+    case(Match x) thus ?case
+      proof(cases x)
+        case (IIface ifce) with Match show ?thesis
+        apply(cases "ipassmt (Iface (p_iiface p))")
+         prefer 2
+         using matches_ipassmt_iface_constrain_srcip_mexpr2_case_Iface apply(simp; fail)
+        by auto
+      qed(simp_all)
+    next
+    case (MatchAnd m1 m2) thus ?case by(simp add: bunch_of_lemmata_about_matches)
+    qed
+end
 
 end
