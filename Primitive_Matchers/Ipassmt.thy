@@ -102,6 +102,27 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
     apply(simp split: option.split_asm split_if_asm)
     done
 
+  definition ipassmt_ignore_wildcard_list:: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> (iface \<times> (32 word \<times> nat) list) list" where
+    "ipassmt_ignore_wildcard_list ipassmt = filter (\<lambda>(_,ips).  \<not> wordinterval_eq (l2br (map ipv4cidr_to_interval ips)) wordinterval_UNIV) ipassmt"
+
+  (*distinct fst ipassmt notwendig?*)
+  (*TODO: proof nochmal ordentlich machen!*)
+  lemma "distinct (map fst ipassmt) \<Longrightarrow> map_of (ipassmt_ignore_wildcard_list ipassmt) = ipassmt_ignore_wildcard (map_of ipassmt)"
+    apply(simp add: ipassmt_ignore_wildcard_list_def ipassmt_ignore_wildcard_def)
+      apply(simp add: wordinterval_eq_set_eq)
+      apply(simp add: l2br)
+      apply(simp add: ipv4cidr_to_interval_def)
+      apply(simp add: fun_eq_iff)
+      apply(clarify)
+      apply(induction ipassmt)
+       apply(simp)
+      apply(simp)
+      apply(simp split:option.split option.split_asm)
+      apply(simp add: ipv4cidr_union_set_def ipv4cidr_to_interval_ipv4range_set_from_bitmask)
+      apply(safe)
+                        apply(simp_all)
+      by (simp add: rev_image_eqI)
+      
 
 
   text{*Debug algorithm with human-readable output*}
