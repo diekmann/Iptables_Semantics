@@ -272,68 +272,6 @@ begin
   qed(simp_all)
 
 
-  (*TODO: move to nospoof, we probably want a separate ipassmt.thy*)
-  (*TODO: could also work when we ignore UNIVs in the ipassmt?*)
-  definition ipassmt_ignore_wildcard :: "ipassignment \<Rightarrow> ipassignment" where
-    "ipassmt_ignore_wildcard ipassmt \<equiv> \<lambda>k. case ipassmt k of None \<Rightarrow> None 
-                                                           | Some ips \<Rightarrow> if ipv4cidr_union_set (set ips) = UNIV then None else Some ips"
-
-  lemma ipassmt_ignore_wildcard_le: "ipassmt_ignore_wildcard ipassmt \<subseteq>\<^sub>m ipassmt"
-    apply(simp add: ipassmt_ignore_wildcard_def map_le_def)
-    apply(clarify)
-    apply(simp split: option.split_asm split_if_asm)
-    done
-
-  lemma ipassmt_disjoint_matcheq_iifce_srcip:
-        assumes ipassmt_nowild: "ipassmt_sanity_nowildcards ipassmt"
-            and ipassmt_disjoint: "ipassmt_sanity_disjoint ipassmt"
-            and ifce: "ipassmt ifce = Some i_ips"
-            and p_ifce: "ipassmt (Iface (p_iiface p)) = Some p_ips \<and> p_src p \<in> ipv4cidr_union_set (set p_ips)"
-        shows   "match_iface ifce (p_iiface p) \<longleftrightarrow> p_src p \<in> ipv4cidr_union_set (set i_ips)"
-    proof
-     assume "match_iface ifce (p_iiface p)"
-     thus "p_src p \<in> ipv4cidr_union_set (set i_ips)"
-       apply(cases "ifce = Iface (p_iiface p)")
-        using ifce p_ifce apply force
-       by (metis domI iface.sel iface_is_wildcard_def ifce ipassmt_nowild ipassmt_sanity_nowildcards_def match_iface.elims(2) match_iface_case_nowildcard)
-   next
-     assume a: "p_src p \<in> ipv4cidr_union_set (set i_ips)"
-     --{*basically, we need to reverse the map @{term ipassmt}*}
-
-     have ipassmt_inj: "\<forall>k. ipassmt k = Some i_ips \<longrightarrow> k = ifce"
-     proof(rule ccontr, simp)
-       assume "\<exists>k. ipassmt k = Some i_ips \<and> k \<noteq> ifce"
-       with this obtain k where k: "ipassmt k = Some i_ips" and "k \<noteq> ifce" by blast
-       with ifce ipassmt_disjoint have "ipv4cidr_union_set (set (the (ipassmt k))) \<inter> ipv4cidr_union_set (set (the (ipassmt ifce))) = {}"
-         unfolding ipassmt_sanity_disjoint_def by fastforce
-       thus False using a ifce k by auto 
-     qed
-
-     { fix ips' k
-       assume 1:"p_src p \<in> ipv4cidr_union_set (set ips')" and 2: "ipassmt k = Some ips'"
-       have "k = ifce"
-       proof(rule ccontr)
-         assume "k \<noteq> ifce"
-         with ipassmt_disjoint have "ipv4cidr_union_set (set (the (ipassmt k))) \<inter> ipv4cidr_union_set (set (the (ipassmt ifce))) = {}"
-           unfolding ipassmt_sanity_disjoint_def using 2 ifce by blast
-         hence "ipv4cidr_union_set (set ips') \<inter> ipv4cidr_union_set (set i_ips) = {}" by(simp add: 2 ifce)
-         thus False using 1 a by blast
-       qed
-     } note ipassmt_inj_k=this
-
-     have ipassmt_inj_p: "\<forall>ips'. p_src p \<in> ipv4cidr_union_set (set ips') \<and> (\<exists>k. ipassmt k = Some ips') \<longrightarrow> ips' = i_ips"
-       apply(clarify)
-       apply(rename_tac ips' k)
-       apply(subgoal_tac "k = ifce")
-        using ifce apply simp
-       using ipassmt_inj_k by simp
-
-     from p_ifce have "(Iface (p_iiface p)) = ifce" using ipassmt_inj_p ipassmt_inj by blast 
-
-     thus "match_iface ifce (p_iiface p)" using match_iface_refl by blast 
-   qed
-   
-
   (*helper2: used in induction base case*)
   private lemma matches_ipassmt_iface_constrain_srcip_mexpr2_case_Iface:
         fixes ifce::iface
@@ -356,7 +294,6 @@ begin
     qed
     thus ?thesis by(simp add: match_simplematcher_Iface)
   qed
-
 
 
 
