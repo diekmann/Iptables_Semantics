@@ -274,6 +274,16 @@ begin
 
   (*TODO: move to nospoof, we probably want a separate ipassmt.thy*)
   (*TODO: could also work when we ignore UNIVs in the ipassmt?*)
+  definition ipassmt_ignore_wildcard :: "ipassignment \<Rightarrow> ipassignment" where
+    "ipassmt_ignore_wildcard ipassmt \<equiv> \<lambda>k. case ipassmt k of None \<Rightarrow> None 
+                                                           | Some ips \<Rightarrow> if ipv4cidr_union_set (set ips) = UNIV then None else Some ips"
+
+  lemma ipassmt_ignore_wildcard_le: "ipassmt_ignore_wildcard ipassmt \<subseteq>\<^sub>m ipassmt"
+    apply(simp add: ipassmt_ignore_wildcard_def map_le_def)
+    apply(clarify)
+    apply(simp split: option.split_asm split_if_asm)
+    done
+
   lemma ipassmt_disjoint_matcheq_iifce_srcip:
         assumes ipassmt_nowild: "ipassmt_sanity_nowildcards ipassmt"
             and ipassmt_disjoint: "ipassmt_sanity_disjoint ipassmt"
