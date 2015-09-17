@@ -272,7 +272,7 @@ begin
   qed(simp_all)
 
 
-  (*TODO: move to nospoof*)
+  (*TODO: move to nospoof, we probably want a separate ipassmt.thy*)
   (*TODO: could also work when we ignore UNIVs in the ipassmt?*)
   lemma assumes "ipassmt_sanity_nowildcards ipassmt" and "case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)"
             and disjoint: "ipassmt_sanity_disjoint ipassmt" and "ipassmt ifce = Some ips" and complete: "(\<Union>(ipv4cidr_union_set ` set ` (ran ipassmt))) = UNIV"
@@ -300,13 +300,26 @@ begin
        thus False using a assms(4) k by auto 
      qed
 
+     { fix ips' k
+       assume 1:"p_src p \<in> ipv4cidr_union_set (set ips')" and 2: "ipassmt k = Some ips'"
+       from 1 a have "k = ifce"
+         apply -
+         apply(rule ccontr)
+          apply(subgoal_tac "ipv4cidr_union_set (set (the (ipassmt k))) \<inter> ipv4cidr_union_set (set (the (ipassmt ifce))) = {} ")
+          prefer 2
+          apply(insert disjoint)[1]
+          apply(simp add: ipassmt_sanity_disjoint_def)
+          using "2" assms(4) apply blast
+         apply(simp add: 2 assms(4))
+         by blast
+     } note ipassmt_inj_p=this
+
      have ipassmt_inj_p: "\<forall>ips'. p_src p \<in> ipv4cidr_union_set (set ips') \<and> (\<exists>k. ipassmt k = Some ips') \<longrightarrow> ips' = ips"
        apply(clarify)
        apply(rename_tac ips' k)
        apply(subgoal_tac "k = ifce")
         using assms(4) apply simp
-       (*this*)
-      sorry
+       using ipassmt_inj_p by simp
 
      have "ipassmt (Iface (p_iiface p)) \<noteq> None" sorry (*needs assm*)
      from this obtain ips' where "ipassmt (Iface (p_iiface p)) = Some ips'" by blast
