@@ -124,7 +124,7 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
       by (simp add: rev_image_eqI)
       
 
-
+  
   text{*Debug algorithm with human-readable output*}
   definition debug_ipassmt :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> common_primitive rule list \<Rightarrow> string list" where
     "debug_ipassmt ipassmt rs \<equiv> let ifaces = (map fst ipassmt) in [
@@ -144,7 +144,7 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
                                         (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i2)))))
           ])
       , ''ipassmt_sanity_disjoint excluding UNIV interfaces: '' @
-          (let ipassmt = filter (\<lambda>(_,ips). ips \<noteq> [(0,0)]) ipassmt;
+          (let ipassmt = ipassmt_ignore_wildcard_list ipassmt;
                ifaces = (map fst ipassmt)
            in
           (if ipassmt_sanity_disjoint (map_of ipassmt)
@@ -160,7 +160,7 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
            else ''the following is not covered: '' @ 
             ipv4addr_wordinterval_toString (wordinterval_setminus wordinterval_UNIV (wordinterval_Union (map (l2br \<circ> (map ipv4cidr_to_interval)) (map snd ipassmt)))))
       , ''ipassmt_sanity_complete excluding UNIV interfaces: '' @
-          (let ipassmt = filter (\<lambda>(_,ips). ips \<noteq> [(0,0)]) ipassmt
+          (let ipassmt = ipassmt_ignore_wildcard_list ipassmt
            in
           (if ipassmt_sanity_complete ipassmt
            then ''passed''
