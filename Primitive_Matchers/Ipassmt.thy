@@ -223,11 +223,11 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
      assumes ipassmt_disjoint: "ipassmt_sanity_disjoint ipassmt"
         and ifce: "ipassmt ifce = Some i_ips"
         and a: "ipv4cidr_union_set (set i_ips) \<noteq> {}"
-     shows "\<forall>k. ipassmt k = Some i_ips \<longrightarrow> k = ifce"
-     proof(rule ccontr, simp)
-       assume "\<exists>k. ipassmt k = Some i_ips \<and> k \<noteq> ifce"
-       with this obtain k where k: "ipassmt k = Some i_ips" and "k \<noteq> ifce" by blast
-       with ifce ipassmt_disjoint have "ipv4cidr_union_set (set (the (ipassmt k))) \<inter> ipv4cidr_union_set (set (the (ipassmt ifce))) = {}"
+        and k: "ipassmt k = Some i_ips"
+     shows "k = ifce"
+     proof(rule ccontr)
+       assume "k \<noteq> ifce"
+       with ifce k ipassmt_disjoint have "ipv4cidr_union_set (set (the (ipassmt k))) \<inter> ipv4cidr_union_set (set (the (ipassmt ifce))) = {}"
          unfolding ipassmt_sanity_disjoint_def by fastforce
        thus False using a ifce k by auto 
      qed
