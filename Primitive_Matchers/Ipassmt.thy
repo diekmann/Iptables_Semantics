@@ -169,10 +169,86 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
       ]"
 
 
+  lemma dom_ipassmt_ignore_wildcard:
+    "i\<in>dom (ipassmt_ignore_wildcard ipassmt) \<longleftrightarrow> i \<in> dom ipassmt \<and> ipv4cidr_union_set (set (the (ipassmt i))) \<noteq> UNIV"
+    apply(simp add: ipassmt_ignore_wildcard_def)
+    apply(rule)
+     apply(clarify)
+     apply(simp split: option.split_asm split_if_asm)
+     apply blast
+    apply(clarify)
+    apply(simp)
+    done
 
+  lemma ipassmt_ignore_wildcard_the:
+    "ipassmt i = Some ips \<Longrightarrow> ipv4cidr_union_set (set ips) \<noteq> UNIV \<Longrightarrow> (the (ipassmt_ignore_wildcard ipassmt i)) = ips"
+    "ipassmt_ignore_wildcard ipassmt i = Some ips \<Longrightarrow> the (ipassmt i) = ips"
+    "ipassmt_ignore_wildcard ipassmt i = Some ips \<Longrightarrow> ipv4cidr_union_set (set ips) \<noteq> UNIV"
+    by (simp_all add: ipassmt_ignore_wildcard_def split: option.split_asm split_if_asm)
+    
 
-  (*TODO: could also work when we ignore UNIVs in the ipassmt?*)
-  lemma ipassmt_disjoint_matcheq_iifce_srcip:
+  lemma ipassmt_sanity_disjoint_ignore_wildcards:
+        "ipassmt_sanity_disjoint (ipassmt_ignore_wildcard ipassmt) \<longleftrightarrow>
+         (\<forall>i1\<in>dom ipassmt.
+          \<forall>i2\<in>dom ipassmt.
+            ipv4cidr_union_set (set (the (ipassmt i1))) \<noteq> UNIV \<and>
+            ipv4cidr_union_set (set (the (ipassmt i2))) \<noteq> UNIV \<and>
+            i1 \<noteq> i2 
+            \<longrightarrow> ipv4cidr_union_set (set (the (ipassmt i1))) \<inter> ipv4cidr_union_set (set (the (ipassmt i2))) = {})"
+    apply(simp add: ipassmt_sanity_disjoint_def)
+    apply(rule)
+     apply(clarify)
+     apply(simp)
+     apply(rename_tac i1 i2 ips1 ips2)
+     apply(erule_tac x=i1 in ballE)
+      prefer 2
+      using dom_ipassmt_ignore_wildcard apply auto[1]
+     apply(erule_tac x=i2 in ballE)
+      prefer 2
+      using dom_ipassmt_ignore_wildcard apply auto[1]
+     apply(simp add: ipassmt_ignore_wildcard_the; fail)
+    apply(clarify)
+    apply(simp)
+    apply(rename_tac i1 i2 ips1 ips2)
+    apply(erule_tac x=i1 in ballE)
+     prefer 2
+     using dom_ipassmt_ignore_wildcard apply auto[1]
+    apply(erule_tac x=i2 in ballE)
+     prefer 2
+     using dom_ipassmt_ignore_wildcard apply auto[1]
+    apply(simp add: ipassmt_ignore_wildcard_the)
+    done
+
+ lemma ipassmt_disjoint_nonempty_inj:
+     assumes ipassmt_disjoint: "ipassmt_sanity_disjoint ipassmt"
+        and ifce: "ipassmt ifce = Some i_ips"
+        and a: "ipv4cidr_union_set (set i_ips) \<noteq> {}"
+     shows "\<forall>k. ipassmt k = Some i_ips \<longrightarrow> k = ifce"
+     proof(rule ccontr, simp)
+       assume "\<exists>k. ipassmt k = Some i_ips \<and> k \<noteq> ifce"
+       with this obtain k where k: "ipassmt k = Some i_ips" and "k \<noteq> ifce" by blast
+       with ifce ipassmt_disjoint have "ipv4cidr_union_set (set (the (ipassmt k))) \<inter> ipv4cidr_union_set (set (the (ipassmt ifce))) = {}"
+         unfolding ipassmt_sanity_disjoint_def by fastforce
+       thus False using a ifce k by auto 
+     qed
+
+ lemma ipassmt_disjoint_inj_k: 
+     assumes ipassmt_disjoint: "ipassmt_sanity_disjoint ipassmt"
+        and ifce: "ipassmt ifce = Some ips"
+        and k: "ipassmt k = Some ips'"
+        and a: "p \<in> ipv4cidr_union_set (set ips)"
+        and b: "p \<in> ipv4cidr_union_set (set ips')"
+     shows "k = ifce"
+     proof(rule ccontr)
+       assume "k \<noteq> ifce"
+       with ipassmt_disjoint have "ipv4cidr_union_set (set (the (ipassmt k))) \<inter> ipv4cidr_union_set (set (the (ipassmt ifce))) = {}"
+         unfolding ipassmt_sanity_disjoint_def using ifce k by blast
+       hence "ipv4cidr_union_set (set ips') \<inter> ipv4cidr_union_set (set ips) = {}" by(simp add: k ifce)
+       thus False using a b by blast
+     qed
+
+ (*TODO: could also work when we ignore UNIVs in the ipassmt?*)
+ lemma ipassmt_disjoint_matcheq_iifce_srcip:
         assumes ipassmt_nowild: "ipassmt_sanity_nowildcards ipassmt"
             and ipassmt_disjoint: "ipassmt_sanity_disjoint ipassmt"
             and ifce: "ipassmt ifce = Some i_ips"
@@ -188,26 +264,10 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
      assume a: "p_src p \<in> ipv4cidr_union_set (set i_ips)"
      --{*basically, we need to reverse the map @{term ipassmt}*}
 
-     have ipassmt_inj: "\<forall>k. ipassmt k = Some i_ips \<longrightarrow> k = ifce"
-     proof(rule ccontr, simp)
-       assume "\<exists>k. ipassmt k = Some i_ips \<and> k \<noteq> ifce"
-       with this obtain k where k: "ipassmt k = Some i_ips" and "k \<noteq> ifce" by blast
-       with ifce ipassmt_disjoint have "ipv4cidr_union_set (set (the (ipassmt k))) \<inter> ipv4cidr_union_set (set (the (ipassmt ifce))) = {}"
-         unfolding ipassmt_sanity_disjoint_def by fastforce
-       thus False using a ifce k by auto 
-     qed
+     from ipassmt_disjoint_nonempty_inj[OF ipassmt_disjoint ifce] a have ipassmt_inj: "\<forall>k. ipassmt k = Some i_ips \<longrightarrow> k = ifce" by blast
 
-     { fix ips' k
-       assume 1:"p_src p \<in> ipv4cidr_union_set (set ips')" and 2: "ipassmt k = Some ips'"
-       have "k = ifce"
-       proof(rule ccontr)
-         assume "k \<noteq> ifce"
-         with ipassmt_disjoint have "ipv4cidr_union_set (set (the (ipassmt k))) \<inter> ipv4cidr_union_set (set (the (ipassmt ifce))) = {}"
-           unfolding ipassmt_sanity_disjoint_def using 2 ifce by blast
-         hence "ipv4cidr_union_set (set ips') \<inter> ipv4cidr_union_set (set i_ips) = {}" by(simp add: 2 ifce)
-         thus False using 1 a by blast
-       qed
-     } note ipassmt_inj_k=this
+     from ipassmt_disjoint_inj_k[OF ipassmt_disjoint ifce _ a] have ipassmt_inj_k:
+      "\<And>k ips'. ipassmt k = Some ips' \<Longrightarrow> p_src p \<in> ipv4cidr_union_set (set ips') \<Longrightarrow> k = ifce" by simp
 
      have ipassmt_inj_p: "\<forall>ips'. p_src p \<in> ipv4cidr_union_set (set ips') \<and> (\<exists>k. ipassmt k = Some ips') \<longrightarrow> ips' = i_ips"
        apply(clarify)
@@ -220,7 +280,5 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
 
      thus "match_iface ifce (p_iiface p)" using match_iface_refl by blast 
    qed
-   
-
 
 end

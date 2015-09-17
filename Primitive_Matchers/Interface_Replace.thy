@@ -196,6 +196,9 @@ lemma "no_spoofing ipassmt rs \<Longrightarrow> (common_matcher, in_doubt_allow)
 
 
 (**********scratch: getting completely rid of iifaces****)
+text{*This is a stringer rewriting since it removes the interface completely.
+      However, it requires @{const ipassmt_sanity_disjoint}*}
+
 thm ipassmt_sanity_disjoint_def
 
 definition ipassmt_iface_constrain_srcip_mexpr2 :: "ipassignment \<Rightarrow> iface \<Rightarrow> common_primitive match_expr" where
