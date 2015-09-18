@@ -335,7 +335,21 @@ begin
        ifce \<in> dom (ipassmt_ignore_wildcard ipassmt) \<Longrightarrow>
        ifce \<noteq> Iface (p_iiface p)"
        using dom_ipassmt_ignore_wildcard by auto
-       
+
+
+(*TODO: show that we need disjoint ipassmt*)
+  lemma defines "srcip_list_m ips \<equiv> (match_list_to_match_expr (map (Match \<circ> Src) (map (\<lambda>(ip, n). (Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) n)) ips)))"
+    shows
+       "ipassmt_sanity_nowildcards ipassmt \<Longrightarrow>
+        ipassmt (Iface (p_iiface p)) = Some ips \<Longrightarrow> p_src p \<in> ipv4cidr_union_set (set ips) \<Longrightarrow>
+        matches (common_matcher, \<alpha>) (srcip_list_m ips) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p \<Longrightarrow>
+        ipassmt_sanity_disjoint ipassmt"
+  apply(simp)
+  apply(simp add: match_simplematcher_Iface)
+  oops
+
+
+
 (*
   lemma matches_iiface_rewrite':
        "normalized_nnf_match m \<Longrightarrow> ipassmt_sanity_nowildcards ipassmt \<Longrightarrow> ipassmt_sanity_disjoint (ipassmt_ignore_wildcard ipassmt) \<Longrightarrow>
