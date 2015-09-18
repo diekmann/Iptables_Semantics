@@ -508,6 +508,7 @@ theorem transform_normalize_primitives:
    using normalized by blast
 qed
 
+
 theorem iiface_constrain:
   assumes simplers: "simple_ruleset rs"
       and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
@@ -515,7 +516,6 @@ theorem iiface_constrain:
       and nospoofing: "case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)"
   shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>optimize_matches (iiface_constrain ipassmt) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
     and "simple_ruleset (optimize_matches (iiface_constrain ipassmt) rs)"
-    (*TODO: and not has disc, ..*)
   proof -
     show simplers_t: "simple_ruleset (optimize_matches (iiface_constrain ipassmt) rs)"
       by (simp add: optimize_matches_simple_ruleset simplers)
@@ -526,6 +526,82 @@ theorem iiface_constrain:
      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_t]]
      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
      apply(rule my_arg_cong)
+     apply(rule optimize_matches_generic[where P="\<lambda> m _. normalized_nnf_match m"])
+      apply(simp add: normalized)
+     apply(rule matches_iiface_constrain)
+       apply(simp_all add: wf_ipassmt nospoofing)
+     done
+qed
+
+text{*In contrast to @{thm iiface_constrain}, this requires  @{const ipassmt_sanity_disjoint} and 
+      as much stringer nospoof assumption: This assumption requires that the packet is actually in ipassmt!*}
+theorem iiface_rewrite:
+  assumes simplers: "simple_ruleset rs"
+      and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
+      and wf_ipassmt: "ipassmt_sanity_nowildcards ipassmt"
+      and disjoint_ipassmt: "ipassmt_sanity_disjoint ipassmt"
+      and nospoofing: "\<exists>ips. ipassmt (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipv4cidr_union_set (set ips)"
+  shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>optimize_matches (iiface_rewrite ipassmt) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+    and "simple_ruleset (optimize_matches (iiface_rewrite ipassmt) rs)"
+  proof -
+    show simplers_t: "simple_ruleset (optimize_matches (iiface_rewrite ipassmt) rs)"
+      by (simp add: optimize_matches_simple_ruleset simplers)
+
+    have my_arg_cong: "\<And>P Q. P s = Q s \<Longrightarrow> (P s = t) \<longleftrightarrow> (Q s = t)" by simp
+    
+    show "(common_matcher, \<alpha>),p\<turnstile> \<langle>optimize_matches (iiface_rewrite ipassmt) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_t]]
+     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
+     apply(rule my_arg_cong)
+     apply(rule optimize_matches_generic[where P="\<lambda> m _. normalized_nnf_match m"])
+      apply(simp add: normalized)
+     apply(rule matches_iiface_rewrite)
+        apply(simp_all add: wf_ipassmt nospoofing disjoint_ipassmt)
+     done
+qed
+
+
+
+
+(*TODO: move def to Interface_Replace?*)
+definition try_interface_replaceby_srcip :: "ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> common_primitive rule list" where
+  "try_interface_replaceby_srcip ipassmt rs \<equiv> if ipassmt_sanity_disjoint ipassmt \<and> ipassmt_sanity_defined rs ipassmt
+    then optimize_matches (iiface_rewrite ipassmt) rs
+    else optimize_matches (iiface_constrain ipassmt) rs"
+
+text{*
+  A weak nospoofing assumption but packet must come from a interface in ipassmt.
+*}
+theorem try_interface_replaceby_srcip:
+  assumes simplers: "simple_ruleset rs"
+      and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
+      and wf_ipassmt: "ipassmt_sanity_nowildcards ipassmt"
+      and nospoofing: "case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)"
+      and pkt_from_valid_ifce: "Iface (p_iiface p) \<in> set (collect_ifaces rs)" (*TODO: \<or> Iface (p_iiface p) \<in> dom ipassmt*)
+  shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>try_interface_replaceby_srcip ipassmt rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+    and "simple_ruleset (try_interface_replaceby_srcip ipassmt rs)"
+  proof -
+    show simplers_t: "simple_ruleset (try_interface_replaceby_srcip ipassmt rs)"
+      by (simp add: try_interface_replaceby_srcip_def optimize_matches_simple_ruleset simplers)
+
+    have my_arg_cong: "\<And>P Q. P s = Q s \<Longrightarrow> (P s = t) \<longleftrightarrow> (Q s = t)" by simp
+
+    from nospoofing pkt_from_valid_ifce have stronger_nospoofing: "ipassmt_sanity_defined rs ipassmt \<Longrightarrow>
+       \<exists>ips. ipassmt (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipv4cidr_union_set (set ips)"
+      using ipassmt_sanity_defined_def by auto
+    
+    show "(common_matcher, \<alpha>),p\<turnstile> \<langle>try_interface_replaceby_srcip ipassmt rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_t]]
+     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
+     apply(rule my_arg_cong)
+     apply(simp add: try_interface_replaceby_srcip_def)
+     apply(intro conjI impI)
+      apply(elim conjE)
+      apply(rule optimize_matches_generic[where P="\<lambda> m _. normalized_nnf_match m"])
+       apply(simp add: normalized)
+      apply(drule stronger_nospoofing)
+      apply(rule matches_iiface_rewrite)
+          apply(simp_all add: wf_ipassmt nospoofing)
      apply(rule optimize_matches_generic[where P="\<lambda> m _. normalized_nnf_match m"])
       apply(simp add: normalized)
      apply(rule matches_iiface_constrain)
