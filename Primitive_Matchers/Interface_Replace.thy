@@ -336,13 +336,11 @@ begin
        ifce \<noteq> Iface (p_iiface p)"
        using dom_ipassmt_ignore_wildcard by auto*)
 
-  text{*The @{const ipassmt_sanity_disjoint} is really needed*}
+  text{*The @{const ipassmt_sanity_disjoint} is really needed.*}
   lemma iface_replace_needs_ipassmt_disjoint:
     assumes "ipassmt_sanity_nowildcards ipassmt"
-    and iface_replace: "\<And> ifce p. 
-                  ifce \<in> dom ipassmt \<Longrightarrow>
-                  (\<exists>ips. ipassmt (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipv4cidr_union_set (set ips)) \<and>
-                  (matches (common_matcher, \<alpha>) (ipassmt_iface_replace_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p)" 
+    and iface_replace: "\<And> ifce p::simple_packet.
+          (matches (common_matcher, \<alpha>) (ipassmt_iface_replace_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p)" 
     shows "ipassmt_sanity_disjoint ipassmt"
   unfolding ipassmt_sanity_disjoint_def
   proof(intro ballI impI)
@@ -352,10 +350,9 @@ begin
     from `i2 \<in> dom ipassmt` obtain i2_ips where i2_ips: "ipassmt i2 = Some i2_ips" by blast
 
     { fix p::simple_packet
-      from iface_replace[of i1 "p\<lparr> p_iiface := iface_sel i2\<rparr>"] have
-        "p_src p \<in> ipv4cidr_union_set (set i2_ips) \<and> (p_src p \<in> ipv4cidr_union_set (set i1_ips)) = match_iface i1 (iface_sel i2)"
+      from iface_replace[of  i1 "p\<lparr> p_iiface := iface_sel i2\<rparr>"] have
+        "(p_src p \<in> ipv4cidr_union_set (set i2_ips) \<Longrightarrow> (p_src p \<in> ipv4cidr_union_set (set i1_ips)) = match_iface i1 (iface_sel i2))"
       apply(simp add: match_simplematcher_Iface  `i1 \<in> dom ipassmt`)
-      apply(simp add: i1_ips i2_ips)
       apply(simp add: matches_ipassmt_iface_replace_srcip_mexpr i1_ips)
       done
       with `i1 \<noteq> i2` have "\<not> (p_src p \<in> ipv4cidr_union_set (set i2_ips) \<and> (p_src p \<in> ipv4cidr_union_set (set i1_ips)))"
