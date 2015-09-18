@@ -327,26 +327,47 @@ begin
     case (MatchAnd m1 m2) thus ?case by(simp add: bunch_of_lemmata_about_matches)
     qed
 
-
+  (*
   (*TODO: move*)
   lemma ipassmt_UNIV_not_in_ifnore_wildcard:
       "ipassmt (Iface (p_iiface p)) = Some p_ips \<Longrightarrow>
        ipv4cidr_union_set (set p_ips) = UNIV \<Longrightarrow>
        ifce \<in> dom (ipassmt_ignore_wildcard ipassmt) \<Longrightarrow>
        ifce \<noteq> Iface (p_iiface p)"
-       using dom_ipassmt_ignore_wildcard by auto
+       using dom_ipassmt_ignore_wildcard by auto*)
 
+  text{*The @{const ipassmt_sanity_disjoint} is really needed*}
+  lemma iface_replace_needs_ipassmt_disjoint:
+    assumes "ipassmt_sanity_nowildcards ipassmt"
+    and iface_replace: "\<And> ifce p. 
+                  ifce \<in> dom ipassmt \<Longrightarrow>
+                  (\<exists>ips. ipassmt (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipv4cidr_union_set (set ips)) \<and>
+                  (matches (common_matcher, \<alpha>) (ipassmt_iface_replace_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p)" 
+    shows "ipassmt_sanity_disjoint ipassmt"
+  unfolding ipassmt_sanity_disjoint_def
+  proof(intro ballI impI)
+    fix i1 i2
+    assume "i1 \<in> dom ipassmt" and "i2 \<in> dom ipassmt" and "i1 \<noteq> i2"
+    from `i1 \<in> dom ipassmt` obtain i1_ips where i1_ips: "ipassmt i1 = Some i1_ips" by blast
+    from `i2 \<in> dom ipassmt` obtain i2_ips where i2_ips: "ipassmt i2 = Some i2_ips" by blast
 
-(*TODO: show that we need disjoint ipassmt*)
-  lemma defines "srcip_list_m ips \<equiv> (match_list_to_match_expr (map (Match \<circ> Src) (map (\<lambda>(ip, n). (Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) n)) ips)))"
-    shows
-       "ipassmt_sanity_nowildcards ipassmt \<Longrightarrow>
-        ipassmt (Iface (p_iiface p)) = Some ips \<Longrightarrow> p_src p \<in> ipv4cidr_union_set (set ips) \<Longrightarrow>
-        matches (common_matcher, \<alpha>) (srcip_list_m ips) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p \<Longrightarrow>
-        ipassmt_sanity_disjoint ipassmt"
-  apply(simp)
-  apply(simp add: match_simplematcher_Iface)
-  oops
+    { fix p::simple_packet
+      from iface_replace[of i1 "p\<lparr> p_iiface := iface_sel i2\<rparr>"] have
+        "p_src p \<in> ipv4cidr_union_set (set i2_ips) \<and> (p_src p \<in> ipv4cidr_union_set (set i1_ips)) = match_iface i1 (iface_sel i2)"
+      apply(simp add: match_simplematcher_Iface  `i1 \<in> dom ipassmt`)
+      apply(simp add: i1_ips i2_ips)
+      apply(simp add: matches_ipassmt_iface_replace_srcip_mexpr i1_ips)
+      done
+      with `i1 \<noteq> i2` have "\<not> (p_src p \<in> ipv4cidr_union_set (set i2_ips) \<and> (p_src p \<in> ipv4cidr_union_set (set i1_ips)))"
+        by (metis `i1 \<in> dom ipassmt` assms(1) iface.exhaust_sel iface_is_wildcard_def ipassmt_sanity_nowildcards_def match_iface_case_nowildcard) 
+    }
+    hence "\<And>src. \<not> (src \<in> ipv4cidr_union_set (set i2_ips) \<and> (src \<in> ipv4cidr_union_set (set i1_ips)))"
+      by (metis select_convs(3)) 
+
+    thus "ipv4cidr_union_set (set (the (ipassmt i1))) \<inter> ipv4cidr_union_set (set (the (ipassmt i2))) = {}"
+      apply(simp add: i1_ips i2_ips)
+      by blast
+  qed
 
 
 
