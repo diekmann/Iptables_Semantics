@@ -564,12 +564,4 @@ theorem iiface_rewrite:
 qed
 
 
-
-
-(*TODO: move def to Interface_Replace? delete def? we have debug ipassmt to better check what to use*)
-definition try_interface_replaceby_srcip :: "ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> common_primitive rule list" where
-  "try_interface_replaceby_srcip ipassmt rs \<equiv> if ipassmt_sanity_disjoint ipassmt
-    then optimize_matches (iiface_rewrite ipassmt) rs
-    else optimize_matches (iiface_constrain ipassmt) rs"
-
 end
