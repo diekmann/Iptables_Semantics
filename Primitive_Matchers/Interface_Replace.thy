@@ -327,16 +327,8 @@ begin
     case (MatchAnd m1 m2) thus ?case by(simp add: bunch_of_lemmata_about_matches)
     qed
 
-  (*
-  (*TODO: move*)
-  lemma ipassmt_UNIV_not_in_ifnore_wildcard:
-      "ipassmt (Iface (p_iiface p)) = Some p_ips \<Longrightarrow>
-       ipv4cidr_union_set (set p_ips) = UNIV \<Longrightarrow>
-       ifce \<in> dom (ipassmt_ignore_wildcard ipassmt) \<Longrightarrow>
-       ifce \<noteq> Iface (p_iiface p)"
-       using dom_ipassmt_ignore_wildcard by auto*)
 
-  text{*The @{const ipassmt_sanity_disjoint} is really needed.*}
+  text{*Finally, we show that @{const ipassmt_sanity_disjoint} is really needed.*}
   lemma iface_replace_needs_ipassmt_disjoint:
     assumes "ipassmt_sanity_nowildcards ipassmt"
     and iface_replace: "\<And> ifce p::simple_packet.
@@ -366,62 +358,6 @@ begin
       by blast
   qed
 
-
-
-(*
-  lemma matches_iiface_rewrite':
-       "normalized_nnf_match m \<Longrightarrow> ipassmt_sanity_nowildcards ipassmt \<Longrightarrow> ipassmt_sanity_disjoint (ipassmt_ignore_wildcard ipassmt) \<Longrightarrow>
-        (\<forall>p::simple_packet. (\<exists>p_ips. ipassmt (Iface (p_iiface p)) = Some p_ips \<and> p_src p \<in> ipv4cidr_union_set (set p_ips))) \<Longrightarrow>
-        matches (common_matcher, \<alpha>) (iiface_rewrite (ipassmt_ignore_wildcard ipassmt) m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
-    proof(induction m)
-    case MatchAny thus ?case by simp
-    next
-    case (MatchNot m)
-      hence IH: "normalized_nnf_match m \<Longrightarrow>
-        matches (common_matcher, \<alpha>) (iiface_rewrite (ipassmt_ignore_wildcard ipassmt) m) a p = matches (common_matcher, \<alpha>) m a p" by blast
-      with MatchNot.prems IH show ?case by(induction m) (simp_all add: iiface_rewrite_matches_Primitive)
-    next
-    case(Match x) thus ?case
-      proof(cases x)
-        case (IIface ifce)
-        from Match(4) have "\<exists>p_ips. ipassmt (Iface (p_iiface p)) = Some p_ips \<and> p_src p \<in> ipv4cidr_union_set (set p_ips)" by blast
-        
-        with IIface Match(1) Match(2) Match(3) show ?thesis
-        apply(cases "ipassmt (Iface (p_iiface p))")
-         apply auto[1]
-        apply(drule ipassmt_sanity_nowildcards_ignore_wildcardD)
-        apply(erule exE, rename_tac p_ips aa)
-        apply(simp)
-        apply(case_tac "ipv4cidr_union_set (set p_ips) = UNIV")
-         defer
-         apply(drule_tac p_ips=p_ips in matches_ipassmt_iface_replace_srcip_mexpr_case_Iface[where p=p])
-           apply(simp_all)
-         apply (simp add: ipassmt_ignore_wildcard_def; fail)
-        apply(case_tac "ifce \<notin> dom (ipassmt_ignore_wildcard ipassmt)")
-         apply (simp add: case_option_dom match_simplematcher_Iface(1) matches_ipassmt_iface_replace_srcip_mexpr)
-        apply(simp)
-        (*cont?*)
-        apply(cases "( ipassmt) ifce")
-         using dom_ipassmt_ignore_wildcard apply auto[1]
-        apply(rename_tac i_ips)
-        (*right hand match should be false, what about left hand side?*)
-        apply(frule(2) ipassmt_UNIV_not_in_ifnore_wildcard)
-        apply(subgoal_tac "\<not> matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p")
-         prefer 2
-         apply (meson Some_the domIff ipassmt_UNIV_not_in_ifnore_wildcard ipassmt_sanity_nowildcards_match_iface match_simplematcher_Iface(1))
-        apply(simp)
-        apply(subgoal_tac "(ipassmt_ignore_wildcard ipassmt) ifce = Some i_ips")
-         prefer 2 apply (metis (mono_tags, lifting) dom_ipassmt_ignore_wildcard ipassmt_ignore_wildcard_the(1) theD)
-        apply(simp add: ipassmt_iface_replace_srcip_mexpr_def)
-        (*doesn't work, _src could be from that range!*)
-        oops
-      qed(simp_all)
-    next
-    case (MatchAnd m1 m2) thus ?case by(simp add: bunch_of_lemmata_about_matches)
-    qed
-
-    thm ipassmt_disjoint_matcheq_iifce_srcip[where ipassmt="ipassmt_ignore_wildcard ipassmt"]
-*)
 
 end
 
