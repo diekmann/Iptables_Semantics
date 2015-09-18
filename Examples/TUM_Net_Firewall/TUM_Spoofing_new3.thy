@@ -120,7 +120,7 @@ subsubsection{*Try 1*}
 
   value[code] "let x = to_simple_firewall (upper_closure
                       (*(optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))*)
-                      (optimize_matches (rewrite_iiface (map_of_ipassmt ipassmt))
+                      (optimize_matches (iiface_constrain (map_of_ipassmt ipassmt))
                       (ctstate_assume_new
                       (upper_closure (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of net_fw_1))))))
                in map simple_rule_toString x" (*251.806s*)
@@ -136,7 +136,7 @@ subsubsection{*Try 1*}
   value[code] "let x = to_simple_firewall (upper_closure
                       (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))
                       (upper_closure
-                      (optimize_matches (rewrite_iiface (map_of_ipassmt ipassmt))
+                      (optimize_matches (iiface_constrain (map_of_ipassmt ipassmt))
                       (ctstate_assume_new
                       (upper_closure (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of net_fw_1))))))))
                in map simple_rule_toString x" (*222.742s*)
@@ -145,7 +145,7 @@ subsubsection{*Try 1*}
   value[code] "let x = to_simple_firewall (upper_closure
                       (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))
                       (
-                      (optimize_matches (rewrite_iiface (map_of_ipassmt ipassmt))
+                      (optimize_matches (iiface_constrain (map_of_ipassmt ipassmt))
                       (ctstate_assume_new
                       ( (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of net_fw_1))))))))
                in map simple_rule_toString x" (*106.252s*)

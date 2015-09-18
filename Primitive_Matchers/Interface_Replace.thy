@@ -4,7 +4,8 @@ imports
   Common_Primitive_toString
 begin
 
-section{*Abstracting over Primitives*}
+section{*Trying to connect inbound interfaces by their IP ranges*}
+subsection{*constraining interfaces*}
 
 definition ipassmt_iface_constrain_srcip_mexpr :: "ipassignment \<Rightarrow> iface \<Rightarrow> common_primitive match_expr" where
   "ipassmt_iface_constrain_srcip_mexpr ipassmt ifce = (case ipassmt ifce of
@@ -38,21 +39,20 @@ case (Some ips)
 qed
 
 
-(*TODO: rename to constrain_iiface*)
-fun rewrite_iiface :: "ipassignment \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
-  "rewrite_iiface _       MatchAny = MatchAny" |
-  "rewrite_iiface ipassmt (Match (IIface ifce)) = ipassmt_iface_constrain_srcip_mexpr ipassmt ifce" |
-  "rewrite_iiface ipassmt (Match a) = Match a" |
-  "rewrite_iiface ipassmt (MatchNot m) = MatchNot (rewrite_iiface ipassmt m)" |
-  "rewrite_iiface ipassmt (MatchAnd m1 m2) = MatchAnd (rewrite_iiface ipassmt m1) (rewrite_iiface ipassmt m2)"
+fun iiface_constrain :: "ipassignment \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
+  "iiface_constrain _       MatchAny = MatchAny" |
+  "iiface_constrain ipassmt (Match (IIface ifce)) = ipassmt_iface_constrain_srcip_mexpr ipassmt ifce" |
+  "iiface_constrain ipassmt (Match a) = Match a" |
+  "iiface_constrain ipassmt (MatchNot m) = MatchNot (iiface_constrain ipassmt m)" |
+  "iiface_constrain ipassmt (MatchAnd m1 m2) = MatchAnd (iiface_constrain ipassmt m1) (iiface_constrain ipassmt m2)"
 
 
 context
 begin
   (*helper1: used in induction case MatchNot*)
-  private lemma rewrite_iiface_matches_Primitive:
-          "matches (common_matcher, \<alpha>) (MatchNot (rewrite_iiface ipassmt (Match x))) a p = matches (common_matcher, \<alpha>) (MatchNot (Match x)) a p \<longleftrightarrow>
-           matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt (Match x)) a p = matches (common_matcher, \<alpha>) (Match x) a p"
+  private lemma iiface_constrain_matches_Primitive:
+          "matches (common_matcher, \<alpha>) (MatchNot (iiface_constrain ipassmt (Match x))) a p = matches (common_matcher, \<alpha>) (MatchNot (Match x)) a p \<longleftrightarrow>
+           matches (common_matcher, \<alpha>) (iiface_constrain ipassmt (Match x)) a p = matches (common_matcher, \<alpha>) (Match x) a p"
   proof(cases x)
   case (IIface ifce)
     have "(matches (common_matcher, \<alpha>) (MatchNot (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce)) a p = (\<not> match_iface ifce (p_iiface p))) \<longleftrightarrow>
@@ -132,16 +132,16 @@ begin
   qed
     
 
-  lemma matches_rewrite_iiface:
+  lemma matches_iiface_constrain:
        "normalized_nnf_match m \<Longrightarrow> ipassmt_sanity_nowildcards ipassmt \<Longrightarrow>
         (case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)) \<Longrightarrow>
-        matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
+        matches (common_matcher, \<alpha>) (iiface_constrain ipassmt m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
     proof(induction m)
     case MatchAny thus ?case by simp
     next
     case (MatchNot m)
-      hence IH: "normalized_nnf_match m \<Longrightarrow> matches (common_matcher, \<alpha>) (rewrite_iiface ipassmt m) a p = matches (common_matcher, \<alpha>) m a p" by blast
-      with MatchNot.prems IH show ?case by(induction m) (simp_all add: rewrite_iiface_matches_Primitive)
+      hence IH: "normalized_nnf_match m \<Longrightarrow> matches (common_matcher, \<alpha>) (iiface_constrain ipassmt m) a p = matches (common_matcher, \<alpha>) m a p" by blast
+      with MatchNot.prems IH show ?case by(induction m) (simp_all add: iiface_constrain_matches_Primitive)
     next
     case(Match x) thus ?case
       proof(cases x)
@@ -153,6 +153,9 @@ begin
 end
 
 
+
+
+subsection{*Sanity checking the assumption*}
 (*TODO: we need a good formulation of the assumption. the case stuff is so undefined fo the None case \<dots>
         EX-quantor is too strong
         Also holds if EX replaced by ALL*)
@@ -195,7 +198,7 @@ lemma "no_spoofing ipassmt rs \<Longrightarrow> (common_matcher, in_doubt_allow)
 
 
 
-(**********scratch: getting completely rid of iifaces****)
+subsection{*Replacing Interfaces completely*}
 text{*This is a stringer rewriting since it removes the interface completely.
       However, it requires @{const ipassmt_sanity_disjoint}*}
 
@@ -333,7 +336,7 @@ begin
        ifce \<noteq> Iface (p_iiface p)"
        using dom_ipassmt_ignore_wildcard by auto
        
-
+(*
   lemma matches_rewrite2_iiface':
        "normalized_nnf_match m \<Longrightarrow> ipassmt_sanity_nowildcards ipassmt \<Longrightarrow> ipassmt_sanity_disjoint (ipassmt_ignore_wildcard ipassmt) \<Longrightarrow>
         (\<forall>p::simple_packet. (\<exists>p_ips. ipassmt (Iface (p_iiface p)) = Some p_ips \<and> p_src p \<in> ipv4cidr_union_set (set p_ips))) \<Longrightarrow>
@@ -385,9 +388,9 @@ begin
     case (MatchAnd m1 m2) thus ?case by(simp add: bunch_of_lemmata_about_matches)
     qed
 
+    thm ipassmt_disjoint_matcheq_iifce_srcip[where ipassmt="ipassmt_ignore_wildcard ipassmt"]
+*)
 
-
-thm ipassmt_disjoint_matcheq_iifce_srcip[where ipassmt="ipassmt_ignore_wildcard ipassmt"]
 end
 
 
