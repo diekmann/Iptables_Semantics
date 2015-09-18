@@ -219,6 +219,14 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
     apply(simp add: ipassmt_ignore_wildcard_the)
     done
 
+  text{*Confusing names: @{const ipassmt_sanity_nowildcards} refers to wildcard interfaces.
+       @{const ipassmt_ignore_wildcard} refers to the UNIV ip range.
+  *}
+  lemma ipassmt_sanity_nowildcards_ignore_wildcardD:
+    "ipassmt_sanity_nowildcards ipassmt \<Longrightarrow> ipassmt_sanity_nowildcards (ipassmt_ignore_wildcard ipassmt)"
+    by (simp add: dom_ipassmt_ignore_wildcard ipassmt_sanity_nowildcards_def)
+    
+
  lemma ipassmt_disjoint_nonempty_inj:
      assumes ipassmt_disjoint: "ipassmt_sanity_disjoint ipassmt"
         and ifce: "ipassmt ifce = Some i_ips"
@@ -308,5 +316,6 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
 
      thus "match_iface ifce (p_iiface p)" using match_iface_refl by blast 
    qed
+
 
 end
