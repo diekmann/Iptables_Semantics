@@ -577,7 +577,7 @@ theorem try_interface_replaceby_srcip:
       and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
       and wf_ipassmt: "ipassmt_sanity_nowildcards ipassmt"
       and nospoofing: "case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)"
-      and pkt_from_valid_ifce: "Iface (p_iiface p) \<in> set (collect_ifaces rs)" (*TODO: \<or> Iface (p_iiface p) \<in> dom ipassmt*)
+      and pkt_from_valid_ifce: "Iface (p_iiface p) \<in> dom ipassmt" (*also possible but stronger (which is bad in assms): \<in> set (collect_ifaces rs)*)
   shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>try_interface_replaceby_srcip ipassmt rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
     and "simple_ruleset (try_interface_replaceby_srcip ipassmt rs)"
   proof -
