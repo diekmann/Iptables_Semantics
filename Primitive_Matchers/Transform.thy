@@ -564,7 +564,7 @@ theorem iiface_rewrite:
 qed
 
 
-
+(*
 theorem try_interface_replaceby_srcip:
   assumes simplers: "simple_ruleset rs"
       and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
@@ -634,6 +634,6 @@ theorem try_interface_replaceby_srcip:
      
      done
 qed
-
+*)
 
 end
