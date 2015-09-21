@@ -79,12 +79,7 @@ lemma "\<exists>mask3 c3. \<forall>pkt. match_tcp_flags f1 pkt \<and> match_tcp_
    apply(rule_tac x="{TCP_SYN}" in exI)
    apply(clarify)
    apply blast (*MatchNone*)
-  apply(case_tac "\<exists>f. f \<in> mask1 \<and> f \<in> mask2 \<and> f \<in> c1 \<and> f \<notin> c2")
-   apply(rule_tac x="{}" in exI)
-   apply(rule_tac x="{TCP_SYN}" in exI)
-   apply(clarify)
-   apply blast (*MatchNone*)
-  apply(case_tac "\<exists>f. f \<in> mask1 \<and> f \<in> mask2 \<and> f \<in> c2 \<and> f \<notin> c1")
+  apply(case_tac "mask1 \<inter> mask2 \<inter> c1 \<noteq> mask1 \<inter> mask2 \<inter> c2")
    apply(rule_tac x="{}" in exI)
    apply(rule_tac x="{TCP_SYN}" in exI)
    apply(clarify)
@@ -94,7 +89,9 @@ lemma "\<exists>mask3 c3. \<forall>pkt. match_tcp_flags f1 pkt \<and> match_tcp_
   apply(rule_tac x="c1 \<union> c2" in exI)
   apply(clarify)
   by blast
-   
+
+lemma "(\<exists>f. f \<in> mask1 \<and> f \<in> mask2 \<and> (f \<in> c2 \<and> f \<notin> c1 \<or> f \<in> c1 \<and> f \<notin> c2)) \<longleftrightarrow> mask1 \<inter> mask2 \<inter> c1 \<noteq> mask1 \<inter> mask2 \<inter> c2"
+  by blast
 
 
 end
