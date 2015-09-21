@@ -587,11 +587,14 @@ theorem try_interface_replaceby_srcip:
     { assume disjoint: "ipassmt_sanity_disjoint (ipassmt_ignore_wildcard ipassmt)"
       
       have "?fw rs = ?fw (optimize_matches (iiface_rewrite (ipassmt_ignore_wildcard ipassmt)) rs)"
-      apply(rule optimize_matches_generic[where P="\<lambda> m _. normalized_nnf_match m", symmetric])
-       apply(simp add: normalized)
-      apply(rule matches_iiface_rewrite)
-         apply(simp_all add: wf_ipassmt ipassmt_sanity_nowildcards_ignore_wildcardD disjoint)
-         oops
+      apply(cases "ipassmt_ignore_wildcard ipassmt (Iface (p_iiface p))")
+       defer
+       apply(rule optimize_matches_generic[where P="\<lambda> m _. normalized_nnf_match m", symmetric])
+        apply(simp add: normalized)
+       apply(rule matches_iiface_rewrite)
+          apply(simp_all add: wf_ipassmt ipassmt_sanity_nowildcards_ignore_wildcardD disjoint)
+       using ipassmt_ignore_wildcard_the(2) nospoofing apply fastforce
+      oops
     }
 
     have "ipassmt_sanity_disjoint (ipassmt_ignore_wildcard ipassmt) \<Longrightarrow>
