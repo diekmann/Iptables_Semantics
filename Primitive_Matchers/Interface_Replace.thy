@@ -327,6 +327,7 @@ begin
     case (MatchAnd m1 m2) thus ?case by(simp add: bunch_of_lemmata_about_matches)
     qed
 
+end
 
   text{*Finally, we show that @{const ipassmt_sanity_disjoint} is really needed.*}
   lemma iface_replace_needs_ipassmt_disjoint:
@@ -359,8 +360,18 @@ begin
   qed
 
 
-end
+(*TODO: optimize interfaces, e.g. eth+ MatchAnd wifi+ is false!*)
 
+definition try_interface_replaceby_srcip :: "ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> common_primitive rule list" where
+  "try_interface_replaceby_srcip ipassmt \<equiv> 
+    if ipassmt_sanity_disjoint ipassmt
+    then optimize_matches (iiface_rewrite ipassmt)
+    else if ipassmt_sanity_disjoint (ipassmt_ignore_wildcard ipassmt)
+    then optimize_matches (iiface_constrain ipassmt) \<circ> normalize_rules_dnf \<circ> optimize_matches (iiface_rewrite (ipassmt_ignore_wildcard ipassmt))
+    else optimize_matches (iiface_constrain ipassmt)"
+
+(* problem: after iiface_rewrite, mexpr no longer nnf normalized.
+   it would be possible to avoid normalize_rules_dnf or normalize_match call and the list in the result type*)
 
 
 end
