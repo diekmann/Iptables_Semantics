@@ -28,4 +28,28 @@ fun bool_toString :: "bool \<Rightarrow> string" where
   "bool_toString True = ''True''" |
   "bool_toString False = ''False''"
 
+subsection{*Enum set to string*}
+  fun enum_one_in_set_toString :: "('a \<Rightarrow> string) \<Rightarrow> 'a list \<Rightarrow> 'a set \<Rightarrow> (string \<times> 'a set option)" where
+    "enum_one_in_set_toString _     []     S = ('''', None)" |
+    "enum_one_in_set_toString toStr (s#ss) S = (if s \<in> S then (toStr s, Some (S - {s})) else enum_one_in_set_toString toStr ss S)"
+
+  lemma enum_one_in_set_toString_finite_card_le: "finite S \<Longrightarrow> (x, Some S') = enum_one_in_set_toString toStr ss S \<Longrightarrow> card S' < card S"
+    apply(induction ss)
+     apply(simp)
+    apply(simp split: split_if_asm)
+    by (metis card_gt_0_iff diff_less equals0D lessI)
+    
+  
+
+  function enum_set_toString_list :: "('a \<Rightarrow> string) \<Rightarrow> ('a::enum) set \<Rightarrow> string list" where
+    "enum_set_toString_list toStr S = (if S = {} then [] else
+      case enum_one_in_set_toString toStr (Enum.enum) S of (_, None) \<Rightarrow> []
+                                               |  (str, Some S') \<Rightarrow> str#enum_set_toString_list toStr S')"
+  by(pat_completeness) auto
+  
+  termination enum_set_toString_list
+  apply (relation "measure (\<lambda>(_,S). card S)")
+  apply(simp_all add: card_gt_0_iff enum_one_in_set_toString_finite_card_le)
+  done
+
 end
