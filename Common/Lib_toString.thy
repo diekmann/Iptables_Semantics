@@ -13,8 +13,12 @@ definition string_of_int :: "int \<Rightarrow> string" where
   "string_of_int i = (if i < 0 then ''-'' @ string_of_nat (nat (- i)) else 
      string_of_nat (nat i))"
 
+
+definition list_separated_toString :: "string \<Rightarrow> ('a \<Rightarrow> string) \<Rightarrow> 'a list \<Rightarrow> string" where
+  "list_separated_toString sep toStr ls = concat (splice (map toStr ls) (replicate (length ls - 1) sep))  "
+
 definition list_toString :: "('a \<Rightarrow> string) \<Rightarrow> 'a list \<Rightarrow> string" where
-  "list_toString toStr ls = ''[''@ concat (splice (map toStr ls) (replicate (length ls - 1) '', ''))  @'']''"
+  "list_toString toStr ls = ''[''@ list_separated_toString '', '' toStr ls @'']''"
 
 lemma "list_toString string_of_nat [1,2,3] = ''[1, 2, 3]''" by eval
 
@@ -38,9 +42,23 @@ subsection{*Enum set to string*}
      apply(simp)
     apply(simp split: split_if_asm)
     by (metis card_gt_0_iff diff_less equals0D lessI)
-    
-  
 
+  lemma enum_one_in_set_toString_empty: "enum_one_in_set_toString toStr ss {} = ('''', None)"
+    by(induction ss) simp_all
+  
+  lemma enum_one_in_set_toString_None: "enum_one_in_set_toString ctstate_toString ss S = (x, None) \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> S = {}"
+    apply(induction ss)
+     apply(simp)
+    apply(simp split: split_if_asm)
+    by blast
+  
+  lemma enum_one_in_set_toString_Some_singleton: "enum_one_in_set_toString toStr ss S = (x, Some {}) \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> \<exists>a. S = {a} \<and> toStr a = x"
+    apply(induction ss)
+     apply(simp)
+    apply(simp split: split_if_asm)
+     apply blast
+    by blast
+  
   function enum_set_toString_list :: "('a \<Rightarrow> string) \<Rightarrow> ('a::enum) set \<Rightarrow> string list" where
     "enum_set_toString_list toStr S = (if S = {} then [] else
       case enum_one_in_set_toString toStr (Enum.enum) S of (_, None) \<Rightarrow> []
@@ -48,8 +66,35 @@ subsection{*Enum set to string*}
   by(pat_completeness) auto
   
   termination enum_set_toString_list
-  apply (relation "measure (\<lambda>(_,S). card S)")
-  apply(simp_all add: card_gt_0_iff enum_one_in_set_toString_finite_card_le)
-  done
+    apply(relation "measure (\<lambda>(_,S). card S)")
+     apply(simp_all add: card_gt_0_iff enum_one_in_set_toString_finite_card_le)
+    done
+
+  lemma "(S::'a::enum set) \<subseteq> set enum_class.enum"
+    by(simp add: enum_UNIV)
+
+(*TODO*)
+(*  lemma "length (enum_set_toString_list toStr S) = card S"
+    apply(simp)
+    apply(clarify)
+    apply(case_tac "enum_one_in_set_toString toStr enum_class.enum S")
+    apply(rename_tac a b)
+    apply(case_tac b)
+     apply(simp)
+     apply(drule enum_one_in_set_toString_None)
+      apply(simp add: enum_UNIV;fail)
+     apply simp
+    apply(simp)
+    apply(clarify)
+    apply(intro conjI)
+     apply(simp)
+     using enum_one_in_set_toString_Some_singleton[where ss=enum_class.enum, simplified enum_UNIV] apply fastforce
+    apply(clarify)
+    apply(simp)
+   oops
+     *)
+
+
+lemma "list_toString id (enum_set_toString_list bool_toString {True, False}) = ''[False, True]''" by eval
 
 end
