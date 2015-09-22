@@ -245,8 +245,8 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
     by (metis domI domIff dom_ipassmt_ignore_wildcard option.sel)
     
 
- (*TODO: can this lemma be somehow useful?
-  maybe when rewriting, we can try to rewrite in the ignore_wildcard space and just constrain the the other area?*)
+ (*can this lemma be somehow useful?
+   maybe when rewriting, we can try to rewrite in the ignore_wildcard space and just constrain the the other area?*)
  lemma ipassmt_disjoint_ignore_wildcard_nonempty_inj:
      assumes ipassmt_disjoint: "ipassmt_sanity_disjoint (ipassmt_ignore_wildcard ipassmt)"
         and ifce: "ipassmt ifce = Some i_ips"
@@ -283,7 +283,7 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
        thus False using a b by blast
      qed
 
- (*TODO: could also work when we ignore UNIVs in the ipassmt?*)
+ (*might also work when we ignore UNIVs in the ipassmt? (not tested)*)
  lemma ipassmt_disjoint_matcheq_iifce_srcip:
         assumes ipassmt_nowild: "ipassmt_sanity_nowildcards ipassmt"
             and ipassmt_disjoint: "ipassmt_sanity_disjoint ipassmt"

@@ -35,6 +35,32 @@ fun match_proto :: "protocol \<Rightarrow> primitive_protocol \<Rightarrow> bool
 
 section{*TCP flags*}
   datatype tcp_flag = TCP_SYN | TCP_ACK | TCP_FIN | TCP_RST | TCP_URG | TCP_PSH (*| TCP_ALL | TCP_NONE*)
+
+  lemma UNIV_tcp_flag: "UNIV = {TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST, TCP_URG, TCP_PSH}" using tcp_flag.exhaust by auto 
+  instance tcp_flag :: finite
+  proof
+    from UNIV_tcp_flag show "finite (UNIV:: tcp_flag set)" using finite.simps by auto 
+  qed
+  instantiation "tcp_flag" :: enum
+  begin
+    definition "enum_tcp_flag = [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST, TCP_URG, TCP_PSH]"
+  
+    definition "enum_all_tcp_flag P \<longleftrightarrow> P TCP_SYN \<and> P TCP_ACK \<and> P TCP_FIN \<and> P TCP_RST \<and> P TCP_URG \<and> P TCP_PSH"
+    
+    definition "enum_ex_tcp_flag P \<longleftrightarrow> P TCP_SYN \<or> P TCP_ACK \<or> P TCP_FIN \<or> P TCP_RST \<or> P TCP_URG \<or> P TCP_PSH"
+  instance proof
+    show "UNIV = set (enum_class.enum :: tcp_flag list)"
+      by(simp add: UNIV_tcp_flag enum_tcp_flag_def)
+    next
+    show "distinct (enum_class.enum :: tcp_flag list)"
+      by(simp add: enum_tcp_flag_def)
+    next
+    show "\<And>P. (enum_class.enum_all :: (tcp_flag \<Rightarrow> bool) \<Rightarrow> bool) P = Ball UNIV P"
+      by(simp add: UNIV_tcp_flag enum_all_tcp_flag_def)
+    next
+    show "\<And>P. (enum_class.enum_ex :: (tcp_flag \<Rightarrow> bool) \<Rightarrow> bool) P = Bex UNIV P"
+      by(simp add: UNIV_tcp_flag enum_ex_tcp_flag_def)
+  qed
   
   (*man iptables-extensions, [!] --tcp-flags mask comp*)
   datatype ipt_tcp_flags = TCP_Flags "tcp_flag set" --"mask"
