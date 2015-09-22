@@ -61,6 +61,7 @@ section{*TCP flags*}
     show "\<And>P. (enum_class.enum_ex :: (tcp_flag \<Rightarrow> bool) \<Rightarrow> bool) P = Bex UNIV P"
       by(simp add: UNIV_tcp_flag enum_ex_tcp_flag_def)
   qed
+  end
   
   (*man iptables-extensions, [!] --tcp-flags mask comp*)
   datatype ipt_tcp_flags = TCP_Flags "tcp_flag set" --"mask"
