@@ -46,7 +46,7 @@ subsection{*Enum set to string*}
   lemma enum_one_in_set_toString_empty: "enum_set_get_one ss {} = (None, None)"
     by(induction ss) simp_all
   
-  lemma enum_one_in_set_toString_None: "enum_set_get_one ss S = (x, None) \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> S = {}"
+  lemma enum_set_get_one: "enum_set_get_one ss S = (x, None) \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> S = {}"
     apply(induction ss)
      apply(simp)
     apply(simp split: split_if_asm)
@@ -59,11 +59,17 @@ subsection{*Enum set to string*}
      apply blast
     by blast
 
-  lemma enum_one_in_set_toString_Some: "enum_set_get_one ss S = (x, Some S') \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> \<exists>a. S' = S - {a} \<and> Some a = x"
+  lemma enum_one_in_set_toString_Some: "enum_set_get_one ss S = (x, Some S') \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> \<exists>a. S'\<union> {a} = S \<and> a \<in> S \<and> Some a = x"
     apply(induction ss)
      apply(simp)
     apply(simp split: split_if_asm)
      apply blast
+    by blast
+
+  lemma enum_set_get_one_NoneSome: "enum_set_get_one ss S = (None, Some S') \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> False"
+    apply(induction ss)
+     apply(simp)
+    apply(simp split: split_if_asm)
     by blast
   
   function enum_set_to_list :: "('a::enum) set \<Rightarrow> 'a list" where
@@ -84,7 +90,7 @@ subsection{*Enum set to string*}
   (*this definition is simpler*)
   lemma enum_set_to_list_simps: "enum_set_to_list S =
       (case enum_set_get_one (Enum.enum) S of (_, None) \<Rightarrow> []
-                                           |  (Some a, Some S') \<Rightarrow> a#enum_set_to_list  S')"
+                                           |  (Some a, Some S') \<Rightarrow> a#enum_set_to_list S')"
    apply(simp)
    apply(intro conjI impI)
     apply(case_tac "enum_set_get_one enum_class.enum S")
@@ -96,58 +102,33 @@ subsection{*Enum set to string*}
    done
   declare enum_set_to_list.simps[simp del]
 
-  (*lemma "finite S \<Longrightarrow> length (enum_set_toString_list toStr S) = card S"
+  lemma "finite S \<Longrightarrow> length (enum_set_to_list S) = card S"
   apply(induction S rule: finite.induct)
-   apply(simp add: enum_set_toString_list.simps)
+   apply(simp add: enum_set_to_list.simps)
   apply(simp)
-  apply(subst enum_set_toString_list_simps)
+  apply(subst enum_set_to_list_simps)
   (*apply(simp add: enum_set_toString_list_simps split: split_if_asm)*)
   apply(rename_tac A a)
-  apply(case_tac "enum_one_in_set_toString toStr enum_class.enum (insert a A)")
+  apply(case_tac "enum_set_get_one enum_class.enum (insert a A)")
   apply(rename_tac x y)
   apply(case_tac y)
    apply(simp)
-   apply(drule enum_one_in_set_toString_None[where ss=enum_class.enum, simplified enum_UNIV], simp)
-   apply(simp)
+   apply(drule enum_set_get_one[where ss=enum_class.enum, simplified enum_UNIV], simp)
+   apply(simp; fail)
   apply(simp)
-  apply(rename_tac y')
-  apply(drule enum_one_in_set_toString_Some[where ss=enum_class.enum, simplified enum_UNIV], simp)
-  apply(clarify)
-  apply(case_tac "a \<in> A")
-   apply(simp)
-   apply (simp add: insert_absorb)
-   
-   
+  apply(simp split: option.split)
+  apply safe
+   using enum_set_get_one_NoneSome[where ss=enum_class.enum, simplified enum_UNIV] apply fastforce
   apply(simp)
-  apply(clarify)
-  apply(drule enum_one_in_set_toString_Some[where ss=enum_class.enum, simplified enum_UNIV], simp)
-  apply(clarify)
-  apply(rename_tac a')
-  apply(simp)
-  apply(case_tac "a = a'")
-   apply(simp)
   
-   using enum_one_in_set_toString_Some_singleton[where ss=enum_class.enum, simplified enum_UNIV]
-   enum_one_in_set_toString_None[where ss=enum_class.enum, simplified enum_UNIV] *)
-
-  (*apply(induction toStr S rule: enum_set_toString_list.induct)*)
-  (*  apply(simp)
-    apply(clarify)
-    apply(case_tac "enum_one_in_set_toString toStr enum_class.enum S")
-    apply(rename_tac a b)
-    apply(case_tac b)
-     apply(simp)
-     apply(drule enum_one_in_set_toString_None)
-      apply(simp add: enum_UNIV;fail)
-     apply(simp; fail)
-    apply(simp)
-    apply(clarify)
-    apply(intro conjI)
-     apply(simp)
-     using enum_one_in_set_toString_Some_singleton[where ss=enum_class.enum, simplified enum_UNIV] apply fastforce
-    apply(clarify)
-    apply(simp)
-   oops*)
+  apply(rename_tac S' y')
+  apply(drule enum_one_in_set_toString_Some[where ss=enum_class.enum, simplified enum_UNIV], simp)
+  apply(clarify)
+  apply(simp)
+  apply(safe)
+  nitpick
+  
+   oops
    
 
 lemma "list_toString bool_toString (enum_set_to_list {True, False}) = ''[False, True]''" by eval
