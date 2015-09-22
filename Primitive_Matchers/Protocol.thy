@@ -51,12 +51,30 @@ lemma "match_tcp_flags ipt_tcp_syn {TCP_SYN, TCP_URG, TCP_PSH}" by eval
 
 lemma match_tcp_flags_nomatch: "\<not> c \<subseteq> mask \<Longrightarrow> \<not> match_tcp_flags (TCP_Flags mask c) pkt" by auto
 
+definition ipt_tcp_flags_NoMatch :: "ipt_tcp_flags" where
+  "ipt_tcp_flags_NoMatch \<equiv> TCP_Flags {} {TCP_SYN}"
+lemma ipt_tcp_flags_NoMatch: "\<not> match_tcp_flags ipt_tcp_flags_NoMatch pkt" by(simp add: ipt_tcp_flags_NoMatch_def)
+
 lemma ipt_tcp_flags_matchany: "match_tcp_flags (TCP_Flags {} {}) pkt" by(simp)
 
 
-(*
+
 fun match_tcp_flags_conjunct :: "ipt_tcp_flags \<Rightarrow> ipt_tcp_flags \<Rightarrow> ipt_tcp_flags" where
-  "match_tcp_flags_conjunct (TCP_Flags mask1 c1) (TCP_Flags mask2 c2) = (TCP_Flags ((mask1 \<inter> c1) \<union> (mask2 \<inter> c2)) (c1 \<union> c2))"*)
+  "match_tcp_flags_conjunct (TCP_Flags mask1 c1) (TCP_Flags mask2 c2) = (
+        if c1 \<subseteq> mask1 \<and> c2 \<subseteq> mask2 \<and> mask1 \<inter> mask2 \<inter> c1 = mask1 \<inter> mask2 \<inter> c2
+        then (TCP_Flags (mask1 \<union> mask2) (c1 \<union> c2))
+        else ipt_tcp_flags_NoMatch)"
+
+
+lemma match_tcp_flags_conjunct: "match_tcp_flags f1 pkt \<and> match_tcp_flags f2 pkt \<longleftrightarrow> match_tcp_flags (match_tcp_flags_conjunct f1 f2) pkt"
+  apply(cases f1, cases f2, simp)
+  apply(rename_tac mask1 c1 mask2 c2)
+  apply(intro conjI impI)
+   apply(elim conjE)
+   apply blast
+  apply(simp add: ipt_tcp_flags_NoMatch)
+  apply fast
+  done
 
 (*a conjunct is possible*)
 lemma "\<exists>mask3 c3. \<forall>pkt. match_tcp_flags f1 pkt \<and> match_tcp_flags f2 pkt \<longleftrightarrow> match_tcp_flags (TCP_Flags mask3 c3) pkt"
@@ -68,17 +86,17 @@ lemma "\<exists>mask3 c3. \<forall>pkt. match_tcp_flags f1 pkt \<and> match_tcp_
    apply(rule_tac x="{TCP_SYN}" in exI)
    apply(clarify)
    apply blast (*MatchNone*)
-  apply(case_tac "mask1 \<inter> mask2 = {}")
+  (*apply(case_tac "mask1 \<inter> mask2 = {}")
    apply(rule_tac x="mask1 \<union> mask2" in exI)
    apply(rule_tac x="c1 \<union> c2" in exI)
    apply(clarify)
-   apply blast
-  apply(case_tac "c1 \<inter> c2 \<subseteq> mask1 \<inter> mask2")
+   apply blast*)
+  (*apply(case_tac "c1 \<inter> c2 \<subseteq> mask1 \<inter> mask2")
    prefer 2
    apply(rule_tac x="{}" in exI)
    apply(rule_tac x="{TCP_SYN}" in exI)
    apply(clarify)
-   apply blast (*MatchNone*)
+   apply blast (*MatchNone*)*)
   apply(case_tac "mask1 \<inter> mask2 \<inter> c1 \<noteq> mask1 \<inter> mask2 \<inter> c2")
    apply(rule_tac x="{}" in exI)
    apply(rule_tac x="{TCP_SYN}" in exI)
