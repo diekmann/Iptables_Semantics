@@ -58,7 +58,7 @@ subsection{*General Setup*}
   (Iface ''eth1.1024'', everything_but_my_ips) (*transfer net*)]"
   
   lemma "ipassmt_sanity_nowildcards (map_of ipassmt)" by eval
-  
+
   
   text{*We check for all interfaces, except for @{term "Iface ''eth0''"}, which does not need spoofing protection.*}
   definition "interfaces = tl (map (iface_sel \<circ> fst) ipassmt)"
@@ -86,6 +86,7 @@ The second rule we removed was an exception for an asterisk server. This rule is
 because this rule prevents any spoofing protection. It was a temporary rule and it should have been
 removed but was forgotten. We are investigating ...
 *}
+section{*Checking spoofing Protection*}
 
 subsubsection{*Try 1*}
 
@@ -108,47 +109,6 @@ subsubsection{*Try 1*}
    -A FORWARD -d 131.159.15.247/32 -i eth1.110 -o eth1.152 -j ACCEPT
    -A FORWARD -s 131.159.15.248/32 -i eth1.152 -o eth1.110 -j ACCEPT
   *)
-
-
-  text{*Just a test: printing the simplified firewall*}
-  value[code] "let x = to_simple_firewall (upper_closure
-                      (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))
-                      (ctstate_assume_new
-                      (upper_closure (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of net_fw_1))))))
-               in map simple_rule_toString x" (*169.498s with interface abstraction, otherwise 262.712s*)
-
-
-  value[code] "let x = to_simple_firewall (upper_closure
-                      (*(optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))*)
-                      (optimize_matches (rewrite_iiface (map_of_ipassmt ipassmt))
-                      (ctstate_assume_new
-                      (upper_closure (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of net_fw_1))))))
-               in map simple_rule_toString x" (*251.806s*)
-
-
-  value[code] "let x = to_simple_firewall (upper_closure
-                      (ctstate_assume_new
-                      (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of net_fw_1))))
-               in map simple_rule_toString x" (*222.742s*)
-
-
-
-  value[code] "let x = to_simple_firewall (upper_closure
-                      (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))
-                      (upper_closure
-                      (optimize_matches (rewrite_iiface (map_of_ipassmt ipassmt))
-                      (ctstate_assume_new
-                      (upper_closure (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of net_fw_1))))))))
-               in map simple_rule_toString x" (*222.742s*)
-
-
-  value[code] "let x = to_simple_firewall (upper_closure
-                      (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))
-                      (
-                      (optimize_matches (rewrite_iiface (map_of_ipassmt ipassmt))
-                      (ctstate_assume_new
-                      ( (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of net_fw_1))))))))
-               in map simple_rule_toString x" (*106.252s*)
 
   value[code] "debug_ipassmt ipassmt (preprocess net_fw_1_FORWARD_default_policy net_fw_1)"
   

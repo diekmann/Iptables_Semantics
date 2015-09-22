@@ -41,6 +41,7 @@ session "Iptables_Semantics_Examples" = Iptables_Semantics +
     "Examples/SQRL_Shorewall/SQRL_2015_nospoof"
     "Examples/sns.ias.edu/SNS_IAS_Eduroam_Spoofing"
     "Examples/TUM_Net_Firewall/TUM_Spoofing_new3"
+    "Examples/TUM_Net_Firewall/TUM_Simple_FW"
   document_files
     "root.tex"
     "mathpartir.sty"

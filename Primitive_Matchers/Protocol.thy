@@ -1,6 +1,8 @@
 theory Protocol
-imports "../Common/Negation_Type"
+imports "../Common/Negation_Type" "../Common/Lib_toString"
 begin
+
+section{*Protocols*}
 
 datatype primitive_protocol = TCP | UDP | ICMP | OtherProtocol nat
 
@@ -30,4 +32,86 @@ fun match_proto :: "protocol \<Rightarrow> primitive_protocol \<Rightarrow> bool
      apply(simp_all)
     done
 
+
+section{*TCP flags*}
+  datatype tcp_flag = TCP_SYN | TCP_ACK | TCP_FIN | TCP_RST | TCP_URG | TCP_PSH (*| TCP_ALL | TCP_NONE*)
+
+  lemma UNIV_tcp_flag: "UNIV = {TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST, TCP_URG, TCP_PSH}" using tcp_flag.exhaust by auto 
+  instance tcp_flag :: finite
+  proof
+    from UNIV_tcp_flag show "finite (UNIV:: tcp_flag set)" using finite.simps by auto 
+  qed
+  instantiation "tcp_flag" :: enum
+  begin
+    definition "enum_tcp_flag = [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST, TCP_URG, TCP_PSH]"
+  
+    definition "enum_all_tcp_flag P \<longleftrightarrow> P TCP_SYN \<and> P TCP_ACK \<and> P TCP_FIN \<and> P TCP_RST \<and> P TCP_URG \<and> P TCP_PSH"
+    
+    definition "enum_ex_tcp_flag P \<longleftrightarrow> P TCP_SYN \<or> P TCP_ACK \<or> P TCP_FIN \<or> P TCP_RST \<or> P TCP_URG \<or> P TCP_PSH"
+  instance proof
+    show "UNIV = set (enum_class.enum :: tcp_flag list)"
+      by(simp add: UNIV_tcp_flag enum_tcp_flag_def)
+    next
+    show "distinct (enum_class.enum :: tcp_flag list)"
+      by(simp add: enum_tcp_flag_def)
+    next
+    show "\<And>P. (enum_class.enum_all :: (tcp_flag \<Rightarrow> bool) \<Rightarrow> bool) P = Ball UNIV P"
+      by(simp add: UNIV_tcp_flag enum_all_tcp_flag_def)
+    next
+    show "\<And>P. (enum_class.enum_ex :: (tcp_flag \<Rightarrow> bool) \<Rightarrow> bool) P = Bex UNIV P"
+      by(simp add: UNIV_tcp_flag enum_ex_tcp_flag_def)
+  qed
+  end
+  
+  (*man iptables-extensions, [!] --tcp-flags mask comp*)
+  datatype ipt_tcp_flags = TCP_Flags "tcp_flag set" --"mask"
+                                     "tcp_flag set" --"comp"
+  
+  (*--syn: Only match TCP packets with the SYN bit set and the ACK,RST and FIN bits cleared. [...] It is equivalent to --tcp-flags SYN,RST,ACK,FIN SYN.*)
+  definition ipt_tcp_syn :: "ipt_tcp_flags" where
+    "ipt_tcp_syn \<equiv> TCP_Flags {TCP_SYN,TCP_RST,TCP_ACK,TCP_FIN} {TCP_SYN}"
+  
+  fun match_tcp_flags :: "ipt_tcp_flags \<Rightarrow> tcp_flag set \<Rightarrow> bool" where
+     "match_tcp_flags (TCP_Flags mask c) flags \<longleftrightarrow> (flags \<inter> mask) = c"
+  
+  lemma "match_tcp_flags ipt_tcp_syn {TCP_SYN, TCP_URG, TCP_PSH}" by eval
+  
+  lemma match_tcp_flags_nomatch: "\<not> c \<subseteq> mask \<Longrightarrow> \<not> match_tcp_flags (TCP_Flags mask c) pkt" by auto
+  
+  definition ipt_tcp_flags_NoMatch :: "ipt_tcp_flags" where
+    "ipt_tcp_flags_NoMatch \<equiv> TCP_Flags {} {TCP_SYN}"
+  lemma ipt_tcp_flags_NoMatch: "\<not> match_tcp_flags ipt_tcp_flags_NoMatch pkt" by(simp add: ipt_tcp_flags_NoMatch_def)
+  
+  lemma ipt_tcp_flags_matchany: "match_tcp_flags (TCP_Flags {} {}) pkt" by(simp)
+  
+  fun match_tcp_flags_conjunct :: "ipt_tcp_flags \<Rightarrow> ipt_tcp_flags \<Rightarrow> ipt_tcp_flags" where
+    "match_tcp_flags_conjunct (TCP_Flags mask1 c1) (TCP_Flags mask2 c2) = (
+          if c1 \<subseteq> mask1 \<and> c2 \<subseteq> mask2 \<and> mask1 \<inter> mask2 \<inter> c1 = mask1 \<inter> mask2 \<inter> c2
+          then (TCP_Flags (mask1 \<union> mask2) (c1 \<union> c2))
+          else ipt_tcp_flags_NoMatch)"
+  
+  
+  lemma match_tcp_flags_conjunct: "match_tcp_flags f1 pkt \<and> match_tcp_flags f2 pkt \<longleftrightarrow> match_tcp_flags (match_tcp_flags_conjunct f1 f2) pkt"
+    apply(cases f1, cases f2, simp)
+    apply(rename_tac mask1 c1 mask2 c2)
+    apply(intro conjI impI)
+     apply(elim conjE)
+     apply blast
+    apply(simp add: ipt_tcp_flags_NoMatch)
+    apply fast
+    done
+
+  fun tcp_flag_toString :: "tcp_flag \<Rightarrow> string" where
+    "tcp_flag_toString TCP_SYN = ''TCP_SYN''" |
+    "tcp_flag_toString TCP_ACK = ''TCP_ACK''" |
+    "tcp_flag_toString TCP_FIN = ''TCP_FIN''" |
+    "tcp_flag_toString TCP_RST = ''TCP_RST''" |
+    "tcp_flag_toString TCP_URG = ''TCP_URG''" |
+    "tcp_flag_toString TCP_PSH = ''TCP_PSH''"
+
+
+  definition ipt_tcp_flags_toString :: "tcp_flag set \<Rightarrow> char list" where
+    "ipt_tcp_flags_toString flags \<equiv> list_toString id (enum_set_toString_list tcp_flag_toString flags)"
+
+  lemma "ipt_tcp_flags_toString {TCP_SYN,TCP_SYN,TCP_ACK} = ''[TCP_SYN, TCP_ACK]''" by eval
 end

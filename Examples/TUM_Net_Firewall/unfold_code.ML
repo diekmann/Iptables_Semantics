@@ -1881,13 +1881,6 @@ fun opt_MatchAny_match_expr MatchAny = MatchAny
       (opt_MatchAny_match_expr (MatchAnd (v, va)),
         opt_MatchAny_match_expr (MatchAnd (vb, vc)));
 
-fun get_action (Rule (x1, x2)) = x2;
-
-fun get_match (Rule (x1, x2)) = x1;
-
-fun optimize_matches f rs =
-  map (fn r => Rule (f (get_match r), get_action r)) rs;
-
 fun normalize_match MatchAny = [MatchAny]
   | normalize_match (Match m) = [Match m]
   | normalize_match (MatchAnd (m1, m2)) =
@@ -1902,6 +1895,13 @@ fun normalize_match MatchAny = [MatchAny]
 fun normalize_rules_dnf [] = []
   | normalize_rules_dnf (Rule (m, a) :: rs) =
     map (fn ma => Rule (ma, a)) (normalize_match m) @ normalize_rules_dnf rs;
+
+fun get_action (Rule (x1, x2)) = x2;
+
+fun get_match (Rule (x1, x2)) = x1;
+
+fun optimize_matches f rs =
+  map (fn r => Rule (f (get_match r), get_action r)) rs;
 
 fun transform_optimize_dnf_strict x =
   (optimize_matches opt_MatchAny_match_expr o normalize_rules_dnf o
