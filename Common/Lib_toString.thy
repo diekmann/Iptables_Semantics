@@ -58,6 +58,13 @@ subsection{*Enum set to string*}
     apply(simp split: split_if_asm)
      apply blast
     by blast
+
+  lemma enum_one_in_set_toString_Some: "enum_one_in_set_toString toStr ss S = (x, Some S') \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> \<exists>a. S' = S - {a} \<and> toStr a = x"
+    apply(induction ss)
+     apply(simp)
+    apply(simp split: split_if_asm)
+     apply blast
+    by blast
   
   function enum_set_toString_list :: "('a \<Rightarrow> string) \<Rightarrow> ('a::enum) set \<Rightarrow> string list" where
     "enum_set_toString_list toStr S = (if S = {} then [] else
@@ -70,11 +77,65 @@ subsection{*Enum set to string*}
      apply(simp_all add: card_gt_0_iff enum_one_in_set_toString_finite_card_le)
     done
 
+
   lemma "(S::'a::enum set) \<subseteq> set enum_class.enum"
     by(simp add: enum_UNIV)
 
-(*TODO*)
-(*  lemma "length (enum_set_toString_list toStr S) = card S"
+  (*this definition is simpler*)
+  lemma enum_set_toString_list_simps: "enum_set_toString_list toStr S =
+      (case enum_one_in_set_toString toStr (Enum.enum) S of (_, None) \<Rightarrow> []
+                                                         |  (str, Some S') \<Rightarrow> str#enum_set_toString_list toStr S')"
+   apply(simp)
+   apply(intro conjI impI)
+    apply(case_tac "enum_one_in_set_toString toStr enum_class.enum S")
+    apply(rename_tac a b)
+    apply(case_tac b)
+     apply(simp; fail)
+    apply(simp)
+    apply (metis card_0_eq enum_one_in_set_toString_finite_card_le finite.emptyI not_less0)
+   apply(case_tac "enum_one_in_set_toString toStr enum_class.enum S")
+   apply(rename_tac a b)
+   apply(case_tac b)
+    apply(simp; fail)
+   apply(simp)
+   done
+  declare enum_set_toString_list.simps[simp del]
+
+  (*lemma "finite S \<Longrightarrow> length (enum_set_toString_list toStr S) = card S"
+  apply(induction S rule: finite.induct)
+   apply(simp add: enum_set_toString_list.simps)
+  apply(simp)
+  apply(subst enum_set_toString_list_simps)
+  (*apply(simp add: enum_set_toString_list_simps split: split_if_asm)*)
+  apply(rename_tac A a)
+  apply(case_tac "enum_one_in_set_toString toStr enum_class.enum (insert a A)")
+  apply(rename_tac x y)
+  apply(case_tac y)
+   apply(simp)
+   apply(drule enum_one_in_set_toString_None[where ss=enum_class.enum, simplified enum_UNIV], simp)
+   apply(simp)
+  apply(simp)
+  apply(rename_tac y')
+  apply(drule enum_one_in_set_toString_Some[where ss=enum_class.enum, simplified enum_UNIV], simp)
+  apply(clarify)
+  apply(case_tac "a \<in> A")
+   apply(simp)
+   apply (simp add: insert_absorb)
+   
+   
+  apply(simp)
+  apply(clarify)
+  apply(drule enum_one_in_set_toString_Some[where ss=enum_class.enum, simplified enum_UNIV], simp)
+  apply(clarify)
+  apply(rename_tac a')
+  apply(simp)
+  apply(case_tac "a = a'")
+   apply(simp)
+  
+   using enum_one_in_set_toString_Some_singleton[where ss=enum_class.enum, simplified enum_UNIV]
+   enum_one_in_set_toString_None[where ss=enum_class.enum, simplified enum_UNIV] *)
+
+  (*apply(induction toStr S rule: enum_set_toString_list.induct)*)
     apply(simp)
     apply(clarify)
     apply(case_tac "enum_one_in_set_toString toStr enum_class.enum S")
@@ -83,7 +144,7 @@ subsection{*Enum set to string*}
      apply(simp)
      apply(drule enum_one_in_set_toString_None)
       apply(simp add: enum_UNIV;fail)
-     apply simp
+     apply(simp; fail)
     apply(simp)
     apply(clarify)
     apply(intro conjI)
@@ -92,8 +153,7 @@ subsection{*Enum set to string*}
     apply(clarify)
     apply(simp)
    oops
-     *)
-
+   
 
 lemma "list_toString id (enum_set_toString_list bool_toString {True, False}) = ''[False, True]''" by eval
 
