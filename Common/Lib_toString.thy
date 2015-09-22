@@ -33,122 +33,78 @@ fun bool_toString :: "bool \<Rightarrow> string" where
   "bool_toString False = ''False''"
 
 subsection{*Enum set to string*}
-  fun enum_set_get_one :: "'a list \<Rightarrow> 'a set \<Rightarrow> ('a option \<times> 'a set option)" where
-    "enum_set_get_one []     S = (None, None)" |
-    "enum_set_get_one (s#ss) S = (if s \<in> S then (Some s, Some (S - {s})) else enum_set_get_one ss S)"
+  fun enum_set_get_one :: "'a list \<Rightarrow> 'a set \<Rightarrow> 'a option" where
+    "enum_set_get_one []     S = None" |
+    "enum_set_get_one (s#ss) S = (if s \<in> S then Some s else enum_set_get_one ss S)"
 
-  lemma enum_set_get_one_finite_card_le: "finite S \<Longrightarrow> (x, Some S') = enum_set_get_one ss S \<Longrightarrow> card S' < card S"
-    apply(induction ss)
-     apply(simp)
-    apply(simp split: split_if_asm)
-    by (metis card_gt_0_iff diff_less equals0D lessI)
-
-  lemma enum_set_get_one_empty: "enum_set_get_one ss {} = (None, None)"
+  lemma enum_set_get_one_empty: "enum_set_get_one ss {} = None"
     by(induction ss) simp_all
   
-  lemma enum_set_get_one_None1: "enum_set_get_one ss S = (x, None) \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> S = {}"
+  lemma enum_set_get_one_None: "S \<subseteq> set ss \<Longrightarrow> enum_set_get_one ss S = None \<longleftrightarrow> S = {}"
     apply(induction ss)
      apply(simp)
-    apply(simp split: split_if_asm)
-    by blast
-  lemma enum_set_get_one_None2: "enum_set_get_one ss S = (None, x) \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> S = {}"
-    apply(induction ss)
-     apply(simp)
-    apply(simp split: split_if_asm)
-    by blast
-  
-  lemma enum_set_get_one_toString_Some_singleton: "enum_set_get_one ss S = (x, Some {}) \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> \<exists>a. S = {a} \<and> Some a = x"
-    apply(induction ss)
-     apply(simp)
-    apply(simp split: split_if_asm)
+    apply(simp)
+    apply rule
      apply blast
-    by blast
+    by fast
+ 
+  lemma enum_set_get_one_Some: "S \<subseteq> set ss \<Longrightarrow> enum_set_get_one ss S = Some x \<Longrightarrow> x \<in> S"
+    apply(induction ss)
+     apply(simp)
+    apply(simp split: split_if_asm)
+    apply(blast)
+    done
+  corollary enum_set_get_one_enum_Some: "enum_set_get_one enum_class.enum S = Some x \<Longrightarrow> x \<in> S"
+    using enum_set_get_one_Some[where ss=enum_class.enum, simplified enum_UNIV] by auto
 
-  lemma enum_set_get_one_Some1: "enum_set_get_one ss S = (Some x, S') \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> \<exists>A. Some A = S' \<and> A \<union> {x} = S \<and> x \<in> S"
+  lemma enum_set_get_one_Ex_Some: "S \<subseteq> set ss \<Longrightarrow> S \<noteq> {} \<Longrightarrow> \<exists>x. enum_set_get_one ss S = Some x"
     apply(induction ss)
      apply(simp)
     apply(simp split: split_if_asm)
-     apply blast
-    by blast
-  lemma enum_set_get_one_Some2: "enum_set_get_one ss S = (x, Some S') \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> \<exists>a. S'\<union> {a} = S \<and> a \<in> S \<and> Some a = x"
-    apply(induction ss)
-     apply(simp)
-    apply(simp split: split_if_asm)
-     apply blast
-    by blast
-
-  lemma enum_set_get_one_NoneSome: "enum_set_get_one ss S = (None, Some S') \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> False"
-    apply(induction ss)
-     apply(simp)
-    apply(simp split: split_if_asm)
-    by blast
+    apply(blast)
+    done
+  corollary enum_set_get_one_enum_Ex_Some: "S \<noteq> {} \<Longrightarrow> \<exists>x. enum_set_get_one enum_class.enum S = Some x"
+    using enum_set_get_one_Ex_Some[where ss=enum_class.enum, simplified enum_UNIV] by auto
   
   function enum_set_to_list :: "('a::enum) set \<Rightarrow> 'a list" where
     "enum_set_to_list S = (if S = {} then [] else
-      case enum_set_get_one (Enum.enum) S of (_, None) \<Rightarrow> []
-                                          |  (Some a, Some S') \<Rightarrow> a#enum_set_to_list S')"
+      case enum_set_get_one Enum.enum S of None \<Rightarrow> []
+                                        |  Some a \<Rightarrow> a#enum_set_to_list (S - {a}))"
   by(pat_completeness) auto
   
   termination enum_set_to_list
     apply(relation "measure (\<lambda>(S). card S)")
-     apply(simp_all add: card_gt_0_iff enum_set_get_one_finite_card_le)
+     apply(simp_all add: card_gt_0_iff)
+    apply(drule enum_set_get_one_enum_Some)
+    apply(subgoal_tac "finite S")
+     prefer 2
+     apply force
+    apply (meson card_Diff1_less)
     done
 
   (*this definition is simpler*)
   lemma enum_set_to_list_simps: "enum_set_to_list S =
-      (case enum_set_get_one (Enum.enum) S of (_, None) \<Rightarrow> []
-                                           |  (Some a, Some S') \<Rightarrow> a#enum_set_to_list S')"
+      (case enum_set_get_one (Enum.enum) S of None \<Rightarrow> []
+                                           |  Some a \<Rightarrow> a#enum_set_to_list (S - {a}))"
    apply(simp)
    apply(intro conjI impI)
-    apply(case_tac "enum_set_get_one enum_class.enum S")
-    apply(rename_tac a b)
-    apply(case_tac b)
-     apply(simp split: option.split; fail)
-    apply(simp)
-    apply (metis card_0_eq enum_set_get_one_finite_card_le finite.emptyI not_less0)
+   apply(simp add: enum_set_get_one_empty)
    done
   declare enum_set_to_list.simps[simp del]
 
-  lemma "insert a S' = insert a A \<Longrightarrow> S' \<noteq> A \<Longrightarrow> S' = insert a A \<or> A = insert a S'"
-    by auto
-
-  lemma enum_set_to_list_contains: "a \<in> A \<Longrightarrow> a \<in> set (enum_set_to_list A)"
-  apply(induction A rule: enum_set_to_list.induct)
-  apply(case_tac "S = {}")
-   apply(simp add: enum_set_to_list_simps)
-  apply(simp)
-  apply(subst enum_set_to_list_simps)
-  apply(case_tac "enum_set_get_one enum_class.enum S")
-  apply(simp split: option.split)
-  apply(intro conjI impI)
-    using enum_set_get_one_None2[where ss=enum_class.enum, simplified enum_UNIV] apply fast
-   using enum_set_get_one_None2[where ss=enum_class.enum, simplified enum_UNIV] apply fast
-  apply(clarify)
-  apply(drule enum_set_get_one_Some1[where ss=enum_class.enum, simplified enum_UNIV], simp)
-  apply(clarify)
-  by(safe, simp_all)
-
-  lemma  "a \<in> set (enum_set_to_list (insert a A))" using enum_set_to_list_contains apply blast
-
-  lemma "finite A \<Longrightarrow> a \<in> set (enum_set_to_list A) \<Longrightarrow> a \<in> A"
-  apply(induction A arbitrary: a rule: finite.induct)
-   apply(simp add: enum_set_to_list.simps)
-  apply(simp)
-  apply(rename_tac A a' a)
-  apply(case_tac "enum_set_get_one enum_class.enum (insert a' A)")
-  apply(rename_tac x y)
-  apply(case_tac y)
-   apply(simp)
-   apply(drule enum_set_get_one_None1[where ss=enum_class.enum, simplified enum_UNIV], simp)
-   apply(simp; fail)
-  apply(simp)
-   apply(drule enum_set_get_one_Some2[where ss=enum_class.enum, simplified enum_UNIV], simp)
-  apply(simp)
-  apply(clarify)
-  apply(safe)
-   apply(simp_all)
-   oops
-   
+  lemma enum_set_to_list: "set (enum_set_to_list A) = A"
+    apply(induction A rule: enum_set_to_list.induct)
+    apply(case_tac "S = {}")
+     apply(simp add: enum_set_to_list.simps; fail)
+    apply(simp)
+    apply(subst enum_set_to_list_simps)
+    apply(simp)
+    apply(drule enum_set_get_one_enum_Ex_Some)
+    apply(clarify)
+    apply(simp)
+    apply(drule enum_set_get_one_enum_Some)
+    by blast
+  
 
 lemma "list_toString bool_toString (enum_set_to_list {True, False}) = ''[False, True]''" by eval
 
