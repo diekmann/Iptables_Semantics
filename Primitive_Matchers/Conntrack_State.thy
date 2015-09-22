@@ -91,7 +91,7 @@ fun ctstate_toString :: "ctstate \<Rightarrow> string" where
 
 
 definition ctstate_set_toString :: "ctstate set \<Rightarrow> string" where
-  "ctstate_set_toString S = list_separated_toString '','' id (enum_set_toString_list ctstate_toString S)"
+  "ctstate_set_toString S = list_separated_toString '','' ctstate_toString (enum_set_to_list S)"
 
 lemma "ctstate_set_toString {CT_New, CT_New, CT_Established} = ''NEW,ESTABLISHED''" by eval
 

@@ -33,47 +33,47 @@ fun bool_toString :: "bool \<Rightarrow> string" where
   "bool_toString False = ''False''"
 
 subsection{*Enum set to string*}
-  fun enum_one_in_set_toString :: "('a \<Rightarrow> string) \<Rightarrow> 'a list \<Rightarrow> 'a set \<Rightarrow> (string \<times> 'a set option)" where
-    "enum_one_in_set_toString _     []     S = ('''', None)" |
-    "enum_one_in_set_toString toStr (s#ss) S = (if s \<in> S then (toStr s, Some (S - {s})) else enum_one_in_set_toString toStr ss S)"
+  fun enum_set_get_one :: "'a list \<Rightarrow> 'a set \<Rightarrow> ('a option \<times> 'a set option)" where
+    "enum_set_get_one []     S = (None, None)" |
+    "enum_set_get_one (s#ss) S = (if s \<in> S then (Some s, Some (S - {s})) else enum_set_get_one ss S)"
 
-  lemma enum_one_in_set_toString_finite_card_le: "finite S \<Longrightarrow> (x, Some S') = enum_one_in_set_toString toStr ss S \<Longrightarrow> card S' < card S"
+  lemma enum_one_in_set_toString_finite_card_le: "finite S \<Longrightarrow> (x, Some S') = enum_set_get_one ss S \<Longrightarrow> card S' < card S"
     apply(induction ss)
      apply(simp)
     apply(simp split: split_if_asm)
     by (metis card_gt_0_iff diff_less equals0D lessI)
 
-  lemma enum_one_in_set_toString_empty: "enum_one_in_set_toString toStr ss {} = ('''', None)"
+  lemma enum_one_in_set_toString_empty: "enum_set_get_one ss {} = (None, None)"
     by(induction ss) simp_all
   
-  lemma enum_one_in_set_toString_None: "enum_one_in_set_toString ctstate_toString ss S = (x, None) \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> S = {}"
+  lemma enum_one_in_set_toString_None: "enum_set_get_one ss S = (x, None) \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> S = {}"
     apply(induction ss)
      apply(simp)
     apply(simp split: split_if_asm)
     by blast
   
-  lemma enum_one_in_set_toString_Some_singleton: "enum_one_in_set_toString toStr ss S = (x, Some {}) \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> \<exists>a. S = {a} \<and> toStr a = x"
+  lemma enum_one_in_set_toString_Some_singleton: "enum_set_get_one ss S = (x, Some {}) \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> \<exists>a. S = {a} \<and> Some a = x"
     apply(induction ss)
      apply(simp)
     apply(simp split: split_if_asm)
      apply blast
     by blast
 
-  lemma enum_one_in_set_toString_Some: "enum_one_in_set_toString toStr ss S = (x, Some S') \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> \<exists>a. S' = S - {a} \<and> toStr a = x"
+  lemma enum_one_in_set_toString_Some: "enum_set_get_one ss S = (x, Some S') \<Longrightarrow> S \<subseteq> set ss \<Longrightarrow> \<exists>a. S' = S - {a} \<and> Some a = x"
     apply(induction ss)
      apply(simp)
     apply(simp split: split_if_asm)
      apply blast
     by blast
   
-  function enum_set_toString_list :: "('a \<Rightarrow> string) \<Rightarrow> ('a::enum) set \<Rightarrow> string list" where
-    "enum_set_toString_list toStr S = (if S = {} then [] else
-      case enum_one_in_set_toString toStr (Enum.enum) S of (_, None) \<Rightarrow> []
-                                               |  (str, Some S') \<Rightarrow> str#enum_set_toString_list toStr S')"
+  function enum_set_to_list :: "('a::enum) set \<Rightarrow> 'a list" where
+    "enum_set_to_list S = (if S = {} then [] else
+      case enum_set_get_one (Enum.enum) S of (_, None) \<Rightarrow> []
+                                          |  (Some a, Some S') \<Rightarrow> a#enum_set_to_list S')"
   by(pat_completeness) auto
   
-  termination enum_set_toString_list
-    apply(relation "measure (\<lambda>(_,S). card S)")
+  termination enum_set_to_list
+    apply(relation "measure (\<lambda>(S). card S)")
      apply(simp_all add: card_gt_0_iff enum_one_in_set_toString_finite_card_le)
     done
 
@@ -82,24 +82,19 @@ subsection{*Enum set to string*}
     by(simp add: enum_UNIV)
 
   (*this definition is simpler*)
-  lemma enum_set_toString_list_simps: "enum_set_toString_list toStr S =
-      (case enum_one_in_set_toString toStr (Enum.enum) S of (_, None) \<Rightarrow> []
-                                                         |  (str, Some S') \<Rightarrow> str#enum_set_toString_list toStr S')"
+  lemma enum_set_to_list_simps: "enum_set_to_list S =
+      (case enum_set_get_one (Enum.enum) S of (_, None) \<Rightarrow> []
+                                           |  (Some a, Some S') \<Rightarrow> a#enum_set_to_list  S')"
    apply(simp)
    apply(intro conjI impI)
-    apply(case_tac "enum_one_in_set_toString toStr enum_class.enum S")
+    apply(case_tac "enum_set_get_one enum_class.enum S")
     apply(rename_tac a b)
     apply(case_tac b)
-     apply(simp; fail)
+     apply(simp split: option.split; fail)
     apply(simp)
     apply (metis card_0_eq enum_one_in_set_toString_finite_card_le finite.emptyI not_less0)
-   apply(case_tac "enum_one_in_set_toString toStr enum_class.enum S")
-   apply(rename_tac a b)
-   apply(case_tac b)
-    apply(simp; fail)
-   apply(simp)
    done
-  declare enum_set_toString_list.simps[simp del]
+  declare enum_set_to_list.simps[simp del]
 
   (*lemma "finite S \<Longrightarrow> length (enum_set_toString_list toStr S) = card S"
   apply(induction S rule: finite.induct)
@@ -136,7 +131,7 @@ subsection{*Enum set to string*}
    enum_one_in_set_toString_None[where ss=enum_class.enum, simplified enum_UNIV] *)
 
   (*apply(induction toStr S rule: enum_set_toString_list.induct)*)
-    apply(simp)
+  (*  apply(simp)
     apply(clarify)
     apply(case_tac "enum_one_in_set_toString toStr enum_class.enum S")
     apply(rename_tac a b)
@@ -152,9 +147,9 @@ subsection{*Enum set to string*}
      using enum_one_in_set_toString_Some_singleton[where ss=enum_class.enum, simplified enum_UNIV] apply fastforce
     apply(clarify)
     apply(simp)
-   oops
+   oops*)
    
 
-lemma "list_toString id (enum_set_toString_list bool_toString {True, False}) = ''[False, True]''" by eval
+lemma "list_toString bool_toString (enum_set_to_list {True, False}) = ''[False, True]''" by eval
 
 end
