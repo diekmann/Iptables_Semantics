@@ -1,5 +1,5 @@
 theory Conntrack_State
-imports "../Common/Negation_Type"
+imports "../Common/Negation_Type" "../Common/Lib_toString"
 begin
 
 
@@ -39,14 +39,9 @@ qed
 lemma "finite (S :: ctstate set)" by simp
 
 termination ctstate_set_toString_list
-apply (relation "measure (\<lambda>(S). card S)")
-apply(simp_all add: card_gt_0_iff)
-done
-
-definition ctstate_set_toString :: "ctstate set \<Rightarrow> string" where
-  "ctstate_set_toString S = concat (splice (ctstate_set_toString_list S) (replicate (length (ctstate_set_toString_list S) - 1) '',''))"
-
-value[code] "ctstate_set_toString {CT_New, CT_New, CT_Established}"
+  apply(relation "measure (\<lambda>(S). card S)")
+  apply(simp_all add: card_gt_0_iff)
+  done
 
 
 instantiation "ctstate" :: enum
@@ -85,5 +80,20 @@ lemma ctstate_is_UNIV: "ctstate_is_UNIV c \<longleftrightarrow> c = UNIV"
 
 
 value[code] "ctstate_is_UNIV {CT_Established}"
+
+
+
+fun ctstate_toString :: "ctstate \<Rightarrow> string" where
+  "ctstate_toString CT_New = ''NEW''" |
+  "ctstate_toString CT_Established = ''ESTABLISHED''" |
+  "ctstate_toString CT_Related = ''RELATED''" |
+  "ctstate_toString CT_Untracked = ''UNTRACKED''"
+
+
+definition ctstate_set_toString :: "ctstate set \<Rightarrow> string" where
+  "ctstate_set_toString S = list_separated_toString '','' ctstate_toString (enum_set_to_list S)"
+
+lemma "ctstate_set_toString {CT_New, CT_New, CT_Established} = ''NEW,ESTABLISHED''" by eval
+
 
 end

@@ -111,7 +111,7 @@ section{*TCP flags*}
 
 
   definition ipt_tcp_flags_toString :: "tcp_flag set \<Rightarrow> char list" where
-    "ipt_tcp_flags_toString flags \<equiv> list_toString id (enum_set_toString_list tcp_flag_toString flags)"
+    "ipt_tcp_flags_toString flags \<equiv> list_toString tcp_flag_toString (enum_set_to_list flags)"
 
   lemma "ipt_tcp_flags_toString {TCP_SYN,TCP_SYN,TCP_ACK} = ''[TCP_SYN, TCP_ACK]''" by eval
 end
