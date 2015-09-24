@@ -96,7 +96,9 @@ definition lower_closure :: "common_primitive rule list \<Rightarrow> common_pri
 text{*putting it all together*}
 lemma transform_upper_closure:
   assumes simplers: "simple_ruleset rs"
+  -- "semantics are preserved"
   shows "(common_matcher, in_doubt_allow),p\<turnstile> \<langle>upper_closure rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+  -- "simple, normalized rules without unknowns"
   and "Rule m a \<in> set (upper_closure rs) \<Longrightarrow>
         (a = action.Accept \<or> a = action.Drop) \<and>
          normalized_nnf_match m \<and>
@@ -105,6 +107,9 @@ lemma transform_upper_closure:
          normalized_src_ips m \<and>
          normalized_dst_ips m \<and>
          \<not> has_disc is_Extra m"
+  -- "no new primitives are introduced"
+  and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
+        \<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (upper_closure rs). \<not> has_disc disc m"
   proof -
     show "Rule m a \<in> set (upper_closure rs) \<Longrightarrow>
         (a = action.Accept \<or> a = action.Drop) \<and>
@@ -150,6 +155,24 @@ lemma transform_upper_closure:
     apply(simp add: normalized_src_ports_def2 normalized_dst_ports_def2 normalized_src_ips_def2 normalized_dst_ips_def2)
     apply(intro conjI)
           apply fastforce+
+    done
+
+
+    show "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
+            \<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (upper_closure rs). \<not> has_disc disc m"
+    using simplers
+    unfolding upper_closure_def
+    apply - 
+    apply(frule(1) transform_remove_unknowns_upper(3)[where disc=disc])
+    apply(drule transform_remove_unknowns_upper(2))
+    apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_allow, where disc=disc])
+    apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_allow])
+    apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_allow])
+    apply(frule(1) transform_normalize_primitives(3)[OF _ wf_in_doubt_allow, of _ disc])
+         apply(simp_all)[5]
+    apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_allow], simp)
+    apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_allow, where disc=disc])
+    apply(simp add: remdups_rev_set)
     done
 
 
