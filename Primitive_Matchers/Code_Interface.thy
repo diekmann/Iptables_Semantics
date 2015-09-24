@@ -93,11 +93,18 @@ definition lower_closure :: "common_primitive rule list \<Rightarrow> common_pri
       (transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a lower_closure_matchexpr rs))))"
 
 
-lemma "simple_ruleset rs \<Longrightarrow> check_simple_fw_preconditions (upper_closure (ctstate_assume_new rs))"
-  apply(simp add: check_simple_fw_preconditions_def)
-  apply(clarify)
-  apply(rename_tac r, case_tac r, rename_tac m a)
-  apply(simp)
+
+lemma transform_upper_closure_ctstate_assume_new:
+  defines "upper rs \<equiv> (transform_optimize_dnf_strict
+         (transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a upper_closure_matchexpr (ctstate_assume_new rs)))))"
+  shows "simple_ruleset rs \<Longrightarrow> Rule m a \<in> set (upper_closure (ctstate_assume_new rs)) \<Longrightarrow>
+        (a = action.Accept \<or> a = action.Drop) \<and>
+         normalized_nnf_match m \<and>
+         normalized_src_ports m \<and>
+         normalized_dst_ports m \<and>
+         normalized_src_ips m \<and>
+         normalized_dst_ips m \<and>
+          \<not> has_disc is_Extra m"
   apply(drule ctstate_assume_new_simple_ruleset)
   unfolding upper_closure_def
   apply(simp add: remdups_rev_set)
@@ -114,15 +121,28 @@ lemma "simple_ruleset rs \<Longrightarrow> check_simple_fw_preconditions (upper_
   apply(thin_tac "\<forall>m\<in>get_match ` set (transform_optimize_dnf_strict (optimize_matches_a upper_closure_matchexpr (ctstate_assume_new rs))). \<not> has_disc is_Extra m")
   apply(frule(1) transform_normalize_primitives(5)[OF _ wf_in_doubt_allow])
   apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_allow], simp)
-
+  thm transform_optimize_dnf_strict[OF _ wf_in_doubt_allow]
   apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_allow, where disc=is_Extra])
   apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_allow])
+  apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_allow, of _ "(is_Src_Ports, src_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
+   apply(simp add: normalized_src_ports_def2; fail)
+  apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_allow, of _ "(is_Dst_Ports, dst_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
+   apply(simp add: normalized_dst_ports_def2; fail)
+  apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_allow, of _ "(is_Src, src_sel)" normalized_cidr_ip])
+   apply(simp add: normalized_src_ips_def2; fail)
+  apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_allow, of _ "(is_Dst, dst_sel)" normalized_cidr_ip])
+   apply(simp add: normalized_dst_ips_def2; fail)
   apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_allow])
+  apply(simp add: upper_def[symmetric])
   apply(subgoal_tac "(a = action.Accept \<or> a = action.Drop)")
    prefer 2
    apply(simp_all add: simple_ruleset_def)
    apply fastforce
-  oops
+  apply(simp add: normalized_src_ports_def2 normalized_dst_ports_def2 normalized_src_ips_def2 normalized_dst_ips_def2)
+  apply(intro conjI)
+        apply fastforce+
+  done
+  
 
 (*
 definition port_to_nat :: "16 word \<Rightarrow> nat" where
