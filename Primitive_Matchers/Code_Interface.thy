@@ -109,7 +109,7 @@ lemma transform_upper_closure:
          \<not> has_disc is_Extra m"
   -- "no new primitives are introduced"
   and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
-        \<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (upper_closure rs). \<not> has_disc disc m"
+        \<forall> r \<in> get_match ` set rs. \<not> has_disc disc r \<Longrightarrow> \<forall> r \<in> get_match ` set (upper_closure rs). \<not> has_disc disc r"
   proof -
     show "Rule m a \<in> set (upper_closure rs) \<Longrightarrow>
         (a = action.Accept \<or> a = action.Drop) \<and>
@@ -193,6 +193,41 @@ lemma transform_upper_closure:
     using approximating_bigstep_fun_remdups_rev
     by (simp add: approximating_bigstep_fun_remdups_rev approximating_semantics_iff_fun_good_ruleset remdups_rev_simplers simple_imp_good_ruleset) 
   qed
+
+  
+lemma ctstate_assume_new_not_has_CT_State:
+  "m \<in> get_match ` set (ctstate_assume_new rs) \<Longrightarrow> \<not> has_disc is_CT_State m"
+  apply(simp add: ctstate_assume_new_def)
+  apply(induction rs)
+   apply(simp add: optimize_matches_def; fail)
+  apply(simp add: optimize_matches_def)
+  apply(safe)
+   apply(simp_all add: not_hasdisc_ctstate_assume_state)
+  done
+  
+
+lemma assumes simplers: "simple_ruleset rs"
+  shows "check_simple_fw_preconditions (upper_closure (ctstate_assume_new rs))"
+  unfolding check_simple_fw_preconditions_def
+  apply(clarify, rename_tac r, case_tac r, rename_tac m a, simp)
+  proof -
+    fix m a
+    assume r: "Rule m a \<in> set (upper_closure (ctstate_assume_new rs))"
+    from ctstate_assume_new_simple_ruleset[OF simplers] have s: "simple_ruleset (ctstate_assume_new rs)" .
+    from transform_upper_closure(3)[OF s, where disc=is_CT_State] r ctstate_assume_new_not_has_CT_State have "\<not> has_disc is_CT_State m"
+      by fastforce
+    
+    with transform_upper_closure(2)[OF s r]
+    show "normalized_src_ports m \<and>
+             normalized_dst_ports m \<and>
+             normalized_src_ips m \<and>
+             normalized_dst_ips m \<and>
+             normalized_ifaces m \<and>
+             normalized_protocols m \<and> \<not> has_disc is_L4_Flags m \<and> \<not> has_disc is_CT_State m \<and> \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop)"
+      apply(simp)
+      (*missing: normalized_ifaces m \<and> normalized_protocols m \<and> \<not> has_disc is_L4_Flags m
+        add abstract_primitive*)
+oops
 
 (*
 definition port_to_nat :: "16 word \<Rightarrow> nat" where
