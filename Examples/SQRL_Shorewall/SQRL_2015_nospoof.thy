@@ -92,7 +92,7 @@ section{*Example: Implementing spoofing protection*}
     We use @{const in_doubt_deny} to be absolutely sure that these packets will be accepted by the firewall.*}
   definition "ssh_packet_new = \<lparr>p_iiface = ''lup'', p_oiface = ''anything'',
      p_src = ipv4addr_of_dotdecimal (123,123,123,123), p_dst = ipv4addr_of_dotdecimal (131,159,14,9),
-     p_proto = TCP, p_sport = 12345, p_dport = 22, p_tag_ctstate = CT_New\<rparr>"
+     p_proto = TCP, p_sport = 12345, p_dport = 22, p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New\<rparr>"
 
   definition "ssh_packet_established = ssh_packet_new\<lparr>p_tag_ctstate := CT_Established\<rparr>"
 

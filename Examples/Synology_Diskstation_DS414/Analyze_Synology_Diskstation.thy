@@ -111,21 +111,21 @@ lemma "unfold_ruleset_INPUT action.Accept example_ruleset =
   text{*packets from the local LAN are allowed (@{const in_doubt_allow})*}
   lemma "approximating_bigstep_fun (common_matcher, in_doubt_allow)
     \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (8,8,8,8),
-         p_proto=TCP, p_sport=2065, p_dport=80, p_tag_ctstate = CT_New\<rparr>
+         p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New\<rparr>
         (unfold_ruleset_INPUT action.Accept example_ruleset)
         Undecided = Decision FinalAllow" by eval
 
   text{*However, they might also be rate-limited, ... (we don't know about icmp)*}
   lemma "approximating_bigstep_fun (common_matcher, in_doubt_deny)
     \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (8,8,8,8),
-         p_proto=TCP, p_sport=2065, p_dport=80, p_tag_ctstate = CT_New\<rparr>
+         p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New\<rparr>
         (unfold_ruleset_INPUT action.Accept example_ruleset)
         Undecided = Decision FinalDeny" by eval
   
   text{*But we can guarantee that packets from the outside are blocked!*}
   lemma "approximating_bigstep_fun (common_matcher, in_doubt_allow)
     \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (8,8,8,8), p_dst= 0, p_proto=TCP, p_sport=2065, p_dport=80,
-     p_tag_ctstate = CT_New\<rparr> 
+     p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New\<rparr> 
         (unfold_ruleset_INPUT action.Accept example_ruleset)
         Undecided = Decision FinalDeny" by eval
 
@@ -150,10 +150,10 @@ apply(subst rmshadow.simps)
 apply(simp del: rmshadow.simps)
 apply(simp add: Matching_Ternary.matches_def)
 apply(intro conjI impI)
- apply(rule_tac x="\<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (8,8,8,8), p_dst= 0, p_proto=TCP, p_sport=2065, p_dport=80, p_tag_ctstate = CT_New\<rparr> " in exI)
+ apply(rule_tac x="\<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (8,8,8,8), p_dst= 0, p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New\<rparr> " in exI)
  apply(simp add: ipv4addr_of_dotdecimal.simps ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def Let_def ipv4addr_of_nat_def)
 apply(thin_tac "\<exists>p. x p" for x)
-apply(rule_tac x="\<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,8,8), p_dst= 0, p_proto=TCP, p_sport=2065, p_dport=80, p_tag_ctstate = CT_New\<rparr> " in exI)
+apply(rule_tac x="\<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,8,8), p_dst= 0, p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New\<rparr> " in exI)
 apply(simp add: ipv4addr_of_dotdecimal.simps ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def Let_def ipv4addr_of_nat_def)
 done(*>*)
 
