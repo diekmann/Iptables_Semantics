@@ -1,5 +1,5 @@
 theory SimpleFw_Compliance
-imports SimpleFw_Semantics "../Primitive_Matchers/Transform"
+imports SimpleFw_Semantics "../Primitive_Matchers/Transform" "../Primitive_Matchers/Primitive_Abstract"
 begin
 
 fun ipv4_word_netmask_to_ipt_ipv4range :: "(ipv4addr \<times> nat) \<Rightarrow> ipt_ipv4range" where
@@ -301,6 +301,7 @@ definition check_simple_fw_preconditions :: "common_primitive rule list \<Righta
       \<not> has_disc is_CT_State m \<and>
       \<not> has_disc is_Extra m \<and>
       (a = action.Accept \<or> a = action.Drop))"
+
 
 definition to_simple_firewall :: "common_primitive rule list \<Rightarrow> simple_rule list" where
   "to_simple_firewall rs \<equiv> if check_simple_fw_preconditions rs then
