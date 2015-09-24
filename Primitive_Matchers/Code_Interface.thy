@@ -98,10 +98,9 @@ lemma transform_upper_closure:
   assumes simplers: "simple_ruleset rs"
   -- "semantics are preserved"
   shows "(common_matcher, in_doubt_allow),p\<turnstile> \<langle>upper_closure rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+  and "simple_ruleset (upper_closure rs)"
   -- "simple, normalized rules without unknowns"
-  and "Rule m a \<in> set (upper_closure rs) \<Longrightarrow>
-        (a = action.Accept \<or> a = action.Drop) \<and>
-         normalized_nnf_match m \<and>
+  and "\<forall> m \<in> get_match ` set (upper_closure rs). normalized_nnf_match m \<and>
          normalized_src_ports m \<and>
          normalized_dst_ports m \<and>
          normalized_src_ips m \<and>
@@ -111,52 +110,76 @@ lemma transform_upper_closure:
   and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
         \<forall> r \<in> get_match ` set rs. \<not> has_disc disc r \<Longrightarrow> \<forall> r \<in> get_match ` set (upper_closure rs). \<not> has_disc disc r"
   proof -
-    show "Rule m a \<in> set (upper_closure rs) \<Longrightarrow>
-        (a = action.Accept \<or> a = action.Drop) \<and>
-         normalized_nnf_match m \<and>
+    { fix m a
+        have "Rule m a \<in> set (upper_closure rs) \<Longrightarrow>
+            (a = action.Accept \<or> a = action.Drop) \<and>
+             normalized_nnf_match m \<and>
+             normalized_src_ports m \<and>
+             normalized_dst_ports m \<and>
+             normalized_src_ips m \<and>
+             normalized_dst_ips m \<and>
+              \<not> has_disc is_Extra m"
+        using simplers
+        unfolding upper_closure_def
+        apply(simp add: remdups_rev_set)
+        apply(frule transform_remove_unknowns_upper(4))
+        apply(drule transform_remove_unknowns_upper(2))
+        thm transform_optimize_dnf_strict[OF _ wf_in_doubt_allow]
+        apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_allow, where disc=is_Extra])
+        apply(thin_tac "\<forall>m\<in>get_match ` set (optimize_matches_a upper_closure_matchexpr rs). \<not> has_disc is_Extra m")
+        apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_allow])
+        apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_allow])
+        thm transform_normalize_primitives[OF _ wf_in_doubt_allow]
+        apply(frule(1) transform_normalize_primitives(3)[OF _ wf_in_doubt_allow, of _ is_Extra])
+            apply(simp_all)[5]
+        apply(thin_tac "\<forall>m\<in>get_match ` set (transform_optimize_dnf_strict (optimize_matches_a upper_closure_matchexpr rs)). \<not> has_disc is_Extra m")
+        apply(frule(1) transform_normalize_primitives(5)[OF _ wf_in_doubt_allow])
+        apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_allow], simp)
+        thm transform_optimize_dnf_strict[OF _ wf_in_doubt_allow]
+        apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_allow, where disc=is_Extra])
+        apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_allow])
+        apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_allow, of _ "(is_Src_Ports, src_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
+         apply(simp add: normalized_src_ports_def2; fail)
+        apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_allow, of _ "(is_Dst_Ports, dst_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
+         apply(simp add: normalized_dst_ports_def2; fail)
+        apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_allow, of _ "(is_Src, src_sel)" normalized_cidr_ip])
+         apply(simp add: normalized_src_ips_def2; fail)
+        apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_allow, of _ "(is_Dst, dst_sel)" normalized_cidr_ip])
+         apply(simp add: normalized_dst_ips_def2; fail)
+        apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_allow])
+        apply(simp)
+        apply(subgoal_tac "(a = action.Accept \<or> a = action.Drop)")
+         prefer 2
+         apply(simp_all add: simple_ruleset_def)
+         apply fastforce
+        apply(simp add: normalized_src_ports_def2 normalized_dst_ports_def2 normalized_src_ips_def2 normalized_dst_ips_def2)
+        apply(intro conjI)
+              apply fastforce+
+        done
+    } note 1=this
+
+    from 1 show "simple_ruleset (upper_closure rs)"
+      apply(simp add: simple_ruleset_def)
+      apply(clarify)
+      apply(rename_tac r)
+      apply(case_tac r)
+      apply(simp)
+      by blast
+
+
+    from 1 show "\<forall> m \<in> get_match ` set (upper_closure rs). normalized_nnf_match m \<and>
          normalized_src_ports m \<and>
          normalized_dst_ports m \<and>
          normalized_src_ips m \<and>
          normalized_dst_ips m \<and>
-          \<not> has_disc is_Extra m"
-    using simplers
-    unfolding upper_closure_def
-    apply(simp add: remdups_rev_set)
-    apply(frule transform_remove_unknowns_upper(4))
-    apply(drule transform_remove_unknowns_upper(2))
-    thm transform_optimize_dnf_strict[OF _ wf_in_doubt_allow]
-    apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_allow, where disc=is_Extra])
-    apply(thin_tac "\<forall>m\<in>get_match ` set (optimize_matches_a upper_closure_matchexpr rs). \<not> has_disc is_Extra m")
-    apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_allow])
-    apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_allow])
-    thm transform_normalize_primitives[OF _ wf_in_doubt_allow]
-    apply(frule(1) transform_normalize_primitives(3)[OF _ wf_in_doubt_allow, of _ is_Extra])
-        apply(simp_all)[5]
-    apply(thin_tac "\<forall>m\<in>get_match ` set (transform_optimize_dnf_strict (optimize_matches_a upper_closure_matchexpr rs)). \<not> has_disc is_Extra m")
-    apply(frule(1) transform_normalize_primitives(5)[OF _ wf_in_doubt_allow])
-    apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_allow], simp)
-    thm transform_optimize_dnf_strict[OF _ wf_in_doubt_allow]
-    apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_allow, where disc=is_Extra])
-    apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_allow])
-    apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_allow, of _ "(is_Src_Ports, src_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
-     apply(simp add: normalized_src_ports_def2; fail)
-    apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_allow, of _ "(is_Dst_Ports, dst_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
-     apply(simp add: normalized_dst_ports_def2; fail)
-    apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_allow, of _ "(is_Src, src_sel)" normalized_cidr_ip])
-     apply(simp add: normalized_src_ips_def2; fail)
-    apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_allow, of _ "(is_Dst, dst_sel)" normalized_cidr_ip])
-     apply(simp add: normalized_dst_ips_def2; fail)
-    apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_allow])
-    apply(simp)
-    apply(subgoal_tac "(a = action.Accept \<or> a = action.Drop)")
-     prefer 2
-     apply(simp_all add: simple_ruleset_def)
-     apply fastforce
-    apply(simp add: normalized_src_ports_def2 normalized_dst_ports_def2 normalized_src_ips_def2 normalized_dst_ips_def2)
-    apply(intro conjI)
-          apply fastforce+
-    done
-
+         \<not> has_disc is_Extra m"
+      apply(simp)
+      apply(clarify)
+      apply(rename_tac r)
+      apply(case_tac r)
+      apply(simp)
+      done
+      
 
     show "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
             \<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (upper_closure rs). \<not> has_disc disc m"
@@ -207,17 +230,21 @@ lemma ctstate_assume_new_not_has_CT_State:
   
 
 lemma assumes simplers: "simple_ruleset rs"
-  shows "check_simple_fw_preconditions (upper_closure (ctstate_assume_new rs))"
+  shows "check_simple_fw_preconditions (optimize_matches abstract_for_simple_firewall (upper_closure (ctstate_assume_new rs)))"
   unfolding check_simple_fw_preconditions_def
   apply(clarify, rename_tac r, case_tac r, rename_tac m a, simp)
   proof -
     fix m a
-    assume r: "Rule m a \<in> set (upper_closure (ctstate_assume_new rs))"
-    from ctstate_assume_new_simple_ruleset[OF simplers] have s: "simple_ruleset (ctstate_assume_new rs)" .
-    from transform_upper_closure(3)[OF s, where disc=is_CT_State] r ctstate_assume_new_not_has_CT_State have "\<not> has_disc is_CT_State m"
+    assume r: "Rule m a \<in> set (optimize_matches abstract_for_simple_firewall (upper_closure (ctstate_assume_new rs)))"
+    from ctstate_assume_new_simple_ruleset[OF simplers] have s1: "simple_ruleset (ctstate_assume_new rs)" .
+
+    from transform_upper_closure(2)[OF s1] have s2: "simple_ruleset (upper_closure (ctstate_assume_new rs))" .
+      
+    from transform_upper_closure(4)[OF s1, where disc=is_CT_State] ctstate_assume_new_not_has_CT_State have
+      "\<forall>r\<in>get_match ` set (upper_closure (ctstate_assume_new rs)). \<not> has_disc is_CT_State r"
       by fastforce
     
-    with transform_upper_closure(2)[OF s r]
+    from transform_upper_closure(2)[OF s1 ]
     show "normalized_src_ports m \<and>
              normalized_dst_ports m \<and>
              normalized_src_ips m \<and>
@@ -225,8 +252,10 @@ lemma assumes simplers: "simple_ruleset rs"
              normalized_ifaces m \<and>
              normalized_protocols m \<and> \<not> has_disc is_L4_Flags m \<and> \<not> has_disc is_CT_State m \<and> \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop)"
       apply(simp)
+      apply(simp add: abstract_for_simple_firewall_hasdisc)
       (*missing: normalized_ifaces m \<and> normalized_protocols m \<and> \<not> has_disc is_L4_Flags m
         add abstract_primitive*)
+      thm abstract_for_simple_firewall_hasdisc
 oops
 
 (*
