@@ -23,6 +23,9 @@ definition ctstate_assume_new :: "common_primitive rule list \<Rightarrow> commo
   "ctstate_assume_new \<equiv> optimize_matches (ctstate_assume_state CT_New)"
 
 
+lemma ctstate_assume_new_simple_ruleset: "simple_ruleset rs \<Longrightarrow> simple_ruleset (ctstate_assume_new rs)"
+  by (simp add: ctstate_assume_new_def optimize_matches_simple_ruleset)
+
 text{*Usually, the interesting part of a firewall is only about the rules for setting up connections.
       That means, we mostly only care about packets in state @{const CT_New}.
       Use the function @{const ctstate_assume_new} to remove all state matching and just care about

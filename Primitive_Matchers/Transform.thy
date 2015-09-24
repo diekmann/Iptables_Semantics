@@ -250,6 +250,39 @@ theorem transform_remove_unknowns_generic:
 qed
 
 
+corollary transform_remove_unknowns_upper: defines "upper \<equiv> optimize_matches_a upper_closure_matchexpr"
+   assumes simplers: "simple_ruleset rs"
+    shows "(common_matcher, in_doubt_allow),p\<turnstile> \<langle>upper rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+      and "simple_ruleset (upper rs)"
+      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (upper rs). \<not> has_disc disc m"
+      and "\<forall> m \<in> get_match ` set (upper rs). \<not> has_disc is_Extra m"
+      and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (upper rs). normalized_n_primitive disc_sel f m"
+proof -
+  from simplers have upper: "upper rs = transform_remove_unknowns_generic (common_matcher, in_doubt_allow) rs"
+    apply(simp add: transform_remove_unknowns_generic_def upper_def)
+    apply(erule optimize_matches_a_simple_ruleset_eq)
+    by (simp add: upper_closure_matchexpr_generic)
+  
+  with transform_remove_unknowns_generic[OF simplers wf_in_doubt_allow packet_independent_unknown_match_tacs(1), simplified upper_closure_matchexpr_generic]
+    show "(common_matcher, in_doubt_allow),p\<turnstile> \<langle>upper rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t" 
+      and "simple_ruleset (upper rs)"
+      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (upper rs). \<not> has_disc disc m"
+      and "\<forall> m \<in> get_match ` set (upper rs). \<not> has_disc is_Extra m"
+      and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (upper rs). normalized_n_primitive disc_sel f m"
+    apply -
+        apply(simp;fail)
+       apply(simp;fail)
+      apply presburger
+     using has_unknowns_common_matcher apply auto[1]
+    by (metis packet_independent_unknown_match_tacs(1) simplers transform_remove_unknowns_generic(5) wf_in_doubt_allow)
+qed
+
+
+
 
 subsection{*Normalizing and Transforming Primitives*}
 

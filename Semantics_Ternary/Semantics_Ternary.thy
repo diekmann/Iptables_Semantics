@@ -584,6 +584,14 @@ lemma optimize_matches_a: "\<forall>a m. matches \<gamma> m a = matches \<gamma>
     case (Match \<gamma> p m a rs) thus ?case by(case_tac a)(simp_all add: optimize_matches_a_def)
   qed(simp_all add: optimize_matches_a_def)
 
+lemma optimize_matches_a_simple_ruleset_eq:
+  "simple_ruleset rs \<Longrightarrow> (\<And> m a. a = Accept \<or> a = Drop \<Longrightarrow> f1 a m = f2 a m) \<Longrightarrow> optimize_matches_a f1 rs = optimize_matches_a f2 rs"
+apply(induction rs)
+ apply(simp add: optimize_matches_a_def)
+apply(simp add: optimize_matches_a_def)
+apply(simp add: simple_ruleset_def)
+done
+
 lemma optimize_matches_a_simplers:
   assumes "simple_ruleset rs" and "\<forall>a m. a = Accept \<or> a = Drop \<longrightarrow> matches \<gamma> (f a m) a = matches \<gamma> m a"
   shows "approximating_bigstep_fun \<gamma> p (optimize_matches_a f rs) s = approximating_bigstep_fun \<gamma> p rs s"

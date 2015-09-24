@@ -92,6 +92,38 @@ definition lower_closure :: "common_primitive rule list \<Rightarrow> common_pri
   "lower_closure rs == remdups_rev (transform_optimize_dnf_strict
       (transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a lower_closure_matchexpr rs))))"
 
+
+lemma "simple_ruleset rs \<Longrightarrow> check_simple_fw_preconditions (upper_closure (ctstate_assume_new rs))"
+  apply(simp add: check_simple_fw_preconditions_def)
+  apply(clarify)
+  apply(rename_tac r, case_tac r, rename_tac m a)
+  apply(simp)
+  apply(drule ctstate_assume_new_simple_ruleset)
+  unfolding upper_closure_def
+  apply(simp add: remdups_rev_set)
+  apply(frule transform_remove_unknowns_upper(4))
+  apply(drule transform_remove_unknowns_upper(2))
+  thm transform_optimize_dnf_strict[OF _ wf_in_doubt_allow]
+  apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_allow, where disc=is_Extra])
+  apply(thin_tac "\<forall>m\<in>get_match ` set (optimize_matches_a upper_closure_matchexpr (ctstate_assume_new rs)). \<not> has_disc is_Extra m")
+  apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_allow])
+  apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_allow])
+  thm transform_normalize_primitives[OF _ wf_in_doubt_allow]
+  apply(frule(1) transform_normalize_primitives(3)[OF _ wf_in_doubt_allow, of _ is_Extra])
+      apply(simp_all)[5]
+  apply(thin_tac "\<forall>m\<in>get_match ` set (transform_optimize_dnf_strict (optimize_matches_a upper_closure_matchexpr (ctstate_assume_new rs))). \<not> has_disc is_Extra m")
+  apply(frule(1) transform_normalize_primitives(5)[OF _ wf_in_doubt_allow])
+  apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_allow], simp)
+
+  apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_allow, where disc=is_Extra])
+  apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_allow])
+  apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_allow])
+  apply(subgoal_tac "(a = action.Accept \<or> a = action.Drop)")
+   prefer 2
+   apply(simp_all add: simple_ruleset_def)
+   apply fastforce
+  oops
+
 (*
 definition port_to_nat :: "16 word \<Rightarrow> nat" where
   "port_to_nat p = unat p"
