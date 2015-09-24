@@ -82,7 +82,11 @@ section{*TCP flags*}
     "ipt_tcp_flags_NoMatch \<equiv> TCP_Flags {} {TCP_SYN}"
   lemma ipt_tcp_flags_NoMatch: "\<not> match_tcp_flags ipt_tcp_flags_NoMatch pkt" by(simp add: ipt_tcp_flags_NoMatch_def)
   
-  lemma ipt_tcp_flags_matchany: "match_tcp_flags (TCP_Flags {} {}) pkt" by(simp)
+  definition ipt_tcp_flags_Any :: ipt_tcp_flags where
+    "ipt_tcp_flags_Any \<equiv> TCP_Flags {} {}"
+  lemma ipt_tcp_flags_Any: "match_tcp_flags ipt_tcp_flags_Any pkt" by(simp add: ipt_tcp_flags_Any_def)
+
+  lemma ipt_tcp_flags_Any_isUNIV: "mask = {} \<and> c = {} \<longleftrightarrow> (\<forall>pkt. match_tcp_flags (TCP_Flags mask c) pkt)" by auto
   
   fun match_tcp_flags_conjunct :: "ipt_tcp_flags \<Rightarrow> ipt_tcp_flags \<Rightarrow> ipt_tcp_flags" where
     "match_tcp_flags_conjunct (TCP_Flags mask1 c1) (TCP_Flags mask2 c2) = (

@@ -164,6 +164,7 @@ begin
                    \<not> has_disc is_Prot rest2 \<and>
                    \<not> has_disc is_Src_Ports rest2 \<and>
                    \<not> has_disc is_Dst_Ports rest2 \<and>
+                   \<not> has_disc is_L4_Flags rest2 \<and>
                    \<not> has_disc is_CT_State rest2 \<and>
                    \<not> has_disc is_Extra rest2 \<and> 
                    matcheq_matachAny rest2
@@ -204,6 +205,7 @@ begin
                       \<not> has_disc is_Oiface rest2 \<and>
                       \<not> has_disc is_Prot rest2 \<and>
                       \<not> has_disc is_Src_Ports rest2 \<and> \<not> has_disc is_Dst_Ports rest2 \<and>
+                      \<not> has_disc is_L4_Flags rest2 \<and>
                       \<not> has_disc is_CT_State rest2 \<and>
                       \<not> has_disc is_Extra rest2"
 
@@ -336,6 +338,7 @@ begin
                    \<not> has_disc is_Prot rest2 \<and>
                    \<not> has_disc is_Src_Ports rest2 \<and>
                    \<not> has_disc is_Dst_Ports rest2 \<and>
+                   \<not> has_disc is_L4_Flags rest2 \<and>
                    \<not> has_disc is_CT_State rest2 \<and>
                    \<not> has_disc is_Extra rest2 \<and> 
                    matcheq_matachAny rest2

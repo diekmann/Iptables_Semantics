@@ -209,6 +209,7 @@ theorem common_primitive_match_to_simple_match:
       and "normalized_dst_ips m"
       and "normalized_ifaces m"
       and "normalized_protocols m"
+      and "\<not> has_disc is_L4_Flags m"
       and "\<not> has_disc is_CT_State m"
       and "\<not> has_disc is_Extra m"
   shows "(Some sm = common_primitive_match_to_simple_match m \<longrightarrow> matches (common_matcher, \<alpha>) m a p \<longleftrightarrow> simple_matches sm p) \<and>
@@ -296,6 +297,7 @@ definition check_simple_fw_preconditions :: "common_primitive rule list \<Righta
       normalized_dst_ips m \<and>
       normalized_ifaces m \<and> 
       normalized_protocols m \<and>
+      \<not> has_disc is_L4_Flags m \<and>
       \<not> has_disc is_CT_State m \<and>
       \<not> has_disc is_Extra m \<and>
       (a = action.Accept \<or> a = action.Drop))"
