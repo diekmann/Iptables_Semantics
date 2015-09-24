@@ -31,6 +31,21 @@ definition abstract_for_simple_firewall :: "common_primitive match_expr \<Righta
                 |  Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_CT_State a \<or> is_L4_Flags a)"
 
 
+lemma abstract_primitive_preserves_normalized:
+  "normalized_src_ports m \<Longrightarrow> normalized_src_ports (abstract_primitive disc m)"
+  "normalized_dst_ports m \<Longrightarrow> normalized_dst_ports (abstract_primitive disc m)"
+  "normalized_src_ips m \<Longrightarrow> normalized_src_ips (abstract_primitive disc m)"
+  "normalized_dst_ips m \<Longrightarrow> normalized_dst_ips (abstract_primitive disc m)"
+  apply(induction disc m rule: abstract_primitive.induct)
+  apply(simp_all)
+  done
+lemma abstract_primitive_preserves_nodisc:
+  "\<not> has_disc disc' m \<Longrightarrow> (\<forall>str. \<not> disc' (Extra str)) \<Longrightarrow> \<not> has_disc disc' (abstract_primitive disc m)"
+  apply(induction disc m rule: abstract_primitive.induct)
+  apply(simp_all)
+  done
+
+
 text{*The function @{const ctstate_assume_state} can be used to fix a state and hence remove all state matches from the ruleset.
       It is therefore advisable to create a simple firewall for a fixed state, e.g. with @{const ctstate_assume_new} before
       calling to @{const abstract_for_simple_firewall}.*}

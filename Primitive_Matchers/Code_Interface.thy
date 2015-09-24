@@ -234,17 +234,34 @@ lemma assumes simplers: "simple_ruleset rs"
   unfolding check_simple_fw_preconditions_def
   apply(clarify, rename_tac r, case_tac r, rename_tac m a, simp)
   proof -
+    let ?rs'="optimize_matches abstract_for_simple_firewall (upper_closure (ctstate_assume_new rs))"
     fix m a
-    assume r: "Rule m a \<in> set (optimize_matches abstract_for_simple_firewall (upper_closure (ctstate_assume_new rs)))"
+    assume r: "Rule m a \<in> set ?rs'"
     from ctstate_assume_new_simple_ruleset[OF simplers] have s1: "simple_ruleset (ctstate_assume_new rs)" .
 
     from transform_upper_closure(2)[OF s1] have s2: "simple_ruleset (upper_closure (ctstate_assume_new rs))" .
       
     from transform_upper_closure(4)[OF s1, where disc=is_CT_State] ctstate_assume_new_not_has_CT_State have
-      "\<forall>r\<in>get_match ` set (upper_closure (ctstate_assume_new rs)). \<not> has_disc is_CT_State r"
+      "\<forall>m\<in>get_match ` set (upper_closure (ctstate_assume_new rs)). \<not> has_disc is_CT_State m"
       by fastforce
+    with abstract_primitive_preserves_nodisc[where disc'="is_CT_State"] have "\<forall>m\<in>get_match ` set ?rs'. \<not> has_disc is_CT_State m"
+      apply -
+      apply(rule optimize_matches_preserves)
+      apply(simp add: abstract_for_simple_firewall_def)
+      done
+    with r have no_CT: "\<not> has_disc is_CT_State m" by fastforce
     
-    from transform_upper_closure(2)[OF s1 ]
+    from transform_upper_closure(3)[OF s1] have "\<forall>m\<in>get_match ` set (upper_closure (ctstate_assume_new rs)).
+     normalized_nnf_match m \<and> normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" .
+    
+    with abstract_primitive_preserves_normalized have "\<forall>m\<in>get_match ` set ?rs'.
+        normalized_nnf_match m \<and> normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m (*\<and> \<not> has_disc is_Extra m*)"
+      apply -
+      apply(rule optimize_matches_preserves)
+      apply(simp add: abstract_for_simple_firewall_def)
+      done
+    with r have "normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m" by fastforce
+
     show "normalized_src_ports m \<and>
              normalized_dst_ports m \<and>
              normalized_src_ips m \<and>

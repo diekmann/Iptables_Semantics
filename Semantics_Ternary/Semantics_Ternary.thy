@@ -563,6 +563,11 @@ lemma optimize_matches_generic: "\<forall> r \<in> set rs. P (get_match r) (get_
     case (Match \<gamma> p m a rs) thus ?case by(case_tac a)(simp_all add: optimize_matches_def)
   qed(simp_all add: optimize_matches_def)
 
+lemma optimize_matches_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_match r))) \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches f rs). P m"
+  apply(induction rs)
+   apply(simp add: optimize_matches_def)
+  apply(simp add: optimize_matches_def)
+  done
 
 lemma optimize_matches: "\<forall>m a. matches \<gamma> (f m) a p = matches \<gamma> m a p \<Longrightarrow> approximating_bigstep_fun \<gamma> p (optimize_matches f rs) s = approximating_bigstep_fun \<gamma> p rs s"
   using optimize_matches_generic[where P="\<lambda>_ _. True"] by metis
