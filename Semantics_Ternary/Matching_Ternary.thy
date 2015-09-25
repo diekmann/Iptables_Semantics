@@ -365,6 +365,7 @@ begin
     "has_primitive (MatchAnd m1 m2) = (has_primitive m1 \<or> has_primitive m2)"
 
 
+  (*TODO: fix typo*)
   text{*Is a match expression equal to the @{const MatchAny} expression?
         Only applicable if no primitives are in the expression. *}
   fun matcheq_matachAny :: "'a match_expr \<Rightarrow> bool" where
