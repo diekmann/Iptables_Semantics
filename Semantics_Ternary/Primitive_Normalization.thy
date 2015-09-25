@@ -448,19 +448,16 @@ lemma has_disc_negated_primitive_extractor:
   assumes "normalized_nnf_match m" and "primitive_extractor (disc, sel) m = (as, ms)"
     shows "has_disc_negated disc False m \<longleftrightarrow> (\<exists>a. Neg a \<in> set as)"
     using assms proof(induction m arbitrary: as ms) (*probably rule: primitive_extractor.induct*)
-    print_cases
     case Match thus ?case
        apply(simp split: split_if_asm)
        apply fastforce
        done
     next
-    case MatchNot thus ?case
-       apply(simp)
-       apply(subst has_disc_negated_MatchNot(2))
-       apply(simp add: normalized_nnf_match_MatchNot_D)
-       (*TODO: smt, takes long!*)
-       apply (smt empty_iff empty_set has_disc_negated.simps(2) list.set_intros(1) match_expr.distinct(1) match_expr.distinct(7) match_expr.distinct(9) match_expr.inject(2) normalized_nnf_match.elims(2) primitive_extractor.simps(3) prod.inject)
-       done
+    case (MatchNot m)
+      thus ?case
+      proof(induction m)
+      case Match thus ?case by (simp, fastforce)
+      qed(simp_all)
     next
     case (MatchAnd m1 m2) thus ?case
       apply(cases "primitive_extractor (disc, sel) m1")
@@ -513,6 +510,7 @@ lemma dir1:
   apply(simp add: primitive_extractor_fst_simp2)
   apply blast
  by blast
+(*TODO: the other direction would be nice*)
 corollary dir1': 
     shows "(\<exists>m_DNF \<in> set (normalize_match m). has_disc_negated disc neg m_DNF) \<Longrightarrow> has_disc_negated disc neg m"
  apply(induction m rule: normalize_match.induct)
