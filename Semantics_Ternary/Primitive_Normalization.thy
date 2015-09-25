@@ -39,6 +39,9 @@ lemma has_disc_negated_has_disc: "has_disc_negated disc neg m \<Longrightarrow> 
      apply(simp_all split: split_if_asm)
   by blast
 
+lemma has_disc_negated_positiv_has_disc: "has_disc_negated disc neg m \<or> has_disc_negated disc (\<not> neg) m \<longleftrightarrow> has_disc disc m"
+by(induction disc neg m arbitrary: neg rule:has_disc_negated.induct) auto
+
 
 fun normalized_n_primitive :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> ('b \<Rightarrow> bool) \<Rightarrow> 'a match_expr \<Rightarrow> bool" where
   "normalized_n_primitive _ _ MatchAny = True" |
