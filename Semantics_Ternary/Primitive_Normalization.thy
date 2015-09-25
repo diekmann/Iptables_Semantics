@@ -43,6 +43,13 @@ lemma has_disc_negated_positiv_has_disc: "has_disc_negated disc neg m \<or> has_
 by(induction disc neg m arbitrary: neg rule:has_disc_negated.induct) auto
 
 
+lemma "matches ((\<lambda>x _. bool_to_ternary (disc x)), (\<lambda>_ _. False)) (Match x) a p \<longleftrightarrow> has_disc disc (Match x)"
+apply(simp split: ternaryvalue.split_asm ternaryvalue.split add: matches_case_ternaryvalue_tuple)
+apply(simp add: bool_to_ternary_simps)
+done
+
+
+
 fun normalized_n_primitive :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> ('b \<Rightarrow> bool) \<Rightarrow> 'a match_expr \<Rightarrow> bool" where
   "normalized_n_primitive _ _ MatchAny = True" |
   "normalized_n_primitive (disc, sel) n (Match (P)) = (if disc P then n (sel P) else True)" |
@@ -523,6 +530,15 @@ corollary dir1':
   apply blast
  by blast
 
+
+(*TODO: maybe move?*)
+lemma not_has_disc_opt_MatchAny_match_expr: "\<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (opt_MatchAny_match_expr m)"
+  by(induction m rule: opt_MatchAny_match_expr.induct) simp_all
+lemma not_has_disc_negated_opt_MatchAny_match_expr: "\<not> has_disc_negated disc neg m \<Longrightarrow> \<not> has_disc_negated disc neg (opt_MatchAny_match_expr m)"
+  by(induction m arbitrary: neg rule:opt_MatchAny_match_expr.induct) (simp_all)
+
+lemma not_has_disc_normalize_match: "\<not> has_disc_negated disc neg  m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). \<not> has_disc_negated disc neg m')"
+  by(induction m rule: normalize_match.induct) (safe,auto) (*safe is faster*)
 
 
 
