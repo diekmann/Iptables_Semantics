@@ -175,13 +175,13 @@ text{*As for now, negated interfaces are simply not allowed*}
     "normalized_ifaces (MatchNot (MatchAnd _ _)) = False" |
     "normalized_ifaces (MatchNot _) = True" 
 
-  (*TODO: rewrite the prevoius function using has_disc_negated*)
+  (*TODO: rewrite the previus function using has_disc_negated. Do it now! it is safe!*)
   lemma normalized_ifaces_no_negated_ifaces:
     "normalized_nnf_match m \<Longrightarrow> normalized_ifaces m \<longleftrightarrow> \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False m"
     apply(induction m rule: normalized_ifaces.induct)
     apply(simp_all)
     done
-  (*huu, why does the translation to simple firewall still work?*)
+  (*the translation to simple firewall still works because other conditions (almost) enforce nnf.*)
   value "normalized_ifaces (MatchNot (MatchNot (MatchNot (Match (IIface a)))))"
 
 subsubsection{*Normalizing Protocols*}
@@ -319,7 +319,7 @@ lemma "normalized_src_ports m \<Longrightarrow> normalized_nnf_match m"
 lemma "\<not> matcheq_matchNone m \<Longrightarrow> normalized_src_ports m \<Longrightarrow> normalized_nnf_match m"
   by(induction m rule: normalized_ifaces.induct) (simp_all)
 
-value "check_simple_fw_preconditions [Rule (MatchNot (MatchNot (MatchNot (Match (IIface a))))) action.Accept]"
+value "check_simple_fw_preconditions [Rule (MatchNot (MatchNot (MatchNot (Match (Src a))))) action.Accept]"
 
 
 definition to_simple_firewall :: "common_primitive rule list \<Rightarrow> simple_rule list" where
