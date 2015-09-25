@@ -447,18 +447,27 @@ lemma remove_unknowns_generic_normalized_n_primitive: "normalized_n_primitive di
 lemma has_disc_negated_primitive_extractor:
   assumes "normalized_nnf_match m" and "primitive_extractor (disc, sel) m = (as, ms)"
     shows "has_disc_negated disc False m \<longleftrightarrow> (\<exists>a. Neg a \<in> set as)"
-    using assms apply(induction m arbitrary: as ms) (*probably rule: primitive_extractor.induct*)
-       apply(simp_all split: split_if_asm)
-      apply fastforce
-     apply(subst has_disc_negated_MatchNot(2))
-     apply(simp add: normalized_nnf_match_MatchNot_D)
-     (*TODO: smt, takes long!*)
-     apply (smt empty_iff empty_set has_disc_negated.simps(2) list.set_intros(1) match_expr.distinct(1) match_expr.distinct(7) match_expr.distinct(9) match_expr.inject(2) normalized_nnf_match.elims(2) primitive_extractor.simps(3) prod.inject)
-    apply(case_tac "primitive_extractor (disc, sel) m1")
-    apply(simp)
-    apply(case_tac "primitive_extractor (disc, sel) m2")
-    apply(simp)
-    by auto
+    using assms proof(induction m arbitrary: as ms) (*probably rule: primitive_extractor.induct*)
+    print_cases
+    case Match thus ?case
+       apply(simp split: split_if_asm)
+       apply fastforce
+       done
+    next
+    case MatchNot thus ?case
+       apply(simp)
+       apply(subst has_disc_negated_MatchNot(2))
+       apply(simp add: normalized_nnf_match_MatchNot_D)
+       (*TODO: smt, takes long!*)
+       apply (smt empty_iff empty_set has_disc_negated.simps(2) list.set_intros(1) match_expr.distinct(1) match_expr.distinct(7) match_expr.distinct(9) match_expr.inject(2) normalized_nnf_match.elims(2) primitive_extractor.simps(3) prod.inject)
+       done
+    next
+    case (MatchAnd m1 m2) thus ?case
+      apply(cases "primitive_extractor (disc, sel) m1")
+      apply(cases "primitive_extractor (disc, sel) m2")
+      by auto
+  qed(simp_all split: split_if_asm)
+
 
 lemma primitive_extractor_obtain: obtains as ms  where"primitive_extractor (disc, sel) m = (as, ms)"
   by fastforce
@@ -481,74 +490,19 @@ lemma primitive_extractor_fst_simp2:
   done
 
 
-(*TODO: move*)
-fun matcheq_matchNone :: "'a match_expr \<Rightarrow> bool" where
-  "matcheq_matchNone MatchAny = False" |
-  "matcheq_matchNone (Match _) = False" |
-  "matcheq_matchNone (MatchNot MatchAny) = True" |
-  "matcheq_matchNone (MatchNot (Match _)) = False" |
-  "matcheq_matchNone (MatchNot (MatchNot m)) = matcheq_matchNone m" |
-  "matcheq_matchNone (MatchNot (MatchAnd m1 m2)) \<longleftrightarrow> matcheq_matchNone (MatchNot m1) \<and> matcheq_matchNone (MatchNot m2)" |
-  "matcheq_matchNone (MatchAnd m1 m2) \<longleftrightarrow>  matcheq_matchNone m1 \<or> matcheq_matchNone m2"
-
-thm matcheq_matachAny
-lemma "\<not> has_primitive m \<Longrightarrow> matcheq_matachAny m \<longleftrightarrow> \<not> matcheq_matchNone m"
-  by(induction m rule: matcheq_matchNone.induct)(simp_all)
-
 lemma normalize_match_not_matcheq_matchNone: "\<forall>m' \<in> set (normalize_match m). \<not> matcheq_matchNone m'"
   apply(induction m rule: normalize_match.induct)
         apply(simp_all)
   by blast
  
-lemma normalize_match_not_empty_not_matcheq_matchNone1: "\<not> matcheq_matchNone m \<Longrightarrow> normalize_match m \<noteq> []"
-  apply(induction m rule: normalize_match.induct) 
-        apply simp_all
-  apply clarify
-  apply safe
-   apply simp_all
-  done
-lemma normalize_match_not_empty_not_matcheq_matchNone2: "normalize_match m \<noteq> [] \<Longrightarrow> \<not> matcheq_matchNone m "
-  apply(induction m rule: normalize_match.induct) 
-        apply simp_all
-  apply clarify
-  apply safe
-   apply simp_all
-  apply fastforce+
-  done
+
 lemma normalize_match_empty_iff_matcheq_matchNone: "normalize_match m = [] \<longleftrightarrow> matcheq_matchNone m "
-  using normalize_match_not_empty_not_matcheq_matchNone1 normalize_match_not_empty_not_matcheq_matchNone2 by auto
+  proof(induction m rule: normalize_match.induct) 
+  case 3 thus ?case
+    apply simp by fastforce
+  qed(simp_all)
 
 
-lemma matcheq_matchNone_no_primitive: "\<not> has_primitive m \<Longrightarrow> matcheq_matchNone (MatchNot m) \<longleftrightarrow> \<not> matcheq_matchNone m"
-  by(induction m rule: matcheq_matchNone.induct) (simp_all)
-
-value "normalize_match ( (MatchAnd (Match a) (MatchNot (MatchAnd (Match a) (MatchNot (MatchAny))))))"
-lemma "\<forall>m_DNF\<in>set (normalize_match m). \<not> has_disc_negated disc False m_DNF \<Longrightarrow> normalize_match m \<noteq> [] \<Longrightarrow> \<not> has_disc_negated disc False m"
- apply(induction m rule: normalize_match.induct)
-       apply(simp_all)
-  apply(clarify)
-  apply(simp_all add: primitive_extractor_fst_simp2)
-  apply force
-  apply safe
-   apply simp_all
-   using normalize_match_not_empty_not_matcheq_matchNone 
-  oops
-
-lemma hlp1: assumes a: "\<forall>m_DNF\<in>set (normalize_match m). \<forall>a. Neg a \<notin> set (fst (primitive_extractor (disc, sel) m_DNF))"
-      shows "\<forall>m_DNF\<in>set (normalize_match m). \<not> has_disc_negated disc False m_DNF"
-proof -
-  from a have "\<forall>m_DNF\<in>set (normalize_match m). \<not> has_disc_negated disc False m_DNF"
-    apply(clarify)
-    apply(rename_tac m_DNF)
-    apply(subgoal_tac "normalized_nnf_match m_DNF")
-     prefer 2
-     using normalized_nnf_match_normalize_match apply fastforce
-    apply(drule has_disc_negated_primitive_extractor2[of _ disc sel])
-    apply(simp)
-    done
-  thus ?thesis .
-qed
-    
 
 lemma dir1:
     shows "(\<exists>m_DNF \<in> set (normalize_match m). \<exists>a. Neg a \<in> set (fst (primitive_extractor (disc, sel) m_DNF))) \<Longrightarrow> has_disc_negated disc False m"
@@ -569,105 +523,6 @@ corollary dir1':
  by blast
 
 
-(*spurious nitpick*)
-value "let m = MatchNot (MatchAnd (Match 0) MatchAny); disc = (\<lambda>x::nat. x = 0) in has_disc_negated disc False m"
-value "let m = MatchNot (MatchAnd (Match 0) MatchAny); disc = (\<lambda>x::nat. x = 0) in normalize_match m = []"
-value "let m = MatchNot (MatchAnd (Match 0) MatchAny); disc = (\<lambda>x::nat. x = 0) in  (\<exists>m_DNF \<in> set (normalize_match m). has_disc_negated disc False m_DNF)"
-
-lemma 
-    (*assumes "normalize_match m \<noteq> []"*)(*may be empty if rule cannot match*)
-    shows "has_disc_negated disc neg m \<Longrightarrow> normalize_match m = [] \<or>
-        (\<exists>m_DNF \<in> set (normalize_match m). has_disc_negated disc neg m_DNF)"
- proof(induction disc neg m arbitrary: neg rule: has_disc_negated.induct)
- print_cases
- case 1 thus ?case by simp
- next
- case 2 thus ?case by simp
- next
- case (3 disc neg m)
-  from 3 have "has_disc_negated disc (\<not> neg) m" by simp
-  from 3(1)[OF this] have "normalize_match m = [] \<or> (\<exists>a\<in>set (normalize_match m). has_disc_negated disc (\<not> neg) a)" by simp
-  {
-    assume a: "\<exists>a\<in>set (normalize_match m). has_disc_negated disc (\<not> neg) a"
-    hence "(\<exists>a\<in>set (normalize_match (MatchNot m)). has_disc_negated disc (\<not> neg) (MatchNot a)) \<or>  normalize_match (MatchNot m) = []"
-      proof(induction m rule: normalize_match.induct)
-      print_cases
-      case 3 thus ?case
-        apply (simp)
-        apply(blast)
-        sorry
-      next
-      case (4 m1 m2) thus ?case
-      apply(clarify)
-      apply(rename_tac x)
-      apply(case_tac "x \<in> set (normalize_match (MatchNot m1))")
-       apply simp
-       sorry
-      qed(simp_all)
-       
-    from dir1'[OF a] have "has_disc_negated disc (\<not> neg) m" by simp
-    have "(\<exists>a\<in>set (normalize_match (MatchNot m)). has_disc_negated disc neg a)" sorry
-  }
-  show ?case
-    apply(safe)
-    prefer 2
-    thm dir1'
-    sorry
- next
- case 4 thus ?case by fastforce(*>1s*)
- qed
-       apply(simp_all)
-  prefer 2
-  apply fastforce 
- (* apply fastforce
- apply(elim disjE)
- apply(simp_all)
- apply(elim disjE)
- apply(simp_all)
- prefer 2
- apply blast
- apply(case_tac "has_disc_negated disc True m2")
- apply(simp_all)
- apply(subgoal_tac "\<not>(\<exists>m_DNF \<in> set (normalize_match m2). has_disc_negated disc True m_DNF)")
- prefer 2
- using dir1' apply blast
- apply(simp)
-
- apply(safe)
-    apply(simp_all)
-  *)
- oops
-
-lemma 
-    (*assumes "normalize_match m \<noteq> []"*)(*may be empty if rule cannot match*)
-    shows "has_disc_negated disc False m \<Longrightarrow>  normalize_match m = [] \<or> (*matcheq_matchNone m \<or> *)(*normalize_match m \<noteq> []*) (*normalize_match (MatchNot m) \<noteq> [] \<Longrightarrow> *)
-        (\<exists>m_DNF \<in> set (normalize_match m). \<exists>a. Neg a \<in> set (fst (primitive_extractor (disc, sel) m_DNF)))"
- apply(induction m rule: normalize_match.induct)
-       apply(simp_all)
-     apply(simp_all split: split_if_asm)
-   prefer 2
-   try0
-  (*apply(simp add: primitive_extractor_fst_simp2)
-  apply(safe)
-  apply(simp_all)
-  apply(safe)
-  apply(simp_all)
-  apply(clarify)
-  apply(drule normalize_match_not_empty_not_matcheq_matchNone1)+
-  
-  using last_in_set apply sfastforce (*slow*) defer
- apply(safe)
-    apply(simp_all)
-    apply blast
-   defer
-   defer
-  apply blast
-  apply(drule normalize_match_not_empty_not_matcheq_matchNone)
-  
-  apply(case_tac "normalize_match (MatchNot m1) \<noteq> []")
-   apply(simp_all)
-   apply blast*)
- oops
 
 
 end
