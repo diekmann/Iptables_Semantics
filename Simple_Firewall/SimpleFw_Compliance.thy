@@ -175,6 +175,11 @@ text{*As for now, negated interfaces are simply not allowed*}
     "normalized_ifaces (MatchNot (MatchAnd _ _)) = False" |
     "normalized_ifaces (MatchNot _) = True" 
 
+  lemma normalized_ifaces_no_negated_ifaces:
+    "normalized_nnf_match m \<Longrightarrow> normalized_ifaces m \<longleftrightarrow> \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) m"
+    apply(induction m rule: normalized_ifaces.induct)
+    apply(simp_all)
+    done
 
 subsubsection{*Normalizing Protocols*}
 text{*As for now, negated protocols are simply not allowed*}

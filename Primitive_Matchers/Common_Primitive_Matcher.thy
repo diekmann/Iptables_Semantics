@@ -137,7 +137,10 @@ subsection{*Basic optimisations*}
       -- "can be done but normalization does not work afterwards"*)
     "optimize_primitive_univ (MatchAnd m1 m2) = MatchAnd (optimize_primitive_univ m1) (optimize_primitive_univ m2)" |
     "optimize_primitive_univ MatchAny = MatchAny"
-  
+
+    lemma optimize_primitive_univ_unchanged_primitives:
+    "optimize_primitive_univ (Match a) = (Match a) \<or> optimize_primitive_univ (Match a) = MatchAny"
+      by (induction "(Match a)" rule: optimize_primitive_univ.induct) (auto split: split_if_asm)
   
   lemma optimize_primitive_univ_correct_matchexpr: "matches (common_matcher, \<alpha>) m = matches (common_matcher, \<alpha>) (optimize_primitive_univ m)"
     proof(simp add: fun_eq_iff, clarify, rename_tac a p)

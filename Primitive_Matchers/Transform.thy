@@ -73,6 +73,7 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
       and "\<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_nnf_match m"
       and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_n_primitive disc_sel f m"
+      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc_negated disc m"
   proof -
     let ?\<gamma>="(common_matcher, \<alpha>)"
     let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
@@ -141,6 +142,29 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
       have "\<not> has_disc disc m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). \<not> has_disc disc m')"
       by(induction m rule: normalize_match.induct) (safe,auto) --"need safe, otherwise simplifier loops"
     } ultimately show "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc disc m"
+      using matchpred_rule[of "\<lambda>m. \<not> has_disc disc m"] by fast
+
+    { fix m
+      { fix a have "\<not> has_disc_negated disc (optimize_primitive_univ (Match a))"
+        by (induction "(Match a)" rule: optimize_primitive_univ.induct) (auto split: split_if_asm)
+      }
+      hence "\<not> has_disc_negated disc m \<Longrightarrow> \<not> has_disc_negated disc (optimize_primitive_univ m)"
+      apply(induction disc m rule: has_disc_negated.induct)
+            apply(simp_all)
+      apply(rename_tac a)
+      apply(subgoal_tac "optimize_primitive_univ (Match a) = Match a \<or> optimize_primitive_univ (Match a) = MatchAny")
+       apply safe
+        apply simp_all
+      using optimize_primitive_univ_unchanged_primitives by blast
+    }  moreover { fix m 
+      have "\<not> has_disc_negated disc m \<Longrightarrow> \<not> has_disc_negated disc (opt_MatchAny_match_expr m)"
+      apply(induction disc m rule: has_disc_negated.induct)
+            apply(simp_all)
+        (*TODO!*)
+    }  moreover { fix m
+      have "\<not> has_disc_negated disc m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). \<not> has_disc_negated disc m')"
+      by(induction m rule: normalize_match.induct) (safe,auto) --"need safe, otherwise simplifier loops"
+    } ultimately show "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc_negated disc m"
       using matchpred_rule[of "\<lambda>m. \<not> has_disc disc m"] by fast
    
    { fix P a

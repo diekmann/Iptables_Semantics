@@ -16,6 +16,28 @@ fun has_disc :: "('a \<Rightarrow> bool) \<Rightarrow> 'a match_expr \<Rightarro
   "has_disc disc (MatchNot m) = has_disc disc m" |
   "has_disc disc (MatchAnd m1 m2) = (has_disc disc m1 \<or> has_disc disc m2)"
 
+fun has_disc_negated :: "('a \<Rightarrow> bool) \<Rightarrow> bool \<Rightarrow> 'a match_expr \<Rightarrow> bool" where
+  "has_disc_negated _    _   MatchAny = False" |
+  "has_disc_negated disc neg (Match a) = (if disc a then neg else False)" |
+  "has_disc_negated disc neg (MatchNot m) = has_disc_negated disc (\<not> neg) m" |
+  "has_disc_negated disc neg (MatchAnd m1 m2) = (has_disc_negated disc neg m1 \<or> has_disc_negated disc neg m2)"
+
+lemma "\<not> has_disc_negated (\<lambda>x::nat. x = 0) False (MatchAnd (Match 0) (MatchNot (Match 1)))" by eval
+lemma "has_disc_negated (\<lambda>x::nat. x = 0) False (MatchAnd (Match 0) (MatchNot (Match 0)))" by eval
+lemma "has_disc_negated (\<lambda>x::nat. x = 0) True (MatchAnd (Match 0) (MatchNot (Match 1)))" by eval
+lemma "\<not> has_disc_negated (\<lambda>x::nat. x = 0) True (MatchAnd (Match 1) (MatchNot (Match 0)))" by eval
+lemma "has_disc_negated (\<lambda>x::nat. x = 0) True (MatchAnd (Match 0) (MatchNot (Match 0)))" by eval
+
+-- "We want false on the right hand side, because this is how the algorithm should be started"
+lemma has_disc_negated_MatchNot:
+  "has_disc_negated disc True (MatchNot m) \<longleftrightarrow> has_disc_negated disc False m"
+  "has_disc_negated disc True m \<longleftrightarrow> has_disc_negated disc False (MatchNot m)"
+  by(induction m) (simp_all)
+
+lemma has_disc_negated_has_disc: "has_disc_negated disc neg m \<Longrightarrow> has_disc disc m"
+  apply(induction m arbitrary: neg)
+     apply(simp_all split: split_if_asm)
+  by blast
 
 
 fun normalized_n_primitive :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> ('b \<Rightarrow> bool) \<Rightarrow> 'a match_expr \<Rightarrow> bool" where
@@ -422,5 +444,20 @@ lemma remove_unknowns_generic_normalized_n_primitive: "normalized_n_primitive di
   qed(simp_all)
 
 
+lemma has_disc_negated_primitive_extractor:
+  assumes "normalized_nnf_match m" and "primitive_extractor (disc, sel) m = (as, ms)"
+    shows "has_disc_negated disc False m \<longleftrightarrow> (\<exists>a. Neg a \<in> set as)"
+    using assms apply(induction m arbitrary: as ms) (*TODO: rule primitive_extractor.induct? arbitrary: as ms*)
+       apply(simp_all split: split_if_asm)
+      apply fastforce
+     apply(subst has_disc_negated_MatchNot(2))
+     apply(simp add: normalized_nnf_match_MatchNot_D)
+     apply (smt empty_iff empty_set has_disc_negated.simps(2) list.set_intros(1) match_expr.distinct(1) match_expr.distinct(7) match_expr.distinct(9) match_expr.inject(2) normalized_nnf_match.elims(2) primitive_extractor.simps(3) prod.inject)
+    apply(case_tac "primitive_extractor (disc, sel) m1")
+    apply(simp)
+    apply(case_tac "primitive_extractor (disc, sel) m2")
+    apply(simp)
+    by auto
+    
 
 end

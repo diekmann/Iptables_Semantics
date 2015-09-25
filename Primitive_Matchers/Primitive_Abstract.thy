@@ -36,6 +36,7 @@ lemma abstract_primitive_preserves_normalized:
   "normalized_dst_ports m \<Longrightarrow> normalized_dst_ports (abstract_primitive disc m)"
   "normalized_src_ips m \<Longrightarrow> normalized_src_ips (abstract_primitive disc m)"
   "normalized_dst_ips m \<Longrightarrow> normalized_dst_ips (abstract_primitive disc m)"
+  "normalized_nnf_match m \<Longrightarrow> normalized_nnf_match (abstract_primitive disc m)"
   apply(induction disc m rule: abstract_primitive.induct)
   apply(simp_all)
   done

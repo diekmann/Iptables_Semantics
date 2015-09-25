@@ -84,7 +84,6 @@ definition unfold_ruleset_OUTPUT :: "action \<Rightarrow> common_primitive rules
 
 
 
-
 definition upper_closure :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
   "upper_closure rs == remdups_rev (transform_optimize_dnf_strict
       (transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a upper_closure_matchexpr rs))))"
@@ -229,40 +228,67 @@ lemma ctstate_assume_new_not_has_CT_State:
   done
   
 
+lemma abstract_for_simple_firewall_abstracts_over:
+      "normalized_nnf_match m \<Longrightarrow> normalized_ifaces (abstract_for_simple_firewall m)"
+      "normalized_nnf_match m \<Longrightarrow> normalized_protocols (abstract_for_simple_firewall m)"
+  unfolding abstract_for_simple_firewall_def
+  apply(induction "(\<lambda>r. case r of Pos a \<Rightarrow> is_CT_State a \<or> is_L4_Flags a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_CT_State a \<or> is_L4_Flags a)" m
+                  rule: abstract_primitive.induct)
+  apply(simp_all)
+  apply(rename_tac a, case_tac [!] a)
+  apply(simp_all)
+  done
+
 lemma assumes simplers: "simple_ruleset rs"
-  shows "check_simple_fw_preconditions (optimize_matches abstract_for_simple_firewall (upper_closure (ctstate_assume_new rs)))"
+  shows "check_simple_fw_preconditions (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (ctstate_assume_new rs))))"
   unfolding check_simple_fw_preconditions_def
   apply(clarify, rename_tac r, case_tac r, rename_tac m a, simp)
   proof -
-    let ?rs'="optimize_matches abstract_for_simple_firewall (upper_closure (ctstate_assume_new rs))"
+    let ?rs3="optimize_matches abstract_for_simple_firewall (upper_closure (ctstate_assume_new rs))"
+    let ?rs'="upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (ctstate_assume_new rs)))"
     fix m a
     assume r: "Rule m a \<in> set ?rs'"
     from ctstate_assume_new_simple_ruleset[OF simplers] have s1: "simple_ruleset (ctstate_assume_new rs)" .
-
     from transform_upper_closure(2)[OF s1] have s2: "simple_ruleset (upper_closure (ctstate_assume_new rs))" .
+    from s2 have s3: "simple_ruleset ?rs3" by (simp add: optimize_matches_simple_ruleset) 
+    from transform_upper_closure(2)[OF s3] have s4: "simple_ruleset ?rs'" .
+    with r have a: "(a = action.Accept \<or> a = action.Drop)" by(auto simp add: simple_ruleset_def)
+      
       
     from transform_upper_closure(4)[OF s1, where disc=is_CT_State] ctstate_assume_new_not_has_CT_State have
       "\<forall>m\<in>get_match ` set (upper_closure (ctstate_assume_new rs)). \<not> has_disc is_CT_State m"
       by fastforce
-    with abstract_primitive_preserves_nodisc[where disc'="is_CT_State"] have "\<forall>m\<in>get_match ` set ?rs'. \<not> has_disc is_CT_State m"
+    with abstract_primitive_preserves_nodisc[where disc'="is_CT_State"] have "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc is_CT_State m"
       apply -
       apply(rule optimize_matches_preserves)
       apply(simp add: abstract_for_simple_firewall_def)
       done
+    with transform_upper_closure(4)[OF s3, where disc=is_CT_State] have "\<forall>m\<in>get_match ` set ?rs'. \<not> has_disc is_CT_State m" by fastforce
     with r have no_CT: "\<not> has_disc is_CT_State m" by fastforce
-    
-    from transform_upper_closure(3)[OF s1] have "\<forall>m\<in>get_match ` set (upper_closure (ctstate_assume_new rs)).
+
+
+    from transform_upper_closure(3)[OF s1] have "\<forall>m\<in>get_match ` set (upper_closure (ctstate_assume_new rs)). normalized_nnf_match m" by simp
+    with abstract_for_simple_firewall_abstracts_over have
+      ifaces: "\<forall>m\<in>get_match ` set ?rs3. normalized_ifaces m" and
+      protocols: "\<forall>m\<in>get_match ` set ?rs3. normalized_protocols m" 
+      apply -
+      apply(rule optimize_matches_preserves, simp)+
+      done
+
+    from transform_upper_closure(3)[OF s3] have "\<forall>m\<in>get_match ` set ?rs'.
      normalized_nnf_match m \<and> normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" .
+    with r have normalized: "normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" by fastforce
     
-    with abstract_primitive_preserves_normalized have "\<forall>m\<in>get_match ` set ?rs'.
+    (**TODO: somehow need to push a has_disc_negated through transform_upper_closure**)
+    
+    (*with abstract_primitive_preserves_normalized have "\<forall>m\<in>get_match ` set ?rs3.
         normalized_nnf_match m \<and> normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m (*\<and> \<not> has_disc is_Extra m*)"
       apply -
       apply(rule optimize_matches_preserves)
       apply(simp add: abstract_for_simple_firewall_def)
-      done
-    with r have "normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m" by fastforce
+      done*)
 
-    show "normalized_src_ports m \<and>
+    from no_CT s4 normalized a show "normalized_src_ports m \<and>
              normalized_dst_ports m \<and>
              normalized_src_ips m \<and>
              normalized_dst_ips m \<and>
