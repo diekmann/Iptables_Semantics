@@ -547,7 +547,7 @@ proof -
 qed
     
 
-lemma 
+lemma dir1:
     (*assumes "normalize_match m \<noteq> []"*)(*may be empty if rule cannot match*)
     shows "(\<exists>m_DNF \<in> set (normalize_match m). \<exists>a. Neg a \<in> set (fst (primitive_extractor (disc, sel) m_DNF))) \<Longrightarrow> has_disc_negated disc False m"
  apply(induction m rule: normalize_match.induct)
@@ -557,16 +557,37 @@ lemma
   apply(simp add: primitive_extractor_fst_simp2)
   apply blast
  by blast
+corollary dir1': 
+    shows "(\<exists>m_DNF \<in> set (normalize_match m). has_disc_negated disc neg m_DNF) \<Longrightarrow> has_disc_negated disc neg m"
+ apply(induction m rule: normalize_match.induct)
+       apply(simp_all)
+  apply(clarify)
+  apply(simp add: primitive_extractor_fst_simp2)
+  apply blast
+ by blast
 
 
 
 lemma 
     (*assumes "normalize_match m \<noteq> []"*)(*may be empty if rule cannot match*)
-    shows "has_disc_negated disc False m \<Longrightarrow> normalize_match m = [] \<or> (*has_MatchNot m \<or> *)(*normalize_match m \<noteq> []*) (*normalize_match (MatchNot m) \<noteq> [] \<Longrightarrow> *)
+    shows "has_disc_negated disc False m \<Longrightarrow> normalize_match m = [] \<or>
         (\<exists>m_DNF \<in> set (normalize_match m). has_disc_negated disc False m_DNF)"
  apply(induction m rule: normalize_match.induct)
        apply(simp_all)
   apply fastforce
+ apply(elim disjE)
+ apply(simp_all)
+ apply(elim disjE)
+ apply(simp_all)
+ prefer 2
+ apply blast
+ apply(case_tac "has_disc_negated disc True m2")
+ apply(simp_all)
+ apply(subgoal_tac "\<not>(\<exists>m_DNF \<in> set (normalize_match m2). has_disc_negated disc True m_DNF)")
+ prefer 2
+ using dir1' apply blast
+ apply(simp)
+
  apply(safe)
     apply(simp_all)
   
