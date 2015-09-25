@@ -447,17 +447,62 @@ lemma remove_unknowns_generic_normalized_n_primitive: "normalized_n_primitive di
 lemma has_disc_negated_primitive_extractor:
   assumes "normalized_nnf_match m" and "primitive_extractor (disc, sel) m = (as, ms)"
     shows "has_disc_negated disc False m \<longleftrightarrow> (\<exists>a. Neg a \<in> set as)"
-    using assms apply(induction m arbitrary: as ms) (*TODO: rule primitive_extractor.induct? arbitrary: as ms*)
+    using assms apply(induction m arbitrary: as ms) (*probably rule: primitive_extractor.induct*)
        apply(simp_all split: split_if_asm)
       apply fastforce
      apply(subst has_disc_negated_MatchNot(2))
      apply(simp add: normalized_nnf_match_MatchNot_D)
+     (*TODO: smt*)
      apply (smt empty_iff empty_set has_disc_negated.simps(2) list.set_intros(1) match_expr.distinct(1) match_expr.distinct(7) match_expr.distinct(9) match_expr.inject(2) normalized_nnf_match.elims(2) primitive_extractor.simps(3) prod.inject)
     apply(case_tac "primitive_extractor (disc, sel) m1")
     apply(simp)
     apply(case_tac "primitive_extractor (disc, sel) m2")
     apply(simp)
     by auto
-    
+
+lemma primitive_extractor_obtain: obtains as ms  where"primitive_extractor (disc, sel) m = (as, ms)"
+  by fastforce
+
+lemma has_disc_negated_primitive_extractor2:
+  "normalized_nnf_match m \<Longrightarrow> has_disc_negated disc False m \<longleftrightarrow> (\<exists>a. Neg a \<in> set (fst (primitive_extractor (disc, sel) m)))"
+apply(rule primitive_extractor_obtain[of disc sel m])
+apply(drule(1) has_disc_negated_primitive_extractor[of m disc sel])
+by simp
+
+lemma primitive_extractor_fst_simp: "fst (case primitive_extractor (disc, sel) m_DNF of (as, ms) \<Rightarrow> (as, ms2 ms)) =
+       fst (primitive_extractor (disc, sel) m_DNF)"
+  by(cases "primitive_extractor (disc, sel) m_DNF", simp)
+
+lemma primitive_extractor_fst_simp2: 
+  "fst (case primitive_extractor (disc, sel) m1 of (a1', ms1') \<Rightarrow> case primitive_extractor (disc, sel) m2 of (a2', ms2') \<Rightarrow> (a1' @ a2', m' ms1' ms2')) =
+       fst (primitive_extractor (disc, sel) m1) @ fst (primitive_extractor (disc, sel) m2)"
+  apply(cases "primitive_extractor (disc, sel) m1", simp)
+  apply(cases "primitive_extractor (disc, sel) m2", simp)
+  done
+
+
+lemma 
+    (*assumes "normalize_match m \<noteq> []"*)
+    shows "has_disc_negated disc False m \<longleftrightarrow> (\<exists>m_DNF \<in> set (normalize_match m). \<exists>a. Neg a \<in> set (fst (primitive_extractor (disc, sel) m_DNF)))"
+ using assms apply -
+ apply(induction m rule: normalize_match.induct)
+ apply(simp_all)
+ apply(simp add: primitive_extractor_fst_simp2)
+ prefer 2
+ apply blast
+ 
+ apply rule
+ apply(elim disjE)
+  apply(simp_all)
+  apply(clarify)
+  apply(rule_tac x=m_DNF in bexI)
+   prefer 2 apply(simp; fail)
+  apply(rule_tac x=MatchAny in bexI)
+  apply(simp)
+  apply blast
+  defer
+  defer
+  oops
+
 
 end
