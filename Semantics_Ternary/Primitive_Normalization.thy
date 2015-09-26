@@ -529,6 +529,9 @@ corollary dir1':
   apply(simp add: primitive_extractor_fst_simp2)
   apply blast
  by blast
+text{*@{const has_disc_negated} is a structural property and @{const normalize_match} is a semantical property.
+  @{const normalize_match} removes subexpressions which cannot match. Thus, we cannot show (without complicated assumptions)
+  the opposite direction of @{thm dir1'}, because a negated primitive might occur in a subexpression which will be optimized away.*}
 
 
 (*TODO: maybe move?*)
