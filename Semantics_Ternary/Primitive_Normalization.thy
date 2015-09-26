@@ -110,6 +110,16 @@ text{*
     Together, the first and second part match iff @{text m} matches.
 *}
 
+
+(*unused*)
+lemma primitive_extractor_fst_simp2:
+  fixes m'::"'a match_expr \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr"
+  shows "fst (case primitive_extractor (disc, sel) m1 of (a1', ms1') \<Rightarrow> case primitive_extractor (disc, sel) m2 of (a2', ms2') \<Rightarrow> (a1' @ a2', m' ms1' ms2')) =
+           fst (primitive_extractor (disc, sel) m1) @ fst (primitive_extractor (disc, sel) m2)"
+      apply(cases "primitive_extractor (disc, sel) m1", simp)
+      apply(cases "primitive_extractor (disc, sel) m2", simp)
+      done
+
 theorem primitive_extractor_correct: assumes 
   "normalized_nnf_match m" and "wf_disc_sel (disc, sel) C" and "primitive_extractor (disc, sel) m = (as, ms)" 
   shows "matches \<gamma> (alist_and (NegPos_map C as)) a p \<and> matches \<gamma> ms a p \<longleftrightarrow> matches \<gamma> m a p"
@@ -162,6 +172,31 @@ proof -
        apply(simp split: split_split_asm)
       apply(simp_all)
     done
+qed
+
+
+lemma has_disc_negated_primitive_extractor:
+  assumes "normalized_nnf_match m"
+  shows "has_disc_negated disc False m \<longleftrightarrow> (\<exists>a. Neg a \<in> set (fst (primitive_extractor (disc, sel) m)))"
+proof -
+  obtain as ms where asms: "primitive_extractor (disc, sel) m = (as, ms)" by fastforce
+  hence "has_disc_negated disc False m \<longleftrightarrow> (\<exists>a. Neg a \<in> set as)"
+    using assms proof(induction m arbitrary: as ms)
+    case Match thus ?case
+       by(simp split: split_if_asm) fastforce
+    next
+    case (MatchNot m)
+      thus ?case
+      proof(induction m)
+      case Match thus ?case by (simp, fastforce)
+      qed(simp_all)
+    next
+    case (MatchAnd m1 m2) thus ?case
+      apply(cases "primitive_extractor (disc, sel) m1")
+      apply(cases "primitive_extractor (disc, sel) m2")
+      by auto
+  qed(simp_all split: split_if_asm)
+  thus ?thesis using asms by simp
 qed
 
 (*
@@ -439,9 +474,7 @@ lemma "wf_disc_sel (disc, sel) C \<Longrightarrow> disc (C x) \<longrightarrow> 
 
 text{*@{const normalized_n_primitive} does NOT imply @{const normalized_nnf_match}*}
 lemma "\<exists>m. normalized_n_primitive disc_sel f m \<longrightarrow> \<not> normalized_nnf_match m"
-  apply(rule_tac x="MatchNot MatchAny" in exI)
-  apply(simp)
-  done
+  by(rule_tac x="MatchNot MatchAny" in exI) (simp)
 
 
 lemma remove_unknowns_generic_not_has_disc: "\<not> has_disc C m \<Longrightarrow> \<not> has_disc C (remove_unknowns_generic \<gamma> a m)"
@@ -454,84 +487,28 @@ lemma remove_unknowns_generic_normalized_n_primitive: "normalized_n_primitive di
   qed(simp_all)
 
 
-lemma has_disc_negated_primitive_extractor:
-  assumes "normalized_nnf_match m" and "primitive_extractor (disc, sel) m = (as, ms)"
-    shows "has_disc_negated disc False m \<longleftrightarrow> (\<exists>a. Neg a \<in> set as)"
-    using assms proof(induction m arbitrary: as ms) (*probably rule: primitive_extractor.induct*)
-    case Match thus ?case
-       apply(simp split: split_if_asm)
-       apply fastforce
-       done
-    next
-    case (MatchNot m)
-      thus ?case
-      proof(induction m)
-      case Match thus ?case by (simp, fastforce)
-      qed(simp_all)
-    next
-    case (MatchAnd m1 m2) thus ?case
-      apply(cases "primitive_extractor (disc, sel) m1")
-      apply(cases "primitive_extractor (disc, sel) m2")
-      by auto
-  qed(simp_all split: split_if_asm)
 
 
-lemma primitive_extractor_obtain: obtains as ms  where"primitive_extractor (disc, sel) m = (as, ms)"
-  by fastforce
-
-lemma has_disc_negated_primitive_extractor2:
-  "normalized_nnf_match m \<Longrightarrow> has_disc_negated disc False m \<longleftrightarrow> (\<exists>a. Neg a \<in> set (fst (primitive_extractor (disc, sel) m)))"
-apply(rule primitive_extractor_obtain[of disc sel m])
-apply(drule(1) has_disc_negated_primitive_extractor[of m disc sel])
-by simp
-
-lemma primitive_extractor_fst_simp: "fst (case primitive_extractor (disc, sel) m_DNF of (as, ms) \<Rightarrow> (as, ms2 ms)) =
-       fst (primitive_extractor (disc, sel) m_DNF)"
-  by(cases "primitive_extractor (disc, sel) m_DNF", simp)
-
-lemma primitive_extractor_fst_simp2: 
-  "fst (case primitive_extractor (disc, sel) m1 of (a1', ms1') \<Rightarrow> case primitive_extractor (disc, sel) m2 of (a2', ms2') \<Rightarrow> (a1' @ a2', m' ms1' ms2')) =
-       fst (primitive_extractor (disc, sel) m1) @ fst (primitive_extractor (disc, sel) m2)"
-  apply(cases "primitive_extractor (disc, sel) m1", simp)
-  apply(cases "primitive_extractor (disc, sel) m2", simp)
-  done
-
-
-lemma normalize_match_not_matcheq_matchNone: "\<forall>m' \<in> set (normalize_match m). \<not> matcheq_matchNone m'"
-  apply(induction m rule: normalize_match.induct)
-        apply(simp_all)
-  by blast
- 
-
-lemma normalize_match_empty_iff_matcheq_matchNone: "normalize_match m = [] \<longleftrightarrow> matcheq_matchNone m "
-  proof(induction m rule: normalize_match.induct) 
-  case 3 thus ?case
-    apply simp by fastforce
-  qed(simp_all)
-
-
-
-lemma dir1:
-    shows "(\<exists>m_DNF \<in> set (normalize_match m). \<exists>a. Neg a \<in> set (fst (primitive_extractor (disc, sel) m_DNF))) \<Longrightarrow> has_disc_negated disc False m"
- apply(induction m rule: normalize_match.induct)
-       apply(simp_all)
-    apply(simp_all split: split_if_asm)
-  apply(clarify)
-  apply(simp add: primitive_extractor_fst_simp2)
-  apply blast
- by blast
-(*TODO: the other direction would be nice*)
-corollary dir1': 
+(*TODO: move to normalize_match*)
+lemma normalize_match_preserves_disc_negated: 
     shows "(\<exists>m_DNF \<in> set (normalize_match m). has_disc_negated disc neg m_DNF) \<Longrightarrow> has_disc_negated disc neg m"
- apply(induction m rule: normalize_match.induct)
-       apply(simp_all)
-  apply(clarify)
-  apply(simp add: primitive_extractor_fst_simp2)
-  apply blast
- by blast
+  proof(induction m rule: normalize_match.induct)
+  case 3 thus ?case by (simp) blast
+  next
+  case 4
+    from 4 show ?case by(simp) blast
+  qed(simp_all)
 text{*@{const has_disc_negated} is a structural property and @{const normalize_match} is a semantical property.
   @{const normalize_match} removes subexpressions which cannot match. Thus, we cannot show (without complicated assumptions)
-  the opposite direction of @{thm dir1'}, because a negated primitive might occur in a subexpression which will be optimized away.*}
+  the opposite direction of @{thm normalize_match_preserves_disc_negated}, because a negated primitive
+  might occur in a subexpression which will be optimized away.*}
+(* but the other direction would be nice anyway ;)*)
+
+
+
+corollary i_m_giving_this_a_funny_name_so_i_can_thank_my_future_me_when_sledgehammer_will_find_this_one_day:
+  "\<not> has_disc_negated disc neg m \<Longrightarrow> \<forall> m_DNF \<in> set (normalize_match m). \<not> has_disc_negated disc neg m_DNF"
+using normalize_match_preserves_disc_negated by blast
 
 
 (*TODO: maybe move?*)
