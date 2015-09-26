@@ -16,18 +16,19 @@ structure Test : sig
   datatype ipt_ipv4range = Ip4Addr of (nat * (nat * (nat * nat))) |
     Ip4AddrNetmask of (nat * (nat * (nat * nat))) * nat |
     Ip4AddrRange of (nat * (nat * (nat * nat))) * (nat * (nat * (nat * nat)))
+  type 'a set
+  type ipt_tcp_flags
+  type nibble
   datatype primitive_protocol = TCP | UDP | ICMP | OtherProtocol of nat
   datatype protocol = ProtoAny | Proto of primitive_protocol
   datatype iface = Iface of char list
-  type 'a set
   datatype common_primitive = Src of ipt_ipv4range | Dst of ipt_ipv4range |
     IIface of iface | OIface of iface | Prot of protocol |
     Src_Ports of
       (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) list
     | Dst_Ports of
         (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) list
-    | CT_State of ctstate set | Extra of char list
-  type nibble
+    | L4_Flags of ipt_tcp_flags | CT_State of ctstate set | Extra of char list
   type 'a packet_set
   type 'a simple_match_ext
   datatype simple_action = Accepta | Dropa
@@ -437,6 +438,47 @@ fun equal_proda A_ B_ (x1, x2) (y1, y2) = eq A_ x1 y1 andalso eq B_ x2 y2;
 
 fun equal_prod A_ B_ = {equal = equal_proda A_ B_} : ('a * 'b) equal;
 
+datatype tcp_flag = TCP_SYN | TCP_ACK | TCP_FIN | TCP_RST | TCP_URG | TCP_PSH;
+
+fun equal_tcp_flaga TCP_URG TCP_PSH = false
+  | equal_tcp_flaga TCP_PSH TCP_URG = false
+  | equal_tcp_flaga TCP_RST TCP_PSH = false
+  | equal_tcp_flaga TCP_PSH TCP_RST = false
+  | equal_tcp_flaga TCP_RST TCP_URG = false
+  | equal_tcp_flaga TCP_URG TCP_RST = false
+  | equal_tcp_flaga TCP_FIN TCP_PSH = false
+  | equal_tcp_flaga TCP_PSH TCP_FIN = false
+  | equal_tcp_flaga TCP_FIN TCP_URG = false
+  | equal_tcp_flaga TCP_URG TCP_FIN = false
+  | equal_tcp_flaga TCP_FIN TCP_RST = false
+  | equal_tcp_flaga TCP_RST TCP_FIN = false
+  | equal_tcp_flaga TCP_ACK TCP_PSH = false
+  | equal_tcp_flaga TCP_PSH TCP_ACK = false
+  | equal_tcp_flaga TCP_ACK TCP_URG = false
+  | equal_tcp_flaga TCP_URG TCP_ACK = false
+  | equal_tcp_flaga TCP_ACK TCP_RST = false
+  | equal_tcp_flaga TCP_RST TCP_ACK = false
+  | equal_tcp_flaga TCP_ACK TCP_FIN = false
+  | equal_tcp_flaga TCP_FIN TCP_ACK = false
+  | equal_tcp_flaga TCP_SYN TCP_PSH = false
+  | equal_tcp_flaga TCP_PSH TCP_SYN = false
+  | equal_tcp_flaga TCP_SYN TCP_URG = false
+  | equal_tcp_flaga TCP_URG TCP_SYN = false
+  | equal_tcp_flaga TCP_SYN TCP_RST = false
+  | equal_tcp_flaga TCP_RST TCP_SYN = false
+  | equal_tcp_flaga TCP_SYN TCP_FIN = false
+  | equal_tcp_flaga TCP_FIN TCP_SYN = false
+  | equal_tcp_flaga TCP_SYN TCP_ACK = false
+  | equal_tcp_flaga TCP_ACK TCP_SYN = false
+  | equal_tcp_flaga TCP_PSH TCP_PSH = true
+  | equal_tcp_flaga TCP_URG TCP_URG = true
+  | equal_tcp_flaga TCP_RST TCP_RST = true
+  | equal_tcp_flaga TCP_FIN TCP_FIN = true
+  | equal_tcp_flaga TCP_ACK TCP_ACK = true
+  | equal_tcp_flaga TCP_SYN TCP_SYN = true;
+
+val equal_tcp_flag = {equal = equal_tcp_flaga} : tcp_flag equal;
+
 datatype 'a match_expr = Match of 'a | MatchNot of 'a match_expr |
   MatchAnd of 'a match_expr * 'a match_expr | MatchAny;
 
@@ -608,46 +650,9 @@ fun equal_ipt_ipv4range (Ip4AddrNetmask (x21, x22)) (Ip4AddrRange (x31, x32)) =
     equal_proda equal_nat
       (equal_prod equal_nat (equal_prod equal_nat equal_nat)) x1 y1;
 
-datatype primitive_protocol = TCP | UDP | ICMP | OtherProtocol of nat;
-
-datatype protocol = ProtoAny | Proto of primitive_protocol;
-
-datatype iface = Iface of char list;
-
 datatype 'a set = Set of 'a list | Coset of 'a list;
 
-datatype common_primitive = Src of ipt_ipv4range | Dst of ipt_ipv4range |
-  IIface of iface | OIface of iface | Prot of protocol |
-  Src_Ports of
-    (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) list
-  | Dst_Ports of
-      (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) list
-  | CT_State of ctstate set | Extra of char list;
-
-fun equal_primitive_protocol ICMP (OtherProtocol x4) = false
-  | equal_primitive_protocol (OtherProtocol x4) ICMP = false
-  | equal_primitive_protocol UDP (OtherProtocol x4) = false
-  | equal_primitive_protocol (OtherProtocol x4) UDP = false
-  | equal_primitive_protocol UDP ICMP = false
-  | equal_primitive_protocol ICMP UDP = false
-  | equal_primitive_protocol TCP (OtherProtocol x4) = false
-  | equal_primitive_protocol (OtherProtocol x4) TCP = false
-  | equal_primitive_protocol TCP ICMP = false
-  | equal_primitive_protocol ICMP TCP = false
-  | equal_primitive_protocol TCP UDP = false
-  | equal_primitive_protocol UDP TCP = false
-  | equal_primitive_protocol (OtherProtocol x4) (OtherProtocol y4) =
-    equal_nata x4 y4
-  | equal_primitive_protocol ICMP ICMP = true
-  | equal_primitive_protocol UDP UDP = true
-  | equal_primitive_protocol TCP TCP = true;
-
-fun equal_protocol ProtoAny (Proto x2) = false
-  | equal_protocol (Proto x2) ProtoAny = false
-  | equal_protocol (Proto x2) (Proto y2) = equal_primitive_protocol x2 y2
-  | equal_protocol ProtoAny ProtoAny = true;
-
-fun equal_iface (Iface x) (Iface ya) = equal_lista equal_char x ya;
+datatype ipt_tcp_flags = TCP_Flags of tcp_flag set * tcp_flag set;
 
 datatype nibble = Nibble0 | Nibble1 | Nibble2 | Nibble3 | Nibble4 | Nibble5 |
   Nibble6 | Nibble7 | Nibble8 | Nibble9 | NibbleA | NibbleB | NibbleC | NibbleD
@@ -675,40 +680,96 @@ fun less_eq_set A_ (Coset xs) (Set ys) =
 
 fun equal_set A_ a b = less_eq_set A_ a b andalso less_eq_set A_ b a;
 
-fun equal_common_primitivea (CT_State x8) (Extra x9) = false
-  | equal_common_primitivea (Extra x9) (CT_State x8) = false
-  | equal_common_primitivea (Dst_Ports x7) (Extra x9) = false
-  | equal_common_primitivea (Extra x9) (Dst_Ports x7) = false
-  | equal_common_primitivea (Dst_Ports x7) (CT_State x8) = false
-  | equal_common_primitivea (CT_State x8) (Dst_Ports x7) = false
-  | equal_common_primitivea (Src_Ports x6) (Extra x9) = false
-  | equal_common_primitivea (Extra x9) (Src_Ports x6) = false
-  | equal_common_primitivea (Src_Ports x6) (CT_State x8) = false
-  | equal_common_primitivea (CT_State x8) (Src_Ports x6) = false
+fun equal_ipt_tcp_flags (TCP_Flags (x1, x2)) (TCP_Flags (y1, y2)) =
+  equal_set equal_tcp_flag x1 y1 andalso equal_set equal_tcp_flag x2 y2;
+
+datatype primitive_protocol = TCP | UDP | ICMP | OtherProtocol of nat;
+
+datatype protocol = ProtoAny | Proto of primitive_protocol;
+
+datatype iface = Iface of char list;
+
+datatype common_primitive = Src of ipt_ipv4range | Dst of ipt_ipv4range |
+  IIface of iface | OIface of iface | Prot of protocol |
+  Src_Ports of
+    (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) list
+  | Dst_Ports of
+      (num1 bit0 bit0 bit0 bit0 word * num1 bit0 bit0 bit0 bit0 word) list
+  | L4_Flags of ipt_tcp_flags | CT_State of ctstate set | Extra of char list;
+
+fun equal_primitive_protocol ICMP (OtherProtocol x4) = false
+  | equal_primitive_protocol (OtherProtocol x4) ICMP = false
+  | equal_primitive_protocol UDP (OtherProtocol x4) = false
+  | equal_primitive_protocol (OtherProtocol x4) UDP = false
+  | equal_primitive_protocol UDP ICMP = false
+  | equal_primitive_protocol ICMP UDP = false
+  | equal_primitive_protocol TCP (OtherProtocol x4) = false
+  | equal_primitive_protocol (OtherProtocol x4) TCP = false
+  | equal_primitive_protocol TCP ICMP = false
+  | equal_primitive_protocol ICMP TCP = false
+  | equal_primitive_protocol TCP UDP = false
+  | equal_primitive_protocol UDP TCP = false
+  | equal_primitive_protocol (OtherProtocol x4) (OtherProtocol y4) =
+    equal_nata x4 y4
+  | equal_primitive_protocol ICMP ICMP = true
+  | equal_primitive_protocol UDP UDP = true
+  | equal_primitive_protocol TCP TCP = true;
+
+fun equal_protocol ProtoAny (Proto x2) = false
+  | equal_protocol (Proto x2) ProtoAny = false
+  | equal_protocol (Proto x2) (Proto y2) = equal_primitive_protocol x2 y2
+  | equal_protocol ProtoAny ProtoAny = true;
+
+fun equal_iface (Iface x) (Iface ya) = equal_lista equal_char x ya;
+
+fun equal_common_primitivea (CT_State x9) (Extra x10) = false
+  | equal_common_primitivea (Extra x10) (CT_State x9) = false
+  | equal_common_primitivea (L4_Flags x8) (Extra x10) = false
+  | equal_common_primitivea (Extra x10) (L4_Flags x8) = false
+  | equal_common_primitivea (L4_Flags x8) (CT_State x9) = false
+  | equal_common_primitivea (CT_State x9) (L4_Flags x8) = false
+  | equal_common_primitivea (Dst_Ports x7) (Extra x10) = false
+  | equal_common_primitivea (Extra x10) (Dst_Ports x7) = false
+  | equal_common_primitivea (Dst_Ports x7) (CT_State x9) = false
+  | equal_common_primitivea (CT_State x9) (Dst_Ports x7) = false
+  | equal_common_primitivea (Dst_Ports x7) (L4_Flags x8) = false
+  | equal_common_primitivea (L4_Flags x8) (Dst_Ports x7) = false
+  | equal_common_primitivea (Src_Ports x6) (Extra x10) = false
+  | equal_common_primitivea (Extra x10) (Src_Ports x6) = false
+  | equal_common_primitivea (Src_Ports x6) (CT_State x9) = false
+  | equal_common_primitivea (CT_State x9) (Src_Ports x6) = false
+  | equal_common_primitivea (Src_Ports x6) (L4_Flags x8) = false
+  | equal_common_primitivea (L4_Flags x8) (Src_Ports x6) = false
   | equal_common_primitivea (Src_Ports x6) (Dst_Ports x7) = false
   | equal_common_primitivea (Dst_Ports x7) (Src_Ports x6) = false
-  | equal_common_primitivea (Prot x5) (Extra x9) = false
-  | equal_common_primitivea (Extra x9) (Prot x5) = false
-  | equal_common_primitivea (Prot x5) (CT_State x8) = false
-  | equal_common_primitivea (CT_State x8) (Prot x5) = false
+  | equal_common_primitivea (Prot x5) (Extra x10) = false
+  | equal_common_primitivea (Extra x10) (Prot x5) = false
+  | equal_common_primitivea (Prot x5) (CT_State x9) = false
+  | equal_common_primitivea (CT_State x9) (Prot x5) = false
+  | equal_common_primitivea (Prot x5) (L4_Flags x8) = false
+  | equal_common_primitivea (L4_Flags x8) (Prot x5) = false
   | equal_common_primitivea (Prot x5) (Dst_Ports x7) = false
   | equal_common_primitivea (Dst_Ports x7) (Prot x5) = false
   | equal_common_primitivea (Prot x5) (Src_Ports x6) = false
   | equal_common_primitivea (Src_Ports x6) (Prot x5) = false
-  | equal_common_primitivea (OIface x4) (Extra x9) = false
-  | equal_common_primitivea (Extra x9) (OIface x4) = false
-  | equal_common_primitivea (OIface x4) (CT_State x8) = false
-  | equal_common_primitivea (CT_State x8) (OIface x4) = false
+  | equal_common_primitivea (OIface x4) (Extra x10) = false
+  | equal_common_primitivea (Extra x10) (OIface x4) = false
+  | equal_common_primitivea (OIface x4) (CT_State x9) = false
+  | equal_common_primitivea (CT_State x9) (OIface x4) = false
+  | equal_common_primitivea (OIface x4) (L4_Flags x8) = false
+  | equal_common_primitivea (L4_Flags x8) (OIface x4) = false
   | equal_common_primitivea (OIface x4) (Dst_Ports x7) = false
   | equal_common_primitivea (Dst_Ports x7) (OIface x4) = false
   | equal_common_primitivea (OIface x4) (Src_Ports x6) = false
   | equal_common_primitivea (Src_Ports x6) (OIface x4) = false
   | equal_common_primitivea (OIface x4) (Prot x5) = false
   | equal_common_primitivea (Prot x5) (OIface x4) = false
-  | equal_common_primitivea (IIface x3) (Extra x9) = false
-  | equal_common_primitivea (Extra x9) (IIface x3) = false
-  | equal_common_primitivea (IIface x3) (CT_State x8) = false
-  | equal_common_primitivea (CT_State x8) (IIface x3) = false
+  | equal_common_primitivea (IIface x3) (Extra x10) = false
+  | equal_common_primitivea (Extra x10) (IIface x3) = false
+  | equal_common_primitivea (IIface x3) (CT_State x9) = false
+  | equal_common_primitivea (CT_State x9) (IIface x3) = false
+  | equal_common_primitivea (IIface x3) (L4_Flags x8) = false
+  | equal_common_primitivea (L4_Flags x8) (IIface x3) = false
   | equal_common_primitivea (IIface x3) (Dst_Ports x7) = false
   | equal_common_primitivea (Dst_Ports x7) (IIface x3) = false
   | equal_common_primitivea (IIface x3) (Src_Ports x6) = false
@@ -717,10 +778,12 @@ fun equal_common_primitivea (CT_State x8) (Extra x9) = false
   | equal_common_primitivea (Prot x5) (IIface x3) = false
   | equal_common_primitivea (IIface x3) (OIface x4) = false
   | equal_common_primitivea (OIface x4) (IIface x3) = false
-  | equal_common_primitivea (Dst x2) (Extra x9) = false
-  | equal_common_primitivea (Extra x9) (Dst x2) = false
-  | equal_common_primitivea (Dst x2) (CT_State x8) = false
-  | equal_common_primitivea (CT_State x8) (Dst x2) = false
+  | equal_common_primitivea (Dst x2) (Extra x10) = false
+  | equal_common_primitivea (Extra x10) (Dst x2) = false
+  | equal_common_primitivea (Dst x2) (CT_State x9) = false
+  | equal_common_primitivea (CT_State x9) (Dst x2) = false
+  | equal_common_primitivea (Dst x2) (L4_Flags x8) = false
+  | equal_common_primitivea (L4_Flags x8) (Dst x2) = false
   | equal_common_primitivea (Dst x2) (Dst_Ports x7) = false
   | equal_common_primitivea (Dst_Ports x7) (Dst x2) = false
   | equal_common_primitivea (Dst x2) (Src_Ports x6) = false
@@ -731,10 +794,12 @@ fun equal_common_primitivea (CT_State x8) (Extra x9) = false
   | equal_common_primitivea (OIface x4) (Dst x2) = false
   | equal_common_primitivea (Dst x2) (IIface x3) = false
   | equal_common_primitivea (IIface x3) (Dst x2) = false
-  | equal_common_primitivea (Src x1) (Extra x9) = false
-  | equal_common_primitivea (Extra x9) (Src x1) = false
-  | equal_common_primitivea (Src x1) (CT_State x8) = false
-  | equal_common_primitivea (CT_State x8) (Src x1) = false
+  | equal_common_primitivea (Src x1) (Extra x10) = false
+  | equal_common_primitivea (Extra x10) (Src x1) = false
+  | equal_common_primitivea (Src x1) (CT_State x9) = false
+  | equal_common_primitivea (CT_State x9) (Src x1) = false
+  | equal_common_primitivea (Src x1) (L4_Flags x8) = false
+  | equal_common_primitivea (L4_Flags x8) (Src x1) = false
   | equal_common_primitivea (Src x1) (Dst_Ports x7) = false
   | equal_common_primitivea (Dst_Ports x7) (Src x1) = false
   | equal_common_primitivea (Src x1) (Src_Ports x6) = false
@@ -747,9 +812,12 @@ fun equal_common_primitivea (CT_State x8) (Extra x9) = false
   | equal_common_primitivea (IIface x3) (Src x1) = false
   | equal_common_primitivea (Src x1) (Dst x2) = false
   | equal_common_primitivea (Dst x2) (Src x1) = false
-  | equal_common_primitivea (Extra x9) (Extra y9) = equal_lista equal_char x9 y9
-  | equal_common_primitivea (CT_State x8) (CT_State y8) =
-    equal_set equal_ctstate x8 y8
+  | equal_common_primitivea (Extra x10) (Extra y10) =
+    equal_lista equal_char x10 y10
+  | equal_common_primitivea (CT_State x9) (CT_State y9) =
+    equal_set equal_ctstate x9 y9
+  | equal_common_primitivea (L4_Flags x8) (L4_Flags y8) =
+    equal_ipt_tcp_flags x8 y8
   | equal_common_primitivea (Dst_Ports x7) (Dst_Ports y7) =
     equal_lista
       (equal_prod
@@ -1157,6 +1225,8 @@ fun negPos_map uu [] = []
   | negPos_map f (Pos a :: asa) = Pos (f a) :: negPos_map f asa
   | negPos_map f (Neg a :: asa) = Neg (f a) :: negPos_map f asa;
 
+val bot_set : 'a set = Set [];
+
 fun ipv4range_lowest_element (WordInterval (s, e)) =
   (if less_eq_word
         (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) s
@@ -1290,6 +1360,7 @@ fun lower_closure_matchexpr uu MatchAny = MatchAny
   | lower_closure_matchexpr Drop (Match (Prot v)) = Match (Prot v)
   | lower_closure_matchexpr Drop (Match (Src_Ports v)) = Match (Src_Ports v)
   | lower_closure_matchexpr Drop (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | lower_closure_matchexpr Drop (Match (L4_Flags v)) = Match (L4_Flags v)
   | lower_closure_matchexpr Drop (Match (CT_State v)) = Match (CT_State v)
   | lower_closure_matchexpr Log (Match m) = Match m
   | lower_closure_matchexpr Reject (Match (Src v)) = Match (Src v)
@@ -1299,6 +1370,7 @@ fun lower_closure_matchexpr uu MatchAny = MatchAny
   | lower_closure_matchexpr Reject (Match (Prot v)) = Match (Prot v)
   | lower_closure_matchexpr Reject (Match (Src_Ports v)) = Match (Src_Ports v)
   | lower_closure_matchexpr Reject (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | lower_closure_matchexpr Reject (Match (L4_Flags v)) = Match (L4_Flags v)
   | lower_closure_matchexpr Reject (Match (CT_State v)) = Match (CT_State v)
   | lower_closure_matchexpr (Call v) (Match m) = Match m
   | lower_closure_matchexpr Return (Match m) = Match m
@@ -1312,6 +1384,7 @@ fun lower_closure_matchexpr uu MatchAny = MatchAny
   | lower_closure_matchexpr uy (Match (Prot v)) = Match (Prot v)
   | lower_closure_matchexpr uy (Match (Src_Ports v)) = Match (Src_Ports v)
   | lower_closure_matchexpr uy (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | lower_closure_matchexpr uy (Match (L4_Flags v)) = Match (L4_Flags v)
   | lower_closure_matchexpr uy (Match (CT_State v)) = Match (CT_State v)
   | lower_closure_matchexpr Accept (MatchNot (Match (Extra uz))) =
     MatchNot MatchAny
@@ -1348,6 +1421,8 @@ fun lower_closure_matchexpr uu MatchAny = MatchAny
     MatchNot (Match (Src_Ports va))
   | lower_closure_matchexpr Drop (MatchNot (Match (Dst_Ports va))) =
     MatchNot (Match (Dst_Ports va))
+  | lower_closure_matchexpr Drop (MatchNot (Match (L4_Flags va))) =
+    MatchNot (Match (L4_Flags va))
   | lower_closure_matchexpr Drop (MatchNot (Match (CT_State va))) =
     MatchNot (Match (CT_State va))
   | lower_closure_matchexpr Drop (MatchNot MatchAny) = MatchNot MatchAny
@@ -1367,6 +1442,8 @@ fun lower_closure_matchexpr uu MatchAny = MatchAny
     MatchNot (Match (Src_Ports va))
   | lower_closure_matchexpr Reject (MatchNot (Match (Dst_Ports va))) =
     MatchNot (Match (Dst_Ports va))
+  | lower_closure_matchexpr Reject (MatchNot (Match (L4_Flags va))) =
+    MatchNot (Match (L4_Flags va))
   | lower_closure_matchexpr Reject (MatchNot (Match (CT_State va))) =
     MatchNot (Match (CT_State va))
   | lower_closure_matchexpr Reject (MatchNot MatchAny) = MatchNot MatchAny
@@ -1394,6 +1471,8 @@ fun lower_closure_matchexpr uu MatchAny = MatchAny
     MatchNot (Match (Src_Ports va))
   | lower_closure_matchexpr vc (MatchNot (Match (Dst_Ports va))) =
     MatchNot (Match (Dst_Ports va))
+  | lower_closure_matchexpr vc (MatchNot (Match (L4_Flags va))) =
+    MatchNot (Match (L4_Flags va))
   | lower_closure_matchexpr vc (MatchNot (Match (CT_State va))) =
     MatchNot (Match (CT_State va))
   | lower_closure_matchexpr vc (MatchNot MatchAny) = MatchNot MatchAny
@@ -1433,8 +1512,9 @@ fun is_Src (Src x1) = true
   | is_Src (Prot x5) = false
   | is_Src (Src_Ports x6) = false
   | is_Src (Dst_Ports x7) = false
-  | is_Src (CT_State x8) = false
-  | is_Src (Extra x9) = false;
+  | is_Src (L4_Flags x8) = false
+  | is_Src (CT_State x9) = false
+  | is_Src (Extra x10) = false;
 
 fun wordinterval_intersectiona A_ (WordInterval (sa, ea)) (WordInterval (s, e))
   = (if less_word (len0_len A_) ea sa orelse
@@ -1568,8 +1648,9 @@ fun is_Dst (Src x1) = false
   | is_Dst (Prot x5) = false
   | is_Dst (Src_Ports x6) = false
   | is_Dst (Dst_Ports x7) = false
-  | is_Dst (CT_State x8) = false
-  | is_Dst (Extra x9) = false;
+  | is_Dst (L4_Flags x8) = false
+  | is_Dst (CT_State x9) = false
+  | is_Dst (Extra x10) = false;
 
 fun normalize_dst_ips x =
   normalize_primitive_extract (is_Dst, dst_sel) Dst ipt_ipv4range_compress x;
@@ -1583,8 +1664,9 @@ fun is_Src_Ports (Src x1) = false
   | is_Src_Ports (Prot x5) = false
   | is_Src_Ports (Src_Ports x6) = true
   | is_Src_Ports (Dst_Ports x7) = false
-  | is_Src_Ports (CT_State x8) = false
-  | is_Src_Ports (Extra x9) = false;
+  | is_Src_Ports (L4_Flags x8) = false
+  | is_Src_Ports (CT_State x9) = false
+  | is_Src_Ports (Extra x10) = false;
 
 fun ipt_ports_negation_type_normalize (Pos ps) = ps
   | ipt_ports_negation_type_normalize (Neg ps) = ports_invert ps;
@@ -1615,8 +1697,9 @@ fun is_Dst_Ports (Src x1) = false
   | is_Dst_Ports (Prot x5) = false
   | is_Dst_Ports (Src_Ports x6) = false
   | is_Dst_Ports (Dst_Ports x7) = true
-  | is_Dst_Ports (CT_State x8) = false
-  | is_Dst_Ports (Extra x9) = false;
+  | is_Dst_Ports (L4_Flags x8) = false
+  | is_Dst_Ports (CT_State x9) = false
+  | is_Dst_Ports (Extra x10) = false;
 
 fun normalize_dst_ports x =
   normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports x;
@@ -1660,6 +1743,10 @@ fun optimize_primitive_univ (Match (IIface iface)) =
                 (Int_of_integer (65535 : IntInf.int)))
       then MatchAny else Match (Dst_Ports [(s, e)]))
   | optimize_primitive_univ (Match (Prot ProtoAny)) = MatchAny
+  | optimize_primitive_univ (Match (L4_Flags (TCP_Flags (m, c)))) =
+    (if equal_set equal_tcp_flag m bot_set andalso
+          equal_set equal_tcp_flag c bot_set
+      then MatchAny else Match (L4_Flags (TCP_Flags (m, c))))
   | optimize_primitive_univ (Match (CT_State ctstate)) =
     (if ctstate_is_UNIV ctstate then MatchAny else Match (CT_State ctstate))
   | optimize_primitive_univ (Match (Src (Ip4Addr va))) =
@@ -1940,6 +2027,7 @@ fun upper_closure_matchexpr uu MatchAny = MatchAny
   | upper_closure_matchexpr Drop (Match (Prot v)) = Match (Prot v)
   | upper_closure_matchexpr Drop (Match (Src_Ports v)) = Match (Src_Ports v)
   | upper_closure_matchexpr Drop (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | upper_closure_matchexpr Drop (Match (L4_Flags v)) = Match (L4_Flags v)
   | upper_closure_matchexpr Drop (Match (CT_State v)) = Match (CT_State v)
   | upper_closure_matchexpr Log (Match m) = Match m
   | upper_closure_matchexpr Reject (Match (Src v)) = Match (Src v)
@@ -1949,6 +2037,7 @@ fun upper_closure_matchexpr uu MatchAny = MatchAny
   | upper_closure_matchexpr Reject (Match (Prot v)) = Match (Prot v)
   | upper_closure_matchexpr Reject (Match (Src_Ports v)) = Match (Src_Ports v)
   | upper_closure_matchexpr Reject (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | upper_closure_matchexpr Reject (Match (L4_Flags v)) = Match (L4_Flags v)
   | upper_closure_matchexpr Reject (Match (CT_State v)) = Match (CT_State v)
   | upper_closure_matchexpr (Call v) (Match m) = Match m
   | upper_closure_matchexpr Return (Match m) = Match m
@@ -1962,6 +2051,7 @@ fun upper_closure_matchexpr uu MatchAny = MatchAny
   | upper_closure_matchexpr uy (Match (Prot v)) = Match (Prot v)
   | upper_closure_matchexpr uy (Match (Src_Ports v)) = Match (Src_Ports v)
   | upper_closure_matchexpr uy (Match (Dst_Ports v)) = Match (Dst_Ports v)
+  | upper_closure_matchexpr uy (Match (L4_Flags v)) = Match (L4_Flags v)
   | upper_closure_matchexpr uy (Match (CT_State v)) = Match (CT_State v)
   | upper_closure_matchexpr Accept (MatchNot (Match (Extra uz))) = MatchAny
   | upper_closure_matchexpr Drop (MatchNot (Match (Extra va))) =
@@ -1999,6 +2089,8 @@ fun upper_closure_matchexpr uu MatchAny = MatchAny
     MatchNot (Match (Src_Ports va))
   | upper_closure_matchexpr Drop (MatchNot (Match (Dst_Ports va))) =
     MatchNot (Match (Dst_Ports va))
+  | upper_closure_matchexpr Drop (MatchNot (Match (L4_Flags va))) =
+    MatchNot (Match (L4_Flags va))
   | upper_closure_matchexpr Drop (MatchNot (Match (CT_State va))) =
     MatchNot (Match (CT_State va))
   | upper_closure_matchexpr Drop (MatchNot MatchAny) = MatchNot MatchAny
@@ -2018,6 +2110,8 @@ fun upper_closure_matchexpr uu MatchAny = MatchAny
     MatchNot (Match (Src_Ports va))
   | upper_closure_matchexpr Reject (MatchNot (Match (Dst_Ports va))) =
     MatchNot (Match (Dst_Ports va))
+  | upper_closure_matchexpr Reject (MatchNot (Match (L4_Flags va))) =
+    MatchNot (Match (L4_Flags va))
   | upper_closure_matchexpr Reject (MatchNot (Match (CT_State va))) =
     MatchNot (Match (CT_State va))
   | upper_closure_matchexpr Reject (MatchNot MatchAny) = MatchNot MatchAny
@@ -2045,6 +2139,8 @@ fun upper_closure_matchexpr uu MatchAny = MatchAny
     MatchNot (Match (Src_Ports va))
   | upper_closure_matchexpr vc (MatchNot (Match (Dst_Ports va))) =
     MatchNot (Match (Dst_Ports va))
+  | upper_closure_matchexpr vc (MatchNot (Match (L4_Flags va))) =
+    MatchNot (Match (L4_Flags va))
   | upper_closure_matchexpr vc (MatchNot (Match (CT_State va))) =
     MatchNot (Match (CT_State va))
   | upper_closure_matchexpr vc (MatchNot MatchAny) = MatchNot MatchAny
@@ -2352,6 +2448,7 @@ fun normalized_dst_ports MatchAny = true
   | normalized_dst_ports (Match (OIface v)) = true
   | normalized_dst_ports (Match (Prot v)) = true
   | normalized_dst_ports (Match (Src_Ports v)) = true
+  | normalized_dst_ports (Match (L4_Flags v)) = true
   | normalized_dst_ports (Match (CT_State v)) = true
   | normalized_dst_ports (Match (Extra v)) = true
   | normalized_dst_ports (MatchNot (Match (Dst_Ports ux))) = false
@@ -2361,6 +2458,7 @@ fun normalized_dst_ports MatchAny = true
   | normalized_dst_ports (MatchNot (Match (OIface v))) = true
   | normalized_dst_ports (MatchNot (Match (Prot v))) = true
   | normalized_dst_ports (MatchNot (Match (Src_Ports v))) = true
+  | normalized_dst_ports (MatchNot (Match (L4_Flags v))) = true
   | normalized_dst_ports (MatchNot (Match (CT_State v))) = true
   | normalized_dst_ports (MatchNot (Match (Extra v))) = true
   | normalized_dst_ports (MatchAnd (m1, m2)) =
@@ -2379,6 +2477,7 @@ fun normalized_src_ports MatchAny = true
   | normalized_src_ports (Match (OIface v)) = true
   | normalized_src_ports (Match (Prot v)) = true
   | normalized_src_ports (Match (Dst_Ports v)) = true
+  | normalized_src_ports (Match (L4_Flags v)) = true
   | normalized_src_ports (Match (CT_State v)) = true
   | normalized_src_ports (Match (Extra v)) = true
   | normalized_src_ports (MatchNot (Match (Src_Ports ux))) = false
@@ -2388,6 +2487,7 @@ fun normalized_src_ports MatchAny = true
   | normalized_src_ports (MatchNot (Match (OIface v))) = true
   | normalized_src_ports (MatchNot (Match (Prot v))) = true
   | normalized_src_ports (MatchNot (Match (Dst_Ports v))) = true
+  | normalized_src_ports (MatchNot (Match (L4_Flags v))) = true
   | normalized_src_ports (MatchNot (Match (CT_State v))) = true
   | normalized_src_ports (MatchNot (Match (Extra v))) = true
   | normalized_src_ports (MatchAnd (m1, m2)) =
@@ -2452,6 +2552,7 @@ fun normalized_ifaces MatchAny = true
   | normalized_ifaces (MatchNot (Match (Prot va))) = true
   | normalized_ifaces (MatchNot (Match (Src_Ports va))) = true
   | normalized_ifaces (MatchNot (Match (Dst_Ports va))) = true
+  | normalized_ifaces (MatchNot (Match (L4_Flags va))) = true
   | normalized_ifaces (MatchNot (Match (CT_State va))) = true
   | normalized_ifaces (MatchNot (Match (Extra va))) = true
   | normalized_ifaces (MatchNot (MatchNot v)) = true
@@ -2562,6 +2663,17 @@ fun common_primitive_match_to_simple_match MatchAny = SOME simple_match_any
   | common_primitive_match_to_simple_match (MatchNot (Match (CT_State vr))) =
     (raise Fail "undefined");
 
+fun is_L4_Flags (Src x1) = false
+  | is_L4_Flags (Dst x2) = false
+  | is_L4_Flags (IIface x3) = false
+  | is_L4_Flags (OIface x4) = false
+  | is_L4_Flags (Prot x5) = false
+  | is_L4_Flags (Src_Ports x6) = false
+  | is_L4_Flags (Dst_Ports x7) = false
+  | is_L4_Flags (L4_Flags x8) = true
+  | is_L4_Flags (CT_State x9) = false
+  | is_L4_Flags (Extra x10) = false;
+
 fun is_CT_State (Src x1) = false
   | is_CT_State (Dst x2) = false
   | is_CT_State (IIface x3) = false
@@ -2569,8 +2681,9 @@ fun is_CT_State (Src x1) = false
   | is_CT_State (Prot x5) = false
   | is_CT_State (Src_Ports x6) = false
   | is_CT_State (Dst_Ports x7) = false
-  | is_CT_State (CT_State x8) = true
-  | is_CT_State (Extra x9) = false;
+  | is_CT_State (L4_Flags x8) = false
+  | is_CT_State (CT_State x9) = true
+  | is_CT_State (Extra x10) = false;
 
 fun is_Extra (Src x1) = false
   | is_Extra (Dst x2) = false
@@ -2579,8 +2692,9 @@ fun is_Extra (Src x1) = false
   | is_Extra (Prot x5) = false
   | is_Extra (Src_Ports x6) = false
   | is_Extra (Dst_Ports x7) = false
-  | is_Extra (CT_State x8) = false
-  | is_Extra (Extra x9) = true;
+  | is_Extra (L4_Flags x8) = false
+  | is_Extra (CT_State x9) = false
+  | is_Extra (Extra x10) = true;
 
 fun normalized_protocols MatchAny = true
   | normalized_protocols (Match uu) = true
@@ -2594,6 +2708,7 @@ fun normalized_protocols MatchAny = true
   | normalized_protocols (MatchNot (Match (OIface va))) = true
   | normalized_protocols (MatchNot (Match (Src_Ports va))) = true
   | normalized_protocols (MatchNot (Match (Dst_Ports va))) = true
+  | normalized_protocols (MatchNot (Match (L4_Flags va))) = true
   | normalized_protocols (MatchNot (Match (CT_State va))) = true
   | normalized_protocols (MatchNot (Match (Extra va))) = true
   | normalized_protocols (MatchNot (MatchNot v)) = true
@@ -2609,6 +2724,7 @@ fun normalized_src_ips MatchAny = true
   | normalized_src_ips (Match (Prot v)) = true
   | normalized_src_ips (Match (Src_Ports v)) = true
   | normalized_src_ips (Match (Dst_Ports v)) = true
+  | normalized_src_ips (Match (L4_Flags v)) = true
   | normalized_src_ips (Match (CT_State v)) = true
   | normalized_src_ips (Match (Extra v)) = true
   | normalized_src_ips (MatchNot (Match (Src va))) = false
@@ -2618,6 +2734,7 @@ fun normalized_src_ips MatchAny = true
   | normalized_src_ips (MatchNot (Match (Prot v))) = true
   | normalized_src_ips (MatchNot (Match (Src_Ports v))) = true
   | normalized_src_ips (MatchNot (Match (Dst_Ports v))) = true
+  | normalized_src_ips (MatchNot (Match (L4_Flags v))) = true
   | normalized_src_ips (MatchNot (Match (CT_State v))) = true
   | normalized_src_ips (MatchNot (Match (Extra v))) = true
   | normalized_src_ips (MatchAnd (m1, m2)) =
@@ -2636,6 +2753,7 @@ fun normalized_dst_ips MatchAny = true
   | normalized_dst_ips (Match (Prot v)) = true
   | normalized_dst_ips (Match (Src_Ports v)) = true
   | normalized_dst_ips (Match (Dst_Ports v)) = true
+  | normalized_dst_ips (Match (L4_Flags v)) = true
   | normalized_dst_ips (Match (CT_State v)) = true
   | normalized_dst_ips (Match (Extra v)) = true
   | normalized_dst_ips (MatchNot (Match (Dst va))) = false
@@ -2645,6 +2763,7 @@ fun normalized_dst_ips MatchAny = true
   | normalized_dst_ips (MatchNot (Match (Prot v))) = true
   | normalized_dst_ips (MatchNot (Match (Src_Ports v))) = true
   | normalized_dst_ips (MatchNot (Match (Dst_Ports v))) = true
+  | normalized_dst_ips (MatchNot (Match (L4_Flags v))) = true
   | normalized_dst_ips (MatchNot (Match (CT_State v))) = true
   | normalized_dst_ips (MatchNot (Match (Extra v))) = true
   | normalized_dst_ips (MatchAnd (m1, m2)) =
@@ -2662,10 +2781,11 @@ fun check_simple_fw_preconditions rs =
             (normalized_dst_ips m andalso
               (normalized_ifaces m andalso
                 (normalized_protocols m andalso
-                  (not (has_disc is_CT_State m) andalso
-                    (not (has_disc is_Extra m) andalso
-                      (equal_actiona a Accept orelse
-                        equal_actiona a Drop)))))))))
+                  (not (has_disc is_L4_Flags m) andalso
+                    (not (has_disc is_CT_State m) andalso
+                      (not (has_disc is_Extra m) andalso
+                        (equal_actiona a Accept orelse
+                          equal_actiona a Drop))))))))))
     rs;
 
 fun action_to_simple_action Accept = Accepta

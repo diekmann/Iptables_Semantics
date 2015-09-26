@@ -295,7 +295,6 @@ lemma assumes simplers: "simple_ruleset rs"
              normalized_ifaces m \<and>
              normalized_protocols m \<and> \<not> has_disc is_L4_Flags m \<and> \<not> has_disc is_CT_State m \<and> \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop)"
       apply(simp)
-      apply(simp add: abstract_for_simple_firewall_hasdisc)
       (*missing: normalized_ifaces m \<and> normalized_protocols m \<and> \<not> has_disc is_L4_Flags m
         add abstract_primitive*)
       thm abstract_for_simple_firewall_hasdisc
