@@ -177,6 +177,13 @@ local (*iptables-save parsers*)
                          || Scan.this_string "RELATED" >> K @{const CT_Related}
                          || Scan.this_string "UNTRACKED" >> K @{const CT_Untracked}
 
+      val parser_tcp_flag = Scan.this_string "SYN" >> K @{const TCP_SYN}
+                         || Scan.this_string "ACK" >> K @{const TCP_ACK}
+                         || Scan.this_string "FIN" >> K @{const TCP_FIN}
+                         || Scan.this_string "RST" >> K @{const TCP_RST}
+                         || Scan.this_string "URG" >> K @{const TCP_URG}
+                         || Scan.this_string "PSH" >> K @{const TCP_PSH}
+
       fun parse_comma_separated_list parser = Scan.repeat (parser --| $$ ",") @@@ (parser >> (fn p => [p]))
 
       local
@@ -194,7 +201,11 @@ local (*iptables-save parsers*)
       val parser_port_many1_tup = parse_comma_separated_list parser_port_single_tup >> HOLogic.mk_list @{typ "16 word \<times> 16 word"}
 
       val parser_ctstate_set = parse_comma_separated_list parser_ctstate >> HOLogic.mk_set @{typ "ctstate"}
-    
+
+      val parser_tcp_flag_set = parse_comma_separated_list parser_tcp_flag >> HOLogic.mk_set @{typ "tcp_flag"}
+
+      val parser_tcp_flags = (parser_tcp_flag_set --| $$ " " -- parser_tcp_flag_set) >> (fn (m,c) => @{const TCP_Flags} $ m $ c)
+
       val parser_extra = Scan.many1 (fn x => x <> " " andalso Symbol.not_eof x) >> (implode #> HOLogic.mk_string);
     end;
     fun parse_cmd_option_generic (d: term -> parsed_match_action) (s: string) (t: term) (parser: string list -> (term * string list)) = 
@@ -226,9 +237,14 @@ local (*iptables-save parsers*)
                        || parse_cmd_option "-m multiport --dports " @{const Dst_Ports} parser_port_many1_tup;
     (*-m tcp requires that there is already an -p tcp*)
 
+    (*TODO: check for all "-m tcp"*)
+    val parse_tcp_flags = parse_cmd_option "-m tcp --tcp-flags " @{const L4_Flags} parser_tcp_flags
+                       || parse_cmd_option_negated "--tcp-flags " @{const L4_Flags} parser_tcp_flags;
+
     val parse_ctstate = parse_cmd_option "-m state --state " @{term "CT_State"} parser_ctstate_set
                      || parse_cmd_option "-m conntrack --ctstate " @{term "CT_State"} parser_ctstate_set;
     
+     (*TODO: it would be good to fail if there is a "!" in the extra, it might be an unparsed negation*)
     val parse_unknown = parse_cmd_option "" @{const Extra} parser_extra;
   end;
   
@@ -273,6 +289,7 @@ in
                  || parse_in_iface_negated || parse_out_iface_negated
                  || parse_protocol
                  || parse_src_ports || parse_dst_ports
+                 || parse_tcp_flags
                  || parse_ctstate
                  || parse_target) (K parse_unknown);
   
