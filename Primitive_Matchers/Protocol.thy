@@ -94,8 +94,7 @@ section{*TCP flags*}
           then (TCP_Flags (mask1 \<union> mask2) (c1 \<union> c2))
           else ipt_tcp_flags_NoMatch)"
   
-  
-  lemma match_tcp_flags_conjunct: "match_tcp_flags f1 pkt \<and> match_tcp_flags f2 pkt \<longleftrightarrow> match_tcp_flags (match_tcp_flags_conjunct f1 f2) pkt"
+  lemma match_tcp_flags_conjunct: "match_tcp_flags (match_tcp_flags_conjunct f1 f2) pkt \<longleftrightarrow> match_tcp_flags f1 pkt \<and> match_tcp_flags f2 pkt"
     apply(cases f1, cases f2, simp)
     apply(rename_tac mask1 c1 mask2 c2)
     apply(intro conjI impI)
@@ -104,6 +103,79 @@ section{*TCP flags*}
     apply(simp add: ipt_tcp_flags_NoMatch)
     apply fast
     done
+  declare match_tcp_flags_conjunct.simps[simp del]
+
+
+
+  fun ipt_tcp_flags_equal :: "ipt_tcp_flags \<Rightarrow> ipt_tcp_flags \<Rightarrow> bool" where
+    "ipt_tcp_flags_equal (TCP_Flags mask1 c1) (TCP_Flags mask2 c2) = (
+          if c1 \<subseteq> mask1 \<and> c2 \<subseteq> mask2
+          then c1 = c2 \<and> mask1 = mask2
+          else if (\<not> c1 \<subseteq> mask1) \<and> (\<not> c2 \<subseteq> mask2) then True
+          else False )"
+  context
+  begin
+    private lemma funny_set_falg_mask_helper: "c2 \<subseteq> mask2 \<Longrightarrow> (c1 = c2 \<and> mask1 = mask2) = (\<forall>pkt. (pkt \<inter> mask1 = c1) = (pkt \<inter> mask2 = c2))"
+    apply rule
+     apply presburger
+    apply(subgoal_tac "mask1 = mask2")
+     apply blast
+    (*"e": Try this: by (metis Diff_Compl Diff_eq Int_lower2 Un_Diff_Int compl_sup disjoint_eq_subset_Compl inf_assoc inf_commute inf_sup_absorb) (> 1.0 s, timed out).
+      Isar proof (300 ms):*)
+    proof -
+      assume a1: "c2 \<subseteq> mask2"
+      assume a2: "\<forall>pkt. (pkt \<inter> mask1 = c1) = (pkt \<inter> mask2 = c2)"
+      have f3: "\<And>A Aa. (A\<Colon>'a set) - - Aa = Aa - - A"
+        by (simp add: inf_commute)
+      have f4: "\<And>A Aa. (A\<Colon>'a set) - - (- Aa) = A - Aa"
+        by simp
+      have f5: "\<And>A Aa Ab. (A\<Colon>'a set) - - Aa - - Ab = A - - (Aa - - Ab)"
+        by blast
+      have f6: "\<And>A Aa. (A\<Colon>'a set) - (- A - Aa) = A"
+        by fastforce
+      have f7: "\<And>A Aa. - (A\<Colon>'a set) - - Aa = Aa - A"
+        using f4 f3 by presburger
+      have f8: "\<And>A Aa. - (A\<Colon>'a set) = - (A - Aa) - (A - - Aa)"
+        by blast
+      have f9: "c1 = - (- c1)"
+        by blast
+      have f10: "\<And>A. A - c1 - c1 = A - c1"
+        by blast
+      have "\<And>A. A - - (mask1 - - mask2) = c2 \<or> A - - mask1 \<noteq> c1"
+        using f6 f5 a2 by (metis (no_types) Diff_Compl)
+      hence f11: "\<And>A. - A - - (mask1 - - mask2) = c2 \<or> mask1 - A \<noteq> c1"
+        using f7 by meson
+      have "c2 - mask2 = {}"
+        using a1 by force
+      hence f12: "- c2 - (mask2 - c2) = - mask2"
+        by blast
+      hence "mask2 - - c2 = c2"
+        by blast
+      hence f13: "mask1 - - c2 = c1"
+        using f3 a2 by simp
+      hence f14: "c1 = c2"
+        using f11 by blast
+      hence f15: "mask2 - (mask1 - c1) = c1"
+        using f13 f10 f9 f8 f7 f3 a2 by (metis Diff_Compl)
+      have "mask1 - (mask2 - c1) = c1"
+        using f14 f12 f10 f9 f8 f4 f3 a2 by (metis Diff_Compl)
+      thus "mask1 = mask2"
+        using f15 by blast
+    qed
+  
+    lemma ipt_tcp_flags_equal: "ipt_tcp_flags_equal f1 f2 \<longleftrightarrow> (\<forall>pkt. match_tcp_flags f1 pkt = match_tcp_flags f2 pkt)"
+      apply(cases f1, cases f2, simp)
+      apply(rename_tac mask1 c1 mask2 c2)
+      apply(intro conjI impI)
+          apply fast
+         using funny_set_falg_mask_helper apply metis
+        apply blast
+       using funny_set_falg_mask_helper apply metis
+      apply blast
+     done
+  end
+  declare ipt_tcp_flags_equal.simps[simp del]
+
 
   fun tcp_flag_toString :: "tcp_flag \<Rightarrow> string" where
     "tcp_flag_toString TCP_SYN = ''TCP_SYN''" |
