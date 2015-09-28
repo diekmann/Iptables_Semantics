@@ -98,6 +98,7 @@ lemma "parser_test_firewall \<equiv>
     Rule (Match (Dst (Ip4AddrNetmask (127, 42, 0, 1) 32))) Reject, Rule MatchAny Reject])]" by eval
 
 
+(*There is some ~~-m tcp~~  remaining because we cannot parse "-m tcp ! --tcp-flags"*)
 value[code] "map (\<lambda>(c,rs). (c, map (common_primitive_rule_toString) rs)) parser_test_firewall"
 
 
@@ -115,6 +116,12 @@ value[code] "map simple_rule_toString (to_simple_firewall (upper_closure
                 (optimize_matches abstract_for_simple_firewall
                   (upper_closure (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
                     (map_of_string (Semantics_Goto.rewrite_Goto parser_test_firewall)))))))" 
+
+
+value[code] "(optimize_matches abstract_for_simple_firewall
+                  (upper_closure (packet_assume_new
+                    (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
+                     (map_of_string (Semantics_Goto.rewrite_Goto parser_test_firewall))))))"
 
 
 hide_const parser_test_firewall
