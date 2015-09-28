@@ -22,30 +22,6 @@ definition map_of_string :: "(string \<times> common_primitive rule list) list \
   "map_of_string rs = map_of rs"
 
 
-(*
-text{*Remove an ESTABLISHED RELATED rule if it occurs in the first @{term "n::nat"} rules*}
-fun remove_ESTABLISHED_RELATED_chain :: "nat \<Rightarrow> common_primitive rule list \<Rightarrow> common_primitive rule list" where
-  "remove_ESTABLISHED_RELATED_chain _ [] = []" |
-  "remove_ESTABLISHED_RELATED_chain 0 rs = rs" |
-  "remove_ESTABLISHED_RELATED_chain (Suc n) ((Rule m a)#rs) = (
-    if opt_MatchAny_match_expr (optimize_primitive_univ m) = (Match (Extra (''state RELATED,ESTABLISHED''))) \<and> a = action.Accept
-    then rs
-    else (Rule m a)#remove_ESTABLISHED_RELATED_chain n rs)"
-
-lemma "length (remove_ESTABLISHED_RELATED_chain n rs) = length rs \<or>
-       length (remove_ESTABLISHED_RELATED_chain n rs) = length rs - 1"
-  apply(induction n rs rule: remove_ESTABLISHED_RELATED_chain.induct)
-    apply(simp_all)
-  by linarith
-
-text{*Remove RELATED,ESTABLISHED rules from the built-in chains if the rule is in the first five rules*}
-definition remove_ESTABLISHED_RELATED :: "(string \<times> common_primitive rule list) list \<Rightarrow> (string \<times> common_primitive rule list) list" where
-  "remove_ESTABLISHED_RELATED fw = map (\<lambda> (decl, rs).
-    if decl \<in> {''INPUT'', ''FORWARD'', ''OUTPUT''} then (decl, remove_ESTABLISHED_RELATED_chain 5 rs)
-    else (decl, rs)) fw"
-*)
-
-
 definition check_simple_ruleset :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
   "check_simple_ruleset rs \<equiv> if simple_ruleset rs then rs else undefined"
 
@@ -244,19 +220,9 @@ lemma ctstate_assume_new_not_has_CT_State:
   apply(safe)
    apply(simp_all add: not_hasdisc_ctstate_assume_state)
   done
-(*
-lemma abstract_for_simple_firewall_abstracts_over:
-      "normalized_nnf_match m \<Longrightarrow> normalized_ifaces (abstract_for_simple_firewall m)"
-      "normalized_nnf_match m \<Longrightarrow> normalized_protocols (abstract_for_simple_firewall m)"
-  unfolding abstract_for_simple_firewall_def
-  apply(induction "(\<lambda>r. case r of Pos a \<Rightarrow> is_CT_State a \<or> is_L4_Flags a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_CT_State a \<or> is_L4_Flags a)" m
-                  rule: abstract_primitive.induct)
-  apply(simp_all)
-  apply(rename_tac a, case_tac [!] a)
-  apply(simp_all)
-  done*)
 
-lemma assumes simplers: "simple_ruleset rs"
+lemma transform_simple_fw_preconditions:
+  assumes simplers: "simple_ruleset rs"
   shows "check_simple_fw_preconditions (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new rs))))"
   unfolding check_simple_fw_preconditions_def
   apply(clarify, rename_tac r, case_tac r, rename_tac m a, simp)
