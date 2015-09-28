@@ -281,6 +281,8 @@ corollary transform_remove_unknowns_upper: defines "upper \<equiv> optimize_matc
       and "\<forall> m \<in> get_match ` set (upper rs). \<not> has_disc is_Extra m"
       and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (upper rs). normalized_n_primitive disc_sel f m"
+      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (upper rs). \<not> has_disc_negated disc neg m"
 proof -
   from simplers have upper: "upper rs = transform_remove_unknowns_generic (common_matcher, in_doubt_allow) rs"
     apply(simp add: transform_remove_unknowns_generic_def upper_def)
@@ -295,12 +297,15 @@ proof -
       and "\<forall> m \<in> get_match ` set (upper rs). \<not> has_disc is_Extra m"
       and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (upper rs). normalized_n_primitive disc_sel f m"
+      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (upper rs). \<not> has_disc_negated disc neg m"
     apply -
+         apply(simp;fail)
         apply(simp;fail)
-       apply(simp;fail)
-      apply presburger
-     using has_unknowns_common_matcher apply auto[1]
-    by (metis packet_independent_unknown_match_tacs(1) simplers transform_remove_unknowns_generic(5) wf_in_doubt_allow)
+       apply presburger
+      using has_unknowns_common_matcher apply auto[1]
+     apply (metis packet_independent_unknown_match_tacs(1) simplers transform_remove_unknowns_generic(5) wf_in_doubt_allow)
+    by presburger
 qed
 
 
