@@ -166,31 +166,13 @@ fun common_primitive_match_to_simple_match :: "common_primitive match_expr \<Rig
 
 subsubsection{*Normalizing Interfaces*}
 text{*As for now, negated interfaces are simply not allowed*}
-  (*definition normalized_ifaces :: "common_primitive match_expr \<Rightarrow> bool" where
-    "normalized_ifaces m \<equiv> \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False m"*)
-
-  fun normalized_ifaces :: "common_primitive match_expr \<Rightarrow> bool" where
-    "normalized_ifaces MatchAny = True" |
-    "normalized_ifaces (Match _) = True" |
-    "normalized_ifaces (MatchNot (Match (IIface _))) = False" |
-    "normalized_ifaces (MatchNot (Match (OIface _))) = False" |
-    "normalized_ifaces (MatchAnd m1 m2) = (normalized_ifaces m1 \<and>  normalized_ifaces m2)" |
-    "normalized_ifaces (MatchNot (MatchAnd _ _)) = False" |
-    "normalized_ifaces (MatchNot _) = True" 
-
+  definition normalized_ifaces :: "common_primitive match_expr \<Rightarrow> bool" where
+    "normalized_ifaces m \<equiv> \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False m"
 
 subsubsection{*Normalizing Protocols*}
 text{*As for now, negated protocols are simply not allowed*}
   definition normalized_protocols :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_protocols m \<equiv> \<not> has_disc_negated is_Prot False m"
-(*  fun normalized_protocols :: "common_primitive match_expr \<Rightarrow> bool" where
-    "normalized_protocols MatchAny = True" |
-    "normalized_protocols (Match _) = True" |
-    "normalized_protocols (MatchNot (Match (Prot _))) = False" |
-    "normalized_protocols (MatchAnd m1 m2) = (normalized_protocols m1 \<and> normalized_protocols m2)" |
-    "normalized_protocols (MatchNot (MatchAnd _ _)) = False" |
-    "normalized_protocols (MatchNot _) = True" *)
-
 
 
 
@@ -242,7 +224,7 @@ proof -
       "\<not> has_disc is_CT_State m1" "\<not> has_disc is_CT_State m2"
       "\<not> has_disc is_Extra m1" "\<not> has_disc is_Extra m2"
       "normalized_protocols m1" "normalized_protocols m2"
-      by(simp_all add: normalized_protocols_def)
+      by(simp_all add: normalized_protocols_def normalized_ifaces_def)
     {  assume caseNone: ?caseNone
       { fix sm1 sm2
         assume sm1: "common_primitive_match_to_simple_match m1 = Some sm1"
@@ -282,7 +264,7 @@ proof -
     } note caseSome=this
 
     from caseNone caseSome show ?goal by blast
-  qed(simp_all add: match_iface_simple_match_any_simps simple_matches.simps normalized_protocols_def, 
+  qed(simp_all add: match_iface_simple_match_any_simps simple_matches.simps normalized_protocols_def normalized_ifaces_def, 
     simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
 qed
 
@@ -322,11 +304,11 @@ definition check_simple_fw_preconditions :: "common_primitive rule list \<Righta
 
 (*apart from MatchNot MatchAny, the normalizations imply nnf*)
 lemma "normalized_src_ports m \<Longrightarrow> normalized_nnf_match m"
-  apply(induction m rule: normalized_ifaces.induct)
+  apply(induction m rule: normalized_src_ports.induct)
   apply(simp_all)[15]
   oops
 lemma "\<not> matcheq_matchNone m \<Longrightarrow> normalized_src_ports m \<Longrightarrow> normalized_nnf_match m"
-  by(induction m rule: normalized_ifaces.induct) (simp_all)
+  by(induction m rule: normalized_src_ports.induct) (simp_all)
 
 value "check_simple_fw_preconditions [Rule (MatchNot (MatchNot (MatchNot (Match (Src a))))) action.Accept]"
 
