@@ -127,6 +127,8 @@ theorem primitive_extractor_correct: assumes
   and "\<not> has_disc disc ms"
   and "\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms"
   and "\<forall>disc2 sel2. normalized_n_primitive (disc2, sel2) P m \<longrightarrow> normalized_n_primitive (disc2, sel2) P ms"
+  and "\<forall>disc2. \<not> has_disc_negated disc2 neg m \<longrightarrow> \<not> has_disc_negated disc2 neg ms"
+  (*TODO: preserves arbitrary P?*)
 proof -
   --"better simplification rule"
   from assms have assm3': "(as, ms) = primitive_extractor (disc, sel) m" by simp
@@ -154,7 +156,18 @@ proof -
     proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
     qed(simp_all split: split_if_asm split_split_asm)
 
+
   from assms(1) assm3' show "\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms"
+    proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+         case 2 thus ?case by(simp split: split_if_asm)
+         next
+         case 3 thus ?case by(simp split: split_if_asm)
+         next
+         case 4 thus ?case by(simp split: split_split_asm)
+    qed(simp_all)
+
+
+  from assms(1) assm3' show "\<forall>disc2. \<not> has_disc_negated disc2 neg m \<longrightarrow> \<not> has_disc_negated disc2 neg ms"
     proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
          case 2 thus ?case by(simp split: split_if_asm)
          next
