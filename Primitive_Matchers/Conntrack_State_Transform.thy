@@ -82,6 +82,7 @@ corollary packet_assume_new: "match_tcp_flags ipt_tcp_syn (p_tcp_flags p) \<Long
 unfolding packet_assume_new_def
 by (simp add: ctstate_assume_new ipt_tcp_flags_assume_syn)
 
+  
 
 
 
