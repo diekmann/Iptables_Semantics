@@ -219,6 +219,8 @@ theorem transform_remove_unknowns_generic:
             \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). normalized_nnf_match m"*)
       and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). normalized_n_primitive disc_sel f m"
+      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). \<not> has_disc_negated disc neg m"
   proof -
     let ?\<gamma>="(common_matcher, \<alpha>)"
     let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
@@ -250,6 +252,7 @@ theorem transform_remove_unknowns_generic:
       unfolding transform_remove_unknowns_generic_def
       by(induction rs) (simp_all add: optimize_matches_a_def)
 
+    (*TODO rule _preserves*)
     from simplers show "\<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). \<not> has_unknowns common_matcher m"
       unfolding transform_remove_unknowns_generic_def
       apply(induction rs)
@@ -258,6 +261,16 @@ theorem transform_remove_unknowns_generic:
       apply(rule remove_unknowns_generic_specification[OF _ packet_independent_\<alpha> packet_independent_\<beta>_unknown_common_matcher])
       apply(simp add: simple_ruleset_def)
       done
+
+    { fix m a
+      have "\<not> has_disc_negated disc neg m \<Longrightarrow> \<not> has_disc_negated disc neg (remove_unknowns_generic (common_matcher, \<alpha>) a m)"
+        by(induction m rule:remove_unknowns_generic.induct)(simp_all)
+    }
+    thus "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). \<not> has_disc_negated disc neg m"
+      unfolding transform_remove_unknowns_generic_def
+      apply(rule optimize_matches_a_preserves)
+      by blast
 qed
 
 
