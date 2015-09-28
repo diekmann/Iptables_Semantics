@@ -45,6 +45,8 @@ proof -
   with 1 2 show ?thesis by simp
 qed
 
+lemma remdups_rev_set: "set (remdups_rev rs) = set rs" by (simp add: remdups_rev_def) 
+
 lemma remdups_rev_removeAll: "remdups_rev (removeAll r rs) = removeAll r (remdups_rev rs)"
   by (simp add: remdups_filter remdups_rev_def removeAll_filter_not_eq rev_filter)
 

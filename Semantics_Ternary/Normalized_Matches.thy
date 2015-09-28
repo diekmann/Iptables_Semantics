@@ -14,6 +14,17 @@ fun normalize_match :: "'a match_expr \<Rightarrow> 'a match_expr list" where
   "normalize_match (MatchNot (MatchAny)) = []" | (*false*)
   "normalize_match (MatchNot (Match m)) = [MatchNot (Match m)]"
 
+
+lemma normalize_match_not_matcheq_matchNone: "\<forall>m' \<in> set (normalize_match m). \<not> matcheq_matchNone m'"
+  proof(induction m rule: normalize_match.induct)
+  case 4 thus ?case by (simp) blast
+  qed(simp_all)
+ 
+lemma normalize_match_empty_iff_matcheq_matchNone: "normalize_match m = [] \<longleftrightarrow> matcheq_matchNone m "
+  proof(induction m rule: normalize_match.induct) 
+  case 3 thus ?case  by (simp) fastforce
+  qed(simp_all)
+
 lemma match_list_normalize_match: "match_list \<gamma> [m] a p \<longleftrightarrow> match_list \<gamma> (normalize_match m) a p"
   proof(induction m rule:normalize_match.induct)
   case 1 thus ?case by(simp add: match_list_singleton)
@@ -122,6 +133,7 @@ proof(induction m rule: normalize_match.induct)
   next
   case 7 thus ?case by(simp_all add: wf_ruleset_append)
   qed
+
 
 lemma good_ruleset_normalize_match: "good_ruleset [(Rule m a)] \<Longrightarrow> good_ruleset (map (\<lambda>m. Rule m a) (normalize_match m))"
 by(simp add: good_ruleset_def)
@@ -348,7 +360,6 @@ lemma normalized_nnf_match_normalize_match: "\<forall> m' \<in> set (normalize_m
   qed (simp_all)
 
 
-(*unused*)
 lemma normalized_nnf_match_MatchNot_D: "normalized_nnf_match (MatchNot m) \<Longrightarrow> normalized_nnf_match m"
   by(induction m) (simp_all)
 

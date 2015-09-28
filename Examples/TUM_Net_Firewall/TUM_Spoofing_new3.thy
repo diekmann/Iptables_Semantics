@@ -158,7 +158,7 @@ subsubsection{*Try 1*}
          Manual inspection of the ruleset and an empirical test demonstrate that this kind of packets is actually accepted.*}
    lemma "approximating_bigstep_fun (common_matcher, in_doubt_allow)
     \<lparr>p_iiface = ''anything but 1.96'', p_oiface = ''eth1.96'',
-     p_src = 0, p_dst = ipv4addr_of_dotdecimal (131,159,14,9), p_proto = TCP, p_sport = 12345, p_dport = 22, p_tag_ctstate = CT_New\<rparr>
+     p_src = 0, p_dst = ipv4addr_of_dotdecimal (131,159,14,9), p_proto = TCP, p_sport = 12345, p_dport = 22, p_tcp_flags= {TCP_SYN}, p_tag_ctstate = CT_New\<rparr>
      (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of_string net_fw_1)) Undecided
     = Decision FinalAllow" by eval (*88.265s*)
 

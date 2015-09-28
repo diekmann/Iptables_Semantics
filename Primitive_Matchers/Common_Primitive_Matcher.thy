@@ -17,6 +17,8 @@ fun common_matcher :: "(common_primitive, simple_packet) exact_match_tac" where
   "common_matcher (Src_Ports ps) p = bool_to_ternary (p_sport p \<in> ports_to_set ps)" |
   "common_matcher (Dst_Ports ps) p = bool_to_ternary (p_dport p \<in> ports_to_set ps)" |
 
+  "common_matcher (L4_Flags flags) p = bool_to_ternary (match_tcp_flags flags (p_tcp_flags p))" |
+
   "common_matcher (CT_State S) p = bool_to_ternary (match_ctstate S (p_tag_ctstate p))" |
 
   "common_matcher (Extra _) p = TernaryUnknown"
@@ -27,25 +29,25 @@ fun common_matcher :: "(common_primitive, simple_packet) exact_match_tac" where
   text{*An `empty' port range means it can never match! Basically, @{term "MatchNot (Match (Src_Ports [(0,65535)]))"} is False*}
   lemma "\<not> matches (common_matcher, \<alpha>) (MatchNot (Match (Src_Ports [(0,65535)]))) a 
           \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
-                   p_proto=TCP, p_sport=2065, p_dport=80, p_tag_ctstate = CT_New\<rparr>"
+                   p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
   (*<*)by(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)(*>*)
   text{*An `empty' port range means it always matches! Basically, @{term "(MatchNot (Match (Src_Ports [])))"} is True.
         This corresponds to firewall behavior, but usually you cannot specify an empty portrange in firewalls, but omission of portrange means no-port-restrictions, 
         i.e. every port matches.*}
   lemma "matches (common_matcher, \<alpha>) (MatchNot (Match (Src_Ports []))) a 
           \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
-                   p_proto=TCP, p_sport=2065, p_dport=80, p_tag_ctstate = CT_New\<rparr>"
+                   p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
   (*<*)by(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)(*>*)
   text{*If not a corner case, portrange matching is straight forward.*}
   lemma "matches (common_matcher, \<alpha>) (Match (Src_Ports [(1024,4096), (9999, 65535)])) a 
           \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
-                   p_proto=TCP, p_sport=2065, p_dport=80, p_tag_ctstate = CT_New\<rparr>"
+                   p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
         "\<not> matches (common_matcher, \<alpha>) (Match (Src_Ports [(1024,4096), (9999, 65535)])) a 
           \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
-                   p_proto=TCP, p_sport=5000, p_dport=80, p_tag_ctstate = CT_New\<rparr>"
+                   p_proto=TCP, p_sport=5000, p_dport=80, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
         "\<not>matches (common_matcher, \<alpha>) (MatchNot (Match (Src_Ports [(1024,4096), (9999, 65535)]))) a 
           \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
-                   p_proto=TCP, p_sport=2065, p_dport=80, p_tag_ctstate = CT_New\<rparr>"
+                   p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
   (*<*)by(simp_all add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)(*>*)
   
 
@@ -126,6 +128,7 @@ subsection{*Basic optimisations*}
     "optimize_primitive_univ (Match (Src_Ports [(s, e)])) = (if s = 0 \<and> e = 0xFFFF then MatchAny else (Match (Src_Ports [(s, e)])))" |
     "optimize_primitive_univ (Match (Dst_Ports [(s, e)])) = (if s = 0 \<and> e = 0xFFFF then MatchAny else (Match (Dst_Ports [(s, e)])))" |
     "optimize_primitive_univ (Match (Prot ProtoAny)) = MatchAny" |
+    "optimize_primitive_univ (Match (L4_Flags (TCP_Flags m c))) = (if m = {} \<and> c = {} then MatchAny else (Match (L4_Flags (TCP_Flags m c))))" |
     "optimize_primitive_univ (Match (CT_State ctstate)) = (if ctstate_is_UNIV ctstate then MatchAny else Match (CT_State ctstate))" |
     "optimize_primitive_univ (Match m) = Match m" |
     (*"optimize_primitive_univ (MatchNot (MatchNot m)) = (optimize_primitive_univ m)" | --"needed to preserve normalized condition"*)
@@ -134,7 +137,10 @@ subsection{*Basic optimisations*}
       -- "can be done but normalization does not work afterwards"*)
     "optimize_primitive_univ (MatchAnd m1 m2) = MatchAnd (optimize_primitive_univ m1) (optimize_primitive_univ m2)" |
     "optimize_primitive_univ MatchAny = MatchAny"
-  
+
+    lemma optimize_primitive_univ_unchanged_primitives:
+    "optimize_primitive_univ (Match a) = (Match a) \<or> optimize_primitive_univ (Match a) = MatchAny"
+      by (induction "(Match a)" rule: optimize_primitive_univ.induct) (auto split: split_if_asm)
   
   lemma optimize_primitive_univ_correct_matchexpr: "matches (common_matcher, \<alpha>) m = matches (common_matcher, \<alpha>) (optimize_primitive_univ m)"
     proof(simp add: fun_eq_iff, clarify, rename_tac a p)

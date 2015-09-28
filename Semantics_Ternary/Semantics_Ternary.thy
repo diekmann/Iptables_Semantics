@@ -563,6 +563,9 @@ lemma optimize_matches_generic: "\<forall> r \<in> set rs. P (get_match r) (get_
     case (Match \<gamma> p m a rs) thus ?case by(case_tac a)(simp_all add: optimize_matches_def)
   qed(simp_all add: optimize_matches_def)
 
+(*TODO: us this in Transform.thy to simplify proofs*)
+lemma optimize_matches_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_match r))) \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches f rs). P m"
+  by(induction rs) (simp_all add: optimize_matches_def)
 
 lemma optimize_matches: "\<forall>m a. matches \<gamma> (f m) a p = matches \<gamma> m a p \<Longrightarrow> approximating_bigstep_fun \<gamma> p (optimize_matches f rs) s = approximating_bigstep_fun \<gamma> p rs s"
   using optimize_matches_generic[where P="\<lambda>_ _. True"] by metis
@@ -584,6 +587,14 @@ lemma optimize_matches_a: "\<forall>a m. matches \<gamma> m a = matches \<gamma>
     case (Match \<gamma> p m a rs) thus ?case by(case_tac a)(simp_all add: optimize_matches_a_def)
   qed(simp_all add: optimize_matches_a_def)
 
+lemma optimize_matches_a_simple_ruleset_eq:
+  "simple_ruleset rs \<Longrightarrow> (\<And> m a. a = Accept \<or> a = Drop \<Longrightarrow> f1 a m = f2 a m) \<Longrightarrow> optimize_matches_a f1 rs = optimize_matches_a f2 rs"
+apply(induction rs)
+ apply(simp add: optimize_matches_a_def)
+apply(simp add: optimize_matches_a_def)
+apply(simp add: simple_ruleset_def)
+done
+
 lemma optimize_matches_a_simplers:
   assumes "simple_ruleset rs" and "\<forall>a m. a = Accept \<or> a = Drop \<longrightarrow> matches \<gamma> (f a m) a = matches \<gamma> m a"
   shows "approximating_bigstep_fun \<gamma> p (optimize_matches_a f rs) s = approximating_bigstep_fun \<gamma> p rs s"
@@ -601,6 +612,10 @@ proof -
     qed(simp_all add: optimize_matches_a_def simple_ruleset_tail)
 qed
 
+
+(*TODO: us this in Transform.thy to simplify proofs*)
+lemma optimize_matches_a_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_action r) (get_match r))) \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches_a f rs). P m"
+  by(induction rs)(simp_all add: optimize_matches_a_def)
 
 
 lemma not_matches_removeAll: "\<not> matches \<gamma> m a p \<Longrightarrow>

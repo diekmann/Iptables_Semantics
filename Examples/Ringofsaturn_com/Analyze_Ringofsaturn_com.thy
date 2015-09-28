@@ -172,7 +172,7 @@ by eval
 
 lemma "approximating_bigstep_fun (common_matcher, in_doubt_allow)
         \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
-         p_proto=TCP, p_sport=2065, p_dport=80, p_tag_ctstate = CT_New\<rparr>
+         p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {TCP_SYN},  p_tag_ctstate = CT_New\<rparr>
           (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string saturn_fw))
          Undecided
         = Decision FinalAllow" by eval

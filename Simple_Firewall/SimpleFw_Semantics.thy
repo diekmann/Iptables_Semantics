@@ -152,7 +152,8 @@ subsection{*Simple Firewall Semantics*}
                             p_proto = case protocol of ProtoAny \<Rightarrow> primitive_protocol.TCP | Proto p \<Rightarrow> p,
                             p_sport = sps1,
                             p_dport = dps1,
-                            p_tag_ctstate = anything_I_dont_care\<rparr>" for anything_I_dont_care, simplified]
+                            p_tcp_flags = anything_I_dont_care1,
+                            p_tag_ctstate = anything_I_dont_care2\<rparr>" for anything_I_dont_care1 anything_I_dont_care2, simplified]
           from pkt ips proto ifaces have " sps1 \<le> sps2 \<longrightarrow> \<not> dps1 \<le> dps2" by blast
           thus "sps2 < sps1 \<or> dps2 < dps1" by fastforce
       qed
@@ -203,7 +204,7 @@ lemma nomatch: "\<not> simple_matches m p \<Longrightarrow> simple_fw (SimpleRul
 value[code] "simple_fw [
   SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0, 0), dst = (0, 0), proto = Proto TCP, sports = (0, 0x0), dports = (0, 0x0)\<rparr> simple_action.Drop]
   
-  \<lparr>p_iiface = '''', p_oiface = '''',  p_src = 1, p_dst = 2, p_proto = TCP, p_sport = 8, p_dport = 9, p_tag_ctstate = CT_New\<rparr>"
+  \<lparr>p_iiface = '''', p_oiface = '''',  p_src = 1, p_dst = 2, p_proto = TCP, p_sport = 8, p_dport = 9, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
 
 
 end

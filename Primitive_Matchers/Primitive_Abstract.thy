@@ -26,7 +26,26 @@ fun abstract_primitive :: "(common_primitive negation_type \<Rightarrow> bool) \
 text{*For example, a simple firewall requires that no negated interfaces and protocols occur in the 
       expression. *}
 definition abstract_for_simple_firewall :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr"
-  where "abstract_for_simple_firewall \<equiv> abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_CT_State a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_CT_State a)"
+  where "abstract_for_simple_firewall \<equiv> abstract_primitive (\<lambda>r. case r
+                of Pos a \<Rightarrow> is_CT_State a \<or> is_L4_Flags a
+                |  Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_CT_State a \<or> is_L4_Flags a)"
+
+
+lemma abstract_primitive_preserves_normalized:
+  "normalized_src_ports m \<Longrightarrow> normalized_src_ports (abstract_primitive disc m)"
+  "normalized_dst_ports m \<Longrightarrow> normalized_dst_ports (abstract_primitive disc m)"
+  "normalized_src_ips m \<Longrightarrow> normalized_src_ips (abstract_primitive disc m)"
+  "normalized_dst_ips m \<Longrightarrow> normalized_dst_ips (abstract_primitive disc m)"
+  "normalized_nnf_match m \<Longrightarrow> normalized_nnf_match (abstract_primitive disc m)"
+  apply(induction disc m rule: abstract_primitive.induct)
+  apply(simp_all)
+  done
+lemma abstract_primitive_preserves_nodisc:
+  "\<not> has_disc disc' m \<Longrightarrow> (\<forall>str. \<not> disc' (Extra str)) \<Longrightarrow> \<not> has_disc disc' (abstract_primitive disc m)"
+  apply(induction disc m rule: abstract_primitive.induct)
+  apply(simp_all)
+  done
+
 
 
 text{*The function @{const ctstate_assume_state} can be used to fix a state and hence remove all state matches from the ruleset.
@@ -34,6 +53,24 @@ text{*The function @{const ctstate_assume_state} can be used to fix a state and 
       calling to @{const abstract_for_simple_firewall}.*}
 lemma not_hasdisc_ctstate_assume_state: "\<not> has_disc is_CT_State (ctstate_assume_state s m)"
   by(induction m rule: ctstate_assume_state.induct) (simp_all)
+
+
+lemma abstract_for_simple_firewall_hasdisc:
+  "\<not> has_disc is_CT_State (abstract_for_simple_firewall m)"
+  "\<not> has_disc is_L4_Flags (abstract_for_simple_firewall m)"
+  unfolding abstract_for_simple_firewall_def
+  apply(induction "(\<lambda>r. case r of Pos a \<Rightarrow> is_CT_State a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_CT_State a)" m rule: abstract_primitive.induct)
+  apply(simp_all)
+  done
+
+lemma abstract_for_simple_firewall_negated_ifaces_prots:
+    "normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False (abstract_for_simple_firewall m)"
+    "normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated is_Prot False (abstract_for_simple_firewall m)"
+  unfolding abstract_for_simple_firewall_def
+  apply(induction "(\<lambda>r. case r of Pos a \<Rightarrow> is_CT_State a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_CT_State a)" m rule: abstract_primitive.induct)
+  apply(simp_all)
+  done
+
 
 context
 begin
