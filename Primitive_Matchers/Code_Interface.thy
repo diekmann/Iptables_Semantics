@@ -285,6 +285,13 @@ lemma assumes simplers: "simple_ruleset rs"
     with transform_upper_closure(4)[OF s3, where disc=is_CT_State] have "\<forall>m\<in>get_match ` set ?rs'. \<not> has_disc is_CT_State m" by fastforce
     with r have no_CT: "\<not> has_disc is_CT_State m" by fastforce
 
+    from abstract_for_simple_firewall_hasdisc have "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc is_L4_Flags m"
+      apply -
+      apply(rule optimize_matches_preserves, simp)
+      done
+    with transform_upper_closure(4)[OF s3, where disc=is_L4_Flags] have "\<forall>m\<in>get_match ` set ?rs'. \<not> has_disc is_L4_Flags m" by fastforce
+    with r have no_L4_Flags: "\<not> has_disc is_L4_Flags m" by fastforce
+
     from transform_upper_closure(3)[OF s1] have "\<forall>m\<in>get_match ` set (upper_closure (packet_assume_new rs)). normalized_nnf_match m" by simp
     with abstract_for_simple_firewall_negated_ifaces_prots have
       ifaces: "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False m" and
@@ -303,17 +310,16 @@ lemma assumes simplers: "simple_ruleset rs"
     with r have abstracted: "normalized_ifaces m \<and> normalized_protocols m"
     unfolding normalized_protocols_def normalized_ifaces_def by fastforce
     
-    from no_CT s4 normalized a abstracted show "normalized_src_ports m \<and>
+    from no_CT no_L4_Flags s4 normalized a abstracted show "normalized_src_ports m \<and>
              normalized_dst_ports m \<and>
              normalized_src_ips m \<and>
              normalized_dst_ips m \<and>
              normalized_ifaces m \<and>
              normalized_protocols m \<and> \<not> has_disc is_L4_Flags m \<and> \<not> has_disc is_CT_State m \<and> \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop)"
-      apply(simp)
-      (*missing: normalized_ifaces m \<and> normalized_protocols m \<and> \<not> has_disc is_L4_Flags m
-        add abstract_primitive*)
-      thm abstract_for_simple_firewall_hasdisc
-oops
+      by(simp)
+  qed
+
+
 
 (*
 definition port_to_nat :: "16 word \<Rightarrow> nat" where
