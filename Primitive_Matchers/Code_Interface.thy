@@ -246,6 +246,7 @@ lemma ctstate_assume_new_not_has_CT_State:
   done
   
 
+(*
 lemma abstract_for_simple_firewall_abstracts_over:
       "normalized_nnf_match m \<Longrightarrow> normalized_ifaces (abstract_for_simple_firewall m)"
       "normalized_nnf_match m \<Longrightarrow> normalized_protocols (abstract_for_simple_firewall m)"
@@ -255,7 +256,7 @@ lemma abstract_for_simple_firewall_abstracts_over:
   apply(simp_all)
   apply(rename_tac a, case_tac [!] a)
   apply(simp_all)
-  done
+  done*)
 
 lemma assumes simplers: "simple_ruleset rs"
   shows "check_simple_fw_preconditions (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (ctstate_assume_new rs))))"
@@ -284,11 +285,10 @@ lemma assumes simplers: "simple_ruleset rs"
     with transform_upper_closure(4)[OF s3, where disc=is_CT_State] have "\<forall>m\<in>get_match ` set ?rs'. \<not> has_disc is_CT_State m" by fastforce
     with r have no_CT: "\<not> has_disc is_CT_State m" by fastforce
 
-
     from transform_upper_closure(3)[OF s1] have "\<forall>m\<in>get_match ` set (upper_closure (ctstate_assume_new rs)). normalized_nnf_match m" by simp
-    with abstract_for_simple_firewall_abstracts_over have
-      ifaces: "\<forall>m\<in>get_match ` set ?rs3. normalized_ifaces m" and
-      protocols: "\<forall>m\<in>get_match ` set ?rs3. normalized_protocols m" 
+    with abstract_for_simple_firewall_negated_ifaces_prots have
+      ifaces: "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False m" and
+      protocols: "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated is_Prot False m" 
       apply -
       apply(rule optimize_matches_preserves, simp)+
       done
@@ -296,6 +296,11 @@ lemma assumes simplers: "simple_ruleset rs"
     from transform_upper_closure(3)[OF s3] have "\<forall>m\<in>get_match ` set ?rs'.
      normalized_nnf_match m \<and> normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" .
     with r have normalized: "normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" by fastforce
+
+
+    from transform_upper_closure(5)[OF s3] ifaces protocols have "\<forall>m\<in>get_match ` set ?rs'.
+     \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False m \<and> \<not> has_disc_negated is_Prot False m" by simp (*500ms*)
+    with r have abstracted: "\<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False m \<and> \<not> has_disc_negated is_Prot False m" by fastforce
     
     (**TODO: somehow need to push a has_disc_negated through transform_upper_closure**)
     
@@ -306,7 +311,7 @@ lemma assumes simplers: "simple_ruleset rs"
       apply(simp add: abstract_for_simple_firewall_def)
       done*)
 
-    from no_CT s4 normalized a show "normalized_src_ports m \<and>
+    from no_CT s4 normalized a abstracted show "normalized_src_ports m \<and>
              normalized_dst_ports m \<and>
              normalized_src_ips m \<and>
              normalized_dst_ips m \<and>

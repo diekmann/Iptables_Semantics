@@ -569,6 +569,7 @@ theorem transform_normalize_primitives:
    unfolding unchanged_def using normalized by blast
 
    (*TODO: copy pasta*)
+   (*TODO: add normalized condition to the preserves lemma?*)
    { fix m and m' and disc::"(common_primitive \<Rightarrow> bool)" and sel::"(common_primitive \<Rightarrow> 'x)" and C'::" ('x \<Rightarrow> common_primitive)"
          and f'::"('x negation_type list \<Rightarrow> 'x list)"
      assume am: "\<not> has_disc_negated disc3 neg m"

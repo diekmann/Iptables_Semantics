@@ -47,6 +47,7 @@ lemma abstract_primitive_preserves_nodisc:
   done
 
 
+
 text{*The function @{const ctstate_assume_state} can be used to fix a state and hence remove all state matches from the ruleset.
       It is therefore advisable to create a simple firewall for a fixed state, e.g. with @{const ctstate_assume_new} before
       calling to @{const abstract_for_simple_firewall}.*}
@@ -61,7 +62,14 @@ lemma abstract_for_simple_firewall_hasdisc:
   apply(induction "(\<lambda>r. case r of Pos a \<Rightarrow> is_CT_State a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_CT_State a)" m rule: abstract_primitive.induct)
   apply(simp_all)
   done
-  
+
+lemma abstract_for_simple_firewall_negated_ifaces_prots:
+    "normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False (abstract_for_simple_firewall m)"
+    "normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated is_Prot False (abstract_for_simple_firewall m)"
+  unfolding abstract_for_simple_firewall_def
+  apply(induction "(\<lambda>r. case r of Pos a \<Rightarrow> is_CT_State a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_CT_State a)" m rule: abstract_primitive.induct)
+  apply(simp_all)
+  done
 
 
 context
