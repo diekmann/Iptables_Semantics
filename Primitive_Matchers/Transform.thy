@@ -252,12 +252,10 @@ theorem transform_remove_unknowns_generic:
       unfolding transform_remove_unknowns_generic_def
       by(induction rs) (simp_all add: optimize_matches_a_def)
 
-    (*TODO rule _preserves*)
     from simplers show "\<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). \<not> has_unknowns common_matcher m"
       unfolding transform_remove_unknowns_generic_def
-      apply(induction rs)
-       apply(simp add: optimize_matches_a_def)
-      apply(simp add: optimize_matches_a_def simple_ruleset_tail)
+      apply -
+      apply(rule optimize_matches_a_preserves)
       apply(rule remove_unknowns_generic_specification[OF _ packet_independent_\<alpha> packet_independent_\<beta>_unknown_common_matcher])
       apply(simp add: simple_ruleset_def)
       done
