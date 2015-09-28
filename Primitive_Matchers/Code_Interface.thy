@@ -300,7 +300,8 @@ lemma assumes simplers: "simple_ruleset rs"
 
     from transform_upper_closure(5)[OF s3] ifaces protocols have "\<forall>m\<in>get_match ` set ?rs'.
      \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False m \<and> \<not> has_disc_negated is_Prot False m" by simp (*500ms*)
-    with r have abstracted: "\<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False m \<and> \<not> has_disc_negated is_Prot False m" by fastforce
+    with r have abstracted: "normalized_ifaces m \<and> normalized_protocols m"
+    unfolding normalized_protocols_def normalized_ifaces_def by fastforce
     
     (**TODO: somehow need to push a has_disc_negated through transform_upper_closure**)
     
