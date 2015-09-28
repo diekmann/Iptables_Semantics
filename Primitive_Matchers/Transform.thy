@@ -351,21 +351,23 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
 
 
 theorem transform_normalize_primitives:
+  -- "all discriminators which will not be normalized remain unchanged"
+  defines "unchanged disc \<equiv> (\<forall>a. \<not> disc (Src_Ports a)) \<and> (\<forall>a. \<not> disc (Dst_Ports a)) \<and> (\<forall>a. \<not> disc (Src a)) \<and> (\<forall>a. \<not> disc (Dst a))"
   assumes simplers: "simple_ruleset rs"
       and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
       and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
   shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_normalize_primitives rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
     and "simple_ruleset (transform_normalize_primitives rs)"
-        (*TODO: add sto to wf_disc_sel and remove the disc1 and disc2 preconditions*)
-    and "\<forall>a. \<not> disc1 (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc1 (Dst_Ports a) \<Longrightarrow> 
-         \<forall>a. \<not> disc1 (Src a) \<Longrightarrow> \<forall>a. \<not> disc1 (Dst a) \<Longrightarrow> 
+    and "unchanged disc1 \<Longrightarrow> 
            \<forall> m \<in> get_match ` set rs. \<not> has_disc disc1 m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc disc1 m"
     and "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m"
     and "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs).
           normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m"
-    and "\<forall>a. \<not> disc2 (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc2 (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc2 (Src a) \<Longrightarrow> \<forall>a. \<not> disc2 (Dst a) \<Longrightarrow>
+    and "unchanged disc2 \<Longrightarrow>
          \<forall> m \<in> get_match ` set rs. normalized_n_primitive (disc2, sel2) f m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_n_primitive (disc2, sel2) f m"
+      (*and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (upper rs). \<not> has_disc_negated disc neg m"oop*)
   proof -
     let ?\<gamma>="(common_matcher, \<alpha>)"
     let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
@@ -480,10 +482,11 @@ theorem transform_normalize_primitives:
       unfolding transform_normalize_primitives_def by force
    
 
-   show  "\<forall>a. \<not> disc2 (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc2 (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc2 (Src a) \<Longrightarrow> \<forall>a. \<not> disc2 (Dst a) \<Longrightarrow>
+   show  "unchanged disc2 \<Longrightarrow>
           \<forall> m \<in> get_match ` set rs. normalized_n_primitive (disc2, sel2) f m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_n_primitive  (disc2, sel2) f m"
-   proof -
+   unfolding unchanged_def
+   proof(elim conjE)
      assume "\<forall>m\<in>get_match ` set rs. normalized_n_primitive  (disc2, sel2) f m"
      with normalized have a': "\<forall>m\<in>get_match ` set rs. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) f m" by blast
 
@@ -562,10 +565,9 @@ theorem transform_normalize_primitives:
    done
    
 
-   thus "\<forall>a. \<not> disc1 (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc1 (Dst_Ports a) \<Longrightarrow> 
-         \<forall>a. \<not> disc1 (Src a) \<Longrightarrow> \<forall>a. \<not> disc1 (Dst a) \<Longrightarrow> 
+   thus "unchanged disc1 \<Longrightarrow> 
     \<forall> m \<in> get_match ` set rs. \<not> has_disc disc1 m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc disc1 m"
-   using normalized by blast
+   unfolding unchanged_def using normalized by blast
 qed
 
 
