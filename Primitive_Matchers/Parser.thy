@@ -221,7 +221,7 @@ local (*iptables-save parsers*)
 
     (*TODO: is the 'Scan.finite Symbol.stopper' correct here?*)
     fun parse_with_module_prefix (module: string) (parser: (string list -> parsed_match_action * string list)) =
-      Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string module |-- (Scan.repeat parser))
+      (Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string module)) |-- (Scan.repeat parser)
   in
 
     val parse_ips = parse_cmd_option_negated_singleton "-s " @{const Src} (parser_ip_cidr || parser_ip_addr)
