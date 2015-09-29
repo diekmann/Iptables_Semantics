@@ -219,20 +219,20 @@ local (*iptables-save parsers*)
 
     fun parse_cmd_option_negated_singleton s t parser = parse_cmd_option_negated s t parser >> (fn x => [x])
 
-
+    (*TODO: is the 'Scan.finite Symbol.stopper' correct here?*)
     fun parse_with_module_prefix (module: string) (parser: (string list -> parsed_match_action * string list)) =
-      (is_whitespace |-- Scan.this_string module |-- (Scan.repeat parser))
+      Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string module |-- (Scan.repeat parser))
   in
 
     val parse_ips = parse_cmd_option_negated_singleton "-s " @{const Src} (parser_ip_cidr || parser_ip_addr)
-                            || parse_cmd_option_negated_singleton "-d " @{const Dst} (parser_ip_cidr || parser_ip_addr);
+                 || parse_cmd_option_negated_singleton "-d " @{const Dst} (parser_ip_cidr || parser_ip_addr);
 
                             
     val parse_iprange = parse_with_module_prefix "-m iprange " (parse_cmd_option_negated "--src-range " @{const Src} parser_ip_range
                                                              || parse_cmd_option_negated "--dst-range " @{const Dst} parser_ip_range); 
     
-    val parse_in_iface_negated = parse_cmd_option_negated_singleton "-i " @{const IIface} parser_interface;
-    val parse_out_iface_negated = parse_cmd_option_negated_singleton "-o " @{const OIface} parser_interface;
+    val parse_iface = parse_cmd_option_negated_singleton "-i " @{const IIface} parser_interface
+                   || parse_cmd_option_negated_singleton "-o " @{const OIface} parser_interface;
 
     val parse_protocol = parse_cmd_option_negated_singleton "-p " @{term "Prot \<circ> Proto"} parser_protocol; (*negated?*)
 
@@ -291,7 +291,7 @@ in
   *)
   val option_parser : (string list -> (parsed_match_action list) * string list) = 
       Scan.recover (parse_ips || parse_iprange
-                 || parse_in_iface_negated || parse_out_iface_negated
+                 || parse_iface
                  || parse_protocol
                  || parse_tcp_options || parse_udp_options || parse_multiports
                  || parse_ctstate
@@ -317,20 +317,33 @@ in
 end;
 *}
 
-ML_val{*(Scan.repeat option_parser) (ipt_explode "-i lup -j net-fw")*}
-ML_val{*(Scan.repeat option_parser) (ipt_explode "")*}
-ML_val{*(Scan.repeat option_parser) (ipt_explode "-j LOG --log-prefix \"Shorewall:INPUT:REJECT:\" --log-level 6")*}
+
+(*TODO: is there a library function for this?*)
+ML{*
+local
+  fun concat [] = []
+   | concat (x :: xs) = x @ concat xs;
+in
+fun Scan_cons_repeat (parser: ('a -> 'b list * 'a)) (s: 'a) : ('b list * 'a) =
+    let val (x, rest) = Scan.repeat parser s in (concat x, rest) end;
+end
+*}
+
+ML_val{*(Scan_cons_repeat option_parser) (ipt_explode "-i lup -j net-fw")*}
+ML_val{*(Scan_cons_repeat option_parser) (ipt_explode "")*}
+ML_val{*(Scan_cons_repeat option_parser) (ipt_explode "-i lup foo")*}
+ML_val{*(Scan_cons_repeat option_parser) (ipt_explode "-j LOG --log-prefix \"Shorewall:INPUT:REJECT:\" --log-level 6")*}
 
 
 ML_val{*
-val (x, rest) = (Scan.repeat option_parser) (ipt_explode "-d 0.31.123.213/88 --foo_bar \"he he\" -f -i eth0+ -s 0.31.123.213/88 moreextra -j foobar --log");
+val (x, rest) = (Scan_cons_repeat option_parser) (ipt_explode "-d 0.31.123.213/88 --foo_bar \"he he\" -f -i eth0+ -s 0.31.123.213/21 moreextra -j foobar --log");
 map (fn p => case p of ParsedMatch t => type_of t | ParsedAction (_,_) => dummyT) x;
 map (fn p => case p of ParsedMatch t => Pretty.writeln (Syntax.pretty_term @{context} t) | ParsedAction (_,a) => writeln ("action: "^a)) x;
 *}
 
 ML{*
 local
-  fun parse_rule_options (s: string list) : parsed_match_action list = let val (parsed, rest) = (case try (Scan.catch (Scan.repeat option_parser)) s of SOME x => x | NONE => raise Fail "scanning")
+  fun parse_rule_options (s: string list) : parsed_match_action list = let val (parsed, rest) = (case try (Scan.catch (Scan_cons_repeat option_parser)) s of SOME x => x | NONE => raise Fail "scanning")
             in
             if rest <> []
             then
