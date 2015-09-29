@@ -38,51 +38,35 @@ section{*CIDR Split Motivation*}
 
 subsection{*Prefix Match Range stuff*}
 
-definition prefix_to_range :: "prefix_match \<Rightarrow> 32 wordinterval" where
+private definition prefix_to_range :: "prefix_match \<Rightarrow> 32 wordinterval" where
   "prefix_to_range pfx = WordInterval (pfxm_prefix pfx) (pfxm_prefix pfx OR pfxm_mask pfx)"
-lemma prefix_to_range_set_eq: "wordinterval_to_set (prefix_to_range pfx) = prefix_to_ipset pfx"
+private lemma prefix_to_range_set_eq: "wordinterval_to_set (prefix_to_range pfx) = prefix_to_ipset pfx"
   unfolding prefix_to_range_def prefix_to_ipset_def by simp
 
-lemma prefix_to_range_ipv4range_range: "prefix_to_range pfx = ipv4range_range ((pfxm_prefix pfx), (pfxm_prefix pfx OR pfxm_mask pfx))"
+private lemma prefix_to_range_ipv4range_range: "prefix_to_range pfx = ipv4range_range ((pfxm_prefix pfx), (pfxm_prefix pfx OR pfxm_mask pfx))"
   unfolding ipv4range_range.simps prefix_to_range_def by simp
 
-corollary "valid_prefix pfx \<Longrightarrow> wordinterval_to_set (prefix_to_range pfx) = ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
+private corollary "valid_prefix pfx \<Longrightarrow> wordinterval_to_set (prefix_to_range pfx) = ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
 using wordinterval_to_set_ipv4range_set_from_bitmask prefix_to_range_set_eq by simp
 
 
-(*TODO: delete?*)
-definition prefix_match_to_CIDR :: "prefix_match \<Rightarrow> (ipv4addr \<times> nat)" where
-  "prefix_match_to_CIDR pfx \<equiv> (pfxm_prefix pfx, pfxm_length pfx)"
-lemma prefix_match_to_CIDR_def2: "prefix_match_to_CIDR \<equiv> \<lambda>pfx. (pfxm_prefix pfx, pfxm_length pfx)"
-  using prefix_match_to_CIDR_def by presburger
+private lemma prefix_match_list_union: "\<forall> pfx \<in> set cidrlist. (valid_prefix pfx) \<Longrightarrow>
+   (\<Union> x \<in> set (map prefix_to_range cidrlist). wordinterval_to_set x) = (\<Union>pfx\<in>set cidrlist. ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx))"
+  apply simp
+  apply(induction cidrlist)
+   apply(simp; fail)
+  apply(simp)
+  apply(subst prefix_to_range_set_eq)
+  apply(subst wordinterval_to_set_ipv4range_set_from_bitmask)
+   apply(simp; fail)
+  apply(simp)
+  done
+
+
 private lemma "\<Union>((\<lambda>(base, len). ipv4range_set_from_bitmask base len) ` prefix_match_to_CIDR ` set (cidrlist)) =
       \<Union>((\<lambda>pfx. ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)) ` set (cidrlist))"
 unfolding prefix_match_to_CIDR_def2 by blast 
 
-(*TODO: prefer next version, delete this*)
-lemma  "\<forall> pfx \<in> set cidrlist. (valid_prefix pfx) \<Longrightarrow>
-       (\<Union> x \<in> set (map prefix_to_range cidrlist). wordinterval_to_set x) = \<Union>((\<lambda>(base, len). ipv4range_set_from_bitmask base len) ` prefix_match_to_CIDR ` set (cidrlist))"
-       apply simp
-       apply(induction cidrlist)
-        apply(simp; fail)
-       apply(simp)
-       apply(subst prefix_to_range_set_eq)
-       apply(subst wordinterval_to_set_ipv4range_set_from_bitmask)
-        apply(simp; fail)
-       apply(simp add: prefix_match_to_CIDR_def2)
-       done
-
-lemma prefix_bitrang_list_union: "\<forall> pfx \<in> set cidrlist. (valid_prefix pfx) \<Longrightarrow>
-       (\<Union> x \<in> set (map prefix_to_range cidrlist). wordinterval_to_set x) = (\<Union>pfx\<in>set cidrlist. ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx))"
-       apply simp
-       apply(induction cidrlist)
-        apply(simp; fail)
-       apply(simp)
-       apply(subst prefix_to_range_set_eq)
-       apply(subst wordinterval_to_set_ipv4range_set_from_bitmask)
-        apply(simp; fail)
-       apply(simp)
-       done
 
 private definition pfxes :: "nat list" where "pfxes \<equiv> map nat [0..32]"
 
@@ -131,7 +115,7 @@ private lemma r_split1_not_none: "\<not>ipv4range_empty r \<Longrightarrow> fst 
 done
 private lemma find_in: "Some a = find f s \<Longrightarrow> a \<in> {x \<in> set s. f x}"
   by (metis findSomeD mem_Collect_eq)
-theorem ipv4range_split1_preserve: "(Some s, u) = ipv4range_split1 r \<Longrightarrow> ipv4range_eq (ipv4range_union (prefix_to_range s) u) r"
+private theorem ipv4range_split1_preserve: "(Some s, u) = ipv4range_split1 r \<Longrightarrow> ipv4range_eq (ipv4range_union (prefix_to_range s) u) r"
 proof(unfold ipv4range_eq_set_eq)
   assume as: "(Some s, u) = ipv4range_split1 r"
   have nn: "ipv4range_lowest_element r \<noteq> None"
@@ -180,12 +164,12 @@ proof -
     by blast
 qed
 
-lemma ipv4range_split1_never_empty: "(Some s, u) = ipv4range_split1 r \<Longrightarrow> \<not>ipv4range_empty (prefix_to_range s)"
+private lemma ipv4range_split1_never_empty: "(Some s, u) = ipv4range_split1 r \<Longrightarrow> \<not>ipv4range_empty (prefix_to_range s)"
   unfolding ipv4range_split1_def Let_def
   using prefix_never_empty
   by simp
 
-lemma ipv4range_split1_some_r_ne: "(Some s, u) = ipv4range_split1 r \<Longrightarrow> \<not>ipv4range_empty r"
+private lemma ipv4range_split1_some_r_ne: "(Some s, u) = ipv4range_split1 r \<Longrightarrow> \<not>ipv4range_empty r"
 proof(rule ccontr)
   case goal1
   have "ipv4range_lowest_element r = None" unfolding ipv4range_lowest_none_empty using goal1(2) unfolding not_not .
@@ -193,7 +177,7 @@ proof(rule ccontr)
   then show False using goal1(1) by simp
 qed
 
-lemma ipv4range_split1_distinct: "(Some s, u) = ipv4range_split1 r \<Longrightarrow> ipv4range_empty (ipv4range_intersection (prefix_to_range s) u)"
+private lemma ipv4range_split1_distinct: "(Some s, u) = ipv4range_split1 r \<Longrightarrow> ipv4range_empty (ipv4range_intersection (prefix_to_range s) u)"
 proof -
   case goal1
   note ne = ipv4range_split1_never_empty[OF goal1]
@@ -231,12 +215,12 @@ proof(relation "measure (card \<circ> ipv4range_to_set)", rule wf_measure, unfol
     by (metis add.commute add_left_cancel card_0_eq finite linorder_neqE_nat monoid_add_class.add.right_neutral not_add_less1)
 qed
 
-lemma unfold_rsplit_case:
+private lemma unfold_rsplit_case:
   assumes su: "(Some s, u) = ipv4range_split1 rs"
   shows "(case ipv4range_split1 rs of (None, u) \<Rightarrow> [] | (Some s, u) \<Rightarrow> s # ipv4range_split_internal u) = s # ipv4range_split_internal u"
 using su by (metis option.simps(5) split_conv)
 
-lemma ipv4range_split_internal_union: "\<Union>set (map wordinterval_to_set (map prefix_to_range (ipv4range_split_internal r))) = wordinterval_to_set r"
+private lemma ipv4range_split_internal_union: "\<Union>set (map wordinterval_to_set (map prefix_to_range (ipv4range_split_internal r))) = wordinterval_to_set r"
 proof(induction r rule: ipv4range_split_internal.induct, subst ipv4range_split_internal.simps, case_tac "ipv4range_empty rs")
   case goal1
   show ?case using goal1(2) by (simp add: ipv4range_to_set_def)
@@ -270,7 +254,7 @@ lemma "map (\<lambda>pfx. (dotdecimal_of_ipv4addr (pfxm_prefix pfx), (pfxm_lengt
 
 declare ipv4range_split_internal.simps[simp del]
 
-corollary ipv4range_split_internal: "(\<Union> (prefix_to_ipset ` (set (ipv4range_split_internal r)))) = wordinterval_to_set r"
+private corollary ipv4range_split_internal: "(\<Union> (prefix_to_ipset ` (set (ipv4range_split_internal r)))) = wordinterval_to_set r"
   proof -
   have prefix_to_range_set_eq_fun: "prefix_to_ipset = (wordinterval_to_set \<circ> prefix_to_range)"
     by(simp add: prefix_to_range_set_eq fun_eq_iff)
@@ -280,10 +264,10 @@ corollary ipv4range_split_internal: "(\<Union> (prefix_to_ipset ` (set (ipv4rang
   thus ?thesis
    using ipv4range_split_internal_union by simp
 qed
-corollary ipv4range_split_internal_single: "(\<Union> (prefix_to_ipset ` (set (ipv4range_split_internal (WordInterval start end))))) = {start .. end}"
+private corollary ipv4range_split_internal_single: "(\<Union> (prefix_to_ipset ` (set (ipv4range_split_internal (WordInterval start end))))) = {start .. end}"
   using ipv4range_split_internal by simp
 
-lemma ipv4range_split_internal_all_valid_Ball: "Ball (set (ipv4range_split_internal r)) valid_prefix"
+private lemma ipv4range_split_internal_all_valid_Ball: "Ball (set (ipv4range_split_internal r)) valid_prefix"
 proof(induction r rule: ipv4range_split_internal.induct, subst ipv4range_split_internal.simps, case_tac "ipv4range_empty rs")
   case goal1 thus ?case
     by(simp only: not_True_eq_False if_False Ball_def set_simps empty_iff) clarify

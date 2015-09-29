@@ -18,6 +18,11 @@ definition valid_prefix where
 text{*The type @{typ prefix_match} usually requires @{const valid_prefix}.
       When we allow working on arbitrary IPs in CIDR notation, we will use the type @{typ "(ipv4addr \<times> nat)"} directly.*}
 
+definition prefix_match_to_CIDR :: "prefix_match \<Rightarrow> (ipv4addr \<times> nat)" where
+  "prefix_match_to_CIDR pfx \<equiv> (pfxm_prefix pfx, pfxm_length pfx)"
+lemma prefix_match_to_CIDR_def2: "prefix_match_to_CIDR \<equiv> \<lambda>pfx. (pfxm_prefix pfx, pfxm_length pfx)"
+  using prefix_match_to_CIDR_def by presburger
+
 
 private lemma valid_prefix_E: "valid_prefix pf \<Longrightarrow> ((pfxm_mask pf) AND pfxm_prefix pf = 0)" 
   unfolding valid_prefix_def .
