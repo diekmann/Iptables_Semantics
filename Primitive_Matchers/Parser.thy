@@ -332,6 +332,7 @@ end
 ML_val{*(Scan_cons_repeat option_parser) (ipt_explode "-i lup -j net-fw")*}
 ML_val{*(Scan_cons_repeat option_parser) (ipt_explode "")*}
 ML_val{*(Scan_cons_repeat option_parser) (ipt_explode "-i lup foo")*}
+ML_val{*(Scan_cons_repeat option_parser) (ipt_explode "-m tcp --dport 22 --sport 88")*}
 ML_val{*(Scan_cons_repeat option_parser) (ipt_explode "-j LOG --log-prefix \"Shorewall:INPUT:REJECT:\" --log-level 6")*}
 
 
