@@ -211,41 +211,48 @@ local (*iptables-save parsers*)
     fun parse_cmd_option_generic (d: term -> parsed_match_action) (s: string) (t: term) (parser: string list -> (term * string list)) = 
         Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string s |-- (parser >> (fn r => d (t $ r))))
 
-    fun parse_cmd_option (s: string) (t: term) (parser: string list -> (term * string list)) = parse_cmd_option_generic ParsedMatch s t parser;
+    fun parse_cmd_option (s: string) (t: term) (parser: string list -> (term * string list)) =  parse_cmd_option_generic ParsedMatch s t parser;
 
-    (*both negated and not negated*)
+    (*both negated and not negated primitives*)
     fun parse_cmd_option_negated (s: string) (t: term) (parser: string list -> (term * string list)) =
           parse_cmd_option_generic ParsedNegatedMatch ("! "^s) t parser || parse_cmd_option s t parser;
+
+    fun parse_cmd_option_negated_singleton s t parser = parse_cmd_option_negated s t parser >> (fn x => [x])
+
+
+    fun parse_with_module_prefix (module: string) (parser: (string list -> parsed_match_action * string list)) =
+      (is_whitespace |-- Scan.this_string module |-- (Scan.repeat parser))
   in
-    
+
     (*TODO: the syntac for negated ipranges is: -m iprange ! --dst-range*)
-    val parse_src_ip_negated = parse_cmd_option_negated "-s " @{const Src} (parser_ip_cidr || parser_ip_addr)
-                            || parse_cmd_option "-m iprange --src-range " @{const Src} parser_ip_range;
-    val parse_dst_ip_negated = parse_cmd_option_negated "-d " @{const Dst} (parser_ip_cidr || parser_ip_addr)
-                            || parse_cmd_option "-m iprange --dst-range " @{const Dst} parser_ip_range; 
+    val parse_src_ip_negated = parse_cmd_option_negated_singleton "-s " @{const Src} (parser_ip_cidr || parser_ip_addr)
+                            || parse_with_module_prefix "-m iprange " (parse_cmd_option_negated "--src-range " @{const Src} parser_ip_range);
+    val parse_dst_ip_negated = parse_cmd_option_negated_singleton "-d " @{const Dst} (parser_ip_cidr || parser_ip_addr)
+                            || parse_with_module_prefix "-m iprange " (parse_cmd_option_negated "--dst-range " @{const Dst} parser_ip_range); 
     
-    val parse_in_iface_negated = parse_cmd_option_negated "-i " @{const IIface} parser_interface;
-    val parse_out_iface_negated = parse_cmd_option_negated "-o " @{const OIface} parser_interface;
+    val parse_in_iface_negated = parse_cmd_option_negated_singleton "-i " @{const IIface} parser_interface;
+    val parse_out_iface_negated = parse_cmd_option_negated_singleton "-o " @{const OIface} parser_interface;
 
-    val parse_protocol = parse_cmd_option "-p " @{term "Prot \<circ> Proto"} parser_protocol; (*negated?*)
+    val parse_protocol = parse_cmd_option_negated_singleton "-p " @{term "Prot \<circ> Proto"} parser_protocol; (*negated?*)
 
-    val parse_src_ports = parse_cmd_option "-m tcp --sport " @{const Src_Ports} parser_port_single_tup_term
-                       || parse_cmd_option "-m udp --sport " @{const Src_Ports} parser_port_single_tup_term
-                       || parse_cmd_option "-m multiport --sports " @{const Src_Ports} parser_port_many1_tup;
-    val parse_dst_ports = parse_cmd_option "-m tcp --dport " @{const Dst_Ports} parser_port_single_tup_term
-                       || parse_cmd_option "-m udp --dport " @{const Dst_Ports} parser_port_single_tup_term
-                       || parse_cmd_option "-m multiport --dports " @{const Dst_Ports} parser_port_many1_tup;
-    (*-m tcp requires that there is already an -p tcp*)
+    val parse_src_ports = parse_with_module_prefix "-m tcp " (parse_cmd_option_negated "--sport " @{const Src_Ports} parser_port_single_tup_term)
+                       || parse_with_module_prefix "-m udp " (parse_cmd_option_negated "--sport " @{const Src_Ports} parser_port_single_tup_term)
+                       || parse_with_module_prefix "-m multiport " (parse_cmd_option_negated "--sports " @{const Src_Ports} parser_port_many1_tup);
+    val parse_dst_ports = parse_with_module_prefix "-m tcp " (parse_cmd_option_negated "--dport " @{const Dst_Ports} parser_port_single_tup_term)
+                       || parse_with_module_prefix "-m udp " (parse_cmd_option_negated "--dport " @{const Dst_Ports} parser_port_single_tup_term)
+                       || parse_with_module_prefix "-m multiport " (parse_cmd_option_negated "--dports " @{const Dst_Ports} parser_port_many1_tup);
+    (*-m tcp requires that there is already an -p tcp, iptables checks that for you, we assume valid iptables-save (otherwise the kernel would not load it)*)
 
     (*TODO: check for all "-m tcp"*)
-    val parse_tcp_flags = parse_cmd_option "-m tcp --tcp-flags " @{const L4_Flags} parser_tcp_flags
-                       || parse_cmd_option_negated "--tcp-flags " @{const L4_Flags} parser_tcp_flags;
+    val parse_tcp_flags = parse_cmd_option_negated_singleton "-m tcp --tcp-flags " @{const L4_Flags} parser_tcp_flags
+                       || parse_cmd_option_negated_singleton "--tcp-flags " @{const L4_Flags} parser_tcp_flags;
 
-    val parse_ctstate = parse_cmd_option "-m state --state " @{term "CT_State"} parser_ctstate_set
-                     || parse_cmd_option "-m conntrack --ctstate " @{term "CT_State"} parser_ctstate_set;
+    (*TODO: negation*)
+    val parse_ctstate = parse_cmd_option_negated_singleton "-m state --state " @{term "CT_State"} parser_ctstate_set
+                     || parse_cmd_option_negated_singleton "-m conntrack --ctstate " @{term "CT_State"} parser_ctstate_set;
     
-     (*TODO: it would be good to fail if there is a "!" in the extra, it might be an unparsed negation*)
-    val parse_unknown = parse_cmd_option "" @{const Extra} parser_extra;
+     (*TODO: it would be good to fail if there is a "!" in the extra; it might be an unparsed negation*)
+    val parse_unknown = (parse_cmd_option "" @{const Extra} parser_extra) >> (fn x => [x]);
   end;
   
   
@@ -273,25 +280,23 @@ local (*iptables-save parsers*)
     val parse_target_goto : (string list -> parsed_match_action * string list) = parse_finite_skipwhite
       (Scan.this_string "-g " |-- (parser_target >> (fn s => let val _ = writeln ("WARNING: goto in `"^s^"'") in ParsedAction (TypeGoto, s) end)));
 
-
     val parse_target : (string list -> parsed_match_action * string list) = parse_target_reject || parse_target_goto || parse_target_generic;
   end;
 in
   (*parses: -A FORWARD*)
   val parse_table_append : (string list -> (string * string list)) = Scan.this_string "-A " |-- parser_target --| is_whitespace;
-  
-  
+
   (*parses: -s 0.31.123.213/88 --foo_bar -j chain --foobar
    First tries to parse a known field, afterwards, it parses something unknown until a blank space appears
   *)
-  val option_parser : (string list -> (parsed_match_action) * string list) = 
+  val option_parser : (string list -> (parsed_match_action list) * string list) = 
       Scan.recover (parse_src_ip_negated || parse_dst_ip_negated
                  || parse_in_iface_negated || parse_out_iface_negated
                  || parse_protocol
                  || parse_src_ports || parse_dst_ports
                  || parse_tcp_flags
                  || parse_ctstate
-                 || parse_target) (K parse_unknown);
+                 || parse_target >> (fn x => [x])) (K parse_unknown);
   
   
   (*parse_table_append should be called before option_parser, otherwise -A will simply be an unknown for option_parser*)
