@@ -224,32 +224,32 @@ local (*iptables-save parsers*)
       (is_whitespace |-- Scan.this_string module |-- (Scan.repeat parser))
   in
 
-    (*TODO: the syntac for negated ipranges is: -m iprange ! --dst-range*)
-    val parse_src_ip_negated = parse_cmd_option_negated_singleton "-s " @{const Src} (parser_ip_cidr || parser_ip_addr)
-                            || parse_with_module_prefix "-m iprange " (parse_cmd_option_negated "--src-range " @{const Src} parser_ip_range);
-    val parse_dst_ip_negated = parse_cmd_option_negated_singleton "-d " @{const Dst} (parser_ip_cidr || parser_ip_addr)
-                            || parse_with_module_prefix "-m iprange " (parse_cmd_option_negated "--dst-range " @{const Dst} parser_ip_range); 
+    val parse_ips = parse_cmd_option_negated_singleton "-s " @{const Src} (parser_ip_cidr || parser_ip_addr)
+                            || parse_cmd_option_negated_singleton "-d " @{const Dst} (parser_ip_cidr || parser_ip_addr);
+
+                            
+    val parse_iprange = parse_with_module_prefix "-m iprange " (parse_cmd_option_negated "--src-range " @{const Src} parser_ip_range
+                                                             || parse_cmd_option_negated "--dst-range " @{const Dst} parser_ip_range); 
     
     val parse_in_iface_negated = parse_cmd_option_negated_singleton "-i " @{const IIface} parser_interface;
     val parse_out_iface_negated = parse_cmd_option_negated_singleton "-o " @{const OIface} parser_interface;
 
     val parse_protocol = parse_cmd_option_negated_singleton "-p " @{term "Prot \<circ> Proto"} parser_protocol; (*negated?*)
 
-    val parse_src_ports = parse_with_module_prefix "-m tcp " (parse_cmd_option_negated "--sport " @{const Src_Ports} parser_port_single_tup_term)
-                       || parse_with_module_prefix "-m udp " (parse_cmd_option_negated "--sport " @{const Src_Ports} parser_port_single_tup_term)
-                       || parse_with_module_prefix "-m multiport " (parse_cmd_option_negated "--sports " @{const Src_Ports} parser_port_many1_tup);
-    val parse_dst_ports = parse_with_module_prefix "-m tcp " (parse_cmd_option_negated "--dport " @{const Dst_Ports} parser_port_single_tup_term)
-                       || parse_with_module_prefix "-m udp " (parse_cmd_option_negated "--dport " @{const Dst_Ports} parser_port_single_tup_term)
-                       || parse_with_module_prefix "-m multiport " (parse_cmd_option_negated "--dports " @{const Dst_Ports} parser_port_many1_tup);
     (*-m tcp requires that there is already an -p tcp, iptables checks that for you, we assume valid iptables-save (otherwise the kernel would not load it)*)
+    val parse_tcp_options =
+             parse_with_module_prefix "-m tcp " (parse_cmd_option_negated "--sport " @{const Src_Ports} parser_port_single_tup_term
+                                              || parse_cmd_option_negated "--dport " @{const Dst_Ports} parser_port_single_tup_term
+                                              || parse_cmd_option_negated "--tcp-flags " @{const L4_Flags} parser_tcp_flags);
+    val parse_multiports = 
+             parse_with_module_prefix "-m multiport " (parse_cmd_option_negated "--sports " @{const Src_Ports} parser_port_many1_tup
+                                                    || parse_cmd_option_negated "--dports " @{const Dst_Ports} parser_port_many1_tup);
+    val parse_udp_options = 
+             parse_with_module_prefix "-m udp " (parse_cmd_option_negated "--sport " @{const Src_Ports} parser_port_single_tup_term
+                                              || parse_cmd_option_negated "--dport " @{const Dst_Ports} parser_port_single_tup_term);
 
-    (*TODO: check for all "-m tcp"*)
-    val parse_tcp_flags = parse_cmd_option_negated_singleton "-m tcp --tcp-flags " @{const L4_Flags} parser_tcp_flags
-                       || parse_cmd_option_negated_singleton "--tcp-flags " @{const L4_Flags} parser_tcp_flags;
-
-    (*TODO: negation*)
-    val parse_ctstate = parse_cmd_option_negated_singleton "-m state --state " @{term "CT_State"} parser_ctstate_set
-                     || parse_cmd_option_negated_singleton "-m conntrack --ctstate " @{term "CT_State"} parser_ctstate_set;
+    val parse_ctstate = parse_with_module_prefix "-m state " (parse_cmd_option_negated "--state " @{term "CT_State"} parser_ctstate_set)
+                     || parse_with_module_prefix "-m conntrack " (parse_cmd_option_negated "--ctstate " @{term "CT_State"} parser_ctstate_set);
     
      (*TODO: it would be good to fail if there is a "!" in the extra; it might be an unparsed negation*)
     val parse_unknown = (parse_cmd_option "" @{const Extra} parser_extra) >> (fn x => [x]);
@@ -290,11 +290,10 @@ in
    First tries to parse a known field, afterwards, it parses something unknown until a blank space appears
   *)
   val option_parser : (string list -> (parsed_match_action list) * string list) = 
-      Scan.recover (parse_src_ip_negated || parse_dst_ip_negated
+      Scan.recover (parse_ips || parse_iprange
                  || parse_in_iface_negated || parse_out_iface_negated
                  || parse_protocol
-                 || parse_src_ports || parse_dst_ports
-                 || parse_tcp_flags
+                 || parse_tcp_options || parse_udp_options || parse_multiports
                  || parse_ctstate
                  || parse_target >> (fn x => [x])) (K parse_unknown);
   
