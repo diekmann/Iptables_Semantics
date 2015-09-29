@@ -12,6 +12,7 @@ imports
   "~~/src/HOL/Library/Code_Char"
 begin
 
+(*Note: common_primitive_match_expr_toString can be really slow*)
 
 section{*Code Interface*}
 

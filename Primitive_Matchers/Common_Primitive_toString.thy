@@ -86,6 +86,6 @@ fun common_primitive_match_expr_toString :: "common_primitive match_expr \<Right
 
 fun common_primitive_rule_toString :: "common_primitive rule \<Rightarrow> string" where
   "common_primitive_rule_toString (Rule m a) = common_primitive_match_expr_toString m @'' ''@action_toString a"
-  
+
 
 end

@@ -15,7 +15,21 @@ definition string_of_int :: "int \<Rightarrow> string" where
 
 
 definition list_separated_toString :: "string \<Rightarrow> ('a \<Rightarrow> string) \<Rightarrow> 'a list \<Rightarrow> string" where
-  "list_separated_toString sep toStr ls = concat (splice (map toStr ls) (replicate (length ls - 1) sep))  "
+  "list_separated_toString sep toStr ls = concat (splice (map toStr ls) (replicate (length ls - 1) sep))"
+
+
+text{*A slightly more efficient code equation, which is actually not really faster*}
+fun list_separated_toString_helper :: "string \<Rightarrow> ('a \<Rightarrow> string) \<Rightarrow> 'a list \<Rightarrow> string" where
+  "list_separated_toString_helper sep toStr [] = ''''" |
+  "list_separated_toString_helper sep toStr [l] = toStr l" |
+  "list_separated_toString_helper sep toStr (l1#l2#ls) = (toStr l1)@sep@list_separated_toString_helper sep toStr (l2#ls)"
+lemma "list_separated_toString = list_separated_toString_helper"
+proof -
+  { fix sep and toStr::"('a \<Rightarrow> char list)" and ls
+    have "list_separated_toString sep toStr ls = list_separated_toString_helper sep toStr ls"
+      by(induction sep toStr ls rule: list_separated_toString_helper.induct) (simp_all add: list_separated_toString_def)
+  } thus ?thesis by(simp add: fun_eq_iff)
+qed
 
 definition list_toString :: "('a \<Rightarrow> string) \<Rightarrow> 'a list \<Rightarrow> string" where
   "list_toString toStr ls = ''[''@ list_separated_toString '', '' toStr ls @'']''"
