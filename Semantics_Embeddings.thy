@@ -1,5 +1,6 @@
 theory Semantics_Embeddings
 imports Matching_Embeddings Semantics "Semantics_Ternary/Semantics_Ternary"
+
 begin
 
 section{*Semantics Embedding*}

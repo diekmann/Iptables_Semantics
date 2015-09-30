@@ -366,4 +366,128 @@ theorem to_simple_firewall: "check_simple_fw_preconditions rs \<Longrightarrow> 
       by(auto simp add: r to_simple_firewall_simps' IH match nomatch split: option.split action.split)
   qed
 
+
+
+lemma ctstate_assume_new_not_has_CT_State:
+  "m \<in> get_match ` set (ctstate_assume_new rs) \<Longrightarrow> \<not> has_disc is_CT_State m"
+  apply(simp add: ctstate_assume_new_def)
+  apply(induction rs)
+   apply(simp add: optimize_matches_def; fail)
+  apply(simp add: optimize_matches_def)
+  apply(safe)
+   apply(simp_all add: not_hasdisc_ctstate_assume_state)
+  done
+
+text{*The precondiction for the simple firewall can be easily fulfilled.
+      The subset relation is due to abstracting over some primitives (e.g., negated primitives, l4 flags)*}
+theorem transform_simple_fw:
+  defines "preprocess rs \<equiv> upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new rs)))"
+  and "newpkt p \<equiv> match_tcp_flags ipt_tcp_syn (p_tcp_flags p) \<and> p_tag_ctstate p = CT_New"
+  assumes simplers: "simple_ruleset rs"
+  --"the preconditions for the simple firewall are fulfilled, definitely no runtime failure"
+  shows "check_simple_fw_preconditions (preprocess rs)"
+  --"the set of new packets, which are accepted is an overapproximations"
+  and "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
+       {p. simple_fw (to_simple_firewall (preprocess rs)) p = Decision FinalAllow \<and> newpkt p}"
+  unfolding check_simple_fw_preconditions_def preprocess_def
+  apply(clarify, rename_tac r, case_tac r, rename_tac m a, simp)
+  proof -
+    let ?rs3="optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new rs))"
+    let ?rs'="upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new rs)))"
+
+    from packet_assume_new_simple_ruleset[OF simplers] have s1: "simple_ruleset (packet_assume_new rs)" .
+    from transform_upper_closure(2)[OF s1] have s2: "simple_ruleset (upper_closure (packet_assume_new rs))" .
+    from s2 have s3: "simple_ruleset ?rs3" by (simp add: optimize_matches_simple_ruleset) 
+    from transform_upper_closure(2)[OF s3] have s4: "simple_ruleset ?rs'" .
+
+    from transform_upper_closure(3)[OF s1] have nnf2: "\<forall>m\<in>get_match ` set (upper_closure (packet_assume_new rs)). normalized_nnf_match m" by simp
+    
+  { fix m a
+    assume r: "Rule m a \<in> set ?rs'"
+
+    from s4 r have a: "(a = action.Accept \<or> a = action.Drop)" by(auto simp add: simple_ruleset_def)
+    
+    have "\<And>m. m \<in> get_match ` set (packet_assume_new rs) \<Longrightarrow> \<not> has_disc is_CT_State m"
+      by(simp add: packet_assume_new_def ctstate_assume_new_not_has_CT_State)
+    with transform_upper_closure(4)[OF s1, where disc=is_CT_State] have
+      "\<forall>m\<in>get_match ` set (upper_closure (packet_assume_new rs)). \<not> has_disc is_CT_State m"
+      by fastforce
+    with abstract_primitive_preserves_nodisc[where disc'="is_CT_State"] have "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc is_CT_State m"
+      apply -
+      apply(rule optimize_matches_preserves)
+      apply(simp add: abstract_for_simple_firewall_def)
+      done
+    with transform_upper_closure(4)[OF s3, where disc=is_CT_State] have "\<forall>m\<in>get_match ` set ?rs'. \<not> has_disc is_CT_State m" by fastforce
+    with r have no_CT: "\<not> has_disc is_CT_State m" by fastforce
+
+    from abstract_for_simple_firewall_hasdisc have "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc is_L4_Flags m"
+      apply -
+      apply(rule optimize_matches_preserves, simp)
+      done
+    with transform_upper_closure(4)[OF s3, where disc=is_L4_Flags] have "\<forall>m\<in>get_match ` set ?rs'. \<not> has_disc is_L4_Flags m" by fastforce
+    with r have no_L4_Flags: "\<not> has_disc is_L4_Flags m" by fastforce
+
+    from nnf2 abstract_for_simple_firewall_negated_ifaces_prots have
+      ifaces: "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False m" and
+      protocols: "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated is_Prot False m" 
+      apply -
+      apply(rule optimize_matches_preserves, simp)+
+      done
+
+    from transform_upper_closure(3)[OF s3] have "\<forall>m\<in>get_match ` set ?rs'.
+     normalized_nnf_match m \<and> normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" .
+    with r have normalized: "normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" by fastforce
+
+
+    from transform_upper_closure(5)[OF s3] ifaces protocols have "\<forall>m\<in>get_match ` set ?rs'.
+     \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False m \<and> \<not> has_disc_negated is_Prot False m" by simp (*500ms*)
+    with r have abstracted: "normalized_ifaces m \<and> normalized_protocols m"
+    unfolding normalized_protocols_def normalized_ifaces_def by fastforce
+    
+    from no_CT no_L4_Flags s4 normalized a abstracted show "normalized_src_ports m \<and>
+             normalized_dst_ports m \<and>
+             normalized_src_ips m \<and>
+             normalized_dst_ips m \<and>
+             normalized_ifaces m \<and>
+             normalized_protocols m \<and> \<not> has_disc is_L4_Flags m \<and> \<not> has_disc is_CT_State m \<and> \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop)"
+      by(simp)
+  }
+    hence simple_fw_preconditions: "check_simple_fw_preconditions ?rs'"
+    unfolding check_simple_fw_preconditions_def
+    by(clarify, rename_tac r, case_tac r, rename_tac m a, simp)
+
+    let ?\<gamma>="(common_matcher, in_doubt_allow)"
+    let ?fw="\<lambda>rs p. approximating_bigstep_fun ?\<gamma> p rs Undecided"
+
+    have 1: "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>?rs', Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} =
+          {p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>?rs3, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
+      apply(subst transform_upper_closure(1)[OF s3])
+      by simp
+    from abstract_primitive_in_doubt_allow(2)[OF nnf2 s2] have 2:
+         "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>upper_closure (packet_assume_new rs), Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
+          {p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>?rs3, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
+      by(auto simp add: abstract_for_simple_firewall_def)
+    have 3: "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>upper_closure (packet_assume_new rs), Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} =
+          {p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
+      apply(subst transform_upper_closure(1)[OF s1])
+      apply(subst approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF s1]])
+      apply(subst approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]])
+      using packet_assume_new newpkt_def by auto
+      
+    have 4: "\<And>p. ?\<gamma>,p\<turnstile> \<langle>?rs', Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<longleftrightarrow> ?fw ?rs' p = Decision FinalAllow"
+      using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF s4]] by fast
+    
+    have "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
+       {p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>?rs', Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
+      apply(subst 1)
+      apply(subst 3[symmetric])
+      using 2 by blast
+    
+    thus "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
+       {p. simple_fw (to_simple_firewall ?rs') p = Decision FinalAllow \<and> newpkt p}"
+      using to_simple_firewall[OF simple_fw_preconditions] 4 by simp
+  qed
+
+
+
 end
