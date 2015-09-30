@@ -223,9 +223,10 @@ lemma ctstate_assume_new_not_has_CT_State:
   done
 
 lemma transform_simple_fw_preconditions:
+  defines "preprocess rs \<equiv> upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new rs)))"
   assumes simplers: "simple_ruleset rs"
-  shows "check_simple_fw_preconditions (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new rs))))"
-  unfolding check_simple_fw_preconditions_def
+  shows "check_simple_fw_preconditions (preprocess rs)"
+  unfolding check_simple_fw_preconditions_def preprocess_def
   apply(clarify, rename_tac r, case_tac r, rename_tac m a, simp)
   proof -
     let ?rs3="optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new rs))"
