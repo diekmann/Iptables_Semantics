@@ -22,7 +22,7 @@ text{*A slightly more efficient code equation, which is actually not really fast
 fun list_separated_toString_helper :: "string \<Rightarrow> ('a \<Rightarrow> string) \<Rightarrow> 'a list \<Rightarrow> string" where
   "list_separated_toString_helper sep toStr [] = ''''" |
   "list_separated_toString_helper sep toStr [l] = toStr l" |
-  "list_separated_toString_helper sep toStr (l1#l2#ls) = (toStr l1)@sep@list_separated_toString_helper sep toStr (l2#ls)"
+  "list_separated_toString_helper sep toStr (l#ls) = (toStr l)@sep@list_separated_toString_helper sep toStr ls"
 lemma "list_separated_toString = list_separated_toString_helper"
 proof -
   { fix sep and toStr::"('a \<Rightarrow> char list)" and ls

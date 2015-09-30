@@ -83,6 +83,9 @@ definition ipv4range_split1 :: "32 wordinterval \<Rightarrow> prefix_match optio
 
 private lemma flipnot: "a=b \<Longrightarrow> (\<not>a)=(\<not>b)" by simp (* not flipknot *)
 
+private lemma "find (const True) cfs = (if cfs = [] then None else Some (hd cfs))"
+by(induction cfs) (simp_all split: split_if_asm add: const_def)
+
 private lemma find_const_True: "find (const True) l = None \<longleftrightarrow> l = []"
   by(cases l, simp_all add: const_def) 
 private lemma ipv4range_split_innard_helper: "ipv4range_lowest_element r = Some a \<Longrightarrow> 
@@ -197,6 +200,8 @@ proof -
     by (metis option.sel)
   then show ?thesis by force
 qed
+private lemma "ipv4range_empty r \<longleftrightarrow> fst (ipv4range_split1 r) = None"
+by (metis (no_types, lifting) Pair_inject case_option_If2 ipv4range_lowest_none_empty ipv4range_split1_def prod.collapse r_split1_not_none) 
 
 function ipv4range_split_internal :: "32 wordinterval \<Rightarrow> prefix_match list"where
   "ipv4range_split_internal rs = (if \<not>ipv4range_empty rs then case ipv4range_split1 rs of (Some s, u) \<Rightarrow> s # ipv4range_split_internal u | _ \<Rightarrow> [] else [])"
@@ -251,6 +256,11 @@ lemma "map (\<lambda>pfx. (dotdecimal_of_ipv4addr (pfxm_prefix pfx), (pfxm_lengt
           (ipv4range_range ((ipv4addr_of_dotdecimal (10,8,0,0)), (ipv4addr_of_dotdecimal (10,8,255,255)))))) =
  [((10, 0, 0, 0), 13), ((10, 9, 0, 0), 16), ((10, 10, 0, 0), 15), ((10, 12, 0, 0), 14), ((10, 16, 0, 0), 12), ((10, 32, 0, 0), 11), ((10, 64, 0, 0), 10),
   ((10, 128, 0, 0), 9)]" by eval
+
+
+lemma "map (\<lambda>pfx. (dotdecimal_of_ipv4addr (pfxm_prefix pfx), (pfxm_length pfx))) (ipv4range_split_internal (
+    (ipv4range_range ((ipv4addr_of_dotdecimal (10,0,0,1)), (ipv4addr_of_dotdecimal (10,0,0,15)))))) =
+    [((10, 0, 0, 1), 32), ((10, 0, 0, 2), 31), ((10, 0, 0, 4), 30), ((10, 0, 0, 8), 29)]" by eval
 
 declare ipv4range_split_internal.simps[simp del]
 
