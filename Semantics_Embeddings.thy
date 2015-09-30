@@ -1,5 +1,5 @@
 theory Semantics_Embeddings
-imports Matching_Embeddings Semantics "Semantics_Ternary/Semantics_Ternary"
+imports (*"Simple_Firewall/SimpleFw_Compliance"*) Matching_Embeddings Semantics "Semantics_Ternary/Semantics_Ternary"
 
 begin
 
@@ -160,10 +160,10 @@ lemma FinalDeny_approximating_in_doubt_deny: "matcher_agree_on_exact_matches \<g
    good_ruleset rs \<Longrightarrow>
    \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalDeny \<Longrightarrow> (\<beta>, in_doubt_deny),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny"
  apply(rotate_tac 2)
-    apply(induction rs Undecided "Decision FinalDeny" rule: iptables_bigstep_induct)
-    apply(simp_all)
+ apply(induction rs Undecided "Decision FinalDeny" rule: iptables_bigstep_induct)
+   apply(simp_all)
    apply (metis approximating_bigstep.drop approximating_bigstep.reject in_doubt_deny_denies_DropReject)
-    apply(case_tac t)
+   apply(case_tac t)
     apply(simp_all)
     prefer 2
     apply(simp add: good_ruleset_append)
@@ -171,11 +171,10 @@ lemma FinalDeny_approximating_in_doubt_deny: "matcher_agree_on_exact_matches \<g
     apply (metis approximating_bigstep.decision approximating_bigstep.seq Semantics.decisionD state.inject)
    apply(thin_tac "False \<Longrightarrow> _ \<Longrightarrow> _")
    apply(simp add: good_ruleset_append, clarify)
-   
    apply(drule(2) iptables_bigstep_undecided_to_undecided_in_doubt_deny_approx)
-    apply(erule disjE)
-   apply (metis approximating_bigstep.seq)
-  apply (metis approximating_bigstep.decision Semantics_Ternary.seq')
+   apply(erule disjE)
+    apply (metis approximating_bigstep.seq)
+   apply (metis approximating_bigstep.decision Semantics_Ternary.seq')
  apply(simp add: good_ruleset_alt)
 done
 
@@ -210,14 +209,14 @@ lemma FinalAllow_approximating_in_doubt_deny: "matcher_agree_on_exact_matches \<
  apply(rotate_tac 2)
  apply(induction rs Undecided "Decision FinalAllow" rule: approximating_bigstep_induct)
   apply(simp_all)
- apply (metis action.distinct(1) action.distinct(5) iptables_bigstep.accept not_exact_match_in_doubt_deny_approx_match)
+  apply (metis action.distinct(1) action.distinct(5) iptables_bigstep.accept not_exact_match_in_doubt_deny_approx_match)
  apply(simp add: good_ruleset_append, clarify)
  apply(case_tac t)
-   apply(simp)
-   apply(drule(2) approximating_bigstep_undecided_to_undecided_in_doubt_deny_approx[where \<Gamma>=\<Gamma>])
-   apply(erule disjE)
-    apply (metis iptables_bigstep.seq)
-   apply (metis iptables_bigstep.decision iptables_bigstep.seq)
+  apply(simp)
+  apply(drule(2) approximating_bigstep_undecided_to_undecided_in_doubt_deny_approx[where \<Gamma>=\<Gamma>])
+  apply(erule disjE)
+   apply (metis iptables_bigstep.seq)
+  apply (metis iptables_bigstep.decision iptables_bigstep.seq)
  by (metis Decision_approximating_bigstep_fun approximating_semantics_imp_fun iptables_bigstep.decision iptables_bigstep.seq)
 
 

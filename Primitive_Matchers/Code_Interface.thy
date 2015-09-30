@@ -60,7 +60,6 @@ definition unfold_ruleset_OUTPUT :: "action \<Rightarrow> common_primitive rules
 
 
 
-
 (*
 definition port_to_nat :: "16 word \<Rightarrow> nat" where
   "port_to_nat p = unat p"
