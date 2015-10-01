@@ -75,7 +75,7 @@ subsection{*General Setup*}
   definition "spoofing_protection fw \<equiv> map (\<lambda>ifce. (ifce, no_spoofing_iface (Iface ifce) (map_of_ipassmt ipassmt) fw)) interfaces"
   
   text{*We only consider packets which are @{const CT_New} and @{const ipt_tcp_syn}. Packets which already belong to an established connection are okay be definition.*}
-  definition "preprocess default_policy fw \<equiv> (upper_closure (paccket_assume_new (unfold_ruleset_FORWARD default_policy (map_of_string fw))))"
+  definition "preprocess default_policy fw \<equiv> (upper_closure (packet_assume_new (unfold_ruleset_FORWARD default_policy (map_of_string fw))))"
 
 
   value[code] "debug_ipassmt ipassmt []"
@@ -116,7 +116,10 @@ subsubsection{*Try 1*}
   (*339.034s*)
   value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw_1"
 
+  (*
+  check if pretty-printing is the bottleneck: 
   value[code] "let x = (preprocess net_fw_1_FORWARD_default_policy net_fw_1) in ()"
+  *)
 
   (*372.806s*)
   value[code] "map (quote_rewrite \<circ> common_primitive_rule_toString) (preprocess net_fw_1_FORWARD_default_policy net_fw_1)"
