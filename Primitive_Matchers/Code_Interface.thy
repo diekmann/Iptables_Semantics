@@ -117,6 +117,9 @@ value[code] "let fw = [''FORWARD'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (
   in map pretty_wordinterval (buildParts ssh simplfw)"
 
 
+(*it is not minimal if we allow to further compress the node definitions?
+the receiver nodes could be combined to UNIV
+But minimal for a symmetric matrix*)
 value[code] "let fw = [''FORWARD'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (10,0,0,0) 8))) (Call ''foo'')],
                        ''foo'' \<mapsto> [Rule (MatchNot (Match (Src (Ip4AddrNetmask (10,0,0,0) 9)))) action.Drop,
                                    Rule (Match (Prot (Proto TCP))) action.Accept]
