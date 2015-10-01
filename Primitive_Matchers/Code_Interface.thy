@@ -101,16 +101,62 @@ by eval
 
 value[code] "map pretty_wordinterval (getParts cool_example)"
 
-(*prob look at dst also*)
-
 value[code] "map pretty_wordinterval (buildParts ssh cool_example)"
-
 
 (*it is not minimal if we allow to further compress the node definitions?
 the receiver nodes could be combined to UNIV
 But minimal for a symmetric matrix*)
 value[code] "build ssh cool_example"
 
+
+(*prob look at dst also*)
+definition "cool_example2 \<equiv> (let fw =
+  [''FORWARD'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (10,0,0,0) 8))) (Call ''foo'')],
+   ''foo'' \<mapsto> [Rule (MatchNot (Match (Src (Ip4AddrNetmask (10,0,0,0) 9)))) action.Drop,
+               Rule (MatchAnd (Match (Prot (Proto TCP))) (Match (Dst (Ip4AddrNetmask (10,0,0,42) 32)))) action.Accept]
+                       ] in
+  to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_FORWARD action.Drop fw))))))"
+value[code] "map simple_rule_toString cool_example2"
+
+value[code] "map pretty_wordinterval (getParts cool_example2)"
+
+value[code] "map pretty_wordinterval (buildParts ssh cool_example2)"
+
+value[code] "build ssh cool_example2"
+
+
+lemma extract_IPSets_generic0_length: "length (extract_IPSets_generic0 sel rs) = length rs"
+by(induction rs rule: extract_IPSets_generic0.induct) (simp_all)
+
+value "partIps (WordInterval (1::ipv4addr) 1) [WordInterval 0 1]"
+
+lemma partIps_length: "length (partIps s ts) \<le> (length ts) * 2"
+apply(induction ts arbitrary: s )
+ apply(simp)
+apply simp
+using le_Suc_eq by blast
+
+
+value[code] "partitioningIps [WordInterval (0::ipv4addr) 0] [WordInterval 0 2, WordInterval 0 2]"
+
+lemma partitioningIps_length: "length (partitioningIps ss ts) \<le> (2^length ss) * length ts"
+apply(induction ss arbitrary: ts)
+ apply(simp; fail)
+apply(subst partitioningIps.simps)
+apply(simp)
+apply(subgoal_tac "length (partIps a (partitioningIps ss ts)) \<le> length (partitioningIps ss ts) * 2")
+ prefer 2 
+ using partIps_length apply fast
+by (smt less_le_trans mult.assoc mult.commute mult_less_cancel2 not_less)
+
+(*TODO: *)
+lemma "length (getParts rs) \<le> Suc (1 * length rs)"
+apply(simp add: getParts_def)
+apply(induction rs)
+ apply(simp; fail)
+apply(simp)
+apply(simp add: length_extract_IPSets_generic0)
+oops
 
 
 definition bitmask_to_strange_inverse_cisco_mask:: "nat \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat)" where
