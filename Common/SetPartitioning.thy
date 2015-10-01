@@ -314,6 +314,24 @@ lemma partList2_partList3_equi: "set(partList2 s ts) - {{}} = set(partList3 s ts
   apply(simp_all add: partList2_empty)
 by blast
 
+
+(*TODO: add this to partList3*)
+fun partList4 :: "'a set \<Rightarrow> 'a set list \<Rightarrow> 'a set list" where
+  "partList4 s [] = []" |
+  "partList4 s (t#ts) = (if s = {} then (t#ts) else
+                          (if s \<inter> t = {} then  (t#(partList4 s ts))
+                                         else 
+                            (if t - s = {} then (t#(partList4 (s - t) ts))
+                                           else (t \<inter> s)#((t - s)#(partList4 (s - t) ts)))))"
+
+lemma "set (partList3 s ts) = set (partList4 s ts)"
+  apply(induction ts arbitrary: s)
+   apply(simp)
+  apply(simp)
+  apply(intro conjI impI)
+apply (simp add: Diff_triv)
+done
+
 lemma partList0_addSubsetSet_equi: "s \<subseteq> \<Union>(set ts) \<Longrightarrow> 
                                     addSubsetSet s (set ts) - {{}} = set(partList0 s ts) - {{}}"
   apply(simp_all add: addSubsetSet_def partList0_set_equi)
