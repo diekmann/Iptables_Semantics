@@ -158,6 +158,8 @@ fun common_primitive_match_to_simple_match :: "common_primitive match_expr \<Rig
   "common_primitive_match_to_simple_match (MatchNot (Match (Src_Ports _))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (Dst_Ports _))) = undefined" |
   "common_primitive_match_to_simple_match (Match (CT_State _)) = undefined" |
+  "common_primitive_match_to_simple_match (Match (L4_Flags _)) = undefined" |
+  "common_primitive_match_to_simple_match (MatchNot (Match (L4_Flags _))) = undefined" |
   "common_primitive_match_to_simple_match (Match (Extra _)) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (Extra _))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (CT_State _))) = undefined"
