@@ -74,8 +74,8 @@ subsection{*General Setup*}
   
   definition "spoofing_protection fw \<equiv> map (\<lambda>ifce. (ifce, no_spoofing_iface (Iface ifce) (map_of_ipassmt ipassmt) fw)) interfaces"
   
-  text{*We only consider packets which are @{const CT_New}. Packets which already belong to an established connection are okay be definition.*}
-  definition "preprocess default_policy fw \<equiv> (upper_closure (ctstate_assume_new (unfold_ruleset_FORWARD default_policy (map_of_string fw))))"
+  text{*We only consider packets which are @{const CT_New} and @{const ipt_tcp_syn}. Packets which already belong to an established connection are okay be definition.*}
+  definition "preprocess default_policy fw \<equiv> (upper_closure (paccket_assume_new (unfold_ruleset_FORWARD default_policy (map_of_string fw))))"
 
 
   value[code] "debug_ipassmt ipassmt []"

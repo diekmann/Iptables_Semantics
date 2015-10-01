@@ -106,6 +106,20 @@ section{*TCP flags*}
   declare match_tcp_flags_conjunct.simps[simp del]
 
 
+  text{*Same as @{const match_tcp_flags_conjunct}, but returns @{const None} if result cannot match anyway*}
+  definition match_tcp_flags_conjunct_option :: "ipt_tcp_flags \<Rightarrow> ipt_tcp_flags \<Rightarrow> ipt_tcp_flags option" where
+    "match_tcp_flags_conjunct_option f1 f2 = (case match_tcp_flags_conjunct f1 f2 of (TCP_Flags mask c) \<Rightarrow> if c \<subseteq> mask then Some (TCP_Flags mask c) else None)"
+
+  lemma match_tcp_flags_conjunct_option: "(case match_tcp_flags_conjunct_option f1 f2 of None \<Rightarrow> False | Some f3 \<Rightarrow> match_tcp_flags f3 pkt) \<longleftrightarrow> match_tcp_flags f1 pkt \<and> match_tcp_flags f2 pkt"
+    apply(simp add: match_tcp_flags_conjunct_option_def)
+    apply(case_tac "match_tcp_flags_conjunct f1 f2")
+    apply(simp del: match_tcp_flags.simps)
+    apply(rule conjI impI)
+     using match_tcp_flags_conjunct apply metis
+    using match_tcp_flags_conjunct match_tcp_flags_nomatch apply metis
+    done
+
+
 
   fun ipt_tcp_flags_equal :: "ipt_tcp_flags \<Rightarrow> ipt_tcp_flags \<Rightarrow> bool" where
     "ipt_tcp_flags_equal (TCP_Flags mask1 c1) (TCP_Flags mask2 c2) = (
