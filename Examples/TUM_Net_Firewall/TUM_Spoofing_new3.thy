@@ -89,7 +89,7 @@ removed but was forgotten. We are investigating ...
 section{*Checking spoofing Protection*}
 
 subsubsection{*Try 1*}
-
+  (*457.224s*)
   parse_iptables_save net_fw_1="iptables-save-2015-05-13_10-53-20_cheating"
 
 
@@ -114,6 +114,10 @@ subsubsection{*Try 1*}
   
   text{*the parsed firewall:*}
   value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw_1"
+
+  value[code] "let x = (preprocess net_fw_1_FORWARD_default_policy net_fw_1) in ()"
+
+  value[code] "map (quote_rewrite \<circ> common_primitive_rule_toString) (preprocess net_fw_1_FORWARD_default_policy net_fw_1)"
   
   text{*sanity check that @{const ipassmt} is complete*}
   (*226.773s*)

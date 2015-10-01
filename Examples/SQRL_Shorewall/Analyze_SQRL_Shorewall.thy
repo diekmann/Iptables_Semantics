@@ -21,6 +21,7 @@ lemma "Semantics_Goto.terminal_chain (the ((map_of_string SQRL_fw) ''smurflog'')
 lemma "Semantics_Goto.terminal_chain (the ((map_of_string SQRL_fw) ''logflags''))" by eval
 lemma "Semantics_Goto.terminal_chain (the ((map_of_string SQRL_fw) ''reject''))" by eval
 
+(*12.942s*)
 value[code] "Semantics_Goto.rewrite_Goto SQRL_fw"
 
 definition "unfolded = unfold_ruleset_FORWARD SQRL_fw_FORWARD_default_policy (map_of_string (Semantics_Goto.rewrite_Goto SQRL_fw))"
@@ -30,31 +31,37 @@ definition "unfolded = unfold_ruleset_FORWARD SQRL_fw_FORWARD_default_policy (ma
 value[code] "unfolded"*)
 (*0.561s*)
 value[code] "let x = unfolded in ()" (*pretty printing is slow, not the unfolding! ML forces evaluation of unfolded!*)
-(*39.257s*)
+(*39.149s*)
 value[code] "map (quote_rewrite \<circ> common_primitive_rule_toString) (unfolded)"
 (*2.871s*)
 lemma "length unfolded = 2649" by eval
 
 
-(*19.119s*)
+(*17.554s*)
 value[code] "map (quote_rewrite \<circ> common_primitive_rule_toString) (upper_closure unfolded)"
-lemma "length (upper_closure unfolded) = 1437" by eval
+lemma "length (upper_closure unfolded) = 1722" by eval
 
 
-(*53.507s*)
+(*28.550s*)
 value[code] "length (lower_closure unfolded)"
-lemma "length (lower_closure unfolded) = 9642" by eval
+lemma "length (lower_closure unfolded) = 9881" by eval
 
 lemma "check_simple_fw_preconditions (upper_closure unfolded) = False" by eval
-lemma "check_simple_fw_preconditions (ctstate_assume_new (upper_closure unfolded))" by eval
-lemma "length (to_simple_firewall (ctstate_assume_new (upper_closure unfolded))) = 1369" by eval
-(*16.334s*)
-value[code] "map simple_rule_toString (to_simple_firewall (ctstate_assume_new (upper_closure unfolded)))"
+lemma "\<forall>m \<in> get_match`set (upper_closure (packet_assume_new unfolded)). normalized_nnf_match m" by eval
 
-(*101.907s*)
-lemma "length (to_simple_firewall (ctstate_assume_new (lower_closure unfolded))) = 6648" by eval
+(*we got lucky, usually we need to call upper_closure again*)
+lemma "\<forall>m \<in> get_match`set (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))). normalized_nnf_match m" by eval
 
-value[code] "length (remdups_rev (to_simple_firewall (ctstate_assume_new (lower_closure unfolded))))" (*even smaller*)
+lemma "check_simple_fw_preconditions (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))))" by eval
+lemma "length (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))))) = 1379" by eval
+(*22.240s*)
+value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded)))))"
+
+(*43.702s*)
+lemma "length (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))) = 6612" by eval
+
+(*71.518s*)
+value[code] "length (remdups_rev (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))))" (*even smaller*)
 
 
 end

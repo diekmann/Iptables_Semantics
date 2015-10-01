@@ -36,10 +36,10 @@ structure Test : sig
   val dotdecimal_of_ipv4addr :
     num1 bit0 bit0 bit0 bit0 bit0 word -> nat * (nat * (nat * nat))
   val lower_closure : common_primitive rule list -> common_primitive rule list
+  val upper_closure : common_primitive rule list -> common_primitive rule list
   val map_of_string :
     (char list * common_primitive rule list) list ->
       char list -> (common_primitive rule list) option
-  val upper_closure : common_primitive rule list -> common_primitive rule list
   val integer_to_16word : IntInf.int -> num1 bit0 bit0 bit0 bit0 word
   val sanity_wf_ruleset : (char list * 'a rule list) list -> bool
   val deny_set : common_primitive rule list -> common_primitive packet_set list
@@ -845,6 +845,8 @@ datatype 'a wordinterval = WordInterval of 'a word * 'a word |
 datatype 'a packet_set =
   PacketSet of (('a negation_type * action negation_type) list) list;
 
+datatype prefix_match = PrefixMatch of num1 bit0 bit0 bit0 bit0 bit0 word * nat;
+
 datatype 'a simple_match_ext =
   Simple_match_ext of
     iface * iface * (num1 bit0 bit0 bit0 bit0 bit0 word * nat) *
@@ -1160,195 +1162,6 @@ fun invert (Pos x) = Neg x
 
 fun invertt (n, a) = (n, invert a);
 
-fun numeral A_ (Bit1 n) =
-  let
-    val m = numeral A_ n;
-  in
-    plus ((plus_semigroup_add o semigroup_add_numeral) A_)
-      (plus ((plus_semigroup_add o semigroup_add_numeral) A_) m m)
-      (one (one_numeral A_))
-  end
-  | numeral A_ (Bit0 n) =
-    let
-      val m = numeral A_ n;
-    in
-      plus ((plus_semigroup_add o semigroup_add_numeral) A_) m m
-    end
-  | numeral A_ One = one (one_numeral A_);
-
-fun of_nat A_ n =
-  (if equal_nata n zero_nat
-    then zero ((zero_mult_zero o mult_zero_semiring_0 o semiring_0_semiring_1)
-                A_)
-    else let
-           val (m, q) = divmod_nat n (nat_of_integer (2 : IntInf.int));
-           val ma =
-             times ((times_power o power_monoid_mult o
-                      monoid_mult_semiring_numeral o
-                      semiring_numeral_semiring_1)
-                     A_)
-               (numeral
-                 ((numeral_semiring_numeral o semiring_numeral_semiring_1) A_)
-                 (Bit0 One))
-               (of_nat A_ m);
-         in
-           (if equal_nata q zero_nat then ma
-             else plus ((plus_semigroup_add o semigroup_add_numeral o
-                          numeral_semiring_numeral o
-                          semiring_numeral_semiring_1)
-                         A_)
-                    ma (one ((one_numeral o numeral_semiring_numeral o
-                               semiring_numeral_semiring_1)
-                              A_)))
-         end);
-
-fun ipv4addr_of_nat n =
-  of_nat
-    (semiring_1_word
-      (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))))
-    n;
-
-fun wordinterval_empty A_ (WordInterval (s, e)) = less_word (len0_len A_) e s
-  | wordinterval_empty A_ (RangeUnion (r1, r2)) =
-    wordinterval_empty A_ r1 andalso wordinterval_empty A_ r2;
-
-fun ipv4range_empty rg =
-  wordinterval_empty
-    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) rg;
-
-fun ipv4range_range (ip_start, ip_end) = WordInterval (ip_start, ip_end);
-
-fun nat_of_ipv4addr a =
-  unat (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) a;
-
-fun negPos_map uu [] = []
-  | negPos_map f (Pos a :: asa) = Pos (f a) :: negPos_map f asa
-  | negPos_map f (Neg a :: asa) = Neg (f a) :: negPos_map f asa;
-
-val bot_set : 'a set = Set [];
-
-fun ipv4range_lowest_element (WordInterval (s, e)) =
-  (if less_eq_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) s
-        e
-    then SOME s else NONE)
-  | ipv4range_lowest_element (RangeUnion (a, b)) =
-    (case (ipv4range_lowest_element a, ipv4range_lowest_element b)
-      of (NONE, NONE) => NONE | (NONE, SOME aa) => SOME aa
-      | (SOME aa, NONE) => SOME aa
-      | (SOME aa, SOME ba) =>
-        SOME (if less_word
-                   (len0_bit0
-                     (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-                   aa ba
-               then aa else ba));
-
-fun uminus_int k = Int_of_integer (IntInf.~ (integer_of_int k));
-
-fun bin_last w =
-  equal_int (mod_int w (Int_of_integer (2 : IntInf.int)))
-    (Int_of_integer (1 : IntInf.int));
-
-fun bitAND_int x y =
-  (if equal_int x zero_int then zero_int
-    else (if equal_int x (uminus_int (Int_of_integer (1 : IntInf.int))) then y
-           else bit (bitAND_int (bin_rest x) (bin_rest y))
-                  (bin_last x andalso bin_last y)));
-
-fun bitAND_word A_ a b = word_of_int A_ (bitAND_int (uint A_ a) (uint A_ b));
-
-fun pfxm_prefix p = fst p;
-
-fun pfxm_length p = snd p;
-
-fun pfxm_mask B_ x =
-  mask B_ (minus_nat (nat_of_integer (32 : IntInf.int)) (pfxm_length x));
-
-fun valid_prefix A_ pf =
-  equal_worda (len0_len A_)
-    (bitAND_word (len0_len A_) (pfxm_mask A_ pf) (pfxm_prefix pf))
-    (zero_worda (len0_len A_));
-
-fun ipv4range_setminus r1 r2 =
-  wordinterval_setminus
-    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
-
-fun wordinterval_subset A_ r1 r2 =
-  wordinterval_empty A_ (wordinterval_setminus A_ r1 r2);
-
-fun ipv4range_subset r1 r2 =
-  wordinterval_subset
-    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
-
-fun bitNOT_int x =
-  (fn xa => minus_int (uminus_int xa) (Int_of_integer (1 : IntInf.int))) x;
-
-fun bitOR_int x =
-  (fn xa => fn y => bitNOT_int (bitAND_int (bitNOT_int xa) (bitNOT_int y))) x;
-
-fun bitOR_word A_ a b = word_of_int A_ (bitOR_int (uint A_ a) (uint A_ b));
-
-fun prefix_to_range pfx =
-  WordInterval
-    (pfxm_prefix pfx,
-      bitOR_word
-        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
-        (pfxm_prefix pfx)
-        (pfxm_mask
-          (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) pfx));
-
-fun ipv4range_split1 r =
-  let
-    val a = ipv4range_lowest_element r;
-  in
-    (case a of NONE => (NONE, r)
-      | SOME aa =>
-        let
-          val cs = map (fn b => (aa, b)) pfxes;
-          val cfs =
-            filter
-              (fn s =>
-                valid_prefix
-                  (len_bit0
-                    (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-                  s andalso
-                  ipv4range_subset (prefix_to_range s) r)
-              cs;
-          val mc = find (const true) cfs;
-        in
-          (case mc of NONE => (NONE, r)
-            | SOME m => (mc, ipv4range_setminus r (prefix_to_range m)))
-        end)
-  end;
-
-fun ipv4range_split rs =
-  (if not (ipv4range_empty rs)
-    then (case ipv4range_split1 rs of (NONE, _) => []
-           | (SOME s, u) => s :: ipv4range_split u)
-    else []);
-
-fun string_of_nat n =
-  (if less_nat n (nat_of_integer (10 : IntInf.int))
-    then [char_of_nat (plus_nat (nat_of_integer (48 : IntInf.int)) n)]
-    else string_of_nat (div_nat n (nat_of_integer (10 : IntInf.int))) @
-           [char_of_nat
-              (plus_nat (nat_of_integer (48 : IntInf.int))
-                (mod_nat n (nat_of_integer (10 : IntInf.int))))]);
-
-fun listprepend [] ns = []
-  | listprepend (a :: asa) ns = map (fn b => a :: b) ns @ listprepend asa ns;
-
-fun rw_Reject [] = []
-  | rw_Reject (Rule (m, Reject) :: rs) = Rule (m, Drop) :: rw_Reject rs
-  | rw_Reject (Rule (v, Accept) :: rs) = Rule (v, Accept) :: rw_Reject rs
-  | rw_Reject (Rule (v, Drop) :: rs) = Rule (v, Drop) :: rw_Reject rs
-  | rw_Reject (Rule (v, Log) :: rs) = Rule (v, Log) :: rw_Reject rs
-  | rw_Reject (Rule (v, Call vb) :: rs) = Rule (v, Call vb) :: rw_Reject rs
-  | rw_Reject (Rule (v, Return) :: rs) = Rule (v, Return) :: rw_Reject rs
-  | rw_Reject (Rule (v, Goto vb) :: rs) = Rule (v, Goto vb) :: rw_Reject rs
-  | rw_Reject (Rule (v, Empty) :: rs) = Rule (v, Empty) :: rw_Reject rs
-  | rw_Reject (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rw_Reject rs;
-
 fun lower_closure_matchexpr uu MatchAny = MatchAny
   | lower_closure_matchexpr Accept (Match (Extra uv)) = MatchNot MatchAny
   | lower_closure_matchexpr Reject (Match (Extra uw)) = MatchAny
@@ -1546,6 +1359,54 @@ fun l2br_negation_type_intersect A_ [] = wordinterval_UNIV A_
     wordinterval_intersection A_ (wordinterval_invert A_ (WordInterval (s, e)))
       (l2br_negation_type_intersect A_ ls);
 
+fun numeral A_ (Bit1 n) =
+  let
+    val m = numeral A_ n;
+  in
+    plus ((plus_semigroup_add o semigroup_add_numeral) A_)
+      (plus ((plus_semigroup_add o semigroup_add_numeral) A_) m m)
+      (one (one_numeral A_))
+  end
+  | numeral A_ (Bit0 n) =
+    let
+      val m = numeral A_ n;
+    in
+      plus ((plus_semigroup_add o semigroup_add_numeral) A_) m m
+    end
+  | numeral A_ One = one (one_numeral A_);
+
+fun of_nat A_ n =
+  (if equal_nata n zero_nat
+    then zero ((zero_mult_zero o mult_zero_semiring_0 o semiring_0_semiring_1)
+                A_)
+    else let
+           val (m, q) = divmod_nat n (nat_of_integer (2 : IntInf.int));
+           val ma =
+             times ((times_power o power_monoid_mult o
+                      monoid_mult_semiring_numeral o
+                      semiring_numeral_semiring_1)
+                     A_)
+               (numeral
+                 ((numeral_semiring_numeral o semiring_numeral_semiring_1) A_)
+                 (Bit0 One))
+               (of_nat A_ m);
+         in
+           (if equal_nata q zero_nat then ma
+             else plus ((plus_semigroup_add o semigroup_add_numeral o
+                          numeral_semiring_numeral o
+                          semiring_numeral_semiring_1)
+                         A_)
+                    ma (one ((one_numeral o numeral_semiring_numeral o
+                               semiring_numeral_semiring_1)
+                              A_)))
+         end);
+
+fun ipv4addr_of_nat n =
+  of_nat
+    (semiring_1_word
+      (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))))
+    n;
+
 fun ipv4addr_of_dotdecimal (a, (b, (c, d))) =
   ipv4addr_of_nat
     (plus_nat
@@ -1553,7 +1414,29 @@ fun ipv4addr_of_dotdecimal (a, (b, (c, d))) =
         (times_nat (nat_of_integer (65536 : IntInf.int)) b))
       (times_nat (nat_of_integer (16777216 : IntInf.int)) a));
 
+fun uminus_int k = Int_of_integer (IntInf.~ (integer_of_int k));
+
+fun bitNOT_int x =
+  (fn xa => minus_int (uminus_int xa) (Int_of_integer (1 : IntInf.int))) x;
+
 fun bitNOT_word A_ a = word_of_int A_ (bitNOT_int (uint A_ a));
+
+fun bin_last w =
+  equal_int (mod_int w (Int_of_integer (2 : IntInf.int)))
+    (Int_of_integer (1 : IntInf.int));
+
+fun bitAND_int x y =
+  (if equal_int x zero_int then zero_int
+    else (if equal_int x (uminus_int (Int_of_integer (1 : IntInf.int))) then y
+           else bit (bitAND_int (bin_rest x) (bin_rest y))
+                  (bin_last x andalso bin_last y)));
+
+fun bitAND_word A_ a b = word_of_int A_ (bitAND_int (uint A_ a) (uint A_ b));
+
+fun bitOR_int x =
+  (fn xa => fn y => bitNOT_int (bitAND_int (bitNOT_int xa) (bitNOT_int y))) x;
+
+fun bitOR_word A_ a b = word_of_int A_ (bitOR_int (uint A_ a) (uint A_ b));
 
 fun ipt_ipv4range_to_interval (Ip4Addr addr) =
   (ipv4addr_of_dotdecimal addr, ipv4addr_of_dotdecimal addr)
@@ -1582,12 +1465,19 @@ fun ipt_ipv4range_to_interval (Ip4Addr addr) =
   | ipt_ipv4range_to_interval (Ip4AddrRange (ip1, ip2)) =
     (ipv4addr_of_dotdecimal ip1, ipv4addr_of_dotdecimal ip2);
 
+fun negPos_map uu [] = []
+  | negPos_map f (Pos a :: asa) = Pos (f a) :: negPos_map f asa
+  | negPos_map f (Neg a :: asa) = Neg (f a) :: negPos_map f asa;
+
 fun ipt_ipv4range_negation_type_to_br_intersect l =
   l2br_negation_type_intersect
     (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
     (negPos_map ipt_ipv4range_to_interval l);
 
 fun shiftr_word A_ w n = funpow n (shiftr1 A_) w;
+
+fun nat_of_ipv4addr a =
+  unat (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) a;
 
 fun dotdecimal_of_ipv4addr a =
   (nat_of_ipv4addr
@@ -1627,6 +1517,98 @@ fun dotdecimal_of_ipv4addr a =
                 (len0_bit0
                   (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
                 (Int_of_integer (255 : IntInf.int)))))));
+
+fun pfxm_prefix (PrefixMatch (x1, x2)) = x1;
+
+fun pfxm_length (PrefixMatch (x1, x2)) = x2;
+
+fun prefix_match_to_CIDR pfx = (pfxm_prefix pfx, pfxm_length pfx);
+
+fun ipv4range_lowest_element (WordInterval (s, e)) =
+  (if less_eq_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))) s
+        e
+    then SOME s else NONE)
+  | ipv4range_lowest_element (RangeUnion (a, b)) =
+    (case (ipv4range_lowest_element a, ipv4range_lowest_element b)
+      of (NONE, NONE) => NONE | (NONE, SOME aa) => SOME aa
+      | (SOME aa, NONE) => SOME aa
+      | (SOME aa, SOME ba) =>
+        SOME (if less_word
+                   (len0_bit0
+                     (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+                   aa ba
+               then aa else ba));
+
+fun pfxm_mask A_ x =
+  mask A_ (minus_nat (nat_of_integer (32 : IntInf.int)) (pfxm_length x));
+
+fun valid_prefix pf =
+  equal_worda
+    (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+    (bitAND_word
+      (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+      (pfxm_mask (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+        pf)
+      (pfxm_prefix pf))
+    (zero_worda
+      (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))));
+
+fun ipv4range_setminus r1 r2 =
+  wordinterval_setminus
+    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
+
+fun wordinterval_empty A_ (WordInterval (s, e)) = less_word (len0_len A_) e s
+  | wordinterval_empty A_ (RangeUnion (r1, r2)) =
+    wordinterval_empty A_ r1 andalso wordinterval_empty A_ r2;
+
+fun wordinterval_subset A_ r1 r2 =
+  wordinterval_empty A_ (wordinterval_setminus A_ r1 r2);
+
+fun ipv4range_subset r1 r2 =
+  wordinterval_subset
+    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) r1 r2;
+
+fun prefix_to_range pfx =
+  WordInterval
+    (pfxm_prefix pfx,
+      bitOR_word
+        (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1)))))
+        (pfxm_prefix pfx)
+        (pfxm_mask
+          (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) pfx));
+
+fun ipv4range_split1 r =
+  let
+    val a = ipv4range_lowest_element r;
+  in
+    (case a of NONE => (NONE, r)
+      | SOME aa =>
+        let
+          val cs = map (fn b => PrefixMatch (aa, b)) pfxes;
+          val cfs =
+            filter
+              (fn s =>
+                valid_prefix s andalso ipv4range_subset (prefix_to_range s) r)
+              cs;
+          val mc = find (const true) cfs;
+        in
+          (case mc of NONE => (NONE, r)
+            | SOME m => (mc, ipv4range_setminus r (prefix_to_range m)))
+        end)
+  end;
+
+fun ipv4range_empty rg =
+  wordinterval_empty
+    (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) rg;
+
+fun ipv4range_split_internal rs =
+  (if not (ipv4range_empty rs)
+    then (case ipv4range_split1 rs of (NONE, _) => []
+           | (SOME s, u) => s :: ipv4range_split_internal u)
+    else []);
+
+fun ipv4range_split rs = map prefix_match_to_CIDR (ipv4range_split_internal rs);
 
 fun wi_2_cidr_ipt_ipv4range_list r =
   map (fn (base, a) => Ip4AddrNetmask (dotdecimal_of_ipv4addr base, a))
@@ -1719,6 +1701,8 @@ fun ctstate_is_UNIV c =
     (member equal_ctstate CT_Established c andalso
       (member equal_ctstate CT_Related c andalso
         member equal_ctstate CT_Untracked c));
+
+val bot_set : 'a set = Set [];
 
 fun optimize_primitive_univ (Match (IIface iface)) =
   (if equal_iface iface ifaceAny then MatchAny else Match (IIface iface))
@@ -2010,12 +1994,6 @@ fun lower_closure rs =
         (transform_optimize_dnf_strict
           (optimize_matches_a lower_closure_matchexpr rs))));
 
-fun map_of_string rs = map_of (equal_list equal_char) rs;
-
-fun nat_to_16word i =
-  of_nat (semiring_1_word (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
-    i;
-
 fun upper_closure_matchexpr uu MatchAny = MatchAny
   | upper_closure_matchexpr Accept (Match (Extra uv)) = MatchAny
   | upper_closure_matchexpr Reject (Match (Extra uw)) = MatchNot MatchAny
@@ -2153,6 +2131,36 @@ fun upper_closure rs =
       (transform_normalize_primitives
         (transform_optimize_dnf_strict
           (optimize_matches_a upper_closure_matchexpr rs))));
+
+fun ipv4range_range (ip_start, ip_end) = WordInterval (ip_start, ip_end);
+
+fun string_of_nat n =
+  (if less_nat n (nat_of_integer (10 : IntInf.int))
+    then [char_of_nat (plus_nat (nat_of_integer (48 : IntInf.int)) n)]
+    else string_of_nat (div_nat n (nat_of_integer (10 : IntInf.int))) @
+           [char_of_nat
+              (plus_nat (nat_of_integer (48 : IntInf.int))
+                (mod_nat n (nat_of_integer (10 : IntInf.int))))]);
+
+fun listprepend [] ns = []
+  | listprepend (a :: asa) ns = map (fn b => a :: b) ns @ listprepend asa ns;
+
+fun rw_Reject [] = []
+  | rw_Reject (Rule (m, Reject) :: rs) = Rule (m, Drop) :: rw_Reject rs
+  | rw_Reject (Rule (v, Accept) :: rs) = Rule (v, Accept) :: rw_Reject rs
+  | rw_Reject (Rule (v, Drop) :: rs) = Rule (v, Drop) :: rw_Reject rs
+  | rw_Reject (Rule (v, Log) :: rs) = Rule (v, Log) :: rw_Reject rs
+  | rw_Reject (Rule (v, Call vb) :: rs) = Rule (v, Call vb) :: rw_Reject rs
+  | rw_Reject (Rule (v, Return) :: rs) = Rule (v, Return) :: rw_Reject rs
+  | rw_Reject (Rule (v, Goto vb) :: rs) = Rule (v, Goto vb) :: rw_Reject rs
+  | rw_Reject (Rule (v, Empty) :: rs) = Rule (v, Empty) :: rw_Reject rs
+  | rw_Reject (Rule (v, Unknown) :: rs) = Rule (v, Unknown) :: rw_Reject rs;
+
+fun map_of_string rs = map_of (equal_list equal_char) rs;
+
+fun nat_to_16word i =
+  of_nat (semiring_1_word (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
+    i;
 
 fun insort_key B_ f x [] = [x]
   | insort_key B_ f x (y :: ys) =
@@ -2540,23 +2548,36 @@ fun simple_match_and
 fun unfold_ruleset_FORWARD x =
   unfold_ruleset_CHAIN [#"F", #"O", #"R", #"W", #"A", #"R", #"D"] x;
 
-fun normalized_ifaces MatchAny = true
-  | normalized_ifaces (Match uu) = true
-  | normalized_ifaces (MatchNot (Match (IIface uv))) = false
-  | normalized_ifaces (MatchNot (Match (OIface uw))) = false
-  | normalized_ifaces (MatchAnd (m1, m2)) =
-    normalized_ifaces m1 andalso normalized_ifaces m2
-  | normalized_ifaces (MatchNot (MatchAnd (ux, uy))) = false
-  | normalized_ifaces (MatchNot (Match (Src va))) = true
-  | normalized_ifaces (MatchNot (Match (Dst va))) = true
-  | normalized_ifaces (MatchNot (Match (Prot va))) = true
-  | normalized_ifaces (MatchNot (Match (Src_Ports va))) = true
-  | normalized_ifaces (MatchNot (Match (Dst_Ports va))) = true
-  | normalized_ifaces (MatchNot (Match (L4_Flags va))) = true
-  | normalized_ifaces (MatchNot (Match (CT_State va))) = true
-  | normalized_ifaces (MatchNot (Match (Extra va))) = true
-  | normalized_ifaces (MatchNot (MatchNot v)) = true
-  | normalized_ifaces (MatchNot MatchAny) = true;
+fun is_Oiface (Src x1) = false
+  | is_Oiface (Dst x2) = false
+  | is_Oiface (IIface x3) = false
+  | is_Oiface (OIface x4) = true
+  | is_Oiface (Prot x5) = false
+  | is_Oiface (Src_Ports x6) = false
+  | is_Oiface (Dst_Ports x7) = false
+  | is_Oiface (L4_Flags x8) = false
+  | is_Oiface (CT_State x9) = false
+  | is_Oiface (Extra x10) = false;
+
+fun is_Iiface (Src x1) = false
+  | is_Iiface (Dst x2) = false
+  | is_Iiface (IIface x3) = true
+  | is_Iiface (OIface x4) = false
+  | is_Iiface (Prot x5) = false
+  | is_Iiface (Src_Ports x6) = false
+  | is_Iiface (Dst_Ports x7) = false
+  | is_Iiface (L4_Flags x8) = false
+  | is_Iiface (CT_State x9) = false
+  | is_Iiface (Extra x10) = false;
+
+fun has_disc_negated uu uv MatchAny = false
+  | has_disc_negated disc neg (Match a) = (if disc a then neg else false)
+  | has_disc_negated disc neg (MatchNot m) = has_disc_negated disc (not neg) m
+  | has_disc_negated disc neg (MatchAnd (m1, m2)) =
+    has_disc_negated disc neg m1 orelse has_disc_negated disc neg m2;
+
+fun normalized_ifaces m =
+  not (has_disc_negated (fn a => is_Iiface a orelse is_Oiface a) false m);
 
 fun proto
   (Simple_match_ext (iiface, oiface, src, dst, proto, sports, dports, more)) =
@@ -2696,23 +2717,18 @@ fun is_Extra (Src x1) = false
   | is_Extra (CT_State x9) = false
   | is_Extra (Extra x10) = true;
 
-fun normalized_protocols MatchAny = true
-  | normalized_protocols (Match uu) = true
-  | normalized_protocols (MatchNot (Match (Prot uv))) = false
-  | normalized_protocols (MatchAnd (m1, m2)) =
-    normalized_protocols m1 andalso normalized_protocols m2
-  | normalized_protocols (MatchNot (MatchAnd (uw, ux))) = false
-  | normalized_protocols (MatchNot (Match (Src va))) = true
-  | normalized_protocols (MatchNot (Match (Dst va))) = true
-  | normalized_protocols (MatchNot (Match (IIface va))) = true
-  | normalized_protocols (MatchNot (Match (OIface va))) = true
-  | normalized_protocols (MatchNot (Match (Src_Ports va))) = true
-  | normalized_protocols (MatchNot (Match (Dst_Ports va))) = true
-  | normalized_protocols (MatchNot (Match (L4_Flags va))) = true
-  | normalized_protocols (MatchNot (Match (CT_State va))) = true
-  | normalized_protocols (MatchNot (Match (Extra va))) = true
-  | normalized_protocols (MatchNot (MatchNot v)) = true
-  | normalized_protocols (MatchNot MatchAny) = true;
+fun is_Prot (Src x1) = false
+  | is_Prot (Dst x2) = false
+  | is_Prot (IIface x3) = false
+  | is_Prot (OIface x4) = false
+  | is_Prot (Prot x5) = true
+  | is_Prot (Src_Ports x6) = false
+  | is_Prot (Dst_Ports x7) = false
+  | is_Prot (L4_Flags x8) = false
+  | is_Prot (CT_State x9) = false
+  | is_Prot (Extra x10) = false;
+
+fun normalized_protocols m = not (has_disc_negated is_Prot false m);
 
 fun normalized_src_ips MatchAny = true
   | normalized_src_ips (Match (Src (Ip4AddrRange (uu, uv)))) = false
