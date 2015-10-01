@@ -7,7 +7,7 @@ begin
 
 section{*Printing various version of the simplified firewall*}
   value[code] "let x = to_simple_firewall (upper_closure
-                      (ctstate_assume_new
+                      (packet_assume_new
                       (unfold_ruleset_FORWARD net_fw_3_FORWARD_default_policy (map_of net_fw_3))))
                in map simple_rule_toString x" (*222.742s*)
 

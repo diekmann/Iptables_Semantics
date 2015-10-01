@@ -113,10 +113,12 @@ subsubsection{*Try 1*}
   value[code] "debug_ipassmt ipassmt (preprocess net_fw_1_FORWARD_default_policy net_fw_1)"
   
   text{*the parsed firewall:*}
+  (*339.034s*)
   value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw_1"
 
   value[code] "let x = (preprocess net_fw_1_FORWARD_default_policy net_fw_1) in ()"
 
+  (*372.806s*)
   value[code] "map (quote_rewrite \<circ> common_primitive_rule_toString) (preprocess net_fw_1_FORWARD_default_policy net_fw_1)"
   
   text{*sanity check that @{const ipassmt} is complete*}
@@ -237,7 +239,7 @@ subsection{*Try 3*}
 
   text{*In the simplified firewall, we see a lot of DROPs in the beginning now*}
   value[code] "let x = to_simple_firewall (upper_closure
-                      (ctstate_assume_new (unfold_ruleset_FORWARD net_fw_3_FORWARD_default_policy (map_of net_fw_3))))
+                      (packet_assume_new (unfold_ruleset_FORWARD net_fw_3_FORWARD_default_policy (map_of net_fw_3))))
                in map simple_rule_toString x" (*225.039s*)
   
   
