@@ -149,14 +149,17 @@ apply(subgoal_tac "length (partIps a (partitioningIps ss ts)) \<le> length (part
  using partIps_length apply fast
 by (smt less_le_trans mult.assoc mult.commute mult_less_cancel2 not_less)
 
-(*TODO: *)
-lemma "length (getParts rs) \<le> Suc (1 * length rs)"
-apply(simp add: getParts_def)
-apply(induction rs)
- apply(simp; fail)
-apply(simp)
-apply(simp add: length_extract_IPSets_generic0)
-oops
+
+lemma getParts_length: "length (getParts rs) \<le> 2^(2 * length rs)"
+proof -
+  from partitioningIps_length[where ss="(extract_IPSets_generic0 src rs @ extract_IPSets_generic0 dst rs)" and ts="[wordinterval_UNIV]"]
+       extract_IPSets_generic0_length
+  have "length (partitioningIps (extract_IPSets_generic0 src rs @ extract_IPSets_generic0 dst rs) [wordinterval_UNIV])
+        \<le> 2 ^ (length rs + length rs)" by fastforce
+  thus ?thesis
+   apply(simp add: getParts_def)
+   by (simp add: mult_2)
+qed
 
 
 definition bitmask_to_strange_inverse_cisco_mask:: "nat \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat)" where
