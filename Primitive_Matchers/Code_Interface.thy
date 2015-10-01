@@ -6,6 +6,7 @@ imports
   No_Spoof
   "../Simple_Firewall/SimpleFw_Compliance"
   "../Simple_Firewall/SimpleFw_toString"
+  "../Simple_Firewall/IPPartitioning"
   "../Semantics_Goto"
   "~~/src/HOL/Library/Code_Target_Nat"
   "~~/src/HOL/Library/Code_Target_Int"
@@ -97,6 +98,32 @@ lemma "let fw = [''FORWARD'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (10,0,0
   [''DROP     all  --  10.128.0.0/9            0.0.0.0/0    '', ''ACCEPT     tcp  --  10.0.0.0/8            0.0.0.0/0    '',
   ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '']"
 by eval
+
+value[code] "let fw = [''FORWARD'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (10,0,0,0) 8))) (Call ''foo'')],
+                       ''foo'' \<mapsto> [Rule (MatchNot (Match (Src (Ip4AddrNetmask (10,0,0,0) 9)))) action.Drop,
+                                   Rule (Match (Prot (Proto TCP))) action.Accept]
+                       ] in
+  let simplfw = to_simple_firewall
+    (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_FORWARD action.Drop fw)))))
+  in map pretty_wordinterval (getParts simplfw)"
+
+
+value[code] "let fw = [''FORWARD'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (10,0,0,0) 8))) (Call ''foo'')],
+                       ''foo'' \<mapsto> [Rule (MatchNot (Match (Src (Ip4AddrNetmask (10,0,0,0) 9)))) action.Drop,
+                                   Rule (Match (Prot (Proto TCP))) action.Accept]
+                       ] in
+  let simplfw = to_simple_firewall
+    (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_FORWARD action.Drop fw)))))
+  in map pretty_wordinterval (buildParts ssh simplfw)"
+
+
+value[code] "let fw = [''FORWARD'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (10,0,0,0) 8))) (Call ''foo'')],
+                       ''foo'' \<mapsto> [Rule (MatchNot (Match (Src (Ip4AddrNetmask (10,0,0,0) 9)))) action.Drop,
+                                   Rule (Match (Prot (Proto TCP))) action.Accept]
+                       ] in
+  let simplfw = to_simple_firewall
+    (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_FORWARD action.Drop fw)))))
+  in build ssh simplfw"
 
 
 
