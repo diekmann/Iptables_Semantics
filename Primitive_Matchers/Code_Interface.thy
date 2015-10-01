@@ -5,6 +5,7 @@ imports
   Transform
   No_Spoof
   "../Simple_Firewall/SimpleFw_Compliance"
+  "../Simple_Firewall/SimpleFw_toString"
   "../Semantics_Goto"
   "~~/src/HOL/Library/Code_Target_Nat"
   "~~/src/HOL/Library/Code_Target_Int"
@@ -51,13 +52,16 @@ definition unfold_ruleset_CHAIN :: "string \<Rightarrow> action \<Rightarrow> co
 definition unfold_ruleset_FORWARD :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
 "unfold_ruleset_FORWARD = unfold_ruleset_CHAIN ''FORWARD''"
 
-
 definition unfold_ruleset_INPUT :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
 "unfold_ruleset_INPUT = unfold_ruleset_CHAIN ''INPUT''"
 
 definition unfold_ruleset_OUTPUT :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
 "unfold_ruleset_OUTPUT \<equiv> unfold_ruleset_CHAIN ''OUTPUT''"
 
+
+lemma "let fw = [''FORWARD'' \<mapsto> []] in
+  unfold_ruleset_FORWARD action.Drop fw
+  = [Rule MatchAny action.Drop]" by eval
 
 
 (*
@@ -73,6 +77,17 @@ definition integer_to_16word :: "integer \<Rightarrow> 16 word" where
   "integer_to_16word i \<equiv> nat_to_16word (nat_of_integer i)"
 
 
+(*cool example*)
+lemma "let fw = [''FORWARD'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (10,0,0,0) 8))) (Call ''foo'')],
+                       ''foo'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (10,128,0,0) 9))) action.Return,
+                                   Rule (Match (Prot (Proto TCP))) action.Accept]
+                       ] in
+  let simplfw = to_simple_firewall
+    (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_FORWARD action.Drop fw)))))
+  in map simple_rule_toString simplfw =
+  [''ACCEPT     tcp  --  10.0.0.0/9            0.0.0.0/0    '', ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '']" by eval
+
+
 
 
 definition bitmask_to_strange_inverse_cisco_mask:: "nat \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat)" where
@@ -81,6 +96,7 @@ lemma "bitmask_to_strange_inverse_cisco_mask 16 = (0, 0, 255, 255)" by eval
 lemma "bitmask_to_strange_inverse_cisco_mask 24 = (0, 0, 0, 255)" by eval
 lemma "bitmask_to_strange_inverse_cisco_mask 8 = (0, 255, 255, 255)" by eval
 lemma "bitmask_to_strange_inverse_cisco_mask 32 = (0, 0, 0, 0)" by eval
+
 
 
 
