@@ -37,6 +37,7 @@ fun partitioning :: "'a set list \<Rightarrow> 'a set set \<Rightarrow> 'a set s
   "partitioning [] ts = ts" |
   "partitioning (s#ss) ts = partitioning ss (addSubsetSet s ts)"
 
+
 (* SIMPLE TESTS *)
 
 definition test_set_list :: "nat set list" where "test_set_list = [{1,2},{3,4},{5,6,7},{6},{10}]" 
@@ -531,4 +532,21 @@ apply (rule set_minus_commute)
 apply blast
 done
 *)
+
+
+(*random corny stuff*)
+lemma partitioning_foldr: "partitioning A B = foldr addSubsetSet A B"
+  apply(induction A)
+  apply(simp_all)
+by (metis partitioningCom)
+
+lemma "ipPartition (set A) (foldr addSubsetSet A {})"
+  apply(subst partitioning_foldr[symmetric])
+  using ipPartitioning by auto
+
+lemma "complete (set A) (foldr addSubsetSet A {})"
+  apply(subst partitioning_foldr[symmetric])
+  by (simp add: coversallPartitioning)
+  
+  
 end
