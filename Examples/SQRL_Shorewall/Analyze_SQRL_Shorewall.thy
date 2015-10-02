@@ -49,7 +49,6 @@ lemma "length (lower_closure unfolded) = 9881" by eval
 lemma "check_simple_fw_preconditions (upper_closure unfolded) = False" by eval
 lemma "\<forall>m \<in> get_match`set (upper_closure (packet_assume_new unfolded)). normalized_nnf_match m" by eval
 
-(*we got lucky, usually we need to call upper_closure again*)
 lemma "\<forall>m \<in> get_match`set (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))). normalized_nnf_match m" by eval
 
 lemma "check_simple_fw_preconditions (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))))" by eval
@@ -57,11 +56,15 @@ lemma "length (to_simple_firewall (upper_closure (optimize_matches abstract_for_
 (*22.240s*)
 value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded)))))"
 
+(*25.480s*)
+value[code] "map pretty_wordinterval (getParts (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))))))"
+
 (*43.702s*)
 lemma "length (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))) = 6612" by eval
 
 (*71.518s*)
 value[code] "length (remdups_rev (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))))" (*even smaller*)
 
+value[code] "map pretty_wordinterval (getParts (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))))"
 
 end
