@@ -122,8 +122,13 @@ lemma "parser_test_firewall \<equiv>
     Rule (Match (Src (Ip4Addr (192, 168, 0, 1)))) (Call ''LOGDROP''),
     Rule (Match (Src (Ip4AddrRange (127, 0, 0, 1) (127, 0, 10, 0)))) Return,
     Rule (MatchNot (Match (Dst (Ip4AddrRange (127, 0, 0, 1) (127, 0, 10, 0))))) Return,
-    Rule MatchAny (Goto ''Terminal'')]),
-  (''INPUT'', []), (''LOGDROP'', [Rule MatchAny Empty, Rule MatchAny action.Drop]),
+    Rule MatchAny (Goto ''Terminal''), 
+    Rule MatchAny (Call ''IPSEC_42'')]),
+  (''INPUT'', []),
+  (''IPSEC_42'',
+ [Rule (MatchAnd (Match (Prot (Proto (OtherProtocol 50)))) (Match (CT_State {CT_New}))) action.Accept,
+  Rule (MatchAnd (Match (Prot (Proto (OtherProtocol 47)))) (Match (CT_State {CT_New}))) action.Accept]),
+  (''LOGDROP'', [Rule MatchAny Empty, Rule MatchAny action.Drop]),
   (''OUTPUT'', []),
   (''Terminal'',
    [Rule (MatchAnd (Match (Dst (Ip4AddrNetmask (127, 0, 0, 1) 32)))
@@ -136,8 +141,9 @@ lemma "parser_test_firewall \<equiv>
 value[code] "map (\<lambda>(c,rs). (c, map (common_primitive_rule_toString) rs)) parser_test_firewall"
 
 
-value[code] "(upper_closure (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
-                  (map_of_string (Semantics_Goto.rewrite_Goto parser_test_firewall))))"
+value[code] "let fw = (upper_closure (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
+                  (map_of_string (Semantics_Goto.rewrite_Goto parser_test_firewall))))
+             in map common_primitive_rule_toString fw"
 
 text{*@{const abstract_for_simple_firewall} requires @{const normalized_nnf_match} primitives, 
       therefore @{const upper_closure} is called first. Afterwards, the match expressions can 
