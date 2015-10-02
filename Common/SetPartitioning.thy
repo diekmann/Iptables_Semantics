@@ -535,18 +535,31 @@ done
 
 
 (*random corny stuff*)
-lemma partitioning_foldr: "partitioning A B = foldr addSubsetSet A B"
-  apply(induction A)
+lemma partitioning_foldr: "partitioning X B = foldr addSubsetSet X B"
+  apply(induction X)
   apply(simp_all)
 by (metis partitioningCom)
 
-lemma "ipPartition (set A) (foldr addSubsetSet A {})"
+lemma "ipPartition (set X) (foldr addSubsetSet X {})"
   apply(subst partitioning_foldr[symmetric])
   using ipPartitioning by auto
 
-lemma "complete (set A) (foldr addSubsetSet A {})"
+term foldr
+lemma "complete (set X) (foldr addSubsetSet X {})"
   apply(subst partitioning_foldr[symmetric])
   by (simp add: coversallPartitioning)
+
+lemma "partitioning1 X B = foldr partList3 X B"
+  by(induction X)(simp_all)
+
+lemma "ipPartition (set X) (set (partitioning1 X [UNIV]))"
+apply(rule ipPartitioning_helper_opt)
+apply(simp_all)
+done
+
+lemma "complete {UNIV} (set (partitioning1 X [UNIV]))"
+by(rule SetPartitioning.complete_helper[where ts="[UNIV]", simplified])
+
   
   
 end

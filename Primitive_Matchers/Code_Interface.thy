@@ -165,6 +165,9 @@ qed
 lemma partitioningIps_foldr: "partitioningIps ss ts = foldr partIps ss ts"
 by(induction ss) (simp_all)
 
+lemma getParts_foldr: "getParts rs = foldr partIps (extract_IPSets rs) [wordinterval_UNIV]"
+by(simp add: getParts_def partitioningIps_foldr)
+
 
 definition bitmask_to_strange_inverse_cisco_mask:: "nat \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat)" where
  "bitmask_to_strange_inverse_cisco_mask n \<equiv> dotdecimal_of_ipv4addr ( (NOT (((mask n)::ipv4addr) << (32 - n))) )"
