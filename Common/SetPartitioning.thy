@@ -154,10 +154,6 @@ by (metis coversallPartitioning_helper sup_bot.right_neutral)
 lemma "complete As Bs \<Longrightarrow> ipPartition As Bs \<Longrightarrow> ipPartition As (addSubsetSet a Bs)"
   apply(simp add: ipPartition_def complete_def addSubsetSet_def) by auto
 
-lemma "complete As Bs \<Longrightarrow> ipPartition As Bs \<Longrightarrow> ipPartition As (partitioning ts Bs)"
- apply(induction ts arbitrary: As Bs)
- apply(simp)
-oops
 
 lemma ipPartitionSingleSet: "ipPartition {t} (addSubsetSet t Bs) 
              \<Longrightarrow> ipPartition {t} (partitioning ts (addSubsetSet t Bs))"
