@@ -557,9 +557,26 @@ apply(rule ipPartitioning_helper_opt)
 apply(simp_all)
 done
 
-lemma "complete {UNIV} (set (partitioning1 X [UNIV]))"
-by(rule SetPartitioning.complete_helper[where ts="[UNIV]", simplified])
+lemma "(\<Union>(set (partitioning1 X [UNIV]))) = UNIV"
+apply(subgoal_tac "complete {UNIV} (set (partitioning1 X [UNIV]))")
+ prefer 2
+ apply(rule SetPartitioning.complete_helper[where ts="[UNIV]", simplified])
+apply(simp add: complete_def)
+done
 
-  
+lemma "partitioning1 [x1,x2] [UNIV] = y"
+apply(subst partitioning1.simps)
+apply(subst partitioning1.simps)
+apply(subst partitioning1.simps)
+apply(subst partList3.simps)
+oops
+
+
+lemma "partitioning [x1,x2] {UNIV} = y"
+apply(subst partitioning.simps)
+apply(subst partitioning.simps)
+apply(subst partitioning.simps)
+apply(subst addSubsetSet_def) back
+oops
   
 end
