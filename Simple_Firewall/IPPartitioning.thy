@@ -564,6 +564,13 @@ lemma groupWIs_same_fw_not2: "A \<in> set (groupWIs c rs) \<Longrightarrow> B \<
                                 \<not> same_fw_behaviour_one ip1 ip2 c rs"
   using groupWIs_same_fw_not by fast
 
+(*I like this version -- corny*)
+lemma "A \<in> set (groupWIs c rs) \<Longrightarrow> B \<in> set (groupWIs c rs) \<Longrightarrow> 
+                \<exists>ip1 \<in> \<Union> set (map wordinterval_to_set A).
+                \<exists>ip2 \<in> \<Union> set (map wordinterval_to_set B).  same_fw_behaviour_one ip1 ip2 c rs
+                \<Longrightarrow> A = B"
+using groupWIs_same_fw_not2 by blast
+
 lemma whatup: "[y\<leftarrow>ys . g b = g y] = map fst [y\<leftarrow>map (\<lambda>x. (x, g x)) ys . g b = snd y]"
   apply(induction ys arbitrary: g b)
   apply(simp)
