@@ -9,6 +9,8 @@
 -A FORWARD -j LOG --log-prefix "!#*~%&/()=?" --log-level 6
 -A FORWARD -s 127.0.0.0/8 -j DROP
 -A FORWARD -i wlan0 -p tcp -m tcp ! --tcp-flags FIN,SYN,RST,ACK SYN -m state --state NEW -j DROP
+-A FORWARD -p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m multiport --dports 80,443 -j ACCEPT
+-A FORWARD -p tcp -m state --state NEW -m tcp --dport 1:65535 --tcp-flags FIN,SYN,RST,ACK SYN -j ACCEPT
 -A FORWARD -m conntrack --ctstate NEW,INVALID -j DROP
 -A FORWARD -i wlan0 -p icmp -m state --state ESTABLISHED,NEW,RELATED,UNTRACKED -j ACCEPT
 -A FORWARD -m conntrack --ctstate NEW,UNTRACKED -j ACCEPT
@@ -34,6 +36,8 @@
 -A DOS~Pro-t_ect -p icmp -j ACCEPT
 -A DOS~Pro-t_ect ! -p icmp
 -A DOS~Pro-t_ect ! -p tcp ! -s 131.159.0.0/16
+-A DOS~Pro-t_ect -i vocb -p udp -m udp --sport 67:68 --dport 67:68 -j ACCEPT
+-A DOS~Pro-t_ect -i vocb -p udp -m udp ! --sport 67:68 ! --dport 67:68 -j ACCEPT
 -A LOGDROP
 -A LOGDROP -j DROP
 -A Terminal -d 127.0.0.1/32 -p udp -m udp --sport 53 -j DROP

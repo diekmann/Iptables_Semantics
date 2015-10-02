@@ -209,25 +209,32 @@ lemma "unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw) =
   Rule (\<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND
            Match (Prot (Proto ICMP)) MATCHAND Match (Extra ''-m icmp --icmp-type 8 -m limit --limit 1/sec'')\<rangle> MATCHAND
         \<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND
-           Match (Prot (Proto TCP)) MATCHAND Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK RST -m limit --limit 1/sec'')\<rangle> MATCHAND
-        Match (IIface (Iface ''eth1'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK RST''))
+           Match (Prot (Proto TCP)) MATCHAND
+           Match (L4_Flags (TCP_Flags {TCP_FIN, TCP_SYN, TCP_RST, TCP_ACK} {TCP_RST})) MATCHAND Match (Extra ''-m limit --limit 1/sec'')\<rangle> MATCHAND
+        Match (IIface (Iface ''eth1'')) MATCHAND
+        Match (Prot (Proto TCP)) MATCHAND Match (L4_Flags (TCP_Flags {TCP_FIN, TCP_SYN, TCP_RST, TCP_ACK} {TCP_RST})))
    action.Drop,
   Rule (\<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND
            Match (Prot (Proto ICMP)) MATCHAND Match (Extra ''-m icmp --icmp-type 8 -m limit --limit 1/sec'')\<rangle> MATCHAND
         \<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND
-           Match (Prot (Proto TCP)) MATCHAND Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK RST -m limit --limit 1/sec'')\<rangle> MATCHAND
+           Match (Prot (Proto TCP)) MATCHAND
+           Match (L4_Flags (TCP_Flags {TCP_FIN, TCP_SYN, TCP_RST, TCP_ACK} {TCP_RST})) MATCHAND Match (Extra ''-m limit --limit 1/sec'')\<rangle> MATCHAND
         \<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND
            Match (Prot (Proto TCP)) MATCHAND
-           Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m limit --limit 10000/sec --limit-burst 100'')\<rangle> MATCHAND
-        Match (IIface (Iface ''eth1'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK SYN''))
+           Match (L4_Flags (TCP_Flags {TCP_FIN, TCP_SYN, TCP_RST, TCP_ACK} {TCP_SYN})) MATCHAND
+           Match (Extra ''-m limit --limit 10000/sec --limit-burst 100'')\<rangle> MATCHAND
+        Match (IIface (Iface ''eth1'')) MATCHAND
+        Match (Prot (Proto TCP)) MATCHAND Match (L4_Flags (TCP_Flags {TCP_FIN, TCP_SYN, TCP_RST, TCP_ACK} {TCP_SYN})))
    action.Drop,
   Rule (\<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND
            Match (Prot (Proto ICMP)) MATCHAND Match (Extra ''-m icmp --icmp-type 8 -m limit --limit 1/sec'')\<rangle> MATCHAND
         \<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND
-           Match (Prot (Proto TCP)) MATCHAND Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK RST -m limit --limit 1/sec'')\<rangle> MATCHAND
+           Match (Prot (Proto TCP)) MATCHAND
+           Match (L4_Flags (TCP_Flags {TCP_FIN, TCP_SYN, TCP_RST, TCP_ACK} {TCP_RST})) MATCHAND Match (Extra ''-m limit --limit 1/sec'')\<rangle> MATCHAND
         \<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND
            Match (Prot (Proto TCP)) MATCHAND
-           Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m limit --limit 10000/sec --limit-burst 100'')\<rangle> MATCHAND
+           Match (L4_Flags (TCP_Flags {TCP_FIN, TCP_SYN, TCP_RST, TCP_ACK} {TCP_SYN})) MATCHAND
+           Match (Extra ''-m limit --limit 10000/sec --limit-burst 100'')\<rangle> MATCHAND
         \<not> \<langle>Match (IIface (Iface ''eth0'')) MATCHAND
            Match (Prot (Proto ICMP)) MATCHAND Match (Extra ''-m icmp --icmp-type 8 -m limit --limit 1/sec'')\<rangle> MATCHAND
         Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto ICMP)) MATCHAND Match (Extra ''-m icmp --icmp-type 8''))
@@ -235,31 +242,40 @@ lemma "unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw) =
   Rule (\<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND
            Match (Prot (Proto ICMP)) MATCHAND Match (Extra ''-m icmp --icmp-type 8 -m limit --limit 1/sec'')\<rangle> MATCHAND
         \<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND
-           Match (Prot (Proto TCP)) MATCHAND Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK RST -m limit --limit 1/sec'')\<rangle> MATCHAND
+           Match (Prot (Proto TCP)) MATCHAND
+           Match (L4_Flags (TCP_Flags {TCP_FIN, TCP_SYN, TCP_RST, TCP_ACK} {TCP_RST})) MATCHAND Match (Extra ''-m limit --limit 1/sec'')\<rangle> MATCHAND
         \<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND
            Match (Prot (Proto TCP)) MATCHAND
-           Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m limit --limit 10000/sec --limit-burst 100'')\<rangle> MATCHAND
+           Match (L4_Flags (TCP_Flags {TCP_FIN, TCP_SYN, TCP_RST, TCP_ACK} {TCP_SYN})) MATCHAND
+           Match (Extra ''-m limit --limit 10000/sec --limit-burst 100'')\<rangle> MATCHAND
         \<not> \<langle>Match (IIface (Iface ''eth0'')) MATCHAND
            Match (Prot (Proto ICMP)) MATCHAND Match (Extra ''-m icmp --icmp-type 8 -m limit --limit 1/sec'')\<rangle> MATCHAND
         \<not> \<langle>Match (IIface (Iface ''eth0'')) MATCHAND
-           Match (Prot (Proto TCP)) MATCHAND Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK RST -m limit --limit 1/sec'')\<rangle> MATCHAND
-        Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK RST''))
+           Match (Prot (Proto TCP)) MATCHAND
+           Match (L4_Flags (TCP_Flags {TCP_FIN, TCP_SYN, TCP_RST, TCP_ACK} {TCP_RST})) MATCHAND Match (Extra ''-m limit --limit 1/sec'')\<rangle> MATCHAND
+        Match (IIface (Iface ''eth0'')) MATCHAND
+        Match (Prot (Proto TCP)) MATCHAND Match (L4_Flags (TCP_Flags {TCP_FIN, TCP_SYN, TCP_RST, TCP_ACK} {TCP_RST})))
    action.Drop,
   Rule (\<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND
            Match (Prot (Proto ICMP)) MATCHAND Match (Extra ''-m icmp --icmp-type 8 -m limit --limit 1/sec'')\<rangle> MATCHAND
         \<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND
-           Match (Prot (Proto TCP)) MATCHAND Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK RST -m limit --limit 1/sec'')\<rangle> MATCHAND
+           Match (Prot (Proto TCP)) MATCHAND
+           Match (L4_Flags (TCP_Flags {TCP_FIN, TCP_SYN, TCP_RST, TCP_ACK} {TCP_RST})) MATCHAND Match (Extra ''-m limit --limit 1/sec'')\<rangle> MATCHAND
         \<not> \<langle>Match (IIface (Iface ''eth1'')) MATCHAND
            Match (Prot (Proto TCP)) MATCHAND
-           Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m limit --limit 10000/sec --limit-burst 100'')\<rangle> MATCHAND
+           Match (L4_Flags (TCP_Flags {TCP_FIN, TCP_SYN, TCP_RST, TCP_ACK} {TCP_SYN})) MATCHAND
+           Match (Extra ''-m limit --limit 10000/sec --limit-burst 100'')\<rangle> MATCHAND
         \<not> \<langle>Match (IIface (Iface ''eth0'')) MATCHAND
            Match (Prot (Proto ICMP)) MATCHAND Match (Extra ''-m icmp --icmp-type 8 -m limit --limit 1/sec'')\<rangle> MATCHAND
         \<not> \<langle>Match (IIface (Iface ''eth0'')) MATCHAND
-           Match (Prot (Proto TCP)) MATCHAND Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK RST -m limit --limit 1/sec'')\<rangle> MATCHAND
+           Match (Prot (Proto TCP)) MATCHAND
+           Match (L4_Flags (TCP_Flags {TCP_FIN, TCP_SYN, TCP_RST, TCP_ACK} {TCP_RST})) MATCHAND Match (Extra ''-m limit --limit 1/sec'')\<rangle> MATCHAND
         \<not> \<langle>Match (IIface (Iface ''eth0'')) MATCHAND
            Match (Prot (Proto TCP)) MATCHAND
-           Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m limit --limit 10000/sec --limit-burst 100'')\<rangle> MATCHAND
-        Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND Match (Extra ''-m tcp --tcp-flags FIN,SYN,RST,ACK SYN''))
+           Match (L4_Flags (TCP_Flags {TCP_FIN, TCP_SYN, TCP_RST, TCP_ACK} {TCP_SYN})) MATCHAND
+           Match (Extra ''-m limit --limit 10000/sec --limit-burst 100'')\<rangle> MATCHAND
+        Match (IIface (Iface ''eth0'')) MATCHAND
+        Match (Prot (Proto TCP)) MATCHAND Match (L4_Flags (TCP_Flags {TCP_FIN, TCP_SYN, TCP_RST, TCP_ACK} {TCP_SYN})))
    action.Drop,
   Rule (Match (IIface (Iface ''lo''))) action.Accept, Rule (Match (CT_State {CT_Related, CT_Established})) action.Accept,
   Rule (Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND Match (Dst_Ports [(0x16, 0x16)])) action.Drop,
@@ -277,9 +293,21 @@ lemma "unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw) =
 
 value[code] "map common_primitive_rule_toString (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw))"
 
-lemma "check_simple_fw_preconditions (ctstate_assume_new (upper_closure (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw))))" by eval
+value[code] "(upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw))))"
+(*TODO: remove the following  \<not> \<langle>Match (L4_Flags (TCP_Flags {} {TCP_SYN}))\<rangle>
+                              \<not> \<langle>Match (Prot (Proto ICMP))\<rangle> MATCHAND \<not> \<langle>Match (Prot (Proto TCP))\<rangle>
+                              \<not> \<langle>Match (IIface (Iface ''eth0''))\<rangle> MATCHAND Match (IIface (Iface ''eth0'')) 
+*)
+
+(*TODO: we can get a better simple firewall!*)
+
+value[code] "optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw))))"
+
+
+lemma "check_simple_fw_preconditions (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw))))))" by eval
+
 value[code] "map simple_rule_toString (to_simple_firewall
-              (ctstate_assume_new (upper_closure (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw)))))"
+              (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw)))))))"
 
 
 

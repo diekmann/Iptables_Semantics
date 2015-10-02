@@ -41,9 +41,9 @@ value[code] "debug_ipassmt ipassignment_outgoing (unfold_ruleset_OUTPUT eduroam_
 
 
 text{*The ruleset*}
+lemma "check_simple_fw_preconditions (upper_closure (packet_assume_new (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw))))" by eval
+value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)))))"
 
-value[code] "map simple_rule_toString (to_simple_firewall (ctstate_assume_new 
-                  (upper_closure (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)))))"
 
 text{*We do not need to call things such as @{const transform_optimize_dnf_strict} because the
      firewall already is in @{const normalized_nnf_match} (required for @{const no_spoofing_iface})*}

@@ -74,8 +74,8 @@ subsection{*General Setup*}
   
   definition "spoofing_protection fw \<equiv> map (\<lambda>ifce. (ifce, no_spoofing_iface (Iface ifce) (map_of_ipassmt ipassmt) fw)) interfaces"
   
-  text{*We only consider packets which are @{const CT_New}. Packets which already belong to an established connection are okay be definition.*}
-  definition "preprocess default_policy fw \<equiv> (upper_closure (ctstate_assume_new (unfold_ruleset_FORWARD default_policy (map_of_string fw))))"
+  text{*We only consider packets which are @{const CT_New} and @{const ipt_tcp_syn}. Packets which already belong to an established connection are okay be definition.*}
+  definition "preprocess default_policy fw \<equiv> (upper_closure (packet_assume_new (unfold_ruleset_FORWARD default_policy (map_of_string fw))))"
 
 
   value[code] "debug_ipassmt ipassmt []"
@@ -89,7 +89,7 @@ removed but was forgotten. We are investigating ...
 section{*Checking spoofing Protection*}
 
 subsubsection{*Try 1*}
-
+  (*457.224s*)
   parse_iptables_save net_fw_1="iptables-save-2015-05-13_10-53-20_cheating"
 
 
@@ -113,7 +113,16 @@ subsubsection{*Try 1*}
   value[code] "debug_ipassmt ipassmt (preprocess net_fw_1_FORWARD_default_policy net_fw_1)"
   
   text{*the parsed firewall:*}
+  (*339.034s*)
   value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw_1"
+
+  (*
+  check if pretty-printing is the bottleneck: 
+  value[code] "let x = (preprocess net_fw_1_FORWARD_default_policy net_fw_1) in ()"
+  *)
+
+  (*372.806s*)
+  value[code] "map (quote_rewrite \<circ> common_primitive_rule_toString) (preprocess net_fw_1_FORWARD_default_policy net_fw_1)"
   
   text{*sanity check that @{const ipassmt} is complete*}
   (*226.773s*)
@@ -233,7 +242,7 @@ subsection{*Try 3*}
 
   text{*In the simplified firewall, we see a lot of DROPs in the beginning now*}
   value[code] "let x = to_simple_firewall (upper_closure
-                      (ctstate_assume_new (unfold_ruleset_FORWARD net_fw_3_FORWARD_default_policy (map_of net_fw_3))))
+                      (packet_assume_new (unfold_ruleset_FORWARD net_fw_3_FORWARD_default_policy (map_of net_fw_3))))
                in map simple_rule_toString x" (*225.039s*)
   
   

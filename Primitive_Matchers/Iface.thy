@@ -487,6 +487,7 @@ begin
           is not a subset of the previously negated set.*}
     lemma "''et'' \<in> - (internal_iface_name_to_set ''eth+'')" by(simp)
     lemma "''et+'' \<in> - (internal_iface_name_to_set ''eth+'')" by(simp)
+    lemma "''+'' \<in> - (internal_iface_name_to_set ''eth+'')" by(simp)
     lemma "\<not> {i. match_iface (Iface ''et+'') i} \<subseteq> - (internal_iface_name_to_set ''eth+'')" by force
 
     text{*Because @{term "''+''"} can appear as interface wildcard and normal interface character,

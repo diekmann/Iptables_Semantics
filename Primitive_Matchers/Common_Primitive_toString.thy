@@ -73,6 +73,7 @@ fun common_primitive_toString :: "common_primitive \<Rightarrow> string" where
   "common_primitive_toString (Src_Ports pts) = ''--spts '' @ list_toString (ports_toString '''') pts" |
   "common_primitive_toString (Dst_Ports pts) = ''--dpts '' @ list_toString (ports_toString '''') pts" |
   "common_primitive_toString (CT_State S) = ''-m state --state ''@ctstate_set_toString S" |
+  "common_primitive_toString (L4_Flags (TCP_Flags c m)) = ''--tcp-flags ''@ipt_tcp_flags_toString c@'' ''@ipt_tcp_flags_toString m" |
   "common_primitive_toString (Extra e) = ''~~''@e@''~~''"
 
 
@@ -85,6 +86,6 @@ fun common_primitive_match_expr_toString :: "common_primitive match_expr \<Right
 
 fun common_primitive_rule_toString :: "common_primitive rule \<Rightarrow> string" where
   "common_primitive_rule_toString (Rule m a) = common_primitive_match_expr_toString m @'' ''@action_toString a"
-  
+
 
 end
