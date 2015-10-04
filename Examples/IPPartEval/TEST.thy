@@ -165,4 +165,25 @@ begin
 
 end
 
+
+context
+begin
+  private local_setup \<open>
+     local_setup_parse_iptables_save "filter" @{binding fw6} ["openvpn.eu", "iptables-save"]
+    \<close>
+  thm fw6_def
+
+ definition "ipassmt6 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
+  (Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,0,0),24)]),
+  (Iface ''eth1'', [(ipv4addr_of_dotdecimal (192,168,2,0),24)])]"
+
+
+  value[code] "bench upper_closure FWD ipassmt6 fw6_FORWARD_default_policy fw6"
+  value[code] "view upper_closure FWD ipassmt6 fw6_FORWARD_default_policy fw6"
+
+  value[code] "bench lower_closure FWD ipassmt6 fw6_FORWARD_default_policy fw6"
+  value[code] "view lower_closure FWD ipassmt6 fw6_FORWARD_default_policy fw6"
+
+end
+
 end
