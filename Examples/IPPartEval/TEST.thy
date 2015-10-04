@@ -80,9 +80,9 @@ context begin
   value[code] "bench upper_closure FWD ipassmt fw2_FORWARD_default_policy (Semantics_Goto.rewrite_Goto fw2)"
   value[code] "view upper_closure FWD ipassmt fw2_FORWARD_default_policy (Semantics_Goto.rewrite_Goto fw2)"
 
-
+(*
   value[code] "bench lower_closure FWD ipassmt fw2_FORWARD_default_policy (Semantics_Goto.rewrite_Goto fw2)"
-  value[code] "view lower_closure FWD ipassmt fw2_FORWARD_default_policy (Semantics_Goto.rewrite_Goto fw2)"
+  value[code] "view lower_closure FWD ipassmt fw2_FORWARD_default_policy (Semantics_Goto.rewrite_Goto fw2)"*)
 end
 
 context
@@ -111,6 +111,7 @@ end
 
 definition "ipassmt_generic = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)])]"
 
+(*
 context
 begin
  private local_setup \<open>
@@ -123,6 +124,44 @@ begin
 
   value[code] "bench lower_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"
   value[code] "view lower_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"
+
+end
+*)
+
+(*
+context
+begin
+ private local_setup \<open>
+    local_setup_parse_iptables_save "filter" @{binding fw4} ["..", "..", "..", (*private*)]
+   \<close>
+ thm fw4_def
+
+  value[code] "bench upper_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"
+  value[code] "view upper_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"
+
+  definition "mysql = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
+                               pc_sport=10000, pc_dport=3306, pc_tag_ctstate=CT_New\<rparr>"
+  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt_generic fw4_INPUT_default_policy fw4 in
+               map pretty_wordinterval (buildParts mysql fw)"
+
+  value[code] "bench lower_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"
+  value[code] "view lower_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"
+end
+*)
+
+
+context
+begin
+  private local_setup \<open>
+     local_setup_parse_iptables_save "filter" @{binding fw5} ["linux.gda.pl", "firewallp.txt"]
+    \<close>
+  thm fw5_def
+
+  value[code] "bench upper_closure FWD ipassmt_generic fw5_FORWARD_default_policy fw5"
+  value[code] "view upper_closure FWD ipassmt_generic fw5_FORWARD_default_policy fw5"
+
+  value[code] "bench lower_closure FWD ipassmt_generic fw5_FORWARD_default_policy fw5"
+  value[code] "view lower_closure FWD ipassmt_generic fw5_FORWARD_default_policy fw5"
 
 end
 
