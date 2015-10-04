@@ -5,7 +5,19 @@ begin
  private local_setup ‹
     local_setup_parse_iptables_save "filter" @{binding fw4} ["gopherproxy.meulie.net", "iptables-save"]
    ›
- thm fw4_def
+   loading file [...]/IPPartEval/gopherproxy.meulie.net/iptables-save 
+Loaded 266 lines of the filter table 
+Parsed 3 chain declarations 
+Parsed 263 rules 
+unfolding (this may take a while) ... 
+Simplified term (0.996 seconds) 
+checked sanity with sanity_wf_ruleset (0.543 seconds) 
+Defining constant `fw4' (fw4_def') 
+Defining constant `fw4_INPUT_default_policy' (fw4_INPUT_default_policy_def') 
+Defining constant `fw4_FORWARD_default_policy' (fw4_FORWARD_default_policy_def') 
+Defining constant `fw4_OUTPUT_default_policy' (fw4_OUTPUT_default_policy_def')
+
+
 
   value[code] "bench upper_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"
   3187.128s elapsed time, 6377.262s cpu time, 6.478s GC time
