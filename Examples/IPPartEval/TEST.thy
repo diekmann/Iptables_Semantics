@@ -162,7 +162,6 @@ begin
 
   value[code] "bench lower_closure FWD ipassmt_generic fw5_FORWARD_default_policy fw5"
   value[code] "view lower_closure FWD ipassmt_generic fw5_FORWARD_default_policy fw5"
-
 end
 
 
@@ -183,7 +182,29 @@ begin
 
   value[code] "bench lower_closure FWD ipassmt6 fw6_FORWARD_default_policy fw6"
   value[code] "view lower_closure FWD ipassmt6 fw6_FORWARD_default_policy fw6"
+end
 
+
+
+context
+begin
+  private local_setup \<open>
+     local_setup_parse_iptables_save "filter" @{binding fw7} ["openwrt.org", "iptables-save-AA.txt_fixed_newline"]
+    \<close>
+  thm fw7_def
+
+ definition "ipassmt7 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
+  (Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,1,0),24)]),
+  (*(Iface ''eth0.2'', [(ipv4addr_of_dotdecimal (192,168,2,0),24)]), cannot infer*)
+  (Iface ''tun0'', [(ipv4addr_of_dotdecimal (10,8,0,0),24)]),
+  (Iface ''br-lan'', [(ipv4addr_of_dotdecimal (192,168,1,0),24)])]"
+
+
+  value[code] "bench upper_closure FWD ipassmt7 fw7_FORWARD_default_policy fw7"
+  value[code] "view upper_closure FWD ipassmt7 fw7_FORWARD_default_policy fw7"
+
+  value[code] "bench lower_closure FWD ipassmt7 fw7_FORWARD_default_policy fw7"
+  value[code] "view lower_closure FWD ipassmt7 fw7_FORWARD_default_policy fw7"
 end
 
 end
