@@ -3,7 +3,7 @@ imports "../Common/Negation_Type" "../Common/Lib_toString"
 begin
 
 
-datatype ctstate = CT_New | CT_Established | CT_Related | CT_Untracked
+datatype ctstate = CT_New | CT_Established | CT_Related | CT_Untracked | CT_Invalid
 
 text{*The state associated with a packet can be added as a tag to the packet.
       See @{file "../Semantics_Stateful.thy"}.*}
@@ -21,8 +21,9 @@ lemma ctstate_conjunct_correct: "match_ctstate S1 pkt \<and> match_ctstate S2 pk
   apply simp
   by blast
 
-lemma UNIV_ctstate: "UNIV = {CT_New, CT_Established, CT_Related, CT_Untracked}" using ctstate.exhaust by auto 
+lemma UNIV_ctstate: "UNIV = {CT_New, CT_Established, CT_Related, CT_Untracked, CT_Invalid}" using ctstate.exhaust by auto 
 
+(*
 function ctstate_set_toString_list :: "ctstate set \<Rightarrow> string list" where
   "ctstate_set_toString_list S = (if S = {} then [] else
     if CT_New \<in> S then ''NEW''#ctstate_set_toString_list (S - {CT_New}) else
@@ -31,26 +32,28 @@ function ctstate_set_toString_list :: "ctstate set \<Rightarrow> string list" wh
     if CT_Untracked \<in> S then ''UNTRACKED''#ctstate_set_toString_list (S - {CT_Untracked}) else [''ERROR-unkown-ctstate''])"
 by(pat_completeness) auto
 
-instance ctstate :: finite
-proof
-  from UNIV_ctstate show "finite (UNIV:: ctstate set)" using finite.simps by auto 
-qed
-  
-lemma "finite (S :: ctstate set)" by simp
-
 termination ctstate_set_toString_list
   apply(relation "measure (\<lambda>(S). card S)")
   apply(simp_all add: card_gt_0_iff)
   done
 
+*)
+instance ctstate :: finite
+proof
+  from UNIV_ctstate show "finite (UNIV:: ctstate set)" using finite.simps by auto 
+qed
+
+  
+lemma "finite (S :: ctstate set)" by simp
+
 
 instantiation "ctstate" :: enum
 begin
-  definition "enum_ctstate = [CT_New, CT_Established, CT_Related, CT_Untracked]"
+  definition "enum_ctstate = [CT_New, CT_Established, CT_Related, CT_Untracked, CT_Invalid]"
 
-  definition "enum_all_ctstate P \<longleftrightarrow> P CT_New \<and> P CT_Established \<and> P CT_Related \<and> P CT_Untracked"
+  definition "enum_all_ctstate P \<longleftrightarrow> P CT_New \<and> P CT_Established \<and> P CT_Related \<and> P CT_Untracked \<and> P CT_Invalid"
   
-  definition "enum_ex_ctstate P \<longleftrightarrow> P CT_New \<or> P CT_Established \<or> P CT_Related \<or> P CT_Untracked"
+  definition "enum_ex_ctstate P \<longleftrightarrow> P CT_New \<or> P CT_Established \<or> P CT_Related \<or> P CT_Untracked \<or> P CT_Invalid"
 instance proof
   show "UNIV = set (enum_class.enum :: ctstate list)"
     by(simp add: UNIV_ctstate enum_ctstate_def)
@@ -67,7 +70,7 @@ qed
 end
 
 definition ctstate_is_UNIV :: "ctstate set \<Rightarrow> bool" where
-  "ctstate_is_UNIV c \<equiv> CT_New \<in> c \<and> CT_Established \<in> c \<and> CT_Related \<in> c \<and> CT_Untracked \<in> c"
+  "ctstate_is_UNIV c \<equiv> CT_New \<in> c \<and> CT_Established \<in> c \<and> CT_Related \<in> c \<and> CT_Untracked \<in> c \<and> CT_Invalid \<in> c"
 
 lemma ctstate_is_UNIV: "ctstate_is_UNIV c \<longleftrightarrow> c = UNIV"
   unfolding ctstate_is_UNIV_def
@@ -87,7 +90,8 @@ fun ctstate_toString :: "ctstate \<Rightarrow> string" where
   "ctstate_toString CT_New = ''NEW''" |
   "ctstate_toString CT_Established = ''ESTABLISHED''" |
   "ctstate_toString CT_Related = ''RELATED''" |
-  "ctstate_toString CT_Untracked = ''UNTRACKED''"
+  "ctstate_toString CT_Untracked = ''UNTRACKED''" |
+  "ctstate_toString CT_Invalid = ''INVALID''"
 
 
 definition ctstate_set_toString :: "ctstate set \<Rightarrow> string" where
