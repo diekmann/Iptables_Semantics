@@ -5,12 +5,30 @@ imports
   "../../Primitive_Matchers/Interface_Replace"
 begin
 
+definition "iface_try_rewrite ipassmt rs \<equiv> if ipassmt_sanity_disjoint (map_of ipassmt) \<and> ipassmt_sanity_defined rs (map_of ipassmt) then
+  optimize_matches (iiface_rewrite (map_of_ipassmt ipassmt)) rs
+  else
+  optimize_matches (iiface_constrain (map_of_ipassmt ipassmt)) rs"
+
+theorem iface_try_rewrite:
+  assumes simplers: "simple_ruleset rs"
+      and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
+      and wf_ipassmt1: "ipassmt_sanity_nowildcards (map_of ipassmt)" and wf_ipassmt2: "distinct (map fst ipassmt)"
+      and nospoofing: "\<exists>ips. (map_of ipassmt) (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipv4cidr_union_set (set ips)"
+  shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>iface_try_rewrite ipassmt rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+  apply(simp add: iface_try_rewrite_def)
+  apply(simp add: map_of_ipassmt_def wf_ipassmt1 wf_ipassmt2)
+  apply(intro conjI impI)
+   apply(elim conjE)
+   using iiface_rewrite(1)[OF simplers normalized wf_ipassmt1 _ nospoofing] apply blast
+  using iiface_constrain(1)[OF simplers normalized wf_ipassmt1] nospoofing apply force
+  done
 
 definition preprocess where
   "preprocess unfold closure ipassmt def fw \<equiv> to_simple_firewall (closure
               (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))
               (closure
-              (optimize_matches (iiface_constrain (map_of_ipassmt ipassmt))
+              (iface_try_rewrite ipassmt
               (closure
               (packet_assume_new
               (unfold def (map_of fw))))))))"
@@ -235,7 +253,7 @@ begin
   (*I loaded the script on my local machine*)
   definition "ipassmt9 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
   (Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,13,0),24)]),
-  (Iface ''ppp0'', all_but_those_ips [(ipv4addr_of_dotdecimal (192,168,13,0),24)])]"
+  (Iface ''ppp0'', all_but_those_ips [(ipv4addr_of_dotdecimal (192,168,13,0),24), (ipv4addr_of_dotdecimal (127,0,0,0),8)])]"
 
   value[code] "bench upper_closure FWD ipassmt9 fw9_FORWARD_default_policy fw9"
   value[code] "view upper_closure FWD ipassmt9 fw9_FORWARD_default_policy fw9"
