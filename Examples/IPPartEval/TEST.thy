@@ -34,6 +34,16 @@ definition preprocess where
               (unfold def (map_of fw))))))))"
 
 
+definition preprocess_keep_ifce where
+  "preprocess_keep_ifce unfold closure ipassmt def fw \<equiv> to_simple_firewall (closure
+              (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))
+              (closure
+              (optimize_matches (iiface_constrain (map_of_ipassmt ipassmt))
+              (closure
+              (packet_assume_new
+              (unfold def (map_of fw))))))))"
+
+
 datatype ipt_chain = FWD | INP 
 
 fun get_unfold where
@@ -42,10 +52,10 @@ fun get_unfold where
 
 definition bench where
   "bench closure f ipassmt def fw_in \<equiv> let fw = preprocess (get_unfold f) closure ipassmt def fw_in in 
-      (length ((get_unfold f) def (map_of fw_in)), length fw, length (getParts fw), length (buildParts ssh fw), length (buildParts http fw))"
+      (length ((get_unfold f) def (map_of fw_in)), preprocess_keep_ifce (get_unfold f) closure ipassmt def fw_in, length fw, length (getParts fw), length (buildParts ssh fw), length (buildParts http fw))"
 definition view where
-  "view closure f ipassmt def fw \<equiv> let fw = preprocess (get_unfold f) closure ipassmt def fw in 
-      (''x'', map simple_rule_toString fw, map pretty_wordinterval (getParts fw), (build ssh fw), (build http fw))"
+  "view closure f ipassmt def fw_in \<equiv> let fw = preprocess (get_unfold f) closure ipassmt def fw_in in 
+      (''x'', map simple_rule_toString fw, preprocess_keep_ifce (get_unfold f) closure ipassmt def fw_in, map pretty_wordinterval (getParts fw), (build ssh fw), (build http fw))"
 
 
 
