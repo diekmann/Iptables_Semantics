@@ -89,7 +89,7 @@ lemma "parser_test_firewall \<equiv>
              (MatchAnd (Match (Dst_Ports [(1, 0xFFFF)]))
                (Match (L4_Flags (TCP_Flags {TCP_FIN, TCP_SYN, TCP_RST, TCP_ACK} {TCP_SYN}))))))
      action.Accept,
-    Rule (Match (Extra ''--ctstate NEW,INVALID'')) action.Drop,
+    Rule (Match (CT_State {CT_New, CT_Invalid})) action.Drop,
     Rule (MatchAnd (Match (IIface (Iface ''wlan0'')))
            (MatchAnd (Match (Prot (Proto ICMP)))
              (Match (CT_State {CT_Established, CT_New, CT_Related, CT_Untracked}))))

@@ -39,12 +39,12 @@ lemma "length unfolded = 2649" by eval
 
 (*17.554s*)
 value[code] "map (quote_rewrite \<circ> common_primitive_rule_toString) (upper_closure unfolded)"
-lemma "length (upper_closure unfolded) = 1722" by eval
+lemma "length (upper_closure unfolded) = 1986" by eval
 
 
 (*28.550s*)
 value[code] "length (lower_closure unfolded)"
-lemma "length (lower_closure unfolded) = 9881" by eval
+lemma "length (lower_closure unfolded) = 10126" by eval
 
 lemma "check_simple_fw_preconditions (upper_closure unfolded) = False" by eval
 lemma "\<forall>m \<in> get_match`set (upper_closure (packet_assume_new unfolded)). normalized_nnf_match m" by eval
@@ -53,12 +53,12 @@ lemma "\<forall>m \<in> get_match`set (upper_closure (packet_assume_new unfolded
 lemma "\<forall>m \<in> get_match`set (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))). normalized_nnf_match m" by eval
 
 lemma "check_simple_fw_preconditions (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))))" by eval
-lemma "length (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))))) = 1379" by eval
+lemma "length (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))))) = 1389" by eval
 (*22.240s*)
 value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded)))))"
 
 (*43.702s*)
-lemma "length (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))) = 6612" by eval
+lemma "length (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))) = 6603" by eval
 
 (*71.518s*)
 value[code] "length (remdups_rev (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))))" (*even smaller*)
