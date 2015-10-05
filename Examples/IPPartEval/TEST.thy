@@ -190,7 +190,7 @@ begin
     \<close>
   thm fw6_def
 
- definition "ipassmt6 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
+  private  definition "ipassmt6 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
   (Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,0,0),24)]),
   (Iface ''eth1'', [(ipv4addr_of_dotdecimal (192,168,2,0),24)])]"
 
@@ -211,7 +211,7 @@ begin
     \<close>
   thm fw7_def
 
- definition "ipassmt7 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
+  private  definition "ipassmt7 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
   (Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,1,0),24)]),
   (*(Iface ''eth0.2'', [(ipv4addr_of_dotdecimal (192,168,2,0),24)]), cannot infer*)
   (Iface ''tun0'', [(ipv4addr_of_dotdecimal (10,8,0,0),24)]),
@@ -251,7 +251,7 @@ begin
   thm fw9_def
  
   (*I loaded the script on my local machine*)
-  definition "ipassmt9 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
+  private definition "ipassmt9 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
   (Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,13,0),24)]),
   (Iface ''ppp0'', all_but_those_ips [(ipv4addr_of_dotdecimal (192,168,13,0),24), (ipv4addr_of_dotdecimal (127,0,0,0),8)])]"
 
@@ -262,12 +262,28 @@ begin
   value[code] "bench lower_closure FWD ipassmt9 fw9_FORWARD_default_policy fw9"
   value[code] "view lower_closure FWD ipassmt9 fw9_FORWARD_default_policy fw9"
 
-  (*TODO: redo with interface replace!*)
+
   value[code] "bench upper_closure INP ipassmt9 fw9_INPUT_default_policy fw9"
   value[code] "view upper_closure INP ipassmt9 fw9_INPUT_default_policy fw9"
 
   value[code] "bench lower_closure INP ipassmt9 fw9_INPUT_default_policy fw9"
   value[code] "view lower_closure INP ipassmt9 fw9_INPUT_default_policy fw9"
+end
+
+
+
+context
+begin
+  private local_setup \<open>
+     local_setup_parse_iptables_save "filter" @{binding fw10} ["sargon", "iptables-save.txt"]
+    \<close>
+  thm fw10_def
+
+  value[code] "bench upper_closure INP ipassmt_generic fw10_INPUT_default_policy fw10"
+  value[code] "view upper_closure INP ipassmt_generic fw10_INPUT_default_policy fw10"
+
+  value[code] "bench lower_closure INP ipassmt_generic fw10_INPUT_default_policy fw10"
+  value[code] "view lower_closure INP ipassmt_generic fw10_INPUT_default_policy fw10"
 end
 
 end
