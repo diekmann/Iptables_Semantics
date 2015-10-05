@@ -171,6 +171,10 @@ local (*iptables-save parsers*)
       val parser_protocol = Scan.this_string "tcp" >> K @{const primitive_protocol.TCP}
                          || Scan.this_string "udp" >> K @{const primitive_protocol.UDP}
                          || Scan.this_string "icmp" >> K @{const primitive_protocol.ICMP}
+                         (*Moar Assigned Internet Protocol Numbers below: *)
+                         || Scan.this_string "esp" >> K @{term "primitive_protocol.OtherProtocol 50"}
+                         || Scan.this_string "ah" >> K @{term "primitive_protocol.OtherProtocol 51"}
+                         || Scan.this_string "gre" >> K @{term "primitive_protocol.OtherProtocol 47"}
 
       val parser_ctstate = Scan.this_string "NEW" >> K @{const CT_New}
                          || Scan.this_string "ESTABLISHED" >> K @{const CT_Established}
