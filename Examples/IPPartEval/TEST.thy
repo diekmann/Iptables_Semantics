@@ -207,4 +207,49 @@ begin
   value[code] "view lower_closure FWD ipassmt7 fw7_FORWARD_default_policy fw7"
 end
 
+
+
+context
+begin
+  private local_setup \<open>
+     local_setup_parse_iptables_save "filter" @{binding fw8} ["pastebin.com_bbWXHaTn", "iptables-save"]
+    \<close>
+  thm fw8_def
+
+  value[code] "bench upper_closure FWD ipassmt_generic fw8_FORWARD_default_policy fw8"
+  value[code] "view upper_closure FWD ipassmt_generic fw8_FORWARD_default_policy fw8"
+
+  value[code] "bench lower_closure FWD ipassmt_generic fw8_FORWARD_default_policy fw8"
+  value[code] "view lower_closure FWD ipassmt_generic fw8_FORWARD_default_policy fw8"
+end
+
+
+
+context
+begin
+  private local_setup \<open>
+     local_setup_parse_iptables_save "filter" @{binding fw9} ["rlworkman.net", "iptables-save"]
+    \<close>
+  thm fw9_def
+ 
+  (*I loaded the script on my local machine*)
+  definition "ipassmt9 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
+  (Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,13,0),24)]),
+  (Iface ''ppp0'', all_but_those_ips [(ipv4addr_of_dotdecimal (192,168,13,0),24)])]"
+
+  value[code] "bench upper_closure FWD ipassmt9 fw9_FORWARD_default_policy fw9"
+  value[code] "view upper_closure FWD ipassmt9 fw9_FORWARD_default_policy fw9"
+
+  (*quite good results*)
+  value[code] "bench lower_closure FWD ipassmt9 fw9_FORWARD_default_policy fw9"
+  value[code] "view lower_closure FWD ipassmt9 fw9_FORWARD_default_policy fw9"
+
+  (*TODO: redo with interface replace!*)
+  value[code] "bench upper_closure INP ipassmt9 fw9_INPUT_default_policy fw9"
+  value[code] "view upper_closure INP ipassmt9 fw9_INPUT_default_policy fw9"
+
+  value[code] "bench lower_closure INP ipassmt9 fw9_INPUT_default_policy fw9"
+  value[code] "view lower_closure INP ipassmt9 fw9_INPUT_default_policy fw9"
+end
+
 end
