@@ -180,6 +180,7 @@ local (*iptables-save parsers*)
                          || Scan.this_string "ESTABLISHED" >> K @{const CT_Established}
                          || Scan.this_string "RELATED" >> K @{const CT_Related}
                          || Scan.this_string "UNTRACKED" >> K @{const CT_Untracked}
+                         || Scan.this_string "INVALID" >> K @{const CT_Invalid}
 
       val parser_tcp_flag = Scan.this_string "SYN" >> K @{const TCP_SYN}
                          || Scan.this_string "ACK" >> K @{const TCP_ACK}
