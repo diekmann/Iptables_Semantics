@@ -36,7 +36,7 @@ definition preprocess where
 
 definition preprocess_keep_ifce where
   "preprocess_keep_ifce unfold closure ipassmt def fw \<equiv> to_simple_firewall (closure
-              (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> False | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))
+              (optimize_matches abstract_for_simple_firewall
               (closure
               (optimize_matches (iiface_constrain (map_of_ipassmt ipassmt))
               (closure
