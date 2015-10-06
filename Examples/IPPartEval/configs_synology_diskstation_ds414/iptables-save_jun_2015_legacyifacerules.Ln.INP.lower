@@ -1,0 +1,53 @@
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+DROP       icmp --  0.0.0.0/0            0.0.0.0/0           
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0           
+DROP       icmp --  192.168.1.0/24       0.0.0.0/0           
+DROP       tcp  --  192.168.1.0/24       0.0.0.0/0           
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:22
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:873
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpts:3240:3262
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:21
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:548
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:111
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:892
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:2049
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:443
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:80
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:3493
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:3306
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpts:22:23
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0            udp dpts:67:68
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:123
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:514
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:19999
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:5353
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:161
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:111
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:892
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:2049
+ACCEPT     all  --  192.168.0.0/16       0.0.0.0/0           
+DROP       all  --  0.0.0.0/0            0.0.0.0/0           
+DROP       tcp  --  192.168.1.0/24       0.0.0.0/0            tcp dpt:22
+DROP       tcp  --  192.168.1.0/24       0.0.0.0/0            tcp dpt:21
+DROP       tcp  --  192.168.1.0/24       0.0.0.0/0            tcp dpt:873
+DROP       tcp  --  192.168.1.0/24       0.0.0.0/0            tcp dpts:5005:5006
+DROP       tcp  --  192.168.1.0/24       0.0.0.0/0            tcp dpt:80
+DROP       tcp  --  192.168.1.0/24       0.0.0.0/0            tcp dpt:548
+DROP       tcp  --  192.168.1.0/24       0.0.0.0/0            tcp dpt:111
+DROP       tcp  --  192.168.1.0/24       0.0.0.0/0            tcp dpt:892
+DROP       tcp  --  192.168.1.0/24       0.0.0.0/0            tcp dpt:2049
+DROP       udp  --  192.168.1.0/24       0.0.0.0/0            udp dpt:123
+DROP       udp  --  192.168.1.0/24       0.0.0.0/0            udp dpt:111
+DROP       udp  --  192.168.1.0/24       0.0.0.0/0            udp dpt:892
+DROP       udp  --  192.168.1.0/24       0.0.0.0/0            udp dpt:2049
+DROP       udp  --  192.168.1.0/24       0.0.0.0/0            udp dpt:5353
+DROP       all  --  192.168.1.0/24       0.0.0.0/0           
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpts:5005:5006
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0           
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
