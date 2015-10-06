@@ -148,22 +148,22 @@ end
 
 definition "ipassmt_generic = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)])]"
 
-(*
+
 context
 begin
  private local_setup \<open>
     local_setup_parse_iptables_save "filter" @{binding fw4} ["gopherproxy.meulie.net", "iptables-save"]
    \<close>
  thm fw4_def
-
+(*
   value[code] "bench upper_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"
   value[code] "view upper_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"
 
   value[code] "bench lower_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"
-  value[code] "view lower_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"
+  value[code] "view lower_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"*)
 
 end
-*)
+
 
 (*
 context
