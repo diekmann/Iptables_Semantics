@@ -50,12 +50,21 @@ fun get_unfold where
   "get_unfold FWD = unfold_ruleset_FORWARD" |
   "get_unfold INP = unfold_ruleset_INPUT"
 
+fun ipt_chain_toSting where
+  "ipt_chain_toSting FWD = ''FORWARD''" |
+  "ipt_chain_toSting INPO = ''INPUT''"
+
 definition bench where
   "bench closure f ipassmt def fw_in \<equiv> let fw = preprocess (get_unfold f) closure ipassmt def fw_in in 
       (length ((get_unfold f) def (map_of fw_in)), length (preprocess_keep_ifce (get_unfold f) closure ipassmt def fw_in), length fw, length (getParts fw), length (buildParts ssh fw), length (buildParts http fw))"
 definition view where
   "view closure f ipassmt def fw_in \<equiv> let fw = preprocess (get_unfold f) closure ipassmt def fw_in in 
-      (''x'', map simple_rule_toString (preprocess_keep_ifce (get_unfold f) closure ipassmt def fw_in), map simple_rule_toString fw, map pretty_wordinterval (getParts fw), (build ssh fw), (build http fw))"
+      (''x'',
+       map (simple_rule_iptables_save_toString (ipt_chain_toSting f)) (preprocess_keep_ifce (get_unfold f) closure ipassmt def fw_in),
+       map (simple_rule_iptables_save_toString (ipt_chain_toSting f)) fw,
+       map pretty_wordinterval (getParts fw),
+       (build ssh fw),
+       (build http fw))"
 
 
 
@@ -108,9 +117,9 @@ context begin
   value[code] "bench upper_closure FWD ipassmt fw2_FORWARD_default_policy (Semantics_Goto.rewrite_Goto fw2)"
   value[code] "view upper_closure FWD ipassmt fw2_FORWARD_default_policy (Semantics_Goto.rewrite_Goto fw2)"
 
-(*
+
   value[code] "bench lower_closure FWD ipassmt fw2_FORWARD_default_policy (Semantics_Goto.rewrite_Goto fw2)"
-  value[code] "view lower_closure FWD ipassmt fw2_FORWARD_default_policy (Semantics_Goto.rewrite_Goto fw2)"*)
+  value[code] "view lower_closure FWD ipassmt fw2_FORWARD_default_policy (Semantics_Goto.rewrite_Goto fw2)"
 end
 
 context

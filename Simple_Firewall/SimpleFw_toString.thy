@@ -26,14 +26,27 @@ fun simple_rule_toString :: "simple_rule \<Rightarrow> string" where
       ports_toString ''dports: '' dps"
 
 
+(*TODO: move*)
+
+
+definition ipv4_cidr_opt_toString :: "string \<Rightarrow> ipv4addr \<times> nat \<Rightarrow> string" where
+  "ipv4_cidr_opt_toString descr ip = (if ip = (0,0) then '''' else
+      descr@ipv4_cidr_toString ip)"
+
+
+definition protocol_opt_toString :: "string \<Rightarrow> protocol \<Rightarrow> string" where
+  "protocol_opt_toString descr prot = (if prot = ProtoAny then '''' else
+      descr@protocol_toString prot)"
+
 fun simple_rule_iptables_save_toString :: "string \<Rightarrow> simple_rule \<Rightarrow> string" where
   "simple_rule_iptables_save_toString chain (SimpleRule \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> a) = 
-    ''-A ''@chain@'' -s '' @ ipv4_cidr_toString sip @ '' '' @
-                  ''-d '' @ ipv4_cidr_toString dip @ '' '' @
-                  ''-p '' @ protocol_toString p @ '' '' @
-                  (if (iface_toString ''in:'' iif)@(iface_toString ''out:'' oif)@
-                      (ports_toString ''srcports:'' sps)@(ports_toString ''dstports:'' dps) \<noteq> ''''
-                   then ''TODO: more fields to dump'' else '''') @
+    ''-A ''@chain@iface_toString '' -i '' iif @
+                  iface_toString '' -o '' oif @
+                  ipv4_cidr_opt_toString '' -s '' sip @
+                  ipv4_cidr_opt_toString '' -d '' dip @
+                  protocol_opt_toString '' -p '' p @
+                  ports_toString '' --sport '' sps @
+                  ports_toString '' --dport '' dps @
                   '' -j '' @ simple_action_toString a"
 
 
