@@ -1,6 +1,6 @@
 theory TUM_IPPart
 imports 
-  "../IPPartEval/TEST"
+  "TEST"
 begin
 
 
