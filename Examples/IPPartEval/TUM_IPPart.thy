@@ -54,7 +54,21 @@ begin
      ''eth1.1025'', ''eth1.1024'']" by eval
 
 
-  parse_iptables_save net_fw="iptables-save-2015-05-15_15-23-41"
+
+value[code] "debug_ipassmt ipassmt []"
+
+definition netbios where "netbios = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=UDP,
+                               pc_sport=10000, pc_dport=137, pc_tag_ctstate=CT_New\<rparr>"
+definition kerberos_adm_tcp where "kerberos_adm_tcp = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
+                               pc_sport=10000, pc_dport=749, pc_tag_ctstate=CT_New\<rparr>"
+definition kerberos_adm_udp where "kerberos_adm_udp = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=UDP,
+                               pc_sport=10000, pc_dport=749, pc_tag_ctstate=CT_New\<rparr>"
+
+context
+begin
+ private local_setup \<open>
+    local_setup_parse_iptables_save "filter" @{binding net_fw} ["TUM_Net", "iptables-save-2015-05-15_15-23-41"]
+   \<close>
 
   value[code] "bench upper_closure FWD ipassmt net_fw_FORWARD_default_policy net_fw"
   value[code] "view upper_closure FWD ipassmt net_fw_FORWARD_default_policy net_fw"
@@ -62,29 +76,12 @@ begin
   value[code] "bench lower_closure FWD ipassmt net_fw_FORWARD_default_policy net_fw"
   value[code] "view lower_closure FWD ipassmt net_fw_FORWARD_default_policy net_fw"  
 
-
-
-
-  
-  
-  definition "spoofing_protection fw \<equiv> map (\<lambda>ifce. (ifce, no_spoofing_iface (Iface ifce) (map_of_ipassmt ipassmt) fw)) interfaces"
-  
-
-  value[code] "debug_ipassmt ipassmt []"
-
-
-definition netbios where "netbios = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=UDP,
-                               pc_sport=10000, pc_dport=137, pc_tag_ctstate=CT_New\<rparr>"
-
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
           (buildParts netbios fw)"
-
 
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
      (build ssh fw)"
   
-
-
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
      (build http fw)"
   
@@ -92,20 +89,18 @@ definition netbios where "netbios = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
      (build netbios fw)"
 
-
-definition kerberos_adm_tcp where "kerberos_adm_tcp = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
-                               pc_sport=10000, pc_dport=749, pc_tag_ctstate=CT_New\<rparr>"
-definition kerberos_adm_udp where "kerberos_adm_udp = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=UDP,
-                               pc_sport=10000, pc_dport=749, pc_tag_ctstate=CT_New\<rparr>"
-
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
     (build kerberos_adm_tcp fw)"
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
     (build kerberos_adm_udp fw)"
+end
 
 
-
-  parse_iptables_save net_fw2="iptables-save-2015-09-03_15-56-50"
+context
+begin
+ private local_setup \<open>
+    local_setup_parse_iptables_save "filter" @{binding net_fw2} ["TUM_Net", "iptables-save-2015-09-03_15-56-50"]
+   \<close>
 
   value[code] "bench upper_closure FWD ipassmt net_fw2_FORWARD_default_policy net_fw2"
   value[code] "view upper_closure FWD ipassmt net_fw2_FORWARD_default_policy net_fw2"
@@ -117,15 +112,18 @@ definition kerberos_adm_udp where "kerberos_adm_udp = \<lparr>pc_iiface=''1'', p
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw2_FORWARD_default_policy net_fw2 in
      (build netbios fw)"
 
-
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw2_FORWARD_default_policy net_fw2 in
     (build kerberos_adm_tcp fw)"
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw2_FORWARD_default_policy net_fw2 in
     (build kerberos_adm_udp fw)"
 
+end
 
-
-  parse_iptables_save net_fw2013="iptables_20.10.2013"
+context
+begin
+ private local_setup \<open>
+    local_setup_parse_iptables_save "filter" @{binding net_fw2013} ["TUM_Net", "iptables_20.10.2013"]
+   \<close>
 
   value[code] "bench upper_closure FWD ipassmt net_fw2013_FORWARD_default_policy net_fw2013"
   value[code] "view upper_closure FWD ipassmt net_fw2013_FORWARD_default_policy net_fw2013"
@@ -133,19 +131,22 @@ definition kerberos_adm_udp where "kerberos_adm_udp = \<lparr>pc_iiface=''1'', p
   value[code] "bench lower_closure FWD ipassmt net_fw2013_FORWARD_default_policy net_fw2013"
   value[code] "view lower_closure FWD ipassmt net_fw2013_FORWARD_default_policy net_fw2013"  
 
-
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw2013_FORWARD_default_policy net_fw2013 in
      (build netbios fw)"
-
 
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw2013_FORWARD_default_policy net_fw2013 in
     (build kerberos_adm_tcp fw)"
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw2013_FORWARD_default_policy net_fw2013 in
     (build kerberos_adm_udp fw)"
+end
 
 
 
-  parse_iptables_save net_fw2014="iptables_25.07.2014"
+context
+begin
+ private local_setup \<open>
+    local_setup_parse_iptables_save "filter" @{binding net_fw2014} ["TUM_Net", "iptables_25.07.2014"]
+   \<close>
 
   value[code] "bench upper_closure FWD ipassmt net_fw2014_FORWARD_default_policy net_fw2014"
   value[code] "view upper_closure FWD ipassmt net_fw2014_FORWARD_default_policy net_fw2014"
@@ -153,14 +154,14 @@ definition kerberos_adm_udp where "kerberos_adm_udp = \<lparr>pc_iiface=''1'', p
   value[code] "bench lower_closure FWD ipassmt net_fw2014_FORWARD_default_policy net_fw2014"
   value[code] "view lower_closure FWD ipassmt net_fw2014_FORWARD_default_policy net_fw2014"  
 
-
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw2014_FORWARD_default_policy net_fw2014 in
      (build netbios fw)"
-
 
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw2014_FORWARD_default_policy net_fw2014 in
     (build kerberos_adm_tcp fw)"
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw2014_FORWARD_default_policy net_fw2014 in
     (build kerberos_adm_udp fw)"
-  
+end
+
+
 end
