@@ -64,35 +64,52 @@ definition kerberos_adm_tcp where "kerberos_adm_tcp = \<lparr>pc_iiface=''1'', p
 definition kerberos_adm_udp where "kerberos_adm_udp = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=UDP,
                                pc_sport=10000, pc_dport=749, pc_tag_ctstate=CT_New\<rparr>"
 
+definition ldap_tcp where "ldap_tcp = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
+                               pc_sport=10000, pc_dport=389, pc_tag_ctstate=CT_New\<rparr>"
+definition ldap_udp where "ldap_udp = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=UDP,
+                               pc_sport=10000, pc_dport=389, pc_tag_ctstate=CT_New\<rparr>"
+definition ldaps_tcp where "ldaps_tcp = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
+                               pc_sport=10000, pc_dport=636, pc_tag_ctstate=CT_New\<rparr>"
+
 context
 begin
  private local_setup \<open>
     local_setup_parse_iptables_save "filter" @{binding net_fw} ["TUM_Net", "iptables-save-2015-05-15_15-23-41"]
    \<close>
 
-  value[code] "bench upper_closure FWD ipassmt net_fw_FORWARD_default_policy net_fw"
+  (*value[code] "bench upper_closure FWD ipassmt net_fw_FORWARD_default_policy net_fw"
   value[code] "view upper_closure FWD ipassmt net_fw_FORWARD_default_policy net_fw"
 
   value[code] "bench lower_closure FWD ipassmt net_fw_FORWARD_default_policy net_fw"
-  value[code] "view lower_closure FWD ipassmt net_fw_FORWARD_default_policy net_fw"  
+  value[code] "view lower_closure FWD ipassmt net_fw_FORWARD_default_policy net_fw"
 
-  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
           (buildParts netbios fw)"
 
-  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
      (build ssh fw)"
   
-  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
      (build http fw)"
   
 
-  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
-     (build netbios fw)"
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
+     (build netbios fw)"*)
 
-  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
     (build kerberos_adm_tcp fw)"
-  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
     (build kerberos_adm_udp fw)"
+
+
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
+    (build ldap_tcp fw)"
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
+    (build ldap_udp fw)"
+
+
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
+    (build ldaps_tcp fw)"
 end
 
 
@@ -109,14 +126,13 @@ begin
   value[code] "view lower_closure FWD ipassmt net_fw2_FORWARD_default_policy net_fw2"  
 
 
-  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw2_FORWARD_default_policy net_fw2 in
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw2_FORWARD_default_policy net_fw2 in
      (build netbios fw)"
 
-  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw2_FORWARD_default_policy net_fw2 in
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw2_FORWARD_default_policy net_fw2 in
     (build kerberos_adm_tcp fw)"
-  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw2_FORWARD_default_policy net_fw2 in
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw2_FORWARD_default_policy net_fw2 in
     (build kerberos_adm_udp fw)"
-
 end
 
 context
@@ -131,12 +147,12 @@ begin
   value[code] "bench lower_closure FWD ipassmt net_fw2013_FORWARD_default_policy net_fw2013"
   value[code] "view lower_closure FWD ipassmt net_fw2013_FORWARD_default_policy net_fw2013"  
 
-  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw2013_FORWARD_default_policy net_fw2013 in
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw2013_FORWARD_default_policy net_fw2013 in
      (build netbios fw)"
 
-  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw2013_FORWARD_default_policy net_fw2013 in
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw2013_FORWARD_default_policy net_fw2013 in
     (build kerberos_adm_tcp fw)"
-  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw2013_FORWARD_default_policy net_fw2013 in
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw2013_FORWARD_default_policy net_fw2013 in
     (build kerberos_adm_udp fw)"
 end
 
@@ -154,12 +170,12 @@ begin
   value[code] "bench lower_closure FWD ipassmt net_fw2014_FORWARD_default_policy net_fw2014"
   value[code] "view lower_closure FWD ipassmt net_fw2014_FORWARD_default_policy net_fw2014"  
 
-  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw2014_FORWARD_default_policy net_fw2014 in
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw2014_FORWARD_default_policy net_fw2014 in
      (build netbios fw)"
 
-  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw2014_FORWARD_default_policy net_fw2014 in
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw2014_FORWARD_default_policy net_fw2014 in
     (build kerberos_adm_tcp fw)"
-  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt net_fw2014_FORWARD_default_policy net_fw2014 in
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw2014_FORWARD_default_policy net_fw2014 in
     (build kerberos_adm_udp fw)"
 end
 
