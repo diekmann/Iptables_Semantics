@@ -125,8 +125,7 @@ section{*TCP flags*}
     "ipt_tcp_flags_equal (TCP_Flags mask1 c1) (TCP_Flags mask2 c2) = (
           if c1 \<subseteq> mask1 \<and> c2 \<subseteq> mask2
           then c1 = c2 \<and> mask1 = mask2
-          else if (\<not> c1 \<subseteq> mask1) \<and> (\<not> c2 \<subseteq> mask2) then True
-          else False )"
+          else  (\<not> c1 \<subseteq> mask1) \<and> (\<not> c2 \<subseteq> mask2))"
   context
   begin
     private lemma funny_set_falg_mask_helper: "c2 \<subseteq> mask2 \<Longrightarrow> (c1 = c2 \<and> mask1 = mask2) = (\<forall>pkt. (pkt \<inter> mask1 = c1) = (pkt \<inter> mask2 = c2))"
@@ -181,9 +180,6 @@ section{*TCP flags*}
       apply(cases f1, cases f2, simp)
       apply(rename_tac mask1 c1 mask2 c2)
       apply(intro conjI impI)
-          apply fast
-         using funny_set_falg_mask_helper apply metis
-        apply blast
        using funny_set_falg_mask_helper apply metis
       apply blast
      done
