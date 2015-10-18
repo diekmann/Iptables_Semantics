@@ -2,22 +2,24 @@
 
 module
   Network.IPTables.Generated(Num, Nat(..), Word, Len, Iface(..), Bit0, Num1,
-                              Match_expr(..), Action(..), Rule(..), Ctstate(..),
-                              Ipt_ipv4range(..), Primitive_protocol(..),
-                              Protocol(..), Set, Common_primitive(..), Nibble,
-                              Wordinterval, Negation_type(..), Simple_match_ext,
+                              Tcp_flag, Match_expr(..), Action(..), Rule(..),
+                              Ctstate(..), Ipt_ipv4range(..), Set,
+                              Ipt_tcp_flags, Nibble, Primitive_protocol(..),
+                              Protocol(..), Common_primitive(..), Wordinterval,
+                              Negation_type(..), Simple_match_ext,
                               Simple_action(..), Simple_rule, alist_and, mk_Set,
                               dotteddecimal_toString, ipv4addr_toString,
-                              ipassmt_sanity_defined, debug_ipassmt, to_ipassmt,
-                              map_of_ipassmt, word_to_nat, word_less_eq,
+                              ipassmt_sanity_defined, debug_ipassmt,
+                              map_of_ipassmt, to_ipassmt, optimize_matches,
+                              upper_closure, word_to_nat, word_less_eq,
                               no_spoofing_iface, rewrite_Goto, map_of_string,
-                              nat_to_16word, optimize_matches, upper_closure,
-                              compress_parsed_extra, integer_to_16word,
-                              sanity_wf_ruleset, unfold_ruleset_INPUT,
-                              unfold_ruleset_OUTPUT, unfold_ruleset_FORWARD,
-                              common_primitive_toString, to_simple_firewall,
-                              ipv4_cidr_toString, simple_rule_toString,
-                              action_toString, example_TUM_i8_spoofing_ipassmt,
+                              nat_to_16word, compress_parsed_extra,
+                              integer_to_16word, sanity_wf_ruleset,
+                              unfold_ruleset_INPUT, unfold_ruleset_OUTPUT,
+                              unfold_ruleset_FORWARD, common_primitive_toString,
+                              to_simple_firewall, ipv4_cidr_toString,
+                              simple_rule_toString, action_toString,
+                              example_TUM_i8_spoofing_ipassmt,
                               ctstate_assume_new, abstract_for_simple_firewall,
                               to_simple_firewall_without_interfaces,
                               common_primitive_match_expr_toString)
@@ -362,6 +364,77 @@ instance Len0 Num1 where {
 instance Len Num1 where {
 };
 
+data Tcp_flag = TCP_SYN | TCP_ACK | TCP_FIN | TCP_RST | TCP_URG | TCP_PSH;
+
+enum_all_tcp_flag :: (Tcp_flag -> Bool) -> Bool;
+enum_all_tcp_flag p =
+  p TCP_SYN && p TCP_ACK && p TCP_FIN && p TCP_RST && p TCP_URG && p TCP_PSH;
+
+enum_ex_tcp_flag :: (Tcp_flag -> Bool) -> Bool;
+enum_ex_tcp_flag p =
+  p TCP_SYN ||
+    (p TCP_ACK || (p TCP_FIN || (p TCP_RST || (p TCP_URG || p TCP_PSH))));
+
+enum_tcp_flag :: [Tcp_flag];
+enum_tcp_flag = [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST, TCP_URG, TCP_PSH];
+
+class (Finite a) => Enum a where {
+  enum :: [a];
+  enum_all :: (a -> Bool) -> Bool;
+  enum_ex :: (a -> Bool) -> Bool;
+};
+
+instance Finite Tcp_flag where {
+};
+
+instance Enum Tcp_flag where {
+  enum = enum_tcp_flag;
+  enum_all = enum_all_tcp_flag;
+  enum_ex = enum_ex_tcp_flag;
+};
+
+equal_tcp_flag :: Tcp_flag -> Tcp_flag -> Bool;
+equal_tcp_flag TCP_URG TCP_PSH = False;
+equal_tcp_flag TCP_PSH TCP_URG = False;
+equal_tcp_flag TCP_RST TCP_PSH = False;
+equal_tcp_flag TCP_PSH TCP_RST = False;
+equal_tcp_flag TCP_RST TCP_URG = False;
+equal_tcp_flag TCP_URG TCP_RST = False;
+equal_tcp_flag TCP_FIN TCP_PSH = False;
+equal_tcp_flag TCP_PSH TCP_FIN = False;
+equal_tcp_flag TCP_FIN TCP_URG = False;
+equal_tcp_flag TCP_URG TCP_FIN = False;
+equal_tcp_flag TCP_FIN TCP_RST = False;
+equal_tcp_flag TCP_RST TCP_FIN = False;
+equal_tcp_flag TCP_ACK TCP_PSH = False;
+equal_tcp_flag TCP_PSH TCP_ACK = False;
+equal_tcp_flag TCP_ACK TCP_URG = False;
+equal_tcp_flag TCP_URG TCP_ACK = False;
+equal_tcp_flag TCP_ACK TCP_RST = False;
+equal_tcp_flag TCP_RST TCP_ACK = False;
+equal_tcp_flag TCP_ACK TCP_FIN = False;
+equal_tcp_flag TCP_FIN TCP_ACK = False;
+equal_tcp_flag TCP_SYN TCP_PSH = False;
+equal_tcp_flag TCP_PSH TCP_SYN = False;
+equal_tcp_flag TCP_SYN TCP_URG = False;
+equal_tcp_flag TCP_URG TCP_SYN = False;
+equal_tcp_flag TCP_SYN TCP_RST = False;
+equal_tcp_flag TCP_RST TCP_SYN = False;
+equal_tcp_flag TCP_SYN TCP_FIN = False;
+equal_tcp_flag TCP_FIN TCP_SYN = False;
+equal_tcp_flag TCP_SYN TCP_ACK = False;
+equal_tcp_flag TCP_ACK TCP_SYN = False;
+equal_tcp_flag TCP_PSH TCP_PSH = True;
+equal_tcp_flag TCP_URG TCP_URG = True;
+equal_tcp_flag TCP_RST TCP_RST = True;
+equal_tcp_flag TCP_FIN TCP_FIN = True;
+equal_tcp_flag TCP_ACK TCP_ACK = True;
+equal_tcp_flag TCP_SYN TCP_SYN = True;
+
+instance Eq Tcp_flag where {
+  a == b = equal_tcp_flag a b;
+};
+
 data Match_expr a = Match a | MatchNot (Match_expr a)
   | MatchAnd (Match_expr a) (Match_expr a) | MatchAny;
 
@@ -480,21 +553,52 @@ instance (Eq a) => Eq (Rule a) where {
   a == b = equal_rule a b;
 };
 
-data Ctstate = CT_New | CT_Established | CT_Related | CT_Untracked;
+data Ctstate = CT_New | CT_Established | CT_Related | CT_Untracked | CT_Invalid;
+
+enum_all_ctstate :: (Ctstate -> Bool) -> Bool;
+enum_all_ctstate p =
+  p CT_New &&
+    p CT_Established && p CT_Related && p CT_Untracked && p CT_Invalid;
+
+enum_ex_ctstate :: (Ctstate -> Bool) -> Bool;
+enum_ex_ctstate p =
+  p CT_New ||
+    (p CT_Established || (p CT_Related || (p CT_Untracked || p CT_Invalid)));
+
+enum_ctstate :: [Ctstate];
+enum_ctstate = [CT_New, CT_Established, CT_Related, CT_Untracked, CT_Invalid];
+
+instance Finite Ctstate where {
+};
+
+instance Enum Ctstate where {
+  enum = enum_ctstate;
+  enum_all = enum_all_ctstate;
+  enum_ex = enum_ex_ctstate;
+};
 
 equal_ctstate :: Ctstate -> Ctstate -> Bool;
+equal_ctstate CT_Untracked CT_Invalid = False;
+equal_ctstate CT_Invalid CT_Untracked = False;
+equal_ctstate CT_Related CT_Invalid = False;
+equal_ctstate CT_Invalid CT_Related = False;
 equal_ctstate CT_Related CT_Untracked = False;
 equal_ctstate CT_Untracked CT_Related = False;
+equal_ctstate CT_Established CT_Invalid = False;
+equal_ctstate CT_Invalid CT_Established = False;
 equal_ctstate CT_Established CT_Untracked = False;
 equal_ctstate CT_Untracked CT_Established = False;
 equal_ctstate CT_Established CT_Related = False;
 equal_ctstate CT_Related CT_Established = False;
+equal_ctstate CT_New CT_Invalid = False;
+equal_ctstate CT_Invalid CT_New = False;
 equal_ctstate CT_New CT_Untracked = False;
 equal_ctstate CT_Untracked CT_New = False;
 equal_ctstate CT_New CT_Related = False;
 equal_ctstate CT_Related CT_New = False;
 equal_ctstate CT_New CT_Established = False;
 equal_ctstate CT_Established CT_New = False;
+equal_ctstate CT_Invalid CT_Invalid = True;
 equal_ctstate CT_Untracked CT_Untracked = True;
 equal_ctstate CT_Related CT_Related = True;
 equal_ctstate CT_Established CT_Established = True;
@@ -521,11 +625,41 @@ equal_ipt_ipv4range (Ip4AddrNetmask x21 x22) (Ip4AddrNetmask y21 y22) =
   x21 == y21 && equal_nat x22 y22;
 equal_ipt_ipv4range (Ip4Addr x1) (Ip4Addr y1) = x1 == y1;
 
+data Set a = Set [a] | Coset [a];
+
+data Ipt_tcp_flags = TCP_Flags (Set Tcp_flag) (Set Tcp_flag);
+
+data Nibble = Nibble0 | Nibble1 | Nibble2 | Nibble3 | Nibble4 | Nibble5
+  | Nibble6 | Nibble7 | Nibble8 | Nibble9 | NibbleA | NibbleB | NibbleC
+  | NibbleD | NibbleE | NibbleF;
+
+membera :: forall a. (Eq a) => [a] -> a -> Bool;
+membera [] y = False;
+membera (x : xs) y = x == y || membera xs y;
+
+member :: forall a. (Eq a) => a -> Set a -> Bool;
+member x (Coset xs) = not (membera xs x);
+member x (Set xs) = membera xs x;
+
+less_eq_set :: forall a. (Eq a) => Set a -> Set a -> Bool;
+less_eq_set (Coset xs) (Set ys) =
+  (if null xs && null ys then False
+    else (error :: forall a. String -> (() -> a) -> a)
+           "subset_eq (List.coset _) (List.set _) requires type class instance card_UNIV"
+           (\ _ -> less_eq_set (Coset xs) (Set ys)));
+less_eq_set a (Coset ys) = all (\ y -> not (member y a)) ys;
+less_eq_set (Set xs) b = all (\ x -> member x b) xs;
+
+equal_set :: forall a. (Eq a) => Set a -> Set a -> Bool;
+equal_set a b = less_eq_set a b && less_eq_set b a;
+
+equal_ipt_tcp_flags :: Ipt_tcp_flags -> Ipt_tcp_flags -> Bool;
+equal_ipt_tcp_flags (TCP_Flags x1 x2) (TCP_Flags y1 y2) =
+  equal_set x1 y1 && equal_set x2 y2;
+
 data Primitive_protocol = TCP | UDP | ICMP | OtherProtocol Nat;
 
 data Protocol = ProtoAny | Proto Primitive_protocol;
-
-data Set a = Set [a] | Coset [a];
 
 data Common_primitive = Src Ipt_ipv4range | Dst Ipt_ipv4range | IIface Iface
   | OIface Iface | Prot Protocol
@@ -535,7 +669,7 @@ data Common_primitive = Src Ipt_ipv4range | Dst Ipt_ipv4range | IIface Iface
   | Dst_Ports
       [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
          Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))]
-  | CT_State (Set Ctstate) | Extra [Prelude.Char];
+  | L4_Flags Ipt_tcp_flags | CT_State (Set Ctstate) | Extra [Prelude.Char];
 
 equal_primitive_protocol :: Primitive_protocol -> Primitive_protocol -> Bool;
 equal_primitive_protocol ICMP (OtherProtocol x4) = False;
@@ -562,65 +696,55 @@ equal_protocol (Proto x2) ProtoAny = False;
 equal_protocol (Proto x2) (Proto y2) = equal_primitive_protocol x2 y2;
 equal_protocol ProtoAny ProtoAny = True;
 
-data Nibble = Nibble0 | Nibble1 | Nibble2 | Nibble3 | Nibble4 | Nibble5
-  | Nibble6 | Nibble7 | Nibble8 | Nibble9 | NibbleA | NibbleB | NibbleC
-  | NibbleD | NibbleE | NibbleF;
-
-membera :: forall a. (Eq a) => [a] -> a -> Bool;
-membera [] y = False;
-membera (x : xs) y = x == y || membera xs y;
-
-member :: forall a. (Eq a) => a -> Set a -> Bool;
-member x (Coset xs) = not (membera xs x);
-member x (Set xs) = membera xs x;
-
-less_eq_set :: forall a. (Eq a) => Set a -> Set a -> Bool;
-less_eq_set (Coset xs) (Set ys) =
-  (if null xs && null ys then False
-    else (error :: forall a. String -> (() -> a) -> a)
-           "subset_eq (List.coset _) (List.set _) requires type class instance card_UNIV"
-           (\ _ -> less_eq_set (Coset xs) (Set ys)));
-less_eq_set a (Coset ys) = all (\ y -> not (member y a)) ys;
-less_eq_set (Set xs) b = all (\ x -> member x b) xs;
-
-equal_set :: forall a. (Eq a) => Set a -> Set a -> Bool;
-equal_set a b = less_eq_set a b && less_eq_set b a;
-
 equal_common_primitive :: Common_primitive -> Common_primitive -> Bool;
-equal_common_primitive (CT_State x8) (Extra x9) = False;
-equal_common_primitive (Extra x9) (CT_State x8) = False;
-equal_common_primitive (Dst_Ports x7) (Extra x9) = False;
-equal_common_primitive (Extra x9) (Dst_Ports x7) = False;
-equal_common_primitive (Dst_Ports x7) (CT_State x8) = False;
-equal_common_primitive (CT_State x8) (Dst_Ports x7) = False;
-equal_common_primitive (Src_Ports x6) (Extra x9) = False;
-equal_common_primitive (Extra x9) (Src_Ports x6) = False;
-equal_common_primitive (Src_Ports x6) (CT_State x8) = False;
-equal_common_primitive (CT_State x8) (Src_Ports x6) = False;
+equal_common_primitive (CT_State x9) (Extra x10) = False;
+equal_common_primitive (Extra x10) (CT_State x9) = False;
+equal_common_primitive (L4_Flags x8) (Extra x10) = False;
+equal_common_primitive (Extra x10) (L4_Flags x8) = False;
+equal_common_primitive (L4_Flags x8) (CT_State x9) = False;
+equal_common_primitive (CT_State x9) (L4_Flags x8) = False;
+equal_common_primitive (Dst_Ports x7) (Extra x10) = False;
+equal_common_primitive (Extra x10) (Dst_Ports x7) = False;
+equal_common_primitive (Dst_Ports x7) (CT_State x9) = False;
+equal_common_primitive (CT_State x9) (Dst_Ports x7) = False;
+equal_common_primitive (Dst_Ports x7) (L4_Flags x8) = False;
+equal_common_primitive (L4_Flags x8) (Dst_Ports x7) = False;
+equal_common_primitive (Src_Ports x6) (Extra x10) = False;
+equal_common_primitive (Extra x10) (Src_Ports x6) = False;
+equal_common_primitive (Src_Ports x6) (CT_State x9) = False;
+equal_common_primitive (CT_State x9) (Src_Ports x6) = False;
+equal_common_primitive (Src_Ports x6) (L4_Flags x8) = False;
+equal_common_primitive (L4_Flags x8) (Src_Ports x6) = False;
 equal_common_primitive (Src_Ports x6) (Dst_Ports x7) = False;
 equal_common_primitive (Dst_Ports x7) (Src_Ports x6) = False;
-equal_common_primitive (Prot x5) (Extra x9) = False;
-equal_common_primitive (Extra x9) (Prot x5) = False;
-equal_common_primitive (Prot x5) (CT_State x8) = False;
-equal_common_primitive (CT_State x8) (Prot x5) = False;
+equal_common_primitive (Prot x5) (Extra x10) = False;
+equal_common_primitive (Extra x10) (Prot x5) = False;
+equal_common_primitive (Prot x5) (CT_State x9) = False;
+equal_common_primitive (CT_State x9) (Prot x5) = False;
+equal_common_primitive (Prot x5) (L4_Flags x8) = False;
+equal_common_primitive (L4_Flags x8) (Prot x5) = False;
 equal_common_primitive (Prot x5) (Dst_Ports x7) = False;
 equal_common_primitive (Dst_Ports x7) (Prot x5) = False;
 equal_common_primitive (Prot x5) (Src_Ports x6) = False;
 equal_common_primitive (Src_Ports x6) (Prot x5) = False;
-equal_common_primitive (OIface x4) (Extra x9) = False;
-equal_common_primitive (Extra x9) (OIface x4) = False;
-equal_common_primitive (OIface x4) (CT_State x8) = False;
-equal_common_primitive (CT_State x8) (OIface x4) = False;
+equal_common_primitive (OIface x4) (Extra x10) = False;
+equal_common_primitive (Extra x10) (OIface x4) = False;
+equal_common_primitive (OIface x4) (CT_State x9) = False;
+equal_common_primitive (CT_State x9) (OIface x4) = False;
+equal_common_primitive (OIface x4) (L4_Flags x8) = False;
+equal_common_primitive (L4_Flags x8) (OIface x4) = False;
 equal_common_primitive (OIface x4) (Dst_Ports x7) = False;
 equal_common_primitive (Dst_Ports x7) (OIface x4) = False;
 equal_common_primitive (OIface x4) (Src_Ports x6) = False;
 equal_common_primitive (Src_Ports x6) (OIface x4) = False;
 equal_common_primitive (OIface x4) (Prot x5) = False;
 equal_common_primitive (Prot x5) (OIface x4) = False;
-equal_common_primitive (IIface x3) (Extra x9) = False;
-equal_common_primitive (Extra x9) (IIface x3) = False;
-equal_common_primitive (IIface x3) (CT_State x8) = False;
-equal_common_primitive (CT_State x8) (IIface x3) = False;
+equal_common_primitive (IIface x3) (Extra x10) = False;
+equal_common_primitive (Extra x10) (IIface x3) = False;
+equal_common_primitive (IIface x3) (CT_State x9) = False;
+equal_common_primitive (CT_State x9) (IIface x3) = False;
+equal_common_primitive (IIface x3) (L4_Flags x8) = False;
+equal_common_primitive (L4_Flags x8) (IIface x3) = False;
 equal_common_primitive (IIface x3) (Dst_Ports x7) = False;
 equal_common_primitive (Dst_Ports x7) (IIface x3) = False;
 equal_common_primitive (IIface x3) (Src_Ports x6) = False;
@@ -629,10 +753,12 @@ equal_common_primitive (IIface x3) (Prot x5) = False;
 equal_common_primitive (Prot x5) (IIface x3) = False;
 equal_common_primitive (IIface x3) (OIface x4) = False;
 equal_common_primitive (OIface x4) (IIface x3) = False;
-equal_common_primitive (Dst x2) (Extra x9) = False;
-equal_common_primitive (Extra x9) (Dst x2) = False;
-equal_common_primitive (Dst x2) (CT_State x8) = False;
-equal_common_primitive (CT_State x8) (Dst x2) = False;
+equal_common_primitive (Dst x2) (Extra x10) = False;
+equal_common_primitive (Extra x10) (Dst x2) = False;
+equal_common_primitive (Dst x2) (CT_State x9) = False;
+equal_common_primitive (CT_State x9) (Dst x2) = False;
+equal_common_primitive (Dst x2) (L4_Flags x8) = False;
+equal_common_primitive (L4_Flags x8) (Dst x2) = False;
 equal_common_primitive (Dst x2) (Dst_Ports x7) = False;
 equal_common_primitive (Dst_Ports x7) (Dst x2) = False;
 equal_common_primitive (Dst x2) (Src_Ports x6) = False;
@@ -643,10 +769,12 @@ equal_common_primitive (Dst x2) (OIface x4) = False;
 equal_common_primitive (OIface x4) (Dst x2) = False;
 equal_common_primitive (Dst x2) (IIface x3) = False;
 equal_common_primitive (IIface x3) (Dst x2) = False;
-equal_common_primitive (Src x1) (Extra x9) = False;
-equal_common_primitive (Extra x9) (Src x1) = False;
-equal_common_primitive (Src x1) (CT_State x8) = False;
-equal_common_primitive (CT_State x8) (Src x1) = False;
+equal_common_primitive (Src x1) (Extra x10) = False;
+equal_common_primitive (Extra x10) (Src x1) = False;
+equal_common_primitive (Src x1) (CT_State x9) = False;
+equal_common_primitive (CT_State x9) (Src x1) = False;
+equal_common_primitive (Src x1) (L4_Flags x8) = False;
+equal_common_primitive (L4_Flags x8) (Src x1) = False;
 equal_common_primitive (Src x1) (Dst_Ports x7) = False;
 equal_common_primitive (Dst_Ports x7) (Src x1) = False;
 equal_common_primitive (Src x1) (Src_Ports x6) = False;
@@ -659,8 +787,9 @@ equal_common_primitive (Src x1) (IIface x3) = False;
 equal_common_primitive (IIface x3) (Src x1) = False;
 equal_common_primitive (Src x1) (Dst x2) = False;
 equal_common_primitive (Dst x2) (Src x1) = False;
-equal_common_primitive (Extra x9) (Extra y9) = x9 == y9;
-equal_common_primitive (CT_State x8) (CT_State y8) = equal_set x8 y8;
+equal_common_primitive (Extra x10) (Extra y10) = x10 == y10;
+equal_common_primitive (CT_State x9) (CT_State y9) = equal_set x9 y9;
+equal_common_primitive (L4_Flags x8) (L4_Flags y8) = equal_ipt_tcp_flags x8 y8;
 equal_common_primitive (Dst_Ports x7) (Dst_Ports y7) = x7 == y7;
 equal_common_primitive (Src_Ports x6) (Src_Ports y6) = x6 == y6;
 equal_common_primitive (Prot x5) (Prot y5) = equal_protocol x5 y5;
@@ -677,6 +806,9 @@ data Wordinterval a = WordInterval (Word a) (Word a)
   | RangeUnion (Wordinterval a) (Wordinterval a);
 
 data Negation_type a = Pos a | Neg a;
+
+data Prefix_match =
+  PrefixMatch (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))) Nat;
 
 data Simple_match_ext a =
   Simple_match_ext Iface Iface
@@ -758,6 +890,10 @@ mask n = minus_word (shiftl_word one_word n) one_word;
 unat :: forall a. (Len0 a) => Word a -> Nat;
 unat w = nat (uint w);
 
+foldr :: forall a b. (a -> b -> b) -> [a] -> b -> b;
+foldr f [] = id;
+foldr f (x : xs) = f x . foldr f xs;
+
 map_of :: forall a b. (Eq a) => [(a, b)] -> a -> Maybe b;
 map_of ((l, v) : ps) k = (if l == k then Just v else map_of ps k);
 map_of [] k = Nothing;
@@ -785,6 +921,9 @@ product (x : xs) ys = map (\ a -> (x, a)) ys ++ product xs ys;
 remdups :: forall a. (Eq a) => [a] -> [a];
 remdups [] = [];
 remdups (x : xs) = (if membera xs x then remdups xs else x : remdups xs);
+
+is_empty :: forall a. Set a -> Bool;
+is_empty (Set xs) = null xs;
 
 div_integer :: Integer -> Integer -> Integer;
 div_integer k l = fst (divmod_integer k l);
@@ -1029,6 +1168,7 @@ is_pos_Extra a =
     Pos (Prot _) -> False;
     Pos (Src_Ports _) -> False;
     Pos (Dst_Ports _) -> False;
+    Pos (L4_Flags _) -> False;
     Pos (CT_State _) -> False;
     Pos (Extra _) -> True;
     Neg _ -> False;
@@ -1139,7 +1279,9 @@ ipv4addr_toString ip = dotteddecimal_toString (dotdecimal_of_ipv4addr ip);
 ipv4addr_wordinterval_toString ::
   Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prelude.Char];
 ipv4addr_wordinterval_toString (WordInterval s e) =
-  ['{'] ++ ipv4addr_toString s ++ ['.', '.'] ++ ipv4addr_toString e ++ ['}'];
+  (if equal_word s e then ipv4addr_toString s
+    else ['{'] ++
+           ipv4addr_toString s ++ ['.', '.'] ++ ipv4addr_toString e ++ ['}']);
 ipv4addr_wordinterval_toString (RangeUnion a b) =
   ipv4addr_wordinterval_toString a ++
     [' ', 'u', ' '] ++ ipv4addr_wordinterval_toString b;
@@ -1208,6 +1350,32 @@ wordinterval_empty (WordInterval s e) = less_word e s;
 wordinterval_empty (RangeUnion r1 r2) =
   wordinterval_empty r1 && wordinterval_empty r2;
 
+wordinterval_subset ::
+  forall a. (Len a) => Wordinterval a -> Wordinterval a -> Bool;
+wordinterval_subset r1 r2 = wordinterval_empty (wordinterval_setminus r1 r2);
+
+wordinterval_eq ::
+  forall a. (Len a) => Wordinterval a -> Wordinterval a -> Bool;
+wordinterval_eq r1 r2 = wordinterval_subset r1 r2 && wordinterval_subset r2 r1;
+
+ipassmt_ignore_wildcard_list ::
+  [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
+    [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])];
+ipassmt_ignore_wildcard_list ipassmt =
+  filter
+    (\ (_, ips) ->
+      not (wordinterval_eq (l2br (map ipv4cidr_to_interval ips))
+            wordinterval_UNIV))
+    ipassmt;
+
+wordinterval_union ::
+  forall a. (Len a) => Wordinterval a -> Wordinterval a -> Wordinterval a;
+wordinterval_union r1 r2 = RangeUnion r1 r2;
+
+wordinterval_Union :: forall a. (Len a) => [Wordinterval a] -> Wordinterval a;
+wordinterval_Union ws =
+  wordinterval_compress (foldr wordinterval_union ws empty_WordInterval);
+
 oiface_sel :: Common_primitive -> Iface;
 oiface_sel (OIface x4) = x4;
 
@@ -1222,8 +1390,9 @@ is_Oiface (OIface x4) = True;
 is_Oiface (Prot x5) = False;
 is_Oiface (Src_Ports x6) = False;
 is_Oiface (Dst_Ports x7) = False;
-is_Oiface (CT_State x8) = False;
-is_Oiface (Extra x9) = False;
+is_Oiface (L4_Flags x8) = False;
+is_Oiface (CT_State x9) = False;
+is_Oiface (Extra x10) = False;
 
 is_Iiface :: Common_primitive -> Bool;
 is_Iiface (Src x1) = False;
@@ -1233,8 +1402,9 @@ is_Iiface (OIface x4) = False;
 is_Iiface (Prot x5) = False;
 is_Iiface (Src_Ports x6) = False;
 is_Iiface (Dst_Ports x7) = False;
-is_Iiface (CT_State x8) = False;
-is_Iiface (Extra x9) = False;
+is_Iiface (L4_Flags x8) = False;
+is_Iiface (CT_State x9) = False;
+is_Iiface (Extra x10) = False;
 
 primitive_extractor ::
   forall a b.
@@ -1276,29 +1446,15 @@ ipassmt_sanity_defined ::
 ipassmt_sanity_defined rs ipassmt =
   all (\ iface -> not (is_none (ipassmt iface))) (collect_ifaces rs);
 
-wordinterval_subset ::
-  forall a. (Len a) => Wordinterval a -> Wordinterval a -> Bool;
-wordinterval_subset r1 r2 = wordinterval_empty (wordinterval_setminus r1 r2);
-
-wordinterval_eq ::
-  forall a. (Len a) => Wordinterval a -> Wordinterval a -> Bool;
-wordinterval_eq r1 r2 = wordinterval_subset r1 r2 && wordinterval_subset r2 r1;
-
-wordinterval_union ::
-  forall a. (Len a) => Wordinterval a -> Wordinterval a -> Wordinterval a;
-wordinterval_union r1 r2 = RangeUnion r1 r2;
-
-wordinterval_Union :: forall a. (Len a) => [Wordinterval a] -> Wordinterval a;
-wordinterval_Union [] = empty_WordInterval;
-wordinterval_Union (w : ws) = wordinterval_union w (wordinterval_Union ws);
+list_separated_toString ::
+  forall a. [Prelude.Char] -> (a -> [Prelude.Char]) -> [a] -> [Prelude.Char];
+list_separated_toString sep toStr ls =
+  concat
+    (splice (map toStr ls) (replicate (minus_nat (size_list ls) one_nat) sep));
 
 list_toString :: forall a. (a -> [Prelude.Char]) -> [a] -> [Prelude.Char];
 list_toString toStr ls =
-  ['['] ++
-    concat
-      (splice (map toStr ls)
-        (replicate (minus_nat (size_list ls) one_nat) [',', ' '])) ++
-      [']'];
+  ['['] ++ list_separated_toString [',', ' '] toStr ls ++ [']'];
 
 iface_is_wildcard :: Iface -> Bool;
 iface_is_wildcard ifce = iface_name_is_wildcard (iface_sel ifce);
@@ -1367,9 +1523,7 @@ debug_ipassmt ipassmt rs =
            'u', 'd', 'i', 'n', 'g', ' ', 'U', 'N', 'I', 'V', ' ', 'i', 'n', 't',
            'e', 'r', 'f', 'a', 'c', 'e', 's', ':', ' '] ++
            let {
-             ipassmta =
-               filter (\ (_, ips) -> not (ips == [(zero_word, zero_nat)]))
-                 ipassmt;
+             ipassmta = ipassmt_ignore_wildcard_list ipassmt;
              ifacesa = map fst ipassmta;
            } in (if let {
                       is = image fst (Set ipassmta);
@@ -1421,9 +1575,7 @@ debug_ipassmt ipassmt rs =
            'u', 'd', 'i', 'n', 'g', ' ', 'U', 'N', 'I', 'V', ' ', 'i', 'n', 't',
            'e', 'r', 'f', 'a', 'c', 'e', 's', ':', ' '] ++
            let {
-             ipassmta =
-               filter (\ (_, ips) -> not (ips == [(zero_word, zero_nat)]))
-                 ipassmt;
+             ipassmta = ipassmt_ignore_wildcard_list ipassmt;
            } in (if distinct (map fst ipassmta) &&
                       let {
                         range = map snd ipassmta;
@@ -1440,6 +1592,15 @@ debug_ipassmt ipassmt rs =
                              (wordinterval_Union
                                (map (l2br . map ipv4cidr_to_interval)
                                  (map snd ipassmta)))))];
+
+map_of_ipassmt ::
+  [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
+    Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
+map_of_ipassmt ipassmt =
+  (if distinct (map fst ipassmt) &&
+        ball (image fst (Set ipassmt))
+          (\ iface -> not (iface_is_wildcard iface))
+    then map_of ipassmt else error "undefined");
 
 numeral :: forall a. (Numeral a) => Num -> a;
 numeral (Bit1 n) = let {
@@ -1485,6 +1646,16 @@ ipt_ipv4range_to_interval (Ip4AddrNetmask pre len) =
 ipt_ipv4range_to_interval (Ip4AddrRange ip1 ip2) =
   (ipv4addr_of_dotdecimal ip1, ipv4addr_of_dotdecimal ip2);
 
+pfxm_prefix :: Prefix_match -> Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+pfxm_prefix (PrefixMatch x1 x2) = x1;
+
+pfxm_length :: Prefix_match -> Nat;
+pfxm_length (PrefixMatch x1 x2) = x2;
+
+prefix_match_to_CIDR ::
+  Prefix_match -> (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat);
+prefix_match_to_CIDR pfx = (pfxm_prefix pfx, pfxm_length pfx);
+
 ipv4range_lowest_element ::
   Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
     Maybe (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))));
@@ -1498,16 +1669,10 @@ ipv4range_lowest_element (RangeUnion a b) =
     (Just aa, Just ba) -> Just (if less_word aa ba then aa else ba);
   });
 
-pfxm_prefix :: forall a b. (a, b) -> a;
-pfxm_prefix p = fst p;
-
-pfxm_length :: forall a b. (a, b) -> b;
-pfxm_length p = snd p;
-
-pfxm_mask :: forall a b. (Len b) => (a, Nat) -> Word b;
+pfxm_mask :: forall a. (Len a) => Prefix_match -> Word a;
 pfxm_mask x = mask (minus_nat (nat_of_integer (32 :: Integer)) (pfxm_length x));
 
-valid_prefix :: forall a. (Len a) => (Word a, Nat) -> Bool;
+valid_prefix :: Prefix_match -> Bool;
 valid_prefix pf =
   equal_word (bitAND_word (pfxm_mask pf) (pfxm_prefix pf)) zero_word;
 
@@ -1523,15 +1688,13 @@ ipv4range_subset ::
 ipv4range_subset r1 r2 = wordinterval_subset r1 r2;
 
 prefix_to_range ::
-  (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat) ->
-    Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+  Prefix_match -> Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
 prefix_to_range pfx =
   WordInterval (pfxm_prefix pfx) (bitOR_word (pfxm_prefix pfx) (pfxm_mask pfx));
 
 ipv4range_split1 ::
   Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
-    (Maybe (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat),
-      Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))));
+    (Maybe Prefix_match, Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))));
 ipv4range_split1 r =
   let {
     a = ipv4range_lowest_element r;
@@ -1539,7 +1702,7 @@ ipv4range_split1 r =
          Nothing -> (Nothing, r);
          Just aa ->
            let {
-             cs = map (\ b -> (aa, b)) pfxes;
+             cs = map (PrefixMatch aa) pfxes;
              cfs = filter
                      (\ s ->
                        valid_prefix s && ipv4range_subset (prefix_to_range s) r)
@@ -1554,16 +1717,20 @@ ipv4range_split1 r =
 ipv4range_empty :: Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> Bool;
 ipv4range_empty rg = wordinterval_empty rg;
 
-ipv4range_split ::
-  Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
-    [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
-ipv4range_split rs =
+ipv4range_split_internal ::
+  Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prefix_match];
+ipv4range_split_internal rs =
   (if not (ipv4range_empty rs)
     then (case ipv4range_split1 rs of {
            (Nothing, _) -> [];
-           (Just s, u) -> s : ipv4range_split u;
+           (Just s, u) -> s : ipv4range_split_internal u;
          })
     else []);
+
+ipv4range_split ::
+  Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
+    [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
+ipv4range_split rs = map prefix_match_to_CIDR (ipv4range_split_internal rs);
 
 ipv4range_range ::
   (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))),
@@ -1603,307 +1770,6 @@ to_ipassmt ::
 to_ipassmt assmt =
   map (\ (ifce, ips) -> (ifce, ipassmt_iprange_translate ips)) assmt;
 
-map_of_ipassmt ::
-  [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
-    Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
-map_of_ipassmt ipassmt =
-  (if distinct (map fst ipassmt) &&
-        ball (image fst (Set ipassmt))
-          (\ iface -> not (iface_is_wildcard iface))
-    then map_of ipassmt else error "undefined");
-
-word_to_nat :: forall a. (Len a) => Word a -> Nat;
-word_to_nat = unat;
-
-negPos_map :: forall a b. (a -> b) -> [Negation_type a] -> [Negation_type b];
-negPos_map uu [] = [];
-negPos_map f (Pos a : asa) = Pos (f a) : negPos_map f asa;
-negPos_map f (Neg a : asa) = Neg (f a) : negPos_map f asa;
-
-bot_set :: forall a. Set a;
-bot_set = Set [];
-
-word_less_eq :: forall a. (Len a) => Word a -> Word a -> Bool;
-word_less_eq a b = less_eq_word a b;
-
-matcheq_matachAny :: forall a. Match_expr a -> Bool;
-matcheq_matachAny MatchAny = True;
-matcheq_matachAny (MatchNot m) = not (matcheq_matachAny m);
-matcheq_matachAny (MatchAnd m1 m2) =
-  matcheq_matachAny m1 && matcheq_matachAny m2;
-matcheq_matachAny (Match uu) = error "undefined";
-
-src_sel :: Common_primitive -> Ipt_ipv4range;
-src_sel (Src x1) = x1;
-
-l2br_negation_type_intersect ::
-  forall a. (Len a) => [Negation_type (Word a, Word a)] -> Wordinterval a;
-l2br_negation_type_intersect [] = wordinterval_UNIV;
-l2br_negation_type_intersect (Pos (s, e) : ls) =
-  wordinterval_intersection (WordInterval s e)
-    (l2br_negation_type_intersect ls);
-l2br_negation_type_intersect (Neg (s, e) : ls) =
-  wordinterval_intersection (wordinterval_invert (WordInterval s e))
-    (l2br_negation_type_intersect ls);
-
-is_Src :: Common_primitive -> Bool;
-is_Src (Src x1) = True;
-is_Src (Dst x2) = False;
-is_Src (IIface x3) = False;
-is_Src (OIface x4) = False;
-is_Src (Prot x5) = False;
-is_Src (Src_Ports x6) = False;
-is_Src (Dst_Ports x7) = False;
-is_Src (CT_State x8) = False;
-is_Src (Extra x9) = False;
-
-get_exists_matching_src_ips_executable ::
-  Iface ->
-    Match_expr Common_primitive ->
-      Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
-get_exists_matching_src_ips_executable iface m =
-  let {
-    (i_matches, _) = primitive_extractor (is_Iiface, iiface_sel) m;
-  } in (if all (\ a ->
-                 (case a of {
-                   Pos i -> match_iface i (iface_sel iface);
-                   Neg i -> not (match_iface i (iface_sel iface));
-                 }))
-             i_matches
-         then let {
-                (ip_matches, _) = primitive_extractor (is_Src, src_sel) m;
-              } in (if null ip_matches then ipv4range_UNIV
-                     else l2br_negation_type_intersect
-                            (negPos_map ipt_ipv4range_to_interval ip_matches))
-         else empty_WordInterval);
-
-is_Src_Ports :: Common_primitive -> Bool;
-is_Src_Ports (Src x1) = False;
-is_Src_Ports (Dst x2) = False;
-is_Src_Ports (IIface x3) = False;
-is_Src_Ports (OIface x4) = False;
-is_Src_Ports (Prot x5) = False;
-is_Src_Ports (Src_Ports x6) = True;
-is_Src_Ports (Dst_Ports x7) = False;
-is_Src_Ports (CT_State x8) = False;
-is_Src_Ports (Extra x9) = False;
-
-is_Dst_Ports :: Common_primitive -> Bool;
-is_Dst_Ports (Src x1) = False;
-is_Dst_Ports (Dst x2) = False;
-is_Dst_Ports (IIface x3) = False;
-is_Dst_Ports (OIface x4) = False;
-is_Dst_Ports (Prot x5) = False;
-is_Dst_Ports (Src_Ports x6) = False;
-is_Dst_Ports (Dst_Ports x7) = True;
-is_Dst_Ports (CT_State x8) = False;
-is_Dst_Ports (Extra x9) = False;
-
-is_CT_State :: Common_primitive -> Bool;
-is_CT_State (Src x1) = False;
-is_CT_State (Dst x2) = False;
-is_CT_State (IIface x3) = False;
-is_CT_State (OIface x4) = False;
-is_CT_State (Prot x5) = False;
-is_CT_State (Src_Ports x6) = False;
-is_CT_State (Dst_Ports x7) = False;
-is_CT_State (CT_State x8) = True;
-is_CT_State (Extra x9) = False;
-
-is_Extra :: Common_primitive -> Bool;
-is_Extra (Src x1) = False;
-is_Extra (Dst x2) = False;
-is_Extra (IIface x3) = False;
-is_Extra (OIface x4) = False;
-is_Extra (Prot x5) = False;
-is_Extra (Src_Ports x6) = False;
-is_Extra (Dst_Ports x7) = False;
-is_Extra (CT_State x8) = False;
-is_Extra (Extra x9) = True;
-
-is_Prot :: Common_primitive -> Bool;
-is_Prot (Src x1) = False;
-is_Prot (Dst x2) = False;
-is_Prot (IIface x3) = False;
-is_Prot (OIface x4) = False;
-is_Prot (Prot x5) = True;
-is_Prot (Src_Ports x6) = False;
-is_Prot (Dst_Ports x7) = False;
-is_Prot (CT_State x8) = False;
-is_Prot (Extra x9) = False;
-
-is_Dst :: Common_primitive -> Bool;
-is_Dst (Src x1) = False;
-is_Dst (Dst x2) = True;
-is_Dst (IIface x3) = False;
-is_Dst (OIface x4) = False;
-is_Dst (Prot x5) = False;
-is_Dst (Src_Ports x6) = False;
-is_Dst (Dst_Ports x7) = False;
-is_Dst (CT_State x8) = False;
-is_Dst (Extra x9) = False;
-
-has_disc :: forall a. (a -> Bool) -> Match_expr a -> Bool;
-has_disc uu MatchAny = False;
-has_disc disc (Match a) = disc a;
-has_disc disc (MatchNot m) = has_disc disc m;
-has_disc disc (MatchAnd m1 m2) = has_disc disc m1 || has_disc disc m2;
-
-get_all_matching_src_ips_executable ::
-  Iface ->
-    Match_expr Common_primitive ->
-      Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
-get_all_matching_src_ips_executable iface m =
-  let {
-    (i_matches, rest1) = primitive_extractor (is_Iiface, iiface_sel) m;
-  } in (if all (\ a ->
-                 (case a of {
-                   Pos i -> match_iface i (iface_sel iface);
-                   Neg i -> not (match_iface i (iface_sel iface));
-                 }))
-             i_matches
-         then let {
-                (ip_matches, rest2) =
-                  primitive_extractor (is_Src, src_sel) rest1;
-              } in (if not (has_disc is_Dst rest2) &&
-                         not (has_disc is_Oiface rest2) &&
-                           not (has_disc is_Prot rest2) &&
-                             not (has_disc is_Src_Ports rest2) &&
-                               not (has_disc is_Dst_Ports rest2) &&
-                                 not (has_disc is_CT_State rest2) &&
-                                   not (has_disc is_Extra rest2) &&
-                                     matcheq_matachAny rest2
-                     then (if null ip_matches then ipv4range_UNIV
-                            else l2br_negation_type_intersect
-                                   (negPos_map ipt_ipv4range_to_interval
-                                     ip_matches))
-                     else empty_WordInterval)
-         else empty_WordInterval);
-
-no_spoofing_algorithm_executable ::
-  Iface ->
-    (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
-      [Rule Common_primitive] ->
-        Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
-          Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> Bool;
-no_spoofing_algorithm_executable iface ipassmt [] allowed denied1 =
-  wordinterval_subset (wordinterval_setminus allowed denied1)
-    (l2br (map ipv4cidr_to_interval (the (ipassmt iface))));
-no_spoofing_algorithm_executable iface ipassmt (Rule m Accept : rs) allowed
-  denied1 =
-  no_spoofing_algorithm_executable iface ipassmt rs
-    (wordinterval_union allowed
-      (get_exists_matching_src_ips_executable iface m))
-    denied1;
-no_spoofing_algorithm_executable iface ipassmt (Rule m Drop : rs) allowed
-  denied1 =
-  no_spoofing_algorithm_executable iface ipassmt rs allowed
-    (wordinterval_union denied1
-      (wordinterval_setminus (get_all_matching_src_ips_executable iface m)
-        allowed));
-no_spoofing_algorithm_executable uu uv (Rule vb Log : va) ux uy =
-  error "undefined";
-no_spoofing_algorithm_executable uu uv (Rule vb Reject : va) ux uy =
-  error "undefined";
-no_spoofing_algorithm_executable uu uv (Rule vb (Call vd) : va) ux uy =
-  error "undefined";
-no_spoofing_algorithm_executable uu uv (Rule vb Return : va) ux uy =
-  error "undefined";
-no_spoofing_algorithm_executable uu uv (Rule vb (Goto vd) : va) ux uy =
-  error "undefined";
-no_spoofing_algorithm_executable uu uv (Rule vb Empty : va) ux uy =
-  error "undefined";
-no_spoofing_algorithm_executable uu uv (Rule vb Unknown : va) ux uy =
-  error "undefined";
-
-no_spoofing_iface ::
-  Iface ->
-    (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
-      [Rule Common_primitive] -> Bool;
-no_spoofing_iface iface ipassmt rs =
-  no_spoofing_algorithm_executable iface ipassmt rs empty_WordInterval
-    empty_WordInterval;
-
-terminal_chain :: forall a. [Rule a] -> Bool;
-terminal_chain [] = False;
-terminal_chain [Rule MatchAny Accept] = True;
-terminal_chain [Rule MatchAny Drop] = True;
-terminal_chain [Rule MatchAny Reject] = True;
-terminal_chain (Rule uu (Goto uv) : rs) = False;
-terminal_chain (Rule uw (Call ux) : rs) = False;
-terminal_chain (Rule uy Return : rs) = False;
-terminal_chain (Rule uz Unknown : rs) = False;
-terminal_chain (Rule (Match vc) Accept : rs) = terminal_chain rs;
-terminal_chain (Rule (Match vc) Drop : rs) = terminal_chain rs;
-terminal_chain (Rule (Match vc) Log : rs) = terminal_chain rs;
-terminal_chain (Rule (Match vc) Reject : rs) = terminal_chain rs;
-terminal_chain (Rule (Match vc) Empty : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchNot vc) Accept : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchNot vc) Drop : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchNot vc) Log : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchNot vc) Reject : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchNot vc) Empty : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchAnd vc vd) Accept : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchAnd vc vd) Drop : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchAnd vc vd) Log : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchAnd vc vd) Reject : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchAnd vc vd) Empty : rs) = terminal_chain rs;
-terminal_chain (Rule v Drop : va : vb) = terminal_chain (va : vb);
-terminal_chain (Rule v Log : rs) = terminal_chain rs;
-terminal_chain (Rule v Reject : va : vb) = terminal_chain (va : vb);
-terminal_chain (Rule v Empty : rs) = terminal_chain rs;
-terminal_chain (Rule vc Accept : v : vb) = terminal_chain (v : vb);
-
-rewrite_Goto_chain ::
-  forall a. ([Prelude.Char] -> Maybe [Rule a]) -> [Rule a] -> [Rule a];
-rewrite_Goto_chain uu [] = [];
-rewrite_Goto_chain gamma (Rule m (Goto chain) : rs) =
-  (if terminal_chain (the (gamma chain)) then Rule m (Call chain)
-    else error "undefined") :
-    rewrite_Goto_chain gamma rs;
-rewrite_Goto_chain gamma (Rule v Accept : rs) =
-  Rule v Accept : rewrite_Goto_chain gamma rs;
-rewrite_Goto_chain gamma (Rule v Drop : rs) =
-  Rule v Drop : rewrite_Goto_chain gamma rs;
-rewrite_Goto_chain gamma (Rule v Log : rs) =
-  Rule v Log : rewrite_Goto_chain gamma rs;
-rewrite_Goto_chain gamma (Rule v Reject : rs) =
-  Rule v Reject : rewrite_Goto_chain gamma rs;
-rewrite_Goto_chain gamma (Rule v (Call vb) : rs) =
-  Rule v (Call vb) : rewrite_Goto_chain gamma rs;
-rewrite_Goto_chain gamma (Rule v Return : rs) =
-  Rule v Return : rewrite_Goto_chain gamma rs;
-rewrite_Goto_chain gamma (Rule v Empty : rs) =
-  Rule v Empty : rewrite_Goto_chain gamma rs;
-rewrite_Goto_chain gamma (Rule v Unknown : rs) =
-  Rule v Unknown : rewrite_Goto_chain gamma rs;
-
-rewrite_Goto ::
-  forall a. [([Prelude.Char], [Rule a])] -> [([Prelude.Char], [Rule a])];
-rewrite_Goto cs =
-  map (\ (chain_name, rs) -> (chain_name, rewrite_Goto_chain (map_of cs) rs))
-    cs;
-
-rw_Reject :: forall a. [Rule a] -> [Rule a];
-rw_Reject [] = [];
-rw_Reject (Rule m Reject : rs) = Rule m Drop : rw_Reject rs;
-rw_Reject (Rule v Accept : rs) = Rule v Accept : rw_Reject rs;
-rw_Reject (Rule v Drop : rs) = Rule v Drop : rw_Reject rs;
-rw_Reject (Rule v Log : rs) = Rule v Log : rw_Reject rs;
-rw_Reject (Rule v (Call vb) : rs) = Rule v (Call vb) : rw_Reject rs;
-rw_Reject (Rule v Return : rs) = Rule v Return : rw_Reject rs;
-rw_Reject (Rule v (Goto vb) : rs) = Rule v (Goto vb) : rw_Reject rs;
-rw_Reject (Rule v Empty : rs) = Rule v Empty : rw_Reject rs;
-rw_Reject (Rule v Unknown : rs) = Rule v Unknown : rw_Reject rs;
-
-map_of_string ::
-  [([Prelude.Char], [Rule Common_primitive])] ->
-    [Prelude.Char] -> Maybe [Rule Common_primitive];
-map_of_string rs = map_of rs;
-
-nat_to_16word :: Nat -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
-nat_to_16word i = of_nat i;
-
 upper_closure_matchexpr ::
   Action -> Match_expr Common_primitive -> Match_expr Common_primitive;
 upper_closure_matchexpr uu MatchAny = MatchAny;
@@ -1917,6 +1783,7 @@ upper_closure_matchexpr Drop (Match (OIface v)) = Match (OIface v);
 upper_closure_matchexpr Drop (Match (Prot v)) = Match (Prot v);
 upper_closure_matchexpr Drop (Match (Src_Ports v)) = Match (Src_Ports v);
 upper_closure_matchexpr Drop (Match (Dst_Ports v)) = Match (Dst_Ports v);
+upper_closure_matchexpr Drop (Match (L4_Flags v)) = Match (L4_Flags v);
 upper_closure_matchexpr Drop (Match (CT_State v)) = Match (CT_State v);
 upper_closure_matchexpr Log (Match m) = Match m;
 upper_closure_matchexpr Reject (Match (Src v)) = Match (Src v);
@@ -1926,6 +1793,7 @@ upper_closure_matchexpr Reject (Match (OIface v)) = Match (OIface v);
 upper_closure_matchexpr Reject (Match (Prot v)) = Match (Prot v);
 upper_closure_matchexpr Reject (Match (Src_Ports v)) = Match (Src_Ports v);
 upper_closure_matchexpr Reject (Match (Dst_Ports v)) = Match (Dst_Ports v);
+upper_closure_matchexpr Reject (Match (L4_Flags v)) = Match (L4_Flags v);
 upper_closure_matchexpr Reject (Match (CT_State v)) = Match (CT_State v);
 upper_closure_matchexpr (Call v) (Match m) = Match m;
 upper_closure_matchexpr Return (Match m) = Match m;
@@ -1939,6 +1807,7 @@ upper_closure_matchexpr uy (Match (OIface v)) = Match (OIface v);
 upper_closure_matchexpr uy (Match (Prot v)) = Match (Prot v);
 upper_closure_matchexpr uy (Match (Src_Ports v)) = Match (Src_Ports v);
 upper_closure_matchexpr uy (Match (Dst_Ports v)) = Match (Dst_Ports v);
+upper_closure_matchexpr uy (Match (L4_Flags v)) = Match (L4_Flags v);
 upper_closure_matchexpr uy (Match (CT_State v)) = Match (CT_State v);
 upper_closure_matchexpr Accept (MatchNot (Match (Extra uz))) = MatchAny;
 upper_closure_matchexpr Drop (MatchNot (Match (Extra va))) = MatchNot MatchAny;
@@ -1969,6 +1838,8 @@ upper_closure_matchexpr Drop (MatchNot (Match (Src_Ports va))) =
   MatchNot (Match (Src_Ports va));
 upper_closure_matchexpr Drop (MatchNot (Match (Dst_Ports va))) =
   MatchNot (Match (Dst_Ports va));
+upper_closure_matchexpr Drop (MatchNot (Match (L4_Flags va))) =
+  MatchNot (Match (L4_Flags va));
 upper_closure_matchexpr Drop (MatchNot (Match (CT_State va))) =
   MatchNot (Match (CT_State va));
 upper_closure_matchexpr Drop (MatchNot MatchAny) = MatchNot MatchAny;
@@ -1988,6 +1859,8 @@ upper_closure_matchexpr Reject (MatchNot (Match (Src_Ports va))) =
   MatchNot (Match (Src_Ports va));
 upper_closure_matchexpr Reject (MatchNot (Match (Dst_Ports va))) =
   MatchNot (Match (Dst_Ports va));
+upper_closure_matchexpr Reject (MatchNot (Match (L4_Flags va))) =
+  MatchNot (Match (L4_Flags va));
 upper_closure_matchexpr Reject (MatchNot (Match (CT_State va))) =
   MatchNot (Match (CT_State va));
 upper_closure_matchexpr Reject (MatchNot MatchAny) = MatchNot MatchAny;
@@ -2015,6 +1888,8 @@ upper_closure_matchexpr vc (MatchNot (Match (Src_Ports va))) =
   MatchNot (Match (Src_Ports va));
 upper_closure_matchexpr vc (MatchNot (Match (Dst_Ports va))) =
   MatchNot (Match (Dst_Ports va));
+upper_closure_matchexpr vc (MatchNot (Match (L4_Flags va))) =
+  MatchNot (Match (L4_Flags va));
 upper_closure_matchexpr vc (MatchNot (Match (CT_State va))) =
   MatchNot (Match (CT_State va));
 upper_closure_matchexpr vc (MatchNot MatchAny) = MatchNot MatchAny;
@@ -2029,6 +1904,36 @@ normalize_primitive_extract disc_sel c f m =
   let {
     (spts, rst) = primitive_extractor disc_sel m;
   } in map (\ spt -> MatchAnd (Match (c spt)) rst) (f spts);
+
+src_sel :: Common_primitive -> Ipt_ipv4range;
+src_sel (Src x1) = x1;
+
+is_Src :: Common_primitive -> Bool;
+is_Src (Src x1) = True;
+is_Src (Dst x2) = False;
+is_Src (IIface x3) = False;
+is_Src (OIface x4) = False;
+is_Src (Prot x5) = False;
+is_Src (Src_Ports x6) = False;
+is_Src (Dst_Ports x7) = False;
+is_Src (L4_Flags x8) = False;
+is_Src (CT_State x9) = False;
+is_Src (Extra x10) = False;
+
+l2br_negation_type_intersect ::
+  forall a. (Len a) => [Negation_type (Word a, Word a)] -> Wordinterval a;
+l2br_negation_type_intersect [] = wordinterval_UNIV;
+l2br_negation_type_intersect (Pos (s, e) : ls) =
+  wordinterval_intersection (WordInterval s e)
+    (l2br_negation_type_intersect ls);
+l2br_negation_type_intersect (Neg (s, e) : ls) =
+  wordinterval_intersection (wordinterval_invert (WordInterval s e))
+    (l2br_negation_type_intersect ls);
+
+negPos_map :: forall a b. (a -> b) -> [Negation_type a] -> [Negation_type b];
+negPos_map uu [] = [];
+negPos_map f (Pos a : asa) = Pos (f a) : negPos_map f asa;
+negPos_map f (Neg a : asa) = Neg (f a) : negPos_map f asa;
 
 ipt_ipv4range_negation_type_to_br_intersect ::
   [Negation_type Ipt_ipv4range] ->
@@ -2054,6 +1959,18 @@ normalize_src_ips =
 dst_sel :: Common_primitive -> Ipt_ipv4range;
 dst_sel (Dst x2) = x2;
 
+is_Dst :: Common_primitive -> Bool;
+is_Dst (Src x1) = False;
+is_Dst (Dst x2) = True;
+is_Dst (IIface x3) = False;
+is_Dst (OIface x4) = False;
+is_Dst (Prot x5) = False;
+is_Dst (Src_Ports x6) = False;
+is_Dst (Dst_Ports x7) = False;
+is_Dst (L4_Flags x8) = False;
+is_Dst (CT_State x9) = False;
+is_Dst (Extra x10) = False;
+
 normalize_dst_ips ::
   Match_expr Common_primitive -> [Match_expr Common_primitive];
 normalize_dst_ips =
@@ -2064,6 +1981,18 @@ src_ports_sel ::
     [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
        Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
 src_ports_sel (Src_Ports x6) = x6;
+
+is_Src_Ports :: Common_primitive -> Bool;
+is_Src_Ports (Src x1) = False;
+is_Src_Ports (Dst x2) = False;
+is_Src_Ports (IIface x3) = False;
+is_Src_Ports (OIface x4) = False;
+is_Src_Ports (Prot x5) = False;
+is_Src_Ports (Src_Ports x6) = True;
+is_Src_Ports (Dst_Ports x7) = False;
+is_Src_Ports (L4_Flags x8) = False;
+is_Src_Ports (CT_State x9) = False;
+is_Src_Ports (Extra x10) = False;
 
 ipt_ports_negation_type_normalize ::
   Negation_type
@@ -2113,6 +2042,18 @@ dst_ports_sel ::
        Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
 dst_ports_sel (Dst_Ports x7) = x7;
 
+is_Dst_Ports :: Common_primitive -> Bool;
+is_Dst_Ports (Src x1) = False;
+is_Dst_Ports (Dst x2) = False;
+is_Dst_Ports (IIface x3) = False;
+is_Dst_Ports (OIface x4) = False;
+is_Dst_Ports (Prot x5) = False;
+is_Dst_Ports (Src_Ports x6) = False;
+is_Dst_Ports (Dst_Ports x7) = True;
+is_Dst_Ports (L4_Flags x8) = False;
+is_Dst_Ports (CT_State x9) = False;
+is_Dst_Ports (Extra x10) = False;
+
 normalize_dst_ports ::
   Match_expr Common_primitive -> [Match_expr Common_primitive];
 normalize_dst_ports =
@@ -2134,7 +2075,11 @@ transform_normalize_primitives =
 ctstate_is_UNIV :: Set Ctstate -> Bool;
 ctstate_is_UNIV c =
   member CT_New c &&
-    member CT_Established c && member CT_Related c && member CT_Untracked c;
+    member CT_Established c &&
+      member CT_Related c && member CT_Untracked c && member CT_Invalid c;
+
+bot_set :: forall a. Set a;
+bot_set = Set [];
 
 optimize_primitive_univ ::
   Match_expr Common_primitive -> Match_expr Common_primitive;
@@ -2151,6 +2096,9 @@ optimize_primitive_univ (Match (Dst_Ports [(s, e)])) =
         equal_word e (word_of_int (Int_of_integer (65535 :: Integer)))
     then MatchAny else Match (Dst_Ports [(s, e)]));
 optimize_primitive_univ (Match (Prot ProtoAny)) = MatchAny;
+optimize_primitive_univ (Match (L4_Flags (TCP_Flags m c))) =
+  (if equal_set m bot_set && equal_set c bot_set then MatchAny
+    else Match (L4_Flags (TCP_Flags m c)));
 optimize_primitive_univ (Match (CT_State ctstate)) =
   (if ctstate_is_UNIV ctstate then MatchAny else Match (CT_State ctstate));
 optimize_primitive_univ (Match (Src (Ip4Addr va))) = Match (Src (Ip4Addr va));
@@ -2340,16 +2288,6 @@ opt_MatchAny_match_expr (MatchAnd (MatchAnd v va) (MatchAnd vb vc)) =
   MatchAnd (opt_MatchAny_match_expr (MatchAnd v va))
     (opt_MatchAny_match_expr (MatchAnd vb vc));
 
-get_action :: forall a. Rule a -> Action;
-get_action (Rule x1 x2) = x2;
-
-get_match :: forall a. Rule a -> Match_expr a;
-get_match (Rule x1 x2) = x1;
-
-optimize_matches ::
-  forall a. (Match_expr a -> Match_expr a) -> [Rule a] -> [Rule a];
-optimize_matches f rs = map (\ r -> Rule (f (get_match r)) (get_action r)) rs;
-
 normalize_match :: forall a. Match_expr a -> [Match_expr a];
 normalize_match MatchAny = [MatchAny];
 normalize_match (Match m) = [Match m];
@@ -2365,6 +2303,16 @@ normalize_rules_dnf :: forall a. [Rule a] -> [Rule a];
 normalize_rules_dnf [] = [];
 normalize_rules_dnf (Rule m a : rs) =
   map (\ ma -> Rule ma a) (normalize_match m) ++ normalize_rules_dnf rs;
+
+get_action :: forall a. Rule a -> Action;
+get_action (Rule x1 x2) = x2;
+
+get_match :: forall a. Rule a -> Match_expr a;
+get_match (Rule x1 x2) = x1;
+
+optimize_matches ::
+  forall a. (Match_expr a -> Match_expr a) -> [Rule a] -> [Rule a];
+optimize_matches f rs = map (\ r -> Rule (f (get_match r)) (get_action r)) rs;
 
 transform_optimize_dnf_strict ::
   [Rule Common_primitive] -> [Rule Common_primitive];
@@ -2391,6 +2339,257 @@ upper_closure rs =
         (transform_optimize_dnf_strict
           (optimize_matches_a upper_closure_matchexpr rs))));
 
+word_to_nat :: forall a. (Len a) => Word a -> Nat;
+word_to_nat = unat;
+
+word_less_eq :: forall a. (Len a) => Word a -> Word a -> Bool;
+word_less_eq a b = less_eq_word a b;
+
+get_exists_matching_src_ips_executable ::
+  Iface ->
+    Match_expr Common_primitive ->
+      Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+get_exists_matching_src_ips_executable iface m =
+  let {
+    (i_matches, _) = primitive_extractor (is_Iiface, iiface_sel) m;
+  } in (if all (\ a ->
+                 (case a of {
+                   Pos i -> match_iface i (iface_sel iface);
+                   Neg i -> not (match_iface i (iface_sel iface));
+                 }))
+             i_matches
+         then let {
+                (ip_matches, _) = primitive_extractor (is_Src, src_sel) m;
+              } in (if null ip_matches then ipv4range_UNIV
+                     else l2br_negation_type_intersect
+                            (negPos_map ipt_ipv4range_to_interval ip_matches))
+         else empty_WordInterval);
+
+is_L4_Flags :: Common_primitive -> Bool;
+is_L4_Flags (Src x1) = False;
+is_L4_Flags (Dst x2) = False;
+is_L4_Flags (IIface x3) = False;
+is_L4_Flags (OIface x4) = False;
+is_L4_Flags (Prot x5) = False;
+is_L4_Flags (Src_Ports x6) = False;
+is_L4_Flags (Dst_Ports x7) = False;
+is_L4_Flags (L4_Flags x8) = True;
+is_L4_Flags (CT_State x9) = False;
+is_L4_Flags (Extra x10) = False;
+
+is_CT_State :: Common_primitive -> Bool;
+is_CT_State (Src x1) = False;
+is_CT_State (Dst x2) = False;
+is_CT_State (IIface x3) = False;
+is_CT_State (OIface x4) = False;
+is_CT_State (Prot x5) = False;
+is_CT_State (Src_Ports x6) = False;
+is_CT_State (Dst_Ports x7) = False;
+is_CT_State (L4_Flags x8) = False;
+is_CT_State (CT_State x9) = True;
+is_CT_State (Extra x10) = False;
+
+is_Extra :: Common_primitive -> Bool;
+is_Extra (Src x1) = False;
+is_Extra (Dst x2) = False;
+is_Extra (IIface x3) = False;
+is_Extra (OIface x4) = False;
+is_Extra (Prot x5) = False;
+is_Extra (Src_Ports x6) = False;
+is_Extra (Dst_Ports x7) = False;
+is_Extra (L4_Flags x8) = False;
+is_Extra (CT_State x9) = False;
+is_Extra (Extra x10) = True;
+
+is_Prot :: Common_primitive -> Bool;
+is_Prot (Src x1) = False;
+is_Prot (Dst x2) = False;
+is_Prot (IIface x3) = False;
+is_Prot (OIface x4) = False;
+is_Prot (Prot x5) = True;
+is_Prot (Src_Ports x6) = False;
+is_Prot (Dst_Ports x7) = False;
+is_Prot (L4_Flags x8) = False;
+is_Prot (CT_State x9) = False;
+is_Prot (Extra x10) = False;
+
+matcheq_matachAny :: forall a. Match_expr a -> Bool;
+matcheq_matachAny MatchAny = True;
+matcheq_matachAny (MatchNot m) = not (matcheq_matachAny m);
+matcheq_matachAny (MatchAnd m1 m2) =
+  matcheq_matachAny m1 && matcheq_matachAny m2;
+matcheq_matachAny (Match uu) = error "undefined";
+
+has_disc :: forall a. (a -> Bool) -> Match_expr a -> Bool;
+has_disc uu MatchAny = False;
+has_disc disc (Match a) = disc a;
+has_disc disc (MatchNot m) = has_disc disc m;
+has_disc disc (MatchAnd m1 m2) = has_disc disc m1 || has_disc disc m2;
+
+get_all_matching_src_ips_executable ::
+  Iface ->
+    Match_expr Common_primitive ->
+      Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+get_all_matching_src_ips_executable iface m =
+  let {
+    (i_matches, rest1) = primitive_extractor (is_Iiface, iiface_sel) m;
+  } in (if all (\ a ->
+                 (case a of {
+                   Pos i -> match_iface i (iface_sel iface);
+                   Neg i -> not (match_iface i (iface_sel iface));
+                 }))
+             i_matches
+         then let {
+                (ip_matches, rest2) =
+                  primitive_extractor (is_Src, src_sel) rest1;
+              } in (if not (has_disc is_Dst rest2) &&
+                         not (has_disc is_Oiface rest2) &&
+                           not (has_disc is_Prot rest2) &&
+                             not (has_disc is_Src_Ports rest2) &&
+                               not (has_disc is_Dst_Ports rest2) &&
+                                 not (has_disc is_L4_Flags rest2) &&
+                                   not (has_disc is_CT_State rest2) &&
+                                     not (has_disc is_Extra rest2) &&
+                                       matcheq_matachAny rest2
+                     then (if null ip_matches then ipv4range_UNIV
+                            else l2br_negation_type_intersect
+                                   (negPos_map ipt_ipv4range_to_interval
+                                     ip_matches))
+                     else empty_WordInterval)
+         else empty_WordInterval);
+
+no_spoofing_algorithm_executable ::
+  Iface ->
+    (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
+      [Rule Common_primitive] ->
+        Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
+          Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> Bool;
+no_spoofing_algorithm_executable iface ipassmt [] allowed denied1 =
+  wordinterval_subset (wordinterval_setminus allowed denied1)
+    (l2br (map ipv4cidr_to_interval (the (ipassmt iface))));
+no_spoofing_algorithm_executable iface ipassmt (Rule m Accept : rs) allowed
+  denied1 =
+  no_spoofing_algorithm_executable iface ipassmt rs
+    (wordinterval_union allowed
+      (get_exists_matching_src_ips_executable iface m))
+    denied1;
+no_spoofing_algorithm_executable iface ipassmt (Rule m Drop : rs) allowed
+  denied1 =
+  no_spoofing_algorithm_executable iface ipassmt rs allowed
+    (wordinterval_union denied1
+      (wordinterval_setminus (get_all_matching_src_ips_executable iface m)
+        allowed));
+no_spoofing_algorithm_executable uu uv (Rule vb Log : va) ux uy =
+  error "undefined";
+no_spoofing_algorithm_executable uu uv (Rule vb Reject : va) ux uy =
+  error "undefined";
+no_spoofing_algorithm_executable uu uv (Rule vb (Call vd) : va) ux uy =
+  error "undefined";
+no_spoofing_algorithm_executable uu uv (Rule vb Return : va) ux uy =
+  error "undefined";
+no_spoofing_algorithm_executable uu uv (Rule vb (Goto vd) : va) ux uy =
+  error "undefined";
+no_spoofing_algorithm_executable uu uv (Rule vb Empty : va) ux uy =
+  error "undefined";
+no_spoofing_algorithm_executable uu uv (Rule vb Unknown : va) ux uy =
+  error "undefined";
+
+no_spoofing_iface ::
+  Iface ->
+    (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
+      [Rule Common_primitive] -> Bool;
+no_spoofing_iface iface ipassmt rs =
+  no_spoofing_algorithm_executable iface ipassmt rs empty_WordInterval
+    empty_WordInterval;
+
+tcp_flag_toString :: Tcp_flag -> [Prelude.Char];
+tcp_flag_toString TCP_SYN = ['T', 'C', 'P', '_', 'S', 'Y', 'N'];
+tcp_flag_toString TCP_ACK = ['T', 'C', 'P', '_', 'A', 'C', 'K'];
+tcp_flag_toString TCP_FIN = ['T', 'C', 'P', '_', 'F', 'I', 'N'];
+tcp_flag_toString TCP_RST = ['T', 'C', 'P', '_', 'R', 'S', 'T'];
+tcp_flag_toString TCP_URG = ['T', 'C', 'P', '_', 'U', 'R', 'G'];
+tcp_flag_toString TCP_PSH = ['T', 'C', 'P', '_', 'P', 'S', 'H'];
+
+terminal_chain :: forall a. [Rule a] -> Bool;
+terminal_chain [] = False;
+terminal_chain [Rule MatchAny Accept] = True;
+terminal_chain [Rule MatchAny Drop] = True;
+terminal_chain [Rule MatchAny Reject] = True;
+terminal_chain (Rule uu (Goto uv) : rs) = False;
+terminal_chain (Rule uw (Call ux) : rs) = False;
+terminal_chain (Rule uy Return : rs) = False;
+terminal_chain (Rule uz Unknown : rs) = False;
+terminal_chain (Rule (Match vc) Accept : rs) = terminal_chain rs;
+terminal_chain (Rule (Match vc) Drop : rs) = terminal_chain rs;
+terminal_chain (Rule (Match vc) Log : rs) = terminal_chain rs;
+terminal_chain (Rule (Match vc) Reject : rs) = terminal_chain rs;
+terminal_chain (Rule (Match vc) Empty : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchNot vc) Accept : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchNot vc) Drop : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchNot vc) Log : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchNot vc) Reject : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchNot vc) Empty : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchAnd vc vd) Accept : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchAnd vc vd) Drop : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchAnd vc vd) Log : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchAnd vc vd) Reject : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchAnd vc vd) Empty : rs) = terminal_chain rs;
+terminal_chain (Rule v Drop : va : vb) = terminal_chain (va : vb);
+terminal_chain (Rule v Log : rs) = terminal_chain rs;
+terminal_chain (Rule v Reject : va : vb) = terminal_chain (va : vb);
+terminal_chain (Rule v Empty : rs) = terminal_chain rs;
+terminal_chain (Rule vc Accept : v : vb) = terminal_chain (v : vb);
+
+rewrite_Goto_chain ::
+  forall a. ([Prelude.Char] -> Maybe [Rule a]) -> [Rule a] -> [Rule a];
+rewrite_Goto_chain uu [] = [];
+rewrite_Goto_chain gamma (Rule m (Goto chain) : rs) =
+  (if terminal_chain (the (gamma chain)) then Rule m (Call chain)
+    else error "undefined") :
+    rewrite_Goto_chain gamma rs;
+rewrite_Goto_chain gamma (Rule v Accept : rs) =
+  Rule v Accept : rewrite_Goto_chain gamma rs;
+rewrite_Goto_chain gamma (Rule v Drop : rs) =
+  Rule v Drop : rewrite_Goto_chain gamma rs;
+rewrite_Goto_chain gamma (Rule v Log : rs) =
+  Rule v Log : rewrite_Goto_chain gamma rs;
+rewrite_Goto_chain gamma (Rule v Reject : rs) =
+  Rule v Reject : rewrite_Goto_chain gamma rs;
+rewrite_Goto_chain gamma (Rule v (Call vb) : rs) =
+  Rule v (Call vb) : rewrite_Goto_chain gamma rs;
+rewrite_Goto_chain gamma (Rule v Return : rs) =
+  Rule v Return : rewrite_Goto_chain gamma rs;
+rewrite_Goto_chain gamma (Rule v Empty : rs) =
+  Rule v Empty : rewrite_Goto_chain gamma rs;
+rewrite_Goto_chain gamma (Rule v Unknown : rs) =
+  Rule v Unknown : rewrite_Goto_chain gamma rs;
+
+rewrite_Goto ::
+  forall a. [([Prelude.Char], [Rule a])] -> [([Prelude.Char], [Rule a])];
+rewrite_Goto cs =
+  map (\ (chain_name, rs) -> (chain_name, rewrite_Goto_chain (map_of cs) rs))
+    cs;
+
+rw_Reject :: forall a. [Rule a] -> [Rule a];
+rw_Reject [] = [];
+rw_Reject (Rule m Reject : rs) = Rule m Drop : rw_Reject rs;
+rw_Reject (Rule v Accept : rs) = Rule v Accept : rw_Reject rs;
+rw_Reject (Rule v Drop : rs) = Rule v Drop : rw_Reject rs;
+rw_Reject (Rule v Log : rs) = Rule v Log : rw_Reject rs;
+rw_Reject (Rule v (Call vb) : rs) = Rule v (Call vb) : rw_Reject rs;
+rw_Reject (Rule v Return : rs) = Rule v Return : rw_Reject rs;
+rw_Reject (Rule v (Goto vb) : rs) = Rule v (Goto vb) : rw_Reject rs;
+rw_Reject (Rule v Empty : rs) = Rule v Empty : rw_Reject rs;
+rw_Reject (Rule v Unknown : rs) = Rule v Unknown : rw_Reject rs;
+
+map_of_string ::
+  [([Prelude.Char], [Rule Common_primitive])] ->
+    [Prelude.Char] -> Maybe [Rule Common_primitive];
+map_of_string rs = map_of rs;
+
+nat_to_16word :: Nat -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
+nat_to_16word i = of_nat i;
+
 compress_parsed_extra ::
   [Negation_type Common_primitive] -> [Negation_type Common_primitive];
 compress_parsed_extra [] = [];
@@ -2400,6 +2599,19 @@ compress_parsed_extra (a1 : a2 : asa) =
            (Pos (Extra (get_pos_Extra a1 ++ [' '] ++ get_pos_Extra a2)) : asa)
     else a1 : compress_parsed_extra (a2 : asa));
 compress_parsed_extra [a] = a : compress_parsed_extra [];
+
+enum_set_get_one :: forall a. (Eq a) => [a] -> Set a -> Maybe a;
+enum_set_get_one [] s = Nothing;
+enum_set_get_one (sa : ss) s =
+  (if member sa s then Just sa else enum_set_get_one ss s);
+
+enum_set_to_list :: forall a. (Enum a, Eq a) => Set a -> [a];
+enum_set_to_list s =
+  (if is_empty s then []
+    else (case enum_set_get_one enum s of {
+           Nothing -> [];
+           Just a -> a : enum_set_to_list (remove a s);
+         }));
 
 rm_LogEmpty :: forall a. [Rule a] -> [Rule a];
 rm_LogEmpty [] = [];
@@ -2433,8 +2645,20 @@ ipv4range_intersection ::
       Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
 ipv4range_intersection r1 r2 = wordinterval_intersection r1 r2;
 
+ipt_tcp_flags_toString :: Set Tcp_flag -> [Prelude.Char];
+ipt_tcp_flags_toString flags =
+  list_toString tcp_flag_toString (enum_set_to_list flags);
+
 integer_to_16word :: Integer -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
 integer_to_16word i = nat_to_16word (nat_of_integer i);
+
+ctstate_toString :: Ctstate -> [Prelude.Char];
+ctstate_toString CT_New = ['N', 'E', 'W'];
+ctstate_toString CT_Established =
+  ['E', 'S', 'T', 'A', 'B', 'L', 'I', 'S', 'H', 'E', 'D'];
+ctstate_toString CT_Related = ['R', 'E', 'L', 'A', 'T', 'E', 'D'];
+ctstate_toString CT_Untracked = ['U', 'N', 'T', 'R', 'A', 'C', 'K', 'E', 'D'];
+ctstate_toString CT_Invalid = ['I', 'N', 'V', 'A', 'L', 'I', 'D'];
 
 sanity_wf_ruleset :: forall a. [([Prelude.Char], [Rule a])] -> Bool;
 sanity_wf_ruleset gamma =
@@ -2528,31 +2752,9 @@ unfold_ruleset_OUTPUT ::
       [Rule Common_primitive];
 unfold_ruleset_OUTPUT = unfold_ruleset_CHAIN ['O', 'U', 'T', 'P', 'U', 'T'];
 
-ctstate_set_toString_list :: Set Ctstate -> [[Prelude.Char]];
-ctstate_set_toString_list s =
-  (if equal_set s bot_set then []
-    else (if member CT_New s
-           then ['N', 'E', 'W'] : ctstate_set_toString_list (remove CT_New s)
-           else (if member CT_Established s
-                  then ['E', 'S', 'T', 'A', 'B', 'L', 'I', 'S', 'H', 'E', 'D'] :
-                         ctstate_set_toString_list (remove CT_Established s)
-                  else (if member CT_Related s
-                         then ['R', 'E', 'L', 'A', 'T', 'E', 'D'] :
-                                ctstate_set_toString_list (remove CT_Related s)
-                         else (if member CT_Untracked s
-                                then ['U', 'N', 'T', 'R', 'A', 'C', 'K', 'E',
-                                       'D'] :
-                                       ctstate_set_toString_list
- (remove CT_Untracked s)
-                                else [['E', 'R', 'R', 'O', 'R', '-', 'u', 'n',
-'k', 'o', 'w', 'n', '-', 'c', 't', 's', 't', 'a', 't', 'e']])))));
-
 ctstate_set_toString :: Set Ctstate -> [Prelude.Char];
 ctstate_set_toString s =
-  concat
-    (splice (ctstate_set_toString_list s)
-      (replicate (minus_nat (size_list (ctstate_set_toString_list s)) one_nat)
-        [',']));
+  list_separated_toString [','] ctstate_toString (enum_set_to_list s);
 
 normalized_dst_ports :: Match_expr Common_primitive -> Bool;
 normalized_dst_ports MatchAny = True;
@@ -2565,6 +2767,7 @@ normalized_dst_ports (Match (IIface v)) = True;
 normalized_dst_ports (Match (OIface v)) = True;
 normalized_dst_ports (Match (Prot v)) = True;
 normalized_dst_ports (Match (Src_Ports v)) = True;
+normalized_dst_ports (Match (L4_Flags v)) = True;
 normalized_dst_ports (Match (CT_State v)) = True;
 normalized_dst_ports (Match (Extra v)) = True;
 normalized_dst_ports (MatchNot (Match (Dst_Ports ux))) = False;
@@ -2574,6 +2777,7 @@ normalized_dst_ports (MatchNot (Match (IIface v))) = True;
 normalized_dst_ports (MatchNot (Match (OIface v))) = True;
 normalized_dst_ports (MatchNot (Match (Prot v))) = True;
 normalized_dst_ports (MatchNot (Match (Src_Ports v))) = True;
+normalized_dst_ports (MatchNot (Match (L4_Flags v))) = True;
 normalized_dst_ports (MatchNot (Match (CT_State v))) = True;
 normalized_dst_ports (MatchNot (Match (Extra v))) = True;
 normalized_dst_ports (MatchAnd m1 m2) =
@@ -2593,6 +2797,7 @@ normalized_src_ports (Match (IIface v)) = True;
 normalized_src_ports (Match (OIface v)) = True;
 normalized_src_ports (Match (Prot v)) = True;
 normalized_src_ports (Match (Dst_Ports v)) = True;
+normalized_src_ports (Match (L4_Flags v)) = True;
 normalized_src_ports (Match (CT_State v)) = True;
 normalized_src_ports (Match (Extra v)) = True;
 normalized_src_ports (MatchNot (Match (Src_Ports ux))) = False;
@@ -2602,6 +2807,7 @@ normalized_src_ports (MatchNot (Match (IIface v))) = True;
 normalized_src_ports (MatchNot (Match (OIface v))) = True;
 normalized_src_ports (MatchNot (Match (Prot v))) = True;
 normalized_src_ports (MatchNot (Match (Dst_Ports v))) = True;
+normalized_src_ports (MatchNot (Match (L4_Flags v))) = True;
 normalized_src_ports (MatchNot (Match (CT_State v))) = True;
 normalized_src_ports (MatchNot (Match (Extra v))) = True;
 normalized_src_ports (MatchAnd m1 m2) =
@@ -2733,6 +2939,9 @@ common_primitive_toString (CT_State s) =
   ['-', 'm', ' ', 's', 't', 'a', 't', 'e', ' ', '-', '-', 's', 't', 'a', 't',
     'e', ' '] ++
     ctstate_set_toString s;
+common_primitive_toString (L4_Flags (TCP_Flags c m)) =
+  ['-', '-', 't', 'c', 'p', '-', 'f', 'l', 'a', 'g', 's', ' '] ++
+    ipt_tcp_flags_toString c ++ [' '] ++ ipt_tcp_flags_toString m;
 common_primitive_toString (Extra e) = ['~', '~'] ++ e ++ ['~', '~'];
 
 abstract_primitive ::
@@ -2755,23 +2964,16 @@ abstract_primitive disc (MatchNot MatchAny) =
 abstract_primitive disc (MatchAnd m1 m2) =
   MatchAnd (abstract_primitive disc m1) (abstract_primitive disc m2);
 
+has_disc_negated :: forall a. (a -> Bool) -> Bool -> Match_expr a -> Bool;
+has_disc_negated uu uv MatchAny = False;
+has_disc_negated disc neg (Match a) = (if disc a then neg else False);
+has_disc_negated disc neg (MatchNot m) = has_disc_negated disc (not neg) m;
+has_disc_negated disc neg (MatchAnd m1 m2) =
+  has_disc_negated disc neg m1 || has_disc_negated disc neg m2;
+
 normalized_ifaces :: Match_expr Common_primitive -> Bool;
-normalized_ifaces MatchAny = True;
-normalized_ifaces (Match uu) = True;
-normalized_ifaces (MatchNot (Match (IIface uv))) = False;
-normalized_ifaces (MatchNot (Match (OIface uw))) = False;
-normalized_ifaces (MatchAnd m1 m2) =
-  normalized_ifaces m1 && normalized_ifaces m2;
-normalized_ifaces (MatchNot (MatchAnd ux uy)) = False;
-normalized_ifaces (MatchNot (Match (Src va))) = True;
-normalized_ifaces (MatchNot (Match (Dst va))) = True;
-normalized_ifaces (MatchNot (Match (Prot va))) = True;
-normalized_ifaces (MatchNot (Match (Src_Ports va))) = True;
-normalized_ifaces (MatchNot (Match (Dst_Ports va))) = True;
-normalized_ifaces (MatchNot (Match (CT_State va))) = True;
-normalized_ifaces (MatchNot (Match (Extra va))) = True;
-normalized_ifaces (MatchNot (MatchNot v)) = True;
-normalized_ifaces (MatchNot MatchAny) = True;
+normalized_ifaces m =
+  not (has_disc_negated (\ a -> is_Iiface a || is_Oiface a) False m);
 
 sports_update ::
   forall a.
@@ -2893,29 +3095,18 @@ common_primitive_match_to_simple_match (MatchNot (Match (Dst_Ports vn))) =
   error "undefined";
 common_primitive_match_to_simple_match (Match (CT_State vo)) =
   error "undefined";
-common_primitive_match_to_simple_match (Match (Extra vp)) = error "undefined";
-common_primitive_match_to_simple_match (MatchNot (Match (Extra vq))) =
+common_primitive_match_to_simple_match (Match (L4_Flags vp)) =
   error "undefined";
-common_primitive_match_to_simple_match (MatchNot (Match (CT_State vr))) =
+common_primitive_match_to_simple_match (MatchNot (Match (L4_Flags vq))) =
+  error "undefined";
+common_primitive_match_to_simple_match (Match (Extra vr)) = error "undefined";
+common_primitive_match_to_simple_match (MatchNot (Match (Extra vs))) =
+  error "undefined";
+common_primitive_match_to_simple_match (MatchNot (Match (CT_State vt))) =
   error "undefined";
 
 normalized_protocols :: Match_expr Common_primitive -> Bool;
-normalized_protocols MatchAny = True;
-normalized_protocols (Match uu) = True;
-normalized_protocols (MatchNot (Match (Prot uv))) = False;
-normalized_protocols (MatchAnd m1 m2) =
-  normalized_protocols m1 && normalized_protocols m2;
-normalized_protocols (MatchNot (MatchAnd uw ux)) = False;
-normalized_protocols (MatchNot (Match (Src va))) = True;
-normalized_protocols (MatchNot (Match (Dst va))) = True;
-normalized_protocols (MatchNot (Match (IIface va))) = True;
-normalized_protocols (MatchNot (Match (OIface va))) = True;
-normalized_protocols (MatchNot (Match (Src_Ports va))) = True;
-normalized_protocols (MatchNot (Match (Dst_Ports va))) = True;
-normalized_protocols (MatchNot (Match (CT_State va))) = True;
-normalized_protocols (MatchNot (Match (Extra va))) = True;
-normalized_protocols (MatchNot (MatchNot v)) = True;
-normalized_protocols (MatchNot MatchAny) = True;
+normalized_protocols m = not (has_disc_negated is_Prot False m);
 
 normalized_src_ips :: Match_expr Common_primitive -> Bool;
 normalized_src_ips MatchAny = True;
@@ -2928,6 +3119,7 @@ normalized_src_ips (Match (OIface v)) = True;
 normalized_src_ips (Match (Prot v)) = True;
 normalized_src_ips (Match (Src_Ports v)) = True;
 normalized_src_ips (Match (Dst_Ports v)) = True;
+normalized_src_ips (Match (L4_Flags v)) = True;
 normalized_src_ips (Match (CT_State v)) = True;
 normalized_src_ips (Match (Extra v)) = True;
 normalized_src_ips (MatchNot (Match (Src va))) = False;
@@ -2937,6 +3129,7 @@ normalized_src_ips (MatchNot (Match (OIface v))) = True;
 normalized_src_ips (MatchNot (Match (Prot v))) = True;
 normalized_src_ips (MatchNot (Match (Src_Ports v))) = True;
 normalized_src_ips (MatchNot (Match (Dst_Ports v))) = True;
+normalized_src_ips (MatchNot (Match (L4_Flags v))) = True;
 normalized_src_ips (MatchNot (Match (CT_State v))) = True;
 normalized_src_ips (MatchNot (Match (Extra v))) = True;
 normalized_src_ips (MatchAnd m1 m2) =
@@ -2956,6 +3149,7 @@ normalized_dst_ips (Match (OIface v)) = True;
 normalized_dst_ips (Match (Prot v)) = True;
 normalized_dst_ips (Match (Src_Ports v)) = True;
 normalized_dst_ips (Match (Dst_Ports v)) = True;
+normalized_dst_ips (Match (L4_Flags v)) = True;
 normalized_dst_ips (Match (CT_State v)) = True;
 normalized_dst_ips (Match (Extra v)) = True;
 normalized_dst_ips (MatchNot (Match (Dst va))) = False;
@@ -2965,6 +3159,7 @@ normalized_dst_ips (MatchNot (Match (OIface v))) = True;
 normalized_dst_ips (MatchNot (Match (Prot v))) = True;
 normalized_dst_ips (MatchNot (Match (Src_Ports v))) = True;
 normalized_dst_ips (MatchNot (Match (Dst_Ports v))) = True;
+normalized_dst_ips (MatchNot (Match (L4_Flags v))) = True;
 normalized_dst_ips (MatchNot (Match (CT_State v))) = True;
 normalized_dst_ips (MatchNot (Match (Extra v))) = True;
 normalized_dst_ips (MatchAnd m1 m2) =
@@ -2982,9 +3177,10 @@ check_simple_fw_preconditions rs =
               normalized_dst_ips m &&
                 normalized_ifaces m &&
                   normalized_protocols m &&
-                    not (has_disc is_CT_State m) &&
-                      not (has_disc is_Extra m) &&
-                        (equal_action a Accept || equal_action a Drop))
+                    not (has_disc is_L4_Flags m) &&
+                      not (has_disc is_CT_State m) &&
+                        not (has_disc is_Extra m) &&
+                          (equal_action a Accept || equal_action a Drop))
     rs;
 
 action_to_simple_action :: Action -> Simple_action;
@@ -3305,6 +3501,7 @@ ctstate_assume_state s (Match (OIface v)) = Match (OIface v);
 ctstate_assume_state s (Match (Prot v)) = Match (Prot v);
 ctstate_assume_state s (Match (Src_Ports v)) = Match (Src_Ports v);
 ctstate_assume_state s (Match (Dst_Ports v)) = Match (Dst_Ports v);
+ctstate_assume_state s (Match (L4_Flags v)) = Match (L4_Flags v);
 ctstate_assume_state s (Match (Extra v)) = Match (Extra v);
 ctstate_assume_state s (MatchNot m) = MatchNot (ctstate_assume_state s m);
 ctstate_assume_state uu MatchAny = MatchAny;
@@ -3320,9 +3517,11 @@ abstract_for_simple_firewall =
   abstract_primitive
     (\ a ->
       (case a of {
-        Pos aa -> is_CT_State aa;
+        Pos aa -> is_CT_State aa || is_L4_Flags aa;
         Neg aa ->
-          is_Iiface aa || (is_Oiface aa || (is_Prot aa || is_CT_State aa));
+          is_Iiface aa ||
+            (is_Oiface aa ||
+              (is_Prot aa || (is_CT_State aa || is_L4_Flags aa)));
       }));
 
 to_simple_firewall_without_interfaces ::

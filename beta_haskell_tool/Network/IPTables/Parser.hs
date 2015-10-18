@@ -70,7 +70,9 @@ probablyNegated parser = ParsedNegatedMatch <$> try (lit "! " >> (lookAheadEOT p
                      <|> ParsedMatch <$> (try (lookAheadEOT parser) <* skipWS)
                      
 notNegated parser = ParsedMatch <$> (try (lookAheadEOT parser) <* skipWS)
-    
+
+-- TODO: do the same as the SML parser
+-- TODO parse_with_module_prefix parse_cmd_option_negated_singleton
 
 knownMatch = do
     p <-  (probablyNegated $ lit "-p " >> Isabelle.Prot <$> protocol)
@@ -97,6 +99,8 @@ knownMatch = do
       
       <|> (probablyNegated $ lit "-i " >> Isabelle.IIface <$> iface)
       <|> (probablyNegated $ lit "-o " >> Isabelle.OIface <$> iface)
+      
+      --TODO tcp flags
       
       -- TODO: can ctstate be negated? never seen or tested this
       <|> (probablyNegated $ lit "-m state --state " >> Isabelle.CT_State <$> ctstate)
@@ -220,7 +224,8 @@ ctstate = Isabelle.mk_Set <$> parseCommaSeparatedList ctstateOne
     where ctstateOne = choice [string "NEW" >> return Isabelle.CT_New
                               ,string "ESTABLISHED" >> return Isabelle.CT_Established
                               ,string "RELATED" >> return Isabelle.CT_Related
-                              ,string "UNTRACKED" >> return Isabelle.CT_Untracked]              
+                              ,string "UNTRACKED" >> return Isabelle.CT_Untracked
+                              ,string "INVALID" >> return Isabelle.CT_Invalid]              
 
 -- needs LookAheadEOT, otherwise, this might happen to the custom LOG_DROP target:
 -- -A ranges_96 `ParsedAction -j LOG' `ParsedMatch ~~_DROP~~'
