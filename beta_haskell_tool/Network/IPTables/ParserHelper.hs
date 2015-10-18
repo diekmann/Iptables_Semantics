@@ -49,6 +49,9 @@ ipv4range = do
 protocol = Isabelle.Proto <$> choice [string "tcp" >> return Isabelle.TCP
                                      ,string "udp" >> return Isabelle.UDP
                                      ,string "icmp" >> return Isabelle.ICMP
+                                     ,string "esp" >> return (Isabelle.OtherProtocol (Isabelle.Nat 50))
+                                     ,string "ah" >> return (Isabelle.OtherProtocol (Isabelle.Nat 51))
+                                     ,string "gre" >> return (Isabelle.OtherProtocol (Isabelle.Nat 47))
                                      ]
 
 iface = Isabelle.Iface <$> many1 (oneOf $ ['A'..'Z']++['a'..'z']++['0'..'9']++['+','*','.'])
