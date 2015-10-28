@@ -26,7 +26,7 @@ theorem iface_try_rewrite:
 
 definition preprocess where
   "preprocess unfold closure ipassmt def fw \<equiv> to_simple_firewall (closure
-              (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))
+              (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_L4_Flags a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_L4_Flags a))
               (closure
               (iface_try_rewrite ipassmt
               (closure
@@ -67,6 +67,33 @@ definition view where
        (build http fw))"
 
 
+
+
+(*TODO: this!*)
+context
+begin
+  private local_setup \<open>
+     local_setup_parse_iptables_save "filter" @{binding fw_wg} ["..", "..", "..", "net-network-private", 
+     "home_user", "typical_home_user_iptables-save"]
+    \<close>
+  thm fw_wg_def
+
+  (*TODO: add ipassmt, this one is rubbish*)
+  private  definition "ipassmt_wg = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
+  (Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,1,0),24)]),
+  (Iface ''tun0'', [(ipv4addr_of_dotdecimal (10,8,0,0),24)]),
+  (Iface ''br-lan'', [(ipv4addr_of_dotdecimal (192,168,1,0),24)])]"
+
+  value[code] "collect_ifaces (upper_closure (unfold_ruleset_FORWARD fw_wg_FORWARD_default_policy (map_of_string fw_wg)))"
+
+  value[code] "debug_ipassmt ipassmt_wg (upper_closure (unfold_ruleset_FORWARD fw_wg_FORWARD_default_policy (map_of_string fw_wg)))"
+
+  value[code] "bench upper_closure FWD ipassmt_wg fw_wg_FORWARD_default_policy fw_wg"
+  value[code] "view upper_closure FWD ipassmt_wg fw_wg_FORWARD_default_policy fw_wg"
+
+  value[code] "bench lower_closure FWD ipassmt_wg fw_wg_FORWARD_default_policy fw_wg"
+  value[code] "view lower_closure FWD ipassmt_wg fw_wg_FORWARD_default_policy fw_wg"
+end
 
 
 
@@ -241,6 +268,7 @@ begin
   value[code] "bench lower_closure FWD ipassmt7 fw7_FORWARD_default_policy fw7"
   value[code] "view lower_closure FWD ipassmt7 fw7_FORWARD_default_policy fw7"
 end
+
 
 
 
