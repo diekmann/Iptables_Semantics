@@ -2,8 +2,8 @@
 
 module
   Network.IPTables.Generated(Num, Nat(..), Word, Len, Iface(..), Bit0, Num1,
-                              Tcp_flag, Match_expr(..), Action(..), Rule(..),
-                              Ctstate(..), Ipt_ipv4range(..), Set,
+                              Tcp_flag(..), Match_expr(..), Action(..),
+                              Rule(..), Ctstate(..), Ipt_ipv4range(..), Set,
                               Ipt_tcp_flags, Nibble, Primitive_protocol(..),
                               Protocol(..), Common_primitive(..), Wordinterval,
                               Negation_type(..), Simple_match_ext,

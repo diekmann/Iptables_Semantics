@@ -56,3 +56,12 @@ protocol = Isabelle.Proto <$> choice [string "tcp" >> return Isabelle.TCP
 
 iface = Isabelle.Iface <$> many1 (oneOf $ ['A'..'Z']++['a'..'z']++['0'..'9']++['+','*','.'])
 
+tcpFlag = choice [string "SYN" >> return Isabelle.TCP_SYN
+                 ,string "ACK" >> return Isabelle.TCP_ACK
+                 ,string "FIN" >> return Isabelle.TCP_FIN
+                 ,string "PSH" >> return Isabelle.TCP_PSH
+                 ,string "URG" >> return Isabelle.TCP_URG
+                 ,string "RST" >> return Isabelle.TCP_RST]
+
+
+
