@@ -3,7 +3,7 @@ module Network.IPTables.Parser
 ( parseIptablesSave
 ) where
 
-import           Control.Applicative ((<$>),(<*))
+import           Control.Applicative ((<$>),(<*), (*>))
 import           Data.List (isPrefixOf)
 import qualified Data.Map as M
 import qualified Debug.Trace
@@ -68,46 +68,51 @@ chain = line $ do
 
 probablyNegated parser = ParsedNegatedMatch <$> try (lit "! " >> (lookAheadEOT parser) <* skipWS)
                      <|> ParsedMatch <$> (try (lookAheadEOT parser) <* skipWS)
+
+probablyNegatedSingleton parser = (\x -> [x]) <$> (probablyNegated parser)
                      
 notNegated parser = ParsedMatch <$> (try (lookAheadEOT parser) <* skipWS)
+
+parseWithModulePrefix modul parser = try $ skipWS *> string modul *> (many1 parser)
 
 -- TODO: do the same as the SML parser
 -- TODO parse_with_module_prefix parse_cmd_option_negated_singleton
 
 knownMatch = do
-    p <-  (probablyNegated $ lit "-p " >> Isabelle.Prot <$> protocol)
+    p <-  (probablyNegatedSingleton $ lit "-p " >> Isabelle.Prot <$> protocol)
     
-      <|> (probablyNegated $ lit "-s " >> Isabelle.Src <$> ipv4addrOrCidr)
-      -- TODO: negation syntax
-      <|> (notNegated $ lit "-m iprange --src-range " >> Isabelle.Src <$> ipv4range)
-      <|> (probablyNegated $ lit "-d " >> Isabelle.Dst <$> ipv4addrOrCidr)
-      <|> (notNegated $ lit "-m iprange --dst-range " >> Isabelle.Dst <$> ipv4range)
+      <|> (probablyNegatedSingleton $ lit "-s " >> Isabelle.Src <$> ipv4addrOrCidr)
+      <|> (probablyNegatedSingleton $ lit "-d " >> Isabelle.Dst <$> ipv4addrOrCidr)
       
-      <|> (probablyNegated $ lit "-m tcp --sport "
-                             >> Isabelle.Src_Ports <$> (\p -> [p]) <$> parsePortOne)
-      <|> (probablyNegated $ lit "-m udp --sport "
-                             >> Isabelle.Src_Ports <$> (\p -> [p]) <$> parsePortOne)
-      -- TODO: negation syntax?
-      <|> (probablyNegated $ lit "-m multiport --sports "
-                             >> Isabelle.Src_Ports <$> parseCommaSeparatedList parsePortOne)
-      <|> (probablyNegated $ lit "-m tcp --dport "
-                             >> Isabelle.Dst_Ports <$> (\p -> [p]) <$> parsePortOne)
-      <|> (probablyNegated $ lit "-m udp --dport "
-                             >> Isabelle.Dst_Ports <$> (\p -> [p]) <$> parsePortOne)
-      <|> (probablyNegated $ lit "-m multiport --dports "
-                             >> Isabelle.Dst_Ports <$> parseCommaSeparatedList parsePortOne)
+      <|> (parseWithModulePrefix "-m iprange " $
+                (probablyNegated $ lit "--src-range " >> Isabelle.Src <$> ipv4range)
+            <|> (probablyNegated $ lit "--dst-range " >> Isabelle.Dst <$> ipv4range))
       
-      <|> (probablyNegated $ lit "-i " >> Isabelle.IIface <$> iface)
-      <|> (probablyNegated $ lit "-o " >> Isabelle.OIface <$> iface)
+      <|> (parseWithModulePrefix "-m tcp " $
+                (probablyNegated $ lit "--sport " >> Isabelle.Src_Ports <$> (\p -> [p]) <$> parsePortOne)
+            <|> (probablyNegated $ lit "--dport " >> Isabelle.Dst_Ports <$> (\p -> [p]) <$> parsePortOne))
+                
+      <|> (parseWithModulePrefix "-m udp " $ 
+                (probablyNegated $ lit "--sport " >> Isabelle.Src_Ports <$> (\p -> [p]) <$> parsePortOne)
+            <|> (probablyNegated $ lit "--dport " >> Isabelle.Dst_Ports <$> (\p -> [p]) <$> parsePortOne))
+      
+      <|> (parseWithModulePrefix "-m multiport "$ 
+                (probablyNegated $ lit "--sports " >> Isabelle.Src_Ports <$> parseCommaSeparatedList parsePortOne)
+            <|> (probablyNegated $ lit "--dports " >> Isabelle.Dst_Ports <$> parseCommaSeparatedList parsePortOne))
+      
+      <|> (probablyNegatedSingleton $ lit "-i " >> Isabelle.IIface <$> iface)
+      <|> (probablyNegatedSingleton $ lit "-o " >> Isabelle.OIface <$> iface)
       
       --TODO tcp flags
       
       -- TODO: can ctstate be negated? never seen or tested this
-      <|> (probablyNegated $ lit "-m state --state " >> Isabelle.CT_State <$> ctstate)
-      <|> (probablyNegated $ lit "-m conntrack --ctstate " >> Isabelle.CT_State <$> ctstate)
+      <|> (parseWithModulePrefix "-m state " $
+                (probablyNegated $ lit "--state " >> Isabelle.CT_State <$> ctstate))
+      <|> (parseWithModulePrefix "-m conntrack " $
+                (probablyNegated $ lit "--ctstate " >> Isabelle.CT_State <$> ctstate))
       
       
-      <|> ((lookAheadEOT target) <* skipWS)
+      <|> ((\x -> [x]) <$> ((lookAheadEOT target) <* skipWS)) --TODO: tune
       
     return $ p
     
@@ -116,7 +121,7 @@ unknownMatch = token "unknown match" $ do
     let e = if "-j" `isPrefixOf` extra
               then Debug.Trace.trace ("Warning: probably a parse error at "++extra) extra
               else extra
-    return $ ParsedMatch $ Isabelle.Extra $ e
+    return $ (\x -> [x]) $ ParsedMatch $ Isabelle.Extra $ e --TODO: tune
     where quotedString = do
               a <- string "\""
               b <- many (noneOf "\"\n")
@@ -126,7 +131,7 @@ unknownMatch = token "unknown match" $ do
 rule = line $ do
     lit "-A"
     chnname <- chainName <* skipWS
-    args    <- many (knownMatch <|> unknownMatch)
+    args    <- concat <$> many (knownMatch <|> unknownMatch)
     unparsed <- restOfLine
 
     let rest    = if unparsed == ""
