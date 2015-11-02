@@ -70,13 +70,11 @@ probablyNegated parser = ParsedNegatedMatch <$> try (lit "! " >> (lookAheadEOT p
                      <|> ParsedMatch <$> (try (lookAheadEOT parser) <* skipWS)
 
 probablyNegatedSingleton parser = (\x -> [x]) <$> (probablyNegated parser)
-                     
-notNegated parser = ParsedMatch <$> (try (lookAheadEOT parser) <* skipWS)
 
 parseWithModulePrefix modul parser = try $ skipWS *> string modul *> (many1 parser)
 
--- TODO: do the same as the SML parser
--- TODO parse_with_module_prefix parse_cmd_option_negated_singleton
+
+-- This file should be in sync with the SML parser. The SML parser is the reference.
 
 knownMatch = do
     p <-  (probablyNegatedSingleton $ lit "-p " >> Isabelle.Prot <$> protocol)
