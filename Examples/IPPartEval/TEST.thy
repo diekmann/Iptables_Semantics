@@ -73,26 +73,39 @@ definition view where
 context
 begin
   private local_setup \<open>
-     local_setup_parse_iptables_save "filter" @{binding fw_wg} ["..", "..", "..", "net-network-private", 
-     "home_user", "typical_home_user_iptables-save"]
+     local_setup_parse_iptables_save "filter" @{binding fw_home_user} ["..", "..", "..", "net-network", "config_home_user", "typical_home_user_iptables-save"]
     \<close>
-  thm fw_wg_def
+  thm fw_home_user_def
 
-  (*TODO: add ipassmt, this one is rubbish*)
   private  definition "ipassmt_wg = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
-  (Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,1,0),24)]),
-  (Iface ''tun0'', [(ipv4addr_of_dotdecimal (10,8,0,0),24)]),
-  (Iface ''br-lan'', [(ipv4addr_of_dotdecimal (192,168,1,0),24)])]"
+  (Iface ''eth1'', all_but_those_ips [
+    (ipv4addr_of_dotdecimal (127,0,0,0),8),
+    (ipv4addr_of_dotdecimal (192,168,0,0), 16),
+    (ipv4addr_of_dotdecimal (172,16,0,0), 12),
+    (ipv4addr_of_dotdecimal (10,0,0,0), 8)
+    ]), (*INET*)
+  (Iface ''tun0'', [(ipv4addr_of_dotdecimal (10,12,0,0),16)]),
+  (Iface ''eth0.10'', [(ipv4addr_of_dotdecimal (192,168,10,0),24)]),
+  (Iface ''eth0.11'', [(ipv4addr_of_dotdecimal (192,168,11,0),24)]),
+  (Iface ''eth0.12'', [(ipv4addr_of_dotdecimal (192,168,12,0),24)]),
+  (Iface ''eth0.13'', [(ipv4addr_of_dotdecimal (192,168,13,0),24)]),
+  (Iface ''eth0.14'', [(ipv4addr_of_dotdecimal (192,168,14,0),24)]),
+  (Iface ''eth0.19'', [(ipv4addr_of_dotdecimal (192,168,19,0),24)]),
+  (Iface ''eth0.20'', [(ipv4addr_of_dotdecimal (192,168,20,0),24)]),
+  (Iface ''eth0.21'', [(ipv4addr_of_dotdecimal (192,168,21,0),24)]),
+  (Iface ''eth0.22'', [(ipv4addr_of_dotdecimal (192,168,22,0),24)]),
+  (Iface ''eth0.23'', [(ipv4addr_of_dotdecimal (192,168,23,0),24)]),
+  (Iface ''eth0.24'', [(ipv4addr_of_dotdecimal (192,168,24,0),24)])]"
 
-  value[code] "collect_ifaces (upper_closure (unfold_ruleset_FORWARD fw_wg_FORWARD_default_policy (map_of_string fw_wg)))"
+  value[code] "collect_ifaces (upper_closure (unfold_ruleset_FORWARD fw_home_user_FORWARD_default_policy (map_of_string fw_home_user)))"
 
-  value[code] "debug_ipassmt ipassmt_wg (upper_closure (unfold_ruleset_FORWARD fw_wg_FORWARD_default_policy (map_of_string fw_wg)))"
+  value[code] "debug_ipassmt ipassmt_wg (upper_closure (unfold_ruleset_FORWARD fw_home_user_FORWARD_default_policy (map_of_string fw_home_user)))"
 
-  value[code] "bench upper_closure FWD ipassmt_wg fw_wg_FORWARD_default_policy fw_wg"
-  value[code] "view upper_closure FWD ipassmt_wg fw_wg_FORWARD_default_policy fw_wg"
+  value[code] "bench upper_closure FWD ipassmt_wg fw_home_user_FORWARD_default_policy fw_home_user"
+  value[code] "view upper_closure FWD ipassmt_wg fw_home_user_FORWARD_default_policy fw_home_user"
 
-  value[code] "bench lower_closure FWD ipassmt_wg fw_wg_FORWARD_default_policy fw_wg"
-  value[code] "view lower_closure FWD ipassmt_wg fw_wg_FORWARD_default_policy fw_wg"
+  value[code] "bench lower_closure FWD ipassmt_wg fw_home_user_FORWARD_default_policy fw_home_user"
+  value[code] "view lower_closure FWD ipassmt_wg fw_home_user_FORWARD_default_policy fw_wg"
 end
 
 
