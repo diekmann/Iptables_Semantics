@@ -6,7 +6,7 @@
 :DOS~Pro-t_ect - [0:0]
 :LOGDROP - [0:0]
 :Terminal - [0:0]
-:IPSEC_42 - [0:]
+:IPSEC_42 - [0:0]
 -A FORWARD -j LOG --log-prefix "!#*~%&/()=?" --log-level 6
 -A FORWARD -s 127.0.0.0/8 -j DROP
 -A FORWARD -i wlan0 -p tcp -m tcp ! --tcp-flags FIN,SYN,RST,ACK SYN -m state --state NEW -j DROP
