@@ -23,7 +23,7 @@ definition mk_Set :: "'a list \<Rightarrow> 'a set" where
   "mk_Set = set"
 
 
-
+(*TODO: export lo only ipassmt as default*)
 text{*The Example from @{file "TUM_Net_Firewall/TUM_Spoofing_new3.thy"}.
   Only used for testing and demonstration purposes.*}
 definition "example_TUM_i8_spoofing_ipassmt =
@@ -85,6 +85,7 @@ export_code Rule
   integer_to_16word nat_to_16word Nat word_less_eq word_to_nat
   Ip4AddrNetmask Ip4AddrRange Ip4Addr
   CT_New CT_Established CT_Related CT_Untracked CT_Invalid
+  TCP_Flags TCP_SYN TCP_ACK TCP_FIN TCP_RST TCP_URG TCP_PSH
   Accept Drop Log Reject Call Return Goto Empty Unknown
   dotteddecimal_toString ipv4addr_toString ipv4_cidr_toString action_toString
   common_primitive_toString common_primitive_match_expr_toString
