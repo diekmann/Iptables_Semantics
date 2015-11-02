@@ -84,7 +84,7 @@ export_code Rule
   ProtoAny Proto TCP UDP ICMP Iface
   integer_to_16word nat_to_16word Nat word_less_eq word_to_nat
   Ip4AddrNetmask Ip4AddrRange Ip4Addr
-  CT_New CT_Established CT_Related CT_Untracked
+  CT_New CT_Established CT_Related CT_Untracked CT_Invalid
   Accept Drop Log Reject Call Return Goto Empty Unknown
   dotteddecimal_toString ipv4addr_toString ipv4_cidr_toString action_toString
   common_primitive_toString common_primitive_match_expr_toString
