@@ -88,7 +88,8 @@ knownMatch = do
       
       <|> (parseWithModulePrefix "-m tcp " $
                 (probablyNegated $ lit "--sport " >> Isabelle.Src_Ports <$> (\p -> [p]) <$> parsePortOne)
-            <|> (probablyNegated $ lit "--dport " >> Isabelle.Dst_Ports <$> (\p -> [p]) <$> parsePortOne))
+            <|> (probablyNegated $ lit "--dport " >> Isabelle.Dst_Ports <$> (\p -> [p]) <$> parsePortOne)
+            <|> (probablyNegated $ lit "--tcp-flags " >> Isabelle.L4_Flags <$> matchTcpFlags))
                 
       <|> (parseWithModulePrefix "-m udp " $ 
                 (probablyNegated $ lit "--sport " >> Isabelle.Src_Ports <$> (\p -> [p]) <$> parsePortOne)
@@ -100,8 +101,6 @@ knownMatch = do
       
       <|> (probablyNegatedSingleton $ lit "-i " >> Isabelle.IIface <$> iface)
       <|> (probablyNegatedSingleton $ lit "-o " >> Isabelle.OIface <$> iface)
-      
-      --TODO tcp flags
       
       -- TODO: can ctstate be negated? never seen or tested this
       <|> (parseWithModulePrefix "-m state " $
@@ -229,6 +228,13 @@ ctstate = Isabelle.mk_Set <$> parseCommaSeparatedList ctstateOne
                               ,string "RELATED" >> return Isabelle.CT_Related
                               ,string "UNTRACKED" >> return Isabelle.CT_Untracked
                               ,string "INVALID" >> return Isabelle.CT_Invalid]              
+
+matchTcpFlags = do 
+    mask <- parseTcpFlagSet
+    _ <- string " "
+    comp <- parseTcpFlagSet
+    return $ Isabelle.TCP_Flags mask comp
+    where parseTcpFlagSet = Isabelle.mk_Set <$> parseCommaSeparatedList tcpFlag
 
 -- needs LookAheadEOT, otherwise, this might happen to the custom LOG_DROP target:
 -- -A ranges_96 `ParsedAction -j LOG' `ParsedMatch ~~_DROP~~'
