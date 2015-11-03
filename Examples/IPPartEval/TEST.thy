@@ -68,12 +68,10 @@ definition view where
 
 
 
-
-(*TODO: this!*)
 context
 begin
   private local_setup \<open>
-     local_setup_parse_iptables_save "filter" @{binding fw_home_user} ["..", "..", "..", "net-network", "config_home_user", "typical_home_user_iptables-save"]
+     local_setup_parse_iptables_save "filter" @{binding fw_home_user} ["config_home_user", "typical_home_user_iptables-save"]
     \<close>
   thm fw_home_user_def
 
