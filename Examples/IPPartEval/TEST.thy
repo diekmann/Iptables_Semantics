@@ -105,7 +105,7 @@ begin
   value[code] "view upper_closure FWD ipassmt_wg fw_home_user_FORWARD_default_policy fw_home_user"
 
   value[code] "bench lower_closure FWD ipassmt_wg fw_home_user_FORWARD_default_policy fw_home_user"
-  value[code] "view lower_closure FWD ipassmt_wg fw_home_user_FORWARD_default_policy fw_wg"
+  value[code] "view lower_closure FWD ipassmt_wg fw_home_user_FORWARD_default_policy fw_home_user"
 end
 
 
