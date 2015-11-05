@@ -1,0 +1,83 @@
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+DROP       icmp --  0.0.0.0/0            0.0.0.0/0           
+DROP       all  --  192.168.22.0/24      0.0.0.0/0           
+DROP       tcp  --  0.0.0.0/5            192.168.10.32        tcp dpt:22
+DROP       tcp  --  8.0.0.0/7            192.168.10.32        tcp dpt:22
+DROP       tcp  --  11.0.0.0/8           192.168.10.32        tcp dpt:22
+DROP       tcp  --  12.0.0.0/6           192.168.10.32        tcp dpt:22
+DROP       tcp  --  16.0.0.0/4           192.168.10.32        tcp dpt:22
+DROP       tcp  --  32.0.0.0/3           192.168.10.32        tcp dpt:22
+DROP       tcp  --  64.0.0.0/3           192.168.10.32        tcp dpt:22
+DROP       tcp  --  96.0.0.0/4           192.168.10.32        tcp dpt:22
+DROP       tcp  --  112.0.0.0/5          192.168.10.32        tcp dpt:22
+DROP       tcp  --  120.0.0.0/6          192.168.10.32        tcp dpt:22
+DROP       tcp  --  124.0.0.0/7          192.168.10.32        tcp dpt:22
+DROP       tcp  --  126.0.0.0/8          192.168.10.32        tcp dpt:22
+DROP       tcp  --  128.0.0.0/3          192.168.10.32        tcp dpt:22
+DROP       tcp  --  160.0.0.0/5          192.168.10.32        tcp dpt:22
+DROP       tcp  --  168.0.0.0/6          192.168.10.32        tcp dpt:22
+DROP       tcp  --  172.0.0.0/12         192.168.10.32        tcp dpt:22
+DROP       tcp  --  172.32.0.0/11        192.168.10.32        tcp dpt:22
+DROP       tcp  --  172.64.0.0/10        192.168.10.32        tcp dpt:22
+DROP       tcp  --  172.128.0.0/9        192.168.10.32        tcp dpt:22
+DROP       tcp  --  173.0.0.0/8          192.168.10.32        tcp dpt:22
+DROP       tcp  --  174.0.0.0/7          192.168.10.32        tcp dpt:22
+DROP       tcp  --  176.0.0.0/4          192.168.10.32        tcp dpt:22
+DROP       tcp  --  192.0.0.0/9          192.168.10.32        tcp dpt:22
+DROP       tcp  --  192.128.0.0/11       192.168.10.32        tcp dpt:22
+DROP       tcp  --  192.160.0.0/13       192.168.10.32        tcp dpt:22
+DROP       tcp  --  192.169.0.0/16       192.168.10.32        tcp dpt:22
+DROP       tcp  --  192.170.0.0/15       192.168.10.32        tcp dpt:22
+DROP       tcp  --  192.172.0.0/14       192.168.10.32        tcp dpt:22
+DROP       tcp  --  192.176.0.0/12       192.168.10.32        tcp dpt:22
+DROP       tcp  --  192.192.0.0/10       192.168.10.32        tcp dpt:22
+DROP       tcp  --  193.0.0.0/8          192.168.10.32        tcp dpt:22
+DROP       tcp  --  194.0.0.0/7          192.168.10.32        tcp dpt:22
+DROP       tcp  --  196.0.0.0/6          192.168.10.32        tcp dpt:22
+DROP       tcp  --  200.0.0.0/5          192.168.10.32        tcp dpt:22
+DROP       tcp  --  208.0.0.0/4          192.168.10.32        tcp dpt:22
+DROP       tcp  --  224.0.0.0/3          192.168.10.32        tcp dpt:22
+DROP       tcp  --  0.0.0.0/5            192.168.11.32        tcp dpt:22
+DROP       tcp  --  8.0.0.0/7            192.168.11.32        tcp dpt:22
+DROP       tcp  --  11.0.0.0/8           192.168.11.32        tcp dpt:22
+DROP       tcp  --  12.0.0.0/6           192.168.11.32        tcp dpt:22
+DROP       tcp  --  16.0.0.0/4           192.168.11.32        tcp dpt:22
+DROP       tcp  --  32.0.0.0/3           192.168.11.32        tcp dpt:22
+DROP       tcp  --  64.0.0.0/3           192.168.11.32        tcp dpt:22
+DROP       tcp  --  96.0.0.0/4           192.168.11.32        tcp dpt:22
+DROP       tcp  --  112.0.0.0/5          192.168.11.32        tcp dpt:22
+DROP       tcp  --  120.0.0.0/6          192.168.11.32        tcp dpt:22
+DROP       tcp  --  124.0.0.0/7          192.168.11.32        tcp dpt:22
+DROP       tcp  --  126.0.0.0/8          192.168.11.32        tcp dpt:22
+DROP       tcp  --  128.0.0.0/3          192.168.11.32        tcp dpt:22
+DROP       tcp  --  160.0.0.0/5          192.168.11.32        tcp dpt:22
+DROP       tcp  --  168.0.0.0/6          192.168.11.32        tcp dpt:22
+DROP       tcp  --  172.0.0.0/12         192.168.11.32        tcp dpt:22
+DROP       tcp  --  172.32.0.0/11        192.168.11.32        tcp dpt:22
+DROP       tcp  --  172.64.0.0/10        192.168.11.32        tcp dpt:22
+DROP       tcp  --  172.128.0.0/9        192.168.11.32        tcp dpt:22
+DROP       tcp  --  173.0.0.0/8          192.168.11.32        tcp dpt:22
+DROP       tcp  --  174.0.0.0/7          192.168.11.32        tcp dpt:22
+DROP       tcp  --  176.0.0.0/4          192.168.11.32        tcp dpt:22
+DROP       tcp  --  192.0.0.0/9          192.168.11.32        tcp dpt:22
+DROP       tcp  --  192.128.0.0/11       192.168.11.32        tcp dpt:22
+DROP       tcp  --  192.160.0.0/13       192.168.11.32        tcp dpt:22
+DROP       tcp  --  192.169.0.0/16       192.168.11.32        tcp dpt:22
+DROP       tcp  --  192.170.0.0/15       192.168.11.32        tcp dpt:22
+DROP       tcp  --  192.172.0.0/14       192.168.11.32        tcp dpt:22
+DROP       tcp  --  192.176.0.0/12       192.168.11.32        tcp dpt:22
+DROP       tcp  --  192.192.0.0/10       192.168.11.32        tcp dpt:22
+DROP       tcp  --  193.0.0.0/8          192.168.11.32        tcp dpt:22
+DROP       tcp  --  194.0.0.0/7          192.168.11.32        tcp dpt:22
+DROP       tcp  --  196.0.0.0/6          192.168.11.32        tcp dpt:22
+DROP       tcp  --  200.0.0.0/5          192.168.11.32        tcp dpt:22
+DROP       tcp  --  208.0.0.0/4          192.168.11.32        tcp dpt:22
+DROP       tcp  --  224.0.0.0/3          192.168.11.32        tcp dpt:22
+DROP       all  --  0.0.0.0/0            0.0.0.0/0           
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
