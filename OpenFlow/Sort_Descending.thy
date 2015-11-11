@@ -34,12 +34,13 @@ section{* sorting descending *}
     apply(simp add: sort_descending_key_def)
     using sorted_descending by (metis rev_map sorted_sort_key)
 
-  lemma sorted_descending_split: "sorted_descending (map f l) \<Longrightarrow> \<exists>m n. l = m @ n \<and> (\<forall>e \<in> set m. f (hd m) = f e) \<and> (\<forall>e \<in> set n. f e < f (hd m))"
+  lemma sorted_descending_split: "sorted_descending (map f l) \<Longrightarrow> 
+  	\<exists>m n. l = m @ n \<and> (\<forall>e \<in> set m. f (hd l) = f e) \<and> (\<forall>e \<in> set n. f e < f (hd l))"
   proof(induction l)
   	case Nil thus ?case by simp
   next
   	case (Cons a as)
-  	from Cons(2) have "sorted_descending (map f as)" by simp
+  	from Cons(2) have IHm: "sorted_descending (map f as)" by simp
   	note mIH = Cons(1)[OF this]
   	thus ?case (is ?kees)
   	proof(cases as)
@@ -50,16 +51,22 @@ section{* sorting descending *}
   		show ?kees
   		proof(cases "f a = f aa")
   			case True
-  			from mIH obtain m n where mn: "as = m @ n" "(\<forall>e\<in>set m. f (hd m) = f e)" "(\<forall>e\<in>set n. f e < f (hd m))" by blast
+  			from mIH obtain m n where mn: "as = m @ n" "(\<forall>e\<in>set m. f a = f e)" "(\<forall>e\<in>set n. f e < f a)" 
+  				using True local.Cons by auto
   			have "a # as = a # m @ n" using mn(1) by simp
-  			moreover have "\<forall>e\<in>set (a # m). f (hd (a # m)) = f e" unfolding list.sel(1) using True mn(2) using Cons sorry
-  			ultimately show "\<exists>m n. a # as = m @ n \<and> (\<forall>e\<in>set m. f (hd m) = f e) \<and> (\<forall>e\<in>set n. f e < f (hd m))" using mn(3) sorry
+  			moreover have "\<forall>e\<in>set (a # m). f (hd (a # m)) = f e" unfolding list.sel(1) using True mn(2) using Cons by auto
+  			ultimately show "\<exists>m n. a # as = m @ n \<and> (\<forall>e\<in>set m. f (hd (a # as)) = f e) \<and> 
+  				(\<forall>e\<in>set n. f e < f (hd (a # as)))" using mn(3) by (metis append.simps(2) list.sel(1))
   		next
   			case False
-  			with Cons.prems have "\<forall>e\<in>set as. f e < f a" sorry
-  			moreover have "a # as = [a] @ as \<and> (\<forall>e\<in>set [a]. f (hd [a]) = f e)" sorry
-  			show ?kees
-  			sorry
+  			from Cons.prems have "\<forall>y\<in>set (map f as). y \<le> f a"
+  				unfolding list.map(2) 
+  				unfolding sorted_descending_Cons
+  				..
+  			then have "\<forall>e\<in>set as. f e < f a" 
+  				using False IHm dual_order.strict_trans1 local.Cons by auto (* wtf, Isabelle? *) 
+  			moreover have "a # as = [a] @ as \<and> (\<forall>e\<in>set [a]. f (hd [a]) = f e)" by simp
+  			ultimately show ?kees by (metis list.sel(1))
   		qed
   	qed
   qed
