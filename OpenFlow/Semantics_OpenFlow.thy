@@ -129,7 +129,7 @@ qed
 
 lemma forall_append: "(\<forall>k \<in> set (m @ n). P k) \<longleftrightarrow> (\<forall>k \<in> set m. P k) \<and> (\<forall>k \<in> set n. P k)" by auto
 
-lemma "sorted_descending (map ofe_prio ft) \<Longrightarrow> check_no_overlap \<gamma> ft \<Longrightarrow> 
+lemma OF_match_eq: "sorted_descending (map ofe_prio ft) \<Longrightarrow> check_no_overlap \<gamma> ft \<Longrightarrow> 
 	OF_same_priority_match2 \<gamma> ft p = Defined (OF_match_linear \<gamma> ft p)"
 proof(induction "ft")
 	case goal2
@@ -194,6 +194,25 @@ proof(induction "ft")
 			by(simp only: mn(1)[symmetric] OF_match_linear.simps True if_True, simp)
 		qed
 qed (simp add: OF_same_priority_match2_def)
+
+lemma overlap_sort_invar[simp]: "check_no_overlap \<gamma> (sort_descending_key k ft) = check_no_overlap \<gamma> ft"
+	unfolding check_no_overlap_def
+	unfolding sort_descending_set_inv
+	..
+
+lemma OF_match_eq2: "check_no_overlap \<gamma> ft \<Longrightarrow> 
+	OF_same_priority_match2 \<gamma> ft p = Defined (OF_match_linear \<gamma> (sort_descending_key ofe_prio ft) p)"
+proof -
+	case goal1
+	have "sorted_descending (map ofe_prio (sort_descending_key ofe_prio ft))" by (simp add: sorted_descending_sort_descending_key)
+	note ceq = OF_match_eq[OF this, unfolded overlap_sort_invar, OF goal1, symmetric]
+	show ?case 
+		unfolding ceq
+		unfolding OF_same_priority_match2_def
+		unfolding sort_descending_set_inv
+		..
+qed
+
 	
 text{*The flow entries should always be distinct -- yes, but that's not the only thing we want. *}
 lemma "\<not> distinct flow_entries \<Longrightarrow> flow_entries \<noteq> [] \<Longrightarrow> \<exists>\<gamma> p. OF_same_priority_match \<gamma> flow_entries p = Undefined"

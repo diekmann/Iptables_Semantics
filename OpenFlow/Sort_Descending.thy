@@ -59,16 +59,21 @@ section{* sorting descending *}
   				(\<forall>e\<in>set n. f e < f (hd (a # as)))" using mn(3) by (metis append.simps(2) list.sel(1))
   		next
   			case False
-  			from Cons.prems have "\<forall>y\<in>set (map f as). y \<le> f a"
+  			from Cons.prems have "\<forall>y\<in>set (map f as). y < f a"
   				unfolding list.map(2) 
   				unfolding sorted_descending_Cons
-  				..
-  			then have "\<forall>e\<in>set as. f e < f a" 
-  				using False IHm dual_order.strict_trans1 local.Cons by auto (* wtf, Isabelle? *) 
+  				unfolding set_map
+  				unfolding local.Cons
+  				using False 
+  				by auto
+  			then have "\<forall>e\<in>set as. f e < f a" by simp
   			moreover have "a # as = [a] @ as \<and> (\<forall>e\<in>set [a]. f (hd [a]) = f e)" by simp
   			ultimately show ?kees by (metis list.sel(1))
   		qed
   	qed
   qed
+  
+  lemma sort_descending_set_inv[simp]: "set (sort_descending_key k t) = set t"
+  	by (simp add: sort_descending_key_def)
   	
 end
