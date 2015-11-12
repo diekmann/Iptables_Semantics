@@ -6,6 +6,7 @@ begin
 section{*Optimizing*}
 
 subsection{*Removing Shadowed Rules*}
+text{*Note: there is no executable code for rmshadow at the moment*}
 
 text{*Assumes: @{term "simple_ruleset"}*}
 fun rmshadow :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'p set \<Rightarrow> 'a rule list" where
@@ -46,10 +47,8 @@ subsubsection{*Soundness*}
           apply(rename_tac m a)
           apply(simp add: fun_eq_iff)
           apply(clarify)
-          apply(rename_tac s)
-          apply(case_tac s)
-           apply(simp)
-          apply(simp add: Decision_approximating_bigstep_fun)
+          apply(rule just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided)
+          apply(simp)
           done
         from this IH have "?fw p (?rm rs P) = ?fw p (r#rs) " by simp
         thus "?fw p (?rm (r#rs) P) = ?fw p (r#rs) " using 1 by simp
@@ -63,10 +62,8 @@ subsubsection{*Soundness*}
                 apply(rename_tac m a)
                 apply(simp add: fun_eq_iff)
                 apply(clarify)
-                apply(rename_tac s)
-                apply(case_tac s)
-                 apply(simp)
-                apply(simp add: Decision_approximating_bigstep_fun)
+                apply(rule just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided)
+                apply(simp)
                 done
             next
             case False
@@ -78,10 +75,9 @@ subsubsection{*Soundness*}
                 apply(simp add: fun_eq_iff)
                 apply(clarify)
                 apply(rename_tac s)
-                apply(case_tac s)
-                 apply(simp split:action.split)
-                 apply fast
-                apply(simp add: Decision_approximating_bigstep_fun)
+                apply(rule just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided)
+                apply(simp split:action.split)
+                apply fast
                 done
           qed
         from False this show ?thesis 
@@ -89,17 +85,15 @@ subsubsection{*Soundness*}
           apply(rename_tac m a)
           apply(simp add: fun_eq_iff)
           apply(clarify)
-          apply(rename_tac s)
-          apply(case_tac s)
-           apply(simp)
-          apply(simp add: Decision_approximating_bigstep_fun)
+          apply(rule just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided)
+          apply(simp)
           done
     qed
   qed
 
 
 
-
+subsection{*Removing rules which cannot apply*}
 
 fun rmMatchFalse :: "'a rule list \<Rightarrow> 'a rule list" where
   "rmMatchFalse [] = []" |
@@ -131,6 +125,17 @@ lemma rmMatchFalse_correct: "approximating_bigstep_fun \<gamma> p (rmMatchFalse 
   qed
 
 
+
+fun cutt_off_after_default :: "'a rule list \<Rightarrow> 'a rule list" where
+  "cutt_off_after_default [] = []" |
+  "cutt_off_after_default ((Rule MatchAny Accept)#_) = [Rule MatchAny Accept]" |
+  "cutt_off_after_default ((Rule MatchAny Drop)#_) = [Rule MatchAny Drop]" |
+  "cutt_off_after_default ((Rule MatchAny Reject)#_) = [Rule MatchAny Reject]" |
+  "cutt_off_after_default (r#rs) = r # cutt_off_after_default rs"
+
+lemma cutt_off_after_default_correct: "approximating_bigstep_fun \<gamma> p (cutt_off_after_default rs) s = approximating_bigstep_fun \<gamma> p rs s"
+apply(rule just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided)
+by(induction rs rule: cutt_off_after_default.induct) (simp_all add: bunch_of_lemmata_about_matches(2) split: action.split)
 
 
 end

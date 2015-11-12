@@ -1,15 +1,16 @@
 theory SimpleFw_Compliance
-imports SimpleFw_Semantics "../Primitive_Matchers/Transform"
+imports SimpleFw_Semantics "../Primitive_Matchers/Transform" "../Primitive_Matchers/Primitive_Abstract"
 begin
 
 fun ipv4_word_netmask_to_ipt_ipv4range :: "(ipv4addr \<times> nat) \<Rightarrow> ipt_ipv4range" where
   "ipv4_word_netmask_to_ipt_ipv4range (ip, n) = Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) n"
 
+(*
 fun ipt_ipv4range_to_ipv4_word_netmask :: "ipt_ipv4range \<Rightarrow> (ipv4addr \<times> nat)" where
   "ipt_ipv4range_to_ipv4_word_netmask (Ip4Addr ip_ddecim) = (ipv4addr_of_dotdecimal ip_ddecim, 32)" | 
   "ipt_ipv4range_to_ipv4_word_netmask (Ip4AddrNetmask pre len) = (ipv4addr_of_dotdecimal pre, len)"
   (*we could make sure here that this is a @{term valid_prefix}, \<dots>*)
-
+*)
 
 
 subsection{*Simple Match to MatchExpr*}
@@ -128,8 +129,8 @@ fun common_primitive_match_to_simple_match :: "common_primitive match_expr \<Rig
   "common_primitive_match_to_simple_match (MatchNot MatchAny) = None" |
   "common_primitive_match_to_simple_match (Match (IIface iif)) = Some (simple_match_any\<lparr> iiface := iif \<rparr>)" |
   "common_primitive_match_to_simple_match (Match (OIface oif)) = Some (simple_match_any\<lparr> oiface := oif \<rparr>)" |
-  "common_primitive_match_to_simple_match (Match (Src ip)) = Some (simple_match_any\<lparr> src := (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>)" |
-  "common_primitive_match_to_simple_match (Match (Dst ip)) = Some (simple_match_any\<lparr> dst := (ipt_ipv4range_to_ipv4_word_netmask ip) \<rparr>)" |
+  "common_primitive_match_to_simple_match (Match (Src (Ip4AddrNetmask pre len))) = Some (simple_match_any\<lparr> src := (ipv4addr_of_dotdecimal pre, len) \<rparr>)" |
+  "common_primitive_match_to_simple_match (Match (Dst (Ip4AddrNetmask pre len))) = Some (simple_match_any\<lparr> dst := (ipv4addr_of_dotdecimal pre, len) \<rparr>)" |
   "common_primitive_match_to_simple_match (Match (Prot p)) = Some (simple_match_any\<lparr> proto := p \<rparr>)" |
   "common_primitive_match_to_simple_match (Match (Src_Ports [])) = None" |
   "common_primitive_match_to_simple_match (Match (Src_Ports [(s,e)])) = Some (simple_match_any\<lparr> sports := (s,e) \<rparr>)" |
@@ -141,9 +142,13 @@ fun common_primitive_match_to_simple_match :: "common_primitive match_expr \<Rig
     | (_, None) \<Rightarrow> None
     | (Some m1', Some m2') \<Rightarrow> simple_match_and m1' m2')" |
   --"undefined cases, normalize before!"
+  "common_primitive_match_to_simple_match (Match (Src (Ip4Addr _))) = undefined" |
+  "common_primitive_match_to_simple_match (Match (Src (Ip4AddrRange _ _))) = undefined" |
+  "common_primitive_match_to_simple_match (Match (Dst (Ip4Addr _))) = undefined" |
+  "common_primitive_match_to_simple_match (Match (Dst (Ip4AddrRange _ _))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (Prot _))) = undefined" |
-  "common_primitive_match_to_simple_match (MatchNot (Match (IIface iif))) = undefined" |
-  "common_primitive_match_to_simple_match (MatchNot (Match (OIface oif))) = undefined" |
+  "common_primitive_match_to_simple_match (MatchNot (Match (IIface _))) = undefined" |
+  "common_primitive_match_to_simple_match (MatchNot (Match (OIface _))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (Src _))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (Dst _))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (MatchAnd _ _)) = undefined" |
@@ -152,33 +157,24 @@ fun common_primitive_match_to_simple_match :: "common_primitive match_expr \<Rig
   "common_primitive_match_to_simple_match (Match (Dst_Ports (_#_))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (Src_Ports _))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (Dst_Ports _))) = undefined" |
+  "common_primitive_match_to_simple_match (Match (CT_State _)) = undefined" |
+  "common_primitive_match_to_simple_match (Match (L4_Flags _)) = undefined" |
+  "common_primitive_match_to_simple_match (MatchNot (Match (L4_Flags _))) = undefined" |
   "common_primitive_match_to_simple_match (Match (Extra _)) = undefined" |
-  "common_primitive_match_to_simple_match (MatchNot (Match (Extra _))) = undefined"
-(*\<dots>*)
+  "common_primitive_match_to_simple_match (MatchNot (Match (Extra _))) = undefined" |
+  "common_primitive_match_to_simple_match (MatchNot (Match (CT_State _))) = undefined"
 
 
 
 subsubsection{*Normalizing Interfaces*}
 text{*As for now, negated interfaces are simply not allowed*}
-  fun normalized_ifaces :: "common_primitive match_expr \<Rightarrow> bool" where
-    "normalized_ifaces MatchAny = True" |
-    "normalized_ifaces (Match _) = True" |
-    "normalized_ifaces (MatchNot (Match (IIface _))) = False" |
-    "normalized_ifaces (MatchNot (Match (OIface _))) = False" |
-    "normalized_ifaces (MatchAnd m1 m2) = (normalized_ifaces m1 \<and> normalized_ifaces m2)" |
-    "normalized_ifaces (MatchNot (MatchAnd _ _)) = False" |
-    "normalized_ifaces (MatchNot _) = True" 
-
+  definition normalized_ifaces :: "common_primitive match_expr \<Rightarrow> bool" where
+    "normalized_ifaces m \<equiv> \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False m"
 
 subsubsection{*Normalizing Protocols*}
 text{*As for now, negated protocols are simply not allowed*}
-  fun normalized_protocols :: "common_primitive match_expr \<Rightarrow> bool" where
-    "normalized_protocols MatchAny = True" |
-    "normalized_protocols (Match _) = True" |
-    "normalized_protocols (MatchNot (Match (Prot _))) = False" |
-    "normalized_protocols (MatchAnd m1 m2) = (normalized_protocols m1 \<and> normalized_protocols m2)" |
-    "normalized_protocols (MatchNot (MatchAnd _ _)) = False" |
-    "normalized_protocols (MatchNot _) = True" 
+  definition normalized_protocols :: "common_primitive match_expr \<Rightarrow> bool" where
+    "normalized_protocols m \<equiv> \<not> has_disc_negated is_Prot False m"
 
 
 
@@ -203,15 +199,12 @@ theorem common_primitive_match_to_simple_match:
       and "normalized_dst_ips m"
       and "normalized_ifaces m"
       and "normalized_protocols m"
+      and "\<not> has_disc is_L4_Flags m"
+      and "\<not> has_disc is_CT_State m"
       and "\<not> has_disc is_Extra m"
   shows "(Some sm = common_primitive_match_to_simple_match m \<longrightarrow> matches (common_matcher, \<alpha>) m a p \<longleftrightarrow> simple_matches sm p) \<and>
          (common_primitive_match_to_simple_match m = None \<longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p)"
 proof -
-  { fix ip
-    have "p_src p \<in> ipv4s_to_set ip \<longleftrightarrow> simple_match_ip (ipt_ipv4range_to_ipv4_word_netmask ip) (p_src p)"
-    and  "p_dst p \<in> ipv4s_to_set ip \<longleftrightarrow> simple_match_ip (ipt_ipv4range_to_ipv4_word_netmask ip) (p_dst p)"
-    by(case_tac [!] ip)(simp_all add: ipv4range_set_from_bitmask_32)
-  } note matches_SrcDst_simple_match2=this
   show ?thesis
   using assms proof(induction m arbitrary: sm rule: common_primitive_match_to_simple_match.induct)
   case 1 thus ?case 
@@ -223,13 +216,24 @@ proof -
     let ?goal="(?caseSome \<longrightarrow> matches (common_matcher, \<alpha>) (MatchAnd m1 m2) a p = simple_matches sm p) \<and> 
                (?caseNone \<longrightarrow> \<not> matches (common_matcher, \<alpha>) (MatchAnd m1 m2) a p)"
 
+    from 13 have normalized:
+      "normalized_src_ports m1" "normalized_src_ports m2"
+      "normalized_dst_ports m1" "normalized_dst_ports m2"
+      "normalized_src_ips m1" "normalized_src_ips m2"
+      "normalized_dst_ips m1" "normalized_dst_ips m2"
+      "normalized_ifaces m1" "normalized_ifaces m2"
+      "\<not> has_disc is_L4_Flags m1" "\<not> has_disc is_L4_Flags m2"
+      "\<not> has_disc is_CT_State m1" "\<not> has_disc is_CT_State m2"
+      "\<not> has_disc is_Extra m1" "\<not> has_disc is_Extra m2"
+      "normalized_protocols m1" "normalized_protocols m2"
+      by(simp_all add: normalized_protocols_def normalized_ifaces_def)
     {  assume caseNone: ?caseNone
       { fix sm1 sm2
         assume sm1: "common_primitive_match_to_simple_match m1 = Some sm1"
            and sm2: "common_primitive_match_to_simple_match m2 = Some sm2"
            and sma: "simple_match_and sm1 sm2 = None"
         from sma simple_match_and_correct have 1: "\<not> (simple_matches sm1 p \<and> simple_matches sm2 p)" by simp
-        from sm1 sm2 13 have 2: "(matches (common_matcher, \<alpha>) m1 a p \<longleftrightarrow> simple_matches sm1 p) \<and> 
+        from normalized sm1 sm2 "13.IH" have 2: "(matches (common_matcher, \<alpha>) m1 a p \<longleftrightarrow> simple_matches sm1 p) \<and> 
                               (matches (common_matcher, \<alpha>) m2 a p \<longleftrightarrow> simple_matches sm2 p)" by force
         hence 2: "matches (common_matcher, \<alpha>) (MatchAnd m1 m2) a p \<longleftrightarrow> simple_matches sm1 p \<and> simple_matches sm2 p"
           by(simp add: bunch_of_lemmata_about_matches)
@@ -242,7 +246,7 @@ proof -
       hence "\<not> matches (common_matcher, \<alpha>) (MatchAnd m1 m2) a p" 
         apply(elim disjE)
           apply(simp_all)
-         using 13 apply(simp_all add: bunch_of_lemmata_about_matches(1))
+         using "13.IH" normalized apply(simp_all add: bunch_of_lemmata_about_matches(1))
         done
     }note caseNone=this
 
@@ -252,7 +256,7 @@ proof -
         by(simp_all split: option.split_asm)
       from this obtain sm1 sm2 where sm1: "Some sm1 = common_primitive_match_to_simple_match m1"
                                  and sm2: "Some sm2 = common_primitive_match_to_simple_match m2" by fastforce+
-      with 13 have "matches (common_matcher, \<alpha>) m1 a p = simple_matches sm1 p \<and>
+      with "13.IH" normalized have "matches (common_matcher, \<alpha>) m1 a p = simple_matches sm1 p \<and>
                     matches (common_matcher, \<alpha>) m2 a p = simple_matches sm2 p" by simp
       hence 1: "matches (common_matcher, \<alpha>) (MatchAnd m1 m2) a p \<longleftrightarrow> simple_matches sm1 p \<and> simple_matches sm2 p"
         by(simp add: bunch_of_lemmata_about_matches)
@@ -262,8 +266,8 @@ proof -
     } note caseSome=this
 
     from caseNone caseSome show ?goal by blast
-  qed(simp_all add: match_iface_simple_match_any_simps simple_matches.simps, 
-    simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary matches_SrcDst_simple_match2)
+  qed(simp_all add: match_iface_simple_match_any_simps simple_matches.simps normalized_protocols_def normalized_ifaces_def, 
+    simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
 qed
 
 
@@ -287,8 +291,29 @@ fun action_to_simple_action :: "action \<Rightarrow> simple_action" where
   "action_to_simple_action _ = undefined"
 
 definition check_simple_fw_preconditions :: "common_primitive rule list \<Rightarrow> bool" where
-  "check_simple_fw_preconditions rs \<equiv> \<forall>r \<in> set rs. (case r of (Rule m a) \<Rightarrow> normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> normalized_ifaces m \<and> 
-  normalized_protocols m \<and> \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop))"
+  "check_simple_fw_preconditions rs \<equiv> \<forall>r \<in> set rs. (case r of (Rule m a) \<Rightarrow>
+      normalized_src_ports m \<and>
+      normalized_dst_ports m \<and>
+      normalized_src_ips m \<and>
+      normalized_dst_ips m \<and>
+      normalized_ifaces m \<and> 
+      normalized_protocols m \<and>
+      \<not> has_disc is_L4_Flags m \<and>
+      \<not> has_disc is_CT_State m \<and>
+      \<not> has_disc is_Extra m \<and>
+      (a = action.Accept \<or> a = action.Drop))"
+
+
+(*apart from MatchNot MatchAny, the normalizations imply nnf*)
+lemma "normalized_src_ports m \<Longrightarrow> normalized_nnf_match m"
+  apply(induction m rule: normalized_src_ports.induct)
+  apply(simp_all)[15]
+  oops
+lemma "\<not> matcheq_matchNone m \<Longrightarrow> normalized_src_ports m \<Longrightarrow> normalized_nnf_match m"
+  by(induction m rule: normalized_src_ports.induct) (simp_all)
+
+value "check_simple_fw_preconditions [Rule (MatchNot (MatchNot (MatchNot (Match (Src a))))) action.Accept]"
+
 
 definition to_simple_firewall :: "common_primitive rule list \<Rightarrow> simple_rule list" where
   "to_simple_firewall rs \<equiv> if check_simple_fw_preconditions rs then
@@ -342,5 +367,129 @@ theorem to_simple_firewall: "check_simple_fw_preconditions rs \<Longrightarrow> 
     thus ?case
       by(auto simp add: r to_simple_firewall_simps' IH match nomatch split: option.split action.split)
   qed
+
+
+
+lemma ctstate_assume_new_not_has_CT_State:
+  "m \<in> get_match ` set (ctstate_assume_new rs) \<Longrightarrow> \<not> has_disc is_CT_State m"
+  apply(simp add: ctstate_assume_new_def)
+  apply(induction rs)
+   apply(simp add: optimize_matches_def; fail)
+  apply(simp add: optimize_matches_def)
+  apply(safe)
+   apply(simp_all add: not_hasdisc_ctstate_assume_state)
+  done
+
+text{*The precondiction for the simple firewall can be easily fulfilled.
+      The subset relation is due to abstracting over some primitives (e.g., negated primitives, l4 flags)*}
+theorem transform_simple_fw:
+  defines "preprocess rs \<equiv> upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new rs)))"
+  and "newpkt p \<equiv> match_tcp_flags ipt_tcp_syn (p_tcp_flags p) \<and> p_tag_ctstate p = CT_New"
+  assumes simplers: "simple_ruleset rs"
+  --"the preconditions for the simple firewall are fulfilled, definitely no runtime failure"
+  shows "check_simple_fw_preconditions (preprocess rs)"
+  --"the set of new packets, which are accepted is an overapproximations"
+  and "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
+       {p. simple_fw (to_simple_firewall (preprocess rs)) p = Decision FinalAllow \<and> newpkt p}"
+  unfolding check_simple_fw_preconditions_def preprocess_def
+  apply(clarify, rename_tac r, case_tac r, rename_tac m a, simp)
+  proof -
+    let ?rs3="optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new rs))"
+    let ?rs'="upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new rs)))"
+
+    from packet_assume_new_simple_ruleset[OF simplers] have s1: "simple_ruleset (packet_assume_new rs)" .
+    from transform_upper_closure(2)[OF s1] have s2: "simple_ruleset (upper_closure (packet_assume_new rs))" .
+    from s2 have s3: "simple_ruleset ?rs3" by (simp add: optimize_matches_simple_ruleset) 
+    from transform_upper_closure(2)[OF s3] have s4: "simple_ruleset ?rs'" .
+
+    from transform_upper_closure(3)[OF s1] have nnf2: "\<forall>m\<in>get_match ` set (upper_closure (packet_assume_new rs)). normalized_nnf_match m" by simp
+    
+  { fix m a
+    assume r: "Rule m a \<in> set ?rs'"
+
+    from s4 r have a: "(a = action.Accept \<or> a = action.Drop)" by(auto simp add: simple_ruleset_def)
+    
+    have "\<And>m. m \<in> get_match ` set (packet_assume_new rs) \<Longrightarrow> \<not> has_disc is_CT_State m"
+      by(simp add: packet_assume_new_def ctstate_assume_new_not_has_CT_State)
+    with transform_upper_closure(4)[OF s1, where disc=is_CT_State] have
+      "\<forall>m\<in>get_match ` set (upper_closure (packet_assume_new rs)). \<not> has_disc is_CT_State m"
+      by fastforce
+    with abstract_primitive_preserves_nodisc[where disc'="is_CT_State"] have "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc is_CT_State m"
+      apply -
+      apply(rule optimize_matches_preserves)
+      apply(simp add: abstract_for_simple_firewall_def)
+      done
+    with transform_upper_closure(4)[OF s3, where disc=is_CT_State] have "\<forall>m\<in>get_match ` set ?rs'. \<not> has_disc is_CT_State m" by fastforce
+    with r have no_CT: "\<not> has_disc is_CT_State m" by fastforce
+
+    from abstract_for_simple_firewall_hasdisc have "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc is_L4_Flags m"
+      apply -
+      apply(rule optimize_matches_preserves, simp)
+      done
+    with transform_upper_closure(4)[OF s3, where disc=is_L4_Flags] have "\<forall>m\<in>get_match ` set ?rs'. \<not> has_disc is_L4_Flags m" by fastforce
+    with r have no_L4_Flags: "\<not> has_disc is_L4_Flags m" by fastforce
+
+    from nnf2 abstract_for_simple_firewall_negated_ifaces_prots have
+      ifaces: "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False m" and
+      protocols: "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated is_Prot False m" 
+      apply -
+      apply(rule optimize_matches_preserves, simp)+
+      done
+
+    from transform_upper_closure(3)[OF s3] have "\<forall>m\<in>get_match ` set ?rs'.
+     normalized_nnf_match m \<and> normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" .
+    with r have normalized: "normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" by fastforce
+
+
+    from transform_upper_closure(5)[OF s3] ifaces protocols have "\<forall>m\<in>get_match ` set ?rs'.
+     \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False m \<and> \<not> has_disc_negated is_Prot False m" by simp (*500ms*)
+    with r have abstracted: "normalized_ifaces m \<and> normalized_protocols m"
+    unfolding normalized_protocols_def normalized_ifaces_def by fastforce
+    
+    from no_CT no_L4_Flags s4 normalized a abstracted show "normalized_src_ports m \<and>
+             normalized_dst_ports m \<and>
+             normalized_src_ips m \<and>
+             normalized_dst_ips m \<and>
+             normalized_ifaces m \<and>
+             normalized_protocols m \<and> \<not> has_disc is_L4_Flags m \<and> \<not> has_disc is_CT_State m \<and> \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop)"
+      by(simp)
+  }
+    hence simple_fw_preconditions: "check_simple_fw_preconditions ?rs'"
+    unfolding check_simple_fw_preconditions_def
+    by(clarify, rename_tac r, case_tac r, rename_tac m a, simp)
+
+    let ?\<gamma>="(common_matcher, in_doubt_allow)"
+    let ?fw="\<lambda>rs p. approximating_bigstep_fun ?\<gamma> p rs Undecided"
+
+    have 1: "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>?rs', Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} =
+          {p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>?rs3, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
+      apply(subst transform_upper_closure(1)[OF s3])
+      by simp
+    from abstract_primitive_in_doubt_allow(2)[OF nnf2 s2] have 2:
+         "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>upper_closure (packet_assume_new rs), Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
+          {p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>?rs3, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
+      by(auto simp add: abstract_for_simple_firewall_def)
+    have 3: "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>upper_closure (packet_assume_new rs), Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} =
+          {p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
+      apply(subst transform_upper_closure(1)[OF s1])
+      apply(subst approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF s1]])
+      apply(subst approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]])
+      using packet_assume_new newpkt_def by auto
+      
+    have 4: "\<And>p. ?\<gamma>,p\<turnstile> \<langle>?rs', Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<longleftrightarrow> ?fw ?rs' p = Decision FinalAllow"
+      using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF s4]] by fast
+    
+    have "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
+       {p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>?rs', Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
+      apply(subst 1)
+      apply(subst 3[symmetric])
+      using 2 by blast
+    
+    thus "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
+       {p. simple_fw (to_simple_firewall ?rs') p = Decision FinalAllow \<and> newpkt p}"
+      using to_simple_firewall[OF simple_fw_preconditions] 4 by simp
+  qed
+
+
 
 end

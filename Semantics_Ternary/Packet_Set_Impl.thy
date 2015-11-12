@@ -1,5 +1,5 @@
 theory Packet_Set_Impl
-imports Fixed_Action Negation_Type_Matching "../Datatype_Selectors"
+imports Normalized_Matches Negation_Type_Matching "../Datatype_Selectors"
 begin
 
 
@@ -71,11 +71,11 @@ apply(simp add: to_packet_set_def packet_set_to_set_def)
 apply(rule iffI)
  apply(clarify)
  apply(induction m rule: normalize_match.induct)
-       apply(simp_all add: bunch_of_lemmata_about_matches)
+       apply(simp_all add: bunch_of_lemmata_about_matches negation_type_to_match_expr_simps)
    apply force
 apply (metis matches_DeMorgan)
 apply(induction m rule: normalize_match.induct)
-      apply(simp_all add: bunch_of_lemmata_about_matches)
+      apply(simp_all add: bunch_of_lemmata_about_matches negation_type_to_match_expr_simps)
  apply (metis Un_iff)
 apply (metis Un_iff matches_DeMorgan)
 done

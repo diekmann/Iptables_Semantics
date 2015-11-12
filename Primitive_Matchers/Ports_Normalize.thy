@@ -1,6 +1,5 @@
 theory Ports_Normalize
-imports Common_Primitive_Matcher
-        Primitive_Normalization
+imports Common_Primitive_Lemmas
 begin
 
 
@@ -51,7 +50,7 @@ begin
     "ipt_ports_compress pss = ipt_ports_andlist_compress (map ipt_ports_negation_type_normalize pss)"
   
   
-  (*TODO: only for src*)
+  (*only for src*)
   private lemma ipt_ports_compress_src_correct:
     "matches (common_matcher, \<alpha>) (alist_and (NegPos_map Src_Ports ms)) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_compress ms))) a p"
   proof(induction ms)
@@ -72,6 +71,7 @@ begin
           done
         qed
   qed
+  (*only for dst*)
   private lemma ipt_ports_compress_dst_correct:
     "matches (common_matcher, \<alpha>) (alist_and (NegPos_map Dst_Ports ms)) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) (Match (Dst_Ports (ipt_ports_compress ms))) a p"
   proof(induction ms)
@@ -160,7 +160,7 @@ begin
   value "normalized_nnf_match (MatchAnd (MatchNot (Match (Src_Ports [(1,2)]))) (Match (Src_Ports [(1,2)])))"
   value "normalize_src_ports (MatchAnd (MatchNot (Match (Src_Ports [(5,9)]))) (Match (Src_Ports [(1,2)])))"
 
-  (*TODO: probably we should optimize away the (Match (Src_Ports [(0, 65535)]))*)
+  (*probably we should optimize away the (Match (Src_Ports [(0, 65535)]))*)
   value "normalize_src_ports (MatchAnd (MatchNot (Match (Prot (Proto TCP)))) (Match (Prot (ProtoAny))))"
   
   fun normalized_src_ports :: "common_primitive match_expr \<Rightarrow> bool" where
@@ -193,12 +193,6 @@ begin
     by(induction ms rule: normalized_src_ports.induct, simp_all)
   lemma normalized_dst_ports_def2: "normalized_dst_ports ms = normalized_n_primitive (is_Dst_Ports, dst_ports_sel) (\<lambda>pts. length pts \<le> 1) ms"
     by(induction ms rule: normalized_dst_ports.induct, simp_all)
-  
-  (*unused? TODO: Move?*)
-  private lemma normalized_nnf_match_MatchNot_D: "normalized_nnf_match (MatchNot m) \<Longrightarrow> normalized_nnf_match m"
-  apply(induction m)
-  apply(simp_all)
-  done
   
   
   private lemma "\<forall>spt \<in> set (ipt_ports_compress spts). normalized_src_ports (Match (Src_Ports [spt]))" by(simp)

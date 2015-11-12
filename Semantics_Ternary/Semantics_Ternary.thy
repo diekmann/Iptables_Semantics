@@ -2,19 +2,9 @@ theory Semantics_Ternary
 imports Matching_Ternary "../Misc"
 begin
 
-(*
-TODO TODO TODO
-
-rename the functions.
-
-*)
-
 section{*Embedded Ternary-Matching Big Step Semantics*}
 
-(* TODO larsrh *)
-lemma rules_singleton_rev_E: "[Rule m a] = rs\<^sub>1 @ rs\<^sub>2 \<Longrightarrow> (rs\<^sub>1 = [Rule m a] \<Longrightarrow> rs\<^sub>2 = [] \<Longrightarrow> P m a) \<Longrightarrow> (rs\<^sub>1 = [] \<Longrightarrow> rs\<^sub>2 = [Rule m a] \<Longrightarrow> P m a) \<Longrightarrow> P m a"
-by (cases rs\<^sub>1) auto
-
+subsection{*Ternary Semantics (Big Step)*}
 
 inductive approximating_bigstep :: "('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> 'a rule list \<Rightarrow> state \<Rightarrow> state \<Rightarrow> bool"
   ("_,_\<turnstile> \<langle>_, _\<rangle> \<Rightarrow>\<^sub>\<alpha> _"  [60,60,20,98,98] 89)
@@ -164,6 +154,32 @@ proof(cases s)
 qed
 
 
+subsection{*wf ruleset*}
+  text{*
+  A @{typ "'a rule list"} here is well-formed (for a packet) if
+  \begin{enumerate}
+    \item either the rules do not match
+    \item or the action is not @{const Call}, not @{const Return}, not @{const Unknown}
+  \end{enumerate}
+  *}
+  definition wf_ruleset :: "('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> 'a rule list \<Rightarrow> bool" where
+    "wf_ruleset \<gamma> p rs \<equiv> \<forall>r \<in> set rs. 
+      (\<not> matches \<gamma> (get_match r) (get_action r) p) \<or> 
+      (\<not>(\<exists>chain. get_action r = Call chain) \<and> get_action r \<noteq> Return \<and> \<not>(\<exists>chain. get_action r = Goto chain) \<and> get_action r \<noteq> Unknown)"
+
+  lemma wf_ruleset_append: "wf_ruleset \<gamma> p (rs1@rs2) \<longleftrightarrow> wf_ruleset \<gamma> p rs1 \<and> wf_ruleset \<gamma> p rs2"
+    by(auto simp add: wf_ruleset_def)
+  lemma wf_rulesetD: assumes "wf_ruleset \<gamma> p (r # rs)" shows "wf_ruleset \<gamma> p [r]" and "wf_ruleset \<gamma> p rs"
+    using assms by(auto simp add: wf_ruleset_def)
+  lemma wf_ruleset_fst: "wf_ruleset \<gamma> p (Rule m a # rs) \<longleftrightarrow> wf_ruleset \<gamma> p [Rule m a] \<and> wf_ruleset \<gamma> p rs"
+    using assms by(auto simp add: wf_ruleset_def)
+  lemma wf_ruleset_stripfst: "wf_ruleset \<gamma> p (r # rs) \<Longrightarrow> wf_ruleset \<gamma> p (rs)"
+    by(simp add: wf_ruleset_def)
+  lemma wf_ruleset_rest: "wf_ruleset \<gamma> p (Rule m a # rs) \<Longrightarrow> wf_ruleset \<gamma> p [Rule m a]"
+    by(simp add: wf_ruleset_def)
+
+subsection{*Ternary Semantics (Function)*}
+
 fun approximating_bigstep_fun :: "('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> 'a rule list \<Rightarrow> state \<Rightarrow> state" where
   "approximating_bigstep_fun \<gamma> p [] s = s" |
   "approximating_bigstep_fun \<gamma> p rs (Decision X) = (Decision X)" |
@@ -198,32 +214,7 @@ by metis
 lemma Decision_approximating_bigstep_fun: "approximating_bigstep_fun \<gamma> p rs (Decision X) = Decision X"
   by(induction rs) (simp_all)
 
-
-subsection{*wf ruleset*}
-  text{*
-  A @{typ "'a rule list"} here is well-formed (for a packet) if
-  \begin{enumerate}
-    \item either the rules do not match
-    \item or the action is not @{const Call}, not @{const Return}, not @{const Unknown}
-  \end{enumerate}
-  *}
-  definition wf_ruleset :: "('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> 'a rule list \<Rightarrow> bool" where
-    "wf_ruleset \<gamma> p rs \<equiv> \<forall>r \<in> set rs. 
-      (\<not> matches \<gamma> (get_match r) (get_action r) p) \<or> 
-      (\<not>(\<exists>chain. get_action r = Call chain) \<and> get_action r \<noteq> Return \<and> \<not>(\<exists>chain. get_action r = Goto chain) \<and> get_action r \<noteq> Unknown)"
-
-  lemma wf_ruleset_append: "wf_ruleset \<gamma> p (rs1@rs2) \<longleftrightarrow> wf_ruleset \<gamma> p rs1 \<and> wf_ruleset \<gamma> p rs2"
-    by(auto simp add: wf_ruleset_def)
-  lemma wf_rulesetD: assumes "wf_ruleset \<gamma> p (r # rs)" shows "wf_ruleset \<gamma> p [r]" and "wf_ruleset \<gamma> p rs"
-    using assms by(auto simp add: wf_ruleset_def)
-  lemma wf_ruleset_fst: "wf_ruleset \<gamma> p (Rule m a # rs) \<longleftrightarrow> wf_ruleset \<gamma> p [Rule m a] \<and> wf_ruleset \<gamma> p rs"
-    using assms by(auto simp add: wf_ruleset_def)
-  lemma wf_ruleset_stripfst: "wf_ruleset \<gamma> p (r # rs) \<Longrightarrow> wf_ruleset \<gamma> p (rs)"
-    by(simp add: wf_ruleset_def)
-  lemma wf_ruleset_rest: "wf_ruleset \<gamma> p (Rule m a # rs) \<Longrightarrow> wf_ruleset \<gamma> p [Rule m a]"
-    by(simp add: wf_ruleset_def)
   
-
 lemma approximating_bigstep_fun_induct_wf[case_names Empty Decision Nomatch MatchAccept MatchDrop MatchReject MatchLog MatchEmpty, consumes 1]:
   "wf_ruleset \<gamma> p rs \<Longrightarrow>
 (\<And>\<gamma> p s. P \<gamma> p [] s) \<Longrightarrow>
@@ -258,6 +249,14 @@ P \<gamma> p rs s"
     done
   qed
 
+lemma just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided[case_names Undecided]: 
+      assumes "s = Undecided \<Longrightarrow> approximating_bigstep_fun \<gamma> p rs1 s = approximating_bigstep_fun \<gamma> p rs2 s"
+      shows "approximating_bigstep_fun \<gamma> p rs1 s = approximating_bigstep_fun \<gamma> p rs2 s"
+  proof(cases s)
+  case Undecided thus ?thesis using assms by simp
+  next
+  case Decision thus ?thesis by (simp add: Decision_approximating_bigstep_fun)
+  qed
 
 subsubsection{*Append, Prepend, Postpend, Composition*}
   lemma approximating_bigstep_fun_seq_wf: "\<lbrakk> wf_ruleset \<gamma> p rs\<^sub>1\<rbrakk> \<Longrightarrow>
@@ -293,6 +292,7 @@ subsubsection{*Append, Prepend, Postpend, Composition*}
          apply(simp_all add: approximating_bigstep_fun_seq_wf)
      apply (metis Decision_approximating_bigstep_fun)+
   done
+
 
 lemma approximating_bigstep_fun_singleton_prepend:
     assumes "approximating_bigstep_fun \<gamma> p rsB s = approximating_bigstep_fun \<gamma> p rsC s"
@@ -550,14 +550,25 @@ lemma rmLogEmpty_rwReject_good_to_simple: "good_ruleset rs \<Longrightarrow> sim
           apply(simp_all)
   done
 
+subsection{*Matching*}
 
 definition optimize_matches :: "('a match_expr \<Rightarrow> 'a match_expr) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
   "optimize_matches f rs = map (\<lambda>r. Rule (f (get_match r)) (get_action r)) rs"
 
-lemma optimize_matches: "\<forall>m. matches \<gamma> m = matches \<gamma> (f m) \<Longrightarrow> approximating_bigstep_fun \<gamma> p (optimize_matches f rs) s = approximating_bigstep_fun \<gamma> p rs s"
+
+lemma optimize_matches_generic: "\<forall> r \<in> set rs. P (get_match r) (get_action r) \<Longrightarrow> 
+      (\<And>m a. P m a \<Longrightarrow> matches \<gamma> (f m) a p = matches \<gamma> m a p) \<Longrightarrow>
+      approximating_bigstep_fun \<gamma> p (optimize_matches f rs) s = approximating_bigstep_fun \<gamma> p rs s"
   proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
     case (Match \<gamma> p m a rs) thus ?case by(case_tac a)(simp_all add: optimize_matches_def)
   qed(simp_all add: optimize_matches_def)
+
+(*TODO: us this in Transform.thy to simplify proofs*)
+lemma optimize_matches_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_match r))) \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches f rs). P m"
+  by(induction rs) (simp_all add: optimize_matches_def)
+
+lemma optimize_matches: "\<forall>m a. matches \<gamma> (f m) a p = matches \<gamma> m a p \<Longrightarrow> approximating_bigstep_fun \<gamma> p (optimize_matches f rs) s = approximating_bigstep_fun \<gamma> p rs s"
+  using optimize_matches_generic[where P="\<lambda>_ _. True"] by metis
 
 lemma optimize_matches_simple_ruleset: "simple_ruleset rs \<Longrightarrow> simple_ruleset (optimize_matches f rs)"
   by(simp add: optimize_matches_def simple_ruleset_def)
@@ -576,6 +587,14 @@ lemma optimize_matches_a: "\<forall>a m. matches \<gamma> m a = matches \<gamma>
     case (Match \<gamma> p m a rs) thus ?case by(case_tac a)(simp_all add: optimize_matches_a_def)
   qed(simp_all add: optimize_matches_a_def)
 
+lemma optimize_matches_a_simple_ruleset_eq:
+  "simple_ruleset rs \<Longrightarrow> (\<And> m a. a = Accept \<or> a = Drop \<Longrightarrow> f1 a m = f2 a m) \<Longrightarrow> optimize_matches_a f1 rs = optimize_matches_a f2 rs"
+apply(induction rs)
+ apply(simp add: optimize_matches_a_def)
+apply(simp add: optimize_matches_a_def)
+apply(simp add: simple_ruleset_def)
+done
+
 lemma optimize_matches_a_simplers:
   assumes "simple_ruleset rs" and "\<forall>a m. a = Accept \<or> a = Drop \<longrightarrow> matches \<gamma> (f a m) a = matches \<gamma> m a"
   shows "approximating_bigstep_fun \<gamma> p (optimize_matches_a f rs) s = approximating_bigstep_fun \<gamma> p rs s"
@@ -592,5 +611,20 @@ proof -
     case MatchReject thus ?case by(simp add: optimize_matches_a_def simple_ruleset_def)
     qed(simp_all add: optimize_matches_a_def simple_ruleset_tail)
 qed
+
+
+(*TODO: us this in Transform.thy to simplify proofs*)
+lemma optimize_matches_a_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_action r) (get_match r))) \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches_a f rs). P m"
+  by(induction rs)(simp_all add: optimize_matches_a_def)
+
+
+lemma not_matches_removeAll: "\<not> matches \<gamma> m a p \<Longrightarrow>
+  approximating_bigstep_fun \<gamma> p (removeAll (Rule m a) rs) Undecided = approximating_bigstep_fun \<gamma> p rs Undecided"
+  apply(induction \<gamma> p rs Undecided rule: approximating_bigstep_fun.induct)
+   apply(simp)
+  apply(simp split: action.split)
+  apply blast
+  done
+
 
 end

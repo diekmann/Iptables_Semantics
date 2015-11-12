@@ -55,7 +55,8 @@ section{*Simple Firewall Syntax (IPv4 only)*}
         can no longer for the conjunction of two simple_matches.
         *)
   record simple_match =
-    iiface :: "iface" --"in-interface" (*TODO: we cannot (and don't want to, c.f. git history) express negated interfaces*)
+    iiface :: "iface" --"in-interface"
+      (*we cannot (and don't want to, c.f. git history) express negated interfaces*)
       (*We could also drop interface wildcard support and try negated interfaces again \<dots>*)
     oiface :: "iface" --"out-interface"
     src :: "(ipv4addr \<times> nat) " --"source IP address"
@@ -114,7 +115,7 @@ subsection{*Simple Firewall Semantics*}
 
 
   fun empty_match :: "simple_match \<Rightarrow> bool" where
-    "empty_match \<lparr>iiface=_, oiface=_, src=_, dst=_, proto=_, sports=(sps1, sps2), dports=(dps1, dps2) \<rparr> \<longleftrightarrow> (sps1 > sps2) \<or>  (dps1 > dps2)"
+    "empty_match \<lparr>iiface=_, oiface=_, src=_, dst=_, proto=_, sports=(sps1, sps2), dports=(dps1, dps2) \<rparr> \<longleftrightarrow> (sps1 > sps2) \<or> (dps1 > dps2)"
 
   lemma empty_match: "empty_match m \<longleftrightarrow> (\<forall>p. \<not> simple_matches m p)"
     proof
@@ -150,7 +151,9 @@ subsection{*Simple Firewall Semantics*}
                             p_dst = fst dip,
                             p_proto = case protocol of ProtoAny \<Rightarrow> primitive_protocol.TCP | Proto p \<Rightarrow> p,
                             p_sport = sps1,
-                            p_dport = dps1\<rparr>", simplified]
+                            p_dport = dps1,
+                            p_tcp_flags = anything_I_dont_care1,
+                            p_tag_ctstate = anything_I_dont_care2\<rparr>" for anything_I_dont_care1 anything_I_dont_care2, simplified]
           from pkt ips proto ifaces have " sps1 \<le> sps2 \<longrightarrow> \<not> dps1 \<le> dps2" by blast
           thus "sps2 < sps1 \<or> dps2 < dps1" by fastforce
       qed
@@ -166,6 +169,8 @@ subsection{*Simple Ports*}
   lemma simpl_ports_conjunct_correct: "simple_match_port p1 pkt \<and> simple_match_port p2 pkt \<longleftrightarrow> simple_match_port (simpl_ports_conjunct p1 p2) pkt"
     apply(cases p1, cases p2, simp)
     by blast
+
+  lemma simple_match_port_code[code] :"simple_match_port (s,e) p_p = (s \<le> p_p \<and> p_p \<le> e)" by simp
 
 subsection{*Simple IPs*}
   lemma simple_match_ip_conjunct: "simple_match_ip ip1 p_ip \<and> simple_match_ip ip2 p_ip \<longleftrightarrow> 
@@ -191,5 +196,15 @@ declare simple_matches.simps[simp del]
 
 lemma nomatch: "\<not> simple_matches m p \<Longrightarrow> simple_fw (SimpleRule m a # rs) p = simple_fw rs p"
   by(cases a, simp_all)
+
+
+
+
+(*export_code simple_fw in SML   not possible here*)
+value[code] "simple_fw [
+  SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0, 0), dst = (0, 0), proto = Proto TCP, sports = (0, 0x0), dports = (0, 0x0)\<rparr> simple_action.Drop]
+  
+  \<lparr>p_iiface = '''', p_oiface = '''',  p_src = 1, p_dst = 2, p_proto = TCP, p_sport = 8, p_dport = 9, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
+
 
 end

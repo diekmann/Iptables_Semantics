@@ -13,6 +13,8 @@ session "Bitmagic" = HOL +
     IPv4Addr
     Numberwang_Ln
     CIDRSplit
+    WordInterval_NumberWang
+    WordInterval_Lists
   document_files
     "root.tex"
 

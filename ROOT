@@ -17,10 +17,15 @@ session "Iptables_Semantics" = Bitmagic +
     Iptables_Semantics
     "Semantics_Ternary/Optimizing"
     "Primitive_Matchers/No_Spoof"
+    No_Spoof_Embeddings
     "Primitive_Matchers/Transform"
+    "Primitive_Matchers/Primitive_Abstract"
+    "Primitive_Matchers/Code_Interface"
+    "Primitive_Matchers/Parser"
     "Primitive_Matchers/Iface_Attic"
     "Simple_Firewall/SimpleFw_Compliance"
     "Simple_Firewall/Shadowed"
+    "Examples/Code_haskell"
   document_files
     "root.tex"
     "mathpartir.sty"
@@ -28,12 +33,15 @@ session "Iptables_Semantics" = Bitmagic +
 
 session "Iptables_Semantics_Examples" = Iptables_Semantics +
    theories
+    "Examples/Parser_Test/Parser_Test"
     "Examples/TUM_Net_Firewall/Analyze_TUM_Net_Firewall"
     "Examples/Synology_Diskstation_DS414/Analyze_Synology_Diskstation"
     "Examples/Ringofsaturn_com/Analyze_Ringofsaturn_com"
     "Examples/SQRL_Shorewall/Analyze_SQRL_Shorewall"
+    "Examples/SQRL_Shorewall/SQRL_2015_nospoof"
     "Examples/sns.ias.edu/SNS_IAS_Eduroam_Spoofing"
     "Examples/TUM_Net_Firewall/TUM_Spoofing_new3"
+    "Examples/TUM_Net_Firewall/TUM_Simple_FW"
   document_files
     "root.tex"
     "mathpartir.sty"

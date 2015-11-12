@@ -1,6 +1,7 @@
 theory Analyze_TUM_Net_Firewall
-imports "../Code_Interface"
+imports "../../Primitive_Matchers/Code_Interface"
   "../../Semantics_Ternary/Packet_Set"
+  "../../Simple_Firewall/SimpleFw_toString"
 begin
 
 
@@ -34,6 +35,7 @@ export_code unfold_ruleset_FORWARD map_of_string upper_closure lower_closure
   ipv4_cidr_toString protocol_toString simple_action_toString port_toString iface_toString ports_toString
   simple_rule_toString
   simple_rule_iptables_save_toString
+  sanity_wf_ruleset
   in SML module_name "Test" file "unfold_code.ML"
 
 ML_file "unfold_code.ML"
@@ -45,6 +47,8 @@ open Test; (*put the exported code into current namespace such that the followin
 
 (* ../../importer/main.py --type ml --module Test iptables_Ln_29.11.2013_cheating iptables_Ln_29.11.2013_cheating.ML *)
 ML_file "iptables_Ln_29.11.2013_cheating.ML"
+
+
 
 (*This is the diff for the _cheating rule set
  Chain FORWARD (policy ACCEPT)
@@ -59,6 +63,11 @@ ML_file "iptables_Ln_29.11.2013_cheating.ML"
 
 ML{*
 open Test; 
+*}
+
+
+ML_val{*
+  sanity_wf_ruleset firewall_chains
 *}
 
 declare[[ML_print_depth=50]]

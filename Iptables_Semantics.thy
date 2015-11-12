@@ -1,5 +1,5 @@
 theory Iptables_Semantics
-imports Semantics_Embeddings "Semantics_Ternary/Fixed_Action"
+imports Semantics_Embeddings "Semantics_Ternary/Normalized_Matches"
 begin
 
 section{*Normalizing Rulesets in the Boolean Big Step Semantics*}

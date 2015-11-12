@@ -1,7 +1,8 @@
 theory Primitive_Abstract
 imports
-  "../Examples/Firewall_toString"
-  "../Primitive_Matchers/Transform"
+  Common_Primitive_toString
+  Transform
+  Conntrack_State_Transform
 begin
 
 section{*Abstracting over Primitives*}
@@ -21,10 +22,54 @@ fun abstract_primitive :: "(common_primitive negation_type \<Rightarrow> bool) \
   "abstract_primitive disc (MatchNot m) = MatchNot (abstract_primitive disc m)" |
   "abstract_primitive disc (MatchAnd m1 m2) = MatchAnd (abstract_primitive disc m1) (abstract_primitive disc m2)"
 
+
 text{*For example, a simple firewall requires that no negated interfaces and protocols occur in the 
       expression. *}
 definition abstract_for_simple_firewall :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr"
-  where "abstract_for_simple_firewall \<equiv> abstract_primitive (\<lambda>r. case r of Pos _ \<Rightarrow> False | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a)"
+  where "abstract_for_simple_firewall \<equiv> abstract_primitive (\<lambda>r. case r
+                of Pos a \<Rightarrow> is_CT_State a \<or> is_L4_Flags a
+                |  Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_CT_State a \<or> is_L4_Flags a)"
+
+
+lemma abstract_primitive_preserves_normalized:
+  "normalized_src_ports m \<Longrightarrow> normalized_src_ports (abstract_primitive disc m)"
+  "normalized_dst_ports m \<Longrightarrow> normalized_dst_ports (abstract_primitive disc m)"
+  "normalized_src_ips m \<Longrightarrow> normalized_src_ips (abstract_primitive disc m)"
+  "normalized_dst_ips m \<Longrightarrow> normalized_dst_ips (abstract_primitive disc m)"
+  "normalized_nnf_match m \<Longrightarrow> normalized_nnf_match (abstract_primitive disc m)"
+  apply(induction disc m rule: abstract_primitive.induct)
+  apply(simp_all)
+  done
+lemma abstract_primitive_preserves_nodisc:
+  "\<not> has_disc disc' m \<Longrightarrow> (\<forall>str. \<not> disc' (Extra str)) \<Longrightarrow> \<not> has_disc disc' (abstract_primitive disc m)"
+  apply(induction disc m rule: abstract_primitive.induct)
+  apply(simp_all)
+  done
+
+
+
+text{*The function @{const ctstate_assume_state} can be used to fix a state and hence remove all state matches from the ruleset.
+      It is therefore advisable to create a simple firewall for a fixed state, e.g. with @{const ctstate_assume_new} before
+      calling to @{const abstract_for_simple_firewall}.*}
+lemma not_hasdisc_ctstate_assume_state: "\<not> has_disc is_CT_State (ctstate_assume_state s m)"
+  by(induction m rule: ctstate_assume_state.induct) (simp_all)
+
+
+lemma abstract_for_simple_firewall_hasdisc:
+  "\<not> has_disc is_CT_State (abstract_for_simple_firewall m)"
+  "\<not> has_disc is_L4_Flags (abstract_for_simple_firewall m)"
+  unfolding abstract_for_simple_firewall_def
+  apply(induction "(\<lambda>r. case r of Pos a \<Rightarrow> is_CT_State a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_CT_State a)" m rule: abstract_primitive.induct)
+  apply(simp_all)
+  done
+
+lemma abstract_for_simple_firewall_negated_ifaces_prots:
+    "normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False (abstract_for_simple_firewall m)"
+    "normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated is_Prot False (abstract_for_simple_firewall m)"
+  unfolding abstract_for_simple_firewall_def
+  apply(induction "(\<lambda>r. case r of Pos a \<Rightarrow> is_CT_State a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_CT_State a)" m rule: abstract_primitive.induct)
+  apply(simp_all)
+  done
 
 
 context
@@ -40,10 +85,12 @@ begin
     "normalized_nnf_match m \<Longrightarrow> 
       \<not> matches (common_matcher, in_doubt_allow) m action.Drop p \<Longrightarrow>
       \<not> matches (common_matcher, in_doubt_allow) (abstract_primitive disc m) action.Drop p"
-     apply(induction disc m rule: abstract_primitive.induct)
-           apply (simp_all add: bunch_of_lemmata_about_matches)
-     apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: ternaryvalue.split)
-     done
+     proof(induction disc m rule: abstract_primitive.induct)
+     case(5 m1 m2) thus ?case
+           apply (simp add: bunch_of_lemmata_about_matches)
+           apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: ternaryvalue.split)
+           done
+     qed(simp_all add: bunch_of_lemmata_about_matches)
   
   private lemma abstract_primitive_help1: assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
         and prem: "approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision FinalAllow"
@@ -82,7 +129,7 @@ begin
       matches (common_matcher, in_doubt_allow) m action.Drop p"
      apply(induction disc m rule: abstract_primitive.induct)
            apply(simp_all add: bunch_of_lemmata_about_matches)
-     apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: split_if_asm ternaryvalue.split_asm ternaryvalue.split)
+      apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: split_if_asm ternaryvalue.split_asm ternaryvalue.split)
      done
   
   private lemma abstract_primitive_in_doubt_allow_Deny2: 
@@ -213,7 +260,7 @@ begin
       matches (common_matcher, in_doubt_deny) m action.Accept p"
      apply(induction disc m rule: abstract_primitive.induct)
            apply(simp_all add: bunch_of_lemmata_about_matches)
-     apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: split_if_asm ternaryvalue.split_asm ternaryvalue.split)
+      apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: split_if_asm ternaryvalue.split_asm ternaryvalue.split)
      done
   
   private lemma abstract_primitive_in_doubt_deny_Allow2: 
@@ -222,7 +269,7 @@ begin
       \<not> matches (common_matcher, in_doubt_deny) m action.Drop p"
      apply(induction disc m rule: abstract_primitive.induct)
            apply (simp_all add: bunch_of_lemmata_about_matches)
-      apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: split_if_asm ternaryvalue.split_asm ternaryvalue.split)
+       apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: split_if_asm ternaryvalue.split_asm ternaryvalue.split)
      done
   
   
@@ -287,5 +334,7 @@ begin
         unfolding \<gamma>_def abstract_def by fast
     qed
 end
+
+
 
 end

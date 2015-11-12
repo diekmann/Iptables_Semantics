@@ -8,14 +8,22 @@ begin
 context
 begin
 
-type_synonym prefix_match = "(ipv4addr \<times> nat)"
-definition "pfxm_prefix p \<equiv> fst p"
-definition "pfxm_length p \<equiv> snd p"
+text{*We define a type for ips in CIDR notation, e.g. 192.168.0.0/24.*}
+datatype prefix_match = PrefixMatch (pfxm_prefix: ipv4addr) (pfxm_length: nat)
 definition "pfxm_mask x \<equiv> mask (32 - pfxm_length x)"
-lemmas pfxm_defs = pfxm_prefix_def pfxm_mask_def pfxm_length_def
 
 definition valid_prefix where
   "valid_prefix pf = ((pfxm_mask pf) AND pfxm_prefix pf = 0)"
+
+text{*The type @{typ prefix_match} usually requires @{const valid_prefix}.
+      When we allow working on arbitrary IPs in CIDR notation, we will use the type @{typ "(ipv4addr \<times> nat)"} directly.*}
+
+definition prefix_match_to_CIDR :: "prefix_match \<Rightarrow> (ipv4addr \<times> nat)" where
+  "prefix_match_to_CIDR pfx \<equiv> (pfxm_prefix pfx, pfxm_length pfx)"
+lemma prefix_match_to_CIDR_def2: "prefix_match_to_CIDR \<equiv> \<lambda>pfx. (pfxm_prefix pfx, pfxm_length pfx)"
+  using prefix_match_to_CIDR_def by presburger
+
+
 private lemma valid_prefix_E: "valid_prefix pf \<Longrightarrow> ((pfxm_mask pf) AND pfxm_prefix pf = 0)" 
   unfolding valid_prefix_def .
 private lemma valid_preifx_alt_def: "valid_prefix p = (pfxm_prefix p AND (2 ^ (32 - pfxm_length p) - 1) = 0)"
@@ -26,7 +34,7 @@ private lemma valid_preifx_alt_def: "valid_prefix p = (pfxm_prefix p AND (2 ^ (3
    shiftl_1
   unfolding pfxm_prefix_def pfxm_mask_def mask_def
   by metis
-  
+
 
 subsection{*Address Semantics*}
 
@@ -54,6 +62,15 @@ private lemma ipset_prefix_match_complete: "rpm = ipset_prefix_match pfx rg \<Lo
   (fst rpm) \<union> (snd rpm) = rg" by force
 private lemma rpm_m_dup_simp: "rg \<inter> fst (ipset_prefix_match (routing_match r) rg) = fst (ipset_prefix_match (routing_match r) rg)"
   by simp
+
+
+lemma prefix_to_ipset_subset_ipv4range_set_from_bitmask: 
+    "prefix_to_ipset pfx \<subseteq> ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
+  apply(rule)
+  apply(simp add: prefix_to_ipset_def addr_in_ipv4range_set_from_bitmask_code)
+  apply(intro impI conjI)
+   apply (metis (erased, hide_lams) order_trans word_and_le2)
+  by (metis pfxm_mask_def)
 
 subsection{*Equivalence Proofs*}
 
@@ -320,10 +337,15 @@ definition ip_set :: "32 word \<Rightarrow> nat \<Rightarrow> 32 word set" where
 private lemma "(m1 \<or> m2) \<and> (m3 \<or> m4) \<longleftrightarrow> (m1 \<and> m3) \<or> (m1 \<and> m4) \<or> (m2 \<and> m3) \<or> (m2 \<and> m4)"
   by blast
 
-private lemmas caesar_proof_unfolded = prefix_match_if_in_corny_set[unfolded valid_prefix_def prefix_match_semantics_def Let_def, symmetric]
 private lemma caesar_proof_without_structures: "mask (32 - l) AND pfxm_p = 0 \<Longrightarrow>
-           (a \<in> ipv4range_set_from_netmask (pfxm_p) (NOT mask (32 - l))) = (pfxm_p = NOT mask (32 - l) AND a)"
-using caesar_proof_unfolded unfolding pfxm_defs by force
+           (a \<in> ipv4range_set_from_netmask (pfxm_p) (NOT mask (32 - l))) \<longleftrightarrow> (pfxm_p = NOT mask (32 - l) AND a)"
+proof -
+  assume a: "mask (32 - l) AND pfxm_p = 0"
+  with prefix_match_if_in_corny_set[unfolded valid_prefix_def prefix_match_semantics_def Let_def, symmetric, where pfx="PrefixMatch pfxm_p l"]
+  show "(a \<in> ipv4range_set_from_netmask (pfxm_p) (NOT mask (32 - l))) \<longleftrightarrow> (pfxm_p = NOT mask (32 - l) AND a)"
+    unfolding pfxm_mask_def by(simp)
+qed
+  
 
 private lemma mask_and_not_mask_helper: "mask (32 - m) AND base AND NOT mask (32 - m) = 0"
   by(simp add: word_bw_lcs)
@@ -347,7 +369,7 @@ lemma ipv4range_set_from_bitmask_eq_ip_set: "ipv4range_set_from_bitmask base m =
 
 
 (*the bitmagic (pfxm_prefix pfx) AND pfxm_mask pfx). we just want to make sure to get a valid_prefix*)
-lemma cornys_hacky_call_to_prefix_to_range_to_start_with_a_valid_prefix: "valid_prefix (base AND NOT mask (32 - len), len)"
+lemma cornys_hacky_call_to_prefix_to_range_to_start_with_a_valid_prefix: "valid_prefix (PrefixMatch (base AND NOT mask (32 - len)) len)"
   apply(simp add: valid_prefix_def pfxm_mask_def pfxm_length_def pfxm_prefix_def)
   by (metis mask_and_not_mask_helper)
 end
