@@ -382,6 +382,10 @@ subsection{*IP ranges*}
 
 
   definition "is_lowest_element x S = (x \<in> S \<and> (\<forall>y\<in>S. y \<le> x \<longrightarrow> y = x))"
+  lemma 
+  	fixes k :: "'a :: complete_lattice"
+  	shows "is_lowest_element x S \<longleftrightarrow> x = Inf S"
+  oops
     
   fun ipv4range_lowest_element :: "32 wordinterval \<Rightarrow> ipv4addr option" where
     "ipv4range_lowest_element (WordInterval s e) = (if s \<le> e then Some s else None)" | 
