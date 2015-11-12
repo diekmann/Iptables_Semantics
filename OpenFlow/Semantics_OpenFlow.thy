@@ -30,8 +30,8 @@ datatype 'm match_fields = MatchFields (match_fields_sel: "'m set")
  not modeled: counters, timeouts, cookie ("Not used when processing packets"), flags,
      instructions (only an output list of egress ports will be modeled)
 *)
-type_synonym ('m, 'a) flow_entry_match="nat \<times> 'm match_fields \<times> 'a"
 
+datatype ('m, 'a) flow_entry_match = OFEntry (ofe_prio: nat) (ofe_fields: "'m match_fields") (ofe_action: 'a)
 
 (*the packet also contains the ingress port*)
 definition OF_match :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> 'm match_fields \<Rightarrow> 'p \<Rightarrow> bool" where
@@ -50,21 +50,18 @@ definition OF_same_priority_match :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \
                             | [(_, action)] \<Rightarrow> Defined (Some action)
                             | _ \<Rightarrow> Undefined "
 
-definition "snd3 \<equiv> fst \<circ> snd"
-definition "trd \<equiv> snd \<circ> snd"
-lemmas[simp] = snd3_def trd_def
-
 type_synonym ('m, 'a) flowtable = "(('m, 'a) flow_entry_match) list"
 type_synonym ('m, 'p) field_matcher = "('m \<Rightarrow> 'p \<Rightarrow> bool)"
 
 definition OF_same_priority_match2 :: "('m, 'p) field_matcher \<Rightarrow> ('m, 'a) flowtable \<Rightarrow> 'p \<Rightarrow> ('a option) undefined_behavior" where
-  "OF_same_priority_match2 \<gamma> flow_entries packet \<equiv> let s = {trd f|f. f \<in> set flow_entries \<and> OF_match \<gamma> (snd3 f) packet \<and> (\<forall>fo \<in> set flow_entries. fst fo > fst f \<longrightarrow> \<not>OF_match \<gamma> (snd3 fo) packet)} in
+  "OF_same_priority_match2 \<gamma> flow_entries packet \<equiv> let s = {ofe_action f|f. f \<in> set flow_entries \<and> OF_match \<gamma> (ofe_fields f) packet \<and> 
+  	(\<forall>fo \<in> set flow_entries. ofe_prio fo > ofe_prio f \<longrightarrow> \<not>OF_match \<gamma> (ofe_fields fo) packet)} in
   	case card s of 0       \<Rightarrow> Defined None
                  | (Suc 0) \<Rightarrow> Defined (Some (the_elem s)) 
                  | _       \<Rightarrow> Undefined "
 
 (* are there any overlaping rules? *)
-definition "check_no_overlap \<gamma> ft = (\<forall>a \<in> set ft. \<forall>b \<in> set ft. \<forall>p \<in> UNIV. (fst a = fst b \<and> OF_match \<gamma> (snd3 a) p \<and> a \<noteq> b) \<longrightarrow> \<not>OF_match \<gamma> (snd3 b) p)"
+definition "check_no_overlap \<gamma> ft = (\<forall>a \<in> set ft. \<forall>b \<in> set ft. \<forall>p \<in> UNIV. (ofe_prio a = ofe_prio b \<and> OF_match \<gamma> (ofe_fields a) p \<and> a \<noteq> b) \<longrightarrow> \<not>OF_match \<gamma> (ofe_fields b) p)"
 lemma card1_eI: "1 \<le> card S \<Longrightarrow> \<exists>y S'. S = {y} \<union> S' \<and> y \<notin> S'"
 	by (metis One_nat_def card_infinite card_le_Suc_iff insert_is_Un leD zero_less_Suc)
 lemma card2_eI: "2 \<le> card S \<Longrightarrow> \<exists>x y. x \<noteq> y \<and> x \<in> S \<and> y \<in> S"
@@ -79,24 +76,23 @@ proof -
 	then show ?case using xs by force
 qed
 
+lemma f_Img_ex_set: "{f x|x. P x} = f ` {x. P x}" by auto
+
 (* If there are no overlapping rules, our match should check out. *)
 lemma no_overlap_not_unefined: "check_no_overlap \<gamma> ft \<Longrightarrow> OF_same_priority_match2 \<gamma> ft p \<noteq> Undefined"
 proof
 	case goal1
-	let ?as = "{f. f \<in> set ft \<and> OF_match \<gamma> (snd3 f) p \<and> (\<forall>fo \<in> set ft. fst f < fst fo \<longrightarrow> \<not> OF_match \<gamma> (snd3 fo) p)}"
+	let ?as = "{f. f \<in> set ft \<and> OF_match \<gamma> (ofe_fields f) p \<and> (\<forall>fo \<in> set ft. ofe_prio f < ofe_prio fo \<longrightarrow> \<not> OF_match \<gamma> (ofe_fields fo) p)}"
 	have fin: "finite ?as" by simp
 	note goal1(2)[unfolded OF_same_priority_match2_def]
-	then have "2 \<le> card (trd ` ?as)"
+	then have "2 \<le> card (ofe_action ` ?as)" unfolding f_Img_ex_set
 		unfolding Let_def
-		apply(cases "card (trd ` ?as)", simp add: image_Collect)
-		apply(rename_tac nat1, case_tac nat1, simp add: image_Collect)
-		apply(presburger)
-		done
-	then have "2 \<le> card ?as" using card_image_le[OF fin, of trd] by linarith
+		by(cases "card (ofe_action ` ?as)", simp) (rename_tac nat1, case_tac nat1, simp add: image_Collect, presburger)
+	then have "2 \<le> card ?as" using card_image_le[OF fin, of ofe_action] by linarith
 	then obtain a b where ab: "a \<noteq> b" "a \<in> ?as" "b \<in> ?as" using card2_eI by blast
-	then have ab2: "a \<in> set ft" "OF_match \<gamma> (snd3 a) p" "(\<forall>fo\<in>set ft. fst a < fst fo \<longrightarrow> \<not> OF_match \<gamma> (snd3 fo) p)" 
-	               "b \<in> set ft" "OF_match \<gamma> (snd3 b) p" "(\<forall>fo\<in>set ft. fst b < fst fo \<longrightarrow> \<not> OF_match \<gamma> (snd3 fo) p)" by simp_all
-	then have "fst a = fst b"
+	then have ab2: "a \<in> set ft" "OF_match \<gamma> (ofe_fields a) p" "(\<forall>fo\<in>set ft. ofe_prio a < ofe_prio fo \<longrightarrow> \<not> OF_match \<gamma> (ofe_fields fo) p)" 
+	               "b \<in> set ft" "OF_match \<gamma> (ofe_fields b) p" "(\<forall>fo\<in>set ft. ofe_prio b < ofe_prio fo \<longrightarrow> \<not> OF_match \<gamma> (ofe_fields fo) p)" by simp_all
+	then have "ofe_prio a = ofe_prio b"
 		by fastforce
 	note goal1(1)[unfolded check_no_overlap_def] ab2(1) ab2(4) this ab2(2) ab(1) ab2(5)
 	then show False by blast
@@ -104,88 +100,86 @@ qed
 
 fun OF_match_linear :: "('m, 'p) field_matcher \<Rightarrow> ('m, 'a) flowtable \<Rightarrow> 'p \<Rightarrow> 'a option" where
 "OF_match_linear _ [] _ = None" |
-"OF_match_linear \<gamma> (a#as) p = (if OF_match \<gamma> (snd3 a) p then Some (trd a) else OF_match_linear \<gamma> as p)"
+"OF_match_linear \<gamma> (a#as) p = (if OF_match \<gamma> (ofe_fields a) p then Some (ofe_action a) else OF_match_linear \<gamma> as p)"
 
 lemma set_eq_rule: "(\<And>x. x \<in> a \<Longrightarrow> x \<in> b) \<Longrightarrow> (\<And>x. x \<in> b \<Longrightarrow> x \<in> a) \<Longrightarrow> a = b" by blast
 
-lemma unmatching_insert_agnostic: "\<not> OF_match \<gamma> (snd3 a) p \<Longrightarrow> OF_same_priority_match2 \<gamma> (a # ft) p = OF_same_priority_match2 \<gamma> ft p"
+lemma unmatching_insert_agnostic: "\<not> OF_match \<gamma> (ofe_fields a) p \<Longrightarrow> OF_same_priority_match2 \<gamma> (a # ft) p = OF_same_priority_match2 \<gamma> ft p"
 proof -
-	let ?as = "{f. f \<in> set ft \<and> OF_match \<gamma> (snd3 f) p \<and> (\<forall>fo \<in> set ft. fst f < fst fo \<longrightarrow> \<not> OF_match \<gamma> (snd3 fo) p)}"
-	let ?aas = "{f |f. f \<in> set (a # ft) \<and> OF_match \<gamma> (snd3 f) p \<and> (\<forall>fo\<in>set (a # ft). fst f < fst fo \<longrightarrow> \<not> OF_match \<gamma> (snd3 fo) p)}"
+	let ?as = "{f. f \<in> set ft \<and> OF_match \<gamma> (ofe_fields f) p \<and> (\<forall>fo \<in> set ft. ofe_prio f < ofe_prio fo \<longrightarrow> \<not> OF_match \<gamma> (ofe_fields fo) p)}"
+	let ?aas = "{f |f. f \<in> set (a # ft) \<and> OF_match \<gamma> (ofe_fields f) p \<and> (\<forall>fo\<in>set (a # ft). ofe_prio f < ofe_prio fo \<longrightarrow> \<not> OF_match \<gamma> (ofe_fields fo) p)}"
 	case goal1 note nm = this 
 	have aa: "?aas = ?as"
 	proof(rule set_eq_rule)
 		case goal1
-		hence as: "x \<in> set (a # ft) \<and> OF_match \<gamma> (snd3 x) p \<and> (\<forall>fo\<in>set (a # ft). fst x < fst fo \<longrightarrow> \<not> OF_match \<gamma> (snd3 fo) p)" by simp
+		hence as: "x \<in> set (a # ft) \<and> OF_match \<gamma> (ofe_fields x) p \<and> (\<forall>fo\<in>set (a # ft). ofe_prio x < ofe_prio fo \<longrightarrow> \<not> OF_match \<gamma> (ofe_fields fo) p)" by simp
 		with nm have "x \<in> set ft" by fastforce
-		moreover from as have "(\<forall>fo\<in>set ft. fst x < fst fo \<longrightarrow> \<not> OF_match \<gamma> (snd3 fo) p)" by simp
+		moreover from as have "(\<forall>fo\<in>set ft. ofe_prio x < ofe_prio fo \<longrightarrow> \<not> OF_match \<gamma> (ofe_fields fo) p)" by simp
 		ultimately show ?case using as by force
 	next
 		case goal2
-		hence as: "x \<in> set ft" "OF_match \<gamma> (snd3 x) p" "(\<forall>fo\<in>set ft. fst x < fst fo \<longrightarrow> \<not> OF_match \<gamma> (snd3 fo) p)" by simp_all
+		hence as: "x \<in> set ft" "OF_match \<gamma> (ofe_fields x) p" "(\<forall>fo\<in>set ft. ofe_prio x < ofe_prio fo \<longrightarrow> \<not> OF_match \<gamma> (ofe_fields fo) p)" by simp_all
 		from as(1) have "x \<in> set (a # ft)" by simp
-		moreover from as(3) have "(\<forall>fo\<in>set (a # ft). fst x < fst fo \<longrightarrow> \<not> OF_match \<gamma> (snd3 fo) p)" using nm by simp
+		moreover from as(3) have "(\<forall>fo\<in>set (a # ft). ofe_prio x < ofe_prio fo \<longrightarrow> \<not> OF_match \<gamma> (ofe_fields fo) p)" using nm by simp
 		ultimately show ?case using as(2) by blast
 	qed
-	note uf = arg_cong[OF aa, of "op ` trd", unfolded image_Collect]
+	note uf = arg_cong[OF aa, of "op ` ofe_action", unfolded image_Collect]
 	show ?case unfolding OF_same_priority_match2_def using uf by presburger
 qed
 
 lemma forall_append: "(\<forall>k \<in> set (m @ n). P k) \<longleftrightarrow> (\<forall>k \<in> set m. P k) \<and> (\<forall>k \<in> set n. P k)" by auto
 
-lemma f_Img_ex_set: "{f x|x. P x} = f ` {x. P x}" by auto
-
-lemma "sorted_descending (map fst ft) \<Longrightarrow> check_no_overlap \<gamma> ft \<Longrightarrow> 
+lemma "sorted_descending (map ofe_prio ft) \<Longrightarrow> check_no_overlap \<gamma> ft \<Longrightarrow> 
 	OF_same_priority_match2 \<gamma> ft p = Defined (OF_match_linear \<gamma> ft p)"
 proof(induction "ft")
 	case goal2
-	have 1: "sorted_descending (map fst ft)" using goal2(2) by simp
+	have 1: "sorted_descending (map ofe_prio ft)" using goal2(2) by simp
 	have 2: "check_no_overlap \<gamma> ft" using goal2(3) unfolding check_no_overlap_def using set_subset_Cons by fast
 	note mIH = goal2(1)[OF 1 2]
 	show ?case (is ?kees)
-	proof(cases "OF_match \<gamma> (snd3 a) p")
+	proof(cases "OF_match \<gamma> (ofe_fields a) p")
 		case False thus ?kees 
 			by(simp only: OF_match_linear.simps if_False mIH[symmetric] unmatching_insert_agnostic[OF False])
 	next
 		note sorted_descending_split[OF goal2(2)]
-		then obtain m n where mn: "a # ft = m @ n" "\<forall>e\<in>set m. fst a = fst e" "\<forall>e\<in>set n. fst e < fst a"
+		then obtain m n where mn: "a # ft = m @ n" "\<forall>e\<in>set m. ofe_prio a = ofe_prio e" "\<forall>e\<in>set n. ofe_prio e < ofe_prio a"
 			unfolding list.sel by blast 
 		hence aem: "a \<in> set m"
 			by (metis UnE less_imp_neq list.set_intros(1) set_append)
 		have mover: "check_no_overlap \<gamma> m" using goal2(3) unfolding check_no_overlap_def
 			by (metis Un_iff mn(1) set_append)
 		let ?fc = "(\<lambda>s. 
-			{f. f \<in> set s \<and> OF_match \<gamma> (snd3 f) p \<and> 
-			(\<forall>fo\<in>set (a # ft). fst f < fst fo \<longrightarrow> \<not> OF_match \<gamma> (snd3 fo) p)})"
+			{f. f \<in> set s \<and> OF_match \<gamma> (ofe_fields f) p \<and> 
+			(\<forall>fo\<in>set (a # ft). ofe_prio f < ofe_prio fo \<longrightarrow> \<not> OF_match \<gamma> (ofe_fields fo) p)})"
 		case True
 		have "?fc (m @ n) = ?fc m \<union> ?fc n" by auto
 		moreover have "?fc n = {}"
 		proof(rule set_eq_rule, rule ccontr)
 			case goal1
-			hence g1: "x \<in> set n" "OF_match \<gamma> (snd3 x) p" 
-				"(\<forall>fo\<in>set m. fst x < fst fo \<longrightarrow> \<not> OF_match \<gamma> (snd3 fo) p)"
-				"(\<forall>fo\<in>set n. fst x < fst fo \<longrightarrow> \<not> OF_match \<gamma> (snd3 fo) p)"
+			hence g1: "x \<in> set n" "OF_match \<gamma> (ofe_fields x) p" 
+				"(\<forall>fo\<in>set m. ofe_prio x < ofe_prio fo \<longrightarrow> \<not> OF_match \<gamma> (ofe_fields fo) p)"
+				"(\<forall>fo\<in>set n. ofe_prio x < ofe_prio fo \<longrightarrow> \<not> OF_match \<gamma> (ofe_fields fo) p)"
 				unfolding mn(1) by(simp_all)
-			from g1(1) mn(3) have le: "fst x < fst a" by simp
+			from g1(1) mn(3) have le: "ofe_prio x < ofe_prio a" by simp
 			note le g1(3) aem True
 			then show False by blast
 		qed simp
 		ultimately have cc: "?fc (m @ n) = ?fc m" by blast
 		have cm: "?fc m = {a}" (* using goal2(3) *)
 		proof - case goal1
-			have "\<forall>f \<in> set m. (\<forall>fo\<in>set (a # ft). fst f < fst fo \<longrightarrow> \<not> OF_match \<gamma> (snd3 fo) p)"
+			have "\<forall>f \<in> set m. (\<forall>fo\<in>set (a # ft). ofe_prio f < ofe_prio fo \<longrightarrow> \<not> OF_match \<gamma> (ofe_fields fo) p)"
 				by (metis UnE less_asym mn set_append) (* sorry *)
-			hence 1: "?fc m = {f \<in> set m. OF_match \<gamma> (snd3 f) p}" by blast
+			hence 1: "?fc m = {f \<in> set m. OF_match \<gamma> (ofe_fields f) p}" by blast
 			show ?case unfolding 1
 			proof(rule set_eq_rule)
 				case goal2
-				have "a \<in> {f \<in> set m. OF_match \<gamma> (snd3 f) p}" using True aem by simp
+				have "a \<in> {f \<in> set m. OF_match \<gamma> (ofe_fields f) p}" using True aem by simp
 				thus ?case using goal2 by simp
 			next
 				case goal1 show ?case proof(rule ccontr)
 					assume "x \<notin> {a}" hence ne: "x \<noteq> a" by simp
-					from goal1 have 1: "x \<in> set m" "OF_match \<gamma> (snd3 x) p" by simp_all
-					have 2: "fst x = fst a" using 1(1) mn(2) by simp
+					from goal1 have 1: "x \<in> set m" "OF_match \<gamma> (ofe_fields x) p" by simp_all
+					have 2: "ofe_prio x = ofe_prio a" using 1(1) mn(2) by simp
 					show False using 1 ne mover aem True 2 unfolding check_no_overlap_def by blast 
 				qed
 			qed
