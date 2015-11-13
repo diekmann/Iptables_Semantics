@@ -70,6 +70,8 @@ next
   qed
 qed
 
+lemma set_Cons: "e \<in> set (a # as) \<longleftrightarrow> (e = a \<or> e \<in> set as)" by simp
+
 subsection{*Reduction*}
 
 definition "domain_for R y \<equiv> {x. (x, y) \<in> R}"
