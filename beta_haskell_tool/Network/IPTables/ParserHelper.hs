@@ -1,11 +1,11 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE FlexibleContexts #-}
+
 module Network.IPTables.ParserHelper where
 
-
 import Control.Applicative ((<$>))
-import Text.Parsec (many1, oneOf, char, choice, string)
-
 import qualified Network.IPTables.Generated as Isabelle
+import Text.Parsec (many1, oneOf, char, choice, string)
 
 nat = do
     n <- (read :: String -> Integer) <$> many1 (oneOf ['0'..'9']) -- ['0'..'9']++['-']
