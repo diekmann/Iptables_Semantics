@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+set -x
+
+cd beta_haskell_tool
+cabal install --only-dependencies --enable-tests --enable-benchmarks
+cabal configure --enable-tests --enable-benchmarks -v2
+cabal build
