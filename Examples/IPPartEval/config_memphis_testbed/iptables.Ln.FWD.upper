@@ -1,0 +1,20 @@
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+DROP       all  --  127.0.0.0/8          0.0.0.0/0           
+ACCEPT     all  --  131.159.14.0/23      145.30.196.192/27   
+ACCEPT     all  --  131.159.20.0/24      145.30.196.192/27   
+ACCEPT     all  --  62.49.116.32         145.30.196.192/27   
+ACCEPT     all  --  30.176.136.35        145.30.196.192/27   
+ACCEPT     all  --  0.0.0.0/0            236.49.232.75       
+ACCEPT     all  --  145.30.196.192/27    0.0.0.0/0           
+ACCEPT     all  --  0.0.0.0/0            145.30.196.221      
+ACCEPT     all  --  0.0.0.0/0            145.30.196.217      
+ACCEPT     icmp --  0.0.0.0/0            0.0.0.0/0           
+DROP       all  --  0.0.0.0/0            0.0.0.0/0           
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0           
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         

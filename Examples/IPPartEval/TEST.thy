@@ -68,6 +68,25 @@ definition view where
 
 
 
+
+
+definition "ipassmt_generic = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)])]"
+
+
+context
+begin
+  private local_setup \<open>
+     local_setup_parse_iptables_save "filter" @{binding fw12} ["config_memphis_testbed", "iptables-save"]
+    \<close>
+  thm fw12_def
+
+  value[code] "bench upper_closure FWD ipassmt_generic fw12_FORWARD_default_policy fw12"
+  value[code] "view upper_closure FWD ipassmt_generic fw12_FORWARD_default_policy fw12"
+
+  value[code] "bench lower_closure FWD ipassmt_generic fw12_FORWARD_default_policy fw12"
+  value[code] "view lower_closure FWD ipassmt_generic fw12_FORWARD_default_policy fw12"
+end
+
 context
 begin
   private local_setup \<open>
@@ -183,9 +202,6 @@ begin
   value[code] "view lower_closure INP ipassmt2 fw3_INPUT_default_policy fw3"
 
 end
-
-definition "ipassmt_generic = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)])]"
-
 
 
 
