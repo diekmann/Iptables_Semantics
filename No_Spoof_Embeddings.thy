@@ -29,4 +29,13 @@ text{*If @{const no_spoofing} is shown in the ternary semantics, it implies that
         with no_spoofing' show "p_src p \<in> ipv4cidr_union_set (set (the (ipassmt iface)))"by blast
       qed
 
+ (*expressed as set*)
+ corollary
+      assumes "matcher_agree_on_exact_matches \<gamma> common_matcher" and "simple_ruleset rs" and no_spoofing: "no_spoofing ipassmt rs" and "iface \<in> dom ipassmt"
+      shows "{p_src p | p . (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow)} \<subseteq>
+                 ipv4cidr_union_set (set (the (ipassmt iface)))"
+      using approximating_imp_booloan_semantics_nospoofing[OF assms(1) assms(2) assms(3), where \<Gamma>=\<Gamma>]
+      using assms(4) by blast
+      
+
 end
