@@ -87,6 +87,24 @@ begin
   value[code] "view lower_closure FWD ipassmt_generic fw12_FORWARD_default_policy fw12"
 end
 
+
+
+context
+begin
+ private local_setup \<open>
+    local_setup_parse_iptables_save "filter" @{binding fw13} ["config_random_srv", "iptables-save"]
+   \<close>
+ thm fw13_def
+
+  value[code] "bench upper_closure INP ipassmt_generic fw13_INPUT_default_policy fw13"
+  value[code] "view upper_closure INP ipassmt_generic fw13_INPUT_default_policy fw13"
+
+  value[code] "bench lower_closure INP ipassmt_generic fw13_INPUT_default_policy fw13"
+  value[code] "view lower_closure INP ipassmt_generic fw13_INPUT_default_policy fw13"
+end
+
+
+
 context
 begin
   private local_setup \<open>
