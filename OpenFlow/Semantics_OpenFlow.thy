@@ -45,17 +45,14 @@ OFP 1.0.0 also stated that non-wildcarded matches implicitly have the highest pr
 (*Defined None \<longleftrightarrow> No match
   Defined (Some a) \<longleftrightarrow> Match and instruction is a
   Undefined \<longleftrightarrow> Undefined*)
-definition OF_same_priority_match :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> ('m match_fields \<times> 'a) list \<Rightarrow> 'p \<Rightarrow> ('a option) undefined_behavior" where
-  "OF_same_priority_match \<gamma> flow_entries packet \<equiv> case [(m, action)\<leftarrow>flow_entries . OF_match \<gamma> m packet] of [] \<Rightarrow> Defined None
-                            | [(_, action)] \<Rightarrow> Defined (Some action)
-                            | _ \<Rightarrow> Undefined "
 
 type_synonym ('m, 'a) flowtable = "(('m, 'a) flow_entry_match) list"
 type_synonym ('m, 'p) field_matcher = "('m \<Rightarrow> 'p \<Rightarrow> bool)"
 
 definition OF_same_priority_match2 :: "('m, 'p) field_matcher \<Rightarrow> ('m, 'a) flowtable \<Rightarrow> 'p \<Rightarrow> ('a option) undefined_behavior" where
-  "OF_same_priority_match2 \<gamma> flow_entries packet \<equiv> let s = {ofe_action f|f. f \<in> set flow_entries \<and> OF_match \<gamma> (ofe_fields f) packet \<and> 
-  	(\<forall>fo \<in> set flow_entries. ofe_prio fo > ofe_prio f \<longrightarrow> \<not>OF_match \<gamma> (ofe_fields fo) packet)} in
+  "OF_same_priority_match2 \<gamma> flow_entries packet \<equiv> let s = 
+  	{ofe_action f|f. f \<in> set flow_entries \<and> OF_match \<gamma> (ofe_fields f) packet \<and> 
+  	  (\<forall>fo \<in> set flow_entries. ofe_prio fo > ofe_prio f \<longrightarrow> \<not>OF_match \<gamma> (ofe_fields fo) packet)} in
   	case card s of 0       \<Rightarrow> Defined None
                  | (Suc 0) \<Rightarrow> Defined (Some (the_elem s)) 
                  | _       \<Rightarrow> Undefined "
@@ -102,7 +99,7 @@ fun OF_match_linear :: "('m, 'p) field_matcher \<Rightarrow> ('m, 'a) flowtable 
 "OF_match_linear _ [] _ = None" |
 "OF_match_linear \<gamma> (a#as) p = (if OF_match \<gamma> (ofe_fields a) p then Some (ofe_action a) else OF_match_linear \<gamma> as p)"
 
-lemma set_eq_rule: "(\<And>x. x \<in> a \<Longrightarrow> x \<in> b) \<Longrightarrow> (\<And>x. x \<in> b \<Longrightarrow> x \<in> a) \<Longrightarrow> a = b" by blast
+lemma set_eq_rule: "(\<And>x. x \<in> a \<Longrightarrow> x \<in> b) \<Longrightarrow> (\<And>x. x \<in> b \<Longrightarrow> x \<in> a) \<Longrightarrow> a = b" by(rule antisym[OF subsetI subsetI])
 
 lemma unmatching_insert_agnostic: "\<not> OF_match \<gamma> (ofe_fields a) p \<Longrightarrow> OF_same_priority_match2 \<gamma> (a # ft) p = OF_same_priority_match2 \<gamma> ft p"
 proof -
@@ -213,294 +210,75 @@ proof -
 		..
 qed
 
-	
-text{*The flow entries should always be distinct -- yes, but that's not the only thing we want. *}
-lemma "\<not> distinct flow_entries \<Longrightarrow> flow_entries \<noteq> [] \<Longrightarrow> \<exists>\<gamma> p. OF_same_priority_match \<gamma> flow_entries p = Undefined"
-  apply(simp add: OF_same_priority_match_def)
-  apply(rule_tac x="\<lambda>_ _. True" in exI)
-  apply(simp add: OF_match_def)
-  apply(case_tac flow_entries)
-   apply(simp_all)
-  apply(rename_tac l list)
-  apply(case_tac list)
-   apply(simp_all)
-  done
+(* Just me, thinking about some alternate ways of writing this down. *)
+lemma prio_match_matcher_alt: "{f. f \<in> set flow_entries \<and> OF_match \<gamma> (ofe_fields f) packet \<and> 
+  	  (\<forall>fo \<in> set flow_entries. ofe_prio fo > ofe_prio f \<longrightarrow> \<not>OF_match \<gamma> (ofe_fields fo) packet)}
+  	  = (
+  	  let matching = {f. f \<in> set flow_entries \<and> OF_match \<gamma> (ofe_fields f) packet} 
+  	  in {f. f \<in> matching \<and> (\<forall>fo \<in> matching. ofe_prio fo \<le> ofe_prio f)}
+  	  )"
+by(auto simp add: Let_def)
+lemma prio_match_matcher_alt2: "(
+  	  let matching = {f. f \<in> set flow_entries \<and> OF_match \<gamma> (ofe_fields f) packet} 
+  	  in {f. f \<in> matching \<and> (\<forall>fo \<in> matching. ofe_prio fo \<le> ofe_prio f)}
+  	  ) = set (
+  	  let matching = filter (\<lambda>f. OF_match \<gamma> (ofe_fields f) packet) flow_entries
+  	  in filter (\<lambda>f. \<forall>fo \<in> set matching. ofe_prio fo \<le> ofe_prio f) matching
+  	  )"
+by(auto simp add: Let_def)
 
-lemma OF_same_priority_match_defined:
-  "(\<forall>p. OF_same_priority_match \<gamma> flow_entries p \<noteq> Undefined) \<longleftrightarrow> (\<forall>p. length [(m, action)\<leftarrow>flow_entries . OF_match \<gamma> m p] \<le> 1)"
-  apply(simp add: OF_same_priority_match_def)
-  apply(rule iffI)
-   apply(intro allI)
-   apply(erule_tac x=p in allE)
-   defer
-   apply(intro allI)
-   apply(erule_tac x=p in allE)
-   apply(case_tac [!] "[(m, action)\<leftarrow>flow_entries . OF_match \<gamma> m p]")
-      apply(simp_all)
-   apply(rename_tac [!] l list)
-   apply(case_tac [!] list)
-      apply(simp_all split: split_split)
-  done
+definition OF_same_priority_match3 where
+  "OF_same_priority_match3 \<gamma> flow_entries packet \<equiv> 
+  let m  = filter (\<lambda>f. OF_match \<gamma> (ofe_fields f) packet) flow_entries;
+  	  m' = filter (\<lambda>f. \<forall>fo \<in> set m. ofe_prio fo \<le> ofe_prio f) m in
+  	case m' of []  \<Rightarrow> Defined None
+             | [s] \<Rightarrow> Defined (Some (ofe_action s)) 
+             |  _  \<Rightarrow> Undefined "
 
-
-lemma distinct_set_collect_singleton: "distinct xs \<Longrightarrow>
-       {x. x \<in> set xs \<and> P x} = {x} \<Longrightarrow>
-       [x\<leftarrow>xs . P x] = [x]"
-apply(induction xs)
- apply(simp)
-apply(simp)
-apply(case_tac "x=a")
- apply simp_all
- apply (smt DiffD2 Diff_insert_absorb filter_False insert_compr mem_Collect_eq)
-by (smt Collect_cong ball_empty insert_iff mem_Collect_eq)
-
-lemma set_collect_ge_singleton: "\<forall>x. {x \<in> set xs. P x} \<noteq> {x} \<Longrightarrow>
-       P x \<Longrightarrow> x \<in> set xs \<Longrightarrow> length [x\<leftarrow>xs . P x] > 1"
-apply(induction xs)
- apply(simp)
-apply(simp)
-apply(case_tac "x=a")
- apply simp_all
- apply (smt Collect_cong Collect_conv_if2 filter_empty_conv)
-by (smt Collect_cong filter_empty_conv)
-
-text{*set representation*}
-lemma OF_same_priority_match_set: "distinct flow_entries \<Longrightarrow> OF_same_priority_match \<gamma> flow_entries packet = (
-  let matching_entries = {(m,action) \<in> set flow_entries. OF_match \<gamma> m packet} in 
-    if matching_entries = {} then Defined None else
-    if \<exists>! x. matching_entries = {x} then Defined (Some (snd (the_elem matching_entries))) else
-       Undefined)"
-apply(simp add: OF_same_priority_match_def  Let_def)
-apply(safe)
-       apply(simp_all)
-   apply blast
-  apply(rename_tac a b aa bb)
-  apply(drule_tac P="\<lambda>(m,action). OF_match \<gamma> m packet" and x="(a,b)" in distinct_set_collect_singleton)
-   apply blast
-  apply simp
- apply (metis (no_types, lifting) case_prodE filter_False list.simps(4))
-apply(subgoal_tac "length [(m, action)\<leftarrow>flow_entries . OF_match \<gamma> m packet] > 1")
- apply(case_tac "[(m, action)\<leftarrow>flow_entries . OF_match \<gamma> m packet]")
-  apply(simp)
- apply(rename_tac l list)
- apply(case_tac list)
-  apply(simp)
- apply(simp)
-apply(rule set_collect_ge_singleton)
-  apply(simp_all)
-by blast
-
-
-lemma list_filter_singleton_element_eq: "[x\<leftarrow>xs. P x] = [x] \<Longrightarrow>
-       y \<in> set xs \<Longrightarrow> P y \<Longrightarrow> x = y"
-apply(induction xs)
- apply(simp)
-apply(simp)
-by (metis filter_empty_conv list.inject)
-
-lemma helper_foo: "\<not> (\<forall>x2. l \<noteq> (fst l, x2))"
-by (meson eq_fst_iff)
-
-lemma helper_foo2: "\<not> (\<forall>x2. ba \<noteq> x2)" by simp
-
-lemma helper_foo3: "(\<forall>x\<in>set list. \<forall>x1. (\<forall>x2. x \<noteq> (x1, x2)) \<or> P x1) \<longleftrightarrow> 
-       (\<forall>(x,y)\<in>set list. P x)"
-by blast
-
-
-lemma helper_foo4: "
-       \<forall>x\<in>set list. \<forall>x1. (\<forall>x2. x \<noteq> (x1, x2)) \<or> a = x1 \<or> \<not> OF_match \<gamma> x1 p \<Longrightarrow>
-       (a, b) \<notin> set list \<Longrightarrow>
-       (\<forall>(x,y)\<in>set list. \<not> OF_match \<gamma> x p) \<or> (\<exists>b'. (a, b') \<in> set list)"
-apply(subst(asm) helper_foo3)
-apply(induction list)
- apply(simp)
-apply(auto)
-done
-
-lemma helper_foo5: "\<forall>(x, y)\<in>set list. \<not> OF_match \<gamma> x p \<Longrightarrow> [(m, action)\<leftarrow>list . OF_match \<gamma> m p] = []"
- by(induction list) auto
-
-
-definition "overlapping_entries \<gamma> flow_entries_matches \<equiv> (\<exists>p. \<exists>entry1 \<in> set flow_entries_matches. \<exists>entry2 \<in> set flow_entries_matches. 
-          (entry1 \<noteq> entry2) \<and> OF_match \<gamma> entry1 p \<and> OF_match \<gamma> entry2 p)"
-
-lemma not_overlapping_entries_fst: "\<not> overlapping_entries \<gamma> (x#xs) \<Longrightarrow> \<not> overlapping_entries \<gamma> xs"
-   by(simp add: overlapping_entries_def)
-
-lemma leq_1_match_iff_not_overlapping_entries: "distinct (map (\<lambda>(m,a). m) flow_entries) \<Longrightarrow> 
-      (\<forall>p. length [(m, action) \<leftarrow> flow_entries . OF_match \<gamma> m p] \<le> 1) \<longleftrightarrow> 
-      \<not> overlapping_entries \<gamma> (map (\<lambda>(m,a). m) flow_entries)"
-  apply(simp)
-  apply(rule iffI)
-   apply(simp add: overlapping_entries_def)
-   apply(intro allI)
-   apply(erule_tac x=p in allE)
-   apply(case_tac "[(m, action)\<leftarrow>flow_entries . OF_match \<gamma> m p]")
-    apply(simp_all)
-    apply(clarify)
-    apply (metis case_prodI filter_empty_conv)
-   apply(clarify)
-   apply(rename_tac p m1 a1 unused m2 a2 m3 a3)
-   apply(frule_tac y="(m2, a2)" in list_filter_singleton_element_eq)
-     apply(simp_all)
-   apply(frule_tac y="(m3, a3)" in list_filter_singleton_element_eq)
-     apply(simp_all)
-  apply(intro allI)
-  (*apply(erule_tac x=p in allE)*)
-  (*apply(simp split: split_split_asm)*)
-  apply(induction flow_entries)
-   apply(simp)
-  apply(rename_tac l list p)
-  apply(simp add: not_overlapping_entries_fst)
-  apply(safe)
-  apply(simp add: overlapping_entries_def)
-  apply(erule_tac x=p in allE)
-  apply(simp)
-  apply(safe)
-  by (smt case_prodE filter_False image_iff split_conv)
-  
-
-(*"The packet is matched against the table and only the highest priority flow entry that matches the
-packet must be selected" *)
-definition group_descending_priority :: "('m, 'a) flow_entry_match list \<Rightarrow> ('m, 'a) flow_entry_match list list" where
-  "group_descending_priority flow_table \<equiv> list_group_eq_key (\<lambda>(priority,_,_). priority) (sort_descending_key (\<lambda>(priority,_,_). priority) flow_table)"
-
-
-(*assumes: sorted_descending flow_table and partitioned by same priority*)
-fun internal_OF_match_table :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> (('m match_fields \<times> 'a) list) list \<Rightarrow> 'p \<Rightarrow> 'a undefined_behavior" where
-  "internal_OF_match_table \<gamma> [] packet = Undefined" |
-  "internal_OF_match_table \<gamma> (same_priority_flow_table#ts) packet =
-      (case OF_same_priority_match \<gamma> same_priority_flow_table packet
-          of Undefined \<Rightarrow> Undefined
-           | Defined None \<Rightarrow> internal_OF_match_table \<gamma> ts packet
-           | Defined (Some a) \<Rightarrow> Defined a)"
-
-
-definition OF_match_table :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> ('m, 'a) flow_entry_match list \<Rightarrow> 'p \<Rightarrow> 'a undefined_behavior" where
-  "OF_match_table \<gamma> flow_table packet = internal_OF_match_table \<gamma>
-      (map (map (\<lambda>(_, match, action). (match,action))) (group_descending_priority flow_table))
-      packet"
-
-
-(*
-"For add requests (OFPFC_ADD) with the OFPFF_CHECK_OVERLAP flag set, the switch must first check for
-any overlapping flow entries in the requested table. Two flow entries overlap if a single packet may
-match both, and both entries have the same priority. If an overlap conflict exists between an existing
-flow entry and the add request, the switch must refuse the addition and respond with an Overlap error
-message (see 7.5.4.6)."*)
-(*this definition is slightly stricter, OpenVSwitch does not throw an error for two identical entries.*)
-definition OFPFF_CHECK_OVERLAP_same_priority :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> ('m match_fields) list \<Rightarrow> 'm match_fields \<Rightarrow> bool" where
-  "OFPFF_CHECK_OVERLAP_same_priority \<gamma> flow_entries_match new_entry_match \<equiv>
-      \<exists>packet. \<exists>entrie \<in> set flow_entries_match. OF_match \<gamma> new_entry_match packet \<and> OF_match \<gamma> entrie packet"
-
-
-
-text{*If @{const OFPFF_CHECK_OVERLAP_same_priority} is @{const True}, there may be a packet which triggers the undefined behavior.*}
-lemma "OFPFF_CHECK_OVERLAP_same_priority \<gamma> [entry1] entry2 \<Longrightarrow> \<exists>packet. OF_match_table \<gamma> [(priority, entry2, a2), (priority, entry1, a1)] packet = Undefined"
-  apply(simp add: OFPFF_CHECK_OVERLAP_same_priority_def OF_match_table_def
-                  group_descending_priority_def sort_descending_key_def
-             split: option.split)
-  apply(simp add: OF_same_priority_match_def)
-  apply(erule exE)
-  apply(rule_tac x=packet in exI)
-  apply(clarify)
-  apply(simp)
-  done
-
-
-lemma no_OFPFF_CHECK_OVERLAP_same_priority: 
-      "distinct flow_entries_match \<Longrightarrow>
-      (\<forall>entry \<in> set flow_entries_match. \<not> OFPFF_CHECK_OVERLAP_same_priority \<gamma> (remove1 entry flow_entries_match) entry)
-      \<longleftrightarrow>
-      \<not> overlapping_entries \<gamma> flow_entries_match"
-  unfolding overlapping_entries_def
-  apply(simp add: OF_same_priority_match_def)
-  apply(simp add: OFPFF_CHECK_OVERLAP_same_priority_def OF_match_table_def
-                  group_descending_priority_def sort_descending_key_def
-             split: option.split)
-  by blast
-
-lemma no_overlapping_entries_same_priority_defined: "distinct (map (\<lambda>(m, _). m) same_priority_match) \<Longrightarrow>
-        \<not> overlapping_entries \<gamma> (map (\<lambda>(m, _). m) same_priority_match)
-      \<longleftrightarrow>
-        (\<forall>packet. OF_same_priority_match \<gamma> same_priority_match packet \<noteq> Undefined)"
-  by(simp add: leq_1_match_iff_not_overlapping_entries[symmetric] OF_same_priority_match_defined)
-
-
-corollary OFPFF_CHECK_OVERLAP_same_priority_defined: "distinct (map (\<lambda>(m, _). m) same_priority_match) \<Longrightarrow>
-      (\<forall>entry \<in> set (map (\<lambda>(m, _). m) same_priority_match).
-        \<not> OFPFF_CHECK_OVERLAP_same_priority \<gamma> (remove1 entry (map (\<lambda>(m, _). m) same_priority_match)) entry)
-      \<longleftrightarrow>
-      (\<forall>packet. OF_same_priority_match \<gamma> same_priority_match packet \<noteq> Undefined)"
-  apply(subst no_OFPFF_CHECK_OVERLAP_same_priority)
-   apply(simp)
-  apply(simp add: no_overlapping_entries_same_priority_defined)
-  done
-
-
-
-(*Every flow table must support a table-miss flow entry to process table misses.
-The table-miss flow entry is identified by its match and its priority (see 5.2), it wildcards all match
-fields (all fields omitted) and has the lowest priority (0).*)
-
-definition has_table_miss_entry :: " ('m, 'a) flow_entry_match list \<Rightarrow> bool" where
-  "has_table_miss_entry flow_table \<equiv> \<exists> table_miss_action. (0, MatchFields {}, table_miss_action) \<in> set flow_table"
-
-lemma has_table_miss_entry_fst: 
-  "has_table_miss_entry ((priority, matches, action) # flow_table) \<Longrightarrow> priority = 0 \<and> matches = MatchFields {} \<or> has_table_miss_entry flow_table"
-  apply(simp add: has_table_miss_entry_def)
-  by blast
-
-lemma "distinct (sort (x#xs)) \<Longrightarrow> distinct (sort xs)"
-by (meson distinct.simps(2) distinct_sort)
-
-
-lemma "distinct (map (map (\<lambda>(_, match, _). match)) (group_descending_priority (f#fs))) \<Longrightarrow>
-       distinct (map (map (\<lambda>(_, match, _). match)) (group_descending_priority fs))"
-apply(simp add: group_descending_priority_def sort_descending_key_def)
-apply(simp add: distinct_sort)
-oops
-
-definition "all_not_OFPFF_CHECK_OVERLAP \<gamma> grouped_matches \<equiv> \<forall> same_priority_matches \<in> grouped_matches.
-       (\<forall> entry \<in> set same_priority_matches. \<not> OFPFF_CHECK_OVERLAP_same_priority \<gamma> (remove1 entry same_priority_matches) entry)"
-
-lemma "has_table_miss_entry flow_table \<Longrightarrow> distinct ((map (map (\<lambda>(_, match, _). match))) (group_descending_priority flow_table)) \<Longrightarrow>
- all_not_OFPFF_CHECK_OVERLAP \<gamma> (set ((map (map (\<lambda>(_, match, _). match))) (group_descending_priority flow_table)))
-  \<Longrightarrow>
-  OF_match_table \<gamma> flow_table packet \<noteq> Undefined"
-  apply(rule iffI)
-   unfolding OF_match_table_def
-   apply(induction flow_table)
-    apply(simp add: has_table_miss_entry_def)
-   apply(clarify)
-   apply(drule has_table_miss_entry_fst)
-   apply(safe)
-    defer
-    apply(simp)
-   thm OFPFF_CHECK_OVERLAP_same_priority_defined
-   apply(subst(asm) OFPFF_CHECK_OVERLAP_same_priority_defined)
-oops
-
-
-lemma defines "same_priority_match flow_table \<equiv> ((map (map (\<lambda>(_, match, _). match))) (group_descending_priority flow_table))"
-  assumes "has_table_miss_entry flow_table" and "distinct (same_priority_match flow_table)"
-   and "\<forall> same_priority_matches \<in> set (same_priority_match flow_table).
-       (\<forall> entry \<in> set same_priority_matches. \<not> OFPFF_CHECK_OVERLAP_same_priority \<gamma> (remove1 entry same_priority_matches) entry)"
- shows "OF_match_table \<gamma> flow_table packet \<noteq> Undefined"
-  proof -
-    from assms have "\<forall>m \<in> set (same_priority_match flow_table). \<not> overlapping_entries \<gamma> m"
-      unfolding same_priority_match_def
-      using no_OFPFF_CHECK_OVERLAP_same_priority
-   thm OFPFF_CHECK_OVERLAP_same_priority_defined
-   apply(subst(asm) OFPFF_CHECK_OVERLAP_same_priority_defined)
-oops
-
-
-
-
-
-fun process_OF_table :: "(string \<times> 'p)"
-  "process_of_table (ingress_port, p)"
+lemma "distinct fe \<Longrightarrow> check_no_overlap \<gamma> fe \<Longrightarrow> OF_same_priority_match2 \<gamma> fe p = OF_same_priority_match3 \<gamma> fe p"
+	unfolding OF_same_priority_match2_def OF_same_priority_match3_def 
+	unfolding f_Img_ex_set
+	unfolding prio_match_matcher_alt
+	unfolding prio_match_matcher_alt2
+proof -
+	case goal1
+	let ?m' = "let m = [f\<leftarrow>fe . OF_match \<gamma> (ofe_fields f) p] in [f\<leftarrow>m . \<forall>fo\<in>set m. ofe_prio fo \<le> ofe_prio f]"
+	let ?s = "ofe_action ` set ?m'"
+	from goal1 show ?case 
+	proof(cases ?m')
+		case Nil
+		moreover then have "card ?s = 0" by force
+		ultimately show ?thesis by(simp add: Let_def)
+	next
+		case (Cons a as)
+		have "as = []"
+		proof(rule ccontr)
+			assume "as \<noteq> []"
+			then obtain b bs where bbs: "as = b # bs" by (meson neq_Nil_conv)
+			note no = goal1[unfolded check_no_overlap_def] Cons[unfolded Let_def filter_filter]
+			have "a \<noteq> b" using distinct_filter[OF goal1(1)] no(3) unfolding bbs
+				by (metis (no_types) distinct_length_2_or_more)
+			moreover have "OF_match \<gamma> (ofe_fields b) p" "OF_match \<gamma> (ofe_fields a) p" using no(3) unfolding bbs
+				by(metis (no_types, lifting) Cons_eq_filterD)+
+			moreover have "ofe_prio a = ofe_prio b"
+			proof - (* sletschhammer *)
+			  have f1: "{f \<in> set [f\<leftarrow>fe . OF_match \<gamma> (ofe_fields f) p]. \<forall>fa. fa \<in> set [f\<leftarrow>fe . OF_match \<gamma> (ofe_fields f) p] \<longrightarrow> ofe_prio fa \<le> ofe_prio f} = set (a # b # bs)"
+				by (metis bbs local.Cons set_filter)
+			  hence f2: "a \<in> set [f\<leftarrow>fe . OF_match \<gamma> (ofe_fields f) p] \<and> (\<forall>f. f \<in> set [f\<leftarrow>fe . OF_match \<gamma> (ofe_fields f) p] \<longrightarrow> ofe_prio f \<le> ofe_prio a)"
+				by auto
+			  have "set (b # bs) \<subseteq> {f \<in> set [f\<leftarrow>fe . OF_match \<gamma> (ofe_fields f) p]. \<forall>fa. fa \<in> set [f\<leftarrow>fe . OF_match \<gamma> (ofe_fields f) p] \<longrightarrow> ofe_prio fa \<le> ofe_prio f}"
+				using f1 by (metis set_subset_Cons)
+			  thus ?thesis
+				using f2 by (simp add: antisym)
+			qed
+			moreover have "a \<in> set fe" "b \<in> set fe" (* surprising: isar sledgehammer pointed these out when I forgot them *)
+				using no(3) unfolding bbs
+				by (metis (no_types) filter_set insertCI list.set(2) member_filter)+
+			ultimately show False using no(2) by blast
+		qed
+		then have oe: "a # as = [a]" by simp
+		show ?thesis using Cons[unfolded oe] by force
+	qed
+qed
 
 end

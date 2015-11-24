@@ -66,7 +66,6 @@ lemma range_destination_deadend: "wordinterval_empty k \<Longrightarrow> range_d
 	by(induction tbl) 
 	(simp_all add: ipv4range_to_set_def Let_def range_prefix_match_def ipv4range_setminus_def ipv4range_intersection_def)
 
-
 lemma "filter (\<lambda>(s, _). \<not>ipv4range_empty s) (map (\<lambda>(r, s). (s, routing_action r)) (annotate_rt_i tbl s)) 
 	= range_destination tbl s"
 	apply(induction tbl arbitrary: s)
@@ -77,7 +76,5 @@ lemma "filter (\<lambda>(s, _). \<not>ipv4range_empty s) (map (\<lambda>(r, s). 
 	 apply(simp add: range_destination_deadend)
 	apply(simp add: range_prefix_match_def Let_def ipv4range_setminus_def ipv4range_to_set_def prefix_to_range_set_eq[symmetric])
 done
-
-find_theorems range_destination
 
 end
