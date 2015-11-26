@@ -7,35 +7,6 @@ imports Main
 begin
 
 
-lemma gschenk0: "\<forall>A \<in> (\<lambda>(base,len).
-               ipv4range_set_from_bitmask base len) ` src ` match_sel ` set rs. B \<subseteq> A \<or> B \<inter> A = {} \<Longrightarrow>
-  s1 \<in> B \<Longrightarrow> s2 \<in> B \<Longrightarrow>
-    simple_fw rs (p\<lparr>p_src:=s1\<rparr>) = simple_fw rs (p\<lparr>p_src:=s2\<rparr>)"
-proof(induction rs)
-  case Nil thus ?case by simp
-next
-  case (Cons r rs)
-  { fix m
-    have "B \<subseteq> (case src m of (x, xa) \<Rightarrow> ipv4range_set_from_bitmask x xa) \<or> B \<inter> (case src m of (x, xa) 
-                    \<Rightarrow> ipv4range_set_from_bitmask x xa) = {} \<Longrightarrow>
-           s1 \<in> B \<Longrightarrow>
-           s2 \<in> B \<Longrightarrow>
-           simple_matches m (p\<lparr>p_src := s1\<rparr>) \<longleftrightarrow> simple_matches m (p\<lparr>p_src := s2\<rparr>)"
-    apply(cases m)
-    apply(rename_tac iiface oiface srca dst proto sports dports)
-    apply(case_tac srca)
-    apply(simp add: simple_matches.simps)
-    by blast
-  } note helper=this
-  from Cons show ?case
-   apply(simp)
-   apply(case_tac r, rename_tac m a)
-   apply(simp)
-   apply(case_tac a)
-    using helper apply force+
-   done
-qed
-
 
 lemma gschenk1: "\<forall>A \<in> (\<lambda>(base,len).
                ipv4range_set_from_bitmask base len) ` dst ` match_sel ` set rs. B \<subseteq> A \<or> B \<inter> A = {} \<Longrightarrow>
@@ -94,12 +65,42 @@ by (metis (no_types, hide_lams) extract_IPSets_generic0.simps(2) image_insert ip
     ipv4range_to_set_ipv4_cidr_tuple_to_interval list.simps(15) 
     old.prod.case old.prod.exhaust simple_rule.collapse)
 
-lemma src_ipPart: "ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 src rs))) A \<Longrightarrow>
-       B \<in> A \<Longrightarrow>
-       s1 \<in> B \<Longrightarrow> s2 \<in> B \<Longrightarrow> simple_fw rs (p\<lparr>p_src:=s1\<rparr>) = simple_fw rs (p\<lparr>p_src:=s2\<rparr>)"
-  apply(subst (asm) ipPartition_def)
-by (metis (full_types) Int_commute extract_equi0 gschenk0)
+lemma src_ipPart:
+  assumes "ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 src rs))) A"
+          "B \<in> A" "s1 \<in> B" "s2 \<in> B"
+  shows "simple_fw rs (p\<lparr>p_src:=s1\<rparr>) = simple_fw rs (p\<lparr>p_src:=s2\<rparr>)"
+proof -
+  have "\<forall>A \<in> (\<lambda>(base,len). ipv4range_set_from_bitmask base len) ` src ` match_sel ` set rs. B \<subseteq> A \<or> B \<inter> A = {} \<Longrightarrow>
+      simple_fw rs (p\<lparr>p_src:=s1\<rparr>) = simple_fw rs (p\<lparr>p_src:=s2\<rparr>)"
+  proof(induction rs)
+    case Nil thus ?case by simp
+  next
+    case (Cons r rs)
+    { fix m
+      from `s1 \<in> B` `s2 \<in> B` have 
+        "B \<subseteq> (case src m of (x, xa) \<Rightarrow> ipv4range_set_from_bitmask x xa) \<or> B \<inter> (case src m of (x, xa) 
+                      \<Rightarrow> ipv4range_set_from_bitmask x xa) = {} \<Longrightarrow>
+             simple_matches m (p\<lparr>p_src := s1\<rparr>) \<longleftrightarrow> simple_matches m (p\<lparr>p_src := s2\<rparr>)"
+      apply(cases m)
+      apply(rename_tac iiface oiface srca dst proto sports dports)
+      apply(case_tac srca)
+      apply(simp add: simple_matches.simps)
+      by blast
+    } note helper=this
+    from Cons show ?case
+     apply(simp)
+     apply(case_tac r, rename_tac m a)
+     apply(simp)
+     apply(case_tac a)
+      using helper apply force+
+     done
+  qed
+  thus ?thesis using assms(1) assms(2)
+    unfolding ipPartition_def
+    by (metis (full_types) Int_commute extract_equi0)
+qed
 
+(*TODO: refactor as src_ipPart*)
 lemma dst_ipPart: "ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 dst rs))) A \<Longrightarrow>
        B \<in> A \<Longrightarrow>
        s1 \<in> B \<Longrightarrow> s2 \<in> B \<Longrightarrow> simple_fw rs (p\<lparr>p_dst:=s1\<rparr>) = simple_fw rs (p\<lparr>p_dst:=s2\<rparr>)"
