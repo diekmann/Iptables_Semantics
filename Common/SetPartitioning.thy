@@ -563,20 +563,5 @@ apply(subgoal_tac "complete {UNIV} (set (partitioning1 X [UNIV]))")
  apply(rule SetPartitioning.complete_helper[where ts="[UNIV]", simplified])
 apply(simp add: complete_def)
 done
-
-lemma "partitioning1 [x1,x2] [UNIV] = y"
-apply(subst partitioning1.simps)
-apply(subst partitioning1.simps)
-apply(subst partitioning1.simps)
-apply(subst partList3.simps)
-oops
-
-
-lemma "partitioning [x1,x2] {UNIV} = y"
-apply(subst partitioning.simps)
-apply(subst partitioning.simps)
-apply(subst partitioning.simps)
-apply(subst addSubsetSet_def) back
-oops
   
 end

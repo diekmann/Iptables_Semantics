@@ -351,12 +351,18 @@ lemma same_fw_spec: "same_fw_behaviour ip1 ip2 rs \<Longrightarrow> same_fw_beha
   apply(simp)
 done
 
+text{*Is an equivalence relation*}
 lemma same_fw_behaviour_one_equi:
   "same_fw_behaviour_one x x c rs"
   "same_fw_behaviour_one x y c rs = same_fw_behaviour_one y x c rs"
-  "same_fw_behaviour_one x y c rs \<and> same_fw_behaviour_one y z c rs \<Longrightarrow>
-   same_fw_behaviour_one x z c rs"
+  "same_fw_behaviour_one x y c rs \<and> same_fw_behaviour_one y z c rs \<Longrightarrow> same_fw_behaviour_one x z c rs"
   unfolding same_fw_behaviour_one_def by metis+
+
+lemma same_fw_behaviour_equi:
+  "same_fw_behaviour x x rs"
+  "same_fw_behaviour x y rs = same_fw_behaviour y x rs"
+  "same_fw_behaviour x y rs \<and> same_fw_behaviour y z rs \<Longrightarrow> same_fw_behaviour x z rs"
+  unfolding same_fw_behaviour_def by auto
 
 lemma runFw_sameFw_behave: 
        "\<forall>A \<in> W. \<forall>a1 \<in> A. \<forall>a2 \<in> A. same_fw_behaviour_one a1 a2 c rs \<Longrightarrow> \<Union> W = UNIV \<Longrightarrow>
@@ -649,7 +655,7 @@ done
 fun buildParts where
   "buildParts c rs = map (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) (groupWIs2 c rs)"
 
-lemma buildParts_same_fw: "V \<in> set (buildParts c rs) \<Longrightarrow>
+theorem buildParts_same_fw: "V \<in> set (buildParts c rs) \<Longrightarrow>
                                \<forall>ip1 \<in> wordinterval_to_set V.
                                \<forall>ip2 \<in> wordinterval_to_set V.
                                same_fw_behaviour_one ip1 ip2 c rs"
@@ -658,7 +664,7 @@ using wordinterval_unifier groupParts_same_fw_wi2 by blast
 
 
 
-lemma buildParts_same_fw_min: "A \<in> set (buildParts c rs) \<Longrightarrow> B \<in> set (buildParts c rs) \<Longrightarrow> 
+theorem buildParts_same_fw_min: "A \<in> set (buildParts c rs) \<Longrightarrow> B \<in> set (buildParts c rs) \<Longrightarrow> 
                                 A \<noteq> B \<Longrightarrow>
                                 \<forall>ip1 \<in> wordinterval_to_set A.
                                 \<forall>ip2 \<in> wordinterval_to_set B.
