@@ -203,9 +203,8 @@ by (metis ipPartitioning_helper_opt partitioningIps_equi wordinterval_list_to_se
 lemma complete_partitioningIps: 
   "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
    (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow> 
-   complete (set (map wordinterval_to_set ts)) 
-               (set (map wordinterval_to_set (partitioningIps ss ts)))"
-by (metis complete_helper partitioningIps_equi wordinterval_list_to_set.simps)
+   \<Union> (set (map wordinterval_to_set ts)) = \<Union> (set (map wordinterval_to_set (partitioningIps ss ts)))"
+using complete_helper by (metis partitioningIps_equi wordinterval_list_to_set.simps)
 
 lemma disjoint_partitioningIps: 
   "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
@@ -230,8 +229,8 @@ lemma ipParts_getParts: "ipPartition (set (map wordinterval_to_set (extract_IPSe
   by(simp)
 
 
-lemma getParts_complete0: "complete (set (map wordinterval_to_set [wordinterval_UNIV]))
-                                   (set (map wordinterval_to_set (getParts rs)))"
+lemma getParts_complete0: "\<Union> (set (map wordinterval_to_set [wordinterval_UNIV])) = 
+                           \<Union> (set (map wordinterval_to_set (getParts rs)))"
   apply(subst getParts_def)
   apply(rule complete_partitioningIps)
   apply(simp_all)

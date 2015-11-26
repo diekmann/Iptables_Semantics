@@ -9,8 +9,7 @@ begin
 definition disjoint :: "'a set set \<Rightarrow> bool" where
   "disjoint ts \<equiv> \<forall>A \<in> ts. \<forall>B \<in> ts. A \<noteq> B \<longrightarrow> A \<inter> B = {}"
 
-definition complete :: "'a set set \<Rightarrow> 'a set set \<Rightarrow> bool" where
-  "complete ss ts \<equiv> \<Union> ss = \<Union> ts"
+text{*We will call two partitioned sets \emph{complete} iff @{term "\<Union> ss = \<Union> ts"}*}
 
 definition ipPartition :: "'a set set \<Rightarrow> 'a set set \<Rightarrow> bool" where
   "ipPartition A B \<equiv> \<forall>a \<in> A. \<forall>b \<in> B. a \<inter> b = {} \<or> b \<subseteq> a"
@@ -42,10 +41,10 @@ fun partitioning :: "'a set list \<Rightarrow> 'a set set \<Rightarrow> 'a set s
 
 definition test_set_list :: "nat set list" where "test_set_list = [{1,2},{3,4},{5,6,7},{6},{10}]" 
 
-value "partitioning test_set_list {}"
-value "complete (set test_set_list) (partitioning test_set_list {})"
-value "disjoint (partitioning test_set_list {})"
-value "ipPartition (set test_set_list) (partitioning test_set_list {})"
+lemma "partitioning test_set_list {} = {{10}, {6}, {5, 7}, {}, {3, 4}, {1, 2}}" by eval
+lemma "\<Union> (set test_set_list) = \<Union> (partitioning test_set_list {})" by eval
+lemma "disjoint (partitioning test_set_list {})" by eval
+lemma "ipPartition (set test_set_list) (partitioning test_set_list {})" by eval
 
 (* OTHER LEMMAS *)
 
@@ -64,11 +63,10 @@ lemma ipPartitionUnion: "ipPartition As Cs \<Longrightarrow> ipPartition Bs Cs
 lemma disjointAddSubset: "disjoint ts \<Longrightarrow> disjoint (addSubsetSet a ts)" 
   by (auto simp add: disjoint_def addSubsetSet_def)
 
-lemma coversallAddSubset:"complete (insert a ts) (addSubsetSet a ts)" 
-  by (auto simp add: complete_def addSubsetSet_def)
+lemma coversallAddSubset:"\<Union> (insert a ts) = \<Union> (addSubsetSet a ts)" 
+  by (auto simp add: addSubsetSet_def)
 
-lemma ipPartioningAddSubset0: "disjoint ts
-                               \<Longrightarrow> ipPartition ts (addSubsetSet a ts)"
+lemma ipPartioningAddSubset0: "disjoint ts \<Longrightarrow> ipPartition ts (addSubsetSet a ts)"
   apply(simp_all add: addSubsetSet_def ipPartition_def)
   apply(safe)
     apply blast
@@ -143,24 +141,24 @@ lemma disjointPartitioning:"disjoint (partitioning ss {})"
     from this disjointPartitioning_helper show ?thesis by fast
   qed
 
-lemma coversallPartitioning_helper:"complete (set ts \<union> As) (partitioning ts As)"
+lemma coversallPartitioning_helper:"\<Union> (set ts \<union> As) = \<Union> (partitioning ts As)"
   apply(induction ts arbitrary: As)
-  apply(simp_all add: complete_def)
-  apply(metis Sup_insert Union_Un_distrib complete_def coversallAddSubset sup.left_commute)
+   apply(simp_all)
+  apply(metis Sup_insert Union_Un_distrib  coversallAddSubset sup.left_commute)
 done
 
-lemma coversallPartitioning:"complete (set ts) (partitioning ts {})"
+lemma coversallPartitioning:"\<Union> (set ts) = \<Union> (partitioning ts {})"
 by (metis coversallPartitioning_helper sup_bot.right_neutral)
 
-lemma "complete As Bs \<Longrightarrow> ipPartition As Bs \<Longrightarrow> ipPartition As (addSubsetSet a Bs)"
-  apply(simp add: ipPartition_def complete_def addSubsetSet_def) by auto
+lemma "\<Union> As = \<Union> Bs \<Longrightarrow> ipPartition As Bs \<Longrightarrow> ipPartition As (addSubsetSet a Bs)"
+  by(auto simp add: ipPartition_def addSubsetSet_def)
 
 
 lemma ipPartitionSingleSet: "ipPartition {t} (addSubsetSet t Bs) 
              \<Longrightarrow> ipPartition {t} (partitioning ts (addSubsetSet t Bs))"
   apply(induction ts arbitrary: Bs t)
-  apply(simp_all)
-by (metis addSubsetSetCom ipPartitioningAddSubset2)
+   apply(simp_all)
+  by (metis addSubsetSetCom ipPartitioningAddSubset2)
 
 lemma ipPartitioning_helper: "disjoint As \<Longrightarrow> ipPartition (set ts) (partitioning ts As)"
   proof(induction ts arbitrary: As)
@@ -445,93 +443,15 @@ lemma ipPartitioning_helper_opt: "{} \<notin> set ts \<Longrightarrow> disjoint_
 by (meson Diff_subset disjoint_equi ipPartition_def ipPartitioning_helper subsetCE)
 
 lemma complete_helper: "{} \<notin> set ts \<Longrightarrow> disjoint_list_rec ts \<Longrightarrow> \<Union> (set ss) \<subseteq> \<Union> (set ts) 
-                                  \<Longrightarrow> complete (set ts) (set (partitioning1 ss ts))"
+                                  \<Longrightarrow> \<Union> (set ts) = \<Union> (set (partitioning1 ss ts))"
   apply(induction ss arbitrary: ts)
-  apply(simp_all add: complete_def)
-by (metis partList3_complete0)
+   apply(simp_all )
+  by (metis partList3_complete0)
 
   
   
 
-value "partitioning1  [{1::nat},{2},{}] [{1},{},{2},{3}]"
-
-(* https://i.imgur.com/d9kdVYY.jpg?1 *)
-
-(* DUMP *)
-
-(*
-lemma disjunct'_helper :"disjunct As \<Longrightarrow> disjunct (partitioning ss As)"
-  apply(induction ss arbitrary: As)
-   apply(simp add: disjunct_def)
-  apply(simp)
-  apply(subgoal_tac "disjunct (addSubsetSet a As)")
-   apply(simp)
-  apply(simp add: disjunctaddSubset)
-  done
-*)
-(*
-lemma addSubsetSetCom_helper: "addSubsetSet a (addSubsetSet b As) \<subseteq> addSubsetSet b (addSubsetSet a As)"
-unfolding addSubsetSet_def
-apply simp
-apply (intro conjI)
-apply fast
-apply (rule disjI1)
-apply blast
-apply force
-apply rule
-
-apply (rule insertI2)
-apply (rule insertI2)
-apply (rule insertI2)
-apply (simp add: image_def)
-apply (erule bexE)
-apply hypsubst_thin
-apply (erule UnE)
-apply simp
-apply (erule bexE)
-apply hypsubst_thin
-apply (rule disjI1)
-apply simp
-apply (rule bexI)
-apply (rule Int_left_commute)
-apply blast
-
-apply simp
-apply (erule bexE)
-apply hypsubst_thin
-apply (rule disjI2)
-apply simp
-
-apply (rule bexI)
-apply (rule Int_Diff[symmetric])
-apply blast
-
-apply rule
-apply (rule insertI2)
-apply (rule insertI2)
-apply (rule insertI2)
-
-apply (simp add: image_def)
-apply (erule bexE)
-apply hypsubst_thin
-apply (erule UnE)
-apply simp
-apply (erule bexE)
-apply hypsubst_thin
-apply (rule disjI1)
-apply (rule bexI)
-apply (rule Int_Diff)
-apply blast
-
-apply simp
-apply (erule bexE)
-apply hypsubst_thin
-apply (rule disjI2)
-apply (rule bexI)
-apply (rule set_minus_commute)
-apply blast
-done
-*)
+lemma "partitioning1  [{1::nat},{2},{}] [{1},{},{2},{3}] = [{1}, {}, {2}, {3}]" by eval
 
 
 (*random corny stuff*)
@@ -545,7 +465,7 @@ lemma "ipPartition (set X) (foldr addSubsetSet X {})"
   using ipPartitioning by auto
 
 term foldr
-lemma "complete (set X) (foldr addSubsetSet X {})"
+lemma "\<Union> (set X) = \<Union> (foldr addSubsetSet X {})"
   apply(subst partitioning_foldr[symmetric])
   by (simp add: coversallPartitioning)
 
@@ -558,10 +478,10 @@ apply(simp_all)
 done
 
 lemma "(\<Union>(set (partitioning1 X [UNIV]))) = UNIV"
-apply(subgoal_tac "complete {UNIV} (set (partitioning1 X [UNIV]))")
+apply(subgoal_tac "UNIV = \<Union> (set (partitioning1 X [UNIV]))")
  prefer 2
  apply(rule SetPartitioning.complete_helper[where ts="[UNIV]", simplified])
-apply(simp add: complete_def)
+apply(simp)
 done
   
 end
