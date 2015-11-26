@@ -29,11 +29,11 @@ fun extract_IPSets_tail :: "simple_rule list \<Rightarrow> (32 wordinterval) lis
 lemma extract_equi0: "set (map wordinterval_to_set (extract_IPSets_generic0 sel rs))
                      = (\<lambda>(base,len). ipv4range_set_from_bitmask base len) ` sel ` match_sel ` set rs"
   apply(induction rs)
-  apply(simp)
+   apply(simp; fail)
   apply(simp_all)
-by (metis (no_types, hide_lams) extract_IPSets_generic0.simps(2) image_insert ipv4range_to_set_def
-    ipv4range_to_set_ipv4_cidr_tuple_to_interval list.simps(15) 
-    old.prod.case old.prod.exhaust simple_rule.collapse)
+  apply(rename_tac r rs)
+  apply(case_tac r, simp)
+  using ipv4range_to_set_ipv4_cidr_tuple_to_interval[simplified ipv4range_to_set_def] by fastforce
 
 lemma src_ipPart:
   assumes "ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 src rs))) A"
