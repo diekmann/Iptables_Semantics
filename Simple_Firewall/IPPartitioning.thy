@@ -624,19 +624,17 @@ done
 
 
 (*construct partitions. main function!*)
-fun buildParts :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list" where
-  "buildParts c rs = map (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) (groupWIs2 c rs)"
+fun build_ip_partition :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list" where
+  "build_ip_partition c rs = map (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) (groupWIs2 c rs)"
 
-theorem buildParts_same_fw: "V \<in> set (buildParts c rs) \<Longrightarrow>
+theorem build_ip_partition_same_fw: "V \<in> set (build_ip_partition c rs) \<Longrightarrow>
                                \<forall>ip1 \<in> wordinterval_to_set V.
                                \<forall>ip2 \<in> wordinterval_to_set V.
                                same_fw_behaviour_one ip1 ip2 c rs"
   apply(simp add: groupWIs1_groupWIs2_equi groupWIs_groupWIs1_equi)
 using wordinterval_unifier groupParts_same_fw_wi2 by blast
 
-
-
-theorem buildParts_same_fw_min: "A \<in> set (buildParts c rs) \<Longrightarrow> B \<in> set (buildParts c rs) \<Longrightarrow> 
+theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \<Longrightarrow> B \<in> set (build_ip_partition c rs) \<Longrightarrow> 
                                 A \<noteq> B \<Longrightarrow>
                                 \<forall>ip1 \<in> wordinterval_to_set A.
                                 \<forall>ip2 \<in> wordinterval_to_set B.
@@ -655,10 +653,16 @@ fun pretty_wordinterval where
                                             pretty_wordinterval r2"
 
 
-(*What does this do?*)
-(*can it use groupWIs2?*)
-fun build where
-  "build c rs = (let W = map (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) (groupWIs2 c rs) in
+(*construct an ip partition and print it in some useable format
+  returns:
+  (vertices, edges) where
+  vertices = (name, list of ip addresses this vertex corresponds to)
+  and edges = (name \<times> name) list
+*)
+fun build_ip_partition_pretty 
+  :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
+  where
+  "build_ip_partition_pretty c rs = (let W = build_ip_partition c rs in
                   (let R = map getOneIp W 
       in
                          (let U = concat (map (\<lambda>x. map (\<lambda>y. (x,y)) R) R) in 
@@ -671,6 +675,54 @@ definition ssh where "ssh = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=T
 
 definition http where "http = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
                                pc_sport=10000, pc_dport=80, pc_tag_ctstate=CT_New\<rparr>"
+
+
+
+
+
+(*corny stuff -- TODO: move*)
+lemma extract_IPSets_generic0_length: "length (extract_IPSets_generic0 sel rs) = length rs"
+by(induction rs rule: extract_IPSets_generic0.induct) (simp_all)
+
+lemma "partIps (WordInterval (1::ipv4addr) 1) [WordInterval 0 1] = [WordInterval 1 1, WordInterval 0 0]" by eval
+
+lemma partIps_length: "length (partIps s ts) \<le> (length ts) * 2"
+apply(induction ts arbitrary: s )
+ apply(simp)
+apply simp
+using le_Suc_eq by blast
+
+
+value[code] "partitioningIps [WordInterval (0::ipv4addr) 0] [WordInterval 0 2, WordInterval 0 2]"
+
+lemma partitioningIps_length: "length (partitioningIps ss ts) \<le> (2^length ss) * length ts"
+apply(induction ss arbitrary: ts)
+ apply(simp; fail)
+apply(subst partitioningIps.simps)
+apply(simp)
+apply(subgoal_tac "length (partIps a (partitioningIps ss ts)) \<le> length (partitioningIps ss ts) * 2")
+ prefer 2 
+ using partIps_length apply fast
+by (smt less_le_trans mult.assoc mult.commute mult_less_cancel2 not_less)
+
+
+lemma getParts_length: "length (getParts rs) \<le> 2^(2 * length rs)"
+proof -
+  from partitioningIps_length[where ss="(extract_IPSets_generic0 src rs @ extract_IPSets_generic0 dst rs)" and ts="[wordinterval_UNIV]"]
+       extract_IPSets_generic0_length
+  have "length (partitioningIps (extract_IPSets_generic0 src rs @ extract_IPSets_generic0 dst rs) [wordinterval_UNIV])
+        \<le> 2 ^ (length rs + length rs)" by fastforce
+  thus ?thesis
+   apply(simp add: getParts_def)
+   by (simp add: mult_2)
+qed
+
+
+lemma partitioningIps_foldr: "partitioningIps ss ts = foldr partIps ss ts"
+by(induction ss) (simp_all)
+
+lemma getParts_foldr: "getParts rs = foldr partIps (extract_IPSets rs) [wordinterval_UNIV]"
+by(simp add: getParts_def partitioningIps_foldr)
 
 
 end                            
