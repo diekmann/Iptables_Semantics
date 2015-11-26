@@ -1,24 +1,28 @@
 {-# LANGUAGE EmptyDataDecls, RankNTypes, ScopedTypeVariables #-}
 
 module
-  Network.IPTables.Generated(Num, Nat(..), Word, Len, Iface(..), Bit0, Num1,
-                              Tcp_flag(..), Match_expr(..), Action(..),
-                              Rule(..), Ctstate(..), Ipt_ipv4range(..), Set,
-                              Ipt_tcp_flags(..), Nibble, Primitive_protocol(..),
-                              Protocol(..), Common_primitive(..), Wordinterval,
+  Network.IPTables.Generated(Int, Num, Nat(..), Word, Len, Iface(..), Bit0,
+                              Num1, Tcp_flag(..), Match_expr(..), Action(..),
+                              Rule(..), Ctstate(..), Final_decision, State,
+                              Ipt_ipv4range(..), Set, Ipt_tcp_flags(..), Nibble,
+                              Primitive_protocol(..), Protocol(..),
+                              Common_primitive(..), Wordinterval,
                               Negation_type(..), Simple_match_ext,
-                              Simple_action(..), Simple_rule, alist_and, mk_Set,
+                              Simple_action(..), Simple_rule,
+                              Parts_connection_ext, alist_and, mk_Set,
                               dotteddecimal_toString, ipv4addr_toString,
                               ipassmt_sanity_defined, debug_ipassmt,
-                              map_of_ipassmt, to_ipassmt, optimize_matches,
-                              upper_closure, word_to_nat, word_less_eq,
-                              no_spoofing_iface, rewrite_Goto, map_of_string,
-                              nat_to_16word, compress_parsed_extra,
-                              integer_to_16word, sanity_wf_ruleset,
-                              unfold_ruleset_INPUT, unfold_ruleset_OUTPUT,
-                              unfold_ruleset_FORWARD, common_primitive_toString,
-                              to_simple_firewall, ipv4_cidr_toString,
-                              simple_rule_toString, action_toString,
+                              map_of_ipassmt, to_ipassmt, ipassmt_generic,
+                              optimize_matches, upper_closure, word_to_nat,
+                              word_less_eq, no_spoofing_iface, rewrite_Goto,
+                              map_of_string, nat_to_16word,
+                              compress_parsed_extra, integer_to_16word,
+                              sanity_wf_ruleset, unfold_ruleset_INPUT,
+                              parts_connection_ssh, unfold_ruleset_OUTPUT,
+                              parts_connection_http, unfold_ruleset_FORWARD,
+                              common_primitive_toString, to_simple_firewall,
+                              ipv4_cidr_toString, simple_rule_toString,
+                              build_ip_partition_pretty, action_toString,
                               example_TUM_i8_spoofing_ipassmt,
                               ctstate_assume_new, abstract_for_simple_firewall,
                               to_simple_firewall_without_interfaces,
@@ -608,6 +612,26 @@ instance Eq Ctstate where {
   a == b = equal_ctstate a b;
 };
 
+data Final_decision = FinalAllow | FinalDeny;
+
+equal_final_decision :: Final_decision -> Final_decision -> Bool;
+equal_final_decision FinalAllow FinalDeny = False;
+equal_final_decision FinalDeny FinalAllow = False;
+equal_final_decision FinalDeny FinalDeny = True;
+equal_final_decision FinalAllow FinalAllow = True;
+
+data State = Undecided | Decision Final_decision;
+
+equal_state :: State -> State -> Bool;
+equal_state Undecided (Decision x2) = False;
+equal_state (Decision x2) Undecided = False;
+equal_state (Decision x2) (Decision y2) = equal_final_decision x2 y2;
+equal_state Undecided Undecided = True;
+
+instance Eq State where {
+  a == b = equal_state a b;
+};
+
 data Ipt_ipv4range = Ip4Addr (Nat, (Nat, (Nat, Nat)))
   | Ip4AddrNetmask (Nat, (Nat, (Nat, Nat))) Nat
   | Ip4AddrRange (Nat, (Nat, (Nat, Nat))) (Nat, (Nat, (Nat, Nat)));
@@ -824,6 +848,18 @@ data Simple_action = Accepta | Dropa;
 
 data Simple_rule = SimpleRule (Simple_match_ext ()) Simple_action;
 
+data Simple_packet_ext a =
+  Simple_packet_ext [Prelude.Char] [Prelude.Char]
+    (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))
+    (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))) Primitive_protocol
+    (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))
+    (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) (Set Tcp_flag) Ctstate a;
+
+data Parts_connection_ext a =
+  Parts_connection_ext [Prelude.Char] [Prelude.Char] Primitive_protocol
+    (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))
+    (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) Ctstate a;
+
 nat :: Int -> Nat;
 nat = nat_of_integer . integer_of_int;
 
@@ -902,11 +938,15 @@ removeAll :: forall a. (Eq a) => a -> [a] -> [a];
 removeAll x [] = [];
 removeAll x (y : xs) = (if x == y then removeAll x xs else y : removeAll x xs);
 
-insert :: forall a. (Eq a) => a -> [a] -> [a];
-insert x xs = (if membera xs x then xs else x : xs);
+inserta :: forall a. (Eq a) => a -> [a] -> [a];
+inserta x xs = (if membera xs x then xs else x : xs);
+
+insert :: forall a. (Eq a) => a -> Set a -> Set a;
+insert x (Coset xs) = Coset (removeAll x xs);
+insert x (Set xs) = Set (inserta x xs);
 
 remove :: forall a. (Eq a) => a -> Set a -> Set a;
-remove x (Coset xs) = Coset (insert x xs);
+remove x (Coset xs) = Coset (inserta x xs);
 remove x (Set xs) = Set (removeAll x xs);
 
 splice :: forall a. [a] -> [a] -> [a];
@@ -1174,6 +1214,203 @@ is_pos_Extra a =
     Neg _ -> False;
   });
 
+pc_tag_ctstate :: forall a. Parts_connection_ext a -> Ctstate;
+pc_tag_ctstate
+  (Parts_connection_ext pc_iiface pc_oiface pc_proto pc_sport pc_dport
+    pc_tag_ctstate more)
+  = pc_tag_ctstate;
+
+pc_oiface :: forall a. Parts_connection_ext a -> [Prelude.Char];
+pc_oiface
+  (Parts_connection_ext pc_iiface pc_oiface pc_proto pc_sport pc_dport
+    pc_tag_ctstate more)
+  = pc_oiface;
+
+pc_iiface :: forall a. Parts_connection_ext a -> [Prelude.Char];
+pc_iiface
+  (Parts_connection_ext pc_iiface pc_oiface pc_proto pc_sport pc_dport
+    pc_tag_ctstate more)
+  = pc_iiface;
+
+pc_sport ::
+  forall a. Parts_connection_ext a -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
+pc_sport
+  (Parts_connection_ext pc_iiface pc_oiface pc_proto pc_sport pc_dport
+    pc_tag_ctstate more)
+  = pc_sport;
+
+pc_proto :: forall a. Parts_connection_ext a -> Primitive_protocol;
+pc_proto
+  (Parts_connection_ext pc_iiface pc_oiface pc_proto pc_sport pc_dport
+    pc_tag_ctstate more)
+  = pc_proto;
+
+pc_dport ::
+  forall a. Parts_connection_ext a -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
+pc_dport
+  (Parts_connection_ext pc_iiface pc_oiface pc_proto pc_sport pc_dport
+    pc_tag_ctstate more)
+  = pc_dport;
+
+sports ::
+  forall a.
+    Simple_match_ext a ->
+      (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
+        Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+sports (Simple_match_ext iiface oiface src dst proto sports dports more) =
+  sports;
+
+oiface :: forall a. Simple_match_ext a -> Iface;
+oiface (Simple_match_ext iiface oiface src dst proto sports dports more) =
+  oiface;
+
+iiface :: forall a. Simple_match_ext a -> Iface;
+iiface (Simple_match_ext iiface oiface src dst proto sports dports more) =
+  iiface;
+
+dports ::
+  forall a.
+    Simple_match_ext a ->
+      (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
+        Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+dports (Simple_match_ext iiface oiface src dst proto sports dports more) =
+  dports;
+
+proto :: forall a. Simple_match_ext a -> Protocol;
+proto (Simple_match_ext iiface oiface src dst proto sports dports more) = proto;
+
+p_oiface :: forall a. Simple_packet_ext a -> [Prelude.Char];
+p_oiface
+  (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
+    p_tcp_flags p_tag_ctstate more)
+  = p_oiface;
+
+p_iiface :: forall a. Simple_packet_ext a -> [Prelude.Char];
+p_iiface
+  (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
+    p_tcp_flags p_tag_ctstate more)
+  = p_iiface;
+
+simple_match_port ::
+  (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
+    Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
+    Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))) -> Bool;
+simple_match_port (s, e) p_p = less_eq_word s p_p && less_eq_word p_p e;
+
+p_sport ::
+  forall a. Simple_packet_ext a -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
+p_sport
+  (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
+    p_tcp_flags p_tag_ctstate more)
+  = p_sport;
+
+p_proto :: forall a. Simple_packet_ext a -> Primitive_protocol;
+p_proto
+  (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
+    p_tcp_flags p_tag_ctstate more)
+  = p_proto;
+
+p_dport ::
+  forall a. Simple_packet_ext a -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
+p_dport
+  (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
+    p_tcp_flags p_tag_ctstate more)
+  = p_dport;
+
+src ::
+  forall a.
+    Simple_match_ext a -> (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat);
+src (Simple_match_ext iiface oiface src dst proto sports dports more) = src;
+
+dst ::
+  forall a.
+    Simple_match_ext a -> (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat);
+dst (Simple_match_ext iiface oiface src dst proto sports dports more) = dst;
+
+uminus_int :: Int -> Int;
+uminus_int k = Int_of_integer (negate (integer_of_int k));
+
+bin_last :: Int -> Bool;
+bin_last w =
+  equal_int (mod_int w (Int_of_integer (2 :: Integer)))
+    (Int_of_integer (1 :: Integer));
+
+bitAND_int :: Int -> Int -> Int;
+bitAND_int x y =
+  (if equal_int x zero_int then zero_int
+    else (if equal_int x (uminus_int (Int_of_integer (1 :: Integer))) then y
+           else bit (bitAND_int (bin_rest x) (bin_rest y))
+                  (bin_last x && bin_last y)));
+
+bitAND_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
+bitAND_word a b = word_of_int (bitAND_int (uint a) (uint b));
+
+bitNOT_int :: Int -> Int;
+bitNOT_int = (\ x -> minus_int (uminus_int x) (Int_of_integer (1 :: Integer)));
+
+bitOR_int :: Int -> Int -> Int;
+bitOR_int = (\ x y -> bitNOT_int (bitAND_int (bitNOT_int x) (bitNOT_int y)));
+
+bitOR_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
+bitOR_word a b = word_of_int (bitOR_int (uint a) (uint b));
+
+simple_match_ip ::
+  (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat) ->
+    Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> Bool;
+simple_match_ip (base, len) p_ip =
+  less_eq_word
+    (bitAND_word base
+      (shiftl_word (mask len) (minus_nat (nat_of_integer (32 :: Integer)) len)))
+    p_ip &&
+    less_eq_word p_ip
+      (bitOR_word base (mask (minus_nat (nat_of_integer (32 :: Integer)) len)));
+
+p_src ::
+  forall a. Simple_packet_ext a -> Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+p_src (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
+        p_tcp_flags p_tag_ctstate more)
+  = p_src;
+
+p_dst ::
+  forall a. Simple_packet_ext a -> Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+p_dst (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
+        p_tcp_flags p_tag_ctstate more)
+  = p_dst;
+
+match_proto :: Protocol -> Primitive_protocol -> Bool;
+match_proto ProtoAny uu = True;
+match_proto (Proto p) p_p = equal_primitive_protocol p_p p;
+
+simple_matches :: Simple_match_ext () -> Simple_packet_ext () -> Bool;
+simple_matches m p =
+  match_iface (iiface m) (p_iiface p) &&
+    match_iface (oiface m) (p_oiface p) &&
+      simple_match_ip (src m) (p_src p) &&
+        simple_match_ip (dst m) (p_dst p) &&
+          match_proto (proto m) (p_proto p) &&
+            simple_match_port (sports m) (p_sport p) &&
+              simple_match_port (dports m) (p_dport p);
+
+simple_fw :: [Simple_rule] -> Simple_packet_ext () -> State;
+simple_fw [] uu = Undecided;
+simple_fw (SimpleRule m Accepta : rs) p =
+  (if simple_matches m p then Decision FinalAllow else simple_fw rs p);
+simple_fw (SimpleRule m Dropa : rs) p =
+  (if simple_matches m p then Decision FinalDeny else simple_fw rs p);
+
+bot_set :: forall a. Set a;
+bot_set = Set [];
+
+runFw ::
+  forall a.
+    Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
+      Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
+        Parts_connection_ext a -> [Simple_rule] -> State;
+runFw s d c rs =
+  simple_fw rs
+    (Simple_packet_ext (pc_iiface c) (pc_oiface c) s d (pc_proto c) (pc_sport c)
+      (pc_dport c) (insert TCP_SYN bot_set) (pc_tag_ctstate c) ());
+
 size_list :: forall a. [a] -> Nat;
 size_list = gen_length zero_nat;
 
@@ -1215,6 +1452,12 @@ get_pos_Extra a = let {
                     (Pos (Extra e)) = a;
                   } in e;
 
+groupF :: forall a b. (Eq b) => (a -> b) -> [a] -> [[a]];
+groupF f [] = [];
+groupF f (x : xs) =
+  (x : filter (\ y -> f x == f y) xs) :
+    groupF f (filter (\ y -> not (f x == f y)) xs);
+
 iface_sel :: Iface -> [Prelude.Char];
 iface_sel (Iface x) = x;
 
@@ -1235,24 +1478,6 @@ dotteddecimal_toString (a, (b, (c, d))) =
 
 shiftr_word :: forall a. (Len0 a) => Word a -> Nat -> Word a;
 shiftr_word w n = funpow n shiftr1 w;
-
-uminus_int :: Int -> Int;
-uminus_int k = Int_of_integer (negate (integer_of_int k));
-
-bin_last :: Int -> Bool;
-bin_last w =
-  equal_int (mod_int w (Int_of_integer (2 :: Integer)))
-    (Int_of_integer (1 :: Integer));
-
-bitAND_int :: Int -> Int -> Int;
-bitAND_int x y =
-  (if equal_int x zero_int then zero_int
-    else (if equal_int x (uminus_int (Int_of_integer (1 :: Integer))) then y
-           else bit (bitAND_int (bin_rest x) (bin_rest y))
-                  (bin_last x && bin_last y)));
-
-bitAND_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
-bitAND_word a b = word_of_int (bitAND_int (uint a) (uint b));
 
 nat_of_ipv4addr :: Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> Nat;
 nat_of_ipv4addr a = unat a;
@@ -1316,17 +1541,8 @@ ipv4cidr_to_interval_start (pre, len) =
     network_prefix = bitAND_word pre netmask;
   } in network_prefix;
 
-bitNOT_int :: Int -> Int;
-bitNOT_int = (\ x -> minus_int (uminus_int x) (Int_of_integer (1 :: Integer)));
-
 bitNOT_word :: forall a. (Len0 a) => Word a -> Word a;
 bitNOT_word a = word_of_int (bitNOT_int (uint a));
-
-bitOR_int :: Int -> Int -> Int;
-bitOR_int = (\ x y -> bitNOT_int (bitAND_int (bitNOT_int x) (bitNOT_int y)));
-
-bitOR_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
-bitOR_word a b = word_of_int (bitOR_int (uint a) (uint b));
 
 ipv4cidr_to_interval_end ::
   (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat) ->
@@ -1593,6 +1809,19 @@ debug_ipassmt ipassmt rs =
                                (map (l2br . map ipv4cidr_to_interval)
                                  (map snd ipassmta)))))];
 
+partIps ::
+  forall a. (Len a) => Wordinterval a -> [Wordinterval a] -> [Wordinterval a];
+partIps uu [] = [];
+partIps s (t : ts) =
+  (if wordinterval_empty s then t : ts
+    else (if wordinterval_empty (wordinterval_intersection s t)
+           then t : partIps (wordinterval_setminus s t) ts
+           else (if wordinterval_empty (wordinterval_setminus t s)
+                  then t : partIps (wordinterval_setminus s t) ts
+                  else wordinterval_intersection t s :
+                         wordinterval_setminus t s :
+                           partIps (wordinterval_setminus s t) ts)));
+
 map_of_ipassmt ::
   [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
     Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
@@ -1769,6 +1998,50 @@ to_ipassmt ::
     [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])];
 to_ipassmt assmt =
   map (\ (ifce, ips) -> (ifce, ipassmt_iprange_translate ips)) assmt;
+
+matchOr :: forall a. Match_expr a -> Match_expr a -> Match_expr a;
+matchOr m1 m2 = MatchNot (MatchAnd (MatchNot m1) (MatchNot m2));
+
+getOneIp :: forall a. (Len a) => Wordinterval a -> Word a;
+getOneIp (WordInterval b uu) = b;
+getOneIp (RangeUnion r1 r2) =
+  (if wordinterval_empty r1 then getOneIp r2 else getOneIp r1);
+
+partitioningIps ::
+  forall a. (Len a) => [Wordinterval a] -> [Wordinterval a] -> [Wordinterval a];
+partitioningIps [] ts = ts;
+partitioningIps (s : ss) ts = partIps s (partitioningIps ss ts);
+
+ipv4_cidr_tuple_to_interval ::
+  (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat) ->
+    Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+ipv4_cidr_tuple_to_interval iprng =
+  ipv4range_range (ipv4cidr_to_interval iprng);
+
+extract_IPSets_generic0 ::
+  (Simple_match_ext () ->
+    (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)) ->
+    [Simple_rule] -> [Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
+extract_IPSets_generic0 uu [] = [];
+extract_IPSets_generic0 sel (SimpleRule m uv : ss) =
+  ipv4_cidr_tuple_to_interval (sel m) : extract_IPSets_generic0 sel ss;
+
+extract_IPSets ::
+  [Simple_rule] -> [Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
+extract_IPSets rs =
+  extract_IPSets_generic0 src rs ++ extract_IPSets_generic0 dst rs;
+
+getParts ::
+  [Simple_rule] -> [Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
+getParts rs = partitioningIps (extract_IPSets rs) [wordinterval_UNIV];
+
+ipassmt_generic ::
+  [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])];
+ipassmt_generic =
+  [(Iface ['l', 'o'],
+     [(ipv4addr_of_dotdecimal
+         (nat_of_integer (127 :: Integer), (zero_nat, (zero_nat, zero_nat))),
+        nat_of_integer (8 :: Integer))])];
 
 upper_closure_matchexpr ::
   Action -> Match_expr Common_primitive -> Match_expr Common_primitive;
@@ -2078,9 +2351,6 @@ ctstate_is_UNIV c =
     member CT_Established c &&
       member CT_Related c && member CT_Untracked c && member CT_Invalid c;
 
-bot_set :: forall a. Set a;
-bot_set = Set [];
-
 optimize_primitive_univ ::
   Match_expr Common_primitive -> Match_expr Common_primitive;
 optimize_primitive_univ (Match (IIface iface)) =
@@ -2342,6 +2612,30 @@ upper_closure rs =
 word_to_nat :: forall a. (Len a) => Word a -> Nat;
 word_to_nat = unat;
 
+match_sel :: Simple_rule -> Simple_match_ext ();
+match_sel (SimpleRule x1 x2) = x1;
+
+simple_conn_matches :: Simple_match_ext () -> Parts_connection_ext () -> Bool;
+simple_conn_matches m c =
+  match_iface (iiface m) (pc_iiface c) &&
+    match_iface (oiface m) (pc_oiface c) &&
+      match_proto (proto m) (pc_proto c) &&
+        simple_match_port (sports m) (pc_sport c) &&
+          simple_match_port (dports m) (pc_dport c);
+
+groupWIs2 ::
+  Parts_connection_ext () ->
+    [Simple_rule] -> [[Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))]];
+groupWIs2 c rs =
+  let {
+    p = getParts rs;
+    w = map getOneIp p;
+    filterW = filter (\ r -> simple_conn_matches (match_sel r) c) rs;
+    f = (\ wi ->
+          (map (\ d -> runFw (getOneIp wi) d c filterW) w,
+            map (\ s -> runFw s (getOneIp wi) c filterW) w));
+  } in map (map fst) (groupF snd (map (\ x -> (x, f x)) p));
+
 word_less_eq :: forall a. (Len a) => Word a -> Word a -> Bool;
 word_less_eq a b = less_eq_word a b;
 
@@ -2582,6 +2876,97 @@ rw_Reject (Rule v (Goto vb) : rs) = Rule v (Goto vb) : rw_Reject rs;
 rw_Reject (Rule v Empty : rs) = Rule v Empty : rw_Reject rs;
 rw_Reject (Rule v Unknown : rs) = Rule v Unknown : rw_Reject rs;
 
+match_list_to_match_expr :: forall a. [Match_expr a] -> Match_expr a;
+match_list_to_match_expr [] = MatchNot MatchAny;
+match_list_to_match_expr (m : ms) = matchOr m (match_list_to_match_expr ms);
+
+ipassmt_iface_constrain_srcip_mexpr ::
+  (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
+    Iface -> Match_expr Common_primitive;
+ipassmt_iface_constrain_srcip_mexpr ipassmt ifce =
+  (case ipassmt ifce of {
+    Nothing -> Match (IIface ifce);
+    Just ips ->
+      MatchAnd (Match (IIface ifce))
+        (match_list_to_match_expr
+          (map (Match . Src)
+            (map (\ (ip, a) -> Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) a)
+              ips)));
+  });
+
+iiface_constrain ::
+  (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
+    Match_expr Common_primitive -> Match_expr Common_primitive;
+iiface_constrain uu MatchAny = MatchAny;
+iiface_constrain ipassmt (Match (IIface ifce)) =
+  ipassmt_iface_constrain_srcip_mexpr ipassmt ifce;
+iiface_constrain ipassmt (Match (Src v)) = Match (Src v);
+iiface_constrain ipassmt (Match (Dst v)) = Match (Dst v);
+iiface_constrain ipassmt (Match (OIface v)) = Match (OIface v);
+iiface_constrain ipassmt (Match (Prot v)) = Match (Prot v);
+iiface_constrain ipassmt (Match (Src_Ports v)) = Match (Src_Ports v);
+iiface_constrain ipassmt (Match (Dst_Ports v)) = Match (Dst_Ports v);
+iiface_constrain ipassmt (Match (L4_Flags v)) = Match (L4_Flags v);
+iiface_constrain ipassmt (Match (CT_State v)) = Match (CT_State v);
+iiface_constrain ipassmt (Match (Extra v)) = Match (Extra v);
+iiface_constrain ipassmt (MatchNot m) = MatchNot (iiface_constrain ipassmt m);
+iiface_constrain ipassmt (MatchAnd m1 m2) =
+  MatchAnd (iiface_constrain ipassmt m1) (iiface_constrain ipassmt m2);
+
+ipassmt_iface_replace_srcip_mexpr ::
+  (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
+    Iface -> Match_expr Common_primitive;
+ipassmt_iface_replace_srcip_mexpr ipassmt ifce =
+  (case ipassmt ifce of {
+    Nothing -> Match (IIface ifce);
+    Just ips ->
+      match_list_to_match_expr
+        (map (Match . Src)
+          (map (\ (ip, a) -> Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) a)
+            ips));
+  });
+
+iiface_rewrite ::
+  (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
+    Match_expr Common_primitive -> Match_expr Common_primitive;
+iiface_rewrite uu MatchAny = MatchAny;
+iiface_rewrite ipassmt (Match (IIface ifce)) =
+  ipassmt_iface_replace_srcip_mexpr ipassmt ifce;
+iiface_rewrite ipassmt (Match (Src v)) = Match (Src v);
+iiface_rewrite ipassmt (Match (Dst v)) = Match (Dst v);
+iiface_rewrite ipassmt (Match (OIface v)) = Match (OIface v);
+iiface_rewrite ipassmt (Match (Prot v)) = Match (Prot v);
+iiface_rewrite ipassmt (Match (Src_Ports v)) = Match (Src_Ports v);
+iiface_rewrite ipassmt (Match (Dst_Ports v)) = Match (Dst_Ports v);
+iiface_rewrite ipassmt (Match (L4_Flags v)) = Match (L4_Flags v);
+iiface_rewrite ipassmt (Match (CT_State v)) = Match (CT_State v);
+iiface_rewrite ipassmt (Match (Extra v)) = Match (Extra v);
+iiface_rewrite ipassmt (MatchNot m) = MatchNot (iiface_rewrite ipassmt m);
+iiface_rewrite ipassmt (MatchAnd m1 m2) =
+  MatchAnd (iiface_rewrite ipassmt m1) (iiface_rewrite ipassmt m2);
+
+iface_try_rewrite ::
+  [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
+    [Rule Common_primitive] -> [Rule Common_primitive];
+iface_try_rewrite ipassmt rs =
+  (if let {
+        is = image fst (Set ipassmt);
+      } in ball is
+             (\ i1 ->
+               ball is
+                 (\ i2 ->
+                   (if not (equal_iface i1 i2)
+                     then wordinterval_empty
+                            (wordinterval_intersection
+                              (l2br (map ipv4cidr_to_interval
+                                      (the (map_of ipassmt i1))))
+                              (l2br (map ipv4cidr_to_interval
+                                      (the (map_of ipassmt i2)))))
+                     else True))) &&
+        ipassmt_sanity_defined rs (map_of ipassmt)
+    then optimize_matches (iiface_rewrite (map_of_ipassmt ipassmt)) rs
+    else optimize_matches (iiface_constrain (map_of_ipassmt ipassmt)) rs);
+
 map_of_string ::
   [([Prelude.Char], [Rule Common_primitive])] ->
     [Prelude.Char] -> Maybe [Rule Common_primitive];
@@ -2698,6 +3083,14 @@ process_ret (Rule v (Goto vb) : rs) = Rule v (Goto vb) : process_ret rs;
 process_ret (Rule v Empty : rs) = Rule v Empty : process_ret rs;
 process_ret (Rule v Unknown : rs) = Rule v Unknown : process_ret rs;
 
+build_ip_partition ::
+  Parts_connection_ext () ->
+    [Simple_rule] -> [Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
+build_ip_partition c rs =
+  map (\ xs ->
+        wordinterval_compress (foldr wordinterval_union xs empty_WordInterval))
+    (groupWIs2 c rs);
+
 process_call ::
   forall a. ([Prelude.Char] -> Maybe [Rule a]) -> [Rule a] -> [Rule a];
 process_call gamma [] = [];
@@ -2713,6 +3106,16 @@ process_call gamma (Rule v (Goto vb) : rs) =
 process_call gamma (Rule v Empty : rs) = Rule v Empty : process_call gamma rs;
 process_call gamma (Rule v Unknown : rs) =
   Rule v Unknown : process_call gamma rs;
+
+pretty_wordinterval ::
+  Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prelude.Char];
+pretty_wordinterval (WordInterval ip1 ip2) =
+  (if equal_word ip1 ip2 then ipv4addr_toString ip1
+    else ['('] ++
+           ipv4addr_toString ip1 ++
+             [' ', '-', ' '] ++ ipv4addr_toString ip2 ++ [')']);
+pretty_wordinterval (RangeUnion r1 r2) =
+  pretty_wordinterval r1 ++ [' ', 'u', ' '] ++ pretty_wordinterval r2;
 
 check_simple_ruleset :: [Rule Common_primitive] -> [Rule Common_primitive];
 check_simple_ruleset rs = (if simple_ruleset rs then rs else error "undefined");
@@ -2740,6 +3143,12 @@ unfold_ruleset_INPUT ::
       [Rule Common_primitive];
 unfold_ruleset_INPUT = unfold_ruleset_CHAIN ['I', 'N', 'P', 'U', 'T'];
 
+parts_connection_ssh :: Parts_connection_ext ();
+parts_connection_ssh =
+  Parts_connection_ext ['1'] ['1'] TCP
+    (word_of_int (Int_of_integer (10000 :: Integer)))
+    (word_of_int (Int_of_integer (22 :: Integer))) CT_New ();
+
 simple_match_any :: Simple_match_ext ();
 simple_match_any =
   Simple_match_ext ifaceAny ifaceAny (zero_word, zero_nat) (zero_word, zero_nat)
@@ -2755,6 +3164,12 @@ unfold_ruleset_OUTPUT = unfold_ruleset_CHAIN ['O', 'U', 'T', 'P', 'U', 'T'];
 ctstate_set_toString :: Set Ctstate -> [Prelude.Char];
 ctstate_set_toString s =
   list_separated_toString [','] ctstate_toString (enum_set_to_list s);
+
+parts_connection_http :: Parts_connection_ext ();
+parts_connection_http =
+  Parts_connection_ext ['1'] ['1'] TCP
+    (word_of_int (Int_of_integer (10000 :: Integer)))
+    (word_of_int (Int_of_integer (80 :: Integer))) CT_New ();
 
 normalized_dst_ports :: Match_expr Common_primitive -> Bool;
 normalized_dst_ports MatchAny = True;
@@ -2824,12 +3239,6 @@ simpl_ports_conjunct ::
       (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
         Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
 simpl_ports_conjunct (p1s, p1e) (p2s, p2e) = (max p1s p2s, min p1e p2e);
-
-ipv4_cidr_tuple_to_interval ::
-  (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat) ->
-    Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
-ipv4_cidr_tuple_to_interval iprng =
-  ipv4range_range (ipv4cidr_to_interval iprng);
 
 simple_match_and ::
   Simple_match_ext () -> Simple_match_ext () -> Maybe (Simple_match_ext ());
@@ -3238,6 +3647,27 @@ simple_rule_toString
                               ports_toString
                                 ['d', 'p', 'o', 'r', 't', 's', ':', ' '] dps;
 
+build_ip_partition_pretty ::
+  Parts_connection_ext () ->
+    [Simple_rule] ->
+      ([([Prelude.Char], [Prelude.Char])], [([Prelude.Char], [Prelude.Char])]);
+build_ip_partition_pretty c rs =
+  let {
+    w = build_ip_partition c rs;
+    r = map getOneIp w;
+    u = concatMap (\ x -> map (\ a -> (x, a)) r) r;
+  } in (zip (map ipv4addr_toString r) (map pretty_wordinterval w),
+         map_filter
+           (\ x ->
+             (if let {
+                   (a, b) = x;
+                 } in equal_state (runFw a b c rs) (Decision FinalAllow)
+               then Just (let {
+                            (xa, y) = x;
+                          } in (ipv4addr_toString xa, ipv4addr_toString y))
+               else Nothing))
+           u);
+
 action_toString :: Action -> [Prelude.Char];
 action_toString Accept = ['-', 'j', ' ', 'A', 'C', 'C', 'E', 'P', 'T'];
 action_toString Drop = ['-', 'j', ' ', 'D', 'R', 'O', 'P'];
@@ -3525,8 +3955,9 @@ abstract_for_simple_firewall =
       }));
 
 to_simple_firewall_without_interfaces ::
-  [Rule Common_primitive] -> [Simple_rule];
-to_simple_firewall_without_interfaces rs =
+  [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
+    [Rule Common_primitive] -> [Simple_rule];
+to_simple_firewall_without_interfaces ipassmt rs =
   to_simple_firewall
     (upper_closure
       (optimize_matches
@@ -3537,7 +3968,9 @@ to_simple_firewall_without_interfaces rs =
               Neg aa -> is_Iiface aa || is_Oiface aa;
             })))
         (optimize_matches abstract_for_simple_firewall
-          (ctstate_assume_new (upper_closure rs)))));
+          (upper_closure
+            (iface_try_rewrite ipassmt
+              (upper_closure (ctstate_assume_new (upper_closure rs))))))));
 
 common_primitive_match_expr_toString ::
   Match_expr Common_primitive -> [Prelude.Char];

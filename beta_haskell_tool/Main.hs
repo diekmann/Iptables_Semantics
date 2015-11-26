@@ -31,9 +31,10 @@ getIpAssmt = do
     progName <- System.Environment.getProgName
     case length args of
       0 -> do putStrLn "no argument supplied"
-              putStrLn "for the sake of example, I'm loading TUM_i8_ipassmt"
-              putStrLn "Probably, this makes no sense!"
-              return (Isabelle.example_TUM_i8_spoofing_ipassmt)
+              putStrLn "for the sake of example, I'm loading ipassmt_generic"
+              putStrLn "Supply the ipassmt to get better results!"
+              return Isabelle.ipassmt_generic
+              --return Isabelle.example_TUM_i8_spoofing_ipassmt
       1 -> do putStrLn $ "loading ipassmt from `" ++ filename ++ "'"
               readIpAssmt filename
                   where filename = head args
@@ -66,11 +67,18 @@ main = do
             putStrLn "== to simple firewall =="
             putStrLn $ L.intercalate "\n" $ map show (Isabelle.to_simple_firewall $ Isabelle.upper_closure $ Isabelle.optimize_matches Isabelle.abstract_for_simple_firewall $ Isabelle.ctstate_assume_new $ unfolded)
             putStrLn "== to even-simpler firewall =="
-            putStrLn $ L.intercalate "\n" $ map show (Isabelle.to_simple_firewall_without_interfaces unfolded)
+            let upper_simple = (Isabelle.to_simple_firewall_without_interfaces ipassmt unfolded)
+            putStrLn $ L.intercalate "\n" $ map show upper_simple
             putStrLn "== checking spoofing protection =="
             let fuc = preprocessForSpoofingProtection unfolded --Firewall Under Certification
             --putStrLn $ show fuc
             putStrLn $ "ipassmt_sanity_defined: " ++ show (Isabelle.ipassmt_sanity_defined fuc (Isabelle.map_of_ipassmt ipassmt))
             mapM_ putStrLn (Isabelle.debug_ipassmt ipassmt fuc)
             mapM_  (putStrLn . show) (exampleCertSpoof ipassmt fuc)
+            putStrLn "== calculating service matrices =="
+            putStrLn "===========SSH========="
+            putStrLn $ show $ Isabelle.build_ip_partition_pretty Isabelle.parts_connection_ssh upper_simple
+            putStrLn "===========HTTP========="
+            putStrLn $ show $ Isabelle.build_ip_partition_pretty Isabelle.parts_connection_http upper_simple
+
             return ()

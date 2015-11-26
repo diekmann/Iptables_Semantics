@@ -5,24 +5,6 @@ imports
   "../../Primitive_Matchers/Interface_Replace"
 begin
 
-definition "iface_try_rewrite ipassmt rs \<equiv> if ipassmt_sanity_disjoint (map_of ipassmt) \<and> ipassmt_sanity_defined rs (map_of ipassmt) then
-  optimize_matches (iiface_rewrite (map_of_ipassmt ipassmt)) rs
-  else
-  optimize_matches (iiface_constrain (map_of_ipassmt ipassmt)) rs"
-
-theorem iface_try_rewrite:
-  assumes simplers: "simple_ruleset rs"
-      and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
-      and wf_ipassmt1: "ipassmt_sanity_nowildcards (map_of ipassmt)" and wf_ipassmt2: "distinct (map fst ipassmt)"
-      and nospoofing: "\<exists>ips. (map_of ipassmt) (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipv4cidr_union_set (set ips)"
-  shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>iface_try_rewrite ipassmt rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
-  apply(simp add: iface_try_rewrite_def)
-  apply(simp add: map_of_ipassmt_def wf_ipassmt1 wf_ipassmt2)
-  apply(intro conjI impI)
-   apply(elim conjE)
-   using iiface_rewrite(1)[OF simplers normalized wf_ipassmt1 _ nospoofing] apply blast
-  using iiface_constrain(1)[OF simplers normalized wf_ipassmt1] nospoofing apply force
-  done
 
 definition preprocess where
   "preprocess unfold closure ipassmt def fw \<equiv> to_simple_firewall (closure
@@ -56,21 +38,16 @@ fun ipt_chain_toSting where
 
 definition bench where
   "bench closure f ipassmt def fw_in \<equiv> let fw = preprocess (get_unfold f) closure ipassmt def fw_in in 
-      (length ((get_unfold f) def (map_of fw_in)), length (preprocess_keep_ifce (get_unfold f) closure ipassmt def fw_in), length fw, length (getParts fw), length (build_ip_partition ssh fw), length (build_ip_partition http fw))"
+      (length ((get_unfold f) def (map_of fw_in)), length (preprocess_keep_ifce (get_unfold f) closure ipassmt def fw_in), length fw, length (getParts fw), length (build_ip_partition parts_connection_ssh fw), length (build_ip_partition parts_connection_http fw))"
 definition view where
   "view closure f ipassmt def fw_in \<equiv> let fw = preprocess (get_unfold f) closure ipassmt def fw_in in 
       (''x'',
        map (simple_rule_iptables_save_toString (ipt_chain_toSting f)) (preprocess_keep_ifce (get_unfold f) closure ipassmt def fw_in),
        map (simple_rule_iptables_save_toString (ipt_chain_toSting f)) fw,
        map pretty_wordinterval (getParts fw),
-       (build_ip_partition_pretty ssh fw),
-       (build_ip_partition_pretty http fw))"
+       (build_ip_partition_pretty parts_connection_ssh fw),
+       (build_ip_partition_pretty parts_connection_http fw))"
 
-
-
-
-
-definition "ipassmt_generic = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)])]"
 
 
 context

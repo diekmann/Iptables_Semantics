@@ -87,10 +87,10 @@ begin
           (build_ip_partition netbios fw)"
 
   value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
-     (build_ip_partition_pretty ssh fw)"
+     (build_ip_partition_pretty parts_connection_ssh fw)"
   
   value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
-     (build_ip_partition_pretty http fw)"
+     (build_ip_partition_pretty parts_connection_http fw)"
   
 
   value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in

@@ -415,18 +415,18 @@ thm groupF_lem
 
 lemma groupF_set_lem: "set (concat (groupF f xs)) = set xs"
   apply(induction f xs rule: groupF.induct)
-  apply(simp_all)
-by blast
+   apply(simp_all)
+  by blast
 
 lemma groupF_set_lem1: "\<forall>X \<in> set (groupF f xs). \<forall>x \<in> set X. x \<in> set xs"
   using groupF_set_lem by fastforce
 
-lemma groupF_lem_not : "\<And>A B. A \<in> set(groupF f xs) \<Longrightarrow> B \<in> set(groupF f xs) \<Longrightarrow> A \<noteq> B \<Longrightarrow>
+lemma groupF_lem_not: "A \<in> set (groupF f xs) \<Longrightarrow> B \<in> set (groupF f xs) \<Longrightarrow> A \<noteq> B \<Longrightarrow>
      \<forall>a \<in> set A. \<forall>b \<in> set B. f a \<noteq> f b"
   apply(induction f xs rule: groupF.induct)
-  apply(simp)
+   apply(simp)
   apply(subst (asm) groupF.simps)+
-by (smt filter_set groupF_set_lem1 member_filter set_ConsD)
+  using groupF_set_lem1 by fastforce (*1s*)
 
 
 definition groupWIs :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
@@ -670,10 +670,10 @@ fun build_ip_partition_pretty
      map (\<lambda>(x,y). (ipv4addr_toString x, ipv4addr_toString y)) (filter (\<lambda>(a,b). runFw a b c rs = Decision FinalAllow) U)))))"
 
 
-definition ssh where "ssh = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
+definition parts_connection_ssh where "parts_connection_ssh = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
                                pc_sport=10000, pc_dport=22, pc_tag_ctstate=CT_New\<rparr>"
 
-definition http where "http = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
+definition parts_connection_http where "parts_connection_http = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
                                pc_sport=10000, pc_dport=80, pc_tag_ctstate=CT_New\<rparr>"
 
 
@@ -695,6 +695,8 @@ using le_Suc_eq by blast
 
 value[code] "partitioningIps [WordInterval (0::ipv4addr) 0] [WordInterval 0 2, WordInterval 0 2]"
 
+
+(*TODO smt*)
 lemma partitioningIps_length: "length (partitioningIps ss ts) \<le> (2^length ss) * length ts"
 apply(induction ss arbitrary: ts)
  apply(simp; fail)
