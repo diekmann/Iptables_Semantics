@@ -4,25 +4,7 @@ imports Main
         "SimpleFw_Semantics"
         "../Common/SetPartitioning"
         "../Primitive_Matchers/Common_Primitive_toString"
-      (*  "../Examples/TUM_Net_Firewall/TUM_TestFW" *)
-      (*  "Example_Firewall" *)
 begin
-
-definition "example = [
- SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', 
-    src = (0, 24), dst = (1, 32), proto = ProtoAny, sports = (1000, 1000), dports = (0x16, 0x16)\<rparr> simple_action.Accept,
-SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', 
-    src = (0, 0), dst = (0, 0), proto = ProtoAny, sports = (0, 0xFFFF), dports = (0, 0xFFFF)\<rparr> simple_action.Drop]"
-
-definition "example1 = [
- SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', 
-    src = ((ipv4addr_of_dotdecimal (131,159,0,0)), 16), dst = ((ipv4addr_of_dotdecimal (131,159,0,0)), 16), proto = ProtoAny, sports = (0, 0xFFFF), dports = (0, 0xFFFF)\<rparr> simple_action.Accept,
- SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', 
-    src = ((ipv4addr_of_dotdecimal (131,159,0,0)), 16), dst = ((ipv4addr_of_dotdecimal (123,123,123,123)), 32), proto = Proto TCP, sports = (1024, 0xFFFF), dports = (22, 22)\<rparr> simple_action.Accept,
- SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', 
-    src = ((ipv4addr_of_dotdecimal (123,0,0,0)), 8), dst = ((ipv4addr_of_dotdecimal (131,159,0,1)), 32), proto = Proto TCP, sports = (1024, 0xFFFF), dports = (80, 80)\<rparr> simple_action.Accept,
- SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', 
-    src = (0, 0), dst = (0, 0), proto = ProtoAny, sports = (0, 0xFFFF), dports = (0, 0xFFFF)\<rparr> simple_action.Drop]"
 
 (* Dat Geschenk von Cornelius *) 
 lemma gschenk0_helper: "B \<subseteq> (case src m of (x, xa) \<Rightarrow> ipv4range_set_from_bitmask x xa) \<or> B \<inter> (case src m of (x, xa) 
@@ -180,19 +162,6 @@ lemma partitioningIps_equi: "map wordinterval_to_set (partitioningIps ss ts)
 done
 
 
-(* EXAMPLES/DUMP *)
-
-definition "example_list = map ipv4_cidr_tuple_to_interval 
-                           [(ipv4addr_of_dotdecimal (0,0,0,0), 1),
-                            (ipv4addr_of_dotdecimal (0,0,0,0), 2),
-                            (ipv4addr_of_dotdecimal (0,0,0,0), 3),
-                            (ipv4addr_of_dotdecimal (0,0,0,0), 4),
-                            (ipv4addr_of_dotdecimal (0,0,0,0), 5),
-                            (ipv4addr_of_dotdecimal (0,0,0,0), 6),
-                            (ipv4addr_of_dotdecimal (0,0,0,0), 7),
-                            (ipv4addr_of_dotdecimal (0,0,0,0), 8),
-                            (ipv4addr_of_dotdecimal (0,0,0,0), 0)]"
-
 lemma ipPartitioning_partitioningIps: 
   "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
    (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow> 
@@ -244,7 +213,7 @@ lemma getParts_complete2: "wordinterval_to_set wordinterval_UNIV =
                            \<Union> (set (map wordinterval_to_set (getParts rs)))"
   apply(subst getParts_complete1)
   apply(insert getParts_complete0)
-  apply(simp add: complete_def)
+  apply(simp add:)
 done
 
 lemma getParts_complete3: " \<Union> (set (map wordinterval_to_set (getParts rs))) = UNIV"
@@ -576,6 +545,8 @@ lemma "A \<in> set (groupWIs c rs) \<Longrightarrow> B \<in> set (groupWIs c rs)
                 \<Longrightarrow> A = B"
 using groupWIs_same_fw_not2 by blast
 
+
+(*TODO*)
 lemma whatup: "[y\<leftarrow>ys . g b = g y] = map fst [y\<leftarrow>map (\<lambda>x. (x, g x)) ys . g b = snd y]"
   apply(induction ys arbitrary: g b)
   apply(simp)
@@ -597,7 +568,7 @@ lemma groupF_tuple: "groupF f xs = map (map fst) (groupF snd (map (\<lambda>x. (
     apply(rename_tac b ys g)
 using whatup1 by metis
 
-definition groupWIs1 where
+definition groupWIs1 :: "'a parts_connection_scheme \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
   "groupWIs1 c rs = (let P = getParts rs in
                       (let W = map getOneIp P in 
                        (let f = (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) W,
@@ -651,7 +622,9 @@ lemma wordinterval_unifier: "wordinterval_to_set (
   apply(simp_all add: wordinterval_compress)
 done
 
-fun buildParts where
+
+(*construct partitions. main function!*)
+fun buildParts :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list" where
   "buildParts c rs = map (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) (groupWIs2 c rs)"
 
 theorem buildParts_same_fw: "V \<in> set (buildParts c rs) \<Longrightarrow>
@@ -672,7 +645,7 @@ theorem buildParts_same_fw_min: "A \<in> set (buildParts c rs) \<Longrightarrow>
 using wordinterval_unifier groupWIs_same_fw_not2 by fast
   
 
-
+(*TODO: move?*)
 fun pretty_wordinterval where
   "pretty_wordinterval (WordInterval ip1 ip2) = (if ip1 = ip2
                                                  then ipv4addr_toString ip1
@@ -682,7 +655,6 @@ fun pretty_wordinterval where
                                             pretty_wordinterval r2"
 
 
-(*TODO: theorem?*)
 (*What does this do?*)
 (*can it use groupWIs2?*)
 fun build where
@@ -700,8 +672,5 @@ definition ssh where "ssh = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=T
 definition http where "http = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
                                pc_sport=10000, pc_dport=80, pc_tag_ctstate=CT_New\<rparr>"
 
-(* was ist da los, corny??? :D *)
-value[code] "wordinterval_compress
-  (RangeUnion (WordInterval 0x7B7B7B7B 0x7B7B7B7B) (RangeUnion (WordInterval 0x7B000000 0x7B7B7B7A) (WordInterval 0x7B7B7B7C 0x7BFFFFFF)))::32 wordinterval"
 
 end                            

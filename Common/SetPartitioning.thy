@@ -11,21 +11,34 @@ definition disjoint :: "'a set set \<Rightarrow> bool" where
 
 text{*We will call two partitioned sets \emph{complete} iff @{term "\<Union> ss = \<Union> ts"}*}
 
+
+text{*The condition we use to partition a set. If this holds and 
+      @{term A} is the set of ip addresses in each rule in a firewall,
+      then @{term B} is a partition of @{term "\<Union> A"}} where each member has the same behavior
+      w.r.t the firewall ruleset.*}
+text{*@{term A} is the carrier set and @{term B}* should be a partition of @{term "\<Union> A"}} which fulfills the following condition:*}
 definition ipPartition :: "'a set set \<Rightarrow> 'a set set \<Rightarrow> bool" where
   "ipPartition A B \<equiv> \<forall>a \<in> A. \<forall>b \<in> B. a \<inter> b = {} \<or> b \<subseteq> a"
 
 definition disjoint_list :: "'a set list \<Rightarrow> bool" where
   "disjoint_list ls \<equiv> distinct ls \<and> disjoint (set ls)"
 
+(*internal*)
 fun disjoint_list_rec :: "'a set list \<Rightarrow> bool" where
   "disjoint_list_rec [] = True" |
   "disjoint_list_rec (x#xs) = (x \<inter> \<Union> set xs = {} \<and> disjoint_list_rec xs)"
 
 lemma "disjoint_list ts \<Longrightarrow> disjoint_list_rec ts"
   apply(induction ts)
-  apply(simp)
+   apply(simp)
   apply(simp add: disjoint_list_def disjoint_def)
-by fast
+  by fast
+
+lemma "disjoint_list_rec ts \<Longrightarrow> disjoint (set ts)"
+  apply(induction ts)
+   apply(simp_all add: disjoint_list_def disjoint_def)
+  by fast
+
 
 (* FUNCTIONS *)
 
@@ -48,9 +61,7 @@ lemma "ipPartition (set test_set_list) (partitioning test_set_list {})" by eval
 
 (* OTHER LEMMAS *)
 
-lemma "ipPartition A {}" 
-  apply(simp add: ipPartition_def)
-done
+lemma "ipPartition A {}" by(simp add: ipPartition_def)
 
 lemma ipPartitionUnion: "ipPartition As Cs \<Longrightarrow> ipPartition Bs Cs 
                          \<Longrightarrow> ipPartition (As \<union> Bs) Cs"
@@ -97,7 +108,7 @@ lemma Union_addSubsetSet [simp]: "\<Union>addSubsetSet b As = b \<union> \<Union
   unfolding addSubsetSet_def by auto
 
 lemma addSubsetSetCom: "addSubsetSet a (addSubsetSet b As) = addSubsetSet b (addSubsetSet a As)"
-proof-
+proof -
   {
     fix A a b assume "A \<in> addSubsetSet a (addSubsetSet b As)"
     hence "A \<in> addSubsetSet b (addSubsetSet a As)"
@@ -314,18 +325,19 @@ by blast
 fun partList4 :: "'a set \<Rightarrow> 'a set list \<Rightarrow> 'a set list" where
   "partList4 s [] = []" |
   "partList4 s (t#ts) = (if s = {} then (t#ts) else
-                          (if s \<inter> t = {} then  (t#(partList4 s ts))
+                          (if s \<inter> t = {} then (t#(partList4 s ts))
                                          else 
                             (if t - s = {} then (t#(partList4 (s - t) ts))
                                            else (t \<inter> s)#((t - s)#(partList4 (s - t) ts)))))"
 
-lemma "set (partList3 s ts) = set (partList4 s ts)"
+lemma partList4: "set (partList3 s ts) = set (partList4 s ts)"
   apply(induction ts arbitrary: s)
    apply(simp)
   apply(simp)
   apply(intro conjI impI)
 apply (simp add: Diff_triv)
 done
+(*TODO: use partList4 every time instead of partList3*)
 
 lemma partList0_addSubsetSet_equi: "s \<subseteq> \<Union>(set ts) \<Longrightarrow> 
                                     addSubsetSet s (set ts) - {{}} = set(partList0 s ts) - {{}}"
