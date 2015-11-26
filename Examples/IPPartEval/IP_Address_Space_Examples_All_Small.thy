@@ -1,4 +1,4 @@
-theory TEST
+theory IP_Address_Space_Examples_All_Small
 imports
   "../../Primitive_Matchers/Parser"
   "../../Simple_Firewall/SimpleFw_toString"

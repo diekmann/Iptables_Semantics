@@ -1,6 +1,6 @@
-theory TUM_IPPart
+theory IP_Address_Space_Examples_All_Large
 imports 
-  "TEST"
+  "IP_Address_Space_Examples_All_Small"
 begin
 
 
