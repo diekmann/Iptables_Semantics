@@ -110,6 +110,8 @@ section{*TCP flags*}
   definition match_tcp_flags_conjunct_option :: "ipt_tcp_flags \<Rightarrow> ipt_tcp_flags \<Rightarrow> ipt_tcp_flags option" where
     "match_tcp_flags_conjunct_option f1 f2 = (case match_tcp_flags_conjunct f1 f2 of (TCP_Flags mask c) \<Rightarrow> if c \<subseteq> mask then Some (TCP_Flags mask c) else None)"
 
+  lemma "match_tcp_flags_conjunct_option ipt_tcp_syn (TCP_Flags {TCP_RST,TCP_ACK} {TCP_RST}) = None" by eval
+
   lemma match_tcp_flags_conjunct_option: "(case match_tcp_flags_conjunct_option f1 f2 of None \<Rightarrow> False | Some f3 \<Rightarrow> match_tcp_flags f3 pkt) \<longleftrightarrow> match_tcp_flags f1 pkt \<and> match_tcp_flags f2 pkt"
     apply(simp add: match_tcp_flags_conjunct_option_def)
     apply(case_tac "match_tcp_flags_conjunct f1 f2")
@@ -200,4 +202,6 @@ section{*TCP flags*}
     "ipt_tcp_flags_toString flags \<equiv> list_toString tcp_flag_toString (enum_set_to_list flags)"
 
   lemma "ipt_tcp_flags_toString {TCP_SYN,TCP_SYN,TCP_ACK} = ''[TCP_SYN, TCP_ACK]''" by eval
+
+
 end
