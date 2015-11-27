@@ -194,9 +194,9 @@ lemma ipPartitioning_partitioningIps1: "ipPartition (set (map wordinterval_to_se
 definition getParts :: "simple_rule list \<Rightarrow> 32 wordinterval list" where
    "getParts rs = partitioningIps (extract_IPSets rs) [wordinterval_UNIV]"
 
-lemma ipParts_getParts: "ipPartition (set (map wordinterval_to_set (extract_IPSets rs)))
+lemma getParts_ipPartition: "ipPartition (set (map wordinterval_to_set (extract_IPSets rs)))
                                      (set (map wordinterval_to_set (getParts rs)))"
-  apply(subst getParts_def)
+  unfolding getParts_def
   apply(subst ipPartitioning_partitioningIps1)
   by(simp)
 
@@ -235,7 +235,7 @@ theorem getParts_samefw:
          simple_fw rs (p\<lparr>p_dst:=s1\<rparr>) = simple_fw rs (p\<lparr>p_dst:=s2\<rparr>)"
 proof -
   let ?X="(set (map wordinterval_to_set (getParts rs)))"
-  from ipParts_getParts have "ipPartition (set (map wordinterval_to_set (extract_IPSets rs))) ?X" .
+  from getParts_ipPartition have "ipPartition (set (map wordinterval_to_set (extract_IPSets rs))) ?X" .
   hence "ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 src rs))) ?X \<and>
          ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 dst rs))) ?X"
     by(simp add: extract_IPSets ipPartitionUnion image_Un)
@@ -683,20 +683,21 @@ lemma groupWIs_code[code]: "groupWIs c rs = groupWIs2 c rs"
 lemma wordinterval_unifier: "wordinterval_to_set (
          wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) =
        \<Union> set (map wordinterval_to_set xs)"
+  apply simp
   apply(induction xs)
-  apply(simp_all add: wordinterval_compress)
-done
+   apply(simp_all add: wordinterval_compress)
+  done
 
 
 (*construct partitions. main function!*)
-fun build_ip_partition :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list" where
+definition build_ip_partition :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list" where
   "build_ip_partition c rs = map (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) (groupWIs2 c rs)"
 
 theorem build_ip_partition_same_fw: "V \<in> set (build_ip_partition c rs) \<Longrightarrow>
                                \<forall>ip1 \<in> wordinterval_to_set V.
                                \<forall>ip2 \<in> wordinterval_to_set V.
                                same_fw_behaviour_one ip1 ip2 c rs"
-  apply(simp add: groupWIs1_groupWIs2_equi groupWIs_groupWIs1_equi)
+  apply(simp add: build_ip_partition_def groupWIs1_groupWIs2_equi groupWIs_groupWIs1_equi)
 using wordinterval_unifier groupParts_same_fw_wi2 by blast
 
 theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \<Longrightarrow> B \<in> set (build_ip_partition c rs) \<Longrightarrow> 
@@ -704,8 +705,8 @@ theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \
                                 \<forall>ip1 \<in> wordinterval_to_set A.
                                 \<forall>ip2 \<in> wordinterval_to_set B.
                                 \<not> same_fw_behaviour_one ip1 ip2 c rs"
-  apply(simp add: groupWIs1_groupWIs2_equi groupWIs_groupWIs1_equi)
-using wordinterval_unifier groupWIs_same_fw_not2 by fast
+  apply(simp add: build_ip_partition_def groupWIs1_groupWIs2_equi groupWIs_groupWIs1_equi)
+using wordinterval_unifier groupWIs_same_fw_not2 by fast (*1s*)
   
 
 (*TODO: move?*)
