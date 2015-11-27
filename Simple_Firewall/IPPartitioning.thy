@@ -419,9 +419,62 @@ lemma same_behave_runFw_not:
        \<not> same_fw_behaviour_one x1 x2 c rs"
 by (simp add: same_fw_behaviour_one_def) (blast)
 
+
+(*TODO: move to common list functions?*)
 fun groupF ::  "('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'a list list"  where
   "groupF f [] = []" |
   "groupF f (x#xs) = (x#(filter (\<lambda>y. f x = f y) xs))#(groupF f (filter (\<lambda>y. f x \<noteq> f y) xs))"
+
+
+(*trying a more efficient implementation of groupF*)
+fun select_p_tuple :: "('a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> ('a list \<times> 'a list) \<Rightarrow> ('a list \<times> 'a list)" where
+  "select_p_tuple p x (ts,fs) = (if p x then (x#ts, fs) else (ts, x#fs))"
+
+definition partition_tailrec :: "('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> 'a list)" where
+  "partition_tailrec p xs = foldr (select_p_tuple p) xs ([],[])"
+
+lemma partition_tailrec: "partition_tailrec f as =  (filter f as,  filter (\<lambda>x. \<not>f x) as)"
+proof - 
+  {fix ts_accu fs_accu
+    have "foldr (select_p_tuple f) as (ts_accu, fs_accu) = (filter f as @ ts_accu,  filter (\<lambda>x. \<not>f x) as @ fs_accu)"
+    by(induction as arbitrary: ts_accu fs_accu) simp_all
+  } thus ?thesis unfolding partition_tailrec_def by simp
+qed
+(*
+fun partition_tailrec :: "('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> 'a list) \<Rightarrow> ('a list \<times> 'a list)" where
+  "partition_tailrec _ [] acc = acc" |
+  "partition_tailrec f (a#as) (ts,fs) = (if f a then partition_tailrec f as (a#ts, fs) else partition_tailrec f as (ts, a#fs))"
+
+lemma "partition_tailrec f as (ts_accu, fs_accu) = (rev (filter f as) @ ts_accu, rev (filter (\<lambda>x. \<not>f x) as) @ fs_accu)"
+apply(induction as arbitrary: ts_accu fs_accu)
+ apply(simp)
+apply(simp)
+done
+*)
+
+
+lemma "groupF f (x#xs) = (let (ts, fs) = partition_tailrec (\<lambda>y. f x = f y) xs in (x#ts)#(groupF f fs))"
+by(simp add: partition_tailrec)
+
+(*is this more efficient?*)
+function groupF_code ::  "('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'a list list"  where
+  "groupF_code f [] = []" |
+  "groupF_code f (x#xs) = (let (ts, fs) = partition_tailrec (\<lambda>y. f x = f y) xs in (x#ts)#(groupF_code f fs))"
+apply(pat_completeness)
+apply(auto)
+done
+
+termination groupF_code
+  apply(relation "measure (\<lambda>(f,as). length (filter (\<lambda>x. (\<lambda>y. f x = f y) x) as))")
+   apply(simp; fail)
+  apply(simp add: partition_tailrec)
+  using le_imp_less_Suc length_filter_le by blast
+
+lemma[code]: "groupF f as = groupF_code f as"
+  by(induction f as rule: groupF_code.induct) (simp_all add: partition_tailrec)
+
+export_code groupF in SML
+
 
 lemma groupF_lem:
   defines "same f A \<equiv> (\<forall>a1 \<in> set A. \<forall>a2 \<in> set A. f a1 = f a2)"
