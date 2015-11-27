@@ -155,14 +155,13 @@ fun partitioningIps :: "'a::len wordinterval list \<Rightarrow> 'a::len wordinte
 
 lemma partIps_equi: "map wordinterval_to_set (partIps s ts)
        = (partList3 (wordinterval_to_set s) (map wordinterval_to_set ts))"
-  apply(induction ts arbitrary: s)
-  by (simp_all)
+  proof(induction ts arbitrary: s)
+  qed(simp_all)
 
 lemma partitioningIps_equi: "map wordinterval_to_set (partitioningIps ss ts)
        = (partitioning1 (map wordinterval_to_set ss) (map wordinterval_to_set ts))"
-  apply(induction ss arbitrary: ts)
-  apply(simp_all add: partIps_equi)
-done
+  proof(induction ss arbitrary: ts)
+  qed(simp_all add: partIps_equi)
 
 
 lemma ipPartitioning_partitioningIps: 
@@ -223,8 +222,8 @@ qed
 lemma getParts_disjoint: "disjoint_list_rec (map wordinterval_to_set (getParts rs))"
   apply(subst getParts_def)
   apply(rule disjoint_partitioningIps)
-  apply(simp_all)
-done
+    apply(simp_all)
+  done
 
 
 theorem getParts_samefw: 
@@ -245,24 +244,23 @@ qed
 lemma partIps_nonempty: "\<forall>t \<in> set ts. \<not> wordinterval_empty t 
        \<Longrightarrow> {} \<notin> set (map wordinterval_to_set (partIps s ts))"
   apply(induction ts arbitrary: s)
+   apply(simp; fail)
   apply(simp)
-  apply(simp_all)
-by blast
+  by blast
 
 lemma partitioning_nonempty: "\<forall>t \<in> set ts. \<not> wordinterval_empty t
                               \<Longrightarrow> {} \<notin> set (map wordinterval_to_set (partitioningIps ss ts))"
   apply(induction ss arbitrary: ts)
-  apply(simp_all)
-  apply(blast)
-by (metis partIps_equi partList3_empty set_map)
+   apply(simp_all)
+   apply(blast)
+  by (metis partIps_equi partList3_empty set_map)
 
 lemma ineedtolearnisar: "\<forall>t \<in> set [wordinterval_UNIV]. \<not> wordinterval_empty t"
   by(simp)
 
 lemma getParts_nonempty: "{} \<notin> set (map wordinterval_to_set 
                                     (partitioningIps ss [wordinterval_UNIV]))"
-  apply(insert ineedtolearnisar partitioning_nonempty)
-by(blast)
+  using ineedtolearnisar partitioning_nonempty by(blast)
 
 (* HELPER FUNCTIONS UNIFICATION *)
 
@@ -298,9 +296,8 @@ definition same_fw_behaviour :: "32 word \<Rightarrow> 32 word \<Rightarrow> sim
 lemma getParts_same_fw_behaviour:
   "A \<in> set (map wordinterval_to_set (getParts rs)) \<Longrightarrow>  s1 \<in> A \<Longrightarrow> s2 \<in> A \<Longrightarrow> 
    same_fw_behaviour s1 s2 rs"
-  apply(subst same_fw_behaviour_def)
-  apply(insert getParts_samefw)
-by blast
+  unfolding same_fw_behaviour_def
+  using getParts_samefw by blast
 
 definition "runFw s d c rs = simple_fw rs \<lparr>p_iiface=pc_iiface c,p_oiface=pc_oiface c,
                           p_src=s,p_dst=d,
@@ -315,19 +312,19 @@ definition "same_fw_behaviour_one ip1 ip2 c rs \<equiv>
 lemma same_fw_spec: "same_fw_behaviour ip1 ip2 rs \<Longrightarrow> same_fw_behaviour_one ip1 ip2 c rs"
   apply(simp add: same_fw_behaviour_def same_fw_behaviour_one_def runFw_def)
   apply(rule conjI)
-  apply(clarify)
-  apply(erule_tac x="\<lparr>p_iiface = pc_iiface c, p_oiface = pc_oiface c, p_src = ip1, p_dst= d,
+   apply(clarify)
+   apply(erule_tac x="\<lparr>p_iiface = pc_iiface c, p_oiface = pc_oiface c, p_src = ip1, p_dst= d,
                        p_proto = pc_proto c, p_sport = pc_sport c, p_dport = pc_dport c,
                        p_tcp_flags = {TCP_SYN},
                        p_tag_ctstate = pc_tag_ctstate c\<rparr>" in allE)
-  apply(simp)
+   apply(simp;fail)
   apply(clarify)
   apply(erule_tac x="\<lparr>p_iiface = pc_iiface c, p_oiface = pc_oiface c, p_src = s, p_dst= ip1,
                        p_proto = pc_proto c, p_sport = pc_sport c, p_dport = pc_dport c,
                        p_tcp_flags = {TCP_SYN},
                        p_tag_ctstate = pc_tag_ctstate c\<rparr>" in allE)
   apply(simp)
-done
+  done
 
 text{*Is an equivalence relation*}
 lemma same_fw_behaviour_one_equi:
@@ -379,18 +376,13 @@ proof -
 qed
   
 lemma same_behave_runFw:
-  "\<forall>A \<in> set (map wordinterval_to_set W). \<forall>a1 \<in> A. \<forall>a2 \<in> A. same_fw_behaviour_one a1 a2 c rs \<Longrightarrow>
-   \<Union> set (map wordinterval_to_set W) = UNIV \<Longrightarrow> 
-   \<forall>w \<in> set W. \<not> wordinterval_empty w \<Longrightarrow>
-   (map (\<lambda>d. runFw x1 d c rs) (map getOneIp W), map (\<lambda>s. runFw s x1 c rs) (map getOneIp W)) =
-   (map (\<lambda>d. runFw x2 d c rs) (map getOneIp W), map (\<lambda>s. runFw s x2 c rs) (map getOneIp W)) \<Longrightarrow>
-   same_fw_behaviour_one x1 x2 c rs"
-proof -
-  assume a1: "\<forall>A \<in> set (map wordinterval_to_set W). \<forall>a1 \<in> A. \<forall>a2 \<in> A. same_fw_behaviour_one a1 a2 c rs"
+  assumes a1: "\<forall>A \<in> set (map wordinterval_to_set W). \<forall>a1 \<in> A. \<forall>a2 \<in> A. same_fw_behaviour_one a1 a2 c rs"
   and a2: "\<Union> set (map wordinterval_to_set W) = UNIV"
   and a3: "\<forall>w \<in> set W. \<not> wordinterval_empty w"
   and a4: "(map (\<lambda>d. runFw x1 d c rs) (map getOneIp W), map (\<lambda>s. runFw s x1 c rs) (map getOneIp W)) =
            (map (\<lambda>d. runFw x2 d c rs) (map getOneIp W), map (\<lambda>s. runFw s x2 c rs) (map getOneIp W))"
+  shows "same_fw_behaviour_one x1 x2 c rs"
+proof -
   from a3 a4 getOneIp_elem
     have b1: "\<forall>B \<in> set (map wordinterval_to_set W). \<exists>b \<in> B. runFw x1 b c rs = runFw x2 b c rs"
     by fastforce
@@ -474,12 +466,11 @@ lemma groupF_lem:
   have step: " \<forall>A\<in>set [x # [y\<leftarrow>xs . f x = f y]]. same f A" unfolding same_def by fastforce
   with 2 show ?case unfolding groupF_fst by fastforce
 qed
-thm groupF_lem
 
 lemma groupF_set_lem: "set (concat (groupF f xs)) = set xs"
-  apply(induction f xs rule: groupF.induct)
-   apply(simp_all)
-  by blast
+  proof(induction f xs rule: groupF.induct)
+  case 2 thus ?case by (simp) blast
+  qed(simp)
 
 lemma groupF_set_lem1: "\<forall>X \<in> set (groupF f xs). \<forall>x \<in> set X. x \<in> set xs"
   using groupF_set_lem by fastforce
@@ -498,29 +489,27 @@ definition groupWIs :: "parts_connection \<Rightarrow> simple_rule list \<Righta
                                       map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp W))) in
                        groupF f W))"
 
-lemma groupParts_same_fw_wi0: "\<And>V. V \<in> set (groupWIs c rs) \<Longrightarrow> 
-                               \<forall>w \<in> set (map wordinterval_to_set V).
-                               \<forall>a1 \<in> w. \<forall>a2 \<in> w. same_fw_behaviour_one a1 a2 c rs"
+lemma groupParts_same_fw_wi0:
+    assumes "V \<in> set (groupWIs c rs)"
+    shows "\<forall>w \<in> set (map wordinterval_to_set V). \<forall>a1 \<in> w. \<forall>a2 \<in> w. same_fw_behaviour_one a1 a2 c rs"
 proof -
-  fix V assume asm: "V \<in> set (groupWIs c rs)"
   have "\<forall>A\<in>set (map wordinterval_to_set (concat (groupWIs c rs))). 
         \<forall>a1\<in>A. \<forall>a2\<in>A. same_fw_behaviour_one a1 a2 c rs"
     apply(subst groupWIs_def)
     apply(subst Let_def)+
     apply(subst set_map)
     apply(subst groupF_set_lem)
-  using getParts_same_fw_behaviour same_fw_spec by fastforce
-  from this asm show "\<forall>A\<in>set (map wordinterval_to_set V). \<forall>a1\<in> A. \<forall>a2\<in> A.
-                          same_fw_behaviour_one a1 a2 c rs" by force
+    using getParts_same_fw_behaviour same_fw_spec by fastforce
+  from this assms show ?thesis by force
 qed
 
-lemma groupWIs_same_fw_not: "\<And>A B. A \<in> set (groupWIs c rs) \<Longrightarrow> B \<in> set (groupWIs c rs) \<Longrightarrow> 
+lemma groupWIs_same_fw_not: "A \<in> set (groupWIs c rs) \<Longrightarrow> B \<in> set (groupWIs c rs) \<Longrightarrow> 
                             A \<noteq> B \<Longrightarrow>
                              \<forall>aw \<in> set (map wordinterval_to_set A).
                              \<forall>bw \<in> set (map wordinterval_to_set B).
                              \<forall>a \<in> aw. \<forall>b \<in> bw. \<not> same_fw_behaviour_one a b c rs"
 proof -
-  fix "A" "B" assume asm: "A \<in> set (groupWIs c rs)" "B \<in> set (groupWIs c rs)" "A \<noteq> B"
+  assume asm: "A \<in> set (groupWIs c rs)" "B \<in> set (groupWIs c rs)" "A \<noteq> B"
   from this have b1: "\<forall>aw \<in> set A. \<forall>bw \<in> set B.
                   (map (\<lambda>d. runFw (getOneIp aw) d c rs) (map getOneIp (getParts rs)),
                    map (\<lambda>s. runFw s (getOneIp aw) c rs) (map getOneIp (getParts rs))) \<noteq>
@@ -552,10 +541,10 @@ proof -
 qed
 
 lemma groupParts_same_fw_wi1:
-  "\<And>V. V \<in> set (groupWIs c rs) \<Longrightarrow> \<forall>w1 \<in> set V. \<forall>w2 \<in> set V.
-   \<forall>a1 \<in> wordinterval_to_set w1. \<forall>a2 \<in> wordinterval_to_set w2. same_fw_behaviour_one a1 a2 c rs"
+  "V \<in> set (groupWIs c rs) \<Longrightarrow> \<forall>w1 \<in> set V. \<forall>w2 \<in> set V.
+     \<forall>a1 \<in> wordinterval_to_set w1. \<forall>a2 \<in> wordinterval_to_set w2. same_fw_behaviour_one a1 a2 c rs"
 proof -
-  fix V assume asm: "V \<in> set (groupWIs c rs)"
+  assume asm: "V \<in> set (groupWIs c rs)"
   from getParts_same_fw_behaviour same_fw_spec
     have b1: "\<forall>A \<in> set (map wordinterval_to_set (getParts rs)) . \<forall>a1 \<in> A. \<forall>a2 \<in> A.
               same_fw_behaviour_one a1 a2 c rs" by fast
