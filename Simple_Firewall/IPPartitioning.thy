@@ -129,26 +129,6 @@ proof -
     by (metis (full_types) Int_commute extract_equi0)
 qed
 
-lemma srcdst_ipPart: "ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 src rs))) A \<and>
-       ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 dst rs))) A \<Longrightarrow>
-       B \<in> A \<Longrightarrow> s1 \<in> B \<Longrightarrow> s2 \<in> B \<Longrightarrow> 
-       simple_fw rs (p\<lparr>p_src:=s1\<rparr>) = simple_fw rs (p\<lparr>p_src:=s2\<rparr>) \<and>
-       simple_fw rs (p\<lparr>p_dst:=s1\<rparr>) = simple_fw rs (p\<lparr>p_dst:=s2\<rparr>)"
-using dst_ipPart src_ipPart by blast
-
-
-(*TODO: rename?*)
-lemma extract_IPSets_lem:
-  assumes "ipPartition (set (map wordinterval_to_set (extract_IPSets rs))) A"
-          "B \<in> A" "s1 \<in> B" "s2 \<in> B" 
-  shows "simple_fw rs (p\<lparr>p_src:=s1\<rparr>) = simple_fw rs (p\<lparr>p_src:=s2\<rparr>) \<and>
-         simple_fw rs (p\<lparr>p_dst:=s1\<rparr>) = simple_fw rs (p\<lparr>p_dst:=s2\<rparr>)"
-proof -
-  from assms(1) have "ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 src rs))) A \<and>
-                      ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 dst rs))) A"
-  by(simp add: extract_IPSets ipPartitionUnion image_Un)
-  with assms srcdst_ipPart show ?thesis by blast
-qed
 
 
 (* OPTIMIZED PARTITIONING *)
@@ -248,12 +228,30 @@ lemma getParts_disjoint: "disjoint_list_rec (map wordinterval_to_set (getParts r
   apply(simp_all)
 done
 
+
 theorem getParts_samefw: 
-  "A \<in> set (map wordinterval_to_set (getParts rs)) \<Longrightarrow>  s1 \<in> A \<Longrightarrow> s2 \<in> A \<Longrightarrow> 
-   simple_fw rs (p\<lparr>p_src:=s1\<rparr>) = simple_fw rs (p\<lparr>p_src:=s2\<rparr>) \<and>
-   simple_fw rs (p\<lparr>p_dst:=s1\<rparr>) = simple_fw rs (p\<lparr>p_dst:=s2\<rparr>)"
-  apply(rule extract_IPSets_lem[of rs _ A])
-  using ipParts_getParts by blast
+  assumes "A \<in> set (map wordinterval_to_set (getParts rs))" "s1 \<in> A" "s2 \<in> A" 
+  shows "simple_fw rs (p\<lparr>p_src:=s1\<rparr>) = simple_fw rs (p\<lparr>p_src:=s2\<rparr>) \<and>
+         simple_fw rs (p\<lparr>p_dst:=s1\<rparr>) = simple_fw rs (p\<lparr>p_dst:=s2\<rparr>)"
+proof -
+  { fix A B
+    assume a1: "ipPartition (set (map wordinterval_to_set (extract_IPSets rs))) A"
+       and a2: "B \<in> A" and a3: "s1 \<in> B" and a4: "s2 \<in> B" 
+    have ?thesis
+    proof -
+      from a1 have "ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 src rs))) A \<and>
+                    ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 dst rs))) A"
+      by(simp add: extract_IPSets ipPartitionUnion image_Un)
+      with a2 a3 a4 dst_ipPart src_ipPart show ?thesis by blast
+    qed
+  } note extract_IPSets_lem=this
+  from ipParts_getParts[of rs] have "ipPartition (set (map wordinterval_to_set (extract_IPSets rs))) (set (map wordinterval_to_set (getParts rs)))" .
+  thus ?thesis
+  apply(rule extract_IPSets_lem[of _ A])
+     using assms by simp_all
+qed
+
+
 
 lemma partList3_nonempty: "\<forall>t \<in> set ts. \<not> wordinterval_empty t 
        \<Longrightarrow> {} \<notin> set (map wordinterval_to_set (partIps s ts))"
