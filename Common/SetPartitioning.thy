@@ -63,10 +63,8 @@ lemma "ipPartition (set test_set_list) (partitioning test_set_list {})" by eval
 
 lemma "ipPartition A {}" by(simp add: ipPartition_def)
 
-lemma ipPartitionUnion: "ipPartition As Cs \<Longrightarrow> ipPartition Bs Cs 
-                         \<Longrightarrow> ipPartition (As \<union> Bs) Cs"
- apply(simp add: ipPartition_def)
- by fast
+lemma ipPartitionUnion: "ipPartition As Cs \<and> ipPartition Bs Cs \<longleftrightarrow> ipPartition (As \<union> Bs) Cs"
+ unfolding ipPartition_def by fast
 
 
 (* addSubsetSet LEMMAS *)
@@ -185,7 +183,8 @@ lemma ipPartitioning_helper: "disjoint As \<Longrightarrow> ipPartition (set ts)
     from this Cons.prems ipPartitionSingleSet
     have f: "ipPartition {t} (partitioning ts (addSubsetSet t As))" by fast
     have "set (t#ts) = insert t (set ts)" by auto
-    from this e f ipPartitionUnion
+    from ipPartitionUnion have "\<And> As Bs Cs. ipPartition As Cs \<Longrightarrow> ipPartition Bs Cs \<Longrightarrow> ipPartition (As \<union> Bs) Cs" by fast
+    with this e f 
     have "ipPartition (set (t # ts)) (partitioning ts (addSubsetSet t As))" by fastforce
     thus ?case by simp
  qed

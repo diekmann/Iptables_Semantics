@@ -1,4 +1,4 @@
-(*Author: Max Haslbeck, 2015*)
+(*Original Author: Max Haslbeck, 2015*)
 theory IPPartitioning
 imports Main
         "SimpleFw_Semantics"
@@ -13,27 +13,50 @@ fun extract_IPSets_generic0 :: "(simple_match \<Rightarrow> 32 word \<times> nat
   "extract_IPSets_generic0 sel ((SimpleRule m _)#ss) = (ipv4_cidr_tuple_to_interval (sel m)) #
                                                        (extract_IPSets_generic0 sel ss)"
 
-fun extract_IPSets_tail_before :: "simple_rule list \<Rightarrow> (32 wordinterval) list \<Rightarrow> (32 wordinterval) list" where
-  "extract_IPSets_tail_before [] ts = ts" |
-  "extract_IPSets_tail_before ((SimpleRule m _)#ss) ts = extract_IPSets_tail_before ss 
-                                                  ((ipv4_cidr_tuple_to_interval (src m)) #
-                                                  ((ipv4_cidr_tuple_to_interval (dst m)))#ts)"
+lemma extract_IPSets_generic0_length: "length (extract_IPSets_generic0 sel rs) = length rs"
+  by(induction rs rule: extract_IPSets_generic0.induct) (simp_all)
 
-fun extract_IPSets_tail :: "simple_rule list \<Rightarrow> (32 wordinterval) list \<Rightarrow> (32 wordinterval) list" where
-  "extract_IPSets_tail [] ts = ts" |
-  "extract_IPSets_tail ((SimpleRule m _)#ss) ts = extract_IPSets_tail ss 
+(*a more efficient tail-recursive implementation*)
+fun extract_src_dst_ips :: "simple_rule list \<Rightarrow> (32 wordinterval) list \<Rightarrow> (32 wordinterval) list" where
+  "extract_src_dst_ips [] ts = ts" |
+  "extract_src_dst_ips ((SimpleRule m _)#ss) ts = extract_src_dst_ips ss 
                                                   ((ipv4_cidr_tuple_to_interval (src m)) #
                                                   ((ipv4_cidr_tuple_to_interval (dst m))#ts))"
 
+(*TODO: rename?*)
+definition extract_IPSets :: "simple_rule list \<Rightarrow> (32 wordinterval) list" where
+  "extract_IPSets rs \<equiv> extract_src_dst_ips rs []"
+
+lemma extract_IPSets: "set (extract_IPSets rs) = set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
+proof -
+  { fix acc
+    have "set (extract_src_dst_ips rs acc) = set acc \<union> set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
+    proof(induction rs arbitrary: acc)
+    case (Cons r rs ) thus ?case
+      apply(cases r)
+      apply(simp)
+      by fast
+    qed(simp)
+  } thus ?thesis unfolding extract_IPSets_def by simp
+qed
+
+lemma extract_IPSets_length: "length (extract_IPSets rs) = 2 * length rs"
+  proof - 
+    { fix acc
+      have "length (extract_src_dst_ips rs acc) = length acc + 2 * length rs"
+      proof(induction rs arbitrary: acc)
+      case (Cons r rs) thus ?case by(cases r) simp
+      qed(simp)
+     } thus ?thesis by(simp add: extract_IPSets_def)
+  qed
 
 lemma extract_equi0: "set (map wordinterval_to_set (extract_IPSets_generic0 sel rs))
                      = (\<lambda>(base,len). ipv4range_set_from_bitmask base len) ` sel ` match_sel ` set rs"
-  apply(induction rs)
-   apply(simp; fail)
-  apply(simp_all)
-  apply(rename_tac r rs)
-  apply(case_tac r, simp)
-  using ipv4range_to_set_ipv4_cidr_tuple_to_interval[simplified ipv4range_to_set_def] by fastforce
+  proof(induction rs)
+  case (Cons r rs) thus ?case
+    apply(cases r, simp)
+    using ipv4range_to_set_ipv4_cidr_tuple_to_interval[simplified ipv4range_to_set_def] by fastforce
+  qed(simp)
 
 lemma src_ipPart:
   assumes "ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 src rs))) A"
@@ -114,20 +137,18 @@ lemma srcdst_ipPart: "ipPartition (set (map wordinterval_to_set (extract_IPSets_
 using dst_ipPart src_ipPart by blast
 
 
-fun extract_IPSets :: "simple_rule list \<Rightarrow> (32 wordinterval) list" where
-  "extract_IPSets rs = (extract_IPSets_generic0 src rs) @ (extract_IPSets_generic0 dst rs)"
-
-lemma extract_IPSets_helper: "ipPartition (set (map wordinterval_to_set (extract_IPSets rs))) A \<Longrightarrow>
-       ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 src rs))) A  \<and>
-       ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 dst rs))) A "
-  apply(simp_all add: ipPartition_def)
-done
-
-lemma extract_IPSets_lem: "ipPartition (set (map wordinterval_to_set (extract_IPSets rs))) A \<Longrightarrow>
-                           B \<in> A \<Longrightarrow> s1 \<in> B \<Longrightarrow> s2 \<in> B \<Longrightarrow> 
-                           simple_fw rs (p\<lparr>p_src:=s1\<rparr>) = simple_fw rs (p\<lparr>p_src:=s2\<rparr>) \<and>
-                           simple_fw rs (p\<lparr>p_dst:=s1\<rparr>) = simple_fw rs (p\<lparr>p_dst:=s2\<rparr>)"
-  using extract_IPSets_helper srcdst_ipPart by blast
+(*TODO: rename?*)
+lemma extract_IPSets_lem:
+  assumes "ipPartition (set (map wordinterval_to_set (extract_IPSets rs))) A"
+          "B \<in> A" "s1 \<in> B" "s2 \<in> B" 
+  shows "simple_fw rs (p\<lparr>p_src:=s1\<rparr>) = simple_fw rs (p\<lparr>p_src:=s2\<rparr>) \<and>
+         simple_fw rs (p\<lparr>p_dst:=s1\<rparr>) = simple_fw rs (p\<lparr>p_dst:=s2\<rparr>)"
+proof -
+  from assms(1) have "ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 src rs))) A \<and>
+                      ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 dst rs))) A"
+  by(simp add: extract_IPSets ipPartitionUnion image_Un)
+  with assms srcdst_ipPart show ?thesis by blast
+qed
 
 
 (* OPTIMIZED PARTITIONING *)
@@ -683,8 +704,6 @@ definition parts_connection_http where "parts_connection_http = \<lparr>pc_iifac
 
 
 (*corny stuff -- TODO: move*)
-lemma extract_IPSets_generic0_length: "length (extract_IPSets_generic0 sel rs) = length rs"
-by(induction rs rule: extract_IPSets_generic0.induct) (simp_all)
 
 lemma "partIps (WordInterval (1::ipv4addr) 1) [WordInterval 0 1] = [WordInterval 1 1, WordInterval 0 0]" by eval
 
@@ -721,15 +740,10 @@ qed
 
 lemma getParts_length: "length (getParts rs) \<le> 2^(2 * length rs)"
 proof -
-  from partitioningIps_length[where ss="(extract_IPSets_generic0 src rs @ extract_IPSets_generic0 dst rs)" and ts="[wordinterval_UNIV]"]
-       extract_IPSets_generic0_length
-  have "length (partitioningIps (extract_IPSets_generic0 src rs @ extract_IPSets_generic0 dst rs) [wordinterval_UNIV])
-        \<le> 2 ^ (length rs + length rs)" by fastforce
-  thus ?thesis
-   apply(simp add: getParts_def)
-   by (simp add: mult_2)
+  from partitioningIps_length[where ss="extract_IPSets rs" and ts="[wordinterval_UNIV]"] extract_IPSets_length
+  have "length (partitioningIps (extract_IPSets rs) [wordinterval_UNIV]) \<le> 2 ^ (2 * length rs)" by fastforce
+  thus ?thesis by(simp add: getParts_def) 
 qed
-
 
 lemma partitioningIps_foldr: "partitioningIps ss ts = foldr partIps ss ts"
 by(induction ss) (simp_all)
