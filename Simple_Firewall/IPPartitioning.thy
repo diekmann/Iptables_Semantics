@@ -561,7 +561,7 @@ proof -
               same_fw_behaviour_one a1 a2 c rs" by fast
   from getParts_nonempty
     have "\<forall>w\<in>set (getParts rs). \<not> wordinterval_empty w" apply(subst getParts_def) by auto
-  from same_behave_runFw[OF b1 getParts_complete3 this]
+  from same_behave_runFw[OF b1 getParts_complete this]
        groupF_lem[of "(\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) (map getOneIp (getParts rs)),
                              map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp (getParts rs))))"
                      "(getParts rs)"] asm
