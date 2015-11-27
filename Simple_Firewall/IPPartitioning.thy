@@ -234,21 +234,12 @@ theorem getParts_samefw:
   shows "simple_fw rs (p\<lparr>p_src:=s1\<rparr>) = simple_fw rs (p\<lparr>p_src:=s2\<rparr>) \<and>
          simple_fw rs (p\<lparr>p_dst:=s1\<rparr>) = simple_fw rs (p\<lparr>p_dst:=s2\<rparr>)"
 proof -
-  { fix A B
-    assume a1: "ipPartition (set (map wordinterval_to_set (extract_IPSets rs))) A"
-       and a2: "B \<in> A" and a3: "s1 \<in> B" and a4: "s2 \<in> B" 
-    have ?thesis
-    proof -
-      from a1 have "ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 src rs))) A \<and>
-                    ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 dst rs))) A"
-      by(simp add: extract_IPSets ipPartitionUnion image_Un)
-      with a2 a3 a4 dst_ipPart src_ipPart show ?thesis by blast
-    qed
-  } note extract_IPSets_lem=this
-  from ipParts_getParts[of rs] have "ipPartition (set (map wordinterval_to_set (extract_IPSets rs))) (set (map wordinterval_to_set (getParts rs)))" .
-  thus ?thesis
-  apply(rule extract_IPSets_lem[of _ A])
-     using assms by simp_all
+  let ?X="(set (map wordinterval_to_set (getParts rs)))"
+  from ipParts_getParts have "ipPartition (set (map wordinterval_to_set (extract_IPSets rs))) ?X" .
+  hence "ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 src rs))) ?X \<and>
+         ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 dst rs))) ?X"
+    by(simp add: extract_IPSets ipPartitionUnion image_Un)
+  thus ?thesis using assms dst_ipPart src_ipPart by blast
 qed
 
 
