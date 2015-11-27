@@ -186,9 +186,8 @@ by (simp add: partitioning1_disjoint partitioningIps_equi)
 
 lemma ipPartitioning_partitioningIps1: "ipPartition (set (map wordinterval_to_set ss)) 
                    (set (map wordinterval_to_set (partitioningIps ss [wordinterval_UNIV])))"
-  apply(rule ipPartitioning_partitioningIps)
-    apply(simp_all)
-  done
+  proof(rule ipPartitioning_partitioningIps)
+  qed(simp_all)
                   
 definition getParts :: "simple_rule list \<Rightarrow> 32 wordinterval list" where
    "getParts rs = partitioningIps (extract_IPSets rs) [wordinterval_UNIV]"
@@ -459,12 +458,12 @@ lemma groupF_lem:
   defines "same f A \<equiv> (\<forall>a1 \<in> set A. \<forall>a2 \<in> set A. f a1 = f a2)"
   shows "\<forall>A \<in> set(groupF f xs). same f A"
   proof(induction f xs rule: groupF.induct)
-  case 1 thus ?case by simp
+    case 1 thus ?case by simp
   next
-  case (2 f x xs)
-  have groupF_fst: "groupF f (x # xs) = (x # [y\<leftarrow>xs . f x = f y]) # groupF f [y\<leftarrow>xs . f x \<noteq> f y]" by force
-  have step: " \<forall>A\<in>set [x # [y\<leftarrow>xs . f x = f y]]. same f A" unfolding same_def by fastforce
-  with 2 show ?case unfolding groupF_fst by fastforce
+    case (2 f x xs)
+      have groupF_fst: "groupF f (x # xs) = (x # [y\<leftarrow>xs . f x = f y]) # groupF f [y\<leftarrow>xs . f x \<noteq> f y]" by force
+      have step: " \<forall>A\<in>set [x # [y\<leftarrow>xs . f x = f y]]. same f A" unfolding same_def by fastforce
+      with 2 show ?case unfolding groupF_fst by fastforce
 qed
 
 lemma groupF_set_lem: "set (concat (groupF f xs)) = set xs"
@@ -477,11 +476,14 @@ lemma groupF_set_lem1: "\<forall>X \<in> set (groupF f xs). \<forall>x \<in> set
 
 lemma groupF_lem_not: "A \<in> set (groupF f xs) \<Longrightarrow> B \<in> set (groupF f xs) \<Longrightarrow> A \<noteq> B \<Longrightarrow>
      \<forall>a \<in> set A. \<forall>b \<in> set B. f a \<noteq> f b"
-  apply(induction f xs rule: groupF.induct)
-   apply(simp)
-  apply(subst (asm) groupF.simps)+
-  using groupF_set_lem1 by fastforce (*1s*)
-
+  proof(induction f xs rule: groupF.induct)
+  case 1 thus ?case by simp
+  next
+  case 2 thus ?case
+    apply -
+    apply(subst (asm) groupF.simps)+
+    using groupF_set_lem1 by fastforce (*1s*)
+  qed
 
 definition groupWIs :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
   "groupWIs c rs = (let W = getParts rs in 
@@ -667,9 +669,9 @@ lemma groupWIs1_groupWIs2_equi: "groupWIs2 c rs = groupWIs1 c rs"
 lemma groupWIs_code[code]: "groupWIs c rs = groupWIs2 c rs"
   using groupWIs1_groupWIs2_equi groupWIs_groupWIs1_equi by metis
 
-lemma wordinterval_unifier: "wordinterval_to_set (
-         wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) =
-       \<Union> set (map wordinterval_to_set xs)"
+lemma wordinterval_unifier: "wordinterval_to_set 
+          (wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) =
+          \<Union> set (map wordinterval_to_set xs)"
   apply simp
   apply(induction xs)
    apply(simp_all add: wordinterval_compress)
