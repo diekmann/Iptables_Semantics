@@ -194,33 +194,31 @@ lemma ipPartitioning_partitioningIps1: "ipPartition (set (map wordinterval_to_se
 definition getParts :: "simple_rule list \<Rightarrow> 32 wordinterval list" where
    "getParts rs = partitioningIps (extract_IPSets rs) [wordinterval_UNIV]"
 
+
+lemma partitioningIps_foldr: "partitioningIps ss ts = foldr partIps ss ts"
+  by(induction ss) (simp_all)
+
+lemma getParts_foldr: "getParts rs = foldr partIps (extract_IPSets rs) [wordinterval_UNIV]"
+  by(simp add: getParts_def partitioningIps_foldr)
+
+
 lemma getParts_ipPartition: "ipPartition (set (map wordinterval_to_set (extract_IPSets rs)))
-                                     (set (map wordinterval_to_set (getParts rs)))"
+                                         (set (map wordinterval_to_set (getParts rs)))"
   unfolding getParts_def
   apply(subst ipPartitioning_partitioningIps1)
   by(simp)
 
 
-lemma getParts_complete0: "\<Union> (set (map wordinterval_to_set [wordinterval_UNIV])) = 
-                           \<Union> (set (map wordinterval_to_set (getParts rs)))"
-  apply(subst getParts_def)
-  apply(rule complete_partitioningIps)
-  apply(simp_all)
-done
 
-lemma getParts_complete1: "wordinterval_to_set wordinterval_UNIV =
-                          \<Union> (set (map wordinterval_to_set [wordinterval_UNIV]))"
-  by(simp)
-
-lemma getParts_complete2: "wordinterval_to_set wordinterval_UNIV =
-                           \<Union> (set (map wordinterval_to_set (getParts rs)))"
-  apply(subst getParts_complete1)
-  apply(insert getParts_complete0)
-  apply(simp add:)
-done
-
-lemma getParts_complete3: " \<Union> (set (map wordinterval_to_set (getParts rs))) = UNIV"
-  using getParts_complete2 by simp
+lemma getParts_complete: "\<Union> (set (map wordinterval_to_set (getParts rs))) = UNIV"
+  proof -
+    have "\<Union> (set (map wordinterval_to_set (getParts rs))) = \<Union> (set (map wordinterval_to_set [wordinterval_UNIV]))"
+      unfolding getParts_def
+      apply(rule complete_partitioningIps[symmetric])
+        by(simp_all)
+    also have "\<dots> = UNIV" by simp
+    finally show ?thesis .
+qed
 
 lemma getParts_disjoint: "disjoint_list_rec (map wordinterval_to_set (getParts rs))"
   apply(subst getParts_def)
@@ -244,7 +242,7 @@ qed
 
 
 
-lemma partList3_nonempty: "\<forall>t \<in> set ts. \<not> wordinterval_empty t 
+lemma partIps_nonempty: "\<forall>t \<in> set ts. \<not> wordinterval_empty t 
        \<Longrightarrow> {} \<notin> set (map wordinterval_to_set (partIps s ts))"
   apply(induction ts arbitrary: s)
   apply(simp)
@@ -757,10 +755,6 @@ apply simp
 using le_Suc_eq by blast
 
 
-value[code] "partitioningIps [WordInterval (0::ipv4addr) 0] [WordInterval 0 2, WordInterval 0 2]"
-
-
-
 lemma partitioningIps_length: "length (partitioningIps ss ts) \<le> (2^length ss) * length ts"
 apply(induction ss arbitrary: ts)
  apply(simp; fail)
@@ -788,11 +782,12 @@ proof -
   thus ?thesis by(simp add: getParts_def) 
 qed
 
-lemma partitioningIps_foldr: "partitioningIps ss ts = foldr partIps ss ts"
-by(induction ss) (simp_all)
 
-lemma getParts_foldr: "getParts rs = foldr partIps (extract_IPSets rs) [wordinterval_UNIV]"
-by(simp add: getParts_def partitioningIps_foldr)
+value[code] "partitioningIps [WordInterval (0::ipv4addr) 0] [WordInterval 0 2, WordInterval 0 2]"
+
+
+
+
 
 
 end                            
