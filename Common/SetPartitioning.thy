@@ -1,7 +1,7 @@
 (*Author: Max Haslbeck, 2015*)
 theory SetPartitioning
 imports Main
-        "~~/src/HOL/Library/Code_Target_Nat"
+        (*"~~/src/HOL/Library/Code_Target_Nat" (*!*)*)
 begin
 
 (* disjoint, ipPartition definitions *)

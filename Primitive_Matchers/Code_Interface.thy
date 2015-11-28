@@ -7,7 +7,9 @@ imports
   "../Simple_Firewall/SimpleFw_Compliance"
   "../Simple_Firewall/SimpleFw_toString"
   "../Simple_Firewall/IPPartitioning"
+  "../Semantics_Ternary/Optimizing" (*do we use this?*)
   "../Semantics_Goto"
+  "../Simple_Firewall/SimpleFw_toString" (*hmm, here?*)
   "~~/src/HOL/Library/Code_Target_Nat"
   "~~/src/HOL/Library/Code_Target_Int"
   "~~/src/HOL/Library/Code_Char"

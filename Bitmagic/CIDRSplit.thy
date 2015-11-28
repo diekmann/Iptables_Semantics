@@ -9,7 +9,7 @@ begin
 section{*CIDR Split Motivation*}
   text{*When talking about ranges of IP addresses, we can make the ranges explicit by listing them.*}
 
-  value "map (ipv4addr_of_nat \<circ> nat) [1 .. 4]"
+  lemma "map (ipv4addr_of_nat \<circ> nat) [1 .. 4] = [1, 2, 3, 4]" by eval
   definition ipv4addr_upto :: "ipv4addr \<Rightarrow> ipv4addr \<Rightarrow> ipv4addr list" where
     "ipv4addr_upto i j \<equiv> map (ipv4addr_of_nat \<circ> nat) [int (nat_of_ipv4addr i) .. int (nat_of_ipv4addr j)]"
   lemma ipv4addr_upto: "set (ipv4addr_upto i j) = {i .. j}"
@@ -246,21 +246,28 @@ next
 qed
 
 (* Wolololo *)
-value "ipv4range_split_internal (RangeUnion (WordInterval (ipv4addr_of_dotdecimal (64,0,0,0)) 0x5FEFBBCC) (WordInterval 0x5FEEBB1C (ipv4addr_of_dotdecimal (127,255,255,255))))"
-value "ipv4range_split_internal (WordInterval 0 (ipv4addr_of_dotdecimal (255,255,255,254)))"
+lemma "ipv4range_split_internal
+          (RangeUnion (WordInterval (ipv4addr_of_dotdecimal (64,0,0,0))         (ipv4addr_of_dotdecimal (95, 239, 187, 204)))
+                      (WordInterval (ipv4addr_of_dotdecimal (95, 238, 187, 28)) (ipv4addr_of_dotdecimal (127,255,255,255))))
+       = [PrefixMatch (ipv4addr_of_dotdecimal (64, 0, 0, 0)) 2]" by eval
+lemma "length (ipv4range_split_internal (WordInterval 0 (ipv4addr_of_dotdecimal (255,255,255,254)))) = 32" by eval
 
 
+
+(*
 text{* @{text "10.0.0.0/8 - 10.8.0.0/16"}*}
 lemma "map (\<lambda>pfx. (dotdecimal_of_ipv4addr (pfxm_prefix pfx), (pfxm_length pfx))) (ipv4range_split_internal (ipv4range_setminus
           (ipv4range_range ((ipv4addr_of_dotdecimal (10,0,0,0)), (ipv4addr_of_dotdecimal (10,255,255,255))))
           (ipv4range_range ((ipv4addr_of_dotdecimal (10,8,0,0)), (ipv4addr_of_dotdecimal (10,8,255,255)))))) =
  [((10, 0, 0, 0), 13), ((10, 9, 0, 0), 16), ((10, 10, 0, 0), 15), ((10, 12, 0, 0), 14), ((10, 16, 0, 0), 12), ((10, 32, 0, 0), 11), ((10, 64, 0, 0), 10),
-  ((10, 128, 0, 0), 9)]" by eval
+  ((10, 128, 0, 0), 9)]" 
+  by eval
 
 
 lemma "map (\<lambda>pfx. (dotdecimal_of_ipv4addr (pfxm_prefix pfx), (pfxm_length pfx))) (ipv4range_split_internal (
     (ipv4range_range ((ipv4addr_of_dotdecimal (10,0,0,1)), (ipv4addr_of_dotdecimal (10,0,0,15)))))) =
     [((10, 0, 0, 1), 32), ((10, 0, 0, 2), 31), ((10, 0, 0, 4), 30), ((10, 0, 0, 8), 29)]" by eval
+*)
 
 declare ipv4range_split_internal.simps[simp del]
 

@@ -72,6 +72,10 @@ done
 (***********version 2****************)
 
 
+(*
+export_code extract_IPSets in SML
+why you no work?
+*)
 
 
 lemma extract_equi0: "set (map wordinterval_to_set (extract_IPSets_generic0 sel rs))

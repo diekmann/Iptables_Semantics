@@ -1,8 +1,7 @@
 theory Code_haskell
 imports "../Primitive_Matchers/Parser"
-  "../Simple_Firewall/SimpleFw_toString"
-  "../Semantics_Ternary/Optimizing"
-  "../Simple_Firewall/IPPartitioning"
+  (*
+  "../Simple_Firewall/IPPartitioning"*)
 begin
 
 definition word_less_eq :: "('a::len) word \<Rightarrow> ('a::len) word \<Rightarrow> bool" where

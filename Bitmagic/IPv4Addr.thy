@@ -34,7 +34,7 @@ section {*Modelling IPv4 Adresses*}
     "max_ipv4_addr \<equiv> ipv4addr_of_nat ((2^32) - 1)"
 
   lemma max_ipv4_addr_number: "max_ipv4_addr = 4294967295"
-    by eval
+    unfolding max_ipv4_addr_def ipv4addr_of_nat_def by(simp)
   lemma "max_ipv4_addr = 0b11111111111111111111111111111111"
     by(fact max_ipv4_addr_number)
   lemma max_ipv4_addr_max_word: "max_ipv4_addr = max_word"

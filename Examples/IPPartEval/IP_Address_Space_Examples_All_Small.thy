@@ -1,8 +1,6 @@
 theory IP_Address_Space_Examples_All_Small
 imports
   "../../Primitive_Matchers/Parser"
-  "../../Simple_Firewall/SimpleFw_toString"
-  "../../Primitive_Matchers/Interface_Replace"
 begin
 
 
@@ -49,6 +47,8 @@ definition view where
        (build_ip_partition_pretty parts_connection_http fw))"
 
 
+(*Do we have code?*)
+export_code bench view in SML
 
 context
 begin
