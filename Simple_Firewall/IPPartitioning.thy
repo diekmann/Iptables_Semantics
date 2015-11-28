@@ -16,6 +16,17 @@ fun extract_IPSets_generic0 :: "(simple_match \<Rightarrow> 32 word \<times> nat
 lemma extract_IPSets_generic0_length: "length (extract_IPSets_generic0 sel rs) = length rs"
   by(induction rs rule: extract_IPSets_generic0.induct) (simp_all)
 
+
+
+(***********version 1****************)
+(*
+why is this version so much slower?
+10:10:49 elapsed time, 38:41:17 cpu time, factor 3.80
+this is what version 2 offers:
+3:39:56 elapsed time, 21:08:34 cpu time, factor 5.76
+*)
+(*
+
 (*a more efficient tail-recursive implementation*)
 fun extract_src_dst_ips :: "simple_rule list \<Rightarrow> (32 wordinterval) list \<Rightarrow> (32 wordinterval) list" where
   "extract_src_dst_ips [] ts = ts" |
@@ -23,10 +34,6 @@ fun extract_src_dst_ips :: "simple_rule list \<Rightarrow> (32 wordinterval) lis
                                                   ((ipv4_cidr_tuple_to_interval (src m)) #
                                                   ((ipv4_cidr_tuple_to_interval (dst m))#ts))"
 
-
-(***********version 1****************)
-(*
-(*TODO: rename?*)
 definition extract_IPSets :: "simple_rule list \<Rightarrow> (32 wordinterval) list" where
   "extract_IPSets rs \<equiv> extract_src_dst_ips rs []"
 
@@ -52,7 +59,6 @@ lemma extract_IPSets_length: "length (extract_IPSets rs) = 2 * length rs"
       qed(simp)
      } thus ?thesis by(simp add: extract_IPSets_def)
   qed
-
 *)
 (**********version 1*****************)
 
