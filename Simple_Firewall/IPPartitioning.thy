@@ -23,6 +23,9 @@ fun extract_src_dst_ips :: "simple_rule list \<Rightarrow> (32 wordinterval) lis
                                                   ((ipv4_cidr_tuple_to_interval (src m)) #
                                                   ((ipv4_cidr_tuple_to_interval (dst m))#ts))"
 
+
+(***********version 1****************)
+(*
 (*TODO: rename?*)
 definition extract_IPSets :: "simple_rule list \<Rightarrow> (32 wordinterval) list" where
   "extract_IPSets rs \<equiv> extract_src_dst_ips rs []"
@@ -49,6 +52,27 @@ lemma extract_IPSets_length: "length (extract_IPSets rs) = 2 * length rs"
       qed(simp)
      } thus ?thesis by(simp add: extract_IPSets_def)
   qed
+
+*)
+(**********version 1*****************)
+
+
+(**********version 2*****************)
+fun extract_IPSets :: "simple_rule list \<Rightarrow> (32 wordinterval) list" where
+  "extract_IPSets rs = (extract_IPSets_generic0 src rs) @ (extract_IPSets_generic0 dst rs)"
+lemma extract_IPSets: "set (extract_IPSets rs) = set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
+by(induction rs) (simp_all)
+lemma extract_IPSets_length: "length (extract_IPSets rs) = 2 * length rs"
+apply(induction rs)
+ apply(simp_all)
+apply(rename_tac r rs)
+apply(case_tac r)
+apply(simp)
+done
+(***********version 2****************)
+
+
+
 
 lemma extract_equi0: "set (map wordinterval_to_set (extract_IPSets_generic0 sel rs))
                      = (\<lambda>(base,len). ipv4range_set_from_bitmask base len) ` sel ` match_sel ` set rs"
