@@ -162,7 +162,7 @@ begin
     lemma match_iface_set: "match_iface (Iface i) p_iface \<longleftrightarrow> p_iface \<in> internal_iface_name_to_set i"
       using internal_iface_name_to_set by simp
   
-    private  definition internal_iface_name_wildcard_longest :: "string \<Rightarrow> string \<Rightarrow> string option" where
+    private definition internal_iface_name_wildcard_longest :: "string \<Rightarrow> string \<Rightarrow> string option" where
       "internal_iface_name_wildcard_longest i1 i2 = (
         if 
           take (min (length i1 - 1) (length i2 - 1)) i1 = take (min (length i1 - 1) (length i2 - 1)) i2

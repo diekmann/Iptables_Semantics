@@ -318,4 +318,9 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
    qed
 
 
+
+
+  definition ipassmt_generic :: "(iface \<times> (32 word \<times> nat) list) list" where
+    "ipassmt_generic = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)])]"
+
 end

@@ -6,7 +6,10 @@ imports
   No_Spoof
   "../Simple_Firewall/SimpleFw_Compliance"
   "../Simple_Firewall/SimpleFw_toString"
+  "../Simple_Firewall/IPPartitioning"
+  "../Semantics_Ternary/Optimizing" (*do we use this?*)
   "../Semantics_Goto"
+  "../Simple_Firewall/SimpleFw_toString" (*hmm, here?*)
   "~~/src/HOL/Library/Code_Target_Nat"
   "~~/src/HOL/Library/Code_Target_Int"
   "~~/src/HOL/Library/Code_Char"
@@ -77,27 +80,57 @@ definition integer_to_16word :: "integer \<Rightarrow> 16 word" where
   "integer_to_16word i \<equiv> nat_to_16word (nat_of_integer i)"
 
 
-(*cool example*)
-lemma "let fw = [''FORWARD'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (10,0,0,0) 8))) (Call ''foo'')],
-                       ''foo'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (10,128,0,0) 9))) action.Return,
-                                   Rule (Match (Prot (Proto TCP))) action.Accept]
-                       ] in
-  let simplfw = to_simple_firewall
-    (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_FORWARD action.Drop fw)))))
-  in map simple_rule_toString simplfw =
-  [''ACCEPT     tcp  --  10.0.0.0/9            0.0.0.0/0    '', ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '']" by eval
+context
+begin
+  (*cool example*)
+  lemma "let fw = [''FORWARD'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (10,0,0,0) 8))) (Call ''foo'')],
+                         ''foo'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (10,128,0,0) 9))) action.Return,
+                                     Rule (Match (Prot (Proto TCP))) action.Accept]
+                         ] in
+    let simplfw = to_simple_firewall
+      (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_FORWARD action.Drop fw)))))
+    in map simple_rule_toString simplfw =
+    [''ACCEPT     tcp  --  10.0.0.0/9            0.0.0.0/0    '', ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '']" by eval
+  
+  (*cooler example*)
+  private definition "cool_example \<equiv> (let fw = [''FORWARD'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (10,0,0,0) 8))) (Call ''foo'')],
+                         ''foo'' \<mapsto> [Rule (MatchNot (Match (Src (Ip4AddrNetmask (10,0,0,0) 9)))) action.Drop,
+                                     Rule (Match (Prot (Proto TCP))) action.Accept]
+                         ] in
+    to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_FORWARD action.Drop fw))))))"
+  lemma " map simple_rule_toString cool_example =
+    [''DROP     all  --  10.128.0.0/9            0.0.0.0/0    '', ''ACCEPT     tcp  --  10.0.0.0/8            0.0.0.0/0    '',
+    ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '']"
+  by eval
+  
+  value[code] "map pretty_wordinterval (getParts cool_example)"
+  
+  value[code] "map pretty_wordinterval (build_ip_partition parts_connection_ssh cool_example)"
+  
+  (*it is not minimal if we allow to further compress the node definitions?
+  the receiver nodes could be combined to UNIV
+  But minimal for a symmetric matrix*)
+  value[code] "build_ip_partition_pretty parts_connection_ssh cool_example"
+end
 
-lemma "let fw = [''FORWARD'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (10,0,0,0) 8))) (Call ''foo'')],
-                       ''foo'' \<mapsto> [Rule (MatchNot (Match (Src (Ip4AddrNetmask (10,0,0,0) 9)))) action.Drop,
-                                   Rule (Match (Prot (Proto TCP))) action.Accept]
-                       ] in
-  let simplfw = to_simple_firewall
-    (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_FORWARD action.Drop fw)))))
-  in map simple_rule_toString simplfw =
-  [''DROP     all  --  10.128.0.0/9            0.0.0.0/0    '', ''ACCEPT     tcp  --  10.0.0.0/8            0.0.0.0/0    '',
-  ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '']"
-by eval
 
+context
+begin
+  (*prob look at dst also*)
+  private definition "cool_example2 \<equiv> (let fw =
+    [''FORWARD'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (10,0,0,0) 8))) (Call ''foo'')],
+     ''foo'' \<mapsto> [Rule (MatchNot (Match (Src (Ip4AddrNetmask (10,0,0,0) 9)))) action.Drop,
+                 Rule (MatchAnd (Match (Prot (Proto TCP))) (Match (Dst (Ip4AddrNetmask (10,0,0,42) 32)))) action.Accept]
+                         ] in
+    to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_FORWARD action.Drop fw))))))"
+  value[code] "map simple_rule_toString cool_example2"
+  
+  value[code] "map pretty_wordinterval (getParts cool_example2)"
+  
+  value[code] "map pretty_wordinterval (build_ip_partition parts_connection_ssh cool_example2)"
+  
+  value[code] "build_ip_partition_pretty parts_connection_ssh cool_example2"
+  end
 
 
 definition bitmask_to_strange_inverse_cisco_mask:: "nat \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat)" where

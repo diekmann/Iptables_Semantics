@@ -1,0 +1,16 @@
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp spts:410:415
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp spts:6881:6889
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp spts:4661:4669
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0           
+ACCEPT     all  --  0.0.0.0/0            192.168.0.0/16      
+ACCEPT     all  --  0.0.0.0/0            172.16.0.0/16       
+ACCEPT     icmp --  0.0.0.0/0            0.0.0.0/0           
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0           
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         

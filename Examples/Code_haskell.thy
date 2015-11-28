@@ -1,7 +1,7 @@
 theory Code_haskell
 imports "../Primitive_Matchers/Parser"
-  "../Simple_Firewall/SimpleFw_toString"
-  "../Semantics_Ternary/Optimizing"
+  (*
+  "../Simple_Firewall/IPPartitioning"*)
 begin
 
 definition word_less_eq :: "('a::len) word \<Rightarrow> ('a::len) word \<Rightarrow> bool" where
@@ -11,13 +11,17 @@ definition word_to_nat :: "('a::len) word \<Rightarrow> nat" where
   "word_to_nat = Word.unat"
 
 
-definition "to_simple_firewall_without_interfaces rs \<equiv>
+definition "to_simple_firewall_without_interfaces ipassmt rs \<equiv>
     to_simple_firewall
     (upper_closure
     (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))
     (optimize_matches abstract_for_simple_firewall
+    (upper_closure
+    (iface_try_rewrite ipassmt
+    (upper_closure
     (ctstate_assume_new
-    (upper_closure rs)))))"
+    (upper_closure rs))))))))"
+
 
 definition mk_Set :: "'a list \<Rightarrow> 'a set" where
   "mk_Set = set"
@@ -99,9 +103,11 @@ export_code Rule
   to_simple_firewall
   to_simple_firewall_without_interfaces
   sanity_wf_ruleset
-  (*spoofing:*) example_TUM_i8_spoofing_ipassmt
+  (*spoofing:*) example_TUM_i8_spoofing_ipassmt ipassmt_generic
   no_spoofing_iface ipassmt_sanity_defined map_of_ipassmt to_ipassmt debug_ipassmt
   Pos Neg
+  (*ip partitioning*)
+  build_ip_partition_pretty parts_connection_ssh parts_connection_http
   in Haskell module_name "Network.IPTables.Generated" file "generated_code/"
 
 end

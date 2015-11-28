@@ -1,0 +1,54 @@
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     all  --  127.0.0.0/8          0.0.0.0/0           
+ACCEPT     icmp --  0.0.0.0/0            0.0.0.0/0           
+ACCEPT     all  --  10.13.42.128/29      0.0.0.0/0           
+ACCEPT     all  --  10.13.42.136/29      0.0.0.0/0           
+ACCEPT     all  --  10.13.42.144/28      0.0.0.0/0           
+ACCEPT     all  --  10.13.42.160/28      0.0.0.0/0           
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0           
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:22
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:53
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:15678
+ACCEPT     udp  --  10.13.42.176/28      0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  10.13.42.176/28      0.0.0.0/0            udp dpt:53
+ACCEPT     tcp  --  10.13.42.176/28      0.0.0.0/0            tcp dpt:15678
+ACCEPT     udp  --  0.0.0.0/5            0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  8.0.0.0/7            0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  11.0.0.0/8           0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  12.0.0.0/6           0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  16.0.0.0/4           0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  32.0.0.0/3           0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  64.0.0.0/2           0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  128.0.0.0/3          0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  160.0.0.0/5          0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  168.0.0.0/6          0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  172.0.0.0/12         0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  172.32.0.0/11        0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  172.64.0.0/10        0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  172.128.0.0/9        0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  173.0.0.0/8          0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  174.0.0.0/7          0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  176.0.0.0/4          0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  192.0.0.0/9          0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  192.128.0.0/11       0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  192.160.0.0/13       0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  192.169.0.0/16       0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  192.170.0.0/15       0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  192.172.0.0/14       0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  192.176.0.0/12       0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  192.192.0.0/10       0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  193.0.0.0/8          0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  194.0.0.0/7          0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  196.0.0.0/6          0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  200.0.0.0/5          0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  208.0.0.0/4          0.0.0.0/0            udp spts:67:68 dpts:67:68
+ACCEPT     udp  --  224.0.0.0/3          0.0.0.0/0            udp spts:67:68 dpts:67:68
+DROP       all  --  0.0.0.0/0            0.0.0.0/0           
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
