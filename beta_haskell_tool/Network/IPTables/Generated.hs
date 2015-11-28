@@ -991,7 +991,7 @@ max_word =
       (Int_of_integer (1 :: Integer)));
 
 ifaceAny :: Iface;
-ifaceAny = Iface ['+'];
+ifaceAny = Iface "+";
 
 replicate :: forall a. Nat -> a -> [a];
 replicate n x =
@@ -1452,11 +1452,21 @@ get_pos_Extra a = let {
                     (Pos (Extra e)) = a;
                   } in e;
 
+select_p_tuple :: forall a. (a -> Bool) -> a -> ([a], [a]) -> ([a], [a]);
+select_p_tuple p x (ts, fs) = (if p x then (x : ts, fs) else (ts, x : fs));
+
+partition_tailrec :: forall a. (a -> Bool) -> [a] -> ([a], [a]);
+partition_tailrec p xs = foldr (select_p_tuple p) xs ([], []);
+
+groupF_code :: forall a b. (Eq b) => (a -> b) -> [a] -> [[a]];
+groupF_code f [] = [];
+groupF_code f (x : xs) =
+  let {
+    (ts, fs) = partition_tailrec (\ y -> f x == f y) xs;
+  } in (x : ts) : groupF_code f fs;
+
 groupF :: forall a b. (Eq b) => (a -> b) -> [a] -> [[a]];
-groupF f [] = [];
-groupF f (x : xs) =
-  (x : filter (\ y -> f x == f y) xs) :
-    groupF f (filter (\ y -> not (f x == f y)) xs);
+groupF f asa = groupF_code f asa;
 
 iface_sel :: Iface -> [Prelude.Char];
 iface_sel (Iface x) = x;
@@ -1473,8 +1483,7 @@ string_of_nat n =
 dotteddecimal_toString :: (Nat, (Nat, (Nat, Nat))) -> [Prelude.Char];
 dotteddecimal_toString (a, (b, (c, d))) =
   string_of_nat a ++
-    ['.'] ++
-      string_of_nat b ++ ['.'] ++ string_of_nat c ++ ['.'] ++ string_of_nat d;
+    "." ++ string_of_nat b ++ "." ++ string_of_nat c ++ "." ++ string_of_nat d;
 
 shiftr_word :: forall a. (Len0 a) => Word a -> Nat -> Word a;
 shiftr_word w n = funpow n shiftr1 w;
@@ -1505,11 +1514,9 @@ ipv4addr_wordinterval_toString ::
   Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prelude.Char];
 ipv4addr_wordinterval_toString (WordInterval s e) =
   (if equal_word s e then ipv4addr_toString s
-    else ['{'] ++
-           ipv4addr_toString s ++ ['.', '.'] ++ ipv4addr_toString e ++ ['}']);
+    else "{" ++ ipv4addr_toString s ++ ".." ++ ipv4addr_toString e ++ "}");
 ipv4addr_wordinterval_toString (RangeUnion a b) =
-  ipv4addr_wordinterval_toString a ++
-    [' ', 'u', ' '] ++ ipv4addr_wordinterval_toString b;
+  ipv4addr_wordinterval_toString a ++ " u " ++ ipv4addr_wordinterval_toString b;
 
 wordinterval_intersectiona ::
   forall a. (Len a) => Wordinterval a -> Wordinterval a -> Wordinterval a;
@@ -1669,8 +1676,7 @@ list_separated_toString sep toStr ls =
     (splice (map toStr ls) (replicate (minus_nat (size_list ls) one_nat) sep));
 
 list_toString :: forall a. (a -> [Prelude.Char]) -> [a] -> [Prelude.Char];
-list_toString toStr ls =
-  ['['] ++ list_separated_toString [',', ' '] toStr ls ++ [']'];
+list_toString toStr ls = "[" ++ list_separated_toString ", " toStr ls ++ "]";
 
 iface_is_wildcard :: Iface -> Bool;
 iface_is_wildcard ifce = iface_name_is_wildcard (iface_sel ifce);
@@ -1681,31 +1687,18 @@ debug_ipassmt ::
 debug_ipassmt ipassmt rs =
   let {
     ifaces = map fst ipassmt;
-  } in [['d', 'i', 's', 't', 'i', 'n', 'c', 't', ':', ' '] ++
-          (if distinct ifaces then ['p', 'a', 's', 's', 'e', 'd']
-            else ['F', 'A', 'I', 'L', '!']),
-         ['i', 'p', 'a', 's', 's', 'm', 't', '_', 's', 'a', 'n', 'i', 't', 'y',
-           '_', 'n', 'o', 'w', 'i', 'l', 'd', 'c', 'a', 'r', 'd', 's', ':',
-           ' '] ++
+  } in ["distinct: " ++ (if distinct ifaces then "passed" else "FAIL!"),
+         "ipassmt_sanity_nowildcards: " ++
            (if ball (image fst (Set ipassmt))
                  (\ iface -> not (iface_is_wildcard iface))
-             then ['p', 'a', 's', 's', 'e', 'd']
+             then "passed"
              else list_toString iface_sel (filter iface_is_wildcard ifaces)),
-         ['i', 'p', 'a', 's', 's', 'm', 't', '_', 's', 'a', 'n', 'i', 't', 'y',
-           '_', 'd', 'e', 'f', 'i', 'n', 'e', 'd', ' ', '(', 'i', 'n', 't', 'e',
-           'r', 'f', 'a', 'c', 'e', 's', ' ', 'd', 'e', 'f', 'i', 'n', 'e', 'd',
-           ' ', 'i', 'n', ' ', 't', 'h', 'e', ' ', 'r', 'u', 'l', 'e', 's', 'e',
-           't', ' ', 'a', 'r', 'e', ' ', 'a', 'l', 's', 'o', ' ', 'i', 'n', ' ',
-           'i', 'p', 'a', 's', 's', 'm', 't', ')', ':', ' '] ++
-           (if ipassmt_sanity_defined rs (map_of ipassmt)
-             then ['p', 'a', 's', 's', 'e', 'd']
+         "ipassmt_sanity_defined (interfaces defined in the ruleset are also in ipassmt): " ++
+           (if ipassmt_sanity_defined rs (map_of ipassmt) then "passed"
              else list_toString iface_sel
                     (filter (\ i -> not (membera ifaces i))
                       (collect_ifaces rs))),
-         ['i', 'p', 'a', 's', 's', 'm', 't', '_', 's', 'a', 'n', 'i', 't', 'y',
-           '_', 'd', 'i', 's', 'j', 'o', 'i', 'n', 't', ' ', '(', 'n', 'o', ' ',
-           'z', 'o', 'n', 'e', '-', 's', 'p', 'a', 'n', 'n', 'i', 'n', 'g', ' ',
-           'i', 'n', 't', 'e', 'r', 'f', 'a', 'c', 'e', 's', ')', ':', ' '] ++
+         "ipassmt_sanity_disjoint (no zone-spanning interfaces): " ++
            (if let {
                  is = image fst (Set ipassmt);
                } in ball is
@@ -1720,10 +1713,10 @@ debug_ipassmt ipassmt rs =
                                        (l2br
  (map ipv4cidr_to_interval (the (map_of ipassmt i2)))))
                               else True)))
-             then ['p', 'a', 's', 's', 'e', 'd']
+             then "passed"
              else list_toString
                     (\ (i1, i2) ->
-                      ['('] ++ iface_sel i1 ++ [','] ++ iface_sel i2 ++ [')'])
+                      "(" ++ iface_sel i1 ++ "," ++ iface_sel i2 ++ ")")
                     (filter
                       (\ (i1, i2) ->
                         not (equal_iface i1 i2) &&
@@ -1734,10 +1727,7 @@ debug_ipassmt ipassmt rs =
                                   (l2br (map ipv4cidr_to_interval
   (the (map_of ipassmt i2)))))))
                       (product ifaces ifaces))),
-         ['i', 'p', 'a', 's', 's', 'm', 't', '_', 's', 'a', 'n', 'i', 't', 'y',
-           '_', 'd', 'i', 's', 'j', 'o', 'i', 'n', 't', ' ', 'e', 'x', 'c', 'l',
-           'u', 'd', 'i', 'n', 'g', ' ', 'U', 'N', 'I', 'V', ' ', 'i', 'n', 't',
-           'e', 'r', 'f', 'a', 'c', 'e', 's', ':', ' '] ++
+         "ipassmt_sanity_disjoint excluding UNIV interfaces: " ++
            let {
              ipassmta = ipassmt_ignore_wildcard_list ipassmt;
              ifacesa = map fst ipassmta;
@@ -1753,11 +1743,10 @@ debug_ipassmt ipassmt rs =
     (l2br (map ipv4cidr_to_interval (the (map_of ipassmta i1))))
     (l2br (map ipv4cidr_to_interval (the (map_of ipassmta i2)))))
                                    else True)))
-                  then ['p', 'a', 's', 's', 'e', 'd']
+                  then "passed"
                   else list_toString
                          (\ (i1, i2) ->
-                           ['('] ++
-                             iface_sel i1 ++ [','] ++ iface_sel i2 ++ [')'])
+                           "(" ++ iface_sel i1 ++ "," ++ iface_sel i2 ++ ")")
                          (filter
                            (\ (i1, i2) ->
                              not (equal_iface i1 i2) &&
@@ -1768,8 +1757,7 @@ debug_ipassmt ipassmt rs =
                                        (l2br
  (map ipv4cidr_to_interval (the (map_of ipassmta i2)))))))
                            (product ifacesa ifacesa))),
-         ['i', 'p', 'a', 's', 's', 'm', 't', '_', 's', 'a', 'n', 'i', 't', 'y',
-           '_', 'c', 'o', 'm', 'p', 'l', 'e', 't', 'e', ':', ' '] ++
+         "ipassmt_sanity_complete: " ++
            (if distinct (map fst ipassmt) &&
                  let {
                    range = map snd ipassmt;
@@ -1777,19 +1765,14 @@ debug_ipassmt ipassmt rs =
                         (wordinterval_Union
                           (map (l2br . map ipv4cidr_to_interval) range))
                         wordinterval_UNIV
-             then ['p', 'a', 's', 's', 'e', 'd']
-             else ['t', 'h', 'e', ' ', 'f', 'o', 'l', 'l', 'o', 'w', 'i', 'n',
-                    'g', ' ', 'i', 's', ' ', 'n', 'o', 't', ' ', 'c', 'o', 'v',
-                    'e', 'r', 'e', 'd', ':', ' '] ++
+             then "passed"
+             else "the following is not covered: " ++
                     ipv4addr_wordinterval_toString
                       (wordinterval_setminus wordinterval_UNIV
                         (wordinterval_Union
                           (map (l2br . map ipv4cidr_to_interval)
                             (map snd ipassmt))))),
-         ['i', 'p', 'a', 's', 's', 'm', 't', '_', 's', 'a', 'n', 'i', 't', 'y',
-           '_', 'c', 'o', 'm', 'p', 'l', 'e', 't', 'e', ' ', 'e', 'x', 'c', 'l',
-           'u', 'd', 'i', 'n', 'g', ' ', 'U', 'N', 'I', 'V', ' ', 'i', 'n', 't',
-           'e', 'r', 'f', 'a', 'c', 'e', 's', ':', ' '] ++
+         "ipassmt_sanity_complete excluding UNIV interfaces: " ++
            let {
              ipassmta = ipassmt_ignore_wildcard_list ipassmt;
            } in (if distinct (map fst ipassmta) &&
@@ -1799,10 +1782,8 @@ debug_ipassmt ipassmt rs =
                              (wordinterval_Union
                                (map (l2br . map ipv4cidr_to_interval) range))
                              wordinterval_UNIV
-                  then ['p', 'a', 's', 's', 'e', 'd']
-                  else ['t', 'h', 'e', ' ', 'f', 'o', 'l', 'l', 'o', 'w', 'i',
-                         'n', 'g', ' ', 'i', 's', ' ', 'n', 'o', 't', ' ', 'c',
-                         'o', 'v', 'e', 'r', 'e', 'd', ':', ' '] ++
+                  then "passed"
+                  else "the following is not covered: " ++
                          ipv4addr_wordinterval_toString
                            (wordinterval_setminus wordinterval_UNIV
                              (wordinterval_Union
@@ -2038,7 +2019,7 @@ getParts rs = partitioningIps (extract_IPSets rs) [wordinterval_UNIV];
 ipassmt_generic ::
   [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])];
 ipassmt_generic =
-  [(Iface ['l', 'o'],
+  [(Iface "lo",
      [(ipv4addr_of_dotdecimal
          (nat_of_integer (127 :: Integer), (zero_nat, (zero_nat, zero_nat))),
         nat_of_integer (8 :: Integer))])];
@@ -2797,12 +2778,12 @@ no_spoofing_iface iface ipassmt rs =
     empty_WordInterval;
 
 tcp_flag_toString :: Tcp_flag -> [Prelude.Char];
-tcp_flag_toString TCP_SYN = ['T', 'C', 'P', '_', 'S', 'Y', 'N'];
-tcp_flag_toString TCP_ACK = ['T', 'C', 'P', '_', 'A', 'C', 'K'];
-tcp_flag_toString TCP_FIN = ['T', 'C', 'P', '_', 'F', 'I', 'N'];
-tcp_flag_toString TCP_RST = ['T', 'C', 'P', '_', 'R', 'S', 'T'];
-tcp_flag_toString TCP_URG = ['T', 'C', 'P', '_', 'U', 'R', 'G'];
-tcp_flag_toString TCP_PSH = ['T', 'C', 'P', '_', 'P', 'S', 'H'];
+tcp_flag_toString TCP_SYN = "TCP_SYN";
+tcp_flag_toString TCP_ACK = "TCP_ACK";
+tcp_flag_toString TCP_FIN = "TCP_FIN";
+tcp_flag_toString TCP_RST = "TCP_RST";
+tcp_flag_toString TCP_URG = "TCP_URG";
+tcp_flag_toString TCP_PSH = "TCP_PSH";
 
 terminal_chain :: forall a. [Rule a] -> Bool;
 terminal_chain [] = False;
@@ -2981,7 +2962,7 @@ compress_parsed_extra [] = [];
 compress_parsed_extra (a1 : a2 : asa) =
   (if is_pos_Extra a1 && is_pos_Extra a2
     then compress_parsed_extra
-           (Pos (Extra (get_pos_Extra a1 ++ [' '] ++ get_pos_Extra a2)) : asa)
+           (Pos (Extra (get_pos_Extra a1 ++ " " ++ get_pos_Extra a2)) : asa)
     else a1 : compress_parsed_extra (a2 : asa));
 compress_parsed_extra [a] = a : compress_parsed_extra [];
 
@@ -3038,12 +3019,11 @@ integer_to_16word :: Integer -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
 integer_to_16word i = nat_to_16word (nat_of_integer i);
 
 ctstate_toString :: Ctstate -> [Prelude.Char];
-ctstate_toString CT_New = ['N', 'E', 'W'];
-ctstate_toString CT_Established =
-  ['E', 'S', 'T', 'A', 'B', 'L', 'I', 'S', 'H', 'E', 'D'];
-ctstate_toString CT_Related = ['R', 'E', 'L', 'A', 'T', 'E', 'D'];
-ctstate_toString CT_Untracked = ['U', 'N', 'T', 'R', 'A', 'C', 'K', 'E', 'D'];
-ctstate_toString CT_Invalid = ['I', 'N', 'V', 'A', 'L', 'I', 'D'];
+ctstate_toString CT_New = "NEW";
+ctstate_toString CT_Established = "ESTABLISHED";
+ctstate_toString CT_Related = "RELATED";
+ctstate_toString CT_Untracked = "UNTRACKED";
+ctstate_toString CT_Invalid = "INVALID";
 
 sanity_wf_ruleset :: forall a. [([Prelude.Char], [Rule a])] -> Bool;
 sanity_wf_ruleset gamma =
@@ -3111,11 +3091,9 @@ pretty_wordinterval ::
   Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prelude.Char];
 pretty_wordinterval (WordInterval ip1 ip2) =
   (if equal_word ip1 ip2 then ipv4addr_toString ip1
-    else ['('] ++
-           ipv4addr_toString ip1 ++
-             [' ', '-', ' '] ++ ipv4addr_toString ip2 ++ [')']);
+    else "(" ++ ipv4addr_toString ip1 ++ " - " ++ ipv4addr_toString ip2 ++ ")");
 pretty_wordinterval (RangeUnion r1 r2) =
-  pretty_wordinterval r1 ++ [' ', 'u', ' '] ++ pretty_wordinterval r2;
+  pretty_wordinterval r1 ++ " u " ++ pretty_wordinterval r2;
 
 check_simple_ruleset :: [Rule Common_primitive] -> [Rule Common_primitive];
 check_simple_ruleset rs = (if simple_ruleset rs then rs else error "undefined");
@@ -3141,11 +3119,11 @@ unfold_ruleset_INPUT ::
   Action ->
     ([Prelude.Char] -> Maybe [Rule Common_primitive]) ->
       [Rule Common_primitive];
-unfold_ruleset_INPUT = unfold_ruleset_CHAIN ['I', 'N', 'P', 'U', 'T'];
+unfold_ruleset_INPUT = unfold_ruleset_CHAIN "INPUT";
 
 parts_connection_ssh :: Parts_connection_ext ();
 parts_connection_ssh =
-  Parts_connection_ext ['1'] ['1'] TCP
+  Parts_connection_ext "1" "1" TCP
     (word_of_int (Int_of_integer (10000 :: Integer)))
     (word_of_int (Int_of_integer (22 :: Integer))) CT_New ();
 
@@ -3159,15 +3137,15 @@ unfold_ruleset_OUTPUT ::
   Action ->
     ([Prelude.Char] -> Maybe [Rule Common_primitive]) ->
       [Rule Common_primitive];
-unfold_ruleset_OUTPUT = unfold_ruleset_CHAIN ['O', 'U', 'T', 'P', 'U', 'T'];
+unfold_ruleset_OUTPUT = unfold_ruleset_CHAIN "OUTPUT";
 
 ctstate_set_toString :: Set Ctstate -> [Prelude.Char];
 ctstate_set_toString s =
-  list_separated_toString [','] ctstate_toString (enum_set_to_list s);
+  list_separated_toString "," ctstate_toString (enum_set_to_list s);
 
 parts_connection_http :: Parts_connection_ext ();
 parts_connection_http =
-  Parts_connection_ext ['1'] ['1'] TCP
+  Parts_connection_ext "1" "1" TCP
     (word_of_int (Int_of_integer (10000 :: Integer)))
     (word_of_int (Int_of_integer (80 :: Integer))) CT_New ();
 
@@ -3286,17 +3264,15 @@ unfold_ruleset_FORWARD ::
   Action ->
     ([Prelude.Char] -> Maybe [Rule Common_primitive]) ->
       [Rule Common_primitive];
-unfold_ruleset_FORWARD =
-  unfold_ruleset_CHAIN ['F', 'O', 'R', 'W', 'A', 'R', 'D'];
+unfold_ruleset_FORWARD = unfold_ruleset_CHAIN "FORWARD";
 
 protocol_toString :: Protocol -> [Prelude.Char];
-protocol_toString ProtoAny = ['a', 'l', 'l'];
-protocol_toString (Proto TCP) = ['t', 'c', 'p'];
-protocol_toString (Proto UDP) = ['u', 'd', 'p'];
-protocol_toString (Proto ICMP) = ['i', 'c', 'm', 'p'];
+protocol_toString ProtoAny = "all";
+protocol_toString (Proto TCP) = "tcp";
+protocol_toString (Proto UDP) = "udp";
+protocol_toString (Proto ICMP) = "icmp";
 protocol_toString (Proto (OtherProtocol protid)) =
-  ['p', 'r', 'o', 't', 'o', 'c', 'o', 'l', 'i', 'd', ':'] ++
-    string_of_nat protid;
+  "protocolid:" ++ string_of_nat protid;
 
 port_toString :: Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))) -> [Prelude.Char];
 port_toString p = string_of_nat (unat p);
@@ -3310,7 +3286,7 @@ ports_toString descr (s, e) =
   (if equal_word s zero_word && equal_word e max_word then []
     else descr ++
            (if equal_word s e then port_toString s
-             else port_toString s ++ [':'] ++ port_toString e));
+             else port_toString s ++ ":" ++ port_toString e));
 
 iface_toString :: [Prelude.Char] -> Iface -> [Prelude.Char];
 iface_toString descr iface =
@@ -3321,37 +3297,31 @@ iface_toString descr iface =
 
 common_primitive_toString :: Common_primitive -> [Prelude.Char];
 common_primitive_toString (Src (Ip4Addr ip)) =
-  ['-', 's', ' '] ++ dotteddecimal_toString ip;
+  "-s " ++ dotteddecimal_toString ip;
 common_primitive_toString (Dst (Ip4Addr ip)) =
-  ['-', 'd', ' '] ++ dotteddecimal_toString ip;
+  "-d " ++ dotteddecimal_toString ip;
 common_primitive_toString (Src (Ip4AddrNetmask ip n)) =
-  ['-', 's', ' '] ++ dotteddecimal_toString ip ++ ['/'] ++ string_of_nat n;
+  "-s " ++ dotteddecimal_toString ip ++ "/" ++ string_of_nat n;
 common_primitive_toString (Dst (Ip4AddrNetmask ip n)) =
-  ['-', 'd', ' '] ++ dotteddecimal_toString ip ++ ['/'] ++ string_of_nat n;
+  "-d " ++ dotteddecimal_toString ip ++ "/" ++ string_of_nat n;
 common_primitive_toString (Src (Ip4AddrRange ip1 ip2)) =
-  ['-', 'm', ' ', 'i', 'p', 'r', 'a', 'n', 'g', 'e', ' ', '-', '-', 's', 'r',
-    'c', '-', 'r', 'a', 'n', 'g', 'e', ' '] ++
-    dotteddecimal_toString ip1 ++ ['-'] ++ dotteddecimal_toString ip2;
+  "-m iprange --src-range " ++
+    dotteddecimal_toString ip1 ++ "-" ++ dotteddecimal_toString ip2;
 common_primitive_toString (Dst (Ip4AddrRange ip1 ip2)) =
-  ['-', 'm', ' ', 'i', 'p', 'r', 'a', 'n', 'g', 'e', ' ', '-', '-', 'd', 's',
-    't', '-', 'r', 'a', 'n', 'g', 'e', ' '] ++
-    dotteddecimal_toString ip1 ++ ['-'] ++ dotteddecimal_toString ip2;
-common_primitive_toString (IIface ifce) = iface_toString ['-', 'i', ' '] ifce;
-common_primitive_toString (OIface ifce) = iface_toString ['-', 'o', ' '] ifce;
-common_primitive_toString (Prot prot) =
-  ['-', 'p', ' '] ++ protocol_toString prot;
+  "-m iprange --dst-range " ++
+    dotteddecimal_toString ip1 ++ "-" ++ dotteddecimal_toString ip2;
+common_primitive_toString (IIface ifce) = iface_toString "-i " ifce;
+common_primitive_toString (OIface ifce) = iface_toString "-o " ifce;
+common_primitive_toString (Prot prot) = "-p " ++ protocol_toString prot;
 common_primitive_toString (Src_Ports pts) =
-  ['-', '-', 's', 'p', 't', 's', ' '] ++ list_toString (ports_toString []) pts;
+  "--spts " ++ list_toString (ports_toString []) pts;
 common_primitive_toString (Dst_Ports pts) =
-  ['-', '-', 'd', 'p', 't', 's', ' '] ++ list_toString (ports_toString []) pts;
+  "--dpts " ++ list_toString (ports_toString []) pts;
 common_primitive_toString (CT_State s) =
-  ['-', 'm', ' ', 's', 't', 'a', 't', 'e', ' ', '-', '-', 's', 't', 'a', 't',
-    'e', ' '] ++
-    ctstate_set_toString s;
+  "-m state --state " ++ ctstate_set_toString s;
 common_primitive_toString (L4_Flags (TCP_Flags c m)) =
-  ['-', '-', 't', 'c', 'p', '-', 'f', 'l', 'a', 'g', 's', ' '] ++
-    ipt_tcp_flags_toString c ++ [' '] ++ ipt_tcp_flags_toString m;
-common_primitive_toString (Extra e) = ['~', '~'] ++ e ++ ['~', '~'];
+  "--tcp-flags " ++ ipt_tcp_flags_toString c ++ " " ++ ipt_tcp_flags_toString m;
+common_primitive_toString (Extra e) = "~~" ++ e ++ "~~";
 
 abstract_primitive ::
   (Negation_type Common_primitive -> Bool) ->
@@ -3361,8 +3331,7 @@ abstract_primitive disc (Match a) =
   (if disc (Pos a) then Match (Extra (common_primitive_toString a))
     else Match a);
 abstract_primitive disc (MatchNot (Match a)) =
-  (if disc (Neg a)
-    then Match (Extra (['!', ' '] ++ common_primitive_toString a))
+  (if disc (Neg a) then Match (Extra ("! " ++ common_primitive_toString a))
     else MatchNot (Match a));
 abstract_primitive disc (MatchNot (MatchNot v)) =
   MatchNot (abstract_primitive disc (MatchNot v));
@@ -3620,32 +3589,29 @@ ipv4_cidr_toString ::
 ipv4_cidr_toString ip_n =
   let {
     (base, n) = ip_n;
-  } in ipv4addr_toString base ++ ['/'] ++ string_of_nat n;
+  } in ipv4addr_toString base ++ "/" ++ string_of_nat n;
 
 simple_action_toString :: Simple_action -> [Prelude.Char];
-simple_action_toString Accepta = ['A', 'C', 'C', 'E', 'P', 'T'];
-simple_action_toString Dropa = ['D', 'R', 'O', 'P'];
+simple_action_toString Accepta = "ACCEPT";
+simple_action_toString Dropa = "DROP";
 
 simple_rule_toString :: Simple_rule -> [Prelude.Char];
 simple_rule_toString
   (SimpleRule (Simple_match_ext iif oif sip dip p sps dps ()) a) =
   simple_action_toString a ++
-    [' ', ' ', ' ', ' ', ' '] ++
+    "     " ++
       protocol_toString p ++
-        [' ', ' ', '-', '-', ' ', ' '] ++
+        "  --  " ++
           ipv4_cidr_toString sip ++
-            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '] ++
+            "            " ++
               ipv4_cidr_toString dip ++
-                [' '] ++
-                  iface_toString ['i', 'n', ':', ' '] iif ++
-                    [' '] ++
-                      iface_toString ['o', 'u', 't', ':', ' '] oif ++
-                        [' '] ++
-                          ports_toString
-                            ['s', 'p', 'o', 'r', 't', 's', ':', ' '] sps ++
-                            [' '] ++
-                              ports_toString
-                                ['d', 'p', 'o', 'r', 't', 's', ':', ' '] dps;
+                " " ++
+                  iface_toString "in: " iif ++
+                    " " ++
+                      iface_toString "out: " oif ++
+                        " " ++
+                          ports_toString "sports: " sps ++
+                            " " ++ ports_toString "dports: " dps;
 
 build_ip_partition_pretty ::
   Parts_connection_ext () ->
@@ -3669,50 +3635,46 @@ build_ip_partition_pretty c rs =
            u);
 
 action_toString :: Action -> [Prelude.Char];
-action_toString Accept = ['-', 'j', ' ', 'A', 'C', 'C', 'E', 'P', 'T'];
-action_toString Drop = ['-', 'j', ' ', 'D', 'R', 'O', 'P'];
-action_toString Reject = ['-', 'j', ' ', 'R', 'E', 'J', 'E', 'C', 'T'];
-action_toString (Call target) =
-  ['-', 'j', ' '] ++ target ++ [' ', '(', 'c', 'a', 'l', 'l', ')'];
-action_toString (Goto target) = ['-', 'g', ' '] ++ target;
+action_toString Accept = "-j ACCEPT";
+action_toString Drop = "-j DROP";
+action_toString Reject = "-j REJECT";
+action_toString (Call target) = "-j " ++ target ++ " (call)";
+action_toString (Goto target) = "-g " ++ target;
 action_toString Empty = [];
-action_toString Log = ['-', 'j', ' ', 'L', 'O', 'G'];
-action_toString Return = ['-', 'j', ' ', 'R', 'E', 'T', 'U', 'R', 'N'];
-action_toString Unknown =
-  ['!', '!', '!', '!', '!', '!', '!', '!', '!', '!', '!', ' ', 'U', 'N', 'K',
-    'N', 'O', 'W', 'N', ' ', '!', '!', '!', '!', '!', '!', '!', '!', '!', '!',
-    '!'];
+action_toString Log = "-j LOG";
+action_toString Return = "-j RETURN";
+action_toString Unknown = "!!!!!!!!!!! UNKNOWN !!!!!!!!!!!";
 
 example_TUM_i8_spoofing_ipassmt ::
   [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])];
 example_TUM_i8_spoofing_ipassmt =
-  [(Iface ['e', 't', 'h', '0'],
+  [(Iface "eth0",
      [(ipv4addr_of_dotdecimal
          (nat_of_integer (192 :: Integer),
            (nat_of_integer (168 :: Integer),
              (nat_of_integer (213 :: Integer), nat_of_integer (4 :: Integer)))),
         nat_of_integer (24 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '9', '6'],
+    (Iface "eth1.96",
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 :: Integer),
             (nat_of_integer (159 :: Integer),
               (nat_of_integer (14 :: Integer), nat_of_integer (3 :: Integer)))),
          nat_of_integer (25 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '1', '0', '8'],
+    (Iface "eth1.108",
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 :: Integer),
             (nat_of_integer (159 :: Integer),
               (nat_of_integer (14 :: Integer),
                 nat_of_integer (129 :: Integer)))),
          nat_of_integer (26 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '1', '0', '9'],
+    (Iface "eth1.109",
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 :: Integer),
             (nat_of_integer (159 :: Integer),
               (nat_of_integer (20 :: Integer),
                 nat_of_integer (11 :: Integer)))),
          nat_of_integer (24 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '1', '1', '0'],
+    (Iface "eth1.110",
       all_but_those_ips
         [(ipv4addr_of_dotdecimal
             (nat_of_integer (131 :: Integer),
@@ -3760,118 +3722,118 @@ example_TUM_i8_spoofing_ipassmt =
                (nat_of_integer (86 :: Integer),
                  (nat_of_integer (232 :: Integer), zero_nat))),
             nat_of_integer (22 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '1', '1', '6'],
+    (Iface "eth1.116",
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 :: Integer),
             (nat_of_integer (159 :: Integer),
               (nat_of_integer (15 :: Integer),
                 nat_of_integer (131 :: Integer)))),
          nat_of_integer (26 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '1', '5', '2'],
+    (Iface "eth1.152",
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 :: Integer),
             (nat_of_integer (159 :: Integer),
               (nat_of_integer (15 :: Integer),
                 nat_of_integer (252 :: Integer)))),
          nat_of_integer (28 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '1', '7', '1'],
+    (Iface "eth1.171",
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 :: Integer),
             (nat_of_integer (159 :: Integer),
               (nat_of_integer (15 :: Integer), nat_of_integer (2 :: Integer)))),
          nat_of_integer (26 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '1', '7', '3'],
+    (Iface "eth1.173",
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 :: Integer),
             (nat_of_integer (159 :: Integer),
               (nat_of_integer (21 :: Integer),
                 nat_of_integer (252 :: Integer)))),
          nat_of_integer (24 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '1', '0', '1', '0'],
+    (Iface "eth1.1010",
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 :: Integer),
             (nat_of_integer (159 :: Integer),
               (nat_of_integer (15 :: Integer),
                 nat_of_integer (227 :: Integer)))),
          nat_of_integer (28 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '1', '0', '1', '1'],
+    (Iface "eth1.1011",
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 :: Integer),
             (nat_of_integer (159 :: Integer),
               (nat_of_integer (14 :: Integer),
                 nat_of_integer (194 :: Integer)))),
          nat_of_integer (27 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '1', '0', '1', '2'],
+    (Iface "eth1.1012",
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 :: Integer),
             (nat_of_integer (159 :: Integer),
               (nat_of_integer (14 :: Integer),
                 nat_of_integer (238 :: Integer)))),
          nat_of_integer (28 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '1', '0', '1', '4'],
+    (Iface "eth1.1014",
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 :: Integer),
             (nat_of_integer (159 :: Integer),
               (nat_of_integer (15 :: Integer),
                 nat_of_integer (217 :: Integer)))),
          nat_of_integer (27 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '1', '0', '1', '6'],
+    (Iface "eth1.1016",
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 :: Integer),
             (nat_of_integer (159 :: Integer),
               (nat_of_integer (15 :: Integer),
                 nat_of_integer (66 :: Integer)))),
          nat_of_integer (26 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '1', '0', '1', '7'],
+    (Iface "eth1.1017",
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (131 :: Integer),
             (nat_of_integer (159 :: Integer),
               (nat_of_integer (14 :: Integer),
                 nat_of_integer (242 :: Integer)))),
          nat_of_integer (28 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '1', '1', '1', '1'],
+    (Iface "eth1.1111",
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (192 :: Integer),
             (nat_of_integer (168 :: Integer),
               (nat_of_integer (212 :: Integer),
                 nat_of_integer (4 :: Integer)))),
          nat_of_integer (24 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '9', '7'],
+    (Iface "eth1.97",
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (188 :: Integer),
             (nat_of_integer (95 :: Integer),
               (nat_of_integer (233 :: Integer),
                 nat_of_integer (2 :: Integer)))),
          nat_of_integer (24 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '1', '0', '1', '9'],
+    (Iface "eth1.1019",
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (188 :: Integer),
             (nat_of_integer (95 :: Integer),
               (nat_of_integer (234 :: Integer),
                 nat_of_integer (2 :: Integer)))),
          nat_of_integer (23 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '1', '0', '2', '0'],
+    (Iface "eth1.1020",
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (192 :: Integer),
             (nat_of_integer (48 :: Integer),
               (nat_of_integer (107 :: Integer),
                 nat_of_integer (2 :: Integer)))),
          nat_of_integer (24 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '1', '0', '2', '3'],
+    (Iface "eth1.1023",
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (188 :: Integer),
             (nat_of_integer (95 :: Integer),
               (nat_of_integer (236 :: Integer),
                 nat_of_integer (2 :: Integer)))),
          nat_of_integer (22 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '1', '0', '2', '5'],
+    (Iface "eth1.1025",
       [(ipv4addr_of_dotdecimal
           (nat_of_integer (185 :: Integer),
             (nat_of_integer (86 :: Integer),
               (nat_of_integer (232 :: Integer),
                 nat_of_integer (2 :: Integer)))),
          nat_of_integer (22 :: Integer))]),
-    (Iface ['e', 't', 'h', '1', '.', '1', '0', '2', '4'],
+    (Iface "eth1.1024",
       all_but_those_ips
         [(ipv4addr_of_dotdecimal
             (nat_of_integer (131 :: Integer),
@@ -3978,17 +3940,14 @@ common_primitive_match_expr_toString MatchAny = [];
 common_primitive_match_expr_toString (Match m) = common_primitive_toString m;
 common_primitive_match_expr_toString (MatchAnd m1 m2) =
   common_primitive_match_expr_toString m1 ++
-    [' '] ++ common_primitive_match_expr_toString m2;
+    " " ++ common_primitive_match_expr_toString m2;
 common_primitive_match_expr_toString (MatchNot (Match m)) =
-  ['!', ' '] ++ common_primitive_toString m;
+  "! " ++ common_primitive_toString m;
 common_primitive_match_expr_toString (MatchNot (MatchNot v)) =
-  ['N', 'O', 'T', ' ', '('] ++
-    common_primitive_match_expr_toString (MatchNot v) ++ [')'];
+  "NOT (" ++ common_primitive_match_expr_toString (MatchNot v) ++ ")";
 common_primitive_match_expr_toString (MatchNot (MatchAnd v va)) =
-  ['N', 'O', 'T', ' ', '('] ++
-    common_primitive_match_expr_toString (MatchAnd v va) ++ [')'];
+  "NOT (" ++ common_primitive_match_expr_toString (MatchAnd v va) ++ ")";
 common_primitive_match_expr_toString (MatchNot MatchAny) =
-  ['N', 'O', 'T', ' ', '('] ++
-    common_primitive_match_expr_toString MatchAny ++ [')'];
+  "NOT (" ++ common_primitive_match_expr_toString MatchAny ++ ")";
 
 }
