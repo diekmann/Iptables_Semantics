@@ -90,20 +90,44 @@ value[code] "mergesort_by_rel (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<le> (b2, b
 lemma "(\<lambda>(ip1,n1) (ip2,n2). if n1 = n2 then ip1 \<le> ip2 else n1 \<le> n2) rs = (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<le> (b2, b1)) rs"
   oops
 
+
+(*a more efficient tail-recursive implementation*)
+fun extract_src_dst_ips :: "simple_rule list \<Rightarrow> (ipv4addr \<times> nat) list \<Rightarrow> (ipv4addr \<times> nat) list" where
+  "extract_src_dst_ips [] ts = ts" |
+  "extract_src_dst_ips ((SimpleRule m _)#ss) ts = extract_src_dst_ips ss  (src m # dst m # ts)"
+
 definition extract_IPSets :: "simple_rule list \<Rightarrow> (32 wordinterval) list" where
-  "extract_IPSets rs = map ipv4_cidr_tuple_to_interval (mergesort_by_rel (op \<le>) (*\<lambda> (a1,a2) (b1, b2). (a2, a1) \<le> (b2, b1)*) ((*mergesort_remdups*)
-                        ((map (src \<circ> match_sel) rs) @ (map (dst \<circ> match_sel) rs))))"
+  "extract_IPSets rs = map ipv4_cidr_tuple_to_interval (mergesort_by_rel (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<le> (b2, b1)) (mergesort_remdups
+                        (extract_src_dst_ips rs [])))"
 lemma extract_IPSets: "set (extract_IPSets rs) = set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
-apply(induction rs)
+proof -
+  { fix acc
+    have "ipv4_cidr_tuple_to_interval ` set (extract_src_dst_ips rs acc) =
+          ipv4_cidr_tuple_to_interval ` set acc \<union> set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
+    proof(induction rs arbitrary: acc)
+    case (Cons r rs ) thus ?case
+      apply(cases r)
+      apply(simp)
+      by fast
+    qed(simp)
+  } thus ?thesis unfolding extract_IPSets_def by(simp_all add: extract_IPSets_def mergesort_remdups_correct)
+qed
+(*apply(induction rs)
  apply(simp_all add: extract_IPSets_def mergesort_remdups_correct)
 apply(rename_tac r rs)
 apply(case_tac r, rename_tac m a)
 apply(simp)
-by fast
+by fast*)
+
+lemma "(a::nat) div 2 + a mod 2 \<le> a" by fastforce
+lemma "length (mergesort_by_rel r as) = length as"
+apply(induction r as rule: mergesort_by_rel.induct)
+oops
 lemma extract_IPSets_length: "length (extract_IPSets rs) \<le> 2 * length rs"
+apply(simp add: extract_IPSets_def)
 apply(induction rs)
  apply(simp_all add: extract_IPSets_def mergesort_remdups_correct)
- (*apply(simp add: mergesort_remdups_def)*)
+ apply(simp add: mergesort_remdups_def)
 apply(rename_tac r rs)
 apply(case_tac r, rename_tac m a)
 apply(simp)
