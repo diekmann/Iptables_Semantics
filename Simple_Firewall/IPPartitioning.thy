@@ -91,7 +91,7 @@ lemma "(\<lambda>(ip1,n1) (ip2,n2). if n1 = n2 then ip1 \<le> ip2 else n1 \<le> 
   oops
 
 definition extract_IPSets :: "simple_rule list \<Rightarrow> (32 wordinterval) list" where
-  "extract_IPSets rs = map ipv4_cidr_tuple_to_interval ((*mergesort_by_rel (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<le> (b2, b1))*) (mergesort_remdups
+  "extract_IPSets rs = map ipv4_cidr_tuple_to_interval (mergesort_by_rel (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<le> (b2, b1)) ((*mergesort_remdups*)
                         ((map (src \<circ> match_sel) rs) @ (map (dst \<circ> match_sel) rs))))"
 lemma extract_IPSets: "set (extract_IPSets rs) = set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
 apply(induction rs)
@@ -103,7 +103,7 @@ by fast
 lemma extract_IPSets_length: "length (extract_IPSets rs) \<le> 2 * length rs"
 apply(induction rs)
  apply(simp_all add: extract_IPSets_def mergesort_remdups_correct)
- apply(simp add: mergesort_remdups_def)
+ (*apply(simp add: mergesort_remdups_def)*)
 apply(rename_tac r rs)
 apply(case_tac r, rename_tac m a)
 apply(simp)
