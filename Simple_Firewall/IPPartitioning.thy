@@ -97,7 +97,7 @@ fun extract_src_dst_ips :: "simple_rule list \<Rightarrow> (ipv4addr \<times> na
   "extract_src_dst_ips ((SimpleRule m _)#ss) ts = extract_src_dst_ips ss  (src m # dst m # ts)"
 
 definition extract_IPSets :: "simple_rule list \<Rightarrow> (32 wordinterval) list" where
-  "extract_IPSets rs = map ipv4_cidr_tuple_to_interval ((*mergesort_by_rel (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<le> (b2, b1)*) (mergesort_remdups
+  "extract_IPSets rs = map ipv4_cidr_tuple_to_interval (mergesort_by_rel (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<ge> (b2, b1)) (mergesort_remdups
                         (extract_src_dst_ips rs [])))"
 lemma extract_IPSets: "set (extract_IPSets rs) = set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
 proof -
