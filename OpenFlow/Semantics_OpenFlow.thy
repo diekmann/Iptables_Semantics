@@ -170,7 +170,7 @@ proof(induction "ft")
 		have cm: "?fc m = {a}" (* using goal2(3) *)
 		proof - case goal1
 			have "\<forall>f \<in> set m. (\<forall>fo\<in>set (a # ft). ofe_prio f < ofe_prio fo \<longrightarrow> \<not> OF_match \<gamma> (ofe_fields fo) p)"
-				by (metis UnE less_asym mn set_append) (* sorry *)
+				by (metis UnE less_asym mn set_append)
 			hence 1: "?fc m = {f \<in> set m. OF_match \<gamma> (ofe_fields f) p}" by blast
 			show ?case unfolding 1
 			proof(rule set_eq_rule)
@@ -240,52 +240,6 @@ definition OF_same_priority_match3 where
              | [s] \<Rightarrow> Defined (Some (ofe_action s)) 
              |  _  \<Rightarrow> Undefined "
 
-lemma "distinct fe \<Longrightarrow> check_no_overlap \<gamma> fe \<Longrightarrow> OF_same_priority_match2 \<gamma> fe p = OF_same_priority_match3 \<gamma> fe p"
-	unfolding OF_same_priority_match2_def OF_same_priority_match3_def 
-	unfolding f_Img_ex_set
-	unfolding prio_match_matcher_alt
-	unfolding prio_match_matcher_alt2
-proof -
-	case goal1
-	let ?m' = "let m = [f\<leftarrow>fe . OF_match \<gamma> (ofe_fields f) p] in [f\<leftarrow>m . \<forall>fo\<in>set m. ofe_prio fo \<le> ofe_prio f]"
-	let ?s = "ofe_action ` set ?m'"
-	from goal1 show ?case 
-	proof(cases ?m')
-		case Nil
-		moreover then have "card ?s = 0" by force
-		ultimately show ?thesis by(simp add: Let_def)
-	next
-		case (Cons a as)
-		have "as = []"
-		proof(rule ccontr)
-			assume "as \<noteq> []"
-			then obtain b bs where bbs: "as = b # bs" by (meson neq_Nil_conv)
-			note no = goal1[unfolded check_no_overlap_def] Cons[unfolded Let_def filter_filter]
-			have "a \<noteq> b" using distinct_filter[OF goal1(1)] no(3) unfolding bbs
-				by (metis (no_types) distinct_length_2_or_more)
-			moreover have "OF_match \<gamma> (ofe_fields b) p" "OF_match \<gamma> (ofe_fields a) p" using no(3) unfolding bbs
-				by(metis (no_types, lifting) Cons_eq_filterD)+
-			moreover have "ofe_prio a = ofe_prio b"
-			proof - (* sletschhammer *)
-			  have f1: "{f \<in> set [f\<leftarrow>fe . OF_match \<gamma> (ofe_fields f) p]. \<forall>fa. fa \<in> set [f\<leftarrow>fe . OF_match \<gamma> (ofe_fields f) p] \<longrightarrow> ofe_prio fa \<le> ofe_prio f} = set (a # b # bs)"
-				by (metis bbs local.Cons set_filter)
-			  hence f2: "a \<in> set [f\<leftarrow>fe . OF_match \<gamma> (ofe_fields f) p] \<and> (\<forall>f. f \<in> set [f\<leftarrow>fe . OF_match \<gamma> (ofe_fields f) p] \<longrightarrow> ofe_prio f \<le> ofe_prio a)"
-				by auto
-			  have "set (b # bs) \<subseteq> {f \<in> set [f\<leftarrow>fe . OF_match \<gamma> (ofe_fields f) p]. \<forall>fa. fa \<in> set [f\<leftarrow>fe . OF_match \<gamma> (ofe_fields f) p] \<longrightarrow> ofe_prio fa \<le> ofe_prio f}"
-				using f1 by (metis set_subset_Cons)
-			  thus ?thesis
-				using f2 by (simp add: antisym)
-			qed
-			moreover have "a \<in> set fe" "b \<in> set fe" (* surprising: isar sledgehammer pointed these out when I forgot them *)
-				using no(3) unfolding bbs
-				by (metis (no_types) filter_set insertCI list.set(2) member_filter)+
-			ultimately show False using no(2) by blast
-		qed
-		then have oe: "a # as = [a]" by simp
-		show ?thesis using Cons[unfolded oe] by force
-	qed
-qed
-
 fun no_overlaps where
 "no_overlaps _ [] = True" |
 "no_overlaps \<gamma> (a#as) = (no_overlaps \<gamma> as \<and> (
@@ -314,7 +268,20 @@ proof(induction t)
 		by auto
 qed (simp add: check_no_overlap2_def)
 
-lemma "no_overlaps \<gamma> fe \<Longrightarrow> OF_same_priority_match2 \<gamma> fe p = OF_same_priority_match3 \<gamma> fe p"
+lemma "(\<And>e p. e \<in> set t \<Longrightarrow> \<not>OF_match \<gamma> (ofe_fields e) p) \<Longrightarrow> no_overlaps \<gamma> t"
+	by(induction t) simp_all
+lemma no_overlaps_append: "no_overlaps \<gamma> (x @ y) \<Longrightarrow> no_overlaps \<gamma> y"
+	by(induction x) simp_all
+lemma no_overlaps_ne1: "no_overlaps \<gamma> (x @ a # y @ b # z) \<Longrightarrow> ((\<exists>p. OF_match \<gamma> (ofe_fields a) p) \<or> (\<exists>p. OF_match \<gamma> (ofe_fields b) p)) \<Longrightarrow> a \<noteq> b"
+proof
+	case goal1
+	from goal1(1) no_overlaps_append have "no_overlaps \<gamma> (a # y @ b # z)" by blast
+	note this[unfolded no_overlaps.simps]
+	with goal1(3) have "\<not> (\<exists>p\<in>UNIV. OF_match \<gamma> (ofe_fields a) p \<and> OF_match \<gamma> (ofe_fields b) p)" by simp
+	with goal1(2) show False unfolding goal1(3) by simp
+qed
+
+theorem no_overlaps_defeq: "no_overlaps \<gamma> fe \<Longrightarrow> OF_same_priority_match2 \<gamma> fe p = OF_same_priority_match3 \<gamma> fe p"
 	unfolding OF_same_priority_match2_def OF_same_priority_match3_def 
 	unfolding f_Img_ex_set
 	unfolding prio_match_matcher_alt
@@ -334,7 +301,7 @@ proof -
 		proof(rule ccontr)
 			assume "as \<noteq> []"
 			then obtain b bs where bbs: "as = b # bs" by (meson neq_Nil_conv)
-			note no = Cons[unfolded Let_def filter_filter]
+			 note no = Cons[unfolded Let_def filter_filter]
 			have "ofe_prio a = ofe_prio b" 
 			proof - (* hammer *)
 			  have f1: "a \<in> Set.filter (\<lambda>f. \<forall>fa. fa \<in> set [f\<leftarrow>fe . OF_match \<gamma> (ofe_fields f) p] \<longrightarrow> ofe_prio fa \<le> ofe_prio f) (set [f\<leftarrow>fe . OF_match \<gamma> (ofe_fields f) p])"
@@ -344,20 +311,31 @@ proof -
 			  thus ?thesis
 				using f1 by (simp add: antisym)
 			qed
-			have "OF_match \<gamma> (ofe_fields a) p" "OF_match \<gamma> (ofe_fields b) p" using no[symmetric] unfolding bbs by(blast dest: Cons_eq_filterD)+
-			have "a \<in> set fe" "b \<in> set fe"
+			moreover have ms: "OF_match \<gamma> (ofe_fields a) p" "OF_match \<gamma> (ofe_fields b) p" using no[symmetric] unfolding bbs by(blast dest: Cons_eq_filterD)+
+			moreover have abis: "a \<in> set fe" "b \<in> set fe"
 				by (metis (no_types, lifting) list.set_intros(1) mem_Collect_eq no(1) set_filter)
                    (metis (no_types, lifting) bbs filter_set insertCI list.simps(15) member_filter no(1))
-			have "a \<noteq> b" (* this probably doesn't hold, so hay, another case distinction\<dots> *) proof
-				note goal1
-				show False sorry
+			moreover have "a \<noteq> b" proof(cases "\<exists>x y z. fe = x @ a # y @ b # z")
+				case True
+				then obtain x y z where xyz: "fe = x @ a # y @ b # z" by blast
+				from no_overlaps_ne1 ms(1) goal1[unfolded xyz]
+				show ?thesis by blast
+			next
+				case False
+				then obtain x y z where xyz: "fe = x @ b # y @ a # z"
+				by (metis (no_types, lifting) Cons_eq_filterD bbs no)
+				from no_overlaps_ne1 ms(1) goal1[unfolded xyz]
+				show ?thesis by blast
 			qed
-			show False using goal1 sorry
+			ultimately show False using goal1 check_no_overlapI check_no_overlap_def by fastforce
 		qed
 		then have oe: "a # as = [a]" by simp
 		show ?thesis using Cons[unfolded oe] by force
 	qed
 qed
+(* the above lemma used to be this, but it's slightly weaker than I wanted. *)
+lemma "distinct fe \<Longrightarrow> check_no_overlap \<gamma> fe \<Longrightarrow> OF_same_priority_match2 \<gamma> fe p = OF_same_priority_match3 \<gamma> fe p"
+	using no_overlaps_defeq no_overlapsI by force
 
 
 end
