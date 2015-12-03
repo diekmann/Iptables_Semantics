@@ -34,7 +34,7 @@ Checking all proofs:
 $ isabelle build -v -d . -o document=pdf Iptables_Semantics_Examples
 ```
 This needs about 1h 10min CPU time (times two since we added more real-world data) on my i7 1.8GHz laptop.
-3:11h CPU time on a 16 core xeon (45min real-world time); about one hour real-time on my regular laptop -- it doesn't parallelozte that well ;-) 
+3:11h CPU time on a 16 core xeon (45min real-world time); about one hour real-time on my regular laptop -- it doesn't parallelize that well ;-) 
 
 ---
 

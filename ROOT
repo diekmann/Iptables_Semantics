@@ -46,3 +46,12 @@ session "Iptables_Semantics_Examples" = Iptables_Semantics +
     "root.tex"
     "mathpartir.sty"
 
+session "Iptables_Semantics_Examples2" = Iptables_Semantics_Examples +
+   theories
+    "Examples/IPPartEval/IP_Address_Space_Examples_All_Small"
+    "Examples/IPPartEval/IP_Address_Space_Examples_All_Large"
+  document_files
+    "root.tex"
+    "mathpartir.sty"
+
+
