@@ -4,6 +4,7 @@ imports Main
         "SimpleFw_Semantics"
         "../Common/SetPartitioning"
         "../Primitive_Matchers/Common_Primitive_toString"
+        "../afp/Mergesort" (*TODO*)
 begin
 
 
@@ -18,64 +19,110 @@ lemma extract_IPSets_generic0_length: "length (extract_IPSets_generic0 sel rs) =
 
 
 
-(***********version 1****************)
 (*
-why is this version so much slower?
-10:10:49 elapsed time, 38:41:17 cpu time, factor 3.80
-this is what version 2 offers:
-3:39:56 elapsed time, 21:08:34 cpu time, factor 5.76
-*)
-(*
+The order in which extract_IPSets returns the collected IP ranges heavily influences the running time
+of the subsequent algorithms.
+For example:
+1) iterating through the ruleset and collecting all source and destination ips:
+   10:10:49 elapsed time, 38:41:17 cpu time, factor 3.80
+2) iterating through the ruleset and first returning all source ips and iterating again and then return all destination ips:
+   3:39:56 elapsed time, 21:08:34 cpu time, factor 5.76
 
-(*a more efficient tail-recursive implementation*)
-fun extract_src_dst_ips :: "simple_rule list \<Rightarrow> (32 wordinterval) list \<Rightarrow> (32 wordinterval) list" where
+To get a more deterministic runtime, we are sorting the output. As a performance optimization, we also remove duplicate entries.
+We use mergesort_remdups, which does a mergesort (i.e sorts!) and removes duplicates and mergesort_by_rel which does a mergesort
+(without removing duplicates) and allows to specify the relation we use to sort.
+In theory, the largest ip ranges (smallest prefix length) should be put first, the following evaluation shows that this may not
+be the fastest solution. The reason might be that build_ip_partition_pretty picks (almost randomly) one IP from the result and
+there are fast and slower choices. The faster choices are the ones where the firewall ruleset has a decision very early. 
+Therefore, the running time is still a bit unpredictable.
+
+Here is the data:
+map ipv4_cidr_tuple_to_interval (mergesort_by_rel (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<le> (b2, b1)) (mergesort_remdups
+                        ((map (src \<circ> match_sel) rs) @ (map (dst \<circ> match_sel) rs))))
+ (2:47:04 elapsed time, 17:08:01 cpu time, factor 6.15)
+
+
+map ipv4_cidr_tuple_to_interval (mergesort_remdups ((map (src \<circ> match_sel) rs) @ (map (dst \<circ> match_sel) rs)))
+ (2:41:03 elapsed time, 16:56:46 cpu time, factor 6.31)
+
+
+map ipv4_cidr_tuple_to_interval (mergesort_by_rel (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<le> (b2, b1)) (
+                         ((map (src \<circ> match_sel) rs) @ (map (dst \<circ> match_sel) rs)))
+ (5:52:28 elapsed time, 41:50:10 cpu time, factor 7.12)
+
+
+map ipv4_cidr_tuple_to_interval (mergesort_by_rel (op \<le>)
+                         ((map (src \<circ> match_sel) rs) @ (map (dst \<circ> match_sel) rs))))
+  (3:10:57 elapsed time, 19:12:25 cpu time, factor 6.03)
+
+
+map ipv4_cidr_tuple_to_interval (mergesort_by_rel (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<le> (b2, b1)) (mergesort_remdups
+                        (extract_src_dst_ips rs [])))
+ (2:49:57 elapsed time, 17:10:49 cpu time, factor 6.06)
+
+map ipv4_cidr_tuple_to_interval ((mergesort_remdups (extract_src_dst_ips rs [])))
+ (2:43:44 elapsed time, 16:57:49 cpu time, factor 6.21)
+
+map ipv4_cidr_tuple_to_interval (mergesort_by_rel (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<ge> (b2, b1)) (mergesort_remdups (extract_src_dst_ips rs [])))
+ (2:47:37 elapsed time, 16:54:47 cpu time, factor 6.05)
+
+There is a clear looser: not using mergesort_remdups
+There is no clear winner. We will just stick to mergesort_remdups.
+
+*)
+
+(*check the the order of mergesort_remdups did not change*)
+lemma "mergesort_remdups [(1::ipv4addr, 2::nat), (8,0), (8,1), (2,2), (2,4), (1,2), (2,2)] = [(1, 2), (2, 2), (2, 4), (8, 0), (8, 1)]" by eval
+
+
+(*a tail-recursive implementation*)
+fun extract_src_dst_ips :: "simple_rule list \<Rightarrow> (ipv4addr \<times> nat) list \<Rightarrow> (ipv4addr \<times> nat) list" where
   "extract_src_dst_ips [] ts = ts" |
-  "extract_src_dst_ips ((SimpleRule m _)#ss) ts = extract_src_dst_ips ss 
-                                                  ((ipv4_cidr_tuple_to_interval (src m)) #
-                                                  ((ipv4_cidr_tuple_to_interval (dst m))#ts))"
+  "extract_src_dst_ips ((SimpleRule m _)#ss) ts = extract_src_dst_ips ss  (src m # dst m # ts)"
+
+lemma extract_src_dst_ips_length: "length (extract_src_dst_ips rs acc) = 2*length rs + length acc"
+proof(induction rs arbitrary: acc)
+case (Cons r rs) thus ?case by(cases r, simp)
+qed(simp)
 
 definition extract_IPSets :: "simple_rule list \<Rightarrow> (32 wordinterval) list" where
-  "extract_IPSets rs \<equiv> extract_src_dst_ips rs []"
-
+  "extract_IPSets rs = map ipv4_cidr_tuple_to_interval (mergesort_remdups (extract_src_dst_ips rs []))"
 lemma extract_IPSets: "set (extract_IPSets rs) = set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
 proof -
   { fix acc
-    have "set (extract_src_dst_ips rs acc) = set acc \<union> set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
+    have "ipv4_cidr_tuple_to_interval ` set (extract_src_dst_ips rs acc) =
+          ipv4_cidr_tuple_to_interval ` set acc \<union> set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
     proof(induction rs arbitrary: acc)
     case (Cons r rs ) thus ?case
       apply(cases r)
       apply(simp)
       by fast
     qed(simp)
-  } thus ?thesis unfolding extract_IPSets_def by simp
+  } thus ?thesis unfolding extract_IPSets_def by(simp_all add: extract_IPSets_def mergesort_remdups_correct)
 qed
 
-lemma extract_IPSets_length: "length (extract_IPSets rs) = 2 * length rs"
-  proof - 
-    { fix acc
-      have "length (extract_src_dst_ips rs acc) = length acc + 2 * length rs"
-      proof(induction rs arbitrary: acc)
-      case (Cons r rs) thus ?case by(cases r) simp
-      qed(simp)
-     } thus ?thesis by(simp add: extract_IPSets_def)
-  qed
-*)
-(**********version 1*****************)
+lemma "(a::nat) div 2 + a mod 2 \<le> a" by fastforce
 
+lemma merge_length: "length (merge l1 l2) \<le> length l1 + length l2"
+by(induction l1 l2 rule: merge.induct) auto
 
-(**********version 2*****************)
-fun extract_IPSets :: "simple_rule list \<Rightarrow> (32 wordinterval) list" where
-  "extract_IPSets rs = (extract_IPSets_generic0 src rs) @ (extract_IPSets_generic0 dst rs)"
-lemma extract_IPSets: "set (extract_IPSets rs) = set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
-by(induction rs) (simp_all)
-lemma extract_IPSets_length: "length (extract_IPSets rs) = 2 * length rs"
-apply(induction rs)
- apply(simp_all)
-apply(rename_tac r rs)
-apply(case_tac r)
-apply(simp)
-done
-(***********version 2****************)
+lemma merge_list_length: "length (merge_list as ls) \<le> length (concat (as @ ls))"
+proof(induction as ls rule: merge_list.induct)
+case (5 l1 l2 acc2 ls)
+  have "length (merge l2 acc2) \<le> length l2 + length acc2" using merge_length by blast
+  with 5 show ?case by simp
+qed(simp_all)
+
+lemma mergesort_remdups_length: "length (mergesort_remdups as) \<le> length as"
+unfolding mergesort_remdups_def
+proof -
+  have "concat ([] @ (map (\<lambda>x. [x]) as)) = as" by simp
+  with merge_list_length show "length (merge_list [] (map (\<lambda>x. [x]) as)) \<le> length as" by metis
+qed
+
+lemma extract_IPSets_length: "length (extract_IPSets rs) \<le> 2 * length rs"
+apply(simp add: extract_IPSets_def)
+using extract_src_dst_ips_length mergesort_remdups_length by (metis add.right_neutral list.size(3)) 
 
 
 (*
@@ -688,6 +735,15 @@ lemma filter_conn_fw_lem:
   apply(simp add: simple_matches.simps)+
 done
 
+
+(*TODO: performance
+  despite optimization, this function takes quite long and can be optimized
+  possible optimization:
+  1) the firewall evaluations could be halved, essentially, we are constructing a full access control
+     matrix for inbound and outbound connections of each partition member. This matrix is symmetric.
+     It would be enough to construct half of it.
+  2) The firewall is evaluated very often. Rules that will definitely not match (w.r.t. the parts_connection)
+      can be removed.*)
 definition groupWIs2 :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
   "groupWIs2 c rs =  (let P = getParts rs in
                        (let W = map getOneIp P in 
@@ -802,11 +858,12 @@ qed
 
 lemma getParts_length: "length (getParts rs) \<le> 2^(2 * length rs)"
 proof -
-  from partitioningIps_length[where ss="extract_IPSets rs" and ts="[wordinterval_UNIV]"] extract_IPSets_length
-  have "length (partitioningIps (extract_IPSets rs) [wordinterval_UNIV]) \<le> 2 ^ (2 * length rs)" by fastforce
+  from partitioningIps_length[where ss="extract_IPSets rs" and ts="[wordinterval_UNIV]"] have
+    1: "length (partitioningIps (extract_IPSets rs) [wordinterval_UNIV]) \<le> 2 ^ length (extract_IPSets rs)" by simp
+  from extract_IPSets_length have "(2::nat) ^ length (extract_IPSets rs) \<le> 2 ^ (2 * length rs)" by simp
+  with 1 have "length (partitioningIps (extract_IPSets rs) [wordinterval_UNIV]) \<le> 2 ^ (2 * length rs)" by linarith
   thus ?thesis by(simp add: getParts_def) 
 qed
-
 
 value[code] "partitioningIps [WordInterval (0::ipv4addr) 0] [WordInterval 0 2, WordInterval 0 2]"
 

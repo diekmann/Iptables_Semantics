@@ -167,6 +167,9 @@ context begin
 
 
   value[code] "bench upper_closure FWD ipassmt fw2_FORWARD_default_policy (Semantics_Goto.rewrite_Goto fw2)"
+  (*102.673s old (no merge sort),
+   120.007s new (merge sort followed by merge_remdups (wrongly sorted)),
+   105.376s merge_remdups followed by merge with largest intervals (smallest prefix size) first*)
   value[code] "view upper_closure FWD ipassmt fw2_FORWARD_default_policy (Semantics_Goto.rewrite_Goto fw2)"
 
 
@@ -213,7 +216,7 @@ begin
   definition "mysql = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
                                pc_sport=10000, pc_dport=3306, pc_tag_ctstate=CT_New\<rparr>"
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt_generic fw4_INPUT_default_policy fw4 in
-               map pretty_wordinterval (build_ip_partition mysql fw)"
+             map pretty_wordinterval (build_ip_partition mysql fw)"
 
   value[code] "bench lower_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"
   value[code] "view lower_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"
