@@ -8,3 +8,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Haskell
+*.hi
+*.o
+dist
+.cabal-sandbox
+cabal.sandbox.config

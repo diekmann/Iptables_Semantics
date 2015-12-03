@@ -1,7 +1,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
-module Network.IPTables.Parser
-( parseIptablesSave
-) where
+{-# LANGUAGE FlexibleContexts #-}
+
+module Network.IPTables.Parser (parseIptablesSave) where
 
 import           Control.Applicative ((<$>),(<*), (*>))
 import           Data.List (isPrefixOf)
@@ -12,14 +12,13 @@ import           Network.IPTables.Ruleset
 import           Network.IPTables.ParserHelper
 import qualified Network.IPTables.Generated as Isabelle
 
+parseIptablesSave :: SourceName -> String -> Either ParseError Ruleset
+parseIptablesSave = runParser ruleset initRState
 
 data RState = RState { rstRules  :: Ruleset
                      , rstActive :: Maybe TableName
                      }
     deriving (Show)
-
-parseIptablesSave :: SourceName -> String -> Either ParseError Ruleset
-parseIptablesSave = runParser ruleset initRState
 
 initRState = RState mkRuleset Nothing
 

@@ -1,24 +1,29 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE FlexibleContexts #-}
+
 module Network.IPTables.ParserHelper where
 
-
-import Control.Applicative ((<$>))
-import Text.Parsec (many1, oneOf, char, choice, string)
-
+import           Data.Functor ((<$>), ($>))
 import qualified Network.IPTables.Generated as Isabelle
+import           Text.Parsec (char, choice, many1, Parsec, oneOf, string)
 
+nat :: Parsec String s Integer
 nat = do
-    n <- (read :: String -> Integer) <$> many1 (oneOf ['0'..'9']) -- ['0'..'9']++['-']
-    if n < 0
-        then error ("nat `"++ show n ++ "' must be geq zero")
-        else return n
+    n <- read <$> many1 (oneOf ['0'..'9'])
+    if n < 0 then
+        error ("nat `" ++ show n ++ "' must be greater than or equal to zero")
+    else
+        return n
 
+natMaxval :: Integer -> Parsec String s Isabelle.Nat
 natMaxval maxval = do
     n <- nat
-    if n > maxval
-        then error ("nat `"++ show n ++ "' must be smaller than " ++ show maxval)
-        else return (Isabelle.Nat n)
+    if n > maxval then
+        error ("nat `" ++ show n ++ "' must be smaller than or equal to " ++ show maxval)
+    else
+        return (Isabelle.Nat n)
 
+ipv4dotdecimal :: Parsec String s (Isabelle.Nat, (Isabelle.Nat, (Isabelle.Nat, Isabelle.Nat)))
 ipv4dotdecimal = do
     a <- natMaxval 255
     char '.'
@@ -27,41 +32,46 @@ ipv4dotdecimal = do
     c <- natMaxval 255
     char '.'
     d <- natMaxval 255
-    return (a,(b,(c,d)))
+    return (a, (b, (c, d)))
 
+ipv4addr :: Parsec String s Isabelle.Ipt_ipv4range
+ipv4addr = Isabelle.Ip4Addr <$> ipv4dotdecimal
 
-ipv4addr = do
-    ip <- ipv4dotdecimal
-    return (Isabelle.Ip4Addr ip)
-
+ipv4cidr :: Parsec String s Isabelle.Ipt_ipv4range
 ipv4cidr = do
     ip <- ipv4dotdecimal
     char '/'
     netmask <- natMaxval 32
-    return (Isabelle.Ip4AddrNetmask ip netmask)
+    return $ Isabelle.Ip4AddrNetmask ip netmask
 
+ipv4range :: Parsec String s Isabelle.Ipt_ipv4range
 ipv4range = do
     ip1 <- ipv4dotdecimal
     char '-'
     ip2 <- ipv4dotdecimal
-    return (Isabelle.Ip4AddrRange ip1 ip2)
-    
-protocol = Isabelle.Proto <$> choice [string "tcp" >> return Isabelle.TCP
-                                     ,string "udp" >> return Isabelle.UDP
-                                     ,string "icmp" >> return Isabelle.ICMP
-                                     ,string "esp" >> return (Isabelle.OtherProtocol (Isabelle.Nat 50))
-                                     ,string "ah" >> return (Isabelle.OtherProtocol (Isabelle.Nat 51))
-                                     ,string "gre" >> return (Isabelle.OtherProtocol (Isabelle.Nat 47))
-                                     ]
+    return $ Isabelle.Ip4AddrRange ip1 ip2
 
-iface = Isabelle.Iface <$> many1 (oneOf $ ['A'..'Z']++['a'..'z']++['0'..'9']++['+','*','.'])
+protocol :: Parsec String s Isabelle.Protocol
+protocol = choice (map make ps)
+    where make (s, p) = string s $> Isabelle.Proto p
+          ps = [ ("tcp",  Isabelle.TCP)
+               , ("udp",  Isabelle.UDP)
+               , ("icmp", Isabelle.ICMP)
+               , ("esp",  Isabelle.OtherProtocol (Isabelle.Nat 50))
+               , ("ah",   Isabelle.OtherProtocol (Isabelle.Nat 51))
+               , ("gre",  Isabelle.OtherProtocol (Isabelle.Nat 47))
+               ]
 
-tcpFlag = choice [string "SYN" >> return Isabelle.TCP_SYN
-                 ,string "ACK" >> return Isabelle.TCP_ACK
-                 ,string "FIN" >> return Isabelle.TCP_FIN
-                 ,string "PSH" >> return Isabelle.TCP_PSH
-                 ,string "URG" >> return Isabelle.TCP_URG
-                 ,string "RST" >> return Isabelle.TCP_RST]
+iface :: Parsec String s Isabelle.Iface
+iface = Isabelle.Iface <$> many1 (oneOf $ ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ ['+', '*', '.'])
 
-
-
+tcpFlag :: Parsec String s Isabelle.Tcp_flag
+tcpFlag = choice $ map make ps
+    where make (s, p) = string s $> p
+          ps = [ ("SYN", Isabelle.TCP_SYN)
+               , ("ACK", Isabelle.TCP_ACK)
+               , ("FIN", Isabelle.TCP_FIN)
+               , ("PSH", Isabelle.TCP_PSH)
+               , ("URG", Isabelle.TCP_URG)
+               , ("RST", Isabelle.TCP_RST)
+               ]
