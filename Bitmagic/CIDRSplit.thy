@@ -163,7 +163,7 @@ proof -
 	then show "hd l = the (find (const True) l)" by(simp add: const_def)
 qed
 
-lemma ipv4range_split1_2_eq: "ipv4range_split1 s = ipv4range_split1_2 s"
+lemma ipv4range_split1_2_eq[code]: "ipv4range_split1 s = ipv4range_split1_2 s"
 	apply(simp add: ipv4range_split1_2_def ipv4range_split1_def split: option.splits)
 	apply(clarify)
 	apply(frule hd_find_const[OF ipv4range_split_innard_helper])
