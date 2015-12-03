@@ -76,7 +76,7 @@ definition ipv4range_split1 :: "32 wordinterval \<Rightarrow> prefix_match optio
    let ma = ipv4range_lowest_element r in
    case ma of None \<Rightarrow> (None, r) |
               Some a \<Rightarrow> let cs = (map (\<lambda>s. PrefixMatch a s) pfxes) in
-                        let cfs = filter (\<lambda>s. valid_prefix s \<and> ipv4range_subset (prefix_to_range s) r) cs in (* anything that is a valid prefix should also be a subset. but try prooving that.*)
+                        let cfs = filter (\<lambda>s. valid_prefix s \<and> ipv4range_subset (prefix_to_range s) r) cs in (* anything that is a subset should also be a valid prefix. but try prooving that.*)
                         let mc = find (const True) cfs in 
                         (case mc of None \<Rightarrow> (None, r) |
                                   Some m \<Rightarrow> (mc, ipv4range_setminus r (prefix_to_range m))))"
@@ -148,6 +148,31 @@ proof(unfold ipv4range_eq_set_eq)
     by blast
   ultimately show "ipv4range_to_set (ipv4range_union (prefix_to_range s) u) = ipv4range_to_set r" by auto
 qed
+
+definition ipv4range_split1_2 :: "32 wordinterval \<Rightarrow> prefix_match option \<times> 32 wordinterval" where
+  "ipv4range_split1_2 r \<equiv> (
+   let ma = ipv4range_lowest_element r in
+   case ma of None \<Rightarrow> (None, r) |
+              Some a \<Rightarrow> let cs = (map (\<lambda>s. PrefixMatch a s) pfxes);
+                            ms = (filter (\<lambda>s. valid_prefix s \<and> ipv4range_subset (prefix_to_range s) r) cs) in
+                            (Some (hd ms), ipv4range_setminus r (prefix_to_range (hd ms))))"
+
+private lemma hd_find_const: "l \<noteq> [] \<Longrightarrow> hd l = the (find (const True) l)"
+proof -
+	assume "l \<noteq> []" then obtain a ls where [simp]: "l = a # ls" by(cases l) blast+
+	then show "hd l = the (find (const True) l)" by(simp add: const_def)
+qed
+
+lemma ipv4range_split1_2_eq: "ipv4range_split1 s = ipv4range_split1_2 s"
+	apply(simp add: ipv4range_split1_2_def ipv4range_split1_def split: option.splits)
+	apply(clarify)
+	apply(frule hd_find_const[OF ipv4range_split_innard_helper])
+	apply(simp split: option.splits add: Let_def)
+	apply(rule ccontr)
+	apply(unfold not_ex not_Some_eq find_const_True)
+	apply(drule ipv4range_split_innard_helper)
+	apply simp
+done
 
 private lemma "((a,b),(c,d)) = ((a,b),c,d)" by simp (* Fuck. *)
 
