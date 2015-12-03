@@ -66,7 +66,7 @@ map ipv4_cidr_tuple_to_interval ((mergesort_remdups (extract_src_dst_ips rs []))
 map ipv4_cidr_tuple_to_interval (mergesort_by_rel (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<ge> (b2, b1)) (mergesort_remdups (extract_src_dst_ips rs [])))
  (2:47:37 elapsed time, 16:54:47 cpu time, factor 6.05)
 
-There is a clear looser: nos using mergesort_remdups
+There is a clear looser: not using mergesort_remdups
 There is no clear winner. We will just stick to mergesort_remdups.
 
 *)
