@@ -168,13 +168,15 @@ lemma NOT_mask_len32: "NOT ((mask len << (32 - len))::32 word) = (mask (32 - len
 
 
 
-
-  lemma bitmagic_zeroLast_leq_or1Last: "(a::32 word) AND (mask len << 32 - len) \<le> a OR mask (32 - len)"
+  (*usually: x,y = (len_of TYPE ('a)) i.e. 32 for ipv4addr*)
+  lemma bitmagic_zeroLast_leq_or1Last: "(a::('a::len) word) AND (mask len << x - len) \<le> a OR mask (y - len)"
+    by (meson le_word_or2 order_trans word_and_le2)
+  (*
       apply word_bitwise
       apply (subgoal_tac "len > 32 \<or> len \<in> set (map nat (upto 0 32))")
       apply (simp add: upto_code upto_aux_rec, elim disjE)
       apply (simp add: size_mask_32word rev_bl_order_simps)
       apply (simp_all add: size_mask_32word rev_bl_order_simps) [33]
       apply (simp add: upto_code upto_aux_rec, presburger)
-  done
+  done*)
 end
