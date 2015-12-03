@@ -31,7 +31,7 @@ datatype 'm match_fields = MatchFields (match_fields_sel: "'m set")
      instructions (only an output list of egress ports will be modeled)
 *)
 
-datatype ('m, 'a) flow_entry_match = OFEntry (ofe_prio: nat) (ofe_fields: "'m match_fields") (ofe_action: 'a)
+datatype ('m, 'a) flow_entry_match = OFEntry (ofe_prio: "16 word") (ofe_fields: "'m match_fields") (ofe_action: 'a)
 
 (*the packet also contains the ingress port*)
 definition OF_match :: "('m \<Rightarrow> 'p \<Rightarrow> bool) \<Rightarrow> 'm match_fields \<Rightarrow> 'p \<Rightarrow> bool" where
@@ -281,7 +281,7 @@ proof
 	with goal1(2) show False unfolding goal1(3) by simp
 qed
 
-theorem no_overlaps_defeq: "no_overlaps \<gamma> fe \<Longrightarrow> OF_same_priority_match2 \<gamma> fe p = OF_same_priority_match3 \<gamma> fe p"
+lemma no_overlaps_defeq: "no_overlaps \<gamma> fe \<Longrightarrow> OF_same_priority_match2 \<gamma> fe p = OF_same_priority_match3 \<gamma> fe p"
 	unfolding OF_same_priority_match2_def OF_same_priority_match3_def 
 	unfolding f_Img_ex_set
 	unfolding prio_match_matcher_alt
@@ -323,7 +323,8 @@ proof -
 			next
 				case False
 				then obtain x y z where xyz: "fe = x @ b # y @ a # z"
-				by (metis (no_types, lifting) Cons_eq_filterD bbs no)
+					using no unfolding bbs
+					by (metis (no_types, lifting) Cons_eq_filterD)
 				from no_overlaps_ne1 ms(1) goal1[unfolded xyz]
 				show ?thesis by blast
 			qed
@@ -337,5 +338,11 @@ qed
 lemma "distinct fe \<Longrightarrow> check_no_overlap \<gamma> fe \<Longrightarrow> OF_same_priority_match2 \<gamma> fe p = OF_same_priority_match3 \<gamma> fe p"
 	using no_overlaps_defeq no_overlapsI by force
 
+theorem OF_eq:
+	assumes no: "no_overlaps \<gamma> f"
+	    and so: "sorted_descending (map ofe_prio f)"
+	shows "Defined (OF_match_linear \<gamma> f p) = OF_same_priority_match3 \<gamma> f p"
+	unfolding no_overlaps_defeq[symmetric,OF no] OF_match_eq[OF so check_no_overlapI[OF no]]
+	..
 
 end
