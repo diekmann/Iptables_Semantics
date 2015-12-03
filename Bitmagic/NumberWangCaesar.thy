@@ -12,7 +12,17 @@ text{*We define a type for ips in CIDR notation, e.g. 192.168.0.0/24.*}
 datatype prefix_match = PrefixMatch (pfxm_prefix: ipv4addr) (pfxm_length: nat)
 definition "pfxm_mask x \<equiv> mask (32 - pfxm_length x)"
 
-definition valid_prefix where
+(*
+(*TODO: wo could use this to generalize to arbitrary word lengths*)
+definition pfxm_mask :: "prefix_match \<Rightarrow> 'a::len word" where
+  "pfxm_mask x \<equiv> mask ((len_of TYPE ('a)) - pfxm_length x)"
+definition pfxes :: "'a::len0 word \<Rightarrow> nat list" where
+  "pfxes w = map nat [0..int(len_of TYPE ('a))]"
+value[code] "pfxes (3::ipv4addr)"
+*)
+
+
+definition valid_prefix :: "prefix_match \<Rightarrow> bool" where
   "valid_prefix pf = ((pfxm_mask pf) AND pfxm_prefix pf = 0)"
 
 text{*The type @{typ prefix_match} usually requires @{const valid_prefix}.
