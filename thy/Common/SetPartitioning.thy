@@ -9,7 +9,7 @@ begin
 definition disjoint :: "'a set set \<Rightarrow> bool" where
   "disjoint ts \<equiv> \<forall>A \<in> ts. \<forall>B \<in> ts. A \<noteq> B \<longrightarrow> A \<inter> B = {}"
 
-text{*We will call two partitioned sets \emph{complete} iff @{term "\<Union> ss = \<Union> ts"}*}
+text_raw{*We will call two partitioned sets \emph{complete} iff @{term "\<Union> ss = \<Union> ts"}.*}
 
 
 text{*The condition we use to partition a set. If this holds and 
