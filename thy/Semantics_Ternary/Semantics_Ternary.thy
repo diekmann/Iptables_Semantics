@@ -567,7 +567,7 @@ lemma optimize_matches_option_generic:
     next
       case (Nomatch \<gamma> p m a rs) thus ?case
         apply(simp)
-        apply(case_tac "f m")
+        apply(cases "f m")
          apply(simp; fail)
         apply(simp del: approximating_bigstep_fun.simps)
         apply(rename_tac m')
@@ -576,8 +576,7 @@ lemma optimize_matches_option_generic:
         using assms by blast
     next
       case (Match \<gamma> p m a rs) thus ?case
-        apply(simp del: approximating_bigstep_fun.simps)
-        apply(case_tac "f m")
+        apply(cases "f m")
          apply(simp; fail)
         apply(simp del: approximating_bigstep_fun.simps)
         apply(rename_tac m')
@@ -585,6 +584,19 @@ lemma optimize_matches_option_generic:
          apply(simp split: action.split; fail)
         using assms by blast
     qed(simp)
+
+lemma optimize_matches_option_simple_ruleset: "simple_ruleset rs \<Longrightarrow> simple_ruleset (optimize_matches_option f rs)"
+  proof(induction rs rule:optimize_matches_option.induct)
+  qed(simp_all add: simple_ruleset_def split: option.split)
+
+lemma optimize_matches_option_preserves: "(\<And> r m. r \<in> set rs \<Longrightarrow> f (get_match r) = Some m \<Longrightarrow> P m) \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches_option f rs). P m"
+  apply(induction rs rule: optimize_matches_option.induct)
+   apply(simp)
+  apply(simp split: option.split)
+  by fastforce
+
+
+
 
 
 definition optimize_matches :: "('a match_expr \<Rightarrow> 'a match_expr) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
