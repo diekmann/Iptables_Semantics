@@ -1,5 +1,9 @@
 # Iptables_Semantics
 
+| Component             | Status |
+| --------------------- | ------ |
+| Haskell tool          | [![Build Status](https://travis-ci.org/diekmann/Iptables_Semantics.svg)](https://travis-ci.org/diekmann/Iptables_Semantics) |
+
 A formal semantics of the Linux netfilter iptables firewall.
 Written in the [Isabelle](https://isabelle.in.tum.de/) interactive proof assistant.
 
