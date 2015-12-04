@@ -3,6 +3,7 @@ chapter Iptables_Semantics
 session "Iptables_Semantics" = Bitmagic +
   theories[document=false]
     "~~/src/HOL/Library/LaTeXsugar"
+    "afp/Mergesort"
   theories
     Semantics
     "Examples/Example_Semantics"
