@@ -389,6 +389,9 @@ definition try_interface_replaceby_srcip :: "ipassignment \<Rightarrow> common_p
         of None \<Rightarrow> None
         |  Some i \<Rightarrow> if \<exists>negated_ifce \<in> set (getNeg ifces). iface_subset i negated_ifce then None else Some (i, getNeg ifces)"
 
+term map_option
+term option_map (*l4v*)
+
   lemma compress_interfaces_None: "compress_interfaces ifces = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) (alist_and (NegPos_map IIface ifces)) a p"
     apply(simp add: compress_interfaces_def)
     apply(simp add: nt_match_list_matches[symmetric] nt_match_list_simp)
@@ -415,13 +418,14 @@ definition try_interface_replaceby_srcip :: "ipassignment \<Rightarrow> common_p
     done
 
   
-  definition compress_normalize_interfaces :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where 
+  definition compress_normalize_interfaces :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr option" where 
     "compress_normalize_interfaces m = (case primitive_extractor (is_Iiface, iiface_sel) m  of (ifces, rst) \<Rightarrow>
-      (case compress_interfaces ifces of None \<Rightarrow> MatchNot MatchAny
-                                      |  Some (i_pos, i_neg) \<Rightarrow> MatchAnd (MatchAnd (Match (IIface i_pos)) (alist_and (NegPos_map IIface (map Neg i_neg))))rst))"
+      (map_option (\<lambda>(i_pos, i_neg). MatchAnd (MatchAnd (Match (IIface i_pos)) (alist_and (NegPos_map IIface (map Neg i_neg))))rst) (compress_interfaces ifces)))"
 
-  lemma assumes "normalized_nnf_match m"
-    shows "matches (common_matcher, \<alpha>) (compress_normalize_interfaces m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
+  lemma compress_normalize_interfaces_Some:
+  assumes "normalized_nnf_match m" and "compress_normalize_interfaces m = Some m'"
+    shows "matches (common_matcher, \<alpha>) m' a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
+    using assms(2)
     apply(simp add: compress_normalize_interfaces_def)
     apply(case_tac "primitive_extractor (is_Iiface, iiface_sel) m")
     apply(rename_tac ifces rst, simp)
@@ -430,8 +434,32 @@ definition try_interface_replaceby_srcip :: "ipassignment \<Rightarrow> common_p
      apply(simp add: compress_interfaces_None bunch_of_lemmata_about_matches; fail)
     apply(rename_tac aaa, case_tac aaa, simp)
     apply(drule compress_interfaces_Some[where \<alpha>=\<alpha> and a=a and p=p])
-    apply(simp add:bunch_of_lemmata_about_matches(1))
+    by (meson bunch_of_lemmata_about_matches(1))
+
+  lemma compress_normalize_interfaces_None:
+  assumes "normalized_nnf_match m" and "compress_normalize_interfaces m = None"
+    shows "\<not> matches (common_matcher, \<alpha>) m a p"
+    using assms(2)
+    apply(simp add: compress_normalize_interfaces_def)
+    apply(case_tac "primitive_extractor (is_Iiface, iiface_sel) m")
+    apply(rename_tac ifces rst, simp)
+    apply(drule primitive_extractor_correct(1)[OF assms(1) wf_disc_sel_common_primitive(5), where \<gamma>="(common_matcher, \<alpha>)" and a=a and p=p])
+    apply(case_tac "compress_interfaces ifces")
+     apply(simp add: compress_interfaces_None bunch_of_lemmata_about_matches; fail)
+    apply(rename_tac aaa, case_tac aaa, simp)
     done
+
+
+  lemma compress_normalize_interfaces_nnf: "normalized_nnf_match m \<Longrightarrow> compress_normalize_interfaces m = Some m' \<Longrightarrow>
+    normalized_nnf_match m'"
+    apply(case_tac "primitive_extractor (is_Iiface, iiface_sel) m")
+    apply(simp add: compress_normalize_interfaces_def)
+    apply(clarify)
+    apply (simp add: normalized_nnf_match_alist_and)
+    using primitive_extractor_correct(2) wf_disc_sel_common_primitive(5) by blast
+    
+    
+
 
   value[code] "compress_normalize_interfaces 
     (MatchAnd (MatchAnd (MatchAnd (Match (IIface (Iface ''eth+''))) (MatchNot (Match (IIface (Iface ''eth4''))))) (Match (IIface (Iface ''eth1''))))
