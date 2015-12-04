@@ -360,6 +360,9 @@ end
   qed
 
 
+text{*In @{file "Transform.thy"} there should be the convenience function @{text "iface_try_rewrite"}*}
+
+
 (*TODO: optimize interfaces, e.g. eth+ MatchAnd wifi+ is false!*)
 (*
 definition try_interface_replaceby_srcip :: "ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> common_primitive rule list" where
@@ -375,5 +378,64 @@ definition try_interface_replaceby_srcip :: "ipassignment \<Rightarrow> common_p
 *)
 
 
+
+  (*TODO a generic primitive optimization function and a separate file for such things*)
+
+  (*returns: (one positive interface \<times> a list of negated interfaces)
+    it matches the conjunction of both
+    None if the expression cannot match*)
+  definition compress_interfaces :: "iface negation_type list \<Rightarrow> (iface \<times> iface list) option" where
+    "compress_interfaces ifces \<equiv> case (compress_pos_interfaces (getPos ifces))
+        of None \<Rightarrow> None
+        |  Some i \<Rightarrow> if \<exists>negated_ifce \<in> set (getNeg ifces). iface_subset i negated_ifce then None else Some (i, getNeg ifces)"
+
+  lemma compress_interfaces_None: "compress_interfaces ifces = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) (alist_and (NegPos_map IIface ifces)) a p"
+    apply(simp add: compress_interfaces_def)
+    apply(simp add: nt_match_list_matches[symmetric] nt_match_list_simp)
+    apply(simp add: NegPos_map_simps match_simplematcher_Iface match_simplematcher_Iface_not)
+    apply(case_tac "compress_pos_interfaces (getPos ifces)")
+     apply(simp_all)
+     apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_None)
+     apply(simp; fail)
+    apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_Some)
+    apply(simp split:split_if_asm)
+    using iface_subset by blast
+
+  lemma compress_interfaces_Some: "compress_interfaces ifces = Some (i_pos, i_neg) \<Longrightarrow>
+    matches (common_matcher, \<alpha>) (MatchAnd (Match (IIface i_pos)) (alist_and (NegPos_map IIface (map Neg i_neg)))) a p \<longleftrightarrow>
+    matches (common_matcher, \<alpha>) (alist_and (NegPos_map IIface ifces)) a p"
+    apply(simp add: compress_interfaces_def)
+    apply(simp add: bunch_of_lemmata_about_matches(1))
+    apply(simp add: nt_match_list_matches[symmetric] nt_match_list_simp)
+    apply(simp add: NegPos_map_simps match_simplematcher_Iface match_simplematcher_Iface_not)
+    apply(case_tac "compress_pos_interfaces (getPos ifces)")
+     apply(simp_all)
+    apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_Some)
+    apply(simp split:split_if_asm)
+    done
+
+  
+  definition compress_normalize_interfaces :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where 
+    "compress_normalize_interfaces m = (case primitive_extractor (is_Iiface, iiface_sel) m  of (ifces, rst) \<Rightarrow>
+      (case compress_interfaces ifces of None \<Rightarrow> MatchNot MatchAny
+                                      |  Some (i_pos, i_neg) \<Rightarrow> MatchAnd (MatchAnd (Match (IIface i_pos)) (alist_and (NegPos_map IIface (map Neg i_neg))))rst))"
+
+  lemma assumes "normalized_nnf_match m"
+    shows "matches (common_matcher, \<alpha>) (compress_normalize_interfaces m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
+    apply(simp add: compress_normalize_interfaces_def)
+    apply(case_tac "primitive_extractor (is_Iiface, iiface_sel) m")
+    apply(rename_tac ifces rst, simp)
+    apply(drule primitive_extractor_correct(1)[OF assms(1) wf_disc_sel_common_primitive(5), where \<gamma>="(common_matcher, \<alpha>)" and a=a and p=p])
+    apply(case_tac "compress_interfaces ifces")
+     apply(simp add: compress_interfaces_None bunch_of_lemmata_about_matches; fail)
+    apply(rename_tac aaa, case_tac aaa, simp)
+    apply(drule compress_interfaces_Some[where \<alpha>=\<alpha> and a=a and p=p])
+    apply(simp add:bunch_of_lemmata_about_matches(1))
+    done
+
+  value[code] "compress_normalize_interfaces 
+    (MatchAnd (MatchAnd (MatchAnd (Match (IIface (Iface ''eth+''))) (MatchNot (Match (IIface (Iface ''eth4''))))) (Match (IIface (Iface ''eth1''))))
+              (Match (Prot (Proto TCP))))"
+    
 
 end

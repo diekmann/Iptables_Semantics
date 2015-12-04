@@ -40,10 +40,10 @@ lemma getPos_NegPos_map_simp2: "(getPos (NegPos_map X src)) = map X (getPos src)
   by(induction src rule: getPos.induct) (simp_all)
 lemma getNeg_NegPos_map_simp2: "(getNeg (NegPos_map X src)) = map X (getNeg src)"
   by(induction src rule: getPos.induct) (simp_all)
-lemma getPos_id: "(getPos (map Pos (getPos src))) = getPos src"
-  by(induction src rule: getPos.induct) (simp_all)
-lemma getNeg_id: "(getNeg (map Neg (getNeg src))) = getNeg src"
-  by(induction src rule: getNeg.induct) (simp_all)
+lemma getPos_id: "getPos (map Pos xs) = xs"
+  by(induction xs) (simp_all)
+lemma getNeg_id: "getNeg (map Neg xs) = xs"
+  by(induction xs) (simp_all)
 lemma getPos_empty2: "(getPos (map Neg src)) = []"
   by(induction src) (simp_all)
 lemma getNeg_empty2: "(getNeg (map Pos src)) = []"

@@ -12,6 +12,8 @@ fun alist_and :: "'a negation_type list \<Rightarrow> 'a match_expr" where
   "alist_and ((Neg e)#es) = MatchAnd (MatchNot (Match e)) (alist_and es)"
 
 
+lemma normalized_nnf_match_alist_and: "normalized_nnf_match (alist_and as)"
+  by(induction as rule: alist_and.induct) simp_all
 
 fun negation_type_to_match_expr_f :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a negation_type \<Rightarrow> 'b match_expr" where
   "negation_type_to_match_expr_f f (Pos a) = Match (f a)" |
