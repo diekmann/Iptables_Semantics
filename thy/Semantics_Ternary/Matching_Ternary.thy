@@ -432,6 +432,11 @@ begin
 
   lemma matcheq_matchNone: "\<not> has_primitive m \<Longrightarrow> matcheq_matchNone m \<longleftrightarrow> \<not> matches \<gamma> m a p"
     by(auto dest: matcheq_matachAny matachAny_matchNone)
+
+  lemma matcheq_matchNone_not_matches: "matcheq_matchNone m \<Longrightarrow> \<not> matches \<gamma> m a p"
+    proof(induction m rule: matcheq_matchNone.induct)
+    qed(auto simp add: bunch_of_lemmata_about_matches matches_DeMorgan)
+    
 end
 
 
