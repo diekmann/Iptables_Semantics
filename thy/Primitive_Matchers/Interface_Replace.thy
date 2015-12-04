@@ -399,8 +399,13 @@ definition try_interface_replaceby_srcip :: "ipassignment \<Rightarrow> common_p
     apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_Some)
     apply(simp split:split_if_asm)
     using iface_subset by blast
+
+  (*TODO: move*)
+  lemma getNeg_map_Neg_id: "getNeg (map Neg xs) = xs"
+  by(induction xs) (simp_all)
+
   lemma compress_interfaces_Some: "compress_interfaces ifces = Some (i_pos, i_neg) \<Longrightarrow>
-    matches (common_matcher, \<alpha>) (MatchAnd (Match (IIface i_pos)) (alist_and (map (Pos \<circ> IIface) i_neg))) a p \<longleftrightarrow>
+    matches (common_matcher, \<alpha>) (MatchAnd (Match (IIface i_pos)) (alist_and (NegPos_map IIface (map Neg i_neg)))) a p \<longleftrightarrow>
     matches (common_matcher, \<alpha>) (alist_and (NegPos_map IIface ifces)) a p"
     apply(simp add: compress_interfaces_def)
     apply(simp add: bunch_of_lemmata_about_matches(1))
@@ -410,7 +415,9 @@ definition try_interface_replaceby_srcip :: "ipassignment \<Rightarrow> common_p
      apply(simp_all)
     apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_Some)
     apply(simp split:split_if_asm)
-    oops
+    apply(simp add: getNeg_map_Neg_id)
+    done
+
     
      
 
