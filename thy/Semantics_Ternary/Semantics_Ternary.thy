@@ -602,8 +602,11 @@ lemma optimize_matches_option_preserves: "(\<And> r m. r \<in> set rs \<Longrigh
 definition optimize_matches :: "('a match_expr \<Rightarrow> 'a match_expr) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
   "optimize_matches f rs =  optimize_matches_option (\<lambda>m. (if matcheq_matchNone (f m) then None else Some (f m))) rs"
 
-(*it would be possible to do
-  optimize_matches f rs =  optimize_matches_option (\<lambda>m. (if matcheq_matchNone (f m) then None else Some (f m))) rs*)
+
+lemma optimize_matches_matches_fst: "matches \<gamma> (f m) a p \<Longrightarrow> optimize_matches f (Rule m a # rs) = (Rule (f m) a)# optimize_matches f rs"
+  apply(simp add: optimize_matches_def)
+  by (meson matcheq_matchNone_not_matches)
+
 
 lemma optimize_matches_generic: "\<forall> r \<in> set rs. P (get_match r) (get_action r) \<Longrightarrow> 
       (\<And>m a. P m a \<Longrightarrow> matches \<gamma> (f m) a p = matches \<gamma> m a p) \<Longrightarrow>

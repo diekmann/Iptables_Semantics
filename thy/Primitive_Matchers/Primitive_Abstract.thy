@@ -94,12 +94,6 @@ begin
   
 
 
-(*TODO: move*)
-lemma optimize_matches_matches_fst: "matches \<gamma> (f m) a p \<Longrightarrow> optimize_matches f (Rule m a # rs) = (Rule (f m) a)# optimize_matches f rs"
-  apply(simp add: optimize_matches_def)
-  by (meson matcheq_matchNone_not_matches)
-
-
   private lemma abstract_primitive_help1: assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
         and prem: "approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision FinalAllow"
         shows "approximating_bigstep_fun (common_matcher, in_doubt_allow) p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalAllow"
