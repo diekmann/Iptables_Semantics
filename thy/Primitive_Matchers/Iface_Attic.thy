@@ -280,7 +280,7 @@ text{*Examples*}
   lemma iface_name_eq_case_nowildcard: "\<lbrakk>\<not> iface_name_is_wildcard i1; \<not> iface_name_is_wildcard i2 \<rbrakk> \<Longrightarrow> iface_name_eq i1 i2 \<longleftrightarrow> i1 = i2"
     apply(simp add: iface_name_is_wildcard_alt iface_name_eq_alt)
     by blast
-  text{*If there is exactly one wildcard, both interface strings are equal for the length of the wildcard minus one (called @{const iface_name_prefix}}*}
+  text{*If there is exactly one wildcard, both interface strings are equal for the length of the wildcard minus one (called @{const iface_name_prefix}*}
   lemma iface_name_eq_case_onewildcard: "\<lbrakk>iface_name_is_wildcard i1; \<not> iface_name_is_wildcard i2 \<rbrakk> \<Longrightarrow> iface_name_eq i1 i2 \<longleftrightarrow> 
       iface_name_prefix i1 = take (length (iface_name_prefix i1)) i2"
     apply(simp add: iface_name_eq_alt iface_name_prefix_def butlast_conv_take)
