@@ -369,15 +369,18 @@ theorem to_simple_firewall: "check_simple_fw_preconditions rs \<Longrightarrow> 
   qed
 
 
-
+(*TODO: is there a nocer proof that uses a generic optimize_matches lemma?*)
 lemma ctstate_assume_new_not_has_CT_State:
   "m \<in> get_match ` set (ctstate_assume_new rs) \<Longrightarrow> \<not> has_disc is_CT_State m"
   apply(simp add: ctstate_assume_new_def)
   apply(induction rs)
    apply(simp add: optimize_matches_def; fail)
   apply(simp add: optimize_matches_def)
+  apply(rename_tac r rs, case_tac r)
   apply(safe)
-   apply(simp_all add: not_hasdisc_ctstate_assume_state)
+  apply(simp add:  split:split_if_asm)
+  apply(elim disjE)
+   apply(simp_all add: not_hasdisc_ctstate_assume_state split:split_if_asm)
   done
 
 text{*The precondiction for the simple firewall can be easily fulfilled.
