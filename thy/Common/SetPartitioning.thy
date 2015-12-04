@@ -14,7 +14,7 @@ text_raw{*We will call two partitioned sets \emph{complete} iff @{term "\<Union>
 
 text{*The condition we use to partition a set. If this holds and 
       @{term A} is the set of ip addresses in each rule in a firewall,
-      then @{term B} is a partition of @{term "\<Union> A"}} where each member has the same behavior
+      then @{term B} is a partition of @{term "\<Union> A"} where each member has the same behavior
       w.r.t the firewall ruleset.*}
 text{*@{term A} is the carrier set and @{term B}* should be a partition of @{term "\<Union> A"}} which fulfills the following condition:*}
 definition ipPartition :: "'a set set \<Rightarrow> 'a set set \<Rightarrow> bool" where
