@@ -381,8 +381,9 @@ definition try_interface_replaceby_srcip :: "ipassignment \<Rightarrow> common_p
 
 
 
-  (*iface_conjunct for positive
-    if this is subset of the negated, then it is empty*)
+  (*returns: (one positive interface \<times> a list of negated interfaces)
+    it matches the conjunction of both
+    None if the expression cannot match*)
   definition compress_interfaces :: "iface negation_type list \<Rightarrow> (iface \<times> iface list) option" where
     "compress_interfaces ifces \<equiv> case (compress_pos_interfaces (getPos ifces))
         of None \<Rightarrow> None
