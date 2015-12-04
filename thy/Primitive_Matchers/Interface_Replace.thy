@@ -360,6 +360,9 @@ end
   qed
 
 
+text{*In @{file "Transform.thy"} there should be the convenience function @{text "iface_try_rewrite"}*}
+
+
 (*TODO: optimize interfaces, e.g. eth+ MatchAnd wifi+ is false!*)
 (*
 definition try_interface_replaceby_srcip :: "ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> common_primitive rule list" where
@@ -374,6 +377,20 @@ definition try_interface_replaceby_srcip :: "ipassignment \<Rightarrow> common_p
    it would be possible to avoid normalize_rules_dnf or normalize_match call and the list in the result type*)
 *)
 
+
+  (*TODO: at the moment, this does nothing. it is just a start*)
+  definition compress_normalize_interfaces :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where 
+    "compress_normalize_interfaces m = (case primitive_extractor (is_Iiface, iiface_sel) m 
+                of (ifces, rst) \<Rightarrow> MatchAnd (alist_and (NegPos_map IIface ifces)) rst)"
+
+  lemma assumes "normalized_nnf_match m"
+    shows "matches (common_matcher, \<alpha>) (compress_normalize_interfaces m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
+    apply(simp add: compress_normalize_interfaces_def)
+    apply(case_tac "primitive_extractor (is_Iiface, iiface_sel) m")
+    apply(rename_tac ifces rst, simp)
+    apply(drule primitive_extractor_correct(1)[OF assms(1) wf_disc_sel_common_primitive(5), where \<gamma>="(common_matcher, \<alpha>)" and a=a and p=p])
+    apply(simp add: bunch_of_lemmata_about_matches)
+    done
 
 
 end
