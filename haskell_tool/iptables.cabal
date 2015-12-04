@@ -13,6 +13,7 @@ tested-with:         GHC >= 7.8 && < 8.0
 executable iptables
   main-is:             Main.hs
   default-language:    Haskell2010
+  ghc-options:         -O3
   other-modules:
       Network.IPTables.Generated
     , Network.IPTables.IpassmtParser
