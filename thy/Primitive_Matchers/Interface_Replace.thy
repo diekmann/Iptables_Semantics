@@ -379,7 +379,7 @@ definition try_interface_replaceby_srcip :: "ipassignment \<Rightarrow> common_p
 
 
 
-
+  (*TODO a generic primitive optimization function and a separate file for such things*)
 
   (*returns: (one positive interface \<times> a list of negated interfaces)
     it matches the conjunction of both
