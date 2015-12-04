@@ -414,7 +414,6 @@ definition try_interface_replaceby_srcip :: "ipassignment \<Rightarrow> common_p
     apply(simp split:split_if_asm)
     done
 
-    
   
   definition compress_normalize_interfaces :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where 
     "compress_normalize_interfaces m = (case primitive_extractor (is_Iiface, iiface_sel) m  of (ifces, rst) \<Rightarrow>
@@ -437,5 +436,6 @@ definition try_interface_replaceby_srcip :: "ipassignment \<Rightarrow> common_p
   value[code] "compress_normalize_interfaces 
     (MatchAnd (MatchAnd (MatchAnd (Match (IIface (Iface ''eth+''))) (MatchNot (Match (IIface (Iface ''eth4''))))) (Match (IIface (Iface ''eth1''))))
               (Match (Prot (Proto TCP))))"
+    
 
 end
