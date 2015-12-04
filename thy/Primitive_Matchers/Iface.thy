@@ -266,7 +266,20 @@ begin
         (True,  False) \<Rightarrow> (if match_iface (Iface i1) i2 then Some (Iface i2) else None) |
         (False, True) \<Rightarrow> (if match_iface (Iface i2) i1 then Some (Iface i1) else None) |
         (False, False) \<Rightarrow> (if i1 = i2 then Some (Iface i1) else None))"
-  
+
+    
+    lemma iface_conjunct_Some: "iface_conjunct i1 i2 = Some x \<Longrightarrow> 
+          match_iface x p_i \<longleftrightarrow> match_iface i1 p_i \<and> match_iface i2 p_i"
+      apply(cases i1, cases i2, rename_tac i1name i2name)
+      apply(simp)
+      apply(case_tac "iface_name_is_wildcard i1name")
+       apply(case_tac [!] "iface_name_is_wildcard i2name")
+         apply(simp_all)
+         using internal_iface_name_wildcard_longest_correct apply auto[1]
+        apply (metis match_iface.simps match_iface_case_nowildcard option.distinct(1) option.sel)
+       apply (metis match_iface.simps match_iface_case_nowildcard option.distinct(1) option.sel)
+      by (metis match_iface.simps option.distinct(1) option.inject)
+    
     lemma iface_conjunct: "match_iface i1 p_i \<and> match_iface i2 p_i \<longleftrightarrow>
            (case iface_conjunct i1 i2 of None \<Rightarrow> False | Some x \<Rightarrow> match_iface x p_i)"
       apply(cases i1, cases i2, rename_tac i1name i2name)
@@ -276,10 +289,29 @@ begin
                apply (metis match_iface.simps match_iface_case_nowildcard)+
       done
 
+    lemma iface_conjunct_None: "iface_conjunct i1 i2 = None \<Longrightarrow> 
+          \<not> (match_iface i1 p_i \<and> match_iface i2 p_i)"
+      using iface_conjunct by simp
+
     lemma match_iface_refl: "match_iface (Iface x) x" by (simp add: internal_iface_name_match_refl)
 
 
-
+    lemma iface_conjunct_ifaceAny: "iface_conjunct ifaceAny i = Some i"
+      apply(simp add: ifaceAny_def)
+      apply(case_tac i, rename_tac iname)
+      apply(simp)
+      apply(case_tac "iface_name_is_wildcard iname")
+       apply(simp add: internal_iface_name_wildcard_longest_def iface_name_is_wildcard_alt Suc_leI)
+      apply(simp)
+      using internal_iface_name_match.elims(3) by fastforce
+       
+    lemma iface_conjunct_commute: "iface_conjunct i1 i2 = iface_conjunct i2 i1"
+    apply(induction i1 i2 rule: iface_conjunct.induct)
+    apply(simp)
+    apply(case_tac "iface_name_is_wildcard i1")
+     apply(case_tac [!] "iface_name_is_wildcard i2")
+       apply(simp_all)
+    by (simp add: internal_iface_name_wildcard_longest_commute)
 
 
     private definition internal_iface_name_subset :: "string \<Rightarrow> string \<Rightarrow> bool" where
@@ -494,6 +526,59 @@ begin
           we cannot take negate an @{term "Iface i"} such that we get back @{typ "iface list"} which
           describe the negated interface.*}
     lemma "''+'' \<in> - (internal_iface_name_to_set ''eth+'')" by(simp)
+
+
+
+    (*
+    foobar
+    lemma "iface_conjunct i1 i2 = None \<Longrightarrow> \<not> iface_is_wildcard i2 \<Longrightarrow> match_iface i2 p_i \<longleftrightarrow> (\<not> match_iface i1 p_i) \<and> match_iface i2 p_i"
+      nitpick
+      oops
+    lemma "iface_conjunct i1 i2 = None \<Longrightarrow> iface_is_wildcard i2 \<Longrightarrow> \<not> iface_is_wildcard i1 \<Longrightarrow> match_iface i2 p_i \<longleftrightarrow> (\<not> match_iface i1 p_i) \<and> match_iface i2 p_i"
+      nitpick
+      oops
+    lemma "(\<not> match_iface i1 p_i) \<and> match_iface i2 p_i \<longleftrightarrow>
+           (case iface_conjunct i1 i2
+              of Some x \<Rightarrow> ((\<not> match_iface i1 p_i) \<and> match_iface i2 p_i)
+              |  None \<Rightarrow> if \<not> iface_is_wildcard i2
+                         then
+                           match_iface i2 p_i
+                         else
+                           ((\<not> match_iface i1 p_i) \<and> match_iface i2 p_i)
+           )"
+      nitpick
+      *)
+
+
+  fun compress_pos_interfaces :: "iface list \<Rightarrow> iface option" where
+    "compress_pos_interfaces [] = Some ifaceAny" |
+    "compress_pos_interfaces [i] = Some i" |
+    "compress_pos_interfaces (i1#i2#is) = (case iface_conjunct i1 i2 of None \<Rightarrow> None | Some i \<Rightarrow> compress_pos_interfaces (i#is))"
+
+  lemma compress_pos_interfaces_Some: "compress_pos_interfaces ifces = Some ifce \<Longrightarrow> 
+          match_iface ifce p_i \<longleftrightarrow> (\<forall> i\<in> set ifces. match_iface i p_i)"
+    apply(induction ifces rule: compress_pos_interfaces.induct)
+      apply (simp add: match_ifaceAny; fail)
+     apply(simp; fail)
+    apply(simp)
+    apply(rename_tac i1 i2 iis)
+    apply(case_tac "iface_conjunct i1 i2")
+     apply(simp; fail)
+    apply(simp)
+    using iface_conjunct_Some by presburger
+
+  lemma compress_pos_interfaces_None: "compress_pos_interfaces ifces = None \<Longrightarrow> 
+          \<not> (\<forall> i\<in> set ifces. match_iface i p_i)"
+    apply(induction ifces rule: compress_pos_interfaces.induct)
+      apply (simp add: match_ifaceAny; fail)
+     apply(simp; fail)
+    apply(simp)
+    apply(rename_tac i1 i2 iis)
+    apply(case_tac "iface_conjunct i1 i2")
+     apply(simp_all)
+     using iface_conjunct_None apply blast
+    using iface_conjunct_Some by blast
+
 
 
   declare match_iface.simps[simp del]

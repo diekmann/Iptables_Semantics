@@ -378,6 +378,42 @@ definition try_interface_replaceby_srcip :: "ipassignment \<Rightarrow> common_p
 *)
 
 
+
+
+
+  (*iface_conjunct for positive
+    if this is subset of the negated, then it is empty*)
+  definition compress_interfaces :: "iface negation_type list \<Rightarrow> (iface \<times> iface list) option" where
+    "compress_interfaces ifces \<equiv> case (compress_pos_interfaces (getPos ifces))
+        of None \<Rightarrow> None
+        |  Some i \<Rightarrow> if \<exists>negated_ifce \<in> set (getNeg ifces). iface_subset i negated_ifce then None else Some (i, getNeg ifces)"
+
+  lemma compress_interfaces_None: "compress_interfaces ifces = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) (alist_and (NegPos_map IIface ifces)) a p"
+    apply(simp add: compress_interfaces_def)
+    apply(simp add: nt_match_list_matches[symmetric] nt_match_list_simp)
+    apply(simp add: NegPos_map_simps match_simplematcher_Iface match_simplematcher_Iface_not)
+    apply(case_tac "compress_pos_interfaces (getPos ifces)")
+     apply(simp_all)
+     apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_None)
+     apply(simp; fail)
+    apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_Some)
+    apply(simp split:split_if_asm)
+    using iface_subset by blast
+  lemma compress_interfaces_Some: "compress_interfaces ifces = Some (i_pos, i_neg) \<Longrightarrow>
+    matches (common_matcher, \<alpha>) (MatchAnd (Match (IIface i_pos)) (alist_and (map (Pos \<circ> IIface) i_neg))) a p \<longleftrightarrow>
+    matches (common_matcher, \<alpha>) (alist_and (NegPos_map IIface ifces)) a p"
+    apply(simp add: compress_interfaces_def)
+    apply(simp add: bunch_of_lemmata_about_matches(1))
+    apply(simp add: nt_match_list_matches[symmetric] nt_match_list_simp)
+    apply(simp add: NegPos_map_simps match_simplematcher_Iface match_simplematcher_Iface_not)
+    apply(case_tac "compress_pos_interfaces (getPos ifces)")
+     apply(simp_all)
+    apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_Some)
+    apply(simp split:split_if_asm)
+    oops
+    
+     
+
   (*TODO: at the moment, this does nothing. it is just a start*)
   definition compress_normalize_interfaces :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where 
     "compress_normalize_interfaces m = (case primitive_extractor (is_Iiface, iiface_sel) m 
