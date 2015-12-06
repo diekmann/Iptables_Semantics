@@ -552,26 +552,92 @@ lemma rmLogEmpty_rwReject_good_to_simple: "good_ruleset rs \<Longrightarrow> sim
 
 subsection{*Matching*}
 
+(*TODO use this!*)
+fun optimize_matches_option :: "('a match_expr \<Rightarrow> 'a match_expr option) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
+  "optimize_matches_option _ [] = []" |
+  "optimize_matches_option f (Rule m a#rs) = (case f m of None \<Rightarrow> optimize_matches_option f rs | Some m \<Rightarrow> (Rule m a)#optimize_matches_option f rs)"
+
+lemma optimize_matches_option_generic:
+  assumes "\<forall> r \<in> set rs. P (get_match r) (get_action r)"
+      and "(\<And>m m' a. P m a \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p = matches \<gamma> m a p)"
+      and "(\<And>m a. P m a \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches \<gamma> m a p)"
+  shows "approximating_bigstep_fun \<gamma> p (optimize_matches_option f rs) s = approximating_bigstep_fun \<gamma> p rs s"
+    using assms proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
+      case Decision thus ?case by (simp add: Decision_approximating_bigstep_fun)
+    next
+      case (Nomatch \<gamma> p m a rs) thus ?case
+        apply(simp)
+        apply(cases "f m")
+         apply(simp; fail)
+        apply(simp del: approximating_bigstep_fun.simps)
+        apply(rename_tac m')
+        apply(subgoal_tac "\<not> matches \<gamma> m' a p")
+         apply(simp; fail)
+        using assms by blast
+    next
+      case (Match \<gamma> p m a rs) thus ?case
+        apply(cases "f m")
+         apply(simp; fail)
+        apply(simp del: approximating_bigstep_fun.simps)
+        apply(rename_tac m')
+        apply(subgoal_tac "matches \<gamma> m' a p")
+         apply(simp split: action.split; fail)
+        using assms by blast
+    qed(simp)
+
+lemma optimize_matches_option_simple_ruleset: "simple_ruleset rs \<Longrightarrow> simple_ruleset (optimize_matches_option f rs)"
+  proof(induction rs rule:optimize_matches_option.induct)
+  qed(simp_all add: simple_ruleset_def split: option.split)
+
+lemma optimize_matches_option_preserves: "(\<And> r m. r \<in> set rs \<Longrightarrow> f (get_match r) = Some m \<Longrightarrow> P m) \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches_option f rs). P m"
+  apply(induction rs rule: optimize_matches_option.induct)
+   apply(simp)
+  apply(simp split: option.split)
+  by fastforce
+
+
+lemma optimize_matches_option_append: "optimize_matches_option f (rs1@rs2) = optimize_matches_option f rs1 @ optimize_matches_option f rs2"
+  proof(induction rs1 rule: optimize_matches_option.induct)
+  qed(simp_all split: option.split)
+
+
+
+
 definition optimize_matches :: "('a match_expr \<Rightarrow> 'a match_expr) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
-  "optimize_matches f rs = map (\<lambda>r. Rule (f (get_match r)) (get_action r)) rs"
+  "optimize_matches f rs =  optimize_matches_option (\<lambda>m. (if matcheq_matchNone (f m) then None else Some (f m))) rs"
+
+
+lemma optimize_matches_matches_fst: "matches \<gamma> (f m) a p \<Longrightarrow> optimize_matches f (Rule m a # rs) = (Rule (f m) a)# optimize_matches f rs"
+  apply(simp add: optimize_matches_def)
+  by (meson matcheq_matchNone_not_matches)
+
+lemma optimize_matches_append: "optimize_matches f (rs1@rs2) = optimize_matches f rs1 @ optimize_matches f rs2"
+  by(simp add: optimize_matches_def optimize_matches_option_append)
 
 
 lemma optimize_matches_generic: "\<forall> r \<in> set rs. P (get_match r) (get_action r) \<Longrightarrow> 
       (\<And>m a. P m a \<Longrightarrow> matches \<gamma> (f m) a p = matches \<gamma> m a p) \<Longrightarrow>
       approximating_bigstep_fun \<gamma> p (optimize_matches f rs) s = approximating_bigstep_fun \<gamma> p rs s"
-  proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
-    case (Match \<gamma> p m a rs) thus ?case by(case_tac a)(simp_all add: optimize_matches_def)
-  qed(simp_all add: optimize_matches_def)
+  unfolding optimize_matches_def
+  apply(rule optimize_matches_option_generic)
+    apply(simp; fail)
+   apply(simp split: split_if_asm)
+   apply blast
+  apply(simp split: split_if_asm)
+  using matcheq_matchNone_not_matches by fast
 
-(*TODO: us this in Transform.thy to simplify proofs*)
+
+(*TODO: use this in Transform.thy to simplify proofs*)
 lemma optimize_matches_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_match r))) \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches f rs). P m"
-  by(induction rs) (simp_all add: optimize_matches_def)
+  unfolding optimize_matches_def
+  apply(rule optimize_matches_option_preserves)
+  by(auto split: split_if_asm)
 
 lemma optimize_matches: "\<forall>m a. matches \<gamma> (f m) a p = matches \<gamma> m a p \<Longrightarrow> approximating_bigstep_fun \<gamma> p (optimize_matches f rs) s = approximating_bigstep_fun \<gamma> p rs s"
   using optimize_matches_generic[where P="\<lambda>_ _. True"] by metis
 
 lemma optimize_matches_simple_ruleset: "simple_ruleset rs \<Longrightarrow> simple_ruleset (optimize_matches f rs)"
-  by(simp add: optimize_matches_def simple_ruleset_def)
+  by(simp add: optimize_matches_def optimize_matches_option_simple_ruleset)
 
 lemma optimize_matches_opt_MatchAny_match_expr: "approximating_bigstep_fun \<gamma> p (optimize_matches opt_MatchAny_match_expr rs) s = approximating_bigstep_fun \<gamma> p rs s"
 using optimize_matches opt_MatchAny_match_expr_correct by metis

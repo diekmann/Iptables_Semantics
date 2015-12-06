@@ -271,6 +271,10 @@ fun normalize_rules_dnf :: "'a rule list \<Rightarrow> 'a rule list" where
   "normalize_rules_dnf [] = []" |
   "normalize_rules_dnf ((Rule m a)#rs) = (map (\<lambda>m. Rule m a) (normalize_match m))@(normalize_rules_dnf rs)"
 
+lemma normalize_rules_dnf_append: "normalize_rules_dnf (rs1@rs2) = normalize_rules_dnf rs1 @ normalize_rules_dnf rs2"
+  proof(induction rs1 rule: normalize_rules_dnf.induct)
+  qed(simp_all)
+
 lemma normalize_rules_dnf_def2: "normalize_rules_dnf = normalize_rules normalize_match"
   proof(simp add: fun_eq_iff, intro allI)
     fix x::"'a rule list" show "normalize_rules_dnf x = normalize_rules normalize_match x"
@@ -372,17 +376,30 @@ lemma "normalize_match (MatchNot (MatchAnd (Match ip_src) (Match tcp))) = [Match
 subsection{*Functions which preserve @{const normalized_nnf_match}*}
 
 (* TODO: this is the place to collect functions that maintain the normalized structure *)
-lemma optimize_matches_normalized_nnf_match: "\<lbrakk>\<forall> r \<in> set rs. normalized_nnf_match (get_match r); \<forall>m. normalized_nnf_match m \<longrightarrow> normalized_nnf_match (f m) \<rbrakk> \<Longrightarrow>
-      \<forall> r \<in> set (optimize_matches f rs). normalized_nnf_match (get_match r)"
+lemma optimize_matches_option_normalized_nnf_match: "(\<And> r. r \<in> set rs \<Longrightarrow> normalized_nnf_match (get_match r)) \<Longrightarrow>
+     (\<And>m m'. normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m') \<Longrightarrow>
+      \<forall> r \<in> set (optimize_matches_option f rs). normalized_nnf_match (get_match r)"
     proof(induction rs)
-      case Nil thus ?case unfolding optimize_matches_def by simp
+      case Nil thus ?case by simp
     next
       case (Cons r rs)
-      from Cons.IH Cons.prems have IH: "\<forall>r\<in>set (optimize_matches f rs). normalized_nnf_match (get_match r)" by simp
-      from Cons.prems have "\<forall>r\<in>set (optimize_matches f [r]). normalized_nnf_match (get_match r)"
-        by(simp add: optimize_matches_def)
-      with IH show ?case by(simp add: optimize_matches_def)
+      from Cons.IH Cons.prems have IH: "\<forall>r\<in>set (optimize_matches_option f rs). normalized_nnf_match (get_match r)" by simp
+      from Cons.prems have "\<forall>r\<in>set (optimize_matches_option f [r]). normalized_nnf_match (get_match r)"
+        apply(cases r)
+        apply(simp split: option.split)
+        by force (*1s*)
+      with IH show ?case by(cases r, simp split: option.split_asm)
     qed
+
+
+
+lemma optimize_matches_normalized_nnf_match: "\<lbrakk>\<forall> r \<in> set rs. normalized_nnf_match (get_match r); \<forall>m. normalized_nnf_match m \<longrightarrow> normalized_nnf_match (f m) \<rbrakk> \<Longrightarrow>
+      \<forall> r \<in> set (optimize_matches f rs). normalized_nnf_match (get_match r)"
+  unfolding optimize_matches_def
+  apply(rule optimize_matches_option_normalized_nnf_match)
+   apply(simp; fail)
+  apply(simp split: split_if_asm)
+  by blast
 
 
 lemma normalize_rules_dnf_normalized_nnf_match: "\<forall>x \<in> set (normalize_rules_dnf rs). normalized_nnf_match (get_match x)"

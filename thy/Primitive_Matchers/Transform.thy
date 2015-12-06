@@ -57,7 +57,7 @@ lemma remdups_rev_preserve_matches: "\<forall> m \<in> get_match ` set rs. P m \
 (*TODO: closure bounds*)
 
 
-subsection{*Optimize and Normalize to NNF fomr*}
+subsection{*Optimize and Normalize to NNF form*}
 
 (*without normalize_rules_dnf, the result cannot be normalized as optimize_primitive_univ can contain MatchNot MatchAny*)
 definition transform_optimize_dnf_strict :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where 
@@ -65,6 +65,11 @@ definition transform_optimize_dnf_strict :: "common_primitive rule list \<Righta
         normalize_rules_dnf \<circ> (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ))"
 
 
+(*TODO move*)
+(*TODO: simplifier loops with this lemma*)
+lemma optimize_matches_fst: "optimize_matches f (r#rs) = optimize_matches f [r]@optimize_matches f rs"
+by(cases r)(simp add: optimize_matches_def)
+  
 
 theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
       shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
@@ -108,7 +113,11 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
     have tf1: "\<And>r rs. transform_optimize_dnf_strict (r#rs) =
       (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) [r])))@
         transform_optimize_dnf_strict rs"
-      unfolding transform_optimize_dnf_strict_def by(simp add: optimize_matches_def)
+      unfolding transform_optimize_dnf_strict_def
+      apply(simp)
+      apply(subst optimize_matches_fst)
+      apply(simp add: normalize_rules_dnf_append optimize_matches_append)
+      done
 
     --"if the individual optimization functions preserve a property, then the whole thing does"
     { fix P m
@@ -117,19 +126,29 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
       assume p3: "\<forall>m. P m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). P m')"
       { fix rs
         have "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs). P m"
-          apply(induction rs)
-           apply(simp add: optimize_matches_def)
-          apply(simp add: optimize_matches_def)
-          using p1 p2 p3 by simp
+          apply(rule optimize_matches_preserves)
+          using p1 p2 by simp (*1s*)
       } note opt1=this
-      have "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). P m"
-        apply(drule opt1)
-        apply(induction rs)
-         apply(simp add: optimize_matches_def transform_optimize_dnf_strict_def)
-        apply(simp add: tf1 optimize_matches_def)
+      { fix rs
+        have "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (normalize_rules_dnf rs). P m"
+        apply(induction rs rule: normalize_rules_dnf.induct)
+         apply(simp; fail)
+        apply(simp)
         apply(safe)
          apply(simp_all)
-        using p1 p2 p3  by(simp)
+        using p3 by(simp)
+      } note opt2=this
+      { fix rs
+        have "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches opt_MatchAny_match_expr rs). P m"
+          apply(rule optimize_matches_preserves)
+          using p2  by simp (*1s*)
+      } note opt3=this
+      have "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). P m"
+        apply(subst transform_optimize_dnf_strict_def)
+        apply(drule opt1)
+        apply(drule opt2)
+        apply(drule opt3)
+        by simp
     } note matchpred_rule=this
 
     { fix m
@@ -192,10 +211,13 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
       } note x=this
       from normalize_rules_dnf_normalized_nnf_match[of "rs"]
       have "\<forall>x \<in> set (normalize_rules_dnf rs). normalized_nnf_match (get_match x)" .
+      (*TODO simplify proof?*)
+      hence "\<forall>m \<in> get_match ` set (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf rs)). normalized_nnf_match m"
+        apply -
+        apply(rule optimize_matches_preserves)
+        using x by blast
       hence "\<forall>x \<in> set (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf rs)). normalized_nnf_match (get_match x)" 
-        apply(induction rs rule: normalize_rules_dnf.induct)
-         apply(simp_all add: optimize_matches_def x)
-        using x by fastforce
+        by blast
     } 
     thus "\<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_nnf_match m"
       unfolding transform_optimize_dnf_strict_def by simp
@@ -320,6 +342,10 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
       normalize_rules normalize_src_ips \<circ>
       normalize_rules normalize_dst_ports \<circ>
       normalize_rules normalize_src_ports"
+      (*TODO: protocols and stuff? *)
+      (*TODO interfaces and protocols here?*)
+      (*optimize_matches_option compress_normalize_interfaces probably not because it can introduce new interfaces
+        the discriminators are pretty fucked up :( *)
 
 
 
@@ -349,6 +375,14 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
      using assms(1) apply simp
     using assms(2) by simp
 
+
+(*the simplifier preferes this*)
+(*TODO: move*)
+(*TODO: \<And> instead of \<forall> ?*)
+lemma optimize_matches_option_preserves':
+  "\<forall> m \<in> set rs. P (get_match m) \<Longrightarrow> \<forall>m. P m \<longrightarrow> (\<forall>m'. f m = Some m' \<longrightarrow> P m') \<Longrightarrow> \<forall>m \<in> set (optimize_matches_option f rs). P (get_match m)"
+  using optimize_matches_option_preserves[simplified] by metis
+thm optimize_matches_option_preserves
 
 theorem transform_normalize_primitives:
   -- "all discriminators which will not be normalized remain unchanged"
@@ -397,6 +431,10 @@ theorem transform_normalize_primitives:
     thus "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m"
       unfolding transform_normalize_primitives_def by simp
 
+    (*TODO: add this as generic simp rule somewhere? But simplifier loops? what to do?*)
+    have local_simp: "\<And>rs1 rs2. approximating_bigstep_fun ?\<gamma> p rs1 s = approximating_bigstep_fun ?\<gamma> p rs2 s \<Longrightarrow>
+      (approximating_bigstep_fun ?\<gamma> p rs1 s = t) = (approximating_bigstep_fun ?\<gamma> p rs2 s = t)" by simp
+
     show "?\<gamma>,p\<turnstile> \<langle>transform_normalize_primitives rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_t]]
      unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
@@ -422,7 +460,7 @@ theorem transform_normalize_primitives:
 
 
     from normalize_src_ports_normalized_n_primitive
-    have normalized_src_ports: "\<forall>m \<in> get_match ` set ?rs1.  normalized_src_ports m"
+    have normalized_src_ports: "\<forall>m \<in> get_match ` set ?rs1. normalized_src_ports m"
     using normalize_rules_property[OF normalized, where f=normalize_src_ports and Q=normalized_src_ports] by fast
       (*why u no rule?*)
     from normalize_dst_ports_normalized_n_primitive
@@ -555,7 +593,7 @@ theorem transform_normalize_primitives:
    unfolding transform_normalize_primitives_def
    apply(simp)
    apply(rule normalize_rules_preserves')+
-       apply(simp)
+       apply(simp; fail)
       using x[OF wf_disc_sel_common_primitive(1), 
              of "(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))",folded normalize_src_ports_def normalize_ports_step_def] apply blast
      using x[OF wf_disc_sel_common_primitive(2), 

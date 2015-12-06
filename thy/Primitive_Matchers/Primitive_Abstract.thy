@@ -92,6 +92,8 @@ begin
            done
      qed(simp_all add: bunch_of_lemmata_about_matches)
   
+
+
   private lemma abstract_primitive_help1: assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
         and prem: "approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision FinalAllow"
         shows "approximating_bigstep_fun (common_matcher, in_doubt_allow) p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalAllow"
@@ -105,7 +107,9 @@ begin
         case (MatchAccept p m a rs)
           from MatchAccept.prems abstract_primitive_in_doubt_allow_Allow MatchAccept.hyps have
             "matches ?\<gamma> (abstract_primitive disc m) action.Accept p" by simp
-          thus ?case by(simp add: optimize_matches_def MatchAccept.hyps)
+          thus ?case
+          apply(simp add: MatchAccept.hyps(2))
+          using optimize_matches_matches_fst by fastforce 
         next
         case (Nomatch p m a rs) thus ?case
           proof(cases "matches ?\<gamma> (abstract_primitive disc m) a p")
@@ -118,7 +122,8 @@ begin
               from Nomatch.hyps(1) Nomatch.prems(3) abstract_primitive_in_doubt_allow_Allow2 have
                 "a = action.Drop \<Longrightarrow> \<not> matches ?\<gamma> (abstract_primitive disc m) action.Drop p" by simp
               with True `a = action.Accept \<or> a = action.Drop` have "a = action.Accept" by blast
-              with True show ?thesis by(simp add: optimize_matches_def)
+              with True show ?thesis
+                using optimize_matches_matches_fst by fastforce 
             qed
         qed(simp_all add: simple_ruleset_def)
   qed
@@ -156,22 +161,45 @@ begin
         case (MatchAccept p m a rs)
           from MatchAccept.prems abstract_primitive_in_doubt_allow_Allow MatchAccept.hyps have
             1: "matches ?\<gamma> (abstract_primitive disc m) action.Accept p" by simp
-          from MatchAccept have "approximating_bigstep_fun ?\<gamma> p
+          with MatchAccept have "approximating_bigstep_fun ?\<gamma> p
             (Rule (abstract_primitive disc m) action.Accept # (optimize_matches (abstract_primitive disc) rs)) Undecided = Decision FinalDeny"
-            by(simp add: optimize_matches_def)
+            using optimize_matches_matches_fst by metis
           with 1 have False by(simp)
           thus ?case ..
         next
         case (Nomatch p m a rs) thus ?case
           proof(cases "matches ?\<gamma> (abstract_primitive disc m) a p")
-            case False with Nomatch show ?thesis
+            case False
+            with Nomatch show ?thesis
               apply(simp add: optimize_matches_def)
-              using simple_ruleset_tail by blast
+              (*sledgehammer*) (*TODO*)
+              proof -
+                assume a1: "\<lbrakk>simple_ruleset rs; approximating_bigstep_fun (common_matcher, in_doubt_allow) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = Decision FinalDeny\<rbrakk> \<Longrightarrow> approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision FinalDeny"
+                assume a2: "simple_ruleset (Rule m a # rs)"
+                assume a3: "\<not> matches (common_matcher, in_doubt_allow) (abstract_primitive disc m) a p"
+                assume a4: "approximating_bigstep_fun (common_matcher, in_doubt_allow) p (case if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m) of None \<Rightarrow> optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs | Some m \<Rightarrow> Rule m a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = Decision FinalDeny"
+                have f5: "approximating_bigstep_fun (common_matcher, in_doubt_allow) p (Rule (abstract_primitive disc m) a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = approximating_bigstep_fun (common_matcher, in_doubt_allow) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided"
+                  using a3 by simp
+                have f6: "Rule (abstract_primitive disc m) a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs = (case Some (abstract_primitive disc m) of None \<Rightarrow> optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs | Some m \<Rightarrow> Rule m a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs)"
+                  by simp
+                have f7: "simple_ruleset rs"
+                  using a2 simple_ruleset_tail by blast
+                have f8: "None = (if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) \<longrightarrow> approximating_bigstep_fun (common_matcher, in_doubt_allow) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = Decision FinalDeny"
+                  using a4 by force
+                { assume "approximating_bigstep_fun (common_matcher, in_doubt_allow) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided \<noteq> Decision FinalDeny"
+                  hence "Rule (abstract_primitive disc m) a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs \<noteq> (case if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m) of None \<Rightarrow> optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs | Some m \<Rightarrow> Rule m a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs)"
+                    using f5 a4 by force
+                  hence "simple_ruleset rs \<and> approximating_bigstep_fun (common_matcher, in_doubt_allow) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = Decision FinalDeny"
+                    using f8 f7 f6 by presburger }
+                thus "approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision FinalDeny"
+                  using a2 a1 simple_ruleset_tail by blast
+              qed
             next
             case True
-              from Nomatch.prems(2) have 1: "approximating_bigstep_fun ?\<gamma> p
+              from Nomatch.prems(2) True have 1: "approximating_bigstep_fun ?\<gamma> p
                 (Rule (abstract_primitive disc m) a # (optimize_matches (abstract_primitive disc) rs)) Undecided = Decision FinalDeny"
-                by(simp add: optimize_matches_def)
+                using optimize_matches_matches_fst by metis
+                
               from Nomatch.prems simple_ruleset_def have "a = action.Accept \<or> a = action.Drop" by force
               from Nomatch.hyps(1) Nomatch.prems(3) abstract_primitive_in_doubt_allow_Allow2 have
                 "a = action.Drop \<Longrightarrow> \<not> matches ?\<gamma> (abstract_primitive disc m) action.Drop p" by simp
@@ -234,7 +262,9 @@ begin
         case (MatchDrop p m a rs)
           from MatchDrop.prems abstract_primitive_in_doubt_deny_Deny MatchDrop.hyps have
             "matches ?\<gamma> (abstract_primitive disc m) action.Drop p" by simp
-          thus ?case by(simp add: optimize_matches_def MatchDrop.hyps)
+          thus ?case 
+          apply(simp add: MatchDrop.hyps(2))
+          using optimize_matches_matches_fst by fastforce
         next
         case (Nomatch p m a rs) thus ?case
           proof(cases "matches ?\<gamma> (abstract_primitive disc m) a p")
@@ -247,7 +277,7 @@ begin
               from Nomatch.hyps(1) Nomatch.prems(3) abstract_primitive_in_doubt_deny_Deny2 have
                 "a = action.Accept \<Longrightarrow> \<not> matches ?\<gamma> (abstract_primitive disc m) action.Accept p" by(simp)
               with True `a = action.Accept \<or> a = action.Drop` have "a = action.Drop" by blast
-              with True show ?thesis by(simp add: optimize_matches_def)
+              with True show ?thesis using optimize_matches_matches_fst by fastforce
             qed
         qed(simp_all add: simple_ruleset_def)
   qed
@@ -292,7 +322,7 @@ begin
             1: "matches ?\<gamma> (abstract_primitive disc m) action.Drop p" by simp
           from MatchDrop have "approximating_bigstep_fun ?\<gamma> p
             (Rule (abstract_primitive disc m) action.Drop # (optimize_matches (abstract_primitive disc) rs)) Undecided = Decision FinalAllow"
-            by(simp add: optimize_matches_def)
+          using optimize_matches_matches_fst 1 by fastforce
           with 1 have False by(simp)
           thus ?case ..
         next
@@ -300,12 +330,33 @@ begin
           proof(cases "matches ?\<gamma> (abstract_primitive disc m) a p")
             case False with Nomatch show ?thesis
               apply(simp add: optimize_matches_def)
-              using simple_ruleset_tail by blast
+              (*TODO sledgehammer and a copy from above*)
+              proof -
+                assume a1: "\<lbrakk>simple_ruleset rs; approximating_bigstep_fun (common_matcher, in_doubt_deny) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = Decision FinalAllow\<rbrakk> \<Longrightarrow> approximating_bigstep_fun (common_matcher, in_doubt_deny) p rs Undecided = Decision FinalAllow"
+                assume a2: "simple_ruleset (Rule m a # rs)"
+                assume a3: "\<not> matches (common_matcher, in_doubt_deny) (abstract_primitive disc m) a p"
+                assume a4: "approximating_bigstep_fun (common_matcher, in_doubt_deny) p (case if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m) of None \<Rightarrow> optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs | Some m \<Rightarrow> Rule m a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = Decision FinalAllow"
+                have f5: "approximating_bigstep_fun (common_matcher, in_doubt_deny) p (Rule (abstract_primitive disc m) a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = approximating_bigstep_fun (common_matcher, in_doubt_deny) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided"
+                  using a3 by simp
+                have f6: "Rule (abstract_primitive disc m) a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs = (case Some (abstract_primitive disc m) of None \<Rightarrow> optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs | Some m \<Rightarrow> Rule m a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs)"
+                  by simp
+                have f7: "simple_ruleset rs"
+                  using a2 simple_ruleset_tail by blast
+                have f8: "None = (if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) \<longrightarrow> approximating_bigstep_fun (common_matcher, in_doubt_deny) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = Decision FinalAllow"
+                  using a4 by force
+                { assume "approximating_bigstep_fun (common_matcher, in_doubt_deny) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided \<noteq> Decision FinalAllow"
+                  hence "Rule (abstract_primitive disc m) a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs \<noteq> (case if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m) of None \<Rightarrow> optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs | Some m \<Rightarrow> Rule m a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs)"
+                    using f5 a4 by force
+                  hence "simple_ruleset rs \<and> approximating_bigstep_fun (common_matcher, in_doubt_deny) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = Decision FinalAllow"
+                    using f8 f7 f6 by presburger }
+                thus "approximating_bigstep_fun (common_matcher, in_doubt_deny) p rs Undecided = Decision FinalAllow"
+                  using a2 a1 simple_ruleset_tail by blast
+              qed
             next
             case True
-              from Nomatch.prems(2) have 1: "approximating_bigstep_fun ?\<gamma> p
+              from Nomatch.prems(2) True have 1: "approximating_bigstep_fun ?\<gamma> p
                 (Rule (abstract_primitive disc m) a # (optimize_matches (abstract_primitive disc) rs)) Undecided = Decision FinalAllow"
-                by(simp add: optimize_matches_def)
+                using optimize_matches_matches_fst by metis
               from Nomatch.prems simple_ruleset_def have "a = action.Accept \<or> a = action.Drop" by force
               from Nomatch.hyps(1) Nomatch.prems(3) abstract_primitive_in_doubt_deny_Deny2 have
                 "a = action.Accept \<Longrightarrow> \<not> matches ?\<gamma> (abstract_primitive disc m) action.Accept p" by simp
