@@ -78,7 +78,7 @@ proof -
     apply(drule_tac rs=rs and \<Gamma>=\<Gamma> in FinalAllows_subseteq_in_doubt_allow)
      using simple_imp_good_ruleset assms(4) apply blast
     by blast
-  thus ?thesis unfolding newpkt_def preprocess_def using transform_simple_fw(2)[OF assms(4)] by blast
+  thus ?thesis unfolding newpkt_def preprocess_def using transform_simple_fw_upper(2)[OF assms(4)] by blast
 qed
 
 
@@ -237,6 +237,23 @@ lemma FinalAllow_approximating_in_doubt_deny: "matcher_agree_on_exact_matches \<
 corollary FinalAllows_subseteq_in_doubt_deny: "matcher_agree_on_exact_matches \<gamma> \<beta> \<Longrightarrow> good_ruleset rs \<Longrightarrow>
    {p. (\<beta>, in_doubt_deny),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow} \<subseteq> {p. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow}"
 using FinalAllow_approximating_in_doubt_deny by (metis (lifting, full_types) Collect_mono)
+
+
+
+corollary new_packets_to_simple_firewall_underapproximation:
+  defines "preprocess rs \<equiv> lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new rs)))"
+  and "newpkt p \<equiv> match_tcp_flags ipt_tcp_syn (p_tcp_flags p) \<and> p_tag_ctstate p = CT_New"
+  assumes "matcher_agree_on_exact_matches \<gamma> common_matcher" and "simple_ruleset rs"
+  shows "{p. simple_fw (to_simple_firewall (preprocess rs)) p = Decision FinalAllow \<and> newpkt p} \<subseteq> {p. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow \<and> newpkt p}"
+proof -
+  from assms(3) have "{p. (common_matcher, in_doubt_deny),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
+      {p. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow \<and> newpkt p}"
+    apply(drule_tac rs=rs and \<Gamma>=\<Gamma> in FinalAllows_subseteq_in_doubt_deny)
+     using simple_imp_good_ruleset assms(4) apply blast
+    by blast
+  thus ?thesis unfolding newpkt_def preprocess_def using transform_simple_fw_lower(2)[OF assms(4)] by blast
+qed
+
 
 
 subsection{*Approximating Closures*}

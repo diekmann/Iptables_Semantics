@@ -331,6 +331,43 @@ proof -
 qed
 
 
+(*copy&paste from transform_remove_unknowns_upper*)
+corollary transform_remove_unknowns_lower: defines "lower \<equiv> optimize_matches_a lower_closure_matchexpr"
+   assumes simplers: "simple_ruleset rs"
+    shows "(common_matcher, in_doubt_deny),p\<turnstile> \<langle>lower rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_deny),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+      and "simple_ruleset (lower rs)"
+      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (lower rs). \<not> has_disc disc m"
+      and "\<forall> m \<in> get_match ` set (lower rs). \<not> has_disc is_Extra m"
+      and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (lower rs). normalized_n_primitive disc_sel f m"
+      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (lower rs). \<not> has_disc_negated disc neg m"
+proof -
+  from simplers have upper: "lower rs = transform_remove_unknowns_generic (common_matcher, in_doubt_deny) rs"
+    apply(simp add: transform_remove_unknowns_generic_def lower_def)
+    apply(erule optimize_matches_a_simple_ruleset_eq)
+    by (simp add: lower_closure_matchexpr_generic)
+  
+  with transform_remove_unknowns_generic[OF simplers wf_in_doubt_deny packet_independent_unknown_match_tacs(2), simplified lower_closure_matchexpr_generic]
+    show "(common_matcher, in_doubt_deny),p\<turnstile> \<langle>lower rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_deny),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t" 
+      and "simple_ruleset (lower rs)"
+      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (lower rs). \<not> has_disc disc m"
+      and "\<forall> m \<in> get_match ` set (lower rs). \<not> has_disc is_Extra m"
+      and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (lower rs). normalized_n_primitive disc_sel f m"
+      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (lower rs). \<not> has_disc_negated disc neg m"
+    apply -
+         apply(simp;fail)
+        apply(simp;fail)
+       apply presburger
+      using has_unknowns_common_matcher apply auto[1]
+     apply (metis packet_independent_unknown_match_tacs(2) simplers transform_remove_unknowns_generic(5) wf_in_doubt_deny)
+    by presburger
+qed
+
 
 
 subsection{*Normalizing and Transforming Primitives*}
@@ -941,6 +978,147 @@ lemma transform_upper_closure:
   qed
 
 
+(*copy&paste from transform_upper_closure*)
+lemma transform_lower_closure:
+  assumes simplers: "simple_ruleset rs"
+  -- "semantics are preserved"
+  shows "(common_matcher, in_doubt_deny),p\<turnstile> \<langle>lower_closure rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_deny),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+  and "simple_ruleset (lower_closure rs)"
+  -- "simple, normalized rules without unknowns"
+  and "\<forall> m \<in> get_match ` set (lower_closure rs). normalized_nnf_match m \<and>
+         normalized_src_ports m \<and>
+         normalized_dst_ports m \<and>
+         normalized_src_ips m \<and>
+         normalized_dst_ips m \<and>
+         \<not> has_disc is_Extra m"
+  -- "no new primitives are introduced"
+  and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
+        \<forall> r \<in> get_match ` set rs. \<not> has_disc disc r \<Longrightarrow> \<forall> r \<in> get_match ` set (lower_closure rs). \<not> has_disc disc r"
+  and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
+        \<forall> r \<in> get_match ` set rs. \<not> has_disc_negated disc neg r \<Longrightarrow> \<forall> r \<in> get_match ` set (lower_closure rs). \<not> has_disc_negated disc neg r"
+  proof -
+    { fix m a
+        have "Rule m a \<in> set (lower_closure rs) \<Longrightarrow>
+            (a = action.Accept \<or> a = action.Drop) \<and>
+             normalized_nnf_match m \<and>
+             normalized_src_ports m \<and>
+             normalized_dst_ports m \<and>
+             normalized_src_ips m \<and>
+             normalized_dst_ips m \<and>
+              \<not> has_disc is_Extra m"
+        using simplers
+        unfolding lower_closure_def
+        apply(simp add: remdups_rev_set)
+        apply(frule transform_remove_unknowns_lower(4))
+        apply(drule transform_remove_unknowns_lower(2))
+        thm transform_optimize_dnf_strict[OF _ wf_in_doubt_deny]
+        apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_deny, where disc=is_Extra])
+        apply(thin_tac "\<forall>m\<in>get_match ` set (optimize_matches_a lower_closure_matchexpr rs). \<not> has_disc is_Extra m")
+        apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_deny])
+        apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_deny])
+        thm transform_normalize_primitives[OF _ wf_in_doubt_deny]
+        apply(frule(1) transform_normalize_primitives(3)[OF _ wf_in_doubt_deny, of _ is_Extra])
+          apply(simp_all)[2]
+        apply(thin_tac "\<forall>m\<in>get_match ` set (transform_optimize_dnf_strict (optimize_matches_a lower_closure_matchexpr rs)). \<not> has_disc is_Extra m")
+        apply(frule(1) transform_normalize_primitives(5)[OF _ wf_in_doubt_deny])
+        apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_deny], simp)
+        thm transform_optimize_dnf_strict[OF _ wf_in_doubt_deny]
+        apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_deny, where disc=is_Extra])
+        apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_deny])
+        apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_deny, of _ "(is_Src_Ports, src_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
+         apply(simp add: normalized_src_ports_def2; fail)
+        apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_deny, of _ "(is_Dst_Ports, dst_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
+         apply(simp add: normalized_dst_ports_def2; fail)
+        apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_deny, of _ "(is_Src, src_sel)" normalized_cidr_ip])
+         apply(simp add: normalized_src_ips_def2; fail)
+        apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_deny, of _ "(is_Dst, dst_sel)" normalized_cidr_ip])
+         apply(simp add: normalized_dst_ips_def2; fail)
+        apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_deny])
+        apply(simp)
+        apply(subgoal_tac "(a = action.Accept \<or> a = action.Drop)")
+         prefer 2
+         apply(simp_all add: simple_ruleset_def)
+         apply fastforce
+        apply(simp add: normalized_src_ports_def2 normalized_dst_ports_def2 normalized_src_ips_def2 normalized_dst_ips_def2)
+        apply(intro conjI)
+              apply fastforce+
+        done
+    } note 1=this
+
+    from 1 show "simple_ruleset (lower_closure rs)"
+      apply(simp add: simple_ruleset_def)
+      apply(clarify)
+      apply(rename_tac r)
+      apply(case_tac r)
+      apply(simp)
+      by blast
+
+
+    from 1 show "\<forall> m \<in> get_match ` set (lower_closure rs). normalized_nnf_match m \<and>
+         normalized_src_ports m \<and>
+         normalized_dst_ports m \<and>
+         normalized_src_ips m \<and>
+         normalized_dst_ips m \<and>
+         \<not> has_disc is_Extra m"
+      apply(simp)
+      apply(clarify)
+      apply(rename_tac r)
+      apply(case_tac r)
+      apply(simp)
+      done
+      
+
+    show "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
+            \<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (lower_closure rs). \<not> has_disc disc m"
+    using simplers
+    unfolding lower_closure_def
+    apply - 
+    apply(frule(1) transform_remove_unknowns_lower(3)[where disc=disc])
+    apply(drule transform_remove_unknowns_lower(2))
+    apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_deny, where disc=disc])
+    apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_deny])
+    apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_deny])
+    apply(frule(1) transform_normalize_primitives(3)[OF _ wf_in_doubt_deny, of _ disc])
+      apply(simp_all)[2]
+    apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_deny], simp)
+    apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_deny, where disc=disc])
+    apply(simp add: remdups_rev_set)
+    done
+
+    show"\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
+        \<forall> r \<in> get_match ` set rs. \<not> has_disc_negated disc neg r \<Longrightarrow> \<forall> r \<in> get_match ` set (lower_closure rs). \<not> has_disc_negated disc neg r"
+    using simplers
+    unfolding lower_closure_def
+    apply - 
+    apply(frule(1) transform_remove_unknowns_lower(6)[where disc=disc])
+    apply(drule transform_remove_unknowns_lower(2))
+    apply(frule(1) transform_optimize_dnf_strict(6)[OF _ wf_in_doubt_deny, where disc=disc])
+    apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_deny])
+    apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_deny])
+    apply(frule(1) transform_normalize_primitives(7)[OF _ wf_in_doubt_deny, of _ disc])
+      apply(simp_all)[2]
+    apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_deny], simp)
+    apply(frule(1) transform_optimize_dnf_strict(6)[OF _ wf_in_doubt_deny, where disc=disc])
+    apply(simp add: remdups_rev_set)
+    done
+
+    show "(common_matcher, in_doubt_deny),p\<turnstile> \<langle>lower_closure rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_deny),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+    using simplers
+    unfolding lower_closure_def
+    apply -
+    apply(frule transform_remove_unknowns_lower(1)[where p=p and s=s and t=t])
+    apply(drule transform_remove_unknowns_lower(2))
+    apply(frule transform_optimize_dnf_strict(1)[OF _ wf_in_doubt_deny, where p=p and s=s and t=t])
+    apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_deny])
+    apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_deny])
+    apply(frule(1) transform_normalize_primitives(1)[OF _ wf_in_doubt_deny, where p=p and s=s and t=t])
+    apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_deny], simp)
+    apply(frule transform_optimize_dnf_strict(1)[OF _ wf_in_doubt_deny, where p=p and s=s and t=t])
+    apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_deny])
+    apply(simp)
+    using approximating_bigstep_fun_remdups_rev
+    by (simp add: approximating_bigstep_fun_remdups_rev approximating_semantics_iff_fun_good_ruleset remdups_rev_simplers simple_imp_good_ruleset) 
+  qed
 
 
 

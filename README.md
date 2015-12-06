@@ -1,9 +1,5 @@
 # Iptables_Semantics
 
-| Component             | Status |
-| --------------------- | ------ |
-| Haskell tool          | [![Build Status](https://travis-ci.org/diekmann/Iptables_Semantics.svg)](https://travis-ci.org/diekmann/Iptables_Semantics) |
-
 A formal semantics of the Linux netfilter iptables firewall.
 Written in the [Isabelle](https://isabelle.in.tum.de/) interactive proof assistant.
 
@@ -20,7 +16,7 @@ It features
 ![isabelle/hol logo](https://raw.githubusercontent.com/diekmann/Iptables_Semantics/refactoring/images/isabelle.png "Isabelle/HOL")
 
 
-### Usage
+### Obtaining
 
 Checkout:
 This repository depends on the [seL4](https://github.com/seL4/l4v/) libraries (for the bitmagic operations on IPv4 addresses).
@@ -30,6 +26,8 @@ $ git submodule init
 $ git submodule update
 ```
 
+
+### Isabelle Theory files
 ---
 
 Checking all proofs:
@@ -40,6 +38,17 @@ $ isabelle build -v -d . -o document=pdf Iptables_Semantics_Examples
 This needs about 1h 10min CPU time (times two since we added more real-world data) on my i7 1.8GHz laptop.
 3:11h CPU time on a 16 core xeon (45min real-world time); about one hour real-time on my regular laptop -- it doesn't parallelize that well ;-) 
 
+
+Building the documentation:
+
+```
+$ isabelle build -d . -v -o document=pdf Iptables_Semantics_Documentation
+```
+The documentation summarizes the most important definitions and theorems.
+It is deliberately very very brief and only provides results.
+It should contain the summarizing correctness theorems for all executable functions we export.
+This is probably the best point to get started working with the theory files.
+
 ---
 
 To develop, we suggest to load the Bitmagic theory as heap-image:
@@ -48,6 +57,15 @@ $ isabelle jedit -d . -l Bitmagic
 ```
 
 Check the Examples directory to get started
+
+### Haskell Tool
+
+| Component             | Status |
+| --------------------- | ------ |
+| Haskell tool          | [![Build Status](https://travis-ci.org/diekmann/Iptables_Semantics.svg)](https://travis-ci.org/diekmann/Iptables_Semantics) |
+
+TODO: description here :-)
+
 
 ### Academic Publications
 
