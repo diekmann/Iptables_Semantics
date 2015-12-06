@@ -31,6 +31,12 @@ session "Iptables_Semantics" = Bitmagic +
     "root.tex"
     "mathpartir.sty"
 
+session "Iptables_Semantics_Documentation" = Iptables_Semantics +
+  theories
+    Documentation
+  document_files
+    "root.tex"
+    "mathpartir.sty"
 
 session "Iptables_Semantics_Examples" = Iptables_Semantics +
    theories
