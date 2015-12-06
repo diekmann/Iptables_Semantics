@@ -66,6 +66,7 @@ corollary FinalAllows_subseteq_in_doubt_allow: "matcher_agree_on_exact_matches \
 using FinalAllow_approximating_in_doubt_allow by (metis (lifting, full_types) Collect_mono)
 
 
+(*referenced by name in paper*)
 corollary new_packets_to_simple_firewall_overapproximation:
   defines "preprocess rs \<equiv> upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new rs)))"
   and "newpkt p \<equiv> match_tcp_flags ipt_tcp_syn (p_tcp_flags p) \<and> p_tag_ctstate p = CT_New"

@@ -464,7 +464,25 @@ term option_map (*l4v*)
     using primitive_extractor_correct(2) wf_disc_sel_common_primitive(5) by blast
     
   
-  (* won't work
+  lemma compress_normalize_interfaces_not_introduces_Iiface:
+    assumes am: "\<not> has_disc is_Iiface m"
+        and nm: "normalized_nnf_match m"
+        and am': "compress_normalize_interfaces m = Some m'"
+     shows "\<not> has_disc is_Iiface m'"
+   proof -
+        obtain as ms where asms: "primitive_extractor (is_Iiface, iiface_sel) m = (as, ms)" by fastforce
+        from am primitive_extractor_correct(4)[OF nm wf_disc_sel_common_primitive(5) asms] have 1: "\<not> has_disc is_Iiface ms" by simp
+        from am primitive_extractor_correct(7)[OF nm wf_disc_sel_common_primitive(5) asms] have 2: "as = [] \<and> ms = m" by simp
+        { fix i_pos is_neg
+          assume c: "compress_interfaces [] = Some (i_pos, is_neg)"
+          from c have "i_pos = ifaceAny \<and> is_neg = []" by(simp add: compress_interfaces_def)
+        } note compress_interfaces_Nil=this
+        from 1 2 am' show ?thesis 
+          by(auto simp add: compress_normalize_interfaces_def asms dest: compress_interfaces_Nil split: split_if_asm)
+   qed
+
+
+  (* won't work; try with (\<forall>a. \<not> disc (IIface a))
   lemma compress_normalize_interfaces_hasdisc:
     assumes am: "\<not> has_disc disc m"
         and nm: "normalized_nnf_match m"
