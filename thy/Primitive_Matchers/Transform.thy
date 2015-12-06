@@ -409,7 +409,7 @@ theorem transform_normalize_primitives:
 
     show simplers_t: "simple_ruleset (transform_normalize_primitives rs)"
       unfolding transform_normalize_primitives_def
-      by(simp add: simple_ruleset_normalize_rules simplers optimize_matches_option_simple_ruleset)
+      by(simp add: simple_ruleset_normalize_rules simplers)
 
     let ?rs1="normalize_rules normalize_src_ports rs"
     let ?rs2="normalize_rules normalize_dst_ports ?rs1"
