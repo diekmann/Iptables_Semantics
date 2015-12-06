@@ -596,6 +596,10 @@ lemma optimize_matches_option_preserves: "(\<And> r m. r \<in> set rs \<Longrigh
   by fastforce
 
 
+lemma optimize_matches_option_append: "optimize_matches_option f (rs1@rs2) = optimize_matches_option f rs1 @ optimize_matches_option f rs2"
+  proof(induction rs1 rule: optimize_matches_option.induct)
+  qed(simp_all split: option.split)
+
 
 
 
@@ -606,6 +610,9 @@ definition optimize_matches :: "('a match_expr \<Rightarrow> 'a match_expr) \<Ri
 lemma optimize_matches_matches_fst: "matches \<gamma> (f m) a p \<Longrightarrow> optimize_matches f (Rule m a # rs) = (Rule (f m) a)# optimize_matches f rs"
   apply(simp add: optimize_matches_def)
   by (meson matcheq_matchNone_not_matches)
+
+lemma optimize_matches_append: "optimize_matches f (rs1@rs2) = optimize_matches f rs1 @ optimize_matches f rs2"
+  by(simp add: optimize_matches_def optimize_matches_option_append)
 
 
 lemma optimize_matches_generic: "\<forall> r \<in> set rs. P (get_match r) (get_action r) \<Longrightarrow> 

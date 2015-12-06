@@ -57,7 +57,7 @@ lemma remdups_rev_preserve_matches: "\<forall> m \<in> get_match ` set rs. P m \
 (*TODO: closure bounds*)
 
 
-subsection{*Optimize and Normalize to NNF fomr*}
+subsection{*Optimize and Normalize to NNF form*}
 
 (*without normalize_rules_dnf, the result cannot be normalized as optimize_primitive_univ can contain MatchNot MatchAny*)
 definition transform_optimize_dnf_strict :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where 
@@ -69,20 +69,7 @@ definition transform_optimize_dnf_strict :: "common_primitive rule list \<Righta
 (*TODO: simplifier loops with this lemma*)
 lemma optimize_matches_fst: "optimize_matches f (r#rs) = optimize_matches f [r]@optimize_matches f rs"
 by(cases r)(simp add: optimize_matches_def)
-
-(*TODO: move and simplify with optimize_matches_option_append*)
-lemma optimize_matches_append: "optimize_matches f (rs1@rs2) = optimize_matches f rs1 @ optimize_matches f rs2"
-  apply(simp add: optimize_matches_def)
-  apply(induction rs1 rule: optimize_matches_option.induct)
-   apply(simp; fail)
-  apply(simp_all split: option.split)
-  by blast
   
-
-(*TODO move*)
-lemma normalize_rules_dnf_append: "normalize_rules_dnf (rs1@rs2) = normalize_rules_dnf rs1 @ normalize_rules_dnf rs2"
-  proof(induction rs1 rule: normalize_rules_dnf.induct)
-  qed(simp_all)
 
 theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
       shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
@@ -354,10 +341,11 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
       normalize_rules normalize_dst_ips \<circ>
       normalize_rules normalize_src_ips \<circ>
       normalize_rules normalize_dst_ports \<circ>
-      normalize_rules normalize_src_ports \<circ>
-      optimize_matches_option compress_normalize_interfaces"
+      normalize_rules normalize_src_ports"
       (*TODO: protocols and stuff? *)
       (*TODO interfaces and protocols here?*)
+      (*optimize_matches_option compress_normalize_interfaces probably not because it can introduce new interfaces
+        the discriminators are pretty fucked up :( *)
 
 
 
@@ -388,6 +376,14 @@ definition transform_normalize_primitives :: "common_primitive rule list \<Right
     using assms(2) by simp
 
 
+(*the simplifier preferes this*)
+(*TODO: move*)
+(*TODO: \<And> instead of \<forall> ?*)
+lemma optimize_matches_option_preserves':
+  "\<forall> m \<in> set rs. P (get_match m) \<Longrightarrow> \<forall>m. P m \<longrightarrow> (\<forall>m'. f m = Some m' \<longrightarrow> P m') \<Longrightarrow> \<forall>m \<in> set (optimize_matches_option f rs). P (get_match m)"
+  using optimize_matches_option_preserves[simplified] by metis
+thm optimize_matches_option_preserves
+
 theorem transform_normalize_primitives:
   -- "all discriminators which will not be normalized remain unchanged"
   defines "unchanged disc \<equiv> (\<forall>a. \<not> disc (Src_Ports a)) \<and> (\<forall>a. \<not> disc (Dst_Ports a)) \<and> (\<forall>a. \<not> disc (Src a)) \<and> (\<forall>a. \<not> disc (Dst a))"
@@ -415,18 +411,12 @@ theorem transform_normalize_primitives:
       unfolding transform_normalize_primitives_def
       by(simp add: simple_ruleset_normalize_rules simplers optimize_matches_option_simple_ruleset)
 
-    let ?rs0="optimize_matches_option compress_normalize_interfaces rs"
-    let ?rs1="normalize_rules normalize_src_ports ?rs0"
+    let ?rs1="normalize_rules normalize_src_ports rs"
     let ?rs2="normalize_rules normalize_dst_ports ?rs1"
     let ?rs3="normalize_rules normalize_src_ips ?rs2"
     let ?rs4="normalize_rules normalize_dst_ips ?rs3"
 
-    
-    have normalized_rs0: "\<forall>m \<in> get_match ` set ?rs0. normalized_nnf_match m"
-      apply(rule optimize_matches_option_preserves)
-      apply(rule compress_normalize_interfaces_nnf)
-      by(simp_all add: normalized)
-    from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(1)]
+    from normalize_rules_primitive_extract_preserves_nnf_normalized[OF normalized wf_disc_sel_common_primitive(1)]
          normalize_src_ports_def normalize_ports_step_def
     have normalized_rs1: "\<forall>m \<in> get_match ` set ?rs1. normalized_nnf_match m" by presburger
     from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(2)]
@@ -441,6 +431,7 @@ theorem transform_normalize_primitives:
     thus "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m"
       unfolding transform_normalize_primitives_def by simp
 
+    (*TODO: add this as generic simp rule somewhere? But simplifier loops? what to do?*)
     have local_simp: "\<And>rs1 rs2. approximating_bigstep_fun ?\<gamma> p rs1 s = approximating_bigstep_fun ?\<gamma> p rs2 s \<Longrightarrow>
       (approximating_bigstep_fun ?\<gamma> p rs1 s = t) = (approximating_bigstep_fun ?\<gamma> p rs2 s = t)" by simp
 
@@ -451,29 +442,26 @@ theorem transform_normalize_primitives:
      apply(simp)
      apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
         using normalize_dst_ips apply(simp; fail)
-       using simplers simple_ruleset_normalize_rules optimize_matches_option_simple_ruleset apply blast
+       using simplers simple_ruleset_normalize_rules apply blast
       using normalized_rs3 apply(simp; fail)
      apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
         using normalize_src_ips apply(simp; fail)
-       using simplers simple_ruleset_normalize_rules optimize_matches_option_simple_ruleset apply blast
+       using simplers simple_ruleset_normalize_rules apply blast
       using normalized_rs2 apply(simp; fail)
      apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
         using normalize_dst_ports apply(simp; fail)
-       using simplers simple_ruleset_normalize_rules optimize_matches_option_simple_ruleset apply blast
+       using simplers simple_ruleset_normalize_rules apply blast
       using normalized_rs1 apply(simp; fail)
      apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
         using normalize_src_ports apply(simp; fail)
-       using simplers simple_ruleset_normalize_rules optimize_matches_option_simple_ruleset apply blast
-      using normalized_rs0 apply(simp; fail)
-     apply(subst local_simp, simp_all)
-     apply(rule optimize_matches_option_generic[where P="\<lambda> m a. normalized_nnf_match m"])
-       apply(simp_all add: normalized compress_normalize_interfaces_Some compress_normalize_interfaces_None)
-     done
+       using simplers simple_ruleset_normalize_rules apply blast
+      using normalized apply(simp; fail)
+     by simp
 
 
     from normalize_src_ports_normalized_n_primitive
     have normalized_src_ports: "\<forall>m \<in> get_match ` set ?rs1. normalized_src_ports m"
-    using normalize_rules_property[OF normalized_rs0, where f=normalize_src_ports and Q=normalized_src_ports] by fast
+    using normalize_rules_property[OF normalized, where f=normalize_src_ports and Q=normalized_src_ports] by fast
       (*why u no rule?*)
     from normalize_dst_ports_normalized_n_primitive
          normalize_rules_property[OF normalized_rs1, where f=normalize_dst_ports and Q=normalized_dst_ports]
@@ -605,7 +593,7 @@ theorem transform_normalize_primitives:
    unfolding transform_normalize_primitives_def
    apply(simp)
    apply(rule normalize_rules_preserves')+
-       apply(simp)
+       apply(simp; fail)
       using x[OF wf_disc_sel_common_primitive(1), 
              of "(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))",folded normalize_src_ports_def normalize_ports_step_def] apply blast
      using x[OF wf_disc_sel_common_primitive(2), 

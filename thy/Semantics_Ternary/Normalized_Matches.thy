@@ -271,6 +271,10 @@ fun normalize_rules_dnf :: "'a rule list \<Rightarrow> 'a rule list" where
   "normalize_rules_dnf [] = []" |
   "normalize_rules_dnf ((Rule m a)#rs) = (map (\<lambda>m. Rule m a) (normalize_match m))@(normalize_rules_dnf rs)"
 
+lemma normalize_rules_dnf_append: "normalize_rules_dnf (rs1@rs2) = normalize_rules_dnf rs1 @ normalize_rules_dnf rs2"
+  proof(induction rs1 rule: normalize_rules_dnf.induct)
+  qed(simp_all)
+
 lemma normalize_rules_dnf_def2: "normalize_rules_dnf = normalize_rules normalize_match"
   proof(simp add: fun_eq_iff, intro allI)
     fix x::"'a rule list" show "normalize_rules_dnf x = normalize_rules normalize_match x"
