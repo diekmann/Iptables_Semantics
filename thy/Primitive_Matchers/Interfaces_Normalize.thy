@@ -37,10 +37,7 @@ begin
         obtain as ms where asms: "primitive_extractor (disc, sel) m = (as, ms)" by fastforce
         from notdisc primitive_extractor_correct(4)[OF nm wf asms] have 1: "\<not> has_disc disc ms" by simp
         from notdisc primitive_extractor_correct(7)[OF nm wf asms] have 2: "as = [] \<and> ms = m" by simp
-        from 1 2 some show ?thesis
-          apply(simp add: compress_normalize_primitive_def asms)
-          apply(auto dest: f_preserves)
-          done
+        from 1 2 some show ?thesis by(auto dest: f_preserves simp add: compress_normalize_primitive_def asms)
    qed
 
 
@@ -57,15 +54,23 @@ begin
     apply(simp add: compress_normalize_primitive_def)
     apply(case_tac "primitive_extractor (disc,sel) m")
     apply(rename_tac as rst, simp)
-    apply(elim conjE exE)
     apply(drule primitive_extractor_correct(1)[OF normalized wf, where \<gamma>=\<gamma> and a=a and p=p])
-    apply(case_tac "f as")
-     apply(simp add: bunch_of_lemmata_about_matches; fail)
-    apply(rename_tac aaa, case_tac aaa, simp)
+    apply(elim exE conjE)
     apply(drule f_correct)
     by (meson alist_and_append bunch_of_lemmata_about_matches(1))
     
 
+  lemma compress_normalize_primitive_None:
+  assumes normalized: "normalized_nnf_match m"
+      and wf: "wf_disc_sel (disc,sel) C"
+      and none: "compress_normalize_primitive (disc,sel) C f m = None"
+      and f_correct: "\<And>as. f as = None \<Longrightarrow> \<not> matches \<gamma> (alist_and (NegPos_map C as)) a p"
+    shows "\<not> matches \<gamma> m a p"
+    using none
+    apply(simp add: compress_normalize_primitive_def)
+    apply(case_tac "primitive_extractor (disc, sel) m")
+    apply(auto dest: primitive_extractor_correct(1)[OF assms(1) wf] f_correct)
+    done
 
 
 subsection{*Optimizing interfaces in match expressions*}
@@ -123,20 +128,14 @@ term option_map (*l4v*)
   lemma compress_normalize_interfaces_None:
   assumes "normalized_nnf_match m" and "compress_normalize_interfaces m = None"
     shows "\<not> matches (common_matcher, \<alpha>) m a p"
-    using assms(2)
-    apply(simp add: compress_normalize_interfaces_def compress_normalize_primitive_def)
-    apply(case_tac "primitive_extractor (is_Iiface, iiface_sel) m")
-    apply(rename_tac ifces rst, simp)
-    apply(drule primitive_extractor_correct(1)[OF assms(1) wf_disc_sel_common_primitive(5), where \<gamma>="(common_matcher, \<alpha>)" and a=a and p=p])
-    apply(case_tac "compress_interfaces ifces")
-     apply(simp add: compress_interfaces_None bunch_of_lemmata_about_matches; fail)
-    apply(rename_tac aaa, case_tac aaa, simp)
-    done
+    apply(rule compress_normalize_primitive_None[OF assms(1) wf_disc_sel_common_primitive(5)])
+     using assms(2) apply(simp add: compress_normalize_interfaces_def; fail)
+    using compress_interfaces_None by simp
 
-lemma compress_normalize_interfaces_nnf: "normalized_nnf_match m \<Longrightarrow> compress_normalize_interfaces m = Some m' \<Longrightarrow>
-    normalized_nnf_match m'"
-  unfolding compress_normalize_interfaces_def
-  using compress_normalize_primitive_nnf[OF wf_disc_sel_common_primitive(5)] by blast
+  lemma compress_normalize_interfaces_nnf: "normalized_nnf_match m \<Longrightarrow> compress_normalize_interfaces m = Some m' \<Longrightarrow>
+      normalized_nnf_match m'"
+    unfolding compress_normalize_interfaces_def
+    using compress_normalize_primitive_nnf[OF wf_disc_sel_common_primitive(5)] by blast
  
   lemma compress_normalize_interfaces_not_introduces_Iiface:
     "\<not> has_disc is_Iiface m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_interfaces m = Some m' \<Longrightarrow>
