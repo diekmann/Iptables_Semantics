@@ -503,11 +503,8 @@ lemma NegPos_map_map_Pos: "NegPos_map C (map Pos as) = map Pos (map C as)"
      shows "normalized_nnf_match m' \<and> \<not> has_disc disc m'"
    proof -
         from compress_normalize_interfaces_nnf[OF nm some] have goal1: "normalized_nnf_match m'" .
-
         obtain as ms where asms: "primitive_extractor (is_Iiface, iiface_sel) m = (as, ms)" by fastforce
-
         from am primitive_extractor_correct(4)[OF nm wf_disc_sel_common_primitive(5) asms] have 1: "\<not> has_disc disc ms" by simp
-
         { fix i_pos is_neg
           from disc have "\<not> has_disc disc (alist_and (NegPos_map IIface ((if i_pos = ifaceAny then [] else [Pos i_pos]) @ map Neg is_neg)))"
             by(simp add: has_disc_alist_and negation_type_to_match_expr_simps NegPos_map_map_Neg)
