@@ -44,6 +44,32 @@ begin
    qed
 
 
+
+  lemma compress_normalize_primitive_Some:
+  assumes normalized: "normalized_nnf_match m"
+      and wf: "wf_disc_sel (disc,sel) C"
+      and some: "compress_normalize_primitive (disc,sel) C f m = Some m'"
+      and f_correct: "\<And>as as_pos as_neg. f as = Some (as_pos, as_neg) \<Longrightarrow>
+            matches \<gamma> (alist_and (NegPos_map C ((map Pos as_pos)@(map Neg as_neg)))) a p \<longleftrightarrow>
+            matches \<gamma> (alist_and (NegPos_map C as)) a p"
+    shows "matches \<gamma> m' a p \<longleftrightarrow> matches \<gamma> m a p"
+    using some
+    apply(simp add: compress_normalize_primitive_def)
+    apply(case_tac "primitive_extractor (disc,sel) m")
+    apply(rename_tac as rst, simp)
+    apply(elim conjE exE)
+    apply(drule primitive_extractor_correct(1)[OF normalized wf, where \<gamma>=\<gamma> and a=a and p=p])
+    apply(case_tac "f as")
+     apply(simp add: bunch_of_lemmata_about_matches; fail)
+    apply(rename_tac aaa, case_tac aaa, simp)
+    apply(drule f_correct)
+    by (meson alist_and_append bunch_of_lemmata_about_matches(1))
+    
+
+
+
+subsection{*Optimizing interfaces in match expressions*}
+
   (*TODO a generic primitive optimization function and a separate file for such things*)
 
   (*returns: (list of positive interfaces \<times> a list of negated interfaces)
@@ -70,10 +96,10 @@ term option_map (*l4v*)
     using iface_subset by blast
 
   lemma compress_interfaces_Some: "compress_interfaces ifces = Some (i_pos, i_neg) \<Longrightarrow>
-    matches (common_matcher, \<alpha>) (MatchAnd (alist_and (NegPos_map IIface (map Pos i_pos))) (alist_and (NegPos_map IIface (map Neg i_neg)))) a p \<longleftrightarrow>
+    matches (common_matcher, \<alpha>) (alist_and (NegPos_map IIface ((map Pos i_pos)@(map Neg i_neg)))) a p \<longleftrightarrow>
     matches (common_matcher, \<alpha>) (alist_and (NegPos_map IIface ifces)) a p"
     apply(simp add: compress_interfaces_def)
-    apply(simp add: bunch_of_lemmata_about_matches(1))
+    apply(simp add: bunch_of_lemmata_about_matches(1) alist_and_append NegPos_map_append)
     apply(simp add: nt_match_list_matches[symmetric] nt_match_list_simp)
     apply(simp add: NegPos_map_simps match_simplematcher_Iface match_simplematcher_Iface_not)
     apply(case_tac "compress_pos_interfaces (getPos ifces)")
@@ -90,16 +116,9 @@ term option_map (*l4v*)
   lemma compress_normalize_interfaces_Some:
   assumes "normalized_nnf_match m" and "compress_normalize_interfaces m = Some m'"
     shows "matches (common_matcher, \<alpha>) m' a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
-    using assms(2)
-    apply(simp add: compress_normalize_interfaces_def compress_normalize_primitive_def)
-    apply(case_tac "primitive_extractor (is_Iiface, iiface_sel) m")
-    apply(rename_tac ifces rst, simp)
-    apply(drule primitive_extractor_correct(1)[OF assms(1) wf_disc_sel_common_primitive(5), where \<gamma>="(common_matcher, \<alpha>)" and a=a and p=p])
-    apply(case_tac "compress_interfaces ifces")
-     apply(simp add: compress_interfaces_None bunch_of_lemmata_about_matches; fail)
-    apply(rename_tac aaa, case_tac aaa, simp)
-    apply(drule compress_interfaces_Some[where \<alpha>=\<alpha> and a=a and p=p])
-    by (metis NegPos_map_append alist_and_append bunch_of_lemmata_about_matches(1))
+    apply(rule compress_normalize_primitive_Some[OF assms(1) wf_disc_sel_common_primitive(5)])
+     using assms(2) apply(simp add: compress_normalize_interfaces_def; fail)
+    using compress_interfaces_Some by simp
 
   lemma compress_normalize_interfaces_None:
   assumes "normalized_nnf_match m" and "compress_normalize_interfaces m = None"
