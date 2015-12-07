@@ -437,23 +437,25 @@ lemma optimize_matches_option_compress_normalize_interfaces_preserves_unrelated_
 
 theorem transform_normalize_primitives:
   -- "all discriminators which will not be normalized remain unchanged"
-  defines "unchanged disc \<equiv> (\<forall>a. \<not> disc (Src_Ports a)) \<and> (\<forall>a. \<not> disc (Dst_Ports a)) \<and> (\<forall>a. \<not> disc (Src a)) \<and> (\<forall>a. \<not> disc (Dst a)) \<and> (\<forall>a. \<not> disc (IIface a))"
+  defines "unchanged disc \<equiv> (\<forall>a. \<not> disc (Src_Ports a)) \<and> (\<forall>a. \<not> disc (Dst_Ports a)) \<and> (\<forall>a. \<not> disc (Src a)) \<and> (\<forall>a. \<not> disc (Dst a))"
+      -- "also holds for these discriminators"
+      and "changeddisc disc \<equiv> (\<forall>a. \<not> disc (IIface a)) \<or> disc = is_Iiface"
   assumes simplers: "simple_ruleset rs"
       and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
       and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
   shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_normalize_primitives rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
     and "simple_ruleset (transform_normalize_primitives rs)"
-    and "unchanged disc1 \<Longrightarrow> 
+    and "unchanged disc1 \<Longrightarrow> changeddisc disc1 \<Longrightarrow>
            \<forall> m \<in> get_match ` set rs. \<not> has_disc disc1 m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc disc1 m"
     and "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m"
     and "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs).
           normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m"
-    and "unchanged disc2 \<Longrightarrow>
+    and "unchanged disc2 \<Longrightarrow> (\<forall>a. \<not> disc2 (IIface a)) \<Longrightarrow>
          \<forall> m \<in> get_match ` set rs. normalized_n_primitive (disc2, sel2) f m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_n_primitive (disc2, sel2) f m"
-    and "unchanged disc3 \<Longrightarrow>
-         \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 neg m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc_negated disc3 neg m"
+    and "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow>
+         \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 False m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc_negated disc3 False m"
   proof -
     let ?\<gamma>="(common_matcher, \<alpha>)"
     let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
@@ -580,7 +582,7 @@ theorem transform_normalize_primitives:
       unfolding transform_normalize_primitives_def by force
    
 
-   show  "unchanged disc2 \<Longrightarrow>
+   show  "unchanged disc2 \<Longrightarrow> (\<forall>a. \<not> disc2 (IIface a)) \<Longrightarrow>
           \<forall> m \<in> get_match ` set rs. normalized_n_primitive (disc2, sel2) f m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_n_primitive  (disc2, sel2) f m"
    unfolding unchanged_def
@@ -592,7 +594,7 @@ theorem transform_normalize_primitives:
      assume a_Dst_Ports: "\<forall>a. \<not> disc2 (Dst_Ports a)"
      assume a_Src: "\<forall>a. \<not> disc2 (Src a)"
      assume a_Dst: "\<forall>a. \<not> disc2 (Dst a)"
-     assume a_IIface: "\<forall>a. \<not> disc2 (IIface a)"
+     assume a_IIface: "(\<forall>a. \<not> disc2 (IIface a))"
 
 
      from a_IIface
@@ -650,19 +652,20 @@ theorem transform_normalize_primitives:
    \<forall>m. normalized_nnf_match m \<and> \<not> has_disc disc1 m \<longrightarrow> (\<forall>m'\<in>set (normalize_primitive_extract (disc, sel) C' f' m). normalized_nnf_match m' \<and> \<not> has_disc disc1 m')"
    by blast
 
-   {
-     assume "\<forall>a. \<not> disc1 (IIface a)"
-     with compress_normalize_interfaces_hasdisc
-     have "\<forall>m\<in>set rs. \<not> has_disc disc1 (get_match m) \<and> normalized_nnf_match (get_match m) \<Longrightarrow>
+   { assume "(\<forall>a. \<not> disc1 (IIface a)) \<or> disc1 = is_Iiface"
+     hence "\<forall>m\<in>set rs. \<not> has_disc disc1 (get_match m) \<and> normalized_nnf_match (get_match m) \<Longrightarrow>
            \<forall>m\<in>set (optimize_matches_option compress_normalize_interfaces rs). normalized_nnf_match (get_match m) \<and> \<not> has_disc disc1 (get_match m)"
      apply -
      apply(rule optimize_matches_option_preserves')
-      apply(simp)
-     using compress_normalize_interfaces_hasdisc by blast
+      apply(simp; fail)
+     apply(elim disjE)
+      using compress_normalize_interfaces_hasdisc apply blast
+     using compress_normalize_interfaces_nnf compress_normalize_interfaces_not_introduces_Iiface by blast
    } note y=this
 
    have "\<forall>a. \<not> disc1 (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc1 (Dst_Ports a) \<Longrightarrow> 
-         \<forall>a. \<not> disc1 (Src a) \<Longrightarrow> \<forall>a. \<not> disc1 (Dst a) \<Longrightarrow> \<forall>a. \<not> disc1 (IIface a) \<Longrightarrow> 
+         \<forall>a. \<not> disc1 (Src a) \<Longrightarrow> \<forall>a. \<not> disc1 (Dst a) \<Longrightarrow>
+         (\<forall>a. \<not> disc1 (IIface a)) \<or> disc1 = is_Iiface \<Longrightarrow>
          \<forall> m \<in> get_match ` set rs. \<not> has_disc disc1 m \<and> normalized_nnf_match m \<Longrightarrow>
     \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m \<and> \<not> has_disc disc1 m"
    unfolding transform_normalize_primitives_def
@@ -679,14 +682,14 @@ theorem transform_normalize_primitives:
    using x[OF wf_disc_sel_common_primitive(4), of ipt_ipv4range_compress,folded normalize_dst_ips_def] apply blast
    done
    
-   thus "unchanged disc1 \<Longrightarrow> 
+   thus "unchanged disc1 \<Longrightarrow> changeddisc disc1 \<Longrightarrow>
     \<forall> m \<in> get_match ` set rs. \<not> has_disc disc1 m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc disc1 m"
-   unfolding unchanged_def using normalized by blast
+   unfolding unchanged_def changeddisc_def using normalized by blast
 
    (*TODO: copy pasta*)
    (*TODO: add normalized condition to the preserves lemma?*)
    { fix m and m' and disc::"(common_primitive \<Rightarrow> bool)" and sel::"(common_primitive \<Rightarrow> 'x)" and C'::" ('x \<Rightarrow> common_primitive)"
-         and f'::"('x negation_type list \<Rightarrow> 'x list)"
+         and f'::"('x negation_type list \<Rightarrow> 'x list)" and neg
      assume am: "\<not> has_disc_negated disc3 neg m"
         and nm: "normalized_nnf_match m"
         and am': "m' \<in> set (normalize_primitive_extract (disc, sel) C' f' m)"
@@ -711,25 +714,26 @@ theorem transform_normalize_primitives:
         ultimately have "\<not> has_disc_negated disc3 neg m' \<and> normalized_nnf_match m'" by simp
    }
    hence x: "\<And>disc sel C' f'.  wf_disc_sel (disc, sel) C' \<Longrightarrow> \<forall>a. \<not> disc3 (C' a) \<Longrightarrow>
-   \<forall>m. normalized_nnf_match m \<and> \<not> has_disc_negated disc3 neg m \<longrightarrow>
-    (\<forall>m'\<in>set (normalize_primitive_extract (disc, sel) C' f' m). normalized_nnf_match m' \<and> \<not> has_disc_negated disc3 neg m')"
+   \<forall>m. normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m \<longrightarrow>
+    (\<forall>m'\<in>set (normalize_primitive_extract (disc, sel) C' f' m). normalized_nnf_match m' \<and> \<not> has_disc_negated disc3 False m')"
    by blast
 
-{
-     assume "\<forall>a. \<not> disc3 (IIface a)"
-     with compress_normalize_interfaces_hasdisc
-     have "\<forall>m\<in>set rs. \<not> has_disc_negated disc3 neg (get_match m) \<and> normalized_nnf_match (get_match m) \<Longrightarrow>
-           \<forall>m\<in>set (optimize_matches_option compress_normalize_interfaces rs). normalized_nnf_match (get_match m) \<and> \<not> has_disc_negated disc3 neg (get_match m)"
+  {  assume "(\<forall>a. \<not> disc3 (IIface a)) \<or> disc3 = is_Iiface"
+     hence "\<forall>m\<in>set rs. \<not> has_disc_negated disc3 False (get_match m) \<and> normalized_nnf_match (get_match m) \<Longrightarrow>
+           \<forall>m\<in>set (optimize_matches_option compress_normalize_interfaces rs). normalized_nnf_match (get_match m) \<and> \<not> has_disc_negated disc3 False (get_match m)"
      apply -
      apply(rule optimize_matches_option_preserves')
-      apply(simp)
-     using compress_normalize_interfaces_hasdisc_negated by blast
+      apply(simp; fail)
+     apply(elim disjE)
+      using compress_normalize_interfaces_hasdisc_negated apply blast
+     using compress_normalize_interfaces_nnf compress_normalize_interfaces_not_introduces_Iiface_negated by blast
    } note y=this
 
    have "\<forall>a. \<not> disc3 (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc3 (Dst_Ports a) \<Longrightarrow> 
-         \<forall>a. \<not> disc3 (Src a) \<Longrightarrow> \<forall>a. \<not> disc3 (Dst a) \<Longrightarrow> \<forall>a. \<not> disc3 (IIface a) \<Longrightarrow> 
-         \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 neg m \<and> normalized_nnf_match m \<Longrightarrow>
-    \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m \<and> \<not> has_disc_negated disc3 neg m"
+         \<forall>a. \<not> disc3 (Src a) \<Longrightarrow> \<forall>a. \<not> disc3 (Dst a) \<Longrightarrow>
+         (\<forall>a. \<not> disc3 (IIface a)) \<or> disc3 = is_Iiface \<Longrightarrow>
+         \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 False m \<and> normalized_nnf_match m \<Longrightarrow>
+    \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m"
    unfolding transform_normalize_primitives_def
    apply(simp)
    apply(rule normalize_rules_preserves')+
@@ -744,10 +748,10 @@ theorem transform_normalize_primitives:
    using x[OF wf_disc_sel_common_primitive(4), of ipt_ipv4range_compress,folded normalize_dst_ips_def] apply blast
    done
 
-   thus "unchanged disc3 \<Longrightarrow>
-         \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 neg m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc_negated disc3 neg m"
-   unfolding unchanged_def using normalized by blast
+   thus "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow>
+         \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 False m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc_negated disc3 False m"
+   unfolding unchanged_def changeddisc_def using normalized by blast
 qed
 
 
@@ -902,9 +906,9 @@ lemma transform_upper_closure:
          normalized_dst_ips m \<and>
          \<not> has_disc is_Extra m"
   -- "no new primitives are introduced"
-  and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow> \<forall>a. \<not> disc (IIface a) \<Longrightarrow>
+  and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow> \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow>
         \<forall> r \<in> get_match ` set rs. \<not> has_disc disc r \<Longrightarrow> \<forall> r \<in> get_match ` set (upper_closure rs). \<not> has_disc disc r"
-  and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow> \<forall>a. \<not> disc (IIface a) \<Longrightarrow>
+  and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow> \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow>
         \<forall> r \<in> get_match ` set rs. \<not> has_disc_negated disc neg r \<Longrightarrow> \<forall> r \<in> get_match ` set (upper_closure rs). \<not> has_disc_negated disc neg r"
   proof -
     { fix m a
@@ -978,7 +982,7 @@ lemma transform_upper_closure:
       done
       
 
-    show "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow> \<forall>a. \<not> disc (IIface a) \<Longrightarrow>
+    show "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow> \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow>
             \<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (upper_closure rs). \<not> has_disc disc m"
     using simplers
     unfolding upper_closure_def
@@ -995,7 +999,7 @@ lemma transform_upper_closure:
     apply(simp add: remdups_rev_set)
     done
 
-    show"\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow> \<forall>a. \<not> disc (IIface a) \<Longrightarrow>
+    show"\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow> \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow>
         \<forall> r \<in> get_match ` set rs. \<not> has_disc_negated disc neg r \<Longrightarrow> \<forall> r \<in> get_match ` set (upper_closure rs). \<not> has_disc_negated disc neg r"
     using simplers
     unfolding upper_closure_def
