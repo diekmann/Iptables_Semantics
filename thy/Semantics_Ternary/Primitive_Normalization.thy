@@ -43,6 +43,13 @@ lemma has_disc_negated_positiv_has_disc: "has_disc_negated disc neg m \<or> has_
 by(induction disc neg m arbitrary: neg rule:has_disc_negated.induct) auto
 
 
+lemma has_disc_negated_disj_split: 
+    "has_disc_negated (\<lambda>a. P a \<or> Q a) neg m \<longleftrightarrow> has_disc_negated P neg m \<or> has_disc_negated Q neg m"
+  apply(induction "(\<lambda>a. P a \<or> Q a)" neg m rule: has_disc_negated.induct)
+     apply(simp_all)
+  by blast
+  
+
 lemma "matches ((\<lambda>x _. bool_to_ternary (disc x)), (\<lambda>_ _. False)) (Match x) a p \<longleftrightarrow> has_disc disc (Match x)"
 apply(simp split: ternaryvalue.split_asm ternaryvalue.split add: matches_case_ternaryvalue_tuple)
 apply(simp add: bool_to_ternary_simps)
