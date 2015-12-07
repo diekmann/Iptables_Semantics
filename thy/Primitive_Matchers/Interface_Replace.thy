@@ -486,6 +486,9 @@ term option_map (*l4v*)
 lemma has_disc_alist_and: "has_disc disc (alist_and as) \<longleftrightarrow> (\<exists> a \<in> set as. has_disc disc (negation_type_to_match_expr a))"
   proof(induction as rule: alist_and.induct)
   qed(simp_all add: negation_type_to_match_expr_simps)
+lemma has_disc_negated_alist_and: "has_disc_negated disc neg (alist_and as) \<longleftrightarrow> (\<exists> a \<in> set as. has_disc_negated disc neg (negation_type_to_match_expr a))"
+  proof(induction as rule: alist_and.induct)
+  qed(simp_all add: negation_type_to_match_expr_simps)
 
 
 (*TODO: move*)
@@ -521,6 +524,26 @@ lemma NegPos_map_map_Pos: "NegPos_map C (map Pos as) = map Pos (map C as)"
             by(simp add: has_disc_alist_and negation_type_to_match_expr_simps NegPos_map_map_Neg)
         }
         with some have "\<not> has_disc disc m'"
+          apply(simp add: compress_normalize_interfaces_def asms)
+          apply(elim exE conjE)
+          using 1 by force
+        with goal1 show ?thesis by simp
+   qed  (* only for arbitrary discs that do not match Iiface*)
+  lemma compress_normalize_interfaces_hasdisc_negated:
+    assumes am: "\<not> has_disc_negated disc neg m"
+        and disc: "(\<forall>a. \<not> disc (IIface a))"
+        and nm: "normalized_nnf_match m"
+        and some: "compress_normalize_interfaces m = Some m'"
+     shows "normalized_nnf_match m' \<and> \<not> has_disc_negated disc neg m'"
+   proof -
+        from compress_normalize_interfaces_nnf[OF nm some] have goal1: "normalized_nnf_match m'" .
+        obtain as ms where asms: "primitive_extractor (is_Iiface, iiface_sel) m = (as, ms)" by fastforce
+        from am primitive_extractor_correct(6)[OF nm wf_disc_sel_common_primitive(5) asms] have 1: "\<not> has_disc_negated disc neg ms" by simp
+        { fix i_pos is_neg
+          from disc have "\<not> has_disc_negated disc neg (alist_and (NegPos_map IIface ((if i_pos = ifaceAny then [] else [Pos i_pos]) @ map Neg is_neg)))"
+            by(simp add: has_disc_negated_alist_and negation_type_to_match_expr_simps NegPos_map_map_Neg)
+        }
+        with some have "\<not> has_disc_negated disc neg m'"
           apply(simp add: compress_normalize_interfaces_def asms)
           apply(elim exE conjE)
           using 1 by force
