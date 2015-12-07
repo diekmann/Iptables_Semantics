@@ -4,6 +4,7 @@ imports Common_Primitive_Lemmas
         "../Semantics_Ternary/Negation_Type_Matching"
         Ports_Normalize
         IpAddresses_Normalize
+        Interfaces_Normalize
         "../Common/Remdups_Rev"
         Interface_Replace
 begin

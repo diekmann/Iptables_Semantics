@@ -48,6 +48,13 @@ lemma has_disc_negated_disj_split:
   apply(induction "(\<lambda>a. P a \<or> Q a)" neg m rule: has_disc_negated.induct)
      apply(simp_all)
   by blast
+
+lemma has_disc_alist_and: "has_disc disc (alist_and as) \<longleftrightarrow> (\<exists> a \<in> set as. has_disc disc (negation_type_to_match_expr a))"
+  proof(induction as rule: alist_and.induct)
+  qed(simp_all add: negation_type_to_match_expr_simps)
+lemma has_disc_negated_alist_and: "has_disc_negated disc neg (alist_and as) \<longleftrightarrow> (\<exists> a \<in> set as. has_disc_negated disc neg (negation_type_to_match_expr a))"
+  proof(induction as rule: alist_and.induct)
+  qed(simp_all add: negation_type_to_match_expr_simps)
   
 
 lemma "matches ((\<lambda>x _. bool_to_ternary (disc x)), (\<lambda>_ _. False)) (Match x) a p \<longleftrightarrow> has_disc disc (Match x)"
@@ -83,6 +90,17 @@ lemma normalized_n_primitive_opt_MatchAny_match_expr: "normalized_n_primitive di
     apply(induction disc_sel f m rule: normalized_n_primitive.induct)
           apply simp_all
     using x by simp
+  qed
+
+
+lemma normalized_n_primitive_alist_and: "normalized_n_primitive disc_sel P (alist_and as) \<longleftrightarrow>
+      (\<forall> a \<in> set as. normalized_n_primitive disc_sel P (negation_type_to_match_expr a))"
+  proof(induction as)
+  case Nil thus ?case by simp
+  next
+  case (Cons a as) thus ?case
+    apply(cases disc_sel, cases a)
+    by(simp_all add: negation_type_to_match_expr_simps)
   qed
 
 
