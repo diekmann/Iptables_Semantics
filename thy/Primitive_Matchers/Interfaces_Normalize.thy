@@ -40,6 +40,30 @@ begin
         from 1 2 some show ?thesis by(auto dest: f_preserves simp add: compress_normalize_primitive_def asms)
    qed
 
+  lemma compress_normalize_primitive_not_introduces_C_negated:
+    assumes notdisc: "\<not> has_disc_negated disc False m"
+        and wf: "wf_disc_sel (disc,sel) C"
+        and nm: "normalized_nnf_match m"
+        and some: "compress_normalize_primitive (disc,sel) C f m = Some m'"
+        and f_preserves: "\<And>as as_pos as_neg. f as = Some (as_pos, as_neg) \<Longrightarrow> getNeg as = [] \<Longrightarrow> as_neg = []"
+     shows "\<not> has_disc_negated disc False m'"
+   proof -
+        obtain as ms where asms: "primitive_extractor (disc,sel) m = (as, ms)" by fastforce
+        from notdisc primitive_extractor_correct(6)[OF nm wf asms] have 1: "\<not> has_disc_negated disc False ms" by simp
+        from asms notdisc has_disc_negated_primitive_extractor[OF nm, where disc=disc and sel=sel] have
+          "\<forall>a. Neg a \<notin> set as" by(simp)
+        hence "getNeg as = []" by (meson NegPos_set(5) image_subset_iff last_in_set)
+        with f_preserves have f_preserves': "\<And>as_pos as_neg. f as = Some (as_pos, as_neg) \<Longrightarrow> as_neg = []" by simp
+        { fix as
+          have "\<not> has_disc_negated is_Iiface False (alist_and (NegPos_map IIface (map Pos as)))"
+            by(simp add: has_disc_negated_alist_and NegPos_map_map_Pos negation_type_to_match_expr_simps)  
+        }
+        with 1 have "\<And> a b.\<not> has_disc_negated disc False (MatchAnd (alist_and (NegPos_map C (map Pos a))) ms)"
+          by(simp add: has_disc_negated_alist_and NegPos_map_map_Pos negation_type_to_match_expr_simps)
+        with some show ?thesis by(auto dest: f_preserves' simp add: compress_normalize_primitive_def asms)
+   qed
+
+
 
 
   lemma compress_normalize_primitive_Some:
@@ -150,24 +174,10 @@ term option_map (*l4v*)
         and nm: "normalized_nnf_match m"
         and some: "compress_normalize_interfaces m = Some m'"
      shows "\<not> has_disc_negated is_Iiface False m'"
-   proof -
-        obtain as ms where asms: "primitive_extractor (is_Iiface, iiface_sel) m = (as, ms)" by fastforce
-        from notdisc primitive_extractor_correct(6)[OF nm wf_disc_sel_common_primitive(5) asms] have 1: "\<not> has_disc_negated is_Iiface False ms" by simp
-        from asms notdisc has_disc_negated_primitive_extractor[OF nm, where disc=is_Iiface and sel=iiface_sel] have
-          "\<forall>a. Neg a \<notin> set as" by(simp)
-        hence "getNeg as = []" by (meson NegPos_set(5) image_subset_iff last_in_set) 
-        { fix i_pos is_neg
-          assume "compress_interfaces as = Some (i_pos, is_neg)"
-          with `getNeg as = []` have "is_neg = []"
-          by(simp add: compress_interfaces_def split: option.split_asm)
-        } note compress_interfaces_noNeg=this
-        { fix as
-          have "\<not> has_disc_negated is_Iiface False (alist_and (NegPos_map IIface (map Pos as)))"
-            by(simp add: has_disc_negated_alist_and NegPos_map_map_Pos negation_type_to_match_expr_simps)  
-        }
-        with 1 some show ?thesis
-          by(auto simp add: compress_normalize_interfaces_def compress_normalize_primitive_def asms dest: compress_interfaces_noNeg split: split_if_asm)
-   qed
+     apply(rule compress_normalize_primitive_not_introduces_C_negated[OF notdisc wf_disc_sel_common_primitive(5) nm])
+     using some apply(simp add: compress_normalize_interfaces_def)
+     by(simp add: compress_interfaces_def split: option.split_asm)
+
 
 
 
