@@ -4,7 +4,6 @@ imports Common_Primitive_Lemmas
 begin
 
 
-
   definition compress_normalize_primitive :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> ('b \<Rightarrow> 'a) \<Rightarrow>
                                               ('b negation_type list \<Rightarrow> ('b list \<times> 'b list) option) \<Rightarrow> 
                                               'a match_expr \<Rightarrow> 'a match_expr option" where 
@@ -13,6 +12,18 @@ begin
                                        (alist_and (NegPos_map C ((map Pos as_pos)@(map Neg as_neg))))
                                        rst
                   ) (f as)))"
+
+
+
+  lemma compress_normalize_primitive_nnf: "wf_disc_sel disc_sel C \<Longrightarrow> 
+      normalized_nnf_match m \<Longrightarrow> compress_normalize_primitive disc_sel C f m = Some m' \<Longrightarrow>
+    normalized_nnf_match m'"
+    apply(case_tac "primitive_extractor disc_sel m")
+    apply(simp add: compress_normalize_primitive_def)
+    apply(clarify)
+    apply (simp add: normalized_nnf_match_alist_and)
+    apply(cases disc_sel, simp)
+    using primitive_extractor_correct(2) by blast
 
 
   (*TODO a generic primitive optimization function and a separate file for such things*)
@@ -85,14 +96,11 @@ term option_map (*l4v*)
     apply(rename_tac aaa, case_tac aaa, simp)
     done
 
-
-  lemma compress_normalize_interfaces_nnf: "normalized_nnf_match m \<Longrightarrow> compress_normalize_interfaces m = Some m' \<Longrightarrow>
+lemma compress_normalize_interfaces_nnf: "normalized_nnf_match m \<Longrightarrow> compress_normalize_interfaces m = Some m' \<Longrightarrow>
     normalized_nnf_match m'"
-    apply(case_tac "primitive_extractor (is_Iiface, iiface_sel) m")
-    apply(simp add: compress_normalize_interfaces_def compress_normalize_primitive_def)
-    apply(clarify)
-    apply (simp add: normalized_nnf_match_alist_and)
-    using primitive_extractor_correct(2) wf_disc_sel_common_primitive(5) by blast
+  unfolding compress_normalize_interfaces_def
+  using compress_normalize_primitive_nnf[OF wf_disc_sel_common_primitive(5)] by blast
+ 
     
   
   lemma compress_normalize_interfaces_not_introduces_Iiface:
