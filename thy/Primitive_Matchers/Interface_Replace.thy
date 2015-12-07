@@ -378,7 +378,7 @@ definition try_interface_replaceby_srcip :: "ipassignment \<Rightarrow> common_p
 *)
 
 
-
+(*TODO move to separate files*)
   (*TODO a generic primitive optimization function and a separate file for such things*)
 
   (*returns: (one positive interface \<times> a list of negated interfaces)
@@ -465,67 +465,60 @@ term option_map (*l4v*)
     
   
   lemma compress_normalize_interfaces_not_introduces_Iiface:
-    assumes am: "\<not> has_disc is_Iiface m"
+    assumes notdisc: "\<not> has_disc is_Iiface m"
         and nm: "normalized_nnf_match m"
-        and am': "compress_normalize_interfaces m = Some m'"
+        and some: "compress_normalize_interfaces m = Some m'"
      shows "\<not> has_disc is_Iiface m'"
    proof -
         obtain as ms where asms: "primitive_extractor (is_Iiface, iiface_sel) m = (as, ms)" by fastforce
-        from am primitive_extractor_correct(4)[OF nm wf_disc_sel_common_primitive(5) asms] have 1: "\<not> has_disc is_Iiface ms" by simp
-        from am primitive_extractor_correct(7)[OF nm wf_disc_sel_common_primitive(5) asms] have 2: "as = [] \<and> ms = m" by simp
+        from notdisc primitive_extractor_correct(4)[OF nm wf_disc_sel_common_primitive(5) asms] have 1: "\<not> has_disc is_Iiface ms" by simp
+        from notdisc primitive_extractor_correct(7)[OF nm wf_disc_sel_common_primitive(5) asms] have 2: "as = [] \<and> ms = m" by simp
         { fix i_pos is_neg
           assume c: "compress_interfaces [] = Some (i_pos, is_neg)"
           from c have "i_pos = ifaceAny \<and> is_neg = []" by(simp add: compress_interfaces_def)
         } note compress_interfaces_Nil=this
-        from 1 2 am' show ?thesis 
-          by(auto simp add: compress_normalize_interfaces_def asms dest: compress_interfaces_Nil split: split_if_asm)
+        from 1 2 some show ?thesis
+          by(auto simp add: compress_normalize_interfaces_def asms dest: compress_interfaces_Nil split: split_if_asm)[1]
    qed
 
 
-  (* won't work; try with (\<forall>a. \<not> disc (IIface a))
+(*TODO: move*)
+lemma has_disc_alist_and: "has_disc disc (alist_and as) \<longleftrightarrow> (\<exists> a \<in> set as. has_disc disc (negation_type_to_match_expr a))"
+  proof(induction as rule: alist_and.induct)
+  qed(simp_all add: negation_type_to_match_expr_simps)
+
+
+(*TODO: move*)
+lemma NegPos_map_map_Neg: "NegPos_map C (map Neg as) = map Neg (map C as)"
+  by(induction as) (simp_all)
+lemma NegPos_map_map_Pos: "NegPos_map C (map Pos as) = map Pos (map C as)"
+  by(induction as) (simp_all)
+
+  (* only for arbitrary discs that do not match Iiface*)
   lemma compress_normalize_interfaces_hasdisc:
     assumes am: "\<not> has_disc disc m"
+        and disc: "(\<forall>a. \<not> disc (IIface a))"
         and nm: "normalized_nnf_match m"
-        and am': "compress_normalize_interfaces m = Some m'"
+        and some: "compress_normalize_interfaces m = Some m'"
      shows "normalized_nnf_match m' \<and> \<not> has_disc disc m'"
    proof -
-        from compress_normalize_interfaces_nnf[OF nm am'] have "normalized_nnf_match m'" .
+        from compress_normalize_interfaces_nnf[OF nm some] have goal1: "normalized_nnf_match m'" .
 
         obtain as ms where asms: "primitive_extractor (is_Iiface, iiface_sel) m = (as, ms)" by fastforce
 
         from am primitive_extractor_correct(4)[OF nm wf_disc_sel_common_primitive(5) asms] have 1: "\<not> has_disc disc ms" by simp
 
         { fix i_pos is_neg
-          assume c: "compress_interfaces as = Some (i_pos, is_neg)"
-          have "\<not> has_disc disc (alist_and (NegPos_map IIface ((if i_pos = ifaceAny then [] else [Pos i_pos]) @ map Neg is_neg)))"
-          proof(cases "(\<forall>a \<in> set ((if i_pos = ifaceAny then [] else [i_pos]) @ is_neg). \<not> disc (IIface a))")
-          case True thus ?thesis
-           apply(simp)
-           apply(induction is_neg)
-            apply(simp_all)
-           done
-          case False
-           with am have x apply(simp) 
-           
-        have "\<not> has_disc disc m'"
-        proof(cases "(\<forall>a. \<not> disc (IIface a))")
-        case False
-          with primitive_extractor_correct(7)[OF nm wf_disc_sel_common_primitive(5) asms] have "as = [] \<and> ms = m" by simp
-          with am' 1 show ?thesis 
+          from disc have "\<not> has_disc disc (alist_and (NegPos_map IIface ((if i_pos = ifaceAny then [] else [Pos i_pos]) @ map Neg is_neg)))"
+            by(simp add: has_disc_alist_and negation_type_to_match_expr_simps NegPos_map_map_Neg)
+        }
+        with some have "\<not> has_disc disc m'"
           apply(simp add: compress_normalize_interfaces_def asms)
           apply(elim exE conjE)
-          apply(simp split: split_if_asm)
-          sorry
-        next
-        case True
-          with am have "disc \<noteq> is_Iiface" by auto
-          from am' 1 show ?thesis 
-          apply(simp add: compress_normalize_interfaces_def asms)
-          apply(elim exE conjE)
-          apply(simp split: split_if_asm)
-        
+          using 1 by force
+        with goal1 show ?thesis by simp
    qed
-  *)
+  
 
   value[code] "compress_normalize_interfaces 
     (MatchAnd (MatchAnd (MatchAnd (Match (IIface (Iface ''eth+''))) (MatchNot (Match (IIface (Iface ''eth4''))))) (Match (IIface (Iface ''eth1''))))
