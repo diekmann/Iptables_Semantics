@@ -489,6 +489,17 @@ lemma has_disc_alist_and: "has_disc disc (alist_and as) \<longleftrightarrow> (\
 
 
 (*TODO: move*)
+lemma normalized_n_primitive_alist_and: "normalized_n_primitive disc_sel P (alist_and as) \<longleftrightarrow>
+      (\<forall> a \<in> set as. normalized_n_primitive disc_sel P (negation_type_to_match_expr a))"
+  proof(induction as)
+  case Nil thus ?case by simp
+  next
+  case (Cons a as) thus ?case
+    apply(cases disc_sel, cases a)
+    by(simp_all add: negation_type_to_match_expr_simps)
+  qed
+
+(*TODO: move*)
 lemma NegPos_map_map_Neg: "NegPos_map C (map Neg as) = map Neg (map C as)"
   by(induction as) (simp_all)
 lemma NegPos_map_map_Pos: "NegPos_map C (map Pos as) = map Pos (map C as)"
@@ -510,6 +521,32 @@ lemma NegPos_map_map_Pos: "NegPos_map C (map Pos as) = map Pos (map C as)"
             by(simp add: has_disc_alist_and negation_type_to_match_expr_simps NegPos_map_map_Neg)
         }
         with some have "\<not> has_disc disc m'"
+          apply(simp add: compress_normalize_interfaces_def asms)
+          apply(elim exE conjE)
+          using 1 by force
+        with goal1 show ?thesis by simp
+   qed
+
+
+  thm normalize_primitive_extract_preserves_unrelated_normalized_n_primitive (*is similar*)
+  lemma compress_normalize_interfaces_preserves_normalized_n_primitive:
+    assumes am: "normalized_n_primitive (disc, sel) P m"
+        and disc: "(\<forall>a. \<not> disc (IIface a))"
+        and nm: "normalized_nnf_match m"
+        and some: "compress_normalize_interfaces m = Some m'"
+     shows "normalized_nnf_match m' \<and> normalized_n_primitive (disc, sel) P m'"
+   proof -
+        from compress_normalize_interfaces_nnf[OF nm some] have goal1: "normalized_nnf_match m'" .
+        obtain as ms where asms: "primitive_extractor (is_Iiface, iiface_sel) m = (as, ms)" by fastforce
+        from am primitive_extractor_correct[OF nm wf_disc_sel_common_primitive(5) asms] have 1: "normalized_n_primitive (disc, sel) P ms" by fast
+        { fix i_pos is_neg
+          from disc have "normalized_n_primitive (disc, sel) P (alist_and (NegPos_map IIface ((if i_pos = ifaceAny then [] else [Pos i_pos]) @ map Neg is_neg)))"
+            apply(simp add: has_disc_alist_and negation_type_to_match_expr_simps NegPos_map_map_Neg)
+            apply(induction is_neg)
+             apply(simp_all)
+            done
+        }
+        with some have "normalized_n_primitive (disc, sel) P m'"
           apply(simp add: compress_normalize_interfaces_def asms)
           apply(elim exE conjE)
           using 1 by force
