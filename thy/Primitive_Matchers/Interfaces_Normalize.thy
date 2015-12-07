@@ -4,6 +4,17 @@ imports Common_Primitive_Lemmas
 begin
 
 
+
+  definition compress_normalize_primitive :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> ('b \<Rightarrow> 'a) \<Rightarrow>
+                                              ('b negation_type list \<Rightarrow> ('b list \<times> 'b list) option) \<Rightarrow> 
+                                              'a match_expr \<Rightarrow> 'a match_expr option" where 
+    "compress_normalize_primitive disc_sel C f m \<equiv> (case primitive_extractor disc_sel m of (as, rst) \<Rightarrow>
+      (map_option (\<lambda>(as_pos, as_neg). MatchAnd
+                                       (alist_and (NegPos_map C ((map Pos as_pos)@(map Neg as_neg))))
+                                       rst
+                  ) (f as)))"
+
+
   (*TODO a generic primitive optimization function and a separate file for such things*)
 
   (*returns: (list of positive interfaces \<times> a list of negated interfaces)
@@ -45,17 +56,13 @@ term option_map (*l4v*)
 
   
   definition compress_normalize_interfaces :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr option" where 
-    "compress_normalize_interfaces m = (case primitive_extractor (is_Iiface, iiface_sel) m  of (ifces, rst) \<Rightarrow>
-      (map_option (\<lambda>(i_pos, i_neg). MatchAnd
-                                    (alist_and (NegPos_map IIface ((map Pos i_pos)@(map Neg i_neg))))
-                                    rst
-                  ) (compress_interfaces ifces)))"
+    "compress_normalize_interfaces m \<equiv> compress_normalize_primitive (is_Iiface, iiface_sel) IIface compress_interfaces m"
 
   lemma compress_normalize_interfaces_Some:
   assumes "normalized_nnf_match m" and "compress_normalize_interfaces m = Some m'"
     shows "matches (common_matcher, \<alpha>) m' a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
     using assms(2)
-    apply(simp add: compress_normalize_interfaces_def)
+    apply(simp add: compress_normalize_interfaces_def compress_normalize_primitive_def)
     apply(case_tac "primitive_extractor (is_Iiface, iiface_sel) m")
     apply(rename_tac ifces rst, simp)
     apply(drule primitive_extractor_correct(1)[OF assms(1) wf_disc_sel_common_primitive(5), where \<gamma>="(common_matcher, \<alpha>)" and a=a and p=p])
@@ -69,7 +76,7 @@ term option_map (*l4v*)
   assumes "normalized_nnf_match m" and "compress_normalize_interfaces m = None"
     shows "\<not> matches (common_matcher, \<alpha>) m a p"
     using assms(2)
-    apply(simp add: compress_normalize_interfaces_def)
+    apply(simp add: compress_normalize_interfaces_def compress_normalize_primitive_def)
     apply(case_tac "primitive_extractor (is_Iiface, iiface_sel) m")
     apply(rename_tac ifces rst, simp)
     apply(drule primitive_extractor_correct(1)[OF assms(1) wf_disc_sel_common_primitive(5), where \<gamma>="(common_matcher, \<alpha>)" and a=a and p=p])
@@ -82,7 +89,7 @@ term option_map (*l4v*)
   lemma compress_normalize_interfaces_nnf: "normalized_nnf_match m \<Longrightarrow> compress_normalize_interfaces m = Some m' \<Longrightarrow>
     normalized_nnf_match m'"
     apply(case_tac "primitive_extractor (is_Iiface, iiface_sel) m")
-    apply(simp add: compress_normalize_interfaces_def)
+    apply(simp add: compress_normalize_interfaces_def compress_normalize_primitive_def)
     apply(clarify)
     apply (simp add: normalized_nnf_match_alist_and)
     using primitive_extractor_correct(2) wf_disc_sel_common_primitive(5) by blast
@@ -102,7 +109,7 @@ term option_map (*l4v*)
           from c have "i_pos = [] \<and> is_neg = []" by(simp add: compress_interfaces_def)
         } note compress_interfaces_Nil=this
         from 1 2 some show ?thesis
-          by(auto simp add: compress_normalize_interfaces_def asms dest: compress_interfaces_Nil split: split_if_asm)[1]
+          by(auto simp add: compress_normalize_interfaces_def compress_normalize_primitive_def asms dest: compress_interfaces_Nil split: split_if_asm)[1]
    qed
 
   lemma compress_normalize_interfaces_not_introduces_Iiface_negated:
@@ -126,7 +133,7 @@ term option_map (*l4v*)
             by(simp add: has_disc_negated_alist_and NegPos_map_map_Pos negation_type_to_match_expr_simps)  
         }
         with 1 some show ?thesis
-          by(auto simp add: compress_normalize_interfaces_def asms dest: compress_interfaces_noNeg split: split_if_asm)
+          by(auto simp add: compress_normalize_interfaces_def compress_normalize_primitive_def asms dest: compress_interfaces_noNeg split: split_if_asm)
    qed
 
 
@@ -151,7 +158,7 @@ term option_map (*l4v*)
             apply(simp add: NegPos_map_append has_disc_alist_and) by blast
         }
         with some have "\<not> has_disc disc m'"
-          apply(simp add: compress_normalize_interfaces_def asms)
+          apply(simp add: compress_normalize_interfaces_def compress_normalize_primitive_def asms)
           apply(elim exE conjE)
           using 1 by force
         with goal1 show ?thesis by simp
@@ -175,7 +182,7 @@ term option_map (*l4v*)
             apply(simp add: NegPos_map_append has_disc_negated_alist_and) by blast
         }
         with some have "\<not> has_disc_negated disc neg m'"
-          apply(simp add: compress_normalize_interfaces_def asms)
+          apply(simp add: compress_normalize_interfaces_def compress_normalize_primitive_def asms)
           apply(elim exE conjE)
           using 1 by force
         with goal1 show ?thesis by simp
@@ -202,7 +209,7 @@ term option_map (*l4v*)
             done
         }
         with some have "normalized_n_primitive (disc, sel) P m'"
-          apply(simp add: compress_normalize_interfaces_def asms)
+          apply(simp add: compress_normalize_interfaces_def compress_normalize_primitive_def asms)
           apply(elim exE conjE)
           using 1 by force
         with goal1 show ?thesis by simp
