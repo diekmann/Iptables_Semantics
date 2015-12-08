@@ -21,7 +21,7 @@ datatype of_match_field =
 
 (*
 
-The semantics of an openflow match is by no means trivial. See Specification 7.2.3.6
+The semantics of an openflow match is by no means trivial. See Specification 7.2.3.6, v1.5
 For example:
 • An OXM TLV for oxm_type=OXM OF IPV4 SRC is allowed only if it is preceded by another en-
 try with oxm_type=OXM_OF_ETH_TYPE, oxm_hasmask=0, and oxm_value=0x0800. That is, match-
@@ -31,6 +31,7 @@ Even if OpenFlow 1.0 does not require this behavior, some switches may still sil
 
 *)
 
+(* subtable of table in 7.2.3.8 of spec1.5 (also present in 1.3, and less cluttered) for the matches we implement *) 
 function prerequisites :: "of_match_field \<Rightarrow> of_match_field set \<Rightarrow> bool" where
 "prerequisites (IngressPort _) _ = True" |
 (* OF_ETH_DST None *)
@@ -96,11 +97,9 @@ definition match_prereq :: "of_match_field \<Rightarrow> of_match_field set \<Ri
 
 definition "set_seq s \<equiv> if (\<forall>x \<in> s. x \<noteq> None) then Some (the ` s) else None"
 definition "all_true s \<equiv> \<forall>x \<in> s. x"
-
-definition OF_match_fields :: "of_match_field set \<Rightarrow> simple_packet_ext \<Rightarrow> bool option" where
-"OF_match_fields m p = set_seq ((\<lambda>f. match_prereq f m p) ` m) \<guillemotright>= (Some \<circ> all_true)"
-definition OF_match_fields_unsafe :: "of_match_field set \<Rightarrow> simple_packet_ext \<Rightarrow> bool" where
-"OF_match_fields_unsafe m p = (\<forall>f \<in> m. match_no_prereq f p)"
+term map_option
+definition OF_match_fields :: "of_match_field set \<Rightarrow> simple_packet_ext \<Rightarrow> bool option" where "OF_match_fields m p = map_option all_true (set_seq ((\<lambda>f. match_prereq f m p) ` m))"
+definition OF_match_fields_unsafe :: "of_match_field set \<Rightarrow> simple_packet_ext \<Rightarrow> bool" where "OF_match_fields_unsafe m p = (\<forall>f \<in> m. match_no_prereq f p)"
 
 lemma "(\<forall>f \<in> m. prerequisites f m) \<Longrightarrow> OF_match_fields m p = Some (OF_match_fields_unsafe m p)"
 unfolding OF_match_fields_def OF_match_fields_unsafe_def comp_def set_seq_def match_prereq_def
@@ -110,7 +109,7 @@ proof -
 		using goal1 by fastforce
 	have 2: "\<forall>x\<in>(\<lambda>f. Some (match_no_prereq f p)) ` m. x \<noteq> None" by blast
 	show ?case
-		unfolding 1 unfolding eqTrueI[OF 2] unfolding if_True unfolding image_comp comp_def unfolding option.sel unfolding all_true_def by simp
+		unfolding 1 unfolding eqTrueI[OF 2] unfolding if_True unfolding image_comp comp_def unfolding option.sel by(simp add: all_true_def)
 qed
 
 
