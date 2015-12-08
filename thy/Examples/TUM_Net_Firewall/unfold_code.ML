@@ -594,20 +594,30 @@ fun equal_rule A_ = {equal = equal_rulea A_} : 'a rule equal;
 
 val equal_action = {equal = equal_actiona} : action equal;
 
-datatype ctstate = CT_New | CT_Established | CT_Related | CT_Untracked;
+datatype ctstate = CT_New | CT_Established | CT_Related | CT_Untracked |
+  CT_Invalid;
 
-fun equal_ctstatea CT_Related CT_Untracked = false
+fun equal_ctstatea CT_Untracked CT_Invalid = false
+  | equal_ctstatea CT_Invalid CT_Untracked = false
+  | equal_ctstatea CT_Related CT_Invalid = false
+  | equal_ctstatea CT_Invalid CT_Related = false
+  | equal_ctstatea CT_Related CT_Untracked = false
   | equal_ctstatea CT_Untracked CT_Related = false
+  | equal_ctstatea CT_Established CT_Invalid = false
+  | equal_ctstatea CT_Invalid CT_Established = false
   | equal_ctstatea CT_Established CT_Untracked = false
   | equal_ctstatea CT_Untracked CT_Established = false
   | equal_ctstatea CT_Established CT_Related = false
   | equal_ctstatea CT_Related CT_Established = false
+  | equal_ctstatea CT_New CT_Invalid = false
+  | equal_ctstatea CT_Invalid CT_New = false
   | equal_ctstatea CT_New CT_Untracked = false
   | equal_ctstatea CT_Untracked CT_New = false
   | equal_ctstatea CT_New CT_Related = false
   | equal_ctstatea CT_Related CT_New = false
   | equal_ctstatea CT_New CT_Established = false
   | equal_ctstatea CT_Established CT_New = false
+  | equal_ctstatea CT_Invalid CT_Invalid = true
   | equal_ctstatea CT_Untracked CT_Untracked = true
   | equal_ctstatea CT_Related CT_Related = true
   | equal_ctstatea CT_Established CT_Established = true
@@ -866,10 +876,8 @@ fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
 
 fun suc n = plus_nat n one_nat;
 
-fun find f [] = NONE
-  | find f (x :: xs) = (if f x then SOME x else find f xs);
-
-fun const x = (fn _ => x);
+fun nth (x :: xs) n =
+  (if equal_nata n zero_nat then x else nth xs (minus_nat n one_nat));
 
 fun fold f (x :: xs) s = fold f xs (f x s)
   | fold f [] s = s;
@@ -910,14 +918,13 @@ fun mask A_ n =
 
 fun unat A_ w = nat (uint A_ w);
 
-fun foldr f [] = id
-  | foldr f (x :: xs) = f x o foldr f xs;
-
 fun map_of A_ ((l, v) :: ps) k = (if eq A_ l k then SOME v else map_of A_ ps k)
   | map_of A_ [] k = NONE;
 
 fun filter p [] = []
   | filter p (x :: xs) = (if p x then x :: filter p xs else filter p xs);
+
+fun hd (x21 :: x22) = x21;
 
 fun remdups A_ [] = []
   | remdups A_ (x :: xs) =
@@ -1578,7 +1585,7 @@ fun prefix_to_range pfx =
         (pfxm_mask
           (len_bit0 (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1))))) pfx));
 
-fun ipv4range_split1 r =
+fun ipv4range_split1_2 r =
   let
     val a = ipv4range_lowest_element r;
   in
@@ -1586,17 +1593,17 @@ fun ipv4range_split1 r =
       | SOME aa =>
         let
           val cs = map (fn b => PrefixMatch (aa, b)) pfxes;
-          val cfs =
+          val ms =
             filter
               (fn s =>
                 valid_prefix s andalso ipv4range_subset (prefix_to_range s) r)
               cs;
-          val mc = find (const true) cfs;
         in
-          (case mc of NONE => (NONE, r)
-            | SOME m => (mc, ipv4range_setminus r (prefix_to_range m)))
+          (SOME (hd ms), ipv4range_setminus r (prefix_to_range (hd ms)))
         end)
   end;
+
+fun ipv4range_split1 s = ipv4range_split1_2 s;
 
 fun ipv4range_empty rg =
   wordinterval_empty
@@ -1700,7 +1707,8 @@ fun ctstate_is_UNIV c =
   member equal_ctstate CT_New c andalso
     (member equal_ctstate CT_Established c andalso
       (member equal_ctstate CT_Related c andalso
-        member equal_ctstate CT_Untracked c));
+        (member equal_ctstate CT_Untracked c andalso
+          member equal_ctstate CT_Invalid c)));
 
 val bot_set : 'a set = Set [];
 
@@ -1967,17 +1975,33 @@ fun normalize_rules_dnf [] = []
   | normalize_rules_dnf (Rule (m, a) :: rs) =
     map (fn ma => Rule (ma, a)) (normalize_match m) @ normalize_rules_dnf rs;
 
-fun get_action (Rule (x1, x2)) = x2;
+fun optimize_matches_option uu [] = []
+  | optimize_matches_option f (Rule (m, a) :: rs) =
+    (case f m of NONE => optimize_matches_option f rs
+      | SOME ma => Rule (ma, a) :: optimize_matches_option f rs);
 
-fun get_match (Rule (x1, x2)) = x1;
+fun matcheq_matchNone MatchAny = false
+  | matcheq_matchNone (Match uu) = false
+  | matcheq_matchNone (MatchNot MatchAny) = true
+  | matcheq_matchNone (MatchNot (Match uv)) = false
+  | matcheq_matchNone (MatchNot (MatchNot m)) = matcheq_matchNone m
+  | matcheq_matchNone (MatchNot (MatchAnd (m1, m2))) =
+    matcheq_matchNone (MatchNot m1) andalso matcheq_matchNone (MatchNot m2)
+  | matcheq_matchNone (MatchAnd (m1, m2)) =
+    matcheq_matchNone m1 orelse matcheq_matchNone m2;
 
 fun optimize_matches f rs =
-  map (fn r => Rule (f (get_match r), get_action r)) rs;
+  optimize_matches_option
+    (fn m => (if matcheq_matchNone (f m) then NONE else SOME (f m))) rs;
 
 fun transform_optimize_dnf_strict x =
   (optimize_matches opt_MatchAny_match_expr o normalize_rules_dnf o
     optimize_matches (opt_MatchAny_match_expr o optimize_primitive_univ))
     x;
+
+fun get_action (Rule (x1, x2)) = x2;
+
+fun get_match (Rule (x1, x2)) = x1;
 
 fun optimize_matches_a f rs =
   map (fn r => Rule (f (get_action r) (get_match r), get_action r)) rs;
@@ -2162,13 +2186,35 @@ fun nat_to_16word i =
   of_nat (semiring_1_word (len_bit0 (len_bit0 (len_bit0 (len_bit0 len_num1)))))
     i;
 
-fun insort_key B_ f x [] = [x]
-  | insort_key B_ f x (y :: ys) =
-    (if less_eq ((ord_preorder o preorder_order o order_linorder) B_) (f x)
-          (f y)
-      then x :: y :: ys else y :: insort_key B_ f x ys);
+fun part B_ f pivot (x :: xs) =
+  let
+    val (lts, (eqs, gts)) = part B_ f pivot xs;
+    val xa = f x;
+  in
+    (if less ((ord_preorder o preorder_order o order_linorder) B_) xa pivot
+      then (x :: lts, (eqs, gts))
+      else (if less ((ord_preorder o preorder_order o order_linorder) B_) pivot
+                 xa
+             then (lts, (eqs, x :: gts)) else (lts, (x :: eqs, gts))))
+  end
+  | part B_ f pivot [] = ([], ([], []));
 
-fun sort_key B_ f xs = foldr (insort_key B_ f) xs [];
+fun sort_key B_ f xs =
+  (case xs of [] => [] | [_] => xs
+    | [x, y] =>
+      (if less_eq ((ord_preorder o preorder_order o order_linorder) B_) (f x)
+            (f y)
+        then xs else [y, x])
+    | _ :: _ :: _ :: _ =>
+      let
+        val (lts, (eqs, gts)) =
+          part B_ f
+            (f (nth xs
+                 (div_nat (size_list xs) (nat_of_integer (2 : IntInf.int)))))
+            xs;
+      in
+        sort_key B_ f lts @ eqs @ sort_key B_ f gts
+      end);
 
 fun to_negation_type_nnf MatchAny = []
   | to_negation_type_nnf (Match a) = [Pos a]
@@ -2677,11 +2723,15 @@ fun common_primitive_match_to_simple_match MatchAny = SOME simple_match_any
     (raise Fail "undefined")
   | common_primitive_match_to_simple_match (Match (CT_State vo)) =
     (raise Fail "undefined")
-  | common_primitive_match_to_simple_match (Match (Extra vp)) =
+  | common_primitive_match_to_simple_match (Match (L4_Flags vp)) =
     (raise Fail "undefined")
-  | common_primitive_match_to_simple_match (MatchNot (Match (Extra vq))) =
+  | common_primitive_match_to_simple_match (MatchNot (Match (L4_Flags vq))) =
     (raise Fail "undefined")
-  | common_primitive_match_to_simple_match (MatchNot (Match (CT_State vr))) =
+  | common_primitive_match_to_simple_match (Match (Extra vr)) =
+    (raise Fail "undefined")
+  | common_primitive_match_to_simple_match (MatchNot (Match (Extra vs))) =
+    (raise Fail "undefined")
+  | common_primitive_match_to_simple_match (MatchNot (Match (CT_State vt))) =
     (raise Fail "undefined");
 
 fun is_L4_Flags (Src x1) = false
@@ -2912,6 +2962,20 @@ fun simple_rule_toString
                                 [#"d", #"p", #"o", #"r", #"t", #"s", #":", #" "]
                                 dps;
 
+fun protocol_opt_toString descr prot =
+  (if equal_protocol prot ProtoAny then [] else descr @ protocol_toString prot);
+
+fun ipv4_cidr_opt_toString descr ip =
+  (if equal_proda
+        (equal_word
+          (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))))
+        equal_nat ip
+        (zero_worda
+           (len0_bit0
+             (len0_bit0 (len0_bit0 (len0_bit0 (len0_bit0 len0_num1))))),
+          zero_nat)
+    then [] else descr @ ipv4_cidr_toString ip);
+
 fun bitmask_to_strange_inverse_cisco_mask n =
   dotdecimal_of_ipv4addr
     (bitNOT_word
@@ -2925,24 +2989,15 @@ fun simple_rule_iptables_save_toString chain
   (SimpleRule (Simple_match_ext (iif, oif, sip, dip, p, sps, dps, ()), a)) =
   [#"-", #"A", #" "] @
     chain @
-      [#" ", #"-", #"s", #" "] @
-        ipv4_cidr_toString sip @
-          [#" "] @
-            [#"-", #"d", #" "] @
-              ipv4_cidr_toString dip @
-                [#" "] @
-                  [#"-", #"p", #" "] @
-                    protocol_toString p @
-                      [#" "] @
-                        (if not (null (iface_toString [#"i", #"n", #":"] iif @
-iface_toString [#"o", #"u", #"t", #":"] oif @
-  ports_toString [#"s", #"r", #"c", #"p", #"o", #"r", #"t", #"s", #":"] sps @
-    ports_toString [#"d", #"s", #"t", #"p", #"o", #"r", #"t", #"s", #":"] dps))
-                          then [#"T", #"O", #"D", #"O", #":", #" ", #"m", #"o",
-                                 #"r", #"e", #" ", #"f", #"i", #"e", #"l", #"d",
-                                 #"s", #" ", #"t", #"o", #" ", #"d", #"u", #"m",
-                                 #"p"]
-                          else []) @
-                          [#" ", #"-", #"j", #" "] @ simple_action_toString a;
+      iface_toString [#" ", #"-", #"i", #" "] iif @
+        iface_toString [#" ", #"-", #"o", #" "] oif @
+          ipv4_cidr_opt_toString [#" ", #"-", #"s", #" "] sip @
+            ipv4_cidr_opt_toString [#" ", #"-", #"d", #" "] dip @
+              protocol_opt_toString [#" ", #"-", #"p", #" "] p @
+                ports_toString
+                  [#" ", #"-", #"-", #"s", #"p", #"o", #"r", #"t", #" "] sps @
+                  ports_toString
+                    [#" ", #"-", #"-", #"d", #"p", #"o", #"r", #"t", #" "] dps @
+                    [#" ", #"-", #"j", #" "] @ simple_action_toString a;
 
 end; (*struct Test*)

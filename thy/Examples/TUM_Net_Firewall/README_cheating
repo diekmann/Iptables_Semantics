@@ -1,28 +1,26 @@
 Q: What are those "_cheating" files?
 A: As the name suggests, we manually modified the rulesets to yield better results. Whenever we load a _cheating file, we include the diff to the unmodified ruleset.
 
-For example, we removed three rules at the beginning. Here is the diff to to unmodified ruleset:
+For example, we removed one rule at the beginning. Here is the diff to to unmodified ruleset:
 
- Chain FORWARD (policy ACCEPT)
- target     prot opt source               destination
--ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0            state RELATED,ESTABLISHED,UNTRACKED
--LOG_RECENT_DROP  all  --  0.0.0.0/0            0.0.0.0/0            recent: UPDATE seconds: 60 name: DEFAULT side: source
--LOG_RECENT_DROP  tcp  --  0.0.0.0/0            0.0.0.0/0            state NEW tcp dpt:22flags: 0x17/0x02 recent: UPDATE seconds: 360 hit_count: 41 name: ratessh side: source
- LOG_DROP   all  --  127.0.0.0/8          0.0.0.0/0
- ACCEPT     tcp  --  131.159.14.206       0.0.0.0/0            multiport sports 389,636
- ACCEPT     tcp  --  131.159.14.208       0.0.0.0/0            multiport sports 389,636
+diff -u iptables_20.11.2013 iptables_20.11.2013_cheating
+--- iptables_20.11.2013	2015-12-04 15:28:33.492307000 +0100
++++ iptables_20.11.2013_cheating_2	2015-12-08 19:44:06.251743619 +0100
+@@ -105,7 +105,6 @@
+ -A INPUT -i vlan110 -j NOTFROMHERE
+ -A INPUT -i vlan110 -j filter_INPUT
+ -A FORWARD -m state --state RELATED,ESTABLISHED,UNTRACKED -j ACCEPT
+--A FORWARD -m recent --update --seconds 60 --name DEFAULT --rsource -j LOG_RECENT_DROP
+ -A FORWARD -p tcp -m state --state NEW -m tcp --dport 22 --tcp-flags FIN,SYN,RST,ACK SYN -m recent --update --seconds 360 --hitcount 41 --name ratessh --rsource -j LOG_RECENT_DROP
+ -A FORWARD -s 127.0.0.0/8 -j LOG_DROP
+ -A FORWARD -s 131.159.14.206/32 -i vlan1011 -p tcp -m multiport --sports 389,636 -j ACCEPT
+
+The rule was simply dead.
 
 We suffix everything which is based on this modified rulset (with those three rules removed) '_cheating'.
-Details why it is reasonable to exclude those three rules can be found in the paper:
+In earlier versions, we also remove the ESTABLISHED;REALTED rule. Details why this is (was) reasonable can be found in the paper:
 http://www.net.in.tum.de/fileadmin/bibtex/publications/papers/fm15_Semantics-Preserving_Simplification_of_Real-World_Firewall_Rule_Sets.pdf
 
-Short summary why those three rules can be removed:
-1) The  RELATED,ESTABLISHED,UNTRACKED-rule: we only care about how the firewall allows connection set up.
-   Once the connection is established, all further packets are automatically allowed, thus we only care how a connection can be established
-2) dead rule
-3) we know exactly that the rule does, we exclude it to get better results for the remaining (almost 3000) rules.
-
-To sum up, what does '_cheating' mean: We removed three rules (with an reasonable argument).
 
 What it does _NOT_ mean:
  * Proofs not checked by isabelle

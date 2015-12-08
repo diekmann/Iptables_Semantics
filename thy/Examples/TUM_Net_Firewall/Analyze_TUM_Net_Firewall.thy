@@ -2,10 +2,222 @@ theory Analyze_TUM_Net_Firewall
 imports "../../Primitive_Matchers/Code_Interface"
   "../../Semantics_Ternary/Packet_Set"
   "../../Simple_Firewall/SimpleFw_toString"
+  "../../Primitive_Matchers/Parser"
 begin
 
 
 section{*Example: Chair for Network Architectures and Services (TUM) 2013*}
+
+
+parse_iptables_save net_fw_2013="iptables_20.11.2013_cheating"
+(*diff -u iptables_20.11.2013 iptables_20.11.2013_cheating
+--- iptables_20.11.2013	2015-12-04 15:28:33.492307000 +0100
++++ iptables_20.11.2013_cheating	2015-12-08 18:44:36.579896349 +0100
+@@ -104,9 +104,6 @@
+ -A INPUT -s 127.0.0.0/8 -j LOG_DROP
+ -A INPUT -i vlan110 -j NOTFROMHERE
+ -A INPUT -i vlan110 -j filter_INPUT
+--A FORWARD -m state --state RELATED,ESTABLISHED,UNTRACKED -j ACCEPT
+--A FORWARD -m recent --update --seconds 60 --name DEFAULT --rsource -j LOG_RECENT_DROP
+--A FORWARD -p tcp -m state --state NEW -m tcp --dport 22 --tcp-flags FIN,SYN,RST,ACK SYN -m recent --update --seconds 360 --hitcount 41 --name ratessh --rsource -j LOG_RECENT_DROP
+ -A FORWARD -s 127.0.0.0/8 -j LOG_DROP
+ -A FORWARD -s 131.159.14.206/32 -i vlan1011 -p tcp -m multiport --sports 389,636 -j ACCEPT
+ -A FORWARD -s 131.159.14.208/32 -i vlan1011 -p tcp -m multiport --sports 389,636 -j ACCEPT*)
+
+lemma "sanity_wf_ruleset net_fw_2013" by eval
+
+lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string net_fw_2013)
+                    in (length rules, length (upper_closure rules), length (lower_closure rules)) =
+ (2373, 2381, 2838)" by eval
+
+value[code] "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string net_fw_2013)
+                    in ()"
+(*116.392s, compiled ML is less than one second*)
+
+lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string net_fw_2013)
+                    in (length (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall
+                              (upper_closure (packet_assume_new rules))))),
+                        length (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall
+                              (lower_closure (packet_assume_new rules)))))) 
+ = (2381, 2836)" by eval
+
+lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string net_fw_2013)
+     in map simple_rule_toString (take 43 (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall
+                              (upper_closure (packet_assume_new rules)))))) =
+ [''DROP     all  --  127.0.0.0/8            0.0.0.0/0    '',
+  ''ACCEPT     tcp  --  131.159.14.206/32            0.0.0.0/0 in: vlan1011  sports: 389 '',
+  ''ACCEPT     tcp  --  131.159.14.206/32            0.0.0.0/0 in: vlan1011  sports: 636 '',
+  ''ACCEPT     tcp  --  131.159.14.208/32            0.0.0.0/0 in: vlan1011  sports: 389 '',
+  ''ACCEPT     tcp  --  131.159.14.208/32            0.0.0.0/0 in: vlan1011  sports: 636 '',
+  ''ACCEPT     udp  --  131.159.14.206/32            0.0.0.0/0 in: vlan1011  sports: 88 '',
+  ''ACCEPT     udp  --  131.159.14.208/32            0.0.0.0/0 in: vlan1011  sports: 88 '',
+  ''ACCEPT     tcp  --  131.159.14.192/27            0.0.0.0/0 in: vlan1011  sports: 3260 '',
+  ''ACCEPT     tcp  --  131.159.14.0/23            131.159.14.192/27  out: vlan1011  dports: 3260'',
+  ''ACCEPT     tcp  --  131.159.20.0/24            131.159.14.192/27  out: vlan1011  dports: 3260'',
+  ''ACCEPT     udp  --  131.159.15.252/32            0.0.0.0/0 in: vlan152   '',
+  ''ACCEPT     udp  --  0.0.0.0/0            131.159.15.252/32  out: vlan152  dports: 4569'',
+  ''ACCEPT     udp  --  0.0.0.0/0            131.159.15.252/32  out: vlan152  dports: 5000:65535'',
+  ''ACCEPT     all  --  131.159.15.247/32            0.0.0.0/0 in: vlan152 out: vlan110  '',
+  ''ACCEPT     all  --  0.0.0.0/0            131.159.15.247/32 in: vlan110 out: vlan152  '',
+  ''ACCEPT     all  --  131.159.15.248/32            0.0.0.0/0 in: vlan152 out: vlan110  '',
+  ''ACCEPT     all  --  0.0.0.0/0            131.159.15.248/32 in: vlan110 out: vlan152  '',
+  ''DROP     all  --  0.0.0.0/1            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  128.0.0.0/7            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  130.0.0.0/8            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.0.0.0/9            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.128.0.0/12            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.144.0.0/13            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.152.0.0/14            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.156.0.0/15            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.158.0.0/16            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.0.0/21            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.8.0/22            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.12.0/23            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.14.128/25            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.15.0/24            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.16.0/20            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.32.0/19            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.64.0/18            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.128.0/17            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.160.0.0/11            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.192.0.0/10            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  132.0.0.0/6            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  136.0.0.0/5            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  144.0.0.0/4            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  160.0.0.0/3            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  192.0.0.0/2            0.0.0.0/0 in: vlan96   '',
+  ''ACCEPT     tcp  --  0.0.0.0/0            131.159.14.36/32  out: vlan96  dports: 22'']" by eval
+
+lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string net_fw_2013)
+     in map simple_rule_toString (take 18 (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall
+                              (lower_closure (packet_assume_new rules)))))) = 
+ [''DROP     all  --  127.0.0.0/8            0.0.0.0/0    '',
+  ''ACCEPT     tcp  --  131.159.14.206/32            0.0.0.0/0 in: vlan1011  sports: 389 '',
+  ''ACCEPT     tcp  --  131.159.14.206/32            0.0.0.0/0 in: vlan1011  sports: 636 '',
+  ''ACCEPT     tcp  --  131.159.14.208/32            0.0.0.0/0 in: vlan1011  sports: 389 '',
+  ''ACCEPT     tcp  --  131.159.14.208/32            0.0.0.0/0 in: vlan1011  sports: 636 '',
+  ''ACCEPT     udp  --  131.159.14.206/32            0.0.0.0/0 in: vlan1011  sports: 88 '',
+  ''ACCEPT     udp  --  131.159.14.208/32            0.0.0.0/0 in: vlan1011  sports: 88 '',
+  ''ACCEPT     tcp  --  131.159.14.192/27            0.0.0.0/0 in: vlan1011  sports: 3260 '',
+  ''ACCEPT     udp  --  131.159.15.252/32            0.0.0.0/0 in: vlan152   '',
+  ''ACCEPT     udp  --  0.0.0.0/0            131.159.15.252/32  out: vlan152  dports: 4569'',
+  ''ACCEPT     udp  --  0.0.0.0/0            131.159.15.252/32  out: vlan152  dports: 5000:65535'',
+  ''ACCEPT     all  --  131.159.15.247/32            0.0.0.0/0 in: vlan152 out: vlan110  '',
+  ''ACCEPT     all  --  0.0.0.0/0            131.159.15.247/32 in: vlan110 out: vlan152  '',
+  ''ACCEPT     all  --  131.159.15.248/32            0.0.0.0/0 in: vlan152 out: vlan110  '',
+  ''ACCEPT     all  --  0.0.0.0/0            131.159.15.248/32 in: vlan110 out: vlan152  '',
+  ''DROP     all  --  131.159.14.92/32            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.14.65/32            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.14.44/32            0.0.0.0/0 in: vlan96   '']" by eval
+
+
+
+
+parse_iptables_save net_fw_2013_2="iptables_20.11.2013_cheating_2"
+(*diff -u iptables_20.11.2013 iptables_20.11.2013_cheating_2
+--- iptables_20.11.2013	2015-12-04 15:28:33.492307000 +0100
++++ iptables_20.11.2013_cheating_2	2015-12-08 19:44:06.251743619 +0100
+@@ -105,7 +105,6 @@
+ -A INPUT -i vlan110 -j NOTFROMHERE
+ -A INPUT -i vlan110 -j filter_INPUT
+ -A FORWARD -m state --state RELATED,ESTABLISHED,UNTRACKED -j ACCEPT
+--A FORWARD -m recent --update --seconds 60 --name DEFAULT --rsource -j LOG_RECENT_DROP
+ -A FORWARD -p tcp -m state --state NEW -m tcp --dport 22 --tcp-flags FIN,SYN,RST,ACK SYN -m recent --update --seconds 360 --hitcount 41 --name ratessh --rsource -j LOG_RECENT_DROP
+ -A FORWARD -s 127.0.0.0/8 -j LOG_DROP
+ -A FORWARD -s 131.159.14.206/32 -i vlan1011 -p tcp -m multiport --sports 389,636 -j ACCEPT*)
+
+lemma "sanity_wf_ruleset net_fw_2013_2" by eval
+
+lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_2_FORWARD_default_policy (map_of_string net_fw_2013_2)
+                    in (length rules, length (upper_closure rules), length (lower_closure rules))
+  = (2375, 2382, 2840)" by eval
+
+value[code] "let rules = unfold_ruleset_FORWARD net_fw_2013_2_FORWARD_default_policy (map_of_string net_fw_2013_2)
+                    in ()"
+(*116.392s, compiled ML is less than one second*)
+
+lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_2_FORWARD_default_policy (map_of_string net_fw_2013_2)
+                    in (length (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall
+                              (upper_closure (packet_assume_new rules))))),
+                        length (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall
+                              (lower_closure (packet_assume_new rules)))))) = 
+ (2381, 2837)" by eval
+
+lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string net_fw_2013_2)
+     in map simple_rule_toString (take 43 (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall
+                              (upper_closure (packet_assume_new rules)))))) =
+ [''DROP     all  --  127.0.0.0/8            0.0.0.0/0    '',
+  ''ACCEPT     tcp  --  131.159.14.206/32            0.0.0.0/0 in: vlan1011  sports: 389 '',
+  ''ACCEPT     tcp  --  131.159.14.206/32            0.0.0.0/0 in: vlan1011  sports: 636 '',
+  ''ACCEPT     tcp  --  131.159.14.208/32            0.0.0.0/0 in: vlan1011  sports: 389 '',
+  ''ACCEPT     tcp  --  131.159.14.208/32            0.0.0.0/0 in: vlan1011  sports: 636 '',
+  ''ACCEPT     udp  --  131.159.14.206/32            0.0.0.0/0 in: vlan1011  sports: 88 '',
+  ''ACCEPT     udp  --  131.159.14.208/32            0.0.0.0/0 in: vlan1011  sports: 88 '',
+  ''ACCEPT     tcp  --  131.159.14.192/27            0.0.0.0/0 in: vlan1011  sports: 3260 '',
+  ''ACCEPT     tcp  --  131.159.14.0/23            131.159.14.192/27  out: vlan1011  dports: 3260'',
+  ''ACCEPT     tcp  --  131.159.20.0/24            131.159.14.192/27  out: vlan1011  dports: 3260'',
+  ''ACCEPT     udp  --  131.159.15.252/32            0.0.0.0/0 in: vlan152   '',
+  ''ACCEPT     udp  --  0.0.0.0/0            131.159.15.252/32  out: vlan152  dports: 4569'',
+  ''ACCEPT     udp  --  0.0.0.0/0            131.159.15.252/32  out: vlan152  dports: 5000:65535'',
+  ''ACCEPT     all  --  131.159.15.247/32            0.0.0.0/0 in: vlan152 out: vlan110  '',
+  ''ACCEPT     all  --  0.0.0.0/0            131.159.15.247/32 in: vlan110 out: vlan152  '',
+  ''ACCEPT     all  --  131.159.15.248/32            0.0.0.0/0 in: vlan152 out: vlan110  '',
+  ''ACCEPT     all  --  0.0.0.0/0            131.159.15.248/32 in: vlan110 out: vlan152  '',
+  ''DROP     all  --  0.0.0.0/1            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  128.0.0.0/7            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  130.0.0.0/8            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.0.0.0/9            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.128.0.0/12            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.144.0.0/13            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.152.0.0/14            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.156.0.0/15            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.158.0.0/16            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.0.0/21            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.8.0/22            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.12.0/23            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.14.128/25            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.15.0/24            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.16.0/20            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.32.0/19            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.64.0/18            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.128.0/17            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.160.0.0/11            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.192.0.0/10            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  132.0.0.0/6            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  136.0.0.0/5            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  144.0.0.0/4            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  160.0.0.0/3            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  192.0.0.0/2            0.0.0.0/0 in: vlan96   '',
+  ''ACCEPT     tcp  --  0.0.0.0/0            131.159.14.36/32  out: vlan96  dports: 22'']" by eval
+
+lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string net_fw_2013_2)
+     in map simple_rule_toString (take 18 (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall
+                              (lower_closure (packet_assume_new rules)))))) =
+ [''DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 22'',
+  ''DROP     all  --  127.0.0.0/8            0.0.0.0/0    '',
+  ''ACCEPT     tcp  --  131.159.14.206/32            0.0.0.0/0 in: vlan1011  sports: 389 '',
+  ''ACCEPT     tcp  --  131.159.14.206/32            0.0.0.0/0 in: vlan1011  sports: 636 '',
+  ''ACCEPT     tcp  --  131.159.14.208/32            0.0.0.0/0 in: vlan1011  sports: 389 '',
+  ''ACCEPT     tcp  --  131.159.14.208/32            0.0.0.0/0 in: vlan1011  sports: 636 '',
+  ''ACCEPT     udp  --  131.159.14.206/32            0.0.0.0/0 in: vlan1011  sports: 88 '',
+  ''ACCEPT     udp  --  131.159.14.208/32            0.0.0.0/0 in: vlan1011  sports: 88 '',
+  ''ACCEPT     tcp  --  131.159.14.192/27            0.0.0.0/0 in: vlan1011  sports: 3260 '',
+  ''ACCEPT     udp  --  131.159.15.252/32            0.0.0.0/0 in: vlan152   '',
+  ''ACCEPT     udp  --  0.0.0.0/0            131.159.15.252/32  out: vlan152  dports: 4569'',
+  ''ACCEPT     udp  --  0.0.0.0/0            131.159.15.252/32  out: vlan152  dports: 5000:65535'',
+  ''ACCEPT     all  --  131.159.15.247/32            0.0.0.0/0 in: vlan152 out: vlan110  '',
+  ''ACCEPT     all  --  0.0.0.0/0            131.159.15.247/32 in: vlan110 out: vlan152  '',
+  ''ACCEPT     all  --  131.159.15.248/32            0.0.0.0/0 in: vlan152 out: vlan110  '',
+  ''ACCEPT     all  --  0.0.0.0/0            131.159.15.248/32 in: vlan110 out: vlan152  '',
+  ''DROP     all  --  131.159.14.92/32            0.0.0.0/0 in: vlan96   '',
+  ''DROP     all  --  131.159.14.65/32            0.0.0.0/0 in: vlan96   '']" by eval
+
+
+(*we get better results than from the old dump for iptables_20.11.2013_cheating and iptables_20.11.2013_cheating_2
+ reason: the parser understands more
+ the results are longer
+ we don't need to remove the RELATED,ESTABLISHED rule manually*)
+
 
 
 text{*We analyze a dump from 2013. Unfortunately, we don't have an 
@@ -68,7 +280,8 @@ open Test;
 
 ML_val{*
   sanity_wf_ruleset firewall_chains
-*}
+*} (*true*)
+
 
 declare[[ML_print_depth=50]]
 ML{*
@@ -80,6 +293,11 @@ val upper = upper_closure rules;
 val lower = lower_closure rules;
 length upper;
 length lower;*}
+(*val it = 2401: ?.int
+val upper ...
+val it = 997: ?.int
+val it = 574: ?.int*)
+
 
 text{*How long does the unfolding take?*}
 ML_val{*
@@ -89,6 +307,8 @@ val t1= Time.now();
 writeln(String.concat ["It took ", Time.toString(Time.-(t1,t0)), " seconds"])
 *}
 text{*on my system, less than 1 second.*}
+
+
 
 text{*Time required for calculating and normalizing closure*}
 ML_val{*
@@ -104,12 +324,12 @@ text{*on my system, less than 25 seconds if we also included l4 ports.*}
 ML_val{*
 check_simple_fw_preconditions upper;
 check_simple_fw_preconditions lower;
-*} (*also true if ports included*)
+*} (*true, true; also true if ports included*)
 
 ML_val{*
 length (to_simple_firewall upper);
 length (to_simple_firewall lower);
-*}
+*} (*997, 574*)
 
 
 ML{*
@@ -147,6 +367,54 @@ val _ = map putLn (to_simple_firewall upper);
 writeln "Chain OUTPUT (policy ACCEPT)";
 writeln "target     prot opt source               destination"
 *}
+(*
+Chain FORWARD (policy ACCEPT) 
+target     prot opt source               destination 
+DROP     all  --  127.0.0.0/8            0.0.0.0/0     
+ACCEPT     tcp  --  131.159.14.206/32            0.0.0.0/0     
+ACCEPT     tcp  --  131.159.14.208/32            0.0.0.0/0     
+ACCEPT     udp  --  131.159.14.206/32            0.0.0.0/0     
+ACCEPT     udp  --  131.159.14.208/32            0.0.0.0/0     
+ACCEPT     tcp  --  131.159.14.192/27            0.0.0.0/0     
+ACCEPT     tcp  --  131.159.14.0/23            131.159.14.192/27     
+ACCEPT     tcp  --  131.159.20.0/24            131.159.14.192/27     
+ACCEPT     udp  --  131.159.15.252/32            0.0.0.0/0     
+ACCEPT     udp  --  0.0.0.0/0            131.159.15.252/32     
+ACCEPT     all  --  131.159.15.247/32            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            131.159.15.247/32     
+ACCEPT     all  --  131.159.15.248/32            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            131.159.15.248/32     
+DROP     all  --  0.0.0.0/1            0.0.0.0/0     
+DROP     all  --  128.0.0.0/7            0.0.0.0/0     
+DROP     all  --  130.0.0.0/8            0.0.0.0/0     
+DROP     all  --  131.0.0.0/9            0.0.0.0/0     
+DROP     all  --  131.128.0.0/12            0.0.0.0/0     
+DROP     all  --  131.144.0.0/13            0.0.0.0/0     
+DROP     all  --  131.152.0.0/14            0.0.0.0/0     
+DROP     all  --  131.156.0.0/15            0.0.0.0/0     
+DROP     all  --  131.158.0.0/16            0.0.0.0/0     
+DROP     all  --  131.159.0.0/21            0.0.0.0/0     
+DROP     all  --  131.159.8.0/22            0.0.0.0/0     
+DROP     all  --  131.159.12.0/23            0.0.0.0/0     
+DROP     all  --  131.159.14.128/25            0.0.0.0/0     
+DROP     all  --  131.159.15.0/24            0.0.0.0/0     
+DROP     all  --  131.159.16.0/20            0.0.0.0/0     
+DROP     all  --  131.159.32.0/19            0.0.0.0/0     
+DROP     all  --  131.159.64.0/18            0.0.0.0/0     
+DROP     all  --  131.159.128.0/17            0.0.0.0/0     
+DROP     all  --  131.160.0.0/11            0.0.0.0/0     
+DROP     all  --  131.192.0.0/10            0.0.0.0/0     
+DROP     all  --  132.0.0.0/6            0.0.0.0/0     
+DROP     all  --  136.0.0.0/5            0.0.0.0/0     
+DROP     all  --  144.0.0.0/4            0.0.0.0/0     
+DROP     all  --  160.0.0.0/3            0.0.0.0/0     
+DROP     all  --  192.0.0.0/2            0.0.0.0/0     
+ACCEPT     tcp  --  0.0.0.0/0            131.159.14.36/32     
+ACCEPT     tcp  --  0.0.0.0/0            131.159.14.9/32     
+ACCEPT     tcp  --  0.0.0.0/0            131.159.14.91/32     
+ACCEPT     tcp  --  0.0.0.0/0            131.159.14.24/32     
+ACCEPT     tcp  --  131.159.15.224/28            131.159.14.47/32 
+...*)
 
 
 text{*iptables -L -n*}
@@ -160,6 +428,227 @@ val _ = map putLn (to_simple_firewall lower);
 writeln "Chain OUTPUT (policy ACCEPT)";
 writeln "target     prot opt source               destination"
 *}
+(*Chain FORWARD (policy ACCEPT) 
+target     prot opt source               destination 
+DROP     all  --  127.0.0.0/8            0.0.0.0/0     
+ACCEPT     udp  --  131.159.15.252/32            0.0.0.0/0     
+ACCEPT     all  --  131.159.15.247/32            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            131.159.15.247/32     
+ACCEPT     all  --  131.159.15.248/32            0.0.0.0/0     
+ACCEPT     all  --  0.0.0.0/0            131.159.15.248/32     
+DROP     all  --  131.159.14.92/32            0.0.0.0/0     
+DROP     all  --  131.159.14.65/32            0.0.0.0/0     
+DROP     all  --  131.159.14.44/32            0.0.0.0/0     
+DROP     all  --  131.159.14.36/32            0.0.0.0/0     
+DROP     all  --  131.159.14.119/32            0.0.0.0/0     
+DROP     all  --  131.159.14.18/32            0.0.0.0/0     
+DROP     all  --  131.159.14.54/32            0.0.0.0/0     
+DROP     all  --  131.159.14.9/32            0.0.0.0/0     
+DROP     all  --  131.159.14.85/32            0.0.0.0/0     
+DROP     all  --  131.159.14.118/32            0.0.0.0/0     
+DROP     all  --  131.159.14.17/32            0.0.0.0/0     
+DROP     all  --  131.159.14.45/32            0.0.0.0/0     
+DROP     all  --  131.159.14.91/32            0.0.0.0/0     
+DROP     all  --  131.159.14.71/32            0.0.0.0/0     
+DROP     all  --  131.159.14.34/32            0.0.0.0/0     
+DROP     all  --  131.159.14.83/32            0.0.0.0/0     
+DROP     all  --  131.159.14.82/32            0.0.0.0/0     
+DROP     all  --  131.159.14.60/32            0.0.0.0/0     
+DROP     all  --  131.159.14.24/32            0.0.0.0/0     
+DROP     all  --  131.159.14.47/32            0.0.0.0/0     
+DROP     all  --  131.159.14.33/32            0.0.0.0/0     
+DROP     all  --  131.159.14.15/32            0.0.0.0/0     
+DROP     all  --  131.159.14.74/32            0.0.0.0/0     
+DROP     all  --  131.159.14.123/32            0.0.0.0/0     
+DROP     all  --  131.159.14.73/32            0.0.0.0/0     
+DROP     all  --  131.159.14.64/32            0.0.0.0/0     
+DROP     all  --  131.159.14.20/32            0.0.0.0/0     
+DROP     all  --  131.159.14.79/32            0.0.0.0/0     
+DROP     all  --  131.159.14.51/32            0.0.0.0/0     
+DROP     all  --  131.159.14.7/32            0.0.0.0/0     
+DROP     all  --  131.159.14.48/32            0.0.0.0/0     
+DROP     all  --  131.159.14.120/32            0.0.0.0/0     
+DROP     all  --  131.159.14.121/32            0.0.0.0/0     
+DROP     all  --  131.159.14.27/32            0.0.0.0/0     
+DROP     all  --  131.159.14.105/32            0.0.0.0/0     
+DROP     all  --  131.159.14.106/32            0.0.0.0/0     
+DROP     all  --  131.159.14.103/32            0.0.0.0/0     
+DROP     all  --  131.159.14.101/32            0.0.0.0/0     
+DROP     all  --  131.159.14.102/32            0.0.0.0/0     
+DROP     all  --  131.159.14.100/32            0.0.0.0/0     
+DROP     all  --  131.159.14.95/32            0.0.0.0/0     
+DROP     all  --  131.159.14.107/32            0.0.0.0/0     
+DROP     all  --  131.159.14.108/32            0.0.0.0/0     
+DROP     all  --  131.159.14.77/32            0.0.0.0/0     
+DROP     all  --  131.159.14.52/32            0.0.0.0/0     
+DROP     all  --  131.159.14.66/32            0.0.0.0/0     
+DROP     all  --  131.159.14.90/32            0.0.0.0/0     
+DROP     all  --  131.159.14.111/32            0.0.0.0/0     
+DROP     all  --  131.159.14.96/32            0.0.0.0/0     
+DROP     all  --  131.159.14.43/32            0.0.0.0/0     
+DROP     all  --  131.159.14.109/32            0.0.0.0/0     
+DROP     all  --  131.159.14.112/32            0.0.0.0/0     
+DROP     all  --  131.159.14.113/32            0.0.0.0/0     
+DROP     all  --  131.159.14.114/32            0.0.0.0/0     
+DROP     all  --  131.159.14.115/32            0.0.0.0/0     
+DROP     all  --  131.159.14.116/32            0.0.0.0/0     
+DROP     all  --  131.159.14.117/32            0.0.0.0/0     
+DROP     all  --  131.159.14.93/32            0.0.0.0/0     
+DROP     all  --  131.159.14.99/32            0.0.0.0/0     
+DROP     all  --  131.159.14.122/32            0.0.0.0/0     
+DROP     all  --  131.159.14.28/32            0.0.0.0/0     
+DROP     all  --  131.159.14.94/32            0.0.0.0/0     
+DROP     all  --  131.159.14.75/32            0.0.0.0/0     
+DROP     all  --  131.159.14.63/32            0.0.0.0/0     
+DROP     all  --  131.159.14.89/32            0.0.0.0/0     
+DROP     all  --  131.159.14.37/32            0.0.0.0/0     
+DROP     all  --  131.159.14.81/32            0.0.0.0/0     
+DROP     all  --  131.159.14.12/32            0.0.0.0/0     
+DROP     all  --  131.159.14.58/32            0.0.0.0/0     
+DROP     all  --  131.159.14.6/32            0.0.0.0/0     
+DROP     all  --  131.159.14.78/32            0.0.0.0/0     
+DROP     all  --  131.159.14.8/32            0.0.0.0/0     
+DROP     all  --  131.159.14.98/32            0.0.0.0/0     
+DROP     all  --  131.159.14.19/32            0.0.0.0/0     
+DROP     all  --  131.159.14.10/32            0.0.0.0/0     
+DROP     all  --  131.159.14.23/32            0.0.0.0/0     
+DROP     all  --  131.159.14.57/32            0.0.0.0/0     
+DROP     all  --  131.159.14.86/32            0.0.0.0/0     
+DROP     all  --  131.159.14.11/32            0.0.0.0/0     
+DROP     all  --  131.159.14.55/32            0.0.0.0/0     
+DROP     all  --  131.159.14.46/32            0.0.0.0/0     
+DROP     all  --  131.159.14.50/32            0.0.0.0/0     
+DROP     all  --  131.159.14.70/32            0.0.0.0/0     
+DROP     all  --  131.159.14.5/32            0.0.0.0/0     
+DROP     all  --  131.159.14.53/32            0.0.0.0/0     
+DROP     all  --  131.159.14.88/32            0.0.0.0/0     
+DROP     all  --  131.159.14.14/32            0.0.0.0/0     
+DROP     all  --  131.159.14.13/32            0.0.0.0/0     
+DROP     all  --  131.159.14.84/32            0.0.0.0/0     
+DROP     all  --  131.159.14.68/32            0.0.0.0/0     
+DROP     all  --  131.159.14.42/32            0.0.0.0/0     
+DROP     all  --  131.159.14.16/32            0.0.0.0/0     
+DROP     all  --  131.159.14.30/32            0.0.0.0/0     
+DROP     all  --  131.159.14.22/32            0.0.0.0/0     
+DROP     all  --  131.159.14.87/32            0.0.0.0/0     
+DROP     all  --  131.159.14.97/32            0.0.0.0/0     
+DROP     all  --  131.159.14.29/32            0.0.0.0/0     
+DROP     all  --  131.159.14.72/32            0.0.0.0/0     
+DROP     all  --  131.159.14.21/32            0.0.0.0/0     
+DROP     all  --  131.159.14.125/32            0.0.0.0/0     
+DROP     all  --  131.159.14.67/32            0.0.0.0/0     
+DROP     all  --  131.159.14.76/32            0.0.0.0/0     
+DROP     all  --  0.0.0.0/1            0.0.0.0/0     
+DROP     all  --  128.0.0.0/7            0.0.0.0/0     
+DROP     all  --  130.0.0.0/8            0.0.0.0/0     
+DROP     all  --  131.0.0.0/9            0.0.0.0/0     
+DROP     all  --  131.128.0.0/12            0.0.0.0/0     
+DROP     all  --  131.144.0.0/13            0.0.0.0/0     
+DROP     all  --  131.152.0.0/14            0.0.0.0/0     
+DROP     all  --  131.156.0.0/15            0.0.0.0/0     
+DROP     all  --  131.158.0.0/16            0.0.0.0/0     
+DROP     all  --  131.159.0.0/21            0.0.0.0/0     
+DROP     all  --  131.159.8.0/22            0.0.0.0/0     
+DROP     all  --  131.159.12.0/23            0.0.0.0/0     
+DROP     all  --  131.159.14.128/25            0.0.0.0/0     
+DROP     all  --  131.159.15.0/24            0.0.0.0/0     
+DROP     all  --  131.159.16.0/20            0.0.0.0/0     
+DROP     all  --  131.159.32.0/19            0.0.0.0/0     
+DROP     all  --  131.159.64.0/18            0.0.0.0/0     
+DROP     all  --  131.159.128.0/17            0.0.0.0/0     
+DROP     all  --  131.160.0.0/11            0.0.0.0/0     
+DROP     all  --  131.192.0.0/10            0.0.0.0/0     
+DROP     all  --  132.0.0.0/6            0.0.0.0/0     
+DROP     all  --  136.0.0.0/5            0.0.0.0/0     
+DROP     all  --  144.0.0.0/4            0.0.0.0/0     
+DROP     all  --  160.0.0.0/3            0.0.0.0/0     
+DROP     all  --  192.0.0.0/2            0.0.0.0/0     
+DROP     all  --  0.0.0.0/0            131.159.14.0/25     
+DROP     all  --  0.0.0.0/0            224.0.0.0/4     
+DROP     all  --  131.159.14.186/32            0.0.0.0/0     
+DROP     all  --  131.159.14.153/32            0.0.0.0/0     
+DROP     all  --  131.159.14.187/32            0.0.0.0/0     
+DROP     all  --  131.159.14.158/32            0.0.0.0/0     
+DROP     all  --  131.159.14.155/32            0.0.0.0/0     
+DROP     all  --  131.159.14.169/32            0.0.0.0/0     
+DROP     all  --  131.159.14.150/32            0.0.0.0/0     
+DROP     all  --  131.159.14.163/32            0.0.0.0/0     
+DROP     all  --  131.159.14.166/32            0.0.0.0/0     
+DROP     all  --  131.159.14.170/32            0.0.0.0/0     
+DROP     all  --  131.159.14.171/32            0.0.0.0/0     
+DROP     all  --  131.159.14.176/32            0.0.0.0/0     
+DROP     all  --  131.159.14.144/32            0.0.0.0/0     
+DROP     all  --  131.159.14.181/32            0.0.0.0/0     
+DROP     all  --  131.159.14.167/32            0.0.0.0/0     
+DROP     all  --  131.159.14.175/32            0.0.0.0/0     
+DROP     all  --  131.159.14.139/32            0.0.0.0/0     
+DROP     all  --  131.159.14.178/32            0.0.0.0/0     
+DROP     all  --  131.159.14.174/32            0.0.0.0/0     
+DROP     all  --  131.159.14.157/32            0.0.0.0/0     
+DROP     all  --  131.159.14.130/32            0.0.0.0/0     
+DROP     all  --  131.159.14.149/32            0.0.0.0/0     
+DROP     all  --  131.159.14.180/32            0.0.0.0/0     
+DROP     all  --  131.159.14.148/32            0.0.0.0/0     
+DROP     all  --  131.159.14.132/32            0.0.0.0/0     
+DROP     all  --  131.159.14.137/32            0.0.0.0/0     
+DROP     all  --  131.159.14.138/32            0.0.0.0/0     
+DROP     all  --  131.159.14.164/32            0.0.0.0/0     
+DROP     all  --  131.159.14.136/32            0.0.0.0/0     
+DROP     all  --  131.159.14.140/32            0.0.0.0/0     
+DROP     all  --  131.159.14.146/32            0.0.0.0/0     
+DROP     all  --  131.159.14.165/32            0.0.0.0/0     
+DROP     all  --  131.159.14.145/32            0.0.0.0/0     
+DROP     all  --  131.159.14.156/32            0.0.0.0/0     
+DROP     all  --  131.159.14.184/32            0.0.0.0/0     
+DROP     all  --  131.159.14.168/32            0.0.0.0/0     
+DROP     all  --  131.159.14.0/25            0.0.0.0/0     
+DROP     all  --  131.159.14.192/26            0.0.0.0/0     
+DROP     all  --  0.0.0.0/0            131.159.14.128/26     
+DROP     all  --  131.159.20.126/32            0.0.0.0/0     
+DROP     all  --  131.159.20.109/32            0.0.0.0/0     
+DROP     all  --  131.159.20.180/32            0.0.0.0/0     
+DROP     all  --  131.159.20.52/32            0.0.0.0/0     
+DROP     all  --  131.159.20.146/32            0.0.0.0/0     
+DROP     all  --  131.159.20.89/32            0.0.0.0/0     
+DROP     all  --  131.159.20.142/32            0.0.0.0/0     
+DROP     all  --  131.159.20.121/32            0.0.0.0/0     
+DROP     all  --  131.159.20.5/32            0.0.0.0/0     
+DROP     all  --  131.159.20.252/32            0.0.0.0/0     
+DROP     all  --  131.159.20.62/32            0.0.0.0/0     
+DROP     all  --  131.159.20.85/32            0.0.0.0/0     
+DROP     all  --  131.159.20.172/32            0.0.0.0/0     
+DROP     all  --  131.159.20.71/32            0.0.0.0/0     
+DROP     all  --  131.159.20.79/32            0.0.0.0/0     
+DROP     all  --  131.159.20.12/32            0.0.0.0/0     
+DROP     all  --  131.159.20.37/32            0.0.0.0/0     
+DROP     all  --  131.159.20.103/32            0.0.0.0/0     
+DROP     all  --  131.159.20.150/32            0.0.0.0/0     
+DROP     all  --  131.159.20.92/32            0.0.0.0/0     
+DROP     all  --  131.159.20.128/32            0.0.0.0/0     
+DROP     all  --  131.159.20.100/32            0.0.0.0/0     
+DROP     all  --  131.159.20.131/32            0.0.0.0/0     
+DROP     all  --  131.159.20.167/32            0.0.0.0/0     
+DROP     all  --  131.159.20.133/32            0.0.0.0/0     
+DROP     all  --  131.159.20.21/32            0.0.0.0/0     
+DROP     all  --  131.159.20.183/32            0.0.0.0/0     
+DROP     all  --  131.159.20.99/32            0.0.0.0/0     
+DROP     all  --  131.159.20.132/32            0.0.0.0/0     
+DROP     all  --  131.159.20.163/32            0.0.0.0/0     
+DROP     all  --  131.159.20.94/32            0.0.0.0/0     
+DROP     all  --  131.159.20.82/32            0.0.0.0/0     
+DROP     all  --  131.159.20.145/32            0.0.0.0/0     
+DROP     all  --  131.159.20.111/32            0.0.0.0/0     
+DROP     all  --  131.159.20.53/32            0.0.0.0/0     
+DROP     all  --  131.159.20.115/32            0.0.0.0/0     
+DROP     all  --  131.159.20.161/32            0.0.0.0/0     
+DROP     all  --  131.159.20.156/32            0.0.0.0/0     
+DROP     all  --  131.159.20.122/32            0.0.0.0/0     
+DROP     all  --  131.159.20.130/32            0.0.0.0/0     
+DROP     all  --  131.159.20.91/32            0.0.0.0/0     
+DROP     all  --  131.159.20.178/32            0.0.0.0/0     
+DROP     all  --  131.159.20.237/32            0.0.0.0/0     
+DROP     all  --  131.159.20.168/32            0.0.0.0/0    
+...*)
 
 subsection{*Different output formats*}
 
@@ -272,7 +761,7 @@ It was a problem when packet_set_opt2_internal recursive
 
 ML_val{*
 length deny_set_set;
-*}
+*} (*330*)
 ML_val{*
 deny_set_set;
 *}
