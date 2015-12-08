@@ -49,7 +49,6 @@ It is deliberately very very brief and only provides results.
 It should contain the summarizing correctness theorems for all executable functions we export.
 This is probably the best point to get started working with the theory files.
 
----
 
 To develop, we suggest to load the Bitmagic theory as heap-image:
 ```
