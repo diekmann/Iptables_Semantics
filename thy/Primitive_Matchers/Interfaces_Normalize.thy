@@ -99,6 +99,9 @@ subsection{*Optimizing interfaces in match expressions*}
         of None \<Rightarrow> None
         |  Some i \<Rightarrow> if \<exists>negated_ifce \<in> set (getNeg ifces). iface_subset i negated_ifce then None else Some ((if i = ifaceAny then [] else [i]), getNeg ifces)"
 
+  (*TODO: if positive iface is not a wildcard and whole expression is not none, then drop all negative interfaces from the expression*)
+
+
 term map_option
 term option_map (*l4v*)
 
