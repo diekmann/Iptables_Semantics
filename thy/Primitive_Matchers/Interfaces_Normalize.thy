@@ -97,6 +97,60 @@ begin
     done
 
 
+
+  (* only for arbitrary discs that do not match C*)
+  lemma compress_normalize_primitive_hasdisc:
+    assumes am: "\<not> has_disc disc2 m"
+        and wf: "wf_disc_sel (disc,sel) C"
+        and disc: "(\<forall>a. \<not> disc2 (C a))"
+        and nm: "normalized_nnf_match m"
+        and some: "compress_normalize_primitive (disc,sel) C f m = Some m'"
+     shows "normalized_nnf_match m' \<and> \<not> has_disc disc2 m'"
+   proof -
+        from compress_normalize_primitive_nnf[OF wf nm some] have goal1: "normalized_nnf_match m'" .
+        obtain as ms where asms: "primitive_extractor (disc, sel) m = (as, ms)" by fastforce
+        from am primitive_extractor_correct(4)[OF nm wf asms] have 1: "\<not> has_disc disc2 ms" by simp
+        { fix is_pos is_neg
+          from disc have x1: "\<not> has_disc disc2 (alist_and (NegPos_map C (map Pos is_pos)))"
+            by(simp add: has_disc_alist_and NegPos_map_map_Pos negation_type_to_match_expr_simps)
+          from disc have x2: "\<not> has_disc disc2 (alist_and (NegPos_map C (map Neg is_neg)))"
+            by(simp add: has_disc_alist_and NegPos_map_map_Neg negation_type_to_match_expr_simps)
+          from x1 x2 have "\<not> has_disc disc2 (alist_and (NegPos_map C (map Pos is_pos @ map Neg is_neg)))"
+            apply(simp add: NegPos_map_append has_disc_alist_and) by blast
+        }
+        with some have "\<not> has_disc disc2 m'"
+          apply(simp add: compress_normalize_primitive_def asms)
+          apply(elim exE conjE)
+          using 1 by force
+        with goal1 show ?thesis by simp
+   qed
+  lemma compress_normalize_primitive_hasdisc_negated:
+    assumes am: "\<not> has_disc_negated disc2 neg m"
+        and wf: "wf_disc_sel (disc,sel) C"
+        and disc: "(\<forall>a. \<not> disc2 (C a))"
+        and nm: "normalized_nnf_match m"
+        and some: "compress_normalize_primitive (disc,sel) C f m = Some m'"
+     shows "normalized_nnf_match m' \<and> \<not> has_disc_negated disc2 neg m'"
+   proof -
+        from compress_normalize_primitive_nnf[OF wf nm some] have goal1: "normalized_nnf_match m'" .
+        obtain as ms where asms: "primitive_extractor (disc, sel) m = (as, ms)" by fastforce
+        from am primitive_extractor_correct(6)[OF nm wf asms] have 1: "\<not> has_disc_negated disc2 neg ms" by simp
+        { fix is_pos is_neg
+          from disc have x1: "\<not> has_disc_negated disc2 neg (alist_and (NegPos_map C (map Pos is_pos)))"
+            by(simp add: has_disc_negated_alist_and NegPos_map_map_Pos negation_type_to_match_expr_simps)
+          from disc have x2: "\<not> has_disc_negated disc2 neg (alist_and (NegPos_map C (map Neg is_neg)))"
+            by(simp add: has_disc_negated_alist_and NegPos_map_map_Neg negation_type_to_match_expr_simps)
+          from x1 x2 have "\<not> has_disc_negated disc2 neg (alist_and (NegPos_map C (map Pos is_pos @ map Neg is_neg)))"
+            apply(simp add: NegPos_map_append has_disc_negated_alist_and) by blast
+        }
+        with some have "\<not> has_disc_negated disc2 neg m'"
+          apply(simp add: compress_normalize_primitive_def asms)
+          apply(elim exE conjE)
+          using 1 by force
+        with goal1 show ?thesis by simp
+   qed
+
+
 subsection{*Optimizing interfaces in match expressions*}
 
   (*TODO a generic primitive optimization function and a separate file for such things*)
@@ -179,57 +233,19 @@ term option_map (*l4v*)
      by(simp add: compress_interfaces_def split: option.split_asm)
 
 
-
-
   (* only for arbitrary discs that do not match Iiface*)
   lemma compress_normalize_interfaces_hasdisc:
-    assumes am: "\<not> has_disc disc m"
-        and disc: "(\<forall>a. \<not> disc (IIface a))"
-        and nm: "normalized_nnf_match m"
-        and some: "compress_normalize_interfaces m = Some m'"
-     shows "normalized_nnf_match m' \<and> \<not> has_disc disc m'"
-   proof -
-        from compress_normalize_interfaces_nnf[OF nm some] have goal1: "normalized_nnf_match m'" .
-        obtain as ms where asms: "primitive_extractor (is_Iiface, iiface_sel) m = (as, ms)" by fastforce
-        from am primitive_extractor_correct(4)[OF nm wf_disc_sel_common_primitive(5) asms] have 1: "\<not> has_disc disc ms" by simp
-        { fix is_pos is_neg
-          from disc have x1: "\<not> has_disc disc (alist_and (NegPos_map IIface (map Pos is_pos)))"
-            by(simp add: has_disc_alist_and NegPos_map_map_Pos negation_type_to_match_expr_simps)
-          from disc have x2: "\<not> has_disc disc (alist_and (NegPos_map IIface (map Neg is_neg)))"
-            by(simp add: has_disc_alist_and NegPos_map_map_Neg negation_type_to_match_expr_simps)
-          from x1 x2 have "\<not> has_disc disc (alist_and (NegPos_map IIface (map Pos is_pos @ map Neg is_neg)))"
-            apply(simp add: NegPos_map_append has_disc_alist_and) by blast
-        }
-        with some have "\<not> has_disc disc m'"
-          apply(simp add: compress_normalize_interfaces_def compress_normalize_primitive_def asms)
-          apply(elim exE conjE)
-          using 1 by force
-        with goal1 show ?thesis by simp
-   qed  (* only for arbitrary discs that do not match Iiface*)
+    "\<not> has_disc disc m \<Longrightarrow> (\<forall>a. \<not> disc (IIface a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_interfaces m = Some m' \<Longrightarrow>
+     normalized_nnf_match m' \<and> \<not> has_disc disc m'"
+     unfolding compress_normalize_interfaces_def
+     using compress_normalize_primitive_hasdisc[OF _ wf_disc_sel_common_primitive(5)] by blast
+
+   (* only for arbitrary discs that do not match Iiface*)
   lemma compress_normalize_interfaces_hasdisc_negated:
-    assumes am: "\<not> has_disc_negated disc neg m"
-        and disc: "(\<forall>a. \<not> disc (IIface a))"
-        and nm: "normalized_nnf_match m"
-        and some: "compress_normalize_interfaces m = Some m'"
-     shows "normalized_nnf_match m' \<and> \<not> has_disc_negated disc neg m'"
-   proof -
-        from compress_normalize_interfaces_nnf[OF nm some] have goal1: "normalized_nnf_match m'" .
-        obtain as ms where asms: "primitive_extractor (is_Iiface, iiface_sel) m = (as, ms)" by fastforce
-        from am primitive_extractor_correct(6)[OF nm wf_disc_sel_common_primitive(5) asms] have 1: "\<not> has_disc_negated disc neg ms" by simp
-        { fix is_pos is_neg
-          from disc have x1: "\<not> has_disc_negated disc neg (alist_and (NegPos_map IIface (map Pos is_pos)))"
-            by(simp add: has_disc_negated_alist_and NegPos_map_map_Pos negation_type_to_match_expr_simps)
-          from disc have x2: "\<not> has_disc_negated disc neg (alist_and (NegPos_map IIface (map Neg is_neg)))"
-            by(simp add: has_disc_negated_alist_and NegPos_map_map_Neg negation_type_to_match_expr_simps)
-          from x1 x2 have "\<not> has_disc_negated disc neg (alist_and (NegPos_map IIface (map Pos is_pos @ map Neg is_neg)))"
-            apply(simp add: NegPos_map_append has_disc_negated_alist_and) by blast
-        }
-        with some have "\<not> has_disc_negated disc neg m'"
-          apply(simp add: compress_normalize_interfaces_def compress_normalize_primitive_def asms)
-          apply(elim exE conjE)
-          using 1 by force
-        with goal1 show ?thesis by simp
-   qed
+    "\<not> has_disc_negated disc neg m \<Longrightarrow> (\<forall>a. \<not> disc (IIface a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_interfaces m = Some m' \<Longrightarrow>
+     normalized_nnf_match m' \<and> \<not> has_disc_negated disc neg m'"
+     unfolding compress_normalize_interfaces_def
+     using compress_normalize_primitive_hasdisc_negated[OF _ wf_disc_sel_common_primitive(5)] by blast
 
 
   thm normalize_primitive_extract_preserves_unrelated_normalized_n_primitive (*is similar*)
