@@ -171,27 +171,4 @@ term option_map (*l4v*)
 
 
 
-
-(*TODO: delete*)
-lemma deleteme: "f \<in> set [compress_normalize_interfaces,
-                compress_normalize_primitive (is_Prot, prot_sel) Prot bar] \<Longrightarrow>
-       normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m'"
-  apply(simp)
-  apply(erule disjE)
-   using compress_normalize_interfaces_nnf apply blast
-  sorry (*TODO*)
-
-lemma "(\<And>m m' f. f \<in> set [compress_normalize_interfaces, compress_normalize_primitive (is_Prot, prot_sel) Prot bar] \<Longrightarrow>
-           normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p = matches \<gamma> m a p) \<Longrightarrow>
-normalized_nnf_match m \<Longrightarrow>
-compress_normalize_primitive_monad [compress_normalize_interfaces, compress_normalize_primitive (is_Prot, prot_sel) Prot bar] m = Some m' \<Longrightarrow>
-matches \<gamma> m' a p = matches \<gamma> m a p"
-apply(rule compress_normalize_primitive_monad[where fs="[compress_normalize_interfaces,
-                compress_normalize_primitive (is_Prot, prot_sel) Prot bar]", of \<gamma> a p m m'])
-apply(simp; fail)
-using deleteme apply blast
-apply simp_all
-done
-  
-
 end

@@ -5,10 +5,45 @@ imports Common_Primitive_Lemmas
         Ports_Normalize
         IpAddresses_Normalize
         Interfaces_Normalize
+        Protocols_Normalize
         "../Common/Remdups_Rev"
         Interface_Replace
 begin
 
+
+section{*Optimizing primitives*}
+
+(*TODO: compress_normalize_interfaces still only works for input interfaces, not Oiface*)
+
+
+(*just a test to be sure we can combine them, even though they use different internal types*)
+(*TODO: delete*)
+lemma deleteme1: "f \<in> set [compress_normalize_interfaces,
+                          compress_normalize_protocols] \<Longrightarrow>
+       normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m'"
+  apply(simp)
+  apply(erule disjE)
+   using compress_normalize_interfaces_nnf apply blast
+  using compress_normalize_protocols_nnf apply blast
+  done
+lemma deleteme2: "f \<in> set [compress_normalize_interfaces,
+                           compress_normalize_protocols] \<Longrightarrow>
+       normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches (common_matcher, \<alpha>) m' a p = matches (common_matcher, \<alpha>) m a p"
+  apply(simp)
+  apply(erule disjE)
+   using compress_normalize_interfaces_Some apply blast
+  using compress_normalize_protocols_Some apply blast
+  done
+lemma "normalized_nnf_match m \<Longrightarrow>
+compress_normalize_primitive_monad [compress_normalize_interfaces, compress_normalize_protocols] m = Some m' \<Longrightarrow>
+matches (common_matcher, \<alpha>) m' a p = matches (common_matcher, \<alpha>) m a p"
+apply(rule compress_normalize_primitive_monad[where fs="[compress_normalize_interfaces,
+                compress_normalize_protocols]", of "(common_matcher, \<alpha>)" a p m m'])
+   using deleteme2 apply blast
+  using deleteme1 apply blast (*blast+ also solves everything without explicit rule instantiation*)
+ apply simp_all
+done
+  
 
 
 section{*Transforming rulesets*}
