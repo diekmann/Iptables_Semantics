@@ -44,6 +44,34 @@ lemma compress_normalize_primitive_monad:
     from goals show ?goal2 by simp
   qed
 
+(*TODO: proof is a bit too much sledgehammered in parts*)
+lemma compress_normalize_primitive_monad_None: 
+      assumes "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p \<longleftrightarrow> matches \<gamma> m a p"
+          and "\<And>m f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches \<gamma> m a p"
+          and "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m'"
+          and "normalized_nnf_match m"
+          and "(compress_normalize_primitive_monad fs m) = None"
+      shows "\<not> matches \<gamma> m a p"
+    using assms proof(induction fs arbitrary: m)
+    case Nil thus ?case by simp
+    next
+    case (Cons f fs)
+      from Cons.prems(1) have IH_prem1: "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p = matches \<gamma> m a p)" by auto
+      from Cons.prems(2) have IH_prem2: "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches \<gamma> m a p)" by auto
+      from Cons.prems(3) have IH_prem3: "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m')" by auto
+      from Cons.IH IH_prem1 IH_prem2 IH_prem3 have
+        IH: "\<And>m. normalized_nnf_match m \<Longrightarrow> compress_normalize_primitive_monad fs m = None \<Longrightarrow> \<not>  matches \<gamma> m a p" by blast
+      show ?case
+        proof(cases "f m")
+          case None thus ?thesis using Cons.prems(4) Cons.prems(2) Cons.prems(3) by auto
+        next
+          case(Some m'')
+            from Some Cons.prems(3)[of f] Cons.prems(4) have 2: "normalized_nnf_match m''" by simp
+            from Some have "compress_normalize_primitive_monad (f # fs) m = compress_normalize_primitive_monad fs m''" by simp
+            hence "\<not> matches \<gamma> m'' a p" using Cons.prems(5) IH 2 by simp
+            thus ?thesis using Cons.prems(1) Cons.prems(4) Some by auto 
+        qed
+    qed
 
 
 lemma compress_normalize_primitive_monad_preserves:
