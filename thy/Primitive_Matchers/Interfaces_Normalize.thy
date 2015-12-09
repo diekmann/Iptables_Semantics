@@ -151,6 +151,34 @@ begin
    qed
 
 
+  thm normalize_primitive_extract_preserves_unrelated_normalized_n_primitive (*is similar*)
+  lemma compress_normalize_primitve_preserves_normalized_n_primitive:
+    assumes am: "normalized_n_primitive (disc2, sel2) P m"
+        and wf: "wf_disc_sel (disc,sel) C"
+        and disc: "(\<forall>a. \<not> disc2 (C a))"
+        and nm: "normalized_nnf_match m"
+        and some: "compress_normalize_primitive (disc,sel) C f m = Some m'"
+     shows "normalized_nnf_match m' \<and> normalized_n_primitive (disc2, sel2) P m'"
+   proof -
+        from compress_normalize_primitive_nnf[OF wf nm some] have goal1: "normalized_nnf_match m'" .
+        obtain as ms where asms: "primitive_extractor (disc, sel) m = (as, ms)" by fastforce
+        from am primitive_extractor_correct[OF nm wf asms] have 1: "normalized_n_primitive (disc2, sel2) P ms" by fast
+        { fix iss
+          from disc have "normalized_n_primitive (disc2, sel2) P (alist_and (NegPos_map C iss))"
+            apply(induction iss)
+             apply(simp_all)
+            apply(rename_tac i iss, case_tac i)
+             apply(simp_all)
+            done
+        }
+        with some have "normalized_n_primitive (disc2, sel2) P m'"
+          apply(simp add: compress_normalize_primitive_def asms)
+          apply(elim exE conjE)
+          using 1 by force
+        with goal1 show ?thesis by simp
+   qed
+  
+
 subsection{*Optimizing interfaces in match expressions*}
 
   (*TODO a generic primitive optimization function and a separate file for such things*)
@@ -248,31 +276,11 @@ term option_map (*l4v*)
      using compress_normalize_primitive_hasdisc_negated[OF _ wf_disc_sel_common_primitive(5)] by blast
 
 
-  thm normalize_primitive_extract_preserves_unrelated_normalized_n_primitive (*is similar*)
   lemma compress_normalize_interfaces_preserves_normalized_n_primitive:
-    assumes am: "normalized_n_primitive (disc, sel) P m"
-        and disc: "(\<forall>a. \<not> disc (IIface a))"
-        and nm: "normalized_nnf_match m"
-        and some: "compress_normalize_interfaces m = Some m'"
-     shows "normalized_nnf_match m' \<and> normalized_n_primitive (disc, sel) P m'"
-   proof -
-        from compress_normalize_interfaces_nnf[OF nm some] have goal1: "normalized_nnf_match m'" .
-        obtain as ms where asms: "primitive_extractor (is_Iiface, iiface_sel) m = (as, ms)" by fastforce
-        from am primitive_extractor_correct[OF nm wf_disc_sel_common_primitive(5) asms] have 1: "normalized_n_primitive (disc, sel) P ms" by fast
-        { fix iss
-          from disc have "normalized_n_primitive (disc, sel) P (alist_and (NegPos_map IIface iss))"
-            apply(induction iss)
-             apply(simp_all)
-            apply(rename_tac i iss, case_tac i)
-             apply(simp_all)
-            done
-        }
-        with some have "normalized_n_primitive (disc, sel) P m'"
-          apply(simp add: compress_normalize_interfaces_def compress_normalize_primitive_def asms)
-          apply(elim exE conjE)
-          using 1 by force
-        with goal1 show ?thesis by simp
-   qed
+    "normalized_n_primitive (disc, sel) P m \<Longrightarrow> (\<forall>a. \<not> disc (IIface a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_interfaces m = Some m' \<Longrightarrow>
+     normalized_nnf_match m' \<and> normalized_n_primitive (disc, sel) P m'"
+     unfolding compress_normalize_interfaces_def
+   using compress_normalize_primitve_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(5)] by blast
   
 
   value[code] "compress_normalize_interfaces 
