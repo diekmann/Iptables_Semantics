@@ -412,7 +412,9 @@ begin
 
     definition iface_is_wildcard :: "iface \<Rightarrow> bool" where
       "iface_is_wildcard ifce \<equiv> iface_name_is_wildcard (iface_sel ifce)"
-
+   
+    lemma iface_is_wildcard_ifaceAny: "iface_is_wildcard ifaceAny"
+      by(simp add: iface_is_wildcard_def ifaceAny_def)
 
 
 

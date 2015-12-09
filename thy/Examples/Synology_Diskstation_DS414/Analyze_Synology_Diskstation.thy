@@ -305,8 +305,6 @@ value[code] "optimize_matches abstract_for_simple_firewall (upper_closure (packe
 
 (*TODO: protocol should be rewritten to MatchNot here!*)
 value[code] "(take 10 (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw)))))"
-value[code] "optimize_matches_option compress_normalize_interfaces (take 10 (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw)))))"
-
 
 lemma "check_simple_fw_preconditions (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw))))))" by eval
 

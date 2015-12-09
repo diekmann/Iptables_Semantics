@@ -97,7 +97,16 @@ subsection{*Optimizing interfaces in match expressions*}
   definition compress_interfaces :: "iface negation_type list \<Rightarrow> (iface list \<times> iface list) option" where
     "compress_interfaces ifces \<equiv> case (compress_pos_interfaces (getPos ifces))
         of None \<Rightarrow> None
-        |  Some i \<Rightarrow> if \<exists>negated_ifce \<in> set (getNeg ifces). iface_subset i negated_ifce then None else Some ((if i = ifaceAny then [] else [i]), getNeg ifces)"
+        |  Some i \<Rightarrow> if
+                       \<exists>negated_ifce \<in> set (getNeg ifces). iface_subset i negated_ifce
+                     then
+                       None
+                     else if
+                        \<not> iface_is_wildcard i
+                      then
+                        Some ([i], [])
+                      else
+                       Some ((if i = ifaceAny then [] else [i]), getNeg ifces)"
 
   (*TODO: if positive iface is not a wildcard and whole expression is not none, then drop all negative interfaces from the expression*)
 
@@ -128,6 +137,7 @@ term option_map (*l4v*)
      apply(simp_all)
     apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_Some)
     apply(simp split:split_if_asm)
+      using iface_is_wildcard_def iface_subset match_iface_case_nowildcard apply fastforce
      using match_ifaceAny apply blast
     by force
 
@@ -160,7 +170,8 @@ term option_map (*l4v*)
       apply(simp add: compress_normalize_interfaces_def)
       apply(drule compress_normalize_primitive_not_introduces_C[where m=m])
           apply(simp_all add: wf_disc_sel_common_primitive(5))
-      by(simp add: compress_interfaces_def)
+      by(simp add: compress_interfaces_def iface_is_wildcard_ifaceAny)
+      
 
   lemma compress_normalize_interfaces_not_introduces_Iiface_negated:
     assumes notdisc: "\<not> has_disc_negated is_Iiface False m"
@@ -169,7 +180,7 @@ term option_map (*l4v*)
      shows "\<not> has_disc_negated is_Iiface False m'"
      apply(rule compress_normalize_primitive_not_introduces_C_negated[OF notdisc wf_disc_sel_common_primitive(5) nm])
      using some apply(simp add: compress_normalize_interfaces_def)
-     by(simp add: compress_interfaces_def split: option.split_asm)
+     by(simp add: compress_interfaces_def split: option.split_asm split_if_asm)
 
 
   (* only for arbitrary discs that do not match Iiface*)
