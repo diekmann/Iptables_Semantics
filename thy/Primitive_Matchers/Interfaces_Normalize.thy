@@ -23,8 +23,10 @@ lemma "f \<in> set [compress_normalize_primitive (is_Iiface, iiface_sel) IIface 
   apply(erule disjE)
    oops
 
+
 (*TODO: test that we can instantiate this with IIface and Protocol! do the types match?*)
-lemma assumes "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p \<longleftrightarrow> matches \<gamma> m a p"
+lemma compress_normalize_primitive_monad: 
+      assumes "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p \<longleftrightarrow> matches \<gamma> m a p"
       (*and "\<And>f. f \<in> set fs \<Longrightarrow> \<exists> disc_sel C f'. f = compress_normalize_primitive disc_sel C f'"*)
           and "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m'"
           and "normalized_nnf_match m"
@@ -160,5 +162,30 @@ term option_map (*l4v*)
               (Match (Prot (Proto TCP))))"
     
   value[code] "compress_normalize_interfaces MatchAny"
+
+
+
+
+(*TODO: delete*)
+lemma deleteme: "f \<in> set [compress_normalize_interfaces,
+                compress_normalize_primitive (is_Prot, prot_sel) Prot bar] \<Longrightarrow>
+       normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m'"
+  apply(simp)
+  apply(erule disjE)
+   using compress_normalize_interfaces_nnf apply blast
+  sorry
+
+lemma "(\<And>m m' f. f \<in> set [compress_normalize_interfaces, compress_normalize_primitive (is_Prot, prot_sel) Prot bar] \<Longrightarrow>
+           normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p = matches \<gamma> m a p) \<Longrightarrow>
+normalized_nnf_match m \<Longrightarrow>
+compress_normalize_primitive_monad [compress_normalize_interfaces, compress_normalize_primitive (is_Prot, prot_sel) Prot bar] m = Some m' \<Longrightarrow>
+matches \<gamma> m' a p = matches \<gamma> m a p"
+apply(rule compress_normalize_primitive_monad[where fs="[compress_normalize_interfaces,
+                compress_normalize_primitive (is_Prot, prot_sel) Prot bar]", of \<gamma> a p m m'])
+apply(simp; fail)
+using deleteme apply blast
+apply simp_all
+done
+  
 
 end
