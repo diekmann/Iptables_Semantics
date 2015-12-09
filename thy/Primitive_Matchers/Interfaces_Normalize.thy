@@ -56,7 +56,21 @@ lemma compress_normalize_primitive_monad:
     from goals show ?goal1 by simp
     from goals show ?goal2 by simp
   qed
-    
+
+
+
+lemma compress_normalize_primitive_monad_preserves:
+      assumes "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m'"
+          and "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> P m \<Longrightarrow> f m = Some m' \<Longrightarrow> P m'"
+          and "normalized_nnf_match m"
+          and "P m"
+          and "(compress_normalize_primitive_monad fs m) = Some m'"
+      shows "normalized_nnf_match m' \<and> P m'"
+    using assms proof(induction fs arbitrary: m)
+    case Nil thus ?case by simp
+    next
+    case (Cons f fs) thus ?case by(simp split: option.split_asm) blast (*1s*)
+    qed
     
 
 
