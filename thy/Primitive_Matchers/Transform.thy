@@ -39,10 +39,7 @@ compress_normalize_primitive_monad [compress_normalize_interfaces, compress_norm
 matches (common_matcher, \<alpha>) m' a p = matches (common_matcher, \<alpha>) m a p"
 apply(rule compress_normalize_primitive_monad[where fs="[compress_normalize_interfaces,
                 compress_normalize_protocols]", of "(common_matcher, \<alpha>)" a p m m'])
-   using deleteme2 apply blast
-  using deleteme1 apply blast (*blast+ also solves everything without explicit rule instantiation*)
- apply simp_all
-done
+   using deleteme1 deleteme2 by blast+
   
 
 
