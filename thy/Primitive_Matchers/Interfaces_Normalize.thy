@@ -4,6 +4,54 @@ imports Common_Primitive_Lemmas
 begin
 
 
+fun compress_normalize_primitive_monad :: "('a match_expr \<Rightarrow> 'a match_expr option) list \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr option" where
+  "compress_normalize_primitive_monad [] m = Some m" |
+  "compress_normalize_primitive_monad (f#fs) m = (case f m of None \<Rightarrow> None
+                                                           |  Some m' \<Rightarrow> compress_normalize_primitive_monad fs m')"
+
+lemma "\<exists>a b C f'. compress_normalize_primitive (is_Iiface, iiface_sel) IIface foo = compress_normalize_primitive (a, b) C f'"
+  apply(rule exI[of _ is_Iiface])
+  apply(rule exI[of _ iiface_sel])
+  try0
+  oops
+  
+(*declare[[show_types]]*)
+lemma "f \<in> set [compress_normalize_primitive (is_Iiface, iiface_sel) IIface foo,
+                compress_normalize_primitive (is_Prot, prot_sel) Prot bar] \<Longrightarrow>
+       \<exists> disc_sel C f'. f = compress_normalize_primitive disc_sel C f'"
+  apply(simp)
+  apply(erule disjE)
+   oops
+
+(*TODO: test that we can instantiate this with IIface and Protocol! do the types match?*)
+lemma assumes "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p \<longleftrightarrow> matches \<gamma> m a p"
+      (*and "\<And>f. f \<in> set fs \<Longrightarrow> \<exists> disc_sel C f'. f = compress_normalize_primitive disc_sel C f'"*)
+          and "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m'"
+          and "normalized_nnf_match m"
+          and "(compress_normalize_primitive_monad fs m) = Some m'"
+      shows "matches \<gamma> m' a p \<longleftrightarrow> matches \<gamma> m a p"
+    using assms proof(induction fs arbitrary: m)
+    case Nil thus ?case by simp
+    next
+    case (Cons f fs)
+      from Cons.prems(1) have IH_prem1: "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p = matches \<gamma> m a p)" by auto
+      from Cons.prems(2) have IH_prem2: "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m')" by auto
+      from Cons.IH IH_prem1 IH_prem2 have
+        IH: "\<And>m. normalized_nnf_match m \<Longrightarrow> compress_normalize_primitive_monad fs m = Some m' \<Longrightarrow> matches \<gamma> m' a p = matches \<gamma> m a p" by fast
+      show ?case
+        proof(cases "f m")
+          case None thus ?thesis using Cons.prems by auto
+        next
+          case(Some m'')
+            from Some Cons.prems(1)[of f] Cons.prems(3) have 1: "matches \<gamma> m'' a p = matches \<gamma> m a p" by simp
+            from Some Cons.prems(2)[of f] Cons.prems(3) have 2: "normalized_nnf_match m''" by simp
+            from Some have "compress_normalize_primitive_monad (f # fs) m = compress_normalize_primitive_monad fs m''" by simp
+            thus ?thesis using Cons.prems(4) IH 1 2 by auto 
+        qed
+    qed
+    
+    
+
 
 subsection{*Optimizing interfaces in match expressions*}
 
