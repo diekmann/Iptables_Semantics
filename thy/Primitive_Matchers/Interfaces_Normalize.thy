@@ -4,25 +4,12 @@ imports Common_Primitive_Lemmas
 begin
 
 
+(*TODO move to separate file*)
+
 fun compress_normalize_primitive_monad :: "('a match_expr \<Rightarrow> 'a match_expr option) list \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr option" where
   "compress_normalize_primitive_monad [] m = Some m" |
   "compress_normalize_primitive_monad (f#fs) m = (case f m of None \<Rightarrow> None
                                                            |  Some m' \<Rightarrow> compress_normalize_primitive_monad fs m')"
-
-lemma "\<exists>a b C f'. compress_normalize_primitive (is_Iiface, iiface_sel) IIface foo = compress_normalize_primitive (a, b) C f'"
-  apply(rule exI[of _ is_Iiface])
-  apply(rule exI[of _ iiface_sel])
-  try0
-  oops
-  
-(*declare[[show_types]]*)
-lemma "f \<in> set [compress_normalize_primitive (is_Iiface, iiface_sel) IIface foo,
-                compress_normalize_primitive (is_Prot, prot_sel) Prot bar] \<Longrightarrow>
-       \<exists> disc_sel C f'. f = compress_normalize_primitive disc_sel C f'"
-  apply(simp)
-  apply(erule disjE)
-   oops
-
 
 lemma compress_normalize_primitive_monad: 
       assumes "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p \<longleftrightarrow> matches \<gamma> m a p"
@@ -192,7 +179,7 @@ lemma deleteme: "f \<in> set [compress_normalize_interfaces,
   apply(simp)
   apply(erule disjE)
    using compress_normalize_interfaces_nnf apply blast
-  sorry
+  sorry (*TODO*)
 
 lemma "(\<And>m m' f. f \<in> set [compress_normalize_interfaces, compress_normalize_primitive (is_Prot, prot_sel) Prot bar] \<Longrightarrow>
            normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p = matches \<gamma> m a p) \<Longrightarrow>
