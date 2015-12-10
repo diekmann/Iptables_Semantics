@@ -95,7 +95,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
     by(cases pi) blast+
   lemma protocol_Ex_neq: "\<exists>p'. Proto p' \<noteq> p"
     by(cases p) (simp_all add: primitive_protocol_Ex_neq)
-  lemma neq_ProtoAny_Ex_primitive_protocol_in_list: "ProtoAny \<notin> set ps \<Longrightarrow> (\<exists>p. (Proto p) \<notin> set ps)"
+  lemma primitive_protocol_Ex_notin_list: "(\<exists>p. (Proto p) \<notin> set ps)"
     proof(cases "map (\<lambda>p. case p of Proto (OtherProtocol n) \<Rightarrow> n) (filter (\<lambda>p. case p of Proto (OtherProtocol _) \<Rightarrow> True | _ \<Rightarrow> False) ps)")
     case Nil 
       -- "arbitrary protocol number"
@@ -119,25 +119,22 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
 
  
 
-  (*fully optimized?*)
+  (*fully optimized*)
   lemma "compress_protocols ps = Some (ps_pos, ps_neg) \<Longrightarrow>
     \<exists> p. ((\<forall>m\<in>set ps_pos. match_proto m p) \<and> (\<forall>m\<in>set ps_neg. \<not> match_proto m p))"
     apply(simp add: compress_protocols_def split: option.split_asm split_if_asm)
-    defer
-    apply(clarify)
-    apply(rename_tac p)
-    apply(case_tac p, simp_all)
-    apply(rename_tac p_primitive)
-    using simple_proto_conjunct_None apply auto[1]
-    
+     defer
+     apply(clarify)
+     apply(rename_tac p)
+     apply(case_tac p, simp_all)
+     apply(rename_tac p_primitive)
+     using simple_proto_conjunct_None apply auto[1]
     apply(induction ps_neg)
      apply(simp; fail)
     apply(simp, rename_tac psneg1 ps_neg aaa)
     apply(subgoal_tac "\<exists>p. (Proto p) \<notin> set (psneg1#ps_neg)")
      apply (metis list.set_intros(1) list.set_intros(2) match_proto.elims(2))
-    apply(elim bexE)
-     prefer 2
-    oops
+    using primitive_protocol_Ex_notin_list by presburger
   
   definition compress_normalize_protocols :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr option" where 
     "compress_normalize_protocols m \<equiv> compress_normalize_primitive (is_Prot, prot_sel) Prot compress_protocols m"
