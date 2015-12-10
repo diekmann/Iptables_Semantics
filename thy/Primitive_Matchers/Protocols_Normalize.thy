@@ -35,14 +35,31 @@ subsection{*Optimizing protocols in match expressions*}
      using simple_proto_conjunct_None apply blast
     using simple_proto_conjunct_Some by blast
 
+(*TODO move and give a name?*)
+(*the intuition behind the compress_protocols*)
+lemma "simple_proto_conjunct (Proto p1) (Proto p2) \<noteq> None \<Longrightarrow> \<forall>pkt. match_proto (Proto p1) pkt \<longleftrightarrow> match_proto (Proto p2) pkt"
+  apply(subgoal_tac "p1 = p2")
+   apply(simp)
+  apply(simp split: split_if_asm)
+  done
+lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<forall>pkt. match_proto (Proto p2) pkt \<longrightarrow> match_proto p1 pkt"
+ apply(cases p1)
+  apply(simp)
+ apply(simp split: split_if_asm)
+ done
 
-  (*TODO: optimize more!*)
+  (*TODO: optimize more? maybe?*)
   definition compress_protocols :: "protocol negation_type list \<Rightarrow> (protocol list \<times> protocol list) option" where
     "compress_protocols ps \<equiv> case (compress_pos_protocols (getPos ps))
         of None \<Rightarrow> None
-        |  Some proto \<Rightarrow> if ProtoAny \<in> set (getNeg ps) (*\<or> (\<exists>p \<in> set (getNeg ps). simple_proto_conjunct proto p \<noteq> None)*)
-                         then None
-                         else Some ((if proto = ProtoAny then [] else [proto]), getNeg ps)"
+        |  Some proto \<Rightarrow> if ProtoAny \<in> set (getNeg ps) then
+                           None
+                         else if proto = ProtoAny then
+                           Some ([], getNeg ps)
+                         else if (\<exists>p \<in> set (getNeg ps). simple_proto_conjunct proto p \<noteq> None) then
+                           None
+                         else
+                           Some ([proto], getNeg ps)"
 
 
   lemma compress_protocols_None: "compress_protocols ps = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) (alist_and (NegPos_map Prot ps)) a p"
@@ -55,8 +72,11 @@ subsection{*Optimizing protocols in match expressions*}
      apply(simp; fail)
     apply(drule_tac p_prot="p_proto p" in compress_pos_protocols_Some)
     apply(simp split:split_if_asm)
-    by fastforce
-    
+     apply fastforce
+    apply(elim bexE)
+    by (metis if_option_Some simple_proto_conjunct.elims)
+
+
 
   lemma compress_protocol_Some: "compress_protocols ps = Some (ps_pos, ps_neg) \<Longrightarrow>
     matches (common_matcher, \<alpha>) (alist_and (NegPos_map Prot ((map Pos ps_pos)@(map Neg ps_neg)))) a p \<longleftrightarrow>
@@ -71,6 +91,23 @@ subsection{*Optimizing protocols in match expressions*}
     apply(simp split:split_if_asm)
     by force
 
+  (*fully optimized?*)
+  lemma "compress_protocols ps = Some (ps_pos, ps_neg) \<Longrightarrow>
+    \<exists> p. ((\<forall>m\<in>set ps_pos. match_proto m p) \<and> (\<forall>m\<in>set ps_neg. \<not> match_proto m p))"
+    apply(simp add: compress_protocols_def split: option.split_asm split_if_asm)
+    defer
+    apply(clarify)
+    apply(rename_tac p)
+    apply(case_tac p, simp_all)
+    apply(rename_tac p_primitive)
+    using simple_proto_conjunct_None apply auto[1]
+    
+    apply(induction ps_neg)
+     apply(simp; fail)
+    apply(simp, rename_tac psneg1 ps_neg aaa)
+    apply(subgoal_tac "\<exists>p. (Proto p) \<notin> set ps_neg")
+     prefer 2
+    oops
   
   definition compress_normalize_protocols :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr option" where 
     "compress_normalize_protocols m \<equiv> compress_normalize_primitive (is_Prot, prot_sel) Prot compress_protocols m"
