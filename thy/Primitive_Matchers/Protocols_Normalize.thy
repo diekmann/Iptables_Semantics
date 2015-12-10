@@ -91,6 +91,34 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
     apply(simp split:split_if_asm)
     by force
 
+  lemma primitive_protocol_Ex_neq: "p = Proto pi \<Longrightarrow> \<exists>p'. p' \<noteq> pi"
+    by(cases pi) blast+
+  lemma protocol_Ex_neq: "\<exists>p'. Proto p' \<noteq> p"
+    by(cases p) (simp_all add: primitive_protocol_Ex_neq)
+  lemma neq_ProtoAny_Ex_primitive_protocol_in_list: "ProtoAny \<notin> set ps \<Longrightarrow> (\<exists>p. (Proto p) \<notin> set ps)"
+    proof(cases "map (\<lambda>p. case p of Proto (OtherProtocol n) \<Rightarrow> n) (filter (\<lambda>p. case p of Proto (OtherProtocol _) \<Rightarrow> True | _ \<Rightarrow> False) ps)")
+    case Nil 
+      -- "arbitrary protocol number"
+      hence "Proto (OtherProtocol 42) \<notin> set ps"
+       apply(induction ps)
+        apply(simp; fail)
+       apply(simp split: protocol.split_asm split_if_asm primitive_protocol.split_asm; fail)
+       done
+      thus "\<exists>p. Proto p \<notin> set ps" by blast
+    next
+    case(Cons a as)
+      have "\<exists>n::nat. n \<notin> set (a#as)" by (metis (full_types) lessI list.distinct(2) member_le_listsum_nat upt_conv_Nil upt_eq_list_intros(2))
+      from this obtain n where "n \<notin> set (a#as)" by blast
+      with Cons have "Proto (OtherProtocol n) \<notin> set ps"
+        apply(induction ps)
+         apply(simp; fail)
+        apply(simp split: protocol.split_asm split_if_asm primitive_protocol.split_asm)
+        by force
+      thus "\<exists>p. Proto p \<notin> set ps" by blast
+    qed
+
+ 
+
   (*fully optimized?*)
   lemma "compress_protocols ps = Some (ps_pos, ps_neg) \<Longrightarrow>
     \<exists> p. ((\<forall>m\<in>set ps_pos. match_proto m p) \<and> (\<forall>m\<in>set ps_neg. \<not> match_proto m p))"
@@ -105,7 +133,9 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
     apply(induction ps_neg)
      apply(simp; fail)
     apply(simp, rename_tac psneg1 ps_neg aaa)
-    apply(subgoal_tac "\<exists>p. (Proto p) \<notin> set ps_neg")
+    apply(subgoal_tac "\<exists>p. (Proto p) \<notin> set (psneg1#ps_neg)")
+     apply (metis list.set_intros(1) list.set_intros(2) match_proto.elims(2))
+    apply(elim bexE)
      prefer 2
     oops
   
@@ -146,7 +176,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
      shows "\<not> has_disc_negated is_Prot False m'"
      apply(rule compress_normalize_primitive_not_introduces_C_negated[OF notdisc wf_disc_sel_common_primitive(7) nm])
      using some apply(simp add: compress_normalize_protocols_def)
-     by(simp add: compress_protocols_def split: option.split_asm)
+     by(simp add: compress_protocols_def split: option.split_asm split_if_asm)
 
 
   lemma compress_normalize_protocols_hasdisc:
