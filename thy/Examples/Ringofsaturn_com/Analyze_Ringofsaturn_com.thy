@@ -104,7 +104,7 @@ lemma "take 2 (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_strin
 (*TODO: all the CT states are essentially the universe*)
 
 text{*The upper closure*}
-(*value[code] "upper_closure (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string saturn_fw))"*)
+value[code] "upper_closure (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string saturn_fw))"
 lemma upper: "upper_closure (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string saturn_fw)) =
  [Rule (Match (CT_State {CT_Related, CT_Established})) action.Accept,
   Rule (Match (CT_State {CT_New})) action.Accept,
@@ -134,7 +134,8 @@ lemma upper: "upper_closure (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy
   Rule (Match (Src (Ip4AddrNetmask (240, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
   Rule (Match (Src (Ip4AddrNetmask (240, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
   Rule (Match (Src (Ip4AddrNetmask (160, 86, 0, 0) 16)) MATCHAND Match (IIface (Iface ''eth1''))) action.Accept,
-  Rule (Match (IIface (Iface ''eth1''))) action.Drop, Rule (Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto ICMP))) action.Accept,
+  Rule (Match (IIface (Iface ''eth1''))) action.Drop,
+  Rule (Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto ICMP))) action.Accept,
   Rule (Match (Dst_Ports [(0x6F, 0x6F)]) MATCHAND Match (Prot (Proto TCP))) action.Drop,
   Rule (Match (Dst_Ports [(0x71, 0x71)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
   Rule (Match (Dst_Ports [(4, 4)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Accept,
