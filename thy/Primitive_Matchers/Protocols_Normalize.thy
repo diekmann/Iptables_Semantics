@@ -91,32 +91,6 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
     apply(simp split:split_if_asm)
     by force
 
-  lemma primitive_protocol_Ex_neq: "p = Proto pi \<Longrightarrow> \<exists>p'. p' \<noteq> pi"
-    by(cases pi) blast+
-  lemma protocol_Ex_neq: "\<exists>p'. Proto p' \<noteq> p"
-    by(cases p) (simp_all add: primitive_protocol_Ex_neq)
-  lemma primitive_protocol_Ex_notin_list: "(\<exists>p. (Proto p) \<notin> set ps)"
-    proof(cases "map (\<lambda>p. case p of Proto (OtherProtocol n) \<Rightarrow> n) (filter (\<lambda>p. case p of Proto (OtherProtocol _) \<Rightarrow> True | _ \<Rightarrow> False) ps)")
-    case Nil 
-      -- "arbitrary protocol number"
-      hence "Proto (OtherProtocol 42) \<notin> set ps"
-       apply(induction ps)
-        apply(simp; fail)
-       apply(simp split: protocol.split_asm split_if_asm primitive_protocol.split_asm; fail)
-       done
-      thus "\<exists>p. Proto p \<notin> set ps" by blast
-    next
-    case(Cons a as)
-      have "\<exists>n::nat. n \<notin> set (a#as)" by (metis (full_types) lessI list.distinct(2) member_le_listsum_nat upt_conv_Nil upt_eq_list_intros(2))
-      from this obtain n where "n \<notin> set (a#as)" by blast
-      with Cons have "Proto (OtherProtocol n) \<notin> set ps"
-        apply(induction ps)
-         apply(simp; fail)
-        apply(simp split: protocol.split_asm split_if_asm primitive_protocol.split_asm)
-        by force
-      thus "\<exists>p. Proto p \<notin> set ps" by blast
-    qed
-
  
 
   (*fully optimized*)
