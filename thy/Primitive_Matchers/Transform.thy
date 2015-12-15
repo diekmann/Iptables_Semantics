@@ -40,14 +40,6 @@ context begin
      using compress_normalize_input_interfaces_Some apply blast
     using compress_normalize_output_interfaces_Some apply blast
     done
-  private lemma deleteme3: "f \<in> set [compress_normalize_protocols, compress_normalize_input_interfaces, compress_normalize_output_interfaces] \<Longrightarrow>
-         normalized_nnf_match m \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p"
-    apply(simp)
-    apply(elim disjE)
-      using compress_normalize_protocols_None apply blast
-     using compress_normalize_input_interfaces_None apply blast
-    using compress_normalize_output_interfaces_None apply blast
-    done
   
   
   lemma compress_normalize_besteffort_Some: "normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
@@ -55,16 +47,19 @@ context begin
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad)
     using deleteme1 deleteme2 by blast+
-  
-  
-    lemma compress_normalize_besteffort_None:
+  lemma compress_normalize_besteffort_None:
       "normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = None \<Longrightarrow>
          \<not> matches (common_matcher, \<alpha>) m a p"
-    unfolding compress_normalize_besteffort_def
-    apply(rule compress_normalize_primitive_monad_None)
-        using deleteme1 deleteme2 deleteme3 apply blast+
-    done
-  
+  proof -
+   have notmatches: "\<And>f m. f \<in> set [compress_normalize_protocols, compress_normalize_input_interfaces, compress_normalize_output_interfaces] \<Longrightarrow>
+           normalized_nnf_match m \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p"
+      apply(simp)
+      using compress_normalize_protocols_None compress_normalize_input_interfaces_None compress_normalize_output_interfaces_None by blast
+   show "normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p"
+     unfolding compress_normalize_besteffort_def
+     apply(rule compress_normalize_primitive_monad_None)
+         using deleteme1 deleteme2 notmatches by blast+
+  qed 
   lemma compress_normalize_besteffort_nnf: "normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
     normalized_nnf_match m'"
     unfolding compress_normalize_besteffort_def
@@ -140,7 +135,6 @@ context begin
        apply (meson common_primitive.disc(34) common_primitive.disc(43) common_primitive.distinct_disc(50) compress_normalize_input_interfaces_hasdisc_negated compress_normalize_output_interfaces_hasdisc_negated compress_normalize_protocols_not_introduces_Prot_negated)
       apply simp_all
     done
-  
   lemma compress_normalize_besteffort_hasdisc:
       "\<not> has_disc disc m \<Longrightarrow> (\<forall>a. \<not> disc (IIface a)) \<Longrightarrow> (\<forall>a. \<not> disc (OIface a)) \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow>
        normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
