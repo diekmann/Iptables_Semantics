@@ -22,9 +22,8 @@ definition compress_normalize_besteffort :: "common_primitive match_expr \<Right
            compress_normalize_output_interfaces] m"  
   
 context begin
-  (*just a test to be sure we can combine them, even though they use different internal types*)
   (*TODO: delete*)
-  private lemma deleteme1: "f \<in> set [compress_normalize_protocols, compress_normalize_input_interfaces, compress_normalize_output_interfaces] \<Longrightarrow>
+  private lemma compress_normalize_besteffort_normalized: "f \<in> set [compress_normalize_protocols, compress_normalize_input_interfaces, compress_normalize_output_interfaces] \<Longrightarrow>
          normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m'"
     apply(simp)
     apply(elim disjE)
@@ -32,7 +31,7 @@ context begin
      using compress_normalize_input_interfaces_nnf apply blast
     using compress_normalize_output_interfaces_nnf apply blast
     done
-  private lemma deleteme2: "f \<in> set [compress_normalize_protocols, compress_normalize_input_interfaces, compress_normalize_output_interfaces] \<Longrightarrow>
+  private lemma compress_normalize_besteffort_matches: "f \<in> set [compress_normalize_protocols, compress_normalize_input_interfaces, compress_normalize_output_interfaces] \<Longrightarrow>
          normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches (common_matcher, \<alpha>) m' a p = matches (common_matcher, \<alpha>) m a p"
     apply(simp)
     apply(elim disjE)
@@ -46,7 +45,7 @@ context begin
     matches (common_matcher, \<alpha>) m' a p = matches (common_matcher, \<alpha>) m a p"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad)
-    using deleteme1 deleteme2 by blast+
+    using compress_normalize_besteffort_normalized compress_normalize_besteffort_matches by blast+
   lemma compress_normalize_besteffort_None:
       "normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = None \<Longrightarrow>
          \<not> matches (common_matcher, \<alpha>) m a p"
@@ -58,20 +57,20 @@ context begin
    show "normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p"
      unfolding compress_normalize_besteffort_def
      apply(rule compress_normalize_primitive_monad_None)
-         using deleteme1 deleteme2 notmatches by blast+
+         using compress_normalize_besteffort_normalized compress_normalize_besteffort_matches notmatches by blast+
   qed 
   lemma compress_normalize_besteffort_nnf: "normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
     normalized_nnf_match m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad)
-    using deleteme1 deleteme2 by blast+
+    using compress_normalize_besteffort_normalized compress_normalize_besteffort_matches by blast+
   
   lemma compress_normalize_besteffort_not_introduces_Iiface:
       "\<not> has_disc is_Iiface m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
        \<not> has_disc is_Iiface m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves[THEN conjunct2])
-        using deleteme1 apply blast
+        using compress_normalize_besteffort_normalized apply blast
        apply(simp split: option.split_asm)
        using common_primitive.disc(25) compress_normalize_input_interfaces_not_introduces_Iiface compress_normalize_protocols_hasdisc
        apply (meson common_primitive.disc(24) compress_normalize_output_interfaces_hasdisc)
@@ -82,7 +81,7 @@ context begin
        \<not> has_disc is_Oiface m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves[THEN conjunct2])
-        using deleteme1 apply blast
+        using compress_normalize_besteffort_normalized apply blast
        apply(simp split: option.split_asm)
        using compress_normalize_output_interfaces_hasdisc compress_normalize_output_interfaces_not_introduces_Oiface compress_normalize_protocols_hasdisc
        apply (meson common_primitive.disc(33) common_primitive.disc(35) compress_normalize_input_interfaces_hasdisc)
@@ -93,7 +92,7 @@ context begin
        \<not> has_disc is_Prot m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves[THEN conjunct2])
-        using deleteme1 apply blast
+        using compress_normalize_besteffort_normalized apply blast
        apply(simp split: option.split_asm)
        using common_primitive.disc(43) compress_normalize_input_interfaces_hasdisc compress_normalize_protocols_not_introduces_Prot
        apply (meson common_primitive.disc(44) compress_normalize_output_interfaces_hasdisc)       
@@ -105,7 +104,7 @@ context begin
        \<not> has_disc_negated is_Iiface False m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves[THEN conjunct2])
-        using deleteme1 apply blast
+        using compress_normalize_besteffort_normalized apply blast
        apply(simp split: option.split_asm)
        using common_primitive.disc(25) compress_normalize_input_interfaces_not_introduces_Iiface_negated compress_normalize_protocols_hasdisc_negated
             common_primitive.disc(24) common_primitive.disc(25) compress_normalize_input_interfaces_not_introduces_Iiface_negated
@@ -117,7 +116,7 @@ context begin
        \<not> has_disc_negated is_Oiface False m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves[THEN conjunct2])
-        using deleteme1 apply blast
+        using compress_normalize_besteffort_normalized apply blast
        apply(simp split: option.split_asm)
        using compress_normalize_output_interfaces_not_introduces_Oiface_negated compress_normalize_protocols_hasdisc_negated
              compress_normalize_input_interfaces_hasdisc_negated compress_normalize_protocols_hasdisc_negated
@@ -129,7 +128,7 @@ context begin
        \<not> has_disc_negated is_Prot False m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves[THEN conjunct2])
-        using deleteme1 apply blast
+        using compress_normalize_besteffort_normalized apply blast
        apply(simp split: option.split_asm)
        using common_primitive.disc(43) compress_normalize_input_interfaces_hasdisc_negated compress_normalize_protocols_not_introduces_Prot_negated
        apply (meson common_primitive.disc(34) common_primitive.disc(43) common_primitive.distinct_disc(50) compress_normalize_input_interfaces_hasdisc_negated compress_normalize_output_interfaces_hasdisc_negated compress_normalize_protocols_not_introduces_Prot_negated)
@@ -141,7 +140,7 @@ context begin
        normalized_nnf_match m' \<and> \<not> has_disc disc m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves)
-        using deleteme1 apply blast
+        using compress_normalize_besteffort_normalized apply blast
        apply(simp split: option.split_asm)
        using compress_normalize_input_interfaces_hasdisc compress_normalize_output_interfaces_hasdisc compress_normalize_protocols_hasdisc apply blast
     apply simp_all
@@ -151,7 +150,7 @@ context begin
        normalized_nnf_match m' \<and> \<not> has_disc_negated disc neg m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves)
-        using deleteme1 apply blast
+        using compress_normalize_besteffort_normalized apply blast
        apply(simp split: option.split_asm)
        using compress_normalize_input_interfaces_hasdisc_negated compress_normalize_output_interfaces_hasdisc_negated compress_normalize_protocols_hasdisc_negated apply blast
     apply simp_all
@@ -161,7 +160,7 @@ context begin
      normalized_nnf_match m' \<and> normalized_n_primitive (disc, sel) P m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves)
-        using deleteme1 apply blast
+        using compress_normalize_besteffort_normalized apply blast
        apply(simp split: option.split_asm)
        using compress_normalize_input_interfaces_preserves_normalized_n_primitive compress_normalize_output_interfaces_preserves_normalized_n_primitive compress_normalize_protocols_preserves_normalized_n_primitive apply blast
     apply simp_all
