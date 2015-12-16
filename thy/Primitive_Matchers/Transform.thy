@@ -145,11 +145,15 @@ context begin
     apply(rule compress_normalize_primitive_monad_preserves)
         using compress_normalize_besteffort_normalized apply blast
        apply(simp split: option.split_asm)
-       using compress_normalize_input_interfaces_hasdisc compress_normalize_output_interfaces_hasdisc compress_normalize_protocols_hasdisc apply blast
+       using compress_normalize_input_interfaces_hasdisc
+             compress_normalize_output_interfaces_hasdisc
+             compress_normalize_protocols_hasdisc apply blast
     apply simp_all
     done
   lemma compress_normalize_besteffort_hasdisc_negated:
-      "\<not> has_disc_negated disc neg m \<Longrightarrow> (\<forall>a. \<not> disc (IIface a)) \<Longrightarrow> (\<forall>a. \<not> disc (OIface a)) \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
+      "\<not> has_disc_negated disc neg m \<Longrightarrow>
+       (\<forall>a. \<not> disc (IIface a)) \<Longrightarrow> (\<forall>a. \<not> disc (OIface a)) \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow>
+       normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
        normalized_nnf_match m' \<and> \<not> has_disc_negated disc neg m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves)
@@ -161,7 +165,9 @@ context begin
     apply simp_all
     done
   lemma compress_normalize_besteffort_preserves_normalized_n_primitive:
-    "normalized_n_primitive (disc, sel) P m \<Longrightarrow> (\<forall>a. \<not> disc (IIface a)) \<Longrightarrow> (\<forall>a. \<not> disc (OIface a)) \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
+    "normalized_n_primitive (disc, sel) P m \<Longrightarrow>
+     (\<forall>a. \<not> disc (IIface a)) \<Longrightarrow> (\<forall>a. \<not> disc (OIface a)) \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow>
+     normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
      normalized_nnf_match m' \<and> normalized_n_primitive (disc, sel) P m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves)
@@ -242,7 +248,8 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
       and "\<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_nnf_match m"
       and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_n_primitive disc_sel f m"
-      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc_negated disc neg m"
+      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc_negated disc neg m"
   proof -
     let ?\<gamma>="(common_matcher, \<alpha>)"
     let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
