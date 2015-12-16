@@ -22,7 +22,10 @@ definition compress_normalize_besteffort :: "common_primitive match_expr \<Right
            compress_normalize_output_interfaces] m"  
   
 context begin
-  private lemma compress_normalize_besteffort_normalized: "f \<in> set [compress_normalize_protocols, compress_normalize_input_interfaces, compress_normalize_output_interfaces] \<Longrightarrow>
+  private lemma compress_normalize_besteffort_normalized:
+  "f \<in> set [compress_normalize_protocols,
+            compress_normalize_input_interfaces,
+            compress_normalize_output_interfaces] \<Longrightarrow>
          normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m'"
     apply(simp)
     apply(elim disjE)
@@ -30,7 +33,10 @@ context begin
      using compress_normalize_input_interfaces_nnf apply blast
     using compress_normalize_output_interfaces_nnf apply blast
     done
-  private lemma compress_normalize_besteffort_matches: "f \<in> set [compress_normalize_protocols, compress_normalize_input_interfaces, compress_normalize_output_interfaces] \<Longrightarrow>
+  private lemma compress_normalize_besteffort_matches:
+  "f \<in> set [compress_normalize_protocols,
+            compress_normalize_input_interfaces,
+            compress_normalize_output_interfaces] \<Longrightarrow>
          normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches (common_matcher, \<alpha>) m' a p = matches (common_matcher, \<alpha>) m a p"
     apply(simp)
     apply(elim disjE)
