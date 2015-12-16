@@ -4,8 +4,8 @@ begin
 
 type_synonym ipv4range = "32 wordinterval"
 
-fun range_destination :: "prefix_routing \<Rightarrow> ipv4range \<Rightarrow> (ipv4range \<times> port set) list" where
-"range_destination [] rg = (if ipv4range_empty rg then [] else [(rg, {})])" |
+fun range_destination :: "prefix_routing \<Rightarrow> ipv4range \<Rightarrow> (ipv4range \<times> port list) list" where
+"range_destination [] rg = (if ipv4range_empty rg then [] else [(rg, [])])" |
 "range_destination (r # rs) rg = (
   let rpm = range_prefix_match (routing_match r) rg in (let m = fst rpm in (let nm = snd rpm in (
     (if ipv4range_empty m  then [] else [ (m, routing_action r) ]) @ 

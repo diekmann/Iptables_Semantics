@@ -4,8 +4,8 @@ begin
 
 subsection{*Definition*}
 
-fun ipset_destination :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> (ipv4addr set \<times> port set) set" where
-"ipset_destination [] rg = (if rg = {} then  {} else {(rg, {})})" |
+fun ipset_destination :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> (ipv4addr set \<times> port list) set" where
+"ipset_destination [] rg = (if rg = {} then  {} else {(rg, [])})" |
 "ipset_destination (r # rs) rg = (
   let rpm = ipset_prefix_match (routing_match r) rg in (let m = fst rpm in (let nm = snd rpm in (
     (if m = {}  then {} else { (m, routing_action r) }) \<union> 
@@ -105,14 +105,14 @@ next
 qed
 
 
-fun ipset_destination_map :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr \<Rightarrow> port set option" where
-"ipset_destination_map [] rg = (\<lambda>ip. if ip \<in> rg then Some {} else None)" |
+fun ipset_destination_map :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr \<Rightarrow> port list option" where
+"ipset_destination_map [] rg = (\<lambda>ip. if ip \<in> rg then Some [] else None)" |
 "ipset_destination_map (r#rs) rg = 
   (let rpm = ipset_prefix_match (routing_match r) rg in (let m = fst rpm in (let nm = snd rpm in (\<lambda>ip.
     if ip \<in> rg \<inter> m then Some (routing_action r) else ipset_destination_map rs nm ip))))"
 
-fun ipset_destination_map2 :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr \<Rightarrow> port set option" where
-"ipset_destination_map2 [] rg = (\<lambda>ip. if ip \<in> rg then Some {} else None)" |
+fun ipset_destination_map2 :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr \<Rightarrow> port list option" where
+"ipset_destination_map2 [] rg = (\<lambda>ip. if ip \<in> rg then Some [] else None)" |
 "ipset_destination_map2 (r#rs) rg = 
   (let rpm = ipset_prefix_match (routing_match r) rg in (let m = fst rpm in (let nm = snd rpm in (\<lambda>ip.
     if ip \<in> rg \<inter> m then Some (routing_action r) else ipset_destination_map2 rs rg ip))))"

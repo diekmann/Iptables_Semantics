@@ -6,7 +6,7 @@ subsection{*Definition*}
 
 record routing_rule =
   routing_match :: prefix_match (* done on the dst *)
-  routing_action :: "port set"
+  routing_action :: "port list"
 
 type_synonym prefix_routing = "routing_rule list"
 
@@ -28,9 +28,9 @@ fun is_longest_prefix_routing :: "prefix_routing \<Rightarrow> bool" where
 
 (*example: get longest prefix match by sorting by pfxm_length*)
 value "rev (sort_key (\<lambda>r. pfxm_length (routing_match r)) [
-  \<lparr> routing_match = \<lparr> pfxm_prefix = 1::ipv4addr, pfxm_length = 3 \<rparr>, routing_action = {} \<rparr>,
-  \<lparr> routing_match = \<lparr> pfxm_prefix = 2::ipv4addr, pfxm_length = 8 \<rparr>, routing_action = {} \<rparr>,
-  \<lparr> routing_match = \<lparr> pfxm_prefix = 3::ipv4addr, pfxm_length = 4 \<rparr>, routing_action = {} \<rparr>])"
+  \<lparr> routing_match = \<lparr> pfxm_prefix = 1::ipv4addr, pfxm_length = 3 \<rparr>, routing_action = [] \<rparr>,
+  \<lparr> routing_match = \<lparr> pfxm_prefix = 2::ipv4addr, pfxm_length = 8 \<rparr>, routing_action = [] \<rparr>,
+  \<lparr> routing_match = \<lparr> pfxm_prefix = 3::ipv4addr, pfxm_length = 4 \<rparr>, routing_action = [] \<rparr>])"
 lemma longest_prefix_routing_no_sort: 
   "is_longest_prefix_routing tbl \<Longrightarrow>
   (sort_key (\<lambda>r. 32 - pfxm_length (routing_match r)) tbl) = tbl"
@@ -70,8 +70,8 @@ lemma dst_addr_f: "(f = Host \<or> f = NetworkBox) \<Longrightarrow> dst_addr (s
   unfolding dst_addr_def extract_addr_def snd_def by auto
 
 (*assumes: correct_routing*)
-fun routing_table_semantics :: "prefix_routing \<Rightarrow> ipv4addr \<Rightarrow> port set" where
-"routing_table_semantics [] _ = {}" | 
+fun routing_table_semantics :: "prefix_routing \<Rightarrow> ipv4addr \<Rightarrow> port list" where
+"routing_table_semantics [] _ = []" | 
 "routing_table_semantics (r#rs) p = (if prefix_match_semantics (routing_match r) p then routing_action r else routing_table_semantics rs p)"
 
 definition "packet_routing_table_semantics rtbl p \<equiv> routing_table_semantics rtbl (dst_addr p)"
