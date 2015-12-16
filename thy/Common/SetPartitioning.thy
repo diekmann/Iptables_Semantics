@@ -400,12 +400,23 @@ lemma "a \<noteq> {} \<Longrightarrow> disjoint_list_rec (a # ts) \<longleftrigh
   apply(simp)
 by force
 
+
+(*TODO: tune*)
 lemma partList3_complete0: "s \<subseteq> \<Union> set ts \<Longrightarrow> \<Union> set ts = \<Union> set (partList3 s ts)"
   apply(induction ts arbitrary: s)
+   apply(simp; fail)
+  apply(simp del: partList3.simps)
+  apply(rename_tac t ts s)
+  apply(case_tac "s={}")
+   apply(simp;fail)
+  apply(case_tac "s \<inter> t = {}")
+   apply(simp)
+   apply (simp add: Diff_subset_conv)
+  apply(case_tac "t - s = {}")
+   apply(simp)
+   apply (simp add: Diff_subset_conv; fail)
   apply(simp)
-  apply(simp)
-by (smt Diff_eq Diff_partition Diff_subset_conv Int_assoc 
-        inf_sup_absorb inf_sup_aci(6) inf_sup_distrib1)
+  by (simp add: Diff_subset_conv Un_Diff_Int inf_sup_aci(7) sup.commute)
 
 
 lemma partList3_disjoint: "s \<subseteq> \<Union> set ts \<Longrightarrow> disjoint_list_rec ts \<Longrightarrow> 

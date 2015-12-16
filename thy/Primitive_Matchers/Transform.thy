@@ -605,9 +605,6 @@ lemma optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_
  assumes "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) P m" 
      and "\<forall>a. \<not> disc2 (IIface a)" and "\<forall>a. \<not> disc2 (OIface a)" and "\<forall>a. \<not> disc2 (Prot a)"
   shows "\<forall>m \<in> get_match ` set (optimize_matches_option compress_normalize_besteffort rs). normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) P m"
- (*
- by (smt Set.image_iff assms(1) assms(2) assms(3) compress_normalize_besteffort_nnf compress_normalize_besteffort_preserves_normalized_n_primitive optimize_matches_option_normalized_nnf_match optimize_matches_option_preserves)
-  *)
   thm optimize_matches_option_preserves
   apply(rule optimize_matches_option_preserves[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive  (disc2, sel2) P m"
       and f="compress_normalize_besteffort"])
