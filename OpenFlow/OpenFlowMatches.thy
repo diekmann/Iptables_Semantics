@@ -12,16 +12,16 @@ datatype of_match_field =
 	| VlanPriority "16 word"
 (*	| MplsLabel
 	| MplsClass *)
-	| IPv4Src prefix_match
-	| IPv4Dst prefix_match
-	| IPv4Proto "16 word"
+	| IPv4Src prefix_match (* could also be arbitrary bitmask - see page 80 of 1.5.1 *)
+	| IPv4Dst prefix_match (* ditto *)
+	| IPv4Proto "8 word"
 (*	| IPv4ToS "16 word" *)
-	| L4Src "16 word"
+	| L4Src "16 word" (* openvswitch 1.6 supports bitmasks - does not seem to be in of 1.5.1 *)
 	| L4Dst "16 word"
 
 (*
 
-The semantics of an openflow match is by no means trivial. See Specification 7.2.3.6, v1.5
+The semantics of an openflow match is by no means trivial. See Specification 7.2.3.6, v1.5.1
 For example:
 • An OXM TLV for oxm_type=OXM OF IPV4 SRC is allowed only if it is preceded by another en-
 try with oxm_type=OXM_OF_ETH_TYPE, oxm_hasmask=0, and oxm_value=0x0800. That is, match-

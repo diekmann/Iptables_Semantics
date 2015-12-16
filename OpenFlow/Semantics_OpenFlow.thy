@@ -345,4 +345,85 @@ theorem OF_eq:
 	unfolding no_overlaps_defeq[symmetric,OF no] OF_match_eq[OF so check_no_overlapI[OF no]]
 	..
 
+inductive guha_ft where
+(* At least in terms of Isabelle, the semantics specified in Guha 2013 / VeriNetCore / Featherweight openflow (pg. 5) 
+   is slightly broken (just look at those pt1\<dots>ptn. I did my best to translate it 'in spirit' *)
+guha_matched: "e \<in> set ft \<Longrightarrow> OF_match \<gamma> (ofe_fields e) p \<Longrightarrow> 
+	\<forall>e' \<in> set ft. ofe_prio e' > ofe_prio e \<longrightarrow> \<not>OF_match \<gamma> (ofe_fields e') p \<Longrightarrow>
+	guha_ft \<gamma> ft p (Some (ofe_action e))" |
+guha_unmatched: "e \<in> set ft \<Longrightarrow> \<not>OF_match \<gamma> (ofe_fields e) p \<Longrightarrow>
+	guha_ft \<gamma> ft p None"
+  
+lemma "guha_ft \<gamma> ft p None \<longleftrightarrow> OF_same_priority_match3 \<gamma> ft p = Defined None"
+apply(rule)
+defer
+apply(subst(asm) OF_same_priority_match3_def)
+apply(simp)
+apply(cases "[x\<leftarrow>ft . OF_match \<gamma> (ofe_fields x) p \<and> (\<forall>fo. fo \<in> set ft \<and> OF_match \<gamma> (ofe_fields fo) p \<longrightarrow> ofe_prio fo \<le> ofe_prio x)]")
+prefer 2
+apply simp
+apply(case_tac list)
+apply simp
+apply simp
+apply simp
+using guha_unmatched
+unfolding filter_empty_conv
+unfolding de_Morgan_conj
+(* see, this is where it doesn't hold *)
+oops
+
+lemma filterF: "filter p k = l \<Longrightarrow> \<forall>e \<in> set l. p e"
+by fastforce
+
+lemma "guha_ft \<gamma> ft p (Some e) \<longleftrightarrow> OF_same_priority_match3 \<gamma> ft p = Defined (Some e)"
+apply(rule)
+defer
+apply(subst(asm) OF_same_priority_match3_def)
+apply(simp)
+apply(cases "[x\<leftarrow>ft . OF_match \<gamma> (ofe_fields x) p \<and> (\<forall>fo. fo \<in> set ft \<and> OF_match \<gamma> (ofe_fields fo) p \<longrightarrow> ofe_prio fo \<le> ofe_prio x)]")
+apply simp
+apply simp
+apply(case_tac list)
+prefer 2
+apply simp
+apply simp
+apply(frule filterF)
+unfolding set_simps
+sorry
+
+lemma "\<not>no_overlaps \<gamma> ft \<Longrightarrow> \<exists>p. OF_same_priority_match3 \<gamma> ft p = Undefined"
+proof(induction ft, simp,
+	unfold no_overlaps.simps de_Morgan_conj,
+	erule disjE)
+	case goal1
+	note goal1(1)[OF goal1(2)]
+	then guess p ..
+	hence "OF_same_priority_match3 \<gamma> (a # ft) p = Undefined" unfolding OF_same_priority_match3_def Let_def filter_filter
+	proof -
+		case goal1
+		then obtain a aa aas where aa: "a # aa # aas = 
+			[x\<leftarrow>ft . OF_match \<gamma> (ofe_fields x) p \<and> (\<forall>fo\<in>set [f\<leftarrow>ft . OF_match \<gamma> (ofe_fields f) p]. ofe_prio fo \<le> ofe_prio x)]"
+		proof -
+		  assume a1: "\<And>a aa aas. a # aa # aas = [x\<leftarrow>ft . OF_match \<gamma> (ofe_fields x) p \<and> (\<forall>fo\<in>set [f\<leftarrow>ft . OF_match \<gamma> (ofe_fields f) p]. ofe_prio fo \<le> ofe_prio x)] \<Longrightarrow> thesis"
+		  have "[f\<leftarrow>ft . OF_match \<gamma> (ofe_fields f) p \<and> (\<forall>fa. fa \<in> set [f\<leftarrow>ft . OF_match \<gamma> (ofe_fields f) p] \<longrightarrow> ofe_prio fa \<le> ofe_prio f)] \<noteq> []"
+			using goal1 by fastforce
+		  thus ?thesis
+			using a1 by (metis (lifting) goal1 list.exhaust list.simps(4) list.simps(5) undefined_behavior.distinct(1))
+		qed
+		show ?case unfolding filter.simps
+		apply(simp only: split: if_splits)
+		apply rule defer
+		using aa[symmetric]  apply simp
+		apply rule
+		apply rule
+		defer
+		apply(clarsimp)
+		using aa[symmetric]
+		sorry
+	qed
+	thus ?case by blast
+	
+
+(* TODO: unified representation with match port \<Rightarrow> table \<Rightarrow> port set *)
+
 end
