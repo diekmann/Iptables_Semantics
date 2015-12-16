@@ -422,6 +422,7 @@ proof(induction ft, simp,
 		sorry
 	qed
 	thus ?case by blast
+oops
 	
 
 (* TODO: unified representation with match port \<Rightarrow> table \<Rightarrow> port set *)
