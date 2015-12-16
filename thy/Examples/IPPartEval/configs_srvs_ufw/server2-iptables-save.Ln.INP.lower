@@ -1,0 +1,27 @@
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     all  --  127.0.0.0/8          0.0.0.0/0           
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0            udp spt:67 dpt:68
+DROP       all  --  0.0.0.0/0            0.0.0.0/0           
+ACCEPT     udp  --  0.0.0.0/0            224.0.0.251          udp dpt:5353
+ACCEPT     udp  --  0.0.0.0/0            239.255.255.250      udp dpt:1900
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:22
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:22
+ACCEPT     tcp  --  188.95.233.200       0.0.0.0/0            tcp dpt:3306
+ACCEPT     tcp  --  188.95.233.220       0.0.0.0/0            tcp dpt:3306
+ACCEPT     tcp  --  188.95.233.38        0.0.0.0/0            tcp dpt:3306
+ACCEPT     all  --  10.0.0.0/24          0.0.0.0/0           
+ACCEPT     all  --  188.95.233.220       0.0.0.0/0           
+ACCEPT     all  --  188.95.233.200       0.0.0.0/0           
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:137
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:138
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:139
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:445
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:67
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:68
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
