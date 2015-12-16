@@ -401,36 +401,26 @@ lemma "a \<noteq> {} \<Longrightarrow> disjoint_list_rec (a # ts) \<longleftrigh
 by force
 
 
-(*TODO: tune*)
 lemma partList3_complete0: "s \<subseteq> \<Union> set ts \<Longrightarrow> \<Union> set ts = \<Union> set (partList3 s ts)"
-  apply(induction ts arbitrary: s)
-   apply(simp; fail)
-  apply(simp del: partList3.simps)
-  apply(rename_tac t ts s)
-  apply(case_tac "s={}")
-   apply(simp;fail)
-  apply(case_tac "s \<inter> t = {}")
-   apply(simp)
-   apply (simp add: Diff_subset_conv)
-  apply(case_tac "t - s = {}")
-   apply(simp)
-   apply (simp add: Diff_subset_conv; fail)
-  apply(simp)
-  by (simp add: Diff_subset_conv Un_Diff_Int inf_sup_aci(7) sup.commute)
+proof(induction ts arbitrary: s)
+  case Nil thus ?case by(simp)
+  next
+  case Cons thus ?case by (simp add: Diff_subset_conv Un_Diff_Int inf_sup_aci(7) sup.commute)
+qed
 
 
 lemma partList3_disjoint: "s \<subseteq> \<Union> set ts \<Longrightarrow> disjoint_list_rec ts \<Longrightarrow> 
                            disjoint_list_rec (partList3 s ts)"
   apply(induction ts arbitrary: s)
-  apply(simp_all)
+   apply(simp_all)
   apply(rule conjI)
-  apply (metis Diff_subset_conv partList3_complete0)
+   apply (metis Diff_subset_conv partList3_complete0)
   apply(safe)
-apply (metis Diff_subset_conv IntI UnionI partList3_complete0)
-apply (simp add: Diff_subset_conv)
-apply (metis Diff_subset_conv IntI UnionI partList3_complete0)
-apply (metis Diff_subset_conv IntI UnionI partList3_complete0)
-by (simp add: Diff_subset_conv)
+      apply (metis Diff_subset_conv IntI UnionI partList3_complete0)
+     apply (simp add: Diff_subset_conv)
+    apply (metis Diff_subset_conv IntI UnionI partList3_complete0)
+   apply (metis Diff_subset_conv IntI UnionI partList3_complete0)
+  by (simp add: Diff_subset_conv)
 
 lemma partitioning1_subset: "a \<subseteq> \<Union> (set ts) \<Longrightarrow> a \<subseteq> \<Union> set (partitioning1 ss ts)"
   apply(induction ss arbitrary: ts a)
@@ -440,9 +430,8 @@ done
 
 lemma partitioning1_disjoint: "\<Union> (set ss) \<subseteq> \<Union> (set ts) \<Longrightarrow>
                                disjoint_list_rec ts \<Longrightarrow> disjoint_list_rec (partitioning1 ss ts)"
-  apply(induction ss arbitrary: ts)
-  apply(simp_all add: partList3_disjoint partitioning1_subset)
-done
+  proof(induction ss arbitrary: ts)
+  qed(simp_all add: partList3_disjoint partitioning1_subset)
 
 lemma partitioning_equi: "{} \<notin> set ts \<Longrightarrow> disjoint_list_rec ts \<Longrightarrow> \<Union> (set ss) \<subseteq> \<Union> (set ts) \<Longrightarrow>
          set(partitioning1 ss ts) = partitioning_nontail ss (set ts) - {{}}"
