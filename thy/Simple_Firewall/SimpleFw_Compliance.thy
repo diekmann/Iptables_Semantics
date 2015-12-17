@@ -440,16 +440,19 @@ theorem transform_simple_fw_upper:
       apply -
       apply(rule optimize_matches_preserves, simp)+
       done
+    from ifaces have iface_in:  "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated is_Iiface False m" and
+                     iface_out: "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated is_Oiface False m"
+    using has_disc_negated_disj_split by blast+
 
     from transform_upper_closure(3)[OF s3] have "\<forall>m\<in>get_match ` set ?rs'.
      normalized_nnf_match m \<and> normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" .
     with r have normalized: "normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" by fastforce
 
 
-    from transform_upper_closure(5)[OF s3] ifaces protocols have "\<forall>m\<in>get_match ` set ?rs'.
-     \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False m \<and> \<not> has_disc_negated is_Prot False m" by simp (*500ms*)
+    from transform_upper_closure(5)[OF s3] iface_in iface_out protocols have "\<forall>m\<in>get_match ` set ?rs'.
+     \<not> has_disc_negated is_Iiface False m \<and> \<not> has_disc_negated is_Oiface False m \<and> \<not> has_disc_negated is_Prot False m" by simp (*500ms*)
     with r have abstracted: "normalized_ifaces m \<and> normalized_protocols m"
-    unfolding normalized_protocols_def normalized_ifaces_def by fastforce
+    unfolding normalized_protocols_def normalized_ifaces_def has_disc_negated_disj_split by fastforce
     
     from no_CT no_L4_Flags s4 normalized a abstracted show "normalized_src_ports m \<and>
              normalized_dst_ports m \<and>
@@ -550,16 +553,19 @@ theorem transform_simple_fw_lower:
       apply -
       apply(rule optimize_matches_preserves, simp)+
       done
+    from ifaces have iface_in:  "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated is_Iiface False m" and
+                     iface_out: "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated is_Oiface False m"
+    using has_disc_negated_disj_split by blast+
 
     from transform_lower_closure(3)[OF s3] have "\<forall>m\<in>get_match ` set ?rs'.
      normalized_nnf_match m \<and> normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" .
     with r have normalized: "normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" by fastforce
 
 
-    from transform_lower_closure(5)[OF s3] ifaces protocols have "\<forall>m\<in>get_match ` set ?rs'.
-     \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False m \<and> \<not> has_disc_negated is_Prot False m" by simp (*500ms*)
+    from transform_lower_closure(5)[OF s3] iface_in iface_out protocols have "\<forall>m\<in>get_match ` set ?rs'.
+     \<not> has_disc_negated is_Iiface False m \<and> \<not> has_disc_negated is_Oiface False m \<and> \<not> has_disc_negated is_Prot False m" by simp (*500ms*)
     with r have abstracted: "normalized_ifaces m \<and> normalized_protocols m"
-    unfolding normalized_protocols_def normalized_ifaces_def by fastforce
+    unfolding normalized_protocols_def normalized_ifaces_def has_disc_negated_disj_split by fastforce
     
     from no_CT no_L4_Flags s4 normalized a abstracted show "normalized_src_ports m \<and>
              normalized_dst_ports m \<and>

@@ -104,6 +104,14 @@ lemma match_simplematcher_Iface_not:
    by(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_simps split: ternaryvalue.split)
 
 
+lemma match_simplematcher_Prot:
+  "matches (common_matcher, \<alpha>) (Match (Prot X)) a p \<longleftrightarrow> match_proto X (p_proto p)"
+   by(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_Unknown bool_to_ternary_simps split: ternaryvalue.split)
+lemma match_simplematcher_Prot_not:
+  "matches (common_matcher, \<alpha>) (MatchNot (Match (Prot X))) a p \<longleftrightarrow> \<not> match_proto X (p_proto p)"
+   by(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_simps split: ternaryvalue.split)
+
+
 
 text{* multiport list is a way to express  disjunction in one matchexpression in some firewalls*}
 lemma multiports_disjuction:

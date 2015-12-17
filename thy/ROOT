@@ -38,7 +38,7 @@ session "Iptables_Semantics_Documentation" = Iptables_Semantics +
     "root.tex"
     "mathpartir.sty"
 
-session "Iptables_Semantics_Examples" = Iptables_Semantics +
+session "Iptables_Semantics_Examples" = Iptables_Semantics_Documentation +
    theories
     "Examples/Parser_Test/Parser_Test"
     "Examples/TUM_Net_Firewall/Analyze_TUM_Net_Firewall"

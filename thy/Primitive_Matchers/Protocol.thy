@@ -33,6 +33,45 @@ fun match_proto :: "protocol \<Rightarrow> primitive_protocol \<Rightarrow> bool
     done
 
 
+  lemma simple_proto_conjunct_Some: "simple_proto_conjunct p1 p2 = Some proto \<Longrightarrow> 
+    match_proto proto pkt \<longleftrightarrow> match_proto p1 pkt \<and> match_proto p2 pkt"
+    using simple_proto_conjunct_correct by simp
+  lemma simple_proto_conjunct_None: "simple_proto_conjunct p1 p2 = None \<Longrightarrow> 
+    \<not> (match_proto p1 pkt \<and> match_proto p2 pkt)"
+    using simple_proto_conjunct_correct by simp
+
+
+  text{*Because there is a @{typ nat} in the protocol definition, there are infinitly many protocols and we can always find `new' protocols. 
+        This is intended behavior. We want to prevent things such as @{term "\<not>TCP = UDP"}.
+        Of course, the protocol field is usually a finite 8 bit field. This would just make things easier. 
+        If more optimization is required, we may consider changing it to a a bit word. Now, it is more generic (and harder to handle).*}
+  lemma primitive_protocol_Ex_neq: "p = Proto pi \<Longrightarrow> \<exists>p'. p' \<noteq> pi"
+    by(cases pi) blast+
+  lemma protocol_Ex_neq: "\<exists>p'. Proto p' \<noteq> p"
+    by(cases p) (simp_all add: primitive_protocol_Ex_neq)
+  lemma primitive_protocol_Ex_notin_list: "(\<exists>p. (Proto p) \<notin> set ps)"
+    proof(cases "map (\<lambda>p. case p of Proto (OtherProtocol n) \<Rightarrow> n) (filter (\<lambda>p. case p of Proto (OtherProtocol _) \<Rightarrow> True | _ \<Rightarrow> False) ps)")
+    case Nil 
+      -- "arbitrary protocol number"
+      hence "Proto (OtherProtocol 42) \<notin> set ps"
+       apply(induction ps)
+        apply(simp; fail)
+       apply(simp split: protocol.split_asm split_if_asm primitive_protocol.split_asm; fail)
+       done
+      thus "\<exists>p. Proto p \<notin> set ps" by blast
+    next
+    case(Cons a as)
+      have "\<exists>n::nat. n \<notin> set (a#as)" by (metis lessI list.distinct(2) member_le_listsum_nat upt_conv_Cons upt_conv_Nil)
+      from this obtain n where "n \<notin> set (a#as)" by blast
+      with Cons have "Proto (OtherProtocol n) \<notin> set ps"
+        apply(induction ps)
+         apply(simp; fail)
+        apply(simp split: protocol.split_asm split_if_asm primitive_protocol.split_asm)
+        by force
+      thus "\<exists>p. Proto p \<notin> set ps" by blast
+    qed
+
+
 section{*TCP flags*}
   datatype tcp_flag = TCP_SYN | TCP_ACK | TCP_FIN | TCP_RST | TCP_URG | TCP_PSH (*| TCP_ALL | TCP_NONE*)
 
