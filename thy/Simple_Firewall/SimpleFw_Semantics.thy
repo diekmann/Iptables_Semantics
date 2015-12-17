@@ -95,6 +95,13 @@ subsection{*Simple Firewall Semantics*}
     "simple_fw [] _ = Undecided" |
     "simple_fw ((SimpleRule m Accept)#rs) p = (if simple_matches m p then Decision FinalAllow else simple_fw rs p)" |
     "simple_fw ((SimpleRule m Drop)#rs) p = (if simple_matches m p then Decision FinalDeny else simple_fw rs p)"
+ 
+  fun simple_fw_alt where
+    "simple_fw_alt [] _ = Undecided" |
+    "simple_fw_alt (r#rs) p = (if simple_matches (match_sel r) p then 
+    	(case action_sel r of Accept \<Rightarrow> Decision FinalAllow | Drop \<Rightarrow> Decision FinalDeny) else simple_fw_alt rs p)"
+ 
+ lemma simple_fw_alt: "simple_fw r p = simple_fw_alt r p" by(induction rule: simple_fw.induct) simp_all
 
 
   definition simple_match_any :: "simple_match" where

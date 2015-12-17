@@ -192,6 +192,11 @@ lemma prefix_match_if_in_corny_set:
       by simp
     show ?case unfolding * ** ..
   qed
+  
+lemma prefix_match_if_in_corny_set2:
+  assumes "valid_prefix pfx"
+  shows "prefix_match_semantics pfx (a :: ipv4addr) \<longleftrightarrow> a \<in> ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
+ unfolding prefix_match_if_in_corny_set[OF assms] by (metis (full_types) NOT_mask_len32 ipv4range_set_from_bitmask_alt1 word_bool_alg.double_compl)
 
 subsection{*Range stuff*}
 
