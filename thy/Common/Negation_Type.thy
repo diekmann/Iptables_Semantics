@@ -51,6 +51,11 @@ lemma getNeg_empty2: "(getNeg (map Pos src)) = []"
 
 lemmas NegPos_map_simps = getPos_NegPos_map_simp getNeg_NegPos_map_simp getNeg_Pos_empty getNeg_Neg_empty getPos_NegPos_map_simp2 
                           getNeg_NegPos_map_simp2 getPos_id getNeg_id getPos_empty2 getNeg_empty2
+                          
+lemma NegPos_map_map_Neg: "NegPos_map C (map Neg as) = map Neg (map C as)"
+  by(induction as) (simp_all)
+lemma NegPos_map_map_Pos: "NegPos_map C (map Pos as) = map Pos (map C as)"
+  by(induction as) (simp_all)
 
 lemma NegPos_map_append: "NegPos_map C (as @ bs) = NegPos_map C as @ NegPos_map C bs"
   by(induction as rule: getNeg.induct) (simp_all)
