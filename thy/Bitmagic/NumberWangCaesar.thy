@@ -350,7 +350,7 @@ private lemma ipv4addr_andnot_impl_takem: "(a::32 word) AND NOT mask (32 - m) = 
 done
 
 
-definition ip_set :: "32 word \<Rightarrow> nat \<Rightarrow> 32 word set" where "ip_set i r = {j . i AND NOT mask (32 - r) = j AND NOT mask (32 - r)}"
+definition ip4_set :: "32 word \<Rightarrow> nat \<Rightarrow> 32 word set" where "ip4_set i r = {j . i AND NOT mask (32 - r) = j AND NOT mask (32 - r)}"
 
 private lemma "(m1 \<or> m2) \<and> (m3 \<or> m4) \<longleftrightarrow> (m1 \<and> m3) \<or> (m1 \<and> m4) \<or> (m2 \<and> m3) \<or> (m2 \<and> m4)"
   by blast
@@ -374,8 +374,8 @@ lemma ipv4range_set_from_netmask_base_mask_consume:
   unfolding ipv4range_set_from_netmask_def
   by(simp add: AND_twice)
 
-lemma ipv4range_set_from_bitmask_eq_ip_set: "ipv4range_set_from_bitmask base m = ip_set base m"
-  unfolding ip_set_def
+lemma ipv4range_set_from_bitmask_eq_ip4_set: "ipv4range_set_from_bitmask base m = ip4_set base m"
+  unfolding ip4_set_def
   unfolding set_eq_iff
   unfolding mem_Collect_eq
   unfolding ipv4range_set_from_bitmask_alt1

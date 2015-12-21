@@ -283,7 +283,6 @@ subsection{*IP ranges*}
     done
 
 
-
   text{*making element check executable*}
   lemma addr_in_ipv4range_set_from_netmask_code[code_unfold]: 
     "addr \<in> (ipv4range_set_from_netmask base netmask) \<longleftrightarrow> (base AND netmask) \<le> addr \<and> addr \<le> (base AND netmask) OR (NOT netmask)"
