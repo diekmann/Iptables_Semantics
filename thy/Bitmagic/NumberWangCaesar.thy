@@ -9,8 +9,12 @@ context
 begin
 
 text{*We define a type for ips in CIDR notation, e.g. 192.168.0.0/24.*}
-datatype prefix_match = PrefixMatch (pfxm_prefix: ipv4addr) (pfxm_length: nat)
-definition "pfxm_mask x \<equiv> mask (32 - pfxm_length x)"
+(*datatype prefix_match = PrefixMatch (pfxm_prefix: ipv4addr) (pfxm_length: nat)*)
+datatype 'a prefix_match = PrefixMatch (pfxm_prefix: "'a::len word") (pfxm_length: nat)
+(*definition "pfxm_mask x \<equiv> mask (32 - pfxm_length x)"*)
+
+definition pfxm_mask :: "'a prefix_match \<Rightarrow> 'a::len word" where
+  "pfxm_mask x \<equiv> mask ((len_of TYPE ('a)) - pfxm_length x)"
 
 (*
 (*TODO: wo could use this to generalize to arbitrary word lengths*)
@@ -22,13 +26,14 @@ value[code] "pfxes (3::ipv4addr)"
 *)
 
 
-definition valid_prefix :: "prefix_match \<Rightarrow> bool" where
+definition valid_prefix :: "('a::len) prefix_match \<Rightarrow> bool" where
   "valid_prefix pf = ((pfxm_mask pf) AND pfxm_prefix pf = 0)"
 
-text{*The type @{typ prefix_match} usually requires @{const valid_prefix}.
+text{*The type @{typ "'a prefix_match"} usually requires @{const valid_prefix}.
       When we allow working on arbitrary IPs in CIDR notation, we will use the type @{typ "(ipv4addr \<times> nat)"} directly.*}
 
-definition prefix_match_to_CIDR :: "prefix_match \<Rightarrow> (ipv4addr \<times> nat)" where
+(*TODO: generalize to 'a::len word*)
+definition prefix_match_to_CIDR :: "32 prefix_match \<Rightarrow> (ipv4addr \<times> nat)" where
   "prefix_match_to_CIDR pfx \<equiv> (pfxm_prefix pfx, pfxm_length pfx)"
 lemma prefix_match_to_CIDR_def2: "prefix_match_to_CIDR \<equiv> \<lambda>pfx. (pfxm_prefix pfx, pfxm_length pfx)"
   using prefix_match_to_CIDR_def by presburger
@@ -36,7 +41,8 @@ lemma prefix_match_to_CIDR_def2: "prefix_match_to_CIDR \<equiv> \<lambda>pfx. (p
 
 private lemma valid_prefix_E: "valid_prefix pf \<Longrightarrow> ((pfxm_mask pf) AND pfxm_prefix pf = 0)" 
   unfolding valid_prefix_def .
-private lemma valid_preifx_alt_def: "valid_prefix p = (pfxm_prefix p AND (2 ^ (32 - pfxm_length p) - 1) = 0)"
+private lemma valid_preifx_alt_def: fixes p::"'a::len prefix_match"
+  shows "valid_prefix p = (pfxm_prefix p AND (2 ^ ((len_of TYPE ('a)) - pfxm_length p) - 1) = 0)"
   unfolding valid_prefix_def
   unfolding mask_def
   using word_bw_comms(1)
@@ -52,11 +58,12 @@ subsection{*Address Semantics*}
 definition prefix_match_semantics where
 "prefix_match_semantics m a = (pfxm_prefix m = (NOT pfxm_mask m) AND a)"
 
-private lemma mask_32_max_word: "mask 32 = (max_word :: 32 word)" using WordLemmaBucket.mask_32_max_word by simp
+(*private lemma mask_32_max_word: "mask 32 = (max_word :: 32 word)" using WordLemmaBucket.mask_32_max_word by simp*)
 
 subsection{*Set Semantics*}
 
-definition prefix_to_ipset :: "prefix_match \<Rightarrow> ipv4addr set" where
+(*TODO: generalize*)
+definition prefix_to_ipset :: "32 prefix_match \<Rightarrow> ipv4addr set" where
   "prefix_to_ipset pfx = {pfxm_prefix pfx .. pfxm_prefix pfx OR pfxm_mask pfx}"
 
 private lemma pfx_not_empty: "valid_prefix pfx \<Longrightarrow> prefix_to_ipset pfx \<noteq> {}"
@@ -76,11 +83,12 @@ private lemma rpm_m_dup_simp: "rg \<inter> fst (ipset_prefix_match (routing_matc
 
 lemma prefix_to_ipset_subset_ipv4range_set_from_bitmask: 
     "prefix_to_ipset pfx \<subseteq> ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
-  apply(rule)
+  apply(rule subsetI)
   apply(simp add: prefix_to_ipset_def addr_in_ipv4range_set_from_bitmask_code)
   apply(intro impI conjI)
    apply (metis (erased, hide_lams) order_trans word_and_le2)
-  by (metis pfxm_mask_def)
+  apply(simp add: pfxm_mask_def)
+  done
 
 subsection{*Equivalence Proofs*}
 
@@ -250,6 +258,7 @@ private lemma ipv4addr_andnotmask_eq_ormaskandnot: "((base::32 word) AND NOT mas
 done
 
 (* we needed this lemma once. It is commented out because the proof is slow. No comment about its overwhelming elegance.
+As of commit 225779834c209401231eeec664adcc756701c5f7, isabelle 2015, it is still working, but horribly slow.
 private lemma ipv4addr_andnot_eq_takem: "(a::32 word) AND NOT mask (32 - m) = b AND NOT mask (32 - m) \<longleftrightarrow> (take (m) (to_bl a)) = (take (m) (to_bl b))"
   apply word_bitwise
   apply (subgoal_tac "m > 32 \<or> m \<in> set (map nat (upto 0 32))")
@@ -323,7 +332,9 @@ proof-
      unfolding mask_def2_symmetric
      apply(simp)
      unfolding Let_def
-     using assms[unfolded valid_prefix_def] by (metis helper3 word_bw_comms(2)) 
+     using assms[unfolded valid_prefix_def]
+     by (metis helper3 pfxm_mask_def size_mask_32word' word_bw_comms(2) word_size)
+     (*word_size and size_mask_32word' needed since generalization to 'a::len word, though everything in here is 32*)
     
     show ?thesis by (metis ipv4range_set_from_netmask_bitmask local.prefix_match_if_in_corny_set) 
 qed
@@ -357,7 +368,7 @@ proof -
 qed
   
 
-private lemma mask_and_not_mask_helper: "mask (32 - m) AND base AND NOT mask (32 - m) = 0"
+private lemma mask_and_not_mask_helper: "mask (len - m) AND base AND NOT mask (len - m) = 0"
   by(simp add: word_bw_lcs)
 
 lemma ipv4range_set_from_netmask_base_mask_consume: 
@@ -379,7 +390,8 @@ lemma ipv4range_set_from_bitmask_eq_ip_set: "ipv4range_set_from_bitmask base m =
 
 
 (*the bitmagic (pfxm_prefix pfx) AND pfxm_mask pfx). we just want to make sure to get a valid_prefix*)
-lemma cornys_hacky_call_to_prefix_to_range_to_start_with_a_valid_prefix: "valid_prefix (PrefixMatch (base AND NOT mask (32 - len)) len)"
+lemma cornys_hacky_call_to_prefix_to_range_to_start_with_a_valid_prefix: fixes base::"'a::len word"
+  shows "valid_prefix (PrefixMatch (base AND NOT mask ((len_of TYPE ('a)) - len)) len)"
   apply(simp add: valid_prefix_def pfxm_mask_def pfxm_length_def pfxm_prefix_def)
   by (metis mask_and_not_mask_helper)
 end
