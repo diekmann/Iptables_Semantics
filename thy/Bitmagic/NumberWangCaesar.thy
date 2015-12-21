@@ -60,7 +60,7 @@ definition prefix_match_semantics where
 subsection{*Set Semantics*}
 
 (*TODO: generalize*)
-definition prefix_to_ipset :: "32 prefix_match \<Rightarrow> ipv4addr set" where
+definition prefix_to_ipset :: "'a::len prefix_match \<Rightarrow> 'a word set" where
   "prefix_to_ipset pfx = {pfxm_prefix pfx .. pfxm_prefix pfx OR pfxm_mask pfx}"
 
 private lemma pfx_not_empty: "valid_prefix pfx \<Longrightarrow> prefix_to_ipset pfx \<noteq> {}"
@@ -89,7 +89,7 @@ lemma prefix_to_ipset_subset_ipv4range_set_from_bitmask:
 
 subsection{*Equivalence Proofs*}
 
-private lemma helper3: "(x\<Colon>32 word) OR y = x OR y AND NOT x" by (simp add: word_oa_dist2)
+private lemma helper3: "(x::'a::len word) OR y = x OR y AND NOT x" by (simp add: word_oa_dist2)
 (*private lemma helper1: "NOT (0\<Colon>32 word) = x\<^sub>1\<^sub>9 OR NOT x\<^sub>1\<^sub>9" using word_bool_alg.double_compl by simp
 private lemma helper2: "(x\<^sub>0\<Colon>32 word) AND NOT 0 = x\<^sub>0" by simp*)
 

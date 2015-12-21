@@ -47,7 +47,7 @@ private lemma prefix_to_range_ipv4range_range: "prefix_to_range pfx = ipv4range_
   unfolding ipv4range_range.simps prefix_to_range_def by simp
 
 private corollary "valid_prefix pfx \<Longrightarrow> wordinterval_to_set (prefix_to_range pfx) = ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
-using wordinterval_to_set_ipv4range_set_from_bitmask prefix_to_range_set_eq by simp
+using wordinterval_to_set_ipv4range_set_from_bitmask prefix_to_range_set_eq by auto
 
 
 private lemma prefix_match_list_union: "\<forall> pfx \<in> set cidrlist. (valid_prefix pfx) \<Longrightarrow>
@@ -187,7 +187,7 @@ done
 
 private lemma "((a,b),(c,d)) = ((a,b),c,d)" by simp (* Fuck. *)
 
-private lemma prefix_never_empty: fixes d:: "32 prefix_match" (*TODO: for arbitrary length*)
+private lemma prefix_never_empty: fixes d:: "'a::len prefix_match"
   shows"\<not> wordinterval_empty (prefix_to_range d)"
 proof -
   have ie: "pfxm_prefix d \<le> pfxm_prefix d || pfxm_mask d" by (metis le_word_or2)
