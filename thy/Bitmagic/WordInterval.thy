@@ -611,5 +611,84 @@ lemma wordintervalist_union_free_append: "wordintervalist_union_free (a@b) = (wo
 lemma wordinterval_to_list_union_free: "l = wordinterval_to_list r \<Longrightarrow> wordintervalist_union_free l"
   by(induction r arbitrary: l) (simp_all add: wordintervalist_union_free_append)
 *)
+
+
+
+ definition "is_lowest_element x S = (x \<in> S \<and> (\<forall>y\<in>S. y \<le> x \<longrightarrow> y = x))"
+    
+  fun wordinterval_lowest_element :: "'a::len wordinterval \<Rightarrow> 'a word option" where
+    "wordinterval_lowest_element (WordInterval s e) = (if s \<le> e then Some s else None)" | 
+    "wordinterval_lowest_element (RangeUnion A B) = (case (wordinterval_lowest_element A, wordinterval_lowest_element B) of
+      (Some a, Some b) \<Rightarrow> Some (if a < b then a else b) |
+      (None, Some b) \<Rightarrow> Some b |
+      (Some a, None) \<Rightarrow> Some a |
+      (None, None) \<Rightarrow> None)"
+
+  lemma wordinterval_lowest_none_empty: "wordinterval_lowest_element r = None \<longleftrightarrow> wordinterval_empty r"
+    proof(induction r)
+    case WordInterval thus ?case by simp
+    next
+    case RangeUnion thus ?case by fastforce
+    qed
+    
+
+  lemma wordinterval_lowest_element_correct_A: "wordinterval_lowest_element r = Some x \<Longrightarrow> is_lowest_element x (wordinterval_to_set r)"
+    unfolding is_lowest_element_def
+    apply(induction r arbitrary: x rule: wordinterval_lowest_element.induct)
+     apply(rename_tac rs re x, case_tac "rs \<le> re", auto)[1]
+    apply(subst(asm) wordinterval_lowest_element.simps(2))
+    apply(rename_tac A B x)
+    apply(case_tac     "wordinterval_lowest_element B")
+     apply(case_tac[!] "wordinterval_lowest_element A")
+       apply(simp_all add: wordinterval_lowest_none_empty)[3]
+    apply fastforce
+  done
+
+
+  lemma wordinterval_lowest_element_set_eq: assumes "\<not> wordinterval_empty r"
+    shows "(wordinterval_lowest_element r = Some x) = (is_lowest_element x (wordinterval_to_set r))"
+    (*unfolding is_lowest_element_def*)
+    proof(rule iffI)
+      assume "wordinterval_lowest_element r = Some x"
+      thus "is_lowest_element x (wordinterval_to_set r)"
+     using wordinterval_lowest_element_correct_A wordinterval_lowest_none_empty by simp
+    next
+      assume "is_lowest_element x (wordinterval_to_set r)"
+      with assms show "(wordinterval_lowest_element r = Some x)"
+        proof(induction r arbitrary: x rule: wordinterval_lowest_element.induct)
+        case 1 thus ?case by(simp add: is_lowest_element_def)
+        next
+        case (2 A B x)
+
+        have is_lowest_RangeUnion: "is_lowest_element x (wordinterval_to_set A \<union> wordinterval_to_set B) \<Longrightarrow> 
+          is_lowest_element x (wordinterval_to_set A) \<or> is_lowest_element x (wordinterval_to_set B)"
+          by(simp add: is_lowest_element_def)
+      
+         (*why \<And> A B?*)
+         have wordinterval_lowest_element_RangeUnion: "\<And>a b A B. wordinterval_lowest_element A = Some a \<Longrightarrow> wordinterval_lowest_element B = Some b \<Longrightarrow>
+                  wordinterval_lowest_element (RangeUnion A B) = Some (min a b)"
+           by(auto dest!: wordinterval_lowest_element_correct_A simp add: is_lowest_element_def min_def)
+         
+        from 2 show ?case
+        apply(case_tac     "wordinterval_lowest_element B")
+         apply(case_tac[!] "wordinterval_lowest_element A")
+           apply(auto simp add: is_lowest_element_def)[3]
+        apply(subgoal_tac "\<not> wordinterval_empty A \<and> \<not> wordinterval_empty B")
+         prefer 2
+         using arg_cong[where f = Not, OF wordinterval_lowest_none_empty] apply blast
+        apply(drule(1) wordinterval_lowest_element_RangeUnion)
+        apply(simp split: option.split_asm add: min_def)
+         apply(drule is_lowest_RangeUnion)
+         apply(elim disjE)
+          apply(simp add: is_lowest_element_def)
+         apply(clarsimp simp add: wordinterval_lowest_none_empty)
+        
+        apply(simp add: is_lowest_element_def)
+        apply(clarsimp simp add: wordinterval_lowest_none_empty)
+        using wordinterval_lowest_element_correct_A[simplified is_lowest_element_def]
+        by (metis Un_iff not_le)
+      qed
+    qed
+   
     
 end

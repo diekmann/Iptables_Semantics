@@ -82,13 +82,13 @@ value[code] "pfxes TYPE(32)"
 (* Split of one range *)
 definition ipv4range_split1 :: "32 wordinterval \<Rightarrow> 32 prefix_match option \<times> 32 wordinterval" where
   "ipv4range_split1 r \<equiv> (
-   let ma = ipv4range_lowest_element r in
+   let ma = wordinterval_lowest_element r in
    case ma of None \<Rightarrow> (None, r) |
               Some a \<Rightarrow> let cs = (map (\<lambda>s. PrefixMatch a s) (pfxes TYPE(32))) in
-                        let cfs = filter (\<lambda>s. valid_prefix s \<and> ipv4range_subset (prefix_to_range s) r) cs in (* anything that is a subset should also be a valid prefix. but try prooving that.*)
+                        let cfs = filter (\<lambda>s. valid_prefix s \<and> wordinterval_subset (prefix_to_range s) r) cs in (* anything that is a subset should also be a valid prefix. but try prooving that.*)
                         let mc = find (const True) cfs in 
                         (case mc of None \<Rightarrow> (None, r) |
-                                  Some m \<Rightarrow> (mc, ipv4range_setminus r (prefix_to_range m))))"
+                                  Some m \<Rightarrow> (mc, wordinterval_setminus r (prefix_to_range m))))"
 
 private lemma flipnot: "a=b \<Longrightarrow> (\<not>a)=(\<not>b)" by simp (* not flipknot *)
 
@@ -97,75 +97,76 @@ by(induction cfs) (simp_all split: split_if_asm add: const_def)
 
 private lemma find_const_True: "find (const True) l = None \<longleftrightarrow> l = []"
   by(cases l, simp_all add: const_def) 
-private lemma ipv4range_split_innard_helper: "ipv4range_lowest_element r = Some a \<Longrightarrow> 
-  [s \<leftarrow> map (\<lambda>s. PrefixMatch a s) (pfxes TYPE(32)). valid_prefix s \<and> ipv4range_to_set (prefix_to_range s) \<subseteq> ipv4range_to_set r] \<noteq> []"
+private lemma ipv4range_split_innard_helper: fixes a::"32 word"
+  shows "wordinterval_lowest_element r = Some a \<Longrightarrow> 
+  [s \<leftarrow> map (\<lambda>s. PrefixMatch a s) (pfxes TYPE(32)). valid_prefix s \<and> wordinterval_to_set (prefix_to_range s) \<subseteq> wordinterval_to_set r] \<noteq> []"
 proof -
-  assume a: "ipv4range_lowest_element r = Some a"
+  assume a: "wordinterval_lowest_element r = Some a"
   have "(a,len_of(TYPE(32))) \<in> set (map (Pair a) (pfxes TYPE(32)))"
     unfolding pfxes_def
     unfolding set_map set_upto
     using Set.image_iff atLeastAtMost_iff int_eq_iff order_refl by metis (*400ms*)
     (*by (metiss (erased, hide_lams))*)
   hence b: "(a,32) \<in> set (map (Pair a) (pfxes TYPE(32)))" by simp
-  have c: "valid_prefix (PrefixMatch a 32)" unfolding valid_prefix_def pfxm_mask_def by simp
-  have "ipv4range_to_set (prefix_to_range (PrefixMatch a 32)) = {a}" unfolding prefix_to_range_def pfxm_mask_def by simp
-  moreover have "a \<in> ipv4range_to_set r" using a ipv4range_lowest_element_set_eq ipv4range_lowest_none_empty
+  have c: "valid_prefix (PrefixMatch a 32)" by(simp add: valid_prefix_def pfxm_mask_def)
+  have "wordinterval_to_set (prefix_to_range (PrefixMatch a 32)) = {a}" unfolding prefix_to_range_def pfxm_mask_def by simp
+  moreover have "a \<in> wordinterval_to_set r" using a wordinterval_lowest_element_set_eq wordinterval_lowest_none_empty
     by (metis is_lowest_element_def option.distinct(1))
-  ultimately have d: "ipv4range_to_set (prefix_to_range (PrefixMatch a 32)) \<subseteq> ipv4range_to_set r" by simp
+  ultimately have d: "wordinterval_to_set (prefix_to_range (PrefixMatch a 32)) \<subseteq> wordinterval_to_set r" by simp
   show ?thesis
     unfolding flipnot[OF set_empty[symmetric]]
     apply simp
     using b c d by auto
 qed
-private lemma r_split1_not_none: "\<not>ipv4range_empty r \<Longrightarrow> fst (ipv4range_split1 r) \<noteq> None"
+private lemma r_split1_not_none: "\<not>wordinterval_empty r \<Longrightarrow> fst (ipv4range_split1 r) \<noteq> None"
   unfolding ipv4range_split1_def Let_def
-  apply(cases "ipv4range_lowest_element r")
-   apply(simp add: ipv4range_lowest_none_empty; fail)
+  apply(cases "wordinterval_lowest_element r")
+   apply(simp add: wordinterval_lowest_none_empty; fail)
   apply(simp only:)
-  apply(case_tac "find (const True) [s\<leftarrow>map (\<lambda>s. PrefixMatch a s) (pfxes TYPE(32)). valid_prefix s \<and> ipv4range_subset (prefix_to_range s) r]")
+  apply(case_tac "find (const True) [s\<leftarrow>map (\<lambda>s. PrefixMatch a s) (pfxes TYPE(32)). valid_prefix s \<and> wordinterval_subset (prefix_to_range s) r]")
    apply(simp add: find_const_True ipv4range_split_innard_helper; fail)
   apply(simp)
 done
 private lemma find_in: "Some a = find f s \<Longrightarrow> a \<in> {x \<in> set s. f x}"
   by (metis findSomeD mem_Collect_eq)
-private theorem ipv4range_split1_preserve: "(Some s, u) = ipv4range_split1 r \<Longrightarrow> ipv4range_eq (ipv4range_union (prefix_to_range s) u) r"
-proof(unfold ipv4range_eq_set_eq)
+private theorem ipv4range_split1_preserve: "(Some s, u) = ipv4range_split1 r \<Longrightarrow> wordinterval_eq (wordinterval_union (prefix_to_range s) u) r"
+proof(unfold wordinterval_eq_set_eq)
   assume as: "(Some s, u) = ipv4range_split1 r"
-  have nn: "ipv4range_lowest_element r \<noteq> None"
+  have nn: "wordinterval_lowest_element r \<noteq> None"
     using as unfolding ipv4range_split1_def Let_def
     by (metis (erased, lifting) Pair_inject option.distinct(2) option.simps(4))
-  then obtain a where a:  "Some a = (ipv4range_lowest_element r)" unfolding not_None_eq by force
-  then have cpf: "find (const True) [s\<leftarrow>map (\<lambda>s. PrefixMatch a s) (pfxes TYPE(32)). valid_prefix s \<and> ipv4range_subset (prefix_to_range s) r] \<noteq> None" (is "?cpf \<noteq> None")
+  then obtain a where a:  "Some a = (wordinterval_lowest_element r)" unfolding not_None_eq by force
+  then have cpf: "find (const True) [s\<leftarrow>map (\<lambda>s. PrefixMatch a s) (pfxes TYPE(32)). valid_prefix s \<and> wordinterval_subset (prefix_to_range s) r] \<noteq> None" (is "?cpf \<noteq> None")
     unfolding flipnot[OF find_const_True]
     using ipv4range_split_innard_helper
     by simp
   then obtain m where m: "m = the ?cpf" by blast
   have s_def: "ipv4range_split1 r =
-    (find (const True) [s\<leftarrow>map (\<lambda>s. PrefixMatch a s) (pfxes TYPE(32)). valid_prefix s \<and> ipv4range_subset (prefix_to_range s) r], ipv4range_setminus r (prefix_to_range m))"
+    (find (const True) [s\<leftarrow>map (\<lambda>s. PrefixMatch a s) (pfxes TYPE(32)). valid_prefix s \<and> wordinterval_subset (prefix_to_range s) r], wordinterval_setminus r (prefix_to_range m))"
     unfolding m ipv4range_split1_def Let_def using cpf
     unfolding a[symmetric]
     unfolding option.simps(5)
     using option.collapse
     by force
-  have "u = ipv4range_setminus r (prefix_to_range s)"
+  have "u = wordinterval_setminus r (prefix_to_range s)"
     using as unfolding s_def using m by (metis (erased, lifting) Pair_inject handy_lemma)
-  moreover have "ipv4range_subset (prefix_to_range s) r"
+  moreover have "wordinterval_subset (prefix_to_range s) r"
     using as unfolding s_def
     apply(rule Pair_inject)
     apply(unfold const_def)
     apply(drule find_in)
     apply(unfold set_filter)
     by blast
-  ultimately show "ipv4range_to_set (ipv4range_union (prefix_to_range s) u) = ipv4range_to_set r" by auto
+  ultimately show "wordinterval_to_set (wordinterval_union (prefix_to_range s) u) = wordinterval_to_set r" by auto
 qed
 
 definition ipv4range_split1_2 :: "32 wordinterval \<Rightarrow> 32 prefix_match option \<times> 32 wordinterval" where
   "ipv4range_split1_2 r \<equiv> (
-   let ma = ipv4range_lowest_element r in
+   let ma = wordinterval_lowest_element r in
    case ma of None \<Rightarrow> (None, r) |
               Some a \<Rightarrow> let cs = (map (\<lambda>s. PrefixMatch a s) (pfxes TYPE(32)));
-                            ms = (filter (\<lambda>s. valid_prefix s \<and> ipv4range_subset (prefix_to_range s) r) cs) in
-                            (Some (hd ms), ipv4range_setminus r (prefix_to_range (hd ms))))"
+                            ms = (filter (\<lambda>s. valid_prefix s \<and> wordinterval_subset (prefix_to_range s) r) cs) in
+                            (Some (hd ms), wordinterval_setminus r (prefix_to_range (hd ms))))"
 
 private lemma hd_find_const: "l \<noteq> [] \<Longrightarrow> hd l = the (find (const True) l)"
 proof -
@@ -186,68 +187,68 @@ done
 
 private lemma "((a,b),(c,d)) = ((a,b),c,d)" by simp (* Fuck. *)
 
-private lemma prefix_never_empty: "\<not>ipv4range_empty (prefix_to_range d)"
+private lemma prefix_never_empty: fixes d:: "32 prefix_match" (*TODO: for arbitrary length*)
+  shows"\<not> wordinterval_empty (prefix_to_range d)"
 proof -
   have ie: "pfxm_prefix d \<le> pfxm_prefix d || pfxm_mask d" by (metis le_word_or2)
-  have "ipv4range_element (pfxm_prefix d) (prefix_to_range d)"
-    unfolding ipv4range_element_set_eq
-    unfolding ipv4range_to_set_def
+  have "wordinterval_element (pfxm_prefix d) (prefix_to_range d)"
+    unfolding wordinterval_element_set_eq
     unfolding prefix_to_range_set_eq
     unfolding prefix_to_ipset_def 
     using first_in_uptoD[OF ie]
     .
   thus ?thesis
-    unfolding ipv4range_empty_set_eq
-    unfolding ipv4range_element_set_eq
+    unfolding wordinterval_empty_set_eq
+    unfolding wordinterval_element_set_eq
     by blast
 qed
 
-private lemma ipv4range_split1_never_empty: "(Some s, u) = ipv4range_split1 r \<Longrightarrow> \<not>ipv4range_empty (prefix_to_range s)"
+private lemma ipv4range_split1_never_empty: "(Some s, u) = ipv4range_split1 r \<Longrightarrow> \<not>wordinterval_empty (prefix_to_range s)"
   unfolding ipv4range_split1_def Let_def
   using prefix_never_empty
   by simp
 
-private lemma ipv4range_split1_some_r_ne: "(Some s, u) = ipv4range_split1 r \<Longrightarrow> \<not>ipv4range_empty r"
+private lemma ipv4range_split1_some_r_ne: "(Some s, u) = ipv4range_split1 r \<Longrightarrow> \<not>wordinterval_empty r"
 proof(rule ccontr)
   case goal1
-  have "ipv4range_lowest_element r = None" unfolding ipv4range_lowest_none_empty using goal1(2) unfolding not_not .
+  have "wordinterval_lowest_element r = None" unfolding wordinterval_lowest_none_empty using goal1(2) unfolding not_not .
   then have "ipv4range_split1 r = (None, r)" unfolding ipv4range_split1_def Let_def by simp
   then show False using goal1(1) by simp
 qed
 
-private lemma ipv4range_split1_distinct: "(Some s, u) = ipv4range_split1 r \<Longrightarrow> ipv4range_empty (ipv4range_intersection (prefix_to_range s) u)"
+private lemma ipv4range_split1_distinct: "(Some s, u) = ipv4range_split1 r \<Longrightarrow> wordinterval_empty (wordinterval_intersection (prefix_to_range s) u)"
 proof -
   case goal1
   note ne = ipv4range_split1_never_empty[OF goal1]
-  have nn: "ipv4range_lowest_element r \<noteq> None" using ipv4range_split1_some_r_ne[OF goal1, unfolded ipv4range_lowest_none_empty[symmetric]] .
-  obtain a where ad: "Some a = ipv4range_lowest_element r" using nn by force
+  have nn: "wordinterval_lowest_element r \<noteq> None" using ipv4range_split1_some_r_ne[OF goal1, unfolded wordinterval_lowest_none_empty[symmetric]] .
+  obtain a where ad: "Some a = wordinterval_lowest_element r" using nn by force
   {
     fix rr :: "32 prefix_match \<Rightarrow> 'a option \<times> 32 wordinterval"
-    have "(case find (const True) [s\<leftarrow>map (PrefixMatch a) (pfxes TYPE(32)). valid_prefix s \<and> ipv4range_subset (prefix_to_range s) r] of None \<Rightarrow> (None, r)
-                 | Some m \<Rightarrow> rr m) = rr (the (find (const True) [s\<leftarrow>map (PrefixMatch a) (pfxes TYPE(32)). valid_prefix s \<and> ipv4range_subset (prefix_to_range s) r]))"
+    have "(case find (const True) [s\<leftarrow>map (PrefixMatch a) (pfxes TYPE(32)). valid_prefix s \<and> wordinterval_subset (prefix_to_range s) r] of None \<Rightarrow> (None, r)
+                 | Some m \<Rightarrow> rr m) = rr (the (find (const True) [s\<leftarrow>map (PrefixMatch a) (pfxes TYPE(32)). valid_prefix s \<and> wordinterval_subset (prefix_to_range s) r]))"
                   using ipv4range_split_innard_helper[OF ad[symmetric]] find_const_True by fastforce
   } note uf2 = this
-  from goal1 have "u = ipv4range_setminus r (prefix_to_range s)"
+  from goal1 have "u = wordinterval_setminus r (prefix_to_range s)"
     unfolding ipv4range_split1_def Let_def
     unfolding ad[symmetric] option.cases
     unfolding uf2
     unfolding Pair_eq
     by (metis option.sel)
-  then show ?thesis by force
+  then show ?thesis by simp
 qed
-private lemma "ipv4range_empty r \<longleftrightarrow> fst (ipv4range_split1 r) = None"
-by (metis (no_types, lifting) Pair_inject case_option_If2 ipv4range_lowest_none_empty ipv4range_split1_def prod.collapse r_split1_not_none) 
+private lemma "wordinterval_empty r \<longleftrightarrow> fst (ipv4range_split1 r) = None"
+by (metis (no_types, lifting) Pair_inject case_option_If2 wordinterval_lowest_none_empty ipv4range_split1_def prod.collapse r_split1_not_none) 
 
 function ipv4range_split_internal :: "32 wordinterval \<Rightarrow> 32 prefix_match list"where
-  "ipv4range_split_internal rs = (if \<not>ipv4range_empty rs then case ipv4range_split1 rs of (Some s, u) \<Rightarrow> s # ipv4range_split_internal u | _ \<Rightarrow> [] else [])"
+  "ipv4range_split_internal rs = (if \<not>wordinterval_empty rs then case ipv4range_split1 rs of (Some s, u) \<Rightarrow> s # ipv4range_split_internal u | _ \<Rightarrow> [] else [])"
   by(simp, blast)
 
 termination ipv4range_split_internal
-proof(relation "measure (card \<circ> ipv4range_to_set)", rule wf_measure, unfold in_measure comp_def)
-  note vernichter = ipv4range_empty_set_eq ipv4range_intersection_set_eq ipv4range_union_set_eq ipv4range_eq_set_eq
+proof(relation "measure (card \<circ> wordinterval_to_set)", rule wf_measure, unfold in_measure comp_def)
+  note vernichter = wordinterval_empty_set_eq wordinterval_intersection_set_eq wordinterval_union_set_eq wordinterval_eq_set_eq
   case goal1
   note some = goal1(2)[unfolded goal1(3)]
-  from ipv4range_split1_never_empty[OF this] have "\<not> ipv4range_empty (prefix_to_range x2)" .
+  from ipv4range_split1_never_empty[OF this] have "\<not> wordinterval_empty (prefix_to_range x2)" .
   thus ?case
     unfolding vernichter
     unfolding ipv4range_split1_preserve[OF some, unfolded vernichter, symmetric]
@@ -261,14 +262,14 @@ private lemma unfold_rsplit_case:
 using su by (metis option.simps(5) split_conv)
 
 private lemma ipv4range_split_internal_union: "\<Union>set (map wordinterval_to_set (map prefix_to_range (ipv4range_split_internal r))) = wordinterval_to_set r"
-proof(induction r rule: ipv4range_split_internal.induct, subst ipv4range_split_internal.simps, case_tac "ipv4range_empty rs")
+proof(induction r rule: ipv4range_split_internal.induct, subst ipv4range_split_internal.simps, case_tac "wordinterval_empty rs")
   case goal1
-  show ?case using goal1(2) by (simp add: ipv4range_to_set_def)
+  show ?case using goal1(2) by (simp add: wordinterval_to_set_def)
 next
   case goal2
   obtain u s where su: "(Some s, u) = ipv4range_split1 rs" using r_split1_not_none[OF goal2(2)] by (metis option.collapse surjective_pairing)
   from goal2(1)[OF goal2(2) su, of s] have mIH: "\<Union>set (map wordinterval_to_set (map prefix_to_range (ipv4range_split_internal u))) = wordinterval_to_set u" by presburger
-  from ipv4range_split1_preserve[OF su, unfolded ipv4range_eq_set_eq ipv4range_to_set_def ipv4range_union_def] have
+  from ipv4range_split1_preserve[OF su, unfolded wordinterval_eq_set_eq wordinterval_union_def] have
     helper1: "wordinterval_to_set (prefix_to_range s) \<union> wordinterval_to_set u = wordinterval_to_set rs"
     unfolding wordinterval_union_set_eq by simp
   show ?case
@@ -320,7 +321,7 @@ private corollary ipv4range_split_internal_single: "(\<Union> (prefix_to_ipset `
   using ipv4range_split_internal by simp
 
 private lemma ipv4range_split_internal_all_valid_Ball: "Ball (set (ipv4range_split_internal r)) valid_prefix"
-proof(induction r rule: ipv4range_split_internal.induct, subst ipv4range_split_internal.simps, case_tac "ipv4range_empty rs")
+proof(induction r rule: ipv4range_split_internal.induct, subst ipv4range_split_internal.simps, case_tac "wordinterval_empty rs")
   case goal1 thus ?case
     by(simp only: not_True_eq_False if_False Ball_def set_simps empty_iff) clarify
 next
@@ -329,19 +330,19 @@ next
   note mIH = goal2(1)[OF goal2(2) su refl]
   have vpfx: "valid_prefix s"
   proof -
-    obtain a where a: "ipv4range_lowest_element rs = Some a"
-      using goal2(2)[unfolded flipnot[OF ipv4range_lowest_none_empty, symmetric]]
+    obtain a where a: "wordinterval_lowest_element rs = Some a"
+      using goal2(2)[unfolded flipnot[OF wordinterval_lowest_none_empty, symmetric]]
       by force
-    obtain m where m: "find (const True) [s\<leftarrow>map (PrefixMatch a) (pfxes TYPE(32)). valid_prefix s \<and> ipv4range_subset (prefix_to_range s) rs] = Some m"
+    obtain m where m: "find (const True) [s\<leftarrow>map (PrefixMatch a) (pfxes TYPE(32)). valid_prefix s \<and> wordinterval_subset (prefix_to_range s) rs] = Some m"
       using ipv4range_split_innard_helper[OF a, unfolded flipnot[OF find_const_True, symmetric]]
       by force
     note su[unfolded ipv4range_split1_def Let_def]
     then have "(Some s, u) =
-          (case find (const True) [s\<leftarrow>map (PrefixMatch a) (pfxes TYPE(32)). valid_prefix s \<and> ipv4range_subset (prefix_to_range s) rs] of None \<Rightarrow> (None, rs)
-           | Some m \<Rightarrow> (find (const True) [s\<leftarrow>map (PrefixMatch a) (pfxes TYPE(32)). valid_prefix s \<and> ipv4range_subset (prefix_to_range s) rs], ipv4range_setminus rs (prefix_to_range m)))"
+          (case find (const True) [s\<leftarrow>map (PrefixMatch a) (pfxes TYPE(32)). valid_prefix s \<and> wordinterval_subset (prefix_to_range s) rs] of None \<Rightarrow> (None, rs)
+           | Some m \<Rightarrow> (find (const True) [s\<leftarrow>map (PrefixMatch a) (pfxes TYPE(32)). valid_prefix s \<and> wordinterval_subset (prefix_to_range s) rs], wordinterval_setminus rs (prefix_to_range m)))"
        unfolding a by simp
     then have "(Some s, u) =
-          (Some m, ipv4range_setminus rs (prefix_to_range m))"
+          (Some m, wordinterval_setminus rs (prefix_to_range m))"
        unfolding m by simp
     moreover
     note find_in[OF m[symmetric]]

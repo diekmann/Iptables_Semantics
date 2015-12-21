@@ -14,7 +14,7 @@ datatype 'a prefix_match = PrefixMatch (pfxm_prefix: "'a::len word") (pfxm_lengt
 (*definition "pfxm_mask x \<equiv> mask (32 - pfxm_length x)"*)
 
 definition pfxm_mask :: "'a prefix_match \<Rightarrow> 'a::len word" where
-  "pfxm_mask x \<equiv> mask ((len_of TYPE ('a)) - pfxm_length x)"
+  "pfxm_mask x \<equiv> mask ((len_of (TYPE('a))) - pfxm_length x)"
 
 (*
 (*TODO: wo could use this to generalize to arbitrary word lengths*)
