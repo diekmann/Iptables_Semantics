@@ -101,12 +101,12 @@ private lemma ipv4range_split_innard_helper: "ipv4range_lowest_element r = Some 
   [s \<leftarrow> map (\<lambda>s. PrefixMatch a s) (pfxes TYPE(32)). valid_prefix s \<and> ipv4range_to_set (prefix_to_range s) \<subseteq> ipv4range_to_set r] \<noteq> []"
 proof -
   assume a: "ipv4range_lowest_element r = Some a"
-  have b: "(a,32) \<in> set (map (Pair a) (pfxes TYPE(32)))"
+  have "(a,len_of(TYPE(32))) \<in> set (map (Pair a) (pfxes TYPE(32)))"
     unfolding pfxes_def
     unfolding set_map set_upto
-    using Set.image_iff atLeastAtMost_iff int_eq_iff of_nat_numeral order_refl
-    using len32 by metis (*5s TODO only since TYPE(32) introduces*)
+    using Set.image_iff atLeastAtMost_iff int_eq_iff order_refl by metis (*400ms*)
     (*by (metiss (erased, hide_lams))*)
+  hence b: "(a,32) \<in> set (map (Pair a) (pfxes TYPE(32)))" by simp
   have c: "valid_prefix (PrefixMatch a 32)" unfolding valid_prefix_def pfxm_mask_def by simp
   have "ipv4range_to_set (prefix_to_range (PrefixMatch a 32)) = {a}" unfolding prefix_to_range_def pfxm_mask_def by simp
   moreover have "a \<in> ipv4range_to_set r" using a ipv4range_lowest_element_set_eq ipv4range_lowest_none_empty
