@@ -20,9 +20,6 @@ definition pfxm_mask :: "'a prefix_match \<Rightarrow> 'a::len word" where
 (*TODO: wo could use this to generalize to arbitrary word lengths*)
 definition pfxm_mask :: "prefix_match \<Rightarrow> 'a::len word" where
   "pfxm_mask x \<equiv> mask ((len_of TYPE ('a)) - pfxm_length x)"
-definition pfxes :: "'a::len0 word \<Rightarrow> nat list" where
-  "pfxes w = map nat [0..int(len_of TYPE ('a))]"
-value[code] "pfxes (3::ipv4addr)"
 *)
 
 
