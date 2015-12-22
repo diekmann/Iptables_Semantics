@@ -421,8 +421,8 @@ begin
   proof(induction iface ipassmt rs allowed denied rule: no_spoofing_algorithm_executable.induct)
   case (1 iface ipassmt allowed denied1)
     have "(\<Union>a\<in>set (the (ipassmt iface)). case ipv4cidr_to_interval a of (x, xa) \<Rightarrow> {x..xa}) = 
-          (\<Union>x\<in>set (the (ipassmt iface)). case x of (base, len) \<Rightarrow> ipv4range_set_from_bitmask base len)" 
-    using ipv4cidr_to_interval_ipv4range_set_from_bitmask ipv4cidr_to_interval_def by simp
+          (\<Union>x\<in>set (the (ipassmt iface)). case x of (base, len) \<Rightarrow> ipv4range_set_from_prefix base len)" 
+    using ipv4cidr_to_interval_ipv4range_set_from_prefix ipv4cidr_to_interval_def by simp
     with 1 show ?case by(simp add: ipv4cidr_union_set_def l2br)
   next
   case 2 thus ?case by(simp add: get_exists_matching_src_ips_executable get_all_matching_src_ips_executable)
@@ -454,11 +454,11 @@ begin
           {} {}
           "
      proof -
-      have localrng: "ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal (192,168,0,0)) 24 = {0xC0A80000..0xC0A800FF}"
-      by(simp add: ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
+      have localrng: "ipv4range_set_from_prefix (ipv4addr_of_dotdecimal (192,168,0,0)) 24 = {0xC0A80000..0xC0A800FF}"
+      by(simp add: ipv4range_set_from_prefix_def ipv4range_set_from_netmask_def ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
         
       have ipset: "{ip. \<exists>p. matches (common_matcher, in_doubt_allow) (MatchAnd (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 24))) (Match (IIface (Iface ''eth0'')))) Accept
-              (p\<lparr>p_iiface := ''eth0'', p_src := ip\<rparr>)} = ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal (192,168,0,0)) 24"
+              (p\<lparr>p_iiface := ''eth0'', p_src := ip\<rparr>)} = ipv4range_set_from_prefix (ipv4addr_of_dotdecimal (192,168,0,0)) 24"
          by(auto simp add: localrng eval_ternary_simps bool_to_ternary_simps matches_case_ternaryvalue_tuple match_iface.simps
                       split: ternaryvalue.split ternaryvalue.split_asm)
        show ?thesis
@@ -483,8 +483,8 @@ begin
         apply(simp add: ipv4cidr_union_set_def)
         done
 
-   private lemma iprange_example: "ipv4range_set_from_bitmask (ipv4addr_of_dotdecimal (192, 168, 0, 0)) 24 = {0xC0A80000..0xC0A800FF}"
-     by(simp add: ipv4range_set_from_bitmask_def ipv4range_set_from_netmask_def ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
+   private lemma iprange_example: "ipv4range_set_from_prefix (ipv4addr_of_dotdecimal (192, 168, 0, 0)) 24 = {0xC0A80000..0xC0A800FF}"
+     by(simp add: ipv4range_set_from_prefix_def ipv4range_set_from_netmask_def ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
    lemma "no_spoofing_algorithm 
           (Iface ''eth0'') 
           [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]

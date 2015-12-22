@@ -132,7 +132,7 @@ why you no work?
 
 
 lemma extract_equi0: "set (map wordinterval_to_set (extract_IPSets_generic0 sel rs))
-                     = (\<lambda>(base,len). ipv4range_set_from_bitmask base len) ` sel ` match_sel ` set rs"
+                     = (\<lambda>(base,len). ipv4range_set_from_prefix base len) ` sel ` match_sel ` set rs"
   proof(induction rs)
   case (Cons r rs) thus ?case
     apply(cases r, simp)
@@ -144,7 +144,7 @@ lemma src_ipPart:
           "B \<in> A" "s1 \<in> B" "s2 \<in> B"
   shows "simple_fw rs (p\<lparr>p_src:=s1\<rparr>) = simple_fw rs (p\<lparr>p_src:=s2\<rparr>)"
 proof -
-  have "\<forall>A \<in> (\<lambda>(base,len). ipv4range_set_from_bitmask base len) ` src ` match_sel ` set rs. B \<subseteq> A \<or> B \<inter> A = {} \<Longrightarrow>
+  have "\<forall>A \<in> (\<lambda>(base,len). ipv4range_set_from_prefix base len) ` src ` match_sel ` set rs. B \<subseteq> A \<or> B \<inter> A = {} \<Longrightarrow>
       simple_fw rs (p\<lparr>p_src:=s1\<rparr>) = simple_fw rs (p\<lparr>p_src:=s2\<rparr>)"
   proof(induction rs)
     case Nil thus ?case by simp
@@ -152,8 +152,8 @@ proof -
     case (Cons r rs)
     { fix m
       from `s1 \<in> B` `s2 \<in> B` have 
-        "B \<subseteq> (case src m of (x, xa) \<Rightarrow> ipv4range_set_from_bitmask x xa) \<or> B \<inter> (case src m of (x, xa) 
-                      \<Rightarrow> ipv4range_set_from_bitmask x xa) = {} \<Longrightarrow>
+        "B \<subseteq> (case src m of (x, xa) \<Rightarrow> ipv4range_set_from_prefix x xa) \<or> B \<inter> (case src m of (x, xa) 
+                      \<Rightarrow> ipv4range_set_from_prefix x xa) = {} \<Longrightarrow>
              simple_matches m (p\<lparr>p_src := s1\<rparr>) \<longleftrightarrow> simple_matches m (p\<lparr>p_src := s2\<rparr>)"
       apply(cases m)
       apply(rename_tac iiface oiface srca dst proto sports dports)
@@ -180,7 +180,7 @@ lemma dst_ipPart:
           "B \<in> A" "s1 \<in> B" "s2 \<in> B"
   shows "simple_fw rs (p\<lparr>p_dst:=s1\<rparr>) = simple_fw rs (p\<lparr>p_dst:=s2\<rparr>)"
 proof -
-  have "\<forall>A \<in> (\<lambda>(base,len). ipv4range_set_from_bitmask base len) ` dst ` match_sel ` set rs. B \<subseteq> A \<or> B \<inter> A = {} \<Longrightarrow>
+  have "\<forall>A \<in> (\<lambda>(base,len). ipv4range_set_from_prefix base len) ` dst ` match_sel ` set rs. B \<subseteq> A \<or> B \<inter> A = {} \<Longrightarrow>
       simple_fw rs (p\<lparr>p_dst:=s1\<rparr>) = simple_fw rs (p\<lparr>p_dst:=s2\<rparr>)"
   proof(induction rs)
     case Nil thus ?case by simp
@@ -188,8 +188,8 @@ proof -
     case (Cons r rs)
     { fix m
       from `s1 \<in> B` `s2 \<in> B` have
-        "B \<subseteq> (case dst m of (x, xa) \<Rightarrow> ipv4range_set_from_bitmask x xa) \<or> B \<inter> (case dst m of (x, xa) 
-                  \<Rightarrow> ipv4range_set_from_bitmask x xa) = {} \<Longrightarrow>
+        "B \<subseteq> (case dst m of (x, xa) \<Rightarrow> ipv4range_set_from_prefix x xa) \<or> B \<inter> (case dst m of (x, xa) 
+                  \<Rightarrow> ipv4range_set_from_prefix x xa) = {} \<Longrightarrow>
          simple_matches m (p\<lparr>p_dst := s1\<rparr>) \<longleftrightarrow> simple_matches m (p\<lparr>p_dst := s2\<rparr>)"
           apply(cases m)
           apply(rename_tac iiface oiface src dsta proto sports dports)
