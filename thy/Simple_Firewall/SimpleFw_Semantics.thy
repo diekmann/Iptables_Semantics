@@ -134,8 +134,7 @@ subsection{*Simple Firewall Semantics*}
               match_iface oif (p_oiface p) \<longrightarrow> match_iface iif (p_iiface p) \<longrightarrow> \<not> p_dport p \<le> dps2"
           from assm have nomatch: "\<forall>p::simple_packet. ?x p" by(simp add: m)
           { fix ips
-            have "\<And>a b. a \<in> ipv4range_set_from_bitmask a b" using ip_set_def ipv4range_set_from_bitmask_eq_ip_set by blast
-            hence "simple_match_ip ips (fst ips)" by(cases ips) simp
+            from ipv4range_set_from_bitmask_lowest have "simple_match_ip ips (fst ips)" by(cases ips) simp
           } note ips=this
           have proto: "match_proto protocol (case protocol of ProtoAny \<Rightarrow> TCP | Proto p \<Rightarrow> p)"
             by(simp split: protocol.split)

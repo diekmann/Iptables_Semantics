@@ -6,6 +6,20 @@ imports "../Bitmagic/IPv4Addr"
 begin
 
 
+text{*Misc*}
+  (*TODO:move?*)
+  lemma ipv4range_set_from_bitmask_lowest: "a \<in> ipv4range_set_from_bitmask a n" using ip4_set_def ipv4range_set_from_bitmask_eq_ip4_set by blast
+
+  (*this is why I call the previous lemma 'lowest'*)
+  lemma "valid_prefix (PrefixMatch a n) \<Longrightarrow> is_lowest_element a (ipv4range_set_from_bitmask a n)"
+    apply(simp add: is_lowest_element_def ipv4range_set_from_bitmask_lowest)
+    apply(simp add: ipv4range_set_from_bitmask_eq_ip4_set ip4_set_def)
+    apply(simp add: valid_prefix_def pfxm_mask_def)
+    apply clarify
+    by (metis add.left_neutral antisym_conv word_and_le2 word_bw_comms(1) word_plus_and_or_coroll2)
+
+
+
 section{*IPv4 Addresses*}
 
 --"Misc"

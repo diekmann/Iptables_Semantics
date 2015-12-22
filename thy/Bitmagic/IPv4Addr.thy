@@ -283,7 +283,6 @@ subsection{*IP ranges*}
     done
 
 
-
   text{*making element check executable*}
   lemma addr_in_ipv4range_set_from_netmask_code[code_unfold]: 
     "addr \<in> (ipv4range_set_from_netmask base netmask) \<longleftrightarrow> (base AND netmask) \<le> addr \<and> addr \<le> (base AND netmask) OR (NOT netmask)"
@@ -381,81 +380,6 @@ subsection{*IP ranges*}
     (*by(simp only: wordinterval_Diff_triv ipv4range_eq_def ipv4range_setminus_def ipv4range_intersection_def wordinterval_intersection_def ipv4range_empty_def)*)
 
 
-  definition "is_lowest_element x S = (x \<in> S \<and> (\<forall>y\<in>S. y \<le> x \<longrightarrow> y = x))"
-    
-  fun ipv4range_lowest_element :: "32 wordinterval \<Rightarrow> ipv4addr option" where
-    "ipv4range_lowest_element (WordInterval s e) = (if s \<le> e then Some s else None)" | 
-    "ipv4range_lowest_element (RangeUnion A B) = (case (ipv4range_lowest_element A, ipv4range_lowest_element B) of
-      (Some a, Some b) \<Rightarrow> Some (if a < b then a else b) |
-      (None, Some b) \<Rightarrow> Some b |
-      (Some a, None) \<Rightarrow> Some a |
-      (None, None) \<Rightarrow> None)"
-
-  lemma ipv4range_lowest_none_empty: "ipv4range_lowest_element r = None \<longleftrightarrow> ipv4range_empty r"
-    proof(induction r)
-    case WordInterval thus ?case by simp
-    next
-    case RangeUnion thus ?case by fastforce
-    qed
-    
-
-  lemma ipv4range_lowest_element_correct_A: "ipv4range_lowest_element r = Some x \<Longrightarrow> is_lowest_element x (ipv4range_to_set r)"
-    unfolding is_lowest_element_def
-    apply(induction r arbitrary: x rule: ipv4range_lowest_element.induct)
-     apply(rename_tac rs re x, case_tac "rs \<le> re", auto)[1]
-    apply(subst(asm) ipv4range_lowest_element.simps(2))
-    apply(rename_tac A B x)
-    apply(case_tac     "ipv4range_lowest_element B")
-     apply(case_tac[!] "ipv4range_lowest_element A")
-       apply(simp_all add: ipv4range_lowest_none_empty)[3]
-    apply fastforce
-  done
-
-
-  lemma ipv4range_lowest_element_set_eq: assumes "\<not> ipv4range_empty r"
-    shows "(ipv4range_lowest_element r = Some x) = (is_lowest_element x (ipv4range_to_set r))"
-    (*unfolding is_lowest_element_def*)
-    proof(rule iffI)
-      assume "ipv4range_lowest_element r = Some x"
-      thus "is_lowest_element x (ipv4range_to_set r)"
-     using ipv4range_lowest_element_correct_A ipv4range_lowest_none_empty by simp
-    next
-      assume "is_lowest_element x (ipv4range_to_set r)"
-      with assms show "(ipv4range_lowest_element r = Some x)"
-        proof(induction r arbitrary: x rule: ipv4range_lowest_element.induct)
-        case 1 thus ?case by(simp add: is_lowest_element_def)
-        next
-        case (2 A B x)
-
-        have is_lowest_RangeUnion: "is_lowest_element x (ipv4range_to_set A \<union> ipv4range_to_set B) \<Longrightarrow> 
-          is_lowest_element x (ipv4range_to_set A) \<or> is_lowest_element x (ipv4range_to_set B)"
-          by(simp add: is_lowest_element_def)
-      
-         (*why \<And> A B?*)
-         have ipv4range_lowest_element_RangeUnion: "\<And>a b A B. ipv4range_lowest_element A = Some a \<Longrightarrow> ipv4range_lowest_element B = Some b \<Longrightarrow>
-                  ipv4range_lowest_element (RangeUnion A B) = Some (min a b)"
-           by(auto dest!: ipv4range_lowest_element_correct_A simp add: is_lowest_element_def min_def)
-         
-        from 2 show ?case
-        apply(case_tac     "ipv4range_lowest_element B")
-         apply(case_tac[!] "ipv4range_lowest_element A")
-           apply(auto simp add: is_lowest_element_def)[3]
-        apply(subgoal_tac "\<not> ipv4range_empty A \<and> \<not> ipv4range_empty B")
-         prefer 2
-         using arg_cong[where f = Not, OF ipv4range_lowest_none_empty] apply(simp, metis)
-        apply(drule(1) ipv4range_lowest_element_RangeUnion)
-        apply(simp split: option.split_asm add: min_def)
-         apply(drule is_lowest_RangeUnion)
-         apply(elim disjE)
-          apply(simp add: is_lowest_element_def)
-         apply(clarsimp simp add: ipv4range_lowest_none_empty)
-        
-        apply(simp add: is_lowest_element_def)
-        apply(clarsimp simp add: ipv4range_lowest_none_empty)
-        using ipv4range_lowest_element_correct_A[simplified is_lowest_element_def]
-        by (metis Un_iff not_le)
-      qed
-    qed
-   
+ 
 
 end
