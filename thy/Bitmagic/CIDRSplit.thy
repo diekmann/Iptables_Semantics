@@ -46,25 +46,25 @@ private lemma prefix_to_range_set_eq: "wordinterval_to_set (prefix_to_range pfx)
 private lemma prefix_to_range_ipv4range_range: "prefix_to_range pfx = ipv4range_range ((pfxm_prefix pfx), (pfxm_prefix pfx OR pfxm_mask pfx))"
   unfolding ipv4range_range.simps prefix_to_range_def by simp
 
-private corollary "valid_prefix pfx \<Longrightarrow> wordinterval_to_set (prefix_to_range pfx) = ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
-using wordinterval_to_set_ipv4range_set_from_bitmask prefix_to_range_set_eq by auto
+private corollary "valid_prefix pfx \<Longrightarrow> wordinterval_to_set (prefix_to_range pfx) = ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx)"
+using wordinterval_to_set_ipv4range_set_from_prefix prefix_to_range_set_eq by auto
 
 
 private lemma prefix_match_list_union: "\<forall> pfx \<in> set cidrlist. (valid_prefix pfx) \<Longrightarrow>
-   (\<Union> x \<in> set (map prefix_to_range cidrlist). wordinterval_to_set x) = (\<Union>pfx\<in>set cidrlist. ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx))"
+   (\<Union> x \<in> set (map prefix_to_range cidrlist). wordinterval_to_set x) = (\<Union>pfx\<in>set cidrlist. ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx))"
   apply simp
   apply(induction cidrlist)
    apply(simp; fail)
   apply(simp)
   apply(subst prefix_to_range_set_eq)
-  apply(subst wordinterval_to_set_ipv4range_set_from_bitmask)
+  apply(subst wordinterval_to_set_ipv4range_set_from_prefix)
    apply(simp; fail)
   apply(simp)
   done
 
 
-private lemma "\<Union>((\<lambda>(base, len). ipv4range_set_from_bitmask base len) ` prefix_match_to_CIDR ` set (cidrlist)) =
-      \<Union>((\<lambda>pfx. ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)) ` set (cidrlist))"
+private lemma "\<Union>((\<lambda>(base, len). ipv4range_set_from_prefix base len) ` prefix_match_to_CIDR ` set (cidrlist)) =
+      \<Union>((\<lambda>pfx. ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx)) ` set (cidrlist))"
 unfolding prefix_match_to_CIDR_def2 by blast 
 
 
@@ -368,34 +368,34 @@ definition ipv4range_split :: "32 wordinterval \<Rightarrow> (32 word \<times> n
   "ipv4range_split rs \<equiv> map prefix_match_to_CIDR (wordinterval_CIDR_split_internal rs)"
 
 (*also works with corny definitions*)
-corollary ipv4range_split_bitmask: 
-  "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipv4range_split r))) ) = wordinterval_to_set r"
+corollary ipv4range_split_prefix: 
+  "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_prefix base len) ` (set (ipv4range_split r))) ) = wordinterval_to_set r"
   proof -
   --"without valid prefix assumption"
-  have prefix_to_ipset_subset_ipv4range_set_from_bitmask_helper:
-    "\<And>X. (\<Union>x\<in>X. prefix_to_ipset x) \<subseteq> (\<Union>x\<in>X. ipv4range_set_from_bitmask (pfxm_prefix x) (pfxm_length x))"
+  have prefix_to_ipset_subset_ipv4range_set_from_prefix_helper:
+    "\<And>X. (\<Union>x\<in>X. prefix_to_ipset x) \<subseteq> (\<Union>x\<in>X. ipv4range_set_from_prefix (pfxm_prefix x) (pfxm_length x))"
     apply(rule)
-    using prefix_to_ipset_subset_ipv4range_set_from_bitmask by fastforce
+    using prefix_to_ipset_subset_ipv4range_set_from_prefix by fastforce
 
-  have ipv4range_set_from_bitmask_subseteq_prefix_to_ipset_helper:
-    "\<And>X. \<forall> x \<in> X. valid_prefix x \<Longrightarrow> (\<Union>x\<in>X. ipv4range_set_from_bitmask (pfxm_prefix x) (pfxm_length x)) \<subseteq> (\<Union>x\<in>X. prefix_to_ipset x)"
-    using wordinterval_to_set_ipv4range_set_from_bitmask by auto
+  have ipv4range_set_from_prefix_subseteq_prefix_to_ipset_helper:
+    "\<And>X. \<forall> x \<in> X. valid_prefix x \<Longrightarrow> (\<Union>x\<in>X. ipv4range_set_from_prefix (pfxm_prefix x) (pfxm_length x)) \<subseteq> (\<Union>x\<in>X. prefix_to_ipset x)"
+    using wordinterval_to_set_ipv4range_set_from_prefix by auto
 
   show ?thesis
     unfolding wordinterval_CIDR_split_internal[symmetric] ipv4range_split_def
     apply(simp add: ipv4range_range_def prefix_match_to_CIDR_def2)
     apply(rule)
-     apply(simp add: ipv4range_set_from_bitmask_subseteq_prefix_to_ipset_helper wordinterval_CIDR_split_internal_all_valid_Ball)
-    apply(simp add: prefix_to_ipset_subset_ipv4range_set_from_bitmask_helper)
+     apply(simp add: ipv4range_set_from_prefix_subseteq_prefix_to_ipset_helper wordinterval_CIDR_split_internal_all_valid_Ball)
+    apply(simp add: prefix_to_ipset_subset_ipv4range_set_from_prefix_helper)
     done
 qed
-corollary ipv4range_split_bitmask_single: 
-  "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_bitmask base len) ` (set (ipv4range_split (ipv4range_range (start, end))))) ) = {start .. end}"
-using ipv4range_split_bitmask ipv4range_range.simps by simp
+corollary ipv4range_split_prefix_single: 
+  "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_prefix base len) ` (set (ipv4range_split (ipv4range_range (start, end))))) ) = {start .. end}"
+using ipv4range_split_prefix ipv4range_range.simps by simp
 
 
 (*
-lemma "(\<Union> (base, len) \<in> set (ipv4range_split (ipv4range_range start end)). ipv4range_set_from_bitmask base len) = {start .. end}"
+lemma "(\<Union> (base, len) \<in> set (ipv4range_split (ipv4range_range start end)). ipv4range_set_from_prefix base len) = {start .. end}"
 (*using [[simp_trace, simp_trace_depth_limit=10]]*)
 using [[simproc del: list_to_set_comprehension]] (* okay, simplifier is a bit broken **)
   apply(simp del: ) (*simp: "Tactic failed"*)

@@ -78,10 +78,10 @@ private lemma rpm_m_dup_simp: "rg \<inter> fst (ipset_prefix_match (routing_matc
   by simp
 
 
-lemma prefix_to_ipset_subset_ipv4range_set_from_bitmask: 
-    "prefix_to_ipset pfx \<subseteq> ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
+lemma prefix_to_ipset_subset_ipv4range_set_from_prefix: 
+    "prefix_to_ipset pfx \<subseteq> ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx)"
   apply(rule subsetI)
-  apply(simp add: prefix_to_ipset_def addr_in_ipv4range_set_from_bitmask_code)
+  apply(simp add: prefix_to_ipset_def addr_in_ipv4range_set_from_prefix_code)
   apply(intro impI conjI)
    apply (metis (erased, hide_lams) order_trans word_and_le2)
   apply(simp add: pfxm_mask_def)
@@ -302,8 +302,8 @@ private lemma size_mask_32word': "size ((mask (32 - m))::32 word) = 32" by(simp 
 
 (*declare[[show_types]]
 declare[[unify_trace_failure]]*)
-lemma wordinterval_to_set_ipv4range_set_from_bitmask: assumes "valid_prefix pfx"
-      shows "prefix_to_ipset pfx = ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
+lemma wordinterval_to_set_ipv4range_set_from_prefix: assumes "valid_prefix pfx"
+      shows "prefix_to_ipset pfx = ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx)"
 proof-
   have prefix_match_if_in_corny_set: "(prefix_to_ipset pfx) = ipv4range_set_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx)"
     unfolding prefix_to_ipset_def ipv4range_set_from_netmask_def Let_def
@@ -322,9 +322,9 @@ proof-
     from this[of "(pfxm_length pfx)"] have mask_def2_symmetric: "((mask (pfxm_length pfx)::ipv4addr) << 32 - pfxm_length pfx) = NOT pfxm_mask pfx"
       unfolding pfxm_mask_def by simp
 
-    have ipv4range_set_from_netmask_bitmask: 
-      "ipv4range_set_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx) = ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
-     unfolding ipv4range_set_from_netmask_def ipv4range_set_from_bitmask_alt
+    have ipv4range_set_from_netmask_prefix: 
+      "ipv4range_set_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx) = ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx)"
+     unfolding ipv4range_set_from_netmask_def ipv4range_set_from_prefix_alt
      unfolding pfxm_mask_def[symmetric]
      unfolding mask_def2_symmetric
      apply(simp)
@@ -333,7 +333,7 @@ proof-
      by (metis helper3 pfxm_mask_def size_mask_32word' word_bw_comms(2) word_size)
      (*word_size and size_mask_32word' needed since generalization to 'a::len word, though everything in here is 32*)
     
-    show ?thesis by (metis ipv4range_set_from_netmask_bitmask local.prefix_match_if_in_corny_set) 
+    show ?thesis by (metis ipv4range_set_from_netmask_prefix local.prefix_match_if_in_corny_set) 
 qed
 
 
@@ -374,11 +374,11 @@ lemma ipv4range_set_from_netmask_base_mask_consume:
   unfolding ipv4range_set_from_netmask_def
   by(simp add: AND_twice)
 
-lemma ipv4range_set_from_bitmask_eq_ip4_set: "ipv4range_set_from_bitmask base m = ip4_set base m"
+lemma ipv4range_set_from_prefix_eq_ip4_set: "ipv4range_set_from_prefix base m = ip4_set base m"
   unfolding ip4_set_def
   unfolding set_eq_iff
   unfolding mem_Collect_eq
-  unfolding ipv4range_set_from_bitmask_alt1
+  unfolding ipv4range_set_from_prefix_alt1
   unfolding maskshift_eq_not_mask
   using caesar_proof_without_structures[OF mask_and_not_mask_helper, of _ base m]
   unfolding ipv4range_set_from_netmask_base_mask_consume

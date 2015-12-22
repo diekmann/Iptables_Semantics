@@ -133,12 +133,12 @@ begin
   end
 
 
-definition bitmask_to_strange_inverse_cisco_mask:: "nat \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat)" where
- "bitmask_to_strange_inverse_cisco_mask n \<equiv> dotdecimal_of_ipv4addr ( (NOT (((mask n)::ipv4addr) << (32 - n))) )"
-lemma "bitmask_to_strange_inverse_cisco_mask 16 = (0, 0, 255, 255)" by eval
-lemma "bitmask_to_strange_inverse_cisco_mask 24 = (0, 0, 0, 255)" by eval
-lemma "bitmask_to_strange_inverse_cisco_mask 8 = (0, 255, 255, 255)" by eval
-lemma "bitmask_to_strange_inverse_cisco_mask 32 = (0, 0, 0, 0)" by eval
+definition prefix_to_strange_inverse_cisco_mask:: "nat \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat)" where
+ "prefix_to_strange_inverse_cisco_mask n \<equiv> dotdecimal_of_ipv4addr ( (NOT (((mask n)::ipv4addr) << (32 - n))) )"
+ lemma "prefix_to_strange_inverse_cisco_mask 8 = (0, 255, 255, 255)" by eval
+lemma "prefix_to_strange_inverse_cisco_mask 16 = (0, 0, 255, 255)" by eval
+lemma "prefix_to_strange_inverse_cisco_mask 24 = (0, 0, 0, 255)" by eval
+lemma "prefix_to_strange_inverse_cisco_mask 32 = (0, 0, 0, 0)" by eval
 
 
 
