@@ -855,7 +855,8 @@ definition groupWIs3_UNPROVEN :: "parts_connection \<Rightarrow> simple_rule lis
   "groupWIs3_UNPROVEN c rs =  (let P = getParts rs in
                        (let W = map getOneIp P in 
                        (let filterW = (filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs) in
-                         (let f = (\<lambda>wi. (map (\<lambda>d. wordinterval_element d (matching_dsts (getOneIp wi) filterW Empty_WordInterval)) W,
+                         (let f = (\<lambda>wi. let mtch_dsts = (matching_dsts (getOneIp wi) filterW Empty_WordInterval) in 
+                                        (map (\<lambda>d. wordinterval_element d mtch_dsts) W,
                                          map (\<lambda>s. runFw s (getOneIp wi) c filterW) W)) in
                       map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) P))))))"
 
@@ -879,9 +880,10 @@ lemma has_default_policy: "has_default_policy rs \<Longrightarrow> simple_fw rs 
  done
 
 
+(*
 lemma fixes X::"('a \<times> 'b) list" and Y::"('a \<times> 'c) list" shows
-  "X = Y \<Longrightarrow> map (map fst) (groupF snd X) = map (map fst) (groupF snd Y)"oops
-
+  "X = Y \<Longrightarrow> map (map fst) (groupF snd X) = map (map fst) (groupF snd Y)"oops (*type!*)
+*)
 lemma "has_default_policy rs \<Longrightarrow> 
         map (map fst) (groupF snd
        (map (\<lambda>x. (x, map ((\<lambda>d. runFw (getOneIp x) d c [r\<leftarrow>rs . simple_conn_matches (match_sel r) c] = Decision FinalAllow) \<circ> getOneIp) (getParts rs),
