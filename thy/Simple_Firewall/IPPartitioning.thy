@@ -742,6 +742,7 @@ lemma groupF_tuple: "groupF f xs = map (map fst) (groupF snd (map (\<lambda>x. (
     apply(rename_tac b ys g)
 using whatup1 by metis
 
+
 definition groupWIs1 :: "'a parts_connection_scheme \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
   "groupWIs1 c rs = (let P = getParts rs in
                       (let W = map getOneIp P in 
@@ -963,7 +964,7 @@ definition groupWIs3_default_policy :: "parts_connection \<Rightarrow> simple_ru
                                             mtch_srcs = (matching_srcs (getOneIp wi) filterW Empty_WordInterval) in 
                                         (map (\<lambda>d. wordinterval_element d mtch_dsts) W,
                                          map (\<lambda>s. wordinterval_element s mtch_srcs) W)) in
-                      map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) P))))))"
+                      (groupF f P)))))"
 
 
 
@@ -1040,7 +1041,7 @@ done
 
 lemma groupWIs3_default_policy_groupWIs2: "has_default_policy rs \<Longrightarrow> groupWIs2 c rs = groupWIs3_default_policy c rs"
   apply(simp add: groupWIs3_default_policy_def groupWIs_code[symmetric])
-  apply(subst groupF_tuple[symmetric])
+  (*apply(subst groupF_tuple[symmetric])*)
   apply(simp add: Let_def)
   apply(subst matching_dsts_filterW_TODO_delete[simplified, symmetric, where c=c])
    apply blast
