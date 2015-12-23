@@ -768,6 +768,7 @@ lemma wordinterval_unifier: "wordinterval_to_set
 
 
 
+(************* BEGIN SCRATCH ***************)
 fun matching_dsts :: "ipv4addr \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval \<Rightarrow> 32 wordinterval" where
   "matching_dsts _ [] _ = Empty_WordInterval" |
   "matching_dsts s ((SimpleRule m Accept)#rs) acc_dropped =
@@ -780,10 +781,6 @@ fun matching_dsts :: "ipv4addr \<Rightarrow> simple_rule list \<Rightarrow> 32 w
          matching_dsts s rs (wordinterval_union (ipv4_cidr_tuple_to_interval (dst m)) acc_dropped)
        else
          matching_dsts s rs acc_dropped)"
-
-lemma "filterW = filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs \<Longrightarrow>
-        runFw s d c filterW = Decision FinalAllow \<longleftrightarrow> s \<in> wordinterval_to_set (matching_dsts s filterW Empty_WordInterval)"
-oops
 
 (*TODO: put into next proof*)
 lemma simple_conn_matches_runFw_fst1: "simple_conn_matches m c \<Longrightarrow> simple_match_ip (src m) s \<Longrightarrow>
@@ -838,10 +835,41 @@ lemma matching_dsts: "\<forall>r \<in> set rs. simple_conn_matches (match_sel r)
   apply(simp add: simple_conn_matches_runFw_fst2; fail)
  done
 
+(* okay, if wordintervals were ordered and we could have log-time lookup time, this would really speed up the groupWIs2 thing.*)
+lemma "filterW = filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs \<Longrightarrow>
+       runFw s d c filterW = Decision FinalAllow \<longleftrightarrow> wordinterval_element d (matching_dsts s filterW Empty_WordInterval)"
+  apply(simp)
+  apply(subst matching_dsts[where c=c])
+   apply(simp; fail)
+  apply(thin_tac _)
+  apply(rule)
+   apply(simp_all)
+  done
+
+(*TODO unproven TODO*)
+(*probably needs assumption that we have a default rule: Last rule is accept all or drop all
+  (if there is no default rule, we could default to groupWIs2)
+*)
+(*TODO: only a performance test*)
+definition groupWIs3_UNPROVEN :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
+  "groupWIs3_UNPROVEN c rs =  (let P = getParts rs in
+                       (let W = map getOneIp P in 
+                       (let filterW = (filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs) in
+                         (let f = (\<lambda>wi. (map (\<lambda>d. wordinterval_element d (matching_dsts (getOneIp wi) filterW Empty_WordInterval)) W,
+                                         map (\<lambda>s. runFw s (getOneIp wi) c filterW) W)) in
+                      map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) P))))))"
+
+(************* END SCRATCH ***************)
+
+
 (*construct partitions. main function!*)
 definition build_ip_partition :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list" where
-  "build_ip_partition c rs = map (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) (groupWIs2 c rs)"
+  "build_ip_partition c rs = map (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) (groupWIs3_UNPROVEN c rs)"
 
+
+
+(*TODO TODO TODO reenable after groupWIs3_UNPROVEN has been rolled back to groupWIs2*)
+(*
 theorem build_ip_partition_same_fw: "V \<in> set (build_ip_partition c rs) \<Longrightarrow>
                                \<forall>ip1 \<in> wordinterval_to_set V.
                                \<forall>ip2 \<in> wordinterval_to_set V.
@@ -856,7 +884,7 @@ theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \
                                 \<not> same_fw_behaviour_one ip1 ip2 c rs"
   apply(simp add: build_ip_partition_def groupWIs1_groupWIs2_equi groupWIs_groupWIs1_equi)
 using wordinterval_unifier groupWIs_same_fw_not2 by fast (*1s*)
-  
+*)
 
 (*TODO: move?*)
 fun pretty_wordinterval where
