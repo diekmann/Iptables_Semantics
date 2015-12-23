@@ -891,8 +891,8 @@ lemma matching_dsts_filterW_TODO_delete: "filterW = filter (\<lambda>r. simple_c
   (if there is no default rule, we could default to groupWIs2)
 *)
 (*TODO: only a performance test*)
-definition groupWIs3_UNPROVEN :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
-  "groupWIs3_UNPROVEN c rs =  (let P = getParts rs in
+definition groupWIs3_default_policy :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
+  "groupWIs3_default_policy c rs =  (let P = getParts rs in
                        (let W = map getOneIp P in 
                        (let filterW = (filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs) in
                          (let f = (\<lambda>wi. let mtch_dsts = (matching_dsts (getOneIp wi) filterW Empty_WordInterval) in 
@@ -945,22 +945,6 @@ lemma has_default_policy_simple_conn_matches:
   apply(simp add: has_default_policy_fst split: split_if_asm)
   done
 
-lemma "has_default_policy rs \<Longrightarrow> 
-        map (map fst) (groupF snd
-       (map (\<lambda>x. (x, map ((\<lambda>d. runFw (getOneIp x) d c [r\<leftarrow>rs . simple_conn_matches (match_sel r) c] = Decision FinalAllow) \<circ> getOneIp) (getParts rs),
-                  P x))
-         (getParts rs)))
-       =
-       map (map fst) (groupF snd
-       (map (\<lambda>x. (x, map ((\<lambda>d. runFw (getOneIp x) d c [r\<leftarrow>rs . simple_conn_matches (match_sel r) c]) \<circ> getOneIp) (getParts rs),
-                  P x))
-         (getParts rs)))"
-apply(subst groupF_tuple[symmetric])+
-apply(rule groupF_cong)
-apply(intro ballI)
-oops
-
-
 lemma map_over_tuples_equal_helper:
   assumes "\<forall>w \<in> set W. (f1 x) w = (f1 y) w \<longleftrightarrow> (f2 x) w =  (f2 y) w"
           and "\<forall>w \<in> set W. (g1 x) w = (g1 y) w \<longleftrightarrow> (g2 x) w =  (g2 y) w"
@@ -986,8 +970,8 @@ apply(rule map_over_tuples_equal_helper)
 apply(intro ballI)
 using has_default_policy_runFw by metis
 
-lemma groupWIs3_UNPROVEN_groupWIs2: "has_default_policy rs \<Longrightarrow> groupWIs2 c rs = groupWIs3_UNPROVEN c rs"
-  apply(simp add: groupWIs3_UNPROVEN_def groupWIs_code[symmetric])
+lemma groupWIs3_default_policy_groupWIs2: "has_default_policy rs \<Longrightarrow> groupWIs2 c rs = groupWIs3_default_policy c rs"
+  apply(simp add: groupWIs3_default_policy_def groupWIs_code[symmetric])
   apply(subst groupF_tuple[symmetric])
   apply(simp add: Let_def)
   apply(subst matching_dsts_filterW_TODO_delete[simplified, symmetric, where c=c])
@@ -999,22 +983,29 @@ lemma groupWIs3_UNPROVEN_groupWIs2: "has_default_policy rs \<Longrightarrow> gro
   apply(simp add: has_default_policy_simple_conn_matches)
   done
 
+
+definition groupWIs3 :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
+  "groupWIs3 c rs = (if has_default_policy rs then groupWIs3_default_policy c rs else groupWIs2 c rs)"
+
+lemma groupWIs3: "groupWIs3 = groupWIs"
+  apply(simp add: fun_eq_iff)
+  apply(intro allI, rename_tac c rs)
+  apply(simp add: groupWIs3_def)
+  by (simp add: groupWIs_code groupWIs3_default_policy_groupWIs2) 
+
 (************* END SCRATCH ***************)
 
 
 (*construct partitions. main function!*)
 definition build_ip_partition :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list" where
-  "build_ip_partition c rs = map (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) (groupWIs3_UNPROVEN c rs)"
+  "build_ip_partition c rs = map (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) (groupWIs3 c rs)"
 
 
-
-(*TODO TODO TODO reenable after groupWIs3_UNPROVEN has been rolled back to groupWIs2*)
-(*
 theorem build_ip_partition_same_fw: "V \<in> set (build_ip_partition c rs) \<Longrightarrow>
                                \<forall>ip1 \<in> wordinterval_to_set V.
                                \<forall>ip2 \<in> wordinterval_to_set V.
                                same_fw_behaviour_one ip1 ip2 c rs"
-  apply(simp add: build_ip_partition_def groupWIs1_groupWIs2_equi groupWIs_groupWIs1_equi)
+  apply(simp add: build_ip_partition_def groupWIs3)
 using wordinterval_unifier groupParts_same_fw_wi2 by blast
 
 theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \<Longrightarrow> B \<in> set (build_ip_partition c rs) \<Longrightarrow> 
@@ -1022,9 +1013,8 @@ theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \
                                 \<forall>ip1 \<in> wordinterval_to_set A.
                                 \<forall>ip2 \<in> wordinterval_to_set B.
                                 \<not> same_fw_behaviour_one ip1 ip2 c rs"
-  apply(simp add: build_ip_partition_def groupWIs1_groupWIs2_equi groupWIs_groupWIs1_equi)
+  apply(simp add: build_ip_partition_def groupWIs3)
 using wordinterval_unifier groupWIs_same_fw_not2 by fast (*1s*)
-*)
 
 (*TODO: move?*)
 fun pretty_wordinterval where
