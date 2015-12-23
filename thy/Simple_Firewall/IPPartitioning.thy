@@ -836,7 +836,7 @@ lemma matching_dsts: "\<forall>r \<in> set rs. simple_conn_matches (match_sel r)
  done
 
 (* okay, if wordintervals were ordered and we could have log-time lookup time, this would really speed up the groupWIs2 thing.*)
-lemma "filterW = filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs \<Longrightarrow>
+lemma matching_dsts_filterW_TODO_delete: "filterW = filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs \<Longrightarrow>
        runFw s d c filterW = Decision FinalAllow \<longleftrightarrow> wordinterval_element d (matching_dsts s filterW Empty_WordInterval)"
   apply(simp)
   apply(subst matching_dsts[where c=c])
@@ -858,6 +858,49 @@ definition groupWIs3_UNPROVEN :: "parts_connection \<Rightarrow> simple_rule lis
                          (let f = (\<lambda>wi. (map (\<lambda>d. wordinterval_element d (matching_dsts (getOneIp wi) filterW Empty_WordInterval)) W,
                                          map (\<lambda>s. runFw s (getOneIp wi) c filterW) W)) in
                       map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) P))))))"
+
+
+
+(*TODO: move to simple_firewall.*)
+
+fun has_default_policy :: "simple_rule list \<Rightarrow> bool" where
+  "has_default_policy [] = False" |
+  "has_default_policy [(SimpleRule m _)] = (m = simple_match_any)" |
+  "has_default_policy (_#rs) = has_default_policy rs"
+lemma has_default_policy: "has_default_policy rs \<Longrightarrow> simple_fw rs p = Decision FinalAllow \<or> simple_fw rs p = Decision FinalDeny"
+  apply(induction rs rule: has_default_policy.induct)
+    apply(simp;fail)
+   apply(simp_all)
+   apply(rename_tac a, case_tac a)
+    apply(simp_all add: simple_match_any)
+  apply(rename_tac r1 r2 rs)
+  apply(case_tac r1, rename_tac m a, case_tac a)
+   apply(simp_all)
+ done
+
+
+lemma fixes X::"('a \<times> 'b) list" and Y::"('a \<times> 'c) list" shows
+  "X = Y \<Longrightarrow> map (map fst) (groupF snd X) = map (map fst) (groupF snd Y)"oops
+
+lemma "has_default_policy rs \<Longrightarrow> 
+        map (map fst) (groupF snd
+       (map (\<lambda>x. (x, map ((\<lambda>d. runFw (getOneIp x) d c [r\<leftarrow>rs . simple_conn_matches (match_sel r) c] = Decision FinalAllow) \<circ> getOneIp) (getParts rs),
+                  P x))
+         (getParts rs)))
+       =
+       map (map fst) (groupF snd
+       (map (\<lambda>x. (x, map ((\<lambda>d. runFw (getOneIp x) d c [r\<leftarrow>rs . simple_conn_matches (match_sel r) c]) \<circ> getOneIp) (getParts rs),
+                  P x))
+         (getParts rs)))"
+oops
+ 
+lemma "has_default_policy rs \<Longrightarrow> groupWIs2 c rs = groupWIs3_UNPROVEN c rs"
+  apply(simp add: groupWIs3_UNPROVEN_def groupWIs2_def)
+  apply(simp add: Let_def)
+  thm matching_dsts_filterW_TODO_delete[simplified, symmetric]
+  apply(subst matching_dsts_filterW_TODO_delete[simplified, symmetric])
+   apply simp
+  oops
 
 (************* END SCRATCH ***************)
 
