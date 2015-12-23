@@ -822,19 +822,51 @@ fun matching_dsts :: "ipv4addr \<Rightarrow> simple_rule list \<Rightarrow> 32 w
        else
          matching_dsts s rs acc_dropped)"
 
+(*a copy of matching_dsts*)
+fun matching_srcs :: "ipv4addr \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval \<Rightarrow> 32 wordinterval" where
+  "matching_srcs _ [] _ = Empty_WordInterval" |
+  "matching_srcs d ((SimpleRule m Accept)#rs) acc_dropped =
+      (if simple_match_ip (dst m) d then
+         wordinterval_union (wordinterval_setminus (ipv4_cidr_tuple_to_interval (src m)) acc_dropped) (matching_srcs d rs acc_dropped)
+       else
+         matching_srcs d rs acc_dropped)" |
+  "matching_srcs d ((SimpleRule m Drop)#rs) acc_dropped =
+      (if simple_match_ip (dst m) d then
+         matching_srcs d rs (wordinterval_union (ipv4_cidr_tuple_to_interval (src m)) acc_dropped)
+       else
+         matching_srcs d rs acc_dropped)"
+
+
+(**when refactoring and cleaning, first make a clear version for dsts, then copy paste for src**)
+
 (*TODO: put into next proof*)
-lemma simple_conn_matches_runFw_fst1: "simple_conn_matches m c \<Longrightarrow> simple_match_ip (src m) s \<Longrightarrow>
+lemma simple_conn_matches_src_runFw_fst1: "simple_conn_matches m c \<Longrightarrow> simple_match_ip (src m) s \<Longrightarrow>
        runFw s d c (SimpleRule m simple_action.Accept # rs) = Decision FinalAllow \<longleftrightarrow>
        simple_match_ip (dst m) d \<or> runFw s d c rs = Decision FinalAllow"
   by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)
-lemma simple_conn_matches_runFw_fst2: "\<not> simple_match_ip (src m) s \<Longrightarrow>
+lemma simple_conn_matches_src_runFw_fst2: "\<not> simple_match_ip (src m) s \<Longrightarrow>
        runFw s d c (SimpleRule m a # rs) = Decision FinalAllow \<longleftrightarrow>
        runFw s d c rs = Decision FinalAllow"
   apply(cases a)
    by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)+
-lemma simple_conn_matches_runFw_fst3: "simple_conn_matches m c \<Longrightarrow> simple_match_ip (src m) s \<Longrightarrow>
+lemma simple_conn_matches_src_runFw_fst3: "simple_conn_matches m c \<Longrightarrow> simple_match_ip (src m) s \<Longrightarrow>
        runFw s d c (SimpleRule m simple_action.Drop # rs) = Decision FinalAllow \<longleftrightarrow>
        \<not> simple_match_ip (dst m) d \<and> runFw s d c rs = Decision FinalAllow"
+  by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)
+
+
+lemma simple_conn_matches_dst_runFw_fst1: "simple_conn_matches m c \<Longrightarrow> simple_match_ip (dst m) d \<Longrightarrow>
+       runFw s d c (SimpleRule m simple_action.Accept # rs) = Decision FinalAllow \<longleftrightarrow>
+       simple_match_ip (src m) s \<or> runFw s d c rs = Decision FinalAllow"
+  by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)
+lemma simple_conn_matches_dst_runFw_fst2: "\<not> simple_match_ip (dst m) d \<Longrightarrow>
+       runFw s d c (SimpleRule m a # rs) = Decision FinalAllow \<longleftrightarrow>
+       runFw s d c rs = Decision FinalAllow"
+  apply(cases a)
+   by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)+
+lemma simple_conn_matches_dst_runFw_fst3: "simple_conn_matches m c \<Longrightarrow> simple_match_ip (dst m) d \<Longrightarrow>
+       runFw s d c (SimpleRule m simple_action.Drop # rs) = Decision FinalAllow \<longleftrightarrow>
+       \<not> simple_match_ip (src m) s \<and> runFw s d c rs = Decision FinalAllow"
   by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)
 
 (*TOOD: move to next proof?*)
@@ -843,13 +875,18 @@ lemma wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip:
   apply(cases d)
   using ipv4range_to_set_def ipv4range_to_set_ipv4_cidr_tuple_to_interval by auto
 lemma wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set:
-  "wordinterval_to_set (ipv4_cidr_tuple_to_interval (dst m)) = {d. simple_match_ip (dst m) d}"
+  "wordinterval_to_set (ipv4_cidr_tuple_to_interval ip) = {d. simple_match_ip ip d}"
   using wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip by blast
 
 
 lemma matching_dsts_pull_out_accu:
   "wordinterval_to_set (matching_dsts s rs (wordinterval_union a1 a2)) = wordinterval_to_set (matching_dsts s rs a2) - wordinterval_to_set a1"
   apply(induction s rs a2 arbitrary: a1 a2 rule: matching_dsts.induct)
+     apply(simp_all)
+  by blast+
+lemma matching_srcs_pull_out_accu:
+  "wordinterval_to_set (matching_srcs d rs (wordinterval_union a1 a2)) = wordinterval_to_set (matching_srcs d rs a2) - wordinterval_to_set a1"
+  apply(induction d rs a2 arbitrary: a1 a2 rule: matching_srcs.induct)
      apply(simp_all)
   by blast+
 
@@ -862,17 +899,38 @@ lemma matching_dsts: "\<forall>r \<in> set rs. simple_conn_matches (match_sel r)
   apply(rename_tac m a, case_tac a)
    apply(simp)
    apply(intro conjI impI)
-    apply(simp add: simple_conn_matches_runFw_fst1)
+    apply(simp add: simple_conn_matches_src_runFw_fst1)
     apply(simp add: wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set)
     apply blast
-   apply(simp add: simple_conn_matches_runFw_fst2; fail)
+   apply(simp add: simple_conn_matches_src_runFw_fst2; fail)
   apply(simp)
   apply(intro conjI impI)
-   apply(simp add: simple_conn_matches_runFw_fst3)
+   apply(simp add: simple_conn_matches_src_runFw_fst3)
    apply(simp add: matching_dsts_pull_out_accu)
    apply(simp add: wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set)
    apply blast
-  apply(simp add: simple_conn_matches_runFw_fst2; fail)
+  apply(simp add: simple_conn_matches_src_runFw_fst2; fail)
+ done
+lemma matching_srcs: "\<forall>r \<in> set rs. simple_conn_matches (match_sel r) c \<Longrightarrow>
+        wordinterval_to_set (matching_srcs d rs Empty_WordInterval) = {s. runFw s d c rs = Decision FinalAllow}"
+  apply(induction rs)
+   apply(simp add: runFw_def; fail)
+  apply(simp)
+  apply(rename_tac r rs, case_tac r)
+  apply(rename_tac m a, case_tac a)
+   apply(simp)
+   apply(intro conjI impI)
+    apply(simp add: simple_conn_matches_dst_runFw_fst1)
+    apply(simp add: wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set)
+    apply blast
+   apply(simp add: simple_conn_matches_dst_runFw_fst2; fail)
+  apply(simp)
+  apply(intro conjI impI)
+   apply(simp add: simple_conn_matches_dst_runFw_fst3)
+   apply(simp add: matching_srcs_pull_out_accu)
+   apply(simp add: wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set)
+   apply blast
+  apply(simp add: simple_conn_matches_dst_runFw_fst2; fail)
  done
 
 (* okay, if wordintervals were ordered and we could have log-time lookup time, this would really speed up the groupWIs2 thing.*)
