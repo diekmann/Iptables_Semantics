@@ -1,9 +1,8 @@
 (*Original Author: Max Haslbeck, 2015*)
 theory IPPartitioning
-imports Main
-        "SimpleFw_Semantics"
-        "../Common/SetPartitioning"
+imports "../Common/SetPartitioning"
         "../Primitive_Matchers/Common_Primitive_toString"
+        "SimpleFw_Semantics"
         "../afp/Mergesort" (*TODO*)
 begin
 
@@ -767,6 +766,88 @@ lemma wordinterval_unifier: "wordinterval_to_set
    apply(simp_all add: wordinterval_compress)
   done
 
+
+
+fun matching_dsts :: "ipv4addr \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval \<Rightarrow> 32 wordinterval" where
+  "matching_dsts _ [] _ = Empty_WordInterval" |
+  "matching_dsts s ((SimpleRule m Accept)#rs) acc_dropped =
+      (if simple_match_ip (src m) s then
+         wordinterval_union (wordinterval_setminus (ipv4_cidr_tuple_to_interval (dst m)) acc_dropped) (matching_dsts s rs acc_dropped)
+       else
+         matching_dsts s rs acc_dropped)" |
+  "matching_dsts s ((SimpleRule m Drop)#rs) acc_dropped =
+      (if simple_match_ip (src m) s then
+         matching_dsts s rs (wordinterval_union (ipv4_cidr_tuple_to_interval (dst m)) acc_dropped)
+       else
+         matching_dsts s rs acc_dropped)"
+
+lemma "filterW = filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs \<Longrightarrow>
+        runFw s d c filterW = Decision FinalAllow \<longleftrightarrow> s \<in> wordinterval_to_set (matching_dsts s filterW Empty_WordInterval)"
+oops
+
+(*TODO: put into next proof*)
+lemma simple_conn_matches_runFw_fst1: "simple_conn_matches m c \<Longrightarrow> simple_match_ip (src m) s \<Longrightarrow>
+       runFw s d c (SimpleRule m simple_action.Accept # rs) = Decision FinalAllow \<longleftrightarrow>
+       simple_match_ip (dst m) d \<or> runFw s d c rs = Decision FinalAllow"
+  by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)
+lemma simple_conn_matches_runFw_fst2: "\<not> simple_match_ip (src m) s \<Longrightarrow>
+       runFw s d c (SimpleRule m a # rs) = Decision FinalAllow \<longleftrightarrow>
+       runFw s d c rs = Decision FinalAllow"
+  apply(cases a)
+   by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)+
+lemma simple_conn_matches_runFw_fst3: "simple_conn_matches m c \<Longrightarrow> simple_match_ip (src m) s \<Longrightarrow>
+       runFw s d c (SimpleRule m simple_action.Drop # rs) = Decision FinalAllow \<longleftrightarrow>
+       \<not> simple_match_ip (dst m) d \<and> runFw s d c rs = Decision FinalAllow"
+  by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)
+
+(*TOOD: move to next prof?*)
+lemma wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip:
+  "s \<in> wordinterval_to_set (ipv4_cidr_tuple_to_interval d) \<longleftrightarrow> simple_match_ip d s"
+  apply(cases d)
+  using ipv4range_to_set_def ipv4range_to_set_ipv4_cidr_tuple_to_interval by auto
+lemma wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set:
+  "wordinterval_to_set (ipv4_cidr_tuple_to_interval (dst m)) = {d. simple_match_ip (dst m) d}"
+  using wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip by blast
+
+lemma "\<forall>r \<in> set rs. simple_conn_matches (match_sel r) c \<Longrightarrow> s \<notin> wordinterval_to_set acc_dropped \<Longrightarrow>
+        runFw s d c rs = Decision FinalAllow \<longleftrightarrow> s \<in> wordinterval_to_set (matching_dsts s rs acc_dropped)"
+  apply(induction rs arbitrary: acc_dropped)
+   apply(simp add: runFw_def; fail)
+  apply(simp)
+  apply(rename_tac r rs acc_dropped, case_tac r)
+  apply(rename_tac m a, case_tac a)
+   
+   apply(simp)
+   apply(intro conjI impI)
+    apply(simp add: simple_conn_matches_runFw_fst1)
+    apply(simp add: wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip)
+oops
+
+lemma "wordinterval_to_set (matching_dsts s rs (wordinterval_union a1 a2)) = wordinterval_to_set (matching_dsts s rs a2) - wordinterval_to_set a1"
+  apply(induction s rs a2 arbitrary: a1 rule: matching_dsts.induct)
+  apply(simp_all)
+  apply fastforce
+  
+oops
+
+lemma "\<forall>r \<in> set rs. simple_conn_matches (match_sel r) c \<Longrightarrow> {}= wordinterval_to_set acc_dropped \<Longrightarrow>
+        wordinterval_to_set (matching_dsts s rs acc_dropped) = {d. runFw s d c rs = Decision FinalAllow}"
+  apply(induction rs arbitrary: acc_dropped)
+   apply(simp add: runFw_def; fail)
+  apply(simp)
+  apply(rename_tac r rs acc_dropped, case_tac r)
+  apply(rename_tac m a, case_tac a)
+   apply(simp)
+   apply(intro conjI impI)
+    apply(simp add: simple_conn_matches_runFw_fst1)
+    apply(simp add: wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set)
+    apply blast
+   apply(simp add: simple_conn_matches_runFw_fst2; fail)
+  apply(simp)
+  apply(intro conjI impI)
+   apply(simp add: simple_conn_matches_runFw_fst3)
+   apply(simp add: wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set)
+oops
 
 (*construct partitions. main function!*)
 definition build_ip_partition :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list" where
