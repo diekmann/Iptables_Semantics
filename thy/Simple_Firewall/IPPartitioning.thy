@@ -566,23 +566,21 @@ lemma groupF_lem_not: "A \<in> set (groupF f xs) \<Longrightarrow> B \<in> set (
     using groupF_set_lem1 by fastforce (*1s*)
   qed
 
-lemma "set (map set (groupF f1 [y\<leftarrow>xs. P y])) \<subseteq> set (map set (groupF f1 xs))"
-  nitpick
-  oops
 
-lemma hackyhack: "groupF_code f1 xs = groupF_code f2 xs \<Longrightarrow> \<forall>x \<in> set xs. \<forall>y \<in> set xs. (f1 x = f1 y \<longleftrightarrow> f2 x = f2 y) \<Longrightarrow>
-        groupF_code f1 [x\<leftarrow>xs . f2 a \<noteq> f2 x] = groupF_code f2 [x\<leftarrow>xs . f2 a \<noteq> f2 x]"
-apply(induction f2 xs rule: groupF_code.induct)
+lemma hackyhack: "groupF f1 xs = groupF f2 xs \<Longrightarrow> \<forall>x \<in> set xs. \<forall>y \<in> set xs. (f1 x = f1 y \<longleftrightarrow> f2 x = f2 y) \<Longrightarrow>
+        groupF f1 [x\<leftarrow>xs . f2 a \<noteq> f2 x] = groupF f2 [x\<leftarrow>xs . f2 a \<noteq> f2 x]"
+apply(induction f2 xs rule: groupF.induct)
  apply(simp;fail)
-apply(simp add: partition_tailrec)
+apply(simp)
 apply(intro conjI impI)
-apply (smt filter_cong)
-apply (smt filter_cong)
+  apply (smt filter_cong)
+ apply (smt filter_cong)
 apply (smt filter_cong)
 done
 
 
-lemma fixes xs::"'a list" and f1::"'a \<Rightarrow> 'b" and f2::"'a \<Rightarrow> 'c"
+(*TODO: when I finally abandon this branch, this proof should be cleaned and cherry-picked to master*)
+lemma groupF_cong: fixes xs::"'a list" and f1::"'a \<Rightarrow> 'b" and f2::"'a \<Rightarrow> 'c"
   assumes "\<forall>x \<in> set xs. \<forall>y \<in> set xs. (f1 x = f1 y \<longleftrightarrow> f2 x = f2 y)"
   shows "groupF f1 xs = groupF f2 xs"
   using assms apply(induction xs)
@@ -601,8 +599,8 @@ lemma fixes xs::"'a list" and f1::"'a \<Rightarrow> 'b" and f2::"'a \<Rightarrow
    apply(simp;fail)
   apply(simp)
   apply(elim conjE)
-  
-oops
+  using hackyhack by fast
+
 
 
 lemma fixes xs::"'a list" and f1::"'a \<Rightarrow> 'b" and f2::"'a \<Rightarrow> 'c"
