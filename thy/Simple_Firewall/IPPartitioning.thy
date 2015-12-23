@@ -809,33 +809,19 @@ lemma wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set:
   "wordinterval_to_set (ipv4_cidr_tuple_to_interval (dst m)) = {d. simple_match_ip (dst m) d}"
   using wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip by blast
 
-lemma "\<forall>r \<in> set rs. simple_conn_matches (match_sel r) c \<Longrightarrow> s \<notin> wordinterval_to_set acc_dropped \<Longrightarrow>
-        runFw s d c rs = Decision FinalAllow \<longleftrightarrow> s \<in> wordinterval_to_set (matching_dsts s rs acc_dropped)"
-  apply(induction rs arbitrary: acc_dropped)
+
+lemma matching_dsts_pull_out_accu:
+  "wordinterval_to_set (matching_dsts s rs (wordinterval_union a1 a2)) = wordinterval_to_set (matching_dsts s rs a2) - wordinterval_to_set a1"
+  apply(induction s rs a2 arbitrary: a1 a2 rule: matching_dsts.induct)
+     apply(simp_all)
+  by blast+
+
+lemma matching_dsts: "\<forall>r \<in> set rs. simple_conn_matches (match_sel r) c \<Longrightarrow>
+        wordinterval_to_set (matching_dsts s rs Empty_WordInterval) = {d. runFw s d c rs = Decision FinalAllow}"
+  apply(induction rs)
    apply(simp add: runFw_def; fail)
   apply(simp)
-  apply(rename_tac r rs acc_dropped, case_tac r)
-  apply(rename_tac m a, case_tac a)
-   
-   apply(simp)
-   apply(intro conjI impI)
-    apply(simp add: simple_conn_matches_runFw_fst1)
-    apply(simp add: wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip)
-oops
-
-lemma "wordinterval_to_set (matching_dsts s rs (wordinterval_union a1 a2)) = wordinterval_to_set (matching_dsts s rs a2) - wordinterval_to_set a1"
-  apply(induction s rs a2 arbitrary: a1 rule: matching_dsts.induct)
-  apply(simp_all)
-  apply fastforce
-  
-oops
-
-lemma "\<forall>r \<in> set rs. simple_conn_matches (match_sel r) c \<Longrightarrow> {}= wordinterval_to_set acc_dropped \<Longrightarrow>
-        wordinterval_to_set (matching_dsts s rs acc_dropped) = {d. runFw s d c rs = Decision FinalAllow}"
-  apply(induction rs arbitrary: acc_dropped)
-   apply(simp add: runFw_def; fail)
-  apply(simp)
-  apply(rename_tac r rs acc_dropped, case_tac r)
+  apply(rename_tac r rs, case_tac r)
   apply(rename_tac m a, case_tac a)
    apply(simp)
    apply(intro conjI impI)
@@ -846,8 +832,11 @@ lemma "\<forall>r \<in> set rs. simple_conn_matches (match_sel r) c \<Longrighta
   apply(simp)
   apply(intro conjI impI)
    apply(simp add: simple_conn_matches_runFw_fst3)
+   apply(simp add: matching_dsts_pull_out_accu)
    apply(simp add: wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set)
-oops
+   apply blast
+  apply(simp add: simple_conn_matches_runFw_fst2; fail)
+ done
 
 (*construct partitions. main function!*)
 definition build_ip_partition :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list" where
