@@ -1102,6 +1102,7 @@ fun pretty_wordinterval where
   vertices = (name, list of ip addresses this vertex corresponds to)
   and edges = (name \<times> name) list
 *)
+(*TODO: can we use collect srcs or collect dsts here too?*)
 fun build_ip_partition_pretty 
   :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
   where
