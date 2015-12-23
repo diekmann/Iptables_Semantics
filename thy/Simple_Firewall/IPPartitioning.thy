@@ -567,6 +567,8 @@ lemma groupF_lem_not: "A \<in> set (groupF f xs) \<Longrightarrow> B \<in> set (
   qed
 
 
+
+(*I have no idea what I'm doing. TODO: proof only needed for next lemma, move in there*)
 lemma hackyhack: "groupF f1 xs = groupF f2 xs \<Longrightarrow> \<forall>x \<in> set xs. \<forall>y \<in> set xs. (f1 x = f1 y \<longleftrightarrow> f2 x = f2 y) \<Longrightarrow>
         groupF f1 [x\<leftarrow>xs . f2 a \<noteq> f2 x] = groupF f2 [x\<leftarrow>xs . f2 a \<noteq> f2 x]"
 apply(induction f2 xs rule: groupF.induct)
@@ -601,29 +603,6 @@ lemma groupF_cong: fixes xs::"'a list" and f1::"'a \<Rightarrow> 'b" and f2::"'a
   apply(elim conjE)
   using hackyhack by fast
 
-
-
-lemma fixes xs::"'a list" and f1::"'a \<Rightarrow> 'b" and f2::"'a \<Rightarrow> 'c"
-  assumes "\<forall>x \<in> set xs. \<forall>y \<in> set xs. f1 x = f1 y \<longleftrightarrow> f2 x = f2 y"
-  shows "groupF f1 xs = groupF f2 xs"
-  apply(simp add: groupF_code)
-  using assms apply(induction xs)
-   apply(simp;fail)
-    apply(simp add: partition_tailrec)
-  apply(subgoal_tac "[y\<leftarrow>xs . f1 a = f1 y] = [y\<leftarrow>xs . f2 a = f2 y]")
-   prefer 2
-   apply(rule filter_cong)
-    apply(simp;fail)
-   apply(simp;fail)
-  apply(simp)
-  apply(subgoal_tac "[y\<leftarrow>xs . f1 a \<noteq> f1 y] = [y\<leftarrow>xs . f2 a \<noteq> f2 y]")
-   prefer 2
-   apply(rule filter_cong)
-    apply(simp;fail)
-   apply(simp;fail)
-  apply(simp)
-  try0
-  apply(intro conjI)
 
 
 definition groupWIs :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
@@ -929,6 +908,7 @@ fun has_default_policy :: "simple_rule list \<Rightarrow> bool" where
   "has_default_policy [] = False" |
   "has_default_policy [(SimpleRule m _)] = (m = simple_match_any)" |
   "has_default_policy (_#rs) = has_default_policy rs"
+
 lemma has_default_policy: "has_default_policy rs \<Longrightarrow> simple_fw rs p = Decision FinalAllow \<or> simple_fw rs p = Decision FinalDeny"
   apply(induction rs rule: has_default_policy.induct)
     apply(simp;fail)
@@ -940,11 +920,31 @@ lemma has_default_policy: "has_default_policy rs \<Longrightarrow> simple_fw rs 
    apply(simp_all)
  done
 
+lemma has_default_policy_runFw: "has_default_policy rs \<Longrightarrow> runFw s d c rs = Decision FinalAllow \<or> runFw s d c rs = Decision FinalDeny"
+  by(simp add: runFw_def has_default_policy)
 
-(*
-lemma fixes X::"('a \<times> 'b) list" and Y::"('a \<times> 'c) list" shows
-  "X = Y \<Longrightarrow> map (map fst) (groupF snd X) = map (map fst) (groupF snd Y)"oops (*type!*)
-*)
+lemma has_default_policy_fst: "has_default_policy rs \<Longrightarrow> has_default_policy (r#rs)"
+ apply(cases r, rename_tac m a, simp)
+ apply(case_tac rs)
+ by(simp_all)
+
+lemma simple_conn_matches_simple_match_any: "simple_conn_matches simple_match_any c"
+  apply(simp add: simple_conn_matches_def)
+  apply(simp add: simple_match_any_def ipv4range_set_from_prefix_0 match_ifaceAny)
+  apply(subgoal_tac "(65535::16 word) = max_word")
+   apply(simp)
+  by(simp add: max_word_def)
+lemma has_default_policy_simple_conn_matches:
+  "has_default_policy rs \<Longrightarrow> has_default_policy [r\<leftarrow>rs . simple_conn_matches (match_sel r) c]"
+  apply(induction rs rule: has_default_policy.induct)
+    apply(simp; fail)
+   apply(simp add: simple_conn_matches_simple_match_any; fail)
+  apply(simp)
+  apply(intro conjI)
+   apply(simp split: split_if_asm; fail)
+  apply(simp add: has_default_policy_fst split: split_if_asm)
+  done
+
 lemma "has_default_policy rs \<Longrightarrow> 
         map (map fst) (groupF snd
        (map (\<lambda>x. (x, map ((\<lambda>d. runFw (getOneIp x) d c [r\<leftarrow>rs . simple_conn_matches (match_sel r) c] = Decision FinalAllow) \<circ> getOneIp) (getParts rs),
@@ -955,19 +955,49 @@ lemma "has_default_policy rs \<Longrightarrow>
        (map (\<lambda>x. (x, map ((\<lambda>d. runFw (getOneIp x) d c [r\<leftarrow>rs . simple_conn_matches (match_sel r) c]) \<circ> getOneIp) (getParts rs),
                   P x))
          (getParts rs)))"
+apply(subst groupF_tuple[symmetric])+
+apply(rule groupF_cong)
+apply(intro ballI)
 oops
 
-lemma "(let f = (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) (map getOneIp W),
-                                      map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp W))) in
-        groupF f W)"
 
-lemma "has_default_policy rs \<Longrightarrow> groupWIs2 c rs = groupWIs3_UNPROVEN c rs"
-  apply(simp add: groupWIs3_UNPROVEN_def groupWIs2_def)
+lemma map_over_tuples_equal_helper:
+  assumes "\<forall>w \<in> set W. (f1 x) w = (f1 y) w \<longleftrightarrow> (f2 x) w =  (f2 y) w"
+          and "\<forall>w \<in> set W. (g1 x) w = (g1 y) w \<longleftrightarrow> (g2 x) w =  (g2 y) w"
+     shows "
+       ((map (f1 x) W, map (g1 x) W) = (map (f1 y) W, map (g1 y) W)) 
+       \<longleftrightarrow>
+       ((map (f2 x) W, map (g2 x) W) = (map (f2 y) W, map (g2 y) W))"
+proof -
+  from assms(1) have 1: "(map (f1 x) W = map (f1 y) W \<longleftrightarrow> map (f2 x) W = map (f2 y) W)" by(induction W)(simp_all)
+  from assms(2) have 2: "(map (g1 x) W = map (g1 y) W \<longleftrightarrow> map (g2 x) W = map (g2 y) W)" by(induction W)(simp_all)
+  from 1 2 show ?thesis by fast
+qed
+
+lemma has_default_policy_groupF: "has_default_policy rs \<Longrightarrow> 
+       groupF (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs = Decision FinalAllow) (map getOneIp W),
+                                     map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp W))) W =
+       groupF (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) (map getOneIp W),
+                                     map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp W))) W"
+apply(rule groupF_cong)
+apply(intro ballI)
+apply(rule map_over_tuples_equal_helper)
+ apply(simp_all)
+apply(intro ballI)
+using has_default_policy_runFw by metis
+
+lemma groupWIs3_UNPROVEN_groupWIs2: "has_default_policy rs \<Longrightarrow> groupWIs2 c rs = groupWIs3_UNPROVEN c rs"
+  apply(simp add: groupWIs3_UNPROVEN_def groupWIs_code[symmetric])
+  apply(subst groupF_tuple[symmetric])
   apply(simp add: Let_def)
-  thm matching_dsts_filterW_TODO_delete[simplified, symmetric]
-  apply(subst matching_dsts_filterW_TODO_delete[simplified, symmetric])
-   apply simp
-  oops
+  apply(subst matching_dsts_filterW_TODO_delete[simplified, symmetric, where c=c])
+   apply blast
+  thm has_default_policy_groupF[simplified]
+  apply(subst has_default_policy_groupF[simplified])
+   defer
+  apply(simp add: groupWIs_def Let_def filter_conn_fw_lem)
+  apply(simp add: has_default_policy_simple_conn_matches)
+  done
 
 (************* END SCRATCH ***************)
 
