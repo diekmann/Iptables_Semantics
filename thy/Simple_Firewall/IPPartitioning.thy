@@ -483,6 +483,7 @@ fun groupF ::  "('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'a lis
   "groupF f [] = []" |
   "groupF f (x#xs) = (x#(filter (\<lambda>y. f x = f y) xs))#(groupF f (filter (\<lambda>y. f x \<noteq> f y) xs))"
 
+  
 
 (*trying a more efficient implementation of groupF*)
 fun select_p_tuple :: "('a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> ('a list \<times> 'a list) \<Rightarrow> ('a list \<times> 'a list)" where
@@ -528,7 +529,7 @@ termination groupF_code
   apply(simp add: partition_tailrec)
   using le_imp_less_Suc length_filter_le by blast
 
-lemma[code]: "groupF f as = groupF_code f as"
+lemma groupF_code[code]: "groupF f as = groupF_code f as"
   by(induction f as rule: groupF_code.induct) (simp_all add: partition_tailrec)
 
 export_code groupF in SML
@@ -536,7 +537,7 @@ export_code groupF in SML
 
 lemma groupF_lem:
   defines "same f A \<equiv> (\<forall>a1 \<in> set A. \<forall>a2 \<in> set A. f a1 = f a2)"
-  shows "\<forall>A \<in> set(groupF f xs). same f A"
+  shows "\<forall>A \<in> set (groupF f xs). same f A"
   proof(induction f xs rule: groupF.induct)
     case 1 thus ?case by simp
   next
@@ -564,6 +565,68 @@ lemma groupF_lem_not: "A \<in> set (groupF f xs) \<Longrightarrow> B \<in> set (
     apply(subst (asm) groupF.simps)+
     using groupF_set_lem1 by fastforce (*1s*)
   qed
+
+lemma "set (map set (groupF f1 [y\<leftarrow>xs. P y])) \<subseteq> set (map set (groupF f1 xs))"
+  nitpick
+  oops
+
+lemma hackyhack: "groupF_code f1 xs = groupF_code f2 xs \<Longrightarrow> \<forall>x \<in> set xs. \<forall>y \<in> set xs. (f1 x = f1 y \<longleftrightarrow> f2 x = f2 y) \<Longrightarrow>
+        groupF_code f1 [x\<leftarrow>xs . f2 a \<noteq> f2 x] = groupF_code f2 [x\<leftarrow>xs . f2 a \<noteq> f2 x]"
+apply(induction f2 xs rule: groupF_code.induct)
+ apply(simp;fail)
+apply(simp add: partition_tailrec)
+apply(intro conjI impI)
+apply (smt filter_cong)
+apply (smt filter_cong)
+apply (smt filter_cong)
+done
+
+
+lemma fixes xs::"'a list" and f1::"'a \<Rightarrow> 'b" and f2::"'a \<Rightarrow> 'c"
+  assumes "\<forall>x \<in> set xs. \<forall>y \<in> set xs. (f1 x = f1 y \<longleftrightarrow> f2 x = f2 y)"
+  shows "groupF f1 xs = groupF f2 xs"
+  using assms apply(induction xs)
+   apply(simp; fail)
+  apply(simp)
+  apply(subgoal_tac "[y\<leftarrow>xs . f1 a = f1 y] = [y\<leftarrow>xs . f2 a = f2 y]")
+   prefer 2
+   apply(rule filter_cong)
+    apply(simp;fail)
+   apply(simp;fail)
+  apply(simp)
+  apply(subgoal_tac "[y\<leftarrow>xs . f1 a \<noteq> f1 y] = [y\<leftarrow>xs . f2 a \<noteq> f2 y]")
+   prefer 2
+   apply(rule filter_cong)
+    apply(simp;fail)
+   apply(simp;fail)
+  apply(simp)
+  apply(elim conjE)
+  
+oops
+
+
+lemma fixes xs::"'a list" and f1::"'a \<Rightarrow> 'b" and f2::"'a \<Rightarrow> 'c"
+  assumes "\<forall>x \<in> set xs. \<forall>y \<in> set xs. f1 x = f1 y \<longleftrightarrow> f2 x = f2 y"
+  shows "groupF f1 xs = groupF f2 xs"
+  apply(simp add: groupF_code)
+  using assms apply(induction xs)
+   apply(simp;fail)
+    apply(simp add: partition_tailrec)
+  apply(subgoal_tac "[y\<leftarrow>xs . f1 a = f1 y] = [y\<leftarrow>xs . f2 a = f2 y]")
+   prefer 2
+   apply(rule filter_cong)
+    apply(simp;fail)
+   apply(simp;fail)
+  apply(simp)
+  apply(subgoal_tac "[y\<leftarrow>xs . f1 a \<noteq> f1 y] = [y\<leftarrow>xs . f2 a \<noteq> f2 y]")
+   prefer 2
+   apply(rule filter_cong)
+    apply(simp;fail)
+   apply(simp;fail)
+  apply(simp)
+  try0
+  apply(intro conjI)
+
 
 definition groupWIs :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
   "groupWIs c rs = (let W = getParts rs in 
@@ -895,7 +958,11 @@ lemma "has_default_policy rs \<Longrightarrow>
                   P x))
          (getParts rs)))"
 oops
- 
+
+lemma "(let f = (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) (map getOneIp W),
+                                      map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp W))) in
+        groupF f W)"
+
 lemma "has_default_policy rs \<Longrightarrow> groupWIs2 c rs = groupWIs3_UNPROVEN c rs"
   apply(simp add: groupWIs3_UNPROVEN_def groupWIs2_def)
   apply(simp add: Let_def)
