@@ -943,7 +943,15 @@ lemma matching_dsts_filterW_TODO_delete: "filterW = filter (\<lambda>r. simple_c
   apply(rule)
    apply(simp_all)
   done
-
+lemma matching_srcs_filterW_TODO_delete: "filterW = filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs \<Longrightarrow>
+       runFw s d c filterW = Decision FinalAllow \<longleftrightarrow> wordinterval_element s (matching_srcs d filterW Empty_WordInterval)"
+  apply(simp)
+  apply(subst matching_srcs[where c=c])
+   apply(simp; fail)
+  apply(thin_tac _)
+  apply(rule)
+   apply(simp_all)
+  done
 
 (*TODO: if we can get wordinterval_element to log runtime (this should be possible! maybe we want to
   use a type from the Collections to store wordintervals), then this should really improve the runtime!*)
@@ -951,9 +959,10 @@ definition groupWIs3_default_policy :: "parts_connection \<Rightarrow> simple_ru
   "groupWIs3_default_policy c rs =  (let P = getParts rs in
                        (let W = map getOneIp P in 
                        (let filterW = (filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs) in
-                         (let f = (\<lambda>wi. let mtch_dsts = (matching_dsts (getOneIp wi) filterW Empty_WordInterval) in 
+                         (let f = (\<lambda>wi. let mtch_dsts = (matching_dsts (getOneIp wi) filterW Empty_WordInterval);
+                                            mtch_srcs = (matching_srcs (getOneIp wi) filterW Empty_WordInterval) in 
                                         (map (\<lambda>d. wordinterval_element d mtch_dsts) W,
-                                         map (\<lambda>s. runFw s (getOneIp wi) c filterW) W)) in
+                                         map (\<lambda>s. wordinterval_element s mtch_srcs) W)) in
                       map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) P))))))"
 
 
@@ -1016,21 +1025,26 @@ qed
 
 lemma has_default_policy_groupF: "has_default_policy rs \<Longrightarrow> 
        groupF (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs = Decision FinalAllow) (map getOneIp W),
-                                     map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp W))) W =
+                     map (\<lambda>s. runFw s (getOneIp wi) c rs = Decision FinalAllow) (map getOneIp W))) W =
        groupF (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) (map getOneIp W),
-                                     map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp W))) W"
+                     map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp W))) W"
 apply(rule groupF_cong)
 apply(intro ballI)
 apply(rule map_over_tuples_equal_helper)
  apply(simp_all)
+ apply(intro ballI)
+ using has_default_policy_runFw apply metis
 apply(intro ballI)
-using has_default_policy_runFw by metis
+using has_default_policy_runFw apply metis
+done
 
 lemma groupWIs3_default_policy_groupWIs2: "has_default_policy rs \<Longrightarrow> groupWIs2 c rs = groupWIs3_default_policy c rs"
   apply(simp add: groupWIs3_default_policy_def groupWIs_code[symmetric])
   apply(subst groupF_tuple[symmetric])
   apply(simp add: Let_def)
   apply(subst matching_dsts_filterW_TODO_delete[simplified, symmetric, where c=c])
+   apply blast
+  apply(subst matching_srcs_filterW_TODO_delete[simplified, symmetric, where c=c])
    apply blast
   thm has_default_policy_groupF[simplified]
   apply(subst has_default_policy_groupF[simplified])
