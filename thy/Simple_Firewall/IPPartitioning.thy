@@ -837,7 +837,7 @@ lemma simple_conn_matches_runFw_fst3: "simple_conn_matches m c \<Longrightarrow>
        \<not> simple_match_ip (dst m) d \<and> runFw s d c rs = Decision FinalAllow"
   by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)
 
-(*TOOD: move to next prof?*)
+(*TOOD: move to next proof?*)
 lemma wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip:
   "s \<in> wordinterval_to_set (ipv4_cidr_tuple_to_interval d) \<longleftrightarrow> simple_match_ip d s"
   apply(cases d)
@@ -886,11 +886,9 @@ lemma matching_dsts_filterW_TODO_delete: "filterW = filter (\<lambda>r. simple_c
    apply(simp_all)
   done
 
-(*TODO unproven TODO*)
-(*probably needs assumption that we have a default rule: Last rule is accept all or drop all
-  (if there is no default rule, we could default to groupWIs2)
-*)
-(*TODO: only a performance test*)
+
+(*TODO: if we can get wordinterval_element to log runtime (this should be possible! maybe we want to
+  use a type from the Collections to store wordintervals), then this should really improve the runtime!*)
 definition groupWIs3_default_policy :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
   "groupWIs3_default_policy c rs =  (let P = getParts rs in
                        (let W = map getOneIp P in 
