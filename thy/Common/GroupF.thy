@@ -82,59 +82,13 @@ lemma groupF_lem_not: "A \<in> set (groupF f xs) \<Longrightarrow> B \<in> set (
     using groupF_set_lem1 by fastforce (*1s*)
   qed
 
-
-
 lemma groupF_cong: fixes xs::"'a list" and f1::"'a \<Rightarrow> 'b" and f2::"'a \<Rightarrow> 'c"
   assumes "\<forall>x \<in> set xs. \<forall>y \<in> set xs. (f1 x = f1 y \<longleftrightarrow> f2 x = f2 y)"
   shows "groupF f1 xs = groupF f2 xs"
-  using assms proof(induction xs)
-  case Nil thus ?case by simp
-  next
-  case (Cons x xs)
-    { fix a
-      (*I have no idea what I'm doing. This was originally a smt proof -_-*)
-      have "groupF f1 xs = groupF f2 xs \<Longrightarrow> \<forall>x \<in> set xs. \<forall>y \<in> set xs. (f1 x = f1 y \<longleftrightarrow> f2 x = f2 y) \<Longrightarrow>
-              groupF f1 [x\<leftarrow>xs . f2 a \<noteq> f2 x] = groupF f2 [x\<leftarrow>xs . f2 a \<noteq> f2 x]"
-      proof(induction f2 xs rule: groupF.induct)
-      case 1 thus ?case by simp
-      next
-      case (2 f x xs)
-        have filter1: "[y\<leftarrow>xs . f1 x \<noteq> f1 y] = [y\<leftarrow>xs . f x \<noteq> f y]"
-         using 2(3) by(auto cong: filter_cong)
-        have filter2: "[xa\<leftarrow>xs . f x \<noteq> f xa \<and> f a \<noteq> f xa] = [xa\<leftarrow>xs . f a \<noteq> f xa \<and> f x \<noteq> f xa]"
-         apply(rule filter_cong)
-          apply(simp; fail)
-         by auto
-        have filter3: "[xa\<leftarrow>xs . f a \<noteq> f xa \<and> f1 x \<noteq> f1 xa] = [xa\<leftarrow>xs . f a \<noteq> f xa \<and> f x \<noteq> f xa]"
-         using 2(3) by(auto cong: filter_cong)
-        have filter4: "[y\<leftarrow>xs . f1 x \<noteq> f1 y] = [y\<leftarrow>xs . f x \<noteq> f y]"
-         using 2(3) by(auto cong: filter_cong)
-        have filter5: "[xa\<leftarrow>xs . f a \<noteq> f xa \<and> f1 x = f1 xa] = [xa\<leftarrow>xs . f a \<noteq> f xa \<and> f x = f xa]" 
-         using 2(3) by(auto cong: filter_cong)
-         
-        show ?case
-        proof(simp, intro conjI impI)
-          show "[x'\<leftarrow>xs . f a \<noteq> f x' \<and> f1 x = f1 x'] = [x'\<leftarrow>xs . f a \<noteq> f x' \<and> f x = f x']" using filter5 by blast
-        next
-          show "groupF f1 [x'\<leftarrow>xs . f a \<noteq> f x' \<and> f1 x \<noteq> f1 x'] = groupF f [x'\<leftarrow>xs . f a \<noteq> f x' \<and> f x \<noteq> f x']"
-            using filter2 filter3 filter4 2(1) 2(2) 2(3) by simp
-        next
-          show "groupF f1 [x'\<leftarrow>xs . f x \<noteq> f x'] = groupF f [x'\<leftarrow>xs . f x \<noteq> f x']" using filter1 2(2) by fastforce
-        qed
-      qed
-    } note hackyhack=this
-
-    have filter1: "[y\<leftarrow>xs . f1 x = f1 y] = [y\<leftarrow>xs . f2 x = f2 y]"
-      using Cons.prems by(auto cong: filter_cong)
-    have filter2: "[y\<leftarrow>xs . f1 x \<noteq> f1 y] = [y\<leftarrow>xs . f2 x \<noteq> f2 y]"
-      using Cons.prems by(auto cong: filter_cong)
-    from filter1 filter2 Cons show ?case
-      apply simp
-      apply(rule hackyhack)
-       apply(simp; fail)
-      by fast
-  qed
-
+  using assms proof(induction f1 xs rule: groupF.induct)
+    case goal2 thus ?case using filter_cong[of xs xs "\<lambda>y. f x = f y" "\<lambda>y. f2 x = f2 y"]
+                                filter_cong[of xs xs "\<lambda>y. f x \<noteq> f y" "\<lambda>y. f2 x \<noteq> f2 y"] by auto
+  qed (simp)
 
 
 end
