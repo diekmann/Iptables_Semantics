@@ -664,14 +664,7 @@ lemma filter_conn_fw_lem:
 done
 
 
-(*TODO: performance
-  despite optimization, this function takes quite long and can be optimized
-  possible optimization:
-  1) the firewall evaluations could be halved, essentially, we are constructing a full access control
-     matrix for inbound and outbound connections of each partition member. This matrix is symmetric.
-     It would be enough to construct half of it.
-  2) The firewall is evaluated very often. Rules that will definitely not match (w.r.t. the parts_connection)
-      can be removed.*)
+(*performance: despite optimization, this function takes quite long and can be optimized*)
 definition groupWIs2 :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
   "groupWIs2 c rs =  (let P = getParts rs in
                        (let W = map getOneIp P in 
