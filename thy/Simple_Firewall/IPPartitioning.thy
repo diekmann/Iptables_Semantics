@@ -566,56 +566,56 @@ lemma groupF_lem_not: "A \<in> set (groupF f xs) \<Longrightarrow> B \<in> set (
     using groupF_set_lem1 by fastforce (*1s*)
   qed
 
-(*I have no idea what I'm doing. TODO: proof only needed for next lemma, move in there*)
-lemma hackyhack: "groupF f1 xs = groupF f2 xs \<Longrightarrow> \<forall>x \<in> set xs. \<forall>y \<in> set xs. (f1 x = f1 y \<longleftrightarrow> f2 x = f2 y) \<Longrightarrow>
-        groupF f1 [x\<leftarrow>xs . f2 a \<noteq> f2 x] = groupF f2 [x\<leftarrow>xs . f2 a \<noteq> f2 x]"
-proof(induction f2 xs rule: groupF.induct)
-case 1 thus ?case by simp
-next
-case (2 f x xs)
-  have filter1: "[y\<leftarrow>xs . f1 x \<noteq> f1 y] = [y\<leftarrow>xs . f x \<noteq> f y]"
-   using 2(3) by(auto cong: filter_cong)
-  have filter2: "[xa\<leftarrow>xs . f x \<noteq> f xa \<and> f a \<noteq> f xa] = [xa\<leftarrow>xs . f a \<noteq> f xa \<and> f x \<noteq> f xa]"
-   apply(rule filter_cong)
-    apply(simp; fail)
-   by auto
-  have filter3: "[xa\<leftarrow>xs . f a \<noteq> f xa \<and> f1 x \<noteq> f1 xa] = [xa\<leftarrow>xs . f a \<noteq> f xa \<and> f x \<noteq> f xa]"
-   using 2(3) by(auto cong: filter_cong)
-  have filter4: "[y\<leftarrow>xs . f1 x \<noteq> f1 y] = [y\<leftarrow>xs . f x \<noteq> f y]"
-   using 2(3) by(auto cong: filter_cong)
-  have filter5: "[xa\<leftarrow>xs . f a \<noteq> f xa \<and> f1 x = f1 xa] = [xa\<leftarrow>xs . f a \<noteq> f xa \<and> f x = f xa]" 
-   using 2(3) by(auto cong: filter_cong)
-
-  show ?case
-    apply(simp)
-    apply(intro conjI impI)
-      using filter1 2(2) apply fastforce
-     using filter5 apply blast
-    using filter2 filter3 filter4 2(1) 2(2) 2(3) by simp
-qed
 
 
-(*TODO: when I finally abandon this branch, this proof should be cleaned and cherry-picked to master*)
 lemma groupF_cong: fixes xs::"'a list" and f1::"'a \<Rightarrow> 'b" and f2::"'a \<Rightarrow> 'c"
   assumes "\<forall>x \<in> set xs. \<forall>y \<in> set xs. (f1 x = f1 y \<longleftrightarrow> f2 x = f2 y)"
   shows "groupF f1 xs = groupF f2 xs"
-  using assms apply(induction xs)
-   apply(simp; fail)
-  apply(simp)
-  apply(subgoal_tac "[y\<leftarrow>xs . f1 a = f1 y] = [y\<leftarrow>xs . f2 a = f2 y]")
-   prefer 2
-   apply(rule filter_cong)
-    apply(simp;fail)
-   apply(simp;fail)
-  apply(simp)
-  apply(subgoal_tac "[y\<leftarrow>xs . f1 a \<noteq> f1 y] = [y\<leftarrow>xs . f2 a \<noteq> f2 y]")
-   prefer 2
-   apply(rule filter_cong)
-    apply(simp;fail)
-   apply(simp;fail)
-  apply(simp)
-  apply(elim conjE)
-  using hackyhack by fast
+  using assms proof(induction xs)
+  case Nil thus ?case by simp
+  next
+  case (Cons x xs)
+    { fix a
+      (*I have no idea what I'm doing. This was originally a smt proof -_-*)
+      have "groupF f1 xs = groupF f2 xs \<Longrightarrow> \<forall>x \<in> set xs. \<forall>y \<in> set xs. (f1 x = f1 y \<longleftrightarrow> f2 x = f2 y) \<Longrightarrow>
+              groupF f1 [x\<leftarrow>xs . f2 a \<noteq> f2 x] = groupF f2 [x\<leftarrow>xs . f2 a \<noteq> f2 x]"
+      proof(induction f2 xs rule: groupF.induct)
+      case 1 thus ?case by simp
+      next
+      case (2 f x xs)
+        have filter1: "[y\<leftarrow>xs . f1 x \<noteq> f1 y] = [y\<leftarrow>xs . f x \<noteq> f y]"
+         using 2(3) by(auto cong: filter_cong)
+        have filter2: "[xa\<leftarrow>xs . f x \<noteq> f xa \<and> f a \<noteq> f xa] = [xa\<leftarrow>xs . f a \<noteq> f xa \<and> f x \<noteq> f xa]"
+         apply(rule filter_cong)
+          apply(simp; fail)
+         by auto
+        have filter3: "[xa\<leftarrow>xs . f a \<noteq> f xa \<and> f1 x \<noteq> f1 xa] = [xa\<leftarrow>xs . f a \<noteq> f xa \<and> f x \<noteq> f xa]"
+         using 2(3) by(auto cong: filter_cong)
+        have filter4: "[y\<leftarrow>xs . f1 x \<noteq> f1 y] = [y\<leftarrow>xs . f x \<noteq> f y]"
+         using 2(3) by(auto cong: filter_cong)
+        have filter5: "[xa\<leftarrow>xs . f a \<noteq> f xa \<and> f1 x = f1 xa] = [xa\<leftarrow>xs . f a \<noteq> f xa \<and> f x = f xa]" 
+         using 2(3) by(auto cong: filter_cong)
+      
+        show ?case
+          apply(simp)
+          apply(intro conjI impI)
+            using filter1 2(2) apply fastforce
+           using filter5 apply blast
+          using filter2 filter3 filter4 2(1) 2(2) 2(3) by simp
+      qed
+    } note hackyhack=this
+
+    have filter1: "[y\<leftarrow>xs . f1 x = f1 y] = [y\<leftarrow>xs . f2 x = f2 y]"
+      using Cons.prems by(auto cong: filter_cong)
+    have filter2: "[y\<leftarrow>xs . f1 x \<noteq> f1 y] = [y\<leftarrow>xs . f2 x \<noteq> f2 y]"
+      using Cons.prems by(auto cong: filter_cong)
+    from filter1 filter2 Cons show ?case
+      apply simp
+      apply(rule hackyhack)
+       apply(simp; fail)
+      by fast
+  qed
+
 
 
 
