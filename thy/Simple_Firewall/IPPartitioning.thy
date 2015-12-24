@@ -572,8 +572,8 @@ lemma hackyhack: "groupF f1 xs = groupF f2 xs \<Longrightarrow> \<forall>x \<in>
 apply(induction f2 xs rule: groupF.induct)
  apply(simp; fail)
 apply(simp)
+apply(rename_tac f x xs)
 apply(intro conjI impI)
-  apply(rename_tac f x xs)
   apply(thin_tac "(_ \<Longrightarrow> _)")
   apply(thin_tac "f a = f x")
   apply(elim conjE)
@@ -593,11 +593,27 @@ apply(intro conjI impI)
  apply(rule filter_cong)
   apply(simp; fail)
  apply metis
-apply(thin_tac _) back back
+apply(thin_tac "f a \<noteq> f x")
 apply(elim conjE)
-apply(thin_tac _)
-apply(thin_tac _) back
-apply (smt filter_cong)
+apply(thin_tac "[y\<leftarrow>xs . f1 x = f1 y] = [y\<leftarrow>xs . f x = f y]")
+apply(thin_tac "\<forall>y\<in>set xs. (f1 x = f1 y) = (f x = f y)")
+apply(subgoal_tac "[xa\<leftarrow>xs . f x \<noteq> f xa \<and> f a \<noteq> f xa] = [xa\<leftarrow>xs . f a \<noteq> f xa \<and> f x \<noteq> f xa]")
+ prefer 2
+ apply(rule filter_cong)
+  apply(simp; fail)
+ apply metis
+apply(subgoal_tac "[xa\<leftarrow>xs . f a \<noteq> f xa \<and> f1 x \<noteq> f1 xa] = [xa\<leftarrow>xs . f a \<noteq> f xa \<and> f x \<noteq> f xa]")
+ prefer 2
+ apply(rule filter_cong)
+  apply(simp; fail)
+ apply metis
+apply(simp)
+apply(subgoal_tac "[y\<leftarrow>xs . f1 x \<noteq> f1 y] = [y\<leftarrow>xs . f x \<noteq> f y]")
+ prefer 2
+ apply(rule filter_cong)
+  apply(simp; fail)
+ apply metis
+apply(simp; fail)
 done
 
 
