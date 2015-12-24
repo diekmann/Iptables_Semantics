@@ -567,7 +567,6 @@ lemma groupF_lem_not: "A \<in> set (groupF f xs) \<Longrightarrow> B \<in> set (
   qed
 
 
-
 (*I have no idea what I'm doing. TODO: proof only needed for next lemma, move in there*)
 lemma hackyhack: "groupF f1 xs = groupF f2 xs \<Longrightarrow> \<forall>x \<in> set xs. \<forall>y \<in> set xs. (f1 x = f1 y \<longleftrightarrow> f2 x = f2 y) \<Longrightarrow>
         groupF f1 [x\<leftarrow>xs . f2 a \<noteq> f2 x] = groupF f2 [x\<leftarrow>xs . f2 a \<noteq> f2 x]"
@@ -575,8 +574,20 @@ apply(induction f2 xs rule: groupF.induct)
  apply(simp;fail)
 apply(simp)
 apply(intro conjI impI)
+  apply(thin_tac _) back back
+  apply(elim conjE)
+  apply(thin_tac _)
+  apply(thin_tac _) back
   apply (smt filter_cong)
+ apply(thin_tac _)
+ apply(thin_tac _) back
+ apply(elim conjE)
+ apply(thin_tac _)
  apply (smt filter_cong)
+apply(thin_tac _) back back
+apply(elim conjE)
+apply(thin_tac _)
+apply(thin_tac _) back
 apply (smt filter_cong)
 done
 
