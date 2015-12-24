@@ -569,52 +569,30 @@ lemma groupF_lem_not: "A \<in> set (groupF f xs) \<Longrightarrow> B \<in> set (
 (*I have no idea what I'm doing. TODO: proof only needed for next lemma, move in there*)
 lemma hackyhack: "groupF f1 xs = groupF f2 xs \<Longrightarrow> \<forall>x \<in> set xs. \<forall>y \<in> set xs. (f1 x = f1 y \<longleftrightarrow> f2 x = f2 y) \<Longrightarrow>
         groupF f1 [x\<leftarrow>xs . f2 a \<noteq> f2 x] = groupF f2 [x\<leftarrow>xs . f2 a \<noteq> f2 x]"
-apply(induction f2 xs rule: groupF.induct)
- apply(simp; fail)
-apply(simp)
-apply(rename_tac f x xs)
-apply(intro conjI impI)
-  apply(thin_tac "(_ \<Longrightarrow> _)")
-  apply(thin_tac "f a = f x")
-  apply(elim conjE)
-  apply(thin_tac "[y\<leftarrow>xs . f1 x = f1 y] = [y\<leftarrow>xs . f x = f y]")
-  apply(thin_tac "\<forall>y\<in>set xs. (f1 x = f1 y) = (f x = f y)")
-  apply(subgoal_tac "[y\<leftarrow>xs . f1 x \<noteq> f1 y] = [y\<leftarrow>xs . f x \<noteq> f y]")
-   prefer 2
+proof(induction f2 xs rule: groupF.induct)
+case 1 thus ?case by simp
+next
+case (2 f x xs)
+  have filter1: "[y\<leftarrow>xs . f1 x \<noteq> f1 y] = [y\<leftarrow>xs . f x \<noteq> f y]"
+   using 2(3) by(auto cong: filter_cong)
+  have filter2: "[xa\<leftarrow>xs . f x \<noteq> f xa \<and> f a \<noteq> f xa] = [xa\<leftarrow>xs . f a \<noteq> f xa \<and> f x \<noteq> f xa]"
    apply(rule filter_cong)
     apply(simp; fail)
-   apply metis
-  apply fastforce
-  apply(thin_tac "(_ \<Longrightarrow> _)")
- apply(thin_tac "[y\<leftarrow>xs . f1 x = f1 y] = [y\<leftarrow>xs . f x = f y] \<and> groupF f1 [y\<leftarrow>xs . f1 x \<noteq> f1 y] = groupF f [y\<leftarrow>xs . f x \<noteq> f y]")
- apply(thin_tac "f a \<noteq> f x")
- apply(elim conjE)
- apply(thin_tac "\<forall>y\<in>set xs. (f1 x = f1 y) = (f x = f y)")
- apply(rule filter_cong)
-  apply(simp; fail)
- apply metis
-apply(thin_tac "f a \<noteq> f x")
-apply(elim conjE)
-apply(thin_tac "[y\<leftarrow>xs . f1 x = f1 y] = [y\<leftarrow>xs . f x = f y]")
-apply(thin_tac "\<forall>y\<in>set xs. (f1 x = f1 y) = (f x = f y)")
-apply(subgoal_tac "[xa\<leftarrow>xs . f x \<noteq> f xa \<and> f a \<noteq> f xa] = [xa\<leftarrow>xs . f a \<noteq> f xa \<and> f x \<noteq> f xa]")
- prefer 2
- apply(rule filter_cong)
-  apply(simp; fail)
- apply metis
-apply(subgoal_tac "[xa\<leftarrow>xs . f a \<noteq> f xa \<and> f1 x \<noteq> f1 xa] = [xa\<leftarrow>xs . f a \<noteq> f xa \<and> f x \<noteq> f xa]")
- prefer 2
- apply(rule filter_cong)
-  apply(simp; fail)
- apply metis
-apply(simp)
-apply(subgoal_tac "[y\<leftarrow>xs . f1 x \<noteq> f1 y] = [y\<leftarrow>xs . f x \<noteq> f y]")
- prefer 2
- apply(rule filter_cong)
-  apply(simp; fail)
- apply metis
-apply(simp; fail)
-done
+   by auto
+  have filter3: "[xa\<leftarrow>xs . f a \<noteq> f xa \<and> f1 x \<noteq> f1 xa] = [xa\<leftarrow>xs . f a \<noteq> f xa \<and> f x \<noteq> f xa]"
+   using 2(3) by(auto cong: filter_cong)
+  have filter4: "[y\<leftarrow>xs . f1 x \<noteq> f1 y] = [y\<leftarrow>xs . f x \<noteq> f y]"
+   using 2(3) by(auto cong: filter_cong)
+  have filter5: "[xa\<leftarrow>xs . f a \<noteq> f xa \<and> f1 x = f1 xa] = [xa\<leftarrow>xs . f a \<noteq> f xa \<and> f x = f xa]" 
+   using 2(3) by(auto cong: filter_cong)
+
+  show ?case
+    apply(simp)
+    apply(intro conjI impI)
+      using filter1 2(2) apply fastforce
+     using filter5 apply blast
+    using filter2 filter3 filter4 2(1) 2(2) 2(3) by simp
+qed
 
 
 (*TODO: when I finally abandon this branch, this proof should be cleaned and cherry-picked to master*)
