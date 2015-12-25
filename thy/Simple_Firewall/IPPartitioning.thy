@@ -722,21 +722,6 @@ fun matching_srcs :: "ipv4addr \<Rightarrow> simple_rule list \<Rightarrow> 32 w
 (**when refactoring and cleaning, first make a clear version for dsts, then copy paste for src**)
 
 (*TODO: put into next proof*)
-lemma simple_conn_matches_src_runFw_fst1: "simple_conn_matches m c \<Longrightarrow> simple_match_ip (src m) s \<Longrightarrow>
-       runFw s d c (SimpleRule m simple_action.Accept # rs) = Decision FinalAllow \<longleftrightarrow>
-       simple_match_ip (dst m) d \<or> runFw s d c rs = Decision FinalAllow"
-  by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)
-lemma simple_conn_matches_src_runFw_fst2: "\<not> simple_match_ip (src m) s \<Longrightarrow>
-       runFw s d c (SimpleRule m a # rs) = Decision FinalAllow \<longleftrightarrow>
-       runFw s d c rs = Decision FinalAllow"
-  apply(cases a)
-   by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)+
-lemma simple_conn_matches_src_runFw_fst3: "simple_conn_matches m c \<Longrightarrow> simple_match_ip (src m) s \<Longrightarrow>
-       runFw s d c (SimpleRule m simple_action.Drop # rs) = Decision FinalAllow \<longleftrightarrow>
-       \<not> simple_match_ip (dst m) d \<and> runFw s d c rs = Decision FinalAllow"
-  by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)
-
-
 lemma simple_conn_matches_dst_runFw_fst1: "simple_conn_matches m c \<Longrightarrow> simple_match_ip (dst m) d \<Longrightarrow>
        runFw s d c (SimpleRule m simple_action.Accept # rs) = Decision FinalAllow \<longleftrightarrow>
        simple_match_ip (src m) s \<or> runFw s d c rs = Decision FinalAllow"
@@ -751,7 +736,7 @@ lemma simple_conn_matches_dst_runFw_fst3: "simple_conn_matches m c \<Longrightar
        \<not> simple_match_ip (src m) s \<and> runFw s d c rs = Decision FinalAllow"
   by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)
 
-(*TOOD: move to next proof?*)
+(*TOOD: move to next proof? Rename and move to generic place!*)
 lemma wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip:
   "s \<in> wordinterval_to_set (ipv4_cidr_tuple_to_interval d) \<longleftrightarrow> simple_match_ip d s"
   apply(cases d)
@@ -772,27 +757,48 @@ lemma matching_srcs_pull_out_accu:
      apply(simp_all)
   by blast+
 
+
 lemma matching_dsts: "\<forall>r \<in> set rs. simple_conn_matches (match_sel r) c \<Longrightarrow>
         wordinterval_to_set (matching_dsts s rs Empty_WordInterval) = {d. runFw s d c rs = Decision FinalAllow}"
-  apply(induction rs)
-   apply(simp add: runFw_def; fail)
-  apply(simp)
-  apply(rename_tac r rs, case_tac r)
-  apply(rename_tac m a, case_tac a)
-   apply(simp)
-   apply(intro conjI impI)
-    apply(simp add: simple_conn_matches_src_runFw_fst1)
-    apply(simp add: wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set)
-    apply blast
-   apply(simp add: simple_conn_matches_src_runFw_fst2; fail)
-  apply(simp)
-  apply(intro conjI impI)
-   apply(simp add: simple_conn_matches_src_runFw_fst3)
-   apply(simp add: matching_dsts_pull_out_accu)
-   apply(simp add: wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set)
-   apply blast
-  apply(simp add: simple_conn_matches_src_runFw_fst2; fail)
- done
+  proof(induction rs)
+  case Nil thus ?case by (simp add: runFw_def)
+  next
+  case (Cons r rs)
+    obtain m a where r: "r = SimpleRule m a" by(cases r, blast)
+    
+    from Cons.prems r have simple_match_ip_Accept: "\<And>d. simple_match_ip (src m) s \<Longrightarrow>
+      runFw s d c (SimpleRule m Accept # rs) = Decision FinalAllow \<longleftrightarrow> simple_match_ip (dst m) d \<or> runFw s d c rs = Decision FinalAllow"
+      by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)
+
+    { fix d a
+      have "\<not> simple_match_ip (src m) s \<Longrightarrow>
+       runFw s d c (SimpleRule m a # rs) = Decision FinalAllow \<longleftrightarrow> runFw s d c rs = Decision FinalAllow"
+      apply(cases a)
+       by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)+
+     } note not_simple_match_ip=this
+
+    from Cons.prems r have simple_match_ip_Drop: "\<And>d. simple_match_ip (src m) s \<Longrightarrow>
+           runFw s d c (SimpleRule m Drop # rs) = Decision FinalAllow \<longleftrightarrow> \<not> simple_match_ip (dst m) d \<and> runFw s d c rs = Decision FinalAllow"
+      by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)
+
+    show ?case
+      proof(cases a)
+      case Accept with r Cons show ?thesis
+       apply(simp,intro conjI impI)
+        apply(simp add: simple_match_ip_Accept wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set)
+        apply blast
+       apply(simp add: not_simple_match_ip; fail)
+       done
+      next
+      case Drop with r Cons show ?thesis
+        apply(simp,intro conjI impI)
+         apply(simp add: simple_match_ip_Drop matching_dsts_pull_out_accu wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set)
+         apply blast
+        apply(simp add: not_simple_match_ip; fail)
+       done
+      qed
+  qed
+
 lemma matching_srcs: "\<forall>r \<in> set rs. simple_conn_matches (match_sel r) c \<Longrightarrow>
         wordinterval_to_set (matching_srcs d rs Empty_WordInterval) = {s. runFw s d c rs = Decision FinalAllow}"
   apply(induction rs)
@@ -892,33 +898,38 @@ lemma has_default_policy_simple_conn_matches:
   apply(simp add: has_default_policy_fst split: split_if_asm)
   done
 
-lemma map_over_tuples_equal_helper:
-  assumes "\<forall>w \<in> set W. (f1 x) w = (f1 y) w \<longleftrightarrow> (f2 x) w =  (f2 y) w"
-          and "\<forall>w \<in> set W. (g1 x) w = (g1 y) w \<longleftrightarrow> (g2 x) w =  (g2 y) w"
-     shows "
-       ((map (f1 x) W, map (g1 x) W) = (map (f1 y) W, map (g1 y) W)) 
-       \<longleftrightarrow>
-       ((map (f2 x) W, map (g2 x) W) = (map (f2 y) W, map (g2 y) W))"
-proof -
-  from assms(1) have 1: "(map (f1 x) W = map (f1 y) W \<longleftrightarrow> map (f2 x) W = map (f2 y) W)" by(induction W)(simp_all)
-  from assms(2) have 2: "(map (g1 x) W = map (g1 y) W \<longleftrightarrow> map (g2 x) W = map (g2 y) W)" by(induction W)(simp_all)
-  from 1 2 show ?thesis by fast
-qed
-
-lemma has_default_policy_groupF: "has_default_policy rs \<Longrightarrow> 
-       groupF (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs = Decision FinalAllow) (map getOneIp W),
+lemma has_default_policy_groupF: assumes "has_default_policy rs"
+shows "groupF (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs = Decision FinalAllow) (map getOneIp W),
                      map (\<lambda>s. runFw s (getOneIp wi) c rs = Decision FinalAllow) (map getOneIp W))) W =
        groupF (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) (map getOneIp W),
                      map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp W))) W"
-apply(rule groupF_cong)
-apply(intro ballI)
-apply(rule map_over_tuples_equal_helper)
- apply(simp_all)
- apply(intro ballI)
- using has_default_policy_runFw apply metis
-apply(intro ballI)
-using has_default_policy_runFw apply metis
-done
+proof -
+  { (*unused fresh generic variables. 'a is used for the tuple already*)
+    fix f1::"'w \<Rightarrow> 'u \<Rightarrow> 'v" and f2::" 'w \<Rightarrow> 'u \<Rightarrow> 'x" and x and y and g1::"'w \<Rightarrow> 'u \<Rightarrow> 'y" and g2::"'w \<Rightarrow> 'u \<Rightarrow> 'z" and W::"'u list"
+      assume 1: "\<forall>w \<in> set W. (f1 x) w = (f1 y) w \<longleftrightarrow> (f2 x) w =  (f2 y) w"
+         and 2: "\<forall>w \<in> set W. (g1 x) w = (g1 y) w \<longleftrightarrow> (g2 x) w =  (g2 y) w"
+         have "
+           ((map (f1 x) W, map (g1 x) W) = (map (f1 y) W, map (g1 y) W)) 
+           \<longleftrightarrow>
+           ((map (f2 x) W, map (g2 x) W) = (map (f2 y) W, map (g2 y) W))"
+    proof -
+      from 1 have p1: "(map (f1 x) W = map (f1 y) W \<longleftrightarrow> map (f2 x) W = map (f2 y) W)" by(induction W)(simp_all)
+      from 2 have p2: "(map (g1 x) W = map (g1 y) W \<longleftrightarrow> map (g2 x) W = map (g2 y) W)" by(induction W)(simp_all)
+      from p1 p2 show ?thesis by fast
+    qed
+  } note map_over_tuples_equal_helper=this
+
+  show ?thesis
+  apply(rule groupF_cong)
+  apply(intro ballI)
+  apply(rule map_over_tuples_equal_helper)
+   apply(simp_all)
+   apply(intro ballI)
+   using assms has_default_policy_runFw apply metis
+  apply(intro ballI)
+  using assms has_default_policy_runFw apply metis
+  done
+qed
 
 lemma groupWIs3_default_policy_groupWIs2: "has_default_policy rs \<Longrightarrow> groupWIs2 c rs = groupWIs3_default_policy c rs"
   apply(simp add: groupWIs3_default_policy_def groupWIs_code[symmetric])
@@ -930,9 +941,8 @@ lemma groupWIs3_default_policy_groupWIs2: "has_default_policy rs \<Longrightarro
    apply blast
   thm has_default_policy_groupF[simplified]
   apply(subst has_default_policy_groupF[simplified])
-   defer
+   apply(simp add: has_default_policy_simple_conn_matches; fail)
   apply(simp add: groupWIs_def Let_def filter_conn_fw_lem)
-  apply(simp add: has_default_policy_simple_conn_matches)
   done
 
 
@@ -940,10 +950,7 @@ definition groupWIs3 :: "parts_connection \<Rightarrow> simple_rule list \<Right
   "groupWIs3 c rs = (if has_default_policy rs then groupWIs3_default_policy c rs else groupWIs2 c rs)"
 
 lemma groupWIs3: "groupWIs3 = groupWIs"
-  apply(simp add: fun_eq_iff)
-  apply(intro allI, rename_tac c rs)
-  apply(simp add: groupWIs3_def)
-  by (simp add: groupWIs_code groupWIs3_default_policy_groupWIs2) 
+  by(simp add: fun_eq_iff groupWIs3_def groupWIs_code groupWIs3_default_policy_groupWIs2) 
 
 (************* END SCRATCH ***************)
 
