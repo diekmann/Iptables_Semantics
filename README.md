@@ -63,7 +63,7 @@ Check the Examples directory to get started
 | --------------------- | ------ |
 | Haskell tool          | [![Build Status](https://travis-ci.org/diekmann/Iptables_Semantics.svg)](https://travis-ci.org/diekmann/Iptables_Semantics) |
 
-TODO: description here :-)
+See README.md in haskell_tool.
 
 
 ### Academic Publications
