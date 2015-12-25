@@ -386,6 +386,9 @@ definition "runFw s d c rs = simple_fw rs \<lparr>p_iiface=pc_iiface c,p_oiface=
                           p_tcp_flags={TCP_SYN},
                           p_tag_ctstate=pc_tag_ctstate c\<rparr>"
 
+lemma has_default_policy_runFw: "has_default_policy rs \<Longrightarrow> runFw s d c rs = Decision FinalAllow \<or> runFw s d c rs = Decision FinalDeny"
+  by(simp add: runFw_def has_default_policy)
+
 definition "same_fw_behaviour_one ip1 ip2 c rs \<equiv>
             \<forall>d s. runFw ip1 d c rs = runFw ip2 d c rs \<and> runFw s ip1 c rs = runFw s ip2 c rs"
 
@@ -651,6 +654,25 @@ definition simple_conn_matches :: "simple_match \<Rightarrow> parts_connection \
       (simple_match_port (sports m) (pc_sport c)) \<and>
       (simple_match_port (dports m) (pc_dport c))"
 
+lemma simple_conn_matches_simple_match_any: "simple_conn_matches simple_match_any c"
+  apply(simp add: simple_conn_matches_def)
+  apply(simp add: simple_match_any_def ipv4range_set_from_prefix_0 match_ifaceAny)
+  apply(subgoal_tac "(65535::16 word) = max_word")
+   apply(simp)
+  by(simp add: max_word_def)
+
+lemma has_default_policy_simple_conn_matches:
+  "has_default_policy rs \<Longrightarrow> has_default_policy [r\<leftarrow>rs . simple_conn_matches (match_sel r) c]"
+  apply(induction rs rule: has_default_policy.induct)
+    apply(simp; fail)
+   apply(simp add: simple_conn_matches_simple_match_any; fail)
+  apply(simp)
+  apply(intro conjI)
+   apply(simp split: split_if_asm; fail)
+  apply(simp add: has_default_policy_fst split: split_if_asm)
+  done
+
+
 lemma filter_conn_fw_lem: 
   "runFw s d c (filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs) = runFw s d c rs"
   apply(simp add: runFw_def simple_conn_matches_def match_sel_def)
@@ -799,6 +821,7 @@ lemma matching_dsts: "\<forall>r \<in> set rs. simple_conn_matches (match_sel r)
       qed
   qed
 
+(*TODO: copy&paste proof from above!*)
 lemma matching_srcs: "\<forall>r \<in> set rs. simple_conn_matches (match_sel r) c \<Longrightarrow>
         wordinterval_to_set (matching_srcs d rs Empty_WordInterval) = {s. runFw s d c rs = Decision FinalAllow}"
   apply(induction rs)
@@ -822,24 +845,7 @@ lemma matching_srcs: "\<forall>r \<in> set rs. simple_conn_matches (match_sel r)
  done
 
 (* okay, if wordintervals were ordered and we could have log-time lookup time, this would really speed up the groupWIs2 thing.*)
-lemma matching_dsts_filterW_TODO_delete: "filterW = filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs \<Longrightarrow>
-       runFw s d c filterW = Decision FinalAllow \<longleftrightarrow> wordinterval_element d (matching_dsts s filterW Empty_WordInterval)"
-  apply(simp)
-  apply(subst matching_dsts[where c=c])
-   apply(simp; fail)
-  apply(thin_tac _)
-  apply(rule)
-   apply(simp_all)
-  done
-lemma matching_srcs_filterW_TODO_delete: "filterW = filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs \<Longrightarrow>
-       runFw s d c filterW = Decision FinalAllow \<longleftrightarrow> wordinterval_element s (matching_srcs d filterW Empty_WordInterval)"
-  apply(simp)
-  apply(subst matching_srcs[where c=c])
-   apply(simp; fail)
-  apply(thin_tac _)
-  apply(rule)
-   apply(simp_all)
-  done
+
 
 (*TODO: if we can get wordinterval_element to log runtime (this should be possible! maybe we want to
   use a type from the Collections to store wordintervals), then this should really improve the runtime!*)
@@ -854,96 +860,60 @@ definition groupWIs3_default_policy :: "parts_connection \<Rightarrow> simple_ru
                       map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) P))))))"
 
 
-
-(*TODO: move to simple_firewall.*)
-
-fun has_default_policy :: "simple_rule list \<Rightarrow> bool" where
-  "has_default_policy [] = False" |
-  "has_default_policy [(SimpleRule m _)] = (m = simple_match_any)" |
-  "has_default_policy (_#rs) = has_default_policy rs"
-
-lemma has_default_policy: "has_default_policy rs \<Longrightarrow> simple_fw rs p = Decision FinalAllow \<or> simple_fw rs p = Decision FinalDeny"
-  apply(induction rs rule: has_default_policy.induct)
-    apply(simp;fail)
-   apply(simp_all)
-   apply(rename_tac a, case_tac a)
-    apply(simp_all add: simple_match_any)
-  apply(rename_tac r1 r2 rs)
-  apply(case_tac r1, rename_tac m a, case_tac a)
-   apply(simp_all)
- done
-
-lemma has_default_policy_runFw: "has_default_policy rs \<Longrightarrow> runFw s d c rs = Decision FinalAllow \<or> runFw s d c rs = Decision FinalDeny"
-  by(simp add: runFw_def has_default_policy)
-
-lemma has_default_policy_fst: "has_default_policy rs \<Longrightarrow> has_default_policy (r#rs)"
- apply(cases r, rename_tac m a, simp)
- apply(case_tac rs)
- by(simp_all)
-
-lemma simple_conn_matches_simple_match_any: "simple_conn_matches simple_match_any c"
-  apply(simp add: simple_conn_matches_def)
-  apply(simp add: simple_match_any_def ipv4range_set_from_prefix_0 match_ifaceAny)
-  apply(subgoal_tac "(65535::16 word) = max_word")
-   apply(simp)
-  by(simp add: max_word_def)
-lemma has_default_policy_simple_conn_matches:
-  "has_default_policy rs \<Longrightarrow> has_default_policy [r\<leftarrow>rs . simple_conn_matches (match_sel r) c]"
-  apply(induction rs rule: has_default_policy.induct)
-    apply(simp; fail)
-   apply(simp add: simple_conn_matches_simple_match_any; fail)
-  apply(simp)
-  apply(intro conjI)
-   apply(simp split: split_if_asm; fail)
-  apply(simp add: has_default_policy_fst split: split_if_asm)
-  done
-
-lemma has_default_policy_groupF: assumes "has_default_policy rs"
-shows "groupF (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs = Decision FinalAllow) (map getOneIp W),
-                     map (\<lambda>s. runFw s (getOneIp wi) c rs = Decision FinalAllow) (map getOneIp W))) W =
-       groupF (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) (map getOneIp W),
-                     map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp W))) W"
+lemma groupWIs3_default_policy_groupWIs2: assumes "has_default_policy rs" shows "groupWIs2 c rs = groupWIs3_default_policy c rs"
 proof -
-  { (*unused fresh generic variables. 'a is used for the tuple already*)
-    fix f1::"'w \<Rightarrow> 'u \<Rightarrow> 'v" and f2::" 'w \<Rightarrow> 'u \<Rightarrow> 'x" and x and y and g1::"'w \<Rightarrow> 'u \<Rightarrow> 'y" and g2::"'w \<Rightarrow> 'u \<Rightarrow> 'z" and W::"'u list"
-      assume 1: "\<forall>w \<in> set W. (f1 x) w = (f1 y) w \<longleftrightarrow> (f2 x) w =  (f2 y) w"
-         and 2: "\<forall>w \<in> set W. (g1 x) w = (g1 y) w \<longleftrightarrow> (g2 x) w =  (g2 y) w"
-         have "
-           ((map (f1 x) W, map (g1 x) W) = (map (f1 y) W, map (g1 y) W)) 
-           \<longleftrightarrow>
-           ((map (f2 x) W, map (g2 x) W) = (map (f2 y) W, map (g2 y) W))"
+  { fix filterW s d
+    from matching_dsts[where c=c] have "filterW = filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs \<Longrightarrow>
+         wordinterval_element d (matching_dsts s filterW Empty_WordInterval) \<longleftrightarrow> runFw s d c filterW = Decision FinalAllow"
+    by(simp)
+  } note matching_dsts_filterW=this[simplified]
+
+  { fix filterW s d
+    from matching_srcs[where c=c] have "filterW = filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs \<Longrightarrow>
+          wordinterval_element s (matching_srcs d filterW Empty_WordInterval) \<longleftrightarrow> runFw s d c filterW = Decision FinalAllow"
+    by simp
+  } note matching_srcs_filterW=this[simplified]
+
+  { fix W rs
+    assume assms': "has_default_policy rs"
+    have "groupF (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs = Decision FinalAllow) (map getOneIp W),
+                         map (\<lambda>s. runFw s (getOneIp wi) c rs = Decision FinalAllow) (map getOneIp W))) W =
+           groupF (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) (map getOneIp W),
+                         map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp W))) W"
     proof -
-      from 1 have p1: "(map (f1 x) W = map (f1 y) W \<longleftrightarrow> map (f2 x) W = map (f2 y) W)" by(induction W)(simp_all)
-      from 2 have p2: "(map (g1 x) W = map (g1 y) W \<longleftrightarrow> map (g2 x) W = map (g2 y) W)" by(induction W)(simp_all)
-      from p1 p2 show ?thesis by fast
+      { (*unused fresh generic variables. 'a is used for the tuple already*)
+        fix f1::"'w \<Rightarrow> 'u \<Rightarrow> 'v" and f2::" 'w \<Rightarrow> 'u \<Rightarrow> 'x" and x and y and g1::"'w \<Rightarrow> 'u \<Rightarrow> 'y" and g2::"'w \<Rightarrow> 'u \<Rightarrow> 'z" and W::"'u list"
+          assume 1: "\<forall>w \<in> set W. (f1 x) w = (f1 y) w \<longleftrightarrow> (f2 x) w =  (f2 y) w"
+             and 2: "\<forall>w \<in> set W. (g1 x) w = (g1 y) w \<longleftrightarrow> (g2 x) w =  (g2 y) w"
+             have "
+               ((map (f1 x) W, map (g1 x) W) = (map (f1 y) W, map (g1 y) W)) 
+               \<longleftrightarrow>
+               ((map (f2 x) W, map (g2 x) W) = (map (f2 y) W, map (g2 y) W))"
+        proof -
+          from 1 have p1: "(map (f1 x) W = map (f1 y) W \<longleftrightarrow> map (f2 x) W = map (f2 y) W)" by(induction W)(simp_all)
+          from 2 have p2: "(map (g1 x) W = map (g1 y) W \<longleftrightarrow> map (g2 x) W = map (g2 y) W)" by(induction W)(simp_all)
+          from p1 p2 show ?thesis by fast
+        qed
+      } note map_over_tuples_equal_helper=this
+    
+      show ?thesis
+      apply(rule groupF_cong)
+      apply(intro ballI)
+      apply(rule map_over_tuples_equal_helper)
+       using has_default_policy_runFw[OF assms'] by metis+
     qed
-  } note map_over_tuples_equal_helper=this
+  } note has_default_policy_groupF=this[simplified]
 
-  show ?thesis
-  apply(rule groupF_cong)
-  apply(intro ballI)
-  apply(rule map_over_tuples_equal_helper)
-   apply(simp_all)
-   apply(intro ballI)
-   using assms has_default_policy_runFw apply metis
-  apply(intro ballI)
-  using assms has_default_policy_runFw apply metis
-  done
-qed
-
-lemma groupWIs3_default_policy_groupWIs2: "has_default_policy rs \<Longrightarrow> groupWIs2 c rs = groupWIs3_default_policy c rs"
+  from assms show ?thesis
   apply(simp add: groupWIs3_default_policy_def groupWIs_code[symmetric])
   apply(subst groupF_tuple[symmetric])
   apply(simp add: Let_def)
-  apply(subst matching_dsts_filterW_TODO_delete[simplified, symmetric, where c=c])
-   apply blast
-  apply(subst matching_srcs_filterW_TODO_delete[simplified, symmetric, where c=c])
-   apply blast
-  thm has_default_policy_groupF[simplified]
-  apply(subst has_default_policy_groupF[simplified])
+  apply(simp add: matching_srcs_filterW matching_dsts_filterW)
+  apply(subst has_default_policy_groupF)
    apply(simp add: has_default_policy_simple_conn_matches; fail)
   apply(simp add: groupWIs_def Let_def filter_conn_fw_lem)
   done
+qed
 
 
 definition groupWIs3 :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where

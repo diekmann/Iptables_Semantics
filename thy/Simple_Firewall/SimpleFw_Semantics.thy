@@ -206,4 +206,26 @@ value[code] "simple_fw [
   \<lparr>p_iiface = '''', p_oiface = '''',  p_src = 1, p_dst = 2, p_proto = TCP, p_sport = 8, p_dport = 9, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
 
 
+fun has_default_policy :: "simple_rule list \<Rightarrow> bool" where
+  "has_default_policy [] = False" |
+  "has_default_policy [(SimpleRule m _)] = (m = simple_match_any)" |
+  "has_default_policy (_#rs) = has_default_policy rs"
+
+lemma has_default_policy: "has_default_policy rs \<Longrightarrow> simple_fw rs p = Decision FinalAllow \<or> simple_fw rs p = Decision FinalDeny"
+  apply(induction rs rule: has_default_policy.induct)
+    apply(simp;fail)
+   apply(simp_all)
+   apply(rename_tac a, case_tac a)
+    apply(simp_all add: simple_match_any)
+  apply(rename_tac r1 r2 rs)
+  apply(case_tac r1, rename_tac m a, case_tac a)
+   apply(simp_all)
+ done
+
+lemma has_default_policy_fst: "has_default_policy rs \<Longrightarrow> has_default_policy (r#rs)"
+ apply(cases r, rename_tac m a, simp)
+ apply(case_tac rs)
+ by(simp_all)
+
+
 end
