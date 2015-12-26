@@ -73,6 +73,16 @@ subsection{*Simple Firewall Semantics*}
   fun simple_match_ip :: "(ipv4addr \<times> nat) \<Rightarrow> ipv4addr \<Rightarrow> bool" where
     "simple_match_ip (base, len) p_ip \<longleftrightarrow> p_ip \<in> ipv4range_set_from_prefix base len"
 
+  lemma wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set:
+    "wordinterval_to_set (ipv4_cidr_tuple_to_interval ip) = {d. simple_match_ip ip d}"
+    proof -
+      { fix s d
+        from ipv4range_to_set_def ipv4range_to_set_ipv4_cidr_tuple_to_interval have
+          "s \<in> wordinterval_to_set (ipv4_cidr_tuple_to_interval d) \<longleftrightarrow> simple_match_ip d s"
+        by(cases d) auto
+      } thus ?thesis by blast
+    qed
+
   --"by the way, the words do not wrap around"
   lemma "{(253::8 word) .. 8} = {}" by simp 
 
