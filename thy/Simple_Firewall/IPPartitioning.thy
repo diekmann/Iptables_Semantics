@@ -214,8 +214,13 @@ qed
 
 (* OPTIMIZED PARTITIONING *)
 
-fun wordinterval_list_to_set :: "'a::len wordinterval list \<Rightarrow> 'a::len word set" where
+definition wordinterval_list_to_set :: "'a::len wordinterval list \<Rightarrow> 'a::len word set" where
   "wordinterval_list_to_set ws = \<Union> set (map wordinterval_to_set ws)"
+
+lemma wordinterval_list_to_set_compressed: "wordinterval_to_set (wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) =
+          wordinterval_list_to_set xs"
+  proof(induction xs)
+  qed(simp_all add: wordinterval_compress wordinterval_list_to_set_def)
 
 fun partIps :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval list 
                 \<Rightarrow> 'a::len wordinterval list" where
@@ -250,25 +255,25 @@ lemma ipPartitioning_partitioningIps:
    (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow> 
    ipPartition (set (map wordinterval_to_set ss)) 
                (set (map wordinterval_to_set (partitioningIps ss ts)))"
-by (metis ipPartitioning_helper_opt partitioningIps_equi wordinterval_list_to_set.simps)
+by (metis ipPartitioning_helper_opt partitioningIps_equi wordinterval_list_to_set_def)
 
 lemma complete_partitioningIps: 
   "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
    (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow> 
-   \<Union> (set (map wordinterval_to_set ts)) = \<Union> (set (map wordinterval_to_set (partitioningIps ss ts)))"
-using complete_helper by (metis partitioningIps_equi wordinterval_list_to_set.simps)
+   (wordinterval_list_to_set ts) = wordinterval_list_to_set (partitioningIps ss ts)"
+using complete_helper by (metis partitioningIps_equi wordinterval_list_to_set_def)
 
 lemma disjoint_partitioningIps: 
   "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
    (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow>
    disjoint_list_rec (map wordinterval_to_set (partitioningIps ss ts))"
-by (simp add: partitioning1_disjoint partitioningIps_equi)
+by (simp add: partitioning1_disjoint partitioningIps_equi wordinterval_list_to_set_def)
 
 
 lemma ipPartitioning_partitioningIps1: "ipPartition (set (map wordinterval_to_set ss)) 
                    (set (map wordinterval_to_set (partitioningIps ss [wordinterval_UNIV])))"
   proof(rule ipPartitioning_partitioningIps)
-  qed(simp_all)
+  qed(simp_all add: wordinterval_list_to_set_def)
                   
 definition getParts :: "simple_rule list \<Rightarrow> 32 wordinterval list" where
    "getParts rs = partitioningIps (extract_IPSets rs) [wordinterval_UNIV]"
@@ -289,20 +294,20 @@ lemma getParts_ipPartition: "ipPartition (set (map wordinterval_to_set (extract_
 
 
 
-lemma getParts_complete: "\<Union> (set (map wordinterval_to_set (getParts rs))) = UNIV"
+lemma getParts_complete: "wordinterval_list_to_set (getParts rs) = UNIV"
   proof -
-    have "\<Union> (set (map wordinterval_to_set (getParts rs))) = \<Union> (set (map wordinterval_to_set [wordinterval_UNIV]))"
+    have "wordinterval_list_to_set (getParts rs) = wordinterval_list_to_set [wordinterval_UNIV]"
       unfolding getParts_def
       apply(rule complete_partitioningIps[symmetric])
-        by(simp_all)
-    also have "\<dots> = UNIV" by simp
+        by(simp_all add: wordinterval_list_to_set_def)
+    also have "\<dots> = UNIV" by (simp add: wordinterval_list_to_set_def)
     finally show ?thesis .
 qed
 
 lemma getParts_disjoint: "disjoint_list_rec (map wordinterval_to_set (getParts rs))"
   apply(subst getParts_def)
   apply(rule disjoint_partitioningIps)
-    apply(simp_all)
+    apply(simp_all add: wordinterval_list_to_set_def)
   done
 
 
@@ -460,7 +465,7 @@ qed
   
 lemma same_behave_runFw:
   assumes a1: "\<forall>A \<in> set (map wordinterval_to_set W). \<forall>a1 \<in> A. \<forall>a2 \<in> A. same_fw_behaviour_one a1 a2 c rs"
-  and a2: "\<Union> set (map wordinterval_to_set W) = UNIV"
+  and a2: "wordinterval_list_to_set W = UNIV"
   and a3: "\<forall>w \<in> set W. \<not> wordinterval_empty w"
   and a4: "(map (\<lambda>d. runFw x1 d c rs) (map getOneIp W), map (\<lambda>s. runFw s x1 c rs) (map getOneIp W)) =
            (map (\<lambda>d. runFw x2 d c rs) (map getOneIp W), map (\<lambda>s. runFw s x2 c rs) (map getOneIp W))"
@@ -472,7 +477,7 @@ proof -
   from a3 a4 getOneIp_elem
     have b2: "\<forall>B \<in> set (map wordinterval_to_set W). \<exists>b \<in> B. runFw b x1 c rs = runFw b x2 c rs"
     by fastforce
-  from runFw_sameFw_behave[OF a1 a2 b1 b2] show "same_fw_behaviour_one x1 x2 c rs" by simp
+  from runFw_sameFw_behave[OF a1 _ b1 b2] a2[unfolded wordinterval_list_to_set_def] show "same_fw_behaviour_one x1 x2 c rs" by simp
 qed
 
 lemma same_behave_runFw_not:
@@ -579,22 +584,23 @@ proof -
 qed
 
 lemma groupParts_same_fw_wi2: "V \<in> set (groupWIs c rs) \<Longrightarrow>
-                               \<forall>ip1 \<in> \<Union> set (map wordinterval_to_set V).
-                               \<forall>ip2 \<in> \<Union> set (map wordinterval_to_set V).
+                               \<forall>ip1 \<in> wordinterval_list_to_set V.
+                               \<forall>ip2 \<in> wordinterval_list_to_set V.
                                same_fw_behaviour_one ip1 ip2 c rs"
-  using groupParts_same_fw_wi0 groupParts_same_fw_wi1 by simp
+  using groupParts_same_fw_wi0 groupParts_same_fw_wi1 by (simp add: wordinterval_list_to_set_def)
 
 lemma groupWIs_same_fw_not2: "A \<in> set (groupWIs c rs) \<Longrightarrow> B \<in> set (groupWIs c rs) \<Longrightarrow> 
                                 A \<noteq> B \<Longrightarrow>
-                                \<forall>ip1 \<in> \<Union> set (map wordinterval_to_set A).
-                                \<forall>ip2 \<in> \<Union> set (map wordinterval_to_set B).
+                                \<forall>ip1 \<in> wordinterval_list_to_set A.
+                                \<forall>ip2 \<in> wordinterval_list_to_set B.
                                 \<not> same_fw_behaviour_one ip1 ip2 c rs"
-  using groupWIs_same_fw_not by fast
+  apply(simp add: wordinterval_list_to_set_def)
+  using groupWIs_same_fw_not by simp
 
 (*I like this version -- corny*)
 lemma "A \<in> set (groupWIs c rs) \<Longrightarrow> B \<in> set (groupWIs c rs) \<Longrightarrow> 
-                \<exists>ip1 \<in> \<Union> set (map wordinterval_to_set A).
-                \<exists>ip2 \<in> \<Union> set (map wordinterval_to_set B).  same_fw_behaviour_one ip1 ip2 c rs
+                \<exists>ip1 \<in> wordinterval_list_to_set A.
+                \<exists>ip2 \<in> wordinterval_list_to_set B. same_fw_behaviour_one ip1 ip2 c rs
                 \<Longrightarrow> A = B"
 using groupWIs_same_fw_not2 by blast
 
@@ -874,15 +880,6 @@ using groupWIs_same_fw_not2 by blast
 
 (*end groupWIs3 optimization*)
 
-
-lemma wordinterval_unifier: "wordinterval_to_set 
-          (wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) =
-          \<Union> set (map wordinterval_to_set xs)"
-  apply simp
-  apply(induction xs)
-   apply(simp_all add: wordinterval_compress)
-  done
-
 (*construct partitions. main function!*)
 definition build_ip_partition :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list" where
   "build_ip_partition c rs = map (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) (groupWIs3 c rs)"
@@ -893,7 +890,7 @@ theorem build_ip_partition_same_fw: "V \<in> set (build_ip_partition c rs) \<Lon
                                \<forall>ip2 \<in> wordinterval_to_set V.
                                same_fw_behaviour_one ip1 ip2 c rs"
   apply(simp add: build_ip_partition_def groupWIs3)
-  using wordinterval_unifier groupParts_same_fw_wi2 by blast
+  using wordinterval_list_to_set_compressed groupParts_same_fw_wi2 by blast
 
 theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \<Longrightarrow> B \<in> set (build_ip_partition c rs) \<Longrightarrow> 
                                 A \<noteq> B \<Longrightarrow>
@@ -901,7 +898,7 @@ theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \
                                 \<forall>ip2 \<in> wordinterval_to_set B.
                                 \<not> same_fw_behaviour_one ip1 ip2 c rs"
   apply(simp add: build_ip_partition_def groupWIs3)
-  using wordinterval_unifier groupWIs_same_fw_not2 by fast (*1s*)
+  using  groupWIs_same_fw_not2 wordinterval_list_to_set_compressed by blast
 
 (*TODO: move?*)
 fun pretty_wordinterval where
