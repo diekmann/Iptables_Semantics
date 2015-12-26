@@ -1028,6 +1028,22 @@ bin_rest w = div_int w (Int_of_integer (2 :: Integer));
 shiftr1 :: forall a. (Len0 a) => Word a -> Word a;
 shiftr1 w = word_of_int (bin_rest (uint w));
 
+select_p_tuple :: forall a. (a -> Bool) -> a -> ([a], [a]) -> ([a], [a]);
+select_p_tuple p x (ts, fs) = (if p x then (x : ts, fs) else (ts, x : fs));
+
+partition_tailrec :: forall a. (a -> Bool) -> [a] -> ([a], [a]);
+partition_tailrec p xs = foldr (select_p_tuple p) xs ([], []);
+
+groupF_code :: forall a b. (Eq b) => (a -> b) -> [a] -> [[a]];
+groupF_code f [] = [];
+groupF_code f (x : xs) =
+  let {
+    (ts, fs) = partition_tailrec (\ y -> f x == f y) xs;
+  } in (x : ts) : groupF_code f fs;
+
+groupF :: forall a b. (Eq b) => (a -> b) -> [a] -> [[a]];
+groupF f asa = groupF_code f asa;
+
 distinct :: forall a. (Eq a) => [a] -> Bool;
 distinct [] = True;
 distinct (x : xs) = not (membera xs x) && distinct xs;
@@ -1547,22 +1563,6 @@ get_pos_Extra a = let {
                     (Pos (Extra e)) = a;
                   } in e;
 
-select_p_tuple :: forall a. (a -> Bool) -> a -> ([a], [a]) -> ([a], [a]);
-select_p_tuple p x (ts, fs) = (if p x then (x : ts, fs) else (ts, x : fs));
-
-partition_tailrec :: forall a. (a -> Bool) -> [a] -> ([a], [a]);
-partition_tailrec p xs = foldr (select_p_tuple p) xs ([], []);
-
-groupF_code :: forall a b. (Eq b) => (a -> b) -> [a] -> [[a]];
-groupF_code f [] = [];
-groupF_code f (x : xs) =
-  let {
-    (ts, fs) = partition_tailrec (\ y -> f x == f y) xs;
-  } in (x : ts) : groupF_code f fs;
-
-groupF :: forall a b. (Eq b) => (a -> b) -> [a] -> [[a]];
-groupF f asa = groupF_code f asa;
-
 string_of_nat :: Nat -> [Prelude.Char];
 string_of_nat n =
   (if less_nat n (nat_of_integer (10 :: Integer))
@@ -1606,7 +1606,7 @@ ipv4addr_wordinterval_toString ::
   Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prelude.Char];
 ipv4addr_wordinterval_toString (WordInterval s e) =
   (if equal_word s e then ipv4addr_toString s
-    else "{" ++ ipv4addr_toString s ++ ".." ++ ipv4addr_toString e ++ "}");
+    else "{" ++ ipv4addr_toString s ++ " .. " ++ ipv4addr_toString e ++ "}");
 ipv4addr_wordinterval_toString (RangeUnion a b) =
   ipv4addr_wordinterval_toString a ++ " u " ++ ipv4addr_wordinterval_toString b;
 
@@ -2828,6 +2828,9 @@ upper_closure rs =
 word_to_nat :: forall a. (Len a) => Word a -> Nat;
 word_to_nat = unat;
 
+all_pairs :: forall a. [a] -> [(a, a)];
+all_pairs xs = concatMap (\ x -> map (\ a -> (x, a)) xs) xs;
+
 match_sel :: Simple_rule -> Simple_match_ext ();
 match_sel (SimpleRule x1 x2) = x1;
 
@@ -3405,14 +3408,6 @@ process_call gamma (Rule v Empty : rs) = Rule v Empty : process_call gamma rs;
 process_call gamma (Rule v Unknown : rs) =
   Rule v Unknown : process_call gamma rs;
 
-pretty_wordinterval ::
-  Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prelude.Char];
-pretty_wordinterval (WordInterval ip1 ip2) =
-  (if equal_word ip1 ip2 then ipv4addr_toString ip1
-    else "(" ++ ipv4addr_toString ip1 ++ " - " ++ ipv4addr_toString ip2 ++ ")");
-pretty_wordinterval (RangeUnion r1 r2) =
-  pretty_wordinterval r1 ++ " u " ++ pretty_wordinterval r2;
-
 check_simple_ruleset :: [Rule Common_primitive] -> [Rule Common_primitive];
 check_simple_ruleset rs = (if simple_ruleset rs then rs else error "undefined");
 
@@ -3933,18 +3928,20 @@ build_ip_partition_pretty c rs =
   let {
     w = build_ip_partition c rs;
     r = map getOneIp w;
-    u = concatMap (\ x -> map (\ a -> (x, a)) r) r;
-  } in (zip (map ipv4addr_toString r) (map pretty_wordinterval w),
-         map_filter
-           (\ x ->
-             (if let {
-                   (a, b) = x;
-                 } in equal_state (runFw a b c rs) (Decision FinalAllow)
-               then Just (let {
-                            (xa, y) = x;
-                          } in (ipv4addr_toString xa, ipv4addr_toString y))
-               else Nothing))
-           u);
+    u = all_pairs r;
+  } in (("Nodes", ":") :
+          zip (map ipv4addr_toString r) (map ipv4addr_wordinterval_toString w),
+         ("Vertices", ":") :
+           map_filter
+             (\ x ->
+               (if let {
+                     (a, b) = x;
+                   } in equal_state (runFw a b c rs) (Decision FinalAllow)
+                 then Just (let {
+                              (xa, y) = x;
+                            } in (ipv4addr_toString xa, ipv4addr_toString y))
+                 else Nothing))
+             u);
 
 action_toString :: Action -> [Prelude.Char];
 action_toString Accept = "-j ACCEPT";

@@ -900,15 +900,12 @@ theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \
   apply(simp add: build_ip_partition_def groupWIs3)
   using  groupWIs_same_fw_not2 wordinterval_list_to_set_compressed by blast
 
-(*TODO: move?*)
-fun pretty_wordinterval where
-  "pretty_wordinterval (WordInterval ip1 ip2) = (if ip1 = ip2
-                                                 then ipv4addr_toString ip1
-                                                 else ''('' @ ipv4addr_toString ip1 @ '' - '' @
-                                                      ipv4addr_toString ip2 @ '')'')" |
-  "pretty_wordinterval (RangeUnion r1 r2) = pretty_wordinterval r1 @ '' u '' @
-                                            pretty_wordinterval r2"
 
+definition all_pairs :: "'a list \<Rightarrow> ('a \<times> 'a) list" where
+  "all_pairs xs \<equiv> concat (map (\<lambda>x. map (\<lambda>y. (x,y)) xs) xs)"
+
+lemma all_pairs: "\<forall> (x,y) \<in> (set xs \<times> set xs). (x,y) \<in> set (all_pairs xs)"
+  by(auto simp add: all_pairs_def)
 
 (*construct an ip partition and print it in some useable format
   returns:
@@ -920,12 +917,13 @@ fun pretty_wordinterval where
 fun build_ip_partition_pretty 
   :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
   where
-  "build_ip_partition_pretty c rs = (let W = build_ip_partition c rs in
-                  (let R = map getOneIp W 
-      in
-                         (let U = concat (map (\<lambda>x. map (\<lambda>y. (x,y)) R) R) in 
-     (zip (map ipv4addr_toString R) (map pretty_wordinterval W), 
-     map (\<lambda>(x,y). (ipv4addr_toString x, ipv4addr_toString y)) (filter (\<lambda>(a,b). runFw a b c rs = Decision FinalAllow) U)))))"
+  "build_ip_partition_pretty c rs =
+    (let W = build_ip_partition c rs;
+         R = map getOneIp W;
+         U = all_pairs R
+     in
+     ((''Nodes'','':'') # zip (map ipv4addr_toString R) (map ipv4addr_wordinterval_toString W), 
+      (''Vertices'','':'') # map (\<lambda>(x,y). (ipv4addr_toString x, ipv4addr_toString y)) (filter (\<lambda>(a,b). runFw a b c rs = Decision FinalAllow) U)))"
 
 
 definition parts_connection_ssh where "parts_connection_ssh = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
