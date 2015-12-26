@@ -70,7 +70,7 @@ usage :: IO ()
 usage = do
     name <- getProgName
     putErrStrLn $ "Usage: " ++ name ++ " [-a FILE | -h] [FILE]"
-    putErrStrLn "Parse `iptables -Ln` output from FILE or standard input"
+    putErrStrLn "Parse `iptables-save` output from FILE or standard input"
     putErrStrLn ""
     putErrStrLn $ "  -a FILE   optional IP assignment file; if unspecified, a generic file is loaded"
     putErrStrLn $ "  -h        print this help text"
