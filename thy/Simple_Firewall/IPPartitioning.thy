@@ -602,36 +602,34 @@ using groupWIs_same_fw_not2 by blast
 
 (*begin groupWIs1 and groupWIs2 optimization*)
   (*TODO*)
-  lemma whatup: "[y\<leftarrow>ys . g b = g y] = map fst [y\<leftarrow>map (\<lambda>x. (x, g x)) ys . g b = snd y]"
-    apply(induction ys arbitrary: g b)
-    apply(simp)
-  by fastforce
   
-  lemma whatup1: "(map (\<lambda>x. (x, f x)) [y\<leftarrow>xs . f x \<noteq> f y]) = [y\<leftarrow>map (\<lambda>x. (x, f x)) xs . f x \<noteq> snd y]"
-    apply(induction xs)
-    apply(simp)
-    apply(simp)
-  by fastforce
+
+
   
   lemma groupF_tuple: "groupF f xs = map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) xs))"
-    apply(induction f xs rule: groupF.induct)
-    apply(simp)
-    apply(simp)
-    apply(rule conjI)
-      apply(rename_tac b ys g)
-      using whatup apply fast
-      apply(rename_tac b ys g)
-  using whatup1 by metis
+    proof(induction f xs rule: groupF.induct)
+    case (goal1 f) thus ?case by simp
+    next
+    case (goal2 f x xs)
+      have 1: "[y\<leftarrow>xs . f x = f y] = map fst [y\<leftarrow>map (\<lambda>x. (x, f x)) xs . f x = snd y]"
+        proof(induction xs arbitrary: f x)
+        case Cons thus ?case by fastforce
+        qed(simp)
+      have 2: "(map (\<lambda>x. (x, f x)) [y\<leftarrow>xs . f x \<noteq> f y]) = [y\<leftarrow>map (\<lambda>x. (x, f x)) xs . f x \<noteq> snd y]"
+        proof(induction xs)
+        case Cons thus ?case by fastforce
+        qed(simp)
+      from goal2 1 2 show ?case by simp
+    qed
   
   
-  
-  (*The function uses
+  (*TIt is possible to use
       map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) P))
     instead of
       groupF f P
     for the following reasons:
       groupF executes its compare function (first parameter) very often; it always tests for (f x = f y).
-      The function f we use here is really expensive. At least polyML does not share the result of f but 
+      The function f may be really expensive. At least polyML does not share the result of f but 
       (probably) always recomputes (part of) it. The optimization pre-computes f and tells groupF to use
       a really cheap function (snd) to compare. The lemma groupF_tuple tells that those are equal.
   
@@ -927,7 +925,7 @@ theorem build_ip_partition_same_fw: "V \<in> set (build_ip_partition c rs) \<Lon
                                \<forall>ip2 \<in> wordinterval_to_set V.
                                same_fw_behaviour_one ip1 ip2 c rs"
   apply(simp add: build_ip_partition_def groupWIs3)
-using wordinterval_unifier groupParts_same_fw_wi2 by blast
+  using wordinterval_unifier groupParts_same_fw_wi2 by blast
 
 theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \<Longrightarrow> B \<in> set (build_ip_partition c rs) \<Longrightarrow> 
                                 A \<noteq> B \<Longrightarrow>
@@ -935,7 +933,7 @@ theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \
                                 \<forall>ip2 \<in> wordinterval_to_set B.
                                 \<not> same_fw_behaviour_one ip1 ip2 c rs"
   apply(simp add: build_ip_partition_def groupWIs3)
-using wordinterval_unifier groupWIs_same_fw_not2 by fast (*1s*)
+  using wordinterval_unifier groupWIs_same_fw_not2 by fast (*1s*)
 
 (*TODO: move?*)
 fun pretty_wordinterval where

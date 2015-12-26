@@ -51,6 +51,37 @@ begin
   export_code groupF in SML
 end
 
+
+(*It is possible to use
+    map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) P))
+  instead of
+    groupF f P
+  for the following reasons:
+    groupF executes its compare function (first parameter) very often; it always tests for (f x = f y).
+    The function f may be really expensive. At least polyML does not share the result of f but 
+    (probably) always recomputes (part of) it. The optimization pre-computes f and tells groupF to use
+    a really cheap function (snd) to compare. The lemma groupF_tuple tells that those are equal.
+
+  TODO: is this also faster for Haskell?*)
+lemma groupF_tuple: "groupF f xs = map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) xs))"
+  proof(induction f xs rule: groupF.induct)
+  case (goal1 f) thus ?case by simp
+  next
+  case (goal2 f x xs)
+    have 1: "[y\<leftarrow>xs . f x = f y] = map fst [y\<leftarrow>map (\<lambda>x. (x, f x)) xs . f x = snd y]"
+      proof(induction xs arbitrary: f x)
+      case Cons thus ?case by fastforce
+      qed(simp)
+    have 2: "(map (\<lambda>x. (x, f x)) [y\<leftarrow>xs . f x \<noteq> f y]) = [y\<leftarrow>map (\<lambda>x. (x, f x)) xs . f x \<noteq> snd y]"
+      proof(induction xs)
+      case Cons thus ?case by fastforce
+      qed(simp)
+    from goal2 1 2 show ?case by simp
+  qed
+  
+  
+
+
 lemma groupF_lem:
   defines "same f A \<equiv> (\<forall>a1 \<in> set A. \<forall>a2 \<in> set A. f a1 = f a2)"
   shows "\<forall>A \<in> set (groupF f xs). same f A"
