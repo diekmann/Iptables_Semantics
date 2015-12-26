@@ -602,38 +602,6 @@ using groupWIs_same_fw_not2 by blast
 
 (*begin groupWIs1 and groupWIs2 optimization*)
   (*TODO*)
-  
-
-
-  
-  lemma groupF_tuple: "groupF f xs = map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) xs))"
-    proof(induction f xs rule: groupF.induct)
-    case (goal1 f) thus ?case by simp
-    next
-    case (goal2 f x xs)
-      have 1: "[y\<leftarrow>xs . f x = f y] = map fst [y\<leftarrow>map (\<lambda>x. (x, f x)) xs . f x = snd y]"
-        proof(induction xs arbitrary: f x)
-        case Cons thus ?case by fastforce
-        qed(simp)
-      have 2: "(map (\<lambda>x. (x, f x)) [y\<leftarrow>xs . f x \<noteq> f y]) = [y\<leftarrow>map (\<lambda>x. (x, f x)) xs . f x \<noteq> snd y]"
-        proof(induction xs)
-        case Cons thus ?case by fastforce
-        qed(simp)
-      from goal2 1 2 show ?case by simp
-    qed
-  
-  
-  (*TIt is possible to use
-      map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) P))
-    instead of
-      groupF f P
-    for the following reasons:
-      groupF executes its compare function (first parameter) very often; it always tests for (f x = f y).
-      The function f may be really expensive. At least polyML does not share the result of f but 
-      (probably) always recomputes (part of) it. The optimization pre-computes f and tells groupF to use
-      a really cheap function (snd) to compare. The lemma groupF_tuple tells that those are equal.
-  
-    TODO: is this also faster for Haskell?*)
   definition groupWIs1 :: "'a parts_connection_scheme \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
     "groupWIs1 c rs = (let P = getParts rs in
                         (let W = map getOneIp P in 
