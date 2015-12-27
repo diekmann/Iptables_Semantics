@@ -1,9 +1,9 @@
 (*Original Author: Max Haslbeck, 2015*)
 theory IPPartitioning
-imports Main
-        "SimpleFw_Semantics"
-        "../Common/SetPartitioning"
+imports "../Common/SetPartitioning"
+        "../Common/GroupF"
         "../Primitive_Matchers/Common_Primitive_toString"
+        "SimpleFw_Semantics"
         "../afp/Mergesort" (*TODO*)
 begin
 
@@ -214,8 +214,13 @@ qed
 
 (* OPTIMIZED PARTITIONING *)
 
-fun wordinterval_list_to_set :: "'a::len wordinterval list \<Rightarrow> 'a::len word set" where
+definition wordinterval_list_to_set :: "'a::len wordinterval list \<Rightarrow> 'a::len word set" where
   "wordinterval_list_to_set ws = \<Union> set (map wordinterval_to_set ws)"
+
+lemma wordinterval_list_to_set_compressed: "wordinterval_to_set (wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) =
+          wordinterval_list_to_set xs"
+  proof(induction xs)
+  qed(simp_all add: wordinterval_compress wordinterval_list_to_set_def)
 
 fun partIps :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval list 
                 \<Rightarrow> 'a::len wordinterval list" where
@@ -250,25 +255,25 @@ lemma ipPartitioning_partitioningIps:
    (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow> 
    ipPartition (set (map wordinterval_to_set ss)) 
                (set (map wordinterval_to_set (partitioningIps ss ts)))"
-by (metis ipPartitioning_helper_opt partitioningIps_equi wordinterval_list_to_set.simps)
+by (metis ipPartitioning_helper_opt partitioningIps_equi wordinterval_list_to_set_def)
 
 lemma complete_partitioningIps: 
   "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
    (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow> 
-   \<Union> (set (map wordinterval_to_set ts)) = \<Union> (set (map wordinterval_to_set (partitioningIps ss ts)))"
-using complete_helper by (metis partitioningIps_equi wordinterval_list_to_set.simps)
+   (wordinterval_list_to_set ts) = wordinterval_list_to_set (partitioningIps ss ts)"
+using complete_helper by (metis partitioningIps_equi wordinterval_list_to_set_def)
 
 lemma disjoint_partitioningIps: 
   "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
    (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow>
    disjoint_list_rec (map wordinterval_to_set (partitioningIps ss ts))"
-by (simp add: partitioning1_disjoint partitioningIps_equi)
+by (simp add: partitioning1_disjoint partitioningIps_equi wordinterval_list_to_set_def)
 
 
 lemma ipPartitioning_partitioningIps1: "ipPartition (set (map wordinterval_to_set ss)) 
                    (set (map wordinterval_to_set (partitioningIps ss [wordinterval_UNIV])))"
   proof(rule ipPartitioning_partitioningIps)
-  qed(simp_all)
+  qed(simp_all add: wordinterval_list_to_set_def)
                   
 definition getParts :: "simple_rule list \<Rightarrow> 32 wordinterval list" where
    "getParts rs = partitioningIps (extract_IPSets rs) [wordinterval_UNIV]"
@@ -289,20 +294,20 @@ lemma getParts_ipPartition: "ipPartition (set (map wordinterval_to_set (extract_
 
 
 
-lemma getParts_complete: "\<Union> (set (map wordinterval_to_set (getParts rs))) = UNIV"
+lemma getParts_complete: "wordinterval_list_to_set (getParts rs) = UNIV"
   proof -
-    have "\<Union> (set (map wordinterval_to_set (getParts rs))) = \<Union> (set (map wordinterval_to_set [wordinterval_UNIV]))"
+    have "wordinterval_list_to_set (getParts rs) = wordinterval_list_to_set [wordinterval_UNIV]"
       unfolding getParts_def
       apply(rule complete_partitioningIps[symmetric])
-        by(simp_all)
-    also have "\<dots> = UNIV" by simp
+        by(simp_all add: wordinterval_list_to_set_def)
+    also have "\<dots> = UNIV" by (simp add: wordinterval_list_to_set_def)
     finally show ?thesis .
 qed
 
 lemma getParts_disjoint: "disjoint_list_rec (map wordinterval_to_set (getParts rs))"
   apply(subst getParts_def)
   apply(rule disjoint_partitioningIps)
-    apply(simp_all)
+    apply(simp_all add: wordinterval_list_to_set_def)
   done
 
 
@@ -386,6 +391,9 @@ definition "runFw s d c rs = simple_fw rs \<lparr>p_iiface=pc_iiface c,p_oiface=
                           p_tcp_flags={TCP_SYN},
                           p_tag_ctstate=pc_tag_ctstate c\<rparr>"
 
+lemma has_default_policy_runFw: "has_default_policy rs \<Longrightarrow> runFw s d c rs = Decision FinalAllow \<or> runFw s d c rs = Decision FinalDeny"
+  by(simp add: runFw_def has_default_policy)
+
 definition "same_fw_behaviour_one ip1 ip2 c rs \<equiv>
             \<forall>d s. runFw ip1 d c rs = runFw ip2 d c rs \<and> runFw s ip1 c rs = runFw s ip2 c rs"
 
@@ -457,7 +465,7 @@ qed
   
 lemma same_behave_runFw:
   assumes a1: "\<forall>A \<in> set (map wordinterval_to_set W). \<forall>a1 \<in> A. \<forall>a2 \<in> A. same_fw_behaviour_one a1 a2 c rs"
-  and a2: "\<Union> set (map wordinterval_to_set W) = UNIV"
+  and a2: "wordinterval_list_to_set W = UNIV"
   and a3: "\<forall>w \<in> set W. \<not> wordinterval_empty w"
   and a4: "(map (\<lambda>d. runFw x1 d c rs) (map getOneIp W), map (\<lambda>s. runFw s x1 c rs) (map getOneIp W)) =
            (map (\<lambda>d. runFw x2 d c rs) (map getOneIp W), map (\<lambda>s. runFw s x2 c rs) (map getOneIp W))"
@@ -469,7 +477,7 @@ proof -
   from a3 a4 getOneIp_elem
     have b2: "\<forall>B \<in> set (map wordinterval_to_set W). \<exists>b \<in> B. runFw b x1 c rs = runFw b x2 c rs"
     by fastforce
-  from runFw_sameFw_behave[OF a1 a2 b1 b2] show "same_fw_behaviour_one x1 x2 c rs" by simp
+  from runFw_sameFw_behave[OF a1 _ b1 b2] a2[unfolded wordinterval_list_to_set_def] show "same_fw_behaviour_one x1 x2 c rs" by simp
 qed
 
 lemma same_behave_runFw_not:
@@ -479,92 +487,7 @@ lemma same_behave_runFw_not:
 by (simp add: same_fw_behaviour_one_def) (blast)
 
 
-(*TODO: move to common list functions?*)
-fun groupF ::  "('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'a list list"  where
-  "groupF f [] = []" |
-  "groupF f (x#xs) = (x#(filter (\<lambda>y. f x = f y) xs))#(groupF f (filter (\<lambda>y. f x \<noteq> f y) xs))"
 
-
-(*trying a more efficient implementation of groupF*)
-fun select_p_tuple :: "('a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> ('a list \<times> 'a list) \<Rightarrow> ('a list \<times> 'a list)" where
-  "select_p_tuple p x (ts,fs) = (if p x then (x#ts, fs) else (ts, x#fs))"
-
-definition partition_tailrec :: "('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> 'a list)" where
-  "partition_tailrec p xs = foldr (select_p_tuple p) xs ([],[])"
-
-lemma partition_tailrec: "partition_tailrec f as =  (filter f as,  filter (\<lambda>x. \<not>f x) as)"
-proof - 
-  {fix ts_accu fs_accu
-    have "foldr (select_p_tuple f) as (ts_accu, fs_accu) = (filter f as @ ts_accu,  filter (\<lambda>x. \<not>f x) as @ fs_accu)"
-    by(induction as arbitrary: ts_accu fs_accu) simp_all
-  } thus ?thesis unfolding partition_tailrec_def by simp
-qed
-(*
-fun partition_tailrec :: "('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> 'a list) \<Rightarrow> ('a list \<times> 'a list)" where
-  "partition_tailrec _ [] acc = acc" |
-  "partition_tailrec f (a#as) (ts,fs) = (if f a then partition_tailrec f as (a#ts, fs) else partition_tailrec f as (ts, a#fs))"
-
-lemma "partition_tailrec f as (ts_accu, fs_accu) = (rev (filter f as) @ ts_accu, rev (filter (\<lambda>x. \<not>f x) as) @ fs_accu)"
-apply(induction as arbitrary: ts_accu fs_accu)
- apply(simp)
-apply(simp)
-done
-*)
-
-
-lemma "groupF f (x#xs) = (let (ts, fs) = partition_tailrec (\<lambda>y. f x = f y) xs in (x#ts)#(groupF f fs))"
-by(simp add: partition_tailrec)
-
-(*is this more efficient?*)
-function groupF_code ::  "('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'a list list"  where
-  "groupF_code f [] = []" |
-  "groupF_code f (x#xs) = (let (ts, fs) = partition_tailrec (\<lambda>y. f x = f y) xs in (x#ts)#(groupF_code f fs))"
-apply(pat_completeness)
-apply(auto)
-done
-
-termination groupF_code
-  apply(relation "measure (\<lambda>(f,as). length (filter (\<lambda>x. (\<lambda>y. f x = f y) x) as))")
-   apply(simp; fail)
-  apply(simp add: partition_tailrec)
-  using le_imp_less_Suc length_filter_le by blast
-
-lemma[code]: "groupF f as = groupF_code f as"
-  by(induction f as rule: groupF_code.induct) (simp_all add: partition_tailrec)
-
-export_code groupF in SML
-
-
-lemma groupF_lem:
-  defines "same f A \<equiv> (\<forall>a1 \<in> set A. \<forall>a2 \<in> set A. f a1 = f a2)"
-  shows "\<forall>A \<in> set(groupF f xs). same f A"
-  proof(induction f xs rule: groupF.induct)
-    case 1 thus ?case by simp
-  next
-    case (2 f x xs)
-      have groupF_fst: "groupF f (x # xs) = (x # [y\<leftarrow>xs . f x = f y]) # groupF f [y\<leftarrow>xs . f x \<noteq> f y]" by force
-      have step: " \<forall>A\<in>set [x # [y\<leftarrow>xs . f x = f y]]. same f A" unfolding same_def by fastforce
-      with 2 show ?case unfolding groupF_fst by fastforce
-qed
-
-lemma groupF_set_lem: "set (concat (groupF f xs)) = set xs"
-  proof(induction f xs rule: groupF.induct)
-  case 2 thus ?case by (simp) blast
-  qed(simp)
-
-lemma groupF_set_lem1: "\<forall>X \<in> set (groupF f xs). \<forall>x \<in> set X. x \<in> set xs"
-  using groupF_set_lem by fastforce
-
-lemma groupF_lem_not: "A \<in> set (groupF f xs) \<Longrightarrow> B \<in> set (groupF f xs) \<Longrightarrow> A \<noteq> B \<Longrightarrow>
-     \<forall>a \<in> set A. \<forall>b \<in> set B. f a \<noteq> f b"
-  proof(induction f xs rule: groupF.induct)
-  case 1 thus ?case by simp
-  next
-  case 2 thus ?case
-    apply -
-    apply(subst (asm) groupF.simps)+
-    using groupF_set_lem1 by fastforce (*1s*)
-  qed
 
 definition groupWIs :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
   "groupWIs c rs = (let W = getParts rs in 
@@ -661,142 +584,328 @@ proof -
 qed
 
 lemma groupParts_same_fw_wi2: "V \<in> set (groupWIs c rs) \<Longrightarrow>
-                               \<forall>ip1 \<in> \<Union> set (map wordinterval_to_set V).
-                               \<forall>ip2 \<in> \<Union> set (map wordinterval_to_set V).
+                               \<forall>ip1 \<in> wordinterval_list_to_set V.
+                               \<forall>ip2 \<in> wordinterval_list_to_set V.
                                same_fw_behaviour_one ip1 ip2 c rs"
-  using groupParts_same_fw_wi0 groupParts_same_fw_wi1 by simp
+  using groupParts_same_fw_wi0 groupParts_same_fw_wi1 by (simp add: wordinterval_list_to_set_def)
 
 lemma groupWIs_same_fw_not2: "A \<in> set (groupWIs c rs) \<Longrightarrow> B \<in> set (groupWIs c rs) \<Longrightarrow> 
                                 A \<noteq> B \<Longrightarrow>
-                                \<forall>ip1 \<in> \<Union> set (map wordinterval_to_set A).
-                                \<forall>ip2 \<in> \<Union> set (map wordinterval_to_set B).
+                                \<forall>ip1 \<in> wordinterval_list_to_set A.
+                                \<forall>ip2 \<in> wordinterval_list_to_set B.
                                 \<not> same_fw_behaviour_one ip1 ip2 c rs"
-  using groupWIs_same_fw_not by fast
+  apply(simp add: wordinterval_list_to_set_def)
+  using groupWIs_same_fw_not by simp
 
 (*I like this version -- corny*)
 lemma "A \<in> set (groupWIs c rs) \<Longrightarrow> B \<in> set (groupWIs c rs) \<Longrightarrow> 
-                \<exists>ip1 \<in> \<Union> set (map wordinterval_to_set A).
-                \<exists>ip2 \<in> \<Union> set (map wordinterval_to_set B).  same_fw_behaviour_one ip1 ip2 c rs
+                \<exists>ip1 \<in> wordinterval_list_to_set A.
+                \<exists>ip2 \<in> wordinterval_list_to_set B. same_fw_behaviour_one ip1 ip2 c rs
                 \<Longrightarrow> A = B"
 using groupWIs_same_fw_not2 by blast
 
 
-(*TODO*)
-lemma whatup: "[y\<leftarrow>ys . g b = g y] = map fst [y\<leftarrow>map (\<lambda>x. (x, g x)) ys . g b = snd y]"
-  apply(induction ys arbitrary: g b)
-  apply(simp)
-by fastforce
 
-lemma whatup1: "(map (\<lambda>x. (x, f x)) [y\<leftarrow>xs . f x \<noteq> f y]) = [y\<leftarrow>map (\<lambda>x. (x, f x)) xs . f x \<noteq> snd y]"
-  apply(induction xs)
-  apply(simp)
-  apply(simp)
-by fastforce
-
-lemma groupF_tuple: "groupF f xs = map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) xs))"
-  apply(induction f xs rule: groupF.induct)
-  apply(simp)
-  apply(simp)
-  apply(rule conjI)
-    apply(rename_tac b ys g)
-    using whatup apply fast
-    apply(rename_tac b ys g)
-using whatup1 by metis
-
-definition groupWIs1 :: "'a parts_connection_scheme \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
-  "groupWIs1 c rs = (let P = getParts rs in
-                      (let W = map getOneIp P in 
-                       (let f = (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) W,
-                                       map (\<lambda>s. runFw s (getOneIp wi) c rs) W)) in
-                      map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) P)))))"
-
-lemma groupWIs_groupWIs1_equi: "groupWIs1 c rs = groupWIs c rs"
-  apply(subst groupWIs1_def)
-  apply(subst groupWIs_def)
-using groupF_tuple by metis
-
-definition simple_conn_matches :: "simple_match \<Rightarrow> parts_connection \<Rightarrow> bool" where
-    "simple_conn_matches m c \<longleftrightarrow>
-      (match_iface (iiface m) (pc_iiface c)) \<and>
-      (match_iface (oiface m) (pc_oiface c)) \<and>
-      (match_proto (proto m) (pc_proto c)) \<and>
-      (simple_match_port (sports m) (pc_sport c)) \<and>
-      (simple_match_port (dports m) (pc_dport c))"
-
-lemma filter_conn_fw_lem: 
-  "runFw s d c (filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs) = runFw s d c rs"
-  apply(simp add: runFw_def simple_conn_matches_def match_sel_def)
-  apply(induction rs "\<lparr>p_iiface = pc_iiface c, p_oiface = pc_oiface c,
-                       p_src = s, p_dst = d, p_proto = pc_proto c, 
-                       p_sport = pc_sport c, p_dport = pc_dport c,
-                       p_tcp_flags = {TCP_SYN},
-                       p_tag_ctstate = pc_tag_ctstate c\<rparr>"
-        rule: simple_fw.induct)
-  apply(simp add: simple_matches.simps)+
-done
-
-
-(*TODO: performance
-  despite optimization, this function takes quite long and can be optimized
-  possible optimization:
-  1) the firewall evaluations could be halved, essentially, we are constructing a full access control
-     matrix for inbound and outbound connections of each partition member. This matrix is symmetric.
-     It would be enough to construct half of it.
-  2) The firewall is evaluated very often. Rules that will definitely not match (w.r.t. the parts_connection)
-      can be removed.*)
-definition groupWIs2 :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
-  "groupWIs2 c rs =  (let P = getParts rs in
-                       (let W = map getOneIp P in 
-                       (let filterW = (filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs) in
-                         (let f = (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c filterW) W,
-                                         map (\<lambda>s. runFw s (getOneIp wi) c filterW) W)) in
-                      map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) P))))))"
-
-lemma groupWIs1_groupWIs2_equi: "groupWIs2 c rs = groupWIs1 c rs"
-  by(simp add: groupWIs2_def groupWIs1_def filter_conn_fw_lem)
-
-
-lemma groupWIs_code[code]: "groupWIs c rs = groupWIs2 c rs"
-  using groupWIs1_groupWIs2_equi groupWIs_groupWIs1_equi by metis
-
-lemma wordinterval_unifier: "wordinterval_to_set 
-          (wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) =
-          \<Union> set (map wordinterval_to_set xs)"
-  apply simp
-  apply(induction xs)
-   apply(simp_all add: wordinterval_compress)
+(*begin groupWIs1 and groupWIs2 optimization*)
+  (*TODO*)
+  definition groupWIs1 :: "'a parts_connection_scheme \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
+    "groupWIs1 c rs = (let P = getParts rs in
+                        (let W = map getOneIp P in 
+                         (let f = (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) W,
+                                         map (\<lambda>s. runFw s (getOneIp wi) c rs) W)) in
+                        map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) P)))))"
+  
+  lemma groupWIs_groupWIs1_equi: "groupWIs1 c rs = groupWIs c rs"
+    apply(subst groupWIs1_def)
+    apply(subst groupWIs_def)
+  using groupF_tuple by metis
+  
+  definition simple_conn_matches :: "simple_match \<Rightarrow> parts_connection \<Rightarrow> bool" where
+      "simple_conn_matches m c \<longleftrightarrow>
+        (match_iface (iiface m) (pc_iiface c)) \<and>
+        (match_iface (oiface m) (pc_oiface c)) \<and>
+        (match_proto (proto m) (pc_proto c)) \<and>
+        (simple_match_port (sports m) (pc_sport c)) \<and>
+        (simple_match_port (dports m) (pc_dport c))"
+  
+  lemma simple_conn_matches_simple_match_any: "simple_conn_matches simple_match_any c"
+    apply(simp add: simple_conn_matches_def)
+    apply(simp add: simple_match_any_def ipv4range_set_from_prefix_0 match_ifaceAny)
+    apply(subgoal_tac "(65535::16 word) = max_word")
+     apply(simp)
+    by(simp add: max_word_def)
+  
+  lemma has_default_policy_simple_conn_matches:
+    "has_default_policy rs \<Longrightarrow> has_default_policy [r\<leftarrow>rs . simple_conn_matches (match_sel r) c]"
+    apply(induction rs rule: has_default_policy.induct)
+      apply(simp; fail)
+     apply(simp add: simple_conn_matches_simple_match_any; fail)
+    apply(simp)
+    apply(intro conjI)
+     apply(simp split: split_if_asm; fail)
+    apply(simp add: has_default_policy_fst split: split_if_asm)
+    done
+  
+  
+  lemma filter_conn_fw_lem: 
+    "runFw s d c (filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs) = runFw s d c rs"
+    apply(simp add: runFw_def simple_conn_matches_def match_sel_def)
+    apply(induction rs "\<lparr>p_iiface = pc_iiface c, p_oiface = pc_oiface c,
+                         p_src = s, p_dst = d, p_proto = pc_proto c, 
+                         p_sport = pc_sport c, p_dport = pc_dport c,
+                         p_tcp_flags = {TCP_SYN},
+                         p_tag_ctstate = pc_tag_ctstate c\<rparr>"
+          rule: simple_fw.induct)
+    apply(simp add: simple_matches.simps)+
   done
+  
+  
+  (*performance: despite optimization, this function takes quite long and can be optimized*)
+  definition groupWIs2 :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
+    "groupWIs2 c rs =  (let P = getParts rs in
+                         (let W = map getOneIp P in 
+                         (let filterW = (filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs) in
+                           (let f = (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c filterW) W,
+                                           map (\<lambda>s. runFw s (getOneIp wi) c filterW) W)) in
+                        map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) P))))))"
+  
+  lemma groupWIs1_groupWIs2_equi: "groupWIs2 c rs = groupWIs1 c rs"
+    by(simp add: groupWIs2_def groupWIs1_def filter_conn_fw_lem)
+  
+  
+  lemma groupWIs_code[code]: "groupWIs c rs = groupWIs2 c rs"
+    using groupWIs1_groupWIs2_equi groupWIs_groupWIs1_equi by metis
+(*end groupWIs1 and groupWIs2 optimization*)
 
+
+(*begin groupWIs3 optimization*)
+  fun matching_dsts :: "ipv4addr \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval \<Rightarrow> 32 wordinterval" where
+    "matching_dsts _ [] _ = Empty_WordInterval" |
+    "matching_dsts s ((SimpleRule m Accept)#rs) acc_dropped =
+        (if simple_match_ip (src m) s then
+           wordinterval_union (wordinterval_setminus (ipv4_cidr_tuple_to_interval (dst m)) acc_dropped) (matching_dsts s rs acc_dropped)
+         else
+           matching_dsts s rs acc_dropped)" |
+    "matching_dsts s ((SimpleRule m Drop)#rs) acc_dropped =
+        (if simple_match_ip (src m) s then
+           matching_dsts s rs (wordinterval_union (ipv4_cidr_tuple_to_interval (dst m)) acc_dropped)
+         else
+           matching_dsts s rs acc_dropped)"
+  
+  lemma matching_dsts_pull_out_accu:
+    "wordinterval_to_set (matching_dsts s rs (wordinterval_union a1 a2)) = wordinterval_to_set (matching_dsts s rs a2) - wordinterval_to_set a1"
+    apply(induction s rs a2 arbitrary: a1 a2 rule: matching_dsts.induct)
+       apply(simp_all)
+    by blast+
+  
+  (*a copy of matching_dsts*)
+  fun matching_srcs :: "ipv4addr \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval \<Rightarrow> 32 wordinterval" where
+    "matching_srcs _ [] _ = Empty_WordInterval" |
+    "matching_srcs d ((SimpleRule m Accept)#rs) acc_dropped =
+        (if simple_match_ip (dst m) d then
+           wordinterval_union (wordinterval_setminus (ipv4_cidr_tuple_to_interval (src m)) acc_dropped) (matching_srcs d rs acc_dropped)
+         else
+           matching_srcs d rs acc_dropped)" |
+    "matching_srcs d ((SimpleRule m Drop)#rs) acc_dropped =
+        (if simple_match_ip (dst m) d then
+           matching_srcs d rs (wordinterval_union (ipv4_cidr_tuple_to_interval (src m)) acc_dropped)
+         else
+           matching_srcs d rs acc_dropped)"
+  
+  lemma matching_srcs_pull_out_accu:
+    "wordinterval_to_set (matching_srcs d rs (wordinterval_union a1 a2)) = wordinterval_to_set (matching_srcs d rs a2) - wordinterval_to_set a1"
+    apply(induction d rs a2 arbitrary: a1 a2 rule: matching_srcs.induct)
+       apply(simp_all)
+    by blast+
+  
+  
+  lemma matching_dsts: "\<forall>r \<in> set rs. simple_conn_matches (match_sel r) c \<Longrightarrow>
+          wordinterval_to_set (matching_dsts s rs Empty_WordInterval) = {d. runFw s d c rs = Decision FinalAllow}"
+    proof(induction rs)
+    case Nil thus ?case by (simp add: runFw_def)
+    next
+    case (Cons r rs)
+      obtain m a where r: "r = SimpleRule m a" by(cases r, blast)
+      
+      from Cons.prems r have simple_match_ip_Accept: "\<And>d. simple_match_ip (src m) s \<Longrightarrow>
+        runFw s d c (SimpleRule m Accept # rs) = Decision FinalAllow \<longleftrightarrow> simple_match_ip (dst m) d \<or> runFw s d c rs = Decision FinalAllow"
+        by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)
+  
+      { fix d a
+        have "\<not> simple_match_ip (src m) s \<Longrightarrow>
+         runFw s d c (SimpleRule m a # rs) = Decision FinalAllow \<longleftrightarrow> runFw s d c rs = Decision FinalAllow"
+        apply(cases a)
+         by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)+
+       } note not_simple_match_ip=this
+  
+      from Cons.prems r have simple_match_ip_Drop: "\<And>d. simple_match_ip (src m) s \<Longrightarrow>
+             runFw s d c (SimpleRule m Drop # rs) = Decision FinalAllow \<longleftrightarrow> \<not> simple_match_ip (dst m) d \<and> runFw s d c rs = Decision FinalAllow"
+        by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)
+  
+      show ?case
+        proof(cases a)
+        case Accept with r Cons show ?thesis
+         apply(simp, intro conjI impI)
+          apply(simp add: simple_match_ip_Accept wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set)
+          apply blast
+         apply(simp add: not_simple_match_ip; fail)
+         done
+        next
+        case Drop with r Cons show ?thesis
+          apply(simp,intro conjI impI)
+           apply(simp add: simple_match_ip_Drop matching_dsts_pull_out_accu wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set)
+           apply blast
+          apply(simp add: not_simple_match_ip; fail)
+         done
+        qed
+    qed
+  lemma matching_srcs: "\<forall>r \<in> set rs. simple_conn_matches (match_sel r) c \<Longrightarrow>
+          wordinterval_to_set (matching_srcs d rs Empty_WordInterval) = {s. runFw s d c rs = Decision FinalAllow}"
+    proof(induction rs)
+    case Nil thus ?case by (simp add: runFw_def)
+    next
+    case (Cons r rs)
+      obtain m a where r: "r = SimpleRule m a" by(cases r, blast)
+      
+      from Cons.prems r have simple_match_ip_Accept: "\<And>s. simple_match_ip (dst m) d \<Longrightarrow>
+         runFw s d c (SimpleRule m simple_action.Accept # rs) = Decision FinalAllow \<longleftrightarrow> simple_match_ip (src m) s \<or> runFw s d c rs = Decision FinalAllow"
+        by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)
+  
+      { fix s a
+        have "\<not> simple_match_ip (dst m) d \<Longrightarrow>
+         runFw s d c (SimpleRule m a # rs) = Decision FinalAllow \<longleftrightarrow> runFw s d c rs = Decision FinalAllow"
+        apply(cases a)
+         by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)+
+       } note not_simple_match_ip=this
+  
+      from Cons.prems r have simple_match_ip_Drop: "\<And>s. simple_match_ip (dst m) d \<Longrightarrow>
+         runFw s d c (SimpleRule m simple_action.Drop # rs) = Decision FinalAllow \<longleftrightarrow> \<not> simple_match_ip (src m) s \<and> runFw s d c rs = Decision FinalAllow"
+        by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)
+  
+      show ?case
+        proof(cases a)
+        case Accept with r Cons show ?thesis
+         apply(simp, intro conjI impI)
+          apply(simp add: simple_match_ip_Accept wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set)
+          apply blast
+         apply(simp add: not_simple_match_ip; fail)
+         done
+        next
+        case Drop with r Cons show ?thesis
+          apply(simp,intro conjI impI)
+           apply(simp add: simple_match_ip_Drop matching_srcs_pull_out_accu wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set)
+           apply blast
+          apply(simp add: not_simple_match_ip; fail)
+         done
+        qed
+    qed
+  
+  
+  
+  (*TODO: if we can get wordinterval_element to log runtime (this should be possible! maybe we want to
+    use a type from the Collections to store wordintervals), then this should really improve the runtime!
+    We mostly check for wordinterval_element after preprocessing. If they are ordered, a divide-and-conquer search is in log*)
+  definition groupWIs3_default_policy :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
+    "groupWIs3_default_policy c rs =  (let P = getParts rs in
+                         (let W = map getOneIp P in 
+                         (let filterW = (filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs) in
+                           (let f = (\<lambda>wi. let mtch_dsts = (matching_dsts (getOneIp wi) filterW Empty_WordInterval);
+                                              mtch_srcs = (matching_srcs (getOneIp wi) filterW Empty_WordInterval) in 
+                                          (map (\<lambda>d. wordinterval_element d mtch_dsts) W,
+                                           map (\<lambda>s. wordinterval_element s mtch_srcs) W)) in
+                        map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) P))))))"
+  
+  
+  lemma groupWIs3_default_policy_groupWIs2: assumes "has_default_policy rs" shows "groupWIs2 c rs = groupWIs3_default_policy c rs"
+  proof -
+    { fix filterW s d
+      from matching_dsts[where c=c] have "filterW = filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs \<Longrightarrow>
+           wordinterval_element d (matching_dsts s filterW Empty_WordInterval) \<longleftrightarrow> runFw s d c filterW = Decision FinalAllow"
+      by(simp)
+    } note matching_dsts_filterW=this[simplified]
+  
+    { fix filterW s d
+      from matching_srcs[where c=c] have "filterW = filter (\<lambda>r. simple_conn_matches (match_sel r) c) rs \<Longrightarrow>
+            wordinterval_element s (matching_srcs d filterW Empty_WordInterval) \<longleftrightarrow> runFw s d c filterW = Decision FinalAllow"
+      by simp
+    } note matching_srcs_filterW=this[simplified]
+  
+    { fix W rs
+      assume assms': "has_default_policy rs"
+      have "groupF (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs = Decision FinalAllow) (map getOneIp W),
+                           map (\<lambda>s. runFw s (getOneIp wi) c rs = Decision FinalAllow) (map getOneIp W))) W =
+             groupF (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) (map getOneIp W),
+                           map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp W))) W"
+      proof -
+        { (*unused fresh generic variables. 'a is used for the tuple already*)
+          fix f1::"'w \<Rightarrow> 'u \<Rightarrow> 'v" and f2::" 'w \<Rightarrow> 'u \<Rightarrow> 'x" and x and y and g1::"'w \<Rightarrow> 'u \<Rightarrow> 'y" and g2::"'w \<Rightarrow> 'u \<Rightarrow> 'z" and W::"'u list"
+            assume 1: "\<forall>w \<in> set W. (f1 x) w = (f1 y) w \<longleftrightarrow> (f2 x) w =  (f2 y) w"
+               and 2: "\<forall>w \<in> set W. (g1 x) w = (g1 y) w \<longleftrightarrow> (g2 x) w =  (g2 y) w"
+               have "
+                 ((map (f1 x) W, map (g1 x) W) = (map (f1 y) W, map (g1 y) W)) 
+                 \<longleftrightarrow>
+                 ((map (f2 x) W, map (g2 x) W) = (map (f2 y) W, map (g2 y) W))"
+          proof -
+            from 1 have p1: "(map (f1 x) W = map (f1 y) W \<longleftrightarrow> map (f2 x) W = map (f2 y) W)" by(induction W)(simp_all)
+            from 2 have p2: "(map (g1 x) W = map (g1 y) W \<longleftrightarrow> map (g2 x) W = map (g2 y) W)" by(induction W)(simp_all)
+            from p1 p2 show ?thesis by fast
+          qed
+        } note map_over_tuples_equal_helper=this
+      
+        show ?thesis
+        apply(rule groupF_cong)
+        apply(intro ballI)
+        apply(rule map_over_tuples_equal_helper)
+         using has_default_policy_runFw[OF assms'] by metis+
+      qed
+    } note has_default_policy_groupF=this[simplified]
+  
+    from assms show ?thesis
+    apply(simp add: groupWIs3_default_policy_def groupWIs_code[symmetric])
+    apply(subst groupF_tuple[symmetric])
+    apply(simp add: Let_def)
+    apply(simp add: matching_srcs_filterW matching_dsts_filterW)
+    apply(subst has_default_policy_groupF)
+     apply(simp add: has_default_policy_simple_conn_matches; fail)
+    apply(simp add: groupWIs_def Let_def filter_conn_fw_lem)
+    done
+  qed
+  
+  
+  definition groupWIs3 :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list list" where
+    "groupWIs3 c rs = (if has_default_policy rs then groupWIs3_default_policy c rs else groupWIs2 c rs)"
+  
+  lemma groupWIs3: "groupWIs3 = groupWIs"
+    by(simp add: fun_eq_iff groupWIs3_def groupWIs_code groupWIs3_default_policy_groupWIs2) 
+
+(*end groupWIs3 optimization*)
 
 (*construct partitions. main function!*)
 definition build_ip_partition :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list" where
-  "build_ip_partition c rs = map (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) (groupWIs2 c rs)"
+  "build_ip_partition c rs = map (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) (groupWIs3 c rs)"
+
 
 theorem build_ip_partition_same_fw: "V \<in> set (build_ip_partition c rs) \<Longrightarrow>
                                \<forall>ip1 \<in> wordinterval_to_set V.
                                \<forall>ip2 \<in> wordinterval_to_set V.
                                same_fw_behaviour_one ip1 ip2 c rs"
-  apply(simp add: build_ip_partition_def groupWIs1_groupWIs2_equi groupWIs_groupWIs1_equi)
-using wordinterval_unifier groupParts_same_fw_wi2 by blast
+  apply(simp add: build_ip_partition_def groupWIs3)
+  using wordinterval_list_to_set_compressed groupParts_same_fw_wi2 by blast
 
 theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \<Longrightarrow> B \<in> set (build_ip_partition c rs) \<Longrightarrow> 
                                 A \<noteq> B \<Longrightarrow>
                                 \<forall>ip1 \<in> wordinterval_to_set A.
                                 \<forall>ip2 \<in> wordinterval_to_set B.
                                 \<not> same_fw_behaviour_one ip1 ip2 c rs"
-  apply(simp add: build_ip_partition_def groupWIs1_groupWIs2_equi groupWIs_groupWIs1_equi)
-using wordinterval_unifier groupWIs_same_fw_not2 by fast (*1s*)
-  
+  apply(simp add: build_ip_partition_def groupWIs3)
+  using  groupWIs_same_fw_not2 wordinterval_list_to_set_compressed by blast
 
-(*TODO: move?*)
-fun pretty_wordinterval where
-  "pretty_wordinterval (WordInterval ip1 ip2) = (if ip1 = ip2
-                                                 then ipv4addr_toString ip1
-                                                 else ''('' @ ipv4addr_toString ip1 @ '' - '' @
-                                                      ipv4addr_toString ip2 @ '')'')" |
-  "pretty_wordinterval (RangeUnion r1 r2) = pretty_wordinterval r1 @ '' u '' @
-                                            pretty_wordinterval r2"
 
+definition all_pairs :: "'a list \<Rightarrow> ('a \<times> 'a) list" where
+  "all_pairs xs \<equiv> concat (map (\<lambda>x. map (\<lambda>y. (x,y)) xs) xs)"
+
+lemma all_pairs: "\<forall> (x,y) \<in> (set xs \<times> set xs). (x,y) \<in> set (all_pairs xs)"
+  by(auto simp add: all_pairs_def)
 
 (*construct an ip partition and print it in some useable format
   returns:
@@ -804,15 +913,17 @@ fun pretty_wordinterval where
   vertices = (name, list of ip addresses this vertex corresponds to)
   and edges = (name \<times> name) list
 *)
+(*TODO: can we use collect srcs or collect dsts here too?*)
 fun build_ip_partition_pretty 
   :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
   where
-  "build_ip_partition_pretty c rs = (let W = build_ip_partition c rs in
-                  (let R = map getOneIp W 
-      in
-                         (let U = concat (map (\<lambda>x. map (\<lambda>y. (x,y)) R) R) in 
-     (zip (map ipv4addr_toString R) (map pretty_wordinterval W), 
-     map (\<lambda>(x,y). (ipv4addr_toString x, ipv4addr_toString y)) (filter (\<lambda>(a,b). runFw a b c rs = Decision FinalAllow) U)))))"
+  "build_ip_partition_pretty c rs =
+    (let W = build_ip_partition c rs;
+         R = map getOneIp W;
+         U = all_pairs R
+     in
+     ((''Nodes'','':'') # zip (map ipv4addr_toString R) (map ipv4addr_wordinterval_toString W), 
+      (''Vertices'','':'') # map (\<lambda>(x,y). (ipv4addr_toString x, ipv4addr_toString y)) (filter (\<lambda>(a,b). runFw a b c rs = Decision FinalAllow) U)))"
 
 
 definition parts_connection_ssh where "parts_connection_ssh = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,

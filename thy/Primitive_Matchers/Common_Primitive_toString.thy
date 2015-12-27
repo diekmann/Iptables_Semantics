@@ -21,7 +21,7 @@ lemma "ipv4_cidr_toString (ipv4addr_of_dotdecimal (192,168,0,1), 22) = ''192.168
 
 
 fun ipv4addr_wordinterval_toString :: "32 wordinterval \<Rightarrow> string" where
-  "ipv4addr_wordinterval_toString (WordInterval s e) = (if s = e then ipv4addr_toString s else ''{''@ipv4addr_toString s@''..''@ipv4addr_toString e@''}'')" |
+  "ipv4addr_wordinterval_toString (WordInterval s e) = (if s = e then ipv4addr_toString s else ''{''@ipv4addr_toString s@'' .. ''@ipv4addr_toString e@''}'')" |
   "ipv4addr_wordinterval_toString (RangeUnion a b) = ipv4addr_wordinterval_toString a @ '' u ''@ipv4addr_wordinterval_toString b"
 
 

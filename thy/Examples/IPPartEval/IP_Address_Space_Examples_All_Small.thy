@@ -42,7 +42,7 @@ definition view where
       (''x'',
        map (simple_rule_iptables_save_toString (ipt_chain_toSting f)) (preprocess_keep_ifce (get_unfold f) closure ipassmt def fw_in),
        map (simple_rule_iptables_save_toString (ipt_chain_toSting f)) fw,
-       map pretty_wordinterval (getParts fw),
+       map ipv4addr_wordinterval_toString (getParts fw),
        (build_ip_partition_pretty parts_connection_ssh fw),
        (build_ip_partition_pretty parts_connection_http fw))"
 
@@ -194,7 +194,7 @@ begin
                                pc_sport=10000, pc_dport=8080, pc_tag_ctstate=CT_New\<rparr>"
 
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt2 fw3_INPUT_default_policy fw3 in
-               map pretty_wordinterval (build_ip_partition web8080 fw)"
+               map ipv4addr_wordinterval_toString (build_ip_partition web8080 fw)"
 
   value[code] "bench lower_closure INP ipassmt2 fw3_INPUT_default_policy fw3"
   value[code] "view lower_closure INP ipassmt2 fw3_INPUT_default_policy fw3"
@@ -216,7 +216,7 @@ begin
   definition "mysql = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
                                pc_sport=10000, pc_dport=3306, pc_tag_ctstate=CT_New\<rparr>"
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt_generic fw4_INPUT_default_policy fw4 in
-             map pretty_wordinterval (build_ip_partition mysql fw)"
+             map ipv4addr_wordinterval_toString (build_ip_partition mysql fw)"
 
   value[code] "bench lower_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"
   value[code] "view lower_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"

@@ -25,7 +25,17 @@ fun common_matcher :: "(common_primitive, simple_packet) exact_match_tac" where
 
 
 
-  text{*Warning: beware of the sloppy term `empty' portrange*} 
+  (* What if we specify a port range where the start port is greater than the end port?
+    For example, mathematically, {3 .. 2} = {}. Does iptables have the same behavior?
+    For example, --source-port 1:0 raises an error on my system. For normal port specification, -m tcp, and -m multiport.
+    There is also a manpage which states "if the first port is greater than the second one they will be swapped."
+    I also saw a system where such an empty port range (--source-port 1:0) was really this impossible range and caused a rule that could never match.
+    Because \<nexists> port. port \<in> {}.
+    The behaviour if the end of the port range is smaller than the start is not 100% consistent among iptables versions and different modules.
+    In general, it would be best to raise an error if such a range occurs.
+    *)
+
+  text{*Warning: beware of the sloppy term `empty' portrange*}
   text{*An `empty' port range means it can never match! Basically, @{term "MatchNot (Match (Src_Ports [(0,65535)]))"} is False*}
   lemma "\<not> matches (common_matcher, \<alpha>) (MatchNot (Match (Src_Ports [(0,65535)]))) a 
           \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),

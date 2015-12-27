@@ -73,6 +73,16 @@ subsection{*Simple Firewall Semantics*}
   fun simple_match_ip :: "(ipv4addr \<times> nat) \<Rightarrow> ipv4addr \<Rightarrow> bool" where
     "simple_match_ip (base, len) p_ip \<longleftrightarrow> p_ip \<in> ipv4range_set_from_prefix base len"
 
+  lemma wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set:
+    "wordinterval_to_set (ipv4_cidr_tuple_to_interval ip) = {d. simple_match_ip ip d}"
+    proof -
+      { fix s d
+        from ipv4range_to_set_def ipv4range_to_set_ipv4_cidr_tuple_to_interval have
+          "s \<in> wordinterval_to_set (ipv4_cidr_tuple_to_interval d) \<longleftrightarrow> simple_match_ip d s"
+        by(cases d) auto
+      } thus ?thesis by blast
+    qed
+
   --"by the way, the words do not wrap around"
   lemma "{(253::8 word) .. 8} = {}" by simp 
 
@@ -204,6 +214,28 @@ value[code] "simple_fw [
   SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0, 0), dst = (0, 0), proto = Proto TCP, sports = (0, 0x0), dports = (0, 0x0)\<rparr> simple_action.Drop]
   
   \<lparr>p_iiface = '''', p_oiface = '''',  p_src = 1, p_dst = 2, p_proto = TCP, p_sport = 8, p_dport = 9, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
+
+
+fun has_default_policy :: "simple_rule list \<Rightarrow> bool" where
+  "has_default_policy [] = False" |
+  "has_default_policy [(SimpleRule m _)] = (m = simple_match_any)" |
+  "has_default_policy (_#rs) = has_default_policy rs"
+
+lemma has_default_policy: "has_default_policy rs \<Longrightarrow> simple_fw rs p = Decision FinalAllow \<or> simple_fw rs p = Decision FinalDeny"
+  apply(induction rs rule: has_default_policy.induct)
+    apply(simp;fail)
+   apply(simp_all)
+   apply(rename_tac a, case_tac a)
+    apply(simp_all add: simple_match_any)
+  apply(rename_tac r1 r2 rs)
+  apply(case_tac r1, rename_tac m a, case_tac a)
+   apply(simp_all)
+ done
+
+lemma has_default_policy_fst: "has_default_policy rs \<Longrightarrow> has_default_policy (r#rs)"
+ apply(cases r, rename_tac m a, simp)
+ apply(case_tac rs)
+ by(simp_all)
 
 
 end

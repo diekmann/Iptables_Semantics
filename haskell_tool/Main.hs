@@ -70,7 +70,7 @@ usage :: IO ()
 usage = do
     name <- getProgName
     putErrStrLn $ "Usage: " ++ name ++ " [-a FILE | -h] [FILE]"
-    putErrStrLn "Parse `iptables -Ln` output from FILE or standard input"
+    putErrStrLn "Parse `iptables-save` output from FILE or standard input"
     putErrStrLn ""
     putErrStrLn $ "  -a FILE   optional IP assignment file; if unspecified, a generic file is loaded"
     putErrStrLn $ "  -h        print this help text"
@@ -110,6 +110,9 @@ main = readArgs >>= \case
                 mapM_  (putStrLn . show) (exampleCertSpoof ipassmt fuc)
                 putStrLn "== calculating service matrices =="
                 putStrLn "===========SSH========="
-                putStrLn $ show $ Isabelle.build_ip_partition_pretty Isabelle.parts_connection_ssh upper_simple
+                putStrLn $ showServiceMatrix $ Isabelle.build_ip_partition_pretty Isabelle.parts_connection_ssh upper_simple
                 putStrLn "===========HTTP========="
-                putStrLn $ show $ Isabelle.build_ip_partition_pretty Isabelle.parts_connection_http upper_simple
+                putStrLn $ showServiceMatrix $ Isabelle.build_ip_partition_pretty Isabelle.parts_connection_http upper_simple
+            where showServiceMatrix (nodes, vertices) = concat (map (\(n, desc) -> n ++ " |-> " ++ desc ++ "\n") nodes) ++ "\n" ++
+                                                        concat (map (\v -> show v ++ "\n") vertices)
+
