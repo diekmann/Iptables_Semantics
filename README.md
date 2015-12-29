@@ -66,6 +66,9 @@ Check the Examples directory to get started
 See README.md in haskell_tool.
 
 
+### Talks
+  * 32C3: Verified Firewall Ruleset Verification, Cornelius Diekmann, Hamburg, Germany, December 2015 [[description]](https://events.ccc.de/congress/2015/Fahrplan/events/7195.html) [[video]](https://media.ccc.de/v/32c3-7195-verified_firewall_ruleset_verification#video)
+
 ### Academic Publications
 
   * Cornelius Diekmann, Lukas Schwaighofer, and Georg Carle. Certifying spoofing-protection of firewalls. In 11th International Conference on Network and Service Management, CNSM, Barcelona, Spain, November 2015. [[preprint]](http://www.net.in.tum.de/fileadmin/bibtex/publications/papers/diekmann2015_cnsm.pdf)
