@@ -175,8 +175,7 @@ subsection{*Simple Ports*}
 
   lemma "{(p1s:: 16 word) .. p1e} \<inter> {p2s .. p2e} = {max p1s p2s .. min p1e p2e}" by(simp)
   
-  (*TODO: fix typo*)
-  lemma simpl_ports_conjunct_correct: "simple_match_port p1 pkt \<and> simple_match_port p2 pkt \<longleftrightarrow> simple_match_port (simpl_ports_conjunct p1 p2) pkt"
+  lemma simple_ports_conjunct_correct: "simple_match_port p1 pkt \<and> simple_match_port p2 pkt \<longleftrightarrow> simple_match_port (simpl_ports_conjunct p1 p2) pkt"
     apply(cases p1, cases p2, simp)
     by blast
 
@@ -290,7 +289,7 @@ lemma simple_match_and_correct: "simple_matches m1 p \<and> simple_matches m2 p 
      apply(auto dest: sip_None dip_None sip_Some dip_Some)
      apply(auto dest: iiface_None oiface_None iiface_Some oiface_Some)
      apply(auto dest: proto_None proto_Some)
-     using simpl_ports_conjunct_correct apply(blast)+
+     using simple_ports_conjunct_correct apply(blast)+
      done
  qed
 
