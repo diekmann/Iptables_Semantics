@@ -303,7 +303,7 @@ begin
        
     lemma iface_conjunct_commute: "iface_conjunct i1 i2 = iface_conjunct i2 i1"
     apply(induction i1 i2 rule: iface_conjunct.induct)
-    apply(simp)
+    apply(rename_tac i1 i2, simp)
     apply(case_tac "iface_name_is_wildcard i1")
      apply(case_tac [!] "iface_name_is_wildcard i2")
        apply(simp_all)
