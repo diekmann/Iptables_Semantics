@@ -58,7 +58,7 @@ show "ternary_ternary_eval (map_match_tac common_matcher p (ipt_tcp_flags_assume
      apply(simp)
      using match_tcp_flags_conjunct_option_None bool_to_ternary_simps(2) apply metis
     apply(simp)
-    apply(frule_tac pkt="(p_tcp_flags p)" in match_tcp_flags_conjunct_option_Some)
+    apply(drule_tac pkt="(p_tcp_flags p)" in match_tcp_flags_conjunct_option_Some)
     by simp
   qed(simp_all del: match_tcp_flags.simps)
 qed
