@@ -113,7 +113,7 @@ begin
     "simple_packet_set_union ps m = m # ps"
 
   private lemma "simple_packet_set_toSet (simple_packet_set_union ps m) = simple_packet_set_toSet ps \<union> {p. simple_matches m p}"
-    unfolding simple_packet_set_toSet_def simple_packet_set_union_def  by simp blast
+    unfolding simple_packet_set_toSet_def simple_packet_set_union_def by simp blast
 
 
   value "(\<exists>m' \<in> set ms. iface_subset iif (iiface m')) \<and>

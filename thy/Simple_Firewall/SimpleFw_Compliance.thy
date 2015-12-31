@@ -61,69 +61,6 @@ qed
 
 subsection{*MatchExpr to Simple Match*}
 
-
-subsubsection{*Merging Simple Matches*}
-text{*@{typ "simple_match"} @{text \<and>} @{typ "simple_match"}*}
-
-  fun simple_match_and :: "simple_match \<Rightarrow> simple_match \<Rightarrow> simple_match option" where
-    "simple_match_and \<lparr>iiface=iif1, oiface=oif1, src=sip1, dst=dip1, proto=p1, sports=sps1, dports=dps1 \<rparr> 
-                      \<lparr>iiface=iif2, oiface=oif2, src=sip2, dst=dip2, proto=p2, sports=sps2, dports=dps2 \<rparr> = 
-      (case ipv4cidr_conjunct sip1 sip2 of None \<Rightarrow> None | Some sip \<Rightarrow> 
-      (case ipv4cidr_conjunct dip1 dip2 of None \<Rightarrow> None | Some dip \<Rightarrow> 
-      (case iface_conjunct iif1 iif2 of None \<Rightarrow> None | Some iif \<Rightarrow>
-      (case iface_conjunct oif1 oif2 of None \<Rightarrow> None | Some oif \<Rightarrow>
-      (case simple_proto_conjunct p1 p2 of None \<Rightarrow> None | Some p \<Rightarrow>
-      Some \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p,
-            sports=simpl_ports_conjunct sps1 sps2, dports=simpl_ports_conjunct dps1 dps2 \<rparr>)))))"
-
-   lemma simple_match_and_correct: "simple_matches m1 p \<and> simple_matches m2 p \<longleftrightarrow> 
-    (case simple_match_and m1 m2 of None \<Rightarrow> False | Some m \<Rightarrow> simple_matches m p)"
-   proof -
-    obtain iif1 oif1 sip1 dip1 p1 sps1 dps1 where m1:
-      "m1 = \<lparr>iiface=iif1, oiface=oif1, src=sip1, dst=dip1, proto=p1, sports=sps1, dports=dps1 \<rparr>" by(cases m1, blast)
-    obtain iif2 oif2 sip2 dip2 p2 sps2 dps2 where m2:
-      "m2 = \<lparr>iiface=iif2, oiface=oif2, src=sip2, dst=dip2, proto=p2, sports=sps2, dports=dps2 \<rparr>" by(cases m2, blast)
-
-    have sip_None: "ipv4cidr_conjunct sip1 sip2 = None \<Longrightarrow> \<not> simple_match_ip sip1 (p_src p) \<or> \<not> simple_match_ip sip2 (p_src p)"
-      using simple_match_ip_conjunct[of sip1 "p_src p" sip2] by simp
-    have dip_None: "ipv4cidr_conjunct dip1 dip2 = None \<Longrightarrow> \<not> simple_match_ip dip1 (p_dst p) \<or> \<not> simple_match_ip dip2 (p_dst p)"
-      using simple_match_ip_conjunct[of dip1 "p_dst p" dip2] by simp
-    have sip_Some: "\<And>ip. ipv4cidr_conjunct sip1 sip2 = Some ip \<Longrightarrow>
-      simple_match_ip ip (p_src p) \<longleftrightarrow> simple_match_ip sip1 (p_src p) \<and> simple_match_ip sip2 (p_src p)"
-      using simple_match_ip_conjunct[of sip1 "p_src p" sip2] by simp
-    have dip_Some: "\<And>ip. ipv4cidr_conjunct dip1 dip2 = Some ip \<Longrightarrow>
-      simple_match_ip ip (p_dst p) \<longleftrightarrow> simple_match_ip dip1 (p_dst p) \<and> simple_match_ip dip2 (p_dst p)"
-      using simple_match_ip_conjunct[of dip1 "p_dst p" dip2] by simp
-
-    have iiface_None: "iface_conjunct iif1 iif2 = None \<Longrightarrow> \<not> match_iface iif1 (p_iiface p) \<or> \<not> match_iface iif2 (p_iiface p)"
-      using iface_conjunct[of iif1 "(p_iiface p)" iif2] by simp
-    have oiface_None: "iface_conjunct oif1 oif2 = None \<Longrightarrow> \<not> match_iface oif1 (p_oiface p) \<or> \<not> match_iface oif2 (p_oiface p)"
-      using iface_conjunct[of oif1 "(p_oiface p)" oif2] by simp
-    have iiface_Some: "\<And>iface. iface_conjunct iif1 iif2 = Some iface \<Longrightarrow> 
-      match_iface iface (p_iiface p) \<longleftrightarrow> match_iface iif1 (p_iiface p) \<and> match_iface iif2 (p_iiface p)"
-      using iface_conjunct[of iif1 "(p_iiface p)" iif2] by simp
-    have oiface_Some: "\<And>iface. iface_conjunct oif1 oif2 = Some iface \<Longrightarrow> 
-      match_iface iface (p_oiface p) \<longleftrightarrow> match_iface oif1 (p_oiface p) \<and> match_iface oif2 (p_oiface p)"
-      using iface_conjunct[of oif1 "(p_oiface p)" oif2] by simp
-
-    have proto_None: "simple_proto_conjunct p1 p2 = None \<Longrightarrow> \<not> match_proto p1 (p_proto p) \<or> \<not> match_proto p2 (p_proto p)"
-      using simple_proto_conjunct_correct[of p1 "(p_proto p)" p2] by simp
-    have proto_Some: "\<And>proto. simple_proto_conjunct p1 p2 = Some proto \<Longrightarrow>
-      match_proto proto (p_proto p) \<longleftrightarrow> match_proto p1 (p_proto p) \<and> match_proto p2 (p_proto p)"
-      using simple_proto_conjunct_correct[of p1 "(p_proto p)" p2] by simp
-
-    show ?thesis
-     apply(simp add: m1 m2)
-     apply(simp split: option.split)
-     apply(auto simp add: simple_matches.simps)
-     apply(auto dest: sip_None dip_None sip_Some dip_Some)
-     apply(auto dest: iiface_None oiface_None iiface_Some oiface_Some)
-     apply(auto dest: proto_None proto_Some)
-     using simpl_ports_conjunct_correct apply(blast)+
-     done
-   qed
-
-
 fun common_primitive_match_to_simple_match :: "common_primitive match_expr \<Rightarrow> simple_match option" where
   "common_primitive_match_to_simple_match MatchAny = Some (simple_match_any)" |
   "common_primitive_match_to_simple_match (MatchNot MatchAny) = None" |
