@@ -37,9 +37,6 @@ apply(rule optimize_matches)
 apply(simp add: ctstate_assume_state)
 done
 
-(*TODO: why do I even have to specify this*)
-lemma bool_to_ternary_eq_rule: "P = Q \<Longrightarrow> bool_to_ternary P = bool_to_ternary Q" by simp 
-
 text{*If we assume the CT State is @{const CT_New}, we can also assume that the TCP SYN flag (@{const ipt_tcp_syn}) is set.*}
 (*TODO: move?*)
 fun ipt_tcp_flags_assume_flag :: "ipt_tcp_flags \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
@@ -49,23 +46,22 @@ fun ipt_tcp_flags_assume_flag :: "ipt_tcp_flags \<Rightarrow> common_primitive m
   "ipt_tcp_flags_assume_flag _ MatchAny = MatchAny" |
   "ipt_tcp_flags_assume_flag flg (MatchAnd m1 m2) = MatchAnd (ipt_tcp_flags_assume_flag flg m1) (ipt_tcp_flags_assume_flag flg m2)"
 
-lemma ipt_tcp_flags_assume_flag: "match_tcp_flags flg (p_tcp_flags p) \<Longrightarrow>
-    matches (common_matcher, \<alpha>) (ipt_tcp_flags_assume_flag flg m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
-apply(rule matches_iff_apply_f)
-apply(induction m rule: ipt_tcp_flags_assume_flag.induct, simp_all del: match_tcp_flags.simps)
-(*TODO: probably simplify the proof down here*)
-apply(simp add: ipt_tcp_flags_equal del: match_tcp_flags.simps)
-apply(clarify)
-apply(case_tac "match_tcp_flags_conjunct_option x flg")
- apply(simp_all)
- using match_tcp_flags_conjunct_option apply (metis bool_to_ternary_simps(2) option.simps(4))
-apply(rule bool_to_ternary_eq_rule)
-apply(subgoal_tac "match_tcp_flags a (p_tcp_flags p) = (match_tcp_flags x (p_tcp_flags p) \<and> match_tcp_flags flg (p_tcp_flags p))")
- prefer 2
- apply(subst match_tcp_flags_conjunct_option[symmetric])
- apply(simp; fail)
-apply(simp)
-done
+lemma ipt_tcp_flags_assume_flag: assumes "match_tcp_flags flg (p_tcp_flags p)"
+    shows "matches (common_matcher, \<alpha>) (ipt_tcp_flags_assume_flag flg m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
+proof(rule matches_iff_apply_f)
+show "ternary_ternary_eval (map_match_tac common_matcher p (ipt_tcp_flags_assume_flag flg m)) = ternary_ternary_eval (map_match_tac common_matcher p m)"
+  using assms proof(induction m rule: ipt_tcp_flags_assume_flag.induct)
+  case (1 flg x)
+    thus ?case
+    apply(simp add: ipt_tcp_flags_equal del: match_tcp_flags.simps)
+    apply(cases "match_tcp_flags_conjunct_option x flg")
+     apply(simp)
+     using match_tcp_flags_conjunct_option_None bool_to_ternary_simps(2) apply metis
+    apply(simp)
+    apply(drule_tac pkt="(p_tcp_flags p)" in match_tcp_flags_conjunct_option_Some)
+    by simp
+  qed(simp_all del: match_tcp_flags.simps)
+qed
 
 definition ipt_tcp_flags_assume_syn :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
   "ipt_tcp_flags_assume_syn \<equiv> optimize_matches (ipt_tcp_flags_assume_flag ipt_tcp_syn)"

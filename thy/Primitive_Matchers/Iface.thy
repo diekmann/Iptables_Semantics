@@ -69,12 +69,10 @@ begin
       "iface_name_is_wildcard [s] \<longleftrightarrow> s = CHR ''+''" |
       "iface_name_is_wildcard (_#ss) \<longleftrightarrow> iface_name_is_wildcard ss"
     private lemma iface_name_is_wildcard_alt: "iface_name_is_wildcard eth \<longleftrightarrow> eth \<noteq> [] \<and> last eth = CHR ''+''"
-      apply(induction eth rule: iface_name_is_wildcard.induct)
-        apply(simp_all)
-      done
+      proof(induction eth rule: iface_name_is_wildcard.induct)
+      qed(simp_all)
     private lemma iface_name_is_wildcard_alt': "iface_name_is_wildcard eth \<longleftrightarrow> eth \<noteq> [] \<and> hd (rev eth) = CHR ''+''"
-      apply(simp add: iface_name_is_wildcard_alt)
-      using hd_rev by fastforce
+      unfolding iface_name_is_wildcard_alt using hd_rev by fastforce
     private lemma iface_name_is_wildcard_fst: "iface_name_is_wildcard (i # is) \<Longrightarrow> is \<noteq> [] \<Longrightarrow> iface_name_is_wildcard is"
       by(simp add: iface_name_is_wildcard_alt)
   
@@ -86,12 +84,14 @@ begin
           {(butlast i)@cs | cs. True})"
     private lemma "{(butlast i)@cs | cs. True} = (\<lambda>s. (butlast i)@s) ` (UNIV::string set)" by fastforce
     private lemma internal_iface_name_to_set: "internal_iface_name_match i p_iface \<longleftrightarrow> p_iface \<in> internal_iface_name_to_set i"
-      apply(induction i p_iface rule: internal_iface_name_match.induct)
-         apply(simp_all)
-      apply(safe)
-             apply(simp_all add: iface_name_is_wildcard_fst)
-       apply (metis (full_types) iface_name_is_wildcard.simps(3) list.exhaust)
-      by (metis append_butlast_last_id)
+      proof(induction i p_iface rule: internal_iface_name_match.induct)
+      case 4 thus ?case
+        apply(simp)
+        apply(safe)
+               apply(simp_all add: iface_name_is_wildcard_fst)
+         apply (metis (full_types) iface_name_is_wildcard.simps(3) list.exhaust)
+        by (metis append_butlast_last_id)
+      qed(simp_all)
     private lemma internal_iface_name_to_set2: "internal_iface_name_to_set ifce = {i. internal_iface_name_match ifce i}"
       by (simp add: internal_iface_name_to_set)
       
@@ -142,13 +142,13 @@ begin
       qed(auto simp add: iface_name_is_wildcard_alt split: split_if_asm)
     lemma match_iface_case_wildcard_prefix:
       "iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface i) p_i \<longleftrightarrow> butlast i = take (length i - 1) p_i"
-      apply(simp)
       apply(induction i p_i rule: internal_iface_name_match.induct)
-         apply(simp_all)
-       apply(simp add: iface_name_is_wildcard_alt split: split_if_asm)
+         apply(simp; fail)
+        apply(simp add: iface_name_is_wildcard_alt split: split_if_asm; fail)
+       apply(simp; fail)
+      apply(simp)
       apply(intro conjI)
-       apply(simp add: iface_name_is_wildcard_alt split: split_if_asm)
-      apply(intro impI)
+       apply(simp add: iface_name_is_wildcard_alt split: split_if_asm; fail)
       apply(simp add: iface_name_is_wildcard_fst)
       by (metis One_nat_def length_0_conv list.sel(1) list.sel(3) take_Cons')
     lemma match_iface_case_wildcard_length: "iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface i) p_i \<Longrightarrow> length p_i \<ge> (length i - 1)"
@@ -233,10 +233,9 @@ begin
             have "internal_iface_name_match i2 p_i \<Longrightarrow> internal_iface_name_match i1 p_i"
               unfolding 1 2 
               apply(rule takesmaller[of "(length i1 - 1)" "(length i2 - 1)" i2 p_i])
-                using len' apply (simp)
-               apply simp
-              using take_i1i2 apply simp
-              done
+                using len' apply (simp; fail)
+               apply (simp; fail)
+              using take_i1i2 by simp
           } note longer_iface_imp_shorter=this
         
          show ?thesis
@@ -279,19 +278,16 @@ begin
         apply (metis match_iface.simps match_iface_case_nowildcard option.distinct(1) option.sel)
        apply (metis match_iface.simps match_iface_case_nowildcard option.distinct(1) option.sel)
       by (metis match_iface.simps option.distinct(1) option.inject)
-    
+    lemma iface_conjunct_None: "iface_conjunct i1 i2 = None \<Longrightarrow> \<not> (match_iface i1 p_i \<and> match_iface i2 p_i)"
+      apply(cases i1, cases i2, rename_tac i1name i2name)
+      apply(simp split: bool.split_asm split_if_asm)
+         using internal_iface_name_wildcard_longest_correct apply fastforce
+        apply (metis match_iface.simps match_iface_case_nowildcard)+
+      done
     lemma iface_conjunct: "match_iface i1 p_i \<and> match_iface i2 p_i \<longleftrightarrow>
            (case iface_conjunct i1 i2 of None \<Rightarrow> False | Some x \<Rightarrow> match_iface x p_i)"
-      apply(cases i1, cases i2, rename_tac i1name i2name)
-      apply(simp split: bool.split option.split)
-      (*apply(safe) apply(simp_all add: internal_iface_name_wildcard_longest_refl)*)
-      apply(auto simp: internal_iface_name_wildcard_longest_refl dest: internal_iface_name_wildcard_longest_correct)
-               apply (metis match_iface.simps match_iface_case_nowildcard)+
-      done
-
-    lemma iface_conjunct_None: "iface_conjunct i1 i2 = None \<Longrightarrow> 
-          \<not> (match_iface i1 p_i \<and> match_iface i2 p_i)"
-      using iface_conjunct by simp
+    apply(simp split: option.split)
+    by(blast dest: iface_conjunct_Some iface_conjunct_None)
 
     lemma match_iface_refl: "match_iface (Iface x) x" by (simp add: internal_iface_name_match_refl)
 
@@ -301,13 +297,13 @@ begin
       apply(case_tac i, rename_tac iname)
       apply(simp)
       apply(case_tac "iface_name_is_wildcard iname")
-       apply(simp add: internal_iface_name_wildcard_longest_def iface_name_is_wildcard_alt Suc_leI)
+       apply(simp add: internal_iface_name_wildcard_longest_def iface_name_is_wildcard_alt Suc_leI; fail)
       apply(simp)
       using internal_iface_name_match.elims(3) by fastforce
        
     lemma iface_conjunct_commute: "iface_conjunct i1 i2 = iface_conjunct i2 i1"
     apply(induction i1 i2 rule: iface_conjunct.induct)
-    apply(simp)
+    apply(rename_tac i1 i2, simp)
     apply(case_tac "iface_name_is_wildcard i1")
      apply(case_tac [!] "iface_name_is_wildcard i2")
        apply(simp_all)
@@ -478,8 +474,8 @@ begin
           apply(rule Set.equalityI)
            prefer 2
            apply(safe)[1]
-            apply(simp)
-           apply(simp)
+            apply(simp;fail)
+           apply(simp;fail)
           apply(simp)
           apply(rule Compl_anti_mono[where B="{i @ cs |cs. True}" and A="- ({c | c. length c < length i} \<union> {c@cs | c cs. length c = length i \<and> c \<noteq> i})", simplified])
           apply(safe)
@@ -496,7 +492,7 @@ begin
         proof -
           have x: "{c | c. length c = length i \<and> c \<noteq> i}  \<union> {c | c. length c > length i} = {c@cs | c cs. length c \<ge> length i \<and> c \<noteq> i}"
             apply(safe)
-            apply force+
+              apply force+
             done
           have "- {i::string} = {c |c . c \<noteq> i}"
            by(safe, simp)
@@ -559,27 +555,31 @@ begin
 
   lemma compress_pos_interfaces_Some: "compress_pos_interfaces ifces = Some ifce \<Longrightarrow> 
           match_iface ifce p_i \<longleftrightarrow> (\<forall> i\<in> set ifces. match_iface i p_i)"
-    apply(induction ifces rule: compress_pos_interfaces.induct)
-      apply (simp add: match_ifaceAny; fail)
-     apply(simp; fail)
+  proof(induction ifces rule: compress_pos_interfaces.induct)
+    case 1 thus ?case by (simp add: match_ifaceAny)
+    next
+    case 2 thus ?case by simp
+    next
+    case (3 i1 i2) thus ?case
     apply(simp)
-    apply(rename_tac i1 i2 iis)
     apply(case_tac "iface_conjunct i1 i2")
      apply(simp; fail)
     apply(simp)
     using iface_conjunct_Some by presburger
+  qed
 
   lemma compress_pos_interfaces_None: "compress_pos_interfaces ifces = None \<Longrightarrow> 
           \<not> (\<forall> i\<in> set ifces. match_iface i p_i)"
-    apply(induction ifces rule: compress_pos_interfaces.induct)
-      apply (simp add: match_ifaceAny; fail)
-     apply(simp; fail)
-    apply(simp)
-    apply(rename_tac i1 i2 iis)
-    apply(case_tac "iface_conjunct i1 i2")
-     apply(simp_all)
-     using iface_conjunct_None apply blast
-    using iface_conjunct_Some by blast
+  proof(induction ifces rule: compress_pos_interfaces.induct)
+    case 1 thus ?case by (simp add: match_ifaceAny)
+    next
+    case 2 thus ?case by simp
+    next
+    case (3 i1 i2) thus ?case
+      apply(cases "iface_conjunct i1 i2", simp_all)
+       apply (blast dest: iface_conjunct_None)
+      by (blast dest: iface_conjunct_Some)
+  qed
 
 
 
