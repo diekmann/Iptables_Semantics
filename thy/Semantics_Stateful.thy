@@ -82,7 +82,7 @@ begin
      apply(rule call_result)
        apply(simp_all)
       apply(rule seq_cons)
-       apply(auto intro: iptables_bigstep.intros simp add: stateful_matcher_def)
+       apply(auto intro: iptables_bigstep.intros)
     done
 
 
@@ -99,7 +99,7 @@ begin
      apply(rule call_result)
        apply(simp_all)
       apply(rule seq_cons)
-       apply(auto intro: iptables_bigstep.intros simp add: stateful_matcher_def)
+       apply(auto intro: iptables_bigstep.intros)
     done
 
   text{*If we continue with this state, answer packets are now allowed*}
@@ -114,7 +114,7 @@ begin
      apply(rule call_result)
        apply(simp_all)
       apply(rule seq_cons)
-       apply(auto intro: iptables_bigstep.intros simp add: stateful_matcher_def)
+       apply(auto intro: iptables_bigstep.intros)
     done
 
   text{*In contrast, without having previously established a state, answer packets are prohibited*}
@@ -129,7 +129,7 @@ begin
      apply(rule call_result)
        apply(simp_all)
       apply(rule seq_cons)
-       apply(auto intro: iptables_bigstep.intros simp add: stateful_matcher_def)
+       apply(auto intro: iptables_bigstep.intros)
     done
 end
 
