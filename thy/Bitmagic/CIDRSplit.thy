@@ -334,7 +334,8 @@ private corollary wordinterval_CIDR_split_internal_single: "(\<Union> (prefix_to
 
 private lemma wordinterval_CIDR_split_internal_all_valid_Ball: fixes r:: "'a::len wordinterval"
   shows "Ball (set (wordinterval_CIDR_split_internal r)) valid_prefix"
-proof(induction r rule: wordinterval_CIDR_split_internal.induct, subst wordinterval_CIDR_split_internal.simps, case_tac "wordinterval_empty rs")
+apply(induction r rule: wordinterval_CIDR_split_internal.induct)
+proof(subst wordinterval_CIDR_split_internal.simps, rename_tac rs, case_tac "wordinterval_empty rs")
   case goal1 thus ?case
     by(simp only: not_True_eq_False if_False Ball_def set_simps empty_iff) clarify
 next

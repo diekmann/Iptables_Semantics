@@ -110,19 +110,21 @@ proof -
   {
     fix A a b assume "A \<in> addSubsetSet a (addSubsetSet b As)"
     hence "A \<in> addSubsetSet b (addSubsetSet a As)"
-    proof (rule addSubsetSetE)
+    apply (rule addSubsetSetE)
+    proof(goal_cases)
+      case 1
       assume "A = a - \<Union>addSubsetSet b As"
       hence "A = (a - \<Union>As) - b" by auto
       thus ?thesis by (auto intro: addSubsetSetI)
     next
-      case (goal2 T)
+      case (2 T)
       have "A = b \<inter> (a - \<Union>As) \<or> (\<exists>S\<in>As. A = b \<inter> (a \<inter> S)) \<or> (\<exists>S\<in>As. A = (a \<inter> S) - b)"
-        by (rule addSubsetSetE[OF goal2(1)]) (auto simp: goal2(2))
+        by (rule addSubsetSetE[OF 2(1)]) (auto simp: 2(2))
       thus ?thesis by (blast intro: addSubsetSetI)
     next
-      case (goal3 T)
+      case (3 T)
       have "A = b - \<Union>addSubsetSet a As \<or> (\<exists>S\<in>As. A = b \<inter> (S - a)) \<or> (\<exists>S\<in>As. A = (S - a) - b)"
-        by (rule addSubsetSetE[OF goal3(1)]) (auto simp: goal3(2))
+        by (rule addSubsetSetE[OF 3(1)]) (auto simp: 3(2))
       thus ?thesis by (blast intro: addSubsetSetI)
     qed
   }
