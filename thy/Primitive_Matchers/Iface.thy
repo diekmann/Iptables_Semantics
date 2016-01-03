@@ -328,7 +328,7 @@ begin
     proof - (*sledgehammer spass Isar proof*)
       have f4: "List.gen_length 0 i2 \<le> List.gen_length 0 i1"
         using a1 by (simp add: length_code)
-      have f5: "\<And>cs. List.gen_length 0 (cs\<Colon>char list) - Suc 0 = List.gen_length 0 (tl cs)"
+      have f5: "\<And>cs. List.gen_length 0 (cs::char list) - Suc 0 = List.gen_length 0 (tl cs)"
         by (metis (no_types) One_nat_def length_code length_tl)
       obtain nn :: "(nat \<Rightarrow> nat) \<Rightarrow> nat" where
         "\<And>f. \<not> f (nn f) \<le> f (Suc (nn f)) \<or> f (List.gen_length 0 i2) \<le> f (List.gen_length 0 i1)"

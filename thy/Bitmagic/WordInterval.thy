@@ -14,6 +14,7 @@ section{*WordInterval: Intervals of consecutive words*}
 value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
 
 subsection{*Syntax*}
+declare[[typedef_overloaded]]
   datatype ('a::len0) wordinterval = WordInterval
                                         "('a::len0) word" --"start (inclusive)"
                                         "('a::len0) word" --"end (inclusive)"

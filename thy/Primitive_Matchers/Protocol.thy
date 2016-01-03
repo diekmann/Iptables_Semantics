@@ -184,17 +184,17 @@ section{*TCP flags*}
     proof -
       assume a1: "c2 \<subseteq> mask2"
       assume a2: "\<forall>pkt. (pkt \<inter> mask1 = c1) = (pkt \<inter> mask2 = c2)"
-      have f3: "\<And>A Aa. (A\<Colon>'a set) - - Aa = Aa - - A"
+      have f3: "\<And>A Aa. (A::'a set) - - Aa = Aa - - A"
         by (simp add: inf_commute)
-      have f4: "\<And>A Aa. (A\<Colon>'a set) - - (- Aa) = A - Aa"
+      have f4: "\<And>A Aa. (A::'a set) - - (- Aa) = A - Aa"
         by simp
-      have f5: "\<And>A Aa Ab. (A\<Colon>'a set) - - Aa - - Ab = A - - (Aa - - Ab)"
+      have f5: "\<And>A Aa Ab. (A::'a set) - - Aa - - Ab = A - - (Aa - - Ab)"
         by blast
-      have f6: "\<And>A Aa. (A\<Colon>'a set) - (- A - Aa) = A"
+      have f6: "\<And>A Aa. (A::'a set) - (- A - Aa) = A"
         by fastforce
-      have f7: "\<And>A Aa. - (A\<Colon>'a set) - - Aa = Aa - A"
+      have f7: "\<And>A Aa. - (A::'a set) - - Aa = Aa - A"
         using f4 f3 by presburger
-      have f8: "\<And>A Aa. - (A\<Colon>'a set) = - (A - Aa) - (A - - Aa)"
+      have f8: "\<And>A Aa. - (A::'a set) = - (A - Aa) - (A - - Aa)"
         by blast
       have f9: "c1 = - (- c1)"
         by blast

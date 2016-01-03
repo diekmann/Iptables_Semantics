@@ -110,14 +110,15 @@ subsection{*Representing IPv4 Adresses*}
     by(simp add: ipv4addr_of_nat_def shiftr_slice)
   value "(4294967296::ipv4addr) = 2^32"
 
-    
   lemma nat_of_ipv4addr_slice_ipv4addr_of_nat: 
     "nat_of_ipv4addr (slice x (ipv4addr_of_nat a)) = (nat_of_ipv4addr (ipv4addr_of_nat a)) div 2^x"
     proof -
       have mod4294967296: "int a mod 4294967296 = int (a mod 4294967296)"
         using zmod_int by auto
+      (*TODO: why is this gone in 2016?*)
+      have zpower_int: "\<And>m n. int m ^ n = int (m ^ n)" using of_nat_power by simp
       have int_pullin: "int (a mod 4294967296) div 2 ^ x = int (a mod 4294967296 div 2 ^ x)"
-        using zpower_int zdiv_int by (metis of_nat_numeral ) 
+        using zpower_int zdiv_int by (metis of_nat_numeral) 
     show ?thesis
       apply(simp add: shiftr_slice[symmetric])
       apply(simp add: ipv4addr_of_nat_def word_of_nat)
@@ -218,7 +219,7 @@ subsection{*Representing IPv4 Adresses*}
     lemma "ip_prev 0 = 0" by eval
 
 subsection{*IP ranges*}
-  lemma UNIV_ipv4addrset: "(UNIV \<Colon> ipv4addr set) = {0 .. max_ipv4_addr}"
+  lemma UNIV_ipv4addrset: "(UNIV :: ipv4addr set) = {0 .. max_ipv4_addr}"
     by(auto)
   lemma "(42::ipv4addr) \<in> UNIV" by eval
 
