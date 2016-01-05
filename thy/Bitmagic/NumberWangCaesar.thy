@@ -1,6 +1,5 @@
 theory NumberWangCaesar
-imports "./IPv4Addr"
-  "../../Bitmagic/l4v/lib/WordLemmaBucket"
+imports "./IPv4Addr" "./l4v/lib/WordLemmaBucket"
 begin
 
 (*Contributed by Julius Michaelis*)

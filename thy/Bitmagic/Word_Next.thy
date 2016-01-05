@@ -1,7 +1,7 @@
 theory Word_Next
 imports Main
   "~~/src/HOL/Word/Word"
-  "../../Bitmagic/l4v/lib/WordLemmaBucket"
+  "./l4v/lib/WordLemmaBucket"
 begin
 
 

@@ -1,6 +1,6 @@
 theory NumberWangCebewee
 imports
-  "../../Bitmagic/l4v/lib/WordLemmaBucket"
+  "./l4v/lib/WordLemmaBucket"
   NumberWangCaesar
 begin
 

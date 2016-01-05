@@ -1,5 +1,5 @@
 theory PrefixMatch
-imports "../Bitmagic/IPv4Addr" "../../Bitmagic/l4v/lib/WordLemmaBucket"
+imports "../Bitmagic/IPv4Addr" "../Bitmagic/l4v/lib/WordLemmaBucket"
 begin
 
 subsection{*Definition*}
