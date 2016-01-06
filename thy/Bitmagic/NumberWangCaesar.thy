@@ -401,7 +401,7 @@ done
 
 declare word_upto.simps[simp del] 
 
-lemma word_upto_set_eq: "a < b \<Longrightarrow> set (word_upto a b) = {a..b}"
+lemma word_upto_set_eq: "a \<le> b \<Longrightarrow> set (word_upto a b) = {a..b}"
 apply(induction a b rule: word_upto.induct)
 apply(case_tac "a = b")
 apply(simp)
@@ -415,5 +415,31 @@ apply(simp)
 apply(subst word_upto.simps)
 apply(subgoal_tac "a = b - 1")
 oops
+
+lemma word_upto_set_eq: "a \<le> b \<Longrightarrow> x \<in> set (word_upto a b) \<Longrightarrow> a \<le> x \<and> x \<le> b"
+apply(induction a b rule: word_upto.induct)
+apply(case_tac "a = b")
+apply(subst(asm) word_upto.simps)
+apply(simp)
+apply(subst(asm) word_upto.simps)
+apply(simp)
+apply(erule disjE)
+apply simp
+proof -
+	case goal1
+	from goal1(2,3) have "a \<le> b - 1" 
+	proof -
+	  have f1: "\<forall>w wa. (w\<Colon>'a word) - wa = word_of_int (uint w + - 1 * uint wa)"
+		by (simp add: word_arith_wis(2))
+	  hence f2: "b + - 1 = word_of_int (uint b + - 1 * uint (1\<Colon>'a word))"
+		by simp
+	  hence "\<not> - (1\<Colon>'a word) \<le> word_of_int (uint (word_of_int (uint b + - 1 * uint (1\<Colon>'a word))\<Colon>'a word) + - 1 * uint a)"
+		using f1 by (metis (no_types) add_diff_cancel diff_eq_diff_eq diff_right_commute eq_iff goal1(3) word_n1_ge)
+	  thus ?thesis
+		using f2 f1 by (metis (no_types) add_diff_cancel diff_right_commute goal1(2) leD not_leE sub_wrap word_less_minus_cancel word_sub_less_iff)
+	qed
+	from goal1(1)[OF this goal1(4)]
+	show ?case by (metis dual_order.trans goal1(2) goal1(3) less_imp_le measure_unat word_le_0_iff word_le_nat_alt)
+qed (* TODO: redo. maybe some b \<noteq> 0 would help *)
 
 end

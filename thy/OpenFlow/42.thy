@@ -101,7 +101,7 @@ sorry
 definition simple_match_to_of_match :: "simple_match \<Rightarrow> string list \<Rightarrow> of_match_field set list" where
 "simple_match_to_of_match m ifs \<equiv> (let
 	npm = (\<lambda>p. fst p = 0 \<and> snd p = max_word);
-	sb = (\<lambda>p. (if npm p then [None] else map Some (word_upto (fst p) (snd p))))
+	sb = (\<lambda>p. (if npm p then [None] else if fst p \<le> snd p then map Some (word_upto (fst p) (snd p)) else []))
 	in
 	[L4Src ` option2set sport \<union> L4Dst ` option2set dport
 	 \<union> IPv4Proto ` (case prot of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> {p}) (* protocol is an 8 word option anyway\<dots> *)
@@ -211,13 +211,19 @@ proof -
 		done
 	next
 		case goal6 thus ?case
-		using mo xx(3) unfolding xx(1) OF_match_fields_unsafe_def
-		apply(cases "sports r")
-		apply(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match split: if_splits)
-		
-		sorry
+			using mo xx(3) unfolding xx(1) OF_match_fields_unsafe_def
+			apply(cases "sports r")
+			apply(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match split: if_splits)
+			apply(rule word_upto_set_eq) 
+			 apply(simp_all)
+		done
 	next
-		case goal7 thus ?case sorry
+		case goal7 thus ?case using mo xx(4) unfolding xx(1) OF_match_fields_unsafe_def
+			apply(cases "dports r")
+			apply(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match split: if_splits)
+			apply(rule word_upto_set_eq) 
+			 apply(simp_all)
+		done
     qed
 qed
 
