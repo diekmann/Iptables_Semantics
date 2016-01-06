@@ -83,16 +83,16 @@ lemma
 by(simp add: simple_matches.simps assms(1)[unfolded comp_def fun_app_def] const_def route2match_def 
 	match_ifaceAny ipv4range_set_from_bitmask_UNIV match_iface_refl iffD1[OF prefix_match_if_in_corny_set2, OF assms(2,3)])
 
-definition "none2set n \<equiv> (case n of None \<Rightarrow> {} | Some s \<Rightarrow> {s})"
+definition "option2set n \<equiv> (case n of None \<Rightarrow> {} | Some s \<Rightarrow> {s})"
 definition toprefixmatch where
 "toprefixmatch m \<equiv> PrefixMatch (fst m) (snd m)"
 definition simple_match_to_of_match :: "simple_match \<Rightarrow> string list \<Rightarrow> of_match_field set list" where
 "simple_match_to_of_match m ifs \<equiv> (let
 	sb = (\<lambda>p. (if fst p = 0 \<and> snd p = max_word then [None] else map Some (word_upto (fst p) (snd p))))
 	in
-	[L4Src ` none2set sport \<union> L4Dst ` none2set dport
+	[L4Src ` option2set sport \<union> L4Dst ` option2set dport
 	 \<union> (case (proto m) of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> undefined p)
-	 \<union> IngressPort ` none2set iif
+	 \<union> IngressPort ` option2set iif
 	 \<union> {IPv4Src (toprefixmatch (src m)), IPv4Src (toprefixmatch (dst m))}
 	.
 	iif \<leftarrow> (if iiface m = ifaceAny then [None] else [Some i. i \<leftarrow> ifs, match_iface (iiface m) i]),
