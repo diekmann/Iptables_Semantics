@@ -28,6 +28,8 @@ fun match_proto :: "protocol \<Rightarrow> primitive_protocol \<Rightarrow> bool
     "simple_proto_conjunct ProtoAny proto = Some proto" |
     "simple_proto_conjunct proto ProtoAny = Some proto" |
     "simple_proto_conjunct (Proto p1) (Proto p2) = (if p1 = p2 then Some (Proto p1) else None)"
+  lemma simple_proto_conjunct_asimp[simp]: "simple_proto_conjunct proto ProtoAny = Some proto"
+    by(cases proto) simp_all
 
   lemma simple_proto_conjunct_correct: "match_proto p1 pkt \<and> match_proto p2 pkt \<longleftrightarrow> 
     (case simple_proto_conjunct p1 p2 of None \<Rightarrow> False | Some proto \<Rightarrow> match_proto proto pkt)"

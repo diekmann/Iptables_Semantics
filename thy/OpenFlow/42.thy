@@ -38,7 +38,7 @@ p_tag_ctstate :: ctstate
 definition "route2match r = map (\<lambda>oi. 
 	\<lparr>iiface = ifaceAny, oiface = Iface (port_sel oi), src = (0,0), dst=(pfxm_prefix (routing_match r),pfxm_length (routing_match r)), proto=ProtoAny, sports=(0,max_word), ports=(0,max_word)\<rparr>) 
 	(routing_action r)"
-
+                                    
 fun simple_match_list_and :: "simple_match \<Rightarrow> simple_rule list \<Rightarrow> simple_rule list" where
 "simple_match_list_and _ [] = []" |
 "simple_match_list_and cr (m#ms) = filter_nones [option_map (\<lambda>k. SimpleRule k (action_sel m)) (simple_match_and cr (match_sel m))] @ simple_match_list_and cr ms"
@@ -171,7 +171,7 @@ proof -
 	moreover from this(2) guess xb ..
 	moreover from this(2) guess xc ..
 	moreover from calculation(3)[unfolded set_filter_nones_simp set_map mem_Collect_eq Set.image_iff] guess xd ..
-	note xx = calculation(8,1,5,7) this(1)
+	note xx = calculation(8,1,5,7) this
 	show ?thesis unfolding simple_matches.simps
 	proof(unfold and_assoc, (rule)+)
 		case goal1 thus ?case 
@@ -195,9 +195,27 @@ proof -
 			using mo unfolding xx(1) OF_match_fields_unsafe_def
 			 by(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match)
 	next
-		case goal5 thus ?case sorry
+		case goal5 thus ?case
+			using mo unfolding xx(1) OF_match_fields_unsafe_def
+			apply(simp)
+			apply(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match)
+			using xx(5,6)
+			apply(simp only: set_simps singleton_iff simple_proto_conjunct_asimp split: if_splits protocol.splits)
+			   apply(simp;fail)
+			  apply(simp)
+			  apply(metis match_proto.simps(2))
+			 apply(simp)
+			 apply(blast dest: conjunctSomeProtoAnyD)
+			apply(simp)
+			apply(erule disjE | simp, drule conjunctSomeProtoD, cases "proto r", (simp;fail), (simp;fail))+
+		done
 	next
-		case goal6 thus ?case sorry
+		case goal6 thus ?case
+		using mo xx(3) unfolding xx(1) OF_match_fields_unsafe_def
+		apply(cases "sports r")
+		apply(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match split: if_splits)
+		
+		sorry
 	next
 		case goal7 thus ?case sorry
     qed

@@ -78,7 +78,6 @@ record simple_packet_ext = simple_packet +
 	p_l2dst :: "48 word"
 	p_vlanid :: "16 word"
 	p_vlanprio :: "16 word"
-	p_l3proto :: "8 word"
 
 definition "simple_packet_unext p = 
 \<lparr>p_iiface = p_iiface p, p_oiface = p_oiface p, p_src = p_src p, p_dst = p_dst p, p_proto = p_proto p, 
@@ -92,7 +91,7 @@ fun match_no_prereq :: "of_match_field \<Rightarrow> simple_packet_ext \<Rightar
 "match_no_prereq (EtherType i) p = (p_l2type p = i)" |
 "match_no_prereq (VlanId i) p = (p_vlanid p = i)" | (* hack, otherwise it would be iso/osi *)
 "match_no_prereq (VlanPriority i) p = (p_vlanprio p = i)" |
-"match_no_prereq (IPv4Proto i) p = (p_l3proto p = i)" |
+"match_no_prereq (IPv4Proto i) p = (p_proto p = i)" |
 "match_no_prereq (IPv4Src i) p = (prefix_match_semantics i (p_src p))" |
 "match_no_prereq (IPv4Dst i) p = (prefix_match_semantics i (p_dst p))" |
 "match_no_prereq (L4Src i) p = (p_sport p = i)" |
