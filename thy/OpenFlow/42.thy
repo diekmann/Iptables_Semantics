@@ -8,6 +8,8 @@ fun filter_nones where
 
 lemma set_filter_nones: "k \<in> set (filter_nones ko) = (Some k \<in> set ko)"
 	by(induction ko rule: filter_nones.induct) auto
+lemma set_filter_nones_simp: "set (filter_nones ko) = {k. Some k \<in> set ko}"
+	using set_filter_nones by fast
 
 
 (* For reference:
@@ -88,16 +90,54 @@ definition toprefixmatch where
 "toprefixmatch m \<equiv> PrefixMatch (fst m) (snd m)"
 definition simple_match_to_of_match :: "simple_match \<Rightarrow> string list \<Rightarrow> of_match_field set list" where
 "simple_match_to_of_match m ifs \<equiv> (let
-	sb = (\<lambda>p. (if fst p = 0 \<and> snd p = max_word then [None] else map Some (word_upto (fst p) (snd p))))
+	npm = (\<lambda>p. fst p = 0 \<and> snd p = max_word);
+	sb = (\<lambda>p. (if npm p then [None] else map Some (word_upto (fst p) (snd p))))
 	in
 	[L4Src ` option2set sport \<union> L4Dst ` option2set dport
-	 \<union> (case (proto m) of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> undefined p)
+	 \<union> IPv4Proto ` (case prot of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> {p}) (* protocol is an 8 word option anyway\<dots> *)
 	 \<union> IngressPort ` option2set iif
 	 \<union> {IPv4Src (toprefixmatch (src m)), IPv4Src (toprefixmatch (dst m))}
+	 \<union> {EtherType 0x0800}
 	.
 	iif \<leftarrow> (if iiface m = ifaceAny then [None] else [Some i. i \<leftarrow> ifs, match_iface (iiface m) i]),
+	prot \<leftarrow> filter_nones \<circ> map (simple_proto_conjunct (proto m)) $
+		(if npm (sports m) \<and> npm (dports m) then [ProtoAny] else map Proto [TCP,UDP,SCTP]),
 	sport \<leftarrow> sb (sports m),
 	dport \<leftarrow> sb (dports m)]
 )"
+
+lemma conjunctSomeProtoAnyD: "Some ProtoAny = simple_proto_conjunct a (Proto b) \<Longrightarrow> False"
+by(cases a) (simp_all split: if_splits)
+lemma conjunctSomeProtoD: "Some (Proto x) = simple_proto_conjunct a (Proto b) \<Longrightarrow> x = b \<and> (a = ProtoAny \<or> a = Proto b)"
+by(cases a) (simp_all split: if_splits)
+
+lemma "r \<in> set (simple_match_to_of_match m ifs) \<Longrightarrow> all_prerequisites f r"
+unfolding simple_match_to_of_match_def all_prerequisites_def option2set_def
+apply(clarsimp)
+apply(erule disjE, (simp; fail))+
+apply(unfold Set.image_iff)
+apply(erule disjE)
+ apply(case_tac xb)
+  apply(simp; fail)
+ apply(simp del: prerequisites.simps)
+ apply(cases "fst (sports m) = 0 \<and> snd (sports m) = max_word \<and> fst (dports m) = 0 \<and> snd (dports m) = max_word")
+  apply(simp; fail)
+ apply(simp)
+ apply(case_tac xa)
+  apply(blast dest: conjunctSomeProtoAnyD)
+ apply(auto dest: conjunctSomeProtoD simp add: Let_def TCP_def UDP_def SCTP_def)[1]
+apply(erule disjE)
+ apply(case_tac dport)
+  apply(simp; fail)
+ apply(simp del: prerequisites.simps)
+ apply(cases "fst (sports m) = 0 \<and> snd (sports m) = max_word \<and> fst (dports m) = 0 \<and> snd (dports m) = max_word")
+  apply(simp; fail)
+ apply(simp)
+ apply(case_tac xa)
+ (* we could continue this pattern, but auto will take it from here. *)
+  apply(auto dest: conjunctSomeProtoD conjunctSomeProtoAnyD simp add: Let_def TCP_def UDP_def SCTP_def)
+done
+
+
 
 end

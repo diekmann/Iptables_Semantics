@@ -51,8 +51,8 @@ function prerequisites :: "of_match_field \<Rightarrow> of_match_field set \<Rig
 (* OF_IPV4_DST ETH_TYPE=0x0800 *)
 "prerequisites (IPv4Dst _) m = (let v = EtherType 0x0800 in v \<in> m \<and> prerequisites v m)" |
 (* Now here goes a bit of fuzz: OF specifies differen OXM_OF_(TCP,UDP,SCTP,\<dots>)_(SRC,DST). I only have L4Src. So gotta make do with that. *)
-"prerequisites (L4Src _) m = (\<exists>proto \<in> {6,17,132}. let v = EtherType proto in v \<in> m \<and> prerequisites v m)" |
-"prerequisites (L4Dst _) m = (\<exists>proto \<in> {6,17,132}. let v = EtherType proto in v \<in> m \<and> prerequisites v m)"
+"prerequisites (L4Src _) m = (\<exists>proto \<in> {6,17,132}. let v = IPv4Proto proto in v \<in> m \<and> prerequisites v m)" |
+"prerequisites (L4Dst _) m = (\<exists>proto \<in> {6,17,132}. let v = IPv4Proto proto in v \<in> m \<and> prerequisites v m)"
 by pat_completeness auto
 (* Ignoredd PACKET_TYPE=foo *)
 
@@ -101,8 +101,10 @@ term map_option
 definition OF_match_fields :: "of_match_field set \<Rightarrow> simple_packet_ext \<Rightarrow> bool option" where "OF_match_fields m p = map_option all_true (set_seq ((\<lambda>f. match_prereq f m p) ` m))"
 definition OF_match_fields_unsafe :: "of_match_field set \<Rightarrow> simple_packet_ext \<Rightarrow> bool" where "OF_match_fields_unsafe m p = (\<forall>f \<in> m. match_no_prereq f p)"
 
-lemma "(\<forall>f \<in> m. prerequisites f m) \<Longrightarrow> OF_match_fields m p = Some (OF_match_fields_unsafe m p)"
-unfolding OF_match_fields_def OF_match_fields_unsafe_def comp_def set_seq_def match_prereq_def
+definition "all_prerequisites f m \<equiv> \<forall>f \<in> m. prerequisites f m"
+
+lemma "all_prerequisites f m \<Longrightarrow> OF_match_fields m p = Some (OF_match_fields_unsafe m p)"
+unfolding OF_match_fields_def OF_match_fields_unsafe_def comp_def set_seq_def match_prereq_def all_prerequisites_def
 proof -	
 	case goal1
 	have 1: "(\<lambda>f. if prerequisites f m then Some (match_no_prereq f p) else None) ` m = (\<lambda>f. Some (match_no_prereq f p)) ` m"

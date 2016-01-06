@@ -64,8 +64,8 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
   (* It is kind of messy to find a definition that checks whether a match is the exhaustive list and is executable *)
   lemma all_proto_hlp: "ProtoAny \<notin> a \<Longrightarrow> (\<forall>p \<in> {0..max_word}. Proto p \<in> a) \<longleftrightarrow> a = {p. p \<noteq> ProtoAny}"
   	by(auto intro: protocol.exhaust)
-  lemma all_proto_hlp2: "ProtoAny \<in> a \<or> (\<forall>p \<in> {0..max_word}. Proto p \<in> a) \<longleftrightarrow>
-                         ProtoAny \<in> a \<or> a = {p. p \<noteq> ProtoAny}"
+  lemma all_proto_hlp2[code]: "ProtoAny \<in> a \<or> (\<forall>p \<in> {0..max_word}. Proto p \<in> a) \<longleftrightarrow>
+                               ProtoAny \<in> a \<or> a = {p. p \<noteq> ProtoAny}"
     using all_proto_hlp by blast
   
   lemma compress_protocols_None: "compress_protocols ps = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) (alist_and (NegPos_map Prot ps)) a p"
