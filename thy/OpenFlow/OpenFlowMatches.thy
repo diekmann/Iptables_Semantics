@@ -77,7 +77,7 @@ record simple_packet_ext = simple_packet +
 	p_l2dst :: "48 word"
 	p_vlanid :: "16 word"
 	p_vlanprio :: "16 word"
-	p_l3proto :: "16 word"
+	p_l3proto :: "8 word"
 
 fun match_no_prereq :: "of_match_field \<Rightarrow> simple_packet_ext \<Rightarrow> bool" where
 "match_no_prereq (IngressPort i) p = (p_iiface p = i)" |
