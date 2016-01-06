@@ -125,7 +125,7 @@ apply(erule disjE)
  apply(simp)
  apply(case_tac xa)
   apply(blast dest: conjunctSomeProtoAnyD)
- apply(auto dest: conjunctSomeProtoD simp add: Let_def TCP_def UDP_def SCTP_def)[1]
+ apply(auto dest: conjunctSomeProtoD)[1]
 apply(erule disjE)
  apply(case_tac dport)
   apply(simp; fail)
@@ -135,9 +135,7 @@ apply(erule disjE)
  apply(simp)
  apply(case_tac xa)
  (* we could continue this pattern, but auto will take it from here. *)
-  apply(auto dest: conjunctSomeProtoD conjunctSomeProtoAnyD simp add: Let_def TCP_def UDP_def SCTP_def)
+  apply(force dest: conjunctSomeProtoD conjunctSomeProtoAnyD)+
 done
-
-
 
 end

@@ -1,5 +1,6 @@
 theory OpenFlowMatches
 imports Main "../Bitmagic/NumberWangCaesar" "../Primitive_Matchers/Simple_Packet" "~~/src/HOL/Library/Monad_Syntax"
+	"../Primitive_Matchers/Simple_Packet" (* I just want those TCP,UDP,\<dots> defs *)
 begin                                                                   
 
 (* From OpenFlow 1.1, Table 3: *)
@@ -51,8 +52,8 @@ function prerequisites :: "of_match_field \<Rightarrow> of_match_field set \<Rig
 (* OF_IPV4_DST ETH_TYPE=0x0800 *)
 "prerequisites (IPv4Dst _) m = (let v = EtherType 0x0800 in v \<in> m \<and> prerequisites v m)" |
 (* Now here goes a bit of fuzz: OF specifies differen OXM_OF_(TCP,UDP,SCTP,\<dots>)_(SRC,DST). I only have L4Src. So gotta make do with that. *)
-"prerequisites (L4Src _) m = (\<exists>proto \<in> {6,17,132}. let v = IPv4Proto proto in v \<in> m \<and> prerequisites v m)" |
-"prerequisites (L4Dst _) m = (\<exists>proto \<in> {6,17,132}. let v = IPv4Proto proto in v \<in> m \<and> prerequisites v m)"
+"prerequisites (L4Src _) m = (\<exists>proto \<in> {TCP,UDP,SCTP}. let v = IPv4Proto proto in v \<in> m \<and> prerequisites v m)" |
+"prerequisites (L4Dst dm) m = prerequisites (L4Src dm) m"
 by pat_completeness auto
 (* Ignoredd PACKET_TYPE=foo *)
 
@@ -61,13 +62,13 @@ fun match_layer_terminator :: "of_match_field \<Rightarrow> nat" where
 "match_layer_terminator (EtherDst _) = 2" |
 "match_layer_terminator (EtherSrc _) = 2" |
 "match_layer_terminator (EtherType _) = 2" |
-"match_layer_terminator (VlanId _) = 1" | (* hack, otherwise it would be iso/osi *)
+"match_layer_terminator (VlanId _) = 1" |
 "match_layer_terminator (VlanPriority _) = 2" |
 "match_layer_terminator (IPv4Proto _) = 3" |
 "match_layer_terminator (IPv4Src _) = 3" |
 "match_layer_terminator (IPv4Dst _) = 3" |
 "match_layer_terminator (L4Src _) = 4" |
-"match_layer_terminator (L4Dst _) = 4"
+"match_layer_terminator (L4Dst _) = 5"
 
 termination prerequisites by(relation "measure (match_layer_terminator \<circ> fst)", simp_all)
 
