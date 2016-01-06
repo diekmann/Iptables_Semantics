@@ -1,10 +1,16 @@
 theory Protocol
-imports "../Common/Negation_Type" "../Common/Lib_toString"
+imports "../Common/Negation_Type" "../Common/Lib_toString" "~~/src/HOL/Word/Word"
 begin
 
 section{*Protocols*}
 
-datatype primitive_protocol = TCP | UDP | ICMP | OtherProtocol nat
+type_synonym primitive_protocol = "8 word"
+
+definition "ICMP \<equiv> 1 :: 8 word"
+definition "TCP \<equiv> 6 :: 8 word"
+definition "UDP \<equiv> 17 :: 8 word"
+definition "SCTP \<equiv> 132  :: 8 word"
+(* turn http://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml into a separate file or so? *)
 
 datatype protocol = ProtoAny | Proto "primitive_protocol" (*probably negation_type?*)
 
@@ -41,36 +47,15 @@ fun match_proto :: "protocol \<Rightarrow> primitive_protocol \<Rightarrow> bool
     using simple_proto_conjunct_correct by simp
 
 
-  text{*Because there is a @{typ nat} in the protocol definition, there are infinitly many protocols and we can always find `new' protocols. 
-        This is intended behavior. We want to prevent things such as @{term "\<not>TCP = UDP"}.
-        Of course, the protocol field is usually a finite 8 bit field. This would just make things easier. 
-        If more optimization is required, we may consider changing it to a a bit word. Now, it is more generic (and harder to handle).*}
-  lemma primitive_protocol_Ex_neq: "p = Proto pi \<Longrightarrow> \<exists>p'. p' \<noteq> pi"
-    by(cases pi) blast+
+  text{*Originally, there was a @{typ nat} in the protocol definition, allowing infinitly many protocols 
+        This was intended behavior. We want to prevent things such as @{term "\<not>TCP = UDP"}.
+        So be careful with what you prove\<dots>*}
+  lemma primitive_protocol_Ex_neq: "p = Proto pi \<Longrightarrow> \<exists>p'. p' \<noteq> pi" 
+  proof
+  	show "pi + 1 \<noteq> pi" by simp
+  qed
   lemma protocol_Ex_neq: "\<exists>p'. Proto p' \<noteq> p"
     by(cases p) (simp_all add: primitive_protocol_Ex_neq)
-  lemma primitive_protocol_Ex_notin_list: "(\<exists>p. (Proto p) \<notin> set ps)"
-    proof(cases "map (\<lambda>p. case p of Proto (OtherProtocol n) \<Rightarrow> n) (filter (\<lambda>p. case p of Proto (OtherProtocol _) \<Rightarrow> True | _ \<Rightarrow> False) ps)")
-    case Nil 
-      -- "arbitrary protocol number"
-      hence "Proto (OtherProtocol 42) \<notin> set ps"
-       apply(induction ps)
-        apply(simp; fail)
-       apply(simp split: protocol.split_asm split_if_asm primitive_protocol.split_asm; fail)
-       done
-      thus "\<exists>p. Proto p \<notin> set ps" by blast
-    next
-    case(Cons a as)
-      have "\<exists>n::nat. n \<notin> set (a#as)" by (metis lessI list.distinct(2) member_le_listsum_nat upt_conv_Cons upt_conv_Nil)
-      from this obtain n where "n \<notin> set (a#as)" by blast
-      with Cons have "Proto (OtherProtocol n) \<notin> set ps"
-        apply(induction ps)
-         apply(simp; fail)
-        apply(simp split: protocol.split_asm split_if_asm primitive_protocol.split_asm)
-        by force
-      thus "\<exists>p. Proto p \<notin> set ps" by blast
-    qed
-
 
 section{*TCP flags*}
   datatype tcp_flag = TCP_SYN | TCP_ACK | TCP_FIN | TCP_RST | TCP_URG | TCP_PSH (*| TCP_ALL | TCP_NONE*)
@@ -111,11 +96,11 @@ section{*TCP flags*}
     "ipt_tcp_syn \<equiv> TCP_Flags {TCP_SYN,TCP_RST,TCP_ACK,TCP_FIN} {TCP_SYN}"
   
   fun match_tcp_flags :: "ipt_tcp_flags \<Rightarrow> tcp_flag set \<Rightarrow> bool" where
-     "match_tcp_flags (TCP_Flags mask c) flags \<longleftrightarrow> (flags \<inter> mask) = c"
+     "match_tcp_flags (TCP_Flags fmask c) flags \<longleftrightarrow> (flags \<inter> fmask) = c"
   
   lemma "match_tcp_flags ipt_tcp_syn {TCP_SYN, TCP_URG, TCP_PSH}" by eval
   
-  lemma match_tcp_flags_nomatch: "\<not> c \<subseteq> mask \<Longrightarrow> \<not> match_tcp_flags (TCP_Flags mask c) pkt" by auto
+  lemma match_tcp_flags_nomatch: "\<not> c \<subseteq> fmask \<Longrightarrow> \<not> match_tcp_flags (TCP_Flags fmask c) pkt" by auto
   
   definition ipt_tcp_flags_NoMatch :: "ipt_tcp_flags" where
     "ipt_tcp_flags_NoMatch \<equiv> TCP_Flags {} {TCP_SYN}"
@@ -125,17 +110,17 @@ section{*TCP flags*}
     "ipt_tcp_flags_Any \<equiv> TCP_Flags {} {}"
   lemma ipt_tcp_flags_Any: "match_tcp_flags ipt_tcp_flags_Any pkt" by(simp add: ipt_tcp_flags_Any_def)
 
-  lemma ipt_tcp_flags_Any_isUNIV: "mask = {} \<and> c = {} \<longleftrightarrow> (\<forall>pkt. match_tcp_flags (TCP_Flags mask c) pkt)" by auto
+  lemma ipt_tcp_flags_Any_isUNIV: "fmask = {} \<and> c = {} \<longleftrightarrow> (\<forall>pkt. match_tcp_flags (TCP_Flags fmask c) pkt)" by auto
   
   fun match_tcp_flags_conjunct :: "ipt_tcp_flags \<Rightarrow> ipt_tcp_flags \<Rightarrow> ipt_tcp_flags" where
-    "match_tcp_flags_conjunct (TCP_Flags mask1 c1) (TCP_Flags mask2 c2) = (
-          if c1 \<subseteq> mask1 \<and> c2 \<subseteq> mask2 \<and> mask1 \<inter> mask2 \<inter> c1 = mask1 \<inter> mask2 \<inter> c2
-          then (TCP_Flags (mask1 \<union> mask2) (c1 \<union> c2))
+    "match_tcp_flags_conjunct (TCP_Flags fmask1 c1) (TCP_Flags fmask2 c2) = (
+          if c1 \<subseteq> fmask1 \<and> c2 \<subseteq> fmask2 \<and> fmask1 \<inter> fmask2 \<inter> c1 = fmask1 \<inter> fmask2 \<inter> c2
+          then (TCP_Flags (fmask1 \<union> fmask2) (c1 \<union> c2))
           else ipt_tcp_flags_NoMatch)"
   
   lemma match_tcp_flags_conjunct: "match_tcp_flags (match_tcp_flags_conjunct f1 f2) pkt \<longleftrightarrow> match_tcp_flags f1 pkt \<and> match_tcp_flags f2 pkt"
     apply(cases f1, cases f2, simp)
-    apply(rename_tac mask1 c1 mask2 c2)
+    apply(rename_tac fmask1 c1 fmask2 c2)
     apply(intro conjI impI)
      apply(elim conjE)
      apply blast
@@ -147,7 +132,7 @@ section{*TCP flags*}
 
   text{*Same as @{const match_tcp_flags_conjunct}, but returns @{const None} if result cannot match anyway*}
   definition match_tcp_flags_conjunct_option :: "ipt_tcp_flags \<Rightarrow> ipt_tcp_flags \<Rightarrow> ipt_tcp_flags option" where
-    "match_tcp_flags_conjunct_option f1 f2 = (case match_tcp_flags_conjunct f1 f2 of (TCP_Flags mask c) \<Rightarrow> if c \<subseteq> mask then Some (TCP_Flags mask c) else None)"
+    "match_tcp_flags_conjunct_option f1 f2 = (case match_tcp_flags_conjunct f1 f2 of (TCP_Flags fmask c) \<Rightarrow> if c \<subseteq> fmask then Some (TCP_Flags fmask c) else None)"
 
   lemma "match_tcp_flags_conjunct_option ipt_tcp_syn (TCP_Flags {TCP_RST,TCP_ACK} {TCP_RST}) = None" by eval
 
@@ -163,22 +148,22 @@ section{*TCP flags*}
 
 
   fun ipt_tcp_flags_equal :: "ipt_tcp_flags \<Rightarrow> ipt_tcp_flags \<Rightarrow> bool" where
-    "ipt_tcp_flags_equal (TCP_Flags mask1 c1) (TCP_Flags mask2 c2) = (
-          if c1 \<subseteq> mask1 \<and> c2 \<subseteq> mask2
-          then c1 = c2 \<and> mask1 = mask2
-          else  (\<not> c1 \<subseteq> mask1) \<and> (\<not> c2 \<subseteq> mask2))"
+    "ipt_tcp_flags_equal (TCP_Flags fmask1 c1) (TCP_Flags fmask2 c2) = (
+          if c1 \<subseteq> fmask1 \<and> c2 \<subseteq> fmask2
+          then c1 = c2 \<and> fmask1 = fmask2
+          else  (\<not> c1 \<subseteq> fmask1) \<and> (\<not> c2 \<subseteq> fmask2))"
   context
   begin
-    private lemma funny_set_falg_mask_helper: "c2 \<subseteq> mask2 \<Longrightarrow> (c1 = c2 \<and> mask1 = mask2) = (\<forall>pkt. (pkt \<inter> mask1 = c1) = (pkt \<inter> mask2 = c2))"
+    private lemma funny_set_falg_fmask_helper: "c2 \<subseteq> fmask2 \<Longrightarrow> (c1 = c2 \<and> fmask1 = fmask2) = (\<forall>pkt. (pkt \<inter> fmask1 = c1) = (pkt \<inter> fmask2 = c2))"
     apply rule
      apply presburger
-    apply(subgoal_tac "mask1 = mask2")
+    apply(subgoal_tac "fmask1 = fmask2")
      apply blast
     (*"e": Try this: by (metis Diff_Compl Diff_eq Int_lower2 Un_Diff_Int compl_sup disjoint_eq_subset_Compl inf_assoc inf_commute inf_sup_absorb) (> 1.0 s, timed out).
       Isar proof (300 ms):*)
     proof -
-      assume a1: "c2 \<subseteq> mask2"
-      assume a2: "\<forall>pkt. (pkt \<inter> mask1 = c1) = (pkt \<inter> mask2 = c2)"
+      assume a1: "c2 \<subseteq> fmask2"
+      assume a2: "\<forall>pkt. (pkt \<inter> fmask1 = c1) = (pkt \<inter> fmask2 = c2)"
       have f3: "\<And>A Aa. (A\<Colon>'a set) - - Aa = Aa - - A"
         by (simp add: inf_commute)
       have f4: "\<And>A Aa. (A\<Colon>'a set) - - (- Aa) = A - Aa"
@@ -195,33 +180,33 @@ section{*TCP flags*}
         by blast
       have f10: "\<And>A. A - c1 - c1 = A - c1"
         by blast
-      have "\<And>A. A - - (mask1 - - mask2) = c2 \<or> A - - mask1 \<noteq> c1"
+      have "\<And>A. A - - (fmask1 - - fmask2) = c2 \<or> A - - fmask1 \<noteq> c1"
         using f6 f5 a2 by (metis (no_types) Diff_Compl)
-      hence f11: "\<And>A. - A - - (mask1 - - mask2) = c2 \<or> mask1 - A \<noteq> c1"
+      hence f11: "\<And>A. - A - - (fmask1 - - fmask2) = c2 \<or> fmask1 - A \<noteq> c1"
         using f7 by meson
-      have "c2 - mask2 = {}"
+      have "c2 - fmask2 = {}"
         using a1 by force
-      hence f12: "- c2 - (mask2 - c2) = - mask2"
+      hence f12: "- c2 - (fmask2 - c2) = - fmask2"
         by blast
-      hence "mask2 - - c2 = c2"
+      hence "fmask2 - - c2 = c2"
         by blast
-      hence f13: "mask1 - - c2 = c1"
+      hence f13: "fmask1 - - c2 = c1"
         using f3 a2 by simp
       hence f14: "c1 = c2"
         using f11 by blast
-      hence f15: "mask2 - (mask1 - c1) = c1"
+      hence f15: "fmask2 - (fmask1 - c1) = c1"
         using f13 f10 f9 f8 f7 f3 a2 by (metis Diff_Compl)
-      have "mask1 - (mask2 - c1) = c1"
+      have "fmask1 - (fmask2 - c1) = c1"
         using f14 f12 f10 f9 f8 f4 f3 a2 by (metis Diff_Compl)
-      thus "mask1 = mask2"
+      thus "fmask1 = fmask2"
         using f15 by blast
     qed
   
     lemma ipt_tcp_flags_equal: "ipt_tcp_flags_equal f1 f2 \<longleftrightarrow> (\<forall>pkt. match_tcp_flags f1 pkt = match_tcp_flags f2 pkt)"
       apply(cases f1, cases f2, simp)
-      apply(rename_tac mask1 c1 mask2 c2)
+      apply(rename_tac fmask1 c1 fmask2 c2)
       apply(intro conjI impI)
-       using funny_set_falg_mask_helper apply metis
+       using funny_set_falg_fmask_helper apply metis
       apply blast
      done
   end

@@ -156,7 +156,7 @@ subsection{*Simple Firewall Semantics*}
                             p_oiface = iface_sel oif,
                             p_src = fst sip,
                             p_dst = fst dip,
-                            p_proto = case protocol of ProtoAny \<Rightarrow> primitive_protocol.TCP | Proto p \<Rightarrow> p,
+                            p_proto = case protocol of ProtoAny \<Rightarrow> TCP | Proto p \<Rightarrow> p,
                             p_sport = sps1,
                             p_dport = dps1,
                             p_tcp_flags = anything_I_dont_care1,

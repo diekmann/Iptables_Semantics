@@ -52,7 +52,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
   definition compress_protocols :: "protocol negation_type list \<Rightarrow> (protocol list \<times> protocol list) option" where
     "compress_protocols ps \<equiv> case (compress_pos_protocols (getPos ps))
         of None \<Rightarrow> None
-        |  Some proto \<Rightarrow> if ProtoAny \<in> set (getNeg ps) then
+        |  Some proto \<Rightarrow> if ProtoAny \<in> set (getNeg ps) \<or> (\<forall>p \<in> {0..max_word}. Proto p \<in> set (getNeg ps)) then
                            None
                          else if proto = ProtoAny then
                            Some ([], getNeg ps)
@@ -60,8 +60,14 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
                            None
                          else
                            Some ([proto], getNeg ps)"
-
-
+  
+  (* It is kind of messy to find a definition that checks whether a match is the exhaustive list and is executable *)
+  lemma all_proto_hlp: "ProtoAny \<notin> a \<Longrightarrow> (\<forall>p \<in> {0..max_word}. Proto p \<in> a) \<longleftrightarrow> a = {p. p \<noteq> ProtoAny}"
+  	by(auto intro: protocol.exhaust)
+  lemma all_proto_hlp2: "ProtoAny \<in> a \<or> (\<forall>p \<in> {0..max_word}. Proto p \<in> a) \<longleftrightarrow>
+                         ProtoAny \<in> a \<or> a = {p. p \<noteq> ProtoAny}"
+    using all_proto_hlp by blast
+  
   lemma compress_protocols_None: "compress_protocols ps = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) (alist_and (NegPos_map Prot ps)) a p"
     apply(simp add: compress_protocols_def)
     apply(simp add: nt_match_list_matches[symmetric] nt_match_list_simp)
@@ -74,8 +80,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
     apply(simp split:split_if_asm)
      apply fastforce
     apply(elim bexE)
-    by (metis if_option_Some simple_proto_conjunct.elims)
-
+    by (metis (full_types) option.distinct(1) simple_proto_conjunct.elims)
 
 
   lemma compress_protocol_Some: "compress_protocols ps = Some (ps_pos, ps_neg) \<Longrightarrow>
@@ -91,24 +96,23 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
     apply(simp split:split_if_asm)
     by force
 
- 
-
   (*fully optimized*)
   lemma "compress_protocols ps = Some (ps_pos, ps_neg) \<Longrightarrow>
     \<exists> p. ((\<forall>m\<in>set ps_pos. match_proto m p) \<and> (\<forall>m\<in>set ps_neg. \<not> match_proto m p))"
-    apply(simp add: compress_protocols_def split: option.split_asm split_if_asm)
+    apply(simp add: compress_protocols_def all_proto_hlp2 split: option.split_asm split_if_asm)
      defer
      apply(clarify)
      apply(rename_tac p)
      apply(case_tac p, simp_all)
      apply(rename_tac p_primitive)
      using simple_proto_conjunct_None apply auto[1]
-    apply(induction ps_neg)
-     apply(simp; fail)
-    apply(simp, rename_tac psneg1 ps_neg aaa)
-    apply(subgoal_tac "\<exists>p. (Proto p) \<notin> set (psneg1#ps_neg)")
-     apply (metis list.set_intros(1) list.set_intros(2) match_proto.elims(2))
-    using primitive_protocol_Ex_notin_list by presburger
+    apply(subgoal_tac "\<exists>p. (Proto p) \<notin> set ps_neg")
+     apply(elim exE)
+     apply(rename_tac x2 p)
+     apply(rule_tac x=p in exI)
+     apply(blast elim: match_proto.elims)
+    apply(auto intro: protocol.exhaust)
+    done
   
   definition compress_normalize_protocols :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr option" where 
     "compress_normalize_protocols m \<equiv> compress_normalize_primitive (is_Prot, prot_sel) Prot compress_protocols m"
@@ -138,7 +142,8 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
       apply(simp add: compress_normalize_protocols_def)
       apply(drule compress_normalize_primitive_not_introduces_C[where m=m])
           apply(simp_all add: wf_disc_sel_common_primitive(7))
-      by(simp add: compress_protocols_def)
+      apply(simp add: compress_protocols_def split: if_splits)
+      done
 
   lemma compress_normalize_protocols_not_introduces_Prot_negated:
     assumes notdisc: "\<not> has_disc_negated is_Prot False m"
