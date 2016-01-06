@@ -80,6 +80,11 @@ record simple_packet_ext = simple_packet +
 	p_vlanprio :: "16 word"
 	p_l3proto :: "8 word"
 
+definition "simple_packet_unext p = 
+\<lparr>p_iiface = p_iiface p, p_oiface = p_oiface p, p_src = p_src p, p_dst = p_dst p, p_proto = p_proto p, 
+p_sport = p_sport p, p_dport = p_dport p, p_tcp_flags = p_tcp_flags p, p_tag_ctstate = p_tag_ctstate p\<rparr>"
+
+
 fun match_no_prereq :: "of_match_field \<Rightarrow> simple_packet_ext \<Rightarrow> bool" where
 "match_no_prereq (IngressPort i) p = (p_iiface p = i)" |
 "match_no_prereq (EtherDst i) p = (p_l2src p = i)" |
@@ -89,7 +94,7 @@ fun match_no_prereq :: "of_match_field \<Rightarrow> simple_packet_ext \<Rightar
 "match_no_prereq (VlanPriority i) p = (p_vlanprio p = i)" |
 "match_no_prereq (IPv4Proto i) p = (p_l3proto p = i)" |
 "match_no_prereq (IPv4Src i) p = (prefix_match_semantics i (p_src p))" |
-"match_no_prereq (IPv4Dst i) p = (prefix_match_semantics i (p_src p))" |
+"match_no_prereq (IPv4Dst i) p = (prefix_match_semantics i (p_dst p))" |
 "match_no_prereq (L4Src i) p = (p_sport p = i)" |
 "match_no_prereq (L4Dst i) p = (p_dport p = i)"
 
@@ -104,7 +109,7 @@ definition OF_match_fields_unsafe :: "of_match_field set \<Rightarrow> simple_pa
 
 definition "all_prerequisites f m \<equiv> \<forall>f \<in> m. prerequisites f m"
 
-lemma "all_prerequisites f m \<Longrightarrow> OF_match_fields m p = Some (OF_match_fields_unsafe m p)"
+lemma of_safe_unsafe_match_eq: "all_prerequisites f m \<Longrightarrow> OF_match_fields m p = Some (OF_match_fields_unsafe m p)"
 unfolding OF_match_fields_def OF_match_fields_unsafe_def comp_def set_seq_def match_prereq_def all_prerequisites_def
 proof -	
 	case goal1

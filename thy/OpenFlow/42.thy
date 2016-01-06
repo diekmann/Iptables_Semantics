@@ -11,6 +11,9 @@ lemma set_filter_nones: "k \<in> set (filter_nones ko) = (Some k \<in> set ko)"
 lemma set_filter_nones_simp: "set (filter_nones ko) = {k. Some k \<in> set ko}"
 	using set_filter_nones by fast
 
+lemma set_maps: "set (List.maps f a) = (\<Union>a\<in>set a. set (f a))" 
+unfolding List.maps_def set_concat set_map UN_simps(10) ..
+
 
 (* For reference:
 iiface :: "iface" --"in-interface"
@@ -86,8 +89,15 @@ by(simp add: simple_matches.simps assms(1)[unfolded comp_def fun_app_def] const_
 	match_ifaceAny ipv4range_set_from_bitmask_UNIV match_iface_refl iffD1[OF prefix_match_if_in_corny_set2, OF assms(2,3)])
 
 definition "option2set n \<equiv> (case n of None \<Rightarrow> {} | Some s \<Rightarrow> {s})"
+
 definition toprefixmatch where
 "toprefixmatch m \<equiv> PrefixMatch (fst m) (snd m)"
+(* todo: disambiguate that prefix_match mess *)
+lemma prefix_match_semantics_simple_match: "NumberWangCaesar.prefix_match_semantics (toprefixmatch m) = simple_match_ip m"
+apply(cases m)
+apply(clarsimp simp add: toprefixmatch_def fun_eq_iff)
+sorry
+
 definition simple_match_to_of_match :: "simple_match \<Rightarrow> string list \<Rightarrow> of_match_field set list" where
 "simple_match_to_of_match m ifs \<equiv> (let
 	npm = (\<lambda>p. fst p = 0 \<and> snd p = max_word);
@@ -96,7 +106,7 @@ definition simple_match_to_of_match :: "simple_match \<Rightarrow> string list \
 	[L4Src ` option2set sport \<union> L4Dst ` option2set dport
 	 \<union> IPv4Proto ` (case prot of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> {p}) (* protocol is an 8 word option anyway\<dots> *)
 	 \<union> IngressPort ` option2set iif
-	 \<union> {IPv4Src (toprefixmatch (src m)), IPv4Src (toprefixmatch (dst m))}
+	 \<union> {IPv4Src (toprefixmatch (src m)), IPv4Dst (toprefixmatch (dst m))}
 	 \<union> {EtherType 0x0800}
 	.
 	iif \<leftarrow> (if iiface m = ifaceAny then [None] else [Some i. i \<leftarrow> ifs, match_iface (iiface m) i]),
@@ -111,7 +121,7 @@ by(cases a) (simp_all split: if_splits)
 lemma conjunctSomeProtoD: "Some (Proto x) = simple_proto_conjunct a (Proto b) \<Longrightarrow> x = b \<and> (a = ProtoAny \<or> a = Proto b)"
 by(cases a) (simp_all split: if_splits)
 
-lemma "r \<in> set (simple_match_to_of_match m ifs) \<Longrightarrow> all_prerequisites f r"
+lemma simple_match_to_of_match_generates_prereqs: "r \<in> set (simple_match_to_of_match m ifs) \<Longrightarrow> all_prerequisites f r"
 unfolding simple_match_to_of_match_def all_prerequisites_def option2set_def
 apply(clarsimp)
 apply(erule disjE, (simp; fail))+
@@ -137,5 +147,60 @@ apply(erule disjE)
  (* we could continue this pattern, but auto will take it from here. *)
   apply(force dest: conjunctSomeProtoD conjunctSomeProtoAnyD)+
 done
+
+lemma and_assoc: "a \<and> b \<and> c \<longleftrightarrow> (a \<and> b) \<and> c" by simp
+
+lemma 
+	assumes mm: "simple_matches r (undefined p)"
+	shows eq: "\<exists>gr \<in> set (simple_match_to_of_match r ifs). OF_match_fields gr p = Some True"
+oops
+
+lemma 
+	assumes eg: "gr \<in> set (simple_match_to_of_match r ifs)"
+	assumes mo: "OF_match_fields gr p = Some True"
+	(*assumes ii: "p_iiface p \<in> set ifs"*) 
+	shows "simple_matches r (simple_packet_unext p)"
+proof -
+	from mo have mo: "OF_match_fields_unsafe gr p" 
+		unfolding of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs[OF eg]]
+		by simp
+	note this[unfolded OF_match_fields_unsafe_def]
+	note eg[unfolded simple_match_to_of_match_def Let_def set_concat set_map map_map comp_def concat_map_maps set_maps UN_iff fun_app_def Set.image_iff]
+	then guess x ..
+	moreover from this(2) guess xa ..
+	moreover from this(2) guess xb ..
+	moreover from this(2) guess xc ..
+	moreover from calculation(3)[unfolded set_filter_nones_simp set_map mem_Collect_eq Set.image_iff] guess xd ..
+	note xx = calculation(8,1,5,7) this(1)
+	show ?thesis unfolding simple_matches.simps
+	proof(unfold and_assoc, (rule)+)
+		case goal1 thus ?case 
+			apply(cases "iiface r = ifaceAny") 
+			 apply (simp add: match_ifaceAny) 
+			using mo xx(2) unfolding xx(1) OF_match_fields_unsafe_def
+			apply(simp only: if_False set_maps UN_iff)
+			apply(clarify)
+			apply(rename_tac a; subgoal_tac "match_iface (iiface r) a") 
+			 apply(clarsimp simp add: simple_packet_unext_def option2set_def)
+			apply(rule ccontr,simp;fail)
+		done
+	next
+		case goal2 thus ?case sorry
+	next
+		case goal3 thus ?case
+			using mo unfolding xx(1) OF_match_fields_unsafe_def
+			 by(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match)
+	next
+		case goal4 thus ?case
+			using mo unfolding xx(1) OF_match_fields_unsafe_def
+			 by(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match)
+	next
+		case goal5 thus ?case sorry
+	next
+		case goal6 thus ?case sorry
+	next
+		case goal7 thus ?case sorry
+    qed
+qed
 
 end

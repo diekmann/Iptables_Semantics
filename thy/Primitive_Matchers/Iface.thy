@@ -294,6 +294,7 @@ begin
       using iface_conjunct by simp
 
     lemma match_iface_refl: "match_iface (Iface x) x" by (simp add: internal_iface_name_match_refl)
+    lemma match_iface_eqI: assumes "x = Iface y" shows "match_iface x y" unfolding assms using match_iface_refl .
 
 
     lemma iface_conjunct_ifaceAny: "iface_conjunct ifaceAny i = Some i"
