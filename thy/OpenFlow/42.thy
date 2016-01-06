@@ -1,5 +1,5 @@
 theory 42
-imports "../Simple_Firewall/SimpleFw_Compliance" "Semantics_OpenFlow" "../Routing/AnnotateRouting"
+imports "../Simple_Firewall/SimpleFw_Compliance" "Semantics_OpenFlow" "OpenFlowMatches" "../Routing/AnnotateRouting"
 begin
 
 fun filter_nones where
@@ -79,5 +79,22 @@ proof(induction fw)
 		ultimately show ?thesis using True by(clarsimp)
 	qed
 qed(simp)
+
+definition "none2set n \<equiv> (case n of None \<Rightarrow> {} | Some s \<Rightarrow> {s})"
+definition toprefixmatch where
+"toprefixmatch m \<equiv> PrefixMatch (fst m) (snd m)"
+definition simple_match_to_of_match :: "simple_match \<Rightarrow> string list \<Rightarrow> of_match_field set list" where
+"simple_match_to_of_match m ifs \<equiv> (let
+	sb = (\<lambda>p. (if fst p = 0 \<and> snd p = max_word then [None] else map Some (word_upto (fst p) (snd p))))
+	in
+	[L4Src ` none2set sport \<union> L4Dst ` none2set dport
+	 \<union> (case (proto m) of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> undefined p)
+	 \<union> IngressPort ` none2set iif
+	 \<union> {IPv4Src (toprefixmatch (src m)), IPv4Src (toprefixmatch (dst m))}
+	.
+	iif \<leftarrow> (if iiface m = ifaceAny then [None] else [Some i. i \<leftarrow> ifs, match_iface (iiface m) i]),
+	sport \<leftarrow> sb (sports m),
+	dport \<leftarrow> sb (dports m)]
+)"
 
 end

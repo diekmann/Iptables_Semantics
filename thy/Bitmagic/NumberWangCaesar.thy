@@ -382,4 +382,38 @@ lemma cornys_hacky_call_to_prefix_to_range_to_start_with_a_valid_prefix: "valid_
   apply(simp add: valid_prefix_def pfxm_mask_def pfxm_length_def pfxm_prefix_def)
   by (metis mask_and_not_mask_helper)
 end
+
+function word_upto :: "'a word \<Rightarrow> 'a word \<Rightarrow> ('a::len0) word list" where
+"word_upto a b = (if a = b then [a] else word_upto a (b - 1) @ [b])"
+by auto
+
+termination word_upto
+apply(relation "measure (unat \<circ> case_prod (op -) \<circ> prod.swap)")
+apply(rule wf_measure)
+apply(unfold in_measure)
+apply(unfold comp_def)
+apply(simp)
+apply(subgoal_tac "unat (b - a - 1) < unat (b - a)")
+apply(simp add: diff_right_commute)
+apply(rule measure_unat)
+apply auto
+done
+
+declare word_upto.simps[simp del] 
+
+lemma word_upto_set_eq: "a < b \<Longrightarrow> set (word_upto a b) = {a..b}"
+apply(induction a b rule: word_upto.induct)
+apply(case_tac "a = b")
+apply(simp)
+apply(subst word_upto.simps)
+apply(simp)
+apply(case_tac "a < b - 1")
+apply(subgoal_tac "{a..b} = insert b {a..b - 1}")
+apply(simp only:)
+defer
+apply(simp)
+apply(subst word_upto.simps)
+apply(subgoal_tac "a = b - 1")
+oops
+
 end
