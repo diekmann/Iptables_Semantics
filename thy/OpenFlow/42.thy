@@ -152,13 +152,14 @@ lemma and_assoc: "a \<and> b \<and> c \<longleftrightarrow> (a \<and> b) \<and> 
 
 lemma 
 	assumes mm: "simple_matches r (undefined p)"
+	(*assumes ii: "p_iiface p \<in> set ifs"*) 
 	shows eq: "\<exists>gr \<in> set (simple_match_to_of_match r ifs). OF_match_fields gr p = Some True"
 oops
 
 lemma 
 	assumes eg: "gr \<in> set (simple_match_to_of_match r ifs)"
 	assumes mo: "OF_match_fields gr p = Some True"
-	(*assumes ii: "p_iiface p \<in> set ifs"*) 
+	assumes me: "match_iface (oiface r) (p_oiface p)"
 	shows "simple_matches r (simple_packet_unext p)"
 proof -
 	from mo have mo: "OF_match_fields_unsafe gr p" 
@@ -185,7 +186,7 @@ proof -
 			apply(rule ccontr,simp;fail)
 		done
 	next
-		case goal2 thus ?case sorry
+		case goal2 thus ?case unfolding simple_packet_unext_def simple_packet.simps using me .
 	next
 		case goal3 thus ?case
 			using mo unfolding xx(1) OF_match_fields_unsafe_def
