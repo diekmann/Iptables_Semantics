@@ -28,9 +28,9 @@ fun is_longest_prefix_routing :: "prefix_routing \<Rightarrow> bool" where
 
 (*example: get longest prefix match by sorting by pfxm_length*)
 value "rev (sort_key (\<lambda>r. pfxm_length (routing_match r)) [
-  \<lparr> routing_match = \<lparr> pfxm_prefix = 1::ipv4addr, pfxm_length = 3 \<rparr>, routing_action = [] \<rparr>,
-  \<lparr> routing_match = \<lparr> pfxm_prefix = 2::ipv4addr, pfxm_length = 8 \<rparr>, routing_action = [] \<rparr>,
-  \<lparr> routing_match = \<lparr> pfxm_prefix = 3::ipv4addr, pfxm_length = 4 \<rparr>, routing_action = [] \<rparr>])"
+  \<lparr> routing_match = PrefixMatch 1 3, routing_action = [] \<rparr>,
+  \<lparr> routing_match = PrefixMatch 2 8, routing_action = [] \<rparr>,
+  \<lparr> routing_match = PrefixMatch 3 4, routing_action = [] \<rparr>])"
 lemma longest_prefix_routing_no_sort: 
   "is_longest_prefix_routing tbl \<Longrightarrow>
   (sort_key (\<lambda>r. 32 - pfxm_length (routing_match r)) tbl) = tbl"

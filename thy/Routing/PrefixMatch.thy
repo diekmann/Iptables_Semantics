@@ -1,13 +1,9 @@
 theory PrefixMatch
-imports "../Bitmagic/IPv4Addr" "../Bitmagic/l4v/lib/WordLemmaBucket"
+imports "../Bitmagic/IPv4Addr" "../Bitmagic/l4v/lib/WordLemmaBucket" "../Bitmagic/NumberWangCaesar"
 begin
 
 subsection{*Definition*}
 
-record prefix_match =
-  pfxm_prefix :: ipv4addr
-  pfxm_length :: nat
-abbreviation "pfxm_mask x \<equiv> mask (32 - pfxm_length x)"
 
 definition valid_prefix :: "prefix_match \<Rightarrow> bool" where
   "valid_prefix pf = ((pfxm_mask pf) AND pfxm_prefix pf = 0)"
@@ -15,24 +11,17 @@ lemma valid_prefix_E: "valid_prefix pf \<Longrightarrow> ((pfxm_mask pf) AND pfx
   unfolding valid_prefix_def .
 lemma valid_preifx_alt_def: "valid_prefix p = (pfxm_prefix p AND (2 ^ (32 - pfxm_length p) - 1) = 0)"
   unfolding valid_prefix_def
-  unfolding mask_def
-  using word_bw_comms(1)
-   arg_cong[where f = "\<lambda>x. (pfxm_prefix p && x - 1 = 0)"]
-   shiftl_1
-  by metis
+  unfolding mask_def pfxm_mask_def
+  by (simp add: word_bw_comms(1) mask_2pm1)
 
 subsection{*Address Semantics*}
 
-definition prefix_match_semantics :: "prefix_match \<Rightarrow> ipv4addr \<Rightarrow> bool" where
-(*"prefix_match_semantics m a = (pfxm_prefix m \<le> a \<and> a \<le> pfxm_prefix m OR ((1 << (32 - pfxm_length m)) - 1))"*)
-"prefix_match_semantics m a = (pfxm_prefix m = (NOT pfxm_mask m) AND a)"
-
 lemma zero_prefix_match_all: "valid_prefix m \<Longrightarrow> pfxm_length m = 0 \<Longrightarrow> prefix_match_semantics m ip"
   apply(unfold prefix_match_semantics_def)
-  apply(simp)
+  apply(simp add: pfxm_mask_def)
   apply(subgoal_tac "pfxm_prefix m = 0")
    apply(metis mask_32_max_word word_bool_alg.compl_one word_bool_alg.conj_zero_left)
-  apply(simp add: mask_32_max_word valid_prefix_def)
+  apply(simp add: mask_32_max_word valid_prefix_def pfxm_mask_def)
 done
 
 subsection{*Set Semantics*}
@@ -86,11 +75,11 @@ proof -
     moreover
     { assume "\<not> pfxm_prefix match \<le> addr AND NOT pfxm_mask match"
       hence "\<not> (pfxm_prefix match \<le> addr \<and> addr \<le> pfxm_prefix match OR pfxm_mask match)"
-        using f1 by (metis neg_mask_mono_le) }
+        using f1 by (metis pfxm_mask_def neg_mask_mono_le) }
     moreover
     { assume "pfxm_prefix match \<le> addr AND NOT pfxm_mask match \<and> addr AND NOT pfxm_mask match \<noteq> (pfxm_prefix match OR pfxm_mask match) AND NOT pfxm_mask match"
       hence "\<exists>x\<^sub>0. \<not> addr AND NOT mask x\<^sub>0 \<le> (pfxm_prefix match OR pfxm_mask match) AND NOT mask x\<^sub>0"
-        using f2 by (metis dual_order.antisym word_bool_alg.conj_cancel_right word_log_esimps(3))
+        using f2 unfolding pfxm_mask_def by (metis dual_order.antisym word_bool_alg.conj_cancel_right word_log_esimps(3))
       hence "\<not> (pfxm_prefix match \<le> addr \<and> addr \<le> pfxm_prefix match OR pfxm_mask match)"
         using neg_mask_mono_le by auto }
     ultimately show "?case"
@@ -155,7 +144,7 @@ proof -
     have "pfxm_prefix match = (pfxm_prefix match || pfxm_mask match) && ~~ pfxm_mask match"
       using f5 by auto
     hence "pfxm_prefix match = addr && ~~ pfxm_mask match"
-      using f2 f4 f6 by (metis eq_iff)
+      using f2 f4 f6 unfolding pfxm_mask_def by (metis eq_iff)
     thus "pfxm_prefix match = ~~ pfxm_mask match && addr"
       by (metis word_bw_comms(1))
   qed
@@ -196,7 +185,7 @@ lemma prefix_match_if_in_corny_set:
 lemma prefix_match_if_in_corny_set2:
   assumes "valid_prefix pfx"
   shows "prefix_match_semantics pfx (a :: ipv4addr) \<longleftrightarrow> a \<in> ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
- unfolding prefix_match_if_in_corny_set[OF assms] by (metis (full_types) NOT_mask_len32 ipv4range_set_from_bitmask_alt1 word_bool_alg.double_compl)
+ unfolding prefix_match_if_in_corny_set[OF assms] pfxm_mask_def by (metis (full_types) NOT_mask_len32 ipv4range_set_from_bitmask_alt1 word_bool_alg.double_compl)
 
 subsection{*Range stuff*}
 

@@ -87,6 +87,12 @@ lemma
 	shows "simple_matches (hd (route2match \<lparr>routing_match = pfx, routing_action = [Port i]\<rparr>)) p"
 by(simp add: simple_matches.simps assms(1)[unfolded comp_def fun_app_def] const_def route2match_def 
 	match_ifaceAny ipv4range_set_from_bitmask_UNIV match_iface_refl iffD1[OF prefix_match_if_in_corny_set2, OF assms(2,3)])
+lemma
+	assumes "(op = p) \<circ> p_oiface_update (const i) \<circ> p_dst_update (const a) $ p'"
+	assumes "valid_prefix pfx"
+	assumes "simple_matches (hd (route2match \<lparr>routing_match = pfx, routing_action = [Port i]\<rparr>)) p"
+	shows "prefix_match_semantics pfx a"
+oops
 
 definition "option2set n \<equiv> (case n of None \<Rightarrow> {} | Some s \<Rightarrow> {s})"
 

@@ -10,7 +10,7 @@ text{* The range relation destroys a vital piece of information: given an entry 
 type_synonym annotated_routing = "(routing_rule \<times> ipv4range) list"
 
 fun annotate_rt_i :: "prefix_routing \<Rightarrow> ipv4range \<Rightarrow> annotated_routing" where
-"annotate_rt_i [] lo = [(\<lparr>routing_match = \<lparr>pfxm_prefix=0,pfxm_length=0\<rparr>, routing_action = []\<rparr>,lo)]" | (* insert default route to nirvana *)
+"annotate_rt_i [] lo = [(\<lparr>routing_match = PrefixMatch 0 0, routing_action = []\<rparr>,lo)]" | (* insert default route to nirvana *)
 "annotate_rt_i (a#as) lo = (
 	let rpm = range_prefix_match (routing_match a) lo; m = fst rpm; nm = snd rpm in (
 	(a,m) # annotate_rt_i as nm))"
