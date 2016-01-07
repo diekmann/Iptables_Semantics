@@ -98,23 +98,32 @@ apply(cases m)
 apply(clarsimp simp add: toprefixmatch_def fun_eq_iff)
 sorry
 
+definition "simple_match_to_of_match_single m iif prot sport dport \<equiv>
+L4Src ` option2set sport \<union> L4Dst ` option2set dport
+	 \<union> IPv4Proto ` (case prot of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> {p}) (* protocol is an 8 word option anyway\<dots> *)
+	 \<union> IngressPort ` option2set iif
+	 \<union> {IPv4Src (toprefixmatch (src m)), IPv4Dst (toprefixmatch (dst m))}
+	 \<union> {EtherType 0x0800}"
 definition simple_match_to_of_match :: "simple_match \<Rightarrow> string list \<Rightarrow> of_match_field set list" where
 "simple_match_to_of_match m ifs \<equiv> (let
 	npm = (\<lambda>p. fst p = 0 \<and> snd p = max_word);
 	sb = (\<lambda>p. (if npm p then [None] else if fst p \<le> snd p then map Some (word_upto (fst p) (snd p)) else []))
-	in
-	[L4Src ` option2set sport \<union> L4Dst ` option2set dport
-	 \<union> IPv4Proto ` (case prot of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> {p}) (* protocol is an 8 word option anyway\<dots> *)
-	 \<union> IngressPort ` option2set iif
-	 \<union> {IPv4Src (toprefixmatch (src m)), IPv4Dst (toprefixmatch (dst m))}
-	 \<union> {EtherType 0x0800}
-	.
-	iif \<leftarrow> (if iiface m = ifaceAny then [None] else [Some i. i \<leftarrow> ifs, match_iface (iiface m) i]),
-	prot \<leftarrow> filter_nones \<circ> map (simple_proto_conjunct (proto m)) $
-		(if npm (sports m) \<and> npm (dports m) then [ProtoAny] else map Proto [TCP,UDP,SCTP]),
-	sport \<leftarrow> sb (sports m),
-	dport \<leftarrow> sb (dports m)]
+	in [simple_match_to_of_match_single m iif prot sport dport .
+		iif \<leftarrow> (if iiface m = ifaceAny then [None] else [Some i. i \<leftarrow> ifs, match_iface (iiface m) i]),
+		prot \<leftarrow> filter_nones \<circ> map (simple_proto_conjunct (proto m)) $
+			(if npm (sports m) \<and> npm (dports m) then [ProtoAny] else map Proto [TCP,UDP,SCTP]),
+		sport \<leftarrow> sb (sports m),
+		dport \<leftarrow> sb (dports m)]
 )"
+
+lemma smtoms_cong: "a = e \<Longrightarrow> b = f \<Longrightarrow> c = g \<Longrightarrow> d = h \<Longrightarrow> simple_match_to_of_match_single r a b c d = simple_match_to_of_match_single r e f g h" by simp
+(* this lemma is a bit stronger than what I actually need, but unfolds are convenient *)
+lemma smtoms_eq_hlp: "simple_match_to_of_match_single r a b c d = simple_match_to_of_match_single r e f g h \<longleftrightarrow> (a = e \<and> b = f \<and> c = g \<and> d = h)"
+apply(rule, simp_all)
+apply(simp add: option2set_def simple_match_to_of_match_single_def toprefixmatch_def split: option.splits protocol.splits)
+(* give this some time, it creates and solves 255 subgoals\<dots> *)
+apply(auto)
+done
 
 lemma conjunctSomeProtoAnyD: "Some ProtoAny = simple_proto_conjunct a (Proto b) \<Longrightarrow> False"
 by(cases a) (simp_all split: if_splits)
@@ -122,7 +131,7 @@ lemma conjunctSomeProtoD: "Some (Proto x) = simple_proto_conjunct a (Proto b) \<
 by(cases a) (simp_all split: if_splits)
 
 lemma simple_match_to_of_match_generates_prereqs: "r \<in> set (simple_match_to_of_match m ifs) \<Longrightarrow> all_prerequisites f r"
-unfolding simple_match_to_of_match_def all_prerequisites_def option2set_def
+unfolding simple_match_to_of_match_def simple_match_to_of_match_single_def all_prerequisites_def option2set_def
 apply(clarsimp)
 apply(erule disjE, (simp; fail))+
 apply(unfold Set.image_iff)
@@ -149,12 +158,69 @@ apply(erule disjE)
 done
 
 lemma and_assoc: "a \<and> b \<and> c \<longleftrightarrow> (a \<and> b) \<and> c" by simp
+lemma ex_bexI: "x \<in> A \<Longrightarrow> (x \<in> A \<Longrightarrow> P x) \<Longrightarrow> \<exists>x\<in>A. P x"
+proof assume "x \<in> A \<Longrightarrow> P x" and "x \<in> A" thus "P x" .
+next  assume "x \<in> A" thus "x \<in> A" . 
+qed
+
+lemmas custom_simpset = simple_match_to_of_match_def Let_def set_concat set_map map_map comp_def concat_map_maps set_maps UN_iff fun_app_def Set.image_iff
+
+lemma bex_singleton: "\<exists>x\<in>{s}.P x = P s" by simp
 
 lemma 
-	assumes mm: "simple_matches r (undefined p)"
-	(*assumes ii: "p_iiface p \<in> set ifs"*) 
+	assumes mm: "simple_matches r (simple_packet_unext p)"
+	assumes ii: "p_iiface p \<in> set ifs"
+	assumes ippkt: "p_l2type p = 0x800"
 	shows eq: "\<exists>gr \<in> set (simple_match_to_of_match r ifs). OF_match_fields gr p = Some True"
-oops
+proof
+	let ?npm = "\<lambda>p. fst p = 0 \<and> snd p = max_word"
+	let ?sb = "\<lambda>p r. (if ?npm p then None else Some r)"
+	let ?protcond = "?npm (sports r) \<and> ?npm (dports r) \<and> proto r = ProtoAny"
+	let ?foo = "simple_match_to_of_match_single r 
+		(if iiface r = ifaceAny then None else Some (p_iiface p)) 
+		(if ?protcond then ProtoAny else Proto (p_proto p))
+		(?sb (sports r) (p_sport p)) (?sb (dports r) (p_dport p))"
+	note mfu = simple_match_port.simps[of "fst (sports r)" "snd (sports r)", unfolded surjective_pairing[of "sports r",symmetric]]
+			   simple_match_port.simps[of "fst (dports r)" "snd (dports r)", unfolded surjective_pairing[of "dports r",symmetric]]
+	note u = mm[unfolded simple_matches.simps mfu ord_class.atLeastAtMost_iff simple_packet_unext_def simple_packet.simps]
+	note of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs]
+	from u have ple: "fst (sports r) \<le> snd (sports r)" "fst (dports r) \<le> snd (dports r)" by force+
+	have sdpe: "(p_sport p) \<in> set (word_upto (fst (sports r)) (snd (sports r)))" "(p_dport p) \<in> set (word_upto (fst (dports r)) (snd (dports r)))" 
+		unfolding word_upto_set_eq[OF ple(1)] word_upto_set_eq[OF ple(2)] using u by simp_all
+	show eg: "?foo \<in> set (simple_match_to_of_match r ifs)"
+		unfolding simple_match_to_of_match_def
+		unfolding custom_simpset
+		unfolding smtoms_eq_hlp
+		proof(rule,rule,rule,rule,rule,rule refl,rule,rule refl,rule,rule refl,rule refl)
+			case goal1 thus ?case using ple(2) sdpe(2) by simp
+		next
+			case goal2 thus ?case using ple(1) sdpe(1) by simp
+		next
+			case goal3 thus ?case apply(simp only: set_filter_nones list.map set_simps singleton_iff simple_proto_conjunct_asimp  split: if_splits)
+			apply(unfold and_assoc)
+			apply(rule)
+			apply(rule)
+			apply(rule)
+			apply(simp)
+			apply(clarify)
+			apply(clarsimp)
+			apply(metis u match_proto.elims(2))
+			apply(rule)
+			apply(rule)
+			apply(rule)
+			apply(clarsimp;fail)
+			apply(rule)
+			apply(cases "proto r")
+			apply(clarsimp)
+			defer
+			apply(clarsimp) sorry (* this needs some validity property on r *)
+		next
+			case goal4 thus ?case by(simp add: set_maps ii u)
+		qed
+	show "OF_match_fields ?foo p = Some True"
+	unfolding of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs[OF eg]]
+		by(simp_all add: simple_match_to_of_match_single_def OF_match_fields_unsafe_def option2set_def prefix_match_semantics_simple_match u ippkt)
+qed
 
 lemma 
 	assumes eg: "gr \<in> set (simple_match_to_of_match r ifs)"
@@ -166,7 +232,7 @@ proof -
 		unfolding of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs[OF eg]]
 		by simp
 	note this[unfolded OF_match_fields_unsafe_def]
-	note eg[unfolded simple_match_to_of_match_def Let_def set_concat set_map map_map comp_def concat_map_maps set_maps UN_iff fun_app_def Set.image_iff]
+	note eg[unfolded custom_simpset simple_match_to_of_match_single_def]
 	then guess x ..
 	moreover from this(2) guess xa ..
 	moreover from this(2) guess xb ..
