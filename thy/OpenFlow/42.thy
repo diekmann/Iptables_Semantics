@@ -235,6 +235,8 @@ lemma
 	assumes eg: "gr \<in> set (simple_match_to_of_match r ifs)"
 	assumes mo: "OF_match_fields gr p = Some True"
 	assumes me: "match_iface (oiface r) (p_oiface p)"
+	assumes validpfx1: "NumberWangCaesar.valid_prefix (toprefixmatch (src r))" (is "?vpfx (src r)")
+	assumes validpfx2: "?vpfx (dst r)"
 	shows "simple_matches r (simple_packet_unext p)"
 proof -
 	from mo have mo: "OF_match_fields_unsafe gr p" 
@@ -265,11 +267,11 @@ proof -
 	next
 		case goal3 thus ?case
 			using mo unfolding xx(1) OF_match_fields_unsafe_def
-			 by(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match)
+			 by(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match validpfx1)
 	next
 		case goal4 thus ?case
 			using mo unfolding xx(1) OF_match_fields_unsafe_def
-			 by(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match)
+			 by(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match validpfx2)
 	next
 		case goal5 thus ?case
 			using mo unfolding xx(1) OF_match_fields_unsafe_def
