@@ -187,7 +187,7 @@ proof
 	note of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs]
 	from u have ple: "fst (sports r) \<le> snd (sports r)" "fst (dports r) \<le> snd (dports r)" by force+
 	have sdpe: "(p_sport p) \<in> set (word_upto (fst (sports r)) (snd (sports r)))" "(p_dport p) \<in> set (word_upto (fst (dports r)) (snd (dports r)))" 
-		unfolding word_upto_set_eq[OF ple(1)] word_upto_set_eq[OF ple(2)] using u by simp_all
+		unfolding word_upto_set_eq[OF ple(1)] word_upto_set_eq[OF ple(2)] using u by simp_all 
 	show eg: "?foo \<in> set (simple_match_to_of_match r ifs)"
 		unfolding simple_match_to_of_match_def
 		unfolding custom_simpset
@@ -211,11 +211,11 @@ proof
 				 apply(clarsimp;fail)
 				apply(rule)
 				apply(erule contrapos_np)
-				apply(rule contrapos_pn validr)
+				apply(rule validr)
 				apply(clarsimp)
 				apply(cases "proto r")
 				 apply(simp;fail)
-				using u apply(simp add: TCP_def UDP_def SCTP_def u split: if_splits)
+				using u apply(simp split: if_splits)
 			done
 		next
 			case goal4 thus ?case by(simp add: set_maps ii u)
@@ -284,14 +284,14 @@ proof -
 			using mo xx(3) unfolding xx(1) OF_match_fields_unsafe_def
 			apply(cases "sports r")
 			apply(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match split: if_splits)
-			apply(rule word_upto_set_eq) 
+			apply(rule word_upto_set_eq2)
 			 apply(simp_all)
 		done
 	next
 		case goal7 thus ?case using mo xx(4) unfolding xx(1) OF_match_fields_unsafe_def
 			apply(cases "dports r")
 			apply(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match split: if_splits)
-			apply(rule word_upto_set_eq) 
+			apply(rule word_upto_set_eq2)
 			 apply(simp_all)
 		done
     qed
