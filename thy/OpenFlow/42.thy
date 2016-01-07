@@ -171,6 +171,7 @@ lemma
 	assumes mm: "simple_matches r (simple_packet_unext p)"
 	assumes ii: "p_iiface p \<in> set ifs"
 	assumes ippkt: "p_l2type p = 0x800"
+	assumes validr: "(proto r) \<notin> Proto ` {TCP,UDP,SCTP} \<Longrightarrow> ((fst (sports r) = 0 \<and> snd (sports r) = max_word) \<and> fst (dports r) = 0 \<and> snd (dports r) = max_word)"
 	shows eq: "\<exists>gr \<in> set (simple_match_to_of_match r ifs). OF_match_fields gr p = Some True"
 proof
 	let ?npm = "\<lambda>p. fst p = 0 \<and> snd p = max_word"
@@ -196,29 +197,31 @@ proof
 		next
 			case goal2 thus ?case using ple(1) sdpe(1) by simp
 		next
-			case goal3 thus ?case apply(simp only: set_filter_nones list.map set_simps singleton_iff simple_proto_conjunct_asimp  split: if_splits)
-			apply(unfold and_assoc)
-			apply(rule)
-			apply(rule)
-			apply(rule)
-			apply(simp)
-			apply(clarify)
-			apply(clarsimp)
-			apply(metis u match_proto.elims(2))
-			apply(rule)
-			apply(rule)
-			apply(rule)
-			apply(clarsimp;fail)
-			apply(rule)
-			apply(cases "proto r")
-			apply(clarsimp)
-			defer
-			apply(clarsimp) sorry (* this needs some validity property on r *)
+			case goal3 thus ?case 
+				apply(simp only: set_filter_nones list.map set_simps singleton_iff simple_proto_conjunct_asimp  split: if_splits)
+				apply(rule)
+				 apply(rule)
+				  apply(rule)
+				  apply(simp)
+				 apply(clarsimp)
+				 apply(metis u match_proto.elims(2))
+				apply(rule)
+				 apply(rule)
+				apply(rule)
+				 apply(clarsimp;fail)
+				apply(rule)
+				apply(erule contrapos_np)
+				apply(rule contrapos_pn validr)
+				apply(clarsimp)
+				apply(cases "proto r")
+				 apply(simp;fail)
+				using u apply(simp add: TCP_def UDP_def SCTP_def u split: if_splits)
+			done
 		next
 			case goal4 thus ?case by(simp add: set_maps ii u)
 		qed
 	show "OF_match_fields ?foo p = Some True"
-	unfolding of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs[OF eg]]
+	unfolding of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs[OF eg]]                                                             
 		by(simp_all add: simple_match_to_of_match_single_def OF_match_fields_unsafe_def option2set_def prefix_match_semantics_simple_match u ippkt)
 qed
 
