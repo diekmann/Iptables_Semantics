@@ -93,10 +93,14 @@ definition "option2set n \<equiv> (case n of None \<Rightarrow> {} | Some s \<Ri
 definition toprefixmatch where
 "toprefixmatch m \<equiv> PrefixMatch (fst m) (snd m)"
 (* todo: disambiguate that prefix_match mess *)
-lemma prefix_match_semantics_simple_match: "NumberWangCaesar.prefix_match_semantics (toprefixmatch m) = simple_match_ip m"
-apply(cases m)
-apply(clarsimp simp add: toprefixmatch_def fun_eq_iff)
-sorry
+lemma prefix_match_semantics_simple_match: 
+	assumes vld: "NumberWangCaesar.valid_prefix (toprefixmatch m)" 
+	shows "NumberWangCaesar.prefix_match_semantics (toprefixmatch m) = simple_match_ip m"
+	apply(clarsimp simp add: fun_eq_iff)
+	apply(subst NumberWangCaesar.prefix_match_if_in_corny_set[OF vld])
+	apply(cases m)
+	apply(clarsimp simp add: fun_eq_iff toprefixmatch_def ipv4range_set_from_bitmask_alt1 maskshift_eq_not_mask pfxm_mask_def)
+done
 
 definition "simple_match_to_of_match_single m iif prot sport dport \<equiv>
 L4Src ` option2set sport \<union> L4Dst ` option2set dport
@@ -172,6 +176,8 @@ lemma
 	assumes ii: "p_iiface p \<in> set ifs"
 	assumes ippkt: "p_l2type p = 0x800"
 	assumes validr: "(proto r) \<notin> Proto ` {TCP,UDP,SCTP} \<Longrightarrow> ((fst (sports r) = 0 \<and> snd (sports r) = max_word) \<and> fst (dports r) = 0 \<and> snd (dports r) = max_word)"
+	assumes validpfx1: "NumberWangCaesar.valid_prefix (toprefixmatch (src r))" (is "?vpfx (src r)") 
+	assumes validpfx2: "?vpfx (dst r)"
 	shows eq: "\<exists>gr \<in> set (simple_match_to_of_match r ifs). OF_match_fields gr p = Some True"
 proof
 	let ?npm = "\<lambda>p. fst p = 0 \<and> snd p = max_word"
@@ -221,8 +227,8 @@ proof
 			case goal4 thus ?case by(simp add: set_maps ii u)
 		qed
 	show "OF_match_fields ?foo p = Some True"
-	unfolding of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs[OF eg]]                                                             
-		by(simp_all add: simple_match_to_of_match_single_def OF_match_fields_unsafe_def option2set_def prefix_match_semantics_simple_match u ippkt)
+	unfolding of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs[OF eg]]
+		by(simp_all add: simple_match_to_of_match_single_def OF_match_fields_unsafe_def option2set_def prefix_match_semantics_simple_match validpfx1 validpfx2 u ippkt)
 qed
 
 lemma 
