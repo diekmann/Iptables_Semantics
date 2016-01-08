@@ -27,10 +27,11 @@ fun is_longest_prefix_routing :: "prefix_routing \<Rightarrow> bool" where
   "is_longest_prefix_routing _ = True"
 
 (*example: get longest prefix match by sorting by pfxm_length*)
+definition "rr_ctor m l a \<equiv> \<lparr> routing_match = PrefixMatch (ipv4addr_of_dotdecimal m) l, routing_action = map Port a \<rparr>"
 value "rev (sort_key (\<lambda>r. pfxm_length (routing_match r)) [
-  \<lparr> routing_match = PrefixMatch 1 3, routing_action = [] \<rparr>,
-  \<lparr> routing_match = PrefixMatch 2 8, routing_action = [] \<rparr>,
-  \<lparr> routing_match = PrefixMatch 3 4, routing_action = [] \<rparr>])"
+  rr_ctor (0,0,0,1) 3 [],
+  rr_ctor (0,0,0,2) 8 [],
+  rr_ctor (0,0,0,3) 4 []])"
 lemma longest_prefix_routing_no_sort: 
   "is_longest_prefix_routing tbl \<Longrightarrow>
   (sort_key (\<lambda>r. 32 - pfxm_length (routing_match r)) tbl) = tbl"

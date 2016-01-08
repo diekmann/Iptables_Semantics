@@ -1,5 +1,10 @@
 theory 42
-imports "../Simple_Firewall/SimpleFw_Compliance" "Semantics_OpenFlow" "OpenFlowMatches" "../Routing/AnnotateRouting"
+imports 
+	"../Simple_Firewall/SimpleFw_Compliance" 
+	"Semantics_OpenFlow"
+	"OpenFlowMatches"
+	"../Routing/AnnotateRouting"
+	"../Routing/LinuxRouter"
 begin
 
 fun filter_nones where
@@ -35,8 +40,10 @@ p_tcp_flags :: "tcp_flag set"
 p_tag_ctstate :: ctstate
 *)
 
-definition "route2match r = map (\<lambda>oi. 
-	\<lparr>iiface = ifaceAny, oiface = Iface (port_sel oi), src = (0,0), dst=(pfxm_prefix (routing_match r),pfxm_length (routing_match r)), proto=ProtoAny, sports=(0,max_word), ports=(0,max_word)\<rparr>) 
+definition "route2match r = map (\<lambda>oi.
+	\<lparr>iiface = ifaceAny, oiface = Iface (port_sel oi), 
+	src = (0,0), dst=(pfxm_prefix (routing_match r),pfxm_length (routing_match r)), 
+	proto=ProtoAny, sports=(0,max_word), ports=(0,max_word)\<rparr>)
 	(routing_action r)"
                                     
 fun simple_match_list_and :: "simple_match \<Rightarrow> simple_rule list \<Rightarrow> simple_rule list" where
@@ -84,13 +91,20 @@ lemma
 	assumes "(op = p) \<circ> p_oiface_update (const i) \<circ> p_dst_update (const a) $ p'"
 	assumes "valid_prefix pfx"
 	assumes "prefix_match_semantics pfx a"
-	shows "simple_matches (hd (route2match \<lparr>routing_match = pfx, routing_action = [Port i]\<rparr>)) p"
-by(simp add: simple_matches.simps assms(1)[unfolded comp_def fun_app_def] const_def route2match_def 
+	assumes "Port i \<in> set ifs"
+	shows "\<exists>r \<in> set (route2match \<lparr>routing_match = pfx, routing_action = ifs\<rparr>). simple_matches r p"
+apply(simp add: simple_matches.simps assms(1)[unfolded comp_def fun_app_def] const_def route2match_def 
 	match_ifaceAny ipv4range_set_from_bitmask_UNIV match_iface_refl iffD1[OF prefix_match_if_in_corny_set2, OF assms(2,3)])
+apply(force intro: match_iface_eqI assms(4))
+(* apply(rule bexI[OF _ assms(4)], simp add: match_iface_refl) *)
+done
+
 lemma
 	assumes "(op = p) \<circ> p_oiface_update (const i) \<circ> p_dst_update (const a) $ p'"
 	assumes "valid_prefix pfx"
-	assumes "simple_matches (hd (route2match \<lparr>routing_match = pfx, routing_action = [Port i]\<rparr>)) p"
+	assumes "m \<in> set (route2match \<lparr>routing_match = pfx, routing_action = ifs\<rparr>)"
+	assumes "simple_matches m p"
+	assumes "Port i \<in> set ifs"
 	shows "prefix_match_semantics pfx a"
 oops
 
@@ -310,5 +324,55 @@ proof -
 		done
     qed
 qed
+
+fun annotate_rlen where
+"annotate_rlen [] = []" |
+"annotate_rlen (a#as) = (length as, a) # annotate_rlen as"
+fun annotate_rlen_code where
+"annotate_rlen_code [] = (0,[])" |
+"annotate_rlen_code (a#as) = (case annotate_rlen_code as of (r,aas) \<Rightarrow> (Suc r, (r, a) # aas))"
+lemma annotate_rlen_len: "fst (annotate_rlen_code r) = length r"
+by(induction r) (clarsimp split: prod.splits)+
+lemma annotate_rlen_code[code]: "annotate_rlen s = snd (annotate_rlen_code s)"
+	apply(induction s)
+	 apply(simp)
+	apply(clarsimp split: prod.split)
+	apply(metis annotate_rlen_len fst_conv)
+done
+
+(* why is there curry *)
+find_consts "(('a \<times> 'b) \<Rightarrow> 'c) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> 'c"
+(* but no "uncurry" *)
+find_consts "('a \<Rightarrow> 'b \<Rightarrow> 'c) \<Rightarrow> ('a \<times> 'b) \<Rightarrow> 'c"
+definition "split3 f p \<equiv> case p of (a,b,c) \<Rightarrow> f a b c"
+find_consts "('a \<Rightarrow> 'b \<Rightarrow> 'c \<Rightarrow> 'd) \<Rightarrow> ('a \<times> 'b \<times> 'c) \<Rightarrow> 'd"
+
+definition "flip f b a = f a b"
+lemma flip_COMBC: "flip f b a = Meson.COMBC f b a" unfolding flip_def Meson.COMBC_def ..
+term "split3 OFEntry"
+fun suc2plus where
+"suc2plus 0 = 0" |
+"suc2plus (Suc k) = suc2plus k + 1"
+term "\<lambda>a b. flip simple_match_list_and a b"
+term "undefined :: ('a list \<times> 'b) \<Rightarrow> ('a \<times> 'b) list"
+term "\<lambda>k. map (flip Pair $ snd k) $ fst k"
+term "let k = undefined :: ((simple_match \<times> char list) list \<times> simple_rule list) in 
+[Pair b c. (a,c) \<leftarrow> fst k, b \<leftarrow> simple_match_list_and a $ snd k]"
+term "(simple_action.Drop, Drop)"
+definition "fourtytwo rt fw ifs \<equiv> let
+	mrt = [(m, routing_action  r). r \<leftarrow> rt, m \<leftarrow> route2match r]; (* make matches from those rt entries *)
+	frd = [Pair b c. (a,c) \<leftarrow> mrt, b \<leftarrow> flip simple_match_list_and fw a]; (* bring down the firewall over all rt matches *)
+	ard = map (apfst suc2plus) $ annotate_rlen frd; (* give them a priority *)
+	omr = [(a, b, case action_sel r of simple_action.Accept \<Rightarrow> c | simple_action.Drop \<Rightarrow> []).
+		(a,r,c) \<leftarrow> ard, b \<leftarrow> simple_match_to_of_match (match_sel r) ifs] in (* make them to openflow matches *)
+	map (split3 OFEntry) omr
+"
+thm fourtytwo_def[unfolded Let_def comp_def fun_app_def flip_def] (* it's a monster *)
+
+lemma "no_overlaps OF_match_fields_unsafe (fourtytwo rt fw ifs)"
+apply(subst fourtytwo_def)
+apply(unfold Let_def)
+apply(simp add: )
+oops
 
 end

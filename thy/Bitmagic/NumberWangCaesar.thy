@@ -388,7 +388,7 @@ function word_upto :: "'a word \<Rightarrow> 'a word \<Rightarrow> ('a::len0) wo
 by auto
 
 termination word_upto
-apply(relation "measure (unat \<circ> case_prod (op -) \<circ> prod.swap)")
+apply(relation "measure (unat \<circ> split (op -) \<circ> prod.swap)")
 apply(rule wf_measure)
 apply(unfold in_measure)
 apply(unfold comp_def)
