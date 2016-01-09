@@ -436,4 +436,13 @@ qed
 lemma word_upto_set_eq: "a \<le> b \<Longrightarrow> x \<in> set (word_upto a b) \<longleftrightarrow> a \<le> x \<and> x \<le> b"
 	using word_upto_set_eq3 word_upto_set_eq2 by metis
 
+lemma "distinct (word_upto a b)"
+apply(induction a b rule: word_upto.induct)
+apply(case_tac "a = b")
+apply(subst word_upto.simps)
+apply(simp; force)
+apply(subst word_upto.simps)
+apply(simp)
+
+
 end

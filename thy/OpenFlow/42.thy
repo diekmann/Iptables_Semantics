@@ -328,6 +328,22 @@ qed
 fun annotate_rlen where
 "annotate_rlen [] = []" |
 "annotate_rlen (a#as) = (length as, a) # annotate_rlen as"
+
+lemma fst_annotate_rlen_le: "(k, a) \<in> set (annotate_rlen l) \<Longrightarrow> k < length l"
+	apply(induction l arbitrary: k)
+	 apply simp
+	apply fastforce
+done
+lemma distinct_annotate_rlen: "distinct (annotate_rlen l)"
+	apply(induction l)
+	 apply(simp)
+	apply(simp)
+	apply(erule contrapos_pp)
+	apply(unfold not_not)
+	apply(drule fst_annotate_rlen_le)
+	apply clarify
+done
+
 fun annotate_rlen_code where
 "annotate_rlen_code [] = (0,[])" |
 "annotate_rlen_code (a#as) = (case annotate_rlen_code as of (r,aas) \<Rightarrow> (Suc r, (r, a) # aas))"
@@ -347,32 +363,132 @@ find_consts "('a \<Rightarrow> 'b \<Rightarrow> 'c) \<Rightarrow> ('a \<times> '
 definition "split3 f p \<equiv> case p of (a,b,c) \<Rightarrow> f a b c"
 find_consts "('a \<Rightarrow> 'b \<Rightarrow> 'c \<Rightarrow> 'd) \<Rightarrow> ('a \<times> 'b \<times> 'c) \<Rightarrow> 'd"
 
-definition "flip f b a = f a b"
-lemma flip_COMBC: "flip f b a = Meson.COMBC f b a" unfolding flip_def Meson.COMBC_def ..
-term "split3 OFEntry"
 fun suc2plus where
 "suc2plus 0 = 0" |
 "suc2plus (Suc k) = suc2plus k + 1"
-term "\<lambda>a b. flip simple_match_list_and a b"
-term "undefined :: ('a list \<times> 'b) \<Rightarrow> ('a \<times> 'b) list"
-term "\<lambda>k. map (flip Pair $ snd k) $ fst k"
-term "let k = undefined :: ((simple_match \<times> char list) list \<times> simple_rule list) in 
-[Pair b c. (a,c) \<leftarrow> fst k, b \<leftarrow> simple_match_list_and a $ snd k]"
-term "(simple_action.Drop, Drop)"
+
+definition "fourtytwo_s3 ard ifs = [(a, b, case action_sel r of simple_action.Accept \<Rightarrow> c | simple_action.Drop \<Rightarrow> []).
+		(a,r,c) \<leftarrow> ard, b \<leftarrow> simple_match_to_of_match (match_sel r) ifs]"
+		(* take prepared rule list and make openflow matches from the simple_rules *) 
+
 definition "fourtytwo rt fw ifs \<equiv> let
 	mrt = [(m, routing_action  r). r \<leftarrow> rt, m \<leftarrow> route2match r]; (* make matches from those rt entries *)
-	frd = [Pair b c. (a,c) \<leftarrow> mrt, b \<leftarrow> flip simple_match_list_and fw a]; (* bring down the firewall over all rt matches *)
+	frd = [Pair b c. (a,c) \<leftarrow> mrt, b \<leftarrow> simple_match_list_and a fw]; (* bring down the firewall over all rt matches *)
 	ard = map (apfst suc2plus) $ annotate_rlen frd; (* give them a priority *)
-	omr = [(a, b, case action_sel r of simple_action.Accept \<Rightarrow> c | simple_action.Drop \<Rightarrow> []).
-		(a,r,c) \<leftarrow> ard, b \<leftarrow> simple_match_to_of_match (match_sel r) ifs] in (* make them to openflow matches *)
+	omr = fourtytwo_s3 ard ifs in
 	map (split3 OFEntry) omr
 "
-thm fourtytwo_def[unfolded Let_def comp_def fun_app_def flip_def] (* it's a monster *)
+thm fourtytwo_def[unfolded Let_def comp_def fun_app_def] (* it's a monster *)
+value fourtytwo (* a real one *)
 
+lemma map_injective_eq: "map f xs = map g ys \<Longrightarrow> (\<And>e. f e = g e) \<Longrightarrow> inj f \<Longrightarrow> xs = ys"
+	apply(rule map_injective, defer_tac)
+	 apply(simp)+
+done
+
+
+lemma "distinct x \<Longrightarrow> inj_on g (set x) \<Longrightarrow> inj_on f (set (concat (map g x))) \<Longrightarrow> distinct [f a. b \<leftarrow> x, a \<leftarrow> g b]"
+apply(clarify;fail | rule distinct_concat | subst distinct_map, rule)+
+apply(rule inj_onI)
+apply(unfold set_concat set_map)
+find_theorems "map ?f _ = map ?f _"
+oops
+
+lemma list_at_eqD: "aa @ ab = ba @ bb \<Longrightarrow> length aa = length ba \<Longrightarrow> length ab = length bb \<Longrightarrow> aa = ba \<and> ab = bb"
+by simp
+lemma list_induct_2simul:
+	"P [] [] \<Longrightarrow> (\<And>a as bs. P as bs \<Longrightarrow> P (a # as) bs) \<Longrightarrow> (\<And>b as bs. P as bs \<Longrightarrow> P as (b # bs)) \<Longrightarrow> P x y"
+	apply(induction x)
+	 apply(metis list_nonempty_induct)
+	apply(induction y)
+	 apply(simp)
+	apply(simp)
+done
+lemma list_induct_3simul:
+	"P [] [] [] \<Longrightarrow> 
+	(\<And>e a b c. P a b c \<Longrightarrow> P (e # a) b c) \<Longrightarrow>
+	(\<And>e a b c. P a b c \<Longrightarrow> P a (e # b) c) \<Longrightarrow>
+	(\<And>e a b c. P a b c \<Longrightarrow> P a b (e # c)) \<Longrightarrow>
+	P x y z"
+	apply(induction x)
+	 apply(induction y)
+	  apply(induction z)
+	    apply(simp_all)
+done
+lemma list_induct_4simul:
+	"P [] [] [] [] \<Longrightarrow> 
+	(\<And>e a b c d. P a b c d \<Longrightarrow> P (e # a) b c d) \<Longrightarrow>
+	(\<And>e a b c d. P a b c d \<Longrightarrow> P a (e # b) c d) \<Longrightarrow>
+	(\<And>e a b c d. P a b c d \<Longrightarrow> P a b (e # c) d) \<Longrightarrow>
+	(\<And>e a b c d. P a b c d \<Longrightarrow> P a b c (e # d)) \<Longrightarrow>
+	P x y z w"
+	apply(induction x)
+	 apply(induction y)
+	  apply(induction z)
+	   apply(induction w)
+	    apply(simp_all)
+done
+
+lemma "distinct (e # a) = distinct (f (e # a))"
+oops
+
+lemma "distinct ifs \<Longrightarrow> distinct (simple_match_to_of_match m ifs)"
+apply(induction ifs "word_upto (fst (sports m)) (snd (sports m))" "word_upto (fst (dports m)) (snd (dports m))"
+	rule: list_induct_3simul)
+apply(unfold simple_match_to_of_match_def Let_def)
+apply(clarsimp split: option.splits)
+apply(cases "iiface m = ifaceAny")
+apply(simp;fail)
+apply(simp only: if_False list.map concat.simps)
+apply(case_tac "match_iface (iiface m) e")
+prefer 2
+apply(simp;fail)
+apply(simp only: if_True list.map concat.simps)
+(*
+
+apply(clarify;fail | rule distinct_concat | subst distinct_map, rule)+
+apply(clarsimp)
+apply(induction ifs)
+apply(simp;fail)
+apply(simp;fail)
+apply(rule inj_onI)
+apply(cases "iiface m = ifaceAny")
+apply(simp;fail)
+apply(clarsimp simp add: smtoms_eq_hlp split: if_splits)
+apply(drule list_at_eqD)
+apply(simp_all add: length_concat comp_def)[2]
+apply(clarsimp simp add: comp_def smtoms_eq_hlp split: option.splits)
+
+
+apply(clarify;fail | rule distinct_concat | subst distinct_map, rule)+
+apply(simp split: if_splits)
+*)oops
+
+lemma no_overlaps_42_hlp: "distinct amr \<Longrightarrow> distinct ifs \<Longrightarrow> no_overlaps OF_match_fields_unsafe (map (split3 OFEntry) (fourtytwo_s3 amr ifs))"
+(*apply(unfold fourtytwo_s3_def simple_match_to_of_match_def)
+apply(rule no_overlapsI, defer_tac)
+apply(unfold distinct_map, rule)
+apply(rule distinct_concat)
+apply(unfold distinct_map, rule)
+apply(clarify; fail)
+apply(rule inj_inj_on)
+apply(rule injI)
+apply(rename_tac x y)
+apply(case_tac x, case_tac y)
+apply(simp add: map_concat concat_map_maps)
+apply(erule contrapos_pp)
+apply(unfold de_Morgan_conj)*)
+proof(induction "(fourtytwo_s3 amr ifs)")
+	case (Cons a as)
+
+
+
+sorry
 lemma "no_overlaps OF_match_fields_unsafe (fourtytwo rt fw ifs)"
-apply(subst fourtytwo_def)
-apply(unfold Let_def)
-apply(simp add: )
+apply(simp add: no_overlaps_42_hlp fourtytwo_def)
+apply(rule no_overlaps_42_hlp)
+apply(unfold distinct_map, rule)
+apply(rule distinct_annotate_rlen)
 oops
 
 end
