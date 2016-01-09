@@ -399,7 +399,9 @@ apply(rule measure_unat)
 apply auto
 done
 
-declare word_upto.simps[simp del] 
+declare word_upto.simps[simp del]
+
+(* Most of the lemmas I show about word_upto hold without a \<le> b, but I don't need that right now and it's giving me a headache *)
 
 lemma word_upto_set_eq2: "a \<le> b \<Longrightarrow> x \<in> set (word_upto a b) \<Longrightarrow> a \<le> x \<and> x \<le> b"
 apply(induction a b rule: word_upto.induct)
@@ -435,14 +437,30 @@ qed
 
 lemma word_upto_set_eq: "a \<le> b \<Longrightarrow> x \<in> set (word_upto a b) \<longleftrightarrow> a \<le> x \<and> x \<le> b"
 	using word_upto_set_eq3 word_upto_set_eq2 by metis
+	
+lemma word_upto_distinct_hlp: "a \<le> b \<Longrightarrow> a \<noteq> b \<Longrightarrow> b \<notin> set (word_upto a (b - 1))"
+	apply(rule ccontr, unfold not_not)
+	apply(subgoal_tac "a \<le> b - 1")
+	 apply(drule word_upto_set_eq2[of a "b -1" b])
+	  apply(simp add: word_upto.simps; fail)
+	 apply(subgoal_tac "b \<noteq> 0")
+	  apply(meson leD measure_unat word_le_nat_alt)
+	 apply(blast intro: iffD1[OF word_le_0_iff])
+	apply(metis antisym_conv le_step_down_nat unat_minus_one word_le_0_iff word_le_nat_alt)
+done
 
-lemma "distinct (word_upto a b)"
+lemma distinct_word_upto: "a \<le> b \<Longrightarrow> distinct (word_upto a b)"
 apply(induction a b rule: word_upto.induct)
 apply(case_tac "a = b")
 apply(subst word_upto.simps)
 apply(simp; force)
 apply(subst word_upto.simps)
+apply(case_tac "a \<le> b - 1")
 apply(simp)
-
+apply(rule word_upto_distinct_hlp;simp_all;fail)
+apply(simp)
+apply(rule ccontr)
+apply(metis le_step_down_nat less_le not_le unat_minus_one word_le_nat_alt word_not_simps(1))
+done
 
 end

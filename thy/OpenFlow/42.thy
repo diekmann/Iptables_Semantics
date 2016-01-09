@@ -468,11 +468,9 @@ apply fastforce
 done
 
 
-lemma "distinct ifs \<Longrightarrow> distinct (simple_match_to_of_match m ifs)"
+lemma distinct_simple_match_to_of_match: "distinct ifs \<Longrightarrow> distinct (simple_match_to_of_match m ifs)"
 apply(unfold simple_match_to_of_match_def Let_def)
 apply(rule distinct_4lcomprI)
-prefer 5
-apply (simp add: smtoms_eq_hlp)
 apply(clarsimp)
 apply(induction ifs)
 apply(simp;fail)
@@ -482,28 +480,35 @@ apply(clarsimp simp add: TCP_def UDP_def SCTP_def split: option.splits; fail)
 apply(clarsimp simp add: TCP_def UDP_def SCTP_def split: option.splits; fail)
 apply(simp_all)
 apply(unfold distinct_map)
-apply(simp_all)
-sorry
-
-lemma no_overlaps_42_hlp: "distinct amr \<Longrightarrow> distinct ifs \<Longrightarrow> no_overlaps OF_match_fields_unsafe (map (split3 OFEntry) (fourtytwo_s3 amr ifs))"
-(*apply(unfold fourtytwo_s3_def simple_match_to_of_match_def)
-apply(rule no_overlapsI, defer_tac)
-apply(unfold distinct_map, rule)
-apply(rule distinct_concat)
-apply(unfold distinct_map, rule)
-apply(clarify; fail)
+apply(simp_all add: distinct_word_upto smtoms_eq_hlp)
+done
+lemma no_overlaps_42_hlp2: "distinct (map fst amr) \<Longrightarrow> (\<And>r. distinct (fm r)) \<Longrightarrow>
+    distinct (concat (map (\<lambda>(a, r, c). map (\<lambda>b. (a, b, fs r c)) (fm r)) amr))"
+apply(induction amr)
+apply(simp;fail)
+apply(simp only: list.map concat.simps distinct_append)
+apply(rule)
+apply(clarsimp simp add: distinct_map split: prod.splits)
 apply(rule inj_inj_on)
 apply(rule injI)
-apply(rename_tac x y)
-apply(case_tac x, case_tac y)
-apply(simp add: map_concat concat_map_maps)
-apply(erule contrapos_pp)
-apply(unfold de_Morgan_conj)*)
-proof(induction "(fourtytwo_s3 amr ifs)")
-	case (Cons a as)
+apply(simp;fail)
+apply(rule)
+apply(simp)
+apply(force)
+done
 
-
-
+lemma no_overlaps_42_hlp: "distinct (map fst amr) \<Longrightarrow> distinct ifs \<Longrightarrow> 
+no_overlaps OF_match_fields_unsafe (map (split3 OFEntry) (fourtytwo_s3 amr ifs))"
+apply(rule no_overlapsI, defer_tac)
+apply(subst distinct_map, rule)
+prefer 2
+apply(rule inj_inj_on)
+apply(rule injI)
+apply(rename_tac x y, case_tac x, case_tac y)
+apply(simp add: split3_def;fail)
+apply(unfold fourtytwo_s3_def)[1]
+apply(rule no_overlaps_42_hlp2; simp_all add: distinct_simple_match_to_of_match)
+apply(thin_tac _)+
 sorry
 lemma "no_overlaps OF_match_fields_unsafe (fourtytwo rt fw ifs)"
 apply(simp add: no_overlaps_42_hlp fourtytwo_def)
