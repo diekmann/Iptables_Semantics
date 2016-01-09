@@ -386,7 +386,6 @@ lemma map_injective_eq: "map f xs = map g ys \<Longrightarrow> (\<And>e. f e = g
 	 apply(simp)+
 done
 
-
 lemma "distinct x \<Longrightarrow> inj_on g (set x) \<Longrightarrow> inj_on f (set (concat (map g x))) \<Longrightarrow> distinct [f a. b \<leftarrow> x, a \<leftarrow> g b]"
 apply(clarify;fail | rule distinct_concat | subst distinct_map, rule)+
 apply(rule inj_onI)
@@ -432,37 +431,59 @@ done
 lemma "distinct (e # a) = distinct (f (e # a))"
 oops
 
-lemma "distinct ifs \<Longrightarrow> distinct (simple_match_to_of_match m ifs)"
-apply(induction ifs "word_upto (fst (sports m)) (snd (sports m))" "word_upto (fst (dports m)) (snd (dports m))"
-	rule: list_induct_3simul)
-apply(unfold simple_match_to_of_match_def Let_def)
-apply(clarsimp split: option.splits)
-apply(cases "iiface m = ifaceAny")
+lemma distinct_2lcomprI: "distinct as \<Longrightarrow> distinct bs \<Longrightarrow>
+	(\<And>a b e i. f a b = f e i \<Longrightarrow> a = e \<and> b = i) \<Longrightarrow>
+	distinct [f a b. a \<leftarrow> as, b \<leftarrow> bs]"
+apply(induction as)
 apply(simp;fail)
-apply(simp only: if_False list.map concat.simps)
-apply(case_tac "match_iface (iiface m) e")
-prefer 2
-apply(simp;fail)
-apply(simp only: if_True list.map concat.simps)
-(*
+apply(clarsimp simp only: distinct.simps simp_thms list.map concat.simps map_append distinct_append)
+apply(rule)
+defer
+apply fastforce
+apply(clarify;fail | subst distinct_map, rule)+
+apply(rule inj_onI)
+apply(simp)
+done
 
-apply(clarify;fail | rule distinct_concat | subst distinct_map, rule)+
+lemma distinct_3lcomprI: "distinct as \<Longrightarrow> distinct bs \<Longrightarrow> distinct cs \<Longrightarrow>
+	(\<And>a b c e i g. f a b c = f e i g \<Longrightarrow> a = e \<and> b = i \<and> c = g) \<Longrightarrow>
+	distinct [f a b c. a \<leftarrow> as, b \<leftarrow> bs, c \<leftarrow> cs]"
+apply(induction as)
+apply(simp;fail)
+apply(clarsimp simp only: distinct.simps simp_thms list.map concat.simps map_append distinct_append)
+apply(rule)
+apply(rule distinct_2lcomprI; simp_all; fail)
+apply fastforce
+done
+
+lemma distinct_4lcomprI: "distinct as \<Longrightarrow> distinct bs \<Longrightarrow> distinct cs \<Longrightarrow> distinct ds \<Longrightarrow>
+	(\<And>a b c d e i g h. f a b c d = f e i g h \<Longrightarrow> a = e \<and> b = i \<and> c = g \<and> d = h) \<Longrightarrow>
+	distinct [f a b c d. a \<leftarrow> as, b \<leftarrow> bs, c \<leftarrow> cs, d \<leftarrow> ds]"
+apply(induction as)
+apply(simp;fail)
+apply(clarsimp simp only: distinct.simps simp_thms list.map concat.simps map_append distinct_append)
+apply(rule)
+apply(rule distinct_3lcomprI; simp_all; fail)
+apply fastforce
+done
+
+
+lemma "distinct ifs \<Longrightarrow> distinct (simple_match_to_of_match m ifs)"
+apply(unfold simple_match_to_of_match_def Let_def)
+apply(rule distinct_4lcomprI)
+prefer 5
+apply (simp add: smtoms_eq_hlp)
 apply(clarsimp)
 apply(induction ifs)
 apply(simp;fail)
 apply(simp;fail)
-apply(rule inj_onI)
-apply(cases "iiface m = ifaceAny")
-apply(simp;fail)
-apply(clarsimp simp add: smtoms_eq_hlp split: if_splits)
-apply(drule list_at_eqD)
-apply(simp_all add: length_concat comp_def)[2]
-apply(clarsimp simp add: comp_def smtoms_eq_hlp split: option.splits)
-
-
-apply(clarify;fail | rule distinct_concat | subst distinct_map, rule)+
-apply(simp split: if_splits)
-*)oops
+apply(cases "proto m")
+apply(clarsimp simp add: TCP_def UDP_def SCTP_def split: option.splits; fail)
+apply(clarsimp simp add: TCP_def UDP_def SCTP_def split: option.splits; fail)
+apply(simp_all)
+apply(unfold distinct_map)
+apply(simp_all)
+sorry
 
 lemma no_overlaps_42_hlp: "distinct amr \<Longrightarrow> distinct ifs \<Longrightarrow> no_overlaps OF_match_fields_unsafe (map (split3 OFEntry) (fourtytwo_s3 amr ifs))"
 (*apply(unfold fourtytwo_s3_def simple_match_to_of_match_def)
