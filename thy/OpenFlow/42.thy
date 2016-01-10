@@ -375,9 +375,10 @@ definition "fourtytwo_s3 ard ifs = [(a, b, case action_sel r of simple_action.Ac
 definition "fourtytwo rt fw ifs \<equiv> let
 	mrt = [(m, routing_action  r). r \<leftarrow> rt, m \<leftarrow> route2match r]; (* make matches from those rt entries *)
 	frd = [Pair b c. (a,c) \<leftarrow> mrt, b \<leftarrow> simple_match_list_and a fw]; (* bring down the firewall over all rt matches *)
-	ard = map (apfst suc2plus) $ annotate_rlen frd; (* give them a priority *)
-	omr = fourtytwo_s3 ard ifs in
-	map (split3 OFEntry) omr
+	ard = map (apfst suc2plus) $ annotate_rlen frd in (* give them a priority *)
+	if distinct (map fst ard) 
+	then Inr (map (split3 OFEntry) $ fourtytwo_s3 ard ifs)
+	else Inl ''Error in creating OpenFlow table: priority number space exhausted''
 "
 thm fourtytwo_def[unfolded Let_def comp_def fun_app_def] (* it's a monster *)
 value fourtytwo (* a real one *)
@@ -551,14 +552,7 @@ apply(auto dest: conjunctSomeProtoAnyD split: protocol.splits option.splits
 	simp add: OF_match_fields_unsafe_def simple_match_to_of_match_single_def option2set_def) (* another 160 subgoal split *)
 done
  
-lemma assumes "distinct ifs" shows "no_overlaps OF_match_fields_unsafe (fourtytwo rt fw ifs)"
-apply(simp add: no_overlaps_42_hlp fourtytwo_def)
-apply(rule no_overlaps_42_hlp[OF _ assms])
-apply(unfold map_map comp_def fst_apfst)
-apply(unfold distinct_map, rule)
-apply(rule distinct_annotate_rlen)
-apply(rule inj_onI)
-
-oops
+lemma assumes "distinct ifs" shows "Inr t = (fourtytwo rt fw ifs) \<Longrightarrow> no_overlaps OF_match_fields_unsafe t"
+by(simp add: no_overlaps_42_hlp fourtytwo_def Let_def no_overlaps_42_hlp[OF _ assms] split: if_splits)
 
 end
