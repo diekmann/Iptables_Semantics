@@ -144,14 +144,15 @@ lemma smtoms_cong: "a = e \<Longrightarrow> b = f \<Longrightarrow> c = g \<Long
 (* this lemma is a bit stronger than what I actually need, but unfolds are convenient *)
 lemma smtoms_eq_hlp: "simple_match_to_of_match_single r a b c d = simple_match_to_of_match_single r e f g h \<longleftrightarrow> (a = e \<and> b = f \<and> c = g \<and> d = h)"
 apply(rule, simp_all)
-apply(simp add: option2set_def simple_match_to_of_match_single_def toprefixmatch_def split: option.splits protocol.splits)
+apply(auto simp add: option2set_def simple_match_to_of_match_single_def toprefixmatch_def split: option.splits protocol.splits)
 (* give this some time, it creates and solves 255 subgoals\<dots> *)
-apply(auto)
 done
 
 lemma conjunctSomeProtoAnyD: "Some ProtoAny = simple_proto_conjunct a (Proto b) \<Longrightarrow> False"
 by(cases a) (simp_all split: if_splits)
 lemma conjunctSomeProtoD: "Some (Proto x) = simple_proto_conjunct a (Proto b) \<Longrightarrow> x = b \<and> (a = ProtoAny \<or> a = Proto b)"
+by(cases a) (simp_all split: if_splits)
+lemma conjunctProtoD: "Some x = simple_proto_conjunct a (Proto b) \<Longrightarrow> x = Proto b \<and> (a = ProtoAny \<or> a = Proto b)"
 by(cases a) (simp_all split: if_splits)
 
 lemma simple_match_to_of_match_generates_prereqs: "r \<in> set (simple_match_to_of_match m ifs) \<Longrightarrow> all_prerequisites f r"
@@ -497,6 +498,29 @@ apply(simp)
 apply(force)
 done
 
+lemma no_overlaps_42_hlp3: "distinct (map fst amr) \<Longrightarrow>
+(aa, ab, ba) \<in> set (fourtytwo_s3 amr ifs) \<Longrightarrow> (ac, ad, bb) \<in> set (fourtytwo_s3 amr ifs) \<Longrightarrow>
+ba \<noteq> bb \<Longrightarrow> aa \<noteq> ac"
+apply(unfold fourtytwo_s3_def)
+apply(clarsimp)
+apply(clarsimp split: simple_action.splits)
+apply(metis map_of_eq_Some_iff option.inject prod.inject)
+apply(metis fst_eqD map_of_eq_Some_iff option.inject simple_action.distinct(1))+
+done
+
+lemma no_overlaps_42_hlp4: "distinct (map fst amr) \<Longrightarrow>
+ (aa, ab, ac) \<in> set amr \<Longrightarrow> (ba, bb, bc) \<in> set amr \<Longrightarrow>
+ ab \<noteq> bb \<Longrightarrow> aa \<noteq> ba"
+by (metis map_of_eq_Some_iff old.prod.inject option.inject)
+
+lemma "
+	OF_match_fields_unsafe (simple_match_to_of_match_single m a b c d) p \<Longrightarrow>
+	OF_match_fields_unsafe (simple_match_to_of_match_single m e f g h) p \<Longrightarrow>
+	(a = e \<and> b = f \<and> c = g \<and> d = h)"
+apply(cases h, case_tac[!] d)
+apply(simp_all add: OF_match_fields_unsafe_def simple_match_to_of_match_single_def option2set_def)
+oops
+
 lemma no_overlaps_42_hlp: "distinct (map fst amr) \<Longrightarrow> distinct ifs \<Longrightarrow> 
 no_overlaps OF_match_fields_unsafe (map (split3 OFEntry) (fourtytwo_s3 amr ifs))"
 apply(rule no_overlapsI, defer_tac)
@@ -508,13 +532,32 @@ apply(rename_tac x y, case_tac x, case_tac y)
 apply(simp add: split3_def;fail)
 apply(unfold fourtytwo_s3_def)[1]
 apply(rule no_overlaps_42_hlp2; simp_all add: distinct_simple_match_to_of_match)
-apply(thin_tac _)+
-sorry
-lemma "no_overlaps OF_match_fields_unsafe (fourtytwo rt fw ifs)"
+apply(unfold check_no_overlap_def)
+apply(clarify)
+apply(unfold set_map)
+apply(clarify)
+apply(unfold split3_def prod.simps flow_entry_match.simps flow_entry_match.sel de_Morgan_conj)
+apply(erule disjE)
+apply(clarify;fail)
+apply(erule disjE, defer_tac)
+apply(simp add: no_overlaps_42_hlp3; fail)
+apply(clarsimp simp add: fourtytwo_s3_def)
+apply(case_tac "ae \<noteq> ag")
+apply(metis no_overlaps_42_hlp4)
+apply(clarify | unfold 
+	simple_match_to_of_match_def smtoms_eq_hlp Let_def set_concat set_map de_Morgan_conj not_False_eq_True)+
+apply(simp add:  comp_def  smtoms_eq_hlp split: if_splits)
+apply(auto dest: conjunctSomeProtoAnyD split: protocol.splits option.splits
+	simp add: OF_match_fields_unsafe_def simple_match_to_of_match_single_def option2set_def) (* another 160 subgoal split *)
+done
+ 
+lemma assumes "distinct ifs" shows "no_overlaps OF_match_fields_unsafe (fourtytwo rt fw ifs)"
 apply(simp add: no_overlaps_42_hlp fourtytwo_def)
-apply(rule no_overlaps_42_hlp)
-apply(unfold distinct_map, rule)
+apply(rule no_overlaps_42_hlp[OF _ assms])
+apply(unfold distinct_map, rule, rule)
 apply(rule distinct_annotate_rlen)
+prefer 2
+apply(rule inj_onI)
 oops
 
 end
