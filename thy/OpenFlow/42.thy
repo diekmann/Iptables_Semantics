@@ -554,10 +554,11 @@ done
 lemma assumes "distinct ifs" shows "no_overlaps OF_match_fields_unsafe (fourtytwo rt fw ifs)"
 apply(simp add: no_overlaps_42_hlp fourtytwo_def)
 apply(rule no_overlaps_42_hlp[OF _ assms])
-apply(unfold distinct_map, rule, rule)
+apply(unfold map_map comp_def fst_apfst)
+apply(unfold distinct_map, rule)
 apply(rule distinct_annotate_rlen)
-prefer 2
 apply(rule inj_onI)
+
 oops
 
 end
