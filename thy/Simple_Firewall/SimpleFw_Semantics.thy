@@ -282,15 +282,15 @@ lemma simple_match_and_correct: "simple_matches m1 p \<and> simple_matches m2 p 
       match_proto proto (p_proto p) \<longleftrightarrow> match_proto p1 (p_proto p) \<and> match_proto p2 (p_proto p)"
       using simple_proto_conjunct_correct[of p1 "(p_proto p)" p2] by simp
 
-    show ?thesis
-     apply(simp add: m1 m2)
-     apply(simp split: option.split)
-     apply(auto simp add: simple_matches.simps)
-     apply(auto dest: sip_None dip_None sip_Some dip_Some)
-     apply(auto dest: iiface_None oiface_None iiface_Some oiface_Some)
-     apply(auto dest: proto_None proto_Some)
-     using simple_ports_conjunct_correct apply(blast)+
+    have case_Some: "\<And>m. Some m = simple_match_and m1 m2 \<Longrightarrow>
+     (simple_matches m1 p \<and> simple_matches m2 p) \<longleftrightarrow> simple_matches m p"
+     apply(simp add: m1 m2 simple_matches.simps split: option.split_asm)
+     using simple_ports_conjunct_correct by(blast dest: sip_Some dip_Some iiface_Some oiface_Some proto_Some)
+    have case_None: "simple_match_and m1 m2 = None \<Longrightarrow> \<not> (simple_matches m1 p \<and> simple_matches m2 p)"
+     apply(simp add: m1 m2 simple_matches.simps split: option.split_asm)
+         apply(blast dest: sip_None dip_None iiface_None oiface_None proto_None)+
      done
+    from case_Some case_None show ?thesis by(cases "simple_match_and m1 m2") simp_all
  qed
 
 
