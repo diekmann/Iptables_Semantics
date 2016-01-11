@@ -307,14 +307,14 @@ lemma primitive_extractor_matchesE: "wf_disc_sel (disc,sel) C \<Longrightarrow> 
   (normalized_nnf_match ms \<Longrightarrow> \<not> has_disc disc ms \<Longrightarrow> (\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms) \<Longrightarrow> matches_other \<longleftrightarrow>  matches \<gamma> ms a p)
   \<Longrightarrow>
   matches \<gamma> (alist_and (NegPos_map C as)) a p \<and> matches_other \<longleftrightarrow>  matches \<gamma> m a p"
-using primitive_extractor_correct by metis
+using primitive_extractor_correct(1,2,3,4) by metis
 
 lemma primitive_extractor_matches_lastE: "wf_disc_sel (disc,sel) C \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> primitive_extractor (disc, sel) m = (as, ms)
   \<Longrightarrow>
   (normalized_nnf_match ms \<Longrightarrow> \<not> has_disc disc ms \<Longrightarrow> (\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms) \<Longrightarrow> matches \<gamma> ms a p)
   \<Longrightarrow>
   matches \<gamma> (alist_and (NegPos_map C as)) a p  \<longleftrightarrow>  matches \<gamma> m a p"
-using primitive_extractor_correct by metis
+using primitive_extractor_correct(1,2,3,4) by metis
 
 text{*The lemmas @{thm primitive_extractor_matchesE} and @{thm primitive_extractor_matches_lastE} can be used as
   erule to solve goals about consecutive application of @{const primitive_extractor}.

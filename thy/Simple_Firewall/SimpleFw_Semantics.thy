@@ -338,20 +338,31 @@ fun has_default_policy :: "simple_rule list \<Rightarrow> bool" where
   "has_default_policy (_#rs) = has_default_policy rs"
 
 lemma has_default_policy: "has_default_policy rs \<Longrightarrow> simple_fw rs p = Decision FinalAllow \<or> simple_fw rs p = Decision FinalDeny"
-  apply(induction rs rule: has_default_policy.induct)
-    apply(simp;fail)
-   apply(simp_all)
-   apply(rename_tac a, case_tac a)
-    apply(simp_all add: simple_match_any)
-  apply(rename_tac r1 r2 rs)
-  apply(case_tac r1, rename_tac m a, case_tac a)
-   apply(simp_all)
- done
+  proof(induction rs rule: has_default_policy.induct)
+  case 1 thus ?case by (simp)
+  next
+  case (2 m a) thus ?case by(cases a) (simp_all add: simple_match_any)
+  next
+  case (3 r1 r2 rs)
+    from 3 obtain a m where "r1 = SimpleRule m a" by (cases r1) simp
+    with 3 show ?case by (cases a) simp_all
+  qed
 
 lemma has_default_policy_fst: "has_default_policy rs \<Longrightarrow> has_default_policy (r#rs)"
  apply(cases r, rename_tac m a, simp)
- apply(case_tac rs)
- by(simp_all)
+ apply(cases rs)
+  by(simp_all)
+
+
+
+
+lemma simple_fw_not_matches_removeAll: "\<not> simple_matches m p \<Longrightarrow> simple_fw (removeAll (SimpleRule m a) rs) p = simple_fw rs p"
+  apply(induction rs p rule: simple_fw.induct)
+    apply(simp)
+   apply(simp_all)
+   apply blast+
+  done
+  
 
 
 end
