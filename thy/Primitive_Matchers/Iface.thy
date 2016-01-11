@@ -12,23 +12,19 @@ definition ifaceAny :: iface where
   "ifaceAny \<equiv> Iface ''+''"
 (* there is no IfaceFalse, proof below *)
 
-text_raw{*If the interface name ends in a ``+'', then any interface which begins with this name will match. (man iptables)
+text{*If the interface name ends in a ``+'', then any interface which begins with this name will match. (man iptables)
 
 Here is how iptables handles this wildcard on my system. A packet for the loopback interface \texttt{lo} is matched by the following expressions
-\begin{itemize}
-  \item lo
-  \item lo+
-  \item l+
-  \item +
-\end{itemize}
+  \<^item> lo
+  \<^item> lo+
+  \<^item> l+
+  \<^item> +
 
 It is not matched by the following expressions
-\begin{itemize}
-  \item lo++
-  \item lo+++
-  \item lo1+
-  \item lo1
-\end{itemize}
+  \<^item> lo++
+  \<^item> lo+++
+  \<^item> lo1+
+  \<^item> lo1
 
 By the way: \texttt{Warning: weird characters in interface ` ' ('/' and ' ' are not allowed by the kernel).}
 *}
