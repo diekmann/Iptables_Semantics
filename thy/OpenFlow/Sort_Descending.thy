@@ -18,11 +18,17 @@ section{* sorting descending *}
   lemma sorted_descending_tail: "sorted_descending (xs@[x]) \<longleftrightarrow> sorted_descending xs \<and> (\<forall>y\<in>set xs. x \<le> y)"
   by(induction xs) auto
   
+  lemma sorted_descending_append: "sorted_descending (xs @ ys) = 
+    (sorted_descending xs \<and> sorted_descending ys \<and> (\<forall>x\<in>set xs. \<forall>y\<in>set ys. x \<ge> y))"
+  by(induction xs) auto
+  
   lemma sorted_descending: "sorted_descending (rev xs) \<longleftrightarrow> sorted xs"
   apply(induction xs)
    apply(simp)
   apply(simp add: sorted_Cons sorted_descending_tail)
   done
+  lemma sorted_descending_alt: "sorted_descending xs \<longleftrightarrow> sorted (rev xs)"
+    using sorted_descending[of "rev xs"] unfolding rev_rev_ident .
   
   lemma sort_descending: "sorted_descending (sort_descending_key (\<lambda>x. x) xs)"
     by(simp add: sort_descending_key_def sorted_descending)

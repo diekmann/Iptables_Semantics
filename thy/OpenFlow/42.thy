@@ -329,21 +329,17 @@ qed
 fun annotate_rlen where
 "annotate_rlen [] = []" |
 "annotate_rlen (a#as) = (length as, a) # annotate_rlen as"
+value "annotate_rlen ''asdf''"
 
 lemma fst_annotate_rlen_le: "(k, a) \<in> set (annotate_rlen l) \<Longrightarrow> k < length l"
 	apply(induction l arbitrary: k)
 	 apply simp
 	apply fastforce
 done
+lemma distinct_fst_annotate_rlen: "distinct (map fst (annotate_rlen l))"
+	using fst_annotate_rlen_le by(induction l) (simp, fastforce)
 lemma distinct_annotate_rlen: "distinct (annotate_rlen l)"
-	apply(induction l)
-	 apply(simp)
-	apply(simp)
-	apply(erule contrapos_pp)
-	apply(unfold not_not)
-	apply(drule fst_annotate_rlen_le)
-	apply clarify
-done
+	using distinct_fst_annotate_rlen unfolding distinct_map by blast
 
 fun annotate_rlen_code where
 "annotate_rlen_code [] = (0,[])" |
@@ -357,6 +353,13 @@ lemma annotate_rlen_code[code]: "annotate_rlen s = snd (annotate_rlen_code s)"
 	apply(metis annotate_rlen_len fst_conv)
 done
 
+lemma "sorted_descending (map fst (annotate_rlen l))"
+apply(induction l)
+apply(simp)
+apply(clarsimp)
+apply(force dest: fst_annotate_rlen_le)
+done
+
 (* why is there curry *)
 find_consts "(('a \<times> 'b) \<Rightarrow> 'c) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> 'c"
 (* but no "uncurry" *)
@@ -364,9 +367,86 @@ find_consts "('a \<Rightarrow> 'b \<Rightarrow> 'c) \<Rightarrow> ('a \<times> '
 definition "split3 f p \<equiv> case p of (a,b,c) \<Rightarrow> f a b c"
 find_consts "('a \<Rightarrow> 'b \<Rightarrow> 'c \<Rightarrow> 'd) \<Rightarrow> ('a \<times> 'b \<times> 'c) \<Rightarrow> 'd"
 
-fun suc2plus where
-"suc2plus 0 = 0" |
-"suc2plus (Suc k) = suc2plus k + 1"
+find_theorems "word_of_nat"
+find_consts "nat \<Rightarrow> 'a word"
+
+lemma suc2plus_inj_on: "inj_on (word_of_nat :: nat \<Rightarrow> ('l :: len) word) {0..unat (max_word :: 'l word)}"
+proof(rule inj_onI)
+	let ?mmw = "(max_word :: 'l word)"
+	let ?mstp = "(word_of_nat :: nat \<Rightarrow> 'l word)"
+	fix x y :: nat
+	assume "x \<in> {0..unat ?mmw}" "y \<in> {0..unat ?mmw}"
+	hence se: "x \<le> unat ?mmw" "y \<le> unat ?mmw" by simp_all
+	assume eq: "?mstp x = ?mstp y"
+	note f = le_unat_uoi[OF se(1)] le_unat_uoi[OF se(2)]
+	(*show "x = y"
+	apply(subst f(1)[symmetric])
+	apply(subst f(2)[symmetric])
+	apply(subst word_unat.Rep_inject)
+	using eq .*)
+	show "x = y" using eq le_unat_uoi se by metis
+qed
+
+lemma distinct_word_of_nat_list: (* TODO: Move to CaesarWordLemmaBucket *)
+	"distinct l \<Longrightarrow> \<forall>e \<in> set l. e \<le> unat (max_word :: ('l::len) word) \<Longrightarrow> distinct (map (word_of_nat :: nat \<Rightarrow> 'l word) l)"
+proof(induction l)
+	let ?mmw = "(max_word :: 'l word)"
+	let ?mstp = "(word_of_nat :: nat \<Rightarrow> 'l word)"
+	case (Cons a as)
+	have "distinct as" "\<forall>e\<in>set as. e \<le> unat ?mmw" using Cons.prems by simp_all 
+	note mIH = Cons.IH[OF this]
+	moreover have "?mstp a \<notin> ?mstp ` set as"
+	proof 
+		have representable_set: "set as \<subseteq> {0..unat ?mmw}" using `\<forall>e\<in>set (a # as). e \<le> unat max_word` by fastforce
+		have a_reprbl: "a \<in> {0..unat ?mmw}" using `\<forall>e\<in>set (a # as). e \<le> unat max_word` by simp
+		assume "?mstp a \<in> ?mstp ` set as"
+		with inj_on_image_mem_iff[OF suc2plus_inj_on a_reprbl representable_set]
+		have "a \<in> set as" by simp
+		with `distinct (a # as)` show False by simp
+	qed
+	ultimately show ?case by simp
+qed simp
+
+lemma annotate_first_le_hlp:
+	"length l < unat (max_word :: ('l :: len) word) \<Longrightarrow> \<forall>e\<in>set (map fst (annotate_rlen l)). e \<le> unat (max_word :: 'l word)"
+	by(clarsimp) (meson fst_annotate_rlen_le less_trans nat_less_le)
+lemmas distinct_of_prio_hlp = distinct_word_of_nat_list[OF distinct_fst_annotate_rlen annotate_first_le_hlp]
+(* don't need these right now, but maybe later? *)
+lemma distinct_fst_won_list_unused:
+	"distinct (map fst l) \<Longrightarrow> 
+	\<forall>e \<in> set l. fst e \<le> unat (max_word :: ('l::len) word) \<Longrightarrow> 
+	distinct (map (apfst (word_of_nat :: nat \<Rightarrow> 'l word)) l)"
+proof -
+	let ?mw = "(max_word :: 'l word)"
+	let ?won = "(word_of_nat :: nat \<Rightarrow> 'l word)"
+	case goal1
+	obtain fl where fl: "fl = map fst l" by simp
+	with goal1 have "distinct fl" "\<forall>e \<in> set fl. e \<le> unat ?mw" by simp_all
+	note distinct_word_of_nat_list[OF this, unfolded fl]
+	hence "distinct (map fst (map (apfst ?won) l))" by simp
+	thus ?case by (metis distinct_zipI1 zip_map_fst_snd)
+qed
+lemma annotate_first_le_hlp_unused:
+	"length l < unat (max_word :: ('l :: len) word) \<Longrightarrow> \<forall>e\<in>set (annotate_rlen l). fst e \<le> unat (max_word :: 'l word)"
+	by(clarsimp) (meson fst_annotate_rlen_le less_trans nat_less_le)
+
+
+lemma fst_annotate_rlen: "map fst (annotate_rlen l) = rev [0..<length l]"
+by(induction l) (simp_all)
+
+lemma sorted_annotated:
+	assumes "length l \<le> unat (max_word :: ('l :: len) word)"
+	shows "sorted_descending (map fst (map (apfst (word_of_nat :: nat \<Rightarrow> 'l word)) (annotate_rlen l)))"
+proof -
+	let ?won = "(word_of_nat :: nat \<Rightarrow> 'l word)"
+	have zero_subst: "?won 0 = (0 :: 'l word)" by simp
+	have "sorted_descending (rev (word_upto 0 (?won (length l))))" 
+		unfolding sorted_descending by(rule sorted_word_upto) simp
+	hence "sorted_descending (map ?won (rev [0..<Suc (length l)]))" 
+		unfolding word_upto_eq_upto[OF le0 assms, unfolded zero_subst] rev_map .
+	hence "sorted_descending (map ?won (map fst (annotate_rlen l)))" by(simp add: fst_annotate_rlen)
+	thus "sorted_descending (map fst (map (apfst ?won) (annotate_rlen l)))" by simp
+qed
 
 definition "fourtytwo_s3 ard ifs = [(a, b, case action_sel r of simple_action.Accept \<Rightarrow> c | simple_action.Drop \<Rightarrow> []).
 		(a,r,c) \<leftarrow> ard, b \<leftarrow> simple_match_to_of_match (match_sel r) ifs]"
@@ -375,13 +455,12 @@ definition "fourtytwo_s3 ard ifs = [(a, b, case action_sel r of simple_action.Ac
 definition "fourtytwo rt fw ifs \<equiv> let
 	mrt = [(m, routing_action  r). r \<leftarrow> rt, m \<leftarrow> route2match r]; (* make matches from those rt entries *)
 	frd = [Pair b c. (a,c) \<leftarrow> mrt, b \<leftarrow> simple_match_list_and a fw]; (* bring down the firewall over all rt matches *)
-	ard = map (apfst suc2plus) $ annotate_rlen frd in (* give them a priority *)
-	if distinct (map fst ard) 
+	ard = map (apfst word_of_nat) $ annotate_rlen frd in (* give them a priority *)
+	if length frd < unat (max_word :: 16 word)
 	then Inr (map (split3 OFEntry) $ fourtytwo_s3 ard ifs)
 	else Inl ''Error in creating OpenFlow table: priority number space exhausted''
 "
-thm fourtytwo_def[unfolded Let_def comp_def fun_app_def] (* it's a monster *)
-value fourtytwo (* a real one *)
+thm fourtytwo_def[unfolded Let_def comp_def fun_app_def fourtytwo_s3_def] (* it's a monster *)
 
 lemma map_injective_eq: "map f xs = map g ys \<Longrightarrow> (\<And>e. f e = g e) \<Longrightarrow> inj f \<Longrightarrow> xs = ys"
 	apply(rule map_injective, defer_tac)
@@ -550,9 +629,46 @@ apply(clarify | unfold
 apply(simp add:  comp_def  smtoms_eq_hlp split: if_splits)
 apply(auto dest: conjunctSomeProtoAnyD split: protocol.splits option.splits
 	simp add: OF_match_fields_unsafe_def simple_match_to_of_match_single_def option2set_def) (* another 160 subgoal split *)
-done
+by -
  
 lemma assumes "distinct ifs" shows "Inr t = (fourtytwo rt fw ifs) \<Longrightarrow> no_overlaps OF_match_fields_unsafe t"
-by(simp add: no_overlaps_42_hlp fourtytwo_def Let_def no_overlaps_42_hlp[OF _ assms] split: if_splits)
+	apply(unfold fourtytwo_def Let_def)
+	apply(simp split: if_splits)
+	apply(thin_tac "t = _")
+	apply(drule distinct_of_prio_hlp)
+	apply(rule no_overlaps_42_hlp[OF _ assms])
+	apply(simp)
+done
+
+lemma sorted_const: "sorted (map (\<lambda>y. x) k)" (* TODO: move *)
+	by(induction k) (simp_all add: sorted_Cons)
+
+lemma sorted_fourtytwo_s3_hlp: "\<forall>x\<in>set f. fst x \<le> a \<Longrightarrow> b \<in> set (fourtytwo_s3 f s) \<Longrightarrow> fst b \<le> a" 
+	by(auto simp add: fourtytwo_s3_def)
+
+lemma sorted_fourtytwo_s3: "sorted_descending (map fst f) \<Longrightarrow> sorted_descending (map fst (fourtytwo_s3 f s))"
+	apply(induction f)
+	apply(simp add: fourtytwo_s3_def)
+	apply(clarsimp)
+	apply(subst fourtytwo_s3_def)
+	apply(clarsimp)
+	apply(subst fourtytwo_s3_def[symmetric])
+	apply(unfold map_concat map_map comp_def)
+	apply(unfold sorted_descending_append)
+	apply(simp add: sorted_descending_alt rev_map sorted_const sorted_fourtytwo_s3_hlp)
+done
+
+lemma sorted_fourtytwo_hlp: "(ofe_prio \<circ> split3 OFEntry) = fst" by(simp add: fun_eq_iff comp_def split3_def)
+
+lemma "Inr r = fourtytwo rt fw ifs \<Longrightarrow> sorted_descending (map ofe_prio r)"
+	apply(unfold fourtytwo_def Let_def)
+	apply(simp split: if_splits)
+	apply(thin_tac "r = _")
+	apply(unfold sorted_fourtytwo_hlp)
+	apply(rule sorted_fourtytwo_s3)
+	apply(rule sorted_annotated)
+	(* I don't see a difference between the two. But oh, whatever. *)
+	apply simp
+done
 
 end

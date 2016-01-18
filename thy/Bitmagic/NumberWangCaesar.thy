@@ -463,4 +463,63 @@ apply(rule ccontr)
 apply(metis le_step_down_nat less_le not_le unat_minus_one word_le_nat_alt word_not_simps(1))
 done
 
+abbreviation "word_of_nat \<equiv> of_nat :: nat \<Rightarrow> ('l :: len) word"
+lemma word_upto_eq_upto: "s \<le> e \<Longrightarrow> e \<le> unat (max_word :: 'l word) \<Longrightarrow>
+	word_upto ((word_of_nat :: nat \<Rightarrow> ('l :: len) word) s) (word_of_nat e) = map word_of_nat (upt s (Suc e))"
+proof(induction e)
+	let ?mwon = "word_of_nat :: nat \<Rightarrow> 'l word"
+	let ?mmw = "max_word :: 'l word"
+	case (Suc e)
+	show ?case
+	proof(cases "?mwon s = ?mwon (Suc e)")
+		case True
+		have "s = Suc e" using le_unat_uoi Suc.prems True by metis
+		with True show ?thesis by(subst word_upto.simps) (simp)
+	next
+		case False 
+		hence le: "s \<le> e" using le_SucE Suc.prems by blast
+		have lm: "e \<le> unat ?mmw" using Suc.prems by simp
+		have sucm: "word_of_nat (Suc e) - 1 = word_of_nat e" using Suc.prems(2) by simp
+		note mIH = Suc.IH[OF le lm]
+		show ?thesis by(subst word_upto.simps) (simp add: False[simplified] Suc.prems mIH sucm)
+	qed
+qed(simp add: word_upto.simps)
+
+lemma word_upto_alt: "(a :: ('l :: len) word) \<le> b \<Longrightarrow> word_upto a b = map word_of_nat (upt (unat a) (Suc (unat b)))"
+proof -
+	let ?mmw = "max_word :: 'l word"
+	assume le: "a \<le> b"
+	hence nle: "unat a \<le> unat b" by(unat_arith)
+	have lem: "unat b \<le> unat ?mmw" by (simp add: word_unat_less_le) 
+	note word_upto_eq_upto[OF nle lem, unfolded word_unat.Rep_inverse]
+	thus "word_upto a b = map word_of_nat [unat a..<Suc (unat b)]" .
+qed
+
+lemma [code]: "word_upto a b = (if a \<le> b then map word_of_nat (upt (unat a) (Suc (unat b))) else word_upto a b)"
+	using word_upto_alt by metis
+(* TODO: Does this break something? *)
+
+lemma sorted_word_upto:
+	fixes a b :: "('l :: len) word"
+	assumes "a \<le> b"
+	shows "sorted (word_upto a b)"
+using assms
+proof(induction b)
+	fix b
+	assume le_prem: "a \<le> 1 + b"
+	assume nmax_prem: "1 + b \<noteq> 0"
+    assume IH: "a \<le> b \<Longrightarrow> sorted (word_upto a b)"
+	show "sorted (word_upto a (1 + b))" proof(cases "a = 1 + b")
+		case True thus ?thesis by(simp add: word_upto.simps)
+	next
+		case False
+		have fprem: "a \<le> b" using le_prem False by (metis add.commute antisym_conv1 plus_one_helper)
+		note mIH = IH[OF this]
+		show ?thesis by(subst word_upto.simps)
+			(simp add: fprem lt1_neq0 nmax_prem word_le_plus_either word_upto_set_eq False sorted_append mIH)
+	qed
+qed(simp add: word_upto.simps)
+	
+
+
 end
