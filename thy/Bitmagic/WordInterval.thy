@@ -14,11 +14,15 @@ section{*WordInterval: Intervals of consecutive words*}
 value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
 
 subsection{*Syntax*}
-declare[[typedef_overloaded]]
+(*declare[[typedef_overloaded]]*)
+context
+  notes [[typedef_overloaded]]
+begin
   datatype ('a::len0) wordinterval = WordInterval
                                         "('a::len0) word" --"start (inclusive)"
                                         "('a::len0) word" --"end (inclusive)"
                                   | RangeUnion "'a wordinterval" "'a wordinterval"
+end
 
 subsection{*Semantics*}
   fun wordinterval_to_set :: "'a::len0 wordinterval \<Rightarrow> ('a::len0 word) set" where
