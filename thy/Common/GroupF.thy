@@ -65,18 +65,18 @@ end
   TODO: is this also faster for Haskell?*)
 lemma groupF_tuple: "groupF f xs = map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) xs))"
   proof(induction f xs rule: groupF.induct)
-  case (goal1 f) thus ?case by simp
+  case (1 f) thus ?case by simp
   next
-  case (goal2 f x xs)
-    have 1: "[y\<leftarrow>xs . f x = f y] = map fst [y\<leftarrow>map (\<lambda>x. (x, f x)) xs . f x = snd y]"
+  case (2 f x xs)
+    have g1: "[y\<leftarrow>xs . f x = f y] = map fst [y\<leftarrow>map (\<lambda>x. (x, f x)) xs . f x = snd y]"
       proof(induction xs arbitrary: f x)
       case Cons thus ?case by fastforce
       qed(simp)
-    have 2: "(map (\<lambda>x. (x, f x)) [y\<leftarrow>xs . f x \<noteq> f y]) = [y\<leftarrow>map (\<lambda>x. (x, f x)) xs . f x \<noteq> snd y]"
+    have g2: "(map (\<lambda>x. (x, f x)) [y\<leftarrow>xs . f x \<noteq> f y]) = [y\<leftarrow>map (\<lambda>x. (x, f x)) xs . f x \<noteq> snd y]"
       proof(induction xs)
       case Cons thus ?case by fastforce
       qed(simp)
-    from goal2 1 2 show ?case by simp
+    from 2 g1 g2 show ?case by simp
   qed
   
   
@@ -117,8 +117,8 @@ lemma groupF_cong: fixes xs::"'a list" and f1::"'a \<Rightarrow> 'b" and f2::"'a
   assumes "\<forall>x \<in> set xs. \<forall>y \<in> set xs. (f1 x = f1 y \<longleftrightarrow> f2 x = f2 y)"
   shows "groupF f1 xs = groupF f2 xs"
   using assms proof(induction f1 xs rule: groupF.induct)
-    case goal2 thus ?case using filter_cong[of xs xs "\<lambda>y. f x = f y" "\<lambda>y. f2 x = f2 y"]
-                                filter_cong[of xs xs "\<lambda>y. f x \<noteq> f y" "\<lambda>y. f2 x \<noteq> f2 y"] by auto
+    case (2 f x xs) thus ?case using filter_cong[of xs xs "\<lambda>y. f x = f y" "\<lambda>y. f2 x = f2 y"]
+                                     filter_cong[of xs xs "\<lambda>y. f x \<noteq> f y" "\<lambda>y. f2 x \<noteq> f2 y"] by auto
   qed (simp)
 
 
