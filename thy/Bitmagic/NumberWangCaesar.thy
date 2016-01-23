@@ -495,8 +495,10 @@ proof -
 	thus "word_upto a b = map word_of_nat [unat a..<Suc (unat b)]" .
 qed
 
-lemma [code]: "word_upto a b = (if a \<le> b then map word_of_nat (upt (unat a) (Suc (unat b))) else word_upto a b)"
-	using word_upto_alt by metis
+definition "stop_word_upto_unfold = word_upto"
+lemma [code_unfold]: "word_upto a b = (if a \<le> b then map word_of_nat (upt (unat a) (Suc (unat b))) else stop_word_upto_unfold a b)"
+	using word_upto_alt stop_word_upto_unfold_def by metis
+value[code] "word_upto (3 :: 16 word) 5"
 (* TODO: Does this break something? *)
 
 lemma sorted_word_upto:

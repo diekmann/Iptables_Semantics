@@ -69,6 +69,11 @@ proof -
 	then show ?case using xs by force
 qed
 
+lemma card1_eE: "finite S \<Longrightarrow> \<exists>y. y \<in> S \<Longrightarrow> 1 \<le> card S" using card_0_eq by fastforce
+lemma card2_eE: "finite S \<Longrightarrow> \<exists>x y. x \<noteq> y \<and> x \<in> S \<and> y \<in> S \<Longrightarrow> 2 \<le> card S"
+using card1_eE card_Suc_eq card_insert_if by fastforce
+
+
 lemma f_Img_ex_set: "{f x|x. P x} = f ` {x. P x}" by auto
 
 (* If there are no overlapping rules, our match should check out. *)
