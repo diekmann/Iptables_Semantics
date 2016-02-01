@@ -167,9 +167,6 @@ context begin
 
 
   value[code] "bench upper_closure FWD ipassmt fw2_FORWARD_default_policy (Semantics_Goto.rewrite_Goto fw2)"
-  (*102.673s old (no merge sort),
-   120.007s new (merge sort followed by merge_remdups (wrongly sorted)),
-   105.376s merge_remdups followed by merge with largest intervals (smallest prefix size) first*)
   value[code] "view upper_closure FWD ipassmt fw2_FORWARD_default_policy (Semantics_Goto.rewrite_Goto fw2)"
 
 
