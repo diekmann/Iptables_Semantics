@@ -206,12 +206,45 @@ lemma nomatch: "\<not> simple_matches m p \<Longrightarrow> simple_fw (SimpleRul
 
 
 
-
+definition "example_simple_match1 \<equiv> \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0, 0), dst = (0, 0), proto = Proto TCP, sports = (0, 0x0), dports = (0, 0x0)\<rparr>"
 (*export_code simple_fw in SML   not possible here*)
 value[code] "simple_fw [
-  SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0, 0), dst = (0, 0), proto = Proto TCP, sports = (0, 0x0), dports = (0, 0x0)\<rparr> simple_action.Drop]
+  SimpleRule example_simple_match1 simple_action.Drop]
   
   \<lparr>p_iiface = '''', p_oiface = '''',  p_src = 1, p_dst = 2, p_proto = TCP, p_sport = 8, p_dport = 9, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
 
+
+subsection{*Reality check*}
+text{* While it is possible to construct a @{text "simple_fw"} expression that only matches a source
+or destination port, such a match is not meaningful, as the presence of the port information is 
+dependent on the protocol. Thus, a match for a port should always include the match for a protocol.*}
+
+definition "simple_match_valid m \<equiv> 
+(({p. simple_match_port (sports m) p} \<noteq> UNIV \<and> {p. simple_match_port (sports m) p} \<noteq> {}) \<or> 
+({p. simple_match_port (dports m) p} \<noteq> UNIV \<and> {p. simple_match_port (dports m) p} \<noteq> {})) 
+\<longrightarrow> (proto m \<in> Proto `{TCP, UDP, SCTP})" 
+
+lemma simple_match_valid_alt_hlp1: "{p. simple_match_port x p} \<noteq> UNIV \<longleftrightarrow> (case x of (s,e) \<Rightarrow> s \<noteq> 0 \<or> e \<noteq> max_word)"
+	apply(clarsimp simp: set_eq_UNIV split: prod.splits)
+	apply(auto)
+	 using word_le_0_iff apply blast
+	using antisym_conv apply blast
+done
+lemma simple_match_valid_alt_hlp2: "{p. simple_match_port x p} \<noteq> {} \<longleftrightarrow> (case x of (s,e) \<Rightarrow> s \<le> e)" by auto
+lemma simple_match_valid_alt[code_unfold]: "simple_match_valid = (\<lambda> m.
+	(let c = (\<lambda>(s,e). s \<le> e \<and> (s \<noteq> 0 \<or> e \<noteq> max_word)) in (
+	if c (sports m) \<or> c (dports m) then proto m = Proto TCP \<or> proto m = Proto UDP \<or> proto m = Proto SCTP else True)))
+" 
+unfolding fun_eq_iff
+unfolding simple_match_valid_def Let_def
+unfolding simple_match_valid_alt_hlp1 simple_match_valid_alt_hlp2
+by(clarify, rename_tac m, case_tac "sports m"; case_tac "dports m"; case_tac "proto m") auto
+
+definition "example_simple_match2 \<equiv> (proto_update (const ProtoAny) example_simple_match1)"
+text{* Thus, @{text "example_simple_match1"} is valid, but if we set its protocol match to any, it no longer is. *}
+lemma "simple_match_valid example_simple_match1" by eval
+lemma "\<not>simple_match_valid example_simple_match2" by eval
+
+definition "simple_firewall_valid \<equiv> list_all (simple_match_valid \<circ> match_sel)"
 
 end

@@ -261,5 +261,8 @@ value "map simple_rule_toString (to_simple_firewall upper)"
 text{*in doubt deny closure*}
 value[code] "lower_closure (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string saturn_fw_2))"
 
+lemma "simple_firewall_valid (to_simple_firewall upper)" by eval
+lemma "simple_firewall_valid (to_simple_firewall (lower_closure 
+	(unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string saturn_fw_2))))" by eval
 
 end
