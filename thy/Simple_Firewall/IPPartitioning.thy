@@ -907,17 +907,26 @@ definition all_pairs :: "'a list \<Rightarrow> ('a \<times> 'a) list" where
 lemma all_pairs: "\<forall> (x,y) \<in> (set xs \<times> set xs). (x,y) \<in> set (all_pairs xs)"
   by(auto simp add: all_pairs_def)
 
-(*construct an ip partition and print it in some useable format
+definition simple_firewall_without_interfaces :: "simple_rule list \<Rightarrow> bool" where
+  "simple_firewall_without_interfaces rs \<equiv> \<forall>m \<in> match_sel ` set rs. iiface m = ifaceAny \<and> oiface m = ifaceAny"
+
+lemma[code_unfold]: "simple_firewall_without_interfaces rs \<equiv>
+  \<forall>m \<in> set rs. iiface (match_sel m) = ifaceAny \<and> oiface (match_sel m) = ifaceAny"
+  by(simp add: simple_firewall_without_interfaces_def)
+
+(*construct an ip partition and print it in some usable format
   returns:
   (vertices, edges) where
   vertices = (name, list of ip addresses this vertex corresponds to)
   and edges = (name \<times> name) list
 *)
 (*TODO: can we use collect srcs or collect dsts here too?*)
-fun build_ip_partition_pretty 
+text{*Only defined for @{const simple_firewall_without_interfaces}*}
+definition build_ip_partition_pretty 
   :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
   where
-  "build_ip_partition_pretty c rs =
+  "build_ip_partition_pretty c rs \<equiv>
+    if \<not> simple_firewall_without_interfaces rs then undefined else
     (let W = build_ip_partition c rs;
          R = map getOneIp W;
          U = all_pairs R
