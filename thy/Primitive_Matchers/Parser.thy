@@ -168,13 +168,13 @@ local (*iptables-save parsers*)
     
       val parser_interface = Scan.many1 is_iface_char >> (implode #> (fn x => @{const Iface} $ HOLogic.mk_string x));
 
-      val parser_protocol = Scan.this_string "tcp" >> K @{const TCP}
-                         || Scan.this_string "udp" >> K @{const UDP}
-                         || Scan.this_string "icmp" >> K @{const ICMP}
+      val parser_protocol = Scan.this_string "tcp" >> K @{term "TCP :: 8 word"}
+                         || Scan.this_string "udp" >> K @{term "UDP :: 8 word"}
+                         || Scan.this_string "icmp" >> K @{term "ICMP :: 8 word"}
                          (*Moar Assigned Internet Protocol Numbers below: *)
-                         || Scan.this_string "esp" >> K @{term "50"}
-                         || Scan.this_string "ah" >> K @{term "51"}
-                         || Scan.this_string "gre" >> K @{term "47"}
+                         || Scan.this_string "esp" >> K @{term "50 :: 8 word"}
+                         || Scan.this_string "ah" >> K @{term "51 :: 8 word"}
+                         || Scan.this_string "gre" >> K @{term "47  :: 8 word"}
 
       val parser_ctstate = Scan.this_string "NEW" >> K @{const CT_New}
                          || Scan.this_string "ESTABLISHED" >> K @{const CT_Established}
