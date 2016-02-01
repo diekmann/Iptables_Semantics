@@ -155,7 +155,7 @@ by(cases a) (simp_all split: if_splits)
 lemma conjunctProtoD: "Some x = simple_proto_conjunct a (Proto b) \<Longrightarrow> x = Proto b \<and> (a = ProtoAny \<or> a = Proto b)"
 by(cases a) (simp_all split: if_splits)
 
-lemma simple_match_to_of_match_generates_prereqs: "r \<in> set (simple_match_to_of_match m ifs) \<Longrightarrow> all_prerequisites f r"
+lemma simple_match_to_of_match_generates_prereqs: "r \<in> set (simple_match_to_of_match m ifs) \<Longrightarrow> all_prerequisites r"
 unfolding simple_match_to_of_match_def simple_match_to_of_match_single_def all_prerequisites_def option2set_def
 apply(clarsimp)
 apply(erule disjE, (simp; fail))+
@@ -667,7 +667,6 @@ lemma "Inr r = fourtytwo rt fw ifs \<Longrightarrow> sorted_descending (map ofe_
 	apply(unfold sorted_fourtytwo_hlp)
 	apply(rule sorted_fourtytwo_s3)
 	apply(rule sorted_annotated)
-	(* I don't see a difference between the two. But oh, whatever. *)
 	apply simp
 done
 

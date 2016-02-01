@@ -106,9 +106,15 @@ term map_option
 definition OF_match_fields :: "of_match_field set \<Rightarrow> simple_packet_ext \<Rightarrow> bool option" where "OF_match_fields m p = map_option all_true (set_seq ((\<lambda>f. match_prereq f m p) ` m))"
 definition OF_match_fields_unsafe :: "of_match_field set \<Rightarrow> simple_packet_ext \<Rightarrow> bool" where "OF_match_fields_unsafe m p = (\<forall>f \<in> m. match_no_prereq f p)"
 
-definition "all_prerequisites f m \<equiv> \<forall>f \<in> m. prerequisites f m"
+definition "all_prerequisites m \<equiv> \<forall>f \<in> m. prerequisites f m"
 
-lemma of_safe_unsafe_match_eq: "all_prerequisites f m \<Longrightarrow> OF_match_fields m p = Some (OF_match_fields_unsafe m p)"
+lemma (* as stated in paper *)
+	"all_prerequisites p \<Longrightarrow>
+	 L4Src x \<in> p \<Longrightarrow>
+	 IPv4Proto ` {TCP, UDP, SCTP} \<inter> p \<noteq> {}"
+unfolding all_prerequisites_def by auto
+
+lemma of_safe_unsafe_match_eq: "all_prerequisites m \<Longrightarrow> OF_match_fields m p = Some (OF_match_fields_unsafe m p)"
 unfolding OF_match_fields_def OF_match_fields_unsafe_def comp_def set_seq_def match_prereq_def all_prerequisites_def
 proof -	
 	case goal1
