@@ -220,8 +220,8 @@ or destination port, such a match is not meaningful, as the presence of the port
 dependent on the protocol. Thus, a match for a port should always include the match for a protocol.*}
 
 definition "simple_match_valid m \<equiv> 
-(({p. simple_match_port (sports m) p} \<noteq> UNIV \<and> {p. simple_match_port (sports m) p} \<noteq> {}) \<or> 
-({p. simple_match_port (dports m) p} \<noteq> UNIV \<and> {p. simple_match_port (dports m) p} \<noteq> {})) 
+(({p. simple_match_port (sports m) p} \<noteq> UNIV (*\<and> {p. simple_match_port (sports m) p} \<noteq> {}*)) \<or> 
+({p. simple_match_port (dports m) p} \<noteq> UNIV (*\<and> {p. simple_match_port (dports m) p} \<noteq> {}*))) 
 \<longrightarrow> (proto m \<in> Proto `{TCP, UDP, SCTP})" 
 
 lemma simple_match_valid_alt_hlp1: "{p. simple_match_port x p} \<noteq> UNIV \<longleftrightarrow> (case x of (s,e) \<Rightarrow> s \<noteq> 0 \<or> e \<noteq> max_word)"
@@ -232,7 +232,7 @@ lemma simple_match_valid_alt_hlp1: "{p. simple_match_port x p} \<noteq> UNIV \<l
 done
 lemma simple_match_valid_alt_hlp2: "{p. simple_match_port x p} \<noteq> {} \<longleftrightarrow> (case x of (s,e) \<Rightarrow> s \<le> e)" by auto
 lemma simple_match_valid_alt[code_unfold]: "simple_match_valid = (\<lambda> m.
-	(let c = (\<lambda>(s,e). s \<le> e \<and> (s \<noteq> 0 \<or> e \<noteq> max_word)) in (
+	(let c = (\<lambda>(s,e). (*s \<le> e \<and>*) (s \<noteq> 0 \<or> e \<noteq> max_word)) in (
 	if c (sports m) \<or> c (dports m) then proto m = Proto TCP \<or> proto m = Proto UDP \<or> proto m = Proto SCTP else True)))
 " 
 unfolding fun_eq_iff
