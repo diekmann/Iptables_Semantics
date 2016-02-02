@@ -922,7 +922,8 @@ lemma[code_unfold]: "simple_firewall_without_interfaces rs \<equiv>
 *)
 (*TODO: can we use collect srcs or collect dsts here too?*)
 text{*Only defined for @{const simple_firewall_without_interfaces}*}
-definition build_ip_partition_pretty 
+(*TODO: delete, use definition below!*)
+definition build_ip_partition_pretty
   :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
   where
   "build_ip_partition_pretty c rs \<equiv>
@@ -934,6 +935,37 @@ definition build_ip_partition_pretty
      ((''Nodes'','':'') # zip (map ipv4addr_toString R) (map ipv4addr_wordinterval_toString W), 
       (''Vertices'','':'') # map (\<lambda>(x,y). (ipv4addr_toString x, ipv4addr_toString y)) (filter (\<lambda>(a,b). runFw a b c rs = Decision FinalAllow) U)))"
 
+
+definition access_matrix 
+  :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> (ipv4addr \<times> 32 wordinterval) list \<times> (ipv4addr \<times> ipv4addr) list" 
+  where
+  "access_matrix c rs \<equiv>
+    (let W = build_ip_partition c rs;
+         R = map getOneIp W;
+         U = all_pairs R
+     in
+     (zip R W, (filter (\<lambda>(src,dst). runFw src dst c rs = Decision FinalAllow) U)))"
+
+
+(*formerly named build_ip_partition_pretty_old
+  TODO: rename all occurences!*)
+definition access_matrix_pretty 
+  :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
+  where
+  "access_matrix_pretty c rs \<equiv> if \<not> simple_firewall_without_interfaces rs then undefined else
+    (let (Nodes, Vertices) = access_matrix c rs
+     in
+     ((''Nodes'','':'') # map (\<lambda>(key,value). (ipv4addr_toString key, ipv4addr_wordinterval_toString value)) Nodes, 
+      (''Vertices'','':'') # map (\<lambda>(x,y). (ipv4addr_toString x, ipv4addr_toString y)) Vertices))"
+
+
+lemma "access_matrix_pretty c rs = build_ip_partition_pretty c rs"
+  apply(simp add: access_matrix_pretty_def build_ip_partition_pretty_def access_matrix_def)
+  apply(case_tac "simple_firewall_without_interfaces rs")
+   apply(simp add: Let_def)
+   apply (simp add: map_prod_fun_zip)
+  apply(simp add: Let_def)
+  done
 
 definition parts_connection_ssh where "parts_connection_ssh = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
                                pc_sport=10000, pc_dport=22, pc_tag_ctstate=CT_New\<rparr>"
