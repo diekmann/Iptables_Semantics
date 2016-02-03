@@ -1128,6 +1128,12 @@ text{*However, the entries are only a representation of a whole set of IP addres
       For all IP addresses which the entries represent, the access must be allowed.*}
 
 
+(*TODO: move to generic library*)
+lemma map_of_zip_map: "map_of (zip (map f rs) rs) k = Some v \<Longrightarrow> k = f v"
+  apply(induction rs)
+   apply(simp)
+  apply(simp split: split_if_asm)
+  done
 lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and
               repr: "(s_repr, d_repr) \<in> set E" and
               s_range: "(map_of V) s_repr = Some s_range" and s: "s \<in> wordinterval_to_set s_range" and
@@ -1150,58 +1156,14 @@ lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and
     have "s_range \<in> set ?part" using V in_set_zip2 s_range by (fastforce dest: map_of_SomeD)
     with build_ip_partition_no_empty_elems have "\<not> wordinterval_empty s_range" by simp
 
+    from map_of_zip_map V s_range have "s_repr = getOneIp s_range" by fast
+    from map_of_zip_map V d_range have "d_repr = getOneIp d_range" by fast
+      
     from s_range have "(s_repr, s_range) \<in> set V" by (simp add: map_of_SomeD)
 
-    have "s_repr \<in> wordinterval_to_set s_range" sorry
+    from `s_repr = getOneIp s_range` \<open>\<not> wordinterval_empty s_range\<close> getOneIp_elem wordinterval_element_set_eq 
+    have "s_repr \<in> wordinterval_to_set s_range" by blast 
 
-    have "(k,v) \<in> set V \<Longrightarrow> k = getOneIp v \<and> wordinterval_element k v" for k v
-      apply simp
-      apply(simp add: V)
-      apply(subgoal_tac "v \<in> set ?part")
-       prefer 2
-       apply (meson in_set_zip2; fail)
-      apply(subgoal_tac "\<exists>k. (k,v) = ((getOneIp v), v)")
-       prefer 2 apply blast
-      apply(elim exE, rename_tac ka)
-      apply(subgoal_tac "ka = k")
-       apply(simp)
-       thm build_ip_partition_no_empty_elems
-       apply(drule build_ip_partition_no_empty_elems)
-       using getOneIp_elem apply fastforce
-      
-      
-      
-
-    have "(k,v) \<in> set V \<Longrightarrow> k = getOneIp v \<and> wordinterval_element k v" for k v
-      apply simp
-      apply(simp add: V)
-      apply(induction "?part")
-       apply(simp; fail)
-      apply(simp)
-      apply(rename_tac x xs)
-      apply(case_tac "(k,v) = ((getOneIp x), x)")
-       apply(simp)
-       apply(subgoal_tac "v \<in> set ?part")
-        prefer 2
-        apply (meson in_set_zip2)
-       thm build_ip_partition_no_empty_elems
-       apply(drule build_ip_partition_no_empty_elems)
-       thm getOneIp_elem
-       using getOneIp_elem apply fastforce
-
-      oops
-      apply(simp)
-      apply(subgoal_tac "v \<noteq> x") (*needs keys dijoint?*)
-      apply(simp)
-      apply(rule conjI)
-       
-      defer 
-      using build_ip_partition_no_empty_elems 
-
-    from build_ip_partition_no_empty_elems getOneIp_elem
-          `s_repr \<in> set (map getOneIp ?part)` getOneIp_elem have
-      "s_repr \<in> wordinterval_to_set s_range"
-      sorry
       
     have "d_range \<in> set ?part" using V in_set_zip2 d_range by (fastforce dest: map_of_SomeD)
     
