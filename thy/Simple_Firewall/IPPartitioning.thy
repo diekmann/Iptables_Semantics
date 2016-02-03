@@ -281,7 +281,14 @@ lemma partitioningIps_foldr: "partitioningIps ss ts = foldr partIps ss ts"
 lemma getParts_foldr: "getParts rs = foldr partIps (extract_IPSets rs) [wordinterval_UNIV]"
   by(simp add: getParts_def partitioningIps_foldr)
 
-
+lemma getParts_length: "length (getParts rs) \<le> 2^(2 * length rs)"
+proof -
+  from partitioningIps_length[where ss="extract_IPSets rs" and ts="[wordinterval_UNIV]"] have
+    1: "length (partitioningIps (extract_IPSets rs) [wordinterval_UNIV]) \<le> 2 ^ length (extract_IPSets rs)" by simp
+  from extract_IPSets_length have "(2::nat) ^ length (extract_IPSets rs) \<le> 2 ^ (2 * length rs)" by simp
+  with 1 have "length (partitioningIps (extract_IPSets rs) [wordinterval_UNIV]) \<le> 2 ^ (2 * length rs)" by linarith
+  thus ?thesis by(simp add: getParts_def) 
+qed
 
 lemma getParts_ipPartition: "ipPartition (set (map wordinterval_to_set (extract_IPSets rs)))
                                          (set (map wordinterval_to_set (getParts rs)))"
@@ -342,14 +349,15 @@ qed
 lemma partIps_nonempty: "ts \<noteq> [] \<Longrightarrow> partIps s ts \<noteq> []"
   by(induction ts arbitrary: s) simp_all
 lemma partitioningIps_nonempty: "ts \<noteq> [] \<Longrightarrow> partitioningIps ss ts \<noteq> []"
-  apply(induction ss arbitrary: ts)
-   apply(simp;fail)
-  apply(simp)
-  apply(rename_tac s)
-  apply(case_tac s)
-   apply(simp; fail)
-  apply(simp)
-  using partIps_nonempty by blast
+proof(induction ss arbitrary: ts)
+  case Nil thus ?case by simp
+  next
+  case (Cons s ss) thus ?case
+    apply(cases ts)
+     apply(simp; fail)
+    apply(simp)
+    using partIps_nonempty by blast
+qed
 
 (*
 lemma partIps_nonempty: "\<forall>t \<in> set ts. \<not> wordinterval_empty t 
@@ -1381,21 +1389,6 @@ definition parts_connection_http where "parts_connection_http = \<lparr>pc_iifac
 
 
 
-
-
-(*corny stuff -- TODO: move*)
-
-
-
-
-lemma getParts_length: "length (getParts rs) \<le> 2^(2 * length rs)"
-proof -
-  from partitioningIps_length[where ss="extract_IPSets rs" and ts="[wordinterval_UNIV]"] have
-    1: "length (partitioningIps (extract_IPSets rs) [wordinterval_UNIV]) \<le> 2 ^ length (extract_IPSets rs)" by simp
-  from extract_IPSets_length have "(2::nat) ^ length (extract_IPSets rs) \<le> 2 ^ (2 * length rs)" by simp
-  with 1 have "length (partitioningIps (extract_IPSets rs) [wordinterval_UNIV]) \<le> 2 ^ (2 * length rs)" by linarith
-  thus ?thesis by(simp add: getParts_def) 
-qed
 
 value[code] "partitioningIps [WordInterval (0::ipv4addr) 0] [WordInterval 0 2, WordInterval 0 2]"
 
