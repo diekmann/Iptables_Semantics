@@ -34,6 +34,7 @@ lemma "disjoint_list ts \<Longrightarrow> disjoint_list_rec ts"
   apply(simp add: disjoint_list_def disjoint_def)
   by fast
 
+(*TODO: delete or put to local context*)
 lemma "disjoint_list_rec ts \<Longrightarrow> disjoint (set ts)"
   apply(induction ts)
    apply(simp_all add: disjoint_list_def disjoint_def)
