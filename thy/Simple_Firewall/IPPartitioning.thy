@@ -238,10 +238,11 @@ fun partIps :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval list
 lemma "partIps (WordInterval (1::ipv4addr) 1) [WordInterval 0 1] = [WordInterval 1 1, WordInterval 0 0]" by eval
 
 lemma partIps_length: "length (partIps s ts) \<le> (length ts) * 2"
-apply(induction ts arbitrary: s)
- apply(simp)
-apply simp
-using le_Suc_eq by blast
+proof(induction ts arbitrary: s)
+case Cons thus ?case 
+  apply(simp)
+  using le_Suc_eq by blast
+qed(simp)
 
 fun partitioningIps :: "'a::len wordinterval list \<Rightarrow> 'a::len wordinterval list \<Rightarrow>
                         'a::len wordinterval list" where
@@ -270,22 +271,16 @@ lemma partitioningIps_equi: "map wordinterval_to_set (partitioningIps ss ts)
   qed(simp_all add: partIps_equi)
 
 
-lemma disjoint_partitioningIps: 
-  "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
-   (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow>
-   disjoint_list_rec (map wordinterval_to_set (partitioningIps ss ts))"
-by (simp add: partitioning1_disjoint partitioningIps_equi wordinterval_list_to_set_def)
-
            
 definition getParts :: "simple_rule list \<Rightarrow> 32 wordinterval list" where
    "getParts rs = partitioningIps (extract_IPSets rs) [wordinterval_UNIV]"
-
 
 lemma partitioningIps_foldr: "partitioningIps ss ts = foldr partIps ss ts"
   by(induction ss) (simp_all)
 
 lemma getParts_foldr: "getParts rs = foldr partIps (extract_IPSets rs) [wordinterval_UNIV]"
   by(simp add: getParts_def partitioningIps_foldr)
+
 
 
 lemma getParts_ipPartition: "ipPartition (set (map wordinterval_to_set (extract_IPSets rs)))
@@ -305,7 +300,6 @@ proof -
 qed
 
 
-
 lemma getParts_complete: "wordinterval_list_to_set (getParts rs) = UNIV"
   proof -
   have "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
@@ -320,10 +314,15 @@ lemma getParts_complete: "wordinterval_list_to_set (getParts rs) = UNIV"
 qed
 
 lemma getParts_disjoint: "disjoint_list_rec (map wordinterval_to_set (getParts rs))"
-  apply(subst getParts_def)
-  apply(rule disjoint_partitioningIps)
-    apply(simp_all add: wordinterval_list_to_set_def)
-  done
+ proof -
+  have disjoint_partitioningIps: 
+    "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
+     (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow>
+     disjoint_list_rec (map wordinterval_to_set (partitioningIps ss ts))"
+  for ss ts::"32 wordinterval list"
+    by (simp add: partitioning1_disjoint partitioningIps_equi wordinterval_list_to_set_def)
+  thus ?thesis by(simp add: getParts_def wordinterval_list_to_set_def)
+qed
 
 
 theorem getParts_samefw: 
@@ -400,10 +399,6 @@ record parts_connection = pc_iiface :: string
 
 (* SAME FW DEFINITIONS AND PROOFS *)
 
-lemma relation_lem: "\<forall>D \<in> W. \<forall>d1 \<in> D. \<forall>d2 \<in> D. \<forall>s. f s d1 = f s d2 \<Longrightarrow> \<Union> W = UNIV \<Longrightarrow>
-                     \<forall>B \<in> W. \<exists>b \<in> B. f s1 b = f s2 b \<Longrightarrow>
-                     f s1 d = f s2 d"
-by (metis UNIV_I Union_iff)
 
 
 definition same_fw_behaviour :: "32 word \<Rightarrow> 32 word \<Rightarrow> simple_rule list \<Rightarrow> bool" where
@@ -469,6 +464,12 @@ proof -
    and a2: "\<Union> W = UNIV "
    and a3: "\<forall>B \<in> W. \<exists>b \<in> B. runFw ip1 b c rs = runFw ip2 b c rs"
    and a4: "\<forall>B \<in> W. \<exists>b \<in> B. runFw b ip1 c rs = runFw b ip2 c rs"
+
+   
+  have relation_lem: "\<forall>D \<in> W. \<forall>d1 \<in> D. \<forall>d2 \<in> D. \<forall>s. f s d1 = f s d2 \<Longrightarrow> \<Union> W = UNIV \<Longrightarrow>
+                     \<forall>B \<in> W. \<exists>b \<in> B. f s1 b = f s2 b \<Longrightarrow>
+                     f s1 d = f s2 d" for W and f::"'c \<Rightarrow> 'b \<Rightarrow> 'd" and s1 d s2
+    by (metis UNIV_I Union_iff)
 
   from a1 have a1':"\<forall>A\<in>W. \<forall>a1\<in>A. \<forall>a2\<in>A. \<forall>s. runFw s a1 c rs = runFw s a2 c rs"
     unfolding same_fw_behaviour_one_def by fast
