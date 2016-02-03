@@ -98,6 +98,10 @@ lemma groupF_set_lem: "set (concat (groupF f xs)) = set xs"
   proof(induction f xs rule: groupF.induct)
   case 2 thus ?case by (simp) blast
   qed(simp)
+lemma groupF_set_Union_lem: "(\<Union>x \<in> set (groupF f xs). set x) = set xs"
+  proof(induction f xs rule: groupF.induct)
+  case 2 thus ?case by (simp) blast
+  qed(simp)
 
 lemma groupF_set_lem1: "\<forall>X \<in> set (groupF f xs). \<forall>x \<in> set X. x \<in> set xs"
   using groupF_set_lem by fastforce

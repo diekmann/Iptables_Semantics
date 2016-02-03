@@ -640,6 +640,14 @@ lemma "A \<in> set (groupWIs c rs) \<Longrightarrow> B \<in> set (groupWIs c rs)
 using groupWIs_same_fw_not2 by blast
 
 
+lemma groupWIs_complete: "(\<Union>x\<in> set (groupWIs c rs). wordinterval_list_to_set x) = (UNIV::ipv4addr set)"
+  proof -
+  have "(\<Union> y \<in> (\<Union>x\<in> set (groupWIs c rs). set x). wordinterval_to_set y) = (UNIV::ipv4addr set)"
+    apply(simp add: groupWIs_def Let_def groupF_set_Union_lem)
+    using getParts_complete wordinterval_list_to_set_def by fastforce
+  thus ?thesis by(simp add: wordinterval_list_to_set_def)
+qed
+
 
 (*begin groupWIs1 and groupWIs2 optimization*)
   (*TODO*)
@@ -935,6 +943,17 @@ theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \
   apply(simp add: build_ip_partition_def groupWIs3)
   using  groupWIs_same_fw_not2 wordinterval_list_to_set_compressed by blast
 
+theorem build_ip_partition_complete: "(\<Union>x\<in>set (build_ip_partition c rs). wordinterval_to_set x) = (UNIV :: ipv4addr set)"
+  proof -
+  have "wordinterval_to_set (foldr wordinterval_union x Empty_WordInterval) = (\<Union>set (map wordinterval_to_set x))"
+    for x::"32 wordinterval list"
+    by(induction x) simp_all
+  thus ?thesis
+  apply(simp add: build_ip_partition_def groupWIs3 wordinterval_compress)
+  using groupWIs_complete[simplified wordinterval_list_to_set_def] by simp
+  qed
+
+
 
 (*TODO: move or delete*)
 lemma wordinterval_empty_wordinterval_compress: "wordinterval_empty (wordinterval_compress wi) \<longleftrightarrow> wordinterval_empty wi"
@@ -1021,21 +1040,33 @@ lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and
               d_range: "(map_of V) d_repr = Some d_range" and d: "d \<in> wordinterval_to_set d_range"
       shows "runFw s d c rs = Decision FinalAllow"
   proof -
-    have V: "V = zip (map getOneIp (build_ip_partition c rs)) (build_ip_partition c rs)"
+    let ?part="(build_ip_partition c rs)"
+    have V: "V = zip (map getOneIp ?part) ?part"
       using matrix by(simp add: access_matrix_def Let_def)
-    have "E = [(s, d)\<leftarrow>all_pairs (map getOneIp (build_ip_partition c rs)). runFw s d c rs = Decision FinalAllow]"
+    have "E = [(s, d)\<leftarrow>all_pairs (map getOneIp ?part). runFw s d c rs = Decision FinalAllow]"
       using matrix by(simp add: access_matrix_def Let_def)
-    with repr have "(s_repr, d_repr) \<in> set (all_pairs (map getOneIp (build_ip_partition c rs)))" by simp
-    hence "s_repr \<in> set (map getOneIp (build_ip_partition c rs))" and
-          "d_repr \<in> set (map getOneIp (build_ip_partition c rs))"
+    with repr have "(s_repr, d_repr) \<in> set (all_pairs (map getOneIp ?part))" by simp
+    hence "s_repr \<in> set (map getOneIp ?part)" and
+          "d_repr \<in> set (map getOneIp ?part)"
       by(simp add: all_pairs_set)+
 
     from matrix repr have repr_Allow: "runFw s_repr d_repr c rs = Decision FinalAllow"
       by(auto simp add: access_matrix_def Let_def)
 
+    have "s_range \<in> set ?part" using V in_set_zip2 s_range by (fastforce dest: map_of_SomeD)
+    with build_ip_partition_no_empty_elems have "\<not> wordinterval_empty s_range" by simp
+
+    from build_ip_partition_no_empty_elems getOneIp_elem
+          `s_repr \<in> set (map getOneIp ?part)` getOneIp_elem have
+      "s_repr \<in> wordinterval_to_set s_range"
+      sorry
+      
+    have "d_range \<in> set ?part" using V in_set_zip2 d_range by (fastforce dest: map_of_SomeD)
+    
+
     thm build_ip_partition_same_fw
 
-    from V s_range have "s_range \<in> set (build_ip_partition c rs)"
+    from V s_range have "s_range \<in> set ?part"
       by (meson in_set_zip2 map_of_SomeD)
     with build_ip_partition_same_fw[OF this, unfolded same_fw_behaviour_one_def] s have 
       "\<forall>d1 d2. runFw s d1 c rs = runFw s d2 c rs"
@@ -1043,7 +1074,7 @@ lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and
       (*need s_range \<in> set (build_ip_partition c rs
         with repr_Allow have s_range_Allow*)
 
-    from V d_range have "d_range \<in> set (build_ip_partition c rs)"
+    from V d_range have "d_range \<in> set ?part"
       by (meson in_set_zip2 map_of_SomeD) 
 
 
@@ -1052,6 +1083,7 @@ lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and
   apply(simp add: build_ip_partition_same_fw)
   oops
 *)
+
 (*TODO: access_matrix_complete*)
 
 (*formerly named build_ip_partition_pretty_old
