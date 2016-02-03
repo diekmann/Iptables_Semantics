@@ -1044,21 +1044,15 @@ lemma map_getOneIp_distinct: assumes
   shows "distinct (map getOneIp xs)"
   proof -
     have "\<not> wordinterval_empty x \<Longrightarrow> \<not> wordinterval_empty xa \<Longrightarrow> 
-          wordinterval_to_set x \<inter> wordinterval_to_set xa = {} \<Longrightarrow> getOneIp x \<noteq> getOneIp xa" for x xa::"'b::len wordinterval"
-     apply(drule getOneIp_elem)+
-     apply(simp)
-     apply fastforce
-     done
+          wordinterval_to_set x \<inter> wordinterval_to_set xa = {} \<Longrightarrow> getOneIp x \<noteq> getOneIp xa"
+     for x xa::"'b::len wordinterval"
+     by(fastforce dest: getOneIp_elem)
     with disjoint notempty have "(\<forall>x1 \<in> set xs. \<forall>x2 \<in> set xs. x1 \<noteq> x2 \<longrightarrow> getOneIp x1 \<noteq> getOneIp x2)"
       by metis
-      
     with distinct show ?thesis
-    apply(induction xs)
-     apply(simp; fail)
-    apply(rename_tac x xs)
-    apply(simp)
-    apply(elim conjE)
-    by fast
+    proof(induction xs)
+    case Cons thus ?case by simp fast
+    qed(simp)
   qed
 
 
