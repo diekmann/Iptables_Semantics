@@ -1022,26 +1022,11 @@ lemma map_wordinterval_to_set_distinct:
   proof -
     (*have "\<not> wordinterval_empty x1 \<Longrightarrow> 
         wordinterval_to_set x1 \<inter> wordinterval_to_set x2 = {} \<Longrightarrow> x1 \<noteq> x2" for x1::"('b::len) wordinterval" and x2
-      apply(induction x1)
-       apply(simp_all)
-       apply(induction x2)
-        apply(simp_all)
-       apply fast
-      apply(induction x2)
-       apply(simp_all)
-      by blast*)
+      by fastforce *)
     have "\<not> wordinterval_empty x1 \<Longrightarrow> 
         wordinterval_to_set x1 \<inter> wordinterval_to_set x2 = {} \<Longrightarrow> 
         wordinterval_to_set x1 \<noteq> wordinterval_to_set x2" for x1::"('b::len) wordinterval" and x2
-      apply(induction x1)
-       apply(simp_all)
-       apply(induction x2)
-        apply(simp_all)
-       apply fast
-      apply(induction x2)
-       apply(simp_all)
-       apply force
-      by blast
+      by auto
     with disjoint notempty have "(\<forall>x1 \<in> set xs. \<forall>x2 \<in> set xs. x1 \<noteq> x2 \<longrightarrow> wordinterval_to_set x1 \<noteq> wordinterval_to_set x2)"
       by force
     with distinct show "distinct (map wordinterval_to_set xs)"
