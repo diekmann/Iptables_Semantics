@@ -346,22 +346,21 @@ lemma partIps_nonempty: "\<forall>t \<in> set ts. \<not> wordinterval_empty t
   by blast
 *)
 
-(*TODO: clean up the following! also use partitioningIps_nonempty?*)
-lemma partitioning_nonempty: "\<forall>t \<in> set ts. \<not> wordinterval_empty t
-                              \<Longrightarrow> {} \<notin> set (map wordinterval_to_set (partitioningIps ss ts))"
-  apply(induction ss arbitrary: ts)
-   apply(simp_all)
-   apply(blast)
-  by (metis partIps_equi partList3_empty set_map)
-
-
 lemma getParts_nonempty: "getParts rs \<noteq> []" by(simp add: getParts_def partitioningIps_nonempty)
 lemma getParts_nonempty_elems: "\<forall>w\<in>set (getParts rs). \<not> wordinterval_empty w"
   unfolding getParts_def
   proof -
+    have partitioning_nonempty: "\<forall>t \<in> set ts. \<not> wordinterval_empty t \<Longrightarrow>
+      {} \<notin> set (map wordinterval_to_set (partitioningIps ss ts))"
+      for ts ss::"32 wordinterval list"
+      proof(induction ss arbitrary: ts)
+        case Nil thus ?case by auto
+        case Cons thus ?case by (simp add: partIps_equi partList3_empty)
+      qed
     have "\<forall>t \<in> set [wordinterval_UNIV].\<not> wordinterval_empty t" by(simp)
     with partitioning_nonempty have
-      "{} \<notin> set (map wordinterval_to_set (partitioningIps (extract_IPSets rs) [wordinterval_UNIV]))" by blast
+      "{} \<notin> set (map wordinterval_to_set (partitioningIps (extract_IPSets rs) [wordinterval_UNIV]))" 
+      by blast
     thus "\<forall>w\<in>set (partitioningIps (extract_IPSets rs) [wordinterval_UNIV]). \<not> wordinterval_empty w" by auto
   qed
 
