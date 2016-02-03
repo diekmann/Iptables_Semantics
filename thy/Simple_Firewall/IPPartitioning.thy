@@ -1143,12 +1143,13 @@ lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and
     let ?part="(build_ip_partition c rs)"
     have V: "V = zip (map getOneIp ?part) ?part"
       using matrix by(simp add: access_matrix_def Let_def)
-    have "E = [(s, d)\<leftarrow>all_pairs (map getOneIp ?part). runFw s d c rs = Decision FinalAllow]"
+    (*have "E = [(s, d)\<leftarrow>all_pairs (map getOneIp ?part). runFw s d c rs = Decision FinalAllow]"
       using matrix by(simp add: access_matrix_def Let_def)
     with repr have "(s_repr, d_repr) \<in> set (all_pairs (map getOneIp ?part))" by simp
     hence "s_repr \<in> set (map getOneIp ?part)" and
           "d_repr \<in> set (map getOneIp ?part)"
-      by(simp add: all_pairs_set)+
+      by(simp add: all_pairs_set)+*)
+    (*from s_range have "(s_repr, s_range) \<in> set V" by (simp add: map_of_SomeD)*)
 
     from matrix repr have repr_Allow: "runFw s_repr d_repr c rs = Decision FinalAllow"
       by(auto simp add: access_matrix_def Let_def)
@@ -1159,22 +1160,16 @@ lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and
     have d_range_in_part: "d_range \<in> set ?part" using V in_set_zip2 d_range by (fastforce dest: map_of_SomeD)
     with build_ip_partition_no_empty_elems have "\<not> wordinterval_empty d_range" by simp
 
-    from map_of_zip_map V s_range have "s_repr = getOneIp s_range" by fast
-    from map_of_zip_map V d_range have "d_repr = getOneIp d_range" by fast
       
-    from s_range have "(s_repr, s_range) \<in> set V" by (simp add: map_of_SomeD)
 
-    from `s_repr = getOneIp s_range` \<open>\<not> wordinterval_empty s_range\<close> getOneIp_elem wordinterval_element_set_eq 
+    from map_of_zip_map V s_range have "s_repr = getOneIp s_range" by fast
+    with \<open>\<not> wordinterval_empty s_range\<close> getOneIp_elem wordinterval_element_set_eq 
     have "s_repr \<in> wordinterval_to_set s_range" by blast 
 
-    from `d_repr = getOneIp d_range` \<open>\<not> wordinterval_empty d_range\<close> getOneIp_elem wordinterval_element_set_eq 
+    from map_of_zip_map V d_range have "d_repr = getOneIp d_range" by fast
+    with \<open>\<not> wordinterval_empty d_range\<close> getOneIp_elem wordinterval_element_set_eq 
     have "d_repr \<in> wordinterval_to_set d_range" by blast 
-      
-    have "d_range \<in> set ?part" using V in_set_zip2 d_range by (fastforce dest: map_of_SomeD)
     
-
-    thm build_ip_partition_same_fw
-
     from build_ip_partition_same_fw[OF s_range_in_part, unfolded same_fw_behaviour_one_def] s `s_repr \<in> wordinterval_to_set s_range` have 
       "\<forall>d. runFw s_repr d c rs = runFw s d c rs" by blast
     with repr_Allow have 1: "runFw s d_repr c rs = Decision FinalAllow" by simp
