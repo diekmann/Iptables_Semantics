@@ -375,14 +375,14 @@ lemma addSubsetSet_empty: "addSubsetSet s ts - {{}} = addSubsetSet s (ts - {{}})
   apply(simp_all add: addSubsetSet_def)
 by blast
 
-lemma partList3_empty: "{} \<notin> set ts \<Longrightarrow> {} \<notin> set(partList3 s ts)"
+lemma partList3_empty: "{} \<notin> set ts \<Longrightarrow> {} \<notin> set (partList3 s ts)"
   apply(induction ts arbitrary: s)
-  apply(simp)
+   apply(simp; fail)
   by auto
 
-lemma partitioning1_empty0: "{} \<notin> set ts \<Longrightarrow> {} \<notin> set(partitioning1 ss ts)"
+lemma partitioning1_empty0: "{} \<notin> set ts \<Longrightarrow> {} \<notin> set (partitioning1 ss ts)"
   apply(induction ss arbitrary: ts)
-  apply(simp)
+   apply(simp; fail)
   apply(simp add: partList3_empty)
 done
 

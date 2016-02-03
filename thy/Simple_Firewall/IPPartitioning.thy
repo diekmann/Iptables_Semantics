@@ -325,14 +325,28 @@ proof -
 qed
 
 
+lemma partIps_nonempty: "ts \<noteq> [] \<Longrightarrow> partIps s ts \<noteq> []"
+  by(induction ts arbitrary: s) simp_all
+lemma partitioningIps_nonempty: "ts \<noteq> [] \<Longrightarrow> partitioningIps ss ts \<noteq> []"
+  apply(induction ss arbitrary: ts)
+   apply(simp;fail)
+  apply(simp)
+  apply(rename_tac s)
+  apply(case_tac s)
+   apply(simp; fail)
+  apply(simp)
+  using partIps_nonempty by blast
 
+(*
 lemma partIps_nonempty: "\<forall>t \<in> set ts. \<not> wordinterval_empty t 
        \<Longrightarrow> {} \<notin> set (map wordinterval_to_set (partIps s ts))"
   apply(induction ts arbitrary: s)
    apply(simp; fail)
   apply(simp)
   by blast
+*)
 
+(*TODO: clean up the following! also use partitioningIps_nonempty?*)
 lemma partitioning_nonempty: "\<forall>t \<in> set ts. \<not> wordinterval_empty t
                               \<Longrightarrow> {} \<notin> set (map wordinterval_to_set (partitioningIps ss ts))"
   apply(induction ss arbitrary: ts)
@@ -340,6 +354,7 @@ lemma partitioning_nonempty: "\<forall>t \<in> set ts. \<not> wordinterval_empty
    apply(blast)
   by (metis partIps_equi partList3_empty set_map)
 
+(*TODO: be gone!*)
 lemma ineedtolearnisar: "\<forall>t \<in> set [wordinterval_UNIV]. \<not> wordinterval_empty t"
   by(simp)
 
@@ -546,6 +561,31 @@ proof -
     apply(simp) using same_fw_behaviour_one_equi(3) by fast
 qed
 
+
+
+
+lemma groupWIs_not_empty: "groupWIs c rs \<noteq> []"
+  proof -
+    have "getParts rs \<noteq> []" by(simp add: getParts_def partitioningIps_nonempty)
+    with groupF_empty have "\<And>f. groupF f (getParts rs) \<noteq> []" by blast
+    thus ?thesis by(simp add: groupWIs_def Let_def) blast
+  qed
+lemma groupWIs_not_empty_elem: "V \<in> set (groupWIs c rs) \<Longrightarrow> V \<noteq> []"
+  by(simp add: groupWIs_def Let_def groupF_empty_elem)
+lemma groupWIs_not_empty_elems: 
+  assumes V: "V \<in> set (groupWIs c rs)" and w: "w \<in> set V"
+  shows "\<not> wordinterval_empty w"
+  proof -
+    have "\<forall>w\<in>set (concat (groupWIs c rs)). \<not> wordinterval_empty w"
+      apply(subst groupWIs_def)
+      apply(subst Let_def)+
+      apply(subst groupF_set_lem)
+      using getParts_nonempty getParts_def by auto
+    from this V w show ?thesis by auto
+  qed
+
+
+(*beginning is copy&paste of previous proof*)
 lemma groupParts_same_fw_wi1:
   "V \<in> set (groupWIs c rs) \<Longrightarrow> \<forall>w1 \<in> set V. \<forall>w2 \<in> set V.
      \<forall>a1 \<in> wordinterval_to_set w1. \<forall>a2 \<in> wordinterval_to_set w2. same_fw_behaviour_one a1 a2 c rs"
@@ -555,7 +595,7 @@ proof -
     have b1: "\<forall>A \<in> set (map wordinterval_to_set (getParts rs)) . \<forall>a1 \<in> A. \<forall>a2 \<in> A.
               same_fw_behaviour_one a1 a2 c rs" by fast
   from getParts_nonempty
-    have "\<forall>w\<in>set (getParts rs). \<not> wordinterval_empty w" apply(subst getParts_def) by auto
+      have "\<forall>w\<in>set (getParts rs). \<not> wordinterval_empty w" unfolding getParts_def by auto
   from same_behave_runFw[OF b1 getParts_complete this]
        groupF_lem[of "(\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) (map getOneIp (getParts rs)),
                              map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp (getParts rs))))"
@@ -564,12 +604,7 @@ proof -
     apply(subst (asm) groupWIs_def)
     apply(subst (asm) Let_def)+
     by fast
-  have "\<forall>w\<in>set (concat (groupWIs c rs)). \<not> wordinterval_empty w"
-    apply(subst groupWIs_def)
-    apply(subst Let_def)+
-    apply(subst groupF_set_lem)
-    using getParts_nonempty getParts_def by auto
-  from this asm have "\<forall>w \<in> set V. \<not> wordinterval_empty w" by auto
+  from groupWIs_not_empty_elems asm have "\<forall>w \<in> set V. \<not> wordinterval_empty w" by simp
   from this b2 getOneIp_elem
     have b3: "\<forall>w1\<in>set (map wordinterval_to_set V). \<forall>w2\<in>set (map wordinterval_to_set V). 
            \<exists>ip1\<in> w1. \<exists>ip2\<in>w2.
@@ -901,11 +936,33 @@ theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \
   using  groupWIs_same_fw_not2 wordinterval_list_to_set_compressed by blast
 
 
+(*TODO: move or delete*)
+lemma wordinterval_empty_wordinterval_compress: "wordinterval_empty (wordinterval_compress wi) \<longleftrightarrow> wordinterval_empty wi"
+  by (simp add: wordinterval_compress) 
+
+
+(*TODO: ugly proof, apply before proof-*)
+lemma build_ip_partition_no_empty_elems: "wi \<in> set (build_ip_partition c rs) \<Longrightarrow> \<not> wordinterval_empty wi"
+  apply(simp add: build_ip_partition_def groupWIs3)
+  proof -
+    assume assm: "wi \<in> (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) ` set (groupWIs c rs)"
+    from assm obtain wi_orig where 1: "wi_orig \<in>  set (groupWIs c rs)" and
+       2: "wi = wordinterval_compress (foldr wordinterval_union wi_orig Empty_WordInterval)" by blast
+    from 1 groupWIs_not_empty_elem have i1: "wi_orig \<noteq> []" by simp
+    from 1 groupWIs_not_empty_elems have i2: "\<And>w. w \<in> set wi_orig \<Longrightarrow> \<not> wordinterval_empty w" by simp
+    from i1 i2 have "wordinterval_to_set (foldr wordinterval_union wi_orig Empty_WordInterval) \<noteq> {}"
+      by(induction wi_orig) simp_all
+    with 2 show "wordinterval_to_set wi \<noteq> {}" by(simp add: wordinterval_compress)
+  qed
+
+
 definition all_pairs :: "'a list \<Rightarrow> ('a \<times> 'a) list" where
   "all_pairs xs \<equiv> concat (map (\<lambda>x. map (\<lambda>y. (x,y)) xs) xs)"
 
 lemma all_pairs: "\<forall> (x,y) \<in> (set xs \<times> set xs). (x,y) \<in> set (all_pairs xs)"
   by(auto simp add: all_pairs_def)
+lemma all_pairs_set: "set (all_pairs xs) = set xs \<times> set xs"
+  by (metis Product_Type.product_def all_pairs_def product_code) 
 
 definition simple_firewall_without_interfaces :: "simple_rule list \<Rightarrow> bool" where
   "simple_firewall_without_interfaces rs \<equiv> \<forall>m \<in> match_sel ` set rs. iiface m = ifaceAny \<and> oiface m = ifaceAny"
@@ -936,16 +993,66 @@ definition build_ip_partition_pretty
       (''Vertices'','':'') # map (\<lambda>(x,y). (ipv4addr_toString x, ipv4addr_toString y)) (filter (\<lambda>(a,b). runFw a b c rs = Decision FinalAllow) U)))"
 
 
+(*TODO: simple_firewall_without_interfaces check here?*)
 definition access_matrix 
   :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> (ipv4addr \<times> 32 wordinterval) list \<times> (ipv4addr \<times> ipv4addr) list" 
   where
   "access_matrix c rs \<equiv>
     (let W = build_ip_partition c rs;
-         R = map getOneIp W;
-         U = all_pairs R
+         R = map getOneIp W
      in
-     (zip R W, (filter (\<lambda>(src,dst). runFw src dst c rs = Decision FinalAllow) U)))"
+     (zip R W, [(s, d)\<leftarrow>all_pairs R. runFw s d c rs = Decision FinalAllow]))"
 
+lemma access_matrix_nodes_defined:
+      "(V,E) = access_matrix c rs \<Longrightarrow> (s, d) \<in> set E \<Longrightarrow> s \<in> dom (map_of V)" and
+      "(V,E) = access_matrix c rs \<Longrightarrow> (s, d) \<in> set E \<Longrightarrow> d \<in> dom (map_of V)"
+  by(auto simp add: access_matrix_def Let_def all_pairs_def)
+
+text{*For all the entries @{term E} of the matrix, the access is allowed*}
+lemma "(V,E) = access_matrix c rs \<Longrightarrow> (s, d) \<in> set E \<Longrightarrow> runFw s d c rs = Decision FinalAllow"
+  by(auto simp add: access_matrix_def Let_def)
+text{*However, the entries are only a representation of a whole set of IP addresses. 
+      For all IP addresses which the entries represent, the access must be allowed.*}
+
+(*
+lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and
+              repr: "(s_repr, d_repr) \<in> set E" and
+              s_range: "(map_of V) s_repr = Some s_range" and s: "s \<in> wordinterval_to_set s_range" and
+              d_range: "(map_of V) d_repr = Some d_range" and d: "d \<in> wordinterval_to_set d_range"
+      shows "runFw s d c rs = Decision FinalAllow"
+  proof -
+    have V: "V = zip (map getOneIp (build_ip_partition c rs)) (build_ip_partition c rs)"
+      using matrix by(simp add: access_matrix_def Let_def)
+    have "E = [(s, d)\<leftarrow>all_pairs (map getOneIp (build_ip_partition c rs)). runFw s d c rs = Decision FinalAllow]"
+      using matrix by(simp add: access_matrix_def Let_def)
+    with repr have "(s_repr, d_repr) \<in> set (all_pairs (map getOneIp (build_ip_partition c rs)))" by simp
+    hence "s_repr \<in> set (map getOneIp (build_ip_partition c rs))" and
+          "d_repr \<in> set (map getOneIp (build_ip_partition c rs))"
+      by(simp add: all_pairs_set)+
+
+    from matrix repr have repr_Allow: "runFw s_repr d_repr c rs = Decision FinalAllow"
+      by(auto simp add: access_matrix_def Let_def)
+
+    thm build_ip_partition_same_fw
+
+    from V s_range have "s_range \<in> set (build_ip_partition c rs)"
+      by (meson in_set_zip2 map_of_SomeD)
+    with build_ip_partition_same_fw[OF this, unfolded same_fw_behaviour_one_def] s have 
+      "\<forall>d1 d2. runFw s d1 c rs = runFw s d2 c rs"
+      oops (*wrong theorem?*)
+      (*need s_range \<in> set (build_ip_partition c rs
+        with repr_Allow have s_range_Allow*)
+
+    from V d_range have "d_range \<in> set (build_ip_partition c rs)"
+      by (meson in_set_zip2 map_of_SomeD) 
+
+
+  using matrix apply(simp add: access_matrix_def Let_def)
+  apply(simp add: all_pairs_def)
+  apply(simp add: build_ip_partition_same_fw)
+  oops
+*)
+(*TODO: access_matrix_complete*)
 
 (*formerly named build_ip_partition_pretty_old
   TODO: rename all occurences!*)
@@ -956,7 +1063,7 @@ definition access_matrix_pretty
     (let (Nodes, Vertices) = access_matrix c rs
      in
      ((''Nodes'','':'') # map (\<lambda>(key,value). (ipv4addr_toString key, ipv4addr_wordinterval_toString value)) Nodes, 
-      (''Vertices'','':'') # map (\<lambda>(x,y). (ipv4addr_toString x, ipv4addr_toString y)) Vertices))"
+      (''Vertices'','':'') # map (\<lambda>(s,d). (ipv4addr_toString s, ipv4addr_toString d)) Vertices))"
 
 
 lemma "access_matrix_pretty c rs = build_ip_partition_pretty c rs"

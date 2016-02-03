@@ -121,5 +121,8 @@ lemma groupF_cong: fixes xs::"'a list" and f1::"'a \<Rightarrow> 'b" and f2::"'a
                                      filter_cong[of xs xs "\<lambda>y. f x \<noteq> f y" "\<lambda>y. f2 x \<noteq> f2 y"] by auto
   qed (simp)
 
-
+lemma groupF_empty: "groupF f xs \<noteq> [] \<longleftrightarrow> xs \<noteq> []"
+  by(induction f xs rule: groupF.induct) auto
+lemma groupF_empty_elem: "x \<in> set (groupF f xs) \<Longrightarrow> x \<noteq> []"
+  by(induction f xs rule: groupF.induct) auto
 end
