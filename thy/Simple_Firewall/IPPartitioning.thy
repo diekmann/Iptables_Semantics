@@ -584,8 +584,8 @@ proof -
                    map (\<lambda>s. runFw s (getOneIp aw) c rs) (map getOneIp (getParts rs))) \<noteq>
                   (map (\<lambda>d. runFw (getOneIp bw) d c rs) (map getOneIp (getParts rs)),
                    map (\<lambda>s. runFw s (getOneIp bw) c rs) (map getOneIp (getParts rs)))"
-  apply(simp add: groupWIs_def Let_def)
-  using groupF_lem_not by fastforce
+    apply(simp add: groupWIs_def Let_def)
+    using groupF_lem_not by fastforce
   have "\<forall>C \<in> set (groupWIs c rs). \<forall>c \<in> set C. getOneIp c \<in> wordinterval_to_set c"
     apply(simp add: groupWIs_def Let_def)
     using getParts_nonempty_elems groupF_set_lem1 getOneIp_elem by fastforce
