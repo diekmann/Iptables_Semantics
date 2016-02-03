@@ -354,13 +354,13 @@ lemma partitioning_nonempty: "\<forall>t \<in> set ts. \<not> wordinterval_empty
    apply(blast)
   by (metis partIps_equi partList3_empty set_map)
 
-(*TODO: be gone!*)
-lemma ineedtolearnisar: "\<forall>t \<in> set [wordinterval_UNIV]. \<not> wordinterval_empty t"
-  by(simp)
 
 lemma getParts_nonempty: "{} \<notin> set (map wordinterval_to_set 
                                     (partitioningIps ss [wordinterval_UNIV]))"
-  using ineedtolearnisar partitioning_nonempty by(blast)
+  proof -
+    have "\<forall>t \<in> set [wordinterval_UNIV]. \<not> wordinterval_empty t" by(simp)
+    with partitioning_nonempty show ?thesis by(blast)
+  qed
 
 (* HELPER FUNCTIONS UNIFICATION *)
 
