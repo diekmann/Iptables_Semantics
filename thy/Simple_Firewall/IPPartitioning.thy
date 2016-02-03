@@ -975,6 +975,100 @@ lemma build_ip_partition_no_empty_elems: "wi \<in> set (build_ip_partition c rs)
   qed
 
 
+lemma build_ip_partition_disjoint: 
+      "V1 \<in> set (build_ip_partition c rs) \<Longrightarrow> V2 \<in> set (build_ip_partition c rs) \<Longrightarrow>
+       V1 \<noteq> V2 \<Longrightarrow>
+        wordinterval_to_set V1 \<inter> wordinterval_to_set V2 = {}"
+  by (meson build_ip_partition_same_fw_min int_not_emptyD same_fw_behaviour_one_equi(1))
+
+
+lemma "x \<in> set xs \<Longrightarrow> getOneIp x \<in> getOneIp ` set xs" using Set.imageI by blast
+lemma "\<forall>x \<in> set xs. \<not> wordinterval_empty x \<Longrightarrow> \<not> wordinterval_empty x \<Longrightarrow> x \<notin> set xs \<Longrightarrow> getOneIp x \<notin> getOneIp ` set xs"
+  nitpick
+  oops
+
+lemma map_wordinterval_to_set_distinct:
+  assumes distinct: "distinct xs"
+  and disjoint: "(\<forall>x1 \<in> set xs. \<forall>x2 \<in> set xs. x1 \<noteq> x2 \<longrightarrow> wordinterval_to_set x1 \<inter> wordinterval_to_set x2 = {})" 
+  and notempty: "\<forall>x \<in> set xs. \<not> wordinterval_empty x"
+  shows "distinct (map wordinterval_to_set xs)"
+  proof -
+    (*have "\<not> wordinterval_empty x1 \<Longrightarrow> 
+        wordinterval_to_set x1 \<inter> wordinterval_to_set x2 = {} \<Longrightarrow> x1 \<noteq> x2" for x1::"('b::len) wordinterval" and x2
+      apply(induction x1)
+       apply(simp_all)
+       apply(induction x2)
+        apply(simp_all)
+       apply fast
+      apply(induction x2)
+       apply(simp_all)
+      by blast*)
+    have "\<not> wordinterval_empty x1 \<Longrightarrow> 
+        wordinterval_to_set x1 \<inter> wordinterval_to_set x2 = {} \<Longrightarrow> 
+        wordinterval_to_set x1 \<noteq> wordinterval_to_set x2" for x1::"('b::len) wordinterval" and x2
+      apply(induction x1)
+       apply(simp_all)
+       apply(induction x2)
+        apply(simp_all)
+       apply fast
+      apply(induction x2)
+       apply(simp_all)
+       apply force
+      by blast
+    with disjoint notempty have "(\<forall>x1 \<in> set xs. \<forall>x2 \<in> set xs. x1 \<noteq> x2 \<longrightarrow> wordinterval_to_set x1 \<noteq> wordinterval_to_set x2)"
+      by force
+    with distinct show "distinct (map wordinterval_to_set xs)"
+    apply(induction xs)
+     apply simp
+    apply(rename_tac x xs)
+    apply(simp)
+    by fast
+  qed
+
+lemma map_getOneIp_distinct: assumes
+  distinct: "distinct xs"
+  and disjoint: "(\<forall>x1 \<in> set xs. \<forall>x2 \<in> set xs. x1 \<noteq> x2 \<longrightarrow> wordinterval_to_set x1 \<inter> wordinterval_to_set x2 = {})" 
+  and notempty: "\<forall>x \<in> set xs. \<not> wordinterval_empty x"
+  shows "distinct (map getOneIp xs)"
+  proof -
+    have "\<not> wordinterval_empty x \<Longrightarrow> \<not> wordinterval_empty xa \<Longrightarrow> 
+          wordinterval_to_set x \<inter> wordinterval_to_set xa = {} \<Longrightarrow> getOneIp x \<noteq> getOneIp xa" for x xa::"'b::len wordinterval"
+     apply(drule getOneIp_elem)+
+     apply(simp)
+     apply fastforce
+     done
+    with disjoint notempty have "(\<forall>x1 \<in> set xs. \<forall>x2 \<in> set xs. x1 \<noteq> x2 \<longrightarrow> getOneIp x1 \<noteq> getOneIp x2)"
+      by metis
+      
+    with distinct show ?thesis
+    apply(induction xs)
+     apply(simp; fail)
+    apply(rename_tac x xs)
+    apply(simp)
+    apply(elim conjE)
+    by fast
+  qed
+
+
+lemma "distinct (partIps a [wordinterval_UNIV])"
+proof -
+  have wordinterval_neqD: "wordinterval_to_set  a \<noteq> wordinterval_to_set b \<Longrightarrow> a \<noteq> b" for a b by auto
+  show ?thesis
+  apply simp
+  apply(intro impI)
+  apply(rule wordinterval_neqD)
+  apply(simp)
+  by blast
+qed
+
+corollary "distinct (map getOneIp (build_ip_partition c rs))"
+  apply(rule map_getOneIp_distinct)
+   defer
+    using build_ip_partition_disjoint apply (simp; fail)
+   using build_ip_partition_no_empty_elems apply blast
+oops (*TODO?*)   
+
+
 definition all_pairs :: "'a list \<Rightarrow> ('a \<times> 'a) list" where
   "all_pairs xs \<equiv> concat (map (\<lambda>x. map (\<lambda>y. (x,y)) xs) xs)"
 
@@ -1033,7 +1127,7 @@ lemma "(V,E) = access_matrix c rs \<Longrightarrow> (s, d) \<in> set E \<Longrig
 text{*However, the entries are only a representation of a whole set of IP addresses. 
       For all IP addresses which the entries represent, the access must be allowed.*}
 
-(*
+
 lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and
               repr: "(s_repr, d_repr) \<in> set E" and
               s_range: "(map_of V) s_repr = Some s_range" and s: "s \<in> wordinterval_to_set s_range" and
@@ -1055,6 +1149,54 @@ lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and
 
     have "s_range \<in> set ?part" using V in_set_zip2 s_range by (fastforce dest: map_of_SomeD)
     with build_ip_partition_no_empty_elems have "\<not> wordinterval_empty s_range" by simp
+
+    from s_range have "(s_repr, s_range) \<in> set V" by (simp add: map_of_SomeD)
+
+    have "s_repr \<in> wordinterval_to_set s_range" sorry
+
+    have "(k,v) \<in> set V \<Longrightarrow> k = getOneIp v \<and> wordinterval_element k v" for k v
+      apply simp
+      apply(simp add: V)
+      apply(subgoal_tac "v \<in> set ?part")
+       prefer 2
+       apply (meson in_set_zip2; fail)
+      apply(subgoal_tac "\<exists>k. (k,v) = ((getOneIp v), v)")
+       prefer 2 apply blast
+      apply(elim exE, rename_tac ka)
+      apply(subgoal_tac "ka = k")
+       apply(simp)
+       thm build_ip_partition_no_empty_elems
+       apply(drule build_ip_partition_no_empty_elems)
+       using getOneIp_elem apply fastforce
+      
+      
+      
+
+    have "(k,v) \<in> set V \<Longrightarrow> k = getOneIp v \<and> wordinterval_element k v" for k v
+      apply simp
+      apply(simp add: V)
+      apply(induction "?part")
+       apply(simp; fail)
+      apply(simp)
+      apply(rename_tac x xs)
+      apply(case_tac "(k,v) = ((getOneIp x), x)")
+       apply(simp)
+       apply(subgoal_tac "v \<in> set ?part")
+        prefer 2
+        apply (meson in_set_zip2)
+       thm build_ip_partition_no_empty_elems
+       apply(drule build_ip_partition_no_empty_elems)
+       thm getOneIp_elem
+       using getOneIp_elem apply fastforce
+
+      oops
+      apply(simp)
+      apply(subgoal_tac "v \<noteq> x") (*needs keys dijoint?*)
+      apply(simp)
+      apply(rule conjI)
+       
+      defer 
+      using build_ip_partition_no_empty_elems 
 
     from build_ip_partition_no_empty_elems getOneIp_elem
           `s_repr \<in> set (map getOneIp ?part)` getOneIp_elem have
@@ -1082,7 +1224,7 @@ lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and
   apply(simp add: all_pairs_def)
   apply(simp add: build_ip_partition_same_fw)
   oops
-*)
+
 
 (*TODO: access_matrix_complete*)
 

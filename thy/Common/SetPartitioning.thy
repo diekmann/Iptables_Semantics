@@ -461,8 +461,6 @@ lemma complete_helper: "{} \<notin> set ts \<Longrightarrow> disjoint_list_rec t
    apply(simp_all )
   by (metis partList3_complete0)
 
-  
-  
 
 lemma "partitioning1  [{1::nat},{2},{}] [{1},{},{2},{3}] = [{1}, {}, {2}, {3}]" by eval
 
