@@ -1266,11 +1266,13 @@ lemma distinct_map_getOneIp_obtain: "v \<in> set xs \<Longrightarrow> distinct (
     case 1 thus ?thesis by simp blast
     next
     case 2 with Cons.IH Cons.prems(2) obtain s_repr where
-      "map_of (zip (map getOneIp xs) xs) s_repr = Some v" by force
-    with Cons.prems show ?thesis
-      apply(cases "s_repr \<noteq> getOneIp x")
-       apply(rule_tac x=s_repr in exI, simp)
-      by(fastforce elim: in_set_zipE)
+      s_repr: "map_of (zip (map getOneIp xs) xs) s_repr = Some v" by force
+      show ?thesis
+      proof(cases "s_repr \<noteq> getOneIp x")
+        case True with Cons.prems s_repr show ?thesis by(rule_tac x=s_repr in exI, simp)
+        next
+        case False with Cons.prems s_repr show ?thesis by(fastforce elim: in_set_zipE)
+      qed
     qed
   qed
   
@@ -1356,7 +1358,7 @@ lemma assumes rd: "remdups (build_ip_partition c rs) = build_ip_partition c rs"
   apply(simp add: access_matrix_pretty_def build_ip_partition_pretty_def access_matrix_def rd)
   apply(case_tac "simple_firewall_without_interfaces rs")
    apply(simp add: Let_def)
-   apply (simp add: map_prod_fun_zip)
+   apply (simp add: map_prod_fun_zip; fail)
   apply(simp add: Let_def)
   done
 
