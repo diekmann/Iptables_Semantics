@@ -250,22 +250,13 @@ fun partitioningIps :: "'a::len wordinterval list \<Rightarrow> 'a::len wordinte
 
 
 lemma partitioningIps_length: "length (partitioningIps ss ts) \<le> (2^length ss) * length ts"
-apply(induction ss arbitrary: ts)
- apply(simp; fail)
-apply(subst partitioningIps.simps)
-apply(simp)
-apply(subgoal_tac "length (partIps a (partitioningIps ss ts)) \<le> length (partitioningIps ss ts) * 2")
- prefer 2 
- using partIps_length apply fast
-(*sledgehammer*)
-proof -
-  fix a :: "'a wordinterval" and ssa :: "'a wordinterval list" and tsa :: "'a wordinterval list"
-  assume a1: "\<And>ts. length (partitioningIps ssa ts) \<le> 2 ^ length ssa * length ts"
-  assume a2: "length (partIps a (partitioningIps ssa tsa)) \<le> length (partitioningIps ssa tsa) * 2"
-  have "\<not> 2 ^ length ssa * length tsa < length (partitioningIps ssa tsa)"
-    using a1 not_less by blast
-  thus "length (partIps a (partitioningIps ssa tsa)) \<le> 2 * 2 ^ length ssa * length tsa"
-    using a2 by linarith
+proof(induction ss)
+case Nil thus ?case by simp
+next
+case (Cons s ss)
+  have "length (partIps s (partitioningIps ss ts)) \<le> length (partitioningIps ss ts) * 2"
+    using partIps_length by fast
+  with Cons show  ?case by force
 qed
 
 lemma partIps_equi: "map wordinterval_to_set (partIps s ts)
