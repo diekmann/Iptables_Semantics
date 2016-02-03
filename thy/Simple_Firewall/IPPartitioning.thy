@@ -1256,23 +1256,23 @@ corollary build_ip_partition_obtain:
 
 lemma distinct_map_getOneIp_obtain: "v \<in> set xs \<Longrightarrow> distinct (map getOneIp xs) \<Longrightarrow> 
   \<exists>s_repr. map_of (zip (map getOneIp xs) xs) s_repr = Some v"
-  apply(induction xs arbitrary: )
-   apply(simp)
-  apply(rename_tac x xs )
-  apply(simp)
-  apply(elim disjE)
-   apply(simp_all)
-   apply blast
-  apply(elim exE)
-  apply(case_tac "x=v")
-   apply blast
-  apply(simp)
-  apply(case_tac "s_repr \<noteq> getOneIp x")
-   apply(rule_tac x=s_repr in exI)
-   apply(simp; fail)
-  apply(simp)
-  apply(elim in_set_zipE)
-  by simp
+  proof(induction xs)
+  case Nil thus ?case by simp
+  next
+  case (Cons x xs)
+    from Cons.prems have "v = x \<or> v \<in> set xs" by simp
+    thus ?case
+    proof(elim disjE, goal_cases)
+    case 1 thus ?thesis by simp blast
+    next
+    case 2 with Cons.IH Cons.prems(2) obtain s_repr where
+      "map_of (zip (map getOneIp xs) xs) s_repr = Some v" by force
+    with Cons.prems show ?thesis
+      apply(cases "s_repr \<noteq> getOneIp x")
+       apply(rule_tac x=s_repr in exI, simp)
+      by(fastforce elim: in_set_zipE)
+    qed
+  qed
   
 
 lemma distinct_map_getOneIp_build_ip_partition_obtain:
