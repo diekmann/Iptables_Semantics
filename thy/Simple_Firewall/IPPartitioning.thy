@@ -355,11 +355,14 @@ lemma partitioning_nonempty: "\<forall>t \<in> set ts. \<not> wordinterval_empty
   by (metis partIps_equi partList3_empty set_map)
 
 
-lemma getParts_nonempty: "{} \<notin> set (map wordinterval_to_set 
-                                    (partitioningIps ss [wordinterval_UNIV]))"
+lemma getParts_nonempty: "getParts rs \<noteq> []" by(simp add: getParts_def partitioningIps_nonempty)
+lemma getParts_nonempty_elems: "\<forall>w\<in>set (getParts rs). \<not> wordinterval_empty w"
+  unfolding getParts_def
   proof -
-    have "\<forall>t \<in> set [wordinterval_UNIV]. \<not> wordinterval_empty t" by(simp)
-    with partitioning_nonempty show ?thesis by(blast)
+    have "\<forall>t \<in> set [wordinterval_UNIV].\<not> wordinterval_empty t" by(simp)
+    with partitioning_nonempty have
+      "{} \<notin> set (map wordinterval_to_set (partitioningIps (extract_IPSets rs) [wordinterval_UNIV]))" by blast
+    thus "\<forall>w\<in>set (partitioningIps (extract_IPSets rs) [wordinterval_UNIV]). \<not> wordinterval_empty w" by auto
   qed
 
 (* HELPER FUNCTIONS UNIFICATION *)
@@ -510,6 +513,28 @@ definition groupWIs :: "parts_connection \<Rightarrow> simple_rule list \<Righta
                                       map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp W))) in
                        groupF f W))"
 
+
+
+lemma groupWIs_not_empty: "groupWIs c rs \<noteq> []"
+  proof -
+    have "getParts rs \<noteq> []" by(simp add: getParts_def partitioningIps_nonempty)
+    with groupF_empty have "\<And>f. groupF f (getParts rs) \<noteq> []" by blast
+    thus ?thesis by(simp add: groupWIs_def Let_def) blast
+  qed
+lemma groupWIs_not_empty_elem: "V \<in> set (groupWIs c rs) \<Longrightarrow> V \<noteq> []"
+  by(simp add: groupWIs_def Let_def groupF_empty_elem)
+lemma groupWIs_not_empty_elems: 
+  assumes V: "V \<in> set (groupWIs c rs)" and w: "w \<in> set V"
+  shows "\<not> wordinterval_empty w"
+  proof -
+    have "\<forall>w\<in>set (concat (groupWIs c rs)). \<not> wordinterval_empty w"
+      apply(subst groupWIs_def)
+      apply(subst Let_def)+
+      apply(subst groupF_set_lem)
+      using getParts_nonempty_elems by blast
+    from this V w show ?thesis by auto
+  qed
+
 lemma groupParts_same_fw_wi0:
     assumes "V \<in> set (groupWIs c rs)"
     shows "\<forall>w \<in> set (map wordinterval_to_set V). \<forall>a1 \<in> w. \<forall>a2 \<in> w. same_fw_behaviour_one a1 a2 c rs"
@@ -540,7 +565,7 @@ proof -
   using groupF_lem_not by fastforce
   have "\<forall>C \<in> set (groupWIs c rs). \<forall>c \<in> set C. getOneIp c \<in> wordinterval_to_set c"
     apply(simp add: groupWIs_def Let_def)
-    using getParts_nonempty getOneIp_elem getParts_def groupF_set_lem1 by fastforce
+    using getParts_nonempty_elems groupF_set_lem1 getOneIp_elem by fastforce
   from this b1 asm have
   "\<forall>aw \<in> set (map wordinterval_to_set A). \<forall>bw \<in> set (map wordinterval_to_set B).
    \<exists>a \<in> aw. \<exists>b \<in> bw. (map (\<lambda>d. runFw a d c rs) (map getOneIp (getParts rs)), map (\<lambda>s. runFw s a c rs) (map getOneIp (getParts rs))) \<noteq>
@@ -564,26 +589,6 @@ qed
 
 
 
-lemma groupWIs_not_empty: "groupWIs c rs \<noteq> []"
-  proof -
-    have "getParts rs \<noteq> []" by(simp add: getParts_def partitioningIps_nonempty)
-    with groupF_empty have "\<And>f. groupF f (getParts rs) \<noteq> []" by blast
-    thus ?thesis by(simp add: groupWIs_def Let_def) blast
-  qed
-lemma groupWIs_not_empty_elem: "V \<in> set (groupWIs c rs) \<Longrightarrow> V \<noteq> []"
-  by(simp add: groupWIs_def Let_def groupF_empty_elem)
-lemma groupWIs_not_empty_elems: 
-  assumes V: "V \<in> set (groupWIs c rs)" and w: "w \<in> set V"
-  shows "\<not> wordinterval_empty w"
-  proof -
-    have "\<forall>w\<in>set (concat (groupWIs c rs)). \<not> wordinterval_empty w"
-      apply(subst groupWIs_def)
-      apply(subst Let_def)+
-      apply(subst groupF_set_lem)
-      using getParts_nonempty getParts_def by auto
-    from this V w show ?thesis by auto
-  qed
-
 
 (*beginning is copy&paste of previous proof*)
 lemma groupParts_same_fw_wi1:
@@ -594,8 +599,7 @@ proof -
   from getParts_same_fw_behaviour same_fw_spec
     have b1: "\<forall>A \<in> set (map wordinterval_to_set (getParts rs)) . \<forall>a1 \<in> A. \<forall>a2 \<in> A.
               same_fw_behaviour_one a1 a2 c rs" by fast
-  from getParts_nonempty
-      have "\<forall>w\<in>set (getParts rs). \<not> wordinterval_empty w" unfolding getParts_def by auto
+  from getParts_nonempty_elems have "\<forall>w\<in>set (getParts rs). \<not> wordinterval_empty w" by simp
   from same_behave_runFw[OF b1 getParts_complete this]
        groupF_lem[of "(\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) (map getOneIp (getParts rs)),
                              map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp (getParts rs))))"
