@@ -234,10 +234,39 @@ fun partIps :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval list
                               else (wordinterval_intersection t s)#((wordinterval_setminus t s)#
                                    (partIps (wordinterval_setminus s t) ts)))))"
 
+
+lemma "partIps (WordInterval (1::ipv4addr) 1) [WordInterval 0 1] = [WordInterval 1 1, WordInterval 0 0]" by eval
+
+lemma partIps_length: "length (partIps s ts) \<le> (length ts) * 2"
+apply(induction ts arbitrary: s)
+ apply(simp)
+apply simp
+using le_Suc_eq by blast
+
 fun partitioningIps :: "'a::len wordinterval list \<Rightarrow> 'a::len wordinterval list \<Rightarrow>
                         'a::len wordinterval list" where
   "partitioningIps [] ts = ts" |
   "partitioningIps (s#ss) ts = partIps s (partitioningIps ss ts)"
+
+
+lemma partitioningIps_length: "length (partitioningIps ss ts) \<le> (2^length ss) * length ts"
+apply(induction ss arbitrary: ts)
+ apply(simp; fail)
+apply(subst partitioningIps.simps)
+apply(simp)
+apply(subgoal_tac "length (partIps a (partitioningIps ss ts)) \<le> length (partitioningIps ss ts) * 2")
+ prefer 2 
+ using partIps_length apply fast
+(*sledgehammer*)
+proof -
+  fix a :: "'a wordinterval" and ssa :: "'a wordinterval list" and tsa :: "'a wordinterval list"
+  assume a1: "\<And>ts. length (partitioningIps ssa ts) \<le> 2 ^ length ssa * length ts"
+  assume a2: "length (partIps a (partitioningIps ssa tsa)) \<le> length (partitioningIps ssa tsa) * 2"
+  have "\<not> 2 ^ length ssa * length tsa < length (partitioningIps ssa tsa)"
+    using a1 not_less by blast
+  thus "length (partIps a (partitioningIps ssa tsa)) \<le> 2 * 2 ^ length ssa * length tsa"
+    using a2 by linarith
+qed
 
 lemma partIps_equi: "map wordinterval_to_set (partIps s ts)
        = (partList3 (wordinterval_to_set s) (map wordinterval_to_set ts))"
@@ -1053,6 +1082,7 @@ lemma map_getOneIp_distinct: assumes
   qed
 
 
+(*TODO: delete?*)
 lemma "distinct (partIps a [wordinterval_UNIV])"
 proof -
   have wordinterval_neqD: "wordinterval_to_set  a \<noteq> wordinterval_to_set b \<Longrightarrow> a \<noteq> b" for a b by auto
@@ -1368,33 +1398,7 @@ definition parts_connection_http where "parts_connection_http = \<lparr>pc_iifac
 
 (*corny stuff -- TODO: move*)
 
-lemma "partIps (WordInterval (1::ipv4addr) 1) [WordInterval 0 1] = [WordInterval 1 1, WordInterval 0 0]" by eval
 
-lemma partIps_length: "length (partIps s ts) \<le> (length ts) * 2"
-apply(induction ts arbitrary: s )
- apply(simp)
-apply simp
-using le_Suc_eq by blast
-
-
-lemma partitioningIps_length: "length (partitioningIps ss ts) \<le> (2^length ss) * length ts"
-apply(induction ss arbitrary: ts)
- apply(simp; fail)
-apply(subst partitioningIps.simps)
-apply(simp)
-apply(subgoal_tac "length (partIps a (partitioningIps ss ts)) \<le> length (partitioningIps ss ts) * 2")
- prefer 2 
- using partIps_length apply fast
-(*sledgehammer*)
-proof -
-  fix a :: "'a wordinterval" and ssa :: "'a wordinterval list" and tsa :: "'a wordinterval list"
-  assume a1: "\<And>ts. length (partitioningIps ssa ts) \<le> 2 ^ length ssa * length ts"
-  assume a2: "length (partIps a (partitioningIps ssa tsa)) \<le> length (partitioningIps ssa tsa) * 2"
-  have "\<not> 2 ^ length ssa * length tsa < length (partitioningIps ssa tsa)"
-    using a1 not_less by blast
-  thus "length (partIps a (partitioningIps ssa tsa)) \<le> 2 * 2 ^ length ssa * length tsa"
-    using a2 by linarith
-qed
 
 
 lemma getParts_length: "length (getParts rs) \<le> 2^(2 * length rs)"
