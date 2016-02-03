@@ -1153,8 +1153,11 @@ lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and
     from matrix repr have repr_Allow: "runFw s_repr d_repr c rs = Decision FinalAllow"
       by(auto simp add: access_matrix_def Let_def)
 
-    have "s_range \<in> set ?part" using V in_set_zip2 s_range by (fastforce dest: map_of_SomeD)
+    have s_range_in_part: "s_range \<in> set ?part" using V in_set_zip2 s_range by (fastforce dest: map_of_SomeD)
     with build_ip_partition_no_empty_elems have "\<not> wordinterval_empty s_range" by simp
+
+    have d_range_in_part: "d_range \<in> set ?part" using V in_set_zip2 d_range by (fastforce dest: map_of_SomeD)
+    with build_ip_partition_no_empty_elems have "\<not> wordinterval_empty d_range" by simp
 
     from map_of_zip_map V s_range have "s_repr = getOneIp s_range" by fast
     from map_of_zip_map V d_range have "d_repr = getOneIp d_range" by fast
@@ -1164,28 +1167,23 @@ lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and
     from `s_repr = getOneIp s_range` \<open>\<not> wordinterval_empty s_range\<close> getOneIp_elem wordinterval_element_set_eq 
     have "s_repr \<in> wordinterval_to_set s_range" by blast 
 
+    from `d_repr = getOneIp d_range` \<open>\<not> wordinterval_empty d_range\<close> getOneIp_elem wordinterval_element_set_eq 
+    have "d_repr \<in> wordinterval_to_set d_range" by blast 
       
     have "d_range \<in> set ?part" using V in_set_zip2 d_range by (fastforce dest: map_of_SomeD)
     
 
     thm build_ip_partition_same_fw
 
-    from V s_range have "s_range \<in> set ?part"
-      by (meson in_set_zip2 map_of_SomeD)
-    with build_ip_partition_same_fw[OF this, unfolded same_fw_behaviour_one_def] s have 
-      "\<forall>d1 d2. runFw s d1 c rs = runFw s d2 c rs"
-      oops (*wrong theorem?*)
-      (*need s_range \<in> set (build_ip_partition c rs
-        with repr_Allow have s_range_Allow*)
+    from build_ip_partition_same_fw[OF s_range_in_part, unfolded same_fw_behaviour_one_def] s `s_repr \<in> wordinterval_to_set s_range` have 
+      "\<forall>d. runFw s_repr d c rs = runFw s d c rs" by blast
+    with repr_Allow have 1: "runFw s d_repr c rs = Decision FinalAllow" by simp
 
-    from V d_range have "d_range \<in> set ?part"
-      by (meson in_set_zip2 map_of_SomeD) 
-
-
-  using matrix apply(simp add: access_matrix_def Let_def)
-  apply(simp add: all_pairs_def)
-  apply(simp add: build_ip_partition_same_fw)
-  oops
+    from build_ip_partition_same_fw[OF d_range_in_part, unfolded same_fw_behaviour_one_def] d `d_repr \<in> wordinterval_to_set d_range` have 
+      "\<forall>s. runFw s d_repr c rs = runFw s d c rs" by blast
+    with 1 have 2: "runFw s d c rs = Decision FinalAllow" by simp
+    thus ?thesis .
+qed
 
 
 (*TODO: access_matrix_complete*)
