@@ -1323,6 +1323,13 @@ lemma access_matrix_complete: assumes matrix: "(V,E) = access_matrix c rs" and
 qed
 
 
+theorem access_matrix: assumes matrix: "(V,E) = access_matrix c rs"
+      shows "(\<exists>s_repr d_repr s_range d_range. (s_repr, d_repr) \<in> set E \<and>
+              (map_of V) s_repr = Some s_range \<and> s \<in> wordinterval_to_set s_range \<and>
+              (map_of V) d_repr = Some d_range \<and> d \<in> wordinterval_to_set d_range)
+             \<longleftrightarrow>
+             runFw s d c rs = Decision FinalAllow"
+using matrix access_matrix_sound access_matrix_complete by blast
 
 
 (*formerly named build_ip_partition_pretty
