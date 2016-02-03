@@ -989,8 +989,7 @@ lemma wordinterval_empty_wordinterval_compress: "wordinterval_empty (wordinterva
 
 (*TODO: ugly proof, apply before proof-*)
 lemma build_ip_partition_no_empty_elems: "wi \<in> set (build_ip_partition c rs) \<Longrightarrow> \<not> wordinterval_empty wi"
-  apply(simp add: build_ip_partition_def groupWIs3)
-  proof -
+  proof(simp add: build_ip_partition_def groupWIs3)
     assume assm: "wi \<in> (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) ` set (groupWIs c rs)"
     from assm obtain wi_orig where 1: "wi_orig \<in>  set (groupWIs c rs)" and
        2: "wi = wordinterval_compress (foldr wordinterval_union wi_orig Empty_WordInterval)" by blast
@@ -1030,11 +1029,9 @@ lemma map_wordinterval_to_set_distinct:
     with disjoint notempty have "(\<forall>x1 \<in> set xs. \<forall>x2 \<in> set xs. x1 \<noteq> x2 \<longrightarrow> wordinterval_to_set x1 \<noteq> wordinterval_to_set x2)"
       by force
     with distinct show "distinct (map wordinterval_to_set xs)"
-    apply(induction xs)
-     apply simp
-    apply(rename_tac x xs)
-    apply(simp)
-    by fast
+    proof(induction xs)
+    case Cons thus ?case by simp fast
+    qed(simp)
   qed
 
 lemma map_getOneIp_distinct: assumes
