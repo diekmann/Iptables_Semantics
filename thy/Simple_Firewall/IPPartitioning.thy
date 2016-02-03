@@ -270,13 +270,6 @@ lemma partitioningIps_equi: "map wordinterval_to_set (partitioningIps ss ts)
   qed(simp_all add: partIps_equi)
 
 
-lemma ipPartitioning_partitioningIps: 
-  "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
-   (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow> 
-   ipPartition (set (map wordinterval_to_set ss)) 
-               (set (map wordinterval_to_set (partitioningIps ss ts)))"
-by (metis ipPartitioning_helper_opt partitioningIps_equi wordinterval_list_to_set_def)
-
 lemma complete_partitioningIps: 
   "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
    (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow> 
@@ -289,12 +282,7 @@ lemma disjoint_partitioningIps:
    disjoint_list_rec (map wordinterval_to_set (partitioningIps ss ts))"
 by (simp add: partitioning1_disjoint partitioningIps_equi wordinterval_list_to_set_def)
 
-
-lemma ipPartitioning_partitioningIps1: "ipPartition (set (map wordinterval_to_set ss)) 
-                   (set (map wordinterval_to_set (partitioningIps ss [wordinterval_UNIV])))"
-  proof(rule ipPartitioning_partitioningIps)
-  qed(simp_all add: wordinterval_list_to_set_def)
-                  
+           
 definition getParts :: "simple_rule list \<Rightarrow> 32 wordinterval list" where
    "getParts rs = partitioningIps (extract_IPSets rs) [wordinterval_UNIV]"
 
@@ -308,9 +296,19 @@ lemma getParts_foldr: "getParts rs = foldr partIps (extract_IPSets rs) [wordinte
 
 lemma getParts_ipPartition: "ipPartition (set (map wordinterval_to_set (extract_IPSets rs)))
                                          (set (map wordinterval_to_set (getParts rs)))"
-  unfolding getParts_def
-  apply(subst ipPartitioning_partitioningIps1)
-  by(simp)
+proof -
+  have "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
+     (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow> 
+     ipPartition (set (map wordinterval_to_set ss)) 
+                 (set (map wordinterval_to_set (partitioningIps ss ts)))" for ts ss::"32 wordinterval list"
+  by (metis ipPartitioning_helper_opt partitioningIps_equi wordinterval_list_to_set_def)
+  hence "ipPartition (set (map wordinterval_to_set ss)) 
+                   (set (map wordinterval_to_set (partitioningIps ss [wordinterval_UNIV])))"
+     for ss::"32 wordinterval list"
+  by(simp add: wordinterval_list_to_set_def)
+  thus ?thesis
+  unfolding getParts_def by blast
+qed
 
 
 
