@@ -270,12 +270,6 @@ lemma partitioningIps_equi: "map wordinterval_to_set (partitioningIps ss ts)
   qed(simp_all add: partIps_equi)
 
 
-lemma complete_partitioningIps: 
-  "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
-   (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow> 
-   (wordinterval_list_to_set ts) = wordinterval_list_to_set (partitioningIps ss ts)"
-using complete_helper by (metis partitioningIps_equi wordinterval_list_to_set_def)
-
 lemma disjoint_partitioningIps: 
   "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
    (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow>
@@ -314,12 +308,15 @@ qed
 
 lemma getParts_complete: "wordinterval_list_to_set (getParts rs) = UNIV"
   proof -
-    have "wordinterval_list_to_set (getParts rs) = wordinterval_list_to_set [wordinterval_UNIV]"
-      unfolding getParts_def
-      apply(rule complete_partitioningIps[symmetric])
-        by(simp_all add: wordinterval_list_to_set_def)
-    also have "\<dots> = UNIV" by (simp add: wordinterval_list_to_set_def)
-    finally show ?thesis .
+  have "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
+     (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow> 
+     wordinterval_list_to_set (partitioningIps ss ts) = (wordinterval_list_to_set ts)"
+     for ss ts::"32 wordinterval list"
+    using complete_helper by (metis partitioningIps_equi wordinterval_list_to_set_def)
+  hence "wordinterval_list_to_set (getParts rs) = wordinterval_list_to_set [wordinterval_UNIV]"
+    unfolding getParts_def by(simp add: wordinterval_list_to_set_def)
+  also have "\<dots> = UNIV" by (simp add: wordinterval_list_to_set_def)
+  finally show ?thesis .
 qed
 
 lemma getParts_disjoint: "disjoint_list_rec (map wordinterval_to_set (getParts rs))"
