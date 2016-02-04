@@ -424,34 +424,50 @@ lemma partList3_disjoint: "s \<subseteq> \<Union> set ts \<Longrightarrow> disjo
 lemma union_set_partList3: "\<Union>set (partList3 s ts) = \<Union>set ts"
   by (induction ts arbitrary: s, auto)
 
-lemma partList3_distinct_hlp: 
-"a \<noteq> {} \<Longrightarrow> a \<notin> set ts \<Longrightarrow> disjoint (insert a (set ts)) \<Longrightarrow> a \<notin> set (partList3 s ts)"
-  apply(subgoal_tac "\<not> (a \<subseteq> \<Union>set (partList3 s ts))")
-    apply(blast)
-    apply(subgoal_tac "\<not> (a \<subseteq> \<Union>set ts)")
-      using union_set_partList3 apply(metis)
-      unfolding disjoint_def by fastforce
+
+lemma partList3_distinct_hlp: assumes "a \<noteq> {}" "a \<notin> set ts" "disjoint (insert a (set ts))"
+  shows "a \<notin> set (partList3 s ts)"
+proof -
+  from assms have "\<not> (a \<subseteq> \<Union>set ts)" unfolding disjoint_def by fastforce
+  hence "\<not> (a \<subseteq> \<Union>set (partList3 s ts))" using union_set_partList3 by metis
+  thus ?thesis by blast
+qed
+
 
 lemma partList3_distinct: "{} \<notin> set ts \<Longrightarrow> disjoint_list ts \<Longrightarrow> distinct (partList3 s ts)"
-  apply(induction ts arbitrary: s)
-    apply(simp)
-    unfolding disjoint_list_def apply(clarsimp) apply(safe)
-      apply(metis partList3_distinct_hlp)
-      apply(subst (asm) disjoint_def)+ apply(simp)
-      apply(metis partList3_distinct_hlp)
-      apply(subst (asm) disjoint_def)+ apply(simp)
+  proof(induction ts arbitrary: s)
+  case Nil thus ?case by simp
+  next
+  case(Cons t ts)
+    have x1: "\<And>x xa xb xc.
+       t \<notin> set ts \<Longrightarrow>
+       disjoint (insert t (set ts)) \<Longrightarrow>
+       xa \<in> t \<Longrightarrow>
+       xa \<notin> s \<Longrightarrow>
+       xb \<in> s \<Longrightarrow> 
+       xb \<in> t \<Longrightarrow> 
+       xb \<notin> {} \<Longrightarrow> 
+       xc \<in> s \<Longrightarrow> 
+       xc \<notin> {} \<Longrightarrow> 
+       t \<inter> s \<in> set (partList3 (s - t) ts) \<Longrightarrow> 
+       \<not> t \<inter> s \<subseteq> \<Union>set (partList3 (s - t) ts)"
+      by(simp add: union_set_partList3 disjoint_def, force) (*1s*)
+    from Cons show ?case
+    unfolding disjoint_list_def
+    apply(clarsimp)
+    apply(safe)
+           apply(metis partList3_distinct_hlp)
+          apply(simp add: disjoint_def; fail)
+         apply(metis partList3_distinct_hlp)
+        apply(simp add: disjoint_def; fail)
+       apply(blast)
+      using x1 apply blast
+     apply(subgoal_tac "\<not> (t - s  \<subseteq> \<Union>set (partList3 (s - t) ts))")
       apply(blast)
-      apply(subgoal_tac "\<not> (a \<inter> s \<subseteq> \<Union>set (partList3 (s - a) ts))")
-        apply(blast)
-        apply(subst union_set_partList3)
-        apply(subst (asm) disjoint_def)+ apply(force)
-      apply(subgoal_tac "\<not> (a - s  \<subseteq> \<Union>set (partList3 (s - a) ts))")
-        apply(blast)
-        apply(subst union_set_partList3)
-        apply(subst (asm) disjoint_def)+ apply(force)
-      apply(subst (asm) disjoint_def)+ apply(simp)
-done
-
+     apply(simp add: union_set_partList3 disjoint_def; force)
+    apply(simp add: disjoint_def; fail) 
+    done
+  qed
 
 lemma partList3_disjoint_list: assumes "s \<subseteq> \<Union> set ts" "disjoint_list ts" "{} \<notin> set ts"
   shows "disjoint_list (partList3 s ts)"
