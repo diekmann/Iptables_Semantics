@@ -32,7 +32,7 @@ To get a more deterministic runtime, we are sorting the output. As a performance
 We use mergesort_remdups, which does a mergesort (i.e sorts!) and removes duplicates and mergesort_by_rel which does a mergesort
 (without removing duplicates) and allows to specify the relation we use to sort.
 In theory, the largest ip ranges (smallest prefix length) should be put first, the following evaluation shows that this may not
-be the fastest solution. The reason might be that build_ip_partition_pretty picks (almost randomly) one IP from the result and
+be the fastest solution. The reason might be that access_matrix_pretty picks (almost randomly) one IP from the result and
 there are fast and slower choices. The faster choices are the ones where the firewall ruleset has a decision very early. 
 Therefore, the running time is still a bit unpredictable.
 
@@ -1141,10 +1141,10 @@ lemma[code_unfold]: "simple_firewall_without_interfaces rs \<equiv>
 (*TODO: can we use collect srcs or collect dsts here too?*)
 text{*Only defined for @{const simple_firewall_without_interfaces}*}
 (*TODO: delete, use definition below!*)
-definition build_ip_partition_pretty
+definition access_matrix_pretty
   :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
   where
-  "build_ip_partition_pretty c rs \<equiv>
+  "access_matrix_pretty c rs \<equiv>
     if \<not> simple_firewall_without_interfaces rs then undefined else
     (let W = build_ip_partition c rs;
          R = map getOneIp W;
@@ -1335,27 +1335,6 @@ theorem access_matrix: assumes matrix: "(V,E) = access_matrix c rs"
              runFw s d c rs = Decision FinalAllow"
 using matrix access_matrix_sound access_matrix_complete by blast
 
-
-(*formerly named build_ip_partition_pretty
-  TODO: rename all occurences!*)
-definition access_matrix_pretty 
-  :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
-  where
-  "access_matrix_pretty c rs \<equiv> if \<not> simple_firewall_without_interfaces rs then undefined else
-    (let (Nodes, Vertices) = access_matrix c rs
-     in
-     ((''Nodes'','':'') # map (\<lambda>(key,value). (ipv4addr_toString key, ipv4addr_wordinterval_toString value)) Nodes, 
-      (''Vertices'','':'') # map (\<lambda>(s,d). (ipv4addr_toString s, ipv4addr_toString d)) Vertices))"
-
-
-lemma assumes rd: "remdups (build_ip_partition c rs) = build_ip_partition c rs"
-  shows "access_matrix_pretty c rs = build_ip_partition_pretty c rs"
-  apply(simp add: access_matrix_pretty_def build_ip_partition_pretty_def access_matrix_def rd)
-  apply(case_tac "simple_firewall_without_interfaces rs")
-   apply(simp add: Let_def)
-   apply (simp add: map_prod_fun_zip; fail)
-  apply(simp add: Let_def)
-  done
 
 definition parts_connection_ssh where "parts_connection_ssh = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
                                pc_sport=10000, pc_dport=22, pc_tag_ctstate=CT_New\<rparr>"

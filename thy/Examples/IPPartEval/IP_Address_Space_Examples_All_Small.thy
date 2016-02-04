@@ -43,8 +43,8 @@ definition view where
        map (simple_rule_iptables_save_toString (ipt_chain_toSting f)) (preprocess_keep_ifce (get_unfold f) closure ipassmt def fw_in),
        map (simple_rule_iptables_save_toString (ipt_chain_toSting f)) fw,
        map ipv4addr_wordinterval_toString (getParts fw),
-       (build_ip_partition_pretty parts_connection_ssh fw),
-       (build_ip_partition_pretty parts_connection_http fw))"
+       (access_matrix_pretty parts_connection_ssh fw),
+       (access_matrix_pretty parts_connection_http fw))"
 
 
 (*Do we have code?*)
