@@ -1305,12 +1305,21 @@ lemma access_matrix_complete: assumes matrix: "(V,E) = access_matrix c rs" and
       using V \<open>map_of V d_repr = Some d_range\<close> in_set_zip1 map_of_SomeD by fastforce
 
     have "runFw s_repr d_repr c rs = Decision FinalAllow"
-      by (metis (mono_tags, hide_lams) IPPartitioning.map_of_zip_map V 
-          \<open>d \<in> wordinterval_to_set d_range\<close> \<open>d_range \<in> set ?part\<close> 
-          \<open>map_of V d_repr = Some d_range\<close> \<open>map_of V s_repr = Some s_range\<close> 
-          \<open>s \<in> wordinterval_to_set s_range\<close> \<open>s_range \<in> set ?part\<close> 
-          allow build_ip_partition_no_empty_elems build_ip_partition_same_fw getOneIp_elem 
-          same_fw_behaviour_one_def set_remdups wordinterval_element_set_eq)  (*TODO: rehammer*)
+    proof -
+      have f1: "(\<forall>w wa p ss. \<not> same_fw_behaviour_one w wa (p::parts_connection) ss \<or>
+              (\<forall>wb wc. runFw w wb p ss = runFw wa wb p ss \<and> runFw wc w p ss = runFw wc wa p ss)) \<and>
+              (\<forall>w wa p ss. (\<exists>wb wc. runFw w wb (p::parts_connection) ss \<noteq> runFw wa wb p ss \<or> runFw wc w p ss \<noteq> runFw wc wa p ss) \<or>
+              same_fw_behaviour_one w wa p ss)"
+        using same_fw_behaviour_one_def by blast
+      from \<open>s_range \<in> set (build_ip_partition c rs)\<close>  have f2: "same_fw_behaviour_one s s_repr c rs"
+        by (metis (no_types) IPPartitioning.map_of_zip_map V build_ip_partition_no_empty_elems
+            build_ip_partition_same_fw ex_s1 ex_s2 getOneIp_elem wordinterval_element_set_eq)
+      from \<open>d_range \<in> set (build_ip_partition c rs)\<close> have "same_fw_behaviour_one d_repr d c rs"
+        by (metis (no_types) IPPartitioning.map_of_zip_map V build_ip_partition_no_empty_elems
+            build_ip_partition_same_fw ex_d1 ex_d2 getOneIp_elem wordinterval_element_set_eq)
+      with f1 f2 show ?thesis
+        using allow by presburger
+    qed
       
     hence ex1: "(s_repr, d_repr) \<in> set E" by(simp add: E all_pairs_set 1 2)
     
