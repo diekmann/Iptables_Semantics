@@ -87,29 +87,29 @@ begin
           (build_ip_partition netbios fw)"
 
   value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
-     (build_ip_partition_pretty parts_connection_ssh fw)"
+     (access_matrix_pretty parts_connection_ssh fw)"
   
   value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
-     (build_ip_partition_pretty parts_connection_http fw)"
+     (access_matrix_pretty parts_connection_http fw)"
   
 
   value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
-     (build_ip_partition_pretty netbios fw)"*)
+     (access_matrix_pretty netbios fw)"*)
 
   value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
-    (build_ip_partition_pretty kerberos_adm_tcp fw)"
+    (access_matrix_pretty kerberos_adm_tcp fw)"
   value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
-    (build_ip_partition_pretty kerberos_adm_udp fw)"
-
-
-  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
-    (build_ip_partition_pretty ldap_tcp fw)"
-  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
-    (build_ip_partition_pretty ldap_udp fw)"
+    (access_matrix_pretty kerberos_adm_udp fw)"
 
 
   value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
-    (build_ip_partition_pretty ldaps_tcp fw)"
+    (access_matrix_pretty ldap_tcp fw)"
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
+    (access_matrix_pretty ldap_udp fw)"
+
+
+  value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw_FORWARD_default_policy net_fw in
+    (access_matrix_pretty ldaps_tcp fw)"
 end
 
 
@@ -127,12 +127,12 @@ begin
 
 
   value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw2_FORWARD_default_policy net_fw2 in
-     (build_ip_partition_pretty netbios fw)"
+     (access_matrix_pretty netbios fw)"
 
   value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw2_FORWARD_default_policy net_fw2 in
-    (build_ip_partition_pretty kerberos_adm_tcp fw)"
+    (access_matrix_pretty kerberos_adm_tcp fw)"
   value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw2_FORWARD_default_policy net_fw2 in
-    (build_ip_partition_pretty kerberos_adm_udp fw)"
+    (access_matrix_pretty kerberos_adm_udp fw)"
 end
 
 context
@@ -148,12 +148,12 @@ begin
   value[code] "view lower_closure FWD ipassmt net_fw2013_FORWARD_default_policy net_fw2013"  
 
   value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw2013_FORWARD_default_policy net_fw2013 in
-     (build_ip_partition_pretty netbios fw)"
+     (access_matrix_pretty netbios fw)"
 
   value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw2013_FORWARD_default_policy net_fw2013 in
-    (build_ip_partition_pretty kerberos_adm_tcp fw)"
+    (access_matrix_pretty kerberos_adm_tcp fw)"
   value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw2013_FORWARD_default_policy net_fw2013 in
-    (build_ip_partition_pretty kerberos_adm_udp fw)"
+    (access_matrix_pretty kerberos_adm_udp fw)"
 end
 
 
@@ -171,12 +171,12 @@ begin
   value[code] "view lower_closure FWD ipassmt net_fw2014_FORWARD_default_policy net_fw2014"  
 
   value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw2014_FORWARD_default_policy net_fw2014 in
-     (build_ip_partition_pretty netbios fw)"
+     (access_matrix_pretty netbios fw)"
 
   value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw2014_FORWARD_default_policy net_fw2014 in
-    (build_ip_partition_pretty kerberos_adm_tcp fw)"
+    (access_matrix_pretty kerberos_adm_tcp fw)"
   value[code] "let fw = preprocess (get_unfold FWD) upper_closure ipassmt net_fw2014_FORWARD_default_policy net_fw2014 in
-    (build_ip_partition_pretty kerberos_adm_udp fw)"
+    (access_matrix_pretty kerberos_adm_udp fw)"
 end
 
 
