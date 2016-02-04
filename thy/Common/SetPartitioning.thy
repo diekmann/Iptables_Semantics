@@ -148,14 +148,15 @@ lemma disjointPartitioning:"disjoint (partitioning ss {})"
     from this disjointPartitioning_helper show ?thesis by fast
   qed
 
-lemma coversallPartitioning_helper:"\<Union> (set ts \<union> As) = \<Union> (partitioning ts As)"
-  apply(induction ts arbitrary: As)
-   apply(simp_all)
-  apply(metis Sup_insert Union_Un_distrib  coversallAddSubset sup.left_commute)
-done
 
 lemma coversallPartitioning:"\<Union> (set ts) = \<Union> (partitioning ts {})"
-by (metis coversallPartitioning_helper sup_bot.right_neutral)
+proof -
+  have "\<Union> (set ts \<union> As) = \<Union> (partitioning ts As)" for As
+  apply(induction ts arbitrary: As)
+   apply(simp_all)
+  by(metis Sup_insert Union_Un_distrib  coversallAddSubset sup.left_commute)
+  thus ?thesis by (metis sup_bot.right_neutral)
+qed
 
 lemma "\<Union> As = \<Union> Bs \<Longrightarrow> ipPartition As Bs \<Longrightarrow> ipPartition As (addSubsetSet a Bs)"
   by(auto simp add: ipPartition_def addSubsetSet_def)
@@ -169,7 +170,6 @@ lemma ipPartitionSingleSet: "ipPartition {t} (addSubsetSet t Bs)
 
 lemma ipPartitioning_helper: "disjoint As \<Longrightarrow> ipPartition (set ts) (partitioning ts As)"
   proof(induction ts arbitrary: As)
-  print_cases
   case Nil thus ?case by(simp add: ipPartition_def)
   next
   case (Cons t ts)
@@ -199,15 +199,15 @@ lemma inter_dif_help_lemma: "A \<inter> B = {}  \<Longrightarrow> B - S = B - (S
   by blast
 
 lemma disjoint_list_lem: "disjoint_list ls \<Longrightarrow> \<forall>s \<in> set(ls). \<forall>t \<in> set(ls). s \<noteq> t \<longrightarrow> s \<inter> t = {}"
-  apply(induction ls)
-  by(simp_all add: disjoint_list_def disjoint_def)
+  proof(induction ls)
+  qed(simp_all add: disjoint_list_def disjoint_def)
 
 lemma disjoint_list_empty: "disjoint_list []"
   by (simp add: disjoint_list_def disjoint_def)
 
 lemma disjoint_sublist: "disjoint_list (t#ts) \<Longrightarrow> disjoint_list ts"
-  apply(induction ts arbitrary: t)
-  by(simp_all add: disjoint_list_empty disjoint_list_def disjoint_def)
+  proof(induction ts arbitrary: t)
+  qed(simp_all add: disjoint_list_empty disjoint_list_def disjoint_def)
 
 fun intersection_list :: "'a set \<Rightarrow> 'a set list \<Rightarrow> 'a set list" where
   "intersection_list _ [] = []" |
@@ -219,16 +219,16 @@ fun intersection_list_opt :: "'a set \<Rightarrow> 'a set list \<Rightarrow> 'a 
 
 lemma disjoint_subset: "disjoint A \<Longrightarrow> a \<in> A \<Longrightarrow> b \<subseteq> a \<Longrightarrow> disjoint ((A - {a}) \<union> {b})"
   apply(simp add: disjoint_def)
-by blast
+  by blast
 
 lemma disjoint_intersection: "disjoint A \<Longrightarrow> a \<in> A \<Longrightarrow> disjoint ({a \<inter> b} \<union> (A - {a}))"
   apply(simp add: disjoint_def)
-by(blast)
+  by(blast)
  
 lemma intersection_list_opt_lem0: "\<forall>t \<in> set(ts). u \<inter> t = {} \<Longrightarrow>
                                   intersection_list_opt s ts = intersection_list_opt (s - u) ts"
   apply(induction ts arbitrary: s u)
-  apply(simp_all)
+   apply(simp_all)
   by (metis Diff_Int_distrib2 Diff_empty Diff_eq Un_Diff_Int sup_bot.right_neutral)
 
 lemma intersection_list_opt_lem1: "disjoint_list_rec (t # ts) \<Longrightarrow>
@@ -249,36 +249,38 @@ fun difference_list_opt :: "'a set \<Rightarrow> 'a set list \<Rightarrow> 'a se
   "difference_list_opt _ [] = []" |
   "difference_list_opt s (t#ts) = (t - s)#(difference_list_opt (s - t) ts)"
 
-lemma difference_list_opt_lem0: "\<forall>t \<in> set(ts). u \<inter> t = {} \<Longrightarrow>
-                                  difference_list_opt s ts = difference_list_opt (s - u) ts"
-  apply(induction ts arbitrary: s u)
-  apply(simp_all add: inter_dif_help_lemma)
-  by (metis Diff_Int_distrib2 Diff_eq Un_Diff_Int sup_bot.right_neutral)
-
-lemma difference_list_opt_lem1: "disjoint_list_rec (t # ts) \<Longrightarrow>
-                                   difference_list_opt s ts = difference_list_opt (s - t) ts"
-  apply(induction ts arbitrary: s t)
-  apply(simp_all add: difference_list_opt_lem0)
-by (metis Un_empty inf_sup_distrib1 inter_dif_help_lemma)
-
 
 lemma difList_equi: "disjoint_list_rec ts \<Longrightarrow> difference_list s ts = difference_list_opt s ts"
-  apply(induction ts arbitrary: s)
-  apply(simp_all add: difference_list_opt_lem1)
-done
+  proof(induction ts arbitrary: s)
+  case Nil thus ?case by simp
+  next
+  case (Cons t ts)
+    have difference_list_opt_lem0: "\<forall>t \<in> set(ts). u \<inter> t = {} \<Longrightarrow>
+                                      difference_list_opt s ts = difference_list_opt (s - u) ts"
+    for u proof(induction ts arbitrary: s u)
+    case Cons thus ?case
+       apply(simp_all add: inter_dif_help_lemma)
+       by (metis Diff_Int_distrib2 Diff_eq Un_Diff_Int sup_bot.right_neutral)
+    qed(simp)
+    have "disjoint_list_rec (t # ts) \<Longrightarrow> difference_list_opt s ts = difference_list_opt (s - t) ts"
+    proof(induction ts arbitrary: s t)
+    case Cons thus ?case
+       apply(simp_all add: difference_list_opt_lem0)
+       by (metis Un_empty inf_sup_distrib1 inter_dif_help_lemma)
+    qed(simp)
+  with Cons show ?case by simp
+qed
  
 fun partList0 :: "'a set \<Rightarrow> 'a set list \<Rightarrow> 'a set list" where
   "partList0 s [] = []" |
   "partList0 s (t#ts) = (s \<inter> t)#((t - s)#(partList0 s ts))"
 
 lemma partList0_set_equi: "set(partList0 s ts) = ((op \<inter> s) ` (set ts)) \<union> ((\<lambda>x. x - s) ` (set ts))"
-  apply(induction ts arbitrary: s)
-  apply simp
-  by(force)
+  by(induction ts arbitrary: s) auto
 
 lemma partList_sub_equi0: "set(partList0 s ts) =
                            set(difference_list s ts) \<union> set(intersection_list s ts)" 
-  apply(induction ts arbitrary: s) by (simp_all)
+  by(induction ts arbitrary: s) (simp_all)
 
 fun partList1 :: "'a set \<Rightarrow> 'a set list \<Rightarrow> 'a set list" where
   "partList1 s [] = []" |
@@ -286,7 +288,7 @@ fun partList1 :: "'a set \<Rightarrow> 'a set list \<Rightarrow> 'a set list" wh
 
 lemma partList_sub_equi: "set(partList1 s ts) = 
                           set(difference_list_opt s ts) \<union> set(intersection_list_opt s ts)" 
-  apply(induction ts arbitrary: s) by (simp_all)
+  by(induction ts arbitrary: s) (simp_all)
 
 lemma partList0_partList1_equi: "disjoint_list_rec ts \<Longrightarrow> set(partList0 s ts) = set(partList1 s ts)"
   by (simp add: partList_sub_equi partList_sub_equi0 intList_equi difList_equi)
@@ -297,11 +299,10 @@ fun partList2 :: "'a set \<Rightarrow> 'a set list \<Rightarrow> 'a set list" wh
                                        else (s \<inter> t)#((t - s)#(partList2 (s - t) ts)))"
 
 lemma partList2_empty: "partList2 {} ts = ts"
-  apply(induction ts) by (simp_all)
+  by(induction ts) (simp_all)
  
 lemma partList1_partList3_equi: "set(partList1 s ts) - {{}} = set(partList2 s ts) - {{}}"
-  apply(induction ts arbitrary: s)
-  by(auto)
+  by(induction ts arbitrary: s) (auto)
 
 fun partList3 :: "'a set \<Rightarrow> 'a set list \<Rightarrow> 'a set list" where
   "partList3 s [] = []" |
@@ -313,9 +314,9 @@ fun partList3 :: "'a set \<Rightarrow> 'a set list \<Rightarrow> 'a set list" wh
 
 lemma partList2_partList3_equi: "set(partList2 s ts) - {{}} = set(partList3 s ts) - {{}}"
   apply(induction ts arbitrary: s)
-  apply(simp)
-  apply(simp_all add: partList2_empty)
-by blast
+   apply(simp; fail)
+  apply(simp add: partList2_empty)
+  by blast
 
 
 (*TODO: add this to partList3*)
@@ -329,16 +330,16 @@ fun partList4 :: "'a set \<Rightarrow> 'a set list \<Rightarrow> 'a set list" wh
 
 lemma partList4: "set (partList3 s ts) = set (partList4 s ts)"
   apply(induction ts arbitrary: s)
-   apply(simp)
+   apply(simp; fail)
   apply(simp)
   apply(intro conjI impI)
-apply (simp add: Diff_triv)
-done
+  apply (simp add: Diff_triv)
+  done
 (*TODO: use partList4 every time instead of partList3*)
 
 lemma partList0_addSubsetSet_equi: "s \<subseteq> \<Union>(set ts) \<Longrightarrow> 
                                     addSubsetSet s (set ts) - {{}} = set(partList0 s ts) - {{}}"
-  apply(simp_all add: addSubsetSet_def partList0_set_equi)
+  apply(simp add: addSubsetSet_def partList0_set_equi)
 done
 
 lemma partList3_addSubsetSet_equi: "disjoint_list_rec ts \<Longrightarrow> s \<subseteq> \<Union>(set ts) \<Longrightarrow>
@@ -353,13 +354,13 @@ fun partitioning_nontail :: "'a set list \<Rightarrow> 'a set set \<Rightarrow> 
 
 lemma partitioningCom: "addSubsetSet a (partitioning ss ts) = partitioning ss (addSubsetSet a ts)"
   apply(induction ss arbitrary: a ts)
-  apply(simp)
+   apply(simp; fail)
   apply(simp add: addSubsetSetCom)
 done
 
 lemma partitioning_nottail_equi: "partitioning_nontail ss ts = partitioning ss ts"
   apply(induction ss arbitrary: ts)
-  apply(simp)
+   apply(simp; fail)
   apply(simp add: addSubsetSetCom partitioningCom)
 done
 
@@ -368,8 +369,8 @@ fun partitioning1 :: "'a set list \<Rightarrow> 'a set list \<Rightarrow> 'a set
   "partitioning1 (s#ss) ts = partList3 s (partitioning1 ss ts)"
 
 lemma addSubsetSet_empty: "addSubsetSet s ts - {{}} = addSubsetSet s (ts - {{}}) - {{}}"
-  apply(simp_all add: addSubsetSet_def)
-by blast
+  apply(simp add: addSubsetSet_def)
+  by blast
 
 lemma partList3_empty: "{} \<notin> set ts \<Longrightarrow> {} \<notin> set (partList3 s ts)"
   apply(induction ts arbitrary: s)
@@ -380,23 +381,22 @@ lemma partitioning1_empty0: "{} \<notin> set ts \<Longrightarrow> {} \<notin> se
   apply(induction ss arbitrary: ts)
    apply(simp; fail)
   apply(simp add: partList3_empty)
-done
+  done
 
 lemma partitioning1_empty1: "{} \<notin> set ts \<Longrightarrow> 
                               set(partitioning1 ss ts) - {{}} = set(partitioning1 ss ts)"
-  apply(simp add: partitioning1_empty0)
-done
+  by(simp add: partitioning1_empty0)
 
 lemma partList3_subset: "a \<subseteq> \<Union>(set ts) \<Longrightarrow> a \<subseteq> \<Union>set (partList3 b ts)"
   apply(induction ts arbitrary: a b)
+   apply(simp; fail)
   apply(simp)
-  apply(simp_all)
-by fast
+  by fast
 
 lemma "a \<noteq> {} \<Longrightarrow> disjoint_list_rec (a # ts) \<longleftrightarrow> disjoint_list_rec ts \<and> a \<inter> \<Union> (set ts) = {}"
   apply(induction ts arbitrary: a)
-  apply(simp)
-by force
+   apply(simp; fail)
+  by force
 
 
 lemma partList3_complete0: "s \<subseteq> \<Union> set ts \<Longrightarrow> \<Union> set ts = \<Union> set (partList3 s ts)"
