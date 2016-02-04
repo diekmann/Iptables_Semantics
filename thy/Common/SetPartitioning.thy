@@ -451,6 +451,16 @@ lemma partList3_distinct: "{} \<notin> set ts \<Longrightarrow> disjoint_list ts
        t \<inter> s \<in> set (partList3 (s - t) ts) \<Longrightarrow> 
        \<not> t \<inter> s \<subseteq> \<Union>set (partList3 (s - t) ts)"
       by(simp add: union_set_partList3 disjoint_def, force) (*1s*)
+    have x2: "\<And>x xa xb xc.
+       t \<notin> set ts \<Longrightarrow>
+       disjoint (insert t (set ts)) \<Longrightarrow>
+       x \<in> t \<Longrightarrow>
+       xa \<in> t \<Longrightarrow>
+       xa \<notin> s \<Longrightarrow>
+       xb \<in> s \<Longrightarrow> 
+       xc \<in> s \<Longrightarrow> 
+       \<not> t - s \<subseteq> \<Union>set (partList3 (s - t) ts)"
+      by(simp add: union_set_partList3 disjoint_def, force) (*1s*)
     from Cons show ?case
     unfolding disjoint_list_def
     apply(clarsimp)
@@ -461,9 +471,7 @@ lemma partList3_distinct: "{} \<notin> set ts \<Longrightarrow> disjoint_list ts
         apply(simp add: disjoint_def; fail)
        apply(blast)
       using x1 apply blast
-     apply(subgoal_tac "\<not> (t - s  \<subseteq> \<Union>set (partList3 (s - t) ts))")
-      apply(blast)
-     apply(simp add: union_set_partList3 disjoint_def; force)
+     using x2 apply blast
     apply(simp add: disjoint_def; fail) 
     done
   qed
@@ -487,9 +495,9 @@ lemma partList3_disjoint_list: assumes "s \<subseteq> \<Union> set ts" "disjoint
 
 lemma partitioning1_subset: "a \<subseteq> \<Union> (set ts) \<Longrightarrow> a \<subseteq> \<Union> set (partitioning1 ss ts)"
   apply(induction ss arbitrary: ts a)
-  apply(simp)
+   apply(simp)
   apply(simp add: partList3_subset)
-done
+  done
 
 lemma partitioning1_disjoint_list: "{} \<notin> (set ts) \<Longrightarrow> \<Union> (set ss) \<subseteq> \<Union> (set ts) \<Longrightarrow>
                                disjoint_list ts \<Longrightarrow> disjoint_list (partitioning1 ss ts)"
