@@ -1008,11 +1008,6 @@ lemma build_ip_partition_disjoint:
   by (meson build_ip_partition_same_fw_min int_not_emptyD same_fw_behaviour_one_equi(1))
 
 
-lemma "x \<in> set xs \<Longrightarrow> getOneIp x \<in> getOneIp ` set xs" using Set.imageI by blast
-lemma "\<forall>x \<in> set xs. \<not> wordinterval_empty x \<Longrightarrow> \<not> wordinterval_empty x \<Longrightarrow> x \<notin> set xs \<Longrightarrow> getOneIp x \<notin> getOneIp ` set xs"
-  nitpick
-  oops
-
 lemma map_wordinterval_to_set_distinct:
   assumes distinct: "distinct xs"
   and disjoint: "(\<forall>x1 \<in> set xs. \<forall>x2 \<in> set xs. x1 \<noteq> x2 \<longrightarrow> wordinterval_to_set x1 \<inter> wordinterval_to_set x2 = {})" 
@@ -1053,57 +1048,50 @@ lemma map_getOneIp_distinct: assumes
   qed
 
 
-(*TODO: delete?*)
-lemma "distinct (partIps a [wordinterval_UNIV])"
-proof -
-  have wordinterval_neqD: "wordinterval_to_set  a \<noteq> wordinterval_to_set b \<Longrightarrow> a \<noteq> b" for a b by auto
-  show ?thesis
-  apply simp
-  apply(intro impI)
-  apply(rule wordinterval_neqD)
-  apply(simp)
-  by blast
-qed
-
 lemma build_ip_partition_disjoint_list_helper: 
   "(wordinterval_to_set \<circ> (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval))) ws
        = \<Union> set (map wordinterval_to_set ws)"
   proof(induction ws)
   qed(simp_all add: wordinterval_compress)
 
+(*TODO: delete or move into the lemmas where it is needed*)
 lemma build_ip_partition_distinct_hlp: "map wordinterval_to_set (build_ip_partition c rs) =
                  map (%x. \<Union> set (map wordinterval_to_set x)) (groupWIs c rs)"
-  apply(subst build_ip_partition_def) apply(subst groupWIs3)
+  unfolding build_ip_partition_def groupWIs3
   using build_ip_partition_disjoint_list_helper by auto
 
 lemma build_ip_partition_distinct_hlp'':
       "\<Union> (set (map (%x. \<Union> set (map wordinterval_to_set x)) (groupF f xs))) =
        \<Union> set (map wordinterval_to_set xs)"
-  apply(induction f xs rule: groupF.induct)
-by (auto)
+  by(induction f xs rule: groupF.induct) (auto)
 
 lemma build_ip_partition_distinct_hlp': "\<forall>x \<in> set xs. \<not> wordinterval_empty x \<Longrightarrow>
        disjoint_list (map wordinterval_to_set xs) \<Longrightarrow>
        distinct (map (\<lambda>x. \<Union>set (map wordinterval_to_set x)) (groupF f xs))"
-  apply(induction f xs rule: groupF.induct) unfolding disjoint_list_def
-    apply(simp)
+  proof(induction f xs rule: groupF.induct)
+  case 1 thus ?case by simp
+  next
+  case (2 f x xs) thus ?case
+    unfolding disjoint_list_def
     apply(clarsimp, safe)
-      defer
-      apply(subgoal_tac "distinct (map wordinterval_to_set [y\<leftarrow>xs . f x \<noteq> f y])")
-      apply(subgoal_tac "disjoint (wordinterval_to_set ` {xa \<in> set xs. f x \<noteq> f xa})")
-        apply(blast)
-        apply(simp add: disjoint_def)
-        using distinct_map_filter apply(blast)
-  apply(subgoal_tac "\<not> wordinterval_to_set x \<union> (\<Union>x\<in>{xa \<in> set xs. f x = f xa}. wordinterval_to_set x) \<subseteq> \<Union> (set (map (%x. \<Union> set (map wordinterval_to_set x)) (groupF f [y\<leftarrow>xs . f x \<noteq> f y])))")
-  apply(auto)[1]
-  apply(subgoal_tac "\<not> wordinterval_to_set x \<subseteq> \<Union> (set (map (%x. \<Union> set (map wordinterval_to_set x)) (groupF f [y\<leftarrow>xs . f x \<noteq> f y])))")
-  apply(blast)
-  apply(subst build_ip_partition_distinct_hlp'')
-  apply(subgoal_tac "\<not> (wordinterval_to_set x) \<subseteq> \<Union>(wordinterval_to_set ` set xs)")
-  apply(auto)[1]
-  apply(subgoal_tac "(wordinterval_to_set x) \<inter> \<Union>(wordinterval_to_set ` set xs) = {}")
-  apply(fast)
-  unfolding disjoint_def by auto
+     apply(subgoal_tac "\<not> wordinterval_to_set x \<union> (\<Union>x\<in>{xa \<in> set xs. f x = f xa}. wordinterval_to_set x) \<subseteq> \<Union> (set (map (%x. \<Union> set (map wordinterval_to_set x)) (groupF f [y\<leftarrow>xs . f x \<noteq> f y])))")
+      apply(auto)[1]
+     apply(subgoal_tac "\<not> wordinterval_to_set x \<subseteq> \<Union> (set (map (%x. \<Union> set (map wordinterval_to_set x)) (groupF f [y\<leftarrow>xs . f x \<noteq> f y])))")
+      apply(blast)
+     apply(subst build_ip_partition_distinct_hlp'')
+     apply(subgoal_tac "\<not> (wordinterval_to_set x) \<subseteq> \<Union>(wordinterval_to_set ` set xs)")
+      apply(auto)[1]
+     apply(subgoal_tac "(wordinterval_to_set x) \<inter> \<Union>(wordinterval_to_set ` set xs) = {}")
+      apply(fast)
+     unfolding disjoint_def apply(auto)[1]
+    apply(subgoal_tac "distinct (map wordinterval_to_set [y\<leftarrow>xs . f x \<noteq> f y])")
+     apply(subgoal_tac "disjoint (wordinterval_to_set ` {xa \<in> set xs. f x \<noteq> f xa})")
+      apply(blast)
+     apply(simp add: disjoint_def; fail)
+    using distinct_map_filter by metis
+  qed
+
+
 
 
 lemma disjoint_list_partitioningIps: 
@@ -1119,73 +1107,15 @@ lemma getParts_disjoint_list: "disjoint_list (map wordinterval_to_set (getParts 
   done
 
 lemma build_ip_partition_distinct: "distinct (map wordinterval_to_set (build_ip_partition c rs))"
-  apply(subst build_ip_partition_distinct_hlp) apply(subst groupWIs_def) apply(simp only: Let_def)
-  apply(rule build_ip_partition_distinct_hlp') using getParts_disjoint_list getParts_nonempty_elems
-  by auto
+  unfolding build_ip_partition_distinct_hlp groupWIs_def Let_def
+  apply(rule build_ip_partition_distinct_hlp')
+   using getParts_disjoint_list getParts_nonempty_elems by auto
 
 lemma build_ip_partition_distinct': "distinct (build_ip_partition c rs)"
   using build_ip_partition_distinct distinct_mapI by blast
 
-(*TODO: we probably want to show that things are distinct!*)
-(*
-lemma "distinct ts \<Longrightarrow> \<forall>t \<in> set ts. t \<noteq> {} \<Longrightarrow>
-  \<forall>t1 \<in> set ts. \<forall>t2 \<in> set ts. t1 \<noteq> t2 \<longrightarrow> t1 \<inter> t2 = {} \<Longrightarrow>
-  disjoint_list_rec ts \<Longrightarrow>
-  distinct (partList1 s ts)"
-(*lemma partList3_disjoint: "s \<subseteq> \<Union> set ts \<Longrightarrow> distinct ts \<Longrightarrow> 
-                           distinct (partList3 s ts)"*)
-  apply(induction ts arbitrary: s)
-   apply(simp_all)
-  apply(intro conjI)
-    apply fast
-  
-lemma "disjoint_list_rec ts \<Longrightarrow> distinct ts"
-  apply(simp)
-  oops
-lemma "wordinterval_to_set s \<subseteq> \<Union>set (map wordinterval_to_set ts) \<Longrightarrow> 
-      disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
-      distinct (map wordinterval_to_set (partIps s ts))"
-  unfolding partIps_equi
-  apply(drule(1) partList3_disjoint)+
-  
-  apply(induction ts)
-   apply(simp_all add: disjoint_list_def disjoint_def)
-  
-  using disjoint_list_rec_imp_disjoint 
-  using disjoint_list_rec_imp_disjoint 
-using partList3_disjoint  partIps_equi disjoint_list_rec_imp_disjoint
 
-lemma "distinct ts \<Longrightarrow> \<forall>t \<in> set ts. \<not> wordinterval_empty t \<Longrightarrow>
-  \<forall>t1 \<in> set ts. \<forall>t2 \<in> set ts. t1 \<noteq> t2 \<longrightarrow> wordinterval_to_set t1 \<inter> wordinterval_to_set t2 = {} \<Longrightarrow>
-  distinct (partIps a ts)"
-  apply(induction a ts rule: partIps.induct)
-   apply simp
-  apply simp
-  apply(intro impI conjI)
-  apply simp_all
-  
-  apply(rule wordinterval_neqD)
-  apply(simp)
 
-lemma "distinct accu \<Longrightarrow> distinct (partitioningIps ips accu)"
-  apply(induction ips arbitrary: accu)
-   apply(simp_all)
-  
-lemma "distinct (getParts rs)"
-  apply(simp add: getParts_def)
-  
-lemma "distinct (groupWIs c rs)"
-  apply(simp add: groupWIs_def Let_def)
-lemma "distinct (build_ip_partition c rs)"
-  apply(simp add: build_ip_partition_def groupWIs3)
-
-corollary "distinct (map getOneIp (build_ip_partition c rs))"
-  apply(rule map_getOneIp_distinct)
-   defer
-    using build_ip_partition_disjoint apply (simp; fail)
-   using build_ip_partition_no_empty_elems apply blast
-oops (*TODO?*)   
-*)
 
 definition all_pairs :: "'a list \<Rightarrow> ('a \<times> 'a) list" where
   "all_pairs xs \<equiv> concat (map (\<lambda>x. map (\<lambda>y. (x,y)) xs) xs)"
