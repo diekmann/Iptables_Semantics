@@ -501,13 +501,17 @@ lemma partitioning1_subset: "a \<subseteq> \<Union> (set ts) \<Longrightarrow> a
 
 lemma partitioning1_disjoint_list: "{} \<notin> (set ts) \<Longrightarrow> \<Union> (set ss) \<subseteq> \<Union> (set ts) \<Longrightarrow>
                                disjoint_list ts \<Longrightarrow> disjoint_list (partitioning1 ss ts)"
-  apply(induction ss arbitrary: ts)
-    apply(fastforce)
-    apply(clarsimp) apply(rule partList3_disjoint_list)
-      using partitioning1_subset apply(metis)
-      apply(blast)
-      using partitioning1_empty0 apply(metis)
-done
+proof(induction ss)
+case Nil thus ?case by simp
+next
+case(Cons t ts) thus ?case
+  apply(clarsimp)
+  apply(rule partList3_disjoint_list)
+    using partitioning1_subset apply(metis)
+   apply(blast)
+  using partitioning1_empty0 apply(metis)
+  done
+qed
 
 lemma partitioning1_disjoint: "\<Union> (set ss) \<subseteq> \<Union> (set ts) \<Longrightarrow>
                                disjoint_list_rec ts \<Longrightarrow> disjoint_list_rec (partitioning1 ss ts)"
@@ -517,21 +521,22 @@ lemma partitioning1_disjoint: "\<Union> (set ss) \<subseteq> \<Union> (set ts) \
 lemma partitioning_equi: "{} \<notin> set ts \<Longrightarrow> disjoint_list_rec ts \<Longrightarrow> \<Union> (set ss) \<subseteq> \<Union> (set ts) \<Longrightarrow>
          set(partitioning1 ss ts) = partitioning_nontail ss (set ts) - {{}}"
   apply(induction ss arbitrary: ts)
-  apply(simp)
+   apply(simp; fail)
   apply(simp add: partList3_addSubsetSet_equi addSubsetSetCom partitioning1_empty0 
                   partitioning1_disjoint partitioning1_subset)
   apply(subst addSubsetSet_empty)
-by (metis Diff_empty Diff_insert0 partList3_addSubsetSet_equi partList3_empty partitioning1_disjoint partitioning1_empty0 partitioning1_subset)
+  by (metis Diff_empty Diff_insert0 partList3_addSubsetSet_equi partList3_empty
+            partitioning1_disjoint partitioning1_empty0 partitioning1_subset)
 
 lemma ipPartitioning_helper_opt: "{} \<notin> set ts \<Longrightarrow> disjoint_list_rec ts \<Longrightarrow> \<Union> (set ss) \<subseteq> \<Union> (set ts) 
                                   \<Longrightarrow> ipPartition (set ss) (set (partitioning1 ss ts))"
   apply(simp add: partitioning_equi partitioning_nottail_equi ipPartitioning_helper)
-by (meson Diff_subset disjoint_equi ipPartition_def ipPartitioning_helper subsetCE)
+  by (meson Diff_subset disjoint_equi ipPartition_def ipPartitioning_helper subsetCE)
 
 lemma complete_helper: "{} \<notin> set ts \<Longrightarrow> disjoint_list_rec ts \<Longrightarrow> \<Union> (set ss) \<subseteq> \<Union> (set ts) 
                                   \<Longrightarrow> \<Union> (set ts) = \<Union> (set (partitioning1 ss ts))"
   apply(induction ss arbitrary: ts)
-   apply(simp_all )
+   apply(simp_all)
   by (metis partList3_complete0)
 
 
@@ -541,14 +546,14 @@ lemma "partitioning1  [{1::nat},{2},{}] [{1},{},{2},{3}] = [{1}, {}, {2}, {3}]" 
 (*random corny stuff*)
 lemma partitioning_foldr: "partitioning X B = foldr addSubsetSet X B"
   apply(induction X)
-  apply(simp_all)
-by (metis partitioningCom)
+   apply(simp; fail)
+  apply(simp)
+  by (metis partitioningCom)
 
 lemma "ipPartition (set X) (foldr addSubsetSet X {})"
   apply(subst partitioning_foldr[symmetric])
   using ipPartitioning by auto
 
-term foldr
 lemma "\<Union> (set X) = \<Union> (foldr addSubsetSet X {})"
   apply(subst partitioning_foldr[symmetric])
   by (simp add: coversallPartitioning)
@@ -557,9 +562,7 @@ lemma "partitioning1 X B = foldr partList3 X B"
   by(induction X)(simp_all)
 
 lemma "ipPartition (set X) (set (partitioning1 X [UNIV]))"
-apply(rule ipPartitioning_helper_opt)
-apply(simp_all)
-done
+by(rule ipPartitioning_helper_opt) (simp_all)
 
 lemma "(\<Union>(set (partitioning1 X [UNIV]))) = UNIV"
 apply(subgoal_tac "UNIV = \<Union> (set (partitioning1 X [UNIV]))")
