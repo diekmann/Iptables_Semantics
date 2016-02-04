@@ -28,17 +28,12 @@ fun disjoint_list_rec :: "'a set list \<Rightarrow> bool" where
   "disjoint_list_rec [] = True" |
   "disjoint_list_rec (x#xs) = (x \<inter> \<Union> set xs = {} \<and> disjoint_list_rec xs)"
 
-lemma "disjoint_list ts \<Longrightarrow> disjoint_list_rec ts"
-  apply(induction ts)
-   apply(simp)
-  apply(simp add: disjoint_list_def disjoint_def)
-  by fast
 
-(*TODO: delete or put to local context*)
-lemma "disjoint_list_rec ts \<Longrightarrow> disjoint (set ts)"
+lemma disjoint_equi: "disjoint_list_rec ts \<Longrightarrow> disjoint (set ts)"
   apply(induction ts)
    apply(simp_all add: disjoint_list_def disjoint_def)
   by fast
+
 
 
 (* FUNCTIONS *)
@@ -415,20 +410,80 @@ qed
 lemma partList3_disjoint: "s \<subseteq> \<Union> set ts \<Longrightarrow> disjoint_list_rec ts \<Longrightarrow> 
                            disjoint_list_rec (partList3 s ts)"
   apply(induction ts arbitrary: s)
-   apply(simp_all)
+   apply(simp; fail)
+  apply(simp)
   apply(rule conjI)
    apply (metis Diff_subset_conv partList3_complete0)
   apply(safe)
       apply (metis Diff_subset_conv IntI UnionI partList3_complete0)
-     apply (simp add: Diff_subset_conv)
+     apply (simp add: Diff_subset_conv; fail)
     apply (metis Diff_subset_conv IntI UnionI partList3_complete0)
    apply (metis Diff_subset_conv IntI UnionI partList3_complete0)
   by (simp add: Diff_subset_conv)
+
+lemma union_set_partList3: "\<Union>set (partList3 s ts) = \<Union>set ts"
+  by (induction ts arbitrary: s, auto)
+
+lemma partList3_distinct_hlp: 
+"a \<noteq> {} \<Longrightarrow> a \<notin> set ts \<Longrightarrow> disjoint (insert a (set ts)) \<Longrightarrow> a \<notin> set (partList3 s ts)"
+  apply(subgoal_tac "\<not> (a \<subseteq> \<Union>set (partList3 s ts))")
+    apply(blast)
+    apply(subgoal_tac "\<not> (a \<subseteq> \<Union>set ts)")
+      using union_set_partList3 apply(metis)
+      unfolding disjoint_def by fastforce
+
+lemma partList3_distinct: "{} \<notin> set ts \<Longrightarrow> disjoint_list ts \<Longrightarrow> distinct (partList3 s ts)"
+  apply(induction ts arbitrary: s)
+    apply(simp)
+    unfolding disjoint_list_def apply(clarsimp) apply(safe)
+      apply(metis partList3_distinct_hlp)
+      apply(subst (asm) disjoint_def)+ apply(simp)
+      apply(metis partList3_distinct_hlp)
+      apply(subst (asm) disjoint_def)+ apply(simp)
+      apply(blast)
+      apply(subgoal_tac "\<not> (a \<inter> s \<subseteq> \<Union>set (partList3 (s - a) ts))")
+        apply(blast)
+        apply(subst union_set_partList3)
+        apply(subst (asm) disjoint_def)+ apply(force)
+      apply(subgoal_tac "\<not> (a - s  \<subseteq> \<Union>set (partList3 (s - a) ts))")
+        apply(blast)
+        apply(subst union_set_partList3)
+        apply(subst (asm) disjoint_def)+ apply(force)
+      apply(subst (asm) disjoint_def)+ apply(simp)
+done
+
+
+lemma partList3_disjoint_list: assumes "s \<subseteq> \<Union> set ts" "disjoint_list ts" "{} \<notin> set ts"
+  shows "disjoint_list (partList3 s ts)"
+  unfolding disjoint_list_def
+  proof
+    from assms(2,3) show "distinct (partList3 s ts)" 
+      using partList3_distinct disjoint_list_def by auto
+    show "disjoint (set (partList3 s ts))"
+    proof -
+      have disjoint_list_disjoint_list_rec: "disjoint_list ts \<Longrightarrow> disjoint_list_rec ts"
+      proof(induction ts)
+      case Cons thus ?case by(auto simp add: disjoint_list_def disjoint_def)
+      qed(simp)
+      with partList3_disjoint disjoint_equi assms(1,2) show ?thesis by blast
+    qed
+  qed
+
 
 lemma partitioning1_subset: "a \<subseteq> \<Union> (set ts) \<Longrightarrow> a \<subseteq> \<Union> set (partitioning1 ss ts)"
   apply(induction ss arbitrary: ts a)
   apply(simp)
   apply(simp add: partList3_subset)
+done
+
+lemma partitioning1_disjoint_list: "{} \<notin> (set ts) \<Longrightarrow> \<Union> (set ss) \<subseteq> \<Union> (set ts) \<Longrightarrow>
+                               disjoint_list ts \<Longrightarrow> disjoint_list (partitioning1 ss ts)"
+  apply(induction ss arbitrary: ts)
+    apply(fastforce)
+    apply(clarsimp) apply(rule partList3_disjoint_list)
+      using partitioning1_subset apply(metis)
+      apply(blast)
+      using partitioning1_empty0 apply(metis)
 done
 
 lemma partitioning1_disjoint: "\<Union> (set ss) \<subseteq> \<Union> (set ts) \<Longrightarrow>
@@ -445,15 +500,9 @@ lemma partitioning_equi: "{} \<notin> set ts \<Longrightarrow> disjoint_list_rec
   apply(subst addSubsetSet_empty)
 by (metis Diff_empty Diff_insert0 partList3_addSubsetSet_equi partList3_empty partitioning1_disjoint partitioning1_empty0 partitioning1_subset)
 
-lemma disjoint_equi: "disjoint_list_rec ts \<Longrightarrow> disjoint (set ts)"
-  apply(induction ts)
-  apply(simp add: disjoint_def)
-  apply(simp add: disjoint_def)
-by blast
-
 lemma ipPartitioning_helper_opt: "{} \<notin> set ts \<Longrightarrow> disjoint_list_rec ts \<Longrightarrow> \<Union> (set ss) \<subseteq> \<Union> (set ts) 
                                   \<Longrightarrow> ipPartition (set ss) (set (partitioning1 ss ts))"
-  apply(simp add: partitioning_equi partitioning_nottail_equi ipPartitioning_helper disjoint_equi)
+  apply(simp add: partitioning_equi partitioning_nottail_equi ipPartitioning_helper)
 by (meson Diff_subset disjoint_equi ipPartition_def ipPartitioning_helper subsetCE)
 
 lemma complete_helper: "{} \<notin> set ts \<Longrightarrow> disjoint_list_rec ts \<Longrightarrow> \<Union> (set ss) \<subseteq> \<Union> (set ts) 

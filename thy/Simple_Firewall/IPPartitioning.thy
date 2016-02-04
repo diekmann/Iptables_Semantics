@@ -1065,6 +1065,66 @@ proof -
   by blast
 qed
 
+lemma build_ip_partition_disjoint_list_helper: 
+  "(wordinterval_to_set \<circ> (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval))) ws
+       = \<Union> set (map wordinterval_to_set ws)"
+  proof(induction ws)
+  qed(simp_all add: wordinterval_compress)
+
+lemma build_ip_partition_distinct_hlp: "map wordinterval_to_set (build_ip_partition c rs) =
+                 map (%x. \<Union> set (map wordinterval_to_set x)) (groupWIs c rs)"
+  apply(subst build_ip_partition_def) apply(subst groupWIs3)
+  using build_ip_partition_disjoint_list_helper by auto
+
+lemma build_ip_partition_distinct_hlp'':
+      "\<Union> (set (map (%x. \<Union> set (map wordinterval_to_set x)) (groupF f xs))) =
+       \<Union> set (map wordinterval_to_set xs)"
+  apply(induction f xs rule: groupF.induct)
+by (auto)
+
+lemma build_ip_partition_distinct_hlp': "\<forall>x \<in> set xs. \<not> wordinterval_empty x \<Longrightarrow>
+       disjoint_list (map wordinterval_to_set xs) \<Longrightarrow>
+       distinct (map (\<lambda>x. \<Union>set (map wordinterval_to_set x)) (groupF f xs))"
+  apply(induction f xs rule: groupF.induct) unfolding disjoint_list_def
+    apply(simp)
+    apply(clarsimp, safe)
+      defer
+      apply(subgoal_tac "distinct (map wordinterval_to_set [y\<leftarrow>xs . f x \<noteq> f y])")
+      apply(subgoal_tac "disjoint (wordinterval_to_set ` {xa \<in> set xs. f x \<noteq> f xa})")
+        apply(blast)
+        apply(simp add: disjoint_def)
+        using distinct_map_filter apply(blast)
+  apply(subgoal_tac "\<not> wordinterval_to_set x \<union> (\<Union>x\<in>{xa \<in> set xs. f x = f xa}. wordinterval_to_set x) \<subseteq> \<Union> (set (map (%x. \<Union> set (map wordinterval_to_set x)) (groupF f [y\<leftarrow>xs . f x \<noteq> f y])))")
+  apply(auto)[1]
+  apply(subgoal_tac "\<not> wordinterval_to_set x \<subseteq> \<Union> (set (map (%x. \<Union> set (map wordinterval_to_set x)) (groupF f [y\<leftarrow>xs . f x \<noteq> f y])))")
+  apply(blast)
+  apply(subst build_ip_partition_distinct_hlp'')
+  apply(subgoal_tac "\<not> (wordinterval_to_set x) \<subseteq> \<Union>(wordinterval_to_set ` set xs)")
+  apply(auto)[1]
+  apply(subgoal_tac "(wordinterval_to_set x) \<inter> \<Union>(wordinterval_to_set ` set xs) = {}")
+  apply(fast)
+  unfolding disjoint_def by auto
+
+
+lemma disjoint_list_partitioningIps: 
+  "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list (map wordinterval_to_set ts) \<Longrightarrow> 
+   (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow>
+   disjoint_list (map wordinterval_to_set (partitioningIps ss ts))"
+by (simp add: partitioning1_disjoint_list partitioningIps_equi wordinterval_list_to_set_def)
+
+lemma getParts_disjoint_list: "disjoint_list (map wordinterval_to_set (getParts rs))"
+  apply(subst getParts_def)
+  apply(rule disjoint_list_partitioningIps)
+    apply(simp_all add: wordinterval_list_to_set_def disjoint_list_def disjoint_def)
+  done
+
+lemma build_ip_partition_distinct: "distinct (map wordinterval_to_set (build_ip_partition c rs))"
+  apply(subst build_ip_partition_distinct_hlp) apply(subst groupWIs_def) apply(simp only: Let_def)
+  apply(rule build_ip_partition_distinct_hlp') using getParts_disjoint_list getParts_nonempty_elems
+  by auto
+
+lemma build_ip_partition_distinct': "distinct (build_ip_partition c rs)"
+  using build_ip_partition_distinct distinct_mapI by blast
 
 (*TODO: we probably want to show that things are distinct!*)
 (*
@@ -1169,7 +1229,7 @@ definition access_matrix
   :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> (ipv4addr \<times> 32 wordinterval) list \<times> (ipv4addr \<times> ipv4addr) list" 
   where
   "access_matrix c rs \<equiv>
-    (let W = remdups (build_ip_partition c rs); (** TODO things should be distinct already, it should be possible to get rid of the remdups**)
+    (let W = build_ip_partition c rs;
          R = map getOneIp W
      in
      (zip R W, [(s, d)\<leftarrow>all_pairs R. runFw s d c rs = Decision FinalAllow]))"
@@ -1198,7 +1258,7 @@ lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and
               d_range: "(map_of V) d_repr = Some d_range" and d: "d \<in> wordinterval_to_set d_range"
       shows "runFw s d c rs = Decision FinalAllow"
   proof -
-    let ?part="remdups (build_ip_partition c rs)"
+    let ?part="(build_ip_partition c rs)"
     have V: "V = (zip (map getOneIp ?part) ?part)"
       using matrix by(simp add: access_matrix_def Let_def)
     (*have "E = [(s, d)\<leftarrow>all_pairs (map getOneIp ?part). runFw s d c rs = Decision FinalAllow]"
@@ -1245,8 +1305,7 @@ qed
 (*TODO: access_matrix_complete*)
 
 corollary build_ip_partition_obtain: 
-  fixes s::ipv4addr obtains V where "V \<in> set (remdups (build_ip_partition c rs))" and "s \<in> wordinterval_to_set V"
-  apply(simp)
+  fixes s::ipv4addr obtains V where "V \<in> set (build_ip_partition c rs)" and "s \<in> wordinterval_to_set V"
   using build_ip_partition_complete 
   by fast
 
@@ -1275,13 +1334,13 @@ lemma distinct_map_getOneIp_obtain: "v \<in> set xs \<Longrightarrow> distinct (
   
 
 lemma distinct_map_getOneIp_build_ip_partition_obtain:
-    "v \<in> set (remdups (build_ip_partition c rs)) \<Longrightarrow>
-       \<exists>s_repr. map_of (zip (map getOneIp (remdups (build_ip_partition c rs))) (remdups (build_ip_partition c rs))) s_repr = Some v"
+    "v \<in> set (build_ip_partition c rs) \<Longrightarrow>
+       \<exists>s_repr. map_of (zip (map getOneIp (build_ip_partition c rs)) (build_ip_partition c rs)) s_repr = Some v"
   apply(erule distinct_map_getOneIp_obtain)
   apply(rule map_getOneIp_distinct)
-  apply(simp_all)
-    using build_ip_partition_disjoint apply (simp; fail)
-   using build_ip_partition_no_empty_elems[simplified] by blast
+    using build_ip_partition_distinct' apply(simp; fail)
+   using build_ip_partition_disjoint build_ip_partition_distinct' apply (simp; fail)
+  using build_ip_partition_no_empty_elems[simplified] by simp
 
   
 
@@ -1291,7 +1350,7 @@ lemma access_matrix_complete: assumes matrix: "(V,E) = access_matrix c rs" and
               (map_of V) s_repr = Some s_range \<and> s \<in> wordinterval_to_set s_range \<and>
               (map_of V) d_repr = Some d_range \<and> d \<in> wordinterval_to_set d_range"
   proof -
-    let ?part="remdups (build_ip_partition c rs)"
+    let ?part="(build_ip_partition c rs)"
     have V: "V = zip (map getOneIp ?part) ?part"
       using matrix by(simp add: access_matrix_def Let_def)
     have E: "E = [(s, d)\<leftarrow>all_pairs (map getOneIp ?part). runFw s d c rs = Decision FinalAllow]"
@@ -1317,11 +1376,11 @@ lemma access_matrix_complete: assumes matrix: "(V,E) = access_matrix c rs" and
 
     have "runFw s_repr d_repr c rs = Decision FinalAllow"
       by (metis (mono_tags, hide_lams) IPPartitioning.map_of_zip_map V 
-          \<open>d \<in> wordinterval_to_set d_range\<close> \<open>d_range \<in> set (remdups (build_ip_partition c rs))\<close> 
+          \<open>d \<in> wordinterval_to_set d_range\<close> \<open>d_range \<in> set ?part\<close> 
           \<open>map_of V d_repr = Some d_range\<close> \<open>map_of V s_repr = Some s_range\<close> 
-          \<open>s \<in> wordinterval_to_set s_range\<close> \<open>s_range \<in> set (remdups (build_ip_partition c rs))\<close> 
+          \<open>s \<in> wordinterval_to_set s_range\<close> \<open>s_range \<in> set ?part\<close> 
           allow build_ip_partition_no_empty_elems build_ip_partition_same_fw getOneIp_elem 
-          same_fw_behaviour_one_def set_remdups wordinterval_element_set_eq) 
+          same_fw_behaviour_one_def set_remdups wordinterval_element_set_eq)  (*TODO: rehammer*)
       
     hence ex1: "(s_repr, d_repr) \<in> set E" by(simp add: E all_pairs_set 1 2)
     
