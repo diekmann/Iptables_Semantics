@@ -443,7 +443,6 @@ lemma partList3_distinct: "{} \<notin> set ts \<Longrightarrow> disjoint_list ts
        t \<notin> set ts \<Longrightarrow>
        disjoint (insert t (set ts)) \<Longrightarrow>
        xa \<in> t \<Longrightarrow>
-       xa \<notin> s \<Longrightarrow>
        xb \<in> s \<Longrightarrow> 
        xb \<in> t \<Longrightarrow> 
        xb \<notin> {} \<Longrightarrow> 
