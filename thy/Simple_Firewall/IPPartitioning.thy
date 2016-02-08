@@ -1268,11 +1268,11 @@ lemma distinct_map_getOneIp_build_ip_partition_obtain:
        \<exists>s_repr. map_of (zip (map getOneIp (build_ip_partition c rs)) (build_ip_partition c rs)) s_repr = Some v"
   apply(erule distinct_map_getOneIp_obtain)
   apply(rule map_getOneIp_distinct)
-    using build_ip_partition_distinct' apply(simp; fail)
-   using build_ip_partition_disjoint build_ip_partition_distinct' apply (simp; fail)
-  using build_ip_partition_no_empty_elems[simplified] by simp
+    subgoal using build_ip_partition_distinct' by(simp)
+   subgoal using build_ip_partition_disjoint build_ip_partition_distinct' by(simp)
+  subgoal using build_ip_partition_no_empty_elems[simplified] by simp
+  done
 
-  
 
 lemma access_matrix_complete: assumes matrix: "(V,E) = access_matrix c rs" and
               allow: "runFw s d c rs = Decision FinalAllow"
