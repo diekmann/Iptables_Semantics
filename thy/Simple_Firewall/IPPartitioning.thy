@@ -162,8 +162,7 @@ proof -
       by blast
     } note helper=this
     from Cons show ?case
-     apply(simp)
-     apply(case_tac r, rename_tac m a)
+     apply(cases r, rename_tac m a)
      apply(simp)
      apply(case_tac a)
       using helper apply force+
