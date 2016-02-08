@@ -1246,9 +1246,9 @@ lemma distinct_map_getOneIp_obtain: "v \<in> set xs \<Longrightarrow> distinct (
   case Nil thus ?case by simp
   next
   case (Cons x xs)
-    from Cons.prems have "v = x \<or> v \<in> set xs" by simp
+    consider "v = x" | "v \<in> set xs" using Cons.prems(1) by fastforce
     thus ?case
-    proof(elim disjE, goal_cases)
+    proof(cases)
     case 1 thus ?thesis by simp blast
     next
     case 2 with Cons.IH Cons.prems(2) obtain s_repr where
