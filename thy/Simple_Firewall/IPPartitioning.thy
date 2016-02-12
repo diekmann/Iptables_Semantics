@@ -1066,7 +1066,6 @@ lemma getParts_disjoint_list: "disjoint_list (map wordinterval_to_set (getParts 
     apply(simp_all add: wordinterval_list_to_set_def disjoint_list_def disjoint_def)
   done
 
-(*TODO: move the hlps in here*)
 lemma build_ip_partition_distinct: "distinct (map wordinterval_to_set (build_ip_partition c rs))"
 proof -
   have hlp1: "map wordinterval_to_set (build_ip_partition c rs) =
@@ -1083,28 +1082,30 @@ proof -
     case 1 thus ?case by simp
     next
     case (2 f x xs)
-      have build_ip_partition_distinct_hlp'':
+      have hlp_internal:
           "\<Union> (set (map (\<lambda>x. \<Union> set (map wordinterval_to_set x)) (groupF f xs))) =
            \<Union> set (map wordinterval_to_set xs)" for f::"'x wordinterval \<Rightarrow> 'y" and xs
       by(induction f xs rule: groupF.induct) (auto)
+
       from 2 show ?case
-      unfolding disjoint_list_def
       apply(clarsimp, safe)
-       apply(subgoal_tac "\<not> wordinterval_to_set x \<union> (\<Union>x\<in>{xa \<in> set xs. f x = f xa}. wordinterval_to_set x) \<subseteq> \<Union> (set (map (\<lambda>x. \<Union> set (map wordinterval_to_set x)) (groupF f [y\<leftarrow>xs . f x \<noteq> f y])))")
-        apply(auto)[1]
-       apply(subgoal_tac "\<not> wordinterval_to_set x \<subseteq> \<Union> (set (map (%x. \<Union> set (map wordinterval_to_set x)) (groupF f [y\<leftarrow>xs . f x \<noteq> f y])))")
+       apply(subgoal_tac "\<not> wordinterval_to_set x \<union> (\<Union>x\<in>{xa \<in> set xs. f x = f xa}.
+          wordinterval_to_set x) \<subseteq> \<Union> (set (map (\<lambda>x. \<Union> set (map wordinterval_to_set x)) (groupF f [y\<leftarrow>xs . f x \<noteq> f y])))")
+        apply force
+       apply(subgoal_tac "\<not> wordinterval_to_set x \<subseteq> 
+          \<Union> (set (map (\<lambda>x. \<Union> set (map wordinterval_to_set x)) (groupF f [y\<leftarrow>xs . f x \<noteq> f y])))")
         apply(blast)
-       apply(subst build_ip_partition_distinct_hlp'')
+       apply(subst hlp_internal)
        apply(subgoal_tac "\<not> (wordinterval_to_set x) \<subseteq> \<Union>(wordinterval_to_set ` set xs)")
-        apply(auto)[1]
+        apply force
        apply(subgoal_tac "(wordinterval_to_set x) \<inter> \<Union>(wordinterval_to_set ` set xs) = {}")
         apply(fast)
-       unfolding disjoint_def apply(auto)[1]
+       unfolding disjoint_def disjoint_list_def apply(auto; fail)[1] (*1s*)
       apply(subgoal_tac "distinct (map wordinterval_to_set [y\<leftarrow>xs . f x \<noteq> f y])")
        apply(subgoal_tac "disjoint (wordinterval_to_set ` {xa \<in> set xs. f x \<noteq> f xa})")
-        apply(blast)
+        unfolding disjoint_list_def apply(simp; fail)
        apply(simp add: disjoint_def; fail)
-      using distinct_map_filter by metis
+      using distinct_map_filter disjoint_list_def by auto
     qed
 
 show ?thesis
