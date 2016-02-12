@@ -50,6 +50,7 @@ session "Iptables_Semantics_Examples" = Iptables_Semantics_Documentation +
     "Examples/sns.ias.edu/SNS_IAS_Eduroam_Spoofing"
     "Examples/TUM_Net_Firewall/TUM_Spoofing_new3"
     "Examples/TUM_Net_Firewall/TUM_Simple_FW"
+    "Examples/medium-sized-company/Analyze_medium_sized_company"
   document_files
     "root.tex"
     "mathpartir.sty"
