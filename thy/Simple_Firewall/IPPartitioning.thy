@@ -1073,8 +1073,8 @@ proof -
     unfolding build_ip_partition_def groupWIs3
     using build_ip_partition_disjoint_list_helper by auto
 
-  (*TODO: clean*)
-  have hlp2: "\<forall>x \<in> set xs. \<not> wordinterval_empty x \<Longrightarrow>
+  --"generic rule"
+  have "\<forall>x \<in> set xs. \<not> wordinterval_empty x \<Longrightarrow>
          disjoint_list (map wordinterval_to_set xs) \<Longrightarrow>
          distinct (map (\<lambda>x. \<Union>set (map wordinterval_to_set x)) (groupF f xs))"
          for f::"'x::len wordinterval \<Rightarrow> 'y" and xs::"'x::len wordinterval list"
@@ -1087,38 +1087,33 @@ proof -
            \<Union> set (map wordinterval_to_set xs)" for f::"'x wordinterval \<Rightarrow> 'y" and xs
       by(induction f xs rule: groupF.induct) (auto)
 
-      from 2(2) have g1: "wordinterval_to_set x \<union> (\<Union>x\<in>{xa \<in> set xs. f x = f xa}. wordinterval_to_set x)
-        \<notin> (\<lambda>x. \<Union>x\<in>set x. wordinterval_to_set x) ` set (groupF f [y\<leftarrow>xs . f x \<noteq> f y])"
-      apply(simp)
-      apply(subgoal_tac "\<not> wordinterval_to_set x \<union> (\<Union>x\<in>{xa \<in> set xs. f x = f xa}.
-         wordinterval_to_set x) \<subseteq> \<Union> (set (map (\<lambda>x. \<Union> set (map wordinterval_to_set x)) (groupF f [y\<leftarrow>xs . f x \<noteq> f y])))")
-       apply force
-      apply(subgoal_tac "\<not> wordinterval_to_set x \<subseteq>
-         \<Union> (set (map (\<lambda>x. \<Union> set (map wordinterval_to_set x)) (groupF f [y\<leftarrow>xs . f x \<noteq> f y])))")
-       apply(blast)
-      apply(subst hlp_internal)
-      apply(subgoal_tac "\<not> (wordinterval_to_set x) \<subseteq> \<Union>(wordinterval_to_set ` set xs)")
-       apply force
-      apply(subgoal_tac "(wordinterval_to_set x) \<inter> \<Union>(wordinterval_to_set ` set xs) = {}")
-       apply(fast)
-      apply(insert 2(3))
-      unfolding disjoint_def disjoint_list_def by(auto) (*1s*)
-       
-      from 2 have g2: "distinct (map (\<lambda>x. \<Union>x\<in>set x. wordinterval_to_set x) (groupF f [y\<leftarrow>xs . f x \<noteq> f y]))"
-      apply(simp)
-      apply(subgoal_tac "distinct (map wordinterval_to_set [y\<leftarrow>xs . f x \<noteq> f y])")
-       apply(subgoal_tac "disjoint (wordinterval_to_set ` {xa \<in> set xs. f x \<noteq> f xa})")
-        unfolding disjoint_list_def apply(simp; fail)
-       apply(simp add: disjoint_def; fail)
-      using distinct_map_filter disjoint_list_def by auto
+      from 2(2,3) have "wordinterval_to_set x \<inter> \<Union>(wordinterval_to_set ` set xs) = {}"
+        by(auto simp add: disjoint_def disjoint_list_def)
+      hence "\<not> (wordinterval_to_set x) \<subseteq> \<Union>(wordinterval_to_set ` set xs)" using 2(2) by auto
+      hence "\<not> wordinterval_to_set x \<subseteq> \<Union>set (map wordinterval_to_set [y\<leftarrow>xs . f x \<noteq> f y])" by auto
+      hence "\<not> wordinterval_to_set x \<union> (\<Union>x\<in>{xa \<in> set xs. f x = f xa}.
+         wordinterval_to_set x) \<subseteq> \<Union> (set (map (\<lambda>x. \<Union> set (map wordinterval_to_set x)) (groupF f [y\<leftarrow>xs . f x \<noteq> f y])))" 
+      unfolding hlp_internal by blast
+      hence g1: "wordinterval_to_set x \<union> (\<Union>x\<in>{xa \<in> set xs. f x = f xa}. wordinterval_to_set x)
+        \<notin> (\<lambda>x. \<Union>x\<in>set x. wordinterval_to_set x) ` set (groupF f [y\<leftarrow>xs . f x \<noteq> f y])" by force
+      
+      from 2(3) have "distinct (map wordinterval_to_set [y\<leftarrow>xs . f x \<noteq> f y])"
+        by (simp add: disjoint_list_def  distinct_map_filter) 
+      moreover from 2 have "disjoint (wordinterval_to_set ` {xa \<in> set xs. f x \<noteq> f xa})"
+       by(simp add: disjoint_def disjoint_list_def)
+      ultimately have g2: "distinct (map (\<lambda>x. \<Union>x\<in>set x. wordinterval_to_set x) (groupF f [y\<leftarrow>xs . f x \<noteq> f y]))"
+        using 2(1,2) unfolding disjoint_list_def by(simp)
 
       from g1 g2 show ?case by simp
     qed
+    with getParts_disjoint_list getParts_nonempty_elems have
+      "distinct
+     (map (\<lambda>x. \<Union>set (map wordinterval_to_set x))
+       (groupF (\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) (map getOneIp (getParts rs)),
+                      map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp (getParts rs))))
+         (getParts rs)))" by blast
 
-show ?thesis
-  unfolding hlp1 groupWIs_def Let_def
-  apply(rule hlp2)
-   using getParts_disjoint_list getParts_nonempty_elems by auto
+  thus ?thesis unfolding hlp1 groupWIs_def Let_def by presburger
 qed
 
 lemma build_ip_partition_distinct': "distinct (build_ip_partition c rs)"
