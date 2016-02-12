@@ -369,4 +369,29 @@ begin
 
 end
 
+
+context
+begin
+ private local_setup \<open>
+    local_setup_parse_iptables_save "filter" @{binding fw14} ["medium-sized-company", "iptables-save"]
+   \<close>
+ thm fw14_def
+ private definition "ipassmt14 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
+  (Iface ''eth0'', [(ipv4addr_of_dotdecimal (172,16,2,0),24)])
+  ]"
+
+  value[code] "bench upper_closure INP ipassmt14 fw14_INPUT_default_policy fw14"
+  value[code] "view upper_closure INP ipassmt14 fw14_INPUT_default_policy fw14"
+
+  value[code] "bench lower_closure INP ipassmt14 fw14_INPUT_default_policy fw14"
+  value[code] "view lower_closure INP ipassmt14 fw14_INPUT_default_policy fw14"
+
+  value[code] "bench upper_closure FWD ipassmt14 fw14_FORWARD_default_policy fw14"
+  value[code] "view upper_closure FWD ipassmt14 fw14_FORWARD_default_policy fw14"
+
+  value[code] "bench lower_closure FWD ipassmt14 fw14_FORWARD_default_policy fw14"
+  value[code] "view lower_closure FWD ipassmt14 fw14_FORWARD_default_policy fw14"
+
+end
+
 end
