@@ -1089,10 +1089,11 @@ proof -
 
       from 2 show ?case
       apply(clarsimp, safe)
+       subgoal
        apply(subgoal_tac "\<not> wordinterval_to_set x \<union> (\<Union>x\<in>{xa \<in> set xs. f x = f xa}.
           wordinterval_to_set x) \<subseteq> \<Union> (set (map (\<lambda>x. \<Union> set (map wordinterval_to_set x)) (groupF f [y\<leftarrow>xs . f x \<noteq> f y])))")
         apply force
-       apply(subgoal_tac "\<not> wordinterval_to_set x \<subseteq> 
+       apply(subgoal_tac "\<not> wordinterval_to_set x \<subseteq>
           \<Union> (set (map (\<lambda>x. \<Union> set (map wordinterval_to_set x)) (groupF f [y\<leftarrow>xs . f x \<noteq> f y])))")
         apply(blast)
        apply(subst hlp_internal)
@@ -1100,12 +1101,14 @@ proof -
         apply force
        apply(subgoal_tac "(wordinterval_to_set x) \<inter> \<Union>(wordinterval_to_set ` set xs) = {}")
         apply(fast)
-       unfolding disjoint_def disjoint_list_def apply(auto; fail)[1] (*1s*)
+       unfolding disjoint_def disjoint_list_def by(auto; fail)[1] (*1s*)
+      subgoal
       apply(subgoal_tac "distinct (map wordinterval_to_set [y\<leftarrow>xs . f x \<noteq> f y])")
        apply(subgoal_tac "disjoint (wordinterval_to_set ` {xa \<in> set xs. f x \<noteq> f xa})")
         unfolding disjoint_list_def apply(simp; fail)
        apply(simp add: disjoint_def; fail)
       using distinct_map_filter disjoint_list_def by auto
+      done
     qed
 
 show ?thesis
