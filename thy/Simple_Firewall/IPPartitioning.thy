@@ -503,23 +503,7 @@ proof -
     using same_fw_behaviour_one_equi(3) by metis
 qed
   
-lemma same_behave_runFw:
-  assumes a1: "\<forall>A \<in> set (map wordinterval_to_set W). \<forall>a1 \<in> A. \<forall>a2 \<in> A. same_fw_behaviour_one a1 a2 c rs"
-  and a2: "wordinterval_list_to_set W = UNIV"
-  and a3: "\<forall>w \<in> set W. \<not> wordinterval_empty w"
-  and a4: "(map (\<lambda>d. runFw x1 d c rs) (map getOneIp W), map (\<lambda>s. runFw s x1 c rs) (map getOneIp W)) =
-           (map (\<lambda>d. runFw x2 d c rs) (map getOneIp W), map (\<lambda>s. runFw s x2 c rs) (map getOneIp W))"
-  shows "same_fw_behaviour_one x1 x2 c rs"
-proof -
-  from a3 a4 getOneIp_elem
-    have b1: "\<forall>B \<in> set (map wordinterval_to_set W). \<exists>b \<in> B. runFw x1 b c rs = runFw x2 b c rs"
-    by fastforce
-  from a3 a4 getOneIp_elem
-    have b2: "\<forall>B \<in> set (map wordinterval_to_set W). \<exists>b \<in> B. runFw b x1 c rs = runFw b x2 c rs"
-    by fastforce
-  from runFw_sameFw_behave[OF a1 _ b1 b2] a2[unfolded wordinterval_list_to_set_def] show "same_fw_behaviour_one x1 x2 c rs" by simp
-qed
-
+(*TODO: delete*)
 lemma same_behave_runFw_not:
       "(map (\<lambda>d. runFw x1 d c rs) W, map (\<lambda>s. runFw s x1 c rs) W) \<noteq>
        (map (\<lambda>d. runFw x2 d c rs) W, map (\<lambda>s. runFw s x2 c rs) W) \<Longrightarrow>
@@ -621,8 +605,27 @@ proof -
   from getParts_same_fw_behaviour same_fw_spec
     have b1: "\<forall>A \<in> set (map wordinterval_to_set (getParts rs)) . \<forall>a1 \<in> A. \<forall>a2 \<in> A.
               same_fw_behaviour_one a1 a2 c rs" by fast
-  from getParts_nonempty_elems have "\<forall>w\<in>set (getParts rs). \<not> wordinterval_empty w" by simp
-  from same_behave_runFw[OF b1 getParts_complete this]
+  from getParts_complete have complete: "\<Union>set (map wordinterval_to_set (getParts rs)) = UNIV"
+    by(simp add: wordinterval_list_to_set_def)
+  from getParts_nonempty_elems have nonempty: "\<forall>w\<in>set (getParts rs). \<not> wordinterval_empty w" by simp
+
+  { fix W x1 x2
+    assume a1: "\<forall>A \<in> set (map wordinterval_to_set W). \<forall>a1 \<in> A. \<forall>a2 \<in> A. same_fw_behaviour_one a1 a2 c rs"
+    and a2: "wordinterval_list_to_set W = UNIV"
+    and a3: "\<forall>w \<in> set W. \<not> wordinterval_empty w"
+    and a4: "(map (\<lambda>d. runFw x1 d c rs) (map getOneIp W), map (\<lambda>s. runFw s x1 c rs) (map getOneIp W)) =
+             (map (\<lambda>d. runFw x2 d c rs) (map getOneIp W), map (\<lambda>s. runFw s x2 c rs) (map getOneIp W))"
+      from a3 a4 getOneIp_elem
+        have b1: "\<forall>B \<in> set (map wordinterval_to_set W). \<exists>b \<in> B. runFw x1 b c rs = runFw x2 b c rs"
+        by fastforce
+      from a3 a4 getOneIp_elem
+        have b2: "\<forall>B \<in> set (map wordinterval_to_set W). \<exists>b \<in> B. runFw b x1 c rs = runFw b x2 c rs"
+        by fastforce
+      from runFw_sameFw_behave[OF a1 _ b1 b2] a2[unfolded wordinterval_list_to_set_def] have
+        "same_fw_behaviour_one x1 x2 c rs" by simp
+  } note same_behave_runFw=this
+
+  from same_behave_runFw[OF b1 getParts_complete nonempty]
        groupF_lem[of "(\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) (map getOneIp (getParts rs)),
                              map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp (getParts rs))))"
                      "(getParts rs)"] asm
