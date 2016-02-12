@@ -1231,14 +1231,7 @@ qed
 
 
 
-(*TODO: access_matrix_complete*)
-
-corollary build_ip_partition_obtain: 
-  fixes s::ipv4addr obtains V where "V \<in> set (build_ip_partition c rs)" and "s \<in> wordinterval_to_set V"
-  using build_ip_partition_complete 
-  by fast
-
-
+(*TODO: move to generic lib*)
 lemma distinct_map_getOneIp_obtain: "v \<in> set xs \<Longrightarrow> distinct (map getOneIp xs) \<Longrightarrow> 
   \<exists>s_repr. map_of (zip (map getOneIp xs) xs) s_repr = Some v"
   proof(induction xs)
@@ -1260,17 +1253,6 @@ lemma distinct_map_getOneIp_obtain: "v \<in> set xs \<Longrightarrow> distinct (
       qed
     qed
   qed
-  
-
-lemma distinct_map_getOneIp_build_ip_partition_obtain:
-    "v \<in> set (build_ip_partition c rs) \<Longrightarrow>
-       \<exists>s_repr. map_of (zip (map getOneIp (build_ip_partition c rs)) (build_ip_partition c rs)) s_repr = Some v"
-  apply(erule distinct_map_getOneIp_obtain)
-  apply(rule map_getOneIp_distinct)
-    subgoal using build_ip_partition_distinct' by(simp)
-   subgoal using build_ip_partition_disjoint build_ip_partition_distinct' by(simp)
-  subgoal using build_ip_partition_no_empty_elems[simplified] by simp
-  done
 
 
 lemma access_matrix_complete: assumes matrix: "(V,E) = access_matrix c rs" and
@@ -1284,6 +1266,22 @@ lemma access_matrix_complete: assumes matrix: "(V,E) = access_matrix c rs" and
       using matrix by(simp add: access_matrix_def Let_def)
     have E: "E = [(s, d)\<leftarrow>all_pairs (map getOneIp ?part). runFw s d c rs = Decision FinalAllow]"
       using matrix by(simp add: access_matrix_def Let_def)
+
+
+    have build_ip_partition_obtain:
+      "\<exists>V. V \<in> set (build_ip_partition c rs) \<and> s \<in> wordinterval_to_set V" for s
+      using build_ip_partition_complete by fast
+
+    have distinct_map_getOneIp_build_ip_partition_obtain:
+        "v \<in> set (build_ip_partition c rs) \<Longrightarrow>
+           \<exists>s_repr. map_of (zip (map getOneIp (build_ip_partition c rs)) (build_ip_partition c rs)) s_repr = Some v"
+      for v rs
+      apply(erule distinct_map_getOneIp_obtain)
+      apply(rule map_getOneIp_distinct)
+        subgoal using build_ip_partition_distinct' by(simp)
+       subgoal using build_ip_partition_disjoint build_ip_partition_distinct' by(simp)
+      subgoal using build_ip_partition_no_empty_elems[simplified] by simp
+      done
 
     from build_ip_partition_obtain obtain s_range where
       "s_range \<in> set ?part" and "s \<in> wordinterval_to_set s_range" by blast
