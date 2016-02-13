@@ -1016,9 +1016,6 @@ lemma map_wordinterval_to_set_distinct:
   and notempty: "\<forall>x \<in> set xs. \<not> wordinterval_empty x"
   shows "distinct (map wordinterval_to_set xs)"
   proof -
-    (*have "\<not> wordinterval_empty x1 \<Longrightarrow> 
-        wordinterval_to_set x1 \<inter> wordinterval_to_set x2 = {} \<Longrightarrow> x1 \<noteq> x2" for x1::"('b::len) wordinterval" and x2
-      by fastforce *)
     have "\<not> wordinterval_empty x1 \<Longrightarrow> 
         wordinterval_to_set x1 \<inter> wordinterval_to_set x2 = {} \<Longrightarrow> 
         wordinterval_to_set x1 \<noteq> wordinterval_to_set x2" for x1::"('b::len) wordinterval" and x2
@@ -1050,31 +1047,32 @@ lemma map_getOneIp_distinct: assumes
   qed
 
 
-lemma build_ip_partition_disjoint_list_helper: 
-  "(wordinterval_to_set \<circ> (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval))) ws
-       = \<Union> set (map wordinterval_to_set ws)"
-  proof(induction ws)
-  qed(simp_all add: wordinterval_compress)
-
-
-lemma disjoint_list_partitioningIps: 
-  "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list (map wordinterval_to_set ts) \<Longrightarrow> 
-   (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow>
-   disjoint_list (map wordinterval_to_set (partitioningIps ss ts))"
-by (simp add: partitioning1_disjoint_list partitioningIps_equi wordinterval_list_to_set_def)
-
 lemma getParts_disjoint_list: "disjoint_list (map wordinterval_to_set (getParts rs))"
-  apply(subst getParts_def)
-  apply(rule disjoint_list_partitioningIps)
-    apply(simp_all add: wordinterval_list_to_set_def disjoint_list_def disjoint_def)
-  done
+proof-
+  have disjoint_list_partitioningIps: 
+    "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list (map wordinterval_to_set ts) \<Longrightarrow> 
+     (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow>
+     disjoint_list (map wordinterval_to_set (partitioningIps ss ts))"
+     for ts::"'a::len wordinterval list" and ss
+  by (simp add: partitioning1_disjoint_list partitioningIps_equi wordinterval_list_to_set_def)
+  have "{} \<notin> set (map wordinterval_to_set [wordinterval_UNIV])"
+  and "disjoint_list (map wordinterval_to_set [wordinterval_UNIV])"
+  and "wordinterval_list_to_set (extract_IPSets rs) \<subseteq> wordinterval_list_to_set [wordinterval_UNIV]"
+    by(simp add: wordinterval_list_to_set_def disjoint_list_def disjoint_def)+
+  thus ?thesis
+  unfolding getParts_def by(rule disjoint_list_partitioningIps)
+qed
 
 lemma build_ip_partition_distinct: "distinct (map wordinterval_to_set (build_ip_partition c rs))"
 proof -
-  have hlp1: "map wordinterval_to_set (build_ip_partition c rs) =
+  have  
+  "(wordinterval_to_set \<circ> (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval))) ws
+       = \<Union> set (map wordinterval_to_set ws)" for ws::"'a::len wordinterval list"
+    proof(induction ws)
+    qed(simp_all add: wordinterval_compress)
+  hence hlp1: "map wordinterval_to_set (build_ip_partition c rs) =
                    map (\<lambda>x. \<Union> set (map wordinterval_to_set x)) (groupWIs c rs)"
-    unfolding build_ip_partition_def groupWIs3
-    using build_ip_partition_disjoint_list_helper by auto
+    unfolding build_ip_partition_def groupWIs3 by auto
 
   --"generic rule"
   have "\<forall>x \<in> set xs. \<not> wordinterval_empty x \<Longrightarrow>
