@@ -989,17 +989,18 @@ lemma wordinterval_empty_wordinterval_compress: "wordinterval_empty (wordinterva
   by (simp add: wordinterval_compress) 
 
 
-(*TODO: ugly proof, apply before proof-*)
 lemma build_ip_partition_no_empty_elems: "wi \<in> set (build_ip_partition c rs) \<Longrightarrow> \<not> wordinterval_empty wi"
-  proof(simp add: build_ip_partition_def groupWIs3)
-    assume assm: "wi \<in> (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) ` set (groupWIs c rs)"
+  proof -
+    assume "wi \<in> set (build_ip_partition c rs)"
+    hence assm: "wi \<in> (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) ` set (groupWIs c rs)"
+      by(simp add: build_ip_partition_def groupWIs3)
     from assm obtain wi_orig where 1: "wi_orig \<in>  set (groupWIs c rs)" and
        2: "wi = wordinterval_compress (foldr wordinterval_union wi_orig Empty_WordInterval)" by blast
     from 1 groupWIs_not_empty_elem have i1: "wi_orig \<noteq> []" by simp
     from 1 groupWIs_not_empty_elems have i2: "\<And>w. w \<in> set wi_orig \<Longrightarrow> \<not> wordinterval_empty w" by simp
     from i1 i2 have "wordinterval_to_set (foldr wordinterval_union wi_orig Empty_WordInterval) \<noteq> {}"
       by(induction wi_orig) simp_all
-    with 2 show "wordinterval_to_set wi \<noteq> {}" by(simp add: wordinterval_compress)
+    with 2 show ?thesis by(simp add: wordinterval_compress)
   qed
 
 
