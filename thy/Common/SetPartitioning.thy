@@ -28,12 +28,15 @@ fun disjoint_list_rec :: "'a set list \<Rightarrow> bool" where
   "disjoint_list_rec [] = True" |
   "disjoint_list_rec (x#xs) = (x \<inter> \<Union> set xs = {} \<and> disjoint_list_rec xs)"
 
-
 lemma disjoint_equi: "disjoint_list_rec ts \<Longrightarrow> disjoint (set ts)"
   apply(induction ts)
    apply(simp_all add: disjoint_list_def disjoint_def)
   by fast
 
+lemma "disjoint (set ts) \<and> distinct ts \<Longrightarrow> disjoint_list_rec ts"
+  apply(induction ts)
+   apply(simp_all add: disjoint_list_def disjoint_def)
+  by fast
 
 
 (* FUNCTIONS *)
@@ -128,12 +131,11 @@ proof -
 qed
 
 lemma ipPartitioningAddSubset2: "ipPartition {a} (addSubsetSet a ts)"
-  apply(simp_all add: addSubsetSet_def ipPartition_def) 
+  apply(simp add: addSubsetSet_def ipPartition_def) 
   by blast
 
 lemma disjointPartitioning_helper :"disjoint As \<Longrightarrow> disjoint (partitioning ss As)"
   proof(induction ss arbitrary: As)
-  print_cases
   case Nil thus ?case by(simp)
   next
   case (Cons s ss)
@@ -154,7 +156,7 @@ proof -
   have "\<Union> (set ts \<union> As) = \<Union> (partitioning ts As)" for As
   apply(induction ts arbitrary: As)
    apply(simp_all)
-  by(metis Sup_insert Union_Un_distrib  coversallAddSubset sup.left_commute)
+  by (metis Union_addSubsetSet sup_left_commute)
   thus ?thesis by (metis sup_bot.right_neutral)
 qed
 
@@ -331,22 +333,18 @@ fun partList4 :: "'a set \<Rightarrow> 'a set list \<Rightarrow> 'a set list" wh
 lemma partList4: "set (partList3 s ts) = set (partList4 s ts)"
   apply(induction ts arbitrary: s)
    apply(simp; fail)
-  apply(simp)
-  apply(intro conjI impI)
   apply (simp add: Diff_triv)
   done
 (*TODO: use partList4 every time instead of partList3*)
 
 lemma partList0_addSubsetSet_equi: "s \<subseteq> \<Union>(set ts) \<Longrightarrow> 
                                     addSubsetSet s (set ts) - {{}} = set(partList0 s ts) - {{}}"
-  apply(simp add: addSubsetSet_def partList0_set_equi)
-done
+  by(simp add: addSubsetSet_def partList0_set_equi)
 
 lemma partList3_addSubsetSet_equi: "disjoint_list_rec ts \<Longrightarrow> s \<subseteq> \<Union>(set ts) \<Longrightarrow>
                                     addSubsetSet s (set ts) - {{}} = set (partList3 s ts) - {{}}"
-  apply(simp add: partList0_addSubsetSet_equi partList0_partList1_equi partList1_partList3_equi
+  by(simp add: partList0_addSubsetSet_equi partList0_partList1_equi partList1_partList3_equi
                partList2_partList3_equi)
-done
 
 fun partitioning_nontail :: "'a set list \<Rightarrow> 'a set set \<Rightarrow> 'a set set" where
   "partitioning_nontail [] ts = ts" |
@@ -393,11 +391,7 @@ lemma partList3_subset: "a \<subseteq> \<Union>(set ts) \<Longrightarrow> a \<su
   apply(simp)
   by fast
 
-lemma "a \<noteq> {} \<Longrightarrow> disjoint_list_rec (a # ts) \<longleftrightarrow> disjoint_list_rec ts \<and> a \<inter> \<Union> (set ts) = {}"
-  apply(induction ts arbitrary: a)
-   apply(simp; fail)
-  by force
-
+lemma "a \<noteq> {} \<Longrightarrow> disjoint_list_rec (a # ts) \<longleftrightarrow> disjoint_list_rec ts \<and> a \<inter> \<Union> (set ts) = {}" by auto
 
 lemma partList3_complete0: "s \<subseteq> \<Union> set ts \<Longrightarrow> \<Union> set ts = \<Union> set (partList3 s ts)"
 proof(induction ts arbitrary: s)
@@ -405,7 +399,6 @@ proof(induction ts arbitrary: s)
   next
   case Cons thus ?case by (simp add: Diff_subset_conv Un_Diff_Int inf_sup_aci(7) sup.commute)
 qed
-
 
 lemma partList3_disjoint: "s \<subseteq> \<Union> set ts \<Longrightarrow> disjoint_list_rec ts \<Longrightarrow> 
                            disjoint_list_rec (partList3 s ts)"
