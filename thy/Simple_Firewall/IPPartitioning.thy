@@ -322,19 +322,6 @@ lemma getParts_complete: "wordinterval_list_to_set (getParts rs) = UNIV"
   finally show ?thesis .
 qed
 
-(*
-lemma getParts_disjoint: "disjoint_list_rec (map wordinterval_to_set (getParts rs))"
- proof -
-  have disjoint_partitioningIps: 
-    "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
-     (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow>
-     disjoint_list_rec (map wordinterval_to_set (partitioningIps ss ts))"
-  for ss ts::"32 wordinterval list"
-    by (simp add: partitioning1_disjoint partitioningIps_equi wordinterval_list_to_set_def)
-  thus ?thesis by(simp add: getParts_def wordinterval_list_to_set_def)
-qed
-*)
-
 theorem getParts_samefw: 
   assumes "A \<in> set (map wordinterval_to_set (getParts rs))" "s1 \<in> A" "s2 \<in> A" 
   shows "simple_fw rs (p\<lparr>p_src:=s1\<rparr>) = simple_fw rs (p\<lparr>p_src:=s2\<rparr>) \<and>
