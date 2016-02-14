@@ -322,6 +322,7 @@ lemma getParts_complete: "wordinterval_list_to_set (getParts rs) = UNIV"
   finally show ?thesis .
 qed
 
+(*
 lemma getParts_disjoint: "disjoint_list_rec (map wordinterval_to_set (getParts rs))"
  proof -
   have disjoint_partitioningIps: 
@@ -332,7 +333,7 @@ lemma getParts_disjoint: "disjoint_list_rec (map wordinterval_to_set (getParts r
     by (simp add: partitioning1_disjoint partitioningIps_equi wordinterval_list_to_set_def)
   thus ?thesis by(simp add: getParts_def wordinterval_list_to_set_def)
 qed
-
+*)
 
 theorem getParts_samefw: 
   assumes "A \<in> set (map wordinterval_to_set (getParts rs))" "s1 \<in> A" "s2 \<in> A" 
