@@ -30,10 +30,10 @@ fun disjoint_list_rec :: "'a set list \<Rightarrow> bool" where
 
 lemma disjoint_equi: "disjoint_list_rec ts \<Longrightarrow> disjoint (set ts)"
   apply(induction ts)
-   apply(simp_all add: disjoint_list_def disjoint_def)
+   apply(simp_all add: disjoint_def)
   by fast
 
-lemma "disjoint (set ts) \<and> distinct ts \<Longrightarrow> disjoint_list_rec ts"
+lemma disjoint_list_disjoint_list_rec: "disjoint_list ts \<Longrightarrow> disjoint_list_rec ts"
   apply(induction ts)
    apply(simp_all add: disjoint_list_def disjoint_def)
   by fast
@@ -527,13 +527,14 @@ lemma partitioning_equi: "{} \<notin> set ts \<Longrightarrow> disjoint_list_rec
   by (metis Diff_empty Diff_insert0 partList3_addSubsetSet_equi partList3_empty
             partitioning1_disjoint partitioning1_empty0 partitioning1_subset)
 
-lemma ipPartitioning_helper_opt: "{} \<notin> set ts \<Longrightarrow> disjoint_list_rec ts \<Longrightarrow> \<Union> (set ss) \<subseteq> \<Union> (set ts) 
+lemma ipPartitioning_helper_opt: "{} \<notin> set ts \<Longrightarrow> disjoint_list ts \<Longrightarrow> \<Union> (set ss) \<subseteq> \<Union> (set ts) 
                                   \<Longrightarrow> ipPartition (set ss) (set (partitioning1 ss ts))"
-  apply(simp add: partitioning_equi partitioning_nottail_equi ipPartitioning_helper)
+  apply(drule disjoint_list_disjoint_list_rec)
+  apply(simp add: partitioning_equi partitioning_nottail_equi)
   by (meson Diff_subset disjoint_equi ipPartition_def ipPartitioning_helper subsetCE)
 
-lemma complete_helper: "{} \<notin> set ts \<Longrightarrow> disjoint_list_rec ts \<Longrightarrow> \<Union> (set ss) \<subseteq> \<Union> (set ts) 
-                                  \<Longrightarrow> \<Union> (set ts) = \<Union> (set (partitioning1 ss ts))"
+lemma complete_helper: "{} \<notin> set ts \<Longrightarrow> \<Union> (set ss) \<subseteq> \<Union> (set ts)\<Longrightarrow>
+      \<Union> (set ts) = \<Union> (set (partitioning1 ss ts))"
   apply(induction ss arbitrary: ts)
    apply(simp_all)
   by (metis partList3_complete0)
@@ -561,7 +562,8 @@ lemma "partitioning1 X B = foldr partList3 X B"
   by(induction X)(simp_all)
 
 lemma "ipPartition (set X) (set (partitioning1 X [UNIV]))"
-by(rule ipPartitioning_helper_opt) (simp_all)
+apply(rule ipPartitioning_helper_opt)
+  by(simp_all add: disjoint_list_def disjoint_def)
 
 lemma "(\<Union>(set (partitioning1 X [UNIV]))) = UNIV"
 apply(subgoal_tac "UNIV = \<Union> (set (partitioning1 X [UNIV]))")

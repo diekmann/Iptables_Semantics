@@ -292,15 +292,18 @@ qed
 lemma getParts_ipPartition: "ipPartition (set (map wordinterval_to_set (extract_IPSets rs)))
                                          (set (map wordinterval_to_set (getParts rs)))"
 proof -
-  have "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
+  have hlp_rule: "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list (map wordinterval_to_set ts) \<Longrightarrow> 
      (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow> 
      ipPartition (set (map wordinterval_to_set ss)) 
                  (set (map wordinterval_to_set (partitioningIps ss ts)))" for ts ss::"32 wordinterval list"
   by (metis ipPartitioning_helper_opt partitioningIps_equi wordinterval_list_to_set_def)
-  hence "ipPartition (set (map wordinterval_to_set ss)) 
+  have "disjoint_list [UNIV]" by(simp add: disjoint_list_def disjoint_def)
+  have "ipPartition (set (map wordinterval_to_set ss)) 
                    (set (map wordinterval_to_set (partitioningIps ss [wordinterval_UNIV])))"
      for ss::"32 wordinterval list"
-  by(simp add: wordinterval_list_to_set_def)
+  apply(rule hlp_rule)
+    apply(simp_all add: wordinterval_list_to_set_def `disjoint_list [UNIV]`)
+  done
   thus ?thesis
   unfolding getParts_def by blast
 qed
@@ -308,7 +311,7 @@ qed
 
 lemma getParts_complete: "wordinterval_list_to_set (getParts rs) = UNIV"
   proof -
-  have "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow> disjoint_list_rec (map wordinterval_to_set ts) \<Longrightarrow> 
+  have "{} \<notin> set (map wordinterval_to_set ts) \<Longrightarrow>
      (wordinterval_list_to_set ss) \<subseteq> (wordinterval_list_to_set ts) \<Longrightarrow> 
      wordinterval_list_to_set (partitioningIps ss ts) = (wordinterval_list_to_set ts)"
      for ss ts::"32 wordinterval list"
