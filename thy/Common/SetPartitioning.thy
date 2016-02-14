@@ -226,22 +226,28 @@ lemma disjoint_subset: "disjoint A \<Longrightarrow> a \<in> A \<Longrightarrow>
 lemma disjoint_intersection: "disjoint A \<Longrightarrow> a \<in> A \<Longrightarrow> disjoint ({a \<inter> b} \<union> (A - {a}))"
   apply(simp add: disjoint_def)
   by(blast)
- 
-lemma intersection_list_opt_lem0: "\<forall>t \<in> set(ts). u \<inter> t = {} \<Longrightarrow>
-                                  intersection_list_opt s ts = intersection_list_opt (s - u) ts"
-  apply(induction ts arbitrary: s u)
-   apply(simp_all)
-  by (metis Diff_Int_distrib2 Diff_empty Diff_eq Un_Diff_Int sup_bot.right_neutral)
-
-lemma intersection_list_opt_lem1: "disjoint_list_rec (t # ts) \<Longrightarrow>
-                                   intersection_list_opt s ts = intersection_list_opt (s - t) ts"
-  apply(induction ts arbitrary: s t)
-  apply(simp_all add: intersection_list_opt_lem0)
-by (metis Diff_Int_distrib2 Diff_empty Un_empty inf_sup_distrib1)
 
 lemma intList_equi: "disjoint_list_rec ts \<Longrightarrow> intersection_list s ts = intersection_list_opt s ts"
-  apply(induction ts arbitrary: s)
-  by(simp_all add: intersection_list_opt_lem1)
+  proof(induction ts)
+  case Nil thus ?case by simp
+  next
+  case (Cons t ts)
+  from Cons.prems have "intersection_list_opt s ts = intersection_list_opt (s - t) ts"
+    proof(induction ts arbitrary: s t)
+    case Nil thus ?case by simp
+    next
+    case Cons
+    have "\<forall>t \<in> set ts. u \<inter> t = {} \<Longrightarrow> intersection_list_opt s ts = intersection_list_opt (s - u) ts"
+      for u
+      apply(induction ts arbitrary: s u)
+       apply(simp_all)
+      by (metis Diff_Int_distrib2 Diff_empty Diff_eq Un_Diff_Int sup_bot.right_neutral)
+    with Cons show ?case
+      apply(simp)
+      by (metis Diff_Int_distrib2 Diff_empty Un_empty inf_sup_distrib1)
+    qed
+  with Cons show ?case by simp
+  qed
 
 fun difference_list :: "'a set \<Rightarrow> 'a set list \<Rightarrow> 'a set list" where
   "difference_list _ [] = []" |
