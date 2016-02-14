@@ -295,7 +295,7 @@ context begin
                             set(difference_list_opt s ts) \<union> set(intersection_list_opt s ts)" 
     by(induction ts arbitrary: s) (simp_all)
   
-  private lemma partList0_partList1_equi: "disjoint_list_rec ts \<Longrightarrow> set(partList0 s ts) = set(partList1 s ts)"
+  private lemma partList0_partList1_equi: "disjoint_list_rec ts \<Longrightarrow> set (partList0 s ts) = set (partList1 s ts)"
     by (simp add: partList_sub_equi partList_sub_equi0 intList_equi difList_equi)
   
   fun partList2 :: "'a set \<Rightarrow> 'a set list \<Rightarrow> 'a set list" where
@@ -344,11 +344,6 @@ context begin
                                       addSubsetSet s (set ts) - {{}} = set(partList0 s ts) - {{}}"
     by(simp add: addSubsetSet_def partList0_set_equi)
   
-  private lemma partList3_addSubsetSet_equi: "disjoint_list_rec ts \<Longrightarrow> s \<subseteq> \<Union>(set ts) \<Longrightarrow>
-                                      addSubsetSet s (set ts) - {{}} = set (partList3 s ts) - {{}}"
-    by(simp add: partList0_addSubsetSet_equi partList0_partList1_equi partList1_partList3_equi
-                 partList2_partList3_equi)
-  
   fun partitioning_nontail :: "'a set list \<Rightarrow> 'a set set \<Rightarrow> 'a set set" where
     "partitioning_nontail [] ts = ts" |
     "partitioning_nontail (s#ss) ts = addSubsetSet s (partitioning_nontail ss ts)"
@@ -368,10 +363,6 @@ context begin
   fun partitioning1 :: "'a set list \<Rightarrow> 'a set list \<Rightarrow> 'a set list" where
     "partitioning1 [] ts = ts" |
     "partitioning1 (s#ss) ts = partList3 s (partitioning1 ss ts)"
-  
-  lemma addSubsetSet_empty: "addSubsetSet s ts - {{}} = addSubsetSet s (ts - {{}}) - {{}}"
-    apply(simp add: addSubsetSet_def)
-    by blast
   
   lemma partList3_empty: "{} \<notin> set ts \<Longrightarrow> {} \<notin> set (partList3 s ts)"
     apply(induction ts arbitrary: s)
@@ -513,16 +504,28 @@ context begin
                                  disjoint_list_rec ts \<Longrightarrow> disjoint_list_rec (partitioning1 ss ts)"
     proof(induction ss arbitrary: ts)
     qed(simp_all add: partList3_disjoint partitioning1_subset)
-  
+
   private lemma partitioning_equi: "{} \<notin> set ts \<Longrightarrow> disjoint_list_rec ts \<Longrightarrow> \<Union> (set ss) \<subseteq> \<Union> (set ts) \<Longrightarrow>
            set(partitioning1 ss ts) = partitioning_nontail ss (set ts) - {{}}"
-    apply(induction ss arbitrary: ts)
-     apply(simp; fail)
-    apply(simp add: partList3_addSubsetSet_equi addSubsetSetCom partitioning1_empty0 
-                    partitioning1_disjoint partitioning1_subset)
-    apply(subst addSubsetSet_empty)
-    by (metis Diff_empty Diff_insert0 partList3_addSubsetSet_equi partList3_empty
-              partitioning1_disjoint partitioning1_empty0 partitioning1_subset)
+    proof(induction ss)
+    case Nil thus ?case by simp
+    next
+    case (Cons s ss)
+      have addSubsetSet_empty: "addSubsetSet s (ts - {{}}) - {{}} = addSubsetSet s ts - {{}}"
+        for s and ts::"'a set set"
+        unfolding addSubsetSet_def by blast
+      have r: "disjoint_list_rec ts \<Longrightarrow> s \<subseteq> \<Union>(set ts) \<Longrightarrow>
+                                        addSubsetSet s (set ts) - {{}} = set (partList3 s ts) - {{}}"
+        for ts::"'a set list"
+        by(simp add: partList0_addSubsetSet_equi partList0_partList1_equi partList1_partList3_equi
+                   partList2_partList3_equi)
+      have 1: "disjoint_list_rec (partitioning1 ss ts)"
+        using partitioning1_disjoint Cons.prems by auto
+      from Cons.prems have 2: "s \<subseteq> \<Union>set (partitioning1 ss ts)"
+        by (meson Sup_upper dual_order.trans list.set_intros(1) partitioning1_subset)
+      from Cons have IH: "set (partitioning1 ss ts) = partitioning_nontail ss (set ts) - {{}}" by auto
+      with r[OF 1 2] show ?case by (simp add: partList3_empty addSubsetSet_empty)
+    qed
   
   lemma ipPartitioning_helper_opt: "{} \<notin> set ts \<Longrightarrow> disjoint_list ts \<Longrightarrow> \<Union> (set ss) \<subseteq> \<Union> (set ts) 
                                     \<Longrightarrow> ipPartition (set ss) (set (partitioning1 ss ts))"
