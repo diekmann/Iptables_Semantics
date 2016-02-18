@@ -3,7 +3,10 @@ imports List_Group Sort_Descending
   "../Bitmagic/IPv4Addr"
 begin
 
-datatype 'a undefined_behavior = Defined 'a | Undefined
+datatype 'a flowtable_behavior = Action 'a | NoAction | Undefined
+
+definition "option_to_ftb b \<equiv> case b of Some a \<Rightarrow> Action a | None \<Rightarrow> NoAction"
+definition "ftb_to_option b \<equiv> case b of Action a \<Rightarrow> Some a | NoAction \<Rightarrow> None"
 
 section{*OpenFlow*}
 
@@ -40,13 +43,13 @@ OFP 1.0.0 also stated that non-wildcarded matches implicitly have the highest pr
 type_synonym ('m, 'a) flowtable = "(('m, 'a) flow_entry_match) list"
 type_synonym ('m, 'p) field_matcher = "('m set \<Rightarrow> 'p \<Rightarrow> bool)"
 
-definition OF_same_priority_match2 :: "('m, 'p) field_matcher \<Rightarrow> ('m, 'a) flowtable \<Rightarrow> 'p \<Rightarrow> ('a option) undefined_behavior" where
+definition OF_same_priority_match2 :: "('m, 'p) field_matcher \<Rightarrow> ('m, 'a) flowtable \<Rightarrow> 'p \<Rightarrow> 'a flowtable_behavior" where
   "OF_same_priority_match2 \<gamma> flow_entries packet \<equiv> let s = 
   	{ofe_action f|f. f \<in> set flow_entries \<and> \<gamma> (ofe_fields f) packet \<and> 
   	  (\<forall>fo \<in> set flow_entries. ofe_prio fo > ofe_prio f \<longrightarrow> \<not>\<gamma> (ofe_fields fo) packet)} in
-  	case card s of 0       \<Rightarrow> Defined None
-                 | (Suc 0) \<Rightarrow> Defined (Some (the_elem s)) 
-                 | _       \<Rightarrow> Undefined "
+  	case card s of 0       \<Rightarrow> NoAction
+                 | (Suc 0) \<Rightarrow> Action (the_elem s) 
+                 | _       \<Rightarrow> Undefined"
 
 (* are there any overlaping rules? *)
 definition "check_no_overlap \<gamma> ft = (\<forall>a \<in> set ft. \<forall>b \<in> set ft. \<forall>p \<in> UNIV. (ofe_prio a = ofe_prio b \<and> \<gamma> (ofe_fields a) p \<and> a \<noteq> b) \<longrightarrow> \<not>\<gamma> (ofe_fields b) p)"
@@ -96,9 +99,12 @@ proof
 	then show False by blast
 qed
 
-fun OF_match_linear :: "('m, 'p) field_matcher \<Rightarrow> ('m, 'a) flowtable \<Rightarrow> 'p \<Rightarrow> 'a option" where
-"OF_match_linear _ [] _ = None" |
-"OF_match_linear \<gamma> (a#as) p = (if \<gamma> (ofe_fields a) p then Some (ofe_action a) else OF_match_linear \<gamma> as p)"
+fun OF_match_linear :: "('m, 'p) field_matcher \<Rightarrow> ('m, 'a) flowtable \<Rightarrow> 'p \<Rightarrow> 'a flowtable_behavior" where
+"OF_match_linear _ [] _ = NoAction" |
+"OF_match_linear \<gamma> (a#as) p = (if \<gamma> (ofe_fields a) p then Action (ofe_action a) else OF_match_linear \<gamma> as p)"
+
+lemma "OF_match_linear \<gamma> ft p \<noteq> Undefined"
+	by(induction ft) auto
 
 lemma set_eq_rule: "(\<And>x. x \<in> a \<Longrightarrow> x \<in> b) \<Longrightarrow> (\<And>x. x \<in> b \<Longrightarrow> x \<in> a) \<Longrightarrow> a = b" by(rule antisym[OF subsetI subsetI])
 
@@ -128,7 +134,7 @@ qed
 lemma forall_append: "(\<forall>k \<in> set (m @ n). P k) \<longleftrightarrow> (\<forall>k \<in> set m. P k) \<and> (\<forall>k \<in> set n. P k)" by auto
 
 lemma OF_match_eq: "sorted_descending (map ofe_prio ft) \<Longrightarrow> check_no_overlap \<gamma> ft \<Longrightarrow> 
-	OF_same_priority_match2 \<gamma> ft p = Defined (OF_match_linear \<gamma> ft p)"
+	OF_same_priority_match2 \<gamma> ft p = OF_match_linear \<gamma> ft p"
 proof(induction "ft")
 	case goal2
 	have 1: "sorted_descending (map ofe_prio ft)" using goal2(2) by simp
@@ -199,7 +205,7 @@ lemma overlap_sort_invar[simp]: "check_no_overlap \<gamma> (sort_descending_key 
 	..
 
 lemma OF_match_eq2: "check_no_overlap \<gamma> ft \<Longrightarrow> 
-	OF_same_priority_match2 \<gamma> ft p = Defined (OF_match_linear \<gamma> (sort_descending_key ofe_prio ft) p)"
+	OF_same_priority_match2 \<gamma> ft p = OF_match_linear \<gamma> (sort_descending_key ofe_prio ft) p"
 proof -
 	case goal1
 	have "sorted_descending (map ofe_prio (sort_descending_key ofe_prio ft))" by (simp add: sorted_descending_sort_descending_key)
@@ -232,9 +238,23 @@ definition OF_same_priority_match3 where
   "OF_same_priority_match3 \<gamma> flow_entries packet \<equiv> 
   let m  = filter (\<lambda>f. \<gamma> (ofe_fields f) packet) flow_entries;
   	  m' = filter (\<lambda>f. \<forall>fo \<in> set m. ofe_prio fo \<le> ofe_prio f) m in
-  	case m' of []  \<Rightarrow> Defined None
-             | [s] \<Rightarrow> Defined (Some (ofe_action s)) 
-             |  _  \<Rightarrow> Undefined "
+  	case m' of []  \<Rightarrow> NoAction
+             | [s] \<Rightarrow> Action (ofe_action s)
+             |  _  \<Rightarrow> Undefined"
+
+definition OF_same_priority_match3_ana where
+  "OF_same_priority_match3_ana \<gamma> flow_entries packet \<equiv> 
+  let m  = filter (\<lambda>f. \<gamma> (ofe_fields f) packet) flow_entries;
+  	  m' = filter (\<lambda>f. \<forall>fo \<in> set m. ofe_prio fo \<le> ofe_prio f) m in
+  	case m' of []  \<Rightarrow> NoAction
+             | [s] \<Rightarrow> Action s
+             |  _  \<Rightarrow> Undefined"
+
+lemma filter_singleton: "[x\<leftarrow>s. f x] = [y] \<Longrightarrow> f y \<and> y \<in> set s" by (metis filter_eq_Cons_iff in_set_conv_decomp) 
+
+lemma OF_spm3_get_fe: "OF_same_priority_match3 \<gamma> ft p = Action a \<Longrightarrow> \<exists>fe. ofe_action fe = a \<and> fe \<in> set ft \<and> OF_same_priority_match3_ana \<gamma> ft p = Action fe"
+	unfolding OF_same_priority_match3_def OF_same_priority_match3_ana_def
+	by(clarsimp split: flowtable_behavior.splits list.splits) (drule filter_singleton; simp)
 
 fun no_overlaps where
 "no_overlaps _ [] = True" |
@@ -332,13 +352,28 @@ proof -
 qed
 (* the above lemma used to be this, but it's slightly weaker than I wanted. *)
 lemma "distinct fe \<Longrightarrow> check_no_overlap \<gamma> fe \<Longrightarrow> OF_same_priority_match2 \<gamma> fe p = OF_same_priority_match3 \<gamma> fe p"
-	using no_overlaps_defeq no_overlapsI by force
+	by(rule no_overlaps_defeq) (drule (2) no_overlapsI)
 
 theorem OF_eq:
 	assumes no: "no_overlaps \<gamma> f"
 	    and so: "sorted_descending (map ofe_prio f)"
-	shows "Defined (OF_match_linear \<gamma> f p) = OF_same_priority_match3 \<gamma> f p"
+	shows "OF_match_linear \<gamma> f p = OF_same_priority_match3 \<gamma> f p"
 	unfolding no_overlaps_defeq[symmetric,OF no] OF_match_eq[OF so check_no_overlapI[OF no]]
 	..
+
+corollary OF_eq_sort:
+	assumes no: "no_overlaps \<gamma> f"
+	shows "OF_same_priority_match3 \<gamma> f p = OF_match_linear \<gamma> (sort_descending_key ofe_prio f) p"
+	using OF_match_eq2 check_no_overlapI no no_overlaps_defeq by fastforce
+
+lemma OF_lm_noa_none: "OF_match_linear \<gamma> ft p = NoAction \<Longrightarrow> \<forall>e\<in>set ft. \<not> \<gamma> (ofe_fields e) p"
+	by(induction ft) (simp_all split: if_splits)
+	
+(* this should be provable without the overlaps assumption, but that's quite a bit harder. *)
+lemma OF_spm3_noa_none:
+	assumes no: "no_overlaps \<gamma> ft"
+	shows "OF_same_priority_match3 \<gamma> ft p = NoAction \<Longrightarrow> \<forall>e \<in> set ft. \<not>\<gamma> (ofe_fields e) p"
+unfolding OF_eq_sort[OF no] by(drule OF_lm_noa_none) simp
+
 
 end
