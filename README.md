@@ -36,10 +36,9 @@ Apply the patch in thy/Bitmagic/l4v.patch. It is only three lines. seL4 is not y
 Checking all proofs:
 
 ```
-$ isabelle build -v -d . -o document=pdf Iptables_Semantics_Examples
+$ isabelle build -v -d . -o document=pdf Iptables_Semantics_Examples2
 ```
-This needs about 1h 10min CPU time (times two since we added more real-world data) on my i7 1.8GHz laptop.
-3:11h CPU time on a 16 core xeon (45min real-world time); about one hour real-time on my regular laptop -- it doesn't parallelize that well ;-) 
+This needs some hours on my laptop.
 
 
 Building the documentation:
@@ -47,6 +46,7 @@ Building the documentation:
 ```
 $ isabelle build -d . -v -o document=pdf Iptables_Semantics_Documentation
 ```
+The build takes less than 10 minutes on my laptop (14min CPU time, 2 threads).
 The documentation summarizes the most important definitions and theorems.
 It is deliberately very very brief and only provides results.
 It should contain the summarizing correctness theorems for all executable functions we export.
