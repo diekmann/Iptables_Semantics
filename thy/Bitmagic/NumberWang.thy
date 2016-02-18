@@ -26,10 +26,11 @@ lemma div65536: assumes "a < 256" "b < 256" "c < 256" "d < 256"
     "\<dots> = (int d + int (256 * c)) div 65536 + int b + 256 * int a" by linarith
   also from assms have "\<dots> = int b + 256 * int a" by simp
   finally have helper: "(int d + int (256 * c) + int (65536 * b) + int (16777216 * a)) div 65536 = int b + 256 * int a" .
-  from assms show ?thesis 
-    apply(simp add: helper)
+  from assms show ?thesis
+    unfolding helper
+    apply(simp)
     apply(subst mod_pos_pos_trivial)
-    apply simp_all
+      apply simp_all
     done
   qed
 
@@ -72,8 +73,8 @@ lemma NOT_mask_len32: "NOT ((mask len << (32 - len))::32 word) = (mask (32 - len
       next
       case False
         have "uint (max_word::32 word) < 4294967296" by(simp add: max_word_def)
-        from False have simp1: "uint ((2\<Colon>32 word) ^ (32 - len) * ((2\<Colon>32 word) ^ len - 1)) = 
-            uint ((2\<Colon>32 word) ^ (32 - len)) * uint ((2\<Colon>32 word) ^ len - 1) mod 2^32"
+        from False have simp1: "uint ((2::32 word) ^ (32 - len) * ((2::32 word) ^ len - 1)) = 
+            uint ((2::32 word) ^ (32 - len)) * uint ((2::32 word) ^ len - 1) mod 2^32"
           by(simp add: Word.uint_word_ariths)
         have "(2::32 word) ^ (32 - len) = word_of_int ((2::int) ^ (32 - len))" by (metis word_of_int_2p)
         from False this have simp2: "uint ((2::32 word) ^ (32 - len)) = 2 ^ (32 - len)"
@@ -81,7 +82,7 @@ lemma NOT_mask_len32: "NOT ((mask len << (32 - len))::32 word) = (mask (32 - len
           apply(subst mod_pos_pos_trivial)
           apply(simp)
           apply(rule Power.linordered_semidom_class.power_strict_increasing)
-          apply(simp_all)
+           apply(simp_all)
           done
         show ?mod0
           apply(subst simp1)

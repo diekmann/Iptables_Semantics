@@ -12,23 +12,19 @@ definition ifaceAny :: iface where
   "ifaceAny \<equiv> Iface ''+''"
 (* there is no IfaceFalse, proof below *)
 
-text_raw{*If the interface name ends in a ``+'', then any interface which begins with this name will match. (man iptables)
+text{*If the interface name ends in a ``+'', then any interface which begins with this name will match. (man iptables)
 
 Here is how iptables handles this wildcard on my system. A packet for the loopback interface \texttt{lo} is matched by the following expressions
-\begin{itemize}
-  \item lo
-  \item lo+
-  \item l+
-  \item +
-\end{itemize}
+  \<^item> lo
+  \<^item> lo+
+  \<^item> l+
+  \<^item> +
 
 It is not matched by the following expressions
-\begin{itemize}
-  \item lo++
-  \item lo+++
-  \item lo1+
-  \item lo1
-\end{itemize}
+  \<^item> lo++
+  \<^item> lo+++
+  \<^item> lo1+
+  \<^item> lo1
 
 By the way: \texttt{Warning: weird characters in interface ` ' ('/' and ' ' are not allowed by the kernel).}
 *}
@@ -328,7 +324,7 @@ begin
     proof - (*sledgehammer spass Isar proof*)
       have f4: "List.gen_length 0 i2 \<le> List.gen_length 0 i1"
         using a1 by (simp add: length_code)
-      have f5: "\<And>cs. List.gen_length 0 (cs\<Colon>char list) - Suc 0 = List.gen_length 0 (tl cs)"
+      have f5: "\<And>cs. List.gen_length 0 (cs::char list) - Suc 0 = List.gen_length 0 (tl cs)"
         by (metis (no_types) One_nat_def length_code length_tl)
       obtain nn :: "(nat \<Rightarrow> nat) \<Rightarrow> nat" where
         "\<And>f. \<not> f (nn f) \<le> f (Suc (nn f)) \<or> f (List.gen_length 0 i2) \<le> f (List.gen_length 0 i1)"

@@ -43,8 +43,8 @@ definition view where
        map (simple_rule_iptables_save_toString (ipt_chain_toSting f)) (preprocess_keep_ifce (get_unfold f) closure ipassmt def fw_in),
        map (simple_rule_iptables_save_toString (ipt_chain_toSting f)) fw,
        map ipv4addr_wordinterval_toString (getParts fw),
-       (build_ip_partition_pretty parts_connection_ssh fw),
-       (build_ip_partition_pretty parts_connection_http fw))"
+       (access_matrix_pretty parts_connection_ssh fw),
+       (access_matrix_pretty parts_connection_http fw))"
 
 
 (*Do we have code?*)
@@ -167,9 +167,6 @@ context begin
 
 
   value[code] "bench upper_closure FWD ipassmt fw2_FORWARD_default_policy (Semantics_Goto.rewrite_Goto fw2)"
-  (*102.673s old (no merge sort),
-   120.007s new (merge sort followed by merge_remdups (wrongly sorted)),
-   105.376s merge_remdups followed by merge with largest intervals (smallest prefix size) first*)
   value[code] "view upper_closure FWD ipassmt fw2_FORWARD_default_policy (Semantics_Goto.rewrite_Goto fw2)"
 
 
@@ -369,6 +366,31 @@ begin
 
   value[code] "bench lower_closure INP ipassmt_generic fw11_INPUT_default_policy fw11"
   value[code] "view lower_closure INP ipassmt_generic fw11_INPUT_default_policy fw11"
+
+end
+
+
+context
+begin
+ private local_setup \<open>
+    local_setup_parse_iptables_save "filter" @{binding fw14} ["medium-sized-company", "iptables-save"]
+   \<close>
+ thm fw14_def
+ private definition "ipassmt14 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
+  (Iface ''eth0'', [(ipv4addr_of_dotdecimal (172,16,2,0),24)])
+  ]"
+
+  value[code] "bench upper_closure INP ipassmt14 fw14_INPUT_default_policy fw14"
+  value[code] "view upper_closure INP ipassmt14 fw14_INPUT_default_policy fw14"
+
+  value[code] "bench lower_closure INP ipassmt14 fw14_INPUT_default_policy fw14"
+  value[code] "view lower_closure INP ipassmt14 fw14_INPUT_default_policy fw14"
+
+  value[code] "bench upper_closure FWD ipassmt14 fw14_FORWARD_default_policy fw14"
+  value[code] "view upper_closure FWD ipassmt14 fw14_FORWARD_default_policy fw14"
+
+  value[code] "bench lower_closure FWD ipassmt14 fw14_FORWARD_default_policy fw14"
+  value[code] "view lower_closure FWD ipassmt14 fw14_FORWARD_default_policy fw14"
 
 end
 

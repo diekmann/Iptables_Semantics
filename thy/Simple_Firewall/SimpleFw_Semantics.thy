@@ -282,15 +282,15 @@ lemma simple_match_and_correct: "simple_matches m1 p \<and> simple_matches m2 p 
       match_proto proto (p_proto p) \<longleftrightarrow> match_proto p1 (p_proto p) \<and> match_proto p2 (p_proto p)"
       using simple_proto_conjunct_correct[of p1 "(p_proto p)" p2] by simp
 
-    show ?thesis
-     apply(simp add: m1 m2)
-     apply(simp split: option.split)
-     apply(auto simp add: simple_matches.simps)
-     apply(auto dest: sip_None dip_None sip_Some dip_Some)
-     apply(auto dest: iiface_None oiface_None iiface_Some oiface_Some)
-     apply(auto dest: proto_None proto_Some)
-     using simple_ports_conjunct_correct apply(blast)+
+    have case_Some: "\<And>m. Some m = simple_match_and m1 m2 \<Longrightarrow>
+     (simple_matches m1 p \<and> simple_matches m2 p) \<longleftrightarrow> simple_matches m p"
+     apply(simp add: m1 m2 simple_matches.simps split: option.split_asm)
+     using simple_ports_conjunct_correct by(blast dest: sip_Some dip_Some iiface_Some oiface_Some proto_Some)
+    have case_None: "simple_match_and m1 m2 = None \<Longrightarrow> \<not> (simple_matches m1 p \<and> simple_matches m2 p)"
+     apply(simp add: m1 m2 simple_matches.simps split: option.split_asm)
+         apply(blast dest: sip_None dip_None iiface_None oiface_None proto_None)+
      done
+    from case_Some case_None show ?thesis by(cases "simple_match_and m1 m2") simp_all
  qed
 
 
@@ -338,20 +338,31 @@ fun has_default_policy :: "simple_rule list \<Rightarrow> bool" where
   "has_default_policy (_#rs) = has_default_policy rs"
 
 lemma has_default_policy: "has_default_policy rs \<Longrightarrow> simple_fw rs p = Decision FinalAllow \<or> simple_fw rs p = Decision FinalDeny"
-  apply(induction rs rule: has_default_policy.induct)
-    apply(simp;fail)
-   apply(simp_all)
-   apply(rename_tac a, case_tac a)
-    apply(simp_all add: simple_match_any)
-  apply(rename_tac r1 r2 rs)
-  apply(case_tac r1, rename_tac m a, case_tac a)
-   apply(simp_all)
- done
+  proof(induction rs rule: has_default_policy.induct)
+  case 1 thus ?case by (simp)
+  next
+  case (2 m a) thus ?case by(cases a) (simp_all add: simple_match_any)
+  next
+  case (3 r1 r2 rs)
+    from 3 obtain a m where "r1 = SimpleRule m a" by (cases r1) simp
+    with 3 show ?case by (cases a) simp_all
+  qed
 
 lemma has_default_policy_fst: "has_default_policy rs \<Longrightarrow> has_default_policy (r#rs)"
  apply(cases r, rename_tac m a, simp)
- apply(case_tac rs)
- by(simp_all)
+ apply(cases rs)
+  by(simp_all)
+
+
+
+
+lemma simple_fw_not_matches_removeAll: "\<not> simple_matches m p \<Longrightarrow> simple_fw (removeAll (SimpleRule m a) rs) p = simple_fw rs p"
+  apply(induction rs p rule: simple_fw.induct)
+    apply(simp)
+   apply(simp_all)
+   apply blast+
+  done
+  
 
 
 end
