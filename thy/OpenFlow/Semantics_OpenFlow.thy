@@ -375,5 +375,8 @@ lemma OF_spm3_noa_none:
 	shows "OF_same_priority_match3 \<gamma> ft p = NoAction \<Longrightarrow> \<forall>e \<in> set ft. \<not>\<gamma> (ofe_fields e) p"
 unfolding OF_eq_sort[OF no] by(drule OF_lm_noa_none) simp
 
+(* repetition of the lemma for definition 2 for definition 3 *)
+lemma no_overlaps_not_unefined: "no_overlaps \<gamma> ft \<Longrightarrow> OF_same_priority_match3 \<gamma> ft p \<noteq> Undefined"
+	using check_no_overlapI no_overlap_not_unefined no_overlaps_defeq by fastforce
 
 end
