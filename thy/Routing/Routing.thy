@@ -7,9 +7,10 @@ subsection{*Definition*}
 (* Routing rule matching ip route unicast type *)
 record routing_rule =
   routing_match :: prefix_match (* done on the dst *)
-  output_device :: "port"
+  output_iface :: "port"
   next_hop :: "ipv4addr option" (* no next hop if locally attached *)
   metric :: "nat"
+print_theorems
 
 definition "default_metric = 0"
 
@@ -32,7 +33,7 @@ fun is_longest_prefix_routing :: "prefix_routing \<Rightarrow> bool" where
   "is_longest_prefix_routing _ = True"
 
 (*example: get longest prefix match by sorting by pfxm_length*)
-definition "rr_ctor m l a \<equiv> \<lparr> routing_match = PrefixMatch (ipv4addr_of_dotdecimal m) l, output_device = Port a, next_hop = None, metric = default_metric \<rparr>"
+definition "rr_ctor m l a \<equiv> \<lparr> routing_match = PrefixMatch (ipv4addr_of_dotdecimal m) l, output_iface = Port a, next_hop = None, metric = default_metric \<rparr>"
 value "rev (sort_key (\<lambda>r. pfxm_length (routing_match r)) [
   rr_ctor (0,0,0,1) 3 '''',
   rr_ctor (0,0,0,2) 8 [],

@@ -42,33 +42,46 @@ local
     (parser_ip >> (fn ip => ipprefix_to_hol (ip,32))) ||
     (Scan.this_string "default" >> K @{term "PrefixMatch 0 0"})
   val parser_whitespace = Scan.many1 (fn x => x = " ");
-  
-  val parser_via = (Scan.this_string "via" -- parser_whitespace |-- parser_ip) >> mk_quadrupel
+
+  val parser_via = (Scan.this_string "via" -- parser_whitespace |-- parser_ip) 
+    >> (fn ip => fn pk => @{const update_nh} $ (@{const ipv4addr_of_dotdecimal} $ (mk_quadrupel ip)) $ pk)
   val parser_dev = (Scan.this_string "dev" -- parser_whitespace |-- parser_interface)
-  val parser_metric = (Scan.this_string "metric" -- parser_whitespace |-- Scan.many1 Symbol.is_ascii_digit >> extract_int)
+    >> (fn dev => fn pk => @{term "output_iface_update :: (port \<Rightarrow> port) \<Rightarrow> routing_rule \<Rightarrow> routing_rule"} $ (@{term "const :: port \<Rightarrow> port \<Rightarrow> port"} $ (@{const Port} $ dev)) $ pk)
+  val parser_metric = (Scan.this_string "metric" -- parser_whitespace |-- Scan.many1 Symbol.is_ascii_digit)
+    >> (fn metric => fn pk => @{term "metric_update :: (nat \<Rightarrow> nat) \<Rightarrow> routing_rule \<Rightarrow> routing_rule"} $ (@{term "const :: nat \<Rightarrow> nat \<Rightarrow> nat"} $ (mk_nat 65535 (extract_int metric))) $ pk)
   (* these are going to be ignored anyway\<dots>(?) *)
   val parser_scope = (Scan.this_string "scope" -- parser_whitespace |-- (
-    Scan.this_string "host" || Scan.this_string "host" || Scan.this_string "host" || (Scan.many1 Symbol.is_ascii_digit >> implode)))
+    Scan.this_string "host" || Scan.this_string "link" || Scan.this_string "global" || (Scan.many1 Symbol.is_ascii_digit >> implode)))
+    >> K I
   val parser_proto = (Scan.this_string "proto" -- parser_whitespace |-- (
-    Scan.this_string "kernel" || Scan.this_string "boot" || Scan.this_string "static" || (Scan.many1 Symbol.is_ascii_digit >> implode)))
-  val parser_src = (Scan.this_string "src" -- parser_whitespace |-- parser_ip) >> mk_quadrupel
+    Scan.this_string "kernel" || Scan.this_string "boot" || Scan.this_string "static" || Scan.this_string "dhcp" || (Scan.many1 Symbol.is_ascii_digit >> implode)))
+    >> K I
+  val parser_src = (Scan.this_string "src" -- parser_whitespace |-- parser_ip) >> mk_quadrupel >> K I
 
-  fun parse_loop r =
-    
-  
-  fun parser tp =
-    (parser_subnet >> (fn x => @{const empty_rr_hlp} $ x)) tp
+  fun parser_end p i = let
+    val (r,es) = Scan.finite Symbol.stopper (Scan.many (fn x => x = " ") |-- p --| Scan.many (fn x => x = " ")) i
+  in
+    if es = [] then r else let val _ = writeln ("'" ^ (implode es) ^ "'") in K r (* cause error - TODO: How do I do that properly? *) 
+    ((!! (fn _ => fn _ => "Couldn't parse everything") ($$ "x")) (Symbol.explode ""))
+  end end
+
+  val parser =
+    (parser_end ((parser_subnet >> (fn x => @{const empty_rr_hlp} $ x))
+        -- Scan.repeat (parser_whitespace |-- (parser_via || parser_dev || parser_metric || parser_scope || parser_proto || parser_src)))) 
+    #> swap #> (uncurry (fold (fn a => fn b => a b)))
 in
 	fun register_ip_route (name,path) (lthy: local_theory) =
 	let
 	  val fcontent = load_file @{theory} [path]
 	  (*val _ = map writeln fcontent*)
 	  (*val _ = (Pretty.writeln o Syntax.pretty_term @{context} o fst o parser_subnet o Symbol.explode) "10.13.37.0/24 via 255.255.255.0 dev tun0"*)
-	  val _ = (Pretty.writeln o Syntax.pretty_term @{context} o snd o fst o
-	    (parser_subnet --| parser_whitespace -- parser_via) o Symbol.explode) "10.13.37.0/24 via 255.255.255.0 dev tun0"
+	  (*val _ = (Pretty.writeln o Syntax.pretty_term @{context} o (fn (a,b) => b a) o fst o
+	    ((parser_subnet >> (fn x => @{const empty_rr_hlp} $ x)) 
+	      --| parser_whitespace -- (parser_via || parser_dev)) o Symbol.explode) "10.13.37.0/24 via 255.255.255.0 dev tun0"*)
+	  (*val _ = (Pretty.writeln o Syntax.pretty_term @{context} o parser o Symbol.explode) "10.13.37.0/24 via 255.255.255.0 dev tun0"*)
 	  (*val _ = (Pretty.writeln o Syntax.pretty_term @{context} o fst o parser_subnet o Symbol.explode) "10.13.37.0/24 via 255.255.255.0 dev tun0"*)
-	  val r = map (parser o Symbol.explode #> fst) fcontent
-	  (*val _ = map (Pretty.writeln o (Syntax.pretty_term @{context})) r*) 
+	  val _ = map (Pretty.writeln o Syntax.pretty_term @{context} o parser o Symbol.explode) fcontent (* keep this one, lets you see where it fails *)
+	  val r = map (parser o Symbol.explode) fcontent
 	in
 	  define_const (HOLogic.mk_list @{typ "routing_rule"} r) name lthy
 	end
