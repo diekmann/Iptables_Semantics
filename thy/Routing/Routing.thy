@@ -4,9 +4,14 @@ begin
 
 subsection{*Definition*}
 
+(* Routing rule matching ip route unicast type *)
 record routing_rule =
   routing_match :: prefix_match (* done on the dst *)
-  routing_action :: "port list"
+  output_device :: "port"
+  next_hop :: "ipv4addr option" (* no next hop if locally attached *)
+  metric :: "nat"
+
+definition "default_metric = 0"
 
 type_synonym prefix_routing = "routing_rule list"
 
@@ -27,9 +32,9 @@ fun is_longest_prefix_routing :: "prefix_routing \<Rightarrow> bool" where
   "is_longest_prefix_routing _ = True"
 
 (*example: get longest prefix match by sorting by pfxm_length*)
-definition "rr_ctor m l a \<equiv> \<lparr> routing_match = PrefixMatch (ipv4addr_of_dotdecimal m) l, routing_action = map Port a \<rparr>"
+definition "rr_ctor m l a \<equiv> \<lparr> routing_match = PrefixMatch (ipv4addr_of_dotdecimal m) l, output_device = Port a, next_hop = None, metric = default_metric \<rparr>"
 value "rev (sort_key (\<lambda>r. pfxm_length (routing_match r)) [
-  rr_ctor (0,0,0,1) 3 [],
+  rr_ctor (0,0,0,1) 3 '''',
   rr_ctor (0,0,0,2) 8 [],
   rr_ctor (0,0,0,3) 4 []])"
 lemma longest_prefix_routing_no_sort: 
@@ -71,21 +76,21 @@ lemma dst_addr_f: "(f = Host \<or> f = NetworkBox) \<Longrightarrow> dst_addr (s
   unfolding dst_addr_def extract_addr_def snd_def by auto
 
 (*assumes: correct_routing*)
-fun routing_table_semantics :: "prefix_routing \<Rightarrow> ipv4addr \<Rightarrow> port list" where
-"routing_table_semantics [] _ = []" | 
-"routing_table_semantics (r#rs) p = (if prefix_match_semantics (routing_match r) p then routing_action r else routing_table_semantics rs p)"
+fun routing_table_semantics :: "prefix_routing \<Rightarrow> ipv4addr \<Rightarrow> routing_rule" where
+"routing_table_semantics [] _ = undefined" | 
+"routing_table_semantics (r#rs) p = (if prefix_match_semantics (routing_match r) p then r else routing_table_semantics rs p)"
 
 definition "packet_routing_table_semantics rtbl p \<equiv> routing_table_semantics rtbl (dst_addr p)"
 
 lemma routing_table_semantics_ports_from_table: "valid_prefixes rtbl \<Longrightarrow> has_default_route rtbl \<Longrightarrow> 
-  routing_table_semantics rtbl packet = ports \<Longrightarrow> ports \<in> set (map routing_action rtbl)"
+  routing_table_semantics rtbl packet = r \<Longrightarrow> r \<in> set rtbl"
 proof(induction rtbl)
   case (Cons r rs)
   note v_pfxs = valid_prefixes_split[OF Cons.prems(1)]
   show ?case
   proof(cases "pfxm_length (routing_match r) = 0")
     case True
-    have "routing_action r = ports" using zero_prefix_match_all[OF conjunct1[OF v_pfxs] True] Cons.prems(3) by simp
+    note zero_prefix_match_all[OF conjunct1[OF v_pfxs] True] Cons.prems(3)
     then show ?thesis by simp
   next
     case False
