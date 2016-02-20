@@ -4,8 +4,8 @@ begin
 
 subsection{*Definition*}
 
-fun ipset_destination :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> (ipv4addr set \<times> port list) set" where
-"ipset_destination [] rg = (if rg = {} then  {} else {(rg, [])})" |
+fun ipset_destination :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> (ipv4addr set \<times> routing_action) set" where
+"ipset_destination [] rg = (if rg = {} then  {} else {(rg, routing_action (undefined::routing_rule))})" |
 "ipset_destination (r # rs) rg = (
   let rpm = ipset_prefix_match (routing_match r) rg in (let m = fst rpm in (let nm = snd rpm in (
     (if m = {}  then {} else { (m, routing_action r) }) \<union> 
@@ -105,14 +105,14 @@ next
 qed
 
 
-fun ipset_destination_map :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr \<Rightarrow> port list option" where
-"ipset_destination_map [] rg = (\<lambda>ip. if ip \<in> rg then Some [] else None)" |
+fun ipset_destination_map :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr \<Rightarrow> routing_action option" where
+"ipset_destination_map [] rg = (\<lambda>ip. if ip \<in> rg then Some (routing_action (undefined::routing_rule)) else None)" |
 "ipset_destination_map (r#rs) rg = 
   (let rpm = ipset_prefix_match (routing_match r) rg in (let m = fst rpm in (let nm = snd rpm in (\<lambda>ip.
     if ip \<in> rg \<inter> m then Some (routing_action r) else ipset_destination_map rs nm ip))))"
 
-fun ipset_destination_map2 :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr \<Rightarrow> port list option" where
-"ipset_destination_map2 [] rg = (\<lambda>ip. if ip \<in> rg then Some [] else None)" |
+fun ipset_destination_map2 :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr \<Rightarrow> routing_action option" where
+"ipset_destination_map2 [] rg = (\<lambda>ip. if ip \<in> rg then Some (routing_action (undefined::routing_rule)) else None)" |
 "ipset_destination_map2 (r#rs) rg = 
   (let rpm = ipset_prefix_match (routing_match r) rg in (let m = fst rpm in (let nm = snd rpm in (\<lambda>ip.
     if ip \<in> rg \<inter> m then Some (routing_action r) else ipset_destination_map2 rs rg ip))))"
@@ -159,8 +159,9 @@ lemma rdm_rd_eq: "(ipset_destination_map rtbl rg ip = Some ports) = in_rel (ipse
     apply(simp only: ipset_destination.simps Let_def if_False rpm_m_dup_simp)
     apply blast
    apply clarify
+   apply(rename_tac a b rga)
    apply(simp only: refl if_True if_False Un_empty_left ipset_destination.simps Let_def)
-   apply(subgoal_tac "(rga, ports) \<notin> ipset_destination rs (snd (ipset_prefix_match (routing_match r) rg))")
+   apply(subgoal_tac "(rga, (a,b)) \<notin> ipset_destination rs (snd (ipset_prefix_match (routing_match r) rg))")
     apply force
    apply(rule ipset_destination_not_in)
    apply(simp only: ipset_prefix_match_m ipset_prefix_match_nm, blast)
@@ -254,11 +255,7 @@ lemma ipset_left_side_nonempty: "x \<in> (fst ` (ipset_destination rtbl rg)) \<L
   apply(rename_tac r rs rg)
   apply(case_tac "fst (ipset_prefix_match (routing_match r) rg) = {}")
    apply(simp)
-  apply(clarsimp simp only: Let_def ipset_destination.simps if_False )
-  apply(rename_tac r rs rg a b)
-  apply(case_tac "(a, b)  = (fst (ipset_prefix_match (routing_match r) rg), routing_action r)")
-   apply simp
-  apply blast
+  apply(force)
 done
 
 subsection{*Reduction*}

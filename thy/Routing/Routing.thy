@@ -10,7 +10,6 @@ record routing_rule =
   output_iface :: "port"
   next_hop :: "ipv4addr option" (* no next hop if locally attached *)
   metric :: "nat"
-print_theorems
 
 definition "default_metric = 0"
 
@@ -33,11 +32,11 @@ fun is_longest_prefix_routing :: "prefix_routing \<Rightarrow> bool" where
   "is_longest_prefix_routing _ = True"
 
 (*example: get longest prefix match by sorting by pfxm_length*)
-definition "rr_ctor m l a \<equiv> \<lparr> routing_match = PrefixMatch (ipv4addr_of_dotdecimal m) l, output_iface = Port a, next_hop = None, metric = default_metric \<rparr>"
+definition "rr_ctor m l a nh me \<equiv> \<lparr> routing_match = PrefixMatch (ipv4addr_of_dotdecimal m) l, output_iface = Port a, next_hop = (map_option ipv4addr_of_dotdecimal nh), metric = me \<rparr>"
 value "rev (sort_key (\<lambda>r. pfxm_length (routing_match r)) [
-  rr_ctor (0,0,0,1) 3 '''',
-  rr_ctor (0,0,0,2) 8 [],
-  rr_ctor (0,0,0,3) 4 []])"
+  rr_ctor (0,0,0,1) 3 '''' None 0,
+  rr_ctor (0,0,0,2) 8 [] None 0,
+  rr_ctor (0,0,0,3) 4 [] None 0])"
 lemma longest_prefix_routing_no_sort: 
   "is_longest_prefix_routing tbl \<Longrightarrow>
   (sort_key (\<lambda>r. 32 - pfxm_length (routing_match r)) tbl) = tbl"
@@ -76,15 +75,17 @@ definition dst_addr :: "'v hdr \<Rightarrow> 'v" where
 lemma dst_addr_f: "(f = Host \<or> f = NetworkBox) \<Longrightarrow> dst_addr (src, f dst) = dst"
   unfolding dst_addr_def extract_addr_def snd_def by auto
 
+type_synonym routing_action = "port \<times> ipv4addr option"
+definition "routing_action r = ((output_iface r, next_hop r) :: routing_action)"
 (*assumes: correct_routing*)
-fun routing_table_semantics :: "prefix_routing \<Rightarrow> ipv4addr \<Rightarrow> routing_rule" where
-"routing_table_semantics [] _ = undefined" | 
-"routing_table_semantics (r#rs) p = (if prefix_match_semantics (routing_match r) p then r else routing_table_semantics rs p)"
+fun routing_table_semantics :: "prefix_routing \<Rightarrow> ipv4addr \<Rightarrow> routing_action" where
+"routing_table_semantics [] _ = routing_action (undefined::routing_rule)" | 
+"routing_table_semantics (r#rs) p = (if prefix_match_semantics (routing_match r) p then routing_action r else routing_table_semantics rs p)"
 
 definition "packet_routing_table_semantics rtbl p \<equiv> routing_table_semantics rtbl (dst_addr p)"
 
 lemma routing_table_semantics_ports_from_table: "valid_prefixes rtbl \<Longrightarrow> has_default_route rtbl \<Longrightarrow> 
-  routing_table_semantics rtbl packet = r \<Longrightarrow> r \<in> set rtbl"
+  routing_table_semantics rtbl packet = r \<Longrightarrow> r \<in> routing_action ` set rtbl"
 proof(induction rtbl)
   case (Cons r rs)
   note v_pfxs = valid_prefixes_split[OF Cons.prems(1)]

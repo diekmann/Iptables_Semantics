@@ -4,8 +4,8 @@ begin
 
 type_synonym ipv4range = "32 wordinterval"
 
-fun range_destination :: "prefix_routing \<Rightarrow> ipv4range \<Rightarrow> (ipv4range \<times> port list) list" where
-"range_destination [] rg = (if ipv4range_empty rg then [] else [(rg, [])])" |
+fun range_destination :: "prefix_routing \<Rightarrow> ipv4range \<Rightarrow> (ipv4range \<times> routing_action) list" where
+"range_destination [] rg = (if ipv4range_empty rg then [] else [(rg, (routing_action (undefined::routing_rule)))])" |
 "range_destination (r # rs) rg = (
   let rpm = range_prefix_match (routing_match r) rg in (let m = fst rpm in (let nm = snd rpm in (
     (if ipv4range_empty m  then [] else [ (m, routing_action r) ]) @ 
@@ -15,12 +15,13 @@ fun range_destination :: "prefix_routing \<Rightarrow> ipv4range \<Rightarrow> (
 lemma range_destination_eq: 
   "{ (ipv4range_to_set r, ports)|r ports. (r, ports) \<in> set (range_destination rtbl rg)} = ipset_destination rtbl (ipv4range_to_set rg)"
   apply(induction rtbl arbitrary: rg)
-   apply(simp)
+   apply(simp;fast;fail)
   apply(simp only: Let_def range_destination.simps ipset_destination.simps)
   apply(case_tac "fst (ipset_prefix_match (routing_match a) (ipv4range_to_set rg)) = {}")
    apply(case_tac[!] "snd (ipset_prefix_match (routing_match a) (ipv4range_to_set rg)) = {}")
      apply(simp_all only: refl if_True if_False range_prefix_match_sm[symmetric] range_prefix_match_snm[symmetric] ipv4range_empty_set_eq Un_empty_left Un_empty_right)
      apply(simp_all)[3]
+   apply(fast)
   apply(simp only: set_append set_simps)
   apply blast
 done

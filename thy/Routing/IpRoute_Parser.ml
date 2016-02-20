@@ -62,7 +62,7 @@ local
     val (r,es) = Scan.finite Symbol.stopper (Scan.many (fn x => x = " ") |-- p --| Scan.many (fn x => x = " ")) i
   in
     if es = [] then r else let val _ = writeln ("'" ^ (implode es) ^ "'") in K r (* cause error - TODO: How do I do that properly? *) 
-    ((!! (fn _ => fn _ => "Couldn't parse everything") ($$ "x")) (Symbol.explode ""))
+    (($$ "x") (Symbol.explode ""))
   end end
 
   val parser =
@@ -72,17 +72,12 @@ local
 in
 	fun register_ip_route (name,path) (lthy: local_theory) =
 	let
-	  val fcontent = load_file @{theory} [path]
-	  (*val _ = map writeln fcontent*)
-	  (*val _ = (Pretty.writeln o Syntax.pretty_term @{context} o fst o parser_subnet o Symbol.explode) "10.13.37.0/24 via 255.255.255.0 dev tun0"*)
-	  (*val _ = (Pretty.writeln o Syntax.pretty_term @{context} o (fn (a,b) => b a) o fst o
-	    ((parser_subnet >> (fn x => @{const empty_rr_hlp} $ x)) 
-	      --| parser_whitespace -- (parser_via || parser_dev)) o Symbol.explode) "10.13.37.0/24 via 255.255.255.0 dev tun0"*)
-	  (*val _ = (Pretty.writeln o Syntax.pretty_term @{context} o parser o Symbol.explode) "10.13.37.0/24 via 255.255.255.0 dev tun0"*)
-	  (*val _ = (Pretty.writeln o Syntax.pretty_term @{context} o fst o parser_subnet o Symbol.explode) "10.13.37.0/24 via 255.255.255.0 dev tun0"*)
-	  val _ = map (Pretty.writeln o Syntax.pretty_term @{context} o parser o Symbol.explode) fcontent (* keep this one, lets you see where it fails *)
+	  val fcontent = load_file (Proof_Context.theory_of lthy) [path]
+	  (*val _ = map (Pretty.writeln o Syntax.pretty_term @{context} o parser o Symbol.explode) fcontent (* keep this one, lets you see where it fails *)*)
 	  val r = map (parser o Symbol.explode) fcontent
 	in
 	  define_const (HOLogic.mk_list @{typ "routing_rule"} r) name lthy
+	  (* TODO: Some kind of sanity check. Especially, output_iface \<noteq> [] *)
+	  (* TODO: Rules are unsorted. Sort. *)
 	end
 end

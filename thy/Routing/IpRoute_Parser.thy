@@ -9,7 +9,6 @@ unfolding empty_rr_hlp_def routing_rule.defs default_metric_def ..
 definition "update_nh h pk = next_hop_update (const $ Some h) (pk::routing_rule)" 
 
 (* Hide all the ugly ml in a file with the right extension *)
-ML_file "test.ml"
 ML_file "IpRoute_Parser.ml"
                   
 ML\<open>
@@ -18,8 +17,7 @@ ML\<open>
   (Parse.binding --| @{keyword "="} -- Parse.string >> register_ip_route)
 \<close>
 
-parse_ip_route "test1" = "ipr"  value test1
-parse_ip_route "test2" = "ipr2" value test2
-parse_ip_route "test3" = "ipr3" value test3
+parse_ip_route "rtbl_parser_test1" = "ip-route-ex"  value rtbl_parser_test1
+
 
 end
