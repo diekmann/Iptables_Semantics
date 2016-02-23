@@ -394,4 +394,36 @@ begin
 
 end
 
+
+context
+begin
+  private local_setup \<open>
+     local_setup_parse_iptables_save "filter" @{binding fw15} ["configs_ugent", "iptables-save.v1.4.21"]
+    \<close>
+  thm fw15_def
+ private definition "ipassmt15 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
+  (Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,134,0),24)]),
+  (Iface ''eth1'', [(ipv4addr_of_dotdecimal (192,168,16,0),24)]),
+  (Iface ''eth2'', [(ipv4addr_of_dotdecimal (131,159,15,64),26)]),
+  (Iface ''virbr0'', [(ipv4addr_of_dotdecimal (192,168,122,0),24)])
+  ]"
+
+  value[code] "bench upper_closure INP ipassmt15 fw15_INPUT_default_policy fw15"
+  value[code] "view upper_closure INP ipassmt15 fw15_INPUT_default_policy fw15"
+
+  value[code] "bench lower_closure INP ipassmt15 fw15_INPUT_default_policy fw15"
+  value[code] "view lower_closure INP ipassmt15 fw15_INPUT_default_policy fw15"
+
+
+  definition srctcp137dst137 where "srctcp137dst137 = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
+                               pc_sport=137, pc_dport=137, pc_tag_ctstate=CT_New\<rparr>"
+  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt15 fw15_INPUT_default_policy fw15 in
+               map ipv4addr_wordinterval_toString (build_ip_partition srctcp137dst137 fw)"
+
+  definition tcpdst137 where "tcpdst137 = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
+                               pc_sport=10000, pc_dport=137, pc_tag_ctstate=CT_New\<rparr>"
+  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt15 fw15_INPUT_default_policy fw15 in
+               map ipv4addr_wordinterval_toString (build_ip_partition tcpdst137 fw)"
+end
+
 end
