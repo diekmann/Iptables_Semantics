@@ -1130,28 +1130,6 @@ lemma[code_unfold]: "simple_firewall_without_interfaces rs \<equiv>
   \<forall>m \<in> set rs. iiface (match_sel m) = ifaceAny \<and> oiface (match_sel m) = ifaceAny"
   by(simp add: simple_firewall_without_interfaces_def)
 
-(*construct an ip partition and print it in some usable format
-  returns:
-  (vertices, edges) where
-  vertices = (name, list of ip addresses this vertex corresponds to)
-  and edges = (name \<times> name) list
-*)
-(*TODO: can we use collect srcs or collect dsts here too?*)
-text{*Only defined for @{const simple_firewall_without_interfaces}*}
-(*TODO: delete, use definition below!*)
-definition access_matrix_pretty
-  :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
-  where
-  "access_matrix_pretty c rs \<equiv>
-    if \<not> simple_firewall_without_interfaces rs then undefined else
-    (let W = build_ip_partition c rs;
-         R = map getOneIp W;
-         U = all_pairs R
-     in
-     ((''Nodes'','':'') # zip (map ipv4addr_toString R) (map ipv4addr_wordinterval_toString W), 
-      (''Vertices'','':'') # map (\<lambda>(x,y). (ipv4addr_toString x, ipv4addr_toString y)) (filter (\<lambda>(a,b). runFw a b c rs = Decision FinalAllow) U)))"
-
-
 (*TODO: simple_firewall_without_interfaces check here?*)
 definition access_matrix 
   :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> (ipv4addr \<times> 32 wordinterval) list \<times> (ipv4addr \<times> ipv4addr) list" 
@@ -1331,6 +1309,52 @@ theorem access_matrix: assumes matrix: "(V,E) = access_matrix c rs"
              \<longleftrightarrow>
              runFw s d c rs = Decision FinalAllow"
 using matrix access_matrix_sound access_matrix_complete by blast
+
+
+
+
+
+(*construct an ip partition and print it in some usable format
+  returns:
+  (vertices, edges) where
+  vertices = (name, list of ip addresses this vertex corresponds to)
+  and edges = (name \<times> name) list
+*)
+(*TODO: can we use collect srcs or collect dsts here too?*)
+text{*Only defined for @{const simple_firewall_without_interfaces}*}
+(*TODO: delete, use definition below!*)
+definition access_matrix_pretty_old
+  :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
+  where
+  "access_matrix_pretty_old c rs \<equiv>
+    if \<not> simple_firewall_without_interfaces rs then undefined else
+    (let W = build_ip_partition c rs;
+         R = map getOneIp W;
+         U = all_pairs R
+     in
+     ((''Nodes'','':'') # zip (map ipv4addr_toString R) (map ipv4addr_wordinterval_toString W), 
+      (''Vertices'','':'') # map (\<lambda>(x,y). (ipv4addr_toString x, ipv4addr_toString y)) (filter (\<lambda>(a,b). runFw a b c rs = Decision FinalAllow) U)))"
+
+definition access_matrix_pretty
+  :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
+  where
+  "access_matrix_pretty c rs \<equiv>
+    if \<not> simple_firewall_without_interfaces rs then undefined else
+    (let (V,E) = (access_matrix c rs);
+         format_nodes = (\<lambda>V. (''Nodes'','':'') #
+              map (\<lambda>(v_repr, v_range). (ipv4addr_toString v_repr, ipv4addr_wordinterval_toString v_range)) V);
+         format_edges = (\<lambda>E. (''Vertices'','':'') #
+              map (\<lambda>(s,d). (ipv4addr_toString s, ipv4addr_toString d)) E)
+     in
+      (format_nodes V, format_edges E)
+    )"
+
+lemma "access_matrix_pretty_old = access_matrix_pretty"
+  apply(simp add: fun_eq_iff access_matrix_pretty_def access_matrix_pretty_old_def Let_def access_matrix_def)
+  apply(intro allI impI, rename_tac V E)
+  by (simp add: map_prod_fun_zip)
+  
+  
 
 
 definition parts_connection_ssh where "parts_connection_ssh = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
