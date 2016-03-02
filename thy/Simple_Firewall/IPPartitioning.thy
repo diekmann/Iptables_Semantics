@@ -1320,21 +1320,7 @@ using matrix access_matrix_sound access_matrix_complete by blast
   vertices = (name, list of ip addresses this vertex corresponds to)
   and edges = (name \<times> name) list
 *)
-(*TODO: can we use collect srcs or collect dsts here too?*)
 text{*Only defined for @{const simple_firewall_without_interfaces}*}
-(*TODO: delete, use definition below!*)
-definition access_matrix_pretty_old
-  :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
-  where
-  "access_matrix_pretty_old c rs \<equiv>
-    if \<not> simple_firewall_without_interfaces rs then undefined else
-    (let W = build_ip_partition c rs;
-         R = map getOneIp W;
-         U = all_pairs R
-     in
-     ((''Nodes'','':'') # zip (map ipv4addr_toString R) (map ipv4addr_wordinterval_toString W), 
-      (''Vertices'','':'') # map (\<lambda>(x,y). (ipv4addr_toString x, ipv4addr_toString y)) (filter (\<lambda>(a,b). runFw a b c rs = Decision FinalAllow) U)))"
-
 definition access_matrix_pretty
   :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
   where
@@ -1349,10 +1335,23 @@ definition access_matrix_pretty
       (format_nodes V, format_edges E)
     )"
 
-lemma "access_matrix_pretty_old = access_matrix_pretty"
-  apply(simp add: fun_eq_iff access_matrix_pretty_def access_matrix_pretty_old_def Let_def access_matrix_def)
-  apply(intro allI impI, rename_tac V E)
-  by (simp add: map_prod_fun_zip)
+
+(*TODO: not sure if this gives better code*)
+definition access_matrix_pretty_code
+  :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
+  where
+  "access_matrix_pretty_code c rs \<equiv>
+    if \<not> simple_firewall_without_interfaces rs then undefined else
+    (let W = build_ip_partition c rs;
+         R = map getOneIp W;
+         U = all_pairs R
+     in
+     ((''Nodes'','':'') # zip (map ipv4addr_toString R) (map ipv4addr_wordinterval_toString W), 
+      (''Vertices'','':'') #
+        map (\<lambda>(x,y). (ipv4addr_toString x, ipv4addr_toString y)) [(s, d)\<leftarrow>all_pairs R. runFw s d c rs = Decision FinalAllow]))"
+
+lemma access_matrix_pretty_code[code]: "access_matrix_pretty = access_matrix_pretty_code"
+  by(simp add: fun_eq_iff access_matrix_pretty_def access_matrix_pretty_code_def Let_def access_matrix_def map_prod_fun_zip)
   
   
 
