@@ -131,37 +131,39 @@ theorem semantics_stateful_vs_tagged:
   shows "semantics_stateful rs stateful_matcher' state_update' \<sigma>\<^sub>0 start ps ps_processed \<sigma>' =
        semantics_stateful_packet_tagging rs stateful_matcher_tagged' packet_tagger' state_update' \<sigma>\<^sub>0 start ps ps_processed \<sigma>'"
   proof -
-  note vs_tagged=semantics_bigstep_state_vs_tagged[of stateful_matcher' _ _ stateful_matcher_tagged' packet_tagger'] (*TODO: use?*)
+   from semantics_bigstep_state_vs_tagged[of stateful_matcher' _ _ stateful_matcher_tagged' packet_tagger'] assms
+     have vs_tagged:
+     "rs,stateful_matcher' \<sigma>',p\<turnstile> \<langle>[Rule MatchAny (Call built_in_chain), Rule MatchAny default_policy], Undecided\<rangle> \<Rightarrow> t \<longleftrightarrow>
+      rs,stateful_matcher_tagged',packet_tagger' \<sigma>' p\<turnstile> \<langle>[Rule MatchAny (Call built_in_chain), Rule MatchAny default_policy], Undecided\<rangle> \<Rightarrow> t"
+      for t p \<sigma>' built_in_chain default_policy by blast
+   from assms have stateful_matcher_eq:
+    "(\<lambda>a b. stateful_matcher_tagged' a (packet_tagger' \<sigma>' b)) = stateful_matcher' \<sigma>'" for \<sigma>' by presburger  
   show ?thesis (is "?lhs \<longleftrightarrow> ?rhs")
     proof
-      assume ?lhs
-      from this assms show ?rhs
-       proof(induction rule: semantics_stateful.induct)
-       case 1 thus ?case by(auto intro: semantics_stateful_packet_tagging_intro_start)[1]
-       next
-       case (2 built_in_chain default_policy p ps  ps_processed \<sigma>') thus ?case
-         (*TODO: tune*)
-         apply simp
-         apply(rule semantics_stateful_packet_tagging_intro_process_one)
-            apply(simp_all)
-         apply(subst semantics_bigstep_state_vs_tagged)
-         apply(simp_all)
-         done
+      assume ?lhs thus ?rhs
+        proof(induction rule: semantics_stateful.induct)
+        case 1 thus ?case by(auto intro: semantics_stateful_packet_tagging_intro_start)[1]
+        next
+        case (2 built_in_chain default_policy p ps  ps_processed \<sigma>')
+          from 2 have
+            "semantics_stateful_packet_tagging rs stateful_matcher_tagged' packet_tagger' state_update' \<sigma>\<^sub>0 (built_in_chain, default_policy) (p # ps) ps_processed \<sigma>'"
+            by blast
+          with 2(2,3) show ?case
+          apply -
+          apply(rule semantics_stateful_packet_tagging_intro_process_one)
+             apply(simp_all add: vs_tagged)
+          done
        qed
     next
-      assume ?rhs
-      from this assms show ?lhs
+      assume ?rhs thus ?lhs
       proof(induction rule: semantics_stateful_packet_tagging.induct)
-      case 1 thus ?case by(auto intro: semantics_stateful_intro_start)
-      next
-      case (2 built_in_chain default_policy p ps ps_processed \<sigma>') thus ?case
-         (*TODO: tune*)
-         apply simp
-         apply(rule semantics_stateful_intro_process_one)
-            apply(simp_all)
-         apply(subst semantics_bigstep_state_vs_tagged)
-         apply(simp_all)
-         done
+        case 1 thus ?case by(auto intro: semantics_stateful_intro_start)
+        next
+        case (2 built_in_chain default_policy p ps ps_processed \<sigma>') thus ?case
+           apply -
+           apply(rule semantics_stateful_intro_process_one)
+              apply(simp_all add: stateful_matcher_eq vs_tagged)
+           done
       qed
     qed
   qed
