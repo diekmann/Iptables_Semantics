@@ -83,7 +83,7 @@ lemma guha_equal_NoAction:
 using spm unfolding OF_same_priority_match3_def
 by(auto simp add: filter_empty_conv OF_spm3_noa_none[OF no spm] intro: guha_table_semantics.intros(2) split: list.splits)
 
-lemma guha_equal:
+lemma guha_equal_hlp:
 	assumes no: "no_overlaps \<gamma> ft"
 	shows "guha_table_semantics \<gamma> ft p (ftb_to_option (OF_same_priority_match3 \<gamma> ft p))"
 	unfolding ftb_to_option_def
@@ -109,11 +109,10 @@ proof(rule ccontr)
     thus False by blast
 qed
 
-lemma guha_equal2:
+lemma guha_equal:
 	assumes no: "no_overlaps \<gamma> ft"
 	shows "OF_same_priority_match3 \<gamma> ft p = option_to_ftb d \<longleftrightarrow> guha_table_semantics \<gamma> ft p d"
-	unfolding option_to_ftb_def
-	using guha_equal[OF no, of p] unfolding ftb_to_option_def option_to_ftb_def
+	using guha_equal_hlp[OF no, of p] unfolding ftb_to_option_def option_to_ftb_def
 	apply(cases "OF_same_priority_match3 \<gamma> ft p"; cases d)
 	apply(simp_all)
 	using guha_deterministic1 apply fast
@@ -122,5 +121,33 @@ lemma guha_equal2:
 	using no_overlaps_not_unefined[OF no] apply fastforce
 	using no_overlaps_not_unefined[OF no] apply fastforce 
 done
+
+lemma guha_nondeterministicD:
+	assumes "\<not>check_no_overlap \<gamma> ft"
+	shows "\<exists>fe1 fe2 p. fe1 \<in> set ft \<and> fe2 \<in> set ft
+		\<and> guha_table_semantics \<gamma> ft p (Some (ofe_action fe1))
+		\<and> guha_table_semantics \<gamma> ft p (Some (ofe_action fe2))"
+using assms
+apply(unfold check_no_overlap_def)
+apply(clarsimp)
+apply(rename_tac fe1 fe2 p)
+apply(rule_tac x = fe1 in exI)
+apply(simp)
+apply(rule_tac x = fe2 in exI)
+apply(simp)
+apply(rule_tac x = p in exI)
+apply(rule conjI)
+apply(subst guha_table_semantics.simps)
+apply(rule disjI1)
+apply(clarsimp)
+apply(rule_tac x = fe1 in exI)
+apply(drule split_list)
+apply(clarify)
+apply(rename_tac ft1 ft2)
+apply(rule_tac x = ft1 in exI)
+apply(rule_tac x = ft2 in exI)
+apply(simp)
+oops (* shadowed overlaps yay! *)
+
 
 end

@@ -318,19 +318,10 @@ proof -
 			assume "as \<noteq> []"
 			then obtain b bs where bbs: "as = b # bs" by (meson neq_Nil_conv)
 			 note no = Cons[unfolded Let_def filter_filter]
-			have "ofe_prio a = ofe_prio b" 
-			proof - (* hammer *)
-			  have f1: "a \<in> Set.filter (\<lambda>f. \<forall>fa. fa \<in> set [f\<leftarrow>fe . \<gamma> (ofe_fields f) p] \<longrightarrow> ofe_prio fa \<le> ofe_prio f) (set [f\<leftarrow>fe . \<gamma> (ofe_fields f) p])"
-				by (metis (no_types) filter_set list.set_intros(1) local.Cons)
-			  have "b \<in> set [f\<leftarrow>[f\<leftarrow>fe . \<gamma> (ofe_fields f) p] . \<forall>fa. fa \<in> set [f\<leftarrow>fe . \<gamma> (ofe_fields f) p] \<longrightarrow> ofe_prio fa \<le> ofe_prio f]"
-				using bbs local.Cons by auto
-			  thus ?thesis
-				using f1 by (simp add: antisym)
-			qed
+			have f1: "a \<in> set ?m'" "b \<in> set ?m'" unfolding bbs local.Cons by simp_all
+			hence "ofe_prio a = ofe_prio b" by (simp add: antisym) 
 			moreover have ms: "\<gamma> (ofe_fields a) p" "\<gamma> (ofe_fields b) p" using no[symmetric] unfolding bbs by(blast dest: Cons_eq_filterD)+
-			moreover have abis: "a \<in> set fe" "b \<in> set fe"
-				by (metis (no_types, lifting) list.set_intros(1) mem_Collect_eq no(1) set_filter)
-                   (metis (no_types, lifting) bbs filter_set insertCI list.simps(15) member_filter no(1))
+			moreover have abis: "a \<in> set fe" "b \<in> set fe" using f1 by auto
 			moreover have "a \<noteq> b" proof(cases "\<exists>x y z. fe = x @ a # y @ b # z")
 				case True
 				then obtain x y z where xyz: "fe = x @ a # y @ b # z" by blast
