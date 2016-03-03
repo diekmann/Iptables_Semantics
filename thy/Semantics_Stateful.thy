@@ -18,121 +18,37 @@ text{*Processing a packet with state can be modeled as follows:
   When a decision is made, the state @{term \<sigma>} is updated.*}
 
 inductive semantics_stateful ::
-  "'a ruleset \<Rightarrow> ('\<sigma> \<Rightarrow> ('a, 'p) matcher) \<Rightarrow> ('\<sigma> \<Rightarrow> final_decision \<Rightarrow> 'p \<Rightarrow> '\<sigma>) \<Rightarrow>
-   (string \<times> action) \<Rightarrow> '\<sigma> \<Rightarrow> 'p \<Rightarrow>
-   ('\<sigma> \<times> final_decision) \<Rightarrow> bool" for \<Gamma> and \<gamma>\<^sub>\<sigma> and state_update where
-  "\<Gamma>,(\<gamma>\<^sub>\<sigma> \<sigma>),p\<turnstile> \<langle>[Rule MatchAny (Call built_in_chain), Rule MatchAny default_policy],Undecided\<rangle> \<Rightarrow> Decision X \<Longrightarrow>
-    semantics_stateful \<Gamma> \<gamma>\<^sub>\<sigma> state_update (built_in_chain, default_policy) \<sigma> p (state_update \<sigma> X p, X)"
+  "'a ruleset \<Rightarrow>
+   ('\<sigma> \<Rightarrow> ('a, 'p) matcher) \<Rightarrow> (*matcher, first parameter is the state*)
+   ('\<sigma> \<Rightarrow> final_decision \<Rightarrow> 'p \<Rightarrow> '\<sigma>) \<Rightarrow> (*state update function after firewall has decision for a packet*)
+   '\<sigma> \<Rightarrow> (*Starting state. constant*)
+   (string \<times> action) \<Rightarrow> (*The chain and default policy the firewall evaluates. For example ''FORWARD'', Drop*)
+   'p list \<Rightarrow> (*packets to be processed*)
+   ('p \<times> final_decision) list \<Rightarrow> (*packets which have been processed and their decision. ordered the same as the firewall processed them. oldest packet first*)
+   '\<sigma> \<Rightarrow> (*final state*)
+   bool" for \<Gamma> and \<gamma>\<^sub>\<sigma> and state_update and \<sigma>\<^sub>0 where
+  --{*A list of packets @{term ps} waiting to be processed. Nothing has happened, start and final state are the same, the list of processed packets is empty.*}
+  "semantics_stateful \<Gamma> \<gamma>\<^sub>\<sigma> state_update \<sigma>\<^sub>0 (built_in_chain, default_policy) ps [] \<sigma>\<^sub>0" |
+
+  --{*Processing one packet*}
+  "semantics_stateful \<Gamma> \<gamma>\<^sub>\<sigma> state_update \<sigma>\<^sub>0 (built_in_chain, default_policy) (p#ps) ps_processed \<sigma>' \<Longrightarrow>
+   \<Gamma>,(\<gamma>\<^sub>\<sigma> \<sigma>'),p\<turnstile> \<langle>[Rule MatchAny (Call built_in_chain), Rule MatchAny default_policy],Undecided\<rangle> \<Rightarrow> Decision X \<Longrightarrow>
+    semantics_stateful \<Gamma> \<gamma>\<^sub>\<sigma> state_update \<sigma>\<^sub>0 (built_in_chain, default_policy) ps (ps_processed@[(p, X)]) (state_update \<sigma>' X p)"
 
 
-lemma semantics_stateful_intro: "\<Gamma>,\<gamma>\<^sub>\<sigma> \<sigma>,p\<turnstile> \<langle>[Rule MatchAny (Call state_update), Rule MatchAny default_policy], Undecided\<rangle> \<Rightarrow> Decision X \<Longrightarrow>
-       \<sigma>' = state_upate \<sigma> X p \<Longrightarrow>
-       semantics_stateful \<Gamma> \<gamma>\<^sub>\<sigma> state_upate (state_update, default_policy) \<sigma> p (\<sigma>', X)"
+lemma semantics_stateful_intro_process_one: "semantics_stateful \<Gamma> \<gamma>\<^sub>\<sigma> state_upate \<sigma>\<^sub>0 (built_in_chain, default_policy) (p#ps) ps_processed_old \<sigma>_old \<Longrightarrow>
+       \<Gamma>,\<gamma>\<^sub>\<sigma> \<sigma>_old,p\<turnstile> \<langle>[Rule MatchAny (Call built_in_chain), Rule MatchAny default_policy], Undecided\<rangle> \<Rightarrow> Decision X \<Longrightarrow>
+       \<sigma>' = state_upate \<sigma>_old X p \<Longrightarrow>
+       ps_processed = ps_processed_old@[(p, X)] \<Longrightarrow>
+       semantics_stateful \<Gamma> \<gamma>\<^sub>\<sigma> state_upate \<sigma>\<^sub>0 (built_in_chain, default_policy) ps ps_processed \<sigma>'"
+  by(auto intro: semantics_stateful.intros)
+
+lemma semantics_stateful_intro_start: "\<sigma>\<^sub>0 = \<sigma>' \<Longrightarrow> ps_processed = [] \<Longrightarrow>
+       semantics_stateful \<Gamma> \<gamma>\<^sub>\<sigma> state_upate \<sigma>\<^sub>0 (built_in_chain, default_policy) ps ps_processed \<sigma>'"
   by(auto intro: semantics_stateful.intros)
 
 
-subsection{*Example: Conntrack*}
-context
-begin
-  text{*We illustrate stateful semantics with a simple example. We allow matching on the states New
-  and Established. In addition, we introduce a primitive match to match on outgoing ssh packets (dst port = 22).
-  The state is managed in a state table where accepted connections are remembered.*}
-
-
-  text{*SomePacket with source and destination port or something we don't know about*}
-  datatype packet = SomePacket "nat \<times> nat" | OtherPacket
-
-  datatype primitive_matches = New | Established | IsSSH
-
-  text{*In the state, we remember the packets which belong to an established connection.*}
-  datatype conntrack_state = State "packet set"
-
-  text{*The stateful primitive matcher: It is given the current state table. 
-    If match on @{const Established}, the packet must be known in the state table.
-    If match on @{const New}, the packet must not be in the state table.
-    If match on @{const IsSSH}, the dst port of the packet must be 22.*}
-  fun stateful_matcher :: "conntrack_state \<Rightarrow> (primitive_matches, packet) matcher" where
-    "stateful_matcher (State state_table) = (\<lambda>m p. m = Established \<and> p \<in> state_table \<or>
-                                           m = New \<and> p \<notin> state_table \<or>
-                                           m = IsSSH \<and> (\<exists>dst_port. p = SomePacket (22, dst_port)))"
-
-  text{*Connections are always bi-directional.*}
-  fun reverse_direction :: "packet \<Rightarrow> packet" where
-    "reverse_direction OtherPacket = OtherPacket" |
-    "reverse_direction (SomePacket (src, dst)) = SomePacket (dst,src)"
-
-  text{*If a packet is accepted, the state for its bi-directional connection is saved in the state table.*}
-  fun state_update :: "conntrack_state \<Rightarrow> final_decision \<Rightarrow> packet \<Rightarrow> conntrack_state" where
-    "state_update (State state_table) FinalAllow p = State (state_table \<union> {p, reverse_direction p})" |
-    "state_update (State state_table) FinalDeny p = State state_table"
-
-  text{*Allow everything that is established and allow new ssh connections.
-    Drop everything else (default policy, see below)*}
-  definition "ruleset == [''INPUT'' \<mapsto> [Rule (Match Established) Accept, Rule (MatchAnd (Match IsSSH) (Match New)) Accept]]"
-
-  text{*The @{const ruleset} does not allow @{const OtherPacket}*}
-  lemma "semantics_stateful ruleset stateful_matcher state_update (''INPUT'', Drop)
-    (State {})
-    OtherPacket
-    ((State {}), FinalDeny)"
-    unfolding ruleset_def
-    apply(rule semantics_stateful_intro)
-     apply(simp_all)
-    apply(rule seq_cons)
-     apply(rule call_result)
-       apply(simp_all)
-      apply(rule seq_cons)
-       apply(auto intro: iptables_bigstep.intros)
-    done
-
-
-  text{*The @{const ruleset} allows ssh packets, i.e. any packets with destination port 22 in the @{const New} rule.
-        The state is updated such that everything which belongs to the connection will now be accepted.*}
-  lemma "semantics_stateful ruleset stateful_matcher state_update (''INPUT'', Drop)
-          (State {})
-          (SomePacket (22, 1024))
-          (State {SomePacket (1024, 22), SomePacket (22, 1024)}, FinalAllow)"
-    unfolding ruleset_def
-    apply(rule semantics_stateful_intro)
-     apply(simp_all)
-    apply(rule seq_cons)
-     apply(rule call_result)
-       apply(simp_all)
-      apply(rule seq_cons)
-       apply(auto intro: iptables_bigstep.intros)
-    done
-
-  text{*If we continue with this state, answer packets are now allowed*}
-  lemma "semantics_stateful ruleset stateful_matcher state_update (''INPUT'', Drop)
-          (State {SomePacket (1024, 22), SomePacket (22, 1024)})
-          (SomePacket (22, 1024))
-          (State {SomePacket (1024, 22), SomePacket (22, 1024)}, FinalAllow)"
-    unfolding ruleset_def
-    apply(rule semantics_stateful_intro)
-     apply(simp_all)
-    apply(rule seq_cons)
-     apply(rule call_result)
-       apply(simp_all)
-      apply(rule seq_cons)
-       apply(auto intro: iptables_bigstep.intros)
-    done
-
-  text{*In contrast, without having previously established a state, answer packets are prohibited*}
-  lemma "semantics_stateful ruleset stateful_matcher state_update (''INPUT'', Drop)
-    (State {})
-    (SomePacket (1024, 22))
-    (State {}, FinalDeny)"
-    unfolding ruleset_def
-    apply(rule semantics_stateful_intro)
-     apply(simp_all)
-    apply(rule seq_cons)
-     apply(rule call_result)
-       apply(simp_all)
-      apply(rule seq_cons)
-       apply(auto intro: iptables_bigstep.intros)
-    done
-end
-
+text{*Example below*}
 
 subsection{*Model 2 -- Packets Tagged with State Information*}
 
@@ -140,11 +56,34 @@ text{*In this model, the matcher is completely stateless but packets are previou
       (static) stateful information. *}
 
 inductive semantics_stateful_packet_tagging ::
-  "'a ruleset \<Rightarrow> ('a, 'ptagged) matcher \<Rightarrow> ('\<sigma> \<Rightarrow> 'p \<Rightarrow> 'ptagged) \<Rightarrow> ('\<sigma> \<Rightarrow> final_decision \<Rightarrow> 'p \<Rightarrow> '\<sigma>) \<Rightarrow>
-   (string \<times> action) \<Rightarrow> '\<sigma> \<Rightarrow> 'p \<Rightarrow>
-   ('\<sigma> \<times> final_decision) \<Rightarrow> bool" for \<Gamma> and \<gamma> and packet_tagger and state_update where
-  "\<Gamma>,\<gamma>,(packet_tagger \<sigma> p)\<turnstile> \<langle>[Rule MatchAny (Call built_in_chain), Rule MatchAny default_policy],Undecided\<rangle> \<Rightarrow> Decision X \<Longrightarrow>
-    semantics_stateful_packet_tagging \<Gamma> \<gamma> packet_tagger state_update (built_in_chain, default_policy) \<sigma> p (state_update \<sigma> X p, X)"
+   "'a ruleset \<Rightarrow>
+    ('a, 'ptagged) matcher \<Rightarrow>
+    ('\<sigma> \<Rightarrow> 'p \<Rightarrow> 'ptagged) \<Rightarrow> (*taggs the packet accordig to the current state before processing by firewall*)
+    ('\<sigma> \<Rightarrow> final_decision \<Rightarrow> 'p \<Rightarrow> '\<sigma>) \<Rightarrow> (*state updater*)
+    '\<sigma> \<Rightarrow> (*Starting state. constant*)
+    (string \<times> action) \<Rightarrow>
+    'p list \<Rightarrow> (*packets to be processed*)
+    ('p \<times> final_decision) list \<Rightarrow> (*packets which have been processed*)
+    '\<sigma> \<Rightarrow> (*final state*)
+    bool" for \<Gamma> and \<gamma> and packet_tagger and state_update and \<sigma>\<^sub>0 where
+  "semantics_stateful_packet_tagging \<Gamma> \<gamma> packet_tagger state_update \<sigma>\<^sub>0 (built_in_chain, default_policy) ps [] \<sigma>\<^sub>0" |
+
+  "semantics_stateful_packet_tagging \<Gamma> \<gamma> packet_tagger state_update \<sigma>\<^sub>0 (built_in_chain, default_policy) (p#ps) ps_processed \<sigma>' \<Longrightarrow>
+   \<Gamma>,\<gamma>,(packet_tagger \<sigma>' p)\<turnstile> \<langle>[Rule MatchAny (Call built_in_chain), Rule MatchAny default_policy],Undecided\<rangle> \<Rightarrow> Decision X \<Longrightarrow>
+    semantics_stateful_packet_tagging \<Gamma> \<gamma> packet_tagger state_update \<sigma>\<^sub>0 (built_in_chain, default_policy) ps (ps_processed@[(p, X)]) (state_update \<sigma>' X p)"
+
+
+lemma semantics_stateful_packet_tagging_intro_start: "\<sigma>\<^sub>0 = \<sigma>' \<Longrightarrow> ps_processed = [] \<Longrightarrow>
+       semantics_stateful_packet_tagging \<Gamma> \<gamma> packet_tagger state_upate \<sigma>\<^sub>0 (built_in_chain, default_policy) ps ps_processed \<sigma>'"
+  by(auto intro: semantics_stateful_packet_tagging.intros)
+
+lemma semantics_stateful_packet_tagging_intro_process_one:
+      "semantics_stateful_packet_tagging \<Gamma> \<gamma> packet_tagger state_upate \<sigma>\<^sub>0 (built_in_chain, default_policy) (p#ps) ps_processed_old \<sigma>_old \<Longrightarrow>
+       \<Gamma>,\<gamma>,(packet_tagger \<sigma>_old p)\<turnstile> \<langle>[Rule MatchAny (Call built_in_chain), Rule MatchAny default_policy], Undecided\<rangle> \<Rightarrow> Decision X \<Longrightarrow>
+       \<sigma>' = state_upate \<sigma>_old X p \<Longrightarrow>
+       ps_processed = ps_processed_old@[(p, X)] \<Longrightarrow>
+       semantics_stateful_packet_tagging \<Gamma> \<gamma> packet_tagger state_upate \<sigma>\<^sub>0 (built_in_chain, default_policy) ps ps_processed \<sigma>'"
+  by(auto intro: semantics_stateful_packet_tagging.intros)
 
 
 lemma semantics_bigstep_state_vs_tagged: 
@@ -188,29 +127,159 @@ qed
 
 text{*Both semantics are equal*}
 theorem semantics_stateful_vs_tagged:
-  assumes "\<forall>m. stateful_matcher' \<sigma> m p = stateful_matcher_tagged' m (packet_tagger' \<sigma> p)" 
-  shows "semantics_stateful rs stateful_matcher' state_update' start \<sigma> p t =
-       semantics_stateful_packet_tagging rs stateful_matcher_tagged' packet_tagger' state_update' start \<sigma> p t"
+  assumes "\<forall>m \<sigma> p. stateful_matcher' \<sigma> m p = stateful_matcher_tagged' m (packet_tagger' \<sigma> p)" 
+  shows "semantics_stateful rs stateful_matcher' state_update' \<sigma>\<^sub>0 start ps ps_processed \<sigma>' =
+       semantics_stateful_packet_tagging rs stateful_matcher_tagged' packet_tagger' state_update' \<sigma>\<^sub>0 start ps ps_processed \<sigma>'"
   proof -
-  note vs_tagged=semantics_bigstep_state_vs_tagged[of stateful_matcher' _ _ stateful_matcher_tagged' packet_tagger']
+  note vs_tagged=semantics_bigstep_state_vs_tagged[of stateful_matcher' _ _ stateful_matcher_tagged' packet_tagger'] (*TODO: use?*)
   show ?thesis (is "?lhs \<longleftrightarrow> ?rhs")
     proof
       assume ?lhs
       from this assms show ?rhs
-       by(induction rule: semantics_stateful.induct)
-         (auto simp add: vs_tagged intro: semantics_stateful_packet_tagging.intros)
+       proof(induction rule: semantics_stateful.induct)
+       case 1 thus ?case by(auto intro: semantics_stateful_packet_tagging_intro_start)[1]
+       next
+       case (2 built_in_chain default_policy p ps  ps_processed \<sigma>') thus ?case
+         (*TODO: tune*)
+         apply simp
+         apply(rule semantics_stateful_packet_tagging_intro_process_one)
+            apply(simp_all)
+         apply(subst semantics_bigstep_state_vs_tagged)
+         apply(simp_all)
+         done
+       qed
     next
       assume ?rhs
       from this assms show ?lhs
-      by(induction rule: semantics_stateful_packet_tagging.induct)
-        (auto intro!: semantics_stateful_intro simp add: vs_tagged)
+      proof(induction rule: semantics_stateful_packet_tagging.induct)
+      case 1 thus ?case by(auto intro: semantics_stateful_intro_start)
+      next
+      case (2 built_in_chain default_policy p ps ps_processed \<sigma>') thus ?case
+         (*TODO: tune*)
+         apply simp
+         apply(rule semantics_stateful_intro_process_one)
+            apply(simp_all)
+         apply(subst semantics_bigstep_state_vs_tagged)
+         apply(simp_all)
+         done
+      qed
     qed
   qed
-  
 
-subsection{*Example: Conntrack with packet tagging*}
+
+text{*Examples*}
 context
 begin
+subsection{*Example: Conntrack with curried matcher*}
+  text{*We illustrate stateful semantics with a simple example. We allow matching on the states New
+  and Established. In addition, we introduce a primitive match to match on outgoing ssh packets (dst port = 22).
+  The state is managed in a state table where accepted connections are remembered.*}
+
+
+  text{*SomePacket with source and destination port or something we don't know about*}
+  private datatype packet = SomePacket "nat \<times> nat" | OtherPacket
+
+  private datatype primitive_matches = New | Established | IsSSH
+
+  text{*In the state, we remember the packets which belong to an established connection.*}
+  private datatype conntrack_state = State "packet set"
+
+  text{*The stateful primitive matcher: It is given the current state table. 
+    If match on @{const Established}, the packet must be known in the state table.
+    If match on @{const New}, the packet must not be in the state table.
+    If match on @{const IsSSH}, the dst port of the packet must be 22.*}
+  private fun stateful_matcher :: "conntrack_state \<Rightarrow> (primitive_matches, packet) matcher" where
+    "stateful_matcher (State state_table) = (\<lambda>m p. m = Established \<and> p \<in> state_table \<or>
+                                           m = New \<and> p \<notin> state_table \<or>
+                                           m = IsSSH \<and> (\<exists>dst_port. p = SomePacket (22, dst_port)))"
+
+  text{*Connections are always bi-directional.*}
+  private fun reverse_direction :: "packet \<Rightarrow> packet" where
+    "reverse_direction OtherPacket = OtherPacket" |
+    "reverse_direction (SomePacket (src, dst)) = SomePacket (dst,src)"
+
+  text{*If a packet is accepted, the state for its bi-directional connection is saved in the state table.*}
+  private fun state_update' :: "conntrack_state \<Rightarrow> final_decision \<Rightarrow> packet \<Rightarrow> conntrack_state" where
+    "state_update' (State state_table) FinalAllow p = State (state_table \<union> {p, reverse_direction p})" |
+    "state_update' (State state_table) FinalDeny p = State state_table"
+
+  text{*Allow everything that is established and allow new ssh connections.
+    Drop everything else (default policy, see below)*}
+  private definition "ruleset == [''INPUT'' \<mapsto> [Rule (Match Established) Accept, Rule (MatchAnd (Match IsSSH) (Match New)) Accept]]"
+
+  text{*The @{const ruleset} does not allow @{const OtherPacket}*}
+  lemma "semantics_stateful ruleset stateful_matcher state_update' (State {}) (''INPUT'', Drop) []
+    [(OtherPacket, FinalDeny)] (State {})"
+    unfolding ruleset_def
+    apply(rule semantics_stateful_intro_process_one)
+        apply(simp_all)
+       apply(rule semantics_stateful_intro_start)
+        apply(simp_all)
+     apply(rule seq_cons)
+      apply(rule call_result)
+        apply(simp_all)
+      apply(rule seq_cons)
+       apply(auto intro: iptables_bigstep.intros)
+    done
+
+
+  text{*The @{const ruleset} allows ssh packets, i.e. any packets with destination port 22 in the @{const New} rule.
+        The state is updated such that everything which belongs to the connection will now be accepted.*}
+  lemma "semantics_stateful ruleset stateful_matcher state_update' (State {}) (''INPUT'', Drop)
+          []
+          [(SomePacket (22, 1024), FinalAllow)]
+          (State {SomePacket (1024, 22), SomePacket (22, 1024)})"
+    unfolding ruleset_def
+    apply(rule semantics_stateful_intro_process_one)
+        apply(simp_all)
+       apply(rule semantics_stateful_intro_start)
+        apply(simp_all)
+     apply(rule seq_cons)
+      apply(rule call_result)
+        apply(simp_all)
+      apply(rule seq_cons)
+       apply(auto intro: iptables_bigstep.intros)
+    done
+
+  text{*If we continue with this state, answer packets are now allowed*}
+  lemma "semantics_stateful ruleset stateful_matcher state_update' (State {}) (''INPUT'', Drop)
+          []
+          [(SomePacket (22, 1024), FinalAllow), (SomePacket (1024, 22), FinalAllow)]
+          (State {SomePacket (1024, 22), SomePacket (22, 1024)})"
+    unfolding ruleset_def
+    apply(rule semantics_stateful_intro_process_one)
+        apply(simp_all)
+      apply(rule semantics_stateful_intro_process_one)
+         apply(simp_all)
+        apply(rule semantics_stateful_intro_start)
+         apply(simp_all)
+      apply(rule seq_cons, rule call_result, simp_all, rule seq_cons)
+        apply(auto intro: iptables_bigstep.intros)
+    apply(rule seq_cons, rule call_result, simp_all, rule seq_cons)
+      apply(auto intro: iptables_bigstep.intros)
+    done
+
+  text{*In contrast, without having previously established a state, answer packets are prohibited*}
+  text{*If we continue with this state, answer packets are now allowed*}
+  lemma "semantics_stateful ruleset stateful_matcher state_update' (State {}) (''INPUT'', Drop)
+          []
+          [(SomePacket (1024, 22), FinalDeny), (SomePacket (22, 1024), FinalAllow), (SomePacket (1024, 22), FinalAllow)]
+          (State {SomePacket (1024, 22), SomePacket (22, 1024)})"
+    unfolding ruleset_def
+    apply(rule semantics_stateful_intro_process_one)
+        apply(simp_all)
+      apply(rule semantics_stateful_intro_process_one)
+         apply(simp_all)
+       apply(rule semantics_stateful_intro_process_one)
+          apply(simp_all)
+        apply(rule semantics_stateful_intro_start)
+         apply(simp_all)
+       apply(rule seq_cons, rule call_result, simp_all, rule seq_cons, auto intro: iptables_bigstep.intros)+
+    done
+
+
+subsection{*Example: Conntrack with packet tagging*}
+
   datatype packet_tag = TagNew | TagEstablished
   datatype packet_tagged = SomePacket_tagged "nat \<times> nat \<times> packet_tag" | OtherPacket_tagged packet_tag
 
@@ -238,12 +307,12 @@ begin
 
   
   text{*Both semantics are equal*}
-  lemma "semantics_stateful rs stateful_matcher state_update start \<sigma> p t =
-    semantics_stateful_packet_tagging rs stateful_matcher_tagged packet_tagger state_update start \<sigma> p t"
-    apply(rule semantics_stateful_vs_tagged) 
-    apply(cases \<sigma>)
-    apply(simp)
-    apply(cases p)
+  lemma "semantics_stateful rs stateful_matcher state_update' \<sigma>\<^sub>0 start ps ps_processed \<sigma>' =
+    semantics_stateful_packet_tagging rs stateful_matcher_tagged packet_tagger state_update' \<sigma>\<^sub>0 start ps ps_processed \<sigma>'"
+    apply(rule semantics_stateful_vs_tagged)
+    apply(intro allI, rename_tac m \<sigma> p)
+    apply(case_tac \<sigma>)
+    apply(case_tac p)
      apply(simp_all add: stateful_matcher_tagged_def)
     apply force
     done
