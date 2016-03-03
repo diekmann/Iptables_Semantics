@@ -4,12 +4,15 @@ begin
 
 subsection{*Definition*}
 
+record routing_action = 
+  output_iface :: string
+  next_hop :: "ipv4addr option" (* no next hop if locally attached *)
+
 (* Routing rule matching ip route unicast type *)
 record routing_rule =
   routing_match :: prefix_match (* done on the dst *)
-  output_iface :: "port"
-  next_hop :: "ipv4addr option" (* no next hop if locally attached *)
-  metric :: "nat"
+  metric :: nat
+  routing_action :: routing_action
 
 definition "default_metric = 0"
 
@@ -32,7 +35,7 @@ fun is_longest_prefix_routing :: "prefix_routing \<Rightarrow> bool" where
   "is_longest_prefix_routing _ = True"
 
 (*example: get longest prefix match by sorting by pfxm_length*)
-definition "rr_ctor m l a nh me \<equiv> \<lparr> routing_match = PrefixMatch (ipv4addr_of_dotdecimal m) l, output_iface = Port a, next_hop = (map_option ipv4addr_of_dotdecimal nh), metric = me \<rparr>"
+definition "rr_ctor m l a nh me \<equiv> \<lparr> routing_match = PrefixMatch (ipv4addr_of_dotdecimal m) l, metric = me, routing_action =\<lparr>output_iface = a, next_hop = (map_option ipv4addr_of_dotdecimal nh)\<rparr> \<rparr>"
 value "rev (sort_key (\<lambda>r. pfxm_length (routing_match r)) [
   rr_ctor (0,0,0,1) 3 '''' None 0,
   rr_ctor (0,0,0,2) 8 [] None 0,
@@ -75,8 +78,6 @@ definition dst_addr :: "'v hdr \<Rightarrow> 'v" where
 lemma dst_addr_f: "(f = Host \<or> f = NetworkBox) \<Longrightarrow> dst_addr (src, f dst) = dst"
   unfolding dst_addr_def extract_addr_def snd_def by auto
 
-type_synonym routing_action = "port \<times> ipv4addr option"
-definition "routing_action r = ((output_iface r, next_hop r) :: routing_action)"
 (*assumes: correct_routing*)
 fun routing_table_semantics :: "prefix_routing \<Rightarrow> ipv4addr \<Rightarrow> routing_action" where
 "routing_table_semantics [] _ = routing_action (undefined::routing_rule)" | 
