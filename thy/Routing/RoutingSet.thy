@@ -161,8 +161,9 @@ lemma rdm_rd_eq: "(ipset_destination_map rtbl rg ip = Some ports) = in_rel (ipse
    apply clarify
    apply(rename_tac a b rga)
    apply(simp only: refl if_True if_False Un_empty_left ipset_destination.simps Let_def)
-   apply(subgoal_tac "(rga, (a,b)) \<notin> ipset_destination rs (snd (ipset_prefix_match (routing_match r) rg))")
-    apply force
+   apply(rename_tac r rs a b rga)
+   apply(subgoal_tac "(rga, b) \<notin> ipset_destination rs (snd (ipset_prefix_match (routing_match r) a))")
+   	apply fast
    apply(rule ipset_destination_not_in)
    apply(simp only: ipset_prefix_match_m ipset_prefix_match_nm, blast)
   apply(thin_tac "(\<And>rg ports. (ipset_destination_map rs rg ip = Some ports) = (\<exists>rga. ip \<in> rga \<and> (rga, ports) \<in> ipset_destination rs rg))") (* how the hell does that even still work *)

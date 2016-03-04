@@ -28,7 +28,7 @@ definition "simple_linux_router rt fw mlf p \<equiv> (let
 	nh = fromMaybe (p_dst p) (next_hop rd);
 	ma = mlf nh;
 	p = p_oiface_update (const (output_iface rd)) p
-	in case fd of 
+	in case fd of
 		Decision FinalAllow \<Rightarrow> Some p |
 		Decision FinalDeny \<Rightarrow> None
 	)"
@@ -41,3 +41,5 @@ term p_l2dst_update
  - Only default iptables table (no raw, nat)
  - No traffic to localhost (might be a limit to lift\<dots>)
 *)
+
+end

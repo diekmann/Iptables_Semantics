@@ -21,7 +21,6 @@ lemma range_destination_eq:
    apply(case_tac[!] "snd (ipset_prefix_match (routing_match a) (ipv4range_to_set rg)) = {}")
      apply(simp_all only: refl if_True if_False range_prefix_match_sm[symmetric] range_prefix_match_snm[symmetric] ipv4range_empty_set_eq Un_empty_left Un_empty_right)
      apply(simp_all)[3]
-   apply(fast)
   apply(simp only: set_append set_simps)
   apply blast
 done
