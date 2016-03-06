@@ -13,8 +13,8 @@ datatype of_match_field =
 	| VlanPriority "16 word"
 (*	| MplsLabel
 	| MplsClass *)
-	| IPv4Src prefix_match (* could also be arbitrary bitmask - see page 80 of 1.5.1 *)
-	| IPv4Dst prefix_match (* ditto *)
+	| IPv4Src "32 prefix_match" (* could also be arbitrary bitmask - see page 80 of 1.5.1 *)
+	| IPv4Dst "32 prefix_match" (* ditto *)
 	| IPv4Proto "8 word"
 (*	| IPv4ToS "16 word" *)
 	| L4Src "16 word" (* openvswitch 1.6 supports bitmasks - does not seem to be in of 1.5.1 *)

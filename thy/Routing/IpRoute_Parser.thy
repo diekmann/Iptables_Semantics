@@ -10,6 +10,7 @@ definition "routing_action_next_hop_update h pk = routing_action_update (next_ho
 definition "routing_action_oiface_update h pk = routing_action_update (output_iface_update (const h)) (pk::routing_rule)"
 
 (* Hide all the ugly ml in a file with the right extension *)
+term PrefixMatch
 ML_file "IpRoute_Parser.ml"
                   
 ML\<open>

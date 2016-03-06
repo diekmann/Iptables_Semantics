@@ -26,7 +26,7 @@ local
 
   fun mk_quadrupel (((a,b),c),d) = HOLogic.mk_prod
                (mk_nat255 a, HOLogic.mk_prod (mk_nat255 b, HOLogic.mk_prod (mk_nat255 c, mk_nat255 d)));
-  fun ipprefix_to_hol (ip,len) = @{const PrefixMatch} $ (@{const ipv4addr_of_dotdecimal} $ (mk_quadrupel ip)) $ mk_nat 32 len;
+  fun ipprefix_to_hol (ip,len) = @{term "PrefixMatch :: 32 word \<Rightarrow> nat \<Rightarrow> 32 prefix_match"} $ (@{const ipv4addr_of_dotdecimal} $ (mk_quadrupel ip)) $ mk_nat 32 len;
 
   val parser_ip = (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
                   (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
@@ -40,7 +40,7 @@ local
   
   val parser_subnet = parser_ip_cidr ||
     (parser_ip >> (fn ip => ipprefix_to_hol (ip,32))) ||
-    (Scan.this_string "default" >> K @{term "PrefixMatch 0 0"})
+    (Scan.this_string "default" >> K @{term "PrefixMatch 0 0 :: 32 prefix_match"})
   val parser_whitespace = Scan.many1 (fn x => x = " ");
 
   val parser_via = (Scan.this_string "via" -- parser_whitespace |-- parser_ip) 
@@ -73,7 +73,7 @@ in
 	fun register_ip_route (name,path) (lthy: local_theory) =
 	let
 	  val fcontent = load_file (Proof_Context.theory_of lthy) [path]
-	  (*val _ = map (Pretty.writeln o Syntax.pretty_term @{context} o parser o Symbol.explode) fcontent (* keep this one, lets you see where it fails *)*)
+	  val _ = map (Pretty.writeln o Syntax.pretty_term @{context} o parser o Symbol.explode) fcontent (* keep this one, lets you see where it fails *)
 	  val r = map (parser o Symbol.explode) fcontent
 	in
 	  define_const (HOLogic.mk_list @{typ "routing_rule"} r) name lthy

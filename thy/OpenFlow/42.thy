@@ -119,7 +119,7 @@ lemma prefix_match_semantics_simple_match:
 	apply(clarsimp simp add: fun_eq_iff)
 	apply(subst NumberWangCaesar.prefix_match_if_in_corny_set[OF vld])
 	apply(cases m)
-	apply(clarsimp simp add: fun_eq_iff toprefixmatch_def ipv4range_set_from_bitmask_alt1 maskshift_eq_not_mask pfxm_mask_def)
+	apply(clarsimp simp add: fun_eq_iff toprefixmatch_def ipv4range_set_from_prefix_alt1 maskshift_eq_not_mask pfxm_mask_def)
 done
 
 definition "simple_match_to_of_match_single m iif prot sport dport \<equiv>

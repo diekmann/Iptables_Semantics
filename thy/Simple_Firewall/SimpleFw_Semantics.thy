@@ -71,7 +71,7 @@ section{*Simple Firewall Syntax (IPv4 only)*}
 subsection{*Simple Firewall Semantics*}
 
   fun simple_match_ip :: "(ipv4addr \<times> nat) \<Rightarrow> ipv4addr \<Rightarrow> bool" where
-    "simple_match_ip (base, len) p_ip \<longleftrightarrow> p_ip \<in> ipv4range_set_from_bitmask base len"
+    "simple_match_ip (base, len) p_ip \<longleftrightarrow> p_ip \<in> ipv4range_set_from_prefix base len"
 
   --"by the way, the words do not wrap around"
   lemma "{(253::8 word) .. 8} = {}" by simp 
@@ -109,7 +109,7 @@ subsection{*Simple Firewall Semantics*}
   lemma simple_match_any: "simple_matches simple_match_any p"
     proof -
       have "(65535::16 word) = max_word" by(simp add: max_word_def)
-      thus ?thesis by(simp add: simple_match_any_def ipv4range_set_from_bitmask_0 match_ifaceAny)
+      thus ?thesis by(simp add: simple_match_any_def ipv4range_set_from_prefix_0 match_ifaceAny)
     qed
 
   text{*we specify only one empty port range*}
@@ -141,8 +141,7 @@ subsection{*Simple Firewall Semantics*}
               match_iface oif (p_oiface p) \<longrightarrow> match_iface iif (p_iiface p) \<longrightarrow> \<not> p_dport p \<le> dps2"
           from assm have nomatch: "\<forall>p::simple_packet. ?x p" by(simp add: m)
           { fix ips
-            have "\<And>a b. a \<in> ipv4range_set_from_bitmask a b" using ip_set_def ipv4range_set_from_bitmask_eq_ip_set by blast
-            hence "simple_match_ip ips (fst ips)" by(cases ips) simp
+            from ipv4range_set_from_prefix_lowest have "simple_match_ip ips (fst ips)" by(cases ips) simp
           } note ips=this
           have proto: "match_proto protocol (case protocol of ProtoAny \<Rightarrow> TCP | Proto p \<Rightarrow> p)"
             by(simp split: protocol.split)
@@ -186,9 +185,9 @@ subsection{*Simple IPs*}
   {
     fix b1 m1 b2 m2
     have "simple_match_ip (b1, m1) p_ip \<and> simple_match_ip (b2, m2) p_ip \<longleftrightarrow> 
-          p_ip \<in> ipv4range_set_from_bitmask b1 m1 \<inter> ipv4range_set_from_bitmask b2 m2"
+          p_ip \<in> ipv4range_set_from_prefix b1 m1 \<inter> ipv4range_set_from_prefix b2 m2"
     by simp
-    also have "\<dots> \<longleftrightarrow> p_ip \<in> (case ipv4cidr_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> {} | Some (bx, mx) \<Rightarrow> ipv4range_set_from_bitmask bx mx)"
+    also have "\<dots> \<longleftrightarrow> p_ip \<in> (case ipv4cidr_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> {} | Some (bx, mx) \<Rightarrow> ipv4range_set_from_prefix bx mx)"
       using ipv4cidr_conjunct_correct by blast
     also have "\<dots> \<longleftrightarrow> (case ipv4cidr_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
       by(simp split: option.split)

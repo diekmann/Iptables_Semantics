@@ -21,8 +21,8 @@ apply (simp add: word_size mask_def)
 done
 
 
-lemma X: "j \<in> ip_set i r \<Longrightarrow> ip_set j r = ip_set i r"
-  by (auto simp: ip_set_def)
+lemma X: "j \<in> ip4_set i r \<Longrightarrow> ip4_set j r = ip4_set i r"
+  by (auto simp: ip4_set_def)
 
 lemma Z:
   fixes i :: "('a :: len) word"
@@ -37,37 +37,37 @@ proof -
   finally show ?thesis .
 qed
 
-lemma Y: "r1 \<le> r2 \<Longrightarrow> ip_set i r2 \<subseteq> ip_set i r1"
-  unfolding ip_set_def
+lemma Y: "r1 \<le> r2 \<Longrightarrow> ip4_set i r2 \<subseteq> ip4_set i r1"
+  unfolding ip4_set_def
   apply auto
   apply (rule Z[where ?r2.0="32 - r2"])
   apply auto
   done
 
 
-lemma ip_set_intersect_subset_helper:
+lemma ip4_set_intersect_subset_helper:
   fixes i1 r1 i2 r2
-  assumes disj: "ip_set i1 r1 \<inter> ip_set i2 r2 \<noteq> {}" and  "r1 \<le> r2"
-  shows "ip_set i2 r2 \<subseteq> ip_set i1 r1"
+  assumes disj: "ip4_set i1 r1 \<inter> ip4_set i2 r2 \<noteq> {}" and  "r1 \<le> r2"
+  shows "ip4_set i2 r2 \<subseteq> ip4_set i1 r1"
   proof -
-  from disj obtain j where "j \<in> ip_set i1 r1" "j \<in> ip_set i2 r2" by auto
-  with `r1 \<le> r2` have "j \<in> ip_set j r1" "j \<in> ip_set j r1" using X Y by blast+
+  from disj obtain j where "j \<in> ip4_set i1 r1" "j \<in> ip4_set i2 r2" by auto
+  with `r1 \<le> r2` have "j \<in> ip4_set j r1" "j \<in> ip4_set j r1" using X Y by blast+
 
-  show "ip_set i2 r2 \<subseteq> ip_set i1 r1"
+  show "ip4_set i2 r2 \<subseteq> ip4_set i1 r1"
   proof
-    fix i assume "i \<in> ip_set i2 r2"
-    with \<open>j \<in> ip_set i2 r2\<close> have "i \<in> ip_set j r2" using X by auto
-    also have "ip_set j r2 \<subseteq> ip_set j r1" using \<open>r1 \<le> r2\<close> Y by blast
-    also have "\<dots> = ip_set i1 r1" using \<open>j \<in> ip_set i1 r1\<close> X by blast
-    finally show "i \<in> ip_set i1 r1" .
+    fix i assume "i \<in> ip4_set i2 r2"
+    with \<open>j \<in> ip4_set i2 r2\<close> have "i \<in> ip4_set j r2" using X by auto
+    also have "ip4_set j r2 \<subseteq> ip4_set j r1" using \<open>r1 \<le> r2\<close> Y by blast
+    also have "\<dots> = ip4_set i1 r1" using \<open>j \<in> ip4_set i1 r1\<close> X by blast
+    finally show "i \<in> ip4_set i1 r1" .
   qed
 qed
 
-lemma ip_set_notsubset_empty_inter: "\<not> ip_set i1 r1 \<subseteq> ip_set i2 r2 \<Longrightarrow> \<not> ip_set i2 r2 \<subseteq> ip_set i1 r1 \<Longrightarrow> ip_set i1 r1 \<inter> ip_set i2 r2 = {}"
+lemma ip4_set_notsubset_empty_inter: "\<not> ip4_set i1 r1 \<subseteq> ip4_set i2 r2 \<Longrightarrow> \<not> ip4_set i2 r2 \<subseteq> ip4_set i1 r1 \<Longrightarrow> ip4_set i1 r1 \<inter> ip4_set i2 r2 = {}"
   apply(cases "r1 \<le> r2")
-  using ip_set_intersect_subset_helper apply blast
+  using ip4_set_intersect_subset_helper apply blast
   apply(cases "r2 \<le> r1")
-  using ip_set_intersect_subset_helper apply blast
+  using ip4_set_intersect_subset_helper apply blast
   apply(simp)
   done
 

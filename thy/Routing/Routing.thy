@@ -10,7 +10,7 @@ record routing_action =
 
 (* Routing rule matching ip route unicast type *)
 record routing_rule =
-  routing_match :: prefix_match (* done on the dst *)
+  routing_match :: "32 prefix_match" (* done on the dst *)
   metric :: nat
   routing_action :: routing_action
 

@@ -5,11 +5,12 @@ begin
 subsection{*Definition*}
 
 
-definition valid_prefix :: "prefix_match \<Rightarrow> bool" where
+definition valid_prefix :: "('a::len) prefix_match \<Rightarrow> bool" where
   "valid_prefix pf = ((pfxm_mask pf) AND pfxm_prefix pf = 0)"
 lemma valid_prefix_E: "valid_prefix pf \<Longrightarrow> ((pfxm_mask pf) AND pfxm_prefix pf = 0)" 
   unfolding valid_prefix_def .
-lemma valid_preifx_alt_def: "valid_prefix p = (pfxm_prefix p AND (2 ^ (32 - pfxm_length p) - 1) = 0)"
+
+lemma valid_preifx_alt_def: "valid_prefix p = (pfxm_prefix p AND ((2::'a word) ^ (len_of TYPE('a::len) - pfxm_length p) - 1) = 0)"
   unfolding valid_prefix_def
   unfolding mask_def pfxm_mask_def
   by (simp add: word_bw_comms(1) mask_2pm1)
@@ -17,16 +18,11 @@ lemma valid_preifx_alt_def: "valid_prefix p = (pfxm_prefix p AND (2 ^ (32 - pfxm
 subsection{*Address Semantics*}
 
 lemma zero_prefix_match_all: "valid_prefix m \<Longrightarrow> pfxm_length m = 0 \<Longrightarrow> prefix_match_semantics m ip"
-  apply(unfold prefix_match_semantics_def)
-  apply(simp add: pfxm_mask_def)
-  apply(subgoal_tac "pfxm_prefix m = 0")
-   apply(metis mask_32_max_word word_bool_alg.compl_one word_bool_alg.conj_zero_left)
-  apply(simp add: mask_32_max_word valid_prefix_def pfxm_mask_def)
-done
+  by(simp add: pfxm_mask_def mask_2pm1 valid_preifx_alt_def prefix_match_semantics_def)
 
 subsection{*Set Semantics*}
 
-definition prefix_to_ipset :: "prefix_match \<Rightarrow> ipv4addr set" where
+definition prefix_to_ipset where
   "prefix_to_ipset pfx = {pfxm_prefix pfx .. pfxm_prefix pfx OR pfxm_mask pfx}"
 
 lemma pfx_not_empty: "valid_prefix pfx \<Longrightarrow> prefix_to_ipset pfx \<noteq> {}"
@@ -51,7 +47,7 @@ lemma helper3: "(x\<^sub>4\<^sub>8\<Colon>32 word) OR x\<^sub>4\<^sub>9 = x\<^su
 
 lemma pfx_match_addr_ipset: "valid_prefix rr \<Longrightarrow> prefix_match_semantics rr addr \<Longrightarrow> (addr \<in> prefix_to_ipset rr)"
   by(simp add: prefix_match_semantics_def prefix_to_ipset_def valid_prefix_def)
-    (metis helper3 le_word_or2 word_and_le2 word_bool_alg.conj_commute word_bool_alg.disj_commute)
+     (metis (no_types, lifting) neg_mask_add_mask pfxm_mask_def word_and_le1 word_ao_absorbs(1) word_ao_absorbs(6) word_bool_alg.conj.commute word_neg_and_le)
 (* inversion should hold\<dots> *)
 
 lemma packet_ipset_prefix_eq1:
@@ -96,12 +92,14 @@ lemma packet_ipset_prefix_eq2:
   assumes "prefix_match_semantics match addr" 
   shows "addr \<in> (fst (ipset_prefix_match match addrrg))"
 using assms
+thm pfx_match_addr_ipset
+(*by (metis IntI fstI pfx_match_addr_ipset ipset_prefix_match_def)*)
   apply(subst ipset_prefix_match_def)
   apply(simp only: Let_def fst_def)
   apply(simp add: prefix_to_ipset_def)
   apply(simp only: prefix_match_semantics_def valid_prefix_def)
   apply(simp add: word_and_le1)
-  apply(metis helper3 le_word_or2 word_bw_comms(1) word_bw_comms(2))
+  apply(simp add: le_word_or2 word_bool_alg.disj_conj_distrib2)
 done
 
 lemma packet_ipset_prefix_eq3:
@@ -110,46 +108,15 @@ lemma packet_ipset_prefix_eq3:
   assumes "addr \<in> (snd (ipset_prefix_match match addrrg))"
   shows "\<not>prefix_match_semantics match addr"
 using assms
-  apply(subst(asm) ipset_prefix_match_def)
-  apply(simp only: Let_def fst_def)
-  apply(simp)
-  apply(subst(asm) prefix_to_ipset_def)
-  apply(simp only: prefix_match_semantics_def valid_prefix_def Set_Interval.ord_class.atLeastAtMost_iff prefix_to_ipset_def)
-  apply(simp)
-  apply(metis helper3 le_word_or2 word_and_le2 word_bw_comms(1) word_bw_comms(2))
-done
+unfolding ipset_prefix_match_def
+using assms(3) pfx_match_addr_ipset by fastforce
 
 lemma packet_ipset_prefix_eq4:
   assumes "addr \<in> addrrg"
   assumes "valid_prefix match"
   assumes "addr \<in> (fst (ipset_prefix_match match addrrg))"
   shows "prefix_match_semantics match addr"
-using assms
-proof -
-  have "pfxm_prefix match = ~~ pfxm_mask match && addr"
-  proof -
-    have a1: "pfxm_mask match && pfxm_prefix match = 0" using assms(2) unfolding valid_prefix_def .
-    have a2: "pfxm_prefix match \<le> addr \<and> addr \<le> pfxm_prefix match || pfxm_mask match"
-      using assms(3) unfolding ipset_prefix_match_def Let_def fst_conv prefix_to_ipset_def by simp
-    have f2: "\<forall>x\<^sub>0. pfxm_prefix match && ~~ mask x\<^sub>0 \<le> addr && ~~ mask x\<^sub>0"
-      using a2 neg_mask_mono_le by blast
-    have f3: "\<forall>x\<^sub>0. addr && ~~ mask x\<^sub>0 \<le> (pfxm_prefix match || pfxm_mask match) && ~~ mask x\<^sub>0"
-      using a2 neg_mask_mono_le by blast
-    have f4: "pfxm_prefix match = pfxm_prefix match && ~~ pfxm_mask match"
-      using a1 by (metis mask_eq_0_eq_x word_bw_comms(1))
-    hence f5: "\<forall>x\<^sub>6. (pfxm_prefix match || x\<^sub>6) && ~~ pfxm_mask match = pfxm_prefix match || x\<^sub>6 && ~~ pfxm_mask match"
-      using word_ao_dist by (metis)
-    have f6: "\<forall>x\<^sub>2 x\<^sub>3. addr && ~~ mask x\<^sub>2 \<le> x\<^sub>3 \<or> \<not> (pfxm_prefix match || pfxm_mask match) && ~~ mask x\<^sub>2 \<le> x\<^sub>3"
-      using f3 dual_order.trans by auto
-    have "pfxm_prefix match = (pfxm_prefix match || pfxm_mask match) && ~~ pfxm_mask match"
-      using f5 by auto
-    hence "pfxm_prefix match = addr && ~~ pfxm_mask match"
-      using f2 f4 f6 unfolding pfxm_mask_def by (metis eq_iff)
-    thus "pfxm_prefix match = ~~ pfxm_mask match && addr"
-      by (metis word_bw_comms(1))
-  qed
-  from this show ?thesis unfolding prefix_match_semantics_def .
-qed
+using assms using packet_ipset_prefix_eq1 by fastforce
 
 lemma packet_ipset_prefix_eq24:
   assumes "addr \<in> addrrg"
@@ -182,10 +149,11 @@ lemma prefix_match_if_in_corny_set:
     show ?case unfolding * ** ..
   qed
   
+thm ipv4range_set_from_prefix_alt1
 lemma prefix_match_if_in_corny_set2:
   assumes "valid_prefix pfx"
-  shows "prefix_match_semantics pfx (a :: ipv4addr) \<longleftrightarrow> a \<in> ipv4range_set_from_bitmask (pfxm_prefix pfx) (pfxm_length pfx)"
- unfolding prefix_match_if_in_corny_set[OF assms] pfxm_mask_def by (metis (full_types) NOT_mask_len32 ipv4range_set_from_bitmask_alt1 word_bool_alg.double_compl)
+  shows "prefix_match_semantics pfx (a :: ipv4addr) \<longleftrightarrow> a \<in> ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx)"
+ unfolding prefix_match_if_in_corny_set[OF assms] pfxm_mask_def ipv4range_set_from_prefix_alt1 by (metis len32 NOT_mask_len32 word_bool_alg.double_compl)
 
 subsection{*Range stuff*}
 
