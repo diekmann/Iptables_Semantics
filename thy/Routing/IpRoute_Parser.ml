@@ -44,9 +44,9 @@ local
   val parser_whitespace = Scan.many1 (fn x => x = " ");
 
   val parser_via = (Scan.this_string "via" -- parser_whitespace |-- parser_ip) 
-    >> (fn ip => fn pk => @{const update_nh} $ (@{const ipv4addr_of_dotdecimal} $ (mk_quadrupel ip)) $ pk)
+    >> (fn ip => fn pk => @{const routing_action_next_hop_update} $ (@{const ipv4addr_of_dotdecimal} $ (mk_quadrupel ip)) $ pk)
   val parser_dev = (Scan.this_string "dev" -- parser_whitespace |-- parser_interface)
-    >> (fn dev => fn pk => @{term "output_iface_update :: (port \<Rightarrow> port) \<Rightarrow> routing_rule \<Rightarrow> routing_rule"} $ (@{term "const :: port \<Rightarrow> port \<Rightarrow> port"} $ (@{const Port} $ dev)) $ pk)
+    >> (fn dev => fn pk => @{term "routing_action_oiface_update :: string \<Rightarrow> routing_rule \<Rightarrow> routing_rule"} $ dev $ pk)
   val parser_metric = (Scan.this_string "metric" -- parser_whitespace |-- Scan.many1 Symbol.is_ascii_digit)
     >> (fn metric => fn pk => @{term "metric_update :: (nat \<Rightarrow> nat) \<Rightarrow> routing_rule \<Rightarrow> routing_rule"} $ (@{term "const :: nat \<Rightarrow> nat \<Rightarrow> nat"} $ (mk_nat 65535 (extract_int metric))) $ pk)
   (* these are going to be ignored anyway\<dots>(?) *)
