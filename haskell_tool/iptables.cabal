@@ -7,6 +7,8 @@ maintainer:          diekmann@net.in.tum.de
 copyright:           BSD2
 category:            Network
 build-type:          Simple
+homepage:            http://iptables.isabelle.systems/
+bug-reports:         https://github.com/diekmann/Iptables_Semantics/issues
 cabal-version:       >= 1.18
 tested-with:         GHC >= 7.8 && < 8.0
 
