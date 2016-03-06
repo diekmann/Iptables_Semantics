@@ -127,8 +127,8 @@ ipassmt_i8_hardcoded = "eth0 = [0.0.0.0-255.255.255.255]\n\
 \  185.86.232.0/22\n\
 \  ]"
 
-test_spoofing_TUM_Net_iptables_save_2015_05_15_15_23_41_cheating :: IO Progress
-test_spoofing_TUM_Net_iptables_save_2015_05_15_15_23_41_cheating = do
+
+test_spoofing_TUM_i8 fileName expected_spoofing_result errormsg = do
     ipassmt <- case parseIpAssmt "<hardcoded>" ipassmt_i8_hardcoded of
         Left err -> do print err
                        error $ "could not parse hard-coded ipassmt"
@@ -136,7 +136,6 @@ test_spoofing_TUM_Net_iptables_save_2015_05_15_15_23_41_cheating = do
                         putStrLn (show res)
                         return $ ipAssmtToIsabelle res
     
-    let fileName = "../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating"
     f <- readFile fileName
     
     case parseIptablesSave fileName f of
@@ -154,7 +153,11 @@ test_spoofing_TUM_Net_iptables_save_2015_05_15_15_23_41_cheating = do
             if computed_result == expected_spoofing_result then
                 return $ Finished Pass
             else
-                return $ Finished $ Fail "computed_result != expected_spoofing_result (almost all interfaces should have spoofing protection)"
+                return $ Finished $ Fail errormsg
+
+
+test_spoofing_TUM_Net1 :: IO Progress
+test_spoofing_TUM_Net1 = test_spoofing_TUM_i8 "../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating" expected_spoofing_result "computed_result != expected_spoofing_result (almost all interfaces should have spoofing protection)"
     where expected_spoofing_result = [  ("eth0", True)
                             , ("foo", False)
                             , ("eth1.96", True)
@@ -180,33 +183,7 @@ test_spoofing_TUM_Net_iptables_save_2015_05_15_15_23_41_cheating = do
                             , ("eth1.1024", True)]
 
 
-test_spoofing_TUM_Net_iptables_save_2015_05_15_14_14_46_cheating = do
-    ipassmt <- case parseIpAssmt "<hardcoded>" ipassmt_i8_hardcoded of
-        Left err -> do print err
-                       error $ "could not parse hard-coded ipassmt"
-        Right res -> do putStrLn "Parsed IpAssmt"
-                        putStrLn (show res)
-                        return $ ipAssmtToIsabelle res
-    
-    let fileName = "../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_14-14-46_cheating"
-    f <- readFile fileName
-    
-    case parseIptablesSave fileName f of
-        Left err -> return $ Finished $ Fail (show err)
-        Right res -> do
-            checkParsedTables res
-            let (fw, defaultPolicies) = rulesetLookup "filter" res
-            let Just policy_FORWARD = M.lookup "FORWARD" defaultPolicies
-            let unfolded = Isabelle.unfold_ruleset_FORWARD (policy_FORWARD) $ Isabelle.map_of_string (Isabelle.rewrite_Goto fw)
-            let fuc = preprocessForSpoofingProtection unfolded --Firewall Under Certification
-            putStrLn $ "ipassmt_sanity_defined: " ++ show (Isabelle.ipassmt_sanity_defined fuc (Isabelle.map_of_ipassmt ipassmt))
-            mapM_ putStrLn (Isabelle.debug_ipassmt ipassmt fuc)
-            let computed_result = map (\ (iface, rslt) -> (show iface, rslt)) (exampleCertSpoof ipassmt fuc)
-            putStrLn $ show computed_result
-            if computed_result == expected_spoofing_result then
-                return $ Finished Pass
-            else
-                return $ Finished $ Fail "computed_result != expected_spoofing_result (ifaces foo, 110, 97, 1024 must fail)"
+test_spoofing_TUM_Net2 = test_spoofing_TUM_i8 "../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_14-14-46_cheating" expected_spoofing_result "computed_result != expected_spoofing_result (ifaces foo, 110, 97, 1024 must fail)"
     where expected_spoofing_result = [  ("eth0", True)
                             , ("foo", False)
                             , ("eth1.96", True)
@@ -232,9 +209,35 @@ test_spoofing_TUM_Net_iptables_save_2015_05_15_14_14_46_cheating = do
                             , ("eth1.1024", False)]
 
 
+test_spoofing_TUM_Net3 = test_spoofing_TUM_i8 "../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-13_10-53-20_cheating" expected_spoofing_result "computed_result != expected_spoofing_result (only ifaces 96 and eth0 have protection)"
+    where expected_spoofing_result = [  ("eth0", True)
+                            , ("foo", False)
+                            , ("eth1.96", True)
+                            , ("eth1.108", False)
+                            , ("eth1.109", False)
+                            , ("eth1.110", False)
+                            , ("eth1.116", False)
+                            , ("eth1.152", False)
+                            , ("eth1.171", False)
+                            , ("eth1.173", False)
+                            , ("eth1.1010", False)
+                            , ("eth1.1011", False)
+                            , ("eth1.1012", False)
+                            , ("eth1.1014", False)
+                            , ("eth1.1016", False)
+                            , ("eth1.1017", False)
+                            , ("eth1.1111", False)
+                            , ("eth1.97", False)
+                            , ("eth1.1019", False)
+                            , ("eth1.1020", False)
+                            , ("eth1.1023", False)
+                            , ("eth1.1025", False)
+                            , ("eth1.1024", False)]
+
+
 
 tests :: IO [Test]
-tests = return [ Test actualTest, Test spoofingTest1, Test spoofingTest2 ]
+tests = return [ Test actualTest, Test spoofingTest1, Test spoofingTest2, Test spoofingTest3 ]
   where
     actualTest = TestInstance
         { run = test_Parser_Test_data
@@ -244,15 +247,22 @@ tests = return [ Test actualTest, Test spoofingTest1, Test spoofingTest2 ]
         , setOption = \_ _ -> Right actualTest
         }
     spoofingTest1 = TestInstance
-        { run = test_spoofing_TUM_Net_iptables_save_2015_05_15_15_23_41_cheating
+        { run = test_spoofing_TUM_Net1
         , name = "test TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating spoofing"
         , tags = []
         , options = []
         , setOption = \_ _ -> Right spoofingTest1
         }
     spoofingTest2 = TestInstance
-        { run = test_spoofing_TUM_Net_iptables_save_2015_05_15_14_14_46_cheating
+        { run = test_spoofing_TUM_Net2
         , name = "test TUM_Net_Firewall/iptables-save-2015-05-15_14-14-46_cheating spoofing"
+        , tags = []
+        , options = []
+        , setOption = \_ _ -> Right spoofingTest1
+        }
+    spoofingTest3 = TestInstance
+        { run = test_spoofing_TUM_Net3
+        , name = "test TUM_Net_Firewall/iptables-save-2015-05-13_10-53-20_cheating"
         , tags = []
         , options = []
         , setOption = \_ _ -> Right spoofingTest1
