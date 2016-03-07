@@ -141,7 +141,7 @@ local (*iptables-save parsers*)
                                                                  | NONE => raise Fail "unparsable int";
     
       fun is_iface_char x = Symbol.is_ascii x andalso
-          (Symbol.is_ascii_letter x orelse Symbol.is_ascii_digit x orelse x = "+" orelse x = "*" orelse x = ".")
+          (Symbol.is_ascii_letter x orelse Symbol.is_ascii_digit x orelse x = "+" orelse x = "*" orelse x = "." orelse x = "-")
     in
       fun mk_nat maxval i = if i < 0 orelse i > maxval
                 then

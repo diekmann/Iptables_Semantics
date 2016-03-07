@@ -17,7 +17,7 @@ local
                                                              | NONE => raise Fail "unparsable int";
 
   fun is_iface_char x = Symbol.is_ascii x andalso
-      (Symbol.is_ascii_letter x orelse Symbol.is_ascii_digit x orelse x = "+" orelse x = "*" orelse x = ".")
+      (Symbol.is_ascii_letter x orelse Symbol.is_ascii_digit x orelse x = "+" orelse x = "*" orelse x = "." orelse x = "-")
   fun mk_nat maxval i = if i < 0 orelse i > maxval
             then
               raise Fail("nat ("^Int.toString i^") must be between 0 and "^Int.toString maxval)
@@ -41,7 +41,9 @@ local
   val parser_subnet = parser_ip_cidr ||
     (parser_ip >> (fn ip => ipprefix_to_hol (ip,32))) ||
     (Scan.this_string "default" >> K @{term "PrefixMatch 0 0 :: 32 prefix_match"})
-  val parser_whitespace = Scan.many1 (fn x => x = " ");
+  val isSpace = (fn x => x = " " orelse  x = "\t")
+  val parser_whitespace = Scan.many1 isSpace;
+  val eater_whitespace = Scan.many isSpace; (* I refuse to have this eat \r to make the parser work with windows newlines. *)
 
   val parser_via = (Scan.this_string "via" -- parser_whitespace |-- parser_ip) 
     >> (fn ip => fn pk => @{const routing_action_next_hop_update} $ (@{const ipv4addr_of_dotdecimal} $ (mk_quadrupel ip)) $ pk)
@@ -59,7 +61,7 @@ local
   val parser_src = (Scan.this_string "src" -- parser_whitespace |-- parser_ip) >> mk_quadrupel >> K I
 
   fun parser_end p i = let
-    val (r,es) = Scan.finite Symbol.stopper (Scan.many (fn x => x = " ") |-- p --| Scan.many (fn x => x = " ")) i
+    val (r,es) = Scan.finite Symbol.stopper (p --| eater_whitespace) i
   in
     if es = [] then r else let val _ = writeln ("'" ^ (implode es) ^ "'") in K r (* cause error - TODO: How do I do that properly? *) 
     (($$ "x") (Symbol.explode ""))
@@ -73,7 +75,7 @@ in
 	fun register_ip_route (name,path) (lthy: local_theory) =
 	let
 	  val fcontent = load_file (Proof_Context.theory_of lthy) [path]
-	  val _ = map (Pretty.writeln o Syntax.pretty_term @{context} o parser o Symbol.explode) fcontent (* keep this one, lets you see where it fails *)
+	  (*val _ = map (Pretty.writeln o Syntax.pretty_term @{context} o parser o Symbol.explode) fcontent (* keep this one, lets you see where it fails *)*)
 	  val r = map (parser o Symbol.explode) fcontent
 	in
 	  define_const (HOLogic.mk_list @{typ "routing_rule"} r) name lthy

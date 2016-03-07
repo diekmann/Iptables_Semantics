@@ -17,6 +17,7 @@ Oversimplified linux router:
  - Next hop is extracted from the routing decision, fallback to destination address if directly attached.
  - MAC address of next hop is looked up (using the mac lookup function mlf)
  - Destination address of packet is updated.
+ (net.ipv4.ip_forward enabled)
  TODO: Source mac.
 *)
 
