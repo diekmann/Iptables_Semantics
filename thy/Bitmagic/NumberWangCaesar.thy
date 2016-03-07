@@ -4,13 +4,24 @@ begin
 
 (*Contributed by Julius Michaelis*)
 
-context
-begin
-
 text{*We define a type for ips in CIDR notation, e.g. 192.168.0.0/24.*}
 (*datatype prefix_match = PrefixMatch (pfxm_prefix: ipv4addr) (pfxm_length: nat)*)
 datatype 'a prefix_match = PrefixMatch (pfxm_prefix: "'a::len word") (pfxm_length: nat)
 (*definition "pfxm_mask x \<equiv> mask (32 - pfxm_length x)"*)
+
+definition "prefix_match_less_eq1 a b = (if pfxm_length a = pfxm_length b then pfxm_prefix a \<le> pfxm_prefix b else pfxm_length a > pfxm_length b)"
+instantiation prefix_match :: (len) linorder
+begin
+	definition "a \<le> b \<longleftrightarrow> prefix_match_less_eq1 a b"
+	definition "a < b \<longleftrightarrow> (a \<noteq> b \<and> prefix_match_less_eq1 a b)"
+instance
+by default (auto simp: less_eq_prefix_match_def less_prefix_match_def prefix_match.expand prefix_match_less_eq1_def split: if_splits)
+end
+
+value "sorted_list_of_set {PrefixMatch 0 32 :: 32 prefix_match, PrefixMatch 42 32, PrefixMatch 0 0, PrefixMatch 0 1, PrefixMatch 12 31}"
+
+context
+begin
 
 definition pfxm_mask :: "'a prefix_match \<Rightarrow> 'a::len word" where
   "pfxm_mask x \<equiv> mask ((len_of (TYPE('a))) - pfxm_length x)"
@@ -531,6 +542,14 @@ proof(induction b)
 	qed
 qed(simp add: word_upto.simps)
 	
-
+ 
+lemma "valid_prefix a \<Longrightarrow> valid_prefix b \<Longrightarrow> card (prefix_to_ipset a) < card (prefix_to_ipset b) \<Longrightarrow> a \<le> b"
+oops (* Das geht bestümmt irgendwie™ 
+proof -
+	case goal1
+	hence "pfxm_length a > pfxm_length b" sledgehammer  sorry
+	thus ?thesis by (simp add: less_eq_prefix_match_def prefix_match_less_eq1_def)
+qed
+*)
 
 end

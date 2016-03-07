@@ -1,7 +1,8 @@
 theory OpenFlowMatches
 imports Main "../Bitmagic/NumberWangCaesar" "../Primitive_Matchers/Simple_Packet" "~~/src/HOL/Library/Monad_Syntax"
 	"../Primitive_Matchers/Simple_Packet" (* I just want those TCP,UDP,\<dots> defs *)
-begin                                                                   
+	"~~/src/HOL/Library/Char_ord"
+begin
 
 (* From OpenFlow 1.1, Table 3: *)
 datatype of_match_field = 
@@ -57,20 +58,43 @@ function prerequisites :: "of_match_field \<Rightarrow> of_match_field set \<Rig
 by pat_completeness auto
 (* Ignoredd PACKET_TYPE=foo *)
 
-fun match_layer_terminator :: "of_match_field \<Rightarrow> nat" where
-"match_layer_terminator (IngressPort _) = 1" |
-"match_layer_terminator (EtherDst _) = 2" |
-"match_layer_terminator (EtherSrc _) = 2" |
-"match_layer_terminator (EtherType _) = 2" |
-"match_layer_terminator (VlanId _) = 1" |
-"match_layer_terminator (VlanPriority _) = 2" |
-"match_layer_terminator (IPv4Proto _) = 3" |
-"match_layer_terminator (IPv4Src _) = 3" |
-"match_layer_terminator (IPv4Dst _) = 3" |
-"match_layer_terminator (L4Src _ _) = 4" |
-"match_layer_terminator (L4Dst _ _) = 5"
+fun match_sorter :: "of_match_field \<Rightarrow> nat" where
+"match_sorter (IngressPort _) = 1" |
+"match_sorter (VlanId _) = 2" |
+"match_sorter (VlanPriority _) = 3" |
+"match_sorter (EtherType _) = 4" |
+"match_sorter (EtherSrc _) = 5" |
+"match_sorter (EtherDst _) = 6" |
+"match_sorter (IPv4Proto _) = 7" |
+"match_sorter (IPv4Src _) = 8" |
+"match_sorter (IPv4Dst _) = 9" |
+"match_sorter (L4Src _ _) = 10" |
+"match_sorter (L4Dst _ _) = 11"
 
-termination prerequisites by(relation "measure (match_layer_terminator \<circ> fst)", simp_all)
+termination prerequisites by(relation "measure (match_sorter \<circ> fst)", simp_all)
+find_consts String.literal
+
+definition "less_eq_of_match_field1 (a::of_match_field) (b::of_match_field) \<equiv> (case (a, b) of
+		(IngressPort a, IngressPort b) \<Rightarrow> STR a \<le> STR b |
+		(VlanId a, VlanId b) \<Rightarrow> a \<le> b |
+		(EtherDst a, EtherDst b) \<Rightarrow> a \<le> b |
+		(EtherSrc a, EtherSrc b) \<Rightarrow> a \<le> b |
+		(EtherType a, EtherType b) \<Rightarrow> a \<le> b |
+		(VlanPriority a, VlanPriority b) \<Rightarrow> a \<le> b |
+		(IPv4Proto a, IPv4Proto b) \<Rightarrow> a \<le> b |
+		(IPv4Src a, IPv4Src b) \<Rightarrow> a \<le> b |
+		(IPv4Dst a, IPv4Dst b) \<Rightarrow> a \<le> b |
+		(L4Src a1 a2, L4Src b1 b2) \<Rightarrow> if a2 = b2 then a1 \<le> b1 else a2 \<le> b2 |
+		(L4Dst a1 a2, L4Dst b1 b2) \<Rightarrow> if a2 = b2 then a1 \<le> b1 else a2 \<le> b2 |
+		(a, b) \<Rightarrow> match_sorter a < match_sorter b)"
+
+instantiation of_match_field :: linorder
+begin
+	definition "less_eq_of_match_field (a::of_match_field) (b::of_match_field) \<equiv> less_eq_of_match_field1 a b"	
+	definition "less_of_match_field (a::of_match_field) (b::of_match_field) \<equiv> (a \<noteq> b \<and> less_eq_of_match_field1 a b)"
+instance
+	by default (auto simp: less_eq_of_match_field_def less_eq_of_match_field1_def less_of_match_field_def split: prod.splits of_match_field.splits if_splits)
+end
 
 record simple_packet_ext = simple_packet +
 	p_l2type :: "16 word"
