@@ -79,7 +79,7 @@ value[code] "pfxes TYPE(32)"
 
 
 
-(* Split of one range *)
+(* Split off one prefix *)
 definition wordinterval_CIDR_split1 :: "'a::len wordinterval \<Rightarrow> 'a prefix_match option \<times> 'a wordinterval" where
   "wordinterval_CIDR_split1 r \<equiv> (
    let ma = wordinterval_lowest_element r in
@@ -244,7 +244,7 @@ by (metis (no_types, lifting) Pair_inject case_option_If2 wordinterval_lowest_no
 
 function wordinterval_CIDR_split_internal :: "'a::len wordinterval \<Rightarrow> 'a prefix_match list"where
   "wordinterval_CIDR_split_internal rs = (if \<not>wordinterval_empty rs then case wordinterval_CIDR_split1 rs of (Some s, u) \<Rightarrow> s # wordinterval_CIDR_split_internal u | _ \<Rightarrow> [] else [])"
-  by(simp, blast)
+  by clarsimp+
 
 termination wordinterval_CIDR_split_internal
 proof(relation "measure (card \<circ> wordinterval_to_set)", rule wf_measure, unfold in_measure comp_def)

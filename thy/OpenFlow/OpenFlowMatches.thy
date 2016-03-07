@@ -17,8 +17,8 @@ datatype of_match_field =
 	| IPv4Dst "32 prefix_match" (* ditto *)
 	| IPv4Proto "8 word"
 (*	| IPv4ToS "16 word" *)
-	| L4Src "16 word" (* openvswitch 1.6 supports bitmasks - does not seem to be in of 1.5.1 *)
-	| L4Dst "16 word"
+	| L4Src "16 word" "16 word" (* openvswitch 1.6 supports bitmasks - does not seem to be in of 1.5.1, but I need it. *)
+	| L4Dst "16 word" "16 word"
 
 (*
 
@@ -52,8 +52,8 @@ function prerequisites :: "of_match_field \<Rightarrow> of_match_field set \<Rig
 (* OF_IPV4_DST ETH_TYPE=0x0800 *)
 "prerequisites (IPv4Dst _) m = (let v = EtherType 0x0800 in v \<in> m \<and> prerequisites v m)" |
 (* Now here goes a bit of fuzz: OF specifies differen OXM_OF_(TCP,UDP,SCTP,\<dots>)_(SRC,DST). I only have L4Src. So gotta make do with that. *)
-"prerequisites (L4Src _) m = (\<exists>proto \<in> {TCP,UDP,SCTP}. let v = IPv4Proto proto in v \<in> m \<and> prerequisites v m)" |
-"prerequisites (L4Dst dm) m = prerequisites (L4Src dm) m"
+"prerequisites (L4Src _ _) m = (\<exists>proto \<in> {TCP,UDP,SCTP}. let v = IPv4Proto proto in v \<in> m \<and> prerequisites v m)" |
+"prerequisites (L4Dst _ _) m = prerequisites (L4Src undefined undefined) m"
 by pat_completeness auto
 (* Ignoredd PACKET_TYPE=foo *)
 
@@ -67,8 +67,8 @@ fun match_layer_terminator :: "of_match_field \<Rightarrow> nat" where
 "match_layer_terminator (IPv4Proto _) = 3" |
 "match_layer_terminator (IPv4Src _) = 3" |
 "match_layer_terminator (IPv4Dst _) = 3" |
-"match_layer_terminator (L4Src _) = 4" |
-"match_layer_terminator (L4Dst _) = 5"
+"match_layer_terminator (L4Src _ _) = 4" |
+"match_layer_terminator (L4Dst _ _) = 5"
 
 termination prerequisites by(relation "measure (match_layer_terminator \<circ> fst)", simp_all)
 
@@ -94,8 +94,8 @@ fun match_no_prereq :: "of_match_field \<Rightarrow> simple_packet_ext \<Rightar
 "match_no_prereq (IPv4Proto i) p = (p_proto p = i)" |
 "match_no_prereq (IPv4Src i) p = (prefix_match_semantics i (p_src p))" |
 "match_no_prereq (IPv4Dst i) p = (prefix_match_semantics i (p_dst p))" |
-"match_no_prereq (L4Src i) p = (p_sport p = i)" |
-"match_no_prereq (L4Dst i) p = (p_dport p = i)"
+"match_no_prereq (L4Src i m) p = (p_sport p && m = i)" |
+"match_no_prereq (L4Dst i m) p = (p_dport p && m = i)"
 
 definition match_prereq :: "of_match_field \<Rightarrow> of_match_field set \<Rightarrow> simple_packet_ext \<Rightarrow> bool option" where
 "match_prereq i s p = (if prerequisites i s then Some (match_no_prereq i p) else None)"
@@ -110,7 +110,7 @@ definition "all_prerequisites m \<equiv> \<forall>f \<in> m. prerequisites f m"
 
 lemma (* as stated in paper *)
 	"all_prerequisites p \<Longrightarrow>
-	 L4Src x \<in> p \<Longrightarrow>
+	 L4Src x y \<in> p \<Longrightarrow>
 	 IPv4Proto ` {TCP, UDP, SCTP} \<inter> p \<noteq> {}"
 unfolding all_prerequisites_def by auto
 
