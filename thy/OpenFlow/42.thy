@@ -111,22 +111,23 @@ oops*)
 definition "option2set n \<equiv> (case n of None \<Rightarrow> {} | Some s \<Rightarrow> {s})"
 
 definition toprefixmatch where
-"toprefixmatch m \<equiv> PrefixMatch (fst m) (snd m)"
+"toprefixmatch m \<equiv> (if fst m = 0 \<and> snd m = 0 then {} else {PrefixMatch (fst m) (snd m)})"
 (* todo: disambiguate that prefix_match mess *)
 lemma prefix_match_semantics_simple_match: 
-	assumes vld: "NumberWangCaesar.valid_prefix (toprefixmatch m)" 
-	shows "NumberWangCaesar.prefix_match_semantics (toprefixmatch m) = simple_match_ip m"
+	assumes c1: "card (toprefixmatch m) = 1"
+	assumes vld: "NumberWangCaesar.valid_prefix (the_elem (toprefixmatch m))" 
+	shows "NumberWangCaesar.prefix_match_semantics (the_elem (toprefixmatch m)) = simple_match_ip m"
 	apply(clarsimp simp add: fun_eq_iff)
 	apply(subst NumberWangCaesar.prefix_match_if_in_corny_set[OF vld])
 	apply(cases m)
-	apply(clarsimp simp add: fun_eq_iff toprefixmatch_def ipv4range_set_from_prefix_alt1 maskshift_eq_not_mask pfxm_mask_def)
+	using c1 apply(clarsimp simp add: fun_eq_iff toprefixmatch_def ipv4range_set_from_prefix_alt1 maskshift_eq_not_mask pfxm_mask_def)
 done
 
 definition "simple_match_to_of_match_single m iif prot sport dport \<equiv>
 	   split L4Src ` option2set sport \<union> split L4Dst ` option2set dport
 	 \<union> IPv4Proto ` (case prot of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> {p}) (* protocol is an 8 word option anyway\<dots> *)
 	 \<union> IngressPort ` option2set iif
-	 \<union> {IPv4Src (toprefixmatch (src m)), IPv4Dst (toprefixmatch (dst m))}
+	 \<union> IPv4Src ` (toprefixmatch (src m)) \<union> IPv4Dst ` (toprefixmatch (dst m))
 	 \<union> {EtherType 0x0800}"
 definition simple_match_to_of_match :: "simple_match \<Rightarrow> string list \<Rightarrow> of_match_field set list" where
 "simple_match_to_of_match m ifs \<equiv> (let
@@ -185,7 +186,7 @@ lemmas custom_simpset = simple_match_to_of_match_def Let_def set_concat set_map 
 
 lemma bex_singleton: "\<exists>x\<in>{s}.P x = P s" by simp
 
-lemma 
+(*lemma 
 	assumes mm: "simple_matches r (simple_packet_unext p)"
 	assumes ii: "p_iiface p \<in> set ifs"
 	assumes ippkt: "p_l2type p = 0x800"
@@ -212,7 +213,7 @@ proof
 		unfolding simple_match_to_of_match_def
 		unfolding custom_simpset
 		unfolding smtoms_eq_hlp
-(*		proof(rule,rule,rule,rule,rule,rule refl,rule,rule refl,rule,rule refl,rule refl)
+		proof(rule,rule,rule,rule,rule,rule refl,rule,rule refl,rule,rule refl,rule refl)
 			case goal1 thus ?case using ple(2) sdpe(2) by simp
 		next
 			case goal2 thus ?case using ple(1) sdpe(1) by simp
@@ -243,7 +244,7 @@ proof
 	show "OF_match_fields ?foo p = Some True"
 	unfolding of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs[OF eg]]
 		by(simp_all add: simple_match_to_of_match_single_def OF_match_fields_unsafe_def option2set_def prefix_match_semantics_simple_match validpfx1 validpfx2 u ippkt)
-qed*) oops
+qed oops
 
 lemma 
 	assumes eg: "gr \<in> set (simple_match_to_of_match r ifs)"
@@ -252,7 +253,7 @@ lemma
 	assumes validpfx1: "NumberWangCaesar.valid_prefix (toprefixmatch (src r))" (is "?vpfx (src r)")
 	assumes validpfx2: "?vpfx (dst r)"
 	shows "simple_matches r (simple_packet_unext p)"
-oops (*
+oops
 proof -
 	from mo have mo: "OF_match_fields_unsafe gr p" 
 		unfolding of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs[OF eg]]
