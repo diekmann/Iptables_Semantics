@@ -119,9 +119,9 @@ main = readArgs >>= \case
                 mapM_  (putStrLn . show) (exampleCertSpoof ipassmt fuc)
                 putStrLn "== calculating service matrices =="
                 putStrLn "===========SSH========="
-                putStrLn $ showServiceMatrix $ Isabelle.build_ip_partition_pretty Isabelle.parts_connection_ssh upper_simple
+                putStrLn $ showServiceMatrix $ Isabelle.access_matrix_pretty Isabelle.parts_connection_ssh upper_simple
                 putStrLn "===========HTTP========="
-                putStrLn $ showServiceMatrix $ Isabelle.build_ip_partition_pretty Isabelle.parts_connection_http upper_simple
+                putStrLn $ showServiceMatrix $ Isabelle.access_matrix_pretty Isabelle.parts_connection_http upper_simple
             where showServiceMatrix (nodes, vertices) = concat (map (\(n, desc) -> n ++ " |-> " ++ desc ++ "\n") nodes) ++ "\n" ++
                                                         concat (map (\v -> show v ++ "\n") vertices)
 
