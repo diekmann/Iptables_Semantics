@@ -12,6 +12,8 @@ import Network.IPTables.IpassmtParser
 import System.Environment (getArgs, getProgName)
 import System.IO
 
+import qualified Text.Parsec.Error --Windows line ending debug
+
 import qualified Network.IPTables.Generated as Isabelle
 
 putErrStrLn = hPutStrLn stderr
@@ -81,7 +83,14 @@ main = readArgs >>= \case
         usage
     Just (ipassmt, (srcname, src)) ->
         case parseIptablesSave srcname src of
-            Left err -> print err
+            Left err -> do
+                let errorMsgs = Text.Parsec.Error.errorMessages err
+                if L.length errorMsgs >= 2
+                then case (L.last (L.init errorMsgs), L.last errorMsgs) of
+                    (Text.Parsec.Error.SysUnExpect "\"\\r\"", Text.Parsec.Error.Expect "\"\\n\"") -> putStrLn "Warning: Windows newlines not supported"
+                    _ -> return ()
+                else return ()
+                print err
             Right res -> do
                 putStrLn $ "== Parser output =="
                 putStrLn $ show res
