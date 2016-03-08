@@ -74,6 +74,7 @@ See README.md in haskell_tool.
 
 ### Academic Publications
 
+  * Cornelius Diekmann, Julius Michaelis, Maximilian Haslbeck, and Georg Carle. Verified iptables Firewall Analysis. In IFIP Networking 2016, Vienna, Austria, May 2016. [[preprint]](http://www.net.in.tum.de/fileadmin/bibtex/publications/papers/verified_iptables_firewall_analysis.pdf)
   * Cornelius Diekmann, Lukas Schwaighofer, and Georg Carle. Certifying spoofing-protection of firewalls. In 11th International Conference on Network and Service Management, CNSM, Barcelona, Spain, November 2015. [[preprint]](http://www.net.in.tum.de/fileadmin/bibtex/publications/papers/diekmann2015_cnsm.pdf)
   * Cornelius Diekmann, Lars Hupel, and Georg Carle. Semantics-Preserving Simplification of Real-World Firewall Rule Sets. In 20th International Symposium on Formal Methods, June 2015. [[preprint]](http://www.net.in.tum.de/fileadmin/bibtex/publications/papers/fm15_Semantics-Preserving_Simplification_of_Real-World_Firewall_Rule_Sets.pdf), [[springer | paywall]](http://link.springer.com/chapter/10.1007%2F978-3-319-19249-9_13)
 
