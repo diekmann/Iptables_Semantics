@@ -1,7 +1,7 @@
 theory OpenFlowMatches
 imports Main "../Bitmagic/NumberWangCaesar" "../Primitive_Matchers/Simple_Packet" "~~/src/HOL/Library/Monad_Syntax"
 	"../Primitive_Matchers/Simple_Packet" (* I just want those TCP,UDP,\<dots> defs *)
-	"~~/src/HOL/Library/Char_ord"
+	"~~/src/HOL/Library/Char_ord" (* For a linorder on strings. See below. *)
 begin
 
 (* From OpenFlow 1.1, Table 3: *)
@@ -72,10 +72,9 @@ fun match_sorter :: "of_match_field \<Rightarrow> nat" where
 "match_sorter (L4Dst _ _) = 11"
 
 termination prerequisites by(relation "measure (match_sorter \<circ> fst)", simp_all)
-find_consts String.literal
 
 definition "less_eq_of_match_field1 (a::of_match_field) (b::of_match_field) \<equiv> (case (a, b) of
-		(IngressPort a, IngressPort b) \<Rightarrow> STR a \<le> STR b |
+		(IngressPort a, IngressPort b) \<Rightarrow> String.implode a \<le> String.implode b |
 		(VlanId a, VlanId b) \<Rightarrow> a \<le> b |
 		(EtherDst a, EtherDst b) \<Rightarrow> a \<le> b |
 		(EtherSrc a, EtherSrc b) \<Rightarrow> a \<le> b |
@@ -87,13 +86,12 @@ definition "less_eq_of_match_field1 (a::of_match_field) (b::of_match_field) \<eq
 		(L4Src a1 a2, L4Src b1 b2) \<Rightarrow> if a2 = b2 then a1 \<le> b1 else a2 \<le> b2 |
 		(L4Dst a1 a2, L4Dst b1 b2) \<Rightarrow> if a2 = b2 then a1 \<le> b1 else a2 \<le> b2 |
 		(a, b) \<Rightarrow> match_sorter a < match_sorter b)"
-
+(* feel free to move this to OpenFlowSerialize if it gets in the way. *)
 instantiation of_match_field :: linorder
 begin
 	definition "less_eq_of_match_field (a::of_match_field) (b::of_match_field) \<equiv> less_eq_of_match_field1 a b"	
 	definition "less_of_match_field (a::of_match_field) (b::of_match_field) \<equiv> (a \<noteq> b \<and> less_eq_of_match_field1 a b)"
-instance
-	by default (auto simp: less_eq_of_match_field_def less_eq_of_match_field1_def less_of_match_field_def split: prod.splits of_match_field.splits if_splits)
+instance by default (auto simp: less_eq_of_match_field_def less_eq_of_match_field1_def less_of_match_field_def implode_def split: prod.splits of_match_field.splits if_splits)
 end
 
 record simple_packet_ext = simple_packet +
