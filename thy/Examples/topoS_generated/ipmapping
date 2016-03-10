@@ -1,0 +1,12 @@
+$Statistics_ipv4 = 10.0.0.1
+$SensorSink_ipv4 = 10.0.0.2
+$PresenceSensor_ipv4 = 10.0.1.1
+$Webcam_ipv4 = 10.0.1.2
+$TempSensor_ipv4 = 10.0.1.3
+$FireSensor_ipv4 = 10.0.1.4
+$MissionControl1_ipv4 = 10.8.1.1
+$MissionControl2_ipv4 = 10.8.1.2
+$Watchdog_ipv4 = 10.8.8.1
+$Bot1_ipv4 = 10.8.2.1
+$Bot2_ipv4 = 10.8.2.2
+$AdminPc_ipv4 = 10.8.0.1

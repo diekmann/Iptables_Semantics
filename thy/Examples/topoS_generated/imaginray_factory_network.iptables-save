@@ -1,0 +1,25 @@
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [0:0]
+-A FORWARD -i PresenceSensor -s 10.0.1.1 -o SensorSink -d 10.0.0.2 -j ACCEPT
+-A FORWARD -i Webcam -s 10.0.1.2 -o SensorSink -d 10.0.0.2 -j ACCEPT
+-A FORWARD -i TempSensor -s 10.0.1.3 -o SensorSink -d 10.0.0.2 -j ACCEPT
+-A FORWARD -i FireSensor -s 10.0.1.4 -o SensorSink -d 10.0.0.2 -j ACCEPT
+-A FORWARD -i SensorSink -s 10.0.0.2 -o Statistics -d 10.0.0.1 -j ACCEPT
+-A FORWARD -i MissionControl1 -s 10.8.1.1 -o Bot1 -d 10.8.2.1 -j ACCEPT
+-A FORWARD -i MissionControl1 -s 10.8.1.1 -o Bot2 -d 10.8.2.2 -j ACCEPT
+-A FORWARD -i MissionControl2 -s 10.8.1.2 -o Bot2 -d 10.8.2.2 -j ACCEPT
+-A FORWARD -i AdminPc -s 10.8.0.1 -o MissionControl2 -d 10.8.1.2 -j ACCEPT
+-A FORWARD -i AdminPc -s 10.8.0.1 -o MissionControl1 -d 10.8.1.1 -j ACCEPT
+-A FORWARD -i Watchdog -s 10.8.8.1 -o Bot1 -d 10.8.2.1 -j ACCEPT
+-A FORWARD -i Watchdog -s 10.8.8.1 -o Bot2 -d 10.8.2.2 -j ACCEPT
+-I FORWARD -m state --state ESTABLISHED -i SensorSink -s 10.0.0.2 -o Webcam -d 10.0.1.2 -j ACCEPT
+-I FORWARD -m state --state ESTABLISHED -i Statistics -s 10.0.0.1 -o SensorSink -d 10.0.0.2 -j ACCEPT
+-I FORWARD -m state --state ESTABLISHED -i Bot1 -s 10.8.2.1 -o MissionControl1 -d 10.8.1.1 -j ACCEPT
+-I FORWARD -m state --state ESTABLISHED -i Bot2 -s 10.8.2.2 -o MissionControl2 -d 10.8.1.2 -j ACCEPT
+-I FORWARD -m state --state ESTABLISHED -i MissionControl2 -s 10.8.1.2 -o AdminPc -d 10.8.0.1 -j ACCEPT
+-I FORWARD -m state --state ESTABLISHED -i MissionControl1 -s 10.8.1.1 -o AdminPc -d 10.8.0.1 -j ACCEPT
+-I FORWARD -m state --state ESTABLISHED -i Bot1 -s 10.8.2.1 -o Watchdog -d 10.8.8.1 -j ACCEPT
+-I FORWARD -m state --state ESTABLISHED -i Bot2 -s 10.8.2.2 -o Watchdog -d 10.8.8.1 -j ACCEPT
+COMMIT
