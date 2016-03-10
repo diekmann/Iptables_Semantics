@@ -43,9 +43,10 @@ definition "serialize_action pids a \<equiv> (case a of
 	Forward oif \<Rightarrow> ''output:'' @ pids oif |
 	ModifyField_l2dst na \<Rightarrow> ''mod_dl_dst:'' @ serialize_mac na)" 
 
-definition "serialize_actions pids \<equiv> intersperse (CHR '','') \<circ> map (serialize_action pids)"
+definition "serialize_actions pids a \<equiv> if length a = 0 then ''drop'' else intersperse (CHR '','') \<circ> map (serialize_action pids) $ a"
 
 value "serialize_actions (\<lambda>oif. ''42'') (ofe_action serialization_test_entry)"
+value "serialize_actions undefined []"
 
 definition "prefix_to_string pfx \<equiv> ipv4_cidr_toString (pfxm_prefix pfx, pfxm_length pfx)"
 
@@ -59,8 +60,8 @@ primrec serialize_of_match where
 "serialize_of_match _ (IPv4Proto i) = ''nw_proto='' @ string_of_word True 10 i" |
 "serialize_of_match _ (IPv4Src p) = ''nw_src='' @ prefix_to_string p" |
 "serialize_of_match _ (IPv4Dst p) = ''nw_dst='' @ prefix_to_string p" |
-"serialize_of_match _ (L4Src i m) = ''tp_src='' @ string_of_word True 10 i @ (if m = max_word then [] else ''/'' @ string_of_word True 16 m)" |
-"serialize_of_match _ (L4Dst i m) = ''tp_dst='' @ string_of_word True 10 i @ (if m = max_word then [] else ''/'' @ string_of_word True 16 m)"
+"serialize_of_match _ (L4Src i m) = ''tp_src='' @ string_of_word True 10 i @ (if m = max_word then [] else ''/0x'' @ string_of_word True 16 m)" |
+"serialize_of_match _ (L4Dst i m) = ''tp_dst='' @ string_of_word True 10 i @ (if m = max_word then [] else ''/0x'' @ string_of_word True 16 m)"
 
 definition "serialize_of_matches pids \<equiv> op @ ''hard_timeout=0,idle_timeout=0,'' \<circ> intersperse (CHR '','') \<circ> map (serialize_of_match pids) \<circ> sorted_list_of_set" 
 

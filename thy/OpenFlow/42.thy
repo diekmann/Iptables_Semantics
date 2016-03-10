@@ -54,7 +54,7 @@ lemma r1: "\<not>a \<Longrightarrow> \<not>(a \<and> b)" by simp
 lemma prepend_singleton: "[a] @ b = a # b" by simp
 
 lemma simple_match_and_SomeD: "simple_match_and m1 m2 = Some m \<Longrightarrow> simple_matches m p = (simple_matches m1 p \<and> simple_matches m2 p)"
-	using simple_match_and_correct by simp
+	by(simp add: simple_match_and_correct)
 
 lemma simple_fw_prepend_nonmatching: "\<forall>r \<in> set rs. \<not>simple_matches (match_sel r) p \<Longrightarrow> simple_fw_alt (rs @ rss) p = simple_fw_alt rss p"
 	by(induction rs) simp_all
@@ -123,17 +123,17 @@ lemma prefix_match_semantics_simple_match:
 	using c1 apply(clarsimp simp add: fun_eq_iff toprefixmatch_def ipv4range_set_from_prefix_alt1 maskshift_eq_not_mask pfxm_mask_def)
 done
 
-definition "simple_match_to_of_match_single m iif prot sport dport \<equiv>
+definition "simple_match_to_of_match_single m iif prot sport dport mac \<equiv>
 	   split L4Src ` option2set sport \<union> split L4Dst ` option2set dport
 	 \<union> IPv4Proto ` (case prot of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> {p}) (* protocol is an 8 word option anyway\<dots> *)
 	 \<union> IngressPort ` option2set iif
 	 \<union> IPv4Src ` (toprefixmatch (src m)) \<union> IPv4Dst ` (toprefixmatch (dst m))
-	 \<union> {EtherType 0x0800}"
-definition simple_match_to_of_match :: "simple_match \<Rightarrow> string list \<Rightarrow> of_match_field set list" where
-"simple_match_to_of_match m ifs \<equiv> (let
+	 \<union> {EtherType 0x0800, EtherDst mac}"
+definition simple_match_to_of_match :: "simple_match \<Rightarrow> 48 word \<Rightarrow> string list \<Rightarrow> of_match_field set list" where
+"simple_match_to_of_match m mac ifs \<equiv> (let
 	npm = (\<lambda>p. fst p = 0 \<and> snd p = max_word);
 	sb = (\<lambda>p. (if npm p then [None] else if fst p \<le> snd p then map (Some \<circ> (\<lambda>pfx. (pfxm_prefix pfx, NOT pfxm_mask pfx))) (wordinterval_CIDR_split_internal (WordInterval (fst p) (snd p))) else []))
-	in [simple_match_to_of_match_single m iif (proto m) sport dport .
+	in [simple_match_to_of_match_single m iif (proto m) sport dport mac.
 		iif \<leftarrow> (if iiface m = ifaceAny then [None] else [Some i. i \<leftarrow> ifs, match_iface (iiface m) i]),
 		sport \<leftarrow> sb (sports m),
 		dport \<leftarrow> sb (dports m)]
@@ -141,10 +141,10 @@ definition simple_match_to_of_match :: "simple_match \<Rightarrow> string list \
 
 lemma smtoms_cong: "a = e \<Longrightarrow> b = f \<Longrightarrow> c = g \<Longrightarrow> d = h \<Longrightarrow> simple_match_to_of_match_single r a b c d = simple_match_to_of_match_single r e f g h" by simp
 (* this lemma is a bit stronger than what I actually need, but unfolds are convenient *)
-lemma smtoms_eq_hlp: "simple_match_to_of_match_single r a b c d = simple_match_to_of_match_single r e f g h \<longleftrightarrow> (a = e \<and> b = f \<and> c = g \<and> d = h)"
+lemma smtoms_eq_hlp: "simple_match_to_of_match_single r a b c d e = simple_match_to_of_match_single r f g h i j \<longleftrightarrow> (a = f \<and> b = g \<and> c = h \<and> d = i \<and> e = j)"
 apply(rule, simp_all)
 apply(auto simp add: option2set_def simple_match_to_of_match_single_def toprefixmatch_def split: option.splits protocol.splits)
-(* give this some time, it creates and solves 255 subgoals\<dots> *)
+(* give this some time, it creates and solves a ton subgoals\<dots> *)
 done
 
 lemma conjunctSomeProtoAnyD: "Some ProtoAny = simple_proto_conjunct a (Proto b) \<Longrightarrow> False"
@@ -154,7 +154,7 @@ by(cases a) (simp_all split: if_splits)
 lemma conjunctProtoD: "Some x = simple_proto_conjunct a (Proto b) \<Longrightarrow> x = Proto b \<and> (a = ProtoAny \<or> a = Proto b)"
 by(cases a) (simp_all split: if_splits)
 
-lemma simple_match_to_of_match_generates_prereqs: "simple_match_valid m \<Longrightarrow> r \<in> set (simple_match_to_of_match m ifs) \<Longrightarrow> all_prerequisites r"
+lemma simple_match_to_of_match_generates_prereqs: "simple_match_valid m \<Longrightarrow> r \<in> set (simple_match_to_of_match m mac ifs) \<Longrightarrow> all_prerequisites r"
 unfolding simple_match_to_of_match_def simple_match_to_of_match_single_def all_prerequisites_def option2set_def simple_match_valid_def
 apply(clarsimp)
 apply(erule disjE, (simp; fail))+
@@ -448,18 +448,21 @@ definition "routing_action_to_of mlt a \<equiv> map (apsnd (\<lambda>u. u # [For
 	Some h \<Rightarrow> [(simple_match_any, ModifyField_l2dst (the $ map_of mlt h))])
 (*@ [Forward (output_iface (routing_action a))]*)"
 
-definition "fourtytwo_s3 ifs mlt ard = [(a, b, case action_sel r of simple_action.Accept \<Rightarrow> c | simple_action.Drop \<Rightarrow> []).
-		(a,r,c) \<leftarrow> ard, b \<leftarrow> simple_match_to_of_match (match_sel r) ifs]"
-		(* take prepared rule list and make openflow match \<times> openflow_action from the simple_rule \<times> routing_action *) 
+definition "fourtytwo_s3 ifs mlt ard = ( 
+	let
+	ord = [(p,cm,oa,x). (p,m,a,x) \<leftarrow> ard, (oc,oa) \<leftarrow> routing_action_to_of mlt a, cm \<leftarrow> simple_match_list_and oc [m]] (* split up routes that don't use via but go to a directly attached subnet. *) 
+	in
+	[(a, b, case action_sel r of simple_action.Accept \<Rightarrow> c | simple_action.Drop \<Rightarrow> []).
+		(a,r,c,x) \<leftarrow> ord, b \<leftarrow> simple_match_to_of_match (match_sel r) x ifs])"
 
 definition "fourtytwo rt fw ifs mlt \<equiv> let
-	mrt = [(route2match r, r). r \<leftarrow> rt]; (* make matches from those rt entries *)
-	frd = [Pair b c. (a,c) \<leftarrow> mrt, b \<leftarrow> simple_match_list_and a fw]; (* bring down the firewall over all rt matches *)
-	ard = map (apfst word_of_nat) $ annotate_rlen frd; (* give them a priority *)
-	ord = [(p,cm,oa). (p,m,a) \<leftarrow> ard, (oc,oa) \<leftarrow> routing_action_to_of mlt a, cm \<leftarrow> simple_match_list_and oc [m]] (* split up routes that don't use via but go to a directly attached subnet. *)
+	ipm = [(simple_match_any\<lparr>iiface := Iface $ iface_name i\<rparr>, iface_mac i). i \<leftarrow> ifs];
+	mrt = [(the \<circ> simple_match_and iim \<circ> route2match $ r, r, ia). r \<leftarrow> rt, (iim,ia) \<leftarrow> ipm]; (* make matches from those rt entries *)
+	frd = [(b,c,d). (a,c,d) \<leftarrow> mrt, b \<leftarrow> simple_match_list_and a fw]; (* bring down the firewall over all rt matches *)
+	ard = map (apfst word_of_nat) $ annotate_rlen frd (* give them a priority *)
 	in
 	if length frd < unat (max_word :: 16 word)
-	then Inr (map (split3 OFEntry) $ fourtytwo_s3 ifs mlt ord)
+	then Inr (map (split3 OFEntry) $ fourtytwo_s3 (map iface_name ifs) mlt ard)
 	else Inl ''Error in creating OpenFlow table: priority number space exhausted''
 "
 thm fourtytwo_def[unfolded Let_def comp_def fun_app_def fourtytwo_s3_def ] (* it's a monster *)
@@ -551,7 +554,7 @@ apply fastforce
 done
 
 
-lemma distinct_simple_match_to_of_match: "distinct ifs \<Longrightarrow> distinct (simple_match_to_of_match m ifs)"
+lemma distinct_simple_match_to_of_match: "distinct ifs \<Longrightarrow> distinct (simple_match_to_of_match m mac ifs)"
 (*apply(unfold simple_match_to_of_match_def Let_def)
 apply(rule distinct_4lcomprI)
 apply(clarsimp)

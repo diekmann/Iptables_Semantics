@@ -69,7 +69,6 @@ definition prefix_match_semantics where
 
 subsection{*Set Semantics*}
 
-(*TODO: generalize*)
 definition prefix_to_ipset :: "'a::len prefix_match \<Rightarrow> 'a word set" where
   "prefix_to_ipset pfx = {pfxm_prefix pfx .. pfxm_prefix pfx OR pfxm_mask pfx}"
 

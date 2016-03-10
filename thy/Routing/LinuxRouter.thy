@@ -21,20 +21,32 @@ Oversimplified linux router:
  TODO: Source mac.
 *)
 
-term "routing_table_semantics rt (p_dst p)"
-definition "simple_linux_router rt fw mlf p \<equiv> (let
-	rd = routing_table_semantics rt (p_dst p);
-	p = p_oiface_update (const (output_iface rd)) p;
-	fd = simple_fw fw p;
-	nh = fromMaybe (p_dst p) (next_hop rd);
-	ma = mlf nh;
-	p = p_oiface_update (const (output_iface rd)) p
-	in case fd of
-		Decision FinalAllow \<Rightarrow> Some p |
-		Decision FinalDeny \<Rightarrow> None
-	)"
-(* Can I find something that looks a bit more semantic. *)
-term p_l2dst_update
+record interface =
+	iface_name :: string
+	iface_mac :: "48 word"
+	(*iface_ips :: "(ipv4addr \<times> 32 prefix_match) set" (* there is a set of IP addresses and the reachable subnets for them *), but we don't use that right now, so it is commented out *)
+
+definition iface_packet_check ::  "interface list \<Rightarrow> 'b simple_packet_ext_scheme \<Rightarrow> interface option"
+where "iface_packet_check ifs p \<equiv> find (\<lambda>i. iface_name i = p_iiface p \<and> iface_mac i = p_l2dst p) ifs" 
+term simple_fw
+definition simple_linux_router :: "routing_rule list \<Rightarrow> simple_rule list \<Rightarrow> (32 word \<Rightarrow> 48 word) \<Rightarrow> interface list \<Rightarrow> simple_packet_ext \<Rightarrow> simple_packet_ext option" where
+"simple_linux_router rt fw mlf ifl p \<equiv> (
+case iface_packet_check ifl p of
+   	None \<Rightarrow> None |
+   	Some i \<Rightarrow>
+   		(let
+		rd = routing_table_semantics rt (p_dst p);
+		p = p_oiface_update (const (output_iface rd)) p;
+		fd = simple_fw fw p;
+		nh = fromMaybe (p_dst p) (next_hop rd);
+		ma = mlf nh
+		in case fd of
+			Decision FinalAllow \<Rightarrow> Some (p_oiface_update (const (output_iface rd)) p) |
+			Decision FinalDeny \<Rightarrow> None
+	)
+)"
+(* Can I find something that looks a bit more semantic. Maybe the option monad can reduce a bit of the foo? *)
+(* TODO: What happens in linux, if I send a packet to an interface with the mac of another interface? Hopefully, that is going to be dropped? *) 
 
 (* Limitations:
  - Unicast only. 

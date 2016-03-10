@@ -79,7 +79,7 @@ subsection{*Simple Firewall Semantics*}
   fun simple_match_port :: "(16 word \<times> 16 word) \<Rightarrow> 16 word \<Rightarrow> bool" where
     "simple_match_port (s,e) p_p \<longleftrightarrow> p_p \<in> {s..e}"
 
-  fun simple_matches :: "simple_match \<Rightarrow> simple_packet \<Rightarrow> bool" where
+  fun simple_matches :: "simple_match \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> bool" where
     "simple_matches m p \<longleftrightarrow>
       (match_iface (iiface m) (p_iiface p)) \<and>
       (match_iface (oiface m) (p_oiface p)) \<and>
@@ -91,7 +91,7 @@ subsection{*Simple Firewall Semantics*}
 
 
   text{*The semantics of a simple firewall: just iterate over the rules sequentially*}
-  fun simple_fw :: "simple_rule list \<Rightarrow> simple_packet \<Rightarrow> state" where
+  fun simple_fw :: "simple_rule list \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> state" where
     "simple_fw [] _ = Undecided" |
     "simple_fw ((SimpleRule m Accept)#rs) p = (if simple_matches m p then Decision FinalAllow else simple_fw rs p)" |
     "simple_fw ((SimpleRule m Drop)#rs) p = (if simple_matches m p then Decision FinalDeny else simple_fw rs p)"
@@ -120,16 +120,15 @@ subsection{*Simple Firewall Semantics*}
       show ?thesis by(simp add: simple_match_none_def)
     qed
 
-
   fun empty_match :: "simple_match \<Rightarrow> bool" where
     "empty_match \<lparr>iiface=_, oiface=_, src=_, dst=_, proto=_, sports=(sps1, sps2), dports=(dps1, dps2) \<rparr> \<longleftrightarrow> (sps1 > sps2) \<or> (dps1 > dps2)"
 
-  lemma empty_match: "empty_match m \<longleftrightarrow> (\<forall>p. \<not> simple_matches m p)"
+  lemma empty_match: "empty_match m \<longleftrightarrow> (\<forall>(p::'a simple_packet_scheme). \<not> simple_matches m p)"
     proof
       assume "empty_match m"
       thus "\<forall>p. \<not> simple_matches m p" by(cases m) fastforce
     next
-      assume assm: "\<forall>p. \<not> simple_matches m p"
+      assume assm: "\<forall>(p::'a simple_packet_scheme). \<not> simple_matches m p"
       obtain iif oif sip dip protocol sps1 sps2 dps1 dps2 where m:
         "m = \<lparr>iiface = iif, oiface = oif, src = sip, dst = dip, proto = protocol, sports = (sps1, sps2), dports = (dps1, dps2)\<rparr>"
           by(cases m) force
@@ -139,7 +138,7 @@ subsection{*Simple Firewall Semantics*}
           let ?x="\<lambda>p. dps1 \<le> p_dport p \<longrightarrow> p_sport p \<le> sps2 \<longrightarrow> sps1 \<le> p_sport p \<longrightarrow> 
               match_proto protocol (p_proto p) \<longrightarrow> simple_match_ip dip (p_dst p) \<longrightarrow> simple_match_ip sip (p_src p) \<longrightarrow>
               match_iface oif (p_oiface p) \<longrightarrow> match_iface iif (p_iiface p) \<longrightarrow> \<not> p_dport p \<le> dps2"
-          from assm have nomatch: "\<forall>p::simple_packet. ?x p" by(simp add: m)
+          from assm have nomatch: "\<forall>(p::'a simple_packet_scheme). ?x p" by(simp add: m)
           { fix ips
             from ipv4range_set_from_prefix_lowest have "simple_match_ip ips (fst ips)" by(cases ips) simp
           } note ips=this
@@ -149,17 +148,19 @@ subsection{*Simple Firewall Semantics*}
             have " match_iface ifce (iface_sel ifce)"
             by(cases ifce) (simp add: match_iface_refl)
           } note ifaces=this
-          { fix p::simple_packet
+          { fix p::"'a simple_packet_scheme"
             from nomatch have "?x p" by blast
-          } note pkt=this[of "\<lparr>p_iiface = iface_sel iif,
-                            p_oiface = iface_sel oif,
-                            p_src = fst sip,
-                            p_dst = fst dip,
-                            p_proto = case protocol of ProtoAny \<Rightarrow> TCP | Proto p \<Rightarrow> p,
-                            p_sport = sps1,
-                            p_dport = dps1,
-                            p_tcp_flags = anything_I_dont_care1,
-                            p_tag_ctstate = anything_I_dont_care2\<rparr>" for anything_I_dont_care1 anything_I_dont_care2, simplified]
+          } note pkt1=this
+          obtain p::"'a simple_packet_scheme" where [simp]:
+			  "p_iiface p = iface_sel iif"
+			  "p_oiface p = iface_sel oif"
+			  "p_src p = fst sip"
+			  "p_dst p = fst dip"
+			  "p_proto p = (case protocol of ProtoAny \<Rightarrow> TCP | Proto p \<Rightarrow> p)"
+			  "p_sport p = sps1"
+			  "p_dport p = dps1"
+			  by (meson simple_packet.select_convs)
+          note pkt=pkt1[of p, simplified]
           from pkt ips proto ifaces have " sps1 \<le> sps2 \<longrightarrow> \<not> dps1 \<le> dps2" by blast
           thus "sps2 < sps1 \<or> dps2 < dps1" by fastforce
       qed

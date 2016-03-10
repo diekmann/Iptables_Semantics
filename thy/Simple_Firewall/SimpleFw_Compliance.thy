@@ -191,7 +191,7 @@ lemma match_iface_simple_match_any_simps:
     apply(simp_all)
   apply(simp_all add: max_word_def)
   done
-
+declare[[show_types]]
 theorem common_primitive_match_to_simple_match:
   assumes "normalized_src_ports m" 
       and "normalized_dst_ports m"
@@ -232,7 +232,7 @@ proof -
         assume sm1: "common_primitive_match_to_simple_match m1 = Some sm1"
            and sm2: "common_primitive_match_to_simple_match m2 = Some sm2"
            and sma: "simple_match_and sm1 sm2 = None"
-        from sma simple_match_and_correct have 1: "\<not> (simple_matches sm1 p \<and> simple_matches sm2 p)" by simp
+        from sma have 1: "\<not> (simple_matches sm1 p \<and> simple_matches sm2 p)" by (simp add: simple_match_and_correct)
         from normalized sm1 sm2 "13.IH" have 2: "(matches (common_matcher, \<alpha>) m1 a p \<longleftrightarrow> simple_matches sm1 p) \<and> 
                               (matches (common_matcher, \<alpha>) m2 a p \<longleftrightarrow> simple_matches sm2 p)" by force
         hence 2: "matches (common_matcher, \<alpha>) (MatchAnd m1 m2) a p \<longleftrightarrow> simple_matches sm1 p \<and> simple_matches sm2 p"
@@ -261,7 +261,7 @@ proof -
       hence 1: "matches (common_matcher, \<alpha>) (MatchAnd m1 m2) a p \<longleftrightarrow> simple_matches sm1 p \<and> simple_matches sm2 p"
         by(simp add: bunch_of_lemmata_about_matches)
       from caseSome sm1 sm2 have "simple_match_and sm1 sm2 = Some sm" by(simp split: option.split_asm)
-      with simple_match_and_correct have 2: "simple_matches sm p \<longleftrightarrow> simple_matches sm1 p \<and> simple_matches sm2 p" by simp
+      hence 2: "simple_matches sm p \<longleftrightarrow> simple_matches sm1 p \<and> simple_matches sm2 p" by(simp add: simple_match_and_correct)
       from 1 2 have "matches (common_matcher, \<alpha>) (MatchAnd m1 m2) a p = simple_matches sm p" by simp
     } note caseSome=this
 

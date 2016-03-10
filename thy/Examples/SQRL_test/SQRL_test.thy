@@ -9,7 +9,6 @@ imports
   "../../OpenFlow/OpenFlowSerialize"
 begin
 
-
 section{*Example: Simple Test for Translation to OpenFlow *}
 
 
@@ -67,13 +66,17 @@ by eval
 
 definition "SQRL_rtbl_main_sorted \<equiv> rev (sort_key (\<lambda>r. pfxm_length (routing_match r)) SQRL_rtbl_main)"
 value SQRL_rtbl_main_sorted
-definition "SQRL_ifs \<equiv> remdups [output_iface (routing_action r). r \<leftarrow> SQRL_rtbl_main_sorted]"
+definition "SQRL_ifs \<equiv> [
+\<lparr>iface_name = ''s1-lan'', iface_mac = 0x10001\<rparr>,
+\<lparr>iface_name = ''s1-wan'', iface_mac = 0x10002\<rparr>
+]"
 value SQRL_ifs
 
 definition "SQRL_macs \<equiv> [
 	(*(''s1-lan'', (ipv4addr_of_dotdecimal (10,0,1,1), 0x3)),*)
 	(''s1-lan'', (ipv4addr_of_dotdecimal (10,0,1,2), 0x1)),
-	(''s1-wan'', (ipv4addr_of_dotdecimal (10,0,2,1), 0x2))
+	(''s1-lan'', (ipv4addr_of_dotdecimal (10,0,1,3), 0x2)),
+	(''s1-wan'', (ipv4addr_of_dotdecimal (10,0,2,1), 0x3))
 	(*(''s1-wan'', (ipv4addr_of_dotdecimal (10,0,2,4), 0xeabad0152059))*)
 ]"
 
@@ -83,7 +86,7 @@ definition "SQRL_ports \<equiv> [
 ]"
 
 definition "ofi \<equiv> intersperse (Char Nibble0 NibbleA) \<circ> map (serialize_of_entry (the \<circ> map_of SQRL_ports)) \<circ> theRight $ fourtytwo SQRL_rtbl_main_sorted SQRL_fw_simple SQRL_ifs (map snd SQRL_macs)"
-value[code] ofi
+value[code] "length ofi"
 
 (* TODO: Well, that's something\<dots> I'd really like to have a proper file with newlines though\<dots> *)
 ML\<open>
