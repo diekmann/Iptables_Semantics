@@ -61,7 +61,8 @@ value[code] "map simple_rule_toString (to_simple_firewall (lower_closure
 (*Interfaces be gone! necessary for ip partition!*)
 definition preprocess where
   "preprocess unfold closure ipassmt def fw \<equiv> to_simple_firewall (closure
-              (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_L4_Flags a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_L4_Flags a))
+              (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_L4_Flags a
+                                                                 | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_L4_Flags a))
               (closure
               (iface_try_rewrite ipassmt
               (closure
@@ -88,7 +89,8 @@ lemma "access_matrix_pretty parts_connection_http (
    (''10.0.1.1'', ''{10.0.1.1 .. 10.0.1.4}''),
    (''10.0.0.2'', ''10.0.0.2''),
    (''10.0.0.1'', ''10.0.0.1''),
-   (''0.0.0.0'',  ''{0.0.0.0 .. 10.0.0.0} u {10.0.0.3 .. 10.0.1.0} u {10.0.1.5 .. 10.8.0.0} u {10.8.0.2 .. 10.8.1.0} u {10.8.1.3 .. 10.8.2.0} u {10.8.2.3 .. 10.8.8.0} u {10.8.8.2 .. 255.255.255.255}'')],
+   (''0.0.0.0'',  ''{0.0.0.0 .. 10.0.0.0} u {10.0.0.3 .. 10.0.1.0} u {10.0.1.5 .. 10.8.0.0} u ''@
+                  ''{10.8.0.2 .. 10.8.1.0} u {10.8.1.3 .. 10.8.2.0} u {10.8.2.3 .. 10.8.8.0} u {10.8.8.2 .. 255.255.255.255}'')],
   [(''Vertices'', '':''),
    (''10.8.8.1'', ''10.8.2.2''),
    (''10.8.8.1'', ''10.8.2.1''),
@@ -99,5 +101,44 @@ lemma "access_matrix_pretty parts_connection_http (
    (''10.8.0.1'', ''10.8.1.1''),
    (''10.0.1.1'', ''10.0.0.2''),
    (''10.0.0.2'', ''10.0.0.1'')])" by eval
+
+text{*@{const CT_Established}*}
+lemma "access_matrix_pretty parts_connection_ssh 
+    (to_simple_firewall (upper_closure
+              (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_L4_Flags a
+                                                                 | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_L4_Flags a))
+              (upper_closure
+              (iface_try_rewrite ipassmt
+              (upper_closure
+              (optimize_matches (ctstate_assume_state CT_Established)
+              (unfold_ruleset_FORWARD factory_fw_FORWARD_default_policy (map_of factory_fw))))))))) =
+([(''Nodes'', '':''), (''10.8.8.1'', ''10.8.8.1''),
+   (''10.8.2.2'', ''10.8.2.2''),
+   (''10.8.2.1'', ''10.8.2.1''),
+   (''10.8.1.2'', ''10.8.1.2''),
+   (''10.8.1.1'', ''10.8.1.1''),
+   (''10.8.0.1'', ''10.8.0.1''),
+   (''10.0.1.3'', ''{10.0.1.3 .. 10.0.1.4} u 10.0.1.1''),
+   (''10.0.1.2'', ''10.0.1.2 u 10.0.0.1''),
+   (''10.0.0.2'', ''10.0.0.2''),
+   (''0.0.0.0'',  ''{0.0.0.0 .. 10.0.0.0} u {10.0.0.3 .. 10.0.1.0} u {10.0.1.5 .. 10.8.0.0} u ''@
+                  ''{10.8.0.2 .. 10.8.1.0} u {10.8.1.3 .. 10.8.2.0} u {10.8.2.3 .. 10.8.8.0} u {10.8.8.2 .. 255.255.255.255}'')],
+  [(''Vertices'', '':''),
+   (''10.8.8.1'', ''10.8.2.2''),
+   (''10.8.8.1'', ''10.8.2.1''),
+   (''10.8.2.2'', ''10.8.8.1''),
+   (''10.8.2.2'', ''10.8.1.2''),
+   (''10.8.2.1'', ''10.8.8.1''),
+   (''10.8.2.1'', ''10.8.1.1''),
+   (''10.8.1.2'', ''10.8.2.2''),
+   (''10.8.1.2'', ''10.8.0.1''),
+   (''10.8.1.1'', ''10.8.2.2''),
+   (''10.8.1.1'', ''10.8.2.1''),
+   (''10.8.1.1'', ''10.8.0.1''),
+   (''10.8.0.1'', ''10.8.1.2''),
+   (''10.8.0.1'', ''10.8.1.1''),
+   (''10.0.1.3'', ''10.0.0.2''),
+   (''10.0.1.2'', ''10.0.0.2''),
+   (''10.0.0.2'', ''10.0.1.2'')])" by eval
 
 end
