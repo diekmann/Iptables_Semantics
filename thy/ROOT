@@ -51,6 +51,7 @@ session "Iptables_Semantics_Examples" = Iptables_Semantics_Documentation +
     "Examples/TUM_Net_Firewall/TUM_Spoofing_new3"
     "Examples/TUM_Net_Firewall/TUM_Simple_FW"
     "Examples/medium-sized-company/Analyze_medium_sized_company"
+    "Examples/topoS_generated/Analyze_topos_generated"
   document_files
     "root.tex"
     "mathpartir.sty"
