@@ -234,10 +234,53 @@ test_spoofing_TUM_Net3 = test_spoofing_TUM_i8 "../thy/Examples/TUM_Net_Firewall/
                             , ("eth1.1025", False)
                             , ("eth1.1024", False)]
 
+test_topoS_generated_service_matrix :: IO Progress
+test_topoS_generated_service_matrix = do
+    f <- readFile "../thy/Examples/topoS_generated/imaginray_factory_network.iptables-save.by-linux-kernel"
+    case parseIptablesSave "topoS generated Service Matrix" f of
+        Left err -> return $ Finished $ Fail (show err)
+        Right res -> do
+            checkParsedTables res
+            let (fw, defaultPolicies) = rulesetLookup "filter" res
+            let Just policy_FORWARD = M.lookup "FORWARD" defaultPolicies
+            let unfolded = Isabelle.unfold_ruleset_FORWARD (policy_FORWARD) $ Isabelle.map_of_string (Isabelle.rewrite_Goto fw)
+            let upper_simple = (Isabelle.to_simple_firewall_without_interfaces Isabelle.ipassmt_generic unfolded)
+            let service_matrix = Isabelle.access_matrix_pretty Isabelle.parts_connection_ssh upper_simple
+            putStrLn $ show service_matrix
+            if service_matrix == expected_result then
+                return $ Finished Pass
+            else
+                return $ Finished $ Fail "service marix topoS_generated differs"
+    where expected_result = ([("Nodes",":")
+            , ("10.8.8.1","10.8.8.1")
+            , ("10.8.2.2","10.8.2.2")
+            , ("10.8.2.1","10.8.2.1")
+            , ("10.8.1.2","10.8.1.2")
+            , ("10.8.1.1","10.8.1.1")
+            , ("10.8.0.1","10.8.0.1")
+            , ("10.0.1.1","{10.0.1.1 .. 10.0.1.4}")
+            , ("10.0.0.2","10.0.0.2")
+            , ("10.0.0.1","10.0.0.1")
+            , ("0.0.0.0","{0.0.0.0 .. 10.0.0.0} u {10.0.0.3 .. 10.0.1.0} u \
+                 \{10.0.1.5 .. 10.8.0.0} u {10.8.0.2 .. 10.8.1.0} u \
+                 \{10.8.1.3 .. 10.8.2.0} u {10.8.2.3 .. 10.8.8.0} u \
+                 \{10.8.8.2 .. 255.255.255.255}")
+            ],
+            [("Vertices",":")
+            , ("10.8.8.1","10.8.2.2")
+            , ("10.8.8.1","10.8.2.1")
+            , ("10.8.1.2","10.8.2.2")
+            , ("10.8.1.1","10.8.2.2")
+            , ("10.8.1.1","10.8.2.1")
+            , ("10.8.0.1","10.8.1.2")
+            , ("10.8.0.1","10.8.1.1")
+            , ("10.0.1.1","10.0.0.2")
+            , ("10.0.0.2","10.0.0.1")
+            ])
 
 
 tests :: IO [Test]
-tests = return [ Test actualTest, Test spoofingTest1, Test spoofingTest2, Test spoofingTest3 ]
+tests = return [ Test actualTest, Test serviceMatrixTopoSGenerated, Test spoofingTest1, Test spoofingTest2, Test spoofingTest3 ]
   where
     actualTest = TestInstance
         { run = test_Parser_Test_data
@@ -266,4 +309,11 @@ tests = return [ Test actualTest, Test spoofingTest1, Test spoofingTest2, Test s
         , tags = []
         , options = []
         , setOption = \_ _ -> Right spoofingTest1
+        }
+    serviceMatrixTopoSGenerated = TestInstance
+        { run = test_topoS_generated_service_matrix
+        , name = "service matrix imaginray_factory_network.iptables-save.by-linux-kernel"
+        , tags = []
+        , options = []
+        , setOption = \_ _ -> Right serviceMatrixTopoSGenerated
         }
