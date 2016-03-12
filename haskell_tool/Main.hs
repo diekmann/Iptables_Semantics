@@ -12,6 +12,7 @@ import Network.IPTables.IpassmtParser
 import System.Environment (getArgs, getProgName)
 import System.IO
 
+-- todo remove and refactor
 import qualified Text.Parsec.Error --Windows line ending debug
 
 import qualified Network.IPTables.Generated as Isabelle
@@ -77,6 +78,16 @@ usage = do
     putErrStrLn $ "  -a FILE   optional IP assignment file; if unspecified, a generic file is loaded"
     putErrStrLn $ "  -h        print this help text"
 
+
+warnOnWindowsNewline :: Text.Parsec.Error.ParseError -> Maybe String
+warnOnWindowsNewline err =
+    let errorMsgs = Text.Parsec.Error.errorMessages err in
+    if L.length errorMsgs >= 2
+    then case (L.last (L.init errorMsgs), L.last errorMsgs) of
+        (Text.Parsec.Error.SysUnExpect "\"\\r\"", Text.Parsec.Error.Expect "\"\\n\"") -> Just "WARNING: Windows newlines not supported"
+        _ -> Nothing
+    else Nothing
+
 main :: IO ()
 main = readArgs >>= \case
     Nothing ->
@@ -84,12 +95,9 @@ main = readArgs >>= \case
     Just (ipassmt, (srcname, src)) ->
         case parseIptablesSave srcname src of
             Left err -> do
-                let errorMsgs = Text.Parsec.Error.errorMessages err
-                if L.length errorMsgs >= 2
-                then case (L.last (L.init errorMsgs), L.last errorMsgs) of
-                    (Text.Parsec.Error.SysUnExpect "\"\\r\"", Text.Parsec.Error.Expect "\"\\n\"") -> putStrLn "Warning: Windows newlines not supported"
-                    _ -> return ()
-                else return ()
+                case warnOnWindowsNewline err of
+                    Just warn -> putStrLn warn
+                    Nothing -> return ()
                 print err
             Right res -> do
                 putStrLn $ "== Parser output =="
