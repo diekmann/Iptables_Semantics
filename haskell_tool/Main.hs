@@ -11,6 +11,7 @@ import Network.IPTables.Parser
 import Network.IPTables.IpassmtParser
 import System.Environment (getArgs, getProgName)
 import System.IO
+import Control.Monad (when)
 
 -- todo remove and refactor
 import qualified Text.Parsec.Error --Windows line ending debug
@@ -85,6 +86,21 @@ isParseErrorWindowsNewline err =
         (Text.Parsec.Error.Expect "\"\\n\"" : Text.Parsec.Error.SysUnExpect "\"\\r\"" : _) -> True
         _ -> False
 
+
+loadUnfoldedRuleset :: Bool -> Ruleset -> IO [Isabelle.Rule Isabelle.Common_primitive]
+loadUnfoldedRuleset debug res = do
+    putStrLn "== Checking which tables are supported for analysis. Usually, only `filter'. =="
+    checkParsedTables res
+    putStrLn "== Transformed to Isabelle type (only filter table) =="
+    let (fw, defaultPolicies) = rulesetLookup "filter" res
+    let Just policy_FORWARD = M.lookup "FORWARD" defaultPolicies
+    let unfolded = Isabelle.unfold_ruleset_FORWARD (policy_FORWARD) $ Isabelle.map_of_string (Isabelle.rewrite_Goto fw)
+    when debug $ do putStrLn $ show $ fw
+                    putStrLn $ show $ "Default Policies: " ++ show defaultPolicies
+                    putStrLn "== unfolded FORWARD chain =="
+                    putStrLn $ L.intercalate "\n" $ map show unfolded
+    return unfolded
+
 main :: IO ()
 main = readArgs >>= \case
     Nothing ->
@@ -100,16 +116,7 @@ main = readArgs >>= \case
             Right res -> do
                 putStrLn $ "== Parser output =="
                 putStrLn $ show res
-                putStrLn "== Checking which tables are supported for analysis. Usually, only `filter'. =="
-                checkParsedTables res
-                putStrLn "== Transformed to Isabelle type (only filter table) =="
-                let (fw, defaultPolicies) = rulesetLookup "filter" res
-                let Just policy_FORWARD = M.lookup "FORWARD" defaultPolicies
-                putStrLn $ show $ fw
-                putStrLn $ show $ "Default Policies: " ++ show defaultPolicies
-                putStrLn "== unfolded FORWARD chain =="
-                let unfolded = Isabelle.unfold_ruleset_FORWARD (policy_FORWARD) $ Isabelle.map_of_string (Isabelle.rewrite_Goto fw)
-                putStrLn $ L.intercalate "\n" $ map show unfolded
+                unfolded <- loadUnfoldedRuleset False res
                 putStrLn "== unfolded FORWARD chain (upper closure) =="
                 putStrLn $ L.intercalate "\n" $ map show (Isabelle.upper_closure $ unfolded)
                 putStrLn "== to simple firewall =="
