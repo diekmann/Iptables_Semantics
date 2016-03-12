@@ -79,14 +79,14 @@ usage = do
     putErrStrLn $ "  -h        print this help text"
 
 
-warnOnWindowsNewline :: Text.Parsec.Error.ParseError -> Maybe String
-warnOnWindowsNewline err =
+isParseErrorWindowsNewline :: Text.Parsec.Error.ParseError -> Bool
+isParseErrorWindowsNewline err =
     let errorMsgs = Text.Parsec.Error.errorMessages err in
     if L.length errorMsgs >= 2
     then case (L.last (L.init errorMsgs), L.last errorMsgs) of
-        (Text.Parsec.Error.SysUnExpect "\"\\r\"", Text.Parsec.Error.Expect "\"\\n\"") -> Just "WARNING: Windows newlines not supported"
-        _ -> Nothing
-    else Nothing
+        (Text.Parsec.Error.SysUnExpect "\"\\r\"", Text.Parsec.Error.Expect "\"\\n\"") -> True
+        _ -> False
+    else False
 
 main :: IO ()
 main = readArgs >>= \case
@@ -95,9 +95,9 @@ main = readArgs >>= \case
     Just (ipassmt, (srcname, src)) ->
         case parseIptablesSave srcname src of
             Left err -> do
-                case warnOnWindowsNewline err of
-                    Just warn -> putStrLn warn
-                    Nothing -> return ()
+                if isParseErrorWindowsNewline err
+                then putStrLn "WARNING: Windows newlines not supported"
+                else return ()
                 print err
             Right res -> do
                 putStrLn $ "== Parser output =="
