@@ -93,7 +93,9 @@ loadUnfoldedRuleset debug res = do
     checkParsedTables res
     putStrLn "== Transformed to Isabelle type (only filter table) =="
     let (fw, defaultPolicies) = rulesetLookup "filter" res
-    let Just policy_FORWARD = M.lookup "FORWARD" defaultPolicies
+    let policy_FORWARD = case M.lookup "FORWARD" defaultPolicies of
+                                Just policy -> policy
+                                Nothing -> error $ "Default policy for chain FORWARD not found"
     let unfolded = Isabelle.unfold_ruleset_FORWARD (policy_FORWARD) $ Isabelle.map_of_string (Isabelle.rewrite_Goto fw)
     when debug $ do putStrLn $ show $ fw
                     putStrLn $ show $ "Default Policies: " ++ show defaultPolicies
@@ -116,7 +118,7 @@ main = readArgs >>= \case
             Right res -> do
                 putStrLn $ "== Parser output =="
                 putStrLn $ show res
-                unfolded <- loadUnfoldedRuleset False res
+                unfolded <- loadUnfoldedRuleset True res
                 putStrLn "== unfolded FORWARD chain (upper closure) =="
                 putStrLn $ L.intercalate "\n" $ map show (Isabelle.upper_closure $ unfolded)
                 putStrLn "== to simple firewall =="
