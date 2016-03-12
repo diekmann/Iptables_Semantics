@@ -86,20 +86,29 @@ isParseErrorWindowsNewline err =
         (Text.Parsec.Error.Expect "\"\\n\"" : Text.Parsec.Error.SysUnExpect "\"\\r\"" : _) -> True
         _ -> False
 
-
-loadUnfoldedRuleset :: Bool -> Ruleset -> IO [Isabelle.Rule Isabelle.Common_primitive]
-loadUnfoldedRuleset debug res = do
+-- input: ruleset from the parser
+-- output: rule list our Isabelle algorithms can work on
+loadUnfoldedRuleset :: Bool -> String -> String -> Ruleset -> IO [Isabelle.Rule Isabelle.Common_primitive]
+loadUnfoldedRuleset debug table chain res = do
+    when (table /= "filter") $ do 
+        putStrLn $ "INFO: Officially, we only support the filter table. \
+                    \You requested the `" ++ table ++ "' table. Let's see what happens ;-)"
+    when (not (chain `elem` ["FORWARD", "INPUT", "OUTPUT"])) $ do 
+        putStrLn $ "INFO: Officially, we only support the chains \
+                    \FORWARD, INPUT, OUTPUT. You requested the `" ++ chain ++ 
+                    "' chain. Let's see what happens ;-)"
+        error "chain FORWARD is currently hardcoded. TODO"
     putStrLn "== Checking which tables are supported for analysis. Usually, only `filter'. =="
     checkParsedTables res
-    putStrLn "== Transformed to Isabelle type (only filter table) =="
-    let (fw, defaultPolicies) = rulesetLookup "filter" res
-    let policy_FORWARD = case M.lookup "FORWARD" defaultPolicies of
-                                Just policy -> policy
-                                Nothing -> error $ "Default policy for chain FORWARD not found"
-    let unfolded = Isabelle.unfold_ruleset_FORWARD (policy_FORWARD) $ Isabelle.map_of_string (Isabelle.rewrite_Goto fw)
+    putStrLn $ "== Transformed to Isabelle type (only " ++ table ++ " table) =="
+    let (fw, defaultPolicies) = rulesetLookup table res
+    let policy = case M.lookup chain defaultPolicies of
+                    Just policy -> policy
+                    Nothing -> error $ "Default policy for chain " ++ chain ++ " not found"
+    let unfolded = Isabelle.unfold_ruleset_FORWARD (policy) $ Isabelle.map_of_string (Isabelle.rewrite_Goto fw)
     when debug $ do putStrLn $ show $ fw
-                    putStrLn $ show $ "Default Policies: " ++ show defaultPolicies
-                    putStrLn "== unfolded FORWARD chain =="
+                    putStrLn $ "Default Policies: " ++ show defaultPolicies
+                    putStrLn $ "== unfolded " ++ chain ++ " chain =="
                     putStrLn $ L.intercalate "\n" $ map show unfolded
     return unfolded
 
@@ -118,7 +127,7 @@ main = readArgs >>= \case
             Right res -> do
                 putStrLn $ "== Parser output =="
                 putStrLn $ show res
-                unfolded <- loadUnfoldedRuleset True res
+                unfolded <- loadUnfoldedRuleset True "filter" "FORWARD" res
                 putStrLn "== unfolded FORWARD chain (upper closure) =="
                 putStrLn $ L.intercalate "\n" $ map show (Isabelle.upper_closure $ unfolded)
                 putStrLn "== to simple firewall =="
