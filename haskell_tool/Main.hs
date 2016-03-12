@@ -81,12 +81,9 @@ usage = do
 
 isParseErrorWindowsNewline :: Text.Parsec.Error.ParseError -> Bool
 isParseErrorWindowsNewline err =
-    let errorMsgs = Text.Parsec.Error.errorMessages err in
-    if L.length errorMsgs >= 2
-    then case (L.last (L.init errorMsgs), L.last errorMsgs) of
-        (Text.Parsec.Error.SysUnExpect "\"\\r\"", Text.Parsec.Error.Expect "\"\\n\"") -> True
+    case L.reverse (Text.Parsec.Error.errorMessages err) of
+        (Text.Parsec.Error.Expect "\"\\n\"" : Text.Parsec.Error.SysUnExpect "\"\\r\"" : _) -> True
         _ -> False
-    else False
 
 main :: IO ()
 main = readArgs >>= \case
@@ -96,7 +93,8 @@ main = readArgs >>= \case
         case parseIptablesSave srcname src of
             Left err -> do
                 if isParseErrorWindowsNewline err
-                then putStrLn "WARNING: Windows newlines not supported"
+                then putStrLn "WARNING: File has Windows line endings.\n\
+                               \Windows newlines are not supported."
                 else return ()
                 print err
             Right res -> do
