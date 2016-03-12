@@ -1,6 +1,7 @@
 Haskell Tool
 ============
 
+FFFUU -- Fancy Formal Firewall Universal Understander
 
 ## Installation
 
@@ -17,7 +18,7 @@ $ cabal build
 With the last command, `cabal` produces a binary which can be invoked like this:
 
 ```
-$ ./dist/build/iptables/iptables
+$ ./dist/build/fffuu/fffuu
 ```
 
 
@@ -26,7 +27,7 @@ $ ./dist/build/iptables/iptables
 Try this:
 
 ```
-./dist/build/iptables/iptables -a ipassmt_tumi8 ../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating
+./dist/build/fffuu/fffuu -a ipassmt_tumi8 ../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating
 ```
 
 
