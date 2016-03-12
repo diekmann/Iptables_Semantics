@@ -2,7 +2,8 @@ module Network.IPTables.Ruleset
 ( Ruleset
 , TableName
 , checkParsedTables
-, rulesetLookup
+--, rulesetLookup --use loadUnfoldedRuleset instead
+, loadUnfoldedRuleset
 , mkRuleset
 , rsetTablesM
 , tblChainsM
@@ -16,10 +17,12 @@ module Network.IPTables.Ruleset
 import           Data.List (intercalate)
 import           Data.Map (Map)
 import qualified Data.Map as M
+import qualified Data.List as L
 import qualified Debug.Trace
 import qualified Control.Exception
 import qualified Network.IPTables.Generated as Isabelle
 import           Network.IPTables.IsabelleToString()
+import           Control.Monad (when)
 
 
 data Ruleset = Ruleset { rsetTables :: Map TableName Table } -- deriving (Ord)
@@ -80,6 +83,33 @@ rulesetLookup table r = case M.lookup table (rsetTables r)
           update_action k v acc = case chnDefault v of Just a -> M.insert k a acc
                                                        Nothing -> acc
 
+
+-- input: ruleset from the parser
+-- output: rule list our Isabelle algorithms can work on
+-- may throw an error; is IO because it dumps debug info at you :)
+loadUnfoldedRuleset :: Bool -> String -> String -> Ruleset -> IO [Isabelle.Rule Isabelle.Common_primitive]
+loadUnfoldedRuleset debug table chain res = do
+    when (table /= "filter") $ do 
+        putStrLn $ "INFO: Officially, we only support the filter table. \
+                    \You requested the `" ++ table ++ "' table. Let's see what happens ;-)"
+    when (not (chain `elem` ["FORWARD", "INPUT", "OUTPUT"])) $ do 
+        putStrLn $ "INFO: Officially, we only support the chains \
+                    \FORWARD, INPUT, OUTPUT. You requested the `" ++ chain ++ 
+                    "' chain. Let's see what happens ;-)"
+        error "chain FORWARD is currently hardcoded. TODO"
+    putStrLn "== Checking which tables are supported for analysis. Usually, only `filter'. =="
+    checkParsedTables res
+    putStrLn $ "== Transformed to Isabelle type (only " ++ table ++ " table) =="
+    let (fw, defaultPolicies) = rulesetLookup table res
+    let policy = case M.lookup chain defaultPolicies of
+                    Just policy -> policy
+                    Nothing -> error $ "Default policy for chain " ++ chain ++ " not found"
+    let unfolded = Isabelle.unfold_ruleset_FORWARD (policy) $ Isabelle.map_of_string (Isabelle.rewrite_Goto fw)
+    when debug $ do putStrLn $ show $ fw
+                    putStrLn $ "Default Policies: " ++ show defaultPolicies
+                    putStrLn $ "== unfolded " ++ chain ++ " chain =="
+                    putStrLn $ L.intercalate "\n" $ map show unfolded
+    return unfolded
 
 -- transforming to Isabelle type
 

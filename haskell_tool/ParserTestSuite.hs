@@ -141,10 +141,7 @@ test_spoofing_TUM_i8 fileName expected_spoofing_result errormsg = do
     case parseIptablesSave fileName f of
         Left err -> return $ Finished $ Fail (show err)
         Right res -> do
-            checkParsedTables res
-            let (fw, defaultPolicies) = rulesetLookup "filter" res
-            let Just policy_FORWARD = M.lookup "FORWARD" defaultPolicies
-            let unfolded = Isabelle.unfold_ruleset_FORWARD (policy_FORWARD) $ Isabelle.map_of_string (Isabelle.rewrite_Goto fw)
+            unfolded <- loadUnfoldedRuleset False "filter" "FORWARD" res
             let fuc = preprocessForSpoofingProtection unfolded --Firewall Under Certification
             putStrLn $ "ipassmt_sanity_defined: " ++ show (Isabelle.ipassmt_sanity_defined fuc (Isabelle.map_of_ipassmt ipassmt))
             mapM_ putStrLn (Isabelle.debug_ipassmt ipassmt fuc)
@@ -240,10 +237,7 @@ test_topoS_generated_service_matrix = do
     case parseIptablesSave "topoS generated Service Matrix" f of
         Left err -> return $ Finished $ Fail (show err)
         Right res -> do
-            checkParsedTables res
-            let (fw, defaultPolicies) = rulesetLookup "filter" res
-            let Just policy_FORWARD = M.lookup "FORWARD" defaultPolicies
-            let unfolded = Isabelle.unfold_ruleset_FORWARD (policy_FORWARD) $ Isabelle.map_of_string (Isabelle.rewrite_Goto fw)
+            unfolded <- loadUnfoldedRuleset False "filter" "FORWARD" res
             let upper_simple = (Isabelle.to_simple_firewall_without_interfaces Isabelle.ipassmt_generic unfolded)
             let service_matrix = Isabelle.access_matrix_pretty Isabelle.parts_connection_ssh upper_simple
             putStrLn $ show service_matrix
