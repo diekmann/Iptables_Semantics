@@ -86,6 +86,8 @@ isParseErrorWindowsNewline err =
         (Text.Parsec.Error.Expect "\"\\n\"" : Text.Parsec.Error.SysUnExpect "\"\\r\"" : _) -> True
         _ -> False
 
+
+-- TODO: move to generic file, also us this for the TestSuite
 -- input: ruleset from the parser
 -- output: rule list our Isabelle algorithms can work on
 loadUnfoldedRuleset :: Bool -> String -> String -> Ruleset -> IO [Isabelle.Rule Isabelle.Common_primitive]
