@@ -83,53 +83,8 @@ exampleCertSpoof ipassmt fuc = map (\ifce -> (ifce, Isabelle.no_spoofing_iface i
           ipassmtMap = Isabelle.map_of_ipassmt ipassmt
 
 
-ipassmt_i8_hardcoded = "eth0 = [0.0.0.0-255.255.255.255]\n\
-\foo = []\n\
-\eth1.96 = [131.159.14.3/25]\n\
-\eth1.108 = [131.159.14.129/26]\n\
-\eth1.109 = [131.159.20.11/24]\n\
-\eth1.110 = all_but_those_ips [\n\
-\  131.159.14.0/23,\n\
-\  131.159.20.0/23,\n\
-\  192.168.212.0/23,\n\
-\  188.95.233.0/24,\n\
-\  188.95.232.192/27,\n\
-\  188.95.234.0/23,\n\
-\  192.48.107.0/24,\n\
-\  188.95.236.0/22,\n\
-\  185.86.232.0/22\n\
-\  ]\n\
-\eth1.116 = [131.159.15.131/26]\n\
-\eth1.152 = [131.159.15.252/28]\n\
-\eth1.171 = [131.159.15.2/26]\n\
-\eth1.173 = [131.159.21.252/24]\n\
-\eth1.1010 = [131.159.15.227/28]\n\
-\eth1.1011 = [131.159.14.194/27]\n\
-\eth1.1012 = [131.159.14.238/28]\n\
-\eth1.1014 = [131.159.15.217/27]\n\
-\eth1.1016 = [131.159.15.66/26]\n\
-\eth1.1017 = [131.159.14.242/28]\n\
-\eth1.1111 = [192.168.212.4/24]\n\
-\eth1.97 = [188.95.233.2/24]\n\
-\eth1.1019 = [188.95.234.2/23]\n\
-\eth1.1020 = [192.48.107.2/24]\n\
-\eth1.1023 = [188.95.236.2/22]\n\
-\eth1.1025 = [185.86.232.2/22]\n\
-\eth1.1024 = all_but_those_ips [\n\
-\  131.159.14.0/23,\n\
-\  131.159.20.0/23,\n\
-\  192.168.212.0/23,\n\
-\  188.95.233.0/24,\n\
-\  188.95.232.192/27,\n\
-\  188.95.234.0/23,\n\
-\  192.48.107.0/24,\n\
-\  188.95.236.0/22,\n\
-\  185.86.232.0/22\n\
-\  ]"
-
-
-test_spoofing_TUM_i8 fileName expected_spoofing_result errormsg = do
-    ipassmt <- case parseIpAssmt "<hardcoded>" ipassmt_i8_hardcoded of
+test_spoofing_certification table chain ipassmtString fileName expected_spoofing_result errormsg = do
+    ipassmt <- case parseIpAssmt "<hardcoded>" ipassmtString of
         Left err -> do print err
                        error $ "could not parse hard-coded ipassmt"
         Right res -> do putStrLn "Parsed IpAssmt"
@@ -141,7 +96,7 @@ test_spoofing_TUM_i8 fileName expected_spoofing_result errormsg = do
     case parseIptablesSave fileName f of
         Left err -> return $ Finished $ Fail (show err)
         Right res -> do
-            unfolded <- loadUnfoldedRuleset False "filter" "FORWARD" res
+            unfolded <- loadUnfoldedRuleset False table chain  res
             let fuc = preprocessForSpoofingProtection unfolded --Firewall Under Certification
             putStrLn $ "ipassmt_sanity_defined: " ++ show (Isabelle.ipassmt_sanity_defined fuc (Isabelle.map_of_ipassmt ipassmt))
             mapM_ putStrLn (Isabelle.debug_ipassmt ipassmt fuc)
@@ -151,6 +106,82 @@ test_spoofing_TUM_i8 fileName expected_spoofing_result errormsg = do
                 return $ Finished Pass
             else
                 return $ Finished $ Fail errormsg
+
+
+
+test_spoofing_SQRL = test_spoofing_certification "raw" "PREROUTING" ipassmt_sqrl_hardcoded "../thy/Examples/SQRL_Shorewall/2015_aug_iptables-save-spoofing-protection" expected_spoofing_result "SQRL Spoofing 2015 failed"
+    where expected_spoofing_result = [("ldit", True)
+                                     , ("lmd", True)
+                                     , ("loben", True)
+                                     , ("wg", True)
+                                     , ("wt", True)
+                                     , ("lup", True)
+                                     , ("lo", True)
+                                     , ("vpriv", True)
+                                     , ("vshit", True)
+                                     , ("vocb", True)
+                                     , ("lua", True)]
+          ipassmt_sqrl_hardcoded = "ldit = [10.13.42.136/29]\n\
+                                    \lmd = [10.13.42.128/29]\n\
+                                    \loben = [10.13.42.144/28]\n\
+                                    \wg = [10.13.42.176/28]\n\
+                                    \wt = [10.13.42.160/28]\n\
+                                    \lup = all_but_those_ips [\n\
+                                    \    192.168.0.0/16,\n\
+                                    \    172.16.0.0/12,\n\
+                                    \    10.0.0.0/8\n\
+                                    \]\n\
+                                    \lo = [0.0.0.0/0]\n\
+                                    \vpriv = [0.0.0.0/0]\n\
+                                    \vshit = [0.0.0.0/0]\n\
+                                    \vocb = [0.0.0.0/0]\n\
+                                    \lua = [0.0.0.0/0]"
+
+
+test_spoofing_TUM_i8 = test_spoofing_certification "filter" "FORWARD" ipassmt_i8_hardcoded
+    where ipassmt_i8_hardcoded = "eth0 = [0.0.0.0-255.255.255.255]\n\
+                                 \foo = []\n\
+                                 \eth1.96 = [131.159.14.3/25]\n\
+                                 \eth1.108 = [131.159.14.129/26]\n\
+                                 \eth1.109 = [131.159.20.11/24]\n\
+                                 \eth1.110 = all_but_those_ips [\n\
+                                 \  131.159.14.0/23,\n\
+                                 \  131.159.20.0/23,\n\
+                                 \  192.168.212.0/23,\n\
+                                 \  188.95.233.0/24,\n\
+                                 \  188.95.232.192/27,\n\
+                                 \  188.95.234.0/23,\n\
+                                 \  192.48.107.0/24,\n\
+                                 \  188.95.236.0/22,\n\
+                                 \  185.86.232.0/22\n\
+                                 \  ]\n\
+                                 \eth1.116 = [131.159.15.131/26]\n\
+                                 \eth1.152 = [131.159.15.252/28]\n\
+                                 \eth1.171 = [131.159.15.2/26]\n\
+                                 \eth1.173 = [131.159.21.252/24]\n\
+                                 \eth1.1010 = [131.159.15.227/28]\n\
+                                 \eth1.1011 = [131.159.14.194/27]\n\
+                                 \eth1.1012 = [131.159.14.238/28]\n\
+                                 \eth1.1014 = [131.159.15.217/27]\n\
+                                 \eth1.1016 = [131.159.15.66/26]\n\
+                                 \eth1.1017 = [131.159.14.242/28]\n\
+                                 \eth1.1111 = [192.168.212.4/24]\n\
+                                 \eth1.97 = [188.95.233.2/24]\n\
+                                 \eth1.1019 = [188.95.234.2/23]\n\
+                                 \eth1.1020 = [192.48.107.2/24]\n\
+                                 \eth1.1023 = [188.95.236.2/22]\n\
+                                 \eth1.1025 = [185.86.232.2/22]\n\
+                                 \eth1.1024 = all_but_those_ips [\n\
+                                 \  131.159.14.0/23,\n\
+                                 \  131.159.20.0/23,\n\
+                                 \  192.168.212.0/23,\n\
+                                 \  188.95.233.0/24,\n\
+                                 \  188.95.232.192/27,\n\
+                                 \  188.95.234.0/23,\n\
+                                 \  192.48.107.0/24,\n\
+                                 \  188.95.236.0/22,\n\
+                                 \  185.86.232.0/22\n\
+                                 \  ]"
 
 
 test_spoofing_TUM_Net1 :: IO Progress
@@ -274,7 +305,12 @@ test_topoS_generated_service_matrix = do
 
 
 tests :: IO [Test]
-tests = return [ Test actualTest, Test serviceMatrixTopoSGenerated, Test spoofingTest1, Test spoofingTest2, Test spoofingTest3 ]
+tests = return [ Test actualTest
+               , Test serviceMatrixTopoSGenerated
+               , Test spoofingSQRL
+               , Test spoofingTest1
+               , Test spoofingTest2
+               , Test spoofingTest3 ]
   where
     actualTest = TestInstance
         { run = test_Parser_Test_data
@@ -282,6 +318,13 @@ tests = return [ Test actualTest, Test serviceMatrixTopoSGenerated, Test spoofin
         , tags = []
         , options = []
         , setOption = \_ _ -> Right actualTest
+        }
+    spoofingSQRL = TestInstance
+        { run = test_spoofing_TUM_Net1
+        , name = "test SQRL 2015 raw PREROUTING spoofing"
+        , tags = []
+        , options = []
+        , setOption = \_ _ -> Right spoofingSQRL
         }
     spoofingTest1 = TestInstance
         { run = test_spoofing_TUM_Net1
