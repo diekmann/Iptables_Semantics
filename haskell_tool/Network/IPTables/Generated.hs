@@ -16,10 +16,9 @@ module
                               word_less_eq, no_spoofing_iface, rewrite_Goto,
                               map_of_string, nat_to_16word,
                               compress_parsed_extra, integer_to_16word,
-                              sanity_wf_ruleset, unfold_ruleset_INPUT,
+                              sanity_wf_ruleset, unfold_ruleset_CHAIN,
                               access_matrix_pretty, parts_connection_ssh,
-                              unfold_ruleset_OUTPUT, parts_connection_http,
-                              unfold_ruleset_FORWARD, common_primitive_toString,
+                              parts_connection_http, common_primitive_toString,
                               to_simple_firewall, ipv4_cidr_toString,
                               simple_rule_toString, action_toString,
                               example_TUM_i8_spoofing_ipassmt,
@@ -3412,12 +3411,6 @@ unfold_ruleset_CHAIN chain_name default_action rs =
               [Rule MatchAny (Call chain_name),
                 Rule MatchAny default_action])))));
 
-unfold_ruleset_INPUT ::
-  Action ->
-    ([Prelude.Char] -> Maybe [Rule Common_primitive]) ->
-      [Rule Common_primitive];
-unfold_ruleset_INPUT = unfold_ruleset_CHAIN "INPUT";
-
 access_matrix_pretty_code ::
   Parts_connection_ext () ->
     [Simple_rule] ->
@@ -3512,12 +3505,6 @@ simple_match_and (Simple_match_ext iif1 oif1 sip1 dip1 p1 sps1 dps1 ())
       });
   });
 
-unfold_ruleset_OUTPUT ::
-  Action ->
-    ([Prelude.Char] -> Maybe [Rule Common_primitive]) ->
-      [Rule Common_primitive];
-unfold_ruleset_OUTPUT = unfold_ruleset_CHAIN "OUTPUT";
-
 ctstate_set_toString :: Set Ctstate -> [Prelude.Char];
 ctstate_set_toString s =
   list_separated_toString "," ctstate_toString (enum_set_to_list s);
@@ -3587,12 +3574,6 @@ normalized_src_ports (MatchAnd m1 m2) =
 normalized_src_ports (MatchNot (MatchAnd uz va)) = False;
 normalized_src_ports (MatchNot (MatchNot vb)) = False;
 normalized_src_ports (MatchNot MatchAny) = True;
-
-unfold_ruleset_FORWARD ::
-  Action ->
-    ([Prelude.Char] -> Maybe [Rule Common_primitive]) ->
-      [Rule Common_primitive];
-unfold_ruleset_FORWARD = unfold_ruleset_CHAIN "FORWARD";
 
 protocol_toString :: Protocol -> [Prelude.Char];
 protocol_toString ProtoAny = "all";

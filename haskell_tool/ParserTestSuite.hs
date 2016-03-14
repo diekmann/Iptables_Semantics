@@ -351,7 +351,7 @@ test_topoS_generated_service_matrix = do
 tests :: IO [Test]
 tests = return [ Test actualTest
                , Test serviceMatrixTopoSGenerated
-               --, Test spoofingSQRL --currently fails, FORWARD hardcoded
+               , Test spoofingSQRL
                , Test spoofingTest1
                , Test spoofingTest2
                , Test spoofingTest3 ]

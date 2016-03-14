@@ -96,7 +96,6 @@ loadUnfoldedRuleset debug table chain res = do
         putStrLn $ "INFO: Officially, we only support the chains \
                     \FORWARD, INPUT, OUTPUT. You requested the `" ++ chain ++ 
                     "' chain. Let's see what happens ;-)"
-        error "chain FORWARD is currently hardcoded. TODO"
     putStrLn "== Checking which tables are supported for analysis. Usually, only `filter'. =="
     checkParsedTables res
     putStrLn $ "== Transformed to Isabelle type (only " ++ table ++ " table) =="
@@ -104,7 +103,7 @@ loadUnfoldedRuleset debug table chain res = do
     let policy = case M.lookup chain defaultPolicies of
                     Just policy -> policy
                     Nothing -> error $ "Default policy for chain " ++ chain ++ " not found"
-    let unfolded = Isabelle.unfold_ruleset_FORWARD (policy) $ Isabelle.map_of_string (Isabelle.rewrite_Goto fw)
+    let unfolded = Isabelle.unfold_ruleset_CHAIN chain policy $ Isabelle.map_of_string (Isabelle.rewrite_Goto fw)
     when debug $ do putStrLn $ show $ fw
                     putStrLn $ "Default Policies: " ++ show defaultPolicies
                     putStrLn $ "== unfolded " ++ chain ++ " chain =="
