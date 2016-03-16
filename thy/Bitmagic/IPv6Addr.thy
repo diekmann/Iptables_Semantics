@@ -574,13 +574,29 @@ subsection{*Semantics*}
     apply simp
     done
 
-  lemma fixes w::"16 word"
+  lemma helpx16: 
+    fixes w::"16 word"
     shows "uint ((of_bl:: bool list \<Rightarrow> 128 word) (to_bl w)) = uint w"
     apply(subst WordLib.uint_of_bl_is_bl_to_bin)
      apply(simp)
     apply(simp)
     done
-    
+
+  lemma helpx128:
+    fixes w::"128 word"
+    shows "length (to_bl w) \<le> 16 \<Longrightarrow> 
+           uint ((of_bl:: bool list \<Rightarrow> 16 word) (to_bl (w))) = 
+           uint w "
+    apply(subst WordLib.uint_of_bl_is_bl_to_bin)
+     apply(simp)
+    apply(simp)
+    done
+
+  value "bintrunc 3 0x0"
+
+  lemma uint_bl_less_length: "uint (of_bl ls) < 2 ^ length ls"
+    by (metis bintrunc_bintrunc_min bl_to_bin_lt2p lt2p_lem min_def of_bl_def trunc_bl2bin_len word_ubin.inverse_norm)
+
 
   value "let ls = [True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True] in 
     (of_bl:: bool list \<Rightarrow> 128 word) (to_bl ((of_bl::bool list \<Rightarrow> 16 word) (True # ls))) = 
@@ -590,14 +606,102 @@ subsection{*Semantics*}
     of_bl (True # ls)"
     quickcheck
     apply(simp)
+    apply(rule Word.word_uint_eqI)
+    apply(subst helpx16)
     
+    (*apply(subst Word.uint_plus_if')
+    apply(simp)
+    apply(intro conjI impI)*)
+     
+    apply(subst Word.uint_word_ariths(1))+
+
+    apply(subst Word_Miscellaneous.push_mods(1))
+    apply(subst Word_Miscellaneous.push_mods(1)) back
+
+    apply(case_tac ls)
+    apply(simp)
+    apply(case_tac list)
+    apply(simp)
+    
+    
+    apply(simp)
+    using [[ML_print_depth=100]] ML_val \<open>@{Isar.goal} |> #goal |> Thm.prop_of\<close>
     oops
 
-  lemma "to_bl (of_bl (False # ls)) = to_bl (of_bl ls)"
+  lemma "to_bl (of_bl (False # ls)) = to_bl (of_bl ls)" oops
+
+  value "to_bl ((of_bl [False])::ipv6addr)"
+  lemma "n \<le> 16 \<Longrightarrow> length (to_bl (of_bl (take n ls))) \<le> 16"
+    apply(simp)
+    oops
+
+lemma (*uint_of_bl_is_bl_to_bin: l4v WordLib*)
+  "length l\<le>len_of TYPE('a) \<Longrightarrow>
+   uint ((of_bl::bool list\<Rightarrow> ('a :: len) word) l) = bl_to_bin l"
+  apply (simp add: of_bl_def)
+  apply (rule word_uint.Abs_inverse)
+  apply (simp add: uints_num bl_to_bin_ge0)
+  apply (rule order_less_le_trans, rule bl_to_bin_lt2p)
+  apply (rule order_trans, erule power_increasing)
+   apply simp_all
+  done
+
+
+(*TODO: add to l4v bl_to_bin_lt2p*)
+lemma bl_to_bin_lt2p_Not: "bl_to_bin bs < (2 ^ length (dropWhile Not bs))"
+  apply (unfold bl_to_bin_def)
+  apply(induction bs)
+   apply(simp)
+  apply(simp)
+  by (metis bl_to_bin_lt2p_aux one_add_one)
+
+(*TODO: add to l4v uint_of_bl_is_bl_to_bin*)
+lemma uint_of_bl_is_bl_to_bin_Not:
+  "length (dropWhile Not l) \<le> len_of TYPE('a) \<Longrightarrow>
+   uint ((of_bl::bool list\<Rightarrow> ('a :: len) word) l) = bl_to_bin l"
+  apply (simp add: of_bl_def)
+  apply (rule word_uint.Abs_inverse)
+  apply (simp add: uints_num bl_to_bin_ge0)
+  apply (rule order_less_le_trans)
+  apply (rule bl_to_bin_lt2p_Not)
+  apply(simp)
+  done
+
+lemma "length ls \<le> n \<Longrightarrow> length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 128 word) ls))) \<le> n"
+  apply(induction ls arbitrary: n)
+   apply(simp)
+  apply(simp)
+  apply(case_tac a)
+   apply(simp_all)
+  oops
+  
 
   lemma "n \<le> 16 \<Longrightarrow> of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 16 word)
             (to_bl ((of_bl:: bool list \<Rightarrow> 128 word) (take n ls))))) =
     (of_bl:: bool list \<Rightarrow> 128 word) (take n ls)"
+
+    apply(rule Word.word_uint_eqI)
+    apply(subst WordLib.uint_of_bl_is_bl_to_bin)
+     apply(simp)
+    apply(subst Word.to_bl_bin)
+    apply(subst uint_of_bl_is_bl_to_bin_Not)
+     apply(simp)
+     
+     prefer 2
+     apply simp
+    apply(subst helpx16)
+    apply(subst helpx128)
+     apply(simp)
+    
+    (*apply(subst Word.uint_plus_if')
+    apply(simp)
+    apply(intro conjI impI)*)
+     
+    apply(subst Word.uint_word_ariths(1))+
+
+    apply(subst Word_Miscellaneous.push_mods(1))
+    apply(subst Word_Miscellaneous.push_mods(1)) back
+
     quickcheck
     apply(induction ls arbitrary: n)
      apply(simp)
@@ -645,11 +749,12 @@ subsection{*Semantics*}
     apply(simp add: of_bl_def)
     oops
 
+  (*this would be nice*)
   lemma hooo: fixes ip::ipv6addr
-    shows "of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 16 word)
-            (to_bl ((of_bl:: bool list \<Rightarrow> 128 word) (take 16 (to_bl ip)))))) =
-    (of_bl:: bool list \<Rightarrow> 128 word) (take 16 (to_bl ip))"
-    apply(simp)
+    shows "length ls \<le> 16 \<Longrightarrow> 
+     of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 16 word)
+            (to_bl ((of_bl:: bool list \<Rightarrow> 128 word) ls)))) =
+    (of_bl:: bool list \<Rightarrow> 128 word) ls"
     oops
 
 
@@ -683,6 +788,7 @@ subsection{*Semantics*}
     apply(simp)
     (*almost!*)
     apply(subst hooo)
+    apply simp_all
     oops
 
 
