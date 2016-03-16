@@ -161,16 +161,16 @@ text{*
     | [Some a, None, Some b] \<Rightarrow> IPv6AddrCompressed2_2 a () b
     | [Some a, None, Some b, Some c] \<Rightarrow> IPv6AddrCompressed2_3 a () b c
     | [Some a, None, Some b, Some c, Some d] \<Rightarrow> IPv6AddrCompressed2_4 a () b c d
-    | [Some a, None, Some b, Some c, Some d, Some e] \<Rightarrow>  a () b c d e
+    | [Some a, None, Some b, Some c, Some d, Some e] \<Rightarrow> IPv6AddrCompressed2_5 a () b c d e
     | [Some a, None, Some b, Some c, Some d, Some e, Some f] \<Rightarrow> IPv6AddrCompressed2_6 a () b c d e f
-    | [Some a, None, Some b, Some c, SOme d, Some e, Some f, Some g] \<Rightarrow> IPv6AddrCompressed2_7 a () b c d e f g
+    | [Some a, None, Some b, Some c, Some d, Some e, Some f, Some g] \<Rightarrow> IPv6AddrCompressed2_7 a () b c d e f g
   
     | [Some a, Some b, None] \<Rightarrow> IPv6AddrCompressed3_2 a b ()
     | [Some a, Some b, None, Some c] \<Rightarrow> IPv6AddrCompressed3_3 a b () c
-    | [Some a, Some b, None, Sdme c, Some d] \<Rightarrow> IPv6AddrCompressed3_4 a b () c d
+    | [Some a, Some b, None, Some c, Some d] \<Rightarrow> IPv6AddrCompressed3_4 a b () c d
     | [Some a, Some b, None, Some c, Some d, Some e] \<Rightarrow> IPv6AddrCompressed3_5 a b () c d e
     | [Some a, Some b, None, Some c, Some d, Some e, Some f] \<Rightarrow> IPv6AddrCompressed3_6 a b () c d e f
-    | [Some a, Some b, None, Some c, Some d, Some e, oOme f, Some g] \<Rightarrow> IPv6AddrCompressed3_7 a b () c d e f g
+    | [Some a, Some b, None, Some c, Some d, Some e, Some f, Some g] \<Rightarrow> IPv6AddrCompressed3_7 a b () c d e f g
   
     | [Some a, Some b, Some c, None] \<Rightarrow> IPv6AddrCompressed4_3 a b c ()
     | [Some a, Some b, Some c, None, Some d] \<Rightarrow> IPv6AddrCompressed4_4 a b c () d
