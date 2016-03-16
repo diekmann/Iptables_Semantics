@@ -235,14 +235,21 @@ fun ipv6addr_syntax_compressed_to_list :: "ipv6addr_syntax_compressed \<Rightarr
   
     | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed7_6 a b c d e f ()) = [Some a, Some b, Some c, Some d, Some e, Some f, None]"
     | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed7_7 a b c d e f () g) = [Some a, Some b, Some c, Some d, Some e, Some f, None, Some g]"
- 
-lemma fixes ipv6_syntax::ipv6addr_syntax_compressed
+
+
+lemma parse_ipv6_address_exists:
+      fixes ipv6_syntax::ipv6addr_syntax_compressed
       shows "\<exists>ss. parse_ipv6_address ss = Some ipv6_syntax"
-  apply(simp)
+  apply(rule_tac x="ipv6addr_syntax_compressed_to_list ipv6_syntax" in exI)
   apply(case_tac ipv6_syntax) (*takes quite long until output panel shows sth.*)
   apply(simp_all)
-  apply(rule_tac x="[None]" in exI)
-  apply fastforce
+  done
+
+lemma parse_ipv6_address_identity:
+      "parse_ipv6_address (ipv6addr_syntax_compressed_to_list (ipv6_syntax)) = Some ipv6_syntax"
+  apply(case_tac ipv6_syntax) (*takes quite long until output panel shows sth.*)
+  apply(simp_all)
+  done
 
 
 text{*
