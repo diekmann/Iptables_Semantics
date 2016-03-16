@@ -837,7 +837,8 @@ thm Word.word_bl_Rep'
     apply simp
     apply(subst Word.slice_take)+
     apply(simp)
-    apply(subst Word.word_bl.Rep_inverse)
+    apply(subst yaaaaaaaaaaaaaaaayaiohhgoo)
+     apply simp_all
     oops
 
   lemma fixes ip::ipv6addr
