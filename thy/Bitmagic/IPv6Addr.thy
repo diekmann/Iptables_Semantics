@@ -533,6 +533,8 @@ subsection{*Semantics*}
           ((word_of_int::int \<Rightarrow> 'b::len0 word) (uint (ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat))))  << 112"
     apply(subst word_of_int_uint)
     ..
+
+  (*I could also use word_split to extract bits?*)
   
   lemma xx: "(0xFFFF0000000000000000000000000000::ipv6addr) = (mask 16) << 112"
     by(simp add: mask_def)
@@ -572,11 +574,101 @@ subsection{*Semantics*}
     apply simp
     done
 
+  lemma fixes w::"16 word"
+    shows "uint ((of_bl:: bool list \<Rightarrow> 128 word) (to_bl w)) = uint w"
+    apply(subst WordLib.uint_of_bl_is_bl_to_bin)
+     apply(simp)
+    apply(simp)
+    done
+    
+
+  value "let ls = [True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True] in 
+    (of_bl:: bool list \<Rightarrow> 128 word) (to_bl ((of_bl::bool list \<Rightarrow> 16 word) (True # ls))) = 
+    of_bl (True # ls)"
+  lemma "length ls < 16 \<Longrightarrow> 
+    (of_bl:: bool list \<Rightarrow> 128 word) (to_bl ((of_bl::bool list \<Rightarrow> 16 word) (True # ls))) = 
+    of_bl (True # ls)"
+    quickcheck
+    apply(simp)
+    
+    oops
+
+  lemma "to_bl (of_bl (False # ls)) = to_bl (of_bl ls)"
+
+  lemma "n \<le> 16 \<Longrightarrow> of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 16 word)
+            (to_bl ((of_bl:: bool list \<Rightarrow> 128 word) (take n ls))))) =
+    (of_bl:: bool list \<Rightarrow> 128 word) (take n ls)"
+    quickcheck
+    apply(induction ls arbitrary: n)
+     apply(simp)
+    apply(simp)
+    apply(rename_tac l ls n)
+    apply(case_tac n)
+     apply(simp)
+    apply(simp)
+    quickcheck
+    thm of_bl_True
+    apply(case_tac l)
+     apply(simp_all)
+
+    (*probably wrong direction to go aligned*)
+    thm Aligned.is_aligned_add_conv
+    apply(subst Aligned.is_aligned_add_conv[where n=16])
+    apply(simp_all)
+    apply(simp add: is_aligned_def min_def dvd_def)
+
+    apply(induction n)
+     apply(simp)
+    apply(simp)
+    apply(case_tac ls)
+     apply(simp_all)
+    
+
+    apply(induction ls)
+     apply(simp)
+    apply(simp)
+
+    apply (subgoal_tac "n > 16 \<or> n \<in> {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}")
+    apply (simp only: insert_iff, elim disjE)
+    apply(simp_all)
+    
+    apply(simp add: of_bl_def)
+    try0
+    apply (simp add: size_mask_32word)
+    apply (simp_all add: size_mask_32word) [34]
+    apply (simp only: insert_iff empty_iff HOL.simp_thms, presburger)
+
+    apply(induction ls)
+     apply(simp)
+    apply(simp)
+    
+    apply(simp add: of_bl_def)
+    oops
+
+  lemma hooo: fixes ip::ipv6addr
+    shows "of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 16 word)
+            (to_bl ((of_bl:: bool list \<Rightarrow> 128 word) (take 16 (to_bl ip)))))) =
+    (of_bl:: bool list \<Rightarrow> 128 word) (take 16 (to_bl ip))"
+    apply(simp)
+    oops
+
+
   lemma fixes ip::ipv6addr
     shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
            (ip AND 0xFFFF0000000000000000000000000000)"
+    apply(subst word128_and_slice112)
+    apply(subst xx)
+    apply(subst mask_16_shiftl112_128word)
+    apply(subst ucast_def)+
+    
+    oops
+
+
+  lemma fixes ip::ipv6addr
+    shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
+           (ip AND 0xFFFF0000000000000000000000000000)"
+    apply(subst word128_and_slice112)
     apply(subst Word.ucast_bl)+
-    apply(subst Word.shiftr_bl)
     apply(subst Word.shiftl_bl)
     apply(simp)
     apply(subst xx)+
@@ -587,6 +679,10 @@ subsection{*Semantics*}
     apply simp
     apply(subst Word.of_bl_append)+
     apply simp
+    apply(subst Word.slice_take)
+    apply(simp)
+    (*almost!*)
+    apply(subst hooo)
     oops
 
 
