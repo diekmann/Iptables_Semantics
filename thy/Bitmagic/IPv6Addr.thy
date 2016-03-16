@@ -149,7 +149,7 @@ text{*
     None \<longrightarrow> ommission :: *)
   fun parse_ipv6_address :: "((16 word) option) list \<Rightarrow> ipv6addr_syntax_compressed option" where
     "parse_ipv6_address as = (case as of 
-      [] \<Rightarrow> Some (IPv6AddrCompressed1_0 ())
+      [None] \<Rightarrow> Some (IPv6AddrCompressed1_0 ())
     | [None, Some a] \<Rightarrow> Some (IPv6AddrCompressed1_1 () a)
     | [None, Some a, Some b] \<Rightarrow> Some (IPv6AddrCompressed1_2 () a b)
     | [None, Some a, Some b, Some c] \<Rightarrow> Some (IPv6AddrCompressed1_3 () a b c)
@@ -192,6 +192,57 @@ text{*
     | [Some a, Some b, Some c, Some d, Some e, Some f, None, Some g] \<Rightarrow> Some (IPv6AddrCompressed7_7 a b c d e f () g)
     | _ \<Rightarrow> None (*invalid ipv6 copressed address.*)
 )"
+
+fun ipv6addr_syntax_compressed_to_list :: "ipv6addr_syntax_compressed \<Rightarrow> ((16 word) option) list" where 
+      "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed1_0 _) = [None]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed1_1 () a) = [None, Some a]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed1_2 () a b) = [None, Some a, Some b]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed1_3 () a b c) = [None, Some a, Some b, Some c]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed1_4 () a b c d) = [None, Some a, Some b, Some c, Some d]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed1_5 () a b c d e) = [None, Some a, Some b, Some c, Some d, Some e]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed1_6 () a b c d e f) = [None, Some a, Some b, Some c, Some d, Some e, Some f]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed1_7 () a b c d e f g) = [None, Some a, Some b, Some c, Some d, Some e, Some f, Some g]"
+  
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed2_1 a ()) = [Some a, None]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed2_2 a () b) = [Some a, None, Some b]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed2_3 a () b c) = [Some a, None, Some b, Some c]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed2_4 a () b c d) = [Some a, None, Some b, Some c, Some d]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed2_5 a () b c d e) = [Some a, None, Some b, Some c, Some d, Some e]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed2_6 a () b c d e f) = [Some a, None, Some b, Some c, Some d, Some e, Some f]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed2_7 a () b c d e f g) = [Some a, None, Some b, Some c, Some d, Some e, Some f, Some g]"
+  
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed3_2 a b ()) = [Some a, Some b, None]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed3_3 a b () c) = [Some a, Some b, None, Some c]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed3_4 a b () c d) = [Some a, Some b, None, Some c, Some d]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed3_5 a b () c d e) = [Some a, Some b, None, Some c, Some d, Some e]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed3_6 a b () c d e f) = [Some a, Some b, None, Some c, Some d, Some e, Some f]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed3_7 a b () c d e f g) = [Some a, Some b, None, Some c, Some d, Some e, Some f, Some g]"
+  
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed4_3 a b c ()) = [Some a, Some b, Some c, None]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed4_4 a b c () d) = [Some a, Some b, Some c, None, Some d]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed4_5 a b c () d e) = [Some a, Some b, Some c, None, Some d, Some e]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed4_6 a b c () d e f) = [Some a, Some b, Some c, None, Some d, Some e, Some f]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed4_7 a b c () d e f g) = [Some a, Some b, Some c, None, Some d, Some e, Some f, Some g]"
+  
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed5_4 a b c d ()) = [Some a, Some b, Some c, Some d, None]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed5_5 a b c d () e) = [Some a, Some b, Some c, Some d, None, Some e]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed5_6 a b c d () e f) = [Some a, Some b, Some c, Some d, None, Some e, Some f]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed5_7 a b c d () e f g) = [Some a, Some b, Some c, Some d, None, Some e, Some f, Some g]"
+  
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed6_5 a b c d e ()) = [Some a, Some b, Some c, Some d, Some e, None]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed6_6 a b c d e () f) = [Some a, Some b, Some c, Some d, Some e, None, Some f]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed6_7 a b c d e () f g) = [Some a, Some b, Some c, Some d, Some e, None, Some f, Some g]"
+  
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed7_6 a b c d e f ()) = [Some a, Some b, Some c, Some d, Some e, Some f, None]"
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed7_7 a b c d e f () g) = [Some a, Some b, Some c, Some d, Some e, Some f, None, Some g]"
+ 
+lemma fixes ipv6_syntax::ipv6addr_syntax_compressed
+      shows "\<exists>ss. parse_ipv6_address ss = Some ipv6_syntax"
+  apply(simp)
+  apply(case_tac ipv6_syntax) (*takes quite long until output panel shows sth.*)
+  apply(simp_all)
+  apply(rule_tac x="[None]" in exI)
+  apply fastforce
 
 
 text{*
