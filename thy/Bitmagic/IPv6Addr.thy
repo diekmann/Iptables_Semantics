@@ -667,13 +667,22 @@ lemma uint_of_bl_is_bl_to_bin_Not:
   apply(simp)
   done
 
-lemma "length ls \<le> n \<Longrightarrow> length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 128 word) ls))) \<le> n"
-  apply(induction ls arbitrary: n)
-   apply(simp)
-  apply(simp)
-  apply(case_tac a)
-   apply(simp_all)
-  oops
+
+lemma length_takeWhile_Not_replicate_False:
+  "length (takeWhile Not (replicate n False @ ls)) = n + length (takeWhile Not ls)"
+  by (metis in_set_replicate length_append length_replicate takeWhile_append2)
+
+
+lemma length_dropWhile_Not_bl: "length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 128 word) bs))) \<le> length bs"
+ apply(subst Word.word_rep_drop)
+ apply(simp)
+ apply(subst List.dropWhile_eq_drop)
+ apply(simp)
+ apply(subst length_takeWhile_Not_replicate_False)
+ apply(simp)
+ done
+ 
+thm Word.word_bl_Rep'
   
 
   lemma "n \<le> 16 \<Longrightarrow> of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 16 word)
@@ -824,7 +833,6 @@ lemma "length ls \<le> n \<Longrightarrow> length (dropWhile Not (to_bl ((of_bl:
     apply(subst Word.word_bl.Rep_inverse)
     oops
 
-  declare[[show_types]]
   lemma fixes ip::ipv6addr
     shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
            (ip AND 0xFFFF0000000000000000000000000000)"
