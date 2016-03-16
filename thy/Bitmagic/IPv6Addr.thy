@@ -5,6 +5,7 @@ theory IPv6Addr
 imports Main
   NumberWang
   WordInterval_Lists
+  "./l4v/lib/WordLemmaBucket" (*I hope we won't need it*)
   "~~/src/HOL/Word/Word"
   "~~/src/HOL/Library/Code_Target_Nat" (*!*)
 begin
@@ -328,9 +329,145 @@ subsection{*Semantics*}
                                                                 (ucast g << (16 * 1)) OR
                                                                 (ucast h << (16 * 0))"
 
-  lemma "ipv6preferred_to_int(IPv6AddrPreferred 0x2001 0xDB8 0x0 0x0 0x8 0x800 0x200C 0x417A) = 
+  lemma "ipv6preferred_to_int (IPv6AddrPreferred 0x2001 0xDB8 0x0 0x0 0x8 0x800 0x200C 0x417A) = 
           42540766411282592856906245548098208122" by eval
 
+  lemma "ipv6preferred_to_int (IPv6AddrPreferred 0xFF01 0x0 0x0 0x0 0x0 0x0 0x0 0x101) = 
+          338958331222012082418099330867817087233" by eval
+
   declare ipv6preferred_to_int.simps[simp del]
+
+
+  definition int_to_ipv6preferred :: "ipv6addr \<Rightarrow> ipv6addr_syntax" where
+    "int_to_ipv6preferred i = IPv6AddrPreferred (ucast ((i AND 0xFFFF0000000000000000000000000000) >> 16*7))
+                                                (ucast ((i AND 0xFFFF000000000000000000000000) >> 16*6))
+                                                (ucast ((i AND 0xFFFF00000000000000000000) >> 16*5))
+                                                (ucast ((i AND 0xFFFF0000000000000000) >> 16*4))
+                                                (ucast ((i AND 0xFFFF000000000000) >> 16*3))
+                                                (ucast ((i AND 0xFFFF00000000) >> 16*2))
+                                                (ucast ((i AND 0xFFFF0000) >> 16*1))
+                                                (ucast ((i AND 0xFFFF)))"
+
+  lemma "int_to_ipv6preferred 42540766411282592856906245548098208122 =
+         IPv6AddrPreferred 0x2001 0xDB8 0x0 0x0 0x8 0x800 0x200C 0x417A" by eval
+
+  lemma "word_of_int (uint ((word_of_int::int \<Rightarrow> 'b::len0 word) (uint (ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat)))))  = 
+          ((word_of_int::int \<Rightarrow> 'b::len0 word) (uint (ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat))))"
+    apply(subst word_of_int_uint)
+    ..
+
+  lemma x: "(word_of_int:: int \<Rightarrow> 'b::len0 word) (uint ((word_of_int::int \<Rightarrow> 'b::len0 word) (uint (ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat))))) << (112::nat) = 
+          ((word_of_int::int \<Rightarrow> 'b::len0 word) (uint (ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat))))  << 112"
+    apply(subst word_of_int_uint)
+    ..
+  
+  lemma xx: "(0xFFFF0000000000000000000000000000::ipv6addr) = (mask 16) << 112"
+    by(simp add: mask_def)
+  lemma xxx: fixes ip::ipv6addr
+    shows  "((ip >> 112) && mask 16) = (ip >> 112)"
+    proof -
+      have "size ip = 128" by( simp add: word_size)
+      with WordLemmaBucket.shiftr_mask_eq[of ip 112] show ?thesis by simp
+    qed
+    
+  lemma "of_bl (to_bl x) = x" by simp
+ 
+  value "(slice 112 (0xFFFF0000000000000000000000000000::ipv6addr))::16 word"
+  thm slice_shiftr
+
+  lemma "of_bl (to_bl (of_bl (to_bl x))) = x"
+  proof -
+   have 1: "of_bl (to_bl x) = x"
+    apply(subst Word.word_bl.Rep_inverse) ..
+   show "of_bl (to_bl (of_bl (to_bl x))) = x"
+    apply(subst 1)
+  oops
+
+  lemma fixes ip::ipv6addr
+    shows "(ip AND 0xFFFF0000000000000000000000000000 >> 112) = slice 112 ip"
+    apply(subst Word.shiftr_slice[symmetric])
+    apply(subst xx)
+    oops
+
+  lemma fixes ip::ipv6addr
+    shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
+           (ip AND 0xFFFF0000000000000000000000000000)"
+    apply(subst Word.ucast_bl)+
+    apply(subst Word.shiftr_bl)
+    apply(subst Word.shiftl_bl)
+    apply(simp)
+    apply(subst xx)+
+    apply(subst WordLemmaBucket.word_and_mask_shiftl)+
+    apply(subst xxx)+
+    apply(subst Word.shiftr_bl)
+    apply(subst Word.shiftl_bl)
+    apply simp
+    apply(subst Word.of_bl_append)+
+    apply simp
+    
+    oops
+
+ lemma Word_ucast_bl_16_128:
+  "(ucast::16 word \<Rightarrow> ipv6addr) ((ucast::ipv6addr \<Rightarrow> 16 word) ip) =
+   (of_bl:: bool list \<Rightarrow> 128 word) (to_bl ((of_bl:: bool list \<Rightarrow> 16 word) ((to_bl:: 128 word \<Rightarrow> bool list) ip)))"
+    apply(subst Word.ucast_bl)+
+    apply simp
+    done
+
+  lemma fixes ip::ipv6addr
+    shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (slice 112 ip)) << 112) = 
+           (ip AND 0xFFFF0000000000000000000000000000)"
+    apply(subst Word_ucast_bl_16_128)
+    apply(subst Word.shiftl_bl)
+    apply(simp)
+    apply(subst xx)+
+    apply(subst WordLemmaBucket.word_and_mask_shiftl)+
+    apply(subst xxx)+
+    apply(subst Word.shiftr_bl)
+    apply(subst Word.shiftl_bl)
+    apply simp
+    apply(subst Word.of_bl_append)+
+    apply simp
+    apply(subst Word.slice_take)+
+    apply(simp)
+    apply(subst Word.word_bl.Rep_inverse)
+    oops
+
+  declare[[show_types]]
+  lemma fixes ip::ipv6addr
+    shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
+           (ip AND 0xFFFF0000000000000000000000000000)"
+    unfolding ucast_def
+    proof -
+      have "(word_of_int::int \<Rightarrow> 128 word) (uint (ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat))) << (112::nat) =
+           ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat) << (112::nat)"
+      by simp
+      have "(word_of_int :: int \<Rightarrow> 16 word) (uint (ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat))) = 
+           of_bl (take 16 (to_bl ip))"
+      apply(subst Word.shiftr_bl)
+      apply simp
+    thm word_of_int_uint
+    sorry
+      show "(word_of_int :: int \<Rightarrow> 128 word) (uint 
+          ((word_of_int :: int \<Rightarrow> 16 word) (uint (ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat))))) << (112::nat) =
+    ip && (0xFFFF0000000000000000000000000000::128 word)"
+        apply(simp)
+        done
+    apply(simp add: ucast_def)
+    apply(subst x)
+    thm word_of_int_uint
+    thm Word.word_of_int_uint[of "ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat)"]
+    apply(subst Word.word_of_int_uint[of "ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat)"])
+    apply simp
+    apply(simp add: Word.word_of_int_uint)
+
+  lemma "ipv6preferred_to_int (int_to_ipv6preferred ip) = ip"
+    apply(simp add: ipv6preferred_to_int.simps int_to_ipv6preferred_def)
+    
+
+  lemma "int_to_ipv6preferred (ipv6preferred_to_int ip) = ip"
+    apply(cases ip, rename_tac a b c d e f g h)
+    apply(simp add: ipv6preferred_to_int.simps int_to_ipv6preferred_def)
+    
 
 end
