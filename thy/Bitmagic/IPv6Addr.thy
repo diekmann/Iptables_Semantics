@@ -71,9 +71,9 @@ subsection{*Representing IPv6 Adresses*}
          ABCD:EF01:2345:6789:ABCD:EF01:2345:6789
          2001:DB8:0:0:8:800:200C:417A
   *}
-
   datatype ipv6addr_syntax = 
     IPv6AddrPreferred "16 word" "16 word" "16 word" "16 word" "16 word" "16 word" "16 word" "16 word"
+
 
 text{*
    2. [...] In order to make writing addresses containing zero
@@ -94,7 +94,6 @@ text{*
          ::1                            the loopback address
          ::                             the unspecified address
   *}
-
   datatype ipv6addr_syntax_compressed =
   (*using unit for the omission :: 
     The first number is the position where the omission occurs.
@@ -143,7 +142,18 @@ text{*
   | IPv6AddrCompressed7_7 "16 word" "16 word" "16 word" "16 word" "16 word" "16 word" unit "16 word"
   (*datatype may take a minute to load*)
 
+  (*RFC 5952:
+    """
+    4.  A Recommendation for IPv6 Text Representation
+    4.2.2.  Handling One 16-Bit 0 Field
+       The symbol "::" MUST NOT be used to shorten just one 16-bit 0 field.
+       For example, the representation 2001:db8:0:1:1:1:1:1 is correct, but
+       2001:db8::1:1:1:1:1 is not correct.
+    """
 
+    So we could remove all IPv6AddrCompressed*_7 constructors.
+    But these are `recommendations', we might still see these non-recommended definitions.
+  *)
 
   (*More convenient parser helper function:
     Some 16word \<longrightarrow> address piece
@@ -273,6 +283,7 @@ text{*
                                      [Some a, Some b, Some c, Some d, Some e, Some f, None, Some g]"
 
 
+(*for all ipv6_syntax, there is a corresponding list representation*)
 lemma parse_ipv6_address_exists:
       fixes ipv6_syntax::ipv6addr_syntax_compressed
       shows "\<exists>ss. parse_ipv6_address ss = Some ipv6_syntax"
@@ -300,6 +311,9 @@ text{*
       or in compressed form:
 
          ::13.1.68.3
-         ::FFFF:129.144.52.38*}
+         ::FFFF:129.144.52.38
+*}
+  (*TODO*)
+  (*TODO: oh boy, they can also be compressed*)
 
 end
