@@ -556,11 +556,21 @@ subsection{*Semantics*}
     apply(subst 1)
   oops
 
-  lemma fixes ip::ipv6addr
+  lemma "xx && ~~ mask y >> y = ( (xx && (~~ (mask y))) >> y  )" by simp
+
+  (*fun story: sledgehammer does not find this one!*)
+  lemma mask_16_shiftl112_128word: "((mask 16 << 112)::128 word) = ~~ mask 112"
+    by(simp add: mask_def)
+
+  lemma word128_and_slice112:
+    fixes ip::ipv6addr
     shows "(ip AND 0xFFFF0000000000000000000000000000 >> 112) = slice 112 ip"
     apply(subst Word.shiftr_slice[symmetric])
     apply(subst xx)
-    oops
+    apply(subst mask_16_shiftl112_128word)
+    apply(subst WordLemmaBucket.mask_shift)
+    apply simp
+    done
 
   lemma fixes ip::ipv6addr
     shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
@@ -576,7 +586,7 @@ subsection{*Semantics*}
     apply(subst Word.shiftl_bl)
     apply simp
     apply(subst Word.of_bl_append)+
-    apply simp    
+    apply simp
     oops
 
 
