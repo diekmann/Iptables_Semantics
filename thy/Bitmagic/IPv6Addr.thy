@@ -61,7 +61,7 @@ section {*Modelling IPv6 Adresses*}
   lemma ipv6addr_of_nat_eq: "x = y \<Longrightarrow> ipv6addr_of_nat x = ipv6addr_of_nat y"
     by(simp add: ipv6addr_of_nat_def)
 
-subsection{*Representing IPv6 Adresses*}
+subsection{*Syntax of IPv6 Adresses*}
   text{*RFC 4291, Section 2.2.: Text Representation of Addresses*}
 
   text{*Quoting the RFC (note: errata exists):
@@ -316,5 +316,21 @@ text{*
 *}
   (*TODO*)
   (*TODO: oh boy, they can also be compressed*)
+
+subsection{*Semantics*}
+  fun ipv6preferred_to_int :: "ipv6addr_syntax \<Rightarrow> ipv6addr" where
+    "ipv6preferred_to_int (IPv6AddrPreferred a b c d e f g h) = (ucast a << (16 * 7)) OR
+                                                                (ucast b << (16 * 6)) OR
+                                                                (ucast c << (16 * 5)) OR
+                                                                (ucast d << (16 * 4)) OR
+                                                                (ucast e << (16 * 3)) OR
+                                                                (ucast f << (16 * 2)) OR
+                                                                (ucast g << (16 * 1)) OR
+                                                                (ucast h << (16 * 0))"
+
+  lemma "ipv6preferred_to_int(IPv6AddrPreferred 0x2001 0xDB8 0x0 0x0 0x8 0x800 0x200C 0x417A) = 
+          42540766411282592856906245548098208122" by eval
+
+  declare ipv6preferred_to_int.simps[simp del]
 
 end
