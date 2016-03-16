@@ -673,9 +673,8 @@ lemma length_takeWhile_Not_replicate_False:
   by (metis in_set_replicate length_append length_replicate takeWhile_append2)
 
 
-lemma length_dropWhile_Not_bl: "length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 128 word) bs))) \<le> length bs"
+lemma length_dropWhile_Not_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs"
  apply(subst Word.word_rep_drop)
- apply(simp)
  apply(subst List.dropWhile_eq_drop)
  apply(simp)
  apply(subst length_takeWhile_Not_replicate_False)
@@ -695,10 +694,12 @@ thm Word.word_bl_Rep'
     apply(subst Word.to_bl_bin)
     apply(subst uint_of_bl_is_bl_to_bin_Not)
      apply(simp)
-     
+     apply(insert length_dropWhile_Not_bl[of "(take n ls)"])
+     apply(simp)
+     (*HERE!*)
      prefer 2
      apply simp
-    apply(subst helpx16)
+    (*apply(subst helpx16)
     apply(subst helpx128)
      apply(simp)
     
@@ -755,7 +756,7 @@ thm Word.word_bl_Rep'
      apply(simp)
     apply(simp)
     
-    apply(simp add: of_bl_def)
+    apply(simp add: of_bl_def)*)
     oops
 
   (*this would be nice*)
