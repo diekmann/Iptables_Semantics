@@ -56,12 +56,12 @@ text{* Transformed linux router: does not do layer 2 modifications and throws aw
  The entire idea is that @{term iface_packet_check} will only fail if the packet is bound for someone else on that subnet, so the routing decision would, if applied, just output the packet where it came from.*}
 definition simple_linux_router_nomac :: "routing_rule list \<Rightarrow> simple_rule list \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> 'a simple_packet_scheme option" where
 "simple_linux_router_nomac rt fw p \<equiv> do {
-   		let rd = routing_table_semantics rt (p_dst p);
-   		_ \<leftarrow> (if output_iface rd = p_oiface p then None else Some ());
-		let p = p_oiface_update (const (output_iface rd)) p;
-		let fd = simple_fw fw p;
-		_ \<leftarrow> (case fd of Decision FinalAllow \<Rightarrow> Some () | Decision FinalDeny \<Rightarrow> None);
-		Some p
+	let rd = routing_table_semantics rt (p_dst p);
+	_ \<leftarrow> (if output_iface rd = p_oiface p then None else Some ());
+	let p = p_oiface_update (const (output_iface rd)) p;
+	let fd = simple_fw fw p;
+	_ \<leftarrow> (case fd of Decision FinalAllow \<Rightarrow> Some () | Decision FinalDeny \<Rightarrow> None);
+	Some p
 }"
 (* an alternative formulation would maybe be "if the routing decision for the source is the same as for the destination, don't forward it." 
    This might be advantageous in $cases, however, this formulation is clearly easier to translate *)
@@ -116,5 +116,7 @@ next
 	with goal3(2) have False by force
 	thus ?case ..
 qed simp
+
+(* another limitation for the nol2-router: It can never ever properly support bridges. *)
 
 end

@@ -320,10 +320,12 @@ private corollary wordinterval_CIDR_split_internal: "(\<Union> (prefix_to_ipset 
   thus ?thesis
    using wordinterval_CIDR_split_internal_union by simp
 qed
+
+(* TODO: rename prefix_to_ipset *)
 private corollary wordinterval_CIDR_split_internal_single: "(\<Union> (prefix_to_ipset ` (set (wordinterval_CIDR_split_internal (WordInterval start end))))) = {start .. end}"
   using wordinterval_CIDR_split_internal by force
 
-private lemma wordinterval_CIDR_split_internal_all_valid_Ball: fixes r:: "'a::len wordinterval"
+lemma wordinterval_CIDR_split_internal_all_valid_Ball: fixes r:: "'a::len wordinterval"
   shows "Ball (set (wordinterval_CIDR_split_internal r)) valid_prefix"
 proof(induction r rule: wordinterval_CIDR_split_internal.induct, subst wordinterval_CIDR_split_internal.simps, case_tac "wordinterval_empty rs")
   case goal1 thus ?case
@@ -362,11 +364,39 @@ next
     by blast
 qed
 
+lemma find_const_True_hlp: "find (const True) x = (case x of [] \<Rightarrow> None | (a#as) \<Rightarrow> Some a)" by(cases x; simp add: const_def)
+
+private lemma wordinterval_CIDR_split_internal_all_valid_less_Ball_hlp:
+	"x \<in> set [s\<leftarrow>map (PrefixMatch x2) (pfxes TYPE('a::len0)) . valid_prefix s \<and> wordinterval_to_set (prefix_to_range s) \<subseteq> wordinterval_to_set rs] \<Longrightarrow> pfxm_length x \<le> len_of TYPE('a)"
+by(clarsimp simp: pfxes_def) presburger
+
+lemma wordinterval_CIDR_split_internal_all_valid_less_Ball: 
+  fixes r:: "'a::len wordinterval"
+  shows "Ball (set (wordinterval_CIDR_split_internal r)) (\<lambda>e. pfxm_length e \<le> len_of TYPE('a))"
+	apply(subst Ball_def)
+	apply(clarify)
+	apply(induction rule: wordinterval_CIDR_split_internal.induct)
+	apply(subst(asm)(2) wordinterval_CIDR_split_internal.simps)
+	apply(simp only: split: if_splits) (* wooooo, simplifier bug! (try without the only) *)
+	prefer 2
+	apply(simp;fail)
+	apply(clarsimp)
+	apply(elim disjE)
+	prefer 2
+	apply(simp;fail)
+	apply(simp add: wordinterval_CIDR_split1_def Let_def find_const_True_hlp  split: option.splits list.splits)
+	apply(drule cons_set_intro)
+	apply(drule wordinterval_CIDR_split_internal_all_valid_less_Ball_hlp)
+	apply blast
+done
+
 text{*Since @{const wordinterval_CIDR_split_internal} only returns valid prefixes, we can safely convert it to CIDR lists*}
+(* actually, just valid_prefix doesn't mean that the prefix length is sane. Fortunately, we also have wordinterval_CIDR_split_internal_all_valid_less_Ball *)
+lemma "valid_prefix (PrefixMatch (0::16 word) 20)" by(simp add: valid_prefix_def)
 
 definition ipv4range_split :: "32 wordinterval \<Rightarrow> (32 word \<times> nat) list" where
   "ipv4range_split rs \<equiv> map prefix_match_to_CIDR (wordinterval_CIDR_split_internal rs)"
-
+                                        
 (*also works with corny definitions*)
 corollary ipv4range_split_prefix: 
   "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_prefix base len) ` (set (ipv4range_split r))) ) = wordinterval_to_set r"
@@ -401,6 +431,20 @@ using [[simproc del: list_to_set_comprehension]] (* okay, simplifier is a bit br
   apply(simp del: ) (*simp: "Tactic failed"*)
   oops
 *)
+
+(* TODO: Move to the wordinterval lemma bucket *)
+
+lemma interval_in_splitD: "xa \<in> foo \<Longrightarrow> prefix_to_ipset xa \<subseteq> \<Union>(prefix_to_ipset ` foo)" apply simp by auto
+
+lemma wordinterval_CIDR_split_internal_distinct: "distinct (wordinterval_CIDR_split_internal a)"
+	apply(induction rule: wordinterval_CIDR_split_internal.induct)
+	apply(subst wordinterval_CIDR_split_internal.simps)
+	apply(clarsimp split: prod.splits option.splits)
+	apply(drule_tac xa = x2a in interval_in_splitD)
+	apply(subst(asm) wordinterval_CIDR_split_internal)
+	apply(drule wordinterval_CIDR_split1_distinct[OF sym])
+	apply(simp add: prefix_to_range_set_eq[symmetric])
+using prefix_never_empty by fastforce
 
 end
 

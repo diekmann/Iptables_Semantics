@@ -85,12 +85,13 @@ definition "SQRL_ports \<equiv> [
 	(''s1-wan'', ''2'')
 ]"
 
-definition "ofi \<equiv> intersperse (Char Nibble0 NibbleA) \<circ> map (serialize_of_entry (the \<circ> map_of SQRL_ports)) \<circ> theRight $ fourtytwo SQRL_rtbl_main_sorted SQRL_fw_simple SQRL_ifs (map snd SQRL_macs)"
+definition "ofi \<equiv> map (serialize_of_entry (the \<circ> map_of SQRL_ports)) \<circ> theRight $ fourtytwo SQRL_rtbl_main_sorted SQRL_fw_simple (map iface_name SQRL_ifs)"
+value[code] "ofi"
 value[code] "length ofi"
 
 (* TODO: Well, that's something\<dots> I'd really like to have a proper file with newlines though\<dots> *)
 ML\<open>
-	val evterm = the (Code_Evaluation.dynamic_value @{context} @{term ofi});
+	val evterm = the (Code_Evaluation.dynamic_value @{context} @{term "intersperse (Char Nibble0 NibbleA) ofi"});
 	val opstr = Syntax.string_of_term (Config.put show_markup false @{context}) evterm;
 	File.write (Path.explode (File.platform_path(Resources.master_directory @{theory}) ^ "/pretty_str.txt")) opstr;
 \<close>

@@ -191,7 +191,7 @@ lemma match_iface_simple_match_any_simps:
     apply(simp_all)
   apply(simp_all add: max_word_def)
   done
-declare[[show_types]]
+
 theorem common_primitive_match_to_simple_match:
   assumes "normalized_src_ports m" 
       and "normalized_dst_ports m"

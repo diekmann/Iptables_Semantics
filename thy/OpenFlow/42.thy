@@ -16,6 +16,8 @@ lemma set_filter_nones: "k \<in> set (filter_nones ko) = (Some k \<in> set ko)"
 	by(induction ko rule: filter_nones.induct) auto
 lemma set_filter_nones_simp: "set (filter_nones ko) = {k. Some k \<in> set ko}"
 	using set_filter_nones by fast
+lemma filter_nones_filter_map[code_unfold]: "filter_nones x = map the (filter (op \<noteq> None)  x)"
+by(induction x) (simp_all split: option.splits)
 
 lemma set_maps: "set (List.maps f a) = (\<Union>a\<in>set a. set (f a))" 
 unfolding List.maps_def set_concat set_map UN_simps(10) ..
@@ -45,10 +47,16 @@ definition "route2match r =
 	\<lparr>iiface = ifaceAny, oiface = Iface (output_iface (routing_action r)), 
 	src = (0,0), dst=(pfxm_prefix (routing_match r),pfxm_length (routing_match r)), 
 	proto=ProtoAny, sports=(0,max_word), ports=(0,max_word)\<rparr>"
-                                    
+
+definition "simple_rule_and a r \<equiv> option_map (\<lambda>k. SimpleRule k (action_sel r)) (simple_match_and a (match_sel r))"
+
 fun simple_match_list_and :: "simple_match \<Rightarrow> simple_rule list \<Rightarrow> simple_rule list" where
 "simple_match_list_and _ [] = []" |
-"simple_match_list_and cr (m#ms) = filter_nones [option_map (\<lambda>k. SimpleRule k (action_sel m)) (simple_match_and cr (match_sel m))] @ simple_match_list_and cr ms"
+"simple_match_list_and cr (m#ms) = filter_nones [simple_rule_and cr m] @ simple_match_list_and cr ms"
+
+lemma simple_match_list_and_alt[code_unfold]:
+	"simple_match_list_and cr m = filter_nones (map (simple_rule_and cr) m)"
+	by(induction m; simp)
 
 lemma r1: "\<not>a \<Longrightarrow> \<not>(a \<and> b)" by simp
 lemma prepend_singleton: "[a] @ b = a # b" by simp
@@ -72,7 +80,7 @@ proof(induction fw)
 		case False
 		hence "\<forall>vr \<in> set (filter_nones [option_map (\<lambda>k. SimpleRule k (action_sel s)) (simple_match_and r (match_sel s))]). \<not>simple_matches (match_sel vr) p"
 			by(clarsimp simp only: set_filter_nones set_map Set.image_iff set_simps option_map_Some_eq2 simple_rule.sel)(fast dest: simple_match_and_SomeD) 
-		from simple_fw_prepend_nonmatching[OF this] show ?thesis by(simp add: Let_def False Cons.IH)
+		from simple_fw_prepend_nonmatching[OF this] show ?thesis by(simp add: Let_def False Cons.IH simple_rule_and_def)
 	next
 		case True
 		obtain a where a: "simple_match_and r (match_sel s) = Some a" (*using True m simple_match_and_correct by force*)
@@ -83,7 +91,7 @@ proof(induction fw)
            	with True simple_match_and_correct[of r p "match_sel s"] show thesis using goal1 by(simp split: option.splits)  
            qed
         moreover have "simple_matches a p"  by(simp only: m True simple_match_and_SomeD[OF a])
-		ultimately show ?thesis using True by(clarsimp)
+		ultimately show ?thesis using True by(clarsimp simp:  simple_rule_and_def)
 	qed
 qed(simp)
 
@@ -109,6 +117,9 @@ lemma
 oops*)
 
 definition "option2set n \<equiv> (case n of None \<Rightarrow> {} | Some s \<Rightarrow> {s})"
+definition "option2list n \<equiv> (case n of None \<Rightarrow> [] | Some s \<Rightarrow> [s])"
+lemma set_option2list[simp]: "set (option2list k) = option2set k"
+unfolding option2list_def option2set_def by (simp split: option.splits)
 
 definition toprefixmatch where
 "toprefixmatch m \<equiv> (if fst m = 0 \<and> snd m = 0 then {} else {PrefixMatch (fst m) (snd m)})"
@@ -123,17 +134,19 @@ lemma prefix_match_semantics_simple_match:
 	using c1 apply(clarsimp simp add: fun_eq_iff toprefixmatch_def ipv4range_set_from_prefix_alt1 maskshift_eq_not_mask pfxm_mask_def)
 done
 
-definition "simple_match_to_of_match_single m iif prot sport dport mac \<equiv>
+definition "simple_match_to_of_match_single m iif prot sport dport \<equiv>
 	   split L4Src ` option2set sport \<union> split L4Dst ` option2set dport
 	 \<union> IPv4Proto ` (case prot of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> {p}) (* protocol is an 8 word option anyway\<dots> *)
 	 \<union> IngressPort ` option2set iif
 	 \<union> IPv4Src ` (toprefixmatch (src m)) \<union> IPv4Dst ` (toprefixmatch (dst m))
-	 \<union> {EtherType 0x0800, EtherDst mac}"
-definition simple_match_to_of_match :: "simple_match \<Rightarrow> 48 word \<Rightarrow> string list \<Rightarrow> of_match_field set list" where
-"simple_match_to_of_match m mac ifs \<equiv> (let
+	 \<union> {EtherType 0x0800}"
+(* okay, we need to make sure that no packets are output on the interface they were input on. So for rules that don't have an input interface, we'd need to do a product over all interfaces, if we stay naive.
+   The more smart way would be to insert a rule with the same match condition that additionally matches the input interface and drops. However, I'm afraid this is going to be very tricky to verify\<dots> *)
+definition simple_match_to_of_match :: "simple_match \<Rightarrow> string list \<Rightarrow> of_match_field set list" where
+"simple_match_to_of_match m ifs \<equiv> (let
 	npm = (\<lambda>p. fst p = 0 \<and> snd p = max_word);
 	sb = (\<lambda>p. (if npm p then [None] else if fst p \<le> snd p then map (Some \<circ> (\<lambda>pfx. (pfxm_prefix pfx, NOT pfxm_mask pfx))) (wordinterval_CIDR_split_internal (WordInterval (fst p) (snd p))) else []))
-	in [simple_match_to_of_match_single m iif (proto m) sport dport mac.
+	in [simple_match_to_of_match_single m iif (proto m) sport dport.
 		iif \<leftarrow> (if iiface m = ifaceAny then [None] else [Some i. i \<leftarrow> ifs, match_iface (iiface m) i]),
 		sport \<leftarrow> sb (sports m),
 		dport \<leftarrow> sb (dports m)]
@@ -141,10 +154,10 @@ definition simple_match_to_of_match :: "simple_match \<Rightarrow> 48 word \<Rig
 
 lemma smtoms_cong: "a = e \<Longrightarrow> b = f \<Longrightarrow> c = g \<Longrightarrow> d = h \<Longrightarrow> simple_match_to_of_match_single r a b c d = simple_match_to_of_match_single r e f g h" by simp
 (* this lemma is a bit stronger than what I actually need, but unfolds are convenient *)
-lemma smtoms_eq_hlp: "simple_match_to_of_match_single r a b c d e = simple_match_to_of_match_single r f g h i j \<longleftrightarrow> (a = f \<and> b = g \<and> c = h \<and> d = i \<and> e = j)"
+lemma smtoms_eq_hlp: "simple_match_to_of_match_single r a b c d = simple_match_to_of_match_single r f g h i \<longleftrightarrow> (a = f \<and> b = g \<and> c = h \<and> d = i)"
 apply(rule, simp_all)
 apply(auto simp add: option2set_def simple_match_to_of_match_single_def toprefixmatch_def split: option.splits protocol.splits)
-(* give this some time, it creates and solves a ton subgoals\<dots> *)
+(* give this some time, it creates and solves a ton of subgoals\<dots> *)
 done
 
 lemma conjunctSomeProtoAnyD: "Some ProtoAny = simple_proto_conjunct a (Proto b) \<Longrightarrow> False"
@@ -154,7 +167,7 @@ by(cases a) (simp_all split: if_splits)
 lemma conjunctProtoD: "Some x = simple_proto_conjunct a (Proto b) \<Longrightarrow> x = Proto b \<and> (a = ProtoAny \<or> a = Proto b)"
 by(cases a) (simp_all split: if_splits)
 
-lemma simple_match_to_of_match_generates_prereqs: "simple_match_valid m \<Longrightarrow> r \<in> set (simple_match_to_of_match m mac ifs) \<Longrightarrow> all_prerequisites r"
+lemma simple_match_to_of_match_generates_prereqs: "simple_match_valid m \<Longrightarrow> r \<in> set (simple_match_to_of_match m ifs) \<Longrightarrow> all_prerequisites r"
 unfolding simple_match_to_of_match_def simple_match_to_of_match_single_def all_prerequisites_def option2set_def simple_match_valid_def
 apply(clarsimp)
 apply(erule disjE, (simp; fail))+
@@ -443,29 +456,24 @@ proof -
 	thus "sorted_descending (map fst (map (apfst ?won) (annotate_rlen l)))" by simp
 qed
 
-definition "routing_action_to_of mlt a \<equiv> map (apsnd (\<lambda>u. u # [Forward (output_iface (routing_action a))])) (case next_hop (routing_action a) of
-	None \<Rightarrow> map (\<lambda>(p,m). (simple_match_any\<lparr>dst := (p,32)\<rparr>, ModifyField_l2dst m)) (filter (prefix_match_semantics (routing_match a) \<circ> fst) mlt) |
-	Some h \<Rightarrow> [(simple_match_any, ModifyField_l2dst (the $ map_of mlt h))])
-(*@ [Forward (output_iface (routing_action a))]*)"
+text{*l3 device to l2 forwarding*}
+definition "fourtytwo_s3 ifs ard = ( 
+	[(a, b, case action_sel r of simple_action.Accept \<Rightarrow> [Forward (output_iface c)] | simple_action.Drop \<Rightarrow> []).
+		(a,r,c) \<leftarrow> ard, b \<leftarrow> simple_match_to_of_match (match_sel r) ifs])"
 
-definition "fourtytwo_s3 ifs mlt ard = ( 
-	let
-	ord = [(p,cm,oa,x). (p,m,a,x) \<leftarrow> ard, (oc,oa) \<leftarrow> routing_action_to_of mlt a, cm \<leftarrow> simple_match_list_and oc [m]] (* split up routes that don't use via but go to a directly attached subnet. *) 
-	in
-	[(a, b, case action_sel r of simple_action.Accept \<Rightarrow> c | simple_action.Drop \<Rightarrow> []).
-		(a,r,c,x) \<leftarrow> ord, b \<leftarrow> simple_match_to_of_match (match_sel r) x ifs])"
-
-definition "fourtytwo rt fw ifs mlt \<equiv> let
-	ipm = [(simple_match_any\<lparr>iiface := Iface $ iface_name i\<rparr>, iface_mac i). i \<leftarrow> ifs];
-	mrt = [(the \<circ> simple_match_and iim \<circ> route2match $ r, r, ia). r \<leftarrow> rt, (iim,ia) \<leftarrow> ipm]; (* make matches from those rt entries *)
-	frd = [(b,c,d). (a,c,d) \<leftarrow> mrt, b \<leftarrow> simple_match_list_and a fw]; (* bring down the firewall over all rt matches *)
-	ard = map (apfst word_of_nat) $ annotate_rlen frd (* give them a priority *)
+definition "fourtytwo rt fw ifs \<equiv> let
+	mrt = [(route2match r, routing_action r). r \<leftarrow> rt]; (* make matches from those rt entries *)
+	frd = [(b,c). (a,c) \<leftarrow> mrt, b \<leftarrow> simple_match_list_and a fw]; (* bring down the firewall over all rt matches *)
+	ard = map (apfst word_of_nat) (annotate_rlen frd); (* give them a priority *)
+	iig = [(a,r',c). (a,r,c) \<leftarrow> ard, rg \<leftarrow> ifs, r' \<leftarrow> option2list (simple_rule_and (simple_match_any\<lparr>iiface := Iface rg\<rparr>) r), output_iface c \<noteq> rg]
 	in
 	if length frd < unat (max_word :: 16 word)
-	then Inr (map (split3 OFEntry) $ fourtytwo_s3 (map iface_name ifs) mlt ard)
+	then Inr (map (split3 OFEntry) $ fourtytwo_s3 ifs iig)
 	else Inl ''Error in creating OpenFlow table: priority number space exhausted''
 "
 thm fourtytwo_def[unfolded Let_def comp_def fun_app_def fourtytwo_s3_def ] (* it's a monster *)
+
+find_theorems List.product (* I wonder if we could also write fourtytwo as rt \<times> fw \<times> ifs. somewhat tricky to bring in the priorities. *)  
 
 lemma map_injective_eq: "map f xs = map g ys \<Longrightarrow> (\<And>e. f e = g e) \<Longrightarrow> inj f \<Longrightarrow> xs = ys"
 	apply(rule map_injective, defer_tac)
@@ -481,6 +489,7 @@ oops
 
 lemma list_at_eqD: "aa @ ab = ba @ bb \<Longrightarrow> length aa = length ba \<Longrightarrow> length ab = length bb \<Longrightarrow> aa = ba \<and> ab = bb"
 by simp
+
 lemma list_induct_2simul:
 	"P [] [] \<Longrightarrow> (\<And>a as bs. P as bs \<Longrightarrow> P (a # as) bs) \<Longrightarrow> (\<And>b as bs. P as bs \<Longrightarrow> P as (b # bs)) \<Longrightarrow> P x y"
 	apply(induction x)
@@ -554,20 +563,139 @@ apply fastforce
 done
 
 
+lemma replicate_FT_hlp: "x \<le> 16 \<and> y \<le> 16 \<Longrightarrow> replicate (16 - x) False @ replicate x True = replicate (16 - y) False @ replicate y True \<Longrightarrow> x = y"
+(* some lemmas are just supid\<dots> *)
+	apply(cases "x = 0")
+	apply(cases "y = 0") apply(simp;fail) apply(cases "y = 1") apply(simp;fail) apply(cases "y = 2") apply(simp;fail) apply(cases "y = 3") apply(simp;fail) apply(cases "y = 4") apply(simp;fail) apply(cases "y = 5") apply(simp;fail) apply(cases "y = 6") apply(simp;fail) apply(cases "y = 7") apply(simp;fail) apply(cases "y = 8") apply(simp;fail)
+	apply(cases "y = 9") apply(simp;fail) apply(cases "y = 10") apply(simp;fail) apply(cases "y = 11") apply(simp;fail) apply(cases "y = 12") apply(simp;fail) apply(cases "y = 13") apply(simp;fail) apply(cases "y = 14") apply(simp;fail) apply(cases "y = 15") apply(simp;fail) apply(cases "y = 16") apply(simp;fail)
+	apply(presburger)
+	apply(cases "x = 1")
+	apply(cases "y = 0") apply(simp;fail) apply(cases "y = 1") apply(simp;fail) apply(cases "y = 2") apply(simp;fail) apply(cases "y = 3") apply(simp;fail) apply(cases "y = 4") apply(simp;fail) apply(cases "y = 5") apply(simp;fail) apply(cases "y = 6") apply(simp;fail) apply(cases "y = 7") apply(simp;fail) apply(cases "y = 8") apply(simp;fail)
+	apply(cases "y = 9") apply(simp;fail) apply(cases "y = 10") apply(simp;fail) apply(cases "y = 11") apply(simp;fail) apply(cases "y = 12") apply(simp;fail) apply(cases "y = 13") apply(simp;fail) apply(cases "y = 14") apply(simp;fail) apply(cases "y = 15") apply(simp;fail) apply(cases "y = 16") apply(simp;fail)
+	apply(presburger)
+	apply(cases "x = 2")
+	apply(cases "y = 0") apply(simp;fail) apply(cases "y = 1") apply(simp;fail) apply(cases "y = 2") apply(simp;fail) apply(cases "y = 3") apply(simp;fail) apply(cases "y = 4") apply(simp;fail) apply(cases "y = 5") apply(simp;fail) apply(cases "y = 6") apply(simp;fail) apply(cases "y = 7") apply(simp;fail) apply(cases "y = 8") apply(simp;fail)
+	apply(cases "y = 9") apply(simp;fail) apply(cases "y = 10") apply(simp;fail) apply(cases "y = 11") apply(simp;fail) apply(cases "y = 12") apply(simp;fail) apply(cases "y = 13") apply(simp;fail) apply(cases "y = 14") apply(simp;fail) apply(cases "y = 15") apply(simp;fail) apply(cases "y = 16") apply(simp;fail)
+	apply(presburger)
+	apply(cases "x = 3")
+	apply(cases "y = 0") apply(simp;fail) apply(cases "y = 1") apply(simp;fail) apply(cases "y = 2") apply(simp;fail) apply(cases "y = 3") apply(simp;fail) apply(cases "y = 4") apply(simp;fail) apply(cases "y = 5") apply(simp;fail) apply(cases "y = 6") apply(simp;fail) apply(cases "y = 7") apply(simp;fail) apply(cases "y = 8") apply(simp;fail)
+	apply(cases "y = 9") apply(simp;fail) apply(cases "y = 10") apply(simp;fail) apply(cases "y = 11") apply(simp;fail) apply(cases "y = 12") apply(simp;fail) apply(cases "y = 13") apply(simp;fail) apply(cases "y = 14") apply(simp;fail) apply(cases "y = 15") apply(simp;fail) apply(cases "y = 16") apply(simp;fail)
+	apply(presburger)
+	apply(cases "x = 4")
+	apply(cases "y = 0") apply(simp;fail) apply(cases "y = 1") apply(simp;fail) apply(cases "y = 2") apply(simp;fail) apply(cases "y = 3") apply(simp;fail) apply(cases "y = 4") apply(simp;fail) apply(cases "y = 5") apply(simp;fail) apply(cases "y = 6") apply(simp;fail) apply(cases "y = 7") apply(simp;fail) apply(cases "y = 8") apply(simp;fail)
+	apply(cases "y = 9") apply(simp;fail) apply(cases "y = 10") apply(simp;fail) apply(cases "y = 11") apply(simp;fail) apply(cases "y = 12") apply(simp;fail) apply(cases "y = 13") apply(simp;fail) apply(cases "y = 14") apply(simp;fail) apply(cases "y = 15") apply(simp;fail) apply(cases "y = 16") apply(simp;fail)
+	apply(presburger)
+	apply(cases "x = 5")
+	apply(cases "y = 0") apply(simp;fail) apply(cases "y = 1") apply(simp;fail) apply(cases "y = 2") apply(simp;fail) apply(cases "y = 3") apply(simp;fail) apply(cases "y = 4") apply(simp;fail) apply(cases "y = 5") apply(simp;fail) apply(cases "y = 6") apply(simp;fail) apply(cases "y = 7") apply(simp;fail) apply(cases "y = 8") apply(simp;fail)
+	apply(cases "y = 9") apply(simp;fail) apply(cases "y = 10") apply(simp;fail) apply(cases "y = 11") apply(simp;fail) apply(cases "y = 12") apply(simp;fail) apply(cases "y = 13") apply(simp;fail) apply(cases "y = 14") apply(simp;fail) apply(cases "y = 15") apply(simp;fail) apply(cases "y = 16") apply(simp;fail)
+	apply(presburger)
+	apply(cases "x = 6")
+	apply(cases "y = 0") apply(simp;fail) apply(cases "y = 1") apply(simp;fail) apply(cases "y = 2") apply(simp;fail) apply(cases "y = 3") apply(simp;fail) apply(cases "y = 4") apply(simp;fail) apply(cases "y = 5") apply(simp;fail) apply(cases "y = 6") apply(simp;fail) apply(cases "y = 7") apply(simp;fail) apply(cases "y = 8") apply(simp;fail)
+	apply(cases "y = 9") apply(simp;fail) apply(cases "y = 10") apply(simp;fail) apply(cases "y = 11") apply(simp;fail) apply(cases "y = 12") apply(simp;fail) apply(cases "y = 13") apply(simp;fail) apply(cases "y = 14") apply(simp;fail) apply(cases "y = 15") apply(simp;fail) apply(cases "y = 16") apply(simp;fail)
+	apply(presburger)
+	apply(cases "x = 6")
+	apply(cases "y = 0") apply(simp;fail) apply(cases "y = 1") apply(simp;fail) apply(cases "y = 2") apply(simp;fail) apply(cases "y = 3") apply(simp;fail) apply(cases "y = 4") apply(simp;fail) apply(cases "y = 5") apply(simp;fail) apply(cases "y = 6") apply(simp;fail) apply(cases "y = 7") apply(simp;fail) apply(cases "y = 8") apply(simp;fail)
+	apply(cases "y = 9") apply(simp;fail) apply(cases "y = 10") apply(simp;fail) apply(cases "y = 11") apply(simp;fail) apply(cases "y = 12") apply(simp;fail) apply(cases "y = 13") apply(simp;fail) apply(cases "y = 14") apply(simp;fail) apply(cases "y = 15") apply(simp;fail) apply(cases "y = 16") apply(simp;fail)
+	apply(presburger)
+	apply(cases "x = 7")
+	apply(cases "y = 0") apply(simp;fail) apply(cases "y = 1") apply(simp;fail) apply(cases "y = 2") apply(simp;fail) apply(cases "y = 3") apply(simp;fail) apply(cases "y = 4") apply(simp;fail) apply(cases "y = 5") apply(simp;fail) apply(cases "y = 6") apply(simp;fail) apply(cases "y = 7") apply(simp;fail) apply(cases "y = 8") apply(simp;fail)
+	apply(cases "y = 9") apply(simp;fail) apply(cases "y = 10") apply(simp;fail) apply(cases "y = 11") apply(simp;fail) apply(cases "y = 12") apply(simp;fail) apply(cases "y = 13") apply(simp;fail) apply(cases "y = 14") apply(simp;fail) apply(cases "y = 15") apply(simp;fail) apply(cases "y = 16") apply(simp;fail)
+	apply(presburger)
+	apply(cases "x = 8")
+	apply(cases "y = 0") apply(simp;fail) apply(cases "y = 1") apply(simp;fail) apply(cases "y = 2") apply(simp;fail) apply(cases "y = 3") apply(simp;fail) apply(cases "y = 4") apply(simp;fail) apply(cases "y = 5") apply(simp;fail) apply(cases "y = 6") apply(simp;fail) apply(cases "y = 7") apply(simp;fail) apply(cases "y = 8") apply(simp;fail)
+	apply(cases "y = 9") apply(simp;fail) apply(cases "y = 10") apply(simp;fail) apply(cases "y = 11") apply(simp;fail) apply(cases "y = 12") apply(simp;fail) apply(cases "y = 13") apply(simp;fail) apply(cases "y = 14") apply(simp;fail) apply(cases "y = 15") apply(simp;fail) apply(cases "y = 16") apply(simp;fail)
+	apply(presburger)
+	apply(cases "x = 9")
+	apply(cases "y = 0") apply(simp;fail) apply(cases "y = 1") apply(simp;fail) apply(cases "y = 2") apply(simp;fail) apply(cases "y = 3") apply(simp;fail) apply(cases "y = 4") apply(simp;fail) apply(cases "y = 5") apply(simp;fail) apply(cases "y = 6") apply(simp;fail) apply(cases "y = 7") apply(simp;fail) apply(cases "y = 8") apply(simp;fail)
+	apply(cases "y = 9") apply(simp;fail) apply(cases "y = 10") apply(simp;fail) apply(cases "y = 11") apply(simp;fail) apply(cases "y = 12") apply(simp;fail) apply(cases "y = 13") apply(simp;fail) apply(cases "y = 14") apply(simp;fail) apply(cases "y = 15") apply(simp;fail) apply(cases "y = 16") apply(simp;fail)
+	apply(presburger)
+	apply(cases "x = 10")
+	apply(cases "y = 0") apply(simp;fail) apply(cases "y = 1") apply(simp;fail) apply(cases "y = 2") apply(simp;fail) apply(cases "y = 3") apply(simp;fail) apply(cases "y = 4") apply(simp;fail) apply(cases "y = 5") apply(simp;fail) apply(cases "y = 6") apply(simp;fail) apply(cases "y = 7") apply(simp;fail) apply(cases "y = 8") apply(simp;fail)
+	apply(cases "y = 9") apply(simp;fail) apply(cases "y = 10") apply(simp;fail) apply(cases "y = 11") apply(simp;fail) apply(cases "y = 12") apply(simp;fail) apply(cases "y = 13") apply(simp;fail) apply(cases "y = 14") apply(simp;fail) apply(cases "y = 15") apply(simp;fail) apply(cases "y = 16") apply(simp;fail)
+	apply(presburger)
+	apply(cases "x = 11")
+	apply(cases "y = 0") apply(simp;fail) apply(cases "y = 1") apply(simp;fail) apply(cases "y = 2") apply(simp;fail) apply(cases "y = 3") apply(simp;fail) apply(cases "y = 4") apply(simp;fail) apply(cases "y = 5") apply(simp;fail) apply(cases "y = 6") apply(simp;fail) apply(cases "y = 7") apply(simp;fail) apply(cases "y = 8") apply(simp;fail)
+	apply(cases "y = 9") apply(simp;fail) apply(cases "y = 10") apply(simp;fail) apply(cases "y = 11") apply(simp;fail) apply(cases "y = 12") apply(simp;fail) apply(cases "y = 13") apply(simp;fail) apply(cases "y = 14") apply(simp;fail) apply(cases "y = 15") apply(simp;fail) apply(cases "y = 16") apply(simp;fail)
+	apply(presburger)
+	apply(cases "x = 12")
+	apply(cases "y = 0") apply(simp;fail) apply(cases "y = 1") apply(simp;fail) apply(cases "y = 2") apply(simp;fail) apply(cases "y = 3") apply(simp;fail) apply(cases "y = 4") apply(simp;fail) apply(cases "y = 5") apply(simp;fail) apply(cases "y = 6") apply(simp;fail) apply(cases "y = 7") apply(simp;fail) apply(cases "y = 8") apply(simp;fail)
+	apply(cases "y = 9") apply(simp;fail) apply(cases "y = 10") apply(simp;fail) apply(cases "y = 11") apply(simp;fail) apply(cases "y = 12") apply(simp;fail) apply(cases "y = 13") apply(simp;fail) apply(cases "y = 14") apply(simp;fail) apply(cases "y = 15") apply(simp;fail) apply(cases "y = 16") apply(simp;fail)
+	apply(presburger)
+	apply(cases "x = 13")
+	apply(cases "y = 0") apply(simp;fail) apply(cases "y = 1") apply(simp;fail) apply(cases "y = 2") apply(simp;fail) apply(cases "y = 3") apply(simp;fail) apply(cases "y = 4") apply(simp;fail) apply(cases "y = 5") apply(simp;fail) apply(cases "y = 6") apply(simp;fail) apply(cases "y = 7") apply(simp;fail) apply(cases "y = 8") apply(simp;fail)
+	apply(cases "y = 9") apply(simp;fail) apply(cases "y = 10") apply(simp;fail) apply(cases "y = 11") apply(simp;fail) apply(cases "y = 12") apply(simp;fail) apply(cases "y = 13") apply(simp;fail) apply(cases "y = 14") apply(simp;fail) apply(cases "y = 15") apply(simp;fail) apply(cases "y = 16") apply(simp;fail)
+	apply(presburger)
+	apply(cases "x = 13")
+	apply(cases "y = 0") apply(simp;fail) apply(cases "y = 1") apply(simp;fail) apply(cases "y = 2") apply(simp;fail) apply(cases "y = 3") apply(simp;fail) apply(cases "y = 4") apply(simp;fail) apply(cases "y = 5") apply(simp;fail) apply(cases "y = 6") apply(simp;fail) apply(cases "y = 7") apply(simp;fail) apply(cases "y = 8") apply(simp;fail)
+	apply(cases "y = 9") apply(simp;fail) apply(cases "y = 10") apply(simp;fail) apply(cases "y = 11") apply(simp;fail) apply(cases "y = 12") apply(simp;fail) apply(cases "y = 13") apply(simp;fail) apply(cases "y = 14") apply(simp;fail) apply(cases "y = 15") apply(simp;fail) apply(cases "y = 16") apply(simp;fail)
+	apply(presburger)
+	apply(cases "x = 14")
+	apply(cases "y = 0") apply(simp;fail) apply(cases "y = 1") apply(simp;fail) apply(cases "y = 2") apply(simp;fail) apply(cases "y = 3") apply(simp;fail) apply(cases "y = 4") apply(simp;fail) apply(cases "y = 5") apply(simp;fail) apply(cases "y = 6") apply(simp;fail) apply(cases "y = 7") apply(simp;fail) apply(cases "y = 8") apply(simp;fail)
+	apply(cases "y = 9") apply(simp;fail) apply(cases "y = 10") apply(simp;fail) apply(cases "y = 11") apply(simp;fail) apply(cases "y = 12") apply(simp;fail) apply(cases "y = 13") apply(simp;fail) apply(cases "y = 14") apply(simp;fail) apply(cases "y = 15") apply(simp;fail) apply(cases "y = 16") apply(simp;fail)
+	apply(presburger)
+	apply(cases "x = 15")
+	apply(cases "y = 0") apply(simp;fail) apply(cases "y = 1") apply(simp;fail) apply(cases "y = 2") apply(simp;fail) apply(cases "y = 3") apply(simp;fail) apply(cases "y = 4") apply(simp;fail) apply(cases "y = 5") apply(simp;fail) apply(cases "y = 6") apply(simp;fail) apply(cases "y = 7") apply(simp;fail) apply(cases "y = 8") apply(simp;fail)
+	apply(cases "y = 9") apply(simp;fail) apply(cases "y = 10") apply(simp;fail) apply(cases "y = 11") apply(simp;fail) apply(cases "y = 12") apply(simp;fail) apply(cases "y = 13") apply(simp;fail) apply(cases "y = 14") apply(simp;fail) apply(cases "y = 15") apply(simp;fail) apply(cases "y = 16") apply(simp;fail)
+	apply(presburger)
+	apply(cases "x = 16")
+	apply(cases "y = 0") apply(simp;fail) apply(cases "y = 1") apply(simp;fail) apply(cases "y = 2") apply(simp;fail) apply(cases "y = 3") apply(simp;fail) apply(cases "y = 4") apply(simp;fail) apply(cases "y = 5") apply(simp;fail) apply(cases "y = 6") apply(simp;fail) apply(cases "y = 7") apply(simp;fail) apply(cases "y = 8") apply(simp;fail)
+	apply(cases "y = 9") apply(simp;fail) apply(cases "y = 10") apply(simp;fail) apply(cases "y = 11") apply(simp;fail) apply(cases "y = 12") apply(simp;fail) apply(cases "y = 13") apply(simp;fail) apply(cases "y = 14") apply(simp;fail) apply(cases "y = 15") apply(simp;fail) apply(cases "y = 16") apply(simp;fail)
+	apply(presburger)
+	apply(presburger)
+	(* I am so sorry. Maybe it's not the lemma that is stupid. *)
+	(* TODO: Move to some Wang\<dots> *)
+done
+
+lemma mask_inj_hlp1: "inj_on (mask :: nat \<Rightarrow> 16 word) {0..16}"
+proof(intro inj_onI)
+	case goal1
+	from goal1(3)
+	have oe: "of_bl (replicate (16 - x) False @ replicate x True) = (of_bl (replicate (16 - y) False @ replicate y True) :: 16 word)"
+		unfolding mask_bl of_bl_rep_False .
+	have "\<And>z. z \<le> 16 \<Longrightarrow> length (replicate (16 - z) False @ replicate z True) = 16" by auto
+	with goal1(1,2)
+	have ps: "replicate (16 - x) False @ replicate x True \<in> {bl. length bl = len_of TYPE(16)}" " replicate (16 - y) False @ replicate y True \<in> {bl. length bl = len_of TYPE(16)}" by simp_all
+	from inj_onD[OF word_bl.Abs_inj_on, OF oe ps]
+	show ?case apply - apply(rule replicate_FT_hlp) using  goal1(1,2) apply simp apply blast done 
+qed
+
 lemma distinct_simple_match_to_of_match: "distinct ifs \<Longrightarrow> distinct (simple_match_to_of_match m mac ifs)"
-(*apply(unfold simple_match_to_of_match_def Let_def)
-apply(rule distinct_4lcomprI)
+apply(unfold simple_match_to_of_match_def Let_def)
+apply(rule distinct_3lcomprI)
 apply(clarsimp)
 apply(induction ifs)
 apply(simp;fail)
 apply(simp;fail)
-apply(cases "proto m")
-apply(clarsimp simp add: TCP_def UDP_def SCTP_def split: option.splits; fail)
-apply(clarsimp simp add: TCP_def UDP_def SCTP_def split: option.splits; fail)
-apply(simp_all)
-apply(unfold distinct_map)
 apply(simp_all add: distinct_word_upto smtoms_eq_hlp)
+apply(unfold distinct_map)
+apply(clarify)
+apply(intro conjI wordinterval_CIDR_split_internal_distinct)
+apply(subst comp_inj_on_iff[symmetric])
+prefer 2
+apply force
+apply(intro inj_onI)
+apply(case_tac x; case_tac y)
+apply(clarsimp simp: pfxm_mask_def)
+apply(drule wordinterval_CIDR_split_internal_all_valid_less_Ball[unfolded Ball_def, THEN spec, THEN mp])+
+apply(subgoal_tac "16 - x2 = 16 - x2a")
+apply(simp;fail)
+apply(rule mask_inj_hlp1[THEN inj_onD])
+apply(simp;fail)+
+apply(clarify)
+apply(intro conjI wordinterval_CIDR_split_internal_distinct)
+apply(subst comp_inj_on_iff[symmetric])
+prefer 2
+apply force
+apply(intro inj_onI)
+apply(case_tac x; case_tac y)
+apply(clarsimp simp: pfxm_mask_def)
+apply(drule wordinterval_CIDR_split_internal_all_valid_less_Ball[unfolded Ball_def, THEN spec, THEN mp])+
+apply(subgoal_tac "16 - x2 = 16 - x2a")
+apply(simp;fail)
+apply(rule mask_inj_hlp1[THEN inj_onD])
+apply(simp;fail)+
 done
+
 lemma no_overlaps_42_hlp2: "distinct (map fst amr) \<Longrightarrow> (\<And>r. distinct (fm r)) \<Longrightarrow>
     distinct (concat (map (\<lambda>(a, r, c). map (\<lambda>b. (a, b, fs r c)) (fm r)) amr))"
 apply(induction amr)
