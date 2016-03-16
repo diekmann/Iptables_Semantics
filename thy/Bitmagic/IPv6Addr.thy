@@ -785,7 +785,7 @@ thm Word.word_bl_Rep'
     oops
 
 
-  lemma fixes ip::ipv6addr
+  lemma ucast16_ucast128_maks_highest_bits: fixes ip::ipv6addr
     shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
            (ip AND 0xFFFF0000000000000000000000000000)"
     apply(subst word128_and_slice112)
@@ -802,10 +802,10 @@ thm Word.word_bl_Rep'
     apply simp
     apply(subst Word.slice_take)
     apply(simp)
-    (*almost!*)
-    apply(subst hooo)
-    apply simp_all
-    oops
+    thm yaaaaaaaaaaaaaaaayaiohhgoo
+    apply(subst yaaaaaaaaaaaaaaaayaiohhgoo)
+     apply simp_all
+    done
 
 
   lemma "ip \<le> 2^(len_of TYPE(16)) \<Longrightarrow> (ucast::16 word \<Rightarrow> 128 word) ((ucast::128 word \<Rightarrow> 16 word) ip) = ip"
@@ -843,8 +843,8 @@ thm Word.word_bl_Rep'
   lemma fixes ip::ipv6addr
     shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
            (ip AND 0xFFFF0000000000000000000000000000)"
-    unfolding ucast_def
-    proof -
+    using ucast16_ucast128_maks_highest_bits by simp
+    (*proof -
       have "(word_of_int::int \<Rightarrow> 128 word) (uint (ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat))) << (112::nat) =
            ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat) << (112::nat)"
       by simp
@@ -860,11 +860,12 @@ thm Word.word_bl_Rep'
     apply(subst Word.word_of_int_uint[of "ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat)"])
     apply simp
     apply(simp add: Word.word_of_int_uint)
-    oops
+    oops*)
 
   (*TODO: round trip property one*)
   lemma "ipv6preferred_to_int (int_to_ipv6preferred ip) = ip"
     apply(simp add: ipv6preferred_to_int.simps int_to_ipv6preferred_def)
+    apply(simp add: ucast16_ucast128_maks_highest_bits)
     oops
     
 
