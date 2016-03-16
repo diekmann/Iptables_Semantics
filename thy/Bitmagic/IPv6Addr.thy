@@ -95,7 +95,7 @@ text{*
          ::                             the unspecified address
   *}
 
-  datatype ipv6addr_syntax_compressed = 
+  datatype ipv6addr_syntax_compressed =
   (*using unit for the omission :: 
     The first number is the position where the omission occurs.
     The second number is the length of the specified address pieces.
@@ -142,6 +142,7 @@ text{*
   | IPv6AddrCompressed7_6 "16 word" "16 word" "16 word" "16 word" "16 word" "16 word" unit
   | IPv6AddrCompressed7_7 "16 word" "16 word" "16 word" "16 word" "16 word" "16 word" unit "16 word"
   (*datatype may take a minute to load*)
+
 
 
   (*More convenient parser helper function:
@@ -277,14 +278,12 @@ lemma parse_ipv6_address_exists:
       shows "\<exists>ss. parse_ipv6_address ss = Some ipv6_syntax"
   apply(rule_tac x="ipv6addr_syntax_compressed_to_list ipv6_syntax" in exI)
   apply(case_tac ipv6_syntax) (*takes quite long until output panel shows sth.*)
-  apply(simp_all)
+                                     apply(simp_all)
   done
 
 lemma parse_ipv6_address_identity:
       "parse_ipv6_address (ipv6addr_syntax_compressed_to_list (ipv6_syntax)) = Some ipv6_syntax"
-  apply(case_tac ipv6_syntax) (*takes quite long until output panel shows sth.*)
-  apply(simp_all)
-  done
+  by(cases ipv6_syntax) simp_all
 
 
 text{*
