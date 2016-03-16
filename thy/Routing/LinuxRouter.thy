@@ -119,4 +119,16 @@ qed simp
 
 (* another limitation for the nol2-router: It can never ever properly support bridges. *)
 
+lemma rtr_nomac_eq_halfinv:
+	assumes fw_ac_all: "fw = [SimpleRule simple_match_any Accept]"
+	assumes a1: "\<exists>x. map_option (p_l2dst_update x) (simple_linux_router_nomac rt fw pi) = simple_linux_router rt fw mlf ifl pi"
+	assumes a2: "mlf (fromMaybe (p_dst pi) (next_hop (routing_table_semantics rt (p_dst pi)))) = Some i2"
+	shows "iface_packet_check ifl pi = None \<longleftrightarrow> output_iface (routing_table_semantics rt (p_dst pi)) = p_oiface pi"
+using a1 a2
+	apply(clarify)
+	apply(cases "simple_linux_router rt fw mlf ifl pi")
+	apply(unfold fw_ac_all)
+	apply(simp_all add: simple_linux_router_nomac_def simple_linux_router_def Let_def simple_match_any split: Option.bind_splits if_splits)
+done
+
 end
