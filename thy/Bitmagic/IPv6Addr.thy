@@ -454,9 +454,12 @@ lemma parse_ipv6_address_identity2:
       "ipv6addr_syntax_compressed_to_list ipv6_syntax = ls \<longleftrightarrow> (parse_ipv6_address ls) = Some ipv6_syntax"
   apply(cases ipv6_syntax)
   apply simp_all
-  
   oops (*TODO*)
 
+text{*Valid IPv6 compressed notation:
+  \<^item> at most one omission
+  \<^item> at most 7 pieces
+*}
 lemma "parse_ipv6_address as \<noteq> None \<longleftrightarrow>
        length (filter (\<lambda>p. p = None) as) = 1 \<and>
        length as \<le> 7"
@@ -467,7 +470,7 @@ lemma "parse_ipv6_address as \<noteq> None \<longleftrightarrow>
    apply simp
    
    apply(simp del: parse_ipv6_address.simps)
-  oops
+  oops (*TODO*)
 
 text{*
   3. An alternative form that is sometimes more convenient when dealing
@@ -618,12 +621,6 @@ subsection{*Semantics*}
       have "(word_of_int::int \<Rightarrow> 128 word) (uint (ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat))) << (112::nat) =
            ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat) << (112::nat)"
       by simp
-      have "(word_of_int :: int \<Rightarrow> 16 word) (uint (ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat))) = 
-           of_bl (take 16 (to_bl ip))"
-      apply(subst Word.shiftr_bl)
-      apply simp
-    thm word_of_int_uint
-    sorry
       show "(word_of_int :: int \<Rightarrow> 128 word) (uint 
           ((word_of_int :: int \<Rightarrow> 16 word) (uint (ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat))))) << (112::nat) =
     ip && (0xFFFF0000000000000000000000000000::128 word)"
@@ -638,11 +635,13 @@ subsection{*Semantics*}
     apply(simp add: Word.word_of_int_uint)
     oops
 
+  (*TODO: round trip property one*)
   lemma "ipv6preferred_to_int (int_to_ipv6preferred ip) = ip"
     apply(simp add: ipv6preferred_to_int.simps int_to_ipv6preferred_def)
     oops
     
 
+  (*TODO: round trip property two*)
   lemma "int_to_ipv6preferred (ipv6preferred_to_int ip) = ip"
     apply(cases ip, rename_tac a b c d e f g h)
     apply(simp add: ipv6preferred_to_int.simps int_to_ipv6preferred_def)
