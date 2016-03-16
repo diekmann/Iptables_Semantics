@@ -94,11 +94,12 @@ text{*
          ::1                            the loopback address
          ::                             the unspecified address
   *}
+  (*datatype may take some minutes to load*)
   datatype ipv6addr_syntax_compressed =
-  (*using unit for the omission :: 
-    The first number is the position where the omission occurs.
-    The second number is the length of the specified address pieces.
-      I.e. `8 minus the second number' pieces are omitted.*)
+  --{*using @{typ unit} for the omission :: 
+      The first number is the position where the omission occurs.
+      The second number is the length of the specified address pieces.
+        I.e. `8 minus the second number' pieces are omitted.*}
     IPv6AddrCompressed1_0 unit
   | IPv6AddrCompressed1_1 unit "16 word"
   | IPv6AddrCompressed1_2 unit "16 word" "16 word"
@@ -140,7 +141,6 @@ text{*
 
   | IPv6AddrCompressed7_6 "16 word" "16 word" "16 word" "16 word" "16 word" "16 word" unit
   | IPv6AddrCompressed7_7 "16 word" "16 word" "16 word" "16 word" "16 word" "16 word" unit "16 word"
-  (*datatype may take a minute to load*)
 
   (*RFC 5952:
     """
@@ -153,6 +153,7 @@ text{*
 
     So we could remove all IPv6AddrCompressed*_7 constructors.
     But these are `recommendations', we might still see these non-recommended definitions.
+    "[...] all implementations must accept and be able to handle any legitimate RFC 4291 format."
   *)
 
   (*More convenient parser helper function:
