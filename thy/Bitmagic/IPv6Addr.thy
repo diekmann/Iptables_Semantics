@@ -684,7 +684,8 @@ lemma length_dropWhile_Not_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> 
 thm Word.word_bl_Rep'
   
 
-  lemma "n \<le> 16 \<Longrightarrow> of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 16 word)
+  lemma yaaaaaaaaaaaaaaaayaiohhgoo: 
+  "n \<le> 16 \<Longrightarrow> of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 16 word)
             (to_bl ((of_bl:: bool list \<Rightarrow> 128 word) (take n ls))))) =
     (of_bl:: bool list \<Rightarrow> 128 word) (take n ls)"
 
@@ -694,11 +695,16 @@ thm Word.word_bl_Rep'
     apply(subst Word.to_bl_bin)
     apply(subst uint_of_bl_is_bl_to_bin_Not)
      apply(simp)
-     apply(insert length_dropWhile_Not_bl[of "(take n ls)"])
+     apply(subgoal_tac "length (take n ls) \<le> 16")
+      prefer 2
+      apply fastforce
+      apply(subgoal_tac "length (dropWhile Not (to_bl (of_bl (take n ls)))) \<le> length (take n ls)")
+      using dual_order.trans apply blast
+     using length_dropWhile_Not_bl apply blast
      apply(simp)
-     (*HERE!*)
-     prefer 2
-     apply simp
+     done
+
+
     (*apply(subst helpx16)
     apply(subst helpx128)
      apply(simp)
