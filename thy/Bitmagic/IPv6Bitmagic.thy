@@ -163,32 +163,6 @@ lemma length_dropWhile_Not_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> 
  
 thm Word.word_bl_Rep'
   
-  (*TODO: add to l4v*)
-  (*taking only the high-order bits from a bitlist, casting to a longer word and casting back to
-    a shorter type, casting to to longer type again is equal to just taking the bits and casting to
-    the longer type.
-    'l is the longer word. E.g. 128 bit
-    's is the shorter word. E.g. 16 bit
-  *)
-  (*TODO: further generalize: drop away leading Falses of the shorter type, it must only be shorter after dropping the Falses*)
-  lemma bl_cast_long_short_long_take:
-  "n \<le> len_of TYPE('s) \<Longrightarrow> len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
-    of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) 
-            (to_bl ((of_bl:: bool list \<Rightarrow> 'l::len word) (take n ls))))) =
-    (of_bl:: bool list \<Rightarrow> 'l::len word) (take n ls)"
-    apply(rule Word.word_uint_eqI)
-    apply(subst WordLib.uint_of_bl_is_bl_to_bin)
-     apply(simp; fail)
-    apply(subst Word.to_bl_bin)
-    apply(subst uint_of_bl_is_bl_to_bin_Not)
-     apply(subgoal_tac "length (take n ls) \<le> len_of TYPE('s)")
-      prefer 2
-      apply fastforce
-     apply(subgoal_tac "length (dropWhile Not (to_bl (of_bl (take n ls)))) \<le> length (take n ls)")
-      using dual_order.trans apply blast
-     using length_dropWhile_Not_bl apply blast
-    apply(simp)
-    done
 
   lemma 
   "length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'l::len word) ls))) \<le> len_of TYPE('s) \<Longrightarrow>
@@ -260,6 +234,39 @@ thm Word.word_bl_Rep'
     apply(simp)
     done
 
+  (*TODO: add to l4v*)
+  (*taking only the high-order bits from a bitlist, casting to a longer word and casting back to
+    a shorter type, casting to to longer type again is equal to just taking the bits and casting to
+    the longer type.
+    'l is the longer word. E.g. 128 bit
+    's is the shorter word. E.g. 16 bit
+  *)
+  corollary bl_cast_long_short_long_take:
+  "n \<le> len_of TYPE('s) \<Longrightarrow> len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
+    of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) 
+            (to_bl ((of_bl:: bool list \<Rightarrow> 'l::len word) (take n ls))))) =
+    (of_bl:: bool list \<Rightarrow> 'l::len word) (take n ls)"
+    proof(rule bl_cast_long_short_long_take_ingoreLeadingZero, goal_cases)
+    case 1 
+      have "length (dropWhile Not (take n ls)) \<le> min (length ls) n"
+        by (metis (no_types) length_dropWhile_le length_take)
+      then show "length (dropWhile Not (take n ls)) \<le> len_of (TYPE('s)::'s itself)"
+        using 1(1) by linarith
+    qed(simp)
+    
+    (*apply(rule Word.word_uint_eqI)
+    apply(subst WordLib.uint_of_bl_is_bl_to_bin)
+     apply(simp; fail)
+    apply(subst Word.to_bl_bin)
+    apply(subst uint_of_bl_is_bl_to_bin_Not)
+     apply(subgoal_tac "length (take n ls) \<le> len_of TYPE('s)")
+      prefer 2
+      apply fastforce
+     apply(subgoal_tac "length (dropWhile Not (to_bl (of_bl (take n ls)))) \<le> length (take n ls)")
+      using dual_order.trans apply blast
+     using length_dropWhile_Not_bl apply blast
+    apply(simp)
+    done*)
 
 corollary yaaaaaaaaaaaaaaaayaiohhgoo: 
   "n \<le> 16 \<Longrightarrow> of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 16 word)
