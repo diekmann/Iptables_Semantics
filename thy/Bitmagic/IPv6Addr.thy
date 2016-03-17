@@ -712,6 +712,74 @@ thm Word.word_bl_Rep'
     apply(simp)
     done
 
+  lemma 
+  "length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'l::len word) ls))) \<le> len_of TYPE('s) \<Longrightarrow>
+   len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
+    of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) 
+            (to_bl ((of_bl:: bool list \<Rightarrow> 'l::len word) ls)))) =
+    (of_bl:: bool list \<Rightarrow> 'l::len word) ls"
+    apply(rule Word.word_uint_eqI)
+    apply(subst WordLib.uint_of_bl_is_bl_to_bin)
+     apply(simp; fail)
+    apply(subst Word.to_bl_bin)
+    apply(subst uint_of_bl_is_bl_to_bin_Not)
+     apply assumption
+     (*using[[unify_trace_failure]]
+       apply assumption*)
+    apply(simp)
+    done
+
+  lemma "length (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) (dropWhile Not bs))) = 
+         length (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) bs))"
+    apply(fact Word.word_rotate.lbl_lbl)
+    done
+
+  (*TODO: push this somewhere! maybe to isabelle mail word thy!*)
+  lemma bl_drop_leading_zeros: 
+        "(of_bl:: bool list \<Rightarrow> 'a::len word) (dropWhile Not bs) =
+         (of_bl:: bool list \<Rightarrow> 'a::len word) bs"
+  by(induction bs) simp_all
+
+  lemma "length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) (dropWhile Not bs)))) =
+         length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) bs)))"
+    by(simp add: bl_drop_leading_zeros)
+
+  lemma "length (dropWhile Not bs) \<le> n \<Longrightarrow>
+    length (dropWhile Not (to_bl (of_bl bs))) \<le> n"
+    thm length_dropWhile_Not_bl
+    thm length_dropWhile_Not_bl[of "(dropWhile Not bs)"]
+    apply(subgoal_tac "length (dropWhile Not (to_bl (of_bl (dropWhile Not bs)))) \<le> n")
+     prefer 2
+     apply(rule order.trans)
+      apply(rule length_dropWhile_Not_bl[of "(dropWhile Not bs)"])
+     apply blast
+    apply(rule order.trans)
+     prefer 2
+     apply(simp; fail)
+    apply(rule order.trans)
+     prefer 2
+     thm length_dropWhile_Not_bl[of "(dropWhile Not bs)"]
+     apply(rule length_dropWhile_Not_bl[of "(dropWhile Not bs)"])
+    apply(simp add: Word.word_rotate.lbl_lbl)
+    oops
+
+  lemma 
+  "length (dropWhile Not ls) \<le> len_of TYPE('s) \<Longrightarrow>
+   len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
+    of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) 
+            (to_bl ((of_bl:: bool list \<Rightarrow> 'l::len word) ls)))) =
+    (of_bl:: bool list \<Rightarrow> 'l::len word) ls"
+    apply(rule Word.word_uint_eqI)
+    apply(subst WordLib.uint_of_bl_is_bl_to_bin)
+     apply(simp; fail)
+    apply(subst Word.to_bl_bin)
+    apply(subst uint_of_bl_is_bl_to_bin_Not)
+     apply(rule order.trans)
+      apply(rule length_dropWhile_Not_bl)
+    apply(simp)
+    done
+
+
 corollary yaaaaaaaaaaaaaaaayaiohhgoo: 
   "n \<le> 16 \<Longrightarrow> of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 16 word)
             (to_bl ((of_bl:: bool list \<Rightarrow> 128 word) (take n ls))))) =
