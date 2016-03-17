@@ -12,11 +12,11 @@ bug-reports:         https://github.com/diekmann/Iptables_Semantics/issues
 cabal-version:       >= 1.18
 tested-with:         GHC >= 7.8 && < 8.0
 
-executable fffuu
-  main-is:             Main.hs
+library
+  hs-source-dirs:      lib
   default-language:    Haskell2010
   ghc-options:         -O3
-  other-modules:
+  exposed-modules:
       Network.IPTables.Generated
     , Network.IPTables.IpassmtParser
     , Network.IPTables.IsabelleToString
@@ -28,19 +28,24 @@ executable fffuu
     , containers >=0.5 && <0.6
     , parsec >=3.0 && <3.2
 
-Test-Suite test-iptables-save-parser
-  type:                detailed-0.9
+executable fffuu
+  hs-source-dirs:      src
+  main-is:             Main.hs
   default-language:    Haskell2010
-  test-module:         ParserTestSuite
-  other-modules:
-      Network.IPTables.Generated
-    , Network.IPTables.IpassmtParser
-    , Network.IPTables.IsabelleToString
-    , Network.IPTables.ParserHelper
-    , Network.IPTables.Parser
-    , Network.IPTables.Ruleset
+  ghc-options:         -O3
   build-depends:
       base >=4.7 && <4.9
     , containers >=0.5 && <0.6
+    , fffuu
     , parsec >=3.0 && <3.2
-    , Cabal >= 1.9.2
+
+test-suite test-iptables-save-parser
+  hs-source-dirs:      test
+  type:                detailed-0.9
+  default-language:    Haskell2010
+  test-module:         ParserTestSuite
+  build-depends:
+      base >=4.7 && <4.9
+    , Cabal >= 1.18
+    , containers >=0.5 && <0.6
+    , fffuu
