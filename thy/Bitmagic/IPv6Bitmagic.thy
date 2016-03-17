@@ -322,24 +322,10 @@ corollary yaaaaaaaaaaaaaaaayaiohhgoo:
     apply(subst word128_mask96)
     apply(subst Word.ucast_bl)+
     apply(subst word128_mask96)+
-    thm bl_cast_long_short_long_ingoreLeadingZero
-    apply(subst bl_cast_long_short_long_ingoreLeadingZero)
+    thm bl_cast_long_short_long_ingoreLeadingZero_generic
+    apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
       apply simp_all
-
-    apply(subst Word.shiftl_bl)
-    apply(simp)
-    apply(subst WordLemmaBucket.word_and_mask_shiftl)+
-    apply(subst Word.shiftr_bl)
-    apply(subst Word.shiftl_bl)
-    apply simp
-    apply(subst Word.of_bl_append)+
-    apply simp
-    apply(subst Word.shiftr_bl)
-    apply(simp)
-    thm yaaaaaaaaaaaaaaaayaiohhgoo
-    thm bl_cast_long_short_long_take
-    apply(subst bl_cast_long_short_long_take_ingoreLeadingZero)
-      apply simp_all
+      (*TODO: continue here!*)
     oops
 
 
