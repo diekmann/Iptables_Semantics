@@ -70,41 +70,8 @@ begin
     apply(simp)
     done
 
-  value "bintrunc 3 0x0"
-
   lemma uint_bl_less_length: "uint (of_bl ls) < 2 ^ length ls"
     by (metis bintrunc_bintrunc_min bl_to_bin_lt2p lt2p_lem min_def of_bl_def trunc_bl2bin_len word_ubin.inverse_norm)
-
-
-  value "let ls = [True,True,True,True,True,True,True,True,True,True,True,True,True,True,True,True] in 
-    (of_bl:: bool list \<Rightarrow> 128 word) (to_bl ((of_bl::bool list \<Rightarrow> 16 word) (True # ls))) = 
-    of_bl (True # ls)"
-  lemma "length ls < 16 \<Longrightarrow> 
-    (of_bl:: bool list \<Rightarrow> 128 word) (to_bl ((of_bl::bool list \<Rightarrow> 16 word) (True # ls))) = 
-    of_bl (True # ls)"
-    quickcheck
-    apply(simp)
-    apply(rule Word.word_uint_eqI)
-    apply(subst helpx16)
-    
-    (*apply(subst Word.uint_plus_if')
-    apply(simp)
-    apply(intro conjI impI)*)
-     
-    apply(subst Word.uint_word_ariths(1))+
-
-    apply(subst Word_Miscellaneous.push_mods(1))
-    apply(subst Word_Miscellaneous.push_mods(1)) back
-
-    apply(case_tac ls)
-    apply(simp)
-    apply(case_tac list)
-    apply(simp)
-    
-    
-    apply(simp)
-    using [[ML_print_depth=100]] ML_val \<open>@{Isar.goal} |> #goal |> Thm.prop_of\<close>
-    oops
 
   lemma "to_bl (of_bl (False # ls)) = to_bl (of_bl ls)" oops
 
@@ -218,17 +185,28 @@ thm Word.word_bl_Rep'
     apply fastforce
     done
 
-  lemma bl_cast_long_short_long_take_ingoreLeadingZero: 
-  "length (dropWhile Not ls) \<le> len_of TYPE('s) \<Longrightarrow>
+  (*this one should be even more generic*)
+  lemma bl_cast_long_short_long_ingoreLeadingZero_generic:
+  "length (dropWhile Not (to_bl w)) \<le> len_of TYPE('s) \<Longrightarrow>
    len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
-    of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) 
-            (to_bl ((of_bl:: bool list \<Rightarrow> 'l::len word) ls)))) =
-    (of_bl:: bool list \<Rightarrow> 'l::len word) ls"
+    (of_bl:: bool list \<Rightarrow> 'l::len word) (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) 
+            (to_bl w))) = w"
     apply(rule Word.word_uint_eqI)
     apply(subst WordLib.uint_of_bl_is_bl_to_bin)
      apply(simp; fail)
     apply(subst Word.to_bl_bin)
     apply(subst uint_of_bl_is_bl_to_bin_Not)
+     apply blast
+    apply(simp)
+    done
+
+  lemma bl_cast_long_short_long_ingoreLeadingZero: 
+  "length (dropWhile Not ls) \<le> len_of TYPE('s) \<Longrightarrow>
+   len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
+    of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) 
+            (to_bl ((of_bl:: bool list \<Rightarrow> 'l::len word) ls)))) =
+    (of_bl:: bool list \<Rightarrow> 'l::len word) ls"
+    apply(rule bl_cast_long_short_long_ingoreLeadingZero_generic)
      apply(rule bl_length_dropNot_bound)
      apply blast
     apply(simp)
@@ -246,7 +224,7 @@ thm Word.word_bl_Rep'
     of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) 
             (to_bl ((of_bl:: bool list \<Rightarrow> 'l::len word) (take n ls))))) =
     (of_bl:: bool list \<Rightarrow> 'l::len word) (take n ls)"
-    proof(rule bl_cast_long_short_long_take_ingoreLeadingZero, goal_cases)
+    proof(rule bl_cast_long_short_long_ingoreLeadingZero, goal_cases)
     case 1 
       have "length (dropWhile Not (take n ls)) \<le> min (length ls) n"
         by (metis (no_types) length_dropWhile_le length_take)
@@ -254,7 +232,8 @@ thm Word.word_bl_Rep'
         using 1(1) by linarith
     qed(simp)
     
-    (*apply(rule Word.word_uint_eqI)
+    (* old proof:
+    apply(rule Word.word_uint_eqI)
     apply(subst WordLib.uint_of_bl_is_bl_to_bin)
      apply(simp; fail)
     apply(subst Word.to_bl_bin)
@@ -342,9 +321,13 @@ corollary yaaaaaaaaaaaaaaaayaiohhgoo:
          ip AND 0xFFFF000000000000000000000000"
     apply(subst word128_mask96)
     apply(subst Word.ucast_bl)+
+    apply(subst word128_mask96)+
+    thm bl_cast_long_short_long_ingoreLeadingZero
+    apply(subst bl_cast_long_short_long_ingoreLeadingZero)
+      apply simp_all
+
     apply(subst Word.shiftl_bl)
     apply(simp)
-    apply(subst word128_mask96)+
     apply(subst WordLemmaBucket.word_and_mask_shiftl)+
     apply(subst Word.shiftr_bl)
     apply(subst Word.shiftl_bl)
