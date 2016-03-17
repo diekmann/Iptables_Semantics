@@ -143,6 +143,8 @@ text{*
   | IPv6AddrCompressed7_6 "16 word" "16 word" "16 word" "16 word" "16 word" "16 word" unit
   | IPv6AddrCompressed7_7 "16 word" "16 word" "16 word" "16 word" "16 word" "16 word" unit "16 word"
 
+  | IPv6AddrCompressed8_7 "16 word" "16 word" "16 word" "16 word" "16 word" "16 word" "16 word" unit
+
   (*RFC 5952:
     """
     4.  A Recommendation for IPv6 Text Representation
@@ -203,6 +205,8 @@ text{*
   
     | [Some a, Some b, Some c, Some d, Some e, Some f, None] \<Rightarrow> Some (IPv6AddrCompressed7_6 a b c d e f ())
     | [Some a, Some b, Some c, Some d, Some e, Some f, None, Some g] \<Rightarrow> Some (IPv6AddrCompressed7_7 a b c d e f () g)
+
+    | [Some a, Some b, Some c, Some d, Some e, Some f, Some g, None] \<Rightarrow> Some (IPv6AddrCompressed8_7 a b c d e f g ())
     | _ \<Rightarrow> None (*invalid ipv6 copressed address.*)
 )"
 
@@ -283,6 +287,9 @@ text{*
                                      [Some a, Some b, Some c, Some d, Some e, Some f, None]"
     | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed7_7 a b c d e f () g) =
                                      [Some a, Some b, Some c, Some d, Some e, Some f, None, Some g]"
+
+    | "ipv6addr_syntax_compressed_to_list (IPv6AddrCompressed8_7 a b c d e f g ()) =
+                                     [Some a, Some b, Some c, Some d, Some e, Some f, Some g, None]"
 
 
 (*for all ipv6_syntax, there is a corresponding list representation*)
@@ -387,7 +394,9 @@ lemma parse_ipv6_address_someE:
     a b c d e f g where "as = [Some a, Some b, Some c, Some d, Some e, None, Some f, Some g]" "ipv6 = (IPv6AddrCompressed6_7 a b c d e () f g)" |
   
     a b c d e f where "as = [Some a, Some b, Some c, Some d, Some e, Some f, None]" "ipv6 = (IPv6AddrCompressed7_6 a b c d e f ())" |
-    a b c d e f g where "as = [Some a, Some b, Some c, Some d, Some e, Some f, None, Some g]" "ipv6 = (IPv6AddrCompressed7_7 a b c d e f () g)"
+    a b c d e f g where "as = [Some a, Some b, Some c, Some d, Some e, Some f, None, Some g]" "ipv6 = (IPv6AddrCompressed7_7 a b c d e f () g)" |
+
+    a b c d e f g where "as = [Some a, Some b, Some c, Some d, Some e, Some f, Some g, None]" "ipv6 = (IPv6AddrCompressed8_7 a b c d e f g ())"
 using assms
 unfolding parse_ipv6_address_def
 by (auto split: list.split_asm option.split_asm) (* takes a minute *)
@@ -410,15 +419,19 @@ text{*Valid IPv6 compressed notation:
 *}
 lemma "parse_ipv6_address as \<noteq> None \<longleftrightarrow>
        length (filter (\<lambda>p. p = None) as) = 1 \<and>
-       length as \<le> 7"
-  apply(induction as)
-   apply(simp)
-  apply(simp add: parse_ipv6_address_def)
-  apply(intro conjI impI)
-   apply simp
-   
-   apply(simp del: parse_ipv6_address.simps)
-  oops (*TODO*)
+       length (filter (\<lambda>p. p \<noteq> None) as) \<le> 7" (is "?lhs = ?rhs")
+proof
+  assume ?lhs
+  then obtain addr where "parse_ipv6_address as = Some addr"
+    by blast
+  thus ?rhs
+    by (elim parse_ipv6_address_someE; simp)
+next
+  assume ?rhs
+  thus ?lhs
+    unfolding parse_ipv6_address_def
+    by (auto split: option.split list.split split_if_asm)
+qed
 
 text{*
   3. An alternative form that is sometimes more convenient when dealing
