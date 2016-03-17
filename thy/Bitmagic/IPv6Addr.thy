@@ -685,31 +685,16 @@ lemma length_dropWhile_Not_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> 
  
 thm Word.word_bl_Rep'
   
-
-  lemma yaaaaaaaaaaaaaaaayaiohhgoo: 
-  "n \<le> 16 \<Longrightarrow> of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 16 word)
-            (to_bl ((of_bl:: bool list \<Rightarrow> 128 word) (take n ls))))) =
-    (of_bl:: bool list \<Rightarrow> 128 word) (take n ls)"
-
-    apply(rule Word.word_uint_eqI)
-    apply(subst WordLib.uint_of_bl_is_bl_to_bin)
-     apply(simp)
-    apply(subst Word.to_bl_bin)
-    apply(subst uint_of_bl_is_bl_to_bin_Not)
-     apply(simp)
-     apply(subgoal_tac "length (take n ls) \<le> 16")
-      prefer 2
-      apply fastforce
-     apply(subgoal_tac "length (dropWhile Not (to_bl (of_bl (take n ls)))) \<le> length (take n ls)")
-      using dual_order.trans apply blast
-     using length_dropWhile_Not_bl apply blast
-    apply(simp)
-    done
-
-
-  (*'l is the longer word. E.g. 128*)
-  lemma  
-  "n \<le> 16 \<Longrightarrow> 16 \<le> len_of TYPE('l) \<Longrightarrow> of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 16 word)
+  (*TODO: add to l4v*)
+  (*taking only the high-order bits from a bitlist, casting to a longer word and casting back to
+    a shorter type, casting to to longer type again is equal to just taking the bits and casting to
+    the longer type.
+    'l is the longer word. E.g. 128 bit
+    's is the shorter word. E.g. 16 bit
+  *)
+  lemma bl_cast_long_short_long_take:
+  "n \<le> len_of TYPE('s) \<Longrightarrow> len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
+    of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) 
             (to_bl ((of_bl:: bool list \<Rightarrow> 'l::len word) (take n ls))))) =
     (of_bl:: bool list \<Rightarrow> 'l::len word) (take n ls)"
     apply(rule Word.word_uint_eqI)
@@ -717,8 +702,7 @@ thm Word.word_bl_Rep'
      apply(simp)
     apply(subst Word.to_bl_bin)
     apply(subst uint_of_bl_is_bl_to_bin_Not)
-     apply(simp)
-     apply(subgoal_tac "length (take n ls) \<le> 16")
+     apply(subgoal_tac "length (take n ls) \<le> len_of TYPE('s)")
       prefer 2
       apply fastforce
      apply(subgoal_tac "length (dropWhile Not (to_bl (of_bl (take n ls)))) \<le> length (take n ls)")
@@ -727,65 +711,13 @@ thm Word.word_bl_Rep'
     apply(simp)
     done
 
-    (*apply(subst helpx16)
-    apply(subst helpx128)
-     apply(simp)
-    
-    (*apply(subst Word.uint_plus_if')
-    apply(simp)
-    apply(intro conjI impI)*)
-     
-    apply(subst Word.uint_word_ariths(1))+
-
-    apply(subst Word_Miscellaneous.push_mods(1))
-    apply(subst Word_Miscellaneous.push_mods(1)) back
-
-    quickcheck
-    apply(induction ls arbitrary: n)
-     apply(simp)
-    apply(simp)
-    apply(rename_tac l ls n)
-    apply(case_tac n)
-     apply(simp)
-    apply(simp)
-    quickcheck
-    thm of_bl_True
-    apply(case_tac l)
-     apply(simp_all)
-
-    (*probably wrong direction to go aligned*)
-    thm Aligned.is_aligned_add_conv
-    apply(subst Aligned.is_aligned_add_conv[where n=16])
-    apply(simp_all)
-    apply(simp add: is_aligned_def min_def dvd_def)
-
-    apply(induction n)
-     apply(simp)
-    apply(simp)
-    apply(case_tac ls)
-     apply(simp_all)
-    
-
-    apply(induction ls)
-     apply(simp)
-    apply(simp)
-
-    apply (subgoal_tac "n > 16 \<or> n \<in> {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}")
-    apply (simp only: insert_iff, elim disjE)
-    apply(simp_all)
-    
-    apply(simp add: of_bl_def)
-    try0
-    apply (simp add: size_mask_32word)
-    apply (simp_all add: size_mask_32word) [34]
-    apply (simp only: insert_iff empty_iff HOL.simp_thms, presburger)
-
-    apply(induction ls)
-     apply(simp)
-    apply(simp)
-    
-    apply(simp add: of_bl_def)*)
-    oops
+corollary yaaaaaaaaaaaaaaaayaiohhgoo: 
+  "n \<le> 16 \<Longrightarrow> of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 16 word)
+            (to_bl ((of_bl:: bool list \<Rightarrow> 128 word) (take n ls))))) =
+    (of_bl:: bool list \<Rightarrow> 128 word) (take n ls)"
+  apply(rule bl_cast_long_short_long_take)
+   apply(simp_all)
+  done
 
   (*this would be nice*)
   lemma hooo: fixes ip::ipv6addr
