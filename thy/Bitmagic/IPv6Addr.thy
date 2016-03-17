@@ -798,9 +798,8 @@ corollary yaaaaaaaaaaaaaaaayaiohhgoo:
     apply(simp)
     thm yaaaaaaaaaaaaaaaayaiohhgoo
     thm bl_cast_long_short_long_take
-    apply(subst bl_cast_long_short_long_take_sorry)
-    apply(subst bl_cast_long_short_long_take[symmetric]) back
-     apply simp_all (*c'mon! take32 fuu!*)
+    apply(subst bl_cast_long_short_long_take)
+      apply simp_all (*c'mon! take32 fuu!*)
     oops
 
 
