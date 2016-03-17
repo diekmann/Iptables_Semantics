@@ -635,7 +635,7 @@ subsection{*Semantics*}
     apply(simp)
     oops
 
-lemma (*uint_of_bl_is_bl_to_bin: l4v WordLib*)
+(*copy of lemma (*uint_of_bl_is_bl_to_bin: l4v WordLib*)
   "length l\<le>len_of TYPE('a) \<Longrightarrow>
    uint ((of_bl::bool list\<Rightarrow> ('a :: len) word) l) = bl_to_bin l"
   apply (simp add: of_bl_def)
@@ -644,10 +644,11 @@ lemma (*uint_of_bl_is_bl_to_bin: l4v WordLib*)
   apply (rule order_less_le_trans, rule bl_to_bin_lt2p)
   apply (rule order_trans, erule power_increasing)
    apply simp_all
-  done
+  done*)
 
 
 (*TODO: add to l4v bl_to_bin_lt2p*)
+thm Bool_List_Representation.bl_to_bin_lt2p
 lemma bl_to_bin_lt2p_Not: "bl_to_bin bs < (2 ^ length (dropWhile Not bs))"
   apply (unfold bl_to_bin_def)
   apply(induction bs)
@@ -656,6 +657,7 @@ lemma bl_to_bin_lt2p_Not: "bl_to_bin bs < (2 ^ length (dropWhile Not bs))"
   by (metis bl_to_bin_lt2p_aux one_add_one)
 
 (*TODO: add to l4v uint_of_bl_is_bl_to_bin*)
+thm WordLib.uint_of_bl_is_bl_to_bin
 lemma uint_of_bl_is_bl_to_bin_Not:
   "length (dropWhile Not l) \<le> len_of TYPE('a) \<Longrightarrow>
    uint ((of_bl::bool list\<Rightarrow> ('a :: len) word) l) = bl_to_bin l"
@@ -698,12 +700,32 @@ thm Word.word_bl_Rep'
      apply(subgoal_tac "length (take n ls) \<le> 16")
       prefer 2
       apply fastforce
-      apply(subgoal_tac "length (dropWhile Not (to_bl (of_bl (take n ls)))) \<le> length (take n ls)")
+     apply(subgoal_tac "length (dropWhile Not (to_bl (of_bl (take n ls)))) \<le> length (take n ls)")
       using dual_order.trans apply blast
      using length_dropWhile_Not_bl apply blast
-     apply(simp)
-     done
+    apply(simp)
+    done
 
+
+  (*'l is the longer word. E.g. 128*)
+  lemma  
+  "n \<le> 16 \<Longrightarrow> 16 \<le> len_of TYPE('l) \<Longrightarrow> of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 16 word)
+            (to_bl ((of_bl:: bool list \<Rightarrow> 'l::len word) (take n ls))))) =
+    (of_bl:: bool list \<Rightarrow> 'l::len word) (take n ls)"
+    apply(rule Word.word_uint_eqI)
+    apply(subst WordLib.uint_of_bl_is_bl_to_bin)
+     apply(simp)
+    apply(subst Word.to_bl_bin)
+    apply(subst uint_of_bl_is_bl_to_bin_Not)
+     apply(simp)
+     apply(subgoal_tac "length (take n ls) \<le> 16")
+      prefer 2
+      apply fastforce
+     apply(subgoal_tac "length (dropWhile Not (to_bl (of_bl (take n ls)))) \<le> length (take n ls)")
+      using dual_order.trans apply blast
+     using length_dropWhile_Not_bl apply blast
+    apply(simp)
+    done
 
     (*apply(subst helpx16)
     apply(subst helpx128)
