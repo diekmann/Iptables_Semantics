@@ -692,6 +692,7 @@ thm Word.word_bl_Rep'
     'l is the longer word. E.g. 128 bit
     's is the shorter word. E.g. 16 bit
   *)
+  (*TODO: further generalize: drop away leading Falses of the shorter type, it must only be shorter after dropping the Falses*)
   lemma bl_cast_long_short_long_take:
   "n \<le> len_of TYPE('s) \<Longrightarrow> len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
     of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) 
