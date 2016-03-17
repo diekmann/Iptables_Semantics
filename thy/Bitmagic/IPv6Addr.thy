@@ -783,6 +783,7 @@ corollary yaaaaaaaaaaaaaaaayaiohhgoo:
   lemma fixes ip::ipv6addr
     shows "(ucast (ucast (ip AND 0xFFFF000000000000000000000000 >> 96)) << 96) =
          ip AND 0xFFFF000000000000000000000000"
+   (*TODO: quickcheck finds a counter example? what is wrong with my definition here?*)
     apply(subst word128_mask96)
     apply(subst Word.ucast_bl)+
     apply(subst Word.shiftl_bl)
