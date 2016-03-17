@@ -699,7 +699,7 @@ thm Word.word_bl_Rep'
     (of_bl:: bool list \<Rightarrow> 'l::len word) (take n ls)"
     apply(rule Word.word_uint_eqI)
     apply(subst WordLib.uint_of_bl_is_bl_to_bin)
-     apply(simp)
+     apply(simp; fail)
     apply(subst Word.to_bl_bin)
     apply(subst uint_of_bl_is_bl_to_bin_Not)
      apply(subgoal_tac "length (take n ls) \<le> len_of TYPE('s)")
@@ -728,15 +728,6 @@ corollary yaaaaaaaaaaaaaaaayaiohhgoo:
     oops
 
 
-  lemma fixes ip::ipv6addr
-    shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
-           (ip AND 0xFFFF0000000000000000000000000000)"
-    apply(subst word128_and_slice112)
-    apply(subst xx)
-    apply(subst mask_16_shiftl112_128word)
-    apply(subst ucast_def)+
-    
-    oops
 
 
   lemma ucast16_ucast128_maks_highest_bits: fixes ip::ipv6addr
@@ -755,6 +746,31 @@ corollary yaaaaaaaaaaaaaaaayaiohhgoo:
     apply(subst Word.of_bl_append)+
     apply simp
     apply(subst Word.slice_take)
+    apply(simp)
+    thm yaaaaaaaaaaaaaaaayaiohhgoo
+    apply(subst yaaaaaaaaaaaaaaaayaiohhgoo)
+     apply simp_all
+    done
+
+  (*the same without slice to generalize to the other cases*)
+  lemma fixes ip::ipv6addr
+    shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
+           (ip AND 0xFFFF0000000000000000000000000000)"
+    apply(subst xx)
+    apply(subst mask_16_shiftl112_128word)
+    apply(subst WordLemmaBucket.mask_shift)
+    apply(subst Word.ucast_bl)+
+    apply(subst Word.shiftl_bl)
+    apply(simp)
+    apply(subst xx)+
+    apply(subst WordLemmaBucket.word_and_mask_shiftl)+
+    apply(subst xxx)+
+    apply(subst Word.shiftr_bl)
+    apply(subst Word.shiftl_bl)
+    apply simp
+    apply(subst Word.of_bl_append)+
+    apply simp
+    apply(subst Word.shiftr_bl)
     apply(simp)
     thm yaaaaaaaaaaaaaaaayaiohhgoo
     apply(subst yaaaaaaaaaaaaaaaayaiohhgoo)
