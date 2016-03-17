@@ -536,7 +536,7 @@ subsection{*Semantics*}
 
   (*I could also use word_split to extract bits?*)
   
-  lemma xx: "(0xFFFF0000000000000000000000000000::ipv6addr) = (mask 16) << 112"
+  lemma word128_mask112: "(0xFFFF0000000000000000000000000000::ipv6addr) = (mask 16) << 112"
     by(simp add: mask_def)
   lemma xxx: fixes ip::ipv6addr
     shows  "((ip >> 112) && mask 16) = (ip >> 112)"
@@ -568,7 +568,7 @@ subsection{*Semantics*}
     fixes ip::ipv6addr
     shows "(ip AND 0xFFFF0000000000000000000000000000 >> 112) = slice 112 ip"
     apply(subst Word.shiftr_slice[symmetric])
-    apply(subst xx)
+    apply(subst word128_mask112)
     apply(subst mask_16_shiftl112_128word)
     apply(subst WordLemmaBucket.mask_shift)
     apply simp
@@ -737,7 +737,7 @@ corollary yaaaaaaaaaaaaaaaayaiohhgoo:
     apply(subst Word.ucast_bl)+
     apply(subst Word.shiftl_bl)
     apply(simp)
-    apply(subst xx)+
+    apply(subst word128_mask112)+
     apply(subst WordLemmaBucket.word_and_mask_shiftl)+
     apply(subst xxx)+
     apply(subst Word.shiftr_bl)
@@ -756,13 +756,13 @@ corollary yaaaaaaaaaaaaaaaayaiohhgoo:
   lemma fixes ip::ipv6addr
     shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
            (ip AND 0xFFFF0000000000000000000000000000)"
-    apply(subst xx)
+    apply(subst word128_mask112)
     apply(subst mask_16_shiftl112_128word)
     apply(subst WordLemmaBucket.mask_shift)
     apply(subst Word.ucast_bl)+
     apply(subst Word.shiftl_bl)
     apply(simp)
-    apply(subst xx)+
+    apply(subst word128_mask112)+
     apply(subst WordLemmaBucket.word_and_mask_shiftl)+
     apply(subst xxx)+
     apply(subst Word.shiftr_bl)
@@ -776,6 +776,32 @@ corollary yaaaaaaaaaaaaaaaayaiohhgoo:
     apply(subst yaaaaaaaaaaaaaaaayaiohhgoo)
      apply simp_all
     done
+
+  lemma word128_mask96: "(0xFFFF000000000000000000000000::ipv6addr) = (mask 16) << 96"
+    by(simp add: mask_def)
+
+  lemma fixes ip::ipv6addr
+    shows "(ucast (ucast (ip AND 0xFFFF000000000000000000000000 >> 96)) << 96) =
+         ip AND 0xFFFF000000000000000000000000"
+    apply(subst word128_mask96)
+    apply(subst Word.ucast_bl)+
+    apply(subst Word.shiftl_bl)
+    apply(simp)
+    apply(subst word128_mask96)+
+    apply(subst WordLemmaBucket.word_and_mask_shiftl)+
+    apply(subst Word.shiftr_bl)
+    apply(subst Word.shiftl_bl)
+    apply simp
+    apply(subst Word.of_bl_append)+
+    apply simp
+    apply(subst Word.shiftr_bl)
+    apply(simp)
+    thm yaaaaaaaaaaaaaaaayaiohhgoo
+    thm bl_cast_long_short_long_take
+    apply(subst bl_cast_long_short_long_take_sorry)
+    apply(subst bl_cast_long_short_long_take[symmetric]) back
+     apply simp_all (*c'mon! take32 fuu!*)
+    oops
 
 
   lemma "ip \<le> 2^(len_of TYPE(16)) \<Longrightarrow> (ucast::16 word \<Rightarrow> 128 word) ((ucast::128 word \<Rightarrow> 16 word) ip) = ip"
@@ -797,7 +823,7 @@ corollary yaaaaaaaaaaaaaaaayaiohhgoo:
     apply(subst Word_ucast_bl_16_128)
     apply(subst Word.shiftl_bl)
     apply(simp)
-    apply(subst xx)+
+    apply(subst word128_mask112)+
     apply(subst WordLemmaBucket.word_and_mask_shiftl)+
     apply(subst xxx)+
     apply(subst Word.shiftr_bl)
