@@ -344,117 +344,65 @@ lemma parse_ipv6_address_identity:
     | "parse_ipv6_address2 _ = None"
 *)
 
-(* infeasible proof
-lemma "parse_ipv6_address as = Some ipv6 \<Longrightarrow>
-  \<exists>a b c d e f g.
-    as = [None] \<and> ipv6 = (IPv6AddrCompressed1_0 ()) \<or> 
-    as = [None, Some a] \<and> ipv6 = (IPv6AddrCompressed1_1 () a) \<or> 
-    as = [None, Some a, Some b] \<and> ipv6 = (IPv6AddrCompressed1_2 () a b) \<or> 
-    as = [None, Some a, Some b, Some c] \<and> ipv6 = (IPv6AddrCompressed1_3 () a b c) \<or> 
-    as = [None, Some a, Some b, Some c, Some d] \<and> ipv6 = (IPv6AddrCompressed1_4 () a b c d) \<or> 
-    as = [None, Some a, Some b, Some c, Some d, Some e] \<and> ipv6 = (IPv6AddrCompressed1_5 () a b c d e) \<or> 
-    as = [None, Some a, Some b, Some c, Some d, Some e, Some f] \<and> ipv6 = (IPv6AddrCompressed1_6 () a b c d e f) \<or> 
-    as = [None, Some a, Some b, Some c, Some d, Some e, Some f, Some g] \<and> ipv6 = (IPv6AddrCompressed1_7 () a b c d e f g) \<or>
+lemma parse_ipv6_address_someE:
+  assumes "parse_ipv6_address as = Some ipv6"
+  obtains
+    "as = [None]" "ipv6 = (IPv6AddrCompressed1_0 ())"  |
+    a where "as = [None, Some a]" "ipv6 = (IPv6AddrCompressed1_1 () a)"  |
+    a b where "as = [None, Some a, Some b]" "ipv6 = (IPv6AddrCompressed1_2 () a b)"  |
+    a b c where "as = [None, Some a, Some b, Some c]" "ipv6 = (IPv6AddrCompressed1_3 () a b c)" |
+    a b c d where "as = [None, Some a, Some b, Some c, Some d]" "ipv6 = (IPv6AddrCompressed1_4 () a b c d)" |
+    a b c d e where "as = [None, Some a, Some b, Some c, Some d, Some e]" "ipv6 = (IPv6AddrCompressed1_5 () a b c d e)" |
+    a b c d e f where "as = [None, Some a, Some b, Some c, Some d, Some e, Some f]" "ipv6 = (IPv6AddrCompressed1_6 () a b c d e f)" |
+    a b c d e f g where "as = [None, Some a, Some b, Some c, Some d, Some e, Some f, Some g]" "ipv6 = (IPv6AddrCompressed1_7 () a b c d e f g)" |
   
-    as = [Some a, None] \<and> ipv6 = (IPv6AddrCompressed2_1 a ()) \<or> 
-    as = [Some a, None, Some b] \<and> ipv6 = (IPv6AddrCompressed2_2 a () b) \<or> 
-    as = [Some a, None, Some b, Some c] \<and> ipv6 = (IPv6AddrCompressed2_3 a () b c) \<or> 
-    as = [Some a, None, Some b, Some c, Some d] \<and> ipv6 = (IPv6AddrCompressed2_4 a () b c d) \<or> 
-    as = [Some a, None, Some b, Some c, Some d, Some e] \<and> ipv6 = (IPv6AddrCompressed2_5 a () b c d e) \<or> 
-    as = [Some a, None, Some b, Some c, Some d, Some e, Some f] \<and> ipv6 = (IPv6AddrCompressed2_6 a () b c d e f) \<or> 
-    as = [Some a, None, Some b, Some c, Some d, Some e, Some f, Some g] \<and> ipv6 = (IPv6AddrCompressed2_7 a () b c d e f g) \<or>
+    a where "as = [Some a, None]" "ipv6 = (IPv6AddrCompressed2_1 a ())" |
+    a b where "as = [Some a, None, Some b]" "ipv6 = (IPv6AddrCompressed2_2 a () b)" |
+    a b c where "as = [Some a, None, Some b, Some c]" "ipv6 = (IPv6AddrCompressed2_3 a () b c)" |
+    a b c d where "as = [Some a, None, Some b, Some c, Some d]" "ipv6 = (IPv6AddrCompressed2_4 a () b c d)" |
+    a b c d e where "as = [Some a, None, Some b, Some c, Some d, Some e]" "ipv6 = (IPv6AddrCompressed2_5 a () b c d e)" |
+    a b c d e f where "as = [Some a, None, Some b, Some c, Some d, Some e, Some f]" "ipv6 = (IPv6AddrCompressed2_6 a () b c d e f)" |
+    a b c d e f g where "as = [Some a, None, Some b, Some c, Some d, Some e, Some f, Some g]" "ipv6 = (IPv6AddrCompressed2_7 a () b c d e f g)" |
   
-    as = [Some a, Some b, None] \<and> ipv6 = (IPv6AddrCompressed3_2 a b ()) \<or> 
-    as = [Some a, Some b, None, Some c] \<and> ipv6 = (IPv6AddrCompressed3_3 a b () c) \<or> 
-    as = [Some a, Some b, None, Some c, Some d] \<and> ipv6 = (IPv6AddrCompressed3_4 a b () c d) \<or> 
-    as = [Some a, Some b, None, Some c, Some d, Some e] \<and> ipv6 = (IPv6AddrCompressed3_5 a b () c d e) \<or> 
-    as = [Some a, Some b, None, Some c, Some d, Some e, Some f] \<and> ipv6 = (IPv6AddrCompressed3_6 a b () c d e f) \<or> 
-    as = [Some a, Some b, None, Some c, Some d, Some e, Some f, Some g] \<and> ipv6 = (IPv6AddrCompressed3_7 a b () c d e f g) \<or>
+    a b where "as = [Some a, Some b, None]" "ipv6 = (IPv6AddrCompressed3_2 a b ())" |
+    a b c where "as = [Some a, Some b, None, Some c]" "ipv6 = (IPv6AddrCompressed3_3 a b () c)" |
+    a b c d where "as = [Some a, Some b, None, Some c, Some d]" "ipv6 = (IPv6AddrCompressed3_4 a b () c d)" |
+    a b c d e where "as = [Some a, Some b, None, Some c, Some d, Some e]" "ipv6 = (IPv6AddrCompressed3_5 a b () c d e)" |
+    a b c d e f where "as = [Some a, Some b, None, Some c, Some d, Some e, Some f]" "ipv6 = (IPv6AddrCompressed3_6 a b () c d e f)" |
+    a b c d e f g where "as = [Some a, Some b, None, Some c, Some d, Some e, Some f, Some g]" "ipv6 = (IPv6AddrCompressed3_7 a b () c d e f g)" |
   
-    as = [Some a, Some b, Some c, None] \<and> ipv6 = (IPv6AddrCompressed4_3 a b c ()) \<or> 
-    as = [Some a, Some b, Some c, None, Some d] \<and> ipv6 = (IPv6AddrCompressed4_4 a b c () d) \<or> 
-    as = [Some a, Some b, Some c, None, Some d, Some e] \<and> ipv6 = (IPv6AddrCompressed4_5 a b c () d e) \<or> 
-    as = [Some a, Some b, Some c, None, Some d, Some e, Some f] \<and> ipv6 = (IPv6AddrCompressed4_6 a b c () d e f) \<or> 
-    as = [Some a, Some b, Some c, None, Some d, Some e, Some f, Some g] \<and> ipv6 = (IPv6AddrCompressed4_7 a b c () d e f g) \<or>
+    a b c where "as = [Some a, Some b, Some c, None]" "ipv6 = (IPv6AddrCompressed4_3 a b c ())" |
+    a b c d where "as = [Some a, Some b, Some c, None, Some d]" "ipv6 = (IPv6AddrCompressed4_4 a b c () d)" |
+    a b c d e where "as = [Some a, Some b, Some c, None, Some d, Some e]" "ipv6 = (IPv6AddrCompressed4_5 a b c () d e)" |
+    a b c d e f where "as = [Some a, Some b, Some c, None, Some d, Some e, Some f]" "ipv6 = (IPv6AddrCompressed4_6 a b c () d e f)" |
+    a b c d e f g where "as = [Some a, Some b, Some c, None, Some d, Some e, Some f, Some g]" "ipv6 = (IPv6AddrCompressed4_7 a b c () d e f g)" |
   
-    as = [Some a, Some b, Some c, Some d, None] \<and> ipv6 = (IPv6AddrCompressed5_4 a b c d ()) \<or> 
-    as = [Some a, Some b, Some c, Some d, None, Some e] \<and> ipv6 = (IPv6AddrCompressed5_5 a b c d () e) \<or> 
-    as = [Some a, Some b, Some c, Some d, None, Some e, Some f] \<and> ipv6 = (IPv6AddrCompressed5_6 a b c d () e f) \<or> 
-    as = [Some a, Some b, Some c, Some d, None, Some e, Some f, Some g] \<and> ipv6 = (IPv6AddrCompressed5_7 a b c d () e f g) \<or>
+    a b c d where "as = [Some a, Some b, Some c, Some d, None]" "ipv6 = (IPv6AddrCompressed5_4 a b c d ())" |
+    a b c d e where "as = [Some a, Some b, Some c, Some d, None, Some e]" "ipv6 = (IPv6AddrCompressed5_5 a b c d () e)" |
+    a b c d e f where "as = [Some a, Some b, Some c, Some d, None, Some e, Some f]" "ipv6 = (IPv6AddrCompressed5_6 a b c d () e f)" |
+    a b c d e f g where "as = [Some a, Some b, Some c, Some d, None, Some e, Some f, Some g]" "ipv6 = (IPv6AddrCompressed5_7 a b c d () e f g)" |
   
-    as = [Some a, Some b, Some c, Some d, Some e, None] \<and> ipv6 = (IPv6AddrCompressed6_5 a b c d e ()) \<or> 
-    as = [Some a, Some b, Some c, Some d, Some e, None, Some f] \<and> ipv6 = (IPv6AddrCompressed6_6 a b c d e () f) \<or> 
-    as = [Some a, Some b, Some c, Some d, Some e, None, Some f, Some g] \<and> ipv6 = (IPv6AddrCompressed6_7 a b c d e () f g) \<or>
+    a b c d e where "as = [Some a, Some b, Some c, Some d, Some e, None]" "ipv6 = (IPv6AddrCompressed6_5 a b c d e ())" |
+    a b c d e f where "as = [Some a, Some b, Some c, Some d, Some e, None, Some f]" "ipv6 = (IPv6AddrCompressed6_6 a b c d e () f)" |
+    a b c d e f g where "as = [Some a, Some b, Some c, Some d, Some e, None, Some f, Some g]" "ipv6 = (IPv6AddrCompressed6_7 a b c d e () f g)" |
   
-    as = [Some a, Some b, Some c, Some d, Some e, Some f, None] \<and> ipv6 = (IPv6AddrCompressed7_6 a b c d e f ()) \<or> 
-    as = [Some a, Some b, Some c, Some d, Some e, Some f, None, Some g] \<and> ipv6 = (IPv6AddrCompressed7_7 a b c d e f () g)"
-apply simp
-apply(case_tac as)
- apply(simp_all)
-apply(rename_tac a as')
-apply(case_tac a)
- apply(simp_all)
- apply(case_tac as')
-  apply(simp_all)
- apply(rename_tac aa aas')
- apply(case_tac aa)
-  apply(simp_all)
- apply(rename_tac aaa aaas')
- apply(case_tac aaa)
-  apply(simp_all)
- apply(rename_tac aaaa aaaas')
- apply(case_tac aaaa)
-  apply(simp_all)
- apply(rename_tac aaaaa aaaaas')
- apply(case_tac aaaaa)
-  apply(simp_all)
- apply(rename_tac aaaaaa aaaaaas')
- apply(case_tac aaaaaa)
-  apply(simp_all)
- apply(rename_tac aaaaaaa aaaaaaas')
- apply(case_tac aaaaaaa)
-  apply(simp_all)
- apply(rename_tac aaaaaaaa aaaaaaaas')
- apply(case_tac aaaaaaaa)
-  apply(simp_all)
- apply(rename_tac aaaaaaaaa aaaaaaaaas')
- apply(case_tac aaaaaaaaa)
-  apply(simp_all)
- apply(rename_tac aaaaaaaaaa aaaaaaaaaas')
- apply(case_tac aaaaaaaaaa)
-  apply(simp_all)
- apply(rename_tac aaaaaaaaaaa aaaaaaaaaaas')
- apply(case_tac aaaaaaaaaaa)
-  apply(simp_all)
- apply(rename_tac aaaaaaaaaaaa aaaaaaaaaaaas')
- apply(case_tac aaaaaaaaaaaa)
-  apply(simp_all)
- apply(rename_tac aaaaaaaaaaaaa aaaaaaaaaaaaas')
- apply(case_tac aaaaaaaaaaaaa)
-  apply(simp_all)
- apply(rename_tac aaaaaaaaaaaaaa aaaaaaaaaaaaaas')
- apply(case_tac aaaaaaaaaaaaaa)
-  apply(simp_all)
- apply(rename_tac aaaaaaaaaaaaaaa aaaaaaaaaaaaaaas')
- apply(case_tac aaaaaaaaaaaaaaa)
-  apply(simp_all)
-(*yay*)
-apply(rename_tac b a as')
-apply(case_tac a)
- apply(simp_all)
- apply(case_tac as')
-  apply(simp_all)
- apply(rename_tac bb aa aas')
- apply(case_tac bb)
-  apply(simp_all)
-(*now the same again? several times?*)
-*)
+    a b c d e f where "as = [Some a, Some b, Some c, Some d, Some e, Some f, None]" "ipv6 = (IPv6AddrCompressed7_6 a b c d e f ())" |
+    a b c d e f g where "as = [Some a, Some b, Some c, Some d, Some e, Some f, None, Some g]" "ipv6 = (IPv6AddrCompressed7_7 a b c d e f () g)"
+using assms
+unfolding parse_ipv6_address_def
+by (auto split: list.split_asm option.split_asm) (* takes a minute *)
 
 lemma parse_ipv6_address_identity2:
-      "ipv6addr_syntax_compressed_to_list ipv6_syntax = ls \<longleftrightarrow> (parse_ipv6_address ls) = Some ipv6_syntax"
-  apply(cases ipv6_syntax)
-  apply simp_all
-  oops (*TODO*)
+      "ipv6addr_syntax_compressed_to_list ipv6_syntax = ls \<longleftrightarrow> (parse_ipv6_address ls) = Some ipv6_syntax" (is "?lhs = ?rhs")
+proof
+  assume ?rhs
+  thus ?lhs
+    by (auto elim: parse_ipv6_address_someE)
+next
+  assume ?lhs
+  thus ?rhs
+    by (cases ipv6_syntax) (auto simp: parse_ipv6_address_def)
+qed
 
 text{*Valid IPv6 compressed notation:
   \<^item> at most one omission
