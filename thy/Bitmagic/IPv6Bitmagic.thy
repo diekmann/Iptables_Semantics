@@ -223,11 +223,11 @@ thm Word.word_bl_Rep'
          length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) bs)))"
     by(simp add: bl_drop_leading_zeros)
 
-  lemma "length (dropWhile Not bs) \<le> n \<Longrightarrow>
-    length (dropWhile Not (to_bl (of_bl bs))) \<le> n"
+  lemma bl_length_dropNot_bound: "length (dropWhile Not bs) \<le> n \<Longrightarrow>
+    length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) bs))) \<le> n"
     thm length_dropWhile_Not_bl
     thm length_dropWhile_Not_bl[of "(dropWhile Not bs)"]
-    apply(subgoal_tac "length (dropWhile Not (to_bl (of_bl (dropWhile Not bs)))) \<le> n")
+    apply(subgoal_tac "length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) (dropWhile Not bs)))) \<le> n")
      prefer 2
      apply(rule order.trans)
       apply(rule length_dropWhile_Not_bl[of "(dropWhile Not bs)"])
@@ -240,9 +240,11 @@ thm Word.word_bl_Rep'
      thm length_dropWhile_Not_bl[of "(dropWhile Not bs)"]
      apply(rule length_dropWhile_Not_bl[of "(dropWhile Not bs)"])
     apply(subst bl_length_dropNot_twice)
-    oops
+    (*This is where I left off*)
+    apply fastforce
+    done
 
-  lemma 
+  lemma bl_cast_long_short_long_take_ingoreLeadingZero: 
   "length (dropWhile Not ls) \<le> len_of TYPE('s) \<Longrightarrow>
    len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
     of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) 
@@ -253,10 +255,10 @@ thm Word.word_bl_Rep'
      apply(simp; fail)
     apply(subst Word.to_bl_bin)
     apply(subst uint_of_bl_is_bl_to_bin_Not)
-     apply(rule order.trans)
-      apply(rule length_dropWhile_Not_bl)
-    apply(simp) (*TODO?*)
-    oops
+     apply(rule bl_length_dropNot_bound)
+     apply blast
+    apply(simp)
+    done
 
 
 corollary yaaaaaaaaaaaaaaaayaiohhgoo: 
