@@ -160,7 +160,7 @@ text{*
   (*More convenient parser helper function:
     Some 16word \<longrightarrow> address piece
     None \<longrightarrow> ommission :: *)
-  fun parse_ipv6_address :: "((16 word) option) list \<Rightarrow> ipv6addr_syntax_compressed option" where
+  definition parse_ipv6_address :: "((16 word) option) list \<Rightarrow> ipv6addr_syntax_compressed option" where
     "parse_ipv6_address as = (case as of 
       [None] \<Rightarrow> Some (IPv6AddrCompressed1_0 ())
     | [None, Some a] \<Rightarrow> Some (IPv6AddrCompressed1_1 () a)
@@ -287,16 +287,16 @@ text{*
 
 (*for all ipv6_syntax, there is a corresponding list representation*)
 lemma parse_ipv6_address_exists:
-      fixes ipv6_syntax::ipv6addr_syntax_compressed
-      shows "\<exists>ss. parse_ipv6_address ss = Some ipv6_syntax"
-  apply(rule_tac x="ipv6addr_syntax_compressed_to_list ipv6_syntax" in exI)
-  apply(case_tac ipv6_syntax) (*takes quite long until output panel shows sth.*)
-                                     apply(simp_all)
-  done
+  obtains ss where "parse_ipv6_address ss = Some ipv6_syntax"
+  proof
+    def ss \<equiv> "ipv6addr_syntax_compressed_to_list ipv6_syntax"
+    thus "parse_ipv6_address ss = Some ipv6_syntax"
+      by (cases ipv6_syntax; simp add: parse_ipv6_address_def)
+  qed
 
 lemma parse_ipv6_address_identity:
       "parse_ipv6_address (ipv6addr_syntax_compressed_to_list (ipv6_syntax)) = Some ipv6_syntax"
-  by(cases ipv6_syntax) simp_all
+  by(cases ipv6_syntax; simp add: parse_ipv6_address_def)
 
 (* won't load in reasonable time
  fun parse_ipv6_address2 :: "((16 word) option) list \<Rightarrow> ipv6addr_syntax_compressed option" where
@@ -465,7 +465,7 @@ lemma "parse_ipv6_address as \<noteq> None \<longleftrightarrow>
        length as \<le> 7"
   apply(induction as)
    apply(simp)
-  apply(simp del: parse_ipv6_address.simps)
+  apply(simp add: parse_ipv6_address_def)
   apply(intro conjI impI)
    apply simp
    
