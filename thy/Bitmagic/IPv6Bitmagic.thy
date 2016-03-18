@@ -396,47 +396,6 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
     apply simp
     done
 
-  lemma fixes ip::ipv6addr
-    shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (slice 112 ip)) << 112) = 
-           (ip AND 0xFFFF0000000000000000000000000000)"
-    apply(subst Word_ucast_bl_16_128)
-    apply(subst Word.shiftl_bl)
-    apply(simp)
-    apply(subst word128_mask112)+
-    apply(subst WordLemmaBucket.word_and_mask_shiftl)+
-    apply(subst xxx)+
-    apply(subst Word.shiftr_bl)
-    apply(subst Word.shiftl_bl)
-    apply simp
-    apply(subst Word.of_bl_append)+
-    apply simp
-    apply(subst Word.slice_take)+
-    apply(simp)
-    apply(subst yaaaaaaaaaaaaaaaayaiohhgoo)
-     apply simp_all
-    oops
-
-  lemma fixes ip::ipv6addr
-    shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
-           (ip AND 0xFFFF0000000000000000000000000000)"
-    using ucast16_ucast128_maks_highest_bits by simp
-    (*proof -
-      have "(word_of_int::int \<Rightarrow> 128 word) (uint (ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat))) << (112::nat) =
-           ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat) << (112::nat)"
-      by simp
-      show "(word_of_int :: int \<Rightarrow> 128 word) (uint 
-          ((word_of_int :: int \<Rightarrow> 16 word) (uint (ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat))))) << (112::nat) =
-    ip && (0xFFFF0000000000000000000000000000::128 word)"
-        apply(simp)
-        done
-    apply(simp add: ucast_def)
-    apply(subst x)
-    thm word_of_int_uint
-    thm Word.word_of_int_uint[of "ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat)"]
-    apply(subst Word.word_of_int_uint[of "ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat)"])
-    apply simp
-    apply(simp add: Word.word_of_int_uint)
-    oops*)
 
   (*TODO: round trip property one*)
   lemma "ipv6preferred_to_int (int_to_ipv6preferred ip) = ip"
