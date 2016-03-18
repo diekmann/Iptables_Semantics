@@ -501,6 +501,19 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
     apply simp
     done
 
+  lemma mask_len_word: fixes w::"'a::len word"
+    shows "n = (len_of TYPE('a)) \<Longrightarrow> w AND mask n = w"
+    by (simp add: mask_eq_iff) 
+
+  lemma m48help: "(mask 4 << 4) || mask 4 = mask 8" by(simp add: mask_def)
+  lemma fixes w::"8 word"
+    shows "(w AND (mask 4 << 4)) || (w AND mask 4) = w"
+  apply (subst word_oa_dist)
+  apply simp
+  apply (subst word_oa_dist2)
+  apply(subst m48help)
+  apply(simp add: mask_len_word)
+  done
 
   (*TODO: round trip property one*)
   lemma "ipv6preferred_to_int (int_to_ipv6preferred ip) = ip"
@@ -509,6 +522,22 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
                     ucast16_ucast128_masks_highest_bits80 ucast16_ucast128_masks_highest_bits64
                     ucast16_ucast128_masks_highest_bits48 ucast16_ucast128_masks_highest_bits32
                     ucast16_ucast128_masks_highest_bits16 ucast16_ucast128_masks_highest_bits0)
+    apply(simp add: word128_mask112 word128_mask96 word128_mask80 word128_mask64 word128_mask48
+                    word128_mask32 word128_mask16 word128_mask0)
+    apply(subst WordLib.word_plus_and_or_coroll[symmetric])
+(*apply (metis (no_types, hide_lams) shiftl_mask_is_0 word_bool_alg.conj_assoc word_bool_alg.conj_commute word_log_esimps(1))*)
+    apply (simp_all add: word_bool_alg.conj_left_commute word_bw_assocs(1))
+    
+    apply(simp_all)
+    apply(subst shiftl_t2n)+
+    apply(rule Word.word_uint_eqI)
+    apply(subst Word.uint_or)+
+    apply(subst Word.uint_and)+
+    apply(simp)
+    apply(subst Word.word_ao_equiv)+
+    apply simp
+    apply(subst Word.word_bool_alg.conj_disj_distrib)+
+    apply simp
     oops
     
 
