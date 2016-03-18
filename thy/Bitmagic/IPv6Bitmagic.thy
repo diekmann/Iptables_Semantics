@@ -566,14 +566,34 @@ thm Word.word_bl_Rep'
      apply(simp)
     done
 
+
   (*TODO: round trip property two*)
   lemma "int_to_ipv6preferred (ipv6preferred_to_int ip) = ip"
     apply(cases ip, rename_tac a b c d e f g h)
     apply(simp add: ipv6preferred_to_int.simps int_to_ipv6preferred_def)
     apply(simp add: word128_mask112 word128_mask96 word128_mask80 word128_mask64 word128_mask48
                     word128_mask32 word128_mask16 word128_mask0)
-    apply(rule conjI)
+    apply(intro conjI)
     apply(subst word_ao_dist)+
+    apply(simp add: helper_masked_ucast_generic)
+    defer
+    apply(subst word_ao_dist)+
+    apply(simp add: helper_masked_ucast_generic)
+    defer
+    apply(subst word_ao_dist)+
+    apply(simp add: helper_masked_ucast_generic)
+    defer
+    apply(subst word_ao_dist)+
+    apply(simp add: helper_masked_ucast_generic)
+    defer
+    apply(subst word_ao_dist)+
+    apply(simp add: helper_masked_ucast_generic)
+    defer
+    apply(subst word_ao_dist)+
+    apply(simp add: helper_masked_ucast_generic)
+    defer
+    apply(subst word_ao_dist)+
+    apply(simp add: helper_masked_ucast_generic)
     oops
 
 
