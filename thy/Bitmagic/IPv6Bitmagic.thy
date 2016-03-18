@@ -409,12 +409,90 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
     done
 
 
+  lemma word128_mask64: "(0xFFFF0000000000000000::ipv6addr) = (mask 16) << 64"
+    by(simp add: mask_def)
 
-  lemma "ip \<le> 2^(len_of TYPE(16)) \<Longrightarrow> (ucast::16 word \<Rightarrow> 128 word) ((ucast::128 word \<Rightarrow> 16 word) ip) = ip"
-    apply(simp add: ucast_def)
-    oops
+  lemma ucast16_ucast128_masks_highest_bits64: 
+    fixes ip::ipv6addr
+    shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000 >> 64)) << 64) =
+         ip AND 0xFFFF0000000000000000"
+    apply(subst Word.ucast_bl)+
+    apply(subst word128_mask64)+
+    apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
+      apply simp_all
+     apply(rule length_dropNot_mask_inner)
+      apply(simp_all)
+    apply(simp add: and_mask_shift_helper)
+    done
     
+
+  lemma word128_mask48: "(0xFFFF000000000000::ipv6addr) = (mask 16) << 48"
+    by(simp add: mask_def)
+
+  lemma ucast16_ucast128_masks_highest_bits48: 
+    fixes ip::ipv6addr
+    shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF000000000000 >> 48)) << 48) =
+         ip AND 0xFFFF000000000000"
+    apply(subst Word.ucast_bl)+
+    apply(subst word128_mask48)+
+    apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
+      apply simp_all
+     apply(rule length_dropNot_mask_inner)
+      apply(simp_all)
+    apply(simp add: and_mask_shift_helper)
+    done
+
+
+  lemma word128_mask32: "(0xFFFF00000000::ipv6addr) = (mask 16) << 32"
+    by(simp add: mask_def)
+
+  lemma ucast16_ucast128_masks_highest_bits32: 
+    fixes ip::ipv6addr
+    shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF00000000 >> 32)) << 32) =
+         ip AND 0xFFFF00000000"
+    apply(subst Word.ucast_bl)+
+    apply(subst word128_mask32)+
+    apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
+      apply simp_all
+     apply(rule length_dropNot_mask_inner)
+      apply(simp_all)
+    apply(simp add: and_mask_shift_helper)
+    done
     
+
+
+
+  lemma word128_mask16: "(0xFFFF0000::ipv6addr) = (mask 16) << 16"
+    by(simp add: mask_def)
+
+  lemma ucast16_ucast128_masks_highest_bits16: 
+    fixes ip::ipv6addr
+    shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000 >> 16)) << 16) =
+         ip AND 0xFFFF0000"
+    apply(subst Word.ucast_bl)+
+    apply(subst word128_mask16)+
+    apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
+      apply simp_all
+     apply(rule length_dropNot_mask_inner)
+      apply(simp_all)
+    apply(simp add: and_mask_shift_helper)
+    done
+
+
+
+  lemma word128_mask0: "(0xFFFF::ipv6addr) = (mask 16)"
+    by(simp add: mask_def)
+
+  lemma ucast16_ucast128_masks_highest_bits0: 
+    fixes ip::ipv6addr
+    shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF))) =
+         ip AND 0xFFFF"
+    apply(subst Word.ucast_bl)+
+    apply(subst word128_mask0)+
+    apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
+      apply simp_all
+    by (simp add: length_dropNot_mask)
+
 
  lemma Word_ucast_bl_16_128:
   "(ucast::16 word \<Rightarrow> ipv6addr) ((ucast::ipv6addr \<Rightarrow> 16 word) ip) =
@@ -428,7 +506,9 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
   lemma "ipv6preferred_to_int (int_to_ipv6preferred ip) = ip"
     apply(simp add: ipv6preferred_to_int.simps int_to_ipv6preferred_def)
     apply(simp add: ucast16_ucast128_masks_highest_bits112 ucast16_ucast128_masks_highest_bits96
-                    ucast16_ucast128_masks_highest_bits80)
+                    ucast16_ucast128_masks_highest_bits80 ucast16_ucast128_masks_highest_bits64
+                    ucast16_ucast128_masks_highest_bits48 ucast16_ucast128_masks_highest_bits32
+                    ucast16_ucast128_masks_highest_bits16 ucast16_ucast128_masks_highest_bits0)
     oops
     
 
