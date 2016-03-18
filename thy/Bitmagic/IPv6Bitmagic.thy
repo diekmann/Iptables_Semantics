@@ -484,7 +484,7 @@ thm Word.word_bl_Rep'
 
    lemma helper_masked_ucast:
      fixes b::"16 word"
-     shows"((ucast:: 16 word \<Rightarrow> 128 word) b << 96) && (mask 16 << 112) = 0"
+     shows "((ucast:: 16 word \<Rightarrow> 128 word) b << 96) && (mask 16 << 112) = 0"
     apply(subst Word.ucast_bl)+
     apply(subst Word.shiftl_of_bl)
     apply(simp)
@@ -505,6 +505,67 @@ thm Word.word_bl_Rep'
     apply(simp)
     done
 
+  (*TODO: tune proof*)
+  lemma power_2_16_nat: "(16::nat) \<le> n \<Longrightarrow> (65535::nat) < 2 ^ n"
+  proof -
+    assume a: "(16::nat) \<le> n"
+    have power2_rule: "a \<le> b \<Longrightarrow> (2::nat)^a \<le> 2 ^ b" for a b by fastforce
+    show ?thesis
+     apply(subgoal_tac "65536 \<le> 2 ^ n")
+      apply(subst Nat.less_eq_Suc_le)
+      apply(simp; fail)
+     apply(subgoal_tac "(65536::nat) = 2^16")
+      prefer 2
+      apply(simp; fail)
+     using power2_rule a by presburger
+   qed
+    
+  (*TODO: tune! ! ! !*)
+  lemma xxx: "65536 = unat (65536::128 word)" by auto
+  lemma mnhelper: fixes x::"128 word"
+    shows "n + 16 \<le> m \<Longrightarrow> m < 128 \<Longrightarrow> x < 0x10000 \<Longrightarrow> 16 \<le> m - n \<Longrightarrow> x < 2 ^ (m - n)"
+    thm word_le_nat_alt
+    apply(subst word_less_nat_alt)
+    apply(simp)
+    apply(subgoal_tac "unat x < 2^16")
+     prefer 2
+     apply simp
+     defer
+    apply(rule_tac b=65535 in Orderings.order_class.order.strict_trans1)
+     apply(simp_all)
+     using power_2_16_nat apply blast
+    apply(subst xxx)
+    apply(rule Word.unat_mono)
+    apply(simp)
+    done
+
+   lemma helper_masked_ucast_generic:
+     fixes b::"16 word"
+     shows"n + 16 \<le> m \<Longrightarrow> m < 128 \<Longrightarrow> ((ucast:: 16 word \<Rightarrow> 128 word) b << n) && (mask 16 << m) = 0"
+    apply(subst Word.ucast_bl)+
+    apply(subst Word.shiftl_of_bl)
+    apply(subst Word.of_bl_append)
+    apply simp
+    apply(subst WordLemmaBucket.word_and_mask_shiftl)
+    apply(subst WordLib.shiftr_div_2n_w)
+     apply(simp add: word_size; fail)
+    apply(subst WordLemmaBucket.word_div_less)
+     apply(simp_all)
+    apply(subgoal_tac "(of_bl::bool list \<Rightarrow> 128 word) (to_bl b) < 2^(len_of TYPE(16))")
+     prefer 2
+     apply(rule Word.of_bl_length_less)
+     apply(simp_all)
+    apply(rule Word.div_lt_mult)
+     apply(rule WordLemmaBucket.word_less_two_pow_divI)
+     apply(simp_all)
+     apply(subgoal_tac "m - n \<ge> 16")
+      prefer 2
+      apply(simp)
+      apply(rule mnhelper, simp_all)
+     apply(subst WordLib.p2_gt_0)
+     apply(simp)
+    done
+
   (*TODO: round trip property two*)
   lemma "int_to_ipv6preferred (ipv6preferred_to_int ip) = ip"
     apply(cases ip, rename_tac a b c d e f g h)
@@ -513,7 +574,6 @@ thm Word.word_bl_Rep'
                     word128_mask32 word128_mask16 word128_mask0)
     apply(rule conjI)
     apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast)
     oops
 
 
