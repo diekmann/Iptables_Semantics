@@ -482,7 +482,7 @@ thm Word.word_bl_Rep'
     done
 
 
-   lemma 
+   lemma helper_masked_ucast:
      fixes b::"16 word"
      shows"((ucast:: 16 word \<Rightarrow> 128 word) b << 96) && (mask 16 << 112) = 0"
     apply(subst Word.ucast_bl)+
@@ -513,7 +513,7 @@ thm Word.word_bl_Rep'
                     word128_mask32 word128_mask16 word128_mask0)
     apply(rule conjI)
     apply(subst word_ao_dist)+
-    
+    apply(simp add: helper_masked_ucast)
     oops
 
 
