@@ -7,16 +7,9 @@ begin
     apply(subst word_of_int_uint)
     ..
 
-  lemma x: "(word_of_int:: int \<Rightarrow> 'b::len0 word) (uint ((word_of_int::int \<Rightarrow> 'b::len0 word) (uint (ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat))))) << (112::nat) = 
-          ((word_of_int::int \<Rightarrow> 'b::len0 word) (uint (ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat))))  << 112"
-    apply(subst word_of_int_uint)
-    ..
-
   (*I could also use word_split to extract bits?*)
   
-  lemma word128_mask112: "(0xFFFF0000000000000000000000000000::ipv6addr) = (mask 16) << 112"
-    by(simp add: mask_def)
-  lemma xxx: fixes ip::ipv6addr
+  lemma fixes ip::ipv6addr
     shows  "((ip >> 112) && mask 16) = (ip >> 112)"
     proof -
       have "size ip = 128" by( simp add: word_size)
@@ -34,7 +27,10 @@ begin
   lemma mask_16_shiftl112_128word: "((mask 16 << 112)::128 word) = ~~ mask 112"
     by(simp add: mask_def)
 
-  lemma word128_and_slice112:
+  lemma word128_mask112: "(0xFFFF0000000000000000000000000000::ipv6addr) = (mask 16) << 112"
+    by(simp add: mask_def)
+
+  lemma
     fixes ip::ipv6addr
     shows "(ip AND 0xFFFF0000000000000000000000000000 >> 112) = slice 112 ip"
     apply(subst Word.shiftr_slice[symmetric])
@@ -224,65 +220,6 @@ thm Word.word_bl_Rep'
         using 1(1) by linarith
     qed(simp)
     
-    (* old proof:
-    apply(rule Word.word_uint_eqI)
-    apply(subst WordLib.uint_of_bl_is_bl_to_bin)
-     apply(simp; fail)
-    apply(subst Word.to_bl_bin)
-    apply(subst uint_of_bl_is_bl_to_bin_Not)
-     apply(subgoal_tac "length (take n ls) \<le> len_of TYPE('s)")
-      prefer 2
-      apply fastforce
-     apply(subgoal_tac "length (dropWhile Not (to_bl (of_bl (take n ls)))) \<le> length (take n ls)")
-      using dual_order.trans apply blast
-     using length_dropWhile_Not_bl apply blast
-    apply(simp)
-    done*)
-
-corollary yaaaaaaaaaaaaaaaayaiohhgoo: 
-  "n \<le> 16 \<Longrightarrow> of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 16 word)
-            (to_bl ((of_bl:: bool list \<Rightarrow> 128 word) (take n ls))))) =
-    (of_bl:: bool list \<Rightarrow> 128 word) (take n ls)"
-  apply(rule bl_cast_long_short_long_take)
-   apply(simp_all)
-  done
-
-  (*this would be nice*)
-  lemma hooo: fixes ip::ipv6addr
-    shows "length ls \<le> 16 \<Longrightarrow> 
-     of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 16 word)
-            (to_bl ((of_bl:: bool list \<Rightarrow> 128 word) ls)))) =
-    (of_bl:: bool list \<Rightarrow> 128 word) ls"
-    oops
-
-
-
-
-  lemma fixes ip::ipv6addr
-    shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
-           (ip AND 0xFFFF0000000000000000000000000000)"
-    apply(subst word128_and_slice112)
-    apply(subst Word.ucast_bl)+
-    apply(subst Word.shiftl_bl)
-    apply(simp)
-    apply(subst word128_mask112)+
-    apply(subst WordLemmaBucket.word_and_mask_shiftl)+
-    apply(subst xxx)+
-    apply(subst Word.shiftr_bl)
-    apply(subst Word.shiftl_bl)
-    apply simp
-    apply(subst Word.of_bl_append)+
-    apply simp
-    apply(subst Word.slice_take)
-    apply(simp)
-    thm yaaaaaaaaaaaaaaaayaiohhgoo
-    apply(subst yaaaaaaaaaaaaaaaayaiohhgoo)
-     apply simp_all
-    done
-
-lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) >> 112" by simp
-
-  lemma "size ((ip::ipv6addr) >> 112) = 128" by(simp add: word_size)
 
   (*TODO: to l4v!*)
   lemma length_dropNot_mask:
@@ -314,20 +251,32 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
     apply(simp add: length_dropNot_mask)
     done
 
-  (*the same without slice to generalize to the other cases*)
+
+  lemma and_mask_shift_helper:
+    fixes ip::"'a::len word"
+    shows "ip AND (mask m << n) >> n << n = ip AND (mask m << n)"
+     proof - (*sledgehammered for 128 word and concrete values for m and n*)
+       have f1: "\<And>w wa wb. ((w::'a::len word) && wa) && wb = w && wb && wa"
+         by (simp add: word_bool_alg.conj_left_commute word_bw_comms(1))
+       have "\<And>w n wa. ((w::'a::len word) && ~~ mask n) && (wa << n) = (w >> n) && wa << n"
+         by (simp add: and_not_mask shiftl_over_and_dist)
+       then show "ip && (mask m << n) >> n << n = ip && (mask m << n)"
+         using f1 by (metis (no_types) and_not_mask word_and_mask_shiftl word_bw_comms(1))
+     qed
+
+
   lemma ucast16_ucast128_masks_highest_bits112:
     fixes ip::ipv6addr
     shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
            (ip AND 0xFFFF0000000000000000000000000000)"
-    apply(subst word128_mask112)
     apply(subst Word.ucast_bl)+
     apply(subst word128_mask112)+
-    thm bl_cast_long_short_long_ingoreLeadingZero_generic
     apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
+      apply simp_all
+     apply(rule length_dropNot_mask_inner)
       apply(simp_all)
-     apply(simp add: length_dropNot_mask_outer)
-    by (metis AND_twice and_not_mask mask_16_shiftl112_128word) (*sledgehammer finds more*)
-    
+    apply(simp add: and_mask_shift_helper)
+    done
 
     (*old working proof:
     apply(subst word128_mask112)
@@ -351,17 +300,6 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
      apply simp_all
     done*)
 
-  lemma and_mask_shift_helper:
-    fixes ip::"'a::len word"
-    shows "ip AND (mask m << n) >> n << n = ip AND (mask m << n)"
-     proof - (*sledgehammered for 128 word and concrete values for m and n*)
-       have f1: "\<And>w wa wb. ((w::'a::len word) && wa) && wb = w && wb && wa"
-         by (simp add: word_bool_alg.conj_left_commute word_bw_comms(1))
-       have "\<And>w n wa. ((w::'a::len word) && ~~ mask n) && (wa << n) = (w >> n) && wa << n"
-         by (simp add: and_not_mask shiftl_over_and_dist)
-       then show "ip && (mask m << n) >> n << n = ip && (mask m << n)"
-         using f1 by (metis (no_types) and_not_mask word_and_mask_shiftl word_bw_comms(1))
-     qed
 
   lemma word128_mask96: "(0xFFFF000000000000000000000000::ipv6addr) = (mask 16) << 96"
     by(simp add: mask_def)
@@ -548,6 +486,11 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
   lemma "int_to_ipv6preferred (ipv6preferred_to_int ip) = ip"
     apply(cases ip, rename_tac a b c d e f g h)
     apply(simp add: ipv6preferred_to_int.simps int_to_ipv6preferred_def)
+    apply(simp add: word128_mask112 word128_mask96 word128_mask80 word128_mask64 word128_mask48
+                    word128_mask32 word128_mask16 word128_mask0)
+    apply(rule conjI)
+    apply(subst word_ao_dist)+
+    
     oops
 
 
