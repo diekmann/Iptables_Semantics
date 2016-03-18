@@ -506,6 +506,7 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
     by (simp add: mask_eq_iff) 
 
   lemma m48help: "(mask 4 << 4) || mask 4 = mask 8" by(simp add: mask_def)
+
   lemma fixes w::"8 word"
     shows "(w AND (mask 4 << 4)) || (w AND mask 4) = w"
   apply (subst word_oa_dist)
@@ -515,8 +516,31 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
   apply(simp add: mask_len_word)
   done
 
-  (*TODO: round trip property one*)
-  lemma "ipv6preferred_to_int (int_to_ipv6preferred ip) = ip"
+  
+  lemma mask128: "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF = mask 128"
+    by(simp add: mask_def)
+
+  lemma ipv6addr_16word_pieces_compose_or:
+    fixes ip::"128 word"
+    shows "ip && (mask 16 << 112) ||
+           ip && (mask 16 << 96) ||
+           ip && (mask 16 << 80) ||
+           ip && (mask 16 << 64) ||
+           ip && (mask 16 << 48) ||
+           ip && (mask 16 << 32) ||
+           ip && (mask 16 << 16) ||
+           ip && mask 16 =
+           ip"
+  apply(subst word_ao_dist2[symmetric])+
+  apply(simp add: mask_def)
+  apply(subst mask128)
+  apply(rule mask_len_word)
+  apply simp
+  done
+
+  text{*Correctness: round trip property one*}
+  lemma ipv6preferred_to_int_int_to_ipv6preferred:
+  "ipv6preferred_to_int (int_to_ipv6preferred ip) = ip"
     apply(simp add: ipv6preferred_to_int.simps int_to_ipv6preferred_def)
     apply(simp add: ucast16_ucast128_masks_highest_bits112 ucast16_ucast128_masks_highest_bits96
                     ucast16_ucast128_masks_highest_bits80 ucast16_ucast128_masks_highest_bits64
@@ -524,22 +548,9 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
                     ucast16_ucast128_masks_highest_bits16 ucast16_ucast128_masks_highest_bits0)
     apply(simp add: word128_mask112 word128_mask96 word128_mask80 word128_mask64 word128_mask48
                     word128_mask32 word128_mask16 word128_mask0)
-    apply(subst WordLib.word_plus_and_or_coroll[symmetric])
-(*apply (metis (no_types, hide_lams) shiftl_mask_is_0 word_bool_alg.conj_assoc word_bool_alg.conj_commute word_log_esimps(1))*)
-    apply (simp_all add: word_bool_alg.conj_left_commute word_bw_assocs(1))
-    
-    apply(simp_all)
-    apply(subst shiftl_t2n)+
-    apply(rule Word.word_uint_eqI)
-    apply(subst Word.uint_or)+
-    apply(subst Word.uint_and)+
-    apply(simp)
-    apply(subst Word.word_ao_equiv)+
-    apply simp
-    apply(subst Word.word_bool_alg.conj_disj_distrib)+
-    apply simp
-    oops
-    
+    apply(rule ipv6addr_16word_pieces_compose_or)
+    done
+
 
   (*TODO: round trip property two*)
   lemma "int_to_ipv6preferred (ipv6preferred_to_int ip) = ip"
