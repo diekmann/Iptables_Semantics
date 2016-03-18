@@ -567,7 +567,7 @@ thm Word.word_bl_Rep'
      apply(simp)
     done
 
-   lemma helpx: "(2::nat) ^ 80 * ((2 ^ 16 mod 2 ^ 128 * n) mod 2 ^ 128) = 
+   (*lemma helpx: "(2::nat) ^ 80 * ((2 ^ 16 mod 2 ^ 128 * n) mod 2 ^ 128) = 
     2 ^ 96 * (n mod 2 ^ 128)" 
     apply(simp)
     apply(subst Divides.semiring_div_class.mod_mult_left_eq)
@@ -584,7 +584,7 @@ thm Word.word_bl_Rep'
        apply(simp)
       apply(subst Word_Miscellaneous.nat_mod_eq')
        apply simp_all
-      done
+      done*)
 
    lemma  unat_of_bl_128_16_less_helper:
      fixes b::"16 word"
@@ -631,6 +631,7 @@ thm Word.word_bl_Rep'
      apply(simp add: xxxxx; fail)
     apply simp
     done
+
 
   (*TODO: round trip property two*)
   lemma "int_to_ipv6preferred (ipv6preferred_to_int ip) = ip"
