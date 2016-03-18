@@ -292,9 +292,12 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
 
   lemma "size ((ip::ipv6addr) >> 112) = 128" by(simp add: word_size)
 
-  lemma fixes ip::ipv6addr
-    shows "length (dropWhile Not (to_bl (ip AND mask 16))) \<le> 16"
-    oops
+  lemma length_dropNot_mask:
+    fixes w::"'a::len word"
+    shows "length (dropWhile Not (to_bl (w AND mask n))) \<le> n"
+    apply(subst Word.bl_and_mask)
+    by (simp add: List.dropWhile_eq_drop length_takeWhile_Not_replicate_False)
+
     (*TODO: cont here, this should solve the next one*)
   (*this for arbitrary 112 and probably: for arbitrary 16*)
   lemma fixes ip::ipv6addr
