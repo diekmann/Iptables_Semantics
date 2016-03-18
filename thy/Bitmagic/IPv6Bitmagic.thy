@@ -646,7 +646,7 @@ thm Word.word_bl_Rep'
     apply(simp add: helper_masked_ucast_generic)
     defer
     apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic)
+    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_96_80)
     defer
     apply(subst word_ao_dist)+
     apply(simp add: helper_masked_ucast_generic)
