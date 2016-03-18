@@ -42,7 +42,7 @@ begin
     text{*
       argument 1: interface as in firewall rule - Wildcard support
       argument 2: interface a packet came from - No wildcard support*}
-    private fun internal_iface_name_match :: "string \<Rightarrow> string \<Rightarrow> bool" where
+    fun internal_iface_name_match :: "string \<Rightarrow> string \<Rightarrow> bool" where
       "internal_iface_name_match []     []         \<longleftrightarrow> True" |
       "internal_iface_name_match (i#is) []         \<longleftrightarrow> (i = CHR ''+'' \<and> is = [])" |
       "internal_iface_name_match []     (_#_)      \<longleftrightarrow> False" |
@@ -64,7 +64,7 @@ begin
       lemma "internal_iface_name_match ''+'' ''''" by eval (*>*)
   
   
-    private fun iface_name_is_wildcard :: "string \<Rightarrow> bool" where
+    fun iface_name_is_wildcard :: "string \<Rightarrow> bool" where
       "iface_name_is_wildcard [] \<longleftrightarrow> False" |
       "iface_name_is_wildcard [s] \<longleftrightarrow> s = CHR ''+''" |
       "iface_name_is_wildcard (_#ss) \<longleftrightarrow> iface_name_is_wildcard ss"

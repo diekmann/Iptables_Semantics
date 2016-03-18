@@ -4,9 +4,6 @@ begin
 
 subsection{*Definition*}
 
-
-definition valid_prefix :: "('a::len) prefix_match \<Rightarrow> bool" where
-  "valid_prefix pf = ((pfxm_mask pf) AND pfxm_prefix pf = 0)"
 lemma valid_prefix_E: "valid_prefix pf \<Longrightarrow> ((pfxm_mask pf) AND pfxm_prefix pf = 0)" 
   unfolding valid_prefix_def .
 
@@ -21,9 +18,6 @@ lemma zero_prefix_match_all: "valid_prefix m \<Longrightarrow> pfxm_length m = 0
   by(simp add: pfxm_mask_def mask_2pm1 valid_preifx_alt_def prefix_match_semantics_def)
 
 subsection{*Set Semantics*}
-
-definition prefix_to_ipset where
-  "prefix_to_ipset pfx = {pfxm_prefix pfx .. pfxm_prefix pfx OR pfxm_mask pfx}"
 
 lemma pfx_not_empty: "valid_prefix pfx \<Longrightarrow> prefix_to_ipset pfx \<noteq> {}"
   unfolding valid_prefix_def prefix_to_ipset_def by(simp add: le_word_or2)

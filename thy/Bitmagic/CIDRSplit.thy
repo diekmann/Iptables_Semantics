@@ -239,6 +239,9 @@ proof -
     by (metis option.sel)
   then show ?thesis by simp
 qed
+private lemma wordinterval_CIDR_split1_distinct2: fixes r:: "'a::len wordinterval"
+  shows "wordinterval_CIDR_split1 r = (Some s, u) \<Longrightarrow> wordinterval_empty (wordinterval_intersection (prefix_to_range s) u)"
+by(rule wordinterval_CIDR_split1_distinct[where r = r]) simp  
 private lemma "wordinterval_empty r \<longleftrightarrow> fst (wordinterval_CIDR_split1 r) = None"
 by (metis (no_types, lifting) Pair_inject case_option_If2 wordinterval_lowest_none_empty wordinterval_CIDR_split1_def prod.collapse r_split1_not_none) 
 
@@ -433,8 +436,7 @@ using [[simproc del: list_to_set_comprehension]] (* okay, simplifier is a bit br
 *)
 
 (* TODO: Move to the wordinterval lemma bucket *)
-
-lemma interval_in_splitD: "xa \<in> foo \<Longrightarrow> prefix_to_ipset xa \<subseteq> \<Union>(prefix_to_ipset ` foo)" apply simp by auto
+lemma interval_in_splitD: "xa \<in> foo \<Longrightarrow> prefix_to_ipset xa \<subseteq> \<Union>(prefix_to_ipset ` foo)" by auto
 
 lemma wordinterval_CIDR_split_internal_distinct: "distinct (wordinterval_CIDR_split_internal a)"
 	apply(induction rule: wordinterval_CIDR_split_internal.induct)
@@ -445,6 +447,31 @@ lemma wordinterval_CIDR_split_internal_distinct: "distinct (wordinterval_CIDR_sp
 	apply(drule wordinterval_CIDR_split1_distinct[OF sym])
 	apply(simp add: prefix_to_range_set_eq[symmetric])
 using prefix_never_empty by fastforce
+
+lemma CIDR_splits_disjunct: "a \<in> set (wordinterval_CIDR_split_internal i) \<Longrightarrow> b \<in> set (wordinterval_CIDR_split_internal i) \<Longrightarrow> a \<noteq> b \<Longrightarrow> prefix_to_ipset a \<inter> prefix_to_ipset b = {}"
+apply(induction rule: wordinterval_CIDR_split_internal.induct)
+apply(subst(asm)(4) wordinterval_CIDR_split_internal.simps)
+apply(subst(asm)(3) wordinterval_CIDR_split_internal.simps)
+apply(clarsimp simp only: set_simps not_False_eq_True split: if_splits prod.splits option.splits)
+apply(rename_tac rem x2b ne)
+apply(case_tac "b = ne"; case_tac "a = ne")
+apply(simp;fail)
+prefer 3
+apply(simp;fail)
+(*apply(clarsimp, metis (full_types) Int_commute disjoint_subset2 interval_in_splitD prefix_to_range_set_eq wordinterval_CIDR_split1_distinct wordinterval_CIDR_split_internal wordinterval_empty_set_eq wordinterval_intersection_set_eq)+*)
+apply(subgoal_tac "prefix_to_ipset b \<inter> wordinterval_to_set rem = {}")
+apply(simp add: wordinterval_CIDR_split_internal[symmetric])
+apply(clarsimp)
+apply blast
+apply(intro wordinterval_CIDR_split1_distinct2[unfolded wordinterval_empty_set_eq wordinterval_intersection_set_eq prefix_to_range_set_eq]; fast)
+apply(subgoal_tac "prefix_to_ipset a \<inter> wordinterval_to_set rem = {}")
+apply(simp add: wordinterval_CIDR_split_internal[symmetric])
+apply(clarsimp)
+apply blast
+apply(intro wordinterval_CIDR_split1_distinct2[unfolded wordinterval_empty_set_eq wordinterval_intersection_set_eq prefix_to_range_set_eq]; fast)
+done
+
+
 
 end
 
