@@ -299,8 +299,9 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
     apply(subst Word.bl_and_mask)
     by (simp add: List.dropWhile_eq_drop length_takeWhile_Not_replicate_False)
 
-  (*this for arbitrary 112 and probably: for arbitrary 16*)
-  lemma length_helper_112_tmp: fixes ip::"'a::len word"
+  
+  (*TODO: move those two lemmas to l4? maybe they are too specific*)
+  lemma length_dropNot_mask_outer: fixes ip::"'a::len word"
     shows "len_of TYPE('a) - n' = len \<Longrightarrow> length (dropWhile Not (to_bl (ip AND (mask n << n') >> n'))) \<le> len"
     apply(subst WordLemmaBucket.word_and_mask_shiftl)
     apply(subst WordLib.shiftl_shiftr1)
@@ -310,40 +311,16 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
     apply(simp add: word_size)
     apply(simp add: length_dropNot_mask)
     done
-
-  lemma "n1 \<le> n2 \<Longrightarrow> (w AND mask n1) AND mask n2 = w AND mask n1"
-    by (simp add: WordLemmaBucket.mask_twice)
-    
-
-  (*needs: n instead of n'*)
-  lemma the_one_i_need_questionmark: fixes ip::"128 word"
-    shows "len = 16 \<Longrightarrow> n \<le> n' \<Longrightarrow> n = 16 \<Longrightarrow> n' = 96 \<Longrightarrow> length (dropWhile Not (to_bl (ip AND (mask n << n') >> n'))) \<le> len"
-    apply(subst WordLemmaBucket.word_and_mask_shiftl)
-    apply(subst WordLemmaBucket.shiftl_shiftr3)
-     apply(simp; fail)
-    apply(simp)
-    apply(simp add: word_size)
-    apply(simp add: WordLemmaBucket.mask_twice )
-    apply(simp add: length_dropNot_mask)
-    done
-
-
-  (*needs: n instead of n'*)
-  lemma fixes ip::"128 word"
-    shows "len = 128 - n' \<Longrightarrow> n \<le> n' \<Longrightarrow> length (dropWhile Not (to_bl (ip AND (mask n << n') >> n'))) \<le> len"
+  lemma length_dropNot_mask_inner: fixes ip::"'a::len word"
+    shows "n \<le> len_of TYPE('a) - n' \<Longrightarrow> length (dropWhile Not (to_bl (ip AND (mask n << n') >> n'))) \<le> n"
     apply(subst WordLemmaBucket.word_and_mask_shiftl)
     apply(subst WordLemmaBucket.shiftl_shiftr3)
      apply(simp; fail)
     apply(simp)
     apply(simp add: word_size)
     apply(simp add: WordLemmaBucket.mask_twice)
-    apply(subgoal_tac "(min (128 - n') n) = len")
-     prefer 2
-     apply(simp)
-     
-     apply(simp; fail)
     apply(simp add: length_dropNot_mask)
-    oops
+    done
 
   (*the same without slice to generalize to the other cases*)
   lemma fixes ip::ipv6addr
@@ -355,7 +332,7 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
     thm bl_cast_long_short_long_ingoreLeadingZero_generic
     apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
       apply(simp_all)
-     apply(simp add: length_helper_112_tmp)
+     apply(simp add: length_dropNot_mask_outer)
     by (metis AND_twice and_not_mask mask_16_shiftl112_128word) (*sledgehammer finds more*)
     
 
@@ -393,10 +370,8 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
     thm bl_cast_long_short_long_ingoreLeadingZero_generic
     apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
       apply simp_all
-     thm length_helper_112_tmp
-     thm the_one_i_need_questionmark
-     apply(rule the_one_i_need_questionmark)
-        apply(simp_all)
+     apply(rule length_dropNot_mask_inner)
+      apply(simp_all)
      proof -
        have f1: "\<And>w wa wb. ((w::128 word) && wa) && wb = w && wb && wa"
          by (simp add: word_bool_alg.conj_left_commute word_bw_comms(1))
