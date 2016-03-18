@@ -316,8 +316,8 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
     
 
   (*needs: n instead of n'*)
-  lemma fixes ip::"128 word"
-    shows "len = 16 \<Longrightarrow> n \<le> n' \<Longrightarrow> n = 96 \<Longrightarrow> n' = 112 \<Longrightarrow> length (dropWhile Not (to_bl (ip AND (mask n << n') >> n'))) \<le> len"
+  lemma the_one_i_need_questionmark: fixes ip::"128 word"
+    shows "len = 16 \<Longrightarrow> n \<le> n' \<Longrightarrow> n = 16 \<Longrightarrow> n' = 96 \<Longrightarrow> length (dropWhile Not (to_bl (ip AND (mask n << n') >> n'))) \<le> len"
     apply(subst WordLemmaBucket.word_and_mask_shiftl)
     apply(subst WordLemmaBucket.shiftl_shiftr3)
      apply(simp; fail)
@@ -326,6 +326,24 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
     apply(simp add: WordLemmaBucket.mask_twice )
     apply(simp add: length_dropNot_mask)
     done
+
+
+  (*needs: n instead of n'*)
+  lemma fixes ip::"128 word"
+    shows "len = 128 - n' \<Longrightarrow> n \<le> n' \<Longrightarrow> length (dropWhile Not (to_bl (ip AND (mask n << n') >> n'))) \<le> len"
+    apply(subst WordLemmaBucket.word_and_mask_shiftl)
+    apply(subst WordLemmaBucket.shiftl_shiftr3)
+     apply(simp; fail)
+    apply(simp)
+    apply(simp add: word_size)
+    apply(simp add: WordLemmaBucket.mask_twice)
+    apply(subgoal_tac "(min (128 - n') n) = len")
+     prefer 2
+     apply(simp)
+     
+     apply(simp; fail)
+    apply(simp add: length_dropNot_mask)
+    oops
 
   (*the same without slice to generalize to the other cases*)
   lemma fixes ip::ipv6addr
@@ -376,9 +394,18 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
     apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
       apply simp_all
      thm length_helper_112_tmp
-     apply(simp add: length_helper_112_tmp)
-      (*TODO: continue here!*)
-    oops
+     thm the_one_i_need_questionmark
+     apply(rule the_one_i_need_questionmark)
+        apply(simp_all)
+     proof -
+       have f1: "\<And>w wa wb. ((w::128 word) && wa) && wb = w && wb && wa"
+         by (simp add: word_bool_alg.conj_left_commute word_bw_comms(1))
+       have "\<And>w n wa. ((w::128 word) && ~~ mask n) && (wa << n) = (w >> n) && wa << n"
+         by (simp add: and_not_mask shiftl_over_and_dist)
+       then show "ip && (mask 16 << 96) >> 96 << 96 = ip && (mask 16 << 96)"
+         using f1 by (metis (no_types) and_not_mask word_and_mask_shiftl word_bw_comms(1))
+     qed
+
 
 
   lemma "ip \<le> 2^(len_of TYPE(16)) \<Longrightarrow> (ucast::16 word \<Rightarrow> 128 word) ((ucast::128 word \<Rightarrow> 16 word) ip) = ip"
