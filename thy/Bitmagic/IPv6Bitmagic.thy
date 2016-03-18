@@ -28,14 +28,6 @@ begin
   value "(slice 112 (0xFFFF0000000000000000000000000000::ipv6addr))::16 word"
   thm slice_shiftr
 
-  lemma "of_bl (to_bl (of_bl (to_bl x))) = x"
-  proof -
-   have 1: "of_bl (to_bl x) = x"
-    apply(subst Word.word_bl.Rep_inverse) ..
-   show "of_bl (to_bl (of_bl (to_bl x))) = x"
-    apply(subst 1)
-  oops
-
   lemma "xx && ~~ mask y >> y = ( (xx && (~~ (mask y))) >> y  )" by simp
 
   (*fun story: sledgehammer does not find this one!*)
