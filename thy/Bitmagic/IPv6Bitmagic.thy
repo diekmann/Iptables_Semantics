@@ -300,8 +300,8 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
     by (simp add: List.dropWhile_eq_drop length_takeWhile_Not_replicate_False)
 
   (*this for arbitrary 112 and probably: for arbitrary 16*)
-  lemma length_helper_112_tmp: fixes ip::ipv6addr
-    shows "length (dropWhile Not (to_bl (ip AND (mask 16 << 112) >> 112))) \<le> 16"
+  lemma length_helper_112_tmp: fixes ip::"'a::len word"
+    shows "len_of TYPE('a) - n' = len \<Longrightarrow> length (dropWhile Not (to_bl (ip AND (mask n << n') >> n'))) \<le> len"
     apply(subst WordLemmaBucket.word_and_mask_shiftl)
     apply(subst WordLib.shiftl_shiftr1)
      apply(simp; fail)
