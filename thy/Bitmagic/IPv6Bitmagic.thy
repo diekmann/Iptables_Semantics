@@ -292,41 +292,24 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
 
   lemma "size ((ip::ipv6addr) >> 112) = 128" by(simp add: word_size)
 
+  (*TODO: to l4v!*)
   lemma length_dropNot_mask:
     fixes w::"'a::len word"
     shows "length (dropWhile Not (to_bl (w AND mask n))) \<le> n"
     apply(subst Word.bl_and_mask)
     by (simp add: List.dropWhile_eq_drop length_takeWhile_Not_replicate_False)
 
-    (*TODO: cont here, this should solve the next one*)
   (*this for arbitrary 112 and probably: for arbitrary 16*)
   lemma fixes ip::ipv6addr
     shows "length (dropWhile Not (to_bl (ip AND (mask 16 << 112) >> 112))) \<le> 16"
-    (*apply(subst mask_16_shiftl112_128word)*)
-    thm WordLib.and_not_mask WordLemmaBucket.word_and_mask_shiftl WordLib.and_mask
     apply(subst WordLemmaBucket.word_and_mask_shiftl)
     apply(subst WordLib.shiftl_shiftr1)
      apply(simp; fail)
     apply(simp)
-
     apply(subst WordLib.and_mask)
     apply(simp add: word_size)
-    
-    apply(subst WordLemmaBucket.mask_shift)
-    apply(subst Word.ucast_bl)+
-    apply(subst Word.shiftl_bl)
-    apply(simp)
-    apply(subst word128_mask112)+
-    apply(subst WordLemmaBucket.word_and_mask_shiftl)+
-    apply(subst xxx)+
-    apply(subst Word.shiftr_bl)
-    apply(subst Word.shiftl_bl)
-    apply simp
-    apply(subst Word.of_bl_append)+
-    apply simp
-    apply(subst Word.shiftr_bl)
-    apply(simp)
-     oops
+    apply(simp add: length_dropNot_mask)
+    done
 
   (*the same without slice to generalize to the other cases*)
   lemma fixes ip::ipv6addr
