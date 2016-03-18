@@ -482,6 +482,29 @@ thm Word.word_bl_Rep'
     done
 
 
+   lemma 
+     fixes b::"16 word"
+     shows"((ucast:: 16 word \<Rightarrow> 128 word) b << 96) && (mask 16 << 112) = 0"
+    apply(subst Word.ucast_bl)+
+    apply(subst Word.shiftl_of_bl)
+    apply(simp)
+    apply(subst Word.of_bl_append)
+    apply simp
+    apply(subst WordLemmaBucket.word_and_mask_shiftl)
+    apply(subst WordLib.shiftr_div_2n_w)
+     apply(simp add: word_size; fail)
+    apply(simp)
+    apply(subst WordLemmaBucket.word_div_less)
+     apply(simp_all)
+    apply(subgoal_tac "(of_bl::bool list \<Rightarrow> 128 word) (to_bl b) < 2^(len_of TYPE(16))")
+     prefer 2
+     apply(rule Word.of_bl_length_less)
+     apply(simp_all)
+    apply(rule Word.div_lt_mult)
+     apply(simp; fail)
+    apply(simp)
+    done
+
   (*TODO: round trip property two*)
   lemma "int_to_ipv6preferred (ipv6preferred_to_int ip) = ip"
     apply(cases ip, rename_tac a b c d e f g h)
