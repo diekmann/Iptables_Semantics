@@ -288,10 +288,55 @@ corollary yaaaaaaaaaaaaaaaayaiohhgoo:
      apply simp_all
     done
 
+lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) >> 112" by simp
+
+  lemma "size ((ip::ipv6addr) >> 112) = 128" by(simp add: word_size)
+
+  lemma fixes ip::ipv6addr
+    shows "length (dropWhile Not (to_bl (ip AND mask 16))) \<le> 16"
+    oops
+    (*TODO: cont here, this should solve the next one*)
+  (*this for arbitrary 112 and probably: for arbitrary 16*)
+  lemma fixes ip::ipv6addr
+    shows "length (dropWhile Not (to_bl (ip AND (mask 16 << 112) >> 112))) \<le> 16"
+    (*apply(subst mask_16_shiftl112_128word)*)
+    thm WordLib.and_not_mask WordLemmaBucket.word_and_mask_shiftl WordLib.and_mask
+    apply(subst WordLemmaBucket.word_and_mask_shiftl)
+    apply(subst WordLib.shiftl_shiftr1)
+     apply(simp; fail)
+    apply(simp)
+
+    apply(subst WordLib.and_mask)
+    apply(simp add: word_size)
+    
+    apply(subst WordLemmaBucket.mask_shift)
+    apply(subst Word.ucast_bl)+
+    apply(subst Word.shiftl_bl)
+    apply(simp)
+    apply(subst word128_mask112)+
+    apply(subst WordLemmaBucket.word_and_mask_shiftl)+
+    apply(subst xxx)+
+    apply(subst Word.shiftr_bl)
+    apply(subst Word.shiftl_bl)
+    apply simp
+    apply(subst Word.of_bl_append)+
+    apply simp
+    apply(subst Word.shiftr_bl)
+    apply(simp)
+     oops
+
   (*the same without slice to generalize to the other cases*)
   lemma fixes ip::ipv6addr
     shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
            (ip AND 0xFFFF0000000000000000000000000000)"
+    apply(subst word128_mask112)
+    apply(subst Word.ucast_bl)+
+    apply(subst word128_mask112)+
+    thm bl_cast_long_short_long_ingoreLeadingZero_generic
+    apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
+      apply(simp_all)
+
+    (*old working proof:
     apply(subst word128_mask112)
     apply(subst mask_16_shiftl112_128word)
     apply(subst WordLemmaBucket.mask_shift)
@@ -311,7 +356,8 @@ corollary yaaaaaaaaaaaaaaaayaiohhgoo:
     thm yaaaaaaaaaaaaaaaayaiohhgoo
     apply(subst yaaaaaaaaaaaaaaaayaiohhgoo)
      apply simp_all
-    done
+    done*)
+    oops
 
   lemma word128_mask96: "(0xFFFF000000000000000000000000::ipv6addr) = (mask 16) << 96"
     by(simp add: mask_def)
