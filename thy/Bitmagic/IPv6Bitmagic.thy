@@ -300,7 +300,7 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
     by (simp add: List.dropWhile_eq_drop length_takeWhile_Not_replicate_False)
 
   (*this for arbitrary 112 and probably: for arbitrary 16*)
-  lemma fixes ip::ipv6addr
+  lemma length_helper_112_tmp: fixes ip::ipv6addr
     shows "length (dropWhile Not (to_bl (ip AND (mask 16 << 112) >> 112))) \<le> 16"
     apply(subst WordLemmaBucket.word_and_mask_shiftl)
     apply(subst WordLib.shiftl_shiftr1)
@@ -321,6 +321,9 @@ lemma "(ip >> 112) && mask 16 << 112 >> 112 = (((ip >> 112) && mask 16) << 112) 
     thm bl_cast_long_short_long_ingoreLeadingZero_generic
     apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
       apply(simp_all)
+     apply(simp add: length_helper_112_tmp)
+    by (metis AND_twice and_not_mask mask_16_shiftl112_128word) (*sledgehammer finds more*)
+    
 
     (*old working proof:
     apply(subst word128_mask112)
