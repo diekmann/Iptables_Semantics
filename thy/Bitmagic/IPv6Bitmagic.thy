@@ -595,14 +595,19 @@ thm Word.word_bl_Rep'
        by(fact WordLemmaBucket.unat_of_bl_length)
      with 1 show ?thesis by auto
      qed
-   lemma xxx: "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl (b::16 word))) < 4294967296"
+   lemma xxxx: "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl (b::16 word))) < 4294967296"
+     apply(rule order_less_trans)
+     apply(rule unat_of_bl_128_16_less_helper)
+     apply simp
+     done
+   lemma xxxxx: "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl (b::16 word))) < 5192296858534827628530496329220096"
      apply(rule order_less_trans)
      apply(rule unat_of_bl_128_16_less_helper)
      apply simp
      done
 
    (*reverse*)
-   lemma 
+   lemma helper_masked_ucast_reverse_96_80:
      fixes b::"16 word"
      shows "((ucast:: 16 word \<Rightarrow> 128 word) b << 96) && (mask 16 << 80) = 0"
     apply(subst Word.ucast_bl)+
@@ -620,58 +625,11 @@ thm Word.word_bl_Rep'
 
     apply(subst Word_Miscellaneous.nat_mod_eq')
      apply(simp)
-     apply(subst xxx)
-     apply simp
-     
-     defer
+     apply(subst xxxx)
+     apply(simp; fail)
     apply(subst Word_Miscellaneous.nat_mod_eq')
-     apply(simp)
-     defer
+     apply(simp add: xxxxx; fail)
     apply simp
-    (*TODO: continue here, the two subgoals should be obvous, once i can find the type*)
-    
-
-    (*apply(subst power280helper)
-    thm Divides.semiring_div_class.mod_mult_left_eq[symmetric]
-    apply(subst Divides.semiring_div_class.mod_mult_left_eq)
-    apply(subst Divides.semiring_div_class.mod_mult_left_eq) back*)
-    apply simp
-    apply(subst Divides.semiring_div_class.mod_mult_left_eq) back
-    
-    
-    
-    
-
-    (*
-    thm WordLib.word_plus_and_or_coroll WordLemmaBucket.shiftl_mask_is_0 WordLemmaBucket.limited_and_eq_0
-    thm word_bw_assocs word_bw_comms word_bw_lcs
-    apply(rule_tac z="(of_bl (to_bl b) << 80)" in WordLemmaBucket.limited_and_eq_0)
-    apply(simp_all add: limited_and_def max_word_def)
-    *)
-
-    apply(subst Word.shiftl_of_bl)
-    apply(subst Word.of_bl_append)
-    apply simp
-    apply(subst WordLemmaBucket.word_and_mask_shiftl)
-    apply(subst WordLib.shiftr_div_2n_w)
-     apply(simp add: word_size; fail)
-
-    thm WordLemmaBucket.word_div_less
-    apply(subst WordLemmaBucket.word_div_less)
-     apply(simp_all)
-    apply(subgoal_tac "(of_bl::bool list \<Rightarrow> 128 word) (to_bl b) < 2^(len_of TYPE(16))")
-     prefer 2
-     apply(rule Word.of_bl_length_less)
-     apply(simp_all)
-    apply(rule Word.div_lt_mult)
-     apply(rule WordLemmaBucket.word_less_two_pow_divI)
-     apply(simp_all)
-     apply(subgoal_tac "m - n \<ge> 16")
-      prefer 2
-      apply(simp)
-      apply(rule mnhelper, simp_all)
-     apply(subst WordLib.p2_gt_0)
-     apply(simp)
     done
 
   (*TODO: round trip property two*)
