@@ -539,6 +539,7 @@ thm Word.word_bl_Rep'
     apply(simp)
     done
 
+   (*n small, m large*)
    lemma helper_masked_ucast_generic:
      fixes b::"16 word"
      shows"n + 16 \<le> m \<Longrightarrow> m < 128 \<Longrightarrow> ((ucast:: 16 word \<Rightarrow> 128 word) b << n) && (mask 16 << m) = 0"
@@ -566,6 +567,112 @@ thm Word.word_bl_Rep'
      apply(simp)
     done
 
+   lemma helpx: "(2::nat) ^ 80 * ((2 ^ 16 mod 2 ^ 128 * n) mod 2 ^ 128) = 
+    2 ^ 96 * (n mod 2 ^ 128)" 
+    apply(simp)
+    apply(subst Divides.semiring_div_class.mod_mult_left_eq)
+    apply simp
+    oops
+   lemma  "a = b \<Longrightarrow> a mod x = b mod x" by simp
+   lemma "(a::nat) * (b * c) = (a * b) * c"
+    by (fact Semiring_Normalization.comm_semiring_1_class.semiring_normalization_rules(18))
+
+   lemma power280helper: "(2::nat) ^ 80 = 2 ^ 80 mod 2 ^ len_of TYPE(128)" by auto
+   lemma "w < c \<Longrightarrow> b * w < c \<Longrightarrow> 
+    (a::nat) * (b * w mod c) = (a * b) * (w mod c)"
+      apply(subst Word_Miscellaneous.nat_mod_eq')
+       apply(simp)
+      apply(subst Word_Miscellaneous.nat_mod_eq')
+       apply simp_all
+      done
+
+   lemma  unat_of_bl_128_16_less_helper:
+     fixes b::"16 word"
+     shows "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) < 2^16"
+   proof -
+     from Word.word_bl_Rep' have 1: "length (to_bl b) = 16" by simp
+     have "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) < 2^(length (to_bl b))"
+       by(fact WordLemmaBucket.unat_of_bl_length)
+     with 1 show ?thesis by auto
+     qed
+   lemma xxx: "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl (b::16 word))) < 4294967296"
+     apply(rule order_less_trans)
+     apply(rule unat_of_bl_128_16_less_helper)
+     apply simp
+     done
+
+   (*reverse*)
+   lemma 
+     fixes b::"16 word"
+     shows "((ucast:: 16 word \<Rightarrow> 128 word) b << 96) && (mask 16 << 80) = 0"
+    apply(subst Word.ucast_bl)+
+
+    apply(subst WordLemmaBucket.word_and_mask_shiftl)
+    thm WordLemmaBucket.rshift_sub_mask_eq
+    apply(subst WordLemmaBucket.aligned_shiftr_mask_shiftl)
+     apply(simp_all)
+    unfolding is_aligned_def
+    unfolding dvd_def
+    apply(subst Word.shiftl_t2n)
+    thm Word.shiftl_t2n Bool_List_Representation.shiftl_int_def
+    apply(subst Word.unat_word_ariths(2))
+    apply(rule_tac x="2^16 * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) mod 2 ^ len_of TYPE(128)" in exI)
+
+    apply(subst Word_Miscellaneous.nat_mod_eq')
+     apply(simp)
+     apply(subst xxx)
+     apply simp
+     
+     defer
+    apply(subst Word_Miscellaneous.nat_mod_eq')
+     apply(simp)
+     defer
+    apply simp
+    (*TODO: continue here, the two subgoals should be obvous, once i can find the type*)
+    
+
+    (*apply(subst power280helper)
+    thm Divides.semiring_div_class.mod_mult_left_eq[symmetric]
+    apply(subst Divides.semiring_div_class.mod_mult_left_eq)
+    apply(subst Divides.semiring_div_class.mod_mult_left_eq) back*)
+    apply simp
+    apply(subst Divides.semiring_div_class.mod_mult_left_eq) back
+    
+    
+    
+    
+
+    (*
+    thm WordLib.word_plus_and_or_coroll WordLemmaBucket.shiftl_mask_is_0 WordLemmaBucket.limited_and_eq_0
+    thm word_bw_assocs word_bw_comms word_bw_lcs
+    apply(rule_tac z="(of_bl (to_bl b) << 80)" in WordLemmaBucket.limited_and_eq_0)
+    apply(simp_all add: limited_and_def max_word_def)
+    *)
+
+    apply(subst Word.shiftl_of_bl)
+    apply(subst Word.of_bl_append)
+    apply simp
+    apply(subst WordLemmaBucket.word_and_mask_shiftl)
+    apply(subst WordLib.shiftr_div_2n_w)
+     apply(simp add: word_size; fail)
+
+    thm WordLemmaBucket.word_div_less
+    apply(subst WordLemmaBucket.word_div_less)
+     apply(simp_all)
+    apply(subgoal_tac "(of_bl::bool list \<Rightarrow> 128 word) (to_bl b) < 2^(len_of TYPE(16))")
+     prefer 2
+     apply(rule Word.of_bl_length_less)
+     apply(simp_all)
+    apply(rule Word.div_lt_mult)
+     apply(rule WordLemmaBucket.word_less_two_pow_divI)
+     apply(simp_all)
+     apply(subgoal_tac "m - n \<ge> 16")
+      prefer 2
+      apply(simp)
+      apply(rule mnhelper, simp_all)
+     apply(subst WordLib.p2_gt_0)
+     apply(simp)
+    done
 
   (*TODO: round trip property two*)
   lemma "int_to_ipv6preferred (ipv6preferred_to_int ip) = ip"
