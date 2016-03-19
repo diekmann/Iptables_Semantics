@@ -642,13 +642,13 @@ thm Word.word_bl_Rep'
           by (simp add: nat_mult_power_less_eq semiring_normalization_rules(7))
 
    lemma yyyy: fixes b::"16 word"
-     shows "n < 128 - 16 \<Longrightarrow> 2 ^ n * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) < 2 ^ len_of TYPE(128)"
+     shows "n \<le> 128 - 16 \<Longrightarrow> 2 ^ n * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) < 2 ^ len_of TYPE(128)"
      apply(subst help_mult)
       apply(simp; fail)
-     apply(rule order_less_trans)
+     apply(rule order_less_le_trans)
      thm unat_of_bl_128_16_less_helper
       apply(rule unat_of_bl_128_16_less_helper)
-     apply(rule Power.linordered_semidom_class.power_strict_increasing)
+     apply(rule Power.power_increasing)
       apply(simp_all)
      done
 
@@ -671,7 +671,7 @@ thm Word.word_bl_Rep'
   (*reverse*)
    lemma helper_masked_ucast_reverse_generic:
      fixes b::"16 word"
-     shows "m + 16 \<le> n \<Longrightarrow> n < 128 - 16 \<Longrightarrow> ((ucast:: 16 word \<Rightarrow> 128 word) b << n) && (mask 16 << m) = 0"
+     shows "m + 16 \<le> n \<Longrightarrow> n \<le> 128 - 16 \<Longrightarrow> ((ucast:: 16 word \<Rightarrow> 128 word) b << n) && (mask 16 << m) = 0"
     apply(subst Word.ucast_bl)+
     apply(subst WordLemmaBucket.word_and_mask_shiftl)
     thm WordLemmaBucket.rshift_sub_mask_eq
@@ -713,7 +713,7 @@ thm Word.word_bl_Rep'
     apply(simp add: helper_masked_ucast_generic )
     defer
     apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic )
+    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic)
     defer
     apply(subst word_ao_dist)+
     apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic)
