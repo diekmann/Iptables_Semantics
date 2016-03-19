@@ -473,8 +473,10 @@ definition "fourtytwo_s3 ifs ard = (
 
 definition "fourtytwo_s4 ifs ard \<equiv> fourtytwo_s3 ifs [(a,r',c). (a,r,c) \<leftarrow> ard, rg \<leftarrow> ifs, r' \<leftarrow> option2list (simple_rule_and (simple_match_any\<lparr>iiface := Iface rg\<rparr>) r), c \<noteq> rg]"
 
+definition "fourtytwo_s1 rt = [(route2match r, output_iface (routing_action r)). r \<leftarrow> rt]"
+
 definition "fourtytwo rt fw ifs \<equiv> let
-	mrt = [(route2match r, output_iface (routing_action r)). r \<leftarrow> rt]; (* make matches from those rt entries *)
+	mrt = fourtytwo_s1 rt; (* make matches from those rt entries *)
 	frd = [(b,c). (a,c) \<leftarrow> mrt, b \<leftarrow> simple_match_list_and a fw]; (* bring down the firewall over all rt matches *)
 	ard = map (apfst word_of_nat) (annotate_rlen frd) (* give them a priority *)
 	in
@@ -633,16 +635,6 @@ apply(rule mask_inj_hlp1[THEN inj_onD])
 apply(simp;fail)+
 done
 
-lemma no_overlaps_42_hlp3: "distinct (map fst amr) \<Longrightarrow>
-(aa, ab, ba) \<in> set (fourtytwo_s3 ifs amr) \<Longrightarrow> (ac, ad, bb) \<in> set (fourtytwo_s3 ifs amr) \<Longrightarrow>
-ba \<noteq> bb \<Longrightarrow> aa \<noteq> ac"
-apply(unfold fourtytwo_s3_def)
-apply(clarsimp)
-apply(clarsimp split: simple_action.splits if_splits)
-apply(metis map_of_eq_Some_iff option.inject prod.inject)
-apply(metis (no_types, lifting) distinct_singleton fst_conv list.set_intros(1) list.simps(8) list.simps(9) map_of_eq_Some_iff simple_action.distinct(1) singleton_set snd_conv)+
-done
-
 lemma no_overlaps_42_hlp2: "distinct (map fst amr) \<Longrightarrow> (\<And>r. distinct (fm r)) \<Longrightarrow>
     distinct (concat (map (\<lambda>(a, r, c). map (\<lambda>b. (a, b, fs r c)) (fm r)) amr))"
 apply(induction amr)
@@ -795,10 +787,9 @@ apply(simp split: prod.splits)
 apply(subst disjoint_iff_not_equal)
 apply(clarify)
 apply(subgoal_tac "iiface (match_sel ae) \<noteq>  iiface (match_sel ba)")
-defer
-apply force
 apply(erule (2) smtoms_hlp2)
 apply(fastforce simp add: list_all_iff)+
+apply force
 done 
  
 lemma simple_rule_and_iiface_update: "is_iface_name a1 \<Longrightarrow> simple_rule_and (simple_match_any\<lparr>iiface := Iface a1\<rparr>) a = Some r1 \<Longrightarrow> iface_sel (iiface (match_sel r1)) = a1" 
@@ -818,6 +809,79 @@ using simple_rule_and_iiface_update by metis
 lemma hlp1: "\<lbrakk>Some r1 = x1; Some r2 = x2; x2 = x1; r1 \<noteq> r2\<rbrakk> \<Longrightarrow> False" by auto
 
 lemma disjointI: "(\<And>x. x \<in> A \<Longrightarrow> x \<in> B \<Longrightarrow> False) \<Longrightarrow> A \<inter> B = {}" by auto
+
+lemma distinct_restr: "distinct (map (\<lambda>(a,b,c). (a,b)) l) = distinct (map fst (map (\<lambda>(a,b,c). ((a,b),c)) l))"
+by(simp add: comp_def prod.case_distrib)
+lemma distinct_fst_force_snd: "distinct (map fst l) \<Longrightarrow> (a,b) \<in> set l \<Longrightarrow> (a,c) \<in> set l \<Longrightarrow> b = c" using map_of_is_SomeI by fastforce
+lemma distinct_fstsnd_force_trd: "distinct (map (\<lambda>(a,b,c). (a,b)) l) \<Longrightarrow> (a,b,c) \<in> set l \<Longrightarrow> (a,b,d) \<in> set l \<Longrightarrow> c = d"
+	apply(rule distinct_fst_force_snd)
+	  apply(force elim: distinct_restr[THEN iffD1])+
+done
+
+lemma no_overlaps_42_hlp3: "distinct (map (\<lambda>(a,b,c). (a,iiface (match_sel b))) amr) \<Longrightarrow>
+(aa, ab, ac) \<in> set (fourtytwo_s3 ifs amr) \<Longrightarrow> (ba, bb, bc) \<in> set (fourtytwo_s3 ifs amr) \<Longrightarrow>
+ac \<noteq> bc \<Longrightarrow> aa \<noteq> ba \<or> ab \<noteq> bb"
+apply(unfold fourtytwo_s3_def)
+apply(clarsimp) 
+apply(rename_tac ab1 ac1 bb1 bc1)
+apply(subgoal_tac "iiface (match_sel bb1) \<noteq> iiface (match_sel ab1)")
+prefer 2
+apply(clarsimp)
+using distinct_fstsnd_force_trd
+defer
+apply(clarify;fail)
+apply(clarsimp split: simple_action.splits if_splits)
+apply(drule (1) smtoms_hlp2)
+try0
+sorry
+
+lemma distinct_s4_hop:
+"\<lbrakk>distinct (map fst amr); is_iface_list ifs\<rbrakk>
+       \<Longrightarrow> distinct (map (\<lambda>(a, b, c). (a, iiface (match_sel b)))
+                      (concat (map (\<lambda>(a,r,c) \<Rightarrow> concat (map (\<lambda>rg. concat (map (\<lambda>r'. if c \<noteq> rg then [(a, r', c)] else []) (option2list (simple_rule_and (simple_match_any\<lparr>iiface := Iface rg\<rparr>) r)))) ifs)) amr)))"
+	apply(unfold map_concat comp_def prod.case_distrib if_distrib map_map list.map prod.simps)
+	apply(unfold option2list_def option.case_distrib list.map concat.simps append_Nil2)
+	apply(induction amr)
+	apply(simp;fail)
+	apply(unfold list.map concat.simps distinct_append)
+	apply(intro conjI[rotated])
+	apply(force)
+	apply(force)
+	apply(clarsimp)
+	apply(thin_tac "distinct _")+
+	apply(thin_tac "_ \<notin> _")
+	apply(clarsimp simp: is_iface_list_def)
+	apply(induction ifs)
+	apply(simp;fail)
+	apply(unfold list.map concat.simps distinct_append)
+	apply(intro conjI)
+	apply(clarsimp split: option.splits;fail)
+	apply force
+	apply(clarsimp simp: disjoint_iff_not_equal)
+	apply(rename_tac a ifs aaa b aa bb x)
+	apply(case_tac "simple_rule_and (simple_match_any\<lparr>iiface := Iface aa\<rparr>) aaa")
+	apply(simp;fail)
+	apply(frule no_overlaps_42_s4_hlp1)
+	apply(erule sym)
+	apply force
+	apply blast
+	apply (simp add: list_all_iff)
+	apply(clarsimp)
+done
+
+lemma iface_any_is_wildcard: "iface_name_is_wildcard (iface_sel ifaceAny)" by(simp add: ifaceAny_def iface_name_is_wildcard.simps)
+
+lemma ingress_port_in_42_s4: "is_iface_list ifs \<Longrightarrow> (ba, ab, ac) \<in> set (fourtytwo_s4 ifs amr) \<Longrightarrow> \<exists>x. IngressPort x \<in> ab"
+	apply(clarsimp simp add: fourtytwo_s4_def fourtytwo_s3_def option2set_def split: option.splits)
+	apply(frule simple_rule_and_iiface_update[rotated])
+	apply(simp add: is_iface_list_def list_all_iff;fail)
+	apply(rename_tac y)
+	apply(subgoal_tac "iiface (match_sel y) \<noteq> ifaceAny")
+	apply(clarsimp simp add: simple_match_to_of_match_def simple_match_to_of_match_single_def option2set_def)
+	apply fast
+	apply(clarsimp simp add: is_iface_list_def list_all_iff is_iface_name_def)
+	apply(fast intro: iface_any_is_wildcard)
+done
 
 
 lemma no_overlaps_42_s4_hlp: "distinct (map fst amr) \<Longrightarrow> is_iface_list ifs \<Longrightarrow>
@@ -858,27 +922,35 @@ apply(auto simp add: is_iface_list_def list_all_iff elim: hlp1 split: if_splits)
 prefer 2
 apply(clarsimp simp add: is_iface_list_def list_all_iff option2set_def split: option.splits)
 apply(blast dest: simple_rule_and_iiface_update) 
-(*apply(subst disjoint_iff_not_equal)
+apply(unfold check_no_overlap_def)
+apply(clarify)
+apply(unfold set_map)
+apply(clarify)
+apply(unfold split3_def prod.simps flow_entry_match.simps flow_entry_match.sel de_Morgan_conj)
+apply(rename_tac aa ab ac ba bb bc)
+apply(subgoal_tac "ab \<noteq> bb")
+apply(thin_tac "_ \<or> _")
+prefer 2
+apply(elim disjE)
+apply(clarify;fail)
+apply(assumption)
+apply(unfold fourtytwo_s4_def)[1]
+apply(drule (2) no_overlaps_42_hlp3[rotated])
+prefer 2
+apply(clarsimp;fail)
+apply(blast intro: distinct_s4_hop)
 apply(clarsimp)
-apply(split option.splits if_splits)
-apply(rule conjI)
-apply(simp;fail)
-apply(split if_splits)
-apply(rule conjI[rotated])
-apply(simp;fail)
-apply(unfold list.set Ball_def singleton_iff)
-apply(clarify)*)
-(*
-How to go to the depths of proof hell:
-apply(unfold simple_rule_and_def)
-apply(rename_tac a ifs ab ba x uu ua)
-apply(case_tac ab)
-apply(rename_tac abm aba)
-apply(case_tac abm)
-apply(unfold simple_match_any_def simple_match.simps)
-apply(simp split: option.splits)*)
+apply(frule_tac ab = ab in ingress_port_in_42_s4, assumption)
+apply(frule_tac ab = bb in ingress_port_in_42_s4, assumption)
+apply(clarify)
+apply(rename_tac ii1 ii2)
+apply(subgoal_tac "ii1 = ii2")
+prefer 2
+apply(fastforce simp add: OF_match_fields_unsafe_def)
+apply(unfold fourtytwo_s4_def)
+
 sorry
- 
+
 lemma assumes "is_iface_list ifs" shows "Inr t = (fourtytwo rt fw ifs) \<Longrightarrow> no_overlaps OF_match_fields_unsafe t"
 	apply(unfold fourtytwo_def Let_def)
 	apply(simp split: if_splits)
@@ -939,5 +1011,6 @@ lemma "Inr r = fourtytwo rt fw ifs \<Longrightarrow> sorted_descending (map ofe_
 	apply(rule sorted_fourtytwo_s4)
 	apply(erule sorted_annotated[OF less_or_eq_imp_le, OF disjI1])
 done
+
 
 end
