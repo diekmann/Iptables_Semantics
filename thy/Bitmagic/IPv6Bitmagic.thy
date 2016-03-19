@@ -91,17 +91,15 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
   qed
 
   (*TODO: add to l4v*)
-  (*taking only the high-order bits from a bitlist, casting to a longer word and casting back to
-    a shorter type, casting to to longer type again is equal to just taking the bits and casting to
-    the longer type.
-    'l is the longer word. E.g. 128 bit
-    's is the shorter word. E.g. 16 bit
+  (* casting a long word to a shorter word and casting back to the long word 
+     is equal to the original long word -- if the word is small enough.
+    'l is the longer word.
+    's is the shorter word.
   *)
   lemma bl_cast_long_short_long_ingoreLeadingZero_generic:
   "length (dropWhile Not (to_bl w)) \<le> len_of TYPE('s) \<Longrightarrow>
    len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
-    (of_bl:: bool list \<Rightarrow> 'l::len word) (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) 
-            (to_bl w))) = w"
+    (of_bl:: bool list \<Rightarrow> 'l::len word) (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) (to_bl w))) = w"
     apply(rule Word.word_uint_eqI)
     apply(subst WordLib.uint_of_bl_is_bl_to_bin)
      apply(simp; fail)
@@ -111,8 +109,13 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     apply(simp)
     done
 
-  (*TODO: ucast version is better?*)
-  (*TODO: can I use this?*)
+  (*
+   Casting between longer and shorter word.
+    'l is the longer word.
+    's is the shorter word.
+   For example: 'l::len word is 128 word (full ipv6 address)
+                's::len word is 16 word (address piece of ipv6 address in colon-text-reprsenetation)
+  *)
   corollary ucast_short_ucast_long_ingoreLeadingZero:
   "length (dropWhile Not (to_bl w)) \<le> len_of TYPE('s) \<Longrightarrow>
    len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
