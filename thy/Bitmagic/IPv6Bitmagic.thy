@@ -267,17 +267,24 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
   lemma ipv6preferred_to_int_int_to_ipv6preferred:
   "ipv6preferred_to_int (int_to_ipv6preferred ip) = ip"
   proof -
-    have ucast_ipv6_piece:
+    have ucast_ipv6_piece_rule:
       "length (dropWhile Not (to_bl w)) \<le> 16 \<Longrightarrow> (ucast::16 word \<Rightarrow> 128 word) ((ucast::128 word \<Rightarrow> 16 word) w) = w"
       for w::ipv6addr 
       by(rule ucast_short_ucast_long_ingoreLeadingZero) (simp_all)
-      
+    have ucast_ipv6_piece: "16 \<le> 128 - n \<Longrightarrow> 
+      (ucast::16 word \<Rightarrow> 128 word) ((ucast::128 word \<Rightarrow> 16 word) (w && (mask 16 << n) >> n)) = (w && (mask 16 << n) >> n)"
+      for w::ipv6addr and n::nat
+      apply(subst ucast_ipv6_piece_rule)
+       apply(rule length_dropNot_mask_inner)
+       apply(simp_all)
+      done
+    
+    (*TODO: generic rule that solves all the following should be easy*)
     have ucast16_ucast128_masks_highest_bits112:
       "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
              (ip AND 0xFFFF0000000000000000000000000000)"
       apply(subst word128_mask112)+
       apply(subst ucast_ipv6_piece)
-       apply(rule length_dropNot_mask_inner)
        apply(simp_all)
       apply(simp add: and_mask_shift_helper)
       done
@@ -287,7 +294,6 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
            ip AND 0xFFFF000000000000000000000000"
       apply(subst word128_mask96)+
       apply(subst ucast_ipv6_piece)
-       apply(rule length_dropNot_mask_inner)
        apply(simp_all)
       apply(simp add: and_mask_shift_helper)
       done
@@ -297,7 +303,6 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
            ip AND 0xFFFF00000000000000000000"
       apply(subst word128_mask80)+
       apply(subst ucast_ipv6_piece)
-       apply(rule length_dropNot_mask_inner)
        apply(simp_all)
       apply(simp add: and_mask_shift_helper)
       done
@@ -307,7 +312,6 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
            ip AND 0xFFFF0000000000000000"
       apply(subst word128_mask64)+
       apply(subst ucast_ipv6_piece)
-       apply(rule length_dropNot_mask_inner)
        apply(simp_all)
       apply(simp add: and_mask_shift_helper)
       done
@@ -318,7 +322,6 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
            ip AND 0xFFFF000000000000"
       apply(subst word128_mask48)+
       apply(subst ucast_ipv6_piece)
-       apply(rule length_dropNot_mask_inner)
        apply(simp_all)
       apply(simp add: and_mask_shift_helper)
       done
@@ -328,7 +331,6 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
            ip AND 0xFFFF00000000"
       apply(subst word128_mask32)+
       apply(subst ucast_ipv6_piece)
-       apply(rule length_dropNot_mask_inner)
        apply(simp_all)
       apply(simp add: and_mask_shift_helper)
       done
@@ -338,7 +340,6 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
            ip AND 0xFFFF0000"
       apply(subst word128_mask16)+
       apply(subst ucast_ipv6_piece)
-       apply(rule length_dropNot_mask_inner)
        apply(simp_all)
       apply(simp add: and_mask_shift_helper)
       done
