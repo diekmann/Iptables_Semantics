@@ -96,7 +96,6 @@ thm Word.word_bl_Rep'
      thm length_dropWhile_Not_bl[of "(dropWhile Not bs)"]
      apply(rule length_dropWhile_Not_bl[of "(dropWhile Not bs)"])
     apply(subst bl_length_dropNot_twice)
-    (*This is where I left off*)
     apply fastforce
     done
 
@@ -588,36 +587,43 @@ thm Word.word_bl_Rep'
 
    lemma helper_masked_ucast_equal_generic:
      fixes b::"16 word"
-     shows "n \<le> 128 - 16 \<Longrightarrow> ucast (((ucast:: 16 word \<Rightarrow> 128 word) b << n) && (mask 16 << n) >> n) = b"
-    thm WordLemmaBucket.ucast_ucast_mask WordLib.shiftl_shiftr2 WordLemmaBucket.shiftl_shiftr3
-    (*apply(subst Word.ucast_bl)*)
-    apply(subst WordLemmaBucket.word_and_mask_shiftl)
-    apply(subst WordLemmaBucket.shiftl_shiftr3)
-     apply(simp)
-    apply(simp)
-    apply(subst WordLemmaBucket.shiftl_shiftr3)
-     apply(simp)
-    apply(simp add: word_size)
-    apply(subst Word.word_bool_alg.conj.assoc)
-    thm WordLemmaBucket.mask_and_mask
-    apply(subst WordLemmaBucket.mask_and_mask)
-    apply(simp)
-    apply(subst Word.word_bool_alg.conj.assoc)
-    apply(subst WordLemmaBucket.mask_and_mask)
-    apply(simp)
-    apply(subgoal_tac "(ucast:: 16 word \<Rightarrow> 128 word) b && mask 16 = ucast b")
-     apply(simp add: WordLemmaBucket.ucast_ucast_mask)
-     apply(subst Word.mask_eq_iff)
-     apply(rule order_less_trans)
-      apply(rule Word.uint_lt)
-     apply(simp; fail)
+     assumes "n \<le> 128 -16"
+     shows "ucast (((ucast:: 16 word \<Rightarrow> 128 word) b << n) && (mask 16 << n) >> n) = b"
+   proof -
+   have ucast_mask: "(ucast:: 16 word \<Rightarrow> 128 word) b && mask 16 = ucast b" 
     apply(subst WordLib.and_mask_eq_iff_le_mask)
     apply(subst Word.ucast_bl)
     apply(simp add: mask_def)
     thm Word.word_uint_eqI word_le_nat_alt
     apply(subst word_le_nat_alt)
     apply(simp)
-    using unat_of_bl_128_16_leq_helper by simp 
+    using unat_of_bl_128_16_leq_helper by simp
+
+   from assms have "ucast (((ucast:: 16 word \<Rightarrow> 128 word) b && mask (128 - n) && mask 16) && mask (128 - n)) = b"
+    apply(subst WordLemmaBucket.mask_and_mask)
+    apply(simp)
+    apply(subst Word.word_bool_alg.conj.assoc)
+    apply(subst WordLemmaBucket.mask_and_mask)
+    apply(simp)
+    apply(simp add: ucast_mask WordLemmaBucket.ucast_ucast_mask)
+    apply(subst Word.mask_eq_iff)
+    apply(rule order_less_trans)
+     apply(rule Word.uint_lt)
+    apply(simp; fail)
+    done
+   
+   thus ?thesis
+    apply(subst WordLemmaBucket.word_and_mask_shiftl)
+    apply(subst WordLemmaBucket.shiftl_shiftr3)
+     apply(simp; fail)
+    apply(simp)
+    apply(subst WordLemmaBucket.shiftl_shiftr3)
+     apply(simp; fail)
+    apply(simp add: word_size)
+    apply(subst Word.word_bool_alg.conj.assoc)
+    apply assumption
+    done
+  qed
   
 
   (*round trip property two*)
