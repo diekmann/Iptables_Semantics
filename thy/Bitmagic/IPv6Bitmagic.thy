@@ -611,27 +611,96 @@ thm Word.word_bl_Rep'
      fixes b::"16 word"
      shows "((ucast:: 16 word \<Rightarrow> 128 word) b << 96) && (mask 16 << 80) = 0"
     apply(subst Word.ucast_bl)+
-
     apply(subst WordLemmaBucket.word_and_mask_shiftl)
     thm WordLemmaBucket.rshift_sub_mask_eq
     apply(subst WordLemmaBucket.aligned_shiftr_mask_shiftl)
-     apply(simp_all)
-    unfolding is_aligned_def
-    unfolding dvd_def
-    apply(subst Word.shiftl_t2n)
-    thm Word.shiftl_t2n Bool_List_Representation.shiftl_int_def
-    apply(subst Word.unat_word_ariths(2))
-    apply(rule_tac x="2^16 * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) mod 2 ^ len_of TYPE(128)" in exI)
-
-    apply(subst Word_Miscellaneous.nat_mod_eq')
-     apply(simp)
-     apply(subst xxxx)
-     apply(simp; fail)
-    apply(subst Word_Miscellaneous.nat_mod_eq')
-     apply(simp add: xxxxx; fail)
+     subgoal 
+     unfolding is_aligned_def
+     unfolding dvd_def
+     apply(subst Word.shiftl_t2n)
+     thm Word.shiftl_t2n Bool_List_Representation.shiftl_int_def
+     apply(subst Word.unat_word_ariths(2))
+     apply(rule_tac x="2^16 * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) mod 2 ^ len_of TYPE(128)" in exI)
+     apply(subst Word_Miscellaneous.nat_mod_eq')
+      apply(simp)
+      apply(subst xxxx)
+      apply(simp; fail)
+     apply(subst Word_Miscellaneous.nat_mod_eq')
+      apply(simp add: xxxxx; fail)
+     apply simp
+     done
+    subgoal
+    thm WordLemmaBucket.shiftl_mask_is_0
     apply simp
     done
+    done
 
+
+   (*TODO: move!*)
+   lemma help_mult: "n \<le> l \<Longrightarrow> 2 ^ n * (x::nat) < 2 ^ l \<longleftrightarrow> 
+          x < 2 ^ (l - n)"
+          by (simp add: nat_mult_power_less_eq semiring_normalization_rules(7))
+
+   lemma yyyy: fixes b::"16 word"
+     shows "n < 128 - 16 \<Longrightarrow> 2 ^ n * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) < 2 ^ len_of TYPE(128)"
+     apply(subst help_mult)
+      apply(simp; fail)
+     apply(rule order_less_trans)
+     thm unat_of_bl_128_16_less_helper
+      apply(rule unat_of_bl_128_16_less_helper)
+     apply(rule Power.linordered_semidom_class.power_strict_increasing)
+      apply(simp_all)
+     done
+
+   lemma help_mult2: "x \<noteq> 0 \<Longrightarrow> a * (x::nat) = b * (c * x) \<longleftrightarrow> a = b * c" by simp
+   lemma yyyyy: fixes b::"16 word"
+     shows "m + 16 \<le> n \<Longrightarrow> (*could remove the +16*)
+     2 ^ n * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) =
+     2 ^ m * (2 ^ (n - m) * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)))"
+     thm help_mult2[of "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b))" "2 ^ n" 
+                       "2 ^ m" "2 ^ (n - m)" ]
+     apply(case_tac "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) = 0")
+      apply(simp; fail)
+     apply(subst help_mult2)
+      apply(simp; fail)
+     apply(simp)
+     apply(subst Power.monoid_mult_class.power_add[symmetric])
+     apply(simp)
+     done
+
+  (*reverse*)
+   lemma 
+     fixes b::"16 word"
+     shows "m + 16 \<le> n \<Longrightarrow> n < 128 - 16 \<Longrightarrow> ((ucast:: 16 word \<Rightarrow> 128 word) b << n) && (mask 16 << m) = 0"
+    apply(subst Word.ucast_bl)+
+    apply(subst WordLemmaBucket.word_and_mask_shiftl)
+    thm WordLemmaBucket.rshift_sub_mask_eq
+    apply(subst WordLemmaBucket.aligned_shiftr_mask_shiftl)
+     subgoal 
+     unfolding is_aligned_def
+     unfolding dvd_def
+     apply(subst Word.shiftl_t2n)
+     thm Word.shiftl_t2n Bool_List_Representation.shiftl_int_def
+     apply(subst Word.unat_word_ariths(2))
+     apply(rule_tac x="2^(n - m) * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) mod 2 ^ len_of TYPE(128)" in exI)
+     apply(subst Word_Miscellaneous.nat_mod_eq')
+      apply(subst Aligned.unat_power_lower)
+       apply(simp; fail)
+      apply(rule yyyy)
+      apply(simp; fail)
+     apply(subst Word_Miscellaneous.nat_mod_eq')
+      apply(rule yyyy)
+      apply(simp; fail)
+     apply(subst Aligned.unat_power_lower)
+      apply(simp; fail)
+     apply(rule yyyyy)
+     apply(simp; fail)
+     done
+    subgoal
+    thm WordLemmaBucket.shiftl_mask_is_0
+    apply simp
+    done
+    oops
 
   (*TODO: round trip property two*)
   lemma "int_to_ipv6preferred (ipv6preferred_to_int ip) = ip"
