@@ -9,7 +9,7 @@ begin
 
 (*TODO: add to l4v bl_to_bin_lt2p*)
 thm Bool_List_Representation.bl_to_bin_lt2p
-lemma bl_to_bin_lt2p_Not: "bl_to_bin bs < (2 ^ length (dropWhile Not bs))"
+lemma bl_to_bin_lt2p_dropNot: "bl_to_bin bs < (2 ^ length (dropWhile Not bs))"
   apply (unfold bl_to_bin_def)
   apply(induction bs)
    apply(simp)
@@ -18,24 +18,24 @@ lemma bl_to_bin_lt2p_Not: "bl_to_bin bs < (2 ^ length (dropWhile Not bs))"
 
 (*TODO: add to l4v uint_of_bl_is_bl_to_bin*)
 thm WordLib.uint_of_bl_is_bl_to_bin
-lemma uint_of_bl_is_bl_to_bin_Not:
+lemma uint_of_bl_is_bl_to_bin_dropNot:
   "length (dropWhile Not l) \<le> len_of TYPE('a) \<Longrightarrow>
    uint ((of_bl::bool list\<Rightarrow> ('a :: len) word) l) = bl_to_bin l"
   apply (simp add: of_bl_def)
   apply (rule word_uint.Abs_inverse)
   apply (simp add: uints_num bl_to_bin_ge0)
   apply (rule order_less_le_trans)
-  apply (rule bl_to_bin_lt2p_Not)
+  apply (rule bl_to_bin_lt2p_dropNot)
   apply(simp)
   done
 
 
 lemma length_takeWhile_Not_replicate_False:
   "length (takeWhile Not (replicate n False @ ls)) = n + length (takeWhile Not ls)"
-  by (metis in_set_replicate length_append length_replicate takeWhile_append2)
+  by(subst takeWhile_append2) simp+
 
 
-lemma length_dropWhile_Not_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs"
+lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs"
  apply(subst Word.word_rep_drop)
  apply(subst List.dropWhile_eq_drop)
  apply(simp)
@@ -54,7 +54,7 @@ lemma length_dropWhile_Not_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> 
     apply(subst WordLib.uint_of_bl_is_bl_to_bin)
      apply(simp; fail)
     apply(subst Word.to_bl_bin)
-    apply(subst uint_of_bl_is_bl_to_bin_Not)
+    apply(subst uint_of_bl_is_bl_to_bin_dropNot)
      apply assumption
      (*using[[unify_trace_failure]]
        apply assumption*)
@@ -77,25 +77,20 @@ lemma length_dropWhile_Not_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> 
          length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) bs)))"
     by(simp add: bl_drop_leading_zeros)
 
-  lemma bl_length_dropNot_bound: "length (dropWhile Not bs) \<le> n \<Longrightarrow>
-    length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) bs))) \<le> n"
-    thm length_dropWhile_Not_bl
-    thm length_dropWhile_Not_bl[of "(dropWhile Not bs)"]
-    apply(subgoal_tac "length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) (dropWhile Not bs)))) \<le> n")
-     prefer 2
+  lemma bl_length_dropNot_bound: assumes "length (dropWhile Not bs) \<le> n"
+    shows "length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) bs))) \<le> n"
+  proof -
+    have *: "length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) bs))) \<le> length (dropWhile Not bs)"
      apply(rule order.trans)
-      apply(rule length_dropWhile_Not_bl[of "(dropWhile Not bs)"])
-     apply blast
-    apply(rule order.trans)
-     prefer 2
-     apply(simp; fail)
-    apply(rule order.trans)
-     prefer 2
-     thm length_dropWhile_Not_bl[of "(dropWhile Not bs)"]
-     apply(rule length_dropWhile_Not_bl[of "(dropWhile Not bs)"])
-    apply(subst bl_length_dropNot_twice)
-    apply fastforce
-    done
+       prefer 2
+       apply(rule length_dropNot_bl)
+      apply(subst bl_length_dropNot_twice)
+      apply fastforce
+      done
+    show ?thesis
+    apply(rule order.trans, rule *)
+    using assms by(simp; fail)
+  qed
 
   (*this one should be even more generic*)
   lemma bl_cast_long_short_long_ingoreLeadingZero_generic:
@@ -107,7 +102,7 @@ lemma length_dropWhile_Not_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> 
     apply(subst WordLib.uint_of_bl_is_bl_to_bin)
      apply(simp; fail)
     apply(subst Word.to_bl_bin)
-    apply(subst uint_of_bl_is_bl_to_bin_Not)
+    apply(subst uint_of_bl_is_bl_to_bin_dropNot)
      apply blast
     apply(simp)
     done
