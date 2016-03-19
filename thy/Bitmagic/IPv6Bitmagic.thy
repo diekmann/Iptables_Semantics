@@ -606,7 +606,7 @@ thm Word.word_bl_Rep'
      apply simp
      done
 
-   (*reverse*)
+   (*(*reverse*)
    lemma helper_masked_ucast_reverse_96_80:
      fixes b::"16 word"
      shows "((ucast:: 16 word \<Rightarrow> 128 word) b << 96) && (mask 16 << 80) = 0"
@@ -633,7 +633,7 @@ thm Word.word_bl_Rep'
     thm WordLemmaBucket.shiftl_mask_is_0
     apply simp
     done
-    done
+    done*)
 
 
    (*TODO: move!*)
@@ -702,34 +702,100 @@ thm Word.word_bl_Rep'
     using is_aligned_mask is_aligned_shiftl by force (*sledgehammer*)
     done
 
-  (*TODO: round trip property two*)
-  lemma "int_to_ipv6preferred (ipv6preferred_to_int ip) = ip"
+
+  (*TODO: generalize next 2, move to l4v?*)
+  lemma ucast16_mask16: "(ucast:: 16 word \<Rightarrow> 128 word) (mask 16) = mask 16"
+  proof -
+     have minus1: "((- 1):: 16 word) = 0xFFFF"
+       by(simp)
+     thus ?thesis
+       apply(simp add: ucast_def)
+       apply(simp add: mask_def minus1)
+       done
+   qed
+   (*lemma ucast_16_128_leq_mask16: "(((ucast:: 16 word \<Rightarrow> 128 word) (b::16 word))::128 word) \<le> mask (len_of TYPE(16))"
+     proof -
+     have ihlp1: "b \<le> mask (len_of TYPE(16))"
+      apply simp
+     have ihlp2: "mask (len_of TYPE(16)) < (2::16 word) ^ len_of TYPE(128)" apply simp 
+     from WordLemmaBucket.ucast_mono_le[OF ihlp1 ihlp2] have 1:
+        "(ucast:: 16 word \<Rightarrow> 128 word) b \<le> (ucast:: 16 word \<Rightarrow> 128 word) (mask (len_of TYPE(16)))" by simp
+     from ucast16_mask16 1 show ?thesis by(simp)
+   qed*)
+
+  lemma "unat a \<le> unat b ==> (a::'a::len word) <= b"
+using word_le_nat_alt by blast 
+
+  (*TODO: move*)
+  lemma unat_of_bl_128_16_leq_helper: "unat ((of_bl:: bool list \<Rightarrow> 128 word) (to_bl (b::16 word))) \<le> 65535"
+  proof -
+    from unat_of_bl_128_16_less_helper[of b] have "unat ((of_bl:: bool list \<Rightarrow> 128 word) (to_bl b)) < 65536" by simp 
+    from Nat.Suc_leI[OF this] 
+    show "unat ((of_bl:: bool list \<Rightarrow> 128 word) ((to_bl:: 16 word \<Rightarrow> bool list) (b::16 word))) \<le> 65535" by simp
+  qed
+
+   lemma helper_masked_ucast_equal_generic:
+     fixes b::"16 word"
+     shows "n \<le> 128 - 16 \<Longrightarrow> ucast (((ucast:: 16 word \<Rightarrow> 128 word) b << n) && (mask 16 << n) >> n) = b"
+    thm WordLemmaBucket.ucast_ucast_mask WordLib.shiftl_shiftr2 WordLemmaBucket.shiftl_shiftr3
+    (*apply(subst Word.ucast_bl)*)
+    apply(subst WordLemmaBucket.word_and_mask_shiftl)
+    apply(subst WordLemmaBucket.shiftl_shiftr3)
+     apply(simp)
+    apply(simp)
+    apply(subst WordLemmaBucket.shiftl_shiftr3)
+     apply(simp)
+    apply(simp add: word_size)
+    apply(subst Word.word_bool_alg.conj.assoc)
+    thm WordLemmaBucket.mask_and_mask
+    apply(subst WordLemmaBucket.mask_and_mask)
+    apply(simp)
+    apply(subst Word.word_bool_alg.conj.assoc)
+    apply(subst WordLemmaBucket.mask_and_mask)
+    apply(simp)
+    apply(subgoal_tac "(ucast:: 16 word \<Rightarrow> 128 word) b && mask 16 = ucast b")
+     apply(simp add: WordLemmaBucket.ucast_ucast_mask)
+     apply(subst Word.mask_eq_iff)
+     apply(rule order_less_trans)
+      apply(rule Word.uint_lt)
+     apply(simp; fail)
+    apply(subst WordLib.and_mask_eq_iff_le_mask)
+    apply(subst Word.ucast_bl)
+    apply(simp add: mask_def)
+    thm Word.word_uint_eqI word_le_nat_alt
+    apply(subst word_le_nat_alt)
+    apply(simp)
+    using unat_of_bl_128_16_leq_helper by simp 
+  
+
+  (*round trip property two*)
+  lemma int_to_ipv6preferred_ipv6preferred_to_int: "int_to_ipv6preferred (ipv6preferred_to_int ip) = ip"
     apply(cases ip, rename_tac a b c d e f g h)
     apply(simp add: ipv6preferred_to_int.simps int_to_ipv6preferred_def)
     apply(simp add: word128_mask112 word128_mask96 word128_mask80 word128_mask64 word128_mask48
                     word128_mask32 word128_mask16 word128_mask0)
     apply(intro conjI)
+    thm helper_masked_ucast_generic[where n=0, simplified]
     apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic )
-    defer
+    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_generic[where n=0, simplified] helper_masked_ucast_equal_generic)
     apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic)
-    defer
+    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic helper_masked_ucast_generic[where n=0, simplified] helper_masked_ucast_equal_generic)
     apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic)
-    defer
+    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic helper_masked_ucast_generic[where n=0, simplified] helper_masked_ucast_equal_generic)
     apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic)
-    defer
+    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic helper_masked_ucast_generic[where n=0, simplified] helper_masked_ucast_equal_generic)
     apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic)
-    defer
+    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic helper_masked_ucast_generic[where n=0, simplified] helper_masked_ucast_equal_generic)
     apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic)
-    defer
+    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic helper_masked_ucast_generic[where n=0, simplified] helper_masked_ucast_equal_generic)
     apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic)
-    oops
+    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic helper_masked_ucast_generic[where n=0, simplified] helper_masked_ucast_equal_generic)
+    (*last goal special case without shift*)
+    apply(subst word_ao_dist)+
+    thm helper_masked_ucast_reverse_generic[where m=0, simplified]
+    thm helper_masked_ucast_equal_generic[where n=0, simplified]
+    apply(simp add: helper_masked_ucast_reverse_generic[where m=0, simplified] helper_masked_ucast_equal_generic[where n=0, simplified])
+    done
 
 
 end
