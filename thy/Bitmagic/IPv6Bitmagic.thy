@@ -669,7 +669,7 @@ thm Word.word_bl_Rep'
      done
 
   (*reverse*)
-   lemma 
+   lemma helper_masked_ucast_reverse_generic:
      fixes b::"16 word"
      shows "m + 16 \<le> n \<Longrightarrow> n < 128 - 16 \<Longrightarrow> ((ucast:: 16 word \<Rightarrow> 128 word) b << n) && (mask 16 << m) = 0"
     apply(subst Word.ucast_bl)+
@@ -699,8 +699,8 @@ thm Word.word_bl_Rep'
     subgoal
     thm WordLemmaBucket.shiftl_mask_is_0
     apply simp
+    using is_aligned_mask is_aligned_shiftl by force (*sledgehammer*)
     done
-    oops
 
   (*TODO: round trip property two*)
   lemma "int_to_ipv6preferred (ipv6preferred_to_int ip) = ip"
