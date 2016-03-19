@@ -267,14 +267,18 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
   lemma ipv6preferred_to_int_int_to_ipv6preferred:
   "ipv6preferred_to_int (int_to_ipv6preferred ip) = ip"
   proof -
+    have ucast_ipv6_piece:
+      "length (dropWhile Not (to_bl w)) \<le> 16 \<Longrightarrow> (ucast::16 word \<Rightarrow> 128 word) ((ucast::128 word \<Rightarrow> 16 word) w) = w"
+      for w::ipv6addr 
+      by(rule ucast_short_ucast_long_ingoreLeadingZero) (simp_all)
+      
     have ucast16_ucast128_masks_highest_bits112:
       "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
              (ip AND 0xFFFF0000000000000000000000000000)"
       apply(subst word128_mask112)+
-      apply(subst ucast_short_ucast_long_ingoreLeadingZero)
-        apply simp_all
+      apply(subst ucast_ipv6_piece)
        apply(rule length_dropNot_mask_inner)
-        apply(simp_all)
+       apply(simp_all)
       apply(simp add: and_mask_shift_helper)
       done
 
@@ -282,10 +286,9 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
       "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF000000000000000000000000 >> 96)) << 96) =
            ip AND 0xFFFF000000000000000000000000"
       apply(subst word128_mask96)+
-      apply(subst ucast_short_ucast_long_ingoreLeadingZero)
-        apply simp_all
+      apply(subst ucast_ipv6_piece)
        apply(rule length_dropNot_mask_inner)
-        apply(simp_all)
+       apply(simp_all)
       apply(simp add: and_mask_shift_helper)
       done
   
@@ -293,10 +296,9 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
       "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF00000000000000000000 >> 80)) << 80) =
            ip AND 0xFFFF00000000000000000000"
       apply(subst word128_mask80)+
-      apply(subst ucast_short_ucast_long_ingoreLeadingZero)
-        apply simp_all
+      apply(subst ucast_ipv6_piece)
        apply(rule length_dropNot_mask_inner)
-        apply(simp_all)
+       apply(simp_all)
       apply(simp add: and_mask_shift_helper)
       done
   
@@ -304,10 +306,9 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
       "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000 >> 64)) << 64) =
            ip AND 0xFFFF0000000000000000"
       apply(subst word128_mask64)+
-      apply(subst ucast_short_ucast_long_ingoreLeadingZero)
-        apply simp_all
+      apply(subst ucast_ipv6_piece)
        apply(rule length_dropNot_mask_inner)
-        apply(simp_all)
+       apply(simp_all)
       apply(simp add: and_mask_shift_helper)
       done
       
@@ -316,10 +317,9 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
       "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF000000000000 >> 48)) << 48) =
            ip AND 0xFFFF000000000000"
       apply(subst word128_mask48)+
-      apply(subst ucast_short_ucast_long_ingoreLeadingZero)
-        apply simp_all
+      apply(subst ucast_ipv6_piece)
        apply(rule length_dropNot_mask_inner)
-        apply(simp_all)
+       apply(simp_all)
       apply(simp add: and_mask_shift_helper)
       done
   
@@ -327,10 +327,9 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
       "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF00000000 >> 32)) << 32) =
            ip AND 0xFFFF00000000"
       apply(subst word128_mask32)+
-      apply(subst ucast_short_ucast_long_ingoreLeadingZero)
-        apply simp_all
+      apply(subst ucast_ipv6_piece)
        apply(rule length_dropNot_mask_inner)
-        apply(simp_all)
+       apply(simp_all)
       apply(simp add: and_mask_shift_helper)
       done
       
@@ -338,10 +337,9 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
       "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000 >> 16)) << 16) =
            ip AND 0xFFFF0000"
       apply(subst word128_mask16)+
-      apply(subst ucast_short_ucast_long_ingoreLeadingZero)
-        apply simp_all
+      apply(subst ucast_ipv6_piece)
        apply(rule length_dropNot_mask_inner)
-        apply(simp_all)
+       apply(simp_all)
       apply(simp add: and_mask_shift_helper)
       done
 
