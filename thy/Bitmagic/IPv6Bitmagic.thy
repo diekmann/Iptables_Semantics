@@ -2,82 +2,9 @@ theory IPv6Bitmagic
 imports IPv6Addr
 begin
 
-  lemma "word_of_int (uint ((word_of_int::int \<Rightarrow> 'b::len0 word) (uint (ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat)))))  = 
-          ((word_of_int::int \<Rightarrow> 'b::len0 word) (uint (ip && (0xFFFF0000000000000000000000000000::128 word) >> (112::nat))))"
-    apply(subst word_of_int_uint)
-    ..
-
-  (*I could also use word_split to extract bits?*)
-  
-  lemma fixes ip::ipv6addr
-    shows  "((ip >> 112) && mask 16) = (ip >> 112)"
-    proof -
-      have "size ip = 128" by( simp add: word_size)
-      with WordLemmaBucket.shiftr_mask_eq[of ip 112] show ?thesis by simp
-    qed
-    
-  lemma "of_bl (to_bl x) = x" by simp
- 
-  value "(slice 112 (0xFFFF0000000000000000000000000000::ipv6addr))::16 word"
-  thm slice_shiftr
-
-  lemma "xx && ~~ mask y >> y = ( (xx && (~~ (mask y))) >> y  )" by simp
-
-  (*fun story: sledgehammer does not find this one!*)
-  lemma mask_16_shiftl112_128word: "((mask 16 << 112)::128 word) = ~~ mask 112"
-    by(simp add: mask_def)
-
-  lemma word128_mask112: "(0xFFFF0000000000000000000000000000::ipv6addr) = (mask 16) << 112"
-    by(simp add: mask_def)
-
-  lemma
-    fixes ip::ipv6addr
-    shows "(ip AND 0xFFFF0000000000000000000000000000 >> 112) = slice 112 ip"
-    apply(subst Word.shiftr_slice[symmetric])
-    apply(subst word128_mask112)
-    apply(subst mask_16_shiftl112_128word)
-    apply(subst WordLemmaBucket.mask_shift)
-    apply simp
-    done
-
-  lemma helpx16: 
-    fixes w::"16 word"
-    shows "uint ((of_bl:: bool list \<Rightarrow> 128 word) (to_bl w)) = uint w"
-    apply(subst WordLib.uint_of_bl_is_bl_to_bin)
-     apply(simp)
-    apply(simp)
-    done
-
-  lemma helpx128:
-    fixes w::"128 word"
-    shows "length (to_bl w) \<le> 16 \<Longrightarrow> 
-           uint ((of_bl:: bool list \<Rightarrow> 16 word) (to_bl (w))) = 
-           uint w "
-    apply(subst WordLib.uint_of_bl_is_bl_to_bin)
-     apply(simp)
-    apply(simp)
-    done
 
   lemma uint_bl_less_length: "uint (of_bl ls) < 2 ^ length ls"
     by (metis bintrunc_bintrunc_min bl_to_bin_lt2p lt2p_lem min_def of_bl_def trunc_bl2bin_len word_ubin.inverse_norm)
-
-  lemma "to_bl (of_bl (False # ls)) = to_bl (of_bl ls)" oops
-
-  value "to_bl ((of_bl [False])::ipv6addr)"
-  lemma "n \<le> 16 \<Longrightarrow> length (to_bl (of_bl (take n ls))) \<le> 16"
-    apply(simp)
-    oops
-
-(*copy of lemma (*uint_of_bl_is_bl_to_bin: l4v WordLib*)
-  "length l\<le>len_of TYPE('a) \<Longrightarrow>
-   uint ((of_bl::bool list\<Rightarrow> ('a :: len) word) l) = bl_to_bin l"
-  apply (simp add: of_bl_def)
-  apply (rule word_uint.Abs_inverse)
-  apply (simp add: uints_num bl_to_bin_ge0)
-  apply (rule order_less_le_trans, rule bl_to_bin_lt2p)
-  apply (rule order_trans, erule power_increasing)
-   apply simp_all
-  done*)
 
 
 (*TODO: add to l4v bl_to_bin_lt2p*)
@@ -265,6 +192,10 @@ thm Word.word_bl_Rep'
      qed
 
 
+
+  lemma word128_mask112: "(0xFFFF0000000000000000000000000000::ipv6addr) = (mask 16) << 112"
+    by(simp add: mask_def)
+
   lemma ucast16_ucast128_masks_highest_bits112:
     fixes ip::ipv6addr
     shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
@@ -277,28 +208,6 @@ thm Word.word_bl_Rep'
       apply(simp_all)
     apply(simp add: and_mask_shift_helper)
     done
-
-    (*old working proof:
-    apply(subst word128_mask112)
-    apply(subst mask_16_shiftl112_128word)
-    apply(subst WordLemmaBucket.mask_shift)
-    apply(subst Word.ucast_bl)+
-    apply(subst Word.shiftl_bl)
-    apply(simp)
-    apply(subst word128_mask112)+
-    apply(subst WordLemmaBucket.word_and_mask_shiftl)+
-    apply(subst xxx)+
-    apply(subst Word.shiftr_bl)
-    apply(subst Word.shiftl_bl)
-    apply simp
-    apply(subst Word.of_bl_append)+
-    apply simp
-    apply(subst Word.shiftr_bl)
-    apply(simp)
-    thm yaaaaaaaaaaaaaaaayaiohhgoo
-    apply(subst yaaaaaaaaaaaaaaaayaiohhgoo)
-     apply simp_all
-    done*)
 
 
   lemma word128_mask96: "(0xFFFF000000000000000000000000::ipv6addr) = (mask 16) << 96"
@@ -567,24 +476,6 @@ thm Word.word_bl_Rep'
      apply(simp)
     done
 
-   (*lemma helpx: "(2::nat) ^ 80 * ((2 ^ 16 mod 2 ^ 128 * n) mod 2 ^ 128) = 
-    2 ^ 96 * (n mod 2 ^ 128)" 
-    apply(simp)
-    apply(subst Divides.semiring_div_class.mod_mult_left_eq)
-    apply simp
-    oops
-   lemma  "a = b \<Longrightarrow> a mod x = b mod x" by simp
-   lemma "(a::nat) * (b * c) = (a * b) * c"
-    by (fact Semiring_Normalization.comm_semiring_1_class.semiring_normalization_rules(18))
-
-   lemma power280helper: "(2::nat) ^ 80 = 2 ^ 80 mod 2 ^ len_of TYPE(128)" by auto
-   lemma "w < c \<Longrightarrow> b * w < c \<Longrightarrow> 
-    (a::nat) * (b * w mod c) = (a * b) * (w mod c)"
-      apply(subst Word_Miscellaneous.nat_mod_eq')
-       apply(simp)
-      apply(subst Word_Miscellaneous.nat_mod_eq')
-       apply simp_all
-      done*)
 
    lemma  unat_of_bl_128_16_less_helper:
      fixes b::"16 word"
@@ -606,34 +497,6 @@ thm Word.word_bl_Rep'
      apply simp
      done
 
-   (*(*reverse*)
-   lemma helper_masked_ucast_reverse_96_80:
-     fixes b::"16 word"
-     shows "((ucast:: 16 word \<Rightarrow> 128 word) b << 96) && (mask 16 << 80) = 0"
-    apply(subst Word.ucast_bl)+
-    apply(subst WordLemmaBucket.word_and_mask_shiftl)
-    thm WordLemmaBucket.rshift_sub_mask_eq
-    apply(subst WordLemmaBucket.aligned_shiftr_mask_shiftl)
-     subgoal 
-     unfolding is_aligned_def
-     unfolding dvd_def
-     apply(subst Word.shiftl_t2n)
-     thm Word.shiftl_t2n Bool_List_Representation.shiftl_int_def
-     apply(subst Word.unat_word_ariths(2))
-     apply(rule_tac x="2^16 * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) mod 2 ^ len_of TYPE(128)" in exI)
-     apply(subst Word_Miscellaneous.nat_mod_eq')
-      apply(simp)
-      apply(subst xxxx)
-      apply(simp; fail)
-     apply(subst Word_Miscellaneous.nat_mod_eq')
-      apply(simp add: xxxxx; fail)
-     apply simp
-     done
-    subgoal
-    thm WordLemmaBucket.shiftl_mask_is_0
-    apply simp
-    done
-    done*)
 
 
    (*TODO: move!*)
@@ -713,18 +576,7 @@ thm Word.word_bl_Rep'
        apply(simp add: mask_def minus1)
        done
    qed
-   (*lemma ucast_16_128_leq_mask16: "(((ucast:: 16 word \<Rightarrow> 128 word) (b::16 word))::128 word) \<le> mask (len_of TYPE(16))"
-     proof -
-     have ihlp1: "b \<le> mask (len_of TYPE(16))"
-      apply simp
-     have ihlp2: "mask (len_of TYPE(16)) < (2::16 word) ^ len_of TYPE(128)" apply simp 
-     from WordLemmaBucket.ucast_mono_le[OF ihlp1 ihlp2] have 1:
-        "(ucast:: 16 word \<Rightarrow> 128 word) b \<le> (ucast:: 16 word \<Rightarrow> 128 word) (mask (len_of TYPE(16)))" by simp
-     from ucast16_mask16 1 show ?thesis by(simp)
-   qed*)
 
-  lemma "unat a \<le> unat b ==> (a::'a::len word) <= b"
-using word_le_nat_alt by blast 
 
   (*TODO: move*)
   lemma unat_of_bl_128_16_leq_helper: "unat ((of_bl:: bool list \<Rightarrow> 128 word) (to_bl (b::16 word))) \<le> 65535"
