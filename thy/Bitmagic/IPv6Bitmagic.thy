@@ -587,7 +587,7 @@ thm Word.word_bl_Rep'
 
    lemma helper_masked_ucast_equal_generic:
      fixes b::"16 word"
-     assumes "n \<le> 128 -16"
+     assumes "n \<le> 128 - 16"
      shows "ucast (((ucast:: 16 word \<Rightarrow> 128 word) b << n) && (mask 16 << n) >> n) = b"
    proof -
    have ucast_mask: "(ucast:: 16 word \<Rightarrow> 128 word) b && mask 16 = ucast b" 
