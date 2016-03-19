@@ -111,6 +111,17 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     apply(simp)
     done
 
+  (*TODO: ucast version is better?*)
+  (*TODO: can I use this?*)
+  corollary ucast_short_ucast_long_ingoreLeadingZero:
+  "length (dropWhile Not (to_bl w)) \<le> len_of TYPE('s) \<Longrightarrow>
+   len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
+    (ucast:: 's::len word \<Rightarrow> 'l::len word) ((ucast:: 'l::len word \<Rightarrow> 's::len word) w) = w"
+    apply(subst Word.ucast_bl)+
+    apply(rule bl_cast_long_short_long_ingoreLeadingZero_generic)
+     apply(simp_all)
+    done
+
   (*
   corollary bl_cast_long_short_long_ingoreLeadingZero: 
   "length (dropWhile Not ls) \<le> len_of TYPE('s) \<Longrightarrow>
