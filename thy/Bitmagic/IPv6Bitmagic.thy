@@ -72,27 +72,31 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
          (of_bl:: bool list \<Rightarrow> 'a::len word) bs"
   by(induction bs) simp_all
 
-  lemma bl_length_dropNot_twice: 
-        "length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) (dropWhile Not bs)))) =
-         length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) bs)))"
-    by(simp add: bl_drop_leading_zeros)
 
   lemma bl_length_dropNot_bound: assumes "length (dropWhile Not bs) \<le> n"
     shows "length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) bs))) \<le> n"
   proof -
+    have bl_length_dropNot_twice: 
+        "length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) (dropWhile Not bs)))) =
+         length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) bs)))"
+      by(simp add: bl_drop_leading_zeros)
+    from length_dropNot_bl
     have *: "length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) bs))) \<le> length (dropWhile Not bs)"
-     apply(rule order.trans)
-       prefer 2
-       apply(rule length_dropNot_bl)
-      apply(subst bl_length_dropNot_twice)
-      apply fastforce
-      done
+     apply(rule dual_order.trans)
+     apply(subst bl_length_dropNot_twice)
+     ..
     show ?thesis
     apply(rule order.trans, rule *)
-    using assms by(simp; fail)
+    using assms by(simp)
   qed
 
-  (*this one should be even more generic*)
+  (*TODO: add to l4v*)
+  (*taking only the high-order bits from a bitlist, casting to a longer word and casting back to
+    a shorter type, casting to to longer type again is equal to just taking the bits and casting to
+    the longer type.
+    'l is the longer word. E.g. 128 bit
+    's is the shorter word. E.g. 16 bit
+  *)
   lemma bl_cast_long_short_long_ingoreLeadingZero_generic:
   "length (dropWhile Not (to_bl w)) \<le> len_of TYPE('s) \<Longrightarrow>
    len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
@@ -107,7 +111,8 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     apply(simp)
     done
 
-  lemma bl_cast_long_short_long_ingoreLeadingZero: 
+  (*
+  corollary bl_cast_long_short_long_ingoreLeadingZero: 
   "length (dropWhile Not ls) \<le> len_of TYPE('s) \<Longrightarrow>
    len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
     of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) 
@@ -118,14 +123,9 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
      apply blast
     apply(simp)
     done
-
-  (*TODO: add to l4v*)
-  (*taking only the high-order bits from a bitlist, casting to a longer word and casting back to
-    a shorter type, casting to to longer type again is equal to just taking the bits and casting to
-    the longer type.
-    'l is the longer word. E.g. 128 bit
-    's is the shorter word. E.g. 16 bit
   *)
+
+  (*
   corollary bl_cast_long_short_long_take:
   "n \<le> len_of TYPE('s) \<Longrightarrow> len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
     of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) 
@@ -137,7 +137,7 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
         by (metis (no_types) length_dropWhile_le length_take)
       then show "length (dropWhile Not (take n ls)) \<le> len_of (TYPE('s)::'s itself)"
         using 1(1) by linarith
-    qed(simp)
+    qed(simp)*)
     
 
   (*TODO: to l4v!*)
@@ -180,7 +180,8 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
        have "\<And>w n wa. ((w::'a::len word) && ~~ mask n) && (wa << n) = (w >> n) && wa << n"
          by (simp add: and_not_mask shiftl_over_and_dist)
        then show "ip && (mask m << n) >> n << n = ip && (mask m << n)"
-         using f1 by (metis (no_types) and_not_mask word_and_mask_shiftl word_bw_comms(1))
+        by (simp add: is_aligned_mask is_aligned_shiftr_shiftl word_bool_alg.conj.assoc)
+        (*using f1 by (metis (no_types) and_not_mask word_and_mask_shiftl word_bw_comms(1))*)
      qed
 
 
@@ -335,18 +336,6 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
   lemma mask_len_word: fixes w::"'a::len word"
     shows "n = (len_of TYPE('a)) \<Longrightarrow> w AND mask n = w"
     by (simp add: mask_eq_iff) 
-
-  lemma m48help: "(mask 4 << 4) || mask 4 = mask 8" by(simp add: mask_def)
-
-  lemma fixes w::"8 word"
-    shows "(w AND (mask 4 << 4)) || (w AND mask 4) = w"
-  apply (subst word_oa_dist)
-  apply simp
-  apply (subst word_oa_dist2)
-  apply(subst m48help)
-  apply(simp add: mask_len_word)
-  done
-
   
   lemma mask128: "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF = mask 128"
     by(simp add: mask_def)
