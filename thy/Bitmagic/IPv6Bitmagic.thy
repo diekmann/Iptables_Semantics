@@ -710,25 +710,25 @@ thm Word.word_bl_Rep'
                     word128_mask32 word128_mask16 word128_mask0)
     apply(intro conjI)
     apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic)
+    apply(simp add: helper_masked_ucast_generic )
     defer
     apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic)
+    apply(simp add: helper_masked_ucast_generic )
     defer
     apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_96_80)
+    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic)
     defer
     apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic)
+    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic)
     defer
     apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic)
+    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic)
     defer
     apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic)
+    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic)
     defer
     apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic)
+    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic)
     oops
 
 
