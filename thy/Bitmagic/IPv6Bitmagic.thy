@@ -2,10 +2,10 @@ theory IPv6Bitmagic
 imports IPv6Addr
 begin
 
-
+(*
   lemma uint_bl_less_length: "uint (of_bl ls) < 2 ^ length ls"
     by (metis bintrunc_bintrunc_min bl_to_bin_lt2p lt2p_lem min_def of_bl_def trunc_bl2bin_len word_ubin.inverse_norm)
-
+*)
 
 (*TODO: add to l4v bl_to_bin_lt2p*)
 thm Bool_List_Representation.bl_to_bin_lt2p
@@ -42,8 +42,6 @@ lemma length_dropWhile_Not_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> 
  apply(subst length_takeWhile_Not_replicate_False)
  apply(simp)
  done
- 
-thm Word.word_bl_Rep'
   
 
   lemma 
