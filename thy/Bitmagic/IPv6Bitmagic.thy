@@ -204,9 +204,8 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     fixes ip::ipv6addr
     shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
            (ip AND 0xFFFF0000000000000000000000000000)"
-    apply(subst Word.ucast_bl)+
     apply(subst word128_mask112)+
-    apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
+    apply(subst ucast_short_ucast_long_ingoreLeadingZero)
       apply simp_all
      apply(rule length_dropNot_mask_inner)
       apply(simp_all)
@@ -221,11 +220,9 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     fixes ip::ipv6addr
     shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF000000000000000000000000 >> 96)) << 96) =
          ip AND 0xFFFF000000000000000000000000"
-    apply(subst word128_mask96)
-    apply(subst Word.ucast_bl)+
     apply(subst word128_mask96)+
     thm bl_cast_long_short_long_ingoreLeadingZero_generic
-    apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
+    apply(subst ucast_short_ucast_long_ingoreLeadingZero)
       apply simp_all
      apply(rule length_dropNot_mask_inner)
       apply(simp_all)
@@ -241,10 +238,8 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF00000000000000000000 >> 80)) << 80) =
          ip AND 0xFFFF00000000000000000000"
     apply(subst word128_mask80)
-    apply(subst Word.ucast_bl)+
     apply(subst word128_mask80)+
-    thm bl_cast_long_short_long_ingoreLeadingZero_generic
-    apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
+    apply(subst ucast_short_ucast_long_ingoreLeadingZero)
       apply simp_all
      apply(rule length_dropNot_mask_inner)
       apply(simp_all)
@@ -259,9 +254,8 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     fixes ip::ipv6addr
     shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000 >> 64)) << 64) =
          ip AND 0xFFFF0000000000000000"
-    apply(subst Word.ucast_bl)+
     apply(subst word128_mask64)+
-    apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
+    apply(subst ucast_short_ucast_long_ingoreLeadingZero)
       apply simp_all
      apply(rule length_dropNot_mask_inner)
       apply(simp_all)
@@ -276,9 +270,8 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     fixes ip::ipv6addr
     shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF000000000000 >> 48)) << 48) =
          ip AND 0xFFFF000000000000"
-    apply(subst Word.ucast_bl)+
     apply(subst word128_mask48)+
-    apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
+    apply(subst ucast_short_ucast_long_ingoreLeadingZero)
       apply simp_all
      apply(rule length_dropNot_mask_inner)
       apply(simp_all)
@@ -293,9 +286,8 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     fixes ip::ipv6addr
     shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF00000000 >> 32)) << 32) =
          ip AND 0xFFFF00000000"
-    apply(subst Word.ucast_bl)+
     apply(subst word128_mask32)+
-    apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
+    apply(subst ucast_short_ucast_long_ingoreLeadingZero)
       apply simp_all
      apply(rule length_dropNot_mask_inner)
       apply(simp_all)
@@ -312,9 +304,8 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     fixes ip::ipv6addr
     shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000 >> 16)) << 16) =
          ip AND 0xFFFF0000"
-    apply(subst Word.ucast_bl)+
     apply(subst word128_mask16)+
-    apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
+    apply(subst ucast_short_ucast_long_ingoreLeadingZero)
       apply simp_all
      apply(rule length_dropNot_mask_inner)
       apply(simp_all)
@@ -330,9 +321,8 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     fixes ip::ipv6addr
     shows "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF))) =
          ip AND 0xFFFF"
-    apply(subst Word.ucast_bl)+
     apply(subst word128_mask0)+
-    apply(subst bl_cast_long_short_long_ingoreLeadingZero_generic)
+    apply(subst ucast_short_ucast_long_ingoreLeadingZero)
       apply simp_all
     by (simp add: length_dropNot_mask)
 
