@@ -421,21 +421,21 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
       apply(simp_all)
      done
 
-   lemma help_mult2: "x \<noteq> 0 \<Longrightarrow> a * (x::nat) = b * (c * x) \<longleftrightarrow> a = b * c" by simp
    lemma yyyyy: fixes b::"16 word"
-     shows "m + 16 \<le> n \<Longrightarrow> (*could remove the +16*)
-     2 ^ n * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) =
-     2 ^ m * (2 ^ (n - m) * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)))"
-     thm help_mult2[of "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b))" "2 ^ n" 
-                       "2 ^ m" "2 ^ (n - m)" ]
-     apply(case_tac "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) = 0")
-      apply(simp; fail)
-     apply(subst help_mult2)
-      apply(simp; fail)
-     apply(simp)
+    assumes "m + 16 \<le> n" (*could remove the +16*)
+    shows "2 ^ n * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) =
+           2 ^ m * (2 ^ (n - m) * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)))"
+   proof(cases "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) = 0")
+   case True thus ?thesis by simp
+   next
+   case False
+    have help_mult2: "x \<noteq> 0 \<Longrightarrow> a * (x::nat) = b * (c * x) \<longleftrightarrow> a = b * c" for x a b c by simp
+    from assms show ?thesis
+     apply(subst help_mult2[OF False])
      apply(subst Power.monoid_mult_class.power_add[symmetric])
      apply(simp)
      done
+   qed
 
   (*reverse*)
    lemma helper_masked_ucast_reverse_generic:
