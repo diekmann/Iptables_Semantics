@@ -200,28 +200,22 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
 
   lemma mask128: "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF = mask 128"
     by(simp add: mask_def)
-  lemma word128_mask112: "(0xFFFF0000000000000000000000000000::ipv6addr) = (mask 16) << 112"
-    by(simp add: mask_def)
-  lemma word128_mask96: "(0xFFFF000000000000000000000000::ipv6addr) = (mask 16) << 96"
-    by(simp add: mask_def)
-  lemma word128_mask80: "(0xFFFF00000000000000000000::ipv6addr) = (mask 16) << 80"
-    by(simp add: mask_def)
-  lemma word128_mask64: "(0xFFFF0000000000000000::ipv6addr) = (mask 16) << 64"
-    by(simp add: mask_def)
-  lemma word128_mask48: "(0xFFFF000000000000::ipv6addr) = (mask 16) << 48"
-    by(simp add: mask_def)
-  lemma word128_mask32: "(0xFFFF00000000::ipv6addr) = (mask 16) << 32"
-    by(simp add: mask_def)
-  lemma word128_mask16: "(0xFFFF0000::ipv6addr) = (mask 16) << 16"
-    by(simp add: mask_def)
-  lemma word128_mask0: "(0xFFFF::ipv6addr) = (mask 16)"
-    by(simp add: mask_def)
+  lemma word128_masks_ipv6pieces:
+    "(0xFFFF0000000000000000000000000000::ipv6addr) = (mask 16) << 112"
+    "(0xFFFF000000000000000000000000::ipv6addr) = (mask 16) << 96"
+    "(0xFFFF00000000000000000000::ipv6addr) = (mask 16) << 80"
+    "(0xFFFF0000000000000000::ipv6addr) = (mask 16) << 64"
+    "(0xFFFF000000000000::ipv6addr) = (mask 16) << 48"
+    "(0xFFFF00000000::ipv6addr) = (mask 16) << 32"
+    "(0xFFFF0000::ipv6addr) = (mask 16) << 16"
+    "(0xFFFF::ipv6addr) = (mask 16)"
+    by(simp add: mask_def)+
 
 
 
   text{*Correctness: round trip property one*}
   lemma ipv6preferred_to_int_int_to_ipv6preferred:
-  "ipv6preferred_to_int (int_to_ipv6preferred ip) = ip"
+    "ipv6preferred_to_int (int_to_ipv6preferred ip) = ip"
   proof -
     have and_mask_shift_helper: "w AND (mask m << n) >> n << n = w AND (mask m << n)"
       for m n::nat and w::ipv6addr
@@ -248,9 +242,6 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
       apply simp
       done
 
-    note word128_mask = word128_mask112 word128_mask96 word128_mask80 word128_mask64 word128_mask48
-                        word128_mask32 word128_mask16 word128_mask0
-
     have ucast16_ucast128_masks_highest_bits:
       "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
              (ip AND 0xFFFF0000000000000000000000000000)"
@@ -266,11 +257,11 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
            ip AND 0xFFFF00000000"
       "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000 >> 16)) << 16) =
            ip AND 0xFFFF0000"
-      by((subst word128_mask)+, subst ucast_ipv6_piece, simp_all)+
+      by((subst word128_masks_ipv6pieces)+, subst ucast_ipv6_piece, simp_all)+
 
     have ucast16_ucast128_masks_highest_bits0: 
       "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF))) = ip AND 0xFFFF"
-      apply(subst word128_mask0)+
+      apply(subst word128_masks_ipv6pieces)+
       apply(subst ucast_short_ucast_long_ingoreLeadingZero)
         apply simp_all
       by (simp add: length_dropNot_mask)
@@ -295,7 +286,7 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     show ?thesis
       apply(simp add: ipv6preferred_to_int.simps int_to_ipv6preferred_def)
       apply(simp add: ucast16_ucast128_masks_highest_bits ucast16_ucast128_masks_highest_bits0)
-      apply(simp add: word128_mask word128_mask0)
+      apply(simp add: word128_masks_ipv6pieces)
       apply(rule ipv6addr_16word_pieces_compose_or)
       done
   qed
@@ -544,32 +535,19 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
 
   (*round trip property two*)
   lemma int_to_ipv6preferred_ipv6preferred_to_int: "int_to_ipv6preferred (ipv6preferred_to_int ip) = ip"
+  proof -
+    note ucast_shift_simps=helper_masked_ucast_generic helper_masked_ucast_reverse_generic
+                           helper_masked_ucast_generic[where n=0, simplified]
+                           helper_masked_ucast_equal_generic 
+    note ucast_simps=helper_masked_ucast_reverse_generic[where m=0, simplified]
+                     helper_masked_ucast_equal_generic[where n=0, simplified]
+    show ?thesis
     apply(cases ip, rename_tac a b c d e f g h)
     apply(simp add: ipv6preferred_to_int.simps int_to_ipv6preferred_def)
-    apply(simp add: word128_mask112 word128_mask96 word128_mask80 word128_mask64 word128_mask48
-                    word128_mask32 word128_mask16 word128_mask0)
-    apply(intro conjI)
-    thm helper_masked_ucast_generic[where n=0, simplified]
-    apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_generic[where n=0, simplified] helper_masked_ucast_equal_generic)
-    apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic helper_masked_ucast_generic[where n=0, simplified] helper_masked_ucast_equal_generic)
-    apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic helper_masked_ucast_generic[where n=0, simplified] helper_masked_ucast_equal_generic)
-    apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic helper_masked_ucast_generic[where n=0, simplified] helper_masked_ucast_equal_generic)
-    apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic helper_masked_ucast_generic[where n=0, simplified] helper_masked_ucast_equal_generic)
-    apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic helper_masked_ucast_generic[where n=0, simplified] helper_masked_ucast_equal_generic)
-    apply(subst word_ao_dist)+
-    apply(simp add: helper_masked_ucast_generic helper_masked_ucast_reverse_generic helper_masked_ucast_generic[where n=0, simplified] helper_masked_ucast_equal_generic)
-    (*last goal special case without shift*)
-    apply(subst word_ao_dist)+
-    thm helper_masked_ucast_reverse_generic[where m=0, simplified]
-    thm helper_masked_ucast_equal_generic[where n=0, simplified]
-    apply(simp add: helper_masked_ucast_reverse_generic[where m=0, simplified] helper_masked_ucast_equal_generic[where n=0, simplified])
+    apply(simp add: word128_masks_ipv6pieces)
+    apply(simp add: word_ao_dist ucast_shift_simps ucast_simps)
     done
+  qed
 
 
 end
