@@ -320,39 +320,33 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     apply(simp)
     done
 
-  (*TODO: tune proof*)
-  lemma power_2_16_nat: "(16::nat) \<le> n \<Longrightarrow> (65535::nat) < 2 ^ n"
-  proof -
-    assume a: "(16::nat) \<le> n"
-    have power2_rule: "a \<le> b \<Longrightarrow> (2::nat)^a \<le> 2 ^ b" for a b by fastforce
-    show ?thesis
-     apply(subgoal_tac "65536 \<le> 2 ^ n")
-      apply(subst Nat.less_eq_Suc_le)
-      apply(simp; fail)
-     apply(subgoal_tac "(65536::nat) = 2^16")
-      prefer 2
-      apply(simp; fail)
-     using power2_rule a by presburger
-   qed
     
-  (*TODO: tune! ! ! !*)
-  lemma xxx: "65536 = unat (65536::128 word)" by auto
   lemma mnhelper: fixes x::"128 word"
-    shows "n + 16 \<le> m \<Longrightarrow> m < 128 \<Longrightarrow> x < 0x10000 \<Longrightarrow> 16 \<le> m - n \<Longrightarrow> x < 2 ^ (m - n)"
-    thm word_le_nat_alt
-    apply(subst word_less_nat_alt)
-    apply(simp)
-    apply(subgoal_tac "unat x < 2^16")
-     prefer 2
-     apply simp
-     defer
-    apply(rule_tac b=65535 in Orderings.order_class.order.strict_trans1)
-     apply(simp_all)
-     using power_2_16_nat apply blast
-    apply(subst xxx)
-    apply(rule Word.unat_mono)
-    apply(simp)
-    done
+    assumes "m < 128" "x < 0x10000" "16 \<le> m - n"
+    shows "x < 2 ^ (m - n)"
+  proof -
+    have power_2_16_nat: "(16::nat) \<le> n \<Longrightarrow> (65535::nat) < 2 ^ n" if a:"16 \<le> n"for n
+    proof -
+      have power2_rule: "a \<le> b \<Longrightarrow> (2::nat)^a \<le> 2 ^ b" for a b by fastforce
+      show ?thesis
+       apply(subgoal_tac "65536 \<le> 2 ^ n")
+        apply(subst Nat.less_eq_Suc_le)
+        apply(simp; fail)
+       apply(subgoal_tac "(65536::nat) = 2^16")
+        prefer 2
+        apply(simp; fail)
+       using power2_rule \<open>16 \<le> n\<close> by presburger
+    qed
+    have "65536 = unat (65536::128 word)" by auto
+    moreover from assms(2) have "unat x <  unat (65536::128 word)" by(rule Word.unat_mono)
+    ultimately have x: "unat x < 65536" by simp
+    with assms(3) have "unat x < 2 ^ (m - n)" 
+      apply(rule_tac b=65535 in Orderings.order_class.order.strict_trans1)
+       apply(simp_all)
+       using power_2_16_nat apply blast
+      done
+    with assms(1) show ?thesis by(subst word_less_nat_alt) simp
+  qed
 
    (*n small, m large*)
    lemma helper_masked_ucast_generic:
@@ -478,8 +472,6 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     using is_aligned_mask is_aligned_shiftl by force (*sledgehammer*)
     done
 
-
-  (*TODO: generalize next 2, move to l4v?*)
   lemma ucast16_mask16: "(ucast:: 16 word \<Rightarrow> 128 word) (mask 16) = mask 16"
   proof -
      have minus1: "((- 1):: 16 word) = 0xFFFF"
