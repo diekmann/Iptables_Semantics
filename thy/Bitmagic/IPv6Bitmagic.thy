@@ -272,31 +272,27 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
       for w::ipv6addr 
       by(rule ucast_short_ucast_long_ingoreLeadingZero) (simp_all)
     have ucast_ipv6_piece: "16 \<le> 128 - n \<Longrightarrow> 
-      (ucast::16 word \<Rightarrow> 128 word) ((ucast::128 word \<Rightarrow> 16 word) (w && (mask 16 << n) >> n)) = (w && (mask 16 << n) >> n)"
+      (ucast::16 word \<Rightarrow> 128 word) ((ucast::128 word \<Rightarrow> 16 word) (w AND (mask 16 << n) >> n)) << n = w AND (mask 16 << n)"
       for w::ipv6addr and n::nat
       apply(subst ucast_ipv6_piece_rule)
        apply(rule length_dropNot_mask_inner)
-       apply(simp_all)
+       apply(simp; fail)
+      apply(subst and_mask_shift_helper)
+      apply simp
       done
     
-    (*TODO: generic rule that solves all the following should be easy*)
     have ucast16_ucast128_masks_highest_bits112:
       "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
              (ip AND 0xFFFF0000000000000000000000000000)"
       apply(subst word128_mask112)+
       apply(subst ucast_ipv6_piece)
        apply(simp_all)
-      apply(simp add: and_mask_shift_helper)
       done
 
     have ucast16_ucast128_masks_highest_bits96:
       "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF000000000000000000000000 >> 96)) << 96) =
            ip AND 0xFFFF000000000000000000000000"
-      apply(subst word128_mask96)+
-      apply(subst ucast_ipv6_piece)
-       apply(simp_all)
-      apply(simp add: and_mask_shift_helper)
-      done
+      by((subst word128_mask96)+, subst ucast_ipv6_piece) simp+
   
     have ucast16_ucast128_masks_highest_bits80:
       "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF00000000000000000000 >> 80)) << 80) =
@@ -304,7 +300,6 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
       apply(subst word128_mask80)+
       apply(subst ucast_ipv6_piece)
        apply(simp_all)
-      apply(simp add: and_mask_shift_helper)
       done
   
     have ucast16_ucast128_masks_highest_bits64: 
@@ -313,17 +308,14 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
       apply(subst word128_mask64)+
       apply(subst ucast_ipv6_piece)
        apply(simp_all)
-      apply(simp add: and_mask_shift_helper)
       done
-      
-  
+    
     have ucast16_ucast128_masks_highest_bits48: 
       "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF000000000000 >> 48)) << 48) =
            ip AND 0xFFFF000000000000"
       apply(subst word128_mask48)+
       apply(subst ucast_ipv6_piece)
        apply(simp_all)
-      apply(simp add: and_mask_shift_helper)
       done
   
     have ucast16_ucast128_masks_highest_bits32: 
@@ -332,7 +324,6 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
       apply(subst word128_mask32)+
       apply(subst ucast_ipv6_piece)
        apply(simp_all)
-      apply(simp add: and_mask_shift_helper)
       done
       
     have ucast16_ucast128_masks_highest_bits16: 
@@ -341,20 +332,18 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
       apply(subst word128_mask16)+
       apply(subst ucast_ipv6_piece)
        apply(simp_all)
-      apply(simp add: and_mask_shift_helper)
       done
 
-
     show ?thesis
-    apply(simp add: ipv6preferred_to_int.simps int_to_ipv6preferred_def)
-    apply(simp add: ucast16_ucast128_masks_highest_bits112 ucast16_ucast128_masks_highest_bits96
-                    ucast16_ucast128_masks_highest_bits80 ucast16_ucast128_masks_highest_bits64
-                    ucast16_ucast128_masks_highest_bits48 ucast16_ucast128_masks_highest_bits32
-                    ucast16_ucast128_masks_highest_bits16 ucast16_ucast128_masks_highest_bits0)
-    apply(simp add: word128_mask112 word128_mask96 word128_mask80 word128_mask64 word128_mask48
-                    word128_mask32 word128_mask16 word128_mask0)
-    apply(rule ipv6addr_16word_pieces_compose_or)
-    done
+      apply(simp add: ipv6preferred_to_int.simps int_to_ipv6preferred_def)
+      apply(simp add: ucast16_ucast128_masks_highest_bits112 ucast16_ucast128_masks_highest_bits96
+                      ucast16_ucast128_masks_highest_bits80 ucast16_ucast128_masks_highest_bits64
+                      ucast16_ucast128_masks_highest_bits48 ucast16_ucast128_masks_highest_bits32
+                      ucast16_ucast128_masks_highest_bits16 ucast16_ucast128_masks_highest_bits0)
+      apply(simp add: word128_mask112 word128_mask96 word128_mask80 word128_mask64 word128_mask48
+                      word128_mask32 word128_mask16 word128_mask0)
+      apply(rule ipv6addr_16word_pieces_compose_or)
+      done
   qed
 
 
