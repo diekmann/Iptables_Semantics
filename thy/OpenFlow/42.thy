@@ -8,12 +8,12 @@ imports
 	"../Routing/LinuxRouter"
 begin
 
-fun filter_nones where
+primrec filter_nones where
 "filter_nones [] = []" |
 "filter_nones (s#ss) = (case s of None \<Rightarrow> [] | Some s \<Rightarrow> [s]) @ filter_nones ss"
 
 lemma set_filter_nones: "k \<in> set (filter_nones ko) = (Some k \<in> set ko)"
-	by(induction ko rule: filter_nones.induct) auto
+	by(induction ko) auto
 lemma set_filter_nones_simp: "set (filter_nones ko) = {k. Some k \<in> set ko}"
 	using set_filter_nones by fast
 lemma filter_nones_filter_map[code_unfold]: "filter_nones x = map the (filter (op \<noteq> None)  x)"
@@ -50,7 +50,7 @@ definition "route2match r =
 
 definition "simple_rule_and a r \<equiv> option_map (\<lambda>k. SimpleRule k (action_sel r)) (simple_match_and a (match_sel r))"
 
-fun simple_match_list_and :: "simple_match \<Rightarrow> simple_rule list \<Rightarrow> simple_rule list" where
+primrec simple_match_list_and :: "simple_match \<Rightarrow> simple_rule list \<Rightarrow> simple_rule list" where
 "simple_match_list_and _ [] = []" |
 "simple_match_list_and cr (m#ms) = filter_nones [simple_rule_and cr m] @ simple_match_list_and cr ms"
 
@@ -344,7 +344,7 @@ proof -
     qed
 qed*)
 
-fun annotate_rlen where
+primrec annotate_rlen where
 "annotate_rlen [] = []" |
 "annotate_rlen (a#as) = (length as, a) # annotate_rlen as"
 value "annotate_rlen ''asdf''"
@@ -359,7 +359,7 @@ lemma distinct_fst_annotate_rlen: "distinct (map fst (annotate_rlen l))"
 lemma distinct_annotate_rlen: "distinct (annotate_rlen l)"
 	using distinct_fst_annotate_rlen unfolding distinct_map by blast
 
-fun annotate_rlen_code where
+primrec annotate_rlen_code where
 "annotate_rlen_code [] = (0,[])" |
 "annotate_rlen_code (a#as) = (case annotate_rlen_code as of (r,aas) \<Rightarrow> (Suc r, (r, a) # aas))"
 lemma annotate_rlen_len: "fst (annotate_rlen_code r) = length r"
@@ -474,10 +474,11 @@ definition "fourtytwo_s3 ifs ard = (
 definition "fourtytwo_s4 ifs ard \<equiv> fourtytwo_s3 ifs [(a,r',c). (a,r,c) \<leftarrow> ard, rg \<leftarrow> ifs, r' \<leftarrow> option2list (simple_rule_and (simple_match_any\<lparr>iiface := Iface rg\<rparr>) r), c \<noteq> rg]"
 
 definition "fourtytwo_s1 rt = [(route2match r, output_iface (routing_action r)). r \<leftarrow> rt]"
+definition "fourtytwo_s2 mrt fw = [(b,c). (a,c) \<leftarrow> mrt, b \<leftarrow> simple_match_list_and a fw]"
 
 definition "fourtytwo rt fw ifs \<equiv> let
 	mrt = fourtytwo_s1 rt; (* make matches from those rt entries *)
-	frd = [(b,c). (a,c) \<leftarrow> mrt, b \<leftarrow> simple_match_list_and a fw]; (* bring down the firewall over all rt matches *)
+	frd = fourtytwo_s2 mrt fw; (* bring down the firewall over all rt matches *)
 	ard = map (apfst word_of_nat) (annotate_rlen frd) (* give them a priority *)
 	in
 	if length frd < unat (max_word :: 16 word)
@@ -1012,5 +1013,182 @@ lemma "Inr r = fourtytwo rt fw ifs \<Longrightarrow> sorted_descending (map ofe_
 	apply(erule sorted_annotated[OF less_or_eq_imp_le, OF disjI1])
 done
 
+lemma find_map: "find g (map f a) = map_option f (find (g \<circ> f) a)"
+by(induction a) simp_all
+
+definition "s1_sema trt p \<equiv> find (\<lambda>(rm, _). simple_matches rm p) trt"
+definition "s2_sema trt p \<equiv> find (\<lambda>(rm, _). simple_matches (match_sel rm) p) trt"
+lemma s2s1_sema: "map_option (apfst match_sel) (s2_sema trt p) = s1_sema (map (apfst match_sel) trt) p"
+by(simp add: s1_sema_def s2_sema_def find_map comp_def case_prod_unfold)
+lemma s1_sema_split: "s1_sema (a#trt) p = (case a of (am,aa) \<Rightarrow> if simple_matches am p then Some a else s1_sema trt p)"
+by(simp add: s1_sema_def split: prod.splits)
+lemma s2_sema_split: "s2_sema (a#trt) p = (case a of (am,aa) \<Rightarrow> if simple_matches (match_sel am) p then Some a else s2_sema trt p)"
+by(simp add: s2_sema_def split: prod.splits)
+lemma s2_sema_split_append: "s2_sema (a@trt) p = (case s2_sema a p of Some r \<Rightarrow> Some r | None \<Rightarrow> s2_sema trt p)"
+by(induction a) (simp_all add: s2_sema_def s2_sema_split)
+lemma fourtytwo_s1_split: "fourtytwo_s1 (a # rt) = (route2match a, output_iface (routing_action a)) # fourtytwo_s1 rt"
+	by(unfold fourtytwo_s1_def list.map, rule)
+lemma fourtytwo_s2_split: "fourtytwo_s2 (a # rt) fw = map (\<lambda>r. (r,snd a)) (simple_match_list_and (fst a) fw) @ fourtytwo_s2 rt fw"
+	by(cases a) (simp add: fourtytwo_s2_def)
+lemma fourtytwo_s2_split_append: "fourtytwo_s2 (a @ rt) fw = fourtytwo_s2 a fw @ fourtytwo_s2 rt fw"
+	by(induction a) (simp_all add: fourtytwo_s2_split fourtytwo_s2_def)
+
+term "p\<lparr>p_oiface := output_iface (routing_table_semantics rt (p_dst p))\<rparr>"
+
+lemma route2match_correct: "valid_prefix (routing_match a) \<Longrightarrow> prefix_match_semantics (routing_match a) (p_dst p) \<longleftrightarrow> simple_matches (route2match a) (p\<lparr>p_oiface := output_iface (routing_action a)\<rparr>)"
+by(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_refl ipv4range_set_from_prefix_UNIV prefix_match_if_in_corny_set2)
+
+lemma s1_correct: "valid_prefixes rt \<Longrightarrow> has_default_route rt \<Longrightarrow> \<exists>rm ra. s1_sema (fourtytwo_s1 rt) (p\<lparr>p_oiface := ra\<rparr>) = Some (rm,ra) \<and> ra = output_iface (routing_table_semantics rt (p_dst p))"
+	apply(induction rt)
+	 apply(simp;fail)
+	apply(drule valid_prefixes_split)
+	apply(clarsimp)
+	apply(erule disjE)
+	 apply(rename_tac a rt)
+	 apply(case_tac a)
+	 apply(rename_tac routing_m metric routing_action)
+	 apply(case_tac routing_m)
+	 apply(simp add: valid_prefix_def pfxm_mask_def mask_32_max_word prefix_match_semantics_def s1_sema_def fourtytwo_s1_def route2match_def simple_matches.simps match_ifaceAny match_iface_refl ipv4range_set_from_prefix_UNIV;fail)
+	apply(rule conjI)
+	 apply(simp add: s1_sema_def fourtytwo_s1_def route2match_correct;fail)
+	apply(clarsimp)
+	apply(rename_tac rm)
+	apply(rule_tac x = rm in exI)
+	apply(unfold fourtytwo_s1_split s1_sema_split)
+	apply(clarify)
+	apply(split if_splits)
+	apply(rule conjI[rotated])
+	 apply(simp add: fourtytwo_s1_split s1_sema_split;fail)
+	apply(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_refl ipv4range_set_from_prefix_UNIV prefix_match_if_in_corny_set2)
+done
+
+lemma find_split: "find f l = Some r \<Longrightarrow> \<exists>a b. l = (a @ r # b) \<and> find f a = None"
+apply(induction l)
+apply(simp)
+apply(clarsimp split: if_splits)
+apply(fastforce)
+apply(rename_tac a aa b)
+apply(rule_tac x = "a # aa" in exI)
+apply(simp)
+done
+
+lemma s1_sema_None_split: "s1_sema rt p = Some r \<Longrightarrow> \<exists>a b. rt = (a @ r # b) \<and> s1_sema a p = None"
+	apply(unfold s1_sema_def)
+	apply(erule find_split)
+done
+
+lemma simple_fw_undecided: "simple_fw fw p = Undecided \<longleftrightarrow> (\<forall>r \<in> set fw. \<not>simple_matches (match_sel r) p)"
+by(induction rule: simple_fw.induct) (simp_all split: if_splits)
+
+lemma "simple_fw fw p = Undecided \<Longrightarrow> s2_sema ((fourtytwo_s2 mrt fw)) p = None"
+	apply(induction mrt)
+	apply(simp add: fourtytwo_s2_def s2_sema_def)
+	apply(simp add: s2_sema_split_append fourtytwo_s2_split)
+	apply(split option.splits; intro conjI)
+	apply(simp;fail)
+	apply(thin_tac "s2_sema _ _ = None")
+	apply(induction fw)
+	apply(simp add: s2_sema_def)
+	apply(clarsimp simp: simple_fw_undecided s2_sema_def simple_rule_and_def simple_match_and_SomeD split: option.splits)
+done
+
+(* TODO: Move with simple_match_and_SomeD *)
+lemma simple_match_and_NoneD: "simple_match_and m1 m2 = None \<Longrightarrow> \<not>(simple_matches m1 p \<and> simple_matches m2 p)"
+	by(simp add: simple_match_and_correct)
+
+lemma hlp2: "\<lbrakk>\<not> simple_matches x1 p\<rbrakk> \<Longrightarrow> s2_sema (map (\<lambda>r. (r, x2)) (simple_match_list_and x1 fw)) p = None"
+	apply(induction fw)
+	apply(simp add: s2_sema_def)
+	apply(clarsimp simp: s2_sema_split simple_rule_and_def simple_match_and_SomeD split: option.splits)
+done
+
+lemma s1_none_s2: "s1_sema rt p = None \<Longrightarrow> s2_sema ((fourtytwo_s2 rt fw)) p = None"
+	apply(induction rt)
+	apply(simp add: s1_sema_def s2_sema_def fourtytwo_s2_def simple_match_list_and_def;fail)
+	apply(simp add: s1_sema_split fourtytwo_s2_split s2_sema_split_append split: if_splits option.splits prod.splits)
+	apply(intro allI)
+	apply(rename_tac a rt x1 x2 aa bb)
+	apply(subgoal_tac "s2_sema (map (\<lambda>r. (r, x2)) (simple_match_list_and x1 fw)) p = None")
+	apply(simp;fail)
+	apply(erule hlp2)
+done
+
+(* TODO: move? *)
+lemma simple_fw_msplit: "simple_fw fw p \<noteq> Undecided \<Longrightarrow> \<exists>a r b. fw = a @ r # b \<and> simple_fw a p = Undecided \<and> simple_matches (match_sel r) p" 
+proof(induction fw)
+	case (Cons a fw)
+	thus ?case proof(cases "simple_matches (match_sel a) p")
+		case False
+		with Cons.prems have "simple_fw fw p \<noteq> Undecided" by (simp add: simple_fw_alt)
+		note Cons.IH[OF this]
+		then guess as ..
+		then guess r ..
+		then guess bs ..
+		note mIH = this
+		show ?thesis proof(intro exI)
+			show "a # fw = (a # as) @ r # bs \<and> simple_fw (a # as) p = Undecided \<and> simple_matches (match_sel r) p" using mIH False by(simp add: simple_fw_alt)
+		qed
+	qed fastforce (* alternate:
+	apply(rule_tac x = Nil in exI)
+	apply(rule_tac x = a in exI)
+	apply(rule_tac x = fw in exI)
+	apply(simp)*)
+qed simp
+
+(* TODO: move *)
+lemma simple_matches_andD: "simple_matches m1 p \<Longrightarrow> simple_matches m2 p \<Longrightarrow> \<exists>m. simple_match_and m1 m2 = Some m \<and> simple_matches m p"
+by (meson option.exhaust_sel simple_match_and_NoneD simple_match_and_SomeD)
+
+lemma s2_correct: "simple_fw fw p \<noteq> Undecided \<Longrightarrow> s1_sema rt p = Some (mr,ma) \<Longrightarrow> \<exists>mmr. s2_sema ((fourtytwo_s2 rt fw)) p = Some (mmr, ma)"
+proof -
+	assume ras: "s1_sema rt p = Some (mr, ma)"
+	note this[THEN s1_sema_None_split]
+	then guess ra ..
+	then guess rb ..
+	note rts = this
+	note as2 = s1_none_s2[OF rts[THEN conjunct2]]
+	from ras have smmr: "simple_matches mr p" unfolding s1_sema_def by (meson findSomeD splitD)
+	assume fas: "simple_fw fw p \<noteq> Undecided"
+	note this[THEN simple_fw_msplit]
+	then guess fa ..
+	then guess fr ..
+	then guess fb ..
+	note fws = this
+	obtain cr where [simp]: "simple_rule_and mr fr = Some cr" "simple_matches (match_sel cr) p" unfolding simple_rule_and_def 
+		using fws[THEN conjunct2, THEN conjunct2] smmr simple_matches_andD by force
+	have l: "s2_sema (map (\<lambda>r. (r, snd (mr, ma))) (simple_match_list_and (fst (mr, ma)) fw)) p = Some (the (simple_rule_and mr fr), ma)" 
+	unfolding fws[THEN conjunct1]
+	using fws[THEN conjunct2]
+		apply(induction fa)
+		apply(simp add: s2_sema_split;fail)
+		apply(clarsimp simp add: simple_fw_alt s2_sema_split split: if_splits simple_action.splits option.splits)
+		apply(clarsimp simp: simple_rule_and_def)
+		apply(blast dest: simple_match_and_SomeD)
+	done
+	show ?thesis proof
+		show "s2_sema ((fourtytwo_s2 rt fw)) p = Some (the (simple_rule_and mr fr), ma)"
+		unfolding rts[THEN conjunct1] fourtytwo_s2_split_append s2_sema_split_append fourtytwo_s2_split s2_sema_split as2 option.simps l ..
+	qed
+qed
+
+(*
+"simple_fw fw p \<noteq> Undecided \<Longrightarrow> s1_sema rt p = Some (mr,ma) \<Longrightarrow> \<exists>mmr. s2_sema ((fourtytwo_s2 rt fw)) p = Some (mmr, ma)"
+"valid_prefixes rt \<Longrightarrow> has_default_route rt \<Longrightarrow> \<exists>rm ra. s1_sema (fourtytwo_s1 rt) (p\<lparr>p_oiface := ra\<rparr>) = Some (rm,ra) \<and> ra = output_iface (routing_table_semantics rt (p_dst p))"*)
+thm s1_correct s2_correct
+
+definition "simple_action_to_state a \<equiv> (case a of simple_action.Accept \<Rightarrow> Decision FinalAllow | simple_action.Drop \<Rightarrow> Decision FinalDeny)"
+
+lemma s12_correct:
+	assumes s1: "valid_prefixes rt" "has_default_route rt"
+	assumes s2: "simple_fw fw p \<noteq> Undecided"
+	shows "\<exists>mr ma. s2_sema ((fourtytwo_s2 (fourtytwo_s1 rt) fw)) p = Some (mr, ma) \<and> ra = output_iface (routing_table_semantics rt (p_dst p)) \<and> simple_action_to_state (action_sel mr) = simple_fw fw p"
+proof -
+	note s1_correct[OF s1, of p] 
+	then guess rm ..
+	then guess ra ..
+	note rmra = this
+	note s2_correct[OF s2 ] rmra[THEN conjunct1]
+(* TODO: Okay, there's still some thinking to do for this lemma *)
+oops
 
 end
