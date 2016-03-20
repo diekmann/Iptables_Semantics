@@ -383,15 +383,23 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     done
 
 
-   lemma  unat_of_bl_128_16_less_helper:
-     fixes b::"16 word"
-     shows "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) < 2^16"
-   proof -
-     from Word.word_bl_Rep' have 1: "length (to_bl b) = 16" by simp
-     have "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) < 2^(length (to_bl b))"
-       by(fact WordLemmaBucket.unat_of_bl_length)
-     with 1 show ?thesis by auto
-     qed
+  lemma unat_of_bl_128_16_less_helper:
+    fixes b::"16 word"
+    shows "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) < 2^16"
+  proof -
+    from Word.word_bl_Rep' have 1: "length (to_bl b) = 16" by simp
+    have "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) < 2^(length (to_bl b))"
+      by(fact WordLemmaBucket.unat_of_bl_length)
+    with 1 show ?thesis by auto
+  qed
+  lemma unat_of_bl_128_16_le_helper: "unat ((of_bl:: bool list \<Rightarrow> 128 word) (to_bl (b::16 word))) \<le> 65535"
+  proof -
+    from unat_of_bl_128_16_less_helper[of b] have
+      "unat ((of_bl:: bool list \<Rightarrow> 128 word) (to_bl b)) < 65536" by simp 
+    from Nat.Suc_leI[OF this] show ?thesis by simp
+  qed
+
+
    lemma xxxx: "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl (b::16 word))) < 4294967296"
      apply(rule order_less_trans)
      apply(rule unat_of_bl_128_16_less_helper)
@@ -404,22 +412,21 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
      done
 
 
-
-   (*TODO: move!*)
-   lemma help_mult: "n \<le> l \<Longrightarrow> 2 ^ n * (x::nat) < 2 ^ l \<longleftrightarrow> 
-          x < 2 ^ (l - n)"
-          by (simp add: nat_mult_power_less_eq semiring_normalization_rules(7))
-
    lemma yyyy: fixes b::"16 word"
-     shows "n \<le> 128 - 16 \<Longrightarrow> 2 ^ n * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) < 2 ^ len_of TYPE(128)"
-     apply(subst help_mult)
-      apply(simp; fail)
-     apply(rule order_less_le_trans)
-     thm unat_of_bl_128_16_less_helper
-      apply(rule unat_of_bl_128_16_less_helper)
-     apply(rule Power.power_increasing)
-      apply(simp_all)
-     done
+     assumes "n \<le> 128 - 16"
+     shows "2 ^ n * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) < 2 ^ len_of TYPE(128)"
+   proof -
+     have help_mult: "n \<le> l \<Longrightarrow> 2 ^ n * x < 2 ^ l \<longleftrightarrow> x < 2 ^ (l - n)" for x::nat and l
+       by (simp add: nat_mult_power_less_eq semiring_normalization_rules(7))
+     from assms show ?thesis
+       apply(subst help_mult)
+        apply(simp; fail)
+       apply(rule order_less_le_trans)
+        apply(rule unat_of_bl_128_16_less_helper)
+       apply(rule Power.power_increasing)
+        apply(simp_all)
+       done
+   qed
 
    lemma yyyyy: fixes b::"16 word"
     assumes "m + 16 \<le> n" (*could remove the +16*)
@@ -429,9 +436,9 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
    case True thus ?thesis by simp
    next
    case False
-    have help_mult2: "x \<noteq> 0 \<Longrightarrow> a * (x::nat) = b * (c * x) \<longleftrightarrow> a = b * c" for x a b c by simp
+    have help_mult: "x \<noteq> 0 \<Longrightarrow> a * (x::nat) = b * (c * x) \<longleftrightarrow> a = b * c" for x a b c by simp
     from assms show ?thesis
-     apply(subst help_mult2[OF False])
+     apply(subst help_mult[OF False])
      apply(subst Power.monoid_mult_class.power_add[symmetric])
      apply(simp)
      done
@@ -483,20 +490,11 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
        done
    qed
 
-
-  (*TODO: move*)
-  lemma unat_of_bl_128_16_leq_helper: "unat ((of_bl:: bool list \<Rightarrow> 128 word) (to_bl (b::16 word))) \<le> 65535"
+  lemma helper_masked_ucast_equal_generic:
+    fixes b::"16 word"
+    assumes "n \<le> 128 - 16"
+    shows "ucast (((ucast:: 16 word \<Rightarrow> 128 word) b << n) && (mask 16 << n) >> n) = b"
   proof -
-    from unat_of_bl_128_16_less_helper[of b] have "unat ((of_bl:: bool list \<Rightarrow> 128 word) (to_bl b)) < 65536" by simp 
-    from Nat.Suc_leI[OF this] 
-    show "unat ((of_bl:: bool list \<Rightarrow> 128 word) ((to_bl:: 16 word \<Rightarrow> bool list) (b::16 word))) \<le> 65535" by simp
-  qed
-
-   lemma helper_masked_ucast_equal_generic:
-     fixes b::"16 word"
-     assumes "n \<le> 128 - 16"
-     shows "ucast (((ucast:: 16 word \<Rightarrow> 128 word) b << n) && (mask 16 << n) >> n) = b"
-   proof -
    have ucast_mask: "(ucast:: 16 word \<Rightarrow> 128 word) b && mask 16 = ucast b" 
     apply(subst WordLib.and_mask_eq_iff_le_mask)
     apply(subst Word.ucast_bl)
@@ -504,7 +502,7 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     thm Word.word_uint_eqI word_le_nat_alt
     apply(subst word_le_nat_alt)
     apply(simp)
-    using unat_of_bl_128_16_leq_helper by simp
+    using unat_of_bl_128_16_le_helper by simp
 
    from assms have "ucast (((ucast:: 16 word \<Rightarrow> 128 word) b && mask (128 - n) && mask 16) && mask (128 - n)) = b"
     apply(subst WordLemmaBucket.mask_and_mask)
