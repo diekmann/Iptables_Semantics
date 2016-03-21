@@ -1,5 +1,8 @@
 theory IPv6Bitmagic
-imports IPv6Addr
+imports 
+  (*NumberWang*)
+  (*WordInterval_Lists*)
+  "./l4v/lib/WordLemmaBucket"
 begin
 
 (*
@@ -185,116 +188,25 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     done
 
 
+(*
  lemma Word_ucast_bl_16_128:
-  "(ucast::16 word \<Rightarrow> ipv6addr) ((ucast::ipv6addr \<Rightarrow> 16 word) ip) =
+  "(ucast::16 word \<Rightarrow> 128 word) ((ucast::ipv6addr \<Rightarrow> 16 word) ip) =
    (of_bl:: bool list \<Rightarrow> 128 word) (to_bl ((of_bl:: bool list \<Rightarrow> 16 word) ((to_bl:: 128 word \<Rightarrow> bool list) ip)))"
     apply(subst Word.ucast_bl)+
     apply simp
     done
+*)
 
   lemma mask_len_word: fixes w::"'a::len word"
     shows "n = (len_of TYPE('a)) \<Longrightarrow> w AND mask n = w"
     by (simp add: mask_eq_iff) 
   
 
-
   lemma mask128: "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF = mask 128"
     by(simp add: mask_def)
-  lemma word128_masks_ipv6pieces:
-    "(0xFFFF0000000000000000000000000000::ipv6addr) = (mask 16) << 112"
-    "(0xFFFF000000000000000000000000::ipv6addr) = (mask 16) << 96"
-    "(0xFFFF00000000000000000000::ipv6addr) = (mask 16) << 80"
-    "(0xFFFF0000000000000000::ipv6addr) = (mask 16) << 64"
-    "(0xFFFF000000000000::ipv6addr) = (mask 16) << 48"
-    "(0xFFFF00000000::ipv6addr) = (mask 16) << 32"
-    "(0xFFFF0000::ipv6addr) = (mask 16) << 16"
-    "(0xFFFF::ipv6addr) = (mask 16)"
-    by(simp add: mask_def)+
 
 
-
-  text{*Correctness: round trip property one*}
-  lemma ipv6preferred_to_int_int_to_ipv6preferred:
-    "ipv6preferred_to_int (int_to_ipv6preferred ip) = ip"
-  proof -
-    have and_mask_shift_helper: "w AND (mask m << n) >> n << n = w AND (mask m << n)"
-      for m n::nat and w::ipv6addr
-     proof - (*sledgehammered for 128 word and concrete values for m and n*)
-       have f1: "\<And>w wa wb. ((w::'a::len word) && wa) && wb = w && wb && wa"
-         by (simp add: word_bool_alg.conj_left_commute word_bw_comms(1))
-       have "\<And>w n wa. ((w::'a::len word) && ~~ mask n) && (wa << n) = (w >> n) && wa << n"
-         by (simp add: and_not_mask shiftl_over_and_dist)
-       then show ?thesis
-        by (simp add: is_aligned_mask is_aligned_shiftr_shiftl word_bool_alg.conj.assoc)
-        (*using f1 by (metis (no_types) and_not_mask word_and_mask_shiftl word_bw_comms(1))*)
-     qed
-    have ucast_ipv6_piece_rule:
-      "length (dropWhile Not (to_bl w)) \<le> 16 \<Longrightarrow> (ucast::16 word \<Rightarrow> 128 word) ((ucast::128 word \<Rightarrow> 16 word) w) = w"
-      for w::ipv6addr 
-      by(rule ucast_short_ucast_long_ingoreLeadingZero) (simp_all)
-    have ucast_ipv6_piece: "16 \<le> 128 - n \<Longrightarrow> 
-      (ucast::16 word \<Rightarrow> 128 word) ((ucast::128 word \<Rightarrow> 16 word) (w AND (mask 16 << n) >> n)) << n = w AND (mask 16 << n)"
-      for w::ipv6addr and n::nat
-      apply(subst ucast_ipv6_piece_rule)
-       apply(rule length_dropNot_mask_inner)
-       apply(simp; fail)
-      apply(subst and_mask_shift_helper)
-      apply simp
-      done
-
-    have ucast16_ucast128_masks_highest_bits:
-      "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000000000000000 >> 112)) << 112) = 
-             (ip AND 0xFFFF0000000000000000000000000000)"
-      "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF000000000000000000000000 >> 96)) << 96) =
-           ip AND 0xFFFF000000000000000000000000"
-      "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF00000000000000000000 >> 80)) << 80) =
-           ip AND 0xFFFF00000000000000000000" 
-      "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000000000000000 >> 64)) << 64) =
-           ip AND 0xFFFF0000000000000000"
-      "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF000000000000 >> 48)) << 48) =
-           ip AND 0xFFFF000000000000"
-      "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF00000000 >> 32)) << 32) =
-           ip AND 0xFFFF00000000"
-      "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF0000 >> 16)) << 16) =
-           ip AND 0xFFFF0000"
-      by((subst word128_masks_ipv6pieces)+, subst ucast_ipv6_piece, simp_all)+
-
-    have ucast16_ucast128_masks_highest_bits0: 
-      "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF))) = ip AND 0xFFFF"
-      apply(subst word128_masks_ipv6pieces)+
-      apply(subst ucast_short_ucast_long_ingoreLeadingZero)
-        apply simp_all
-      by (simp add: length_dropNot_mask)
-
-    have ipv6addr_16word_pieces_compose_or:
-            "ip && (mask 16 << 112) ||
-             ip && (mask 16 << 96) ||
-             ip && (mask 16 << 80) ||
-             ip && (mask 16 << 64) ||
-             ip && (mask 16 << 48) ||
-             ip && (mask 16 << 32) ||
-             ip && (mask 16 << 16) ||
-             ip && mask 16 =
-             ip"
-      apply(subst word_ao_dist2[symmetric])+
-      apply(simp add: mask_def)
-      apply(subst mask128)
-      apply(rule mask_len_word)
-      apply simp
-      done
-
-    show ?thesis
-      apply(simp add: ipv6preferred_to_int.simps int_to_ipv6preferred_def)
-      apply(simp add: ucast16_ucast128_masks_highest_bits ucast16_ucast128_masks_highest_bits0)
-      apply(simp add: word128_masks_ipv6pieces)
-      apply(rule ipv6addr_16word_pieces_compose_or)
-      done
-  qed
-
-
-
-
-(*-------------- next one ------------------*)
+(*-------------- things for ipv6 syntax round trip property two ------------------*)
 
 
   (*n small, m large*)
@@ -496,21 +408,6 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
   qed
   
 
-  (*round trip property two*)
-  lemma int_to_ipv6preferred_ipv6preferred_to_int: "int_to_ipv6preferred (ipv6preferred_to_int ip) = ip"
-  proof -
-    note ucast_shift_simps=helper_masked_ucast_generic helper_masked_ucast_reverse_generic
-                           helper_masked_ucast_generic[where n=0, simplified]
-                           helper_masked_ucast_equal_generic 
-    note ucast_simps=helper_masked_ucast_reverse_generic[where m=0, simplified]
-                     helper_masked_ucast_equal_generic[where n=0, simplified]
-    show ?thesis
-    apply(cases ip, rename_tac a b c d e f g h)
-    apply(simp add: ipv6preferred_to_int.simps int_to_ipv6preferred_def)
-    apply(simp add: word128_masks_ipv6pieces)
-    apply(simp add: word_ao_dist ucast_shift_simps ucast_simps)
-    done
-  qed
 
 
 end
