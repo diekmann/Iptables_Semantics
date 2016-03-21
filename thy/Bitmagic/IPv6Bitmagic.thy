@@ -297,60 +297,64 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
 (*-------------- next one ------------------*)
 
 
-  lemma mnhelper: fixes x::"128 word"
-    assumes "m < 128" "x < 0x10000" "16 \<le> m - n"
-    shows "x < 2 ^ (m - n)"
-  proof -
-    have power_2_16_nat: "(16::nat) \<le> n \<Longrightarrow> (65535::nat) < 2 ^ n" if a:"16 \<le> n"for n
-    proof -
-      have power2_rule: "a \<le> b \<Longrightarrow> (2::nat)^a \<le> 2 ^ b" for a b by fastforce
-      show ?thesis
-       apply(subgoal_tac "65536 \<le> 2 ^ n")
-        apply(subst Nat.less_eq_Suc_le)
-        apply(simp; fail)
-       apply(subgoal_tac "(65536::nat) = 2^16")
-        prefer 2
-        apply(simp; fail)
-       using power2_rule \<open>16 \<le> n\<close> by presburger
-    qed
-    have "65536 = unat (65536::128 word)" by auto
-    moreover from assms(2) have "unat x <  unat (65536::128 word)" by(rule Word.unat_mono)
-    ultimately have x: "unat x < 65536" by simp
-    with assms(3) have "unat x < 2 ^ (m - n)" 
-      apply(rule_tac b=65535 in Orderings.order_class.order.strict_trans1)
-       apply(simp_all)
-       using power_2_16_nat apply blast
-      done
-    with assms(1) show ?thesis by(subst word_less_nat_alt) simp
-  qed
-
    (*n small, m large*)
-   lemma helper_masked_ucast_generic:
-     fixes b::"16 word"
-     shows"n + 16 \<le> m \<Longrightarrow> m < 128 \<Longrightarrow> ((ucast:: 16 word \<Rightarrow> 128 word) b << n) && (mask 16 << m) = 0"
-    apply(subst Word.ucast_bl)+
-    apply(subst Word.shiftl_of_bl)
-    apply(subst Word.of_bl_append)
-    apply simp
-    apply(subst WordLemmaBucket.word_and_mask_shiftl)
-    apply(subst WordLib.shiftr_div_2n_w)
-     apply(simp add: word_size; fail)
-    apply(subst WordLemmaBucket.word_div_less)
-     apply(simp_all)
-    apply(subgoal_tac "(of_bl::bool list \<Rightarrow> 128 word) (to_bl b) < 2^(len_of TYPE(16))")
-     prefer 2
-     apply(rule Word.of_bl_length_less)
-     apply(simp_all)
-    apply(rule Word.div_lt_mult)
-     apply(rule WordLemmaBucket.word_less_two_pow_divI)
-     apply(simp_all)
-     apply(subgoal_tac "m - n \<ge> 16")
-      prefer 2
-      apply(simp)
-      apply(rule mnhelper, simp_all)
-     apply(subst WordLib.p2_gt_0)
-     apply(simp)
-    done
+  lemma helper_masked_ucast_generic:
+    fixes b::"16 word"
+    assumes "n + 16 \<le> m" and "m < 128"
+    shows "((ucast:: 16 word \<Rightarrow> 128 word) b << n) && (mask 16 << m) = 0"
+  proof -
+
+    have mnhelper:
+      "x < 2 ^ (m - n)" if mnh2: "x < 0x10000"
+      for x::"128 word"
+    proof -
+      from assms(1) have mnh3: "16 \<le> m - n" by fastforce
+      have power_2_16_nat: "(16::nat) \<le> n \<Longrightarrow> (65535::nat) < 2 ^ n" if a:"16 \<le> n"for n
+      proof -
+        have power2_rule: "a \<le> b \<Longrightarrow> (2::nat)^a \<le> 2 ^ b" for a b by fastforce
+        show ?thesis
+         apply(subgoal_tac "65536 \<le> 2 ^ n")
+          apply(subst Nat.less_eq_Suc_le)
+          apply(simp; fail)
+         apply(subgoal_tac "(65536::nat) = 2^16")
+          prefer 2
+          apply(simp; fail)
+         using power2_rule \<open>16 \<le> n\<close> by presburger
+      qed
+      have "65536 = unat (65536::128 word)" by auto
+      moreover from mnh2 have "unat x <  unat (65536::128 word)" by(rule Word.unat_mono)
+      ultimately have x: "unat x < 65536" by simp
+      with mnh3 have "unat x < 2 ^ (m - n)" 
+        apply(rule_tac b=65535 in Orderings.order_class.order.strict_trans1)
+         apply(simp_all)
+         using power_2_16_nat apply blast
+        done
+      with assms(2) show ?thesis by(subst word_less_nat_alt) simp
+    qed
+    hence mnhelper2: "(of_bl::bool list \<Rightarrow> 128 word) (to_bl b) < 2 ^ (m - n)"
+      apply(subgoal_tac "(of_bl::bool list \<Rightarrow> 128 word) (to_bl b) < 2^(len_of TYPE(16))")
+       prefer 2
+       apply(rule Word.of_bl_length_less)
+        apply(simp_all)
+      done
+    have mnhelper3: "(of_bl::bool list \<Rightarrow> 128 word) (to_bl b) * 2 ^ n < 2 ^ m"
+      apply(rule Word.div_lt_mult)
+       apply(rule WordLemmaBucket.word_less_two_pow_divI)
+         using assms by(simp_all add: mnhelper2 WordLib.p2_gt_0)
+
+    from assms show ?thesis
+      apply(subst Word.ucast_bl)+
+      apply(subst Word.shiftl_of_bl)
+      apply(subst Word.of_bl_append)
+      apply simp
+      apply(subst WordLemmaBucket.word_and_mask_shiftl)
+      apply(subst WordLib.shiftr_div_2n_w)
+       apply(simp add: word_size; fail)
+      apply(subst WordLemmaBucket.word_div_less)
+       apply(rule mnhelper3)
+      apply simp
+      done
+  qed
 
 
   lemma unat_of_bl_128_16_less_helper:
