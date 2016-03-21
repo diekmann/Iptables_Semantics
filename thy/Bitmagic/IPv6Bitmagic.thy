@@ -297,30 +297,6 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
 (*-------------- next one ------------------*)
 
 
-   lemma helper_masked_ucast:
-     fixes b::"16 word"
-     shows "((ucast:: 16 word \<Rightarrow> 128 word) b << 96) && (mask 16 << 112) = 0"
-    apply(subst Word.ucast_bl)+
-    apply(subst Word.shiftl_of_bl)
-    apply(simp)
-    apply(subst Word.of_bl_append)
-    apply simp
-    apply(subst WordLemmaBucket.word_and_mask_shiftl)
-    apply(subst WordLib.shiftr_div_2n_w)
-     apply(simp add: word_size; fail)
-    apply(simp)
-    apply(subst WordLemmaBucket.word_div_less)
-     apply(simp_all)
-    apply(subgoal_tac "(of_bl::bool list \<Rightarrow> 128 word) (to_bl b) < 2^(len_of TYPE(16))")
-     prefer 2
-     apply(rule Word.of_bl_length_less)
-     apply(simp_all)
-    apply(rule Word.div_lt_mult)
-     apply(simp; fail)
-    apply(simp)
-    done
-
-    
   lemma mnhelper: fixes x::"128 word"
     assumes "m < 128" "x < 0x10000" "16 \<le> m - n"
     shows "x < 2 ^ (m - n)"
@@ -392,21 +368,6 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
       "unat ((of_bl:: bool list \<Rightarrow> 128 word) (to_bl b)) < 65536" by simp 
     from Nat.Suc_leI[OF this] show ?thesis by simp
   qed
-
-
-   (*lemma xxxx: "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl (b::16 word))) < 4294967296"
-     apply(rule order_less_trans)
-     apply(rule unat_of_bl_128_16_less_helper)
-     apply simp
-     done
-   lemma xxxxx: "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl (b::16 word))) < 5192296858534827628530496329220096"
-     apply(rule order_less_trans)
-     apply(rule unat_of_bl_128_16_less_helper)
-     apply simp
-     done*)
-
-
-
 
 
   (*reverse*)
