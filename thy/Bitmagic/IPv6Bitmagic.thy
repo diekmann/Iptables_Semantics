@@ -394,7 +394,7 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
   qed
 
 
-   lemma xxxx: "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl (b::16 word))) < 4294967296"
+   (*lemma xxxx: "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl (b::16 word))) < 4294967296"
      apply(rule order_less_trans)
      apply(rule unat_of_bl_128_16_less_helper)
      apply simp
@@ -403,74 +403,83 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
      apply(rule order_less_trans)
      apply(rule unat_of_bl_128_16_less_helper)
      apply simp
-     done
+     done*)
 
 
-   lemma yyyy: fixes b::"16 word"
-     assumes "n \<le> 128 - 16"
-     shows "2 ^ n * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) < 2 ^ len_of TYPE(128)"
-   proof -
-     have help_mult: "n \<le> l \<Longrightarrow> 2 ^ n * x < 2 ^ l \<longleftrightarrow> x < 2 ^ (l - n)" for x::nat and l
-       by (simp add: nat_mult_power_less_eq semiring_normalization_rules(7))
-     from assms show ?thesis
-       apply(subst help_mult)
-        apply(simp; fail)
-       apply(rule order_less_le_trans)
-        apply(rule unat_of_bl_128_16_less_helper)
-       apply(rule Power.power_increasing)
-        apply(simp_all)
-       done
-   qed
 
-   lemma yyyyy: fixes b::"16 word"
-    assumes "m + 16 \<le> n" (*could remove the +16*)
-    shows "2 ^ n * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) =
-           2 ^ m * (2 ^ (n - m) * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)))"
-   proof(cases "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) = 0")
-   case True thus ?thesis by simp
-   next
-   case False
-    have help_mult: "x \<noteq> 0 \<Longrightarrow> a * (x::nat) = b * (c * x) \<longleftrightarrow> a = b * c" for x a b c by simp
-    from assms show ?thesis
-     apply(subst help_mult[OF False])
-     apply(subst Power.monoid_mult_class.power_add[symmetric])
-     apply(simp)
-     done
-   qed
+
 
   (*reverse*)
    lemma helper_masked_ucast_reverse_generic:
      fixes b::"16 word"
-     shows "m + 16 \<le> n \<Longrightarrow> n \<le> 128 - 16 \<Longrightarrow> ((ucast:: 16 word \<Rightarrow> 128 word) b << n) && (mask 16 << m) = 0"
-    apply(subst Word.ucast_bl)+
-    apply(subst WordLemmaBucket.word_and_mask_shiftl)
-    thm WordLemmaBucket.rshift_sub_mask_eq
-    apply(subst WordLemmaBucket.aligned_shiftr_mask_shiftl)
-     subgoal 
-     unfolding is_aligned_def
-     unfolding dvd_def
-     apply(subst Word.shiftl_t2n)
-     thm Word.shiftl_t2n Bool_List_Representation.shiftl_int_def
-     apply(subst Word.unat_word_ariths(2))
-     apply(rule_tac x="2^(n - m) * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) mod 2 ^ len_of TYPE(128)" in exI)
-     apply(subst Word_Miscellaneous.nat_mod_eq')
-      apply(subst Aligned.unat_power_lower)
-       apply(simp; fail)
-      apply(rule yyyy)
-      apply(simp; fail)
-     apply(subst Word_Miscellaneous.nat_mod_eq')
-      apply(rule yyyy)
-      apply(simp; fail)
-     apply(subst Aligned.unat_power_lower)
-      apply(simp; fail)
-     apply(rule yyyyy)
-     apply(simp; fail)
-     done
-    subgoal
-    thm WordLemmaBucket.shiftl_mask_is_0
-    apply simp
-    using is_aligned_mask is_aligned_shiftl by force (*sledgehammer*)
-    done
+     assumes "m + 16 \<le> n" and "n \<le> 128 - 16"
+     shows "((ucast:: 16 word \<Rightarrow> 128 word) b << n) && (mask 16 << m) = 0"
+   proof -
+
+     have power_less_128_helper: "2 ^ n * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) < 2 ^ len_of TYPE(128)"
+       if n: "n \<le> 128 - 16" for n
+     proof -
+       have help_mult: "n \<le> l \<Longrightarrow> 2 ^ n * x < 2 ^ l \<longleftrightarrow> x < 2 ^ (l - n)" for x::nat and l
+         by (simp add: nat_mult_power_less_eq semiring_normalization_rules(7))
+       from n show ?thesis
+         apply(subst help_mult)
+          apply(simp; fail)
+         apply(rule order_less_le_trans)
+          apply(rule unat_of_bl_128_16_less_helper)
+         apply(rule Power.power_increasing)
+          apply(simp_all)
+         done
+     qed
+
+     have *: "2 ^ n * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) =
+             2 ^ m * (2 ^ (n - m) * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)))"
+     proof(cases "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) = 0")
+     case True thus ?thesis by simp
+     next
+     case False
+      have help_mult: "x \<noteq> 0 \<Longrightarrow> a * (x::nat) = b * (c * x) \<longleftrightarrow> a = b * c" for x a b c by simp
+      from assms show ?thesis
+       apply(subst help_mult[OF False])
+       apply(subst Power.monoid_mult_class.power_add[symmetric])
+       apply(simp)
+       done
+     qed
+
+    from assms have "unat ((2 ^ n)::128 word) * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) mod 2 ^ len_of TYPE(128) =
+          2 ^ m * (2 ^ (n - m) * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) mod 2 ^ len_of TYPE(128))"
+       apply(subst Word_Miscellaneous.nat_mod_eq')
+        apply(subst Aligned.unat_power_lower)
+         apply(simp; fail)
+        apply(rule power_less_128_helper)
+         apply(simp; fail)
+       apply(subst Word_Miscellaneous.nat_mod_eq')
+        apply(rule power_less_128_helper)
+        apply(simp; fail)
+       apply(subst Aligned.unat_power_lower)
+        apply(simp; fail)
+       apply(rule *)
+       done
+     hence ex_k: "\<exists>k. unat ((2 ^ n)::128 word) * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) mod 2 ^ len_of TYPE(128) = 2 ^ m * k"
+       by blast
+
+     hence aligned: "is_aligned ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b) << n) m"
+       unfolding is_aligned_def
+       unfolding dvd_def
+       unfolding Word.shiftl_t2n
+       unfolding Word.unat_word_ariths(2)
+       by assumption
+
+     from assms have of_bl_to_bl_shift_mask: "((of_bl::bool list \<Rightarrow> 128 word) (to_bl b) << n) && mask (16 + m) = 0"
+      using is_aligned_mask is_aligned_shiftl by force (*sledgehammer*)
+
+     show ?thesis
+      apply(subst Word.ucast_bl)+
+      apply(subst WordLemmaBucket.word_and_mask_shiftl)
+      apply(subst WordLemmaBucket.aligned_shiftr_mask_shiftl)
+       subgoal by (fact aligned)
+      subgoal by (fact of_bl_to_bl_shift_mask)
+      done
+  qed
 
   lemma ucast16_mask16: "(ucast:: 16 word \<Rightarrow> 128 word) (mask 16) = mask 16"
   proof -
