@@ -431,13 +431,13 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
          done
      qed
 
-     have *: "2 ^ n * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) =
-             2 ^ m * (2 ^ (n - m) * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)))"
+     have *: "2 ^ m * (2 ^ (n - m) * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b))) = 
+              2 ^ n * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b))"
      proof(cases "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) = 0")
      case True thus ?thesis by simp
      next
      case False
-      have help_mult: "x \<noteq> 0 \<Longrightarrow> a * (x::nat) = b * (c * x) \<longleftrightarrow> a = b * c" for x a b c by simp
+      have help_mult: "x \<noteq> 0 \<Longrightarrow> b * (c * x) = a * (x::nat)  \<longleftrightarrow> b * c = a" for x a b c by simp
       from assms show ?thesis
        apply(subst help_mult[OF False])
        apply(subst Power.monoid_mult_class.power_add[symmetric])
@@ -457,7 +457,7 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
         apply(simp; fail)
        apply(subst Aligned.unat_power_lower)
         apply(simp; fail)
-       apply(rule *)
+       apply(simp only: *)
        done
      hence ex_k: "\<exists>k. unat ((2 ^ n)::128 word) * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) mod 2 ^ len_of TYPE(128) = 2 ^ m * k"
        by blast
