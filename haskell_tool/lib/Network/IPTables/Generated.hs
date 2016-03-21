@@ -3367,12 +3367,17 @@ process_ret (Rule v (Goto vb) : rs) = Rule v (Goto vb) : process_ret rs;
 process_ret (Rule v Empty : rs) = Rule v Empty : process_ret rs;
 process_ret (Rule v Unknown : rs) = Rule v Unknown : process_ret rs;
 
+wordinterval_sort :: forall a. (Len a) => Wordinterval a -> Wordinterval a;
+wordinterval_sort w = l2br (mergesort_remdups (br2l w));
+
 build_ip_partition ::
   Parts_connection_ext () ->
     [Simple_rule] -> [Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
 build_ip_partition c rs =
   map (\ xs ->
-        wordinterval_compress (foldr wordinterval_union xs empty_WordInterval))
+        wordinterval_sort
+          (wordinterval_compress
+            (foldr wordinterval_union xs empty_WordInterval)))
     (groupWIs3 c rs);
 
 process_call ::

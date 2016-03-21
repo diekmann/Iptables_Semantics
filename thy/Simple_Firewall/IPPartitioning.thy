@@ -4,9 +4,8 @@ imports "../Common/SetPartitioning"
         "../Common/GroupF"
         "../Primitive_Matchers/Common_Primitive_toString"
         "SimpleFw_Semantics"
-        "../afp/Mergesort" (*TODO*)
+        "../Bitmagic/WordInterval_Sorted"
 begin
-
 
 
 fun extract_IPSets_generic0 :: "(simple_match \<Rightarrow> 32 word \<times> nat) \<Rightarrow> simple_rule list \<Rightarrow> (32 wordinterval) list" where
@@ -945,7 +944,9 @@ qed
 
 (*construct partitions. main function!*)
 definition build_ip_partition :: "parts_connection \<Rightarrow> simple_rule list \<Rightarrow> 32 wordinterval list" where
-  "build_ip_partition c rs = map (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) (groupWIs3 c rs)"
+  "build_ip_partition c rs = map
+    (\<lambda>xs. wordinterval_sort (wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)))
+      (groupWIs3 c rs)"
 
 
 theorem build_ip_partition_same_fw: "V \<in> set (build_ip_partition c rs) \<Longrightarrow>
@@ -953,7 +954,7 @@ theorem build_ip_partition_same_fw: "V \<in> set (build_ip_partition c rs) \<Lon
                                \<forall>ip2 \<in> wordinterval_to_set V.
                                same_fw_behaviour_one ip1 ip2 c rs"
   apply(simp add: build_ip_partition_def groupWIs3)
-  using wordinterval_list_to_set_compressed groupParts_same_fw_wi2 by blast
+  using wordinterval_list_to_set_compressed groupParts_same_fw_wi2 wordinterval_sort by blast
 
 theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \<Longrightarrow> B \<in> set (build_ip_partition c rs) \<Longrightarrow> 
                                 A \<noteq> B \<Longrightarrow>
@@ -961,7 +962,7 @@ theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \
                                 \<forall>ip2 \<in> wordinterval_to_set B.
                                 \<not> same_fw_behaviour_one ip1 ip2 c rs"
   apply(simp add: build_ip_partition_def groupWIs3)
-  using  groupWIs_same_fw_not2 wordinterval_list_to_set_compressed by blast
+  using  groupWIs_same_fw_not2 wordinterval_list_to_set_compressed wordinterval_sort by blast
 
 theorem build_ip_partition_complete: "(\<Union>x\<in>set (build_ip_partition c rs). wordinterval_to_set x) = (UNIV :: ipv4addr set)"
   proof -
@@ -969,7 +970,7 @@ theorem build_ip_partition_complete: "(\<Union>x\<in>set (build_ip_partition c r
     for x::"32 wordinterval list"
     by(induction x) simp_all
   thus ?thesis
-  apply(simp add: build_ip_partition_def groupWIs3 wordinterval_compress)
+  apply(simp add: build_ip_partition_def groupWIs3 wordinterval_compress wordinterval_sort)
   using groupWIs_complete[simplified wordinterval_list_to_set_def] by simp
   qed
 
@@ -983,15 +984,15 @@ lemma wordinterval_empty_wordinterval_compress: "wordinterval_empty (wordinterva
 lemma build_ip_partition_no_empty_elems: "wi \<in> set (build_ip_partition c rs) \<Longrightarrow> \<not> wordinterval_empty wi"
   proof -
     assume "wi \<in> set (build_ip_partition c rs)"
-    hence assm: "wi \<in> (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) ` set (groupWIs c rs)"
+    hence assm: "wi \<in> (\<lambda>xs. wordinterval_sort (wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval))) ` set (groupWIs c rs)"
       by(simp add: build_ip_partition_def groupWIs3)
     from assm obtain wi_orig where 1: "wi_orig \<in>  set (groupWIs c rs)" and
-       2: "wi = wordinterval_compress (foldr wordinterval_union wi_orig Empty_WordInterval)" by blast
+       2: "wi = wordinterval_sort (wordinterval_compress (foldr wordinterval_union wi_orig Empty_WordInterval))" by blast
     from 1 groupWIs_not_empty_elem have i1: "wi_orig \<noteq> []" by simp
     from 1 groupWIs_not_empty_elems have i2: "\<And>w. w \<in> set wi_orig \<Longrightarrow> \<not> wordinterval_empty w" by simp
     from i1 i2 have "wordinterval_to_set (foldr wordinterval_union wi_orig Empty_WordInterval) \<noteq> {}"
       by(induction wi_orig) simp_all
-    with 2 show ?thesis by(simp add: wordinterval_compress)
+    with 2 show ?thesis by(simp add: wordinterval_compress wordinterval_sort)
   qed
 
 
@@ -1058,10 +1059,10 @@ qed
 lemma build_ip_partition_distinct: "distinct (map wordinterval_to_set (build_ip_partition c rs))"
 proof -
   have  
-  "(wordinterval_to_set \<circ> (\<lambda>xs. wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval))) ws
+  "(wordinterval_to_set \<circ> (\<lambda>xs. wordinterval_sort (wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)))) ws
        = \<Union> set (map wordinterval_to_set ws)" for ws::"'a::len wordinterval list"
     proof(induction ws)
-    qed(simp_all add: wordinterval_compress)
+    qed(simp_all add: wordinterval_compress wordinterval_sort)
   hence hlp1: "map wordinterval_to_set (build_ip_partition c rs) =
                    map (\<lambda>x. \<Union> set (map wordinterval_to_set x)) (groupWIs c rs)"
     unfolding build_ip_partition_def groupWIs3 by auto
@@ -1195,11 +1196,13 @@ lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and
     from s_range_in_part have s_range_in_part': "s_range \<in> set (build_ip_partition c rs)" by simp
     from d_range_in_part have d_range_in_part': "d_range \<in> set (build_ip_partition c rs)" by simp
 
-    from build_ip_partition_same_fw[OF s_range_in_part', unfolded same_fw_behaviour_one_def] s `s_repr \<in> wordinterval_to_set s_range` have 
+    from build_ip_partition_same_fw[OF s_range_in_part', unfolded same_fw_behaviour_one_def] s
+                                                        `s_repr \<in> wordinterval_to_set s_range` have 
       "\<forall>d. runFw s_repr d c rs = runFw s d c rs" by blast
     with repr_Allow have 1: "runFw s d_repr c rs = Decision FinalAllow" by simp
 
-    from build_ip_partition_same_fw[OF d_range_in_part', unfolded same_fw_behaviour_one_def] d `d_repr \<in> wordinterval_to_set d_range` have 
+    from build_ip_partition_same_fw[OF d_range_in_part', unfolded same_fw_behaviour_one_def] d
+                                                        `d_repr \<in> wordinterval_to_set d_range` have 
       "\<forall>s. runFw s d_repr c rs = runFw s d c rs" by blast
     with 1 have 2: "runFw s d c rs = Decision FinalAllow" by simp
     thus ?thesis .
