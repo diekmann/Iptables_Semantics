@@ -158,7 +158,7 @@ text{*
 
   (*More convenient parser helper function:
     Some 16word \<longrightarrow> address piece
-    None \<longrightarrow> ommission :: *)
+    None \<longrightarrow> omission :: *)
   definition parse_ipv6_address :: "((16 word) option) list \<Rightarrow> ipv6addr_syntax_compressed option" where
     "parse_ipv6_address as = (case as of 
       [None] \<Rightarrow> Some (IPv6AddrCompressed1_0 ())
@@ -414,9 +414,9 @@ text{*Valid IPv6 compressed notation:
   \<^item> at most one omission
   \<^item> at most 7 pieces
 *}
-lemma "parse_ipv6_address as \<noteq> None \<longleftrightarrow>
-       length (filter (\<lambda>p. p = None) as) = 1 \<and>
-       length (filter (\<lambda>p. p \<noteq> None) as) \<le> 7" (is "?lhs = ?rhs")
+lemma RFC_4291_format: "parse_ipv6_address as \<noteq> None \<longleftrightarrow>
+       length (filter (\<lambda>p. p = None) as) = 1 \<and> length (filter (\<lambda>p. p \<noteq> None) as) \<le> 7"
+       (is "?lhs = ?rhs")
 proof
   assume ?lhs
   then obtain addr where "parse_ipv6_address as = Some addr"
@@ -594,5 +594,35 @@ subsection{*Semantics*}
     apply(simp add: word_ao_dist ucast_shift_simps ucast_simps)
     done
   qed
+
+
+
+(*DRAFT below*)
+
+value "dropWhile (\<lambda>x. x \<noteq> None) [Some (1::int), Some 2, None, Some 3]"
+term the
+
+fun ipv6_unparsed_compressed_to_int :: "((16 word) option) list \<Rightarrow> ipv6addr_syntax option" where
+  "ipv6_unparsed_compressed_to_int ls = (
+    if
+      length (filter (\<lambda>p. p = None) ls) \<noteq> 1 \<or> length (filter (\<lambda>p. p \<noteq> None) ls) > 7
+    then
+      None
+    else
+      let
+        before_omission = map the (takeWhile (\<lambda>x. x \<noteq> None) ls);
+        after_omission = map the (drop 1 (dropWhile (\<lambda>x. x \<noteq> None) ls));
+        num_omissions = (length before_omission + length after_omission);
+        expanded = before_omission @ (replicate (8 - num_omissions) 0) @ after_omission
+      in
+        case expanded of [a,b,c,d,e,f,g,h] \<Rightarrow> Some (IPv6AddrPreferred a b c d e f g h)
+                         | _               \<Rightarrow> None
+      )"
+
+  lemma "ipv6_unparsed_compressed_to_int
+    [Some 0x2001, Some 0xDB8, None, Some 0x8, Some 0x800, Some 0x200C, Some 0x417A]
+      = Some (IPv6AddrPreferred 0x2001 0xDB8 0 0 8 0x800 0x200C 0x417A)" by eval
+
+  lemma "ipv6_unparsed_compressed_to_int [None] = Some (IPv6AddrPreferred 0 0 0 0 0 0 0 0)" by eval
 
 end
