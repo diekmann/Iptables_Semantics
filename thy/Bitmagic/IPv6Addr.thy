@@ -599,6 +599,53 @@ subsection{*Semantics*}
 
 (*DRAFT below*)
 
+(*compressed to preferred format*)
+fun ipv6addr_c2p :: "ipv6addr_syntax_compressed \<Rightarrow> ipv6addr_syntax" where
+    "ipv6addr_c2p (IPv6AddrCompressed1_0 ()) = IPv6AddrPreferred 0 0 0 0 0 0 0 0"
+  | "ipv6addr_c2p (IPv6AddrCompressed1_1 () h) = IPv6AddrPreferred 0 0 0 0 0 0 0 h"
+  | "ipv6addr_c2p (IPv6AddrCompressed1_2 () g h) = IPv6AddrPreferred 0 0 0 0 0 0 g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed1_3 () f g h) = IPv6AddrPreferred 0 0 0 0 0 f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed1_4 () e f g h) = IPv6AddrPreferred 0 0 0 0 e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed1_5 () d e f g h) = IPv6AddrPreferred 0 0 0 d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed1_6 () c d e f g h) = IPv6AddrPreferred 0 0 c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed1_7 () b c d e f g h) = IPv6AddrPreferred 0 b c d e f g h"
+
+  (*| "ipv6addr_c2p (IPv6AddrCompressed2_1 a ()) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed2_2 a () h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed2_3 a () g h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed2_4 a () f g h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed2_5 a () e f g h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed2_6 a () d e f g h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed2_7 a () c d e f g h) = IPv6AddrPreferred a b c d e f g h"
+
+  | "ipv6addr_c2p (IPv6AddrCompressed3_2 a b ()) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed3_3 a b () h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed3_4 a b () g h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed3_5 a b () f g h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed3_6 a b () e f g h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed3_7 a b () d e f g h) = IPv6AddrPreferred a b c d e f g h"
+
+  | "ipv6addr_c2p (IPv6AddrCompressed4_3 a b c ()) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed4_4 a b c () h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed4_5 a b c () g h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed4_6 a b c () f g h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed4_7 a b c () e f g h) = IPv6AddrPreferred a b c d e f g h"
+
+  | "ipv6addr_c2p (IPv6AddrCompressed5_4 a b c d ()) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed5_5 a b c d () h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed5_6 a b c d () g h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed5_7 a b c d () f g h) = IPv6AddrPreferred a b c d e f g h"
+
+  | "ipv6addr_c2p (IPv6AddrCompressed6_5 a b c d e ()) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed6_6 a b c d e () h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed6_7 "a b c d e () g h) = IPv6AddrPreferred a b c d e f g h"
+
+  | "ipv6addr_c2p (IPv6AddrCompressed7_6 a b c d e f ()) = IPv6AddrPreferred a b c d e f g h 0"
+  | "ipv6addr_c2p (IPv6AddrCompressed7_7 a b c d e f () h) = IPv6AddrPreferred a b c d e f 0 h"
+
+  | "ipv6addr_c2p (IPv6AddrCompressed8_7 a b c d e f g ()) = IPv6AddrPreferred a b c d e f g 0"*)
+
+
 value "dropWhile (\<lambda>x. x \<noteq> None) [Some (1::int), Some 2, None, Some 3]"
 term the
 
