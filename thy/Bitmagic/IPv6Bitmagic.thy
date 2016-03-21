@@ -297,15 +297,13 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
 (*-------------- next one ------------------*)
 
 
-   (*n small, m large*)
+  (*n small, m large*)
   lemma helper_masked_ucast_generic:
     fixes b::"16 word"
     assumes "n + 16 \<le> m" and "m < 128"
     shows "((ucast:: 16 word \<Rightarrow> 128 word) b << n) && (mask 16 << m) = 0"
   proof -
-
-    have mnhelper:
-      "x < 2 ^ (m - n)" if mnh2: "x < 0x10000"
+    have "x < 2 ^ (m - n)" if mnh2: "x < 0x10000"
       for x::"128 word"
     proof -
       from assms(1) have mnh3: "16 \<le> m - n" by fastforce
@@ -446,6 +444,7 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
       done
   qed
 
+(*
   lemma ucast16_mask16: "(ucast:: 16 word \<Rightarrow> 128 word) (mask 16) = mask 16"
   proof -
      have minus1: "((- 1):: 16 word) = 0xFFFF"
@@ -455,6 +454,7 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
        apply(simp add: mask_def minus1)
        done
    qed
+*)
 
   lemma helper_masked_ucast_equal_generic:
     fixes b::"16 word"
