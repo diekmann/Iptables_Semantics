@@ -325,7 +325,7 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
       with mnh3 have "unat x < 2 ^ (m - n)" 
         apply(rule_tac b=65535 in Orderings.order_class.order.strict_trans1)
          apply(simp_all)
-         using power_2_16_nat apply blast
+        using power_2_16_nat apply blast
         done
       with assms(2) show ?thesis by(subst word_less_nat_alt) simp
     qed
@@ -347,9 +347,9 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
       apply simp
       apply(subst WordLemmaBucket.word_and_mask_shiftl)
       apply(subst WordLib.shiftr_div_2n_w)
-       apply(simp add: word_size; fail)
+       subgoal by(simp add: word_size; fail)
       apply(subst WordLemmaBucket.word_div_less)
-       apply(rule mnhelper3)
+       subgoal by(rule mnhelper3)
       apply simp
       done
   qed
@@ -386,7 +386,7 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
          by (simp add: nat_mult_power_less_eq semiring_normalization_rules(7))
        from n show ?thesis
          apply(subst help_mult)
-          apply(simp; fail)
+          subgoal by (simp)
          apply(rule order_less_le_trans)
           apply(rule unat_of_bl_128_16_less_helper)
          apply(rule Power.power_increasing)
@@ -411,13 +411,12 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     from assms have "unat ((2 ^ n)::128 word) * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) mod 2 ^ len_of TYPE(128) =
           2 ^ m * (2 ^ (n - m) * unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) mod 2 ^ len_of TYPE(128))"
        apply(subst Word_Miscellaneous.nat_mod_eq')
-        apply(subst Aligned.unat_power_lower)
-         apply(simp; fail)
-        apply(rule power_less_128_helper)
-         apply(simp; fail)
+        subgoal apply(subst Aligned.unat_power_lower)
+         subgoal by(simp; fail)
+        subgoal by (rule power_less_128_helper) simp
+        done
        apply(subst Word_Miscellaneous.nat_mod_eq')
-        apply(rule power_less_128_helper)
-        apply(simp; fail)
+        subgoal by(rule power_less_128_helper) simp
        apply(subst Aligned.unat_power_lower)
         apply(simp; fail)
        apply(simp only: *)
