@@ -58,7 +58,7 @@ definition simple_linux_router_nomac :: "routing_rule list \<Rightarrow> simple_
 "simple_linux_router_nomac rt fw p \<equiv> do {
 	let rd = routing_table_semantics rt (p_dst p);
 	_ \<leftarrow> (if output_iface rd = p_iiface p then None else Some ());
-	let p = p_oiface_update (const (output_iface rd)) p;
+	let p = p\<lparr>p_oiface := output_iface rd\<rparr>;
 	let fd = simple_fw fw p;
 	_ \<leftarrow> (case fd of Decision FinalAllow \<Rightarrow> Some () | Decision FinalDeny \<Rightarrow> None);
 	Some p
@@ -66,21 +66,26 @@ definition simple_linux_router_nomac :: "routing_rule list \<Rightarrow> simple_
 (* an alternative formulation would maybe be "if the routing decision for the source is the same as for the destination, don't forward it." 
    This might be advantageous in $cases, however, this formulation is clearly easier to translate *)
 
+lemma update_unfold_hlps:
+	"p\<lparr>p_l2dst := x\<rparr> = p_l2dst_update (const x) p"
+	"p\<lparr>p_oiface := y\<rparr> = p_oiface_update (const y) p"
+by(simp_all add: const_def)
+
 lemma rtr_nomac_e1:
 	assumes "simple_linux_router rt fw mlf ifl pi = Some po"
 	assumes "simple_linux_router_nomac rt fw pi = Some po'"
-	shows "\<exists>x. po = p_l2dst_update x po'"
+	shows "\<exists>x. po = po'\<lparr>p_l2dst := x\<rparr>"
 using assms
 unfolding simple_linux_router_nomac_def simple_linux_router_def
 by(simp add: Let_def split: option.splits state.splits final_decision.splits Option.bind_splits if_splits) blast+
 
 lemma rtr_nomac_e2:
 	assumes "simple_linux_router rt fw mlf ifl pi = Some po"
-	assumes "p_iiface pi \<noteq> p_iiface po"
+	assumes "p_iiface pi \<noteq> p_oiface po"
 	shows "\<exists>po'. simple_linux_router_nomac rt fw pi = Some po'"
 using assms
 unfolding simple_linux_router_nomac_def simple_linux_router_def
-by(clarsimp simp add: Let_def const_def split: option.splits state.splits final_decision.splits Option.bind_splits if_splits)
+by(clarsimp simp add: Let_def split: option.splits state.splits final_decision.splits Option.bind_splits if_splits)
 
 lemma rtr_nomac_e3:
 	assumes "simple_linux_router_nomac rt fw pi = Some po"
@@ -89,27 +94,27 @@ lemma rtr_nomac_e3:
 	shows "\<exists>po'. simple_linux_router rt fw mlf ifl pi = Some po'"
 using assms
 unfolding simple_linux_router_nomac_def simple_linux_router_def
-by(clarsimp simp add: Let_def const_def split: option.splits state.splits final_decision.splits Option.bind_splits if_splits)
+by(clarsimp simp add: Let_def split: option.splits state.splits final_decision.splits Option.bind_splits if_splits)
 
 lemma rtr_nomac_eq:
 	assumes "iface_packet_check ifl pi = None \<longleftrightarrow> output_iface (routing_table_semantics rt (p_dst pi)) = p_iiface pi"
 	assumes "mlf (fromMaybe (p_dst pi) (next_hop (routing_table_semantics rt (p_dst pi)))) \<noteq> None"
-	shows "\<exists>x. map_option (p_l2dst_update x) (simple_linux_router_nomac rt fw pi) = simple_linux_router rt fw mlf ifl pi"
+	shows "\<exists>x. map_option (\<lambda>p. p\<lparr>p_l2dst := x\<rparr>) (simple_linux_router_nomac rt fw pi) = simple_linux_router rt fw mlf ifl pi"
+unfolding update_unfold_hlps
 proof(cases "simple_linux_router_nomac rt fw pi"; cases "simple_linux_router rt fw mlf ifl pi")
 	case goal4
 	note rtr_nomac_e1[OF goal4(2) goal4(1)]
-	with goal4 show ?case by auto 
+	with goal4 show ?case by(auto simp add: update_unfold_hlps) 
 next
 	case (goal2 a)
 	from goal2(2) have "iface_packet_check ifl pi \<noteq> None" by(simp add: simple_linux_router_def Let_def const_def split: option.splits state.splits final_decision.splits Option.bind_splits if_splits) 
-	hence "p_iiface pi \<noteq> p_iiface a" using assms(1) goal2(2) sorry by(clarsimp simp add: simple_linux_router_def Let_def const_def split: option.splits state.splits final_decision.splits Option.bind_splits if_splits)
+	hence "p_iiface pi \<noteq> p_oiface a" using assms(1) goal2(2) by(clarsimp simp add: simple_linux_router_def Let_def const_def split: option.splits state.splits final_decision.splits Option.bind_splits if_splits)
 	note rtr_nomac_e2[OF goal2(2) this]
 	with goal2(1) have False by simp
 	thus ?case ..
 next
 	case (goal3 a)
-	from goal3(1) have "p_oiface pi \<noteq> p_oiface a" 
-		by(clarsimp simp add: simple_linux_router_nomac_def Let_def const_def split:  state.splits final_decision.splits if_splits Option.bind_splits) (* woha, the order of the splits is important\<dots> *) 
+	from goal3(1) have "p_iiface pi \<noteq> p_oiface a" by(clarsimp simp add: simple_linux_router_nomac_def Let_def const_def split:  state.splits final_decision.splits if_splits Option.bind_splits) (* woha, the order of the splits is important\<dots> *) 
 	hence "iface_packet_check ifl pi \<noteq> None" using goal3(1) by(clarsimp simp add: simple_linux_router_nomac_def Let_def const_def assms split:  state.splits final_decision.splits if_splits Option.bind_splits)
 	then obtain i3 where "iface_packet_check ifl pi = Some i3" by blast
 	note rtr_nomac_e3[OF goal3(1) this] assms(2)
@@ -121,26 +126,14 @@ qed simp
 
 lemma rtr_nomac_eq_halfinv:
 	assumes fw_ac_all: "fw = [SimpleRule simple_match_any Accept]"
-	assumes a1: "\<exists>dst_mac_f. map_option (p_l2dst_update dst_mac_f) (simple_linux_router_nomac rt fw pi) = simple_linux_router rt fw mlf ifl pi"
+	assumes a1: "map_option (\<lambda>p. p\<lparr>p_l2dst := dst_mac\<rparr>) (simple_linux_router_nomac rt fw pi) = simple_linux_router rt fw mlf ifl pi"
 	assumes a2: "mlf (fromMaybe (p_dst pi) (next_hop (routing_table_semantics rt (p_dst pi)))) \<noteq> None"
-	shows "iface_packet_check ifl pi = None \<longleftrightarrow> output_iface (routing_table_semantics rt (p_dst pi)) = p_oiface pi"
+	shows "iface_packet_check ifl pi = None \<longleftrightarrow> output_iface (routing_table_semantics rt (p_dst pi)) = p_iiface pi"
 using a1 a2
 	apply(clarify)
 	apply(cases "simple_linux_router rt fw mlf ifl pi")
 	apply(unfold fw_ac_all)
 	apply(simp_all add: simple_linux_router_nomac_def simple_linux_router_def Let_def simple_match_any split: Option.bind_splits if_splits)
 done
-
-lemma rtr_nomac_eq_halfinv_noexquant:
-	assumes fw_ac_all: "fw = [SimpleRule simple_match_any Accept]"
-	assumes a1: "map_option (p_l2dst_update (const dst_mac)) (simple_linux_router_nomac rt fw pi) = simple_linux_router rt fw mlf ifl pi"
-	assumes a2: "mlf (fromMaybe (p_dst pi) (next_hop (routing_table_semantics rt (p_dst pi)))) = Some dst_mac"
-	shows "iface_packet_check ifl pi = None \<longleftrightarrow> output_iface (routing_table_semantics rt (p_dst pi)) = p_oiface pi"
-using a1 a2 unfolding const_def
-	apply(cases "simple_linux_router rt fw mlf ifl pi")
-	apply(unfold fw_ac_all)
-	apply(simp_all add: simple_linux_router_nomac_def simple_linux_router_def Let_def simple_match_any split: Option.bind_splits if_splits)
-done
-sorry
 
 end
