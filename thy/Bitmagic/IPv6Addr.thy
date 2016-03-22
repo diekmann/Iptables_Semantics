@@ -650,8 +650,8 @@ fun ipv6addr_c2p :: "ipv6addr_syntax_compressed \<Rightarrow> ipv6addr_syntax" w
 value "dropWhile (\<lambda>x. x \<noteq> None) [Some (1::int), Some 2, None, Some 3]"
 term the
 
-fun ipv6_unparsed_compressed_to_int :: "((16 word) option) list \<Rightarrow> ipv6addr_syntax option" where
-  "ipv6_unparsed_compressed_to_int ls = (
+fun ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<Rightarrow> ipv6addr_syntax option" where
+  "ipv6_unparsed_compressed_to_preferred ls = (
     if
       length (filter (\<lambda>p. p = None) ls) \<noteq> 1 \<or> length (filter (\<lambda>p. p \<noteq> None) ls) > 7
     then
@@ -667,10 +667,17 @@ fun ipv6_unparsed_compressed_to_int :: "((16 word) option) list \<Rightarrow> ip
                          | _               \<Rightarrow> None
       )"
 
-  lemma "ipv6_unparsed_compressed_to_int
+  lemma "ipv6_unparsed_compressed_to_preferred
     [Some 0x2001, Some 0xDB8, None, Some 0x8, Some 0x800, Some 0x200C, Some 0x417A]
       = Some (IPv6AddrPreferred 0x2001 0xDB8 0 0 8 0x800 0x200C 0x417A)" by eval
 
-  lemma "ipv6_unparsed_compressed_to_int [None] = Some (IPv6AddrPreferred 0 0 0 0 0 0 0 0)" by eval
+  lemma "ipv6_unparsed_compressed_to_preferred [None] = Some (IPv6AddrPreferred 0 0 0 0 0 0 0 0)" by eval
+
+
+  lemma "ipv6_unparsed_compressed_to_preferred ls = Some ipv6prferred \<longleftrightarrow> ipv6addr_c2p ipv6compressed = ipv6prferred"
+  apply(rule iffI)
+  prefer 2
+  quickcheck
+  oops
 
 end
