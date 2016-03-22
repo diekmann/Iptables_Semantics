@@ -674,11 +674,35 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
   lemma "ipv6_unparsed_compressed_to_preferred [None] = Some (IPv6AddrPreferred 0 0 0 0 0 0 0 0)" by eval
 
 
-  lemma "ipv6_unparsed_compressed_to_preferred ls = Some ipv6prferred \<longleftrightarrow> ipv6addr_c2p ipv6compressed = ipv6prferred"
+  value "ipv6_unparsed_compressed_to_preferred []"
+
+
+  lemma ipv6_unparsed_compressed_to_preferred_identity1:
+   "ipv6_unparsed_compressed_to_preferred (ipv6addr_syntax_compressed_to_list ipv6compressed) = Some ipv6prferred
+    \<longleftrightarrow> ipv6addr_c2p ipv6compressed = ipv6prferred"
+  by(cases ipv6compressed) (simp_all add: ipv6_unparsed_compressed_to_preferred_def) (*1s*)
+ 
+  lemma ipv6_unparsed_compressed_to_preferred_identity2: 
+    "ipv6_unparsed_compressed_to_preferred ls = Some ipv6prferred
+     \<longleftrightarrow> (\<exists>ipv6compressed. parse_ipv6_address ls = Some ipv6compressed \<and> ipv6addr_c2p ipv6compressed = ipv6prferred)"
   apply(rule iffI)
-   apply(simp add: ipv6_unparsed_compressed_to_preferred_def split: split_if_asm)
-  prefer 2
-  
-  oops
+   apply(subgoal_tac "parse_ipv6_address ls \<noteq> None")
+    prefer 2
+    apply(subst RFC_4291_format)
+    apply(simp add: ipv6_unparsed_compressed_to_preferred_def split: split_if_asm; fail)
+   apply(simp)
+   apply(erule exE, rename_tac ipv6compressed)
+   apply(rule_tac x="ipv6compressed" in exI)
+   apply(simp)
+   apply(subgoal_tac "(ipv6addr_syntax_compressed_to_list ipv6compressed = ls)")
+    prefer 2
+    using parse_ipv6_address_identity2 apply presburger
+   using ipv6_unparsed_compressed_to_preferred_identity1 apply blast
+  apply(erule exE, rename_tac ipv6compressed)
+  apply(subgoal_tac "(ipv6addr_syntax_compressed_to_list ipv6compressed = ls)")
+   prefer 2
+   using parse_ipv6_address_identity2 apply presburger
+  using ipv6_unparsed_compressed_to_preferred_identity1 apply blast
+  done
 
 end

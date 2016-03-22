@@ -12,7 +12,7 @@ begin
 
 (*TODO: add to l4v bl_to_bin_lt2p*)
 thm Bool_List_Representation.bl_to_bin_lt2p
-lemma bl_to_bin_lt2p_dropNot: "bl_to_bin bs < (2 ^ length (dropWhile Not bs))"
+lemma bl_to_bin_lt2p_dropNot: "bl_to_bin bs < 2 ^ length (dropWhile Not bs)"
   unfolding bl_to_bin_def
   proof(induction bs)
   case(Cons b bs)
