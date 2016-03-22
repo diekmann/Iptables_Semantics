@@ -24,10 +24,7 @@ After cloning this repository, you need to initialized this submodule.
 ```
 $ git submodule init
 $ git submodule update
-$ #now patch l4v for Isabelle2016
 ```
-
-Apply the patch in thy/Bitmagic/l4v.patch. It is only three lines. seL4 is not yet ported for Isabelle2016.
 
 
 ### Isabelle Theory files
