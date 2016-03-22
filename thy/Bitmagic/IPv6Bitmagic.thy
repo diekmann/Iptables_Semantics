@@ -13,11 +13,11 @@ begin
 (*TODO: add to l4v bl_to_bin_lt2p*)
 thm Bool_List_Representation.bl_to_bin_lt2p
 lemma bl_to_bin_lt2p_dropNot: "bl_to_bin bs < (2 ^ length (dropWhile Not bs))"
-  apply (unfold bl_to_bin_def)
-  apply(induction bs)
-   apply(simp)
-  apply(simp)
-  by (metis bl_to_bin_lt2p_aux one_add_one)
+  unfolding bl_to_bin_def
+  proof(induction bs)
+  case(Cons b bs)
+    with bl_to_bin_lt2p_aux[where w=1] show ?case by simp
+  qed(simp)
 
 (*TODO: add to l4v uint_of_bl_is_bl_to_bin*)
 thm WordLib.uint_of_bl_is_bl_to_bin

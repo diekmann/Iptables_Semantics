@@ -650,7 +650,7 @@ fun ipv6addr_c2p :: "ipv6addr_syntax_compressed \<Rightarrow> ipv6addr_syntax" w
 value "dropWhile (\<lambda>x. x \<noteq> None) [Some (1::int), Some 2, None, Some 3]"
 term the
 
-fun ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<Rightarrow> ipv6addr_syntax option" where
+definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<Rightarrow> ipv6addr_syntax option" where
   "ipv6_unparsed_compressed_to_preferred ls = (
     if
       length (filter (\<lambda>p. p = None) ls) \<noteq> 1 \<or> length (filter (\<lambda>p. p \<noteq> None) ls) > 7
@@ -676,8 +676,9 @@ fun ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<Rightarr
 
   lemma "ipv6_unparsed_compressed_to_preferred ls = Some ipv6prferred \<longleftrightarrow> ipv6addr_c2p ipv6compressed = ipv6prferred"
   apply(rule iffI)
+   apply(simp add: ipv6_unparsed_compressed_to_preferred_def split: split_if_asm)
   prefer 2
-  quickcheck
+  
   oops
 
 end
