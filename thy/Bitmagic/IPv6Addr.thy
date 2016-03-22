@@ -660,8 +660,8 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
       let
         before_omission = map the (takeWhile (\<lambda>x. x \<noteq> None) ls);
         after_omission = map the (drop 1 (dropWhile (\<lambda>x. x \<noteq> None) ls));
-        num_omissions = (length before_omission + length after_omission);
-        expanded = before_omission @ (replicate (8 - num_omissions) 0) @ after_omission
+        num_omissions = 8 - (length before_omission + length after_omission);
+        expanded = before_omission @ (replicate num_omissions 0) @ after_omission
       in
         case expanded of [a,b,c,d,e,f,g,h] \<Rightarrow> Some (IPv6AddrPreferred a b c d e f g h)
                          | _               \<Rightarrow> None
