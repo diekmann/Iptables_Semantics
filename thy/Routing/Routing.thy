@@ -44,7 +44,8 @@ lemma longest_prefix_routing_no_sort:
   "is_longest_prefix_routing tbl \<Longrightarrow>
   (sort_key (\<lambda>r. 32 - pfxm_length (routing_match r)) tbl) = tbl"
   by (induction tbl rule: is_longest_prefix_routing.induct) auto
- 
+
+(* todo: document that it is runtime checkable *)
 fun has_default_route :: "prefix_routing \<Rightarrow> bool" where
 "has_default_route (r#rs) = (((pfxm_length (routing_match r)) = 0) \<or> has_default_route rs)" |
 "has_default_route Nil = False"
@@ -78,7 +79,7 @@ definition dst_addr :: "'v hdr \<Rightarrow> 'v" where
 lemma dst_addr_f: "(f = Host \<or> f = NetworkBox) \<Longrightarrow> dst_addr (src, f dst) = dst"
   unfolding dst_addr_def extract_addr_def snd_def by auto
 
-(*assumes: correct_routing*)
+(* WARNING: all proofs assume correct_routing: list is sorted by descending prefix length, prefixes are valid. Some need a default route. *)
 fun routing_table_semantics :: "prefix_routing \<Rightarrow> ipv4addr \<Rightarrow> routing_action" where
 "routing_table_semantics [] _ = routing_action (undefined::routing_rule)" | 
 "routing_table_semantics (r#rs) p = (if prefix_match_semantics (routing_match r) p then routing_action r else routing_table_semantics rs p)"

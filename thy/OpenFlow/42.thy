@@ -4,7 +4,7 @@ imports
 	"Semantics_OpenFlow"
 	"OpenFlowMatches"
 	"OpenFlowAction"
-	"../Routing/AnnotateRouting"
+	(*"../Routing/AnnotateRouting"*)
 	"../Routing/LinuxRouter"
 begin
 
@@ -121,9 +121,27 @@ definition "option2list n \<equiv> (case n of None \<Rightarrow> [] | Some s \<R
 lemma set_option2list[simp]: "set (option2list k) = option2set k"
 unfolding option2list_def option2set_def by (simp split: option.splits)
 
+definition "merge_two_sms l1 l2 \<equiv> [(u,(a,b)). (m1,a) \<leftarrow> l1, (m2,b) \<leftarrow> l2, u \<leftarrow> option2list (simple_match_and m1 m2)]"
+
+definition "weird_fw l p = find (\<lambda>(m,a). simple_matches m p) l"
+definition "simple_rule_dtor r = (case r of SimpleRule m a \<Rightarrow> (m,a))"
+lemma "split SimpleRule \<circ> simple_rule_dtor = id" sorry
+lemma "simple_fw fw p \<noteq> Undecided \<Longrightarrow> weird_fw (map simple_rule_dtor fw) p \<noteq> None" sorry
+
+lemma "weird_fw (merge_two_sms f1 fw) p = Some (ru,d1,d2) \<longleftrightarrow> (weird_fw f1 p = Some (r1,d1) \<and> weird_fw f2 p = Some (r2,d2))" sorry
+
+text{*We image two firewalls are positioned directly after each other.
+      The first one has ruleset rs1 installed, the second one has ruleset rs2 installed.
+      A packet needs to pass both firewalls. *}
+
+lemma "simple_fw rs1 p = Decision FinalAllow \<and> simple_fw rs2 p = Decision FinalAllow \<longleftrightarrow>
+       simple_fw (map (\<lambda>(u,a,b). SimpleRule u (if a = simple_action.Accept \<and> b = simple_action.Accept then simple_action.Accept else simple_action.Drop) )
+       	(merge_two_sms (map simple_rule_dtor rs1) (map simple_rule_dtor rs2))) p = Decision FinalAllow"
+sorry
+
+
 definition toprefixmatch where
 "toprefixmatch m \<equiv> (if fst m = 0 \<and> snd m = 0 then {} else {PrefixMatch (fst m) (snd m)})"
-(* todo: disambiguate that prefix_match mess *)
 lemma prefix_match_semantics_simple_match: 
 	assumes c1: "card (toprefixmatch m) = 1"
 	assumes vld: "NumberWangCaesar.valid_prefix (the_elem (toprefixmatch m))" 
@@ -157,9 +175,10 @@ lemma smtoms_cong: "a = e \<Longrightarrow> b = f \<Longrightarrow> c = g \<Long
 (* this lemma is a bit stronger than what I actually need, but unfolds are convenient *)
 lemma smtoms_eq_hlp: "simple_match_to_of_match_single r a b c d = simple_match_to_of_match_single r f g h i \<longleftrightarrow> (a = f \<and> b = g \<and> c = h \<and> d = i)"
 apply(rule, simp_all)
-apply(auto simp add: option2set_def simple_match_to_of_match_single_def toprefixmatch_def split: option.splits protocol.splits)
+apply(a uto simp add: option2set_def simple_match_to_of_match_single_def toprefixmatch_def split: option.splits protocol.splits)
 (* give this some time, it creates and solves a ton of subgoals\<dots> Takes 26 seconds for me. *)
 done
+sorry
 
 lemma conjunctSomeProtoAnyD: "Some ProtoAny = simple_proto_conjunct a (Proto b) \<Longrightarrow> False"
 by(cases a) (simp_all split: if_splits)
@@ -475,17 +494,31 @@ definition "fourtytwo_s4 ifs ard \<equiv> fourtytwo_s3 ifs [(a,r',c). (a,r,c) \<
 
 definition "fourtytwo_s1 rt = [(route2match r, output_iface (routing_action r)). r \<leftarrow> rt]"
 definition "fourtytwo_s2 mrt fw = [(b,c). (a,c) \<leftarrow> mrt, b \<leftarrow> simple_match_list_and a fw]"
+definition "fourtytwo_nullifyoif frd = [(SimpleRule ((match_sel m)\<lparr>oiface := ifaceAny\<rparr>) (action_sel m),a). (m,a) \<leftarrow> frd]"
+
 
 definition "fourtytwo rt fw ifs \<equiv> let
 	mrt = fourtytwo_s1 rt; (* make matches from those rt entries *)
 	frd = fourtytwo_s2 mrt fw; (* bring down the firewall over all rt matches *)
-	ard = map (apfst word_of_nat) (annotate_rlen frd) (* give them a priority *)
+	nrd = fourtytwo_nullifyoif frd; (* we don't want the rule to match on the oiface, we can't do that in OF (and the simple_match \<rightarrow> of converter will ignore it. *)
+	ard = map (apfst word_of_nat) (annotate_rlen nrd) (* give them a priority *)
 	in
 	if length frd < unat (max_word :: 16 word)
 	then Inr (map (split3 OFEntry) $ fourtytwo_s4 ifs ard)
 	else Inl ''Error in creating OpenFlow table: priority number space exhausted''
 "
 thm fourtytwo_def[unfolded Let_def comp_def fun_app_def fourtytwo_s3_def ] (* it's a monster *)
+
+lemma fourtytwo_nullifyoif_alt: "fourtytwo_nullifyoif frd = map (apfst (\<lambda>r. (case r of SimpleRule m a \<Rightarrow> SimpleRule (oiface_update (const ifaceAny) m) a))) frd"
+proof -
+	have h: "(\<lambda>(m, a). [(SimpleRule (match_sel m\<lparr>oiface := ifaceAny\<rparr>) (action_sel m), a)]) = (\<lambda>t. [(case t of (m,a) \<Rightarrow> (SimpleRule (match_sel m\<lparr>oiface := ifaceAny\<rparr>) (action_sel m), a))])"
+		unfolding prod.case_distrib by fast
+	show ?thesis
+		unfolding fourtytwo_nullifyoif_def apsnd_def const_def map_prod_def
+		unfolding h
+		unfolding concat_map_singleton
+		by(clarsimp split: simple_rule.splits)
+qed
 
 find_theorems List.product (* I wonder if we could also write fourtytwo as rt \<times> fw \<times> ifs. somewhat tricky to bring in the priorities. *)  
 
@@ -1010,8 +1043,8 @@ lemma "Inr r = fourtytwo rt fw ifs \<Longrightarrow> sorted_descending (map ofe_
 	apply(thin_tac "r = _")
 	apply(unfold sorted_fourtytwo_hlp)
 	apply(rule sorted_fourtytwo_s4)
-	apply(erule sorted_annotated[OF less_or_eq_imp_le, OF disjI1])
-done
+	apply(drule sorted_annotated[OF less_or_eq_imp_le, OF disjI1])
+oops
 
 lemma find_map: "find g (map f a) = map_option f (find (g \<circ> f) a)"
 by(induction a) simp_all
@@ -1028,6 +1061,8 @@ lemma s2_sema_split_append: "s2_sema (a@trt) p = (case s2_sema a p of Some r \<R
 by(induction a) (simp_all add: s2_sema_def s2_sema_split)
 lemma fourtytwo_s1_split: "fourtytwo_s1 (a # rt) = (route2match a, output_iface (routing_action a)) # fourtytwo_s1 rt"
 	by(unfold fourtytwo_s1_def list.map, rule)
+lemma fourtytwo_s1_append: "fourtytwo_s1 (a @ rt) = fourtytwo_s1 a @ fourtytwo_s1 rt"
+	by(induction a) (simp_all add: fourtytwo_s1_split fourtytwo_s1_def)
 lemma fourtytwo_s2_split: "fourtytwo_s2 (a # rt) fw = map (\<lambda>r. (r,snd a)) (simple_match_list_and (fst a) fw) @ fourtytwo_s2 rt fw"
 	by(cases a) (simp add: fourtytwo_s2_def)
 lemma fourtytwo_s2_split_append: "fourtytwo_s2 (a @ rt) fw = fourtytwo_s2 a fw @ fourtytwo_s2 rt fw"
@@ -1036,6 +1071,9 @@ lemma fourtytwo_s2_split_append: "fourtytwo_s2 (a @ rt) fw = fourtytwo_s2 a fw @
 term "p\<lparr>p_oiface := output_iface (routing_table_semantics rt (p_dst p))\<rparr>"
 
 lemma route2match_correct: "valid_prefix (routing_match a) \<Longrightarrow> prefix_match_semantics (routing_match a) (p_dst p) \<longleftrightarrow> simple_matches (route2match a) (p\<lparr>p_oiface := output_iface (routing_action a)\<rparr>)"
+by(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_refl ipv4range_set_from_prefix_UNIV prefix_match_if_in_corny_set2)
+
+lemma route2match_correct_noupd: "valid_prefix (routing_match a) \<Longrightarrow> simple_matches (route2match a) p \<Longrightarrow> prefix_match_semantics (routing_match a) (p_dst p)"
 by(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_refl ipv4range_set_from_prefix_UNIV prefix_match_if_in_corny_set2)
 
 lemma s1_correct: "valid_prefixes rt \<Longrightarrow> has_default_route rt \<Longrightarrow> \<exists>rm ra. s1_sema (fourtytwo_s1 rt) (p\<lparr>p_oiface := ra\<rparr>) = Some (rm,ra) \<and> ra = output_iface (routing_table_semantics rt (p_dst p))"
@@ -1139,7 +1177,9 @@ qed simp
 lemma simple_matches_andD: "simple_matches m1 p \<Longrightarrow> simple_matches m2 p \<Longrightarrow> \<exists>m. simple_match_and m1 m2 = Some m \<and> simple_matches m p"
 by (meson option.exhaust_sel simple_match_and_NoneD simple_match_and_SomeD)
 
-lemma s2_correct: "simple_fw fw p \<noteq> Undecided \<Longrightarrow> s1_sema rt p = Some (mr,ma) \<Longrightarrow> \<exists>mmr. s2_sema ((fourtytwo_s2 rt fw)) p = Some (mmr, ma)"
+definition "simple_action_to_state a \<equiv> (case a of simple_action.Accept \<Rightarrow> Decision FinalAllow | simple_action.Drop \<Rightarrow> Decision FinalDeny)"
+
+lemma s2_correct: "simple_fw fw p \<noteq> Undecided \<Longrightarrow> s1_sema rt p = Some (mr,ma) \<Longrightarrow> \<exists>mmr. s2_sema ((fourtytwo_s2 rt fw)) p = Some (mmr, ma) \<and> simple_action_to_state (action_sel mmr) = simple_fw fw p"
 proof -
 	assume ras: "s1_sema rt p = Some (mr, ma)"
 	note this[THEN s1_sema_None_split]
@@ -1165,9 +1205,9 @@ proof -
 		apply(clarsimp simp: simple_rule_and_def)
 		apply(blast dest: simple_match_and_SomeD)
 	done
-	show ?thesis proof
-		show "s2_sema ((fourtytwo_s2 rt fw)) p = Some (the (simple_rule_and mr fr), ma)"
-		unfolding rts[THEN conjunct1] fourtytwo_s2_split_append s2_sema_split_append fourtytwo_s2_split s2_sema_split as2 option.simps l ..
+	show ?thesis proof(rule_tac x = "the (simple_rule_and mr fr)" in exI)
+		show "s2_sema ((fourtytwo_s2 rt fw)) p = Some (the (simple_rule_and mr fr), ma) \<and> simple_action_to_state (action_sel (the (simple_rule_and mr fr))) = simple_fw fw p"
+		unfolding rts[THEN conjunct1] fourtytwo_s2_split_append s2_sema_split_append fourtytwo_s2_split s2_sema_split as2 option.simps l sorry
 	qed
 qed
 
@@ -1176,19 +1216,92 @@ qed
 "valid_prefixes rt \<Longrightarrow> has_default_route rt \<Longrightarrow> \<exists>rm ra. s1_sema (fourtytwo_s1 rt) (p\<lparr>p_oiface := ra\<rparr>) = Some (rm,ra) \<and> ra = output_iface (routing_table_semantics rt (p_dst p))"*)
 thm s1_correct s2_correct
 
-definition "simple_action_to_state a \<equiv> (case a of simple_action.Accept \<Rightarrow> Decision FinalAllow | simple_action.Drop \<Rightarrow> Decision FinalDeny)"
+definition "oiface_exact_match \<equiv> list_all (is_iface_name \<circ> iface_sel)"
+
+(* Okay, here comes the crazy. We have shown so far that for packets with a correct output port, s1_sema will make the correct decision on s1, and s2(_sema) will uphold that decision.
+   However, at some point, we need to make that set go away, and the first possible point is after s2. Two ways emerge: Either, set the match to something fixed '''' and make all packets have that,
+   or set it to ifaceAny. Both will make any packet pass the interface match, so ifaceAny is sane. Here is how we get out: We can show that if s1 has not made a decision with the correct port,
+   it will not make a decision with any port. s2 will uphold not making a decision. Thus, the decision has to remain the same even when making a decision. *)
+find_theorems route2match
+lemma eqFalseI: "\<not>A \<Longrightarrow> A = False" by simp
+lemma s1_update_ignorant: "
+	valid_prefixes rt \<Longrightarrow> 
+	s1_sema (fourtytwo_s1 rt) (p\<lparr>p_oiface := output_iface (routing_table_semantics rt (p_dst p))\<rparr>) = None \<Longrightarrow> s1_sema (fourtytwo_s1 rt) p = None"
+proof(induction rt) (* would be easier by rev_induct, but I lack a little lemma, so this will do. *)
+	case (Cons a as)
+	have vpfxa: "valid_prefix (routing_match a)" using valid_prefixes_split Cons.prems(1) by blast
+	have nps: "\<not>prefix_match_semantics (routing_match a) (p_dst p)"
+		using Cons.prems(2) by(simp add: fourtytwo_s1_split s1_sema_split route2match_correct[OF vpfxa] split: if_splits)
+	have nsm: "\<not> simple_matches (route2match a) p"
+		using nps
+		apply -
+		apply(erule contrapos_nn)
+		apply(erule route2match_correct_noupd[rotated])
+		apply(fact vpfxa)
+	done
+	have "routing_table_semantics (a # as) (p_dst p) = routing_table_semantics as (p_dst p)" by(simp add: nps) (* unusued *)  
+	have ihm: "valid_prefixes as" "s1_sema (fourtytwo_s1 as) (p\<lparr>p_oiface := output_iface (routing_table_semantics as (p_dst p))\<rparr>) = None"
+		using Cons.prems by(simp add: valid_prefixes_split, simp add: s1_sema_split fourtytwo_s1_split nps split: if_splits)
+	note Cons.IH[OF this]
+	with nsm show ?case by(simp add: s1_sema_split fourtytwo_s1_split) 
+qed(simp add: s1_sema_def fourtytwo_s1_def;fail)
+find_theorems "s2_sema" "s1_sema"
+
+lemma invert_map_append: "map f l = a @ b \<Longrightarrow> \<exists>a' b'. map f (a' @ b') = a @ b \<and> length a' = length a \<and> length b' = length b"
+proof(induction a arbitrary: l)
+	case (Cons a as)
+	from Cons.prems have "map f (tl l) = as @ b" by auto
+	with Cons.IH obtain a' b' where ab': "map f (a' @ b') = as @ b" "length a' = length as \<and> length b' = length b" by blast
+	show ?case proof(intro exI)
+		show "map f (((hd l) # a') @ b') = (a # as) @ b \<and> length ((hd l) # a') = length (a # as) \<and> length b' = length b" using Cons.prems ab' by fastforce
+	qed
+qed force
+declare[[show_types]]
+lemma s1_correct_noupd: "valid_prefixes (rt::routing_rule list) \<Longrightarrow> has_default_route rt \<Longrightarrow> \<exists>rm ra. s1_sema (fourtytwo_s1 rt) p = Some (rm,ra) \<and> ra = output_iface (routing_table_semantics rt (p_dst p))"
+proof -
+	case goal1
+	note s1_correct[OF this, of p] then obtain rm ra where rmra: "s1_sema (fourtytwo_s1 rt) (p\<lparr>p_oiface := ra\<rparr>) = Some (rm, ra)" "ra = output_iface (routing_table_semantics rt (p_dst p))" by blast
+	have "s1_sema (fourtytwo_s1 rt) (p\<lparr>p_oiface := output_iface (routing_table_semantics rt (p_dst p))\<rparr>) = Some (rm, ra)" using rmra by fast
+	note s1_sema_None_split[OF this]
+	then obtain a b where ab: "fourtytwo_s1 rt = a @ (rm, ra) # b" "s1_sema a (p\<lparr>p_oiface := output_iface (routing_table_semantics rt (p_dst p))\<rparr>) = None" by blast
+	from ab(1) obtain rta where rtab: "fourtytwo_s1 rta = a" apply(simp add: fourtytwo_s1_def) apply(drule invert_map_append) apply(clarsimp) apply(thin_tac _)+
+	proof - case goal1 note this[of a']
+	note s1_update_ignorant[OF _ ] ab(2)
+lemma snullifyoif_correct: "oiface_exact_match (map (snd) frd) \<Longrightarrow> s2_sema frd p = Some r \<Longrightarrow> s2_sema ((fourtytwo_nullifyoif frd)) p = Some r"
+sorry
 
 lemma s12_correct:
+	fixes p :: "'a simple_packet_scheme"
 	assumes s1: "valid_prefixes rt" "has_default_route rt"
-	assumes s2: "simple_fw fw p \<noteq> Undecided"
-	shows "\<exists>mr ma. s2_sema ((fourtytwo_s2 (fourtytwo_s1 rt) fw)) p = Some (mr, ma) \<and> ra = output_iface (routing_table_semantics rt (p_dst p)) \<and> simple_action_to_state (action_sel mr) = simple_fw fw p"
+	assumes s2: "\<forall>(p::'a simple_packet_scheme). simple_fw fw p \<noteq> Undecided"
+	shows "\<exists>mr ma. s2_sema ((fourtytwo_s2 (fourtytwo_s1 rt) fw)) p = Some (mr, ma)  \<and> ma = output_iface (routing_table_semantics rt (p_dst p)) \<and> simple_action_to_state (action_sel mr) = simple_fw fw p"
 proof -
 	note s1_correct[OF s1, of p] 
 	then guess rm ..
 	then guess ra ..
 	note rmra = this
-	note s2_correct[OF s2 ] rmra[THEN conjunct1]
-(* TODO: Okay, there's still some thinking to do for this lemma *)
+	note s2_correct[OF s2[THEN spec] rmra[THEN conjunct1]]
+	then guess mmr ..
+	note mmr = this
+	show ?thesis proof((rule_tac x = mmr in exI, rule_tac x = ra in exI) | intro exI)
+		show "s2_sema (fourtytwo_s2 (fourtytwo_s1 rt) fw) p = Some (mmr, ra) \<and> ra = output_iface (routing_table_semantics rt (p_dst p)) \<and> simple_action_to_state (action_sel mmr) = simple_fw fw p"
+		apply(intro conjI)
+		prefer 2
+		using rmra apply(clarsimp;fail)
+		using mmr
 oops
+
+(* TODO: replace by safe matcher *)
+lemma fourtytwo_correct:
+	fixes p :: "'a simple_packet_ext_scheme"
+	assumes s1: "valid_prefixes rt" "has_default_route rt"
+	    and s2: "\<forall>(p::'a simple_packet_scheme). simple_fw fw p \<noteq> Undecided"
+	  and nerr: "fourtytwo rt fw ifs = Inr oft"
+	shows "OF_same_priority_match3 OF_match_fields_unsafe oft p = Action [Forward oif] \<longleftrightarrow> simple_linux_router_nomac rt fw p = (Some (p\<lparr>p_oiface := oif\<rparr>))"
+	      "OF_same_priority_match3 OF_match_fields_unsafe oft p = Action [] \<longleftrightarrow> simple_linux_router_nomac rt fw p = None"
+	      (* fun stuff: *)
+	      "OF_same_priority_match3 OF_match_fields_unsafe oft p \<noteq> NoAction" "OF_same_priority_match3 OF_match_fields_unsafe oft p \<noteq> Undefined"
+	      "OF_same_priority_match3 OF_match_fields_unsafe oft p = Action ls \<longrightarrow> length ls \<le> 1"
+	      "\<exists>ls. length ls \<le> 1 \<and> OF_same_priority_match3 OF_match_fields_unsafe oft p = Action ls"
 
 end
