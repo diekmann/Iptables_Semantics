@@ -1,6 +1,6 @@
 theory 42
 imports 
-	"../Simple_Firewall/SimpleFw_Compliance" 
+	"../Simple_Firewall/Generic_SimpleFw" 
 	"Semantics_OpenFlow"
 	"OpenFlowMatches"
 	"OpenFlowAction"
@@ -61,9 +61,6 @@ lemma simple_match_list_and_alt[code_unfold]:
 lemma r1: "\<not>a \<Longrightarrow> \<not>(a \<and> b)" by simp
 lemma prepend_singleton: "[a] @ b = a # b" by simp
 
-lemma simple_match_and_SomeD: "simple_match_and m1 m2 = Some m \<Longrightarrow> simple_matches m p = (simple_matches m1 p \<and> simple_matches m2 p)"
-	by(simp add: simple_match_and_correct)
-
 lemma simple_fw_prepend_nonmatching: "\<forall>r \<in> set rs. \<not>simple_matches (match_sel r) p \<Longrightarrow> simple_fw_alt (rs @ rss) p = simple_fw_alt rss p"
 	by(induction rs) simp_all
 
@@ -115,153 +112,6 @@ lemma
 	assumes "Port i \<in> set ifs"
 	shows "prefix_match_semantics pfx a"
 oops*)
-
-definition "option2set n \<equiv> (case n of None \<Rightarrow> {} | Some s \<Rightarrow> {s})"
-definition "option2list n \<equiv> (case n of None \<Rightarrow> [] | Some s \<Rightarrow> [s])"
-lemma set_option2list[simp]: "set (option2list k) = option2set k"
-unfolding option2list_def option2set_def by (simp split: option.splits)
-
-definition "merge_two_sms l1 l2 \<equiv> [(u,(a,b)). (m1,a) \<leftarrow> l1, (m2,b) \<leftarrow> l2, u \<leftarrow> option2list (simple_match_and m1 m2)]"
-
-lemma merge_sms_cons_1: "merge_two_sms ((am,ad) # l1) l2 = [(u,(ad,b)). (m2,b) \<leftarrow> l2, u \<leftarrow> option2list (simple_match_and am m2)] @ merge_two_sms l1 l2"
-unfolding merge_two_sms_def by(simp)
-
-
-definition "weird_fw l p = find (\<lambda>(m,a). simple_matches m p) l"
-lemma weird_fw_simps: "weird_fw [] p = None" "weird_fw (a # as) p = (if (case a of (m,_) \<Rightarrow> simple_matches m p) then Some a else weird_fw as p)"
-	unfolding weird_fw_def by simp_all
-lemma weird_fw_append: "weird_fw (a @ b) p = (case weird_fw a p of Some x \<Rightarrow> Some x | None \<Rightarrow> weird_fw b p)"
-	by(induction a) (simp_all add: weird_fw_simps)
-definition "simple_rule_dtor r = (case r of SimpleRule m a \<Rightarrow> (m,a))"
-lemma "split SimpleRule \<circ> simple_rule_dtor = id" "simple_rule_dtor \<circ> split SimpleRule = id" unfolding simple_rule_dtor_def comp_def fun_eq_iff by(simp_all split: simple_rule.splits)
-lemma "simple_fw fw p \<noteq> Undecided \<Longrightarrow> weird_fw (map simple_rule_dtor fw) p \<noteq> None" apply(induction fw) apply(simp) 
-by(clarsimp simp add: weird_fw_def simple_fw_alt simple_rule_dtor_def split: prod.splits if_splits simple_action.splits simple_rule.splits)
-
-lemma merge_sms_1_nomatch: "\<not>simple_matches am p \<Longrightarrow> weird_fw [(u,(ad,b)). (m2,b) \<leftarrow> l2, u \<leftarrow> option2list (simple_match_and am m2)] p = None"
-	by(induction l2) (clarsimp simp add: weird_fw_simps weird_fw_append option2list_def simple_match_and_SomeD split: prod.splits option.splits)+
-	
-lemma merge_sms_2_nomatch: "\<not>simple_matches bm p \<Longrightarrow> weird_fw (merge_two_sms as ((bm, bd) # bs)) p = weird_fw (merge_two_sms as bs) p"
-proof(induction as)
-	case (Cons a as)
-	note mIH = Cons.IH[OF Cons.prems]
-	obtain am ad where a[simp]: "a = (am, ad)" by(cases a)
-	have *: "weird_fw (concat (map (\<lambda>(m2, b). map (\<lambda>u. (u, ad, b)) (option2list (simple_match_and am m2))) ((bm, bd) # bs))) p = 
-		weird_fw (concat (map (\<lambda>(m2, b). map (\<lambda>u. (u, ad, b)) (option2list (simple_match_and am m2))) bs)) p" 
-		unfolding list.map prod.simps
-		apply(cases "simple_match_and am bm")
-		apply(simp add: option2list_def; fail)
-		apply(frule simple_match_and_SomeD[of _ _ _ p])
-		apply(subst option2list_def)
-		apply(unfold concat.simps)
-		apply(simp add: weird_fw_simps Cons.prems)
-	done
-	show ?case 
-		unfolding a
-		unfolding merge_sms_cons_1
-		unfolding weird_fw_append
-		unfolding mIH
-		unfolding *
-		..
-qed(simp add: merge_two_sms_def; fail)
-
-lemma merge_two_smsI: "\<lbrakk>weird_fw f1 p = Some (r1,d1); weird_fw f2 p = Some (r2,d2)\<rbrakk> \<Longrightarrow> weird_fw (merge_two_sms f1 f2) p = Some (the (simple_match_and r1 r2), d1,d2)"
-proof(induction f1)
-	case (Cons a as)
-	obtain am ad where a[simp]: "a = Pair am ad" by(cases a)
-	show ?case proof(cases "simple_matches am p")
-		case True
-		hence dra: "d1 = ad" "r1 = am" using Cons.prems by(simp_all add: weird_fw_simps)
-		from Cons.prems(2) show ?thesis unfolding a dra
-		proof(induction f2)
-			case (Cons b bs)
-			obtain bm bd where b[simp]: "b = Pair bm bd" by(cases b)
-			thus ?case
-			proof(cases "simple_matches bm p")
-				case True
-				hence drb: "d2 = bd" "r2 = bm" using Cons.prems by(simp_all add: weird_fw_simps)
-				from True \<open>simple_matches am p\<close> obtain ruc where sma[simp]: "simple_match_and am bm = Some ruc" "simple_matches ruc p"
-					using simple_match_and_correct[of am p bm]
-					by(simp split: option.splits)
-				show ?thesis unfolding b
-					by(simp add: merge_two_sms_def option2list_def weird_fw_simps drb)
-			next
-				case False
-				with Cons.prems have bd: "weird_fw (b # bs) p = weird_fw bs p" "weird_fw (b # bs) p = Some (r2, d2)" by(simp_all add: weird_fw_simps)
-				note mIH = Cons.IH[OF bd(2)[unfolded bd(1)]]
-				show ?thesis 
-					unfolding mIH[symmetric] b
-					using merge_sms_2_nomatch[OF False, of "(am, ad) # as" bd bs]
-					.
-			qed
-		qed(simp add: weird_fw_simps merge_two_sms_def empty_concat) 
-	next
-		case False 
-		with Cons.prems have "weird_fw (a # as) p = weird_fw as p" by(simp add: weird_fw_simps)
-		with Cons.prems have "weird_fw as p = Some (r1, d1)" by simp
-		note mIH = Cons.IH[OF this Cons.prems(2)]
-		show ?thesis 
-			unfolding mIH[symmetric] a
-			unfolding merge_sms_cons_1
-			unfolding weird_fw_append
-			unfolding merge_sms_1_nomatch[OF False, of ad f2]
-			by simp
-	qed
-qed(simp add: merge_two_sms_def weird_fw_simps;fail)
-
-lemma option2list_simps[simp]: "option2list (Some x) = [x]" "option2list (None) = []"
-unfolding option2list_def option.simps by(fact refl)+
-
-lemma merge_sms_2_Nil: "merge_two_sms f1 [] = []"
-unfolding merge_two_sms_def by(induction f1) simp_all
-
-(* The structure is nearly the same as with merge_two_smsI, so it should be possible to show it in one proof. But I felt like this is the better way *)
-lemma merge_two_smsD: "weird_fw (merge_two_sms f1 f2) p = Some (u, d1,d2) \<Longrightarrow> \<exists>r1 r2. weird_fw f1 p = Some (r1,d1) \<and> weird_fw f2 p = Some (r2,d2) \<and> Some u = simple_match_and r1 r2"
-proof(induction f1)
-	case (Cons a as)
-	obtain am ad where a[simp]: "a = Pair am ad" by(cases a)
-	show ?case proof(cases "simple_matches am p", rule exI)
-		case True
-		show "\<exists>r2. weird_fw (a # as) p = Some (am, d1) \<and> weird_fw f2 p = Some (r2, d2) \<and> Some u = simple_match_and am r2"
-		using Cons.prems
-		proof(induction f2)
-			case (Cons b bs)
-			obtain bm bd where b[simp]: "b = Pair bm bd" by(cases b)
-			show ?case
-			proof(cases "simple_matches bm p", rule exI)
-				case True
-				with \<open>simple_matches am p\<close> obtain u' (* u' = u, but I don't need that yet. *) 
-					where sma: "simple_match_and am bm = Some u' \<and> simple_matches u' p" 
-					using simple_match_and_correct[of am p bm] by(simp split: option.splits)
-				show "weird_fw (a # as) p = Some (am, d1) \<and> weird_fw (b # bs) p = Some (bm, d2) \<and> Some u = simple_match_and am bm"
-				using Cons.prems True \<open>simple_matches am p\<close>
-				by(simp add: merge_two_sms_def weird_fw_append sma weird_fw_simps)
-			next
-				case False
-				have "weird_fw (merge_two_sms (a # as) bs) p = Some (u, d1, d2)" 
-					using Cons.prems unfolding b unfolding merge_sms_2_nomatch[OF False] .
-				note Cons.IH[OF this]
-				moreover have "weird_fw (b # bs) p = weird_fw bs p" using False by(simp add: weird_fw_simps)
-				ultimately show ?thesis by presburger
-			qed
-		qed(simp add: merge_sms_2_Nil weird_fw_simps)
-	next
-		case False
-		with Cons.prems have "weird_fw (merge_two_sms as f2) p = Some (u, d1, d2)" by(simp add: merge_sms_cons_1 weird_fw_append merge_sms_1_nomatch)
-		note Cons.IH[OF this]
-		moreover have "weird_fw (a # as) p = weird_fw as p" using False by(simp add: weird_fw_simps)
-		ultimately show ?thesis by presburger
-	qed
-qed(simp add: merge_two_sms_def weird_fw_simps)
-
-text{*We image two firewalls are positioned directly after each other.
-      The first one has ruleset rs1 installed, the second one has ruleset rs2 installed.
-      A packet needs to pass both firewalls. *}
-
-lemma "simple_fw rs1 p = Decision FinalAllow \<and> simple_fw rs2 p = Decision FinalAllow \<longleftrightarrow>
-       simple_fw (map (\<lambda>(u,a,b). SimpleRule u (if a = simple_action.Accept \<and> b = simple_action.Accept then simple_action.Accept else simple_action.Drop) )
-       	(merge_two_sms (map simple_rule_dtor rs1) (map simple_rule_dtor rs2))) p = Decision FinalAllow"
-sorry
-
 
 definition toprefixmatch where
 "toprefixmatch m \<equiv> (if fst m = 0 \<and> snd m = 0 then {} else {PrefixMatch (fst m) (snd m)})"
@@ -1299,8 +1149,6 @@ qed simp
 (* TODO: move *)
 lemma simple_matches_andD: "simple_matches m1 p \<Longrightarrow> simple_matches m2 p \<Longrightarrow> \<exists>m. simple_match_and m1 m2 = Some m \<and> simple_matches m p"
 by (meson option.exhaust_sel simple_match_and_NoneD simple_match_and_SomeD)
-
-definition "simple_action_to_state a \<equiv> (case a of simple_action.Accept \<Rightarrow> Decision FinalAllow | simple_action.Drop \<Rightarrow> Decision FinalDeny)"
 
 lemma s2_correct: "simple_fw fw p \<noteq> Undecided \<Longrightarrow> s1_sema rt p = Some (mr,ma) \<Longrightarrow> \<exists>mmr. s2_sema ((fourtytwo_s2 rt fw)) p = Some (mmr, ma) \<and> simple_action_to_state (action_sel mmr) = simple_fw fw p"
 proof -
