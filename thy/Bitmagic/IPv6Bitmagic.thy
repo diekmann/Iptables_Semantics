@@ -117,7 +117,7 @@ lemma length_drop_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs
     'l is the longer word.
     's is the shorter word.
    For example: 'l::len word is 128 word (full ipv6 address)
-                's::len word is 16 word (address piece of ipv6 address in colon-text-reprsenetation)
+                's::len word is 16 word (address piece of ipv6 address in colon-text-representation)
   *)
   corollary ucast_short_ucast_long_ingoreLeadingZero:
   "length (dropWhile Not (to_bl w)) \<le> len_of TYPE('s) \<Longrightarrow>
