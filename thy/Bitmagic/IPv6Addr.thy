@@ -767,6 +767,13 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
   
   lemma "ipv6_unparsed_compressed_to_preferred (ipv6_preferred_to_compressed ip) = Some ip' \<Longrightarrow>
          ip = ip'"
-  quickcheck
+  thm HOL.iffD1[OF ipv6_unparsed_compressed_to_preferred_identity2] 
+  apply(drule HOL.iffD1[OF ipv6_unparsed_compressed_to_preferred_identity2])
+  apply(elim exE conjE)
+  apply(erule parse_ipv6_address_someE)
+  apply(simp_all)
+  apply(case_tac ip)
+  apply(simp)
+  apply(simp add: Let_def split_if_asm)
 
 end
