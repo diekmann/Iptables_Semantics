@@ -521,7 +521,7 @@ subsection{*Semantics*}
       (ucast::16 word \<Rightarrow> 128 word) ((ucast::128 word \<Rightarrow> 16 word) (w AND (mask 16 << n) >> n)) << n = w AND (mask 16 << n)"
       for w::ipv6addr and n::nat
       apply(subst ucast_ipv6_piece_rule)
-       apply(rule length_dropNot_mask_inner)
+       apply(rule length_drop_mask_inner)
        apply(simp; fail)
       apply(subst and_mask_shift_helper)
       apply simp
@@ -549,7 +549,7 @@ subsection{*Semantics*}
       apply(subst word128_masks_ipv6pieces)+
       apply(subst ucast_short_ucast_long_ingoreLeadingZero)
         apply simp_all
-      by (simp add: length_dropNot_mask)
+      by (simp add: length_drop_mask)
 
     have ipv6addr_16word_pieces_compose_or:
             "ip && (mask 16 << 112) ||

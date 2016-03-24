@@ -13,10 +13,11 @@ definition string_of_int :: "int \<Rightarrow> string" where
   "string_of_int i = (if i < 0 then ''-'' @ string_of_nat (nat (- i)) else 
      string_of_nat (nat i))"
 
+lemma "string_of_nat 123456 = ''123456''" by eval
+
 
 definition list_separated_toString :: "string \<Rightarrow> ('a \<Rightarrow> string) \<Rightarrow> 'a list \<Rightarrow> string" where
   "list_separated_toString sep toStr ls = concat (splice (map toStr ls) (replicate (length ls - 1) sep))"
-
 
 text{*A slightly more efficient code equation, which is actually not really faster*}
 fun list_separated_toString_helper :: "string \<Rightarrow> ('a \<Rightarrow> string) \<Rightarrow> 'a list \<Rightarrow> string" where
