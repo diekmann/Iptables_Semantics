@@ -597,8 +597,6 @@ subsection{*Semantics*}
 
 
 
-(*DRAFT below*)
-
 (*compressed to preferred format*)
 fun ipv6addr_c2p :: "ipv6addr_syntax_compressed \<Rightarrow> ipv6addr_syntax" where
     "ipv6addr_c2p (IPv6AddrCompressed1_0 ()) = IPv6AddrPreferred 0 0 0 0 0 0 0 0"
@@ -704,5 +702,71 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
    using parse_ipv6_address_identity2 apply presburger
   using ipv6_unparsed_compressed_to_preferred_identity1 apply blast
   done
+  
+  
+  
+
+(*DRAFT below*)
+  function goup_by_zeros :: "16 word list \<Rightarrow> 16 word list list" where
+    "goup_by_zeros [] = []" |
+    "goup_by_zeros (x#xs) = (
+        if x = 0
+        then takeWhile (\<lambda>x. x = 0) (x#xs) # (goup_by_zeros (dropWhile (\<lambda>x. x = 0) xs))
+        else [x]#(goup_by_zeros xs))"
+  by(pat_completeness, auto)
+  
+  termination goup_by_zeros
+	apply(relation "measure (\<lambda>xs. length xs)")
+	apply(simp_all)
+	by (simp add: le_imp_less_Suc length_dropWhile_le)
+	
+	value[code] "goup_by_zeros [0,1,2,3,0,0,0,0,3,4,0,0,0,2,0,0,2,0,3,0]"
+	
+	lemma "concat (goup_by_zeros ls) = ls"
+	  by(induction ls rule:goup_by_zeros.induct) simp+
+	
+	lemma "[] \<notin> set (goup_by_zeros ls)"
+	  by(induction ls rule:goup_by_zeros.induct) simp+
+	  
+  fun List_replace1 :: "'a \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+    "List_replace1 _ _ [] = []" |
+    "List_replace1 a b (x#xs) = (if a = x then b#xs else x#List_replace1 a b xs)"
+    
+	lemma "List_replace1 a a ls = ls"
+	  by(induction ls) simp_all
+	
+	lemma "a \<notin> set ls \<Longrightarrow> List_replace1 a b ls = ls"
+	  by(induction ls) simp_all
+	
+	lemma "a \<in> set ls \<Longrightarrow> b \<in> set (List_replace1 a b ls)"
+	  apply(induction ls)
+	   apply(simp)
+	  apply(simp)
+	  by blast
+  
+	fun List_explode :: "'a list list \<Rightarrow> ('a option) list" where
+	  "List_explode [] = []" |
+	  "List_explode ([]#xs) = None#List_explode xs" |
+	  "List_explode (xs1#xs2) = map Some xs1@List_explode xs2"
+	  
+	  
+  value[code] "List_explode [[0::int], [2,3], [], [3,4]]"
+	  
+  fun ipv6_preferred_to_compressed :: "ipv6addr_syntax \<Rightarrow> ((16 word) option) list" where
+  "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (
+    let lss = goup_by_zeros [a,b,c,d,e,f,g,h];
+        max_zero_seq = foldr (\<lambda>xs. max (length xs)) lss 0;
+        shortened = if max_zero_seq > 1 then List_replace1 (replicate max_zero_seq 0) [] lss else lss
+    in
+      List_explode shortened
+    )"
+    
+  value[code] "ipv6_preferred_to_compressed (IPv6AddrPreferred 0 0 0 0 0 0 0 0)"
+  value[code] "ipv6_preferred_to_compressed (IPv6AddrPreferred 0x2001 0xDB8 0 0 8 0x800 0x200C 0x417A)"
+  value[code] "ipv6_preferred_to_compressed (IPv6AddrPreferred 0x2001 0xDB8 0 3 8 0x800 0x200C 0x417A)"
+  
+  lemma "ipv6_unparsed_compressed_to_preferred (ipv6_preferred_to_compressed ip) = Some ip' \<Longrightarrow>
+         ip = ip'"
+  quickcheck
 
 end
