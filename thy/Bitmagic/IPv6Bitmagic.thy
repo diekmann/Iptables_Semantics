@@ -10,9 +10,9 @@ begin
     by (metis bintrunc_bintrunc_min bl_to_bin_lt2p lt2p_lem min_def of_bl_def trunc_bl2bin_len word_ubin.inverse_norm)
 *)
 
-(*TODO: add to l4v bl_to_bin_lt2p*)
 thm Bool_List_Representation.bl_to_bin_lt2p
-lemma bl_to_bin_lt2p_dropNot: "bl_to_bin bs < 2 ^ length (dropWhile Not bs)"
+(*TODO: delete, this will be in the Isabelle main distribution in future*)
+lemma bl_to_bin_lt2p_drop: "bl_to_bin bs < 2 ^ length (dropWhile Not bs)"
   unfolding bl_to_bin_def
   proof(induction bs)
   case(Cons b bs)
@@ -21,14 +21,14 @@ lemma bl_to_bin_lt2p_dropNot: "bl_to_bin bs < 2 ^ length (dropWhile Not bs)"
 
 (*TODO: add to l4v uint_of_bl_is_bl_to_bin*)
 thm WordLib.uint_of_bl_is_bl_to_bin
-lemma uint_of_bl_is_bl_to_bin_dropNot:
+lemma uint_of_bl_is_bl_to_bin_drop:
   "length (dropWhile Not l) \<le> len_of TYPE('a) \<Longrightarrow>
    uint ((of_bl::bool list\<Rightarrow> ('a :: len) word) l) = bl_to_bin l"
   apply (simp add: of_bl_def)
   apply (rule word_uint.Abs_inverse)
   apply (simp add: uints_num bl_to_bin_ge0)
   apply (rule order_less_le_trans)
-  apply (rule bl_to_bin_lt2p_dropNot)
+  apply (rule bl_to_bin_lt2p_drop)
   apply(simp)
   done
 
@@ -38,7 +38,7 @@ lemma length_takeWhile_Not_replicate_False:
   by(subst takeWhile_append2) simp+
 
 
-lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs"
+lemma length_drop_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs"
  apply(subst Word.word_rep_drop)
  apply(subst List.dropWhile_eq_drop)
  apply(simp)
@@ -57,7 +57,7 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     apply(subst WordLib.uint_of_bl_is_bl_to_bin)
      apply(simp; fail)
     apply(subst Word.to_bl_bin)
-    apply(subst uint_of_bl_is_bl_to_bin_dropNot)
+    apply(subst uint_of_bl_is_bl_to_bin_drop)
      apply assumption
      (*using[[unify_trace_failure]]
        apply assumption*)
@@ -76,17 +76,17 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
   by(induction bs) simp_all
 
 
-  lemma bl_length_dropNot_bound: assumes "length (dropWhile Not bs) \<le> n"
+  lemma bl_length_drop_bound: assumes "length (dropWhile Not bs) \<le> n"
     shows "length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) bs))) \<le> n"
   proof -
-    have bl_length_dropNot_twice: 
+    have bl_length_drop_twice: 
         "length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) (dropWhile Not bs)))) =
          length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) bs)))"
       by(simp add: bl_drop_leading_zeros)
-    from length_dropNot_bl
+    from length_drop_bl
     have *: "length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) bs))) \<le> length (dropWhile Not bs)"
      apply(rule dual_order.trans)
-     apply(subst bl_length_dropNot_twice)
+     apply(subst bl_length_drop_twice)
      ..
     show ?thesis
     apply(rule order.trans, rule *)
@@ -107,7 +107,7 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     apply(subst WordLib.uint_of_bl_is_bl_to_bin)
      apply(simp; fail)
     apply(subst Word.to_bl_bin)
-    apply(subst uint_of_bl_is_bl_to_bin_dropNot)
+    apply(subst uint_of_bl_is_bl_to_bin_drop)
      apply blast
     apply(simp)
     done
@@ -136,7 +136,7 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
             (to_bl ((of_bl:: bool list \<Rightarrow> 'l::len word) ls)))) =
     (of_bl:: bool list \<Rightarrow> 'l::len word) ls"
     apply(rule bl_cast_long_short_long_ingoreLeadingZero_generic)
-     apply(rule bl_length_dropNot_bound)
+     apply(rule bl_length_drop_bound)
      apply blast
     apply(simp)
     done
@@ -158,7 +158,7 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     
 
   (*TODO: to l4v!*)
-  lemma length_dropNot_mask:
+  lemma length_drop_mask:
     fixes w::"'a::len word"
     shows "length (dropWhile Not (to_bl (w AND mask n))) \<le> n"
     apply(subst Word.bl_and_mask)
@@ -166,7 +166,7 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
 
   
   (*TODO: move those two lemmas to l4? maybe they are too specific*)
-  lemma length_dropNot_mask_outer: fixes ip::"'a::len word"
+  lemma length_drop_mask_outer: fixes ip::"'a::len word"
     shows "len_of TYPE('a) - n' = len \<Longrightarrow> length (dropWhile Not (to_bl (ip AND (mask n << n') >> n'))) \<le> len"
     apply(subst WordLemmaBucket.word_and_mask_shiftl)
     apply(subst WordLib.shiftl_shiftr1)
@@ -174,9 +174,9 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     apply(simp)
     apply(subst WordLib.and_mask)
     apply(simp add: word_size)
-    apply(simp add: length_dropNot_mask)
+    apply(simp add: length_drop_mask)
     done
-  lemma length_dropNot_mask_inner: fixes ip::"'a::len word"
+  lemma length_drop_mask_inner: fixes ip::"'a::len word"
     shows "n \<le> len_of TYPE('a) - n' \<Longrightarrow> length (dropWhile Not (to_bl (ip AND (mask n << n') >> n'))) \<le> n"
     apply(subst WordLemmaBucket.word_and_mask_shiftl)
     apply(subst WordLemmaBucket.shiftl_shiftr3)
@@ -184,7 +184,7 @@ lemma length_dropNot_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length
     apply(simp)
     apply(simp add: word_size)
     apply(simp add: WordLemmaBucket.mask_twice)
-    apply(simp add: length_dropNot_mask)
+    apply(simp add: length_drop_mask)
     done
 
 
