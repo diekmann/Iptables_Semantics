@@ -7,7 +7,7 @@ definition "serialization_test_entry \<equiv> OFEntry 7 {EtherDst 0x1, IPv4Dst (
 (*immitation of http://stackoverflow.com/questions/23864965/string-of-nat-in-isabelle*)
 definition "string_of_word_single lc w \<equiv> (if w < 10 then [char_of_nat (48 + unat w)] else if w < 36 then [char_of_nat ((if lc then 87 else 55) + unat w)] else undefined)"
 value "map (string_of_word_single False) $ word_upto (-1) (36 :: 12 word)"
-function string_of_word :: "bool \<Rightarrow> ('a :: len) word \<Rightarrow> nat \<Rightarrow> ('a :: len) word \<Rightarrow> string" where
+function string_of_word :: "bool \<Rightarrow> ('a :: len) word \<Rightarrow> nat \<Rightarrow> ('a :: len) word \<Rightarrow> string" where (* lowercase?, base, minimum length - 1, to-be-serialized word *) 
   "string_of_word lc base ml n = (if base < 2 \<or> len_of TYPE('a) < 2 then undefined else
   	(if n < base \<and> ml = 0 then string_of_word_single lc n else string_of_word lc base (ml - 1) (n div base) @ string_of_word_single lc (n mod base)))"
 by clarsimp+

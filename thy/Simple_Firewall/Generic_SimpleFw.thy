@@ -157,7 +157,7 @@ lemma hlp1: "simple_rule_dtor \<circ> (\<lambda>(u, a, b). SimpleRule u (if a = 
 	apsnd (\<lambda>(a, b). if a = simple_action.Accept \<and> b = simple_action.Accept then simple_action.Accept else simple_action.Drop)"
 unfolding fun_eq_iff comp_def by(simp add: simple_rule_dtor_def)
 
-lemma generalized_sfw_mapsnd: "generalized_sfw (map (apsnd f) fw) p = map_option (apsnd f) (generalized_sfw fw p)"
+lemma generalized_sfw_mapsnd[simp]: "generalized_sfw (map (apsnd f) fw) p = map_option (apsnd f) (generalized_sfw fw p)"
 	by(induction fw) (simp_all add: generalized_sfw_simps split: prod.splits)
 
 theorem simple_fw_join: "simple_fw rs1 p = Decision FinalAllow \<and> simple_fw rs2 p = Decision FinalAllow \<longleftrightarrow>
@@ -165,9 +165,9 @@ theorem simple_fw_join: "simple_fw rs1 p = Decision FinalAllow \<and> simple_fw 
        	(generalized_fw_join (map simple_rule_dtor rs1) (map simple_rule_dtor rs2))) p = Decision FinalAllow"
 unfolding simple_fw_iff_generalized_fw_accept
 	apply(rule)
-	apply(clarify)
-	apply(drule (1) generalized_fw_joinI)
-	apply(simp add: hlp1 generalized_sfw_mapsnd;fail)
+	 apply(clarify)
+	 apply(drule (1) generalized_fw_joinI)
+	 apply(simp add: hlp1 generalized_sfw_mapsnd;fail)
 	apply(clarsimp simp add: hlp1 generalized_sfw_mapsnd)
 	apply(drule generalized_fw_joinD)
 	apply(clarsimp split: if_splits)
