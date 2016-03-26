@@ -67,8 +67,8 @@ lemma range_rel_to_sr: "range_rel = ipset_rel \<circ> rr_to_sr"
 
 lemma range_destination_correct:
   assumes v_pfx: "valid_prefixes rtbl"
-  shows "(packet_routing_table_semantics rtbl packet = ports) \<longleftrightarrow> in_rel (range_rel (range_destination rtbl ipv4range_UNIV)) (dst_addr packet) ports"
-  unfolding packet_routing_table_semantics_def ipset_destination_correct[OF v_pfx UNIV_I] ipv4range_UNIV_set_eq[symmetric] range_destination_eq[symmetric] range_rel_def ipset_rel_def
+  shows "(routing_table_semantics rtbl dst_a = ports) \<longleftrightarrow> in_rel (range_rel (range_destination rtbl ipv4range_UNIV)) dst_a ports"
+  unfolding ipset_destination_correct[OF v_pfx UNIV_I] ipv4range_UNIV_set_eq[symmetric] range_destination_eq[symmetric] range_rel_def ipset_rel_def
   by simp blast
 
 fun map_of_ranges where

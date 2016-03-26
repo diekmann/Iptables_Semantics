@@ -1,5 +1,5 @@
 theory Routing
-imports PrefixMatch  "topoS/interface_abstraction/Network" CaesarTheories
+imports PrefixMatch CaesarTheories
 begin
 
 subsection{*Definition*}
@@ -72,19 +72,10 @@ qed simp
 
 subsection{*Single Packet Semantics*}
 
-type_synonym packet = "ipv4addr hdr"
-definition "extract_addr f p \<equiv> (case f p of NetworkBox a \<Rightarrow> a | Host a \<Rightarrow> a)"
-definition dst_addr :: "'v hdr \<Rightarrow> 'v" where
-"dst_addr \<equiv>  extract_addr snd"
-lemma dst_addr_f: "(f = Host \<or> f = NetworkBox) \<Longrightarrow> dst_addr (src, f dst) = dst"
-  unfolding dst_addr_def extract_addr_def snd_def by auto
-
 (* WARNING: all proofs assume correct_routing: list is sorted by descending prefix length, prefixes are valid. Some need a default route. *)
 fun routing_table_semantics :: "prefix_routing \<Rightarrow> ipv4addr \<Rightarrow> routing_action" where
 "routing_table_semantics [] _ = routing_action (undefined::routing_rule)" | 
 "routing_table_semantics (r#rs) p = (if prefix_match_semantics (routing_match r) p then routing_action r else routing_table_semantics rs p)"
-
-definition "packet_routing_table_semantics rtbl p \<equiv> routing_table_semantics rtbl (dst_addr p)"
 
 lemma routing_table_semantics_ports_from_table: "valid_prefixes rtbl \<Longrightarrow> has_default_route rtbl \<Longrightarrow> 
   routing_table_semantics rtbl packet = r \<Longrightarrow> r \<in> routing_action ` set rtbl"

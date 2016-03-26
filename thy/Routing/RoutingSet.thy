@@ -245,8 +245,8 @@ qed
 
 corollary ipset_destination_correct_UNIV: 
   assumes "valid_prefixes rtbl"
-  shows "(packet_routing_table_semantics rtbl packet = ports) = in_rel (ipset_rel (ipset_destination rtbl UNIV)) (dst_addr packet) ports"
-unfolding packet_routing_table_semantics_def ipset_destination_correct[OF assms UNIV_I] ..
+  shows "(routing_table_semantics rtbl dst_a = ports) = in_rel (ipset_rel (ipset_destination rtbl UNIV)) dst_a ports"
+unfolding ipset_destination_correct[OF assms UNIV_I] ..
 
 lemma ipset_left_side_nonempty: "x \<in> (fst ` (ipset_destination rtbl rg)) \<Longrightarrow> x \<noteq> {}"
   apply(induction rtbl arbitrary: rg)
