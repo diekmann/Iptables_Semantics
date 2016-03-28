@@ -1,0 +1,30 @@
+Q: What are those "_cheating" files?
+A: As the name suggests, we manually modified the rulesets to yield better results. Whenever we load a _cheating file, we include the diff to the unmodified ruleset.
+
+For example, we removed one rule at the beginning. Here is the diff to to unmodified ruleset:
+
+diff -u iptables_20.11.2013 iptables_20.11.2013_cheating
+--- iptables_20.11.2013	2015-12-04 15:28:33.492307000 +0100
++++ iptables_20.11.2013_cheating_2	2015-12-08 19:44:06.251743619 +0100
+@@ -105,7 +105,6 @@
+ -A INPUT -i vlan110 -j NOTFROMHERE
+ -A INPUT -i vlan110 -j filter_INPUT
+ -A FORWARD -m state --state RELATED,ESTABLISHED,UNTRACKED -j ACCEPT
+--A FORWARD -m recent --update --seconds 60 --name DEFAULT --rsource -j LOG_RECENT_DROP
+ -A FORWARD -p tcp -m state --state NEW -m tcp --dport 22 --tcp-flags FIN,SYN,RST,ACK SYN -m recent --update --seconds 360 --hitcount 41 --name ratessh --rsource -j LOG_RECENT_DROP
+ -A FORWARD -s 127.0.0.0/8 -j LOG_DROP
+ -A FORWARD -s 131.159.14.206/32 -i vlan1011 -p tcp -m multiport --sports 389,636 -j ACCEPT
+
+The rule was simply dead.
+
+We suffix everything which is based on this modified rulset (with those three rules removed) '_cheating'.
+In earlier versions, we also remove the ESTABLISHED;REALTED rule. Details why this is (was) reasonable can be found in the paper:
+http://www.net.in.tum.de/fileadmin/bibtex/publications/papers/fm15_Semantics-Preserving_Simplification_of_Real-World_Firewall_Rule_Sets.pdf
+
+
+What it does _NOT_ mean:
+ * Proofs not checked by isabelle
+ * contrived example
+ * modified data to underline a statement
+ * made-up data
+ * some undocumented modifications to the data
