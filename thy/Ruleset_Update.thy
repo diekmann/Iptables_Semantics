@@ -1094,7 +1094,7 @@ lemma "(\<forall>x\<in>ran \<Gamma>. wf_chain \<Gamma> x) \<Longrightarrow>
        \<forall>r\<in>set rs_called. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
        (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called, Undecided\<rangle> \<Rightarrow> t) \<or>
        (\<exists>rs_called1 rs_called2 m'.
-           \<Gamma> chain_name = Some (rs_called1 @ [Rule m' Return] @ rs_called2) \<and>
+           \<Gamma> chain_name = Some (rs_called1 @ [Rule m' Return] @ rs_called2) \<and> (*want: rs_called = *)
            matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)"
 using assms proof(induction rs_called arbitrary:)
 case Nil thus ?case
@@ -1151,19 +1151,36 @@ case (Cons r rs)
       apply(simp add: empty; fail)
     sorry
    
-  from IH have "(*a \<noteq> Return \<longrightarrow>*) (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> t) \<Longrightarrow> ?case"
+  from IH have "a \<noteq> Return \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> t) \<Longrightarrow> ?case"
     apply(elim disjE)
-     apply(simp_all)
-    apply(rule disjI1)
-    apply(simp add: r)
-    apply(elim conjE)
-    apply(elim exE, rename_tac t2 t1)
-    apply(case_tac t2)
-     apply(simp_all)
-     apply(rule_tac x=t1 in exI)
-     apply(rule_tac seq'_cons)
+     prefer 2
+     apply(simp; fail)
+    apply(case_tac "a \<noteq> Return")
+     apply(rule disjI1)
+     apply(simp add: r)
+     (*apply(elim conjE)*)
+     apply(elim exE, rename_tac t2 t1)
+     apply(case_tac t2)
       apply(simp_all)
-    by (meson decision seq_cons)
+      apply(rule_tac x=t1 in exI)
+      apply(rule_tac seq'_cons)
+       apply(simp_all)
+     apply (meson decision seq_cons)
+    apply(case_tac "matches \<gamma> m p")
+     prefer 2
+     apply(rule disjI1)
+     apply(elim exE)
+     apply(rename_tac t')
+     apply(rule_tac x=t' in exI)
+     apply(rule_tac t=Undecided in seq_cons)
+      apply(simp add: r nomatch; fail)
+     apply(simp; fail)
+
+     apply(rule disjI2)
+     apply(rule_tac x="[]" in exI)
+     
+     apply(simp add: r)
+     apply(simp add: nomatch)
     
   thus ?case
 oops
