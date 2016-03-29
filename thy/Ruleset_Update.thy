@@ -1004,7 +1004,21 @@ proof -
 qed    
     
 
-  
+definition called_by_chain :: "'a ruleset \<Rightarrow> (string \<times> string) set" where
+  "called_by_chain \<Gamma> = {(callee, caller). case \<Gamma> caller of Some rs \<Rightarrow> \<exists>m. Rule m (Call callee) \<in> set rs | None \<Rightarrow> False}"
+lemma called_by_chain_converse: "calls_chain \<Gamma> = converse (called_by_chain \<Gamma>)"
+  apply(simp add: calls_chain_def called_by_chain_def)
+  by blast
+
+thm acyclic_def
+
+
+(*yay, we got the reverse condition*)
+lemma wf_called_by_chain: "finite (calls_chain \<Gamma>) \<Longrightarrow> wf (calls_chain \<Gamma>) \<Longrightarrow> wf (called_by_chain \<Gamma>)"
+  apply(frule Wellfounded.wf_acyclic)
+  apply(drule(1) Wellfounded.finite_acyclic_wf_converse)
+  apply(simp add: called_by_chain_converse)
+  done
 
 
 lemma "\<exists>y. (y, chain_name) \<in> calls_chain \<Gamma> \<Longrightarrow> (\<And>y. (y, chain_name) \<in> calls_chain \<Gamma> \<Longrightarrow> Ex (iptables_bigstep \<Gamma> \<gamma> p rs s)) \<Longrightarrow>
@@ -1141,12 +1155,16 @@ apply(case_tac a)
   apply fastforce
  apply(auto intro: iptables_bigstep.intros)[1]
 apply(rename_tac chain_name)
-apply(subgoal_tac "\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain_name)], s\<rangle> \<Rightarrow> t")
+apply(subgoal_tac "wf_chain \<Gamma> [Rule m (Call chain_name)] \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain_name)], s\<rangle> \<Rightarrow> t)")
  apply(simp; fail)
 thm wf_induct_rule[where r="(calls_chain \<Gamma>)" and P="\<lambda>x. \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x)], s\<rangle> \<Rightarrow> t"]
-apply(erule wf_induct_rule[where r="(calls_chain \<Gamma>)" and P="\<lambda>x. \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x)], s\<rangle> \<Rightarrow> t"])
-(*jetz weiss ich was ueber x, aber ich habe alle wf_chain verloren*)
+apply(erule wf_induct_rule[where r="(calls_chain \<Gamma>)" ])
+apply(simp)
+(*jetz weiss ich was ueber x*)
+
 sorry
+
+
 thm wf_induct_rule wf_def wfP_induct_rule
 
 (*apply(erule_tac r="(calls_chain \<Gamma>)" in wf_induct_rule)
