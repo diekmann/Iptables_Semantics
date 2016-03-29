@@ -912,6 +912,7 @@ apply(case_tac a)
  apply(auto intro: iptables_bigstep.intros)[1]
 apply(rename_tac chain_name)
 apply(thin_tac "a = _")
+(*strengthening IH, maybe want arbitrary?*)
 apply(subgoal_tac "\<forall>m. matches \<gamma> m p \<longrightarrow> wf_chain \<Gamma> [Rule m (Call chain_name)] \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain_name)], s\<rangle> \<Rightarrow> t)")
  apply(simp; fail)
 thm wf_induct_rule[where r="(calls_chain \<Gamma>)" and P="\<lambda>x. \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x)], s\<rangle> \<Rightarrow> t"]
