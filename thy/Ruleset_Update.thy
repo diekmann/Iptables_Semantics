@@ -733,7 +733,6 @@ case (Cons r rs)
     qed(simp_all add: a_not)
   qed
 
-  (*TODO: indent properly*)
   have *: "?case"
     if pre: "rs = rs_called1 @ Rule m' Return # rs_called2 \<and> matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided"
     for rs_called1 m' rs_called2
@@ -751,6 +750,7 @@ case (Cons r rs)
     done
   next
   case True
+    (*TODO: tune*)
     from pre have rule_case_dijs1: "\<exists>X. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> Decision X \<Longrightarrow> ?thesis"
       apply -
       apply(rule disjI1)
@@ -760,6 +760,18 @@ case (Cons r rs)
       apply(rule_tac t="Decision X" in seq_cons)
        apply(simp add: r; fail)
       apply(simp add: decision; fail)
+      done
+
+    from pre have rule_case_dijs2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> ?thesis"
+      apply -
+      apply(rule disjI2)
+      apply(rule_tac x="r#rs_called1" in exI)
+      apply(rule_tac x=rs_called2 in exI)
+      apply(rule_tac x=m' in exI)
+      apply(simp add: r)
+      apply(rule_tac t=Undecided in seq_cons)
+       apply(simp; fail)
+      apply(simp;fail)
       done
 
 
@@ -781,14 +793,8 @@ case (Cons r rs)
     next
     case Log with pre True show ?thesis
       apply -
-      apply(rule disjI2)
-      apply(rule_tac x="r#rs_called1" in exI)
-      apply(rule_tac x=rs_called2 in exI)
-      apply(rule_tac x=m' in exI)
-      apply(simp add: r)
-      apply(rule_tac t=Undecided in seq_cons)
-       apply(simp add: log; fail)
-      apply(simp;fail)
+      apply(rule rule_case_dijs2)
+      apply(simp add: log; fail)
       done
     next
     case Reject with True show ?thesis
@@ -824,14 +830,8 @@ case (Cons r rs)
     next
     case Empty with pre True show ?thesis
       apply -
-      apply(rule disjI2)
-      apply(rule_tac x="r#rs_called1" in exI)
-      apply(rule_tac x=rs_called2 in exI)
-      apply(rule_tac x=m' in exI)
-      apply(simp add: r)
-      apply(rule_tac t=Undecided in seq_cons)
-       apply(simp add: empty; fail)
-      apply(simp ; fail)
+      apply(rule rule_case_dijs2)
+      apply(simp add: empty; fail)
       done
     next
     case Return with True pre show ?thesis
