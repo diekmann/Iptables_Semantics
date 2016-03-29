@@ -678,59 +678,60 @@ lemma hopefully_solves: "(\<forall>x\<in>ran \<Gamma>. wf_chain \<Gamma> x) \<Lo
            rs_called = (rs_called1 @ [Rule m' Return] @ rs_called2) \<and>
            matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)"
 using assms proof(induction rs_called arbitrary:)
-case Nil thus ?case
- apply -
- apply(rule disjI1)
- apply(rule_tac x=Undecided in exI)
- by(simp add: skip)
+case Nil hence "\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[], Undecided\<rangle> \<Rightarrow> t"
+   apply(rule_tac x=Undecided in exI)
+   by(simp add: skip)
+ thus ?case by simp
 next
 case (Cons r rs)
-  from Cons.prems have "wf_chain \<Gamma> [r]"
-    apply(simp add: wf_chain_def)
-    done 
+  from Cons.prems have "wf_chain \<Gamma> [r]" by(simp add: wf_chain_def)
   from Cons.prems have IH:"(\<exists>t'. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t') \<or>
     (\<exists>rs_called1 rs_called2 m'.
         rs = (rs_called1 @ [Rule m' Return] @ rs_called2) \<and>
         matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)"
     apply -
     apply(rule Cons.IH)
-    apply(simp_all add: wf_chain_fst) (*4s*)
+        apply(auto dest: wf_chain_fst)
     done
 
   from Cons.prems have case_call: "r = Rule m (Call y) \<Longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], Undecided\<rangle> \<Rightarrow> t)" for y m
     by(simp)
 
-  obtain m a where r: "r = Rule m a"
-    apply(cases r)
-    apply(simp)
-    done
+  obtain m a where r: "r = Rule m a" by(cases r) simp
 
-  from Cons.prems have a_not: "(\<forall>chain. a \<noteq> Goto chain) \<and> a \<noteq> Unknown"
-    apply(simp add: r)
-    done
+  from Cons.prems have a_not: "(\<forall>chain. a \<noteq> Goto chain) \<and> a \<noteq> Unknown" by(simp add: r)
 
   have ex_neq_ret: "a \<noteq> Return \<Longrightarrow> \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> t"
-    apply(case_tac "matches \<gamma> m p")
-     prefer 2
-     apply(rule_tac x=Undecided in exI)
-     apply(simp add: nomatch; fail)
-    apply(case_tac a)
-            apply(simp_all add: a_not)
-          apply(rule_tac x="Decision FinalAllow" in exI)
-          apply(simp add: accept; fail)
-         apply(rule_tac x="Decision FinalDeny" in exI)
-         apply(simp add: drop; fail)
-        apply(rule_tac x="Undecided" in exI)
-        apply(simp add: log; fail)
-       apply(rule_tac x="Decision FinalDeny" in exI)
-       apply(simp add: reject; fail)
-      thm case_call
+  proof(cases "matches \<gamma> m p")
+  case False thus ?thesis by(rule_tac x=Undecided in exI)(simp add: nomatch; fail)
+  next
+  case True
+    assume "a \<noteq> Return"
+    show ?thesis
+    proof(cases a)
+    case Accept with True show ?thesis
+      by(rule_tac x="Decision FinalAllow" in exI) (simp add: accept; fail)
+    next
+    case Drop with True show ?thesis
+      by(rule_tac x="Decision FinalDeny" in exI) (simp add: drop; fail)
+    next
+    case Log with True show ?thesis
+      by(rule_tac x="Undecided" in exI)(simp add: log; fail)
+    next
+    case Reject with True show ?thesis
+      by(rule_tac x="Decision FinalDeny" in exI) (simp add: reject; fail)
+    next
+    case Call with True show ?thesis
+      apply(simp)
       apply(rule case_call)
       apply(simp add: r; fail)
-      defer
-      apply(rule_tac x="Undecided" in exI)
-      apply(simp add: empty; fail)
-    done
+      done
+    next
+    case Empty with True show ?thesis by(rule_tac x="Undecided" in exI) (simp add: empty; fail)
+    next
+    case Return with \<open>a \<noteq> Return\<close> show ?thesis by simp
+    qed(simp_all add: a_not)
+  qed
 
   (*TODO: indent properly*)
   have *: "rs = rs_called1 @ Rule m' Return # rs_called2 \<and> matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> ?case"
