@@ -1087,10 +1087,7 @@ oops
 
 
 (*would solve final eqn*)
-lemma " (\<And>y rs. (y, x) \<in> calls_chain \<Gamma> \<Longrightarrow>
-                wf_chain \<Gamma> rs \<Longrightarrow>
-                \<forall>r\<in>set rs. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
-                \<forall>r\<in>set rs. get_action r \<noteq> Return \<Longrightarrow> Ex (iptables_bigstep \<Gamma> \<gamma> p rs Undecided)) \<Longrightarrow>
+lemma "(\<And>y. (y, chain_name) \<in> called_by_chain \<Gamma> \<Longrightarrow> wf_chain \<Gamma> [Rule m (Call y)] \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], Undecided\<rangle> \<Rightarrow> t)) \<Longrightarrow>
        wf_chain \<Gamma> rs \<and> (\<forall>x\<in>ran \<Gamma>. wf_chain \<Gamma> x) \<Longrightarrow>
        (\<forall>r\<in>set rs. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown) \<and>
        (\<forall>rsg\<in>ran \<Gamma>. \<forall>r\<in>set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown) \<Longrightarrow>
@@ -1126,11 +1123,13 @@ oops
 
 thm wf_inv_image
 
-lemma sorry1: "wf (calls_chain \<Gamma>) \<Longrightarrow>
+lemma sorry1: "finite (calls_chain \<Gamma>) \<Longrightarrow> wf (calls_chain \<Gamma>) \<Longrightarrow>
   \<forall>rsg \<in> ran \<Gamma> \<union> {[Rule m a]}. wf_chain \<Gamma> rsg \<Longrightarrow>
   \<forall>rsg \<in> ran \<Gamma> \<union> {[Rule m a]}. \<forall> r \<in> set rsg. (\<not>(\<exists>chain. get_action r = Goto chain)) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
   a \<noteq> Return (*no toplevel return*) \<Longrightarrow>
   \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], s\<rangle> \<Rightarrow> t"
+apply(drule(1) wf_called_by_chain)
+apply(thin_tac "wf (calls_chain \<Gamma>)")
 thm wf_induct_rule[where r="(calls_chain \<Gamma>)" and P="\<lambda>x. \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x)], s\<rangle> \<Rightarrow> t"]
 (*apply(induction arbitrary: rule: wf_induct_rule[where r="(calls_chain \<Gamma>)"])*)
 apply(simp)
@@ -1155,12 +1154,56 @@ apply(case_tac a)
   apply fastforce
  apply(auto intro: iptables_bigstep.intros)[1]
 apply(rename_tac chain_name)
+apply(thin_tac "a = _")
 apply(subgoal_tac "wf_chain \<Gamma> [Rule m (Call chain_name)] \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain_name)], s\<rangle> \<Rightarrow> t)")
  apply(simp; fail)
 thm wf_induct_rule[where r="(calls_chain \<Gamma>)" and P="\<lambda>x. \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x)], s\<rangle> \<Rightarrow> t"]
-apply(erule wf_induct_rule[where r="(calls_chain \<Gamma>)" ])
+apply(erule wf_induct_rule[where r="called_by_chain \<Gamma>"])
 apply(simp)
 (*jetz weiss ich was ueber x*)
+
+apply(rename_tac old_name_todo chain_name) 
+(*apply(simp add: calls_chain_def)*)
+
+apply(intro impI)
+
+(*warum weiss ich nix ueber x?*)
+
+apply(case_tac "\<Gamma> chain_name")
+ apply(simp add: wf_chain_def; fail)
+apply(rename_tac rs_called)
+apply(subgoal_tac "(\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called, Undecided\<rangle> \<Rightarrow> t) \<or>
+                    (\<exists>rs_called1 rs_called2 m'. \<Gamma> chain_name = Some (rs_called1@[Rule m' Return]@rs_called2) \<and>
+                        matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)")
+ apply(elim disjE)
+  apply(elim exE)
+  apply(drule(2) call_result)
+  apply blast
+ apply(elim exE conjE)
+  apply(drule(3) call_return)
+  apply blast
+
+apply(subgoal_tac "\<forall>y. \<forall>r \<in> set rs_called. r = Rule m (Call y) \<longrightarrow> (y, chain_name) \<in> called_by_chain \<Gamma> \<and> wf_chain \<Gamma> [Rule m (Call y)]")
+ prefer 2
+ apply(simp)
+ apply(intro impI allI conjI)
+  apply(simp add: called_by_chain_def)
+  apply blast
+ apply(simp add: wf_chain_def)
+ apply (meson ranI rule.sel(2))
+
+(*get good IH*)
+apply(subgoal_tac "\<forall>y. \<forall>r\<in>set rs_called. r = Rule m (Call y) \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], Undecided\<rangle> \<Rightarrow> t)")
+ prefer 2
+ apply blast
+
+(*TODO: maybe we can continue from here :)*)
+
+oops 
+
+
+
+apply(simp add: called_by_chain_def)
 
 sorry
 
