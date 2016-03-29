@@ -1110,18 +1110,16 @@ case (Cons r rs)
 oops
 
 
+thm wf_inv_image
 
-lemma "wf (calls_chain \<Gamma>) \<Longrightarrow>
-  \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. wf_chain \<Gamma> rsg \<Longrightarrow>
-  \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. \<forall> r \<in> set rsg. (\<not>(\<exists>chain. get_action r = Goto chain)) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
-  \<forall> r \<in> set rs. get_action r \<noteq> Return (*no toplevel return*) \<Longrightarrow>
-  \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
-apply(induction arbitrary: rs rule:wf_induct_rule[where r="(calls_chain \<Gamma>)"])
-apply(rule iptables_bigstep_defined_if_singleton_rules)
+lemma sorry1: "wf (calls_chain \<Gamma>) \<Longrightarrow>
+  \<forall>rsg \<in> ran \<Gamma> \<union> {[Rule m a]}. wf_chain \<Gamma> rsg \<Longrightarrow>
+  \<forall>rsg \<in> ran \<Gamma> \<union> {[Rule m a]}. \<forall> r \<in> set rsg. (\<not>(\<exists>chain. get_action r = Goto chain)) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
+  a \<noteq> Return (*no toplevel return*) \<Longrightarrow>
+  \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], s\<rangle> \<Rightarrow> t"
+thm wf_induct_rule[where r="(calls_chain \<Gamma>)" and P="\<lambda>x. \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x)], s\<rangle> \<Rightarrow> t"]
+(*apply(induction arbitrary: rule: wf_induct_rule[where r="(calls_chain \<Gamma>)"])*)
 apply(simp)
-apply(intro ballI, rename_tac r)
-apply(case_tac r)
-apply(rename_tac m a)
 apply(cases s)
  prefer 2
  apply(rename_tac decision)
@@ -1138,13 +1136,17 @@ apply(simp)
 thm action.induct (*?*)
 apply(case_tac a)
         apply(simp_all)
-        apply(auto intro: iptables_bigstep.intros)[4]
-    defer
-    apply fastforce
-   apply fastforce
-  apply(auto intro: iptables_bigstep.intros)[1]
- apply fastforce
-
+      apply(auto intro: iptables_bigstep.intros)[4]
+  defer
+  apply fastforce
+ apply(auto intro: iptables_bigstep.intros)[1]
+apply(rename_tac chain_name)
+apply(subgoal_tac "\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain_name)], s\<rangle> \<Rightarrow> t")
+ apply(simp; fail)
+thm wf_induct_rule[where r="(calls_chain \<Gamma>)" and P="\<lambda>x. \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x)], s\<rangle> \<Rightarrow> t"]
+apply(erule wf_induct_rule[where r="(calls_chain \<Gamma>)" and P="\<lambda>x. \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x)], s\<rangle> \<Rightarrow> t"])
+(*jetz weiss ich was ueber x, aber ich habe alle wf_chain verloren*)
+sorry
 thm wf_induct_rule wf_def wfP_induct_rule
 
 (*apply(erule_tac r="(calls_chain \<Gamma>)" in wf_induct_rule)
@@ -1170,14 +1172,27 @@ apply(subgoal_tac "(\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_call
  apply(elim exE conjE)
   apply(drule(3) call_return)
   apply blast
+oops (*(*calls_chain needs some work? maybe it should be a called-by relation?*)*)
 
-(*
-apply(subgoal_tac "\<exists>m. Rule m (Call chain_name) \<in> set rs_called")
- apply(simp) (*preconditions for IH should hold*)
-defer
-*)
 
-oops (*calls_chain needs some work? maybe it should be a called-by relation?*)
+
+lemma "wf (calls_chain \<Gamma>) \<Longrightarrow>
+  \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. wf_chain \<Gamma> rsg \<Longrightarrow>
+  \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. \<forall> r \<in> set rsg. (\<not>(\<exists>chain. get_action r = Goto chain)) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
+  \<forall> r \<in> set rs. get_action r \<noteq> Return (*no toplevel return*) \<Longrightarrow>
+  \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+apply(rule iptables_bigstep_defined_if_singleton_rules)
+apply(intro ballI, rename_tac r, case_tac r, rename_tac m a, simp)
+thm sorry1
+apply(rule sorry1)
+   apply(simp_all)
+  apply(simp add: wf_chain_def)
+ apply fastforce
+apply fastforce
+done
+
+
+
 
 
 (*
