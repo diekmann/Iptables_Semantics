@@ -969,6 +969,22 @@ thm wf_induct
 thm wf_induct_rule
 
 
+lemma calls_chain_def2: "calls_chain \<Gamma> = {(caller, callee). \<exists>rs m. \<Gamma> caller = Some rs \<and> Rule m (Call callee) \<in> set rs}"
+  unfolding calls_chain_def
+  apply(safe)
+   apply(simp split: option.split_asm)
+  apply(simp)
+  by blast
+
+lemma "calls_chain [''FORWARD'' \<mapsto> [(Rule m1 Log), (Rule m2 (Call ''foo'')), (Rule m3 Accept)],
+          ''foo'' \<mapsto> [(Rule m4 Log), (Rule m5 Return), (Rule m6 (Call ''bar''))], 
+          ''bar'' \<mapsto> []] = {(''FORWARD'', ''foo''), (''foo'', ''bar'')}"
+  apply(simp add: calls_chain_def)
+  apply(auto split: option.split_asm split_if_asm)
+  done
+  
+
+
 lemma "\<exists>y. (y, chain_name) \<in> calls_chain \<Gamma> \<Longrightarrow> (\<And>y. (y, chain_name) \<in> calls_chain \<Gamma> \<Longrightarrow> Ex (iptables_bigstep \<Gamma> \<gamma> p rs s)) \<Longrightarrow>
    Ex (iptables_bigstep \<Gamma> \<gamma> p rs s)"
 by blast
@@ -1030,6 +1046,131 @@ proof(induction rule: wf_induct_rule, simp)
   oops
 oops
 
+
+
+(*would solve final eqn*)
+lemma " (\<And>y rs. (y, x) \<in> calls_chain \<Gamma> \<Longrightarrow>
+                wf_chain \<Gamma> rs \<Longrightarrow>
+                \<forall>r\<in>set rs. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
+                \<forall>r\<in>set rs. get_action r \<noteq> Return \<Longrightarrow> Ex (iptables_bigstep \<Gamma> \<gamma> p rs Undecided)) \<Longrightarrow>
+       wf_chain \<Gamma> rs \<and> (\<forall>x\<in>ran \<Gamma>. wf_chain \<Gamma> x) \<Longrightarrow>
+       (\<forall>r\<in>set rs. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown) \<and>
+       (\<forall>rsg\<in>ran \<Gamma>. \<forall>r\<in>set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown) \<Longrightarrow>
+       \<forall>r\<in>set rs. get_action r \<noteq> Return \<Longrightarrow>
+       Rule m (Call chain_name) \<in> set rs \<Longrightarrow>
+       r = Rule m (Call chain_name) \<Longrightarrow>
+       s = Undecided \<Longrightarrow>
+       matches \<gamma> m p \<Longrightarrow>
+       a = Call chain_name \<Longrightarrow>
+       \<Gamma> chain_name = Some rs_called \<Longrightarrow>
+       (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called, Undecided\<rangle> \<Rightarrow> t) \<or>
+       (\<exists>rs_called1 rs_called2 m'.
+           \<Gamma> chain_name = Some (rs_called1 @ [Rule m' Return] @ rs_called2) \<and> 
+           matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)"
+using assms proof(induction rs_called)
+case Nil thus ?case
+ apply -
+ apply(rule disjI1)
+ apply(rule_tac x=s in exI)
+ by(simp add: skip)
+next
+case (Cons r rs)
+  from Cons.prems have IH:"(\<exists>t'. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t') \<or>
+    (\<exists>rs_called1 rs_called2 m'.
+        \<Gamma> chain_name = Some (rs_called1 @ [Rule m' Return] @ rs_called2) \<and> matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)"
+    apply -
+    apply(rule Cons.IH)
+    apply(simp_all)[9]
+    apply(simp add: wf_chain_fst)
+
+oops
+  from Cons.prems Cons.IH obtain t' where t': "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t'"
+    apply simp
+    apply(elim conjE)
+    apply(simp add: wf_chain_fst)
+    by blast
+
+  obtain m a where r: "r = Rule m a" by(cases r) blast
+
+  show ?case
+  proof(cases "matches \<gamma> m p")
+  case False
+    hence "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r], s\<rangle> \<Rightarrow> s"
+      apply(cases s)
+       apply(simp add: nomatch r)
+      by(simp add: decision)
+    thus ?thesis
+      apply(rule_tac x=t' in exI)
+      apply(rule_tac t=s in seq'_cons)
+       apply assumption
+      using t' by(simp)
+  next
+  case True
+    show ?thesis
+    proof(cases s)
+    case (Decision X) thus ?thesis
+      apply(rule_tac x="Decision X" in exI)
+      by(simp add: decision)
+    next
+    case Undecided
+      have "\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m a # rs, Undecided\<rangle> \<Rightarrow> t"
+      proof(cases a)
+        case Accept with True show ?thesis
+          apply(rule_tac x="Decision FinalAllow" in exI)
+          apply(rule_tac t="Decision FinalAllow" in seq'_cons)
+           by(auto intro: iptables_bigstep.intros)
+        next
+        case Drop with True show ?thesis
+          apply(rule_tac x="Decision FinalDeny" in exI)
+          apply(rule_tac t="Decision FinalDeny" in seq'_cons)
+           by(auto intro: iptables_bigstep.intros)
+        next
+        case Log with True t' Undecided show ?thesis
+          apply(rule_tac x=t' in exI)
+          apply(rule_tac t=Undecided in seq'_cons)
+           by(auto intro: iptables_bigstep.intros)
+        next
+        case Reject with True show ?thesis
+          apply(rule_tac x="Decision FinalDeny" in exI)
+          apply(rule_tac t="Decision FinalDeny" in seq'_cons)
+           by(auto intro: iptables_bigstep.intros)[2]
+        next
+        case Return with Cons.prems(3)[simplified r] show ?thesis by simp
+        next
+        case Goto with Cons.prems(2)[simplified r] show ?thesis by auto
+        next
+        case (Call chain_name)
+          from Call Cons.prems(1) obtain rs' where 1: "\<Gamma> chain_name = Some rs'" by(simp add: r wf_chain_def) blast
+          with Cons.prems(4) obtain t'' where 2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>the (\<Gamma> chain_name), Undecided\<rangle> \<Rightarrow> t''" by blast
+          from 1 2 True have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain_name)], Undecided\<rangle> \<Rightarrow> t''" by(auto dest: call_result)
+          with Call t' Undecided show ?thesis
+          apply(simp add: r)
+          apply(cases t'')
+           apply simp
+           apply(rule_tac x=t' in exI)
+           apply(rule_tac t=Undecided in seq'_cons)
+            apply(auto intro: iptables_bigstep.intros)[2]
+          apply(simp)
+          apply(rule_tac x=t'' in exI)
+          apply(rule_tac t=t'' in seq'_cons)
+           apply(auto intro: iptables_bigstep.intros)
+         done
+        next
+        case Empty  with True t' Undecided show ?thesis
+         apply(rule_tac x=t' in exI)
+         apply(rule_tac t=Undecided in seq'_cons)
+          by(auto intro: iptables_bigstep.intros)
+        next
+        case Unknown with Cons.prems(2)[simplified r] show ?thesis by(simp)
+      qed
+      thus ?thesis
+      unfolding r Undecided by simp
+    qed
+  qed
+qed
+oops
+
+
 lemma "wf (calls_chain \<Gamma>) \<Longrightarrow>
   \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. wf_chain \<Gamma> rsg \<Longrightarrow>
   \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. \<forall> r \<in> set rsg. (\<not>(\<exists>chain. get_action r = Goto chain)) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
@@ -1071,15 +1212,28 @@ apply(rename_tac chain_name chain_name_x) (*x=x5 information lost*)
 apply(subgoal_tac "chain_name = chain_name_x") (*TODO: needs ISAr induction?*)
 *)
 apply(rename_tac chain_name)
-apply(simp add: calls_chain_def)
+(*apply(simp add: calls_chain_def)*)
 
 apply(case_tac "\<Gamma> chain_name")
  apply(simp add: wf_chain_def)
  apply fastforce
 apply(rename_tac rs_called)
- apply(subgoal_tac "\<exists>m. Rule m (Call chain_name) \<in> set rs_called")
-  apply(simp) (*preconditions for IH should hold*)
- defer
+apply(subgoal_tac "(\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called, Undecided\<rangle> \<Rightarrow> t) \<or>
+                    (\<exists>rs_called1 rs_called2 m'. \<Gamma> chain_name = Some (rs_called1@[Rule m' Return]@rs_called2) \<and>
+                        matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)")
+ apply(elim disjE)
+  apply(elim exE)
+  apply(drule(2) call_result)
+  apply blast
+ apply(elim exE conjE)
+  apply(drule(3) call_return)
+  apply blast
+
+(*
+apply(subgoal_tac "\<exists>m. Rule m (Call chain_name) \<in> set rs_called")
+ apply(simp) (*preconditions for IH should hold*)
+defer
+*)
 
 oops (*calls_chain needs some work? maybe it should be a called-by relation?*)
 
