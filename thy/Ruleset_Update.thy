@@ -1089,7 +1089,9 @@ oops
 (*would solve final eqn*)
 lemma "(\<forall>x\<in>ran \<Gamma>. wf_chain \<Gamma> x) \<Longrightarrow>
        \<forall>rsg\<in>ran \<Gamma>. \<forall>r\<in>set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
-       \<forall>y. \<forall>r\<in>set rs_called. r = Rule m (Call y) \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], Undecided\<rangle> \<Rightarrow> t) \<Longrightarrow>
+       \<forall>y m. \<forall>r\<in>set rs_called. r = Rule m (Call y) \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], Undecided\<rangle> \<Rightarrow> t) \<Longrightarrow>
+       wf_chain \<Gamma> rs_called \<Longrightarrow> 
+       \<forall>r\<in>set rs_called. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
        (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called, Undecided\<rangle> \<Rightarrow> t) \<or>
        (\<exists>rs_called1 rs_called2 m'.
            \<Gamma> chain_name = Some (rs_called1 @ [Rule m' Return] @ rs_called2) \<and>
@@ -1102,15 +1104,68 @@ case Nil thus ?case
  by(simp add: skip)
 next
 case (Cons r rs)
+  from Cons.prems have "wf_chain \<Gamma> [r]"
+    apply(simp add: wf_chain_def)
+    done 
   from Cons.prems have IH:"(\<exists>t'. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t') \<or>
     (\<exists>rs_called1 rs_called2 m'.
         \<Gamma> chain_name = Some (rs_called1 @ [Rule m' Return] @ rs_called2) \<and>
         matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)"
     apply -
     apply(rule Cons.IH)
-    apply(simp_all)
+    apply(simp_all add: wf_chain_fst) (*4s*)
     done
 
+  from Cons.prems have case_call: "r = Rule m (Call y) \<Longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], Undecided\<rangle> \<Rightarrow> t)" for y m
+    by(simp)
+
+  obtain m a where r: "r = Rule m a"
+    apply(cases r)
+    apply(simp)
+    done
+
+  from Cons.prems have a_not: "(\<forall>chain. a \<noteq> Goto chain) \<and> a \<noteq> Unknown"
+    apply(simp add: r)
+    done
+
+  have "\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> t"
+    apply(case_tac "matches \<gamma> m p")
+     prefer 2
+     apply(rule_tac x=Undecided in exI)
+     apply(simp add: nomatch; fail)
+    apply(case_tac a)
+            apply(simp_all add: a_not)
+          apply(rule_tac x="Decision FinalAllow" in exI)
+          apply(simp add: accept; fail)
+         apply(rule_tac x="Decision FinalDeny" in exI)
+         apply(simp add: drop; fail)
+        apply(rule_tac x="Undecided" in exI)
+        apply(simp add: log; fail)
+       apply(rule_tac x="Decision FinalDeny" in exI)
+       apply(simp add: reject; fail)
+      thm case_call
+      apply(rule case_call)
+      apply(simp add: r; fail)
+      defer
+      apply(rule_tac x="Undecided" in exI)
+      apply(simp add: empty; fail)
+    sorry
+   
+  from IH have "(*a \<noteq> Return \<longrightarrow>*) (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> t) \<Longrightarrow> ?case"
+    apply(elim disjE)
+     apply(simp_all)
+    apply(rule disjI1)
+    apply(simp add: r)
+    apply(elim conjE)
+    apply(elim exE, rename_tac t2 t1)
+    apply(case_tac t2)
+     apply(simp_all)
+     apply(rule_tac x=t1 in exI)
+     apply(rule_tac seq'_cons)
+      apply(simp_all)
+    by (meson decision seq_cons)
+    
+  thus ?case
 oops
 
 
@@ -1189,6 +1244,11 @@ apply(subgoal_tac "\<forall>y. \<forall>r \<in> set rs_called. r = Rule m (Call 
 apply(subgoal_tac "\<forall>y. \<forall>r\<in>set rs_called. r = Rule m (Call y) \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], Undecided\<rangle> \<Rightarrow> t)")
  prefer 2
  apply blast
+
+apply(subgoal_tac "wf_chain \<Gamma> rs_called")
+ prefer 2
+ apply (simp add: ranI)
+ 
 
 (*TODO: maybe we can continue from here :)*)
 
