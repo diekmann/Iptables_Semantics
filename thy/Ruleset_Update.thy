@@ -976,12 +976,34 @@ lemma calls_chain_def2: "calls_chain \<Gamma> = {(caller, callee). \<exists>rs m
   apply(simp)
   by blast
 
-lemma "calls_chain [''FORWARD'' \<mapsto> [(Rule m1 Log), (Rule m2 (Call ''foo'')), (Rule m3 Accept)],
+lemma "calls_chain [''FORWARD'' \<mapsto> [(Rule m1 Log), (Rule m2 (Call ''foo'')), (Rule m3 Accept), (Rule m' (Call ''baz''))],
           ''foo'' \<mapsto> [(Rule m4 Log), (Rule m5 Return), (Rule m6 (Call ''bar''))], 
-          ''bar'' \<mapsto> []] = {(''FORWARD'', ''foo''), (''foo'', ''bar'')}"
+          ''bar'' \<mapsto> [],
+          ''baz'' \<mapsto> []] = {(''FORWARD'', ''foo''), (''FORWARD'', ''baz''), (''foo'', ''bar'')}"
   apply(simp add: calls_chain_def)
   apply(auto split: option.split_asm split_if_asm)
   done
+
+lemma "wf (calls_chain [''FORWARD'' \<mapsto> [(Rule m1 Log), (Rule m2 (Call ''foo'')), (Rule m3 Accept), (Rule m' (Call ''baz''))],
+          ''foo'' \<mapsto> [(Rule m4 Log), (Rule m5 Return), (Rule m6 (Call ''bar''))], 
+          ''bar'' \<mapsto> [],
+          ''baz'' \<mapsto> []])"
+proof -
+  have g: "calls_chain [''FORWARD'' \<mapsto> [(Rule m1 Log), (Rule m2 (Call ''foo'')), (Rule m3 Accept), (Rule m' (Call ''baz''))],
+          ''foo'' \<mapsto> [(Rule m4 Log), (Rule m5 Return), (Rule m6 (Call ''bar''))], 
+          ''bar'' \<mapsto> [],
+          ''baz'' \<mapsto> []] = {(''FORWARD'', ''foo''), (''FORWARD'', ''baz''), (''foo'', ''bar'')}"
+  by(auto simp add: calls_chain_def split: option.split_asm split_if_asm)
+  show ?thesis
+    unfolding g
+    apply(simp)
+    apply safe
+     apply(erule rtranclE, simp_all)
+    apply(erule rtranclE, simp_all)
+    done
+qed    
+    
+
   
 
 
