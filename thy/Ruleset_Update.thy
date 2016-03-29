@@ -764,9 +764,6 @@ case (Cons r rs)
 
 
     with pre show ?thesis
-
-
-
     proof(cases a)
     case Accept with True pre show ?thesis
       apply -
@@ -782,17 +779,17 @@ case (Cons r rs)
       apply(simp add: deny; fail)
       done
     next
-    case Log with True show ?thesis
+    case Log with pre True show ?thesis
       apply -
       apply(rule disjI2)
-        apply(rule_tac x="r#rs_called1" in exI)
-        apply(rule_tac x=rs_called2 in exI)
-        apply(rule_tac x=m' in exI)
-        apply(simp add: r pre)
-        apply(rule_tac t=Undecided in seq_cons)
-         apply(simp add: r log; fail)
-        apply(simp add: pre; fail)
-        done
+      apply(rule_tac x="r#rs_called1" in exI)
+      apply(rule_tac x=rs_called2 in exI)
+      apply(rule_tac x=m' in exI)
+      apply(simp add: r)
+      apply(rule_tac t=Undecided in seq_cons)
+       apply(simp add: log; fail)
+      apply(simp;fail)
+      done
     next
     case Reject with True show ?thesis
       apply -
@@ -825,16 +822,16 @@ case (Cons r rs)
       apply(simp add: decision; fail)
       done
     next
-    case Empty with True show ?thesis
+    case Empty with pre True show ?thesis
       apply -
       apply(rule disjI2)
       apply(rule_tac x="r#rs_called1" in exI)
       apply(rule_tac x=rs_called2 in exI)
       apply(rule_tac x=m' in exI)
-      apply(simp add: r pre)
+      apply(simp add: r)
       apply(rule_tac t=Undecided in seq_cons)
-       apply(simp add: r empty; fail)
-      apply(simp add: pre; fail)
+       apply(simp add: empty; fail)
+      apply(simp ; fail)
       done
     next
     case Return with True pre show ?thesis
