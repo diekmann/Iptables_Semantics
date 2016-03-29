@@ -1087,36 +1087,29 @@ oops
 
 
 (*would solve final eqn*)
-lemma "(\<And>y. (y, chain_name) \<in> called_by_chain \<Gamma> \<Longrightarrow> wf_chain \<Gamma> [Rule m (Call y)] \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], Undecided\<rangle> \<Rightarrow> t)) \<Longrightarrow>
-       wf_chain \<Gamma> rs \<and> (\<forall>x\<in>ran \<Gamma>. wf_chain \<Gamma> x) \<Longrightarrow>
-       (\<forall>r\<in>set rs. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown) \<and>
-       (\<forall>rsg\<in>ran \<Gamma>. \<forall>r\<in>set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown) \<Longrightarrow>
-       \<forall>r\<in>set rs. get_action r \<noteq> Return \<Longrightarrow>
-       Rule m (Call chain_name) \<in> set rs \<Longrightarrow>
-       r = Rule m (Call chain_name) \<Longrightarrow>
-       s = Undecided \<Longrightarrow>
-       matches \<gamma> m p \<Longrightarrow>
-       a = Call chain_name \<Longrightarrow>
-       \<Gamma> chain_name = Some rs_called \<Longrightarrow>
+lemma "(\<forall>x\<in>ran \<Gamma>. wf_chain \<Gamma> x) \<Longrightarrow>
+       \<forall>rsg\<in>ran \<Gamma>. \<forall>r\<in>set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
+       \<forall>y. \<forall>r\<in>set rs_called. r = Rule m (Call y) \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], Undecided\<rangle> \<Rightarrow> t) \<Longrightarrow>
        (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called, Undecided\<rangle> \<Rightarrow> t) \<or>
        (\<exists>rs_called1 rs_called2 m'.
-           \<Gamma> chain_name = Some (rs_called1 @ [Rule m' Return] @ rs_called2) \<and> 
+           \<Gamma> chain_name = Some (rs_called1 @ [Rule m' Return] @ rs_called2) \<and>
            matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)"
-using assms proof(induction rs_called arbitrary: \<Gamma>)
+using assms proof(induction rs_called arbitrary:)
 case Nil thus ?case
  apply -
  apply(rule disjI1)
- apply(rule_tac x=s in exI)
+ apply(rule_tac x=Undecided in exI)
  by(simp add: skip)
 next
 case (Cons r rs)
   from Cons.prems have IH:"(\<exists>t'. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t') \<or>
     (\<exists>rs_called1 rs_called2 m'.
-        \<Gamma> chain_name = Some (rs_called1 @ [Rule m' Return] @ rs_called2) \<and> matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)"
+        \<Gamma> chain_name = Some (rs_called1 @ [Rule m' Return] @ rs_called2) \<and>
+        matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)"
     apply -
     apply(rule Cons.IH)
-    apply(simp_all)[9]
-    apply(simp add: wf_chain_fst)
+    apply(simp_all)
+    done
 
 oops
 
@@ -1199,15 +1192,9 @@ apply(subgoal_tac "\<forall>y. \<forall>r\<in>set rs_called. r = Rule m (Call y)
 
 (*TODO: maybe we can continue from here :)*)
 
-oops 
-
-
-
-apply(simp add: called_by_chain_def)
-
 sorry
 
-
+(*
 thm wf_induct_rule wf_def wfP_induct_rule
 
 (*apply(erule_tac r="(calls_chain \<Gamma>)" in wf_induct_rule)
@@ -1235,9 +1222,9 @@ apply(subgoal_tac "(\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_call
   apply blast
 oops (*(*calls_chain needs some work? maybe it should be a called-by relation?*)*)
 
+*)
 
-
-lemma "wf (calls_chain \<Gamma>) \<Longrightarrow>
+lemma "finite (calls_chain \<Gamma>) \<Longrightarrow> wf (calls_chain \<Gamma>) \<Longrightarrow>
   \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. wf_chain \<Gamma> rsg \<Longrightarrow>
   \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. \<forall> r \<in> set rsg. (\<not>(\<exists>chain. get_action r = Goto chain)) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
   \<forall> r \<in> set rs. get_action r \<noteq> Return (*no toplevel return*) \<Longrightarrow>
