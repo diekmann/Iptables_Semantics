@@ -980,7 +980,54 @@ lemma "wf (calls_chain \<Gamma>) \<Longrightarrow>
   \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x)], s\<rangle> \<Rightarrow> t"
 apply(induction rule: wf_induct_rule)
 apply(simp)
+apply(simp add: calls_chain_def split: option.split_asm)
+apply(case_tac "\<Gamma> x")
+ apply(simp; fail)
+apply(simp)
 
+oops
+
+lemma "wf (calls_chain \<Gamma>) \<Longrightarrow>
+  (x, y) \<in> calls_chain \<Gamma> \<Longrightarrow>
+  \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], s\<rangle> \<Rightarrow> t \<Longrightarrow>
+  \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x)], s\<rangle> \<Rightarrow> t"
+proof(induction rule: wf_induct_rule, simp)
+ fix x
+ assume IH: "(\<And>ya. (ya, x) \<in> calls_chain \<Gamma> \<Longrightarrow> (ya, y) \<in> calls_chain \<Gamma> \<Longrightarrow> Ex (iptables_bigstep \<Gamma> \<gamma> p [Rule m (Call ya)] s))"
+ and prems1: "(x, y) \<in> calls_chain \<Gamma>" and prems2: "Ex (iptables_bigstep \<Gamma> \<gamma> p [Rule m (Call y)] s)"
+
+ show "Ex (iptables_bigstep \<Gamma> \<gamma> p [Rule m (Call x)] s)"
+ proof(cases "\<Gamma> x")
+ case None thus ?thesis
+  using IH prems1
+  apply(simp add: calls_chain_def split: option.split_asm) 
+  done
+ next
+ case(Some rs)
+  (*have sry: "\<exists>m. Rule m (Call x) \<in> set rs" *)
+  from prems1 Some have "\<exists>m. Rule m (Call y) \<in> set rs"
+    by(simp add: calls_chain_def)
+  from IH[of x] Some prems2 this have "(\<exists>m. Rule m (Call x) \<in> set rs \<Longrightarrow> Ex (iptables_bigstep \<Gamma> \<gamma> p [Rule m (Call x)] s))"
+    by(simp add: calls_chain_def split: option.split_asm) 
+  from this sry show ?thesis by simp
+oops
+
+
+lemma "wf (calls_chain \<Gamma>) \<Longrightarrow>
+  (x, y) \<in> calls_chain \<Gamma> \<Longrightarrow>
+  \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x)], s\<rangle> \<Rightarrow> t \<Longrightarrow>
+  \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], s\<rangle> \<Rightarrow> t"
+proof(induction rule: wf_induct_rule, simp)
+ fix x'
+ assume IH: "(\<And>y. (y, x') \<in> calls_chain \<Gamma> \<Longrightarrow> (x, y) \<in> calls_chain \<Gamma> \<Longrightarrow> Ex (iptables_bigstep \<Gamma> \<gamma> p [Rule m (Call y)] s))"
+ and prems1: "(x, x') \<in> calls_chain \<Gamma>" and prems2: "Ex (iptables_bigstep \<Gamma> \<gamma> p [Rule m (Call x)] s)"
+
+ show "Ex (iptables_bigstep \<Gamma> \<gamma> p [Rule m (Call x')] s)"
+ proof(cases "\<Gamma> x'")
+ case None thus ?thesis
+  using IH prems1 prems2
+  apply(simp add: calls_chain_def split: option.split_asm) 
+  oops
 oops
 
 lemma "wf (calls_chain \<Gamma>) \<Longrightarrow>
@@ -988,7 +1035,52 @@ lemma "wf (calls_chain \<Gamma>) \<Longrightarrow>
   \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. \<forall> r \<in> set rsg. (\<not>(\<exists>chain. get_action r = Goto chain)) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
   \<forall> r \<in> set rs. get_action r \<noteq> Return (*no toplevel return*) \<Longrightarrow>
   \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+apply(rule iptables_bigstep_defined_if_singleton_rules)
 apply(simp)
+apply(intro ballI, rename_tac r)
+apply(case_tac r)
+apply(rename_tac m a)
+apply(cases s)
+ prefer 2
+ apply(rename_tac decision)
+ apply(rule_tac x="Decision decision" in exI)
+ apply(simp)
+ using iptables_bigstep.decision apply fast
+apply simp
+apply(case_tac "\<not> matches \<gamma> m p")
+ apply(rule_tac x=Undecided in exI)
+ apply(rule_tac t=s in seq'_cons)
+  apply (metis empty_iff empty_set insert_iff list.simps(15) nomatch' rule.sel(1)) 
+ apply(simp add: skip; fail)
+apply(simp)
+thm action.induct (*?*)
+apply(case_tac a)
+        apply(simp_all)
+        apply(auto intro: iptables_bigstep.intros)[4]
+    defer
+    apply fastforce
+   apply fastforce
+  apply(auto intro: iptables_bigstep.intros)[1]
+ apply fastforce
+
+thm wf_induct_rule wf_def wfP_induct_rule
+
+apply(erule_tac r="(calls_chain \<Gamma>)" in wf_induct_rule)
+apply(rename_tac chain_name chain_name_x) (*x=x5 information lost*)
+apply(subgoal_tac "chain_name = chain_name_x") (*TODO: needs ISAr induction?*)
+apply(simp add: calls_chain_def)
+
+apply(case_tac "\<Gamma> chain_name_x")
+ apply(simp add: wf_chain_def)
+ apply fastforce
+apply(rename_tac rs_called)
+ apply(subgoal_tac "\<exists>m. Rule m (Call chain_name_x) \<in> set rs_called")
+  apply(simp)
+oops (*calls_chain needs some work? maybe it should be a called-by relation?*)
+
+
+(*
+apply simp
 apply(induction rs)
  apply(simp_all)
  apply(rule_tac x=s in exI)
@@ -1039,6 +1131,7 @@ apply(erule_tac r="(calls_chain \<Gamma>)" in wf_induct_rule)
 apply(rename_tac chain_name chain_name_x)
 
 (** here we need something about the return**)
+*)
 oops
 
 end
