@@ -750,32 +750,59 @@ case (Cons r rs)
     apply(simp add: pre; fail)
     done
   next
-  case True with pre show ?thesis
-    apply(simp add: r)
-    apply(case_tac a)
-            apply(simp_all add: a_not)
-          apply(rule disjI1, rule_tac x="Decision FinalAllow" in exI)
-          apply(rule_tac t="Decision FinalAllow" in seq_cons)
-           apply(simp add: accept; fail)
-          apply(simp add: decision; fail)
-         apply(rule disjI1)
-         apply(rule_tac x="Decision FinalDeny" in exI)
-         apply(rule_tac t="Decision FinalDeny" in seq_cons)
-          apply(simp add: drop; fail)
-         apply(simp add: decision; fail)
-        apply(rule disjI2)
+  case True
+    from pre have rule_case_dijs1: "\<exists>X. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> Decision X \<Longrightarrow> ?thesis"
+      apply -
+      apply(rule disjI1)
+      apply(elim exE conjE, rename_tac X)
+      apply(simp)
+      apply(rule_tac x="Decision X" in exI)
+      apply(rule_tac t="Decision X" in seq_cons)
+       apply(simp add: r; fail)
+      apply(simp add: decision; fail)
+      done
+
+
+    with pre show ?thesis
+
+
+
+    proof(cases a)
+    case Accept with True pre show ?thesis
+      apply -
+      apply(rule rule_case_dijs1)
+      apply(rule_tac x="FinalAllow" in exI)
+      apply(simp add: accept; fail)
+      done
+    next
+    case Drop with True show ?thesis
+      apply -
+      apply(rule rule_case_dijs1)
+      apply(rule_tac x="FinalDeny" in exI)
+      apply(simp add: deny; fail)
+      done
+    next
+    case Log with True show ?thesis
+      apply -
+      apply(rule disjI2)
         apply(rule_tac x="r#rs_called1" in exI)
         apply(rule_tac x=rs_called2 in exI)
         apply(rule_tac x=m' in exI)
-        apply(simp add: r)
-         apply(rule_tac t=Undecided in seq_cons)
+        apply(simp add: r pre)
+        apply(rule_tac t=Undecided in seq_cons)
          apply(simp add: r log; fail)
-        apply(simp; fail)
-       apply(rule disjI1)
-       apply(rule_tac x="Decision FinalDeny" in exI)
-       apply(rule_tac t="Decision FinalDeny" in seq_cons)
-        apply(simp add: reject; fail)
-       apply(simp add: decision; fail)
+        apply(simp add: pre; fail)
+        done
+    next
+    case Reject with True show ?thesis
+      apply -
+      apply(rule rule_case_dijs1)
+      apply(rule_tac x="FinalDeny" in exI)
+      apply(simp add: reject; fail)
+      done
+    next
+    case (Call x5) with pre True show ?thesis
+      apply(simp)
       apply(subgoal_tac "\<exists>a. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x5)], Undecided\<rangle> \<Rightarrow> a")
        prefer 2
        apply(rule case_call)
@@ -794,22 +821,31 @@ case (Cons r rs)
       apply(rule disjI1)
       apply(rule_tac x=t_called in exI)
       apply(rule_tac t=t_called in seq_cons)
-       apply(simp; fail)
+       apply(simp add: r; fail)
       apply(simp add: decision; fail)
+      done
+    next
+    case Empty with True show ?thesis
+      apply -
+      apply(rule disjI2)
+      apply(rule_tac x="r#rs_called1" in exI)
+      apply(rule_tac x=rs_called2 in exI)
+      apply(rule_tac x=m' in exI)
+      apply(simp add: r pre)
+      apply(rule_tac t=Undecided in seq_cons)
+       apply(simp add: r empty; fail)
+      apply(simp add: pre; fail)
+      done
+    next
+    case Return with True pre show ?thesis
+     apply -
      apply(rule disjI2)
      apply(rule_tac x="[]" in exI)
      apply(rule_tac x="rs_called1 @ Rule m' Return # rs_called2" in exI)
      apply(rule_tac x=m in exI)
      apply(simp add: skip r; fail)
-    apply(rule disjI2)
-    apply(rule_tac x="r#rs_called1" in exI)
-    apply(rule_tac x=rs_called2 in exI)
-    apply(rule_tac x=m' in exI)
-    apply(simp add: r)
-    apply(rule_tac t=Undecided in seq_cons)
-     apply(simp add: r empty; fail)
-    apply(simp; fail)
-    done
+     done
+    qed(simp_all add: a_not)
   qed
    
   from IH have **: "a \<noteq> Return \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> t) \<Longrightarrow> ?case"
