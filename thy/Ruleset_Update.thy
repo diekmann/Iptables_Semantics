@@ -1087,14 +1087,14 @@ oops
 
 
 (*would solve final eqn*)
-lemma "(\<forall>x\<in>ran \<Gamma>. wf_chain \<Gamma> x) \<Longrightarrow>
+lemma hopefully_solves: "(\<forall>x\<in>ran \<Gamma>. wf_chain \<Gamma> x) \<Longrightarrow>
        \<forall>rsg\<in>ran \<Gamma>. \<forall>r\<in>set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
        \<forall>y m. \<forall>r\<in>set rs_called. r = Rule m (Call y) \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], Undecided\<rangle> \<Rightarrow> t) \<Longrightarrow>
        wf_chain \<Gamma> rs_called \<Longrightarrow> 
        \<forall>r\<in>set rs_called. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
        (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called, Undecided\<rangle> \<Rightarrow> t) \<or>
        (\<exists>rs_called1 rs_called2 m'.
-           \<Gamma> chain_name = Some (rs_called1 @ [Rule m' Return] @ rs_called2) \<and> (*want: rs_called = *)
+           rs_called = (rs_called1 @ [Rule m' Return] @ rs_called2) \<and>
            matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)"
 using assms proof(induction rs_called arbitrary:)
 case Nil thus ?case
@@ -1109,7 +1109,7 @@ case (Cons r rs)
     done 
   from Cons.prems have IH:"(\<exists>t'. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t') \<or>
     (\<exists>rs_called1 rs_called2 m'.
-        \<Gamma> chain_name = Some (rs_called1 @ [Rule m' Return] @ rs_called2) \<and>
+        rs = (rs_called1 @ [Rule m' Return] @ rs_called2) \<and>
         matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)"
     apply -
     apply(rule Cons.IH)
@@ -1128,7 +1128,7 @@ case (Cons r rs)
     apply(simp add: r)
     done
 
-  have "\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> t"
+  have ex_neq_ret: "a \<noteq> Return \<Longrightarrow> \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> t"
     apply(case_tac "matches \<gamma> m p")
      prefer 2
      apply(rule_tac x=Undecided in exI)
@@ -1149,11 +1149,88 @@ case (Cons r rs)
       defer
       apply(rule_tac x="Undecided" in exI)
       apply(simp add: empty; fail)
-    sorry
+    done
+
+  (*TODO: indent properly*)
+  have *: "rs = rs_called1 @ Rule m' Return # rs_called2 \<and> matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> ?case"
+    for rs_called1 m' rs_called2
+    apply(simp add: r)
+    apply(case_tac "matches \<gamma> m p")
+     prefer 2
+     apply(rule disjI2)
+     apply(rule_tac x="r#rs_called1" in exI)
+     apply(rule_tac x=rs_called2 in exI)
+     apply(rule_tac x=m' in exI)
+     apply(simp add: r)
+     apply(rule_tac t=Undecided in seq_cons)
+      apply(simp add: r nomatch; fail)
+     apply(simp; fail)
+
+    apply(case_tac a)
+            apply(simp_all add: a_not)
+          apply(rule disjI1, rule_tac x="Decision FinalAllow" in exI)
+          apply(rule_tac t="Decision FinalAllow" in seq_cons)
+           apply(simp add: accept; fail)
+          apply(simp add: decision; fail)
+         apply(rule disjI1)
+         apply(rule_tac x="Decision FinalDeny" in exI)
+         apply(rule_tac t="Decision FinalDeny" in seq_cons)
+          apply(simp add: drop; fail)
+         apply(simp add: decision; fail)
+        apply(rule disjI2)
+        apply(rule_tac x="r#rs_called1" in exI)
+        apply(rule_tac x=rs_called2 in exI)
+        apply(rule_tac x=m' in exI)
+        apply(simp add: r)
+         apply(rule_tac t=Undecided in seq_cons)
+         apply(simp add: r log; fail)
+        apply(simp; fail)
+       apply(rule disjI1)
+       apply(rule_tac x="Decision FinalDeny" in exI)
+       apply(rule_tac t="Decision FinalDeny" in seq_cons)
+        apply(simp add: reject; fail)
+       apply(simp add: decision; fail)
+      apply(subgoal_tac "\<exists>a. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x5)], Undecided\<rangle> \<Rightarrow> a")
+       prefer 2
+       apply(rule case_call)
+       apply(simp add: r; fail)
+      apply(elim exE, rename_tac t_called)
+      apply(case_tac t_called)
+       apply(simp)
+       apply(rule disjI2)
+       apply(rule_tac x="r#rs_called1" in exI)
+       apply(rule_tac x=rs_called2 in exI)
+       apply(rule_tac x=m' in exI)
+       apply(simp add: r)
+       apply(rule_tac t=Undecided in seq_cons)
+        apply(simp add: r; fail)
+       apply(simp; fail)
+      apply(rule disjI1)
+      apply(rule_tac x=t_called in exI)
+      apply(rule_tac t=t_called in seq_cons)
+       apply(simp; fail)
+      apply(simp add: decision; fail)
+     apply(rule disjI2)
+     apply(rule_tac x="[]" in exI)
+     apply(rule_tac x="rs_called1 @ Rule m' Return # rs_called2" in exI)
+     apply(rule_tac x=m in exI)
+     apply(simp add: skip r; fail)
+    apply(rule disjI2)
+    apply(rule_tac x="r#rs_called1" in exI)
+    apply(rule_tac x=rs_called2 in exI)
+    apply(rule_tac x=m' in exI)
+    apply(simp add: r)
+    apply(rule_tac t=Undecided in seq_cons)
+     apply(simp add: r empty; fail)
+    apply(simp; fail)
+    done
    
-  from IH have "a \<noteq> Return \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> t) \<Longrightarrow> ?case"
+  from IH have **: "a \<noteq> Return \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> t) \<Longrightarrow> ?case"
     apply(elim disjE)
      prefer 2
+     apply(simp)
+     apply(elim exE)
+     apply(drule *)
      apply(simp; fail)
     apply(case_tac "a \<noteq> Return")
      apply(rule disjI1)
@@ -1178,12 +1255,13 @@ case (Cons r rs)
 
      apply(rule disjI2)
      apply(rule_tac x="[]" in exI)
-     
-     apply(simp add: r)
-     apply(simp add: nomatch)
+     apply(rule_tac x=rs in exI)
+     apply(rule_tac x=m in exI)
+     apply(simp add: r skip; fail)
+    done
     
-  thus ?case
-oops
+  thus ?case using ex_neq_ret by blast
+qed
 
 
 thm wf_inv_image
@@ -1220,7 +1298,7 @@ apply(case_tac a)
  apply(auto intro: iptables_bigstep.intros)[1]
 apply(rename_tac chain_name)
 apply(thin_tac "a = _")
-apply(subgoal_tac "wf_chain \<Gamma> [Rule m (Call chain_name)] \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain_name)], s\<rangle> \<Rightarrow> t)")
+apply(subgoal_tac "\<forall>m. matches \<gamma> m p \<longrightarrow> wf_chain \<Gamma> [Rule m (Call chain_name)] \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain_name)], s\<rangle> \<Rightarrow> t)")
  apply(simp; fail)
 thm wf_induct_rule[where r="(calls_chain \<Gamma>)" and P="\<lambda>x. \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x)], s\<rangle> \<Rightarrow> t"]
 apply(erule wf_induct_rule[where r="called_by_chain \<Gamma>"])
@@ -1237,6 +1315,8 @@ apply(intro impI)
 apply(case_tac "\<Gamma> chain_name")
  apply(simp add: wf_chain_def; fail)
 apply(rename_tac rs_called)
+apply(intro allI impI, rename_tac m_neu)
+apply(thin_tac " matches \<gamma> m p")
 apply(subgoal_tac "(\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called, Undecided\<rangle> \<Rightarrow> t) \<or>
                     (\<exists>rs_called1 rs_called2 m'. \<Gamma> chain_name = Some (rs_called1@[Rule m' Return]@rs_called2) \<and>
                         matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)")
@@ -1248,7 +1328,7 @@ apply(subgoal_tac "(\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_call
   apply(drule(3) call_return)
   apply blast
 
-apply(subgoal_tac "\<forall>y. \<forall>r \<in> set rs_called. r = Rule m (Call y) \<longrightarrow> (y, chain_name) \<in> called_by_chain \<Gamma> \<and> wf_chain \<Gamma> [Rule m (Call y)]")
+apply(subgoal_tac "\<forall>y m. \<forall>r \<in> set rs_called. r = Rule m (Call y) \<longrightarrow> (y, chain_name) \<in> called_by_chain \<Gamma> \<and> wf_chain \<Gamma> [Rule m (Call y)]")
  prefer 2
  apply(simp)
  apply(intro impI allI conjI)
@@ -1258,16 +1338,25 @@ apply(subgoal_tac "\<forall>y. \<forall>r \<in> set rs_called. r = Rule m (Call 
  apply (meson ranI rule.sel(2))
 
 (*get good IH*)
-apply(subgoal_tac "\<forall>y. \<forall>r\<in>set rs_called. r = Rule m (Call y) \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], Undecided\<rangle> \<Rightarrow> t)")
+apply(subgoal_tac "\<forall>y m. \<forall>r\<in>set rs_called. r = Rule m (Call y) \<longrightarrow> (*matches \<gamma> m p \<longrightarrow>*) (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], Undecided\<rangle> \<Rightarrow> t)")
  prefer 2
- apply blast
+ apply(intro allI, rename_tac y my)
+ apply(case_tac "matches \<gamma> my p")
+  apply blast
+ apply(intro ballI impI)
+ apply(rule_tac x=Undecided in exI)
+ apply(simp add: nomatch; fail)
 
 apply(subgoal_tac "wf_chain \<Gamma> rs_called")
  prefer 2
  apply (simp add: ranI)
- 
 
 (*TODO: maybe we can continue from here :)*)
+
+apply(elim conjE)
+apply(drule(3) hopefully_solves)
+ apply(simp_all)
+
 
 sorry
 
