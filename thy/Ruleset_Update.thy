@@ -804,12 +804,10 @@ case (Cons r rs)
       apply(simp add: reject; fail)
       done
     next
-    case (Call x5) with pre True show ?thesis
+    case (Call x5)
+      have "\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x5)], Undecided\<rangle> \<Rightarrow> t" by(rule case_call) (simp add: r Call)
+      with Call pre True show ?thesis
       apply(simp)
-      apply(subgoal_tac "\<exists>a. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x5)], Undecided\<rangle> \<Rightarrow> a")
-       prefer 2
-       apply(rule case_call)
-       apply(simp add: r; fail)
       apply(elim exE, rename_tac t_called)
       apply(case_tac t_called)
        apply(simp)
