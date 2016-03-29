@@ -1266,7 +1266,7 @@ qed
 
 thm wf_inv_image
 
-lemma sorry1: "finite (calls_chain \<Gamma>) \<Longrightarrow> wf (calls_chain \<Gamma>) \<Longrightarrow>
+lemma helper_defined_single: "finite (calls_chain \<Gamma>) \<Longrightarrow> wf (calls_chain \<Gamma>) \<Longrightarrow>
   \<forall>rsg \<in> ran \<Gamma> \<union> {[Rule m a]}. wf_chain \<Gamma> rsg \<Longrightarrow>
   \<forall>rsg \<in> ran \<Gamma> \<union> {[Rule m a]}. \<forall> r \<in> set rsg. (\<not>(\<exists>chain. get_action r = Goto chain)) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
   a \<noteq> Return (*no toplevel return*) \<Longrightarrow>
@@ -1306,9 +1306,6 @@ apply(simp)
 (*jetz weiss ich was ueber x*)
 
 apply(rename_tac old_name_todo chain_name) 
-(*apply(simp add: calls_chain_def)*)
-
-apply(intro impI)
 
 (*warum weiss ich nix ueber x?*)
 
@@ -1356,39 +1353,11 @@ apply(subgoal_tac "wf_chain \<Gamma> rs_called")
 apply(elim conjE)
 apply(drule(3) hopefully_solves)
  apply(simp_all)
+apply(subgoal_tac "rs_called \<in> ran \<Gamma>")
+ prefer 2
+ apply (simp add: ranI)
+by blast
 
-
-sorry
-
-(*
-thm wf_induct_rule wf_def wfP_induct_rule
-
-(*apply(erule_tac r="(calls_chain \<Gamma>)" in wf_induct_rule)
-apply(rename_tac chain_name chain_name_x) (*x=x5 information lost*)
-apply(subgoal_tac "chain_name = chain_name_x") (*TODO: needs ISAr induction?*)
-*)
-apply(rename_tac chain_name)
-(*apply(simp add: calls_chain_def)*)
-
-(*warum weiss ich nix ueber x?*)
-
-apply(case_tac "\<Gamma> chain_name")
- apply(simp add: wf_chain_def)
- apply fastforce
-apply(rename_tac rs_called)
-apply(subgoal_tac "(\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called, Undecided\<rangle> \<Rightarrow> t) \<or>
-                    (\<exists>rs_called1 rs_called2 m'. \<Gamma> chain_name = Some (rs_called1@[Rule m' Return]@rs_called2) \<and>
-                        matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)")
- apply(elim disjE)
-  apply(elim exE)
-  apply(drule(2) call_result)
-  apply blast
- apply(elim exE conjE)
-  apply(drule(3) call_return)
-  apply blast
-oops (*(*calls_chain needs some work? maybe it should be a called-by relation?*)*)
-
-*)
 
 lemma "finite (calls_chain \<Gamma>) \<Longrightarrow> wf (calls_chain \<Gamma>) \<Longrightarrow>
   \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. wf_chain \<Gamma> rsg \<Longrightarrow>
@@ -1397,8 +1366,8 @@ lemma "finite (calls_chain \<Gamma>) \<Longrightarrow> wf (calls_chain \<Gamma>)
   \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
 apply(rule iptables_bigstep_defined_if_singleton_rules)
 apply(intro ballI, rename_tac r, case_tac r, rename_tac m a, simp)
-thm sorry1
-apply(rule sorry1)
+thm helper_defined_single
+apply(rule helper_defined_single)
    apply(simp_all)
   apply(simp add: wf_chain_def)
  apply fastforce
@@ -1407,61 +1376,5 @@ done
 
 
 
-
-
-(*
-apply simp
-apply(induction rs)
- apply(simp_all)
- apply(rule_tac x=s in exI)
- apply(simp add: skip)
-
-apply(rename_tac r rs)
-apply(elim conjE)
-apply(simp add: wf_chain_fst)
-
-apply(elim exE)
-apply(rename_tac t')
-apply(case_tac r)
-apply(rename_tac m a)
-apply(simp)
-apply(case_tac "\<not> matches \<gamma> m p")
- apply(rule_tac x=t' in exI)
- apply(rule_tac t=s in seq'_cons)
-  apply (metis empty_iff empty_set insert_iff list.simps(15) nomatch' rule.sel(1)) 
- apply(simp)
-apply(simp)
-apply(case_tac s)
- prefer 2
- apply(simp)
- apply(rule_tac x="Decision x2" in exI)
- apply(simp add: decision)
-apply(simp)
-apply(case_tac a)
-apply(simp_all)
- apply(rule_tac x="Decision FinalAllow" in exI)
- apply(rule_tac t="Decision FinalAllow" in seq'_cons)
- apply(auto intro: iptables_bigstep.intros)[2]
-
- apply(rule_tac x="Decision FinalDeny" in exI)
- apply(rule_tac t="Decision FinalDeny" in seq'_cons)
- apply(auto intro: iptables_bigstep.intros)[2]
-
- apply(rule_tac x=t' in exI)
- apply(rule_tac t=Undecided in seq'_cons)
- apply(auto intro: iptables_bigstep.intros)[2]
-
- apply(rule_tac x="Decision FinalDeny" in exI)
- apply(rule_tac t="Decision FinalDeny" in seq'_cons)
- apply(auto intro: iptables_bigstep.intros)[2]
-
- prefer 2 apply fast
-
-apply(erule_tac r="(calls_chain \<Gamma>)" in wf_induct_rule)
-apply(rename_tac chain_name chain_name_x)
-
-(** here we need something about the return**)
-*)
-oops
 
 end
