@@ -1035,6 +1035,7 @@ lemma "wf (calls_chain \<Gamma>) \<Longrightarrow>
   \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. \<forall> r \<in> set rsg. (\<not>(\<exists>chain. get_action r = Goto chain)) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
   \<forall> r \<in> set rs. get_action r \<noteq> Return (*no toplevel return*) \<Longrightarrow>
   \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+apply(induction arbitrary: rs rule:wf_induct_rule[where r="(calls_chain \<Gamma>)"])
 apply(rule iptables_bigstep_defined_if_singleton_rules)
 apply(simp)
 apply(intro ballI, rename_tac r)
@@ -1065,17 +1066,21 @@ apply(case_tac a)
 
 thm wf_induct_rule wf_def wfP_induct_rule
 
-apply(erule_tac r="(calls_chain \<Gamma>)" in wf_induct_rule)
+(*apply(erule_tac r="(calls_chain \<Gamma>)" in wf_induct_rule)
 apply(rename_tac chain_name chain_name_x) (*x=x5 information lost*)
 apply(subgoal_tac "chain_name = chain_name_x") (*TODO: needs ISAr induction?*)
+*)
+apply(rename_tac chain_name)
 apply(simp add: calls_chain_def)
 
-apply(case_tac "\<Gamma> chain_name_x")
+apply(case_tac "\<Gamma> chain_name")
  apply(simp add: wf_chain_def)
  apply fastforce
 apply(rename_tac rs_called)
- apply(subgoal_tac "\<exists>m. Rule m (Call chain_name_x) \<in> set rs_called")
-  apply(simp)
+ apply(subgoal_tac "\<exists>m. Rule m (Call chain_name) \<in> set rs_called")
+  apply(simp) (*preconditions for IH should hold*)
+ defer
+
 oops (*calls_chain needs some work? maybe it should be a called-by relation?*)
 
 
