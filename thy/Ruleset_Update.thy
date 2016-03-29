@@ -734,20 +734,24 @@ case (Cons r rs)
   qed
 
   (*TODO: indent properly*)
-  have *: "rs = rs_called1 @ Rule m' Return # rs_called2 \<and> matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> ?case"
+  have *: "?case"
+    if pre: "rs = rs_called1 @ Rule m' Return # rs_called2 \<and> matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided"
     for rs_called1 m' rs_called2
+  proof(cases "matches \<gamma> m p")
+  case False thus ?thesis
+    apply -
+    apply(rule disjI2)
+    apply(rule_tac x="r#rs_called1" in exI)
+    apply(rule_tac x=rs_called2 in exI)
+    apply(rule_tac x=m' in exI)
+    apply(simp add: r pre)
+    apply(rule_tac t=Undecided in seq_cons)
+     apply(simp add: r nomatch; fail)
+    apply(simp add: pre; fail)
+    done
+  next
+  case True with pre show ?thesis
     apply(simp add: r)
-    apply(case_tac "matches \<gamma> m p")
-     prefer 2
-     apply(rule disjI2)
-     apply(rule_tac x="r#rs_called1" in exI)
-     apply(rule_tac x=rs_called2 in exI)
-     apply(rule_tac x=m' in exI)
-     apply(simp add: r)
-     apply(rule_tac t=Undecided in seq_cons)
-      apply(simp add: r nomatch; fail)
-     apply(simp; fail)
-
     apply(case_tac a)
             apply(simp_all add: a_not)
           apply(rule disjI1, rule_tac x="Decision FinalAllow" in exI)
@@ -806,6 +810,7 @@ case (Cons r rs)
      apply(simp add: r empty; fail)
     apply(simp; fail)
     done
+  qed
    
   from IH have **: "a \<noteq> Return \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> t) \<Longrightarrow> ?case"
     apply(elim disjE)
