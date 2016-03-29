@@ -844,39 +844,47 @@ case (Cons r rs)
   qed
    
   from IH have **: "a \<noteq> Return \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> t) \<Longrightarrow> ?case"
-    apply(elim disjE)
-     prefer 2
-     apply(simp)
-     apply(elim exE)
-     apply(drule *)
-     apply(simp; fail)
-    apply(case_tac "a \<noteq> Return")
-     apply(rule disjI1)
-     apply(simp add: r)
-     (*apply(elim conjE)*)
-     apply(elim exE, rename_tac t2 t1)
-     apply(case_tac t2)
-      apply(simp_all)
-      apply(rule_tac x=t1 in exI)
-      apply(rule_tac seq'_cons)
-       apply(simp_all)
-     apply (meson decision seq_cons)
-    apply(case_tac "matches \<gamma> m p")
-     prefer 2
-     apply(rule disjI1)
-     apply(elim exE)
-     apply(rename_tac t')
-     apply(rule_tac x=t' in exI)
-     apply(rule_tac t=Undecided in seq_cons)
-      apply(simp add: r nomatch; fail)
-     apply(simp; fail)
-
-     apply(rule disjI2)
-     apply(rule_tac x="[]" in exI)
-     apply(rule_tac x=rs in exI)
-     apply(rule_tac x=m in exI)
-     apply(simp add: r skip; fail)
+  proof(elim disjE, goal_cases)
+  case 2 thus ?case
+    apply(simp)
+    apply(elim exE)
+    apply(drule *)
+    apply(simp; fail)
     done
+  next
+  case 1 thus ?case 
+    proof(cases "a \<noteq> Return")
+    case True with 1 show ?thesis
+      apply -
+      apply(rule disjI1)
+      apply(simp add: r)
+      apply(elim exE, rename_tac t2 t1)
+      apply(case_tac t2)
+       apply(simp_all)
+       apply(rule_tac x=t1 in exI)
+       apply(rule_tac seq'_cons)
+        apply(simp_all)
+      apply (meson decision seq_cons)
+      done
+    next
+    case False with 1 show ?thesis
+      apply(cases "matches \<gamma> m p")
+       prefer 2
+       apply(rule disjI1)
+       apply(elim exE)
+       apply(rename_tac t')
+       apply(rule_tac x=t' in exI)
+       apply(rule_tac t=Undecided in seq_cons)
+        apply(simp add: r nomatch; fail)
+       apply(simp; fail)
+      apply(rule disjI2)
+      apply(rule_tac x="[]" in exI)
+      apply(rule_tac x=rs in exI)
+      apply(rule_tac x=m in exI)
+      apply(simp add: r skip; fail)
+      done
+    qed
+  qed
     
   thus ?case using ex_neq_ret by blast
 qed
