@@ -1025,6 +1025,7 @@ apply(simp)
 
 oops
 
+(*
 lemma "wf (calls_chain \<Gamma>) \<Longrightarrow>
   (x, y) \<in> calls_chain \<Gamma> \<Longrightarrow>
   \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], s\<rangle> \<Rightarrow> t \<Longrightarrow>
@@ -1049,8 +1050,9 @@ proof(induction rule: wf_induct_rule, simp)
     by(simp add: calls_chain_def split: option.split_asm) 
   from this sry show ?thesis by simp
 oops
+*)
 
-
+(*
 lemma "wf (calls_chain \<Gamma>) \<Longrightarrow>
   (x, y) \<in> calls_chain \<Gamma> \<Longrightarrow>
   \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x)], s\<rangle> \<Rightarrow> t \<Longrightarrow>
@@ -1067,7 +1069,7 @@ proof(induction rule: wf_induct_rule, simp)
   apply(simp add: calls_chain_def split: option.split_asm) 
   oops
 oops
-
+*)
 
 
 (*would solve final eqn*)
@@ -1089,7 +1091,7 @@ lemma " (\<And>y rs. (y, x) \<in> calls_chain \<Gamma> \<Longrightarrow>
        (\<exists>rs_called1 rs_called2 m'.
            \<Gamma> chain_name = Some (rs_called1 @ [Rule m' Return] @ rs_called2) \<and> 
            matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)"
-using assms proof(induction rs_called)
+using assms proof(induction rs_called arbitrary: \<Gamma>)
 case Nil thus ?case
  apply -
  apply(rule disjI1)
@@ -1106,91 +1108,7 @@ case (Cons r rs)
     apply(simp add: wf_chain_fst)
 
 oops
-  from Cons.prems Cons.IH obtain t' where t': "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t'"
-    apply simp
-    apply(elim conjE)
-    apply(simp add: wf_chain_fst)
-    by blast
 
-  obtain m a where r: "r = Rule m a" by(cases r) blast
-
-  show ?case
-  proof(cases "matches \<gamma> m p")
-  case False
-    hence "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[r], s\<rangle> \<Rightarrow> s"
-      apply(cases s)
-       apply(simp add: nomatch r)
-      by(simp add: decision)
-    thus ?thesis
-      apply(rule_tac x=t' in exI)
-      apply(rule_tac t=s in seq'_cons)
-       apply assumption
-      using t' by(simp)
-  next
-  case True
-    show ?thesis
-    proof(cases s)
-    case (Decision X) thus ?thesis
-      apply(rule_tac x="Decision X" in exI)
-      by(simp add: decision)
-    next
-    case Undecided
-      have "\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m a # rs, Undecided\<rangle> \<Rightarrow> t"
-      proof(cases a)
-        case Accept with True show ?thesis
-          apply(rule_tac x="Decision FinalAllow" in exI)
-          apply(rule_tac t="Decision FinalAllow" in seq'_cons)
-           by(auto intro: iptables_bigstep.intros)
-        next
-        case Drop with True show ?thesis
-          apply(rule_tac x="Decision FinalDeny" in exI)
-          apply(rule_tac t="Decision FinalDeny" in seq'_cons)
-           by(auto intro: iptables_bigstep.intros)
-        next
-        case Log with True t' Undecided show ?thesis
-          apply(rule_tac x=t' in exI)
-          apply(rule_tac t=Undecided in seq'_cons)
-           by(auto intro: iptables_bigstep.intros)
-        next
-        case Reject with True show ?thesis
-          apply(rule_tac x="Decision FinalDeny" in exI)
-          apply(rule_tac t="Decision FinalDeny" in seq'_cons)
-           by(auto intro: iptables_bigstep.intros)[2]
-        next
-        case Return with Cons.prems(3)[simplified r] show ?thesis by simp
-        next
-        case Goto with Cons.prems(2)[simplified r] show ?thesis by auto
-        next
-        case (Call chain_name)
-          from Call Cons.prems(1) obtain rs' where 1: "\<Gamma> chain_name = Some rs'" by(simp add: r wf_chain_def) blast
-          with Cons.prems(4) obtain t'' where 2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>the (\<Gamma> chain_name), Undecided\<rangle> \<Rightarrow> t''" by blast
-          from 1 2 True have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain_name)], Undecided\<rangle> \<Rightarrow> t''" by(auto dest: call_result)
-          with Call t' Undecided show ?thesis
-          apply(simp add: r)
-          apply(cases t'')
-           apply simp
-           apply(rule_tac x=t' in exI)
-           apply(rule_tac t=Undecided in seq'_cons)
-            apply(auto intro: iptables_bigstep.intros)[2]
-          apply(simp)
-          apply(rule_tac x=t'' in exI)
-          apply(rule_tac t=t'' in seq'_cons)
-           apply(auto intro: iptables_bigstep.intros)
-         done
-        next
-        case Empty  with True t' Undecided show ?thesis
-         apply(rule_tac x=t' in exI)
-         apply(rule_tac t=Undecided in seq'_cons)
-          by(auto intro: iptables_bigstep.intros)
-        next
-        case Unknown with Cons.prems(2)[simplified r] show ?thesis by(simp)
-      qed
-      thus ?thesis
-      unfolding r Undecided by simp
-    qed
-  qed
-qed
-oops
 
 
 lemma "wf (calls_chain \<Gamma>) \<Longrightarrow>
@@ -1235,6 +1153,8 @@ apply(subgoal_tac "chain_name = chain_name_x") (*TODO: needs ISAr induction?*)
 *)
 apply(rename_tac chain_name)
 (*apply(simp add: calls_chain_def)*)
+
+(*warum weiss ich nix ueber x?*)
 
 apply(case_tac "\<Gamma> chain_name")
  apply(simp add: wf_chain_def)
