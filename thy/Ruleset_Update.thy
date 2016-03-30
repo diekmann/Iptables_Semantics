@@ -1018,64 +1018,59 @@ case Undecided
     case Return with assms show ?thesis by simp
     next
     case (Call chain_name)
-      from True assms Call show ?thesis
-      (*strengthening IH, maybe want arbitrary?*)
-      apply(subgoal_tac "\<forall>m. matches \<gamma> m p \<longrightarrow> wf_chain \<Gamma> [Rule m (Call chain_name)] \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain_name)], Undecided\<rangle> \<Rightarrow> t)")
-       apply(simp; fail)
       thm wf_induct_rule[where r="(calls_chain \<Gamma>)" and P="\<lambda>x. \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x)], Undecided\<rangle> \<Rightarrow> t"]
-      apply(erule wf_induct_rule[where r="called_by_chain \<Gamma>"])
-      apply(simp)
-      (*jetz weiss ich was ueber x*)
-      
-      apply(rename_tac chain_name_neu) 
-      
-      (*warum weiss ich nix ueber x?*)
-      
-      apply(case_tac "\<Gamma> chain_name_neu")
-       apply(simp add: wf_chain_def; fail)
-      apply(rename_tac rs_called)
-      apply(intro allI impI, rename_tac m_neu)
-      apply(thin_tac "matches \<gamma> m p")
-      apply(subgoal_tac "(\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called, Undecided\<rangle> \<Rightarrow> t) \<or>
-                          (\<exists>rs_called1 rs_called2 m'. \<Gamma> chain_name_neu = Some (rs_called1@[Rule m' Return]@rs_called2) \<and>
-                              matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)")
-       apply(elim disjE)
-        apply(elim exE)
-        apply(drule(2) call_result)
-        apply blast
-       apply(elim exE conjE)
-        apply(drule(3) call_return)
-        apply blast
-      
-      apply(subgoal_tac "\<forall>y m. \<forall>r \<in> set rs_called. r = Rule m (Call y) \<longrightarrow> (y, chain_name_neu) \<in> called_by_chain \<Gamma> \<and> wf_chain \<Gamma> [Rule m (Call y)]")
-       prefer 2
-       apply(simp)
-       apply(intro impI allI conjI)
-        apply(simp add: called_by_chain_def)
-        apply blast
-       apply(simp add: wf_chain_def)
-       apply (meson ranI rule.sel(2))
-      
-      (*get good IH*)
-      apply(subgoal_tac "\<forall>y m. \<forall>r\<in>set rs_called. r = Rule m (Call y) \<longrightarrow> (*matches \<gamma> m p \<longrightarrow>*) (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], Undecided\<rangle> \<Rightarrow> t)")
-       prefer 2
-       apply(intro allI, rename_tac y my)
-       apply(case_tac "matches \<gamma> my p")
-        apply blast
-       apply(intro ballI impI)
-       apply(rule_tac x=Undecided in exI)
-       apply(simp add: nomatch; fail)
-      
-      apply(subgoal_tac "wf_chain \<Gamma> rs_called")
-       prefer 2
-       apply (simp add: ranI)
-      apply(elim conjE)
-      apply(drule(3) hopefully_solves)
-       apply(simp_all)
-      apply(subgoal_tac "rs_called \<in> ran \<Gamma>")
-       prefer 2
-       apply (simp add: ranI)
-      by blast
+      --{*Only the assumptions we will need*}
+      from assms have "wf (called_by_chain \<Gamma>)"
+          "\<forall>rsg\<in>ran \<Gamma>. wf_chain \<Gamma> rsg"
+          "\<forall>rsg\<in>ran \<Gamma>. \<forall>r\<in>set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown" by auto
+      --{*strengthening the IH to do a well-founded induction*}
+      hence "matches \<gamma> m p \<Longrightarrow> wf_chain \<Gamma> [Rule m (Call chain_name)] \<Longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain_name)], Undecided\<rangle> \<Rightarrow> t)"
+      proof(induction arbitrary: m rule: wf_induct_rule[where r="called_by_chain \<Gamma>"])
+      case (less chain_name_neu)
+        thm less.prems
+        from less.prems have "\<Gamma> chain_name_neu \<noteq> None" by(simp add: wf_chain_def)
+        from this obtain rs_called where rs_called: "\<Gamma> chain_name_neu = Some rs_called" by blast
+
+        from less rs_called have "wf_chain \<Gamma> rs_called" by (simp add: ranI)
+        from less rs_called have "rs_called \<in> ran \<Gamma>" by (simp add: ranI)
+
+        (*get good IH*)
+        from less rs_called have "\<forall>y m. \<forall>r \<in> set rs_called. r = Rule m (Call y) \<longrightarrow> (y, chain_name_neu) \<in> called_by_chain \<Gamma> \<and> wf_chain \<Gamma> [Rule m (Call y)]"
+           apply(simp)
+           apply(intro impI allI conjI)
+            apply(simp add: called_by_chain_def)
+            apply blast
+           apply(simp add: wf_chain_def)
+           apply (meson ranI rule.sel(2))
+           done
+        with less rs_called have "\<forall>y m. \<forall>r\<in>set rs_called. r = Rule m (Call y) \<longrightarrow> (*matches \<gamma> m p \<longrightarrow>*) (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], Undecided\<rangle> \<Rightarrow> t)"
+           apply(intro allI, rename_tac y my)
+           apply(case_tac "matches \<gamma> my p")
+            apply blast
+           apply(intro ballI impI)
+           apply(rule_tac x=Undecided in exI)
+           apply(simp add: nomatch; fail)
+           done
+
+        with less rs_called `wf_chain \<Gamma> rs_called` `rs_called \<in> ran \<Gamma>` have "(\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called, Undecided\<rangle> \<Rightarrow> t) \<or>
+              (\<exists>rs_called1 rs_called2 m'. \<Gamma> chain_name_neu = Some (rs_called1@[Rule m' Return]@rs_called2) \<and>
+                  matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)"
+          apply -
+          apply(drule(3) hopefully_solves)
+           apply(simp_all)
+          done
+
+        with less.prems rs_called show ?case
+           apply(elim disjE)
+            apply(elim exE)
+            apply(drule(2) call_result)
+            apply blast
+           apply(elim exE conjE)
+            apply(drule(3) call_return)
+            apply blast
+           done
+      qed
+      with True assms Call show ?thesis by simp
     qed
   qed
 with Undecided show ?thesis by simp
