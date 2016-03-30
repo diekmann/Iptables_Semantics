@@ -933,47 +933,54 @@ begin
      
     from IH have **: "a \<noteq> Return \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> t) \<Longrightarrow> ?case"
     proof(elim disjE, goal_cases)
-    case 2 thus ?case
-      apply(simp)
-      apply(elim exE)
-      apply(drule *)
-      apply(simp)
-      done
+    case 2
+      from this obtain rs_called1 m' rs_called2 where 
+        a1: "rs = rs_called1 @ [Rule m' Return] @ rs_called2" and
+        a2: "matches \<gamma> m' p" and a3: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided" by blast
+      show ?case
+        apply(rule *)
+        using a1 a2 a3 by simp
     next
     case 1 thus ?case 
       proof(cases "a \<noteq> Return")
-      case True with 1 show ?thesis
+      case True
+        with 1 obtain t1 t2 where t1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> t1"
+                              and t2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t2" by blast
+        from t1 t2 show ?thesis
         apply -
         apply(rule disjI1)
         apply(simp add: r)
-        apply(elim exE, rename_tac t2 t1)
-        apply(case_tac t2)
+        apply(cases t1)
          apply(simp_all)
-         apply(rule_tac x=t1 in exI)
+         apply(rule_tac x=t2 in exI)
          apply(rule_tac seq'_cons)
           apply(simp_all)
         apply (meson decision seq_cons)
         done
       next
-      case False with 1 show ?thesis
-        apply(cases "matches \<gamma> m p")
-         prefer 2
-         apply(rule disjI1)
-         apply(elim exE)
-         apply(rename_tac t')
-         apply(rule_tac x=t' in exI)
-         apply(rule_tac t=Undecided in seq_cons)
-          apply(simp add: r nomatch; fail)
-         apply(simp; fail)
-        apply(rule disjI2)
-        apply(rule_tac x="[]" in exI)
-        apply(rule_tac x=rs in exI)
-        apply(rule_tac x=m in exI)
-        apply(simp add: r skip; fail)
-        done
+      case False show ?thesis
+        proof(cases "matches \<gamma> m p")
+          assume "\<not> matches \<gamma> m p" with 1 show ?thesis
+            apply -
+            apply(rule disjI1)
+            apply(elim exE)
+            apply(rename_tac t')
+            apply(rule_tac x=t' in exI)
+            apply(rule_tac t=Undecided in seq_cons)
+             apply(simp add: r nomatch; fail)
+            by(simp)
+        next
+          assume "matches \<gamma> m p" with False show ?thesis
+            apply -
+            apply(rule disjI2)
+            apply(rule_tac x="[]" in exI)
+            apply(rule_tac x=rs in exI)
+            apply(rule_tac x=m in exI)
+            apply(simp add: r skip; fail)
+            done
+        qed
       qed
     qed
-      
     thus ?case using ex_neq_ret by blast
   qed
   
