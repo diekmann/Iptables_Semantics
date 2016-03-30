@@ -297,7 +297,7 @@ definition common_matcher_generic :: "(common_primitive, simple_packet) exact_ma
     (\<forall> p S. \<beta> (CT_State S) p = bool_to_ternary (match_ctstate S (p_tag_ctstate p))) \<and>
     (\<forall> p str. \<beta> (Extra str) p = TernaryUnknown)"
 
-lemma "common_matcher_generic common_matcher"
+lemma common_matcher_generic_common_matcher: "common_matcher_generic common_matcher"
   by(simp add: common_matcher_generic_def)
 
 end
