@@ -281,4 +281,23 @@ subsection{*Abstracting over unknowns*}
     by(induction a m rule: lower_closure_matchexpr.induct)
     (simp_all add: unknown_match_all_def unknown_not_match_any_def bool_to_ternary_Unknown)
 
+
+
+
+(*TODO: generic assumptions for a common matcher without information about IPs.
+        to be used to add ipv6 integration without duplicating all proofs *)
+definition common_matcher_generic :: "(common_primitive, simple_packet) exact_match_tac \<Rightarrow> bool" where
+  "common_matcher_generic \<beta> \<equiv>
+    (\<forall> p i. \<beta> (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))) \<and>
+    (\<forall> p i. \<beta> (OIface i) p = bool_to_ternary (match_iface i (p_oiface p))) \<and>
+    (\<forall> p proto. \<beta> (Prot proto) p = bool_to_ternary (match_proto proto (p_proto p))) \<and>
+    (\<forall> p ps. \<beta> (Src_Ports ps) p = bool_to_ternary (p_sport p \<in> ports_to_set ps)) \<and>
+    (\<forall> p ps. \<beta> (Dst_Ports ps) p = bool_to_ternary (p_dport p \<in> ports_to_set ps)) \<and>
+    (\<forall> p flags. \<beta> (L4_Flags flags) p = bool_to_ternary (match_tcp_flags flags (p_tcp_flags p))) \<and>
+    (\<forall> p S. \<beta> (CT_State S) p = bool_to_ternary (match_ctstate S (p_tag_ctstate p))) \<and>
+    (\<forall> p str. \<beta> (Extra str) p = TernaryUnknown)"
+
+lemma "common_matcher_generic common_matcher"
+  by(simp add: common_matcher_generic_def)
+
 end
