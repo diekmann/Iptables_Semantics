@@ -862,7 +862,7 @@ begin
          apply(simp add: r; fail)
         apply(simp add: decision; fail)
         done
-  
+
       from pre have rule_case_dijs2: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> ?thesis"
         apply -
         apply(rule disjI2)
@@ -874,35 +874,27 @@ begin
          apply(simp; fail)
         apply(simp;fail)
         done
-      
+
       show ?thesis
       proof(cases a)
-      case Accept with True pre show ?thesis
-        apply -
+      case Accept show ?thesis
         apply(rule rule_case_dijs1)
         apply(rule_tac x="FinalAllow" in exI)
-        apply(simp add: accept; fail)
-        done
+        using True pre Accept by(simp add: accept)
       next
-      case Drop with True show ?thesis
-        apply -
+      case Drop show ?thesis
         apply(rule rule_case_dijs1)
         apply(rule_tac x="FinalDeny" in exI)
-        apply(simp add: deny; fail)
-        done
+        using True Drop by(simp add: deny)
       next
-      case Log with pre True show ?thesis
-        apply -
+      case Log show ?thesis
         apply(rule rule_case_dijs2)
-        apply(simp add: log; fail)
-        done
+        using Log True by(simp add: log)
       next
-      case Reject with True show ?thesis
-        apply -
+      case Reject show ?thesis
         apply(rule rule_case_dijs1)
         apply(rule_tac x="FinalDeny" in exI)
-        apply(simp add: reject; fail)
-        done
+        using Reject True by(simp add: reject)
       next
       case (Call x5)
         have "\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x5)], Undecided\<rangle> \<Rightarrow> t" by(rule case_call) (simp add: r Call)
@@ -926,20 +918,16 @@ begin
         apply(simp add: decision; fail)
         done
       next
-      case Empty with pre True show ?thesis
-        apply -
+      case Empty show ?thesis
         apply(rule rule_case_dijs2)
-        apply(simp add: empty; fail)
-        done
+        using Empty True by(simp add: pre empty)
       next
-      case Return with True pre show ?thesis
-       apply -
+      case Return show ?thesis
        apply(rule disjI2)
        apply(rule_tac x="[]" in exI)
        apply(rule_tac x="rs_called1 @ Rule m' Return # rs_called2" in exI)
        apply(rule_tac x=m in exI)
-       apply(simp add: skip r; fail)
-       done
+       using Return True pre by(simp add: skip r)
       qed(simp_all add: a_not)
     qed
      
@@ -949,7 +937,7 @@ begin
       apply(simp)
       apply(elim exE)
       apply(drule *)
-      apply(simp; fail)
+      apply(simp)
       done
     next
     case 1 thus ?case 
