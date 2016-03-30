@@ -75,8 +75,26 @@ lemma packet_independent_\<beta>_unknown_common_matcher: "packet_independent_\<b
 
 (*TODO: generic assumptions for a common matcher without information about IPs.
         to be used to add ipv6 integration without duplicating all proofs *)
-definition matcher_generic :: "(common_primitive, simple_packet) exact_match_tac \<Rightarrow> bool" where
-  "matcher_generic \<beta> \<equiv>
+locale prinitive_matcher_generic =
+  fixes \<beta> :: "(common_primitive, simple_packet) exact_match_tac"
+  assumes "\<forall> p i. \<beta> (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))"
+    "\<forall> p i. \<beta> (OIface i) p = bool_to_ternary (match_iface i (p_oiface p))"
+    "\<forall> p proto. \<beta> (Prot proto) p = bool_to_ternary (match_proto proto (p_proto p))"
+    "\<forall> p ps. \<beta> (Src_Ports ps) p = bool_to_ternary (p_sport p \<in> ports_to_set ps)"
+    "\<forall> p ps. \<beta> (Dst_Ports ps) p = bool_to_ternary (p_dport p \<in> ports_to_set ps)"
+    "\<forall> p flags. \<beta> (L4_Flags flags) p = bool_to_ternary (match_tcp_flags flags (p_tcp_flags p))"
+    "\<forall> p S. \<beta> (CT_State S) p = bool_to_ternary (match_ctstate S (p_tag_ctstate p))"
+    "\<forall> p str. \<beta> (Extra str) p = TernaryUnknown"
+begin
+end
+
+
+lemma prinitive_matcher_generic_common_matcher: "prinitive_matcher_generic common_matcher"
+  by unfold_locales  simp_all
+
+(*
+definition prinitive_matcher_generic :: "(common_primitive, simple_packet) exact_match_tac \<Rightarrow> bool" where
+  "prinitive_matcher_generic \<beta> \<equiv>
     (\<forall> p i. \<beta> (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))) \<and>
     (\<forall> p i. \<beta> (OIface i) p = bool_to_ternary (match_iface i (p_oiface p))) \<and>
     (\<forall> p proto. \<beta> (Prot proto) p = bool_to_ternary (match_proto proto (p_proto p))) \<and>
@@ -86,9 +104,9 @@ definition matcher_generic :: "(common_primitive, simple_packet) exact_match_tac
     (\<forall> p S. \<beta> (CT_State S) p = bool_to_ternary (match_ctstate S (p_tag_ctstate p))) \<and>
     (\<forall> p str. \<beta> (Extra str) p = TernaryUnknown)"
 
-lemma matcher_generic_common_matcher: "matcher_generic common_matcher"
-  by(simp add: matcher_generic_def)
-
+lemma prinitive_matcher_generic_common_matcher: "prinitive_matcher_generic common_matcher"
+  by(simp add: prinitive_matcher_generic_def)
+*)
 
 
 
