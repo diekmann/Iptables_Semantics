@@ -889,13 +889,11 @@ case (Cons r rs)
   thus ?case using ex_neq_ret by blast
 qed
 
-lemma helper_defined_single: "finite (calls_chain \<Gamma>) \<Longrightarrow> wf (calls_chain \<Gamma>) \<Longrightarrow>
+lemma helper_defined_single: "wf (called_by_chain \<Gamma>) \<Longrightarrow> 
   \<forall>rsg \<in> ran \<Gamma> \<union> {[Rule m a]}. wf_chain \<Gamma> rsg \<Longrightarrow>
   \<forall>rsg \<in> ran \<Gamma> \<union> {[Rule m a]}. \<forall> r \<in> set rsg. (\<not>(\<exists>chain. get_action r = Goto chain)) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
   a \<noteq> Return (*no toplevel return*) \<Longrightarrow>
   \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], s\<rangle> \<Rightarrow> t"
-apply(drule(1) wf_called_by_chain)
-apply(thin_tac "wf (calls_chain \<Gamma>)")
 thm wf_induct_rule[where r="(calls_chain \<Gamma>)" and P="\<lambda>x. \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x)], s\<rangle> \<Rightarrow> t"]
 (*apply(induction arbitrary: rule: wf_induct_rule[where r="(calls_chain \<Gamma>)"])*)
 apply(simp)
@@ -970,9 +968,6 @@ apply(subgoal_tac "\<forall>y m. \<forall>r\<in>set rs_called. r = Rule m (Call 
 apply(subgoal_tac "wf_chain \<Gamma> rs_called")
  prefer 2
  apply (simp add: ranI)
-
-(*TODO: maybe we can continue from here :)*)
-
 apply(elim conjE)
 apply(drule(3) hopefully_solves)
  apply(simp_all)
@@ -982,7 +977,7 @@ apply(subgoal_tac "rs_called \<in> ran \<Gamma>")
 by blast
 
 
-lemma "finite (calls_chain \<Gamma>) \<Longrightarrow> wf (calls_chain \<Gamma>) \<Longrightarrow>
+lemma helper_defined_ruleset: "wf (called_by_chain \<Gamma>) \<Longrightarrow> 
   \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. wf_chain \<Gamma> rsg \<Longrightarrow>
   \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. \<forall> r \<in> set rsg. (\<not>(\<exists>chain. get_action r = Goto chain)) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
   \<forall> r \<in> set rs. get_action r \<noteq> Return (*no toplevel return*) \<Longrightarrow>
@@ -995,6 +990,17 @@ apply(rule helper_defined_single)
   apply(simp add: wf_chain_def)
  apply fastforce
 apply fastforce
+done
+
+corollary "finite (calls_chain \<Gamma>) \<Longrightarrow> wf (calls_chain \<Gamma>) \<Longrightarrow> (*call relation finite and terminating*)
+  \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. wf_chain \<Gamma> rsg \<Longrightarrow> (*All calls to defined chains*)
+  \<forall>rsg \<in> ran \<Gamma> \<union> {rs}. \<forall> r \<in> set rsg. (\<forall>x. get_action r \<noteq> Goto x) \<and> get_action r \<noteq> Unknown \<Longrightarrow> (*no bad actions*)
+  \<forall> r \<in> set rs. get_action r \<noteq> Return (*no toplevel return*) \<Longrightarrow>
+  \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+apply(drule(1) wf_called_by_chain)
+apply(thin_tac "wf (calls_chain \<Gamma>)")
+apply(rule helper_defined_ruleset)
+   apply(simp_all)
 done
 
 
