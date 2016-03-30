@@ -852,7 +852,6 @@ begin
       done
     next
     case True
-      (*TODO: tune*)
       from pre have rule_case_dijs1: "\<exists>X. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> Decision X \<Longrightarrow> ?thesis"
         apply -
         apply(rule disjI1)
@@ -875,9 +874,8 @@ begin
          apply(simp; fail)
         apply(simp;fail)
         done
-  
-  
-      with pre show ?thesis
+      
+      show ?thesis
       proof(cases a)
       case Accept with True pre show ?thesis
         apply -
@@ -1051,7 +1049,7 @@ begin
           from less rs_called have "rs_called \<in> ran \<Gamma>" by (simp add: ranI)
   
           (*get good IH*)
-          from less rs_called have
+          from less.prems rs_called have
             "\<forall>y m. \<forall>r \<in> set rs_called. r = Rule m (Call y) \<longrightarrow> (y, chain_name_neu) \<in> called_by_chain \<Gamma> \<and> wf_chain \<Gamma> [Rule m (Call y)]"
              apply(simp)
              apply(intro impI allI conjI)
@@ -1060,7 +1058,7 @@ begin
              apply(simp add: wf_chain_def)
              apply (meson ranI rule.sel(2))
              done
-          with less rs_called have "\<forall>y m. \<forall>r\<in>set rs_called. r = Rule m (Call y) \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], Undecided\<rangle> \<Rightarrow> t)"
+          with less have "\<forall>y m. \<forall>r\<in>set rs_called. r = Rule m (Call y) \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], Undecided\<rangle> \<Rightarrow> t)"
              apply(intro allI, rename_tac y my)
              apply(case_tac "matches \<gamma> my p")
               apply blast
@@ -1074,15 +1072,17 @@ begin
              (\<exists>rs_called1 rs_called2 m'.
                   \<Gamma> chain_name_neu = Some (rs_called1@[Rule m' Return]@rs_called2) \<and>
                   matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)" by simp
-          with less.prems rs_called show ?case
-             apply(elim disjE)
-              apply(elim exE)
-              apply(drule(2) call_result)
-              apply blast
-             apply(elim exE conjE)
-              apply(drule(3) call_return)
-              apply blast
-             done
+          thus ?case
+          proof(elim disjE exE conjE)
+            fix t
+            assume a: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called, Undecided\<rangle> \<Rightarrow> t" show ?case
+            using call_result[OF less.prems(1) rs_called a] by(blast)
+          next
+            fix m' rs_called1 rs_called2
+            assume a1: "\<Gamma> chain_name_neu = Some (rs_called1 @ [Rule m' Return] @ rs_called2)"
+            and a2: "matches \<gamma> m' p" and a3: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided"
+            show ?case using call_return[OF less.prems(1) a1 a2 a3 ] by(blast)
+          qed
         qed
         with True assms Call show ?thesis by simp
       qed
@@ -1099,8 +1099,8 @@ begin
   apply(rule iptables_bigstep_defined_if_singleton_rules)
   apply(intro ballI, rename_tac r, case_tac r, rename_tac m a, simp)
   apply(rule helper_defined_single)
-     apply(simp_all)
-    apply(simp add: wf_chain_def)
+     apply(simp; fail)
+    apply(simp add: wf_chain_def; fail)
    apply fastforce
   apply fastforce
   done
