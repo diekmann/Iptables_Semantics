@@ -399,7 +399,7 @@ theorem transform_simple_fw_upper:
           {p. ?\<gamma>,p\<turnstile> \<langle>?rs3, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
       apply(subst transform_upper_closure(1)[OF s3])
       by simp
-    from abstract_primitive_in_doubt_allow(2)[OF prinitive_matcher_generic_common_matcher nnf2 s2] have 2:
+    from abstract_primitive_in_doubt_allow(2)[OF primitive_matcher_generic_common_matcher nnf2 s2] have 2:
          "{p. ?\<gamma>,p\<turnstile> \<langle>upper_closure (packet_assume_new rs), Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
           {p. ?\<gamma>,p\<turnstile> \<langle>?rs3, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
       by(auto simp add: abstract_for_simple_firewall_def)

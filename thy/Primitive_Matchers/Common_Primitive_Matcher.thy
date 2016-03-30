@@ -109,7 +109,7 @@ lemma packet_independent_\<beta>_unknown_common_matcher: "packet_independent_\<b
 
 (*TODO: generic assumptions for a common matcher without information about IPs.
         to be used to add ipv6 integration without duplicating all proofs *)
-locale prinitive_matcher_generic =
+locale primitive_matcher_generic =
   fixes \<beta> :: "(common_primitive, simple_packet) exact_match_tac"
   assumes IIface: "\<forall> p i. \<beta> (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))"
       and OIface: "\<forall> p i. \<beta> (OIface i) p = bool_to_ternary (match_iface i (p_oiface p))"
@@ -125,7 +125,6 @@ begin
     "matches (\<beta>, \<alpha>) (Match (OIface X)) a p \<longleftrightarrow> match_iface X (p_oiface p)"
      by(simp_all add: IIface OIface matches_case_ternaryvalue_tuple bool_to_ternary_simps
                split: ternaryvalue.split)
-
   text{*Since matching on the iface cannot be @{const TernaryUnknown}*, we can pull out negations.*}
   lemma Iface_single_not:
     "matches (\<beta>, \<alpha>) (MatchNot (Match (IIface X))) a p \<longleftrightarrow> \<not> match_iface X (p_iiface p)"
@@ -140,6 +139,17 @@ begin
     "matches (\<beta>, \<alpha>) (MatchNot (Match (Prot X))) a p \<longleftrightarrow> \<not> match_proto X (p_proto p)"
      by(simp add: Prot matches_case_ternaryvalue_tuple bool_to_ternary_simps split: ternaryvalue.split)
 
+  lemma Ports_single:
+    "matches (\<beta>, \<alpha>) (Match (Src_Ports ps)) a p \<longleftrightarrow> p_sport p \<in> ports_to_set ps"
+    "matches (\<beta>, \<alpha>) (Match (Dst_Ports ps)) a p \<longleftrightarrow> p_dport p \<in> ports_to_set ps"
+     by(simp_all add: Src_Ports Dst_Ports matches_case_ternaryvalue_tuple bool_to_ternary_simps
+               split: ternaryvalue.split)
+  lemma Ports_single_not:
+    "matches (\<beta>, \<alpha>) (MatchNot (Match (Src_Ports ps))) a p \<longleftrightarrow> p_sport p \<notin> ports_to_set ps"
+    "matches (\<beta>, \<alpha>) (MatchNot (Match (Dst_Ports ps))) a p \<longleftrightarrow> p_dport p \<notin> ports_to_set ps"
+     by(simp_all add: Src_Ports Dst_Ports matches_case_ternaryvalue_tuple bool_to_ternary_simps
+               split: ternaryvalue.split)
+
   lemma multiports_disjuction:
         "(\<exists>rg\<in>set spts. matches (\<beta>, \<alpha>) (Match (Src_Ports [rg])) a p) \<longleftrightarrow> matches (\<beta>, \<alpha>) (Match (Src_Ports spts)) a p"
         "(\<exists>rg\<in>set dpts. matches (\<beta>, \<alpha>) (Match (Dst_Ports [rg])) a p) \<longleftrightarrow> matches (\<beta>, \<alpha>) (Match (Dst_Ports dpts)) a p"
@@ -152,18 +162,18 @@ begin
 end
 
 
-lemma prinitive_matcher_generic_common_matcher: "prinitive_matcher_generic common_matcher"
+lemma primitive_matcher_generic_common_matcher: "primitive_matcher_generic common_matcher"
   by unfold_locales  simp_all
 
 
 
 
 (*TODO: delete, only use generic ones!*)
-lemmas match_simplematcher_Iface = prinitive_matcher_generic.Iface_single[OF prinitive_matcher_generic_common_matcher]
-lemmas match_simplematcher_Iface_not = prinitive_matcher_generic.Iface_single_not[OF prinitive_matcher_generic_common_matcher]
-lemmas match_simplematcher_Prot = prinitive_matcher_generic.Prot_single[OF prinitive_matcher_generic_common_matcher]
-lemmas match_simplematcher_Prot_not = prinitive_matcher_generic.Prot_single_not[OF prinitive_matcher_generic_common_matcher]
-lemmas multiports_disjuction = prinitive_matcher_generic.multiports_disjuction[OF prinitive_matcher_generic_common_matcher]
+lemmas match_simplematcher_Iface = primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher]
+lemmas match_simplematcher_Iface_not = primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher]
+lemmas match_simplematcher_Prot = primitive_matcher_generic.Prot_single[OF primitive_matcher_generic_common_matcher]
+lemmas match_simplematcher_Prot_not = primitive_matcher_generic.Prot_single_not[OF primitive_matcher_generic_common_matcher]
+lemmas multiports_disjuction = primitive_matcher_generic.multiports_disjuction[OF primitive_matcher_generic_common_matcher]
 
 
 

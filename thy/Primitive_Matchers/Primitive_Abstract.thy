@@ -75,14 +75,14 @@ lemma abstract_for_simple_firewall_negated_ifaces_prots:
 context
 begin
   private lemma abstract_primitive_in_doubt_allow_Allow: 
-    "prinitive_matcher_generic \<beta> \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> 
+    "primitive_matcher_generic \<beta> \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> 
       matches (\<beta>, in_doubt_allow) m action.Accept p \<Longrightarrow>
       matches (\<beta>, in_doubt_allow) (abstract_primitive disc m) action.Accept p"
      by(induction disc m rule: abstract_primitive.induct)
-       (simp_all add: bunch_of_lemmata_about_matches prinitive_matcher_generic_def)
+       (simp_all add: bunch_of_lemmata_about_matches primitive_matcher_generic_def)
   
   private lemma abstract_primitive_in_doubt_allow_Allow2: 
-    "prinitive_matcher_generic \<beta> \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> 
+    "primitive_matcher_generic \<beta> \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> 
       \<not> matches (\<beta>, in_doubt_allow) m action.Drop p \<Longrightarrow>
       \<not> matches (\<beta>, in_doubt_allow) (abstract_primitive disc m) action.Drop p"
      proof(induction disc m rule: abstract_primitive.induct)
@@ -90,12 +90,12 @@ begin
            apply (simp add: bunch_of_lemmata_about_matches)
            apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: ternaryvalue.split)
            done
-     qed(simp_all add: bunch_of_lemmata_about_matches prinitive_matcher_generic_def)
+     qed(simp_all add: bunch_of_lemmata_about_matches primitive_matcher_generic_def)
   
 
 
   private lemma abstract_primitive_help1:
-    assumes generic: "prinitive_matcher_generic \<beta>"
+    assumes generic: "primitive_matcher_generic \<beta>"
         and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
         and simple: "simple_ruleset rs"
         and prem: "approximating_bigstep_fun (\<beta>, in_doubt_allow) p rs Undecided = Decision FinalAllow"
@@ -133,27 +133,27 @@ begin
   qed
 
   private lemma abstract_primitive_in_doubt_allow_Deny: 
-    "prinitive_matcher_generic \<beta> \<Longrightarrow> normalized_nnf_match m \<Longrightarrow>
+    "primitive_matcher_generic \<beta> \<Longrightarrow> normalized_nnf_match m \<Longrightarrow>
       matches (\<beta>, in_doubt_allow) (abstract_primitive disc m) action.Drop p \<Longrightarrow>
       matches (\<beta>, in_doubt_allow) m action.Drop p"
      apply(induction disc m rule: abstract_primitive.induct)
-           apply(simp_all add: bunch_of_lemmata_about_matches prinitive_matcher_generic_def)
+           apply(simp_all add: bunch_of_lemmata_about_matches primitive_matcher_generic_def)
       apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps 
         split: split_if_asm ternaryvalue.split_asm)
      done
   
   private lemma abstract_primitive_in_doubt_allow_Deny2: 
-    "prinitive_matcher_generic \<beta> \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> 
+    "primitive_matcher_generic \<beta> \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> 
       \<not> matches (\<beta>, in_doubt_allow) (abstract_primitive disc m) action.Accept p \<Longrightarrow>
       \<not> matches (\<beta>, in_doubt_allow) m action.Accept p"
      apply(induction disc m rule: abstract_primitive.induct)
-           apply (simp_all add: bunch_of_lemmata_about_matches prinitive_matcher_generic_def)
+           apply (simp_all add: bunch_of_lemmata_about_matches primitive_matcher_generic_def)
       apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps 
         split: split_if_asm ternaryvalue.split_asm)
      done
   
   private lemma abstract_primitive_in_doubt_allow_help2:
-    assumes generic: "prinitive_matcher_generic \<beta>"
+    assumes generic: "primitive_matcher_generic \<beta>"
         and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
         and prem: "approximating_bigstep_fun (\<beta>, in_doubt_allow) p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalDeny"
         shows "approximating_bigstep_fun (\<beta>, in_doubt_allow) p rs Undecided = Decision FinalDeny"
@@ -220,7 +220,7 @@ begin
   
   
   theorem abstract_primitive_in_doubt_allow_generic:
-    assumes generic: "prinitive_matcher_generic \<beta>"
+    assumes generic: "primitive_matcher_generic \<beta>"
        and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
     defines "\<gamma> \<equiv> (\<beta>, in_doubt_allow)" and "abstract disc \<equiv> optimize_matches (abstract_primitive disc)"
     shows   "{p. \<gamma>,p\<turnstile> \<langle>abstract disc rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny} \<subseteq> {p. \<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny}"
@@ -237,13 +237,13 @@ begin
         unfolding \<gamma>_def abstract_def by fast
     qed
   corollary abstract_primitive_in_doubt_allow:
-    assumes generic: "prinitive_matcher_generic \<beta>"
+    assumes generic: "primitive_matcher_generic \<beta>"
        and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
     defines "\<gamma> \<equiv> (common_matcher, in_doubt_allow)" and "abstract disc \<equiv> optimize_matches (abstract_primitive disc)"
     shows   "{p. \<gamma>,p\<turnstile> \<langle>abstract disc rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny} \<subseteq> {p. \<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny}"
       and   "{p. \<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow} \<subseteq> {p. \<gamma>,p\<turnstile> \<langle>abstract disc rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow}"
     unfolding \<gamma>_def abstract_def
-    using assms abstract_primitive_in_doubt_allow_generic[OF prinitive_matcher_generic_common_matcher] by simp_all
+    using assms abstract_primitive_in_doubt_allow_generic[OF primitive_matcher_generic_common_matcher] by simp_all
 end
 
 
