@@ -889,7 +889,8 @@ case (Cons r rs)
   thus ?case using ex_neq_ret by blast
 qed
 
-lemma helper_defined_single: "wf (called_by_chain \<Gamma>) \<Longrightarrow> 
+(*delete*)
+lemma  "wf (called_by_chain \<Gamma>) \<Longrightarrow> 
   \<forall>rsg \<in> ran \<Gamma> \<union> {[Rule m a]}. wf_chain \<Gamma> rsg \<Longrightarrow>
   \<forall>rsg \<in> ran \<Gamma> \<union> {[Rule m a]}. \<forall> r \<in> set rsg. (\<not>(\<exists>chain. get_action r = Goto chain)) \<and> get_action r \<noteq> Unknown \<Longrightarrow>
   a \<noteq> Return (*no toplevel return*) \<Longrightarrow>
@@ -927,8 +928,6 @@ apply(simp)
 (*jetz weiss ich was ueber x*)
 
 apply(rename_tac old_name_todo chain_name) 
-
-(*warum weiss ich nix ueber x?*)
 
 apply(case_tac "\<Gamma> chain_name")
  apply(simp add: wf_chain_def; fail)
@@ -975,6 +974,112 @@ apply(subgoal_tac "rs_called \<in> ran \<Gamma>")
  prefer 2
  apply (simp add: ranI)
 by blast
+
+lemma helper_defined_single: 
+  assumes "wf (called_by_chain \<Gamma>)" 
+  and "\<forall>rsg \<in> ran \<Gamma> \<union> {[Rule m a]}. wf_chain \<Gamma> rsg"
+  and "\<forall>rsg \<in> ran \<Gamma> \<union> {[Rule m a]}. \<forall> r \<in> set rsg. (\<not>(\<exists>chain. get_action r = Goto chain)) \<and> get_action r \<noteq> Unknown"
+  and "a \<noteq> Return" (*no toplevel Return*)
+  shows "\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], s\<rangle> \<Rightarrow> t"
+(*apply(induction arbitrary: rule: wf_induct_rule[where r="(calls_chain \<Gamma>)"])*)
+proof(cases s)
+case (Decision decision) thus ?thesis
+  apply(rule_tac x="Decision decision" in exI)
+  apply(simp)
+  using iptables_bigstep.decision by fast
+next
+case Undecided
+  have "\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m a], Undecided\<rangle> \<Rightarrow> t"
+  proof(cases "matches \<gamma> m p")
+  case False with assms show ?thesis
+    apply(rule_tac x=Undecided in exI)
+    apply(rule_tac t=Undecided in seq'_cons)
+     apply (metis empty_iff empty_set insert_iff list.simps(15) nomatch' rule.sel(1)) 
+    apply(simp add: skip; fail)
+    done
+  next
+  case True
+  show ?thesis
+    proof(cases a)
+    case Unknown with assms(3) show ?thesis by simp
+    next
+    case Goto with assms(3) show ?thesis by auto
+    next
+    case Accept with True show ?thesis by(auto intro: iptables_bigstep.intros)
+    next
+    case Drop with True show ?thesis by(auto intro: iptables_bigstep.intros)
+    next
+    case Reject with True show ?thesis by(auto intro: iptables_bigstep.intros)
+    next
+    case Log with True show ?thesis by(auto intro: iptables_bigstep.intros)
+    next
+    case Empty with True show ?thesis by(auto intro: iptables_bigstep.intros)
+    next
+    case Return with assms show ?thesis by simp
+    next
+    case (Call chain_name)
+      from True assms Call show ?thesis
+      (*strengthening IH, maybe want arbitrary?*)
+      apply(subgoal_tac "\<forall>m. matches \<gamma> m p \<longrightarrow> wf_chain \<Gamma> [Rule m (Call chain_name)] \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain_name)], Undecided\<rangle> \<Rightarrow> t)")
+       apply(simp; fail)
+      thm wf_induct_rule[where r="(calls_chain \<Gamma>)" and P="\<lambda>x. \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x)], Undecided\<rangle> \<Rightarrow> t"]
+      apply(erule wf_induct_rule[where r="called_by_chain \<Gamma>"])
+      apply(simp)
+      (*jetz weiss ich was ueber x*)
+      
+      apply(rename_tac chain_name_neu) 
+      
+      (*warum weiss ich nix ueber x?*)
+      
+      apply(case_tac "\<Gamma> chain_name_neu")
+       apply(simp add: wf_chain_def; fail)
+      apply(rename_tac rs_called)
+      apply(intro allI impI, rename_tac m_neu)
+      apply(thin_tac "matches \<gamma> m p")
+      apply(subgoal_tac "(\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called, Undecided\<rangle> \<Rightarrow> t) \<or>
+                          (\<exists>rs_called1 rs_called2 m'. \<Gamma> chain_name_neu = Some (rs_called1@[Rule m' Return]@rs_called2) \<and>
+                              matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)")
+       apply(elim disjE)
+        apply(elim exE)
+        apply(drule(2) call_result)
+        apply blast
+       apply(elim exE conjE)
+        apply(drule(3) call_return)
+        apply blast
+      
+      apply(subgoal_tac "\<forall>y m. \<forall>r \<in> set rs_called. r = Rule m (Call y) \<longrightarrow> (y, chain_name_neu) \<in> called_by_chain \<Gamma> \<and> wf_chain \<Gamma> [Rule m (Call y)]")
+       prefer 2
+       apply(simp)
+       apply(intro impI allI conjI)
+        apply(simp add: called_by_chain_def)
+        apply blast
+       apply(simp add: wf_chain_def)
+       apply (meson ranI rule.sel(2))
+      
+      (*get good IH*)
+      apply(subgoal_tac "\<forall>y m. \<forall>r\<in>set rs_called. r = Rule m (Call y) \<longrightarrow> (*matches \<gamma> m p \<longrightarrow>*) (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], Undecided\<rangle> \<Rightarrow> t)")
+       prefer 2
+       apply(intro allI, rename_tac y my)
+       apply(case_tac "matches \<gamma> my p")
+        apply blast
+       apply(intro ballI impI)
+       apply(rule_tac x=Undecided in exI)
+       apply(simp add: nomatch; fail)
+      
+      apply(subgoal_tac "wf_chain \<Gamma> rs_called")
+       prefer 2
+       apply (simp add: ranI)
+      apply(elim conjE)
+      apply(drule(3) hopefully_solves)
+       apply(simp_all)
+      apply(subgoal_tac "rs_called \<in> ran \<Gamma>")
+       prefer 2
+       apply (simp add: ranI)
+      by blast
+    qed
+  qed
+with Undecided show ?thesis by simp
+qed
 
 
 lemma helper_defined_ruleset: "wf (called_by_chain \<Gamma>) \<Longrightarrow> 
