@@ -407,21 +407,23 @@ subsection{*Abstracting over unknowns*}
 definition transform_remove_unknowns_generic :: "('a, 'packet) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where 
     "transform_remove_unknowns_generic \<gamma> = optimize_matches_a (remove_unknowns_generic \<gamma>) "
 theorem transform_remove_unknowns_generic:
-   assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>" and packet_independent_\<alpha>: "packet_independent_\<alpha> \<alpha>"
-    shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_remove_unknowns_generic (common_matcher, \<alpha>) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
-      and "simple_ruleset (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs)"
+   assumes simplers: "simple_ruleset rs"
+       and wf\<alpha>: "wf_unknown_match_tac \<alpha>" and packet_independent_\<alpha>: "packet_independent_\<alpha> \<alpha>"
+       and wf\<beta>: "packet_independent_\<beta>_unknown \<beta>"
+    shows "(\<beta>, \<alpha>),p\<turnstile> \<langle>transform_remove_unknowns_generic (\<beta>, \<alpha>) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (\<beta>, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+      and "simple_ruleset (transform_remove_unknowns_generic (\<beta>, \<alpha>) rs)"
       and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). \<not> has_disc disc m"
-      and "\<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). \<not> has_unknowns common_matcher m"
+            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (\<beta>, \<alpha>) rs). \<not> has_disc disc m"
+      and "\<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (\<beta>, \<alpha>) rs). \<not> has_unknowns \<beta> m"
       (*may return MatchNot MatchAny*)
       (*and "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). normalized_nnf_match m"*)
       and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). normalized_n_primitive disc_sel f m"
+            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (\<beta>, \<alpha>) rs). normalized_n_primitive disc_sel f m"
       and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). \<not> has_disc_negated disc neg m"
+            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (\<beta>, \<alpha>) rs). \<not> has_disc_negated disc neg m"
   proof -
-    let ?\<gamma>="(common_matcher, \<alpha>)"
+    let ?\<gamma>="(\<beta>, \<alpha>)"
     let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
 
     show simplers1: "simple_ruleset (transform_remove_unknowns_generic ?\<gamma> rs)"
@@ -451,24 +453,25 @@ theorem transform_remove_unknowns_generic:
       unfolding transform_remove_unknowns_generic_def
       by(induction rs) (simp_all add: optimize_matches_a_def)
 
-    from simplers show "\<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). \<not> has_unknowns common_matcher m"
+    from simplers show "\<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_unknowns \<beta> m"
       unfolding transform_remove_unknowns_generic_def
       apply -
       apply(rule optimize_matches_a_preserves)
-      apply(rule remove_unknowns_generic_specification[OF _ packet_independent_\<alpha> packet_independent_\<beta>_unknown_common_matcher])
+      apply(rule remove_unknowns_generic_specification[OF _ packet_independent_\<alpha> wf\<beta>])
       apply(simp add: simple_ruleset_def)
       done
 
     { fix m a
-      have "\<not> has_disc_negated disc neg m \<Longrightarrow> \<not> has_disc_negated disc neg (remove_unknowns_generic (common_matcher, \<alpha>) a m)"
+      have "\<not> has_disc_negated disc neg m \<Longrightarrow> \<not> has_disc_negated disc neg (remove_unknowns_generic ?\<gamma> a m)"
         by(induction m rule:remove_unknowns_generic.induct)(simp_all)
     }
     thus "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). \<not> has_disc_negated disc neg m"
+            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_disc_negated disc neg m"
       unfolding transform_remove_unknowns_generic_def
       apply(rule optimize_matches_a_preserves)
       by blast
 qed
+thm transform_remove_unknowns_generic[OF _ _ _ packet_independent_\<beta>_unknown_common_matcher]
 
 
 corollary transform_remove_unknowns_upper: defines "upper \<equiv> optimize_matches_a upper_closure_matchexpr"
@@ -487,8 +490,10 @@ proof -
     apply(simp add: transform_remove_unknowns_generic_def upper_def)
     apply(erule optimize_matches_a_simple_ruleset_eq)
     by (simp add: upper_closure_matchexpr_generic)
-  
-  with transform_remove_unknowns_generic[OF simplers wf_in_doubt_allow packet_independent_unknown_match_tacs(1), simplified upper_closure_matchexpr_generic]
+
+  with transform_remove_unknowns_generic[OF 
+      simplers wf_in_doubt_allow packet_independent_unknown_match_tacs(1) packet_independent_\<beta>_unknown_common_matcher,
+      simplified upper_closure_matchexpr_generic]
     show "(common_matcher, in_doubt_allow),p\<turnstile> \<langle>upper rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t" 
       and "simple_ruleset (upper rs)"
       and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
@@ -503,7 +508,8 @@ proof -
         apply(simp;fail)
        apply presburger
       using has_unknowns_common_matcher apply auto[1]
-     apply (metis packet_independent_unknown_match_tacs(1) simplers transform_remove_unknowns_generic(5) wf_in_doubt_allow)
+     apply (metis packet_independent_unknown_match_tacs(1) simplers
+        transform_remove_unknowns_generic(5)[OF _ _ _ packet_independent_\<beta>_unknown_common_matcher] wf_in_doubt_allow)
     by presburger
 qed
 
@@ -526,7 +532,9 @@ proof -
     apply(erule optimize_matches_a_simple_ruleset_eq)
     by (simp add: lower_closure_matchexpr_generic)
   
-  with transform_remove_unknowns_generic[OF simplers wf_in_doubt_deny packet_independent_unknown_match_tacs(2), simplified lower_closure_matchexpr_generic]
+  with transform_remove_unknowns_generic[OF
+      simplers wf_in_doubt_deny packet_independent_unknown_match_tacs(2) packet_independent_\<beta>_unknown_common_matcher,
+      simplified lower_closure_matchexpr_generic]
     show "(common_matcher, in_doubt_deny),p\<turnstile> \<langle>lower rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_deny),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t" 
       and "simple_ruleset (lower rs)"
       and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
@@ -541,7 +549,8 @@ proof -
         apply(simp;fail)
        apply presburger
       using has_unknowns_common_matcher apply auto[1]
-     apply (metis packet_independent_unknown_match_tacs(2) simplers transform_remove_unknowns_generic(5) wf_in_doubt_deny)
+     apply (metis packet_independent_unknown_match_tacs(2) simplers
+        transform_remove_unknowns_generic(5)[OF _ _ _ packet_independent_\<beta>_unknown_common_matcher] wf_in_doubt_deny)
     by presburger
 qed
 
