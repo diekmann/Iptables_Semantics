@@ -286,8 +286,8 @@ subsection{*Abstracting over unknowns*}
 
 (*TODO: generic assumptions for a common matcher without information about IPs.
         to be used to add ipv6 integration without duplicating all proofs *)
-definition common_matcher_generic :: "(common_primitive, simple_packet) exact_match_tac \<Rightarrow> bool" where
-  "common_matcher_generic \<beta> \<equiv>
+definition matcher_generic :: "(common_primitive, simple_packet) exact_match_tac \<Rightarrow> bool" where
+  "matcher_generic \<beta> \<equiv>
     (\<forall> p i. \<beta> (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))) \<and>
     (\<forall> p i. \<beta> (OIface i) p = bool_to_ternary (match_iface i (p_oiface p))) \<and>
     (\<forall> p proto. \<beta> (Prot proto) p = bool_to_ternary (match_proto proto (p_proto p))) \<and>
@@ -297,7 +297,7 @@ definition common_matcher_generic :: "(common_primitive, simple_packet) exact_ma
     (\<forall> p S. \<beta> (CT_State S) p = bool_to_ternary (match_ctstate S (p_tag_ctstate p))) \<and>
     (\<forall> p str. \<beta> (Extra str) p = TernaryUnknown)"
 
-lemma common_matcher_generic_common_matcher: "common_matcher_generic common_matcher"
-  by(simp add: common_matcher_generic_def)
+lemma matcher_generic_common_matcher: "matcher_generic common_matcher"
+  by(simp add: matcher_generic_def)
 
 end

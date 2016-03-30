@@ -75,14 +75,14 @@ lemma abstract_for_simple_firewall_negated_ifaces_prots:
 context
 begin
   private lemma abstract_primitive_in_doubt_allow_Allow: 
-    "common_matcher_generic \<beta> \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> 
+    "matcher_generic \<beta> \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> 
       matches (\<beta>, in_doubt_allow) m action.Accept p \<Longrightarrow>
       matches (\<beta>, in_doubt_allow) (abstract_primitive disc m) action.Accept p"
      by(induction disc m rule: abstract_primitive.induct)
-       (simp_all add: bunch_of_lemmata_about_matches common_matcher_generic_def)
+       (simp_all add: bunch_of_lemmata_about_matches matcher_generic_def)
   
   private lemma abstract_primitive_in_doubt_allow_Allow2: 
-    "common_matcher_generic \<beta> \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> 
+    "matcher_generic \<beta> \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> 
       \<not> matches (\<beta>, in_doubt_allow) m action.Drop p \<Longrightarrow>
       \<not> matches (\<beta>, in_doubt_allow) (abstract_primitive disc m) action.Drop p"
      proof(induction disc m rule: abstract_primitive.induct)
@@ -90,12 +90,12 @@ begin
            apply (simp add: bunch_of_lemmata_about_matches)
            apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: ternaryvalue.split)
            done
-     qed(simp_all add: bunch_of_lemmata_about_matches common_matcher_generic_def)
+     qed(simp_all add: bunch_of_lemmata_about_matches matcher_generic_def)
   
 
 
   private lemma abstract_primitive_help1:
-    assumes generic: "common_matcher_generic \<beta>"
+    assumes generic: "matcher_generic \<beta>"
         and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
         and simple: "simple_ruleset rs"
         and prem: "approximating_bigstep_fun (\<beta>, in_doubt_allow) p rs Undecided = Decision FinalAllow"
@@ -133,28 +133,32 @@ begin
   qed
 
   private lemma abstract_primitive_in_doubt_allow_Deny: 
-    "normalized_nnf_match m \<Longrightarrow>
-      matches (common_matcher, in_doubt_allow) (abstract_primitive disc m) action.Drop p \<Longrightarrow>
-      matches (common_matcher, in_doubt_allow) m action.Drop p"
+    "matcher_generic \<beta> \<Longrightarrow> normalized_nnf_match m \<Longrightarrow>
+      matches (\<beta>, in_doubt_allow) (abstract_primitive disc m) action.Drop p \<Longrightarrow>
+      matches (\<beta>, in_doubt_allow) m action.Drop p"
      apply(induction disc m rule: abstract_primitive.induct)
-           apply(simp_all add: bunch_of_lemmata_about_matches)
-      apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: split_if_asm ternaryvalue.split_asm ternaryvalue.split)
+           apply(simp_all add: bunch_of_lemmata_about_matches matcher_generic_def)
+      apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps 
+        split: split_if_asm ternaryvalue.split_asm)
      done
   
   private lemma abstract_primitive_in_doubt_allow_Deny2: 
-    "normalized_nnf_match m \<Longrightarrow> 
-      \<not> matches (common_matcher, in_doubt_allow) (abstract_primitive disc m) action.Accept p \<Longrightarrow>
-      \<not> matches (common_matcher, in_doubt_allow) m action.Accept p"
+    "matcher_generic \<beta> \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> 
+      \<not> matches (\<beta>, in_doubt_allow) (abstract_primitive disc m) action.Accept p \<Longrightarrow>
+      \<not> matches (\<beta>, in_doubt_allow) m action.Accept p"
      apply(induction disc m rule: abstract_primitive.induct)
-           apply (simp_all add: bunch_of_lemmata_about_matches)
-      apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps  split: split_if_asm ternaryvalue.split_asm ternaryvalue.split)
+           apply (simp_all add: bunch_of_lemmata_about_matches matcher_generic_def)
+      apply(auto simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps 
+        split: split_if_asm ternaryvalue.split_asm)
      done
   
-  private lemma abstract_primitive_in_doubt_allow_help2: assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
-        and prem: "approximating_bigstep_fun (common_matcher, in_doubt_allow) p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalDeny"
-        shows "approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision FinalDeny"
+  private lemma abstract_primitive_in_doubt_allow_help2:
+    assumes generic: "matcher_generic \<beta>"
+        and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
+        and prem: "approximating_bigstep_fun (\<beta>, in_doubt_allow) p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalDeny"
+        shows "approximating_bigstep_fun (\<beta>, in_doubt_allow) p rs Undecided = Decision FinalDeny"
     proof -
-      let ?\<gamma>="(common_matcher, in_doubt_allow) :: (common_primitive \<Rightarrow> simple_packet \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> simple_packet \<Rightarrow> bool)"
+      let ?\<gamma>="(\<beta>, in_doubt_allow) :: (common_primitive \<Rightarrow> simple_packet \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> simple_packet \<Rightarrow> bool)"
         --{*type signature is needed, otherwise @{const in_doubt_allow} would be for arbitrary packet*}
   
       from simple have "wf_ruleset ?\<gamma> p rs" using good_imp_wf_ruleset simple_imp_good_ruleset by fast
@@ -163,7 +167,7 @@ begin
         case Empty thus ?case by(simp add: optimize_matches_def)
         next
         case (MatchAccept p m a rs)
-          from MatchAccept.prems abstract_primitive_in_doubt_allow_Allow[OF common_matcher_generic_common_matcher] MatchAccept.hyps have
+          from MatchAccept.prems abstract_primitive_in_doubt_allow_Allow[OF generic] MatchAccept.hyps have
             1: "matches ?\<gamma> (abstract_primitive disc m) action.Accept p" by simp
           with MatchAccept have "approximating_bigstep_fun ?\<gamma> p
             (Rule (abstract_primitive disc m) action.Accept # (optimize_matches (abstract_primitive disc) rs)) Undecided = Decision FinalDeny"
@@ -178,24 +182,24 @@ begin
               apply(simp add: optimize_matches_def)
               (*sledgehammer*) (*TODO*)
               proof -
-                assume a1: "\<lbrakk>simple_ruleset rs; approximating_bigstep_fun (common_matcher, in_doubt_allow) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = Decision FinalDeny\<rbrakk> \<Longrightarrow> approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision FinalDeny"
+                assume a1: "\<lbrakk>simple_ruleset rs; approximating_bigstep_fun (\<beta>, in_doubt_allow) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = Decision FinalDeny\<rbrakk> \<Longrightarrow> approximating_bigstep_fun (\<beta>, in_doubt_allow) p rs Undecided = Decision FinalDeny"
                 assume a2: "simple_ruleset (Rule m a # rs)"
-                assume a3: "\<not> matches (common_matcher, in_doubt_allow) (abstract_primitive disc m) a p"
-                assume a4: "approximating_bigstep_fun (common_matcher, in_doubt_allow) p (case if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m) of None \<Rightarrow> optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs | Some m \<Rightarrow> Rule m a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = Decision FinalDeny"
-                have f5: "approximating_bigstep_fun (common_matcher, in_doubt_allow) p (Rule (abstract_primitive disc m) a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = approximating_bigstep_fun (common_matcher, in_doubt_allow) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided"
+                assume a3: "\<not> matches (\<beta>, in_doubt_allow) (abstract_primitive disc m) a p"
+                assume a4: "approximating_bigstep_fun (\<beta>, in_doubt_allow) p (case if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m) of None \<Rightarrow> optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs | Some m \<Rightarrow> Rule m a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = Decision FinalDeny"
+                have f5: "approximating_bigstep_fun (\<beta>, in_doubt_allow) p (Rule (abstract_primitive disc m) a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = approximating_bigstep_fun (\<beta>, in_doubt_allow) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided"
                   using a3 by simp
                 have f6: "Rule (abstract_primitive disc m) a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs = (case Some (abstract_primitive disc m) of None \<Rightarrow> optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs | Some m \<Rightarrow> Rule m a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs)"
                   by simp
                 have f7: "simple_ruleset rs"
                   using a2 simple_ruleset_tail by blast
-                have f8: "None = (if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) \<longrightarrow> approximating_bigstep_fun (common_matcher, in_doubt_allow) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = Decision FinalDeny"
+                have f8: "None = (if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) \<longrightarrow> approximating_bigstep_fun (\<beta>, in_doubt_allow) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = Decision FinalDeny"
                   using a4 by force
-                { assume "approximating_bigstep_fun (common_matcher, in_doubt_allow) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided \<noteq> Decision FinalDeny"
+                { assume "approximating_bigstep_fun (\<beta>, in_doubt_allow) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided \<noteq> Decision FinalDeny"
                   hence "Rule (abstract_primitive disc m) a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs \<noteq> (case if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m) of None \<Rightarrow> optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs | Some m \<Rightarrow> Rule m a # optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs)"
                     using f5 a4 by force
-                  hence "simple_ruleset rs \<and> approximating_bigstep_fun (common_matcher, in_doubt_allow) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = Decision FinalDeny"
+                  hence "simple_ruleset rs \<and> approximating_bigstep_fun (\<beta>, in_doubt_allow) p (optimize_matches_option (\<lambda>m. if matcheq_matchNone (abstract_primitive disc m) then None else Some (abstract_primitive disc m)) rs) Undecided = Decision FinalDeny"
                     using f8 f7 f6 by presburger }
-                thus "approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision FinalDeny"
+                thus "approximating_bigstep_fun (\<beta>, in_doubt_allow) p rs Undecided = Decision FinalDeny"
                   using a2 a1 simple_ruleset_tail by blast
               qed
             next
@@ -205,7 +209,7 @@ begin
                 using optimize_matches_matches_fst by metis
                 
               from Nomatch.prems simple_ruleset_def have "a = action.Accept \<or> a = action.Drop" by force
-              from Nomatch.hyps(1) Nomatch.prems(3) abstract_primitive_in_doubt_allow_Allow2[OF common_matcher_generic_common_matcher] have
+              from Nomatch.hyps(1) Nomatch.prems(3) abstract_primitive_in_doubt_allow_Allow2[OF generic] have
                 "a = action.Drop \<Longrightarrow> \<not> matches ?\<gamma> (abstract_primitive disc m) action.Drop p" by simp
               with True `a = action.Accept \<or> a = action.Drop` have "a = action.Accept" by blast
               with 1 True have False by simp
@@ -215,9 +219,10 @@ begin
   qed
   
   
-  theorem abstract_primitive_in_doubt_allow:
-    assumes n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
-    defines "\<gamma> \<equiv> (common_matcher, in_doubt_allow)" and "abstract disc \<equiv> optimize_matches (abstract_primitive disc)"
+  theorem abstract_primitive_in_doubt_allow_generic:
+    assumes generic: "matcher_generic \<beta>"
+       and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
+    defines "\<gamma> \<equiv> (\<beta>, in_doubt_allow)" and "abstract disc \<equiv> optimize_matches (abstract_primitive disc)"
     shows   "{p. \<gamma>,p\<turnstile> \<langle>abstract disc rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny} \<subseteq> {p. \<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny}"
                 (is ?deny)
       and   "{p. \<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow} \<subseteq> {p. \<gamma>,p\<turnstile> \<langle>abstract disc rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow}"
@@ -226,11 +231,19 @@ begin
       from simple have "good_ruleset rs" using simple_imp_good_ruleset by fast
       from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
        good:  "good_ruleset (optimize_matches (abstract_primitive disc) rs)" by fast
-      with approximating_semantics_iff_fun_good_ruleset abstract_primitive_help1[OF common_matcher_generic_common_matcher n simple] `good_ruleset rs` show ?allow
+      with approximating_semantics_iff_fun_good_ruleset abstract_primitive_help1[OF generic n simple] `good_ruleset rs` show ?allow
         unfolding \<gamma>_def abstract_def by fast
-      from good approximating_semantics_iff_fun_good_ruleset abstract_primitive_in_doubt_allow_help2[OF n simple] `good_ruleset rs` \<gamma>_def show ?deny 
+      from good approximating_semantics_iff_fun_good_ruleset abstract_primitive_in_doubt_allow_help2[OF generic n simple] `good_ruleset rs` \<gamma>_def show ?deny 
         unfolding \<gamma>_def abstract_def by fast
     qed
+  corollary abstract_primitive_in_doubt_allow:
+    assumes generic: "matcher_generic \<beta>"
+       and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
+    defines "\<gamma> \<equiv> (common_matcher, in_doubt_allow)" and "abstract disc \<equiv> optimize_matches (abstract_primitive disc)"
+    shows   "{p. \<gamma>,p\<turnstile> \<langle>abstract disc rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny} \<subseteq> {p. \<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny}"
+      and   "{p. \<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow} \<subseteq> {p. \<gamma>,p\<turnstile> \<langle>abstract disc rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow}"
+    unfolding \<gamma>_def abstract_def
+    using assms abstract_primitive_in_doubt_allow_generic[OF matcher_generic_common_matcher] by simp_all
 end
 
 
