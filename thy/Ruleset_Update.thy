@@ -1035,7 +1035,8 @@ case Undecided
         from less rs_called have "rs_called \<in> ran \<Gamma>" by (simp add: ranI)
 
         (*get good IH*)
-        from less rs_called have "\<forall>y m. \<forall>r \<in> set rs_called. r = Rule m (Call y) \<longrightarrow> (y, chain_name_neu) \<in> called_by_chain \<Gamma> \<and> wf_chain \<Gamma> [Rule m (Call y)]"
+        from less rs_called have
+          "\<forall>y m. \<forall>r \<in> set rs_called. r = Rule m (Call y) \<longrightarrow> (y, chain_name_neu) \<in> called_by_chain \<Gamma> \<and> wf_chain \<Gamma> [Rule m (Call y)]"
            apply(simp)
            apply(intro impI allI conjI)
             apply(simp add: called_by_chain_def)
@@ -1043,7 +1044,7 @@ case Undecided
            apply(simp add: wf_chain_def)
            apply (meson ranI rule.sel(2))
            done
-        with less rs_called have "\<forall>y m. \<forall>r\<in>set rs_called. r = Rule m (Call y) \<longrightarrow> (*matches \<gamma> m p \<longrightarrow>*) (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], Undecided\<rangle> \<Rightarrow> t)"
+        with less rs_called have "\<forall>y m. \<forall>r\<in>set rs_called. r = Rule m (Call y) \<longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call y)], Undecided\<rangle> \<Rightarrow> t)"
            apply(intro allI, rename_tac y my)
            apply(case_tac "matches \<gamma> my p")
             apply blast
@@ -1051,15 +1052,12 @@ case Undecided
            apply(rule_tac x=Undecided in exI)
            apply(simp add: nomatch; fail)
            done
-
-        with less rs_called `wf_chain \<Gamma> rs_called` `rs_called \<in> ran \<Gamma>` have "(\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called, Undecided\<rangle> \<Rightarrow> t) \<or>
-              (\<exists>rs_called1 rs_called2 m'. \<Gamma> chain_name_neu = Some (rs_called1@[Rule m' Return]@rs_called2) \<and>
-                  matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)"
-          apply -
-          apply(drule(3) hopefully_solves)
-           apply(simp_all)
-          done
-
+        from less.prems(4) rs_called `rs_called \<in> ran \<Gamma>`
+          hopefully_solves[OF less.prems(3) less.prems(4) this `wf_chain \<Gamma> rs_called`] have
+          "(\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called, Undecided\<rangle> \<Rightarrow> t) \<or>
+           (\<exists>rs_called1 rs_called2 m'.
+                \<Gamma> chain_name_neu = Some (rs_called1@[Rule m' Return]@rs_called2) \<and>
+                matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)" by simp
         with less.prems rs_called show ?case
            apply(elim disjE)
             apply(elim exE)
