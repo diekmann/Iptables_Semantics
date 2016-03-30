@@ -18,6 +18,7 @@ begin
 
   declare ipt_ports_negation_type_normalize.simps[simp del]
   
+  (*
   private lemma ipt_ports_negation_type_normalize_correct:
         "primitive_matcher_generic \<beta> \<Longrightarrow> 
          matches (\<beta>, \<alpha>) (negation_type_to_match_expr_f (Src_Ports) ps) a p \<longleftrightarrow>
@@ -29,6 +30,7 @@ begin
   apply(simp_all add: primitive_matcher_generic.Ports_single primitive_matcher_generic.Ports_single_not)
   apply(simp_all add: ipt_ports_negation_type_normalize.simps ports_invert split: ternaryvalue.split)
   done
+  *)
   
   (* [ [(1,2) \<or> (3,4)]  \<and>  [] ]*)
   text{* @{typ "ipt_ports list \<Rightarrow> ipt_ports"} *}
@@ -103,7 +105,7 @@ begin
         qed
   qed
   
-  
+  (*
   private lemma ipt_ports_compress_matches_set: "primitive_matcher_generic \<beta> \<Longrightarrow>
          matches (\<beta>, \<alpha>) (Match (Src_Ports (ipt_ports_compress ips))) a p \<longleftrightarrow>
          p_sport p \<in> \<Inter> set (map (ports_to_set \<circ> ipt_ports_negation_type_normalize) ips)"
@@ -117,8 +119,8 @@ begin
    apply(simp add: primitive_matcher_generic.Ports_single ipt_ports_andlist_compress_correct; fail)
   apply(simp add: primitive_matcher_generic.Ports_single ipt_ports_andlist_compress_correct; fail)
   done
-  
-  
+  *)
+  (*
   (*spliting the primitives: multiport list (a list of disjunction!)*)
   private lemma singletonize_SrcDst_Ports:
       "(*primitive_matcher_generic \<beta> \<Longrightarrow>  multiports_disjuction TODO *)
@@ -128,6 +130,7 @@ begin
        matches (common_matcher, \<alpha>) (MatchAnd (Match (Dst_Ports dpts)) ms) a p"
     apply(simp_all add: match_list_matches bunch_of_lemmata_about_matches(1) multiports_disjuction)
   done
+  *)
   
   
   (*idea:*)
@@ -211,35 +214,6 @@ begin
   
   private lemma "\<forall>spt \<in> set (ipt_ports_compress spts). normalized_src_ports (Match (Src_Ports [spt]))" by(simp)
   
-
-  (* version using generalized lemma below
-    the nnf normalization of the result follows from 
-    thm normalize_primitive_extract_preserves_nnf_normalized
-
-    see below for a lemma which obtains the same result
-
-    lemma normalize_ports_step_src_normalized:
-    assumes "normalized_nnf_match m"
-    shows "\<forall>mn \<in> set (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m).
-              normalized_src_ports mn \<and> normalized_nnf_match mn"
-    proof
-      fix mn
-      assume assm2: "mn \<in> set (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m)"
-      obtain pts ms where pts_ms: "primitive_extractor (is_Src_Ports, src_ports_sel) m = (pts, ms)" by fastforce
-      from pts_ms have "normalized_nnf_match ms" and "\<not> has_disc is_Src_Ports ms"
-        using primitive_extractor_correct[OF assms wf_disc_sel_common_primitive(1)] by simp_all
-      from assm2 pts_ms have normalize_ports_step_unfolded: "mn \<in> (\<lambda>spt. MatchAnd (Match (Src_Ports [spt])) ms) ` set (ipt_ports_compress pts)"
-        unfolding normalize_ports_step_def normalize_primitive_extract_def by force
-      with `normalized_nnf_match ms` have "normalized_nnf_match mn" by fastforce
-      from `normalized_nnf_match ms` `\<not> has_disc is_Src_Ports ms` have "normalized_src_ports ms"
-        by(induction ms rule: normalized_src_ports.induct, simp_all)
-      from normalize_ports_step_unfolded this have "normalized_src_ports mn"
-      by(induction pts) (fastforce)+
-      with `normalized_nnf_match mn` show "normalized_src_ports mn \<and> normalized_nnf_match mn" by simp
-    qed
- *)
-
-
 
   lemma normalize_src_ports_normalized_n_primitive: "normalized_nnf_match m \<Longrightarrow> 
       \<forall>m' \<in> set (normalize_src_ports m). normalized_src_ports m'"
