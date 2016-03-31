@@ -17,12 +17,6 @@ import qualified Network.IPTables.Generated as Isabelle
 
 putErrStrLn = hPutStrLn stderr
 
-preprocessForSpoofingProtection = Isabelle.upper_closure . Isabelle.ctstate_assume_new
-
-exampleCertSpoof ipassmt fuc = map (\ifce -> (ifce, Isabelle.no_spoofing_iface ifce ipassmtMap fuc)) interfaces
-    where interfaces = map fst ipassmt
-          ipassmtMap = Isabelle.map_of_ipassmt ipassmt
-
 readIpAssmt filename = do
     src <- readFile filename
     case parseIpAssmt filename src of
@@ -102,11 +96,9 @@ main = readArgs >>= \case
                 let upper_simple = Analysis.toSimpleFirewallWithoutInterfaces ipassmt unfolded
                 putStrLn $ L.intercalate "\n" $ map show upper_simple
                 putStrLn "== checking spoofing protection =="
-                let fuc = preprocessForSpoofingProtection unfolded --Firewall Under Certification
-                --putStrLn $ show fuc
-                putStrLn $ "ipassmt_sanity_defined: " ++ show (Isabelle.ipassmt_sanity_defined fuc (Isabelle.map_of_ipassmt ipassmt))
-                mapM_ putStrLn (Isabelle.debug_ipassmt ipassmt fuc)
-                mapM_  (putStrLn . show) (exampleCertSpoof ipassmt fuc)
+                let (warnings, spoofResult) = certifySpoofingProtection ipassmt unfolded
+                mapM_ putStrLn warnings
+                mapM_ (putStrLn . show) spoofResult
                 putStrLn "== calculating service matrices =="
                 putStrLn "===========SSH========="
                 putStrLn $ showServiceMatrix $ Isabelle.access_matrix_pretty Isabelle.parts_connection_ssh upper_simple
