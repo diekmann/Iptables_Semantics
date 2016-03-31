@@ -41,8 +41,36 @@ Available options:
   --rs STRING              Path to the `iptables-save` output.
 ```
 
+## Usage
+
+Load the output of `iptables-save` into our tool. 
+The tool will dump lots of information about your ruleset. 
+
+```
+./dist/build/fffuu/fffuu --rs /path/to/iptables-save.txt
+```
+
+
+To improve the analysis, you can provide an IP assignment file. 
+This optional file describes which source ip ranges are expected on a certain interfaces. 
+For example: 
+
+```
+lo = [127.0.0.0/8]
+```
+
 
 ## Example
+
+Try this:
+
+```
+./dist/build/fffuu/fffuu --rs ../thy/Examples/Parser_Test/data/iptables-save
+```
+This example file is a nonsense config we use to stress the parser.
+
+---------------------------------------
+
 
 Try this:
 
