@@ -23,6 +23,8 @@ putErrStrLn = System.IO.hPutStrLn System.IO.stderr
 
 data CommandLineArgs = CommandLineArgs
         { ipassmt :: Maybe FilePath  <?> "Optional path to an IP assignment file. If not specified, it only loads `lo = [127.0.0.0/8]`."
+        , table :: Maybe String <?> "The table to load for analysis. Default: `filter`. Note: This tool does not support pcket modification, so loading tables such as `nat` will most likeley fail."
+        , chain :: Maybe String <?> "The chain to start the analysis. Default: `FORWARD`. Use `INPUT` for a host-based firewall."
         , rs :: FilePath <?> "Path to the `iptables-save` output."
         } deriving (Generic, Show)
 
@@ -39,14 +41,18 @@ readIpAssmt filename = do
 
 
 -- TODO: select table and chain
-readArgs (CommandLineArgs (Helpful ipassmtFilePath) (Helpful rsFilePath)) = do
+readArgs (CommandLineArgs (Helpful ipassmtFilePath) (Helpful table) (Helpful chain) (Helpful rsFilePath)) = do
     assmt <- case ipassmtFilePath of
                 Just ipassmtPath -> readIpAssmt ipassmtPath
                 Nothing -> do
                     putErrStrLn "WARNING: no IP assignment specified, loading a generic file"
                     return Isabelle.ipassmt_generic
+    let tbl = case table of Just t -> t
+                            Nothing -> "filter"
+    let chn = case chain of Just c -> c
+                            Nothing -> "FORWARD"
     firewall <- (rsFilePath,) <$> readFile rsFilePath
-    return (assmt, firewall)
+    return (assmt, tbl, chn, firewall)
     -- TODO: support stdin
     --where readInput [] = ("<stdin>",) <$> getContents
 
@@ -54,9 +60,9 @@ readArgs (CommandLineArgs (Helpful ipassmtFilePath) (Helpful rsFilePath)) = do
 
 main :: IO ()
 main = do 
-    cmdArgs <- getRecord "Test program"
+    cmdArgs <- getRecord "FFFUU -- Fancy Formal Firewall Universal Understander"
     --print (cmdArgs::CommandLineArgs)
-    (ipassmt, (srcname, src)) <- readArgs cmdArgs
+    (ipassmt, table, chain, (srcname, src)) <- readArgs cmdArgs
     
     case parseIptablesSave srcname src of
         Left err -> do
@@ -69,8 +75,8 @@ main = do
             let verbose = True
             putStrLn $ "== Parser output =="
             putStrLn $ show res
-            unfolded <- loadUnfoldedRuleset verbose "filter" "FORWARD" res
-            putStrLn "== unfolded FORWARD chain (upper closure) =="
+            unfolded <- loadUnfoldedRuleset verbose table chain res
+            putStrLn $"== unfolded "++chain++" chain (upper closure) =="
             putStrLn $ L.intercalate "\n" $ map show (Isabelle.upper_closure $ unfolded)
             putStrLn "== to simple firewall =="
             putStrLn $ L.intercalate "\n" $ map show (Analysis.toSimpleFirewall unfolded)
@@ -80,6 +86,7 @@ main = do
             putStrLn "== checking spoofing protection =="
             let (warnings, spoofResult) = certifySpoofingProtection ipassmt unfolded
             mapM_ putStrLn warnings
+            putStrLn "Spoofing certification results:"
             mapM_ (putStrLn . show) spoofResult
             putStrLn "== calculating service matrices =="
             putStrLn "===========SSH========="
