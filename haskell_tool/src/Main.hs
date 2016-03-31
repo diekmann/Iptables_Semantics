@@ -12,7 +12,7 @@ import Network.IPTables.IpassmtParser
 import System.Environment (getArgs, getProgName)
 import System.IO
 import Common.Util (isParseErrorWindowsNewline)
-
+import Network.IPTables.Analysis as Analysis
 import qualified Network.IPTables.Generated as Isabelle
 
 putErrStrLn = hPutStrLn stderr
@@ -96,8 +96,8 @@ main = readArgs >>= \case
                 unfolded <- loadUnfoldedRuleset verbose "filter" "FORWARD" res
                 putStrLn "== unfolded FORWARD chain (upper closure) =="
                 putStrLn $ L.intercalate "\n" $ map show (Isabelle.upper_closure $ unfolded)
-                putStrLn "== to simple firewall =="
-                putStrLn $ L.intercalate "\n" $ map show (Isabelle.to_simple_firewall $ Isabelle.upper_closure $ Isabelle.optimize_matches Isabelle.abstract_for_simple_firewall $ Isabelle.ctstate_assume_new $ unfolded)
+                
+                putStrLn (Analysis.toSimpleFirewall unfolded)
                 putStrLn "== to even-simpler firewall =="
                 let upper_simple = (Isabelle.to_simple_firewall_without_interfaces ipassmt unfolded)
                 putStrLn $ L.intercalate "\n" $ map show upper_simple
