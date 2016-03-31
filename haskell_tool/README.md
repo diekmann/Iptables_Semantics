@@ -23,6 +23,24 @@ With the last command, `cabal` produces a binary which can be invoked like this:
 $ ./dist/build/fffuu/fffuu --help
 ```
 
+```
+FFFUU -- Fancy Formal Firewall Universal Understander
+
+Usage: fffuu [--ipassmt STRING] [--table STRING] [--chain STRING] --rs STRING
+
+Available options:
+  -h,--help                Show this help text
+  --ipassmt STRING         Optional path to an IP assignment file. If not
+                           specified, it only loads `lo = [127.0.0.0/8]`.
+  --table STRING           The table to load for analysis. Default: `filter`.
+                           Note: This tool does not support pcket modification,
+                           so loading tables such as `nat` will most likeley
+                           fail.
+  --chain STRING           The chain to start the analysis. Default: `FORWARD`.
+                           Use `INPUT` for a host-based firewall.
+  --rs STRING              Path to the `iptables-save` output.
+```
+
 
 ## Example
 
@@ -31,6 +49,10 @@ Try this:
 ```
 ./dist/build/fffuu/fffuu --ipassmt ipassmt_tumi8 --rs ../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating
 ```
+
+This will generate lots of output.
+
+---------------------------------------
 
 
 We only support packet filtering, i.e. no packet modification. 
@@ -41,7 +63,7 @@ For example, spoofing protection can be done in the `raw` table.
 Try this: 
 
 ```
-/dist/build/fffuu/fffuu --table raw --chain PREROUTING --ipassmt ipassmt_sqrl --rs ../thy/Examples/SQRL_Shorewall/2015_aug_iptables-save-spoofing-protection
+./dist/build/fffuu/fffuu --table raw --chain PREROUTING --ipassmt ipassmt_sqrl --rs ../thy/Examples/SQRL_Shorewall/2015_aug_iptables-save-spoofing-protection
 ```
 
 ## FAQ
