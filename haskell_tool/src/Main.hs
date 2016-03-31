@@ -4,7 +4,6 @@
 module Main where
 
 import Data.Functor ((<$>))
-import qualified Data.Map as M
 import qualified Data.List as L
 import Network.IPTables.Ruleset
 import Network.IPTables.Parser
