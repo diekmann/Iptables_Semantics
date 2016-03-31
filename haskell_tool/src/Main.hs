@@ -100,9 +100,10 @@ main = readArgs >>= \case
                 else return ()
                 print err
             Right res -> do
+                let verbose = True
                 putStrLn $ "== Parser output =="
                 putStrLn $ show res
-                unfolded <- loadUnfoldedRuleset True "filter" "FORWARD" res
+                unfolded <- loadUnfoldedRuleset verbose "filter" "FORWARD" res
                 putStrLn "== unfolded FORWARD chain (upper closure) =="
                 putStrLn $ L.intercalate "\n" $ map show (Isabelle.upper_closure $ unfolded)
                 putStrLn "== to simple firewall =="
