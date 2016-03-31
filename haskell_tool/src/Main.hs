@@ -11,9 +11,7 @@ import Network.IPTables.Parser
 import Network.IPTables.IpassmtParser
 import System.Environment (getArgs, getProgName)
 import System.IO
-
--- todo remove and refactor
-import qualified Text.Parsec.Error --Windows line ending debug
+import Common.Util (isParseErrorWindowsNewline)
 
 import qualified Network.IPTables.Generated as Isabelle
 
@@ -77,14 +75,6 @@ usage = do
     putErrStrLn ""
     putErrStrLn $ "  -a FILE   optional IP assignment file; if unspecified, a generic file is loaded"
     putErrStrLn $ "  -h        print this help text"
-
-
-isParseErrorWindowsNewline :: Text.Parsec.Error.ParseError -> Bool
-isParseErrorWindowsNewline err =
-    case L.reverse (Text.Parsec.Error.errorMessages err) of
-        (Text.Parsec.Error.Expect "\"\\n\"" : Text.Parsec.Error.SysUnExpect "\"\\r\"" : _) -> True
-        _ -> False
-
 
 
 main :: IO ()

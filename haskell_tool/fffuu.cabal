@@ -23,6 +23,8 @@ library
     , Network.IPTables.ParserHelper
     , Network.IPTables.Parser
     , Network.IPTables.Ruleset
+    --, Network.IPTables.Analysis
+    , Common.Util
   build-depends:
       base >=4.7 && <4.9
     , containers >=0.5 && <0.6
