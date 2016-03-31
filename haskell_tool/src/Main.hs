@@ -96,8 +96,8 @@ main = readArgs >>= \case
                 unfolded <- loadUnfoldedRuleset verbose "filter" "FORWARD" res
                 putStrLn "== unfolded FORWARD chain (upper closure) =="
                 putStrLn $ L.intercalate "\n" $ map show (Isabelle.upper_closure $ unfolded)
-                
-                putStrLn (Analysis.toSimpleFirewall unfolded)
+                putStrLn "== to simple firewall =="
+                putStrLn $ L.intercalate "\n" $ map show (Analysis.toSimpleFirewall unfolded)
                 putStrLn "== to even-simpler firewall =="
                 let upper_simple = (Isabelle.to_simple_firewall_without_interfaces ipassmt unfolded)
                 putStrLn $ L.intercalate "\n" $ map show upper_simple
