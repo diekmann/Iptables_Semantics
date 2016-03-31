@@ -99,7 +99,7 @@ main = readArgs >>= \case
                 putStrLn "== to simple firewall =="
                 putStrLn $ L.intercalate "\n" $ map show (Analysis.toSimpleFirewall unfolded)
                 putStrLn "== to even-simpler firewall =="
-                let upper_simple = (Isabelle.to_simple_firewall_without_interfaces ipassmt unfolded)
+                let upper_simple = Analysis.toSimpleFirewallWithoutInterfaces ipassmt unfolded
                 putStrLn $ L.intercalate "\n" $ map show upper_simple
                 putStrLn "== checking spoofing protection =="
                 let fuc = preprocessForSpoofingProtection unfolded --Firewall Under Certification

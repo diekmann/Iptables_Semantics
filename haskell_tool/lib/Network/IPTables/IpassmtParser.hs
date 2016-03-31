@@ -1,4 +1,8 @@
-module Network.IPTables.IpassmtParser(parseIpAssmt, IpAssmt, ipAssmtToIsabelle) where
+module Network.IPTables.IpassmtParser
+( parseIpAssmt
+, IpAssmt
+, IsabelleIpAssmt
+, ipAssmtToIsabelle) where
 
 import           Text.Parsec hiding (token)
 import           Data.Functor ((<$>), ($>))
