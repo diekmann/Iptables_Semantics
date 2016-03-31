@@ -49,6 +49,6 @@ test-suite test-iptables-save-parser
   test-module:         ParserTestSuite
   build-depends:
       base >=4.7 && <4.9
-    , Cabal >= 1.18
+    , Cabal >= 1.22
     , containers >=0.5 && <0.6
     , fffuu
