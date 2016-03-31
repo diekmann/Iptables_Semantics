@@ -69,6 +69,10 @@ Try this:
 ```
 This example file is a nonsense config we use to stress the parser.
 
+Example: 
+[Input](../thy/Examples/Parser_Test/data/iptables-save)
+[Output (pastebin)](http://pastebin.com/u89npf1g)
+
 ---------------------------------------
 
 
