@@ -1,8 +1,10 @@
 theory Iface
 imports String
         "../Common/Negation_Type"
-        "~~/src/HOL/Library/List_lexord" (*WARNING: importing lexord. TODO*)
-        "~~/src/HOL/Library/Char_ord" (*WARNING: importing char ord. TODO*)
+        (* l4v imports: "~~/src/HOL/Library/Prefix_Order" clash! This does not give a total order. :(
+          we have to define a order by ourselves*)
+        (*"~~/src/HOL/Library/List_lexord" (*WARNING: importing lexord. TODO*)*)
+        (*"~~/src/HOL/Library/Char_ord" (*WARNING: importing char ord. TODO*)*)
 begin
 
 section{*Network Interfaces*}
@@ -11,19 +13,56 @@ section{*Network Interfaces*}
   But the parser/lexer should handle this*)
 datatype iface = Iface (iface_sel: "string")  --"no negation supported, but wildcards"
 
+(*
+function (sequential) less_eq_iface :: "iface \<Rightarrow> iface \<Rightarrow> bool" where
+  "less_eq_iface (Iface []) (Iface _) \<longleftrightarrow> True" |
+  "less_eq_iface (Iface _) (Iface []) \<longleftrightarrow> False" |
+  "less_eq_iface (Iface (a#as)) (Iface (b#bs)) \<longleftrightarrow> (if a = b then less_eq_iface (Iface as) (Iface bs) else a \<le> b)"
+ by(pat_completeness) auto
+termination less_eq_iface
+apply(relation "measure (\<lambda>is. size (iface_sel (fst is)) + size (iface_sel (snd is)))")
+apply(rule wf_measure, unfold in_measure comp_def)
+apply(simp)
+done
+
+function (sequential) less_iface :: "iface \<Rightarrow> iface \<Rightarrow> bool" where
+  "less_iface (Iface []) (Iface []) \<longleftrightarrow> False" |
+  "less_iface (Iface []) (Iface _) \<longleftrightarrow> True" |
+  "less_iface (Iface _) (Iface []) \<longleftrightarrow> False" |
+  "less_iface (Iface (a#as)) (Iface (b#bs)) \<longleftrightarrow> (if a = b then less_iface (Iface as) (Iface bs) else a < b)"
+ by(pat_completeness) auto
+termination less_iface
+apply(relation "measure (\<lambda>is. size (iface_sel (fst is)) + size (iface_sel (snd is)))")
+apply(rule wf_measure, unfold in_measure comp_def)
+apply(simp)
+done
 
 text{*Just a normal lexicographical ordering on the interface strings. Used only for optimizing code.*}
 instantiation iface :: linorder
 begin
-  definition less_eq_iface :: "iface \<Rightarrow> iface \<Rightarrow> bool" where
-    "less_eq_iface i1 i2 \<equiv> iface_sel i1 \<le> iface_sel i2"
-  definition less_iface :: "iface \<Rightarrow> iface \<Rightarrow> bool" where
-    "less_iface i1 i2 \<equiv> iface_sel i1 < iface_sel i2"
+  function (sequential) less_eq_iface :: "iface \<Rightarrow> iface \<Rightarrow> bool" where
+    "(Iface []) \<le> (Iface _) \<longleftrightarrow> True" |
+    "(Iface _) \<le> (Iface []) \<longleftrightarrow> False" |
+    "(Iface (a#as)) \<le> (Iface (b#bs)) \<longleftrightarrow> (if a = b then Iface as \<le> Iface bs else a \<le> b)"
+   by(pat_completeness) auto
+  thm ord_iface_inst.less_eq_iface
+  termination less_eq_iface
+
+  function (sequential) less_iface :: "iface \<Rightarrow> iface \<Rightarrow> bool" where
+    "(Iface []) < (Iface []) \<longleftrightarrow> False" |
+    "(Iface []) < (Iface _) \<longleftrightarrow> True" |
+    "(Iface _) < (Iface []) \<longleftrightarrow> False" |
+    "(Iface (a#as)) < (Iface (b#bs)) \<longleftrightarrow> (if a = b then Iface as < Iface bs else a < b)"
+   by(pat_completeness) auto
+   
 instance
   proof
     fix n m :: iface
     show "n < m \<longleftrightarrow> n \<le> m \<and> \<not> m \<le> n"
-      by(simp add: less_eq_iface_def less_iface_def) fastforce
+      apply(induction rule: less_iface.induct)
+      apply(cases n, cases m)
+      apply(simp)
+      apply fastforce
   next
     fix n :: iface show "n \<le> n" by(simp add: less_eq_iface_def less_iface_def)
   next
@@ -32,9 +71,12 @@ instance
   next
     fix n m q :: iface show "n \<le> m \<Longrightarrow> m \<le> q \<Longrightarrow> n \<le> q" by (simp add: less_eq_iface_def less_iface_def)
   next
-    fix n m :: iface show "n \<le> m \<or> m \<le> n" by(auto simp add: less_eq_iface_def less_iface_def)
+    fix n m :: iface show "n \<le> m \<or> m \<le> n"
+      apply(cases n, cases m)
+      apply(simp add: less_eq_iface_def less_iface_def)
+      by fastforce
   qed
-end
+end*)
 
 definition ifaceAny :: iface where
   "ifaceAny \<equiv> Iface ''+''"

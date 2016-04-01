@@ -2,7 +2,7 @@ theory Ipassmt
 imports Common_Primitive_Lemmas
         Common_Primitive_toString
         "../Common/Lib_toString"
-        "../afp/Mergesort" (*TODO: dependnecy! import from afp directly!*)
+        (*"../afp/Mergesort" (*TODO: dependnecy! import from afp directly!*)*)
 begin
 
   text{*A mapping from an interface to its assigned ip addresses in CIDR notation*}
@@ -77,7 +77,9 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
                                       (map (\<lambda>x. case x of Pos i \<Rightarrow> i | Neg i \<Rightarrow> i) (fst (primitive_extractor (is_Oiface, oiface_sel) m))) @ collect_ifaces' rs)"
 
   definition collect_ifaces :: "common_primitive rule list \<Rightarrow> iface list" where
-    "collect_ifaces rs \<equiv> mergesort_remdups (collect_ifaces' rs)"
+    "collect_ifaces rs \<equiv> remdups (collect_ifaces' rs)" (*TODO: use mergesort_remdups once iface has a linorder*)
+  lemma "set (collect_ifaces rs) = set (collect_ifaces' rs)"
+    by(simp add: collect_ifaces_def)
 
   text{*sanity check that all interfaces mentioned in the ruleset are also listed in the ipassmt. May fail for wildcard interfaces in the ruleset.*}
   (*TODO: wildcards*)
