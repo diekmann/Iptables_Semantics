@@ -13,10 +13,10 @@ module
                               ipassmt_sanity_defined, debug_ipassmt,
                               map_of_ipassmt, to_ipassmt, ipassmt_generic,
                               optimize_matches, upper_closure, word_to_nat,
-                              word_less_eq, no_spoofing_iface, rewrite_Goto,
-                              map_of_string, nat_to_16word,
-                              compress_parsed_extra, integer_to_16word,
-                              sanity_wf_ruleset, unfold_ruleset_CHAIN,
+                              word_less_eq, no_spoofing_iface,
+                              sanity_wf_ruleset, rewrite_Goto, map_of_string,
+                              nat_to_16word, compress_parsed_extra,
+                              integer_to_16word, unfold_ruleset_CHAIN,
                               access_matrix_pretty, parts_connection_ssh,
                               parts_connection_http, common_primitive_toString,
                               to_simple_firewall, ipv4_cidr_toString,
@@ -1726,9 +1726,9 @@ primitive_extractor uv (MatchNot (MatchNot va)) = error "undefined";
 primitive_extractor uv (MatchNot (MatchAnd va vb)) = error "undefined";
 primitive_extractor uv (MatchNot MatchAny) = error "undefined";
 
-collect_ifaces :: [Rule Common_primitive] -> [Iface];
-collect_ifaces [] = [];
-collect_ifaces (Rule m a : rs) =
+collect_ifacesa :: [Rule Common_primitive] -> [Iface];
+collect_ifacesa [] = [];
+collect_ifacesa (Rule m a : rs) =
   filter (\ iface -> not (equal_iface iface ifaceAny))
     (map (\ aa -> (case aa of {
                     Pos i -> i;
@@ -1740,7 +1740,10 @@ collect_ifaces (Rule m a : rs) =
                      Neg i -> i;
                    }))
         (fst (primitive_extractor (is_Oiface, oiface_sel) m)) ++
-        collect_ifaces rs);
+        collect_ifacesa rs);
+
+collect_ifaces :: [Rule Common_primitive] -> [Iface];
+collect_ifaces rs = remdups (collect_ifacesa rs);
 
 ipassmt_sanity_defined ::
   [Rule Common_primitive] ->
@@ -3098,6 +3101,24 @@ tcp_flag_toString TCP_RST = "TCP_RST";
 tcp_flag_toString TCP_URG = "TCP_URG";
 tcp_flag_toString TCP_PSH = "TCP_PSH";
 
+sanity_wf_ruleset :: forall a. [([Prelude.Char], [Rule a])] -> Bool;
+sanity_wf_ruleset gamma =
+  let {
+    dom = map fst gamma;
+    ran = map snd gamma;
+  } in distinct dom && all (all (\ r -> (case get_action r of {
+  Accept -> True;
+  Drop -> True;
+  Log -> True;
+  Reject -> True;
+  Call a -> membera dom a;
+  Return -> True;
+  Goto a -> membera dom a;
+  Empty -> True;
+  Unknown -> False;
+})))
+                         ran;
+
 terminal_chain :: forall a. [Rule a] -> Bool;
 terminal_chain [] = False;
 terminal_chain [Rule MatchAny Accept] = True;
@@ -3330,24 +3351,6 @@ ctstate_toString CT_Established = "ESTABLISHED";
 ctstate_toString CT_Related = "RELATED";
 ctstate_toString CT_Untracked = "UNTRACKED";
 ctstate_toString CT_Invalid = "INVALID";
-
-sanity_wf_ruleset :: forall a. [([Prelude.Char], [Rule a])] -> Bool;
-sanity_wf_ruleset gamma =
-  let {
-    dom = map fst gamma;
-    ran = map snd gamma;
-  } in distinct dom && all (all (\ r -> (case get_action r of {
-  Accept -> True;
-  Drop -> True;
-  Log -> True;
-  Reject -> True;
-  Call a -> membera dom a;
-  Return -> True;
-  Goto a -> membera dom a;
-  Empty -> True;
-  Unknown -> False;
-})))
-                         ran;
 
 simple_ruleset :: forall a. [Rule a] -> Bool;
 simple_ruleset rs =
