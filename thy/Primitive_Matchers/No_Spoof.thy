@@ -747,27 +747,6 @@ begin
       approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs Undecided = Decision FinalDeny \<or>
       approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs Undecided = Undecided)"
     by(simp add: setbydecision_def not_FinalAllow)
-  
-  private lemma helper1: "a \<and> (a \<longrightarrow> b) \<longleftrightarrow> a \<and> b" by auto
-
-  private lemma "simple_ruleset (rs @ [Rule r Accept]) \<Longrightarrow> 
-         (setbydecision iface rs FinalAllow \<union> {ip. \<exists>p. matches (common_matcher, in_doubt_allow) r Accept (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)}) = 
-           setbydecision iface (rs @ [Rule r Accept]) FinalAllow"
-      apply(simp add: setbydecision_append)
-      apply(simp add: helper1)
-      apply(rule)
-       prefer 2
-       apply blast (*have ?r \<subseteq> ?l. would this suffice for an approximation (sound but not complete) of nospoof?*)
-      apply(simp)
-      apply(safe)
-      apply(drule notin_setbydecisionD)
-      apply(rule_tac x="p" in exI)
-      apply(simp)
-      (* okay, if we can make sure that this particular packet was not denied before, we are done here *)
-       oops
-
-
-
 
   private lemma "- {ip. \<exists>p. \<not> match_iface iface (p_iiface p) \<or> \<not> matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_src := ip\<rparr>)}
       \<subseteq> setbydecision_all iface ([Rule m Drop]) FinalDeny"
@@ -865,13 +844,6 @@ begin
     apply(simp add: setbydecision2)
     by fastforce
 
-  (*lemma "- {ip. \<forall>p. \<not> match_iface iface (p_iiface p) \<longrightarrow> 
-          approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs1 Undecided = Decision FinalDeny} = {ip. P ip}"
-    apply(subst Collect_neg_eq[symmetric])
-    apply(rule Set.Collect_cong)
-    apply(simp)
-    oops*)
-
 
   private lemma "setbydecision_all iface rs FinalDeny \<subseteq> - setbydecision iface rs FinalAllow"
       apply(simp add: setbydecision_def setbydecision_all_def)
@@ -914,10 +886,9 @@ begin
       denied1 \<subseteq> setbydecision_all iface rs' FinalDeny \<Longrightarrow> 
       no_spoofing_algorithm iface ipassmt rs allowed denied1 \<Longrightarrow> nospoof iface ipassmt (rs' @ rs)"
       by(simp)
-    from 2(5) simple_rs' have "setbydecision iface (rs1 @ [Rule m Accept]) FinalAllow \<subseteq> 
-      (allowed \<union> {ip. \<exists>p. matches (common_matcher, in_doubt_allow) m Accept (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)})" 
-      apply(simp add: setbydecision_append)
-      apply(simp add: helper1)
+    from 2(5) have "setbydecision iface (rs1 @ [Rule m Accept]) FinalAllow \<subseteq> 
+      (allowed \<union> {ip. \<exists>p. matches (common_matcher, in_doubt_allow) m Accept (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)})"
+      apply(simp add: setbydecision_append[OF simple_rs'])
       by blast
     with get_exists_matching_src_ips_subset 2(4) have allowed: "setbydecision iface (rs1 @ [Rule m Accept]) FinalAllow \<subseteq> (allowed \<union> get_exists_matching_src_ips iface m)"
       by fastforce

@@ -107,7 +107,7 @@ export_code Rule
   no_spoofing_iface ipassmt_sanity_defined map_of_ipassmt to_ipassmt debug_ipassmt
   Pos Neg
   (*ip partitioning*)
-  access_matrix_pretty parts_connection_ssh parts_connection_http
+  access_matrix_pretty mk_parts_connection_TCP (*parts_connection_ssh parts_connection_http*)
   in Haskell module_name "Network.IPTables.Generated" file "generated_code/"
 
 end

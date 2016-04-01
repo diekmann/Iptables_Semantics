@@ -9,7 +9,7 @@ category:            Network
 build-type:          Simple
 homepage:            http://iptables.isabelle.systems/
 bug-reports:         https://github.com/diekmann/Iptables_Semantics/issues
-cabal-version:       >= 1.18
+cabal-version:       >= 1.22
 tested-with:         GHC >= 7.8 && < 8.0
 
 library
@@ -23,6 +23,8 @@ library
     , Network.IPTables.ParserHelper
     , Network.IPTables.Parser
     , Network.IPTables.Ruleset
+    , Network.IPTables.Analysis
+    , Common.Util
   build-depends:
       base >=4.7 && <4.9
     , containers >=0.5 && <0.6
@@ -38,6 +40,7 @@ executable fffuu
     , containers >=0.5 && <0.6
     , fffuu
     , parsec >=3.0 && <3.2
+    , optparse-generic >= 1.1 && < 1.2
 
 test-suite test-iptables-save-parser
   hs-source-dirs:      test
@@ -46,6 +49,6 @@ test-suite test-iptables-save-parser
   test-module:         ParserTestSuite
   build-depends:
       base >=4.7 && <4.9
-    , Cabal >= 1.18
+    , Cabal >= 1.22
     , containers >=0.5 && <0.6
     , fffuu
