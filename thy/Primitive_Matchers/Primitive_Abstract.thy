@@ -122,7 +122,7 @@ begin
               using simple_ruleset_tail by blast
             next
             case True
-              from Nomatch.prems simple_ruleset_def have "a = action.Accept \<or> a = action.Drop" by force
+              from Nomatch.prems(1) have "a = action.Accept \<or> a = action.Drop" by(simp add: simple_ruleset_def)
               from Nomatch.hyps(1) Nomatch.prems(3) abstract_primitive_in_doubt_allow_Allow2[OF generic] have
                 "a = action.Drop \<Longrightarrow> \<not> matches ?\<gamma> (abstract_primitive disc m) action.Drop p" by simp
               with True `a = action.Accept \<or> a = action.Drop` have "a = action.Accept" by blast
@@ -208,7 +208,7 @@ begin
                 (Rule (abstract_primitive disc m) a # (optimize_matches (abstract_primitive disc) rs)) Undecided = Decision FinalDeny"
                 using optimize_matches_matches_fst by metis
                 
-              from Nomatch.prems simple_ruleset_def have "a = action.Accept \<or> a = action.Drop" by force
+              from Nomatch.prems(1) have "a = action.Accept \<or> a = action.Drop" by(simp add: simple_ruleset_def)
               from Nomatch.hyps(1) Nomatch.prems(3) abstract_primitive_in_doubt_allow_Allow2[OF generic] have
                 "a = action.Drop \<Longrightarrow> \<not> matches ?\<gamma> (abstract_primitive disc m) action.Drop p" by simp
               with True `a = action.Accept \<or> a = action.Drop` have "a = action.Accept" by blast
@@ -290,7 +290,7 @@ begin
               using simple_ruleset_tail by blast
             next
             case True
-              from Nomatch.prems simple_ruleset_def have "a = action.Accept \<or> a = action.Drop" by force
+              from Nomatch.prems(1) have "a = action.Accept \<or> a = action.Drop" by(simp add: simple_ruleset_def)
               from Nomatch.hyps(1) Nomatch.prems(3) abstract_primitive_in_doubt_deny_Deny2 have
                 "a = action.Accept \<Longrightarrow> \<not> matches ?\<gamma> (abstract_primitive disc m) action.Accept p" by(simp)
               with True `a = action.Accept \<or> a = action.Drop` have "a = action.Drop" by blast
@@ -374,7 +374,7 @@ begin
               from Nomatch.prems(2) True have 1: "approximating_bigstep_fun ?\<gamma> p
                 (Rule (abstract_primitive disc m) a # (optimize_matches (abstract_primitive disc) rs)) Undecided = Decision FinalAllow"
                 using optimize_matches_matches_fst by metis
-              from Nomatch.prems simple_ruleset_def have "a = action.Accept \<or> a = action.Drop" by force
+              from Nomatch.prems(1) have "a = action.Accept \<or> a = action.Drop" by(simp add: simple_ruleset_def)
               from Nomatch.hyps(1) Nomatch.prems(3) abstract_primitive_in_doubt_deny_Deny2 have
                 "a = action.Accept \<Longrightarrow> \<not> matches ?\<gamma> (abstract_primitive disc m) action.Accept p" by simp
               with True `a = action.Accept \<or> a = action.Drop` have "a = action.Drop" by blast

@@ -6,6 +6,7 @@ import Network.IPTables.Parser
 import Network.IPTables.IpassmtParser
 import qualified Data.Map as M
 import qualified Network.IPTables.Generated as Isabelle
+import Network.IPTables.Analysis as Analysis
 
 
 expected_result = "*filter\n\
@@ -113,16 +114,6 @@ test_Parser_Test_data = do
                 return $ Finished $ Fail "(show res) != expected_result"
 
 
-
--- TODO: refactor!
-
-preprocessForSpoofingProtection = Isabelle.upper_closure . Isabelle.ctstate_assume_new
-
-exampleCertSpoof ipassmt fuc = map (\ifce -> (ifce, Isabelle.no_spoofing_iface ifce ipassmtMap fuc)) interfaces
-    where interfaces = map fst ipassmt
-          ipassmtMap = Isabelle.map_of_ipassmt ipassmt
-
-
 test_spoofing_certification table chain ipassmtString fileName expected_spoofing_result errormsg = do
     ipassmt <- case parseIpAssmt "<hardcoded>" ipassmtString of
         Left err -> do print err
@@ -136,11 +127,10 @@ test_spoofing_certification table chain ipassmtString fileName expected_spoofing
     case parseIptablesSave fileName f of
         Left err -> return $ Finished $ Fail (show err)
         Right res -> do
-            unfolded <- loadUnfoldedRuleset False table chain  res
-            let fuc = preprocessForSpoofingProtection unfolded --Firewall Under Certification
-            putStrLn $ "ipassmt_sanity_defined: " ++ show (Isabelle.ipassmt_sanity_defined fuc (Isabelle.map_of_ipassmt ipassmt))
-            mapM_ putStrLn (Isabelle.debug_ipassmt ipassmt fuc)
-            let computed_result = map (\ (iface, rslt) -> (show iface, rslt)) (exampleCertSpoof ipassmt fuc)
+            unfolded <- loadUnfoldedRuleset False table chain res
+            let (warnings, spoofResult) = certifySpoofingProtection ipassmt unfolded
+            mapM_ putStrLn warnings
+            let computed_result = map (\ (iface, rslt) -> (show iface, rslt)) spoofResult
             putStrLn $ show computed_result
             if computed_result == expected_spoofing_result then
                 return $ Finished Pass
@@ -323,8 +313,7 @@ test_service_matrix ipassmtMaybeString fileName expected_result errormsg = do
         Left err -> return $ Finished $ Fail (show err)
         Right res -> do
             unfolded <- loadUnfoldedRuleset False "filter" "FORWARD" res
-            let upper_simple = (Isabelle.to_simple_firewall_without_interfaces ipassmt unfolded)
-            let service_matrix = Isabelle.access_matrix_pretty Isabelle.parts_connection_ssh upper_simple
+            let service_matrix = Analysis.accessMatrix ipassmt unfolded 10000 22
             putStrLn $ show service_matrix
             if service_matrix == expected_result then
                 return $ Finished Pass
@@ -437,7 +426,8 @@ tests = return [ Test actualTest
                , Test spoofingTest1
                , Test spoofingTest2
                , Test spoofingTest3
-               , Test serviceMatrixi82015 ]
+               , Test serviceMatrixi82015
+               ]
   where
     actualTest = TestInstance
         { run = test_Parser_Test_data

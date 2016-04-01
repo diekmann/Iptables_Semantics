@@ -1,8 +1,8 @@
 {-# LANGUAGE EmptyDataDecls, RankNTypes, ScopedTypeVariables #-}
 
 module
-  Network.IPTables.Generated(Int, Num, Nat(..), Word, Len, Iface(..), Bit0,
-                              Num1, Primitive_protocol(..), Protocol(..),
+  Network.IPTables.Generated(Num, Nat(..), Word, Len, Iface(..), Bit0, Num1,
+                              Primitive_protocol(..), Protocol(..),
                               Tcp_flag(..), Match_expr(..), Action(..),
                               Rule(..), Ctstate(..), Ipt_ipv4range(..), Set,
                               Ipt_tcp_flags(..), Nibble, Common_primitive(..),
@@ -13,15 +13,14 @@ module
                               ipassmt_sanity_defined, debug_ipassmt,
                               map_of_ipassmt, to_ipassmt, ipassmt_generic,
                               optimize_matches, upper_closure, word_to_nat,
-                              word_less_eq, no_spoofing_iface, rewrite_Goto,
-                              map_of_string, nat_to_16word,
-                              compress_parsed_extra, integer_to_16word,
-                              sanity_wf_ruleset, unfold_ruleset_CHAIN,
-                              access_matrix_pretty, parts_connection_ssh,
-                              parts_connection_http, common_primitive_toString,
-                              to_simple_firewall, ipv4_cidr_toString,
-                              simple_rule_toString, action_toString,
-                              example_TUM_i8_spoofing_ipassmt,
+                              word_less_eq, no_spoofing_iface,
+                              sanity_wf_ruleset, rewrite_Goto, map_of_string,
+                              nat_to_16word, compress_parsed_extra,
+                              integer_to_16word, unfold_ruleset_CHAIN,
+                              access_matrix_pretty, common_primitive_toString,
+                              mk_parts_connection_TCP, to_simple_firewall,
+                              ipv4_cidr_toString, simple_rule_toString,
+                              action_toString, example_TUM_i8_spoofing_ipassmt,
                               ctstate_assume_new, abstract_for_simple_firewall,
                               to_simple_firewall_without_interfaces,
                               common_primitive_match_expr_toString)
@@ -351,6 +350,33 @@ equal_iface (Iface x) (Iface ya) = x == ya;
 
 instance Eq Iface where {
   a == b = equal_iface a b;
+};
+
+less_eq_iface :: Iface -> Iface -> Bool;
+less_eq_iface (Iface []) (Iface uu) = True;
+less_eq_iface (Iface (v : va)) (Iface []) = False;
+less_eq_iface (Iface (a : asa)) (Iface (b : bs)) =
+  (if a == b then less_eq_iface (Iface asa) (Iface bs) else a <= b);
+
+less_iface :: Iface -> Iface -> Bool;
+less_iface (Iface []) (Iface []) = False;
+less_iface (Iface []) (Iface (v : va)) = True;
+less_iface (Iface (v : va)) (Iface []) = False;
+less_iface (Iface (a : asa)) (Iface (b : bs)) =
+  (if a == b then less_iface (Iface asa) (Iface bs) else a < b);
+
+instance Ord Iface where {
+  less_eq = less_eq_iface;
+  less = less_iface;
+};
+
+instance Preorder Iface where {
+};
+
+instance Order Iface where {
+};
+
+instance Linorder Iface where {
 };
 
 times_nat :: Nat -> Nat -> Nat;
@@ -1679,6 +1705,9 @@ wordinterval_Union :: forall a. (Len a) => [Wordinterval a] -> Wordinterval a;
 wordinterval_Union ws =
   wordinterval_compress (foldr wordinterval_union ws empty_WordInterval);
 
+mergesort_remdups :: forall a. (Eq a, Linorder a) => [a] -> [a];
+mergesort_remdups xs = merge_list [] (map (\ x -> [x]) xs);
+
 oiface_sel :: Common_primitive -> Iface;
 oiface_sel (OIface x4) = x4;
 
@@ -1726,9 +1755,9 @@ primitive_extractor uv (MatchNot (MatchNot va)) = error "undefined";
 primitive_extractor uv (MatchNot (MatchAnd va vb)) = error "undefined";
 primitive_extractor uv (MatchNot MatchAny) = error "undefined";
 
-collect_ifaces :: [Rule Common_primitive] -> [Iface];
-collect_ifaces [] = [];
-collect_ifaces (Rule m a : rs) =
+collect_ifacesa :: [Rule Common_primitive] -> [Iface];
+collect_ifacesa [] = [];
+collect_ifacesa (Rule m a : rs) =
   filter (\ iface -> not (equal_iface iface ifaceAny))
     (map (\ aa -> (case aa of {
                     Pos i -> i;
@@ -1740,7 +1769,10 @@ collect_ifaces (Rule m a : rs) =
                      Neg i -> i;
                    }))
         (fst (primitive_extractor (is_Oiface, oiface_sel) m)) ++
-        collect_ifaces rs);
+        collect_ifacesa rs);
+
+collect_ifaces :: [Rule Common_primitive] -> [Iface];
+collect_ifaces rs = mergesort_remdups (collect_ifacesa rs);
 
 ipassmt_sanity_defined ::
   [Rule Common_primitive] ->
@@ -1772,12 +1804,14 @@ debug_ipassmt ipassmt rs =
            (if ball (image fst (Set ipassmt))
                  (\ iface -> not (iface_is_wildcard iface))
              then "passed"
-             else list_toString iface_sel (filter iface_is_wildcard ifaces)),
+             else "fail: " ++
+                    list_toString iface_sel (filter iface_is_wildcard ifaces)),
          "ipassmt_sanity_defined (interfaces defined in the ruleset are also in ipassmt): " ++
            (if ipassmt_sanity_defined rs (map_of ipassmt) then "passed"
-             else list_toString iface_sel
-                    (filter (\ i -> not (membera ifaces i))
-                      (collect_ifaces rs))),
+             else "fail: " ++
+                    list_toString iface_sel
+                      (filter (\ i -> not (membera ifaces i))
+                        (collect_ifaces rs))),
          "ipassmt_sanity_disjoint (no zone-spanning interfaces): " ++
            (if let {
                  is = image fst (Set ipassmt);
@@ -1794,19 +1828,20 @@ debug_ipassmt ipassmt rs =
  (map ipv4cidr_to_interval (the (map_of ipassmt i2)))))
                               else True)))
              then "passed"
-             else list_toString
-                    (\ (i1, i2) ->
-                      "(" ++ iface_sel i1 ++ "," ++ iface_sel i2 ++ ")")
-                    (filter
+             else "fail: " ++
+                    list_toString
                       (\ (i1, i2) ->
-                        not (equal_iface i1 i2) &&
-                          not (wordinterval_empty
-                                (wordinterval_intersection
-                                  (l2br (map ipv4cidr_to_interval
-  (the (map_of ipassmt i1))))
-                                  (l2br (map ipv4cidr_to_interval
-  (the (map_of ipassmt i2)))))))
-                      (product ifaces ifaces))),
+                        "(" ++ iface_sel i1 ++ "," ++ iface_sel i2 ++ ")")
+                      (filter
+                        (\ (i1, i2) ->
+                          not (equal_iface i1 i2) &&
+                            not (wordinterval_empty
+                                  (wordinterval_intersection
+                                    (l2br (map ipv4cidr_to_interval
+    (the (map_of ipassmt i1))))
+                                    (l2br (map ipv4cidr_to_interval
+    (the (map_of ipassmt i2)))))))
+                        (product ifaces ifaces))),
          "ipassmt_sanity_disjoint excluding UNIV interfaces: " ++
            let {
              ipassmta = ipassmt_ignore_wildcard_list ipassmt;
@@ -1824,19 +1859,18 @@ debug_ipassmt ipassmt rs =
     (l2br (map ipv4cidr_to_interval (the (map_of ipassmta i2)))))
                                    else True)))
                   then "passed"
-                  else list_toString
-                         (\ (i1, i2) ->
-                           "(" ++ iface_sel i1 ++ "," ++ iface_sel i2 ++ ")")
-                         (filter
+                  else "fail: " ++
+                         list_toString
                            (\ (i1, i2) ->
-                             not (equal_iface i1 i2) &&
-                               not (wordinterval_empty
-                                     (wordinterval_intersection
-                                       (l2br
- (map ipv4cidr_to_interval (the (map_of ipassmta i1))))
-                                       (l2br
- (map ipv4cidr_to_interval (the (map_of ipassmta i2)))))))
-                           (product ifacesa ifacesa))),
+                             "(" ++ iface_sel i1 ++ "," ++ iface_sel i2 ++ ")")
+                           (filter
+                             (\ (i1, i2) ->
+                               not (equal_iface i1 i2) &&
+                                 not (wordinterval_empty
+                                       (wordinterval_intersection
+ (l2br (map ipv4cidr_to_interval (the (map_of ipassmta i1))))
+ (l2br (map ipv4cidr_to_interval (the (map_of ipassmta i2)))))))
+                             (product ifacesa ifacesa))),
          "ipassmt_sanity_complete: " ++
            (if distinct (map fst ipassmt) &&
                  let {
@@ -2082,9 +2116,6 @@ extract_src_dst_ips ::
 extract_src_dst_ips [] ts = ts;
 extract_src_dst_ips (SimpleRule m uu : ss) ts =
   extract_src_dst_ips ss (src m : dst m : ts);
-
-mergesort_remdups :: forall a. (Eq a, Linorder a) => [a] -> [a];
-mergesort_remdups xs = merge_list [] (map (\ x -> [x]) xs);
 
 extract_IPSets ::
   [Simple_rule] -> [Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
@@ -3098,6 +3129,24 @@ tcp_flag_toString TCP_RST = "TCP_RST";
 tcp_flag_toString TCP_URG = "TCP_URG";
 tcp_flag_toString TCP_PSH = "TCP_PSH";
 
+sanity_wf_ruleset :: forall a. [([Prelude.Char], [Rule a])] -> Bool;
+sanity_wf_ruleset gamma =
+  let {
+    dom = map fst gamma;
+    ran = map snd gamma;
+  } in distinct dom && all (all (\ r -> (case get_action r of {
+  Accept -> True;
+  Drop -> True;
+  Log -> True;
+  Reject -> True;
+  Call a -> membera dom a;
+  Return -> True;
+  Goto a -> membera dom a;
+  Empty -> True;
+  Unknown -> False;
+})))
+                         ran;
+
 terminal_chain :: forall a. [Rule a] -> Bool;
 terminal_chain [] = False;
 terminal_chain [Rule MatchAny Accept] = True;
@@ -3331,24 +3380,6 @@ ctstate_toString CT_Related = "RELATED";
 ctstate_toString CT_Untracked = "UNTRACKED";
 ctstate_toString CT_Invalid = "INVALID";
 
-sanity_wf_ruleset :: forall a. [([Prelude.Char], [Rule a])] -> Bool;
-sanity_wf_ruleset gamma =
-  let {
-    dom = map fst gamma;
-    ran = map snd gamma;
-  } in distinct dom && all (all (\ r -> (case get_action r of {
-  Accept -> True;
-  Drop -> True;
-  Log -> True;
-  Reject -> True;
-  Call a -> membera dom a;
-  Return -> True;
-  Goto a -> membera dom a;
-  Empty -> True;
-  Unknown -> False;
-})))
-                         ran;
-
 simple_ruleset :: forall a. [Rule a] -> Bool;
 simple_ruleset rs =
   all (\ r ->
@@ -3453,12 +3484,6 @@ access_matrix_pretty ::
       ([([Prelude.Char], [Prelude.Char])], [([Prelude.Char], [Prelude.Char])]);
 access_matrix_pretty = access_matrix_pretty_code;
 
-parts_connection_ssh :: Parts_connection_ext ();
-parts_connection_ssh =
-  Parts_connection_ext "1" "1" TCP
-    (word_of_int (Int_of_integer (10000 :: Integer)))
-    (word_of_int (Int_of_integer (22 :: Integer))) CT_New ();
-
 simpl_ports_conjunct ::
   (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
     Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
@@ -3513,12 +3538,6 @@ simple_match_and (Simple_match_ext iif1 oif1 sip1 dip1 p1 sps1 dps1 ())
 ctstate_set_toString :: Set Ctstate -> [Prelude.Char];
 ctstate_set_toString s =
   list_separated_toString "," ctstate_toString (enum_set_to_list s);
-
-parts_connection_http :: Parts_connection_ext ();
-parts_connection_http =
-  Parts_connection_ext "1" "1" TCP
-    (word_of_int (Int_of_integer (10000 :: Integer)))
-    (word_of_int (Int_of_integer (80 :: Integer))) CT_New ();
 
 normalized_dst_ports :: Match_expr Common_primitive -> Bool;
 normalized_dst_ports MatchAny = True;
@@ -3665,6 +3684,12 @@ has_disc_negated disc neg (MatchAnd m1 m2) =
 normalized_ifaces :: Match_expr Common_primitive -> Bool;
 normalized_ifaces m =
   not (has_disc_negated (\ a -> is_Iiface a || is_Oiface a) False m);
+
+mk_parts_connection_TCP ::
+  Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))) ->
+    Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))) -> Parts_connection_ext ();
+mk_parts_connection_TCP sport dport =
+  Parts_connection_ext "1" "1" TCP sport dport CT_New ();
 
 sports_update ::
   forall a.

@@ -1,5 +1,10 @@
 theory Iface
-imports String "../Common/Negation_Type"
+imports String
+        "../Common/Negation_Type"
+        (* l4v imports: "~~/src/HOL/Library/Prefix_Order" clash! This does not give a total order. :(
+          we have to define a order by ourselves*)
+        (*"~~/src/HOL/Library/List_lexord" (*WARNING: importing lexord. TODO*)*)
+        "~~/src/HOL/Library/Char_ord" (*WARNING: importing char ord. TODO*)
 begin
 
 section{*Network Interfaces*}
@@ -7,6 +12,90 @@ section{*Network Interfaces*}
 (*TODO: add some rule that says an interface starting with ! is invalid (because we want to fail if negation occurs!) See man iptables.
   But the parser/lexer should handle this*)
 datatype iface = Iface (iface_sel: "string")  --"no negation supported, but wildcards"
+
+
+text{*Just a normal lexicographical ordering on the interface strings. Used only for optimizing code.*}
+(*We cannot use List_lexord because it clashed with the l4v imported ordering!*)
+instantiation iface :: linorder
+begin
+  function (sequential) less_eq_iface :: "iface \<Rightarrow> iface \<Rightarrow> bool" where
+    "(Iface []) \<le> (Iface _) \<longleftrightarrow> True" |
+    "(Iface _) \<le> (Iface []) \<longleftrightarrow> False" |
+    "(Iface (a#as)) \<le> (Iface (b#bs)) \<longleftrightarrow> (if a = b then Iface as \<le> Iface bs else a \<le> b)"
+   by(pat_completeness) auto
+  thm ord_iface_inst.less_eq_iface
+  termination "less_eq :: iface \<Rightarrow> _ \<Rightarrow> bool"
+    apply(relation "measure (\<lambda>is. size (iface_sel (fst is)) + size (iface_sel (snd is)))")
+    apply(rule wf_measure, unfold in_measure comp_def)
+    apply(simp)
+    done
+  
+  lemma Iface_less_eq_empty: "Iface x \<le> Iface [] \<Longrightarrow> x = []"
+    by(induction "Iface x" "Iface []" rule: less_eq_iface.induct) auto
+  lemma less_eq_empty: "Iface [] \<le> q"
+    by(induction "Iface []" q rule: less_eq_iface.induct) auto
+  lemma iface_cons_less_eq_i: "Iface (b # bs) \<le> i \<Longrightarrow> \<exists> q qs. i=Iface (q#qs) \<and> (b < q \<or> (Iface bs) \<le> (Iface qs))"
+    apply(induction "Iface (b # bs)" i rule: less_eq_iface.induct)
+     apply(simp_all split: split_if_asm)
+    apply(clarify)
+    apply(simp)
+    done
+
+  function (sequential) less_iface :: "iface \<Rightarrow> iface \<Rightarrow> bool" where
+    "(Iface []) < (Iface []) \<longleftrightarrow> False" |
+    "(Iface []) < (Iface _) \<longleftrightarrow> True" |
+    "(Iface _) < (Iface []) \<longleftrightarrow> False" |
+    "(Iface (a#as)) < (Iface (b#bs)) \<longleftrightarrow> (if a = b then Iface as < Iface bs else a < b)"
+   by(pat_completeness) auto
+  termination "less :: iface \<Rightarrow> _ \<Rightarrow> bool"
+    apply(relation "measure (\<lambda>is. size (iface_sel (fst is)) + size (iface_sel (snd is)))")
+    apply(rule wf_measure, unfold in_measure comp_def)
+    apply(simp)
+    done
+   
+instance
+  proof
+    fix n m :: iface
+    show "n < m \<longleftrightarrow> n \<le> m \<and> \<not> m \<le> n"
+      apply(induction rule: less_iface.induct)
+      apply(simp_all)
+      apply fastforce
+      done
+  next
+    fix n :: iface have "n = m \<Longrightarrow> n \<le> m" for m
+      apply(induction n m rule: less_eq_iface.induct)
+      apply(simp_all)
+      done
+    thus "n \<le> n" by simp
+  next
+    fix n m :: iface
+    show "n \<le> m \<Longrightarrow> m \<le> n \<Longrightarrow> n = m"
+      apply(induction n m rule: less_eq_iface.induct)
+        apply(simp_all)
+       using Iface_less_eq_empty apply blast
+      apply(simp split: split_if_asm)
+      done
+  next
+    (*horrible proof!*)
+    fix n m q :: iface show "n \<le> m \<Longrightarrow> m \<le> q \<Longrightarrow> n \<le> q" 
+      apply(induction n q arbitrary: m rule: less_eq_iface.induct)
+        apply(simp_all add: less_eq_empty split: split_if_asm)
+       apply(drule iface_cons_less_eq_i)
+       apply(elim exE conjE disjE)
+        apply(simp)
+       apply fastforce
+      apply(frule iface_cons_less_eq_i)
+      apply(elim exE conjE disjE)
+       apply(simp_all split: split_if_asm)
+       apply auto
+      done
+  next
+    fix n m :: iface show "n \<le> m \<or> m \<le> n"
+      apply(induction n m rule: less_eq_iface.induct)
+        apply(simp_all)
+      by fastforce
+  qed
+end
 
 definition ifaceAny :: iface where
   "ifaceAny \<equiv> Iface ''+''"
