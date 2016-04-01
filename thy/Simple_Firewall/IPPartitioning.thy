@@ -1366,6 +1366,13 @@ definition parts_connection_http where "parts_connection_http = \<lparr>pc_iifac
                                pc_sport=10000, pc_dport=80, pc_tag_ctstate=CT_New\<rparr>"
 
 
+definition mk_parts_connection_TCP :: "16 word \<Rightarrow> 16 word \<Rightarrow> parts_connection" where
+  "mk_parts_connection_TCP sport dport = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
+                               pc_sport=sport, pc_dport=dport, pc_tag_ctstate=CT_New\<rparr>"
+
+lemma "mk_parts_connection_TCP 10000 22 = parts_connection_ssh"
+      "mk_parts_connection_TCP 10000 80 = parts_connection_http"
+  by(simp_all add: mk_parts_connection_TCP_def parts_connection_ssh_def parts_connection_http_def)
 
 
 value[code] "partitioningIps [WordInterval (0::ipv4addr) 0] [WordInterval 0 2, WordInterval 0 2]"

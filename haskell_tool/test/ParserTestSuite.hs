@@ -313,8 +313,7 @@ test_service_matrix ipassmtMaybeString fileName expected_result errormsg = do
         Left err -> return $ Finished $ Fail (show err)
         Right res -> do
             unfolded <- loadUnfoldedRuleset False "filter" "FORWARD" res
-            let upper_simple = (Analysis.toSimpleFirewallWithoutInterfaces ipassmt unfolded)
-            let service_matrix = Isabelle.access_matrix_pretty Isabelle.parts_connection_ssh upper_simple
+            let service_matrix = Analysis.accessMatrix ipassmt unfolded 10000 22
             putStrLn $ show service_matrix
             if service_matrix == expected_result then
                 return $ Finished Pass

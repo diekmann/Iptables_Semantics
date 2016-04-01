@@ -1,8 +1,8 @@
 {-# LANGUAGE EmptyDataDecls, RankNTypes, ScopedTypeVariables #-}
 
 module
-  Network.IPTables.Generated(Int, Num, Nat(..), Word, Len, Iface(..), Bit0,
-                              Num1, Primitive_protocol(..), Protocol(..),
+  Network.IPTables.Generated(Num, Nat(..), Word, Len, Iface(..), Bit0, Num1,
+                              Primitive_protocol(..), Protocol(..),
                               Tcp_flag(..), Match_expr(..), Action(..),
                               Rule(..), Ctstate(..), Ipt_ipv4range(..), Set,
                               Ipt_tcp_flags(..), Nibble, Common_primitive(..),
@@ -17,11 +17,10 @@ module
                               sanity_wf_ruleset, rewrite_Goto, map_of_string,
                               nat_to_16word, compress_parsed_extra,
                               integer_to_16word, unfold_ruleset_CHAIN,
-                              access_matrix_pretty, parts_connection_ssh,
-                              parts_connection_http, common_primitive_toString,
-                              to_simple_firewall, ipv4_cidr_toString,
-                              simple_rule_toString, action_toString,
-                              example_TUM_i8_spoofing_ipassmt,
+                              access_matrix_pretty, common_primitive_toString,
+                              mk_parts_connection_TCP, to_simple_firewall,
+                              ipv4_cidr_toString, simple_rule_toString,
+                              action_toString, example_TUM_i8_spoofing_ipassmt,
                               ctstate_assume_new, abstract_for_simple_firewall,
                               to_simple_firewall_without_interfaces,
                               common_primitive_match_expr_toString)
@@ -3485,12 +3484,6 @@ access_matrix_pretty ::
       ([([Prelude.Char], [Prelude.Char])], [([Prelude.Char], [Prelude.Char])]);
 access_matrix_pretty = access_matrix_pretty_code;
 
-parts_connection_ssh :: Parts_connection_ext ();
-parts_connection_ssh =
-  Parts_connection_ext "1" "1" TCP
-    (word_of_int (Int_of_integer (10000 :: Integer)))
-    (word_of_int (Int_of_integer (22 :: Integer))) CT_New ();
-
 simpl_ports_conjunct ::
   (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
     Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
@@ -3545,12 +3538,6 @@ simple_match_and (Simple_match_ext iif1 oif1 sip1 dip1 p1 sps1 dps1 ())
 ctstate_set_toString :: Set Ctstate -> [Prelude.Char];
 ctstate_set_toString s =
   list_separated_toString "," ctstate_toString (enum_set_to_list s);
-
-parts_connection_http :: Parts_connection_ext ();
-parts_connection_http =
-  Parts_connection_ext "1" "1" TCP
-    (word_of_int (Int_of_integer (10000 :: Integer)))
-    (word_of_int (Int_of_integer (80 :: Integer))) CT_New ();
 
 normalized_dst_ports :: Match_expr Common_primitive -> Bool;
 normalized_dst_ports MatchAny = True;
@@ -3697,6 +3684,12 @@ has_disc_negated disc neg (MatchAnd m1 m2) =
 normalized_ifaces :: Match_expr Common_primitive -> Bool;
 normalized_ifaces m =
   not (has_disc_negated (\ a -> is_Iiface a || is_Oiface a) False m);
+
+mk_parts_connection_TCP ::
+  Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))) ->
+    Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))) -> Parts_connection_ext ();
+mk_parts_connection_TCP sport dport =
+  Parts_connection_ext "1" "1" TCP sport dport CT_New ();
 
 sports_update ::
   forall a.

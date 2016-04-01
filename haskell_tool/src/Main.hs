@@ -87,13 +87,16 @@ main = do
             let (warnings, spoofResult) = certifySpoofingProtection ipassmt unfolded
             mapM_ putStrLn warnings
             putStrLn "Spoofing certification results:"
-            mapM_ (putStrLn . show) spoofResult
+            mapM_ (putStrLn . showSpoofCertification) spoofResult
             putStrLn "== calculating service matrices =="
             putStrLn "===========SSH========="
-            putStrLn $ showServiceMatrix $ Isabelle.access_matrix_pretty Isabelle.parts_connection_ssh upper_simple
+            putStrLn $ showServiceMatrix $ Analysis.accessMatrix ipassmt unfolded 10000 22
             putStrLn "===========HTTP========="
-            putStrLn $ showServiceMatrix $ Isabelle.access_matrix_pretty Isabelle.parts_connection_http upper_simple
+            putStrLn $ showServiceMatrix $ Analysis.accessMatrix ipassmt unfolded 10000 80
         where showServiceMatrix (nodes, vertices) = concat (map (\(n, desc) -> n ++ " |-> " ++ desc ++ "\n") nodes) ++ "\n" ++
                                                     concat (map (\v -> show v ++ "\n") vertices)
+              showSpoofCertification (iface, rslt) = show (show iface, showProbablyFalse rslt)
+                  where showProbablyFalse True = "True (certified)"
+                        showProbablyFalse False = "Probably not (False)"
 
 

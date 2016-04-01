@@ -2,6 +2,7 @@ module Network.IPTables.Analysis
 ( toSimpleFirewall
 , toSimpleFirewallWithoutInterfaces
 , certifySpoofingProtection
+, accessMatrix
 )
 where
 
@@ -43,4 +44,8 @@ certifySpoofingProtection ipassmt rs = (warn_defined ++ debug_ipassmt, certResul
               where interfaces = map fst ipassmt
 
 
-
+accessMatrix :: IsabelleIpAssmt -> [Isabelle.Rule Isabelle.Common_primitive] -> Integer -> Integer -> ([(String, String)], [(String, String)])
+accessMatrix ipassmt rs sport dport = if sport >= 65536 || dport >= 65536 then error "ports are 16 bit"
+    else Isabelle.access_matrix_pretty parts_connection upper_simple
+    where upper_simple = toSimpleFirewallWithoutInterfaces ipassmt rs
+          parts_connection = Isabelle.mk_parts_connection_TCP (Isabelle.integer_to_16word sport) (Isabelle.integer_to_16word dport)
