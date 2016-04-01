@@ -2,6 +2,7 @@ theory Ipassmt
 imports Common_Primitive_Lemmas
         Common_Primitive_toString
         "../Common/Lib_toString"
+        "../afp/Mergesort" (*TODO: dependnecy! import from afp directly!*)
 begin
 
   text{*A mapping from an interface to its assigned ip addresses in CIDR notation*}
@@ -69,11 +70,14 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
 
     value[code] "ipassmt_sanity_nowildcards (map_of [(Iface ''eth1.1017'', [(ipv4addr_of_dotdecimal (131,159,14,240), 28)])])"
 
-  fun collect_ifaces :: "common_primitive rule list \<Rightarrow> iface list" where
-    "collect_ifaces [] = []" |
-    "collect_ifaces ((Rule m a)#rs) = filter (\<lambda>iface. iface \<noteq> ifaceAny) (
+  fun collect_ifaces' :: "common_primitive rule list \<Rightarrow> iface list" where
+    "collect_ifaces' [] = []" |
+    "collect_ifaces' ((Rule m a)#rs) = filter (\<lambda>iface. iface \<noteq> ifaceAny) (
                                       (map (\<lambda>x. case x of Pos i \<Rightarrow> i | Neg i \<Rightarrow> i) (fst (primitive_extractor (is_Iiface, iiface_sel) m))) @
-                                      (map (\<lambda>x. case x of Pos i \<Rightarrow> i | Neg i \<Rightarrow> i) (fst (primitive_extractor (is_Oiface, oiface_sel) m))) @ collect_ifaces rs)"
+                                      (map (\<lambda>x. case x of Pos i \<Rightarrow> i | Neg i \<Rightarrow> i) (fst (primitive_extractor (is_Oiface, oiface_sel) m))) @ collect_ifaces' rs)"
+
+  definition collect_ifaces :: "common_primitive rule list \<Rightarrow> iface list" where
+    "collect_ifaces rs \<equiv> mergesort_remdups (collect_ifaces' rs)"
 
   text{*sanity check that all interfaces mentioned in the ruleset are also listed in the ipassmt. May fail for wildcard interfaces in the ruleset.*}
   (*TODO: wildcards*)

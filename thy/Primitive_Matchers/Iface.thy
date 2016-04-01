@@ -1,5 +1,8 @@
 theory Iface
-imports String "../Common/Negation_Type"
+imports String
+        "../Common/Negation_Type"
+        "~~/src/HOL/Library/List_lexord" (*WARNING: importing lexord. TODO*)
+        "~~/src/HOL/Library/Char_ord" (*WARNING: importing char ord. TODO*)
 begin
 
 section{*Network Interfaces*}
@@ -7,6 +10,31 @@ section{*Network Interfaces*}
 (*TODO: add some rule that says an interface starting with ! is invalid (because we want to fail if negation occurs!) See man iptables.
   But the parser/lexer should handle this*)
 datatype iface = Iface (iface_sel: "string")  --"no negation supported, but wildcards"
+
+
+text{*Just a normal lexicographical ordering on the interface strings. Used only for optimizing code.*}
+instantiation iface :: linorder
+begin
+  definition less_eq_iface :: "iface \<Rightarrow> iface \<Rightarrow> bool" where
+    "less_eq_iface i1 i2 \<equiv> iface_sel i1 \<le> iface_sel i2"
+  definition less_iface :: "iface \<Rightarrow> iface \<Rightarrow> bool" where
+    "less_iface i1 i2 \<equiv> iface_sel i1 < iface_sel i2"
+instance
+  proof
+    fix n m :: iface
+    show "n < m \<longleftrightarrow> n \<le> m \<and> \<not> m \<le> n"
+      by(simp add: less_eq_iface_def less_iface_def) fastforce
+  next
+    fix n :: iface show "n \<le> n" by(simp add: less_eq_iface_def less_iface_def)
+  next
+    fix n m :: iface
+    show "n \<le> m \<Longrightarrow> m \<le> n \<Longrightarrow> n = m" by(cases n, cases m) (simp add: less_eq_iface_def less_iface_def)
+  next
+    fix n m q :: iface show "n \<le> m \<Longrightarrow> m \<le> q \<Longrightarrow> n \<le> q" by (simp add: less_eq_iface_def less_iface_def)
+  next
+    fix n m :: iface show "n \<le> m \<or> m \<le> n" by(auto simp add: less_eq_iface_def less_iface_def)
+  qed
+end
 
 definition ifaceAny :: iface where
   "ifaceAny \<equiv> Iface ''+''"
