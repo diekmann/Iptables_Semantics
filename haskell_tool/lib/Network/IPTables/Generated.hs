@@ -353,6 +353,33 @@ instance Eq Iface where {
   a == b = equal_iface a b;
 };
 
+less_eq_iface :: Iface -> Iface -> Bool;
+less_eq_iface (Iface []) (Iface uu) = True;
+less_eq_iface (Iface (v : va)) (Iface []) = False;
+less_eq_iface (Iface (a : asa)) (Iface (b : bs)) =
+  (if a == b then less_eq_iface (Iface asa) (Iface bs) else a <= b);
+
+less_iface :: Iface -> Iface -> Bool;
+less_iface (Iface []) (Iface []) = False;
+less_iface (Iface []) (Iface (v : va)) = True;
+less_iface (Iface (v : va)) (Iface []) = False;
+less_iface (Iface (a : asa)) (Iface (b : bs)) =
+  (if a == b then less_iface (Iface asa) (Iface bs) else a < b);
+
+instance Ord Iface where {
+  less_eq = less_eq_iface;
+  less = less_iface;
+};
+
+instance Preorder Iface where {
+};
+
+instance Order Iface where {
+};
+
+instance Linorder Iface where {
+};
+
 times_nat :: Nat -> Nat -> Nat;
 times_nat m n = Nat (integer_of_nat m * integer_of_nat n);
 
@@ -1679,6 +1706,9 @@ wordinterval_Union :: forall a. (Len a) => [Wordinterval a] -> Wordinterval a;
 wordinterval_Union ws =
   wordinterval_compress (foldr wordinterval_union ws empty_WordInterval);
 
+mergesort_remdups :: forall a. (Eq a, Linorder a) => [a] -> [a];
+mergesort_remdups xs = merge_list [] (map (\ x -> [x]) xs);
+
 oiface_sel :: Common_primitive -> Iface;
 oiface_sel (OIface x4) = x4;
 
@@ -1743,7 +1773,7 @@ collect_ifacesa (Rule m a : rs) =
         collect_ifacesa rs);
 
 collect_ifaces :: [Rule Common_primitive] -> [Iface];
-collect_ifaces rs = remdups (collect_ifacesa rs);
+collect_ifaces rs = mergesort_remdups (collect_ifacesa rs);
 
 ipassmt_sanity_defined ::
   [Rule Common_primitive] ->
@@ -1775,12 +1805,14 @@ debug_ipassmt ipassmt rs =
            (if ball (image fst (Set ipassmt))
                  (\ iface -> not (iface_is_wildcard iface))
              then "passed"
-             else list_toString iface_sel (filter iface_is_wildcard ifaces)),
+             else "fail: " ++
+                    list_toString iface_sel (filter iface_is_wildcard ifaces)),
          "ipassmt_sanity_defined (interfaces defined in the ruleset are also in ipassmt): " ++
            (if ipassmt_sanity_defined rs (map_of ipassmt) then "passed"
-             else list_toString iface_sel
-                    (filter (\ i -> not (membera ifaces i))
-                      (collect_ifaces rs))),
+             else "fail: " ++
+                    list_toString iface_sel
+                      (filter (\ i -> not (membera ifaces i))
+                        (collect_ifaces rs))),
          "ipassmt_sanity_disjoint (no zone-spanning interfaces): " ++
            (if let {
                  is = image fst (Set ipassmt);
@@ -1797,19 +1829,20 @@ debug_ipassmt ipassmt rs =
  (map ipv4cidr_to_interval (the (map_of ipassmt i2)))))
                               else True)))
              then "passed"
-             else list_toString
-                    (\ (i1, i2) ->
-                      "(" ++ iface_sel i1 ++ "," ++ iface_sel i2 ++ ")")
-                    (filter
+             else "fail: " ++
+                    list_toString
                       (\ (i1, i2) ->
-                        not (equal_iface i1 i2) &&
-                          not (wordinterval_empty
-                                (wordinterval_intersection
-                                  (l2br (map ipv4cidr_to_interval
-  (the (map_of ipassmt i1))))
-                                  (l2br (map ipv4cidr_to_interval
-  (the (map_of ipassmt i2)))))))
-                      (product ifaces ifaces))),
+                        "(" ++ iface_sel i1 ++ "," ++ iface_sel i2 ++ ")")
+                      (filter
+                        (\ (i1, i2) ->
+                          not (equal_iface i1 i2) &&
+                            not (wordinterval_empty
+                                  (wordinterval_intersection
+                                    (l2br (map ipv4cidr_to_interval
+    (the (map_of ipassmt i1))))
+                                    (l2br (map ipv4cidr_to_interval
+    (the (map_of ipassmt i2)))))))
+                        (product ifaces ifaces))),
          "ipassmt_sanity_disjoint excluding UNIV interfaces: " ++
            let {
              ipassmta = ipassmt_ignore_wildcard_list ipassmt;
@@ -1827,19 +1860,18 @@ debug_ipassmt ipassmt rs =
     (l2br (map ipv4cidr_to_interval (the (map_of ipassmta i2)))))
                                    else True)))
                   then "passed"
-                  else list_toString
-                         (\ (i1, i2) ->
-                           "(" ++ iface_sel i1 ++ "," ++ iface_sel i2 ++ ")")
-                         (filter
+                  else "fail: " ++
+                         list_toString
                            (\ (i1, i2) ->
-                             not (equal_iface i1 i2) &&
-                               not (wordinterval_empty
-                                     (wordinterval_intersection
-                                       (l2br
- (map ipv4cidr_to_interval (the (map_of ipassmta i1))))
-                                       (l2br
- (map ipv4cidr_to_interval (the (map_of ipassmta i2)))))))
-                           (product ifacesa ifacesa))),
+                             "(" ++ iface_sel i1 ++ "," ++ iface_sel i2 ++ ")")
+                           (filter
+                             (\ (i1, i2) ->
+                               not (equal_iface i1 i2) &&
+                                 not (wordinterval_empty
+                                       (wordinterval_intersection
+ (l2br (map ipv4cidr_to_interval (the (map_of ipassmta i1))))
+ (l2br (map ipv4cidr_to_interval (the (map_of ipassmta i2)))))))
+                             (product ifacesa ifacesa))),
          "ipassmt_sanity_complete: " ++
            (if distinct (map fst ipassmt) &&
                  let {
@@ -2085,9 +2117,6 @@ extract_src_dst_ips ::
 extract_src_dst_ips [] ts = ts;
 extract_src_dst_ips (SimpleRule m uu : ss) ts =
   extract_src_dst_ips ss (src m : dst m : ts);
-
-mergesort_remdups :: forall a. (Eq a, Linorder a) => [a] -> [a];
-mergesort_remdups xs = merge_list [] (map (\ x -> [x]) xs);
 
 extract_IPSets ::
   [Simple_rule] -> [Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
