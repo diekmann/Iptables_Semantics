@@ -43,7 +43,8 @@ certifySpoofingProtection ipassmt rs = (warn_defined ++ debug_ipassmt, certResul
           certResult = map (\ifce -> (ifce, Isabelle.no_spoofing_iface ifce ipassmtMap fuc)) interfaces
               where interfaces = map fst ipassmt
 
-
+-- TODO: in Main.hs we directly have upper_simple available. Make a specific function which gets upper_simple?
+-- This is slightly faster (tested!) but dangerously because someone might call it wrong (e.g. with a firewall with interfaces)
 accessMatrix :: IsabelleIpAssmt -> [Isabelle.Rule Isabelle.Common_primitive] -> Integer -> Integer -> ([(String, String)], [(String, String)])
 accessMatrix ipassmt rs sport dport = if sport >= 65536 || dport >= 65536 then error "ports are 16 bit"
     else Isabelle.access_matrix_pretty parts_connection upper_simple
