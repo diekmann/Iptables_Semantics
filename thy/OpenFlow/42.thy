@@ -467,20 +467,31 @@ definition "fourtytwo_s3 ifs ard = (
 	[(p, b, case a of simple_action.Accept \<Rightarrow> [Forward c] | simple_action.Drop \<Rightarrow> []).
 		(p,r,(c,a)) \<leftarrow> ard, b \<leftarrow> simple_match_to_of_match r ifs])"
 
-definition "oif_ne_iif ifs \<equiv> [(simple_match_any\<lparr>oiface := Iface oi, iiface := Iface ii\<rparr>, ()). oi \<leftarrow> ifs, ii \<leftarrow> ifs, oi \<noteq> ii]" 
+definition "oif_ne_iif_p1 ifs \<equiv> [(simple_match_any\<lparr>oiface := Iface oi, iiface := Iface ii\<rparr>, simple_action.Accept). oi \<leftarrow> ifs, ii \<leftarrow> ifs, oi \<noteq> ii]"
+definition "oif_ne_iif_p2 ifs = [(simple_match_any\<lparr>oiface := Iface i, iiface := Iface i\<rparr>, simple_action.Drop). i \<leftarrow> ifs]"
+definition "oif_ne_iif ifs = oif_ne_iif_p2 ifs @ oif_ne_iif_p1 ifs" (* order irrelephant *)
+(*value "oif_ne_iif [''a'', ''b'']"*)
+(* I first tried something like "oif_ne_iif ifs \<equiv> [(simple_match_any\<lparr>oiface := Iface oi, iiface := Iface ii\<rparr>, if oi = ii then simple_action.Drop else simple_action.Accept). oi \<leftarrow> ifs, ii \<leftarrow> ifs]", 
+   but making the statement I wanted with that was really tricky. Much easier to have the second element constant and do it separately. *)
 definition "fourtytwo_s4 ard ifs \<equiv> generalized_fw_join ard (oif_ne_iif ifs)"
 
 definition "fourtytwo_s1 rt = [(route2match r, output_iface (routing_action r)). r \<leftarrow> rt]"
 definition "fourtytwo_s2 mrt fw = generalized_fw_join mrt (map simple_rule_dtor fw)"
 definition "fourtytwo_nullifyoif = map (apfst (oiface_update (const ifaceAny)))"
 
+definition "fourtytwo_fbs rt fw ifs \<equiv> let
+	pnp = oif_ne_iif ifs; (* not same iface firewall *)
+	gfw = map simple_rule_dtor fw; (* generalized simple fw, hopefully for FORWARD *)
+	pfd = generalized_sfw_conjunct_o (generalized_fw_join pnp gfw); (* conj. Note for future: it is now a firewall with all exact interface matches. *)
+	frt = fourtytwo_s1 rt; (* rt as fw *)
+	prd = generalized_fw_join frt pfd;
+	nrd = fourtytwo_nullifyoif prd (* we don't want the rule to match on the oiface, we can't do that in OF (and the simple_match \<rightarrow> of converter will ignore it.) *)
+	in nrd
+"
+
 definition "fourtytwo rt fw ifs \<equiv> let
-	mrt = fourtytwo_s1 rt; (* make matches from those rt entries *)
-	frd = fourtytwo_s2 mrt fw; (* bring down the firewall over all rt matches *)
-	prd = fourtytwo_s4 frd ifs; (* make sure that oiface \<noteq> iiface *)
-	nrd = fourtytwo_nullifyoif prd; (* we don't want the rule to match on the oiface, we can't do that in OF (and the simple_match \<rightarrow> of converter will ignore it.) *)
-	crd = map (apsnd fst) nrd; (* get rid of that unit from s4 *)
-	ard = map (apfst word_of_nat) (annotate_rlen crd) (* give them a priority *)
+	nrd = fourtytwo_fbs rt fw ifs;
+	ard = map (apfst word_of_nat) (annotate_rlen nrd) (* give them a priority *)
 	in
 	if length nrd < unat (max_word :: 16 word)
 	then Inr (map (split3 OFEntry) $ fourtytwo_s3 ifs ard)
@@ -504,9 +515,9 @@ find_theorems List.product (* I wonder if we could also write fourtytwo as rt \<
 lemma ipv4cidr_conjunct_any: "ipv4cidr_conjunct (0, 0) (0, 0) \<noteq> None" by(eval)
 
 lemma oif_ne_iif_alt: 
-"oif_ne_iif ifs = map (apsnd (const ())) (filter (\<lambda>(m,a,b). a \<noteq> b) (generalized_fw_join (map (\<lambda>i. (simple_match_any\<lparr>oiface := Iface i\<rparr>, i)) ifs) (map (\<lambda>i. (simple_match_any\<lparr>iiface := Iface i\<rparr>, i)) ifs)))"
+"oif_ne_iif ifs = map (apsnd (\<lambda>(a,b). if a = b then simple_action.Drop else simple_action.Accept)) (generalized_fw_join (map (\<lambda>i. (simple_match_any\<lparr>oiface := Iface i\<rparr>, i)) ifs) (map (\<lambda>i. (simple_match_any\<lparr>iiface := Iface i\<rparr>, i)) ifs))"
 unfolding oif_ne_iif_def generalized_fw_join_def option2list_def
-oops (* turns out that this would be more complicated to use. The filter makes this very uncomfortable. *)
+oops
 
 (* TODO: move *)
 lemma generalized_sfw_filterD: "generalized_sfw (filter f fw) p = Some (r,d) \<Longrightarrow> simple_matches r p \<and> f (r,d)"
@@ -542,12 +553,44 @@ is_iface_name xb \<Longrightarrow>
 simple_matches (simple_match_any\<lparr>oiface := Iface xb, iiface := Iface xa\<rparr>) p \<longleftrightarrow> (p_oiface p = xb \<and> p_iiface p = xa)"
 by(auto simp: simple_matches.simps simple_match_any_def ipv4range_set_from_prefix_UNIV simple_rule_and_iiface_update)
 
-lemma oif_ne_iif_correct: "is_iface_list ifs \<Longrightarrow> generalized_sfw (oif_ne_iif ifs) p \<noteq> None \<longleftrightarrow> (p_oiface p \<noteq> p_iiface p \<and> p_oiface p \<in> set ifs \<and> p_iiface p \<in> set ifs)"
+lemma image_iff_forealyo: "(y \<in> f ` S) \<longleftrightarrow> (\<exists>x \<in> S. y = f x)" by blast
+
+lemma oif_ne_iif_alt: "oif_ne_iif ifs =	map (\<lambda>(oi,ii). (simple_match_any\<lparr>oiface := Iface oi, iiface := Iface ii\<rparr>, if oi = ii then simple_action.Drop else simple_action.Accept)) (List.product ifs ifs)"
+oops
+
+(*lemma "x \<noteq> simple_action.Drop \<Longrightarrow> x = simple_action.Accept" using simple_action.exhaust by blast (* property needed by next lemma! *)
+lemma oif_ne_iif_correct: "is_iface_list ifs \<Longrightarrow> (\<exists>r. generalized_sfw (oif_ne_iif ifs) p = Some (r, ad)) \<longleftrightarrow> ((p_oiface p = p_iiface p \<longleftrightarrow> ad = simple_action.Drop) \<and> p_oiface p \<in> set ifs \<and> p_iiface p \<in> set ifs)"
+proof(rule iffI; clarify)
+	case goal1
+	note m = generalized_sfwD[OF goal1(2)]
+	then obtain oif iif where ifs[simp]: "oif = iif \<longleftrightarrow> ad = simple_action.Drop" 
+		"oif \<in> set ifs" "iif \<in> set ifs" "r = simple_match_any\<lparr>oiface := Iface oif, iiface := Iface iif\<rparr>" 
+		unfolding oif_ne_iif_def by(clarsimp split: if_splits)
+	hence ifn: "is_iface_name iif" "is_iface_name oif" using goal1 by(simp_all add: is_iface_list_def list_all_iff)
+	show ?case using m unfolding ifs unfolding simple_matches_ioiface[OF ifn] by simp
+next
+	case goal2
+	let ?a = "if p_oiface p = p_iiface p then simple_action.Drop else simple_action.Accept"
+	have "(simple_match_any\<lparr>oiface := Iface (p_oiface p), iiface := Iface (p_iiface p)\<rparr>, ?a) \<in> set (oif_ne_iif ifs)"
+		unfolding oif_ne_iif_def
+		unfolding set_concat UN_iff
+		unfolding set_map
+		unfolding Bex_def
+		unfolding image_iff_forealyo
+		apply(rule_tac x = "map (\<lambda>ii. (simple_match_any\<lparr>oiface := Iface (p_oiface p), iiface := Iface ii\<rparr>, if (p_oiface p) = ii then simple_action.Drop else simple_action.Accept)) ifs" in exI)
+		apply(intro conjI)
+		apply(rule_tac x = "p_oiface p" in bexI, rule refl, rule goal2)
+		unfolding set_map image_iff_forealyo
+		apply(rule_tac x = "p_iiface p" in bexI, rule refl, rule goal2)
+	done (* ayayaya *)
+oops*)
+
+lemma oif_ne_iif_p1_correct: "is_iface_list ifs \<Longrightarrow> generalized_sfw (oif_ne_iif_p1 ifs) p \<noteq> None \<longleftrightarrow> (p_oiface p \<noteq> p_iiface p \<and> p_oiface p \<in> set ifs \<and> p_iiface p \<in> set ifs)"
 proof(rule iffI, defer_tac, rule ccontr, unfold not_not)
 	case goal2
-	then obtain m d where "generalized_sfw (oif_ne_iif ifs) p = Some (m,d)" by fast
+	then obtain m d where "generalized_sfw (oif_ne_iif_p1 ifs) p = Some (m,d)" by fast
 	note m = generalized_sfwD[OF this]
-	then obtain oif iif where ifs[simp]: "oif \<noteq> iif" "oif \<in> set ifs" "iif \<in> set ifs" "m = simple_match_any\<lparr>oiface := Iface oif, iiface := Iface iif\<rparr>" unfolding oif_ne_iif_def by force
+	then obtain oif iif where ifs[simp]: "oif \<noteq> iif" "oif \<in> set ifs" "iif \<in> set ifs" "m = simple_match_any\<lparr>oiface := Iface oif, iiface := Iface iif\<rparr>" unfolding oif_ne_iif_p1_def by auto
 	hence ifn: "is_iface_name iif" "is_iface_name oif" using goal2 by(simp_all add: is_iface_list_def list_all_iff)
 	show ?case using m unfolding ifs unfolding simple_matches_ioiface[OF ifn] by simp
 next
@@ -555,10 +598,40 @@ next
 	hence ifn: "is_iface_name (p_iiface p)" "is_iface_name (p_oiface p)" by(simp_all add: is_iface_list_def list_all_iff)
 	note goal1(3)[THEN generalized_sfw_NoneD]
 	hence "\<not> simple_matches (simple_match_any\<lparr>oiface := Iface (p_oiface p), iiface := Iface (p_iiface p)\<rparr>) p" 
-		unfolding oif_ne_iif_def using goal1(2) by fastforce
+		unfolding oif_ne_iif_p1_def using goal1(2) by fastforce
 	thus False unfolding simple_matches_ioiface[OF ifn] by simp
 qed
+lemma oif_ne_iif_p2_correct: "is_iface_list ifs \<Longrightarrow> generalized_sfw (oif_ne_iif_p2 ifs) p \<noteq> None \<longleftrightarrow> (p_oiface p = p_iiface p \<and> p_oiface p \<in> set ifs \<and> p_iiface p \<in> set ifs)"
+	unfolding oif_ne_iif_p2_def
+	apply(induction ifs)
+	 apply(clarsimp simp add: generalized_sfw_simps is_iface_list_def)+
+using simple_matches_ioiface by auto
 
+lemma  oif_ne_iif_p12_snd:
+	"generalized_sfw (oif_ne_iif_p1 ifs) p = Some (r,e) \<Longrightarrow> e \<noteq> simple_action.Drop"
+	"generalized_sfw (oif_ne_iif_p2 ifs) p = Some (r,e) \<Longrightarrow> e = simple_action.Drop"
+	unfolding oif_ne_iif_p2_def oif_ne_iif_p1_def
+	by(drule generalized_sfwD; clarsimp)+
+
+lemma oif_ne_iif_correct: "is_iface_list ifs \<Longrightarrow> (\<exists>r. generalized_sfw (oif_ne_iif ifs) p = Some (r, ad)) \<longleftrightarrow> ((p_oiface p = p_iiface p \<longleftrightarrow> ad = simple_action.Drop) \<and> p_oiface p \<in> set ifs \<and> p_iiface p \<in> set ifs)"
+	unfolding oif_ne_iif_def
+	unfolding generalized_sfw_append
+	apply(rule iffI; split option.splits; clarify)
+	  apply(simp_all only: oif_ne_iif_p12_snd)
+	  using oif_ne_iif_p1_correct apply blast
+	 using oif_ne_iif_p2_correct apply blast
+	apply(simp)
+	apply(rule conjI;clarsimp)
+	 apply(subgoal_tac "p_oiface p \<noteq> p_iiface p")
+	  apply(drule oif_ne_iif_p1_correct[of _ p, THEN iffD2])
+	   apply blast
+	  apply(clarsimp)
+	  apply(drule oif_ne_iif_p12_snd)
+	  apply(metis simple_action.exhaust)
+	 using oif_ne_iif_p2_correct apply blast
+	apply(frule oif_ne_iif_p12_snd)
+	using oif_ne_iif_p2_correct apply blast
+done
 
 lemma map_injective_eq: "map f xs = map g ys \<Longrightarrow> (\<And>e. f e = g e) \<Longrightarrow> inj f \<Longrightarrow> xs = ys"
 	apply(rule map_injective, defer_tac)
@@ -736,6 +809,7 @@ apply(cases h, case_tac[!] d)
 apply(simp_all add: OF_match_fields_unsafe_def simple_match_to_of_match_single_def option2set_def)
 oops
 
+(* TODO: move *)
 lemma cidrsplitelems: "\<lbrakk>
         x \<in> set (wordinterval_CIDR_split_internal wi);
         xa \<in> set (wordinterval_CIDR_split_internal wi); 
@@ -1108,9 +1182,9 @@ thm s1_correct s2_correct
 
 definition "oiface_exact_match \<equiv> list_all (is_iface_name \<circ> iface_sel)"
 
-(* Okay, here comes the crazy. We have shown so far that for packets with a correct output port, s1_sema will make the correct decision on s1, and s2(_sema) will uphold that decision.
-   However, at some point, we need to make that set go away, and the first possible point is after s2. Two ways emerge: Either, set the match to something fixed '''' and make all packets have that,
-   or set it to ifaceAny. Both will make any packet pass the interface match, so ifaceAny is sane. Here is how we get out: We can show that if s1 has not made a decision with the correct port,
+(* Okay, here comes the crazy. We have shown so far that for packets with a correct output port, generalized_sfw 1 will make the correct decision on s1, and s2 will uphold that decision.
+   However, at some point, we need to make that set go away, and the first possible point is after s1,2,4. Two ways emerge: Either, set the match to something fixed, e.g., '''', and make all packets have that value,
+   or set it to ifaceAny. Both will make any packet pass the interface match, so ifaceAny is sane. Here is how we get there: We can show that if s1 has not made a decision with the correct port,
    it will not make a decision with any port. s2 will uphold not making a decision. Thus, the decision has to remain the same even when making a decision. *)
 find_theorems route2match
 lemma eqFalseI: "\<not>A \<Longrightarrow> A = False" by simp
@@ -1135,6 +1209,50 @@ proof(induction rt) (* would be easier by rev_induct, but I lack a little lemma,
 	note Cons.IH[OF this]
 	with nsm show ?case by(simp add: generalized_sfw_simps fourtytwo_s1_split) 
 qed(simp add: generalized_sfw_def fourtytwo_s1_def;fail)
+
+(* TODO: move *)
+definition "rtbl_ifs = set \<circ> map (output_iface \<circ> routing_action)"
+lemma ra_in_rtbl_ifs: "valid_prefixes rt \<Longrightarrow> has_default_route rt \<Longrightarrow> output_iface (routing_table_semantics rt d) \<in> rtbl_ifs rt"
+	apply(induction rt)
+	 apply(simp;fail)
+	apply(simp add: rtbl_ifs_def comp_def)
+using valid_prefixes_split zero_prefix_match_all by blast
+
+(* TODO: move *)
+lemma simple_matches_update_any: "simple_matches a p \<Longrightarrow> simple_matches (a\<lparr>oiface := ifaceAny\<rparr>) (p\<lparr>p_oiface := any\<rparr>)"
+	by(clarsimp simp: simple_matches.simps match_ifaceAny)
+
+lemma fourtytwo_nullifyoif_Some_keep: "generalized_sfw s p = Some b \<Longrightarrow> \<exists>b'. generalized_sfw (fourtytwo_nullifyoif s) (p\<lparr>p_oiface := any\<rparr>) = Some b'"
+	by(induction s) (simp_all add: generalized_sfw_simps fourtytwo_nullifyoif_def const_def simple_matches_update_any split: prod.splits if_splits)
+
+lemma towards_fourtytwo_fbs_correct:
+	fixes p :: "'a simple_packet_scheme"
+	assumes s1: "valid_prefixes rt" "has_default_route rt"
+	    and s2: "\<forall>(p::'a simple_packet_scheme). simple_fw fw p \<noteq> Undecided"
+	    and s4: "is_iface_list ifs" "p_iiface p \<in> set ifs"
+	    and ri: "rtbl_ifs rt \<subseteq> set ifs"
+	  shows     "generalized_sfw (fourtytwo_fbs rt fw ifs) p \<noteq> None"
+proof -
+	let ?pu = "(p\<lparr>p_oiface := output_iface (routing_table_semantics rt (p_dst p))\<rparr>)" 
+	from s4 s1 ri have "generalized_sfw (oif_ne_iif ifs) ?pu \<noteq> None" 
+	proof -
+		have pi: "p_iiface ?pu \<in> set ifs" using s4 by simp
+		moreover have po: "p_oiface ?pu \<in> set ifs" using ra_in_rtbl_ifs[OF s1] ri by simp blast
+		moreover obtain ad where ad: "(p_oiface ?pu = p_iiface ?pu) = (ad = simple_action.Drop)" by blast
+		moreover note oif_ne_iif_correct[OF s4(1), of ?pu, THEN iffD2]
+		ultimately show "generalized_sfw (oif_ne_iif ifs) ?pu \<noteq> None" by blast
+	qed
+	moreover from s2 have "generalized_sfw (map simple_rule_dtor fw) ?pu \<noteq> None" using simple_generalized_undecided by blast
+	ultimately have  "generalized_sfw (generalized_sfw_conjunct_o (generalized_fw_join (oif_ne_iif ifs) (map simple_rule_dtor fw))) ?pu \<noteq> None" 
+		unfolding generalized_sfw_conjunct_o_def generalized_sfw_mapsnd using generalized_fw_joinI by fast
+	moreover from s1 have "generalized_sfw (fourtytwo_s1 rt) ?pu \<noteq> None" using s1_correct by blast
+	ultimately have "generalized_sfw (generalized_fw_join (fourtytwo_s1 rt) (generalized_sfw_conjunct_o (generalized_fw_join (oif_ne_iif ifs) (map simple_rule_dtor fw)))) ?pu \<noteq> None"
+		apply(clarify)
+		apply(drule generalized_fw_joinI[rotated])  
+		apply blast+ 
+	done
+	then show ?thesis unfolding fourtytwo_fbs_def Let_def using fourtytwo_nullifyoif_Some_keep[where any = "p_oiface p"] by fastforce
+qed
 
 lemma invert_map_append: "map f l = a @ b \<Longrightarrow> \<exists>a' b'. map f (a' @ b') = a @ b \<and> length a' = length a \<and> length b' = length b"
 proof(induction a arbitrary: l)
