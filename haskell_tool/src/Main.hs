@@ -9,6 +9,7 @@
 module Main where
 
 import Data.Functor ((<$>))
+import Control.Applicative ((<*>))
 import qualified Data.List as L
 import Network.IPTables.Ruleset
 import Network.IPTables.Parser
