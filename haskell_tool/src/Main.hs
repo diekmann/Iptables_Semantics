@@ -21,20 +21,21 @@ import qualified Network.IPTables.Generated as Isabelle
 
 putErrStrLn = System.IO.hPutStrLn System.IO.stderr
 
+--labeled (and optional) command line arguments. For example: ./fffuu --table "filter"
 data CommandLineArgsLabeled = CommandLineArgsLabeled
         { ipassmt :: Maybe FilePath  <?> "Optional path to an IP assignment file. If not specified, it only loads `lo = [127.0.0.0/8]`."
         , table :: Maybe String <?> "The table to load for analysis. Default: `filter`. Note: This tool does not support pcket modification, so loading tables such as `nat` will most likeley fail."
         , chain :: Maybe String <?> "The chain to start the analysis. Default: `FORWARD`. Use `INPUT` for a host-based firewall."
-        --, rs :: FilePath <?> "Path to the `iptables-save` output."
         } deriving (Generic, Show)
 
 instance ParseRecord CommandLineArgsLabeled
 
+
+-- unlabeld, mandatory command line arguments. For example: ./fffuu "path/to/iptables-save"
 -- trying to remve the obligation to alwayse have to type --rs
 -- http://stackoverflow.com/questions/36375556/haskell-unnamed-command-line-arguments-for-optparse-generic/36382477#36382477
--- unlabeld, mandatory command line arguments. For example: ./fffuu "path/to/iptables-save"
 data CommandLineArgsUnlabeled = CommandLineArgsUnlabeled
-        {rs :: FilePath  <?> "Path to the `iptables-save` output."}
+        FilePath -- <?> "Path to the `iptables-save` output."
         deriving (Generic, Show)
 
 instance ParseRecord CommandLineArgsUnlabeled
@@ -59,7 +60,7 @@ readArgs (CommandLineArgs labeled unlabeled) = do
     firewall <- readArgsUnlabeled unlabeled
     return (assmt, tbl, chn, firewall)
     where
-        readArgsUnlabeled (CommandLineArgsUnlabeled (Helpful rsFilePath)) = (rsFilePath,) <$> readFile rsFilePath
+        readArgsUnlabeled (CommandLineArgsUnlabeled rsFilePath) = (rsFilePath,) <$> readFile rsFilePath
             -- TODO: support stdin
             --where readInput [] = ("<stdin>",) <$> getContents
 
