@@ -103,54 +103,6 @@ begin
        apply(auto simp add: primitive_matcher_generic.Extra_single primitive_matcher_generic.Extra_single_not split: split_if_asm)
      done
   
-  private lemma abstract_primitive_in_doubt_allow_help2:
-    assumes generic: "primitive_matcher_generic \<beta>"
-        and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
-        and prem: "approximating_bigstep_fun (\<beta>, in_doubt_allow) p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalDeny"
-        shows "approximating_bigstep_fun (\<beta>, in_doubt_allow) p rs Undecided = Decision FinalDeny"
-    proof -
-      let ?\<gamma>="(\<beta>, in_doubt_allow) :: (common_primitive \<Rightarrow> simple_packet \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> simple_packet \<Rightarrow> bool)"
-        --{*type signature is needed, otherwise @{const in_doubt_allow} would be for arbitrary packet*}
-  
-      from simple have "wf_ruleset ?\<gamma> p rs" using good_imp_wf_ruleset simple_imp_good_ruleset by fast
-      from this simple prem n show ?thesis
-        proof(induction ?\<gamma> p rs Undecided rule: approximating_bigstep_fun_induct_wf)
-        case Empty thus ?case by(simp add: optimize_matches_def)
-        next
-        case (MatchAccept p m a rs)
-          from MatchAccept.prems abstract_primitive_in_doubt_allow_Allow[OF generic] MatchAccept.hyps have
-            1: "matches ?\<gamma> (abstract_primitive disc m) action.Accept p" by simp
-          with MatchAccept have "approximating_bigstep_fun ?\<gamma> p
-            (Rule (abstract_primitive disc m) action.Accept # (optimize_matches (abstract_primitive disc) rs)) Undecided = Decision FinalDeny"
-            using optimize_matches_matches_fst by metis
-          with 1 have False by(simp)
-          thus ?case ..
-        next
-        case (Nomatch p m a rs) thus ?case
-          proof(cases "matches ?\<gamma> (abstract_primitive disc m) a p")
-            case False
-            with Nomatch.prems(2) have "approximating_bigstep_fun ?\<gamma> p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalDeny"
-              by(simp add: optimize_matches_def split: split_if_asm)
-            with Nomatch have IH: "approximating_bigstep_fun ?\<gamma> p rs Undecided = Decision FinalDeny"
-              using simple_ruleset_tail by auto
-            with Nomatch(1) show ?thesis by simp
-            next
-            case True
-              from Nomatch.prems(2) True have 1: "approximating_bigstep_fun ?\<gamma> p
-                (Rule (abstract_primitive disc m) a # (optimize_matches (abstract_primitive disc) rs)) Undecided = Decision FinalDeny"
-                using optimize_matches_matches_fst by metis
-                
-              from Nomatch.prems(1) have "a = action.Accept \<or> a = action.Drop" by(simp add: simple_ruleset_def)
-              from Nomatch.hyps(1) Nomatch.prems(3) abstract_primitive_in_doubt_allow_Allow2[OF generic] have
-                "a = action.Drop \<Longrightarrow> \<not> matches ?\<gamma> (abstract_primitive disc m) action.Drop p" by simp
-              with True `a = action.Accept \<or> a = action.Drop` have "a = action.Accept" by blast
-              with 1 True have False by simp
-              thus ?thesis ..
-            qed
-        qed(simp_all add: simple_ruleset_def)
-  qed
-  
-  
   theorem abstract_primitive_in_doubt_allow_generic:
     assumes generic: "primitive_matcher_generic \<beta>"
        and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
@@ -164,17 +116,16 @@ begin
       from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
        good: "good_ruleset (optimize_matches (abstract_primitive disc) rs)" by fast
 
-
+      let ?\<gamma>="(\<beta>, in_doubt_allow) :: (common_primitive \<Rightarrow> simple_packet \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> simple_packet \<Rightarrow> bool)"
+        --{*type signature is needed, otherwise @{const in_doubt_allow} would be for arbitrary packet*}
 
       have abstract_primitive_in_doubt_allow_help1:
-        "approximating_bigstep_fun (\<beta>, in_doubt_allow) p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalAllow"
-        if prem: "approximating_bigstep_fun (\<beta>, in_doubt_allow) p rs Undecided = Decision FinalAllow" for p
+        "approximating_bigstep_fun \<gamma> p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalAllow"
+        if prem: "approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow" for p
         proof -
-          let ?\<gamma>="(\<beta>, in_doubt_allow) :: (common_primitive \<Rightarrow> simple_packet \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> simple_packet \<Rightarrow> bool)"
-            --{*type signature is needed, otherwise @{const in_doubt_allow} would be for arbitrary packet*}
-      
-          from simple have "wf_ruleset ?\<gamma> p rs" using good_imp_wf_ruleset simple_imp_good_ruleset by fast
+          from simple have "wf_ruleset \<gamma> p rs" using good_imp_wf_ruleset simple_imp_good_ruleset by fast
           from this simple prem n show ?thesis
+            unfolding \<gamma>_def
             proof(induction ?\<gamma> p rs Undecided rule: approximating_bigstep_fun_induct_wf)
             case (MatchAccept p m a rs)
               from MatchAccept.prems
@@ -201,10 +152,54 @@ begin
             qed(simp_all add: simple_ruleset_def)
       qed
 
+      have abstract_primitive_in_doubt_allow_help2:
+        "approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalDeny"
+        if prem: "approximating_bigstep_fun \<gamma> p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalDeny"
+        for p
+        proof -
+          from simple have "wf_ruleset \<gamma> p rs" using good_imp_wf_ruleset simple_imp_good_ruleset by fast
+          from this simple prem n show ?thesis
+            unfolding \<gamma>_def
+            proof(induction ?\<gamma> p rs Undecided rule: approximating_bigstep_fun_induct_wf)
+            case Empty thus ?case by(simp add: optimize_matches_def)
+            next
+            case (MatchAccept p m a rs)
+              from MatchAccept.prems abstract_primitive_in_doubt_allow_Allow[OF generic] MatchAccept.hyps have
+                1: "matches ?\<gamma> (abstract_primitive disc m) action.Accept p" by simp
+              with MatchAccept have "approximating_bigstep_fun ?\<gamma> p
+                (Rule (abstract_primitive disc m) action.Accept # (optimize_matches (abstract_primitive disc) rs)) Undecided = Decision FinalDeny"
+                using optimize_matches_matches_fst by metis
+              with 1 have False by(simp)
+              thus ?case ..
+            next
+            case (Nomatch p m a rs) thus ?case
+              proof(cases "matches ?\<gamma> (abstract_primitive disc m) a p")
+                case False
+                with Nomatch.prems(2) have "approximating_bigstep_fun ?\<gamma> p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalDeny"
+                  by(simp add: optimize_matches_def split: split_if_asm)
+                with Nomatch have IH: "approximating_bigstep_fun ?\<gamma> p rs Undecided = Decision FinalDeny"
+                  using simple_ruleset_tail by auto
+                with Nomatch(1) show ?thesis by simp
+                next
+                case True
+                  from Nomatch.prems(2) True have 1: "approximating_bigstep_fun ?\<gamma> p
+                    (Rule (abstract_primitive disc m) a # (optimize_matches (abstract_primitive disc) rs)) Undecided = Decision FinalDeny"
+                    using optimize_matches_matches_fst by metis
+                    
+                  from Nomatch.prems(1) have "a = action.Accept \<or> a = action.Drop" by(simp add: simple_ruleset_def)
+                  from Nomatch.hyps(1) Nomatch.prems(3) abstract_primitive_in_doubt_allow_Allow2[OF generic] have
+                    "a = action.Drop \<Longrightarrow> \<not> matches ?\<gamma> (abstract_primitive disc m) action.Drop p" by simp
+                  with True `a = action.Accept \<or> a = action.Drop` have "a = action.Accept" by blast
+                  with 1 True have False by simp
+                  thus ?thesis ..
+                qed
+            qed(simp_all add: simple_ruleset_def)
+      qed
+  
       from good approximating_semantics_iff_fun_good_ruleset abstract_primitive_in_doubt_allow_help1 `good_ruleset rs` show ?allow
-        unfolding \<gamma>_def abstract_def by fast
-      from good approximating_semantics_iff_fun_good_ruleset abstract_primitive_in_doubt_allow_help2[OF generic n simple] `good_ruleset rs` \<gamma>_def show ?deny 
-        unfolding \<gamma>_def abstract_def by fast
+        unfolding abstract_def by fast
+      from good approximating_semantics_iff_fun_good_ruleset abstract_primitive_in_doubt_allow_help2 `good_ruleset rs` \<gamma>_def show ?deny 
+        unfolding abstract_def by fast
     qed
   corollary abstract_primitive_in_doubt_allow:
     assumes "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and "simple_ruleset rs"
@@ -233,7 +228,6 @@ begin
      case(5 m1 m2) thus ?case by (auto simp add: bunch_of_lemmata_about_matches(1))
      qed(simp_all add: bunch_of_lemmata_about_matches(1) primitive_matcher_generic.Extra_single)
   
-  
   private lemma abstract_primitive_in_doubt_deny_Allow: 
     "primitive_matcher_generic \<beta> \<Longrightarrow> normalized_nnf_match m \<Longrightarrow>
       matches (\<beta>, in_doubt_deny) (abstract_primitive disc m) action.Accept p \<Longrightarrow>
@@ -251,57 +245,7 @@ begin
            apply (simp_all add: bunch_of_lemmata_about_matches(1))
        apply(auto simp add: primitive_matcher_generic.Extra_single primitive_matcher_generic.Extra_single_not split: split_if_asm)
      done
-  
-  
-  private lemma abstract_primitive_in_doubt_deny_help2:
-    assumes generic: "primitive_matcher_generic \<beta>"
-        and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
-        and prem: "approximating_bigstep_fun (\<beta>, in_doubt_deny) p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalAllow"
-      shows "approximating_bigstep_fun (\<beta>, in_doubt_deny) p rs Undecided = Decision FinalAllow"
-    proof -
-      let ?\<gamma>="(\<beta>, in_doubt_deny) :: (common_primitive \<Rightarrow> simple_packet \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> simple_packet \<Rightarrow> bool)"
-        --{*type signature is needed, otherwise @{const in_doubt_deny} would be for arbitrary packet*}
-  
-      from simple have "wf_ruleset ?\<gamma> p rs" using good_imp_wf_ruleset simple_imp_good_ruleset by fast
-      from this simple prem n show ?thesis
-        proof(induction ?\<gamma> p rs Undecided rule: approximating_bigstep_fun_induct_wf)
-        case Empty thus ?case by(simp add: optimize_matches_def)
-        next
-        case (MatchAccept p m a rs) thus ?case by auto
-        next
-        case (MatchDrop p m a rs)
-          from MatchDrop.prems abstract_primitive_in_doubt_deny_Deny[OF generic] MatchDrop.hyps have
-            1: "matches ?\<gamma> (abstract_primitive disc m) action.Drop p" by simp
-          from MatchDrop have "approximating_bigstep_fun ?\<gamma> p
-            (Rule (abstract_primitive disc m) action.Drop # (optimize_matches (abstract_primitive disc) rs)) Undecided = Decision FinalAllow"
-          using optimize_matches_matches_fst 1 by fastforce
-          with 1 have False by(simp)
-          thus ?case ..
-        next
-        case (Nomatch p m a rs) thus ?case
-          proof(cases "matches ?\<gamma> (abstract_primitive disc m) a p")
-            case False 
-            with Nomatch.prems(2) have "approximating_bigstep_fun ?\<gamma> p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalAllow"
-              by(simp add: optimize_matches_def split: split_if_asm)
-            with Nomatch have IH: "approximating_bigstep_fun ?\<gamma> p rs Undecided = Decision FinalAllow"
-              using simple_ruleset_tail by auto
-            with Nomatch(1) show ?thesis by simp
-            next
-            case True
-              from Nomatch.prems(2) True have 1: "approximating_bigstep_fun ?\<gamma> p
-                (Rule (abstract_primitive disc m) a # (optimize_matches (abstract_primitive disc) rs)) Undecided = Decision FinalAllow"
-                using optimize_matches_matches_fst by metis
-              from Nomatch.prems(1) have "a = action.Accept \<or> a = action.Drop" by(simp add: simple_ruleset_def)
-              from Nomatch.hyps(1) Nomatch.prems(3) abstract_primitive_in_doubt_deny_Deny2[OF generic] have
-                "a = action.Accept \<Longrightarrow> \<not> matches ?\<gamma> (abstract_primitive disc m) action.Accept p" by simp
-              with True `a = action.Accept \<or> a = action.Drop` have "a = action.Drop" by blast
-              with 1 True have False by force
-              thus ?thesis ..
-            qed
-        qed(simp_all add: simple_ruleset_def)
-  qed
-  
-  
+
   theorem abstract_primitive_in_doubt_deny_generic:
     assumes generic: "primitive_matcher_generic \<beta>"
         and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
@@ -315,14 +259,14 @@ begin
       from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
         good: "good_ruleset (optimize_matches (abstract_primitive disc) rs)" by fast
 
-    have abstract_primitive_in_doubt_deny_help1:
-        "approximating_bigstep_fun \<gamma> p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalDeny"
-        if prem: "approximating_bigstep_fun (\<beta>, in_doubt_deny) p rs Undecided = Decision FinalDeny" for p
-        proof -
-          let ?\<gamma>="(\<beta>, in_doubt_deny) :: (common_primitive \<Rightarrow> simple_packet \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> simple_packet \<Rightarrow> bool)"
-            --{*type signature is needed, otherwise @{const in_doubt_allow} would be for arbitrary packet*}
+      let ?\<gamma>="(\<beta>, in_doubt_deny) :: (common_primitive \<Rightarrow> simple_packet \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> simple_packet \<Rightarrow> bool)"
+        --{*type signature is needed, otherwise @{const in_doubt_allow} would be for arbitrary packet*}
       
-          from simple have "wf_ruleset ?\<gamma> p rs" using good_imp_wf_ruleset simple_imp_good_ruleset by fast
+      have abstract_primitive_in_doubt_deny_help1:
+        "approximating_bigstep_fun \<gamma> p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalDeny"
+        if prem: "approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalDeny" for p
+        proof -
+          from simple have "wf_ruleset \<gamma> p rs" using good_imp_wf_ruleset simple_imp_good_ruleset by fast
           from this simple prem n show ?thesis
             unfolding \<gamma>_def
             proof(induction ?\<gamma> p rs Undecided rule: approximating_bigstep_fun_induct_wf)
@@ -348,13 +292,56 @@ begin
                 qed
             qed(simp_all add: simple_ruleset_def)
       qed
-  
 
+      have abstract_primitive_in_doubt_deny_help2:
+        "approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow"
+        if prem: "approximating_bigstep_fun \<gamma> p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalAllow"
+        for p
+        proof -
+          from simple have "wf_ruleset ?\<gamma> p rs" using good_imp_wf_ruleset simple_imp_good_ruleset by fast
+          from this simple prem n show ?thesis
+            unfolding \<gamma>_def
+            proof(induction ?\<gamma> p rs Undecided rule: approximating_bigstep_fun_induct_wf)
+            case Empty thus ?case by(simp add: optimize_matches_def)
+            next
+            case (MatchAccept p m a rs) thus ?case by auto
+            next
+            case (MatchDrop p m a rs)
+              from MatchDrop.prems abstract_primitive_in_doubt_deny_Deny[OF generic] MatchDrop.hyps have
+                1: "matches ?\<gamma> (abstract_primitive disc m) action.Drop p" by simp
+              from MatchDrop have "approximating_bigstep_fun ?\<gamma> p
+                (Rule (abstract_primitive disc m) action.Drop # (optimize_matches (abstract_primitive disc) rs)) Undecided = Decision FinalAllow"
+              using optimize_matches_matches_fst 1 by fastforce
+              with 1 have False by(simp)
+              thus ?case ..
+            next
+            case (Nomatch p m a rs) thus ?case
+              proof(cases "matches ?\<gamma> (abstract_primitive disc m) a p")
+                case False 
+                with Nomatch.prems(2) have "approximating_bigstep_fun ?\<gamma> p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalAllow"
+                  by(simp add: optimize_matches_def split: split_if_asm)
+                with Nomatch have IH: "approximating_bigstep_fun ?\<gamma> p rs Undecided = Decision FinalAllow"
+                  using simple_ruleset_tail by auto
+                with Nomatch(1) show ?thesis by simp
+                next
+                case True
+                  from Nomatch.prems(2) True have 1: "approximating_bigstep_fun ?\<gamma> p
+                    (Rule (abstract_primitive disc m) a # (optimize_matches (abstract_primitive disc) rs)) Undecided = Decision FinalAllow"
+                    using optimize_matches_matches_fst by metis
+                  from Nomatch.prems(1) have "a = action.Accept \<or> a = action.Drop" by(simp add: simple_ruleset_def)
+                  from Nomatch.hyps(1) Nomatch.prems(3) abstract_primitive_in_doubt_deny_Deny2[OF generic] have
+                    "a = action.Accept \<Longrightarrow> \<not> matches ?\<gamma> (abstract_primitive disc m) action.Accept p" by simp
+                  with True `a = action.Accept \<or> a = action.Drop` have "a = action.Drop" by blast
+                  with 1 True have False by force
+                  thus ?thesis ..
+                qed
+            qed(simp_all add: simple_ruleset_def)
+      qed
 
       from good approximating_semantics_iff_fun_good_ruleset abstract_primitive_in_doubt_deny_help1 `good_ruleset rs` show ?deny
-        unfolding \<gamma>_def abstract_def by fast
-      from good approximating_semantics_iff_fun_good_ruleset abstract_primitive_in_doubt_deny_help2[OF generic n simple] `good_ruleset rs` show ?allow
-        unfolding \<gamma>_def abstract_def by fast
+        unfolding abstract_def by fast
+      from good approximating_semantics_iff_fun_good_ruleset abstract_primitive_in_doubt_deny_help2 `good_ruleset rs` show ?allow
+        unfolding abstract_def by fast
     qed
 end
 
