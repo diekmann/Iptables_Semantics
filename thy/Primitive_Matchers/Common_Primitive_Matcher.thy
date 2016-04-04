@@ -180,7 +180,6 @@ lemmas match_simplematcher_Iface = primitive_matcher_generic.Iface_single[OF pri
 lemmas match_simplematcher_Iface_not = primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher]
 lemmas match_simplematcher_Prot = primitive_matcher_generic.Prot_single[OF primitive_matcher_generic_common_matcher]
 lemmas match_simplematcher_Prot_not = primitive_matcher_generic.Prot_single_not[OF primitive_matcher_generic_common_matcher]
-lemmas multiports_disjuction = primitive_matcher_generic.multiports_disjuction[OF primitive_matcher_generic_common_matcher]
 
 
 

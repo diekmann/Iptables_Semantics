@@ -247,9 +247,9 @@ lemma optimize_matches_fst: "optimize_matches f (r#rs) = optimize_matches f [r]@
 by(cases r)(simp add: optimize_matches_def)
   
 
-theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
-      shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
-      and "simple_ruleset (transform_optimize_dnf_strict rs)"
+theorem transform_optimize_dnf_strict_structure: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
+      shows (*"(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+      and*) "simple_ruleset (transform_optimize_dnf_strict rs)"
       and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc disc m"
       and "\<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_nnf_match m"
       and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
@@ -258,14 +258,15 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
             \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc_negated disc neg m"
   proof -
     let ?\<gamma>="(common_matcher, \<alpha>)"
-    let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
+    show simplers_transform: "simple_ruleset (transform_optimize_dnf_strict rs)"
+      unfolding transform_optimize_dnf_strict_def
+      using simplers by (simp add: optimize_matches_simple_ruleset simple_ruleset_normalize_rules_dnf)
+
+    (*let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
 
     have simplers1: "simple_ruleset (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs)"
       using simplers optimize_matches_simple_ruleset by (metis)
 
-    show simplers_transform: "simple_ruleset (transform_optimize_dnf_strict rs)"
-      unfolding transform_optimize_dnf_strict_def
-      using simplers by (simp add: optimize_matches_simple_ruleset simple_ruleset_normalize_rules_dnf)
 
     have 1: "?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?fw rs = t"
       using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]] by fast
@@ -284,7 +285,7 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
 
     have 2: "?fw (transform_optimize_dnf_strict rs) = t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t "
       using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_transform], symmetric] by fast
-    from 1 2 rs show "?\<gamma>,p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t" by simp
+    from 1 2 rs show "?\<gamma>,p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t" by simp*)
 
 
     have tf1: "\<And>r rs. transform_optimize_dnf_strict (r#rs) =
@@ -400,6 +401,39 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
       unfolding transform_optimize_dnf_strict_def by simp
       
   qed
+
+theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
+      shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+  proof -
+    let ?\<gamma>="(common_matcher, \<alpha>)"
+    let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
+
+    have simplers_transform: "simple_ruleset (transform_optimize_dnf_strict rs)"
+      unfolding transform_optimize_dnf_strict_def
+      using simplers by (simp add: optimize_matches_simple_ruleset simple_ruleset_normalize_rules_dnf)
+
+    have simplers1: "simple_ruleset (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs)"
+      using simplers optimize_matches_simple_ruleset by (metis)
+
+    have 1: "?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?fw rs = t"
+      using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]] by fast
+
+    have "?fw rs = ?fw (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs)"
+      apply(rule optimize_matches[symmetric])
+      using optimize_primitive_univ_correct_matchexpr opt_MatchAny_match_expr_correct by (metis comp_apply)
+    also have "\<dots> = ?fw (normalize_rules_dnf (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs))"
+      apply(rule normalize_rules_dnf_correct[symmetric])
+      using simplers1 by (metis good_imp_wf_ruleset simple_imp_good_ruleset)
+    also have "\<dots> = ?fw (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs)))"
+      apply(rule optimize_matches[symmetric])
+      using opt_MatchAny_match_expr_correct by (metis)
+    finally have rs: "?fw rs = ?fw (transform_optimize_dnf_strict rs)"
+      unfolding transform_optimize_dnf_strict_def by(simp)
+
+    have 2: "?fw (transform_optimize_dnf_strict rs) = t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t "
+      using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_transform], symmetric] by fast
+    from 1 2 rs show "?\<gamma>,p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t" by simp
+qed
 
 
 subsection{*Abstracting over unknowns*}
@@ -1122,10 +1156,10 @@ lemma transform_upper_closure:
         apply(frule transform_remove_unknowns_upper(4))
         apply(drule transform_remove_unknowns_upper(2))
         thm transform_optimize_dnf_strict[OF _ wf_in_doubt_allow]
-        apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_allow, where disc=is_Extra])
+        apply(frule(1) transform_optimize_dnf_strict_structure(2)[OF _ wf_in_doubt_allow, where disc=is_Extra])
         apply(thin_tac "\<forall>m\<in>get_match ` set (optimize_matches_a upper_closure_matchexpr rs). \<not> has_disc is_Extra m")
-        apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_allow])
-        apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_allow])
+        apply(frule transform_optimize_dnf_strict_structure(3)[OF _ wf_in_doubt_allow])
+        apply(drule transform_optimize_dnf_strict_structure(1)[OF _ wf_in_doubt_allow])
         thm transform_normalize_primitives[OF _ wf_in_doubt_allow]
         apply(frule(1) transform_normalize_primitives(3)[OF _ wf_in_doubt_allow, of _ is_Extra])
            apply(simp;fail)
@@ -1135,17 +1169,17 @@ lemma transform_upper_closure:
         apply(frule(1) transform_normalize_primitives(5)[OF _ wf_in_doubt_allow])
         apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_allow], simp)
         thm transform_optimize_dnf_strict[OF _ wf_in_doubt_allow]
-        apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_allow, where disc=is_Extra])
-        apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_allow])
-        apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_allow, of _ "(is_Src_Ports, src_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
+        apply(frule(1) transform_optimize_dnf_strict_structure(2)[OF _ wf_in_doubt_allow, where disc=is_Extra])
+        apply(frule transform_optimize_dnf_strict_structure(3)[OF _ wf_in_doubt_allow])
+        apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_allow, of _ "(is_Src_Ports, src_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
          apply(simp add: normalized_src_ports_def2; fail)
-        apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_allow, of _ "(is_Dst_Ports, dst_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
+        apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_allow, of _ "(is_Dst_Ports, dst_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
          apply(simp add: normalized_dst_ports_def2; fail)
-        apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_allow, of _ "(is_Src, src_sel)" normalized_cidr_ip])
+        apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_allow, of _ "(is_Src, src_sel)" normalized_cidr_ip])
          apply(simp add: normalized_src_ips_def2; fail)
-        apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_allow, of _ "(is_Dst, dst_sel)" normalized_cidr_ip])
+        apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_allow, of _ "(is_Dst, dst_sel)" normalized_cidr_ip])
          apply(simp add: normalized_dst_ips_def2; fail)
-        apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_allow])
+        apply(drule transform_optimize_dnf_strict_structure(1)[OF _ wf_in_doubt_allow])
         apply(simp)
         apply(subgoal_tac "(a = action.Accept \<or> a = action.Drop)")
          prefer 2
@@ -1188,15 +1222,15 @@ lemma transform_upper_closure:
     apply - 
     apply(frule(1) transform_remove_unknowns_upper(3)[where disc=disc])
     apply(drule transform_remove_unknowns_upper(2))
-    apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_allow, where disc=disc])
-    apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_allow])
-    apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_allow])
+    apply(frule(1) transform_optimize_dnf_strict_structure(2)[OF _ wf_in_doubt_allow, where disc=disc])
+    apply(frule transform_optimize_dnf_strict_structure(3)[OF _ wf_in_doubt_allow])
+    apply(drule transform_optimize_dnf_strict_structure(1)[OF _ wf_in_doubt_allow])
     apply(frule(1) transform_normalize_primitives(3)[OF _ wf_in_doubt_allow, of _ disc])
        apply(simp;fail)
       apply blast
      apply(simp;fail)
     apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_allow], simp)
-    apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_allow, where disc=disc])
+    apply(frule(1) transform_optimize_dnf_strict_structure(2)[OF _ wf_in_doubt_allow, where disc=disc])
     apply(simp add: remdups_rev_set)
     done
 
@@ -1208,15 +1242,15 @@ lemma transform_upper_closure:
     apply - 
     apply(frule(1) transform_remove_unknowns_upper(6)[where disc=disc])
     apply(drule transform_remove_unknowns_upper(2))
-    apply(frule(1) transform_optimize_dnf_strict(6)[OF _ wf_in_doubt_allow, where disc=disc])
-    apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_allow])
-    apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_allow])
+    apply(frule(1) transform_optimize_dnf_strict_structure(5)[OF _ wf_in_doubt_allow, where disc=disc])
+    apply(frule transform_optimize_dnf_strict_structure(3)[OF _ wf_in_doubt_allow])
+    apply(drule transform_optimize_dnf_strict_structure(1)[OF _ wf_in_doubt_allow])
     apply(frule(1) transform_normalize_primitives(7)[OF _ wf_in_doubt_allow, of _ disc])
        apply(simp;fail)
       apply blast
      apply(simp;fail)
     apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_allow], simp)
-    apply(frule(1) transform_optimize_dnf_strict(6)[OF _ wf_in_doubt_allow, where disc=disc])
+    apply(frule(1) transform_optimize_dnf_strict_structure(5)[OF _ wf_in_doubt_allow, where disc=disc])
     apply(simp add: remdups_rev_set)
     done
 
@@ -1226,13 +1260,13 @@ lemma transform_upper_closure:
     apply -
     apply(frule transform_remove_unknowns_upper(1)[where p=p and s=s and t=t])
     apply(drule transform_remove_unknowns_upper(2))
-    apply(frule transform_optimize_dnf_strict(1)[OF _ wf_in_doubt_allow, where p=p and s=s and t=t])
-    apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_allow])
-    apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_allow])
+    apply(frule transform_optimize_dnf_strict[OF _ wf_in_doubt_allow, where p=p and s=s and t=t])
+    apply(frule transform_optimize_dnf_strict_structure(3)[OF _ wf_in_doubt_allow])
+    apply(drule transform_optimize_dnf_strict_structure(1)[OF _ wf_in_doubt_allow])
     apply(frule(1) transform_normalize_primitives(1)[OF _ wf_in_doubt_allow, where p=p and s=s and t=t])
     apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_allow], simp)
-    apply(frule transform_optimize_dnf_strict(1)[OF _ wf_in_doubt_allow, where p=p and s=s and t=t])
-    apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_allow])
+    apply(frule transform_optimize_dnf_strict[OF _ wf_in_doubt_allow, where p=p and s=s and t=t])
+    apply(drule transform_optimize_dnf_strict_structure(1)[OF _ wf_in_doubt_allow])
     apply(simp)
     using approximating_bigstep_fun_remdups_rev
     by (simp add: approximating_bigstep_fun_remdups_rev approximating_semantics_iff_fun_good_ruleset remdups_rev_simplers simple_imp_good_ruleset) 
@@ -1275,10 +1309,10 @@ lemma transform_lower_closure:
         apply(frule transform_remove_unknowns_lower(4))
         apply(drule transform_remove_unknowns_lower(2))
         thm transform_optimize_dnf_strict[OF _ wf_in_doubt_deny]
-        apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_deny, where disc=is_Extra])
+        apply(frule(1) transform_optimize_dnf_strict_structure(2)[OF _ wf_in_doubt_deny, where disc=is_Extra])
         apply(thin_tac "\<forall>m\<in>get_match ` set (optimize_matches_a lower_closure_matchexpr rs). \<not> has_disc is_Extra m")
-        apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_deny])
-        apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_deny])
+        apply(frule transform_optimize_dnf_strict_structure(3)[OF _ wf_in_doubt_deny])
+        apply(drule transform_optimize_dnf_strict_structure(1)[OF _ wf_in_doubt_deny])
         thm transform_normalize_primitives[OF _ wf_in_doubt_deny]
         apply(frule(1) transform_normalize_primitives(3)[OF _ wf_in_doubt_deny, of _ is_Extra])
            apply(simp;fail)
@@ -1288,17 +1322,17 @@ lemma transform_lower_closure:
         apply(frule(1) transform_normalize_primitives(5)[OF _ wf_in_doubt_deny])
         apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_deny], simp)
         thm transform_optimize_dnf_strict[OF _ wf_in_doubt_deny]
-        apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_deny, where disc=is_Extra])
-        apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_deny])
-        apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_deny, of _ "(is_Src_Ports, src_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
+        apply(frule(1) transform_optimize_dnf_strict_structure(2)[OF _ wf_in_doubt_deny, where disc=is_Extra])
+        apply(frule transform_optimize_dnf_strict_structure(3)[OF _ wf_in_doubt_deny])
+        apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_deny, of _ "(is_Src_Ports, src_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
          apply(simp add: normalized_src_ports_def2; fail)
-        apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_deny, of _ "(is_Dst_Ports, dst_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
+        apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_deny, of _ "(is_Dst_Ports, dst_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
          apply(simp add: normalized_dst_ports_def2; fail)
-        apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_deny, of _ "(is_Src, src_sel)" normalized_cidr_ip])
+        apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_deny, of _ "(is_Src, src_sel)" normalized_cidr_ip])
          apply(simp add: normalized_src_ips_def2; fail)
-        apply(frule transform_optimize_dnf_strict(5)[OF _ wf_in_doubt_deny, of _ "(is_Dst, dst_sel)" normalized_cidr_ip])
+        apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_deny, of _ "(is_Dst, dst_sel)" normalized_cidr_ip])
          apply(simp add: normalized_dst_ips_def2; fail)
-        apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_deny])
+        apply(drule transform_optimize_dnf_strict_structure(1)[OF _ wf_in_doubt_deny])
         apply(simp)
         apply(subgoal_tac "(a = action.Accept \<or> a = action.Drop)")
          prefer 2
@@ -1341,15 +1375,15 @@ lemma transform_lower_closure:
     apply - 
     apply(frule(1) transform_remove_unknowns_lower(3)[where disc=disc])
     apply(drule transform_remove_unknowns_lower(2))
-    apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_deny, where disc=disc])
-    apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_deny])
-    apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_deny])
+    apply(frule(1) transform_optimize_dnf_strict_structure(2)[OF _ wf_in_doubt_deny, where disc=disc])
+    apply(frule transform_optimize_dnf_strict_structure(3)[OF _ wf_in_doubt_deny])
+    apply(drule transform_optimize_dnf_strict_structure(1)[OF _ wf_in_doubt_deny])
     apply(frule(1) transform_normalize_primitives(3)[OF _ wf_in_doubt_deny, of _ disc])
        apply(simp;fail)
       apply blast
      apply(simp;fail)
     apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_deny], simp)
-    apply(frule(1) transform_optimize_dnf_strict(3)[OF _ wf_in_doubt_deny, where disc=disc])
+    apply(frule(1) transform_optimize_dnf_strict_structure(2)[OF _ wf_in_doubt_deny, where disc=disc])
     apply(simp add: remdups_rev_set)
     done
 
@@ -1361,15 +1395,15 @@ lemma transform_lower_closure:
     apply - 
     apply(frule(1) transform_remove_unknowns_lower(6)[where disc=disc])
     apply(drule transform_remove_unknowns_lower(2))
-    apply(frule(1) transform_optimize_dnf_strict(6)[OF _ wf_in_doubt_deny, where disc=disc])
-    apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_deny])
-    apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_deny])
+    apply(frule(1) transform_optimize_dnf_strict_structure(5)[OF _ wf_in_doubt_deny, where disc=disc])
+    apply(frule transform_optimize_dnf_strict_structure(3)[OF _ wf_in_doubt_deny])
+    apply(drule transform_optimize_dnf_strict_structure(1)[OF _ wf_in_doubt_deny])
     apply(frule(1) transform_normalize_primitives(7)[OF _ wf_in_doubt_deny, of _ disc])
        apply(simp;fail)
       apply blast
      apply blast
     apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_deny], simp)
-    apply(frule(1) transform_optimize_dnf_strict(6)[OF _ wf_in_doubt_deny, where disc=disc])
+    apply(frule(1) transform_optimize_dnf_strict_structure(5)[OF _ wf_in_doubt_deny, where disc=disc])
     apply(simp add: remdups_rev_set)
     done
 
@@ -1379,13 +1413,13 @@ lemma transform_lower_closure:
     apply -
     apply(frule transform_remove_unknowns_lower(1)[where p=p and s=s and t=t])
     apply(drule transform_remove_unknowns_lower(2))
-    apply(frule transform_optimize_dnf_strict(1)[OF _ wf_in_doubt_deny, where p=p and s=s and t=t])
-    apply(frule transform_optimize_dnf_strict(4)[OF _ wf_in_doubt_deny])
-    apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_deny])
+    apply(frule transform_optimize_dnf_strict[OF _ wf_in_doubt_deny, where p=p and s=s and t=t])
+    apply(frule transform_optimize_dnf_strict_structure(3)[OF _ wf_in_doubt_deny])
+    apply(drule transform_optimize_dnf_strict_structure(1)[OF _ wf_in_doubt_deny])
     apply(frule(1) transform_normalize_primitives(1)[OF _ wf_in_doubt_deny, where p=p and s=s and t=t])
     apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_deny], simp)
-    apply(frule transform_optimize_dnf_strict(1)[OF _ wf_in_doubt_deny, where p=p and s=s and t=t])
-    apply(drule transform_optimize_dnf_strict(2)[OF _ wf_in_doubt_deny])
+    apply(frule transform_optimize_dnf_strict[OF _ wf_in_doubt_deny, where p=p and s=s and t=t])
+    apply(drule transform_optimize_dnf_strict_structure(1)[OF _ wf_in_doubt_deny])
     apply(simp)
     using approximating_bigstep_fun_remdups_rev
     by (simp add: approximating_bigstep_fun_remdups_rev approximating_semantics_iff_fun_good_ruleset remdups_rev_simplers simple_imp_good_ruleset) 
