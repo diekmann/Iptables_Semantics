@@ -37,14 +37,10 @@ lemma abstract_primitive_preserves_normalized:
   "normalized_src_ips m \<Longrightarrow> normalized_src_ips (abstract_primitive disc m)"
   "normalized_dst_ips m \<Longrightarrow> normalized_dst_ips (abstract_primitive disc m)"
   "normalized_nnf_match m \<Longrightarrow> normalized_nnf_match (abstract_primitive disc m)"
-  apply(induction disc m rule: abstract_primitive.induct)
-  apply(simp_all)
-  done
+  by(induction disc m rule: abstract_primitive.induct) (simp_all)
 lemma abstract_primitive_preserves_nodisc:
   "\<not> has_disc disc' m \<Longrightarrow> (\<forall>str. \<not> disc' (Extra str)) \<Longrightarrow> \<not> has_disc disc' (abstract_primitive disc m)"
-  apply(induction disc m rule: abstract_primitive.induct)
-  apply(simp_all)
-  done
+  by(induction disc m rule: abstract_primitive.induct)(simp_all)
 
 
 
@@ -91,7 +87,7 @@ begin
   
 
 
-  private lemma abstract_primitive_help1:
+  private lemma abstract_primitive_in_doubt_allow_help1:
     assumes generic: "primitive_matcher_generic \<beta>"
         and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
         and simple: "simple_ruleset rs"
@@ -226,7 +222,7 @@ begin
       from simple have "good_ruleset rs" using simple_imp_good_ruleset by fast
       from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
        good:  "good_ruleset (optimize_matches (abstract_primitive disc) rs)" by fast
-      with approximating_semantics_iff_fun_good_ruleset abstract_primitive_help1[OF generic n simple] `good_ruleset rs` show ?allow
+      with approximating_semantics_iff_fun_good_ruleset abstract_primitive_in_doubt_allow_help1[OF generic n simple] `good_ruleset rs` show ?allow
         unfolding \<gamma>_def abstract_def by fast
       from good approximating_semantics_iff_fun_good_ruleset abstract_primitive_in_doubt_allow_help2[OF generic n simple] `good_ruleset rs` \<gamma>_def show ?deny 
         unfolding \<gamma>_def abstract_def by fast
