@@ -118,7 +118,7 @@ locale primitive_matcher_generic =
    and Dst_Ports: "\<forall> p ps. \<beta> (Dst_Ports ps) p = bool_to_ternary (p_dport p \<in> ports_to_set ps)"
     and L4_Flags: "\<forall> p flags. \<beta> (L4_Flags flags) p = bool_to_ternary (match_tcp_flags flags (p_tcp_flags p))"
     and CT_State: "\<forall> p S. \<beta> (CT_State S) p = bool_to_ternary (match_ctstate S (p_tag_ctstate p))"
-        and Exta: "\<forall> p str. \<beta> (Extra str) p = TernaryUnknown"
+        and Extra: "\<forall> p str. \<beta> (Extra str) p = TernaryUnknown"
 begin
   lemma Iface_single:
     "matches (\<beta>, \<alpha>) (Match (IIface X)) a p \<longleftrightarrow> match_iface X (p_iiface p)"
@@ -159,6 +159,13 @@ begin
     apply(simp_all add: ports_to_set)
     by blast+
 
+
+  lemma Extra_single:
+    "matches (\<beta>, \<alpha>) (Match (Extra str)) a p \<longleftrightarrow> \<alpha> a p"
+     by(simp add: Extra matches_case_ternaryvalue_tuple)
+  lemma Extra_single_not:  --{*ternary logic, @{text "\<not> unknown = unknown"}*}
+    "matches (\<beta>, \<alpha>) (MatchNot (Match (Extra str))) a p \<longleftrightarrow> \<alpha> a p"
+     by(simp add: Extra matches_case_ternaryvalue_tuple)
 end
 
 

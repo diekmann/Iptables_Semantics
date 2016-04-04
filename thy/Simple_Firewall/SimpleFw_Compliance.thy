@@ -399,7 +399,7 @@ theorem transform_simple_fw_upper:
           {p. ?\<gamma>,p\<turnstile> \<langle>?rs3, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
       apply(subst transform_upper_closure(1)[OF s3])
       by simp
-    from abstract_primitive_in_doubt_allow(2)[OF primitive_matcher_generic_common_matcher nnf2 s2] have 2:
+    from abstract_primitive_in_doubt_allow_generic(2)[OF primitive_matcher_generic_common_matcher nnf2 s2] have 2:
          "{p. ?\<gamma>,p\<turnstile> \<langle>upper_closure (packet_assume_new rs), Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
           {p. ?\<gamma>,p\<turnstile> \<langle>?rs3, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
       by(auto simp add: abstract_for_simple_firewall_def)
@@ -511,7 +511,7 @@ theorem transform_simple_fw_lower:
           {p. ?\<gamma>,p\<turnstile> \<langle>?rs3, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
       apply(subst transform_lower_closure(1)[OF s3])
       by simp
-    from abstract_primitive_in_doubt_deny(1)[OF nnf2 s2] have 2:
+    from abstract_primitive_in_doubt_deny_generic(1)[OF primitive_matcher_generic_common_matcher nnf2 s2] have 2:
          "{p. ?\<gamma>,p\<turnstile> \<langle>?rs3, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
           {p. ?\<gamma>,p\<turnstile> \<langle>lower_closure (packet_assume_new rs), Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
       by(auto simp add: abstract_for_simple_firewall_def)
