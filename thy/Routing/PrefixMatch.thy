@@ -125,12 +125,12 @@ lemma packet_ipset_prefix_eq13:
 using packet_ipset_prefix_eq1[OF assms] packet_ipset_prefix_eq3[OF assms] by fast
 
 lemma prefix_match_if_in_my_set: "valid_prefix pfx \<Longrightarrow> 
-  prefix_match_semantics pfx (a :: ipv4addr) \<longleftrightarrow> a \<in> prefix_to_ipset pfx"
+  prefix_match_semantics pfx a \<longleftrightarrow> a \<in> prefix_to_ipset pfx"
   using packet_ipset_prefix_eq24 by auto
 
 lemma prefix_match_if_in_corny_set: 
   assumes "valid_prefix pfx"
-  shows "prefix_match_semantics pfx (a :: ipv4addr) \<longleftrightarrow> a \<in> ipv4range_set_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx)"
+  shows "prefix_match_semantics pfx a \<longleftrightarrow> a \<in> ipv4range_set_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx)"
   unfolding prefix_match_if_in_my_set[OF assms]
   unfolding prefix_to_ipset_def ipv4range_set_from_netmask_def Let_def
   unfolding word_bool_alg.double_compl

@@ -197,7 +197,7 @@ proof assume "x \<in> A \<Longrightarrow> P x" and "x \<in> A" thus "P x" .
 next  assume "x \<in> A" thus "x \<in> A" . 
 qed
 
-lemmas custom_simpset = simple_match_to_of_match_def Let_def set_concat set_map map_map comp_def concat_map_maps set_maps UN_iff fun_app_def Set.image_iff
+lemmas custom_simpset = Let_def set_concat set_map map_map comp_def concat_map_maps set_maps UN_iff fun_app_def Set.image_iff
 
 lemma bex_singleton: "\<exists>x\<in>{s}.P x = P s" by simp
 
@@ -219,6 +219,7 @@ by(cases "(src r)") (simp add: prefix_match_if_in_my_set wordinterval_to_set_ipv
 lemma simple_match_dst_alt: "simple_match_valid r \<Longrightarrow> 
 	simple_match_ip (dst r) p \<longleftrightarrow> prefix_match_semantics (PrefixMatch (fst (dst r)) (snd (dst r))) p"
 by(cases "(dst r)") (simp add: prefix_match_if_in_my_set wordinterval_to_set_ipv4range_set_from_prefix simple_match_valid_def valid_prefix_fw_def)
+thm prefix_match_semantics_simple_match (* mph, I had one like that already. TODO: dedup *)
 
 
 lemma "x \<in> set (wordinterval_CIDR_split_internal w) \<Longrightarrow> valid_prefix x"
@@ -359,76 +360,89 @@ lemma
 	assumes eg: "gr \<in> set (simple_match_to_of_match r ifs)"
 	assumes mo: "OF_match_fields gr p = Some True"
 	assumes me: "match_iface (oiface r) (p_oiface p)"
-	assumes validpfx1: "NumberWangCaesar.valid_prefix (toprefixmatch (src r))" (is "?vpfx (src r)")
-	assumes validpfx2: "?vpfx (dst r)"
-	shows "simple_matches r (simple_packet_unext p)"
-oops
-(*proof -
+	assumes mv: "simple_match_valid r"
+	shows "simple_matches r p"
+proof -
+	from mv have validpfx: 
+		"valid_prefix (split PrefixMatch (src r))" "valid_prefix (split PrefixMatch (dst r))"
+		"valid_prefix (toprefixmatch (src r))" "valid_prefix (toprefixmatch (dst r))"
+		unfolding simple_match_valid_def valid_prefix_fw_def toprefixmatch_def by(simp_all split: prod.splits)
 	from mo have mo: "OF_match_fields_unsafe gr p" 
-		unfolding of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs[OF eg]]
+		unfolding of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs[OF mv eg]]
 		by simp
 	note this[unfolded OF_match_fields_unsafe_def]
-	note eg[unfolded custom_simpset simple_match_to_of_match_single_def]
+	note eg[unfolded simple_match_to_of_match_def simple_match_to_of_match_single_def Let_def custom_simpset option2set_def]
 	then guess x ..
 	moreover from this(2) guess xa ..
 	moreover from this(2) guess xb ..
-	moreover from this(2) guess xc ..
-	moreover from calculation(3)[unfolded set_filter_nones_simp set_map mem_Collect_eq Set.image_iff] guess xd ..
-	note xx = calculation(8,1,5,7) this
+	note xx = calculation(1,3) this
 	show ?thesis unfolding simple_matches.simps
 	proof(unfold and_assoc, (rule)+)
 		case goal1 thus ?case 
 			apply(cases "iiface r = ifaceAny") 
 			 apply (simp add: match_ifaceAny) 
-			using mo xx(2) unfolding xx(1) OF_match_fields_unsafe_def
+			using xx(1) mo unfolding xx(4) OF_match_fields_unsafe_def
 			apply(simp only: if_False set_maps UN_iff)
 			apply(clarify)
 			apply(rename_tac a; subgoal_tac "match_iface (iiface r) a") 
-			 apply(clarsimp simp add: simple_packet_unext_def option2set_def)
+			 apply(clarsimp simp add: option2set_def;fail)
 			apply(rule ccontr,simp;fail)
 		done
 	next
 		case goal2 thus ?case unfolding simple_packet_unext_def simple_packet.simps using me .
 	next
 		case goal3 thus ?case
-			using mo unfolding xx(1) OF_match_fields_unsafe_def
-			 by(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match validpfx1)
+			using mo unfolding xx(4) OF_match_fields_unsafe_def
+			by(clarsimp simp add: simple_packet_unext_def option2set_def validpfx simple_match_src_alt[OF mv] toprefixmatch_def)
 	next
 		case goal4 thus ?case
-			using mo unfolding xx(1) OF_match_fields_unsafe_def
-			 by(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match validpfx2)
+			using mo unfolding xx(4) OF_match_fields_unsafe_def
+			by(clarsimp simp add: simple_packet_unext_def option2set_def validpfx simple_match_dst_alt[OF mv] toprefixmatch_def)
 	next
 		case goal5 thus ?case
-			using mo unfolding xx(1) OF_match_fields_unsafe_def
-			apply(simp)
-			apply(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match)
-			using xx(5,6)
-			apply(simp only: set_simps singleton_iff simple_proto_conjunct_asimp split: if_splits protocol.splits)
-			   apply(simp;fail)
-			  apply(simp)
-			  apply(metis match_proto.simps(2))
-			 apply(simp)
-			 apply(blast dest: conjunctSomeProtoAnyD)
-			apply(simp)
-			apply(erule disjE | simp, drule conjunctSomeProtoD, cases "proto r", (simp;fail), (simp;fail))+
-		done
+			using mo unfolding xx(4) OF_match_fields_unsafe_def
+			using xx(1) by(clarsimp 
+				simp add: singleton_iff simple_packet_unext_def option2set_def prefix_match_semantics_simple_match ball_Un 
+				split: if_splits protocol.splits)
 	next
 		case goal6 thus ?case
-			using mo xx(3) unfolding xx(1) OF_match_fields_unsafe_def
+			using mo xx(2) unfolding xx(4) OF_match_fields_unsafe_def
 			apply(cases "sports r")
-			apply(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match split: if_splits)
-			apply(rule word_upto_set_eq2)
-			 apply(simp_all)
+			apply(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match toprefixmatch_def split: if_splits)
+			apply(rename_tac xc)
+			apply(subgoal_tac "prefix_match_semantics xc (p_sport p)")
+			prefer 2
+			apply(simp add: prefix_match_semantics_def word_bw_comms;fail)
+			apply(rename_tac a b xc)
+			apply(subgoal_tac "p_sport p \<in> wordinterval_to_set (WordInterval a b)")
+			apply(simp;fail)
+			apply(subgoal_tac "p_sport p \<in> prefix_to_ipset xc")
+			apply(subst wordinterval_CIDR_split_internal[symmetric])
+			apply blast
+			apply(subst(asm)(3) prefix_match_if_in_my_set)
+			apply(erule wordinterval_CIDR_split_internal_all_valid_Ball[THEN bspec];fail)
+			apply assumption
 		done
 	next
-		case goal7 thus ?case using mo xx(4) unfolding xx(1) OF_match_fields_unsafe_def
+		case goal7 thus ?case using mo xx(3) unfolding xx(4) OF_match_fields_unsafe_def
 			apply(cases "dports r")
-			apply(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match split: if_splits)
-			apply(rule word_upto_set_eq2)
-			 apply(simp_all)
+			apply(clarsimp simp add: simple_packet_unext_def option2set_def prefix_match_semantics_simple_match toprefixmatch_def split: if_splits)
+			apply(rename_tac xc)
+			apply(subgoal_tac "prefix_match_semantics xc (p_dport p)")
+			prefer 2
+			apply(simp add: prefix_match_semantics_def word_bw_comms;fail)
+			apply(rename_tac a b xc)
+			apply(subgoal_tac "p_dport p \<in> wordinterval_to_set (WordInterval a b)")
+			apply(simp;fail)
+			apply(subgoal_tac "p_dport p \<in> prefix_to_ipset xc")
+			apply(subst wordinterval_CIDR_split_internal[symmetric])
+			apply blast
+			apply(subst(asm)(3) prefix_match_if_in_my_set)
+			apply(erule wordinterval_CIDR_split_internal_all_valid_Ball[THEN bspec];fail)
+			apply assumption
 		done
     qed
-qed*)
+qed
 
 primrec annotate_rlen where
 "annotate_rlen [] = []" |
