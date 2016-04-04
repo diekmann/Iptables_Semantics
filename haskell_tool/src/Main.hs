@@ -36,7 +36,7 @@ instance ParseRecord CommandLineArgsLabeled
 -- trying to remove the obligation to alwayse have to type --rs
 -- http://stackoverflow.com/questions/36375556/haskell-unnamed-command-line-arguments-for-optparse-generic/36382477#36382477
 data CommandLineArgsUnlabeled = CommandLineArgsUnlabeled
-        FilePath -- <?> "Path to the `iptables-save` output."
+        (FilePath <?> "Path to the `iptables-save` output.")
         deriving (Generic, Show)
 
 instance ParseRecord CommandLineArgsUnlabeled
@@ -61,7 +61,7 @@ readArgs (CommandLineArgs labeled unlabeled) = do
     firewall <- readArgsUnlabeled unlabeled
     return (assmt, tbl, chn, firewall)
     where
-        readArgsUnlabeled (CommandLineArgsUnlabeled rsFilePath) = (rsFilePath,) <$> readFile rsFilePath
+        readArgsUnlabeled (CommandLineArgsUnlabeled (Helpful rsFilePath)) = (rsFilePath,) <$> readFile rsFilePath
             -- TODO: support stdin
             --where readInput [] = ("<stdin>",) <$> getContents
 
