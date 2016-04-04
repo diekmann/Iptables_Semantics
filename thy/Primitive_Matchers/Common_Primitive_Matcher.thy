@@ -178,8 +178,6 @@ lemma primitive_matcher_generic_common_matcher: "primitive_matcher_generic commo
 (*TODO: delete, only use generic ones!*)
 lemmas match_simplematcher_Iface = primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher]
 lemmas match_simplematcher_Iface_not = primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher]
-lemmas match_simplematcher_Prot = primitive_matcher_generic.Prot_single[OF primitive_matcher_generic_common_matcher]
-lemmas match_simplematcher_Prot_not = primitive_matcher_generic.Prot_single_not[OF primitive_matcher_generic_common_matcher]
 
 
 
