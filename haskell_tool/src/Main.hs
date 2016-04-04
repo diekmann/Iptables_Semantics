@@ -33,7 +33,6 @@ instance ParseRecord CommandLineArgsLabeled
 
 
 -- unlabeld, mandatory command line arguments. For example: ./fffuu "path/to/iptables-save"
--- trying to remove the obligation to alwayse have to type --rs
 -- http://stackoverflow.com/questions/36375556/haskell-unnamed-command-line-arguments-for-optparse-generic/36382477#36382477
 data CommandLineArgsUnlabeled = CommandLineArgsUnlabeled
         (FilePath <?> "Path to the `iptables-save` output.")
