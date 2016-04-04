@@ -133,6 +133,8 @@ begin
      apply(simp_all)
     apply(rename_tac x, case_tac x, simp_all)
    by blast
+
+  (*
   (*TODO: we can clean up the \<not>has_disc hell below with \<not> has_primitive*)
   lemma assumes n: "normalized_nnf_match m"
         and p1: "(primitive_extractor (is_Iiface, iiface_sel) m) = (i_matches, rest1)"
@@ -155,6 +157,7 @@ begin
     apply(frule primitive_extractor_correct(3)[OF _ wf_disc_sel_common_primitive(3)], simp)
     apply(frule primitive_extractor_correct(4)[OF _ wf_disc_sel_common_primitive(3)], simp)
     by blast
+  *)
   (*TODO: matcheq_matchAny is undefined for primitives. this is the proper way to call it!*)
   lemma "\<not> has_primitive m \<and> matcheq_matchAny m \<longleftrightarrow> (if \<not> has_primitive m then matcheq_matchAny m else False)"
     by simp
@@ -364,19 +367,6 @@ begin
       (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0''))))) = 
       RangeUnion (WordInterval 0 0xC0A7FFFF) (WordInterval 0xC0A80100 0xFFFFFFFF)" by eval
 
-
-
-  private lemma "{ip. \<forall>p \<in> {p. \<not> match_iface iface (p_iiface p)}. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr> p_src:= ip\<rparr>)} =
-                 {ip. \<forall>p. \<not> match_iface iface (p_iiface p) \<longrightarrow> matches (common_matcher, in_doubt_allow) m Drop (p\<lparr> p_src:= ip\<rparr>)}" by blast
-  private lemma p_iiface_update: "p\<lparr>p_iiface := p_iiface p, p_src := x\<rparr> = p\<lparr>p_src := x\<rparr>" by(simp)
-  private lemma "(\<Inter> if' \<in> {if'. \<not> match_iface iface if'}. {ip. \<forall>p. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr> p_iiface := if', p_src:= ip\<rparr>)}) = 
-                 {ip. \<forall>p \<in> {p. \<not> match_iface iface (p_iiface p)}. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr> p_src:= ip\<rparr>)}"
-    apply(simp)
-    apply(safe)
-     apply(simp_all)
-    apply(erule_tac x="(p_iiface p)" in allE)
-    apply(simp)
-    using p_iiface_update by metis
      
 
   text{* The following algorithm sound but not complete.*}
@@ -424,11 +414,13 @@ begin
   private definition "setbydecision iface rs dec = {ip. \<exists>p. approximating_bigstep_fun (common_matcher, in_doubt_allow) 
                            (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs Undecided = Decision dec}"
 
-  private lemma packet_update_iface_simp: "p\<lparr>p_iiface := iface_sel iface, p_src := x\<rparr> = p\<lparr>p_src := x, p_iiface := iface_sel iface\<rparr>" by simp
- 
-  private lemma nospoof_setbydecision: "nospoof iface ipassmt rs \<longleftrightarrow> setbydecision iface rs FinalAllow \<subseteq> (ipv4cidr_union_set (set (the (ipassmt iface))))"
+  private lemma nospoof_setbydecision: "nospoof iface ipassmt rs \<longleftrightarrow> 
+        setbydecision iface rs FinalAllow \<subseteq> (ipv4cidr_union_set (set (the (ipassmt iface))))"
   proof
     assume a: "nospoof iface ipassmt rs"
+    have packet_update_iface_simp: "p\<lparr>p_iiface := iface_sel iface, p_src := x\<rparr> = p\<lparr>p_src := x, p_iiface := iface_sel iface\<rparr>"
+      for p::"'p simple_packet_scheme" and x by simp
+ 
     from a show "setbydecision iface rs FinalAllow \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))"
       apply(simp add: nospoof_def setbydecision_def)
       apply(safe)
@@ -467,6 +459,7 @@ begin
     apply(simp add: setbydecision_def setbydecision_all_def)
     done
 
+(*
   (*follows directly from existing lemmas, move into proof below, do not move to generic thy!*)
   private lemma decision_append: "simple_ruleset rs1 \<Longrightarrow> approximating_bigstep_fun \<gamma> p rs1 Undecided = Decision X \<Longrightarrow>
            approximating_bigstep_fun \<gamma> p (rs1 @ rs2) Undecided = Decision X"
@@ -474,6 +467,7 @@ begin
     apply(drule good_imp_wf_ruleset[of _ \<gamma> p])
     apply(simp add: approximating_bigstep_fun_seq_wf Decision_approximating_bigstep_fun)
     done
+*)
 
   private lemma setbydecision_append: "simple_ruleset (rs1 @ rs2) \<Longrightarrow> setbydecision iface (rs1 @ rs2) FinalAllow =
           setbydecision iface rs1 FinalAllow \<union> {ip. \<exists>p. approximating_bigstep_fun (common_matcher, in_doubt_allow) 
@@ -494,14 +488,6 @@ begin
      apply(simp_all)
     done
 
-  private lemma foo_not_FinalDeny: "foo \<noteq> Decision FinalDeny \<longleftrightarrow> foo = Undecided \<or> foo = Decision FinalAllow"
-    apply(cases foo)
-     apply simp_all
-    apply(rename_tac x2)
-    apply(case_tac x2)
-     apply(simp_all)
-    done
-
   private lemma setbydecision_all_appendAccept: "simple_ruleset (rs @ [Rule r Accept]) \<Longrightarrow> 
     setbydecision_all iface rs FinalDeny = setbydecision_all iface (rs @ [Rule r Accept]) FinalDeny"
       apply(simp add: setbydecision_all_def)
@@ -510,9 +496,6 @@ begin
        apply(simp add: simple_imp_good_ruleset good_imp_wf_ruleset)
       apply(simp add: not_FinalAllow)
       done
-
-  lemma "(\<forall>x. P x \<and> Q x) \<longleftrightarrow> (\<forall>x. P x) \<and> (\<forall>x. Q x)" by blast
-  lemma "(\<forall>x. P x) \<or> (\<forall>x. Q x) \<Longrightarrow> (\<forall>x. P x \<or> Q x)" by blast
 
   private lemma setbydecision_all_append_subset: "simple_ruleset (rs1 @ rs2) \<Longrightarrow> setbydecision_all iface rs1 FinalDeny \<union> {ip. \<forall>p.
             approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs2 Undecided = Decision FinalDeny \<and>
@@ -527,8 +510,6 @@ begin
       apply(simp add: not_FinalAllow)
       done
 
-  private lemma Collect_minus_eq: "{x. P x} - {x. Q x} = {x. P x \<and> \<not> Q x}" by blast
-
   private lemma "setbydecision_all iface rs1 FinalDeny \<union>
                  {ip. \<forall>p. approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>) rs1 Undecided = Undecided}
                  \<subseteq>
@@ -541,6 +522,7 @@ begin
       by(simp)
 
 
+  private lemma Collect_minus_eq: "{x. P x} - {x. Q x} = {x. P x \<and> \<not> Q x}" by blast
   private lemma setbydecision_all_append_subset2:
       "simple_ruleset (rs1 @ rs2) \<Longrightarrow> setbydecision_all iface rs1 FinalDeny \<union> (setbydecision_all iface rs2 FinalDeny - setbydecision iface rs1 FinalAllow)
             \<subseteq> setbydecision_all iface (rs1 @ rs2) FinalDeny"
@@ -550,12 +532,11 @@ begin
       apply(subst Set.Collect_disj_eq[symmetric])
       apply(rule Set.Collect_mono)
       apply(subst approximating_bigstep_fun_seq_Undecided_t_wf)
-       apply(simp add: simple_imp_good_ruleset good_imp_wf_ruleset)
+       apply(simp add: simple_imp_good_ruleset good_imp_wf_ruleset; fail)
       apply(intro impI allI)
       apply(simp add: not_FinalAllow)
       apply(case_tac "approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface := iface_sel iface, p_src := x\<rparr>) rs1 Undecided")
-       apply(elim disjE)
-        apply(simp_all)[2]
+       subgoal by(elim disjE) simp_all
       apply(rename_tac x2)
       apply(case_tac x2)
        prefer 2
@@ -565,7 +546,7 @@ begin
       by blast
 
 
-
+(*
   private lemma notin_setbydecisionD: "ip \<notin> setbydecision iface rs FinalAllow \<Longrightarrow> (\<forall>p.
       approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs Undecided = Decision FinalDeny \<or>
       approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs Undecided = Undecided)"
@@ -579,6 +560,7 @@ begin
       apply(simp)
       done
 
+  private lemma p_iiface_update: "p\<lparr>p_iiface := p_iiface p, p_src := x\<rparr> = p\<lparr>p_src := x\<rparr>" by(simp)
   private lemma setbydecision_all_not_iface: "(\<Inter> if' \<in> {if'. \<not> match_iface iface if'}. setbydecision_all (Iface if') rs1 FinalDeny) = 
       {ip. \<forall>p. \<not> match_iface iface (p_iiface p) \<longrightarrow> 
           approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs1 Undecided = Decision FinalDeny}"
@@ -640,7 +622,6 @@ begin
     apply(simp_all)
     by blast
 
-
   private lemma setbydecision2: "setbydecision iface rs dec = 
       {ip. \<exists>p. (iface_sel iface) = (p_iiface p) \<and> approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs Undecided = Decision dec}"
     apply(simp add: setbydecision_def)
@@ -666,7 +647,7 @@ begin
             {ip. (iface_sel iface) = (p_iiface p) \<and> p_src p = ip})"
     apply(simp add: setbydecision2)
     by fastforce
-
+  *)
 
   private lemma "setbydecision_all iface rs FinalDeny \<subseteq> - setbydecision iface rs FinalAllow"
       apply(simp add: setbydecision_def setbydecision_all_def)
@@ -674,11 +655,6 @@ begin
       apply(rule Set.Collect_mono)
       apply(simp)
       done
-
-  lemma "a - (d1 \<union> (d2 - a)) = a - d1" by auto
-  
-  private lemma xxhlpsubset1: "Y \<subseteq> X \<Longrightarrow> \<forall> x. S x \<subseteq> S' x \<Longrightarrow> (\<Inter>x\<in>X. S x) \<subseteq> (\<Inter>x\<in>Y. S' x)" by auto
-  private lemma xxhlpsubset2: "X \<subseteq> Y \<Longrightarrow> \<forall> x. S x \<subseteq> S' x \<Longrightarrow> (\<Union>x\<in>X. S x) \<subseteq> (\<Union>x\<in>Y. S' x)" by auto
 
 
   private lemma no_spoofing_algorithm_sound_generalized: 
@@ -695,7 +671,6 @@ begin
     with 1 have "setbydecision iface rs1 FinalAllow - setbydecision_all iface rs1 FinalDeny
           \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))"
       by blast
-       
     thus ?case 
       by(simp add: nospoof_setbydecision setbydecision_setbydecision_all_Allow)
   next
@@ -750,7 +725,6 @@ begin
     with get_all_matching_src_ips 3(4) have denied1:
      "denied1 \<union> (get_all_matching_src_ips iface m - allowed) \<subseteq> setbydecision_all iface (rs1 @ [Rule m Drop]) FinalDeny"
       by force
-
 
     from 3(7) have no_spoofing_algorithm_prems: "no_spoofing_algorithm iface ipassmt rs allowed
      (denied1 \<union> (get_all_matching_src_ips iface m - allowed))"
