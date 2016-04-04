@@ -3031,12 +3031,11 @@ is_Extra (L4_Flags x8) = False;
 is_Extra (CT_State x9) = False;
 is_Extra (Extra x10) = True;
 
-matcheq_matachAny :: forall a. Match_expr a -> Bool;
-matcheq_matachAny MatchAny = True;
-matcheq_matachAny (MatchNot m) = not (matcheq_matachAny m);
-matcheq_matachAny (MatchAnd m1 m2) =
-  matcheq_matachAny m1 && matcheq_matachAny m2;
-matcheq_matachAny (Match uu) = error "undefined";
+matcheq_matchAny :: forall a. Match_expr a -> Bool;
+matcheq_matchAny MatchAny = True;
+matcheq_matchAny (MatchNot m) = not (matcheq_matchAny m);
+matcheq_matchAny (MatchAnd m1 m2) = matcheq_matchAny m1 && matcheq_matchAny m2;
+matcheq_matchAny (Match uu) = error "undefined";
 
 has_disc :: forall a. (a -> Bool) -> Match_expr a -> Bool;
 has_disc uu MatchAny = False;
@@ -3067,7 +3066,7 @@ get_all_matching_src_ips_executable iface m =
                                  not (has_disc is_L4_Flags rest2) &&
                                    not (has_disc is_CT_State rest2) &&
                                      not (has_disc is_Extra rest2) &&
-                                       matcheq_matachAny rest2
+                                       matcheq_matchAny rest2
                      then (if null ip_matches then ipv4range_UNIV
                             else l2br_negation_type_intersect
                                    (negPos_map ipt_ipv4range_to_interval
