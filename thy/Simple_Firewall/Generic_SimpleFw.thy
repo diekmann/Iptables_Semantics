@@ -159,6 +159,9 @@ unfolding fun_eq_iff comp_def by(simp add: simple_rule_dtor_def)
 lemma generalized_sfw_mapsnd[simp]: "generalized_sfw (map (apsnd f) fw) p = map_option (apsnd f) (generalized_sfw fw p)"
 	by(induction fw) (simp_all add: generalized_sfw_simps split: prod.splits)
 
+definition "generalized_sfw_conjunct_i t \<equiv> (case t of (a,b) \<Rightarrow> (case a of simple_action.Accept \<Rightarrow> b | simple_action.Drop \<Rightarrow> simple_action.Drop))"
+definition "generalized_sfw_conjunct_o \<equiv> map (apsnd generalized_sfw_conjunct_i)"
+
 text{*We image two firewalls are positioned directly after each other.
       The first one has ruleset rs1 installed, the second one has ruleset rs2 installed.
       A packet needs to pass both firewalls. *}
@@ -174,6 +177,19 @@ unfolding simple_fw_iff_generalized_fw_accept
 	apply(clarsimp simp add: hlp1)
 	apply(drule generalized_fw_joinD)
 	apply(clarsimp split: if_splits)
+done
+
+theorem simple_fw_join2: "simple_fw rs1 p = Decision FinalAllow \<and> simple_fw rs2 p = Decision FinalAllow \<longleftrightarrow>
+       map_option snd (generalized_sfw (generalized_sfw_conjunct_o
+       	(generalized_fw_join (map simple_rule_dtor rs1) (map simple_rule_dtor rs2))) p) = Some simple_action.Accept"
+unfolding simple_fw_iff_generalized_fw_accept
+	apply(rule)
+	 apply(clarify)
+	 apply(drule (1) generalized_fw_joinI)
+	 apply(clarsimp simp add: generalized_sfw_conjunct_o_def generalized_sfw_conjunct_i_def;fail)
+	apply(clarsimp simp add: generalized_sfw_conjunct_o_def generalized_sfw_conjunct_i_def)
+	apply(drule generalized_fw_joinD)
+	apply(clarsimp split: if_splits simple_action.splits)
 done
 
 lemma concat_map_foldr: "concat (map (\<lambda>x. f x) l) = foldr (\<lambda>x. op @ (f x)) l []"

@@ -114,22 +114,21 @@ lemma
 oops*)
 
 definition toprefixmatch where
-"toprefixmatch m \<equiv> (if fst m = 0 \<and> snd m = 0 then {} else {PrefixMatch (fst m) (snd m)})"
+"toprefixmatch m \<equiv> PrefixMatch (fst m) (snd m)"
 lemma prefix_match_semantics_simple_match: 
-	assumes c1: "card (toprefixmatch m) = 1"
-	assumes vld: "NumberWangCaesar.valid_prefix (the_elem (toprefixmatch m))" 
-	shows "NumberWangCaesar.prefix_match_semantics (the_elem (toprefixmatch m)) = simple_match_ip m"
+	assumes vld: "valid_prefix (toprefixmatch m)" 
+	shows "prefix_match_semantics (toprefixmatch m) = simple_match_ip m"
 	apply(clarsimp simp add: fun_eq_iff)
 	apply(subst NumberWangCaesar.prefix_match_if_in_corny_set[OF vld])
 	apply(cases m)
-	using c1 apply(clarsimp simp add: fun_eq_iff toprefixmatch_def ipv4range_set_from_prefix_alt1 maskshift_eq_not_mask pfxm_mask_def)
+	apply(clarsimp simp add: fun_eq_iff toprefixmatch_def ipv4range_set_from_prefix_alt1 maskshift_eq_not_mask pfxm_mask_def)
 done
 
 definition "simple_match_to_of_match_single m iif prot sport dport \<equiv>
 	   split L4Src ` option2set sport \<union> split L4Dst ` option2set dport
 	 \<union> IPv4Proto ` (case prot of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> {p}) (* protocol is an 8 word option anyway\<dots> *)
 	 \<union> IngressPort ` option2set iif
-	 \<union> IPv4Src ` (toprefixmatch (src m)) \<union> IPv4Dst ` (toprefixmatch (dst m))
+	 \<union> {IPv4Src (toprefixmatch (src m)), IPv4Dst (toprefixmatch (dst m))}
 	 \<union> {EtherType 0x0800}"
 (* okay, we need to make sure that no packets are output on the interface they were input on. So for rules that don't have an input interface, we'd need to do a product over all interfaces, if we stay naive.
    The more smart way would be to insert a rule with the same match condition that additionally matches the input interface and drops. However, I'm afraid this is going to be very tricky to verify\<dots> *)
@@ -150,7 +149,7 @@ lemma smtoms_eq_hlp: "simple_match_to_of_match_single r a b c d = simple_match_t
 apply(rule, simp_all)
 apply(simp add:option2set_def simple_match_to_of_match_single_def toprefixmatch_def)
 apply(auto simp add: split: option.splits protocol.splits)
-(* give this some time, it creates and solves a ton of subgoals\<dots> Takes 26 seconds for me. *)
+(* give this some time, it creates and solves a ton of subgoals\<dots> Takes 24 seconds for me. *)
 done
 
 
@@ -202,65 +201,159 @@ lemmas custom_simpset = simple_match_to_of_match_def Let_def set_concat set_map 
 
 lemma bex_singleton: "\<exists>x\<in>{s}.P x = P s" by simp
 
-(*lemma 
-	assumes mm: "simple_matches r (simple_packet_unext p)"
+abbreviation "simple_fw_prefix_to_range \<equiv> prefix_to_range \<circ> split PrefixMatch"
+
+lemma simple_match_port_alt: "simple_match_port m p \<longleftrightarrow> p \<in> wordinterval_to_set (split WordInterval m)"
+by (metis old.prod.case simple_match_port.elims(2) simple_match_port.elims(3) wordinterval_to_set.simps(1))
+
+(* TODO: move *)
+definition "prefix_match_dtor m \<equiv> (case m of PrefixMatch p l \<Rightarrow> (p,l))"
+
+(* TODO: move? *)
+lemma simple_match_ip_alt: "valid_prefix (PrefixMatch (fst m) (snd m)) \<Longrightarrow> 
+	simple_match_ip m p \<longleftrightarrow> prefix_match_semantics (PrefixMatch (fst m) (snd m)) p"
+by(cases m) (simp add: prefix_match_if_in_my_set wordinterval_to_set_ipv4range_set_from_prefix)
+lemma simple_match_src_alt: "simple_match_valid r \<Longrightarrow> 
+	simple_match_ip (src r) p \<longleftrightarrow> prefix_match_semantics (PrefixMatch (fst (src r)) (snd (src r))) p"
+by(cases "(src r)") (simp add: prefix_match_if_in_my_set wordinterval_to_set_ipv4range_set_from_prefix simple_match_valid_def valid_prefix_fw_def)
+lemma simple_match_dst_alt: "simple_match_valid r \<Longrightarrow> 
+	simple_match_ip (dst r) p \<longleftrightarrow> prefix_match_semantics (PrefixMatch (fst (dst r)) (snd (dst r))) p"
+by(cases "(dst r)") (simp add: prefix_match_if_in_my_set wordinterval_to_set_ipv4range_set_from_prefix simple_match_valid_def valid_prefix_fw_def)
+
+
+lemma "x \<in> set (wordinterval_CIDR_split_internal w) \<Longrightarrow> valid_prefix x"
+using wordinterval_CIDR_split_internal_all_valid_Ball[THEN bspec] .
+
+lemma 
+	assumes mv: "simple_match_valid r"
+	assumes mm: "simple_matches r p"
 	assumes ii: "p_iiface p \<in> set ifs"
 	assumes ippkt: "p_l2type p = 0x800"
-	assumes validr: "(proto r) \<notin> Proto ` {TCP,UDP,SCTP} \<Longrightarrow> ((fst (sports r) = 0 \<and> snd (sports r) = max_word) \<and> fst (dports r) = 0 \<and> snd (dports r) = max_word)"
-	assumes validpfx1: "NumberWangCaesar.valid_prefix (toprefixmatch (src r))" (is "?vpfx (src r)") 
-	assumes validpfx2: "?vpfx (dst r)"
 	shows eq: "\<exists>gr \<in> set (simple_match_to_of_match r ifs). OF_match_fields gr p = Some True"
-proof
+proof -
 	let ?npm = "\<lambda>p. fst p = 0 \<and> snd p = max_word"
 	let ?sb = "\<lambda>p r. (if ?npm p then None else Some r)"
-	let ?protcond = "?npm (sports r) \<and> ?npm (dports r) \<and> proto r = ProtoAny"
-	let ?foo = "simple_match_to_of_match_single r 
-		(if iiface r = ifaceAny then None else Some (p_iiface p)) 
-		(if ?protcond then ProtoAny else Proto (p_proto p))
-		(?sb (sports r) (p_sport p)) (?sb (dports r) (p_dport p))"
-	note mfu = simple_match_port.simps[of "fst (sports r)" "snd (sports r)", unfolded surjective_pairing[of "sports r",symmetric]]
-			   simple_match_port.simps[of "fst (dports r)" "snd (dports r)", unfolded surjective_pairing[of "dports r",symmetric]]
-	note u = mm[unfolded simple_matches.simps mfu ord_class.atLeastAtMost_iff simple_packet_unext_def simple_packet.simps]
-	note of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs]
-	from u have ple: "fst (sports r) \<le> snd (sports r)" "fst (dports r) \<le> snd (dports r)" by force+
-	have sdpe: "(p_sport p) \<in> set (word_upto (fst (sports r)) (snd (sports r)))" "(p_dport p) \<in> set (word_upto (fst (dports r)) (snd (dports r)))" 
-		unfolding word_upto_set_eq[OF ple(1)] word_upto_set_eq[OF ple(2)] using u by simp_all 
-	show eg: "?foo \<in> set (simple_match_to_of_match r ifs)"
-		unfolding simple_match_to_of_match_def
-		unfolding custom_simpset
-		unfolding smtoms_eq_hlp
-		proof(rule,rule,rule,rule,rule,rule refl,rule,rule refl,rule,rule refl,rule refl)
-			case goal1 thus ?case using ple(2) sdpe(2) by simp
-		next
-			case goal2 thus ?case using ple(1) sdpe(1) by simp
-		next
-			case goal3 thus ?case 
-				apply(simp only: set_filter_nones list.map set_simps singleton_iff simple_proto_conjunct_asimp  split: if_splits)
-				apply(rule)
-				 apply(rule)
-				  apply(rule)
-				  apply(simp)
-				 apply(clarsimp)
-				 apply(metis u match_proto.elims(2))
-				apply(rule)
-				 apply(rule)
-				apply(rule)
-				 apply(clarsimp;fail)
-				apply(rule)
-				apply(erule contrapos_np)
-				apply(rule validr)
-				apply(clarsimp)
-				apply(cases "proto r")
-				 apply(simp;fail)
-				using u apply(simp split: if_splits)
-			done
-		next
-			case goal4 thus ?case by(simp add: set_maps ii u)
-		qed
-	show "OF_match_fields ?foo p = Some True"
-	unfolding of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs[OF eg]]
-		by(simp_all add: simple_match_to_of_match_single_def OF_match_fields_unsafe_def option2set_def prefix_match_semantics_simple_match validpfx1 validpfx2 u ippkt)
-qed oops
+	obtain si where si: "case si of Some ssi \<Rightarrow> p_sport p \<in> prefix_to_ipset ssi | None \<Rightarrow> True"
+		"case si of None \<Rightarrow> True | Some ssi \<Rightarrow> ssi \<in> set (
+		wordinterval_CIDR_split_internal (split WordInterval (sports r)))"
+		"si = None \<longleftrightarrow> ?npm (sports r)"
+	proof(cases "?npm (sports r)")
+		case goal1
+		hence "(case None of None \<Rightarrow> True | Some ssi \<Rightarrow> p_sport p \<in> prefix_to_ipset ssi) \<and>
+            (case None of None \<Rightarrow> True
+            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_internal (case sports r of (x, xa) \<Rightarrow> WordInterval x xa)))" by simp
+        with goal1 show ?thesis by blast
+	next
+		case goal2
+		from mm have "p_sport p \<in> wordinterval_to_set (split WordInterval (sports r))"
+			by(simp only: simple_matches.simps simple_match_port_alt)
+		then obtain ssi where ssi:
+			"ssi \<in> set (wordinterval_CIDR_split_internal (split WordInterval (sports r)))"
+			"p_sport p \<in> prefix_to_ipset ssi" 
+			using wordinterval_CIDR_split_existential by fast
+		hence "(case Some ssi of None \<Rightarrow> True | Some ssi \<Rightarrow> p_sport p \<in> prefix_to_ipset ssi) \<and>
+            (case Some ssi of None \<Rightarrow> True
+            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_internal (case sports r of (x, xa) \<Rightarrow> WordInterval x xa)))" by simp
+        with goal2 show ?thesis by blast
+    qed				
+	obtain di where di: "case di of Some ddi \<Rightarrow> p_dport p \<in> prefix_to_ipset ddi | None \<Rightarrow> True"
+		"case di of None \<Rightarrow> True | Some ddi \<Rightarrow> ddi \<in> set (
+		wordinterval_CIDR_split_internal (split WordInterval (dports r)))"
+		"di = None \<longleftrightarrow> ?npm (dports r)"
+	proof(cases "?npm (dports r)")
+		case goal1
+		hence "(case None of None \<Rightarrow> True | Some ssi \<Rightarrow> p_dport p \<in> prefix_to_ipset ssi) \<and>
+            (case None of None \<Rightarrow> True
+            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_internal (case dports r of (x, xa) \<Rightarrow> WordInterval x xa)))" by simp
+        with goal1 show ?thesis by blast
+	next
+		case goal2
+		from mm have "p_dport p \<in> wordinterval_to_set (split WordInterval (dports r))"
+			by(simp only: simple_matches.simps simple_match_port_alt)
+		then obtain ddi where ddi:
+			"ddi \<in> set (wordinterval_CIDR_split_internal (split WordInterval (dports r)))"
+			"p_dport p \<in> prefix_to_ipset ddi" 
+			using wordinterval_CIDR_split_existential by fast
+		hence "(case Some ddi of None \<Rightarrow> True | Some ssi \<Rightarrow> p_dport p \<in> prefix_to_ipset ssi) \<and>
+            (case Some ddi of None \<Rightarrow> True
+            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_internal (case dports r of (x, xa) \<Rightarrow> WordInterval x xa)))" by simp
+        with goal2 show ?thesis by blast
+    qed
+    show ?thesis
+	proof
+		let ?mf = "map_option (apsnd (wordNOT \<circ> mask \<circ> op - 16) \<circ> prefix_match_dtor)"
+		let ?foo = "simple_match_to_of_match_single r
+			(if iiface r = ifaceAny then None else Some (p_iiface p)) 
+			(if proto r = ProtoAny then ProtoAny else Proto (p_proto p))
+			(?mf si) (?mf di)"
+		note mfu = simple_match_port.simps[of "fst (sports r)" "snd (sports r)", unfolded surjective_pairing[of "sports r",symmetric]]
+				   simple_match_port.simps[of "fst (dports r)" "snd (dports r)", unfolded surjective_pairing[of "dports r",symmetric]]
+		note u = mm[unfolded simple_matches.simps mfu ord_class.atLeastAtMost_iff simple_packet_unext_def simple_packet.simps]
+		note of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs]
+		from u have ple: "fst (sports r) \<le> snd (sports r)" "fst (dports r) \<le> snd (dports r)" by force+
+		have sdpe: "(p_sport p) \<in> set (word_upto (fst (sports r)) (snd (sports r)))" "(p_dport p) \<in> set (word_upto (fst (dports r)) (snd (dports r)))" 
+			unfolding word_upto_set_eq[OF ple(1)] word_upto_set_eq[OF ple(2)] using u by simp_all 
+		show eg: "?foo \<in> set (simple_match_to_of_match r ifs)"
+			unfolding simple_match_to_of_match_def
+			unfolding custom_simpset
+			unfolding smtoms_eq_hlp
+			proof(rule, rule, rule, rule, rule refl, rule, defer_tac, rule, rule refl, rule refl)
+				case goal1 thus ?case using ple(2) sdpe(2) di
+					apply(simp add: pfxm_mask_def prefix_match_dtor_def split: option.splits prod.splits)
+					apply(subst Set.image_iff)
+					apply(erule bexI[rotated])
+					apply(simp split: prefix_match.splits)
+				done
+			next
+				case goal2 thus ?case using ple(1) sdpe(1) si
+					apply(simp add: pfxm_mask_def prefix_match_dtor_def split: option.splits prod.splits)
+					apply(subst Set.image_iff)
+					apply(erule bexI[rotated])
+					apply(simp split: prefix_match.splits)
+				done
+			next
+				case goal3 thus ?case
+					apply(simp only: set_filter_nones list.map set_simps singleton_iff simple_proto_conjunct_asimp  split: if_splits)
+					apply(rule)
+					 apply(rule)
+					  apply(rule)
+					  apply(simp;fail)
+					 apply(clarsimp;fail)
+					apply(rule)
+					 apply(rule)
+					 apply(clarsimp;fail)
+					apply(rule)
+					using u ii apply(simp add: set_maps split: if_splits)
+				done
+			next
+				case goal4 thus ?case using ii u by simp_all (metis match_proto.elims(2))  
+			qed
+		show "OF_match_fields ?foo p = Some True"
+		unfolding of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs[OF mv eg]]
+			apply(simp_all
+					add: simple_match_to_of_match_single_def OF_match_fields_unsafe_def 
+					option2set_def prefix_match_semantics_simple_match u ippkt
+					comp_def prefix_match_dtor_def toprefixmatch_def 
+					simple_match_dst_alt[OF mv, symmetric] simple_match_src_alt[OF mv, symmetric]
+					ball_Un)
+			apply(intro conjI)
+			 using si
+			 apply(clarsimp split: option.splits prefix_match.splits)
+			 apply(subgoal_tac "prefix_match_semantics (the si) (p_sport p)")
+			 apply(simp add: prefix_match_semantics_def pfxm_mask_def word_bw_comms;fail)
+			 apply(subst prefix_match_if_in_my_set[of "the si" "p_sport p"])
+			 apply(simp add: wordinterval_CIDR_split_internal_all_valid_Ball[THEN bspec]; fail)
+			 apply(simp;fail)
+			using di
+			apply(clarsimp split: option.splits prefix_match.splits)
+			apply(subgoal_tac "prefix_match_semantics (the di) (p_dport p)")
+			apply(simp add: prefix_match_semantics_def pfxm_mask_def word_bw_comms;fail)
+			apply(subst prefix_match_if_in_my_set)
+			apply(simp add: wordinterval_CIDR_split_internal_all_valid_Ball[THEN bspec]; fail)
+			apply(simp;fail)
+		done
+	qed
+qed
 
 lemma 
 	assumes eg: "gr \<in> set (simple_match_to_of_match r ifs)"
@@ -270,7 +363,7 @@ lemma
 	assumes validpfx2: "?vpfx (dst r)"
 	shows "simple_matches r (simple_packet_unext p)"
 oops
-proof -
+(*proof -
 	from mo have mo: "OF_match_fields_unsafe gr p" 
 		unfolding of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs[OF eg]]
 		by simp
@@ -557,33 +650,6 @@ lemma image_iff_forealyo: "(y \<in> f ` S) \<longleftrightarrow> (\<exists>x \<i
 
 lemma oif_ne_iif_alt: "oif_ne_iif ifs =	map (\<lambda>(oi,ii). (simple_match_any\<lparr>oiface := Iface oi, iiface := Iface ii\<rparr>, if oi = ii then simple_action.Drop else simple_action.Accept)) (List.product ifs ifs)"
 oops
-
-(*lemma "x \<noteq> simple_action.Drop \<Longrightarrow> x = simple_action.Accept" using simple_action.exhaust by blast (* property needed by next lemma! *)
-lemma oif_ne_iif_correct: "is_iface_list ifs \<Longrightarrow> (\<exists>r. generalized_sfw (oif_ne_iif ifs) p = Some (r, ad)) \<longleftrightarrow> ((p_oiface p = p_iiface p \<longleftrightarrow> ad = simple_action.Drop) \<and> p_oiface p \<in> set ifs \<and> p_iiface p \<in> set ifs)"
-proof(rule iffI; clarify)
-	case goal1
-	note m = generalized_sfwD[OF goal1(2)]
-	then obtain oif iif where ifs[simp]: "oif = iif \<longleftrightarrow> ad = simple_action.Drop" 
-		"oif \<in> set ifs" "iif \<in> set ifs" "r = simple_match_any\<lparr>oiface := Iface oif, iiface := Iface iif\<rparr>" 
-		unfolding oif_ne_iif_def by(clarsimp split: if_splits)
-	hence ifn: "is_iface_name iif" "is_iface_name oif" using goal1 by(simp_all add: is_iface_list_def list_all_iff)
-	show ?case using m unfolding ifs unfolding simple_matches_ioiface[OF ifn] by simp
-next
-	case goal2
-	let ?a = "if p_oiface p = p_iiface p then simple_action.Drop else simple_action.Accept"
-	have "(simple_match_any\<lparr>oiface := Iface (p_oiface p), iiface := Iface (p_iiface p)\<rparr>, ?a) \<in> set (oif_ne_iif ifs)"
-		unfolding oif_ne_iif_def
-		unfolding set_concat UN_iff
-		unfolding set_map
-		unfolding Bex_def
-		unfolding image_iff_forealyo
-		apply(rule_tac x = "map (\<lambda>ii. (simple_match_any\<lparr>oiface := Iface (p_oiface p), iiface := Iface ii\<rparr>, if (p_oiface p) = ii then simple_action.Drop else simple_action.Accept)) ifs" in exI)
-		apply(intro conjI)
-		apply(rule_tac x = "p_oiface p" in bexI, rule refl, rule goal2)
-		unfolding set_map image_iff_forealyo
-		apply(rule_tac x = "p_iiface p" in bexI, rule refl, rule goal2)
-	done (* ayayaya *)
-oops*)
 
 lemma oif_ne_iif_p1_correct: "is_iface_list ifs \<Longrightarrow> generalized_sfw (oif_ne_iif_p1 ifs) p \<noteq> None \<longleftrightarrow> (p_oiface p \<noteq> p_iiface p \<and> p_oiface p \<in> set ifs \<and> p_iiface p \<in> set ifs)"
 proof(rule iffI, defer_tac, rule ccontr, unfold not_not)
