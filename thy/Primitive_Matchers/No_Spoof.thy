@@ -409,7 +409,7 @@ begin
 
   private fun no_spoofing_algorithm_executable :: "iface \<Rightarrow> (iface \<rightharpoonup> (ipv4addr \<times> nat) list) \<Rightarrow> common_primitive rule list \<Rightarrow> 32 wordinterval \<Rightarrow> 32 wordinterval \<Rightarrow> bool" where
     "no_spoofing_algorithm_executable iface ipassmt [] allowed denied1  \<longleftrightarrow> 
-      wordinterval_subset (wordinterval_setminus allowed denied1) (l2br (map ipv4cidr_to_interval (the (ipassmt iface))))" |
+      wordinterval_subset (wordinterval_setminus allowed denied1) (l2br (map ipcidr_to_interval (the (ipassmt iface))))" |
     "no_spoofing_algorithm_executable iface ipassmt ((Rule m Accept)#rs) allowed denied1 = no_spoofing_algorithm_executable iface ipassmt rs 
         (wordinterval_union allowed (get_exists_matching_src_ips_executable iface m)) denied1" |
     "no_spoofing_algorithm_executable iface ipassmt ((Rule m Drop)#rs) allowed denied1 = no_spoofing_algorithm_executable iface ipassmt rs
@@ -420,9 +420,10 @@ begin
          no_spoofing_algorithm iface ipassmt rs (wordinterval_to_set allowed) (wordinterval_to_set denied)"
   proof(induction iface ipassmt rs allowed denied rule: no_spoofing_algorithm_executable.induct)
   case (1 iface ipassmt allowed denied1)
-    have "(\<Union>a\<in>set (the (ipassmt iface)). case ipv4cidr_to_interval a of (x, xa) \<Rightarrow> {x..xa}) = 
-          (\<Union>x\<in>set (the (ipassmt iface)). case x of (base, len) \<Rightarrow> ipv4range_set_from_prefix base len)" 
-    using ipv4cidr_to_interval_ipv4range_set_from_prefix ipv4cidr_to_interval_def by simp
+    have "(\<Union>a\<in>set (the (ipassmt iface)). case ipcidr_to_interval a of (x, xa) \<Rightarrow> {x..xa}) = 
+          (\<Union>x\<in>set (the (ipassmt iface)). case x of (base, len) \<Rightarrow> ipv4range_set_from_prefix base len)"
+    unfolding ipcidr_to_interval_def (*since we used an arbitrary 'a::len word, we need to unfold manually*)
+    using ipcidr_to_interval_ipv4range_set_from_prefix by simp
     with 1 show ?case by(simp add: ipv4cidr_union_set_def l2br)
   next
   case 2 thus ?case by(simp add: get_exists_matching_src_ips_executable get_all_matching_src_ips_executable)

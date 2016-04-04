@@ -40,12 +40,12 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
           ipv4cidr_union_set (set (the (ipassmt i1))) \<inter> ipv4cidr_union_set (set (the (ipassmt i2))) = {}"
   
   lemma[code_unfold]: "ipassmt_sanity_disjoint (map_of ipassmt) \<longleftrightarrow> (let Is = fst` set ipassmt in 
-      (\<forall> i1 \<in> Is. \<forall> i2 \<in> Is. i1 \<noteq> i2 \<longrightarrow> wordinterval_empty (wordinterval_intersection (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i1))))  (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i2)))))))"
+      (\<forall> i1 \<in> Is. \<forall> i2 \<in> Is. i1 \<noteq> i2 \<longrightarrow> wordinterval_empty (wordinterval_intersection (l2br (map ipcidr_to_interval (the ((map_of ipassmt) i1))))  (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i2)))))))"
     apply(simp add: ipassmt_sanity_disjoint_def Map.dom_map_of_conv_image_fst)
     apply(simp add: ipv4cidr_union_set_def)
     apply(simp add: l2br)
-    apply(simp add: ipv4cidr_to_interval_def)
-    apply(simp add: ipv4cidr_to_interval_ipv4range_set_from_prefix)
+    apply(simp add: ipcidr_to_interval_def)
+    apply(simp add: ipcidr_to_interval_ipv4range_set_from_prefix)
     done
   
   

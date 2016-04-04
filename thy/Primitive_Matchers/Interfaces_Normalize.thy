@@ -119,55 +119,56 @@ subsection{*Optimizing interfaces in match expressions*}
 term map_option
 term option_map (*l4v*)
 
-
-lemma compress_interfaces_None:
-  assumes generic: "primitive_matcher_generic \<beta>"
-  shows   
-    "compress_interfaces ifces = None \<Longrightarrow> \<not> matches (\<beta>, \<alpha>) (alist_and (NegPos_map IIface ifces)) a p"
-    "compress_interfaces ifces = None \<Longrightarrow> \<not> matches (\<beta>, \<alpha>) (alist_and (NegPos_map OIface ifces)) a p"
-    apply(simp_all add: compress_interfaces_def)
-    apply(simp_all add: nt_match_list_matches[symmetric] nt_match_list_simp)
-    apply(simp_all add: NegPos_map_simps primitive_matcher_generic.Iface_single[OF generic]
-                        primitive_matcher_generic.Iface_single_not[OF generic])
-    apply(case_tac [!] "compress_pos_interfaces (getPos ifces)")
-      apply(simp_all)
-      apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_None)
-      apply(simp; fail)
-     apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_Some)
-     apply(simp split:split_if_asm)
-     using iface_subset apply blast
-     apply(drule_tac p_i="p_oiface p" in compress_pos_interfaces_None)
-     apply(simp; fail)
-    apply(drule_tac p_i="p_oiface p" in compress_pos_interfaces_Some)
-    apply(simp split:split_if_asm)
-    using iface_subset by blast
-
-  lemma compress_interfaces_Some: 
-  assumes generic: "primitive_matcher_generic \<beta>"
-  shows 
-    "compress_interfaces ifces = Some (i_pos, i_neg) \<Longrightarrow>
-      matches (\<beta>, \<alpha>) (alist_and (NegPos_map IIface ((map Pos i_pos)@(map Neg i_neg)))) a p \<longleftrightarrow>
-      matches (\<beta>, \<alpha>) (alist_and (NegPos_map IIface ifces)) a p"
-    "compress_interfaces ifces = Some (i_pos, i_neg) \<Longrightarrow>
-      matches (\<beta>, \<alpha>) (alist_and (NegPos_map OIface ((map Pos i_pos)@(map Neg i_neg)))) a p \<longleftrightarrow>
-      matches (\<beta>, \<alpha>) (alist_and (NegPos_map OIface ifces)) a p"
-    apply(simp_all add: compress_interfaces_def)
-    apply(simp_all add: bunch_of_lemmata_about_matches(1) alist_and_append NegPos_map_append)
-    apply(simp_all add: nt_match_list_matches[symmetric] nt_match_list_simp)
-    apply(simp_all add: NegPos_map_simps primitive_matcher_generic.Iface_single[OF generic]
-                        primitive_matcher_generic.Iface_single_not[OF generic])
-    apply(case_tac [!] "compress_pos_interfaces (getPos ifces)")
-       apply(simp_all)
-     apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_Some)
-     apply(simp split:split_if_asm)
-       using iface_is_wildcard_def iface_subset match_iface_case_nowildcard apply fastforce
-      using match_ifaceAny apply blast
-     apply force
-    apply(drule_tac p_i="p_oiface p" in compress_pos_interfaces_Some)
-    apply(simp split:split_if_asm)
-      using iface_is_wildcard_def iface_subset match_iface_case_nowildcard apply fastforce
-     using match_ifaceAny apply blast
-    by force
+context
+begin
+  private lemma compress_interfaces_None:
+    assumes generic: "primitive_matcher_generic \<beta>"
+    shows   
+      "compress_interfaces ifces = None \<Longrightarrow> \<not> matches (\<beta>, \<alpha>) (alist_and (NegPos_map IIface ifces)) a p"
+      "compress_interfaces ifces = None \<Longrightarrow> \<not> matches (\<beta>, \<alpha>) (alist_and (NegPos_map OIface ifces)) a p"
+      apply(simp_all add: compress_interfaces_def)
+      apply(simp_all add: nt_match_list_matches[symmetric] nt_match_list_simp)
+      apply(simp_all add: NegPos_map_simps primitive_matcher_generic.Iface_single[OF generic]
+                          primitive_matcher_generic.Iface_single_not[OF generic])
+      apply(case_tac [!] "compress_pos_interfaces (getPos ifces)")
+        apply(simp_all)
+        apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_None)
+        apply(simp; fail)
+       apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_Some)
+       apply(simp split:split_if_asm)
+       using iface_subset apply blast
+       apply(drule_tac p_i="p_oiface p" in compress_pos_interfaces_None)
+       apply(simp; fail)
+      apply(drule_tac p_i="p_oiface p" in compress_pos_interfaces_Some)
+      apply(simp split:split_if_asm)
+      using iface_subset by blast
+  
+  private lemma compress_interfaces_Some: 
+    assumes generic: "primitive_matcher_generic \<beta>"
+    shows 
+      "compress_interfaces ifces = Some (i_pos, i_neg) \<Longrightarrow>
+        matches (\<beta>, \<alpha>) (alist_and (NegPos_map IIface ((map Pos i_pos)@(map Neg i_neg)))) a p \<longleftrightarrow>
+        matches (\<beta>, \<alpha>) (alist_and (NegPos_map IIface ifces)) a p"
+      "compress_interfaces ifces = Some (i_pos, i_neg) \<Longrightarrow>
+        matches (\<beta>, \<alpha>) (alist_and (NegPos_map OIface ((map Pos i_pos)@(map Neg i_neg)))) a p \<longleftrightarrow>
+        matches (\<beta>, \<alpha>) (alist_and (NegPos_map OIface ifces)) a p"
+      apply(simp_all add: compress_interfaces_def)
+      apply(simp_all add: bunch_of_lemmata_about_matches(1) alist_and_append NegPos_map_append)
+      apply(simp_all add: nt_match_list_matches[symmetric] nt_match_list_simp)
+      apply(simp_all add: NegPos_map_simps primitive_matcher_generic.Iface_single[OF generic]
+                          primitive_matcher_generic.Iface_single_not[OF generic])
+      apply(case_tac [!] "compress_pos_interfaces (getPos ifces)")
+         apply(simp_all)
+       apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_Some)
+       apply(simp split:split_if_asm)
+         using iface_is_wildcard_def iface_subset match_iface_case_nowildcard apply fastforce
+        using match_ifaceAny apply blast
+       apply force
+      apply(drule_tac p_i="p_oiface p" in compress_pos_interfaces_Some)
+      apply(simp split:split_if_asm)
+        using iface_is_wildcard_def iface_subset match_iface_case_nowildcard apply fastforce
+       using match_ifaceAny apply blast
+      by force
 
   
   definition compress_normalize_input_interfaces :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr option" where 
@@ -303,5 +304,7 @@ lemma compress_interfaces_None:
      normalized_nnf_match m' \<and> normalized_n_primitive (disc, sel) P m'"
      unfolding compress_normalize_output_interfaces_def
    using compress_normalize_primitve_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(6)] by blast
+
+end
 
 end
