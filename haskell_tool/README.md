@@ -47,7 +47,7 @@ Load the output of `iptables-save` into our tool.
 The tool will dump lots of information about your ruleset. 
 
 ```
-./dist/build/fffuu/fffuu --rs /path/to/iptables-save.txt
+./dist/build/fffuu/fffuu /path/to/iptables-save.txt
 ```
 
 
@@ -65,7 +65,7 @@ lo = [127.0.0.0/8]
 Try this:
 
 ```
-./dist/build/fffuu/fffuu --rs ../thy/Examples/Parser_Test/data/iptables-save
+./dist/build/fffuu/fffuu ../thy/Examples/Parser_Test/data/iptables-save
 ```
 This example file is a nonsense config we use to stress the parser.
 
@@ -78,7 +78,7 @@ Example:
 Try this:
 
 ```
-./dist/build/fffuu/fffuu --ipassmt ipassmt_tumi8 --rs ../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating
+./dist/build/fffuu/fffuu --ipassmt ipassmt_tumi8 ../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating
 ```
 
 This will generate lots of output.
@@ -94,7 +94,7 @@ For example, spoofing protection can be done in the `raw` table.
 Try this: 
 
 ```
-./dist/build/fffuu/fffuu --table raw --chain PREROUTING --ipassmt ipassmt_sqrl --rs ../thy/Examples/SQRL_Shorewall/2015_aug_iptables-save-spoofing-protection
+./dist/build/fffuu/fffuu --table raw --chain PREROUTING --ipassmt ipassmt_sqrl ../thy/Examples/SQRL_Shorewall/2015_aug_iptables-save-spoofing-protection
 ```
 
 ## FAQ
