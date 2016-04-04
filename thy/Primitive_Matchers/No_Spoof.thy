@@ -65,7 +65,9 @@ begin
                 {}"
 
   (*when we replace the set by a 32 wordinterval, we should get executable code*)
-  value[code] "primitive_extractor (is_Src, src_sel) (MatchAnd (Match (Src (Ip4AddrNetmask (0,0,0,0) 30))) (Match (IIface (Iface ''eth0''))))"
+  lemma "primitive_extractor (is_Src, src_sel)
+      (MatchAnd (Match (Src (Ip4AddrNetmask (0,0,0,0) 30))) (Match (IIface (Iface ''eth0'')))) =
+      ([Pos (Ip4AddrNetmask (0, 0, 0, 0) 30)], MatchAnd MatchAny (Match (IIface (Iface ''eth0''))))" by eval
 
  private lemma get_exists_matching_src_ips_subset: 
     assumes "normalized_nnf_match m"
@@ -185,13 +187,15 @@ begin
 
  private lemma get_all_matching_src_ips: 
     assumes "normalized_nnf_match m"
-    shows "get_all_matching_src_ips iface m \<subseteq> {ip. (\<forall>p. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))}"
+    shows "get_all_matching_src_ips iface m \<subseteq>
+            {ip. (\<forall>p. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))}"
   proof 
     fix ip
     assume a: "ip \<in> get_all_matching_src_ips iface m" 
     obtain i_matches rest1 where select1: "primitive_extractor (is_Iiface, iiface_sel) m = (i_matches, rest1)" by fastforce
     show "ip \<in> {ip. \<forall>p. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)}"
-    proof(cases "\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface) | Neg i \<Rightarrow> \<not>match_iface i (iface_sel iface))")
+    proof(cases "\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface)
+                                                 | Neg i \<Rightarrow> \<not>match_iface i (iface_sel iface))")
     case False
       have "get_all_matching_src_ips iface m = {}"
         unfolding get_all_matching_src_ips_def
@@ -327,12 +331,14 @@ begin
       apply(simp_all add: NegPos_set)
     using NegPos_set(2) by fastforce
 
-  value[code] "(get_exists_matching_src_ips_executable (Iface ''eth0'')
-      (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0'')))))"
+  lemma "(get_exists_matching_src_ips_executable (Iface ''eth0'')
+      (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0''))))) =
+      RangeUnion (WordInterval 0 0xC0A7FFFF) (WordInterval 0xC0A80100 0xFFFFFFFF)" by eval
 
   private definition get_all_matching_src_ips_executable :: "iface \<Rightarrow> common_primitive match_expr \<Rightarrow> 32 wordinterval" where
     "get_all_matching_src_ips_executable iface m \<equiv> let (i_matches, rest1) = (primitive_extractor (is_Iiface, iiface_sel) m) in
-              if (\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface) | Neg i \<Rightarrow> \<not>match_iface i (iface_sel iface)))
+              if (\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface)
+                                                  | Neg i \<Rightarrow> \<not>match_iface i (iface_sel iface)))
               then
                 (let (ip_matches, rest2) = (primitive_extractor (is_Src, src_sel) rest1) in
                 if \<not> has_disc is_Dst rest2 \<and> 
@@ -377,8 +383,9 @@ begin
     apply(erule_tac x="Neg aa" in ballE)
      apply(simp_all add: NegPos_set)
     done
-  value[code] "(get_all_matching_src_ips_executable (Iface ''eth0'')
-      (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0'')))))"
+  lemma "(get_all_matching_src_ips_executable (Iface ''eth0'')
+      (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0''))))) = 
+      RangeUnion (WordInterval 0 0xC0A7FFFF) (WordInterval 0xC0A80100 0xFFFFFFFF)" by eval
 
 
 
@@ -994,13 +1001,17 @@ begin
 end
 
 
-value[code] "no_spoofing_iface (Iface ''eth1.1011'') ([Iface ''eth1.1011'' \<mapsto> [(ipv4addr_of_dotdecimal (131,159,14,0), 24)]]:: ipassignment)
+lemma "no_spoofing_iface (Iface ''eth1.1011'')
+                         ([Iface ''eth1.1011'' \<mapsto> [(ipv4addr_of_dotdecimal (131,159,14,0), 24)]]:: ipassignment)
   [Rule (MatchNot (Match (IIface (Iface ''eth1.1011+'')))) action.Accept,
-           Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (131,159,14,0) 24)))) (Match (IIface (Iface ''eth1.101'')))) action.Drop,
-           Rule MatchAny action.Accept]"
+   Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (131,159,14,0) 24)))) (Match (IIface (Iface ''eth1.1011'')))) action.Drop,
+   Rule MatchAny action.Accept]" by eval
 
-value[code] "no_spoofing_iface (Iface ''eth1.1011'') ([Iface ''eth1.1011'' \<mapsto> [(ipv4addr_of_dotdecimal (131,159,14,0), 24)]]:: ipassignment)
-  [Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) Drop]"
+text{*We only check accepted packets.
+      If there is no default rule (this will never happen if parsed from iptables!), the result is unfinished.*}
+lemma "no_spoofing_iface (Iface ''eth1.1011'')
+                         ([Iface ''eth1.1011'' \<mapsto> [(ipv4addr_of_dotdecimal (131,159,14,0), 24)]]:: ipassignment)
+  [Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) Drop]" by eval
 
 
 end
