@@ -693,18 +693,17 @@ theorem transform_normalize_primitives:
        using simplers simple_ruleset_normalize_rules optimize_matches_option_simple_ruleset apply blast
       using normalized_rs2 apply(simp; fail)
      apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
-        using normalize_dst_ports apply(simp; fail)
+        using normalize_dst_ports[OF primitive_matcher_generic_common_matcher] apply(simp; fail)
        using simplers simple_ruleset_normalize_rules optimize_matches_option_simple_ruleset apply blast
       using normalized_rs1 apply(simp; fail)
      apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
-        using normalize_src_ports apply(simp; fail)
+        using normalize_src_ports[OF primitive_matcher_generic_common_matcher] apply(simp; fail)
        using simplers simple_ruleset_normalize_rules optimize_matches_option_simple_ruleset apply blast
       using normalized_rs0 apply(simp; fail)
      apply(subst local_simp, simp_all)
      apply(rule optimize_matches_option_generic[where P="\<lambda> m a. normalized_nnf_match m"])
        apply(simp_all add: normalized compress_normalize_besteffort_Some compress_normalize_besteffort_None)
      done
-
 
     from normalize_src_ports_normalized_n_primitive
     have normalized_src_ports: "\<forall>m \<in> get_match ` set ?rs1. normalized_src_ports m"
