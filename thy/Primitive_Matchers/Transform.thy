@@ -41,8 +41,8 @@ context begin
     apply(simp)
     apply(elim disjE)
       using primitive_matcher_generic.compress_normalize_protocols_Some[OF primitive_matcher_generic_common_matcher] apply blast
-     using compress_normalize_input_interfaces_Some apply blast
-    using compress_normalize_output_interfaces_Some apply blast
+     using compress_normalize_input_interfaces_Some[OF primitive_matcher_generic_common_matcher] apply blast
+    using compress_normalize_output_interfaces_Some[OF primitive_matcher_generic_common_matcher] apply blast
     done
   
   
@@ -59,8 +59,8 @@ context begin
            normalized_nnf_match m \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p"
       apply(simp)
       using primitive_matcher_generic.compress_normalize_protocols_None[OF primitive_matcher_generic_common_matcher]
-            compress_normalize_input_interfaces_None
-            compress_normalize_output_interfaces_None by blast
+            compress_normalize_input_interfaces_None[OF primitive_matcher_generic_common_matcher]
+            compress_normalize_output_interfaces_None[OF primitive_matcher_generic_common_matcher] by blast
    show "normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p"
      unfolding compress_normalize_besteffort_def
      apply(rule compress_normalize_primitive_monad_None)
