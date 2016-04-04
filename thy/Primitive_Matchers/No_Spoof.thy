@@ -4,7 +4,7 @@ imports Common_Primitive_Lemmas
 begin
 
 section{*No Spoofing*}
-(* we do this in ternary (not simple firewall) to support things such as negated interfaces *)
+(* we do this in ternary (not simple firewall) to support negated interfaces *)
   text{*assumes: @{const simple_ruleset}*}
 
 
@@ -52,7 +52,8 @@ begin
   text{*The set of any ip addresses which may match for a fixed @{text iface} (overapproximation)*}
   private definition get_exists_matching_src_ips :: "iface \<Rightarrow> common_primitive match_expr \<Rightarrow> ipv4addr set" where
     "get_exists_matching_src_ips iface m \<equiv> let (i_matches, _) = (primitive_extractor (is_Iiface, iiface_sel) m) in
-              if (\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface) | Neg i \<Rightarrow> \<not>match_iface i (iface_sel iface)))
+              if (\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface)
+                                                  | Neg i \<Rightarrow> \<not> match_iface i (iface_sel iface)))
               then
                 (let (ip_matches, _) = (primitive_extractor (is_Src, src_sel) m) in
                 if ip_matches = []
@@ -110,7 +111,8 @@ begin
       with match_simplematcher_Src_getPos match_simplematcher_Src_getNeg have inset:
         "(\<forall>ip\<in>set (getPos ip_matches). p_src ?p \<in> ipv4s_to_set ip) \<and> (\<forall>ip\<in>set (getNeg ip_matches). p_src ?p \<in> - ipv4s_to_set ip)" by presburger
   
-      with inset  have "\<forall>x \<in> set ip_matches. src_ip \<in> (case x of Pos x \<Rightarrow> ipv4s_to_set x | Neg ip \<Rightarrow> - ipv4s_to_set ip)"
+      hence "\<forall>x \<in> set ip_matches. src_ip \<in> (case x of Pos x \<Rightarrow> ipv4s_to_set x | Neg ip \<Rightarrow> - ipv4s_to_set ip)"
+        apply(simp)
         apply(simp  split: negation_type.split)
         apply(safe)
          using NegPos_set apply fast+
