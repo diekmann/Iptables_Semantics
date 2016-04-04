@@ -93,25 +93,11 @@ begin
       and a2: "matches ?\<gamma> m a (p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
       let ?p="(p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
 
-      (*TODO: simplify using negation_type_forall_split*)
-
-      from primitive_extractor_correct(1)[OF assms wf_disc_sel_common_primitive(3) a1] have 
-        "\<And>p. matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a p \<and> 
-              matches ?\<gamma> rest a p \<longleftrightarrow>
-              matches ?\<gamma> m a p" by fast
-      with a2 have "matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a ?p \<and> 
-              matches ?\<gamma> rest a ?p" by simp
-      hence "matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a ?p" by blast
-      with Negation_Type_Matching.matches_alist_and have
-        "(\<forall>m\<in>set (getPos (NegPos_map Src ip_matches)). matches ?\<gamma> (Match m) a ?p) \<and> 
-         (\<forall>m\<in>set (getNeg (NegPos_map Src ip_matches)). matches ?\<gamma> (MatchNot (Match m)) a ?p)" by metis
-      with getPos_NegPos_map_simp2 getNeg_NegPos_map_simp2 have 
-        "(\<forall>m\<in>set (map Src (getPos ip_matches)). matches ?\<gamma> (Match m) a ?p) \<and> 
-         (\<forall>m\<in>set (map Src (getNeg ip_matches)). matches ?\<gamma> (MatchNot (Match m)) a ?p)" by metis
-      with match_simplematcher_Src_getPos match_simplematcher_Src_getNeg have inset:
-        "(\<forall>ip\<in>set (getPos ip_matches). p_src ?p \<in> ipv4s_to_set ip) \<and> (\<forall>ip\<in>set (getNeg ip_matches). p_src ?p \<in> - ipv4s_to_set ip)" by presburger
-  
-      hence "\<forall>x \<in> set ip_matches. src_ip \<in> (case x of Pos x \<Rightarrow> ipv4s_to_set x | Neg ip \<Rightarrow> - ipv4s_to_set ip)"
+      from primitive_extractor_negation_type_matching1[OF wf_disc_sel_common_primitive(3) assms a1 a2]
+           match_simplematcher_Src_getPos match_simplematcher_Src_getNeg
+       have ip_matches: "(\<forall>ip\<in>set (getPos ip_matches). p_src ?p \<in> ipv4s_to_set ip) \<and>
+                       (\<forall>ip\<in>set (getNeg ip_matches). p_src ?p \<in> - ipv4s_to_set ip)" by simp
+      from ip_matches have "\<forall>x \<in> set ip_matches. src_ip \<in> (case x of Pos x \<Rightarrow> ipv4s_to_set x | Neg ip \<Rightarrow> - ipv4s_to_set ip)"
         apply(simp)
         apply(simp  split: negation_type.split)
         apply(safe)
@@ -120,38 +106,26 @@ begin
     } note 1=this
 
     { fix ip_matches p rest src_ip i_matches rest2
-      assume a2: "matches ?\<gamma> m a (p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
-      and a4: "primitive_extractor (is_Iiface, iiface_sel) m = (i_matches, rest2)"
+      assume a1: "primitive_extractor (is_Iiface, iiface_sel) m = (i_matches, rest2)"
+         and a2: "matches ?\<gamma> m a (p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
       let ?p="(p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
     
-      from primitive_extractor_correct(1)[OF assms wf_disc_sel_common_primitive(5) a4] have 
-        "\<And>p. matches ?\<gamma> (alist_and (NegPos_map IIface i_matches)) a p \<and> 
-              matches ?\<gamma> rest2 a p \<longleftrightarrow>
-              matches ?\<gamma> m a p" by fast
-      with a2 have "matches ?\<gamma> (alist_and (NegPos_map IIface i_matches)) a ?p \<and> 
-              matches ?\<gamma> rest2 a ?p" by simp
-      hence "matches ?\<gamma> (alist_and (NegPos_map IIface i_matches)) a ?p" by blast
-      with matches_alist_and have
-        "(\<forall>m\<in>set (getPos (NegPos_map IIface i_matches)). matches ?\<gamma> (Match m) a ?p) \<and> 
-         (\<forall>m\<in>set (getNeg (NegPos_map IIface i_matches)). matches ?\<gamma> (MatchNot (Match m)) a ?p)" by metis
-      with getPos_NegPos_map_simp2 getNeg_NegPos_map_simp2 have 
-        "(\<forall>m\<in>set (map IIface (getPos i_matches)). matches ?\<gamma> (Match m) a ?p) \<and> 
-         (\<forall>m\<in>set (map IIface (getNeg i_matches)). matches ?\<gamma> (MatchNot (Match m)) a ?p)" by metis
-      with match_simplematcher_Iface_getPos match_simplematcher_Iface_getNeg have inset_iface:
-        "(\<forall>i\<in>set (getPos i_matches). match_iface i (p_iiface ?p)) \<and> (\<forall>i\<in>set (getNeg i_matches). \<not> match_iface i (p_iiface ?p))" by presburger
+      from primitive_extractor_negation_type_matching1[OF wf_disc_sel_common_primitive(5) assms a1 a2]
+           match_simplematcher_Iface_getPos match_simplematcher_Iface_getNeg
+      have iface_matches: "(\<forall>i\<in>set (getPos i_matches). match_iface i (p_iiface ?p)) \<and>
+                           (\<forall>i\<in>set (getNeg i_matches). \<not> match_iface i (p_iiface ?p))" by simp
       hence 2: "(\<forall>x\<in>set i_matches. case x of Pos i \<Rightarrow> match_iface i (iface_sel iface) | Neg i \<Rightarrow> \<not> match_iface i (iface_sel iface))"
         apply(simp add: split: negation_type.split)
         apply(safe)
         using NegPos_set apply fast+
       done
+      
     } note 2=this
 
     from 1 2 show ?thesis
       unfolding get_exists_matching_src_ips_def
       by(clarsimp)
   qed
-
-
 
 
 
