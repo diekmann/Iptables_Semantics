@@ -250,9 +250,9 @@ begin
           and no_Src_rest2: "\<not> has_disc is_Src rest2"
           and no_IIface_rest2: "\<not> has_disc is_Iiface rest2"
           apply -
-            apply fast+
-           using no_iiface_rest1 apply fast
-          done
+            apply fast
+           apply fast
+           using no_iiface_rest1 by fast
 
         from F have ?noDisc by simp
         with no_Src_rest2 no_IIface_rest2 have "\<not> has_primitive rest2"

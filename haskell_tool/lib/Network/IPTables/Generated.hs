@@ -1910,6 +1910,11 @@ partIps s (t : ts) =
                          wordinterval_setminus t s :
                            partIps (wordinterval_setminus s t) ts)));
 
+undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces ::
+  forall a. a;
+undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces = error
+  "Ipassmt.undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces";
+
 map_of_ipassmt ::
   [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
     Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
@@ -1917,7 +1922,8 @@ map_of_ipassmt ipassmt =
   (if distinct (map fst ipassmt) &&
         ball (image fst (Set ipassmt))
           (\ iface -> not (iface_is_wildcard iface))
-    then map_of ipassmt else error "undefined");
+    then map_of ipassmt
+    else undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces);
 
 numeral :: forall a. (Numeral a) => Num -> a;
 numeral (Bit1 n) = let {
