@@ -1674,7 +1674,9 @@ by simp
 lemma ipv4cidr_conjunct_valid: "\<lbrakk>valid_prefix_fw p1; valid_prefix_fw p2; ipv4cidr_conjunct p1 p2 = Some p\<rbrakk> \<Longrightarrow> valid_prefix_fw p"
 unfolding valid_prefix_fw_def
   by(cases p; cases p1; cases p2) (simp add: ipv4cidr_conjunct.simps split: if_splits)
-lemma simpl_ports_conjunct_not_UNIV: "Collect (simple_match_port x) \<noteq> UNIV \<Longrightarrow> x = simpl_ports_conjunct p1 p2 \<Longrightarrow> Collect (simple_match_port p1) \<noteq> UNIV \<or> Collect (simple_match_port p2) \<noteq> UNIV" sorry
+lemma simpl_ports_conjunct_not_UNIV:
+"Collect (simple_match_port x) \<noteq> UNIV \<Longrightarrow> x = simpl_ports_conjunct p1 p2 \<Longrightarrow> Collect (simple_match_port p1) \<noteq> UNIV \<or> Collect (simple_match_port p2) \<noteq> UNIV" 
+  by (metis Collect_cong mem_Collect_eq simple_ports_conjunct_correct)
 lemma simple_match_and_valid: "simple_match_valid m1 \<Longrightarrow> simple_match_valid m2 \<Longrightarrow> simple_match_and m1 m2 = Some m \<Longrightarrow> simple_match_valid m"
 unfolding simple_match_valid_def
 apply(cases m; cases m1; cases m2)
@@ -1691,7 +1693,48 @@ apply(drule simpl_ports_conjunct_not_UNIV)
 apply(unfold simple_match_and.simps)
 apply(split option.splits, (simp;fail))+
 apply(unfold option.inject simple_match_inject)
-sorry
+apply(clarify)
+apply(erule sym)
+apply(erule disjE)
+apply(simp)
+apply(elim disjE)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
+apply(simp)
+apply(elim disjE)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD)
+apply(drule simpl_ports_conjunct_not_UNIV)
+apply(split option.splits, (simp;fail))+
+apply(unfold option.inject simple_match_inject)
+apply(clarify)
+apply(erule sym)
+apply(erule disjE)
+apply(simp)
+apply(elim disjE)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
+apply(simp)
+apply(elim disjE)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD)
+done (* okay, shit. *)
 
 (* TODO: move *)
 definition "gsfw_valid \<equiv> list_all (simple_match_valid \<circ> fst) :: (simple_match \<times> 'c) list \<Rightarrow> bool"
