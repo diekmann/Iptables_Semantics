@@ -2,7 +2,16 @@ theory Generic_SimpleFw
 imports SimpleFw_Compliance
 begin
 
-definition "generalized_sfw l p = find (\<lambda>(m,a). simple_matches m p) l"
+(* careful which find you use, friend\<dots> *)
+lemma list_lib_find: "List.find = find"
+unfolding fun_eq_iff
+apply(clarify)
+apply(rename_tac x xa)
+apply(induct_tac xa)
+apply(auto)
+done
+
+definition "generalized_sfw l p = List.find (\<lambda>(m,a). simple_matches m p) l"
 text\<open>Essentially, the idea of the generalized @{term simple_fw} semantics @{term generalized_sfw} is that you can have anything as the resulting action, not only a @{type simple_action}.}\<close>
 
 lemma simple_match_and_SomeD: "simple_match_and m1 m2 = Some m \<Longrightarrow> simple_matches m p = (simple_matches m1 p \<and> simple_matches m2 p)"

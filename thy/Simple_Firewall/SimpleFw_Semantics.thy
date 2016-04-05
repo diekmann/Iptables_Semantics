@@ -408,6 +408,6 @@ text{* Thus, @{text "example_simple_match1"} is valid, but if we set its protoco
 lemma "simple_match_valid example_simple_match1" by eval
 lemma "\<not>simple_match_valid example_simple_match2" by eval
 
-definition "simple_firewall_valid \<equiv> list_all (simple_match_valid \<circ> match_sel)"
+definition "simple_fw_valid \<equiv> list_all (simple_match_valid \<circ> match_sel)"
 
 end
