@@ -127,6 +127,7 @@ definition "all_true s \<equiv> \<forall>x \<in> s. x"
 term map_option
 definition OF_match_fields :: "of_match_field set \<Rightarrow> 'a simple_packet_ext_scheme \<Rightarrow> bool option" where "OF_match_fields m p = map_option all_true (set_seq ((\<lambda>f. match_prereq f m p) ` m))"
 definition OF_match_fields_unsafe :: "of_match_field set \<Rightarrow> 'a simple_packet_ext_scheme \<Rightarrow> bool" where "OF_match_fields_unsafe m p = (\<forall>f \<in> m. match_no_prereq f p)"
+definition "OF_match_fields_safe m \<equiv> the \<circ> OF_match_fields m"
 
 definition "all_prerequisites m \<equiv> \<forall>f \<in> m. prerequisites f m"
 
@@ -146,6 +147,9 @@ proof -
 	show ?case
 		unfolding 1 unfolding eqTrueI[OF 2] unfolding if_True unfolding image_comp comp_def unfolding option.sel by(simp add: all_true_def)
 qed
+
+lemma of_match_fields_safe_eq: assumes "all_prerequisites m" shows "OF_match_fields_safe m = OF_match_fields_unsafe m"
+unfolding OF_match_fields_safe_def[abs_def] fun_eq_iff comp_def unfolding of_safe_unsafe_match_eq[OF assms] unfolding option.sel by clarify 
 
 
 

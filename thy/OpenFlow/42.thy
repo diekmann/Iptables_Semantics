@@ -225,7 +225,7 @@ thm prefix_match_semantics_simple_match (* mph, I had one like that already. TOD
 lemma "x \<in> set (wordinterval_CIDR_split_internal w) \<Longrightarrow> valid_prefix x"
 using wordinterval_CIDR_split_internal_all_valid_Ball[THEN bspec] .
 
-lemma 
+lemma simple_match_to_of_matchI: 
 	assumes mv: "simple_match_valid r"
 	assumes mm: "simple_matches r p"
 	assumes ii: "p_iiface p \<in> set ifs"
@@ -356,7 +356,7 @@ proof -
 	qed
 qed
 
-lemma 
+lemma simple_match_to_of_matchD:
 	assumes eg: "gr \<in> set (simple_match_to_of_match r ifs)"
 	assumes mo: "OF_match_fields gr p = Some True"
 	assumes me: "match_iface (oiface r) (p_oiface p)"
@@ -596,15 +596,16 @@ definition "fourtytwo_fbs rt fw ifs \<equiv> let
 	in nrd
 "
 
+definition "pack_OF_entries ifs ard \<equiv> (map (split3 OFEntry) $ fourtytwo_s3 ifs ard)"
+
 definition "fourtytwo rt fw ifs \<equiv> let
 	nrd = fourtytwo_fbs rt fw ifs;
 	ard = map (apfst word_of_nat) (annotate_rlen nrd) (* give them a priority *)
 	in
 	if length nrd < unat (max_word :: 16 word)
-	then Inr (map (split3 OFEntry) $ fourtytwo_s3 ifs ard)
-	else Inl ''Error in creating OpenFlow table: priority number space exhausted''
+	then Inr $ pack_OF_entries ifs ard
+	else Inl $ ''Error in creating OpenFlow table: priority number space exhausted''
 "
-thm fourtytwo_def[unfolded comp_def fun_app_def fourtytwo_s3_def fourtytwo_s2_def fourtytwo_s1_def fourtytwo_s4_def fourtytwo_nullifyoif_def ] (* You know what? I'm okay with that. *)
 
 lemma fourtytwo_nullifyoif_alt: "fourtytwo_nullifyoif frd = [(m\<lparr>oiface := ifaceAny\<rparr>,d). (m,d) \<leftarrow> frd]"
 proof -
@@ -1030,8 +1031,8 @@ done
 
 lemma x_comp_fst_comp_apsnd[simp]: "x \<circ> fst \<circ> apsnd f = x \<circ> fst" unfolding comp_def by simp 
 
-lemma assumes "is_iface_list ifs" shows "Inr t = (fourtytwo rt fw ifs) \<Longrightarrow> no_overlaps OF_match_fields_unsafe t"
-	apply(unfold fourtytwo_def Let_def)
+lemma fourtytwo_no_overlaps: assumes "is_iface_list ifs" shows "Inr t = (fourtytwo rt fw ifs) \<Longrightarrow> no_overlaps OF_match_fields_unsafe t"
+	apply(unfold fourtytwo_def Let_def pack_OF_entries_def)
 	apply(simp split: if_splits)
 	apply(thin_tac "t = _")
 	apply(drule distinct_of_prio_hlp)
@@ -1067,7 +1068,8 @@ lemma "Inr r = fourtytwo rt fw ifs \<Longrightarrow> sorted_descending (map ofe_
 	apply(unfold fourtytwo_def Let_def)
 	apply(simp split: if_splits)
 	apply(thin_tac "r = _")
-	apply(unfold sorted_fourtytwo_hlp)
+	apply(unfold sorted_fourtytwo_hlp pack_OF_entries_def split3_def[abs_def] fun_app_def map_map comp_def prod.case_distrib)
+	apply(simp add: fst_def[symmetric])
 	apply(rule sorted_fourtytwo_s3)
 	apply(drule sorted_annotated[OF less_or_eq_imp_le, OF disjI1])
 	apply(simp add: o_assoc)
@@ -1358,6 +1360,70 @@ proof -
 	done
 oops
 
+definition "to_OF_action a \<equiv> (case a of (p,d) \<Rightarrow> (case d of simple_action.Accept \<Rightarrow> [Forward p] | simple_action.Drop \<Rightarrow> []))"
+
+(* TODO: move *)
+lemma OF_match_linear_append: "OF_match_linear \<gamma> (a @ b) p = (case OF_match_linear \<gamma> a p of NoAction \<Rightarrow> OF_match_linear \<gamma> b p | x \<Rightarrow> x)"
+by(induction a) simp_all
+
+(* TODO: move? *)
+lemma OF_match_linear_match_allsameaction: "\<lbrakk>gr \<in> set oms; OF_match_fields_safe gr p = True\<rbrakk>
+       \<Longrightarrow> OF_match_linear OF_match_fields_safe (map (\<lambda>x. split3 OFEntry (pri, x, act)) oms) p = Action act"
+by(induction oms) (auto simp add: split3_def)
+
+lemma the_SomeI: "x = Some y \<Longrightarrow> the x = y" by(fact handy_lemma)
+
+lemma OF_match_linear_not_noD: "OF_match_linear \<gamma> oms p \<noteq> NoAction \<Longrightarrow> \<exists>ome. ome \<in> set oms \<and> \<gamma> (ofe_fields ome) p"
+	apply(induction oms)
+	 apply(simp)
+	apply(simp split: if_splits)
+	 apply blast+
+done
+
+lemma s3_noaction_hlp: "\<lbrakk>simple_match_valid ac; \<not>simple_matches ac p\<rbrakk> \<Longrightarrow> 
+OF_match_linear OF_match_fields_safe (map (\<lambda>x. split3 OFEntry (x1, x, case ba of simple_action.Accept \<Rightarrow> [Forward ad] | simple_action.Drop \<Rightarrow> [])) (simple_match_to_of_match ac ifs)) p = NoAction"
+apply(rule ccontr)
+apply(drule OF_match_linear_not_noD)
+apply(clarsimp)
+apply(rename_tac x)
+apply(subgoal_tac "all_prerequisites x")
+apply(drule simple_match_to_of_matchD)
+apply(simp add: split3_def)
+sorry
+
+lemma s3_correct:
+	assumes vsfwm: "list_all simple_match_valid $ map (fst \<circ> snd) ard"
+	assumes ippkt: "p_l2type p = 0x800"
+	assumes iiifs: "p_iiface p \<in> set ifs"
+	shows "OF_match_linear OF_match_fields_safe (pack_OF_entries ifs ard) p = Action (to_OF_action a) \<longleftrightarrow> (\<exists>r. generalized_sfw (map snd ard) p = (Some (r,a)))"
+unfolding pack_OF_entries_def fourtytwo_s3_def fun_app_def
+using vsfwm
+apply(induction ard)
+apply(simp add: generalized_sfw_simps)
+apply simp
+apply(clarsimp simp add: generalized_sfw_simps split: prod.splits)
+apply(intro conjI)
+apply(clarsimp simp add: OF_match_linear_append to_OF_action_def split: prod.splits)
+apply(drule simple_match_to_of_matchI[rotated])
+apply(rule iiifs)
+apply(rule ippkt)
+apply blast
+apply(clarsimp simp add: comp_def)
+apply(rename_tac ard x1 ac ad ba x1a x2 gr)
+apply(drule_tac oms = "simple_match_to_of_match ac ifs" and pri = x1 and act = "case ba of simple_action.Accept \<Rightarrow> [Forward ad] | simple_action.Drop \<Rightarrow> []" in OF_match_linear_match_allsameaction)
+apply(unfold OF_match_fields_safe_def comp_def)
+apply(erule the_SomeI;fail)
+apply(simp)
+apply(simp split: simple_action.splits)
+defer
+apply(simp add: OF_match_linear_append)
+apply(rename_tac ard x1 ac ad ba)
+apply(clarify)
+apply(subgoal_tac "OF_match_linear OF_match_fields_safe (map (\<lambda>x. split3 OFEntry (x1, x, case ba of simple_action.Accept \<Rightarrow> [Forward ad] | simple_action.Drop \<Rightarrow> [])) (simple_match_to_of_match ac ifs)) p = NoAction")
+apply(simp;fail)
+apply(rule s3_noaction_hlp)
+sorry
+
 lemma snullifyoif_correct: "oiface_exact_match (map (snd) frd) \<Longrightarrow> generalized_sfw frd p = Some r \<Longrightarrow> generalized_sfw ((fourtytwo_nullifyoif frd)) p = Some r"
 sorry
 
@@ -1389,11 +1455,12 @@ lemma fourtytwo_correct:
 	assumes s1: "valid_prefixes rt" "has_default_route rt"
 	    and s2: "\<forall>(p::'a simple_packet_scheme). simple_fw fw p \<noteq> Undecided"
 	  and nerr: "fourtytwo rt fw ifs = Inr oft"
-	shows "OF_same_priority_match3 OF_match_fields_unsafe oft p = Action [Forward oif] \<longleftrightarrow> simple_linux_router_nomac rt fw p = (Some (p\<lparr>p_oiface := oif\<rparr>))"
-	      "OF_same_priority_match3 OF_match_fields_unsafe oft p = Action [] \<longleftrightarrow> simple_linux_router_nomac rt fw p = None"
+	 and ippkt: "p_l2type p = 0x800"
+	shows "OF_same_priority_match3 OF_match_fields_safe oft p = Action [Forward oif] \<longleftrightarrow> simple_linux_router_nomac rt fw p = (Some (p\<lparr>p_oiface := oif\<rparr>))"
+	      "OF_same_priority_match3 OF_match_fields_safe oft p = Action [] \<longleftrightarrow> simple_linux_router_nomac rt fw p = None"
 	      (* fun stuff: *)
-	      "OF_same_priority_match3 OF_match_fields_unsafe oft p \<noteq> NoAction" "OF_same_priority_match3 OF_match_fields_unsafe oft p \<noteq> Undefined"
-	      "OF_same_priority_match3 OF_match_fields_unsafe oft p = Action ls \<longrightarrow> length ls \<le> 1"
+	      "OF_same_priority_match3 OF_match_fields_safe oft p \<noteq> NoAction" "OF_same_priority_match3 OF_match_fields_unsafe oft p \<noteq> Undefined"
+	      "OF_same_priority_match3 OF_match_fields_safe oft p = Action ls \<longrightarrow> length ls \<le> 1"
 	      "\<exists>ls. length ls \<le> 1 \<and> OF_same_priority_match3 OF_match_fields_unsafe oft p = Action ls"
 oops
 
