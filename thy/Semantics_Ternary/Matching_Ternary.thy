@@ -365,14 +365,13 @@ begin
     "has_primitive (MatchAnd m1 m2) = (has_primitive m1 \<or> has_primitive m2)"
 
 
-  (*TODO: fix typo*)
   text{*Is a match expression equal to the @{const MatchAny} expression?
         Only applicable if no primitives are in the expression. *}
-  fun matcheq_matachAny :: "'a match_expr \<Rightarrow> bool" where
-    "matcheq_matachAny MatchAny \<longleftrightarrow> True" |
-    "matcheq_matachAny (MatchNot m) \<longleftrightarrow> \<not> (matcheq_matachAny m)" |
-    "matcheq_matachAny (MatchAnd m1 m2) \<longleftrightarrow> matcheq_matachAny m1 \<and> matcheq_matachAny m2" |
-    "matcheq_matachAny (Match _) = undefined"
+  fun matcheq_matchAny :: "'a match_expr \<Rightarrow> bool" where
+    "matcheq_matchAny MatchAny \<longleftrightarrow> True" |
+    "matcheq_matchAny (MatchNot m) \<longleftrightarrow> \<not> (matcheq_matchAny m)" |
+    "matcheq_matchAny (MatchAnd m1 m2) \<longleftrightarrow> matcheq_matchAny m1 \<and> matcheq_matchAny m2" |
+    "matcheq_matchAny (Match _) = undefined"
 
   private lemma no_primitives_no_unknown: "\<not> has_primitive m  \<Longrightarrow> (ternary_ternary_eval (map_match_tac \<beta> p m)) \<noteq> TernaryUnknown"
   proof(induction m)
@@ -398,7 +397,7 @@ begin
   qed
   
 
-  lemma matcheq_matachAny: "\<not> has_primitive m \<Longrightarrow> matcheq_matachAny m \<longleftrightarrow> matches \<gamma> m a p"
+  lemma matcheq_matchAny: "\<not> has_primitive m \<Longrightarrow> matcheq_matchAny m \<longleftrightarrow> matches \<gamma> m a p"
   proof(induction m)
   case Match hence False by auto
     thus ?case ..
@@ -424,14 +423,14 @@ begin
     "matcheq_matchNone (MatchNot (MatchAnd m1 m2)) \<longleftrightarrow> matcheq_matchNone (MatchNot m1) \<and> matcheq_matchNone (MatchNot m2)" |
     "matcheq_matchNone (MatchAnd m1 m2) \<longleftrightarrow>  matcheq_matchNone m1 \<or> matcheq_matchNone m2"
   
-  lemma matachAny_matchNone: "\<not> has_primitive m \<Longrightarrow> matcheq_matachAny m \<longleftrightarrow> \<not> matcheq_matchNone m"
+  lemma matachAny_matchNone: "\<not> has_primitive m \<Longrightarrow> matcheq_matchAny m \<longleftrightarrow> \<not> matcheq_matchNone m"
     by(induction m rule: matcheq_matchNone.induct)(simp_all)
   
   lemma matcheq_matchNone_no_primitive: "\<not> has_primitive m \<Longrightarrow> matcheq_matchNone (MatchNot m) \<longleftrightarrow> \<not> matcheq_matchNone m"
     by(induction m rule: matcheq_matchNone.induct) (simp_all)
 
   lemma matcheq_matchNone: "\<not> has_primitive m \<Longrightarrow> matcheq_matchNone m \<longleftrightarrow> \<not> matches \<gamma> m a p"
-    by(auto dest: matcheq_matachAny matachAny_matchNone)
+    by(auto dest: matcheq_matchAny matachAny_matchNone)
 
   lemma matcheq_matchNone_not_matches: "matcheq_matchNone m \<Longrightarrow> \<not> matches \<gamma> m a p"
     proof(induction m rule: matcheq_matchNone.induct)

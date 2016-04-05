@@ -28,8 +28,17 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
 
 
   (* use this in all exported code*)
+  (*TODO: generate useful error message in exported code*)
+  (*consts undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces :: "'a"
+  declare [[code abort: undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces]]*)
+  (*pretty excpetion breaks value[code] and by eval*)
   definition map_of_ipassmt :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> iface \<rightharpoonup> (32 word \<times> nat) list" where
-    "map_of_ipassmt ipassmt = (if distinct (map fst ipassmt) \<and> ipassmt_sanity_nowildcards (map_of ipassmt) then map_of ipassmt else undefined)"
+    "map_of_ipassmt ipassmt = (
+      if
+        distinct (map fst ipassmt) \<and> ipassmt_sanity_nowildcards (map_of ipassmt)
+      then
+        map_of ipassmt
+      else undefined (*undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces*))"
 
 
   text{* some additional (optional) sanity checks *}
@@ -40,12 +49,12 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
           ipv4cidr_union_set (set (the (ipassmt i1))) \<inter> ipv4cidr_union_set (set (the (ipassmt i2))) = {}"
   
   lemma[code_unfold]: "ipassmt_sanity_disjoint (map_of ipassmt) \<longleftrightarrow> (let Is = fst` set ipassmt in 
-      (\<forall> i1 \<in> Is. \<forall> i2 \<in> Is. i1 \<noteq> i2 \<longrightarrow> wordinterval_empty (wordinterval_intersection (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i1))))  (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i2)))))))"
+      (\<forall> i1 \<in> Is. \<forall> i2 \<in> Is. i1 \<noteq> i2 \<longrightarrow> wordinterval_empty (wordinterval_intersection (l2br (map ipcidr_to_interval (the ((map_of ipassmt) i1))))  (l2br (map ipcidr_to_interval (the ((map_of ipassmt) i2)))))))"
     apply(simp add: ipassmt_sanity_disjoint_def Map.dom_map_of_conv_image_fst)
     apply(simp add: ipv4cidr_union_set_def)
     apply(simp add: l2br)
-    apply(simp add: ipv4cidr_to_interval_def)
-    apply(simp add: ipv4cidr_to_interval_ipv4range_set_from_prefix)
+    apply(simp add: ipcidr_to_interval_def)
+    apply(simp add: ipcidr_to_interval_ipv4range_set_from_prefix)
     done
   
   
@@ -54,15 +63,15 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
     "ipassmt_sanity_complete ipassmt \<equiv> distinct (map fst ipassmt) \<and> (\<Union>(ipv4cidr_union_set ` set ` (ran (map_of ipassmt)))) = UNIV"
 
     lemma[code_unfold]: "ipassmt_sanity_complete ipassmt \<longleftrightarrow> distinct (map fst ipassmt) \<and> (let range = map snd ipassmt in 
-        wordinterval_eq (wordinterval_Union (map (l2br \<circ> (map ipv4cidr_to_interval)) range)) wordinterval_UNIV
+        wordinterval_eq (wordinterval_Union (map (l2br \<circ> (map ipcidr_to_interval)) range)) wordinterval_UNIV
         )"
      apply(cases "distinct (map fst ipassmt)")
       apply(simp add: ipassmt_sanity_complete_def)
       apply(simp add: Map.ran_distinct)
       apply(simp add:  wordinterval_eq_set_eq wordinterval_Union)
       apply(simp add: l2br)
-      apply(simp add: ipv4cidr_to_interval_def)
-      apply(simp add: ipv4cidr_union_set_def ipv4cidr_to_interval_ipv4range_set_from_prefix)
+      apply(simp add: ipcidr_to_interval_def)
+      apply(simp add: ipv4cidr_union_set_def ipcidr_to_interval_ipv4range_set_from_prefix)
      apply(simp add: ipassmt_sanity_complete_def)
      done
 
@@ -109,7 +118,7 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
     done
 
   definition ipassmt_ignore_wildcard_list:: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> (iface \<times> (32 word \<times> nat) list) list" where
-    "ipassmt_ignore_wildcard_list ipassmt = filter (\<lambda>(_,ips).  \<not> wordinterval_eq (l2br (map ipv4cidr_to_interval ips)) wordinterval_UNIV) ipassmt"
+    "ipassmt_ignore_wildcard_list ipassmt = filter (\<lambda>(_,ips).  \<not> wordinterval_eq (l2br (map ipcidr_to_interval ips)) wordinterval_UNIV) ipassmt"
 
   (*distinct fst ipassmt notwendig?*)
   (*TODO: proof nochmal ordentlich machen!*)
@@ -117,14 +126,14 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
     apply(simp add: ipassmt_ignore_wildcard_list_def ipassmt_ignore_wildcard_def)
       apply(simp add: wordinterval_eq_set_eq)
       apply(simp add: l2br)
-      apply(simp add: ipv4cidr_to_interval_def)
+      apply(simp add: ipcidr_to_interval_def)
       apply(simp add: fun_eq_iff)
       apply(clarify)
       apply(induction ipassmt)
        apply(simp)
       apply(simp)
       apply(simp split:option.split option.split_asm)
-      apply(simp add: ipv4cidr_union_set_def ipv4cidr_to_interval_ipv4range_set_from_prefix)
+      apply(simp add: ipv4cidr_union_set_def ipcidr_to_interval_ipv4range_set_from_prefix)
       apply(safe)
                         apply(simp_all)
       by (simp add: rev_image_eqI)
@@ -146,8 +155,8 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
            then ''passed'' else ''fail: ''@list_toString (\<lambda>(i1,i2). ''('' @ iface_sel i1 @ '','' @ iface_sel i2 @ '')'')
                [(i1,i2) \<leftarrow> List.product ifaces ifaces. i1 \<noteq> i2 \<and>
                 \<not> wordinterval_empty (wordinterval_intersection
-                                        (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i1))))
-                                        (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i2)))))
+                                        (l2br (map ipcidr_to_interval (the ((map_of ipassmt) i1))))
+                                        (l2br (map ipcidr_to_interval (the ((map_of ipassmt) i2)))))
           ])
       , ''ipassmt_sanity_disjoint excluding UNIV interfaces: '' @
           (let ipassmt = ipassmt_ignore_wildcard_list ipassmt;
@@ -157,21 +166,21 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
            then ''passed'' else ''fail: ''@list_toString (\<lambda>(i1,i2). ''('' @ iface_sel i1 @ '','' @ iface_sel i2 @ '')'')
                [(i1,i2) \<leftarrow> List.product ifaces ifaces. i1 \<noteq> i2 \<and>
                 \<not> wordinterval_empty (wordinterval_intersection
-                                        (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i1))))
-                                        (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i2)))))
+                                        (l2br (map ipcidr_to_interval (the ((map_of ipassmt) i1))))
+                                        (l2br (map ipcidr_to_interval (the ((map_of ipassmt) i2)))))
           ]))
        , ''ipassmt_sanity_complete: '' @ 
           (if ipassmt_sanity_complete ipassmt
            then ''passed''
            else ''the following is not covered: '' @ 
-            ipv4addr_wordinterval_toString (wordinterval_setminus wordinterval_UNIV (wordinterval_Union (map (l2br \<circ> (map ipv4cidr_to_interval)) (map snd ipassmt)))))
+            ipv4addr_wordinterval_toString (wordinterval_setminus wordinterval_UNIV (wordinterval_Union (map (l2br \<circ> (map ipcidr_to_interval)) (map snd ipassmt)))))
       , ''ipassmt_sanity_complete excluding UNIV interfaces: '' @
           (let ipassmt = ipassmt_ignore_wildcard_list ipassmt
            in
           (if ipassmt_sanity_complete ipassmt
            then ''passed''
            else ''the following is not covered: '' @
-            ipv4addr_wordinterval_toString (wordinterval_setminus wordinterval_UNIV (wordinterval_Union (map (l2br \<circ> (map ipv4cidr_to_interval)) (map snd ipassmt))))))
+            ipv4addr_wordinterval_toString (wordinterval_setminus wordinterval_UNIV (wordinterval_Union (map (l2br \<circ> (map ipcidr_to_interval)) (map snd ipassmt))))))
       ]"
 
 

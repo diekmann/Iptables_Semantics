@@ -18,15 +18,19 @@ begin
 
   declare ipt_ports_negation_type_normalize.simps[simp del]
   
+  (*
   private lemma ipt_ports_negation_type_normalize_correct:
-        "matches (common_matcher, \<alpha>) (negation_type_to_match_expr_f (Src_Ports) ps) a p \<longleftrightarrow>
-         matches (common_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_negation_type_normalize ps))) a p"
-        "matches (common_matcher, \<alpha>) (negation_type_to_match_expr_f (Dst_Ports) ps) a p \<longleftrightarrow>
-         matches (common_matcher, \<alpha>) (Match (Dst_Ports (ipt_ports_negation_type_normalize ps))) a p"
+        "primitive_matcher_generic \<beta> \<Longrightarrow> 
+         matches (\<beta>, \<alpha>) (negation_type_to_match_expr_f (Src_Ports) ps) a p \<longleftrightarrow>
+         matches (\<beta>, \<alpha>) (Match (Src_Ports (ipt_ports_negation_type_normalize ps))) a p"
+        "primitive_matcher_generic \<beta> \<Longrightarrow> 
+         matches (\<beta>, \<alpha>) (negation_type_to_match_expr_f (Dst_Ports) ps) a p \<longleftrightarrow>
+         matches (\<beta>, \<alpha>) (Match (Dst_Ports (ipt_ports_negation_type_normalize ps))) a p"
   apply(case_tac [!] ps)
-  apply(simp_all add: ipt_ports_negation_type_normalize.simps matches_case_ternaryvalue_tuple
-          bunch_of_lemmata_about_matches bool_to_ternary_simps ports_invert split: ternaryvalue.split)
+  apply(simp_all add: primitive_matcher_generic.Ports_single primitive_matcher_generic.Ports_single_not)
+  apply(simp_all add: ipt_ports_negation_type_normalize.simps ports_invert split: ternaryvalue.split)
   done
+  *)
   
   (* [ [(1,2) \<or> (3,4)]  \<and>  [] ]*)
   text{* @{typ "ipt_ports list \<Rightarrow> ipt_ports"} *}
@@ -52,68 +56,81 @@ begin
   
   (*only for src*)
   private lemma ipt_ports_compress_src_correct:
-    "matches (common_matcher, \<alpha>) (alist_and (NegPos_map Src_Ports ms)) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_compress ms))) a p"
+  assumes generic: "primitive_matcher_generic \<beta>"
+  shows "matches (\<beta>, \<alpha>) (alist_and (NegPos_map Src_Ports ms)) a p \<longleftrightarrow> 
+         matches (\<beta>, \<alpha>) (Match (Src_Ports (ipt_ports_compress ms))) a p"
   proof(induction ms)
-    case Nil thus ?case by(simp add: ipt_ports_compress_def bunch_of_lemmata_about_matches ipt_ports_andlist_compress_correct)
+    case Nil with generic show ?case
+      unfolding primitive_matcher_generic.Ports_single[OF generic]
+      by(simp add: ipt_ports_compress_def bunch_of_lemmata_about_matches ipt_ports_andlist_compress_correct)
     next
     case (Cons m ms)
       thus ?case
       proof(cases m)
-        case Pos thus ?thesis using Cons.IH
+        case Pos thus ?thesis using Cons.IH primitive_matcher_generic.Ports_single[OF generic]
           by(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches
-              ternary_to_bool_bool_to_ternary ipt_ports_negation_type_normalize.simps)
+                ipt_ports_negation_type_normalize.simps)
         next
         case (Neg a)
-          thus ?thesis using Cons.IH
-          apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
-          apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps
-                  ports_invert ipt_ports_negation_type_normalize.simps split: ternaryvalue.split)
+          thus ?thesis using Cons.IH generic primitive_matcher_generic.Ports_single_not primitive_matcher_generic.Ports_single
+          apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct
+                          bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+          apply(simp add: ports_invert ipt_ports_negation_type_normalize.simps)
           done
         qed
   qed
   (*only for dst*)
   private lemma ipt_ports_compress_dst_correct:
-    "matches (common_matcher, \<alpha>) (alist_and (NegPos_map Dst_Ports ms)) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) (Match (Dst_Ports (ipt_ports_compress ms))) a p"
+  assumes generic: "primitive_matcher_generic \<beta>"
+  shows "matches (\<beta>, \<alpha>) (alist_and (NegPos_map Dst_Ports ms)) a p \<longleftrightarrow>
+         matches (\<beta>, \<alpha>) (Match (Dst_Ports (ipt_ports_compress ms))) a p"
   proof(induction ms)
-    case Nil thus ?case by(simp add: ipt_ports_compress_def bunch_of_lemmata_about_matches ipt_ports_andlist_compress_correct)
+    case Nil thus ?case
+      unfolding primitive_matcher_generic.Ports_single[OF generic]
+      by(simp add: ipt_ports_compress_def bunch_of_lemmata_about_matches ipt_ports_andlist_compress_correct)
     next
     case (Cons m ms)
       thus ?case
       proof(cases m)
-        case Pos thus ?thesis using Cons.IH
+        case Pos thus ?thesis using Cons.IH primitive_matcher_generic.Ports_single[OF generic]
           by(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches
-                ternary_to_bool_bool_to_ternary ipt_ports_negation_type_normalize.simps)
+                ipt_ports_negation_type_normalize.simps)
         next
         case (Neg a)
-          thus ?thesis using Cons.IH
-          apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
-          apply(simp add: matches_case_ternaryvalue_tuple bool_to_ternary_simps ports_invert
-              ipt_ports_negation_type_normalize.simps split: ternaryvalue.split)
+          thus ?thesis using Cons.IH primitive_matcher_generic.Ports_single[OF generic] primitive_matcher_generic.Ports_single_not[OF generic]
+          apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct
+                          bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+          apply(simp add: ports_invert ipt_ports_negation_type_normalize.simps)
           done
         qed
   qed
   
-  
-  private lemma ipt_ports_compress_matches_set: "matches (common_matcher, \<alpha>) (Match (Src_Ports (ipt_ports_compress ips))) a p \<longleftrightarrow>
+  (*
+  private lemma ipt_ports_compress_matches_set: "primitive_matcher_generic \<beta> \<Longrightarrow>
+         matches (\<beta>, \<alpha>) (Match (Src_Ports (ipt_ports_compress ips))) a p \<longleftrightarrow>
          p_sport p \<in> \<Inter> set (map (ports_to_set \<circ> ipt_ports_negation_type_normalize) ips)"
   apply(simp add: ipt_ports_compress_def)
   apply(induction ips)
    apply(simp)
-   apply(simp add: ipt_ports_compress_def bunch_of_lemmata_about_matches ipt_ports_andlist_compress_correct)
+   apply(simp add: ipt_ports_compress_def bunch_of_lemmata_about_matches
+                   ipt_ports_andlist_compress_correct primitive_matcher_generic_def; fail)
   apply(rename_tac m ms)
   apply(case_tac m)
-   apply(simp add: ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary ipt_ports_negation_type_normalize.simps)
-  apply(simp add: ipt_ports_andlist_compress_correct bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+   apply(simp add: primitive_matcher_generic.Ports_single ipt_ports_andlist_compress_correct; fail)
+  apply(simp add: primitive_matcher_generic.Ports_single ipt_ports_andlist_compress_correct; fail)
   done
-  
-  
+  *)
+  (*
   (*spliting the primitives: multiport list (a list of disjunction!)*)
-  private lemma singletonize_SrcDst_Ports: "match_list (common_matcher, \<alpha>) (map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) ms) (spts)) a p \<longleftrightarrow>
-         matches (common_matcher, \<alpha>) (MatchAnd (Match (Src_Ports spts)) ms) a p"
-         "match_list (common_matcher, \<alpha>) (map (\<lambda>spt. (MatchAnd (Match (Dst_Ports [spt]))) ms) (dpts)) a p \<longleftrightarrow>
-         matches (common_matcher, \<alpha>) (MatchAnd (Match (Dst_Ports dpts)) ms) a p"
+  private lemma singletonize_SrcDst_Ports:
+      "(*primitive_matcher_generic \<beta> \<Longrightarrow>  multiports_disjuction TODO *)
+       match_list (common_matcher, \<alpha>) (map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) ms) (spts)) a p \<longleftrightarrow>
+       matches (common_matcher, \<alpha>) (MatchAnd (Match (Src_Ports spts)) ms) a p"
+      "match_list (common_matcher, \<alpha>) (map (\<lambda>spt. (MatchAnd (Match (Dst_Ports [spt]))) ms) (dpts)) a p \<longleftrightarrow>
+       matches (common_matcher, \<alpha>) (MatchAnd (Match (Dst_Ports dpts)) ms) a p"
     apply(simp_all add: match_list_matches bunch_of_lemmata_about_matches(1) multiports_disjuction)
   done
+  *)
   
   
   (*idea:*)
@@ -132,26 +149,28 @@ begin
   definition normalize_dst_ports :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where
     "normalize_dst_ports = normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports"
 
-  lemma normalize_src_ports: assumes "normalized_nnf_match m" shows
-        "match_list (common_matcher, \<alpha>) (normalize_src_ports m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
+  lemma normalize_src_ports: assumes generic: "primitive_matcher_generic \<beta>" and n: "normalized_nnf_match m" shows
+        "match_list (\<beta>, \<alpha>) (normalize_src_ports m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
     proof -
       { fix ml
-        have "match_list (common_matcher, \<alpha>) (map (Match \<circ> Src_Ports) (map (\<lambda>pt. [pt]) (ipt_ports_compress ml))) a p =
-         matches (common_matcher, \<alpha>) (alist_and (NegPos_map Src_Ports ml)) a p"
-         by(simp add: match_list_matches ipt_ports_compress_src_correct  multiports_disjuction)
-      } with normalize_primitive_extract[OF assms wf_disc_sel_common_primitive(1), where \<gamma>="(common_matcher, \<alpha>)"]
+        have "match_list (\<beta>, \<alpha>) (map (Match \<circ> Src_Ports) (map (\<lambda>pt. [pt]) (ipt_ports_compress ml))) a p =
+         matches (\<beta>, \<alpha>) (alist_and (NegPos_map Src_Ports ml)) a p"
+         using ipt_ports_compress_src_correct[OF generic] primitive_matcher_generic.multiports_disjuction[OF generic]
+         by(simp add: match_list_matches)
+      } with normalize_primitive_extract[OF n wf_disc_sel_common_primitive(1), where \<gamma>="(\<beta>, \<alpha>)"]
       show ?thesis
         unfolding normalize_src_ports_def normalize_ports_step_def by simp
     qed
 
-    lemma normalize_dst_ports: assumes "normalized_nnf_match m" shows
-        "match_list (common_matcher, \<alpha>) (normalize_dst_ports m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
+    lemma normalize_dst_ports: assumes generic: "primitive_matcher_generic \<beta>" and n: "normalized_nnf_match m" shows
+        "match_list (\<beta>, \<alpha>) (normalize_dst_ports m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
     proof -
       { fix ml
-        have "match_list (common_matcher, \<alpha>) (map (Match \<circ> Dst_Ports) (map (\<lambda>pt. [pt]) (ipt_ports_compress ml))) a p =
-         matches (common_matcher, \<alpha>) (alist_and (NegPos_map Dst_Ports ml)) a p"
-         by(simp add: match_list_matches ipt_ports_compress_dst_correct  multiports_disjuction)
-      } with normalize_primitive_extract[OF assms wf_disc_sel_common_primitive(2), where \<gamma>="(common_matcher, \<alpha>)"]
+        have "match_list (\<beta>, \<alpha>) (map (Match \<circ> Dst_Ports) (map (\<lambda>pt. [pt]) (ipt_ports_compress ml))) a p =
+         matches (\<beta>, \<alpha>) (alist_and (NegPos_map Dst_Ports ml)) a p"
+         using ipt_ports_compress_dst_correct[OF generic] primitive_matcher_generic.multiports_disjuction[OF generic]
+         by(simp add: match_list_matches)
+      } with normalize_primitive_extract[OF n wf_disc_sel_common_primitive(2), where \<gamma>="(\<beta>, \<alpha>)"]
       show ?thesis
         unfolding normalize_dst_ports_def normalize_ports_step_def by simp
     qed
@@ -197,35 +216,6 @@ begin
   
   private lemma "\<forall>spt \<in> set (ipt_ports_compress spts). normalized_src_ports (Match (Src_Ports [spt]))" by(simp)
   
-
-  (* version using generalized lemma below
-    the nnf normalization of the result follows from 
-    thm normalize_primitive_extract_preserves_nnf_normalized
-
-    see below for a lemma which obtains the same result
-
-    lemma normalize_ports_step_src_normalized:
-    assumes "normalized_nnf_match m"
-    shows "\<forall>mn \<in> set (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m).
-              normalized_src_ports mn \<and> normalized_nnf_match mn"
-    proof
-      fix mn
-      assume assm2: "mn \<in> set (normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports m)"
-      obtain pts ms where pts_ms: "primitive_extractor (is_Src_Ports, src_ports_sel) m = (pts, ms)" by fastforce
-      from pts_ms have "normalized_nnf_match ms" and "\<not> has_disc is_Src_Ports ms"
-        using primitive_extractor_correct[OF assms wf_disc_sel_common_primitive(1)] by simp_all
-      from assm2 pts_ms have normalize_ports_step_unfolded: "mn \<in> (\<lambda>spt. MatchAnd (Match (Src_Ports [spt])) ms) ` set (ipt_ports_compress pts)"
-        unfolding normalize_ports_step_def normalize_primitive_extract_def by force
-      with `normalized_nnf_match ms` have "normalized_nnf_match mn" by fastforce
-      from `normalized_nnf_match ms` `\<not> has_disc is_Src_Ports ms` have "normalized_src_ports ms"
-        by(induction ms rule: normalized_src_ports.induct, simp_all)
-      from normalize_ports_step_unfolded this have "normalized_src_ports mn"
-      by(induction pts) (fastforce)+
-      with `normalized_nnf_match mn` show "normalized_src_ports mn \<and> normalized_nnf_match mn" by simp
-    qed
- *)
-
-
 
   lemma normalize_src_ports_normalized_n_primitive: "normalized_nnf_match m \<Longrightarrow> 
       \<forall>m' \<in> set (normalize_src_ports m). normalized_src_ports m'"

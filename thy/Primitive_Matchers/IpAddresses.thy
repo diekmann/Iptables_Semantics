@@ -31,38 +31,39 @@ by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4range_set_from
 subsection{*IPv4 Addresses in CIDR Notation*}
   (*We need a separate ipv4addr syntax thy*)
 
-  fun ipv4cidr_to_interval_start :: "(ipv4addr \<times> nat) \<Rightarrow> ipv4addr" where
-    "ipv4cidr_to_interval_start (pre, len) = (
-      let netmask = (mask len) << (32 - len);
+  fun ipcidr_to_interval_start :: "('a::len word \<times> nat) \<Rightarrow> 'a::len word" where
+    "ipcidr_to_interval_start (pre, len) = (
+      let netmask = (mask len) << (len_of TYPE('a) - len);
           network_prefix = (pre AND netmask)
       in network_prefix)"
-  fun ipv4cidr_to_interval_end :: "(ipv4addr \<times> nat) \<Rightarrow> ipv4addr" where
-    "ipv4cidr_to_interval_end (pre, len) = (
-      let netmask = (mask len) << (32 - len);
+  fun ipcidr_to_interval_end :: "('a::len word \<times> nat) \<Rightarrow> 'a::len word" where
+    "ipcidr_to_interval_end (pre, len) = (
+      let netmask = (mask len) << (len_of TYPE('a) - len);
           network_prefix = (pre AND netmask)
       in network_prefix OR (NOT netmask))"
-  definition ipv4cidr_to_interval :: "(ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> ipv4addr)" where
-    "ipv4cidr_to_interval cidr = (ipv4cidr_to_interval_start cidr, ipv4cidr_to_interval_end cidr)"
+  definition ipcidr_to_interval :: "('a::len word \<times> nat) \<Rightarrow> ('a::len word \<times> 'a::len word)" where
+    "ipcidr_to_interval cidr = (ipcidr_to_interval_start cidr, ipcidr_to_interval_end cidr)"
 
-  lemma ipv4cidr_to_interval_simps[code_unfold]: "ipv4cidr_to_interval (pre, len) = (
+  text{*This @{text "len_of TYPE('a)"} is 32 for IPv4 addresses.*}
+  lemma ipv4cidr_to_interval_simps[code_unfold]: "ipcidr_to_interval ((pre::ipv4addr), len) = (
       let netmask = (mask len) << (32 - len);
           network_prefix = (pre AND netmask)
       in (network_prefix, network_prefix OR (NOT netmask)))"
-  by(simp add: ipv4cidr_to_interval_def Let_def)
+  by(simp add: ipcidr_to_interval_def Let_def)
 
 
-  lemma ipv4cidr_to_interval_ipv4range_set_from_prefix:
-    "ipv4range_set_from_prefix base len = {ipv4cidr_to_interval_start (base,len) .. ipv4cidr_to_interval_end (base,len)}"
-    apply(simp add: Let_def ipv4cidr_to_interval_def)
+  lemma ipcidr_to_interval_ipv4range_set_from_prefix:
+    "ipv4range_set_from_prefix base len = {ipcidr_to_interval_start (base,len) .. ipcidr_to_interval_end (base,len)}"
+    apply(simp add: Let_def ipcidr_to_interval_def)
     apply(subst ipv4range_set_from_prefix_alt)
     by (metis ipv4range_set_from_prefix_alt ipv4range_set_from_prefix_alt1 ipv4range_set_from_netmask_def)
 
-  declare ipv4cidr_to_interval_start.simps[simp del] ipv4cidr_to_interval_end.simps[simp del]
+  declare ipcidr_to_interval_start.simps[simp del] ipcidr_to_interval_end.simps[simp del]
 
   (*TODO: remove this lemma?, refactor*)
-  lemma ipv4cidr_to_interval: "ipv4cidr_to_interval (base, len) = (s,e) \<Longrightarrow> ipv4range_set_from_prefix base len = {s .. e}"
-    apply(simp add: Let_def ipv4cidr_to_interval_def)
-    using ipv4cidr_to_interval_ipv4range_set_from_prefix by presburger
+  lemma ipv4cidr_to_interval: "ipcidr_to_interval (base, len) = (s,e) \<Longrightarrow> ipv4range_set_from_prefix base len = {s .. e}"
+    apply(simp add: Let_def ipcidr_to_interval_def)
+    using ipcidr_to_interval_ipv4range_set_from_prefix by presburger
 
 
 
@@ -85,10 +86,10 @@ subsection{*IPv4 Addresses in CIDR Notation*}
   declare ipv4cidr_conjunct.simps[simp del]
 
   definition ipv4_cidr_tuple_to_interval :: "(ipv4addr \<times> nat) \<Rightarrow> 32 wordinterval" where
-    "ipv4_cidr_tuple_to_interval iprng = ipv4range_range (ipv4cidr_to_interval iprng)"
+    "ipv4_cidr_tuple_to_interval iprng = ipv4range_range (ipcidr_to_interval iprng)"
 
   lemma ipv4range_to_set_ipv4_cidr_tuple_to_interval: "ipv4range_to_set (ipv4_cidr_tuple_to_interval (b, m)) = ipv4range_set_from_prefix b m"
-    unfolding ipv4_cidr_tuple_to_interval_def ipv4cidr_to_interval_ipv4range_set_from_prefix ipv4cidr_to_interval_def
+    unfolding ipv4_cidr_tuple_to_interval_def ipcidr_to_interval_ipv4range_set_from_prefix ipcidr_to_interval_def
     using ipv4range_range_set_eq by blast
 
   lemma [code_unfold]: 
@@ -116,7 +117,7 @@ subsection{*IPv4 Addresses in CIDR Notation*}
 
   (*helper we use for spoofing protection specification*)
   definition all_but_those_ips :: "(ipv4addr \<times> nat) list \<Rightarrow> (ipv4addr \<times> nat) list" where
-    "all_but_those_ips cidrips = ipv4range_split (ipv4range_invert (l2br (map ipv4cidr_to_interval cidrips)))"
+    "all_but_those_ips cidrips = ipv4range_split (ipv4range_invert (l2br (map ipcidr_to_interval cidrips)))"
   
   lemma all_but_those_ips: "ipv4cidr_union_set (set (all_but_those_ips cidrips)) = UNIV - (\<Union> (ip,n) \<in> set cidrips. ipv4range_set_from_prefix ip n)"
     apply(simp add:)
@@ -126,8 +127,8 @@ subsection{*IPv4 Addresses in CIDR Notation*}
     apply(simp add: ipv4range_invert_def ipv4range_setminus_def)
     apply(simp add: ipv4range_UNIV_def)
     apply(simp add: l2br)
-    apply(simp add: ipv4cidr_to_interval_def)
-    apply(simp add: ipv4cidr_to_interval_ipv4range_set_from_prefix)
+    apply(simp add: ipcidr_to_interval_def)
+    apply(simp add: ipcidr_to_interval_ipv4range_set_from_prefix)
     done
   
 
@@ -169,7 +170,7 @@ subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
   text{*IPv4 address ranges to @{text "(start, end)"} notation*}
   fun ipt_ipv4range_to_interval :: "ipt_ipv4range \<Rightarrow> (ipv4addr \<times> ipv4addr)" where
     "ipt_ipv4range_to_interval (Ip4Addr addr) = (ipv4addr_of_dotdecimal addr, ipv4addr_of_dotdecimal addr)" |
-    "ipt_ipv4range_to_interval (Ip4AddrNetmask pre len) = ipv4cidr_to_interval ((ipv4addr_of_dotdecimal pre), len)" |
+    "ipt_ipv4range_to_interval (Ip4AddrNetmask pre len) = ipcidr_to_interval ((ipv4addr_of_dotdecimal pre), len)" |
     "ipt_ipv4range_to_interval (Ip4AddrRange ip1 ip2) = (ipv4addr_of_dotdecimal ip1, ipv4addr_of_dotdecimal ip2)"
   
   lemma ipt_ipv4range_to_interval: "ipt_ipv4range_to_interval ip = (s,e) \<Longrightarrow> {s .. e} = ipv4s_to_set ip"

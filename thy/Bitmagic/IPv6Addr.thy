@@ -521,7 +521,7 @@ subsection{*Semantics*}
       (ucast::16 word \<Rightarrow> 128 word) ((ucast::128 word \<Rightarrow> 16 word) (w AND (mask 16 << n) >> n)) << n = w AND (mask 16 << n)"
       for w::ipv6addr and n::nat
       apply(subst ucast_ipv6_piece_rule)
-       apply(rule length_dropNot_mask_inner)
+       apply(rule length_drop_mask_inner)
        apply(simp; fail)
       apply(subst and_mask_shift_helper)
       apply simp
@@ -549,7 +549,7 @@ subsection{*Semantics*}
       apply(subst word128_masks_ipv6pieces)+
       apply(subst ucast_short_ucast_long_ingoreLeadingZero)
         apply simp_all
-      by (simp add: length_dropNot_mask)
+      by (simp add: length_drop_mask)
 
     have ipv6addr_16word_pieces_compose_or:
             "ip && (mask 16 << 112) ||
@@ -597,8 +597,6 @@ subsection{*Semantics*}
 
 
 
-(*DRAFT below*)
-
 (*compressed to preferred format*)
 fun ipv6addr_c2p :: "ipv6addr_syntax_compressed \<Rightarrow> ipv6addr_syntax" where
     "ipv6addr_c2p (IPv6AddrCompressed1_0 ()) = IPv6AddrPreferred 0 0 0 0 0 0 0 0"
@@ -610,47 +608,48 @@ fun ipv6addr_c2p :: "ipv6addr_syntax_compressed \<Rightarrow> ipv6addr_syntax" w
   | "ipv6addr_c2p (IPv6AddrCompressed1_6 () c d e f g h) = IPv6AddrPreferred 0 0 c d e f g h"
   | "ipv6addr_c2p (IPv6AddrCompressed1_7 () b c d e f g h) = IPv6AddrPreferred 0 b c d e f g h"
 
-  (*| "ipv6addr_c2p (IPv6AddrCompressed2_1 a ()) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed2_2 a () h) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed2_3 a () g h) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed2_4 a () f g h) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed2_5 a () e f g h) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed2_6 a () d e f g h) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed2_7 a () c d e f g h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed2_1 a ()) = IPv6AddrPreferred a 0 0 0 0 0 0 0"
+  | "ipv6addr_c2p (IPv6AddrCompressed2_2 a () h) = IPv6AddrPreferred a 0 0 0 0 0 0 h"
+  | "ipv6addr_c2p (IPv6AddrCompressed2_3 a () g h) = IPv6AddrPreferred a 0 0 0 0 0 g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed2_4 a () f g h) = IPv6AddrPreferred a 0 0 0 0 f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed2_5 a () e f g h) = IPv6AddrPreferred a 0 0 0 e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed2_6 a () d e f g h) = IPv6AddrPreferred a 0 0 d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed2_7 a () c d e f g h) = IPv6AddrPreferred a 0 c d e f g h"
 
-  | "ipv6addr_c2p (IPv6AddrCompressed3_2 a b ()) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed3_3 a b () h) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed3_4 a b () g h) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed3_5 a b () f g h) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed3_6 a b () e f g h) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed3_7 a b () d e f g h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed3_2 a b ()) = IPv6AddrPreferred a b 0 0 0 0 0 0"
+  | "ipv6addr_c2p (IPv6AddrCompressed3_3 a b () h) = IPv6AddrPreferred a b 0 0 0 0 0 h"
+  | "ipv6addr_c2p (IPv6AddrCompressed3_4 a b () g h) = IPv6AddrPreferred a b 0 0 0 0 g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed3_5 a b () f g h) = IPv6AddrPreferred a b 0 0 0 f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed3_6 a b () e f g h) = IPv6AddrPreferred a b 0 0 e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed3_7 a b () d e f g h) = IPv6AddrPreferred a b 0 d e f g h"
 
-  | "ipv6addr_c2p (IPv6AddrCompressed4_3 a b c ()) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed4_4 a b c () h) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed4_5 a b c () g h) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed4_6 a b c () f g h) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed4_7 a b c () e f g h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed4_3 a b c ()) = IPv6AddrPreferred a b c 0 0 0 0 0"
+  | "ipv6addr_c2p (IPv6AddrCompressed4_4 a b c () h) = IPv6AddrPreferred a b c 0 0 0 0 h"
+  | "ipv6addr_c2p (IPv6AddrCompressed4_5 a b c () g h) = IPv6AddrPreferred a b c 0 0 0 g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed4_6 a b c () f g h) = IPv6AddrPreferred a b c 0 0 f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed4_7 a b c () e f g h) = IPv6AddrPreferred a b c 0 e f g h"
 
-  | "ipv6addr_c2p (IPv6AddrCompressed5_4 a b c d ()) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed5_5 a b c d () h) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed5_6 a b c d () g h) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed5_7 a b c d () f g h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed5_4 a b c d ()) = IPv6AddrPreferred a b c d 0 0 0 0"
+  | "ipv6addr_c2p (IPv6AddrCompressed5_5 a b c d () h) = IPv6AddrPreferred a b c d 0 0 0 h"
+  | "ipv6addr_c2p (IPv6AddrCompressed5_6 a b c d () g h) = IPv6AddrPreferred a b c d 0 0 g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed5_7 a b c d () f g h) = IPv6AddrPreferred a b c d 0 f g h"
 
-  | "ipv6addr_c2p (IPv6AddrCompressed6_5 a b c d e ()) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed6_6 a b c d e () h) = IPv6AddrPreferred a b c d e f g h"
-  | "ipv6addr_c2p (IPv6AddrCompressed6_7 "a b c d e () g h) = IPv6AddrPreferred a b c d e f g h"
+  | "ipv6addr_c2p (IPv6AddrCompressed6_5 a b c d e ()) = IPv6AddrPreferred a b c d e 0 0 0"
+  | "ipv6addr_c2p (IPv6AddrCompressed6_6 a b c d e () h) = IPv6AddrPreferred a b c d e 0 0 h"
+  | "ipv6addr_c2p (IPv6AddrCompressed6_7 a b c d e () g h) = IPv6AddrPreferred a b c d e 0 g h"
 
-  | "ipv6addr_c2p (IPv6AddrCompressed7_6 a b c d e f ()) = IPv6AddrPreferred a b c d e f g h 0"
+  | "ipv6addr_c2p (IPv6AddrCompressed7_6 a b c d e f ()) = IPv6AddrPreferred a b c d e f 0 0"
   | "ipv6addr_c2p (IPv6AddrCompressed7_7 a b c d e f () h) = IPv6AddrPreferred a b c d e f 0 h"
 
-  | "ipv6addr_c2p (IPv6AddrCompressed8_7 a b c d e f g ()) = IPv6AddrPreferred a b c d e f g 0"*)
+  | "ipv6addr_c2p (IPv6AddrCompressed8_7 a b c d e f g ()) = IPv6AddrPreferred a b c d e f g 0"
+
 
 
 value "dropWhile (\<lambda>x. x \<noteq> None) [Some (1::int), Some 2, None, Some 3]"
 term the
 
-fun ipv6_unparsed_compressed_to_int :: "((16 word) option) list \<Rightarrow> ipv6addr_syntax option" where
-  "ipv6_unparsed_compressed_to_int ls = (
+definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<Rightarrow> ipv6addr_syntax option" where
+  "ipv6_unparsed_compressed_to_preferred ls = (
     if
       length (filter (\<lambda>p. p = None) ls) \<noteq> 1 \<or> length (filter (\<lambda>p. p \<noteq> None) ls) > 7
     then
@@ -659,17 +658,122 @@ fun ipv6_unparsed_compressed_to_int :: "((16 word) option) list \<Rightarrow> ip
       let
         before_omission = map the (takeWhile (\<lambda>x. x \<noteq> None) ls);
         after_omission = map the (drop 1 (dropWhile (\<lambda>x. x \<noteq> None) ls));
-        num_omissions = (length before_omission + length after_omission);
-        expanded = before_omission @ (replicate (8 - num_omissions) 0) @ after_omission
+        num_omissions = 8 - (length before_omission + length after_omission);
+        expanded = before_omission @ (replicate num_omissions 0) @ after_omission
       in
         case expanded of [a,b,c,d,e,f,g,h] \<Rightarrow> Some (IPv6AddrPreferred a b c d e f g h)
                          | _               \<Rightarrow> None
       )"
 
-  lemma "ipv6_unparsed_compressed_to_int
+  lemma "ipv6_unparsed_compressed_to_preferred
     [Some 0x2001, Some 0xDB8, None, Some 0x8, Some 0x800, Some 0x200C, Some 0x417A]
       = Some (IPv6AddrPreferred 0x2001 0xDB8 0 0 8 0x800 0x200C 0x417A)" by eval
 
-  lemma "ipv6_unparsed_compressed_to_int [None] = Some (IPv6AddrPreferred 0 0 0 0 0 0 0 0)" by eval
+  lemma "ipv6_unparsed_compressed_to_preferred [None] = Some (IPv6AddrPreferred 0 0 0 0 0 0 0 0)" by eval
+
+
+  value "ipv6_unparsed_compressed_to_preferred []"
+
+
+  lemma ipv6_unparsed_compressed_to_preferred_identity1:
+   "ipv6_unparsed_compressed_to_preferred (ipv6addr_syntax_compressed_to_list ipv6compressed) = Some ipv6prferred
+    \<longleftrightarrow> ipv6addr_c2p ipv6compressed = ipv6prferred"
+  by(cases ipv6compressed) (simp_all add: ipv6_unparsed_compressed_to_preferred_def) (*1s*)
+ 
+  lemma ipv6_unparsed_compressed_to_preferred_identity2: 
+    "ipv6_unparsed_compressed_to_preferred ls = Some ipv6prferred
+     \<longleftrightarrow> (\<exists>ipv6compressed. parse_ipv6_address ls = Some ipv6compressed \<and> ipv6addr_c2p ipv6compressed = ipv6prferred)"
+  apply(rule iffI)
+   apply(subgoal_tac "parse_ipv6_address ls \<noteq> None")
+    prefer 2
+    apply(subst RFC_4291_format)
+    apply(simp add: ipv6_unparsed_compressed_to_preferred_def split: split_if_asm; fail)
+   apply(simp)
+   apply(erule exE, rename_tac ipv6compressed)
+   apply(rule_tac x="ipv6compressed" in exI)
+   apply(simp)
+   apply(subgoal_tac "(ipv6addr_syntax_compressed_to_list ipv6compressed = ls)")
+    prefer 2
+    using parse_ipv6_address_identity2 apply presburger
+   using ipv6_unparsed_compressed_to_preferred_identity1 apply blast
+  apply(erule exE, rename_tac ipv6compressed)
+  apply(subgoal_tac "(ipv6addr_syntax_compressed_to_list ipv6compressed = ls)")
+   prefer 2
+   using parse_ipv6_address_identity2 apply presburger
+  using ipv6_unparsed_compressed_to_preferred_identity1 apply blast
+  done
+  
+  
+  
+
+(*DRAFT below*)
+  function goup_by_zeros :: "16 word list \<Rightarrow> 16 word list list" where
+    "goup_by_zeros [] = []" |
+    "goup_by_zeros (x#xs) = (
+        if x = 0
+        then takeWhile (\<lambda>x. x = 0) (x#xs) # (goup_by_zeros (dropWhile (\<lambda>x. x = 0) xs))
+        else [x]#(goup_by_zeros xs))"
+  by(pat_completeness, auto)
+  
+  termination goup_by_zeros
+	apply(relation "measure (\<lambda>xs. length xs)")
+	apply(simp_all)
+	by (simp add: le_imp_less_Suc length_dropWhile_le)
+	
+	value[code] "goup_by_zeros [0,1,2,3,0,0,0,0,3,4,0,0,0,2,0,0,2,0,3,0]"
+	
+	lemma "concat (goup_by_zeros ls) = ls"
+	  by(induction ls rule:goup_by_zeros.induct) simp+
+	
+	lemma "[] \<notin> set (goup_by_zeros ls)"
+	  by(induction ls rule:goup_by_zeros.induct) simp+
+	  
+  fun List_replace1 :: "'a \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+    "List_replace1 _ _ [] = []" |
+    "List_replace1 a b (x#xs) = (if a = x then b#xs else x#List_replace1 a b xs)"
+    
+	lemma "List_replace1 a a ls = ls"
+	  by(induction ls) simp_all
+	
+	lemma "a \<notin> set ls \<Longrightarrow> List_replace1 a b ls = ls"
+	  by(induction ls) simp_all
+	
+	lemma "a \<in> set ls \<Longrightarrow> b \<in> set (List_replace1 a b ls)"
+	  apply(induction ls)
+	   apply(simp)
+	  apply(simp)
+	  by blast
+  
+	fun List_explode :: "'a list list \<Rightarrow> ('a option) list" where
+	  "List_explode [] = []" |
+	  "List_explode ([]#xs) = None#List_explode xs" |
+	  "List_explode (xs1#xs2) = map Some xs1@List_explode xs2"
+	  
+	  
+  value[code] "List_explode [[0::int], [2,3], [], [3,4]]"
+	  
+  fun ipv6_preferred_to_compressed :: "ipv6addr_syntax \<Rightarrow> ((16 word) option) list" where
+  "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (
+    let lss = goup_by_zeros [a,b,c,d,e,f,g,h];
+        max_zero_seq = foldr (\<lambda>xs. max (length xs)) lss 0;
+        shortened = if max_zero_seq > 1 then List_replace1 (replicate max_zero_seq 0) [] lss else lss
+    in
+      List_explode shortened
+    )"
+    
+  value[code] "ipv6_preferred_to_compressed (IPv6AddrPreferred 0 0 0 0 0 0 0 0)"
+  value[code] "ipv6_preferred_to_compressed (IPv6AddrPreferred 0x2001 0xDB8 0 0 8 0x800 0x200C 0x417A)"
+  value[code] "ipv6_preferred_to_compressed (IPv6AddrPreferred 0x2001 0xDB8 0 3 8 0x800 0x200C 0x417A)"
+  
+  lemma "ipv6_unparsed_compressed_to_preferred (ipv6_preferred_to_compressed ip) = Some ip' \<Longrightarrow>
+         ip = ip'"
+  thm HOL.iffD1[OF ipv6_unparsed_compressed_to_preferred_identity2] 
+  apply(drule HOL.iffD1[OF ipv6_unparsed_compressed_to_preferred_identity2])
+  apply(elim exE conjE)
+  apply(erule parse_ipv6_address_someE)
+  apply(simp_all)
+  apply(case_tac ip)
+  apply(simp)
+  apply(simp add: Let_def split_if_asm)
 
 end

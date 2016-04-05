@@ -515,6 +515,23 @@ lemma "wf_disc_sel (disc, sel) C \<Longrightarrow> disc (C x) \<longrightarrow> 
     qed
   qed
 
+ lemma primitive_extractor_negation_type_matching1:
+    assumes wf: "wf_disc_sel (disc, sel) C"
+        and normalized: "normalized_nnf_match m"
+        and a1: "primitive_extractor (disc, sel) m = (as, rest)"
+        and a2: "matches \<gamma> m a p"
+    shows "(\<forall>m\<in>set (map C (getPos as)). matches \<gamma> (Match m) a p) \<and> 
+           (\<forall>m\<in>set (map C (getNeg as)). matches \<gamma> (MatchNot (Match m)) a p)"
+  proof -
+      from primitive_extractor_correct(1)[OF normalized wf a1] a2 have
+        "matches \<gamma> (alist_and (NegPos_map C as)) a p \<and> matches \<gamma> rest a p" by fast
+      hence "matches \<gamma> (alist_and (NegPos_map C as)) a p" by blast
+      with Negation_Type_Matching.matches_alist_and have
+        "(\<forall>m\<in>set (getPos (NegPos_map C as)). matches \<gamma> (Match m) a p) \<and> 
+         (\<forall>m\<in>set (getNeg (NegPos_map C as)). matches \<gamma> (MatchNot (Match m)) a p)" by metis
+      with getPos_NegPos_map_simp2 getNeg_NegPos_map_simp2 show ?thesis by metis
+  qed
+
 
 text{*@{const normalized_n_primitive} does NOT imply @{const normalized_nnf_match}*}
 lemma "\<exists>m. normalized_n_primitive disc_sel f m \<longrightarrow> \<not> normalized_nnf_match m"
@@ -748,5 +765,5 @@ subsection{*Optimizing a match expression*}
           using 1 by force
         with goal1 show ?thesis by simp
    qed
-  
+
 end

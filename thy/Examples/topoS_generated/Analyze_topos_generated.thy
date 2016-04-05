@@ -70,9 +70,13 @@ definition preprocess where
               (unfold def (map_of fw))))))))"
 
   (*incomplete, but we won't need it anyway*)
- definition "ipassmt = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
+ definition ipassmt :: "(iface \<times> (32 word \<times> nat) list) list" where
+ "ipassmt = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
   (Iface ''Statistics'', [(ipv4addr_of_dotdecimal (10,0,0,1),32)])
   ]"
+  lemma "distinct (map fst ipassmt)" by eval
+  lemma "ipassmt_sanity_nowildcards (map_of ipassmt)" by eval
+  value[code] "map_of_ipassmt ipassmt"
 
 value[code] "access_matrix_pretty parts_connection_ssh 
     (preprocess unfold_ruleset_FORWARD upper_closure ipassmt factory_fw_FORWARD_default_policy factory_fw)"

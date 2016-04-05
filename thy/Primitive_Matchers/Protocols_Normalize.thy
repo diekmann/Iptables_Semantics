@@ -62,38 +62,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
                            Some ([proto], getNeg ps)"
 
 
-  lemma compress_protocols_None: "compress_protocols ps = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) (alist_and (NegPos_map Prot ps)) a p"
-    apply(simp add: compress_protocols_def)
-    apply(simp add: nt_match_list_matches[symmetric] nt_match_list_simp)
-    apply(simp add: NegPos_map_simps match_simplematcher_Prot match_simplematcher_Prot_not)
-    apply(case_tac "compress_pos_protocols (getPos ps)")
-     apply(simp_all)
-     apply(drule_tac p_prot="p_proto p" in compress_pos_protocols_None)
-     apply(simp; fail)
-    apply(drule_tac p_prot="p_proto p" in compress_pos_protocols_Some)
-    apply(simp split:split_if_asm)
-     apply fastforce
-    apply(elim bexE)
-    by (metis if_option_Some simple_proto_conjunct.elims)
-
-
-
-  lemma compress_protocol_Some: "compress_protocols ps = Some (ps_pos, ps_neg) \<Longrightarrow>
-    matches (common_matcher, \<alpha>) (alist_and (NegPos_map Prot ((map Pos ps_pos)@(map Neg ps_neg)))) a p \<longleftrightarrow>
-    matches (common_matcher, \<alpha>) (alist_and (NegPos_map Prot ps)) a p"
-    apply(simp add: compress_protocols_def)
-    apply(simp add: bunch_of_lemmata_about_matches(1) alist_and_append NegPos_map_append)
-    apply(simp add: nt_match_list_matches[symmetric] nt_match_list_simp)
-    apply(simp add: NegPos_map_simps match_simplematcher_Prot match_simplematcher_Prot_not)
-    apply(case_tac "compress_pos_protocols (getPos ps)")
-     apply(simp_all)
-    apply(drule_tac p_prot="p_proto p" in compress_pos_protocols_Some)
-    apply(simp split:split_if_asm)
-    by force
-
- 
-
-  (*fully optimized*)
+  (*fully optimized, i.e. we cannot compress it better*)
   lemma "compress_protocols ps = Some (ps_pos, ps_neg) \<Longrightarrow>
     \<exists> p. ((\<forall>m\<in>set ps_pos. match_proto m p) \<and> (\<forall>m\<in>set ps_neg. \<not> match_proto m p))"
     apply(simp add: compress_protocols_def split: option.split_asm split_if_asm)
@@ -113,19 +82,50 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
   definition compress_normalize_protocols :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr option" where 
     "compress_normalize_protocols m \<equiv> compress_normalize_primitive (is_Prot, prot_sel) Prot compress_protocols m"
 
-  lemma compress_normalize_protocols_Some:
+  lemma (in primitive_matcher_generic) compress_normalize_protocols_Some:
   assumes "normalized_nnf_match m" and "compress_normalize_protocols m = Some m'"
-    shows "matches (common_matcher, \<alpha>) m' a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
-    apply(rule compress_normalize_primitive_Some[OF assms(1) wf_disc_sel_common_primitive(7)])
-     using assms(2) apply(simp add: compress_normalize_protocols_def; fail)
-    using compress_protocol_Some by simp
+    shows "matches (\<beta>, \<alpha>) m' a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
+  proof(rule compress_normalize_primitive_Some[OF assms(1) wf_disc_sel_common_primitive(7), of compress_protocols])
+    show "compress_normalize_primitive (is_Prot, prot_sel) Prot compress_protocols m = Some m'"
+      using assms(2) by(simp add: compress_normalize_protocols_def)
+  next
+    fix ps ps_pos ps_neg
+    show "compress_protocols ps = Some (ps_pos, ps_neg) \<Longrightarrow>
+      matches (\<beta>, \<alpha>) (alist_and (NegPos_map Prot ((map Pos ps_pos)@(map Neg ps_neg)))) a p \<longleftrightarrow>
+      matches (\<beta>, \<alpha>) (alist_and (NegPos_map Prot ps)) a p"
+      apply(simp add: compress_protocols_def)
+      apply(simp add: bunch_of_lemmata_about_matches(1) alist_and_append NegPos_map_append)
+      apply(simp add: nt_match_list_matches[symmetric] nt_match_list_simp)
+      apply(simp add: NegPos_map_simps Prot_single Prot_single_not)
+      apply(case_tac "compress_pos_protocols (getPos ps)")
+       apply(simp_all)
+      apply(drule_tac p_prot="p_proto p" in compress_pos_protocols_Some)
+      apply(simp split:split_if_asm)
+      by force
+  qed
 
-  lemma compress_normalize_protocols_None:
+  lemma (in primitive_matcher_generic) compress_normalize_protocols_None:
   assumes "normalized_nnf_match m" and "compress_normalize_protocols m = None"
-    shows "\<not> matches (common_matcher, \<alpha>) m a p"
-    apply(rule compress_normalize_primitive_None[OF assms(1) wf_disc_sel_common_primitive(7)])
-     using assms(2) apply(simp add: compress_normalize_protocols_def; fail)
-    using compress_protocols_None by simp
+    shows "\<not> matches (\<beta>, \<alpha>) m a p"
+  proof(rule compress_normalize_primitive_None[OF assms(1) wf_disc_sel_common_primitive(7), of "compress_protocols"])
+    show "compress_normalize_primitive (is_Prot, prot_sel) Prot compress_protocols m = None"  
+      using assms(2) by(simp add: compress_normalize_protocols_def)
+    next
+      fix ps
+      show "compress_protocols ps = None \<Longrightarrow> \<not> matches (\<beta>, \<alpha>) (alist_and (NegPos_map Prot ps)) a p"
+        apply(simp add: compress_protocols_def)
+        apply(simp add: nt_match_list_matches[symmetric] nt_match_list_simp)
+        apply(simp add: NegPos_map_simps Prot_single Prot_single_not)
+        apply(cases "compress_pos_protocols (getPos ps)")
+         apply(simp_all)
+         apply(drule_tac p_prot="p_proto p" in compress_pos_protocols_None)
+         apply(simp; fail)
+        apply(drule_tac p_prot="p_proto p" in compress_pos_protocols_Some)
+        apply(simp split:split_if_asm)
+         apply fastforce
+        apply(elim bexE exE)
+        by (metis if_option_Some simple_proto_conjunct.elims)
+    qed
 
   lemma compress_normalize_protocols_nnf: "normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols m = Some m' \<Longrightarrow>
       normalized_nnf_match m'"
