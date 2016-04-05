@@ -632,7 +632,7 @@ oops
 lemma generalized_sfw_filterD: "generalized_sfw (filter f fw) p = Some (r,d) \<Longrightarrow> simple_matches r p \<and> f (r,d)"
 by(induction fw) (simp_all add: generalized_sfw_simps split: if_splits)
 lemma generalized_sfwD: "generalized_sfw fw p = Some (r,d) \<Longrightarrow> (r,d) \<in> set fw \<and> simple_matches r p"
-unfolding generalized_sfw_def using findSomeD by fastforce
+unfolding generalized_sfw_def using find_SomeD(1) find_SomeD(2) by fastforce
 
 definition "is_iface_name i \<equiv> i \<noteq> [] \<and> \<not>Iface.iface_name_is_wildcard i"
 definition "is_iface_list ifs \<equiv> distinct ifs \<and> list_all is_iface_name ifs"
@@ -1133,11 +1133,6 @@ apply(rule_tac x = "a # aa" in exI)
 apply(simp)
 done
 
-lemma s1_sema_None_split: "generalized_sfw rt p = Some r \<Longrightarrow> \<exists>a b. rt = (a @ r # b) \<and> generalized_sfw a p = None"
-	apply(unfold generalized_sfw_def)
-	apply(erule find_split)
-done
-
 lemma simple_fw_undecided: "simple_fw fw p = Undecided \<longleftrightarrow> (\<forall>r \<in> set fw. \<not>simple_matches (match_sel r) p)"
 by(induction rule: simple_fw.induct) (simp_all split: if_splits)
 
@@ -1192,7 +1187,7 @@ by (metis findSomeD not_None_eq)
 lemma  generalized_sfw_join_1_single: "generalized_sfw (generalized_fw_join [(mr, ma)] fw) p = (if simple_matches mr p then (case generalized_sfw fw p of Some (mr2,ma2) \<Rightarrow> Some (the (simple_match_and mr mr2), ma, ma2) | None \<Rightarrow> None) else None)"
 	apply(clarsimp split: option.splits if_splits)
 	apply(intro conjI;clarify)
-	apply(clarsimp simp add: generalized_sfw_def)
+	apply(clarsimp simp add: generalized_sfw_def list_lib_find)
 	apply(drule findNoneD)
 	apply(rule findNoneI)
 	apply(clarsimp simp: option2set_def generalized_fw_join_cons_1 split: option.splits)
@@ -1219,16 +1214,16 @@ find_theorems "generalized_fw_join _ (_#_)"
 (*lemma "simple_fw fw p = x \<longleftrightarrow> generalized_sfw (map simple_rule_dtor fw) p = (case x of Undecided \<Rightarrow> None | Decision x1 \<Rightarrow> (undefined, inv simple_action_to_state x))"*)
 (* TODO: write in the Generalized_SFW: We could have generalized away the fact that those are simple_matches, use a locale, assume an option monadic conjunction operator and then have this be an interpretation.
  but *effort *)
-  
+
 lemma s2_correct: "simple_fw fw p \<noteq> Undecided \<Longrightarrow> generalized_sfw rt p = Some (mr,ma) \<Longrightarrow> \<exists>mmr mfd. generalized_sfw ((fourtytwo_s2 rt fw)) p = Some (mmr, (ma, mfd)) \<and> simple_action_to_state mfd = simple_fw fw p"
 proof -
 	assume ras: "generalized_sfw rt p = Some (mr, ma)"
-	note this[THEN s1_sema_None_split]
+	note this[THEN generalized_fw_split]
 	then guess ra ..
 	then guess rb ..
 	note rts = this
 	note as2 = s1_none_s2[OF rts[THEN conjunct2]]
-	from ras have smmr: "simple_matches mr p" unfolding generalized_sfw_def using findSomeD by fast
+	from ras have smmr: "simple_matches mr p" unfolding generalized_sfw_def list_lib_find using findSomeD by fast
 	assume fas: "simple_fw fw p \<noteq> Undecided"
 	note this[THEN simple_fw_msplit]
 	then guess fa ..
@@ -1352,7 +1347,7 @@ proof -
 	case goal1
 	note s1_correct[OF this, of p] then obtain rm ra where rmra: "generalized_sfw (fourtytwo_s1 rt) (p\<lparr>p_oiface := ra\<rparr>) = Some (rm, ra)" "ra = output_iface (routing_table_semantics rt (p_dst p))" by blast
 	have "generalized_sfw (fourtytwo_s1 rt) (p\<lparr>p_oiface := output_iface (routing_table_semantics rt (p_dst p))\<rparr>) = Some (rm, ra)" using rmra by fast
-	note s1_sema_None_split[OF this]
+	note generalized_fw_split[OF this]
 	then obtain a b where ab: "fourtytwo_s1 rt = a @ (rm, ra) # b" "generalized_sfw a (p\<lparr>p_oiface := output_iface (routing_table_semantics rt (p_dst p))\<rparr>) = None" by blast
 	from ab(1) obtain rta where rtab: "fourtytwo_s1 (rta::routing_rule list) = a" 
 		apply(simp add: fourtytwo_s1_def)
