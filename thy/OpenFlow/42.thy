@@ -1337,6 +1337,7 @@ proof -
 	then show ?thesis unfolding fourtytwo_fbs_def Let_def using fourtytwo_nullifyoif_Some_keep[where any = "p_oiface p"] by fastforce
 qed
 
+
 lemma invert_map_append: "map f l = a @ b \<Longrightarrow> \<exists>a' b'. map f (a' @ b') = a @ b \<and> length a' = length a \<and> length b' = length b"
 proof(induction a arbitrary: l)
 	case (Cons a as)
@@ -1391,6 +1392,50 @@ apply(subgoal_tac "all_prerequisites x")
 apply(drule simple_match_to_of_matchD)
 apply(simp add: split3_def)
 sorry
+
+
+term simple_match_to_of_match
+lemma 
+  defines "only_match_action (ft::(of_match_field, 'a) flow_entry_match list) \<equiv> 
+            map (\<lambda>f. case f of OFEntry p flds action \<Rightarrow> (flds, action)) ft"
+	assumes ft_eq: "only_match_action ft =
+	                   concat (map (\<lambda>(m,a). map (\<lambda>flowmatch. (flowmatch, f a)) (simple_match_to_of_match m ifs)) rs)"
+     and action_rslt: "of_action = f rtfw_action"
+	shows "OF_match_linear OF_match_fields_safe ft p = Action of_action \<longleftrightarrow> 
+	       generalized_sfw rs p = (Some (m, (rtfw_action:: 'fw_action)))"
+  using ft_eq proof(induction rs arbitrary: ft)
+  case Nil thus ?case
+    apply(simp add: generalized_sfw_def)
+    apply(simp add: only_match_action_def; fail)
+    done
+  next
+  case (Cons r rs)
+    let ?r_part="(case r of (m, a) \<Rightarrow> map (\<lambda>flowmatch. (flowmatch, f a)) (simple_match_to_of_match m ifs))"
+    let ?rs_part="concat (map (\<lambda>(m, a). map (\<lambda>flowmatch. (flowmatch, f a)) (simple_match_to_of_match m ifs)) rs)"
+    have "only_match_action ft = ?r_part @ ?rs_part"
+      by(simp add: Cons.prems)
+    obtain ft_hd ft_tail where ft: "ft = ft_hd@ft_tail"
+                           and ft_hd: "ft_hd = take (length ?r_part) ft"
+                           and ft_tail: "ft_tail = drop (length ?r_part) ft"
+      by(simp)
+    from Cons.prems
+    have "only_match_action ft_tail = ?rs_part"
+      apply(simp add: ft_tail)
+      by (metis (no_types, lifting) drop_all_conc drop_map only_match_action_def)
+    with Cons.IH have 
+      IH: "(OF_match_linear OF_match_fields_safe ft_tail p = Action of_action) \<longleftrightarrow> (generalized_sfw rs p = Some (m, rtfw_action))"
+      by blast
+
+    have "(OF_match_linear OF_match_fields_safe ft_hd p = Action of_action) \<longleftrightarrow> (generalized_sfw [r] p = Some (m, rtfw_action))"
+      apply(cases r, rename_tac m' a)
+      apply(simp)
+      apply(simp add: generalized_sfw_def)
+      sorry
+    with IH show ?case
+      apply(simp add: ft)
+      sorry
+oops
+
 
 lemma s3_correct:
 	assumes vsfwm: "list_all simple_match_valid $ map (fst \<circ> snd) ard"
