@@ -76,7 +76,8 @@ proof(induction fw)
 	proof(cases "simple_matches (match_sel s) p")
 		case False
 		hence "\<forall>vr \<in> set (filter_nones [option_map (\<lambda>k. SimpleRule k (action_sel s)) (simple_match_and r (match_sel s))]). \<not>simple_matches (match_sel vr) p"
-			by(clarsimp simp only: set_filter_nones set_map Set.image_iff set_simps option_map_Some_eq2 simple_rule.sel)(fast dest: simple_match_and_SomeD) 
+			apply(clarsimp simp only: set_filter_nones set_map Set.image_iff set_simps option_map_Some_eq2 simple_rule.sel)
+			using simple_match_and_SomeD by (smt map_option_eq_Some simple_rule.sel(1) singleton_set) (* this proof and all that use it can be deleted *)
 		from simple_fw_prepend_nonmatching[OF this] show ?thesis by(simp add: Let_def False Cons.IH simple_rule_and_def)
 	next
 		case True
@@ -149,7 +150,7 @@ lemma smtoms_eq_hlp: "simple_match_to_of_match_single r a b c d = simple_match_t
 apply(rule, simp_all)
 apply(simp add:option2set_def simple_match_to_of_match_single_def toprefixmatch_def)
 apply(auto simp add: split: option.splits protocol.splits)
-(* give this some time, it creates and solves a ton of subgoals\<dots> Takes 24 seconds for me. *)
+(* give this some time, it creates and solves a ton of subgoals\<dots> Takes 19 seconds for me. *)
 done
 
 
@@ -631,7 +632,7 @@ oops
 lemma generalized_sfw_filterD: "generalized_sfw (filter f fw) p = Some (r,d) \<Longrightarrow> simple_matches r p \<and> f (r,d)"
 by(induction fw) (simp_all add: generalized_sfw_simps split: if_splits)
 lemma generalized_sfwD: "generalized_sfw fw p = Some (r,d) \<Longrightarrow> (r,d) \<in> set fw \<and> simple_matches r p"
-unfolding generalized_sfw_def by (meson findSomeD splitD)
+unfolding generalized_sfw_def using findSomeD by fastforce
 
 definition "is_iface_name i \<equiv> i \<noteq> [] \<and> \<not>Iface.iface_name_is_wildcard i"
 definition "is_iface_list ifs \<equiv> distinct ifs \<and> list_all is_iface_name ifs"
@@ -1227,7 +1228,7 @@ proof -
 	then guess rb ..
 	note rts = this
 	note as2 = s1_none_s2[OF rts[THEN conjunct2]]
-	from ras have smmr: "simple_matches mr p" unfolding generalized_sfw_def by (meson findSomeD splitD)
+	from ras have smmr: "simple_matches mr p" unfolding generalized_sfw_def using findSomeD by fast
 	assume fas: "simple_fw fw p \<noteq> Undecided"
 	note this[THEN simple_fw_msplit]
 	then guess fa ..

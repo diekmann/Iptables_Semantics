@@ -35,10 +35,6 @@ lemma rpm_m_dup_simp: "rg \<inter> fst (ipset_prefix_match (routing_match r) rg)
 
 subsection{*Equivalence Proofs*}
 
-lemma helper1: "NOT (0\<Colon>32 word) = x\<^sub>1\<^sub>9 OR NOT x\<^sub>1\<^sub>9" using word_bool_alg.double_compl by simp
-lemma helper2: "(x\<^sub>0\<Colon>32 word) AND NOT 0 = x\<^sub>0" by simp
-lemma helper3: "(x\<^sub>4\<^sub>8\<Colon>32 word) OR x\<^sub>4\<^sub>9 = x\<^sub>4\<^sub>8 OR x\<^sub>4\<^sub>9 AND NOT x\<^sub>4\<^sub>8" using helper1 helper2 by (metis word_oa_dist2)
-
 lemma pfx_match_addr_ipset: "valid_prefix rr \<Longrightarrow> prefix_match_semantics rr addr \<Longrightarrow> (addr \<in> prefix_to_ipset rr)"
   by(simp add: prefix_match_semantics_def prefix_to_ipset_def valid_prefix_def)
      (metis (no_types, lifting) neg_mask_add_mask pfxm_mask_def word_and_le1 word_ao_absorbs(1) word_ao_absorbs(6) word_bool_alg.conj.commute word_neg_and_le)

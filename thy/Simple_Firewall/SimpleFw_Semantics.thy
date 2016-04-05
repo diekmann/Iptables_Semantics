@@ -339,8 +339,37 @@ value[code] "simple_fw [
   
   \<lparr>p_iiface = '''', p_oiface = '''',  p_src = 1, p_dst = 2, p_proto = TCP, p_sport = 8, p_dport = 9, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
 
+fun has_default_policy :: "simple_rule list \<Rightarrow> bool" where
+  "has_default_policy [] = False" |
+  "has_default_policy [(SimpleRule m _)] = (m = simple_match_any)" |
+  "has_default_policy (_#rs) = has_default_policy rs"
 
-<<<<<<< HEAD
+lemma has_default_policy: "has_default_policy rs \<Longrightarrow> simple_fw rs p = Decision FinalAllow \<or> simple_fw rs p = Decision FinalDeny"
+  proof(induction rs rule: has_default_policy.induct)
+  case 1 thus ?case by (simp)
+  next
+  case (2 m a) thus ?case by(cases a) (simp_all add: simple_match_any)
+  next
+  case (3 r1 r2 rs)
+    from 3 obtain a m where "r1 = SimpleRule m a" by (cases r1) simp
+    with 3 show ?case by (cases a) simp_all
+  qed
+
+lemma has_default_policy_fst: "has_default_policy rs \<Longrightarrow> has_default_policy (r#rs)"
+ apply(cases r, rename_tac m a, simp)
+ apply(cases rs)
+  by(simp_all)
+
+
+
+
+lemma simple_fw_not_matches_removeAll: "\<not> simple_matches m p \<Longrightarrow> simple_fw (removeAll (SimpleRule m a) rs) p = simple_fw rs p"
+  apply(induction rs p rule: simple_fw.induct)
+    apply(simp)
+   apply(simp_all)
+   apply blast+
+  done
+
 subsection{*Reality check*}
 text{* While it is possible to construct a @{text "simple_fw"} expression that only matches a source
 or destination port, such a match is not meaningful, as the presence of the port information is 
@@ -380,39 +409,5 @@ lemma "simple_match_valid example_simple_match1" by eval
 lemma "\<not>simple_match_valid example_simple_match2" by eval
 
 definition "simple_firewall_valid \<equiv> list_all (simple_match_valid \<circ> match_sel)"
-=======
-fun has_default_policy :: "simple_rule list \<Rightarrow> bool" where
-  "has_default_policy [] = False" |
-  "has_default_policy [(SimpleRule m _)] = (m = simple_match_any)" |
-  "has_default_policy (_#rs) = has_default_policy rs"
-
-lemma has_default_policy: "has_default_policy rs \<Longrightarrow> simple_fw rs p = Decision FinalAllow \<or> simple_fw rs p = Decision FinalDeny"
-  proof(induction rs rule: has_default_policy.induct)
-  case 1 thus ?case by (simp)
-  next
-  case (2 m a) thus ?case by(cases a) (simp_all add: simple_match_any)
-  next
-  case (3 r1 r2 rs)
-    from 3 obtain a m where "r1 = SimpleRule m a" by (cases r1) simp
-    with 3 show ?case by (cases a) simp_all
-  qed
-
-lemma has_default_policy_fst: "has_default_policy rs \<Longrightarrow> has_default_policy (r#rs)"
- apply(cases r, rename_tac m a, simp)
- apply(cases rs)
-  by(simp_all)
-
-
-
-
-lemma simple_fw_not_matches_removeAll: "\<not> simple_matches m p \<Longrightarrow> simple_fw (removeAll (SimpleRule m a) rs) p = simple_fw rs p"
-  apply(induction rs p rule: simple_fw.induct)
-    apply(simp)
-   apply(simp_all)
-   apply blast+
-  done
-  
-
->>>>>>> master
 
 end

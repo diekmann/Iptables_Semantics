@@ -169,15 +169,9 @@ section{*TCP flags*}
     (*"e": Try this: by (metis Diff_Compl Diff_eq Int_lower2 Un_Diff_Int compl_sup disjoint_eq_subset_Compl inf_assoc inf_commute inf_sup_absorb) (> 1.0 s, timed out).
       Isar proof (300 ms):*)
     proof -
-<<<<<<< HEAD
       assume a1: "c2 \<subseteq> fmask2"
       assume a2: "\<forall>pkt. (pkt \<inter> fmask1 = c1) = (pkt \<inter> fmask2 = c2)"
-      have f3: "\<And>A Aa. (A\<Colon>'a set) - - Aa = Aa - - A"
-=======
-      assume a1: "c2 \<subseteq> mask2"
-      assume a2: "\<forall>pkt. (pkt \<inter> mask1 = c1) = (pkt \<inter> mask2 = c2)"
       have f3: "\<And>A Aa. (A::'a set) - - Aa = Aa - - A"
->>>>>>> master
         by (simp add: inf_commute)
       have f4: "\<And>A Aa. (A::'a set) - - (- Aa) = A - Aa"
         by simp
