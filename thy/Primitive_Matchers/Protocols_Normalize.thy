@@ -67,35 +67,6 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
   lemma all_proto_hlp2[code]: "ProtoAny \<in> a \<or> (\<forall>p \<in> {0..max_word}. Proto p \<in> a) \<longleftrightarrow>
                                ProtoAny \<in> a \<or> a = {p. p \<noteq> ProtoAny}"
     using all_proto_hlp by blast
-  
-  lemma compress_protocols_None: "compress_protocols ps = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) (alist_and (NegPos_map Prot ps)) a p"
-    apply(simp add: compress_protocols_def)
-    apply(simp add: nt_match_list_matches[symmetric] nt_match_list_simp)
-    apply(simp add: NegPos_map_simps match_simplematcher_Prot match_simplematcher_Prot_not)
-    apply(case_tac "compress_pos_protocols (getPos ps)")
-     apply(simp_all)
-     apply(drule_tac p_prot="p_proto p" in compress_pos_protocols_None)
-     apply(simp; fail)
-    apply(drule_tac p_prot="p_proto p" in compress_pos_protocols_Some)
-    apply(simp split:split_if_asm)
-     apply fastforce
-    apply(elim bexE)
-    by (metis (full_types) option.distinct(1) simple_proto_conjunct.elims)
-
-
-  lemma compress_protocol_Some: "compress_protocols ps = Some (ps_pos, ps_neg) \<Longrightarrow>
-    matches (common_matcher, \<alpha>) (alist_and (NegPos_map Prot ((map Pos ps_pos)@(map Neg ps_neg)))) a p \<longleftrightarrow>
-    matches (common_matcher, \<alpha>) (alist_and (NegPos_map Prot ps)) a p"
-    apply(simp add: compress_protocols_def)
-    apply(simp add: bunch_of_lemmata_about_matches(1) alist_and_append NegPos_map_append)
-    apply(simp add: nt_match_list_matches[symmetric] nt_match_list_simp)
-    apply(simp add: NegPos_map_simps match_simplematcher_Prot match_simplematcher_Prot_not)
-    apply(case_tac "compress_pos_protocols (getPos ps)")
-     apply(simp_all)
-    apply(drule_tac p_prot="p_proto p" in compress_pos_protocols_Some)
-    apply(simp split:split_if_asm)
-    by force
-
 
   (*fully optimized, i.e. we cannot compress it better*)
   lemma "compress_protocols ps = Some (ps_pos, ps_neg) \<Longrightarrow>
