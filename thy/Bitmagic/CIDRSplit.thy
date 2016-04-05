@@ -313,7 +313,7 @@ lemma "map (\<lambda>pfx. (dotdecimal_of_ipv4addr (pfxm_prefix pfx), (pfxm_lengt
 
 declare wordinterval_CIDR_split_internal.simps[simp del]
 
-private corollary wordinterval_CIDR_split_internal: "(\<Union> (prefix_to_ipset ` (set (wordinterval_CIDR_split_internal r)))) = wordinterval_to_set r"
+corollary wordinterval_CIDR_split_internal: "(\<Union> (prefix_to_ipset ` (set (wordinterval_CIDR_split_internal r)))) = wordinterval_to_set r"
   proof -
   have prefix_to_range_set_eq_fun: "prefix_to_ipset = (wordinterval_to_set \<circ> prefix_to_range)"
     by(simp add: prefix_to_range_set_eq fun_eq_iff)
@@ -470,6 +470,10 @@ apply(clarsimp)
 apply blast
 apply(intro wordinterval_CIDR_split1_distinct2[unfolded wordinterval_empty_set_eq wordinterval_intersection_set_eq prefix_to_range_set_eq]; fast)
 done
+
+lemma wordinterval_CIDR_split_existential:
+	"x \<in> wordinterval_to_set w \<Longrightarrow> \<exists>s. s \<in> set (wordinterval_CIDR_split_internal w) \<and> x \<in> prefix_to_ipset s"
+using wordinterval_CIDR_split_internal[symmetric] by fastforce
 
 
 
