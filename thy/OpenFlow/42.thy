@@ -948,7 +948,7 @@ apply(clarify | unfold
 	simple_match_to_of_match_def smtoms_eq_hlp Let_def set_concat set_map de_Morgan_conj not_False_eq_True)+
 apply(simp add: comp_def smtoms_eq_hlp add: if_splits)
 apply(auto dest: conjunctSomeProtoAnyD cidrsplitelems split: protocol.splits option.splits if_splits
-	simp add: comp_def  smtoms_eq_hlp OF_match_fields_unsafe_def simple_match_to_of_match_single_def option2set_def) (* another huge split, takes around 17 seconds  *)
+	simp add: comp_def  smtoms_eq_hlp OF_match_fields_unsafe_def simple_match_to_of_match_single_def option2set_def) (* another huge split, takes around 69 seconds  *)
 by -
 
 lemma if_f_distrib: "(if a then b else c) k = (if a then b k else c k)" by simp
@@ -1065,7 +1065,7 @@ by(induction x; simp) (clarsimp simp add: sorted_Cons Ball_def; blast)
 
 lemma sorted_fourtytwo_hlp: "(ofe_prio \<circ> split3 OFEntry) = fst" by(simp add: fun_eq_iff comp_def split3_def)
 
-lemma "Inr r = fourtytwo rt fw ifs \<Longrightarrow> sorted_descending (map ofe_prio r)"
+lemma fourtytwo_sorted_descending: "Inr r = fourtytwo rt fw ifs \<Longrightarrow> sorted_descending (map ofe_prio r)"
 	apply(unfold fourtytwo_def Let_def)
 	apply(simp split: if_splits)
 	apply(thin_tac "r = _")
@@ -1362,6 +1362,7 @@ proof -
 oops
 
 definition "to_OF_action a \<equiv> (case a of (p,d) \<Rightarrow> (case d of simple_action.Accept \<Rightarrow> [Forward p] | simple_action.Drop \<Rightarrow> []))"
+definition "from_OF_action a = (case a of [] \<Rightarrow> ('''',simple_action.Drop) | [Forward p] \<Rightarrow> (p, simple_action.Accept))"
 
 (* TODO: move *)
 lemma OF_match_linear_append: "OF_match_linear \<gamma> (a @ b) p = (case OF_match_linear \<gamma> a p of NoAction \<Rightarrow> OF_match_linear \<gamma> b p | x \<Rightarrow> x)"
@@ -1381,49 +1382,67 @@ lemma OF_match_linear_not_noD: "OF_match_linear \<gamma> oms p \<noteq> NoAction
 	 apply blast+
 done
 
-lemma s3_noaction_hlp: "\<lbrakk>simple_match_valid ac; \<not>simple_matches ac p\<rbrakk> \<Longrightarrow> 
+(* TODO: move *)
+lemma of_match_fields_safe_eq2: assumes "all_prerequisites m" shows "OF_match_fields_safe m p \<longleftrightarrow> OF_match_fields m p = Some True"
+unfolding OF_match_fields_safe_def[abs_def] fun_eq_iff comp_def unfolding of_safe_unsafe_match_eq[OF assms] unfolding option.sel by simp
+
+lemma s3_noaction_hlp: "\<lbrakk>simple_match_valid ac; \<not>simple_matches ac p; match_iface (oiface ac) (p_oiface p)\<rbrakk> \<Longrightarrow> 
 OF_match_linear OF_match_fields_safe (map (\<lambda>x. split3 OFEntry (x1, x, case ba of simple_action.Accept \<Rightarrow> [Forward ad] | simple_action.Drop \<Rightarrow> [])) (simple_match_to_of_match ac ifs)) p = NoAction"
-apply(rule ccontr)
-apply(drule OF_match_linear_not_noD)
-apply(clarsimp)
-apply(rename_tac x)
-apply(subgoal_tac "all_prerequisites x")
-apply(drule simple_match_to_of_matchD)
-apply(simp add: split3_def)
-sorry
+  apply(rule ccontr)
+  apply(drule OF_match_linear_not_noD)
+  apply(clarsimp)
+  apply(rename_tac x)
+  apply(subgoal_tac "all_prerequisites x")
+  apply(drule simple_match_to_of_matchD)
+  apply(simp add: split3_def)
+  apply(subst(asm) of_match_fields_safe_eq2)
+  apply(assumption)
+  apply(assumption)
+  apply(assumption)
+  apply(assumption)
+  apply(simp;fail)
+using simple_match_to_of_match_generates_prereqs by blast
 
 lemma s3_correct:
 	assumes vsfwm: "list_all simple_match_valid $ map (fst \<circ> snd) ard"
 	assumes ippkt: "p_l2type p = 0x800"
 	assumes iiifs: "p_iiface p \<in> set ifs"
-	shows "OF_match_linear OF_match_fields_safe (pack_OF_entries ifs ard) p = Action (to_OF_action a) \<longleftrightarrow> (\<exists>r. generalized_sfw (map snd ard) p = (Some (r,a)))"
+	assumes oiifs: "list_all (\<lambda>m. oiface (fst (snd m)) = ifaceAny) ard"
+	shows "OF_match_linear OF_match_fields_safe (pack_OF_entries ifs ard) p = Action ao \<longleftrightarrow> (\<exists>r af. generalized_sfw (map snd ard) p = (Some (r,af)) \<and> (if snd af = simple_action.Drop then ao = [] else ao = [Forward (fst af)]))"
 unfolding pack_OF_entries_def fourtytwo_s3_def fun_app_def
-using vsfwm
-apply(induction ard)
-apply(simp add: generalized_sfw_simps)
-apply simp
-apply(clarsimp simp add: generalized_sfw_simps split: prod.splits)
-apply(intro conjI)
-apply(clarsimp simp add: OF_match_linear_append to_OF_action_def split: prod.splits)
-apply(drule simple_match_to_of_matchI[rotated])
-apply(rule iiifs)
-apply(rule ippkt)
-apply blast
-apply(clarsimp simp add: comp_def)
-apply(rename_tac ard x1 ac ad ba x1a x2 gr)
-apply(drule_tac oms = "simple_match_to_of_match ac ifs" and pri = x1 and act = "case ba of simple_action.Accept \<Rightarrow> [Forward ad] | simple_action.Drop \<Rightarrow> []" in OF_match_linear_match_allsameaction)
-apply(unfold OF_match_fields_safe_def comp_def)
-apply(erule the_SomeI;fail)
-apply(simp)
-apply(simp split: simple_action.splits)
-defer
-apply(simp add: OF_match_linear_append)
-apply(rename_tac ard x1 ac ad ba)
-apply(clarify)
-apply(subgoal_tac "OF_match_linear OF_match_fields_safe (map (\<lambda>x. split3 OFEntry (x1, x, case ba of simple_action.Accept \<Rightarrow> [Forward ad] | simple_action.Drop \<Rightarrow> [])) (simple_match_to_of_match ac ifs)) p = NoAction")
-apply(simp;fail)
-apply(rule s3_noaction_hlp)
-sorry
+using vsfwm oiifs
+  apply(induction ard)
+   apply(simp add: generalized_sfw_simps)
+  apply simp
+  apply(clarsimp simp add: generalized_sfw_simps split: prod.splits)
+  apply(intro conjI)
+   apply(clarsimp simp add: OF_match_linear_append split: prod.splits)
+  apply(drule simple_match_to_of_matchI[rotated])
+      apply(rule iiifs)
+     apply(rule ippkt)
+    apply blast
+   apply(clarsimp simp add: comp_def)
+   apply(rename_tac ard x1 ac ad ba gr)
+   apply(drule_tac oms = "simple_match_to_of_match ac ifs" and pri = x1 and act = "case ba of simple_action.Accept \<Rightarrow> [Forward ad] | simple_action.Drop \<Rightarrow> []" in OF_match_linear_match_allsameaction)
+    apply(unfold OF_match_fields_safe_def comp_def)
+    apply(erule the_SomeI;fail)
+   defer
+   apply(simp add: OF_match_linear_append)
+   apply(rename_tac ard x1 ac ad ba)
+   apply(clarify)
+   apply(subgoal_tac "OF_match_linear OF_match_fields_safe (map (\<lambda>x. split3 OFEntry (x1, x, case ba of simple_action.Accept \<Rightarrow> [Forward ad] | simple_action.Drop \<Rightarrow> [])) (simple_match_to_of_match ac ifs)) p = NoAction")
+    apply(simp;fail)
+   apply(erule (1) s3_noaction_hlp)
+   apply(simp add: match_ifaceAny;fail)
+  apply(clarsimp)
+  apply(intro iffI)
+   apply(clarsimp split: simple_action.splits)
+   apply blast
+  apply(clarsimp)
+  apply(rename_tac b)
+  apply(case_tac b)
+   apply(simp_all)
+done
 
 lemma snullifyoif_correct: "oiface_exact_match (map (snd) frd) \<Longrightarrow> generalized_sfw frd p = Some r \<Longrightarrow> generalized_sfw ((fourtytwo_nullifyoif frd)) p = Some r"
 sorry
