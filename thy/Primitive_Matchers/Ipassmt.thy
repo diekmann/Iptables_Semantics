@@ -29,15 +29,16 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
 
   (* use this in all exported code*)
   (*TODO: generate useful error message in exported code*)
-  consts undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces :: "'a"
-  declare [[code abort: undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces]]
+  (*consts undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces :: "'a"
+  declare [[code abort: undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces]]*)
+  (*pretty excpetion breaks value[code] and by eval*)
   definition map_of_ipassmt :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> iface \<rightharpoonup> (32 word \<times> nat) list" where
     "map_of_ipassmt ipassmt = (
       if
         distinct (map fst ipassmt) \<and> ipassmt_sanity_nowildcards (map_of ipassmt)
       then
         map_of ipassmt
-      else undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces)"
+      else undefined (*undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces*))"
 
 
   text{* some additional (optional) sanity checks *}
