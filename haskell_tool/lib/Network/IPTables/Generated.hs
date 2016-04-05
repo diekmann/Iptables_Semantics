@@ -20,8 +20,8 @@ module
                               access_matrix_pretty, common_primitive_toString,
                               mk_parts_connection_TCP, to_simple_firewall,
                               ipv4_cidr_toString, simple_rule_toString,
-                              action_toString, example_TUM_i8_spoofing_ipassmt,
-                              ctstate_assume_new, abstract_for_simple_firewall,
+                              action_toString, ctstate_assume_new,
+                              abstract_for_simple_firewall,
                               to_simple_firewall_without_interfaces,
                               common_primitive_match_expr_toString)
   where {
@@ -1644,35 +1644,28 @@ wordinterval_intersection ::
 wordinterval_intersection r1 r2 =
   wordinterval_compress (wordinterval_intersectiona r1 r2);
 
-ipv4cidr_to_interval_start ::
-  (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat) ->
-    Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
-ipv4cidr_to_interval_start (pre, len) =
+ipcidr_to_interval_start :: forall a. (Len a) => (Word a, Nat) -> Word a;
+ipcidr_to_interval_start (pre, len) =
   let {
     netmask =
-      shiftl_word (mask len) (minus_nat (nat_of_integer (32 :: Integer)) len);
+      shiftl_word (mask len) (minus_nat ((len_of :: Itself a -> Nat) Type) len);
     network_prefix = bitAND_word pre netmask;
   } in network_prefix;
 
 bitNOT_word :: forall a. (Len0 a) => Word a -> Word a;
 bitNOT_word a = word_of_int (bitNOT_int (uint a));
 
-ipv4cidr_to_interval_end ::
-  (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat) ->
-    Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
-ipv4cidr_to_interval_end (pre, len) =
+ipcidr_to_interval_end :: forall a. (Len a) => (Word a, Nat) -> Word a;
+ipcidr_to_interval_end (pre, len) =
   let {
     netmask =
-      shiftl_word (mask len) (minus_nat (nat_of_integer (32 :: Integer)) len);
+      shiftl_word (mask len) (minus_nat ((len_of :: Itself a -> Nat) Type) len);
     network_prefix = bitAND_word pre netmask;
   } in bitOR_word network_prefix (bitNOT_word netmask);
 
-ipv4cidr_to_interval ::
-  (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat) ->
-    (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))),
-      Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))));
-ipv4cidr_to_interval cidr =
-  (ipv4cidr_to_interval_start cidr, ipv4cidr_to_interval_end cidr);
+ipcidr_to_interval :: forall a. (Len a) => (Word a, Nat) -> (Word a, Word a);
+ipcidr_to_interval cidr =
+  (ipcidr_to_interval_start cidr, ipcidr_to_interval_end cidr);
 
 wordinterval_empty :: forall a. (Len0 a) => Wordinterval a -> Bool;
 wordinterval_empty (WordInterval s e) = less_word e s;
@@ -1693,7 +1686,7 @@ ipassmt_ignore_wildcard_list ::
 ipassmt_ignore_wildcard_list ipassmt =
   filter
     (\ (_, ips) ->
-      not (wordinterval_eq (l2br (map ipv4cidr_to_interval ips))
+      not (wordinterval_eq (l2br (map ipcidr_to_interval ips))
             wordinterval_UNIV))
     ipassmt;
 
@@ -1823,9 +1816,9 @@ debug_ipassmt ipassmt rs =
                               then wordinterval_empty
                                      (wordinterval_intersection
                                        (l2br
- (map ipv4cidr_to_interval (the (map_of ipassmt i1))))
+ (map ipcidr_to_interval (the (map_of ipassmt i1))))
                                        (l2br
- (map ipv4cidr_to_interval (the (map_of ipassmt i2)))))
+ (map ipcidr_to_interval (the (map_of ipassmt i2)))))
                               else True)))
              then "passed"
              else "fail: " ++
@@ -1837,9 +1830,9 @@ debug_ipassmt ipassmt rs =
                           not (equal_iface i1 i2) &&
                             not (wordinterval_empty
                                   (wordinterval_intersection
-                                    (l2br (map ipv4cidr_to_interval
+                                    (l2br (map ipcidr_to_interval
     (the (map_of ipassmt i1))))
-                                    (l2br (map ipv4cidr_to_interval
+                                    (l2br (map ipcidr_to_interval
     (the (map_of ipassmt i2)))))))
                         (product ifaces ifaces))),
          "ipassmt_sanity_disjoint excluding UNIV interfaces: " ++
@@ -1855,8 +1848,8 @@ debug_ipassmt ipassmt rs =
                                  (if not (equal_iface i1 i2)
                                    then wordinterval_empty
   (wordinterval_intersection
-    (l2br (map ipv4cidr_to_interval (the (map_of ipassmta i1))))
-    (l2br (map ipv4cidr_to_interval (the (map_of ipassmta i2)))))
+    (l2br (map ipcidr_to_interval (the (map_of ipassmta i1))))
+    (l2br (map ipcidr_to_interval (the (map_of ipassmta i2)))))
                                    else True)))
                   then "passed"
                   else "fail: " ++
@@ -1868,8 +1861,8 @@ debug_ipassmt ipassmt rs =
                                not (equal_iface i1 i2) &&
                                  not (wordinterval_empty
                                        (wordinterval_intersection
- (l2br (map ipv4cidr_to_interval (the (map_of ipassmta i1))))
- (l2br (map ipv4cidr_to_interval (the (map_of ipassmta i2)))))))
+ (l2br (map ipcidr_to_interval (the (map_of ipassmta i1))))
+ (l2br (map ipcidr_to_interval (the (map_of ipassmta i2)))))))
                              (product ifacesa ifacesa))),
          "ipassmt_sanity_complete: " ++
            (if distinct (map fst ipassmt) &&
@@ -1877,14 +1870,14 @@ debug_ipassmt ipassmt rs =
                    range = map snd ipassmt;
                  } in wordinterval_eq
                         (wordinterval_Union
-                          (map (l2br . map ipv4cidr_to_interval) range))
+                          (map (l2br . map ipcidr_to_interval) range))
                         wordinterval_UNIV
              then "passed"
              else "the following is not covered: " ++
                     ipv4addr_wordinterval_toString
                       (wordinterval_setminus wordinterval_UNIV
                         (wordinterval_Union
-                          (map (l2br . map ipv4cidr_to_interval)
+                          (map (l2br . map ipcidr_to_interval)
                             (map snd ipassmt))))),
          "ipassmt_sanity_complete excluding UNIV interfaces: " ++
            let {
@@ -1894,14 +1887,14 @@ debug_ipassmt ipassmt rs =
                         range = map snd ipassmta;
                       } in wordinterval_eq
                              (wordinterval_Union
-                               (map (l2br . map ipv4cidr_to_interval) range))
+                               (map (l2br . map ipcidr_to_interval) range))
                              wordinterval_UNIV
                   then "passed"
                   else "the following is not covered: " ++
                          ipv4addr_wordinterval_toString
                            (wordinterval_setminus wordinterval_UNIV
                              (wordinterval_Union
-                               (map (l2br . map ipv4cidr_to_interval)
+                               (map (l2br . map ipcidr_to_interval)
                                  (map snd ipassmta)))))];
 
 partIps ::
@@ -1917,6 +1910,11 @@ partIps s (t : ts) =
                          wordinterval_setminus t s :
                            partIps (wordinterval_setminus s t) ts)));
 
+undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces ::
+  forall a. a;
+undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces = error
+  "Ipassmt.undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces";
+
 map_of_ipassmt ::
   [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
     Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
@@ -1924,7 +1922,8 @@ map_of_ipassmt ipassmt =
   (if distinct (map fst ipassmt) &&
         ball (image fst (Set ipassmt))
           (\ iface -> not (iface_is_wildcard iface))
-    then map_of ipassmt else error "undefined");
+    then map_of ipassmt
+    else undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces);
 
 numeral :: forall a. (Numeral a) => Num -> a;
 numeral (Bit1 n) = let {
@@ -2075,7 +2074,7 @@ all_but_those_ips ::
   [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)] ->
     [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
 all_but_those_ips cidrips =
-  ipv4range_split (ipv4range_invert (l2br (map ipv4cidr_to_interval cidrips)));
+  ipv4range_split (ipv4range_invert (l2br (map ipcidr_to_interval cidrips)));
 
 ipassmt_iprange_translate ::
   Negation_type [Ipt_ipv4range] ->
@@ -2106,8 +2105,7 @@ partitioningIps (s : ss) ts = partIps s (partitioningIps ss ts);
 ipv4_cidr_tuple_to_interval ::
   (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat) ->
     Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
-ipv4_cidr_tuple_to_interval iprng =
-  ipv4range_range (ipv4cidr_to_interval iprng);
+ipv4_cidr_tuple_to_interval iprng = ipv4range_range (ipcidr_to_interval iprng);
 
 extract_src_dst_ips ::
   [Simple_rule] ->
@@ -3033,12 +3031,11 @@ is_Extra (L4_Flags x8) = False;
 is_Extra (CT_State x9) = False;
 is_Extra (Extra x10) = True;
 
-matcheq_matachAny :: forall a. Match_expr a -> Bool;
-matcheq_matachAny MatchAny = True;
-matcheq_matachAny (MatchNot m) = not (matcheq_matachAny m);
-matcheq_matachAny (MatchAnd m1 m2) =
-  matcheq_matachAny m1 && matcheq_matachAny m2;
-matcheq_matachAny (Match uu) = error "undefined";
+matcheq_matchAny :: forall a. Match_expr a -> Bool;
+matcheq_matchAny MatchAny = True;
+matcheq_matchAny (MatchNot m) = not (matcheq_matchAny m);
+matcheq_matchAny (MatchAnd m1 m2) = matcheq_matchAny m1 && matcheq_matchAny m2;
+matcheq_matchAny (Match uu) = error "undefined";
 
 has_disc :: forall a. (a -> Bool) -> Match_expr a -> Bool;
 has_disc uu MatchAny = False;
@@ -3069,7 +3066,7 @@ get_all_matching_src_ips_executable iface m =
                                  not (has_disc is_L4_Flags rest2) &&
                                    not (has_disc is_CT_State rest2) &&
                                      not (has_disc is_Extra rest2) &&
-                                       matcheq_matachAny rest2
+                                       matcheq_matchAny rest2
                      then (if null ip_matches then ipv4range_UNIV
                             else l2br_negation_type_intersect
                                    (negPos_map ipt_ipv4range_to_interval
@@ -3085,7 +3082,7 @@ no_spoofing_algorithm_executable ::
           Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> Bool;
 no_spoofing_algorithm_executable iface ipassmt [] allowed denied1 =
   wordinterval_subset (wordinterval_setminus allowed denied1)
-    (l2br (map ipv4cidr_to_interval (the (ipassmt iface))));
+    (l2br (map ipcidr_to_interval (the (ipassmt iface))));
 no_spoofing_algorithm_executable iface ipassmt (Rule m Accept : rs) allowed
   denied1 =
   no_spoofing_algorithm_executable iface ipassmt rs
@@ -3301,9 +3298,9 @@ iface_try_rewrite ipassmt rs =
                    (if not (equal_iface i1 i2)
                      then wordinterval_empty
                             (wordinterval_intersection
-                              (l2br (map ipv4cidr_to_interval
+                              (l2br (map ipcidr_to_interval
                                       (the (map_of ipassmt i1))))
-                              (l2br (map ipv4cidr_to_interval
+                              (l2br (map ipcidr_to_interval
                                       (the (map_of ipassmt i2)))))
                      else True))) &&
         ipassmt_sanity_defined rs (map_of ipassmt)
@@ -3960,243 +3957,6 @@ action_toString Empty = [];
 action_toString Log = "-j LOG";
 action_toString Return = "-j RETURN";
 action_toString Unknown = "!!!!!!!!!!! UNKNOWN !!!!!!!!!!!";
-
-example_TUM_i8_spoofing_ipassmt ::
-  [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])];
-example_TUM_i8_spoofing_ipassmt =
-  [(Iface "eth0",
-     [(ipv4addr_of_dotdecimal
-         (nat_of_integer (192 :: Integer),
-           (nat_of_integer (168 :: Integer),
-             (nat_of_integer (213 :: Integer), nat_of_integer (4 :: Integer)))),
-        nat_of_integer (24 :: Integer))]),
-    (Iface "eth1.96",
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (131 :: Integer),
-            (nat_of_integer (159 :: Integer),
-              (nat_of_integer (14 :: Integer), nat_of_integer (3 :: Integer)))),
-         nat_of_integer (25 :: Integer))]),
-    (Iface "eth1.108",
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (131 :: Integer),
-            (nat_of_integer (159 :: Integer),
-              (nat_of_integer (14 :: Integer),
-                nat_of_integer (129 :: Integer)))),
-         nat_of_integer (26 :: Integer))]),
-    (Iface "eth1.109",
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (131 :: Integer),
-            (nat_of_integer (159 :: Integer),
-              (nat_of_integer (20 :: Integer),
-                nat_of_integer (11 :: Integer)))),
-         nat_of_integer (24 :: Integer))]),
-    (Iface "eth1.110",
-      all_but_those_ips
-        [(ipv4addr_of_dotdecimal
-            (nat_of_integer (131 :: Integer),
-              (nat_of_integer (159 :: Integer),
-                (nat_of_integer (14 :: Integer), zero_nat))),
-           nat_of_integer (23 :: Integer)),
-          (ipv4addr_of_dotdecimal
-             (nat_of_integer (131 :: Integer),
-               (nat_of_integer (159 :: Integer),
-                 (nat_of_integer (20 :: Integer), zero_nat))),
-            nat_of_integer (23 :: Integer)),
-          (ipv4addr_of_dotdecimal
-             (nat_of_integer (192 :: Integer),
-               (nat_of_integer (168 :: Integer),
-                 (nat_of_integer (212 :: Integer), zero_nat))),
-            nat_of_integer (23 :: Integer)),
-          (ipv4addr_of_dotdecimal
-             (nat_of_integer (188 :: Integer),
-               (nat_of_integer (95 :: Integer),
-                 (nat_of_integer (233 :: Integer), zero_nat))),
-            nat_of_integer (24 :: Integer)),
-          (ipv4addr_of_dotdecimal
-             (nat_of_integer (188 :: Integer),
-               (nat_of_integer (95 :: Integer),
-                 (nat_of_integer (232 :: Integer),
-                   nat_of_integer (192 :: Integer)))),
-            nat_of_integer (27 :: Integer)),
-          (ipv4addr_of_dotdecimal
-             (nat_of_integer (188 :: Integer),
-               (nat_of_integer (95 :: Integer),
-                 (nat_of_integer (234 :: Integer), zero_nat))),
-            nat_of_integer (23 :: Integer)),
-          (ipv4addr_of_dotdecimal
-             (nat_of_integer (192 :: Integer),
-               (nat_of_integer (48 :: Integer),
-                 (nat_of_integer (107 :: Integer), zero_nat))),
-            nat_of_integer (24 :: Integer)),
-          (ipv4addr_of_dotdecimal
-             (nat_of_integer (188 :: Integer),
-               (nat_of_integer (95 :: Integer),
-                 (nat_of_integer (236 :: Integer), zero_nat))),
-            nat_of_integer (22 :: Integer)),
-          (ipv4addr_of_dotdecimal
-             (nat_of_integer (185 :: Integer),
-               (nat_of_integer (86 :: Integer),
-                 (nat_of_integer (232 :: Integer), zero_nat))),
-            nat_of_integer (22 :: Integer))]),
-    (Iface "eth1.116",
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (131 :: Integer),
-            (nat_of_integer (159 :: Integer),
-              (nat_of_integer (15 :: Integer),
-                nat_of_integer (131 :: Integer)))),
-         nat_of_integer (26 :: Integer))]),
-    (Iface "eth1.152",
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (131 :: Integer),
-            (nat_of_integer (159 :: Integer),
-              (nat_of_integer (15 :: Integer),
-                nat_of_integer (252 :: Integer)))),
-         nat_of_integer (28 :: Integer))]),
-    (Iface "eth1.171",
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (131 :: Integer),
-            (nat_of_integer (159 :: Integer),
-              (nat_of_integer (15 :: Integer), nat_of_integer (2 :: Integer)))),
-         nat_of_integer (26 :: Integer))]),
-    (Iface "eth1.173",
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (131 :: Integer),
-            (nat_of_integer (159 :: Integer),
-              (nat_of_integer (21 :: Integer),
-                nat_of_integer (252 :: Integer)))),
-         nat_of_integer (24 :: Integer))]),
-    (Iface "eth1.1010",
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (131 :: Integer),
-            (nat_of_integer (159 :: Integer),
-              (nat_of_integer (15 :: Integer),
-                nat_of_integer (227 :: Integer)))),
-         nat_of_integer (28 :: Integer))]),
-    (Iface "eth1.1011",
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (131 :: Integer),
-            (nat_of_integer (159 :: Integer),
-              (nat_of_integer (14 :: Integer),
-                nat_of_integer (194 :: Integer)))),
-         nat_of_integer (27 :: Integer))]),
-    (Iface "eth1.1012",
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (131 :: Integer),
-            (nat_of_integer (159 :: Integer),
-              (nat_of_integer (14 :: Integer),
-                nat_of_integer (238 :: Integer)))),
-         nat_of_integer (28 :: Integer))]),
-    (Iface "eth1.1014",
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (131 :: Integer),
-            (nat_of_integer (159 :: Integer),
-              (nat_of_integer (15 :: Integer),
-                nat_of_integer (217 :: Integer)))),
-         nat_of_integer (27 :: Integer))]),
-    (Iface "eth1.1016",
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (131 :: Integer),
-            (nat_of_integer (159 :: Integer),
-              (nat_of_integer (15 :: Integer),
-                nat_of_integer (66 :: Integer)))),
-         nat_of_integer (26 :: Integer))]),
-    (Iface "eth1.1017",
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (131 :: Integer),
-            (nat_of_integer (159 :: Integer),
-              (nat_of_integer (14 :: Integer),
-                nat_of_integer (242 :: Integer)))),
-         nat_of_integer (28 :: Integer))]),
-    (Iface "eth1.1111",
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (192 :: Integer),
-            (nat_of_integer (168 :: Integer),
-              (nat_of_integer (212 :: Integer),
-                nat_of_integer (4 :: Integer)))),
-         nat_of_integer (24 :: Integer))]),
-    (Iface "eth1.97",
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (188 :: Integer),
-            (nat_of_integer (95 :: Integer),
-              (nat_of_integer (233 :: Integer),
-                nat_of_integer (2 :: Integer)))),
-         nat_of_integer (24 :: Integer))]),
-    (Iface "eth1.1019",
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (188 :: Integer),
-            (nat_of_integer (95 :: Integer),
-              (nat_of_integer (234 :: Integer),
-                nat_of_integer (2 :: Integer)))),
-         nat_of_integer (23 :: Integer))]),
-    (Iface "eth1.1020",
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (192 :: Integer),
-            (nat_of_integer (48 :: Integer),
-              (nat_of_integer (107 :: Integer),
-                nat_of_integer (2 :: Integer)))),
-         nat_of_integer (24 :: Integer))]),
-    (Iface "eth1.1023",
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (188 :: Integer),
-            (nat_of_integer (95 :: Integer),
-              (nat_of_integer (236 :: Integer),
-                nat_of_integer (2 :: Integer)))),
-         nat_of_integer (22 :: Integer))]),
-    (Iface "eth1.1025",
-      [(ipv4addr_of_dotdecimal
-          (nat_of_integer (185 :: Integer),
-            (nat_of_integer (86 :: Integer),
-              (nat_of_integer (232 :: Integer),
-                nat_of_integer (2 :: Integer)))),
-         nat_of_integer (22 :: Integer))]),
-    (Iface "eth1.1024",
-      all_but_those_ips
-        [(ipv4addr_of_dotdecimal
-            (nat_of_integer (131 :: Integer),
-              (nat_of_integer (159 :: Integer),
-                (nat_of_integer (14 :: Integer), zero_nat))),
-           nat_of_integer (23 :: Integer)),
-          (ipv4addr_of_dotdecimal
-             (nat_of_integer (131 :: Integer),
-               (nat_of_integer (159 :: Integer),
-                 (nat_of_integer (20 :: Integer), zero_nat))),
-            nat_of_integer (23 :: Integer)),
-          (ipv4addr_of_dotdecimal
-             (nat_of_integer (192 :: Integer),
-               (nat_of_integer (168 :: Integer),
-                 (nat_of_integer (212 :: Integer), zero_nat))),
-            nat_of_integer (23 :: Integer)),
-          (ipv4addr_of_dotdecimal
-             (nat_of_integer (188 :: Integer),
-               (nat_of_integer (95 :: Integer),
-                 (nat_of_integer (233 :: Integer), zero_nat))),
-            nat_of_integer (24 :: Integer)),
-          (ipv4addr_of_dotdecimal
-             (nat_of_integer (188 :: Integer),
-               (nat_of_integer (95 :: Integer),
-                 (nat_of_integer (232 :: Integer),
-                   nat_of_integer (192 :: Integer)))),
-            nat_of_integer (27 :: Integer)),
-          (ipv4addr_of_dotdecimal
-             (nat_of_integer (188 :: Integer),
-               (nat_of_integer (95 :: Integer),
-                 (nat_of_integer (234 :: Integer), zero_nat))),
-            nat_of_integer (23 :: Integer)),
-          (ipv4addr_of_dotdecimal
-             (nat_of_integer (192 :: Integer),
-               (nat_of_integer (48 :: Integer),
-                 (nat_of_integer (107 :: Integer), zero_nat))),
-            nat_of_integer (24 :: Integer)),
-          (ipv4addr_of_dotdecimal
-             (nat_of_integer (188 :: Integer),
-               (nat_of_integer (95 :: Integer),
-                 (nat_of_integer (236 :: Integer), zero_nat))),
-            nat_of_integer (22 :: Integer)),
-          (ipv4addr_of_dotdecimal
-             (nat_of_integer (185 :: Integer),
-               (nat_of_integer (86 :: Integer),
-                 (nat_of_integer (232 :: Integer), zero_nat))),
-            nat_of_integer (22 :: Integer))])];
 
 ctstate_assume_state ::
   Ctstate -> Match_expr Common_primitive -> Match_expr Common_primitive;

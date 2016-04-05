@@ -4,7 +4,7 @@ imports Common_Primitive_Lemmas
 begin
 
 section{*No Spoofing*}
-(* we do this in ternary (not simple firewall) to support things such as negated interfaces *)
+(* we do this in ternary (not simple firewall) to support negated interfaces *)
   text{*assumes: @{const simple_ruleset}*}
 
 
@@ -52,7 +52,8 @@ begin
   text{*The set of any ip addresses which may match for a fixed @{text iface} (overapproximation)*}
   private definition get_exists_matching_src_ips :: "iface \<Rightarrow> common_primitive match_expr \<Rightarrow> ipv4addr set" where
     "get_exists_matching_src_ips iface m \<equiv> let (i_matches, _) = (primitive_extractor (is_Iiface, iiface_sel) m) in
-              if (\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface) | Neg i \<Rightarrow> \<not>match_iface i (iface_sel iface)))
+              if (\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface)
+                                                  | Neg i \<Rightarrow> \<not> match_iface i (iface_sel iface)))
               then
                 (let (ip_matches, _) = (primitive_extractor (is_Src, src_sel) m) in
                 if ip_matches = []
@@ -64,27 +65,15 @@ begin
                 {}"
 
   (*when we replace the set by a 32 wordinterval, we should get executable code*)
-  value[code] "primitive_extractor (is_Src, src_sel) (MatchAnd (Match (Src (Ip4AddrNetmask (0,0,0,0) 30))) (Match (IIface (Iface ''eth0''))))"
-
-  private lemma match_simplematcher_Src_getPos: "(\<forall>m\<in>set (map Src (getPos ip_matches)). matches (common_matcher, \<alpha>) (Match m) a p)
-         \<longleftrightarrow> (\<forall>ip\<in>set (getPos ip_matches). p_src p \<in> ipv4s_to_set ip)"
-  by(simp add: Common_Primitive_Matcher.match_simplematcher_SrcDst)
-  private lemma match_simplematcher_Src_getNeg: "(\<forall>m\<in>set (map Src (getNeg ip_matches)). matches (common_matcher, \<alpha>) (MatchNot (Match m)) a p)
-         \<longleftrightarrow> (\<forall>ip\<in>set (getNeg ip_matches). p_src p \<in> - ipv4s_to_set ip)"
-  by(simp add: match_simplematcher_SrcDst_not)
-  private lemma match_simplematcher_Iface_getPos: "(\<forall>m\<in>set (map IIface (getPos i_matches)). matches (common_matcher, \<alpha>) (Match m) a p)
-         \<longleftrightarrow> (\<forall>i\<in>set (getPos i_matches). match_iface i (p_iiface p))"
-  by(simp add: match_simplematcher_Iface)
-  private lemma match_simplematcher_Iface_getNeg: "(\<forall>m\<in>set (map IIface (getNeg i_matches)). matches (common_matcher, \<alpha>) (MatchNot (Match m)) a p)
-         \<longleftrightarrow> (\<forall>i\<in>set (getNeg i_matches). \<not> match_iface i (p_iiface p))"
-  by(simp add: match_simplematcher_Iface_not)
+  lemma "primitive_extractor (is_Src, src_sel)
+      (MatchAnd (Match (Src (Ip4AddrNetmask (0,0,0,0) 30))) (Match (IIface (Iface ''eth0'')))) =
+      ([Pos (Ip4AddrNetmask (0, 0, 0, 0) 30)], MatchAnd MatchAny (Match (IIface (Iface ''eth0''))))" by eval
 
  private lemma get_exists_matching_src_ips_subset: 
     assumes "normalized_nnf_match m"
     shows "{ip. (\<exists>p. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))} \<subseteq>
            get_exists_matching_src_ips iface m"
   proof -
-    
     let ?\<gamma>="(common_matcher, in_doubt_allow)"
 
     { fix ip_matches p rest src_ip i_matches rest2
@@ -92,25 +81,12 @@ begin
       and a2: "matches ?\<gamma> m a (p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
       let ?p="(p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
 
-      (*TODO: simplify using negation_type_forall_split*)
-
-      from primitive_extractor_correct(1)[OF assms wf_disc_sel_common_primitive(3) a1] have 
-        "\<And>p. matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a p \<and> 
-              matches ?\<gamma> rest a p \<longleftrightarrow>
-              matches ?\<gamma> m a p" by fast
-      with a2 have "matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a ?p \<and> 
-              matches ?\<gamma> rest a ?p" by simp
-      hence "matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a ?p" by blast
-      with Negation_Type_Matching.matches_alist_and have
-        "(\<forall>m\<in>set (getPos (NegPos_map Src ip_matches)). matches ?\<gamma> (Match m) a ?p) \<and> 
-         (\<forall>m\<in>set (getNeg (NegPos_map Src ip_matches)). matches ?\<gamma> (MatchNot (Match m)) a ?p)" by metis
-      with getPos_NegPos_map_simp2 getNeg_NegPos_map_simp2 have 
-        "(\<forall>m\<in>set (map Src (getPos ip_matches)). matches ?\<gamma> (Match m) a ?p) \<and> 
-         (\<forall>m\<in>set (map Src (getNeg ip_matches)). matches ?\<gamma> (MatchNot (Match m)) a ?p)" by metis
-      with match_simplematcher_Src_getPos match_simplematcher_Src_getNeg have inset:
-        "(\<forall>ip\<in>set (getPos ip_matches). p_src ?p \<in> ipv4s_to_set ip) \<and> (\<forall>ip\<in>set (getNeg ip_matches). p_src ?p \<in> - ipv4s_to_set ip)" by presburger
-  
-      with inset  have "\<forall>x \<in> set ip_matches. src_ip \<in> (case x of Pos x \<Rightarrow> ipv4s_to_set x | Neg ip \<Rightarrow> - ipv4s_to_set ip)"
+      from primitive_extractor_negation_type_matching1[OF wf_disc_sel_common_primitive(3) assms a1 a2]
+           match_simplematcher_SrcDst match_simplematcher_SrcDst_not
+       have ip_matches: "(\<forall>ip\<in>set (getPos ip_matches). p_src ?p \<in> ipv4s_to_set ip) \<and>
+                         (\<forall>ip\<in>set (getNeg ip_matches). p_src ?p \<in> - ipv4s_to_set ip)" by simp
+      from ip_matches have "\<forall>x \<in> set ip_matches. src_ip \<in> (case x of Pos x \<Rightarrow> ipv4s_to_set x | Neg ip \<Rightarrow> - ipv4s_to_set ip)"
+        apply(simp)
         apply(simp  split: negation_type.split)
         apply(safe)
          using NegPos_set apply fast+
@@ -118,30 +94,20 @@ begin
     } note 1=this
 
     { fix ip_matches p rest src_ip i_matches rest2
-      assume a2: "matches ?\<gamma> m a (p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
-      and a4: "primitive_extractor (is_Iiface, iiface_sel) m = (i_matches, rest2)"
+      assume a1: "primitive_extractor (is_Iiface, iiface_sel) m = (i_matches, rest2)"
+         and a2: "matches ?\<gamma> m a (p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
       let ?p="(p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
     
-      from primitive_extractor_correct(1)[OF assms wf_disc_sel_common_primitive(5) a4] have 
-        "\<And>p. matches ?\<gamma> (alist_and (NegPos_map IIface i_matches)) a p \<and> 
-              matches ?\<gamma> rest2 a p \<longleftrightarrow>
-              matches ?\<gamma> m a p" by fast
-      with a2 have "matches ?\<gamma> (alist_and (NegPos_map IIface i_matches)) a ?p \<and> 
-              matches ?\<gamma> rest2 a ?p" by simp
-      hence "matches ?\<gamma> (alist_and (NegPos_map IIface i_matches)) a ?p" by blast
-      with matches_alist_and have
-        "(\<forall>m\<in>set (getPos (NegPos_map IIface i_matches)). matches ?\<gamma> (Match m) a ?p) \<and> 
-         (\<forall>m\<in>set (getNeg (NegPos_map IIface i_matches)). matches ?\<gamma> (MatchNot (Match m)) a ?p)" by metis
-      with getPos_NegPos_map_simp2 getNeg_NegPos_map_simp2 have 
-        "(\<forall>m\<in>set (map IIface (getPos i_matches)). matches ?\<gamma> (Match m) a ?p) \<and> 
-         (\<forall>m\<in>set (map IIface (getNeg i_matches)). matches ?\<gamma> (MatchNot (Match m)) a ?p)" by metis
-      with match_simplematcher_Iface_getPos match_simplematcher_Iface_getNeg have inset_iface:
-        "(\<forall>i\<in>set (getPos i_matches). match_iface i (p_iiface ?p)) \<and> (\<forall>i\<in>set (getNeg i_matches). \<not> match_iface i (p_iiface ?p))" by presburger
+      from primitive_extractor_negation_type_matching1[OF wf_disc_sel_common_primitive(5) assms a1 a2]
+           match_simplematcher_Iface match_simplematcher_Iface_not
+      have iface_matches: "(\<forall>i\<in>set (getPos i_matches). match_iface i (p_iiface ?p)) \<and>
+                           (\<forall>i\<in>set (getNeg i_matches). \<not> match_iface i (p_iiface ?p))" by simp
       hence 2: "(\<forall>x\<in>set i_matches. case x of Pos i \<Rightarrow> match_iface i (iface_sel iface) | Neg i \<Rightarrow> \<not> match_iface i (iface_sel iface))"
         apply(simp add: split: negation_type.split)
         apply(safe)
         using NegPos_set apply fast+
       done
+      
     } note 2=this
 
     from 1 2 show ?thesis
@@ -150,24 +116,60 @@ begin
   qed
 
 
+  (*TODO: could this be useful somewhere?*)
+  lemma common_primitive_not_has_primitive_expand: 
+        "\<not> has_primitive (m::common_primitive match_expr) \<longleftrightarrow>
+         \<not> has_disc is_Dst m \<and> 
+         \<not> has_disc is_Src m \<and>
+         \<not> has_disc is_Iiface m \<and>
+         \<not> has_disc is_Oiface m \<and>
+         \<not> has_disc is_Prot m \<and>
+         \<not> has_disc is_Src_Ports m \<and>
+         \<not> has_disc is_Dst_Ports m \<and>
+         \<not> has_disc is_L4_Flags m \<and>
+         \<not> has_disc is_CT_State m \<and>
+         \<not> has_disc is_Extra m"
+  apply(induction m)
+     apply(simp_all)
+    apply(rename_tac x, case_tac x, simp_all)
+   by blast
 
-
+  (*
+  (*TODO: we can clean up the \<not>has_disc hell below with \<not> has_primitive*)
+  lemma assumes n: "normalized_nnf_match m"
+        and p1: "(primitive_extractor (is_Iiface, iiface_sel) m) = (i_matches, rest1)"
+        and p2: "(primitive_extractor (is_Src, src_sel) rest1) = (ip_matches, rest2)"
+        shows "\<not> has_disc is_Dst rest2 \<and> 
+               \<not> has_disc is_Oiface rest2 \<and>
+               \<not> has_disc is_Prot rest2 \<and>
+               \<not> has_disc is_Src_Ports rest2 \<and>
+               \<not> has_disc is_Dst_Ports rest2 \<and>
+               \<not> has_disc is_L4_Flags rest2 \<and>
+               \<not> has_disc is_CT_State rest2 \<and>
+               \<not> has_disc is_Extra rest2 \<longleftrightarrow>
+               \<not> has_primitive rest2"
+    using p1 p2
+    unfolding common_primitive_not_has_primitive_expand
+    apply -
+    apply(frule primitive_extractor_correct(2)[OF n wf_disc_sel_common_primitive(5)])
+    apply(frule primitive_extractor_correct(3)[OF n wf_disc_sel_common_primitive(5)])
+    apply(frule primitive_extractor_correct(4)[OF n wf_disc_sel_common_primitive(5)])
+    apply(frule primitive_extractor_correct(3)[OF _ wf_disc_sel_common_primitive(3)], simp)
+    apply(frule primitive_extractor_correct(4)[OF _ wf_disc_sel_common_primitive(3)], simp)
+    by blast
+  *)
+  (*TODO: matcheq_matchAny is undefined for primitives. this is the proper way to call it!*)
+  lemma "\<not> has_primitive m \<and> matcheq_matchAny m \<longleftrightarrow> (if \<not> has_primitive m then matcheq_matchAny m else False)"
+    by simp
 
   text{*The set of ip addresses which definitely match for a fixed @{text iface} (underapproximation)*}
   private definition get_all_matching_src_ips :: "iface \<Rightarrow> common_primitive match_expr \<Rightarrow> ipv4addr set" where
     "get_all_matching_src_ips iface m \<equiv> let (i_matches, rest1) = (primitive_extractor (is_Iiface, iiface_sel) m) in
-              if (\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface) | Neg i \<Rightarrow> \<not>match_iface i (iface_sel iface)))
+              if (\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface)
+                                                  | Neg i \<Rightarrow> \<not> match_iface i (iface_sel iface)))
               then
                 (let (ip_matches, rest2) = (primitive_extractor (is_Src, src_sel) rest1) in
-                if \<not> has_disc is_Dst rest2 \<and> 
-                   \<not> has_disc is_Oiface rest2 \<and>
-                   \<not> has_disc is_Prot rest2 \<and>
-                   \<not> has_disc is_Src_Ports rest2 \<and>
-                   \<not> has_disc is_Dst_Ports rest2 \<and>
-                   \<not> has_disc is_L4_Flags rest2 \<and>
-                   \<not> has_disc is_CT_State rest2 \<and>
-                   \<not> has_disc is_Extra rest2 \<and> 
-                   matcheq_matachAny rest2
+                if \<not> has_primitive rest2 \<and> matcheq_matchAny rest2
                 then
                   if ip_matches = []
                   then
@@ -183,13 +185,15 @@ begin
 
  private lemma get_all_matching_src_ips: 
     assumes "normalized_nnf_match m"
-    shows "get_all_matching_src_ips iface m \<subseteq> {ip. (\<forall>p. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))}"
+    shows "get_all_matching_src_ips iface m \<subseteq>
+            {ip. (\<forall>p. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))}"
   proof 
     fix ip
     assume a: "ip \<in> get_all_matching_src_ips iface m" 
     obtain i_matches rest1 where select1: "primitive_extractor (is_Iiface, iiface_sel) m = (i_matches, rest1)" by fastforce
     show "ip \<in> {ip. \<forall>p. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)}"
-    proof(cases "\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface) | Neg i \<Rightarrow> \<not>match_iface i (iface_sel iface))")
+    proof(cases "\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface)
+                                                 | Neg i \<Rightarrow> \<not>match_iface i (iface_sel iface))")
     case False
       have "get_all_matching_src_ips iface m = {}"
         unfolding get_all_matching_src_ips_def
@@ -201,71 +205,60 @@ begin
       let ?p="\<lambda>p. p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>"
       obtain ip_matches rest2 where select2: "primitive_extractor (is_Src, src_sel) rest1 = (ip_matches, rest2)" by fastforce
 
-      let ?noDisc="\<not> has_disc is_Dst rest2 \<and>
-                      \<not> has_disc is_Oiface rest2 \<and>
-                      \<not> has_disc is_Prot rest2 \<and>
-                      \<not> has_disc is_Src_Ports rest2 \<and> \<not> has_disc is_Dst_Ports rest2 \<and>
-                      \<not> has_disc is_L4_Flags rest2 \<and>
-                      \<not> has_disc is_CT_State rest2 \<and>
-                      \<not> has_disc is_Extra rest2"
+      let ?noDisc="\<not> has_primitive rest2"
 
-      have get_all_matching_src_ips_caseTrue: "get_all_matching_src_ips iface m = (if ?noDisc \<and> matcheq_matachAny rest2
-                   then if ip_matches = [] then UNIV else INTER (set ip_matches) (case_negation_type ipv4s_to_set (\<lambda>ip. - ipv4s_to_set ip)) else {})"
+      have get_all_matching_src_ips_caseTrue: "get_all_matching_src_ips iface m =
+            (if ?noDisc \<and> matcheq_matchAny rest2
+             then if ip_matches = []
+                  then UNIV
+                  else INTER (set ip_matches) (case_negation_type ipv4s_to_set (\<lambda>ip. - ipv4s_to_set ip))
+              else {})"
       unfolding get_all_matching_src_ips_def
       by(simp add: True select1 select2)
 
-      from True have "\<And>p. (\<forall>m\<in>set (getPos i_matches). matches (common_matcher, in_doubt_allow) (Match (IIface m)) a (?p p)) \<and>
-         (\<forall>m\<in>set (getNeg i_matches). matches (common_matcher, in_doubt_allow) (MatchNot (Match (IIface m))) a (?p p))"
-         by(simp add: negation_type_forall_split match_simplematcher_Iface match_simplematcher_Iface_not)
+      from True have "(\<forall>m\<in>set (getPos i_matches). matches ?\<gamma> (Match (IIface m)) a (?p p)) \<and>
+                      (\<forall>m\<in>set (getNeg i_matches). matches ?\<gamma> (MatchNot (Match (IIface m))) a (?p p))"
+       for p by(simp add: negation_type_forall_split match_simplematcher_Iface match_simplematcher_Iface_not)
       hence matches_iface: "\<And>p. matches ?\<gamma> (alist_and (NegPos_map IIface i_matches)) a (?p p)"
         by(simp add: matches_alist_and NegPos_map_simps)
 
       show ?thesis
-      proof(cases "?noDisc \<and> matcheq_matachAny rest2")
+      proof(cases "?noDisc \<and> matcheq_matchAny rest2")
       case False
-        assume F: "\<not> (?noDisc \<and> matcheq_matachAny rest2)"
+        assume F: "\<not> (?noDisc \<and> matcheq_matchAny rest2)"
         with get_all_matching_src_ips_caseTrue have "get_all_matching_src_ips iface m = {}" by presburger
         with a have False by simp
-        thus "ip \<in> {ip. \<forall>p. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)}" ..
+        thus ?thesis ..
       next
       case True
-        assume F: "?noDisc \<and> matcheq_matachAny rest2"
+        assume F: "?noDisc \<and> matcheq_matchAny rest2"
         with get_all_matching_src_ips_caseTrue have "get_all_matching_src_ips iface m = 
-            (if ip_matches = [] then UNIV else INTER (set ip_matches) (case_negation_type ipv4s_to_set (\<lambda>ip. - ipv4s_to_set ip)))" by presburger
-
+            (if ip_matches = []
+             then UNIV
+             else INTER (set ip_matches) (case_negation_type ipv4s_to_set (\<lambda>ip. - ipv4s_to_set ip)))" by presburger
 
         from primitive_extractor_correct[OF assms wf_disc_sel_common_primitive(5) select1] have
           select1_matches: "\<And>p. matches ?\<gamma> (alist_and (NegPos_map IIface i_matches)) a p \<and> matches ?\<gamma> rest1 a p \<longleftrightarrow> matches ?\<gamma> m a p"
           and normalized1: "normalized_nnf_match rest1"
-          and no_iiface_rest1: "\<not> has_disc is_Iiface rest1"
           apply -
             apply fast+
           done
-        from select1_matches matches_iface have rest1_matches: "\<And>p. matches ?\<gamma> rest1 a (?p p) \<longleftrightarrow> matches ?\<gamma> m a (?p p)" by blast
+        from select1_matches matches_iface have
+          rest1_matches: "matches ?\<gamma> rest1 a (?p p) \<longleftrightarrow> matches ?\<gamma> m a (?p p)" for p by blast
 
         from primitive_extractor_correct[OF normalized1 wf_disc_sel_common_primitive(3) select2] have
-          select2_matches: "\<And>p. (matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a p \<and> matches ?\<gamma> rest2 a p) = matches ?\<gamma> rest1 a p"
-          and no_Src_rest2: "\<not> has_disc is_Src rest2"
-          and no_IIface_rest2: "\<not> has_disc is_Iiface rest2"
-          apply -
-            apply fast+
-           using no_iiface_rest1 apply fast
-          done
-
-        from F have ?noDisc by simp
-        with no_Src_rest2 no_IIface_rest2 have "\<not> has_primitive rest2"
-          apply(induction rest2)
-             apply(simp_all)
-          apply(rename_tac x)
-          apply(case_tac x, auto)
-          done
-        with F matcheq_matachAny have "\<And>p. matches ?\<gamma> rest2 a p" by metis
+          select2_matches: "matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a p \<and> matches ?\<gamma> rest2 a p \<longleftrightarrow> 
+                            matches ?\<gamma> rest1 a p" for p
+        by fast
+        with F matcheq_matchAny have "\<And>p. matches ?\<gamma> rest2 a p" by metis
         with select2_matches rest1_matches have ip_src_matches: 
             "\<And>p. matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a (?p p) \<longleftrightarrow> matches ?\<gamma> m a (?p p)" by simp
 
-        have case_nil: "\<And>p. ip_matches = [] \<Longrightarrow> matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a p" by(simp add: bunch_of_lemmata_about_matches)
+        have case_nil: "\<And>p. ip_matches = [] \<Longrightarrow> matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a p"
+          by(simp add: bunch_of_lemmata_about_matches)
 
-        have case_list: "\<And>p. \<forall>x\<in>set ip_matches. (case x of Pos i \<Rightarrow> ip \<in> ipv4s_to_set i | Neg i \<Rightarrow> ip \<in>  - ipv4s_to_set i) \<Longrightarrow>
+        have case_list: "\<And>p. \<forall>x\<in>set ip_matches. (case x of Pos i \<Rightarrow> ip \<in> ipv4s_to_set i
+                                                          | Neg i \<Rightarrow> ip \<in> - ipv4s_to_set i) \<Longrightarrow>
             matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)"
           apply(simp add: matches_alist_and NegPos_map_simps)
           apply(simp add: negation_type_forall_split match_simplematcher_SrcDst_not match_simplematcher_SrcDst)
@@ -294,7 +287,8 @@ begin
 
   private definition get_exists_matching_src_ips_executable :: "iface \<Rightarrow> common_primitive match_expr \<Rightarrow> 32 wordinterval" where
     "get_exists_matching_src_ips_executable iface m \<equiv> let (i_matches, _) = (primitive_extractor (is_Iiface, iiface_sel) m) in
-              if (\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface) | Neg i \<Rightarrow> \<not>match_iface i (iface_sel iface)))
+              if (\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface)
+                                                  | Neg i \<Rightarrow> \<not>match_iface i (iface_sel iface)))
               then
                 (let (ip_matches, _) = (primitive_extractor (is_Src, src_sel) m) in
                 if ip_matches = []
@@ -325,23 +319,17 @@ begin
       apply(simp_all add: NegPos_set)
     using NegPos_set(2) by fastforce
 
-  value[code] "(get_exists_matching_src_ips_executable (Iface ''eth0'')
-      (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0'')))))"
+  lemma "(get_exists_matching_src_ips_executable (Iface ''eth0'')
+      (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0''))))) =
+      RangeUnion (WordInterval 0 0xC0A7FFFF) (WordInterval 0xC0A80100 0xFFFFFFFF)" by eval
 
   private definition get_all_matching_src_ips_executable :: "iface \<Rightarrow> common_primitive match_expr \<Rightarrow> 32 wordinterval" where
     "get_all_matching_src_ips_executable iface m \<equiv> let (i_matches, rest1) = (primitive_extractor (is_Iiface, iiface_sel) m) in
-              if (\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface) | Neg i \<Rightarrow> \<not>match_iface i (iface_sel iface)))
+              if (\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface)
+                                                  | Neg i \<Rightarrow> \<not>match_iface i (iface_sel iface)))
               then
                 (let (ip_matches, rest2) = (primitive_extractor (is_Src, src_sel) rest1) in
-                if \<not> has_disc is_Dst rest2 \<and> 
-                   \<not> has_disc is_Oiface rest2 \<and>
-                   \<not> has_disc is_Prot rest2 \<and>
-                   \<not> has_disc is_Src_Ports rest2 \<and>
-                   \<not> has_disc is_Dst_Ports rest2 \<and>
-                   \<not> has_disc is_L4_Flags rest2 \<and>
-                   \<not> has_disc is_CT_State rest2 \<and>
-                   \<not> has_disc is_Extra rest2 \<and> 
-                   matcheq_matachAny rest2
+                if \<not> has_primitive rest2 \<and> matcheq_matchAny rest2
                 then
                   if ip_matches = []
                   then
@@ -375,28 +363,16 @@ begin
     apply(erule_tac x="Neg aa" in ballE)
      apply(simp_all add: NegPos_set)
     done
-  value[code] "(get_all_matching_src_ips_executable (Iface ''eth0'')
-      (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0'')))))"
+  lemma "(get_all_matching_src_ips_executable (Iface ''eth0'')
+      (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0''))))) = 
+      RangeUnion (WordInterval 0 0xC0A7FFFF) (WordInterval 0xC0A80100 0xFFFFFFFF)" by eval
 
-
-
-  private lemma "{ip. \<forall>p \<in> {p. \<not> match_iface iface (p_iiface p)}. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr> p_src:= ip\<rparr>)} =
-                 {ip. \<forall>p. \<not> match_iface iface (p_iiface p) \<longrightarrow> matches (common_matcher, in_doubt_allow) m Drop (p\<lparr> p_src:= ip\<rparr>)}" by blast
-  private lemma p_iiface_update: "p\<lparr>p_iiface := p_iiface p, p_src := x\<rparr> = p\<lparr>p_src := x\<rparr>" by(simp)
-  private lemma "(\<Inter> if' \<in> {if'. \<not> match_iface iface if'}. {ip. \<forall>p. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr> p_iiface := if', p_src:= ip\<rparr>)}) = 
-                 {ip. \<forall>p \<in> {p. \<not> match_iface iface (p_iiface p)}. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr> p_src:= ip\<rparr>)}"
-    apply(simp)
-    apply(safe)
-     apply(simp_all)
-    apply(erule_tac x="(p_iiface p)" in allE)
-    apply(simp)
-    using p_iiface_update by metis
      
 
   text{* The following algorithm sound but not complete.*}
   (*alowed: set ip ips potentially allowed for iface
     denied: set of ips definitely dropped for iface*)
-  private fun no_spoofing_algorithm :: "iface \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr set \<Rightarrow> (*ipv4addr set \<Rightarrow>*) bool" where
+  private fun no_spoofing_algorithm :: "iface \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr set \<Rightarrow> bool" where
     "no_spoofing_algorithm iface ipassmt [] allowed denied1  \<longleftrightarrow> 
       (allowed - denied1) \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))" |
     "no_spoofing_algorithm iface ipassmt ((Rule m Accept)#rs) allowed denied1 = no_spoofing_algorithm iface ipassmt rs 
@@ -409,7 +385,7 @@ begin
 
   private fun no_spoofing_algorithm_executable :: "iface \<Rightarrow> (iface \<rightharpoonup> (ipv4addr \<times> nat) list) \<Rightarrow> common_primitive rule list \<Rightarrow> 32 wordinterval \<Rightarrow> 32 wordinterval \<Rightarrow> bool" where
     "no_spoofing_algorithm_executable iface ipassmt [] allowed denied1  \<longleftrightarrow> 
-      wordinterval_subset (wordinterval_setminus allowed denied1) (l2br (map ipv4cidr_to_interval (the (ipassmt iface))))" |
+      wordinterval_subset (wordinterval_setminus allowed denied1) (l2br (map ipcidr_to_interval (the (ipassmt iface))))" |
     "no_spoofing_algorithm_executable iface ipassmt ((Rule m Accept)#rs) allowed denied1 = no_spoofing_algorithm_executable iface ipassmt rs 
         (wordinterval_union allowed (get_exists_matching_src_ips_executable iface m)) denied1" |
     "no_spoofing_algorithm_executable iface ipassmt ((Rule m Drop)#rs) allowed denied1 = no_spoofing_algorithm_executable iface ipassmt rs
@@ -420,9 +396,10 @@ begin
          no_spoofing_algorithm iface ipassmt rs (wordinterval_to_set allowed) (wordinterval_to_set denied)"
   proof(induction iface ipassmt rs allowed denied rule: no_spoofing_algorithm_executable.induct)
   case (1 iface ipassmt allowed denied1)
-    have "(\<Union>a\<in>set (the (ipassmt iface)). case ipv4cidr_to_interval a of (x, xa) \<Rightarrow> {x..xa}) = 
-          (\<Union>x\<in>set (the (ipassmt iface)). case x of (base, len) \<Rightarrow> ipv4range_set_from_prefix base len)" 
-    using ipv4cidr_to_interval_ipv4range_set_from_prefix ipv4cidr_to_interval_def by simp
+    have "(\<Union>a\<in>set (the (ipassmt iface)). case ipcidr_to_interval a of (x, xa) \<Rightarrow> {x..xa}) = 
+          (\<Union>x\<in>set (the (ipassmt iface)). case x of (base, len) \<Rightarrow> ipv4range_set_from_prefix base len)"
+    unfolding ipcidr_to_interval_def (*since we used an arbitrary 'a::len word, we need to unfold manually*)
+    using ipcidr_to_interval_ipv4range_set_from_prefix by simp
     with 1 show ?case by(simp add: ipv4cidr_union_set_def l2br)
   next
   case 2 thus ?case by(simp add: get_exists_matching_src_ips_executable get_all_matching_src_ips_executable)
@@ -430,170 +407,6 @@ begin
   case 3 thus ?case by(simp add: get_exists_matching_src_ips_executable get_all_matching_src_ips_executable)
   qed(simp_all)
 
-  lemma "no_spoofing_algorithm_executable
-      (Iface ''eth0'') 
-          [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
-          [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (Match (IIface (Iface ''eth0'')))) action.Accept,
-           Rule MatchAny action.Drop]
-          Empty_WordInterval Empty_WordInterval" by eval
-    
-
-  (*implementation could store ipv4addr set as 32 wordinterval*)
-
-
-  text{*Examples*}
-  text{*Example 1*}
-  text{*
-    Ruleset: Accept all non-spoofed packets, drop rest.
-  *}
-  lemma "no_spoofing_algorithm 
-          (Iface ''eth0'') 
-          [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
-          [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (Match (IIface (Iface ''eth0'')))) action.Accept,
-           Rule MatchAny action.Drop]
-          {} {}
-          "
-     proof -
-      have localrng: "ipv4range_set_from_prefix (ipv4addr_of_dotdecimal (192,168,0,0)) 24 = {0xC0A80000..0xC0A800FF}"
-      by(simp add: ipv4range_set_from_prefix_def ipv4range_set_from_netmask_def ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
-        
-      have ipset: "{ip. \<exists>p. matches (common_matcher, in_doubt_allow) (MatchAnd (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 24))) (Match (IIface (Iface ''eth0'')))) Accept
-              (p\<lparr>p_iiface := ''eth0'', p_src := ip\<rparr>)} = ipv4range_set_from_prefix (ipv4addr_of_dotdecimal (192,168,0,0)) 24"
-         by(auto simp add: localrng eval_ternary_simps bool_to_ternary_simps matches_case_ternaryvalue_tuple match_iface.simps
-                      split: ternaryvalue.split ternaryvalue.split_asm)
-       show ?thesis
-        apply(simp add: ipset ipv4cidr_union_set_def get_exists_matching_src_ips_def)
-        by blast
-      qed
-
-  text{*Example 2*}
-  text{*
-    Ruleset: Drop packets from a spoofed IP range, allow rest.
-  *}
-  lemma "no_spoofing_algorithm 
-          (Iface ''eth0'') 
-          [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
-          [Rule (MatchAnd (Match (IIface (Iface ''wlan+''))) (Match (Extra ''no idea what this is''))) action.Accept, (*not interesting for spoofing*)
-           Rule (MatchNot (Match (IIface (Iface ''eth0+'')))) action.Accept, (*not interesting for spoofing*)
-           Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0'')))) action.Drop, (*spoof-protect here*)
-           Rule MatchAny action.Accept]
-          {} {}
-          "
-        apply(simp add: get_all_matching_src_ips_def get_exists_matching_src_ips_def match_iface.simps)
-        apply(simp add: ipv4cidr_union_set_def)
-        done
-
-   private lemma iprange_example: "ipv4range_set_from_prefix (ipv4addr_of_dotdecimal (192, 168, 0, 0)) 24 = {0xC0A80000..0xC0A800FF}"
-     by(simp add: ipv4range_set_from_prefix_def ipv4range_set_from_netmask_def ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
-   lemma "no_spoofing_algorithm 
-          (Iface ''eth0'') 
-          [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
-          [Rule (MatchNot (Match (IIface (Iface ''wlan+'')))) action.Accept, (*accidently allow everything for eth0*)
-           Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0'')))) action.Drop,
-           Rule MatchAny action.Accept]
-          {} {} \<longleftrightarrow> False
-          "
-        apply(simp add: get_exists_matching_src_ips_def match_iface.simps)
-        apply(simp add: range_0_max_UNIV ipv4cidr_union_set_def iprange_example)
-        done
-
-  text{*Example 3*}
-  text{*
-    Ruleset: Drop packets coming from the wrong interface, allow the rest.
-    Warning: this does not prevent spoofing for eth0!
-    Explanation: someone on eth0 can send a packet e.g. with source IP 8.8.8.8
-    The ruleset only prevents spoofing of 192.168.0.0/24 for other interfaces
-  *}
-   lemma "no_spoofing [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
-          [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (MatchNot (Match (IIface (Iface ''eth0''))))) action.Drop,
-           Rule MatchAny action.Accept] \<longleftrightarrow> False" (is "no_spoofing ?ipassmt ?rs \<longleftrightarrow> False")
-   proof -
-     have "simple_ruleset ?rs" by(simp add: simple_ruleset_def)
-     hence 1: "\<forall>p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>?rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<longleftrightarrow>
-                approximating_bigstep_fun (common_matcher, in_doubt_allow) p ?rs Undecided = Decision FinalAllow"
-       apply -
-       apply(drule simple_imp_good_ruleset)
-       apply(simp add: approximating_semantics_iff_fun_good_ruleset)
-       done
-     have 2: "\<forall>p. \<not> matches (common_matcher, in_doubt_allow) (MatchNot (Match (IIface (Iface ''eth0'')))) Drop (p\<lparr>p_iiface := ''eth0''\<rparr>)"
-     by(simp add: match_simplematcher_Iface_not match_iface.simps)
-     
-     text{*The @{const no_spoofing} definition requires that all packets from @{term "''eth0''"} are from 192.168.0.0/24*}
-     have "no_spoofing ?ipassmt ?rs \<longleftrightarrow> 
-      (\<forall>p. approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface := ''eth0''\<rparr>) ?rs  Undecided = Decision FinalAllow \<longrightarrow>
-            p_src p \<in> ipv4cidr_union_set {(ipv4addr_of_dotdecimal (192, 168, 0, 0), 24)})"
-      unfolding no_spoofing_def
-       apply(subst 1)
-       by(simp)
-     text{*In this example however, all packets for all IPs from @{term "''eth0''"} are allowed.*}
-     have "\<forall>p. approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface := ''eth0''\<rparr>) ?rs  Undecided = Decision FinalAllow"
-       by(simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary 2)
-
-     have 3: "no_spoofing ?ipassmt ?rs \<longleftrightarrow> (\<forall>p::simple_packet. p_src p \<in> ipv4cidr_union_set {(ipv4addr_of_dotdecimal (192, 168, 0, 0), 24)})"
-       unfolding no_spoofing_def
-       apply(subst 1)
-       apply(simp)
-       apply(simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
-       apply(simp add: 2)
-       done
-     
-     show ?thesis
-     unfolding 3
-     apply(simp add: ipv4cidr_union_set_def)
-     apply(simp add: iprange_example)
-     apply(rule_tac x="p\<lparr>p_src := 0\<rparr>" in exI) (*any p*)
-     apply(simp)
-     done
-   qed
-  lemma "no_spoofing_algorithm 
-          (Iface ''eth0'') 
-          [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
-          [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (MatchNot (Match (IIface (Iface ''eth0''))))) action.Drop,
-           Rule MatchAny action.Accept]
-          {} {} \<longleftrightarrow> False"
-    apply(subst no_spoofing_algorithm.simps)
-    apply(simp add: get_exists_matching_src_ips_def get_all_matching_src_ips_def match_iface.simps del: no_spoofing_algorithm.simps)
-    apply(subst no_spoofing_algorithm.simps)
-    apply(simp add: get_exists_matching_src_ips_def get_all_matching_src_ips_def match_iface.simps del: no_spoofing_algorithm.simps)
-    apply(subst no_spoofing_algorithm.simps)
-    apply(simp add: get_exists_matching_src_ips_def get_all_matching_src_ips_def match_iface.simps del: no_spoofing_algorithm.simps)
-    apply(simp add: ipv4cidr_union_set_def)
-    apply(simp add: iprange_example)
-    apply(simp add: range_0_max_UNIV)
-    done
-
-  text{*Example 4: spoofing protection but the algorithm fails (it is only sound, not complete).*}
-  lemma "no_spoofing [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
-          [Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (MatchAnd (Match (IIface (Iface ''eth0''))) (Match (Prot (Proto TCP))))) action.Drop,
-           Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (MatchAnd (Match (IIface (Iface ''eth0''))) (MatchNot (Match (Prot (Proto TCP)))))) action.Drop,
-           Rule MatchAny action.Accept]" (is "no_spoofing ?ipassmt ?rs")
-   proof -
-     have "simple_ruleset ?rs" by(simp add: simple_ruleset_def)
-     hence 1: "\<forall>p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>?rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<longleftrightarrow>
-                approximating_bigstep_fun (common_matcher, in_doubt_allow) p ?rs Undecided = Decision FinalAllow"
-       apply -
-       apply(drule simple_imp_good_ruleset)
-       apply(simp add: approximating_semantics_iff_fun_good_ruleset)
-       done
-     show ?thesis
-       unfolding no_spoofing_def
-       apply(subst 1)
-       apply(simp)
-       apply(simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
-       apply(simp add: match_iface.simps)
-       apply(simp add: match_simplematcher_SrcDst_not)
-       apply(auto simp add: eval_ternary_simps bool_to_ternary_simps matches_case_ternaryvalue_tuple match_iface.simps
-                      split: ternaryvalue.split ternaryvalue.split_asm)
-       apply(simp add: ipv4cidr_union_set_def)
-       done
-   qed
-  lemma "\<not> no_spoofing_algorithm 
-          (Iface ''eth0'') 
-          [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
-          [Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (MatchAnd (Match (IIface (Iface ''eth0''))) (Match (Prot (Proto TCP))))) action.Drop,
-           Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (MatchAnd (Match (IIface (Iface ''eth0''))) (MatchNot (Match (Prot (Proto TCP)))))) action.Drop,
-           Rule MatchAny action.Accept] {} {}"
-    by(simp add: get_exists_matching_src_ips_def get_all_matching_src_ips_def match_iface.simps ipv4cidr_union_set_def iprange_example range_0_max_UNIV)
 
   private definition "nospoof iface ipassmt rs = (\<forall>p.
           (approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface\<rparr>) rs Undecided = Decision FinalAllow) \<longrightarrow>
@@ -601,11 +414,13 @@ begin
   private definition "setbydecision iface rs dec = {ip. \<exists>p. approximating_bigstep_fun (common_matcher, in_doubt_allow) 
                            (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs Undecided = Decision dec}"
 
-  private lemma packet_update_iface_simp: "p\<lparr>p_iiface := iface_sel iface, p_src := x\<rparr> = p\<lparr>p_src := x, p_iiface := iface_sel iface\<rparr>" by simp
- 
-  private lemma nospoof_setbydecision: "nospoof iface ipassmt rs \<longleftrightarrow> setbydecision iface rs FinalAllow \<subseteq> (ipv4cidr_union_set (set (the (ipassmt iface))))"
+  private lemma nospoof_setbydecision: "nospoof iface ipassmt rs \<longleftrightarrow> 
+        setbydecision iface rs FinalAllow \<subseteq> (ipv4cidr_union_set (set (the (ipassmt iface))))"
   proof
     assume a: "nospoof iface ipassmt rs"
+    have packet_update_iface_simp: "p\<lparr>p_iiface := iface_sel iface, p_src := x\<rparr> = p\<lparr>p_src := x, p_iiface := iface_sel iface\<rparr>"
+      for p::"'p simple_packet_scheme" and x by simp
+ 
     from a show "setbydecision iface rs FinalAllow \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))"
       apply(simp add: nospoof_def setbydecision_def)
       apply(safe)
@@ -644,6 +459,7 @@ begin
     apply(simp add: setbydecision_def setbydecision_all_def)
     done
 
+(*
   (*follows directly from existing lemmas, move into proof below, do not move to generic thy!*)
   private lemma decision_append: "simple_ruleset rs1 \<Longrightarrow> approximating_bigstep_fun \<gamma> p rs1 Undecided = Decision X \<Longrightarrow>
            approximating_bigstep_fun \<gamma> p (rs1 @ rs2) Undecided = Decision X"
@@ -651,6 +467,7 @@ begin
     apply(drule good_imp_wf_ruleset[of _ \<gamma> p])
     apply(simp add: approximating_bigstep_fun_seq_wf Decision_approximating_bigstep_fun)
     done
+*)
 
   private lemma setbydecision_append: "simple_ruleset (rs1 @ rs2) \<Longrightarrow> setbydecision iface (rs1 @ rs2) FinalAllow =
           setbydecision iface rs1 FinalAllow \<union> {ip. \<exists>p. approximating_bigstep_fun (common_matcher, in_doubt_allow) 
@@ -671,14 +488,6 @@ begin
      apply(simp_all)
     done
 
-  private lemma foo_not_FinalDeny: "foo \<noteq> Decision FinalDeny \<longleftrightarrow> foo = Undecided \<or> foo = Decision FinalAllow"
-    apply(cases foo)
-     apply simp_all
-    apply(rename_tac x2)
-    apply(case_tac x2)
-     apply(simp_all)
-    done
-
   private lemma setbydecision_all_appendAccept: "simple_ruleset (rs @ [Rule r Accept]) \<Longrightarrow> 
     setbydecision_all iface rs FinalDeny = setbydecision_all iface (rs @ [Rule r Accept]) FinalDeny"
       apply(simp add: setbydecision_all_def)
@@ -687,9 +496,6 @@ begin
        apply(simp add: simple_imp_good_ruleset good_imp_wf_ruleset)
       apply(simp add: not_FinalAllow)
       done
-
-  lemma "(\<forall>x. P x \<and> Q x) \<longleftrightarrow> (\<forall>x. P x) \<and> (\<forall>x. Q x)" by blast
-  lemma "(\<forall>x. P x) \<or> (\<forall>x. Q x) \<Longrightarrow> (\<forall>x. P x \<or> Q x)" by blast
 
   private lemma setbydecision_all_append_subset: "simple_ruleset (rs1 @ rs2) \<Longrightarrow> setbydecision_all iface rs1 FinalDeny \<union> {ip. \<forall>p.
             approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs2 Undecided = Decision FinalDeny \<and>
@@ -704,8 +510,6 @@ begin
       apply(simp add: not_FinalAllow)
       done
 
-  private lemma Collect_minus_eq: "{x. P x} - {x. Q x} = {x. P x \<and> \<not> Q x}" by blast
-
   private lemma "setbydecision_all iface rs1 FinalDeny \<union>
                  {ip. \<forall>p. approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>) rs1 Undecided = Undecided}
                  \<subseteq>
@@ -718,6 +522,7 @@ begin
       by(simp)
 
 
+  private lemma Collect_minus_eq: "{x. P x} - {x. Q x} = {x. P x \<and> \<not> Q x}" by blast
   private lemma setbydecision_all_append_subset2:
       "simple_ruleset (rs1 @ rs2) \<Longrightarrow> setbydecision_all iface rs1 FinalDeny \<union> (setbydecision_all iface rs2 FinalDeny - setbydecision iface rs1 FinalAllow)
             \<subseteq> setbydecision_all iface (rs1 @ rs2) FinalDeny"
@@ -727,12 +532,11 @@ begin
       apply(subst Set.Collect_disj_eq[symmetric])
       apply(rule Set.Collect_mono)
       apply(subst approximating_bigstep_fun_seq_Undecided_t_wf)
-       apply(simp add: simple_imp_good_ruleset good_imp_wf_ruleset)
+       apply(simp add: simple_imp_good_ruleset good_imp_wf_ruleset; fail)
       apply(intro impI allI)
       apply(simp add: not_FinalAllow)
       apply(case_tac "approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface := iface_sel iface, p_src := x\<rparr>) rs1 Undecided")
-       apply(elim disjE)
-        apply(simp_all)[2]
+       subgoal by(elim disjE) simp_all
       apply(rename_tac x2)
       apply(case_tac x2)
        prefer 2
@@ -742,7 +546,7 @@ begin
       by blast
 
 
-
+(*
   private lemma notin_setbydecisionD: "ip \<notin> setbydecision iface rs FinalAllow \<Longrightarrow> (\<forall>p.
       approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs Undecided = Decision FinalDeny \<or>
       approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs Undecided = Undecided)"
@@ -756,6 +560,7 @@ begin
       apply(simp)
       done
 
+  private lemma p_iiface_update: "p\<lparr>p_iiface := p_iiface p, p_src := x\<rparr> = p\<lparr>p_src := x\<rparr>" by(simp)
   private lemma setbydecision_all_not_iface: "(\<Inter> if' \<in> {if'. \<not> match_iface iface if'}. setbydecision_all (Iface if') rs1 FinalDeny) = 
       {ip. \<forall>p. \<not> match_iface iface (p_iiface p) \<longrightarrow> 
           approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs1 Undecided = Decision FinalDeny}"
@@ -817,7 +622,6 @@ begin
     apply(simp_all)
     by blast
 
-
   private lemma setbydecision2: "setbydecision iface rs dec = 
       {ip. \<exists>p. (iface_sel iface) = (p_iiface p) \<and> approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs Undecided = Decision dec}"
     apply(simp add: setbydecision_def)
@@ -843,7 +647,7 @@ begin
             {ip. (iface_sel iface) = (p_iiface p) \<and> p_src p = ip})"
     apply(simp add: setbydecision2)
     by fastforce
-
+  *)
 
   private lemma "setbydecision_all iface rs FinalDeny \<subseteq> - setbydecision iface rs FinalAllow"
       apply(simp add: setbydecision_def setbydecision_all_def)
@@ -851,11 +655,6 @@ begin
       apply(rule Set.Collect_mono)
       apply(simp)
       done
-
-  lemma "a - (d1 \<union> (d2 - a)) = a - d1" by auto
-  
-  private lemma xxhlpsubset1: "Y \<subseteq> X \<Longrightarrow> \<forall> x. S x \<subseteq> S' x \<Longrightarrow> (\<Inter>x\<in>X. S x) \<subseteq> (\<Inter>x\<in>Y. S' x)" by auto
-  private lemma xxhlpsubset2: "X \<subseteq> Y \<Longrightarrow> \<forall> x. S x \<subseteq> S' x \<Longrightarrow> (\<Union>x\<in>X. S x) \<subseteq> (\<Union>x\<in>Y. S' x)" by auto
 
 
   private lemma no_spoofing_algorithm_sound_generalized: 
@@ -872,7 +671,6 @@ begin
     with 1 have "setbydecision iface rs1 FinalAllow - setbydecision_all iface rs1 FinalDeny
           \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))"
       by blast
-       
     thus ?case 
       by(simp add: nospoof_setbydecision setbydecision_setbydecision_all_Allow)
   next
@@ -928,7 +726,6 @@ begin
      "denied1 \<union> (get_all_matching_src_ips iface m - allowed) \<subseteq> setbydecision_all iface (rs1 @ [Rule m Drop]) FinalDeny"
       by force
 
-
     from 3(7) have no_spoofing_algorithm_prems: "no_spoofing_algorithm iface ipassmt rs allowed
      (denied1 \<union> (get_all_matching_src_ips iface m - allowed))"
       apply(simp)
@@ -983,21 +780,154 @@ begin
     by(auto dest: nospoof no_spoofing_algorithm_sound)
   
 
+
+text{*Examples*}
+  text{*Example 1:
+    Ruleset: Accept all non-spoofed packets, drop rest.
+  *}
   lemma "no_spoofing_iface
       (Iface ''eth0'') 
           [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
           [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (Match (IIface (Iface ''eth0'')))) action.Accept,
            Rule MatchAny action.Drop]" by eval
+  lemma "no_spoofing
+          [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
+          [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (Match (IIface (Iface ''eth0'')))) action.Accept,
+           Rule MatchAny action.Drop]"
+    apply(rule no_spoofing_iface)
+      apply(simp_all add: simple_ruleset_def) (*simple and nnf*)
+    by eval (*executable spoofing alogorithm*)
+
+
+  text{*Example 2:
+    Ruleset: Drop packets from a spoofed IP range, allow rest.
+    Handles negated interfaces correctly.
+  *}
+  lemma "no_spoofing
+      [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
+      [Rule (MatchAnd (Match (IIface (Iface ''wlan+''))) (Match (Extra ''no idea what this is''))) action.Accept, (*not interesting for spoofing*)
+       Rule (MatchNot (Match (IIface (Iface ''eth0+'')))) action.Accept, (*not interesting for spoofing*)
+       Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0'')))) action.Drop, (*spoof-protect here*)
+       Rule MatchAny action.Accept]
+          "
+    apply(rule no_spoofing_iface)
+      apply(simp_all add: simple_ruleset_def)
+    by eval
+   
+    
+  text{*Example 3:
+    Accidentally, matching on wlan+, spoofed packets for eth0 are allowed.
+    First, we prove that there actually is no spoofing protection. Then we show that our algorithm finds out.
+  *}
+  lemma "\<not> no_spoofing
+          [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
+          [Rule (MatchNot (Match (IIface (Iface ''wlan+'')))) action.Accept, (*accidently allow everything for eth0*)
+           Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0'')))) action.Drop,
+           Rule MatchAny action.Accept]
+          "
+     apply(simp add: no_spoofing_def)
+     apply(rule_tac x="p\<lparr>p_src := 0\<rparr>" in exI) (*any p*)
+     apply(simp add: range_0_max_UNIV ipv4cidr_union_set_def)
+      apply(intro conjI)
+      apply(subst approximating_semantics_iff_fun_good_ruleset)
+       apply(simp add: good_ruleset_def; fail)
+      apply(simp add: bunch_of_lemmata_about_matches(1,2)
+          match_simplematcher_SrcDst_not match_simplematcher_Iface match_simplematcher_Iface_not)
+      apply(intro impI, thin_tac _)
+      apply eval
+     apply eval
+     done
+
+   lemma "\<not> no_spoofing_iface 
+          (Iface ''eth0'') 
+          [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
+          [Rule (MatchNot (Match (IIface (Iface ''wlan+'')))) action.Accept, (*accidently allow everything for eth0*)
+           Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24)))) (Match (IIface (Iface ''eth0'')))) action.Drop,
+           Rule MatchAny action.Accept]
+          " by eval
+
+  text{*Example 4:
+    Ruleset: Drop packets coming from the wrong interface, allow the rest.
+    Warning: this does not prevent spoofing for eth0!
+    Explanation: someone on eth0 can send a packet e.g. with source IP 8.8.8.8
+    The ruleset only prevents spoofing of 192.168.0.0/24 for other interfaces
+  *}
+   lemma "\<not> no_spoofing [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
+          [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (MatchNot (Match (IIface (Iface ''eth0''))))) action.Drop,
+           Rule MatchAny action.Accept]"
+     apply(simp add: no_spoofing_def)
+     apply(rule_tac x="p\<lparr>p_src := 0\<rparr>" in exI) (*any p*)
+     apply(simp add: range_0_max_UNIV ipv4cidr_union_set_def)
+      apply(intro conjI)
+      apply(subst approximating_semantics_iff_fun_good_ruleset)
+       apply(simp add: good_ruleset_def; fail)
+      apply(simp add: bunch_of_lemmata_about_matches(1,2)
+          match_simplematcher_SrcDst_not match_simplematcher_Iface match_simplematcher_Iface_not)
+      apply(intro impI, thin_tac _)
+      apply eval
+     apply eval
+     done
+  
+  text{*Our algorithm detects it.*}
+  lemma "\<not> no_spoofing_iface 
+          (Iface ''eth0'') 
+          [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
+          [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (MatchNot (Match (IIface (Iface ''eth0''))))) action.Drop,
+           Rule MatchAny action.Accept]" by eval
+
+  text{*Example 5:
+    Spoofing protection but the algorithm fails.
+    The algorithm @{const no_spoofing_iface} is only sound, not complete.
+    The ruleset first drops spoofed packets for TCP and then drops spoofed packets for @{text "\<not> TCP"}.
+    The algorithm cannot detect that @{text "TCP \<union> \<not>TCP"} together will match all spoofed packets. *}
+
+  lemma "no_spoofing [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
+          [Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))))
+                (MatchAnd (Match (IIface (Iface ''eth0'')))
+                          (Match (Prot (Proto TCP))))) action.Drop,
+           Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))))
+                (MatchAnd (Match (IIface (Iface ''eth0'')))
+                          (MatchNot (Match (Prot (Proto TCP)))))) action.Drop,
+           Rule MatchAny action.Accept]" (is "no_spoofing ?ipassmt ?rs")
+  proof -
+    have 1: "\<forall>p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>?rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<longleftrightarrow>
+                 approximating_bigstep_fun (common_matcher, in_doubt_allow) p ?rs Undecided = Decision FinalAllow"
+      by(subst approximating_semantics_iff_fun_good_ruleset) (simp_all add: good_ruleset_def)
+    show ?thesis
+      unfolding no_spoofing_def
+      apply(simp add: 1 ipv4cidr_union_set_def)
+      apply(simp add: bunch_of_lemmata_about_matches(1,2)
+           match_simplematcher_SrcDst_not match_simplematcher_Iface match_simplematcher_Iface_not)
+      apply(simp add: match_iface.simps
+                      primitive_matcher_generic.Prot_single[OF primitive_matcher_generic_common_matcher]
+                      primitive_matcher_generic.Prot_single_not[OF primitive_matcher_generic_common_matcher])
+      done
+  qed
+  text{*Spoofing protection but the algorithm cannot certify spoofing protection.*}
+  lemma "\<not> no_spoofing_iface
+          (Iface ''eth0'') 
+          [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
+          [Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))))
+                (MatchAnd (Match (IIface (Iface ''eth0'')))
+                (Match (Prot (Proto TCP))))) action.Drop,
+           Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))))
+                (MatchAnd (Match (IIface (Iface ''eth0'')))
+                (MatchNot (Match (Prot (Proto TCP)))))) action.Drop,
+           Rule MatchAny action.Accept]" by eval
+
 end
 
-
-value[code] "no_spoofing_iface (Iface ''eth1.1011'') ([Iface ''eth1.1011'' \<mapsto> [(ipv4addr_of_dotdecimal (131,159,14,0), 24)]]:: ipassignment)
+lemma "no_spoofing_iface (Iface ''eth1.1011'')
+                         ([Iface ''eth1.1011'' \<mapsto> [(ipv4addr_of_dotdecimal (131,159,14,0), 24)]]:: ipassignment)
   [Rule (MatchNot (Match (IIface (Iface ''eth1.1011+'')))) action.Accept,
-           Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (131,159,14,0) 24)))) (Match (IIface (Iface ''eth1.101'')))) action.Drop,
-           Rule MatchAny action.Accept]"
+   Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (131,159,14,0) 24)))) (Match (IIface (Iface ''eth1.1011'')))) action.Drop,
+   Rule MatchAny action.Accept]" by eval
 
-value[code] "no_spoofing_iface (Iface ''eth1.1011'') ([Iface ''eth1.1011'' \<mapsto> [(ipv4addr_of_dotdecimal (131,159,14,0), 24)]]:: ipassignment)
-  [Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) Drop]"
+text{*We only check accepted packets.
+      If there is no default rule (this will never happen if parsed from iptables!), the result is unfinished.*}
+lemma "no_spoofing_iface (Iface ''eth1.1011'')
+                         ([Iface ''eth1.1011'' \<mapsto> [(ipv4addr_of_dotdecimal (131,159,14,0), 24)]]:: ipassignment)
+  [Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) Drop]" by eval
 
 
 end

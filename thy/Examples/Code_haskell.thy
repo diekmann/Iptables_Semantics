@@ -27,54 +27,6 @@ definition mk_Set :: "'a list \<Rightarrow> 'a set" where
   "mk_Set = set"
 
 
-(*TODO: export lo only ipassmt as default*)
-text{*The Example from @{file "TUM_Net_Firewall/TUM_Spoofing_new3.thy"}.
-  Only used for testing and demonstration purposes.*}
-definition "example_TUM_i8_spoofing_ipassmt =
- [(Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,213,4), 24)]),
-  (Iface ''eth1.96'', [(ipv4addr_of_dotdecimal (131,159,14,3), 25)]),
-  (Iface ''eth1.108'', [(ipv4addr_of_dotdecimal (131,159,14,129), 26)]),
-  (Iface ''eth1.109'', [(ipv4addr_of_dotdecimal (131,159,20,11), 24)]),
-  (Iface ''eth1.110'', all_but_those_ips [
-    (ipv4addr_of_dotdecimal (131,159,14,0), 23),
-    (ipv4addr_of_dotdecimal (131,159,20,0), 23),
-    (ipv4addr_of_dotdecimal (192,168,212,0), 23),
-    (ipv4addr_of_dotdecimal (188,95,233,0), 24),
-    (ipv4addr_of_dotdecimal (188,95,232,192), 27),
-    (ipv4addr_of_dotdecimal (188,95,234,0), 23),
-    (ipv4addr_of_dotdecimal (192,48,107,0), 24),
-    (ipv4addr_of_dotdecimal (188,95,236,0), 22),
-    (ipv4addr_of_dotdecimal (185,86,232,0), 22)
-    ]), (*INET*)
-  (Iface ''eth1.116'', [(ipv4addr_of_dotdecimal (131,159,15,131), 26)]),
-  (Iface ''eth1.152'', [(ipv4addr_of_dotdecimal (131,159,15,252), 28)]),
-  (Iface ''eth1.171'', [(ipv4addr_of_dotdecimal (131,159,15,2), 26)]),
-  (Iface ''eth1.173'', [(ipv4addr_of_dotdecimal (131,159,21,252), 24)]),
-  (Iface ''eth1.1010'', [(ipv4addr_of_dotdecimal (131,159,15,227), 28)]),
-  (Iface ''eth1.1011'', [(ipv4addr_of_dotdecimal (131,159,14,194), 27)]),
-  (Iface ''eth1.1012'', [(ipv4addr_of_dotdecimal (131,159,14,238), 28)]),
-  (Iface ''eth1.1014'', [(ipv4addr_of_dotdecimal (131,159,15,217), 27)]),
-  (Iface ''eth1.1016'', [(ipv4addr_of_dotdecimal (131,159,15,66), 26)]),
-  (Iface ''eth1.1017'', [(ipv4addr_of_dotdecimal (131,159,14,242), 28)]),
-  (Iface ''eth1.1111'', [(ipv4addr_of_dotdecimal (192,168,212,4), 24)]),
-  (Iface ''eth1.97'', [(ipv4addr_of_dotdecimal (188,95,233,2), 24)]),
-  (Iface ''eth1.1019'', [(ipv4addr_of_dotdecimal (188,95,234,2), 23)]),
-  (Iface ''eth1.1020'', [(ipv4addr_of_dotdecimal (192,48,107,2), 24)]),
-  (Iface ''eth1.1023'', [(ipv4addr_of_dotdecimal (188,95,236,2), 22)]),
-  (Iface ''eth1.1025'', [(ipv4addr_of_dotdecimal (185,86,232,2), 22)]),
-  (Iface ''eth1.1024'', all_but_those_ips [
-    (ipv4addr_of_dotdecimal (131,159,14,0), 23),
-    (ipv4addr_of_dotdecimal (131,159,20,0), 23),
-    (ipv4addr_of_dotdecimal (192,168,212,0), 23),
-    (ipv4addr_of_dotdecimal (188,95,233,0), 24),
-    (ipv4addr_of_dotdecimal (188,95,232,192), 27),
-    (ipv4addr_of_dotdecimal (188,95,234,0), 23),
-    (ipv4addr_of_dotdecimal (192,48,107,0), 24),
-    (ipv4addr_of_dotdecimal (188,95,236,0), 22),
-    (ipv4addr_of_dotdecimal (185,86,232,0), 22)
-    ]) (*transfer net*)]"
-
-
 fun ipassmt_iprange_translate :: "ipt_ipv4range list negation_type \<Rightarrow> (32 word \<times> nat) list" where
   "ipassmt_iprange_translate (Pos ips) = concat (map ipt_ipv4range_to_cidr ips)" |
   "ipassmt_iprange_translate (Neg ips) = all_but_those_ips (concat (map ipt_ipv4range_to_cidr ips))"
@@ -103,7 +55,7 @@ export_code Rule
   to_simple_firewall
   to_simple_firewall_without_interfaces
   sanity_wf_ruleset
-  (*spoofing:*) example_TUM_i8_spoofing_ipassmt ipassmt_generic
+  (*spoofing:*) ipassmt_generic
   no_spoofing_iface ipassmt_sanity_defined map_of_ipassmt to_ipassmt debug_ipassmt
   Pos Neg
   (*ip partitioning*)

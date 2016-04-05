@@ -24,10 +24,13 @@ lemma compress_normalize_primitive_monad:
     case Nil thus ?case by simp
     next
     case (Cons f fs)
-      from Cons.prems(1) have IH_prem1: "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p = matches \<gamma> m a p)" by auto
-      from Cons.prems(2) have IH_prem2: "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m')" by auto
+      from Cons.prems(1) have IH_prem1:
+        "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p = matches \<gamma> m a p)" by auto
+      from Cons.prems(2) have IH_prem2:
+        "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m')" by auto
       from Cons.IH IH_prem1 IH_prem2 have
-        IH: "\<And>m. normalized_nnf_match m \<Longrightarrow> compress_normalize_primitive_monad fs m = Some m' \<Longrightarrow> (matches \<gamma> m' a p \<longleftrightarrow> matches \<gamma> m a p) \<and> ?goal2" by fast
+        IH: "\<And>m. normalized_nnf_match m \<Longrightarrow> compress_normalize_primitive_monad fs m = Some m' \<Longrightarrow>
+                  (matches \<gamma> m' a p \<longleftrightarrow> matches \<gamma> m a p) \<and> ?goal2" by fast
       show ?case
         proof(cases "f m")
           case None thus ?thesis using Cons.prems by auto
@@ -55,9 +58,12 @@ lemma compress_normalize_primitive_monad_None:
     case Nil thus ?case by simp
     next
     case (Cons f fs)
-      from Cons.prems(1) have IH_prem1: "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p = matches \<gamma> m a p)" by auto
-      from Cons.prems(2) have IH_prem2: "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches \<gamma> m a p)" by auto
-      from Cons.prems(3) have IH_prem3: "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m')" by auto
+      from Cons.prems(1) have IH_prem1:
+        "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p = matches \<gamma> m a p)" by auto
+      from Cons.prems(2) have IH_prem2:
+        "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches \<gamma> m a p)" by auto
+      from Cons.prems(3) have IH_prem3:
+        "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m')" by auto
       from Cons.IH IH_prem1 IH_prem2 IH_prem3 have
         IH: "\<And>m. normalized_nnf_match m \<Longrightarrow> compress_normalize_primitive_monad fs m = None \<Longrightarrow> \<not>  matches \<gamma> m a p" by blast
       show ?case
@@ -113,65 +119,76 @@ subsection{*Optimizing interfaces in match expressions*}
 term map_option
 term option_map (*l4v*)
 
-  lemma compress_interfaces_None:
-  "compress_interfaces ifces = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) (alist_and (NegPos_map IIface ifces)) a p"
-  "compress_interfaces ifces = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) (alist_and (NegPos_map OIface ifces)) a p"
-    apply(simp_all add: compress_interfaces_def)
-    apply(simp_all add: nt_match_list_matches[symmetric] nt_match_list_simp)
-    apply(simp_all add: NegPos_map_simps match_simplematcher_Iface match_simplematcher_Iface_not)
-    apply(case_tac [!] "compress_pos_interfaces (getPos ifces)")
-      apply(simp_all)
-      apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_None)
-      apply(simp; fail)
-     apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_Some)
-     apply(simp split:split_if_asm)
-     using iface_subset apply blast
-     apply(drule_tac p_i="p_oiface p" in compress_pos_interfaces_None)
-     apply(simp; fail)
-    apply(drule_tac p_i="p_oiface p" in compress_pos_interfaces_Some)
-    apply(simp split:split_if_asm)
-    using iface_subset by blast
-
-  lemma compress_interfaces_Some: "compress_interfaces ifces = Some (i_pos, i_neg) \<Longrightarrow>
-    matches (common_matcher, \<alpha>) (alist_and (NegPos_map IIface ((map Pos i_pos)@(map Neg i_neg)))) a p \<longleftrightarrow>
-    matches (common_matcher, \<alpha>) (alist_and (NegPos_map IIface ifces)) a p"
-  "compress_interfaces ifces = Some (i_pos, i_neg) \<Longrightarrow>
-    matches (common_matcher, \<alpha>) (alist_and (NegPos_map OIface ((map Pos i_pos)@(map Neg i_neg)))) a p \<longleftrightarrow>
-    matches (common_matcher, \<alpha>) (alist_and (NegPos_map OIface ifces)) a p"
-    apply(simp_all add: compress_interfaces_def)
-    apply(simp_all add: bunch_of_lemmata_about_matches(1) alist_and_append NegPos_map_append)
-    apply(simp_all add: nt_match_list_matches[symmetric] nt_match_list_simp)
-    apply(simp_all add: NegPos_map_simps match_simplematcher_Iface match_simplematcher_Iface_not)
-    apply(case_tac [!] "compress_pos_interfaces (getPos ifces)")
-       apply(simp_all)
-     apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_Some)
-     apply(simp split:split_if_asm)
-       using iface_is_wildcard_def iface_subset match_iface_case_nowildcard apply fastforce
-      using match_ifaceAny apply blast
-     apply force
-    apply(drule_tac p_i="p_oiface p" in compress_pos_interfaces_Some)
-    apply(simp split:split_if_asm)
-      using iface_is_wildcard_def iface_subset match_iface_case_nowildcard apply fastforce
-     using match_ifaceAny apply blast
-    by force
+context
+begin
+  private lemma compress_interfaces_None:
+    assumes generic: "primitive_matcher_generic \<beta>"
+    shows   
+      "compress_interfaces ifces = None \<Longrightarrow> \<not> matches (\<beta>, \<alpha>) (alist_and (NegPos_map IIface ifces)) a p"
+      "compress_interfaces ifces = None \<Longrightarrow> \<not> matches (\<beta>, \<alpha>) (alist_and (NegPos_map OIface ifces)) a p"
+      apply(simp_all add: compress_interfaces_def)
+      apply(simp_all add: nt_match_list_matches[symmetric] nt_match_list_simp)
+      apply(simp_all add: NegPos_map_simps primitive_matcher_generic.Iface_single[OF generic]
+                          primitive_matcher_generic.Iface_single_not[OF generic])
+      apply(case_tac [!] "compress_pos_interfaces (getPos ifces)")
+        apply(simp_all)
+        apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_None)
+        apply(simp; fail)
+       apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_Some)
+       apply(simp split:split_if_asm)
+       using iface_subset apply blast
+       apply(drule_tac p_i="p_oiface p" in compress_pos_interfaces_None)
+       apply(simp; fail)
+      apply(drule_tac p_i="p_oiface p" in compress_pos_interfaces_Some)
+      apply(simp split:split_if_asm)
+      using iface_subset by blast
+  
+  private lemma compress_interfaces_Some: 
+    assumes generic: "primitive_matcher_generic \<beta>"
+    shows 
+      "compress_interfaces ifces = Some (i_pos, i_neg) \<Longrightarrow>
+        matches (\<beta>, \<alpha>) (alist_and (NegPos_map IIface ((map Pos i_pos)@(map Neg i_neg)))) a p \<longleftrightarrow>
+        matches (\<beta>, \<alpha>) (alist_and (NegPos_map IIface ifces)) a p"
+      "compress_interfaces ifces = Some (i_pos, i_neg) \<Longrightarrow>
+        matches (\<beta>, \<alpha>) (alist_and (NegPos_map OIface ((map Pos i_pos)@(map Neg i_neg)))) a p \<longleftrightarrow>
+        matches (\<beta>, \<alpha>) (alist_and (NegPos_map OIface ifces)) a p"
+      apply(simp_all add: compress_interfaces_def)
+      apply(simp_all add: bunch_of_lemmata_about_matches(1) alist_and_append NegPos_map_append)
+      apply(simp_all add: nt_match_list_matches[symmetric] nt_match_list_simp)
+      apply(simp_all add: NegPos_map_simps primitive_matcher_generic.Iface_single[OF generic]
+                          primitive_matcher_generic.Iface_single_not[OF generic])
+      apply(case_tac [!] "compress_pos_interfaces (getPos ifces)")
+         apply(simp_all)
+       apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_Some)
+       apply(simp split:split_if_asm)
+         using iface_is_wildcard_def iface_subset match_iface_case_nowildcard apply fastforce
+        using match_ifaceAny apply blast
+       apply force
+      apply(drule_tac p_i="p_oiface p" in compress_pos_interfaces_Some)
+      apply(simp split:split_if_asm)
+        using iface_is_wildcard_def iface_subset match_iface_case_nowildcard apply fastforce
+       using match_ifaceAny apply blast
+      by force
 
   
   definition compress_normalize_input_interfaces :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr option" where 
     "compress_normalize_input_interfaces m \<equiv> compress_normalize_primitive (is_Iiface, iiface_sel) IIface compress_interfaces m"
 
   lemma compress_normalize_input_interfaces_Some:
-  assumes "normalized_nnf_match m" and "compress_normalize_input_interfaces m = Some m'"
-    shows "matches (common_matcher, \<alpha>) m' a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
-    apply(rule compress_normalize_primitive_Some[OF assms(1) wf_disc_sel_common_primitive(5)])
-     using assms(2) apply(simp add: compress_normalize_input_interfaces_def; fail)
-    using compress_interfaces_Some by simp
+  assumes generic: "primitive_matcher_generic \<beta>"
+      and "normalized_nnf_match m" and "compress_normalize_input_interfaces m = Some m'"
+    shows "matches (\<beta>, \<alpha>) m' a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
+    apply(rule compress_normalize_primitive_Some[OF assms(2) wf_disc_sel_common_primitive(5)])
+     using assms(3) apply(simp add: compress_normalize_input_interfaces_def; fail)
+    using compress_interfaces_Some[OF generic] by simp
 
   lemma compress_normalize_input_interfaces_None:
-  assumes "normalized_nnf_match m" and "compress_normalize_input_interfaces m = None"
-    shows "\<not> matches (common_matcher, \<alpha>) m a p"
-    apply(rule compress_normalize_primitive_None[OF assms(1) wf_disc_sel_common_primitive(5)])
-     using assms(2) apply(simp add: compress_normalize_input_interfaces_def; fail)
-    using compress_interfaces_None by simp
+  assumes generic: "primitive_matcher_generic \<beta>"
+      and "normalized_nnf_match m" and "compress_normalize_input_interfaces m = None"
+    shows "\<not> matches (\<beta>, \<alpha>) m a p"
+    apply(rule compress_normalize_primitive_None[OF assms(2) wf_disc_sel_common_primitive(5)])
+     using assms(3) apply(simp add: compress_normalize_input_interfaces_def; fail)
+    using compress_interfaces_None[OF generic] by simp
 
   lemma compress_normalize_input_interfaces_nnf: "normalized_nnf_match m \<Longrightarrow> compress_normalize_input_interfaces m = Some m' \<Longrightarrow>
       normalized_nnf_match m'"
@@ -231,18 +248,20 @@ term option_map (*l4v*)
     "compress_normalize_output_interfaces m \<equiv> compress_normalize_primitive (is_Oiface, oiface_sel) OIface compress_interfaces m"
 
   lemma compress_normalize_output_interfaces_Some:
-  assumes "normalized_nnf_match m" and "compress_normalize_output_interfaces m = Some m'"
-    shows "matches (common_matcher, \<alpha>) m' a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
-    apply(rule compress_normalize_primitive_Some[OF assms(1) wf_disc_sel_common_primitive(6)])
-     using assms(2) apply(simp add: compress_normalize_output_interfaces_def; fail)
-    using compress_interfaces_Some by simp
+  assumes generic: "primitive_matcher_generic \<beta>"
+      and "normalized_nnf_match m" and "compress_normalize_output_interfaces m = Some m'"
+    shows "matches (\<beta>, \<alpha>) m' a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
+    apply(rule compress_normalize_primitive_Some[OF assms(2) wf_disc_sel_common_primitive(6)])
+     using assms(3) apply(simp add: compress_normalize_output_interfaces_def; fail)
+    using compress_interfaces_Some[OF generic] by simp
 
   lemma compress_normalize_output_interfaces_None:
-  assumes "normalized_nnf_match m" and "compress_normalize_output_interfaces m = None"
-    shows "\<not> matches (common_matcher, \<alpha>) m a p"
-    apply(rule compress_normalize_primitive_None[OF assms(1) wf_disc_sel_common_primitive(6)])
-     using assms(2) apply(simp add: compress_normalize_output_interfaces_def; fail)
-    using compress_interfaces_None by simp
+  assumes generic: "primitive_matcher_generic \<beta>"
+      and "normalized_nnf_match m" and "compress_normalize_output_interfaces m = None"
+    shows "\<not> matches (\<beta>, \<alpha>) m a p"
+    apply(rule compress_normalize_primitive_None[OF assms(2) wf_disc_sel_common_primitive(6)])
+     using assms(3) apply(simp add: compress_normalize_output_interfaces_def; fail)
+    using compress_interfaces_None[OF generic] by simp
 
   lemma compress_normalize_output_interfaces_nnf: "normalized_nnf_match m \<Longrightarrow> compress_normalize_output_interfaces m = Some m' \<Longrightarrow>
       normalized_nnf_match m'"
@@ -285,5 +304,7 @@ term option_map (*l4v*)
      normalized_nnf_match m' \<and> normalized_n_primitive (disc, sel) P m'"
      unfolding compress_normalize_output_interfaces_def
    using compress_normalize_primitve_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(6)] by blast
+
+end
 
 end
