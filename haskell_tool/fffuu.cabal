@@ -1,0 +1,54 @@
+name:                fffuu
+version:             0.1.0.0
+license:             BSD2
+license-file:        LICENSE
+author:              Cornelius Diekmann
+maintainer:          diekmann@net.in.tum.de
+copyright:           BSD2
+category:            Network
+build-type:          Simple
+homepage:            http://iptables.isabelle.systems/
+bug-reports:         https://github.com/diekmann/Iptables_Semantics/issues
+cabal-version:       >= 1.22
+tested-with:         GHC >= 7.8 && < 8.0
+
+library
+  hs-source-dirs:      lib
+  default-language:    Haskell2010
+  ghc-options:         -O3
+  exposed-modules:
+      Network.IPTables.Generated
+    , Network.IPTables.IpassmtParser
+    , Network.IPTables.IsabelleToString
+    , Network.IPTables.ParserHelper
+    , Network.IPTables.Parser
+    , Network.IPTables.Ruleset
+    , Network.IPTables.Analysis
+    , Common.Util
+  build-depends:
+      base >=4.7 && <4.9
+    , containers >=0.5 && <0.6
+    , parsec >=3.0 && <3.2
+
+executable fffuu
+  hs-source-dirs:      src
+  main-is:             Main.hs
+  default-language:    Haskell2010
+  ghc-options:         -O3
+  build-depends:
+      base >=4.7 && <4.9
+    , containers >=0.5 && <0.6
+    , fffuu
+    , parsec >=3.0 && <3.2
+    , optparse-generic >= 1.1 && < 1.2
+
+test-suite test-iptables-save-parser
+  hs-source-dirs:      test
+  type:                detailed-0.9
+  default-language:    Haskell2010
+  test-module:         ParserTestSuite
+  build-depends:
+      base >=4.7 && <4.9
+    , Cabal >= 1.22
+    , containers >=0.5 && <0.6
+    , fffuu

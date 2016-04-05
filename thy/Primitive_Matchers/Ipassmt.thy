@@ -2,6 +2,7 @@ theory Ipassmt
 imports Common_Primitive_Lemmas
         Common_Primitive_toString
         "../Common/Lib_toString"
+        "../afp/Mergesort" (*TODO: dependnecy! import from afp directly!*)
 begin
 
   text{*A mapping from an interface to its assigned ip addresses in CIDR notation*}
@@ -69,11 +70,16 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
 
     value[code] "ipassmt_sanity_nowildcards (map_of [(Iface ''eth1.1017'', [(ipv4addr_of_dotdecimal (131,159,14,240), 28)])])"
 
-  fun collect_ifaces :: "common_primitive rule list \<Rightarrow> iface list" where
-    "collect_ifaces [] = []" |
-    "collect_ifaces ((Rule m a)#rs) = filter (\<lambda>iface. iface \<noteq> ifaceAny) (
+  fun collect_ifaces' :: "common_primitive rule list \<Rightarrow> iface list" where
+    "collect_ifaces' [] = []" |
+    "collect_ifaces' ((Rule m a)#rs) = filter (\<lambda>iface. iface \<noteq> ifaceAny) (
                                       (map (\<lambda>x. case x of Pos i \<Rightarrow> i | Neg i \<Rightarrow> i) (fst (primitive_extractor (is_Iiface, iiface_sel) m))) @
-                                      (map (\<lambda>x. case x of Pos i \<Rightarrow> i | Neg i \<Rightarrow> i) (fst (primitive_extractor (is_Oiface, oiface_sel) m))) @ collect_ifaces rs)"
+                                      (map (\<lambda>x. case x of Pos i \<Rightarrow> i | Neg i \<Rightarrow> i) (fst (primitive_extractor (is_Oiface, oiface_sel) m))) @ collect_ifaces' rs)"
+
+  definition collect_ifaces :: "common_primitive rule list \<Rightarrow> iface list" where
+    "collect_ifaces rs \<equiv> mergesort_remdups (collect_ifaces' rs)"
+  lemma "set (collect_ifaces rs) = set (collect_ifaces' rs)"
+    by(simp add: collect_ifaces_def mergesort_remdups_correct)
 
   text{*sanity check that all interfaces mentioned in the ruleset are also listed in the ipassmt. May fail for wildcard interfaces in the ruleset.*}
   (*TODO: wildcards*)
@@ -131,13 +137,13 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
       ''distinct: '' @ (if distinct ifaces then ''passed'' else ''FAIL!'')
       , ''ipassmt_sanity_nowildcards: '' @
           (if ipassmt_sanity_nowildcards (map_of ipassmt)
-           then ''passed'' else list_toString iface_sel (filter iface_is_wildcard ifaces))
+           then ''passed'' else ''fail: ''@list_toString iface_sel (filter iface_is_wildcard ifaces))
       , ''ipassmt_sanity_defined (interfaces defined in the ruleset are also in ipassmt): '' @ 
           (if ipassmt_sanity_defined rs (map_of ipassmt)
-           then ''passed'' else list_toString iface_sel [i \<leftarrow> (collect_ifaces rs). i \<notin> set ifaces])
+           then ''passed'' else ''fail: ''@list_toString iface_sel [i \<leftarrow> (collect_ifaces rs). i \<notin> set ifaces])
       , ''ipassmt_sanity_disjoint (no zone-spanning interfaces): '' @
           (if ipassmt_sanity_disjoint (map_of ipassmt)
-           then ''passed'' else list_toString (\<lambda>(i1,i2). ''('' @ iface_sel i1 @ '','' @ iface_sel i2 @ '')'')
+           then ''passed'' else ''fail: ''@list_toString (\<lambda>(i1,i2). ''('' @ iface_sel i1 @ '','' @ iface_sel i2 @ '')'')
                [(i1,i2) \<leftarrow> List.product ifaces ifaces. i1 \<noteq> i2 \<and>
                 \<not> wordinterval_empty (wordinterval_intersection
                                         (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i1))))
@@ -148,7 +154,7 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
                ifaces = (map fst ipassmt)
            in
           (if ipassmt_sanity_disjoint (map_of ipassmt)
-           then ''passed'' else list_toString (\<lambda>(i1,i2). ''('' @ iface_sel i1 @ '','' @ iface_sel i2 @ '')'')
+           then ''passed'' else ''fail: ''@list_toString (\<lambda>(i1,i2). ''('' @ iface_sel i1 @ '','' @ iface_sel i2 @ '')'')
                [(i1,i2) \<leftarrow> List.product ifaces ifaces. i1 \<noteq> i2 \<and>
                 \<not> wordinterval_empty (wordinterval_intersection
                                         (l2br (map ipv4cidr_to_interval (the ((map_of ipassmt) i1))))

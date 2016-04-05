@@ -67,6 +67,19 @@ All members of a partition have the same access rights:
 
 Minimal:
 @{thm build_ip_partition_same_fw_min [no_vars]}
+
+
+The resulting access control matrix is sound and complete:
+@{thm access_matrix [no_vars]}
+Theorem reads: 
+For a fixed connection, you can look up IP addresses (source and destination pairs) in the matrix 
+if and only if the firewall accepts this src,dst IP address pair for the fixed connection.
+Note: The matrix is actually a graph (nice visualization!), you need to look up IP addresses 
+in the Vertices and check the access of the representants in the edges. If you want to visualize
+the graph (e.g. with Graphviz or tkiz): The vertices are the node description (i.e. header; 
+  @{term "dom V"} is the label for each node which will also be referenced in the edges,
+  @{term "ran V"} is the human-readable description for each node (i.e. the full IP range it represents)), 
+the edges are the edges. Result looks nice. Theorem also tells us that this visualization is correct.
 *}
 
 end

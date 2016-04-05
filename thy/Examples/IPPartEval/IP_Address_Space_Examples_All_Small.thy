@@ -42,9 +42,9 @@ definition view where
       (''x'',
        map (simple_rule_iptables_save_toString (ipt_chain_toSting f)) (preprocess_keep_ifce (get_unfold f) closure ipassmt def fw_in),
        map (simple_rule_iptables_save_toString (ipt_chain_toSting f)) fw,
-       map pretty_wordinterval (getParts fw),
-       (build_ip_partition_pretty parts_connection_ssh fw),
-       (build_ip_partition_pretty parts_connection_http fw))"
+       map ipv4addr_wordinterval_toString (getParts fw),
+       (access_matrix_pretty parts_connection_ssh fw),
+       (access_matrix_pretty parts_connection_http fw))"
 
 
 (*Do we have code?*)
@@ -167,9 +167,6 @@ context begin
 
 
   value[code] "bench upper_closure FWD ipassmt fw2_FORWARD_default_policy (Semantics_Goto.rewrite_Goto fw2)"
-  (*102.673s old (no merge sort),
-   120.007s new (merge sort followed by merge_remdups (wrongly sorted)),
-   105.376s merge_remdups followed by merge with largest intervals (smallest prefix size) first*)
   value[code] "view upper_closure FWD ipassmt fw2_FORWARD_default_policy (Semantics_Goto.rewrite_Goto fw2)"
 
 
@@ -194,7 +191,7 @@ begin
                                pc_sport=10000, pc_dport=8080, pc_tag_ctstate=CT_New\<rparr>"
 
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt2 fw3_INPUT_default_policy fw3 in
-               map pretty_wordinterval (build_ip_partition web8080 fw)"
+               map ipv4addr_wordinterval_toString (build_ip_partition web8080 fw)"
 
   value[code] "bench lower_closure INP ipassmt2 fw3_INPUT_default_policy fw3"
   value[code] "view lower_closure INP ipassmt2 fw3_INPUT_default_policy fw3"
@@ -216,7 +213,7 @@ begin
   definition "mysql = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
                                pc_sport=10000, pc_dport=3306, pc_tag_ctstate=CT_New\<rparr>"
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt_generic fw4_INPUT_default_policy fw4 in
-             map pretty_wordinterval (build_ip_partition mysql fw)"
+             map ipv4addr_wordinterval_toString (build_ip_partition mysql fw)"
 
   value[code] "bench lower_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"
   value[code] "view lower_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"
@@ -370,6 +367,63 @@ begin
   value[code] "bench lower_closure INP ipassmt_generic fw11_INPUT_default_policy fw11"
   value[code] "view lower_closure INP ipassmt_generic fw11_INPUT_default_policy fw11"
 
+end
+
+
+context
+begin
+ private local_setup \<open>
+    local_setup_parse_iptables_save "filter" @{binding fw14} ["medium-sized-company", "iptables-save"]
+   \<close>
+ thm fw14_def
+ private definition "ipassmt14 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
+  (Iface ''eth0'', [(ipv4addr_of_dotdecimal (172,16,2,0),24)])
+  ]"
+
+  value[code] "bench upper_closure INP ipassmt14 fw14_INPUT_default_policy fw14"
+  value[code] "view upper_closure INP ipassmt14 fw14_INPUT_default_policy fw14"
+
+  value[code] "bench lower_closure INP ipassmt14 fw14_INPUT_default_policy fw14"
+  value[code] "view lower_closure INP ipassmt14 fw14_INPUT_default_policy fw14"
+
+  value[code] "bench upper_closure FWD ipassmt14 fw14_FORWARD_default_policy fw14"
+  value[code] "view upper_closure FWD ipassmt14 fw14_FORWARD_default_policy fw14"
+
+  value[code] "bench lower_closure FWD ipassmt14 fw14_FORWARD_default_policy fw14"
+  value[code] "view lower_closure FWD ipassmt14 fw14_FORWARD_default_policy fw14"
+
+end
+
+
+context
+begin
+  private local_setup \<open>
+     local_setup_parse_iptables_save "filter" @{binding fw15} ["configs_ugent", "iptables-save.v1.4.21"]
+    \<close>
+  thm fw15_def
+ private definition "ipassmt15 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
+  (Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,134,0),24)]),
+  (Iface ''eth1'', [(ipv4addr_of_dotdecimal (192,168,16,0),24)]),
+  (Iface ''eth2'', [(ipv4addr_of_dotdecimal (131,159,15,64),26)]),
+  (Iface ''virbr0'', [(ipv4addr_of_dotdecimal (192,168,122,0),24)])
+  ]"
+
+  value[code] "bench upper_closure INP ipassmt15 fw15_INPUT_default_policy fw15"
+  value[code] "view upper_closure INP ipassmt15 fw15_INPUT_default_policy fw15"
+
+  value[code] "bench lower_closure INP ipassmt15 fw15_INPUT_default_policy fw15"
+  value[code] "view lower_closure INP ipassmt15 fw15_INPUT_default_policy fw15"
+
+
+  definition srctcp137dst137 where "srctcp137dst137 = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
+                               pc_sport=137, pc_dport=137, pc_tag_ctstate=CT_New\<rparr>"
+  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt15 fw15_INPUT_default_policy fw15 in
+               map ipv4addr_wordinterval_toString (build_ip_partition srctcp137dst137 fw)"
+
+  definition tcpdst137 where "tcpdst137 = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
+                               pc_sport=10000, pc_dport=137, pc_tag_ctstate=CT_New\<rparr>"
+  value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt15 fw15_INPUT_default_policy fw15 in
+               map ipv4addr_wordinterval_toString (build_ip_partition tcpdst137 fw)"
 end
 
 end

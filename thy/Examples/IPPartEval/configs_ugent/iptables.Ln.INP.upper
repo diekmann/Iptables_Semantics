@@ -1,0 +1,73 @@
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     all  --  127.0.0.1            127.0.0.1           
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp spt:53
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0            udp spt:53
+ACCEPT     tcp  --  192.168.134.0/24     0.0.0.0/0            tcp dpt:53
+ACCEPT     udp  --  192.168.134.0/24     0.0.0.0/0            udp dpt:53
+ACCEPT     tcp  --  192.168.16.0/24      0.0.0.0/0            tcp dpt:53
+ACCEPT     udp  --  192.168.16.0/24      0.0.0.0/0            udp dpt:53
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp spt:80
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp spt:443
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:80
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:443
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp spt:22
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:22
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp spts:137:139
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp spt:445
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0            udp spts:137:139
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0            udp spt:445
+ACCEPT     tcp  --  192.168.134.0/24     0.0.0.0/0            tcp dpts:137:139
+ACCEPT     tcp  --  192.168.134.0/24     0.0.0.0/0            tcp dpt:445
+ACCEPT     udp  --  192.168.134.0/24     0.0.0.0/0            udp dpts:137:139
+ACCEPT     udp  --  192.168.134.0/24     0.0.0.0/0            udp dpt:445
+ACCEPT     tcp  --  192.168.16.0/24      0.0.0.0/0            tcp dpts:137:139
+ACCEPT     tcp  --  192.168.16.0/24      0.0.0.0/0            tcp dpt:445
+ACCEPT     udp  --  192.168.16.0/24      0.0.0.0/0            udp dpts:137:139
+ACCEPT     udp  --  192.168.16.0/24      0.0.0.0/0            udp dpt:445
+ACCEPT     tcp  --  131.159.15.1         131.159.15.82        tcp spt:25
+ACCEPT     tcp  --  131.159.15.42        131.159.15.82        tcp spt:25
+ACCEPT     tcp  --  127.0.0.1            127.0.0.1            tcp dpt:25
+ACCEPT     icmp --  0.0.0.0/0            0.0.0.0/0           
+ACCEPT     icmp --  192.168.134.0/24     0.0.0.0/0           
+ACCEPT     icmp --  192.168.16.0/24      0.0.0.0/0           
+ACCEPT     tcp  --  192.168.134.10       192.168.134.17       tcp spt:515
+ACCEPT     tcp  --  192.168.134.15       192.168.134.17       tcp spt:515
+ACCEPT     tcp  --  192.168.134.9        192.168.134.17       tcp spt:515
+ACCEPT     tcp  --  127.0.0.1            127.0.0.1            tcp dpt:631
+ACCEPT     tcp  --  127.0.0.1            127.0.0.1            tcp spt:631
+ACCEPT     tcp  --  192.168.134.3        192.168.134.17       tcp spt:514
+ACCEPT     tcp  --  192.168.134.3        192.168.134.17       tcp spt:544
+ACCEPT     tcp  --  192.168.134.3        192.168.134.17       tcp dpt:113
+ACCEPT     tcp  --  192.168.134.3        192.168.134.17       tcp dpts:1020:65535
+ACCEPT     tcp  --  131.159.21.1         0.0.0.0/0            tcp spt:123
+ACCEPT     tcp  --  131.159.21.2         0.0.0.0/0            tcp spt:123
+ACCEPT     udp  --  131.159.21.2         0.0.0.0/0            udp spt:123
+ACCEPT     udp  --  131.159.21.1         0.0.0.0/0            udp spt:123
+ACCEPT     tcp  --  192.168.16.16        0.0.0.0/0            tcp spt:389
+ACCEPT     tcp  --  192.168.16.13        0.0.0.0/0            tcp spt:389
+ACCEPT     tcp  --  192.168.134.13       0.0.0.0/0            tcp spt:389
+ACCEPT     tcp  --  192.168.134.12       0.0.0.0/0            tcp spt:389
+ACCEPT     tcp  --  192.168.134.16       0.0.0.0/0            tcp spt:389
+ACCEPT     tcp  --  131.159.15.83        0.0.0.0/0            tcp spt:389
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:161
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:161
+ACCEPT     tcp  --  0.0.0.0/0            127.0.0.1            tcp dpt:8009
+ACCEPT     tcp  --  127.0.0.1            0.0.0.0/0            tcp spt:8009
+ACCEPT     tcp  --  0.0.0.0/0            192.168.16.17        tcp dpt:3306
+ACCEPT     tcp  --  192.168.16.17        0.0.0.0/0            tcp spt:3306
+ACCEPT     tcp  --  0.0.0.0/0            192.168.134.17       tcp dpt:2001
+ACCEPT     tcp  --  0.0.0.0/0            192.168.134.17       tcp dpt:2000
+ACCEPT     tcp  --  0.0.0.0/0            192.168.16.17        tcp dpt:2001
+ACCEPT     tcp  --  0.0.0.0/0            192.168.16.17        tcp dpt:2000
+ACCEPT     tcp  --  0.0.0.0/0            131.159.15.82        tcp dpt:2000
+ACCEPT     tcp  --  0.0.0.0/0            131.159.15.82        tcp dpt:2001
+ACCEPT     tcp  --  0.0.0.0/0            192.168.134.17       tcp dpt:2161
+ACCEPT     udp  --  0.0.0.0/0            192.168.134.17       udp dpt:2161
+DROP       all  --  0.0.0.0/0            0.0.0.0/0           
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         

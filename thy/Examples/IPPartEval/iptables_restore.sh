@@ -15,3 +15,6 @@ iptables -t raw -Z
 iptables -P INPUT ACCEPT
 iptables -P OUTPUT ACCEPT
 iptables -P FORWARD ACCEPT
+modprobe -r iptable_raw
+modprobe -r iptable_mangle
+modprobe -r iptable_nat

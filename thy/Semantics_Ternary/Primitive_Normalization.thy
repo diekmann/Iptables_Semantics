@@ -161,7 +161,7 @@ proof -
   with assms(1) assms(2) show "matches \<gamma> (alist_and (NegPos_map C as)) a p \<and> matches \<gamma> ms a p \<longleftrightarrow> matches \<gamma> m a p"
     proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
     case 4 thus ?case
-      apply(simp split: split_if_asm split_split_asm add: NegPos_map_append)
+      apply(simp split: split_if_asm prod.split_asm add: NegPos_map_append)
       apply(auto simp add: alist_and_append bunch_of_lemmata_about_matches)
       done
     qed(simp_all add: bunch_of_lemmata_about_matches wf_disc_sel.simps split: split_if_asm)
@@ -174,13 +174,13 @@ proof -
          next
          case 4 thus ?case 
            apply(clarify) (*if i don't clarify, the simplifier loops*)
-           apply(simp split: split_split_asm)
+           apply(simp split: prod.split_asm)
            done
     qed(simp_all)
 
   from assms(1) assm3' show "\<not> has_disc disc ms"
     proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
-    qed(simp_all split: split_if_asm split_split_asm)
+    qed(simp_all split: split_if_asm prod.split_asm)
 
 
   from assms(1) assm3' show "\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms"
@@ -189,7 +189,7 @@ proof -
          next
          case 3 thus ?case by(simp split: split_if_asm)
          next
-         case 4 thus ?case by(simp split: split_split_asm)
+         case 4 thus ?case by(simp split: prod.split_asm)
     qed(simp_all)
 
 
@@ -199,7 +199,7 @@ proof -
          next
          case 3 thus ?case by(simp split: split_if_asm)
          next
-         case 4 thus ?case by(simp split: split_split_asm)
+         case 4 thus ?case by(simp split: prod.split_asm)
     qed(simp_all)
 
 
@@ -208,13 +208,13 @@ proof -
           apply(simp)
          apply(simp split: split_if_asm)
         apply(simp split: split_if_asm)
-       apply(simp split: split_split_asm)
+       apply(simp split: prod.split_asm)
       apply(simp_all)
     done
 
    from assms(1) assm3' show "\<not> has_disc disc m \<Longrightarrow> as = [] \<and> ms = m"
     proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
-    case 4 thus ?case by(simp split: split_split_asm)
+    case 4 thus ?case by(simp split: prod.split_asm)
     qed(simp_all)
 qed
 
@@ -307,14 +307,14 @@ lemma primitive_extractor_matchesE: "wf_disc_sel (disc,sel) C \<Longrightarrow> 
   (normalized_nnf_match ms \<Longrightarrow> \<not> has_disc disc ms \<Longrightarrow> (\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms) \<Longrightarrow> matches_other \<longleftrightarrow>  matches \<gamma> ms a p)
   \<Longrightarrow>
   matches \<gamma> (alist_and (NegPos_map C as)) a p \<and> matches_other \<longleftrightarrow>  matches \<gamma> m a p"
-using primitive_extractor_correct by metis
+using primitive_extractor_correct(1,2,3,4) by metis
 
 lemma primitive_extractor_matches_lastE: "wf_disc_sel (disc,sel) C \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> primitive_extractor (disc, sel) m = (as, ms)
   \<Longrightarrow>
   (normalized_nnf_match ms \<Longrightarrow> \<not> has_disc disc ms \<Longrightarrow> (\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms) \<Longrightarrow> matches \<gamma> ms a p)
   \<Longrightarrow>
   matches \<gamma> (alist_and (NegPos_map C as)) a p  \<longleftrightarrow>  matches \<gamma> m a p"
-using primitive_extractor_correct by metis
+using primitive_extractor_correct(1,2,3,4) by metis
 
 text{*The lemmas @{thm primitive_extractor_matchesE} and @{thm primitive_extractor_matches_lastE} can be used as
   erule to solve goals about consecutive application of @{const primitive_extractor}.

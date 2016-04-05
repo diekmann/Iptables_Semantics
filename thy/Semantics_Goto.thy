@@ -490,8 +490,9 @@ begin
       case no_matching_Goto thus ?thesis using local.that by simp
       next
       case matching_Goto
-        from this not_no_matching_Goto_singleton_cases obtain chain m where r: "r = Rule m (Goto chain)" "matches \<gamma> m p"
-          by (smt list.distinct(2) list.inject list_app_singletonE not_no_matching_Goto_cases)
+        from this(2) not_no_matching_Goto_singleton_cases[of \<gamma> p "(get_match r)" "(get_action r)", simplified] have
+          "((\<exists>chain. (get_action r) = Goto chain) \<and> matches \<gamma> (get_match r) p)" by simp
+        from this obtain chain m where r: "r = Rule m (Goto chain)" "matches \<gamma> m p" by(cases r) auto
         from matching_Goto r have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Goto chain)],Undecided\<rangle> \<Rightarrow> t" by simp
         from gotoD[OF matching_Goto(1)] r `matches \<gamma> m p` obtain rs' where "\<Gamma> chain = Some rs'" by blast
       from local.that 

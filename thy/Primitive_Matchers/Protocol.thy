@@ -138,14 +138,19 @@ section{*TCP flags*}
 
   lemma "match_tcp_flags_conjunct_option ipt_tcp_syn (TCP_Flags {TCP_RST,TCP_ACK} {TCP_RST}) = None" by eval
 
+
+  lemma match_tcp_flags_conjunct_option_Some: "match_tcp_flags_conjunct_option f1 f2 = Some f3 \<Longrightarrow>
+      match_tcp_flags f1 pkt \<and> match_tcp_flags f2 pkt \<longleftrightarrow> match_tcp_flags f3 pkt"
+    apply(simp add: match_tcp_flags_conjunct_option_def split: ipt_tcp_flags.split_asm split_if_asm)
+    using match_tcp_flags_conjunct by blast
+  lemma match_tcp_flags_conjunct_option_None: "match_tcp_flags_conjunct_option f1 f2 = None \<Longrightarrow>
+      \<not>(match_tcp_flags f1 pkt \<and> match_tcp_flags f2 pkt)"
+    apply(simp add: match_tcp_flags_conjunct_option_def split: ipt_tcp_flags.split_asm split_if_asm)
+    using match_tcp_flags_conjunct match_tcp_flags_nomatch by metis
+
   lemma match_tcp_flags_conjunct_option: "(case match_tcp_flags_conjunct_option f1 f2 of None \<Rightarrow> False | Some f3 \<Rightarrow> match_tcp_flags f3 pkt) \<longleftrightarrow> match_tcp_flags f1 pkt \<and> match_tcp_flags f2 pkt"
-    apply(simp add: match_tcp_flags_conjunct_option_def)
-    apply(case_tac "match_tcp_flags_conjunct f1 f2")
-    apply(simp del: match_tcp_flags.simps)
-    apply(rule conjI impI)
-     using match_tcp_flags_conjunct apply metis
-    using match_tcp_flags_conjunct match_tcp_flags_nomatch apply metis
-    done
+    apply(simp split: option.split)
+    using match_tcp_flags_conjunct_option_Some match_tcp_flags_conjunct_option_None by blast
 
 
 
@@ -164,19 +169,25 @@ section{*TCP flags*}
     (*"e": Try this: by (metis Diff_Compl Diff_eq Int_lower2 Un_Diff_Int compl_sup disjoint_eq_subset_Compl inf_assoc inf_commute inf_sup_absorb) (> 1.0 s, timed out).
       Isar proof (300 ms):*)
     proof -
+<<<<<<< HEAD
       assume a1: "c2 \<subseteq> fmask2"
       assume a2: "\<forall>pkt. (pkt \<inter> fmask1 = c1) = (pkt \<inter> fmask2 = c2)"
       have f3: "\<And>A Aa. (A\<Colon>'a set) - - Aa = Aa - - A"
+=======
+      assume a1: "c2 \<subseteq> mask2"
+      assume a2: "\<forall>pkt. (pkt \<inter> mask1 = c1) = (pkt \<inter> mask2 = c2)"
+      have f3: "\<And>A Aa. (A::'a set) - - Aa = Aa - - A"
+>>>>>>> master
         by (simp add: inf_commute)
-      have f4: "\<And>A Aa. (A\<Colon>'a set) - - (- Aa) = A - Aa"
+      have f4: "\<And>A Aa. (A::'a set) - - (- Aa) = A - Aa"
         by simp
-      have f5: "\<And>A Aa Ab. (A\<Colon>'a set) - - Aa - - Ab = A - - (Aa - - Ab)"
+      have f5: "\<And>A Aa Ab. (A::'a set) - - Aa - - Ab = A - - (Aa - - Ab)"
         by blast
-      have f6: "\<And>A Aa. (A\<Colon>'a set) - (- A - Aa) = A"
+      have f6: "\<And>A Aa. (A::'a set) - (- A - Aa) = A"
         by fastforce
-      have f7: "\<And>A Aa. - (A\<Colon>'a set) - - Aa = Aa - A"
+      have f7: "\<And>A Aa. - (A::'a set) - - Aa = Aa - A"
         using f4 f3 by presburger
-      have f8: "\<And>A Aa. - (A\<Colon>'a set) = - (A - Aa) - (A - - Aa)"
+      have f8: "\<And>A Aa. - (A::'a set) = - (A - Aa) - (A - - Aa)"
         by blast
       have f9: "c1 = - (- c1)"
         by blast

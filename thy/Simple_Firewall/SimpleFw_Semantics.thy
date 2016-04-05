@@ -73,6 +73,16 @@ subsection{*Simple Firewall Semantics*}
   fun simple_match_ip :: "(ipv4addr \<times> nat) \<Rightarrow> ipv4addr \<Rightarrow> bool" where
     "simple_match_ip (base, len) p_ip \<longleftrightarrow> p_ip \<in> ipv4range_set_from_prefix base len"
 
+  lemma wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set:
+    "wordinterval_to_set (ipv4_cidr_tuple_to_interval ip) = {d. simple_match_ip ip d}"
+    proof -
+      { fix s d
+        from ipv4range_to_set_def ipv4range_to_set_ipv4_cidr_tuple_to_interval have
+          "s \<in> wordinterval_to_set (ipv4_cidr_tuple_to_interval d) \<longleftrightarrow> simple_match_ip d s"
+        by(cases d) auto
+      } thus ?thesis by blast
+    qed
+
   --"by the way, the words do not wrap around"
   lemma "{(253::8 word) .. 8} = {}" by simp 
 
@@ -173,11 +183,41 @@ subsection{*Simple Ports*}
 
   lemma "{(p1s:: 16 word) .. p1e} \<inter> {p2s .. p2e} = {max p1s p2s .. min p1e p2e}" by(simp)
   
-  lemma simpl_ports_conjunct_correct: "simple_match_port p1 pkt \<and> simple_match_port p2 pkt \<longleftrightarrow> simple_match_port (simpl_ports_conjunct p1 p2) pkt"
+  lemma simple_ports_conjunct_correct: "simple_match_port p1 pkt \<and> simple_match_port p2 pkt \<longleftrightarrow> simple_match_port (simpl_ports_conjunct p1 p2) pkt"
     apply(cases p1, cases p2, simp)
     by blast
 
   lemma simple_match_port_code[code] :"simple_match_port (s,e) p_p = (s \<le> p_p \<and> p_p \<le> e)" by simp
+
+  (*lemma simple_match_port_wordinterval: "simple_match_port (s,e) p \<longleftrightarrow> p \<in> wordinterval_to_set (WordInterval s e)" by(simp)*)
+
+  fun simple_match_port_and_not :: "(16 word \<times> 16 word) \<Rightarrow> (16 word \<times> 16 word) \<Rightarrow> ((16 word \<times> 16 word) \<times> (16 word \<times> 16 word) option) option" where
+    "simple_match_port_and_not (s, e) (s_n, e_n) = (let w = wordinterval_setminus (WordInterval s e) (WordInterval s_n e_n) in 
+      (if wordinterval_empty w then None
+       else case w of WordInterval s' e' \<Rightarrow> Some ((s', e'), None) (*optimized wordintervals don't have overlapping intervals*)
+                   |  _ \<Rightarrow> Some ((s,e), Some (s_n, e_n)))
+      )"
+
+  lemma "simple_match_port_and_not p1 p2 = Some (p_p, Some p_n) \<Longrightarrow>
+    simple_match_port p1 p \<and> \<not> simple_match_port p2 p \<longleftrightarrow> simple_match_port p_p p \<and> \<not> simple_match_port p_n p"
+    apply(cases p1, cases p2, cases p_p, cases p_n)
+    by(simp split:split_if_asm wordinterval.split_asm)
+  lemma "simple_match_port_and_not p1 p2 = None \<Longrightarrow> \<not>(\<exists>p. simple_match_port p1 p \<and> \<not> simple_match_port p2 p)"
+    apply(cases p1, cases p2)
+    apply(simp split:split_if_asm wordinterval.split_asm)
+    by fastforce
+  lemma "simple_match_port_and_not p1 p2 = Some (p_p, None) \<Longrightarrow>
+    simple_match_port p1 p \<and> \<not> simple_match_port p2 p \<longleftrightarrow> simple_match_port p_p p"
+  proof(cases p1, cases p2, cases p_p, simp split:split_if_asm wordinterval.split_asm)
+   fix s1::"16 word" and e1 s2 e2 sp ep
+   assume 1: "wordinterval_setminus (WordInterval s1 e1) (WordInterval s2 e2) = WordInterval sp ep"
+   from 1 have "wordinterval_to_set (wordinterval_setminus (WordInterval s1 e1) (WordInterval s2 e2)) = wordinterval_to_set (WordInterval sp ep)"
+     by simp
+   hence "{s1..e1} - {s2..e2} = {sp..ep}" using wordinterval_setminus_set_eq by simp
+   thus "(s1 \<le> p \<and> p \<le> e1 \<and> (s2 \<le> p \<longrightarrow> \<not> p \<le> e2)) = (sp \<le> p \<and> p \<le> ep)" by auto
+  qed
+
+  value[code] "simple_match_port_and_not (1,8) (6,8)"
 
 subsection{*Simple IPs*}
   lemma simple_match_ip_conjunct: "simple_match_ip ip1 p_ip \<and> simple_match_ip ip2 p_ip \<longleftrightarrow> 
@@ -200,6 +240,92 @@ subsection{*Simple IPs*}
 
 declare simple_matches.simps[simp del]
 
+subsubsection{*Merging Simple Matches*}
+text{*@{typ "simple_match"} @{text \<and>} @{typ "simple_match"}*}
+
+fun simple_match_and :: "simple_match \<Rightarrow> simple_match \<Rightarrow> simple_match option" where
+  "simple_match_and \<lparr>iiface=iif1, oiface=oif1, src=sip1, dst=dip1, proto=p1, sports=sps1, dports=dps1 \<rparr> 
+                    \<lparr>iiface=iif2, oiface=oif2, src=sip2, dst=dip2, proto=p2, sports=sps2, dports=dps2 \<rparr> = 
+    (case ipv4cidr_conjunct sip1 sip2 of None \<Rightarrow> None | Some sip \<Rightarrow> 
+    (case ipv4cidr_conjunct dip1 dip2 of None \<Rightarrow> None | Some dip \<Rightarrow> 
+    (case iface_conjunct iif1 iif2 of None \<Rightarrow> None | Some iif \<Rightarrow>
+    (case iface_conjunct oif1 oif2 of None \<Rightarrow> None | Some oif \<Rightarrow>
+    (case simple_proto_conjunct p1 p2 of None \<Rightarrow> None | Some p \<Rightarrow>
+    Some \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p,
+          sports=simpl_ports_conjunct sps1 sps2, dports=simpl_ports_conjunct dps1 dps2 \<rparr>)))))"
+
+lemma simple_match_and_correct: "simple_matches m1 p \<and> simple_matches m2 p \<longleftrightarrow> 
+(case simple_match_and m1 m2 of None \<Rightarrow> False | Some m \<Rightarrow> simple_matches m p)"
+  proof -
+    obtain iif1 oif1 sip1 dip1 p1 sps1 dps1 where m1:
+      "m1 = \<lparr>iiface=iif1, oiface=oif1, src=sip1, dst=dip1, proto=p1, sports=sps1, dports=dps1 \<rparr>" by(cases m1, blast)
+    obtain iif2 oif2 sip2 dip2 p2 sps2 dps2 where m2:
+      "m2 = \<lparr>iiface=iif2, oiface=oif2, src=sip2, dst=dip2, proto=p2, sports=sps2, dports=dps2 \<rparr>" by(cases m2, blast)
+
+    have sip_None: "ipv4cidr_conjunct sip1 sip2 = None \<Longrightarrow> \<not> simple_match_ip sip1 (p_src p) \<or> \<not> simple_match_ip sip2 (p_src p)"
+      using simple_match_ip_conjunct[of sip1 "p_src p" sip2] by simp
+    have dip_None: "ipv4cidr_conjunct dip1 dip2 = None \<Longrightarrow> \<not> simple_match_ip dip1 (p_dst p) \<or> \<not> simple_match_ip dip2 (p_dst p)"
+      using simple_match_ip_conjunct[of dip1 "p_dst p" dip2] by simp
+    have sip_Some: "\<And>ip. ipv4cidr_conjunct sip1 sip2 = Some ip \<Longrightarrow>
+      simple_match_ip ip (p_src p) \<longleftrightarrow> simple_match_ip sip1 (p_src p) \<and> simple_match_ip sip2 (p_src p)"
+      using simple_match_ip_conjunct[of sip1 "p_src p" sip2] by simp
+    have dip_Some: "\<And>ip. ipv4cidr_conjunct dip1 dip2 = Some ip \<Longrightarrow>
+      simple_match_ip ip (p_dst p) \<longleftrightarrow> simple_match_ip dip1 (p_dst p) \<and> simple_match_ip dip2 (p_dst p)"
+      using simple_match_ip_conjunct[of dip1 "p_dst p" dip2] by simp
+
+    have iiface_None: "iface_conjunct iif1 iif2 = None \<Longrightarrow> \<not> match_iface iif1 (p_iiface p) \<or> \<not> match_iface iif2 (p_iiface p)"
+      using iface_conjunct[of iif1 "(p_iiface p)" iif2] by simp
+    have oiface_None: "iface_conjunct oif1 oif2 = None \<Longrightarrow> \<not> match_iface oif1 (p_oiface p) \<or> \<not> match_iface oif2 (p_oiface p)"
+      using iface_conjunct[of oif1 "(p_oiface p)" oif2] by simp
+    have iiface_Some: "\<And>iface. iface_conjunct iif1 iif2 = Some iface \<Longrightarrow> 
+      match_iface iface (p_iiface p) \<longleftrightarrow> match_iface iif1 (p_iiface p) \<and> match_iface iif2 (p_iiface p)"
+      using iface_conjunct[of iif1 "(p_iiface p)" iif2] by simp
+    have oiface_Some: "\<And>iface. iface_conjunct oif1 oif2 = Some iface \<Longrightarrow> 
+      match_iface iface (p_oiface p) \<longleftrightarrow> match_iface oif1 (p_oiface p) \<and> match_iface oif2 (p_oiface p)"
+      using iface_conjunct[of oif1 "(p_oiface p)" oif2] by simp
+
+    have proto_None: "simple_proto_conjunct p1 p2 = None \<Longrightarrow> \<not> match_proto p1 (p_proto p) \<or> \<not> match_proto p2 (p_proto p)"
+      using simple_proto_conjunct_correct[of p1 "(p_proto p)" p2] by simp
+    have proto_Some: "\<And>proto. simple_proto_conjunct p1 p2 = Some proto \<Longrightarrow>
+      match_proto proto (p_proto p) \<longleftrightarrow> match_proto p1 (p_proto p) \<and> match_proto p2 (p_proto p)"
+      using simple_proto_conjunct_correct[of p1 "(p_proto p)" p2] by simp
+
+    have case_Some: "\<And>m. Some m = simple_match_and m1 m2 \<Longrightarrow>
+     (simple_matches m1 p \<and> simple_matches m2 p) \<longleftrightarrow> simple_matches m p"
+     apply(simp add: m1 m2 simple_matches.simps split: option.split_asm)
+     using simple_ports_conjunct_correct by(blast dest: sip_Some dip_Some iiface_Some oiface_Some proto_Some)
+    have case_None: "simple_match_and m1 m2 = None \<Longrightarrow> \<not> (simple_matches m1 p \<and> simple_matches m2 p)"
+     apply(simp add: m1 m2 simple_matches.simps split: option.split_asm)
+         apply(blast dest: sip_None dip_None iiface_None oiface_None proto_None)+
+     done
+    from case_Some case_None show ?thesis by(cases "simple_match_and m1 m2") simp_all
+ qed
+
+
+(*
+(*TODO*)
+  context begin
+  (*TODO*)
+  (*if we had a quite optimized version of this, ...*)
+  (*positive match \<times> negative match*)
+  private fun simple_match_and_not :: "simple_match \<Rightarrow> simple_match \<Rightarrow> (simple_match \<times> simple_match option) option" where
+    "simple_match_and_not pos neg = 
+      Some (pos, Some neg)"
+
+  lemma "simple_match_and_not m1 m2 = Some (m_p, Some m_n) \<Longrightarrow>
+    simple_matches m1 p \<and> \<not> simple_matches m2 p \<longleftrightarrow> simple_matches m_p p \<and> \<not> simple_matches m_n p"
+  apply(cases m1, cases m2)
+  by(simp)
+  lemma "simple_match_and_not m1 m2 = None \<Longrightarrow> \<not>(\<exists>p. simple_matches m1 p \<and> \<not> simple_matches m2 p)"
+  apply(cases m1, cases m2)
+  by(simp)
+  lemma "simple_match_and_not m1 m2 = Some (m_p, None) \<Longrightarrow>
+    simple_matches m1 p \<and> \<not> simple_matches m2 p \<longleftrightarrow> simple_matches m_p p"
+  apply(cases m1, cases m2)
+  by(simp)
+end
+(*END TODO*)
+*)
 
 lemma nomatch: "\<not> simple_matches m p \<Longrightarrow> simple_fw (SimpleRule m a # rs) p = simple_fw rs p"
   by(cases a, simp_all)
@@ -214,6 +340,7 @@ value[code] "simple_fw [
   \<lparr>p_iiface = '''', p_oiface = '''',  p_src = 1, p_dst = 2, p_proto = TCP, p_sport = 8, p_dport = 9, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
 
 
+<<<<<<< HEAD
 subsection{*Reality check*}
 text{* While it is possible to construct a @{text "simple_fw"} expression that only matches a source
 or destination port, such a match is not meaningful, as the presence of the port information is 
@@ -253,5 +380,39 @@ lemma "simple_match_valid example_simple_match1" by eval
 lemma "\<not>simple_match_valid example_simple_match2" by eval
 
 definition "simple_firewall_valid \<equiv> list_all (simple_match_valid \<circ> match_sel)"
+=======
+fun has_default_policy :: "simple_rule list \<Rightarrow> bool" where
+  "has_default_policy [] = False" |
+  "has_default_policy [(SimpleRule m _)] = (m = simple_match_any)" |
+  "has_default_policy (_#rs) = has_default_policy rs"
+
+lemma has_default_policy: "has_default_policy rs \<Longrightarrow> simple_fw rs p = Decision FinalAllow \<or> simple_fw rs p = Decision FinalDeny"
+  proof(induction rs rule: has_default_policy.induct)
+  case 1 thus ?case by (simp)
+  next
+  case (2 m a) thus ?case by(cases a) (simp_all add: simple_match_any)
+  next
+  case (3 r1 r2 rs)
+    from 3 obtain a m where "r1 = SimpleRule m a" by (cases r1) simp
+    with 3 show ?case by (cases a) simp_all
+  qed
+
+lemma has_default_policy_fst: "has_default_policy rs \<Longrightarrow> has_default_policy (r#rs)"
+ apply(cases r, rename_tac m a, simp)
+ apply(cases rs)
+  by(simp_all)
+
+
+
+
+lemma simple_fw_not_matches_removeAll: "\<not> simple_matches m p \<Longrightarrow> simple_fw (removeAll (SimpleRule m a) rs) p = simple_fw rs p"
+  apply(induction rs p rule: simple_fw.induct)
+    apply(simp)
+   apply(simp_all)
+   apply blast+
+  done
+  
+
+>>>>>>> master
 
 end

@@ -6,7 +6,11 @@ begin
 
 text{*We define a type for ips in CIDR notation, e.g. 192.168.0.0/24.*}
 (*datatype prefix_match = PrefixMatch (pfxm_prefix: ipv4addr) (pfxm_length: nat)*)
-datatype 'a prefix_match = PrefixMatch (pfxm_prefix: "'a::len word") (pfxm_length: nat)
+context
+  notes [[typedef_overloaded]]
+begin
+  datatype 'a prefix_match = PrefixMatch (pfxm_prefix: "'a::len word") (pfxm_length: nat)
+end
 (*definition "pfxm_mask x \<equiv> mask (32 - pfxm_length x)"*)
 
 definition "prefix_match_less_eq1 a b = (if pfxm_length a = pfxm_length b then pfxm_prefix a \<le> pfxm_prefix b else pfxm_length a > pfxm_length b)"

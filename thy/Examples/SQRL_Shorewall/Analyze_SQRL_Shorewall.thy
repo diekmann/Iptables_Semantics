@@ -58,7 +58,7 @@ lemma "length (to_simple_firewall (upper_closure (optimize_matches abstract_for_
 value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded)))))"
 
 (*25.480s*)
-value[code] "map pretty_wordinterval (getParts (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))))))"
+value[code] "map ipv4addr_wordinterval_toString (getParts (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))))))"
 
 (*43.702s*)
 lemma "length (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))) = 5140" by eval
@@ -66,7 +66,7 @@ lemma "length (to_simple_firewall (lower_closure (optimize_matches abstract_for_
 (*71.518s*)
 value[code] "length (remdups_rev (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))))" (*not smaller*)
 
-value[code] "map pretty_wordinterval (getParts (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))))"
+value[code] "map ipv4addr_wordinterval_toString (getParts (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))))"
 
 lemma "simple_firewall_valid (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded)))))" by eval
 lemma "simple_firewall_valid (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded)))))" by eval

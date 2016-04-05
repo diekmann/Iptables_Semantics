@@ -103,14 +103,14 @@ begin
     ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '']"
   by eval
   
-  value[code] "map pretty_wordinterval (getParts cool_example)"
+  value[code] "map ipv4addr_wordinterval_toString (getParts cool_example)"
   
-  value[code] "map pretty_wordinterval (build_ip_partition parts_connection_ssh cool_example)"
+  value[code] "map ipv4addr_wordinterval_toString (build_ip_partition parts_connection_ssh cool_example)"
   
   (*it is not minimal if we allow to further compress the node definitions?
   the receiver nodes could be combined to UNIV
   But minimal for a symmetric matrix*)
-  value[code] "build_ip_partition_pretty parts_connection_ssh cool_example"
+  value[code] "access_matrix_pretty parts_connection_ssh cool_example"
 end
 
 
@@ -125,11 +125,11 @@ begin
     to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_FORWARD action.Drop fw))))))"
   value[code] "map simple_rule_toString cool_example2"
   
-  value[code] "map pretty_wordinterval (getParts cool_example2)"
+  value[code] "map ipv4addr_wordinterval_toString (getParts cool_example2)"
   
-  value[code] "map pretty_wordinterval (build_ip_partition parts_connection_ssh cool_example2)"
+  value[code] "map ipv4addr_wordinterval_toString (build_ip_partition parts_connection_ssh cool_example2)"
   
-  value[code] "build_ip_partition_pretty parts_connection_ssh cool_example2"
+  value[code] "access_matrix_pretty parts_connection_ssh cool_example2"
   end
 
 

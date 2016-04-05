@@ -20,14 +20,23 @@ section{*CIDR Split Motivation*}
        apply(force)
       by (metis Set_Interval.transfer_nat_int_set_functions(2) image_comp image_eqI)
     have ipv4addr_of_nat_def': "ipv4addr_of_nat = of_nat" using ipv4addr_of_nat_def fun_eq_iff by presburger
+    {   fix xa :: int
+        assume a1: "int (unat i) \<le> xa \<and> xa \<le> int (unat j)"
+        then have f2: "int (nat xa) = xa"
+          by force
+        then have "unat (of_int xa::32 word) = nat xa"
+          using a1 by (metis (full_types) le_unat_uoi nat_int nat_mono of_int_of_nat_eq)
+        then have "i \<le> of_int xa" and "of_int xa \<le> j"
+          using f2 a1 by (metis (no_types) uint_nat word_le_def)+
+    } note hlp=this
     show ?thesis
       unfolding ipv4addr_upto_def
       apply(intro set_eqI)
       apply(simp add: ipv4addr_of_nat_def' nat_of_ipv4addr_def)
       apply(safe)
         apply(simp_all)
-        apply (metis (no_types, hide_lams) le_unat_uoi nat_mono uint_nat unat_def word_le_nat_alt)
-       apply (metis (no_types, hide_lams) le_unat_uoi nat_mono uint_nat unat_def word_le_nat_alt)
+        using hlp apply blast
+       using hlp apply blast
       apply(simp add: helpX)
       by (metis atLeastAtMost_iff image_eqI word_le_nat_alt word_unat.Rep_inverse)
     qed
@@ -235,7 +244,7 @@ proof -
     unfolding wordinterval_CIDR_split1_def Let_def
     unfolding ad[symmetric] option.cases
     unfolding uf2
-    unfolding Pair_eq
+    unfolding prod.inject (*TODO: tune*)
     by (metis option.sel)
   then show ?thesis by simp
 qed
@@ -270,7 +279,7 @@ using su by (metis option.simps(5) split_conv)
 private lemma wordinterval_CIDR_split_internal_union: "\<Union>set (map wordinterval_to_set (map prefix_to_range (wordinterval_CIDR_split_internal r))) = wordinterval_to_set r"
 proof(induction r rule: wordinterval_CIDR_split_internal.induct, subst wordinterval_CIDR_split_internal.simps, case_tac "wordinterval_empty rs")
   case goal1
-  show ?case using goal1(2) by (simp add: wordinterval_to_set_def)
+  show ?case using goal1(2) by (simp)
 next
   case goal2
   obtain u s where su: "(Some s, u) = wordinterval_CIDR_split1 rs" using r_split1_not_none[OF goal2(2)] by (metis option.collapse surjective_pairing)
@@ -330,7 +339,8 @@ private corollary wordinterval_CIDR_split_internal_single: "(\<Union> (prefix_to
 
 lemma wordinterval_CIDR_split_internal_all_valid_Ball: fixes r:: "'a::len wordinterval"
   shows "Ball (set (wordinterval_CIDR_split_internal r)) valid_prefix"
-proof(induction r rule: wordinterval_CIDR_split_internal.induct, subst wordinterval_CIDR_split_internal.simps, case_tac "wordinterval_empty rs")
+apply(induction r rule: wordinterval_CIDR_split_internal.induct)
+proof(subst wordinterval_CIDR_split_internal.simps, rename_tac rs, case_tac "wordinterval_empty rs")
   case goal1 thus ?case
     by(simp only: not_True_eq_False if_False Ball_def set_simps empty_iff) clarify
 next
@@ -416,7 +426,7 @@ corollary ipv4range_split_prefix:
 
   show ?thesis
     unfolding wordinterval_CIDR_split_internal[symmetric] ipv4range_split_def
-    apply(simp add: ipv4range_range_def prefix_match_to_CIDR_def2)
+    apply(simp add: prefix_match_to_CIDR_def2)
     apply(rule)
      apply(simp add: ipv4range_set_from_prefix_subseteq_prefix_to_ipset_helper wordinterval_CIDR_split_internal_all_valid_Ball)
     apply(simp add: prefix_to_ipset_subset_ipv4range_set_from_prefix_helper)
