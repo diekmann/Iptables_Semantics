@@ -160,6 +160,7 @@ lemma simple_fw_iff_generalized_fw: "simple_fw fw p = simple_action_to_state a \
 by(induction fw) (clarsimp simp add: generalized_sfw_simps simple_rule_dtor_def simple_fw_alt simple_action_to_state_def split: simple_rule.splits if_splits simple_action.splits)+
 
 lemmas simple_fw_iff_generalized_fw_accept = simple_fw_iff_generalized_fw[where a = simple_action.Accept, unfolded simple_action_to_state_def simple_action.simps]
+lemmas simple_fw_iff_generalized_fw_drop = simple_fw_iff_generalized_fw[where a = simple_action.Drop, unfolded simple_action_to_state_def simple_action.simps]
 
 lemma hlp1: "simple_rule_dtor \<circ> (\<lambda>(u, a, b). SimpleRule u (if a = simple_action.Accept \<and> b = simple_action.Accept then simple_action.Accept else simple_action.Drop)) =
 	apsnd (\<lambda>(a, b). if a = simple_action.Accept \<and> b = simple_action.Accept then simple_action.Accept else simple_action.Drop)"

@@ -52,12 +52,9 @@ definition simple_linux_router :: "routing_rule list \<Rightarrow> simple_rule l
  - No traffic to localhost (might be a limit to lift\<dots>)
 *)
 
-text{* Transformed linux router: does not do layer 2 modifications and throws away packets that would leave on the same interface that they came in on. 
- The entire idea is that @{term iface_packet_check} will only fail if the packet is bound for someone else on that subnet, so the routing decision would, if applied, just output the packet where it came from.*}
-definition simple_linux_router_nomac :: "routing_rule list \<Rightarrow> simple_rule list \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> 'a simple_packet_scheme option" where
-"simple_linux_router_nomac rt fw p \<equiv> do {
+definition simple_linux_router_nol12 :: "routing_rule list \<Rightarrow> simple_rule list \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> 'a simple_packet_scheme option" where
+"simple_linux_router_nol12 rt fw p \<equiv> do {
 	let rd = routing_table_semantics rt (p_dst p);
-	_ \<leftarrow> (if output_iface rd = p_iiface p then None else Some ());
 	let p = p\<lparr>p_oiface := output_iface rd\<rparr>;
 	let fd = simple_fw fw p;
 	_ \<leftarrow> (case fd of Decision FinalAllow \<Rightarrow> Some () | Decision FinalDeny \<Rightarrow> None);
@@ -73,67 +70,48 @@ by(simp_all add: const_def)
 
 lemma rtr_nomac_e1:
 	assumes "simple_linux_router rt fw mlf ifl pi = Some po"
-	assumes "simple_linux_router_nomac rt fw pi = Some po'"
+	assumes "simple_linux_router_nol12 rt fw pi = Some po'"
 	shows "\<exists>x. po = po'\<lparr>p_l2dst := x\<rparr>"
 using assms
-unfolding simple_linux_router_nomac_def simple_linux_router_def
+unfolding simple_linux_router_nol12_def simple_linux_router_def
 by(simp add: Let_def split: option.splits state.splits final_decision.splits Option.bind_splits if_splits) blast+
 
 lemma rtr_nomac_e2:
 	assumes "simple_linux_router rt fw mlf ifl pi = Some po"
-	assumes "p_iiface pi \<noteq> p_oiface po"
-	shows "\<exists>po'. simple_linux_router_nomac rt fw pi = Some po'"
+	shows "\<exists>po'. simple_linux_router_nol12 rt fw pi = Some po'"
 using assms
-unfolding simple_linux_router_nomac_def simple_linux_router_def
+unfolding simple_linux_router_nol12_def simple_linux_router_def
 by(clarsimp simp add: Let_def split: option.splits state.splits final_decision.splits Option.bind_splits if_splits)
 
 lemma rtr_nomac_e3:
-	assumes "simple_linux_router_nomac rt fw pi = Some po"
+	assumes "simple_linux_router_nol12 rt fw pi = Some po"
 	assumes "iface_packet_check ifl pi = Some i(*don'tcare*)"
 	assumes "mlf (fromMaybe (p_dst pi) (next_hop (routing_table_semantics rt (p_dst pi)))) = Some i2"
 	shows "\<exists>po'. simple_linux_router rt fw mlf ifl pi = Some po'"
 using assms
-unfolding simple_linux_router_nomac_def simple_linux_router_def
+unfolding simple_linux_router_nol12_def simple_linux_router_def
 by(clarsimp simp add: Let_def split: option.splits state.splits final_decision.splits Option.bind_splits if_splits)
 
 lemma rtr_nomac_eq:
-	assumes "iface_packet_check ifl pi = None \<longleftrightarrow> output_iface (routing_table_semantics rt (p_dst pi)) = p_iiface pi"
+	assumes "iface_packet_check ifl pi \<noteq> None"
 	assumes "mlf (fromMaybe (p_dst pi) (next_hop (routing_table_semantics rt (p_dst pi)))) \<noteq> None"
-	shows "\<exists>x. map_option (\<lambda>p. p\<lparr>p_l2dst := x\<rparr>) (simple_linux_router_nomac rt fw pi) = simple_linux_router rt fw mlf ifl pi"
+	shows "\<exists>x. map_option (\<lambda>p. p\<lparr>p_l2dst := x\<rparr>) (simple_linux_router_nol12 rt fw pi) = simple_linux_router rt fw mlf ifl pi"
 unfolding update_unfold_hlps
-proof(cases "simple_linux_router_nomac rt fw pi"; cases "simple_linux_router rt fw mlf ifl pi")
+proof(cases "simple_linux_router_nol12 rt fw pi"; cases "simple_linux_router rt fw mlf ifl pi")
 	case goal4
 	note rtr_nomac_e1[OF goal4(2) goal4(1)]
 	with goal4 show ?case by(auto simp add: update_unfold_hlps) 
 next
 	case (goal2 a)
-	from goal2(2) have "iface_packet_check ifl pi \<noteq> None" by(simp add: simple_linux_router_def Let_def const_def split: option.splits state.splits final_decision.splits Option.bind_splits if_splits) 
-	hence "p_iiface pi \<noteq> p_oiface a" using assms(1) goal2(2) by(clarsimp simp add: simple_linux_router_def Let_def const_def split: option.splits state.splits final_decision.splits Option.bind_splits if_splits)
-	note rtr_nomac_e2[OF goal2(2) this]
+	note rtr_nomac_e2[OF goal2(2)]
 	with goal2(1) have False by simp
 	thus ?case ..
 next
 	case (goal3 a)
-	from goal3(1) have "p_iiface pi \<noteq> p_oiface a" by(clarsimp simp add: simple_linux_router_nomac_def Let_def const_def split:  state.splits final_decision.splits if_splits Option.bind_splits) (* woha, the order of the splits is important\<dots> *) 
-	hence "iface_packet_check ifl pi \<noteq> None" using goal3(1) by(clarsimp simp add: simple_linux_router_nomac_def Let_def const_def assms split:  state.splits final_decision.splits if_splits Option.bind_splits)
-	then obtain i3 where "iface_packet_check ifl pi = Some i3" by blast
+	from \<open>iface_packet_check ifl pi \<noteq> None\<close> obtain i3 where "iface_packet_check ifl pi = Some i3" by blast
 	note rtr_nomac_e3[OF goal3(1) this] assms(2)
 	with goal3(2) have False by force
 	thus ?case ..
 qed simp
-
-(* another limitation for the nol2-router: It can never ever properly support bridges. *)
-
-lemma rtr_nomac_eq_halfinv:
-	assumes fw_ac_all: "fw = [SimpleRule simple_match_any Accept]"
-	assumes a1: "map_option (\<lambda>p. p\<lparr>p_l2dst := dst_mac\<rparr>) (simple_linux_router_nomac rt fw pi) = simple_linux_router rt fw mlf ifl pi"
-	assumes a2: "mlf (fromMaybe (p_dst pi) (next_hop (routing_table_semantics rt (p_dst pi)))) \<noteq> None"
-	shows "iface_packet_check ifl pi = None \<longleftrightarrow> output_iface (routing_table_semantics rt (p_dst pi)) = p_iiface pi"
-using a1 a2
-	apply(clarify)
-	apply(cases "simple_linux_router rt fw mlf ifl pi")
-	apply(unfold fw_ac_all)
-	apply(simp_all add: simple_linux_router_nomac_def simple_linux_router_def Let_def simple_match_any split: Option.bind_splits if_splits)
-done
 
 end
