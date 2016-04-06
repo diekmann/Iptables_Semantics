@@ -1403,20 +1403,25 @@ lemma generalized_sfw_None_append: "generalized_sfw rs1 p = None \<Longrightarro
   apply(simp split: split_if_asm)
   done
 
+
+(*by the way, this also holds for one fixed m, so all the \<exists> can be deleted.*)
 lemma OF_match_linear_action_append_iff_generalized_sfw:
-  assumes ft_tail: "(OF_match_linear OF_match_fields_safe ft_tail p = Action of_action \<longleftrightarrow> generalized_sfw rs p = Some (m, rtfw_action))"
-  and ft_hd_action: "(OF_match_linear OF_match_fields_safe ft_hd p = Action of_action \<longleftrightarrow> generalized_sfw [r] p = Some (m, rtfw_action))"
+  assumes ft_tail: "OF_match_linear OF_match_fields_safe ft_tail p = Action of_action \<longleftrightarrow> 
+                    (\<exists>m. generalized_sfw rs p = Some (m, rtfw_action))"
+  and ft_hd_action: "OF_match_linear OF_match_fields_safe ft_hd p = Action of_action \<longleftrightarrow>
+                     (\<exists>m. generalized_sfw [r] p = Some (m, rtfw_action))"
   and ft_hd_noaction: "(OF_match_linear OF_match_fields_safe ft_hd p = NoAction \<longleftrightarrow> generalized_sfw [r] p = None)"
-  shows "(OF_match_linear OF_match_fields_safe (ft_hd @ ft_tail) p = Action of_action) \<longleftrightarrow> (generalized_sfw (r # rs) p = Some (m, rtfw_action))"
+  shows "OF_match_linear OF_match_fields_safe (ft_hd @ ft_tail) p = Action of_action \<longleftrightarrow> 
+          (\<exists>m. generalized_sfw (r # rs) p = Some (m, rtfw_action))"
 proof -
-  have x1: "(OF_match_linear OF_match_fields_safe ft_tail p = Action of_action \<Longrightarrow> generalized_sfw rs p = Some (m, rtfw_action)) \<Longrightarrow>
-      (OF_match_linear OF_match_fields_safe ft_hd p = Action of_action \<Longrightarrow> generalized_sfw [r] p = Some (m, rtfw_action)) \<Longrightarrow>
+  have x1: "(OF_match_linear OF_match_fields_safe ft_tail p = Action of_action \<Longrightarrow> \<exists>m. generalized_sfw rs p = Some (m, rtfw_action)) \<Longrightarrow>
+      (OF_match_linear OF_match_fields_safe ft_hd p = Action of_action \<Longrightarrow> \<exists>m. generalized_sfw [r] p = Some (m, rtfw_action)) \<Longrightarrow>
       (OF_match_linear OF_match_fields_safe ft_hd p = NoAction \<Longrightarrow> generalized_sfw [r] p = None) \<Longrightarrow>
-      (OF_match_linear OF_match_fields_safe (ft_hd @ ft_tail) p = Action of_action) \<Longrightarrow> (generalized_sfw (r # rs) p = Some (m, rtfw_action))"
+      (OF_match_linear OF_match_fields_safe (ft_hd @ ft_tail) p = Action of_action) \<Longrightarrow> \<exists>m. (generalized_sfw (r # rs) p = Some (m, rtfw_action))"
    apply(simp add: OF_match_linear_append)
    apply(case_tac "OF_match_linear OF_match_fields_safe ft_hd p")
      apply(simp)
-     apply(subgoal_tac "(generalized_sfw [r] p = Some (m, rtfw_action))")
+     apply(subgoal_tac "\<exists>m. generalized_sfw [r] p = Some (m, rtfw_action)")
       prefer 2
       apply blast
      using generalized_sfw_Some_append apply fastforce
@@ -1425,10 +1430,10 @@ proof -
     apply fastforce
    apply(simp; fail)
   done
-  have x2: "(generalized_sfw rs p = Some (m, rtfw_action) \<Longrightarrow> OF_match_linear OF_match_fields_safe ft_tail p = Action of_action) \<Longrightarrow>
-      (generalized_sfw [r] p = Some (m, rtfw_action) \<Longrightarrow> OF_match_linear OF_match_fields_safe ft_hd p = Action of_action) \<Longrightarrow>
+  have x2: "(\<exists>m. generalized_sfw rs p = Some (m, rtfw_action) \<Longrightarrow> OF_match_linear OF_match_fields_safe ft_tail p = Action of_action) \<Longrightarrow>
+      (\<exists>m. generalized_sfw [r] p = Some (m, rtfw_action) \<Longrightarrow> OF_match_linear OF_match_fields_safe ft_hd p = Action of_action) \<Longrightarrow>
       (generalized_sfw [r] p = None \<Longrightarrow> OF_match_linear OF_match_fields_safe ft_hd p = NoAction) \<Longrightarrow>
-      ((generalized_sfw (r # rs) p = Some (m, rtfw_action)) \<Longrightarrow> OF_match_linear OF_match_fields_safe (ft_hd @ ft_tail) p = Action of_action)"
+      ((\<exists>m. generalized_sfw (r # rs) p = Some (m, rtfw_action)) \<Longrightarrow> OF_match_linear OF_match_fields_safe (ft_hd @ ft_tail) p = Action of_action)"
    apply(simp add: generalized_sfw_append[of "[r]" rs p, simplified])
    apply(simp split: option.split_asm)
     apply(simp add: OF_match_linear_append; fail)
@@ -1436,13 +1441,12 @@ proof -
   done
 
   from assms show ?thesis
-   apply-
+   apply -
    apply(rule iffI)
     apply(rule x1, simp_all)
    apply(rule x2, simp_all)
    done
 qed
-
 
 lemma OF_lm_noa_none2: "\<forall>e\<in>set ft. \<not> \<gamma> (ofe_fields e) p \<Longrightarrow> OF_match_linear \<gamma> ft p = NoAction"
 	by(induction ft) (simp_all split: if_splits)
@@ -1489,7 +1493,7 @@ lemma
 	                   concat (map (\<lambda>(m,a). map (\<lambda>flowmatch. (flowmatch, f a)) (simple_match_to_of_match m ifs)) rs)"
      and action_rslt: "of_action = f rtfw_action"
 	shows "OF_match_linear OF_match_fields_safe ft p = Action of_action \<longleftrightarrow> 
-	       generalized_sfw rs p = (Some (m, (rtfw_action:: 'fw_action)))" (*TODO: needs \<exists>m*)
+	       (\<exists>m. generalized_sfw rs p = Some (m, (rtfw_action:: 'fw_action)))"
   using ft_eq proof(induction rs arbitrary: ft)
   case Nil thus ?case
     apply(simp add: generalized_sfw_def)
@@ -1509,7 +1513,7 @@ lemma
       apply(simp add: ft_tail)
       by (metis (no_types, lifting) drop_all_conc drop_map only_match_action_def)
     with Cons.IH have 
-      IH: "(OF_match_linear OF_match_fields_safe ft_tail p = Action of_action) \<longleftrightarrow> (generalized_sfw rs p = Some (m, rtfw_action))"
+      IH: "(OF_match_linear OF_match_fields_safe ft_tail p = Action of_action) \<longleftrightarrow> (\<exists>m. generalized_sfw rs p = Some (m, rtfw_action))"
       by blast
 
 
@@ -1612,11 +1616,11 @@ lemma
       apply(simp add: generalized_sfw_def)
       (*TODO: sqrl sagt das sollte trivial sein*)
       sorry
-    have "(OF_match_linear OF_match_fields_safe ft_hd p = Action of_action) \<longleftrightarrow> (generalized_sfw [r] p = Some (m, rtfw_action))"
+    have "(OF_match_linear OF_match_fields_safe ft_hd p = Action of_action) \<longleftrightarrow> (\<exists>m. generalized_sfw [r] p = Some (m, rtfw_action))"
       apply(subst OF_match_linear_ft_hd_Action)
       apply(cases r, rename_tac m' a)
       apply(simp add: generalized_sfw_def)
-      (*hmm, wemm man das blau m gegen ein \<exists>m tauscht und action_rslt nutzt, sollte das gelten*)
+      (*TODO: sqrl, geht das?*)
       sorry
     with step_noaction IH show ?case
       apply(simp add: ft)
