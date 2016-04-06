@@ -599,15 +599,12 @@ definition "fourtytwo_fbs rt fw ifs \<equiv> let
 
 definition "pack_OF_entries ifs ard \<equiv> (map (split3 OFEntry) $ fourtytwo_s3 ifs ard)"
 
-definition "apofefield f e \<equiv> (case e of OFEntry p m a \<Rightarrow> OFEntry p (f m) a)"
-definition "remove_empty_prefix_matches \<equiv> map (apofefield (\<lambda>f. f - {IPv4Src (PrefixMatch 0 0), IPv4Dst (PrefixMatch 0 0)}))"
-
 definition "fourtytwo rt fw ifs \<equiv> let
 	nrd = fourtytwo_fbs rt fw ifs;
 	ard = map (apfst word_of_nat) (annotate_rlen nrd) (* give them a priority *)
 	in
 	if length nrd < unat (max_word :: 16 word)
-	then Inr $ remove_empty_prefix_matches $ pack_OF_entries ifs ard
+	then Inr $ pack_OF_entries ifs ard
 	else Inl $ ''Error in creating OpenFlow table: priority number space exhausted''
 "
 
@@ -1033,60 +1030,13 @@ lemma distinct_fstsnd_force_trd: "distinct (map (\<lambda>(a,b,c). (a,b)) l) \<L
 	  apply(force elim: distinct_restr[THEN iffD1])+
 done
 
-lemma x_comp_fst_comp_apsnd[simp]: "x \<circ> fst \<circ> apsnd f = x \<circ> fst" unfolding comp_def by simp
+lemma x_comp_fst_comp_apsnd[simp]: "x \<circ> fst \<circ> apsnd f = x \<circ> fst" unfolding comp_def by simp 
 
-lemma remove_empty_prefix_matches_hlp: "OF_match_fields_unsafe (f - {IPv4Src (PrefixMatch 0 0), IPv4Dst (PrefixMatch 0 0)}) p \<longleftrightarrow> OF_match_fields_unsafe f p"
-  unfolding OF_match_fields_unsafe_def
-  apply(intro iffI)
-  apply(clarsimp simp: Ball_def)
-  apply(rename_tac x)
-  apply(case_tac "x = IPv4Src (PrefixMatch 0 0)")
-  apply(simp) 
-  apply(simp add: valid_prefix_def zero_prefix_match_all;fail)
-  apply(case_tac "x = IPv4Dst (PrefixMatch 0 0)")
-  apply(simp add: valid_prefix_def zero_prefix_match_all;fail)
-  apply(simp_all)
-done
-
-lemma no_overlaps_eqI: "length a = length b \<Longrightarrow> \<forall>(a,b) \<in> set (zip a b). (\<gamma> (ofe_fields a) = \<gamma> (ofe_fields b) \<and> ofe_prio a = ofe_prio b) \<Longrightarrow> no_overlaps \<gamma> a = no_overlaps \<gamma> b"
-proof(induction a arbitrary: b)
-  case (Cons aa as)
-  obtain bb bs where bs: "b = bb # bs" using Cons.prems(1) by(cases b; simp)
-  note Cons.IH[of bs]
-  from Cons.prems have mprems: "length as = length bs" "\<forall>a\<in>set (zip as bs). case a of (a, b) \<Rightarrow> \<gamma> (ofe_fields a) = \<gamma> (ofe_fields b) \<and> ofe_prio a = ofe_prio b"
-    unfolding bs by simp_all
-  note mIH = Cons.IH[OF this]
-  have cnee: "(\<forall>b\<in>set as. ofe_prio aa = ofe_prio b \<longrightarrow> \<not> (\<exists>p\<in>UNIV. \<gamma> (ofe_fields aa) p \<and> \<gamma> (ofe_fields b) p)) =
-    (\<forall>b\<in>set bs. ofe_prio bb = ofe_prio b \<longrightarrow> \<not> (\<exists>p\<in>UNIV. \<gamma> (ofe_fields bb) p \<and> \<gamma> (ofe_fields b) p))" 
-  proof(intro iffI; intro ballI; intro impI, goal_cases)
-    case (goal1 b)
-    obtain a where "(a,b) \<in> set (zip as bs)" using mprems(1) goal1(2)  sorry
-    with mprems(2)[THEN bspec, OF this]
-    show ?case using goal1 sorry
-  next
-    case goal2 thus ?case sorry
-  qed
-  show ?case unfolding no_overlaps.simps cnee mIH unfolding bs no_overlaps.simps ..
-qed simp
-
-declare[[show_types]]
-lemma no_overlaps_remove_empty_prefix_matches: "no_overlaps OF_match_fields_unsafe (remove_empty_prefix_matches x) = no_overlaps OF_match_fields_unsafe x" 
-apply(subst no_overlaps_eqI[where \<gamma> = OF_match_fields_unsafe and a = "(remove_empty_prefix_matches x)" and b = x])
-apply(simp add: remove_empty_prefix_matches_def apofefield_def flow_entry_match.case_distrib split: flow_entry_match.splits;fail)
-apply(induction x)
-apply(simp add: remove_empty_prefix_matches_def)
-apply(clarsimp simp add: remove_empty_prefix_matches_def apofefield_def fun_eq_iff remove_empty_prefix_matches_hlp split: flow_entry_match.splits;fail)
-apply(rule sym)
-apply(rule iffI)
-
-sorry
-                                                                            
 lemma fourtytwo_no_overlaps: assumes "is_iface_list ifs" shows "Inr t = (fourtytwo rt fw ifs) \<Longrightarrow> no_overlaps OF_match_fields_unsafe t"
 	apply(unfold fourtytwo_def Let_def pack_OF_entries_def)
-	apply(simp  split: if_splits)
+	apply(simp split: if_splits)
 	apply(thin_tac "t = _")
 	apply(drule distinct_of_prio_hlp)
-	apply(subst no_overlaps_remove_empty_prefix_matches)
 	apply(rule no_overlaps_42_s3_hlp[rotated])
 	apply(simp add: assms[unfolded is_iface_list_def];fail)
 	apply(simp add: o_assoc;fail)
@@ -1115,15 +1065,11 @@ by(induction x; simp) (clarsimp simp add: sorted_Cons Ball_def; blast)
 
 lemma sorted_fourtytwo_hlp: "(ofe_prio \<circ> split3 OFEntry) = fst" by(simp add: fun_eq_iff comp_def split3_def)
 
-lemma remove_empty_prefix_matches_prio: "map ofe_prio (remove_empty_prefix_matches x) = map ofe_prio x"
-unfolding remove_empty_prefix_matches_def map_map comp_def apofefield_def flow_entry_match.case_distrib flow_entry_match.sel 
-unfolding ofe_prio_def[abs_def] ..
-
 lemma fourtytwo_sorted_descending: "Inr r = fourtytwo rt fw ifs \<Longrightarrow> sorted_descending (map ofe_prio r)"
 	apply(unfold fourtytwo_def Let_def)
 	apply(simp split: if_splits)
 	apply(thin_tac "r = _")
-	apply(unfold sorted_fourtytwo_hlp pack_OF_entries_def split3_def[abs_def] fun_app_def map_map comp_def prod.case_distrib remove_empty_prefix_matches_prio)
+	apply(unfold sorted_fourtytwo_hlp pack_OF_entries_def split3_def[abs_def] fun_app_def map_map comp_def prod.case_distrib)
 	apply(simp add: fst_def[symmetric])
 	apply(rule sorted_fourtytwo_s3)
 	apply(drule sorted_annotated[OF less_or_eq_imp_le, OF disjI1])
