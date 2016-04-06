@@ -27,6 +27,10 @@ data CommandLineArgsLabeled = CommandLineArgsLabeled
         { ipassmt :: Maybe FilePath  <?> "Optional path to an IP assignment file. If not specified, it only loads `lo = [127.0.0.0/8]`."
         , table :: Maybe String <?> "The table to load for analysis. Default: `filter`. Note: This tool does not support pcket modification, so loading tables such as `nat` will most likeley fail."
         , chain :: Maybe String <?> "The chain to start the analysis. Default: `FORWARD`. Use `INPUT` for a host-based firewall."
+        --TODO: we need some grouping for specific options for the analysis
+        -- For example ./fffuu --analysis service-matrix --sport 424242 --analysis spoofing --foo
+        , service_matrix_sport :: Maybe Integer <?> "Source port for the service matrix. If not specified, the randomly chosen source port 10000 is used. TODO: maybe use an ephemeral port ;-). TODO: untested"
+        , service_matrix_dport :: [Integer] <?> "Destination port for the service matrix. If not specified, SSH and HTTP (22 and 80) will be used. Argument may be used multiple times. TODO untested"
         } deriving (Generic, Show)
 
 instance ParseRecord CommandLineArgsLabeled
@@ -56,15 +60,17 @@ readIpAssmt filename = do
 
 
 readArgs (CommandLineArgs labeled unlabeled) = do 
-    (assmt, tbl, chn) <- readArgsLabeled labeled
+    (assmt, tbl, chn, smOptions) <- readArgsLabeled labeled
     firewall <- readArgsUnlabeled unlabeled
-    return (assmt, tbl, chn, firewall)
+    return (assmt, tbl, chn, smOptions, firewall)
     where
         readArgsUnlabeled (CommandLineArgsUnlabeled (Helpful rsFilePath)) = (rsFilePath,) <$> readFile rsFilePath
             -- TODO: support stdin
             --where readInput [] = ("<stdin>",) <$> getContents
 
-        readArgsLabeled (CommandLineArgsLabeled (Helpful ipassmtFilePath) (Helpful table) (Helpful chain)) = do
+        readArgsLabeled (CommandLineArgsLabeled (Helpful ipassmtFilePath) (Helpful table) (Helpful chain)
+                            (Helpful serviceMatrixSrcPort) (Helpful serviceMatrixDstPort)
+                        ) = do
             assmt <- case ipassmtFilePath of
                         Just ipassmtPath -> readIpAssmt ipassmtPath
                         Nothing -> do
@@ -74,7 +80,18 @@ readArgs (CommandLineArgs labeled unlabeled) = do
                                     Nothing -> "filter"
             let chn = case chain of Just c -> c
                                     Nothing -> "FORWARD"
-            return (assmt, tbl, chn)
+            smSrcPort <- (case serviceMatrixSrcPort of Just p -> if sanityCheckPort p
+                                                                 then return p
+                                                                 else error ("Invalid src port " ++ show p)
+                                                       Nothing -> return 10000)
+            smDstPorts <- case serviceMatrixDstPort of [] -> return [22, 80]
+                                                       ps -> if all sanityCheckPort ps
+                                                             then return ps
+                                                             else error ("Invalid dst ports " ++ (show (filter (not . sanityCheckPort) ps)))
+            --TODO: return the sm ports!
+            let smOptions = map (\d -> (smSrcPort, d)) smDstPorts
+            return (assmt, tbl, chn, smOptions)
+                where sanityCheckPort p = (p >= 0 && p < 65536)
 
 
 
@@ -82,7 +99,7 @@ main :: IO ()
 main = do 
     cmdArgs <- getRecord "FFFUU -- Fancy Formal Firewall Universal Understander"
     --print (cmdArgs::CommandLineArgs)
-    (ipassmt, table, chain, (srcname, src)) <- readArgs cmdArgs
+    (ipassmt, table, chain, smOptions, (srcname, src)) <- readArgs cmdArgs
     
     case parseIptablesSave srcname src of
         Left err -> do
@@ -109,10 +126,11 @@ main = do
             putStrLn "Spoofing certification results:"
             mapM_ (putStrLn . showSpoofCertification) spoofResult
             putStrLn "== calculating service matrices =="
-            putStrLn "===========SSH========="
-            putStrLn $ showServiceMatrix $ Analysis.accessMatrix ipassmt unfolded 10000 22
-            putStrLn "===========HTTP========="
-            putStrLn $ showServiceMatrix $ Analysis.accessMatrix ipassmt unfolded 10000 80
+            mapM_ (\(s,d) -> putStrLn ("==========="++ show s ++ "->" ++ show d ++"=========") >> putStrLn (showServiceMatrix (Analysis.accessMatrix ipassmt unfolded s d))) smOptions
+            --putStrLn "===========SSH========="
+            --putStrLn $ showServiceMatrix $ Analysis.accessMatrix ipassmt unfolded 10000 22
+            --putStrLn "===========HTTP========="
+            --putStrLn $ showServiceMatrix $ Analysis.accessMatrix ipassmt unfolded 10000 80
         where showServiceMatrix (nodes, vertices) = concat (map (\(n, desc) -> n ++ " |-> " ++ desc ++ "\n") nodes) ++ "\n" ++
                                                     concat (map (\v -> show v ++ "\n") vertices)
               showSpoofCertification (iface, rslt) = show (show iface, showProbablyFalse rslt)
