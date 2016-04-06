@@ -1618,27 +1618,35 @@ lemma
       apply(simp add: only_match_action_def)
       using only_match_action_ft_tail ft ft_only only_match_action_def by auto
 
-
-    have step_noaction: "(OF_match_linear OF_match_fields_safe ft_hd p = NoAction) \<longleftrightarrow> (generalized_sfw [r] p = None)"
-      apply(subst OF_match_linear_ft_hd_noAction)
-      apply(cases r, rename_tac m a)
-      apply(simp add: generalized_sfw_def)
-      (*sqrl sagt ab hier ist trivial*)
+    have simple_matches_simple_match_to_of_match:
+         "(simple_matches m p \<longrightarrow> (\<exists>x\<in>set (simple_match_to_of_match m ifs). OF_match_fields_safe x p)) \<and>
+           (\<not> simple_matches m p \<longrightarrow> (\<forall>x\<in>set (simple_match_to_of_match m ifs). \<not> OF_match_fields_safe x p))"
+      if prem1: "simple_match_valid m" and prem2: "oiface m = ifaceAny" for m
+      (*sqrl sagt das ist trivial*)
       apply(intro conjI;clarify)
       apply(drule simple_match_to_of_matchI[rotated])
       apply(rule validities)+ (* 2 *)
-      using Cons.prems apply(simp add: gfw_valid_def;fail)
+      apply(rule prem1)
       apply(force simp add: OF_match_fields_safe_def)
       apply(erule contrapos_np)
       apply(rule simple_match_to_of_matchD)
       apply(assumption)
       defer
-      using Cons.prems apply(rename_tac m a x; case_tac m; simp add: gfw_no_oiface_match_def match_ifaceAny; fail)
-      using Cons.prems apply(simp add: gfw_valid_def;fail)
+      using prem2 apply(case_tac m; simp add: gfw_no_oiface_match_def match_ifaceAny; fail)
+      using prem1 apply(simp add: gfw_valid_def;fail)
       apply(subst(asm) of_match_fields_safe_eq2)
       apply(erule simple_match_to_of_match_generates_prereqs[rotated])
-      using Cons.prems apply(simp add: gfw_valid_def;fail)
+      using prem1 apply(simp add: gfw_valid_def;fail)
       apply assumption
+    done
+
+    have step_noaction: "(OF_match_linear OF_match_fields_safe ft_hd p = NoAction) \<longleftrightarrow> (generalized_sfw [r] p = None)"
+      apply(subst OF_match_linear_ft_hd_noAction)
+      apply(cases r, rename_tac m a)
+      apply(simp add: generalized_sfw_def)
+      apply(rule simple_matches_simple_match_to_of_match)
+       using Cons.prems(2) apply(simp add: gfw_valid_def;fail)
+      using Cons.prems(3) apply(case_tac m; simp add: gfw_no_oiface_match_def match_ifaceAny; fail)
     done
     have "(OF_match_linear OF_match_fields_safe ft_hd p = Action of_action) \<longleftrightarrow> (\<exists>m. generalized_sfw [r] p = Some (m, rtfw_action))"
       apply(subst OF_match_linear_ft_hd_Action)
