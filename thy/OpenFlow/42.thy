@@ -1489,12 +1489,16 @@ apply(induction oms)
 lemma 
   defines "only_match_action (ft::(of_match_field, 'a) flow_entry_match list) \<equiv> 
             map (\<lambda>f. case f of OFEntry p flds action \<Rightarrow> (flds, action)) ft"
+  defines "gfw_valid \<equiv> list_all (simple_match_valid \<circ> fst)"
+  defines "gfw_no_oiface_match \<equiv> list_all ((op = ifaceAny) \<circ> oiface \<circ> fst)"
 	assumes ft_eq: "only_match_action ft =
 	                   concat (map (\<lambda>(m,a). map (\<lambda>flowmatch. (flowmatch, f a)) (simple_match_to_of_match m ifs)) rs)"
      and action_rslt: "of_action = f rtfw_action"
+  assumes validities: "p_iiface p \<in> set ifs" "p_l2type p = 0x800" 
+    "gfw_valid rs" "gfw_no_oiface_match rs"
 	shows "OF_match_linear OF_match_fields_safe ft p = Action of_action \<longleftrightarrow> 
 	       (\<exists>m. generalized_sfw rs p = Some (m, (rtfw_action:: 'fw_action)))"
-  using ft_eq proof(induction rs arbitrary: ft)
+  using ft_eq validities(3-4) proof(induction rs arbitrary: ft)
   case Nil thus ?case
     apply(simp add: generalized_sfw_def)
     apply(simp add: only_match_action_def; fail)
@@ -1512,11 +1516,15 @@ lemma
     have only_match_action_ft_tail: "only_match_action ft_tail = ?rs_part"
       apply(simp add: ft_tail)
       by (metis (no_types, lifting) drop_all_conc drop_map only_match_action_def)
-    with Cons.IH have 
+    moreover have rs_valid: "gfw_valid rs" "gfw_no_oiface_match rs"
+      using Cons.prems 
+      unfolding  list_all_iff gfw_valid_def gfw_no_oiface_match_def by simp_all
+    moreover note Cons.IH
+    ultimately have 
       IH: "(OF_match_linear OF_match_fields_safe ft_tail p = Action of_action) \<longleftrightarrow> (\<exists>m. generalized_sfw rs p = Some (m, rtfw_action))"
       by blast
 
-
+    (*
     (*unused but useful?*)
     have only_match_action_obtain_prios: 
       "only_match_action ft = rs \<Longrightarrow> \<exists>prios. length prios = length rs \<and> 
@@ -1538,6 +1546,7 @@ lemma
       apply(rule_tac x="p#prios" in exI)
       apply(simp)
       by fast
+    *)
        
     have OF_match_linear_rule: 
       "OF_match_linear OF_match_fields_safe ft p = NoAction \<longleftrightarrow> (\<forall>(m,a)\<in>set rs. \<not> OF_match_fields_safe m p)"
@@ -1614,8 +1623,23 @@ lemma
       apply(subst OF_match_linear_ft_hd_noAction)
       apply(cases r, rename_tac m a)
       apply(simp add: generalized_sfw_def)
-      (*TODO: sqrl sagt das sollte trivial sein*)
-      sorry
+      (*sqrl sagt ab hier ist trivial*)
+      apply(intro conjI;clarify)
+      apply(drule simple_match_to_of_matchI[rotated])
+      apply(rule validities)+ (* 2 *)
+      using Cons.prems apply(simp add: gfw_valid_def;fail)
+      apply(force simp add: OF_match_fields_safe_def)
+      apply(erule contrapos_np)
+      apply(rule simple_match_to_of_matchD)
+      apply(assumption)
+      defer
+      using Cons.prems apply(rename_tac m a x; case_tac m; simp add: gfw_no_oiface_match_def match_ifaceAny; fail)
+      using Cons.prems apply(simp add: gfw_valid_def;fail)
+      apply(subst(asm) of_match_fields_safe_eq2)
+      apply(erule simple_match_to_of_match_generates_prereqs[rotated])
+      using Cons.prems apply(simp add: gfw_valid_def;fail)
+      apply assumption
+    done
     have "(OF_match_linear OF_match_fields_safe ft_hd p = Action of_action) \<longleftrightarrow> (\<exists>m. generalized_sfw [r] p = Some (m, rtfw_action))"
       apply(subst OF_match_linear_ft_hd_Action)
       apply(cases r, rename_tac m' a)
