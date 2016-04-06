@@ -1470,7 +1470,18 @@ apply(induction oms)
 done
 lemma OF_match_linear_action2: "ome \<in> set oms \<and> OF_match_linear \<gamma> oms p = Action (ofe_action ome) \<Longrightarrow> \<gamma> (ofe_fields ome) p"
 oops
-
+lemma OF_match_linear_action_find_iff: "OF_match_linear \<gamma> oms p = Action a \<longleftrightarrow> 
+       (\<exists>prio flds. List.find (\<lambda>f. \<gamma> (ofe_fields f) p) oms = Some (OFEntry prio flds a))"
+apply(induction oms)
+	 apply(simp)
+	apply(simp)
+	apply(safe)
+	   apply(simp_all)
+	 apply(rename_tac ome oms prio flds)
+	 apply(case_tac ome, simp)
+	apply(rename_tac ome oms)
+	apply(case_tac ome, simp)
+	done
 lemma 
   defines "only_match_action (ft::(of_match_field, 'a) flow_entry_match list) \<equiv> 
             map (\<lambda>f. case f of OFEntry p flds action \<Rightarrow> (flds, action)) ft"
@@ -1478,7 +1489,7 @@ lemma
 	                   concat (map (\<lambda>(m,a). map (\<lambda>flowmatch. (flowmatch, f a)) (simple_match_to_of_match m ifs)) rs)"
      and action_rslt: "of_action = f rtfw_action"
 	shows "OF_match_linear OF_match_fields_safe ft p = Action of_action \<longleftrightarrow> 
-	       generalized_sfw rs p = (Some (m, (rtfw_action:: 'fw_action)))"
+	       generalized_sfw rs p = (Some (m, (rtfw_action:: 'fw_action)))" (*TODO: needs \<exists>m*)
   using ft_eq proof(induction rs arbitrary: ft)
   case Nil thus ?case
     apply(simp add: generalized_sfw_def)
@@ -1494,7 +1505,7 @@ lemma
                            and ft_tail: "ft_tail = drop (length ?r_part) ft"
       by(simp)
     from Cons.prems
-    have "only_match_action ft_tail = ?rs_part"
+    have only_match_action_ft_tail: "only_match_action ft_tail = ?rs_part"
       apply(simp add: ft_tail)
       by (metis (no_types, lifting) drop_all_conc drop_map only_match_action_def)
     with Cons.IH have 
@@ -1542,9 +1553,10 @@ lemma
     have OF_match_linear_ft_hd_noAction: 
       "OF_match_linear OF_match_fields_safe ft_hd p = NoAction \<longleftrightarrow> (\<forall>(m,a)\<in>set ?r_part. \<not> OF_match_fields_safe m p)"
        apply(rule OF_match_linear_rule)
-       using \<open>only_match_action ft_tail = concat (map (\<lambda>(m, a). map (\<lambda>flowmatch. (flowmatch, f a)) (simple_match_to_of_match m ifs)) rs)\<close>
-       ft ft_only only_match_action_def by auto
+       using only_match_action_ft_tail ft ft_only only_match_action_def by auto
     
+    (*
+    we don't need \<noteq> NoAction, we need = Action
     have OF_match_linear_rule2: 
       "OF_match_linear OF_match_fields_safe ft p \<noteq> NoAction \<longleftrightarrow> (\<exists>(m,a)\<in>set rs. OF_match_fields_safe m p)"
       if prems: "only_match_action ft = rs" for ft rs
@@ -1563,9 +1575,35 @@ lemma
     have OF_match_linear_ft_hd_Action: "OF_match_linear OF_match_fields_safe ft_hd p \<noteq> NoAction \<longleftrightarrow> (\<exists>(m,a)\<in>set ?r_part. OF_match_fields_safe m p)"
       apply(rule OF_match_linear_rule2)
       apply(simp add: only_match_action_def)
-      using \<open>only_match_action ft_tail = concat (map (\<lambda>(m, a). map (\<lambda>flowmatch. (flowmatch, f a)) (simple_match_to_of_match m ifs)) rs)\<close>
-      ft ft_only only_match_action_def by auto
-     
+      using only_match_action_ft_tail ft ft_only only_match_action_def by auto
+    *)
+
+
+    have OF_match_linear_rule2: "(OF_match_linear OF_match_fields_safe ft p = Action of_action) \<longleftrightarrow> 
+          (\<exists>m. List.find (\<lambda>(m,a). OF_match_fields_safe m p) rs = Some (m,of_action))"
+      if prems: "only_match_action ft = rs" for ft rs
+       apply -
+       apply(subst OF_match_linear_action_find_iff)
+       apply(subst prems[symmetric])
+       apply(simp add: only_match_action_def)
+       apply safe
+        apply(rename_tac prio flds)
+        apply(rule_tac x="flds" in exI)
+        (*ugly subgoal, cams case splits*)
+        apply(induction ft)
+         apply(simp; fail)
+        apply(simp split: split_if_asm flow_entry_match.split)
+        apply force
+       apply(rename_tac m)
+       apply(induction ft)
+        apply(simp; fail)
+       apply(simp split: split_if_asm flow_entry_match.split flow_entry_match.split_asm)
+       done
+    have OF_match_linear_ft_hd_Action: "(OF_match_linear OF_match_fields_safe ft_hd p = Action of_action) \<longleftrightarrow> 
+          (\<exists>m. List.find (\<lambda>(m,a). OF_match_fields_safe m p) ?r_part = Some (m,of_action))"
+      apply(rule OF_match_linear_rule2)
+      apply(simp add: only_match_action_def)
+      using only_match_action_ft_tail ft ft_only only_match_action_def by auto
 
 
     have step_noaction: "(OF_match_linear OF_match_fields_safe ft_hd p = NoAction) \<longleftrightarrow> (generalized_sfw [r] p = None)"
@@ -1575,7 +1613,10 @@ lemma
       (*TODO: sqrl sagt das sollte trivial sein*)
       sorry
     have "(OF_match_linear OF_match_fields_safe ft_hd p = Action of_action) \<longleftrightarrow> (generalized_sfw [r] p = Some (m, rtfw_action))"
-      (*TODO should be similar, but  OF_match_linear_ft_hd_Action only has \<noteq> NoAction*)
+      apply(subst OF_match_linear_ft_hd_Action)
+      apply(cases r, rename_tac m' a)
+      apply(simp add: generalized_sfw_def)
+      (*hmm, wemm man das blau m gegen ein \<exists>m tauscht und action_rslt nutzt, sollte das gelten*)
       sorry
     with step_noaction IH show ?case
       apply(simp add: ft)
