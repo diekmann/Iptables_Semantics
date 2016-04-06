@@ -408,15 +408,15 @@ proof -
 	next
 		case goal3 thus ?case
 			using mo unfolding xx(4) OF_match_fields_unsafe_def toprefixmatch_def
-			by(clarsimp 
+			by(clarsimp
 			  simp add: simple_packet_unext_def option2set_def validpfx simple_match_src_alt[OF mv] toprefixmatch_def 
 			  split: if_splits)
 	next
 		case goal4 thus ?case
 			using mo unfolding xx(4) OF_match_fields_unsafe_def toprefixmatch_def
-			apply(clarsimp 
-			  simp add: simple_packet_unext_def option2set_def validpfx simple_match_src_alt[OF mv] toprefixmatch_def 
-			  split: if_splits) sorry
+			by(clarsimp
+			  simp add: simple_packet_unext_def option2set_def validpfx simple_match_dst_alt[OF mv] toprefixmatch_def 
+			  split: if_splits)
  	next
 		case goal5 thus ?case
 			using mo unfolding xx(4) OF_match_fields_unsafe_def
