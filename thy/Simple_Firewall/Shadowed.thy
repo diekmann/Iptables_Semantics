@@ -70,8 +70,8 @@ fun rmshadow' :: "simple_rule list \<Rightarrow> simple_packet set \<Rightarrow>
       apply(simp)
       apply(case_tac "{p. simple_matches m p} \<subseteq> P")
        apply(simp add: IH1)
-       apply(drule_tac m=m in nomatch_m)
-        apply(simp)
+       apply(drule nomatch_m)
+        apply(assumption)
        apply(simp add: nomatch)
       apply(simp)
       apply(case_tac a)
@@ -80,8 +80,10 @@ fun rmshadow' :: "simple_rule list \<Rightarrow> simple_packet set \<Rightarrow>
       done
   qed
 
-corollary "simple_fw (rmshadow rs UNIV) p = simple_fw (rmshadow' rs {}) p"
-  using rmshadow'_sound rmshadow_sound by auto
+corollary 
+  fixes p :: simple_packet
+  shows "simple_fw (rmshadow rs UNIV) p = simple_fw (rmshadow' rs {}) p"
+  using rmshadow'_sound rmshadow_sound by simp
 
 value "rmshadow [SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0, 0), dst = (0, 0), proto = Proto TCP, sports = (0, 0xFFFF), dports = (0x16, 0x16)\<rparr>
           simple_action.Drop,
@@ -139,11 +141,11 @@ begin
       done
 
     text{*subset or negation ... One efficient implementation would suffice.*}
-    private lemma "{p. simple_matches m p} \<subseteq> (simple_packet_set_toSet ms) \<longleftrightarrow>
-      {p. simple_matches m p} \<inter> (\<Inter> m \<in> set ms. {p. \<not> simple_matches m p}) = {}" (is "?l \<longleftrightarrow> ?r")
+    private lemma "{p::simple_packet. simple_matches m p} \<subseteq> (simple_packet_set_toSet ms) \<longleftrightarrow>
+      {p::simple_packet. simple_matches m p} \<inter> (\<Inter> m \<in> set ms. {p. \<not> simple_matches m p}) = {}" (is "?l \<longleftrightarrow> ?r")
     proof - 
       have "?l \<longleftrightarrow> {p. simple_matches m p} - (simple_packet_set_toSet ms) = {}" by blast
-      also have "\<dots> \<longleftrightarrow> {p. simple_matches m p} - (\<Union> m \<in> set ms. {p. simple_matches m p}) = {}"
+      also have "\<dots> \<longleftrightarrow> {p. simple_matches m p} - (\<Union> m \<in> set ms. {p::simple_packet. simple_matches m p}) = {}"
       using simple_packet_set_toSet_alt by simp
       also have "\<dots> \<longleftrightarrow> ?r" by blast
       finally show ?thesis .

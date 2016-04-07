@@ -62,8 +62,7 @@ text{*we use a primitive matcher which always applies.*}
   "applies_exampleMatchExact (Src (Ip4Addr addr)) p \<longleftrightarrow> p_src p = (ipv4addr_of_dotdecimal addr)" |
   "applies_exampleMatchExact (Dst (Ip4Addr addr)) p \<longleftrightarrow> p_dst p = (ipv4addr_of_dotdecimal addr)" |
   "applies_exampleMatchExact (Prot ProtoAny) p \<longleftrightarrow> True" |
-  "applies_exampleMatchExact (Prot (Proto TCP)) p \<longleftrightarrow> p_proto p = TCP" |
-  "applies_exampleMatchExact (Prot (Proto UDP)) p \<longleftrightarrow> p_proto p = UDP"
+  "applies_exampleMatchExact (Prot (Proto pr)) p \<longleftrightarrow> p_proto p = pr"
   (*TODO, not exhaustive, only an example!!*)
 
   lemma "[''FORWARD'' \<mapsto> [ Rule (MatchAnd (Match (Src (Ip4Addr (0,0,0,0)))) (Match (Dst (Ip4Addr (0,0,0,0))))) Reject, 
