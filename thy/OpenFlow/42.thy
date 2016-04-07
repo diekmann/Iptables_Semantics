@@ -1465,6 +1465,18 @@ lemma OF_match_linear_not_iff: "OF_match_linear \<gamma> oms p \<noteq> NoAction
    using OF_match_linear_not_noD apply metis
   using OF_match_linear_not_noE by metis
 
+(* TODO: move? *)
+lemma ex_find_iff: "(\<exists>m. Lib.find f l = Some m) \<longleftrightarrow> (\<exists>m \<in> set l. f m)"
+  apply(rule iffI)
+   apply(clarsimp)
+   apply(drule findSomeD)
+   apply(blast)
+  apply(rule ccontr)
+  apply(clarsimp)
+  apply(drule findNoneD)
+  apply(simp)
+done
+
 lemma OF_match_linear_action1: "ome \<in> set oms \<and> \<gamma> (ofe_fields ome) p \<Longrightarrow>
       \<exists>a. a \<in> set oms \<and> OF_match_linear \<gamma> oms p = Action (ofe_action a)"
 apply(induction oms)
@@ -1649,18 +1661,51 @@ lemma
       using Cons.prems(3) apply(case_tac m; simp add: gfw_no_oiface_match_def match_ifaceAny; fail)
     done
     have "(OF_match_linear OF_match_fields_safe ft_hd p = Action of_action) \<longleftrightarrow> (\<exists>m. generalized_sfw [r] p = Some (m, rtfw_action))"
+      if prem1: "simple_match_valid (fst r)" and prem2: "oiface (fst r) = ifaceAny" for m
       apply(subst OF_match_linear_ft_hd_Action)
       apply(cases r, rename_tac m' a)
       apply(simp add: generalized_sfw_def)
       (*TODO: sqrl, geht das?*)
+      (* corny asked\<dots> *)
+      apply(intro conjI[rotated];clarify)
+      apply(unfold list_lib_find)
+      apply(drule findSomeD)
+      apply(clarify)
+      apply(erule contrapos_np)
+      apply(subgoal_tac "OF_match_fields m p = Some True")
+      apply(erule simple_match_to_of_matchD[rotated])
+      using prem2 apply(clarsimp simp: match_ifaceAny;fail)
+      using prem1 apply(clarsimp simp: match_ifaceAny;fail)
+      apply(clarsimp;blast)
+      apply(subst(asm) of_match_fields_safe_eq2)
+      apply(clarsimp)
+      apply(erule simple_match_to_of_match_generates_prereqs[rotated])
+      using prem1 apply(clarsimp simp: match_ifaceAny;fail)
+      apply(assumption)
+      apply(drule simple_match_to_of_matchI[rotated])
+      apply(rule validities)+ (* 2 *)
+      using prem1 apply(clarsimp simp: match_ifaceAny;fail)
+      apply(intro iffI[rotated])
+      apply(unfold find_map comp_def)
+      apply(clarsimp simp: action_rslt ex_find_iff OF_match_fields_safe_def)
+      apply force
+      apply(clarsimp simp: action_rslt)
+      (* neh, das geht nicht. *)
+oops
+(*
       sorry
-    with step_noaction IH show ?case
+    moreover have "simple_match_valid (fst r)" "oiface (fst r) = ifaceAny"
+      using Cons.prems(2) apply(simp add: gfw_valid_def;fail)
+      using Cons.prems(3) apply(case_tac r; simp add: gfw_no_oiface_match_def match_ifaceAny; fail)
+    done
+    moreover note step_noaction IH
+    ultimately show ?case
       apply(simp add: ft)
       apply(rule OF_match_linear_action_append_iff_generalized_sfw)
       apply(simp_all)
       done
 oops
-
+*)
 
 lemma s3_correct:
 	assumes vsfwm: "list_all simple_match_valid $ map (fst \<circ> snd) ard"
