@@ -97,6 +97,24 @@ Try this:
 ./dist/build/fffuu/fffuu --table raw --chain PREROUTING --ipassmt ipassmt_sqrl ../thy/Examples/SQRL_Shorewall/2015_aug_iptables-save-spoofing-protection
 ```
 
+### Longer Example
+
+We check teh ruleset of a NAS. It has a host-based firewall, so we load the `INPUT` chain.
+
+Try this:
+
+```
+./dist/build/fffuu/fffuu --chain INPUT --service_matrix_dport 22 --service_matrix_dport 8080 --service_matrix_dport 80 ../thy/Examples/Synology_Diskstation_DS414/iptables-save_jun_2015_cleanup
+```
+
+It will print three service matrices in the end. For TCP destination port 22, 8080, and 80. 
+Port 22 should be blocked for everyone. However, the firewall had an error and accidentally had that port widely open. 
+Port 8080 is the web management interface, it is nly reachable from the local 192.168.0.0/24 network and localhost. 
+Port 80 should not be reachable. And it is only reachable from localhost. 
+
+TODO: tune this section by dumping examples
+
+
 ## FAQ
 
 Q: The tool doesn't show anything for my firewall.

@@ -29,8 +29,8 @@ data CommandLineArgsLabeled = CommandLineArgsLabeled
         , chain :: Maybe String <?> "The chain to start the analysis. Default: `FORWARD`. Use `INPUT` for a host-based firewall."
         --TODO: we need some grouping for specific options for the analysis
         -- For example ./fffuu --analysis service-matrix --sport 424242 --analysis spoofing --foo
-        , service_matrix_sport :: Maybe Integer <?> "Source port for the service matrix. If not specified, the randomly chosen source port 10000 is used. TODO: maybe use an ephemeral port ;-). TODO: untested"
-        , service_matrix_dport :: [Integer] <?> "Destination port for the service matrix. If not specified, SSH and HTTP (22 and 80) will be used. Argument may be used multiple times. TODO untested"
+        , service_matrix_sport :: Maybe Integer <?> "Source port for the service matrix. If not specified, the randomly chosen source port 10000 is used. TODO: maybe use an ephemeral port ;-)."
+        , service_matrix_dport :: [Integer] <?> "Destination port for the service matrix. If not specified, SSH and HTTP (22 and 80) will be used. Argument may be repeated multiple times."
         } deriving (Generic, Show)
 
 instance ParseRecord CommandLineArgsLabeled
@@ -97,7 +97,14 @@ readArgs (CommandLineArgs labeled unlabeled) = do
 
 main :: IO ()
 main = do 
-    cmdArgs <- getRecord "FFFUU -- Fancy Formal Firewall Universal Understander"
+    cmdArgs <- getRecord "FFFUU -- Fancy Formal Firewall Universal Understander: \n\n\
+                    \Parses `iptables-save` and loads one table and chain. \
+                    \By default, it loads the `filter` table and the `FORWARD` chain. \
+                    \It unfolds all user-defined chains, generating a linear ruleset where only `ACCEPT` and `DROP` actions remain. \
+                    \It abstracts over unknown matches. \
+                    \By default, it does an overapproximation, i.e. it loads a more permissive version of the ruleset. \
+                    \Then it runs a number of analysis. \
+                    \Overapproximation means: if the anaylsis concludes that the packets you want to be dropped are dropped in the loaded overapproximation, then they are also dropped for your real firewall (without approximation)."
     --print (cmdArgs::CommandLineArgs)
     (ipassmt, table, chain, smOptions, (srcname, src)) <- readArgs cmdArgs
     
@@ -126,11 +133,9 @@ main = do
             putStrLn "Spoofing certification results:"
             mapM_ (putStrLn . showSpoofCertification) spoofResult
             putStrLn "== calculating service matrices =="
-            mapM_ (\(s,d) -> putStrLn ("==========="++ show s ++ "->" ++ show d ++"=========") >> putStrLn (showServiceMatrix (Analysis.accessMatrix ipassmt unfolded s d))) smOptions
-            --putStrLn "===========SSH========="
-            --putStrLn $ showServiceMatrix $ Analysis.accessMatrix ipassmt unfolded 10000 22
-            --putStrLn "===========HTTP========="
-            --putStrLn $ showServiceMatrix $ Analysis.accessMatrix ipassmt unfolded 10000 80
+            mapM_ (\(s,d) -> 
+                        putStrLn ("=========== TCP port "++ show s ++ "->" ++ show d ++" =========")
+                     >> putStrLn (showServiceMatrix (Analysis.accessMatrix ipassmt unfolded s d))) smOptions
         where showServiceMatrix (nodes, vertices) = concat (map (\(n, desc) -> n ++ " |-> " ++ desc ++ "\n") nodes) ++ "\n" ++
                                                     concat (map (\v -> show v ++ "\n") vertices)
               showSpoofCertification (iface, rslt) = show (show iface, showProbablyFalse rslt)
