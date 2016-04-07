@@ -43,11 +43,11 @@ lemma "(lower_closure (optimize_matches abstract_for_simple_firewall (lower_clos
       "lower_closure unfolded = upper_closure unfolded"
       "(upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded)))) = upper_closure unfolded" by eval+
 
-value[code] "map pretty_wordinterval (getParts (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))))"
+value[code] "(getParts (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))))"
 
 definition "SQRL_fw_simple \<equiv> remdups_rev (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded)))))"
 value[code] "SQRL_fw_simple"
-lemma "simple_firewall_valid SQRL_fw_simple" by eval
+lemma "simple_fw_valid SQRL_fw_simple" by eval
 
 section{*Example: SQRL RTBL*}
 
