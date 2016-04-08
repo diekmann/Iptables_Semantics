@@ -1332,7 +1332,7 @@ definition access_matrix_pretty
     (let (V,E) = (access_matrix c rs);
          format_nodes = (\<lambda>V. (''Nodes'','':'') #
               map (\<lambda>(v_repr, v_range). (ipv4addr_toString v_repr, ipv4addr_wordinterval_toString v_range)) V);
-         format_edges = (\<lambda>E. (''Vertices'','':'') #
+         format_edges = (\<lambda>E. (''Edges'','':'') #
               map (\<lambda>(s,d). (ipv4addr_toString s, ipv4addr_toString d)) E)
      in
       (format_nodes V, format_edges E)
@@ -1350,7 +1350,7 @@ definition access_matrix_pretty_code
          U = all_pairs R
      in
      ((''Nodes'','':'') # zip (map ipv4addr_toString R) (map ipv4addr_wordinterval_toString W), 
-      (''Vertices'','':'') #
+      (''Edges'','':'') #
         map (\<lambda>(x,y). (ipv4addr_toString x, ipv4addr_toString y)) [(s, d)\<leftarrow>all_pairs R. runFw s d c rs = Decision FinalAllow]))"
 
 lemma access_matrix_pretty_code[code]: "access_matrix_pretty = access_matrix_pretty_code"
