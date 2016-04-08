@@ -313,6 +313,12 @@ value[code] "map simple_rule_toString (to_simple_firewall
 
 
 parse_iptables_save ds2015_2_fw="iptables-save_jun_2015_cleanup"
+text{*In 2015 there was also an update and a cleanup of the ruleset.
+The following should be fulfilled:
+Port 80 globally blocked (fulfilled, only reachable by localhost).
+Port 22 globally blocked (not fulfilled, error in the ruleset).
+Port 8080 only reachable from 192.168.0.0/24 and localhost (fulfilled).
+*}
 
 value[code] "unfold_ruleset_INPUT ds2015_2_fw_INPUT_default_policy (map_of ds2015_2_fw)"
 
