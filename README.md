@@ -59,7 +59,7 @@ Check the Examples directory to get started
 
 ### Haskell Tool
 
-Don't want to install Isabelle? Don't want to mess with formulas or proofs? Just want a working tool? Cool, checkout our stand-alone Haskell tool!
+Don't want to install Isabelle? Don't want to mess with formulas or proofs? Just want a working tool? Cool, checkout our [stand-alone Haskell tool](./haskell_tool/)!
 
 ![FFFUU logo](http://i.imgur.com/qc4dNKl.png "FFFUU")
 
