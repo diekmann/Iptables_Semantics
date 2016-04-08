@@ -11,18 +11,6 @@ definition word_to_nat :: "('a::len) word \<Rightarrow> nat" where
   "word_to_nat = Word.unat"
 
 
-definition "to_simple_firewall_without_interfaces ipassmt rs \<equiv>
-    to_simple_firewall
-    (upper_closure
-    (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))
-    (optimize_matches abstract_for_simple_firewall
-    (upper_closure
-    (iface_try_rewrite ipassmt
-    (upper_closure
-    (ctstate_assume_new
-    (upper_closure rs))))))))"
-
-
 definition mk_Set :: "'a list \<Rightarrow> 'a set" where
   "mk_Set = set"
 
@@ -51,7 +39,7 @@ export_code Rule
   (*unfold_ruleset_INPUT unfold_ruleset_FORWARD unfold_ruleset_OUTPUT*) unfold_ruleset_CHAIN map_of_string
   upper_closure
   abstract_for_simple_firewall optimize_matches
-  ctstate_assume_new
+  packet_assume_new
   to_simple_firewall
   to_simple_firewall_without_interfaces
   sanity_wf_ruleset
