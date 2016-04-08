@@ -59,11 +59,15 @@ Check the Examples directory to get started
 
 ### Haskell Tool
 
+Don't want to install Isabelle? Don't want to mess with formulas or proofs? Just want a working tool? Cool, checkout our stand-alone Haskell tool!
+
+![FFFUU logo](http://i.imgur.com/qc4dNKl.png "FFFUU")
+
 | Component             | Status |
 | --------------------- | ------ |
 | Haskell tool          | [![Build Status](https://travis-ci.org/diekmann/Iptables_Semantics.svg)](https://travis-ci.org/diekmann/Iptables_Semantics) |
 
-See README.md in haskell_tool.
+See README.md in [haskell_tool](./haskell_tool/).
 
 
 ### Talks

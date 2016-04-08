@@ -1910,11 +1910,6 @@ partIps s (t : ts) =
                          wordinterval_setminus t s :
                            partIps (wordinterval_setminus s t) ts)));
 
-undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces ::
-  forall a. a;
-undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces = error
-  "Ipassmt.undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces";
-
 map_of_ipassmt ::
   [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
     Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
@@ -1922,8 +1917,7 @@ map_of_ipassmt ipassmt =
   (if distinct (map fst ipassmt) &&
         ball (image fst (Set ipassmt))
           (\ iface -> not (iface_is_wildcard iface))
-    then map_of ipassmt
-    else undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces);
+    then map_of ipassmt else error "undefined");
 
 numeral :: forall a. (Numeral a) => Num -> a;
 numeral (Bit1 n) = let {
@@ -2995,53 +2989,17 @@ get_exists_matching_src_ips_executable iface m =
                             (negPos_map ipt_ipv4range_to_interval ip_matches))
          else empty_WordInterval);
 
-is_L4_Flags :: Common_primitive -> Bool;
-is_L4_Flags (Src x1) = False;
-is_L4_Flags (Dst x2) = False;
-is_L4_Flags (IIface x3) = False;
-is_L4_Flags (OIface x4) = False;
-is_L4_Flags (Prot x5) = False;
-is_L4_Flags (Src_Ports x6) = False;
-is_L4_Flags (Dst_Ports x7) = False;
-is_L4_Flags (L4_Flags x8) = True;
-is_L4_Flags (CT_State x9) = False;
-is_L4_Flags (Extra x10) = False;
-
-is_CT_State :: Common_primitive -> Bool;
-is_CT_State (Src x1) = False;
-is_CT_State (Dst x2) = False;
-is_CT_State (IIface x3) = False;
-is_CT_State (OIface x4) = False;
-is_CT_State (Prot x5) = False;
-is_CT_State (Src_Ports x6) = False;
-is_CT_State (Dst_Ports x7) = False;
-is_CT_State (L4_Flags x8) = False;
-is_CT_State (CT_State x9) = True;
-is_CT_State (Extra x10) = False;
-
-is_Extra :: Common_primitive -> Bool;
-is_Extra (Src x1) = False;
-is_Extra (Dst x2) = False;
-is_Extra (IIface x3) = False;
-is_Extra (OIface x4) = False;
-is_Extra (Prot x5) = False;
-is_Extra (Src_Ports x6) = False;
-is_Extra (Dst_Ports x7) = False;
-is_Extra (L4_Flags x8) = False;
-is_Extra (CT_State x9) = False;
-is_Extra (Extra x10) = True;
-
 matcheq_matchAny :: forall a. Match_expr a -> Bool;
 matcheq_matchAny MatchAny = True;
 matcheq_matchAny (MatchNot m) = not (matcheq_matchAny m);
 matcheq_matchAny (MatchAnd m1 m2) = matcheq_matchAny m1 && matcheq_matchAny m2;
 matcheq_matchAny (Match uu) = error "undefined";
 
-has_disc :: forall a. (a -> Bool) -> Match_expr a -> Bool;
-has_disc uu MatchAny = False;
-has_disc disc (Match a) = disc a;
-has_disc disc (MatchNot m) = has_disc disc m;
-has_disc disc (MatchAnd m1 m2) = has_disc disc m1 || has_disc disc m2;
+has_primitive :: forall a. Match_expr a -> Bool;
+has_primitive MatchAny = False;
+has_primitive (Match a) = True;
+has_primitive (MatchNot m) = has_primitive m;
+has_primitive (MatchAnd m1 m2) = has_primitive m1 || has_primitive m2;
 
 get_all_matching_src_ips_executable ::
   Iface ->
@@ -3058,15 +3016,7 @@ get_all_matching_src_ips_executable iface m =
          then let {
                 (ip_matches, rest2) =
                   primitive_extractor (is_Src, src_sel) rest1;
-              } in (if not (has_disc is_Dst rest2) &&
-                         not (has_disc is_Oiface rest2) &&
-                           not (has_disc is_Prot rest2) &&
-                             not (has_disc is_Src_Ports rest2) &&
-                               not (has_disc is_Dst_Ports rest2) &&
-                                 not (has_disc is_L4_Flags rest2) &&
-                                   not (has_disc is_CT_State rest2) &&
-                                     not (has_disc is_Extra rest2) &&
-                                       matcheq_matchAny rest2
+              } in (if not (has_primitive rest2) && matcheq_matchAny rest2
                      then (if null ip_matches then ipv4range_UNIV
                             else l2br_negation_type_intersect
                                    (negPos_map ipt_ipv4range_to_interval
@@ -3377,6 +3327,12 @@ ctstate_toString CT_Related = "RELATED";
 ctstate_toString CT_Untracked = "UNTRACKED";
 ctstate_toString CT_Invalid = "INVALID";
 
+has_disc :: forall a. (a -> Bool) -> Match_expr a -> Bool;
+has_disc uu MatchAny = False;
+has_disc disc (Match a) = disc a;
+has_disc disc (MatchNot m) = has_disc disc m;
+has_disc disc (MatchAnd m1 m2) = has_disc disc m1 || has_disc disc m2;
+
 simple_ruleset :: forall a. [Rule a] -> Bool;
 simple_ruleset rs =
   all (\ r ->
@@ -3461,7 +3417,7 @@ access_matrix_pretty_code c rs =
          } in (("Nodes", ":") :
                  zip (map ipv4addr_toString r)
                    (map ipv4addr_wordinterval_toString w),
-                ("Vertices", ":") :
+                ("Edges", ":") :
                   map_filter
                     (\ x ->
                       (if let {
@@ -3817,6 +3773,42 @@ common_primitive_match_to_simple_match (MatchNot (Match (Extra vs))) =
   error "undefined";
 common_primitive_match_to_simple_match (MatchNot (Match (CT_State vt))) =
   error "undefined";
+
+is_L4_Flags :: Common_primitive -> Bool;
+is_L4_Flags (Src x1) = False;
+is_L4_Flags (Dst x2) = False;
+is_L4_Flags (IIface x3) = False;
+is_L4_Flags (OIface x4) = False;
+is_L4_Flags (Prot x5) = False;
+is_L4_Flags (Src_Ports x6) = False;
+is_L4_Flags (Dst_Ports x7) = False;
+is_L4_Flags (L4_Flags x8) = True;
+is_L4_Flags (CT_State x9) = False;
+is_L4_Flags (Extra x10) = False;
+
+is_CT_State :: Common_primitive -> Bool;
+is_CT_State (Src x1) = False;
+is_CT_State (Dst x2) = False;
+is_CT_State (IIface x3) = False;
+is_CT_State (OIface x4) = False;
+is_CT_State (Prot x5) = False;
+is_CT_State (Src_Ports x6) = False;
+is_CT_State (Dst_Ports x7) = False;
+is_CT_State (L4_Flags x8) = False;
+is_CT_State (CT_State x9) = True;
+is_CT_State (Extra x10) = False;
+
+is_Extra :: Common_primitive -> Bool;
+is_Extra (Src x1) = False;
+is_Extra (Dst x2) = False;
+is_Extra (IIface x3) = False;
+is_Extra (OIface x4) = False;
+is_Extra (Prot x5) = False;
+is_Extra (Src_Ports x6) = False;
+is_Extra (Dst_Ports x7) = False;
+is_Extra (L4_Flags x8) = False;
+is_Extra (CT_State x9) = False;
+is_Extra (Extra x10) = True;
 
 normalized_protocols :: Match_expr Common_primitive -> Bool;
 normalized_protocols m = not (has_disc_negated is_Prot False m);
