@@ -26,8 +26,6 @@ $ ./dist/build/fffuu/fffuu --help
 ```
 FFFUU -- Fancy Formal Firewall Universal Understander
 
-Usage: fffuu [--ipassmt STRING] [--table STRING] [--chain STRING] --rs STRING
-
 Available options:
   -h,--help                Show this help text
   --ipassmt STRING         Optional path to an IP assignment file. If not
@@ -38,7 +36,15 @@ Available options:
                            fail.
   --chain STRING           The chain to start the analysis. Default: `FORWARD`.
                            Use `INPUT` for a host-based firewall.
-  --rs STRING              Path to the `iptables-save` output.
+  --service_matrix_sport INTEGER
+                           Source port for the service matrix. If not specified,
+                           the randomly chosen source port 10000 is used. TODO:
+                           maybe use an ephemeral port ;-).
+  --service_matrix_dport INTEGER
+                           Destination port for the service matrix. If not
+                           specified, SSH and HTTP (22 and 80) will be used.
+                           Argument may be repeated multiple times.
+  STRING                   Path to the `iptables-save` output.
 ```
 
 ## Usage
