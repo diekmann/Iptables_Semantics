@@ -20,7 +20,7 @@ module
                               access_matrix_pretty, common_primitive_toString,
                               mk_parts_connection_TCP, to_simple_firewall,
                               ipv4_cidr_toString, simple_rule_toString,
-                              action_toString, ctstate_assume_new,
+                              action_toString, packet_assume_new,
                               abstract_for_simple_firewall,
                               to_simple_firewall_without_interfaces,
                               common_primitive_match_expr_toString)
@@ -1577,6 +1577,12 @@ get_pos_Extra a = let {
                     (Pos (Extra e)) = a;
                   } in e;
 
+ipt_tcp_syn :: Ipt_tcp_flags;
+ipt_tcp_syn =
+  TCP_Flags
+    (insert TCP_SYN (insert TCP_RST (insert TCP_ACK (insert TCP_FIN bot_set))))
+    (insert TCP_SYN bot_set);
+
 string_of_nat :: Nat -> [Prelude.Char];
 string_of_nat n =
   (if less_nat n (nat_of_integer (10 :: Integer))
@@ -2962,6 +2968,14 @@ groupWIs3 c rs =
 ipv4range_empty :: Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> Bool;
 ipv4range_empty rg = wordinterval_empty rg;
 
+inf_set :: forall a. (Eq a) => Set a -> Set a -> Set a;
+inf_set a (Coset xs) = fold remove xs a;
+inf_set a (Set xs) = Set (filter (\ x -> member x a) xs);
+
+sup_set :: forall a. (Eq a) => Set a -> Set a -> Set a;
+sup_set (Coset xs) a = Coset (filter (\ x -> not (member x a)) xs);
+sup_set (Set xs) a = fold insert xs a;
+
 word_less_eq :: forall a. (Len a) => Word a -> Word a -> Bool;
 word_less_eq a b = less_eq_word a b;
 
@@ -3275,6 +3289,12 @@ compress_parsed_extra (a1 : a2 : asa) =
     else a1 : compress_parsed_extra (a2 : asa));
 compress_parsed_extra [a] = a : compress_parsed_extra [];
 
+ipt_tcp_flags_equal :: Ipt_tcp_flags -> Ipt_tcp_flags -> Bool;
+ipt_tcp_flags_equal (TCP_Flags mask1 c1) (TCP_Flags mask2 c2) =
+  (if less_eq_set c1 mask1 && less_eq_set c2 mask2
+    then equal_set c1 c2 && equal_set mask1 mask2
+    else not (less_eq_set c1 mask1) && not (less_eq_set c2 mask2));
+
 enum_set_get_one :: forall a. (Eq a) => [a] -> Set a -> Maybe a;
 enum_set_get_one [] s = Nothing;
 enum_set_get_one (sa : ss) s =
@@ -3298,6 +3318,9 @@ rm_LogEmpty (Rule v (Call vb) : rs) = Rule v (Call vb) : rm_LogEmpty rs;
 rm_LogEmpty (Rule v Return : rs) = Rule v Return : rm_LogEmpty rs;
 rm_LogEmpty (Rule v (Goto vb) : rs) = Rule v (Goto vb) : rm_LogEmpty rs;
 rm_LogEmpty (Rule v Unknown : rs) = Rule v Unknown : rm_LogEmpty rs;
+
+ipt_tcp_flags_NoMatch :: Ipt_tcp_flags;
+ipt_tcp_flags_NoMatch = TCP_Flags bot_set (insert TCP_SYN bot_set);
 
 repeat_stabilize :: forall a. (Eq a) => Nat -> (a -> a) -> a -> a;
 repeat_stabilize n uu v =
@@ -3363,6 +3386,15 @@ build_ip_partition c rs =
           (wordinterval_compress
             (foldr wordinterval_union xs empty_WordInterval)))
     (groupWIs3 c rs);
+
+match_tcp_flags_conjunct :: Ipt_tcp_flags -> Ipt_tcp_flags -> Ipt_tcp_flags;
+match_tcp_flags_conjunct (TCP_Flags mask1 c1) (TCP_Flags mask2 c2) =
+  (if less_eq_set c1 mask1 &&
+        less_eq_set c2 mask2 &&
+          equal_set (inf_set (inf_set mask1 mask2) c1)
+            (inf_set (inf_set mask1 mask2) c2)
+    then TCP_Flags (sup_set mask1 mask2) (sup_set c1 c2)
+    else ipt_tcp_flags_NoMatch);
 
 process_call ::
   forall a. ([Prelude.Char] -> Maybe [Rule a]) -> [Rule a] -> [Rule a];
@@ -3939,6 +3971,13 @@ simple_rule_toString
                           ports_toString "sports: " sps ++
                             " " ++ ports_toString "dports: " dps;
 
+match_tcp_flags_conjunct_option ::
+  Ipt_tcp_flags -> Ipt_tcp_flags -> Maybe Ipt_tcp_flags;
+match_tcp_flags_conjunct_option f1 f2 =
+  let {
+    (TCP_Flags mask c) = match_tcp_flags_conjunct f1 f2;
+  } in (if less_eq_set c mask then Just (TCP_Flags mask c) else Nothing);
+
 action_toString :: Action -> [Prelude.Char];
 action_toString Accept = "-j ACCEPT";
 action_toString Drop = "-j DROP";
@@ -3949,6 +3988,34 @@ action_toString Empty = [];
 action_toString Log = "-j LOG";
 action_toString Return = "-j RETURN";
 action_toString Unknown = "!!!!!!!!!!! UNKNOWN !!!!!!!!!!!";
+
+ipt_tcp_flags_assume_flag ::
+  Ipt_tcp_flags -> Match_expr Common_primitive -> Match_expr Common_primitive;
+ipt_tcp_flags_assume_flag flg (Match (L4_Flags x)) =
+  (if ipt_tcp_flags_equal x flg then MatchAny
+    else (case match_tcp_flags_conjunct_option x flg of {
+           Nothing -> MatchNot MatchAny;
+           Just f3 -> Match (L4_Flags f3);
+         }));
+ipt_tcp_flags_assume_flag flg (Match (Src v)) = Match (Src v);
+ipt_tcp_flags_assume_flag flg (Match (Dst v)) = Match (Dst v);
+ipt_tcp_flags_assume_flag flg (Match (IIface v)) = Match (IIface v);
+ipt_tcp_flags_assume_flag flg (Match (OIface v)) = Match (OIface v);
+ipt_tcp_flags_assume_flag flg (Match (Prot v)) = Match (Prot v);
+ipt_tcp_flags_assume_flag flg (Match (Src_Ports v)) = Match (Src_Ports v);
+ipt_tcp_flags_assume_flag flg (Match (Dst_Ports v)) = Match (Dst_Ports v);
+ipt_tcp_flags_assume_flag flg (Match (CT_State v)) = Match (CT_State v);
+ipt_tcp_flags_assume_flag flg (Match (Extra v)) = Match (Extra v);
+ipt_tcp_flags_assume_flag flg (MatchNot m) =
+  MatchNot (ipt_tcp_flags_assume_flag flg m);
+ipt_tcp_flags_assume_flag uu MatchAny = MatchAny;
+ipt_tcp_flags_assume_flag flg (MatchAnd m1 m2) =
+  MatchAnd (ipt_tcp_flags_assume_flag flg m1)
+    (ipt_tcp_flags_assume_flag flg m2);
+
+ipt_tcp_flags_assume_syn :: [Rule Common_primitive] -> [Rule Common_primitive];
+ipt_tcp_flags_assume_syn =
+  optimize_matches (ipt_tcp_flags_assume_flag ipt_tcp_syn);
 
 ctstate_assume_state ::
   Ctstate -> Match_expr Common_primitive -> Match_expr Common_primitive;
@@ -3970,6 +4037,9 @@ ctstate_assume_state s (MatchAnd m1 m2) =
 
 ctstate_assume_new :: [Rule Common_primitive] -> [Rule Common_primitive];
 ctstate_assume_new = optimize_matches (ctstate_assume_state CT_New);
+
+packet_assume_new :: [Rule Common_primitive] -> [Rule Common_primitive];
+packet_assume_new = ctstate_assume_new . ipt_tcp_flags_assume_syn;
 
 abstract_for_simple_firewall ::
   Match_expr Common_primitive -> Match_expr Common_primitive;

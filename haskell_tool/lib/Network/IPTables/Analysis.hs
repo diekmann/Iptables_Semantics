@@ -12,29 +12,25 @@ import Network.IPTables.IpassmtParser (IsabelleIpAssmt) --nicer type --TODO: mov
 
 import qualified Network.IPTables.Generated as Isabelle
 
-preprocessForSpoofingProtection = Isabelle.upper_closure . Isabelle.ctstate_assume_new
 
-exampleCertSpoof ipassmt fuc = map (\ifce -> (ifce, Isabelle.no_spoofing_iface ifce ipassmtMap fuc)) interfaces
-    where interfaces = map fst ipassmt
-          ipassmtMap = Isabelle.map_of_ipassmt ipassmt
-
-
--- TODO: check if this call is currently the best optimized one in the thy
--- TODO: export code directly from the and have correctness thm linked here
+-- Theorem: new_packets_to_simple_firewall_overapproximation
 toSimpleFirewall :: [Isabelle.Rule Isabelle.Common_primitive] -> [Isabelle.Simple_rule]
 toSimpleFirewall = Isabelle.to_simple_firewall . Isabelle.upper_closure . 
-                         Isabelle.optimize_matches Isabelle.abstract_for_simple_firewall .
-                           Isabelle.ctstate_assume_new 
+                       Isabelle.optimize_matches Isabelle.abstract_for_simple_firewall .
+                           Isabelle.upper_closure . Isabelle.packet_assume_new 
 
+--TODO: theorem
 toSimpleFirewallWithoutInterfaces :: IsabelleIpAssmt -> [Isabelle.Rule Isabelle.Common_primitive] -> [Isabelle.Simple_rule]
 toSimpleFirewallWithoutInterfaces = Isabelle.to_simple_firewall_without_interfaces
 
 
+--TODO: theorem
 -- ipassmt -> rs -> (warning_and_debug, spoofing_certification_results)
 certifySpoofingProtection :: IsabelleIpAssmt -> [Isabelle.Rule Isabelle.Common_primitive] -> ([String], [(Isabelle.Iface, Bool)])
 certifySpoofingProtection ipassmt rs = (warn_defined ++ debug_ipassmt, certResult)
     where -- fuc: firewall under certification, prepocessed (debug functions need nnf-normalized match expressions)
-          fuc = Isabelle.upper_closure $ Isabelle.ctstate_assume_new rs
+          --TODO: check preprocessing!
+          fuc = Isabelle.upper_closure $ Isabelle.packet_assume_new rs
           warn_defined = if (Isabelle.ipassmt_sanity_defined fuc ipassmtMap)
                          then []
                          else ["WARNING There are some interfaces in your firewall ruleset which are not defined in your ipassmt."]
@@ -43,6 +39,7 @@ certifySpoofingProtection ipassmt rs = (warn_defined ++ debug_ipassmt, certResul
           certResult = map (\ifce -> (ifce, Isabelle.no_spoofing_iface ifce ipassmtMap fuc)) interfaces
               where interfaces = map fst ipassmt
 
+--TODO: theorem
 -- TODO: in Main.hs we directly have upper_simple available. Make a specific function which gets upper_simple?
 -- This is slightly faster (tested!) but dangerously because someone might call it wrong (e.g. with a firewall with interfaces)
 accessMatrix :: IsabelleIpAssmt -> [Isabelle.Rule Isabelle.Common_primitive] -> Integer -> Integer -> ([(String, String)], [(String, String)])

@@ -39,7 +39,7 @@ export_code Rule
   (*unfold_ruleset_INPUT unfold_ruleset_FORWARD unfold_ruleset_OUTPUT*) unfold_ruleset_CHAIN map_of_string
   upper_closure
   abstract_for_simple_firewall optimize_matches
-  ctstate_assume_new
+  packet_assume_new
   to_simple_firewall
   to_simple_firewall_without_interfaces
   sanity_wf_ruleset

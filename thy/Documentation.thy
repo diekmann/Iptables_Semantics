@@ -70,7 +70,9 @@ Minimal:
 
 
 The resulting access control matrix is sound and complete:
+
 @{thm access_matrix [no_vars]}
+
 Theorem reads: 
 For a fixed connection, you can look up IP addresses (source and destination pairs) in the matrix 
 if and only if the firewall accepts this src,dst IP address pair for the fixed connection.
