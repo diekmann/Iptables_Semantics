@@ -20,9 +20,23 @@ definition ipv4_cidr_toString :: "(ipv4addr \<times> nat) \<Rightarrow> string" 
 lemma "ipv4_cidr_toString (ipv4addr_of_dotdecimal (192,168,0,1), 22) = ''192.168.0.1/22''" by eval
 
 
+fun ipt_ipv4range_toString :: "ipt_ipv4range \<Rightarrow> string" where
+  "ipt_ipv4range_toString (Ip4Addr ip) = dotteddecimal_toString ip" |
+  "ipt_ipv4range_toString (Ip4AddrNetmask ip n) = dotteddecimal_toString ip@''/''@string_of_nat n"  |
+  "ipt_ipv4range_toString (Ip4AddrRange ip1 ip2) = dotteddecimal_toString ip1@''-''@dotteddecimal_toString ip2"
+
+
 fun ipv4addr_wordinterval_toString :: "32 wordinterval \<Rightarrow> string" where
   "ipv4addr_wordinterval_toString (WordInterval s e) = (if s = e then ipv4addr_toString s else ''{''@ipv4addr_toString s@'' .. ''@ipv4addr_toString e@''}'')" |
   "ipv4addr_wordinterval_toString (RangeUnion a b) = ipv4addr_wordinterval_toString a @ '' u ''@ipv4addr_wordinterval_toString b"
+
+
+definition ipv4addr_wordinterval_pretty_toString :: "32 wordinterval \<Rightarrow> string" where
+  "ipv4addr_wordinterval_pretty_toString wi = list_toString ipt_ipv4range_toString (wi_to_ipt_ipv4range wi)"
+
+lemma "ipv4addr_wordinterval_pretty_toString 
+    (RangeUnion (RangeUnion (WordInterval 0x7F000000 0x7FFFFFFF) (WordInterval 0x1020304 0x1020306))
+                (WordInterval 0x8080808 0x8080808)) = ''[127.0.0.0/8, 1.2.3.4-1.2.3.6, 8.8.8.8]''" by eval
 
 
 fun protocol_toString :: "protocol \<Rightarrow> string" where
@@ -60,6 +74,7 @@ lemma "ports_toString ''spt: '' (0,65535) = ''''" by eval
 lemma "ports_toString ''spt: '' (1024,2048) = ''spt: 1024:2048''" by eval
 lemma "ports_toString ''spt: '' (1024,1024) = ''spt: 1024''" by eval
 
+  
 fun common_primitive_toString :: "common_primitive \<Rightarrow> string" where
   "common_primitive_toString (Src (Ip4Addr ip)) = ''-s ''@dotteddecimal_toString ip" |
   "common_primitive_toString (Dst (Ip4Addr ip)) = ''-d ''@dotteddecimal_toString ip" |
