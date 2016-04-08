@@ -162,6 +162,53 @@ In this example, we are fine.
 If you do heavy matching on `-i` in your ruleset, you may want to specify an `ipassmt` to improve accuracy of the results.
 
 
+To simplify the ruleset, `fffuu` abstracts over all match conditions which are not essential for our analysis. 
+It does an overapproximation, that means, it answers the question "*which packets might be potentially allowed by the firewall?*". 
+Here is the simplified, abstracted ruleset (in *pseudo* iptables -L -n format): 
+```
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0    in: lo   
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 22
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 873
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 3240:3262
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 21
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 548
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 111
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 892
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 2049
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 443
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 80
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 3493
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 3306
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 22:23
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0    dports: 67:68
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0    dports: 123
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0    dports: 514
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0    dports: 19999
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0    dports: 5353
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0    dports: 161
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0    dports: 111
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0    dports: 892
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0    dports: 2049
+ACCEPT     all  --  192.168.0.0/16       0.0.0.0/0    
+DROP       all  --  0.0.0.0/0            0.0.0.0/0    
+DROP       all  --  0.0.0.0/0            0.0.0.0/0    in: eth0   
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0
+```
+
+We can see that `fffuu` has split the `multiport` matches into individual rules and that the ruleset has been unfolded into one linear ruleset (the user-defined `DEFAULT_INPUT` and `DOS_PROTECT` chains are gone). 
+This makes internal processing simpler; it does not change the behavior. 
+Now about the 'overapproximation':
+The original ruleset did a lot of rate limiting and drops packets which exceed the limit. 
+To answer the question about *potentially* allowed packets, we must assume that the rate limiting will not drop us (i.e. our packets make it through the `DOS_PROTECT` chain without being dropped). 
+We can see that the simplified ruleset has completely eliminated the rate limiting. 
+Finally, let's look at the last rules of the simplified ruleset. 
+The last rule (accept all) corresponds to the default policy of the original input. 
+The rule before that (drop all from eth0) corresponds to the last rule of the original `DEFAULT_INPUT` chain. 
+This rule is shadowed by the rule before anyway. 
+Why? Because firewalls can be hard!
+
+
+Let's get to the interesting services on our NAS. 
 `fffuu` will print three service matrices for TCP destination ports 22, 8080, and 80. 
 As source port, the random, not-so-ephemeral source port 10000 was selected by `fffuu`. 
 As we can see, the ruleset does not match on sports (source ports), so any value is fine here.
