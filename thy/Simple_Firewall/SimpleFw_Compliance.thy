@@ -557,6 +557,8 @@ theorem to_simple_firewall_without_interfaces:
   --"the set of new packets, which are accepted is an overapproximations"
   shows "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
          {p. simple_fw (to_simple_firewall_without_interfaces ipassmt rs) p = Decision FinalAllow \<and> newpkt p}"
+
+  and "\<forall>m \<in> match_sel ` set (to_simple_firewall_without_interfaces ipassmt rs). iiface m = ifaceAny \<and> oiface m = ifaceAny"
   proof -
     let ?rs1="packet_assume_new rs"
     let ?rs2="upper_closure ?rs1"
@@ -658,7 +660,8 @@ theorem to_simple_firewall_without_interfaces:
       from transform_upper_closure(3)[OF s6] r have normalized:
         "normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" by fastforce
   
-      from no_CT no_L4_Flags s7 normalized a normalized_ifaces protocols have "normalized_src_ports m \<and>
+      from no_CT no_L4_Flags s7 normalized a normalized_ifaces protocols no_Iiface no_Oiface 
+         have "normalized_src_ports m \<and>
                normalized_dst_ports m \<and>
                normalized_src_ips m \<and>
                normalized_dst_ips m \<and>
@@ -667,11 +670,14 @@ theorem to_simple_firewall_without_interfaces:
                \<not> has_disc is_L4_Flags m \<and>
                \<not> has_disc is_CT_State m \<and>
                \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop)"
-        by(simp)
+        and "\<not> has_disc is_Iiface m" and "\<not> has_disc is_Oiface m"
+        by(simp)+
     }
     hence simple_fw_preconditions: "check_simple_fw_preconditions ?rs7"
-    unfolding check_simple_fw_preconditions_def
-    by(clarify, rename_tac r, case_tac r, rename_tac m a, simp)
+      and no_interfaces: "Rule m a \<in> set ?rs7 \<Longrightarrow> \<not> has_disc is_Iiface m \<and> \<not> has_disc is_Oiface m" for m a
+    apply -
+     subgoal unfolding check_simple_fw_preconditions_def by(clarify, rename_tac r, case_tac r, rename_tac m a, simp)
+    by simp
 
 
     have "{p. ?\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} =
@@ -712,9 +718,73 @@ theorem to_simple_firewall_without_interfaces:
     from 1 2 3 4 have "{p. ?\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
        {p. ?\<gamma>,p\<turnstile> \<langle>?rs7, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}" by blast
     
-    thus ?thesis  
+    thus "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
+         {p. simple_fw (to_simple_firewall_without_interfaces ipassmt rs) p = Decision FinalAllow \<and> newpkt p}"
       unfolding to_simple_firewall_without_interfaces_def
       using to_simple_firewall[OF simple_fw_preconditions] approximating_rule by simp
+
+    (*the following proof to show that we don't have interfaces left is MADNESS*)
+
+    have common_primitive_match_to_simple_match_nodisc: 
+      "Some sm = common_primitive_match_to_simple_match m' \<Longrightarrow>
+       \<not> has_disc is_Iiface m' \<and> \<not> has_disc is_Oiface m' \<Longrightarrow> iiface sm = ifaceAny \<and> oiface sm = ifaceAny"
+    if prems: "check_simple_fw_preconditions [Rule m' a']" for m' a' sm
+    using prems proof(induction m' arbitrary: sm rule: common_primitive_match_to_simple_match.induct)
+    case 18 thus ?case
+    by(simp add: check_simple_fw_preconditions_def normalized_protocols_def)
+    next
+    case (13 m1 m2) thus ?case
+      (*This is madness!!*)
+      apply(simp add: check_simple_fw_preconditions_def)
+      apply(case_tac "common_primitive_match_to_simple_match m1")
+       apply(simp; fail)
+      apply(case_tac "common_primitive_match_to_simple_match m2")
+       apply(simp; fail)
+      apply simp
+      apply(rename_tac a aa)
+      apply(case_tac a)
+      apply(case_tac aa)
+      apply(simp)
+      apply(simp split: option.split_asm)
+      using iface_conjunct_ifaceAny normalized_ifaces_def normalized_protocols_def by fastforce
+    qed(simp_all add: check_simple_fw_preconditions_def simple_match_any_def)
+
+    have to_simple_firewall_no_ifaces: "(\<And>m a. Rule m a \<in> set rs \<Longrightarrow> \<not> has_disc is_Iiface m \<and> \<not> has_disc is_Oiface m) \<Longrightarrow> 
+        \<forall>m\<in>match_sel ` set (to_simple_firewall rs). iiface m = ifaceAny \<and> oiface m = ifaceAny"
+      if pre1: "check_simple_fw_preconditions rs" for rs
+    using pre1 apply(induction rs)
+     apply(simp add: to_simple_firewall_simps; fail)
+    apply simp
+    apply(subgoal_tac "check_simple_fw_preconditions rs")
+     prefer 2
+     subgoal by(simp add: check_simple_fw_preconditions_def)
+    apply(rename_tac r rs, case_tac r)
+    apply simp
+    apply(simp add: to_simple_firewall_simps)
+    apply(simp split: option.split)
+    apply(intro conjI)
+     apply blast
+    apply(intro allI impI)
+    apply(subgoal_tac "(\<forall>m\<in>set (to_simple_firewall rs). iiface (match_sel m) = ifaceAny \<and> oiface (match_sel m) = ifaceAny)")
+     prefer 2
+     subgoal by blast
+    apply(simp)
+    apply(rename_tac m' a' sm)
+    apply(subgoal_tac " \<not> has_disc is_Iiface m' \<and> \<not> has_disc is_Oiface m'")
+     prefer 2
+     subgoal by blast
+    apply(subgoal_tac "check_simple_fw_preconditions [Rule m' a']")
+     prefer 2
+     subgoal by(simp add: check_simple_fw_preconditions_def)
+    apply(drule common_primitive_match_to_simple_match_nodisc)
+      apply(simp_all)
+    done
+   
+    from to_simple_firewall_no_ifaces[OF simple_fw_preconditions no_interfaces] show 
+      "\<forall>m \<in> match_sel ` set (to_simple_firewall_without_interfaces ipassmt rs). iiface m = ifaceAny \<and> oiface m = ifaceAny"
+      unfolding to_simple_firewall_without_interfaces_def
+      by(simp add: to_simple_firewall_def simple_fw_preconditions)
+      
   qed
 
 
