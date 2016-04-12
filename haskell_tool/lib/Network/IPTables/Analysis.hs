@@ -32,12 +32,12 @@ toSimpleFirewallWithoutInterfaces = Isabelle.to_simple_firewall_without_interfac
 -- ipassmt -> rs -> (warning_and_debug, spoofing_certification_results)
 certifySpoofingProtection :: IsabelleIpAssmt -> [Isabelle.Rule Isabelle.Common_primitive] -> ([String], [(Isabelle.Iface, Bool)])
 certifySpoofingProtection ipassmt rs = (warn_defined ++ debug_ipassmt, certResult)
-    where -- fuc: firewall under certification, prepocessed (debug functions need nnf-normalized match expressions)
+    where -- fuc: firewall under certification, prepocessed
           -- no_spoofing_executable_set requires normalized_nnf_match. Isabelle.upper_closure guarantees this.
           -- It also guarantees that if we start from a simple_ruleset, it remains a simple ruleset.
           -- Theorem: transform_upper_closure
           fuc = Isabelle.upper_closure $ Isabelle.packet_assume_new rs
-          warn_defined = if (Isabelle.ipassmt_sanity_defined fuc ipassmtMap)
+          warn_defined = if (Isabelle.ipassmt_sanity_defined fuc ipassmtMap) -- fuc needs to be nnf-normalized
                          then []
                          else ["WARNING There are some interfaces in your firewall ruleset which are not defined in your ipassmt."]
           debug_ipassmt = Isabelle.debug_ipassmt ipassmt fuc
