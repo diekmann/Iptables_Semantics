@@ -13,6 +13,9 @@ import Network.IPTables.IpassmtParser (IsabelleIpAssmt) --nicer type --TODO: mov
 import qualified Network.IPTables.Generated as Isabelle
 
 
+-- all functions must only be called with a simple_ruleset. TODO: check this?
+
+
 -- Theorem: new_packets_to_simple_firewall_overapproximation
 toSimpleFirewall :: [Isabelle.Rule Isabelle.Common_primitive] -> [Isabelle.Simple_rule]
 toSimpleFirewall = Isabelle.to_simple_firewall . Isabelle.upper_closure . 
@@ -30,8 +33,9 @@ toSimpleFirewallWithoutInterfaces = Isabelle.to_simple_firewall_without_interfac
 certifySpoofingProtection :: IsabelleIpAssmt -> [Isabelle.Rule Isabelle.Common_primitive] -> ([String], [(Isabelle.Iface, Bool)])
 certifySpoofingProtection ipassmt rs = (warn_defined ++ debug_ipassmt, certResult)
     where -- fuc: firewall under certification, prepocessed (debug functions need nnf-normalized match expressions)
-          --TODO: check preprocessing!
-          --TODO: no_spoofing_executable_set requires normalized_nnf_match, check that!
+          -- no_spoofing_executable_set requires normalized_nnf_match. Isabelle.upper_closure guarantees this.
+          -- It also guarantees that if we start from a simple_ruleset, it remains a simple ruleset.
+          -- Theorem: transform_upper_closure
           fuc = Isabelle.upper_closure $ Isabelle.packet_assume_new rs
           warn_defined = if (Isabelle.ipassmt_sanity_defined fuc ipassmtMap)
                          then []
@@ -41,7 +45,7 @@ certifySpoofingProtection ipassmt rs = (warn_defined ++ debug_ipassmt, certResul
           certResult = map (\ifce -> (ifce, Isabelle.no_spoofing_iface ifce ipassmtMap fuc)) interfaces
               where interfaces = map fst ipassmt
 
---TODO: theorem
+-- TODO: theorem
 -- TODO: in Main.hs we directly have upper_simple available. Make a specific function which gets upper_simple?
 -- This is slightly faster (tested!) but dangerously because someone might call it wrong (e.g. with a firewall with interfaces)
 accessMatrix :: IsabelleIpAssmt -> [Isabelle.Rule Isabelle.Common_primitive] -> Integer -> Integer -> ([(String, String)], [(String, String)])
