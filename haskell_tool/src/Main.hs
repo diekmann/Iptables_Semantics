@@ -1,14 +1,15 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TupleSections #-}
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeOperators     #-}
+{-# LANGUAGE TypeOperators #-}
 
 
 module Main where
 
 import Data.Functor ((<$>))
+import Data.Maybe (fromJust)
 import Control.Applicative ((<*>))
 import qualified Data.List as L
 import Network.IPTables.Ruleset
@@ -16,7 +17,7 @@ import Network.IPTables.Parser
 import Network.IPTables.IpassmtParser
 import qualified System.IO
 import Options.Generic
-import Common.Util (isParseErrorWindowsNewline)
+import Common.Util
 import Network.IPTables.Analysis as Analysis
 import qualified Network.IPTables.Generated as Isabelle
 
@@ -94,7 +95,6 @@ readArgs (CommandLineArgs labeled unlabeled) = do
                 where sanityCheckPort p = (p >= 0 && p < 65536)
 
 
-
 main :: IO ()
 main = do 
     cmdArgs <- getRecord "FFFUU -- Fancy Formal Firewall Universal Understander: \n\n\
@@ -136,8 +136,12 @@ main = do
             mapM_ (\(s,d) -> 
                         putStrLn ("=========== TCP port "++ show s ++ "->" ++ show d ++" =========")
                      >> putStrLn (showServiceMatrix (Analysis.accessMatrix ipassmt unfolded s d))) smOptions
-        where showServiceMatrix (nodes, vertices) = concat (map (\(n, desc) -> n ++ " |-> " ++ desc ++ "\n") nodes) ++ "\n" ++
-                                                    concat (map (\v -> show v ++ "\n") vertices)
+        where showServiceMatrix (nodes, vertices) = concatMap (\(n, desc) -> renameNode n ++ " |-> " ++ desc ++ "\n") nodes ++ "\n" ++
+                                                    concatMap (\v -> show (renameVertices v) ++ "\n") vertices
+                  where renaming = zip (map fst nodes) prettyNames
+                        renameNode n = fromJust $ lookup n renaming
+                        renameVertices (v1, v2) = (fromJust $ lookup v1 renaming, fromJust $ lookup v2 renaming)
+
               showSpoofCertification (iface, rslt) = show (show iface, showProbablyFalse rslt)
                   where showProbablyFalse True = "True (certified)"
                         showProbablyFalse False = "Probably not (False)"

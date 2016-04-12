@@ -325,33 +325,27 @@ value[code] "unfold_ruleset_INPUT ds2015_2_fw_INPUT_default_policy (map_of ds201
 lemma "access_matrix_pretty parts_connection_ssh
         (to_simple_firewall_without_interfaces ipassmt_generic
           (unfold_ruleset_INPUT ds2015_2_fw_INPUT_default_policy (map_of ds2015_2_fw))) =
-  ([(''Nodes'', '':''),
-    (''0.0.0.0'', ''{0.0.0.0 .. 255.255.255.255}'')
+  ([(''0.0.0.0'', ''{0.0.0.0 .. 255.255.255.255}'')
    ],
-   [(''Edges'', '':''),
-    (''0.0.0.0'', ''0.0.0.0'')])" by eval
+   [(''0.0.0.0'', ''0.0.0.0'')])" by eval
 
 
 lemma "access_matrix_pretty parts_connection_http
         (to_simple_firewall_without_interfaces ipassmt_generic
           (unfold_ruleset_INPUT ds2015_2_fw_INPUT_default_policy (map_of ds2015_2_fw))) =
-  ([(''Nodes'', '':''),
-    (''0.0.0.0'', ''{0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 255.255.255.255}''),
+  ([(''0.0.0.0'', ''{0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 255.255.255.255}''),
     (''127.0.0.0'', ''{127.0.0.0 .. 127.255.255.255}'')
    ],
-   [(''Edges'', '':''),
-    (''127.0.0.0'', ''0.0.0.0''),
+   [(''127.0.0.0'', ''0.0.0.0''),
     (''127.0.0.0'', ''127.0.0.0'')])" by eval
 
 lemma "access_matrix_pretty (mk_parts_connection_TCP 10000 8080)
         (to_simple_firewall_without_interfaces ipassmt_generic
           (unfold_ruleset_INPUT ds2015_2_fw_INPUT_default_policy (map_of ds2015_2_fw))) = 
-  ([(''Nodes'', '':''),
-    (''127.0.0.0'', ''{127.0.0.0 .. 127.255.255.255} u {192.168.0.0 .. 192.168.255.255}''),
+  ([(''127.0.0.0'', ''{127.0.0.0 .. 127.255.255.255} u {192.168.0.0 .. 192.168.255.255}''),
     (''0.0.0.0'', ''{0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 192.167.255.255} u {192.169.0.0 .. 255.255.255.255}'')
    ],
-   [(''Edges'', '':''),
-    (''127.0.0.0'', ''127.0.0.0''),
+   [(''127.0.0.0'', ''127.0.0.0''),
     (''127.0.0.0'', ''0.0.0.0'')])" by eval
 
 end
