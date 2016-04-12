@@ -3090,6 +3090,18 @@ tcp_flag_toString TCP_RST = "TCP_RST";
 tcp_flag_toString TCP_URG = "TCP_URG";
 tcp_flag_toString TCP_PSH = "TCP_PSH";
 
+rm_LogEmpty :: forall a. [Rule a] -> [Rule a];
+rm_LogEmpty [] = [];
+rm_LogEmpty (Rule uu Empty : rs) = rm_LogEmpty rs;
+rm_LogEmpty (Rule uv Log : rs) = rm_LogEmpty rs;
+rm_LogEmpty (Rule v Accept : rs) = Rule v Accept : rm_LogEmpty rs;
+rm_LogEmpty (Rule v Drop : rs) = Rule v Drop : rm_LogEmpty rs;
+rm_LogEmpty (Rule v Reject : rs) = Rule v Reject : rm_LogEmpty rs;
+rm_LogEmpty (Rule v (Call vb) : rs) = Rule v (Call vb) : rm_LogEmpty rs;
+rm_LogEmpty (Rule v Return : rs) = Rule v Return : rm_LogEmpty rs;
+rm_LogEmpty (Rule v (Goto vb) : rs) = Rule v (Goto vb) : rm_LogEmpty rs;
+rm_LogEmpty (Rule v Unknown : rs) = Rule v Unknown : rm_LogEmpty rs;
+
 sanity_wf_ruleset :: forall a. [([Prelude.Char], [Rule a])] -> Bool;
 sanity_wf_ruleset gamma =
   let {
@@ -3307,28 +3319,8 @@ enum_set_to_list s =
                                 Just a -> a : enum_set_to_list (remove a s);
                               }));
 
-rm_LogEmpty :: forall a. [Rule a] -> [Rule a];
-rm_LogEmpty [] = [];
-rm_LogEmpty (Rule uu Empty : rs) = rm_LogEmpty rs;
-rm_LogEmpty (Rule uv Log : rs) = rm_LogEmpty rs;
-rm_LogEmpty (Rule v Accept : rs) = Rule v Accept : rm_LogEmpty rs;
-rm_LogEmpty (Rule v Drop : rs) = Rule v Drop : rm_LogEmpty rs;
-rm_LogEmpty (Rule v Reject : rs) = Rule v Reject : rm_LogEmpty rs;
-rm_LogEmpty (Rule v (Call vb) : rs) = Rule v (Call vb) : rm_LogEmpty rs;
-rm_LogEmpty (Rule v Return : rs) = Rule v Return : rm_LogEmpty rs;
-rm_LogEmpty (Rule v (Goto vb) : rs) = Rule v (Goto vb) : rm_LogEmpty rs;
-rm_LogEmpty (Rule v Unknown : rs) = Rule v Unknown : rm_LogEmpty rs;
-
 ipt_tcp_flags_NoMatch :: Ipt_tcp_flags;
 ipt_tcp_flags_NoMatch = TCP_Flags bot_set (insert TCP_SYN bot_set);
-
-repeat_stabilize :: forall a. (Eq a) => Nat -> (a -> a) -> a -> a;
-repeat_stabilize n uu v =
-  (if equal_nat n zero_nat then v
-    else let {
-           v_new = uu v;
-         } in (if v == v_new then v
-                else repeat_stabilize (minus_nat n one_nat) uu v_new));
 
 ipv4range_intersection ::
   Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
@@ -3355,6 +3347,14 @@ has_disc uu MatchAny = False;
 has_disc disc (Match a) = disc a;
 has_disc disc (MatchNot m) = has_disc disc m;
 has_disc disc (MatchAnd m1 m2) = has_disc disc m1 || has_disc disc m2;
+
+repeat_stabilize :: forall a. (Eq a) => Nat -> (a -> a) -> a -> a;
+repeat_stabilize n uu v =
+  (if equal_nat n zero_nat then v
+    else let {
+           v_new = uu v;
+         } in (if v == v_new then v
+                else repeat_stabilize (minus_nat n one_nat) uu v_new));
 
 simple_ruleset :: forall a. [Rule a] -> Bool;
 simple_ruleset rs =
@@ -4068,7 +4068,7 @@ to_simple_firewall_without_interfaces ipassmt rs =
         (optimize_matches abstract_for_simple_firewall
           (upper_closure
             (iface_try_rewrite ipassmt
-              (upper_closure (ctstate_assume_new (upper_closure rs))))))));
+              (upper_closure (packet_assume_new rs)))))));
 
 common_primitive_match_expr_toString ::
   Match_expr Common_primitive -> [Prelude.Char];

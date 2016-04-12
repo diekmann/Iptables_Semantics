@@ -348,26 +348,21 @@ theorem transform_simple_fw_upper:
       "\<forall>m\<in>get_match ` set (upper_closure (packet_assume_new rs)). \<not> has_disc is_CT_State m"
       by fastforce
     with abstract_primitive_preserves_nodisc[where disc'="is_CT_State"] have "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc is_CT_State m"
-      apply -
-      apply(rule optimize_matches_preserves)
+      apply(intro optimize_matches_preserves)
       apply(simp add: abstract_for_simple_firewall_def)
       done
     with transform_upper_closure(4)[OF s3, where disc=is_CT_State] have "\<forall>m\<in>get_match ` set ?rs'. \<not> has_disc is_CT_State m" by fastforce
     with r have no_CT: "\<not> has_disc is_CT_State m" by fastforce
 
     from abstract_for_simple_firewall_hasdisc have "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc is_L4_Flags m"
-      apply -
-      apply(rule optimize_matches_preserves, simp)
-      done
+      by(intro optimize_matches_preserves, simp)
     with transform_upper_closure(4)[OF s3, where disc=is_L4_Flags] have "\<forall>m\<in>get_match ` set ?rs'. \<not> has_disc is_L4_Flags m" by fastforce
     with r have no_L4_Flags: "\<not> has_disc is_L4_Flags m" by fastforce
 
     from nnf2 abstract_for_simple_firewall_negated_ifaces_prots have
       ifaces: "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False m" and
       protocols: "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated is_Prot False m" 
-      apply -
-      apply(rule optimize_matches_preserves, simp)+
-      done
+      by(intro optimize_matches_preserves, simp)+
     from ifaces have iface_in:  "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated is_Iiface False m" and
                      iface_out: "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated is_Oiface False m"
     using has_disc_negated_disj_split by blast+
@@ -535,5 +530,18 @@ theorem transform_simple_fw_lower:
           {p. ?\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} "
       using to_simple_firewall[OF simple_fw_preconditions] 4 by simp
   qed
+
+
+(*TODO: theorem!*)
+definition "to_simple_firewall_without_interfaces ipassmt rs \<equiv>
+    to_simple_firewall
+    (upper_closure
+    (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))
+    (optimize_matches abstract_for_simple_firewall
+    (upper_closure
+    (iface_try_rewrite ipassmt
+    (upper_closure
+    (packet_assume_new rs)))))))"
+
 
 end
