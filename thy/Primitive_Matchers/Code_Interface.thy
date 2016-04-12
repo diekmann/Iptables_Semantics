@@ -31,7 +31,6 @@ definition check_simple_ruleset :: "common_primitive rule list \<Rightarrow> com
 
 
 
-
 (*TODO: replace with the generic safe version from call_return unfolding*)
 definition unfold_ruleset_CHAIN :: "string \<Rightarrow> action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
 "unfold_ruleset_CHAIN chain_name default_action rs = check_simple_ruleset
@@ -41,15 +40,8 @@ definition unfold_ruleset_CHAIN :: "string \<Rightarrow> action \<Rightarrow> co
         [Rule MatchAny (Call chain_name), Rule MatchAny default_action]
   )))))"
 
-(*TODO: theorem for documentation!
-  TODO: safe version for code which reports errors*)
-(*TODO: move, but where?*)
-(*TODO generic lemma for arbitrary \<gamma>, then generic def (optimize_primitive_univ yet undefined) def can be moved to the unfolding*)
-lemma "sanity_wf_ruleset \<Gamma> \<Longrightarrow>
-    (map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>unfold_ruleset_CHAIN chain default_action rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow>
-    (map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>[Rule MatchAny (Call chain_name), Rule MatchAny default_action], s\<rangle> \<Rightarrow> t"
-nitpick
-oops
+(*TODO: theorem for documentation! all the optimization before, the whole thing needs to go in one big theorem*)
+thm repeat_stabilize_process_call
 
 
 definition unfold_ruleset_FORWARD :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
