@@ -438,15 +438,6 @@ lemma approximating_bigstep_deterministic: "\<lbrakk> \<gamma>,p\<turnstile> \<l
   qed(auto dest: approximating_bigstepD)
 
 
-text{*The actions Log and Empty do not modify the packet processing in any way. They can be removed.*}
-fun rm_LogEmpty :: "'a rule list \<Rightarrow> 'a rule list" where
-  "rm_LogEmpty [] = []" |
-  "rm_LogEmpty ((Rule _ Empty)#rs) = rm_LogEmpty rs" |
-  "rm_LogEmpty ((Rule _ Log)#rs) = rm_LogEmpty rs" |
-  "rm_LogEmpty (r#rs) = r # rm_LogEmpty rs"
-
-lemma rm_LogEmpty_filter: "rm_LogEmpty rs = filter (\<lambda>r. get_action r \<noteq> Log \<and> get_action r \<noteq> Empty) rs"
- by(induction rs rule: rm_LogEmpty.induct) (simp_all)
 
 lemma rm_LogEmpty_fun_semantics: 
   "approximating_bigstep_fun \<gamma> p (rm_LogEmpty rs) s = approximating_bigstep_fun \<gamma> p rs s"
@@ -458,18 +449,6 @@ lemma rm_LogEmpty_fun_semantics:
     case (Nomatch \<gamma> p m a rs) thus ?case by(cases a,simp_all)
     next
     case (Match \<gamma> p m a rs) thus ?case by(cases a,simp_all)
-  qed
-
-lemma rm_LogEmpty_seq: "rm_LogEmpty (rs1@rs2) = rm_LogEmpty rs1 @ rm_LogEmpty rs2"
-  proof(induction rs1)
-  case Nil thus ?case by simp
-  next
-  case (Cons r rs) thus ?case
-    apply(cases r, rename_tac m a)
-    apply(simp)
-    apply(case_tac a)
-            apply(simp_all)
-    done
   qed
 
 
@@ -484,7 +463,7 @@ apply(rule iffI)
  apply(rename_tac m a)
  apply(case_tac a)
          apply(simp_all)
-         apply(auto intro: approximating_bigstep.intros)
+         apply(auto intro: approximating_bigstep.intros )
          apply(erule seqE_fst, simp add: seq_fst)
         apply(erule seqE_fst, simp add: seq_fst)
        apply (metis decision log nomatch_fst seq_fst state.exhaust)
@@ -506,6 +485,7 @@ using rm_LogEmpty_seq apply metis
 done
 
 
+(*TODO: move?*)
 lemma rm_LogEmpty_simple_but_Reject: 
   "good_ruleset rs \<Longrightarrow> \<forall>r \<in> set (rm_LogEmpty rs). get_action r = Accept \<or> get_action r = Reject \<or> get_action r = Drop"
   proof(induction rs)

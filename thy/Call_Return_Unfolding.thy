@@ -1,5 +1,6 @@
 theory Call_Return_Unfolding
 imports Matching Ruleset_Update
+  "Common/RepeatStabilize"
 begin
 
 
@@ -711,5 +712,64 @@ text{*Example*}
 lemma "process_call [''X'' \<mapsto> [Rule (Match b) Return, Rule (Match c) Accept]] [Rule (Match a) (Call ''X'')] =
        [Rule (MatchAnd (Match a) (MatchAnd (MatchNot (Match b)) (Match c))) Accept]" by (simp add: add_match_def)
 
+
+
+
+text{*This is how a firewall processes a ruleset. 
+       It starts at a certain chain, usually INPUT, FORWARD, our OUTPUT (called @{term chain_name} in the lemma).
+       The firewall has a default action of accept or drop.
+      We can check @{const sanity_wf_ruleset} and the other assumptions at runtime.
+      Consequently, we can apply @{const repeat_stabilize} as often as we want.
+       *}
+
+theorem repeat_stabilize_process_call:
+    assumes "sanity_wf_ruleset \<Gamma>" and "chain_name \<in> set (map fst \<Gamma>)" and "default_action = Accept \<or> default_action = Drop"
+    shows "(map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>repeat_stabilize n (process_call (map_of \<Gamma>)) [Rule MatchAny (Call chain_name), Rule MatchAny default_action], s\<rangle> \<Rightarrow> t \<longleftrightarrow>
+           (map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>[Rule MatchAny (Call chain_name), Rule MatchAny default_action], s\<rangle> \<Rightarrow> t"
+proof -
+  have x: "sanity_wf_ruleset \<Gamma> \<Longrightarrow> rs \<in> ran (map_of \<Gamma>) \<Longrightarrow> wf_chain (map_of \<Gamma>) rs" for \<Gamma> and rs::"'a rule list"
+  apply(simp add: sanity_wf_ruleset_def wf_chain_def)
+  by fastforce
+
+  from assms(1) have 1: "\<forall>rsg \<in> ran (map_of \<Gamma>). wf_chain (map_of \<Gamma>) rsg"
+    apply(intro ballI)
+    apply(drule x, simp)
+    apply(simp)
+    done
+  let ?rs="[Rule MatchAny (Call chain_name), Rule MatchAny default_action]::'a rule list"
+  from assms(2,3) have 2: "wf_chain (map_of \<Gamma>) ?rs"
+    apply(simp add: wf_chain_def domD dom_map_of_conv_image_fst)
+    by blast
+
+  have "\<forall>rsg \<in> ran \<Gamma> \<union> {rs}. wf_chain \<Gamma> rsg \<Longrightarrow> 
+    \<Gamma>,\<gamma>,p\<turnstile> \<langle>repeat_stabilize n (process_call \<Gamma>) rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" for \<Gamma> rs
+  by(simp add: repeat_stabilize_funpow unfolding_n_sound_complete)
+  moreover from 1 2 have "\<forall>rsg \<in> ran (map_of \<Gamma>) \<union> {?rs}. wf_chain (map_of \<Gamma>) rsg" by simp
+  ultimately show ?thesis by simp
+qed
+
+
+
+(*
+(*TODO: maybe we need to move the whole thing to somewhere where we have the ternary semantics? to embeddings probably?*)
+(*can we replace the constant number of process_call calls with number of chain decls *)
+definition unfold_ruleset_CHAIN :: "string \<Rightarrow> action \<Rightarrow> 'a ruleset \<Rightarrow> 'a rule list" where
+"unfold_ruleset_CHAIN chain_name default_action rs = check_simple_ruleset
+  (repeat_stabilize 1000 (optimize_matches opt_MatchAny_match_expr)
+    (optimize_matches optimize_primitive_univ
+      (rw_Reject (rm_LogEmpty (repeat_stabilize 10000 (process_call rs)
+        [Rule MatchAny (Call chain_name), Rule MatchAny default_action]
+  )))))"
+
+(*TODO: theorem for documentation!
+  TODO: safe version for code which reports errors*)
+(*TODO: move, but where?*)
+(*TODO generic lemma for arbitrary \<gamma>, then generic def (optimize_primitive_univ yet undefined) def can be moved to the unfolding*)
+lemma "sanity_wf_ruleset \<Gamma> \<Longrightarrow>
+    (map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>unfold_ruleset_CHAIN chain default_action rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow>
+    (map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>[Rule MatchAny (Call chain_name), Rule MatchAny default_action], s\<rangle> \<Rightarrow> t"
+nitpick
+oops
+*)
 
 end

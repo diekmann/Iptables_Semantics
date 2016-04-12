@@ -7,6 +7,10 @@ subsection{*Boolean Matcher Algebra*}
 lemma MatchOr: "matches \<gamma> (MatchOr m1 m2) p \<longleftrightarrow> matches \<gamma> m1 p \<or> matches \<gamma> m2 p"
   by(simp add: MatchOr_def)
 
+lemma opt_MatchAny_match_expr_correct: "matches \<gamma> (opt_MatchAny_match_expr m) = matches \<gamma> m"
+   apply(simp add: fun_eq_iff)
+   by(induction m rule: opt_MatchAny_match_expr.induct) (simp_all)
+
 
 text{*Lemmas about matching in the @{const iptables_bigstep} semantics.*}
 

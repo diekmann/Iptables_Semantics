@@ -87,6 +87,7 @@ rulesetLookup table r = case M.lookup table (rsetTables r)
 -- input: ruleset from the parser
 -- output: rule list our Isabelle algorithms can work on
 -- may throw an error; is IO because it dumps debug info at you :)
+-- verbose_flag -> table -> chain -> pased_ruleset -> isabelle_ruleset_and_debugging_output
 loadUnfoldedRuleset :: Bool -> String -> String -> Ruleset -> IO [Isabelle.Rule Isabelle.Common_primitive]
 loadUnfoldedRuleset debug table chain res = do
     when (table /= "filter") $ do 
@@ -103,6 +104,7 @@ loadUnfoldedRuleset debug table chain res = do
     let policy = case M.lookup chain defaultPolicies of
                     Just policy -> policy
                     Nothing -> error $ "Default policy for chain " ++ chain ++ " not found"
+    --TODO: theorem
     let unfolded = Isabelle.unfold_ruleset_CHAIN chain policy $ Isabelle.map_of_string (Isabelle.rewrite_Goto fw)
     when debug $ do putStrLn $ show $ fw
                     putStrLn $ "Default Policies: " ++ show defaultPolicies
