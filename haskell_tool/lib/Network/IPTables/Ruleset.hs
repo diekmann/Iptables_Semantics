@@ -103,6 +103,7 @@ loadUnfoldedRuleset debug table chain res = do
     let policy = case M.lookup chain defaultPolicies of
                     Just policy -> policy
                     Nothing -> error $ "Default policy for chain " ++ chain ++ " not found"
+    --TODO: theorem
     let unfolded = Isabelle.unfold_ruleset_CHAIN chain policy $ Isabelle.map_of_string (Isabelle.rewrite_Goto fw)
     when debug $ do putStrLn $ show $ fw
                     putStrLn $ "Default Policies: " ++ show defaultPolicies
