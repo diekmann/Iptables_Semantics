@@ -5,11 +5,15 @@ FFFUU -- Fancy Formal Firewall Universal Understander
 
 ![FFFUU logo](http://i.imgur.com/qc4dNKl.png "FFFUU")
 
+
+[![Build Status](https://travis-ci.org/diekmann/Iptables_Semantics.svg)](https://travis-ci.org/diekmann/Iptables_Semantics)
+
 ## Precompiled binaries
 
-Binaries created on every push can be obtained from [Bintray](https://bintray.com/fffuu/binaries/nightly/nightly/view).
+A pre-compiled binary of `fffuu` can be obtained from [Bintray](https://bintray.com/fffuu/binaries/nightly/nightly/view). 
+A new binary is created on every push to master.
 
-## Installation
+## Building from Source
 
 Build uses `cabal` and supports the GHC 7.8.x and 7.10.x series.
 To get started, use the following commands:
@@ -17,7 +21,7 @@ To get started, use the following commands:
 ```
 $ cabal update
 $ cabal sandbox init
-$ cabal install --only-dependencies
+$ cabal install --only-dependencies --enable-tests
 $ cabal build
 ```
 
