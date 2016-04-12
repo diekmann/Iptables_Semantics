@@ -346,7 +346,7 @@ theorem transform_simple_fw_upper:
       by(simp add: packet_assume_new_def ctstate_assume_new_not_has_CT_State)
     with transform_upper_closure(4)[OF s1, where disc=is_CT_State] have
       "\<forall>m\<in>get_match ` set (upper_closure (packet_assume_new rs)). \<not> has_disc is_CT_State m"
-      by fastforce
+      by simp
     with abstract_primitive_preserves_nodisc[where disc'="is_CT_State"] have "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc is_CT_State m"
       apply(intro optimize_matches_preserves)
       apply(simp add: abstract_for_simple_firewall_def)
@@ -370,7 +370,6 @@ theorem transform_simple_fw_upper:
     from transform_upper_closure(3)[OF s3] have "\<forall>m\<in>get_match ` set ?rs'.
      normalized_nnf_match m \<and> normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" .
     with r have normalized: "normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" by fastforce
-
 
     from transform_upper_closure(5)[OF s3] iface_in iface_out protocols have "\<forall>m\<in>get_match ` set ?rs'.
      \<not> has_disc_negated is_Iiface False m \<and> \<not> has_disc_negated is_Oiface False m \<and> \<not> has_disc_negated is_Prot False m" by simp (*500ms*)
@@ -532,7 +531,6 @@ theorem transform_simple_fw_lower:
   qed
 
 
-(*TODO: theorem!*)
 definition "to_simple_firewall_without_interfaces ipassmt rs \<equiv>
     to_simple_firewall
     (upper_closure
@@ -542,6 +540,253 @@ definition "to_simple_firewall_without_interfaces ipassmt rs \<equiv>
     (iface_try_rewrite ipassmt
     (upper_closure
     (packet_assume_new rs)))))))"
+
+
+
+(*basically a copy&paste from transform_simple_fw_upper. but this one is way cleaner! refactor the other using this!*)
+theorem to_simple_firewall_without_interfaces:
+  defines "newpkt p \<equiv> match_tcp_flags ipt_tcp_syn (p_tcp_flags p) \<and> p_tag_ctstate p = CT_New"
+  assumes simplers: "simple_ruleset rs"
+
+      --"well-formed ipassmt"
+      and wf_ipassmt1: "ipassmt_sanity_nowildcards (map_of ipassmt)" and wf_ipassmt2: "distinct (map fst ipassmt)"
+      --"There are no spoofed packets (probably by rp_filter or our checker).
+         This assumption implies that ipassmt lists ALL interfaces (!!)."
+      and nospoofing: "\<forall>(p::simple_packet). \<exists>ips. (map_of ipassmt) (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipv4cidr_union_set (set ips)"
+
+  --"the set of new packets, which are accepted is an overapproximations"
+  shows "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
+         {p. simple_fw (to_simple_firewall_without_interfaces ipassmt rs) p = Decision FinalAllow \<and> newpkt p}"
+
+  and "\<forall>m \<in> match_sel ` set (to_simple_firewall_without_interfaces ipassmt rs). iiface m = ifaceAny \<and> oiface m = ifaceAny"
+  proof -
+    let ?rs1="packet_assume_new rs"
+    let ?rs2="upper_closure ?rs1"
+    let ?rs3="iface_try_rewrite ipassmt ?rs2"
+    let ?rs4="upper_closure ?rs3"
+    let ?rs5="optimize_matches abstract_for_simple_firewall ?rs4"
+    let ?rs6="optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a)) ?rs5"
+    let ?rs7="upper_closure ?rs6"
+    let ?\<gamma>="(common_matcher, in_doubt_allow)"
+
+    have "to_simple_firewall_without_interfaces ipassmt rs = to_simple_firewall ?rs7"
+      by(simp add: to_simple_firewall_without_interfaces_def)
+
+    from packet_assume_new_simple_ruleset[OF simplers] have s1: "simple_ruleset ?rs1" .
+    from transform_upper_closure(2)[OF s1] have s2: "simple_ruleset ?rs2" .
+    from iface_try_rewrite_simplers[OF s2] have s3: "simple_ruleset ?rs3" .
+    from transform_upper_closure(2)[OF s3] have s4: "simple_ruleset ?rs4" .
+    from optimize_matches_simple_ruleset[OF s4] have s5: "simple_ruleset ?rs5" .
+    from optimize_matches_simple_ruleset[OF s5] have s6: "simple_ruleset ?rs6" .
+    from transform_upper_closure(2)[OF s6] have s7: "simple_ruleset ?rs7" .
+
+    from transform_upper_closure(3)[OF s1] have nnf2: "\<forall>m\<in>get_match ` set ?rs2. normalized_nnf_match m" by simp
+    from transform_upper_closure(3)[OF s3] have nnf4: "\<forall>m\<in>get_match ` set ?rs4. normalized_nnf_match m" by simp
+    have nnf5: "\<forall>m\<in>get_match ` set ?rs5. normalized_nnf_match m"
+      apply(intro optimize_matches_preserves)
+      apply(simp add: abstract_for_simple_firewall_def)
+      apply(rule Primitive_Abstract.abstract_primitive_preserves_normalized(5))
+      using nnf4 by(simp)
+    have nnf6: "\<forall>m\<in>get_match ` set ?rs6. normalized_nnf_match m"
+      apply(intro optimize_matches_preserves)
+      apply(rule Primitive_Abstract.abstract_primitive_preserves_normalized(5))
+      using nnf5 by(simp)
+    from transform_upper_closure(3)[OF s6] have nnf7: "\<forall>m\<in>get_match ` set ?rs7. normalized_nnf_match m" by simp
+
+
+    --{*subgoal @{term "check_simple_fw_preconditions ?rs7"}*}
+    { fix m a
+      assume r: "Rule m a \<in> set ?rs7"
+  
+      from s7 r have a: "(a = action.Accept \<or> a = action.Drop)" by(auto simp add: simple_ruleset_def)
+      
+      (*have "\<And>m. m \<in> get_match ` set ?rs1 \<Longrightarrow> \<not> has_disc is_CT_State m"
+        by(simp add: packet_assume_new_def ctstate_assume_new_not_has_CT_State)
+      with transform_upper_closure(4)[OF s1, where disc=is_CT_State] have
+        "\<forall>m\<in>get_match ` set ?rs2. \<not> has_disc is_CT_State m"
+        by simp
+      hence "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc is_CT_State m"
+        by(intro iface_try_rewrite_preserves_nodisc) simp+
+      with transform_upper_closure(4)[OF s3, where disc=is_CT_State]
+      have "\<forall>m\<in>get_match ` set ?rs4. \<not> has_disc is_CT_State m" by simp
+      with abstract_primitive_preserves_nodisc[where disc'="is_CT_State"] have "\<forall>m\<in>get_match ` set ?rs5. \<not> has_disc is_CT_State m"
+        apply(intro optimize_matches_preserves)
+        apply(simp add: abstract_for_simple_firewall_def)
+        done
+      with abstract_primitive_preserves_nodisc[where disc'="is_CT_State"] have "\<forall>m\<in>get_match ` set ?rs6. \<not> has_disc is_CT_State m"
+        by(intro optimize_matches_preserves) simp
+      with transform_upper_closure(4)[OF s6, where disc=is_CT_State] have "\<forall>m\<in>get_match ` set ?rs7. \<not> has_disc is_CT_State m" by simp
+      with r have no_CT: "\<not> has_disc is_CT_State m" by fastforce*)
+  
+      from abstract_for_simple_firewall_hasdisc have "\<forall>m\<in>get_match ` set ?rs5. \<not> has_disc is_CT_State m"
+        by(intro optimize_matches_preserves, simp)
+      with abstract_primitive_preserves_nodisc[where disc'="is_CT_State"] have "\<forall>m\<in>get_match ` set ?rs6. \<not> has_disc is_CT_State m"
+        by(intro optimize_matches_preserves) simp
+      with transform_upper_closure(4)[OF s6, where disc=is_CT_State] have "\<forall>m\<in>get_match ` set ?rs7. \<not> has_disc is_CT_State m" by simp
+      with r have no_CT: "\<not> has_disc is_CT_State m" by fastforce
+
+
+      from abstract_for_simple_firewall_hasdisc have "\<forall>m\<in>get_match ` set ?rs5. \<not> has_disc is_L4_Flags m"
+        by(intro optimize_matches_preserves, simp)
+      with abstract_primitive_preserves_nodisc[where disc'="is_L4_Flags"] have "\<forall>m\<in>get_match ` set ?rs6. \<not> has_disc is_L4_Flags m"
+        by(intro optimize_matches_preserves) simp
+      with transform_upper_closure(4)[OF s6, where disc=is_L4_Flags] have "\<forall>m\<in>get_match ` set ?rs7. \<not> has_disc is_L4_Flags m" by simp
+      with r have no_L4_Flags: "\<not> has_disc is_L4_Flags m" by fastforce
+
+
+      have "\<forall>m\<in>get_match ` set ?rs6. \<not> has_disc is_Iiface m"
+        by(intro optimize_matches_preserves abstract_primitive_nodisc) simp+
+      with transform_upper_closure(4)[OF s6, where disc=is_Iiface] have "\<forall>m\<in>get_match ` set ?rs7. \<not> has_disc is_Iiface m" by simp
+      with r have no_Iiface: "\<not> has_disc is_Iiface m" by fastforce
+
+      have "\<forall>m\<in>get_match ` set ?rs6. \<not> has_disc is_Oiface m"
+        by(intro optimize_matches_preserves abstract_primitive_nodisc) simp+
+      with transform_upper_closure(4)[OF s6, where disc=is_Oiface] have "\<forall>m\<in>get_match ` set ?rs7. \<not> has_disc is_Oiface m" by simp
+      with r have no_Oiface: "\<not> has_disc is_Oiface m" by fastforce
+
+      from no_Iiface no_Oiface have normalized_ifaces: "normalized_ifaces m"
+        using has_disc_negated_disj_split has_disc_negated_has_disc normalized_ifaces_def by blast
+
+
+      from nnf4 abstract_for_simple_firewall_negated_ifaces_prots(2) have 
+        "\<forall>m\<in>get_match ` set ?rs5. \<not> has_disc_negated is_Prot False m"
+        by(intro optimize_matches_preserves) simp
+      hence "\<forall>m\<in>get_match ` set ?rs6. \<not> has_disc_negated is_Prot False m"
+        by(intro optimize_matches_preserves abstract_primitive_preserves_nodisc_nedgated) simp+
+      hence "\<forall>m\<in>get_match ` set ?rs7. \<not> has_disc_negated is_Prot False m"
+       by(intro transform_upper_closure(5)[OF s6]) (simp_all)
+      with r have protocols: "normalized_protocols m" unfolding normalized_protocols_def by fastforce
+
+      from transform_upper_closure(3)[OF s6] r have normalized:
+        "normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" by fastforce
+  
+      from no_CT no_L4_Flags s7 normalized a normalized_ifaces protocols no_Iiface no_Oiface 
+         have "normalized_src_ports m \<and>
+               normalized_dst_ports m \<and>
+               normalized_src_ips m \<and>
+               normalized_dst_ips m \<and>
+               normalized_ifaces m \<and>
+               normalized_protocols m \<and>
+               \<not> has_disc is_L4_Flags m \<and>
+               \<not> has_disc is_CT_State m \<and>
+               \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop)"
+        and "\<not> has_disc is_Iiface m" and "\<not> has_disc is_Oiface m"
+        by(simp)+
+    }
+    hence simple_fw_preconditions: "check_simple_fw_preconditions ?rs7"
+      and no_interfaces: "Rule m a \<in> set ?rs7 \<Longrightarrow> \<not> has_disc is_Iiface m \<and> \<not> has_disc is_Oiface m" for m a
+    apply -
+     subgoal unfolding check_simple_fw_preconditions_def by(clarify, rename_tac r, case_tac r, rename_tac m a, simp)
+    by simp
+
+
+    have "{p. ?\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} =
+          {p. ?\<gamma>,p\<turnstile> \<langle>?rs1, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
+      apply(subst approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF s1]])
+      apply(subst approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]])
+      using packet_assume_new newpkt_def by auto
+    also have "{p. ?\<gamma>,p\<turnstile> \<langle>?rs1, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} =
+          {p. ?\<gamma>,p\<turnstile> \<langle>?rs2, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
+      apply(subst transform_upper_closure(1)[OF s1])
+      by simp
+    also have "\<dots> = {p. ?\<gamma>,p\<turnstile> \<langle>?rs3, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
+      apply(subst iface_try_rewrite[OF s2 nnf2])
+      using wf_ipassmt1 wf_ipassmt2 nospoofing by simp_all (*TODO: ich wette wenn ich mit SQRL merge geht hier was wegen dem simple_packet kaputt*)
+    also have "\<dots> = {p. ?\<gamma>,p\<turnstile> \<langle>?rs4, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
+      apply(subst transform_upper_closure(1)[OF s3])
+      by simp
+    finally have 1: "{p. ?\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} =
+                  {p. ?\<gamma>,p\<turnstile> \<langle>?rs4, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}" .
+    from abstract_primitive_in_doubt_allow_generic(2)[OF primitive_matcher_generic_common_matcher nnf4 s4] have 2:
+         "{p. ?\<gamma>,p\<turnstile> \<langle>?rs4, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
+          {p. ?\<gamma>,p\<turnstile> \<langle>?rs5, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
+      by(auto simp add: abstract_for_simple_firewall_def)
+    from abstract_primitive_in_doubt_allow_generic(2)[OF primitive_matcher_generic_common_matcher nnf5 s5] have 3:
+         "{p. ?\<gamma>,p\<turnstile> \<langle>?rs5, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
+          {p. ?\<gamma>,p\<turnstile> \<langle>?rs6, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
+      by(auto simp add: abstract_for_simple_firewall_def)
+    have 4: "{p. ?\<gamma>,p\<turnstile> \<langle>?rs6, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} =
+             {p. ?\<gamma>,p\<turnstile> \<langle>?rs7, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
+      apply(subst transform_upper_closure(1)[OF s6])
+      by simp
+
+      
+    let ?fw="\<lambda>rs p. approximating_bigstep_fun ?\<gamma> p rs Undecided"
+    have approximating_rule: "\<And>p. ?\<gamma>,p\<turnstile> \<langle>?rs7, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<longleftrightarrow> ?fw ?rs7 p = Decision FinalAllow"
+      using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF s7]] by fast
+    
+    from 1 2 3 4 have "{p. ?\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
+       {p. ?\<gamma>,p\<turnstile> \<langle>?rs7, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}" by blast
+    
+    thus "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
+         {p. simple_fw (to_simple_firewall_without_interfaces ipassmt rs) p = Decision FinalAllow \<and> newpkt p}"
+      unfolding to_simple_firewall_without_interfaces_def
+      using to_simple_firewall[OF simple_fw_preconditions] approximating_rule by simp
+
+    (*the following proof to show that we don't have interfaces left is MADNESS*)
+
+    have common_primitive_match_to_simple_match_nodisc: 
+      "Some sm = common_primitive_match_to_simple_match m' \<Longrightarrow>
+       \<not> has_disc is_Iiface m' \<and> \<not> has_disc is_Oiface m' \<Longrightarrow> iiface sm = ifaceAny \<and> oiface sm = ifaceAny"
+    if prems: "check_simple_fw_preconditions [Rule m' a']" for m' a' sm
+    using prems proof(induction m' arbitrary: sm rule: common_primitive_match_to_simple_match.induct)
+    case 18 thus ?case
+    by(simp add: check_simple_fw_preconditions_def normalized_protocols_def)
+    next
+    case (13 m1 m2) thus ?case
+      (*This is madness!!*)
+      apply(simp add: check_simple_fw_preconditions_def)
+      apply(case_tac "common_primitive_match_to_simple_match m1")
+       apply(simp; fail)
+      apply(case_tac "common_primitive_match_to_simple_match m2")
+       apply(simp; fail)
+      apply simp
+      apply(rename_tac a aa)
+      apply(case_tac a)
+      apply(case_tac aa)
+      apply(simp)
+      apply(simp split: option.split_asm)
+      using iface_conjunct_ifaceAny normalized_ifaces_def normalized_protocols_def by fastforce
+    qed(simp_all add: check_simple_fw_preconditions_def simple_match_any_def)
+
+    have to_simple_firewall_no_ifaces: "(\<And>m a. Rule m a \<in> set rs \<Longrightarrow> \<not> has_disc is_Iiface m \<and> \<not> has_disc is_Oiface m) \<Longrightarrow> 
+        \<forall>m\<in>match_sel ` set (to_simple_firewall rs). iiface m = ifaceAny \<and> oiface m = ifaceAny"
+      if pre1: "check_simple_fw_preconditions rs" for rs
+    using pre1 apply(induction rs)
+     apply(simp add: to_simple_firewall_simps; fail)
+    apply simp
+    apply(subgoal_tac "check_simple_fw_preconditions rs")
+     prefer 2
+     subgoal by(simp add: check_simple_fw_preconditions_def)
+    apply(rename_tac r rs, case_tac r)
+    apply simp
+    apply(simp add: to_simple_firewall_simps)
+    apply(simp split: option.split)
+    apply(intro conjI)
+     apply blast
+    apply(intro allI impI)
+    apply(subgoal_tac "(\<forall>m\<in>set (to_simple_firewall rs). iiface (match_sel m) = ifaceAny \<and> oiface (match_sel m) = ifaceAny)")
+     prefer 2
+     subgoal by blast
+    apply(simp)
+    apply(rename_tac m' a' sm)
+    apply(subgoal_tac " \<not> has_disc is_Iiface m' \<and> \<not> has_disc is_Oiface m'")
+     prefer 2
+     subgoal by blast
+    apply(subgoal_tac "check_simple_fw_preconditions [Rule m' a']")
+     prefer 2
+     subgoal by(simp add: check_simple_fw_preconditions_def)
+    apply(drule common_primitive_match_to_simple_match_nodisc)
+      apply(simp_all)
+    done
+   
+    from to_simple_firewall_no_ifaces[OF simple_fw_preconditions no_interfaces] show 
+      "\<forall>m \<in> match_sel ` set (to_simple_firewall_without_interfaces ipassmt rs). iiface m = ifaceAny \<and> oiface m = ifaceAny"
+      unfolding to_simple_firewall_without_interfaces_def
+      by(simp add: to_simple_firewall_def simple_fw_preconditions)
+      
+  qed
+
 
 
 end

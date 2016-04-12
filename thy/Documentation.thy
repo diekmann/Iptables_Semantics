@@ -55,6 +55,12 @@ We support translating to a more permissive version (a version that accepts more
 
 @{thm new_packets_to_simple_firewall_overapproximation [no_vars]}
 
+
+
+There is also a different approach to translate to the simple firewall which removes all matches on interfaces:
+
+@{thm to_simple_firewall_without_interfaces[no_vars]}
+
 *}
 
 
