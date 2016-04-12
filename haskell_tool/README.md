@@ -222,11 +222,9 @@ Here are the service matrices:
 
 ```
 =========== TCP port 10000->22 =========
-Nodes |-> :
-0.0.0.0 |-> {0.0.0.0 .. 255.255.255.255}
+a |-> {0.0.0.0 .. 255.255.255.255}
 
-("Edges",":")
-("0.0.0.0","0.0.0.0")
+("a","a")
 ```
 
 This one is for ssh. 
@@ -235,10 +233,10 @@ Here, we only have one node. This one node corresponds to the complete IPv4 addr
 This means, all IP addresses are treated equally for ssh. 
 Our policy wants them all to be dropped. 
 Let's see.
-Nodes are given the name of the lowest IP address. Here, it is `0.0.0.0`. 
+Nodes are given unique names. Here, it is `a`.
 Next, the edges are defined. 
 Each pair `(a,b)` in the edges means that the IP range which corresponds to `a` can access `b`. 
-Here we have `("0.0.0.0","0.0.0.0")`. 
+Here we have `("a","a")`. 
 This means everyone can access everyone. 
 Wait what? We want ssh to be blocked. 
 Though it is blocked in the `multiport` rule, this rule is shadowed by the third rule of `DEFAULT_INPUT` which allows ssh. 
@@ -254,36 +252,31 @@ Let's look at the next service matrix.
 
 ```
 =========== TCP port 10000->8080 =========
-Nodes |-> :
-127.0.0.0 |-> {127.0.0.0 .. 127.255.255.255} u {192.168.0.0 .. 192.168.255.255}
-0.0.0.0 |-> {0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 192.167.255.255} u {192.169.0.0 .. 255.255.255.255}
+a |-> {127.0.0.0 .. 127.255.255.255} u {192.168.0.0 .. 192.168.255.255}
+b |-> {0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 192.167.255.255} u {192.169.0.0 .. 255.255.255.255}
 
-("Edges",":")
-("127.0.0.0","127.0.0.0")
-("127.0.0.0","0.0.0.0")
+("a","a")
+("a","b")
 ```
 This one is for the webinterface at port 8080. 
 Now we have two nodes, which means the firewall distinguishes two different classes of IP addresses. 
-The first class of IP address (called `127.0.0.0`) consists of all localhost IPs and the local 192.168.0.0/24 range. 
+The first class of IP address (called `a`) consists of all localhost IPs and the local 192.168.0.0/24 range. 
 We only wanted the webinterface reachable from the local 192.168.0.0/24 range. 
 The first rule of `DEFAULT_INPUT` additionally accepts everything from `lo`, so this should be fine.
-The second node (called `0.0.0.0`) is the rest of the IPv4 address space. We want this to be dropped. 
+The second node (called `b`) is the rest of the IPv4 address space. We want this to be dropped. 
 Let's look at the edges.
-As we can see in the first vertex `("127.0.0.0","127.0.0.0")`: Only the good `lo` + local LAN range can reach the machine (which is itself located in the `"127.0.0.0"` range). 
-Don't get confused by the name `"127.0.0.0"`, it corresponds to lo **and** 192.168.0.0/24.
-The second edge `("127.0.0.0","0.0.0.0")` basically tells: The NAS itself can freely access any IP (which is fine).
+As we can see in the first vertex `("a","a")`: Only the good `lo` + local LAN range can reach the machine (which is itself located in the `"a"` range). 
+The second edge `("a","b")` basically tells: The NAS itself can freely access any IP (which is fine).
 
 
 Let's look at the third matrix.
 ```
 =========== TCP port 10000->80 =========
-Nodes |-> :
-0.0.0.0 |-> {0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 255.255.255.255}
-127.0.0.0 |-> {127.0.0.0 .. 127.255.255.255}
+a |-> {0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 255.255.255.255}
+b |-> {127.0.0.0 .. 127.255.255.255}
 
-("Edges",":")
-("127.0.0.0","0.0.0.0")
-("127.0.0.0","127.0.0.0")
+("b","a")
+("b","b")
 ```
 
 This one is for port 80, which should be dropped.
@@ -298,4 +291,3 @@ Indeed, port 80 is blocked (except for packets from `lo`).
 Q: The tool doesn't show anything for my firewall.
 
 A: Our tool loads the `filter` table and the `FORWARD` chain by default. If you have a host-based firewall, you may probably want to load the `INPUT` chain.
-
