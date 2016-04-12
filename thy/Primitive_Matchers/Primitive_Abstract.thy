@@ -41,7 +41,19 @@ lemma abstract_primitive_preserves_normalized:
 lemma abstract_primitive_preserves_nodisc:
   "\<not> has_disc disc' m \<Longrightarrow> (\<forall>str. \<not> disc' (Extra str)) \<Longrightarrow> \<not> has_disc disc' (abstract_primitive disc m)"
   by(induction disc m rule: abstract_primitive.induct)(simp_all)
+lemma abstract_primitive_preserves_nodisc_nedgated:
+  "\<not> has_disc_negated disc' neg m \<Longrightarrow> (\<forall>str. \<not> disc' (Extra str)) \<Longrightarrow> \<not> has_disc_negated disc' neg (abstract_primitive disc m)"
+  apply(induction disc' neg m rule: has_disc_negated.induct)
+     apply(simp_all)
+  apply(rename_tac m)
+  apply(case_tac m)
+     apply(simp_all)
+  done
 
+lemma abstract_primitive_nodisc:
+  "\<forall>x. disc' x \<longrightarrow> disc (Pos x) \<and> disc (Neg x)  \<Longrightarrow> (\<forall>str. \<not> disc' (Extra str)) \<Longrightarrow> \<not> has_disc disc' (abstract_primitive disc m)"
+  by(induction disc m rule: abstract_primitive.induct) auto
+  
 
 
 text{*The function @{const ctstate_assume_state} can be used to fix a state and hence remove all state matches from the ruleset.
