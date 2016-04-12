@@ -5,6 +5,10 @@ FFFUU -- Fancy Formal Firewall Universal Understander
 
 ![FFFUU logo](http://i.imgur.com/qc4dNKl.png "FFFUU")
 
+## Precompiled binaries
+
+Binaries created on every push can be obtained from [Bintray](https://bintray.com/fffuu/binaries/nightly/nightly/view).
+
 ## Installation
 
 Build uses `cabal` and supports the GHC 7.8.x and 7.10.x series.
