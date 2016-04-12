@@ -87,6 +87,7 @@ rulesetLookup table r = case M.lookup table (rsetTables r)
 -- input: ruleset from the parser
 -- output: rule list our Isabelle algorithms can work on
 -- may throw an error; is IO because it dumps debug info at you :)
+-- verbose_flag -> table -> chain -> pased_ruleset -> isabelle_ruleset_and_debugging_output
 loadUnfoldedRuleset :: Bool -> String -> String -> Ruleset -> IO [Isabelle.Rule Isabelle.Common_primitive]
 loadUnfoldedRuleset debug table chain res = do
     when (table /= "filter") $ do 
