@@ -712,4 +712,48 @@ lemma "process_call [''X'' \<mapsto> [Rule (Match b) Return, Rule (Match c) Acce
        [Rule (MatchAnd (Match a) (MatchAnd (MatchNot (Match b)) (Match c))) Accept]" by (simp add: add_match_def)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+text{*repeat the application at most n times (param 1) until it stabilize*}
+fun repeat_stabilize :: "nat \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'a" where
+  "repeat_stabilize 0 _ v = v" |
+  "repeat_stabilize (Suc n) f v = (let v_new = f v in if v = v_new then v else repeat_stabilize n f v_new)"
+
+lemma "repeat_stabilize n f v = (f^^n) v"
+  proof(induction n arbitrary: v)
+  case (Suc n)
+    have "f v = v \<Longrightarrow> (f^^n) v = v" by(induction n) simp_all
+    with Suc show ?case by(simp add: Let_def funpow_swap1)
+  qed(simp)
+
+
+
+(*can we replace the constant number of process_call calls with number of chain decls *)
+definition unfold_ruleset_CHAIN :: "string \<Rightarrow> action \<Rightarrow> 'a ruleset \<Rightarrow> 'a rule list" where
+"unfold_ruleset_CHAIN chain_name default_action rs = check_simple_ruleset
+  (repeat_stabilize 1000 (optimize_matches opt_MatchAny_match_expr)
+    (optimize_matches optimize_primitive_univ
+      (rw_Reject (rm_LogEmpty (repeat_stabilize 10000 (process_call rs)
+        [Rule MatchAny (Call chain_name), Rule MatchAny default_action]
+  )))))"
+
+(*TODO: theorem for documentation!
+  TODO: safe version for code which reports errors*)
+(*TODO: move, but where?*)
+(*TODO generic lemma for arbitrary \<gamma>, then generic def (optimize_primitive_univ yet undefined) def can be moved to the unfolding*)
+lemma "sanity_wf_ruleset \<Gamma> \<Longrightarrow>
+    (map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>unfold_ruleset_CHAIN chain default_action rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow>
+    (map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>[Rule MatchAny (Call chain_name), Rule MatchAny default_action], s\<rangle> \<Rightarrow> t"
+nitpick
+oops
 end

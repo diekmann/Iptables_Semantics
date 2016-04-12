@@ -1114,4 +1114,88 @@ end
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+text{*The actions Log and Empty do not modify the packet processing in any way. They can be removed.*}
+fun rm_LogEmpty :: "'a rule list \<Rightarrow> 'a rule list" where
+  "rm_LogEmpty [] = []" |
+  "rm_LogEmpty ((Rule _ Empty)#rs) = rm_LogEmpty rs" |
+  "rm_LogEmpty ((Rule _ Log)#rs) = rm_LogEmpty rs" |
+  "rm_LogEmpty (r#rs) = r # rm_LogEmpty rs"
+
+lemma rm_LogEmpty_filter: "rm_LogEmpty rs = filter (\<lambda>r. get_action r \<noteq> Log \<and> get_action r \<noteq> Empty) rs"
+ by(induction rs rule: rm_LogEmpty.induct) (simp_all)
+
+
+lemma rm_LogEmpty_seq: "rm_LogEmpty (rs1@rs2) = rm_LogEmpty rs1 @ rm_LogEmpty rs2"
+  proof(induction rs1)
+  case Nil thus ?case by simp
+  next
+  case (Cons r rs) thus ?case
+    apply(cases r, rename_tac m a)
+    apply(simp)
+    apply(case_tac a)
+            apply(simp_all)
+    done
+  qed
+
+
+
+
+lemma iptables_bigstep_rm_LogEmpty: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rm_LogEmpty rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+proof(induction rs arbitrary: s)
+case Nil thus ?case by(simp)
+next
+case (Cons r rs)
+  have step_IH: "(\<And>s. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs1, s\<rangle> \<Rightarrow> t = \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs2, s\<rangle> \<Rightarrow> t) \<Longrightarrow>
+         \<Gamma>,\<gamma>,p\<turnstile> \<langle>r#rs1, s\<rangle> \<Rightarrow> t = \<Gamma>,\<gamma>,p\<turnstile> \<langle>r#rs2, s\<rangle> \<Rightarrow> t" for rs1 rs2 r
+  by (meson seq'_cons seqE_cons)
+  have case_log: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m Log # rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" for m
+    apply(rule iffI)
+     apply(erule seqE_cons)
+     apply (metis append_Nil log_remove seq')
+    apply(rule_tac t=s in seq'_cons)
+     apply(cases s)
+      apply(cases "matches \<gamma> m p")
+       apply(simp add: log; fail)
+      apply(simp add: nomatch; fail)
+     apply(simp add: decision; fail)
+    apply simp
+   done
+  have case_empty: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m Empty # rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" for m
+    apply(rule iffI)
+     apply(erule seqE_cons)
+     apply (metis append_Nil empty_empty seq')
+    apply(rule_tac t=s in seq'_cons)
+     apply(cases s)
+      apply(cases "matches \<gamma> m p")
+       apply(simp add: empty; fail)
+      apply(simp add: nomatch; fail)
+     apply(simp add: decision; fail)
+    apply simp
+   done
+
+  from Cons show ?case  
+  apply(cases r, rename_tac m a)
+  apply(case_tac a)
+          apply(simp_all)
+          apply(simp_all cong: step_IH)
+   apply(simp_all add: case_log case_empty)
+  done
+qed
+
+
+
 end

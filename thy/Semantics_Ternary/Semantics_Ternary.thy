@@ -438,6 +438,8 @@ lemma approximating_bigstep_deterministic: "\<lbrakk> \<gamma>,p\<turnstile> \<l
   qed(auto dest: approximating_bigstepD)
 
 
+
+(*Okay, now we basically have a copy of those :( *)
 text{*The actions Log and Empty do not modify the packet processing in any way. They can be removed.*}
 fun rm_LogEmpty :: "'a rule list \<Rightarrow> 'a rule list" where
   "rm_LogEmpty [] = []" |
@@ -447,6 +449,18 @@ fun rm_LogEmpty :: "'a rule list \<Rightarrow> 'a rule list" where
 
 lemma rm_LogEmpty_filter: "rm_LogEmpty rs = filter (\<lambda>r. get_action r \<noteq> Log \<and> get_action r \<noteq> Empty) rs"
  by(induction rs rule: rm_LogEmpty.induct) (simp_all)
+
+lemma rm_LogEmpty_fun_semantics: 
+  "approximating_bigstep_fun \<gamma> p (rm_LogEmpty rs) s = approximating_bigstep_fun \<gamma> p rs s"
+  proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
+    case Empty thus ?case by(simp)
+    next
+    case Decision thus ?case by(simp add: Decision_approximating_bigstep_fun)
+    next
+    case (Nomatch \<gamma> p m a rs) thus ?case by(cases a,simp_all)
+    next
+    case (Match \<gamma> p m a rs) thus ?case by(cases a,simp_all)
+  qed
 
 lemma rm_LogEmpty_fun_semantics: 
   "approximating_bigstep_fun \<gamma> p (rm_LogEmpty rs) s = approximating_bigstep_fun \<gamma> p rs s"
@@ -484,7 +498,7 @@ apply(rule iffI)
  apply(rename_tac m a)
  apply(case_tac a)
          apply(simp_all)
-         apply(auto intro: approximating_bigstep.intros)
+         apply(auto intro: approximating_bigstep.intros )
          apply(erule seqE_fst, simp add: seq_fst)
         apply(erule seqE_fst, simp add: seq_fst)
        apply (metis decision log nomatch_fst seq_fst state.exhaust)
