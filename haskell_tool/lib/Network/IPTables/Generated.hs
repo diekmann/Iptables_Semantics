@@ -3446,22 +3446,19 @@ access_matrix_pretty_code c rs =
            w = build_ip_partition c rs;
            r = map getOneIp w;
            _ = all_pairs r;
-         } in (("Nodes", ":") :
-                 zip (map ipv4addr_toString r)
-                   (map ipv4addr_wordinterval_toString w),
-                ("Edges", ":") :
-                  map_filter
-                    (\ x ->
-                      (if let {
-                            (s, d) = x;
-                          } in equal_state (runFw s d c rs)
-                                 (Decision FinalAllow)
-                        then Just (let {
-                                     (xa, y) = x;
-                                   } in (ipv4addr_toString xa,
-  ipv4addr_toString y))
-                        else Nothing))
-                    (all_pairs r)));
+         } in (zip (map ipv4addr_toString r)
+                 (map ipv4addr_wordinterval_toString w),
+                map_filter
+                  (\ x ->
+                    (if let {
+                          (s, d) = x;
+                        } in equal_state (runFw s d c rs) (Decision FinalAllow)
+                      then Just (let {
+                                   (xa, y) = x;
+                                 } in (ipv4addr_toString xa,
+ipv4addr_toString y))
+                      else Nothing))
+                  (all_pairs r)));
 
 access_matrix_pretty ::
   Parts_connection_ext () ->
