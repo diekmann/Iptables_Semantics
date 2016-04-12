@@ -1,5 +1,7 @@
 module Common.Util where
 
+import Control.Applicative ((<*>))
+import Data.Functor ((<$>))
 import qualified Data.List as L
 import qualified Text.Parsec.Error --Windows line ending debug
 
