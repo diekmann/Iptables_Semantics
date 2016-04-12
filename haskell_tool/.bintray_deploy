@@ -1,0 +1,21 @@
+{
+    "package": {
+        "name": "nightly",
+        "repo": "binaries",
+        "subject": "fffuu"
+    },
+
+    "version": {
+        "name": "nightly"
+    },
+
+    "files": [
+        {
+          "includePattern": "haskell_tool/dist/build/fffuu/fffuu",
+          "uploadPattern": "fffuu",
+          "matrixParams": {
+              "override": 1
+          }
+        }],
+    "publish": true
+}

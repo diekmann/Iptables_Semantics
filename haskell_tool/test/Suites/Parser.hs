@@ -1,12 +1,13 @@
-module ParserTestSuite ( tests ) where
+module Suites.Parser ( tests ) where
 
-import Distribution.TestSuite
+import Data.Functor
 import Network.IPTables.Ruleset
 import Network.IPTables.Parser
 import Network.IPTables.IpassmtParser
-import qualified Data.Map as M
 import qualified Network.IPTables.Generated as Isabelle
 import Network.IPTables.Analysis as Analysis
+import Test.Tasty
+import Test.Tasty.HUnit as HU
 
 
 expected_result = "*filter\n\
@@ -99,25 +100,16 @@ expected_result = "*filter\n\
     \-A Terminal `ParsedAction -j REJECT'\n\
     \COMMIT"
 
-test_Parser_Test_data :: IO Progress
-test_Parser_Test_data = do
+test_parser_test_data = HU.testCase "parser_test_data" $ do
     let fileName = "../thy/Examples/Parser_Test/data/iptables-save"
     f <- readFile fileName
-    case parseIptablesSave fileName f of
-        Left err -> return $ Finished $ Fail (show err)
-        Right res -> do
-            --putStrLn $ show res
-            --putStrLn $ expected_result
-            if (show res) == expected_result then
-                return $ Finished Pass
-            else
-                return $ Finished $ Fail "(show res) != expected_result"
-
+    let result = show <$> parseIptablesSave fileName f
+    result @?= Right expected_result
 
 test_spoofing_certification table chain ipassmtString fileName expected_spoofing_result errormsg = do
     ipassmt <- case parseIpAssmt "<hardcoded>" ipassmtString of
         Left err -> do print err
-                       error $ "could not parse hard-coded ipassmt"
+                       error "could not parse hard-coded ipassmt"
         Right res -> do putStrLn "Parsed IpAssmt"
                         putStrLn (show res)
                         return $ ipAssmtToIsabelle res
@@ -125,7 +117,7 @@ test_spoofing_certification table chain ipassmtString fileName expected_spoofing
     f <- readFile fileName
     
     case parseIptablesSave fileName f of
-        Left err -> return $ Finished $ Fail (show err)
+        Left err -> error $ show err
         Right res -> do
             unfolded <- loadUnfoldedRuleset False table chain res
             let (warnings, spoofResult) = certifySpoofingProtection ipassmt unfolded
@@ -133,13 +125,11 @@ test_spoofing_certification table chain ipassmtString fileName expected_spoofing
             let computed_result = map (\ (iface, rslt) -> (show iface, rslt)) spoofResult
             putStrLn $ show computed_result
             if computed_result == expected_spoofing_result then
-                return $ Finished Pass
+                return ()
             else
-                return $ Finished $ Fail errormsg
+                error errormsg
 
-
-
-test_spoofing_SQRL = test_spoofing_certification "raw" "PREROUTING" ipassmt_sqrl_hardcoded rulesetFile expected_spoofing_result "SQRL Spoofing 2015 failed"
+test_spoofing_SQRL = HU.testCase "spoofing_SQRL" $ test_spoofing_certification "raw" "PREROUTING" ipassmt_sqrl_hardcoded rulesetFile expected_spoofing_result "SQRL Spoofing 2015 failed"
     where rulesetFile = "../thy/Examples/SQRL_Shorewall/2015_aug_iptables-save-spoofing-protection"
           expected_spoofing_result = [("ldit", True)
                                      , ("lmd", True)
@@ -217,8 +207,7 @@ ipassmt_i8_hardcoded  = "eth0 = [0.0.0.0-255.255.255.255]\n\
                          \  ]"
 
 
-test_spoofing_TUM_Net1 :: IO Progress
-test_spoofing_TUM_Net1 = test_spoofing_TUM_i8 rulesetFile expected_spoofing_result "computed_result != expected_spoofing_result (almost all interfaces should have spoofing protection)"
+test_spoofing_TUM_Net1 = HU.testCase "spoofing_TUM_Net1" $ test_spoofing_TUM_i8 rulesetFile expected_spoofing_result "computed_result != expected_spoofing_result (almost all interfaces should have spoofing protection)"
     where rulesetFile = "../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating" 
           expected_spoofing_result = [  ("eth0", True)
                             , ("foo", False)
@@ -245,7 +234,7 @@ test_spoofing_TUM_Net1 = test_spoofing_TUM_i8 rulesetFile expected_spoofing_resu
                             , ("eth1.1024", True)]
 
 
-test_spoofing_TUM_Net2 = test_spoofing_TUM_i8 rulesetFile expected_spoofing_result "computed_result != expected_spoofing_result (ifaces foo, 110, 97, 1024 must fail)"
+test_spoofing_TUM_Net2 = HU.testCase "spoofing_TUM_Net2" $ test_spoofing_TUM_i8 rulesetFile expected_spoofing_result "computed_result != expected_spoofing_result (ifaces foo, 110, 97, 1024 must fail)"
     where rulesetFile = "../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_14-14-46_cheating" 
           expected_spoofing_result = [  ("eth0", True)
                             , ("foo", False)
@@ -272,7 +261,7 @@ test_spoofing_TUM_Net2 = test_spoofing_TUM_i8 rulesetFile expected_spoofing_resu
                             , ("eth1.1024", False)]
 
 
-test_spoofing_TUM_Net3 = test_spoofing_TUM_i8 rulesetFile expected_spoofing_result "computed_result != expected_spoofing_result (only ifaces 96 and eth0 have protection)"
+test_spoofing_TUM_Net3 = HU.testCase "spoofing_TUM_Net3" $ test_spoofing_TUM_i8 rulesetFile expected_spoofing_result "computed_result != expected_spoofing_result (only ifaces 96 and eth0 have protection)"
     where rulesetFile = "../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-13_10-53-20_cheating"
           expected_spoofing_result = [  ("eth0", True)
                             , ("foo", False)
@@ -298,31 +287,29 @@ test_spoofing_TUM_Net3 = test_spoofing_TUM_i8 rulesetFile expected_spoofing_resu
                             , ("eth1.1025", False)
                             , ("eth1.1024", False)]
 
-
 test_service_matrix ipassmtMaybeString fileName expected_result errormsg = do 
     ipassmt <- case ipassmtMaybeString of
         Nothing -> return Isabelle.ipassmt_generic
         Just ipassmtString -> case parseIpAssmt "<hardcoded>" ipassmtString of
             Left err -> do print err
-                           error $ "could not parse hard-coded ipassmt"
+                           error "could not parse hard-coded ipassmt"
             Right res -> do putStrLn "Parsed IpAssmt"
                             putStrLn (show res)
                             return $ ipAssmtToIsabelle res
     f <- readFile fileName
     case parseIptablesSave ("file: "++fileName) f of
-        Left err -> return $ Finished $ Fail (show err)
+        Left err -> error $ show err
         Right res -> do
             unfolded <- loadUnfoldedRuleset False "filter" "FORWARD" res
             let service_matrix = Analysis.accessMatrix ipassmt unfolded 10000 22
             putStrLn $ show service_matrix
             if service_matrix == expected_result then
-                return $ Finished Pass
+                return ()
             else
-                return $ Finished $ Fail errormsg
+                error errormsg
 
 
-test_topoS_generated_service_matrix :: IO Progress
-test_topoS_generated_service_matrix = test_service_matrix Nothing rulesetFile expected_result errormsg
+test_topoS_generated_service_matrix = HU.testCase "test_topoS_generated_service_matrix" $ test_service_matrix Nothing rulesetFile expected_result errormsg
     where rulesetFile = "../thy/Examples/topoS_generated/imaginray_factory_network.iptables-save.by-linux-kernel"
           errormsg = "service marix topoS_generated differs"
           expected_result = ([("Nodes",":")
@@ -352,8 +339,7 @@ test_topoS_generated_service_matrix = test_service_matrix Nothing rulesetFile ex
             , ("10.0.0.2","10.0.0.1")
             ])
 
-test_i8_2015_service_matrix :: IO Progress
-test_i8_2015_service_matrix = test_service_matrix (Just ipassmt_i8_hardcoded) rulesetFile expected_result errormsg
+test_i8_2015_service_matrix = HU.testCase "test_i8_2015_service_matrix" $ test_service_matrix (Just ipassmt_i8_hardcoded) rulesetFile expected_result errormsg
     where rulesetFile = "../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating"
           errormsg = "service marix i8 iptables-save-2015-05-15_15-23-41_cheating differs"
           expected_result = ([("Nodes", ":")
@@ -418,64 +404,12 @@ test_i8_2015_service_matrix = test_service_matrix (Just ipassmt_i8_hardcoded) ru
                             , ("131.159.15.54","127.0.0.0")
                             ])
 
-
-tests :: IO [Test]
-tests = return [ Test actualTest
-               , Test serviceMatrixTopoSGenerated
-               , Test spoofingSQRL
-               , Test spoofingTest1
-               , Test spoofingTest2
-               , Test spoofingTest3
-               , Test serviceMatrixi82015
-               ]
-  where
-    actualTest = TestInstance
-        { run = test_Parser_Test_data
-        , name = "test the hand-crafted iptables-save"
-        , tags = []
-        , options = []
-        , setOption = \_ _ -> Right actualTest
-        }
-    spoofingSQRL = TestInstance
-        { run = test_spoofing_SQRL
-        , name = "test SQRL 2015 raw PREROUTING spoofing"
-        , tags = []
-        , options = []
-        , setOption = \_ _ -> Right spoofingSQRL
-        }
-    spoofingTest1 = TestInstance
-        { run = test_spoofing_TUM_Net1
-        , name = "test TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating spoofing"
-        , tags = []
-        , options = []
-        , setOption = \_ _ -> Right spoofingTest1
-        }
-    spoofingTest2 = TestInstance
-        { run = test_spoofing_TUM_Net2
-        , name = "test TUM_Net_Firewall/iptables-save-2015-05-15_14-14-46_cheating spoofing"
-        , tags = []
-        , options = []
-        , setOption = \_ _ -> Right spoofingTest2
-        }
-    spoofingTest3 = TestInstance
-        { run = test_spoofing_TUM_Net3
-        , name = "test TUM_Net_Firewall/iptables-save-2015-05-13_10-53-20_cheating"
-        , tags = []
-        , options = []
-        , setOption = \_ _ -> Right spoofingTest3
-        }
-    serviceMatrixTopoSGenerated = TestInstance
-        { run = test_topoS_generated_service_matrix
-        , name = "service matrix imaginray_factory_network.iptables-save.by-linux-kernel"
-        , tags = []
-        , options = []
-        , setOption = \_ _ -> Right serviceMatrixTopoSGenerated
-        }
-    serviceMatrixi82015 = TestInstance
-        { run = test_i8_2015_service_matrix
-        , name = "service matrix i8 2015"
-        , tags = []
-        , options = []
-        , setOption = \_ _ -> Right serviceMatrixi82015
-        }
-        
+tests = testGroup "Parser" $
+  [ test_parser_test_data
+  , test_spoofing_SQRL
+  , test_spoofing_TUM_Net1
+  , test_spoofing_TUM_Net2
+  , test_spoofing_TUM_Net3
+  , test_topoS_generated_service_matrix
+  , test_i8_2015_service_matrix
+  ]

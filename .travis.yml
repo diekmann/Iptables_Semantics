@@ -3,25 +3,10 @@ sudo: false
 
 matrix:
   include:
-    - env: CABALVER=1.22 GHCVER=7.8.1
-      compiler: ": #GHC 7.8.1"
-      addons: {apt: {packages: [cabal-install-1.22,ghc-7.8.1], sources: [hvr-ghc]}}
-    - env: CABALVER=1.22 GHCVER=7.8.2
-      compiler: ": #GHC 7.8.2"
-      addons: {apt: {packages: [cabal-install-1.22,ghc-7.8.2], sources: [hvr-ghc]}}
-    - env: CABALVER=1.22 GHCVER=7.8.3
-      compiler: ": #GHC 7.8.3"
-      addons: {apt: {packages: [cabal-install-1.22,ghc-7.8.3], sources: [hvr-ghc]}}
     - env: CABALVER=1.22 GHCVER=7.8.4
       compiler: ": #GHC 7.8.4"
       addons: {apt: {packages: [cabal-install-1.22,ghc-7.8.4], sources: [hvr-ghc]}}
-    - env: CABALVER=1.22 GHCVER=7.10.1
-      compiler: ": #GHC 7.10.1"
-      addons: {apt: {packages: [cabal-install-1.22,ghc-7.10.1], sources: [hvr-ghc]}}
-    - env: CABALVER=1.22 GHCVER=7.10.2
-      compiler: ": #GHC 7.10.2"
-      addons: {apt: {packages: [cabal-install-1.22,ghc-7.10.2], sources: [hvr-ghc]}}
-    - env: CABALVER=1.22 GHCVER=7.10.3
+    - env: CABALVER=1.22 GHCVER=7.10.3 BINTRAY_DEPLOY=true
       compiler: ": #GHC 7.10.3"
       addons: {apt: {packages: [cabal-install-1.22,ghc-7.10.3], sources: [hvr-ghc]}}
 
@@ -36,3 +21,13 @@ install:
  - sed -i 's/^jobs:/-- jobs:/' ${HOME}/.cabal/config
 
 script: ./travis-test
+
+deploy:
+  provider: bintray
+  on:
+    branch: master
+    condition: $BINTRAY_DEPLOY = true
+  file: haskell_tool/.bintray_deploy
+  user: larsrh
+  key:
+    secure: TN1IWcJnJsWLCLLikf0agAXTM/bveap3FAuPoLSv0uEUzzZwwRNEcHtu0SH0dRmmMnDpXiVVoj5JkyYHmpiD42P1V8U/H1kHYeFTrUukj9vF3P7yl7M2hDa1ofw5YljyoLmIHSccBqzvoCLSfrU2pn+fxUrYouhClIsrNPZJUp4=
