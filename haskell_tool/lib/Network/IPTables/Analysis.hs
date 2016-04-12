@@ -24,12 +24,14 @@ toSimpleFirewallWithoutInterfaces :: IsabelleIpAssmt -> [Isabelle.Rule Isabelle.
 toSimpleFirewallWithoutInterfaces = Isabelle.to_simple_firewall_without_interfaces
 
 
---TODO: theorem
+
+-- Theorem: no_spoofing_executable_set
 -- ipassmt -> rs -> (warning_and_debug, spoofing_certification_results)
 certifySpoofingProtection :: IsabelleIpAssmt -> [Isabelle.Rule Isabelle.Common_primitive] -> ([String], [(Isabelle.Iface, Bool)])
 certifySpoofingProtection ipassmt rs = (warn_defined ++ debug_ipassmt, certResult)
     where -- fuc: firewall under certification, prepocessed (debug functions need nnf-normalized match expressions)
           --TODO: check preprocessing!
+          --TODO: no_spoofing_executable_set requires normalized_nnf_match, check that!
           fuc = Isabelle.upper_closure $ Isabelle.packet_assume_new rs
           warn_defined = if (Isabelle.ipassmt_sanity_defined fuc ipassmtMap)
                          then []
@@ -44,6 +46,7 @@ certifySpoofingProtection ipassmt rs = (warn_defined ++ debug_ipassmt, certResul
 -- This is slightly faster (tested!) but dangerously because someone might call it wrong (e.g. with a firewall with interfaces)
 accessMatrix :: IsabelleIpAssmt -> [Isabelle.Rule Isabelle.Common_primitive] -> Integer -> Integer -> ([(String, String)], [(String, String)])
 accessMatrix ipassmt rs sport dport = if sport >= 65536 || dport >= 65536 then error "ports are 16 bit"
+    -- Theorem: access_matrix
     else Isabelle.access_matrix_pretty parts_connection upper_simple
     where upper_simple = toSimpleFirewallWithoutInterfaces ipassmt rs
           parts_connection = Isabelle.mk_parts_connection_TCP (Isabelle.integer_to_16word sport) (Isabelle.integer_to_16word dport)
