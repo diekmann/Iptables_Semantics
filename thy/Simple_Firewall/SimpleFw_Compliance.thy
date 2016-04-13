@@ -550,7 +550,7 @@ theorem to_simple_firewall_without_interfaces:
 
       --"well-formed ipassmt"
       and wf_ipassmt1: "ipassmt_sanity_nowildcards (map_of ipassmt)" and wf_ipassmt2: "distinct (map fst ipassmt)"
-      --"There are no spoofed packets (probably by rp_filter or our checker).
+      --"There are no spoofed packets (probably by kernel's reverse path filter or our checker).
          This assumption implies that ipassmt lists ALL interfaces (!!)."
       and nospoofing: "\<forall>(p::simple_packet). \<exists>ips. (map_of ipassmt) (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipv4cidr_union_set (set ips)"
 
@@ -594,7 +594,7 @@ theorem to_simple_firewall_without_interfaces:
     from transform_upper_closure(3)[OF s6] have nnf7: "\<forall>m\<in>get_match ` set ?rs7. normalized_nnf_match m" by simp
 
 
-    --{*subgoal @{term "check_simple_fw_preconditions ?rs7"}*}
+    (*subgoal @{term "check_simple_fw_preconditions ?rs7"}*)
     { fix m a
       assume r: "Rule m a \<in> set ?rs7"
   
