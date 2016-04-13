@@ -716,7 +716,7 @@ lemma "process_call [''X'' \<mapsto> [Rule (Match b) Return, Rule (Match c) Acce
 
 
 text{*This is how a firewall processes a ruleset. 
-       It starts at a certain chain, usually INPUT, FORWARD, our OUTPUT (called @{term chain_name} in the lemma).
+       It starts at a certain chain, usually INPUT, FORWARD, or OUTPUT (called @{term chain_name} in the lemma).
        The firewall has a default action of accept or drop.
       We can check @{const sanity_wf_ruleset} and the other assumptions at runtime.
       Consequently, we can apply @{const repeat_stabilize} as often as we want.
