@@ -750,26 +750,109 @@ qed
 
 
 
-(*
+(*TODO: move them all*)
+
+  lemma matcheq_matchAny: "\<not> has_primitive m \<Longrightarrow> matcheq_matchAny m \<longleftrightarrow> matches \<gamma> m p"
+  by(induction m) simp_all
+
+  lemma matcheq_matchNone: "\<not> has_primitive m \<Longrightarrow> matcheq_matchNone m \<longleftrightarrow> \<not> matches \<gamma> m p"
+    by(auto dest: matcheq_matchAny matachAny_matchNone)
+
+  lemma matcheq_matchNone_not_matches: "matcheq_matchNone m \<Longrightarrow> \<not> matches \<gamma> m p"
+    by(induction m rule: matcheq_matchNone.induct) (auto simp add:)
+
+lemma optimize_matches_option_generic:
+  assumes "\<forall> r \<in> set rs. P (get_match r)"
+      and "(\<And>m m'. P m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' p = matches \<gamma> m p)"
+      and "(\<And>m. P m \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches \<gamma> m p)"
+  shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>optimize_matches_option f rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+    using assms
+    apply -
+    apply(rule sym)
+    apply(rule iffI)
+    apply(rotate_tac 3)
+    thm iptables_bigstep_induct
+    apply(induction rs s t rule: iptables_bigstep_induct)
+    apply(simp_all split: option.split)
+    apply(auto intro: iptables_bigstep.intros)
+    apply (simp add: optimize_matches_option_append seq)
+    apply(rotate_tac 3)
+    apply(induction f rs arbitrary: s rule: optimize_matches_option.induct)
+     apply(simp; fail)
+    apply(simp split: option.split_asm)
+     apply(subgoal_tac "\<not> matches \<gamma> m p")
+     prefer 2 apply blast
+    apply (metis decision nomatch seq'_cons state.exhaust)
+    (*apply (metis list.set(1) list.simps(15) nomatch' rule.sel(1) seq'_cons singletonD)*)
+    apply(erule seqE_cons)
+    apply(rule_tac t=ti in seq'_cons)
+     apply (meson matches_rule_iptables_bigstep)
+    by blast
+
+
+lemma optimize_matches_generic: "\<forall> r \<in> set rs. P (get_match r) \<Longrightarrow> 
+      (\<And>m. P m \<Longrightarrow> matches \<gamma> (f m) p = matches \<gamma> m p) \<Longrightarrow>
+      \<Gamma>,\<gamma>,p\<turnstile> \<langle>optimize_matches f rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+  unfolding optimize_matches_def
+  apply(rule optimize_matches_option_generic)
+    apply(simp; fail)
+   apply(simp split: split_if_asm)
+   apply blast
+  apply(simp split: split_if_asm)
+  using matcheq_matchNone_not_matches by fast
+
+
+corollary optimize_matches_generic_funpow_helper: "(\<And>m. matches \<gamma> (f m) p = matches \<gamma> m p) \<Longrightarrow>
+      \<Gamma>,\<gamma>,p\<turnstile> \<langle>(optimize_matches f ^^ n) rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+  proof(induction n arbitrary:)
+    case 0 thus ?case by simp
+  next
+    case (Suc n) thus ?case
+     apply(simp)
+     apply(subst optimize_matches_generic[where P="\<lambda>_. True"])
+     by simp_all
+  qed
+
 (*TODO: maybe we need to move the whole thing to somewhere where we have the ternary semantics? to embeddings probably?*)
 (*can we replace the constant number of process_call calls with number of chain decls *)
-definition unfold_ruleset_CHAIN :: "string \<Rightarrow> action \<Rightarrow> 'a ruleset \<Rightarrow> 'a rule list" where
-"unfold_ruleset_CHAIN chain_name default_action rs = check_simple_ruleset
+definition unfold_optimize_ruleset_CHAIN
+  :: "('a match_expr \<Rightarrow> 'a match_expr) \<Rightarrow> string \<Rightarrow> action \<Rightarrow> 'a ruleset \<Rightarrow> 'a rule list option"
+where
+"unfold_optimize_ruleset_CHAIN optimize chain_name default_action rs = (let rs =
   (repeat_stabilize 1000 (optimize_matches opt_MatchAny_match_expr)
-    (optimize_matches optimize_primitive_univ
+    (optimize_matches optimize
       (rw_Reject (rm_LogEmpty (repeat_stabilize 10000 (process_call rs)
         [Rule MatchAny (Call chain_name), Rule MatchAny default_action]
-  )))))"
+  )))))
+  in if simple_ruleset rs then Some rs else None)"
 
 (*TODO: theorem for documentation!
   TODO: safe version for code which reports errors*)
 (*TODO: move, but where?*)
 (*TODO generic lemma for arbitrary \<gamma>, then generic def (optimize_primitive_univ yet undefined) def can be moved to the unfolding*)
-lemma "sanity_wf_ruleset \<Gamma> \<Longrightarrow>
-    (map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>unfold_ruleset_CHAIN chain default_action rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow>
-    (map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>[Rule MatchAny (Call chain_name), Rule MatchAny default_action], s\<rangle> \<Rightarrow> t"
-nitpick
-oops
-*)
+lemma 
+    assumes "sanity_wf_ruleset \<Gamma>" and "chain_name \<in> set (map fst \<Gamma>)" and "default_action = Accept \<or> default_action = Drop"
+    and "(\<And>m. matches \<gamma> (optimize m) p = matches \<gamma> m p)" (*TODO?*)
+    and "unfold_optimize_ruleset_CHAIN optimize chain_name default_action (map_of \<Gamma>) = Some rs"
+    shows "(map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow>
+           (map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>[Rule MatchAny (Call chain_name), Rule MatchAny default_action], s\<rangle> \<Rightarrow> t"
+  using assms(5)
+  apply -
+  apply(simp add: unfold_optimize_ruleset_CHAIN_def Let_def split: split_if_asm)
+  apply(drule sym) (*omfg!*)
+  apply(simp)
+  apply(thin_tac "rs = _")
+  apply(subst repeat_stabilize_funpow)
+  apply(subst optimize_matches_generic_funpow_helper)
+   apply (simp add: opt_MatchAny_match_expr_correct; fail)
+  apply(subst optimize_matches_generic[where P="\<lambda>_. True"], simp_all add: assms(4))
+  apply(simp add: iptables_bigstep_rw_Reject iptables_bigstep_rm_LogEmpty)
+
+  using assms(1,2,3)
+  apply -
+  apply(drule(2) repeat_stabilize_process_call[of \<Gamma> chain_name default_action \<gamma> p 10000 s t])
+  apply(simp)
+  done
+  
 
 end
