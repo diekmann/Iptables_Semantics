@@ -134,7 +134,7 @@ text{*Structural properties about match expressions*}
 
 
 text{*optimizing match expressions*}
-(*TODO use this!*)
+
 fun optimize_matches_option :: "('a match_expr \<Rightarrow> 'a match_expr option) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
   "optimize_matches_option _ [] = []" |
   "optimize_matches_option f (Rule m a#rs) = (case f m of None \<Rightarrow> optimize_matches_option f rs | Some m \<Rightarrow> (Rule m a)#optimize_matches_option f rs)"
@@ -146,7 +146,7 @@ lemma optimize_matches_option_simple_ruleset: "simple_ruleset rs \<Longrightarro
 lemma optimize_matches_option_preserves: "(\<And> r m. r \<in> set rs \<Longrightarrow> f (get_match r) = Some m \<Longrightarrow> P m) \<Longrightarrow>
     \<forall> m \<in> get_match ` set (optimize_matches_option f rs). P m"
   apply(induction rs rule: optimize_matches_option.induct)
-   apply(simp)
+   apply(simp; fail)
   apply(simp split: option.split)
   by fastforce
 
@@ -162,8 +162,6 @@ definition optimize_matches :: "('a match_expr \<Rightarrow> 'a match_expr) \<Ri
 lemma optimize_matches_append: "optimize_matches f (rs1@rs2) = optimize_matches f rs1 @ optimize_matches f rs2"
   by(simp add: optimize_matches_def optimize_matches_option_append)
 
-
-(*TODO: use this in Transform.thy to simplify proofs*)
 lemma optimize_matches_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_match r))) \<Longrightarrow>
     \<forall> m \<in> get_match ` set (optimize_matches f rs). P m"
   unfolding optimize_matches_def
@@ -188,8 +186,6 @@ apply(simp add: optimize_matches_a_def)
 apply(simp add: simple_ruleset_def)
 done
 
-
-(*TODO: use this in Transform.thy to simplify proofs*)
 lemma optimize_matches_a_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_action r) (get_match r)))
     \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches_a f rs). P m"
   by(induction rs)(simp_all add: optimize_matches_a_def)
