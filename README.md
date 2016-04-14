@@ -35,7 +35,7 @@ Checking all proofs:
 ```
 $ isabelle build -v -d . -o document=pdf Iptables_Semantics_Examples2
 ```
-This needs about 1:30h for Iptables_Semantics_Examples and additionally 2h for Iptables_Semantics_Examples2 on my laptop.
+This needs about 1:30h for Iptables_Semantics_Examples and additionally 2:30h for Iptables_Semantics_Examples2 on my laptop.
 
 
 Building the documentation:
