@@ -5,7 +5,6 @@ begin
 text{*Repeating something a number of times*}
 
 
-(*TODO: move to COMMON*)
 text{*repeat the application at most n times (param 1) until it stabilizes*}
 fun repeat_stabilize :: "nat \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'a" where
   "repeat_stabilize 0 _ v = v" |
