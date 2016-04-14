@@ -49,6 +49,7 @@ lemma "unfold_optimize_ruleset_CHAIN optimize_primitive_univ chain a rs = Some r
   unfold_ruleset_CHAIN chain a rs = rs'"
   by(simp add: Let_def unfold_optimize_ruleset_CHAIN_def unfold_ruleset_CHAIN_def check_simple_ruleset_def split: split_if_asm)
 
+
 (*TODO: theorem for documentation! all the optimization before, the whole thing needs to go in one big theorem*)
 thm repeat_stabilize_process_call
 

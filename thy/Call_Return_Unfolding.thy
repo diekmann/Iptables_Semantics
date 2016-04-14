@@ -818,7 +818,7 @@ where
   TODO: safe version for code which reports errors*)
 (*TODO: move, but where?*)
 (*TODO generic lemma for arbitrary \<gamma>, then generic def (optimize_primitive_univ yet undefined) def can be moved to the unfolding*)
-lemma 
+lemma unfold_optimize_ruleset_CHAIN:
     assumes "sanity_wf_ruleset \<Gamma>" and "chain_name \<in> set (map fst \<Gamma>)" and "default_action = Accept \<or> default_action = Drop"
     and "(\<And>m. matches \<gamma> (optimize m) p = matches \<gamma> m p)" (*TODO?*)
     and "unfold_optimize_ruleset_CHAIN optimize chain_name default_action (map_of \<Gamma>) = Some rs"
