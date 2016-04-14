@@ -295,4 +295,42 @@ lemma iptables_bigstep_add_match_and:
     qed
   qed
 
+
+lemma optimize_matches_option_generic:
+  assumes "\<forall> r \<in> set rs. P (get_match r)"
+      and "(\<And>m m'. P m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' p = matches \<gamma> m p)"
+      and "(\<And>m. P m \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches \<gamma> m p)"
+  shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>optimize_matches_option f rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+      (is "?lhs \<longleftrightarrow> ?rhs")
+  proof
+    assume ?rhs
+    from this assms show ?lhs
+    apply(induction rs s t rule: iptables_bigstep_induct)
+    apply(auto simp: optimize_matches_option_append intro: iptables_bigstep.intros split: option.split)
+    done
+  next
+    assume ?lhs
+    from this assms show ?rhs
+    apply(induction f rs arbitrary: s rule: optimize_matches_option.induct)
+     apply(simp; fail)
+    apply(simp split: option.split_asm)
+     apply(subgoal_tac "\<not> matches \<gamma> m p")
+     prefer 2 apply blast
+    apply (metis decision nomatch seq'_cons state.exhaust)
+    apply(erule seqE_cons)
+    apply(rule_tac t=ti in seq'_cons)
+     apply (meson matches_rule_iptables_bigstep)
+    by blast
+  qed
+
+lemma optimize_matches_generic: "\<forall> r \<in> set rs. P (get_match r) \<Longrightarrow> 
+      (\<And>m. P m \<Longrightarrow> matches \<gamma> (f m) p = matches \<gamma> m p) \<Longrightarrow>
+      \<Gamma>,\<gamma>,p\<turnstile> \<langle>optimize_matches f rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+  unfolding optimize_matches_def
+  apply(rule optimize_matches_option_generic)
+    apply(simp; fail)
+   apply(simp split: split_if_asm)
+   apply blast
+  apply(simp split: split_if_asm)
+  using matcheq_matchNone_not_matches by fast
 end
