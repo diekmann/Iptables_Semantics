@@ -29,7 +29,7 @@ by (cases rs\<^sub>1) auto
 
 
 section{*Basic Algorithms*}
-text{*These algorithms should be valid for all firewall models. The corresponding proofs follow once the semantics are defined. *}
+text{*These algorithms should be valid for all firewall semantics The corresponding proofs follow once the semantics are defined. *}
 
 
 text{*The actions Log and Empty do not modify the packet processing in any way. They can be removed.*}
@@ -98,13 +98,12 @@ text{*We call a ruleset simple iff the only actions are @{const Accept} and @{co
 
 
 
-
+text{*Structural properties about match expressions*}
   fun has_primitive :: "'a match_expr \<Rightarrow> bool" where
     "has_primitive MatchAny = False" |
     "has_primitive (Match a) = True" |
     "has_primitive (MatchNot m) = has_primitive m" |
     "has_primitive (MatchAnd m1 m2) = (has_primitive m1 \<or> has_primitive m2)"
-
 
   text{*Is a match expression equal to the @{const MatchAny} expression?
         Only applicable if no primitives are in the expression. *}
@@ -113,7 +112,6 @@ text{*We call a ruleset simple iff the only actions are @{const Accept} and @{co
     "matcheq_matchAny (MatchNot m) \<longleftrightarrow> \<not> (matcheq_matchAny m)" |
     "matcheq_matchAny (MatchAnd m1 m2) \<longleftrightarrow> matcheq_matchAny m1 \<and> matcheq_matchAny m2" |
     "matcheq_matchAny (Match _) = undefined"
-
 
   fun matcheq_matchNone :: "'a match_expr \<Rightarrow> bool" where
     "matcheq_matchNone MatchAny = False" |
@@ -135,18 +133,18 @@ text{*We call a ruleset simple iff the only actions are @{const Accept} and @{co
 
 
 
-
+text{*optimizing match expressions*}
 (*TODO use this!*)
 fun optimize_matches_option :: "('a match_expr \<Rightarrow> 'a match_expr option) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
   "optimize_matches_option _ [] = []" |
   "optimize_matches_option f (Rule m a#rs) = (case f m of None \<Rightarrow> optimize_matches_option f rs | Some m \<Rightarrow> (Rule m a)#optimize_matches_option f rs)"
 
-
 lemma optimize_matches_option_simple_ruleset: "simple_ruleset rs \<Longrightarrow> simple_ruleset (optimize_matches_option f rs)"
   proof(induction rs rule:optimize_matches_option.induct)
   qed(simp_all add: simple_ruleset_def split: option.split)
 
-lemma optimize_matches_option_preserves: "(\<And> r m. r \<in> set rs \<Longrightarrow> f (get_match r) = Some m \<Longrightarrow> P m) \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches_option f rs). P m"
+lemma optimize_matches_option_preserves: "(\<And> r m. r \<in> set rs \<Longrightarrow> f (get_match r) = Some m \<Longrightarrow> P m) \<Longrightarrow>
+    \<forall> m \<in> get_match ` set (optimize_matches_option f rs). P m"
   apply(induction rs rule: optimize_matches_option.induct)
    apply(simp)
   apply(simp split: option.split)
@@ -166,7 +164,8 @@ lemma optimize_matches_append: "optimize_matches f (rs1@rs2) = optimize_matches 
 
 
 (*TODO: use this in Transform.thy to simplify proofs*)
-lemma optimize_matches_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_match r))) \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches f rs). P m"
+lemma optimize_matches_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_match r))) \<Longrightarrow>
+    \<forall> m \<in> get_match ` set (optimize_matches f rs). P m"
   unfolding optimize_matches_def
   apply(rule optimize_matches_option_preserves)
   by(auto split: split_if_asm)
@@ -191,7 +190,8 @@ done
 
 
 (*TODO: use this in Transform.thy to simplify proofs*)
-lemma optimize_matches_a_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_action r) (get_match r))) \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches_a f rs). P m"
+lemma optimize_matches_a_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_action r) (get_match r)))
+    \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches_a f rs). P m"
   by(induction rs)(simp_all add: optimize_matches_a_def)
 
 
