@@ -104,7 +104,7 @@ loadUnfoldedRuleset debug table chain res = do
     let policy = case M.lookup chain defaultPolicies of
                     Just policy -> policy
                     Nothing -> error $ "Default policy for chain " ++ chain ++ " not found"
-    --TODO: theorem for GOTO
+    --Theorem: TODO for GOTO
     -- Theorem: unfold_optimize_common_matcher_univ_ruleset_CHAIN
     let unfolded = case Isabelle.unfold_ruleset_CHAIN_safe chain policy $ Isabelle.map_of_string (Isabelle.rewrite_Goto fw) of
                               Nothing -> error "Unfolding ruleset failed. Does the Linux kernel load it? Is it cyclic? Are there any actions not supported by this tool?"
