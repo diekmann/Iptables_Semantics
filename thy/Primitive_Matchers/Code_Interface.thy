@@ -40,6 +40,15 @@ definition unfold_ruleset_CHAIN :: "string \<Rightarrow> action \<Rightarrow> co
         [Rule MatchAny (Call chain_name), Rule MatchAny default_action]
   )))))"
 
+
+lemma "(unfold_optimize_ruleset_CHAIN f chain a rs = Some rs') \<Longrightarrow> simple_ruleset rs'"
+  by(simp add: Let_def unfold_optimize_ruleset_CHAIN_def split: split_if_asm)
+
+(*We have a generic version almost ready*)
+lemma "unfold_optimize_ruleset_CHAIN optimize_primitive_univ chain a rs = Some rs' \<Longrightarrow> 
+  unfold_ruleset_CHAIN chain a rs = rs'"
+  by(simp add: Let_def unfold_optimize_ruleset_CHAIN_def unfold_ruleset_CHAIN_def check_simple_ruleset_def split: split_if_asm)
+
 (*TODO: theorem for documentation! all the optimization before, the whole thing needs to go in one big theorem*)
 thm repeat_stabilize_process_call
 

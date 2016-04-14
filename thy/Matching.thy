@@ -8,8 +8,17 @@ lemma MatchOr: "matches \<gamma> (MatchOr m1 m2) p \<longleftrightarrow> matches
   by(simp add: MatchOr_def)
 
 lemma opt_MatchAny_match_expr_correct: "matches \<gamma> (opt_MatchAny_match_expr m) = matches \<gamma> m"
-   apply(simp add: fun_eq_iff)
-   by(induction m rule: opt_MatchAny_match_expr.induct) (simp_all)
+ apply(simp add: fun_eq_iff)
+ by(induction m rule: opt_MatchAny_match_expr.induct) (simp_all)
+
+lemma matcheq_matchAny: "\<not> has_primitive m \<Longrightarrow> matcheq_matchAny m \<longleftrightarrow> matches \<gamma> m p"
+  by(induction m) simp_all
+
+lemma matcheq_matchNone: "\<not> has_primitive m \<Longrightarrow> matcheq_matchNone m \<longleftrightarrow> \<not> matches \<gamma> m p"
+  by(auto dest: matcheq_matchAny matachAny_matchNone)
+
+lemma matcheq_matchNone_not_matches: "matcheq_matchNone m \<Longrightarrow> \<not> matches \<gamma> m p"
+  by(induction m rule: matcheq_matchNone.induct) auto
 
 
 text{*Lemmas about matching in the @{const iptables_bigstep} semantics.*}
