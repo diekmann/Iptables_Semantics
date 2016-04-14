@@ -751,35 +751,32 @@ qed
 
 
 (*TODO: move them all*)
-
 lemma optimize_matches_option_generic:
   assumes "\<forall> r \<in> set rs. P (get_match r)"
       and "(\<And>m m'. P m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' p = matches \<gamma> m p)"
       and "(\<And>m. P m \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches \<gamma> m p)"
   shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>optimize_matches_option f rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
-    using assms
-    apply -
-    apply(rule sym)
-    apply(rule iffI)
-    apply(rotate_tac 3)
-    thm iptables_bigstep_induct
+      (is "?lhs \<longleftrightarrow> ?rhs")
+  proof
+    assume ?rhs
+    from this assms show ?lhs
     apply(induction rs s t rule: iptables_bigstep_induct)
-    apply(simp_all split: option.split)
-    apply(auto intro: iptables_bigstep.intros)
-    apply (simp add: optimize_matches_option_append seq)
-    apply(rotate_tac 3)
+    apply(auto simp: optimize_matches_option_append intro: iptables_bigstep.intros split: option.split)
+    done
+  next
+    assume ?lhs
+    from this assms show ?rhs
     apply(induction f rs arbitrary: s rule: optimize_matches_option.induct)
      apply(simp; fail)
     apply(simp split: option.split_asm)
      apply(subgoal_tac "\<not> matches \<gamma> m p")
      prefer 2 apply blast
     apply (metis decision nomatch seq'_cons state.exhaust)
-    (*apply (metis list.set(1) list.simps(15) nomatch' rule.sel(1) seq'_cons singletonD)*)
     apply(erule seqE_cons)
     apply(rule_tac t=ti in seq'_cons)
      apply (meson matches_rule_iptables_bigstep)
     by blast
-
+  qed
 
 lemma optimize_matches_generic: "\<forall> r \<in> set rs. P (get_match r) \<Longrightarrow> 
       (\<And>m. P m \<Longrightarrow> matches \<gamma> (f m) p = matches \<gamma> m p) \<Longrightarrow>
