@@ -1170,6 +1170,36 @@ case (Cons r rs)
   done
 qed
 
+lemma iptables_bigstep_rw_Reject: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rw_Reject rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+proof(induction rs arbitrary: s)
+case Nil thus ?case by(simp)
+next
+case (Cons r rs)
+  have step_IH: "(\<And>s. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs1, s\<rangle> \<Rightarrow> t = \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs2, s\<rangle> \<Rightarrow> t) \<Longrightarrow>
+         \<Gamma>,\<gamma>,p\<turnstile> \<langle>r#rs1, s\<rangle> \<Rightarrow> t = \<Gamma>,\<gamma>,p\<turnstile> \<langle>r#rs2, s\<rangle> \<Rightarrow> t" for rs1 rs2 r
+  by (meson seq'_cons seqE_cons)
+  have fst_rule: "(\<And>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[r1], s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>[r2], s\<rangle> \<Rightarrow> t) \<Longrightarrow> 
+    \<Gamma>,\<gamma>,p\<turnstile> \<langle>r1 # rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>r2 # rs, s\<rangle> \<Rightarrow> t" for r1 r2 rs s t
+  by (meson seq'_cons seqE_cons)
+  have dropreject: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m Drop], s\<rangle> \<Rightarrow> t = \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m Reject], s\<rangle> \<Rightarrow> t" for m t
+    apply(cases s)
+     apply(cases "matches \<gamma> m p")
+      using drop reject dropD rejectD apply fast
+     using nomatch nomatchD apply fast
+    using decision decisionD apply fast
+    done
+
+  from Cons show ?case
+  apply(cases r, rename_tac m a)
+  apply simp
+  apply(case_tac a)
+          apply(simp_all)
+          apply(simp_all cong: step_IH)
+   apply(rule fst_rule)
+   apply(simp add: dropreject)
+  done
+qed
+
 
 
 end

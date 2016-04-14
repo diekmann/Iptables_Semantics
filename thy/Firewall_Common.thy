@@ -70,4 +70,27 @@ lemma "MatchNot (opt_MatchAny_match_expr (MatchAnd MatchAny (MatchNot MatchAny))
 lemma "m = (MatchAnd (MatchAnd MatchAny MatchAny) (MatchAnd MatchAny MatchAny)) \<Longrightarrow> 
   (opt_MatchAny_match_expr^^2) m \<noteq> opt_MatchAny_match_expr m" by(simp add: funpow_def)
 
+
+
+
+
+text{*Rewrite @{const Reject} actions to @{const Drop} actions.
+      If we just care about the filtering decision (@{const FinalAllow} or @{const FinalDeny}), they should be equal. *}
+fun rw_Reject :: "'a rule list \<Rightarrow> 'a rule list" where
+  "rw_Reject [] = []" |
+  "rw_Reject ((Rule m Reject)#rs) = (Rule m Drop)#rw_Reject rs" |
+  "rw_Reject (r#rs) = r # rw_Reject rs"
+
+
+
+text{*We call a ruleset simple iff the only actions are @{const Accept} and @{const Drop}*}
+  definition simple_ruleset :: "'a rule list \<Rightarrow> bool" where
+    "simple_ruleset rs \<equiv> \<forall>r \<in> set rs. get_action r = Accept \<or> get_action r = Drop"
+
+  lemma simple_ruleset_tail: "simple_ruleset (r#rs) \<Longrightarrow> simple_ruleset rs" by (simp add: simple_ruleset_def)
+
+  lemma simple_ruleset_append: "simple_ruleset (rs\<^sub>1 @ rs\<^sub>2) \<longleftrightarrow> simple_ruleset rs\<^sub>1 \<and> simple_ruleset rs\<^sub>2"
+    by(simp add: simple_ruleset_def, blast)
+
+
 end

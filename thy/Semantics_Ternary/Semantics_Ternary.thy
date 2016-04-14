@@ -354,15 +354,9 @@ subsection{*Equality with @{term "\<gamma>,p\<turnstile> \<langle>rs, s\<rangle>
   *}
   lemma good_imp_wf_ruleset: "good_ruleset rs \<Longrightarrow> wf_ruleset \<gamma> p rs" by (metis good_ruleset_def wf_ruleset_def)
 
-  definition simple_ruleset :: "'a rule list \<Rightarrow> bool" where
-    "simple_ruleset rs \<equiv> \<forall>r \<in> set rs. get_action r = Accept (*\<or> get_action r = Reject*) \<or> get_action r = Drop"
   lemma simple_imp_good_ruleset: "simple_ruleset rs \<Longrightarrow> good_ruleset rs"
     by(simp add: simple_ruleset_def good_ruleset_def, fastforce)
 
-  lemma simple_ruleset_tail: "simple_ruleset (r#rs) \<Longrightarrow> simple_ruleset rs" by (simp add: simple_ruleset_def)
-
-  lemma simple_ruleset_append: "simple_ruleset (rs\<^sub>1 @ rs\<^sub>2) \<longleftrightarrow> simple_ruleset rs\<^sub>1 \<and> simple_ruleset rs\<^sub>2"
-    by(simp add: simple_ruleset_def, blast)
 
 lemma approximating_bigstep_fun_seq_semantics: "\<lbrakk> \<gamma>,p\<turnstile> \<langle>rs\<^sub>1, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<rbrakk> \<Longrightarrow> 
     approximating_bigstep_fun \<gamma> p (rs\<^sub>1 @ rs\<^sub>2) s = approximating_bigstep_fun \<gamma> p rs\<^sub>2 t"
@@ -497,11 +491,7 @@ lemma rm_LogEmpty_simple_but_Reject:
     by(case_tac a) (auto simp add: good_ruleset_def)
   qed
 
-text{*Rewrite @{const Reject} actions to @{const Drop} actions*}
-fun rw_Reject :: "'a rule list \<Rightarrow> 'a rule list" where
-  "rw_Reject [] = []" |
-  "rw_Reject ((Rule m Reject)#rs) = (Rule m Drop)#rw_Reject rs" |
-  "rw_Reject (r#rs) = r # rw_Reject rs"
+
 
 lemma rw_Reject_fun_semantics: 
   "wf_unknown_match_tac \<alpha> \<Longrightarrow> 
