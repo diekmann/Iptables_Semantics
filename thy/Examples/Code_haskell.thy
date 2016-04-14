@@ -36,7 +36,7 @@ export_code Rule
   simple_rule_toString
   Semantics_Goto.rewrite_Goto
   (*parser helpers:*) alist_and' compress_parsed_extra Pos Neg mk_Set
-  (*unfold_ruleset_INPUT unfold_ruleset_FORWARD unfold_ruleset_OUTPUT*) unfold_ruleset_CHAIN map_of_string
+  (*unfold_ruleset_INPUT unfold_ruleset_FORWARD unfold_ruleset_OUTPUT*) unfold_ruleset_CHAIN_safe map_of_string
   upper_closure
   abstract_for_simple_firewall optimize_matches
   packet_assume_new
