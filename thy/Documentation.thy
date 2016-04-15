@@ -38,6 +38,13 @@ The semantics:
 
 subsection{*Unfolding the Ruleset*}
 
+text{*We can replace all @{const Goto}s to terminal chains (chains that ultimately yield a final
+  decision for every packet) with @{const Call}s.
+  Otherwise we don't have as rich goto semantics as iptables has, but this rewriting is safe.
+
+@{thm Semantics_Goto.rewrite_Goto_chain_safe [no_vars]}
+*}
+
 text{* The iptables firewall starts as follows:
   @{term "[Rule MatchAny (Call chain_name), Rule MatchAny default_action]"}
   We call to a built-in chain @{term chain_name}, usually INPUT, OUTPUT, or FORWARD.
@@ -66,7 +73,6 @@ lemma unfold_optimize_common_matcher_univ_ruleset_CHAIN:
 apply(intro unfold_optimize_ruleset_CHAIN[where optimize=optimize_primitive_univ, OF assms(1) assms(2) assms(3)])
   using assms apply(simp_all add: unfold_ruleset_CHAIN_safe_def Semantics_optimize_primitive_univ_common_matcher)
 by(simp add: unfold_optimize_ruleset_CHAIN_def Let_def split: split_if_asm)
-
 
 
 subsection{*Spoofing protection*}
