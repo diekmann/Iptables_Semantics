@@ -999,7 +999,24 @@ begin
     "rewrite_Goto cs = map (\<lambda>(chain_name, rs). (chain_name, rewrite_Goto_chain (map_of cs) rs)) cs"
 
 
+  private fun rewrite_Goto_chain_safe :: "(string \<rightharpoonup> 'a rule list) \<Rightarrow> 'a rule list \<Rightarrow> ('a rule list) option" where
+    "rewrite_Goto_chain_safe _ [] = Some []" |
+    "rewrite_Goto_chain_safe \<Gamma> ((Rule m (Goto chain))#rs) =
+      (case (\<Gamma> chain) of None     \<Rightarrow> None
+                      |  Some rs' \<Rightarrow> (if
+                                         \<not> terminal_chain rs'
+                                      then
+                                         None
+                                      else
+                                         map_option (\<lambda>rs. Rule m (Call chain) # rs) (rewrite_Goto_chain_safe \<Gamma> rs)
+                                     )
+      )" |
+    "rewrite_Goto_chain_safe \<Gamma> (r#rs) = map_option (\<lambda>rs. r # rs) (rewrite_Goto_chain_safe \<Gamma> rs)"
 
+  lemma "rewrite_Goto_chain_safe \<Gamma> rs = Some rs' \<Longrightarrow> rewrite_Goto_chain \<Gamma> rs = rs'"
+    apply(induction \<Gamma> rs arbitrary: rs' rule: rewrite_Goto_chain_safe.induct)
+    apply(auto split: option.split_asm)
+    done
 
 
   text{*Example: The semantics are actually defined (for this example).*}
