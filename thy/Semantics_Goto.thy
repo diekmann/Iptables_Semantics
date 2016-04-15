@@ -1066,66 +1066,6 @@ begin
     by (meson decisionD)
     
 
-  qualified theorem (*delete, copy below*)
-    assumes "rewrite_Goto_chain_safe \<Gamma> rs = Some rs'"
-    shows "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs', s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, s\<rangle> \<Rightarrow> t"
-    using assms apply(induction \<Gamma> rs arbitrary: rs' s rule: rewrite_Goto_chain_safe.induct)
-    apply(simp split: option.split_asm split_if_asm; fail)
-    defer
-    apply(auto cong: step_IH_cong)[8]
-    apply(simp split: option.split_asm split_if_asm)
-    apply(elim exE conjE)
-    apply(drule sym) back back
-    apply(simp)
-    (*apply(subgoal_tac "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>z, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, s\<rangle> \<Rightarrow> t")
-     prefer 2
-     apply blast*)
-
-    apply(rule iffI)
-    apply(erule seqE_cons)
-    apply simp_all
-    apply(case_tac s)
-    prefer 2
-     using decision apply (fastforce dest: decisionD)
-    apply(simp)
-    apply(case_tac "matches \<gamma> m p")
-     prefer 2
-     apply(rule_tac t=ti in seq'_cons)
-      apply simp_all
-      using replace_Goto_with_Call_in_terminal_chain apply fast
-
-    apply(subst(asm) replace_Goto_with_Call_in_terminal_chain[symmetric], simp_all)
-    apply(drule(3) terminal_chain_Goto_decision)
-    apply(elim exE)
-    apply(simp)
-    apply(subgoal_tac "t = Decision X")
-     prefer 2
-     apply (simp add: decisionD; fail)
-    apply(simp)
-    apply(rule seq_cons_Goto_t, simp_all)
-   (*1 goal left*)
-
-   apply(erule seqE_cons)
-   apply simp_all
-   apply(case_tac s)
-   prefer 2
-    using decision apply (fastforce dest: decisionD)
-   apply(simp)
-   apply(case_tac "matches \<gamma> m p")
-    prefer 2
-    apply(rule_tac t=ti in seq'_cons)
-     apply simp_all
-     using replace_Goto_with_Call_in_terminal_chain apply fast
-   
-   apply(frule(3) terminal_chain_Goto_decision)
-   apply(subst(asm) replace_Goto_with_Call_in_terminal_chain, simp_all)
-   apply(rule seq'_cons)
-   apply(simp_all)
-   apply(elim exE)
-   apply simp
-   by (meson decision)
-
-
   qualified theorem rewrite_Goto_chain_safe:
     "rewrite_Goto_chain_safe \<Gamma> rs = Some rs' \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs', s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, s\<rangle> \<Rightarrow> t"
   proof(induction \<Gamma> rs arbitrary: rs' s rule: rewrite_Goto_chain_safe.induct)
@@ -1137,45 +1077,52 @@ begin
             and "Some z = rewrite_Goto_chain_safe \<Gamma> rs"
     by(auto split: option.split_asm split_if_asm)
     from 2(1) \<open>\<Gamma> chain = Some x2\<close> \<open>terminal_chain x2\<close> \<open>Some z = rewrite_Goto_chain_safe \<Gamma> rs\<close> 
-      have "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>z, s\<rangle> \<Rightarrow> t = \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, s\<rangle> \<Rightarrow> t" for s by simp
+      have IH: "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>z, s\<rangle> \<Rightarrow> t = \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, s\<rangle> \<Rightarrow> t" for s by simp
 
-    from this \<open>\<Gamma> chain = Some x2\<close> \<open>terminal_chain x2\<close> \<open>Some z = rewrite_Goto_chain_safe \<Gamma> rs\<close>
-      have "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>Rule m (Call chain) # z, Undecided\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>Rule m (Goto chain) # rs, Undecided\<rangle> \<Rightarrow> t"
-      apply(intro iffI)
-      apply(erule seqE_cons)
-      apply simp_all
-      apply(rename_tac ti)
-      apply(case_tac "matches \<gamma> m p")
-       prefer 2
-       apply(rule_tac t=ti in seq'_cons)
-        apply simp_all
-        using replace_Goto_with_Call_in_terminal_chain apply fast
-  
-      apply(subst(asm) replace_Goto_with_Call_in_terminal_chain[symmetric], simp_all)
-      apply(drule(3) terminal_chain_Goto_decision)
-      apply(elim exE, rename_tac X)
-      apply(simp)
-      apply(subgoal_tac "t = Decision X")
-       prefer 2
-       apply (simp add: decisionD; fail)
-      apply(simp)
-      apply(rule seq_cons_Goto_t, simp_all)
-     (*1 goal left*)
-  
-     apply(erule seqE_cons)
-     apply(rename_tac ti)
-     apply simp_all
-     apply(rule_tac t=ti in seq'_cons)
-       apply simp_all
-      using replace_Goto_with_Call_in_terminal_chain apply fast
-     
-     apply(frule(3) terminal_chain_Goto_decision)
-     apply(subst(asm) replace_Goto_with_Call_in_terminal_chain, simp_all)
-     apply(rule seq'_cons)
-     apply(simp_all)
-     apply(elim exE)
-     apply simp
-     by (meson decision)
+    have "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>Rule m (Call chain) # z, Undecided\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>Rule m (Goto chain) # rs, Undecided\<rangle> \<Rightarrow> t"
+          (is "?lhs \<longleftrightarrow> ?rhs")
+    proof(intro iffI)
+      assume ?lhs
+      with IH obtain ti where ti1: "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> ti" and ti2: "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, ti\<rangle> \<Rightarrow> t"
+        by(auto elim: seqE_cons)
+      show ?rhs
+      proof(cases "matches \<gamma> m p")
+      case False
+        from replace_Goto_with_Call_in_terminal_chain \<open>\<Gamma> chain = Some x2\<close> \<open>terminal_chain x2\<close> 
+        have " \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> ti \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Goto chain)], Undecided\<rangle> \<Rightarrow> ti"
+          by fast
+        with False ti1 ti2 show ?thesis by(rule_tac t=ti in seq'_cons) simp+
+      next
+      case True
+        from ti1 \<open>\<Gamma> chain = Some x2\<close> \<open>terminal_chain x2\<close>
+        have g: "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Goto chain)], Undecided\<rangle> \<Rightarrow> ti"
+          by(subst(asm) replace_Goto_with_Call_in_terminal_chain[symmetric]) simp+
+        with True \<open>\<Gamma> chain = Some x2\<close> \<open>terminal_chain x2\<close> obtain X where X: "ti = Decision X"
+          by(blast dest: terminal_chain_Goto_decision)
+        with this ti2 have "t = Decision X"
+          by(simp add: decisionD)
+        with g X True ti2 \<open>\<Gamma> chain = Some x2\<close> \<open>terminal_chain x2\<close> show ?thesis
+          apply(simp)
+          apply(rule seq_cons_Goto_t, simp_all)
+          done
+      qed
+    next
+      assume ?rhs
+      with IH \<open>\<Gamma> chain = Some x2\<close> \<open>terminal_chain x2\<close> \<open>Some z = rewrite_Goto_chain_safe \<Gamma> rs\<close> show ?lhs
+        apply -
+        apply(erule seqE_cons)
+         subgoal for ti
+         apply simp_all
+         apply(rule_tac t=ti in seq'_cons)
+           apply simp_all
+         using replace_Goto_with_Call_in_terminal_chain by fast
+        apply simp
+        apply(frule(3) terminal_chain_Goto_decision)
+        apply(subst(asm) replace_Goto_with_Call_in_terminal_chain, simp_all)
+        apply(rule seq'_cons, simp_all)
+        apply(elim exE)
+        by (simp add: decision)
+    qed
     with \<open>rs' = Rule m (Call chain) # z\<close> show ?case
       apply -
       apply(rule just_show_all_bigstep_semantics_equalities_with_start_Undecided)
