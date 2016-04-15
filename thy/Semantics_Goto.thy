@@ -983,7 +983,7 @@ begin
       qed
     
     
-    qualified theorem replace_Goto_with_Call_in_terminal_chain:
+  qualified theorem replace_Goto_with_Call_in_terminal_chain:
         assumes chain_defined: "\<Gamma> chain = Some rs" and terminal_chain: "terminal_chain rs"
         shows "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Goto chain)], s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Call chain)], s\<rangle> \<Rightarrow> t"
       apply(rule just_show_all_bigstep_semantics_equalities_with_start_Undecided)
@@ -1013,12 +1013,118 @@ begin
       )" |
     "rewrite_Goto_chain_safe \<Gamma> (r#rs) = map_option (\<lambda>rs. r # rs) (rewrite_Goto_chain_safe \<Gamma> rs)"
 
-  lemma "rewrite_Goto_chain_safe \<Gamma> rs = Some rs' \<Longrightarrow> rewrite_Goto_chain \<Gamma> rs = rs'"
+  private lemma "rewrite_Goto_chain_safe \<Gamma> rs = Some rs' \<Longrightarrow> rewrite_Goto_chain \<Gamma> rs = rs'"
     apply(induction \<Gamma> rs arbitrary: rs' rule: rewrite_Goto_chain_safe.induct)
     apply(auto split: option.split_asm)
     done
 
 
+  private lemma step_IH_cong: "(\<And>s. \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs1, s\<rangle> \<Rightarrow> t = \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs2, s\<rangle> \<Rightarrow> t) \<Longrightarrow>
+         \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>r#rs1, s\<rangle> \<Rightarrow> t = \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>r#rs2, s\<rangle> \<Rightarrow> t"
+  apply(rule iffI)
+   apply(erule seqE_cons)
+    apply(rule seq'_cons)
+      apply simp_all
+   apply(drule not_no_matching_Goto_cases)
+    apply(simp; fail)
+   apply(elim exE conjE)
+   apply(subgoal_tac "r = Rule m (Goto chain)")
+    prefer 2
+    apply (simp add: Cons_eq_append_conv)
+   apply(thin_tac "[r] = _ @ Rule m (Goto chain) # _")
+   apply simp
+   apply (metis decision decisionD seq_cons_Goto_t state.exhaust)
+  apply(erule seqE_cons)
+   apply(rule seq'_cons)
+     apply simp_all
+  apply(drule not_no_matching_Goto_cases)
+   apply(simp; fail)
+  apply(elim exE conjE)
+  apply(subgoal_tac "r = Rule m (Goto chain)")
+   prefer 2
+   apply (simp add: Cons_eq_append_conv)
+  apply(thin_tac "[r] = _ @ Rule m (Goto chain) # _")
+  apply simp
+  apply (metis decision decisionD seq_cons_Goto_t state.exhaust)
+  done
+
+  private lemma terminal_chain_decision: 
+    "terminal_chain rs \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> \<exists>X. t = Decision X"
+    apply(induction rs arbitrary: t rule: terminal_chain.induct)
+    apply simp_all
+    apply(auto dest: iptables_goto_bigstepD)[3]
+    apply(erule seqE_cons, simp_all, blast dest: iptables_goto_bigstepD)+ (*6s*)
+    done
+    
+
+  private lemma terminal_chain_Goto_decision: "\<Gamma> chain = Some rs \<Longrightarrow> terminal_chain rs \<Longrightarrow> matches \<gamma> m p \<Longrightarrow>
+       \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Goto chain)], s\<rangle> \<Rightarrow> t \<Longrightarrow> \<exists>X. t = Decision X"
+    apply(cases s)
+     apply(drule gotoD, simp_all)
+     apply(elim exE conjE, simp_all)
+     using terminal_chain_decision apply fast
+    by (meson decisionD)
+    
+
+  thm seq'_cons seqE_cons
+  qualified theorem rewrite_Goto_chain_safe:
+    assumes "rewrite_Goto_chain_safe \<Gamma> rs = Some rs'"
+    shows "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs', s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, s\<rangle> \<Rightarrow> t"
+    using assms apply(induction \<Gamma> rs arbitrary: rs' s rule: rewrite_Goto_chain_safe.induct)
+    apply(simp_all split: option.split_asm split_if_asm)
+    defer
+    apply(auto cong: step_IH_cong)[8]
+    apply(elim exE conjE)
+    apply(drule sym) back back
+    apply(simp)
+    (*apply(subgoal_tac "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>z, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, s\<rangle> \<Rightarrow> t")
+     prefer 2
+     apply blast*)
+
+    apply(rule iffI)
+    apply(erule seqE_cons)
+    apply simp_all
+    apply(case_tac s)
+    prefer 2
+     using decision apply (fastforce dest: decisionD)
+    apply(simp)
+    apply(case_tac "matches \<gamma> m p")
+     prefer 2
+     apply(rule_tac t=ti in seq'_cons)
+      apply simp_all
+      using replace_Goto_with_Call_in_terminal_chain apply fast
+
+    apply(subst(asm) replace_Goto_with_Call_in_terminal_chain[symmetric], simp_all)
+    apply(drule(3) terminal_chain_Goto_decision)
+    apply(elim exE)
+    apply(simp)
+    apply(subgoal_tac "t = Decision X")
+     prefer 2
+     apply (simp add: decisionD; fail)
+    apply(simp)
+    apply(rule seq_cons_Goto_t, simp_all)
+   (*1 goal left*)
+
+   apply(erule seqE_cons)
+   apply simp_all
+   apply(case_tac s)
+   prefer 2
+    using decision apply (fastforce dest: decisionD)
+   apply(simp)
+   apply(case_tac "matches \<gamma> m p")
+    prefer 2
+    apply(rule_tac t=ti in seq'_cons)
+     apply simp_all
+     using replace_Goto_with_Call_in_terminal_chain apply fast
+   
+   apply(frule(3) terminal_chain_Goto_decision)
+   apply(subst(asm) replace_Goto_with_Call_in_terminal_chain, simp_all)
+   apply(rule seq'_cons)
+   apply(simp_all)
+   apply(elim exE)
+   apply simp
+   by (meson decision)
+  
   text{*Example: The semantics are actually defined (for this example).*}
   lemma defines "\<gamma> \<equiv> (\<lambda>_ _. True)" and "m \<equiv> MatchAny"
   shows "[''FORWARD'' \<mapsto> [Rule m Log, Rule m (Call ''foo''), Rule m Drop],
