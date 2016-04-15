@@ -1071,9 +1071,10 @@ begin
     assumes "rewrite_Goto_chain_safe \<Gamma> rs = Some rs'"
     shows "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs', s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, s\<rangle> \<Rightarrow> t"
     using assms apply(induction \<Gamma> rs arbitrary: rs' s rule: rewrite_Goto_chain_safe.induct)
-    apply(simp_all split: option.split_asm split_if_asm)
+    apply(simp split: option.split_asm split_if_asm; fail)
     defer
     apply(auto cong: step_IH_cong)[8]
+    apply(simp split: option.split_asm split_if_asm)
     apply(elim exE conjE)
     apply(drule sym) back back
     apply(simp)
