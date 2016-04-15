@@ -31,7 +31,7 @@ begin
     
     qualified fun matches :: "('a, 'p) matcher \<Rightarrow> 'a match_expr \<Rightarrow> 'p \<Rightarrow> bool" where
       "matches \<gamma> (MatchAnd e1 e2) p \<longleftrightarrow> matches \<gamma> e1 p \<and> matches \<gamma> e2 p" |
-      "matches \<gamma> (MatchNot me) p \<longleftrightarrow> \<not> matches \<gamma> me p" | (*does not work for ternary logic. Here: ok*)
+      "matches \<gamma> (MatchNot me) p \<longleftrightarrow> \<not> matches \<gamma> me p" |
       "matches \<gamma> (Match e) p \<longleftrightarrow> \<gamma> e p" |
       "matches _ MatchAny _ \<longleftrightarrow> True"
     
@@ -152,7 +152,8 @@ begin
                            P (Rule m a#rest) Undecided Undecided\<rbrakk> \<Longrightarrow>
      P rs s t"
     by (induction rule: iptables_goto_bigstep.induct) auto
-    
+
+
   
   subsubsection{*Forward reasoning*}
   
@@ -996,6 +997,39 @@ begin
   
   qualified definition rewrite_Goto :: "(string \<times> 'a rule list) list \<Rightarrow> (string \<times> 'a rule list) list" where
     "rewrite_Goto cs = map (\<lambda>(chain_name, rs). (chain_name, rewrite_Goto_chain (map_of cs) rs)) cs"
+
+
+
+
+
+  text{*Example: The semantics are actually defined (for this example).*}
+  lemma defines "\<gamma> \<equiv> (\<lambda>_ _. True)" and "m \<equiv> MatchAny"
+  shows "[''FORWARD'' \<mapsto> [Rule m Log, Rule m (Call ''foo''), Rule m Drop],
+          ''foo'' \<mapsto> [Rule m Log, Rule m (Goto ''bar''), Rule m Reject],
+          ''bar'' \<mapsto> [Rule m (Goto ''baz''), Rule m Reject],
+          ''baz'' \<mapsto> [(Rule m Accept)]],
+      \<gamma>,p\<turnstile>\<^sub>g\<langle>[Rule MatchAny (Call ''FORWARD'')], Undecided\<rangle> \<Rightarrow> (Decision FinalAllow)"
+  apply(subgoal_tac "matches \<gamma> m p")
+   prefer 2
+   apply(simp add: \<gamma>_def m_def; fail)
+  apply(rule call_result)
+    apply(auto)
+  apply(rule_tac t=Undecided in seq_cons)
+    apply(auto intro: log)
+  apply(rule_tac t="Decision FinalAllow" in seq_cons)
+    apply(auto intro: decision)
+  apply(rule call_result)
+     apply(simp)+
+  apply(rule_tac t=Undecided in seq_cons)
+    apply(auto intro: log)
+  apply(rule goto_decision)
+    apply(simp)+
+  apply(rule goto_decision)
+    apply(simp)+
+  apply(auto intro: accept)
+  done
+
+
 end
 
 
