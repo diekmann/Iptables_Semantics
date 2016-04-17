@@ -1,7 +1,10 @@
 theory Documentation
-imports Semantics_Embeddings No_Spoof_Embeddings "Simple_Firewall/IPPartitioning"
-
+imports Semantics_Embeddings Call_Return_Unfolding No_Spoof_Embeddings
+    "Primitive_Matchers/Code_Interface"
+    "Simple_Firewall/IPPartitioning"
 begin
+
+
 
 section{*Documentation*}
 
@@ -31,6 +34,45 @@ The semantics:
 @{thm[mode=Rule] call_result [no_vars]}
 \end{center}
 *}
+
+
+subsection{*Unfolding the Ruleset*}
+
+text{*We can replace all @{const Goto}s to terminal chains (chains that ultimately yield a final
+  decision for every packet) with @{const Call}s.
+  Otherwise we don't have as rich goto semantics as iptables has, but this rewriting is safe.
+
+@{thm Semantics_Goto.rewrite_Goto_chain_safe [no_vars]}
+*}
+
+text{* The iptables firewall starts as follows:
+  @{term "[Rule MatchAny (Call chain_name), Rule MatchAny default_action]"}
+  We call to a built-in chain @{term chain_name}, usually INPUT, OUTPUT, or FORWARD.
+  If we don't get a decision, iptables uses the default policy (-P) @{term default_action}.
+
+  We can call @{const unfold_optimize_ruleset_CHAIN} to remove all calls to user-defined chains
+  and other unpleasant actions. We get back a @{const simple_ruleset} which as exactly the same 
+  behaviour. As a bonus, this @{const simple_ruleset} already has some match conditions optimized.
+
+  For example, if the parser does not find a source IP in a rule, it is okay to specify
+  -s 0.0.0.0/0, the unfolding will optimize away these things for you.
+  Or if you parse iptables -L -n which always has these annoying 0.0.0.0/0 fields.
+  May make the parser easier.
+  The following lemma shows that this does not change the semantics.
+
+*}
+lemma unfold_optimize_common_matcher_univ_ruleset_CHAIN:
+    --"for simple packets"
+    fixes \<gamma> :: "common_primitive \<Rightarrow> simple_packet \<Rightarrow> bool"
+    assumes "sanity_wf_ruleset \<Gamma>" and "chain_name \<in> set (map fst \<Gamma>)" and "default_action = action.Accept \<or> default_action = action.Drop"
+    and "matcher_agree_on_exact_matches \<gamma> common_matcher"
+    and "unfold_ruleset_CHAIN_safe chain_name default_action (map_of \<Gamma>) = Some rs"
+    shows "(map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow>
+           (map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>[Rule MatchAny (Call chain_name), Rule MatchAny default_action], s\<rangle> \<Rightarrow> t"
+    and "simple_ruleset rs"
+apply(intro unfold_optimize_ruleset_CHAIN[where optimize=optimize_primitive_univ, OF assms(1) assms(2) assms(3)])
+  using assms apply(simp_all add: unfold_ruleset_CHAIN_safe_def Semantics_optimize_primitive_univ_common_matcher)
+by(simp add: unfold_optimize_ruleset_CHAIN_def Let_def split: split_if_asm)
 
 
 subsection{*Spoofing protection*}

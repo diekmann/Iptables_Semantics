@@ -338,21 +338,6 @@ lemma remove_unknowns_generic_specification: "a = Accept \<or> a = Drop \<Longri
 text{*Checking is something matches unconditionally*}
 context
 begin
-  fun has_primitive :: "'a match_expr \<Rightarrow> bool" where
-    "has_primitive MatchAny = False" |
-    "has_primitive (Match a) = True" |
-    "has_primitive (MatchNot m) = has_primitive m" |
-    "has_primitive (MatchAnd m1 m2) = (has_primitive m1 \<or> has_primitive m2)"
-
-
-  text{*Is a match expression equal to the @{const MatchAny} expression?
-        Only applicable if no primitives are in the expression. *}
-  fun matcheq_matchAny :: "'a match_expr \<Rightarrow> bool" where
-    "matcheq_matchAny MatchAny \<longleftrightarrow> True" |
-    "matcheq_matchAny (MatchNot m) \<longleftrightarrow> \<not> (matcheq_matchAny m)" |
-    "matcheq_matchAny (MatchAnd m1 m2) \<longleftrightarrow> matcheq_matchAny m1 \<and> matcheq_matchAny m2" |
-    "matcheq_matchAny (Match _) = undefined"
-
   private lemma no_primitives_no_unknown: "\<not> has_primitive m  \<Longrightarrow> (ternary_ternary_eval (map_match_tac \<beta> p m)) \<noteq> TernaryUnknown"
   proof(induction m)
   case Match thus ?case by auto
@@ -372,7 +357,8 @@ begin
       apply(induction m)
          apply(simp_all add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
       apply(rename_tac m1 m2)
-      using no_primitives_no_unknown by (metis (no_types, hide_lams) eval_ternary_simps_simple(1) eval_ternary_simps_simple(3) ternaryvalue.exhaust) 
+      using no_primitives_no_unknown by (metis (no_types, hide_lams) eval_ternary_simps_simple(1) 
+                                          eval_ternary_simps_simple(3) ternaryvalue.exhaust) 
     with `(\<beta>, \<alpha>) = \<gamma>` assms show ?thesis by simp
   qed
   
@@ -392,22 +378,6 @@ begin
   next
   case MatchAny show ?case by(simp add: Matching_Ternary.bunch_of_lemmata_about_matches)
   qed
-
-
-  fun matcheq_matchNone :: "'a match_expr \<Rightarrow> bool" where
-    "matcheq_matchNone MatchAny = False" |
-    "matcheq_matchNone (Match _) = False" |
-    "matcheq_matchNone (MatchNot MatchAny) = True" |
-    "matcheq_matchNone (MatchNot (Match _)) = False" |
-    "matcheq_matchNone (MatchNot (MatchNot m)) = matcheq_matchNone m" |
-    "matcheq_matchNone (MatchNot (MatchAnd m1 m2)) \<longleftrightarrow> matcheq_matchNone (MatchNot m1) \<and> matcheq_matchNone (MatchNot m2)" |
-    "matcheq_matchNone (MatchAnd m1 m2) \<longleftrightarrow>  matcheq_matchNone m1 \<or> matcheq_matchNone m2"
-  
-  lemma matachAny_matchNone: "\<not> has_primitive m \<Longrightarrow> matcheq_matchAny m \<longleftrightarrow> \<not> matcheq_matchNone m"
-    by(induction m rule: matcheq_matchNone.induct)(simp_all)
-  
-  lemma matcheq_matchNone_no_primitive: "\<not> has_primitive m \<Longrightarrow> matcheq_matchNone (MatchNot m) \<longleftrightarrow> \<not> matcheq_matchNone m"
-    by(induction m rule: matcheq_matchNone.induct) (simp_all)
 
   lemma matcheq_matchNone: "\<not> has_primitive m \<Longrightarrow> matcheq_matchNone m \<longleftrightarrow> \<not> matches \<gamma> m a p"
     by(auto dest: matcheq_matchAny matachAny_matchNone)

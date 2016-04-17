@@ -25,33 +25,26 @@ text{*The parser returns the @{typ "common_primitive ruleset"} not as a map but 
 definition map_of_string :: "(string \<times> common_primitive rule list) list \<Rightarrow> string \<rightharpoonup> common_primitive rule list" where
   "map_of_string rs = map_of rs"
 
-(*TODO: delete, only use safe functions!*)
-definition check_simple_ruleset :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
-  "check_simple_ruleset rs \<equiv> if simple_ruleset rs then rs else undefined"
 
+definition unfold_ruleset_CHAIN_safe :: "string \<Rightarrow> action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list option" where
+"unfold_ruleset_CHAIN_safe = unfold_optimize_ruleset_CHAIN optimize_primitive_univ"
 
+lemma "(unfold_ruleset_CHAIN_safe chain a rs = Some rs') \<Longrightarrow> simple_ruleset rs'"
+  by(simp add: Let_def unfold_ruleset_CHAIN_safe_def unfold_optimize_ruleset_CHAIN_def split: split_if_asm)
 
-(*TODO: replace with the generic safe version from call_return unfolding*)
+(*TODO: This is just for legacy code compatibility. Use the new _safe function instead*)
 definition unfold_ruleset_CHAIN :: "string \<Rightarrow> action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
-"unfold_ruleset_CHAIN chain_name default_action rs = check_simple_ruleset
-  (repeat_stabilize 1000 (optimize_matches opt_MatchAny_match_expr)
-    (optimize_matches optimize_primitive_univ
-      (rw_Reject (rm_LogEmpty (repeat_stabilize 10000 (process_call rs)
-        [Rule MatchAny (Call chain_name), Rule MatchAny default_action]
-  )))))"
-
-(*TODO: theorem for documentation! all the optimization before, the whole thing needs to go in one big theorem*)
-thm repeat_stabilize_process_call
+  "unfold_ruleset_CHAIN chain default_action rs = the (unfold_ruleset_CHAIN_safe chain default_action rs)"
 
 
 definition unfold_ruleset_FORWARD :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
-"unfold_ruleset_FORWARD = unfold_ruleset_CHAIN ''FORWARD''"
+  "unfold_ruleset_FORWARD = unfold_ruleset_CHAIN ''FORWARD''"
 
 definition unfold_ruleset_INPUT :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
-"unfold_ruleset_INPUT = unfold_ruleset_CHAIN ''INPUT''"
+  "unfold_ruleset_INPUT = unfold_ruleset_CHAIN ''INPUT''"
 
 definition unfold_ruleset_OUTPUT :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
-"unfold_ruleset_OUTPUT \<equiv> unfold_ruleset_CHAIN ''OUTPUT''"
+  "unfold_ruleset_OUTPUT \<equiv> unfold_ruleset_CHAIN ''OUTPUT''"
 
 
 lemma "let fw = [''FORWARD'' \<mapsto> []] in

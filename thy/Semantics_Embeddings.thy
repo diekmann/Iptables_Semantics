@@ -1,7 +1,7 @@
 theory Semantics_Embeddings
 imports "Simple_Firewall/SimpleFw_Compliance" Matching_Embeddings Semantics "Semantics_Ternary/Semantics_Ternary"
-
 begin
+
 
 section{*Semantics Embedding*}
 
@@ -323,6 +323,23 @@ apply(subst approximating_semantics_iff_fun_good_ruleset[symmetric])
 apply(subst \<beta>\<^sub>m\<^sub>a\<^sub>g\<^sub>i\<^sub>c_approximating_bigstep_iff_iptables_bigstep[where \<Gamma>=\<Gamma>])
  using assms apply (simp add: good_ruleset_def)
 by simp
+
+
+
+text{*The function @{const optimize_primitive_univ} was only applied to the ternary semantics.
+      It is, in fact, also correct for the Boolean semantics, assuming the @{const common_matcher}.*}
+lemma Semantics_optimize_primitive_univ_common_matcher:
+  assumes "matcher_agree_on_exact_matches \<gamma> common_matcher" 
+    shows "Semantics.matches \<gamma> (optimize_primitive_univ m) p = Semantics.matches \<gamma> m p"
+proof -
+  have "(max_word::16 word) =  65535" by(simp add: max_word_def)
+  hence port_range: "\<And>s e port. s = 0 \<and> e = 0xFFFF \<longrightarrow> (port::16 word) \<le> 0xFFFF" by simp
+  from assms show ?thesis
+  apply(induction m rule: optimize_primitive_univ.induct)
+  apply(auto elim!: matcher_agree_on_exact_matches_gammaE
+             simp add: port_range match_ifaceAny ip_in_ipv4range_set_from_prefix_UNIV ctstate_is_UNIV)
+  done
+qed
 
 
 

@@ -31,7 +31,7 @@ begin
     
     qualified fun matches :: "('a, 'p) matcher \<Rightarrow> 'a match_expr \<Rightarrow> 'p \<Rightarrow> bool" where
       "matches \<gamma> (MatchAnd e1 e2) p \<longleftrightarrow> matches \<gamma> e1 p \<and> matches \<gamma> e2 p" |
-      "matches \<gamma> (MatchNot me) p \<longleftrightarrow> \<not> matches \<gamma> me p" | (*does not work for ternary logic. Here: ok*)
+      "matches \<gamma> (MatchNot me) p \<longleftrightarrow> \<not> matches \<gamma> me p" |
       "matches \<gamma> (Match e) p \<longleftrightarrow> \<gamma> e p" |
       "matches _ MatchAny _ \<longleftrightarrow> True"
     
@@ -152,7 +152,8 @@ begin
                            P (Rule m a#rest) Undecided Undecided\<rbrakk> \<Longrightarrow>
      P rs s t"
     by (induction rule: iptables_goto_bigstep.induct) auto
-    
+
+
   
   subsubsection{*Forward reasoning*}
   
@@ -981,21 +982,186 @@ begin
           qed
       qed
     
-    
-    qualified theorem replace_Goto_with_Call_in_terminal_chain:
+  
+  qualified theorem replace_Goto_with_Call_in_terminal_chain:
         assumes chain_defined: "\<Gamma> chain = Some rs" and terminal_chain: "terminal_chain rs"
         shows "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Goto chain)], s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Call chain)], s\<rangle> \<Rightarrow> t"
       apply(rule just_show_all_bigstep_semantics_equalities_with_start_Undecided)
       using assms replace_Goto_with_Call_in_terminal_chain_Undecided by fast
-    
+  
+  (*TODO: delete; only use safe function below*)  
   private fun rewrite_Goto_chain :: "(string \<rightharpoonup> 'a rule list) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
     "rewrite_Goto_chain _ [] = []" |
     "rewrite_Goto_chain \<Gamma> ((Rule m (Goto chain))#rs) =
         (if terminal_chain (the (\<Gamma> chain)) then Rule m (Call chain) else undefined)#rewrite_Goto_chain \<Gamma> rs" |
     "rewrite_Goto_chain \<Gamma> (r#rs) = r#rewrite_Goto_chain \<Gamma> rs"
   
+  (*TODO: use rewrite_Goto_chain_safe*)
   qualified definition rewrite_Goto :: "(string \<times> 'a rule list) list \<Rightarrow> (string \<times> 'a rule list) list" where
     "rewrite_Goto cs = map (\<lambda>(chain_name, rs). (chain_name, rewrite_Goto_chain (map_of cs) rs)) cs"
+
+
+  private fun rewrite_Goto_chain_safe :: "(string \<rightharpoonup> 'a rule list) \<Rightarrow> 'a rule list \<Rightarrow> ('a rule list) option" where
+    "rewrite_Goto_chain_safe _ [] = Some []" |
+    "rewrite_Goto_chain_safe \<Gamma> ((Rule m (Goto chain))#rs) =
+      (case (\<Gamma> chain) of None     \<Rightarrow> None
+                      |  Some rs' \<Rightarrow> (if
+                                         \<not> terminal_chain rs'
+                                      then
+                                         None
+                                      else
+                                         map_option (\<lambda>rs. Rule m (Call chain) # rs) (rewrite_Goto_chain_safe \<Gamma> rs)
+                                     )
+      )" |
+    "rewrite_Goto_chain_safe \<Gamma> (r#rs) = map_option (\<lambda>rs. r # rs) (rewrite_Goto_chain_safe \<Gamma> rs)"
+
+  private lemma "rewrite_Goto_chain_safe \<Gamma> rs = Some rs' \<Longrightarrow> rewrite_Goto_chain \<Gamma> rs = rs'"
+    apply(induction \<Gamma> rs arbitrary: rs' rule: rewrite_Goto_chain_safe.induct)
+    apply(auto split: option.split_asm)
+    done
+
+
+  private lemma step_IH_cong: "(\<And>s. \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs1, s\<rangle> \<Rightarrow> t = \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs2, s\<rangle> \<Rightarrow> t) \<Longrightarrow>
+         \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>r#rs1, s\<rangle> \<Rightarrow> t = \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>r#rs2, s\<rangle> \<Rightarrow> t"
+  apply(rule iffI)
+   apply(erule seqE_cons)
+    apply(rule seq'_cons)
+      apply simp_all
+   apply(drule not_no_matching_Goto_cases)
+    apply(simp; fail)
+   apply(elim exE conjE, rename_tac rs1a m chain rs2a)
+   apply(subgoal_tac "r = Rule m (Goto chain)")
+    prefer 2
+    subgoal by (simp add: Cons_eq_append_conv)
+   apply(thin_tac "[r] = _ @ Rule m (Goto chain) # _")
+   apply simp
+   apply (metis decision decisionD seq_cons_Goto_t state.exhaust)
+  apply(erule seqE_cons)
+   apply(rule seq'_cons)
+     apply simp_all
+  apply(drule not_no_matching_Goto_cases)
+   apply(simp; fail)
+  apply(elim exE conjE, rename_tac rs1a m chain rs2a)
+  apply(subgoal_tac "r = Rule m (Goto chain)")
+   prefer 2
+   subgoal by (simp add: Cons_eq_append_conv)
+  apply(thin_tac "[r] = _ @ Rule m (Goto chain) # _")
+  apply simp
+  apply (metis decision decisionD seq_cons_Goto_t state.exhaust)
+  done
+
+  private lemma terminal_chain_decision: 
+    "terminal_chain rs \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> \<exists>X. t = Decision X"
+    apply(induction rs arbitrary: t rule: terminal_chain.induct)
+                                         apply simp_all
+                                    apply(auto dest: iptables_goto_bigstepD)[3]
+                                 apply(erule seqE_cons, simp_all, blast dest: iptables_goto_bigstepD)+ (*6s*)
+    done
+    
+
+  private lemma terminal_chain_Goto_decision: "\<Gamma> chain = Some rs \<Longrightarrow> terminal_chain rs \<Longrightarrow> matches \<gamma> m p \<Longrightarrow>
+       \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Goto chain)], s\<rangle> \<Rightarrow> t \<Longrightarrow> \<exists>X. t = Decision X"
+    apply(cases s)
+     apply(drule gotoD, simp_all)
+     apply(elim exE conjE, simp_all)
+     using terminal_chain_decision apply fast
+    by (meson decisionD)
+    
+
+  qualified theorem rewrite_Goto_chain_safe:
+    "rewrite_Goto_chain_safe \<Gamma> rs = Some rs' \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs', s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, s\<rangle> \<Rightarrow> t"
+  proof(induction \<Gamma> rs arbitrary: rs' s rule: rewrite_Goto_chain_safe.induct)
+  case 1 thus ?case by (simp split: option.split_asm split_if_asm)
+  next
+  case (2 \<Gamma> m chain rs) 
+    from 2(2) obtain z x2 where "\<Gamma> chain = Some x2" and "terminal_chain x2"
+            and "rs' = Rule m (Call chain) # z"
+            and "Some z = rewrite_Goto_chain_safe \<Gamma> rs"
+    by(auto split: option.split_asm split_if_asm)
+    from 2(1) \<open>\<Gamma> chain = Some x2\<close> \<open>terminal_chain x2\<close> \<open>Some z = rewrite_Goto_chain_safe \<Gamma> rs\<close> 
+      have IH: "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>z, s\<rangle> \<Rightarrow> t = \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, s\<rangle> \<Rightarrow> t" for s by simp
+
+    have "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>Rule m (Call chain) # z, Undecided\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>Rule m (Goto chain) # rs, Undecided\<rangle> \<Rightarrow> t"
+          (is "?lhs \<longleftrightarrow> ?rhs")
+    proof(intro iffI)
+      assume ?lhs
+      with IH obtain ti where ti1: "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> ti" and ti2: "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, ti\<rangle> \<Rightarrow> t"
+        by(auto elim: seqE_cons)
+      show ?rhs
+      proof(cases "matches \<gamma> m p")
+      case False
+        from replace_Goto_with_Call_in_terminal_chain \<open>\<Gamma> chain = Some x2\<close> \<open>terminal_chain x2\<close> 
+        have " \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> ti \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Goto chain)], Undecided\<rangle> \<Rightarrow> ti"
+          by fast
+        with False ti1 ti2 show ?thesis by(rule_tac t=ti in seq'_cons) simp+
+      next
+      case True
+        from ti1 \<open>\<Gamma> chain = Some x2\<close> \<open>terminal_chain x2\<close>
+        have g: "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Goto chain)], Undecided\<rangle> \<Rightarrow> ti"
+          by(subst(asm) replace_Goto_with_Call_in_terminal_chain[symmetric]) simp+
+        with True \<open>\<Gamma> chain = Some x2\<close> \<open>terminal_chain x2\<close> obtain X where X: "ti = Decision X"
+          by(blast dest: terminal_chain_Goto_decision)
+        with this ti2 have "t = Decision X"
+          by(simp add: decisionD)
+        with g X True ti2 \<open>\<Gamma> chain = Some x2\<close> \<open>terminal_chain x2\<close> show ?thesis
+          apply(simp)
+          apply(rule seq_cons_Goto_t, simp_all)
+          done
+      qed
+    next
+      assume ?rhs
+      with IH \<open>\<Gamma> chain = Some x2\<close> \<open>terminal_chain x2\<close> \<open>Some z = rewrite_Goto_chain_safe \<Gamma> rs\<close> show ?lhs
+        apply -
+        apply(erule seqE_cons)
+         subgoal for ti
+         apply simp_all
+         apply(rule_tac t=ti in seq'_cons)
+           apply simp_all
+         using replace_Goto_with_Call_in_terminal_chain by fast
+        apply simp
+        apply(frule(3) terminal_chain_Goto_decision)
+        apply(subst(asm) replace_Goto_with_Call_in_terminal_chain, simp_all)
+        apply(rule seq'_cons, simp_all)
+        apply(elim exE)
+        by (simp add: decision)
+    qed
+    with \<open>rs' = Rule m (Call chain) # z\<close> show ?case
+      apply -
+      apply(rule just_show_all_bigstep_semantics_equalities_with_start_Undecided)
+      by simp
+
+  qed(auto cong: step_IH_cong)
+  
+
+
+  text{*Example: The semantics are actually defined (for this example).*}
+  lemma defines "\<gamma> \<equiv> (\<lambda>_ _. True)" and "m \<equiv> MatchAny"
+  shows "[''FORWARD'' \<mapsto> [Rule m Log, Rule m (Call ''foo''), Rule m Drop],
+          ''foo'' \<mapsto> [Rule m Log, Rule m (Goto ''bar''), Rule m Reject],
+          ''bar'' \<mapsto> [Rule m (Goto ''baz''), Rule m Reject],
+          ''baz'' \<mapsto> [(Rule m Accept)]],
+      \<gamma>,p\<turnstile>\<^sub>g\<langle>[Rule MatchAny (Call ''FORWARD'')], Undecided\<rangle> \<Rightarrow> (Decision FinalAllow)"
+  apply(subgoal_tac "matches \<gamma> m p")
+   prefer 2
+   apply(simp add: \<gamma>_def m_def; fail)
+  apply(rule call_result)
+    apply(auto)
+  apply(rule_tac t=Undecided in seq_cons)
+    apply(auto intro: log)
+  apply(rule_tac t="Decision FinalAllow" in seq_cons)
+    apply(auto intro: decision)
+  apply(rule call_result)
+     apply(simp)+
+  apply(rule_tac t=Undecided in seq_cons)
+    apply(auto intro: log)
+  apply(rule goto_decision)
+    apply(simp)+
+  apply(rule goto_decision)
+    apply(simp)+
+  apply(auto intro: accept)
+  done
+
+
 end
 
 

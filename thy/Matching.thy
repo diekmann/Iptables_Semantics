@@ -8,8 +8,17 @@ lemma MatchOr: "matches \<gamma> (MatchOr m1 m2) p \<longleftrightarrow> matches
   by(simp add: MatchOr_def)
 
 lemma opt_MatchAny_match_expr_correct: "matches \<gamma> (opt_MatchAny_match_expr m) = matches \<gamma> m"
-   apply(simp add: fun_eq_iff)
-   by(induction m rule: opt_MatchAny_match_expr.induct) (simp_all)
+ apply(simp add: fun_eq_iff)
+ by(induction m rule: opt_MatchAny_match_expr.induct) (simp_all)
+
+lemma matcheq_matchAny: "\<not> has_primitive m \<Longrightarrow> matcheq_matchAny m \<longleftrightarrow> matches \<gamma> m p"
+  by(induction m) simp_all
+
+lemma matcheq_matchNone: "\<not> has_primitive m \<Longrightarrow> matcheq_matchNone m \<longleftrightarrow> \<not> matches \<gamma> m p"
+  by(auto dest: matcheq_matchAny matachAny_matchNone)
+
+lemma matcheq_matchNone_not_matches: "matcheq_matchNone m \<Longrightarrow> \<not> matches \<gamma> m p"
+  by(induction m rule: matcheq_matchNone.induct) auto
 
 
 text{*Lemmas about matching in the @{const iptables_bigstep} semantics.*}
@@ -286,4 +295,42 @@ lemma iptables_bigstep_add_match_and:
     qed
   qed
 
+
+lemma optimize_matches_option_generic:
+  assumes "\<forall> r \<in> set rs. P (get_match r)"
+      and "(\<And>m m'. P m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' p = matches \<gamma> m p)"
+      and "(\<And>m. P m \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches \<gamma> m p)"
+  shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>optimize_matches_option f rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+      (is "?lhs \<longleftrightarrow> ?rhs")
+  proof
+    assume ?rhs
+    from this assms show ?lhs
+    apply(induction rs s t rule: iptables_bigstep_induct)
+    apply(auto simp: optimize_matches_option_append intro: iptables_bigstep.intros split: option.split)
+    done
+  next
+    assume ?lhs
+    from this assms show ?rhs
+    apply(induction f rs arbitrary: s rule: optimize_matches_option.induct)
+     apply(simp; fail)
+    apply(simp split: option.split_asm)
+     apply(subgoal_tac "\<not> matches \<gamma> m p")
+     prefer 2 apply blast
+    apply (metis decision nomatch seq'_cons state.exhaust)
+    apply(erule seqE_cons)
+    apply(rule_tac t=ti in seq'_cons)
+     apply (meson matches_rule_iptables_bigstep)
+    by blast
+  qed
+
+lemma optimize_matches_generic: "\<forall> r \<in> set rs. P (get_match r) \<Longrightarrow> 
+      (\<And>m. P m \<Longrightarrow> matches \<gamma> (f m) p = matches \<gamma> m p) \<Longrightarrow>
+      \<Gamma>,\<gamma>,p\<turnstile> \<langle>optimize_matches f rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+  unfolding optimize_matches_def
+  apply(rule optimize_matches_option_generic)
+    apply(simp; fail)
+   apply(simp split: split_if_asm)
+   apply blast
+  apply(simp split: split_if_asm)
+  using matcheq_matchNone_not_matches by fast
 end
