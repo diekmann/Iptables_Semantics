@@ -174,7 +174,7 @@ The tool tells us:
 WARNING: no IP assignment specified, loading a generic file
 ```
 This means, the tool only assumes that `lo` corresponds to `127.0.0.0/8`, but nothing more. 
-But the ruleset also matches on `eth0` and `eth0`. 
+But the ruleset also matches on `eth0` and `eth1`. 
 The tool has no information about these interfaces, it will do a sound overapproximation. 
 The result will be sound, but chances are, that the tool assumes that the firewall permits too much. 
 Note: Assuming that the firewall (in doubts) permits too much is the conservative approach when verifying that the firewall actually *blocks* the right things.
