@@ -102,6 +102,8 @@ Try this:
 
 This will generate lots of output.
 
+If you visualize the service matrix for ssh with your favorite graph visualization tool, you will see something similar to [this (png on imgur)](http://imgur.com/cKPOyAQ). `fffuu` gives you the minimal graph representation. Yes, the access matrix is really that complicated. This is the intrinsic complexity of this firewall, just check the 5k rules by hand ;-)
+
 ---------------------------------------
 
 
