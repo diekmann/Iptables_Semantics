@@ -34,12 +34,16 @@ $ ./dist/build/fffuu/fffuu --help
 ```
 FFFUU -- Fancy Formal Firewall Universal Understander
 
+Usage: fffuu [--ipassmt STRING] [--table STRING] [--chain STRING]
+             [--service_matrix_sport INTEGER] [--service_matrix_dport INTEGER]
+             STRING
+
 Available options:
   -h,--help                Show this help text
   --ipassmt STRING         Optional path to an IP assignment file. If not
                            specified, it only loads `lo = [127.0.0.0/8]`.
   --table STRING           The table to load for analysis. Default: `filter`.
-                           Note: This tool does not support pcket modification,
+                           Note: This tool does not support packet modification,
                            so loading tables such as `nat` will most likeley
                            fail.
   --chain STRING           The chain to start the analysis. Default: `FORWARD`.
@@ -52,6 +56,7 @@ Available options:
                            Destination port for the service matrix. If not
                            specified, SSH and HTTP (22 and 80) will be used.
                            Argument may be repeated multiple times.
+  -h,--help                Show this help text
   STRING                   Path to the `iptables-save` output.
 ```
 

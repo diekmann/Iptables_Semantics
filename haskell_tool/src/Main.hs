@@ -26,7 +26,7 @@ putErrStrLn = System.IO.hPutStrLn System.IO.stderr
 --labeled (and optional) command line arguments. For example: ./fffuu --table "filter"
 data CommandLineArgsLabeled = CommandLineArgsLabeled
         { ipassmt :: Maybe FilePath  <?> "Optional path to an IP assignment file. If not specified, it only loads `lo = [127.0.0.0/8]`."
-        , table :: Maybe String <?> "The table to load for analysis. Default: `filter`. Note: This tool does not support pcket modification, so loading tables such as `nat` will most likeley fail."
+        , table :: Maybe String <?> "The table to load for analysis. Default: `filter`. Note: This tool does not support packet modification, so loading tables such as `nat` will most likeley fail."
         , chain :: Maybe String <?> "The chain to start the analysis. Default: `FORWARD`. Use `INPUT` for a host-based firewall."
         --TODO: we need some grouping for specific options for the analysis
         -- For example ./fffuu --analysis service-matrix --sport 424242 --analysis spoofing --foo
