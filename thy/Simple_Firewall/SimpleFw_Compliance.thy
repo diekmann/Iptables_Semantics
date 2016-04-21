@@ -284,7 +284,7 @@ theorem to_simple_firewall: "check_simple_fw_preconditions rs \<Longrightarrow> 
     by(simp add: check_simple_fw_preconditions_def)
     obtain m a where r: "r = Rule m a" by(cases r, simp)
     from Cons.prems have "check_simple_fw_preconditions [r]" by(simp add: check_simple_fw_preconditions_def)
-    with r common_primitive_match_to_simple_match 
+    with r common_primitive_match_to_simple_match[where p = p]
     have match: "\<And> sm. common_primitive_match_to_simple_match m = Some sm \<Longrightarrow> matches (common_matcher, \<alpha>) m a p = simple_matches sm p" and
          nomatch: "common_primitive_match_to_simple_match m = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p"
       unfolding check_simple_fw_preconditions_def by simp_all
@@ -327,7 +327,8 @@ theorem transform_simple_fw_upper:
   proof -
     let ?rs3="optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new rs))"
     let ?rs'="upper_closure ?rs3"
-    let ?\<gamma>="(common_matcher, in_doubt_allow)"
+    let ?\<gamma>="(common_matcher, in_doubt_allow)
+            :: (common_primitive \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> bool)"
     let ?fw="\<lambda>rs p. approximating_bigstep_fun ?\<gamma> p rs Undecided"
 
     from packet_assume_new_simple_ruleset[OF simplers] have s1: "simple_ruleset (packet_assume_new rs)" .
@@ -402,7 +403,7 @@ theorem transform_simple_fw_upper:
       apply(subst transform_upper_closure(1)[OF s1])
       apply(subst approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF s1]])
       apply(subst approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]])
-      using packet_assume_new newpkt_def by auto
+      using packet_assume_new newpkt_def by fastforce
       
     have 4: "\<And>p. ?\<gamma>,p\<turnstile> \<langle>?rs', Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<longleftrightarrow> ?fw ?rs' p = Decision FinalAllow"
       using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF s4]] by fast
@@ -415,7 +416,9 @@ theorem transform_simple_fw_upper:
     
     thus "{p. ?\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
        {p. simple_fw (to_simple_firewall ?rs') p = Decision FinalAllow \<and> newpkt p}"
-      using to_simple_firewall[OF simple_fw_preconditions] 4 by simp
+       apply safe
+       subgoal for p using to_simple_firewall[OF simple_fw_preconditions, where p = p] 4 by auto
+      done
   qed
 
 
@@ -434,7 +437,8 @@ theorem transform_simple_fw_lower:
   proof -
     let ?rs3="optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new rs))"
     let ?rs'="lower_closure ?rs3"
-    let ?\<gamma>="(common_matcher, in_doubt_deny)"
+    let ?\<gamma>="(common_matcher, in_doubt_deny)
+            :: (common_primitive \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> bool)"
     let ?fw="\<lambda>rs p. approximating_bigstep_fun ?\<gamma> p rs Undecided"
 
     from packet_assume_new_simple_ruleset[OF simplers] have s1: "simple_ruleset (packet_assume_new rs)" .
@@ -514,7 +518,7 @@ theorem transform_simple_fw_lower:
       apply(subst transform_lower_closure(1)[OF s1])
       apply(subst approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF s1]])
       apply(subst approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]])
-      using packet_assume_new newpkt_def by auto
+      using packet_assume_new newpkt_def by fastforce
       
     have 4: "\<And>p. ?\<gamma>,p\<turnstile> \<langle>?rs', Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<longleftrightarrow> ?fw ?rs' p = Decision FinalAllow"
       using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF s4]] by fast
@@ -527,7 +531,9 @@ theorem transform_simple_fw_lower:
     
     thus "{p. simple_fw (to_simple_firewall ?rs') p = Decision FinalAllow \<and> newpkt p} \<subseteq>
           {p. ?\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} "
-      using to_simple_firewall[OF simple_fw_preconditions] 4 by simp
+      apply safe
+      subgoal for p using to_simple_firewall[OF simple_fw_preconditions, where p = p] 4 by auto
+    done
   qed
 
 
@@ -544,6 +550,7 @@ definition "to_simple_firewall_without_interfaces ipassmt rs \<equiv>
 
 
 (*basically a copy&paste from transform_simple_fw_upper. but this one is way cleaner! refactor the other using this!*)
+declare[[show_types]]
 theorem to_simple_firewall_without_interfaces:
   defines "newpkt p \<equiv> match_tcp_flags ipt_tcp_syn (p_tcp_flags p) \<and> p_tag_ctstate p = CT_New"
   assumes simplers: "simple_ruleset rs"
@@ -552,11 +559,11 @@ theorem to_simple_firewall_without_interfaces:
       and wf_ipassmt1: "ipassmt_sanity_nowildcards (map_of ipassmt)" and wf_ipassmt2: "distinct (map fst ipassmt)"
       --"There are no spoofed packets (probably by kernel's reverse path filter or our checker).
          This assumption implies that ipassmt lists ALL interfaces (!!)."
-      and nospoofing: "\<forall>(p::simple_packet). \<exists>ips. (map_of ipassmt) (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipv4cidr_union_set (set ips)"
+      and nospoofing: "\<forall>(p::'a simple_packet_scheme). \<exists>ips. (map_of ipassmt) (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipv4cidr_union_set (set ips)"
 
   --"the set of new packets, which are accepted is an overapproximations"
-  shows "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
-         {p. simple_fw (to_simple_firewall_without_interfaces ipassmt rs) p = Decision FinalAllow \<and> newpkt p}"
+  shows "{p::'a simple_packet_scheme. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
+         {p::'a simple_packet_scheme. simple_fw (to_simple_firewall_without_interfaces ipassmt rs) p = Decision FinalAllow \<and> newpkt p}"
 
   and "\<forall>m \<in> match_sel ` set (to_simple_firewall_without_interfaces ipassmt rs). iiface m = ifaceAny \<and> oiface m = ifaceAny"
   proof -
@@ -567,7 +574,8 @@ theorem to_simple_firewall_without_interfaces:
     let ?rs5="optimize_matches abstract_for_simple_firewall ?rs4"
     let ?rs6="optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a)) ?rs5"
     let ?rs7="upper_closure ?rs6"
-    let ?\<gamma>="(common_matcher, in_doubt_allow)"
+    let ?\<gamma>="(common_matcher, in_doubt_allow)
+          :: (common_primitive \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> bool)"
 
     have "to_simple_firewall_without_interfaces ipassmt rs = to_simple_firewall ?rs7"
       by(simp add: to_simple_firewall_without_interfaces_def)
@@ -680,18 +688,20 @@ theorem to_simple_firewall_without_interfaces:
     by simp
 
 
-    have "{p. ?\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} =
-          {p. ?\<gamma>,p\<turnstile> \<langle>?rs1, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
+    have "{p :: 'a simple_packet_scheme. ?\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} =
+          {p :: 'a simple_packet_scheme. ?\<gamma>,p\<turnstile> \<langle>?rs1, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
       apply(subst approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF s1]])
       apply(subst approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]])
-      using packet_assume_new newpkt_def by auto
+      apply(rule Collect_cong)
+      subgoal for p using packet_assume_new[where p = p] newpkt_def[where p = p] by auto
+      done
     also have "{p. ?\<gamma>,p\<turnstile> \<langle>?rs1, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} =
           {p. ?\<gamma>,p\<turnstile> \<langle>?rs2, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
       apply(subst transform_upper_closure(1)[OF s1])
       by simp
     also have "\<dots> = {p. ?\<gamma>,p\<turnstile> \<langle>?rs3, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
       apply(subst iface_try_rewrite[OF s2 nnf2])
-      using wf_ipassmt1 wf_ipassmt2 nospoofing by simp_all (*TODO: ich wette wenn ich mit SQRL merge geht hier was wegen dem simple_packet kaputt*)
+      using wf_ipassmt1 wf_ipassmt2 nospoofing by simp_all
     also have "\<dots> = {p. ?\<gamma>,p\<turnstile> \<langle>?rs4, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
       apply(subst transform_upper_closure(1)[OF s3])
       by simp
@@ -720,8 +730,11 @@ theorem to_simple_firewall_without_interfaces:
     
     thus "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
          {p. simple_fw (to_simple_firewall_without_interfaces ipassmt rs) p = Decision FinalAllow \<and> newpkt p}"
-      unfolding to_simple_firewall_without_interfaces_def
-      using to_simple_firewall[OF simple_fw_preconditions] approximating_rule by simp
+      apply(safe)
+      subgoal for p   
+       unfolding to_simple_firewall_without_interfaces_def
+       using to_simple_firewall[OF simple_fw_preconditions, where p = p] approximating_rule[where p = p] by auto
+      done
 
     (*the following proof to show that we don't have interfaces left is MADNESS*)
 

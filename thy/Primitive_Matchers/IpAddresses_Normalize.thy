@@ -68,7 +68,7 @@ subsection{*Normalizing IP Addresses*}
       match_list (common_matcher, \<alpha>) (normalize_src_ips m) a p = matches (common_matcher, \<alpha>) m a p"
     unfolding normalize_src_ips_def
     using normalize_primitive_extract[OF _ wf_disc_sel_common_primitive(3), where f=ipt_ipv4range_compress and \<gamma>="(common_matcher, \<alpha>)"]
-      ipt_ipv4range_compress_src_matching by simp
+      ipt_ipv4range_compress_src_matching by blast
 
   lemma normalize_src_ips_normalized_n_primitive: "normalized_nnf_match m \<Longrightarrow> 
       \<forall>m' \<in> set (normalize_src_ips m). normalized_src_ips m'"
@@ -99,7 +99,7 @@ subsection{*Normalizing IP Addresses*}
       match_list (common_matcher, \<alpha>) (normalize_dst_ips m) a p = matches (common_matcher, \<alpha>) m a p"
     unfolding normalize_dst_ips_def
     using normalize_primitive_extract[OF _ wf_disc_sel_common_primitive(4), where f=ipt_ipv4range_compress and \<gamma>="(common_matcher, \<alpha>)"]
-      ipt_ipv4range_compress_dst_matching by simp
+      ipt_ipv4range_compress_dst_matching by blast
 
    text{*Normalizing the dst ips preserves the normalized src ips*}
    lemma "normalized_nnf_match m \<Longrightarrow> normalized_src_ips m \<Longrightarrow> \<forall>mn\<in>set (normalize_dst_ips m). normalized_src_ips mn"

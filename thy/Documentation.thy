@@ -63,7 +63,7 @@ text{* The iptables firewall starts as follows:
 *}
 lemma unfold_optimize_common_matcher_univ_ruleset_CHAIN:
     --"for simple packets"
-    fixes \<gamma> :: "common_primitive \<Rightarrow> simple_packet \<Rightarrow> bool"
+    fixes \<gamma> :: "common_primitive \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> bool"
     assumes "sanity_wf_ruleset \<Gamma>" and "chain_name \<in> set (map fst \<Gamma>)" and "default_action = action.Accept \<or> default_action = action.Drop"
     and "matcher_agree_on_exact_matches \<gamma> common_matcher"
     and "unfold_ruleset_CHAIN_safe chain_name default_action (map_of \<Gamma>) = Some rs"

@@ -128,7 +128,8 @@ begin
       from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
        good: "good_ruleset (optimize_matches (abstract_primitive disc) rs)" by fast
 
-      let ?\<gamma>="(\<beta>, in_doubt_allow) :: (common_primitive \<Rightarrow> simple_packet \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> simple_packet \<Rightarrow> bool)"
+      let ?\<gamma>="(\<beta>, in_doubt_allow) :: (common_primitive \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> ternaryvalue) \<times>
+              (action \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> bool)"
         --{*type signature is needed, otherwise @{const in_doubt_allow} would be for arbitrary packet*}
 
       have abstract_primitive_in_doubt_allow_help1:
@@ -271,7 +272,8 @@ begin
       from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
         good: "good_ruleset (optimize_matches (abstract_primitive disc) rs)" by fast
 
-      let ?\<gamma>="(\<beta>, in_doubt_deny) :: (common_primitive \<Rightarrow> simple_packet \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> simple_packet \<Rightarrow> bool)"
+      let ?\<gamma>="(\<beta>, in_doubt_deny) :: (common_primitive \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> ternaryvalue) \<times> 
+            (action \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> bool)"
         --{*type signature is needed, otherwise @{const in_doubt_allow} would be for arbitrary packet*}
       
       have abstract_primitive_in_doubt_deny_help1:

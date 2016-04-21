@@ -13,7 +13,7 @@ theory OpenFlowDoc
 imports 
   LinuxRouterOpenFlowTranslation 
   FeatherweightOpenFlowComparison
-  LaTeXsugar
+  "~~/src/HOL/Library/LaTeXsugar"
 begin
 (*>*)
 

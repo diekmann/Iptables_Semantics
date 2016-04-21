@@ -182,7 +182,9 @@ text{*Sanity check:
       If the firewall features spoofing protection and we look at a packet which was allowed by the firewall.
       Then the packet's src ip must be according to ipassmt. (case Some)
       We don't case about packets from an interface which are not defined in ipassmt. (case None)*}
-lemma "no_spoofing ipassmt rs \<Longrightarrow> (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<Longrightarrow>
+lemma 
+  fixes p :: simple_packet
+  shows "no_spoofing ipassmt rs \<Longrightarrow> (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<Longrightarrow>
        case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips) | None \<Rightarrow> True"
   apply(simp add: no_spoofing_def)
   apply(case_tac "Iface (p_iiface p) \<in> dom ipassmt")

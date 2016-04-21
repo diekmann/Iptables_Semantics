@@ -56,6 +56,7 @@ begin
   
   (*only for src*)
   private lemma ipt_ports_compress_src_correct:
+  fixes p :: "'a simple_packet_scheme"
   assumes generic: "primitive_matcher_generic \<beta>"
   shows "matches (\<beta>, \<alpha>) (alist_and (NegPos_map Src_Ports ms)) a p \<longleftrightarrow> 
          matches (\<beta>, \<alpha>) (Match (Src_Ports (ipt_ports_compress ms))) a p"
@@ -72,9 +73,9 @@ begin
                 ipt_ports_negation_type_normalize.simps)
         next
         case (Neg a)
-          thus ?thesis using Cons.IH generic primitive_matcher_generic.Ports_single_not primitive_matcher_generic.Ports_single
+          thus ?thesis using Cons.IH generic primitive_matcher_generic.Ports_single_not[where p = p] primitive_matcher_generic.Ports_single[where p = p]
           apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct
-                          bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+                          bunch_of_lemmata_about_matches[where p = p] ternary_to_bool_bool_to_ternary)
           apply(simp add: ports_invert ipt_ports_negation_type_normalize.simps)
           done
         qed
