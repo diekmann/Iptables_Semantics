@@ -922,10 +922,13 @@ apply(case_tac "ab \<noteq> bb")
 apply(drule (3) no_overlaps_lroft_hlp4, (simp;fail)) (* This drule is not applied like you'd expect it to be. But it works. *)
 apply(clarify | unfold
 	simple_match_to_of_match_def smtoms_eq_hlp Let_def set_concat set_map de_Morgan_conj not_False_eq_True)+
-apply(simp add: comp_def smtoms_eq_hlp add: if_splits)
-apply(auto dest: conjunctSomeProtoAnyD cidrsplitelems split: protocol.splits option.splits if_splits
-	simp add: comp_def  OF_match_fields_unsafe_def simple_match_to_of_match_single_def option2set_def) (* another huge split, takes around 332 seconds  *)
-by -
+apply(simp cong: smtoms_eq_hlp)
+apply(simp split: if_splits )
+      apply(simp_all add: comp_def)
+      by(auto dest: conjunctSomeProtoAnyD cidrsplitelems
+	            simp add: OF_match_fields_unsafe_def simple_match_to_of_match_single_def option2set_def)
+(* another huge split, takes about 10 seconds  *)
+
 
 lemma if_f_distrib: "(if a then b else c) k = (if a then b k else c k)" by simp
 
