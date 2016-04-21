@@ -28,10 +28,8 @@ done
 value "list_group_eq_key fst [(1::int, ''''), (2,''a''), (2,''b''), (2, ''c''), (3, ''c''), (1,''''), (4,'''')]"
 
 lemma "list_group_eq_key id xs = list_group_eq xs"
-apply(induction xs)
- apply(simp_all add: id_def)
-by (smt append.simps(1) append.simps(2) dropWhile.simps(1) dropWhile.simps(2) dropWhile_cong list.sel(3) list_group_eq.elims list_group_eq_key.elims takeWhile_cong)
-
+apply(induction xs rule: list_group_eq.induct)
+ by(simp_all add: id_def)
 
 (*
 lemma "sorted (map f (x#xs)) \<Longrightarrow> list_group_eq_key f (x#xs) = [x # filter (\<lambda>y. f x = f y) xs] @ list_group_eq_key f (filter (\<lambda>y. f x \<noteq> f y) xs)"
