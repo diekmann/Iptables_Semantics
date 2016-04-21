@@ -550,7 +550,6 @@ definition "to_simple_firewall_without_interfaces ipassmt rs \<equiv>
 
 
 (*basically a copy&paste from transform_simple_fw_upper. but this one is way cleaner! refactor the other using this!*)
-declare[[show_types]]
 theorem to_simple_firewall_without_interfaces:
   defines "newpkt p \<equiv> match_tcp_flags ipt_tcp_syn (p_tcp_flags p) \<and> p_tag_ctstate p = CT_New"
   assumes simplers: "simple_ruleset rs"

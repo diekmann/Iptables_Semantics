@@ -531,7 +531,7 @@ proof -
       simplified upper_closure_matchexpr_generic]
 
     from *(1)[where p = p]
-    show "(common_matcher, in_doubt_allow),p\<turnstile> \<langle>upper rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t" 
+    show "(common_matcher, in_doubt_allow),p\<turnstile> \<langle>upper rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
       by(subst upper)
     from *(2) show "simple_ruleset (upper rs)" by(subst upper)
     from *(3) show "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
