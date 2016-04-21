@@ -924,7 +924,7 @@ apply(clarify | unfold
 	simple_match_to_of_match_def smtoms_eq_hlp Let_def set_concat set_map de_Morgan_conj not_False_eq_True)+
 apply(simp add: comp_def smtoms_eq_hlp add: if_splits)
 apply(auto dest: conjunctSomeProtoAnyD cidrsplitelems split: protocol.splits option.splits if_splits
-	simp add: comp_def  smtoms_eq_hlp OF_match_fields_unsafe_def simple_match_to_of_match_single_def option2set_def) (* another huge split, takes around 332 seconds  *)
+	simp add: comp_def  OF_match_fields_unsafe_def simple_match_to_of_match_single_def option2set_def) (* another huge split, takes around 332 seconds  *)
 by -
 
 lemma if_f_distrib: "(if a then b else c) k = (if a then b k else c k)" by simp
