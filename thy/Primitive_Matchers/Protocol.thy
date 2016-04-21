@@ -51,7 +51,7 @@ fun match_proto :: "protocol \<Rightarrow> primitive_protocol \<Rightarrow> bool
 
   text{*Originally, there was a @{typ nat} in the protocol definition, allowing infinitly many protocols 
         This was intended behavior. We want to prevent things such as @{term "\<not>TCP = UDP"}.
-        So be careful with what you prove\<dots>*}
+        So be careful with what you prove...*}
   lemma primitive_protocol_Ex_neq: "p = Proto pi \<Longrightarrow> \<exists>p'. p' \<noteq> pi" 
   proof
   	show "pi + 1 \<noteq> pi" by simp
