@@ -21,6 +21,32 @@ datatype of_match_field =
 	| L4Src "16 word" "16 word" (* openvswitch 1.6 supports bitmasks - does not seem to be in of 1.5.1, but I need it. *)
 	| L4Dst "16 word" "16 word"
 
+(* I just do not want this proof in the documentation theory *)
+schematic_goal of_match_field_typeset: "(field_match :: of_match_field) \<in> {
+  IngressPort (?s::string),
+  EtherSrc (?as::48 word), EtherDst (?ad::48 word),
+	EtherType (?t::16 word),
+	VlanId (?i::16 word), VlanPriority (?p::16 word),
+	IPv4Src (?pms::32 prefix_match), 
+	IPv4Dst (?pmd::32 prefix_match),
+	IPv4Proto (?ipp :: 8 word),
+	L4Src (?ps :: 16 word) (?ms :: 16 word),
+	L4Dst (?pd :: 16 word) (?md :: 16 word)
+}"
+proof((cases field_match;clarsimp),goal_cases)
+  next case (IngressPort s)  thus "s = (case field_match of IngressPort s \<Rightarrow> s)"  unfolding IngressPort of_match_field.simps by rule
+  next case (EtherSrc s)     thus "s = (case field_match of EtherSrc s \<Rightarrow> s)"     unfolding EtherSrc of_match_field.simps by rule
+  next case (EtherDst s)     thus "s = (case field_match of EtherDst s \<Rightarrow> s)"     unfolding EtherDst of_match_field.simps by rule
+  next case (EtherType s)    thus "s = (case field_match of EtherType s \<Rightarrow> s)"    unfolding EtherType of_match_field.simps by rule
+  next case (VlanId s)       thus "s = (case field_match of VlanId s \<Rightarrow> s)"       unfolding VlanId of_match_field.simps by rule
+  next case (VlanPriority s) thus "s = (case field_match of VlanPriority s \<Rightarrow> s)" unfolding VlanPriority of_match_field.simps by rule
+  next case (IPv4Src s)      thus "s = (case field_match of IPv4Src s \<Rightarrow> s)"      unfolding IPv4Src of_match_field.simps by rule
+  next case (IPv4Dst s)      thus "s = (case field_match of IPv4Dst s \<Rightarrow> s)"      by simp
+  next case (IPv4Proto s)    thus "s = (case field_match of IPv4Proto s \<Rightarrow> s)"    by simp
+  next case (L4Src p l)      thus "p = (case field_match of L4Src p m \<Rightarrow> p) \<and> l = (case field_match of L4Src p m \<Rightarrow> m)" by simp
+  next case (L4Dst p l)      thus "p = (case field_match of L4Dst p m \<Rightarrow> p) \<and> l = (case field_match of L4Dst p m \<Rightarrow> m)" by simp
+qed
+
 (*
 
 The semantics of an openflow match is by no means trivial. See Specification 7.2.3.6, v1.5.1
@@ -151,6 +177,10 @@ qed
 lemma of_match_fields_safe_eq: assumes "all_prerequisites m" shows "OF_match_fields_safe m = OF_match_fields_unsafe m"
 unfolding OF_match_fields_safe_def[abs_def] fun_eq_iff comp_def unfolding of_safe_unsafe_match_eq[OF assms] unfolding option.sel by clarify 
 
-
+lemma OF_match_fields_alt: "OF_match_fields m p =
+  (if \<exists>f \<in> m. \<not>prerequisites f m then None else 
+    if \<forall>f \<in> m. match_no_prereq f p then Some True else Some False)"
+  unfolding OF_match_fields_def all_true_def[abs_def] set_seq_def match_prereq_def
+  by(auto simp add: ball_Un)
 
 end

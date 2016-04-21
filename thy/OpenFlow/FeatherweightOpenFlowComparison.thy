@@ -14,7 +14,7 @@ guha_unmatched: "\<forall>fe \<in> set ft. \<gamma> (ofe_fields fe) p = False \<
 so\<dots> there's the possibility for a flow table with two matching entries.
 I'm not so sure it is a good idea to model undefined behavior by nondeterministic but very defined behavior..
 *)
-lemma
+lemma guha_table_semantics_ex2res:
     assumes ta: "CARD('a) \<ge> 2" (* if there's only one action, the whole thing is moot. *)
 	assumes ms: "\<exists>ff. \<gamma> ff p" (* if our matcher rejects the packet for any match condition, it is borked. *)
 	shows "\<exists>ft (a1 :: 'a) (a2 :: 'a). a1 \<noteq> a2 \<and> guha_table_semantics \<gamma> ft p (Some a1) \<and> guha_table_semantics \<gamma> ft p (Some a2)"
@@ -63,31 +63,31 @@ qed
 
 lemma guha_equal_Action:
 	assumes no: "no_overlaps \<gamma> ft"
-	assumes spm: "OF_same_priority_match3 \<gamma> ft p = Action a"
+	assumes spm: "OF_priority_match \<gamma> ft p = Action a"
 	shows "guha_table_semantics \<gamma> ft p (Some a)"
 proof -
-	note spm[THEN OF_spm3_get_fe] then obtain fe where a: "ofe_action fe = a" and fein: "fe \<in> set ft" and feana: "OF_same_priority_match3_ana \<gamma> ft p = Action fe" by blast
+	note spm[THEN OF_spm3_get_fe] then obtain fe where a: "ofe_action fe = a" and fein: "fe \<in> set ft" and feana: "OF_priority_match_ana \<gamma> ft p = Action fe" by blast
 	show ?thesis
 		apply(rule guha_umstaendlich)
 		apply(rule a[symmetric])
 		apply(rule fein)
-		using feana unfolding OF_same_priority_match3_ana_def
+		using feana unfolding OF_priority_match_ana_def
 		apply(auto dest!: filter_singleton split: list.splits)
 	done
 qed
 
 lemma guha_equal_NoAction:
 	assumes no: "no_overlaps \<gamma> ft"
-	assumes spm: "OF_same_priority_match3 \<gamma> ft p = NoAction"
+	assumes spm: "OF_priority_match \<gamma> ft p = NoAction"
 	shows "guha_table_semantics \<gamma> ft p None"
-using spm unfolding OF_same_priority_match3_def
+using spm unfolding OF_priority_match_def
 by(auto simp add: filter_empty_conv OF_spm3_noa_none[OF no spm] intro: guha_table_semantics.intros(2) split: list.splits)
 
 lemma guha_equal_hlp:
 	assumes no: "no_overlaps \<gamma> ft"
-	shows "guha_table_semantics \<gamma> ft p (ftb_to_option (OF_same_priority_match3 \<gamma> ft p))"
+	shows "guha_table_semantics \<gamma> ft p (ftb_to_option (OF_priority_match \<gamma> ft p))"
 	unfolding ftb_to_option_def
-	apply(cases "(OF_same_priority_match3 \<gamma> ft p)")
+	apply(cases "(OF_priority_match \<gamma> ft p)")
 	apply(simp add: guha_equal_Action[OF no])
 	apply(simp add: guha_equal_NoAction[OF no])
 	apply(subgoal_tac False, simp)
@@ -111,9 +111,9 @@ qed
 
 lemma guha_equal:
 	assumes no: "no_overlaps \<gamma> ft"
-	shows "OF_same_priority_match3 \<gamma> ft p = option_to_ftb d \<longleftrightarrow> guha_table_semantics \<gamma> ft p d"
+	shows "OF_priority_match \<gamma> ft p = option_to_ftb d \<longleftrightarrow> guha_table_semantics \<gamma> ft p d"
 	using guha_equal_hlp[OF no, of p] unfolding ftb_to_option_def option_to_ftb_def
-	apply(cases "OF_same_priority_match3 \<gamma> ft p"; cases d)
+	apply(cases "OF_priority_match \<gamma> ft p"; cases d)
 	apply(simp_all)
 	using guha_deterministic1 apply fast
 	using guha_deterministic2[OF no] apply blast

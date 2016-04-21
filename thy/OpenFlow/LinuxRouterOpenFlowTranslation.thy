@@ -1900,8 +1900,8 @@ done
 (* TODO: move. where? *)
 lemma OF_unsafe_safe_match3_eq: "
   list_all (all_prerequisites \<circ> ofe_fields) oft \<Longrightarrow>
-  OF_same_priority_match3 OF_match_fields_unsafe oft = OF_same_priority_match3 OF_match_fields_safe oft"
-unfolding OF_same_priority_match3_def[abs_def]
+  OF_priority_match OF_match_fields_unsafe oft = OF_priority_match OF_match_fields_safe oft"
+unfolding OF_priority_match_def[abs_def]
 proof(goal_cases)
   case 1
   from 1 have "\<And>packet. [f\<leftarrow>oft . OF_match_fields_unsafe (ofe_fields f) packet] = [f\<leftarrow>oft . OF_match_fields_safe (ofe_fields f) packet]"
@@ -2062,20 +2062,20 @@ lemma lr_of_tran_correct:
 	 and ippkt: "p_l2type p = 0x800"
 	 and   ifl: "is_iface_list ifs"
 	 and ifvld: "p_iiface p \<in> set ifs"
-	shows "OF_same_priority_match3 OF_match_fields_safe oft p = Action [Forward oif] \<longleftrightarrow> simple_linux_router_nol12 rt fw p = (Some (p\<lparr>p_oiface := oif\<rparr>))"
-	      "OF_same_priority_match3 OF_match_fields_safe oft p = Action [] \<longleftrightarrow> simple_linux_router_nol12 rt fw p = None"
+	shows "OF_priority_match OF_match_fields_safe oft p = Action [Forward oif] \<longleftrightarrow> simple_linux_router_nol12 rt fw p = (Some (p\<lparr>p_oiface := oif\<rparr>))"
+	      "OF_priority_match OF_match_fields_safe oft p = Action [] \<longleftrightarrow> simple_linux_router_nol12 rt fw p = None"
 	      (* fun stuff: *)
-	      "OF_same_priority_match3 OF_match_fields_safe oft p \<noteq> NoAction" "OF_same_priority_match3 OF_match_fields_safe oft p \<noteq> Undefined"
-	      "OF_same_priority_match3 OF_match_fields_safe oft p = Action ls \<longrightarrow> length ls \<le> 1"
-	      "\<exists>ls. length ls \<le> 1 \<and> OF_same_priority_match3 OF_match_fields_safe oft p = Action ls"
+	      "OF_priority_match OF_match_fields_safe oft p \<noteq> NoAction" "OF_priority_match OF_match_fields_safe oft p \<noteq> Undefined"
+	      "OF_priority_match OF_match_fields_safe oft p = Action ls \<longrightarrow> length ls \<le> 1"
+	      "\<exists>ls. length ls \<le> 1 \<and> OF_priority_match OF_match_fields_safe oft p = Action ls"
 proof -
   have unsafe_safe_eq: 
-    "OF_same_priority_match3 OF_match_fields_unsafe oft = OF_same_priority_match3 OF_match_fields_safe oft"
+    "OF_priority_match OF_match_fields_unsafe oft = OF_priority_match OF_match_fields_safe oft"
     "OF_match_linear OF_match_fields_unsafe oft = OF_match_linear OF_match_fields_safe oft"
     apply(subst OF_unsafe_safe_match3_eq; (rule lr_of_tran_prereqs s1 s2 nerr refl)+)
     apply(subst OF_unsafe_safe_match_linear_eq; (rule lr_of_tran_prereqs s1 s2 nerr refl)+)
   done
-  have lin: "OF_same_priority_match3 OF_match_fields_safe oft = OF_match_linear OF_match_fields_safe oft"
+  have lin: "OF_priority_match OF_match_fields_safe oft = OF_match_linear OF_match_fields_safe oft"
     using OF_eq[OF lr_of_tran_no_overlaps lr_of_tran_sorted_descending, OF ifl nerr[symmetric] nerr[symmetric]] unfolding fun_eq_iff unsafe_safe_eq by metis
   let ?ard = "map (apfst word_of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs))"
   have oft_def: "oft = pack_OF_entries ifs ?ard" using nerr unfolding lr_of_tran_def Let_def by(simp split: if_splits)
@@ -2105,9 +2105,9 @@ proof -
     moreover note s3_correct[OF vld ippkt ifvld(1) *, THEN iffD2, unfolded oft_def[symmetric], of "[Forward oif]"]
     ultimately show ?case by simp
   qed
-  show w1: "\<And>oif. (OF_same_priority_match3 OF_match_fields_safe oft p = Action [Forward oif]) = (simple_linux_router_nol12 rt fw p = Some (p\<lparr>p_oiface := oif\<rparr>))"
+  show w1: "\<And>oif. (OF_priority_match OF_match_fields_safe oft p = Action [Forward oif]) = (simple_linux_router_nol12 rt fw p = Some (p\<lparr>p_oiface := oif\<rparr>))"
     unfolding lin using w1_1 w1_2 by blast
-  show w2: "(OF_same_priority_match3 OF_match_fields_safe oft p = Action []) = (simple_linux_router_nol12 rt fw p = None)"
+  show w2: "(OF_priority_match OF_match_fields_safe oft p = Action []) = (simple_linux_router_nol12 rt fw p = None)"
   unfolding lin
   proof(rule iffI, goal_cases)
     case 1
@@ -2127,24 +2127,24 @@ proof -
   qed
   have lr_determ: "\<And>a. simple_linux_router_nol12 rt fw p = Some a \<Longrightarrow> a = p\<lparr>p_oiface := output_iface (routing_table_semantics rt (p_dst p))\<rparr>"
     by(clarsimp simp: simple_linux_router_nol12_def Let_def not_undec split: Option.bind_splits state.splits final_decision.splits)
-  show notno: "OF_same_priority_match3 OF_match_fields_safe oft p \<noteq> NoAction"
+  show notno: "OF_priority_match OF_match_fields_safe oft p \<noteq> NoAction"
     apply(cases "simple_linux_router_nol12 rt fw p")
     using w2 apply(simp)
     using w1[of "output_iface (routing_table_semantics rt (p_dst p))"] apply(simp)
     apply(drule lr_determ)
     apply(simp)
   done
-  show notub: "OF_same_priority_match3 OF_match_fields_safe oft p \<noteq> Undefined" unfolding lin using OF_match_linear_not_undefined .
+  show notub: "OF_priority_match OF_match_fields_safe oft p \<noteq> Undefined" unfolding lin using OF_match_linear_not_undefined .
     (*by (metis lr_of_tran_no_overlaps ifl lin nerr no_overlaps_not_unefined unsafe_safe_eq(1))*)
-  show notmult: "\<And>ls. OF_same_priority_match3 OF_match_fields_safe oft p = Action ls \<longrightarrow> length ls \<le> 1"
+  show notmult: "\<And>ls. OF_priority_match OF_match_fields_safe oft p = Action ls \<longrightarrow> length ls \<le> 1"
   apply(cases "simple_linux_router_nol12 rt fw p")
     using w2 apply(simp)
     using w1[of "output_iface (routing_table_semantics rt (p_dst p))"] apply(simp)
     apply(drule lr_determ)
     apply(clarsimp)
   done
-  show "\<exists>ls. length ls \<le> 1 \<and> OF_same_priority_match3 OF_match_fields_safe oft p = Action ls"
-    apply(cases "OF_same_priority_match3 OF_match_fields_safe oft p")
+  show "\<exists>ls. length ls \<le> 1 \<and> OF_priority_match OF_match_fields_safe oft p = Action ls"
+    apply(cases "OF_priority_match OF_match_fields_safe oft p")
     using notmult apply blast
     using notno   apply blast
     using notub   apply blast

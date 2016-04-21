@@ -50,6 +50,8 @@ fun has_default_route :: "prefix_routing \<Rightarrow> bool" where
 "has_default_route (r#rs) = (((pfxm_length (routing_match r)) = 0) \<or> has_default_route rs)" |
 "has_default_route Nil = False"
 
+lemma has_default_route_alt: "has_default_route rt \<longleftrightarrow> (\<exists>r \<in> set rt. pfxm_length (routing_match r) = 0)" by(induction rt) simp_all
+
 definition correct_routing :: "prefix_routing \<Rightarrow> bool" where 
   "correct_routing r \<equiv> is_longest_prefix_routing r \<and> has_default_route r \<and> valid_prefixes r"
 
