@@ -354,15 +354,9 @@ subsection{*Equality with @{term "\<gamma>,p\<turnstile> \<langle>rs, s\<rangle>
   *}
   lemma good_imp_wf_ruleset: "good_ruleset rs \<Longrightarrow> wf_ruleset \<gamma> p rs" by (metis good_ruleset_def wf_ruleset_def)
 
-  definition simple_ruleset :: "'a rule list \<Rightarrow> bool" where
-    "simple_ruleset rs \<equiv> \<forall>r \<in> set rs. get_action r = Accept (*\<or> get_action r = Reject*) \<or> get_action r = Drop"
   lemma simple_imp_good_ruleset: "simple_ruleset rs \<Longrightarrow> good_ruleset rs"
     by(simp add: simple_ruleset_def good_ruleset_def, fastforce)
 
-  lemma simple_ruleset_tail: "simple_ruleset (r#rs) \<Longrightarrow> simple_ruleset rs" by (simp add: simple_ruleset_def)
-
-  lemma simple_ruleset_append: "simple_ruleset (rs\<^sub>1 @ rs\<^sub>2) \<longleftrightarrow> simple_ruleset rs\<^sub>1 \<and> simple_ruleset rs\<^sub>2"
-    by(simp add: simple_ruleset_def, blast)
 
 lemma approximating_bigstep_fun_seq_semantics: "\<lbrakk> \<gamma>,p\<turnstile> \<langle>rs\<^sub>1, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<rbrakk> \<Longrightarrow> 
     approximating_bigstep_fun \<gamma> p (rs\<^sub>1 @ rs\<^sub>2) s = approximating_bigstep_fun \<gamma> p rs\<^sub>2 t"
@@ -438,15 +432,6 @@ lemma approximating_bigstep_deterministic: "\<lbrakk> \<gamma>,p\<turnstile> \<l
   qed(auto dest: approximating_bigstepD)
 
 
-text{*The actions Log and Empty do not modify the packet processing in any way. They can be removed.*}
-fun rm_LogEmpty :: "'a rule list \<Rightarrow> 'a rule list" where
-  "rm_LogEmpty [] = []" |
-  "rm_LogEmpty ((Rule _ Empty)#rs) = rm_LogEmpty rs" |
-  "rm_LogEmpty ((Rule _ Log)#rs) = rm_LogEmpty rs" |
-  "rm_LogEmpty (r#rs) = r # rm_LogEmpty rs"
-
-lemma rm_LogEmpty_filter: "rm_LogEmpty rs = filter (\<lambda>r. get_action r \<noteq> Log \<and> get_action r \<noteq> Empty) rs"
- by(induction rs rule: rm_LogEmpty.induct) (simp_all)
 
 lemma rm_LogEmpty_fun_semantics: 
   "approximating_bigstep_fun \<gamma> p (rm_LogEmpty rs) s = approximating_bigstep_fun \<gamma> p rs s"
@@ -458,18 +443,6 @@ lemma rm_LogEmpty_fun_semantics:
     case (Nomatch \<gamma> p m a rs) thus ?case by(cases a,simp_all)
     next
     case (Match \<gamma> p m a rs) thus ?case by(cases a,simp_all)
-  qed
-
-lemma rm_LogEmpty_seq: "rm_LogEmpty (rs1@rs2) = rm_LogEmpty rs1 @ rm_LogEmpty rs2"
-  proof(induction rs1)
-  case Nil thus ?case by simp
-  next
-  case (Cons r rs) thus ?case
-    apply(cases r, rename_tac m a)
-    apply(simp)
-    apply(case_tac a)
-            apply(simp_all)
-    done
   qed
 
 
@@ -484,7 +457,7 @@ apply(rule iffI)
  apply(rename_tac m a)
  apply(case_tac a)
          apply(simp_all)
-         apply(auto intro: approximating_bigstep.intros)
+         apply(auto intro: approximating_bigstep.intros )
          apply(erule seqE_fst, simp add: seq_fst)
         apply(erule seqE_fst, simp add: seq_fst)
        apply (metis decision log nomatch_fst seq_fst state.exhaust)
@@ -506,6 +479,7 @@ using rm_LogEmpty_seq apply metis
 done
 
 
+(*TODO: move?*)
 lemma rm_LogEmpty_simple_but_Reject: 
   "good_ruleset rs \<Longrightarrow> \<forall>r \<in> set (rm_LogEmpty rs). get_action r = Accept \<or> get_action r = Reject \<or> get_action r = Drop"
   proof(induction rs)
@@ -517,11 +491,7 @@ lemma rm_LogEmpty_simple_but_Reject:
     by(case_tac a) (auto simp add: good_ruleset_def)
   qed
 
-text{*Rewrite @{const Reject} actions to @{const Drop} actions*}
-fun rw_Reject :: "'a rule list \<Rightarrow> 'a rule list" where
-  "rw_Reject [] = []" |
-  "rw_Reject ((Rule m Reject)#rs) = (Rule m Drop)#rw_Reject rs" |
-  "rw_Reject (r#rs) = r # rw_Reject rs"
+
 
 lemma rw_Reject_fun_semantics: 
   "wf_unknown_match_tac \<alpha> \<Longrightarrow> 
@@ -538,6 +508,7 @@ lemma rw_Reject_fun_semantics:
       done
     qed
 
+(*TODO: move to common algorithms*)
 lemma rmLogEmpty_rwReject_good_to_simple: "good_ruleset rs \<Longrightarrow> simple_ruleset (rw_Reject (rm_LogEmpty rs))"
   apply(drule rm_LogEmpty_simple_but_Reject)
   apply(simp add: simple_ruleset_def)
@@ -551,12 +522,6 @@ lemma rmLogEmpty_rwReject_good_to_simple: "good_ruleset rs \<Longrightarrow> sim
   done
 
 subsection{*Matching*}
-
-(*TODO use this!*)
-fun optimize_matches_option :: "('a match_expr \<Rightarrow> 'a match_expr option) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
-  "optimize_matches_option _ [] = []" |
-  "optimize_matches_option f (Rule m a#rs) = (case f m of None \<Rightarrow> optimize_matches_option f rs | Some m \<Rightarrow> (Rule m a)#optimize_matches_option f rs)"
-
 lemma optimize_matches_option_generic:
   assumes "\<forall> r \<in> set rs. P (get_match r) (get_action r)"
       and "(\<And>m m' a. P m a \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p = matches \<gamma> m a p)"
@@ -585,35 +550,6 @@ lemma optimize_matches_option_generic:
         using assms by blast
     qed(simp)
 
-lemma optimize_matches_option_simple_ruleset: "simple_ruleset rs \<Longrightarrow> simple_ruleset (optimize_matches_option f rs)"
-  proof(induction rs rule:optimize_matches_option.induct)
-  qed(simp_all add: simple_ruleset_def split: option.split)
-
-lemma optimize_matches_option_preserves: "(\<And> r m. r \<in> set rs \<Longrightarrow> f (get_match r) = Some m \<Longrightarrow> P m) \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches_option f rs). P m"
-  apply(induction rs rule: optimize_matches_option.induct)
-   apply(simp)
-  apply(simp split: option.split)
-  by fastforce
-
-
-lemma optimize_matches_option_append: "optimize_matches_option f (rs1@rs2) = optimize_matches_option f rs1 @ optimize_matches_option f rs2"
-  proof(induction rs1 rule: optimize_matches_option.induct)
-  qed(simp_all split: option.split)
-
-
-
-
-definition optimize_matches :: "('a match_expr \<Rightarrow> 'a match_expr) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
-  "optimize_matches f rs =  optimize_matches_option (\<lambda>m. (if matcheq_matchNone (f m) then None else Some (f m))) rs"
-
-
-lemma optimize_matches_matches_fst: "matches \<gamma> (f m) a p \<Longrightarrow> optimize_matches f (Rule m a # rs) = (Rule (f m) a)# optimize_matches f rs"
-  apply(simp add: optimize_matches_def)
-  by (meson matcheq_matchNone_not_matches)
-
-lemma optimize_matches_append: "optimize_matches f (rs1@rs2) = optimize_matches f rs1 @ optimize_matches f rs2"
-  by(simp add: optimize_matches_def optimize_matches_option_append)
-
 
 lemma optimize_matches_generic: "\<forall> r \<in> set rs. P (get_match r) (get_action r) \<Longrightarrow> 
       (\<And>m a. P m a \<Longrightarrow> matches \<gamma> (f m) a p = matches \<gamma> m a p) \<Longrightarrow>
@@ -627,39 +563,24 @@ lemma optimize_matches_generic: "\<forall> r \<in> set rs. P (get_match r) (get_
   using matcheq_matchNone_not_matches by fast
 
 
-(*TODO: use this in Transform.thy to simplify proofs*)
-lemma optimize_matches_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_match r))) \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches f rs). P m"
-  unfolding optimize_matches_def
-  apply(rule optimize_matches_option_preserves)
-  by(auto split: split_if_asm)
+lemma optimize_matches_matches_fst: "matches \<gamma> (f m) a p \<Longrightarrow> optimize_matches f (Rule m a # rs) = (Rule (f m) a)# optimize_matches f rs"
+  apply(simp add: optimize_matches_def)
+  by (meson matcheq_matchNone_not_matches)
+
 
 lemma optimize_matches: "\<forall>m a. matches \<gamma> (f m) a p = matches \<gamma> m a p \<Longrightarrow> approximating_bigstep_fun \<gamma> p (optimize_matches f rs) s = approximating_bigstep_fun \<gamma> p rs s"
   using optimize_matches_generic[where P="\<lambda>_ _. True"] by metis
 
-lemma optimize_matches_simple_ruleset: "simple_ruleset rs \<Longrightarrow> simple_ruleset (optimize_matches f rs)"
-  by(simp add: optimize_matches_def optimize_matches_option_simple_ruleset)
 
 lemma optimize_matches_opt_MatchAny_match_expr: "approximating_bigstep_fun \<gamma> p (optimize_matches opt_MatchAny_match_expr rs) s = approximating_bigstep_fun \<gamma> p rs s"
 using optimize_matches opt_MatchAny_match_expr_correct by metis
 
-definition optimize_matches_a :: "(action \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
-  "optimize_matches_a f rs = map (\<lambda>r. Rule (f (get_action r) (get_match r)) (get_action r)) rs"
-
-lemma optimize_matches_a_simple_ruleset: "simple_ruleset rs \<Longrightarrow> simple_ruleset (optimize_matches_a f rs)"
-  by(simp add: optimize_matches_a_def simple_ruleset_def)
 
 lemma optimize_matches_a: "\<forall>a m. matches \<gamma> m a = matches \<gamma> (f a m) a \<Longrightarrow> approximating_bigstep_fun \<gamma> p (optimize_matches_a f rs) s = approximating_bigstep_fun \<gamma> p rs s"
   proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct)
     case (Match \<gamma> p m a rs) thus ?case by(case_tac a)(simp_all add: optimize_matches_a_def)
   qed(simp_all add: optimize_matches_a_def)
 
-lemma optimize_matches_a_simple_ruleset_eq:
-  "simple_ruleset rs \<Longrightarrow> (\<And> m a. a = Accept \<or> a = Drop \<Longrightarrow> f1 a m = f2 a m) \<Longrightarrow> optimize_matches_a f1 rs = optimize_matches_a f2 rs"
-apply(induction rs)
- apply(simp add: optimize_matches_a_def)
-apply(simp add: optimize_matches_a_def)
-apply(simp add: simple_ruleset_def)
-done
 
 lemma optimize_matches_a_simplers:
   assumes "simple_ruleset rs" and "\<forall>a m. a = Accept \<or> a = Drop \<longrightarrow> matches \<gamma> (f a m) a = matches \<gamma> m a"
@@ -678,10 +599,6 @@ proof -
     qed(simp_all add: optimize_matches_a_def simple_ruleset_tail)
 qed
 
-
-(*TODO: us this in Transform.thy to simplify proofs*)
-lemma optimize_matches_a_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_action r) (get_match r))) \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches_a f rs). P m"
-  by(induction rs)(simp_all add: optimize_matches_a_def)
 
 
 lemma not_matches_removeAll: "\<not> matches \<gamma> m a p \<Longrightarrow>

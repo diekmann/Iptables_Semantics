@@ -360,8 +360,69 @@ end
   qed
 
 
-text{*In @{file "Transform.thy"} there should be the convenience function @{text "iface_try_rewrite"}*}
 
+
+
+
+definition "iface_try_rewrite ipassmt rs \<equiv> if ipassmt_sanity_disjoint (map_of ipassmt) \<and> ipassmt_sanity_defined rs (map_of ipassmt) then
+  optimize_matches (iiface_rewrite (map_of_ipassmt ipassmt)) rs
+  else
+  optimize_matches (iiface_constrain (map_of_ipassmt ipassmt)) rs"
+
+
+text{*In @{file "Transform.thy"} there should be the final correctness theorem for @{text "iface_try_rewrite"}. 
+     Here are some structural properties.*}
+
+
+lemma iface_try_rewrite_simplers: "simple_ruleset rs \<Longrightarrow> simple_ruleset (iface_try_rewrite ipassmt rs)"
+    by(simp add: iface_try_rewrite_def optimize_matches_simple_ruleset)
+
+
+(*TODO: move?*)
+lemma match_list_to_match_expr_not_has_disc: 
+    "\<forall>a. \<not> disc (X a) \<Longrightarrow> \<not> has_disc disc (match_list_to_match_expr (map (Match \<circ> X) ls))"
+  apply(induction ls)
+   apply(simp; fail)
+  by(simp add: MatchOr_def)
+
+
+
+lemma iiface_rewrite_preserves_nodisc: "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (iiface_rewrite ipassmt m)"
+  proof(induction ipassmt m rule: iiface_rewrite.induct)
+  case 2 
+    have "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> disc (IIface ifce) \<Longrightarrow> \<not> has_disc disc (ipassmt_iface_replace_srcip_mexpr ipassmt ifce)"
+      for ifce ipassmt
+      apply(simp add: ipassmt_iface_replace_srcip_mexpr_def split: option.split)
+      apply(intro allI impI, rename_tac ips)
+      apply(drule_tac X=Src and ls="map (\<lambda>(ip, n). (Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) n)) ips" in match_list_to_match_expr_not_has_disc)
+      apply(simp)
+      done
+    with 2 show ?case by simp
+  qed(simp_all)
+lemma iiface_constrain_preserves_nodisc: "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (iiface_constrain ipassmt m)"
+  proof(induction ipassmt m rule: iiface_rewrite.induct)
+  case 2 
+    have "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> disc (IIface ifce) \<Longrightarrow> \<not> has_disc disc (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce)"
+      for ifce ipassmt
+      apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def split: option.split)
+      apply(intro allI impI, rename_tac ips)
+      apply(drule_tac X=Src and ls="map (\<lambda>(ip, n). (Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) n)) ips" in match_list_to_match_expr_not_has_disc)
+      apply(simp)
+      done
+    with 2 show ?case by simp
+  qed(simp_all)
+
+lemma iface_try_rewrite_preserves_nodisc: "\<forall>a. \<not> disc (Src a) \<Longrightarrow> 
+      \<forall>m\<in>get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
+        \<forall>m\<in>get_match ` set (iface_try_rewrite ipassmt rs). \<not> has_disc disc m"
+   
+  apply(simp add: iface_try_rewrite_def)
+  apply(intro conjI impI)
+   apply(rule optimize_matches_preserves[simplified])
+   apply(simp add: iiface_rewrite_preserves_nodisc)
+  apply(rule optimize_matches_preserves[simplified])
+  apply(simp add: iiface_constrain_preserves_nodisc)
+  done
 
 
 end

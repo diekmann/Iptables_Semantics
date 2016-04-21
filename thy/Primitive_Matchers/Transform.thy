@@ -478,7 +478,7 @@ theorem transform_remove_unknowns_generic:
     } thus "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_disc disc m"
       unfolding transform_remove_unknowns_generic_def
-      by(induction rs) (simp_all add: optimize_matches_a_def)
+      by(intro optimize_matches_a_preserves) blast
 
       { fix a m
         have "normalized_n_primitive disc_sel f m \<Longrightarrow> 
@@ -487,7 +487,7 @@ theorem transform_remove_unknowns_generic:
     } thus "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). normalized_n_primitive disc_sel f m"
       unfolding transform_remove_unknowns_generic_def
-      by(induction rs) (simp_all add: optimize_matches_a_def)
+      by(intro optimize_matches_a_preserves) blast
 
     from simplers show "\<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_unknowns \<beta> m"
       unfolding transform_remove_unknowns_generic_def
@@ -504,8 +504,7 @@ theorem transform_remove_unknowns_generic:
     thus "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_disc_negated disc neg m"
       unfolding transform_remove_unknowns_generic_def
-      apply(rule optimize_matches_a_preserves)
-      by blast
+      by(rule optimize_matches_a_preserves) blast
 qed
 thm transform_remove_unknowns_generic[OF _ _ _ packet_independent_\<beta>_unknown_common_matcher]
 
@@ -1429,10 +1428,8 @@ lemma transform_lower_closure:
 
 
 
-definition "iface_try_rewrite ipassmt rs \<equiv> if ipassmt_sanity_disjoint (map_of ipassmt) \<and> ipassmt_sanity_defined rs (map_of ipassmt) then
-  optimize_matches (iiface_rewrite (map_of_ipassmt ipassmt)) rs
-  else
-  optimize_matches (iiface_constrain (map_of_ipassmt ipassmt)) rs"
+
+
 
 theorem iface_try_rewrite:
   assumes simplers: "simple_ruleset rs"
@@ -1440,11 +1437,17 @@ theorem iface_try_rewrite:
       and wf_ipassmt1: "ipassmt_sanity_nowildcards (map_of ipassmt)" and wf_ipassmt2: "distinct (map fst ipassmt)"
       and nospoofing: "\<exists>ips. (map_of ipassmt) (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipv4cidr_union_set (set ips)"
   shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>iface_try_rewrite ipassmt rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
-  apply(simp add: iface_try_rewrite_def)
-  apply(simp add: map_of_ipassmt_def wf_ipassmt1 wf_ipassmt2)
-  apply(intro conjI impI)
-   apply(elim conjE)
-   using iiface_rewrite(1)[OF simplers normalized wf_ipassmt1 _ nospoofing] apply blast
-  using iiface_constrain(1)[OF simplers normalized wf_ipassmt1] nospoofing apply force
-  done
+proof -
+  show "(common_matcher, \<alpha>),p\<turnstile> \<langle>iface_try_rewrite ipassmt rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+    apply(simp add: iface_try_rewrite_def)
+    apply(simp add: map_of_ipassmt_def wf_ipassmt1 wf_ipassmt2)
+    apply(intro conjI impI)
+     apply(elim conjE)
+     using iiface_rewrite(1)[OF simplers normalized wf_ipassmt1 _ nospoofing] apply blast
+    using iiface_constrain(1)[OF simplers normalized wf_ipassmt1] nospoofing apply force
+    done
+qed
+
+   
+    
 end

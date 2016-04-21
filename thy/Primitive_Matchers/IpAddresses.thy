@@ -245,4 +245,35 @@ subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
     by (metis (no_types, hide_lams) SUP_def ipt_ipv4range_to_interval ipv4cidr_union_set_def ipv4range_range.cases ipv4range_split_prefix_single)
     
 
+
+
+(*TODO probably MOVE: actually, these are toString pretty printing helpers*)
+definition interval_to_wi_to_ipt_ipv4range :: "32 word \<Rightarrow> 32 word \<Rightarrow> ipt_ipv4range" where
+  "interval_to_wi_to_ipt_ipv4range s e \<equiv>
+    if s = e
+    then Ip4Addr (dotdecimal_of_ipv4addr s)
+    else case ipv4range_split (WordInterval s e) of [(ip,nmask)] \<Rightarrow> Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) nmask
+                                                  | _ \<Rightarrow> Ip4AddrRange (dotdecimal_of_ipv4addr s) (dotdecimal_of_ipv4addr e)"
+
+lemma interval_to_wi_to_ipt_ipv4range: "ipv4s_to_set (interval_to_wi_to_ipt_ipv4range s e) = {s..e}"
+  proof -
+    from ipv4range_split_prefix_single[unfolded ipv4range_range.simps, of s e] have
+      "ipv4range_split (WordInterval s e) = [(a, b)] \<Longrightarrow> ipv4range_set_from_prefix a b = {s..e}" for a b
+      by(simp)
+    thus ?thesis 
+      by(simp add: interval_to_wi_to_ipt_ipv4range_def ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr split: list.split)
+  qed
+
+fun wi_to_ipt_ipv4range :: "32 wordinterval \<Rightarrow> ipt_ipv4range list" where
+  "wi_to_ipt_ipv4range (WordInterval s e) = (if s > e then [] else 
+      [interval_to_wi_to_ipt_ipv4range s e])" |
+  "wi_to_ipt_ipv4range (RangeUnion a b) = wi_to_ipt_ipv4range a @ wi_to_ipt_ipv4range b"
+
+lemma wi_to_ipt_ipv4range: "\<Union> set (map ipv4s_to_set (wi_to_ipt_ipv4range wi)) = wordinterval_to_set wi"
+  apply(induction wi)
+   apply(simp add: interval_to_wi_to_ipt_ipv4range)
+  apply(simp)
+  done
+(*TODO end move*)
+
 end

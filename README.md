@@ -35,7 +35,7 @@ Checking all proofs:
 ```
 $ isabelle build -v -d . -o document=pdf Iptables_Semantics_Examples2
 ```
-This needs about 1:30h for Iptables_Semantics_Examples and additionally 2h for Iptables_Semantics_Examples2 on my laptop.
+This needs about 1:30h for Iptables_Semantics_Examples and additionally 2:30h for Iptables_Semantics_Examples2 on my laptop.
 
 
 Building the documentation:
@@ -59,11 +59,15 @@ Check the Examples directory to get started
 
 ### Haskell Tool
 
+Don't want to install Isabelle? Don't want to mess with formulas or proofs? Just want a working tool? Cool, checkout our [stand-alone Haskell tool](./haskell_tool/)!
+
+![FFFUU logo](http://i.imgur.com/qc4dNKl.png "FFFUU")
+
 | Component             | Status |
 | --------------------- | ------ |
 | Haskell tool          | [![Build Status](https://travis-ci.org/diekmann/Iptables_Semantics.svg)](https://travis-ci.org/diekmann/Iptables_Semantics) |
 
-See README.md in haskell_tool.
+See README.md in [haskell_tool](./haskell_tool/).
 
 
 ### Talks

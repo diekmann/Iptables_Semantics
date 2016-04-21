@@ -2,6 +2,7 @@ theory IpAddresses_Normalize
 imports Common_Primitive_Lemmas
 begin
 
+
 subsection{*Normalizing IP Addresses*}
   fun normalized_src_ips :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_src_ips MatchAny = True" |

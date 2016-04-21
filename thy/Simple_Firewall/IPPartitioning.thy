@@ -1330,12 +1330,12 @@ definition access_matrix_pretty
   "access_matrix_pretty c rs \<equiv>
     if \<not> simple_firewall_without_interfaces rs then undefined else
     (let (V,E) = (access_matrix c rs);
-         format_nodes = (\<lambda>V. (''Nodes'','':'') #
-              map (\<lambda>(v_repr, v_range). (ipv4addr_toString v_repr, ipv4addr_wordinterval_toString v_range)) V);
-         format_edges = (\<lambda>E. (''Vertices'','':'') #
-              map (\<lambda>(s,d). (ipv4addr_toString s, ipv4addr_toString d)) E)
+         formatted_nodes =
+              map (\<lambda>(v_repr, v_range). (ipv4addr_toString v_repr, ipv4addr_wordinterval_toString v_range)) V;
+         formatted_edges =
+              map (\<lambda>(s,d). (ipv4addr_toString s, ipv4addr_toString d)) E
      in
-      (format_nodes V, format_edges E)
+      (formatted_nodes, formatted_edges)
     )"
 
 
@@ -1349,9 +1349,8 @@ definition access_matrix_pretty_code
          R = map getOneIp W;
          U = all_pairs R
      in
-     ((''Nodes'','':'') # zip (map ipv4addr_toString R) (map ipv4addr_wordinterval_toString W), 
-      (''Vertices'','':'') #
-        map (\<lambda>(x,y). (ipv4addr_toString x, ipv4addr_toString y)) [(s, d)\<leftarrow>all_pairs R. runFw s d c rs = Decision FinalAllow]))"
+     (zip (map ipv4addr_toString R) (map ipv4addr_wordinterval_toString W), 
+      map (\<lambda>(x,y). (ipv4addr_toString x, ipv4addr_toString y)) [(s, d)\<leftarrow>all_pairs R. runFw s d c rs = Decision FinalAllow]))"
 
 lemma access_matrix_pretty_code[code]: "access_matrix_pretty = access_matrix_pretty_code"
   by(simp add: fun_eq_iff access_matrix_pretty_def access_matrix_pretty_code_def Let_def access_matrix_def map_prod_fun_zip)

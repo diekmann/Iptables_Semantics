@@ -1,5 +1,6 @@
 theory Call_Return_Unfolding
 imports Matching Ruleset_Update
+  "Common/RepeatStabilize"
 begin
 
 
@@ -711,5 +712,93 @@ text{*Example*}
 lemma "process_call [''X'' \<mapsto> [Rule (Match b) Return, Rule (Match c) Accept]] [Rule (Match a) (Call ''X'')] =
        [Rule (MatchAnd (Match a) (MatchAnd (MatchNot (Match b)) (Match c))) Accept]" by (simp add: add_match_def)
 
+
+
+
+text{*This is how a firewall processes a ruleset. 
+       It starts at a certain chain, usually INPUT, FORWARD, or OUTPUT (called @{term chain_name} in the lemma).
+       The firewall has a default action of accept or drop.
+      We can check @{const sanity_wf_ruleset} and the other assumptions at runtime.
+      Consequently, we can apply @{const repeat_stabilize} as often as we want.
+       *}
+
+theorem repeat_stabilize_process_call:
+    assumes "sanity_wf_ruleset \<Gamma>" and "chain_name \<in> set (map fst \<Gamma>)" and "default_action = Accept \<or> default_action = Drop"
+    shows "(map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>repeat_stabilize n (process_call (map_of \<Gamma>)) [Rule MatchAny (Call chain_name), Rule MatchAny default_action], s\<rangle> \<Rightarrow> t \<longleftrightarrow>
+           (map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>[Rule MatchAny (Call chain_name), Rule MatchAny default_action], s\<rangle> \<Rightarrow> t"
+proof -
+  have x: "sanity_wf_ruleset \<Gamma> \<Longrightarrow> rs \<in> ran (map_of \<Gamma>) \<Longrightarrow> wf_chain (map_of \<Gamma>) rs" for \<Gamma> and rs::"'a rule list"
+  apply(simp add: sanity_wf_ruleset_def wf_chain_def)
+  by fastforce
+
+  from assms(1) have 1: "\<forall>rsg \<in> ran (map_of \<Gamma>). wf_chain (map_of \<Gamma>) rsg"
+    apply(intro ballI)
+    apply(drule x, simp)
+    apply(simp)
+    done
+  let ?rs="[Rule MatchAny (Call chain_name), Rule MatchAny default_action]::'a rule list"
+  from assms(2,3) have 2: "wf_chain (map_of \<Gamma>) ?rs"
+    apply(simp add: wf_chain_def domD dom_map_of_conv_image_fst)
+    by blast
+
+  have "\<forall>rsg \<in> ran \<Gamma> \<union> {rs}. wf_chain \<Gamma> rsg \<Longrightarrow> 
+    \<Gamma>,\<gamma>,p\<turnstile> \<langle>repeat_stabilize n (process_call \<Gamma>) rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t" for \<Gamma> rs
+  by(simp add: repeat_stabilize_funpow unfolding_n_sound_complete)
+  moreover from 1 2 have "\<forall>rsg \<in> ran (map_of \<Gamma>) \<union> {?rs}. wf_chain (map_of \<Gamma>) rsg" by simp
+  ultimately show ?thesis by simp
+qed
+
+
+
+definition unfold_optimize_ruleset_CHAIN
+  :: "('a match_expr \<Rightarrow> 'a match_expr) \<Rightarrow> string \<Rightarrow> action \<Rightarrow> 'a ruleset \<Rightarrow> 'a rule list option"
+where
+"unfold_optimize_ruleset_CHAIN optimize chain_name default_action rs = (let rs =
+  (repeat_stabilize 1000 (optimize_matches opt_MatchAny_match_expr)
+    (optimize_matches optimize
+      (rw_Reject (rm_LogEmpty (repeat_stabilize 10000 (process_call rs)
+        [Rule MatchAny (Call chain_name), Rule MatchAny default_action]
+  )))))
+  in if simple_ruleset rs then Some rs else None)"
+
+
+lemma unfold_optimize_ruleset_CHAIN:
+    assumes "sanity_wf_ruleset \<Gamma>" and "chain_name \<in> set (map fst \<Gamma>)" and "default_action = Accept \<or> default_action = Drop"
+    and "(\<And>m. matches \<gamma> (optimize m) p = matches \<gamma> m p)" (*TODO?*)
+    and "unfold_optimize_ruleset_CHAIN optimize chain_name default_action (map_of \<Gamma>) = Some rs"
+    shows "(map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow>
+           (map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>[Rule MatchAny (Call chain_name), Rule MatchAny default_action], s\<rangle> \<Rightarrow> t"
+proof -
+  from assms(5) have rs: "rs = repeat_stabilize 1000 (optimize_matches opt_MatchAny_match_expr)
+      (optimize_matches optimize
+        (rw_Reject
+          (rm_LogEmpty
+            (repeat_stabilize 10000 (process_call (map_of \<Gamma>)) [Rule MatchAny (Call chain_name), Rule MatchAny default_action]))))"
+    by(simp add: unfold_optimize_ruleset_CHAIN_def Let_def split: split_if_asm)
+
+  have optimize_matches_generic_funpow_helper: "(\<And>m. matches \<gamma> (f m) p = matches \<gamma> m p) \<Longrightarrow>
+        \<Gamma>,\<gamma>,p\<turnstile> \<langle>(optimize_matches f ^^ n) rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+    for \<Gamma> f n rs
+    proof(induction n arbitrary:)
+      case 0 thus ?case by simp
+    next
+      case (Suc n) thus ?case
+       apply(simp)
+       apply(subst optimize_matches_generic[where P="\<lambda>_. True"])
+       by simp_all
+    qed
+
+  have "(map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> map_of \<Gamma>,\<gamma>,p\<turnstile> \<langle>repeat_stabilize 10000 (process_call (map_of \<Gamma>))
+    [Rule MatchAny (Call chain_name), Rule MatchAny default_action], s\<rangle> \<Rightarrow> t"
+    apply(simp add: rs repeat_stabilize_funpow)
+    apply(subst optimize_matches_generic_funpow_helper)
+     apply (simp add: opt_MatchAny_match_expr_correct; fail)
+    apply(subst optimize_matches_generic[where P="\<lambda>_. True"], simp_all add: assms(4))
+    apply(simp add: iptables_bigstep_rw_Reject iptables_bigstep_rm_LogEmpty)
+    done
+  also have "\<dots> \<longleftrightarrow> (map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>[Rule MatchAny (Call chain_name), Rule MatchAny default_action], s\<rangle> \<Rightarrow> t"
+    using assms(1,2,3) by(intro repeat_stabilize_process_call[of \<Gamma> chain_name default_action \<gamma> p 10000 s t]) simp_all
+  finally show ?thesis .
+qed
 
 end

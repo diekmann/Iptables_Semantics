@@ -16,12 +16,12 @@ module
                               word_less_eq, no_spoofing_iface,
                               sanity_wf_ruleset, rewrite_Goto, map_of_string,
                               nat_to_16word, compress_parsed_extra,
-                              integer_to_16word, unfold_ruleset_CHAIN,
-                              access_matrix_pretty, common_primitive_toString,
+                              integer_to_16word, access_matrix_pretty,
+                              common_primitive_toString,
                               mk_parts_connection_TCP, to_simple_firewall,
                               ipv4_cidr_toString, simple_rule_toString,
-                              action_toString, ctstate_assume_new,
-                              abstract_for_simple_firewall,
+                              unfold_ruleset_CHAIN_safe, action_toString,
+                              packet_assume_new, abstract_for_simple_firewall,
                               to_simple_firewall_without_interfaces,
                               common_primitive_match_expr_toString)
   where {
@@ -1577,6 +1577,12 @@ get_pos_Extra a = let {
                     (Pos (Extra e)) = a;
                   } in e;
 
+ipt_tcp_syn :: Ipt_tcp_flags;
+ipt_tcp_syn =
+  TCP_Flags
+    (insert TCP_SYN (insert TCP_RST (insert TCP_ACK (insert TCP_FIN bot_set))))
+    (insert TCP_SYN bot_set);
+
 string_of_nat :: Nat -> [Prelude.Char];
 string_of_nat n =
   (if less_nat n (nat_of_integer (10 :: Integer))
@@ -1910,11 +1916,6 @@ partIps s (t : ts) =
                          wordinterval_setminus t s :
                            partIps (wordinterval_setminus s t) ts)));
 
-undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces ::
-  forall a. a;
-undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces = error
-  "Ipassmt.undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces";
-
 map_of_ipassmt ::
   [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
     Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
@@ -1922,8 +1923,7 @@ map_of_ipassmt ipassmt =
   (if distinct (map fst ipassmt) &&
         ball (image fst (Set ipassmt))
           (\ iface -> not (iface_is_wildcard iface))
-    then map_of ipassmt
-    else undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces);
+    then map_of ipassmt else error "undefined");
 
 numeral :: forall a. (Numeral a) => Num -> a;
 numeral (Bit1 n) = let {
@@ -2259,15 +2259,6 @@ upper_closure_matchexpr vc (MatchNot MatchAny) = MatchNot MatchAny;
 upper_closure_matchexpr a (MatchAnd m1 m2) =
   MatchAnd (upper_closure_matchexpr a m1) (upper_closure_matchexpr a m2);
 
-optimize_matches_option ::
-  forall a. (Match_expr a -> Maybe (Match_expr a)) -> [Rule a] -> [Rule a];
-optimize_matches_option uu [] = [];
-optimize_matches_option f (Rule m a : rs) =
-  (case f m of {
-    Nothing -> optimize_matches_option f rs;
-    Just ma -> Rule ma a : optimize_matches_option f rs;
-  });
-
 alist_anda :: forall a. [Negation_type a] -> Match_expr a;
 alist_anda [] = MatchAny;
 alist_anda (Pos e : es) = MatchAnd (Match e) (alist_anda es);
@@ -2467,6 +2458,15 @@ normalize_dst_ips ::
   Match_expr Common_primitive -> [Match_expr Common_primitive];
 normalize_dst_ips =
   normalize_primitive_extract (is_Dst, dst_sel) Dst ipt_ipv4range_compress;
+
+optimize_matches_option ::
+  forall a. (Match_expr a -> Maybe (Match_expr a)) -> [Rule a] -> [Rule a];
+optimize_matches_option uu [] = [];
+optimize_matches_option f (Rule m a : rs) =
+  (case f m of {
+    Nothing -> optimize_matches_option f rs;
+    Just ma -> Rule ma a : optimize_matches_option f rs;
+  });
 
 src_ports_sel ::
   Common_primitive ->
@@ -2968,8 +2968,28 @@ groupWIs3 c rs =
 ipv4range_empty :: Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> Bool;
 ipv4range_empty rg = wordinterval_empty rg;
 
+inf_set :: forall a. (Eq a) => Set a -> Set a -> Set a;
+inf_set a (Coset xs) = fold remove xs a;
+inf_set a (Set xs) = Set (filter (\ x -> member x a) xs);
+
+sup_set :: forall a. (Eq a) => Set a -> Set a -> Set a;
+sup_set (Coset xs) a = Coset (filter (\ x -> not (member x a)) xs);
+sup_set (Set xs) a = fold insert xs a;
+
 word_less_eq :: forall a. (Len a) => Word a -> Word a -> Bool;
 word_less_eq a b = less_eq_word a b;
+
+rw_Reject :: forall a. [Rule a] -> [Rule a];
+rw_Reject [] = [];
+rw_Reject (Rule m Reject : rs) = Rule m Drop : rw_Reject rs;
+rw_Reject (Rule v Accept : rs) = Rule v Accept : rw_Reject rs;
+rw_Reject (Rule v Drop : rs) = Rule v Drop : rw_Reject rs;
+rw_Reject (Rule v Log : rs) = Rule v Log : rw_Reject rs;
+rw_Reject (Rule v (Call vb) : rs) = Rule v (Call vb) : rw_Reject rs;
+rw_Reject (Rule v Return : rs) = Rule v Return : rw_Reject rs;
+rw_Reject (Rule v (Goto vb) : rs) = Rule v (Goto vb) : rw_Reject rs;
+rw_Reject (Rule v Empty : rs) = Rule v Empty : rw_Reject rs;
+rw_Reject (Rule v Unknown : rs) = Rule v Unknown : rw_Reject rs;
 
 ipv4range_subset ::
   Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
@@ -2995,53 +3015,17 @@ get_exists_matching_src_ips_executable iface m =
                             (negPos_map ipt_ipv4range_to_interval ip_matches))
          else empty_WordInterval);
 
-is_L4_Flags :: Common_primitive -> Bool;
-is_L4_Flags (Src x1) = False;
-is_L4_Flags (Dst x2) = False;
-is_L4_Flags (IIface x3) = False;
-is_L4_Flags (OIface x4) = False;
-is_L4_Flags (Prot x5) = False;
-is_L4_Flags (Src_Ports x6) = False;
-is_L4_Flags (Dst_Ports x7) = False;
-is_L4_Flags (L4_Flags x8) = True;
-is_L4_Flags (CT_State x9) = False;
-is_L4_Flags (Extra x10) = False;
-
-is_CT_State :: Common_primitive -> Bool;
-is_CT_State (Src x1) = False;
-is_CT_State (Dst x2) = False;
-is_CT_State (IIface x3) = False;
-is_CT_State (OIface x4) = False;
-is_CT_State (Prot x5) = False;
-is_CT_State (Src_Ports x6) = False;
-is_CT_State (Dst_Ports x7) = False;
-is_CT_State (L4_Flags x8) = False;
-is_CT_State (CT_State x9) = True;
-is_CT_State (Extra x10) = False;
-
-is_Extra :: Common_primitive -> Bool;
-is_Extra (Src x1) = False;
-is_Extra (Dst x2) = False;
-is_Extra (IIface x3) = False;
-is_Extra (OIface x4) = False;
-is_Extra (Prot x5) = False;
-is_Extra (Src_Ports x6) = False;
-is_Extra (Dst_Ports x7) = False;
-is_Extra (L4_Flags x8) = False;
-is_Extra (CT_State x9) = False;
-is_Extra (Extra x10) = True;
-
 matcheq_matchAny :: forall a. Match_expr a -> Bool;
 matcheq_matchAny MatchAny = True;
 matcheq_matchAny (MatchNot m) = not (matcheq_matchAny m);
 matcheq_matchAny (MatchAnd m1 m2) = matcheq_matchAny m1 && matcheq_matchAny m2;
 matcheq_matchAny (Match uu) = error "undefined";
 
-has_disc :: forall a. (a -> Bool) -> Match_expr a -> Bool;
-has_disc uu MatchAny = False;
-has_disc disc (Match a) = disc a;
-has_disc disc (MatchNot m) = has_disc disc m;
-has_disc disc (MatchAnd m1 m2) = has_disc disc m1 || has_disc disc m2;
+has_primitive :: forall a. Match_expr a -> Bool;
+has_primitive MatchAny = False;
+has_primitive (Match a) = True;
+has_primitive (MatchNot m) = has_primitive m;
+has_primitive (MatchAnd m1 m2) = has_primitive m1 || has_primitive m2;
 
 get_all_matching_src_ips_executable ::
   Iface ->
@@ -3058,15 +3042,7 @@ get_all_matching_src_ips_executable iface m =
          then let {
                 (ip_matches, rest2) =
                   primitive_extractor (is_Src, src_sel) rest1;
-              } in (if not (has_disc is_Dst rest2) &&
-                         not (has_disc is_Oiface rest2) &&
-                           not (has_disc is_Prot rest2) &&
-                             not (has_disc is_Src_Ports rest2) &&
-                               not (has_disc is_Dst_Ports rest2) &&
-                                 not (has_disc is_L4_Flags rest2) &&
-                                   not (has_disc is_CT_State rest2) &&
-                                     not (has_disc is_Extra rest2) &&
-                                       matcheq_matchAny rest2
+              } in (if not (has_primitive rest2) && matcheq_matchAny rest2
                      then (if null ip_matches then ipv4range_UNIV
                             else l2br_negation_type_intersect
                                    (negPos_map ipt_ipv4range_to_interval
@@ -3125,6 +3101,18 @@ tcp_flag_toString TCP_FIN = "TCP_FIN";
 tcp_flag_toString TCP_RST = "TCP_RST";
 tcp_flag_toString TCP_URG = "TCP_URG";
 tcp_flag_toString TCP_PSH = "TCP_PSH";
+
+rm_LogEmpty :: forall a. [Rule a] -> [Rule a];
+rm_LogEmpty [] = [];
+rm_LogEmpty (Rule uu Empty : rs) = rm_LogEmpty rs;
+rm_LogEmpty (Rule uv Log : rs) = rm_LogEmpty rs;
+rm_LogEmpty (Rule v Accept : rs) = Rule v Accept : rm_LogEmpty rs;
+rm_LogEmpty (Rule v Drop : rs) = Rule v Drop : rm_LogEmpty rs;
+rm_LogEmpty (Rule v Reject : rs) = Rule v Reject : rm_LogEmpty rs;
+rm_LogEmpty (Rule v (Call vb) : rs) = Rule v (Call vb) : rm_LogEmpty rs;
+rm_LogEmpty (Rule v Return : rs) = Rule v Return : rm_LogEmpty rs;
+rm_LogEmpty (Rule v (Goto vb) : rs) = Rule v (Goto vb) : rm_LogEmpty rs;
+rm_LogEmpty (Rule v Unknown : rs) = Rule v Unknown : rm_LogEmpty rs;
 
 sanity_wf_ruleset :: forall a. [([Prelude.Char], [Rule a])] -> Bool;
 sanity_wf_ruleset gamma =
@@ -3204,21 +3192,170 @@ rewrite_Goto cs =
   map (\ (chain_name, rs) -> (chain_name, rewrite_Goto_chain (map_of cs) rs))
     cs;
 
-rw_Reject :: forall a. [Rule a] -> [Rule a];
-rw_Reject [] = [];
-rw_Reject (Rule m Reject : rs) = Rule m Drop : rw_Reject rs;
-rw_Reject (Rule v Accept : rs) = Rule v Accept : rw_Reject rs;
-rw_Reject (Rule v Drop : rs) = Rule v Drop : rw_Reject rs;
-rw_Reject (Rule v Log : rs) = Rule v Log : rw_Reject rs;
-rw_Reject (Rule v (Call vb) : rs) = Rule v (Call vb) : rw_Reject rs;
-rw_Reject (Rule v Return : rs) = Rule v Return : rw_Reject rs;
-rw_Reject (Rule v (Goto vb) : rs) = Rule v (Goto vb) : rw_Reject rs;
-rw_Reject (Rule v Empty : rs) = Rule v Empty : rw_Reject rs;
-rw_Reject (Rule v Unknown : rs) = Rule v Unknown : rw_Reject rs;
+map_of_string ::
+  [([Prelude.Char], [Rule Common_primitive])] ->
+    [Prelude.Char] -> Maybe [Rule Common_primitive];
+map_of_string rs = map_of rs;
+
+nat_to_16word :: Nat -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
+nat_to_16word i = of_nat i;
+
+compress_parsed_extra ::
+  [Negation_type Common_primitive] -> [Negation_type Common_primitive];
+compress_parsed_extra [] = [];
+compress_parsed_extra (a1 : a2 : asa) =
+  (if is_pos_Extra a1 && is_pos_Extra a2
+    then compress_parsed_extra
+           (Pos (Extra (get_pos_Extra a1 ++ " " ++ get_pos_Extra a2)) : asa)
+    else a1 : compress_parsed_extra (a2 : asa));
+compress_parsed_extra [a] = a : compress_parsed_extra [];
+
+ipt_tcp_flags_equal :: Ipt_tcp_flags -> Ipt_tcp_flags -> Bool;
+ipt_tcp_flags_equal (TCP_Flags mask1 c1) (TCP_Flags mask2 c2) =
+  (if less_eq_set c1 mask1 && less_eq_set c2 mask2
+    then equal_set c1 c2 && equal_set mask1 mask2
+    else not (less_eq_set c1 mask1) && not (less_eq_set c2 mask2));
+
+enum_set_get_one :: forall a. (Eq a) => [a] -> Set a -> Maybe a;
+enum_set_get_one [] s = Nothing;
+enum_set_get_one (sa : ss) s =
+  (if member sa s then Just sa else enum_set_get_one ss s);
+
+enum_set_to_list :: forall a. (Enum a, Eq a) => Set a -> [a];
+enum_set_to_list s =
+  (if is_empty s then [] else (case enum_set_get_one enum s of {
+                                Nothing -> [];
+                                Just a -> a : enum_set_to_list (remove a s);
+                              }));
+
+simple_ruleset :: forall a. [Rule a] -> Bool;
+simple_ruleset rs =
+  all (\ r ->
+        equal_action (get_action r) Accept || equal_action (get_action r) Drop)
+    rs;
+
+ipt_tcp_flags_NoMatch :: Ipt_tcp_flags;
+ipt_tcp_flags_NoMatch = TCP_Flags bot_set (insert TCP_SYN bot_set);
+
+ipv4range_intersection ::
+  Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
+    Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
+      Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+ipv4range_intersection r1 r2 = wordinterval_intersection r1 r2;
+
+ipt_tcp_flags_toString :: Set Tcp_flag -> [Prelude.Char];
+ipt_tcp_flags_toString flags =
+  list_toString tcp_flag_toString (enum_set_to_list flags);
+
+integer_to_16word :: Integer -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
+integer_to_16word i = nat_to_16word (nat_of_integer i);
+
+ctstate_toString :: Ctstate -> [Prelude.Char];
+ctstate_toString CT_New = "NEW";
+ctstate_toString CT_Established = "ESTABLISHED";
+ctstate_toString CT_Related = "RELATED";
+ctstate_toString CT_Untracked = "UNTRACKED";
+ctstate_toString CT_Invalid = "INVALID";
 
 match_list_to_match_expr :: forall a. [Match_expr a] -> Match_expr a;
 match_list_to_match_expr [] = MatchNot MatchAny;
 match_list_to_match_expr (m : ms) = matchOr m (match_list_to_match_expr ms);
+
+ipassmt_iface_replace_srcip_mexpr ::
+  (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
+    Iface -> Match_expr Common_primitive;
+ipassmt_iface_replace_srcip_mexpr ipassmt ifce =
+  (case ipassmt ifce of {
+    Nothing -> Match (IIface ifce);
+    Just ips ->
+      match_list_to_match_expr
+        (map (Match . Src)
+          (map (\ (ip, a) -> Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) a)
+            ips));
+  });
+
+iiface_rewrite ::
+  (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
+    Match_expr Common_primitive -> Match_expr Common_primitive;
+iiface_rewrite uu MatchAny = MatchAny;
+iiface_rewrite ipassmt (Match (IIface ifce)) =
+  ipassmt_iface_replace_srcip_mexpr ipassmt ifce;
+iiface_rewrite ipassmt (Match (Src v)) = Match (Src v);
+iiface_rewrite ipassmt (Match (Dst v)) = Match (Dst v);
+iiface_rewrite ipassmt (Match (OIface v)) = Match (OIface v);
+iiface_rewrite ipassmt (Match (Prot v)) = Match (Prot v);
+iiface_rewrite ipassmt (Match (Src_Ports v)) = Match (Src_Ports v);
+iiface_rewrite ipassmt (Match (Dst_Ports v)) = Match (Dst_Ports v);
+iiface_rewrite ipassmt (Match (L4_Flags v)) = Match (L4_Flags v);
+iiface_rewrite ipassmt (Match (CT_State v)) = Match (CT_State v);
+iiface_rewrite ipassmt (Match (Extra v)) = Match (Extra v);
+iiface_rewrite ipassmt (MatchNot m) = MatchNot (iiface_rewrite ipassmt m);
+iiface_rewrite ipassmt (MatchAnd m1 m2) =
+  MatchAnd (iiface_rewrite ipassmt m1) (iiface_rewrite ipassmt m2);
+
+has_disc :: forall a. (a -> Bool) -> Match_expr a -> Bool;
+has_disc uu MatchAny = False;
+has_disc disc (Match a) = disc a;
+has_disc disc (MatchNot m) = has_disc disc m;
+has_disc disc (MatchAnd m1 m2) = has_disc disc m1 || has_disc disc m2;
+
+repeat_stabilize :: forall a. (Eq a) => Nat -> (a -> a) -> a -> a;
+repeat_stabilize n uu v =
+  (if equal_nat n zero_nat then v
+    else let {
+           v_new = uu v;
+         } in (if v == v_new then v
+                else repeat_stabilize (minus_nat n one_nat) uu v_new));
+
+process_ret :: forall a. [Rule a] -> [Rule a];
+process_ret [] = [];
+process_ret (Rule m Return : rs) = add_match (MatchNot m) (process_ret rs);
+process_ret (Rule v Accept : rs) = Rule v Accept : process_ret rs;
+process_ret (Rule v Drop : rs) = Rule v Drop : process_ret rs;
+process_ret (Rule v Log : rs) = Rule v Log : process_ret rs;
+process_ret (Rule v Reject : rs) = Rule v Reject : process_ret rs;
+process_ret (Rule v (Call vb) : rs) = Rule v (Call vb) : process_ret rs;
+process_ret (Rule v (Goto vb) : rs) = Rule v (Goto vb) : process_ret rs;
+process_ret (Rule v Empty : rs) = Rule v Empty : process_ret rs;
+process_ret (Rule v Unknown : rs) = Rule v Unknown : process_ret rs;
+
+wordinterval_sort :: forall a. (Len a) => Wordinterval a -> Wordinterval a;
+wordinterval_sort w = l2br (mergesort_remdups (br2l w));
+
+build_ip_partition ::
+  Parts_connection_ext () ->
+    [Simple_rule] -> [Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
+build_ip_partition c rs =
+  map (\ xs ->
+        wordinterval_sort
+          (wordinterval_compress
+            (foldr wordinterval_union xs empty_WordInterval)))
+    (groupWIs3 c rs);
+
+match_tcp_flags_conjunct :: Ipt_tcp_flags -> Ipt_tcp_flags -> Ipt_tcp_flags;
+match_tcp_flags_conjunct (TCP_Flags mask1 c1) (TCP_Flags mask2 c2) =
+  (if less_eq_set c1 mask1 &&
+        less_eq_set c2 mask2 &&
+          equal_set (inf_set (inf_set mask1 mask2) c1)
+            (inf_set (inf_set mask1 mask2) c2)
+    then TCP_Flags (sup_set mask1 mask2) (sup_set c1 c2)
+    else ipt_tcp_flags_NoMatch);
+
+process_call ::
+  forall a. ([Prelude.Char] -> Maybe [Rule a]) -> [Rule a] -> [Rule a];
+process_call gamma [] = [];
+process_call gamma (Rule m (Call chain) : rs) =
+  add_match m (process_ret (the (gamma chain))) ++ process_call gamma rs;
+process_call gamma (Rule v Accept : rs) = Rule v Accept : process_call gamma rs;
+process_call gamma (Rule v Drop : rs) = Rule v Drop : process_call gamma rs;
+process_call gamma (Rule v Log : rs) = Rule v Log : process_call gamma rs;
+process_call gamma (Rule v Reject : rs) = Rule v Reject : process_call gamma rs;
+process_call gamma (Rule v Return : rs) = Rule v Return : process_call gamma rs;
+process_call gamma (Rule v (Goto vb) : rs) =
+  Rule v (Goto vb) : process_call gamma rs;
+process_call gamma (Rule v Empty : rs) = Rule v Empty : process_call gamma rs;
+process_call gamma (Rule v Unknown : rs) =
+  Rule v Unknown : process_call gamma rs;
 
 ipassmt_iface_constrain_srcip_mexpr ::
   (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
@@ -3253,37 +3390,39 @@ iiface_constrain ipassmt (MatchNot m) = MatchNot (iiface_constrain ipassmt m);
 iiface_constrain ipassmt (MatchAnd m1 m2) =
   MatchAnd (iiface_constrain ipassmt m1) (iiface_constrain ipassmt m2);
 
-ipassmt_iface_replace_srcip_mexpr ::
-  (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
-    Iface -> Match_expr Common_primitive;
-ipassmt_iface_replace_srcip_mexpr ipassmt ifce =
-  (case ipassmt ifce of {
-    Nothing -> Match (IIface ifce);
-    Just ips ->
-      match_list_to_match_expr
-        (map (Match . Src)
-          (map (\ (ip, a) -> Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) a)
-            ips));
-  });
+access_matrix_pretty_code ::
+  Parts_connection_ext () ->
+    [Simple_rule] ->
+      ([([Prelude.Char], [Prelude.Char])], [([Prelude.Char], [Prelude.Char])]);
+access_matrix_pretty_code c rs =
+  (if not (all (\ m ->
+                 equal_iface (iiface (match_sel m)) ifaceAny &&
+                   equal_iface (oiface (match_sel m)) ifaceAny)
+            rs)
+    then error "undefined"
+    else let {
+           w = build_ip_partition c rs;
+           r = map getOneIp w;
+           _ = all_pairs r;
+         } in (zip (map ipv4addr_toString r)
+                 (map ipv4addr_wordinterval_toString w),
+                map_filter
+                  (\ x ->
+                    (if let {
+                          (s, d) = x;
+                        } in equal_state (runFw s d c rs) (Decision FinalAllow)
+                      then Just (let {
+                                   (xa, y) = x;
+                                 } in (ipv4addr_toString xa,
+ipv4addr_toString y))
+                      else Nothing))
+                  (all_pairs r)));
 
-iiface_rewrite ::
-  (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
-    Match_expr Common_primitive -> Match_expr Common_primitive;
-iiface_rewrite uu MatchAny = MatchAny;
-iiface_rewrite ipassmt (Match (IIface ifce)) =
-  ipassmt_iface_replace_srcip_mexpr ipassmt ifce;
-iiface_rewrite ipassmt (Match (Src v)) = Match (Src v);
-iiface_rewrite ipassmt (Match (Dst v)) = Match (Dst v);
-iiface_rewrite ipassmt (Match (OIface v)) = Match (OIface v);
-iiface_rewrite ipassmt (Match (Prot v)) = Match (Prot v);
-iiface_rewrite ipassmt (Match (Src_Ports v)) = Match (Src_Ports v);
-iiface_rewrite ipassmt (Match (Dst_Ports v)) = Match (Dst_Ports v);
-iiface_rewrite ipassmt (Match (L4_Flags v)) = Match (L4_Flags v);
-iiface_rewrite ipassmt (Match (CT_State v)) = Match (CT_State v);
-iiface_rewrite ipassmt (Match (Extra v)) = Match (Extra v);
-iiface_rewrite ipassmt (MatchNot m) = MatchNot (iiface_rewrite ipassmt m);
-iiface_rewrite ipassmt (MatchAnd m1 m2) =
-  MatchAnd (iiface_rewrite ipassmt m1) (iiface_rewrite ipassmt m2);
+access_matrix_pretty ::
+  Parts_connection_ext () ->
+    [Simple_rule] ->
+      ([([Prelude.Char], [Prelude.Char])], [([Prelude.Char], [Prelude.Char])]);
+access_matrix_pretty = access_matrix_pretty_code;
 
 iface_try_rewrite ::
   [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
@@ -3306,180 +3445,6 @@ iface_try_rewrite ipassmt rs =
         ipassmt_sanity_defined rs (map_of ipassmt)
     then optimize_matches (iiface_rewrite (map_of_ipassmt ipassmt)) rs
     else optimize_matches (iiface_constrain (map_of_ipassmt ipassmt)) rs);
-
-map_of_string ::
-  [([Prelude.Char], [Rule Common_primitive])] ->
-    [Prelude.Char] -> Maybe [Rule Common_primitive];
-map_of_string rs = map_of rs;
-
-nat_to_16word :: Nat -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
-nat_to_16word i = of_nat i;
-
-compress_parsed_extra ::
-  [Negation_type Common_primitive] -> [Negation_type Common_primitive];
-compress_parsed_extra [] = [];
-compress_parsed_extra (a1 : a2 : asa) =
-  (if is_pos_Extra a1 && is_pos_Extra a2
-    then compress_parsed_extra
-           (Pos (Extra (get_pos_Extra a1 ++ " " ++ get_pos_Extra a2)) : asa)
-    else a1 : compress_parsed_extra (a2 : asa));
-compress_parsed_extra [a] = a : compress_parsed_extra [];
-
-enum_set_get_one :: forall a. (Eq a) => [a] -> Set a -> Maybe a;
-enum_set_get_one [] s = Nothing;
-enum_set_get_one (sa : ss) s =
-  (if member sa s then Just sa else enum_set_get_one ss s);
-
-enum_set_to_list :: forall a. (Enum a, Eq a) => Set a -> [a];
-enum_set_to_list s =
-  (if is_empty s then [] else (case enum_set_get_one enum s of {
-                                Nothing -> [];
-                                Just a -> a : enum_set_to_list (remove a s);
-                              }));
-
-rm_LogEmpty :: forall a. [Rule a] -> [Rule a];
-rm_LogEmpty [] = [];
-rm_LogEmpty (Rule uu Empty : rs) = rm_LogEmpty rs;
-rm_LogEmpty (Rule uv Log : rs) = rm_LogEmpty rs;
-rm_LogEmpty (Rule v Accept : rs) = Rule v Accept : rm_LogEmpty rs;
-rm_LogEmpty (Rule v Drop : rs) = Rule v Drop : rm_LogEmpty rs;
-rm_LogEmpty (Rule v Reject : rs) = Rule v Reject : rm_LogEmpty rs;
-rm_LogEmpty (Rule v (Call vb) : rs) = Rule v (Call vb) : rm_LogEmpty rs;
-rm_LogEmpty (Rule v Return : rs) = Rule v Return : rm_LogEmpty rs;
-rm_LogEmpty (Rule v (Goto vb) : rs) = Rule v (Goto vb) : rm_LogEmpty rs;
-rm_LogEmpty (Rule v Unknown : rs) = Rule v Unknown : rm_LogEmpty rs;
-
-repeat_stabilize :: forall a. (Eq a) => Nat -> (a -> a) -> a -> a;
-repeat_stabilize n uu v =
-  (if equal_nat n zero_nat then v
-    else let {
-           v_new = uu v;
-         } in (if v == v_new then v
-                else repeat_stabilize (minus_nat n one_nat) uu v_new));
-
-ipv4range_intersection ::
-  Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
-    Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
-      Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
-ipv4range_intersection r1 r2 = wordinterval_intersection r1 r2;
-
-ipt_tcp_flags_toString :: Set Tcp_flag -> [Prelude.Char];
-ipt_tcp_flags_toString flags =
-  list_toString tcp_flag_toString (enum_set_to_list flags);
-
-integer_to_16word :: Integer -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
-integer_to_16word i = nat_to_16word (nat_of_integer i);
-
-ctstate_toString :: Ctstate -> [Prelude.Char];
-ctstate_toString CT_New = "NEW";
-ctstate_toString CT_Established = "ESTABLISHED";
-ctstate_toString CT_Related = "RELATED";
-ctstate_toString CT_Untracked = "UNTRACKED";
-ctstate_toString CT_Invalid = "INVALID";
-
-simple_ruleset :: forall a. [Rule a] -> Bool;
-simple_ruleset rs =
-  all (\ r ->
-        equal_action (get_action r) Accept || equal_action (get_action r) Drop)
-    rs;
-
-process_ret :: forall a. [Rule a] -> [Rule a];
-process_ret [] = [];
-process_ret (Rule m Return : rs) = add_match (MatchNot m) (process_ret rs);
-process_ret (Rule v Accept : rs) = Rule v Accept : process_ret rs;
-process_ret (Rule v Drop : rs) = Rule v Drop : process_ret rs;
-process_ret (Rule v Log : rs) = Rule v Log : process_ret rs;
-process_ret (Rule v Reject : rs) = Rule v Reject : process_ret rs;
-process_ret (Rule v (Call vb) : rs) = Rule v (Call vb) : process_ret rs;
-process_ret (Rule v (Goto vb) : rs) = Rule v (Goto vb) : process_ret rs;
-process_ret (Rule v Empty : rs) = Rule v Empty : process_ret rs;
-process_ret (Rule v Unknown : rs) = Rule v Unknown : process_ret rs;
-
-wordinterval_sort :: forall a. (Len a) => Wordinterval a -> Wordinterval a;
-wordinterval_sort w = l2br (mergesort_remdups (br2l w));
-
-build_ip_partition ::
-  Parts_connection_ext () ->
-    [Simple_rule] -> [Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
-build_ip_partition c rs =
-  map (\ xs ->
-        wordinterval_sort
-          (wordinterval_compress
-            (foldr wordinterval_union xs empty_WordInterval)))
-    (groupWIs3 c rs);
-
-process_call ::
-  forall a. ([Prelude.Char] -> Maybe [Rule a]) -> [Rule a] -> [Rule a];
-process_call gamma [] = [];
-process_call gamma (Rule m (Call chain) : rs) =
-  add_match m (process_ret (the (gamma chain))) ++ process_call gamma rs;
-process_call gamma (Rule v Accept : rs) = Rule v Accept : process_call gamma rs;
-process_call gamma (Rule v Drop : rs) = Rule v Drop : process_call gamma rs;
-process_call gamma (Rule v Log : rs) = Rule v Log : process_call gamma rs;
-process_call gamma (Rule v Reject : rs) = Rule v Reject : process_call gamma rs;
-process_call gamma (Rule v Return : rs) = Rule v Return : process_call gamma rs;
-process_call gamma (Rule v (Goto vb) : rs) =
-  Rule v (Goto vb) : process_call gamma rs;
-process_call gamma (Rule v Empty : rs) = Rule v Empty : process_call gamma rs;
-process_call gamma (Rule v Unknown : rs) =
-  Rule v Unknown : process_call gamma rs;
-
-check_simple_ruleset :: [Rule Common_primitive] -> [Rule Common_primitive];
-check_simple_ruleset rs = (if simple_ruleset rs then rs else error "undefined");
-
-unfold_ruleset_CHAIN ::
-  [Prelude.Char] ->
-    Action ->
-      ([Prelude.Char] -> Maybe [Rule Common_primitive]) ->
-        [Rule Common_primitive];
-unfold_ruleset_CHAIN chain_name default_action rs =
-  check_simple_ruleset
-    (repeat_stabilize (nat_of_integer (1000 :: Integer))
-      (optimize_matches opt_MatchAny_match_expr)
-      (optimize_matches optimize_primitive_univ
-        (rw_Reject
-          (rm_LogEmpty
-            (repeat_stabilize (nat_of_integer (10000 :: Integer))
-              (process_call rs)
-              [Rule MatchAny (Call chain_name),
-                Rule MatchAny default_action])))));
-
-access_matrix_pretty_code ::
-  Parts_connection_ext () ->
-    [Simple_rule] ->
-      ([([Prelude.Char], [Prelude.Char])], [([Prelude.Char], [Prelude.Char])]);
-access_matrix_pretty_code c rs =
-  (if not (all (\ m ->
-                 equal_iface (iiface (match_sel m)) ifaceAny &&
-                   equal_iface (oiface (match_sel m)) ifaceAny)
-            rs)
-    then error "undefined"
-    else let {
-           w = build_ip_partition c rs;
-           r = map getOneIp w;
-           _ = all_pairs r;
-         } in (("Nodes", ":") :
-                 zip (map ipv4addr_toString r)
-                   (map ipv4addr_wordinterval_toString w),
-                ("Vertices", ":") :
-                  map_filter
-                    (\ x ->
-                      (if let {
-                            (s, d) = x;
-                          } in equal_state (runFw s d c rs)
-                                 (Decision FinalAllow)
-                        then Just (let {
-                                     (xa, y) = x;
-                                   } in (ipv4addr_toString xa,
-  ipv4addr_toString y))
-                        else Nothing))
-                    (all_pairs r)));
-
-access_matrix_pretty ::
-  Parts_connection_ext () ->
-    [Simple_rule] ->
-      ([([Prelude.Char], [Prelude.Char])], [([Prelude.Char], [Prelude.Char])]);
-access_matrix_pretty = access_matrix_pretty_code;
 
 simpl_ports_conjunct ::
   (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
@@ -3818,6 +3783,42 @@ common_primitive_match_to_simple_match (MatchNot (Match (Extra vs))) =
 common_primitive_match_to_simple_match (MatchNot (Match (CT_State vt))) =
   error "undefined";
 
+is_L4_Flags :: Common_primitive -> Bool;
+is_L4_Flags (Src x1) = False;
+is_L4_Flags (Dst x2) = False;
+is_L4_Flags (IIface x3) = False;
+is_L4_Flags (OIface x4) = False;
+is_L4_Flags (Prot x5) = False;
+is_L4_Flags (Src_Ports x6) = False;
+is_L4_Flags (Dst_Ports x7) = False;
+is_L4_Flags (L4_Flags x8) = True;
+is_L4_Flags (CT_State x9) = False;
+is_L4_Flags (Extra x10) = False;
+
+is_CT_State :: Common_primitive -> Bool;
+is_CT_State (Src x1) = False;
+is_CT_State (Dst x2) = False;
+is_CT_State (IIface x3) = False;
+is_CT_State (OIface x4) = False;
+is_CT_State (Prot x5) = False;
+is_CT_State (Src_Ports x6) = False;
+is_CT_State (Dst_Ports x7) = False;
+is_CT_State (L4_Flags x8) = False;
+is_CT_State (CT_State x9) = True;
+is_CT_State (Extra x10) = False;
+
+is_Extra :: Common_primitive -> Bool;
+is_Extra (Src x1) = False;
+is_Extra (Dst x2) = False;
+is_Extra (IIface x3) = False;
+is_Extra (OIface x4) = False;
+is_Extra (Prot x5) = False;
+is_Extra (Src_Ports x6) = False;
+is_Extra (Dst_Ports x7) = False;
+is_Extra (L4_Flags x8) = False;
+is_Extra (CT_State x9) = False;
+is_Extra (Extra x10) = True;
+
 normalized_protocols :: Match_expr Common_primitive -> Bool;
 normalized_protocols m = not (has_disc_negated is_Prot False m);
 
@@ -3947,6 +3948,40 @@ simple_rule_toString
                           ports_toString "sports: " sps ++
                             " " ++ ports_toString "dports: " dps;
 
+unfold_optimize_ruleset_CHAIN ::
+  forall a.
+    (Eq a) => (Match_expr a -> Match_expr a) ->
+                [Prelude.Char] ->
+                  Action ->
+                    ([Prelude.Char] -> Maybe [Rule a]) -> Maybe [Rule a];
+unfold_optimize_ruleset_CHAIN optimize chain_name default_action rs =
+  let {
+    rsa = repeat_stabilize (nat_of_integer (1000 :: Integer))
+            (optimize_matches opt_MatchAny_match_expr)
+            (optimize_matches optimize
+              (rw_Reject
+                (rm_LogEmpty
+                  (repeat_stabilize (nat_of_integer (10000 :: Integer))
+                    (process_call rs)
+                    [Rule MatchAny (Call chain_name),
+                      Rule MatchAny default_action]))));
+  } in (if simple_ruleset rsa then Just rsa else Nothing);
+
+unfold_ruleset_CHAIN_safe ::
+  [Prelude.Char] ->
+    Action ->
+      ([Prelude.Char] -> Maybe [Rule Common_primitive]) ->
+        Maybe [Rule Common_primitive];
+unfold_ruleset_CHAIN_safe =
+  unfold_optimize_ruleset_CHAIN optimize_primitive_univ;
+
+match_tcp_flags_conjunct_option ::
+  Ipt_tcp_flags -> Ipt_tcp_flags -> Maybe Ipt_tcp_flags;
+match_tcp_flags_conjunct_option f1 f2 =
+  let {
+    (TCP_Flags mask c) = match_tcp_flags_conjunct f1 f2;
+  } in (if less_eq_set c mask then Just (TCP_Flags mask c) else Nothing);
+
 action_toString :: Action -> [Prelude.Char];
 action_toString Accept = "-j ACCEPT";
 action_toString Drop = "-j DROP";
@@ -3957,6 +3992,34 @@ action_toString Empty = [];
 action_toString Log = "-j LOG";
 action_toString Return = "-j RETURN";
 action_toString Unknown = "!!!!!!!!!!! UNKNOWN !!!!!!!!!!!";
+
+ipt_tcp_flags_assume_flag ::
+  Ipt_tcp_flags -> Match_expr Common_primitive -> Match_expr Common_primitive;
+ipt_tcp_flags_assume_flag flg (Match (L4_Flags x)) =
+  (if ipt_tcp_flags_equal x flg then MatchAny
+    else (case match_tcp_flags_conjunct_option x flg of {
+           Nothing -> MatchNot MatchAny;
+           Just f3 -> Match (L4_Flags f3);
+         }));
+ipt_tcp_flags_assume_flag flg (Match (Src v)) = Match (Src v);
+ipt_tcp_flags_assume_flag flg (Match (Dst v)) = Match (Dst v);
+ipt_tcp_flags_assume_flag flg (Match (IIface v)) = Match (IIface v);
+ipt_tcp_flags_assume_flag flg (Match (OIface v)) = Match (OIface v);
+ipt_tcp_flags_assume_flag flg (Match (Prot v)) = Match (Prot v);
+ipt_tcp_flags_assume_flag flg (Match (Src_Ports v)) = Match (Src_Ports v);
+ipt_tcp_flags_assume_flag flg (Match (Dst_Ports v)) = Match (Dst_Ports v);
+ipt_tcp_flags_assume_flag flg (Match (CT_State v)) = Match (CT_State v);
+ipt_tcp_flags_assume_flag flg (Match (Extra v)) = Match (Extra v);
+ipt_tcp_flags_assume_flag flg (MatchNot m) =
+  MatchNot (ipt_tcp_flags_assume_flag flg m);
+ipt_tcp_flags_assume_flag uu MatchAny = MatchAny;
+ipt_tcp_flags_assume_flag flg (MatchAnd m1 m2) =
+  MatchAnd (ipt_tcp_flags_assume_flag flg m1)
+    (ipt_tcp_flags_assume_flag flg m2);
+
+ipt_tcp_flags_assume_syn :: [Rule Common_primitive] -> [Rule Common_primitive];
+ipt_tcp_flags_assume_syn =
+  optimize_matches (ipt_tcp_flags_assume_flag ipt_tcp_syn);
 
 ctstate_assume_state ::
   Ctstate -> Match_expr Common_primitive -> Match_expr Common_primitive;
@@ -3978,6 +4041,9 @@ ctstate_assume_state s (MatchAnd m1 m2) =
 
 ctstate_assume_new :: [Rule Common_primitive] -> [Rule Common_primitive];
 ctstate_assume_new = optimize_matches (ctstate_assume_state CT_New);
+
+packet_assume_new :: [Rule Common_primitive] -> [Rule Common_primitive];
+packet_assume_new = ctstate_assume_new . ipt_tcp_flags_assume_syn;
 
 abstract_for_simple_firewall ::
   Match_expr Common_primitive -> Match_expr Common_primitive;
@@ -4006,7 +4072,7 @@ to_simple_firewall_without_interfaces ipassmt rs =
         (optimize_matches abstract_for_simple_firewall
           (upper_closure
             (iface_try_rewrite ipassmt
-              (upper_closure (ctstate_assume_new (upper_closure rs))))))));
+              (upper_closure (packet_assume_new rs)))))));
 
 common_primitive_match_expr_toString ::
   Match_expr Common_primitive -> [Prelude.Char];

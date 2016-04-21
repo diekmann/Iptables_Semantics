@@ -314,4 +314,40 @@ lemma "simple_firewall_valid (to_simple_firewall
 lemma "simple_firewall_valid (to_simple_firewall
               (lower_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw)))))))" by eval
 
+parse_iptables_save ds2015_2_fw="iptables-save_jun_2015_cleanup"
+text{*In 2015 there was also an update and a cleanup of the ruleset.
+The following should be fulfilled:
+Port 80 globally blocked (fulfilled, only reachable by localhost).
+Port 22 globally blocked (not fulfilled, error in the ruleset).
+Port 8080 only reachable from 192.168.0.0/24 and localhost (fulfilled).
+*}
+
+value[code] "unfold_ruleset_INPUT ds2015_2_fw_INPUT_default_policy (map_of ds2015_2_fw)"
+
+lemma "access_matrix_pretty parts_connection_ssh
+        (to_simple_firewall_without_interfaces ipassmt_generic
+          (unfold_ruleset_INPUT ds2015_2_fw_INPUT_default_policy (map_of ds2015_2_fw))) =
+  ([(''0.0.0.0'', ''{0.0.0.0 .. 255.255.255.255}'')
+   ],
+   [(''0.0.0.0'', ''0.0.0.0'')])" by eval
+
+
+lemma "access_matrix_pretty parts_connection_http
+        (to_simple_firewall_without_interfaces ipassmt_generic
+          (unfold_ruleset_INPUT ds2015_2_fw_INPUT_default_policy (map_of ds2015_2_fw))) =
+  ([(''0.0.0.0'', ''{0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 255.255.255.255}''),
+    (''127.0.0.0'', ''{127.0.0.0 .. 127.255.255.255}'')
+   ],
+   [(''127.0.0.0'', ''0.0.0.0''),
+    (''127.0.0.0'', ''127.0.0.0'')])" by eval
+
+lemma "access_matrix_pretty (mk_parts_connection_TCP 10000 8080)
+        (to_simple_firewall_without_interfaces ipassmt_generic
+          (unfold_ruleset_INPUT ds2015_2_fw_INPUT_default_policy (map_of ds2015_2_fw))) = 
+  ([(''127.0.0.0'', ''{127.0.0.0 .. 127.255.255.255} u {192.168.0.0 .. 192.168.255.255}''),
+    (''0.0.0.0'', ''{0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 192.167.255.255} u {192.169.0.0 .. 255.255.255.255}'')
+   ],
+   [(''127.0.0.0'', ''127.0.0.0''),
+    (''127.0.0.0'', ''0.0.0.0'')])" by eval
+
 end
