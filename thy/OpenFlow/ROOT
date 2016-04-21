@@ -16,6 +16,7 @@ session "OpenFlow" = Iptables_Semantics +
 		List_Group
 		Sort_Descending
 	theories
+		"../Examples/OF_conv_test/OF_conv_test"
 		LinuxRouterOpenFlowTranslation
 		FeatherweightOpenFlowComparison
 		OpenFlowAction

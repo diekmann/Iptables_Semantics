@@ -1,11 +1,11 @@
-theory SQRL_test
+theory OF_conv_test
 imports 
   "../../Primitive_Matchers/Parser"
   "../../Semantics_Ternary/Optimizing"
   "../../Simple_Firewall/SimpleFw_toString"
   "../../Routing/Routing"
   "../../Routing/IpRoute_Parser"
-  "../../OpenFlow/42"
+  "../../OpenFlow/LinuxRouterOpenFlowTranslation"
   "../../OpenFlow/OpenFlowSerialize"
 begin
 
