@@ -1,5 +1,4 @@
 session "OpenFlowFUA" = OpenFlow +
-	options [document = pdf, document_output = "fuao"]
 	theories
 		OpenFlowDoc
 	document_files
