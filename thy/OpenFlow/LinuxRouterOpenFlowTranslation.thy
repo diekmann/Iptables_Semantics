@@ -48,50 +48,11 @@ definition "route2match r =
 	src = (0,0), dst=(pfxm_prefix (routing_match r),pfxm_length (routing_match r)), 
 	proto=ProtoAny, sports=(0,max_word), ports=(0,max_word)\<rparr>"
 
-definition "simple_rule_and a r \<equiv> option_map (\<lambda>k. SimpleRule k (action_sel r)) (simple_match_and a (match_sel r))"
-
-primrec simple_match_list_and :: "simple_match \<Rightarrow> simple_rule list \<Rightarrow> simple_rule list" where
-"simple_match_list_and _ [] = []" |
-"simple_match_list_and cr (m#ms) = filter_nones [simple_rule_and cr m] @ simple_match_list_and cr ms"
-
-lemma simple_match_list_and_alt[code_unfold]:
-	"simple_match_list_and cr m = filter_nones (map (simple_rule_and cr) m)"
-	by(induction m; simp)
-
 lemma r1: "\<not>a \<Longrightarrow> \<not>(a \<and> b)" by simp
 lemma prepend_singleton: "[a] @ b = a # b" by simp
 
 lemma simple_fw_prepend_nonmatching: "\<forall>r \<in> set rs. \<not>simple_matches (match_sel r) p \<Longrightarrow> simple_fw_alt (rs @ rss) p = simple_fw_alt rss p"
 	by(induction rs) simp_all
-
-(* this used to be two proofs in one, so it might be slightly more complicated than necessary *)
-lemma simple_match_list_and_correct:
-	assumes m: "simple_matches r p"
-	shows "simple_fw fw p = simple_fw (simple_match_list_and r fw) p"
-unfolding simple_fw_alt
-proof(induction fw)
-	case (Cons s ss)
-	thm simple_fw.cases (* brrr *)
-	thus ?case 
-	proof(cases "simple_matches (match_sel s) p")
-		case False
-		hence "\<forall>vr \<in> set (filter_nones [option_map (\<lambda>k. SimpleRule k (action_sel s)) (simple_match_and r (match_sel s))]). \<not>simple_matches (match_sel vr) p"
-			apply(clarsimp simp only: set_filter_nones set_map Set.image_iff set_simps option_map_Some_eq2 simple_rule.sel)
-			using simple_match_and_SomeD by (smt map_option_eq_Some simple_rule.sel(1) singleton_set) (* this proof and all that use it can be deleted *)
-		from simple_fw_prepend_nonmatching[OF this] show ?thesis by(simp add: Let_def False Cons.IH simple_rule_and_def)
-	next
-		case True
-		obtain a where a: "simple_match_and r (match_sel s) = Some a" (*using True m simple_match_and_correct by force*)
-           proof -
-           	case goal1
-           	have m: "simple_matches r p"
-           	unfolding assms(1)[unfolded comp_def fun_app_def] using m .
-           	with True simple_match_and_correct[of r p "match_sel s"] show thesis using goal1 by(simp split: option.splits)  
-           qed
-        moreover have "simple_matches a p"  by(simp only: m True simple_match_and_SomeD[OF a])
-		ultimately show ?thesis using True by(clarsimp simp:  simple_rule_and_def)
-	qed
-qed(simp)
 
 (*lemma
 	assumes "(op = p) \<circ> p_oiface_update (const i) \<circ> p_dst_update (const a) $ p'"
@@ -602,7 +563,7 @@ definition "oif_ne_iif ifs = oif_ne_iif_p2 ifs @ oif_ne_iif_p1 ifs" (* order irr
 definition "lr_of_tran_s4 ard ifs \<equiv> generalized_fw_join ard (oif_ne_iif ifs)"
 
 definition "lr_of_tran_s1 rt = [(route2match r, output_iface (routing_action r)). r \<leftarrow> rt]"
-definition "lr_of_tran_s2 mrt fw = generalized_fw_join mrt (map simple_rule_dtor fw)"
+definition "lr_of_tran_s2 mrt fw = generalized_fw_join mrt (map simple_rule_dtor fw)" (*TODO: delete*)
 definition "lr_of_tran_nullifyoif = map (apfst (oiface_update (const ifaceAny)))"
 
 definition "lr_of_tran_fbs rt fw ifs \<equiv> let
@@ -1018,16 +979,7 @@ apply(drule (2) smtoms_only_one_iport[rotated])
 apply(simp add: iface.expand)
 done
 
- 
-lemma simple_rule_and_iiface_update: "is_iface_name a1 \<Longrightarrow> simple_rule_and (simple_match_any\<lparr>iiface := Iface a1\<rparr>) a = Some r1 \<Longrightarrow> iface_sel (iiface (match_sel r1)) = a1" 
-	apply(cases a)
-	apply(rename_tac abm aba)
-	apply(case_tac abm)
-	apply(rename_tac iiface oiface src dst proto sports dports)
-	apply(clarsimp simp add: simple_match_any_def simple_rule_and_def split: option.splits)
-	apply(case_tac iiface)
-	apply(clarsimp simp: is_iface_name_def split: bool.splits option.splits if_splits)
-oops
+
 (* Todo: Move to Iface? I'd rather not\<dots> *)
 lemma no_overlaps_lroft_s4_hlp1: "\<lbrakk>Some r1 = simple_rule_and (simple_match_any\<lparr>iiface := Iface a1\<rparr>) a; Some r2 = simple_rule_and (simple_match_any\<lparr>iiface := Iface a2\<rparr>) a;
 	a1 \<noteq> a2; is_iface_name a1; is_iface_name a2\<rbrakk> \<Longrightarrow> iiface (match_sel r1) \<noteq> iiface (match_sel r2)"
@@ -1151,17 +1103,6 @@ done
 lemma simple_fw_undecided: "simple_fw fw p = Undecided \<longleftrightarrow> (\<forall>r \<in> set fw. \<not>simple_matches (match_sel r) p)"
 by(induction rule: simple_fw.induct) (simp_all split: if_splits)
 
-lemma "simple_fw fw p = Undecided \<Longrightarrow> generalized_sfw ((lr_of_tran_s2 mrt fw)) p = None"
-	apply(induction mrt)
-	apply(simp add: lr_of_tran_s2_def generalized_sfw_def)
-	apply(simp add: generalized_sfw_append lr_of_tran_s2_split)
-	apply(split option.splits; intro conjI)
-	apply(simp;fail)
-	apply(thin_tac "generalized_sfw _ _ = None")
-	apply(induction fw)
-	apply(simp add: generalized_sfw_def;fail)
-	apply(clarsimp simp: simple_fw_undecided generalized_sfw_def simple_rule_and_def simple_match_and_SomeD  split: option.splits)
-	unfolding generalized_fw_join_1_1 oops
 
 (* TODO: Move with simple_match_and_SomeD *)
 lemma simple_match_and_NoneD: "simple_match_and m1 m2 = None \<Longrightarrow> \<not>(simple_matches m1 p \<and> simple_matches m2 p)"
@@ -1230,48 +1171,11 @@ find_theorems "generalized_fw_join _ (_#_)"
 (* TODO: write in the Generalized_SFW: We could have generalized away the fact that those are simple_matches, use a locale, assume an option monadic conjunction operator and then have this be an interpretation.
  but *effort *)
 
-lemma s2_correct: "simple_fw fw p \<noteq> Undecided \<Longrightarrow> generalized_sfw rt p = Some (mr,ma) \<Longrightarrow> \<exists>mmr mfd. generalized_sfw ((lr_of_tran_s2 rt fw)) p = Some (mmr, (ma, mfd)) \<and> simple_action_to_state mfd = simple_fw fw p"
-proof -
-	assume ras: "generalized_sfw rt p = Some (mr, ma)"
-	note this[THEN generalized_fw_split]
-	then guess ra ..
-	then guess rb ..
-	note rts = this
-	note as2 = s1_none_s2[OF rts[THEN conjunct2]]
-	from ras have smmr: "simple_matches mr p" unfolding generalized_sfw_def list_lib_find using findSomeD by fast
-	assume fas: "simple_fw fw p \<noteq> Undecided"
-	note this[THEN simple_fw_msplit]
-	then guess fa ..
-	then guess fr ..
-	then guess fb ..
-	note fws = this
-	obtain cr where [simp]: "simple_match_and mr (match_sel fr) = Some cr" "simple_matches cr p" unfolding simple_rule_and_def 
-		using fws[THEN conjunct2, THEN conjunct2] smmr simple_matches_andD by force
-	have l: "generalized_sfw (map simple_rule_dtor fw) p = Some (match_sel fr, action_sel fr)" 
-		unfolding fws[THEN conjunct1]
-		using fws[THEN conjunct2, THEN conjunct1]
-		apply(induction fa)
-		using fws apply(clarsimp simp add: generalized_sfw_simps simple_rule_dtor_def split: prod.splits simple_rule.splits)
-		apply(unfold append_Cons) (* gotta tread a bit carefully here, to make the first splits those that are actually the ones we need in the induction (thus a # (_)) *)
-		apply(unfold list.map generalized_sfw_simps simple_rule_dtor_def)
-		apply(split prod.splits)
-		apply(split if_splits)
-		apply(clarify)
-		apply(intro conjI)
-		 apply(clarsimp simp: simple_fw_alt split: simple_rule.splits simple_action.splits)+
-	done
-	show ?thesis proof(rule_tac x = cr in exI, rule_tac x = "action_sel fr" in exI)
-		show "generalized_sfw ((lr_of_tran_s2 rt fw)) p = Some (cr, ma, (action_sel fr)) \<and> simple_action_to_state (action_sel fr) = simple_fw fw p "
-		unfolding rts[THEN conjunct1] lr_of_tran_s2_split_append lr_of_tran_s2_split  as2 option.simps generalized_sfw_append generalized_sfw_join_1_single
-		unfolding \<open>simple_matches mr p\<close>[THEN if_P] l option.simps prod.simps
-		using l simple_fw_iff_generalized_fw by force
-	qed
-qed
 
 (*
 "simple_fw fw p \<noteq> Undecided \<Longrightarrow> s1_sema rt p = Some (mr,ma) \<Longrightarrow> \<exists>mmr. s2_sema ((lr_of_tran_s2 rt fw)) p = Some (mmr, ma)"
 "valid_prefixes rt \<Longrightarrow> has_default_route rt \<Longrightarrow> \<exists>rm ra. s1_sema (lr_of_tran_s1 rt) (p\<lparr>p_oiface := ra\<rparr>) = Some (rm,ra) \<and> ra = output_iface (routing_table_semantics rt (p_dst p))"*)
-thm s1_correct s2_correct
+
 
 definition "oiface_exact_match \<equiv> list_all (is_iface_name \<circ> iface_sel)"
 
