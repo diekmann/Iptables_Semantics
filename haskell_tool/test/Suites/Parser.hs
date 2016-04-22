@@ -110,9 +110,7 @@ test_spoofing_certification table chain ipassmtString fileName expected_spoofing
     ipassmt <- case parseIpAssmt "<hardcoded>" ipassmtString of
         Left err -> do print err
                        error "could not parse hard-coded ipassmt"
-        Right res -> do putStrLn "Parsed IpAssmt"
-                        putStrLn (show res)
-                        return $ ipAssmtToIsabelle res
+        Right res -> return $ ipAssmtToIsabelle res
     
     f <- readFile fileName
     
@@ -121,9 +119,9 @@ test_spoofing_certification table chain ipassmtString fileName expected_spoofing
         Right res -> do
             unfolded <- loadUnfoldedRuleset False table chain res
             let (warnings, spoofResult) = certifySpoofingProtection ipassmt unfolded
-            mapM_ putStrLn warnings
+            --mapM_ putStrLn warnings
             let computed_result = map (\ (iface, rslt) -> (show iface, rslt)) spoofResult
-            putStrLn $ show computed_result
+            --putStrLn $ show computed_result
             if computed_result == expected_spoofing_result then
                 return ()
             else
@@ -293,16 +291,14 @@ test_service_matrix ipassmtMaybeString fileName expected_result errormsg = do
         Just ipassmtString -> case parseIpAssmt "<hardcoded>" ipassmtString of
             Left err -> do print err
                            error "could not parse hard-coded ipassmt"
-            Right res -> do putStrLn "Parsed IpAssmt"
-                            putStrLn (show res)
-                            return $ ipAssmtToIsabelle res
+            Right res -> return $ ipAssmtToIsabelle res
     f <- readFile fileName
     case parseIptablesSave ("file: "++fileName) f of
         Left err -> error $ show err
         Right res -> do
             unfolded <- loadUnfoldedRuleset False "filter" "FORWARD" res
             let service_matrix = Analysis.accessMatrix ipassmt unfolded 10000 22
-            putStrLn $ show service_matrix
+            --putStrLn $ show service_matrix
             if service_matrix == expected_result then
                 return ()
             else
