@@ -89,7 +89,6 @@ readArgs (CommandLineArgs labeled unlabeled) = do
                                                        ps -> if all sanityCheckPort ps
                                                              then return ps
                                                              else error ("Invalid dst ports " ++ (show (filter (not . sanityCheckPort) ps)))
-            --TODO: return the sm ports!
             let smOptions = map (\d -> (smSrcPort, d)) smDstPorts
             return (assmt, tbl, chn, smOptions)
                 where sanityCheckPort p = (p >= 0 && p < 65536)
@@ -136,11 +135,12 @@ main = do
             mapM_ (\(s,d) -> 
                         putStrLn ("=========== TCP port "++ show s ++ "->" ++ show d ++" =========")
                      >> putStrLn (showServiceMatrix (Analysis.accessMatrix ipassmt unfolded s d))) smOptions
-        where showServiceMatrix (nodes, vertices) = concatMap (\(n, desc) -> renameNode n ++ " |-> " ++ desc ++ "\n") nodes ++ "\n" ++
-                                                    concatMap (\v -> show (renameVertices v) ++ "\n") vertices
+        where showServiceMatrix (nodes, edges) = concatMap (\(n, desc) -> renameNode n ++ " |-> " ++ desc ++ "\n") nodes ++ "\n" ++
+                                                 concatMap (\e -> (renameEdge e) ++ "\n") edges
                   where renaming = zip (map fst nodes) prettyNames
                         renameNode n = fromJust $ lookup n renaming
-                        renameVertices (v1, v2) = (fromJust $ lookup v1 renaming, fromJust $ lookup v2 renaming)
+                        renameEdge :: (String, String) -> String
+                        renameEdge (v1, v2) = concat ["(", renameNode v1, ",", renameNode v2, ")"]
 
               showSpoofCertification (iface, rslt) = show (show iface, showProbablyFalse rslt)
                   where showProbablyFalse True = "True (certified)"

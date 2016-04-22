@@ -23,7 +23,7 @@ execFffuu name argv goldenFile = Golden.goldenVsStringDiff fancyName diffCmd gol
 tests = testGroup "fffuu compiled binary output" $
   [ execFffuu "help" ["--help"] "test/Suites/GoldenFiles/help"
   , execFffuu "stressing the parser" ["../thy/Examples/Parser_Test/data/iptables-save"] "test/Suites/GoldenFiles/parser_test"
-  , execFffuu "i8 with spoofing protection" ["--ipassmt", "ipassmt_tumi8", "../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating"] "test/Suites/GoldenFiles/i8_iptables-save-2015-05-15_15-23-41_cheating"
+  -- FILE is 18mb! , execFffuu "i8 with spoofing protection" ["--ipassmt", "ipassmt_tumi8", "../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating"] "test/Suites/GoldenFiles/i8_iptables-save-2015-05-15_15-23-41_cheating"
   , execFffuu "SQRL spoofing raw" ["--table", "raw", "--chain", "PREROUTING", "--ipassmt", "ipassmt_sqrl", "../thy/Examples/SQRL_Shorewall/2015_aug_iptables-save-spoofing-protection"] "test/Suites/GoldenFiles/sqrl_2015_aug_iptables-save-spoofing-protection"
   , execFffuu "synology example from README" ["--chain", "INPUT", "--service_matrix_dport", "22", "--service_matrix_dport", "8080", "--service_matrix_dport", "80", "../thy/Examples/Synology_Diskstation_DS414/iptables-save_jun_2015_cleanup"] "test/Suites/GoldenFiles/synology_iptables-save_jun_2015_cleanup"
   ]

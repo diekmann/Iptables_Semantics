@@ -244,7 +244,7 @@ Here are the service matrices:
 =========== TCP port 10000->22 =========
 a |-> {0.0.0.0 .. 255.255.255.255}
 
-("a","a")
+(a,a)
 ```
 
 This one is for ssh. 
@@ -256,7 +256,7 @@ Let's see.
 Nodes are given unique names. Here, it is `a`.
 Next, the edges are defined. 
 Each pair `(a,b)` in the edges means that the IP range which corresponds to `a` can access `b`. 
-Here we have `("a","a")`. 
+Here we have `(a,a)`. 
 This means everyone can access everyone. 
 Wait what? We want ssh to be blocked. 
 Though it is blocked in the `multiport` rule, this rule is shadowed by the third rule of `DEFAULT_INPUT` which allows ssh. 
@@ -275,8 +275,8 @@ Let's look at the next service matrix.
 a |-> {127.0.0.0 .. 127.255.255.255} u {192.168.0.0 .. 192.168.255.255}
 b |-> {0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 192.167.255.255} u {192.169.0.0 .. 255.255.255.255}
 
-("a","a")
-("a","b")
+(a,a)
+(a,b)
 ```
 This one is for the webinterface at port 8080. 
 Now we have two nodes, which means the firewall distinguishes two different classes of IP addresses. 
@@ -285,8 +285,8 @@ We only wanted the webinterface reachable from the local 192.168.0.0/24 range.
 The first rule of `DEFAULT_INPUT` additionally accepts everything from `lo`, so this should be fine.
 The second node (called `b`) is the rest of the IPv4 address space. We want this to be dropped. 
 Let's look at the edges.
-As we can see in the first vertex `("a","a")`: Only the good `lo` + local LAN range can reach the machine (which is itself located in the `"a"` range). 
-The second edge `("a","b")` basically tells: The NAS itself can freely access any IP (which is fine).
+As we can see in the first vertex `(a,a)`: Only the good `lo` + local LAN range can reach the machine (which is itself located in the `a` range). 
+The second edge `(a,b)` basically tells: The NAS itself can freely access any IP (which is fine).
 
 
 Let's look at the third matrix.
@@ -295,8 +295,8 @@ Let's look at the third matrix.
 a |-> {0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 255.255.255.255}
 b |-> {127.0.0.0 .. 127.255.255.255}
 
-("b","a")
-("b","b")
+(b,a)
+(b,b)
 ```
 
 This one is for port 80, which should be dropped.
