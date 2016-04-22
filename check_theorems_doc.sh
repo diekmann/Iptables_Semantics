@@ -11,6 +11,7 @@ function check_thm {
 	    echo -n " [ok]"
 	 else
 	    echo -ne " [${RED}FAIL${NC}]"
+	    exit -1
 	 fi
 }
 
@@ -23,3 +24,5 @@ for THM in $THEOREMS_IN_HS; do
     check_thm $THM
     echo
 done
+
+exit 0

@@ -14,9 +14,9 @@ module
                               map_of_ipassmt, to_ipassmt, ipassmt_generic,
                               optimize_matches, upper_closure, word_to_nat,
                               word_less_eq, no_spoofing_iface,
-                              sanity_wf_ruleset, rewrite_Goto, map_of_string,
-                              nat_to_16word, compress_parsed_extra,
-                              integer_to_16word, access_matrix_pretty,
+                              sanity_wf_ruleset, map_of_string, nat_to_16word,
+                              compress_parsed_extra, integer_to_16word,
+                              rewrite_Goto_safe, access_matrix_pretty,
                               common_primitive_toString,
                               mk_parts_connection_TCP, to_simple_firewall,
                               ipv4_cidr_toString, simple_rule_toString,
@@ -3132,66 +3132,6 @@ sanity_wf_ruleset gamma =
 })))
                          ran;
 
-terminal_chain :: forall a. [Rule a] -> Bool;
-terminal_chain [] = False;
-terminal_chain [Rule MatchAny Accept] = True;
-terminal_chain [Rule MatchAny Drop] = True;
-terminal_chain [Rule MatchAny Reject] = True;
-terminal_chain (Rule uu (Goto uv) : rs) = False;
-terminal_chain (Rule uw (Call ux) : rs) = False;
-terminal_chain (Rule uy Return : rs) = False;
-terminal_chain (Rule uz Unknown : rs) = False;
-terminal_chain (Rule (Match vc) Accept : rs) = terminal_chain rs;
-terminal_chain (Rule (Match vc) Drop : rs) = terminal_chain rs;
-terminal_chain (Rule (Match vc) Log : rs) = terminal_chain rs;
-terminal_chain (Rule (Match vc) Reject : rs) = terminal_chain rs;
-terminal_chain (Rule (Match vc) Empty : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchNot vc) Accept : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchNot vc) Drop : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchNot vc) Log : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchNot vc) Reject : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchNot vc) Empty : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchAnd vc vd) Accept : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchAnd vc vd) Drop : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchAnd vc vd) Log : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchAnd vc vd) Reject : rs) = terminal_chain rs;
-terminal_chain (Rule (MatchAnd vc vd) Empty : rs) = terminal_chain rs;
-terminal_chain (Rule v Drop : va : vb) = terminal_chain (va : vb);
-terminal_chain (Rule v Log : rs) = terminal_chain rs;
-terminal_chain (Rule v Reject : va : vb) = terminal_chain (va : vb);
-terminal_chain (Rule v Empty : rs) = terminal_chain rs;
-terminal_chain (Rule vc Accept : v : vb) = terminal_chain (v : vb);
-
-rewrite_Goto_chain ::
-  forall a. ([Prelude.Char] -> Maybe [Rule a]) -> [Rule a] -> [Rule a];
-rewrite_Goto_chain uu [] = [];
-rewrite_Goto_chain gamma (Rule m (Goto chain) : rs) =
-  (if terminal_chain (the (gamma chain)) then Rule m (Call chain)
-    else error "undefined") :
-    rewrite_Goto_chain gamma rs;
-rewrite_Goto_chain gamma (Rule v Accept : rs) =
-  Rule v Accept : rewrite_Goto_chain gamma rs;
-rewrite_Goto_chain gamma (Rule v Drop : rs) =
-  Rule v Drop : rewrite_Goto_chain gamma rs;
-rewrite_Goto_chain gamma (Rule v Log : rs) =
-  Rule v Log : rewrite_Goto_chain gamma rs;
-rewrite_Goto_chain gamma (Rule v Reject : rs) =
-  Rule v Reject : rewrite_Goto_chain gamma rs;
-rewrite_Goto_chain gamma (Rule v (Call vb) : rs) =
-  Rule v (Call vb) : rewrite_Goto_chain gamma rs;
-rewrite_Goto_chain gamma (Rule v Return : rs) =
-  Rule v Return : rewrite_Goto_chain gamma rs;
-rewrite_Goto_chain gamma (Rule v Empty : rs) =
-  Rule v Empty : rewrite_Goto_chain gamma rs;
-rewrite_Goto_chain gamma (Rule v Unknown : rs) =
-  Rule v Unknown : rewrite_Goto_chain gamma rs;
-
-rewrite_Goto ::
-  forall a. [([Prelude.Char], [Rule a])] -> [([Prelude.Char], [Rule a])];
-rewrite_Goto cs =
-  map (\ (chain_name, rs) -> (chain_name, rewrite_Goto_chain (map_of cs) rs))
-    cs;
-
 map_of_string ::
   [([Prelude.Char], [Rule Common_primitive])] ->
     [Prelude.Char] -> Maybe [Rule Common_primitive];
@@ -3227,6 +3167,36 @@ enum_set_to_list s =
                                 Nothing -> [];
                                 Just a -> a : enum_set_to_list (remove a s);
                               }));
+
+terminal_chain :: forall a. [Rule a] -> Bool;
+terminal_chain [] = False;
+terminal_chain [Rule MatchAny Accept] = True;
+terminal_chain [Rule MatchAny Drop] = True;
+terminal_chain [Rule MatchAny Reject] = True;
+terminal_chain (Rule uu (Goto uv) : rs) = False;
+terminal_chain (Rule uw (Call ux) : rs) = False;
+terminal_chain (Rule uy Return : rs) = False;
+terminal_chain (Rule uz Unknown : rs) = False;
+terminal_chain (Rule (Match vc) Accept : rs) = terminal_chain rs;
+terminal_chain (Rule (Match vc) Drop : rs) = terminal_chain rs;
+terminal_chain (Rule (Match vc) Log : rs) = terminal_chain rs;
+terminal_chain (Rule (Match vc) Reject : rs) = terminal_chain rs;
+terminal_chain (Rule (Match vc) Empty : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchNot vc) Accept : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchNot vc) Drop : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchNot vc) Log : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchNot vc) Reject : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchNot vc) Empty : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchAnd vc vd) Accept : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchAnd vc vd) Drop : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchAnd vc vd) Log : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchAnd vc vd) Reject : rs) = terminal_chain rs;
+terminal_chain (Rule (MatchAnd vc vd) Empty : rs) = terminal_chain rs;
+terminal_chain (Rule v Drop : va : vb) = terminal_chain (va : vb);
+terminal_chain (Rule v Log : rs) = terminal_chain rs;
+terminal_chain (Rule v Reject : va : vb) = terminal_chain (va : vb);
+terminal_chain (Rule v Empty : rs) = terminal_chain rs;
+terminal_chain (Rule vc Accept : v : vb) = terminal_chain (v : vb);
 
 simple_ruleset :: forall a. [Rule a] -> Bool;
 simple_ruleset rs =
@@ -3306,6 +3276,51 @@ repeat_stabilize n uu v =
            v_new = uu v;
          } in (if v == v_new then v
                 else repeat_stabilize (minus_nat n one_nat) uu v_new));
+
+rewrite_Goto_chain_safe ::
+  forall a. ([Prelude.Char] -> Maybe [Rule a]) -> [Rule a] -> Maybe [Rule a];
+rewrite_Goto_chain_safe uu [] = Just [];
+rewrite_Goto_chain_safe gamma (Rule m (Goto chain) : rs) =
+  (case gamma chain of {
+    Nothing -> Nothing;
+    Just rsa ->
+      (if not (terminal_chain rsa) then Nothing
+        else map_option (\ a -> Rule m (Call chain) : a)
+               (rewrite_Goto_chain_safe gamma rs));
+  });
+rewrite_Goto_chain_safe gamma (Rule v Accept : rs) =
+  map_option (\ a -> Rule v Accept : a) (rewrite_Goto_chain_safe gamma rs);
+rewrite_Goto_chain_safe gamma (Rule v Drop : rs) =
+  map_option (\ a -> Rule v Drop : a) (rewrite_Goto_chain_safe gamma rs);
+rewrite_Goto_chain_safe gamma (Rule v Log : rs) =
+  map_option (\ a -> Rule v Log : a) (rewrite_Goto_chain_safe gamma rs);
+rewrite_Goto_chain_safe gamma (Rule v Reject : rs) =
+  map_option (\ a -> Rule v Reject : a) (rewrite_Goto_chain_safe gamma rs);
+rewrite_Goto_chain_safe gamma (Rule v (Call vb) : rs) =
+  map_option (\ a -> Rule v (Call vb) : a) (rewrite_Goto_chain_safe gamma rs);
+rewrite_Goto_chain_safe gamma (Rule v Return : rs) =
+  map_option (\ a -> Rule v Return : a) (rewrite_Goto_chain_safe gamma rs);
+rewrite_Goto_chain_safe gamma (Rule v Empty : rs) =
+  map_option (\ a -> Rule v Empty : a) (rewrite_Goto_chain_safe gamma rs);
+rewrite_Goto_chain_safe gamma (Rule v Unknown : rs) =
+  map_option (\ a -> Rule v Unknown : a) (rewrite_Goto_chain_safe gamma rs);
+
+rewrite_Goto_safe_internal ::
+  forall a.
+    [([Prelude.Char], [Rule a])] ->
+      [([Prelude.Char], [Rule a])] -> Maybe [([Prelude.Char], [Rule a])];
+rewrite_Goto_safe_internal uu [] = Just [];
+rewrite_Goto_safe_internal gamma ((chain_name, rs) : cs) =
+  (case rewrite_Goto_chain_safe (map_of gamma) rs of {
+    Nothing -> Nothing;
+    Just rsa ->
+      map_option (\ a -> (chain_name, rsa) : a)
+        (rewrite_Goto_safe_internal gamma cs);
+  });
+
+rewrite_Goto_safe ::
+  forall a. [([Prelude.Char], [Rule a])] -> Maybe [([Prelude.Char], [Rule a])];
+rewrite_Goto_safe cs = rewrite_Goto_safe_internal cs cs;
 
 process_ret :: forall a. [Rule a] -> [Rule a];
 process_ret [] = [];
