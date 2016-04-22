@@ -5,5 +5,6 @@ set -x
 cd haskell_tool
 cabal install --only-dependencies --enable-tests --enable-benchmarks
 cabal configure --enable-tests --enable-benchmarks -v2
+./check_theorems_doc.sh
 cabal build
 cabal test
