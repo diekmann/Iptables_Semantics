@@ -17,10 +17,11 @@ execFffuu name argv goldenFile = Golden.goldenVsStringDiff fancyName diffCmd gol
     return $ B.pack outp
     where diffCmd = \ref new -> ["/usr/bin/diff", "-u", ref, new]
           fffuuBin = "./dist/build/fffuu/fffuu"
-          fancyName = name ++ ": " ++ fffuuBin ++ " " ++ intercalate " " argv
+          fancyName = name ++ ": `" ++ fffuuBin ++ " " ++ (intercalate " " argv) ++ "`"
 
-test_fffuu_help = execFffuu "help" ["--help"] "test/Suites/GoldenFiles/help"
 
 tests = testGroup "fffuu compiled binary output" $
-  [ test_fffuu_help
+  [ execFffuu "help" ["--help"] "test/Suites/GoldenFiles/help"
+  , execFffuu "help" ["../thy/Examples/Parser_Test/data/iptables-save"] "test/Suites/GoldenFiles/parser_test"
+  , execFffuu "help" ["--ipassmt", "ipassmt_tumi8", "../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating"] "test/Suites/GoldenFiles/i8_iptables-save-2015-05-15_15-23-41_cheating"
   ]

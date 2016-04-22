@@ -89,7 +89,7 @@ Try this:
 This example file is a nonsense config we use to stress the parser.
 
 Example: 
-[Input](../thy/Examples/Parser_Test/data/iptables-save) / [Output (pastebin)](http://pastebin.com/3wrF8mgN)
+[Input](../thy/Examples/Parser_Test/data/iptables-save) / [Output](test/Suites/GoldenFiles/parser_test)
 
 ---------------------------------------
 
@@ -100,7 +100,7 @@ Try this:
 ./dist/build/fffuu/fffuu --ipassmt ipassmt_tumi8 ../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating
 ```
 
-This will generate lots of output.
+This will generate lots of [output](test/Suites/GoldenFiles/i8_iptables-save-2015-05-15_15-23-41_cheating).
 
 If you visualize the service matrix for ssh with your favorite graph visualization tool, you will see something similar to [this (png on imgur)](http://imgur.com/cKPOyAQ). `fffuu` gives you the minimal graph representation. Yes, the access matrix is really that complicated. This is the intrinsic complexity of this firewall, just check the 5k rules by hand ;-)
 
