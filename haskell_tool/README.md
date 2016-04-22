@@ -34,12 +34,14 @@ $ ./dist/build/fffuu/fffuu --help
 ```
 FFFUU -- Fancy Formal Firewall Universal Understander
 
-Usage: fffuu [--ipassmt STRING] [--table STRING] [--chain STRING]
+Usage: fffuu [--verbose] [--ipassmt STRING] [--table STRING] [--chain STRING]
              [--service_matrix_sport INTEGER] [--service_matrix_dport INTEGER]
              STRING
 
 Available options:
   -h,--help                Show this help text
+  --verbose                Show verbose debug output (for example, of the
+                           parser).
   --ipassmt STRING         Optional path to an IP assignment file. If not
                            specified, it only loads `lo = [127.0.0.0/8]`.
   --table STRING           The table to load for analysis. Default: `filter`.
@@ -84,7 +86,7 @@ lo = [127.0.0.0/8]
 Try this:
 
 ```
-./dist/build/fffuu/fffuu ../thy/Examples/Parser_Test/data/iptables-save
+./dist/build/fffuu/fffuu ../thy/Examples/Parser_Test/data/iptables-save --verbose
 ```
 This example file is a nonsense config we use to stress the parser.
 
@@ -118,7 +120,7 @@ Try this:
 ./dist/build/fffuu/fffuu --table raw --chain PREROUTING --ipassmt ipassmt_sqrl ../thy/Examples/SQRL_Shorewall/2015_aug_iptables-save-spoofing-protection
 ```
 
-[Output](test/Suites/GoldenFiles/sqrl_2015_aug_iptables-save-spoofing-protection)
+[Output](test/Suites/GoldenFiles/sqrl_2015_aug_iptables-save-spoofing-protection) (featuring the `--verbose` flag)
 
 ### Longer Example
 We will analyze the ruleset of a NAS. 
@@ -170,7 +172,7 @@ We run the following:
 ./dist/build/fffuu/fffuu --chain INPUT --service_matrix_dport 22 --service_matrix_dport 8080 --service_matrix_dport 80 ../thy/Examples/Synology_Diskstation_DS414/iptables-save_jun_2015_cleanup
 ```
 
-[Output](test/Suites/GoldenFiles/synology_iptables-save_jun_2015_cleanup)
+[Output](test/Suites/GoldenFiles/synology_iptables-save_jun_2015_cleanup) (featuring the `--verbose` flag)
 
 
 We did not specify an `ipassmt`.

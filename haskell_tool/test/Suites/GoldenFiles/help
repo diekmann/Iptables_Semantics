@@ -8,12 +8,14 @@ Overapproximation means: if the anaylsis concludes that the packets you want to
 be dropped are dropped in the loaded overapproximation, then they are also
 dropped for your real firewall (without approximation).
 
-Usage: fffuu [--ipassmt STRING] [--table STRING] [--chain STRING]
+Usage: fffuu [--verbose] [--ipassmt STRING] [--table STRING] [--chain STRING]
              [--service_matrix_sport INTEGER] [--service_matrix_dport INTEGER]
              STRING
 
 Available options:
   -h,--help                Show this help text
+  --verbose                Show verbose debug output (for example, of the
+                           parser).
   --ipassmt STRING         Optional path to an IP assignment file. If not
                            specified, it only loads `lo = [127.0.0.0/8]`.
   --table STRING           The table to load for analysis. Default: `filter`.
