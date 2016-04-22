@@ -118,6 +118,8 @@ Try this:
 ./dist/build/fffuu/fffuu --table raw --chain PREROUTING --ipassmt ipassmt_sqrl ../thy/Examples/SQRL_Shorewall/2015_aug_iptables-save-spoofing-protection
 ```
 
+[Output](test/Suites/GoldenFiles/sqrl_2015_aug_iptables-save-spoofing-protection)
+
 ### Longer Example
 We will analyze the ruleset of a NAS. 
 The NAS runs a host-based firewall, so we are interested in the `INPUT` chain. 
@@ -167,6 +169,9 @@ We run the following:
 ```
 ./dist/build/fffuu/fffuu --chain INPUT --service_matrix_dport 22 --service_matrix_dport 8080 --service_matrix_dport 80 ../thy/Examples/Synology_Diskstation_DS414/iptables-save_jun_2015_cleanup
 ```
+
+[Output](test/Suites/GoldenFiles/synology_iptables-save_jun_2015_cleanup)
+
 
 We did not specify an `ipassmt`.
 The tool tells us: 

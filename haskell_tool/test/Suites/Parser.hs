@@ -397,7 +397,7 @@ test_i8_2015_service_matrix = HU.testCase "test_i8_2015_service_matrix" $ test_s
                             , ("131.159.15.54","127.0.0.0")
                             ])
 
-tests = testGroup "Parser" $
+tests = testGroup "Parser and Analysis Unit tests" $
   [ test_parser_test_data
   , test_spoofing_SQRL
   , test_spoofing_TUM_Net1
