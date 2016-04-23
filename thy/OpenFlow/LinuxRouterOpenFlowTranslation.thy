@@ -54,27 +54,6 @@ lemma prepend_singleton: "[a] @ b = a # b" by simp
 lemma simple_fw_prepend_nonmatching: "\<forall>r \<in> set rs. \<not>simple_matches (match_sel r) p \<Longrightarrow> simple_fw_alt (rs @ rss) p = simple_fw_alt rss p"
 	by(induction rs) simp_all
 
-(*lemma
-	assumes "(op = p) \<circ> p_oiface_update (const i) \<circ> p_dst_update (const a) $ p'"
-	assumes "valid_prefix pfx"
-	assumes "prefix_match_semantics pfx a"
-	assumes "Port i \<in> set ifs"
-	shows "\<exists>r \<in> set (route2match \<lparr>routing_match = pfx, routing_action = ifs\<rparr>). simple_matches r p"
-apply(simp add: simple_matches.simps assms(1)[unfolded comp_def fun_app_def] const_def route2match_def 
-	match_ifaceAny ipv4range_set_from_bitmask_UNIV match_iface_refl iffD1[OF prefix_match_if_in_corny_set2, OF assms(2,3)])
-apply(force intro: match_iface_eqI assms(4))
-(* apply(rule bexI[OF _ assms(4)], simp add: match_iface_refl) *)
-done
-
-lemma
-	assumes "(op = p) \<circ> p_oiface_update (const i) \<circ> p_dst_update (const a) $ p'"
-	assumes "valid_prefix pfx"
-	assumes "m \<in> set (route2match \<lparr>routing_match = pfx, routing_action = ifs\<rparr>)"
-	assumes "simple_matches m p"
-	assumes "Port i \<in> set ifs"
-	shows "prefix_match_semantics pfx a"
-oops*)
-
 definition toprefixmatch where
 "toprefixmatch m \<equiv> (let pm = PrefixMatch (fst m) (snd m) in if pm = PrefixMatch 0 0 then None else Some pm)"
 lemma prefix_match_semantics_simple_match: 
@@ -255,21 +234,19 @@ proof -
 		note u = mm[unfolded simple_matches.simps mfu ord_class.atLeastAtMost_iff simple_packet_unext_def simple_packet.simps]
 		note of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs]
 		from u have ple: "fst (sports r) \<le> snd (sports r)" "fst (dports r) \<le> snd (dports r)" by force+
-		have sdpe: "(p_sport p) \<in> set (word_upto (fst (sports r)) (snd (sports r)))" "(p_dport p) \<in> set (word_upto (fst (dports r)) (snd (dports r)))" 
-			unfolding word_upto_set_eq[OF ple(1)] word_upto_set_eq[OF ple(2)] using u by simp_all 
 		show eg: "?foo \<in> set (simple_match_to_of_match r ifs)"
 			unfolding simple_match_to_of_match_def
 			unfolding custom_simpset
 			unfolding smtoms_eq_hlp
 			proof(rule, rule, rule, rule, rule refl, rule, defer_tac, rule, rule refl, rule refl, goal_cases)
-				case 1 thus ?case using ple(2) sdpe(2) di
+				case 1 thus ?case using ple(2) di
 					apply(simp add: pfxm_mask_def prefix_match_dtor_def split: option.splits prod.splits)
 					apply(subst Set.image_iff)
 					apply(erule bexI[rotated])
 					apply(simp split: prefix_match.splits)
 				done
 			next
-				case 2 thus ?case using ple(1) sdpe(1) si
+				case 2 thus ?case using ple(1) si
 					apply(simp add: pfxm_mask_def prefix_match_dtor_def split: option.splits prod.splits)
 					apply(subst Set.image_iff)
 					apply(erule bexI[rotated])
@@ -465,13 +442,13 @@ find_consts "('a \<Rightarrow> 'b \<Rightarrow> 'c) \<Rightarrow> ('a \<times> '
 definition "split3 f p \<equiv> case p of (a,b,c) \<Rightarrow> f a b c"
 find_consts "('a \<Rightarrow> 'b \<Rightarrow> 'c \<Rightarrow> 'd) \<Rightarrow> ('a \<times> 'b \<times> 'c) \<Rightarrow> 'd"
 
-find_theorems "word_of_nat"
+find_theorems "of_nat"
 find_consts "nat \<Rightarrow> 'a word"
 
-lemma suc2plus_inj_on: "inj_on (word_of_nat :: nat \<Rightarrow> ('l :: len) word) {0..unat (max_word :: 'l word)}"
+lemma suc2plus_inj_on: "inj_on (of_nat :: nat \<Rightarrow> ('l :: len) word) {0..unat (max_word :: 'l word)}"
 proof(rule inj_onI)
 	let ?mmw = "(max_word :: 'l word)"
-	let ?mstp = "(word_of_nat :: nat \<Rightarrow> 'l word)"
+	let ?mstp = "(of_nat :: nat \<Rightarrow> 'l word)"
 	fix x y :: nat
 	assume "x \<in> {0..unat ?mmw}" "y \<in> {0..unat ?mmw}"
 	hence se: "x \<le> unat ?mmw" "y \<le> unat ?mmw" by simp_all
@@ -485,11 +462,11 @@ proof(rule inj_onI)
 	show "x = y" using eq le_unat_uoi se by metis
 qed
 
-lemma distinct_word_of_nat_list: (* TODO: Move to CaesarWordLemmaBucket *)
-	"distinct l \<Longrightarrow> \<forall>e \<in> set l. e \<le> unat (max_word :: ('l::len) word) \<Longrightarrow> distinct (map (word_of_nat :: nat \<Rightarrow> 'l word) l)"
+lemma distinct_of_nat_list: (* TODO: Move to CaesarWordLemmaBucket *)
+	"distinct l \<Longrightarrow> \<forall>e \<in> set l. e \<le> unat (max_word :: ('l::len) word) \<Longrightarrow> distinct (map (of_nat :: nat \<Rightarrow> 'l word) l)"
 proof(induction l)
 	let ?mmw = "(max_word :: 'l word)"
-	let ?mstp = "(word_of_nat :: nat \<Rightarrow> 'l word)"
+	let ?mstp = "(of_nat :: nat \<Rightarrow> 'l word)"
 	case (Cons a as)
 	have "distinct as" "\<forall>e\<in>set as. e \<le> unat ?mmw" using Cons.prems by simp_all 
 	note mIH = Cons.IH[OF this]
@@ -508,19 +485,19 @@ qed simp
 lemma annotate_first_le_hlp:
 	"length l < unat (max_word :: ('l :: len) word) \<Longrightarrow> \<forall>e\<in>set (map fst (annotate_rlen l)). e \<le> unat (max_word :: 'l word)"
 	by(clarsimp) (meson fst_annotate_rlen_le less_trans nat_less_le)
-lemmas distinct_of_prio_hlp = distinct_word_of_nat_list[OF distinct_fst_annotate_rlen annotate_first_le_hlp]
+lemmas distinct_of_prio_hlp = distinct_of_nat_list[OF distinct_fst_annotate_rlen annotate_first_le_hlp]
 (* don't need these right now, but maybe later? *)
 lemma distinct_fst_won_list_unused:
 	"distinct (map fst l) \<Longrightarrow> 
 	\<forall>e \<in> set l. fst e \<le> unat (max_word :: ('l::len) word) \<Longrightarrow> 
-	distinct (map (apfst (word_of_nat :: nat \<Rightarrow> 'l word)) l)"
-proof -
+	distinct (map (apfst (of_nat :: nat \<Rightarrow> 'l word)) l)"
+proof(goal_cases)
 	let ?mw = "(max_word :: 'l word)"
-	let ?won = "(word_of_nat :: nat \<Rightarrow> 'l word)"
-	case goal1
+	let ?won = "(of_nat :: nat \<Rightarrow> 'l word)"
+	case 1
 	obtain fl where fl: "fl = map fst l" by simp
-	with goal1 have "distinct fl" "\<forall>e \<in> set fl. e \<le> unat ?mw" by simp_all
-	note distinct_word_of_nat_list[OF this, unfolded fl]
+	with 1 have "distinct fl" "\<forall>e \<in> set fl. e \<le> unat ?mw" by simp_all
+	note distinct_of_nat_list[OF this, unfolded fl]
 	hence "distinct (map fst (map (apfst ?won) l))" by simp
 	thus ?case by (metis distinct_zipI1 zip_map_fst_snd)
 qed
@@ -532,16 +509,24 @@ lemma annotate_first_le_hlp_unused:
 lemma fst_annotate_rlen: "map fst (annotate_rlen l) = rev [0..<length l]"
 by(induction l) (simp_all)
 
+lemma sorted_word_upt:
+  defines[simp]: "won \<equiv> (of_nat :: nat \<Rightarrow> ('l :: len) word)"
+  assumes "length l \<le> unat (max_word :: 'l word)"
+  shows "sorted_descending (map won (rev [0..<Suc (length l)]))" 
+using assms
+  apply(induction l rule: rev_induct;clarsimp)
+  apply(metis (mono_tags, hide_lams) le_SucI le_unat_uoi of_nat_Suc order_refl word_le_nat_alt)
+  (* This proof is kind of ugly. In case it breaks unfixably, go back to rev a9c4927 and get word_upto.
+     The lemmas on word_upto can be used to shows this trivially. *)
+done
+
 lemma sorted_annotated:
 	assumes "length l \<le> unat (max_word :: ('l :: len) word)"
-	shows "sorted_descending (map fst (map (apfst (word_of_nat :: nat \<Rightarrow> 'l word)) (annotate_rlen l)))"
+	shows "sorted_descending (map fst (map (apfst (of_nat :: nat \<Rightarrow> 'l word)) (annotate_rlen l)))"
 proof -
-	let ?won = "(word_of_nat :: nat \<Rightarrow> 'l word)"
-	have zero_subst: "?won 0 = (0 :: 'l word)" by simp
-	have "sorted_descending (rev (word_upto 0 (?won (length l))))" 
-		unfolding sorted_descending by(rule sorted_word_upto) simp
-	hence "sorted_descending (map ?won (rev [0..<Suc (length l)]))" 
-		unfolding word_upto_eq_upto[OF le0 assms, unfolded zero_subst] rev_map .
+	let ?won = "(of_nat :: nat \<Rightarrow> 'l word)"
+	have "sorted_descending (map ?won (rev [0..<Suc (length l)]))" 
+		using sorted_word_upt[OF assms] .
 	hence "sorted_descending (map ?won (map fst (annotate_rlen l)))" by(simp add: fst_annotate_rlen)
 	thus "sorted_descending (map fst (map (apfst ?won) (annotate_rlen l)))" by simp
 qed
@@ -577,7 +562,7 @@ definition "pack_OF_entries ifs ard \<equiv> (map (split3 OFEntry) $ lr_of_tran_
 
 definition "lr_of_tran rt fw ifs \<equiv> let
 	nrd = lr_of_tran_fbs rt fw ifs;
-	ard = map (apfst word_of_nat) (annotate_rlen nrd) (* give them a priority *)
+	ard = map (apfst of_nat) (annotate_rlen nrd) (* give them a priority *)
 	in
 	if length nrd < unat (max_word :: 16 word)
 	then Inr $ pack_OF_entries ifs ard
@@ -808,7 +793,7 @@ apply(clarsimp)
 apply(induction ifs)
 apply(simp;fail)
 apply(simp;fail)
-apply(simp_all add: distinct_word_upto smtoms_eq_hlp)
+apply(simp_all add: smtoms_eq_hlp)
 apply(unfold distinct_map)
 apply(clarify)
 apply(intro conjI wordinterval_CIDR_split_internal_distinct)
@@ -1931,7 +1916,7 @@ lemma in_fw_join_set: "(a, b1, b2) \<in> set (generalized_fw_join f1 f2) \<Longr
 unfolding generalized_fw_join_def by(clarsimp simp: option2set_def split: option.splits) blast
 
 lemma no_oif_match_fbs:
- "no_oif_match fw \<Longrightarrow> list_all (\<lambda>m. oiface (fst (snd m)) = ifaceAny) (map (apfst word_of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs)))"
+ "no_oif_match fw \<Longrightarrow> list_all (\<lambda>m. oiface (fst (snd m)) = ifaceAny) (map (apfst of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs)))"
 proof(goal_cases)
   case 1
   have c: "\<And>mr ar mf af f a. \<lbrakk>(mr, ar) \<in> set (lr_of_tran_s1 rt); (mf, af) \<in> simple_rule_dtor ` set fw; simple_match_and mr mf = Some a\<rbrakk> \<Longrightarrow> oiface a = ifaceAny"
@@ -1984,7 +1969,7 @@ proof -
   done
   have lin: "OF_priority_match OF_match_fields_safe oft = OF_match_linear OF_match_fields_safe oft"
     using OF_eq[OF lr_of_tran_no_overlaps lr_of_tran_sorted_descending, OF ifl nerr[symmetric] nerr[symmetric]] unfolding fun_eq_iff unsafe_safe_eq by metis
-  let ?ard = "map (apfst word_of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs))"
+  let ?ard = "map (apfst of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs))"
   have oft_def: "oft = pack_OF_entries ifs ?ard" using nerr unfolding lr_of_tran_def Let_def by(simp split: if_splits)
   have vld: "list_all simple_match_valid $ map (fst \<circ> snd) ?ard" 
     unfolding fun_app_def map_map[symmetric] snd_apfst map_snd_apfst map_snd_annotate_rlen using simple_match_valid_fbs[OF s1(1) s2(2)] .
@@ -1995,7 +1980,7 @@ proof -
   proof(intro conjI, goal_cases)
     case (1 oif)
     note s3_correct[OF vld ippkt ifvld(1) *, THEN iffD1, unfolded oft_def[symmetric], OF 1]
-    hence "\<exists>r. generalized_sfw (map snd (map (apfst word_of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs)))) p = Some (r, (oif, simple_action.Accept))"
+    hence "\<exists>r. generalized_sfw (map snd (map (apfst of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs)))) p = Some (r, (oif, simple_action.Accept))"
       by(clarsimp split: if_splits)
     then obtain r where "generalized_sfw (lr_of_tran_fbs rt fw ifs) p = Some (r, (oif, simple_action.Accept))" 
       unfolding map_map comp_def snd_apfst map_snd_annotate_rlen by blast
@@ -2007,7 +1992,7 @@ proof -
   proof(goal_cases)
     case (1 oif)
     note lr_of_tran_fbs_acceptI[OF s1 s2(3) s2(1) this, of ifs] then guess r .. note r = this
-    hence "generalized_sfw (map snd (map (apfst word_of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs)))) p = Some (r, (oif, simple_action.Accept))" 
+    hence "generalized_sfw (map snd (map (apfst of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs)))) p = Some (r, (oif, simple_action.Accept))" 
     unfolding map_snd_apfst map_snd_annotate_rlen .
     moreover note s3_correct[OF vld ippkt ifvld(1) *, THEN iffD2, unfolded oft_def[symmetric], of "[Forward oif]"]
     ultimately show ?case by simp
@@ -2027,7 +2012,7 @@ proof -
     case 2 
     note lr_of_tran_fbs_dropI[OF s1 s2(3) s2(1) this, of ifs] then 
     obtain r oif where "generalized_sfw (lr_of_tran_fbs rt fw ifs) p = Some (r, oif, simple_action.Drop)" by blast
-    hence "generalized_sfw (map snd (map (apfst word_of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs)))) p = Some (r, oif, simple_action.Drop)" 
+    hence "generalized_sfw (map snd (map (apfst of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs)))) p = Some (r, oif, simple_action.Drop)" 
       unfolding map_snd_apfst map_snd_annotate_rlen .
     moreover note s3_correct[OF vld ippkt ifvld(1) *, THEN iffD2, unfolded oft_def[symmetric], of "[]"]
     ultimately show ?case by force
