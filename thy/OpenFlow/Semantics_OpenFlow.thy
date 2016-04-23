@@ -116,10 +116,11 @@ lemma OF_match_linear_ne_Undefined: "OF_match_linear \<gamma> ft p \<noteq> Unde
 
 lemma OF_match_linear_append: "OF_match_linear \<gamma> (a @ b) p = (case OF_match_linear \<gamma> a p of NoAction \<Rightarrow> OF_match_linear \<gamma> b p | x \<Rightarrow> x)"
 by(induction a) simp_all
-
 lemma OF_match_linear_match_allsameaction: "\<lbrakk>gr \<in> set oms; \<gamma> gr p = True\<rbrakk>
        \<Longrightarrow> OF_match_linear \<gamma> (map (\<lambda>x. split3 OFEntry (pri, x, act)) oms) p = Action act"
 by(induction oms) (auto simp add: split3_def)
+lemma OF_lm_noa_none_iff: "OF_match_linear \<gamma> ft p = NoAction \<longleftrightarrow> (\<forall>e\<in>set ft. \<not> \<gamma> (ofe_fields e) p)"
+	by(induction ft) (simp_all split: if_splits)
 
 lemma set_eq_rule: "(\<And>x. x \<in> a \<Longrightarrow> x \<in> b) \<Longrightarrow> (\<And>x. x \<in> b \<Longrightarrow> x \<in> a) \<Longrightarrow> a = b" by(rule antisym[OF subsetI subsetI])
 

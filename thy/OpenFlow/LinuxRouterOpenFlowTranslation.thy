@@ -425,42 +425,6 @@ lemma annotate_rlen_code[code]: "annotate_rlen s = snd (annotate_rlen_code s)"
 	apply(metis annotate_rlen_len fst_conv)
 done
 
-lemma suc2plus_inj_on: "inj_on (of_nat :: nat \<Rightarrow> ('l :: len) word) {0..unat (max_word :: 'l word)}"
-proof(rule inj_onI)
-	let ?mmw = "(max_word :: 'l word)"
-	let ?mstp = "(of_nat :: nat \<Rightarrow> 'l word)"
-	fix x y :: nat
-	assume "x \<in> {0..unat ?mmw}" "y \<in> {0..unat ?mmw}"
-	hence se: "x \<le> unat ?mmw" "y \<le> unat ?mmw" by simp_all
-	assume eq: "?mstp x = ?mstp y"
-	note f = le_unat_uoi[OF se(1)] le_unat_uoi[OF se(2)]
-	(*show "x = y"
-	apply(subst f(1)[symmetric])
-	apply(subst f(2)[symmetric])
-	apply(subst word_unat.Rep_inject)
-	using eq .*)
-	show "x = y" using eq le_unat_uoi se by metis
-qed
-
-lemma distinct_of_nat_list: (* TODO: Move to CaesarWordLemmaBucket *)
-	"distinct l \<Longrightarrow> \<forall>e \<in> set l. e \<le> unat (max_word :: ('l::len) word) \<Longrightarrow> distinct (map (of_nat :: nat \<Rightarrow> 'l word) l)"
-proof(induction l)
-	let ?mmw = "(max_word :: 'l word)"
-	let ?mstp = "(of_nat :: nat \<Rightarrow> 'l word)"
-	case (Cons a as)
-	have "distinct as" "\<forall>e\<in>set as. e \<le> unat ?mmw" using Cons.prems by simp_all 
-	note mIH = Cons.IH[OF this]
-	moreover have "?mstp a \<notin> ?mstp ` set as"
-	proof 
-		have representable_set: "set as \<subseteq> {0..unat ?mmw}" using `\<forall>e\<in>set (a # as). e \<le> unat max_word` by fastforce
-		have a_reprbl: "a \<in> {0..unat ?mmw}" using `\<forall>e\<in>set (a # as). e \<le> unat max_word` by simp
-		assume "?mstp a \<in> ?mstp ` set as"
-		with inj_on_image_mem_iff[OF suc2plus_inj_on a_reprbl representable_set]
-		have "a \<in> set as" by simp
-		with `distinct (a # as)` show False by simp
-	qed
-	ultimately show ?case by simp
-qed simp
 
 lemma annotate_first_le_hlp:
 	"length l < unat (max_word :: ('l :: len) word) \<Longrightarrow> \<forall>e\<in>set (map fst (annotate_rlen l)). e \<le> unat (max_word :: 'l word)"
@@ -528,8 +492,6 @@ definition "oif_ne_iif ifs = oif_ne_iif_p2 ifs @ oif_ne_iif_p1 ifs" (* order irr
 definition "lr_of_tran_s4 ard ifs \<equiv> generalized_fw_join ard (oif_ne_iif ifs)"
 
 definition "lr_of_tran_s1 rt = [(route2match r, output_iface (routing_action r)). r \<leftarrow> rt]"
-definition "lr_of_tran_s2 mrt fw = generalized_fw_join mrt (map simple_rule_dtor fw)" (*TODO: delete*)
-definition "lr_of_tran_nullifyoif = map (apfst (oiface_update (const ifaceAny)))"
 
 definition "lr_of_tran_fbs rt fw ifs \<equiv> let
 	gfw = map simple_rule_dtor fw; (* generalized simple fw, hopefully for FORWARD *)
@@ -548,17 +510,6 @@ definition "lr_of_tran rt fw ifs \<equiv> let
 	then Inr $ pack_OF_entries ifs ard
 	else Inl $ ''Error in creating OpenFlow table: priority number space exhausted''
 "
-
-lemma lr_of_tran_nullifyoif_alt: "lr_of_tran_nullifyoif frd = [(m\<lparr>oiface := ifaceAny\<rparr>,d). (m,d) \<leftarrow> frd]"
-proof -
-	have h: "(\<lambda>(m, a). [((m\<lparr>oiface := ifaceAny\<rparr>), a)]) = (\<lambda>t. [(case t of (m,a) \<Rightarrow> (m\<lparr>oiface := ifaceAny\<rparr>, a))])"
-		unfolding prod.case_distrib by fast
-	show ?thesis
-		unfolding lr_of_tran_nullifyoif_def apfst_def const_def map_prod_def
-		unfolding h
-		unfolding concat_map_singleton
-		by(clarsimp split: simple_rule.splits)
-qed
 
 lemma ipv4cidr_conjunct_any: "ipv4cidr_conjunct (0, 0) (0, 0) \<noteq> None" by(eval)
 
@@ -643,86 +594,6 @@ lemma oif_ne_iif_correct: "is_iface_list ifs \<Longrightarrow> (\<exists>r. gene
 	 using oif_ne_iif_p2_correct apply blast
 	apply(frule oif_ne_iif_p12_snd)
 	using oif_ne_iif_p2_correct apply blast
-done
-
-lemma map_injective_eq: "map f xs = map g ys \<Longrightarrow> (\<And>e. f e = g e) \<Longrightarrow> inj f \<Longrightarrow> xs = ys"
-	apply(rule map_injective, defer_tac)
-	 apply(simp)+
-done
-
-lemma list_at_eqD: "aa @ ab = ba @ bb \<Longrightarrow> length aa = length ba \<Longrightarrow> length ab = length bb \<Longrightarrow> aa = ba \<and> ab = bb"
-by simp
-
-lemma list_induct_2simul:
-	"P [] [] \<Longrightarrow> (\<And>a as bs. P as bs \<Longrightarrow> P (a # as) bs) \<Longrightarrow> (\<And>b as bs. P as bs \<Longrightarrow> P as (b # bs)) \<Longrightarrow> P x y"
-	apply(induction x)
-	 apply(metis list_nonempty_induct)
-	apply(induction y)
-	 apply(simp)
-	apply(simp)
-done
-lemma list_induct_3simul:
-	"P [] [] [] \<Longrightarrow> 
-	(\<And>e a b c. P a b c \<Longrightarrow> P (e # a) b c) \<Longrightarrow>
-	(\<And>e a b c. P a b c \<Longrightarrow> P a (e # b) c) \<Longrightarrow>
-	(\<And>e a b c. P a b c \<Longrightarrow> P a b (e # c)) \<Longrightarrow>
-	P x y z"
-	apply(induction x)
-	 apply(induction y)
-	  apply(induction z)
-	    apply(simp_all)
-done
-lemma list_induct_4simul:
-	"P [] [] [] [] \<Longrightarrow> 
-	(\<And>e a b c d. P a b c d \<Longrightarrow> P (e # a) b c d) \<Longrightarrow>
-	(\<And>e a b c d. P a b c d \<Longrightarrow> P a (e # b) c d) \<Longrightarrow>
-	(\<And>e a b c d. P a b c d \<Longrightarrow> P a b (e # c) d) \<Longrightarrow>
-	(\<And>e a b c d. P a b c d \<Longrightarrow> P a b c (e # d)) \<Longrightarrow>
-	P x y z w"
-	apply(induction x)
-	 apply(induction y)
-	  apply(induction z)
-	   apply(induction w)
-	    apply(simp_all)
-done
-
-lemma "distinct (e # a) = distinct (f (e # a))"
-oops
-
-lemma distinct_2lcomprI: "distinct as \<Longrightarrow> distinct bs \<Longrightarrow>
-	(\<And>a b e i. f a b = f e i \<Longrightarrow> a = e \<and> b = i) \<Longrightarrow>
-	distinct [f a b. a \<leftarrow> as, b \<leftarrow> bs]"
-apply(induction as)
-apply(simp;fail)
-apply(clarsimp simp only: distinct.simps simp_thms list.map concat.simps map_append distinct_append)
-apply(rule)
-defer
-apply fastforce
-apply(clarify;fail | subst distinct_map, rule)+
-apply(rule inj_onI)
-apply(simp)
-done
-
-lemma distinct_3lcomprI: "distinct as \<Longrightarrow> distinct bs \<Longrightarrow> distinct cs \<Longrightarrow>
-	(\<And>a b c e i g. f a b c = f e i g \<Longrightarrow> a = e \<and> b = i \<and> c = g) \<Longrightarrow>
-	distinct [f a b c. a \<leftarrow> as, b \<leftarrow> bs, c \<leftarrow> cs]"
-apply(induction as)
-apply(simp;fail)
-apply(clarsimp simp only: distinct.simps simp_thms list.map concat.simps map_append distinct_append)
-apply(rule)
-apply(rule distinct_2lcomprI; simp_all; fail)
-apply fastforce
-done
-
-lemma distinct_4lcomprI: "distinct as \<Longrightarrow> distinct bs \<Longrightarrow> distinct cs \<Longrightarrow> distinct ds \<Longrightarrow>
-	(\<And>a b c d e i g h. f a b c d = f e i g h \<Longrightarrow> a = e \<and> b = i \<and> c = g \<and> d = h) \<Longrightarrow>
-	distinct [f a b c d. a \<leftarrow> as, b \<leftarrow> bs, c \<leftarrow> cs, d \<leftarrow> ds]"
-apply(induction as)
-apply(simp;fail)
-apply(clarsimp simp only: distinct.simps simp_thms list.map concat.simps map_append distinct_append)
-apply(rule)
-apply(rule distinct_3lcomprI; simp_all; fail)
-apply fastforce
 done
 
 
@@ -981,15 +852,6 @@ lemma lr_of_tran_s1_split: "lr_of_tran_s1 (a # rt) = (route2match a, output_ifac
 	by(unfold lr_of_tran_s1_def list.map, rule)
 lemma lr_of_tran_s1_append: "lr_of_tran_s1 (a @ rt) = lr_of_tran_s1 a @ lr_of_tran_s1 rt"
 	by(induction a) (simp_all add: lr_of_tran_s1_split lr_of_tran_s1_def)
-lemma lr_of_tran_s2_split: "lr_of_tran_s2 (a # rt) fw = generalized_fw_join [a] (map simple_rule_dtor fw) @ lr_of_tran_s2 rt fw"
-	unfolding lr_of_tran_s2_def generalized_fw_join_def by simp
-lemma lr_of_tran_s2_split_append: "lr_of_tran_s2 (a @ rt) fw = lr_of_tran_s2 a fw @ lr_of_tran_s2 rt fw"
-	apply(induction a)
-	 apply(simp add: lr_of_tran_s2_def)
-	apply(simp add: lr_of_tran_s2_split)
-done
-
-term "p\<lparr>p_oiface := output_iface (routing_table_semantics rt (p_dst p))\<rparr>"
 
 lemma route2match_correct: "valid_prefix (routing_match a) \<Longrightarrow> prefix_match_semantics (routing_match a) (p_dst p) \<longleftrightarrow> simple_matches (route2match a) (p)"
 by(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_refl ipv4range_set_from_prefix_UNIV prefix_match_if_in_corny_set2)
@@ -1033,9 +895,6 @@ done
 
 lemma simple_fw_undecided: "simple_fw fw p = Undecided \<longleftrightarrow> (\<forall>r \<in> set fw. \<not>simple_matches (match_sel r) p)"
 by(induction rule: simple_fw.induct) (simp_all split: if_splits)
-
-lemma s1_none_s2: "generalized_sfw rt p = None \<Longrightarrow> generalized_sfw ((lr_of_tran_s2 rt fw)) p = None"
-unfolding lr_of_tran_s2_def by(rule generalized_sfw_1_join_None)
 
 lemma findNoneI: "\<forall>x. x \<in> set l \<longrightarrow> \<not>f x \<Longrightarrow> find f l = None"
 by (metis findSomeD not_None_eq)
@@ -1142,9 +1001,6 @@ proof -
 qed
 
 lemma OF_lm_noa_none2: "\<forall>e\<in>set ft. \<not> \<gamma> (ofe_fields e) p \<Longrightarrow> OF_match_linear \<gamma> ft p = NoAction"
-	by(induction ft) (simp_all split: if_splits)
-(*TODO: sqrl, move!*)
-lemma OF_lm_noa_none_iff: "OF_match_linear \<gamma> ft p = NoAction \<longleftrightarrow> (\<forall>e\<in>set ft. \<not> \<gamma> (ofe_fields e) p)"
 	by(induction ft) (simp_all split: if_splits)
 
 lemma OF_match_linear_not_noE:"ome \<in> set oms \<and> \<gamma> (ofe_fields ome) p \<Longrightarrow> OF_match_linear \<gamma> oms p \<noteq> NoAction"

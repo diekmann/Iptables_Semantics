@@ -444,4 +444,42 @@ proof -
 qed
 *)
 
+text\<open>The only stuff here that is not about @{type prefix_match}\<close>
+lemma suc2plus_inj_on: "inj_on (of_nat :: nat \<Rightarrow> ('l :: len) word) {0..unat (max_word :: 'l word)}"
+proof(rule inj_onI)
+	let ?mmw = "(max_word :: 'l word)"
+	let ?mstp = "(of_nat :: nat \<Rightarrow> 'l word)"
+	fix x y :: nat
+	assume "x \<in> {0..unat ?mmw}" "y \<in> {0..unat ?mmw}"
+	hence se: "x \<le> unat ?mmw" "y \<le> unat ?mmw" by simp_all
+	assume eq: "?mstp x = ?mstp y"
+	note f = le_unat_uoi[OF se(1)] le_unat_uoi[OF se(2)]
+	(*show "x = y"
+	apply(subst f(1)[symmetric])
+	apply(subst f(2)[symmetric])
+	apply(subst word_unat.Rep_inject)
+	using eq .*)
+	show "x = y" using eq le_unat_uoi se by metis
+qed
+
+lemma distinct_of_nat_list: (* TODO: Move to CaesarWordLemmaBucket *)
+	"distinct l \<Longrightarrow> \<forall>e \<in> set l. e \<le> unat (max_word :: ('l::len) word) \<Longrightarrow> distinct (map (of_nat :: nat \<Rightarrow> 'l word) l)"
+proof(induction l)
+	let ?mmw = "(max_word :: 'l word)"
+	let ?mstp = "(of_nat :: nat \<Rightarrow> 'l word)"
+	case (Cons a as)
+	have "distinct as" "\<forall>e\<in>set as. e \<le> unat ?mmw" using Cons.prems by simp_all 
+	note mIH = Cons.IH[OF this]
+	moreover have "?mstp a \<notin> ?mstp ` set as"
+	proof 
+		have representable_set: "set as \<subseteq> {0..unat ?mmw}" using `\<forall>e\<in>set (a # as). e \<le> unat max_word` by fastforce
+		have a_reprbl: "a \<in> {0..unat ?mmw}" using `\<forall>e\<in>set (a # as). e \<le> unat max_word` by simp
+		assume "?mstp a \<in> ?mstp ` set as"
+		with inj_on_image_mem_iff[OF suc2plus_inj_on a_reprbl representable_set]
+		have "a \<in> set as" by simp
+		with `distinct (a # as)` show False by simp
+	qed
+	ultimately show ?case by simp
+qed simp
+
 end
