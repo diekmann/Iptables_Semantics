@@ -1,0 +1,114 @@
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     tcp  --  192.168.12.0/24      0.0.0.0/0            tcp dpt:139
+ACCEPT     tcp  --  192.168.12.0/24      0.0.0.0/0            tcp dpt:445
+ACCEPT     tcp  --  192.168.13.0/24      0.0.0.0/0            tcp dpt:139
+ACCEPT     tcp  --  192.168.13.0/24      0.0.0.0/0            tcp dpt:445
+ACCEPT     tcp  --  192.168.11.0/24      0.0.0.0/0            tcp dpt:139
+ACCEPT     tcp  --  192.168.11.0/24      0.0.0.0/0            tcp dpt:445
+ACCEPT     tcp  --  192.168.11.0/24      0.0.0.0/0            tcp dpt:631
+ACCEPT     tcp  --  192.168.11.0/24      0.0.0.0/0            tcp dpt:9418
+ACCEPT     tcp  --  192.168.20.0/24      0.0.0.0/0            tcp dpt:22
+ACCEPT     tcp  --  192.168.20.0/24      0.0.0.0/0            tcp dpt:6543
+ACCEPT     tcp  --  192.168.10.0/24      0.0.0.0/0            tcp dpt:139
+ACCEPT     tcp  --  192.168.10.0/24      0.0.0.0/0            tcp dpt:445
+ACCEPT     tcp  --  192.168.10.0/24      0.0.0.0/0            tcp dpt:631
+ACCEPT     tcp  --  192.168.10.0/24      0.0.0.0/0            tcp dpt:9418
+ACCEPT     tcp  --  192.168.12.0/24      0.0.0.0/0            tcp dpt:22
+ACCEPT     tcp  --  192.168.10.0/24      0.0.0.0/0            tcp dpt:22
+ACCEPT     tcp  --  192.168.10.0/24      0.0.0.0/0            tcp dpt:4713
+ACCEPT     tcp  --  192.168.11.0/24      0.0.0.0/0            tcp dpt:22
+ACCEPT     tcp  --  192.168.11.0/24      0.0.0.0/0            tcp dpt:80
+ACCEPT     tcp  --  192.168.11.0/24      0.0.0.0/0            tcp dpt:4713
+ACCEPT     tcp  --  192.168.23.0/24      0.0.0.0/0            tcp dpt:53
+ACCEPT     tcp  --  192.168.23.0/24      0.0.0.0/0            tcp dpt:80
+ACCEPT     udp  --  192.168.23.0/24      0.0.0.0/0            udp dpt:53
+ACCEPT     all  --  192.168.10.0/24      0.0.0.0/0           
+ACCEPT     all  --  192.168.11.0/24      0.0.0.0/0           
+ACCEPT     all  --  192.168.12.0/24      0.0.0.0/0           
+ACCEPT     all  --  192.168.14.0/24      0.0.0.0/0           
+ACCEPT     all  --  192.168.20.0/24      0.0.0.0/0           
+ACCEPT     all  --  192.168.21.0/24      0.0.0.0/0           
+ACCEPT     all  --  192.168.24.0/24      0.0.0.0/0           
+ACCEPT     all  --  192.168.13.0/24      0.0.0.0/0           
+ACCEPT     all  --  192.168.22.0/24      0.0.0.0/0           
+ACCEPT     all  --  192.168.19.0/24      0.0.0.0/0           
+ACCEPT     tcp  --  0.0.0.0/5            192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  8.0.0.0/7            192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  11.0.0.0/8           192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  12.0.0.0/6           192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  16.0.0.0/4           192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  32.0.0.0/3           192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  64.0.0.0/3           192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  96.0.0.0/4           192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  112.0.0.0/5          192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  120.0.0.0/6          192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  124.0.0.0/7          192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  126.0.0.0/8          192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  128.0.0.0/3          192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  160.0.0.0/5          192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  168.0.0.0/6          192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  172.0.0.0/12         192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  172.32.0.0/11        192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  172.64.0.0/10        192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  172.128.0.0/9        192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  173.0.0.0/8          192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  174.0.0.0/7          192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  176.0.0.0/4          192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  192.0.0.0/9          192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  192.128.0.0/11       192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  192.160.0.0/13       192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  192.169.0.0/16       192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  192.170.0.0/15       192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  192.172.0.0/14       192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  192.176.0.0/12       192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  192.192.0.0/10       192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  193.0.0.0/8          192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  194.0.0.0/7          192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  196.0.0.0/6          192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  200.0.0.0/5          192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  208.0.0.0/4          192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  224.0.0.0/3          192.168.10.32        tcp dpt:22
+ACCEPT     tcp  --  0.0.0.0/5            192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  8.0.0.0/7            192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  11.0.0.0/8           192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  12.0.0.0/6           192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  16.0.0.0/4           192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  32.0.0.0/3           192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  64.0.0.0/3           192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  96.0.0.0/4           192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  112.0.0.0/5          192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  120.0.0.0/6          192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  124.0.0.0/7          192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  126.0.0.0/8          192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  128.0.0.0/3          192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  160.0.0.0/5          192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  168.0.0.0/6          192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  172.0.0.0/12         192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  172.32.0.0/11        192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  172.64.0.0/10        192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  172.128.0.0/9        192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  173.0.0.0/8          192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  174.0.0.0/7          192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  176.0.0.0/4          192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  192.0.0.0/9          192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  192.128.0.0/11       192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  192.160.0.0/13       192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  192.169.0.0/16       192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  192.170.0.0/15       192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  192.172.0.0/14       192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  192.176.0.0/12       192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  192.192.0.0/10       192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  193.0.0.0/8          192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  194.0.0.0/7          192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  196.0.0.0/6          192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  200.0.0.0/5          192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  208.0.0.0/4          192.168.11.32        tcp dpt:22
+ACCEPT     tcp  --  224.0.0.0/3          192.168.11.32        tcp dpt:22
+DROP       all  --  0.0.0.0/0            0.0.0.0/0           
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         

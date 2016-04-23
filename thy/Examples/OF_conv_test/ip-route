@@ -1,0 +1,3 @@
+default via 10.0.2.1 dev s1-wan 
+10.0.1.0/24 dev s1-lan  proto kernel  scope link  src 10.0.1.1 
+10.0.2.0/24 dev s1-wan  proto kernel  scope link  src 10.0.2.4 

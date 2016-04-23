@@ -1,0 +1,24 @@
+session "OpenFlowFUA" = OpenFlow +
+	theories
+		OpenFlowDoc
+	document_files
+		"root.tex"
+		"chap1.tex"
+		"chap3.tex"
+		"root.bib"
+		"fig/ofts.pdf"
+		"fig/pipeline.pdf"
+		"fig/rtr.pdf"
+
+session "OpenFlow" = Iptables_Semantics +
+	theories[document=false]
+		List_Group
+		Sort_Descending
+	theories
+		"../Examples/OF_conv_test/OF_conv_test"
+		LinuxRouterOpenFlowTranslation
+		FeatherweightOpenFlowComparison
+		OpenFlowAction
+		OpenFlowMatches
+		OpenFlowSerialize
+		Semantics_OpenFlow

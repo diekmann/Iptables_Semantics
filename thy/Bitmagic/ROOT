@@ -1,0 +1,20 @@
+chapter Iptables_Semantics
+
+session "Bitmagic" = HOL +
+  theories[document=false]
+    "~~/src/HOL/Word/Word"
+    "~~/src/HOL/Library/Code_Target_Nat"
+    "~~/src/HOL/Word/WordBitwise"
+    "~~/src/HOL/Library/Code_Target_Int"
+    "~~/src/HOL/Library/Code_Char"
+    "l4v/lib/WordLemmaBucket"
+    NumberWang
+  theories
+    IPv4Addr
+    Numberwang_Ln
+    CIDRSplit
+    WordInterval_NumberWang
+    WordInterval_Lists
+  document_files
+    "root.tex"
+
