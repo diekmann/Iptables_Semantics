@@ -220,11 +220,11 @@ proof(induction rtbl) (* Note how this induction is not made over arbitrary rg *
   show ?case
   proof(cases "prefix_match_semantics ?match ip")
     case True thus ?thesis
-      using packet_ipset_prefix_eq2[OF rg_elem v_pfx True] 
-      by simp               
+      using prefix_match_if_in_prefix_to_ipset[OF v_pfx] rg_elem
+      by simp
     next
       case False thus ?thesis
-        using packet_ipset_prefix_eq1[OF rg_elem v_pfx False] 
+        using prefix_match_if_in_prefix_to_ipset[OF v_pfx] rg_elem
               Cons.IH[OF conjunct2[OF valid_prefixes_split[OF Cons.prems(1)]]]
         by simp
   qed

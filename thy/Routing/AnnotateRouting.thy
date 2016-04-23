@@ -41,7 +41,7 @@ proof(induction tbl arbitrary: s)
 		note eq = Cons.IH[OF this Cons.prems(2) conjunct2[OF vpfx]]
 		have "\<not>prefix_match_semantics (routing_match a) k" (is ?nom)
 		proof -
-			show ?nom unfolding prefix_match_if_in_my_set[OF conjunct1[OF vpfx]]
+			show ?nom unfolding prefix_match_if_in_prefix_to_ipset[OF conjunct1[OF vpfx]]
 			using annotate_smallening[OF es] Cons.prems(2)
 			unfolding wordinterval_subset_set_eq
 				by(auto simp add: 
@@ -55,7 +55,7 @@ proof(induction tbl arbitrary: s)
 			using Cons.prems(2) by(simp add: comp_def)
 		hence "prefix_match_semantics (routing_match a) k" 
 			unfolding comp_def fun_app_def
-			unfolding prefix_match_if_in_my_set[OF conjunct1, OF vpfx]
+			unfolding prefix_match_if_in_prefix_to_ipset[OF conjunct1, OF vpfx]
 			unfolding range_prefix_match_def Let_def
 			by(simp add: ipv4range_intersection_def ipv4range_to_set_def prefix_to_range_set_eq[symmetric])
 		thus ?kees by(simp add: fe)
