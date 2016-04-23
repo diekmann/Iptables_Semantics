@@ -485,7 +485,20 @@ lemma wordinterval_CIDR_split_existential:
 	"x \<in> wordinterval_to_set w \<Longrightarrow> \<exists>s. s \<in> set (wordinterval_CIDR_split_internal w) \<and> x \<in> prefix_to_ipset s"
 using wordinterval_CIDR_split_internal[symmetric] by fastforce
 
-
+lemma cidrsplit_no_overlaps: "\<lbrakk>
+        x \<in> set (wordinterval_CIDR_split_internal wi);
+        xa \<in> set (wordinterval_CIDR_split_internal wi); 
+        pt && ~~ pfxm_mask x = pfxm_prefix x;
+        pt && ~~ pfxm_mask xa = pfxm_prefix xa
+        \<rbrakk>
+       \<Longrightarrow> x = xa"
+proof(rule ccontr, goal_cases)
+	case 1
+	hence "prefix_match_semantics x pt" "prefix_match_semantics xa pt" unfolding prefix_match_semantics_def by (simp_all add: word_bw_comms(1))
+	moreover have "valid_prefix x" "valid_prefix xa" using 1(1-2) wordinterval_CIDR_split_internal_all_valid_Ball by blast+
+	ultimately have "pt \<in> prefix_to_ipset x" "pt \<in> prefix_to_ipset xa" using pfx_match_addr_ipset by blast+
+	with CIDR_splits_disjunct[OF 1(1,2) 1(5)] show False by blast
+qed
 
 end
 

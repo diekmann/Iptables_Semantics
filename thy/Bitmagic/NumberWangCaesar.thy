@@ -11,7 +11,7 @@ context
 begin
   datatype 'a prefix_match = PrefixMatch (pfxm_prefix: "'a::len word") (pfxm_length: nat)
 end
-(*definition "pfxm_mask x \<equiv> mask (32 - pfxm_length x)"*)
+definition "prefix_match_dtor m \<equiv> (case m of PrefixMatch p l \<Rightarrow> (p,l))"
 
 definition "prefix_match_less_eq1 a b = (if pfxm_length a = pfxm_length b then pfxm_prefix a \<le> pfxm_prefix b else pfxm_length a > pfxm_length b)"
 instantiation prefix_match :: (len) linorder
@@ -41,6 +41,8 @@ definition valid_prefix :: "('a::len) prefix_match \<Rightarrow> bool" where
 
 text{*The type @{typ "'a prefix_match"} usually requires @{const valid_prefix}.
       When we allow working on arbitrary IPs in CIDR notation, we will use the type @{typ "(ipv4addr \<times> nat)"} directly.*}
+
+lemma valid_prefix_00[simp,intro!]: "valid_prefix (PrefixMatch 0 0)" by (simp add: valid_prefix_def)
 
 (*TODO: generalize to 'a::len word*)
 definition prefix_match_to_CIDR :: "32 prefix_match \<Rightarrow> (ipv4addr \<times> nat)" where

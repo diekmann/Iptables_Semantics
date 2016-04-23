@@ -117,4 +117,10 @@ lemma list_left_reduce_set_eq:
   unfolding snd_image_pair[of _ id, unfolded id_o id_def]
   by force
 
+lemma sorted_const: "sorted (map (\<lambda>y. x) k)"
+	by(induction k) (simp_all add: sorted_Cons)
+
+lemma list_all_map: "list_all f (map g l) = list_all (f \<circ> g) l"
+unfolding comp_def by (simp add: list_all_length) (* by(induction l) simp_all *)
+
 end

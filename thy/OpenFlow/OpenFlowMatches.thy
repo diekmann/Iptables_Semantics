@@ -183,4 +183,7 @@ lemma OF_match_fields_alt: "OF_match_fields m p =
   unfolding OF_match_fields_def all_true_def[abs_def] set_seq_def match_prereq_def
   by(auto simp add: ball_Un)
 
+lemma of_match_fields_safe_eq2: assumes "all_prerequisites m" shows "OF_match_fields_safe m p \<longleftrightarrow> OF_match_fields m p = Some True"
+unfolding OF_match_fields_safe_def[abs_def] fun_eq_iff comp_def unfolding of_safe_unsafe_match_eq[OF assms] unfolding option.sel by simp
+
 end
