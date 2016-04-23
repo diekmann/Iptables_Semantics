@@ -175,13 +175,13 @@ definition "prefix_match_dtor m \<equiv> (case m of PrefixMatch p l \<Rightarrow
 (* TODO: move? *)
 lemma simple_match_ip_alt: "valid_prefix (PrefixMatch (fst m) (snd m)) \<Longrightarrow> 
 	simple_match_ip m p \<longleftrightarrow> prefix_match_semantics (PrefixMatch (fst m) (snd m)) p"
-by(cases m) (simp add: prefix_match_if_in_my_set wordinterval_to_set_ipv4range_set_from_prefix)
+by(cases m) (simp add: wordinterval_to_set_ipv4range_set_from_prefix prefix_match_if_in_corny_set2)
 lemma simple_match_src_alt: "simple_match_valid r \<Longrightarrow> 
 	simple_match_ip (src r) p \<longleftrightarrow> prefix_match_semantics (PrefixMatch (fst (src r)) (snd (src r))) p"
-by(cases "(src r)") (simp add: prefix_match_if_in_my_set wordinterval_to_set_ipv4range_set_from_prefix simple_match_valid_def valid_prefix_fw_def)
+by(cases "(src r)") (simp add: prefix_match_if_in_corny_set2 wordinterval_to_set_ipv4range_set_from_prefix simple_match_valid_def valid_prefix_fw_def)
 lemma simple_match_dst_alt: "simple_match_valid r \<Longrightarrow> 
 	simple_match_ip (dst r) p \<longleftrightarrow> prefix_match_semantics (PrefixMatch (fst (dst r)) (snd (dst r))) p"
-by(cases "(dst r)") (simp add: prefix_match_if_in_my_set wordinterval_to_set_ipv4range_set_from_prefix simple_match_valid_def valid_prefix_fw_def)
+by(cases "(dst r)") (simp add: prefix_match_if_in_corny_set2 wordinterval_to_set_ipv4range_set_from_prefix simple_match_valid_def valid_prefix_fw_def)
 thm prefix_match_semantics_simple_match (* mph, I had one like that already. TODO: dedup *)
 
 
@@ -299,7 +299,7 @@ proof -
       apply(subgoal_tac "prefix_match_semantics (the di) (p_dport p)")
       apply(clarsimp simp: prefix_match_semantics_def pfxm_mask_def word_bw_comms;fail)
       apply(clarsimp)
-      apply(subst prefix_match_if_in_my_set)
+      apply(subst prefix_match_if_in_prefix_to_ipset)
       apply(blast dest: wordinterval_CIDR_split_internal_all_valid_Ball[THEN bspec])
       apply(assumption)
     done
@@ -310,7 +310,7 @@ proof -
       apply(subgoal_tac "prefix_match_semantics (the si) (p_sport p)")
       apply(clarsimp simp: prefix_match_semantics_def pfxm_mask_def word_bw_comms;fail)
       apply(clarsimp)
-      apply(subst prefix_match_if_in_my_set)
+      apply(subst prefix_match_if_in_prefix_to_ipset)
       apply(blast dest: wordinterval_CIDR_split_internal_all_valid_Ball[THEN bspec])
       apply(assumption)
     done
@@ -329,7 +329,7 @@ proof -
 qed
 
 lemma prefix_match_00[simp,intro!]: "prefix_match_semantics (PrefixMatch 0 0) p"
-  by (simp add: valid_preifx_alt_def zero_prefix_match_all)
+  by (simp add: valid_prefix_def zero_prefix_match_all)
 
 lemma simple_match_to_of_matchD:
 	assumes eg: "gr \<in> set (simple_match_to_of_match r ifs)"
@@ -399,7 +399,7 @@ proof -
 			apply(subgoal_tac "p_sport p \<in> prefix_to_ipset xc")
 			apply(subst wordinterval_CIDR_split_internal[symmetric])
 			apply blast
-			apply(subst(asm)(1) prefix_match_if_in_my_set)
+			apply(subst(asm)(1) prefix_match_if_in_prefix_to_ipset)
 			apply(erule wordinterval_CIDR_split_internal_all_valid_Ball[THEN bspec];fail)
 			apply assumption
 		done
@@ -417,7 +417,7 @@ proof -
 			apply(subgoal_tac "p_dport p \<in> prefix_to_ipset xc")
 			apply(subst wordinterval_CIDR_split_internal[symmetric])
 			apply blast
-			apply(subst(asm)(1) prefix_match_if_in_my_set)
+			apply(subst(asm)(1) prefix_match_if_in_prefix_to_ipset)
 			apply(erule wordinterval_CIDR_split_internal_all_valid_Ball[THEN bspec];fail)
 			apply assumption
 		done
@@ -1751,7 +1751,7 @@ done
 lemma gsfw_validI: "simple_fw_valid fw \<Longrightarrow> gsfw_valid (map simple_rule_dtor fw)" unfolding gsfw_valid_def simple_fw_valid_def 
 by(clarsimp simp add: simple_rule_dtor_def list_all_iff split: simple_rule.splits) fastforce
 
-lemma valid_prefix_00[simp,intro!]: "valid_prefix (PrefixMatch 0 0)" by (simp add: valid_preifx_alt_def)
+lemma valid_prefix_00[simp,intro!]: "valid_prefix (PrefixMatch 0 0)" by (simp add: valid_prefix_def)
 
 lemma oif_ne_iif_valid: "gsfw_valid (oif_ne_iif ifs)"
   unfolding oif_ne_iif_def gsfw_valid_def list_all_iff oif_ne_iif_p1_def oif_ne_iif_p2_def

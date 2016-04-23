@@ -36,7 +36,6 @@ definition pfxm_mask :: "prefix_match \<Rightarrow> 'a::len word" where
   "pfxm_mask x \<equiv> mask ((len_of TYPE ('a)) - pfxm_length x)"
 *)
 
-
 definition valid_prefix :: "('a::len) prefix_match \<Rightarrow> bool" where
   "valid_prefix pf = ((pfxm_mask pf) AND pfxm_prefix pf = 0)"
 
@@ -52,7 +51,7 @@ lemma prefix_match_to_CIDR_def2: "prefix_match_to_CIDR \<equiv> \<lambda>pfx. (p
 
 private lemma valid_prefix_E: "valid_prefix pf \<Longrightarrow> ((pfxm_mask pf) AND pfxm_prefix pf = 0)" 
   unfolding valid_prefix_def .
-private lemma valid_preifx_alt_def: fixes p::"'a::len prefix_match"
+private lemma valid_prefix_alt: fixes p::"'a::len prefix_match"
   shows "valid_prefix p = (pfxm_prefix p AND (2 ^ ((len_of TYPE ('a)) - pfxm_length p) - 1) = 0)"
   unfolding valid_prefix_def
   unfolding mask_def
@@ -61,7 +60,6 @@ private lemma valid_preifx_alt_def: fixes p::"'a::len prefix_match"
    shiftl_1
   unfolding pfxm_prefix_def pfxm_mask_def mask_def
   by metis
-
 
 subsection{*Address Semantics*}
 
@@ -90,6 +88,8 @@ private lemma ipset_prefix_match_complete: "rpm = ipset_prefix_match pfx rg \<Lo
 private lemma rpm_m_dup_simp: "rg \<inter> fst (ipset_prefix_match (routing_match r) rg) = fst (ipset_prefix_match (routing_match r) rg)"
   by simp
 
+lemma zero_prefix_match_all: "valid_prefix m \<Longrightarrow> pfxm_length m = 0 \<Longrightarrow> prefix_match_semantics m ip"
+  by(simp add: pfxm_mask_def mask_2pm1 valid_prefix_alt prefix_match_semantics_def)
 
 lemma prefix_to_ipset_subset_ipv4range_set_from_prefix: 
     "prefix_to_ipset pfx \<subseteq> ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx)"
@@ -101,6 +101,11 @@ lemma prefix_to_ipset_subset_ipv4range_set_from_prefix:
   done
 
 subsection{*Equivalence Proofs*}
+
+lemma pfx_match_addr_ipset: "valid_prefix rr \<Longrightarrow> prefix_match_semantics rr addr \<Longrightarrow> (addr \<in> prefix_to_ipset rr)"
+  by(simp add: prefix_match_semantics_def prefix_to_ipset_def valid_prefix_def)
+     (metis (no_types, lifting) neg_mask_add_mask pfxm_mask_def word_and_le1 word_ao_absorbs(1) word_ao_absorbs(6) word_bool_alg.conj.commute word_neg_and_le)
+(* inversion should hold\<dots> *)
 
 private lemma helper3: "(x::'a::len word) OR y = x OR y AND NOT x" by (simp add: word_oa_dist2)
 (*private lemma helper1: "NOT (0\<Colon>32 word) = x\<^sub>1\<^sub>9 OR NOT x\<^sub>1\<^sub>9" using word_bool_alg.double_compl by simp
@@ -217,25 +222,29 @@ private lemma packet_ipset_prefix_eq13:
   shows "\<not>prefix_match_semantics match addr = (addr \<in> (snd (ipset_prefix_match match addrrg)))"
 using packet_ipset_prefix_eq1[OF assms] packet_ipset_prefix_eq3[OF assms] by fast
 
-private lemma prefix_match_if_in_my_set: assumes "valid_prefix pfx" 
-  shows "prefix_match_semantics pfx (a :: ipv4addr) \<longleftrightarrow> a \<in> prefix_to_ipset pfx"
+lemma prefix_match_if_in_prefix_to_ipset: assumes "valid_prefix pfx" 
+  shows "prefix_match_semantics pfx a \<longleftrightarrow> a \<in> prefix_to_ipset pfx"
   using packet_ipset_prefix_eq24[OF _ assms]
 by (metis (erased, hide_lams) Int_iff UNIV_I fst_conv ipset_prefix_match_def)
 
 lemma prefix_match_if_in_corny_set: 
   assumes "valid_prefix pfx"
-  shows "prefix_match_semantics pfx (a :: ipv4addr) \<longleftrightarrow> a \<in> ipv4range_set_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx)"
-  unfolding prefix_match_if_in_my_set[OF assms]
+  shows "prefix_match_semantics pfx a \<longleftrightarrow> a \<in> ipv4range_set_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx)"
+  unfolding prefix_match_if_in_prefix_to_ipset[OF assms]
   unfolding prefix_to_ipset_def ipv4range_set_from_netmask_def Let_def
   unfolding word_bool_alg.double_compl
-  proof -
-    case goal1
+  proof(goal_cases)
     have *: "pfxm_prefix pfx AND NOT pfxm_mask pfx = pfxm_prefix pfx"
       unfolding mask_eq_0_eq_x[symmetric] using valid_prefix_E[OF assms] word_bw_comms(1)[of "pfxm_prefix pfx"] by simp
     hence **: "pfxm_prefix pfx AND NOT pfxm_mask pfx OR pfxm_mask pfx = pfxm_prefix pfx OR pfxm_mask pfx"
       by simp
-    show ?case unfolding * ** ..
+    case 1 show ?case unfolding * ** ..
   qed
+
+lemma prefix_match_if_in_corny_set2:
+  assumes "valid_prefix pfx"
+  shows "prefix_match_semantics pfx (a :: ipv4addr) \<longleftrightarrow> a \<in> ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx)"
+ unfolding prefix_match_if_in_corny_set[OF assms] pfxm_mask_def ipv4range_set_from_prefix_alt1 by (metis len32 NOT_mask_len32 word_bool_alg.double_compl)
 
 
 (*TODO move*)
@@ -404,6 +413,23 @@ lemma cornys_hacky_call_to_prefix_to_range_to_start_with_a_valid_prefix: fixes b
   shows "valid_prefix (PrefixMatch (base AND NOT mask ((len_of TYPE ('a)) - len)) len)"
   apply(simp add: valid_prefix_def pfxm_mask_def pfxm_length_def pfxm_prefix_def)
   by (metis mask_and_not_mask_helper)
+
+definition prefix_to_range where
+  "prefix_to_range pfx = WordInterval (pfxm_prefix pfx) (pfxm_prefix pfx OR pfxm_mask pfx)"
+lemma prefix_to_range_set_eq: "ipv4range_to_set (prefix_to_range pfx) = prefix_to_ipset pfx"
+  unfolding prefix_to_range_def prefix_to_ipset_def by simp
+
+definition "range_prefix_match pfx rg \<equiv> (let pfxrg = prefix_to_range pfx in 
+  (ipv4range_intersection rg pfxrg, ipv4range_setminus rg pfxrg))"
+lemma range_prefix_match_set_eq:
+  "(\<lambda>(r1,r2). (ipv4range_to_set r1, ipv4range_to_set r2)) (range_prefix_match pfx rg) = ipset_prefix_match pfx (ipv4range_to_set rg)"
+  unfolding range_prefix_match_def ipset_prefix_match_def Let_def 
+  using ipv4range_intersection_set_eq ipv4range_setminus_set_eq prefix_to_range_set_eq  by simp
+lemma range_prefix_match_sm[simp]:  "ipv4range_to_set (fst (range_prefix_match pfx rg)) = fst (ipset_prefix_match pfx (ipv4range_to_set rg))"
+  by (metis fst_conv ipset_prefix_match_m  ipv4range_intersection_set_eq prefix_to_range_set_eq range_prefix_match_def)
+lemma range_prefix_match_snm[simp]: "ipv4range_to_set (snd (range_prefix_match pfx rg)) = snd (ipset_prefix_match pfx (ipv4range_to_set rg))"
+  by (metis snd_conv ipset_prefix_match_nm ipv4range_setminus_set_eq     prefix_to_range_set_eq range_prefix_match_def)
+
 end
 
 function word_upto :: "'a word \<Rightarrow> 'a word \<Rightarrow> ('a::len0) word list" where
