@@ -12,11 +12,11 @@ fun ipset_destination :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow
     (ipset_destination rs nm)
 ))))"
 
-lemma ipset_destination_split1: assumes "X \<inter> prefix_to_ipset (routing_match r) \<noteq> {}" 
-      shows "ipset_destination (r # rs) X = {(X \<inter> prefix_to_ipset (routing_match r), routing_action r)} \<union> 
-      ipset_destination rs (X - prefix_to_ipset (routing_match r))"
+lemma ipset_destination_split1: assumes "X \<inter> prefix_to_wordset (routing_match r) \<noteq> {}" 
+      shows "ipset_destination (r # rs) X = {(X \<inter> prefix_to_wordset (routing_match r), routing_action r)} \<union> 
+      ipset_destination rs (X - prefix_to_wordset (routing_match r))"
 using assms by(simp)
-lemma ipset_destination_split2: assumes "X \<inter> prefix_to_ipset (routing_match r) = {}" 
+lemma ipset_destination_split2: assumes "X \<inter> prefix_to_wordset (routing_match r) = {}" 
       shows "ipset_destination (r # rs) X = ipset_destination rs X"
 using assms Diff_triv by force
 
@@ -53,11 +53,11 @@ next
   case (Cons r rs)
   {
     fix rx px
-    have "(rx, px) \<noteq> (rg \<inter> prefix_to_ipset (routing_match r), routing_action r) \<Longrightarrow>
-    (rx, px) \<in> ipset_destination (r # rs) rg \<Longrightarrow> (rx, px) \<in> ipset_destination rs (rg - prefix_to_ipset (routing_match r))"
-      by(case_tac "rg \<inter> prefix_to_ipset (routing_match r) = {}") auto
+    have "(rx, px) \<noteq> (rg \<inter> prefix_to_wordset (routing_match r), routing_action r) \<Longrightarrow>
+    (rx, px) \<in> ipset_destination (r # rs) rg \<Longrightarrow> (rx, px) \<in> ipset_destination rs (rg - prefix_to_wordset (routing_match r))"
+      by(case_tac "rg \<inter> prefix_to_wordset (routing_match r) = {}") auto
   } note hammer = this
-  let ?current = "(rg \<inter> prefix_to_ipset (routing_match r), routing_action r)"
+  let ?current = "(rg \<inter> prefix_to_wordset (routing_match r), routing_action r)"
   note mIH = Cons(1)[OF Cons(2) Cons(3)]    
   show ?case
   proof(case_tac "(r1, p1) = ?current", case_tac[!] "(r2, p2) = ?current")
@@ -90,14 +90,14 @@ next
   note IH = goal2
   note single_valued_extend[OF goal2]
   thus ?case
-  proof(cases "rg \<inter> prefix_to_ipset (routing_match a) = {}")
+  proof(cases "rg \<inter> prefix_to_wordset (routing_match a) = {}")
     case goal1
     note triv = ipset_destination_split2[OF goal1(2)]
     with goal2 show ?case by simp
   next
     case goal2
     note hard = ipset_destination_split1[OF goal2(2)]
-    have "\<not> rg \<inter> prefix_to_ipset (routing_match a) \<subseteq> (rg - prefix_to_ipset (routing_match a))"
+    have "\<not> rg \<inter> prefix_to_wordset (routing_match a) \<subseteq> (rg - prefix_to_wordset (routing_match a))"
       using int_not_in_cut[OF goal2(2)] .
     then show ?case
       using hard insert_is_Un[symmetric] single_valued_extend ipset_destination_not_in IH by metis
@@ -220,11 +220,11 @@ proof(induction rtbl) (* Note how this induction is not made over arbitrary rg *
   show ?case
   proof(cases "prefix_match_semantics ?match ip")
     case True thus ?thesis
-      using prefix_match_if_in_prefix_to_ipset[OF v_pfx] rg_elem
+      using prefix_match_if_in_prefix_to_wordset[OF v_pfx] rg_elem
       by simp
     next
       case False thus ?thesis
-        using prefix_match_if_in_prefix_to_ipset[OF v_pfx] rg_elem
+        using prefix_match_if_in_prefix_to_wordset[OF v_pfx] rg_elem
               Cons.IH[OF conjunct2[OF valid_prefixes_split[OF Cons.prems(1)]]]
         by simp
   qed
