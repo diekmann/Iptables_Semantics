@@ -141,7 +141,6 @@ lemma lower: "lower_closure (unfold_ruleset_INPUT action.Accept example_ruleset)
   Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16))) action.Accept, Rule MatchAny action.Accept]" by eval
 
 
-
 text{*upper closure*}
 lemma "rmshadow (common_matcher, in_doubt_allow) (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset)) UNIV = 
   [Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16))) action.Accept, Rule MatchAny action.Drop]"
@@ -150,10 +149,10 @@ apply(subst rmshadow.simps)
 apply(simp del: rmshadow.simps)
 apply(simp add: Matching_Ternary.matches_def)
 apply(intro conjI impI)
- apply(rule_tac x="\<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (8,8,8,8), p_dst= 0, p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New\<rparr> " in exI)
+ apply(rule_tac x="undefined\<lparr>p_iiface := ''eth0'', p_oiface := ''eth1'', p_src := ipv4addr_of_dotdecimal (8,8,8,8), p_dst := 0, p_proto := TCP, p_sport:=2065, p_dport:=80, p_tcp_flags := {TCP_SYN}, p_tag_ctstate := CT_New\<rparr>" in exI)
  apply(simp add: ipv4addr_of_dotdecimal.simps ipv4range_set_from_prefix_def ipv4range_set_from_netmask_def Let_def ipv4addr_of_nat_def)
 apply(thin_tac "\<exists>p. x p" for x)
-apply(rule_tac x="\<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,8,8), p_dst= 0, p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New\<rparr> " in exI)
+apply(rule_tac x="undefined\<lparr>p_iiface := ''eth0'', p_oiface := ''eth1'', p_src := ipv4addr_of_dotdecimal (192,168,8,8), p_dst:= 0, p_proto:=TCP, p_sport:=2065, p_dport:=80, p_tcp_flags := {TCP_SYN}, p_tag_ctstate := CT_New\<rparr> " in exI)
 apply(simp add: ipv4addr_of_dotdecimal.simps ipv4range_set_from_prefix_def ipv4range_set_from_netmask_def Let_def ipv4addr_of_nat_def)
 done(*>*)
 
@@ -309,9 +308,9 @@ lemma "check_simple_fw_preconditions (upper_closure (optimize_matches abstract_f
 
 value[code] "map simple_rule_toString (to_simple_firewall
               (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw)))))))"
-lemma "simple_firewall_valid (to_simple_firewall
+lemma "simple_fw_valid (to_simple_firewall
               (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw)))))))" by eval
-lemma "simple_firewall_valid (to_simple_firewall
+lemma "simple_fw_valid (to_simple_firewall
               (lower_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw)))))))" by eval
 
 parse_iptables_save ds2015_2_fw="iptables-save_jun_2015_cleanup"
