@@ -301,6 +301,12 @@ lemma simple_match_and_correct: "simple_matches m1 p \<and> simple_matches m2 p 
     from case_Some case_None show ?thesis by(cases "simple_match_and m1 m2") simp_all
  qed
 
+lemma simple_match_and_SomeD: "simple_match_and m1 m2 = Some m \<Longrightarrow> simple_matches m p = (simple_matches m1 p \<and> simple_matches m2 p)"
+	by(simp add: simple_match_and_correct)
+lemma simple_match_and_NoneD: "simple_match_and m1 m2 = None \<Longrightarrow> \<not>(simple_matches m1 p \<and> simple_matches m2 p)"
+	by(simp add: simple_match_and_correct)
+lemma simple_matches_andD: "simple_matches m1 p \<Longrightarrow> simple_matches m2 p \<Longrightarrow> \<exists>m. simple_match_and m1 m2 = Some m \<and> simple_matches m p"
+  by (meson option.exhaust_sel simple_match_and_NoneD simple_match_and_SomeD)
 
 (*
 (*TODO*)

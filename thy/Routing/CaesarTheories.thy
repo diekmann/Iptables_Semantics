@@ -117,4 +117,88 @@ lemma list_left_reduce_set_eq:
   unfolding snd_image_pair[of _ id, unfolded id_o id_def]
   by force
 
+lemma sorted_const: "sorted (map (\<lambda>y. x) k)"
+	by(induction k) (simp_all add: sorted_Cons)
+
+lemma list_all_map: "list_all f (map g l) = list_all (f \<circ> g) l"
+unfolding comp_def by (simp add: list_all_length) (* by(induction l) simp_all *)
+
+
+lemma map_injective_eq: "map f xs = map g ys \<Longrightarrow> (\<And>e. f e = g e) \<Longrightarrow> inj f \<Longrightarrow> xs = ys"
+	apply(rule map_injective[rotated])
+	 apply(simp)+
+done
+
+lemma list_at_eqD: "aa @ ab = ba @ bb \<Longrightarrow> length aa = length ba \<Longrightarrow> length ab = length bb \<Longrightarrow> aa = ba \<and> ab = bb"
+by simp
+
+lemma list_induct_2simul:
+	"P [] [] \<Longrightarrow> (\<And>a as bs. P as bs \<Longrightarrow> P (a # as) bs) \<Longrightarrow> (\<And>b as bs. P as bs \<Longrightarrow> P as (b # bs)) \<Longrightarrow> P x y"
+	apply(induction x)
+	 apply(metis list_nonempty_induct)
+	apply(induction y)
+	 apply(simp)
+	apply(simp)
+done
+lemma list_induct_3simul:
+	"P [] [] [] \<Longrightarrow> 
+	(\<And>e a b c. P a b c \<Longrightarrow> P (e # a) b c) \<Longrightarrow>
+	(\<And>e a b c. P a b c \<Longrightarrow> P a (e # b) c) \<Longrightarrow>
+	(\<And>e a b c. P a b c \<Longrightarrow> P a b (e # c)) \<Longrightarrow>
+	P x y z"
+	apply(induction x)
+	 apply(induction y)
+	  apply(induction z)
+	    apply(simp_all)
+done
+lemma list_induct_4simul:
+	"P [] [] [] [] \<Longrightarrow> 
+	(\<And>e a b c d. P a b c d \<Longrightarrow> P (e # a) b c d) \<Longrightarrow>
+	(\<And>e a b c d. P a b c d \<Longrightarrow> P a (e # b) c d) \<Longrightarrow>
+	(\<And>e a b c d. P a b c d \<Longrightarrow> P a b (e # c) d) \<Longrightarrow>
+	(\<And>e a b c d. P a b c d \<Longrightarrow> P a b c (e # d)) \<Longrightarrow>
+	P x y z w"
+	apply(induction x)
+	 apply(induction y)
+	  apply(induction z)
+	   apply(induction w)
+	    apply(simp_all)
+done
+
+lemma distinct_2lcomprI: "distinct as \<Longrightarrow> distinct bs \<Longrightarrow>
+	(\<And>a b e i. f a b = f e i \<Longrightarrow> a = e \<and> b = i) \<Longrightarrow>
+	distinct [f a b. a \<leftarrow> as, b \<leftarrow> bs]"
+apply(induction as)
+apply(simp;fail)
+apply(clarsimp simp only: distinct.simps simp_thms list.map concat.simps map_append distinct_append)
+apply(rule)
+defer
+apply fastforce
+apply(clarify;fail | subst distinct_map, rule)+
+apply(rule inj_onI)
+apply(simp)
+done
+
+lemma distinct_3lcomprI: "distinct as \<Longrightarrow> distinct bs \<Longrightarrow> distinct cs \<Longrightarrow>
+	(\<And>a b c e i g. f a b c = f e i g \<Longrightarrow> a = e \<and> b = i \<and> c = g) \<Longrightarrow>
+	distinct [f a b c. a \<leftarrow> as, b \<leftarrow> bs, c \<leftarrow> cs]"
+apply(induction as)
+apply(simp;fail)
+apply(clarsimp simp only: distinct.simps simp_thms list.map concat.simps map_append distinct_append)
+apply(rule)
+apply(rule distinct_2lcomprI; simp_all; fail)
+apply fastforce
+done
+
+lemma distinct_4lcomprI: "distinct as \<Longrightarrow> distinct bs \<Longrightarrow> distinct cs \<Longrightarrow> distinct ds \<Longrightarrow>
+	(\<And>a b c d e i g h. f a b c d = f e i g h \<Longrightarrow> a = e \<and> b = i \<and> c = g \<and> d = h) \<Longrightarrow>
+	distinct [f a b c d. a \<leftarrow> as, b \<leftarrow> bs, c \<leftarrow> cs, d \<leftarrow> ds]"
+apply(induction as)
+apply(simp;fail)
+apply(clarsimp simp only: distinct.simps simp_thms list.map concat.simps map_append distinct_append)
+apply(rule)
+apply(rule distinct_3lcomprI; simp_all; fail)
+apply fastforce
+done
+
 end

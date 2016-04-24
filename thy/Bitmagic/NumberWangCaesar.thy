@@ -11,7 +11,7 @@ context
 begin
   datatype 'a prefix_match = PrefixMatch (pfxm_prefix: "'a::len word") (pfxm_length: nat)
 end
-(*definition "pfxm_mask x \<equiv> mask (32 - pfxm_length x)"*)
+definition "prefix_match_dtor m \<equiv> (case m of PrefixMatch p l \<Rightarrow> (p,l))"
 
 definition "prefix_match_less_eq1 a b = (if pfxm_length a = pfxm_length b then pfxm_prefix a \<le> pfxm_prefix b else pfxm_length a > pfxm_length b)"
 instantiation prefix_match :: (len) linorder
@@ -36,12 +36,13 @@ definition pfxm_mask :: "prefix_match \<Rightarrow> 'a::len word" where
   "pfxm_mask x \<equiv> mask ((len_of TYPE ('a)) - pfxm_length x)"
 *)
 
-
 definition valid_prefix :: "('a::len) prefix_match \<Rightarrow> bool" where
   "valid_prefix pf = ((pfxm_mask pf) AND pfxm_prefix pf = 0)"
 
 text{*The type @{typ "'a prefix_match"} usually requires @{const valid_prefix}.
       When we allow working on arbitrary IPs in CIDR notation, we will use the type @{typ "(ipv4addr \<times> nat)"} directly.*}
+
+lemma valid_prefix_00[simp,intro!]: "valid_prefix (PrefixMatch 0 0)" by (simp add: valid_prefix_def)
 
 (*TODO: generalize to 'a::len word*)
 definition prefix_match_to_CIDR :: "32 prefix_match \<Rightarrow> (ipv4addr \<times> nat)" where
@@ -52,7 +53,7 @@ lemma prefix_match_to_CIDR_def2: "prefix_match_to_CIDR \<equiv> \<lambda>pfx. (p
 
 private lemma valid_prefix_E: "valid_prefix pf \<Longrightarrow> ((pfxm_mask pf) AND pfxm_prefix pf = 0)" 
   unfolding valid_prefix_def .
-private lemma valid_preifx_alt_def: fixes p::"'a::len prefix_match"
+private lemma valid_prefix_alt: fixes p::"'a::len prefix_match"
   shows "valid_prefix p = (pfxm_prefix p AND (2 ^ ((len_of TYPE ('a)) - pfxm_length p) - 1) = 0)"
   unfolding valid_prefix_def
   unfolding mask_def
@@ -61,7 +62,6 @@ private lemma valid_preifx_alt_def: fixes p::"'a::len prefix_match"
    shiftl_1
   unfolding pfxm_prefix_def pfxm_mask_def mask_def
   by metis
-
 
 subsection{*Address Semantics*}
 
@@ -73,34 +73,41 @@ definition prefix_match_semantics where
 
 subsection{*Set Semantics*}
 
-definition prefix_to_ipset :: "'a::len prefix_match \<Rightarrow> 'a word set" where
-  "prefix_to_ipset pfx = {pfxm_prefix pfx .. pfxm_prefix pfx OR pfxm_mask pfx}"
+definition prefix_to_wordset :: "'a::len prefix_match \<Rightarrow> 'a word set" where
+  "prefix_to_wordset pfx = {pfxm_prefix pfx .. pfxm_prefix pfx OR pfxm_mask pfx}"
 
-private lemma pfx_not_empty: "valid_prefix pfx \<Longrightarrow> prefix_to_ipset pfx \<noteq> {}"
-  unfolding valid_prefix_def prefix_to_ipset_def by(simp add: le_word_or2)
+private lemma pfx_not_empty: "valid_prefix pfx \<Longrightarrow> prefix_to_wordset pfx \<noteq> {}"
+  unfolding valid_prefix_def prefix_to_wordset_def by(simp add: le_word_or2)
 
  definition ipset_prefix_match where 
-  "ipset_prefix_match pfx rg = (let pfxrg = prefix_to_ipset pfx in (rg \<inter> pfxrg, rg - pfxrg))"
-private lemma ipset_prefix_match_m[simp]:  "fst (ipset_prefix_match pfx rg) = rg \<inter> (prefix_to_ipset pfx)" by(simp only: Let_def ipset_prefix_match_def, simp)
-private lemma ipset_prefix_match_nm[simp]: "snd (ipset_prefix_match pfx rg) = rg - (prefix_to_ipset pfx)" by(simp only: Let_def ipset_prefix_match_def, simp)
-private lemma ipset_prefix_match_distinct: "rpm = ipset_prefix_match pfx rg \<Longrightarrow> 
+  "ipset_prefix_match pfx rg = (let pfxrg = prefix_to_wordset pfx in (rg \<inter> pfxrg, rg - pfxrg))"
+lemma ipset_prefix_match_m[simp]:  "fst (ipset_prefix_match pfx rg) = rg \<inter> (prefix_to_wordset pfx)" by(simp only: Let_def ipset_prefix_match_def, simp)
+lemma ipset_prefix_match_nm[simp]: "snd (ipset_prefix_match pfx rg) = rg - (prefix_to_wordset pfx)" by(simp only: Let_def ipset_prefix_match_def, simp)
+lemma ipset_prefix_match_distinct: "rpm = ipset_prefix_match pfx rg \<Longrightarrow> 
   (fst rpm) \<inter> (snd rpm) = {}" by force
-private lemma ipset_prefix_match_complete: "rpm = ipset_prefix_match pfx rg \<Longrightarrow> 
+lemma ipset_prefix_match_complete: "rpm = ipset_prefix_match pfx rg \<Longrightarrow> 
   (fst rpm) \<union> (snd rpm) = rg" by force
-private lemma rpm_m_dup_simp: "rg \<inter> fst (ipset_prefix_match (routing_match r) rg) = fst (ipset_prefix_match (routing_match r) rg)"
+lemma rpm_m_dup_simp: "rg \<inter> fst (ipset_prefix_match (routing_match r) rg) = fst (ipset_prefix_match (routing_match r) rg)"
   by simp
 
+lemma zero_prefix_match_all: "valid_prefix m \<Longrightarrow> pfxm_length m = 0 \<Longrightarrow> prefix_match_semantics m ip"
+  by(simp add: pfxm_mask_def mask_2pm1 valid_prefix_alt prefix_match_semantics_def)
 
-lemma prefix_to_ipset_subset_ipv4range_set_from_prefix: 
-    "prefix_to_ipset pfx \<subseteq> ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx)"
+lemma prefix_to_wordset_subset_ipv4range_set_from_prefix: 
+    "prefix_to_wordset pfx \<subseteq> ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx)"
   apply(rule subsetI)
-  apply(simp add: prefix_to_ipset_def addr_in_ipv4range_set_from_prefix_code)
+  apply(simp add: prefix_to_wordset_def addr_in_ipv4range_set_from_prefix_code)
   apply(intro impI conjI)
    apply (metis (erased, hide_lams) order_trans word_and_le2)
   apply(simp add: pfxm_mask_def)
   done
 
 subsection{*Equivalence Proofs*}
+
+lemma pfx_match_addr_ipset: "valid_prefix rr \<Longrightarrow> prefix_match_semantics rr addr \<Longrightarrow> (addr \<in> prefix_to_wordset rr)"
+  by(simp add: prefix_match_semantics_def prefix_to_wordset_def valid_prefix_def)
+     (metis (no_types, lifting) neg_mask_add_mask pfxm_mask_def word_and_le1 word_ao_absorbs(1) word_ao_absorbs(6) word_bool_alg.conj.commute word_neg_and_le)
+(* inversion should hold\<dots> *)
 
 private lemma helper3: "(x::'a::len word) OR y = x OR y AND NOT x" by (simp add: word_oa_dist2)
 (*private lemma helper1: "NOT (0\<Colon>32 word) = x\<^sub>1\<^sub>9 OR NOT x\<^sub>1\<^sub>9" using word_bool_alg.double_compl by simp
@@ -138,7 +145,7 @@ proof -
       using a2 by (metis goal1 word_bool_alg.conj_cancel_right word_bool_alg.conj_commute word_log_esimps(3))
   qed
   from this show ?thesis using assms(1)
-    unfolding ipset_prefix_match_def Let_def snd_conv prefix_to_ipset_def
+    unfolding ipset_prefix_match_def Let_def snd_conv prefix_to_wordset_def
     by simp
 qed
 
@@ -150,7 +157,7 @@ private lemma packet_ipset_prefix_eq2:
 using assms
   apply(subst ipset_prefix_match_def)
   apply(simp only: Let_def fst_def)
-  apply(simp add: prefix_to_ipset_def)
+  apply(simp add: prefix_to_wordset_def)
   apply(transfer)
   apply(simp only: prefix_match_semantics_def valid_prefix_def)
   apply(simp add: word_and_le1)
@@ -166,9 +173,9 @@ using assms
   apply(subst(asm) ipset_prefix_match_def)
   apply(simp only: Let_def fst_def)
   apply(simp)
-  apply(subst(asm) prefix_to_ipset_def)
+  apply(subst(asm) prefix_to_wordset_def)
   apply(transfer)
-  apply(simp only: prefix_match_semantics_def valid_prefix_def Set_Interval.ord_class.atLeastAtMost_iff prefix_to_ipset_def)
+  apply(simp only: prefix_match_semantics_def valid_prefix_def Set_Interval.ord_class.atLeastAtMost_iff prefix_to_wordset_def)
   apply(simp)
   apply(metis helper3 le_word_or2 word_and_le2 word_bw_comms(1) word_bw_comms(2))
 done
@@ -184,7 +191,7 @@ proof -
   proof -
     have a1: "pfxm_mask match AND pfxm_prefix match = 0" using assms(2) unfolding valid_prefix_def .
     have a2: "pfxm_prefix match \<le> addr \<and> addr \<le> pfxm_prefix match OR pfxm_mask match"
-      using assms(3) unfolding ipset_prefix_match_def Let_def fst_conv prefix_to_ipset_def by simp
+      using assms(3) unfolding ipset_prefix_match_def Let_def fst_conv prefix_to_wordset_def by simp
     have f2: "\<forall>x\<^sub>0. pfxm_prefix match AND NOT mask x\<^sub>0 \<le> addr AND NOT mask x\<^sub>0"
       using a2 neg_mask_mono_le by blast
     have f3: "\<forall>x\<^sub>0. addr AND NOT mask x\<^sub>0 \<le> (pfxm_prefix match OR pfxm_mask match) AND NOT mask x\<^sub>0"
@@ -217,25 +224,29 @@ private lemma packet_ipset_prefix_eq13:
   shows "\<not>prefix_match_semantics match addr = (addr \<in> (snd (ipset_prefix_match match addrrg)))"
 using packet_ipset_prefix_eq1[OF assms] packet_ipset_prefix_eq3[OF assms] by fast
 
-private lemma prefix_match_if_in_my_set: assumes "valid_prefix pfx" 
-  shows "prefix_match_semantics pfx (a :: ipv4addr) \<longleftrightarrow> a \<in> prefix_to_ipset pfx"
+lemma prefix_match_if_in_prefix_to_wordset: assumes "valid_prefix pfx" 
+  shows "prefix_match_semantics pfx a \<longleftrightarrow> a \<in> prefix_to_wordset pfx"
   using packet_ipset_prefix_eq24[OF _ assms]
 by (metis (erased, hide_lams) Int_iff UNIV_I fst_conv ipset_prefix_match_def)
 
 lemma prefix_match_if_in_corny_set: 
   assumes "valid_prefix pfx"
-  shows "prefix_match_semantics pfx (a :: ipv4addr) \<longleftrightarrow> a \<in> ipv4range_set_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx)"
-  unfolding prefix_match_if_in_my_set[OF assms]
-  unfolding prefix_to_ipset_def ipv4range_set_from_netmask_def Let_def
+  shows "prefix_match_semantics pfx a \<longleftrightarrow> a \<in> ipv4range_set_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx)"
+  unfolding prefix_match_if_in_prefix_to_wordset[OF assms]
+  unfolding prefix_to_wordset_def ipv4range_set_from_netmask_def Let_def
   unfolding word_bool_alg.double_compl
-  proof -
-    case goal1
+  proof(goal_cases)
     have *: "pfxm_prefix pfx AND NOT pfxm_mask pfx = pfxm_prefix pfx"
       unfolding mask_eq_0_eq_x[symmetric] using valid_prefix_E[OF assms] word_bw_comms(1)[of "pfxm_prefix pfx"] by simp
     hence **: "pfxm_prefix pfx AND NOT pfxm_mask pfx OR pfxm_mask pfx = pfxm_prefix pfx OR pfxm_mask pfx"
       by simp
-    show ?case unfolding * ** ..
+    case 1 show ?case unfolding * ** ..
   qed
+
+lemma prefix_match_if_in_corny_set2:
+  assumes "valid_prefix pfx"
+  shows "prefix_match_semantics pfx (a :: ipv4addr) \<longleftrightarrow> a \<in> ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx)"
+ unfolding prefix_match_if_in_corny_set[OF assms] pfxm_mask_def ipv4range_set_from_prefix_alt1 by (metis len32 NOT_mask_len32 word_bool_alg.double_compl)
 
 
 (*TODO move*)
@@ -316,10 +327,10 @@ private lemma size_mask_32word': "size ((mask (32 - m))::32 word) = 32" by(simp 
 (*declare[[show_types]]
 declare[[unify_trace_failure]]*)
 lemma wordinterval_to_set_ipv4range_set_from_prefix: assumes "valid_prefix pfx"
-      shows "prefix_to_ipset pfx = ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx)"
+      shows "prefix_to_wordset pfx = ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx)"
 proof-
-  have prefix_match_if_in_corny_set: "(prefix_to_ipset pfx) = ipv4range_set_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx)"
-    unfolding prefix_to_ipset_def ipv4range_set_from_netmask_def Let_def
+  have prefix_match_if_in_corny_set: "(prefix_to_wordset pfx) = ipv4range_set_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx)"
+    unfolding prefix_to_wordset_def ipv4range_set_from_netmask_def Let_def
     unfolding word_bool_alg.double_compl
     proof -
       case goal1
@@ -404,149 +415,27 @@ lemma cornys_hacky_call_to_prefix_to_range_to_start_with_a_valid_prefix: fixes b
   shows "valid_prefix (PrefixMatch (base AND NOT mask ((len_of TYPE ('a)) - len)) len)"
   apply(simp add: valid_prefix_def pfxm_mask_def pfxm_length_def pfxm_prefix_def)
   by (metis mask_and_not_mask_helper)
+
+definition prefix_to_range where
+  "prefix_to_range pfx = WordInterval (pfxm_prefix pfx) (pfxm_prefix pfx OR pfxm_mask pfx)"
+lemma prefix_to_range_set_eq: "ipv4range_to_set (prefix_to_range pfx) = prefix_to_wordset pfx"
+  unfolding prefix_to_range_def prefix_to_wordset_def by simp
+
+definition "range_prefix_match pfx rg \<equiv> (let pfxrg = prefix_to_range pfx in 
+  (ipv4range_intersection rg pfxrg, ipv4range_setminus rg pfxrg))"
+lemma range_prefix_match_set_eq:
+  "(\<lambda>(r1,r2). (ipv4range_to_set r1, ipv4range_to_set r2)) (range_prefix_match pfx rg) = ipset_prefix_match pfx (ipv4range_to_set rg)"
+  unfolding range_prefix_match_def ipset_prefix_match_def Let_def 
+  using ipv4range_intersection_set_eq ipv4range_setminus_set_eq prefix_to_range_set_eq  by simp
+lemma range_prefix_match_sm[simp]:  "ipv4range_to_set (fst (range_prefix_match pfx rg)) = fst (ipset_prefix_match pfx (ipv4range_to_set rg))"
+  by (metis fst_conv ipset_prefix_match_m  ipv4range_intersection_set_eq prefix_to_range_set_eq range_prefix_match_def)
+lemma range_prefix_match_snm[simp]: "ipv4range_to_set (snd (range_prefix_match pfx rg)) = snd (ipset_prefix_match pfx (ipv4range_to_set rg))"
+  by (metis snd_conv ipset_prefix_match_nm ipv4range_setminus_set_eq     prefix_to_range_set_eq range_prefix_match_def)
+
 end
-
-function word_upto :: "'a word \<Rightarrow> 'a word \<Rightarrow> ('a::len0) word list" where
-"word_upto a b = (if a = b then [a] else word_upto a (b - 1) @ [b])"
-by auto
-
-termination word_upto
-apply(relation "measure (unat \<circ> split (op -) \<circ> prod.swap)")
-apply(rule wf_measure)
-apply(unfold in_measure)
-apply(unfold comp_def)
-apply(simp)
-apply(subgoal_tac "unat (b - a - 1) < unat (b - a)")
-apply(simp add: diff_right_commute)
-apply(rule measure_unat)
-apply auto
-done
-
-declare word_upto.simps[simp del]
-
-(* Most of the lemmas I show about word_upto hold without a \<le> b, but I don't need that right now and it's giving me a headache *)
-
-lemma word_upto_set_eq2: "a \<le> b \<Longrightarrow> x \<in> set (word_upto a b) \<Longrightarrow> a \<le> x \<and> x \<le> b"
-apply(induction a b rule: word_upto.induct)
-apply(case_tac "a = b")
-apply(subst(asm) word_upto.simps)
-apply(simp)
-apply(subst(asm) word_upto.simps)
-apply(simp)
-apply(erule disjE)
-apply simp
-proof -
-	case goal1
-	from goal1(2-3) have "b \<noteq> 0" by force
-	from goal1(2,3) have "a \<le> b - 1" by (metis `b \<noteq> 0` le_step_down_nat order_class.order.antisym unat_minus_one word_le_nat_alt) 
-	from goal1(1)[OF this goal1(4)] show ?case by (metis dual_order.trans goal1(2) goal1(3) less_imp_le measure_unat word_le_0_iff word_le_nat_alt)
-qed
-
-lemma word_upto_set_eq3: "a \<le> x \<and> x \<le> b \<Longrightarrow> x \<in> set (word_upto a b)"
-apply(induction a b rule: word_upto.induct)
-apply(case_tac "a = b")
-apply(subst word_upto.simps)
-apply(simp; force)
-apply(subst word_upto.simps)
-apply(simp)
-apply(case_tac "x = b")
-apply(simp;fail)
-proof -
-	case goal1
-	from goal1(2-4) have "b \<noteq> 0" by force
-	from goal1(2,4) have "x \<le> b - 1" by (metis `b \<noteq> 0` dual_order.antisym le_step_down_nat unat_minus_one word_le_nat_alt) 
-	from goal1(1) this show ?case by simp
-qed
-
-lemma word_upto_set_eq: "a \<le> b \<Longrightarrow> x \<in> set (word_upto a b) \<longleftrightarrow> a \<le> x \<and> x \<le> b"
-	using word_upto_set_eq3 word_upto_set_eq2 by metis
-	
-lemma word_upto_distinct_hlp: "a \<le> b \<Longrightarrow> a \<noteq> b \<Longrightarrow> b \<notin> set (word_upto a (b - 1))"
-	apply(rule ccontr, unfold not_not)
-	apply(subgoal_tac "a \<le> b - 1")
-	 apply(drule word_upto_set_eq2[of a "b -1" b])
-	  apply(simp add: word_upto.simps; fail)
-	 apply(subgoal_tac "b \<noteq> 0")
-	  apply(meson leD measure_unat word_le_nat_alt)
-	 apply(blast intro: iffD1[OF word_le_0_iff])
-	apply(metis antisym_conv le_step_down_nat unat_minus_one word_le_0_iff word_le_nat_alt)
-done
-
-lemma distinct_word_upto: "a \<le> b \<Longrightarrow> distinct (word_upto a b)"
-apply(induction a b rule: word_upto.induct)
-apply(case_tac "a = b")
-apply(subst word_upto.simps)
-apply(simp; force)
-apply(subst word_upto.simps)
-apply(case_tac "a \<le> b - 1")
-apply(simp)
-apply(rule word_upto_distinct_hlp;simp_all;fail)
-apply(simp)
-apply(rule ccontr)
-apply(metis le_step_down_nat less_le not_le unat_minus_one word_le_nat_alt word_not_simps(1))
-done
-
-abbreviation "word_of_nat \<equiv> of_nat :: nat \<Rightarrow> ('l :: len) word"
-lemma word_upto_eq_upto: "s \<le> e \<Longrightarrow> e \<le> unat (max_word :: 'l word) \<Longrightarrow>
-	word_upto ((word_of_nat :: nat \<Rightarrow> ('l :: len) word) s) (word_of_nat e) = map word_of_nat (upt s (Suc e))"
-proof(induction e)
-	let ?mwon = "word_of_nat :: nat \<Rightarrow> 'l word"
-	let ?mmw = "max_word :: 'l word"
-	case (Suc e)
-	show ?case
-	proof(cases "?mwon s = ?mwon (Suc e)")
-		case True
-		have "s = Suc e" using le_unat_uoi Suc.prems True by metis
-		with True show ?thesis by(subst word_upto.simps) (simp)
-	next
-		case False 
-		hence le: "s \<le> e" using le_SucE Suc.prems by blast
-		have lm: "e \<le> unat ?mmw" using Suc.prems by simp
-		have sucm: "word_of_nat (Suc e) - 1 = word_of_nat e" using Suc.prems(2) by simp
-		note mIH = Suc.IH[OF le lm]
-		show ?thesis by(subst word_upto.simps) (simp add: False[simplified] Suc.prems mIH sucm)
-	qed
-qed(simp add: word_upto.simps)
-
-lemma word_upto_alt: "(a :: ('l :: len) word) \<le> b \<Longrightarrow> word_upto a b = map word_of_nat (upt (unat a) (Suc (unat b)))"
-proof -
-	let ?mmw = "max_word :: 'l word"
-	assume le: "a \<le> b"
-	hence nle: "unat a \<le> unat b" by(unat_arith)
-	have lem: "unat b \<le> unat ?mmw" by (simp add: word_unat_less_le) 
-	note word_upto_eq_upto[OF nle lem, unfolded word_unat.Rep_inverse]
-	thus "word_upto a b = map word_of_nat [unat a..<Suc (unat b)]" .
-qed
-
-definition "stop_word_upto_unfold = word_upto"
-lemma [code_unfold]: "word_upto a b = (if a \<le> b then map word_of_nat (upt (unat a) (Suc (unat b))) else stop_word_upto_unfold a b)"
-	using word_upto_alt stop_word_upto_unfold_def by metis
-value[code] "word_upto (3 :: 16 word) 5"
-(* TODO: Does this break something? *)
-
-lemma sorted_word_upto:
-	fixes a b :: "('l :: len) word"
-	assumes "a \<le> b"
-	shows "sorted (word_upto a b)"
-using assms
-proof(induction b)
-	fix b
-	assume le_prem: "a \<le> 1 + b"
-	assume nmax_prem: "1 + b \<noteq> 0"
-    assume IH: "a \<le> b \<Longrightarrow> sorted (word_upto a b)"
-	show "sorted (word_upto a (1 + b))" proof(cases "a = 1 + b")
-		case True thus ?thesis by(simp add: word_upto.simps)
-	next
-		case False
-		have fprem: "a \<le> b" using le_prem False by (metis add.commute antisym_conv1 plus_one_helper)
-		note mIH = IH[OF this]
-		show ?thesis by(subst word_upto.simps)
-			(simp add: fprem lt1_neq0 nmax_prem word_le_plus_either word_upto_set_eq False sorted_append mIH)
-	qed
-qed(simp add: word_upto.simps)
 	
  
-lemma "valid_prefix a \<Longrightarrow> valid_prefix b \<Longrightarrow> card (prefix_to_ipset a) < card (prefix_to_ipset b) \<Longrightarrow> a \<le> b"
+lemma "valid_prefix a \<Longrightarrow> valid_prefix b \<Longrightarrow> card (prefix_to_wordset a) < card (prefix_to_wordset b) \<Longrightarrow> a \<le> b"
 oops (* Das geht bestümmt irgendwie™ 
 proof -
 	case goal1
@@ -554,5 +443,43 @@ proof -
 	thus ?thesis by (simp add: less_eq_prefix_match_def prefix_match_less_eq1_def)
 qed
 *)
+
+text\<open>The only stuff here that is not about @{type prefix_match}\<close>
+lemma suc2plus_inj_on: "inj_on (of_nat :: nat \<Rightarrow> ('l :: len) word) {0..unat (max_word :: 'l word)}"
+proof(rule inj_onI)
+	let ?mmw = "(max_word :: 'l word)"
+	let ?mstp = "(of_nat :: nat \<Rightarrow> 'l word)"
+	fix x y :: nat
+	assume "x \<in> {0..unat ?mmw}" "y \<in> {0..unat ?mmw}"
+	hence se: "x \<le> unat ?mmw" "y \<le> unat ?mmw" by simp_all
+	assume eq: "?mstp x = ?mstp y"
+	note f = le_unat_uoi[OF se(1)] le_unat_uoi[OF se(2)]
+	(*show "x = y"
+	apply(subst f(1)[symmetric])
+	apply(subst f(2)[symmetric])
+	apply(subst word_unat.Rep_inject)
+	using eq .*)
+	show "x = y" using eq le_unat_uoi se by metis
+qed
+
+lemma distinct_of_nat_list: (* TODO: Move to CaesarWordLemmaBucket *)
+	"distinct l \<Longrightarrow> \<forall>e \<in> set l. e \<le> unat (max_word :: ('l::len) word) \<Longrightarrow> distinct (map (of_nat :: nat \<Rightarrow> 'l word) l)"
+proof(induction l)
+	let ?mmw = "(max_word :: 'l word)"
+	let ?mstp = "(of_nat :: nat \<Rightarrow> 'l word)"
+	case (Cons a as)
+	have "distinct as" "\<forall>e\<in>set as. e \<le> unat ?mmw" using Cons.prems by simp_all 
+	note mIH = Cons.IH[OF this]
+	moreover have "?mstp a \<notin> ?mstp ` set as"
+	proof 
+		have representable_set: "set as \<subseteq> {0..unat ?mmw}" using `\<forall>e\<in>set (a # as). e \<le> unat max_word` by fastforce
+		have a_reprbl: "a \<in> {0..unat ?mmw}" using `\<forall>e\<in>set (a # as). e \<le> unat max_word` by simp
+		assume "?mstp a \<in> ?mstp ` set as"
+		with inj_on_image_mem_iff[OF suc2plus_inj_on a_reprbl representable_set]
+		have "a \<in> set as" by simp
+		with `distinct (a # as)` show False by simp
+	qed
+	ultimately show ?case by simp
+qed simp
 
 end

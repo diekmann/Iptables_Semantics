@@ -32,6 +32,14 @@ into the OpenFlow switch."
 
 datatype ('m, 'a) flow_entry_match = OFEntry (ofe_prio: "16 word") (ofe_fields: "'m set") (ofe_action: 'a)
 
+(* why is there curry *)
+find_consts "(('a \<times> 'b) \<Rightarrow> 'c) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> 'c"
+(* but no "uncurry" *)
+find_consts "('a \<Rightarrow> 'b \<Rightarrow> 'c) \<Rightarrow> ('a \<times> 'b) \<Rightarrow> 'c"
+(* Anyway, we want this to easily construct OFEntrys from tuples *)
+definition "split3 f p \<equiv> case p of (a,b,c) \<Rightarrow> f a b c"
+find_consts "('a \<Rightarrow> 'b \<Rightarrow> 'c \<Rightarrow> 'd) \<Rightarrow> ('a \<times> 'b \<times> 'c) \<Rightarrow> 'd"
+
 (*
 "If there are multiple matching flow entries with the same highest priority, the selected flow entry is explicitly undefined."
 OFP 1.0.0 also stated that non-wildcarded matches implicitly have the highest priority (which is gone in 1.5).
@@ -103,8 +111,16 @@ fun OF_match_linear :: "('m, 'p) field_matcher \<Rightarrow> ('m, 'a) flowtable 
 "OF_match_linear _ [] _ = NoAction" |
 "OF_match_linear \<gamma> (a#as) p = (if \<gamma> (ofe_fields a) p then Action (ofe_action a) else OF_match_linear \<gamma> as p)"
 
-lemma "OF_match_linear \<gamma> ft p \<noteq> Undefined"
+lemma OF_match_linear_ne_Undefined: "OF_match_linear \<gamma> ft p \<noteq> Undefined"
 	by(induction ft) auto
+
+lemma OF_match_linear_append: "OF_match_linear \<gamma> (a @ b) p = (case OF_match_linear \<gamma> a p of NoAction \<Rightarrow> OF_match_linear \<gamma> b p | x \<Rightarrow> x)"
+by(induction a) simp_all
+lemma OF_match_linear_match_allsameaction: "\<lbrakk>gr \<in> set oms; \<gamma> gr p = True\<rbrakk>
+       \<Longrightarrow> OF_match_linear \<gamma> (map (\<lambda>x. split3 OFEntry (pri, x, act)) oms) p = Action act"
+by(induction oms) (auto simp add: split3_def)
+lemma OF_lm_noa_none_iff: "OF_match_linear \<gamma> ft p = NoAction \<longleftrightarrow> (\<forall>e\<in>set ft. \<not> \<gamma> (ofe_fields e) p)"
+	by(induction ft) (simp_all split: if_splits)
 
 lemma set_eq_rule: "(\<And>x. x \<in> a \<Longrightarrow> x \<in> b) \<Longrightarrow> (\<And>x. x \<in> b \<Longrightarrow> x \<in> a) \<Longrightarrow> a = b" by(rule antisym[OF subsetI subsetI])
 

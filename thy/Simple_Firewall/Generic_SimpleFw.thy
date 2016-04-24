@@ -13,9 +13,8 @@ done
 
 definition "generalized_sfw l p = List.find (\<lambda>(m,a). simple_matches m p) l"
 text\<open>Essentially, the idea of the generalized @{term simple_fw} semantics @{term generalized_sfw} is that you can have anything as the resulting action, not only a @{type simple_action}.}\<close>
-
-lemma simple_match_and_SomeD: "simple_match_and m1 m2 = Some m \<Longrightarrow> simple_matches m p = (simple_matches m1 p \<and> simple_matches m2 p)"
-	by(simp add: simple_match_and_correct)
+(* We could have generalized away the fact that those are simple_matches, use a locale, assume an option monadic conjunction operator and then have this be an interpretation.
+ but *effort *)
 
 definition "option2set n \<equiv> (case n of None \<Rightarrow> {} | Some s \<Rightarrow> {s})"
 definition "option2list n \<equiv> (case n of None \<Rightarrow> [] | Some s \<Rightarrow> [s])"
@@ -223,6 +222,117 @@ lemma generalized_sfw_2_join_None: "generalized_sfw fw2 p = None \<Longrightarro
 
 lemma generalized_sfw_1_join_None: "generalized_sfw fw1 p = None \<Longrightarrow> generalized_sfw (generalized_fw_join fw1 fw2) p = None"
 	by(induction fw1) (simp_all add: generalized_sfw_simps generalized_fw_join_cons_1 generalized_sfw_append generalized_fw_join_1_nomatch split: if_splits option.splits prod.splits)
+
+
+lemma generalized_sfw_filterD: "generalized_sfw (filter f fw) p = Some (r,d) \<Longrightarrow> simple_matches r p \<and> f (r,d)"
+by(induction fw) (simp_all add: generalized_sfw_simps split: if_splits)
+
+lemma generalized_sfwD: "generalized_sfw fw p = Some (r,d) \<Longrightarrow> (r,d) \<in> set fw \<and> simple_matches r p"
+unfolding generalized_sfw_def using find_SomeD(1) find_SomeD(2) by fastforce
+lemma generalized_sfw_NoneD: "generalized_sfw fw p = None \<Longrightarrow> \<forall>(a,b) \<in> set fw. \<not>simple_matches a p"
+	by(induction fw) (clarsimp simp add: generalized_sfw_simps split: if_splits)+
+
+lemma in_fw_join_set: "(a, b1, b2) \<in> set (generalized_fw_join f1 f2) \<Longrightarrow> \<exists>a1 a2. (a1, b1) \<in> set f1 \<and> (a2, b2) \<in> set f2 \<and> simple_match_and a1 a2 = Some a"
+unfolding generalized_fw_join_def by(clarsimp simp: option2set_def split: option.splits) blast
+
+subsection\<open>Validity\<close>
+text\<open>There's validity of matches on @{const generalized_sfw}, too, even on the join.\<close>
+lemma conjunctSomeProtoAnyD: "Some ProtoAny = simple_proto_conjunct a (Proto b) \<Longrightarrow> False"
+by(cases a) (simp_all split: if_splits)
+lemma conjunctSomeProtoD: "Some (Proto x) = simple_proto_conjunct a (Proto b) \<Longrightarrow> x = b \<and> (a = ProtoAny \<or> a = Proto b)"
+by(cases a) (simp_all split: if_splits)
+lemma conjunctProtoD: "Some x = simple_proto_conjunct a (Proto b) \<Longrightarrow> x = Proto b \<and> (a = ProtoAny \<or> a = Proto b)"
+by(cases a) (simp_all split: if_splits)
+lemma simple_match_inject: " \<lparr>iiface = iifacea, oiface = oifacea, src = srca, dst = dsta, proto = protoa, sports = sportsa, dports = dportsa\<rparr>
+      = \<lparr>iiface = iifaceb, oiface = oifaceb, src = srcb, dst = dstb, proto = protob, sports = sportsb, dports = dportsb\<rparr> \<longleftrightarrow>
+      (iifacea = iifaceb \<and> oifacea = oifaceb \<and> srca = srcb \<and> dsta = dstb \<and> protoa = protob \<and> sportsa = sportsb \<and> dportsa = dportsb)"
+by simp
+(* TODO: clean up and move\<dots> *)
+lemma ipv4cidr_conjunct_valid: "\<lbrakk>valid_prefix_fw p1; valid_prefix_fw p2; ipv4cidr_conjunct p1 p2 = Some p\<rbrakk> \<Longrightarrow> valid_prefix_fw p"
+unfolding valid_prefix_fw_def
+  by(cases p; cases p1; cases p2) (simp add: ipv4cidr_conjunct.simps split: if_splits)
+lemma simpl_ports_conjunct_not_UNIV:
+"Collect (simple_match_port x) \<noteq> UNIV \<Longrightarrow> x = simpl_ports_conjunct p1 p2 \<Longrightarrow> Collect (simple_match_port p1) \<noteq> UNIV \<or> Collect (simple_match_port p2) \<noteq> UNIV" 
+  by (metis Collect_cong mem_Collect_eq simple_ports_conjunct_correct)
+lemma simple_match_and_valid: "simple_match_valid m1 \<Longrightarrow> simple_match_valid m2 \<Longrightarrow> simple_match_and m1 m2 = Some m \<Longrightarrow> simple_match_valid m"
+unfolding simple_match_valid_def
+apply(cases m; cases m1; cases m2)
+apply(rename_tac iiface oiface srca dsta protoa sportsa dportsa iifacea oifacea srcaa dstaa protoaa sportsaa dportsaa iifaceb oifaceb srcb dstb protob sportsb dportsb)
+apply(intro conjI[rotated])
+apply(simp split: option.splits)
+apply(erule (2) ipv4cidr_conjunct_valid[rotated,rotated])
+apply(simp split: option.splits)
+apply(erule (2) ipv4cidr_conjunct_valid[rotated,rotated])
+apply(clarify)
+apply(unfold simple_match.simps)
+apply(erule disjE)
+apply(drule simpl_ports_conjunct_not_UNIV)
+apply(unfold simple_match_and.simps)
+apply(split option.splits, (simp;fail))+
+apply(unfold option.inject simple_match_inject)
+apply(clarify)
+apply(erule sym)
+apply(erule disjE)
+apply(simp)
+apply(elim disjE)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
+apply(simp)
+apply(elim disjE)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD)
+apply(drule simpl_ports_conjunct_not_UNIV)
+apply(split option.splits, (simp;fail))+
+apply(unfold option.inject simple_match_inject)
+apply(clarify)
+apply(erule sym)
+apply(erule disjE)
+apply(simp)
+apply(elim disjE)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
+apply(simp)
+apply(elim disjE)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD)
+apply(simp split: option.splits)
+apply(metis conjunctProtoD)
+done (* okay, shit. *)
+
+definition "gsfw_valid \<equiv> list_all (simple_match_valid \<circ> fst) :: (simple_match \<times> 'c) list \<Rightarrow> bool"
+lemma gsfw_join_valid: "gsfw_valid f1 \<Longrightarrow> gsfw_valid f2 \<Longrightarrow> gsfw_valid (generalized_fw_join f1 f2)"
+unfolding gsfw_valid_def
+apply(induction f1)
+apply(simp;fail)
+apply(simp)
+apply(rename_tac a f1)
+apply(case_tac a)
+apply(simp add: generalized_fw_join_cons_1)
+apply(clarify)
+apply(thin_tac "list_all _ f1")
+apply(thin_tac "list_all _ (generalized_fw_join _ _)")
+apply(induction f2)
+apply(simp;fail)
+apply(simp)
+apply(clarsimp simp add: option2list_def list_all_iff)
+using simple_match_and_valid apply metis
+done
+lemma gsfw_validI: "simple_fw_valid fw \<Longrightarrow> gsfw_valid (map simple_rule_dtor fw)" unfolding gsfw_valid_def simple_fw_valid_def 
+by(clarsimp simp add: simple_rule_dtor_def list_all_iff split: simple_rule.splits) fastforce
 
 
 end

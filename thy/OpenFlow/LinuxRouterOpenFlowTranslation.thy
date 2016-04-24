@@ -54,27 +54,6 @@ lemma prepend_singleton: "[a] @ b = a # b" by simp
 lemma simple_fw_prepend_nonmatching: "\<forall>r \<in> set rs. \<not>simple_matches (match_sel r) p \<Longrightarrow> simple_fw_alt (rs @ rss) p = simple_fw_alt rss p"
 	by(induction rs) simp_all
 
-(*lemma
-	assumes "(op = p) \<circ> p_oiface_update (const i) \<circ> p_dst_update (const a) $ p'"
-	assumes "valid_prefix pfx"
-	assumes "prefix_match_semantics pfx a"
-	assumes "Port i \<in> set ifs"
-	shows "\<exists>r \<in> set (route2match \<lparr>routing_match = pfx, routing_action = ifs\<rparr>). simple_matches r p"
-apply(simp add: simple_matches.simps assms(1)[unfolded comp_def fun_app_def] const_def route2match_def 
-	match_ifaceAny ipv4range_set_from_bitmask_UNIV match_iface_refl iffD1[OF prefix_match_if_in_corny_set2, OF assms(2,3)])
-apply(force intro: match_iface_eqI assms(4))
-(* apply(rule bexI[OF _ assms(4)], simp add: match_iface_refl) *)
-done
-
-lemma
-	assumes "(op = p) \<circ> p_oiface_update (const i) \<circ> p_dst_update (const a) $ p'"
-	assumes "valid_prefix pfx"
-	assumes "m \<in> set (route2match \<lparr>routing_match = pfx, routing_action = ifs\<rparr>)"
-	assumes "simple_matches m p"
-	assumes "Port i \<in> set ifs"
-	shows "prefix_match_semantics pfx a"
-oops*)
-
 definition toprefixmatch where
 "toprefixmatch m \<equiv> (let pm = PrefixMatch (fst m) (snd m) in if pm = PrefixMatch 0 0 then None else Some pm)"
 lemma prefix_match_semantics_simple_match: 
@@ -117,12 +96,6 @@ apply(simp add: split: if_splits protocol.splits prod.splits | blast)+
 (* give this some time, it creates and solves a ton of subgoals\<dots> Takes 140 seconds for me. *)
 done
 
-lemma conjunctSomeProtoAnyD: "Some ProtoAny = simple_proto_conjunct a (Proto b) \<Longrightarrow> False"
-by(cases a) (simp_all split: if_splits)
-lemma conjunctSomeProtoD: "Some (Proto x) = simple_proto_conjunct a (Proto b) \<Longrightarrow> x = b \<and> (a = ProtoAny \<or> a = Proto b)"
-by(cases a) (simp_all split: if_splits)
-lemma conjunctProtoD: "Some x = simple_proto_conjunct a (Proto b) \<Longrightarrow> x = Proto b \<and> (a = ProtoAny \<or> a = Proto b)"
-by(cases a) (simp_all split: if_splits)
 
 lemma proto_in_srcdst: "IPv4Proto x \<in> IPv4Src ` s \<longleftrightarrow> False" "IPv4Proto x \<in> IPv4Dst ` s \<longleftrightarrow> False" by fastforce+
 lemma simple_match_port_UNIVD: "Collect (simple_match_port a) = UNIV \<Longrightarrow> fst a = 0 \<and> snd a = max_word" by (metis antisym_conv fst_conv hrule max_word_max mem_Collect_eq simple_match_port_code snd_conv surj_pair word_le_0_iff)
@@ -169,19 +142,16 @@ abbreviation "simple_fw_prefix_to_range \<equiv> prefix_to_range \<circ> split P
 lemma simple_match_port_alt: "simple_match_port m p \<longleftrightarrow> p \<in> wordinterval_to_set (split WordInterval m)"
 by (metis old.prod.case simple_match_port.elims(2) simple_match_port.elims(3) wordinterval_to_set.simps(1))
 
-(* TODO: move *)
-definition "prefix_match_dtor m \<equiv> (case m of PrefixMatch p l \<Rightarrow> (p,l))"
-
 (* TODO: move? *)
 lemma simple_match_ip_alt: "valid_prefix (PrefixMatch (fst m) (snd m)) \<Longrightarrow> 
 	simple_match_ip m p \<longleftrightarrow> prefix_match_semantics (PrefixMatch (fst m) (snd m)) p"
-by(cases m) (simp add: prefix_match_if_in_my_set wordinterval_to_set_ipv4range_set_from_prefix)
+by(cases m) (simp add: wordinterval_to_set_ipv4range_set_from_prefix prefix_match_if_in_corny_set2)
 lemma simple_match_src_alt: "simple_match_valid r \<Longrightarrow> 
 	simple_match_ip (src r) p \<longleftrightarrow> prefix_match_semantics (PrefixMatch (fst (src r)) (snd (src r))) p"
-by(cases "(src r)") (simp add: prefix_match_if_in_my_set wordinterval_to_set_ipv4range_set_from_prefix simple_match_valid_def valid_prefix_fw_def)
+by(cases "(src r)") (simp add: prefix_match_if_in_corny_set2 wordinterval_to_set_ipv4range_set_from_prefix simple_match_valid_def valid_prefix_fw_def)
 lemma simple_match_dst_alt: "simple_match_valid r \<Longrightarrow> 
 	simple_match_ip (dst r) p \<longleftrightarrow> prefix_match_semantics (PrefixMatch (fst (dst r)) (snd (dst r))) p"
-by(cases "(dst r)") (simp add: prefix_match_if_in_my_set wordinterval_to_set_ipv4range_set_from_prefix simple_match_valid_def valid_prefix_fw_def)
+by(cases "(dst r)") (simp add: prefix_match_if_in_corny_set2 wordinterval_to_set_ipv4range_set_from_prefix simple_match_valid_def valid_prefix_fw_def)
 thm prefix_match_semantics_simple_match (* mph, I had one like that already. TODO: dedup *)
 
 
@@ -197,13 +167,13 @@ lemma simple_match_to_of_matchI:
 proof -
 	let ?npm = "\<lambda>p. fst p = 0 \<and> snd p = max_word"
 	let ?sb = "\<lambda>p r. (if ?npm p then None else Some r)"
-	obtain si where si: "case si of Some ssi \<Rightarrow> p_sport p \<in> prefix_to_ipset ssi | None \<Rightarrow> True"
+	obtain si where si: "case si of Some ssi \<Rightarrow> p_sport p \<in> prefix_to_wordset ssi | None \<Rightarrow> True"
 		"case si of None \<Rightarrow> True | Some ssi \<Rightarrow> ssi \<in> set (
 		wordinterval_CIDR_split_internal (split WordInterval (sports r)))"
 		"si = None \<longleftrightarrow> ?npm (sports r)"
 	proof(cases "?npm (sports r)")
 		case goal1
-		hence "(case None of None \<Rightarrow> True | Some ssi \<Rightarrow> p_sport p \<in> prefix_to_ipset ssi) \<and>
+		hence "(case None of None \<Rightarrow> True | Some ssi \<Rightarrow> p_sport p \<in> prefix_to_wordset ssi) \<and>
             (case None of None \<Rightarrow> True
             | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_internal (case sports r of (x, xa) \<Rightarrow> WordInterval x xa)))" by simp
         with goal1 show ?thesis by blast
@@ -213,20 +183,20 @@ proof -
 			by(simp only: simple_matches.simps simple_match_port_alt)
 		then obtain ssi where ssi:
 			"ssi \<in> set (wordinterval_CIDR_split_internal (split WordInterval (sports r)))"
-			"p_sport p \<in> prefix_to_ipset ssi" 
+			"p_sport p \<in> prefix_to_wordset ssi" 
 			using wordinterval_CIDR_split_existential by fast
-		hence "(case Some ssi of None \<Rightarrow> True | Some ssi \<Rightarrow> p_sport p \<in> prefix_to_ipset ssi) \<and>
+		hence "(case Some ssi of None \<Rightarrow> True | Some ssi \<Rightarrow> p_sport p \<in> prefix_to_wordset ssi) \<and>
             (case Some ssi of None \<Rightarrow> True
             | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_internal (case sports r of (x, xa) \<Rightarrow> WordInterval x xa)))" by simp
         with goal2 show ?thesis by blast
     qed				
-	obtain di where di: "case di of Some ddi \<Rightarrow> p_dport p \<in> prefix_to_ipset ddi | None \<Rightarrow> True"
+	obtain di where di: "case di of Some ddi \<Rightarrow> p_dport p \<in> prefix_to_wordset ddi | None \<Rightarrow> True"
 		"case di of None \<Rightarrow> True | Some ddi \<Rightarrow> ddi \<in> set (
 		wordinterval_CIDR_split_internal (split WordInterval (dports r)))"
 		"di = None \<longleftrightarrow> ?npm (dports r)"
 	proof(cases "?npm (dports r)")
 		case goal1
-		hence "(case None of None \<Rightarrow> True | Some ssi \<Rightarrow> p_dport p \<in> prefix_to_ipset ssi) \<and>
+		hence "(case None of None \<Rightarrow> True | Some ssi \<Rightarrow> p_dport p \<in> prefix_to_wordset ssi) \<and>
             (case None of None \<Rightarrow> True
             | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_internal (case dports r of (x, xa) \<Rightarrow> WordInterval x xa)))" by simp
         with goal1 show ?thesis by blast
@@ -236,9 +206,9 @@ proof -
 			by(simp only: simple_matches.simps simple_match_port_alt)
 		then obtain ddi where ddi:
 			"ddi \<in> set (wordinterval_CIDR_split_internal (split WordInterval (dports r)))"
-			"p_dport p \<in> prefix_to_ipset ddi" 
+			"p_dport p \<in> prefix_to_wordset ddi" 
 			using wordinterval_CIDR_split_existential by fast
-		hence "(case Some ddi of None \<Rightarrow> True | Some ssi \<Rightarrow> p_dport p \<in> prefix_to_ipset ssi) \<and>
+		hence "(case Some ddi of None \<Rightarrow> True | Some ssi \<Rightarrow> p_dport p \<in> prefix_to_wordset ssi) \<and>
             (case Some ddi of None \<Rightarrow> True
             | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_internal (case dports r of (x, xa) \<Rightarrow> WordInterval x xa)))" by simp
         with goal2 show ?thesis by blast
@@ -255,21 +225,19 @@ proof -
 		note u = mm[unfolded simple_matches.simps mfu ord_class.atLeastAtMost_iff simple_packet_unext_def simple_packet.simps]
 		note of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs]
 		from u have ple: "fst (sports r) \<le> snd (sports r)" "fst (dports r) \<le> snd (dports r)" by force+
-		have sdpe: "(p_sport p) \<in> set (word_upto (fst (sports r)) (snd (sports r)))" "(p_dport p) \<in> set (word_upto (fst (dports r)) (snd (dports r)))" 
-			unfolding word_upto_set_eq[OF ple(1)] word_upto_set_eq[OF ple(2)] using u by simp_all 
 		show eg: "?foo \<in> set (simple_match_to_of_match r ifs)"
 			unfolding simple_match_to_of_match_def
 			unfolding custom_simpset
 			unfolding smtoms_eq_hlp
 			proof(rule, rule, rule, rule, rule refl, rule, defer_tac, rule, rule refl, rule refl, goal_cases)
-				case 1 thus ?case using ple(2) sdpe(2) di
+				case 1 thus ?case using ple(2) di
 					apply(simp add: pfxm_mask_def prefix_match_dtor_def split: option.splits prod.splits)
 					apply(subst Set.image_iff)
 					apply(erule bexI[rotated])
 					apply(simp split: prefix_match.splits)
 				done
 			next
-				case 2 thus ?case using ple(1) sdpe(1) si
+				case 2 thus ?case using ple(1) si
 					apply(simp add: pfxm_mask_def prefix_match_dtor_def split: option.splits prod.splits)
 					apply(subst Set.image_iff)
 					apply(erule bexI[rotated])
@@ -299,7 +267,7 @@ proof -
       apply(subgoal_tac "prefix_match_semantics (the di) (p_dport p)")
       apply(clarsimp simp: prefix_match_semantics_def pfxm_mask_def word_bw_comms;fail)
       apply(clarsimp)
-      apply(subst prefix_match_if_in_my_set)
+      apply(subst prefix_match_if_in_prefix_to_wordset)
       apply(blast dest: wordinterval_CIDR_split_internal_all_valid_Ball[THEN bspec])
       apply(assumption)
     done
@@ -310,7 +278,7 @@ proof -
       apply(subgoal_tac "prefix_match_semantics (the si) (p_sport p)")
       apply(clarsimp simp: prefix_match_semantics_def pfxm_mask_def word_bw_comms;fail)
       apply(clarsimp)
-      apply(subst prefix_match_if_in_my_set)
+      apply(subst prefix_match_if_in_prefix_to_wordset)
       apply(blast dest: wordinterval_CIDR_split_internal_all_valid_Ball[THEN bspec])
       apply(assumption)
     done
@@ -329,7 +297,7 @@ proof -
 qed
 
 lemma prefix_match_00[simp,intro!]: "prefix_match_semantics (PrefixMatch 0 0) p"
-  by (simp add: valid_preifx_alt_def zero_prefix_match_all)
+  by (simp add: valid_prefix_def zero_prefix_match_all)
 
 lemma simple_match_to_of_matchD:
 	assumes eg: "gr \<in> set (simple_match_to_of_match r ifs)"
@@ -396,10 +364,10 @@ proof -
 			apply(rename_tac a b xc)
 			apply(subgoal_tac "p_sport p \<in> wordinterval_to_set (WordInterval a b)")
 			apply(simp;fail)
-			apply(subgoal_tac "p_sport p \<in> prefix_to_ipset xc")
+			apply(subgoal_tac "p_sport p \<in> prefix_to_wordset xc")
 			apply(subst wordinterval_CIDR_split_internal[symmetric])
 			apply blast
-			apply(subst(asm)(1) prefix_match_if_in_my_set)
+			apply(subst(asm)(1) prefix_match_if_in_prefix_to_wordset)
 			apply(erule wordinterval_CIDR_split_internal_all_valid_Ball[THEN bspec];fail)
 			apply assumption
 		done
@@ -414,10 +382,10 @@ proof -
 			apply(rename_tac a b xc)
 			apply(subgoal_tac "p_dport p \<in> wordinterval_to_set (WordInterval a b)")
 			apply(simp;fail)
-			apply(subgoal_tac "p_dport p \<in> prefix_to_ipset xc")
+			apply(subgoal_tac "p_dport p \<in> prefix_to_wordset xc")
 			apply(subst wordinterval_CIDR_split_internal[symmetric])
 			apply blast
-			apply(subst(asm)(1) prefix_match_if_in_my_set)
+			apply(subst(asm)(1) prefix_match_if_in_prefix_to_wordset)
 			apply(erule wordinterval_CIDR_split_internal_all_valid_Ball[THEN bspec];fail)
 			apply assumption
 		done
@@ -438,6 +406,12 @@ lemma distinct_fst_annotate_rlen: "distinct (map fst (annotate_rlen l))"
 	using fst_annotate_rlen_le by(induction l) (simp, fastforce)
 lemma distinct_annotate_rlen: "distinct (annotate_rlen l)"
 	using distinct_fst_annotate_rlen unfolding distinct_map by blast
+lemma in_annotate_rlen: "(a,x) \<in> set (annotate_rlen l) \<Longrightarrow> x \<in> set l" 
+  by(induction l) (simp_all, blast)
+lemma map_snd_annotate_rlen: "map snd (annotate_rlen l) = l"
+  by(induction l) simp_all
+lemma "sorted_descending (map fst (annotate_rlen l))"
+  by(induction l; clarsimp) (force dest: fst_annotate_rlen_le)
 
 primrec annotate_rlen_code where
 "annotate_rlen_code [] = (0,[])" |
@@ -451,76 +425,23 @@ lemma annotate_rlen_code[code]: "annotate_rlen s = snd (annotate_rlen_code s)"
 	apply(metis annotate_rlen_len fst_conv)
 done
 
-lemma "sorted_descending (map fst (annotate_rlen l))"
-apply(induction l)
-apply(simp)
-apply(clarsimp)
-apply(force dest: fst_annotate_rlen_le)
-done
-
-(* why is there curry *)
-find_consts "(('a \<times> 'b) \<Rightarrow> 'c) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> 'c"
-(* but no "uncurry" *)
-find_consts "('a \<Rightarrow> 'b \<Rightarrow> 'c) \<Rightarrow> ('a \<times> 'b) \<Rightarrow> 'c"
-definition "split3 f p \<equiv> case p of (a,b,c) \<Rightarrow> f a b c"
-find_consts "('a \<Rightarrow> 'b \<Rightarrow> 'c \<Rightarrow> 'd) \<Rightarrow> ('a \<times> 'b \<times> 'c) \<Rightarrow> 'd"
-
-find_theorems "word_of_nat"
-find_consts "nat \<Rightarrow> 'a word"
-
-lemma suc2plus_inj_on: "inj_on (word_of_nat :: nat \<Rightarrow> ('l :: len) word) {0..unat (max_word :: 'l word)}"
-proof(rule inj_onI)
-	let ?mmw = "(max_word :: 'l word)"
-	let ?mstp = "(word_of_nat :: nat \<Rightarrow> 'l word)"
-	fix x y :: nat
-	assume "x \<in> {0..unat ?mmw}" "y \<in> {0..unat ?mmw}"
-	hence se: "x \<le> unat ?mmw" "y \<le> unat ?mmw" by simp_all
-	assume eq: "?mstp x = ?mstp y"
-	note f = le_unat_uoi[OF se(1)] le_unat_uoi[OF se(2)]
-	(*show "x = y"
-	apply(subst f(1)[symmetric])
-	apply(subst f(2)[symmetric])
-	apply(subst word_unat.Rep_inject)
-	using eq .*)
-	show "x = y" using eq le_unat_uoi se by metis
-qed
-
-lemma distinct_word_of_nat_list: (* TODO: Move to CaesarWordLemmaBucket *)
-	"distinct l \<Longrightarrow> \<forall>e \<in> set l. e \<le> unat (max_word :: ('l::len) word) \<Longrightarrow> distinct (map (word_of_nat :: nat \<Rightarrow> 'l word) l)"
-proof(induction l)
-	let ?mmw = "(max_word :: 'l word)"
-	let ?mstp = "(word_of_nat :: nat \<Rightarrow> 'l word)"
-	case (Cons a as)
-	have "distinct as" "\<forall>e\<in>set as. e \<le> unat ?mmw" using Cons.prems by simp_all 
-	note mIH = Cons.IH[OF this]
-	moreover have "?mstp a \<notin> ?mstp ` set as"
-	proof 
-		have representable_set: "set as \<subseteq> {0..unat ?mmw}" using `\<forall>e\<in>set (a # as). e \<le> unat max_word` by fastforce
-		have a_reprbl: "a \<in> {0..unat ?mmw}" using `\<forall>e\<in>set (a # as). e \<le> unat max_word` by simp
-		assume "?mstp a \<in> ?mstp ` set as"
-		with inj_on_image_mem_iff[OF suc2plus_inj_on a_reprbl representable_set]
-		have "a \<in> set as" by simp
-		with `distinct (a # as)` show False by simp
-	qed
-	ultimately show ?case by simp
-qed simp
 
 lemma annotate_first_le_hlp:
 	"length l < unat (max_word :: ('l :: len) word) \<Longrightarrow> \<forall>e\<in>set (map fst (annotate_rlen l)). e \<le> unat (max_word :: 'l word)"
 	by(clarsimp) (meson fst_annotate_rlen_le less_trans nat_less_le)
-lemmas distinct_of_prio_hlp = distinct_word_of_nat_list[OF distinct_fst_annotate_rlen annotate_first_le_hlp]
+lemmas distinct_of_prio_hlp = distinct_of_nat_list[OF distinct_fst_annotate_rlen annotate_first_le_hlp]
 (* don't need these right now, but maybe later? *)
 lemma distinct_fst_won_list_unused:
 	"distinct (map fst l) \<Longrightarrow> 
 	\<forall>e \<in> set l. fst e \<le> unat (max_word :: ('l::len) word) \<Longrightarrow> 
-	distinct (map (apfst (word_of_nat :: nat \<Rightarrow> 'l word)) l)"
-proof -
+	distinct (map (apfst (of_nat :: nat \<Rightarrow> 'l word)) l)"
+proof(goal_cases)
 	let ?mw = "(max_word :: 'l word)"
-	let ?won = "(word_of_nat :: nat \<Rightarrow> 'l word)"
-	case goal1
+	let ?won = "(of_nat :: nat \<Rightarrow> 'l word)"
+	case 1
 	obtain fl where fl: "fl = map fst l" by simp
-	with goal1 have "distinct fl" "\<forall>e \<in> set fl. e \<le> unat ?mw" by simp_all
-	note distinct_word_of_nat_list[OF this, unfolded fl]
+	with 1 have "distinct fl" "\<forall>e \<in> set fl. e \<le> unat ?mw" by simp_all
+	note distinct_of_nat_list[OF this, unfolded fl]
 	hence "distinct (map fst (map (apfst ?won) l))" by simp
 	thus ?case by (metis distinct_zipI1 zip_map_fst_snd)
 qed
@@ -532,16 +453,24 @@ lemma annotate_first_le_hlp_unused:
 lemma fst_annotate_rlen: "map fst (annotate_rlen l) = rev [0..<length l]"
 by(induction l) (simp_all)
 
+lemma sorted_word_upt:
+  defines[simp]: "won \<equiv> (of_nat :: nat \<Rightarrow> ('l :: len) word)"
+  assumes "length l \<le> unat (max_word :: 'l word)"
+  shows "sorted_descending (map won (rev [0..<Suc (length l)]))" 
+using assms
+  apply(induction l rule: rev_induct;clarsimp)
+  apply(metis (mono_tags, hide_lams) le_SucI le_unat_uoi of_nat_Suc order_refl word_le_nat_alt)
+  (* This proof is kind of ugly. In case it breaks unfixably, go back to rev a9c4927 and get word_upto.
+     The lemmas on word_upto can be used to shows this trivially. *)
+done
+
 lemma sorted_annotated:
 	assumes "length l \<le> unat (max_word :: ('l :: len) word)"
-	shows "sorted_descending (map fst (map (apfst (word_of_nat :: nat \<Rightarrow> 'l word)) (annotate_rlen l)))"
+	shows "sorted_descending (map fst (map (apfst (of_nat :: nat \<Rightarrow> 'l word)) (annotate_rlen l)))"
 proof -
-	let ?won = "(word_of_nat :: nat \<Rightarrow> 'l word)"
-	have zero_subst: "?won 0 = (0 :: 'l word)" by simp
-	have "sorted_descending (rev (word_upto 0 (?won (length l))))" 
-		unfolding sorted_descending by(rule sorted_word_upto) simp
-	hence "sorted_descending (map ?won (rev [0..<Suc (length l)]))" 
-		unfolding word_upto_eq_upto[OF le0 assms, unfolded zero_subst] rev_map .
+	let ?won = "(of_nat :: nat \<Rightarrow> 'l word)"
+	have "sorted_descending (map ?won (rev [0..<Suc (length l)]))" 
+		using sorted_word_upt[OF assms] .
 	hence "sorted_descending (map ?won (map fst (annotate_rlen l)))" by(simp add: fst_annotate_rlen)
 	thus "sorted_descending (map fst (map (apfst ?won) (annotate_rlen l)))" by simp
 qed
@@ -563,8 +492,6 @@ definition "oif_ne_iif ifs = oif_ne_iif_p2 ifs @ oif_ne_iif_p1 ifs" (* order irr
 definition "lr_of_tran_s4 ard ifs \<equiv> generalized_fw_join ard (oif_ne_iif ifs)"
 
 definition "lr_of_tran_s1 rt = [(route2match r, output_iface (routing_action r)). r \<leftarrow> rt]"
-definition "lr_of_tran_s2 mrt fw = generalized_fw_join mrt (map simple_rule_dtor fw)" (*TODO: delete*)
-definition "lr_of_tran_nullifyoif = map (apfst (oiface_update (const ifaceAny)))"
 
 definition "lr_of_tran_fbs rt fw ifs \<equiv> let
 	gfw = map simple_rule_dtor fw; (* generalized simple fw, hopefully for FORWARD *)
@@ -577,25 +504,12 @@ definition "pack_OF_entries ifs ard \<equiv> (map (split3 OFEntry) $ lr_of_tran_
 
 definition "lr_of_tran rt fw ifs \<equiv> let
 	nrd = lr_of_tran_fbs rt fw ifs;
-	ard = map (apfst word_of_nat) (annotate_rlen nrd) (* give them a priority *)
+	ard = map (apfst of_nat) (annotate_rlen nrd) (* give them a priority *)
 	in
 	if length nrd < unat (max_word :: 16 word)
 	then Inr $ pack_OF_entries ifs ard
 	else Inl $ ''Error in creating OpenFlow table: priority number space exhausted''
 "
-
-lemma lr_of_tran_nullifyoif_alt: "lr_of_tran_nullifyoif frd = [(m\<lparr>oiface := ifaceAny\<rparr>,d). (m,d) \<leftarrow> frd]"
-proof -
-	have h: "(\<lambda>(m, a). [((m\<lparr>oiface := ifaceAny\<rparr>), a)]) = (\<lambda>t. [(case t of (m,a) \<Rightarrow> (m\<lparr>oiface := ifaceAny\<rparr>, a))])"
-		unfolding prod.case_distrib by fast
-	show ?thesis
-		unfolding lr_of_tran_nullifyoif_def apfst_def const_def map_prod_def
-		unfolding h
-		unfolding concat_map_singleton
-		by(clarsimp split: simple_rule.splits)
-qed
-
-find_theorems List.product (* I wonder if we could also write lr_of_tran as rt \<times> fw \<times> ifs. Using the join should be easier though. *)
 
 lemma ipv4cidr_conjunct_any: "ipv4cidr_conjunct (0, 0) (0, 0) \<noteq> None" by(eval)
 
@@ -604,11 +518,6 @@ lemma oif_ne_iif_alt:
 unfolding oif_ne_iif_def generalized_fw_join_def option2list_def
 oops
 
-(* TODO: move *)
-lemma generalized_sfw_filterD: "generalized_sfw (filter f fw) p = Some (r,d) \<Longrightarrow> simple_matches r p \<and> f (r,d)"
-by(induction fw) (simp_all add: generalized_sfw_simps split: if_splits)
-lemma generalized_sfwD: "generalized_sfw fw p = Some (r,d) \<Longrightarrow> (r,d) \<in> set fw \<and> simple_matches r p"
-unfolding generalized_sfw_def using find_SomeD(1) find_SomeD(2) by fastforce
 
 definition "is_iface_name i \<equiv> i \<noteq> [] \<and> \<not>Iface.iface_name_is_wildcard i"
 definition "is_iface_list ifs \<equiv> distinct ifs \<and> list_all is_iface_name ifs"
@@ -621,10 +530,6 @@ lemma simple_rule_and_iiface_update: "is_iface_name a1 \<Longrightarrow> match_i
 	 apply(metis iface_name_is_wildcard.simps(3) internal_iface_name_match.elims(2) list.discI)
 	apply(simp add: match_iface_refl)
 done
-
-(* TODO: move *)
-lemma generalized_sfw_NoneD: "generalized_sfw fw p = None \<Longrightarrow> \<forall>(a,b) \<in> set fw. \<not>simple_matches a p"
-	by(induction fw) (clarsimp simp add: generalized_sfw_simps split: if_splits)+
 
 lemma max_16_word_max[simp]: "(a :: 16 word) \<le> 0xffff"
 proof -
@@ -691,93 +596,6 @@ lemma oif_ne_iif_correct: "is_iface_list ifs \<Longrightarrow> (\<exists>r. gene
 	using oif_ne_iif_p2_correct apply blast
 done
 
-lemma map_injective_eq: "map f xs = map g ys \<Longrightarrow> (\<And>e. f e = g e) \<Longrightarrow> inj f \<Longrightarrow> xs = ys"
-	apply(rule map_injective, defer_tac)
-	 apply(simp)+
-done
-
-lemma "distinct x \<Longrightarrow> inj_on g (set x) \<Longrightarrow> inj_on f (set (concat (map g x))) \<Longrightarrow> distinct [f a. b \<leftarrow> x, a \<leftarrow> g b]"
-apply(clarify;fail | rule distinct_concat | subst distinct_map, rule)+
-apply(rule inj_onI)
-apply(unfold set_concat set_map)
-find_theorems "map ?f _ = map ?f _"
-oops
-
-lemma list_at_eqD: "aa @ ab = ba @ bb \<Longrightarrow> length aa = length ba \<Longrightarrow> length ab = length bb \<Longrightarrow> aa = ba \<and> ab = bb"
-by simp
-
-lemma list_induct_2simul:
-	"P [] [] \<Longrightarrow> (\<And>a as bs. P as bs \<Longrightarrow> P (a # as) bs) \<Longrightarrow> (\<And>b as bs. P as bs \<Longrightarrow> P as (b # bs)) \<Longrightarrow> P x y"
-	apply(induction x)
-	 apply(metis list_nonempty_induct)
-	apply(induction y)
-	 apply(simp)
-	apply(simp)
-done
-lemma list_induct_3simul:
-	"P [] [] [] \<Longrightarrow> 
-	(\<And>e a b c. P a b c \<Longrightarrow> P (e # a) b c) \<Longrightarrow>
-	(\<And>e a b c. P a b c \<Longrightarrow> P a (e # b) c) \<Longrightarrow>
-	(\<And>e a b c. P a b c \<Longrightarrow> P a b (e # c)) \<Longrightarrow>
-	P x y z"
-	apply(induction x)
-	 apply(induction y)
-	  apply(induction z)
-	    apply(simp_all)
-done
-lemma list_induct_4simul:
-	"P [] [] [] [] \<Longrightarrow> 
-	(\<And>e a b c d. P a b c d \<Longrightarrow> P (e # a) b c d) \<Longrightarrow>
-	(\<And>e a b c d. P a b c d \<Longrightarrow> P a (e # b) c d) \<Longrightarrow>
-	(\<And>e a b c d. P a b c d \<Longrightarrow> P a b (e # c) d) \<Longrightarrow>
-	(\<And>e a b c d. P a b c d \<Longrightarrow> P a b c (e # d)) \<Longrightarrow>
-	P x y z w"
-	apply(induction x)
-	 apply(induction y)
-	  apply(induction z)
-	   apply(induction w)
-	    apply(simp_all)
-done
-
-lemma "distinct (e # a) = distinct (f (e # a))"
-oops
-
-lemma distinct_2lcomprI: "distinct as \<Longrightarrow> distinct bs \<Longrightarrow>
-	(\<And>a b e i. f a b = f e i \<Longrightarrow> a = e \<and> b = i) \<Longrightarrow>
-	distinct [f a b. a \<leftarrow> as, b \<leftarrow> bs]"
-apply(induction as)
-apply(simp;fail)
-apply(clarsimp simp only: distinct.simps simp_thms list.map concat.simps map_append distinct_append)
-apply(rule)
-defer
-apply fastforce
-apply(clarify;fail | subst distinct_map, rule)+
-apply(rule inj_onI)
-apply(simp)
-done
-
-lemma distinct_3lcomprI: "distinct as \<Longrightarrow> distinct bs \<Longrightarrow> distinct cs \<Longrightarrow>
-	(\<And>a b c e i g. f a b c = f e i g \<Longrightarrow> a = e \<and> b = i \<and> c = g) \<Longrightarrow>
-	distinct [f a b c. a \<leftarrow> as, b \<leftarrow> bs, c \<leftarrow> cs]"
-apply(induction as)
-apply(simp;fail)
-apply(clarsimp simp only: distinct.simps simp_thms list.map concat.simps map_append distinct_append)
-apply(rule)
-apply(rule distinct_2lcomprI; simp_all; fail)
-apply fastforce
-done
-
-lemma distinct_4lcomprI: "distinct as \<Longrightarrow> distinct bs \<Longrightarrow> distinct cs \<Longrightarrow> distinct ds \<Longrightarrow>
-	(\<And>a b c d e i g h. f a b c d = f e i g h \<Longrightarrow> a = e \<and> b = i \<and> c = g \<and> d = h) \<Longrightarrow>
-	distinct [f a b c d. a \<leftarrow> as, b \<leftarrow> bs, c \<leftarrow> cs, d \<leftarrow> ds]"
-apply(induction as)
-apply(simp;fail)
-apply(clarsimp simp only: distinct.simps simp_thms list.map concat.simps map_append distinct_append)
-apply(rule)
-apply(rule distinct_3lcomprI; simp_all; fail)
-apply fastforce
-done
-
 
 lemma replicate_FT_hlp: "x \<le> 16 \<and> y \<le> 16 \<Longrightarrow> replicate (16 - x) False @ replicate x True = replicate (16 - y) False @ replicate y True \<Longrightarrow> x = y"
 proof -
@@ -808,7 +626,7 @@ apply(clarsimp)
 apply(induction ifs)
 apply(simp;fail)
 apply(simp;fail)
-apply(simp_all add: distinct_word_upto smtoms_eq_hlp)
+apply(simp_all add: smtoms_eq_hlp)
 apply(unfold distinct_map)
 apply(clarify)
 apply(intro conjI wordinterval_CIDR_split_internal_distinct)
@@ -867,22 +685,6 @@ apply(cases h, case_tac[!] d)
 apply(simp_all add: OF_match_fields_unsafe_def simple_match_to_of_match_single_def option2set_def)
 oops
 
-(* TODO: move *)
-lemma cidrsplitelems: "\<lbrakk>
-        x \<in> set (wordinterval_CIDR_split_internal wi);
-        xa \<in> set (wordinterval_CIDR_split_internal wi); 
-        pt && ~~ pfxm_mask x = pfxm_prefix x;
-        pt && ~~ pfxm_mask xa = pfxm_prefix xa
-        \<rbrakk>
-       \<Longrightarrow> x = xa"
-proof(rule ccontr)
-	case goal1
-	hence "prefix_match_semantics x pt" "prefix_match_semantics xa pt" unfolding prefix_match_semantics_def by (simp_all add: word_bw_comms(1))
-	moreover have "valid_prefix x" "valid_prefix xa" using goal1(1-2) wordinterval_CIDR_split_internal_all_valid_Ball by blast+
-	ultimately have "pt \<in> prefix_to_ipset x" "pt \<in> prefix_to_ipset xa" using pfx_match_addr_ipset by blast+
-	with CIDR_splits_disjunct[OF goal1(1,2) goal1(5)] show False by blast
-qed
-
 lemma distinct_lroft_s3: "\<lbrakk>distinct (map fst amr); distinct ifs\<rbrakk> \<Longrightarrow> distinct (lr_of_tran_s3 ifs amr)"
 unfolding lr_of_tran_s3_def
 by(erule no_overlaps_lroft_hlp2, simp add: distinct_simple_match_to_of_match)
@@ -925,7 +727,7 @@ apply(clarify | unfold
 apply(simp cong: smtoms_eq_hlp)
 apply(simp split: if_splits )
       apply(simp_all add: comp_def)
-      by(auto dest: conjunctSomeProtoAnyD cidrsplitelems
+      by(auto dest: conjunctSomeProtoAnyD cidrsplit_no_overlaps
 	            simp add: OF_match_fields_unsafe_def simple_match_to_of_match_single_def option2set_def)
 (* another huge split, takes about 10 seconds  *)
 
@@ -1012,9 +814,6 @@ lemma lr_of_tran_no_overlaps: assumes "is_iface_list ifs" shows "Inr t = (lr_of_
 	apply(simp add: o_assoc;fail)
 done
 
-lemma sorted_const: "sorted (map (\<lambda>y. x) k)" (* TODO: move *)
-	by(induction k) (simp_all add: sorted_Cons)
-
 lemma sorted_lr_of_tran_s3_hlp: "\<forall>x\<in>set f. fst x \<le> a \<Longrightarrow> b \<in> set (lr_of_tran_s3 s f) \<Longrightarrow> fst b \<le> a" 
 	by(auto simp add: lr_of_tran_s3_def)
 
@@ -1053,15 +852,6 @@ lemma lr_of_tran_s1_split: "lr_of_tran_s1 (a # rt) = (route2match a, output_ifac
 	by(unfold lr_of_tran_s1_def list.map, rule)
 lemma lr_of_tran_s1_append: "lr_of_tran_s1 (a @ rt) = lr_of_tran_s1 a @ lr_of_tran_s1 rt"
 	by(induction a) (simp_all add: lr_of_tran_s1_split lr_of_tran_s1_def)
-lemma lr_of_tran_s2_split: "lr_of_tran_s2 (a # rt) fw = generalized_fw_join [a] (map simple_rule_dtor fw) @ lr_of_tran_s2 rt fw"
-	unfolding lr_of_tran_s2_def generalized_fw_join_def by simp
-lemma lr_of_tran_s2_split_append: "lr_of_tran_s2 (a @ rt) fw = lr_of_tran_s2 a fw @ lr_of_tran_s2 rt fw"
-	apply(induction a)
-	 apply(simp add: lr_of_tran_s2_def)
-	apply(simp add: lr_of_tran_s2_split)
-done
-
-term "p\<lparr>p_oiface := output_iface (routing_table_semantics rt (p_dst p))\<rparr>"
 
 lemma route2match_correct: "valid_prefix (routing_match a) \<Longrightarrow> prefix_match_semantics (routing_match a) (p_dst p) \<longleftrightarrow> simple_matches (route2match a) (p)"
 by(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_refl ipv4range_set_from_prefix_UNIV prefix_match_if_in_corny_set2)
@@ -1106,125 +896,10 @@ done
 lemma simple_fw_undecided: "simple_fw fw p = Undecided \<longleftrightarrow> (\<forall>r \<in> set fw. \<not>simple_matches (match_sel r) p)"
 by(induction rule: simple_fw.induct) (simp_all split: if_splits)
 
-
-(* TODO: Move with simple_match_and_SomeD *)
-lemma simple_match_and_NoneD: "simple_match_and m1 m2 = None \<Longrightarrow> \<not>(simple_matches m1 p \<and> simple_matches m2 p)"
-	by(simp add: simple_match_and_correct)
-
-lemma s1_none_s2: "generalized_sfw rt p = None \<Longrightarrow> generalized_sfw ((lr_of_tran_s2 rt fw)) p = None"
-unfolding lr_of_tran_s2_def by(rule generalized_sfw_1_join_None)
-
-(* TODO: move? *)
-lemma simple_fw_msplit: "simple_fw fw p \<noteq> Undecided \<Longrightarrow> \<exists>a r b. fw = a @ r # b \<and> simple_fw a p = Undecided \<and> simple_matches (match_sel r) p" 
-proof(induction fw)
-	case (Cons a fw)
-	thus ?case proof(cases "simple_matches (match_sel a) p")
-		case False
-		with Cons.prems have "simple_fw fw p \<noteq> Undecided" by (simp add: simple_fw_alt)
-		note Cons.IH[OF this]
-		then guess as ..
-		then guess r ..
-		then guess bs ..
-		note mIH = this
-		show ?thesis proof(intro exI)
-			show "a # fw = (a # as) @ r # bs \<and> simple_fw (a # as) p = Undecided \<and> simple_matches (match_sel r) p" using mIH False by(simp add: simple_fw_alt)
-		qed
-	qed fastforce (* alternate:
-	apply(rule_tac x = Nil in exI)
-	apply(rule_tac x = a in exI)
-	apply(rule_tac x = fw in exI)
-	apply(simp)*)
-qed simp
-
-(* TODO: move *)
-lemma simple_matches_andD: "simple_matches m1 p \<Longrightarrow> simple_matches m2 p \<Longrightarrow> \<exists>m. simple_match_and m1 m2 = Some m \<and> simple_matches m p"
-by (meson option.exhaust_sel simple_match_and_NoneD simple_match_and_SomeD)
-
 lemma findNoneI: "\<forall>x. x \<in> set l \<longrightarrow> \<not>f x \<Longrightarrow> find f l = None"
 by (metis findSomeD not_None_eq)
-(* TODO: move *)
-lemma  generalized_sfw_join_1_single: "generalized_sfw (generalized_fw_join [(mr, ma)] fw) p = (if simple_matches mr p then (case generalized_sfw fw p of Some (mr2,ma2) \<Rightarrow> Some (the (simple_match_and mr mr2), ma, ma2) | None \<Rightarrow> None) else None)"
-	apply(clarsimp split: option.splits if_splits)
-	apply(intro conjI;clarify)
-	apply(clarsimp simp add: generalized_sfw_def list_lib_find)
-	apply(drule findNoneD)
-	apply(rule findNoneI)
-	apply(clarsimp simp: option2set_def generalized_fw_join_cons_1 split: option.splits)
-	apply(meson case_prodI simple_match_and_SomeD; fail)
-	apply(intro conjI[rotated]; clarify)
-	apply (simp add: generalized_fw_join_1_nomatch generalized_fw_join_cons_1;fail)
-	apply(induction fw)
-	apply(clarsimp simp add: generalized_sfw_simps; fail)
-	apply(rename_tac fwa fws x1 x2)
-	apply(case_tac "fwa")
-	apply(rename_tac fwam fwad)
-	apply(case_tac "simple_matches fwam p")
-	prefer 2
-	apply(clarsimp)
-	apply(subst generalized_fw_join_2_nomatch[where as = "[(mr, ma)]"], assumption)
-	apply(simp add: generalized_sfw_simps; fail)
-	apply(clarsimp simp: generalized_sfw_simps)
-	apply(drule (1) simple_matches_andD[of mr p])
-	apply(clarsimp simp add: generalized_sfw_append generalized_sfw_simps generalized_fw_join_cons_1 option2list_def)
-done
-
-find_theorems "generalized_fw_join _ (_#_)"
-
-(*lemma "simple_fw fw p = x \<longleftrightarrow> generalized_sfw (map simple_rule_dtor fw) p = (case x of Undecided \<Rightarrow> None | Decision x1 \<Rightarrow> (undefined, inv simple_action_to_state x))"*)
-(* TODO: write in the Generalized_SFW: We could have generalized away the fact that those are simple_matches, use a locale, assume an option monadic conjunction operator and then have this be an interpretation.
- but *effort *)
 
 
-(*
-"simple_fw fw p \<noteq> Undecided \<Longrightarrow> s1_sema rt p = Some (mr,ma) \<Longrightarrow> \<exists>mmr. s2_sema ((lr_of_tran_s2 rt fw)) p = Some (mmr, ma)"
-"valid_prefixes rt \<Longrightarrow> has_default_route rt \<Longrightarrow> \<exists>rm ra. s1_sema (lr_of_tran_s1 rt) (p\<lparr>p_oiface := ra\<rparr>) = Some (rm,ra) \<and> ra = output_iface (routing_table_semantics rt (p_dst p))"*)
-
-
-definition "oiface_exact_match \<equiv> list_all (is_iface_name \<circ> iface_sel)"
-
-(* Okay, here comes the crazy. We have shown so far that for packets with a correct output port, generalized_sfw 1 will make the correct decision on s1, and s2 will uphold that decision.
-   However, at some point, we need to make that set go away, and the first possible point is after s1,2,4. Two ways emerge: Either, set the match to something fixed, e.g., '''', and make all packets have that value,
-   or set it to ifaceAny. Both will make any packet pass the interface match, so ifaceAny is sane. Here is how we get there: We can show that if s1 has not made a decision with the correct port,
-   it will not make a decision with any port. s2 will uphold not making a decision. Thus, the decision has to remain the same even when making a decision. *)
-find_theorems route2match
-lemma eqFalseI: "\<not>A \<Longrightarrow> A = False" by simp
-lemma s1_update_ignorant: "
-	valid_prefixes rt \<Longrightarrow> 
-	generalized_sfw (lr_of_tran_s1 rt) (p\<lparr>p_oiface := output_iface (routing_table_semantics rt (p_dst p))\<rparr>) = None \<Longrightarrow> generalized_sfw (lr_of_tran_s1 rt) p = None"
-oops (*
-proof(induction rt) (* would be easier by rev_induct, but I lack a little lemma, so this will do. *)
-	case (Cons a as)
-	have vpfxa: "valid_prefix (routing_match a)" using valid_prefixes_split Cons.prems(1) by blast
-	have nps: "\<not>prefix_match_semantics (routing_match a) (p_dst p)"
-		using Cons.prems(2) by(simp add: lr_of_tran_s1_split generalized_sfw_simps route2match_correct[OF vpfxa] split: if_splits)
-	have nsm: "\<not> simple_matches (route2match a) p"
-		using nps
-		apply -
-		apply(erule contrapos_nn)
-		apply(erule route2match_correct_noupd[rotated])
-		apply(fact vpfxa)
-	done
-	have "routing_table_semantics (a # as) (p_dst p) = routing_table_semantics as (p_dst p)" by(simp add: nps) (* unusued *)  
-	have ihm: "valid_prefixes as" "generalized_sfw (lr_of_tran_s1 as) (p\<lparr>p_oiface := output_iface (routing_table_semantics as (p_dst p))\<rparr>) = None"
-		using Cons.prems by(simp add: valid_prefixes_split, simp add: generalized_sfw_simps lr_of_tran_s1_split nps split: if_splits)
-	note Cons.IH[OF this]
-	with nsm show ?case by(simp add: generalized_sfw_simps lr_of_tran_s1_split) 
-qed(simp add: generalized_sfw_def lr_of_tran_s1_def;fail)*)
-
-(* TODO: move *)
-definition "rtbl_ifs = set \<circ> map (output_iface \<circ> routing_action)"
-lemma ra_in_rtbl_ifs: "valid_prefixes rt \<Longrightarrow> has_default_route rt \<Longrightarrow> output_iface (routing_table_semantics rt d) \<in> rtbl_ifs rt"
-	apply(induction rt)
-	 apply(simp;fail)
-	apply(simp add: rtbl_ifs_def comp_def)
-using valid_prefixes_split zero_prefix_match_all by blast
-
-(* TODO: move *)
-lemma simple_matches_update_any: "simple_matches a p \<Longrightarrow> simple_matches (a\<lparr>oiface := ifaceAny\<rparr>) (p\<lparr>p_oiface := any\<rparr>)"
-	by(clarsimp simp: simple_matches.simps match_ifaceAny)
-
-lemma lr_of_tran_nullifyoif_Some_keep: "generalized_sfw s p = Some b \<Longrightarrow> \<exists>b'. generalized_sfw (lr_of_tran_nullifyoif s) (p\<lparr>p_oiface := any\<rparr>) = Some b'"
-	by(induction s) (simp_all add: generalized_sfw_simps lr_of_tran_nullifyoif_def const_def simple_matches_update_any split: prod.splits if_splits)
 
 lemma invert_map_append: "map f l = a @ b \<Longrightarrow> \<exists>a' b'. map f (a' @ b') = a @ b \<and> length a' = length a \<and> length b' = length b"
 proof(induction a arbitrary: l)
@@ -1236,36 +911,10 @@ proof(induction a arbitrary: l)
 	qed
 qed force
 
-lemma s1_correct_noupd: "valid_prefixes (rt::routing_rule list) \<Longrightarrow> has_default_route rt \<Longrightarrow> \<exists>rm ra. generalized_sfw (lr_of_tran_s1 rt) p = Some (rm,ra) \<and> ra = output_iface (routing_table_semantics rt (p_dst p))"
-oops (*
-proof -
-	case goal1
-	note s1_correct[OF this, of p] then obtain rm ra where rmra: 
-	"generalized_sfw (lr_of_tran_s1 rt) (p\<lparr>p_oiface := ra\<rparr>) = Some (rm, ra)" "ra = output_iface (routing_table_semantics rt (p_dst p))"
- by blast
-	have "generalized_sfw (lr_of_tran_s1 rt) (p\<lparr>p_oiface := output_iface (routing_table_semantics rt (p_dst p))\<rparr>) = Some (rm, ra)" using rmra by fast
-	note generalized_fw_split[OF this]
-	then obtain a b where ab: "lr_of_tran_s1 rt = a @ (rm, ra) # b" "generalized_sfw a (p\<lparr>p_oiface := output_iface (routing_table_semantics rt (p_dst p))\<rparr>) = None" by blast
-	from ab(1) obtain rta where rtab: "lr_of_tran_s1 (rta::routing_rule list) = a" 
-		apply(simp add: lr_of_tran_s1_def)
-		apply(drule invert_map_append) 
-		apply(clarsimp)
-	done
-oops*)
-
 definition "to_OF_action a \<equiv> (case a of (p,d) \<Rightarrow> (case d of simple_action.Accept \<Rightarrow> [Forward p] | simple_action.Drop \<Rightarrow> []))"
 definition "from_OF_action a = (case a of [] \<Rightarrow> ('''',simple_action.Drop) | [Forward p] \<Rightarrow> (p, simple_action.Accept))"
 
-(* TODO: move *)
-lemma OF_match_linear_append: "OF_match_linear \<gamma> (a @ b) p = (case OF_match_linear \<gamma> a p of NoAction \<Rightarrow> OF_match_linear \<gamma> b p | x \<Rightarrow> x)"
-by(induction a) simp_all
-
-(* TODO: move? *)
-lemma OF_match_linear_match_allsameaction: "\<lbrakk>gr \<in> set oms; OF_match_fields_safe gr p = True\<rbrakk>
-       \<Longrightarrow> OF_match_linear OF_match_fields_safe (map (\<lambda>x. split3 OFEntry (pri, x, act)) oms) p = Action act"
-by(induction oms) (auto simp add: split3_def)
-
-lemma the_SomeI: "x = Some y \<Longrightarrow> the x = y" by(fact handy_lemma)
+lemma the_SomeI: "x = Some y \<Longrightarrow> the x = y" by(fact handy_lemma (* I'm guessing this is going to be renamed at some point\<dots> *))
 
 lemma OF_match_linear_not_noD: "OF_match_linear \<gamma> oms p \<noteq> NoAction \<Longrightarrow> \<exists>ome. ome \<in> set oms \<and> \<gamma> (ofe_fields ome) p"
 	apply(induction oms)
@@ -1273,10 +922,6 @@ lemma OF_match_linear_not_noD: "OF_match_linear \<gamma> oms p \<noteq> NoAction
 	apply(simp split: if_splits)
 	 apply blast+
 done
-
-(* TODO: move *)
-lemma of_match_fields_safe_eq2: assumes "all_prerequisites m" shows "OF_match_fields_safe m p \<longleftrightarrow> OF_match_fields m p = Some True"
-unfolding OF_match_fields_safe_def[abs_def] fun_eq_iff comp_def unfolding of_safe_unsafe_match_eq[OF assms] unfolding option.sel by simp
 
 lemma s3_noaction_hlp: "\<lbrakk>simple_match_valid ac; \<not>simple_matches ac p; match_iface (oiface ac) (p_oiface p)\<rbrakk> \<Longrightarrow> 
 OF_match_linear OF_match_fields_safe (map (\<lambda>x. split3 OFEntry (x1, x, case ba of simple_action.Accept \<Rightarrow> [Forward ad] | simple_action.Drop \<Rightarrow> [])) (simple_match_to_of_match ac ifs)) p = NoAction"
@@ -1357,9 +1002,6 @@ qed
 
 lemma OF_lm_noa_none2: "\<forall>e\<in>set ft. \<not> \<gamma> (ofe_fields e) p \<Longrightarrow> OF_match_linear \<gamma> ft p = NoAction"
 	by(induction ft) (simp_all split: if_splits)
-(*TODO: sqrl, move!*)
-lemma OF_lm_noa_none_iff: "OF_match_linear \<gamma> ft p = NoAction \<longleftrightarrow> (\<forall>e\<in>set ft. \<not> \<gamma> (ofe_fields e) p)"
-	by(induction ft) (simp_all split: if_splits)
 
 lemma OF_match_linear_not_noE:"ome \<in> set oms \<and> \<gamma> (ofe_fields ome) p \<Longrightarrow> OF_match_linear \<gamma> oms p \<noteq> NoAction"
 apply(induction oms)
@@ -1372,7 +1014,6 @@ lemma OF_match_linear_not_iff: "OF_match_linear \<gamma> oms p \<noteq> NoAction
    using OF_match_linear_not_noD apply metis
   using OF_match_linear_not_noE by metis
 
-(* TODO: move? *)
 lemma ex_find_iff: "(\<exists>m. Lib.find f l = Some m) \<longleftrightarrow> (\<exists>m \<in> set l. f m)"
   apply(rule iffI)
    apply(clarsimp)
@@ -1626,15 +1267,15 @@ using vsfwm oiifs
    apply(simp add: generalized_sfw_simps)
   apply simp
   apply(clarsimp simp add: generalized_sfw_simps split: prod.splits)
-  apply(intro conjI)
+  apply(intro conjI) (* make two subgoals from one *)
    apply(clarsimp simp add: OF_match_linear_append split: prod.splits)
-  apply(drule simple_match_to_of_matchI[rotated])
+   apply(drule simple_match_to_of_matchI[rotated])
       apply(rule iiifs)
      apply(rule ippkt)
     apply blast
    apply(clarsimp simp add: comp_def)
    apply(rename_tac ard x1 ac ad ba gr)
-   apply(drule_tac oms = "simple_match_to_of_match ac ifs" and pri = x1 and act = "case ba of simple_action.Accept \<Rightarrow> [Forward ad] | simple_action.Drop \<Rightarrow> []" in OF_match_linear_match_allsameaction)
+   apply(drule_tac oms = "simple_match_to_of_match ac ifs" and pri = x1 and act = "case ba of simple_action.Accept \<Rightarrow> [Forward ad] | simple_action.Drop \<Rightarrow> []" in OF_match_linear_match_allsameaction[where \<gamma>=OF_match_fields_safe])
     apply(unfold OF_match_fields_safe_def comp_def)
     apply(erule the_SomeI;fail)
    defer
@@ -1647,111 +1288,22 @@ using vsfwm oiifs
    apply(simp add: match_ifaceAny;fail)
   apply(clarsimp)
   apply(intro iffI)
-   apply(clarsimp split: simple_action.splits)
-   apply blast
-  apply(clarsimp)
-  apply(rename_tac b)
-  apply(case_tac b)
-   apply(simp_all)
+   subgoal for ard x1 ac ad ba gr 
+    apply(rule exI[where x = ac])
+    apply(rule exI[where x = ad])
+    apply(rule exI[where x = ba])
+    apply(clarsimp simp: split3_def split: simple_action.splits flowtable_behavior.splits if_splits)
+   done
+   subgoal
+    apply(clarsimp)
+    apply(rename_tac b)
+    apply(case_tac b)
+    apply(simp_all)
+  done
 done
 
 lemma has_default_policy_ex_general_result: "has_default_policy fw \<Longrightarrow> \<exists>m a. generalized_sfw (map simple_rule_dtor fw) p = Some (m,a)"
 by(induction fw rule: has_default_policy.induct) (simp_all add: generalized_sfw_simps simple_rule_dtor_def simple_match_any)
-
-lemma simple_match_inject: " \<lparr>iiface = iifacea, oiface = oifacea, src = srca, dst = dsta, proto = protoa, sports = sportsa, dports = dportsa\<rparr>
-      = \<lparr>iiface = iifaceb, oiface = oifaceb, src = srcb, dst = dstb, proto = protob, sports = sportsb, dports = dportsb\<rparr> \<longleftrightarrow>
-      (iifacea = iifaceb \<and> oifacea = oifaceb \<and> srca = srcb \<and> dsta = dstb \<and> protoa = protob \<and> sportsa = sportsb \<and> dportsa = dportsb)"
-by simp
-
-(* TODO: move *)
-lemma ipv4cidr_conjunct_valid: "\<lbrakk>valid_prefix_fw p1; valid_prefix_fw p2; ipv4cidr_conjunct p1 p2 = Some p\<rbrakk> \<Longrightarrow> valid_prefix_fw p"
-unfolding valid_prefix_fw_def
-  by(cases p; cases p1; cases p2) (simp add: ipv4cidr_conjunct.simps split: if_splits)
-lemma simpl_ports_conjunct_not_UNIV:
-"Collect (simple_match_port x) \<noteq> UNIV \<Longrightarrow> x = simpl_ports_conjunct p1 p2 \<Longrightarrow> Collect (simple_match_port p1) \<noteq> UNIV \<or> Collect (simple_match_port p2) \<noteq> UNIV" 
-  by (metis Collect_cong mem_Collect_eq simple_ports_conjunct_correct)
-lemma simple_match_and_valid: "simple_match_valid m1 \<Longrightarrow> simple_match_valid m2 \<Longrightarrow> simple_match_and m1 m2 = Some m \<Longrightarrow> simple_match_valid m"
-unfolding simple_match_valid_def
-apply(cases m; cases m1; cases m2)
-apply(rename_tac iiface oiface srca dsta protoa sportsa dportsa iifacea oifacea srcaa dstaa protoaa sportsaa dportsaa iifaceb oifaceb srcb dstb protob sportsb dportsb)
-apply(intro conjI[rotated])
-apply(simp split: option.splits)
-apply(erule (2) ipv4cidr_conjunct_valid[rotated,rotated])
-apply(simp split: option.splits)
-apply(erule (2) ipv4cidr_conjunct_valid[rotated,rotated])
-apply(clarify)
-apply(unfold simple_match.simps)
-apply(erule disjE)
-apply(drule simpl_ports_conjunct_not_UNIV)
-apply(unfold simple_match_and.simps)
-apply(split option.splits, (simp;fail))+
-apply(unfold option.inject simple_match_inject)
-apply(clarify)
-apply(erule sym)
-apply(erule disjE)
-apply(simp)
-apply(elim disjE)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
-apply(simp)
-apply(elim disjE)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD)
-apply(drule simpl_ports_conjunct_not_UNIV)
-apply(split option.splits, (simp;fail))+
-apply(unfold option.inject simple_match_inject)
-apply(clarify)
-apply(erule sym)
-apply(erule disjE)
-apply(simp)
-apply(elim disjE)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
-apply(simp)
-apply(elim disjE)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD)
-done (* okay, shit. *)
-
-(* TODO: move *)
-definition "gsfw_valid \<equiv> list_all (simple_match_valid \<circ> fst) :: (simple_match \<times> 'c) list \<Rightarrow> bool"
-lemma gsfw_join_valid: "gsfw_valid f1 \<Longrightarrow> gsfw_valid f2 \<Longrightarrow> gsfw_valid (generalized_fw_join f1 f2)"
-unfolding gsfw_valid_def
-apply(induction f1)
-apply(simp;fail)
-apply(simp)
-apply(rename_tac a f1)
-apply(case_tac a)
-apply(simp add: generalized_fw_join_cons_1)
-apply(clarify)
-apply(thin_tac "list_all _ f1")
-apply(thin_tac "list_all _ (generalized_fw_join _ _)")
-apply(induction f2)
-apply(simp;fail)
-apply(simp)
-apply(clarsimp simp add: option2list_def list_all_iff)
-using simple_match_and_valid apply metis
-done
-lemma gsfw_validI: "simple_fw_valid fw \<Longrightarrow> gsfw_valid (map simple_rule_dtor fw)" unfolding gsfw_valid_def simple_fw_valid_def 
-by(clarsimp simp add: simple_rule_dtor_def list_all_iff split: simple_rule.splits) fastforce
-
-lemma valid_prefix_00[simp,intro!]: "valid_prefix (PrefixMatch 0 0)" by (simp add: valid_preifx_alt_def)
 
 lemma oif_ne_iif_valid: "gsfw_valid (oif_ne_iif ifs)"
   unfolding oif_ne_iif_def gsfw_valid_def list_all_iff oif_ne_iif_p1_def oif_ne_iif_p2_def
@@ -1766,10 +1318,6 @@ lemma lr_of_tran_s1_valid: "valid_prefixes rt \<Longrightarrow> gsfw_valid (lr_o
   using simple_match_valid_alt_hlp1 apply force
   using valid_prefixes_alt_def apply blast
 done
-
-(* TODO: move with annotate_rlen *)
-lemma in_annotate_rlen: "(a,x) \<in> set (annotate_rlen l) \<Longrightarrow> x \<in> set l" 
-  by(induction l) (simp_all, blast)
 
 lemma simple_match_valid_fbs_rlen: "\<lbrakk>valid_prefixes rt; simple_fw_valid fw; (a, aa, ab, b) \<in> set (annotate_rlen (lr_of_tran_fbs rt fw ifs))\<rbrakk> \<Longrightarrow> simple_match_valid aa"
 proof(goal_cases)
@@ -1828,8 +1376,6 @@ lemma simple_action_ne[simp]:
   "b \<noteq> simple_action.Drop \<longleftrightarrow> b = simple_action.Accept"
 using simple_action.exhaust by blast+
 
-lemma map_snd_annotate_rlen: "map snd (annotate_rlen l) = l"
-  by(induction l) simp_all
 lemma map_snd_apfst: "map snd (map (apfst x) l) = map snd l"
   unfolding map_map comp_def snd_apfst ..
 
@@ -1923,15 +1469,8 @@ proof(goal_cases)
 qed
 
 
-lemma list_all_map: "list_all f (map g l) = list_all (f \<circ> g) l"
-unfolding comp_def by (simp add: list_all_length) (* by(induction l) simp_all *)
-
-(* TODO: move *)
-lemma in_fw_join_set: "(a, b1, b2) \<in> set (generalized_fw_join f1 f2) \<Longrightarrow> \<exists>a1 a2. (a1, b1) \<in> set f1 \<and> (a2, b2) \<in> set f2 \<and> simple_match_and a1 a2 = Some a"
-unfolding generalized_fw_join_def by(clarsimp simp: option2set_def split: option.splits) blast
-
 lemma no_oif_match_fbs:
- "no_oif_match fw \<Longrightarrow> list_all (\<lambda>m. oiface (fst (snd m)) = ifaceAny) (map (apfst word_of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs)))"
+ "no_oif_match fw \<Longrightarrow> list_all (\<lambda>m. oiface (fst (snd m)) = ifaceAny) (map (apfst of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs)))"
 proof(goal_cases)
   case 1
   have c: "\<And>mr ar mf af f a. \<lbrakk>(mr, ar) \<in> set (lr_of_tran_s1 rt); (mf, af) \<in> simple_rule_dtor ` set fw; simple_match_and mr mf = Some a\<rbrakk> \<Longrightarrow> oiface a = ifaceAny"
@@ -1955,10 +1494,6 @@ proof(goal_cases)
     show ?case unfolding * list_all_map[symmetric] map_snd_apfst map_snd_annotate_rlen using la .
   qed
 qed
-
-(* TODO: move *)
-lemma  OF_match_linear_not_undefined: "OF_match_linear \<gamma> oms p \<noteq> Undefined"
-by(induction oms) (simp_all)
 
 
 lemma lr_of_tran_correct:
@@ -1984,7 +1519,7 @@ proof -
   done
   have lin: "OF_priority_match OF_match_fields_safe oft = OF_match_linear OF_match_fields_safe oft"
     using OF_eq[OF lr_of_tran_no_overlaps lr_of_tran_sorted_descending, OF ifl nerr[symmetric] nerr[symmetric]] unfolding fun_eq_iff unsafe_safe_eq by metis
-  let ?ard = "map (apfst word_of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs))"
+  let ?ard = "map (apfst of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs))"
   have oft_def: "oft = pack_OF_entries ifs ?ard" using nerr unfolding lr_of_tran_def Let_def by(simp split: if_splits)
   have vld: "list_all simple_match_valid $ map (fst \<circ> snd) ?ard" 
     unfolding fun_app_def map_map[symmetric] snd_apfst map_snd_apfst map_snd_annotate_rlen using simple_match_valid_fbs[OF s1(1) s2(2)] .
@@ -1995,7 +1530,7 @@ proof -
   proof(intro conjI, goal_cases)
     case (1 oif)
     note s3_correct[OF vld ippkt ifvld(1) *, THEN iffD1, unfolded oft_def[symmetric], OF 1]
-    hence "\<exists>r. generalized_sfw (map snd (map (apfst word_of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs)))) p = Some (r, (oif, simple_action.Accept))"
+    hence "\<exists>r. generalized_sfw (map snd (map (apfst of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs)))) p = Some (r, (oif, simple_action.Accept))"
       by(clarsimp split: if_splits)
     then obtain r where "generalized_sfw (lr_of_tran_fbs rt fw ifs) p = Some (r, (oif, simple_action.Accept))" 
       unfolding map_map comp_def snd_apfst map_snd_annotate_rlen by blast
@@ -2007,7 +1542,7 @@ proof -
   proof(goal_cases)
     case (1 oif)
     note lr_of_tran_fbs_acceptI[OF s1 s2(3) s2(1) this, of ifs] then guess r .. note r = this
-    hence "generalized_sfw (map snd (map (apfst word_of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs)))) p = Some (r, (oif, simple_action.Accept))" 
+    hence "generalized_sfw (map snd (map (apfst of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs)))) p = Some (r, (oif, simple_action.Accept))" 
     unfolding map_snd_apfst map_snd_annotate_rlen .
     moreover note s3_correct[OF vld ippkt ifvld(1) *, THEN iffD2, unfolded oft_def[symmetric], of "[Forward oif]"]
     ultimately show ?case by simp
@@ -2027,7 +1562,7 @@ proof -
     case 2 
     note lr_of_tran_fbs_dropI[OF s1 s2(3) s2(1) this, of ifs] then 
     obtain r oif where "generalized_sfw (lr_of_tran_fbs rt fw ifs) p = Some (r, oif, simple_action.Drop)" by blast
-    hence "generalized_sfw (map snd (map (apfst word_of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs)))) p = Some (r, oif, simple_action.Drop)" 
+    hence "generalized_sfw (map snd (map (apfst of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs)))) p = Some (r, oif, simple_action.Drop)" 
       unfolding map_snd_apfst map_snd_annotate_rlen .
     moreover note s3_correct[OF vld ippkt ifvld(1) *, THEN iffD2, unfolded oft_def[symmetric], of "[]"]
     ultimately show ?case by force
@@ -2041,8 +1576,8 @@ proof -
     apply(drule lr_determ)
     apply(simp)
   done
-  show notub: "OF_priority_match OF_match_fields_safe oft p \<noteq> Undefined" unfolding lin using OF_match_linear_not_undefined .
-    (*by (metis lr_of_tran_no_overlaps ifl lin nerr no_overlaps_not_unefined unsafe_safe_eq(1))*)
+  show notub: "OF_priority_match OF_match_fields_safe oft p \<noteq> Undefined" unfolding lin using OF_match_linear_ne_Undefined .
+    (*by (metis lr_of_tran_no_overlaps ifl lin nerr no_overlaps_ne_Unefined unsafe_safe_eq(1))*)
   show notmult: "\<And>ls. OF_priority_match OF_match_fields_safe oft p = Action ls \<longrightarrow> length ls \<le> 1"
   apply(cases "simple_linux_router_nol12 rt fw p")
     using w2 apply(simp)
