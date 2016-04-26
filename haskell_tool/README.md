@@ -8,10 +8,18 @@ FFFUU -- Fancy Formal Firewall Universal Understander
 
 [![Build Status](https://travis-ci.org/diekmann/Iptables_Semantics.svg)](https://travis-ci.org/diekmann/Iptables_Semantics)
 
-## Precompiled binaries
+## Precompiled Binaries
 
 A pre-compiled binary of `fffuu` can be obtained from [Bintray](https://bintray.com/fffuu/binaries/nightly/nightly/view). 
 A new binary is created on every push to master.
+
+
+---------------------------------------
+
+If you have trust issues with binaries, you can confine `fffuu` with AppArmor.
+`fffuu` only requires read access to the data you want to analyze (and nothing more).
+For example, given you saved `fffuu` to `/home/diekmann/Downloads`, you can put [my apparmor profile](apparmor_home.diekmann.Downloads.fffuu) to `/etc/apparmor.d/home.diekmann.Downloads.fffuu` and enforce it.
+Tested on Ubuntu 14.04.
 
 ## Building from Source
 
