@@ -68,7 +68,7 @@ value[code] "length (remdups_rev (to_simple_firewall (lower_closure (optimize_ma
 
 value[code] "map ipv4addr_wordinterval_toString (getParts (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))))"
 
-lemma "simple_firewall_valid (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded)))))" by eval
-lemma "simple_firewall_valid (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded)))))" by eval
+lemma "simple_fw_valid (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded)))))" by eval
+lemma "simple_fw_valid (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded)))))" by eval
 
 end

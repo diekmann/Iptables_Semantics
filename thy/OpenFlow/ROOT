@@ -1,3 +1,4 @@
+chapter OpenFlow
 session "OpenFlowFUA" = OpenFlow +
 	theories
 		OpenFlowDoc
@@ -6,9 +7,11 @@ session "OpenFlowFUA" = OpenFlow +
 		"chap1.tex"
 		"chap3.tex"
 		"root.bib"
+		"moeptikz.sty"
 		"fig/ofts.pdf"
 		"fig/pipeline.pdf"
 		"fig/rtr.pdf"
+		"bench.csv"
 
 session "OpenFlow" = Iptables_Semantics +
 	theories[document=false]

@@ -1,0 +1,171 @@
+\section{Evaluation}\label{sec:eval}
+In Section~\ref{sec:conv}, we have made lots of definitions and created lots of models.
+How far these models are in accordance with the real world has been up to the vigilance of the reader.
+This section attemts to leviate this burden by providing some examples.
+
+\subsection{Mininet Examples}
+\label{sec:mnex}
+\tikzset{mnod/.style={minimum width=1cm}}
+\begin{figure*}
+\centering
+\begin{subfigure}[b]{0.45\textwidth}
+\begin{lstlisting}
+:FORWARD DROP [0:0]
+-A FORWARD -d 10.0.2.0/24 -i s1-lan -p tcp -m tcp --sport 32768:65535 --dport 80 -j ACCEPT
+\end{lstlisting}
+\caption{FORWARD chain}
+\end{subfigure}
+\hspace{0.05\textwidth}
+\begin{subfigure}[b]{0.45\textwidth}
+\begin{lstlisting}
+10.0.2.0/24 dev s1-wan  proto kernel  scope link  src 10.0.2.4
+10.0.1.0/24 dev s1-lan  proto kernel  scope link  src 10.0.1.1
+default via 10.0.2.1 dev s1-wan
+\end{lstlisting}
+\caption{Routing table (sorted)}
+\end{subfigure}
+\begin{subfigure}{\textwidth}
+\begin{lstlisting}
+priority=4,hard_timeout=0,idle_timeout=0,in_port=1,dl_type=0x800,nw_proto=6,nw_dst=10.0.2.0/24,tp_src=32768/0x8000,tp_dst=80,action=output:2
+priority=3,hard_timeout=0,idle_timeout=0,dl_type=0x800,nw_dst=10.0.2.0/24,action=drop
+priority=2,hard_timeout=0,idle_timeout=0,dl_type=0x800,nw_dst=10.0.1.0/24,action=drop
+priority=1,hard_timeout=0,idle_timeout=0,in_port=1,dl_type=0x800,nw_proto=6,nw_dst=10.0.2.0/24,tp_src=32768/0x8000,tp_dst=80,action=output:2
+priority=0,hard_timeout=0,idle_timeout=0,dl_type=0x800,action=drop
+\end{lstlisting}
+\caption{Resulting OpenFlow rules}
+\end{subfigure}
+\caption{Example Network 1 -- Configuration}
+\label{fig:exn1}
+\end{figure*}
+The first example is designed to be minimal while still showing the most important properties of our conversion.
+For this purpose, we used a linux firewall F, that we want to convert.
+We gave it two interfaces, and connected one client each.
+Its original configuration and the ruleset resulting from the translation is shown in Figure \ref{fig:exn1}. (The list of interfaces can be extracted from the routing table; \texttt{s1-lan} received port number 1.)
+While the configuration does not fulfil any special function (especially, no traffic from the interface \texttt{s1-wan} is permitted), it is small enough to let us have a detailed look.
+More specifically, we can see how the only firewall rule (Line 2) got combined with the first rule of the routing table to form Line 1 of the OpenFlow rules.
+This also shows why the bitmasks on the layer 4 ports are necessary. If we only allowed exact matches, we would have $2^{15}$ rules instead of just one.
+Line 2 of the OpenFlow ruleset has been formed by combining the default drop policy with Line 1 of the routing table.
+In a similar fashion, Line 2 of the routing rules has also been combined with the two firewall rules.
+However, as $10.0.2.0/24$ from the firewall and $10.0.1.0/24$ from the routing table have no common elements, no rule results from combining Line 2 and Line 2.
+In a similar fashion, the rest of the OpenFlow ruleset can be explained.
+
+We feel that it is also worth noting again that it is necessary to change the IP configuration of the two devices attached to F.
+Assuming they are currently configured with, e.g., $10.0.1.100/24$ and $10.0.2.1/24$, the subnet would have to be changed from 24 to 22 or lower to ensure that a common subnet is formed and the MAC layer can function properly.
+
+Next, we show a somewhat more evolved example.
+Its topology is depicted in Figure \ref{fig:exn2}.
+As before, we called the device to be replaced F.
+It is supposed to implement the simple policy that the clients H1 and H2 are allowed to communicate with the outside world via HTTP, ICMP is generally allowed, any other traffic is to be dropped (we neglected DNS for this example).
+We used the iptables configuration that is shown in Figure \ref{fig:exn2fw}.
+The routing table is the same as in the first example network.
+
+\begin{figure*}
+\centering
+\begin{subfigure}{0.4\textwidth}
+\begin{tikzpicture}[node distance=2cm,scale=0.85]
+\node[router,mnod](r){F};
+\node[hub,mnod,left of=r](h){};
+\node[server,mnod,right of=r](s1){S1};
+\node[server,mnod,right of=s1](s2){S2};
+\node[client,mnod,above of=h](h1){};
+\node[above of=h1,node distance=1cm]{H1};
+\node[client,mnod,below of=h](h2){H2};
+\draw(h1) -- (h) -- (h2);
+\draw(h) -- (r) -- (s1) -- (s2);
+\end{tikzpicture}
+\vspace{1em}
+\caption{Topology}
+\label{fig:exn2}
+\end{subfigure}
+\hspace{0.05\textwidth}
+\begin{subfigure}{0.5\textwidth}
+\begin{lstlisting}
+:FORWARD DROP [0:0]
+-A FORWARD -p icmp -j ACCEPT
+-A FORWARD -i s1-lan -p tcp -m tcp --sport 1024:65535 --dport 80 -j ACCEPT
+-A FORWARD -d 10.0.1.0/24 -i s1-wan -p tcp -m tcp --sport 80 --dport 1024:65535 -j ACCEPT
+\end{lstlisting}
+\caption{\texttt{FORWARD} chain}
+\label{fig:exn2fw}
+\end{subfigure}
+\caption{Example Network 2}
+\end{figure*}
+
+The topology  has been chosen for a number of reasons:
+we wanted one device which is not inside a common subnet with F and thus requires no reconfiguration for the translation.
+Moreover, we wanted two devices in a network that can communicate with each other while being overheard by F.
+For this purpose, we added two clients H1 and H2 instead of just one.
+We connected them with a broadcasting device.\footnote{For the lack of a hub in mininet, we emulated one with an OpenFlow switch.}
+
+Executing our conversion function results in 36 rules%
+	\footnote{If we had implemented some spoofing protection by adding \texttt{! -s 10.0.1.0/24} to the respective rule, the number of rules would have been increased to 312. This is because a cross product of two prefix splits would occur.},
+we decided not to include them here.
+Comparing to the first example network, the size of the ruleset seems relatively high. This can be explained by the port matches: $1024$-$65535$ has to be expressed by 6 different matches, \texttt{tp\_src=1024/0xfc00}, \texttt{tp\_src=2048/0xf800}, \ldots, \texttt{tp\_src=32768/0x8000} (or \texttt{tp\_dst} respectively).
+When installing these rules, we also have to move all of H1, H2 and S1 into a common subnet.
+We chose $10.0.0.0/16$ and updated the IP configuration of the three hosts accordingly.
+As discussed, the configuration of S2 did not have to be updated, as it does not share any subnet with F.
+We then tested reachability for TCP 22 and 80 and ICMP.
+The connectivity between all pairs of hosts (H1,H2,S1 and S2) remained the same compared to before the conversion.
+This shows that the concept can be made to work.
+
+However, the example also reveals a flaw: When substituting the more complete model of a linux firewall with the simple one in Section \ref{sec:lfw}, we assumed that the check whether the correct MAC address is set and the packets are destined for the modelled device would never fail — we assumed that all traffic arriving at a device is actually destined for it.
+Obviously, this network violates this assumption.
+We can trigger this in many ways, for example by sending an ICMP ping from H1 to H2.
+This will cause the generated rule \texttt{priority=7, \!icmp, \!nw\_dst=10.0.1.0/24 actions=output:1} (where port 1 is the port facing H1 and H2) to be activated twice.
+This is obviously not desired behavior.
+Dealing with this is, as mentioned, future work.
+
+\subsection{Performance Evaluation}
+Unfortunately, we do not have any real-world data that does not use output port matches as required in Section \ref{sec:convi}.
+There is thus no way to run the translation on the real-world firewall rulesets we have available and obtain a meaningful result.
+Nevertheless, we can use a real-world ruleset to evaluate the performance of our translation.
+For this purpose, we picked the largest firewall from the firewall collection from~\cite{diekmann2016verified}.
+A significant amount of time is necessary to convert its \texttt{FORWARD} chain including 4946 rules\footnote{In the pre-parsed and already normalized version we used for this benchmark, it took $45 \mathrm{s}$. The full required time lies closer to $11 \mathrm{min}$ as stated in~\cite{diekmann2016verified}.} to the required simplified firewall form.
+Additionally to the simplified firewall, we acquired the routing table (26 entries) from the same machine.
+We then evaluated the time necessary to complete the translation and the size of the resulting ruleset when using only the first $n$ simple firewall rules and the full routing table.
+The result is shown in Figure \ref{fig:bench}.
+\begin{figure}
+	\begin{tikzpicture}[scale=0.85]
+		\begin{axis}[axis y line*=left, xlabel=Rule count $n$, ylabel=Ruleset size]
+			\addplot table [x=n, y=r, col sep=comma] {bench.csv};
+			\addlegendentry{Ruleset size}\label{rulecount}
+			\legend{}
+		\end{axis}
+		\begin{axis}[axis y line*=right, axis x line=none, legend pos=north west, ylabel near ticks, ylabel=Time in $\mathrm{s}$]
+			\addplot [mark=x,red] table [x=n, y=s, col sep=comma] {bench.csv};
+			\addlegendentry{Required time}
+			\addlegendimage{/pgfplots/refstyle=rulecount}\addlegendentry{Ruleset size}
+		\end{axis}
+	\end{tikzpicture}
+	\caption{Benchmark}
+	\label{fig:bench}
+\end{figure}
+Given the time necessary to complete the conversion of the iptables firewall to a simple firewall, it is reasonable to say that the translation function is efficient enough.
+At first glance, size of the resulting ruleset seems high. 
+This can be explained by two facts:
+\begin{itemize}
+	\item The firewall contains a large number of rules with port matches that allow the ports $1$-$65535$, which requires 16 OpenFlow rules.
+	\item Some combinations of matches from the firewall and the routing table cannot be ruled out, since the firewall match might only contain an output port and the rule can thus only apply for the packets matching a few routing table entries. 
+	However, the translation is not aware of that and can thus not remove the combination of the firewall rule and other routing table entries.
+\end{itemize}
+In some rules, the conditions above coincede, resulting in $416\ (=16 \cdot 26)$ rules.
+To avoid the high number of rules resulting from the port matches, rules that forbids packets with source or destination port 0 could be added to the start of the firewall and the $1$-$65535$ could be removed;
+dealing with the firewall / routing table problem is part of the future work on output interfaces.
+
+\section{Conclusion and Future Work}
+We believe that we have shown that it is possible to translate at least basic configurations of a linux firewall into OpenFlow rulesets while preserving the most important aspects of the behavior.
+We recognize that our system has limited practical applicability.
+One possible example would be a router or firewall inside a company network whose state tables have been polluted by special attack traffic.
+Our translation could provide an OpenFlow based stateless replacement.
+However, given the current prerequisites the implementation has on the configuration, this application is relatively unlikely.
+
+For the configuration translation, we have contributed formal models of a linux firewall and of an OpenFlow switch.
+Furthermore, the function that joins two firewalls and the function that translates a simplified match from~\cite{diekmann2016verified} to a list of equivalent OpenFlow field match sets are contributions that we think are likely to be of further use.
+
+We want to explicitly formulate the following two goals for our future work:
+\begin{itemize}
+	\item We want to deal with output interface matches.
+		One possible approach to this has been outlined in Section~\ref{sec:convi}.
+		A more elegant approach that has a wider applicability is to formulate and verify destination interface / destination IP address rewriting that can dynamically exchange output interfaces and destination IP addressed in a firewall, based on the information from the routing table.
+	\item We want to develop a system that can provide a stricter approximation of stateful matches so our translation will be applicable in more cases.
+\end{itemize}

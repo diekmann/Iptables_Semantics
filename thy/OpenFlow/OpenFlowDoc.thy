@@ -38,7 +38,7 @@ We draft the first description of our linux router model:
   \item The destination MAC address of an arriving packet is checked: Does it match the MAC address of the ingress port? 
   If it does, we continue, otherwise, the packet is discarded.
   \item The routing decision @{term "rd \<equiv> routing_table_semantics rt p"} is obtained.
-  \item The packet's output interface is updated based on @{term rd}.
+  \item The packet's output interface is updated based on @{term rd}\footnote{Note that we assume a packet model with input and output interfaces. The origin of this is explained in Section~\ref{sec:lfwfw}}.
   \item The firewall is queried for a decision: @{term "simple_fw fw p"}. If the decision is to @{const[names_short] simple_action.Drop}, the packet is discarded.
   \item The next hop is computed: If @{term rd} provides a next hop, that is used. 
     Otherwise, the destination address of the packet is used.
@@ -62,7 +62,7 @@ text\<open>There are already a few important aspects that have not been modelled
 Namely, there is no local traffic from/to the firewall.
 This is problematic since this model will not generate ARP replies.
 Furthermore, this model is problematic because it requires access to a function that looks up a MAC address, 
-something that may not be known at run-time of the translation.
+something that may not be known at the time of time running the translation.
 \<close>
 text\<open>It is possible to circumvent these problems by inserting static ARP table entries in the directly connected devices 
 and looking up their MAC addresses \emph{a priori}. 
@@ -138,15 +138,21 @@ text\<open>If no matching entry is found, the behavior is undefined.\<close>
 
 subsubsection\<open>iptables Firewall\<close>
 text_raw\<open>\label{sec:lfwfw}\<close>
-text\<open>The firewall subsystem in a linux router is not any less complex than any of the of the other systems. Fortunately, this complexity has been dealt with in~\cite{diekmann2016verified} already and we can directly use the result.\<close>
+text\<open>The firewall subsystem in a linux router is not any less complex than any of the of the other systems.
+Fortunately, this complexity has been dealt with in~\cite{diekmann2016verified} already and we can directly use the result.\<close>
 text\<open>In short, one of the results is that a complex \emph{iptables} configuration can be simplified to be represented by a single list of matches that only support the following match conditions:
 \begin{itemize}
   \item (String) prefix matches on the input and output interfaces.
   \item A @{type prefix_match} on the source and destination IP address.
-  \item An exact match on the used layer 4 protocol.
+  \item An exact match on the layer 4 protocol.
   \item Interval matches on the source or destination port, e.g. @{term "p\<^sub>d \<in> {(1::16 word)..1023}"}
 \end{itemize}
-Obviously, such a simplification cannot always produce an equivalent firewall, and the set of accepted packets has to be over- or underapproximated.
+The model/type of the packet is adjusted to fit that: it is a record of the fields matched on.
+This also means that input and output interface are coded to the packet.
+Given that this information is usually stored alongside the packet content, this can be deemed a reasonable model.
+In case the output interface is not needed (e.g., when evaluating an OpenFlow table), it can simply be left blank.
+
+Obviously, a simplification into the above match type cannot always produce an equivalent firewall, and the set of accepted packets has to be over- or underapproximated.
 The reader interested in the details of this is strongly referred to~\cite{diekmann2016verified}; we are simply going to continue with the result: @{const simple_fw}.
 \<close>
 text\<open>One property of the simplification is worth noting here: The simplified firewall does not know state and the simplification takes to special effort to approximate stateful matches by stateless ones. 
@@ -175,7 +181,6 @@ text\<open>More concretely, we set the following rough outline for our model.
   \item The only possible action (we require) is to forward the packet on a port.
   \item We do not model controller interaction.
 \end{itemize}
-This is clearly 
 Additionally, we decided that we wanted to be able to ensure the validity of the flow table in all qualities,
 i.e. we want to model the conditions `no overlapping flow entries appear', `all match conditions have their necessary preconditions'.
 The details of this are explained in the following sections.
@@ -210,8 +215,8 @@ text\<open>One @{type of_match_field} is not enough to classify a packet.
 To match packets, we thus use entire sets of match fields.
 As Guha \emph{et al.}~\cite{guha2013machine} noted and we explained in Section \ref{sec:sdn}, executing a set of given @{type of_match_field}s on a packet requires careful consideration.
 As a quick reminder: it is, for example, not meaningful to use @{term IPv4Dst} if the given packet is not actually an IP packet, i.e.
-@{term IPv4Dst} has the prerequisite of @{term "EtherType 0x0800"} being among the 
-Guha \emph{et al.} decided do use the fact that the preconditions can be arranged on a directed acyclic graph (or rather: an acyclic forest).
+@{term IPv4Dst} has the prerequisite of @{term "EtherType 0x0800"} being among the match fields.
+Guha \emph{et al.} decided to use the fact that the preconditions can be arranged on a directed acyclic graph (or rather: an acyclic forest).
 They evaluated match conditions in a manner following that graph:
 first, all field matches without preconditions are evaluated.
 Upon evaluating a field match (e.g., @{term "EtherType 0x0800"}), the matches that had their precondition fulfilled by it
@@ -250,7 +255,7 @@ text\<open>The flow table is simply a list of flow table entries @{type flow_ent
 Deciding the right flow entry to use for a given packet is explained in the OpenFlow specification \cite{specification10}, Section 3.4:
 \begin{quote}
   Packets are matched against flow entries based on prioritization. 
-  An entry that specifies an exact match (i.e., has no wildcards) is always the highest priority.
+  An entry that specifies an exact match (i.e., has no wildcards) is always the highest priority\footnote{This behavior has been deprecated.}.
   All wildcard entries have a priority associated with them. 
   Higher priority entries must match before lower priority ones.
   If multiple entries have the same priority, the switch is free to choose any ordering.
@@ -305,13 +310,10 @@ text\<open>Together with distinctness of the flow table, this provides the absce
 lemma "\<lbrakk>check_no_overlap \<gamma> ft; distinct ft\<rbrakk> \<Longrightarrow>
   OF_priority_match \<gamma> ft p \<noteq> Undefined" by (simp add: no_overlapsI no_overlaps_not_unefined)
 
-text\<open>And indeed, given this condition, and additionally the distinctness of all flow table entries, we can show that the semantics by Guha \emph{et al.} and ours are equal.\<close>
-lemma "
-\<lbrakk>check_no_overlap \<gamma> ft; distinct ft\<rbrakk> \<Longrightarrow>
- OF_priority_match \<gamma> ft p = option_to_ftb d \<longleftrightarrow> guha_table_semantics \<gamma> ft p d" by (simp add: guha_equal no_overlapsI)
 text\<open>Given the absence of overlapping or duplicate flow entries, we can show two interesting equivalences.
 the first is the equality to the semantics defined by Guha \emph{et al.}:\<close>
-lemma "\<lbrakk>check_no_overlap \<gamma> ft; distinct ft\<rbrakk> \<Longrightarrow> OF_priority_match \<gamma> ft p = option_to_ftb d \<longleftrightarrow> guha_table_semantics \<gamma> ft p d"
+lemma "\<lbrakk>check_no_overlap \<gamma> ft; distinct ft\<rbrakk> \<Longrightarrow> 
+OF_priority_match \<gamma> ft p = option_to_ftb d \<longleftrightarrow> guha_table_semantics \<gamma> ft p d"
 by (simp add: guha_equal no_overlapsI)
 text\<open>where @{term option_to_ftb} maps between the return type of @{term OF_priority_match} and an option type as one would expect.\<close>
 
@@ -359,7 +361,7 @@ lemma
 "generalized_sfw (a # as) p = (if (case a of (m,_) \<Rightarrow> simple_matches m p) then Some a else generalized_sfw as p)"
 	by(fact generalized_sfw_simps)+
 text\<open>Based on that, we asked: if @{term fw\<^sub>1} makes the decision @{term a} (where @{term a} is the second element of the result tuple from @{const generalized_sfw}) and @{term fw\<^sub>2} makes the decision @{term b}, how can we compute the firewall that
-makes the decision @{term "(a,b)"}\footnote{Note that tuples are right-associative in Isabelle/HOL, i.e., @{term "(a,b,c) = (a,(b,c))"}}.
+makes the decision @{term "(a,b)"}\footnote{Note that tuples are right-associative in Isabelle/HOL, i.e., @{term "(a::'a,(b,c)::('b\<times>'c))"} is a pair of @{term a} and the pair @{term "(b,c)"}}.
 One possible answer is given by the following definition:
 \<close>
 lemma "generalized_fw_join l1 l2 \<equiv> [(u,a,b). (m1,a) \<leftarrow> l1, (m2,b) \<leftarrow> l2, u \<leftarrow> (case simple_match_and m1 m2 of None \<Rightarrow> [] | Some s \<Rightarrow> [s])]"
@@ -372,27 +374,34 @@ For example, it could be used to compute a firewall ruleset that represents two 
 We will use it for something different in the next section.\<close>
 
 subsubsection\<open>Translation Implementation\<close>
-text_raw\<open>\begin{figure}\<close>
+text_raw\<open>
+\begin{figure*}
+\fbox{
+\parbox{\textwidth}{
+\<close>
 lemma "lr_of_tran rt fw ifs \<equiv> let
   nfw = map simple_rule_dtor fw; 
   frt = map (\<lambda>r. (route2match r, output_iface (routing_action r))) rt; 
   nrd = generalized_fw_join frt nfw;
-  ard = (map (apfst word_of_nat) \<circ> annotate_rlen) nrd
+  ard = (map (apfst of_nat) \<circ> annotate_rlen) nrd
   in
   if length nrd < unat (max_word :: 16 word)
   then Inr $ pack_OF_entries ifs ard
   else Inl $ ''Error in creating OpenFlow table: priority number space exhausted''
 "
-unfolding  Let_def lr_of_tran_def lr_of_tran_fbs_def lr_of_tran_s1_def comp_def route2match_def by force
+unfolding Let_def lr_of_tran_def lr_of_tran_fbs_def lr_of_tran_s1_def comp_def route2match_def by force
 text_raw\<open>
+}
+}
   \caption{Function for translating a @{typ "simple_rule list"}, a @{typ "routing_rule list"} and a list of interfaces to a flow table.}
   \label{fig:convi}
-\end{figure}
+\end{figure*}
 \<close>
 text\<open>
 This section shows the actual definition of the translation function, in Figure~\ref{fig:convi}.
 This first two steps are to convert @{term fw} and @{term rt} to lists that can be evaluated by @{const generalized_sfw}.
-For @{term fw}, this is trivial. For @{term rt}, we made a firewall ruleset with rules that use prefix matches on the destination IP address.
+For @{term fw}, this is done by @{term "map simple_rule_dtor"}, which just deconstructs @{type simple_rule}s into tuples of match and action.
+For @{term rt}, we made a firewall ruleset with rules that use prefix matches on the destination IP address.
 The next step is to join the two rulesets.
  The result of the join is a ruleset with rules @{term r} that only match if both, the corresponding firewall rule @{term fwr} and the corresponding routing rule @{term rr} matches.
 The data accompanying @{term r} is the port from @{term rr} and the firewall decision from @{term fwr}.
@@ -416,13 +425,13 @@ text\<open>The main difficulties for @{const simple_match_to_of_match} lie in ma
 The following lemma characterizes @{const simple_match_to_of_match}:
 \<close>
 lemma simple_match_to_of_match:
-  assumes
-    "simple_match_valid r" 
-    "p_iiface p \<in> set ifs" 
-    "match_iface (oiface r) (p_oiface p)"
-    "p_l2type p = 0x800"
-  shows
-    "simple_matches r p \<longleftrightarrow> (\<exists>gr \<in> set (simple_match_to_of_match r ifs). OF_match_fields gr p = Some True)"
+assumes
+  "simple_match_valid r" 
+  "p_iiface p \<in> set ifs" 
+  "match_iface (oiface r) (p_oiface p)"
+  "p_l2type p = 0x800"
+shows
+  "simple_matches r p \<longleftrightarrow> (\<exists>gr \<in> set (simple_match_to_of_match r ifs). OF_match_fields gr p = Some True)"
 using assms simple_match_to_of_matchD simple_match_to_of_matchI by blast
 
 text\<open>The assumptions are to be read as follows:
@@ -445,7 +454,10 @@ However, showing that this is correct is highly technical.
 That is why, for now, we limit ourselves to firewalls that do not do output port matching, i.e., we require @{term "no_oif_match fw"}.
 \<close>
 
-text_raw\<open>\begin{figure*}\<close>
+text_raw\<open>\begin{figure*}
+\fbox{
+\parbox{\textwidth}{
+\<close>
 theorem
 fixes
   p :: "'a simple_packet_ext_scheme"
@@ -462,7 +474,7 @@ shows
   "OF_priority_match OF_match_fields_safe oft p = Action ls \<longrightarrow> length ls \<le> 1"
   "\<exists>ls. length ls \<le> 1 \<and> OF_priority_match OF_match_fields_safe oft p = Action ls"
 using assms lr_of_tran_correct by simp_all
-text_raw\<open>
+text_raw\<open> }}
 \caption{Central theorem on @{const lr_of_tran}}
 \label{fig:central}
 \end{figure*}

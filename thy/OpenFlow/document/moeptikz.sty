@@ -1,0 +1,1577 @@
+%% moeptikz.sty
+%% Copyright 2015 Stephan M. Guenther
+%
+% This work may be distributed and/or modified under the % conditions of the
+% LaTeX Project Public License, either version 1.3 % of this license or (at
+% your option) any later version. The latest version of this license is in
+%   http://www.latex-project.org/lppl.txt
+% and version 1.3 or later is part of all distributions of LaTeX version
+% 2005/12/01 or later.
+%
+% This work has the LPPL maintenance status `maintained'.
+%
+% The current maintainer of this work is Stephan M. Guenther.
+%
+% This work consists of the files moeptikz.sty and documentation.tex.
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{moeptikz}[2016/04/06 moepTikZ]
+
+\RequirePackage{ifthen}
+\RequirePackage{xparse}
+\RequirePackage{tikz}
+\RequirePackage{makeshape}
+
+\usetikzlibrary{patterns}
+
+\DeclareDocumentCommand{\tikzextractx}{m m}{%
+	\tikz@scan@one@point\pgfutil@firstofone#1\relax%
+	\edef#2{\the\pgf@x}%
+}%
+\DeclareDocumentCommand{\tikzextracty}{m m}{%
+	\tikz@scan@one@point\pgfutil@firstofone#1\relax%
+	\edef#2{\the\pgf@y}%
+}%
+
+% http://tex.stackexchange.com/questions/218968/how-to-save-the-current-color-in-pgf-tikz
+\tikzset{get stroke color/.code={%
+	\expandafter\global%
+	\expandafter\let%
+	\expandafter\pgfsavedstrokecolor%
+	\csname\string\color@pgfstrokecolor\endcsname%
+	},%
+	restore stroke color/.code={\pgf@setstrokecolor#1},%
+	replace fill by stroke color/.code={\pgf@setfillcolor#1},%
+}
+\tikzset{get fill color/.code={%
+	\expandafter\global%
+	\expandafter\let%
+	\expandafter\pgfsavedfillcolor%
+	\csname\string\color@pgffillcolor\endcsname%
+	},%
+	restore fill color/.code={\pgf@setfillcolor#1},%
+	replace stroke by fill color/.code={\pgf@setstrokecolor#1},%
+}
+
+\def\tikz@fillcolor{black}
+\newif\ifmoeptikz@shading
+\define@key{moeptikz}{shading}{%
+	\ifthenelse{\equal{#1}{true}}{%
+		\moeptikz@shadingtrue%
+	}{%
+		\moeptikz@shadingfalse%
+	}%
+}
+
+\DeclareDocumentCommand{\moeptikz@setshading}{}{%
+	\ifmoeptikz@shading%
+		\pgfdeclareradialshading{moeptikz@shading}{\pgfpoint{-25bp}{-25bp}}{%
+			rgb(0bp)=(1,1,1);
+			color(20bp)=(\tikz@fillcolor!20);
+			color(50bp)=(\tikz@fillcolor!60)
+		}
+		\pgfdeclareradialshading{moeptikz@shadingnuc}{\pgfpoint{-25bp}{-25bp}}{%
+			rgb(0bp)=(1,1,1);
+			color(20bp)=(\tikz@fillcolor!70);
+			color(50bp)=(\tikz@fillcolor!90)
+		}
+	\else%
+		\pgfdeclareradialshading{moeptikz@shading}{\pgfpoint{0}{0}}{%
+			color(0bp)=(\tikz@fillcolor!30);
+			color(100bp)=(\tikz@fillcolor!30)
+		}
+		\pgfdeclareradialshading{moeptikz@shadingnuc}{\pgfpoint{0}{0}}{%
+			color(0bp)=(\tikz@fillcolor!70);
+			color(100bp)=(\tikz@fillcolor!70)
+		}
+	\fi%
+}
+
+\DeclareDocumentCommand{\moeptikzset}{m}{%
+	\setkeys{moeptikz}{#1}%
+}
+
+\moeptikzset{shading=true}
+
+\DeclareOption{shading}{\moeptikzset{shading=true}}
+\DeclareOption{noshading}{\moeptikzset{shading=false}}
+\ProcessOptions*\relax
+
+
+
+%==============================================================================
+% server
+%==============================================================================
+\def\serveranchor{
+	\pgf@xa=\pgfshapeminwidth
+	\pgf@ya=\pgfshapeminwidth
+	\pgf@xa=.5\pgf@xa
+	\pgf@ya=.5\pgf@ya
+
+	\pgfpathmoveto{\pgfpoint{.75\pgf@xa}{.4\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-.75\pgf@xa}{.4\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-.97\pgf@xa}{-.18\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-.99\pgf@xa}{-.18\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-.99\pgf@xa}{-.4\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{.99\pgf@xa}{-.4\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{.99\pgf@xa}{-.18\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{.97\pgf@xa}{-.18\pgf@ya}}
+	\pgfpathclose
+}
+\def\serverborder{
+	\moeptikz@setshading
+	\pgfmathparse{.004*\pgfshapeminwidth}\let\linewidth\pgfmathresult
+	\pgfmathparse{.008*\pgfshapeminwidth}\let\linewidthlarge\pgfmathresult
+	\pgfmathparse{.005*\pgfshapeminwidth}\let\cornerarc\pgfmathresult
+	\pgfmathparse{.04*sqrt(\pgfshapeminwidth)}\let\fontwidth\pgfmathresult
+
+	% Front
+	\pgfsetstrokecolor{black!40}
+	\pgfsetfillcolor{black!40}
+	\pgfpathrectanglecorners{\northeast \pgf@y=-.2\pgf@y}{\northeast \pgf@x=-\pgf@x \pgf@y=-.4\pgf@y}
+	\pgfshadepath{moeptikz@shading}{-25}
+	\pgfusepath{}
+
+	\pgfsetstrokecolor{black!40}
+	\pgfmoveto{\northeast \pgf@y=-.2\pgf@y}
+	\pgflineto{\northeast \pgf@x=-\pgf@x \pgf@y=-.2\pgf@y}
+	\pgflineto{\northeast \pgf@x=-.99\pgf@x \pgf@y=-.18\pgf@y}
+	\pgflineto{\northeast \pgf@x=.99\pgf@x \pgf@y=-.18\pgf@y}
+	\pgfclosepath
+	\pgfshadepath{moeptikz@shading}{-25}
+	\pgfusepath{}
+
+	% Deckel
+	\pgfmoveto{\northeast \pgf@x=.75\pgf@x \pgf@y=.4\pgf@y}
+	\pgflineto{\northeast \pgf@x=.97\pgf@x \pgf@y=-.18\pgf@y}
+	\pgflineto{\northeast \pgf@x=-.97\pgf@x \pgf@y=-.18\pgf@y}
+	\pgflineto{\northeast \pgf@x=-.75\pgf@x \pgf@y=.4\pgf@y}
+	\pgfclosepath
+	\pgfshadepath{moeptikz@shading}{11.5}
+	\pgfusepath{}
+
+	% Amaturen
+	\pgfsetstrokecolor{black}
+	\pgfsetlinewidth{1.5*\linewidth}
+	\pgfsetcornersarced{\pgfpoint{\cornerarc}{\cornerarc}}
+	\pgfmoveto{\northeast \pgf@x=-.9\pgf@x \pgf@y=-.4\pgf@y}
+	\pgflineto{\northeast \pgf@x=-.9\pgf@x \pgf@y=-.28\pgf@y}
+	\pgflineto{\northeast \pgf@x=.9\pgf@x \pgf@y=-.28\pgf@y}
+	\pgflineto{\northeast \pgf@x=.9\pgf@x \pgf@y=-.4\pgf@y}
+	\pgfusepath{stroke}
+
+	\pgfmoveto{\northeast \pgf@x=-.895\pgf@x \pgf@y=-.4\pgf@y}
+	\pgflineto{\northeast \pgf@x=-.895\pgf@x \pgf@y=-.28\pgf@y}
+	\pgfusepath{stroke}
+
+	\pgfmoveto{\northeast \pgf@x=.895\pgf@x \pgf@y=-.4\pgf@y}
+	\pgflineto{\northeast \pgf@x=.895\pgf@x \pgf@y=-.28\pgf@y}
+	\pgfusepath{stroke}
+
+	\pgfsetlinewidth{2*\linewidth}
+	\pgfmoveto{\northeast \pgf@x=-.44\pgf@x \pgf@y=-.4\pgf@y}
+	\pgflineto{\northeast \pgf@x=-.44\pgf@x \pgf@y=-.28\pgf@y}
+	\pgfusepath{stroke}
+	\pgfmoveto{\northeast \pgf@x=-.225\pgf@x \pgf@y=-.4\pgf@y}
+	\pgflineto{\northeast \pgf@x=-.225\pgf@x \pgf@y=-.28\pgf@y}
+	\pgfusepath{stroke}
+	\pgfmoveto{\northeast \pgf@x=.225\pgf@x \pgf@y=-.4\pgf@y}
+	\pgflineto{\northeast \pgf@x=.225\pgf@x \pgf@y=-.28\pgf@y}
+	\pgfusepath{stroke}
+	\pgfmoveto{\northeast \pgf@x=.44\pgf@x \pgf@y=-.4\pgf@y}
+	\pgflineto{\northeast \pgf@x=.44\pgf@x \pgf@y=-.28\pgf@y}
+	\pgfusepath{stroke}
+
+	% optical drive
+	\pgfsetfillcolor{black}
+	\pgfpathrectanglecorners{\northeast \pgf@x=.9\pgf@x \pgf@y=-.22\pgf@y}{\northeast \pgf@x=.34\pgf@x \pgf@y=-.24\pgf@y}
+	\pgfusepath{fill}
+
+	% schlitze front oben
+	\pgfpathrectanglecorners{\northeast \pgf@x=.3\pgf@x \pgf@y=-.21\pgf@y}{\northeast \pgf@x=.285\pgf@x \pgf@y=-.26\pgf@y}
+	\pgfusepath{fill}
+	\pgfpathrectanglecorners{\northeast \pgf@x=.26\pgf@x \pgf@y=-.21\pgf@y}{\northeast \pgf@x=.245\pgf@x \pgf@y=-.26\pgf@y}
+	\pgfusepath{fill}
+	\pgfpathrectanglecorners{\northeast \pgf@x=.22\pgf@x \pgf@y=-.21\pgf@y}{\northeast \pgf@x=.205\pgf@x \pgf@y=-.26\pgf@y}
+	\pgfusepath{fill}
+	\pgfpathrectanglecorners{\northeast \pgf@x=.18\pgf@x \pgf@y=-.21\pgf@y}{\northeast \pgf@x=.165\pgf@x \pgf@y=-.26\pgf@y}
+	\pgfusepath{fill}
+	\pgfpathrectanglecorners{\northeast \pgf@x=.14\pgf@x \pgf@y=-.21\pgf@y}{\northeast \pgf@x=.125\pgf@x \pgf@y=-.26\pgf@y}
+	\pgfusepath{fill}
+	\pgfpathrectanglecorners{\northeast \pgf@x=.10\pgf@x \pgf@y=-.21\pgf@y}{\northeast \pgf@x=.085\pgf@x \pgf@y=-.26\pgf@y}
+	\pgfusepath{fill}
+	\pgfpathrectanglecorners{\northeast \pgf@x=.06\pgf@x \pgf@y=-.21\pgf@y}{\northeast \pgf@x=.045\pgf@x \pgf@y=-.26\pgf@y}
+	\pgfusepath{fill}
+
+	\pgfpathrectanglecorners{\northeast \pgf@x=-.3\pgf@x \pgf@y=-.21\pgf@y}{\northeast \pgf@x=-.285\pgf@x \pgf@y=-.26\pgf@y}
+	\pgfusepath{fill}
+	\pgfpathrectanglecorners{\northeast \pgf@x=-.26\pgf@x \pgf@y=-.21\pgf@y}{\northeast \pgf@x=-.245\pgf@x \pgf@y=-.26\pgf@y}
+	\pgfusepath{fill}
+	\pgfpathrectanglecorners{\northeast \pgf@x=-.22\pgf@x \pgf@y=-.21\pgf@y}{\northeast \pgf@x=-.205\pgf@x \pgf@y=-.26\pgf@y}
+	\pgfusepath{fill}
+	\pgfpathrectanglecorners{\northeast \pgf@x=-.18\pgf@x \pgf@y=-.21\pgf@y}{\northeast \pgf@x=-.165\pgf@x \pgf@y=-.26\pgf@y}
+	\pgfusepath{fill}
+	\pgfpathrectanglecorners{\northeast \pgf@x=-.14\pgf@x \pgf@y=-.21\pgf@y}{\northeast \pgf@x=-.125\pgf@x \pgf@y=-.26\pgf@y}
+	\pgfusepath{fill}
+	\pgfpathrectanglecorners{\northeast \pgf@x=-.10\pgf@x \pgf@y=-.21\pgf@y}{\northeast \pgf@x=-.085\pgf@x \pgf@y=-.26\pgf@y}
+	\pgfusepath{fill}
+	\pgfpathrectanglecorners{\northeast \pgf@x=-.06\pgf@x \pgf@y=-.21\pgf@y}{\northeast \pgf@x=-.045\pgf@x \pgf@y=-.26\pgf@y}
+	\pgfusepath{fill}
+
+	% Lichter
+	\pgfsetfillcolor{cyan}
+	\pgfpathcircle{\northeast \pgf@x=-.35\pgf@x \pgf@y=-.22\pgf@y}{.5\pgflinewidth}
+	\pgfusepath{fill}
+	\pgfpathcircle{\northeast \pgf@x=-.375\pgf@x \pgf@y=-.22\pgf@y}{.5\pgflinewidth}
+	\pgfusepath{fill}
+	\pgfpathcircle{\northeast \pgf@x=-.4\pgf@x \pgf@y=-.22\pgf@y}{.5\pgflinewidth}
+	\pgfusepath{fill}
+	\pgfpathcircle{\northeast \pgf@x=-.425\pgf@x \pgf@y=-.22\pgf@y}{.5\pgflinewidth}
+	\pgfusepath{fill}
+	\pgfpathcircle{\northeast \pgf@x=-.45\pgf@x \pgf@y=-.22\pgf@y}{.5\pgflinewidth}
+	\pgfusepath{fill}
+	\pgfsetfillcolor{black}
+	\pgfpathcircle{\northeast \pgf@x=-.475\pgf@x \pgf@y=-.22\pgf@y}{.5\pgflinewidth}
+	\pgfusepath{fill}
+	\pgfpathcircle{\northeast \pgf@x=-.5\pgf@x \pgf@y=-.22\pgf@y}{.5\pgflinewidth}
+	\pgfusepath{fill}
+	\pgfpathcircle{\northeast \pgf@x=-.525\pgf@x \pgf@y=-.22\pgf@y}{.5\pgflinewidth}
+	\pgfusepath{fill}
+	\pgfpathcircle{\northeast \pgf@x=-.55\pgf@x \pgf@y=-.22\pgf@y}{.5\pgflinewidth}
+	\pgfusepath{fill}
+
+	\pgfsetfillcolor{cyan}
+	\pgfpathcircle{\northeast \pgf@x=-.35\pgf@x \pgf@y=-.24\pgf@y}{.5\pgflinewidth}
+	\pgfusepath{fill}
+	\pgfpathcircle{\northeast \pgf@x=-.375\pgf@x \pgf@y=-.24\pgf@y}{.5\pgflinewidth}
+	\pgfusepath{fill}
+	\pgfpathcircle{\northeast \pgf@x=-.4\pgf@x \pgf@y=-.24\pgf@y}{.5\pgflinewidth}
+	\pgfusepath{fill}
+	\pgfpathcircle{\northeast \pgf@x=-.425\pgf@x \pgf@y=-.24\pgf@y}{.5\pgflinewidth}
+	\pgfusepath{fill}
+	\pgfsetfillcolor{black}
+	\pgfpathcircle{\northeast \pgf@x=-.45\pgf@x \pgf@y=-.24\pgf@y}{.5\pgflinewidth}
+	\pgfusepath{fill}
+	\pgfpathcircle{\northeast \pgf@x=-.475\pgf@x \pgf@y=-.24\pgf@y}{.5\pgflinewidth}
+	\pgfusepath{fill}
+	\pgfpathcircle{\northeast \pgf@x=-.5\pgf@x \pgf@y=-.24\pgf@y}{.5\pgflinewidth}
+	\pgfusepath{fill}
+	\pgfpathcircle{\northeast \pgf@x=-.525\pgf@x \pgf@y=-.24\pgf@y}{.5\pgflinewidth}
+	\pgfusepath{fill}
+	\pgfpathcircle{\northeast \pgf@x=-.55\pgf@x \pgf@y=-.24\pgf@y}{.5\pgflinewidth}
+	\pgfusepath{fill}
+	\pgfdeclareverticalshading{xserveEject}{100bp}{color(0bp)=(black); color(100bp)=(black!70)}
+	\pgfsetcornersarced{\pgfpoint{0pt}{0pt}}
+	\pgfsetfillcolor{black}
+	\pgfpathrectanglecorners{\northeast \pgf@x=-.425\pgf@x \pgf@y=-.3925\pgf@y}{\northeast \pgf@x=-.24\pgf@x \pgf@y=-.2925\pgf@y}
+	\pgfshadepath{xserveEject}{180}
+	\pgfusepath{}
+
+	\pgfsetcornersarced{\pgfpoint{0pt}{0pt}}
+	\pgfsetfillcolor{black}
+	\pgfpathrectanglecorners{\northeast \pgf@x=.425\pgf@x \pgf@y=-.3925\pgf@y}{\northeast \pgf@x=.24\pgf@x \pgf@y=-.2925\pgf@y}
+	\pgfshadepath{xserveEject}{180}
+	\pgfusepath{}
+}
+\pgfdeclareshape{@server}{
+	\setpaths{\serveranchor}{\serverborder}
+	\savedanchor\northeast{%
+		\pgf@x = \pgfshapeminwidth
+		\pgf@y = \pgfshapeminwidth
+		\pgf@x=.5\pgf@x
+		\pgf@y=.5\pgf@y
+	}
+	\savedanchor\southwest{%
+		\pgf@x = \pgfshapeminwidth
+		\pgf@y = \pgfshapeminwidth
+		\pgf@x=-.5\pgf@x
+		\pgf@y=-.5\pgf@y
+	}
+	\anchor{north}{\northeast \pgf@y=.4\pgf@y \pgf@x=0pt}
+	\anchor{north east}{\northeast \pgf@x=.75\pgf@x \pgf@y=.4\pgf@y}
+	\anchor{north west}{\northeast \pgf@x=-.75\pgf@x \pgf@y=.4\pgf@y}
+	\anchor{east}{\northeast \pgf@x=.9\pgf@x \pgf@y=0pt}
+	\anchor{south}{\northeast \pgf@x=0pt \pgf@y=-.4\pgf@y}
+	\anchor{south east}{\northeast \pgf@y=-.4\pgf@y}
+	\anchor{south west}{\northeast \pgf@x=-\pgf@x \pgf@y=-.4\pgf@y}
+	\anchor{west}{\northeast \pgf@x=-.9\pgf@x \pgf@y=0pt}
+	\anchor{text}{
+		\pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+		\pgfmathsetlength\pgf@y{\pgfshapeminwidth}%
+		\pgf@x=0pt
+		\pgf@y=-.5\pgf@y
+		\advance\pgf@x by -.5\wd\pgfnodeparttextbox
+		\advance\pgf@y by -\ht\pgfnodeparttextbox
+	}
+}
+
+\tikzset{
+server/.style 2 args={
+	shape=@server,
+	minimum size=#1,
+	fill=#2
+},
+server/.default={1cm}{black}
+}
+
+
+%==============================================================================
+% client
+%==============================================================================
+\def\clientanchor{
+	\pgf@xa=\pgfshapeminwidth
+	\pgf@ya=\pgfshapeminwidth
+	\pgf@xa=.5\pgf@xa
+	\pgf@ya=.5\pgf@ya
+
+	\pgfpathmoveto{\pgfpoint{\pgf@xa}{.79\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-\pgf@xa}{.79\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-\pgf@xa}{-.5\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-.25\pgf@xa}{-.5\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-.25\pgf@xa}{-.79\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-.4\pgf@xa}{-\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{.1\pgf@xa}{-\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{.25\pgf@xa}{-.79\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{.25\pgf@xa}{-.5\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{1.02\pgf@xa}{-.5\pgf@ya}}
+	\pgfpathclose
+}
+\def\clientborder{
+	\moeptikz@setshading
+	\pgfmathparse{.005*\pgfshapeminwidth}\let\linewidth\pgfmathresult
+	\pgfmathparse{.01*\pgfshapeminwidth}\let\linewidthlarge\pgfmathresult
+	\pgfmathparse{.01*\pgfshapeminwidth}\let\cornerarc\pgfmathresult
+	\pgfmathparse{.01*\pgfshapeminwidth}\let\cornerarclarge\pgfmathresult
+	\pgfmathparse{.04*sqrt(\pgfshapeminwidth)}\let\fontwidth\pgfmathresult
+	\pgfsetcornersarced{\pgfpoint{\cornerarc}{\cornerarc}}
+
+	\pgfsetstrokecolor{black!40}
+	\pgfpathmoveto{\southwest \pgf@x=.98\pgf@x \pgf@y=.50\pgf@y}
+	\pgfpathlineto{\southwest \pgf@y=.48\pgf@y}
+	\pgfusepath{stroke}
+
+	\pgfsetstrokecolor{black!40}
+	\pgfpathmoveto{\northeast \pgf@y=.73\pgf@y}
+	\pgfpathlineto{\northeast \pgf@x=.98\pgf@x \pgf@y=.75\pgf@y}
+	\pgfusepath{stroke}
+
+	\pgfsetlinewidth{\linewidthlarge}
+	% Standfuss
+	\pgfsetcornersarced{\pgfpoint{\cornerarclarge}{\cornerarclarge}}
+	\pgfpathmoveto{\southwest \pgf@x=.25\pgf@x \pgf@y=0\pgf@y}
+	\pgfpathlineto{\southwest \pgf@x=-.25\pgf@x \pgf@y=0\pgf@y}
+	\pgfpathlineto{\southwest \pgf@x=-.25\pgf@x \pgf@y=.75\pgf@y}
+	\pgfpathlineto{\southwest \pgf@x=-.10\pgf@x}
+	\pgfpathlineto{\southwest \pgf@x=.40\pgf@x}
+	\pgfpathlineto{\southwest \pgf@x=.25\pgf@x \pgf@y=.75\pgf@y}
+	\pgfpathlineto{\southwest \pgf@x=.25\pgf@x \pgf@y=.55\pgf@y}
+	\pgfclosepath
+	\pgfshadepath{moeptikz@shading}{-33}
+	\pgfusepath{stroke}
+
+	\pgfsetlinewidth{1pt}
+	% 3D Display Rahmen
+	\pgfsetcornersarced{\pgfpoint{\cornerarc}{\cornerarc}}
+	\pgfsetstrokecolor{black!40}
+	\pgfsetfillcolor{black!40}
+	\pgfpathrectanglecorners{\southwest \pgf@x=.99\pgf@x \pgf@y=.47\pgf@y}
+		{\northeast \pgf@y=.77\pgf@y}
+	\pgfusepath{stroke,fill}
+
+	% Schwarzer aeusserer Monitorrahmen
+	\pgfsetstrokecolor{black}
+	\pgfsetfillcolor{black}
+	\pgfpathrectanglecorners{\southwest \pgf@y=.48\pgf@y}{\northeast \pgf@x=.98\pgf@x \pgf@y=.75\pgf@y}
+	\pgfusepath{stroke,fill}
+
+	% Displayflaeche
+	\pgfsetfillcolor{black!90}
+	\pgfpathrectanglecorners{\southwest \pgf@x=.95\pgf@x \pgf@y=.43\pgf@y}{\northeast \pgf@x=.93\pgf@x \pgf@y=.70\pgf@y}
+	\pgfusepath{stroke,fill}
+
+	\pgfpathrectanglecorners{\southwest \pgf@x=.95\pgf@x \pgf@y=.43\pgf@y}{\northeast \pgf@x=.93\pgf@x \pgf@y=.70\pgf@y}
+	\pgfshadepath{moeptikz@shadingnuc}{180}
+	\pgfusepath{}
+}
+\pgfdeclareshape{@client}{
+	\setpaths{\clientanchor}{\clientborder}
+	\savedanchor\northeast{%
+		\pgf@x = \pgfshapeminwidth
+		\pgf@y = \pgfshapeminwidth
+		\pgf@x=.5\pgf@x
+		\pgf@y=.5\pgf@y
+	}
+	\savedanchor\southwest{%
+		\pgf@x = \pgfshapeminwidth
+		\pgf@y = \pgfshapeminwidth
+		\pgf@x=-.5\pgf@x
+		\pgf@y=-.5\pgf@y
+	}
+	\anchor{north}{\northeast \pgf@y=.75\pgf@y \pgf@x=0pt}
+	\anchor{north east}{\northeast \pgf@x=.5\pgf@x \pgf@y=.625\pgf@y}
+	\anchor{north west}{\northeast \pgf@x=-.5\pgf@x \pgf@y=.625\pgf@y}
+	\anchor{east}{\northeast \pgf@y=0pt}
+	\anchor{south}{\northeast \pgf@x=0pt \pgf@y=-.95\pgf@y}
+	\anchor{south east}{\northeast \pgf@x=.5\pgf@x \pgf@y=-.55\pgf@y}
+	\anchor{south west}{\northeast \pgf@x=-.5\pgf@x \pgf@y=-.55\pgf@y}
+	\anchor{west}{\northeast \pgf@x=-\pgf@x \pgf@y=0pt}
+	\anchor{text}{
+		\pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+		\pgfmathsetlength\pgf@y{\pgfshapeminwidth}%
+		\pgf@x=0pt
+		\pgf@y=-.75\pgf@y
+		\advance\pgf@x by -.5\wd\pgfnodeparttextbox
+		\advance\pgf@y by -\ht\pgfnodeparttextbox
+	}
+}
+
+\tikzset{
+client/.style 2 args={
+	shape=@client,
+	minimum size=#1,
+	fill=#2
+},
+client/.default={1cm}{black}
+}
+
+
+%==============================================================================
+% notebook
+%==============================================================================
+\def\tx{0}
+\def\ty{0}
+\def\tz{0}
+\def\vx{10}
+\def\vy{15}
+\def\vz{-10}
+\pgfmathparse{cos(-\tx)}
+\edef\cx{\pgfmathresult}
+\pgfmathparse{cos(-\ty)}
+\edef\cy{\pgfmathresult}
+\pgfmathparse{cos(-\tz)}
+\edef\cz{\pgfmathresult}
+\pgfmathparse{sin(-\tx)}
+\edef\sx{\pgfmathresult}
+\pgfmathparse{sin(-\ty)}
+\edef\sy{\pgfmathresult}
+\pgfmathparse{sin(-\tz)}
+\edef\sz{\pgfmathresult}
+\newcommand{\moeptikz@transform}[3]{%
+	\pgfmathparse{\cy*(\sz*(#2-\vy)+\cz*(#1-\vx))-\sy*(#3-\vz)}
+	\edef\dx{\pgfmathresult}
+	\pgfmathparse{\sx*(\cy*(#3-\vz)+\sy*(\sz*(#2-\vy)+\cz*(#1-\vx)))+\cx*(\cz*(#2-\vy)-\sz*(#1-\vx)}
+	\edef\dy{\pgfmathresult}
+	\pgfmathparse{\cx*(\cy*(#3-\vz)+\sy*(\sz*(#2-\vy)+\cz*(#1-\vx)))-\sx*(\cz*(#2-\vy)-\sz*(#1-\vx))}
+	\edef\dz{\pgfmathresult}
+	\pgfmathparse{\dx/\dz}
+	\pgf@x=\pgfmathresult\pgf@x
+	\pgfmathparse{\dy/\dz}
+	\pgf@y=\pgfmathresult\pgf@y
+}
+\newcommand{\moeptikz@transforma}[3]{%
+	\pgfmathparse{\cy*(\sz*(#2-\vy)+\cz*(#1-\vx))-\sy*(#3-\vz)}
+	\edef\dx{\pgfmathresult}
+	\pgfmathparse{\sx*(\cy*(#3-\vz)+\sy*(\sz*(#2-\vy)+\cz*(#1-\vx)))+\cx*(\cz*(#2-\vy)-\sz*(#1-\vx)}
+	\edef\dy{\pgfmathresult}
+	\pgfmathparse{\cx*(\cy*(#3-\vz)+\sy*(\sz*(#2-\vy)+\cz*(#1-\vx)))-\sx*(\cz*(#2-\vy)-\sz*(#1-\vx))}
+	\edef\dz{\pgfmathresult}
+	\pgfmathparse{\dx/\dz}
+	\pgf@xa=\pgfmathresult\pgf@xa
+	\pgfmathparse{\dy/\dz}
+	\pgf@ya=\pgfmathresult\pgf@ya
+}
+
+\newcommand\moeptikz@dim[3]{%
+	\pgf@x=\pgf@xa
+	\pgf@y=\pgf@ya
+	\moeptikz@transform{#1}{#2}{#3}
+	\pgfpoint{\pgf@x}{\pgf@y}
+}
+
+\newcommand\moeptikz@point[3]{%
+	\northeast
+	\moeptikz@transform{#1}{#2}{#3}
+	\pgfpoint{\pgf@x}{\pgf@y}
+}
+
+\def\notebookanchor{
+	\pgf@xa=\pgfshapeminwidth
+	\pgf@ya=\pgfshapeminwidth
+	\pgf@xa=.5\pgf@xa
+	\pgf@ya=.5\pgf@ya
+	\edef\moeptikz@scale{10}
+	\pgfmathparse{0.1*\moeptikz@scale*\vx}
+	\edef\moeptikz@xscale{\pgfmathresult}
+	\pgfmathparse{0.1*\moeptikz@scale*\vy}
+	\edef\moeptikz@yscale{\pgfmathresult}
+	\pgftransformxscale{\moeptikz@scale}
+	\pgftransformyscale{\moeptikz@scale}
+	\pgfmathparse{-\vx/\vz-1/(\vx*\vz)}
+	\edef\moeptikz@vxvz{\pgfmathresult}
+	\pgfmathparse{-\vy/\vz}
+	\edef\moeptikz@vyvz{\pgfmathresult}
+	\pgftransformshift{\pgfpoint{\moeptikz@vxvz\pgf@xa}{\moeptikz@vyvz\pgf@ya}}
+	\pgfmoveto{\moeptikz@dim{-1.0}{1.1}{-.1}}
+	\pgflineto{\moeptikz@dim{-1.0}{0}{-.1}}
+	\pgflineto{\moeptikz@dim{-1.0}{0}{-.5}}
+	\pgflineto{\moeptikz@dim{1.0}{0}{-.5}}
+	\pgflineto{\moeptikz@dim{1.0}{0}{-.1}}
+	\pgflineto{\moeptikz@dim{1.0}{1.1}{-.1}}
+	\pgfclosepath
+	\pgftransformreset
+}
+
+\def\notebookborder{
+	\moeptikz@setshading
+	\pgfmathparse{.0025*\pgfshapeminwidth}\let\linewidth\pgfmathresult
+	\pgfmathparse{.01*\pgfshapeminwidth}\let\linewidthlarge\pgfmathresult
+	\pgfmathparse{.01*\pgfshapeminwidth}\let\cornerarc\pgfmathresult
+	\pgfmathparse{.004*\pgfshapeminwidth}\let\cornerarcsmall\pgfmathresult
+	\pgfmathparse{.04*sqrt(\pgfshapeminwidth)}\let\fontwidth\pgfmathresult
+
+	\pgfsetcornersarced{\pgfpoint{\cornerarc}{\cornerarc}}
+	\pgfsetlinewidth{\linewidth}
+
+%	\pgfmoveto{\moeptikz@point{-1}{-1}}
+%	\pgflineto{\moeptikz@point{1}{-1}}
+%	\pgflineto{\moeptikz@point{1}{1}}
+%	\pgflineto{\moeptikz@point{-1}{1}}
+%	\pgfclosepath
+%	\pgfusepath{fill}
+
+	\edef\moeptikz@scale{10}
+	\pgfmathparse{0.1*\moeptikz@scale*\vx}
+	\edef\moeptikz@xscale{\pgfmathresult}
+	\pgfmathparse{0.1*\moeptikz@scale*\vy}
+	\edef\moeptikz@yscale{\pgfmathresult}
+	\pgftransformxscale{\moeptikz@scale}
+	\pgftransformyscale{\moeptikz@scale}
+	\pgfmathparse{-\vx/\vz-1/(\vx*\vz)}
+	\edef\moeptikz@vxvz{\pgfmathresult}
+	\pgfmathparse{-\vy/\vz}
+	\edef\moeptikz@vyvz{\pgfmathresult}
+	\pgftransformshift{\northeast \pgfpoint{\moeptikz@vxvz\pgf@x}{\moeptikz@vyvz\pgf@y}}
+	\pgfsetstrokecolor{red}
+
+	% Kante vorne (simuliert durch darunterliegende Flaeche)
+	\pgfsetfillcolor{black!40}
+	\pgfmoveto{\moeptikz@point{-1.0}{-.05}{-.1}}
+	\pgflineto{\moeptikz@point{1.01}{-.05}{-.1}}
+	\pgflineto{\moeptikz@point{1.01}{-.01}{-.5}}
+	\pgflineto{\moeptikz@point{-1.0}{-.01}{-.5}}
+	\pgfclosepath
+	\pgfusepath{fill}
+
+	% Kante rechts
+	\pgfsetfillcolor{black!40}
+	\pgfmoveto{\moeptikz@point{1.01}{-0.01}{-.5}}
+	\pgflineto{\moeptikz@point{1.01}{-.05}{-.1}}
+	\pgflineto{\moeptikz@point{1.0}{0}{-.1}}
+	\pgflineto{\moeptikz@point{1.0}{0}{-.5}}
+	\pgfclosepath
+	\pgfusepath{fill}
+
+	% Tastaturflaeche
+	\pgfsetfillcolor{black!20}
+	\pgfsetstrokecolor{black!30}
+	\pgfmoveto{\moeptikz@point{-1.0}{0}{-.1}}
+	\pgflineto{\moeptikz@point{1.0}{0}{-.1}}
+	\pgflineto{\moeptikz@point{1.0}{0}{-.5}}
+	\pgflineto{\moeptikz@point{-1.0}{0}{-.5}}
+	\pgfclosepath
+	\pgfshadepath{moeptikz@shading}{180}
+	\pgfsetfillcolor{black!20}
+	\pgfsetstrokecolor{black!30}
+	\pgfmoveto{\moeptikz@point{-1.0}{0}{-.1}}
+	\pgflineto{\moeptikz@point{1.0}{0}{-.1}}
+	\pgflineto{\moeptikz@point{1.0}{0}{-.5}}
+	\pgflineto{\moeptikz@point{-1.0}{0}{-.5}}
+	\pgfclosepath
+	\pgfusepath{stroke}
+
+	% 3D Effekt Bildschirm
+	\pgfsetfillcolor{black!40}
+	\pgfmoveto{\moeptikz@point{-1.0}{0}{-.1}}
+	\pgflineto{\moeptikz@point{1.005}{0}{-.1}}
+	\pgflineto{\moeptikz@point{1.005}{1.1}{-.1}}
+	\pgflineto{\moeptikz@point{-1.0}{1.1}{-.1}}
+	\pgfclosepath
+	\pgfusepath{fill}
+
+	% Schwarzer Bildschirmrahmen
+	\pgfsetfillcolor{black}
+	\pgfmoveto{\moeptikz@point{-1.0}{0}{-.1}}
+	\pgflineto{\moeptikz@point{1.0}{0}{-.1}}
+	\pgflineto{\moeptikz@point{1.0}{1.1}{-.1}}
+	\pgflineto{\moeptikz@point{-1.0}{1.1}{-.1}}
+	\pgfclosepath
+	\pgfusepath{fill}
+
+	% Displayflaeche
+	\pgfsetfillcolor{black!90}
+	\pgfmoveto{\moeptikz@point{-.95}{0.055}{-.1}}
+	\pgflineto{\moeptikz@point{.95}{0.055}{-.1}}
+	\pgflineto{\moeptikz@point{.95}{1.045}{-.1}}
+	\pgflineto{\moeptikz@point{-.95}{1.045}{-.1}}
+	\pgfclosepath
+	\pgfshadepath{moeptikz@shadingnuc}{180}
+	\pgfusepath{}
+
+	% Trackpad
+	\pgfsetfillcolor{black!30}
+	\pgfmoveto{\moeptikz@point{-.4}{0}{-.33}}
+	\pgflineto{\moeptikz@point{.4}{0}{-.33}}
+	\pgflineto{\moeptikz@point{.4}{0}{-.49}}
+	\pgflineto{\moeptikz@point{-.4}{0}{-.49}}
+	\pgfclosepath
+	\pgfusepath{stroke,fill}
+
+	% Keyboard
+	\pgfsetcornersarced{\pgfpoint{\cornerarcsmall}{\cornerarcsmall}}
+	\foreach \x in {1,2,...,14} {%
+		\pgfsetfillcolor{black}
+		\pgfmathparse{-1.025+\x*0.13}
+		\pgfmoveto{\moeptikz@point{\pgfmathresult}{0}{-.12}}
+		\pgfmathparse{-1.025+\x*0.13+.1}
+		\pgflineto{\moeptikz@point{\pgfmathresult}{0}{-.12}}
+		\pgflineto{\moeptikz@point{\pgfmathresult}{0}{-.14}}
+		\pgfmathparse{-1.025+\x*0.13}
+		\pgflineto{\moeptikz@point{\pgfmathresult}{0}{-.14}}
+		\pgfclosepath
+		\pgfusepath{fill}
+	}
+	\foreach \x in {1,2,...,14} {%
+		\foreach \z in {0,1,...,4} {%
+			\pgfsetfillcolor{black}
+			\pgfmathparse{-1.025+\x*0.13}
+			\edef\moeptikz@tmpx{\pgfmathresult}
+			\pgfmathparse{-.15-\z*0.035}
+			\edef\moeptikz@tmpz{\pgfmathresult}
+			\pgfmoveto{\moeptikz@point{\moeptikz@tmpx}{0}{\moeptikz@tmpz}}
+
+			\pgfmathparse{-1.025+\x*0.13+0.1}
+			\edef\moeptikz@tmpx{\pgfmathresult}
+			\pgflineto{\moeptikz@point{\moeptikz@tmpx}{0}{\moeptikz@tmpz}}
+
+			\pgfmathparse{-.15-\z*0.035-0.025}
+			\edef\moeptikz@tmpz{\pgfmathresult}
+			\pgflineto{\moeptikz@point{\moeptikz@tmpx}{0}{\moeptikz@tmpz}}
+
+			\pgfmathparse{-1.025+\x*0.13}
+			\edef\moeptikz@tmpx{\pgfmathresult}
+			\pgflineto{\moeptikz@point{\moeptikz@tmpx}{0}{\moeptikz@tmpz}}
+
+			\pgfclosepath
+			\pgfusepath{fill}
+		}
+	}
+
+	%\pgfmoveto{\moeptikz@point{-1.0}{1.1}{-.1}}
+	%\pgflineto{\moeptikz@point{-1.0}{0}{-.1}}
+	%\pgflineto{\moeptikz@point{-1.0}{0}{-.5}}
+	%\pgflineto{\moeptikz@point{1.0}{0}{-.5}}
+	%\pgflineto{\moeptikz@point{1.0}{0}{-.1}}
+	%\pgflineto{\moeptikz@point{1.0}{1.1}{-.1}}
+	%\pgfclosepath
+	%\pgfusepath{stroke}
+	\pgftransformreset
+}
+\pgfdeclareshape{@notebook}{
+	\setpaths{\notebookanchor}{\notebookborder}
+	\savedanchor\northeast{%
+		\pgf@x = \pgfshapeminwidth
+		\pgf@y = \pgfshapeminwidth
+		\pgf@x=.5\pgf@x
+		\pgf@y=.5\pgf@y
+	}
+	\savedanchor\southwest{%
+		\pgf@x = \pgfshapeminwidth
+		\pgf@y = \pgfshapeminwidth
+		\pgf@x=-.5\pgf@x
+		\pgf@y=-.5\pgf@y
+	}
+	\anchor{north}{\northeast \pgf@y=.75\pgf@y \pgf@x=0pt}
+	\anchor{north east}{\northeast \pgf@x=.5\pgf@x \pgf@y=.625\pgf@y}
+	\anchor{north west}{\northeast \pgf@x=-.5\pgf@x \pgf@y=.625\pgf@y}
+	\anchor{east}{\northeast \pgf@y=0pt}
+	\anchor{south}{\northeast \pgf@x=0pt \pgf@y=-.95\pgf@y}
+	\anchor{south east}{\northeast \pgf@x=.5\pgf@x \pgf@y=-.55\pgf@y}
+	\anchor{south west}{\northeast \pgf@x=-.5\pgf@x \pgf@y=-.55\pgf@y}
+	\anchor{west}{\northeast \pgf@x=-\pgf@x \pgf@y=0pt}
+	\anchor{text}{
+		\pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+		\pgfmathsetlength\pgf@y{\pgfshapeminwidth}%
+		\pgf@x=0pt
+		\pgf@y=-.75\pgf@y
+		\advance\pgf@x by -.5\wd\pgfnodeparttextbox
+		\advance\pgf@y by -\ht\pgfnodeparttextbox
+	}
+}
+
+\tikzset{
+notebook/.style 2 args={
+	shape=@notebook,
+	minimum size=#1,
+	fill=#2
+},
+notebook/.default={1cm}{black}
+}
+
+
+%==============================================================================
+% hub
+%==============================================================================
+\def\hubanchor{
+	\pgf@xa=\pgfshapeminwidth
+	\pgf@ya=\pgfshapeminwidth
+	\pgf@xa=.5\pgf@xa
+	\pgf@ya=.5\pgf@ya
+
+	\pgfpathmoveto{\pgfpoint{0}{.95\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-\pgf@xa}{.15\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-\pgf@xa}{-.15\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{0}{-.95\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{\pgf@xa}{-.15\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{\pgf@xa}{.15\pgf@ya}}
+	\pgfpathclose
+}
+\def\hubborder{
+	\moeptikz@setshading
+	\tikzset{get stroke color}
+	\pgfsetstrokecolor{black}
+	\pgfmathparse{.05*\pgfshapeminwidth}\let\linewidth\pgfmathresult
+	\pgfsetcornersarced{\pgfpoint{0.01pt}{0.01pt}}
+
+	\pgfmoveto{\northeast \pgf@y=.95\pgf@y \pgf@x=0pt}
+	\pgflineto{\northeast \pgf@y=.15\pgf@y}
+	\pgflineto{\northeast \pgf@x=0pt \pgf@y=-.6\pgf@y}
+	\pgflineto{\northeast \pgf@x=-\pgf@x \pgf@y=.15\pgf@y}
+	\pgfclosepath
+	\pgfshadepath{moeptikz@shading}{0}
+	\pgfusepath{stroke}
+
+	\pgfmoveto{\northeast \pgf@x=-\pgf@x \pgf@y=.15\pgf@y}
+	\pgflineto{\northeast \pgf@x=-\pgf@x \pgf@y=-.15\pgf@y}
+	\pgflineto{\northeast \pgf@x=0pt \pgf@y=-.95\pgf@y}
+	\pgflineto{\northeast \pgf@y=-.15\pgf@y}
+	\pgflineto{\northeast \pgf@y=.15\pgf@y}
+	\pgflineto{\northeast \pgf@x=0pt \pgf@y=-.6\pgf@y}
+	\pgfclosepath
+	\pgfshadepath{moeptikz@shading}{0}
+	\pgfusepath{stroke}
+
+	\pgfmoveto{\northeast \pgf@x=0pt \pgf@y=-.6\pgf@y}
+	\pgflineto{\northeast \pgf@x=0pt \pgf@y=-.95\pgf@y}
+	\pgfusepath{stroke}
+
+	\tikzset{replace fill by stroke color/.expand once=\pgfsavedstrokecolor}
+	\pgftransformshift{\northeast \pgf@x=0pt \pgf@y=.15\pgf@y}
+	{
+		\pgftransformxslant{1.33}
+		\pgftransformyslant{-0.375}
+		\pgftransformyscale{.9}
+		\pgfmoveto{\northeast \pgf@x=-.75\pgf@x \pgf@y=.075\pgf@y}
+		\pgflineto{\northeast \pgf@x=-.75\pgf@x \pgf@y=-.075\pgf@y}
+		\pgflineto{\northeast \pgf@x=.15\pgf@x \pgf@y=-.075\pgf@y}
+		\pgflineto{\northeast \pgf@x=.15\pgf@x \pgf@y=-.15\pgf@y}
+		\pgflineto{\northeast \pgf@x=.75\pgf@x \pgf@y=0pt}
+		\pgflineto{\northeast \pgf@x=.15\pgf@x \pgf@y=.15\pgf@y}
+		\pgflineto{\northeast \pgf@x=.15\pgf@x \pgf@y=.15\pgf@y}
+		\pgflineto{\northeast \pgf@x=.15\pgf@x \pgf@y=.075\pgf@y}
+   		\pgfclosepath
+		\pgfusepath{fill}
+	}
+}
+\pgfdeclareshape{@hub}{
+	\setpaths{\hubanchor}{\hubborder}
+	\savedanchor\northeast{%
+		\pgf@x = \pgfshapeminwidth
+		\pgf@y = \pgfshapeminwidth
+		\pgf@x=.5\pgf@x
+		\pgf@y=.5\pgf@y
+	}
+	\savedanchor\southwest{%
+		\pgf@x = \pgfshapeminwidth
+		\pgf@y = \pgfshapeminwidth
+		\pgf@x=-.5\pgf@x
+		\pgf@y=-.5\pgf@y
+	}
+	\anchor{north}{\northeast \pgf@y=.95\pgf@y \pgf@x=0pt}
+	\anchor{north east}{\northeast \pgf@x=.5\pgf@x \pgf@y=.625\pgf@y}
+	\anchor{north west}{\northeast \pgf@x=-.5\pgf@x \pgf@y=.625\pgf@y}
+	\anchor{east}{\northeast \pgf@y=0pt}
+	\anchor{south}{\northeast \pgf@x=0pt \pgf@y=-.95\pgf@y}
+	\anchor{south east}{\northeast \pgf@x=.5\pgf@x \pgf@y=-.625\pgf@y}
+	\anchor{south west}{\northeast \pgf@x=-.5\pgf@x \pgf@y=-.625\pgf@y}
+	\anchor{west}{\northeast \pgf@x=-\pgf@x \pgf@y=0pt}
+	\anchor{text}{
+		\pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+		\pgfmathsetlength\pgf@y{\pgfshapeminwidth}%
+		\pgf@x=0pt
+		\pgf@y=-.9\pgf@y
+		\advance\pgf@x by -.5\wd\pgfnodeparttextbox
+		\advance\pgf@y by -\ht\pgfnodeparttextbox
+	}
+}
+
+\tikzset{
+hub/.style 2 args={
+	shape=@hub,
+	minimum size=#1,
+	fill=#2
+},
+hub/.default={1cm}{black}
+}
+
+
+%==============================================================================
+% switch
+%==============================================================================
+\def\switchanchor{
+	\pgf@xa=\pgfshapeminwidth
+	\pgf@ya=\pgfshapeminwidth
+	\pgf@xa=.5\pgf@xa
+	\pgf@ya=.5\pgf@ya
+
+	\pgfpathmoveto{\pgfpoint{0}{.95\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-\pgf@xa}{.15\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-\pgf@xa}{-.15\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{0}{-.95\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{\pgf@xa}{-.15\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{\pgf@xa}{.15\pgf@ya}}
+	\pgfpathclose
+}
+\def\switchborder{
+	\moeptikz@setshading
+	\tikzset{get stroke color}
+	\pgfsetstrokecolor{black}
+	\pgfmathparse{.05*\pgfshapeminwidth}\let\linewidth\pgfmathresult
+	\pgfmathparse{.1*\pgfshapeminwidth}\let\arrowdist\pgfmathresult
+	\pgfsetcornersarced{\pgfpoint{0.01pt}{0.01pt}}
+
+	\pgfmoveto{\northeast \pgf@x=0pt \pgf@y=.95\pgf@y}
+	\pgflineto{\northeast \pgf@y=.15\pgf@y}
+	\pgflineto{\northeast \pgf@x=0pt \pgf@y=-.6\pgf@y}
+	\pgflineto{\northeast \pgf@x=-\pgf@x \pgf@y=.15\pgf@y}
+	\pgfclosepath
+	\pgfshadepath{moeptikz@shading}{0}
+	\pgfusepath{stroke}
+
+	\pgfmoveto{\northeast \pgf@y=-.15\pgf@y}
+	\pgflineto{\northeast \pgf@y=.15\pgf@y}
+	\pgflineto{\northeast \pgf@x=0pt \pgf@y=-.6\pgf@y}
+	\pgflineto{\northeast \pgf@x=-\pgf@x \pgf@y=.15\pgf@y}
+	\pgflineto{\northeast \pgf@x=-\pgf@x \pgf@y=-.15\pgf@y}
+	\pgflineto{\northeast \pgf@x=0pt \pgf@y=-.95\pgf@y}
+	\pgfclosepath
+	\pgfshadepath{moeptikz@shading}{0}
+	\pgfusepath{stroke}
+
+	\pgfmoveto{\northeast \pgf@x=0pt \pgf@y=-.6\pgf@y}
+	\pgflineto{\northeast \pgf@x=0pt \pgf@y=-.95\pgf@y}
+	\pgfusepath{stroke}
+
+
+	\tikzset{replace fill by stroke color/.expand once=\pgfsavedstrokecolor}
+	\pgftransformshift{\northeast \pgf@x=0pt \pgf@y=.15\pgf@y}
+	{
+		\pgftransformxslant{1.33}
+		\pgftransformyslant{-0.375}
+		{
+			\pgftransformshift{\northeast \pgf@x=.45\pgf@x \pgf@y=.1\pgf@y}
+			\pgftransformscale{.45}
+			\pgftransformyscale{.9}
+			\pgfmoveto{\northeast \pgf@x=-.75\pgf@x \pgf@y=.075\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.75\pgf@x \pgf@y=-.075\pgf@y}
+			\pgflineto{\northeast \pgf@x=.25\pgf@x \pgf@y=-.075\pgf@y}
+			\pgflineto{\northeast \pgf@x=.25\pgf@x \pgf@y=-.15\pgf@y}
+			\pgflineto{\northeast \pgf@x=.75\pgf@x \pgf@y=0pt}
+			\pgflineto{\northeast \pgf@x=.25\pgf@x \pgf@y=.15\pgf@y}
+			\pgflineto{\northeast \pgf@x=.25\pgf@x \pgf@y=.075\pgf@y}
+   			\pgfclosepath
+			\pgfusepath{fill}
+
+			\pgfmoveto{\northeast \pgf@x=.75\pgf@x \pgf@y=0.20\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.25\pgf@x \pgf@y=0.20\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.25\pgf@x \pgf@y=0.125\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.75\pgf@x \pgf@y=0.275\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.25\pgf@x \pgf@y=0.425\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.25\pgf@x \pgf@y=0.35\pgf@y}
+			\pgflineto{\northeast \pgf@x=--.75\pgf@x \pgf@y=0.35\pgf@y}
+   			\pgfclosepath
+			\pgfusepath{fill}
+		}
+		{
+			\pgftransformshift{\northeast \pgf@x=-.45\pgf@x \pgf@y=.1\pgf@y}
+			\pgftransformscale{.45}
+			\pgftransformyscale{.9}
+			\pgfmoveto{\northeast \pgf@x=-.75\pgf@x \pgf@y=.075\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.75\pgf@x \pgf@y=-.075\pgf@y}
+			\pgflineto{\northeast \pgf@x=.25\pgf@x \pgf@y=-.075\pgf@y}
+			\pgflineto{\northeast \pgf@x=.25\pgf@x \pgf@y=-.15\pgf@y}
+			\pgflineto{\northeast \pgf@x=.75\pgf@x \pgf@y=0pt}
+			\pgflineto{\northeast \pgf@x=.25\pgf@x \pgf@y=.15\pgf@y}
+			\pgflineto{\northeast \pgf@x=.25\pgf@x \pgf@y=.075\pgf@y}
+   			\pgfclosepath
+			\pgfusepath{fill}
+
+			\pgfmoveto{\northeast \pgf@x=.75\pgf@x \pgf@y=0.20\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.25\pgf@x \pgf@y=0.20\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.25\pgf@x \pgf@y=0.125\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.75\pgf@x \pgf@y=0.275\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.25\pgf@x \pgf@y=0.425\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.25\pgf@x \pgf@y=0.35\pgf@y}
+			\pgflineto{\northeast \pgf@x=--.75\pgf@x \pgf@y=0.35\pgf@y}
+   			\pgfclosepath
+			\pgfusepath{fill}
+		}
+		{
+			\pgftransformshift{\northeast \pgf@x=.45\pgf@x \pgf@y=-.2\pgf@y}
+			\pgftransformscale{.45}
+			\pgftransformyscale{.9}
+			\pgfmoveto{\northeast \pgf@x=-.75\pgf@x \pgf@y=.075\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.75\pgf@x \pgf@y=-.075\pgf@y}
+			\pgflineto{\northeast \pgf@x=.25\pgf@x \pgf@y=-.075\pgf@y}
+			\pgflineto{\northeast \pgf@x=.25\pgf@x \pgf@y=-.15\pgf@y}
+			\pgflineto{\northeast \pgf@x=.75\pgf@x \pgf@y=0pt}
+			\pgflineto{\northeast \pgf@x=.25\pgf@x \pgf@y=.15\pgf@y}
+			\pgflineto{\northeast \pgf@x=.25\pgf@x \pgf@y=.075\pgf@y}
+   			\pgfclosepath
+			\pgfusepath{fill}
+
+			\pgfmoveto{\northeast \pgf@x=.75\pgf@x \pgf@y=0.20\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.25\pgf@x \pgf@y=0.20\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.25\pgf@x \pgf@y=0.125\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.75\pgf@x \pgf@y=0.275\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.25\pgf@x \pgf@y=0.425\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.25\pgf@x \pgf@y=0.35\pgf@y}
+			\pgflineto{\northeast \pgf@x=--.75\pgf@x \pgf@y=0.35\pgf@y}
+   			\pgfclosepath
+			\pgfusepath{fill}
+		}
+		{
+			\pgftransformshift{\northeast \pgf@x=-.45\pgf@x \pgf@y=-.2\pgf@y}
+			\pgftransformscale{.45}
+			\pgftransformyscale{.9}
+			\pgfmoveto{\northeast \pgf@x=-.75\pgf@x \pgf@y=.075\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.75\pgf@x \pgf@y=-.075\pgf@y}
+			\pgflineto{\northeast \pgf@x=.25\pgf@x \pgf@y=-.075\pgf@y}
+			\pgflineto{\northeast \pgf@x=.25\pgf@x \pgf@y=-.15\pgf@y}
+			\pgflineto{\northeast \pgf@x=.75\pgf@x \pgf@y=0pt}
+			\pgflineto{\northeast \pgf@x=.25\pgf@x \pgf@y=.15\pgf@y}
+			\pgflineto{\northeast \pgf@x=.25\pgf@x \pgf@y=.075\pgf@y}
+   			\pgfclosepath
+			\pgfusepath{fill}
+
+			\pgfmoveto{\northeast \pgf@x=.75\pgf@x \pgf@y=0.20\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.25\pgf@x \pgf@y=0.20\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.25\pgf@x \pgf@y=0.125\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.75\pgf@x \pgf@y=0.275\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.25\pgf@x \pgf@y=0.425\pgf@y}
+			\pgflineto{\northeast \pgf@x=-.25\pgf@x \pgf@y=0.35\pgf@y}
+			\pgflineto{\northeast \pgf@x=--.75\pgf@x \pgf@y=0.35\pgf@y}
+   			\pgfclosepath
+			\pgfusepath{fill}
+		}
+	}
+}
+\pgfdeclareshape{@switch}{
+	\setpaths{\switchanchor}{\switchborder}
+	\savedanchor\northeast{%
+		\pgf@x = \pgfshapeminwidth
+		\pgf@y = \pgfshapeminwidth
+		\pgf@x=.5\pgf@x
+		\pgf@y=.5\pgf@y
+	}
+	\savedanchor\southwest{%
+		\pgf@x = \pgfshapeminwidth
+		\pgf@y = \pgfshapeminwidth
+		\pgf@x=-.5\pgf@x
+		\pgf@y=-.5\pgf@y
+	}
+
+	\anchor{north}{\northeast \pgf@y=.95\pgf@y \pgf@x=0pt}
+	\anchor{north east}{\northeast \pgf@x=.5\pgf@x \pgf@y=.625\pgf@y}
+	\anchor{north west}{\northeast \pgf@x=-.5\pgf@x \pgf@y=.625\pgf@y}
+	\anchor{east}{\northeast \pgf@y=0pt}
+	\anchor{south}{\northeast \pgf@x=0pt \pgf@y=-.95\pgf@y}
+	\anchor{south east}{\northeast \pgf@x=.5\pgf@x \pgf@y=-.625\pgf@y}
+	\anchor{south west}{\northeast \pgf@x=-.5\pgf@x \pgf@y=-.625\pgf@y}
+	\anchor{west}{\northeast \pgf@x=-\pgf@x \pgf@y=0pt}
+	\anchor{text}{
+		\pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+		\pgfmathsetlength\pgf@y{\pgfshapeminwidth}%
+		\pgf@x=0pt
+		\pgf@y=-.9\pgf@y
+		\advance\pgf@x by -.5\wd\pgfnodeparttextbox
+		\advance\pgf@y by -\ht\pgfnodeparttextbox
+	}
+}
+
+\tikzset{
+switch/.style 2 args={
+	shape=@switch,
+	minimum size=#1,
+	fill=#2
+},
+switch/.default={1cm}{black}
+}
+
+%==============================================================================
+% router
+%==============================================================================
+\def\routeranchor{
+	\pgf@xa=\pgfshapeminwidth
+	\pgf@ya=\pgfshapeminwidth
+	\pgf@xa=.5\pgf@xa
+	\pgf@ya=.5\pgf@ya
+
+	\pgfmathparse{1/2*\pgfshapeminwidth}\let\radiusx\pgfmathresult
+	\pgfmathparse{3/8*\pgfshapeminwidth}\let\radiusy\pgfmathresult
+
+	\pgfsetcornersarced{\pgfpoint{1pt}{1pt}}
+	\pgfpathmoveto{\pgfpoint{-\pgf@xa}{-.15\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-\pgf@xa}{.15\pgf@ya}}
+	\pgfpatharcaxes{180}{0}{\pgfpoint{\radiusx}{0pt}}{\pgfpoint{0pt}{\radiusy}}
+	\pgfpathlineto{\pgfpoint{\pgf@xa}{-.15\pgf@ya}}
+	\pgfpatharcaxes{0}{-180}{\pgfpoint{\radiusx}{0pt}}{\pgfpoint{0pt}{\radiusy}}
+	\pgfpathclose
+}
+\def\routerborder{
+	\moeptikz@setshading
+	\tikzset{get stroke color}
+	\pgfsetstrokecolor{black}
+
+	\pgfmathparse{.05*\pgfshapeminwidth}\let\linewidth\pgfmathresult
+	\pgfsetcornersarced{\pgfpoint{0.01pt}{0.01pt}}
+
+	\pgfmathparse{1/2*\pgfshapeminwidth}\let\radiusx\pgfmathresult
+	\pgfmathparse{3/8*\pgfshapeminwidth}\let\radiusy\pgfmathresult
+
+	% router body
+	\pgfsetfillcolor{black!10}
+	\pgfpathmoveto{\northeast \pgf@x=-\pgf@x \pgf@y=.15\pgf@y}
+	\pgfpathlineto{\northeast \pgf@x=-\pgf@x \pgf@y=-.15\pgf@y}
+	\pgfpatharcaxes{180}{360}{\pgfpoint{\radiusx}{0pt}}{\pgfpoint{0pt}{\radiusy}}
+	\pgfpathlineto{\northeast \pgf@y=.15\pgf@y}
+	\pgfclosepath
+	\pgfshadepath{moeptikz@shading}{0}
+	\pgfusepath{stroke}
+
+	\pgfpathellipse{\northeast \pgf@x=0pt \pgf@y=.15\pgf@y}
+		{\northeast \pgf@y=0pt}
+		{\northeast \pgf@x=0pt \pgf@y=-.75\pgf@y}
+	\pgfshadepath{moeptikz@shading}{0}
+	\pgfusepath{stroke}
+
+	\tikzset{replace fill by stroke color/.expand once=\pgfsavedstrokecolor}
+	\pgftransformshift{\northeast \pgf@x=0pt \pgf@y=.15\pgf@y}{%
+		{
+		\pgftransformxslant{1.33}
+		\pgftransformyslant{-0.375}
+		\pgftransformyscale{.8}
+		\pgftransformxscale{1.3}
+		\pgfmoveto{\northeast \pgf@x=-\pgf@x \pgf@y=0pt}
+		\pgflineto{\northeast \pgf@x=-.5\pgf@x \pgf@y=-.15\pgf@y}
+		\pgflineto{\northeast \pgf@x=-.5\pgf@x \pgf@y=-.05\pgf@y}
+		\pgflineto{\northeast \pgf@x=.5\pgf@x \pgf@y=-.05\pgf@y}
+		\pgflineto{\northeast \pgf@x=.5\pgf@x \pgf@y=-.15\pgf@y}
+		\pgflineto{\northeast \pgf@x=\pgf@x \pgf@y=0pt}
+		\pgflineto{\northeast \pgf@x=.5\pgf@x \pgf@y=.15\pgf@y}
+		\pgflineto{\northeast \pgf@x=.5\pgf@x \pgf@y=.05\pgf@y}
+		\pgflineto{\northeast \pgf@x=-.5\pgf@x \pgf@y=.05\pgf@y}
+		\pgflineto{\northeast \pgf@x=-.5\pgf@x \pgf@y=.15\pgf@y}
+   		\pgfclosepath
+		\pgfusepath{fill}
+		}
+
+		{
+		\pgftransformxslant{1.33}
+		\pgftransformyslant{-0.375}
+		\pgftransformyscale{0.5}
+		\pgftransformxscale{2.2}
+		\pgfmoveto{\northeast \pgf@y=-\pgf@y \pgf@x=0pt}
+		\pgflineto{\northeast \pgf@y=-.5\pgf@y \pgf@x=-.15\pgf@x}
+		\pgflineto{\northeast \pgf@y=-.5\pgf@y \pgf@x=-.05\pgf@x}
+		\pgflineto{\northeast \pgf@y=.5\pgf@y \pgf@x=-.05\pgf@x}
+		\pgflineto{\northeast \pgf@y=.5\pgf@y \pgf@x=-.15\pgf@x}
+		\pgflineto{\northeast \pgf@y=\pgf@y \pgf@x=0pt}
+		\pgflineto{\northeast \pgf@y=.5\pgf@y \pgf@x=.15\pgf@x}
+		\pgflineto{\northeast \pgf@y=.5\pgf@y \pgf@x=.05\pgf@x}
+		\pgflineto{\northeast \pgf@y=-.5\pgf@y \pgf@x=.05\pgf@x}
+		\pgflineto{\northeast \pgf@y=-.5\pgf@y \pgf@x=.15\pgf@x}
+   		\pgfclosepath
+		\pgfusepath{fill}
+		}
+	}
+}
+\pgfdeclareshape{@router}{
+	\setpaths{\routeranchor}{\routerborder}
+	\savedanchor\northeast{%
+		\pgf@x = \pgfshapeminwidth
+		\pgf@y = \pgfshapeminwidth
+		\pgf@x=.5\pgf@x
+		\pgf@y=.5\pgf@y
+	}
+	\savedanchor\southwest{%
+		\pgf@x = \pgfshapeminwidth
+		\pgf@y = \pgfshapeminwidth
+		\pgf@x=-.5\pgf@x
+		\pgf@y=-.5\pgf@y
+	}
+	\anchor{north}{\northeast \pgf@y=.95\pgf@y \pgf@x=0pt}
+	\anchor{east}{\northeast \pgf@y=0pt}
+	\anchor{south}{\northeast \pgf@x=0pt \pgf@y=-.95\pgf@y}
+	\anchor{west}{\northeast \pgf@x=-\pgf@x \pgf@y=0pt}
+	\anchor{north east}{\northeast \pgf@y=.7\pgf@y \pgf@x=.7\pgf@x}
+	\anchor{north west}{\northeast \pgf@y=.7\pgf@y \pgf@x=-.7\pgf@x}
+	\anchor{south west}{\northeast \pgf@y=-.7\pgf@y \pgf@x=-.7\pgf@x}
+	\anchor{south east}{\northeast \pgf@y=-.7\pgf@y \pgf@x=.7\pgf@x}
+	\anchor{text}{
+		\pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+		\pgfmathsetlength\pgf@y{\pgfshapeminwidth}%
+		\pgf@x=0pt
+		\pgf@y=-.9\pgf@y
+		\advance\pgf@x by -.5\wd\pgfnodeparttextbox
+		\advance\pgf@y by -\ht\pgfnodeparttextbox
+	}
+}
+
+\tikzset{
+router/.style args={#1,#2,#3}{%
+	shape=@router,
+	minimum size=#1,
+	fill=#2,
+	draw=#3
+},
+router/.default={1cm,black,black}
+}
+
+
+
+%==============================================================================
+% nuc
+%==============================================================================
+\def\nucanchor{
+	\pgf@xa=\pgfshapeminwidth
+	\pgf@ya=\pgfshapeminwidth
+	\pgf@xa=.5\pgf@xa
+	\pgf@ya=.5\pgf@ya
+
+	\pgfsetcornersarced{\pgfpoint{1pt}{1pt}}
+	\pgfpathmoveto{\pgfpoint{0}{\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{\pgf@xa}{.25\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{\pgf@xa}{-.25\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{0}{-\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-\pgf@xa}{-.25\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-\pgf@xa}{.25\pgf@ya}}
+	\pgfpathclose
+}
+\def\nucborder{
+	\moeptikz@setshading
+	\pgfsetstrokecolor{black}
+
+	% rear antenna
+	\pgfmathparse{.075*\pgfshapeminwidth}
+	\pgfsetlinewidth\pgfmathresult
+	\pgfsys@roundcap
+
+	\pgfmoveto{\northeast \pgf@x=-.1\pgf@x \pgf@y=.6\pgf@y}
+	\pgflineto{\northeast \pgf@x=-.2\pgf@x \pgf@y=.7\pgf@y}
+	\pgflineto{\northeast \pgf@x=-.4\pgf@x \pgf@y=1.5\pgf@y}
+	\pgfusepath{stroke}
+
+	% body
+	\pgfmathparse{.025*\pgfshapeminwidth}
+	\pgfsetlinewidth\pgfmathresult
+	\pgfsetcornersarced{\pgfpoint{1pt}{1pt}}
+
+	\pgfmoveto{\northeast \pgf@x=0pt}
+	\pgflineto{\northeast \pgf@y=.25\pgf@y}
+	\pgflineto{\northeast \pgf@x=0pt \pgf@y=-.5\pgf@y}
+	\pgflineto{\northeast \pgf@x=-\pgf@x \pgf@y=.25\pgf@y}
+	\pgfclosepath
+	\pgfshadepath{moeptikz@shadingnuc}{0}
+	\pgfusepath{stroke}
+
+	\pgfmoveto{\northeast \pgf@x=-\pgf@x \pgf@y=-.25\pgf@y}
+	\pgflineto{\northeast \pgf@x=-\pgf@x \pgf@y=.25\pgf@y}
+	\pgflineto{\northeast \pgf@x=0pt \pgf@y=-.5\pgf@y}
+	\pgflineto{\northeast \pgf@y=.25\pgf@y}
+	\pgflineto{\northeast \pgf@y=-.25\pgf@y}
+	\pgflineto{\northeast \pgf@x=0pt \pgf@y=-\pgf@y}
+	\pgfclosepath
+	\pgfshadepath{moeptikz@shading}{0}
+	\pgfusepath{stroke}
+
+	\pgfmoveto{\northeast \pgf@x=0pt \pgf@y=-.5\pgf@y}
+	\pgflineto{\northeast \pgf@x=0pt \pgf@y=-\pgf@y}
+	\pgfusepath{stroke}
+
+	\pgflineto{\northeast \pgf@x=0pt \pgf@y=-\pgf@y}
+	\pgfclosepath
+	\pgfshadepath{moeptikz@shading}{0}
+	\pgfusepath{stroke}
+
+	% front antennas
+	\pgfmathparse{.075*\pgfshapeminwidth}
+	\pgfsetlinewidth\pgfmathresult
+	\pgfsys@roundcap
+
+	\pgfmoveto{\northeast \pgf@x=-.5\pgf@x \pgf@y=-.4\pgf@y}
+	\pgflineto{\northeast \pgf@x=-.6\pgf@x \pgf@y=-.5\pgf@y}
+	\pgflineto{\northeast \pgf@x=-.8\pgf@x \pgf@y=.7\pgf@y}
+	\pgfusepath{stroke}
+
+	\pgfmoveto{\northeast \pgf@x=.5\pgf@x \pgf@y=-.4\pgf@y}
+	\pgflineto{\northeast \pgf@x=.6\pgf@x \pgf@y=-.5\pgf@y}
+	\pgflineto{\northeast \pgf@x=.8\pgf@x \pgf@y=.7\pgf@y}
+	\pgfusepath{stroke}
+
+	\pgftransformshift{\northeast \pgf@x=0pt \pgf@y=.25\pgf@y}{
+		\pgfsetfillcolor{cyan}
+		\pgfpathcircle{
+			\northeast \pgf@x=.05\pgf@x\pgf@y=.45\pgf@y
+		}{
+			.15\pgflinewidth
+		}
+		\pgfusepath{fill}
+	}
+}
+\pgfdeclareshape{@nuc}{
+	\setpaths{\nucanchor}{\nucborder}
+	\savedanchor\northeast{%
+		\pgf@x = \pgfshapeminwidth
+		\pgf@y = \pgfshapeminwidth
+		\pgf@x=.5\pgf@x
+		\pgf@y=.5\pgf@y
+	}
+	\savedanchor\southwest{%
+		\pgf@x = \pgfshapeminwidth
+		\pgf@y = \pgfshapeminwidth
+		\pgf@x=-.5\pgf@x
+		\pgf@y=-.5\pgf@y
+	}
+	\anchor{north}{\northeast \pgf@y=.95\pgf@y \pgf@x=0pt}
+	\anchor{north east}{\northeast \pgf@x=.58\pgf@x \pgf@y=.58\pgf@y}
+	\anchor{east}{\northeast \pgf@y=0pt}
+	\anchor{south east}{\northeast \pgf@x=.58\pgf@x \pgf@y=-.58\pgf@y}
+	\anchor{south}{\northeast \pgf@x=0pt \pgf@y=-.95\pgf@y}
+	\anchor{south west}{\northeast \pgf@x=-.58\pgf@x \pgf@y=-.58\pgf@y}
+	\anchor{west}{\northeast \pgf@x=-\pgf@x \pgf@y=0pt}
+	\anchor{north west}{\northeast \pgf@x=-.58\pgf@x \pgf@y=.58\pgf@y}
+	\anchor{text}{
+		\pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+		\pgfmathsetlength\pgf@y{\pgfshapeminwidth}%
+		\pgf@x=0pt
+		\pgf@y=-.75\pgf@y
+		\advance\pgf@x by -.5\wd\pgfnodeparttextbox
+		\advance\pgf@y by -\ht\pgfnodeparttextbox
+	}
+}
+
+\tikzset{
+nuc/.style 2 args={
+	shape=@nuc,
+	minimum size=#1,
+	fill=#2
+},
+nuc/.default={1cm}{black}
+}
+
+
+%==============================================================================
+% messageopen
+%==============================================================================
+\def\messageopenanchor{
+	\pgf@xa=\pgfshapeminwidth
+	\pgf@ya=\pgfshapeminwidth
+	\pgf@xa=.5\pgf@xa
+	\pgf@ya=.5\pgf@ya
+
+	\pgfsetcornersarced{\pgfpoint{0.01pt}{0.01pt}}
+	\pgfpathmoveto{\pgfpoint{0}{\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{.27\pgf@xa}{.8\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{.8\pgf@xa}{.8\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{.8\pgf@xa}{.44\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{\pgf@xa}{.25\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{\pgf@xa}{-\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-\pgf@xa}{-\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-\pgf@xa}{.25\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-.8\pgf@xa}{.44\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-.8\pgf@xa}{.8\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-.27\pgf@xa}{.8\pgf@ya}}
+	\pgfpathclose
+}
+\tikzset{paper color/.initial={black}}
+\def\messageopenborder{
+	\pgfkeys{/tikz/paper color/.get=\moeptikz@papercolor}
+%	\expandafter\tikzset\expandafter{\tmp}
+%	\tikz@options
+
+	\pgfmathparse{.2*sqrt(\pgfshapeminwidth)}\let\cornerarc\pgfmathresult
+	\pgfsetcornersarced{\pgfpoint{\cornerarc}{\cornerarc}}
+
+	\pgfpathmoveto{\northeast \pgf@x=0\pgf@x}
+	\pgfpathlineto{\northeast \pgf@y=.25\pgf@y \pgf@x=-\pgf@x}
+	\pgfpathlineto{\southwest}
+	\pgfpathlineto{\southwest \pgf@x=-\pgf@x}
+	\pgfpathlineto{\southwest \pgf@x=-\pgf@x \pgf@y=-.25\pgf@y}
+	\pgfclosepath
+	\pgfusepath{fill}
+
+	% Aeusserer Rand um das gesamte Couvert
+	\pgfpathmoveto{\northeast \pgf@x=0\pgf@x}
+	\pgfpathlineto{\northeast \pgf@y=.25\pgf@y}
+	\pgfpathlineto{\northeast \pgf@y=-\pgf@y}
+	\pgfpathlineto{\northeast \pgf@x=-\pgf@x \pgf@y=-\pgf@y}
+	\pgfpathlineto{\northeast \pgf@x=-\pgf@x \pgf@y=.25\pgf@y}
+	\pgfclosepath
+	\pgfusepath{stroke}
+
+	% Papier
+	\pgfsetstrokecolor{\moeptikz@papercolor!80}
+	\pgfdeclarehorizontalshading{myshadingE}{100bp}{color(0bp)=(white); color(100bp)=(\moeptikz@papercolor!30)}
+	\pgfsetcornersarced{\pgfpoint{0.01pt}{0.01pt}}
+	\pgfpathrectanglecorners{\northeast \pgf@x=.8\pgf@x \pgf@y=.8\pgf@y}
+		{\northeast \pgf@x=-.8\pgf@x \pgf@y=-.8\pgf@y}
+	\pgfshadepath{myshadingE}{180}
+	\pgfusepath{stroke}
+
+	% Linke Seite des Couverts (ohne Rand)
+	\pgfsetcornersarced{\pgfpoint{\cornerarc}{\cornerarc}}
+	\ifx\tikz@fillcolor\pgfutil@empty
+		\pgfsys@color@rgb@fill{0.91}{0.82}{0.67}
+	\else
+		\pgfsetfillcolor{\tikz@fillcolor}
+	\fi
+	\ifx\tikz@strokecolor\pgfutil@empty
+		\pgfsys@color@rgb@stroke{0.84}{0.58}{0.47}
+	\else
+		\pgfsetstrokecolor{\tikz@strokecolor}
+	\fi
+	\pgfpathmoveto{\southwest}
+	\pgfpathlineto{\southwest \pgf@y=-.25\pgf@y}
+	\pgfpathlineto{\southwest \pgf@y=.3875\pgf@y \pgf@x=0\pgf@x}
+	\pgfclosepath
+	\pgfusepath{stroke,fill}
+
+	% Rechte Seite des Couverts (ohne Rand)
+	\pgfpathmoveto{\southwest \pgf@x=-\pgf@x}
+	\pgfpathlineto{\southwest \pgf@y=-.25\pgf@y \pgf@x=-\pgf@x}
+	\pgfpathlineto{\southwest \pgf@y=.3875\pgf@y \pgf@x=0\pgf@x}
+	\pgfclosepath
+	\pgfusepath{stroke,fill}
+
+	% Untere Seite des Couverts (ohne Rand)
+	\pgfpathmoveto{\southwest}
+	\pgfpathlineto{\southwest \pgf@x=-\pgf@x}
+	\pgfpathlineto{\southwest \pgf@y=.3\pgf@y \pgf@x=0\pgf@x}
+	\pgfclosepath
+	\pgfusepath{stroke,fill}
+}
+\pgfdeclareshape{@messageopen}{
+	\setpaths{\messageopenanchor}{\messageopenborder}
+	\savedanchor\northeast{%
+		\pgf@x = \pgfshapeminwidth
+		\pgf@y = \pgfshapeminwidth
+		\pgf@x=.5\pgf@x
+		\pgf@y=.5\pgf@y
+	}
+	\savedanchor\southwest{%
+		\pgf@x = \pgfshapeminwidth
+		\pgf@y = \pgfshapeminwidth
+		\pgf@x=-.5\pgf@x
+		\pgf@y=-.5\pgf@y
+	}
+	\anchor{north}{\northeast \pgf@x=0pt}
+	\anchor{north east}{\northeast \pgf@x=.8\pgf@x \pgf@y=.8\pgf@y}
+	\anchor{east}{\northeast \pgf@y=0pt}
+	\anchor{south east}{\northeast \pgf@y=-\pgf@y}
+	\anchor{south}{\northeast \pgf@x=0pt \pgf@y=-\pgf@y}
+	\anchor{south west}{\northeast \pgf@x=-\pgf@x \pgf@y=-\pgf@y}
+	\anchor{west}{\northeast \pgf@x=-\pgf@x \pgf@y=0pt}
+	\anchor{north west}{\northeast \pgf@x=-.8\pgf@x \pgf@y=.8\pgf@y}
+	\anchor{text}{
+		\pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+		\pgfmathsetlength\pgf@y{\pgfshapeminwidth}%
+		\pgf@x=0pt
+		\pgf@y=-.75\pgf@y
+		\advance\pgf@x by -.5\wd\pgfnodeparttextbox
+		\advance\pgf@y by -\ht\pgfnodeparttextbox
+	}
+}
+
+\tikzset{
+messageopen/.style args={#1,#2,#3}{%
+	shape=@messageopen,
+	minimum size=#1,
+	fill=#2,
+	draw=#3,
+},
+messageopen/.default={1cm,black!30,black}
+}
+
+%==============================================================================
+% messageclosed
+%==============================================================================
+\def\messageclosedanchor{
+	\pgf@xa=\pgfshapeminwidth
+	\pgf@ya=\pgfshapeminwidth
+	\pgf@xa=.5\pgf@xa
+	\pgf@ya=.5\pgf@ya
+	\pgfpathmoveto{\pgfpoint{\pgf@xa}{.625\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{\pgf@xa}{-.625\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-\pgf@xa}{-.625\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{-\pgf@xa}{.625\pgf@ya}}
+	\pgfpathclose
+}
+\def\messageclosedborder{
+	\ifx\tikz@strokecolor\pgfutil@empty
+		\pgfsys@color@rgb@stroke{0.84}{0.58}{0.47}
+	\else
+		\pgfsetstrokecolor{\tikz@strokecolor}
+	\fi
+	\ifx\tikz@fillcolor\pgfutil@empty
+		\pgfsys@color@rgb@fill{0.91}{0.82}{0.67}
+	\else
+		\pgfsetfillcolor{\tikz@fillcolor}
+	\fi
+
+	\pgfmathparse{.05*sqrt(\pgfshapeminwidth)}\let\linewidth\pgfmathresult
+	\pgfmathparse{.1*\pgfshapeminwidth}\let\fontwidth\pgfmathresult
+	\pgfmathparse{.2*sqrt(\pgfshapeminwidth)}\let\cornerarc\pgfmathresult
+
+	\pgfsetlinewidth{\linewidth}
+	\pgfsetcornersarced{\pgfpoint{\cornerarc}{\cornerarc}}
+
+	% Linke Seite des Couverts (ohne Rand)
+	\pgfsetcornersarced{\pgfpoint{\cornerarc}{\cornerarc}}
+	\pgfpathmoveto{\southwest \pgf@y=.625\pgf@y}
+	\pgfpathlineto{\southwest \pgf@y=-.625\pgf@y}
+	\pgfpathlineto{\southwest \pgf@y=.0125\pgf@y \pgf@x=0\pgf@x}
+	\pgfclosepath
+	\pgfusepath{stroke,fill}
+
+	% Rechte Seite des Couverts (ohne Rand)
+	\pgfpathmoveto{\southwest \pgf@x=-\pgf@x \pgf@y=.625\pgf@y}
+	\pgfpathlineto{\southwest \pgf@y=-.625\pgf@y \pgf@x=-\pgf@x}
+	\pgfpathlineto{\southwest \pgf@y=.0125\pgf@y \pgf@x=0\pgf@x}
+	\pgfclosepath
+	\pgfusepath{stroke,fill}
+
+	% Untere Seite des Couverts (ohne Rand)
+	\pgfpathmoveto{\southwest \pgf@y=.625\pgf@y}
+	\pgfpathlineto{\southwest \pgf@x=-\pgf@x \pgf@y=.625\pgf@y}
+	\pgfpathlineto{\southwest \pgf@y=-.075\pgf@y \pgf@x=0\pgf@x}
+	\pgfclosepath
+	\pgfusepath{stroke,fill}
+
+	% Obere Seite des Couverts (ohne Rand)
+	\pgfpathmoveto{\southwest \pgf@y=-.625\pgf@y}
+	\pgfpathlineto{\southwest \pgf@x=-\pgf@x \pgf@y=-.625\pgf@y}
+	\pgfpathlineto{\southwest \pgf@y=.075\pgf@y \pgf@x=0\pgf@x}
+	\pgfclosepath
+	\pgfusepath{stroke,fill}
+}
+\pgfdeclareshape{@messageclosed}{
+	\setpaths{\messageclosedanchor}{\messageclosedborder}
+	\savedanchor\northeast{%
+		\pgf@x = \pgfshapeminwidth
+		\pgf@y = \pgfshapeminwidth
+		\pgf@x=.5\pgf@x
+		\pgf@y=.5\pgf@y
+	}
+	\savedanchor\southwest{%
+		\pgf@x = \pgfshapeminwidth
+		\pgf@y = \pgfshapeminwidth
+		\pgf@x=-.5\pgf@x
+		\pgf@y=-.5\pgf@y
+	}
+	\anchor{north}{\northeast \pgf@x=0pt \pgf@y=.625\pgf@y}
+	\anchor{north east}{\northeast \pgf@y=.625\pgf@y}
+	\anchor{east}{\northeast \pgf@y=0pt}
+	\anchor{south east}{\northeast \pgf@y=-.625\pgf@y}
+	\anchor{south}{\northeast \pgf@x=0pt \pgf@y=-.625\pgf@y}
+	\anchor{south west}{\northeast \pgf@x=-\pgf@x \pgf@y=-.625\pgf@y}
+	\anchor{west}{\northeast \pgf@x=-\pgf@x \pgf@y=0pt}
+	\anchor{north west}{\northeast \pgf@x=-\pgf@x \pgf@y=.625\pgf@y}
+	\anchor{text}{
+		\pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+		\pgfmathsetlength\pgf@y{\pgfshapeminwidth}%
+		\pgf@x=0pt
+		\pgf@y=-.5\pgf@y
+		\advance\pgf@x by -.5\wd\pgfnodeparttextbox
+		\advance\pgf@y by -\ht\pgfnodeparttextbox
+	}
+}
+
+\tikzset{
+messageclosed/.style args={#1,#2,#3}{%
+	shape=@messageclosed,
+	minimum size=#1,
+	fill=#2,
+	draw=#3,
+},
+messageclosed/.default={1cm,black!30,black}
+}
+
+
+% Redfined checkerboard decoration with better image quality than the default
+\pgfdeclarepatternformonly[\CheckerSize]{moepcheckerboard}% name
+{\pgfqpoint{0mm}{0mm}}% origin
+{\pgfqpoint{2\CheckerSize}{2\CheckerSize}}% top right
+{\pgfqpoint{\CheckerSize}{\CheckerSize}}% tile size
+{% code
+	\pgfsetfillcolor{black!15}
+	\pgfpathrectanglecorners{\pgfqpoint{0mm}{0mm}}{\pgfqpoint{2.5mm}{2.5mm}}
+	\pgfusepath{fill}
+	\pgfpathrectanglecorners{\pgfqpoint{2.5mm}{2.5mm}}{\pgfqpoint{5mm}{5mm}}
+	\pgfusepath{fill}
+	\pgfsetfillcolor{black!25}
+	\pgfpathrectanglecorners{\pgfqpoint{0mm}{2.5mm}}{\pgfqpoint{2.5mm}{5mm}}
+	\pgfusepath{fill}
+	\pgfpathrectanglecorners{\pgfqpoint{2.5mm}{0mm}}{\pgfqpoint{5mm}{2.5mm}}
+	\pgfusepath{fill}
+}
+%
+\newdimen\CheckerSize
+\tikzset{
+    CheckerSize/.code={\CheckerSize=#1},
+    CheckerSize=5mm
+}
+
+% Redefined line decoration that allows for custom spacing
+%FIXME add a color option
+\pgfdeclarepatternformonly[\LineSpacing]{moepNorthWestLines}{
+	\pgfqpoint{0pt}{0pt}}{\pgfqpoint{-10mm}{10mm}
+}{
+	\pgfqpoint{\LineSpacing}{\LineSpacing}
+}
+{
+  \pgfsetlinewidth{0.3pt}
+  \pgfsetstrokecolor{black!40}
+  \pgfpathmoveto{\pgfqpoint{0pt}{0pt}}
+  \pgfpathlineto{\pgfqpoint{-10mm}{10mm}}
+  \pgfusepath{stroke}
+}
+\pgfdeclarepatternformonly[\LineSpacing]{moepSouthEastLines}{
+	\pgfqpoint{0pt}{0pt}}{\pgfqpoint{10mm}{10mm}
+}{
+	\pgfqpoint{\LineSpacing}{\LineSpacing}
+}
+{
+  \pgfsetlinewidth{0.3pt}
+  \pgfsetstrokecolor{black!40}
+  \pgfpathmoveto{\pgfqpoint{0pt}{0pt}}
+  \pgfpathlineto{\pgfqpoint{10mm}{10mm}}
+  \pgfusepath{stroke}
+}
+%
+\newdimen\LineSpacing
+\tikzset{
+    LineSpacing/.code={\LineSpacing=#1},
+    LineSpacing=3pt
+}
+
+\endinput

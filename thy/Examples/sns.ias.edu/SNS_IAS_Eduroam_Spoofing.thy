@@ -43,8 +43,8 @@ value[code] "debug_ipassmt ipassignment_outgoing (unfold_ruleset_OUTPUT eduroam_
 text{*The ruleset*}
 lemma "check_simple_fw_preconditions (upper_closure (packet_assume_new (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw))))" by eval
 value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)))))"
-lemma "simple_firewall_valid (to_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)))))" by eval
-lemma "simple_firewall_valid (to_simple_firewall (lower_closure (packet_assume_new (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)))))" by eval
+lemma "simple_fw_valid (to_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)))))" by eval
+lemma "simple_fw_valid (to_simple_firewall (lower_closure (packet_assume_new (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)))))" by eval
 
 
 text{*We do not need to call things such as @{const transform_optimize_dnf_strict} because the
