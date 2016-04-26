@@ -1,5 +1,6 @@
 chapter OpenFlow
-session "OpenFlowFUA" = OpenFlow +
+session "OpenFlow_Documentation" = OpenFlow +
+	options [document_output = "of_doc"]
 	theories
 		OpenFlowDoc
 	document_files
@@ -14,6 +15,7 @@ session "OpenFlowFUA" = OpenFlow +
 		"bench.csv"
 
 session "OpenFlow" = Iptables_Semantics +
+	options [document_output = "of_outp"]
 	theories[document=false]
 		List_Group
 		Sort_Descending
@@ -25,3 +27,7 @@ session "OpenFlow" = Iptables_Semantics +
 		OpenFlowMatches
 		OpenFlowSerialize
 		Semantics_OpenFlow
+	document_files
+		"root.tex"
+		"moeptikz.sty"
+	
