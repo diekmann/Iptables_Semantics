@@ -12,7 +12,7 @@ apply(auto)
 done
 
 definition "generalized_sfw l p = List.find (\<lambda>(m,a). simple_matches m p) l"
-text\<open>Essentially, the idea of the generalized @{term simple_fw} semantics @{term generalized_sfw} is that you can have anything as the resulting action, not only a @{type simple_action}.}\<close>
+text\<open>Essentially, the idea of the generalized @{term simple_fw} semantics @{term generalized_sfw} is that you can have anything as the resulting action, not only a @{type simple_action}.\<close>
 (* We could have generalized away the fact that those are simple_matches, use a locale, assume an option monadic conjunction operator and then have this be an interpretation.
  but *effort *)
 

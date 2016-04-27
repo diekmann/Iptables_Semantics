@@ -20,3 +20,7 @@ cabal.sandbox.config
 
 # generated code
 thy/Examples/generated_code
+
+# generated OpenFlow files…
+thy/OpenFlow/of_doc
+thy/OpenFlow/of_outp
