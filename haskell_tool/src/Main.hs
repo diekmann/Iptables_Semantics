@@ -21,6 +21,7 @@ import Options.Generic
 import Common.Util
 import Network.IPTables.Analysis as Analysis
 import qualified Network.IPTables.Generated as Isabelle
+import qualified System.Linux.Seccomp as Seccomp
 
 putErrStrLn = System.IO.hPutStrLn System.IO.stderr
 
@@ -97,6 +98,31 @@ readArgs (CommandLineArgs labeled unlabeled) = do
                 where sanityCheckPort p = (p >= 0 && p < 65536)
 
 
+whitelistHaskellRuntimeCalls :: Seccomp.FilterContext -> IO ()
+--TODO check return values in error monad?
+whitelistHaskellRuntimeCalls ctx = do
+    _ <- Seccomp.seccomp_rule_add_array ctx Seccomp.SCMP_ACT_ALLOW Seccomp.SCclock_gettime []
+    _ <- Seccomp.seccomp_rule_add_array ctx Seccomp.SCMP_ACT_ALLOW Seccomp.SCrt_sigprocmask []
+    _ <- Seccomp.seccomp_rule_add_array ctx Seccomp.SCMP_ACT_ALLOW Seccomp.SCrt_sigaction []
+    _ <- Seccomp.seccomp_rule_add_array ctx Seccomp.SCMP_ACT_ALLOW Seccomp.SCrt_sigreturn []
+    _ <- Seccomp.seccomp_rule_add_array ctx Seccomp.SCMP_ACT_ALLOW Seccomp.SCtimer_settime []
+    _ <- Seccomp.seccomp_rule_add_array ctx Seccomp.SCMP_ACT_ALLOW Seccomp.SCtimer_delete []
+    _ <- Seccomp.seccomp_rule_add_array ctx Seccomp.SCMP_ACT_ALLOW Seccomp.SCclock_gettime []
+    _ <- Seccomp.seccomp_rule_add_array ctx Seccomp.SCMP_ACT_ALLOW Seccomp.SCexit_group []
+    _ <- Seccomp.seccomp_rule_add_array ctx Seccomp.SCMP_ACT_ALLOW Seccomp.SCselect []
+    --_ <- Seccomp.seccomp_rule_add_array ctx Seccomp.SCMP_ACT_ALLOW Seccomp.SCshmctl []
+    -- only allow write for stdout and stderr (fd 1)
+    _ <- Seccomp.seccomp_rule_add_array ctx Seccomp.SCMP_ACT_ALLOW Seccomp.SCwrite [Seccomp.ArgCmp 0 Seccomp.EQ 1 43] -- TODO what is argCmpDatumB (here: 43)?
+    _ <- Seccomp.seccomp_rule_add_array ctx Seccomp.SCMP_ACT_ALLOW Seccomp.SCwrite [Seccomp.ArgCmp 0 Seccomp.EQ 2 43] -- TODO what is argCmpDatumB (here: 43)?
+    _ <- Seccomp.seccomp_rule_add_array ctx Seccomp.SCMP_ACT_ALLOW Seccomp.SCread []
+    _ <- Seccomp.seccomp_rule_add_array ctx Seccomp.SCMP_ACT_ALLOW Seccomp.SCmmap [] -- TODO: dangerous?
+    _ <- Seccomp.seccomp_rule_add_array ctx Seccomp.SCMP_ACT_ALLOW Seccomp.SCclose []
+    _ <- Seccomp.seccomp_rule_add_array ctx Seccomp.SCMP_ACT_ALLOW Seccomp.SCmunmap []
+    -- TODO no idea what haskell is doing here. I guess it tries to find out whether the fd is an attached terminal
+    _ <- Seccomp.seccomp_rule_add_array ctx Seccomp.SCMP_ACT_ALLOW Seccomp.SCioctl [Seccomp.ArgCmp 0 Seccomp.EQ 1 43, Seccomp.ArgCmp 1 Seccomp.EQ 0x5401 43]
+    --_ <- Seccomp.seccomp_rule_add_array ctx Seccomp.SCMP_ACT_ALLOW Seccomp.SCioctl [Seccomp.ArgCmp 0 Seccomp.EQ 2 43, Seccomp.ArgCmp 1 Seccomp.EQ 0x5401 43]
+    return ()
+
 main :: IO ()
 main = do 
     cmdArgs <- getRecord "FFFUU -- Fancy Formal Firewall Universal Understander: \n\n\
@@ -109,6 +135,14 @@ main = do
                     \Overapproximation means: if the anaylsis concludes that the packets you want to be dropped are dropped in the loaded overapproximation, then they are also dropped for your real firewall (without approximation)."
     --print (cmdArgs::CommandLineArgs)
     (verbose, ipassmt, table, chain, smOptions, (srcname, src)) <- readArgs cmdArgs
+    
+    
+    -- drop almost all privileges
+    ctx <- Seccomp.seccomp_init Seccomp.SCMP_ACT_KILL
+    whitelistHaskellRuntimeCalls ctx
+    ret <- Seccomp.seccomp_load ctx
+    Seccomp.seccomp_release ctx
+    when (ret /= 0) $ putErrStrLn "WARNING: Loading seccomp failed!"
     
     case parseIptablesSave srcname src of
         Left err -> do
