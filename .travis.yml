@@ -11,6 +11,7 @@ matrix:
       addons: {apt: {packages: [cabal-install-1.22,ghc-7.10.3], sources: [hvr-ghc]}}
 
 before_install:
+ - sudo apt-get install -y libseccomp-dev
  - unset CC
  - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$PATH
 
