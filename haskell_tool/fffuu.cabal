@@ -39,7 +39,7 @@ executable fffuu
       base >=4.7 && <4.9
     , containers >=0.5 && <0.6
     , fffuu
-    , hsseccomp == 0.1.0.2-corny
+    , hsseccomp == 0.2.0.1
     , parsec >=3.0 && <3.2
     , optparse-generic >= 1.1 && < 1.2
 
