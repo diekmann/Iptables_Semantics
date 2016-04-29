@@ -1,0 +1,488 @@
+Parsed IpAssmt
+IpAssmt [(ldit,Pos [Ip4AddrNetmask 10.13.42.136/29]),(lmd,Pos [Ip4AddrNetmask 10.13.42.128/29]),(loben,Pos [Ip4AddrNetmask 10.13.42.144/28]),(wg,Pos [Ip4AddrNetmask 10.13.42.176/28]),(wt,Pos [Ip4AddrNetmask 10.13.42.160/28]),(lup,Neg [Ip4AddrNetmask 192.168.0.0/16,Ip4AddrNetmask 172.16.0.0/12,Ip4AddrNetmask 10.0.0.0/8]),(lo,Pos [Ip4AddrNetmask 127.0.0.0/8]),(vpriv,Pos [Ip4AddrNetmask 0.0.0.0/0]),(vshit,Pos [Ip4AddrNetmask 0.0.0.0/0]),(vocb,Pos [Ip4AddrNetmask 0.0.0.0/0]),(lua,Pos [Ip4AddrNetmask 0.0.0.0/0])]
+== Parser output ==
+*filter
+:BasicSvc - [0:0]
+:FORWARD DROP [0:0]
+:FromInternalF - [0:0]
+:INPUT DROP [5:671]
+:OUTPUT ACCEPT [311:37811]
+:PError - [0:0]
+:SSHLimit - [0:0]
+-A BasicSvc `ParsedMatch -p udp' `ParsedMatch --spts [67:68]' `ParsedMatch --dpts [67:68]' `ParsedAction -j ACCEPT'
+-A BasicSvc `ParsedMatch -p udp' `ParsedMatch --dpts [53]' `ParsedAction -j ACCEPT'
+-A BasicSvc `ParsedMatch -p tcp' `ParsedMatch --dpts [15678]' `ParsedAction -j ACCEPT'
+-A FORWARD `ParsedMatch -i lup' `ParsedMatch -m state --state ESTABLISHED,RELATED' `ParsedAction -j ACCEPT'
+-A FORWARD `ParsedMatch -i lmd' `ParsedAction -j FromInternalF (call)'
+-A FORWARD `ParsedMatch -i ldit' `ParsedAction -j FromInternalF (call)'
+-A FORWARD `ParsedMatch -i loben' `ParsedAction -j FromInternalF (call)'
+-A FORWARD `ParsedMatch -i wt' `ParsedAction -j FromInternalF (call)'
+-A FORWARD `ParsedMatch -i vshit' `ParsedMatch -o lup' `ParsedAction -j ACCEPT'
+-A FORWARD `ParsedMatch -i wg' `ParsedMatch -o lup' `ParsedAction -j ACCEPT'
+-A FORWARD `ParsedMatch -i lua' `ParsedMatch -o lup' `ParsedAction -j ACCEPT'
+-A FORWARD `ParsedMatch -i vocb' `ParsedMatch -o lup' `ParsedMatch -p udp' `ParsedMatch --dpts [53]' `ParsedMatch ~~-m~~' `ParsedMatch ~~comment~~' `ParsedMatch ~~--comment~~' `ParsedMatch ~~DNS~~' `ParsedAction -j ACCEPT'
+-A FORWARD `ParsedMatch -i vocb' `ParsedMatch -o lup' `ParsedMatch -p tcp' `ParsedMatch --dpts [53]' `ParsedMatch ~~-m~~' `ParsedMatch ~~comment~~' `ParsedMatch ~~--comment~~' `ParsedMatch ~~DNS~~' `ParsedAction -j ACCEPT'
+-A FORWARD `ParsedMatch -d 131.159.207.206/32' `ParsedMatch -i vocb' `ParsedMatch -o lup' `ParsedMatch -p udp' `ParsedMatch --dpts [1194]' `ParsedAction -j ACCEPT'
+-A FORWARD `ParsedMatch -d 131.159.207.206/32' `ParsedMatch -i vocb' `ParsedMatch -o lup' `ParsedMatch -p tcp' `ParsedMatch --dpts [80]' `ParsedAction -j ACCEPT'
+-A FORWARD `ParsedMatch -d 141.76.2.4/32' `ParsedMatch -i vocb' `ParsedMatch -o lup' `ParsedMatch -p tcp' `ParsedAction -j ACCEPT'
+-A FromInternalF `ParsedMatch -o lmd' `ParsedAction -j ACCEPT'
+-A FromInternalF `ParsedMatch -o ldit' `ParsedAction -j ACCEPT'
+-A FromInternalF `ParsedMatch -o loben' `ParsedAction -j ACCEPT'
+-A FromInternalF `ParsedMatch -o wt' `ParsedAction -j ACCEPT'
+-A FromInternalF `ParsedMatch -o lup' `ParsedAction -j ACCEPT'
+-A INPUT `ParsedMatch -i lo' `ParsedAction -j ACCEPT'
+-A INPUT `ParsedMatch -p icmp' `ParsedAction -j ACCEPT'
+-A INPUT `ParsedMatch -i lmd' `ParsedAction -j ACCEPT'
+-A INPUT `ParsedMatch -i ldit' `ParsedAction -j ACCEPT'
+-A INPUT `ParsedMatch -i loben' `ParsedAction -j ACCEPT'
+-A INPUT `ParsedMatch -i wt' `ParsedAction -j ACCEPT'
+-A INPUT `ParsedMatch -i vpriv' `ParsedAction -j ACCEPT'
+-A INPUT `ParsedMatch -m state --state ESTABLISHED,RELATED' `ParsedAction -j ACCEPT'
+-A INPUT `ParsedMatch -p tcp' `ParsedMatch --dpts [22]' `ParsedAction -j SSHLimit (call)'
+-A INPUT `ParsedMatch -p udp' `ParsedMatch --spts [53]' `ParsedMatch -m state --state ESTABLISHED,RELATED' `ParsedAction -j ACCEPT'
+-A INPUT `ParsedMatch -p udp' `ParsedMatch --spts [4242]' `ParsedMatch -m state --state ESTABLISHED,RELATED' `ParsedAction -j ACCEPT'
+-A INPUT `ParsedMatch -i vshit' `ParsedAction -j BasicSvc (call)'
+-A INPUT `ParsedMatch -i wg' `ParsedAction -j BasicSvc (call)'
+-A INPUT `ParsedMatch -i lua' `ParsedAction -j BasicSvc (call)'
+-A INPUT `ParsedMatch -i vocb' `ParsedMatch -p udp' `ParsedMatch --spts [67:68]' `ParsedMatch --dpts [67:68]' `ParsedAction -j ACCEPT'
+-A INPUT `ParsedMatch -i lup' `ParsedAction -j LOG'
+-A INPUT `ParsedMatch -i lup' `ParsedMatch -p udp' `ParsedMatch --spts [67:68]' `ParsedMatch --dpts [67:68]' `ParsedAction -j ACCEPT'
+-A INPUT `ParsedMatch -i lmd' `ParsedAction -j PError (call)'
+-A INPUT `ParsedMatch -i ldit' `ParsedAction -j PError (call)'
+-A INPUT `ParsedMatch -i loben' `ParsedAction -j PError (call)'
+-A INPUT `ParsedMatch -i wt' `ParsedAction -j PError (call)'
+-A INPUT `ParsedMatch -i vshit' `ParsedAction -j PError (call)'
+-A INPUT `ParsedMatch -i wg' `ParsedAction -j PError (call)'
+-A INPUT `ParsedMatch -i lua' `ParsedAction -j PError (call)'
+-A INPUT `ParsedMatch -i vocb' `ParsedAction -j PError (call)'
+-A PError `ParsedMatch -p tcp' `ParsedAction -j REJECT'
+-A PError `ParsedMatch -p udp' `ParsedAction -j REJECT'
+-A PError `ParsedAction -j REJECT'
+-A SSHLimit `ParsedMatch -m state --state ESTABLISHED,RELATED' `ParsedAction -j ACCEPT'
+-A SSHLimit `ParsedMatch ~~-m~~' `ParsedMatch ~~recent~~' `ParsedMatch ~~--set~~' `ParsedMatch ~~--name~~' `ParsedMatch ~~SSHA~~' `ParsedMatch ~~--mask~~' `ParsedMatch ~~255.255.255.255~~' `ParsedMatch ~~--rsource~~'
+-A SSHLimit `ParsedMatch ~~-m~~' `ParsedMatch ~~recent~~' `ParsedMatch ~~--update~~' `ParsedMatch ~~--seconds~~' `ParsedMatch ~~60~~' `ParsedMatch ~~--hitcount~~' `ParsedMatch ~~2~~' `ParsedMatch ~~--name~~' `ParsedMatch ~~SSHA~~' `ParsedMatch ~~--mask~~' `ParsedMatch ~~255.255.255.255~~' `ParsedMatch ~~--rsource~~' `ParsedAction -j LOG'
+-A SSHLimit `ParsedAction -j ACCEPT'
+COMMIT
+*mangle
+:FORWARD ACCEPT [1015:630816]
+:INPUT ACCEPT [403:34957]
+:OUTPUT ACCEPT [311:37811]
+:POSTROUTING ACCEPT [1343:672490]
+:PREROUTING ACCEPT [1418:665773]
+-A POSTROUTING `ParsedMatch -s 10.13.0.0/16' `ParsedMatch -p udp' `ParsedMatch --dpts [68]' `ParsedAction -j CHECKSUM (call)' `ParsedMatch ~~--checksum-fill~~'
+-A POSTROUTING `ParsedMatch -s 10.13.0.0/16' `ParsedMatch -p udp' `ParsedMatch --dpts [68]' `ParsedAction -j CHECKSUM (call)' `ParsedMatch ~~--checksum-fill~~'
+-A POSTROUTING `ParsedMatch -s 10.13.0.0/16' `ParsedMatch -p udp' `ParsedMatch --dpts [68]' `ParsedAction -j CHECKSUM (call)' `ParsedMatch ~~--checksum-fill~~'
+-A POSTROUTING `ParsedMatch -s 10.13.0.0/16' `ParsedMatch -p udp' `ParsedMatch --dpts [68]' `ParsedAction -j CHECKSUM (call)' `ParsedMatch ~~--checksum-fill~~'
+-A POSTROUTING `ParsedMatch -s 10.13.0.0/16' `ParsedMatch -p udp' `ParsedMatch --dpts [68]' `ParsedAction -j CHECKSUM (call)' `ParsedMatch ~~--checksum-fill~~'
+-A POSTROUTING `ParsedMatch -s 10.13.0.0/16' `ParsedMatch -p udp' `ParsedMatch --dpts [68]' `ParsedAction -j CHECKSUM (call)' `ParsedMatch ~~--checksum-fill~~'
+-A POSTROUTING `ParsedMatch -s 10.13.0.0/16' `ParsedMatch -p udp' `ParsedMatch --dpts [68]' `ParsedAction -j CHECKSUM (call)' `ParsedMatch ~~--checksum-fill~~'
+-A POSTROUTING `ParsedMatch -s 10.13.0.0/16' `ParsedMatch -p udp' `ParsedMatch --dpts [68]' `ParsedAction -j CHECKSUM (call)' `ParsedMatch ~~--checksum-fill~~'
+-A POSTROUTING `ParsedMatch -s 10.13.0.0/16' `ParsedMatch -p udp' `ParsedMatch --dpts [68]' `ParsedAction -j CHECKSUM (call)' `ParsedMatch ~~--checksum-fill~~'
+-A POSTROUTING `ParsedMatch -s 10.13.0.0/16' `ParsedMatch -p udp' `ParsedMatch --dpts [68]' `ParsedAction -j CHECKSUM (call)' `ParsedMatch ~~--checksum-fill~~'
+-A POSTROUTING `ParsedMatch -s 10.13.0.0/16' `ParsedMatch -p udp' `ParsedMatch --dpts [68]' `ParsedAction -j CHECKSUM (call)' `ParsedMatch ~~--checksum-fill~~'
+-A POSTROUTING `ParsedMatch -s 10.13.0.0/16' `ParsedMatch -p udp' `ParsedMatch --dpts [68]' `ParsedAction -j CHECKSUM (call)' `ParsedMatch ~~--checksum-fill~~'
+-A POSTROUTING `ParsedMatch -s 10.13.0.0/16' `ParsedMatch -p udp' `ParsedMatch --dpts [68]' `ParsedAction -j CHECKSUM (call)' `ParsedMatch ~~--checksum-fill~~'
+-A POSTROUTING `ParsedMatch -s 10.13.0.0/16' `ParsedMatch -p udp' `ParsedMatch --dpts [68]' `ParsedAction -j CHECKSUM (call)' `ParsedMatch ~~--checksum-fill~~'
+-A POSTROUTING `ParsedMatch -s 10.13.0.0/16' `ParsedMatch -p udp' `ParsedMatch --dpts [68]' `ParsedAction -j CHECKSUM (call)' `ParsedMatch ~~--checksum-fill~~'
+-A POSTROUTING `ParsedMatch -s 10.13.0.0/16' `ParsedMatch -p udp' `ParsedMatch --dpts [68]' `ParsedAction -j CHECKSUM (call)' `ParsedMatch ~~--checksum-fill~~'
+COMMIT
+*nat
+:INPUT ACCEPT [12:1292]
+:OUTPUT ACCEPT [37:4054]
+:POSTROUTING ACCEPT [25:2944]
+:PREROUTING ACCEPT [24:2004]
+-A POSTROUTING `ParsedMatch -s 10.13.43.0/28' `ParsedMatch -d 224.0.0.0/24' `ParsedAction -j RETURN'
+-A POSTROUTING `ParsedMatch -s 10.13.43.0/28' `ParsedMatch -d 255.255.255.255/32' `ParsedAction -j RETURN'
+-A POSTROUTING `ParsedMatch -s 10.13.43.0/28' `ParsedNegatedMatch -d 10.13.43.0/28' `ParsedMatch -p tcp' `ParsedAction -j MASQUERADE (call)' `ParsedMatch ~~--to-ports~~' `ParsedMatch ~~1024-65535~~'
+-A POSTROUTING `ParsedMatch -s 10.13.43.0/28' `ParsedNegatedMatch -d 10.13.43.0/28' `ParsedMatch -p udp' `ParsedAction -j MASQUERADE (call)' `ParsedMatch ~~--to-ports~~' `ParsedMatch ~~1024-65535~~'
+-A POSTROUTING `ParsedMatch -s 10.13.43.0/28' `ParsedNegatedMatch -d 10.13.43.0/28' `ParsedAction -j MASQUERADE (call)'
+-A POSTROUTING `ParsedMatch -o lup' `ParsedAction -j MASQUERADE (call)'
+-A POSTROUTING `ParsedMatch -o lup' `ParsedAction -j MASQUERADE (call)'
+-A POSTROUTING `ParsedMatch -o lup' `ParsedAction -j MASQUERADE (call)'
+-A POSTROUTING `ParsedMatch -o lup' `ParsedAction -j MASQUERADE (call)'
+-A POSTROUTING `ParsedMatch -o lup' `ParsedAction -j MASQUERADE (call)'
+-A POSTROUTING `ParsedMatch -o lup' `ParsedAction -j MASQUERADE (call)'
+-A POSTROUTING `ParsedMatch -o lup' `ParsedAction -j MASQUERADE (call)'
+-A POSTROUTING `ParsedMatch -o lup' `ParsedAction -j MASQUERADE (call)'
+-A POSTROUTING `ParsedMatch -o lup' `ParsedAction -j MASQUERADE (call)'
+-A POSTROUTING `ParsedMatch -o lup' `ParsedAction -j MASQUERADE (call)'
+-A POSTROUTING `ParsedMatch -o lup' `ParsedAction -j MASQUERADE (call)'
+-A POSTROUTING `ParsedMatch -o lup' `ParsedAction -j MASQUERADE (call)'
+-A POSTROUTING `ParsedMatch -o lup' `ParsedAction -j MASQUERADE (call)'
+-A POSTROUTING `ParsedMatch -o lup' `ParsedAction -j MASQUERADE (call)'
+-A POSTROUTING `ParsedMatch -o lup' `ParsedAction -j MASQUERADE (call)'
+-A POSTROUTING `ParsedMatch -o lup' `ParsedAction -j MASQUERADE (call)'
+COMMIT
+*raw
+:OUTPUT ACCEPT [311:37811]
+:PREROUTING ACCEPT [1418:665773]
+:lupSpoofProtect - [0:0]
+-A PREROUTING `ParsedMatch -i lup' `ParsedAction -j lupSpoofProtect (call)'
+-A PREROUTING `ParsedNegatedMatch -s 10.13.42.136/29' `ParsedMatch -i ldit' `ParsedAction -j DROP'
+-A PREROUTING `ParsedNegatedMatch -s 10.13.42.128/29' `ParsedMatch -i lmd' `ParsedAction -j DROP'
+-A PREROUTING `ParsedNegatedMatch -s 10.13.42.144/28' `ParsedMatch -i loben' `ParsedAction -j DROP'
+-A PREROUTING `ParsedNegatedMatch -s 10.13.42.176/28' `ParsedMatch -i wg' `ParsedAction -j DROP'
+-A PREROUTING `ParsedNegatedMatch -s 10.13.42.160/28' `ParsedMatch -i wt' `ParsedAction -j DROP'
+-A lupSpoofProtect `ParsedMatch -s 192.168.0.0/16' `ParsedAction -j DROP'
+-A lupSpoofProtect `ParsedMatch -s 10.0.0.0/8' `ParsedAction -j DROP'
+-A lupSpoofProtect `ParsedMatch -s 172.16.0.0/12' `ParsedAction -j DROP'
+-A lupSpoofProtect `ParsedMatch -d 192.168.0.0/16' `ParsedAction -j DROP'
+-A lupSpoofProtect `ParsedMatch -d 10.0.0.0/8' `ParsedAction -j DROP'
+-A lupSpoofProtect `ParsedMatch -d 172.16.0.0/12' `ParsedAction -j DROP'
+COMMIT
+INFO: Officially, we only support the filter table. You requested the `raw' table. Let's see what happens ;-)
+INFO: Officially, we only support the chains FORWARD, INPUT, OUTPUT. You requested the `PREROUTING' chain. Let's see what happens ;-)
+== Checking which tables are supported for analysis. Usually, only `filter'. ==
+Parsed 7 chains in table filter, a total of 53 rules
+Table `mangle' caught exception: `Reading ruleset failed! sanity_wf_ruleset check failed.'. Analysis not possible for this table. This is probably due to unsupportd actions (or a bug in the parser).
+Table `nat' caught exception: `Reading ruleset failed! sanity_wf_ruleset check failed.'. Analysis not possible for this table. This is probably due to unsupportd actions (or a bug in the parser).
+Parsed 3 chains in table raw, a total of 12 rules
+== Transformed to Isabelle type (only raw table) ==
+[("OUTPUT",[]),("PREROUTING",[(-i lup, -j lupSpoofProtect (call)),(! -s 10.13.42.136/29 -i ldit, -j DROP),(! -s 10.13.42.128/29 -i lmd, -j DROP),(! -s 10.13.42.144/28 -i loben, -j DROP),(! -s 10.13.42.176/28 -i wg, -j DROP),(! -s 10.13.42.160/28 -i wt, -j DROP)]),("lupSpoofProtect",[(-s 192.168.0.0/16, -j DROP),(-s 10.0.0.0/8, -j DROP),(-s 172.16.0.0/12, -j DROP),(-d 192.168.0.0/16, -j DROP),(-d 10.0.0.0/8, -j DROP),(-d 172.16.0.0/12, -j DROP)])]
+Default Policies: fromList [("OUTPUT",-j ACCEPT),("PREROUTING",-j ACCEPT)]
+== unfolded PREROUTING chain ==
+(-i lup -s 192.168.0.0/16, -j DROP)
+(-i lup -s 10.0.0.0/8, -j DROP)
+(-i lup -s 172.16.0.0/12, -j DROP)
+(-i lup -d 192.168.0.0/16, -j DROP)
+(-i lup -d 10.0.0.0/8, -j DROP)
+(-i lup -d 172.16.0.0/12, -j DROP)
+(! -s 10.13.42.136/29 -i ldit, -j DROP)
+(! -s 10.13.42.128/29 -i lmd, -j DROP)
+(! -s 10.13.42.144/28 -i loben, -j DROP)
+(! -s 10.13.42.176/28 -i wg, -j DROP)
+(! -s 10.13.42.160/28 -i wt, -j DROP)
+(, -j ACCEPT)
+== unfolded PREROUTING chain (upper closure) ==
+(-s 192.168.0.0/16 -i lup, -j DROP)
+(-s 10.0.0.0/8 -i lup, -j DROP)
+(-s 172.16.0.0/12 -i lup, -j DROP)
+(-d 192.168.0.0/16 -i lup, -j DROP)
+(-d 10.0.0.0/8 -i lup, -j DROP)
+(-d 172.16.0.0/12 -i lup, -j DROP)
+(-s 0.0.0.0/5 -i ldit, -j DROP)
+(-s 8.0.0.0/7 -i ldit, -j DROP)
+(-s 10.0.0.0/13 -i ldit, -j DROP)
+(-s 10.8.0.0/14 -i ldit, -j DROP)
+(-s 10.12.0.0/16 -i ldit, -j DROP)
+(-s 10.13.0.0/19 -i ldit, -j DROP)
+(-s 10.13.32.0/21 -i ldit, -j DROP)
+(-s 10.13.40.0/23 -i ldit, -j DROP)
+(-s 10.13.42.0/25 -i ldit, -j DROP)
+(-s 10.13.42.128/29 -i ldit, -j DROP)
+(-s 10.13.42.144/28 -i ldit, -j DROP)
+(-s 10.13.42.160/27 -i ldit, -j DROP)
+(-s 10.13.42.192/26 -i ldit, -j DROP)
+(-s 10.13.43.0/24 -i ldit, -j DROP)
+(-s 10.13.44.0/22 -i ldit, -j DROP)
+(-s 10.13.48.0/20 -i ldit, -j DROP)
+(-s 10.13.64.0/18 -i ldit, -j DROP)
+(-s 10.13.128.0/17 -i ldit, -j DROP)
+(-s 10.14.0.0/15 -i ldit, -j DROP)
+(-s 10.16.0.0/12 -i ldit, -j DROP)
+(-s 10.32.0.0/11 -i ldit, -j DROP)
+(-s 10.64.0.0/10 -i ldit, -j DROP)
+(-s 10.128.0.0/9 -i ldit, -j DROP)
+(-s 11.0.0.0/8 -i ldit, -j DROP)
+(-s 12.0.0.0/6 -i ldit, -j DROP)
+(-s 16.0.0.0/4 -i ldit, -j DROP)
+(-s 32.0.0.0/3 -i ldit, -j DROP)
+(-s 64.0.0.0/2 -i ldit, -j DROP)
+(-s 128.0.0.0/1 -i ldit, -j DROP)
+(-s 0.0.0.0/5 -i lmd, -j DROP)
+(-s 8.0.0.0/7 -i lmd, -j DROP)
+(-s 10.0.0.0/13 -i lmd, -j DROP)
+(-s 10.8.0.0/14 -i lmd, -j DROP)
+(-s 10.12.0.0/16 -i lmd, -j DROP)
+(-s 10.13.0.0/19 -i lmd, -j DROP)
+(-s 10.13.32.0/21 -i lmd, -j DROP)
+(-s 10.13.40.0/23 -i lmd, -j DROP)
+(-s 10.13.42.0/25 -i lmd, -j DROP)
+(-s 10.13.42.136/29 -i lmd, -j DROP)
+(-s 10.13.42.144/28 -i lmd, -j DROP)
+(-s 10.13.42.160/27 -i lmd, -j DROP)
+(-s 10.13.42.192/26 -i lmd, -j DROP)
+(-s 10.13.43.0/24 -i lmd, -j DROP)
+(-s 10.13.44.0/22 -i lmd, -j DROP)
+(-s 10.13.48.0/20 -i lmd, -j DROP)
+(-s 10.13.64.0/18 -i lmd, -j DROP)
+(-s 10.13.128.0/17 -i lmd, -j DROP)
+(-s 10.14.0.0/15 -i lmd, -j DROP)
+(-s 10.16.0.0/12 -i lmd, -j DROP)
+(-s 10.32.0.0/11 -i lmd, -j DROP)
+(-s 10.64.0.0/10 -i lmd, -j DROP)
+(-s 10.128.0.0/9 -i lmd, -j DROP)
+(-s 11.0.0.0/8 -i lmd, -j DROP)
+(-s 12.0.0.0/6 -i lmd, -j DROP)
+(-s 16.0.0.0/4 -i lmd, -j DROP)
+(-s 32.0.0.0/3 -i lmd, -j DROP)
+(-s 64.0.0.0/2 -i lmd, -j DROP)
+(-s 128.0.0.0/1 -i lmd, -j DROP)
+(-s 0.0.0.0/5 -i loben, -j DROP)
+(-s 8.0.0.0/7 -i loben, -j DROP)
+(-s 10.0.0.0/13 -i loben, -j DROP)
+(-s 10.8.0.0/14 -i loben, -j DROP)
+(-s 10.12.0.0/16 -i loben, -j DROP)
+(-s 10.13.0.0/19 -i loben, -j DROP)
+(-s 10.13.32.0/21 -i loben, -j DROP)
+(-s 10.13.40.0/23 -i loben, -j DROP)
+(-s 10.13.42.0/25 -i loben, -j DROP)
+(-s 10.13.42.128/28 -i loben, -j DROP)
+(-s 10.13.42.160/27 -i loben, -j DROP)
+(-s 10.13.42.192/26 -i loben, -j DROP)
+(-s 10.13.43.0/24 -i loben, -j DROP)
+(-s 10.13.44.0/22 -i loben, -j DROP)
+(-s 10.13.48.0/20 -i loben, -j DROP)
+(-s 10.13.64.0/18 -i loben, -j DROP)
+(-s 10.13.128.0/17 -i loben, -j DROP)
+(-s 10.14.0.0/15 -i loben, -j DROP)
+(-s 10.16.0.0/12 -i loben, -j DROP)
+(-s 10.32.0.0/11 -i loben, -j DROP)
+(-s 10.64.0.0/10 -i loben, -j DROP)
+(-s 10.128.0.0/9 -i loben, -j DROP)
+(-s 11.0.0.0/8 -i loben, -j DROP)
+(-s 12.0.0.0/6 -i loben, -j DROP)
+(-s 16.0.0.0/4 -i loben, -j DROP)
+(-s 32.0.0.0/3 -i loben, -j DROP)
+(-s 64.0.0.0/2 -i loben, -j DROP)
+(-s 128.0.0.0/1 -i loben, -j DROP)
+(-s 0.0.0.0/5 -i wg, -j DROP)
+(-s 8.0.0.0/7 -i wg, -j DROP)
+(-s 10.0.0.0/13 -i wg, -j DROP)
+(-s 10.8.0.0/14 -i wg, -j DROP)
+(-s 10.12.0.0/16 -i wg, -j DROP)
+(-s 10.13.0.0/19 -i wg, -j DROP)
+(-s 10.13.32.0/21 -i wg, -j DROP)
+(-s 10.13.40.0/23 -i wg, -j DROP)
+(-s 10.13.42.0/25 -i wg, -j DROP)
+(-s 10.13.42.128/27 -i wg, -j DROP)
+(-s 10.13.42.160/28 -i wg, -j DROP)
+(-s 10.13.42.192/26 -i wg, -j DROP)
+(-s 10.13.43.0/24 -i wg, -j DROP)
+(-s 10.13.44.0/22 -i wg, -j DROP)
+(-s 10.13.48.0/20 -i wg, -j DROP)
+(-s 10.13.64.0/18 -i wg, -j DROP)
+(-s 10.13.128.0/17 -i wg, -j DROP)
+(-s 10.14.0.0/15 -i wg, -j DROP)
+(-s 10.16.0.0/12 -i wg, -j DROP)
+(-s 10.32.0.0/11 -i wg, -j DROP)
+(-s 10.64.0.0/10 -i wg, -j DROP)
+(-s 10.128.0.0/9 -i wg, -j DROP)
+(-s 11.0.0.0/8 -i wg, -j DROP)
+(-s 12.0.0.0/6 -i wg, -j DROP)
+(-s 16.0.0.0/4 -i wg, -j DROP)
+(-s 32.0.0.0/3 -i wg, -j DROP)
+(-s 64.0.0.0/2 -i wg, -j DROP)
+(-s 128.0.0.0/1 -i wg, -j DROP)
+(-s 0.0.0.0/5 -i wt, -j DROP)
+(-s 8.0.0.0/7 -i wt, -j DROP)
+(-s 10.0.0.0/13 -i wt, -j DROP)
+(-s 10.8.0.0/14 -i wt, -j DROP)
+(-s 10.12.0.0/16 -i wt, -j DROP)
+(-s 10.13.0.0/19 -i wt, -j DROP)
+(-s 10.13.32.0/21 -i wt, -j DROP)
+(-s 10.13.40.0/23 -i wt, -j DROP)
+(-s 10.13.42.0/25 -i wt, -j DROP)
+(-s 10.13.42.128/27 -i wt, -j DROP)
+(-s 10.13.42.176/28 -i wt, -j DROP)
+(-s 10.13.42.192/26 -i wt, -j DROP)
+(-s 10.13.43.0/24 -i wt, -j DROP)
+(-s 10.13.44.0/22 -i wt, -j DROP)
+(-s 10.13.48.0/20 -i wt, -j DROP)
+(-s 10.13.64.0/18 -i wt, -j DROP)
+(-s 10.13.128.0/17 -i wt, -j DROP)
+(-s 10.14.0.0/15 -i wt, -j DROP)
+(-s 10.16.0.0/12 -i wt, -j DROP)
+(-s 10.32.0.0/11 -i wt, -j DROP)
+(-s 10.64.0.0/10 -i wt, -j DROP)
+(-s 10.128.0.0/9 -i wt, -j DROP)
+(-s 11.0.0.0/8 -i wt, -j DROP)
+(-s 12.0.0.0/6 -i wt, -j DROP)
+(-s 16.0.0.0/4 -i wt, -j DROP)
+(-s 32.0.0.0/3 -i wt, -j DROP)
+(-s 64.0.0.0/2 -i wt, -j DROP)
+(-s 128.0.0.0/1 -i wt, -j DROP)
+(, -j ACCEPT)
+== to simple firewall ==
+DROP     all  --  192.168.0.0/16            0.0.0.0/0 in: lup   
+DROP     all  --  10.0.0.0/8            0.0.0.0/0 in: lup   
+DROP     all  --  172.16.0.0/12            0.0.0.0/0 in: lup   
+DROP     all  --  0.0.0.0/0            192.168.0.0/16 in: lup   
+DROP     all  --  0.0.0.0/0            10.0.0.0/8 in: lup   
+DROP     all  --  0.0.0.0/0            172.16.0.0/12 in: lup   
+DROP     all  --  0.0.0.0/5            0.0.0.0/0 in: ldit   
+DROP     all  --  8.0.0.0/7            0.0.0.0/0 in: ldit   
+DROP     all  --  10.0.0.0/13            0.0.0.0/0 in: ldit   
+DROP     all  --  10.8.0.0/14            0.0.0.0/0 in: ldit   
+DROP     all  --  10.12.0.0/16            0.0.0.0/0 in: ldit   
+DROP     all  --  10.13.0.0/19            0.0.0.0/0 in: ldit   
+DROP     all  --  10.13.32.0/21            0.0.0.0/0 in: ldit   
+DROP     all  --  10.13.40.0/23            0.0.0.0/0 in: ldit   
+DROP     all  --  10.13.42.0/25            0.0.0.0/0 in: ldit   
+DROP     all  --  10.13.42.128/29            0.0.0.0/0 in: ldit   
+DROP     all  --  10.13.42.144/28            0.0.0.0/0 in: ldit   
+DROP     all  --  10.13.42.160/27            0.0.0.0/0 in: ldit   
+DROP     all  --  10.13.42.192/26            0.0.0.0/0 in: ldit   
+DROP     all  --  10.13.43.0/24            0.0.0.0/0 in: ldit   
+DROP     all  --  10.13.44.0/22            0.0.0.0/0 in: ldit   
+DROP     all  --  10.13.48.0/20            0.0.0.0/0 in: ldit   
+DROP     all  --  10.13.64.0/18            0.0.0.0/0 in: ldit   
+DROP     all  --  10.13.128.0/17            0.0.0.0/0 in: ldit   
+DROP     all  --  10.14.0.0/15            0.0.0.0/0 in: ldit   
+DROP     all  --  10.16.0.0/12            0.0.0.0/0 in: ldit   
+DROP     all  --  10.32.0.0/11            0.0.0.0/0 in: ldit   
+DROP     all  --  10.64.0.0/10            0.0.0.0/0 in: ldit   
+DROP     all  --  10.128.0.0/9            0.0.0.0/0 in: ldit   
+DROP     all  --  11.0.0.0/8            0.0.0.0/0 in: ldit   
+DROP     all  --  12.0.0.0/6            0.0.0.0/0 in: ldit   
+DROP     all  --  16.0.0.0/4            0.0.0.0/0 in: ldit   
+DROP     all  --  32.0.0.0/3            0.0.0.0/0 in: ldit   
+DROP     all  --  64.0.0.0/2            0.0.0.0/0 in: ldit   
+DROP     all  --  128.0.0.0/1            0.0.0.0/0 in: ldit   
+DROP     all  --  0.0.0.0/5            0.0.0.0/0 in: lmd   
+DROP     all  --  8.0.0.0/7            0.0.0.0/0 in: lmd   
+DROP     all  --  10.0.0.0/13            0.0.0.0/0 in: lmd   
+DROP     all  --  10.8.0.0/14            0.0.0.0/0 in: lmd   
+DROP     all  --  10.12.0.0/16            0.0.0.0/0 in: lmd   
+DROP     all  --  10.13.0.0/19            0.0.0.0/0 in: lmd   
+DROP     all  --  10.13.32.0/21            0.0.0.0/0 in: lmd   
+DROP     all  --  10.13.40.0/23            0.0.0.0/0 in: lmd   
+DROP     all  --  10.13.42.0/25            0.0.0.0/0 in: lmd   
+DROP     all  --  10.13.42.136/29            0.0.0.0/0 in: lmd   
+DROP     all  --  10.13.42.144/28            0.0.0.0/0 in: lmd   
+DROP     all  --  10.13.42.160/27            0.0.0.0/0 in: lmd   
+DROP     all  --  10.13.42.192/26            0.0.0.0/0 in: lmd   
+DROP     all  --  10.13.43.0/24            0.0.0.0/0 in: lmd   
+DROP     all  --  10.13.44.0/22            0.0.0.0/0 in: lmd   
+DROP     all  --  10.13.48.0/20            0.0.0.0/0 in: lmd   
+DROP     all  --  10.13.64.0/18            0.0.0.0/0 in: lmd   
+DROP     all  --  10.13.128.0/17            0.0.0.0/0 in: lmd   
+DROP     all  --  10.14.0.0/15            0.0.0.0/0 in: lmd   
+DROP     all  --  10.16.0.0/12            0.0.0.0/0 in: lmd   
+DROP     all  --  10.32.0.0/11            0.0.0.0/0 in: lmd   
+DROP     all  --  10.64.0.0/10            0.0.0.0/0 in: lmd   
+DROP     all  --  10.128.0.0/9            0.0.0.0/0 in: lmd   
+DROP     all  --  11.0.0.0/8            0.0.0.0/0 in: lmd   
+DROP     all  --  12.0.0.0/6            0.0.0.0/0 in: lmd   
+DROP     all  --  16.0.0.0/4            0.0.0.0/0 in: lmd   
+DROP     all  --  32.0.0.0/3            0.0.0.0/0 in: lmd   
+DROP     all  --  64.0.0.0/2            0.0.0.0/0 in: lmd   
+DROP     all  --  128.0.0.0/1            0.0.0.0/0 in: lmd   
+DROP     all  --  0.0.0.0/5            0.0.0.0/0 in: loben   
+DROP     all  --  8.0.0.0/7            0.0.0.0/0 in: loben   
+DROP     all  --  10.0.0.0/13            0.0.0.0/0 in: loben   
+DROP     all  --  10.8.0.0/14            0.0.0.0/0 in: loben   
+DROP     all  --  10.12.0.0/16            0.0.0.0/0 in: loben   
+DROP     all  --  10.13.0.0/19            0.0.0.0/0 in: loben   
+DROP     all  --  10.13.32.0/21            0.0.0.0/0 in: loben   
+DROP     all  --  10.13.40.0/23            0.0.0.0/0 in: loben   
+DROP     all  --  10.13.42.0/25            0.0.0.0/0 in: loben   
+DROP     all  --  10.13.42.128/28            0.0.0.0/0 in: loben   
+DROP     all  --  10.13.42.160/27            0.0.0.0/0 in: loben   
+DROP     all  --  10.13.42.192/26            0.0.0.0/0 in: loben   
+DROP     all  --  10.13.43.0/24            0.0.0.0/0 in: loben   
+DROP     all  --  10.13.44.0/22            0.0.0.0/0 in: loben   
+DROP     all  --  10.13.48.0/20            0.0.0.0/0 in: loben   
+DROP     all  --  10.13.64.0/18            0.0.0.0/0 in: loben   
+DROP     all  --  10.13.128.0/17            0.0.0.0/0 in: loben   
+DROP     all  --  10.14.0.0/15            0.0.0.0/0 in: loben   
+DROP     all  --  10.16.0.0/12            0.0.0.0/0 in: loben   
+DROP     all  --  10.32.0.0/11            0.0.0.0/0 in: loben   
+DROP     all  --  10.64.0.0/10            0.0.0.0/0 in: loben   
+DROP     all  --  10.128.0.0/9            0.0.0.0/0 in: loben   
+DROP     all  --  11.0.0.0/8            0.0.0.0/0 in: loben   
+DROP     all  --  12.0.0.0/6            0.0.0.0/0 in: loben   
+DROP     all  --  16.0.0.0/4            0.0.0.0/0 in: loben   
+DROP     all  --  32.0.0.0/3            0.0.0.0/0 in: loben   
+DROP     all  --  64.0.0.0/2            0.0.0.0/0 in: loben   
+DROP     all  --  128.0.0.0/1            0.0.0.0/0 in: loben   
+DROP     all  --  0.0.0.0/5            0.0.0.0/0 in: wg   
+DROP     all  --  8.0.0.0/7            0.0.0.0/0 in: wg   
+DROP     all  --  10.0.0.0/13            0.0.0.0/0 in: wg   
+DROP     all  --  10.8.0.0/14            0.0.0.0/0 in: wg   
+DROP     all  --  10.12.0.0/16            0.0.0.0/0 in: wg   
+DROP     all  --  10.13.0.0/19            0.0.0.0/0 in: wg   
+DROP     all  --  10.13.32.0/21            0.0.0.0/0 in: wg   
+DROP     all  --  10.13.40.0/23            0.0.0.0/0 in: wg   
+DROP     all  --  10.13.42.0/25            0.0.0.0/0 in: wg   
+DROP     all  --  10.13.42.128/27            0.0.0.0/0 in: wg   
+DROP     all  --  10.13.42.160/28            0.0.0.0/0 in: wg   
+DROP     all  --  10.13.42.192/26            0.0.0.0/0 in: wg   
+DROP     all  --  10.13.43.0/24            0.0.0.0/0 in: wg   
+DROP     all  --  10.13.44.0/22            0.0.0.0/0 in: wg   
+DROP     all  --  10.13.48.0/20            0.0.0.0/0 in: wg   
+DROP     all  --  10.13.64.0/18            0.0.0.0/0 in: wg   
+DROP     all  --  10.13.128.0/17            0.0.0.0/0 in: wg   
+DROP     all  --  10.14.0.0/15            0.0.0.0/0 in: wg   
+DROP     all  --  10.16.0.0/12            0.0.0.0/0 in: wg   
+DROP     all  --  10.32.0.0/11            0.0.0.0/0 in: wg   
+DROP     all  --  10.64.0.0/10            0.0.0.0/0 in: wg   
+DROP     all  --  10.128.0.0/9            0.0.0.0/0 in: wg   
+DROP     all  --  11.0.0.0/8            0.0.0.0/0 in: wg   
+DROP     all  --  12.0.0.0/6            0.0.0.0/0 in: wg   
+DROP     all  --  16.0.0.0/4            0.0.0.0/0 in: wg   
+DROP     all  --  32.0.0.0/3            0.0.0.0/0 in: wg   
+DROP     all  --  64.0.0.0/2            0.0.0.0/0 in: wg   
+DROP     all  --  128.0.0.0/1            0.0.0.0/0 in: wg   
+DROP     all  --  0.0.0.0/5            0.0.0.0/0 in: wt   
+DROP     all  --  8.0.0.0/7            0.0.0.0/0 in: wt   
+DROP     all  --  10.0.0.0/13            0.0.0.0/0 in: wt   
+DROP     all  --  10.8.0.0/14            0.0.0.0/0 in: wt   
+DROP     all  --  10.12.0.0/16            0.0.0.0/0 in: wt   
+DROP     all  --  10.13.0.0/19            0.0.0.0/0 in: wt   
+DROP     all  --  10.13.32.0/21            0.0.0.0/0 in: wt   
+DROP     all  --  10.13.40.0/23            0.0.0.0/0 in: wt   
+DROP     all  --  10.13.42.0/25            0.0.0.0/0 in: wt   
+DROP     all  --  10.13.42.128/27            0.0.0.0/0 in: wt   
+DROP     all  --  10.13.42.176/28            0.0.0.0/0 in: wt   
+DROP     all  --  10.13.42.192/26            0.0.0.0/0 in: wt   
+DROP     all  --  10.13.43.0/24            0.0.0.0/0 in: wt   
+DROP     all  --  10.13.44.0/22            0.0.0.0/0 in: wt   
+DROP     all  --  10.13.48.0/20            0.0.0.0/0 in: wt   
+DROP     all  --  10.13.64.0/18            0.0.0.0/0 in: wt   
+DROP     all  --  10.13.128.0/17            0.0.0.0/0 in: wt   
+DROP     all  --  10.14.0.0/15            0.0.0.0/0 in: wt   
+DROP     all  --  10.16.0.0/12            0.0.0.0/0 in: wt   
+DROP     all  --  10.32.0.0/11            0.0.0.0/0 in: wt   
+DROP     all  --  10.64.0.0/10            0.0.0.0/0 in: wt   
+DROP     all  --  10.128.0.0/9            0.0.0.0/0 in: wt   
+DROP     all  --  11.0.0.0/8            0.0.0.0/0 in: wt   
+DROP     all  --  12.0.0.0/6            0.0.0.0/0 in: wt   
+DROP     all  --  16.0.0.0/4            0.0.0.0/0 in: wt   
+DROP     all  --  32.0.0.0/3            0.0.0.0/0 in: wt   
+DROP     all  --  64.0.0.0/2            0.0.0.0/0 in: wt   
+DROP     all  --  128.0.0.0/1            0.0.0.0/0 in: wt   
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0    
+== to even-simpler firewall ==
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0    
+== checking spoofing protection ==
+distinct: passed
+ipassmt_sanity_nowildcards: passed
+ipassmt_sanity_defined (interfaces defined in the ruleset are also in ipassmt): passed
+ipassmt_sanity_disjoint (no zone-spanning interfaces): fail: [(ldit,vpriv), (ldit,vshit), (ldit,vocb), (ldit,lua), (lmd,vpriv), (lmd,vshit), (lmd,vocb), (lmd,lua), (loben,vpriv), (loben,vshit), (loben,vocb), (loben,lua), (wg,vpriv), (wg,vshit), (wg,vocb), (wg,lua), (wt,vpriv), (wt,vshit), (wt,vocb), (wt,lua), (lup,lo), (lup,vpriv), (lup,vshit), (lup,vocb), (lup,lua), (lo,lup), (lo,vpriv), (lo,vshit), (lo,vocb), (lo,lua), (vpriv,ldit), (vpriv,lmd), (vpriv,loben), (vpriv,wg), (vpriv,wt), (vpriv,lup), (vpriv,lo), (vpriv,vshit), (vpriv,vocb), (vpriv,lua), (vshit,ldit), (vshit,lmd), (vshit,loben), (vshit,wg), (vshit,wt), (vshit,lup), (vshit,lo), (vshit,vpriv), (vshit,vocb), (vshit,lua), (vocb,ldit), (vocb,lmd), (vocb,loben), (vocb,wg), (vocb,wt), (vocb,lup), (vocb,lo), (vocb,vpriv), (vocb,vshit), (vocb,lua), (lua,ldit), (lua,lmd), (lua,loben), (lua,wg), (lua,wt), (lua,lup), (lua,lo), (lua,vpriv), (lua,vshit), (lua,vocb)]
+ipassmt_sanity_disjoint excluding UNIV interfaces: fail: [(lup,lo), (lo,lup)]
+ipassmt_sanity_complete: passed
+ipassmt_sanity_complete excluding UNIV interfaces: the following is not covered: {10.0.0.0 .. 10.13.42.127} u {10.13.42.192 .. 10.255.255.255} u {172.16.0.0 .. 172.31.255.255} u {192.168.0.0 .. 192.168.255.255}
+Spoofing certification results:
+("ldit","True (certified)")
+("lmd","True (certified)")
+("loben","True (certified)")
+("wg","True (certified)")
+("wt","True (certified)")
+("lup","True (certified)")
+("lo","Probably not (False)")
+("vpriv","True (certified)")
+("vshit","True (certified)")
+("vocb","True (certified)")
+("lua","True (certified)")
+== calculating service matrices ==
+=========== TCP port 10000->22 =========
+a |-> {0.0.0.0 .. 255.255.255.255}
+
+(a,a)
+
+=========== TCP port 10000->80 =========
+a |-> {0.0.0.0 .. 255.255.255.255}
+
+(a,a)
+

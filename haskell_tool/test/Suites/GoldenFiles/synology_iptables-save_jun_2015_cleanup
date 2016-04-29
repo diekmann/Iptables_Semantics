@@ -1,0 +1,186 @@
+== Parser output ==
+*filter
+:DEFAULT_INPUT - [0:0]
+:DOS_PROTECT - [0:0]
+:FORWARD ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [1745:334865]
+-A DEFAULT_INPUT `ParsedMatch -i lo' `ParsedAction -j ACCEPT'
+-A DEFAULT_INPUT `ParsedMatch -m state --state ESTABLISHED,RELATED' `ParsedAction -j ACCEPT'
+-A DEFAULT_INPUT `ParsedMatch -p tcp' `ParsedMatch --dpts [22]' `ParsedAction -j ACCEPT'
+-A DEFAULT_INPUT `ParsedMatch -p tcp' `ParsedMatch --dpts [873, 3260, 3261, 3262, 3240:3259, 21, 548, 111, 892, 2049, 443, 80, 3493, 3306]' `ParsedAction -j DROP'
+-A DEFAULT_INPUT `ParsedMatch -p tcp' `ParsedMatch --dpts [22, 23]' `ParsedAction -j DROP'
+-A DEFAULT_INPUT `ParsedMatch -p udp' `ParsedMatch --dpts [68, 67, 123, 514, 19999, 5353, 161, 111, 892, 2049]' `ParsedAction -j DROP'
+-A DEFAULT_INPUT `ParsedMatch -s 192.168.0.0/16' `ParsedAction -j ACCEPT'
+-A DEFAULT_INPUT `ParsedAction -j DROP'
+-A DEFAULT_INPUT `ParsedMatch -i eth0' `ParsedAction -j DROP'
+-A DOS_PROTECT `ParsedMatch -i eth1' `ParsedMatch -p icmp' `ParsedMatch ~~-m~~' `ParsedMatch ~~icmp~~' `ParsedMatch ~~--icmp-type~~' `ParsedMatch ~~8~~' `ParsedMatch ~~-m~~' `ParsedMatch ~~limit~~' `ParsedMatch ~~--limit~~' `ParsedMatch ~~1/sec~~' `ParsedAction -j RETURN'
+-A DOS_PROTECT `ParsedMatch -i eth1' `ParsedMatch -p icmp' `ParsedMatch ~~-m~~' `ParsedMatch ~~icmp~~' `ParsedMatch ~~--icmp-type~~' `ParsedMatch ~~8~~' `ParsedAction -j DROP'
+-A DOS_PROTECT `ParsedMatch -i eth1' `ParsedMatch -p tcp' `ParsedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST]' `ParsedMatch ~~-m~~' `ParsedMatch ~~limit~~' `ParsedMatch ~~--limit~~' `ParsedMatch ~~1/sec~~' `ParsedAction -j RETURN'
+-A DOS_PROTECT `ParsedMatch -i eth1' `ParsedMatch -p tcp' `ParsedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST]' `ParsedAction -j DROP'
+-A DOS_PROTECT `ParsedMatch -i eth1' `ParsedMatch -p tcp' `ParsedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN]' `ParsedMatch ~~-m~~' `ParsedMatch ~~limit~~' `ParsedMatch ~~--limit~~' `ParsedMatch ~~10000/sec~~' `ParsedMatch ~~--limit-burst~~' `ParsedMatch ~~100~~' `ParsedAction -j RETURN'
+-A DOS_PROTECT `ParsedMatch -i eth1' `ParsedMatch -p tcp' `ParsedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN]' `ParsedAction -j DROP'
+-A DOS_PROTECT `ParsedMatch -i eth0' `ParsedMatch -p icmp' `ParsedMatch ~~-m~~' `ParsedMatch ~~icmp~~' `ParsedMatch ~~--icmp-type~~' `ParsedMatch ~~8~~' `ParsedMatch ~~-m~~' `ParsedMatch ~~limit~~' `ParsedMatch ~~--limit~~' `ParsedMatch ~~1/sec~~' `ParsedAction -j RETURN'
+-A DOS_PROTECT `ParsedMatch -i eth0' `ParsedMatch -p icmp' `ParsedMatch ~~-m~~' `ParsedMatch ~~icmp~~' `ParsedMatch ~~--icmp-type~~' `ParsedMatch ~~8~~' `ParsedAction -j DROP'
+-A DOS_PROTECT `ParsedMatch -i eth0' `ParsedMatch -p tcp' `ParsedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST]' `ParsedMatch ~~-m~~' `ParsedMatch ~~limit~~' `ParsedMatch ~~--limit~~' `ParsedMatch ~~1/sec~~' `ParsedAction -j RETURN'
+-A DOS_PROTECT `ParsedMatch -i eth0' `ParsedMatch -p tcp' `ParsedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST]' `ParsedAction -j DROP'
+-A DOS_PROTECT `ParsedMatch -i eth0' `ParsedMatch -p tcp' `ParsedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN]' `ParsedMatch ~~-m~~' `ParsedMatch ~~limit~~' `ParsedMatch ~~--limit~~' `ParsedMatch ~~10000/sec~~' `ParsedMatch ~~--limit-burst~~' `ParsedMatch ~~100~~' `ParsedAction -j RETURN'
+-A DOS_PROTECT `ParsedMatch -i eth0' `ParsedMatch -p tcp' `ParsedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN]' `ParsedAction -j DROP'
+-A INPUT `ParsedAction -j DOS_PROTECT (call)'
+-A INPUT `ParsedAction -j DEFAULT_INPUT (call)'
+COMMIT
+== Checking which tables are supported for analysis. Usually, only `filter'. ==
+Parsed 5 chains in table filter, a total of 23 rules
+== Transformed to Isabelle type (only filter table) ==
+[("DEFAULT_INPUT",[(-i lo, -j ACCEPT),(-m state --state ESTABLISHED,RELATED, -j ACCEPT),(-p tcp --dpts [22], -j ACCEPT),(-p tcp --dpts [873, 3260, 3261, 3262, 3240:3259, 21, 548, 111, 892, 2049, 443, 80, 3493, 3306], -j DROP),(-p tcp --dpts [22, 23], -j DROP),(-p udp --dpts [68, 67, 123, 514, 19999, 5353, 161, 111, 892, 2049], -j DROP),(-s 192.168.0.0/16, -j ACCEPT),(, -j DROP),(-i eth0, -j DROP)]),("DOS_PROTECT",[(-i eth1 -p icmp ~~-m icmp --icmp-type 8 -m limit --limit 1/sec~~, -j RETURN),(-i eth1 -p icmp ~~-m icmp --icmp-type 8~~, -j DROP),(-i eth1 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ~~-m limit --limit 1/sec~~, -j RETURN),(-i eth1 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST], -j DROP),(-i eth1 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] ~~-m limit --limit 10000/sec --limit-burst 100~~, -j RETURN),(-i eth1 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j DROP),(-i eth0 -p icmp ~~-m icmp --icmp-type 8 -m limit --limit 1/sec~~, -j RETURN),(-i eth0 -p icmp ~~-m icmp --icmp-type 8~~, -j DROP),(-i eth0 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ~~-m limit --limit 1/sec~~, -j RETURN),(-i eth0 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST], -j DROP),(-i eth0 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] ~~-m limit --limit 10000/sec --limit-burst 100~~, -j RETURN),(-i eth0 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j DROP)]),("FORWARD",[]),("INPUT",[(, -j DOS_PROTECT (call)),(, -j DEFAULT_INPUT (call))]),("OUTPUT",[])]
+Default Policies: fromList [("FORWARD",-j ACCEPT),("INPUT",-j ACCEPT),("OUTPUT",-j ACCEPT)]
+== unfolded INPUT chain ==
+(! (-i eth1 -p icmp ~~-m icmp --icmp-type 8 -m limit --limit 1/sec~~) -i eth1 -p icmp ~~-m icmp --icmp-type 8~~, -j DROP)
+(! (-i eth1 -p icmp ~~-m icmp --icmp-type 8 -m limit --limit 1/sec~~) ! (-i eth1 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ~~-m limit --limit 1/sec~~) -i eth1 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST], -j DROP)
+(! (-i eth1 -p icmp ~~-m icmp --icmp-type 8 -m limit --limit 1/sec~~) ! (-i eth1 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ~~-m limit --limit 1/sec~~) ! (-i eth1 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] ~~-m limit --limit 10000/sec --limit-burst 100~~) -i eth1 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j DROP)
+(! (-i eth1 -p icmp ~~-m icmp --icmp-type 8 -m limit --limit 1/sec~~) ! (-i eth1 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ~~-m limit --limit 1/sec~~) ! (-i eth1 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] ~~-m limit --limit 10000/sec --limit-burst 100~~) ! (-i eth0 -p icmp ~~-m icmp --icmp-type 8 -m limit --limit 1/sec~~) -i eth0 -p icmp ~~-m icmp --icmp-type 8~~, -j DROP)
+(! (-i eth1 -p icmp ~~-m icmp --icmp-type 8 -m limit --limit 1/sec~~) ! (-i eth1 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ~~-m limit --limit 1/sec~~) ! (-i eth1 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] ~~-m limit --limit 10000/sec --limit-burst 100~~) ! (-i eth0 -p icmp ~~-m icmp --icmp-type 8 -m limit --limit 1/sec~~) ! (-i eth0 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ~~-m limit --limit 1/sec~~) -i eth0 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST], -j DROP)
+(! (-i eth1 -p icmp ~~-m icmp --icmp-type 8 -m limit --limit 1/sec~~) ! (-i eth1 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ~~-m limit --limit 1/sec~~) ! (-i eth1 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] ~~-m limit --limit 10000/sec --limit-burst 100~~) ! (-i eth0 -p icmp ~~-m icmp --icmp-type 8 -m limit --limit 1/sec~~) ! (-i eth0 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ~~-m limit --limit 1/sec~~) ! (-i eth0 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] ~~-m limit --limit 10000/sec --limit-burst 100~~) -i eth0 -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j DROP)
+(-i lo, -j ACCEPT)
+(-m state --state ESTABLISHED,RELATED, -j ACCEPT)
+(-p tcp --dpts [22], -j ACCEPT)
+(-p tcp --dpts [873, 3260, 3261, 3262, 3240:3259, 21, 548, 111, 892, 2049, 443, 80, 3493, 3306], -j DROP)
+(-p tcp --dpts [22, 23], -j DROP)
+(-p udp --dpts [68, 67, 123, 514, 19999, 5353, 161, 111, 892, 2049], -j DROP)
+(-s 192.168.0.0/16, -j ACCEPT)
+(, -j DROP)
+(-i eth0, -j DROP)
+(, -j ACCEPT)
+== unfolded INPUT chain (upper closure) ==
+(-i eth1 -p tcp ! -p icmp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST], -j DROP)
+(-i eth1 -p tcp ! -p icmp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j DROP)
+(-i eth0 -p tcp ! -p icmp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST], -j DROP)
+(-i eth0 -p tcp ! -p icmp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST], -j DROP)
+(-i eth0 -p tcp ! -p icmp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST], -j DROP)
+(-i eth0 -p tcp ! -p icmp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST], -j DROP)
+(-i eth0 -p tcp ! -p icmp ! -p icmp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST], -j DROP)
+(-i eth0 -p tcp ! -p icmp ! -p icmp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST], -j DROP)
+(-i eth0 -p tcp ! -p icmp ! -p icmp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST], -j DROP)
+(-i eth0 -p tcp ! -p icmp ! -p icmp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST], -j DROP)
+(-i eth0 -p tcp ! -p icmp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j DROP)
+(-i eth0 -p tcp ! -p icmp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j DROP)
+(-i eth0 -p tcp ! -p icmp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j DROP)
+(-i eth0 -p tcp ! -p icmp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j DROP)
+(-i eth0 -p tcp ! -p icmp ! -p icmp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j DROP)
+(-i eth0 -p tcp ! -p icmp ! -p icmp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j DROP)
+(-i eth0 -p tcp ! -p icmp ! -p icmp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j DROP)
+(-i eth0 -p tcp ! -p icmp ! -p icmp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_RST] ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j DROP)
+(-i lo, -j ACCEPT)
+(-m state --state ESTABLISHED,RELATED, -j ACCEPT)
+(--dpts [22] -p tcp, -j ACCEPT)
+(--dpts [873] -p tcp, -j DROP)
+(--dpts [3240:3262] -p tcp, -j DROP)
+(--dpts [21] -p tcp, -j DROP)
+(--dpts [548] -p tcp, -j DROP)
+(--dpts [111] -p tcp, -j DROP)
+(--dpts [892] -p tcp, -j DROP)
+(--dpts [2049] -p tcp, -j DROP)
+(--dpts [443] -p tcp, -j DROP)
+(--dpts [80] -p tcp, -j DROP)
+(--dpts [3493] -p tcp, -j DROP)
+(--dpts [3306] -p tcp, -j DROP)
+(--dpts [22:23] -p tcp, -j DROP)
+(--dpts [67:68] -p udp, -j DROP)
+(--dpts [123] -p udp, -j DROP)
+(--dpts [514] -p udp, -j DROP)
+(--dpts [19999] -p udp, -j DROP)
+(--dpts [5353] -p udp, -j DROP)
+(--dpts [161] -p udp, -j DROP)
+(--dpts [111] -p udp, -j DROP)
+(--dpts [892] -p udp, -j DROP)
+(--dpts [2049] -p udp, -j DROP)
+(-s 192.168.0.0/16, -j ACCEPT)
+(, -j DROP)
+(-i eth0, -j DROP)
+(, -j ACCEPT)
+== to simple firewall ==
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0 in: lo   
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 22
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 873
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 3240:3262
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 21
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 548
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 111
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 892
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 2049
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 443
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 80
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 3493
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 3306
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 22:23
+DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 67:68
+DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 123
+DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 514
+DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 19999
+DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 5353
+DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 161
+DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 111
+DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 892
+DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 2049
+ACCEPT     all  --  192.168.0.0/16            0.0.0.0/0    
+DROP     all  --  0.0.0.0/0            0.0.0.0/0    
+DROP     all  --  0.0.0.0/0            0.0.0.0/0 in: eth0   
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0    
+== to even-simpler firewall ==
+ACCEPT     all  --  127.0.0.0/8            0.0.0.0/0    
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 22
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 873
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 3240:3262
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 21
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 548
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 111
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 892
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 2049
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 443
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 80
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 3493
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 3306
+DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 22:23
+DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 67:68
+DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 123
+DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 514
+DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 19999
+DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 5353
+DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 161
+DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 111
+DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 892
+DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 2049
+ACCEPT     all  --  192.168.0.0/16            0.0.0.0/0    
+DROP     all  --  0.0.0.0/0            0.0.0.0/0    
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0    
+== checking spoofing protection ==
+WARNING There are some interfaces in your firewall ruleset which are not defined in your ipassmt.
+distinct: passed
+ipassmt_sanity_nowildcards: passed
+ipassmt_sanity_defined (interfaces defined in the ruleset are also in ipassmt): fail: [eth0]
+ipassmt_sanity_disjoint (no zone-spanning interfaces): passed
+ipassmt_sanity_disjoint excluding UNIV interfaces: passed
+ipassmt_sanity_complete: the following is not covered: {0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 255.255.255.255}
+ipassmt_sanity_complete excluding UNIV interfaces: the following is not covered: {0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 255.255.255.255}
+Spoofing certification results:
+("lo","Probably not (False)")
+== calculating service matrices ==
+=========== TCP port 10000->22 =========
+a |-> {0.0.0.0 .. 255.255.255.255}
+
+(a,a)
+
+=========== TCP port 10000->8080 =========
+a |-> {127.0.0.0 .. 127.255.255.255} u {192.168.0.0 .. 192.168.255.255}
+b |-> {0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 192.167.255.255} u {192.169.0.0 .. 255.255.255.255}
+
+(a,a)
+(a,b)
+
+=========== TCP port 10000->80 =========
+a |-> {0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 255.255.255.255}
+b |-> {127.0.0.0 .. 127.255.255.255}
+
+(b,a)
+(b,b)
+

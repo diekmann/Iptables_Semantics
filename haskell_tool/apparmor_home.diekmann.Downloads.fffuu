@@ -1,0 +1,8 @@
+#include <tunables/global>
+
+/home/diekmann/Downloads/fffuu {
+  #include <abstractions/base>
+
+  # this is where I store the example iptables-save dumps
+  /home/diekmann/git/Iptables_Semantics/** r,
+}

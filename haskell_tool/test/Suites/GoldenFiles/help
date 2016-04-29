@@ -1,0 +1,36 @@
+FFFUU -- Fancy Formal Firewall Universal Understander: Parses `iptables-save`
+and loads one table and chain. By default, it loads the `filter` table and the
+`FORWARD` chain. It unfolds all user-defined chains, generating a linear ruleset
+where only `ACCEPT` and `DROP` actions remain. It abstracts over unknown
+matches. By default, it does an overapproximation, i.e. it loads a more
+permissive version of the ruleset. Then it runs a number of analysis.
+Overapproximation means: if the anaylsis concludes that the packets you want to
+be dropped are dropped in the loaded overapproximation, then they are also
+dropped for your real firewall (without approximation).
+
+Usage: fffuu [--verbose] [--ipassmt STRING] [--table STRING] [--chain STRING]
+             [--service_matrix_sport INTEGER] [--service_matrix_dport INTEGER]
+             STRING
+
+Available options:
+  -h,--help                Show this help text
+  --verbose                Show verbose debug output (for example, of the
+                           parser).
+  --ipassmt STRING         Optional path to an IP assignment file. If not
+                           specified, it only loads `lo = [127.0.0.0/8]`.
+  --table STRING           The table to load for analysis. Default: `filter`.
+                           Note: This tool does not support packet modification,
+                           so loading tables such as `nat` will most likeley
+                           fail.
+  --chain STRING           The chain to start the analysis. Default: `FORWARD`.
+                           Use `INPUT` for a host-based firewall.
+  --service_matrix_sport INTEGER
+                           Source port for the service matrix. If not specified,
+                           the randomly chosen source port 10000 is used. TODO:
+                           maybe use an ephemeral port ;-).
+  --service_matrix_dport INTEGER
+                           Destination port for the service matrix. If not
+                           specified, SSH and HTTP (22 and 80) will be used.
+                           Argument may be repeated multiple times.
+  -h,--help                Show this help text
+  STRING                   Path to the `iptables-save` output.

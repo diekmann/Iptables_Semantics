@@ -81,6 +81,11 @@ text{*We provide an executable algorithm @{const no_spoofing_iface} which checks
 
 @{thm no_spoofing_executable_set [no_vars]}
 
+Text the firewall needs normalized match conditions, this is a good way to preprocess the firewall before 
+checking spoofing protection:
+
+@{thm no_spoofing_executable_set_preprocessed [no_vars]}
+
 *}
 
 subsection{*Simple Firewall Model*}
