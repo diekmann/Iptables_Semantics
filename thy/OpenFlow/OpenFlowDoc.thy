@@ -1,4 +1,5 @@
 text_raw\<open>
+\normalfont
 \title{Verified Migration of Linux Firewalls to SDN}
 \author{Julius Michaelis and Cornelius Diekmann}
 \maketitle
