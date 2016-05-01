@@ -241,7 +241,9 @@ lemma conjunctSomeProtoAnyD: "Some ProtoAny = simple_proto_conjunct a (Proto b) 
 by(cases a) (simp_all split: if_splits)
 lemma conjunctSomeProtoD: "Some (Proto x) = simple_proto_conjunct a (Proto b) \<Longrightarrow> x = b \<and> (a = ProtoAny \<or> a = Proto b)"
 by(cases a) (simp_all split: if_splits)
-lemma conjunctProtoD: "Some x = simple_proto_conjunct a (Proto b) \<Longrightarrow> x = Proto b \<and> (a = ProtoAny \<or> a = Proto b)"
+lemma conjunctProtoD: "simple_proto_conjunct a (Proto b) = Some x \<Longrightarrow> x = Proto b \<and> (a = ProtoAny \<or> a = Proto b)"
+by(cases a) (simp_all split: if_splits)
+lemma conjunctProtoD2: "simple_proto_conjunct (Proto b) a = Some x \<Longrightarrow> x = Proto b \<and> (a = ProtoAny \<or> a = Proto b)"
 by(cases a) (simp_all split: if_splits)
 lemma simple_match_inject: " \<lparr>iiface = iifacea, oiface = oifacea, src = srca, dst = dsta, proto = protoa, sports = sportsa, dports = dportsa\<rparr>
       = \<lparr>iiface = iifaceb, oiface = oifaceb, src = srcb, dst = dstb, proto = protob, sports = sportsb, dports = dportsb\<rparr> \<longleftrightarrow>
@@ -254,64 +256,62 @@ unfolding valid_prefix_fw_def
 lemma simpl_ports_conjunct_not_UNIV:
 "Collect (simple_match_port x) \<noteq> UNIV \<Longrightarrow> x = simpl_ports_conjunct p1 p2 \<Longrightarrow> Collect (simple_match_port p1) \<noteq> UNIV \<or> Collect (simple_match_port p2) \<noteq> UNIV" 
   by (metis Collect_cong mem_Collect_eq simple_ports_conjunct_correct)
-lemma simple_match_and_valid: "simple_match_valid m1 \<Longrightarrow> simple_match_valid m2 \<Longrightarrow> simple_match_and m1 m2 = Some m \<Longrightarrow> simple_match_valid m"
-unfolding simple_match_valid_def
-apply(cases m; cases m1; cases m2)
-apply(rename_tac iiface oiface srca dsta protoa sportsa dportsa iifacea oifacea srcaa dstaa protoaa sportsaa dportsaa iifaceb oifaceb srcb dstb protob sportsb dportsb)
-apply(intro conjI[rotated])
-apply(simp split: option.splits)
-apply(erule (2) ipv4cidr_conjunct_valid[rotated,rotated])
-apply(simp split: option.splits)
-apply(erule (2) ipv4cidr_conjunct_valid[rotated,rotated])
-apply(clarify)
-apply(unfold simple_match.simps)
-apply(erule disjE)
-apply(drule simpl_ports_conjunct_not_UNIV)
-apply(unfold simple_match_and.simps)
-apply(split option.splits, (simp;fail))+
-apply(unfold option.inject simple_match_inject)
-apply(clarify)
-apply(erule sym)
-apply(erule disjE)
-apply(simp)
-apply(elim disjE)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
-apply(simp)
-apply(elim disjE)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD)
-apply(drule simpl_ports_conjunct_not_UNIV)
-apply(split option.splits, (simp;fail))+
-apply(unfold option.inject simple_match_inject)
-apply(clarify)
-apply(erule sym)
-apply(erule disjE)
-apply(simp)
-apply(elim disjE)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD protocol.simps(3) simple_proto_conjunct.elims)
-apply(simp)
-apply(elim disjE)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD)
-apply(simp split: option.splits)
-apply(metis conjunctProtoD)
-done (* okay, shit. *)
+
+lemma simple_match_and_valid: 
+  assumes mv: "simple_match_valid m1" "simple_match_valid m2"
+  assumes mj: "simple_match_and m1 m2 = Some m"
+  shows "simple_match_valid m"
+proof -
+  (* prefix validity. That's simple. *)
+  have "valid_prefix_fw (src m1)" "valid_prefix_fw (src m2)" "valid_prefix_fw (dst m1)" "valid_prefix_fw (dst m2)"
+    using mv unfolding simple_match_valid_alt by simp_all
+  moreover have "ipv4cidr_conjunct (src m1) (src m2) = Some (src m)"
+                "ipv4cidr_conjunct (dst m1) (dst m2) = Some (dst m)"
+    using mj by(cases m1; cases m2; cases m; simp split: option.splits)+
+  ultimately have pv: "valid_prefix_fw (src m)" "valid_prefix_fw (dst m)"
+    using ipv4cidr_conjunct_valid by blast+
+
+  (* now for the source ports\<dots> *)
+  def nmu \<equiv> "\<lambda>ps. {p. simple_match_port ps p} \<noteq> UNIV"
+  have "simpl_ports_conjunct (sports m1) (sports m2) = (sports m)" (is "?ph1 sports")
+    using mj by(cases m1; cases m2; cases m; simp split: option.splits)
+  hence sp: "nmu (sports m) \<longrightarrow> nmu (sports m1) \<or> nmu (sports m2)"
+    (is "?ph2 sports")
+    unfolding nmu_def using simpl_ports_conjunct_not_UNIV by metis
+
+  (* dst ports: mutatis mutandem *)
+  have "?ph1 dports" using mj by(cases m1; cases m2; cases m; simp split: option.splits)
+  hence dp: "?ph2 dports" unfolding nmu_def using simpl_ports_conjunct_not_UNIV by metis
+
+  (* And an argument for the protocol. *)
+  def php \<equiv> "\<lambda>mr :: simple_match. proto mr \<in> Proto ` {TCP, UDP, SCTP}"
+  have pcj: "simple_proto_conjunct (proto m1) (proto m2) = Some (proto m)"
+    using mj by(cases m1; cases m2; cases m; simp split: option.splits)
+  hence p: "php m1 \<Longrightarrow> php m"
+           "php m2 \<Longrightarrow> php m"
+    using conjunctProtoD conjunctProtoD2 pcj unfolding php_def by auto
+
+  (* Since I'm trying to trick the simplifier, I need these as explicit statements: *)
+  have "\<And>mx. simple_match_valid mx \<Longrightarrow> nmu (sports mx) \<or> nmu (dports mx) \<Longrightarrow> php mx"
+    unfolding nmu_def php_def simple_match_valid_def by blast
+  hence mps: "nmu (sports m1) \<Longrightarrow> php m1" "nmu (dports m1) \<Longrightarrow> php m1"
+             "nmu (sports m2) \<Longrightarrow> php m2" "nmu (dports m2) \<Longrightarrow> php m2" using mv by blast+
+  
+  have pa: "nmu (sports m) \<or> nmu (dports m) \<longrightarrow> php m"
+  (*  apply(intro impI)
+    apply(elim disjE)
+    apply(drule sp[THEN mp])
+    apply(elim disjE)
+    apply(drule mps)
+    apply(elim p; fail) *)
+    using sp dp mps p by fast
+
+  show ?thesis
+    unfolding simple_match_valid_def
+    using pv pa[unfolded nmu_def php_def] by blast
+qed
+    
+
 
 definition "gsfw_valid \<equiv> list_all (simple_match_valid \<circ> fst) :: (simple_match \<times> 'c) list \<Rightarrow> bool"
 lemma gsfw_join_valid: "gsfw_valid f1 \<Longrightarrow> gsfw_valid f2 \<Longrightarrow> gsfw_valid (generalized_fw_join f1 f2)"

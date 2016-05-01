@@ -619,41 +619,43 @@ proof(intro inj_onI)
        show ?case apply - apply(rule replicate_FT_hlp) using  goal1(1,2) apply simp apply blast done 
 qed
 
+lemma distinct_simple_match_to_of_match_portlist_hlp: 
+  fixes ps :: "(16 word \<times> 16 word)"
+  shows "distinct ifs \<Longrightarrow>
+    distinct
+     (if fst ps = 0 \<and> snd ps = max_word then [None]
+      else if fst ps \<le> snd ps
+           then map (Some \<circ> (\<lambda>pfx. (pfxm_prefix pfx, ~~ pfxm_mask pfx)))
+                 (wordinterval_CIDR_split_internal (WordInterval (fst ps) (snd ps)))
+           else [])"
+  apply(simp_all add: smtoms_eq_hlp)
+  apply(unfold distinct_map)
+  apply(clarify)
+  apply(intro conjI wordinterval_CIDR_split_internal_distinct)
+  apply(subst comp_inj_on_iff[symmetric])
+  apply(intro inj_onI)
+  apply(case_tac x; case_tac y)
+  apply(clarsimp simp: pfxm_mask_def)
+  apply(drule wordinterval_CIDR_split_internal_all_valid_less_Ball[unfolded Ball_def, THEN spec, THEN mp])+
+  apply(rename_tac x2 x1a x2a)
+  apply(subgoal_tac "16 - x2 = 16 - x2a")
+  apply(simp;fail)
+  apply(rule mask_inj_hlp1[THEN inj_onD])
+  apply(simp;fail)+
+done
+
 lemma distinct_simple_match_to_of_match: "distinct ifs \<Longrightarrow> distinct (simple_match_to_of_match m ifs)"
-apply(unfold simple_match_to_of_match_def Let_def)
-apply(rule distinct_3lcomprI)
-apply(clarsimp)
-apply(induction ifs)
-apply(simp;fail)
-apply(simp;fail)
-apply(simp_all add: smtoms_eq_hlp)
-apply(unfold distinct_map)
-apply(clarify)
-apply(intro conjI wordinterval_CIDR_split_internal_distinct)
-apply(subst comp_inj_on_iff[symmetric])
-prefer 2
-apply force
-apply(intro inj_onI)
-apply(case_tac x; case_tac y)
-apply(clarsimp simp: pfxm_mask_def)
-apply(drule wordinterval_CIDR_split_internal_all_valid_less_Ball[unfolded Ball_def, THEN spec, THEN mp])+
-apply(subgoal_tac "16 - x2 = 16 - x2a")
-apply(simp;fail)
-apply(rule mask_inj_hlp1[THEN inj_onD])
-apply(simp;fail)+
-apply(clarify)
-apply(intro conjI wordinterval_CIDR_split_internal_distinct)
-apply(subst comp_inj_on_iff[symmetric])
-prefer 2
-apply force
-apply(intro inj_onI)
-apply(case_tac x; case_tac y)
-apply(clarsimp simp: pfxm_mask_def)
-apply(drule wordinterval_CIDR_split_internal_all_valid_less_Ball[unfolded Ball_def, THEN spec, THEN mp])+
-apply(subgoal_tac "16 - x2 = 16 - x2a")
-apply(simp;fail)
-apply(rule mask_inj_hlp1[THEN inj_onD])
-apply(simp;fail)+
+  apply(unfold simple_match_to_of_match_def Let_def)
+  apply(rule distinct_3lcomprI)
+  subgoal
+    apply(clarsimp)
+    apply(induction ifs)
+    apply(simp;fail)
+    apply(simp;fail)
+  done
+  subgoal by(fact distinct_simple_match_to_of_match_portlist_hlp)
+  subgoal by(fact distinct_simple_match_to_of_match_portlist_hlp)
+  subgoal by(simp_all add: smtoms_eq_hlp)
 done
 
 lemma no_overlaps_lroft_hlp2: "distinct (map fst amr) \<Longrightarrow> (\<And>r. distinct (fm r)) \<Longrightarrow>

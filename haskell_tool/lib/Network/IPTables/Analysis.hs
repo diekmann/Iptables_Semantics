@@ -35,7 +35,7 @@ certifySpoofingProtection ipassmt rs = (warn_defined ++ debug_ipassmt, certResul
     where -- fuc: firewall under certification, prepocessed
           -- no_spoofing_executable_set requires normalized_nnf_match. Isabelle.upper_closure guarantees this.
           -- It also guarantees that if we start from a simple_ruleset, it remains a simple ruleset.
-          -- Theorem: transform_upper_closure
+          -- Theorem: no_spoofing_executable_set_preprocessed
           fuc = Isabelle.upper_closure $ Isabelle.packet_assume_new rs
           warn_defined = if (Isabelle.ipassmt_sanity_defined fuc ipassmtMap) -- fuc needs to be nnf-normalized
                          then []

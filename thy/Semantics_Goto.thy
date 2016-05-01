@@ -1001,7 +1001,7 @@ begin
     "rewrite_Goto cs = map (\<lambda>(chain_name, rs). (chain_name, rewrite_Goto_chain (map_of cs) rs)) cs"
 
 
-  private fun rewrite_Goto_chain_safe :: "(string \<rightharpoonup> 'a rule list) \<Rightarrow> 'a rule list \<Rightarrow> ('a rule list) option" where
+  qualified fun rewrite_Goto_chain_safe :: "(string \<rightharpoonup> 'a rule list) \<Rightarrow> 'a rule list \<Rightarrow> ('a rule list) option" where
     "rewrite_Goto_chain_safe _ [] = Some []" |
     "rewrite_Goto_chain_safe \<Gamma> ((Rule m (Goto chain))#rs) =
       (case (\<Gamma> chain) of None     \<Rightarrow> None
@@ -1014,6 +1014,18 @@ begin
                                      )
       )" |
     "rewrite_Goto_chain_safe \<Gamma> (r#rs) = map_option (\<lambda>rs. r # rs) (rewrite_Goto_chain_safe \<Gamma> rs)"
+
+  private fun rewrite_Goto_safe_internal
+    :: "(string \<times> 'a rule list) list \<Rightarrow> (string \<times> 'a rule list) list \<Rightarrow> (string \<times> 'a rule list) list option" where
+    "rewrite_Goto_safe_internal _ [] = Some []" |
+    "rewrite_Goto_safe_internal \<Gamma> ((chain_name, rs)#cs) = 
+                (case rewrite_Goto_chain_safe (map_of \<Gamma>) rs of
+                         None \<Rightarrow> None
+                       | Some rs' \<Rightarrow> map_option (\<lambda>rst. (chain_name, rs')#rst) (rewrite_Goto_safe_internal \<Gamma> cs)
+                )"
+
+  qualified fun rewrite_Goto_safe :: "(string \<times> 'a rule list) list \<Rightarrow> (string \<times> 'a rule list) list option" where
+    "rewrite_Goto_safe cs = rewrite_Goto_safe_internal cs cs"
 
   private lemma "rewrite_Goto_chain_safe \<Gamma> rs = Some rs' \<Longrightarrow> rewrite_Goto_chain \<Gamma> rs = rs'"
     apply(induction \<Gamma> rs arbitrary: rs' rule: rewrite_Goto_chain_safe.induct)
