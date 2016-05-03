@@ -62,8 +62,8 @@ text{* The iptables firewall starts as follows:
 
 *}
 lemma unfold_optimize_common_matcher_univ_ruleset_CHAIN:
-    --"for simple packets"
-    fixes \<gamma> :: "common_primitive \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> bool"
+    --"for simple Ipv4 packets"
+    fixes \<gamma> :: "common_primitive \<Rightarrow> (32, 'a) simple_packet_scheme \<Rightarrow> bool"
     assumes "sanity_wf_ruleset \<Gamma>" and "chain_name \<in> set (map fst \<Gamma>)" and "default_action = action.Accept \<or> default_action = action.Drop"
     and "matcher_agree_on_exact_matches \<gamma> common_matcher"
     and "unfold_ruleset_CHAIN_safe chain_name default_action (map_of \<Gamma>) = Some rs"
@@ -84,7 +84,7 @@ text{*We provide an executable algorithm @{const no_spoofing_iface} which checks
 *}
 
 subsection{*Simple Firewall Model*}
-text{*The simple firewall supports the following match conditions: @{typ simple_match}.
+text{*The simple firewall supports the following match conditions: @{typ "'i::len simple_match"}.
 
 The @{const simple_fw} model is remarkably simple: @{thm simple_fw.simps [no_vars]}
 
@@ -108,7 +108,7 @@ There is also a different approach to translate to the simple firewall which rem
 
 subsection{*Service Matrices*}
 text{*
-For a @{typ "simple_rule list"} and a fixed @{typ parts_connection}, we support to partition the IPv4 address space the following.
+For a @{typ "'i::len simple_rule list"} and a fixed @{typ parts_connection}, we support to partition the IPv4 address space the following.
 
 All members of a partition have the same access rights:
 @{thm build_ip_partition_same_fw [no_vars]}

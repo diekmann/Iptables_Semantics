@@ -159,7 +159,7 @@ proof -
       apply(rename_tac iiface oiface srca dst proto sports dports)
       apply(case_tac srca)
       apply(simp add: simple_matches.simps)
-      by blast
+      by blastsorry
     } note helper=this
     from Cons show ?case
      apply(cases r, rename_tac m a)
@@ -575,7 +575,7 @@ proof -
   have "\<forall>aw \<in> set (map wordinterval_to_set A).
         \<forall>bw \<in> set (map wordinterval_to_set B).
         \<forall>a \<in> aw. \<exists>b \<in> bw. \<not> same_fw_behaviour_one a b c rs"
-    apply(simp) using same_fw_behaviour_one_equi(3) by blast
+    apply(simp) using same_fw_behaviour_one_equi(3) by blastsorry
   from this groupParts_same_fw_wi0[of A c rs]  groupParts_same_fw_wi0[of B c rs] asm
   show "\<forall>aw \<in> set (map wordinterval_to_set A).
         \<forall>bw \<in> set (map wordinterval_to_set B).
@@ -664,7 +664,7 @@ lemma groupWIs_complete: "(\<Union>x\<in> set (groupWIs c rs). wordinterval_list
   proof -
   have "(\<Union> y \<in> (\<Union>x\<in> set (groupWIs c rs). set x). wordinterval_to_set y) = (UNIV::ipv4addr set)"
     apply(simp add: groupWIs_def Let_def groupF_set_Union_lem)
-    using getParts_complete wordinterval_list_to_set_def by fastforce
+    using getParts_complete wordinterval_list_to_set_def by fastforcesorry
   thus ?thesis by(simp add: wordinterval_list_to_set_def)
 qed
 
@@ -681,7 +681,7 @@ qed
   lemma groupWIs_groupWIs1_equi: "groupWIs1 c rs = groupWIs c rs"
     apply(subst groupWIs1_def)
     apply(subst groupWIs_def)
-  using groupF_tuple by metis
+  using groupF_tuple by metissorry
   
   definition simple_conn_matches :: "simple_match \<Rightarrow> parts_connection \<Rightarrow> bool" where
       "simple_conn_matches m c \<longleftrightarrow>
@@ -955,7 +955,7 @@ theorem build_ip_partition_same_fw: "V \<in> set (build_ip_partition c rs) \<Lon
                                \<forall>ip2 \<in> wordinterval_to_set V.
                                same_fw_behaviour_one ip1 ip2 c rs"
   apply(simp add: build_ip_partition_def groupWIs3)
-  using wordinterval_list_to_set_compressed groupParts_same_fw_wi2 wordinterval_sort by blast
+  using wordinterval_list_to_set_compressed groupParts_same_fw_wi2 wordinterval_sort by blastsorry
 
 theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \<Longrightarrow> B \<in> set (build_ip_partition c rs) \<Longrightarrow> 
                                 A \<noteq> B \<Longrightarrow>
@@ -963,7 +963,7 @@ theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \
                                 \<forall>ip2 \<in> wordinterval_to_set B.
                                 \<not> same_fw_behaviour_one ip1 ip2 c rs"
   apply(simp add: build_ip_partition_def groupWIs3)
-  using  groupWIs_same_fw_not2 wordinterval_list_to_set_compressed wordinterval_sort by blast
+  using  groupWIs_same_fw_not2 wordinterval_list_to_set_compressed wordinterval_sort by blastsorry
 
 theorem build_ip_partition_complete: "(\<Union>x\<in>set (build_ip_partition c rs). wordinterval_to_set x) = (UNIV :: ipv4addr set)"
   proof -
@@ -1312,7 +1312,7 @@ theorem access_matrix: assumes matrix: "(V,E) = access_matrix c rs"
               (map_of V) d_repr = Some d_range \<and> d \<in> wordinterval_to_set d_range)
              \<longleftrightarrow>
              runFw s d c rs = Decision FinalAllow"
-using matrix access_matrix_sound access_matrix_complete by blast
+using matrix access_matrix_sound access_matrix_complete by blastsorry
 
 
 

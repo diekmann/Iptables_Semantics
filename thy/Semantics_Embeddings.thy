@@ -78,7 +78,7 @@ proof -
     apply(drule_tac rs=rs and \<Gamma>=\<Gamma> in FinalAllows_subseteq_in_doubt_allow)
      using simple_imp_good_ruleset assms(4) apply blast
     by blast
-  thus ?thesis unfolding newpkt_def preprocess_def using transform_simple_fw_upper(2)[OF assms(4)] by blast
+  thus ?thesis unfolding newpkt_def preprocess_def using transform_simple_fw_upper(2)[OF assms(4)] by blastsorry
 qed
 
 
@@ -251,7 +251,7 @@ proof -
     apply(drule_tac rs=rs and \<Gamma>=\<Gamma> in FinalAllows_subseteq_in_doubt_deny)
      using simple_imp_good_ruleset assms(4) apply blast
     by blast
-  thus ?thesis unfolding newpkt_def preprocess_def using transform_simple_fw_lower(2)[OF assms(4)] by blast
+  thus ?thesis unfolding newpkt_def preprocess_def using transform_simple_fw_lower(2)[OF assms(4)] by blastsorry
 qed
 
 
