@@ -71,20 +71,6 @@ section{*Simple Firewall Syntax (IPv4 only)*}
 
 subsection{*Simple Firewall Semantics*}
 
-  (*TODO: generic ip addresses thy*)
-  (*TODO: move*)
-  (*TODO: move*)
-  (*TODO: move*)
-  (*TODO: move*)
-  (*TODO: move*)
-  definition ipset_from_netmask::"'i::len word \<Rightarrow> 'i::len word \<Rightarrow> 'i::len word set" where
-    "ipset_from_netmask addr netmask \<equiv> let network_prefix = (addr AND netmask) in {network_prefix .. network_prefix OR (NOT netmask)}"
-
-  definition ipset_from_cidr ::"'i::len word \<Rightarrow> nat \<Rightarrow> 'i::len word set" where
-    "ipset_from_cidr addr pflength \<equiv> ipset_from_netmask addr ((mask pflength) << (len_of(TYPE('i)) - pflength))"
-
-  lemma ipset_from_cidr_0: "ipset_from_cidr foo 0 = UNIV"
-    by(auto simp add: ipset_from_cidr_def ipset_from_netmask_def Let_def)
 
   (*Sanity check:*)
   lemma "ipset_from_cidr = ipv4range_set_from_prefix"
