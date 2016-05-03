@@ -5,7 +5,8 @@ begin
 
 subsection{*Primitive Matchers: IP Port Iface Matcher*}
 
-fun common_matcher :: "(common_primitive, 'a simple_packet_scheme) exact_match_tac" where
+(*IPv4 matcher*)
+fun common_matcher :: "(common_primitive, (32, 'a) simple_packet_scheme) exact_match_tac" where
   "common_matcher (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))" |
   "common_matcher (OIface i) p = bool_to_ternary (match_iface i (p_oiface p))" |
 
@@ -110,7 +111,7 @@ lemma packet_independent_\<beta>_unknown_common_matcher: "packet_independent_\<b
 (*TODO: generic assumptions for a common matcher without information about IPs.
         to be used to add ipv6 integration without duplicating all proofs *)
 locale primitive_matcher_generic =
-  fixes \<beta> :: "(common_primitive, 'a simple_packet_scheme) exact_match_tac"
+  fixes \<beta> :: "(common_primitive, (32, 'a) simple_packet_scheme) exact_match_tac"
   assumes IIface: "\<forall> p i. \<beta> (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))"
       and OIface: "\<forall> p i. \<beta> (OIface i) p = bool_to_ternary (match_iface i (p_oiface p))"
         and Prot: "\<forall> p proto. \<beta> (Prot proto) p = bool_to_ternary (match_proto proto (p_proto p))"
@@ -207,13 +208,12 @@ subsection{*Basic optimisations*}
   
   lemma optimize_primitive_univ_correct_matchexpr: "matches (common_matcher, \<alpha>) m = matches (common_matcher, \<alpha>) (optimize_primitive_univ m)"
     proof(simp add: fun_eq_iff, clarify, rename_tac a p)
-      fix a and p :: "'a simple_packet_scheme"
+      fix a and p :: "(32, 'a) simple_packet_scheme"
       have "(max_word::16 word) =  65535" by(simp add: max_word_def)
       hence port_range: "\<And>s e port. s = 0 \<and> e = 0xFFFF \<longrightarrow> (port::16 word) \<le> 0xFFFF" by simp
       have "ternary_ternary_eval (map_match_tac common_matcher p m) = ternary_ternary_eval (map_match_tac common_matcher p (optimize_primitive_univ m))"
-        apply(induction m rule: optimize_primitive_univ.induct)
-        apply(simp_all add: port_range match_ifaceAny ip_in_ipv4range_set_from_prefix_UNIV ctstate_is_UNIV)
-        done
+        by(induction m rule: optimize_primitive_univ.induct)
+          (simp_all add: port_range match_ifaceAny ip_in_ipv4range_set_from_prefix_UNIV ctstate_is_UNIV)
       thus "matches (common_matcher, \<alpha>) m a p = matches (common_matcher, \<alpha>) (optimize_primitive_univ m) a p"
         by(rule matches_iff_apply_f)
       qed
@@ -250,7 +250,7 @@ subsection{*Basic optimisations*}
   
   lemma compress_extra_correct_matchexpr: "matches (common_matcher, \<alpha>) m = matches (common_matcher, \<alpha>) (compress_extra m)"
     proof(simp add: fun_eq_iff, clarify, rename_tac a p)
-      fix a and p :: "'a simple_packet_scheme"
+      fix a and p :: "(32, 'a) simple_packet_scheme"
       have "ternary_ternary_eval (map_match_tac common_matcher p m) = ternary_ternary_eval (map_match_tac common_matcher p (compress_extra m))"
         apply(induction m rule: compress_extra.induct)
         apply (simp_all)
