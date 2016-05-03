@@ -34,7 +34,7 @@ export_code Rule
   dotteddecimal_toString ipv4addr_toString ipv4_cidr_toString action_toString
   common_primitive_toString common_primitive_match_expr_toString
   simple_rule_toString
-  Semantics_Goto.rewrite_Goto (*TODO: export safe function*)
+  Semantics_Goto.rewrite_Goto_safe
   (*parser helpers:*) alist_and' compress_parsed_extra Pos Neg mk_Set
   unfold_ruleset_CHAIN_safe map_of_string
   upper_closure

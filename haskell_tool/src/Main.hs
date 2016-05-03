@@ -11,6 +11,7 @@ module Main where
 import Data.Functor ((<$>))
 import Data.Maybe (fromJust)
 import Control.Applicative ((<*>))
+import Control.Monad (when)
 import qualified Data.List as L
 import Network.IPTables.Ruleset
 import Network.IPTables.Parser
@@ -25,7 +26,8 @@ putErrStrLn = System.IO.hPutStrLn System.IO.stderr
 
 --labeled (and optional) command line arguments. For example: ./fffuu --table "filter"
 data CommandLineArgsLabeled = CommandLineArgsLabeled
-        { ipassmt :: Maybe FilePath  <?> "Optional path to an IP assignment file. If not specified, it only loads `lo = [127.0.0.0/8]`."
+        { verbose :: Bool <?> "Show verbose debug output (for example, of the parser)."
+        , ipassmt :: Maybe FilePath  <?> "Optional path to an IP assignment file. If not specified, it only loads `lo = [127.0.0.0/8]`."
         , table :: Maybe String <?> "The table to load for analysis. Default: `filter`. Note: This tool does not support packet modification, so loading tables such as `nat` will most likeley fail."
         , chain :: Maybe String <?> "The chain to start the analysis. Default: `FORWARD`. Use `INPUT` for a host-based firewall."
         --TODO: we need some grouping for specific options for the analysis
@@ -61,15 +63,16 @@ readIpAssmt filename = do
 
 
 readArgs (CommandLineArgs labeled unlabeled) = do 
-    (assmt, tbl, chn, smOptions) <- readArgsLabeled labeled
+    (verbose, assmt, tbl, chn, smOptions) <- readArgsLabeled labeled
     firewall <- readArgsUnlabeled unlabeled
-    return (assmt, tbl, chn, smOptions, firewall)
+    return (verbose, assmt, tbl, chn, smOptions, firewall)
     where
         readArgsUnlabeled (CommandLineArgsUnlabeled (Helpful rsFilePath)) = (rsFilePath,) <$> readFile rsFilePath
             -- TODO: support stdin
             --where readInput [] = ("<stdin>",) <$> getContents
 
-        readArgsLabeled (CommandLineArgsLabeled (Helpful ipassmtFilePath) (Helpful table) (Helpful chain)
+        readArgsLabeled (CommandLineArgsLabeled (Helpful verbose)
+                            (Helpful ipassmtFilePath) (Helpful table) (Helpful chain)
                             (Helpful serviceMatrixSrcPort) (Helpful serviceMatrixDstPort)
                         ) = do
             assmt <- case ipassmtFilePath of
@@ -89,9 +92,8 @@ readArgs (CommandLineArgs labeled unlabeled) = do
                                                        ps -> if all sanityCheckPort ps
                                                              then return ps
                                                              else error ("Invalid dst ports " ++ (show (filter (not . sanityCheckPort) ps)))
-            --TODO: return the sm ports!
             let smOptions = map (\d -> (smSrcPort, d)) smDstPorts
-            return (assmt, tbl, chn, smOptions)
+            return (verbose, assmt, tbl, chn, smOptions)
                 where sanityCheckPort p = (p >= 0 && p < 65536)
 
 
@@ -106,7 +108,7 @@ main = do
                     \Then it runs a number of analysis. \
                     \Overapproximation means: if the anaylsis concludes that the packets you want to be dropped are dropped in the loaded overapproximation, then they are also dropped for your real firewall (without approximation)."
     --print (cmdArgs::CommandLineArgs)
-    (ipassmt, table, chain, smOptions, (srcname, src)) <- readArgs cmdArgs
+    (verbose, ipassmt, table, chain, smOptions, (srcname, src)) <- readArgs cmdArgs
     
     case parseIptablesSave srcname src of
         Left err -> do
@@ -116,9 +118,8 @@ main = do
             else return ()
             print err
         Right res -> do
-            let verbose = True
-            putStrLn $ "== Parser output =="
-            putStrLn $ show res
+            when verbose $ putStrLn $ "== Parser output =="
+            when verbose $ putStrLn $ show res
             unfolded <- loadUnfoldedRuleset verbose table chain res
             putStrLn $"== unfolded "++chain++" chain (upper closure) =="
             putStrLn $ L.intercalate "\n" $ map show (Isabelle.upper_closure $ unfolded)
@@ -136,11 +137,12 @@ main = do
             mapM_ (\(s,d) -> 
                         putStrLn ("=========== TCP port "++ show s ++ "->" ++ show d ++" =========")
                      >> putStrLn (showServiceMatrix (Analysis.accessMatrix ipassmt unfolded s d))) smOptions
-        where showServiceMatrix (nodes, vertices) = concatMap (\(n, desc) -> renameNode n ++ " |-> " ++ desc ++ "\n") nodes ++ "\n" ++
-                                                    concatMap (\v -> show (renameVertices v) ++ "\n") vertices
+        where showServiceMatrix (nodes, edges) = concatMap (\(n, desc) -> renameNode n ++ " |-> " ++ desc ++ "\n") nodes ++ "\n" ++
+                                                 concatMap (\e -> (renameEdge e) ++ "\n") edges
                   where renaming = zip (map fst nodes) prettyNames
                         renameNode n = fromJust $ lookup n renaming
-                        renameVertices (v1, v2) = (fromJust $ lookup v1 renaming, fromJust $ lookup v2 renaming)
+                        renameEdge :: (String, String) -> String
+                        renameEdge (v1, v2) = concat ["(", renameNode v1, ",", renameNode v2, ")"]
 
               showSpoofCertification (iface, rslt) = show (show iface, showProbablyFalse rslt)
                   where showProbablyFalse True = "True (certified)"
