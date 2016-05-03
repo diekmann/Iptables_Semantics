@@ -54,31 +54,55 @@ section{*Simple Firewall Syntax (IPv4 only)*}
         It may seem a simple enhancement to support iiface :: "iface negation_type", but then you
         can no longer for the conjunction of two simple_matches.
         *)
-  record simple_match =
+
+  record 'i simple_match =
     iiface :: "iface" --"in-interface"
       (*we cannot (and don't want to, c.f. git history) express negated interfaces*)
       (*We could also drop interface wildcard support and try negated interfaces again \<dots>*)
     oiface :: "iface" --"out-interface"
-    src :: "(ipv4addr \<times> nat) " --"source IP address"
-    dst :: "(ipv4addr \<times> nat) " --"destination"
+    src :: "('i::len word \<times> nat) " --"source IP address"
+    dst :: "('i::len word \<times> nat) " --"destination"
     proto :: "protocol"
     sports :: "(16 word \<times> 16 word)" --"source-port first:last"
     dports :: "(16 word \<times> 16 word)" --"destination-port first:last"
 
 
-  datatype simple_rule = SimpleRule (match_sel: simple_match) (action_sel: simple_action)
+  datatype 'i simple_rule = SimpleRule (match_sel: "'i simple_match") (action_sel: simple_action)
 
 subsection{*Simple Firewall Semantics*}
 
-  fun simple_match_ip :: "(ipv4addr \<times> nat) \<Rightarrow> ipv4addr \<Rightarrow> bool" where
-    "simple_match_ip (base, len) p_ip \<longleftrightarrow> p_ip \<in> ipv4range_set_from_prefix base len"
+  (*TODO: generic ip addresses thy*)
+  (*TODO: move*)
+  (*TODO: move*)
+  (*TODO: move*)
+  (*TODO: move*)
+  (*TODO: move*)
+  definition ipset_from_netmask::"'i::len word \<Rightarrow> 'i::len word \<Rightarrow> 'i::len word set" where
+    "ipset_from_netmask addr netmask \<equiv> let network_prefix = (addr AND netmask) in {network_prefix .. network_prefix OR (NOT netmask)}"
+
+  definition ipset_from_cidr ::"'i::len word \<Rightarrow> nat \<Rightarrow> 'i::len word set" where
+    "ipset_from_cidr addr pflength \<equiv> ipset_from_netmask addr ((mask pflength) << (len_of(TYPE('i)) - pflength))"
+
+  lemma ipset_from_cidr_0: "ipset_from_cidr foo 0 = UNIV"
+    by(auto simp add: ipset_from_cidr_def ipset_from_netmask_def Let_def)
+
+  (*Sanity check:*)
+  lemma "ipset_from_cidr = ipv4range_set_from_prefix"
+    by(simp add: fun_eq_iff ipset_from_cidr_def ipv4range_set_from_prefix_alt1 ipset_from_netmask_def ipv4range_set_from_netmask_def)
+
+  fun simple_match_ip :: "('i::len word \<times> nat) \<Rightarrow> 'i::len word \<Rightarrow> bool" where
+    "simple_match_ip (base, len) p_ip \<longleftrightarrow> p_ip \<in> ipset_from_cidr base len"
+
+  (*TODO: move?*)
+  fun simple_match_ip4 :: "(ipv4addr \<times> nat) \<Rightarrow> ipv4addr \<Rightarrow> bool" where
+    "simple_match_ip4 (base, len) p_ip \<longleftrightarrow> p_ip \<in> ipv4range_set_from_prefix base len"
 
   lemma wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set:
-    "wordinterval_to_set (ipv4_cidr_tuple_to_interval ip) = {d. simple_match_ip ip d}"
+    "wordinterval_to_set (ipv4_cidr_tuple_to_interval ip) = {d. simple_match_ip4 ip d}"
     proof -
       { fix s d
         from ipv4range_to_set_def ipv4range_to_set_ipv4_cidr_tuple_to_interval have
-          "s \<in> wordinterval_to_set (ipv4_cidr_tuple_to_interval d) \<longleftrightarrow> simple_match_ip d s"
+          "s \<in> wordinterval_to_set (ipv4_cidr_tuple_to_interval d) \<longleftrightarrow> simple_match_ip4 d s"
         by(cases d) auto
       } thus ?thesis by blast
     qed
@@ -89,7 +113,7 @@ subsection{*Simple Firewall Semantics*}
   fun simple_match_port :: "(16 word \<times> 16 word) \<Rightarrow> 16 word \<Rightarrow> bool" where
     "simple_match_port (s,e) p_p \<longleftrightarrow> p_p \<in> {s..e}"
 
-  fun simple_matches :: "simple_match \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> bool" where
+  fun simple_matches :: "'i::len simple_match \<Rightarrow> ('i, 'a) simple_packet_scheme \<Rightarrow> bool" where
     "simple_matches m p \<longleftrightarrow>
       (match_iface (iiface m) (p_iiface p)) \<and>
       (match_iface (oiface m) (p_oiface p)) \<and>
@@ -101,7 +125,7 @@ subsection{*Simple Firewall Semantics*}
 
 
   text{*The semantics of a simple firewall: just iterate over the rules sequentially*}
-  fun simple_fw :: "simple_rule list \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> state" where
+  fun simple_fw :: "'i::len simple_rule list \<Rightarrow> ('i, 'a) simple_packet_scheme \<Rightarrow> state" where
     "simple_fw [] _ = Undecided" |
     "simple_fw ((SimpleRule m Accept)#rs) p = (if simple_matches m p then Decision FinalAllow else simple_fw rs p)" |
     "simple_fw ((SimpleRule m Drop)#rs) p = (if simple_matches m p then Decision FinalDeny else simple_fw rs p)"
@@ -114,31 +138,31 @@ subsection{*Simple Firewall Semantics*}
  lemma simple_fw_alt: "simple_fw r p = simple_fw_alt r p" by(induction rule: simple_fw.induct) simp_all
 
 
-  definition simple_match_any :: "simple_match" where
+  definition simple_match_any :: "'i::len simple_match" where
     "simple_match_any \<equiv> \<lparr>iiface=ifaceAny, oiface=ifaceAny, src=(0,0), dst=(0,0), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
   lemma simple_match_any: "simple_matches simple_match_any p"
     proof -
       have "(65535::16 word) = max_word" by(simp add: max_word_def)
-      thus ?thesis by(simp add: simple_match_any_def ipv4range_set_from_prefix_0 match_ifaceAny)
+      thus ?thesis by(simp add: simple_match_any_def ipset_from_cidr_0 match_ifaceAny)
     qed
 
   text{*we specify only one empty port range*}
-  definition simple_match_none :: "simple_match" where
+  definition simple_match_none :: "'i::len simple_match" where
     "simple_match_none \<equiv> \<lparr>iiface=ifaceAny, oiface=ifaceAny, src=(1,0), dst=(0,0), proto=ProtoAny, sports=(1,0), dports=(0,65535) \<rparr>"
   lemma simple_match_none: "\<not> simple_matches simple_match_none p"
     proof -
       show ?thesis by(simp add: simple_match_none_def)
     qed
 
-  fun empty_match :: "simple_match \<Rightarrow> bool" where
+  fun empty_match :: "'i::len simple_match \<Rightarrow> bool" where
     "empty_match \<lparr>iiface=_, oiface=_, src=_, dst=_, proto=_, sports=(sps1, sps2), dports=(dps1, dps2) \<rparr> \<longleftrightarrow> (sps1 > sps2) \<or> (dps1 > dps2)"
 
-  lemma empty_match: "empty_match m \<longleftrightarrow> (\<forall>(p::'a simple_packet_scheme). \<not> simple_matches m p)"
+  lemma empty_match: "empty_match m \<longleftrightarrow> (\<forall>(p::('i::len, 'a) simple_packet_scheme). \<not> simple_matches m p)"
     proof
       assume "empty_match m"
       thus "\<forall>p. \<not> simple_matches m p" by(cases m) fastforce
     next
-      assume assm: "\<forall>(p::'a simple_packet_scheme). \<not> simple_matches m p"
+      assume assm: "\<forall>(p::('i::len, 'a) simple_packet_scheme). \<not> simple_matches m p"
       obtain iif oif sip dip protocol sps1 sps2 dps1 dps2 where m:
         "m = \<lparr>iiface = iif, oiface = oif, src = sip, dst = dip, proto = protocol, sports = (sps1, sps2), dports = (dps1, dps2)\<rparr>"
           by(cases m) force
@@ -148,9 +172,12 @@ subsection{*Simple Firewall Semantics*}
           let ?x="\<lambda>p. dps1 \<le> p_dport p \<longrightarrow> p_sport p \<le> sps2 \<longrightarrow> sps1 \<le> p_sport p \<longrightarrow> 
               match_proto protocol (p_proto p) \<longrightarrow> simple_match_ip dip (p_dst p) \<longrightarrow> simple_match_ip sip (p_src p) \<longrightarrow>
               match_iface oif (p_oiface p) \<longrightarrow> match_iface iif (p_iiface p) \<longrightarrow> \<not> p_dport p \<le> dps2"
-          from assm have nomatch: "\<forall>(p::'a simple_packet_scheme). ?x p" by(simp add: m)
-          { fix ips
-            from ipv4range_set_from_prefix_lowest have "simple_match_ip ips (fst ips)" by(cases ips) simp
+          from assm have nomatch: "\<forall>(p::('i::len, 'a) simple_packet_scheme). ?x p" by(simp add: m)
+          { fix ips::"'i::len word \<times> nat"
+            have "a \<in> ipset_from_cidr a n" for a::"'i::len word" and n 
+              apply(simp add: ipset_from_cidr_def)
+            using ipv4range_set_from_prefix_eq_ip4_set sorry (* by blast (*TODO*)*)
+            hence "simple_match_ip ips (fst ips)" by(cases ips) simp
           } note ips=this
           have proto: "match_proto protocol (case protocol of ProtoAny \<Rightarrow> TCP | Proto p \<Rightarrow> p)"
             by(simp split: protocol.split)
@@ -158,10 +185,10 @@ subsection{*Simple Firewall Semantics*}
             have " match_iface ifce (iface_sel ifce)"
             by(cases ifce) (simp add: match_iface_refl)
           } note ifaces=this
-          { fix p::"'a simple_packet_scheme"
+          { fix p::"('i, 'a) simple_packet_scheme"
             from nomatch have "?x p" by blast
           } note pkt1=this
-          obtain p::"'a simple_packet_scheme" where [simp]:
+          obtain p::"('i, 'a) simple_packet_scheme" where [simp]:
 			  "p_iiface p = iface_sel iif"
 			  "p_oiface p = iface_sel oif"
 			  "p_src p = fst sip"

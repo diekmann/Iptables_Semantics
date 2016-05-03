@@ -7,6 +7,7 @@ begin
 
 
 text{*Misc*}
+  (*TODO: delete?*)
   (*TODO:move?*)
   lemma ipv4range_set_from_prefix_lowest: "a \<in> ipv4range_set_from_prefix a n" using ip4_set_def ipv4range_set_from_prefix_eq_ip4_set by blast
 
