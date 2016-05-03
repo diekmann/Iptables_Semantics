@@ -111,7 +111,7 @@ lemma packet_independent_\<beta>_unknown_common_matcher: "packet_independent_\<b
 (*TODO: generic assumptions for a common matcher without information about IPs.
         to be used to add ipv6 integration without duplicating all proofs *)
 locale primitive_matcher_generic =
-  fixes \<beta> :: "(common_primitive, (32, 'a) simple_packet_scheme) exact_match_tac"
+  fixes \<beta> :: "(common_primitive, ('i::len, 'a) simple_packet_scheme) exact_match_tac"
   assumes IIface: "\<forall> p i. \<beta> (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))"
       and OIface: "\<forall> p i. \<beta> (OIface i) p = bool_to_ternary (match_iface i (p_oiface p))"
         and Prot: "\<forall> p proto. \<beta> (Prot proto) p = bool_to_ternary (match_proto proto (p_proto p))"

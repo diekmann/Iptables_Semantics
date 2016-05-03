@@ -8,7 +8,8 @@ imports "../Common/SetPartitioning"
 begin
 
 
-fun extract_IPSets_generic0 :: "(simple_match \<Rightarrow> 32 word \<times> nat) \<Rightarrow> simple_rule list \<Rightarrow> (32 wordinterval) list" where
+(*TODO: generalize*)
+fun extract_IPSets_generic0 :: "(32 simple_match \<Rightarrow> 32 word \<times> nat) \<Rightarrow> 32 simple_rule list \<Rightarrow> (32 wordinterval) list" where
   "extract_IPSets_generic0 _ [] = []" |
   "extract_IPSets_generic0 sel ((SimpleRule m _)#ss) = (ipv4_cidr_tuple_to_interval (sel m)) #
                                                        (extract_IPSets_generic0 sel ss)"
@@ -75,7 +76,7 @@ lemma "mergesort_remdups [(1::ipv4addr, 2::nat), (8,0), (8,1), (2,2), (2,4), (1,
 
 
 (*a tail-recursive implementation*)
-fun extract_src_dst_ips :: "simple_rule list \<Rightarrow> (ipv4addr \<times> nat) list \<Rightarrow> (ipv4addr \<times> nat) list" where
+fun extract_src_dst_ips :: "32 simple_rule list \<Rightarrow> (ipv4addr \<times> nat) list \<Rightarrow> (ipv4addr \<times> nat) list" where
   "extract_src_dst_ips [] ts = ts" |
   "extract_src_dst_ips ((SimpleRule m _)#ss) ts = extract_src_dst_ips ss  (src m # dst m # ts)"
 
@@ -84,7 +85,7 @@ proof(induction rs arbitrary: acc)
 case (Cons r rs) thus ?case by(cases r, simp)
 qed(simp)
 
-definition extract_IPSets :: "simple_rule list \<Rightarrow> (32 wordinterval) list" where
+definition extract_IPSets :: "32 simple_rule list \<Rightarrow> (32 wordinterval) list" where
   "extract_IPSets rs = map ipv4_cidr_tuple_to_interval (mergesort_remdups (extract_src_dst_ips rs []))"
 lemma extract_IPSets: "set (extract_IPSets rs) = set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
 proof -
@@ -135,7 +136,7 @@ lemma extract_equi0: "set (map wordinterval_to_set (extract_IPSets_generic0 sel 
   proof(induction rs)
   case (Cons r rs) thus ?case
     apply(cases r, simp)
-    using ipv4range_to_set_ipv4_cidr_tuple_to_interval[simplified ipv4range_to_set_def] by fastforce
+    using wordinterval_to_set_ipv4_cidr_tuple_to_interval by fastforce
   qed(simp)
 
 lemma src_ipPart:
@@ -193,7 +194,7 @@ proof -
           apply(rename_tac iiface oiface src dsta proto sports dports)
           apply(case_tac dsta)
           apply(simp add: simple_matches.simps)
-          by blast
+          by blastsorry
     } note helper=this
     from Cons show ?case
      apply(simp)

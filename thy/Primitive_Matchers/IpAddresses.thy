@@ -86,19 +86,21 @@ subsection{*IPv4 Addresses in CIDR Notation*}
     using ipv4range_prefix_intersect by fast
   declare ipv4cidr_conjunct.simps[simp del]
 
+  (*TODO: this is a duplicate, right?*)
   definition ipv4_cidr_tuple_to_interval :: "(ipv4addr \<times> nat) \<Rightarrow> 32 wordinterval" where
     "ipv4_cidr_tuple_to_interval iprng = ipv4range_range (ipcidr_to_interval iprng)"
 
-  lemma ipv4range_to_set_ipv4_cidr_tuple_to_interval: "ipv4range_to_set (ipv4_cidr_tuple_to_interval (b, m)) = ipv4range_set_from_prefix b m"
+  lemma wordinterval_to_set_ipv4_cidr_tuple_to_interval:
+    "wordinterval_to_set (ipv4_cidr_tuple_to_interval (b, m)) = ipv4range_set_from_prefix b m"
     unfolding ipv4_cidr_tuple_to_interval_def ipcidr_to_interval_ipv4range_set_from_prefix ipcidr_to_interval_def
-    using ipv4range_range_set_eq by blast
+    by(simp add: ipv4range_range.simps ipv4range_to_set_def)
 
   lemma [code_unfold]: 
-  "ipv4cidr_conjunct ips1 ips2 = (if ipv4range_empty (ipv4range_intersection (ipv4_cidr_tuple_to_interval ips1) (ipv4_cidr_tuple_to_interval ips2))
+  "ipv4cidr_conjunct ips1 ips2 = (if wordinterval_empty (wordinterval_intersection (ipv4_cidr_tuple_to_interval ips1) (ipv4_cidr_tuple_to_interval ips2))
        then
         None
        else if 
-        ipv4range_subset (ipv4_cidr_tuple_to_interval ips1) (ipv4_cidr_tuple_to_interval ips2)
+        wordinterval_subset (ipv4_cidr_tuple_to_interval ips1) (ipv4_cidr_tuple_to_interval ips2)
        then 
         Some ips1
        else
@@ -107,7 +109,7 @@ subsection{*IPv4 Addresses in CIDR Notation*}
   apply(simp)
   apply(cases ips1, cases ips2, rename_tac b1 m1 b2 m2, simp)
   apply(safe)
-     apply(auto simp add: ipv4range_to_set_ipv4_cidr_tuple_to_interval ipv4cidr_conjunct.simps split:split_if_asm)
+     apply(auto simp add: wordinterval_to_set_ipv4_cidr_tuple_to_interval ipv4cidr_conjunct.simps split:split_if_asm)
   done
   value "ipv4cidr_conjunct (0,0) (8,1)" (*with the code_unfold lemma before, this works!*)
 

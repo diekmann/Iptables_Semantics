@@ -116,6 +116,7 @@ begin
      done
   
   theorem abstract_primitive_in_doubt_allow_generic:
+    fixes \<beta>::"(common_primitive, ('i::len, 'a) simple_packet_scheme) exact_match_tac"
     assumes generic: "primitive_matcher_generic \<beta>"
        and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
     defines "\<gamma> \<equiv> (\<beta>, in_doubt_allow)" and "abstract disc \<equiv> optimize_matches (abstract_primitive disc)"
@@ -128,8 +129,8 @@ begin
       from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
        good: "good_ruleset (optimize_matches (abstract_primitive disc) rs)" by fast
 
-      let ?\<gamma>="(\<beta>, in_doubt_allow) :: (common_primitive \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> ternaryvalue) \<times>
-              (action \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> bool)"
+      let ?\<gamma>="(\<beta>, in_doubt_allow) :: (common_primitive \<Rightarrow> ('i::len, 'a) simple_packet_scheme \<Rightarrow> ternaryvalue) \<times>
+              (action \<Rightarrow> ('i::len, 'a) simple_packet_scheme \<Rightarrow> bool)"
         --{*type signature is needed, otherwise @{const in_doubt_allow} would be for arbitrary packet*}
 
       have abstract_primitive_in_doubt_allow_help1:
@@ -260,6 +261,7 @@ begin
      done
 
   theorem abstract_primitive_in_doubt_deny_generic:
+    fixes \<beta>::"(common_primitive, ('i::len, 'a) simple_packet_scheme) exact_match_tac"
     assumes generic: "primitive_matcher_generic \<beta>"
         and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
     defines "\<gamma> \<equiv> (\<beta>, in_doubt_deny)" and "abstract disc \<equiv> optimize_matches (abstract_primitive disc)"
@@ -272,8 +274,8 @@ begin
       from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
         good: "good_ruleset (optimize_matches (abstract_primitive disc) rs)" by fast
 
-      let ?\<gamma>="(\<beta>, in_doubt_deny) :: (common_primitive \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> ternaryvalue) \<times> 
-            (action \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> bool)"
+      let ?\<gamma>="(\<beta>, in_doubt_deny) :: (common_primitive \<Rightarrow> ('i::len, 'a) simple_packet_scheme \<Rightarrow> ternaryvalue) \<times> 
+            (action \<Rightarrow> ('i::len, 'a) simple_packet_scheme \<Rightarrow> bool)"
         --{*type signature is needed, otherwise @{const in_doubt_allow} would be for arbitrary packet*}
       
       have abstract_primitive_in_doubt_deny_help1:

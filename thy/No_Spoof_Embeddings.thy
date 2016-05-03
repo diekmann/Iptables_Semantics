@@ -8,9 +8,10 @@ section{*Spoofing protection in Ternary Semantics implies Spoofing protection Bo
 text{*If @{const no_spoofing} is shown in the ternary semantics, it implies that no spoofing
         is possible in the Boolean semantics with magic oracle.
         We only assume that the oracle agrees with the @{const common_matcher} on the not-unknown parts.*}
+(*TODO: ipv4 only*)
   lemma approximating_imp_booloan_semantics_nospoofing: 
       assumes "matcher_agree_on_exact_matches \<gamma> common_matcher" and "simple_ruleset rs" and no_spoofing: "no_spoofing ipassmt rs"
-      shows "\<forall> iface \<in> dom ipassmt. \<forall>p::simple_packet. (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow) \<longrightarrow>
+      shows "\<forall> iface \<in> dom ipassmt. \<forall>p::32 simple_packet. (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow) \<longrightarrow>
                 p_src p \<in> (ipv4cidr_union_set (set (the (ipassmt iface))))"
       unfolding no_spoofing_def
       proof(intro ballI allI impI)
@@ -32,7 +33,7 @@ text{*If @{const no_spoofing} is shown in the ternary semantics, it implies that
  (*expressed as set*)
   corollary
       assumes "matcher_agree_on_exact_matches \<gamma> common_matcher" and "simple_ruleset rs" and no_spoofing: "no_spoofing ipassmt rs" and "iface \<in> dom ipassmt"
-      shows "{p_src p | p :: simple_packet . (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow)} \<subseteq>
+      shows "{p_src p | p :: 32 simple_packet . (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow)} \<subseteq>
                  ipv4cidr_union_set (set (the (ipassmt iface)))"
       using approximating_imp_booloan_semantics_nospoofing[OF assms(1) assms(2) assms(3), where \<Gamma>=\<Gamma>]
       using assms(4) by blast
@@ -45,7 +46,7 @@ text{*If @{const no_spoofing} is shown in the ternary semantics, it implies that
           and "\<forall>r\<in>set rs. normalized_nnf_match (get_match r)"
           and no_spoofing_executable: "\<forall>iface \<in> dom ipassmt. no_spoofing_iface iface ipassmt rs"
           and "iface \<in> dom ipassmt"
-      shows "{p_src p | p :: simple_packet. (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow)} \<subseteq>
+      shows "{p_src p | p :: 32 simple_packet. (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow)} \<subseteq>
                  ipv4cidr_union_set (set (the (ipassmt iface)))"
   proof -
     { assume no_spoofing: "no_spoofing ipassmt rs"

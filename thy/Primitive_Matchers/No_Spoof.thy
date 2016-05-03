@@ -19,7 +19,7 @@ subsection{*Spoofing Protection*}
   interface and is allowed by the firewall must be in the IP range of that interface.
   *}
   definition no_spoofing :: "ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> bool" where
-    "no_spoofing ipassmt rs \<equiv> \<forall> iface \<in> dom ipassmt. \<forall>p :: simple_packet. (* TODO: We want an 'a simple_packet_scheme here. How do we pass the 'a? *)
+    "no_spoofing ipassmt rs \<equiv> \<forall> iface \<in> dom ipassmt. \<forall>p :: 32 simple_packet. (* TODO: We want an ('i::len, 'a) simple_packet_scheme here. How do we pass the 'a? *)
         ((common_matcher, in_doubt_allow),p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow) \<longrightarrow>
             p_src p \<in> (ipv4cidr_union_set (set (the (ipassmt iface))))"
 
@@ -71,12 +71,12 @@ begin
 
  private lemma get_exists_matching_src_ips_subset: 
     assumes "normalized_nnf_match m"
-    shows "{ip. (\<exists>p :: 'a simple_packet_scheme. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))} \<subseteq>
+    shows "{ip. (\<exists>p :: (32, 'a) simple_packet_scheme. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))} \<subseteq>
            get_exists_matching_src_ips iface m"
   proof -
     let ?\<gamma>="(common_matcher, in_doubt_allow)"
 
-    { fix ip_matches rest src_ip i_matches rest2 and p :: "'a simple_packet_scheme"
+    { fix ip_matches rest src_ip i_matches rest2 and p :: "(32, 'a) simple_packet_scheme"
       assume a1: "primitive_extractor (is_Src, src_sel) m = (ip_matches, rest)"
       and a2: "matches ?\<gamma> m a (p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
       let ?p="(p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
@@ -93,7 +93,7 @@ begin
       done
     } note 1=this
 
-    { fix ip_matches rest src_ip i_matches rest2 and p :: "'a simple_packet_scheme"
+    { fix ip_matches rest src_ip i_matches rest2 and p :: "(32, 'a) simple_packet_scheme"
       assume a1: "primitive_extractor (is_Iiface, iiface_sel) m = (i_matches, rest2)"
          and a2: "matches ?\<gamma> m a (p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
       let ?p="(p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
@@ -186,12 +186,12 @@ begin
  private lemma get_all_matching_src_ips: 
     assumes "normalized_nnf_match m"
     shows "get_all_matching_src_ips iface m \<subseteq>
-            {ip. (\<forall>p::'a simple_packet_scheme. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))}"
+            {ip. (\<forall>p::(32, 'a) simple_packet_scheme. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))}"
   proof 
     fix ip
     assume a: "ip \<in> get_all_matching_src_ips iface m" 
     obtain i_matches rest1 where select1: "primitive_extractor (is_Iiface, iiface_sel) m = (i_matches, rest1)" by fastforce
-    show "ip \<in> {ip. \<forall>p :: 'a simple_packet_scheme. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)}"
+    show "ip \<in> {ip. \<forall>p :: (32, 'a) simple_packet_scheme. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)}"
     proof(cases "\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface)
                                                  | Neg i \<Rightarrow> \<not>match_iface i (iface_sel iface))")
     case False
@@ -218,8 +218,8 @@ begin
 
       from True have "(\<forall>m\<in>set (getPos i_matches). matches ?\<gamma> (Match (IIface m)) a (?p p)) \<and>
                       (\<forall>m\<in>set (getNeg i_matches). matches ?\<gamma> (MatchNot (Match (IIface m))) a (?p p))"
-       for p :: "'a simple_packet_scheme" by(simp add: negation_type_forall_split match_simplematcher_Iface match_simplematcher_Iface_not)
-      hence matches_iface: "\<And>p :: 'a simple_packet_scheme. matches ?\<gamma> (alist_and (NegPos_map IIface i_matches)) a (?p p)"
+       for p :: "(32, 'a) simple_packet_scheme" by(simp add: negation_type_forall_split match_simplematcher_Iface match_simplematcher_Iface_not)
+      hence matches_iface: "matches ?\<gamma> (alist_and (NegPos_map IIface i_matches)) a (?p p)" for p :: "(32,'a) simple_packet_scheme"
         by(simp add: matches_alist_and NegPos_map_simps)
 
       show ?thesis
@@ -238,21 +238,22 @@ begin
              else INTER (set ip_matches) (case_negation_type ipv4s_to_set (\<lambda>ip. - ipv4s_to_set ip)))" by presburger
 
         from primitive_extractor_correct[OF assms wf_disc_sel_common_primitive(5) select1] have
-          select1_matches: "\<And>p. matches ?\<gamma> (alist_and (NegPos_map IIface i_matches)) a p \<and> matches ?\<gamma> rest1 a p \<longleftrightarrow> matches ?\<gamma> m a p"
-          and normalized1: "normalized_nnf_match rest1"
+          select1_matches: "matches ?\<gamma> (alist_and (NegPos_map IIface i_matches)) a p \<and> matches ?\<gamma> rest1 a p \<longleftrightarrow> matches ?\<gamma> m a p"
+          and normalized1: "normalized_nnf_match rest1" for p :: "(32,'a) simple_packet_scheme"
           apply -
             apply fast+
           done
         from select1_matches matches_iface have
-          rest1_matches: "matches ?\<gamma> rest1 a (?p p) \<longleftrightarrow> matches ?\<gamma> m a (?p p)" for p :: "'a simple_packet_scheme" by blast
+          rest1_matches: "matches ?\<gamma> rest1 a (?p p) \<longleftrightarrow> matches ?\<gamma> m a (?p p)" for p :: "(32, 'a) simple_packet_scheme" by blast
 
         from primitive_extractor_correct[OF normalized1 wf_disc_sel_common_primitive(3) select2] have
           select2_matches: "matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a p \<and> matches ?\<gamma> rest2 a p \<longleftrightarrow> 
-                            matches ?\<gamma> rest1 a p" for p :: "'a simple_packet_scheme"
+                            matches ?\<gamma> rest1 a p" for p :: "(32, 'a) simple_packet_scheme"
         by fast
-        with F matcheq_matchAny have "\<And>p :: 'a simple_packet_scheme. matches ?\<gamma> rest2 a p" by metis
+        with F matcheq_matchAny have "matches ?\<gamma> rest2 a p" for p :: "(32, 'a) simple_packet_scheme" by metis
         with select2_matches rest1_matches have ip_src_matches: 
-            "\<And>p :: 'a simple_packet_scheme. matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a (?p p) \<longleftrightarrow> matches ?\<gamma> m a (?p p)" by simp
+          "matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a (?p p) \<longleftrightarrow> matches ?\<gamma> m a (?p p)"
+          for p :: "(32, 'a) simple_packet_scheme" by simp
 
         have case_nil: "\<And>p. ip_matches = [] \<Longrightarrow> matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a p"
           by(simp add: bunch_of_lemmata_about_matches)
@@ -264,10 +265,10 @@ begin
           apply(simp add: negation_type_forall_split match_simplematcher_SrcDst_not match_simplematcher_SrcDst)
           done
 
-        from a show "ip \<in> {ip. \<forall>p :: 'a simple_packet_scheme. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)}"
+        from a show "ip \<in> {ip. \<forall>p :: (32, 'a) simple_packet_scheme. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)}"
           unfolding get_all_matching_src_ips_caseTrue
           proof(clarsimp split: split_if_asm)
-            fix p :: "'a simple_packet_scheme"
+            fix p :: "(32, 'a) simple_packet_scheme"
             assume "ip_matches = []"
             with case_nil have "matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a (?p p)" by simp
             with ip_src_matches show "matches ?\<gamma> m a (?p p)" by simp

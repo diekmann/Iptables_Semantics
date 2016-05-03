@@ -56,7 +56,7 @@ begin
   
   (*only for src*)
   private lemma ipt_ports_compress_src_correct:
-  fixes p :: "'a simple_packet_scheme"
+  fixes p :: "('i::len, 'a) simple_packet_scheme"
   assumes generic: "primitive_matcher_generic \<beta>"
   shows "matches (\<beta>, \<alpha>) (alist_and (NegPos_map Src_Ports ms)) a p \<longleftrightarrow> 
          matches (\<beta>, \<alpha>) (Match (Src_Ports (ipt_ports_compress ms))) a p"
