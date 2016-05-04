@@ -145,4 +145,27 @@ subsection{*Sets of IP addresses*}
   term wordinterval_subset
   term wordinterval_eq
 
+
+
+subsection{*IP Addresses in CIDR Notation*}
+
+  fun ipcidr_to_interval_start :: "('a::len word \<times> nat) \<Rightarrow> 'a::len word" where
+    "ipcidr_to_interval_start (pre, len) = (
+      let netmask = (mask len) << (len_of TYPE('a) - len);
+          network_prefix = (pre AND netmask)
+      in network_prefix)"
+  fun ipcidr_to_interval_end :: "('a::len word \<times> nat) \<Rightarrow> 'a::len word" where
+    "ipcidr_to_interval_end (pre, len) = (
+      let netmask = (mask len) << (len_of TYPE('a) - len);
+          network_prefix = (pre AND netmask)
+      in network_prefix OR (NOT netmask))"
+  definition ipcidr_to_interval :: "('a::len word \<times> nat) \<Rightarrow> ('a::len word \<times> 'a::len word)" where
+    "ipcidr_to_interval cidr = (ipcidr_to_interval_start cidr, ipcidr_to_interval_end cidr)"
+
+
+  lemma ipset_from_cidr_ipcidr_to_interval:
+    "ipset_from_cidr base len = {ipcidr_to_interval_start (base,len) .. ipcidr_to_interval_end (base,len)}"
+    by(simp add: Let_def ipcidr_to_interval_def ipset_from_cidr_alt1 ipset_from_netmask_def)
+  declare ipcidr_to_interval_start.simps[simp del] ipcidr_to_interval_end.simps[simp del]
+
 end

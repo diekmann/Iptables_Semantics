@@ -54,7 +54,7 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
     apply(simp add: ipv4cidr_union_set_def)
     apply(simp add: l2br)
     apply(simp add: ipcidr_to_interval_def)
-    apply(simp add: ipcidr_to_interval_ipv4range_set_from_prefix)
+    apply(simp add: ipset_from_cidr_ipcidr_to_interval)
     done
   
   
@@ -71,7 +71,7 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
       apply(simp add:  wordinterval_eq_set_eq wordinterval_Union)
       apply(simp add: l2br)
       apply(simp add: ipcidr_to_interval_def)
-      apply(simp add: ipv4cidr_union_set_def ipcidr_to_interval_ipv4range_set_from_prefix)
+      apply(simp add: ipv4cidr_union_set_def ipset_from_cidr_ipcidr_to_interval)
      apply(simp add: ipassmt_sanity_complete_def)
      done
 
@@ -133,7 +133,7 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
        apply(simp)
       apply(simp)
       apply(simp split:option.split option.split_asm)
-      apply(simp add: ipv4cidr_union_set_def ipcidr_to_interval_ipv4range_set_from_prefix)
+      apply(simp add: ipv4cidr_union_set_def ipset_from_cidr_ipcidr_to_interval)
       apply(safe)
                         apply(simp_all)
       by (simp add: rev_image_eqI)

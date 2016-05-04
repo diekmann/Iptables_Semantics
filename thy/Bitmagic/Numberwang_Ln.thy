@@ -3,7 +3,7 @@ imports NumberWangCebewee IPv4Addr
 begin
 
 (*TODO: move to IpAddresses or somewhere*)
-lemma ipv4range_prefix_intersect: " \<not> ipset_from_cidr b2 m2 \<subseteq> ipset_from_cidr b1 m1 \<Longrightarrow>
+lemma ip_cidr_intersect: " \<not> ipset_from_cidr b2 m2 \<subseteq> ipset_from_cidr b1 m1 \<Longrightarrow>
        \<not> ipset_from_cidr b1 m1 \<subseteq> ipset_from_cidr b2 m2 \<Longrightarrow>
        ipset_from_cidr b1 m1 \<inter> ipset_from_cidr b2 m2 = {}"
 apply(simp add: ipv4range_set_from_prefix_eq_ip_cidr_set)

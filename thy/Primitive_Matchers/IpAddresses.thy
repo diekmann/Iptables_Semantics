@@ -9,11 +9,11 @@ begin
 text{*Misc*}
   (*TODO: delete?*)
   (*TODO:move?*)
-  lemma ipv4range_set_from_prefix_lowest: "a \<in> ipv4range_set_from_prefix a n"
+  lemma ipv4range_set_from_prefix_lowest: "a \<in> ipset_from_cidr a n" 
     using ip_cidr_set_def ipv4range_set_from_prefix_eq_ip_cidr_set by blast
 
   (*this is why I call the previous lemma 'lowest'*)
-  lemma "valid_prefix (PrefixMatch a n) \<Longrightarrow> is_lowest_element a (ipv4range_set_from_prefix a n)"
+  lemma "valid_prefix (PrefixMatch a n) \<Longrightarrow> is_lowest_element a (ipset_from_cidr a n)"
     apply(simp add: is_lowest_element_def ipv4range_set_from_prefix_lowest)
     apply(simp add: ipv4range_set_from_prefix_eq_ip_cidr_set ip_cidr_set_def)
     apply(simp add: valid_prefix_def pfxm_mask_def)
@@ -30,51 +30,28 @@ lemma "ipv4range_set_from_prefix (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 33 = {0}"
 by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4range_set_from_prefix_def ipv4range_set_from_netmask_def)
 
 
-subsection{*IPv4 Addresses in CIDR Notation*}
-  (*We need a separate ipv4addr syntax thy*)
-
-  fun ipcidr_to_interval_start :: "('a::len word \<times> nat) \<Rightarrow> 'a::len word" where
-    "ipcidr_to_interval_start (pre, len) = (
-      let netmask = (mask len) << (len_of TYPE('a) - len);
-          network_prefix = (pre AND netmask)
-      in network_prefix)"
-  fun ipcidr_to_interval_end :: "('a::len word \<times> nat) \<Rightarrow> 'a::len word" where
-    "ipcidr_to_interval_end (pre, len) = (
-      let netmask = (mask len) << (len_of TYPE('a) - len);
-          network_prefix = (pre AND netmask)
-      in network_prefix OR (NOT netmask))"
-  definition ipcidr_to_interval :: "('a::len word \<times> nat) \<Rightarrow> ('a::len word \<times> 'a::len word)" where
-    "ipcidr_to_interval cidr = (ipcidr_to_interval_start cidr, ipcidr_to_interval_end cidr)"
-
+  (*TODO: move to IPv4?*)
   text{*This @{text "len_of TYPE('a)"} is 32 for IPv4 addresses.*}
   lemma ipv4cidr_to_interval_simps[code_unfold]: "ipcidr_to_interval ((pre::ipv4addr), len) = (
       let netmask = (mask len) << (32 - len);
           network_prefix = (pre AND netmask)
       in (network_prefix, network_prefix OR (NOT netmask)))"
-  by(simp add: ipcidr_to_interval_def Let_def)
-
-
-  lemma ipcidr_to_interval_ipv4range_set_from_prefix:
-    "ipv4range_set_from_prefix base len = {ipcidr_to_interval_start (base,len) .. ipcidr_to_interval_end (base,len)}"
-    apply(simp add: Let_def ipcidr_to_interval_def)
-    apply(subst ipv4range_set_from_prefix_alt)
-    by (metis ipv4range_set_from_prefix_alt ipv4range_set_from_prefix_alt1 ipv4range_set_from_netmask_def)
-
-  declare ipcidr_to_interval_start.simps[simp del] ipcidr_to_interval_end.simps[simp del]
+  by(simp add: ipcidr_to_interval_def Let_def ipcidr_to_interval_start.simps ipcidr_to_interval_end.simps)
 
   (*TODO: remove this lemma?, refactor*)
   lemma ipv4cidr_to_interval: "ipcidr_to_interval (base, len) = (s,e) \<Longrightarrow> ipv4range_set_from_prefix base len = {s .. e}"
     apply(simp add: Let_def ipcidr_to_interval_def)
-    using ipcidr_to_interval_ipv4range_set_from_prefix by presburger
+    thm ipset_from_cidr_ipcidr_to_interval
+    using ipset_from_cidr_ipcidr_to_interval by presburger
 
 
 
-  fun ipv4cidr_conjunct :: "(ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) \<Rightarrow> (ipv4addr \<times> nat) option" where 
-    "ipv4cidr_conjunct (base1, m1) (base2, m2) = (if ipv4range_set_from_prefix base1 m1 \<inter> ipv4range_set_from_prefix base2 m2 = {}
+  fun ipv4cidr_conjunct :: "('i::len word \<times> nat) \<Rightarrow> ('i word \<times> nat) \<Rightarrow> ('i word \<times> nat) option" where 
+    "ipv4cidr_conjunct (base1, m1) (base2, m2) = (if ipset_from_cidr base1 m1 \<inter> ipset_from_cidr base2 m2 = {}
        then
         None
        else if 
-        ipv4range_set_from_prefix base1 m1 \<subseteq> ipv4range_set_from_prefix base2 m2
+        ipset_from_cidr base1 m1 \<subseteq> ipset_from_cidr base2 m2
        then 
         Some (base1, m1)
        else
@@ -84,7 +61,7 @@ subsection{*IPv4 Addresses in CIDR Notation*}
   lemma ipv4cidr_conjunct_correct: "(case ipv4cidr_conjunct (b1, m1) (b2, m2) of Some (bx, mx) \<Rightarrow> ipv4range_set_from_prefix bx mx | None \<Rightarrow> {}) = 
       (ipv4range_set_from_prefix b1 m1) \<inter> (ipv4range_set_from_prefix b2 m2)"
     apply(simp split: split_if_asm)
-    using ipv4range_prefix_intersect by fast
+    using ip_cidr_intersect by fast
   declare ipv4cidr_conjunct.simps[simp del]
 
   (*TODO: this is a duplicate, right?*)
@@ -93,7 +70,7 @@ subsection{*IPv4 Addresses in CIDR Notation*}
 
   lemma wordinterval_to_set_ipv4_cidr_tuple_to_interval:
     "wordinterval_to_set (ipv4_cidr_tuple_to_interval (b, m)) = ipv4range_set_from_prefix b m"
-    unfolding ipv4_cidr_tuple_to_interval_def ipcidr_to_interval_ipv4range_set_from_prefix ipcidr_to_interval_def
+    unfolding ipv4_cidr_tuple_to_interval_def ipset_from_cidr_ipcidr_to_interval ipcidr_to_interval_def
     by(simp add: ipv4range_range.simps ipv4range_to_set_def)
 
   lemma [code_unfold]: 
@@ -114,7 +91,8 @@ subsection{*IPv4 Addresses in CIDR Notation*}
   done
   value "ipv4cidr_conjunct (0,0) (8,1)" (*with the code_unfold lemma before, this works!*)
 
-
+  
+  (*TODO: generalize, move*)
   definition ipv4cidr_union_set :: "(ipv4addr \<times> nat) set \<Rightarrow> ipv4addr set" where
     "ipv4cidr_union_set ips \<equiv> \<Union>(base, len) \<in> ips. ipv4range_set_from_prefix base len"
 
@@ -132,7 +110,7 @@ subsection{*IPv4 Addresses in CIDR Notation*}
     apply(simp add: ipv4range_UNIV_def)
     apply(simp add: l2br)
     apply(simp add: ipcidr_to_interval_def)
-    apply(simp add: ipcidr_to_interval_ipv4range_set_from_prefix)
+    apply(simp add: ipset_from_cidr_ipcidr_to_interval)
     done
   
 
@@ -246,6 +224,7 @@ subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
 
   lemma ipt_ipv4range_to_cidr: "ipv4cidr_union_set (set (ipt_ipv4range_to_cidr ips)) = (ipv4s_to_set ips)"
     apply(simp add: ipt_ipv4range_to_cidr_def)
+    sorry
     by (metis (no_types, hide_lams) SUP_def ipt_ipv4range_to_interval ipv4cidr_union_set_def ipv4range_range.cases cidr_split_prefix_single)
     
 
