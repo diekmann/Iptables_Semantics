@@ -5,7 +5,8 @@ theory IPv4Addr
 imports Main
   NumberWang
   WordInterval_Lists
-  "~~/src/HOL/Word/Word"
+  IPAddr
+  "~~/src/HOL/Word/Word" (*delete*)
   "~~/src/HOL/Library/Code_Target_Nat" (*!*)
 begin
 
@@ -240,6 +241,11 @@ subsection{*IP ranges*}
   text{*192.168.0.0/24*}
   definition ipv4range_set_from_prefix::"ipv4addr \<Rightarrow> nat \<Rightarrow> ipv4addr set" where
     "ipv4range_set_from_prefix addr pflength \<equiv> ipv4range_set_from_netmask addr (of_bl ((replicate pflength True) @ (replicate (32 - pflength) False)))"
+
+  lemma transition_lemma_ipv4_delete_me:
+    "ipv4range_set_from_prefix = ipset_from_cidr"
+    apply(simp add: fun_eq_iff ipv4range_set_from_prefix_def ipv4range_set_from_netmask_def ipset_from_netmask_def ipset_from_cidr_alt2)
+    done
 
   lemma "(replicate 3 True) = [True, True, True]" by eval
   lemma "of_bl (replicate 3 True) = (7::ipv4addr)" by eval
