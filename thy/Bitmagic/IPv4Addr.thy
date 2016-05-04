@@ -209,16 +209,6 @@ subsection{*Representing IPv4 Adresses*}
      by (metis Pair_inject dotdecimal_of_ipv4addr_ipv4addr_of_dotdecimal)
 
 
-  text{*previous and next ip addresses, without wrap around*}
-    definition ip_next :: "ipv4addr \<Rightarrow> ipv4addr" where
-      "ip_next a \<equiv> if a = max_ipv4_addr then max_ipv4_addr else a + 1"
-    definition ip_prev :: "ipv4addr \<Rightarrow> ipv4addr" where
-      "ip_prev a \<equiv> if a = 0 then 0 else a - 1"
-  
-    lemma "ip_next 2 = 3" by eval
-    lemma "ip_prev 2 = 1" by eval
-    lemma "ip_prev 0 = 0" by eval
-
 subsection{*IP ranges*}
   lemma UNIV_ipv4addrset: "(UNIV :: ipv4addr set) = {0 .. max_ipv4_addr}"
     by(auto)
