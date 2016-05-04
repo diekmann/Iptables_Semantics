@@ -11,7 +11,7 @@ subsection{*Removing Shadowed Rules*}
 (*Testing, not executable*)
 
 text{*Assumes: @{term "simple_ruleset"}*}
-fun rmshadow :: "simple_rule list \<Rightarrow> simple_packet set \<Rightarrow> simple_rule list" where
+fun rmshadow :: "'i::len simple_rule list \<Rightarrow> 'i simple_packet set \<Rightarrow> 'i simple_rule list" where
   "rmshadow [] _ = []" |
   "rmshadow ((SimpleRule m a)#rs) P = (if (\<forall>p\<in>P. \<not> simple_matches m p)
     then 
@@ -47,7 +47,7 @@ subsubsection{*Soundness*}
 
 
 text{*A different approach where we start with the empty set of packets and collect packets which are already ``matched-away''.*}
-fun rmshadow' :: "simple_rule list \<Rightarrow> simple_packet set \<Rightarrow> simple_rule list" where
+fun rmshadow' :: "'i::len simple_rule list \<Rightarrow> 'i simple_packet set \<Rightarrow> 'i simple_rule list" where
   "rmshadow' [] _ = []" |
   "rmshadow' ((SimpleRule m a)#rs) P = (if {p. simple_matches m p} \<subseteq> P
     then 
@@ -81,11 +81,11 @@ fun rmshadow' :: "simple_rule list \<Rightarrow> simple_packet set \<Rightarrow>
   qed
 
 corollary 
-  fixes p :: simple_packet
+  fixes p :: "'i::len simple_packet"
   shows "simple_fw (rmshadow rs UNIV) p = simple_fw (rmshadow' rs {}) p"
-  using rmshadow'_sound rmshadow_sound by simp
+  using rmshadow'_sound[of p] rmshadow_sound[of p] by simp
 
-value "rmshadow [SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0, 0), dst = (0, 0), proto = Proto TCP, sports = (0, 0xFFFF), dports = (0x16, 0x16)\<rparr>
+value "rmshadow [SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0::ipv4addr, 0), dst = (0, 0), proto = Proto TCP, sports = (0, 0xFFFF), dports = (0x16, 0x16)\<rparr>
           simple_action.Drop,
         SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0, 0), dst = (0, 0), proto = ProtoAny, sports = (0, 0xFFFF), dports = (0, 0xFFFF)\<rparr>
           simple_action.Accept,
@@ -94,7 +94,7 @@ value "rmshadow [SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', 
 
 
 
-text{*Previous algorithm is not executable because we have no code for @{typ "simple_packet set"}.
+text{*Previous algorithm is not executable because we have no code for @{typ "'i::len simple_packet set"}.
       To get some code, some efficient set operations would be necessary.
         We either need union and subset or intersection and negation.
         Both subset and negation are complicated.
@@ -103,15 +103,15 @@ text{*Previous algorithm is not executable because we have no code for @{typ "si
 
 context
 begin
-  private type_synonym simple_packet_set = "simple_match list"
+  private type_synonym 'i simple_packet_set = "'i simple_match list"
 
-  private definition simple_packet_set_toSet :: "simple_packet_set \<Rightarrow> simple_packet set" where
+  private definition simple_packet_set_toSet :: "'i::len simple_packet_set \<Rightarrow> 'i simple_packet set" where
     "simple_packet_set_toSet ms = {p. \<exists>m \<in> set ms. simple_matches m p}"
 
   private lemma simple_packet_set_toSet_alt: "simple_packet_set_toSet ms = (\<Union> m \<in> set ms. {p. simple_matches m p})"
     unfolding simple_packet_set_toSet_def by blast
 
-  private definition simple_packet_set_union :: "simple_packet_set \<Rightarrow> simple_match \<Rightarrow> simple_packet_set" where
+  private definition simple_packet_set_union :: "'i::len simple_packet_set \<Rightarrow>'i  simple_match \<Rightarrow> 'i simple_packet_set" where
     "simple_packet_set_union ps m = m # ps"
 
   private lemma "simple_packet_set_toSet (simple_packet_set_union ps m) = simple_packet_set_toSet ps \<union> {p. simple_matches m p}"
@@ -141,12 +141,12 @@ begin
       done
 
     text{*subset or negation ... One efficient implementation would suffice.*}
-    private lemma "{p::simple_packet. simple_matches m p} \<subseteq> (simple_packet_set_toSet ms) \<longleftrightarrow>
-      {p::simple_packet. simple_matches m p} \<inter> (\<Inter> m \<in> set ms. {p. \<not> simple_matches m p}) = {}" (is "?l \<longleftrightarrow> ?r")
+    private lemma "{p:: 'i::len simple_packet. simple_matches m p} \<subseteq> (simple_packet_set_toSet ms) \<longleftrightarrow>
+      {p:: 'i::len simple_packet. simple_matches m p} \<inter> (\<Inter> m \<in> set ms. {p. \<not> simple_matches m p}) = {}" (is "?l \<longleftrightarrow> ?r")
     proof - 
       have "?l \<longleftrightarrow> {p. simple_matches m p} - (simple_packet_set_toSet ms) = {}" by blast
-      also have "\<dots> \<longleftrightarrow> {p. simple_matches m p} - (\<Union> m \<in> set ms. {p::simple_packet. simple_matches m p}) = {}"
-      using simple_packet_set_toSet_alt by simp
+      also have "\<dots> \<longleftrightarrow> {p. simple_matches m p} - (\<Union> m \<in> set ms. {p:: 'i::len simple_packet. simple_matches m p}) = {}"
+      using simple_packet_set_toSet_alt by blast
       also have "\<dots> \<longleftrightarrow> ?r" by blast
       finally show ?thesis .
     qed

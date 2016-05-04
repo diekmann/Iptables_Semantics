@@ -58,7 +58,7 @@ text{*we use a primitive matcher which always applies.*}
   definition "pkt=\<lparr>p_iiface=''+'', p_oiface=''+'', p_src=0, p_dst=0, p_proto=TCP, p_sport=0, p_dport=0, p_tcp_flags = {TCP_SYN}, p_tag_ctstate= CT_New\<rparr>"
 
   text{*We tune the primitive matcher to support everything we need in the example. Note that the undefined cases cannot be handled with these exact semantics!*}
-  fun applies_exampleMatchExact :: "(common_primitive, simple_packet) matcher" where
+  fun applies_exampleMatchExact :: "(common_primitive, 32 simple_packet) matcher" where
   "applies_exampleMatchExact (Src (Ip4Addr addr)) p \<longleftrightarrow> p_src p = (ipv4addr_of_dotdecimal addr)" |
   "applies_exampleMatchExact (Dst (Ip4Addr addr)) p \<longleftrightarrow> p_dst p = (ipv4addr_of_dotdecimal addr)" |
   "applies_exampleMatchExact (Prot ProtoAny) p \<longleftrightarrow> True" |

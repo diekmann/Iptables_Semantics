@@ -57,6 +57,12 @@ by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4range_set_from
        else
         Some (base2, m2)
       )"
+
+
+
+  (*TODO: move*)
+  lemma ipcidr_conjunct_any: "ipcidr_conjunct (0, 0) (0, 0) \<noteq> None"
+    by(simp add: ipset_from_cidr_0)
   
   lemma ipcidr_conjunct_correct: "(case ipcidr_conjunct (b1, m1) (b2, m2)
                                           of Some (bx, mx) \<Rightarrow> ipset_from_cidr bx mx

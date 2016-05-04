@@ -76,7 +76,7 @@ end
 
 
 
-subsection{*Basic optimisations
+subsection{*Basic optimisations*}
   
   (*TODO: move
     TODO: this is currently not used.*)
