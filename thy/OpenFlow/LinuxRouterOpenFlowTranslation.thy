@@ -92,10 +92,16 @@ definition simple_match_to_of_match :: "32 simple_match \<Rightarrow> string lis
 
 lemma smtoms_cong: "a = e \<Longrightarrow> b = f \<Longrightarrow> c = g \<Longrightarrow> d = h \<Longrightarrow> simple_match_to_of_match_single r a b c d = simple_match_to_of_match_single r e f g h" by simp
 (* this lemma is a bit stronger than what I actually need, but unfolds are convenient *)
+
+lemma option2set_None: "option2set None = {}"
+by(simp add: option2set_def)
+
+(*TODO: schönerer beweis*)
 lemma smtoms_eq_hlp: "simple_match_to_of_match_single r a b c d = simple_match_to_of_match_single r f g h i \<longleftrightarrow> (a = f \<and> b = g \<and> c = h \<and> d = i)"
 apply(rule, simp_all)
-apply(simp add: option2set_def simple_match_to_of_match_single_def toprefixmatch_def)
-apply(simp add: split: option.splits)
+apply(simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def)
+apply(simp add: option2set_def)
+apply(simp split: option.split_asm)
 apply(simp add: split: if_splits protocol.splits prod.splits | blast)+
 (* give this some time, it creates and solves a ton of subgoals\<dots> Takes 140 seconds for me. *)
 done
