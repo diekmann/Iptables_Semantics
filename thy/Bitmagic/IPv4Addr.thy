@@ -281,13 +281,13 @@ subsection{*IP ranges*}
     apply(simp add: word32_or_NOT4294967296)*)
     done
 
+  (*TODO: delete completely, use generic version*)
   lemma ipv4range_set_from_prefix_alt: "ipv4range_set_from_prefix pre len = {(pre AND ((mask len) << (32 - len))) .. pre OR (mask (32 - len))}"
     apply(simp only: ipv4range_set_from_prefix_alt1 ipv4range_set_from_netmask_def Let_def)
     apply(subst Word.word_oa_dist)
     apply(simp only: word_or_not)
     apply(simp only: Word.word_and_max)
-    apply(simp only: NOT_mask_len32)
-    done
+    using NOT_mask_shifted_lenword len32 by metis
 
 
   text{*making element check executable*}
