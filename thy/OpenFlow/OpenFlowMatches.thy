@@ -117,10 +117,10 @@ instantiation of_match_field :: linorder
 begin
 	definition "less_eq_of_match_field (a::of_match_field) (b::of_match_field) \<equiv> less_eq_of_match_field1 a b"	
 	definition "less_of_match_field (a::of_match_field) (b::of_match_field) \<equiv> (a \<noteq> b \<and> less_eq_of_match_field1 a b)"
-instance by default (auto simp: less_eq_of_match_field_def less_eq_of_match_field1_def less_of_match_field_def implode_def split: prod.splits of_match_field.splits if_splits)
+instance by standard (auto simp: less_eq_of_match_field_def less_eq_of_match_field1_def less_of_match_field_def implode_def split: prod.splits of_match_field.splits if_splits)
 end
 
-record simple_packet_ext = simple_packet +
+record (overloaded) 'i simple_packet_ext = "'i::len simple_packet" +
 	p_l2type :: "16 word"
 	p_l2src :: "48 word"
 	p_l2dst :: "48 word"
@@ -132,7 +132,7 @@ definition "simple_packet_unext p =
 p_sport = p_sport p, p_dport = p_dport p, p_tcp_flags = p_tcp_flags p, p_tag_ctstate = p_tag_ctstate p\<rparr>"
 
 
-fun match_no_prereq :: "of_match_field \<Rightarrow> 'a simple_packet_ext_scheme \<Rightarrow> bool" where
+fun match_no_prereq :: "of_match_field \<Rightarrow> (32, 'a) simple_packet_ext_scheme \<Rightarrow> bool" where
 "match_no_prereq (IngressPort i) p = (p_iiface p = i)" |
 "match_no_prereq (EtherDst i) p = (p_l2src p = i)" |
 "match_no_prereq (EtherSrc i) p = (p_l2dst p = i)" |
@@ -145,14 +145,14 @@ fun match_no_prereq :: "of_match_field \<Rightarrow> 'a simple_packet_ext_scheme
 "match_no_prereq (L4Src i m) p = (p_sport p && m = i)" |
 "match_no_prereq (L4Dst i m) p = (p_dport p && m = i)"
 
-definition match_prereq :: "of_match_field \<Rightarrow> of_match_field set \<Rightarrow> 'a simple_packet_ext_scheme \<Rightarrow> bool option" where
+definition match_prereq :: "of_match_field \<Rightarrow> of_match_field set \<Rightarrow> (32,'a) simple_packet_ext_scheme \<Rightarrow> bool option" where
 "match_prereq i s p = (if prerequisites i s then Some (match_no_prereq i p) else None)"
 
 definition "set_seq s \<equiv> if (\<forall>x \<in> s. x \<noteq> None) then Some (the ` s) else None"
 definition "all_true s \<equiv> \<forall>x \<in> s. x"
 term map_option
-definition OF_match_fields :: "of_match_field set \<Rightarrow> 'a simple_packet_ext_scheme \<Rightarrow> bool option" where "OF_match_fields m p = map_option all_true (set_seq ((\<lambda>f. match_prereq f m p) ` m))"
-definition OF_match_fields_unsafe :: "of_match_field set \<Rightarrow> 'a simple_packet_ext_scheme \<Rightarrow> bool" where "OF_match_fields_unsafe m p = (\<forall>f \<in> m. match_no_prereq f p)"
+definition OF_match_fields :: "of_match_field set \<Rightarrow> (32,'a) simple_packet_ext_scheme \<Rightarrow> bool option" where "OF_match_fields m p = map_option all_true (set_seq ((\<lambda>f. match_prereq f m p) ` m))"
+definition OF_match_fields_unsafe :: "of_match_field set \<Rightarrow> (32,'a) simple_packet_ext_scheme \<Rightarrow> bool" where "OF_match_fields_unsafe m p = (\<forall>f \<in> m. match_no_prereq f p)"
 definition "OF_match_fields_safe m \<equiv> the \<circ> OF_match_fields m"
 
 definition "all_prerequisites m \<equiv> \<forall>f \<in> m. prerequisites f m"

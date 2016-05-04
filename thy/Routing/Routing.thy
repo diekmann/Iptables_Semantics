@@ -1,5 +1,7 @@
 theory Routing
-imports "../Bitmagic/NumberWangCaesar" CaesarTheories
+imports "../Bitmagic/NumberWangCaesar"
+        "../Bitmagic/IPv4Addr" (*we could probably generalize*)
+        CaesarTheories
 begin
 
 subsection{*Definition*}

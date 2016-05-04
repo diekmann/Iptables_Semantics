@@ -250,14 +250,15 @@ lemma simple_match_inject: " \<lparr>iiface = iifacea, oiface = oifacea, src = s
       (iifacea = iifaceb \<and> oifacea = oifaceb \<and> srca = srcb \<and> dsta = dstb \<and> protoa = protob \<and> sportsa = sportsb \<and> dportsa = dportsb)"
 by simp
 (* TODO: clean up and move\<dots> *)
-lemma ipv4cidr_conjunct_valid: "\<lbrakk>valid_prefix_fw p1; valid_prefix_fw p2; ipv4cidr_conjunct p1 p2 = Some p\<rbrakk> \<Longrightarrow> valid_prefix_fw p"
+lemma ipcidr_conjunct_valid: "\<lbrakk>valid_prefix_fw p1; valid_prefix_fw p2; ipcidr_conjunct p1 p2 = Some p\<rbrakk> \<Longrightarrow> valid_prefix_fw p"
 unfolding valid_prefix_fw_def
-  by(cases p; cases p1; cases p2) (simp add: ipv4cidr_conjunct.simps split: if_splits)
+  by(cases p; cases p1; cases p2) (simp add: ipcidr_conjunct.simps split: if_splits)
 lemma simpl_ports_conjunct_not_UNIV:
 "Collect (simple_match_port x) \<noteq> UNIV \<Longrightarrow> x = simpl_ports_conjunct p1 p2 \<Longrightarrow> Collect (simple_match_port p1) \<noteq> UNIV \<or> Collect (simple_match_port p2) \<noteq> UNIV" 
   by (metis Collect_cong mem_Collect_eq simple_ports_conjunct_correct)
 
 lemma simple_match_and_valid: 
+  fixes m1 :: "'i::len simple_match"
   assumes mv: "simple_match_valid m1" "simple_match_valid m2"
   assumes mj: "simple_match_and m1 m2 = Some m"
   shows "simple_match_valid m"
@@ -265,11 +266,11 @@ proof -
   (* prefix validity. That's simple. *)
   have "valid_prefix_fw (src m1)" "valid_prefix_fw (src m2)" "valid_prefix_fw (dst m1)" "valid_prefix_fw (dst m2)"
     using mv unfolding simple_match_valid_alt by simp_all
-  moreover have "ipv4cidr_conjunct (src m1) (src m2) = Some (src m)"
-                "ipv4cidr_conjunct (dst m1) (dst m2) = Some (dst m)"
+  moreover have "ipcidr_conjunct (src m1) (src m2) = Some (src m)"
+                "ipcidr_conjunct (dst m1) (dst m2) = Some (dst m)"
     using mj by(cases m1; cases m2; cases m; simp split: option.splits)+
   ultimately have pv: "valid_prefix_fw (src m)" "valid_prefix_fw (dst m)"
-    using ipv4cidr_conjunct_valid by blast+
+    using ipcidr_conjunct_valid by blast+
 
   (* now for the source ports\<dots> *)
   def nmu \<equiv> "\<lambda>ps. {p. simple_match_port ps p} \<noteq> UNIV"
@@ -284,7 +285,7 @@ proof -
   hence dp: "?ph2 dports" unfolding nmu_def using simpl_ports_conjunct_not_UNIV by metis
 
   (* And an argument for the protocol. *)
-  def php \<equiv> "\<lambda>mr :: simple_match. proto mr \<in> Proto ` {TCP, UDP, SCTP}"
+  def php \<equiv> "\<lambda>mr :: 'i simple_match. proto mr \<in> Proto ` {TCP, UDP, SCTP}"
   have pcj: "simple_proto_conjunct (proto m1) (proto m2) = Some (proto m)"
     using mj by(cases m1; cases m2; cases m; simp split: option.splits)
   hence p: "php m1 \<Longrightarrow> php m"
@@ -313,7 +314,9 @@ qed
     
 
 
-definition "gsfw_valid \<equiv> list_all (simple_match_valid \<circ> fst) :: (simple_match \<times> 'c) list \<Rightarrow> bool"
+definition gsfw_valid :: "('i::len simple_match \<times> 'c) list \<Rightarrow> bool" where
+  "gsfw_valid \<equiv> list_all (simple_match_valid \<circ> fst)"
+
 lemma gsfw_join_valid: "gsfw_valid f1 \<Longrightarrow> gsfw_valid f2 \<Longrightarrow> gsfw_valid (generalized_fw_join f1 f2)"
 unfolding gsfw_valid_def
 apply(induction f1)

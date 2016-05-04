@@ -64,10 +64,14 @@ using some
 	apply(clarsimp simp add: fun_eq_iff)
 	apply(subst NumberWangCaesar.prefix_match_if_in_corny_set[OF vld])
 	apply(cases m)
-	apply(clarsimp simp add: fun_eq_iff toprefixmatch_def ipv4range_set_from_prefix_alt1 maskshift_eq_not_mask pfxm_mask_def split: if_splits)
-done
+	apply(clarsimp simp add: fun_eq_iff toprefixmatch_def ipset_from_cidr_alt1 pfxm_mask_def split: if_splits)
+	using NOT_mask_shifted_lenword by (metis word_not_not)
 
-definition "simple_match_to_of_match_single m iif prot sport dport \<equiv>
+definition simple_match_to_of_match_single ::
+    "(32, 'a) simple_match_scheme
+     \<Rightarrow> char list option \<Rightarrow> protocol \<Rightarrow> (16 word \<times> 16 word) option \<Rightarrow> (16 word \<times> 16 word) option \<Rightarrow> of_match_field set" 
+    where
+"simple_match_to_of_match_single m iif prot sport dport \<equiv>
 	   split L4Src ` option2set sport \<union> split L4Dst ` option2set dport
 	 \<union> IPv4Proto ` (case prot of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> {p}) (* protocol is an 8 word option anyway\<dots> *)
 	 \<union> IngressPort ` option2set iif
@@ -75,7 +79,7 @@ definition "simple_match_to_of_match_single m iif prot sport dport \<equiv>
 	 \<union> {EtherType 0x0800}"
 (* okay, we need to make sure that no packets are output on the interface they were input on. So for rules that don't have an input interface, we'd need to do a product over all interfaces, if we stay naive.
    The more smart way would be to insert a rule with the same match condition that additionally matches the input interface and drops. However, I'm afraid this is going to be very tricky to verify\<dots> *)
-definition simple_match_to_of_match :: "simple_match \<Rightarrow> string list \<Rightarrow> of_match_field set list" where
+definition simple_match_to_of_match :: "32 simple_match \<Rightarrow> string list \<Rightarrow> of_match_field set list" where
 "simple_match_to_of_match m ifs \<equiv> (let
 	npm = (\<lambda>p. fst p = 0 \<and> snd p = max_word);
 	sb = (\<lambda>p. (if npm p then [None] else if fst p \<le> snd p then map (Some \<circ> (\<lambda>pfx. (pfxm_prefix pfx, NOT pfxm_mask pfx))) (wordinterval_CIDR_split_internal (WordInterval (fst p) (snd p))) else []))
@@ -511,7 +515,7 @@ definition "lr_of_tran rt fw ifs \<equiv> let
 	else Inl $ ''Error in creating OpenFlow table: priority number space exhausted''
 "
 
-lemma ipv4cidr_conjunct_any: "ipv4cidr_conjunct (0, 0) (0, 0) \<noteq> None" by(eval)
+lemma ipcidr_conjunct_any: "ipcidr_conjunct (0, 0) (0, 0) \<noteq> None" by(eval)
 
 lemma oif_ne_iif_alt: 
 "oif_ne_iif ifs = map (apsnd (\<lambda>(a,b). if a = b then simple_action.Drop else simple_action.Accept)) (generalized_fw_join (map (\<lambda>i. (simple_match_any\<lparr>oiface := Iface i\<rparr>, i)) ifs) (map (\<lambda>i. (simple_match_any\<lparr>iiface := Iface i\<rparr>, i)) ifs))"

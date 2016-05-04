@@ -273,7 +273,7 @@ using len32 by (metis NOT_mask_shifted_lenword word_not_not)
 (*TODO: can this be deleted?*)
 private lemma maskshift_eq_not_mask_geneirc: "((mask m << len_of TYPE('a) - m) :: 'a::len word) = NOT mask (len_of TYPE('a) - m)"
   using NOT_mask_shifted_lenword by (metis word_not_not) 
-lemma maskshift_eq_not_mask: "((mask m << 32 - m) :: 32 word) = NOT mask (32 - m)"
+private lemma maskshift_eq_not_mask: "((mask m << 32 - m) :: 32 word) = NOT mask (32 - m)"
   using maskshift_eq_not_mask_geneirc by (metis len32)  
 
 (*TODO move or delete*)

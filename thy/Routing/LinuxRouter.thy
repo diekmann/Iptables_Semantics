@@ -28,10 +28,12 @@ record interface =
 	(*iface_ips :: "(ipv4addr \<times> 32 prefix_match) set" (* there is a set of IP addresses and the reachable subnets for them *), but we don't use that right now, so it is commented out. 
 	Also, part of that information is already in the routing table, so careful here\<dots> *)
 
-definition iface_packet_check ::  "interface list \<Rightarrow> 'b simple_packet_ext_scheme \<Rightarrow> interface option"
+definition iface_packet_check ::  "interface list \<Rightarrow>('i::len,'b) simple_packet_ext_scheme \<Rightarrow> interface option"
 where "iface_packet_check ifs p \<equiv> find (\<lambda>i. iface_name i = p_iiface p \<and> iface_mac i = p_l2dst p) ifs" 
 term simple_fw
-definition simple_linux_router :: "routing_rule list \<Rightarrow> simple_rule list \<Rightarrow> (32 word \<Rightarrow> 48 word option) \<Rightarrow> interface list \<Rightarrow> simple_packet_ext \<Rightarrow> simple_packet_ext option" where
+definition simple_linux_router ::
+  "routing_rule list \<Rightarrow> 32 simple_rule list \<Rightarrow> (32 word \<Rightarrow> 48 word option) \<Rightarrow> 
+      interface list \<Rightarrow> 32 simple_packet_ext \<Rightarrow> 32 simple_packet_ext option" where
 "simple_linux_router rt fw mlf ifl p \<equiv> do {
 	_ \<leftarrow> iface_packet_check ifl p;
 	let rd (* routing decision *) = routing_table_semantics rt (p_dst p);
@@ -52,7 +54,8 @@ definition simple_linux_router :: "routing_rule list \<Rightarrow> simple_rule l
  - No traffic to localhost (might be a limit to lift\<dots>)
 *)
 
-definition simple_linux_router_nol12 :: "routing_rule list \<Rightarrow> simple_rule list \<Rightarrow> 'a simple_packet_scheme \<Rightarrow> 'a simple_packet_scheme option" where
+definition simple_linux_router_nol12 ::
+    "routing_rule list \<Rightarrow> 32 simple_rule list \<Rightarrow> (32,'a) simple_packet_scheme \<Rightarrow> (32,'a) simple_packet_scheme option" where
 "simple_linux_router_nol12 rt fw p \<equiv> do {
 	let rd = routing_table_semantics rt (p_dst p);
 	let p = p\<lparr>p_oiface := output_iface rd\<rparr>;

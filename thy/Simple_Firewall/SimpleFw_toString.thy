@@ -14,7 +14,7 @@ fun simple_action_toString :: "simple_action \<Rightarrow> string" where
   "simple_action_toString Drop = ''DROP''"
 
 
-fun simple_rule_toString :: "simple_rule \<Rightarrow> string" where
+fun simple_rule_toString :: "32 simple_rule \<Rightarrow> string" where
   "simple_rule_toString (SimpleRule \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> a) = 
       simple_action_toString a @ ''     '' @ 
       protocol_toString p @ ''  --  '' @ 
@@ -38,7 +38,7 @@ definition protocol_opt_toString :: "string \<Rightarrow> protocol \<Rightarrow>
   "protocol_opt_toString descr prot = (if prot = ProtoAny then '''' else
       descr@protocol_toString prot)"
 
-fun simple_rule_iptables_save_toString :: "string \<Rightarrow> simple_rule \<Rightarrow> string" where
+fun simple_rule_iptables_save_toString :: "string \<Rightarrow> 32 simple_rule \<Rightarrow> string" where
   "simple_rule_iptables_save_toString chain (SimpleRule \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> a) = 
     ''-A ''@chain@iface_toString '' -i '' iif @
                   iface_toString '' -o '' oif @

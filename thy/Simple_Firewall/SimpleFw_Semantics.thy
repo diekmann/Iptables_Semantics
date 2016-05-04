@@ -164,9 +164,8 @@ subsection{*Simple Firewall Semantics*}
               match_iface oif (p_oiface p) \<longrightarrow> match_iface iif (p_iiface p) \<longrightarrow> \<not> p_dport p \<le> dps2"
           from assm have nomatch: "\<forall>(p::('i::len, 'a) simple_packet_scheme). ?x p" by(simp add: m)
           { fix ips::"'i::len word \<times> nat"
-            have "a \<in> ipset_from_cidr a n" for a::"'i::len word" and n 
-              apply(simp add: ipset_from_cidr_def)
-            using ipv4range_set_from_prefix_eq_ip_cidr_set sorry (* by blast (*TODO*)*)
+            have "a \<in> ipset_from_cidr a n" for a::"'i::len word" and n
+              using ipv4range_set_from_prefix_lowest by auto
             hence "simple_match_ip ips (fst ips)" by(cases ips) simp
           } note ips=this
           have proto: "match_proto protocol (case protocol of ProtoAny \<Rightarrow> TCP | Proto p \<Rightarrow> p)"
@@ -404,7 +403,8 @@ Additionally, prefixes should be zero on bits beyond the prefix length.
 
 definition "valid_prefix_fw m = valid_prefix (split PrefixMatch m)"
 
-definition "simple_match_valid m \<equiv> 
+definition simple_match_valid :: "('i::len, 'a) simple_match_scheme \<Rightarrow> bool" where
+  "simple_match_valid m \<equiv> 
 (((({p. simple_match_port (sports m) p} \<noteq> UNIV (*\<and> {p. simple_match_port (sports m) p} \<noteq> {}*)) \<or> 
 ({p. simple_match_port (dports m) p} \<noteq> UNIV (*\<and> {p. simple_match_port (dports m) p} \<noteq> {}*))) 
 \<longrightarrow> (proto m \<in> Proto `{TCP, UDP, SCTP})) \<and>
