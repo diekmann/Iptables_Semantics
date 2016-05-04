@@ -55,7 +55,7 @@ section{*Simple Firewall Syntax (IPv4 only)*}
         can no longer for the conjunction of two simple_matches.
         *)
 
-  record 'i simple_match =
+  record (overloaded) 'i simple_match =
     iiface :: "iface" --"in-interface"
       (*we cannot (and don't want to, c.f. git history) express negated interfaces*)
       (*We could also drop interface wildcard support and try negated interfaces again \<dots>*)
@@ -66,8 +66,12 @@ section{*Simple Firewall Syntax (IPv4 only)*}
     sports :: "(16 word \<times> 16 word)" --"source-port first:last"
     dports :: "(16 word \<times> 16 word)" --"destination-port first:last"
 
-
-  datatype 'i simple_rule = SimpleRule (match_sel: "'i simple_match") (action_sel: simple_action)
+  
+  context
+    notes [[typedef_overloaded]]
+  begin
+    datatype 'i simple_rule = SimpleRule (match_sel: "'i simple_match") (action_sel: simple_action)
+  end
 
 subsection{*Simple Firewall Semantics*}
 

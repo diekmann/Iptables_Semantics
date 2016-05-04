@@ -2,16 +2,12 @@ theory Simple_Packet
 imports "../Bitmagic/IPv4Addr" Protocol Conntrack_State
 begin
 
-
-(*TODO: how can I contain the typedef_overloaded?*)
-declare[[typedef_overloaded]]
-
 section{*Simple Packet*}
   text{*Packet constants are prefixed with @{text p}*}
 
   text{*@{typ "'i::len word"} is an IP address of variable length. 32bit for IPv4, 128bit for IPv6*}
 
-  record 'i simple_packet = p_iiface :: string
+  record (overloaded) 'i simple_packet = p_iiface :: string
                          p_oiface :: string
                          p_src :: "'i::len word"
                          p_dst :: "'i::len word"
