@@ -104,6 +104,14 @@ subsection{*Sets of IP addresses*}
     by(simp add: AND_twice)
 
 
+
+
+  text{*Another definition of CIDR notation: All IP addresse which are equal on the first @{text "len - n"} bits*}
+  definition ip_cidr_set :: "'i::len word \<Rightarrow> nat \<Rightarrow> 'i word set" where
+    "ip_cidr_set i r = {j . i AND NOT mask (len_of TYPE('i) - r) = j AND NOT mask (len_of TYPE('i) - r)}"
+
+
+
   text{*making element check executable*}
   lemma addr_in_ipset_from_netmask_code[code_unfold]: 
     "addr \<in> (ipset_from_netmask base netmask) \<longleftrightarrow> (base AND netmask) \<le> addr \<and> addr \<le> (base AND netmask) OR (NOT netmask)"

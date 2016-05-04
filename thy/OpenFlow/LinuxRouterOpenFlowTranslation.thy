@@ -145,13 +145,13 @@ by (metis old.prod.case simple_match_port.elims(2) simple_match_port.elims(3) wo
 (* TODO: move? *)
 lemma simple_match_ip_alt: "valid_prefix (PrefixMatch (fst m) (snd m)) \<Longrightarrow> 
 	simple_match_ip m p \<longleftrightarrow> prefix_match_semantics (PrefixMatch (fst m) (snd m)) p"
-by(cases m) (simp add: wordinterval_to_set_ipv4range_set_from_prefix prefix_match_if_in_corny_set2)
+by(cases m) (simp add: prefix_to_wordset_ipset_from_cidr prefix_match_if_in_corny_set2)
 lemma simple_match_src_alt: "simple_match_valid r \<Longrightarrow> 
 	simple_match_ip (src r) p \<longleftrightarrow> prefix_match_semantics (PrefixMatch (fst (src r)) (snd (src r))) p"
-by(cases "(src r)") (simp add: prefix_match_if_in_corny_set2 wordinterval_to_set_ipv4range_set_from_prefix simple_match_valid_def valid_prefix_fw_def)
+by(cases "(src r)") (simp add: prefix_match_if_in_corny_set2 prefix_to_wordset_ipset_from_cidr simple_match_valid_def valid_prefix_fw_def)
 lemma simple_match_dst_alt: "simple_match_valid r \<Longrightarrow> 
 	simple_match_ip (dst r) p \<longleftrightarrow> prefix_match_semantics (PrefixMatch (fst (dst r)) (snd (dst r))) p"
-by(cases "(dst r)") (simp add: prefix_match_if_in_corny_set2 wordinterval_to_set_ipv4range_set_from_prefix simple_match_valid_def valid_prefix_fw_def)
+by(cases "(dst r)") (simp add: prefix_match_if_in_corny_set2 prefix_to_wordset_ipset_from_cidr simple_match_valid_def valid_prefix_fw_def)
 thm prefix_match_semantics_simple_match (* mph, I had one like that already. TODO: dedup *)
 
 

@@ -9,12 +9,13 @@ begin
 text{*Misc*}
   (*TODO: delete?*)
   (*TODO:move?*)
-  lemma ipv4range_set_from_prefix_lowest: "a \<in> ipv4range_set_from_prefix a n" using ip4_set_def ipv4range_set_from_prefix_eq_ip4_set by blast
+  lemma ipv4range_set_from_prefix_lowest: "a \<in> ipv4range_set_from_prefix a n"
+    using ip_cidr_set_def ipv4range_set_from_prefix_eq_ip_cidr_set by blast
 
   (*this is why I call the previous lemma 'lowest'*)
   lemma "valid_prefix (PrefixMatch a n) \<Longrightarrow> is_lowest_element a (ipv4range_set_from_prefix a n)"
     apply(simp add: is_lowest_element_def ipv4range_set_from_prefix_lowest)
-    apply(simp add: ipv4range_set_from_prefix_eq_ip4_set ip4_set_def)
+    apply(simp add: ipv4range_set_from_prefix_eq_ip_cidr_set ip_cidr_set_def)
     apply(simp add: valid_prefix_def pfxm_mask_def)
     apply clarify
     by (metis add.left_neutral antisym_conv word_and_le2 word_bw_comms(1) word_plus_and_or_coroll2)
@@ -120,13 +121,13 @@ subsection{*IPv4 Addresses in CIDR Notation*}
 
   (*helper we use for spoofing protection specification*)
   definition all_but_those_ips :: "(ipv4addr \<times> nat) list \<Rightarrow> (ipv4addr \<times> nat) list" where
-    "all_but_those_ips cidrips = ipv4range_split (ipv4range_invert (l2br (map ipcidr_to_interval cidrips)))"
+    "all_but_those_ips cidrips = cidr_split (ipv4range_invert (l2br (map ipcidr_to_interval cidrips)))"
   
   lemma all_but_those_ips: "ipv4cidr_union_set (set (all_but_those_ips cidrips)) = UNIV - (\<Union> (ip,n) \<in> set cidrips. ipv4range_set_from_prefix ip n)"
     apply(simp add:)
     unfolding ipv4cidr_union_set_def all_but_those_ips_def
     apply(simp)
-    apply(simp add: ipv4range_split_prefix[simplified])
+    apply(simp add: cidr_split_prefix[simplified])
     apply(simp add: ipv4range_invert_def ipv4range_setminus_def)
     apply(simp add: ipv4range_UNIV_def)
     apply(simp add: l2br)
@@ -205,16 +206,16 @@ subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
         If a list of intervals is enough, we can use @{const br2l}.
         If we need it in @{typ ipt_ipv4range}, we can use this function.*}
   definition wi_2_cidr_ipt_ipv4range_list :: "32 wordinterval \<Rightarrow> ipt_ipv4range list" where
-    "wi_2_cidr_ipt_ipv4range_list r = map (\<lambda> (base, len). Ip4AddrNetmask (dotdecimal_of_ipv4addr base) len) (ipv4range_split r)"
+    "wi_2_cidr_ipt_ipv4range_list r = map (\<lambda> (base, len). Ip4AddrNetmask (dotdecimal_of_ipv4addr base) len) (cidr_split r)"
 
   lemma wi_2_cidr_ipt_ipv4range_list: "(\<Union> ip \<in> set (wi_2_cidr_ipt_ipv4range_list r). ipv4s_to_set ip) = wordinterval_to_set r"
     proof -
     have "\<And>a. ipv4s_to_set (case a of (base, x) \<Rightarrow> Ip4AddrNetmask (dotdecimal_of_ipv4addr base) x) = (case a of (x, xa) \<Rightarrow> ipv4range_set_from_prefix x xa)"
       by(clarsimp simp add: ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
-    hence "(\<Union> ip \<in> set (wi_2_cidr_ipt_ipv4range_list r). ipv4s_to_set ip) = \<Union>((\<lambda>(x, y). ipv4range_set_from_prefix x y) ` set (ipv4range_split r))"
+    hence "(\<Union> ip \<in> set (wi_2_cidr_ipt_ipv4range_list r). ipv4s_to_set ip) = \<Union>((\<lambda>(x, y). ipv4range_set_from_prefix x y) ` set (cidr_split r))"
       unfolding wi_2_cidr_ipt_ipv4range_list_def by(simp)
     thus ?thesis
-    using ipv4range_split_prefix by presburger
+    using cidr_split_prefix by presburger
   qed
 
   text{*For example, this allows the following transformation*}
@@ -241,11 +242,11 @@ subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
 
   
   definition ipt_ipv4range_to_cidr :: "ipt_ipv4range \<Rightarrow> (ipv4addr \<times> nat) list" where
-    "ipt_ipv4range_to_cidr ips = ipv4range_split (ipv4range_range (ipt_ipv4range_to_interval ips))"
+    "ipt_ipv4range_to_cidr ips = cidr_split (ipv4range_range (ipt_ipv4range_to_interval ips))"
 
   lemma ipt_ipv4range_to_cidr: "ipv4cidr_union_set (set (ipt_ipv4range_to_cidr ips)) = (ipv4s_to_set ips)"
     apply(simp add: ipt_ipv4range_to_cidr_def)
-    by (metis (no_types, hide_lams) SUP_def ipt_ipv4range_to_interval ipv4cidr_union_set_def ipv4range_range.cases ipv4range_split_prefix_single)
+    by (metis (no_types, hide_lams) SUP_def ipt_ipv4range_to_interval ipv4cidr_union_set_def ipv4range_range.cases cidr_split_prefix_single)
     
 
 
@@ -255,13 +256,13 @@ definition interval_to_wi_to_ipt_ipv4range :: "32 word \<Rightarrow> 32 word \<R
   "interval_to_wi_to_ipt_ipv4range s e \<equiv>
     if s = e
     then Ip4Addr (dotdecimal_of_ipv4addr s)
-    else case ipv4range_split (WordInterval s e) of [(ip,nmask)] \<Rightarrow> Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) nmask
+    else case cidr_split (WordInterval s e) of [(ip,nmask)] \<Rightarrow> Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) nmask
                                                   | _ \<Rightarrow> Ip4AddrRange (dotdecimal_of_ipv4addr s) (dotdecimal_of_ipv4addr e)"
 
 lemma interval_to_wi_to_ipt_ipv4range: "ipv4s_to_set (interval_to_wi_to_ipt_ipv4range s e) = {s..e}"
   proof -
-    from ipv4range_split_prefix_single[unfolded ipv4range_range.simps, of s e] have
-      "ipv4range_split (WordInterval s e) = [(a, b)] \<Longrightarrow> ipv4range_set_from_prefix a b = {s..e}" for a b
+    from cidr_split_prefix_single[unfolded ipv4range_range.simps, of s e] have
+      "cidr_split (WordInterval s e) = [(a, b)] \<Longrightarrow> ipv4range_set_from_prefix a b = {s..e}" for a b
       by(simp)
     thus ?thesis 
       by(simp add: interval_to_wi_to_ipt_ipv4range_def ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr split: list.split)

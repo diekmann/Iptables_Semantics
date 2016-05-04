@@ -320,7 +320,7 @@ private lemma size_mask_32word': "size ((mask (32 - m))::32 word) = 32" by(simp 
 (*declare[[show_types]]
 declare[[unify_trace_failure]]*)
 (*TODO: due to generalization, this can be simplified*)
-lemma wordinterval_to_set_ipv4range_set_from_prefix: assumes "valid_prefix (pfx::'a::len prefix_match)"
+lemma prefix_to_wordset_ipset_from_cidr: assumes "valid_prefix (pfx::'a::len prefix_match)"
       shows "prefix_to_wordset pfx = ipset_from_cidr (pfxm_prefix pfx) (pfxm_length pfx)"
 proof-
   have prefix_match_if_in_corny_set: "(prefix_to_wordset pfx) = ipset_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx)"
@@ -355,11 +355,6 @@ proof-
     show ?thesis by (metis ipset_from_netmask_prefix local.prefix_match_if_in_corny_set) 
 qed
 
-
-(*TODO: move to IPAddr.thy*)
-definition ip4_set :: "'i::len word \<Rightarrow> nat \<Rightarrow> 'i word set" where
-  "ip4_set i r = {j . i AND NOT mask (len_of TYPE('i) - r) = j AND NOT mask (len_of TYPE('i) - r)}"
-
 private lemma "(m1 \<or> m2) \<and> (m3 \<or> m4) \<longleftrightarrow> (m1 \<and> m3) \<or> (m1 \<and> m4) \<or> (m2 \<and> m3) \<or> (m2 \<and> m4)"
   by blast
 
@@ -378,9 +373,10 @@ private lemma mask_and_not_mask_helper: "mask (len - m) AND base AND NOT mask (l
   by(simp add: word_bw_lcs)
 
 
-lemma ipv4range_set_from_prefix_eq_ip4_set: fixes base::"'i::len word"
-  shows "ipset_from_cidr base m = ip4_set base m"
-  unfolding ip4_set_def
+(*TODO: rename*)
+lemma ipv4range_set_from_prefix_eq_ip_cidr_set: fixes base::"'i::len word"
+  shows "ipset_from_cidr base m = ip_cidr_set base m"
+  unfolding ip_cidr_set_def
   unfolding set_eq_iff
   unfolding mem_Collect_eq
   unfolding ipset_from_cidr_alt1

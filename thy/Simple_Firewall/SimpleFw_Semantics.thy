@@ -166,7 +166,7 @@ subsection{*Simple Firewall Semantics*}
           { fix ips::"'i::len word \<times> nat"
             have "a \<in> ipset_from_cidr a n" for a::"'i::len word" and n 
               apply(simp add: ipset_from_cidr_def)
-            using ipv4range_set_from_prefix_eq_ip4_set sorry (* by blast (*TODO*)*)
+            using ipv4range_set_from_prefix_eq_ip_cidr_set sorry (* by blast (*TODO*)*)
             hence "simple_match_ip ips (fst ips)" by(cases ips) simp
           } note ips=this
           have proto: "match_proto protocol (case protocol of ProtoAny \<Rightarrow> TCP | Proto p \<Rightarrow> p)"

@@ -1,5 +1,6 @@
 theory CIDRSplit
-imports IPv4Addr NumberWangCaesar
+imports IPv4Addr
+        NumberWangCaesar
 begin
 
 
@@ -52,21 +53,27 @@ private definition prefix_to_range :: "'a::len prefix_match \<Rightarrow> 'a wor
 private lemma prefix_to_range_set_eq: "wordinterval_to_set (prefix_to_range pfx) = prefix_to_wordset pfx"
   unfolding prefix_to_range_def prefix_to_wordset_def by simp
 
-private lemma prefix_to_range_ipv4range_range: "prefix_to_range pfx = ipv4range_range ((pfxm_prefix pfx), (pfxm_prefix pfx OR pfxm_mask pfx))"
-  unfolding ipv4range_range.simps prefix_to_range_def by simp
-
-private corollary "valid_prefix pfx \<Longrightarrow> wordinterval_to_set (prefix_to_range pfx) = ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx)"
-using wordinterval_to_set_ipv4range_set_from_prefix prefix_to_range_set_eq by auto
+private lemma prefix_to_range_iprange_interval:
+  "prefix_to_range pfx = iprange_interval ((pfxm_prefix pfx), (pfxm_prefix pfx OR pfxm_mask pfx))"
+  unfolding iprange_interval.simps prefix_to_range_def by simp
 
 
-private lemma prefix_match_list_union: "\<forall> pfx \<in> set cidrlist. (valid_prefix pfx) \<Longrightarrow>
-   (\<Union> x \<in> set (map prefix_to_range cidrlist). wordinterval_to_set x) = (\<Union>pfx\<in>set cidrlist. ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx))"
+private corollary "valid_prefix pfx \<Longrightarrow>
+  wordinterval_to_set (prefix_to_range pfx) = ipset_from_cidr (pfxm_prefix pfx) (pfxm_length pfx)"
+using prefix_to_wordset_ipset_from_cidr prefix_to_range_set_eq by auto
+
+
+private lemma prefix_match_list_union:
+   fixes cidrlist :: "'i::len prefix_match list"
+   shows "\<forall> pfx \<in> set cidrlist. (valid_prefix pfx) \<Longrightarrow>
+   (\<Union> x \<in> set (map prefix_to_range cidrlist). wordinterval_to_set x) =
+   (\<Union>pfx\<in>set cidrlist. ipset_from_cidr (pfxm_prefix pfx) (pfxm_length pfx))"
   apply simp
   apply(induction cidrlist)
    apply(simp; fail)
   apply(simp)
   apply(subst prefix_to_range_set_eq)
-  apply(subst wordinterval_to_set_ipv4range_set_from_prefix)
+  apply(subst prefix_to_wordset_ipset_from_cidr)
    apply(simp; fail)
   apply(simp)
   done
@@ -407,38 +414,43 @@ text{*Since @{const wordinterval_CIDR_split_internal} only returns valid prefixe
 (* actually, just valid_prefix doesn't mean that the prefix length is sane. Fortunately, we also have wordinterval_CIDR_split_internal_all_valid_less_Ball *)
 lemma "valid_prefix (PrefixMatch (0::16 word) 20)" by(simp add: valid_prefix_def)
 
-definition ipv4range_split :: "32 wordinterval \<Rightarrow> (32 word \<times> nat) list" where
-  "ipv4range_split rs \<equiv> map prefix_match_to_CIDR (wordinterval_CIDR_split_internal rs)"
+definition cidr_split :: "'i::len wordinterval \<Rightarrow> ('i word \<times> nat) list" where
+  "cidr_split rs \<equiv> map prefix_match_to_CIDR (wordinterval_CIDR_split_internal rs)"
                                         
 (*also works with corny definitions*)
-corollary ipv4range_split_prefix: 
-  "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_prefix base len) ` (set (ipv4range_split r))) ) = wordinterval_to_set r"
+corollary cidr_split_prefix: 
+  fixes r :: "'i::len wordinterval"
+  shows "(\<Union> ((\<lambda> (base, len). ipset_from_cidr base len) ` (set (cidr_split r))) ) = wordinterval_to_set r"
   proof -
   --"without valid prefix assumption"
-  have prefix_to_wordset_subset_ipv4range_set_from_prefix_helper:
-    "\<And>X. (\<Union>x\<in>X. prefix_to_wordset x) \<subseteq> (\<Union>x\<in>X. ipv4range_set_from_prefix (pfxm_prefix x) (pfxm_length x))"
+  have prefix_to_wordset_subset_ipset_from_cidr_helper:
+    "(\<Union>x\<in>X. prefix_to_wordset x) \<subseteq> (\<Union>x\<in>X. ipset_from_cidr (pfxm_prefix x) (pfxm_length x))"
+    for X :: "'i prefix_match set"
     apply(rule)
     using prefix_to_wordset_subset_ipset_from_cidr by fastforce
 
-  have ipv4range_set_from_prefix_subseteq_prefix_to_wordset_helper:
-    "\<And>X. \<forall> x \<in> X. valid_prefix x \<Longrightarrow> (\<Union>x\<in>X. ipv4range_set_from_prefix (pfxm_prefix x) (pfxm_length x)) \<subseteq> (\<Union>x\<in>X. prefix_to_wordset x)"
-    using wordinterval_to_set_ipv4range_set_from_prefix by auto
+  have ipset_from_cidr_subseteq_prefix_to_wordset_helper:
+    "\<forall> x \<in> X. valid_prefix x \<Longrightarrow> (\<Union>x\<in>X. ipset_from_cidr (pfxm_prefix x) (pfxm_length x)) \<subseteq> (\<Union>x\<in>X. prefix_to_wordset x)"
+    for X :: "'i prefix_match set"
+    using prefix_to_wordset_ipset_from_cidr by auto
 
   show ?thesis
-    unfolding wordinterval_CIDR_split_internal[symmetric] ipv4range_split_def
+    unfolding wordinterval_CIDR_split_internal[symmetric] cidr_split_def
     apply(simp add: prefix_match_to_CIDR_def2)
     apply(rule)
-     apply(simp add: ipv4range_set_from_prefix_subseteq_prefix_to_wordset_helper wordinterval_CIDR_split_internal_all_valid_Ball)
-    apply(simp add: prefix_to_wordset_subset_ipv4range_set_from_prefix_helper)
+     apply(simp add: ipset_from_cidr_subseteq_prefix_to_wordset_helper wordinterval_CIDR_split_internal_all_valid_Ball)
+    apply(simp add: prefix_to_wordset_subset_ipset_from_cidr_helper)
     done
 qed
-corollary ipv4range_split_prefix_single: 
-  "(\<Union> ((\<lambda> (base, len). ipv4range_set_from_prefix base len) ` (set (ipv4range_split (ipv4range_range (start, end))))) ) = {start .. end}"
-using ipv4range_split_prefix ipv4range_range.simps by simp
+corollary cidr_split_prefix_single: 
+  fixes start :: "'i::len word"
+  shows "(\<Union> ((\<lambda> (base, len). ipset_from_cidr base len) ` (set (cidr_split (iprange_interval (start, end))))) ) = {start .. end}"
+  unfolding wordinterval_to_set.simps[symmetric]
+  using cidr_split_prefix iprange_interval.simps by metis
 
 
 (*
-lemma "(\<Union> (base, len) \<in> set (ipv4range_split (ipv4range_range start end)). ipv4range_set_from_prefix base len) = {start .. end}"
+lemma "(\<Union> (base, len) \<in> set (cidr_split (ipv4range_range start end)). ipv4range_set_from_prefix base len) = {start .. end}"
 (*using [[simp_trace, simp_trace_depth_limit=10]]*)
 using [[simproc del: list_to_set_comprehension]] (* okay, simplifier is a bit broken **)
   apply(simp del: ) (*simp: "Tactic failed"*)
