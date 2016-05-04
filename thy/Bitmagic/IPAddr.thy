@@ -96,12 +96,19 @@ subsection{*Sets of IP addresses*}
     by(simp add: ipset_from_cidr_alt1 ipset_from_netmask_def Let_def mask_def)
 
 
+  lemma ipset_from_netmask_base_mask_consume:
+    fixes base :: "'a::len word"
+    shows "ipset_from_netmask (base AND NOT mask (len_of TYPE('a) - m)) (NOT mask (len_of TYPE('a) - m)) =
+            ipset_from_netmask base (NOT mask (len_of TYPE('a) - m))"
+    unfolding ipset_from_netmask_def
+    by(simp add: AND_twice)
+
 
   text{*making element check executable*}
   lemma addr_in_ipset_from_netmask_code[code_unfold]: 
     "addr \<in> (ipset_from_netmask base netmask) \<longleftrightarrow> (base AND netmask) \<le> addr \<and> addr \<le> (base AND netmask) OR (NOT netmask)"
     by(simp add: ipset_from_netmask_def Let_def)
-  lemma addr_in_ipvset_from_cidr_code[code_unfold]: "(addr::'i::len word) \<in> (ipset_from_cidr pre len) \<longleftrightarrow> 
+  lemma addr_in_ipset_from_cidr_code[code_unfold]: "(addr::'i::len word) \<in> (ipset_from_cidr pre len) \<longleftrightarrow> 
               (pre AND ((mask len) << (len_of (TYPE('i)) - len))) \<le> addr \<and> addr \<le> pre OR (mask (len_of (TYPE('i)) - len))"
   unfolding ipset_from_cidr_alt by simp
 

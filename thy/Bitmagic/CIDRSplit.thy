@@ -6,7 +6,7 @@ begin
 context
 begin
 
-section{*CIDR Split Motivation*}
+section{*CIDR Split Motivation (Example for IPv4)*}
   text{*When talking about ranges of IP addresses, we can make the ranges explicit by listing them.*}
 
   lemma "map (ipv4addr_of_nat \<circ> nat) [1 .. 4] = [1, 2, 3, 4]" by eval
@@ -418,7 +418,7 @@ corollary ipv4range_split_prefix:
   have prefix_to_wordset_subset_ipv4range_set_from_prefix_helper:
     "\<And>X. (\<Union>x\<in>X. prefix_to_wordset x) \<subseteq> (\<Union>x\<in>X. ipv4range_set_from_prefix (pfxm_prefix x) (pfxm_length x))"
     apply(rule)
-    using prefix_to_wordset_subset_ipv4range_set_from_prefix by fastforce
+    using prefix_to_wordset_subset_ipset_from_cidr by fastforce
 
   have ipv4range_set_from_prefix_subseteq_prefix_to_wordset_helper:
     "\<And>X. \<forall> x \<in> X. valid_prefix x \<Longrightarrow> (\<Union>x\<in>X. ipv4range_set_from_prefix (pfxm_prefix x) (pfxm_length x)) \<subseteq> (\<Union>x\<in>X. prefix_to_wordset x)"

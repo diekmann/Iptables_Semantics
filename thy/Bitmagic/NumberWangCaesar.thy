@@ -1,5 +1,6 @@
 theory NumberWangCaesar
-imports "./IPv4Addr" "./l4v/lib/WordLemmaBucket"
+imports "IPAddr"
+        "./l4v/lib/WordLemmaBucket"
 begin
 
 (*Contributed by Julius Michaelis*)
@@ -19,10 +20,12 @@ begin
 	definition "a \<le> b \<longleftrightarrow> prefix_match_less_eq1 a b"
 	definition "a < b \<longleftrightarrow> (a \<noteq> b \<and> prefix_match_less_eq1 a b)"
 instance
-by default (auto simp: less_eq_prefix_match_def less_prefix_match_def prefix_match.expand prefix_match_less_eq1_def split: if_splits)
+apply standard
+by(auto simp: less_eq_prefix_match_def less_prefix_match_def prefix_match.expand prefix_match_less_eq1_def split: if_splits)
 end
 
-value "sorted_list_of_set {PrefixMatch 0 32 :: 32 prefix_match, PrefixMatch 42 32, PrefixMatch 0 0, PrefixMatch 0 1, PrefixMatch 12 31}"
+lemma "sorted_list_of_set {PrefixMatch 0 32 :: 32 prefix_match, PrefixMatch 42 32, PrefixMatch 0 0, PrefixMatch 0 1, PrefixMatch 12 31} =
+       [PrefixMatch 0 32, PrefixMatch 0x2A 32, PrefixMatch 0xC 31, PrefixMatch 0 1, PrefixMatch 0 0]" by eval
 
 context
 begin
@@ -40,15 +43,15 @@ definition valid_prefix :: "('a::len) prefix_match \<Rightarrow> bool" where
   "valid_prefix pf = ((pfxm_mask pf) AND pfxm_prefix pf = 0)"
 
 text{*The type @{typ "'a prefix_match"} usually requires @{const valid_prefix}.
-      When we allow working on arbitrary IPs in CIDR notation, we will use the type @{typ "(ipv4addr \<times> nat)"} directly.*}
+      When we allow working on arbitrary IPs in CIDR notation, we will use the type @{typ "('i::len word \<times> nat)"} directly.*}
 
 lemma valid_prefix_00[simp,intro!]: "valid_prefix (PrefixMatch 0 0)" by (simp add: valid_prefix_def)
 
 (*TODO: generalize to 'a::len word*)
-definition prefix_match_to_CIDR :: "32 prefix_match \<Rightarrow> (ipv4addr \<times> nat)" where
+definition prefix_match_to_CIDR :: "('i::len) prefix_match \<Rightarrow> ('i word \<times> nat)" where
   "prefix_match_to_CIDR pfx \<equiv> (pfxm_prefix pfx, pfxm_length pfx)"
-lemma prefix_match_to_CIDR_def2: "prefix_match_to_CIDR \<equiv> \<lambda>pfx. (pfxm_prefix pfx, pfxm_length pfx)"
-  using prefix_match_to_CIDR_def by presburger
+lemma prefix_match_to_CIDR_def2: "prefix_match_to_CIDR = (\<lambda>pfx. (pfxm_prefix pfx, pfxm_length pfx))"
+  unfolding prefix_match_to_CIDR_def fun_eq_iff by simp
 
 
 private lemma valid_prefix_E: "valid_prefix pf \<Longrightarrow> ((pfxm_mask pf) AND pfxm_prefix pf = 0)" 
@@ -93,10 +96,10 @@ lemma rpm_m_dup_simp: "rg \<inter> fst (ipset_prefix_match (routing_match r) rg)
 lemma zero_prefix_match_all: "valid_prefix m \<Longrightarrow> pfxm_length m = 0 \<Longrightarrow> prefix_match_semantics m ip"
   by(simp add: pfxm_mask_def mask_2pm1 valid_prefix_alt prefix_match_semantics_def)
 
-lemma prefix_to_wordset_subset_ipv4range_set_from_prefix: 
-    "prefix_to_wordset pfx \<subseteq> ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx)"
+lemma prefix_to_wordset_subset_ipset_from_cidr: 
+    "prefix_to_wordset pfx \<subseteq> ipset_from_cidr (pfxm_prefix pfx) (pfxm_length pfx)"
   apply(rule subsetI)
-  apply(simp add: prefix_to_wordset_def addr_in_ipv4range_set_from_prefix_code)
+  apply(simp add: prefix_to_wordset_def addr_in_ipset_from_cidr_code)
   apply(intro impI conjI)
    apply (metis (erased, hide_lams) order_trans word_and_le2)
   apply(simp add: pfxm_mask_def)
@@ -231,9 +234,9 @@ by (metis (erased, hide_lams) Int_iff UNIV_I fst_conv ipset_prefix_match_def)
 
 lemma prefix_match_if_in_corny_set: 
   assumes "valid_prefix pfx"
-  shows "prefix_match_semantics pfx a \<longleftrightarrow> a \<in> ipv4range_set_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx)"
+  shows "prefix_match_semantics pfx a \<longleftrightarrow> a \<in> ipset_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx)"
   unfolding prefix_match_if_in_prefix_to_wordset[OF assms]
-  unfolding prefix_to_wordset_def ipv4range_set_from_netmask_def Let_def
+  unfolding prefix_to_wordset_def ipset_from_netmask_def Let_def
   unfolding word_bool_alg.double_compl
   proof(goal_cases)
     have *: "pfxm_prefix pfx AND NOT pfxm_mask pfx = pfxm_prefix pfx"
@@ -245,38 +248,28 @@ lemma prefix_match_if_in_corny_set:
 
 lemma prefix_match_if_in_corny_set2:
   assumes "valid_prefix pfx"
-  shows "prefix_match_semantics pfx (a :: ipv4addr) \<longleftrightarrow> a \<in> ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx)"
- unfolding prefix_match_if_in_corny_set[OF assms] pfxm_mask_def ipv4range_set_from_prefix_alt1 by (metis len32 NOT_mask_len32 word_bool_alg.double_compl)
+  shows "prefix_match_semantics pfx (a :: 'i::len word) \<longleftrightarrow> a \<in> ipset_from_cidr (pfxm_prefix pfx) (pfxm_length pfx)"
+ unfolding prefix_match_if_in_corny_set[OF assms] pfxm_mask_def ipset_from_cidr_alt1
+ by (metis (full_types) NOT_mask_shifted_lenword word_not_not)
 
 
-(*TODO move*)
+(*The following three lemmas generalize to arbitrary lengths by the way (hopefully)*)
+(*TODO move or delete*)
 private lemma ipv4addr_and_maskshift_eq_and_not_mask: "(base::32 word) AND (mask m << 32 - m) = base AND NOT mask (32 - m)"
-  apply word_bitwise
-  apply (subgoal_tac "m > 32 \<or> m \<in> set (map nat (upto 0 32))")
-   apply (simp add: upto_code upto_aux_rec, elim disjE)
-                                    apply (simp add: size_mask_32word)
-                                  apply (simp_all add: size_mask_32word) [33]
-  apply (simp add: upto_code upto_aux_rec, presburger)
-done
+using len32 by (metis NOT_mask_shifted_lenword word_not_not)
 
 (*TODO: should be private*)
+(*TODO: can this be deleted?*)
+private lemma maskshift_eq_not_mask_geneirc: "((mask m << len_of TYPE('a) - m) :: 'a::len word) = NOT mask (len_of TYPE('a) - m)"
+  using NOT_mask_shifted_lenword by (metis word_not_not) 
 lemma maskshift_eq_not_mask: "((mask m << 32 - m) :: 32 word) = NOT mask (32 - m)"
-  apply word_bitwise
-  apply (subgoal_tac "m > 32 \<or> m \<in> set (map nat (upto 0 32))")
-   apply (simp add: upto_code upto_aux_rec, elim disjE)
-                                    apply (simp add: size_mask_32word)
-                                  apply (simp_all add: size_mask_32word) [33]
-  apply (simp add: upto_code upto_aux_rec, presburger)
-done
+  using maskshift_eq_not_mask_geneirc by (metis len32)  
 
+(*TODO move or delete*)
 private lemma ipv4addr_andnotmask_eq_ormaskandnot: "((base::32 word) AND NOT mask (32 - m)) = ((base OR mask (32 - m)) AND NOT mask (32 - m))"
-  apply word_bitwise
-  apply (subgoal_tac "m > 32 \<or> m \<in> set (map nat (upto 0 32))")
-   apply (simp add: upto_code upto_aux_rec, elim disjE)
-                                    apply (simp add: size_mask_32word)
-                                  apply (simp_all add: size_mask_32word) [33]
-  apply (simp add: upto_code upto_aux_rec, presburger)
-done
+using len32 NOT_mask_shifted_lenword word_not_not
+by (simp add: word_ao_dist2 word_bw_comms(1)) 
+
 
 (* we needed this lemma once. It is commented out because the proof is slow. No comment about its overwhelming elegance.
 As of commit 225779834c209401231eeec664adcc756701c5f7, isabelle 2015, it is still working, but horribly slow.
@@ -326,14 +319,15 @@ private lemma size_mask_32word': "size ((mask (32 - m))::32 word) = 32" by(simp 
 
 (*declare[[show_types]]
 declare[[unify_trace_failure]]*)
-lemma wordinterval_to_set_ipv4range_set_from_prefix: assumes "valid_prefix pfx"
-      shows "prefix_to_wordset pfx = ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx)"
+(*TODO: due to generalization, this can be simplified*)
+lemma wordinterval_to_set_ipv4range_set_from_prefix: assumes "valid_prefix (pfx::'a::len prefix_match)"
+      shows "prefix_to_wordset pfx = ipset_from_cidr (pfxm_prefix pfx) (pfxm_length pfx)"
 proof-
-  have prefix_match_if_in_corny_set: "(prefix_to_wordset pfx) = ipv4range_set_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx)"
-    unfolding prefix_to_wordset_def ipv4range_set_from_netmask_def Let_def
+  have prefix_match_if_in_corny_set: "(prefix_to_wordset pfx) = ipset_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx)"
+    unfolding prefix_to_wordset_def ipset_from_netmask_def Let_def
     unfolding word_bool_alg.double_compl
-    proof -
-      case goal1
+    proof(goal_cases)
+      case 1
       have *: "pfxm_prefix pfx AND NOT pfxm_mask pfx = pfxm_prefix pfx"
         unfolding mask_eq_0_eq_x[symmetric] using valid_prefix_E[OF assms] word_bw_comms(1)[of "pfxm_prefix pfx"] by simp
       hence **: "pfxm_prefix pfx AND NOT pfxm_mask pfx OR pfxm_mask pfx = pfxm_prefix pfx OR pfxm_mask pfx"
@@ -341,50 +335,41 @@ proof-
       show ?case unfolding * ** ..
     qed
     
-    have "\<And>len. ((mask len)::ipv4addr) << 32 - len = ~~ mask (32 - len)"
-    using maskshift_eq_not_mask by simp
-    from this[of "(pfxm_length pfx)"] have mask_def2_symmetric: "((mask (pfxm_length pfx)::ipv4addr) << 32 - pfxm_length pfx) = NOT pfxm_mask pfx"
+    have "\<And>len. ((mask len)::'a::len word) << len_of TYPE('a) - len = ~~ mask (len_of TYPE('a) - len)"
+    using NOT_mask_shifted_lenword by (metis word_not_not)
+    from this[of "(pfxm_length pfx)"] have mask_def2_symmetric:
+      "((mask (pfxm_length pfx)::'a::len word) << len_of TYPE('a) - pfxm_length pfx) = NOT pfxm_mask pfx"
       unfolding pfxm_mask_def by simp
 
-    have ipv4range_set_from_netmask_prefix: 
-      "ipv4range_set_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx) = ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx)"
-     unfolding ipv4range_set_from_netmask_def ipv4range_set_from_prefix_alt
+    have ipset_from_netmask_prefix: 
+      "ipset_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx) = ipset_from_cidr (pfxm_prefix pfx) (pfxm_length pfx)"
+     unfolding ipset_from_netmask_def ipset_from_cidr_alt
      unfolding pfxm_mask_def[symmetric]
      unfolding mask_def2_symmetric
      apply(simp)
      unfolding Let_def
      using assms[unfolded valid_prefix_def]
-     by (metis helper3 pfxm_mask_def size_mask_32word' word_bw_comms(2) word_size)
+     by (metis helper3 word_bw_comms(2))
      (*word_size and size_mask_32word' needed since generalization to 'a::len word, though everything in here is 32*)
     
-    show ?thesis by (metis ipv4range_set_from_netmask_prefix local.prefix_match_if_in_corny_set) 
+    show ?thesis by (metis ipset_from_netmask_prefix local.prefix_match_if_in_corny_set) 
 qed
 
 
-private lemma helper_32_case_split: "32 < m \<or> m \<in> set (map nat [0..32])"
-  by (simp add: upto_code upto_aux_rec, presburger)
-private lemma ipv4addr_andnot_impl_takem: "(a::32 word) AND NOT mask (32 - m) = b \<Longrightarrow> (take (m) (to_bl a)) = (take (m) (to_bl b))"
-  apply word_bitwise
-  apply (subgoal_tac "m > 32 \<or> m \<in> set (map nat (upto 0 32))")
-   prefer 2
-   apply(simp only: helper_32_case_split)
-  apply (simp add: upto_code upto_aux_rec, elim disjE)
-                                   apply (simp add: size_mask_32word size_mask_32word')
-  apply (simp_all add: size_mask_32word size_mask_32word')
-done
-
-
-definition ip4_set :: "32 word \<Rightarrow> nat \<Rightarrow> 32 word set" where "ip4_set i r = {j . i AND NOT mask (32 - r) = j AND NOT mask (32 - r)}"
+(*TODO: move to IPAddr.thy*)
+definition ip4_set :: "'i::len word \<Rightarrow> nat \<Rightarrow> 'i word set" where
+  "ip4_set i r = {j . i AND NOT mask (len_of TYPE('i) - r) = j AND NOT mask (len_of TYPE('i) - r)}"
 
 private lemma "(m1 \<or> m2) \<and> (m3 \<or> m4) \<longleftrightarrow> (m1 \<and> m3) \<or> (m1 \<and> m4) \<or> (m2 \<and> m3) \<or> (m2 \<and> m4)"
   by blast
 
-private lemma caesar_proof_without_structures: "mask (32 - l) AND pfxm_p = 0 \<Longrightarrow>
-           (a \<in> ipv4range_set_from_netmask (pfxm_p) (NOT mask (32 - l))) \<longleftrightarrow> (pfxm_p = NOT mask (32 - l) AND a)"
+private lemma caesar_proof_without_structures: "mask (len_of TYPE('a) - l) AND (pfxm_p::'a::len word) = 0 \<Longrightarrow>
+           (a \<in> ipset_from_netmask (pfxm_p) (NOT mask (len_of TYPE('a) - l))) \<longleftrightarrow> (pfxm_p = NOT mask (len_of TYPE('a) - l) AND a)"
 proof -
-  assume a: "mask (32 - l) AND pfxm_p = 0"
-  with prefix_match_if_in_corny_set[unfolded valid_prefix_def prefix_match_semantics_def Let_def, symmetric, where pfx="PrefixMatch pfxm_p l"]
-  show "(a \<in> ipv4range_set_from_netmask (pfxm_p) (NOT mask (32 - l))) \<longleftrightarrow> (pfxm_p = NOT mask (32 - l) AND a)"
+  assume a: "mask (len_of TYPE('a) - l) AND pfxm_p = 0"
+  with prefix_match_if_in_corny_set[unfolded valid_prefix_def prefix_match_semantics_def Let_def, symmetric,
+      where pfx="PrefixMatch pfxm_p l"]
+  show "(a \<in> ipset_from_netmask (pfxm_p) (NOT mask (len_of TYPE('a) - l))) \<longleftrightarrow> (pfxm_p = NOT mask (len_of TYPE('a) - l) AND a)"
     unfolding pfxm_mask_def by(simp)
 qed
   
@@ -392,21 +377,17 @@ qed
 private lemma mask_and_not_mask_helper: "mask (len - m) AND base AND NOT mask (len - m) = 0"
   by(simp add: word_bw_lcs)
 
-lemma ipv4range_set_from_netmask_base_mask_consume: 
-  "ipv4range_set_from_netmask (base AND NOT mask (32 - m)) (NOT mask (32 - m)) =
-  ipv4range_set_from_netmask base (NOT mask (32 - m))"
-  unfolding ipv4range_set_from_netmask_def
-  by(simp add: AND_twice)
 
-lemma ipv4range_set_from_prefix_eq_ip4_set: "ipv4range_set_from_prefix base m = ip4_set base m"
+lemma ipv4range_set_from_prefix_eq_ip4_set: fixes base::"'i::len word"
+  shows "ipset_from_cidr base m = ip4_set base m"
   unfolding ip4_set_def
   unfolding set_eq_iff
   unfolding mem_Collect_eq
-  unfolding ipv4range_set_from_prefix_alt1
-  unfolding maskshift_eq_not_mask
+  unfolding ipset_from_cidr_alt1
+  unfolding maskshift_eq_not_mask_geneirc
   using caesar_proof_without_structures[OF mask_and_not_mask_helper, of _ base m]
-  unfolding ipv4range_set_from_netmask_base_mask_consume
-  unfolding word_bw_comms(1)[of _ " ~~ mask (32 - m)"]
+  unfolding ipset_from_netmask_base_mask_consume
+  unfolding word_bw_comms(1)[of _ " ~~ mask (len_of TYPE('i) - m)"]
   ..
 
 
@@ -416,21 +397,26 @@ lemma cornys_hacky_call_to_prefix_to_range_to_start_with_a_valid_prefix: fixes b
   apply(simp add: valid_prefix_def pfxm_mask_def pfxm_length_def pfxm_prefix_def)
   by (metis mask_and_not_mask_helper)
 
-definition prefix_to_range where
+definition prefix_to_range :: "'a::len prefix_match \<Rightarrow> 'a wordinterval" where
   "prefix_to_range pfx = WordInterval (pfxm_prefix pfx) (pfxm_prefix pfx OR pfxm_mask pfx)"
-lemma prefix_to_range_set_eq: "ipv4range_to_set (prefix_to_range pfx) = prefix_to_wordset pfx"
+
+lemma prefix_to_range_set_eq: "wordinterval_to_set (prefix_to_range pfx) = prefix_to_wordset pfx"
   unfolding prefix_to_range_def prefix_to_wordset_def by simp
 
-definition "range_prefix_match pfx rg \<equiv> (let pfxrg = prefix_to_range pfx in 
-  (ipv4range_intersection rg pfxrg, ipv4range_setminus rg pfxrg))"
+definition range_prefix_match :: "'a::len prefix_match \<Rightarrow> 'a wordinterval \<Rightarrow> 'a wordinterval \<times> 'a wordinterval" where
+  "range_prefix_match pfx rg \<equiv> (let pfxrg = prefix_to_range pfx in 
+  (wordinterval_intersection rg pfxrg, wordinterval_setminus rg pfxrg))"
 lemma range_prefix_match_set_eq:
-  "(\<lambda>(r1,r2). (ipv4range_to_set r1, ipv4range_to_set r2)) (range_prefix_match pfx rg) = ipset_prefix_match pfx (ipv4range_to_set rg)"
+  "(\<lambda>(r1,r2). (wordinterval_to_set r1, wordinterval_to_set r2)) (range_prefix_match pfx rg) =
+    ipset_prefix_match pfx (wordinterval_to_set rg)"
   unfolding range_prefix_match_def ipset_prefix_match_def Let_def 
-  using ipv4range_intersection_set_eq ipv4range_setminus_set_eq prefix_to_range_set_eq  by simp
-lemma range_prefix_match_sm[simp]:  "ipv4range_to_set (fst (range_prefix_match pfx rg)) = fst (ipset_prefix_match pfx (ipv4range_to_set rg))"
-  by (metis fst_conv ipset_prefix_match_m  ipv4range_intersection_set_eq prefix_to_range_set_eq range_prefix_match_def)
-lemma range_prefix_match_snm[simp]: "ipv4range_to_set (snd (range_prefix_match pfx rg)) = snd (ipset_prefix_match pfx (ipv4range_to_set rg))"
-  by (metis snd_conv ipset_prefix_match_nm ipv4range_setminus_set_eq     prefix_to_range_set_eq range_prefix_match_def)
+  using wordinterval_intersection_set_eq wordinterval_setminus_set_eq prefix_to_range_set_eq  by auto
+lemma range_prefix_match_sm[simp]:  "wordinterval_to_set (fst (range_prefix_match pfx rg)) = 
+    fst (ipset_prefix_match pfx (wordinterval_to_set rg))"
+  by (metis fst_conv ipset_prefix_match_m  wordinterval_intersection_set_eq prefix_to_range_set_eq range_prefix_match_def)
+lemma range_prefix_match_snm[simp]: "wordinterval_to_set (snd (range_prefix_match pfx rg)) =
+    snd (ipset_prefix_match pfx (wordinterval_to_set rg))"
+  by (metis snd_conv ipset_prefix_match_nm wordinterval_setminus_set_eq prefix_to_range_set_eq range_prefix_match_def)
 
 end
 	
