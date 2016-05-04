@@ -6,7 +6,6 @@ imports Main
   NumberWang
   WordInterval_Lists
   IPAddr
-  "~~/src/HOL/Word/Word" (*delete*)
   "~~/src/HOL/Library/Code_Target_Nat" (*!*)
 begin
 

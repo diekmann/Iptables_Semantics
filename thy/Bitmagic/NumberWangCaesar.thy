@@ -5,6 +5,17 @@ begin
 
 (*Contributed by Julius Michaelis*)
 
+section{*Prefix match*}
+
+text{*
+  The main difference between the prefix matched defined here and CIDR notation is a validity constraint 
+  imposed on prefix matches.
+
+  For example, 192.168.42.42/16 is valid CIDR notation whereas for a prefix match, it must be 192.168.0.0/16.
+
+  I.e. the last bits of the prefix must be set to zero.
+*}
+
 text{*We define a type for ips in CIDR notation, e.g. 192.168.0.0/24.*}
 (*datatype prefix_match = PrefixMatch (pfxm_prefix: ipv4addr) (pfxm_length: nat)*)
 context
