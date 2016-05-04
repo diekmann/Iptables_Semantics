@@ -299,6 +299,10 @@ subsection{*IP ranges*}
     "ipv4range_range (ip_start, ip_end) = WordInterval ip_start ip_end"
   declare ipv4range_range.simps[simp del]
 
+  (*TODO: delete*)
+  lemma ipv4range_range_transition_todo_delete_me: "ipv4range_range = iprange_interval"
+    by(simp add: fun_eq_iff ipv4range_range.simps iprange_interval.simps)
+
   definition ipv4range_to_set :: "32 wordinterval \<Rightarrow> (ipv4addr) set" where
     "ipv4range_to_set rg = wordinterval_to_set rg"
 

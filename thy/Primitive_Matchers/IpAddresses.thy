@@ -233,12 +233,14 @@ subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
 
   lemma ipt_ipv4range_to_cidr: "ipv4cidr_union_set (set (ipt_ipv4range_to_cidr ips)) = (ipv4s_to_set ips)"
     apply(simp add: ipt_ipv4range_to_cidr_def)
-    thm cidr_split_prefix_single 
+    thm cidr_split_prefix_single
     apply(simp add: ipv4cidr_union_set_def)
     apply(case_tac "(ipt_ipv4range_to_interval ips)")
     apply(simp add: ipt_ipv4range_to_interval)
-    sorry
-    by (smetis (no_types, hide_lams) SUP_def ipt_ipv4range_to_interval ipv4cidr_union_set_def ipv4range_range.cases cidr_split_prefix_single)
+    apply(subst transition_lemma_ipv4_delete_me)
+    apply(subst ipv4range_range_transition_todo_delete_me)
+    apply(simp)
+    by (metis (no_types, hide_lams) SUP_def ipt_ipv4range_to_interval cidr_split_prefix_single)
     
 
 
@@ -255,7 +257,8 @@ lemma interval_to_wi_to_ipt_ipv4range: "ipv4s_to_set (interval_to_wi_to_ipt_ipv4
   proof -
     from cidr_split_prefix_single[unfolded ipv4range_range.simps, of s e] have
       "cidr_split (WordInterval s e) = [(a, b)] \<Longrightarrow> ipv4range_set_from_prefix a b = {s..e}" for a b
-      by(simp)
+        apply(subst transition_lemma_ipv4_delete_me)
+        by(simp add: iprange_interval.simps)
     thus ?thesis 
       by(simp add: interval_to_wi_to_ipt_ipv4range_def ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr split: list.split)
   qed
