@@ -54,8 +54,8 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
     apply(simp add: ipv4cidr_union_set_def)
     apply(simp add: l2br)
     apply(simp add: ipcidr_to_interval_def)
-    apply(simp add: ipset_from_cidr_ipcidr_to_interval)
-    done
+    apply(subst transition_lemma_ipv4_delete_me)+
+    using ipset_from_cidr_ipcidr_to_interval by blast
   
   
   text{*Checking that the ipassmt covers the complete ipv4 address space.*}
@@ -71,7 +71,9 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
       apply(simp add:  wordinterval_eq_set_eq wordinterval_Union)
       apply(simp add: l2br)
       apply(simp add: ipcidr_to_interval_def)
-      apply(simp add: ipv4cidr_union_set_def ipset_from_cidr_ipcidr_to_interval)
+      apply(simp add: ipv4cidr_union_set_def)
+      apply(subst transition_lemma_ipv4_delete_me)+
+      using ipset_from_cidr_ipcidr_to_interval apply fast (*500ms*) (*TODO: only since transition lemma so slow*)
      apply(simp add: ipassmt_sanity_complete_def)
      done
 
@@ -133,7 +135,7 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
        apply(simp)
       apply(simp)
       apply(simp split:option.split option.split_asm)
-      apply(simp add: ipv4cidr_union_set_def ipset_from_cidr_ipcidr_to_interval)
+      apply(simp add: transition_lemma_ipv4_delete_me ipv4cidr_union_set_def ipset_from_cidr_ipcidr_to_interval)
       apply(safe)
                         apply(simp_all)
       by (simp add: rev_image_eqI)

@@ -51,7 +51,7 @@ text{*If @{const no_spoofing} is shown in the ternary semantics, it implies that
                  ipv4cidr_union_set (set (the (ipassmt iface)))"
   proof -
     { assume no_spoofing: "no_spoofing ipassmt rs"
-      have "{p_src p | p :: simple_packet. (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow)} \<subseteq>
+      have "{p_src p | p :: 32 simple_packet. (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow)} \<subseteq>
                  ipv4cidr_union_set (set (the (ipassmt iface)))"
       using approximating_imp_booloan_semantics_nospoofing[OF assms(1) assms(2) no_spoofing, where \<Gamma>=\<Gamma>]
       using assms(5) by blast
@@ -67,7 +67,7 @@ text{*If @{const no_spoofing} is shown in the ternary semantics, it implies that
           and simplers: "simple_ruleset rs"
           and no_spoofing_executable: "\<forall>iface \<in> dom ipassmt. no_spoofing_iface iface ipassmt (preprocess rs)"
           and "iface \<in> dom ipassmt"
-      shows "{p_src p | p :: simple_packet . newpkt p \<and> \<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow} \<subseteq>
+      shows "{p_src p | p :: 32 simple_packet . newpkt p \<and> \<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow} \<subseteq>
                  ipv4cidr_union_set (set (the (ipassmt iface)))"
   proof -
    have newpktD: "newpkt p \<Longrightarrow> newpkt (p\<lparr>p_iiface := iface_sel iface\<rparr>)" for p
@@ -105,7 +105,7 @@ text{*If @{const no_spoofing} is shown in the ternary semantics, it implies that
      using p by simp
    note[[show_types]]
    with nospoof have y: 
-    "{p_src p | p :: simple_packet. newpkt p \<and> (common_matcher, in_doubt_allow),p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>preprocess rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow}
+    "{p_src p | p :: 32 simple_packet. newpkt p \<and> (common_matcher, in_doubt_allow),p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>preprocess rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow}
     \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))"
     apply(simp add: no_spoofing_def)
     by(blast dest: bspec[OF _ assms(6)])

@@ -136,7 +136,7 @@ lemma extract_equi0: "set (map wordinterval_to_set (extract_IPSets_generic0 sel 
   proof(induction rs)
   case (Cons r rs) thus ?case
     apply(cases r, simp)
-    using wordinterval_to_set_ipcidr_tuple_to_wordinterval by fastforce
+    using wordinterval_to_set_ipcidr_tuple_to_wordinterval by fastforcesorry
   qed(simp)
 
 lemma src_ipPart:

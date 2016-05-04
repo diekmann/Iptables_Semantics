@@ -400,7 +400,8 @@ begin
     have "(\<Union>a\<in>set (the (ipassmt iface)). case ipcidr_to_interval a of (x, xa) \<Rightarrow> {x..xa}) = 
           (\<Union>x\<in>set (the (ipassmt iface)). case x of (base, len) \<Rightarrow> ipv4range_set_from_prefix base len)"
     unfolding ipcidr_to_interval_def (*since we used an arbitrary 'a::len word, we need to unfold manually*)
-    using ipcidr_to_interval_ipv4range_set_from_prefix by simp
+    apply(subst transition_lemma_ipv4_delete_me)+
+    using ipset_from_cidr_ipcidr_to_interval by blast
     with 1 show ?case by(simp add: ipv4cidr_union_set_def l2br)
   next
   case 2 thus ?case by(simp add: get_exists_matching_src_ips_executable get_all_matching_src_ips_executable)
