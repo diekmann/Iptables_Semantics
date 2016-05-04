@@ -120,6 +120,4 @@ subsection{*Basic optimisations*}
         by(rule matches_iff_apply_f)
       qed
 
-
-
 end
