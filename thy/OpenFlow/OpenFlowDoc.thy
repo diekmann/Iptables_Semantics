@@ -373,7 +373,7 @@ text_raw\<open>\label{sec:fwconj}\<close>
 text\<open>This section explains how to compute the join of two firewalls.\<close>
 text\<open>The basis of this is a generalization of @{const simple_fw}.
 Instead of only allowing @{const simple_action.Accept} or @{const simple_action.Drop} as actions, it allows arbitrary actions. The type of the function that evaluates this generalized simple firewall is
-@{term "generalized_sfw :: (simple_match \<times> 'a) list \<Rightarrow> 'b simple_packet_scheme \<Rightarrow> (simple_match \<times> 'a) option"}.
+@{term "generalized_sfw :: ('i::len simple_match \<times> 'a) list \<Rightarrow> ('i, 'b) simple_packet_scheme \<Rightarrow> ('i simple_match \<times> 'a) option"}.
 The definition is straightforward:\<close>
 lemma 
 "generalized_sfw [] p = None" 
@@ -412,7 +412,7 @@ unfolding Let_def lr_of_tran_def lr_of_tran_fbs_def lr_of_tran_s1_def comp_def r
 text_raw\<open>
 }
 }
-  \caption{Function for translating a @{typ "simple_rule list"}, a @{typ "routing_rule list"} and a list of interfaces to a flow table.}
+  \caption{Function for translating a @{typ "'i::len simple_rule list"}, a @{typ "routing_rule list"} and a list of interfaces to a flow table.}
   \label{fig:convi}
 \end{figure*}
 \<close>
@@ -426,7 +426,7 @@ The next step is to join the two rulesets.
 The data accompanying @{term r} is the port from @{term rr} and the firewall decision from @{term fwr}.
 Next, descending priorities are added to the rules using @{term "map (apfst word_of_nat) \<circ> annotate_rlen"}.
 If the number of rules is too large to fit into the $2^{16}$ priority classes, an error is returned.
-Otherwise, the function @{const pack_OF_entries} is used to convert the @{typ "(16 word \<times> simple_match \<times> char list \<times> simple_action) list"} to an OpenFlow table.
+Otherwise, the function @{const pack_OF_entries} is used to convert the @{typ "(16 word \<times> 32 simple_match \<times> char list \<times> simple_action) list"} to an OpenFlow table.
 While converting the @{typ "char list \<times> simple_action"} tuple is straightforward, converting the @{type simple_match} to an equivalent list of @{typ "of_match_field set"} is non-trivial.
 This is done by the function @{const simple_match_to_of_match}.
 \<close>
@@ -479,7 +479,7 @@ text_raw\<open>\begin{figure*}
 \<close>
 theorem
 fixes
-  p :: "'a simple_packet_ext_scheme"
+  p :: "(32, 'a) simple_packet_ext_scheme"
 assumes
   "valid_prefixes rt" and "has_default_route rt"
   "has_default_policy fw" and  "simple_fw_valid fw" and  "no_oif_match fw"
