@@ -83,16 +83,16 @@ subsection{*Simple Firewall Semantics*}
   fun simple_match_ip :: "('i::len word \<times> nat) \<Rightarrow> 'i::len word \<Rightarrow> bool" where
     "simple_match_ip (base, len) p_ip \<longleftrightarrow> p_ip \<in> ipset_from_cidr base len"
 
-  (*TODO: move?*)
+  (*TODO: move? Delete?*)
   fun simple_match_ip4 :: "(ipv4addr \<times> nat) \<Rightarrow> ipv4addr \<Rightarrow> bool" where
     "simple_match_ip4 (base, len) p_ip \<longleftrightarrow> p_ip \<in> ipv4range_set_from_prefix base len"
 
   lemma wordinterval_to_set_ipcidr_tuple_to_wordinterval_simple_match_ip_set:
-    "wordinterval_to_set (ipcidr_tuple_to_wordinterval ip) = {d. simple_match_ip4 ip d}"
+    "wordinterval_to_set (ipcidr_tuple_to_wordinterval ip) = {d. simple_match_ip ip d}"
     proof -
-      { fix s d
-        from ipv4range_to_set_def wordinterval_to_set_ipcidr_tuple_to_wordinterval have
-          "s \<in> wordinterval_to_set (ipcidr_tuple_to_wordinterval d) \<longleftrightarrow> simple_match_ip4 d s"
+      { fix s and d :: "'a::len word \<times> nat"
+        from wordinterval_to_set_ipcidr_tuple_to_wordinterval have
+          "s \<in> wordinterval_to_set (ipcidr_tuple_to_wordinterval d) \<longleftrightarrow> simple_match_ip d s"
         by(cases d) auto
       } thus ?thesis by blast
     qed
@@ -237,16 +237,18 @@ subsection{*Simple Ports*}
   value[code] "simple_match_port_and_not (1,8) (6,8)"
 
 subsection{*Simple IPs*}
-  lemma simple_match_ip_conjunct: "simple_match_ip ip1 p_ip \<and> simple_match_ip ip2 p_ip \<longleftrightarrow> 
-         (case ipcidr_conjunct ip1 ip2 of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
+  lemma simple_match_ip_conjunct:
+    fixes ip1 :: "'i::len word \<times> nat"
+    shows "simple_match_ip ip1 p_ip \<and> simple_match_ip ip2 p_ip \<longleftrightarrow> 
+            (case ipcidr_conjunct ip1 ip2 of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
   proof -
   {
     fix b1 m1 b2 m2
     have "simple_match_ip (b1, m1) p_ip \<and> simple_match_ip (b2, m2) p_ip \<longleftrightarrow> 
           p_ip \<in> ipset_from_cidr b1 m1 \<inter> ipset_from_cidr b2 m2"
     by simp
-    also have "\<dots> \<longleftrightarrow> p_ip \<in> (case ipcidr_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> {} | Some (bx, mx) \<Rightarrow> ipv4range_set_from_prefix bx mx)"
-      using ipcidr_conjunct_correct (*by blast*) sorry
+    also have "\<dots> \<longleftrightarrow> p_ip \<in> (case ipcidr_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> {} | Some (bx, mx) \<Rightarrow> ipset_from_cidr bx mx)"
+      using ipcidr_conjunct_correct by blast
     also have "\<dots> \<longleftrightarrow> (case ipcidr_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
       by(simp split: option.split)
     finally have "simple_match_ip (b1, m1) p_ip \<and> simple_match_ip (b2, m2) p_ip \<longleftrightarrow> 
@@ -355,14 +357,14 @@ lemma nomatch: "\<not> simple_matches m p \<Longrightarrow> simple_fw (SimpleRul
 
 
 
-definition "example_simple_match1 \<equiv> \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0, 0), dst = (0, 0), proto = Proto TCP, sports = (0, 0x0), dports = (0, 0x0)\<rparr>"
+definition "example_simple_match1 \<equiv> \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0::ipv4addr, 0), dst = (0, 0), proto = Proto TCP, sports = (0, 0x0), dports = (0, 0x0)\<rparr>"
 (*export_code simple_fw in SML   not possible here*)
 value[code] "simple_fw [
   SimpleRule example_simple_match1 simple_action.Drop]
   
   \<lparr>p_iiface = '''', p_oiface = '''',  p_src = 1, p_dst = 2, p_proto = TCP, p_sport = 8, p_dport = 9, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
 
-fun has_default_policy :: "simple_rule list \<Rightarrow> bool" where
+fun has_default_policy :: "'i::len simple_rule list \<Rightarrow> bool" where
   "has_default_policy [] = False" |
   "has_default_policy [(SimpleRule m _)] = (m = simple_match_any)" |
   "has_default_policy (_#rs) = has_default_policy rs"
