@@ -521,7 +521,8 @@ definition "lr_of_tran rt fw ifs \<equiv> let
 	else Inl $ ''Error in creating OpenFlow table: priority number space exhausted''
 "
 
-lemma ipcidr_conjunct_any: "ipcidr_conjunct (0, 0) (0, 0) \<noteq> None" by(eval)
+lemma ipcidr_conjunct_any: "ipcidr_conjunct (0, 0) (0, 0) \<noteq> None"
+  by(simp add: ipcidr_conjunct.simps ipset_from_cidr_0)
 
 lemma oif_ne_iif_alt: 
 "oif_ne_iif ifs = map (apsnd (\<lambda>(a,b). if a = b then simple_action.Drop else simple_action.Accept)) (generalized_fw_join (map (\<lambda>i. (simple_match_any\<lparr>oiface := Iface i\<rparr>, i)) ifs) (map (\<lambda>i. (simple_match_any\<lparr>iiface := Iface i\<rparr>, i)) ifs))"
