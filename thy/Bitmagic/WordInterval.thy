@@ -620,6 +620,26 @@ lemma wordinterval_to_list_union_free: "l = wordinterval_to_list r \<Longrightar
 
  definition is_lowest_element :: "'a::ord \<Rightarrow> 'a set \<Rightarrow> bool" where
   "is_lowest_element x S = (x \<in> S \<and> (\<forall>y\<in>S. y \<le> x \<longrightarrow> y = x))"
+
+
+  lemma 
+  	fixes x :: "'a :: complete_lattice"
+  	assumes "x \<in> S"
+  	shows " x = Inf S \<Longrightarrow> is_lowest_element x S"
+  using assms apply(simp add: is_lowest_element_def)
+   by (simp add: Inf_lower eq_iff)
+
+  lemma 
+  	fixes x :: "'a :: linorder"
+  	assumes "finite S" and "x \<in> S"
+  	shows "is_lowest_element x S \<longleftrightarrow> x = Min S"
+  apply(rule)
+  subgoal
+   apply(simp add: is_lowest_element_def)
+   apply(subst Min_eqI[symmetric])
+   using assms by(auto)
+  by (metis Min.coboundedI assms(1) assms(2) dual_order.antisym is_lowest_element_def)
+
     
   fun wordinterval_lowest_element :: "'a::len0 wordinterval \<Rightarrow> 'a word option" where
     "wordinterval_lowest_element (WordInterval s e) = (if s \<le> e then Some s else None)" | 
