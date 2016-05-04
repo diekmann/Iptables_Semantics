@@ -11,7 +11,7 @@ begin
 (*TODO: generalize*)
 fun extract_IPSets_generic0 :: "(32 simple_match \<Rightarrow> 32 word \<times> nat) \<Rightarrow> 32 simple_rule list \<Rightarrow> (32 wordinterval) list" where
   "extract_IPSets_generic0 _ [] = []" |
-  "extract_IPSets_generic0 sel ((SimpleRule m _)#ss) = (ipv4_cidr_tuple_to_interval (sel m)) #
+  "extract_IPSets_generic0 sel ((SimpleRule m _)#ss) = (ipcidr_tuple_to_wordinterval (sel m)) #
                                                        (extract_IPSets_generic0 sel ss)"
 
 lemma extract_IPSets_generic0_length: "length (extract_IPSets_generic0 sel rs) = length rs"
@@ -37,33 +37,33 @@ there are fast and slower choices. The faster choices are the ones where the fir
 Therefore, the running time is still a bit unpredictable.
 
 Here is the data:
-map ipv4_cidr_tuple_to_interval (mergesort_by_rel (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<le> (b2, b1)) (mergesort_remdups
+map ipcidr_tuple_to_wordinterval (mergesort_by_rel (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<le> (b2, b1)) (mergesort_remdups
                         ((map (src \<circ> match_sel) rs) @ (map (dst \<circ> match_sel) rs))))
  (2:47:04 elapsed time, 17:08:01 cpu time, factor 6.15)
 
 
-map ipv4_cidr_tuple_to_interval (mergesort_remdups ((map (src \<circ> match_sel) rs) @ (map (dst \<circ> match_sel) rs)))
+map ipcidr_tuple_to_wordinterval (mergesort_remdups ((map (src \<circ> match_sel) rs) @ (map (dst \<circ> match_sel) rs)))
  (2:41:03 elapsed time, 16:56:46 cpu time, factor 6.31)
 
 
-map ipv4_cidr_tuple_to_interval (mergesort_by_rel (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<le> (b2, b1)) (
+map ipcidr_tuple_to_wordinterval (mergesort_by_rel (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<le> (b2, b1)) (
                          ((map (src \<circ> match_sel) rs) @ (map (dst \<circ> match_sel) rs)))
  (5:52:28 elapsed time, 41:50:10 cpu time, factor 7.12)
 
 
-map ipv4_cidr_tuple_to_interval (mergesort_by_rel (op \<le>)
+map ipcidr_tuple_to_wordinterval (mergesort_by_rel (op \<le>)
                          ((map (src \<circ> match_sel) rs) @ (map (dst \<circ> match_sel) rs))))
   (3:10:57 elapsed time, 19:12:25 cpu time, factor 6.03)
 
 
-map ipv4_cidr_tuple_to_interval (mergesort_by_rel (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<le> (b2, b1)) (mergesort_remdups
+map ipcidr_tuple_to_wordinterval (mergesort_by_rel (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<le> (b2, b1)) (mergesort_remdups
                         (extract_src_dst_ips rs [])))
  (2:49:57 elapsed time, 17:10:49 cpu time, factor 6.06)
 
-map ipv4_cidr_tuple_to_interval ((mergesort_remdups (extract_src_dst_ips rs [])))
+map ipcidr_tuple_to_wordinterval ((mergesort_remdups (extract_src_dst_ips rs [])))
  (2:43:44 elapsed time, 16:57:49 cpu time, factor 6.21)
 
-map ipv4_cidr_tuple_to_interval (mergesort_by_rel (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<ge> (b2, b1)) (mergesort_remdups (extract_src_dst_ips rs [])))
+map ipcidr_tuple_to_wordinterval (mergesort_by_rel (\<lambda> (a1,a2) (b1, b2). (a2, a1) \<ge> (b2, b1)) (mergesort_remdups (extract_src_dst_ips rs [])))
  (2:47:37 elapsed time, 16:54:47 cpu time, factor 6.05)
 
 There is a clear looser: not using mergesort_remdups
@@ -86,12 +86,12 @@ case (Cons r rs) thus ?case by(cases r, simp)
 qed(simp)
 
 definition extract_IPSets :: "32 simple_rule list \<Rightarrow> (32 wordinterval) list" where
-  "extract_IPSets rs = map ipv4_cidr_tuple_to_interval (mergesort_remdups (extract_src_dst_ips rs []))"
+  "extract_IPSets rs = map ipcidr_tuple_to_wordinterval (mergesort_remdups (extract_src_dst_ips rs []))"
 lemma extract_IPSets: "set (extract_IPSets rs) = set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
 proof -
   { fix acc
-    have "ipv4_cidr_tuple_to_interval ` set (extract_src_dst_ips rs acc) =
-          ipv4_cidr_tuple_to_interval ` set acc \<union> set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
+    have "ipcidr_tuple_to_wordinterval ` set (extract_src_dst_ips rs acc) =
+          ipcidr_tuple_to_wordinterval ` set acc \<union> set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
     proof(induction rs arbitrary: acc)
     case (Cons r rs ) thus ?case
       apply(cases r)
@@ -136,7 +136,7 @@ lemma extract_equi0: "set (map wordinterval_to_set (extract_IPSets_generic0 sel 
   proof(induction rs)
   case (Cons r rs) thus ?case
     apply(cases r, simp)
-    using wordinterval_to_set_ipv4_cidr_tuple_to_interval by fastforce
+    using wordinterval_to_set_ipcidr_tuple_to_wordinterval by fastforce
   qed(simp)
 
 lemma src_ipPart:
@@ -746,12 +746,12 @@ qed
     "matching_dsts _ [] _ = Empty_WordInterval" |
     "matching_dsts s ((SimpleRule m Accept)#rs) acc_dropped =
         (if simple_match_ip (src m) s then
-           wordinterval_union (wordinterval_setminus (ipv4_cidr_tuple_to_interval (dst m)) acc_dropped) (matching_dsts s rs acc_dropped)
+           wordinterval_union (wordinterval_setminus (ipcidr_tuple_to_wordinterval (dst m)) acc_dropped) (matching_dsts s rs acc_dropped)
          else
            matching_dsts s rs acc_dropped)" |
     "matching_dsts s ((SimpleRule m Drop)#rs) acc_dropped =
         (if simple_match_ip (src m) s then
-           matching_dsts s rs (wordinterval_union (ipv4_cidr_tuple_to_interval (dst m)) acc_dropped)
+           matching_dsts s rs (wordinterval_union (ipcidr_tuple_to_wordinterval (dst m)) acc_dropped)
          else
            matching_dsts s rs acc_dropped)"
   
@@ -766,12 +766,12 @@ qed
     "matching_srcs _ [] _ = Empty_WordInterval" |
     "matching_srcs d ((SimpleRule m Accept)#rs) acc_dropped =
         (if simple_match_ip (dst m) d then
-           wordinterval_union (wordinterval_setminus (ipv4_cidr_tuple_to_interval (src m)) acc_dropped) (matching_srcs d rs acc_dropped)
+           wordinterval_union (wordinterval_setminus (ipcidr_tuple_to_wordinterval (src m)) acc_dropped) (matching_srcs d rs acc_dropped)
          else
            matching_srcs d rs acc_dropped)" |
     "matching_srcs d ((SimpleRule m Drop)#rs) acc_dropped =
         (if simple_match_ip (dst m) d then
-           matching_srcs d rs (wordinterval_union (ipv4_cidr_tuple_to_interval (src m)) acc_dropped)
+           matching_srcs d rs (wordinterval_union (ipcidr_tuple_to_wordinterval (src m)) acc_dropped)
          else
            matching_srcs d rs acc_dropped)"
   
@@ -809,14 +809,14 @@ qed
         proof(cases a)
         case Accept with r Cons show ?thesis
          apply(simp, intro conjI impI)
-          apply(simp add: simple_match_ip_Accept wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set)
+          apply(simp add: simple_match_ip_Accept wordinterval_to_set_ipcidr_tuple_to_wordinterval_simple_match_ip_set)
           apply blast
          apply(simp add: not_simple_match_ip; fail)
          done
         next
         case Drop with r Cons show ?thesis
           apply(simp,intro conjI impI)
-           apply(simp add: simple_match_ip_Drop matching_dsts_pull_out_accu wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set)
+           apply(simp add: simple_match_ip_Drop matching_dsts_pull_out_accu wordinterval_to_set_ipcidr_tuple_to_wordinterval_simple_match_ip_set)
            apply blast
           apply(simp add: not_simple_match_ip; fail)
          done
@@ -849,14 +849,14 @@ qed
         proof(cases a)
         case Accept with r Cons show ?thesis
          apply(simp, intro conjI impI)
-          apply(simp add: simple_match_ip_Accept wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set)
+          apply(simp add: simple_match_ip_Accept wordinterval_to_set_ipcidr_tuple_to_wordinterval_simple_match_ip_set)
           apply blast
          apply(simp add: not_simple_match_ip; fail)
          done
         next
         case Drop with r Cons show ?thesis
           apply(simp,intro conjI impI)
-           apply(simp add: simple_match_ip_Drop matching_srcs_pull_out_accu wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set)
+           apply(simp add: simple_match_ip_Drop matching_srcs_pull_out_accu wordinterval_to_set_ipcidr_tuple_to_wordinterval_simple_match_ip_set)
            apply blast
           apply(simp add: not_simple_match_ip; fail)
          done

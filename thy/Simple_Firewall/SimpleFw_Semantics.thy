@@ -87,12 +87,12 @@ subsection{*Simple Firewall Semantics*}
   fun simple_match_ip4 :: "(ipv4addr \<times> nat) \<Rightarrow> ipv4addr \<Rightarrow> bool" where
     "simple_match_ip4 (base, len) p_ip \<longleftrightarrow> p_ip \<in> ipv4range_set_from_prefix base len"
 
-  lemma wordinterval_to_set_ipv4_cidr_tuple_to_interval_simple_match_ip_set:
-    "wordinterval_to_set (ipv4_cidr_tuple_to_interval ip) = {d. simple_match_ip4 ip d}"
+  lemma wordinterval_to_set_ipcidr_tuple_to_wordinterval_simple_match_ip_set:
+    "wordinterval_to_set (ipcidr_tuple_to_wordinterval ip) = {d. simple_match_ip4 ip d}"
     proof -
       { fix s d
-        from ipv4range_to_set_def wordinterval_to_set_ipv4_cidr_tuple_to_interval have
-          "s \<in> wordinterval_to_set (ipv4_cidr_tuple_to_interval d) \<longleftrightarrow> simple_match_ip4 d s"
+        from ipv4range_to_set_def wordinterval_to_set_ipcidr_tuple_to_wordinterval have
+          "s \<in> wordinterval_to_set (ipcidr_tuple_to_wordinterval d) \<longleftrightarrow> simple_match_ip4 d s"
         by(cases d) auto
       } thus ?thesis by blast
     qed
@@ -238,19 +238,19 @@ subsection{*Simple Ports*}
 
 subsection{*Simple IPs*}
   lemma simple_match_ip_conjunct: "simple_match_ip ip1 p_ip \<and> simple_match_ip ip2 p_ip \<longleftrightarrow> 
-         (case ipv4cidr_conjunct ip1 ip2 of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
+         (case ipcidr_conjunct ip1 ip2 of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
   proof -
   {
     fix b1 m1 b2 m2
     have "simple_match_ip (b1, m1) p_ip \<and> simple_match_ip (b2, m2) p_ip \<longleftrightarrow> 
           p_ip \<in> ipset_from_cidr b1 m1 \<inter> ipset_from_cidr b2 m2"
     by simp
-    also have "\<dots> \<longleftrightarrow> p_ip \<in> (case ipv4cidr_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> {} | Some (bx, mx) \<Rightarrow> ipv4range_set_from_prefix bx mx)"
-      using ipv4cidr_conjunct_correct (*by blast*) sorry
-    also have "\<dots> \<longleftrightarrow> (case ipv4cidr_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
+    also have "\<dots> \<longleftrightarrow> p_ip \<in> (case ipcidr_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> {} | Some (bx, mx) \<Rightarrow> ipv4range_set_from_prefix bx mx)"
+      using ipcidr_conjunct_correct (*by blast*) sorry
+    also have "\<dots> \<longleftrightarrow> (case ipcidr_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)"
       by(simp split: option.split)
     finally have "simple_match_ip (b1, m1) p_ip \<and> simple_match_ip (b2, m2) p_ip \<longleftrightarrow> 
-         (case ipv4cidr_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)" .
+         (case ipcidr_conjunct (b1, m1) (b2, m2) of None \<Rightarrow> False | Some ipx \<Rightarrow> simple_match_ip ipx p_ip)" .
    } thus ?thesis by(cases ip1, cases ip2, simp)
   qed
 
@@ -263,8 +263,8 @@ text{*@{typ "'i::len simple_match"} @{text \<and>} @{typ "'i::len simple_match"}
 fun simple_match_and :: "'i::len simple_match \<Rightarrow> 'i simple_match \<Rightarrow> 'i simple_match option" where
   "simple_match_and \<lparr>iiface=iif1, oiface=oif1, src=sip1, dst=dip1, proto=p1, sports=sps1, dports=dps1 \<rparr> 
                     \<lparr>iiface=iif2, oiface=oif2, src=sip2, dst=dip2, proto=p2, sports=sps2, dports=dps2 \<rparr> = 
-    (case ipv4cidr_conjunct sip1 sip2 of None \<Rightarrow> None | Some sip \<Rightarrow> 
-    (case ipv4cidr_conjunct dip1 dip2 of None \<Rightarrow> None | Some dip \<Rightarrow> 
+    (case ipcidr_conjunct sip1 sip2 of None \<Rightarrow> None | Some sip \<Rightarrow> 
+    (case ipcidr_conjunct dip1 dip2 of None \<Rightarrow> None | Some dip \<Rightarrow> 
     (case iface_conjunct iif1 iif2 of None \<Rightarrow> None | Some iif \<Rightarrow>
     (case iface_conjunct oif1 oif2 of None \<Rightarrow> None | Some oif \<Rightarrow>
     (case simple_proto_conjunct p1 p2 of None \<Rightarrow> None | Some p \<Rightarrow>
@@ -279,14 +279,14 @@ lemma simple_match_and_correct: "simple_matches m1 p \<and> simple_matches m2 p 
     obtain iif2 oif2 sip2 dip2 p2 sps2 dps2 where m2:
       "m2 = \<lparr>iiface=iif2, oiface=oif2, src=sip2, dst=dip2, proto=p2, sports=sps2, dports=dps2 \<rparr>" by(cases m2, blast)
 
-    have sip_None: "ipv4cidr_conjunct sip1 sip2 = None \<Longrightarrow> \<not> simple_match_ip sip1 (p_src p) \<or> \<not> simple_match_ip sip2 (p_src p)"
+    have sip_None: "ipcidr_conjunct sip1 sip2 = None \<Longrightarrow> \<not> simple_match_ip sip1 (p_src p) \<or> \<not> simple_match_ip sip2 (p_src p)"
       using simple_match_ip_conjunct[of sip1 "p_src p" sip2] by simp
-    have dip_None: "ipv4cidr_conjunct dip1 dip2 = None \<Longrightarrow> \<not> simple_match_ip dip1 (p_dst p) \<or> \<not> simple_match_ip dip2 (p_dst p)"
+    have dip_None: "ipcidr_conjunct dip1 dip2 = None \<Longrightarrow> \<not> simple_match_ip dip1 (p_dst p) \<or> \<not> simple_match_ip dip2 (p_dst p)"
       using simple_match_ip_conjunct[of dip1 "p_dst p" dip2] by simp
-    have sip_Some: "\<And>ip. ipv4cidr_conjunct sip1 sip2 = Some ip \<Longrightarrow>
+    have sip_Some: "\<And>ip. ipcidr_conjunct sip1 sip2 = Some ip \<Longrightarrow>
       simple_match_ip ip (p_src p) \<longleftrightarrow> simple_match_ip sip1 (p_src p) \<and> simple_match_ip sip2 (p_src p)"
       using simple_match_ip_conjunct[of sip1 "p_src p" sip2] by simp
-    have dip_Some: "\<And>ip. ipv4cidr_conjunct dip1 dip2 = Some ip \<Longrightarrow>
+    have dip_Some: "\<And>ip. ipcidr_conjunct dip1 dip2 = Some ip \<Longrightarrow>
       simple_match_ip ip (p_dst p) \<longleftrightarrow> simple_match_ip dip1 (p_dst p) \<and> simple_match_ip dip2 (p_dst p)"
       using simple_match_ip_conjunct[of dip1 "p_dst p" dip2] by simp
 

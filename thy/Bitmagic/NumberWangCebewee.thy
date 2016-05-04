@@ -1,10 +1,13 @@
 theory NumberWangCebewee
 imports
   "./l4v/lib/WordLemmaBucket"
-  NumberWangCaesar
+  IPAddr
+  (*formerly: NumberWangCaesar*)
 begin
 
 (*contributed by Lars Noschinski*)
+
+(*TODO: move this whole thing to IPAddr?*)
 
 lemma and_not_mask_twice:
   "(w && ~~ mask n) && ~~ mask m = w && ~~ mask (max m n)"

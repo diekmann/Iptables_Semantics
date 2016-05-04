@@ -68,21 +68,22 @@ by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4range_set_from
   declare ipcidr_conjunct.simps[simp del]
 
   (*TODO: this is a duplicate, right?*)
-  definition ipv4_cidr_tuple_to_interval :: "(ipv4addr \<times> nat) \<Rightarrow> 32 wordinterval" where
-    "ipv4_cidr_tuple_to_interval iprng = ipv4range_range (ipcidr_to_interval iprng)"
+  (*TODO: if not, move!*)
+  definition ipcidr_tuple_to_wordinterval :: "('i::len word \<times> nat) \<Rightarrow> 'i wordinterval" where
+    "ipcidr_tuple_to_wordinterval iprng = iprange_interval (ipcidr_to_interval iprng)"
 
-  lemma wordinterval_to_set_ipv4_cidr_tuple_to_interval:
-    "wordinterval_to_set (ipv4_cidr_tuple_to_interval (b, m)) = ipv4range_set_from_prefix b m"
-    apply(subst transition_lemma_ipv4_delete_me)
-    unfolding ipv4_cidr_tuple_to_interval_def ipset_from_cidr_ipcidr_to_interval ipcidr_to_interval_def
-    by(simp add: ipv4range_range.simps ipv4range_to_set_def)
+  (*TODO: rename*)
+  lemma wordinterval_to_set_ipcidr_tuple_to_wordinterval:
+    "wordinterval_to_set (ipcidr_tuple_to_wordinterval (b, m)) = ipset_from_cidr b m"
+    unfolding ipcidr_tuple_to_wordinterval_def ipset_from_cidr_ipcidr_to_interval ipcidr_to_interval_def
+    by(simp add: iprange_interval.simps)
 
   lemma [code_unfold]: 
-  "ipcidr_conjunct ips1 ips2 = (if wordinterval_empty (wordinterval_intersection (ipv4_cidr_tuple_to_interval ips1) (ipv4_cidr_tuple_to_interval ips2))
+  "ipcidr_conjunct ips1 ips2 = (if wordinterval_empty (wordinterval_intersection (ipcidr_tuple_to_wordinterval ips1) (ipcidr_tuple_to_wordinterval ips2))
        then
         None
        else if 
-        wordinterval_subset (ipv4_cidr_tuple_to_interval ips1) (ipv4_cidr_tuple_to_interval ips2)
+        wordinterval_subset (ipcidr_tuple_to_wordinterval ips1) (ipcidr_tuple_to_wordinterval ips2)
        then 
         Some ips1
        else
@@ -91,7 +92,7 @@ by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4range_set_from
   apply(simp)
   apply(cases ips1, cases ips2, rename_tac b1 m1 b2 m2, simp)
   apply(safe)
-     apply(auto simp add: wordinterval_to_set_ipv4_cidr_tuple_to_interval ipcidr_conjunct.simps split:split_if_asm)
+     apply(auto simp add: wordinterval_to_set_ipcidr_tuple_to_wordinterval ipcidr_conjunct.simps split:split_if_asm)
   done
   value "ipcidr_conjunct (0,0) (8,1)" (*with the code_unfold lemma before, this works!*)
 
@@ -105,18 +106,20 @@ by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4range_set_from
   definition all_but_those_ips :: "(ipv4addr \<times> nat) list \<Rightarrow> (ipv4addr \<times> nat) list" where
     "all_but_those_ips cidrips = cidr_split (ipv4range_invert (l2br (map ipcidr_to_interval cidrips)))"
   
-  lemma all_but_those_ips: "ipv4cidr_union_set (set (all_but_those_ips cidrips)) = UNIV - (\<Union> (ip,n) \<in> set cidrips. ipv4range_set_from_prefix ip n)"
+  (*only ipv4*)
+  lemma all_but_those_ips:
+    "ipv4cidr_union_set (set (all_but_those_ips cidrips)) =
+      UNIV - (\<Union> (ip,n) \<in> set cidrips. ipv4range_set_from_prefix ip n)"
     apply(simp add:)
     unfolding ipv4cidr_union_set_def all_but_those_ips_def
     apply(simp)
+    apply(subst transition_lemma_ipv4_delete_me)+
     apply(simp add: cidr_split_prefix[simplified])
     apply(simp add: ipv4range_invert_def ipv4range_setminus_def)
     apply(simp add: ipv4range_UNIV_def)
     apply(simp add: l2br)
     apply(simp add: ipcidr_to_interval_def)
-    apply(simp add: ipset_from_cidr_ipcidr_to_interval)
-    done
-    sorry
+    using ipset_from_cidr_ipcidr_to_interval by blast
   
 
 
@@ -198,7 +201,8 @@ subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
     hence "(\<Union> ip \<in> set (wi_2_cidr_ipt_ipv4range_list r). ipv4s_to_set ip) = \<Union>((\<lambda>(x, y). ipv4range_set_from_prefix x y) ` set (cidr_split r))"
       unfolding wi_2_cidr_ipt_ipv4range_list_def by(simp)
     thus ?thesis
-    using cidr_split_prefix by presburger
+    apply(subst(asm) transition_lemma_ipv4_delete_me)
+    using cidr_split_prefix by metis
   qed
 
   text{*For example, this allows the following transformation*}
@@ -229,8 +233,12 @@ subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
 
   lemma ipt_ipv4range_to_cidr: "ipv4cidr_union_set (set (ipt_ipv4range_to_cidr ips)) = (ipv4s_to_set ips)"
     apply(simp add: ipt_ipv4range_to_cidr_def)
+    thm cidr_split_prefix_single 
+    apply(simp add: ipv4cidr_union_set_def)
+    apply(case_tac "(ipt_ipv4range_to_interval ips)")
+    apply(simp add: ipt_ipv4range_to_interval)
     sorry
-    by (metis (no_types, hide_lams) SUP_def ipt_ipv4range_to_interval ipv4cidr_union_set_def ipv4range_range.cases cidr_split_prefix_single)
+    by (smetis (no_types, hide_lams) SUP_def ipt_ipv4range_to_interval ipv4cidr_union_set_def ipv4range_range.cases cidr_split_prefix_single)
     
 
 
