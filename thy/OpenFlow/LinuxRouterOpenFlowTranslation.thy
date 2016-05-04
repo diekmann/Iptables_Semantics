@@ -521,6 +521,7 @@ definition "lr_of_tran rt fw ifs \<equiv> let
 	else Inl $ ''Error in creating OpenFlow table: priority number space exhausted''
 "
 
+(*TODO: move*)
 lemma ipcidr_conjunct_any: "ipcidr_conjunct (0, 0) (0, 0) \<noteq> None"
   by(simp add: ipcidr_conjunct.simps ipset_from_cidr_0)
 
@@ -548,11 +549,11 @@ proof -
 	show ?thesis using max_word_max[of a] unfolding max_word_def ffff by fastforce
 qed
 
-lemma simple_matches_ioiface: "
-is_iface_name xa \<Longrightarrow>
-is_iface_name xb \<Longrightarrow>
-simple_matches (simple_match_any\<lparr>oiface := Iface xb, iiface := Iface xa\<rparr>) p \<longleftrightarrow> (p_oiface p = xb \<and> p_iiface p = xa)"
-by(auto simp: simple_matches.simps simple_match_any_def ipv4range_set_from_prefix_UNIV simple_rule_and_iiface_update)
+lemma simple_matches_ioiface:
+  "is_iface_name xa \<Longrightarrow>
+   is_iface_name xb \<Longrightarrow>
+   simple_matches (simple_match_any\<lparr>oiface := Iface xb, iiface := Iface xa\<rparr>) p \<longleftrightarrow> (p_oiface p = xb \<and> p_iiface p = xa)"
+by(auto simp: simple_matches.simps simple_match_any_def ipset_from_cidr_0 simple_rule_and_iiface_update)
 
 lemma image_iff_forealyo: "(y \<in> f ` S) \<longleftrightarrow> (\<exists>x \<in> S. y = f x)" by blast
 
