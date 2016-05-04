@@ -61,7 +61,7 @@ lemma div65536: assumes "a < 256" "b < 256" "c < 256" "d < 256"
 
 
 
-(*maybe the ugliest proof I can imagine*)
+(*TODO: delete*)
 lemma size_mask_32word: "n < 32 ==> n < size ((mask x)::32 word)" by(simp add:word_size)
 
 

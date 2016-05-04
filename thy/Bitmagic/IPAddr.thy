@@ -33,6 +33,14 @@ section {*Modelling IP Adresses*}
       "ip_next a \<equiv> if a = max_ip_addr then max_ip_addr else a + 1"
     definition ip_prev :: "'i::len word \<Rightarrow> 'i word" where
       "ip_prev a \<equiv> if a = 0 then 0 else a - 1"
+
+    (*TODO: they can be deleted!*)
+    lemma "ip_next = word_next"
+      apply(simp add: fun_eq_iff word_next_def ip_next_def max_ip_addr_def)
+      using max_word_minus by blast
+    lemma "ip_prev = word_prev"
+      by(simp add: fun_eq_iff word_prev_def ip_prev_def max_ip_addr_def)
+      
   
     lemma "ip_next (2::8 word) = 3" by eval
     lemma "ip_prev (2::8 word) = 1" by eval
