@@ -45,7 +45,7 @@ proof(induction tbl arbitrary: s)
 			using annotate_smallening[OF es] Cons.prems(2)
 			unfolding wordinterval_subset_set_eq
 				by(auto simp add: 
-					range_prefix_match_def Let_def ipv4range_setminus_def prefix_to_range_set_eq[symmetric] ipv4range_to_set_def)
+					range_prefix_match_def Let_def ipv4range_setminus_def prefix_to_wordinterval_set_eq[symmetric] ipv4range_to_set_def)
 		qed
 		thus ?kees using eq by simp
 	next
@@ -57,7 +57,7 @@ proof(induction tbl arbitrary: s)
 			unfolding comp_def fun_app_def
 			unfolding prefix_match_if_in_prefix_to_wordset[OF conjunct1, OF vpfx]
 			unfolding range_prefix_match_def Let_def
-			by(simp add: ipv4range_intersection_def ipv4range_to_set_def prefix_to_range_set_eq[symmetric])
+			by(simp add: ipv4range_intersection_def ipv4range_to_set_def prefix_to_wordinterval_set_eq[symmetric])
 		thus ?kees by(simp add: fe)
 	qed
 qed simp
@@ -74,7 +74,7 @@ lemma "filter (\<lambda>(s, _). \<not>ipv4range_empty s) (map (\<lambda>(r, s). 
 	apply clarify
 	apply(subgoal_tac "wordinterval_empty (snd (range_prefix_match (routing_match a) s))")
 	 apply(simp add: range_destination_deadend)
-	apply(simp add: range_prefix_match_def Let_def ipv4range_setminus_def ipv4range_to_set_def prefix_to_range_set_eq[symmetric])
+	apply(simp add: range_prefix_match_def Let_def ipv4range_setminus_def ipv4range_to_set_def prefix_to_wordinterval_set_eq[symmetric])
 done
 
 end

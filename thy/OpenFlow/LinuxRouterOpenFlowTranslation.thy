@@ -147,7 +147,7 @@ lemmas custom_simpset = Let_def set_concat set_map map_map comp_def concat_map_m
 
 lemma bex_singleton: "\<exists>x\<in>{s}.P x = P s" by simp
 
-abbreviation "simple_fw_prefix_to_range \<equiv> prefix_to_range \<circ> split PrefixMatch"
+abbreviation "simple_fw_prefix_to_wordinterval \<equiv> prefix_to_wordinterval \<circ> split PrefixMatch"
 
 lemma simple_match_port_alt: "simple_match_port m p \<longleftrightarrow> p \<in> wordinterval_to_set (split WordInterval m)"
 by (metis old.prod.case simple_match_port.elims(2) simple_match_port.elims(3) wordinterval_to_set.simps(1))
@@ -1316,19 +1316,23 @@ done
 lemma has_default_policy_ex_general_result: "has_default_policy fw \<Longrightarrow> \<exists>m a. generalized_sfw (map simple_rule_dtor fw) p = Some (m,a)"
 by(induction fw rule: has_default_policy.induct) (simp_all add: generalized_sfw_simps simple_rule_dtor_def simple_match_any)
 
-lemma oif_ne_iif_valid: "gsfw_valid (oif_ne_iif ifs)"
-  unfolding oif_ne_iif_def gsfw_valid_def list_all_iff oif_ne_iif_p1_def oif_ne_iif_p2_def
-  apply(clarsimp simp add: Set.image_iff simple_match_valid_def simple_match_any_def valid_prefix_fw_def)
-  using simple_match_valid_alt_hlp1 apply force
-done
+context
+  notes valid_prefix_00[simp, intro!]
+begin
+  lemma oif_ne_iif_valid: "gsfw_valid (oif_ne_iif ifs)"
+    unfolding oif_ne_iif_def gsfw_valid_def list_all_iff oif_ne_iif_p1_def oif_ne_iif_p2_def
+    apply(clarsimp simp add: Set.image_iff simple_match_valid_def simple_match_any_def valid_prefix_fw_def)
+    using simple_match_valid_alt_hlp1 apply force
+  done
 
-lemma lr_of_tran_s1_valid: "valid_prefixes rt \<Longrightarrow> gsfw_valid (lr_of_tran_s1 rt)"
-  unfolding lr_of_tran_s1_def route2match_def gsfw_valid_def list_all_iff
-  apply(clarsimp simp: simple_match_valid_def valid_prefix_fw_def)
-  apply(intro conjI)
-  using simple_match_valid_alt_hlp1 apply force
-  using valid_prefixes_alt_def apply blast
-done
+  lemma lr_of_tran_s1_valid: "valid_prefixes rt \<Longrightarrow> gsfw_valid (lr_of_tran_s1 rt)"
+    unfolding lr_of_tran_s1_def route2match_def gsfw_valid_def list_all_iff
+    apply(clarsimp simp: simple_match_valid_def valid_prefix_fw_def)
+    apply(intro conjI)
+    using simple_match_valid_alt_hlp1 apply force
+    using valid_prefixes_alt_def apply blast
+  done
+end
 
 lemma simple_match_valid_fbs_rlen: "\<lbrakk>valid_prefixes rt; simple_fw_valid fw; (a, aa, ab, b) \<in> set (annotate_rlen (lr_of_tran_fbs rt fw ifs))\<rbrakk> \<Longrightarrow> simple_match_valid aa"
 proof(goal_cases)
