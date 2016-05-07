@@ -64,4 +64,13 @@ session "Iptables_Semantics_Examples2" = Iptables_Semantics_Examples +
     "root.tex"
     "mathpartir.sty"
 
-
+session Routing = Iptables_Semantics (* the linux router model needs simple_fw *) +
+  theories[document=false]
+    "Routing/CaesarTheories" (* just some helper lemmas *)
+  theories
+    "Routing/AnnotateRouting"
+    "Routing/IpRoute_Parser"
+    "Routing/RoutingRange"
+    "Routing/Routing"
+    "Routing/LinuxRouter"
+    "Routing/RoutingSet"
