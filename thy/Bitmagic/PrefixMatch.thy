@@ -1,6 +1,5 @@
-theory NumberWangCaesar
+theory PrefixMatch
 imports "IPAddr"
-        "./l4v/lib/WordLemmaBucket"
 begin
 
 (*Contributed by Julius Michaelis*)

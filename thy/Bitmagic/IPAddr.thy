@@ -59,7 +59,7 @@ subsection{*Sets of IP addresses*}
 
 
   (*TODO: obsoletes NOT_mask_len32, requires WordLemmaBucket.*)
-  (*TODO: add to l4v*)
+  (*TODO: added to l4v, use lemma from there*)
   lemma NOT_mask_shifted_lenword: "NOT ((mask len << (len_of(TYPE('a)) - len))::'a::len word) = (mask (len_of(TYPE('a)) - len))"
     apply(rule Word.word_bool_alg.compl_unique)
      using WordLemmaBucket.mask_shift_and_negate apply(simp; fail)

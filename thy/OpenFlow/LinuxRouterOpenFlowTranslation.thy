@@ -62,7 +62,7 @@ lemma prefix_match_semantics_simple_match:
 	shows "prefix_match_semantics pm = simple_match_ip m"
 using some
 	apply(clarsimp simp add: fun_eq_iff)
-	apply(subst NumberWangCaesar.prefix_match_if_in_corny_set[OF vld])
+	apply(subst PrefixMatch.prefix_match_if_in_corny_set[OF vld])
 	apply(cases m)
 	apply(clarsimp simp add: fun_eq_iff toprefixmatch_def ipset_from_cidr_alt1 pfxm_mask_def split: if_splits)
 	using NOT_mask_shifted_lenword by (metis word_not_not)
@@ -82,7 +82,7 @@ definition simple_match_to_of_match_single ::
 definition simple_match_to_of_match :: "32 simple_match \<Rightarrow> string list \<Rightarrow> of_match_field set list" where
 "simple_match_to_of_match m ifs \<equiv> (let
 	npm = (\<lambda>p. fst p = 0 \<and> snd p = max_word);
-	sb = (\<lambda>p. (if npm p then [None] else if fst p \<le> snd p then map (Some \<circ> (\<lambda>pfx. (pfxm_prefix pfx, NOT pfxm_mask pfx))) (wordinterval_CIDR_split_internal (WordInterval (fst p) (snd p))) else []))
+	sb = (\<lambda>p. (if npm p then [None] else if fst p \<le> snd p then map (Some \<circ> (\<lambda>pfx. (pfxm_prefix pfx, NOT pfxm_mask pfx))) (wordinterval_CIDR_split_prefixmatch (WordInterval (fst p) (snd p))) else []))
 	in [simple_match_to_of_match_single m iif (proto m) sport dport.
 		iif \<leftarrow> (if iiface m = ifaceAny then [None] else [Some i. i \<leftarrow> ifs, match_iface (iiface m) i]),
 		sport \<leftarrow> sb (sports m),
@@ -165,8 +165,8 @@ by(cases "(dst r)") (simp add: prefix_match_if_in_corny_set2 prefix_to_wordset_i
 thm prefix_match_semantics_simple_match (* mph, I had one like that already. TODO: dedup *)
 
 
-lemma "x \<in> set (wordinterval_CIDR_split_internal w) \<Longrightarrow> valid_prefix x"
-using wordinterval_CIDR_split_internal_all_valid_Ball[THEN bspec] .
+lemma "x \<in> set (wordinterval_CIDR_split_prefixmatch w) \<Longrightarrow> valid_prefix x"
+using wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec] .
 
 lemma simple_match_to_of_matchI: 
 	assumes mv: "simple_match_valid r"
@@ -179,48 +179,48 @@ proof -
 	let ?sb = "\<lambda>p r. (if ?npm p then None else Some r)"
 	obtain si where si: "case si of Some ssi \<Rightarrow> p_sport p \<in> prefix_to_wordset ssi | None \<Rightarrow> True"
 		"case si of None \<Rightarrow> True | Some ssi \<Rightarrow> ssi \<in> set (
-		wordinterval_CIDR_split_internal (split WordInterval (sports r)))"
+		wordinterval_CIDR_split_prefixmatch (split WordInterval (sports r)))"
 		"si = None \<longleftrightarrow> ?npm (sports r)"
 	proof(cases "?npm (sports r)")
 		case goal1
 		hence "(case None of None \<Rightarrow> True | Some ssi \<Rightarrow> p_sport p \<in> prefix_to_wordset ssi) \<and>
             (case None of None \<Rightarrow> True
-            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_internal (case sports r of (x, xa) \<Rightarrow> WordInterval x xa)))" by simp
+            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_prefixmatch (case sports r of (x, xa) \<Rightarrow> WordInterval x xa)))" by simp
         with goal1 show ?thesis by blast
 	next
 		case goal2
 		from mm have "p_sport p \<in> wordinterval_to_set (split WordInterval (sports r))"
 			by(simp only: simple_matches.simps simple_match_port_alt)
 		then obtain ssi where ssi:
-			"ssi \<in> set (wordinterval_CIDR_split_internal (split WordInterval (sports r)))"
+			"ssi \<in> set (wordinterval_CIDR_split_prefixmatch (split WordInterval (sports r)))"
 			"p_sport p \<in> prefix_to_wordset ssi" 
 			using wordinterval_CIDR_split_existential by fast
 		hence "(case Some ssi of None \<Rightarrow> True | Some ssi \<Rightarrow> p_sport p \<in> prefix_to_wordset ssi) \<and>
             (case Some ssi of None \<Rightarrow> True
-            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_internal (case sports r of (x, xa) \<Rightarrow> WordInterval x xa)))" by simp
+            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_prefixmatch (case sports r of (x, xa) \<Rightarrow> WordInterval x xa)))" by simp
         with goal2 show ?thesis by blast
     qed				
 	obtain di where di: "case di of Some ddi \<Rightarrow> p_dport p \<in> prefix_to_wordset ddi | None \<Rightarrow> True"
 		"case di of None \<Rightarrow> True | Some ddi \<Rightarrow> ddi \<in> set (
-		wordinterval_CIDR_split_internal (split WordInterval (dports r)))"
+		wordinterval_CIDR_split_prefixmatch (split WordInterval (dports r)))"
 		"di = None \<longleftrightarrow> ?npm (dports r)"
 	proof(cases "?npm (dports r)")
 		case goal1
 		hence "(case None of None \<Rightarrow> True | Some ssi \<Rightarrow> p_dport p \<in> prefix_to_wordset ssi) \<and>
             (case None of None \<Rightarrow> True
-            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_internal (case dports r of (x, xa) \<Rightarrow> WordInterval x xa)))" by simp
+            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_prefixmatch (case dports r of (x, xa) \<Rightarrow> WordInterval x xa)))" by simp
         with goal1 show ?thesis by blast
 	next
 		case goal2
 		from mm have "p_dport p \<in> wordinterval_to_set (split WordInterval (dports r))"
 			by(simp only: simple_matches.simps simple_match_port_alt)
 		then obtain ddi where ddi:
-			"ddi \<in> set (wordinterval_CIDR_split_internal (split WordInterval (dports r)))"
+			"ddi \<in> set (wordinterval_CIDR_split_prefixmatch (split WordInterval (dports r)))"
 			"p_dport p \<in> prefix_to_wordset ddi" 
 			using wordinterval_CIDR_split_existential by fast
 		hence "(case Some ddi of None \<Rightarrow> True | Some ssi \<Rightarrow> p_dport p \<in> prefix_to_wordset ssi) \<and>
             (case Some ddi of None \<Rightarrow> True
-            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_internal (case dports r of (x, xa) \<Rightarrow> WordInterval x xa)))" by simp
+            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_prefixmatch (case dports r of (x, xa) \<Rightarrow> WordInterval x xa)))" by simp
         with goal2 show ?thesis by blast
     qed
     show ?thesis
@@ -278,7 +278,7 @@ proof -
       apply(clarsimp simp: prefix_match_semantics_def pfxm_mask_def word_bw_comms;fail)
       apply(clarsimp)
       apply(subst prefix_match_if_in_prefix_to_wordset)
-      apply(blast dest: wordinterval_CIDR_split_internal_all_valid_Ball[THEN bspec])
+      apply(blast dest: wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec])
       apply(assumption)
     done
 		have spm: "\<And>x1 x2. si = Some (PrefixMatch x1 x2)
@@ -289,7 +289,7 @@ proof -
       apply(clarsimp simp: prefix_match_semantics_def pfxm_mask_def word_bw_comms;fail)
       apply(clarsimp)
       apply(subst prefix_match_if_in_prefix_to_wordset)
-      apply(blast dest: wordinterval_CIDR_split_internal_all_valid_Ball[THEN bspec])
+      apply(blast dest: wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec])
       apply(assumption)
     done
 		show "OF_match_fields ?foo p = Some True"
@@ -375,10 +375,10 @@ proof -
 			apply(subgoal_tac "p_sport p \<in> wordinterval_to_set (WordInterval a b)")
 			apply(simp;fail)
 			apply(subgoal_tac "p_sport p \<in> prefix_to_wordset xc")
-			apply(subst wordinterval_CIDR_split_internal[symmetric])
+			apply(subst wordinterval_CIDR_split_prefixmatch[symmetric])
 			apply blast
 			apply(subst(asm)(1) prefix_match_if_in_prefix_to_wordset)
-			apply(erule wordinterval_CIDR_split_internal_all_valid_Ball[THEN bspec];fail)
+			apply(erule wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec];fail)
 			apply assumption
 		done
 	next
@@ -393,10 +393,10 @@ proof -
 			apply(subgoal_tac "p_dport p \<in> wordinterval_to_set (WordInterval a b)")
 			apply(simp;fail)
 			apply(subgoal_tac "p_dport p \<in> prefix_to_wordset xc")
-			apply(subst wordinterval_CIDR_split_internal[symmetric])
+			apply(subst wordinterval_CIDR_split_prefixmatch[symmetric])
 			apply blast
 			apply(subst(asm)(1) prefix_match_if_in_prefix_to_wordset)
-			apply(erule wordinterval_CIDR_split_internal_all_valid_Ball[THEN bspec];fail)
+			apply(erule wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec];fail)
 			apply assumption
 		done
     qed
@@ -634,17 +634,17 @@ lemma distinct_simple_match_to_of_match_portlist_hlp:
      (if fst ps = 0 \<and> snd ps = max_word then [None]
       else if fst ps \<le> snd ps
            then map (Some \<circ> (\<lambda>pfx. (pfxm_prefix pfx, ~~ pfxm_mask pfx)))
-                 (wordinterval_CIDR_split_internal (WordInterval (fst ps) (snd ps)))
+                 (wordinterval_CIDR_split_prefixmatch (WordInterval (fst ps) (snd ps)))
            else [])"
   apply(simp_all add: smtoms_eq_hlp)
   apply(unfold distinct_map)
   apply(clarify)
-  apply(intro conjI wordinterval_CIDR_split_internal_distinct)
+  apply(intro conjI wordinterval_CIDR_split_prefixmatch_distinct)
   apply(subst comp_inj_on_iff[symmetric])
   apply(intro inj_onI)
   apply(case_tac x; case_tac y)
   apply(clarsimp simp: pfxm_mask_def)
-  apply(drule wordinterval_CIDR_split_internal_all_valid_less_Ball[unfolded Ball_def, THEN spec, THEN mp])+
+  apply(drule wordinterval_CIDR_split_prefixmatch_all_valid_less_Ball[unfolded Ball_def, THEN spec, THEN mp])+
   apply(rename_tac x2 x1a x2a)
   apply(subgoal_tac "16 - x2 = 16 - x2a")
   apply(simp;fail)

@@ -1,5 +1,5 @@
 theory Routing
-imports "../Bitmagic/NumberWangCaesar"
+imports "../Bitmagic/PrefixMatch"
         "../Bitmagic/IPv4Addr" (*we could probably generalize*)
         CaesarTheories
 begin

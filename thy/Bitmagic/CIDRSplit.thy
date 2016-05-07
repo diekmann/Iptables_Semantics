@@ -1,26 +1,25 @@
 theory CIDRSplit
-imports IPv4Addr
-        NumberWangCaesar
+imports IPAddr
+        PrefixMatch
 begin
 
 
-context
-begin
 
 section{*CIDR Split Motivation (Example for IPv4)*}
   text{*When talking about ranges of IP addresses, we can make the ranges explicit by listing them.*}
 
-  lemma "map (ipv4addr_of_nat \<circ> nat) [1 .. 4] = [1, 2, 3, 4]" by eval
-  definition ipv4addr_upto :: "ipv4addr \<Rightarrow> ipv4addr \<Rightarrow> ipv4addr list" where
-    "ipv4addr_upto i j \<equiv> map (ipv4addr_of_nat \<circ> nat) [int (nat_of_ipv4addr i) .. int (nat_of_ipv4addr j)]"
-  lemma ipv4addr_upto: "set (ipv4addr_upto i j) = {i .. j}"
+context
+begin
+  private lemma "map (of_nat \<circ> nat) [1 .. 4] = ([1, 2, 3, 4]:: 32 word list)" by eval
+  private definition ipv4addr_upto :: "32 word \<Rightarrow> 32 word \<Rightarrow> 32 word list" where
+    "ipv4addr_upto i j \<equiv> map (of_nat \<circ> nat) [int (unat i) .. int (unat j)]"
+  private lemma ipv4addr_upto: "set (ipv4addr_upto i j) = {i .. j}"
     proof -
     have helpX:"\<And>f (i::nat) (j::nat). (f \<circ> nat) ` {int i..int j} = f ` {i .. j}"
       apply(intro set_eqI)
       apply(safe)
        apply(force)
       by (metis Set_Interval.transfer_nat_int_set_functions(2) image_comp image_eqI)
-    have ipv4addr_of_nat_def': "ipv4addr_of_nat = of_nat" using ipv4addr_of_nat_def fun_eq_iff by presburger
     {   fix xa :: int
         assume a1: "int (unat i) \<le> xa \<and> xa \<le> int (unat j)"
         then have f2: "int (nat xa) = xa"
@@ -33,7 +32,7 @@ section{*CIDR Split Motivation (Example for IPv4)*}
     show ?thesis
       unfolding ipv4addr_upto_def
       apply(intro set_eqI)
-      apply(simp add: ipv4addr_of_nat_def' nat_of_ipv4addr_def)
+      apply(simp)
       apply(safe)
         apply(simp_all)
         using hlp apply blast
@@ -45,9 +44,13 @@ section{*CIDR Split Motivation (Example for IPv4)*}
   text{*The function @{const ipv4addr_upto} gives back a list of all the ips in the list.
         This list can be pretty huge! In the following, we will use CIDR notation (e.g. 192.168.0.0/24)
         to describe the list more compactly. *}
+end
+
 
 subsection{*Prefix Match Range stuff*}
 
+context
+begin
 private definition prefix_to_range :: "'a::len prefix_match \<Rightarrow> 'a wordinterval" where
   "prefix_to_range pfx = WordInterval (pfxm_prefix pfx) (pfxm_prefix pfx OR pfxm_mask pfx)"
 private lemma prefix_to_range_set_eq: "wordinterval_to_set (prefix_to_range pfx) = prefix_to_wordset pfx"
@@ -261,11 +264,11 @@ by(rule wordinterval_CIDR_split1_distinct[where r = r]) simp
 private lemma "wordinterval_empty r \<longleftrightarrow> fst (wordinterval_CIDR_split1 r) = None"
 by (metis (no_types, lifting) Pair_inject case_option_If2 wordinterval_lowest_none_empty wordinterval_CIDR_split1_def prod.collapse r_split1_not_none) 
 
-function wordinterval_CIDR_split_internal :: "'a::len wordinterval \<Rightarrow> 'a prefix_match list"where
-  "wordinterval_CIDR_split_internal rs = (if \<not>wordinterval_empty rs then case wordinterval_CIDR_split1 rs of (Some s, u) \<Rightarrow> s # wordinterval_CIDR_split_internal u | _ \<Rightarrow> [] else [])"
+function wordinterval_CIDR_split_prefixmatch :: "'a::len wordinterval \<Rightarrow> 'a prefix_match list"where
+  "wordinterval_CIDR_split_prefixmatch rs = (if \<not>wordinterval_empty rs then case wordinterval_CIDR_split1 rs of (Some s, u) \<Rightarrow> s # wordinterval_CIDR_split_prefixmatch u | _ \<Rightarrow> [] else [])"
   by clarsimp+
 
-termination wordinterval_CIDR_split_internal
+termination wordinterval_CIDR_split_prefixmatch
 proof(relation "measure (card \<circ> wordinterval_to_set)", rule wf_measure, unfold in_measure comp_def)
   note vernichter = wordinterval_empty_set_eq wordinterval_intersection_set_eq wordinterval_union_set_eq wordinterval_eq_set_eq
   case goal1
@@ -280,17 +283,17 @@ qed
 
 private lemma unfold_rsplit_case:
   assumes su: "(Some s, u) = wordinterval_CIDR_split1 rs"
-  shows "(case wordinterval_CIDR_split1 rs of (None, u) \<Rightarrow> [] | (Some s, u) \<Rightarrow> s # wordinterval_CIDR_split_internal u) = s # wordinterval_CIDR_split_internal u"
+  shows "(case wordinterval_CIDR_split1 rs of (None, u) \<Rightarrow> [] | (Some s, u) \<Rightarrow> s # wordinterval_CIDR_split_prefixmatch u) = s # wordinterval_CIDR_split_prefixmatch u"
 using su by (metis option.simps(5) split_conv)
 
-private lemma wordinterval_CIDR_split_internal_union: "\<Union>set (map wordinterval_to_set (map prefix_to_range (wordinterval_CIDR_split_internal r))) = wordinterval_to_set r"
-proof(induction r rule: wordinterval_CIDR_split_internal.induct, subst wordinterval_CIDR_split_internal.simps, case_tac "wordinterval_empty rs")
+private lemma wordinterval_CIDR_split_prefixmatch_union: "\<Union>set (map wordinterval_to_set (map prefix_to_range (wordinterval_CIDR_split_prefixmatch r))) = wordinterval_to_set r"
+proof(induction r rule: wordinterval_CIDR_split_prefixmatch.induct, subst wordinterval_CIDR_split_prefixmatch.simps, case_tac "wordinterval_empty rs")
   case goal1
   show ?case using goal1(2) by (simp)
 next
   case goal2
   obtain u s where su: "(Some s, u) = wordinterval_CIDR_split1 rs" using r_split1_not_none[OF goal2(2)] by (metis option.collapse surjective_pairing)
-  from goal2(1)[OF goal2(2) su, of s] have mIH: "\<Union>set (map wordinterval_to_set (map prefix_to_range (wordinterval_CIDR_split_internal u))) = wordinterval_to_set u" by presburger
+  from goal2(1)[OF goal2(2) su, of s] have mIH: "\<Union>set (map wordinterval_to_set (map prefix_to_range (wordinterval_CIDR_split_prefixmatch u))) = wordinterval_to_set u" by presburger
   from wordinterval_CIDR_split1_preserve[OF su, unfolded wordinterval_eq_set_eq wordinterval_union_def] have
     helper1: "wordinterval_to_set (prefix_to_range s) \<union> wordinterval_to_set u = wordinterval_to_set rs"
     unfolding wordinterval_union_set_eq by simp
@@ -304,17 +307,21 @@ next
 qed
 
 (* Wolololo *)
-lemma "wordinterval_CIDR_split_internal
-          (RangeUnion (WordInterval (ipv4addr_of_dotdecimal (64,0,0,0))         (ipv4addr_of_dotdecimal (95, 239, 187, 204)))
+(*wordinterval_CIDR_split_prefixmatch
+    (RangeUnion (WordInterval (ipv4addr_of_dotdecimal (64,0,0,0))         (ipv4addr_of_dotdecimal (95, 239, 187, 204)))
                       (WordInterval (ipv4addr_of_dotdecimal (95, 238, 187, 28)) (ipv4addr_of_dotdecimal (127,255,255,255))))
-       = [PrefixMatch (ipv4addr_of_dotdecimal (64, 0, 0, 0)) 2]" by eval
-lemma "length (wordinterval_CIDR_split_internal (WordInterval 0 (ipv4addr_of_dotdecimal (255,255,255,254)))) = 32" by eval
+  = [PrefixMatch (ipv4addr_of_dotdecimal (64, 0, 0, 0)) 2]*)
+lemma "wordinterval_CIDR_split_prefixmatch
+          (RangeUnion (WordInterval (0x40000000) 0x5FEFBBCC) (WordInterval 0x5FEEBB1C 0x7FFFFFFF))
+       = [PrefixMatch (0x40000000::32 word) 2]" by eval
+(*ipv4addr_of_dotdecimal (255,255,255,254) = 0xFFFFFFFE*)
+lemma "length (wordinterval_CIDR_split_prefixmatch (WordInterval 0 (0xFFFFFFFE::32 word))) = 32" by eval
 
 
 
 (*
 text{* @{text "10.0.0.0/8 - 10.8.0.0/16"}*}
-lemma "map (\<lambda>pfx. (dotdecimal_of_ipv4addr (pfxm_prefix pfx), (pfxm_length pfx))) (wordinterval_CIDR_split_internal (ipv4range_setminus
+lemma "map (\<lambda>pfx. (dotdecimal_of_ipv4addr (pfxm_prefix pfx), (pfxm_length pfx))) (wordinterval_CIDR_split_prefixmatch (ipv4range_setminus
           (ipv4range_range ((ipv4addr_of_dotdecimal (10,0,0,0)), (ipv4addr_of_dotdecimal (10,255,255,255))))
           (ipv4range_range ((ipv4addr_of_dotdecimal (10,8,0,0)), (ipv4addr_of_dotdecimal (10,8,255,255)))))) =
  [((10, 0, 0, 0), 13), ((10, 9, 0, 0), 16), ((10, 10, 0, 0), 15), ((10, 12, 0, 0), 14), ((10, 16, 0, 0), 12), ((10, 32, 0, 0), 11), ((10, 64, 0, 0), 10),
@@ -322,32 +329,32 @@ lemma "map (\<lambda>pfx. (dotdecimal_of_ipv4addr (pfxm_prefix pfx), (pfxm_lengt
   by eval
 
 
-lemma "map (\<lambda>pfx. (dotdecimal_of_ipv4addr (pfxm_prefix pfx), (pfxm_length pfx))) (wordinterval_CIDR_split_internal (
+lemma "map (\<lambda>pfx. (dotdecimal_of_ipv4addr (pfxm_prefix pfx), (pfxm_length pfx))) (wordinterval_CIDR_split_prefixmatch (
     (ipv4range_range ((ipv4addr_of_dotdecimal (10,0,0,1)), (ipv4addr_of_dotdecimal (10,0,0,15)))))) =
     [((10, 0, 0, 1), 32), ((10, 0, 0, 2), 31), ((10, 0, 0, 4), 30), ((10, 0, 0, 8), 29)]" by eval
 *)
 
-declare wordinterval_CIDR_split_internal.simps[simp del]
+declare wordinterval_CIDR_split_prefixmatch.simps[simp del]
 
-corollary wordinterval_CIDR_split_internal: "(\<Union> (prefix_to_wordset ` (set (wordinterval_CIDR_split_internal r)))) = wordinterval_to_set r"
+corollary wordinterval_CIDR_split_prefixmatch: "(\<Union> (prefix_to_wordset ` (set (wordinterval_CIDR_split_prefixmatch r)))) = wordinterval_to_set r"
   proof -
   have prefix_to_range_set_eq_fun: "prefix_to_wordset = (wordinterval_to_set \<circ> prefix_to_range)"
     by(simp add: prefix_to_range_set_eq fun_eq_iff)
-  have "\<Union>(prefix_to_wordset ` set (wordinterval_CIDR_split_internal r)) =
-        UNION (set (map prefix_to_range (wordinterval_CIDR_split_internal r))) wordinterval_to_set"
+  have "\<Union>(prefix_to_wordset ` set (wordinterval_CIDR_split_prefixmatch r)) =
+        UNION (set (map prefix_to_range (wordinterval_CIDR_split_prefixmatch r))) wordinterval_to_set"
     by(simp add: prefix_to_range_set_eq_fun)
   thus ?thesis
-   using wordinterval_CIDR_split_internal_union by simp
+   using wordinterval_CIDR_split_prefixmatch_union by simp
 qed
 
 (* TODO: rename prefix_to_wordset *)
-private corollary wordinterval_CIDR_split_internal_single: "(\<Union> (prefix_to_wordset ` (set (wordinterval_CIDR_split_internal (WordInterval start end))))) = {start .. end}"
-  using wordinterval_CIDR_split_internal by force
+private corollary wordinterval_CIDR_split_prefixmatch_single: "(\<Union> (prefix_to_wordset ` (set (wordinterval_CIDR_split_prefixmatch (WordInterval start end))))) = {start .. end}"
+  using wordinterval_CIDR_split_prefixmatch by force
 
-lemma wordinterval_CIDR_split_internal_all_valid_Ball: fixes r:: "'a::len wordinterval"
-  shows "Ball (set (wordinterval_CIDR_split_internal r)) valid_prefix"
-apply(induction r rule: wordinterval_CIDR_split_internal.induct)
-proof(subst wordinterval_CIDR_split_internal.simps, rename_tac rs, case_tac "wordinterval_empty rs")
+lemma wordinterval_CIDR_split_prefixmatch_all_valid_Ball: fixes r:: "'a::len wordinterval"
+  shows "Ball (set (wordinterval_CIDR_split_prefixmatch r)) valid_prefix"
+apply(induction r rule: wordinterval_CIDR_split_prefixmatch.induct)
+proof(subst wordinterval_CIDR_split_prefixmatch.simps, rename_tac rs, case_tac "wordinterval_empty rs")
   case goal1 thus ?case
     by(simp only: not_True_eq_False if_False Ball_def set_simps empty_iff) clarify
 next
@@ -386,17 +393,17 @@ qed
 
 lemma find_const_True_hlp: "find (const True) x = (case x of [] \<Rightarrow> None | (a#as) \<Rightarrow> Some a)" by(cases x; simp add: const_def)
 
-private lemma wordinterval_CIDR_split_internal_all_valid_less_Ball_hlp:
+private lemma wordinterval_CIDR_split_prefixmatch_all_valid_less_Ball_hlp:
 	"x \<in> set [s\<leftarrow>map (PrefixMatch x2) (pfxes TYPE('a::len0)) . valid_prefix s \<and> wordinterval_to_set (prefix_to_range s) \<subseteq> wordinterval_to_set rs] \<Longrightarrow> pfxm_length x \<le> len_of TYPE('a)"
 by(clarsimp simp: pfxes_def) presburger
 
-lemma wordinterval_CIDR_split_internal_all_valid_less_Ball: 
+lemma wordinterval_CIDR_split_prefixmatch_all_valid_less_Ball: 
   fixes r:: "'a::len wordinterval"
-  shows "Ball (set (wordinterval_CIDR_split_internal r)) (\<lambda>e. pfxm_length e \<le> len_of TYPE('a))"
+  shows "Ball (set (wordinterval_CIDR_split_prefixmatch r)) (\<lambda>e. pfxm_length e \<le> len_of TYPE('a))"
 	apply(subst Ball_def)
 	apply(clarify)
-	apply(induction rule: wordinterval_CIDR_split_internal.induct)
-	apply(subst(asm)(2) wordinterval_CIDR_split_internal.simps)
+	apply(induction rule: wordinterval_CIDR_split_prefixmatch.induct)
+	apply(subst(asm)(2) wordinterval_CIDR_split_prefixmatch.simps)
 	apply(simp only: split: if_splits) (* wooooo, simplifier bug! (try without the only) *)
 	prefer 2
 	apply(simp;fail)
@@ -406,16 +413,16 @@ lemma wordinterval_CIDR_split_internal_all_valid_less_Ball:
 	apply(simp;fail)
 	apply(simp add: wordinterval_CIDR_split1_def Let_def find_const_True_hlp  split: option.splits list.splits)
 	apply(drule cons_set_intro)
-	apply(drule wordinterval_CIDR_split_internal_all_valid_less_Ball_hlp)
+	apply(drule wordinterval_CIDR_split_prefixmatch_all_valid_less_Ball_hlp)
 	apply blast
 done
 
-text{*Since @{const wordinterval_CIDR_split_internal} only returns valid prefixes, we can safely convert it to CIDR lists*}
-(* actually, just valid_prefix doesn't mean that the prefix length is sane. Fortunately, we also have wordinterval_CIDR_split_internal_all_valid_less_Ball *)
+text{*Since @{const wordinterval_CIDR_split_prefixmatch} only returns valid prefixes, we can safely convert it to CIDR lists*}
+(* actually, just valid_prefix doesn't mean that the prefix length is sane. Fortunately, we also have wordinterval_CIDR_split_prefixmatch_all_valid_less_Ball *)
 lemma "valid_prefix (PrefixMatch (0::16 word) 20)" by(simp add: valid_prefix_def)
 
 definition cidr_split :: "'i::len wordinterval \<Rightarrow> ('i word \<times> nat) list" where
-  "cidr_split rs \<equiv> map prefix_match_to_CIDR (wordinterval_CIDR_split_internal rs)"
+  "cidr_split rs \<equiv> map prefix_match_to_CIDR (wordinterval_CIDR_split_prefixmatch rs)"
                                         
 (*also works with corny definitions*)
 corollary cidr_split_prefix: 
@@ -435,10 +442,10 @@ corollary cidr_split_prefix:
     using prefix_to_wordset_ipset_from_cidr by auto
 
   show ?thesis
-    unfolding wordinterval_CIDR_split_internal[symmetric] cidr_split_def
+    unfolding wordinterval_CIDR_split_prefixmatch[symmetric] cidr_split_def
     apply(simp add: prefix_match_to_CIDR_def2)
     apply(rule)
-     apply(simp add: ipset_from_cidr_subseteq_prefix_to_wordset_helper wordinterval_CIDR_split_internal_all_valid_Ball)
+     apply(simp add: ipset_from_cidr_subseteq_prefix_to_wordset_helper wordinterval_CIDR_split_prefixmatch_all_valid_Ball)
     apply(simp add: prefix_to_wordset_subset_ipset_from_cidr_helper)
     done
 qed
@@ -460,46 +467,46 @@ using [[simproc del: list_to_set_comprehension]] (* okay, simplifier is a bit br
 (* TODO: Move to the wordinterval lemma bucket *)
 lemma interval_in_splitD: "xa \<in> foo \<Longrightarrow> prefix_to_wordset xa \<subseteq> \<Union>(prefix_to_wordset ` foo)" by auto
 
-lemma wordinterval_CIDR_split_internal_distinct: "distinct (wordinterval_CIDR_split_internal a)"
-	apply(induction rule: wordinterval_CIDR_split_internal.induct)
-	apply(subst wordinterval_CIDR_split_internal.simps)
+lemma wordinterval_CIDR_split_prefixmatch_distinct: "distinct (wordinterval_CIDR_split_prefixmatch a)"
+	apply(induction rule: wordinterval_CIDR_split_prefixmatch.induct)
+	apply(subst wordinterval_CIDR_split_prefixmatch.simps)
 	apply(clarsimp split: prod.splits option.splits)
 	apply(drule_tac xa = x2a in interval_in_splitD)
-	apply(subst(asm) wordinterval_CIDR_split_internal)
+	apply(subst(asm) wordinterval_CIDR_split_prefixmatch)
 	apply(drule wordinterval_CIDR_split1_distinct[OF sym])
 	apply(simp add: prefix_to_range_set_eq[symmetric])
 using prefix_never_empty by fastforce
 
-lemma CIDR_splits_disjunct: "a \<in> set (wordinterval_CIDR_split_internal i) \<Longrightarrow> b \<in> set (wordinterval_CIDR_split_internal i) \<Longrightarrow> a \<noteq> b \<Longrightarrow> prefix_to_wordset a \<inter> prefix_to_wordset b = {}"
-apply(induction rule: wordinterval_CIDR_split_internal.induct)
-apply(subst(asm)(4) wordinterval_CIDR_split_internal.simps)
-apply(subst(asm)(3) wordinterval_CIDR_split_internal.simps)
+lemma CIDR_splits_disjunct: "a \<in> set (wordinterval_CIDR_split_prefixmatch i) \<Longrightarrow> b \<in> set (wordinterval_CIDR_split_prefixmatch i) \<Longrightarrow> a \<noteq> b \<Longrightarrow> prefix_to_wordset a \<inter> prefix_to_wordset b = {}"
+apply(induction rule: wordinterval_CIDR_split_prefixmatch.induct)
+apply(subst(asm)(4) wordinterval_CIDR_split_prefixmatch.simps)
+apply(subst(asm)(3) wordinterval_CIDR_split_prefixmatch.simps)
 apply(clarsimp simp only: set_simps not_False_eq_True split: if_splits prod.splits option.splits)
 apply(rename_tac rem x2b ne)
 apply(case_tac "b = ne"; case_tac "a = ne")
 apply(simp;fail)
 prefer 3
 apply(simp;fail)
-(*apply(clarsimp, metis (full_types) Int_commute disjoint_subset2 interval_in_splitD prefix_to_range_set_eq wordinterval_CIDR_split1_distinct wordinterval_CIDR_split_internal wordinterval_empty_set_eq wordinterval_intersection_set_eq)+*)
+(*apply(clarsimp, metis (full_types) Int_commute disjoint_subset2 interval_in_splitD prefix_to_range_set_eq wordinterval_CIDR_split1_distinct wordinterval_CIDR_split_prefixmatch wordinterval_empty_set_eq wordinterval_intersection_set_eq)+*)
 apply(subgoal_tac "prefix_to_wordset b \<inter> wordinterval_to_set rem = {}")
-apply(simp add: wordinterval_CIDR_split_internal[symmetric])
+apply(simp add: wordinterval_CIDR_split_prefixmatch[symmetric])
 apply(clarsimp)
 apply blast
 apply(intro wordinterval_CIDR_split1_distinct2[unfolded wordinterval_empty_set_eq wordinterval_intersection_set_eq prefix_to_range_set_eq]; fast)
 apply(subgoal_tac "prefix_to_wordset a \<inter> wordinterval_to_set rem = {}")
-apply(simp add: wordinterval_CIDR_split_internal[symmetric])
+apply(simp add: wordinterval_CIDR_split_prefixmatch[symmetric])
 apply(clarsimp)
 apply blast
 apply(intro wordinterval_CIDR_split1_distinct2[unfolded wordinterval_empty_set_eq wordinterval_intersection_set_eq prefix_to_range_set_eq]; fast)
 done
 
 lemma wordinterval_CIDR_split_existential:
-	"x \<in> wordinterval_to_set w \<Longrightarrow> \<exists>s. s \<in> set (wordinterval_CIDR_split_internal w) \<and> x \<in> prefix_to_wordset s"
-using wordinterval_CIDR_split_internal[symmetric] by fastforce
+	"x \<in> wordinterval_to_set w \<Longrightarrow> \<exists>s. s \<in> set (wordinterval_CIDR_split_prefixmatch w) \<and> x \<in> prefix_to_wordset s"
+using wordinterval_CIDR_split_prefixmatch[symmetric] by fastforce
 
 lemma cidrsplit_no_overlaps: "\<lbrakk>
-        x \<in> set (wordinterval_CIDR_split_internal wi);
-        xa \<in> set (wordinterval_CIDR_split_internal wi); 
+        x \<in> set (wordinterval_CIDR_split_prefixmatch wi);
+        xa \<in> set (wordinterval_CIDR_split_prefixmatch wi); 
         pt && ~~ pfxm_mask x = pfxm_prefix x;
         pt && ~~ pfxm_mask xa = pfxm_prefix xa
         \<rbrakk>
@@ -507,7 +514,7 @@ lemma cidrsplit_no_overlaps: "\<lbrakk>
 proof(rule ccontr, goal_cases)
 	case 1
 	hence "prefix_match_semantics x pt" "prefix_match_semantics xa pt" unfolding prefix_match_semantics_def by (simp_all add: word_bw_comms(1))
-	moreover have "valid_prefix x" "valid_prefix xa" using 1(1-2) wordinterval_CIDR_split_internal_all_valid_Ball by blast+
+	moreover have "valid_prefix x" "valid_prefix xa" using 1(1-2) wordinterval_CIDR_split_prefixmatch_all_valid_Ball by blast+
 	ultimately have "pt \<in> prefix_to_wordset x" "pt \<in> prefix_to_wordset xa" using pfx_match_addr_ipset by blast+
 	with CIDR_splits_disjunct[OF 1(1,2) 1(5)] show False by blast
 qed

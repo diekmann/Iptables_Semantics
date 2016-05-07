@@ -1,5 +1,5 @@
 theory OpenFlowMatches
-imports Main "../Bitmagic/NumberWangCaesar" "../Primitive_Matchers/Simple_Packet" "~~/src/HOL/Library/Monad_Syntax"
+imports Main "../Bitmagic/PrefixMatch" "../Primitive_Matchers/Simple_Packet" "~~/src/HOL/Library/Monad_Syntax"
 	"../Primitive_Matchers/Simple_Packet" (* I just want those TCP,UDP,\<dots> defs *)
 	"~~/src/HOL/Library/Char_ord" (* For a linorder on strings. See below. *)
 begin
