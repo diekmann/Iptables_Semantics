@@ -390,7 +390,14 @@ lemma "generalized_sfw (generalized_fw_join fw\<^sub>1 fw\<^sub>2) p = Some (u, 
   by(force dest: generalized_fw_joinD generalized_fw_joinI intro: the_SomeI)
 text\<open>Thus, @{const generalized_fw_join} has a number of applications.
 For example, it could be used to compute a firewall ruleset that represents two firewalls that are executed in sequence.
-We will use it for something different in the next section.\<close>
+\<close>
+definition "simple_action_conj a b \<equiv> (if a = simple_action.Accept \<and> b = simple_action.Accept then simple_action.Accept else simple_action.Drop)"
+definition "simple_rule_conj \<equiv> (split SimpleRule \<circ> apsnd (split simple_action_conj))"
+theorem "simple_fw rs\<^sub>1 p = Decision FinalAllow \<and> simple_fw rs\<^sub>2 p = Decision FinalAllow \<longleftrightarrow>
+simple_fw (map simple_rule_conj (generalized_fw_join (map simple_rule_dtor rs\<^sub>1) (map simple_rule_dtor rs\<^sub>2))) p = Decision FinalAllow"
+unfolding simple_rule_conj_def simple_action_conj_def[abs_def] using simple_fw_join by(force simp add: comp_def apsnd_def map_prod_def case_prod_unfold)
+text\<open>Using the join, it should be possible to compute any $n$-ary logical operation on firewalls.
+We will use it for something somewhat different in the next section.\<close>
 
 subsubsection\<open>Translation Implementation\<close>
 text_raw\<open>
@@ -536,4 +543,5 @@ text_raw\<open>
 \bibliographystyle{abbrv}
 \bibliography{root}
 
+\embedfile{OpenFlowDoc.tex}
 \<close>

@@ -249,7 +249,7 @@ lemma simple_match_inject: " \<lparr>iiface = iifacea, oiface = oifacea, src = s
       = \<lparr>iiface = iifaceb, oiface = oifaceb, src = srcb, dst = dstb, proto = protob, sports = sportsb, dports = dportsb\<rparr> \<longleftrightarrow>
       (iifacea = iifaceb \<and> oifacea = oifaceb \<and> srca = srcb \<and> dsta = dstb \<and> protoa = protob \<and> sportsa = sportsb \<and> dportsa = dportsb)"
 by simp
-(* TODO: clean up and move\<dots> *)
+
 lemma ipcidr_conjunct_valid: "\<lbrakk>valid_prefix_fw p1; valid_prefix_fw p2; ipcidr_conjunct p1 p2 = Some p\<rbrakk> \<Longrightarrow> valid_prefix_fw p"
 unfolding valid_prefix_fw_def
   by(cases p; cases p1; cases p2) (simp add: ipcidr_conjunct.simps split: if_splits)
@@ -292,7 +292,7 @@ proof -
            "php m2 \<Longrightarrow> php m"
     using conjunctProtoD conjunctProtoD2 pcj unfolding php_def by auto
 
-  (* Since I'm trying to trick the simplifier, I need these as explicit statements: *)
+  (* Since I'm trying to trick the simplifier with these defs, I need these as explicit statements: *)
   have "\<And>mx. simple_match_valid mx \<Longrightarrow> nmu (sports mx) \<or> nmu (dports mx) \<Longrightarrow> php mx"
     unfolding nmu_def php_def simple_match_valid_def by blast
   hence mps: "nmu (sports m1) \<Longrightarrow> php m1" "nmu (dports m1) \<Longrightarrow> php m1"
