@@ -12,17 +12,16 @@ fun range_destination :: "prefix_routing \<Rightarrow> ipv4range \<Rightarrow> (
     (if ipv4range_empty nm then [] else range_destination rs nm)
 ))))"
 
-lemma range_destination_eq: 
+lemma range_destination_eq:
   "{ (ipv4range_to_set r, ports)|r ports. (r, ports) \<in> set (range_destination rtbl rg)} = ipset_destination rtbl (ipv4range_to_set rg)"
-  apply(induction rtbl arbitrary: rg)
-   apply(simp;fast;fail)
-  apply(simp only: Let_def range_destination.simps ipset_destination.simps)
-  apply(case_tac "fst (ipset_prefix_match (routing_match a) (ipv4range_to_set rg)) = {}")
-   apply(case_tac[!] "snd (ipset_prefix_match (routing_match a) (ipv4range_to_set rg)) = {}")
-     apply(simp_all only: refl if_True if_False range_prefix_match_sm[symmetric] range_prefix_match_snm[symmetric] ipv4range_empty_set_eq Un_empty_left Un_empty_right)
-     apply(simp_all add: ipv4range_to_set_def)[3] (*TODO: wahhhh*)
+apply(induction rtbl arbitrary: rg)
+   apply(simp;fail)
+  apply(simp only: Let_def range_destination.simps ipset_destination.simps ipv4range_to_set_def)
+  apply(case_tac "fst (ipset_prefix_match (routing_match a) (wordinterval_to_set rg)) = {}")
+   apply(case_tac[!] "snd (ipset_prefix_match (routing_match a) (wordinterval_to_set rg)) = {}")
+     apply(simp_all only: refl if_True if_False range_prefix_match_sm[symmetric, unfolded ipv4range_to_set_def] range_prefix_match_snm[symmetric, unfolded ipv4range_to_set_def] ipv4range_empty_set_eq[unfolded ipv4range_to_set_def] Un_empty_left Un_empty_right)
+     apply(simp_all add: ipv4range_to_set_def)[3]
   apply(simp only: set_append set_simps)
-  (*TODO: when did I break this?*))
   apply blast
 done
 
@@ -38,17 +37,18 @@ lemma range_destination_eq2:
   apply(case_tac "fst (ipset_prefix_match (routing_match a) (ipv4range_to_set rg)) = {}")
    apply(case_tac[!] "snd (ipset_prefix_match (routing_match a) (ipv4range_to_set rg)) = {}")
      apply(simp_all only: refl if_True if_False range_prefix_match_sm[symmetric] range_prefix_match_snm[symmetric] ipv4range_empty_set_eq Un_empty_left Un_empty_right)
-     apply(simp_all)[3]
+     apply(simp_all add: ipv4range_to_set_def)[3]
   proof -
     case goal1
+    note ipv4range_to_set_def[simp]
     let ?maf = "(\<lambda>(x, y). (ipv4range_to_set x, y))"
     have ne: "ipv4range_to_set (fst (range_prefix_match (routing_match a) rg)) \<noteq> {}"
              "ipv4range_to_set (snd (range_prefix_match (routing_match a) rg)) \<noteq> {}"
-      using goal1(3) goal1(4) goal1(2) by simp_all
+      using goal1(3,4,2)  by simp_all
     have *: "snd (ipset_prefix_match (routing_match a) rS) = ipv4range_to_set (snd (range_prefix_match (routing_match a) rg))"
       using goal1(2) by simp
     have ***: "(fst (ipset_prefix_match (routing_match a) rS), routing_action a) =
-      ?maf (fst (range_prefix_match (routing_match a) rg), routing_action a)" by(simp add: goal1(2))
+      ?maf (fst (range_prefix_match (routing_match a) rg), routing_action a)" using goal1(2) by simp
     moreover
     have **: "ipset_destination rtbl (snd (ipset_prefix_match (routing_match a) rS)) =
       set (map ?maf (range_destination rtbl (snd (range_prefix_match (routing_match a) rg))))"
