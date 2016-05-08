@@ -542,6 +542,5 @@ text_raw\<open>
 
 \bibliographystyle{abbrv}
 \bibliography{root}
-
-\embedfile{OpenFlowDoc.tex}
 \<close>
+(*\embedfile{OpenFlowDoc.tex}*)

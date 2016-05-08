@@ -320,7 +320,7 @@ lemma "length (wordinterval_CIDR_split_prefixmatch (WordInterval 0 (0xFFFFFFFE::
 
 (*
 text{* @{text "10.0.0.0/8 - 10.8.0.0/16"}*}
-lemma "map (\<lambda>pfx. (dotdecimal_of_ipv4addr (pfxm_prefix pfx), (pfxm_length pfx))) (wordinterval_CIDR_split_prefixmatch (ipv4range_setminus
+lemma "map (\<lambda>pfx. (dotdecimal_of_ipv4addr (pfxm_prefix pfx), (pfxm_length pfx))) (wordinterval_CIDR_split_prefixmatch (wordinterval_setminus
           (ipv4range_range ((ipv4addr_of_dotdecimal (10,0,0,0)), (ipv4addr_of_dotdecimal (10,255,255,255))))
           (ipv4range_range ((ipv4addr_of_dotdecimal (10,8,0,0)), (ipv4addr_of_dotdecimal (10,8,255,255)))))) =
  [((10, 0, 0, 0), 13), ((10, 9, 0, 0), 16), ((10, 10, 0, 0), 15), ((10, 12, 0, 0), 14), ((10, 16, 0, 0), 12), ((10, 32, 0, 0), 11), ((10, 64, 0, 0), 10),

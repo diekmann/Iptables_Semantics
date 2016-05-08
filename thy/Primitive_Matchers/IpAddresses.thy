@@ -108,7 +108,7 @@ by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4range_set_from
 
   (*helper we use for spoofing protection specification*)
   definition all_but_those_ips :: "(ipv4addr \<times> nat) list \<Rightarrow> (ipv4addr \<times> nat) list" where
-    "all_but_those_ips cidrips = cidr_split (ipv4range_invert (l2br (map ipcidr_to_interval cidrips)))"
+    "all_but_those_ips cidrips = cidr_split (wordinterval_invert (l2br (map ipcidr_to_interval cidrips)))"
   
   (*only ipv4*)
   lemma all_but_those_ips:
@@ -119,8 +119,6 @@ by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4range_set_from
     apply(simp)
     apply(subst transition_lemma_ipv4_delete_me)+
     apply(simp add: cidr_split_prefix[simplified])
-    apply(simp add: ipv4range_invert_def ipv4range_setminus_def)
-    apply(simp add: ipv4range_UNIV_def)
     apply(simp add: l2br)
     apply(simp add: ipcidr_to_interval_def)
     using ipset_from_cidr_ipcidr_to_interval by blast
