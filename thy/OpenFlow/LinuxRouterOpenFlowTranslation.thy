@@ -96,16 +96,101 @@ lemma smtoms_cong: "a = e \<Longrightarrow> b = f \<Longrightarrow> c = g \<Long
 lemma option2set_None: "option2set None = {}"
 by(simp add: option2set_def)
 
-(*TODO: schönerer beweis*)
-lemma smtoms_eq_hlp: "simple_match_to_of_match_single r a b c d = simple_match_to_of_match_single r f g h i \<longleftrightarrow> (a = f \<and> b = g \<and> c = h \<and> d = i)"
-apply(rule, simp_all)
-apply(simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def)
-apply(simp add: option2set_def)
-apply(simp split: option.split_asm)
-apply(simp add: split: if_splits protocol.splits prod.splits | blast)+
-(* give this some time, it creates and solves a ton of subgoals\<dots> Takes 140 seconds for me. *)
-done
+context begin
+  (*TODO: schönerer beweis*)
+  private lemma cornyhelper: assumes assm: 
+     "insert (EtherType 0x800)
+       ((\<lambda>(x, y). L4Src x y) ` option2set c \<union>
+        (\<lambda>(x, y). L4Dst x y) ` option2set d \<union>
+        IPv4Proto ` (case b of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> {p}) \<union>
+        IngressPort ` option2set a \<union>
+        IPv4Src ` option2set (toprefixmatch (src r)) \<union>
+        IPv4Dst ` option2set (toprefixmatch (dst r))) =
+      insert (EtherType 0x800)
+       ((\<lambda>(x, y). L4Src x y) ` option2set h \<union>
+        (\<lambda>(x, y). L4Dst x y) ` option2set i \<union>
+        IPv4Proto ` (case g of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> {p}) \<union>
+        IngressPort ` option2set f \<union>
+        IPv4Src ` option2set (toprefixmatch (src r)) \<union>
+        IPv4Dst ` option2set (toprefixmatch (dst r)))"
+      (is "insert (EtherType 0x800) ?a = insert (EtherType 0x800) ?b")
+  shows "a = f \<and> b = g \<and> c = h \<and> d = i"
+  proof -
+  
+    have set_eq_cong_if_fst_part: "a \<inter> x = {} \<Longrightarrow> b \<inter> x = {} \<Longrightarrow> a \<union> x = b \<union> x \<Longrightarrow> a = b" for a b x ::"'x set"
+      by blast
+    have "?a = ?b" 
+      apply(rule set_eq_cong_if_fst_part[where x1="{EtherType 0x800}" and a1="?a" and b1="?b"])
+        apply(simp add: option2set_def split: if_splits protocol.splits prod.splits option.split; fail)
+       apply(simp add: option2set_def split: if_splits protocol.splits prod.splits option.split; fail)
+      using assms by simp
+  
+    let ?interesting_lhs="(\<lambda>(x, y). L4Src x y) ` option2set c \<union>
+      (\<lambda>(x, y). L4Dst x y) ` option2set d \<union>
+      IPv4Proto ` (case b of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> {p}) \<union>
+      IngressPort ` option2set a"
+    let ?interesting_rhs="(\<lambda>(x, y). L4Src x y) ` option2set h \<union>
+      (\<lambda>(x, y). L4Dst x y) ` option2set i \<union>
+      IPv4Proto ` (case g of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> {p}) \<union>
+      IngressPort ` option2set f"
+  
+    have set_eq_cong_if_fst_part':
+      "a \<inter> x = {} \<Longrightarrow> a \<inter> y = {} \<Longrightarrow> b \<inter> y = {} \<Longrightarrow> b \<inter> x = {} \<Longrightarrow> a \<union> x = b \<union> y \<Longrightarrow> a = b (*\<and> x = y*)"
+      for a::"'x set" and b x y
+      by blast
+  
+    (*Those are just to speed the following proof which is just a huge case distinction!*)
+    have X: "{a, b, c} = {d, e} \<Longrightarrow> distinct [a,b,c] \<Longrightarrow> False" for a b c d e::'x
+      by(drule distinct_card) (simp add: distinct_card card_insert_if split: split_if_asm)
+    have X2: "{a, b, c, d} = {e, f} \<Longrightarrow> distinct [a,b,c,d] \<Longrightarrow> False" for a b c d e f::'x
+      by(drule distinct_card) (simp add: distinct_card card_insert_if split: split_if_asm)
+    have X3: "{a, b, c, d} = {e, f, g} \<Longrightarrow> distinct [a,b,c,d] \<Longrightarrow> False" for a b c d e f g::'x
+      apply(drule distinct_card)
+      apply(simp)
+      apply(simp add: card_insert_if split: split_if_asm)
+      done
+    have Y: "{d, e} = {a, b, c} \<Longrightarrow> distinct [a,b,c] \<Longrightarrow>  False" for a b c d e::'x
+      using X by metis
+    have Y2: "{e, f} = {a, b, c, d} \<Longrightarrow> distinct [a,b,c,d] \<Longrightarrow> False" for a b c d e f::'x
+      using X2 by metis
+    have Y3: "{e, f, g} = {a, b, c, d} \<Longrightarrow> distinct [a,b,c,d] \<Longrightarrow> False" for a b c d e f g::'x
+      using X3 by metis
+    have Z: "{a, b, c} = {d, e, f} \<Longrightarrow> a \<noteq> d \<and> a \<noteq> e \<and> a \<noteq> f \<Longrightarrow> False" for a b c d e f::'x
+      by blast
+    have Z2: "{a, b, c} = {d, e, f} \<Longrightarrow> b \<noteq> d \<and> b \<noteq> e \<and> b \<noteq> f \<Longrightarrow> False" for a b c d e f::'x
+      by blast
+    have Z3: "{a, b, c} = {d, e, f} \<Longrightarrow> c \<noteq> d \<and> c \<noteq> e \<and> c \<noteq> f \<Longrightarrow> False" for a b c d e f::'x
+      by blast
+      
+      
+    have inter: "?interesting_lhs = ?interesting_rhs"
+     apply(rule set_eq_cong_if_fst_part[where
+       a1="(\<lambda>(x, y). L4Src x y) ` option2set c \<union>
+       (\<lambda>(x, y). L4Dst x y) ` option2set d \<union>
+       IPv4Proto ` (case b of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> {p}) \<union>
+       IngressPort ` option2set a" and
+       x1="IPv4Src ` option2set (toprefixmatch (src r)) \<union> IPv4Dst ` option2set (toprefixmatch (dst r))" ])
+        apply(simp add: option2set_def split: if_splits protocol.splits prod.splits option.split; fail)
+       apply(simp add: option2set_def split: if_splits protocol.splits prod.splits option.split; fail)
+     using \<open>?a = ?b\<close> by (simp add: inf_sup_aci(5) inf_sup_aci(7)) 
+  
+    from this show ?thesis 
+      apply(simp add: option2set_def)
+      apply(simp split: option.split_asm)
+      apply(simp_all split: if_splits protocol.splits prod.splits)
+      apply (simp_all add: doubleton_eq_iff)
+      (* apply fast+ (* 14.067s cpu time*)*)
+      apply(elim X; simp | elim X2, simp | elim X3, simp | elim Y, simp | elim Y2, simp | fast)+ (* 10.060s cpu time*)
+      (*apply (blast)+ (*49.206s cpu time*)*)
+      done
+  qed
 
+lemma smtoms_eq_hlp: "simple_match_to_of_match_single r a b c d = simple_match_to_of_match_single r f g h i \<longleftrightarrow> (a = f \<and> b = g \<and> c = h \<and> d = i)"
+apply(rule)
+prefer 2 subgoal by simp
+apply(simp add: option2set_None simple_match_to_of_match_single_def)
+apply(rule cornyhelper) by simp
+end
 
 lemma proto_in_srcdst: "IPv4Proto x \<in> IPv4Src ` s \<longleftrightarrow> False" "IPv4Proto x \<in> IPv4Dst ` s \<longleftrightarrow> False" by fastforce+
 lemma simple_match_port_UNIVD: "Collect (simple_match_port a) = UNIV \<Longrightarrow> fst a = 0 \<and> snd a = max_word" by (metis antisym_conv fst_conv hrule max_word_max mem_Collect_eq simple_match_port_code snd_conv surj_pair word_le_0_iff)
