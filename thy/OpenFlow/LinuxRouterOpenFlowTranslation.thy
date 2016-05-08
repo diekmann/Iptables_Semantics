@@ -97,85 +97,29 @@ lemma option2set_None: "option2set None = {}"
 by(simp add: option2set_def)
 
 lemma smtoms_eq_hlp: "simple_match_to_of_match_single r a b c d = simple_match_to_of_match_single r f g h i \<longleftrightarrow> (a = f \<and> b = g \<and> c = h \<and> d = i)"
+(* In case this proof breaks: there are two alternate proofs in the repo. They are of similar quality, though. Good luck. *)
 proof(rule iffI,goal_cases)
   case 1
-  note[[show_types]]
   thus ?case proof(intro conjI)
-    show "a = f" using 1 apply(cases a; cases f)
-      subgoal by simp
-      subgoal for x
-        apply(simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def)
-        apply(subst(asm) set_eq_iff)
-        apply(elim allE[where x="IngressPort x"])
-        by(simp_all split: option.splits prod.splits protocol.splits)
-      subgoal for x
-        apply(simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def)
-        apply(subst(asm) set_eq_iff)
-        apply(elim allE[where x="IngressPort x"])
-        by(simp_all split: option.splits prod.splits protocol.splits)
-      subgoal for x
-        apply(simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def)
-        apply(subst(asm) set_eq_iff)
-        apply(elim allE[where x="IngressPort x"])
-        by(simp_all split: option.splits prod.splits protocol.splits)
-    done
+    have *: "\<And>P z x. \<lbrakk>\<forall>x :: of_match_field. P x; z = Some x\<rbrakk> \<Longrightarrow> P (IngressPort x)" by simp
+    show "a = f" using 1 by(cases a; cases f)
+        (simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def;
+        subst(asm) set_eq_iff; drule (1) *; simp_all split: option.splits prod.splits protocol.splits)+
   next
-    show "b = g" using 1 apply(cases b; cases g)
-      subgoal by simp
-      subgoal for x
-        apply(simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def)
-        apply(subst(asm) set_eq_iff)
-        apply(elim allE[where x="IPv4Proto x"])
-        by(simp_all split: option.splits prod.splits protocol.splits)
-      subgoal for x
-        apply(simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def)
-        apply(subst(asm) set_eq_iff)
-        apply(elim allE[where x="IPv4Proto x"])
-        by(simp_all split: option.splits prod.splits protocol.splits)
-      subgoal for x
-        apply(simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def)
-        apply(subst(asm) set_eq_iff)
-        apply(elim allE[where x="IPv4Proto x"])
-        by(simp_all split: option.splits prod.splits protocol.splits)
-    done
+    have *: "\<And>P z x. \<lbrakk>\<forall>x :: of_match_field. P x; z = Proto x\<rbrakk> \<Longrightarrow> P (IPv4Proto x)" by simp
+    show "b = g" using 1 by(cases b; cases g) 
+        (simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def;
+        subst(asm) set_eq_iff; drule (1) *; simp_all split: option.splits prod.splits protocol.splits)+
   next
-    show "c = h"  using 1 apply(cases c; cases h)
-      subgoal by simp
-      subgoal for x
-        apply(simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def)
-        apply(subst(asm) set_eq_iff)
-        apply(elim allE[where x="split L4Src x"])
-        by(simp_all split: option.splits prod.splits protocol.splits)
-      subgoal for x
-        apply(simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def)
-        apply(subst(asm) set_eq_iff)
-        apply(elim allE[where x="split L4Src x"])
-        by(simp_all split: option.splits prod.splits protocol.splits)
-      subgoal for x
-        apply(simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def)
-        apply(subst(asm) set_eq_iff)
-        apply(elim allE[where x="split L4Src x"])
-      by(simp_all split: option.splits prod.splits protocol.splits)
-    done
+    have *: "\<And>P z x. \<lbrakk>\<forall>x :: of_match_field. P x; z = Some x\<rbrakk> \<Longrightarrow> P (split L4Src x)" by simp
+    show "c = h"  using 1 by(cases c; cases h)
+        (simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def;
+        subst(asm) set_eq_iff; drule (1) *; simp_all split: option.splits prod.splits protocol.splits)+
   next
-    show "d = i"  using 1 apply(cases d; cases i)
-      subgoal by simp
-      subgoal for x
-        apply(simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def)
-        apply(subst(asm) set_eq_iff)
-        apply(elim allE[where x="split L4Dst x"])
-        by(simp_all split: option.splits prod.splits protocol.splits)
-      subgoal for x
-        apply(simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def)
-        apply(subst(asm) set_eq_iff)
-        apply(elim allE[where x="split L4Dst x"])
-        by(simp_all split: option.splits prod.splits protocol.splits)
-      subgoal for x
-        apply(simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def)
-        apply(subst(asm) set_eq_iff)
-        apply(elim allE[where x="split L4Dst x"])
-        by(simp_all split: option.splits prod.splits protocol.splits)
-    done
+    have *: "\<And>P z x. \<lbrakk>\<forall>x :: of_match_field. P x; z = Some x\<rbrakk> \<Longrightarrow> P (split L4Dst x)" by simp
+    show "d = i"  using 1 by(cases d; cases i)
+        (simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def;
+        subst(asm) set_eq_iff; drule (1) *; simp_all split: option.splits prod.splits protocol.splits)+
   qed
 qed simp
 
