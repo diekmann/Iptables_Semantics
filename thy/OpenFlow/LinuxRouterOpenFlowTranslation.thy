@@ -134,32 +134,21 @@ context begin
       IPv4Proto ` (case g of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> {p}) \<union>
       IngressPort ` option2set f"
   
-    have set_eq_cong_if_fst_part':
-      "a \<inter> x = {} \<Longrightarrow> a \<inter> y = {} \<Longrightarrow> b \<inter> y = {} \<Longrightarrow> b \<inter> x = {} \<Longrightarrow> a \<union> x = b \<union> y \<Longrightarrow> a = b (*\<and> x = y*)"
-      for a::"'x set" and b x y
-      by blast
-  
     (*Those are just to speed the following proof which is just a huge case distinction!*)
     have X: "{a, b, c} = {d, e} \<Longrightarrow> distinct [a,b,c] \<Longrightarrow> False" for a b c d e::'x
       by(drule distinct_card) (simp add: distinct_card card_insert_if split: split_if_asm)
     have X2: "{a, b, c, d} = {e, f} \<Longrightarrow> distinct [a,b,c,d] \<Longrightarrow> False" for a b c d e f::'x
       by(drule distinct_card) (simp add: distinct_card card_insert_if split: split_if_asm)
     have X3: "{a, b, c, d} = {e, f, g} \<Longrightarrow> distinct [a,b,c,d] \<Longrightarrow> False" for a b c d e f g::'x
-      apply(drule distinct_card)
-      apply(simp)
-      apply(simp add: card_insert_if split: split_if_asm)
-      done
+      by(drule distinct_card) (simp add: card_insert_if split: split_if_asm)
     have Y: "{d, e} = {a, b, c} \<Longrightarrow> distinct [a,b,c] \<Longrightarrow>  False" for a b c d e::'x
       using X by metis
     have Y2: "{e, f} = {a, b, c, d} \<Longrightarrow> distinct [a,b,c,d] \<Longrightarrow> False" for a b c d e f::'x
       using X2 by metis
     have Y3: "{e, f, g} = {a, b, c, d} \<Longrightarrow> distinct [a,b,c,d] \<Longrightarrow> False" for a b c d e f g::'x
       using X3 by metis
-    have Z: "{a, b, c} = {d, e, f} \<Longrightarrow> a \<noteq> d \<and> a \<noteq> e \<and> a \<noteq> f \<Longrightarrow> False" for a b c d e f::'x
-      by blast
-    have Z2: "{a, b, c} = {d, e, f} \<Longrightarrow> b \<noteq> d \<and> b \<noteq> e \<and> b \<noteq> f \<Longrightarrow> False" for a b c d e f::'x
-      by blast
-    have Z3: "{a, b, c} = {d, e, f} \<Longrightarrow> c \<noteq> d \<and> c \<noteq> e \<and> c \<noteq> f \<Longrightarrow> False" for a b c d e f::'x
+    have Z: "{a, b, c} = {d, e, f} \<Longrightarrow>
+      a \<noteq> d \<and> a \<noteq> e \<and> a \<noteq> f \<or> b \<noteq> d \<and> b \<noteq> e \<and> b \<noteq> f \<or> c \<noteq> d \<and> c \<noteq> e \<and> c \<noteq> f\<Longrightarrow> False" for a b c d e f::'x
       by blast
       
       
@@ -169,25 +158,25 @@ context begin
        (\<lambda>(x, y). L4Dst x y) ` option2set d \<union>
        IPv4Proto ` (case b of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> {p}) \<union>
        IngressPort ` option2set a" and
-       x1="IPv4Src ` option2set (toprefixmatch (src r)) \<union> IPv4Dst ` option2set (toprefixmatch (dst r))" ])
+       x1="IPv4Src ` option2set (toprefixmatch (src r)) \<union> IPv4Dst ` option2set (toprefixmatch (dst r))"])
         apply(simp add: option2set_def split: if_splits protocol.splits prod.splits option.split; fail)
        apply(simp add: option2set_def split: if_splits protocol.splits prod.splits option.split; fail)
      using \<open>?a = ?b\<close> by (simp add: inf_sup_aci(5) inf_sup_aci(7)) 
   
-    from this show ?thesis 
+    from this show ?thesis
       apply(simp add: option2set_def)
       apply(simp split: option.split_asm)
-      apply(simp_all split: if_splits protocol.splits prod.splits)
-      apply (simp_all add: doubleton_eq_iff)
-      (* apply fast+ (* 14.067s cpu time*)*)
-      apply(elim X; simp | elim X2, simp | elim X3, simp | elim Y, simp | elim Y2, simp | fast)+ (* 10.060s cpu time*)
-      (*apply (blast)+ (*49.206s cpu time*)*)
+                                                                     apply(simp_all split: if_splits protocol.splits prod.splits)
+                                                                                                                              apply (simp_all add: doubleton_eq_iff)
+                                                                                          (* apply fast+ (* 14.067s cpu time*)*)
+                                                                                          apply(elim X; simp | elim X2; simp | elim X3; simp | elim Y; simp | elim Y2; simp | elim Z; simp; fail | fast)+ (* 10.060s cpu time*)
+                                                                                          (*apply (blast)+ (*49.206s cpu time*)*)
       done
   qed
 
 lemma smtoms_eq_hlp: "simple_match_to_of_match_single r a b c d = simple_match_to_of_match_single r f g h i \<longleftrightarrow> (a = f \<and> b = g \<and> c = h \<and> d = i)"
 apply(rule)
-prefer 2 subgoal by simp
+ prefer 2 subgoal by simp
 apply(simp add: option2set_None simple_match_to_of_match_single_def)
 apply(rule cornyhelper) by simp
 end
