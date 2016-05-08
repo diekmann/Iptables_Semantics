@@ -74,3 +74,6 @@ session Routing = Iptables_Semantics (* the linux router model needs simple_fw *
     "Routing/Routing"
     "Routing/LinuxRouter"
     "Routing/RoutingSet"
+  document_files
+    "root.tex"
+    "mathpartir.sty"
