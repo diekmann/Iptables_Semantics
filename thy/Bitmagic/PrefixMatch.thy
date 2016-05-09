@@ -255,7 +255,6 @@ lemma prefix_match_if_in_corny_set2:
  unfolding prefix_match_if_in_corny_set[OF assms] pfxm_mask_def ipset_from_cidr_alt1
  by (metis (full_types) NOT_mask_shifted_lenword word_not_not)
 
-
 (*TODO: can this be deleted?*)
 private lemma maskshift_eq_not_mask_generic: "((mask m << len_of TYPE('a) - m) :: 'a::len word) = NOT mask (len_of TYPE('a) - m)"
   using NOT_mask_shifted_lenword by (metis word_not_not) 
@@ -352,7 +351,7 @@ proof -
   show "(a \<in> ipset_from_netmask (pfxm_p) (NOT mask (len_of TYPE('a) - l))) \<longleftrightarrow> (pfxm_p = NOT mask (len_of TYPE('a) - l) AND a)"
     unfolding pfxm_mask_def by(simp)
 qed
-  
+ 
 
 private lemma mask_and_not_mask_helper: "mask (len - m) AND base AND NOT mask (len - m) = 0"
   by(simp add: word_bw_lcs)

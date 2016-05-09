@@ -108,7 +108,7 @@ subsection{*Representing IPv4 Adresses*}
   lemma size_ipv4addr: "size (x::ipv4addr) = 32" by(simp add:word_size)
   lemma ipv4addr_of_nat_shiftr_slice: "ipv4addr_of_nat a >> x = slice x (ipv4addr_of_nat a)"
     by(simp add: ipv4addr_of_nat_def shiftr_slice)
-  value "(4294967296::ipv4addr) = 2^32"
+  lemma "(4294967296::ipv4addr) = 2^32" by eval
 
   lemma nat_of_ipv4addr_slice_ipv4addr_of_nat: 
     "nat_of_ipv4addr (slice x (ipv4addr_of_nat a)) = (nat_of_ipv4addr (ipv4addr_of_nat a)) div 2^x"
@@ -133,7 +133,7 @@ subsection{*Representing IPv4 Adresses*}
     by simp
   lemma ipv4addr_of_nat_AND_mask8: "(ipv4addr_of_nat a) AND mask 8 = (ipv4addr_of_nat (a mod 256))"
     apply(simp add: ipv4addr_of_nat_def and_mask_mod_2p)
-    apply(simp add: word_of_nat) (*us this to get rid of of_nat. All thm are with word_of_int*)
+    apply(simp add: word_of_nat) (*use this to get rid of of_nat. All thm are with word_of_int*)
     apply(simp add: uint_word_of_int)
     apply(subst mod_mod_cancel)
      apply simp
@@ -200,8 +200,54 @@ subsection{*Representing IPv4 Adresses*}
       apply(simp add: ipv4addr_of_dotdecimal.simps dotdecimal_of_ipv4addr.simps)
       apply(simp add: ipv4addr_and_255)
       done
-    qed
-    
+  qed
+  
+  lemma ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr: 
+    "(ipv4addr_of_dotdecimal (dotdecimal_of_ipv4addr ip)) = ip"
+  proof -
+    have ip_and_mask8_bl_drop24: "(ip::ipv4addr) AND mask 8 = of_bl (drop 24 (to_bl ip))"
+      by(simp add: WordLemmaBucket.of_drop_to_bl size_ipv4addr)
+  
+    have List_rev_drop_geqn: "\<And>x n. length x \<ge> n \<Longrightarrow> (take n (rev x)) = rev (drop (length x - n) x)"
+      by(simp add: List.rev_drop)
+  
+    have and_mask_bl_take: "\<And> x n. length x \<ge> n \<Longrightarrow> ((of_bl x) AND mask n) = (of_bl (rev (take n (rev (x)))))"
+      apply(simp add: List_rev_drop_geqn)
+      apply(simp add: WordLib.of_bl_drop)
+      done
+  
+    have bit_equality: "((ip >> 24) AND 0xFF << 24) + ((ip >> 16) AND 0xFF << 16) + ((ip >> 8) AND 0xFF << 8) + (ip AND 0xFF) =
+      of_bl (take 8 (to_bl ip) @ take 8 (drop 8 (to_bl ip)) @ take 8 (drop 16 (to_bl ip)) @ drop 24 (to_bl ip))"
+      apply(simp add: ipv4addr_and_255)
+      apply(simp add: shiftr_slice)
+      apply(simp add: Word.slice_take' size_ipv4addr)
+      apply(simp add: and_mask_bl_take)
+      apply(simp add: List_rev_drop_geqn)
+      apply(simp add: drop_take)
+      apply(simp add: Word.shiftl_of_bl)
+      apply(simp add: of_bl_append)
+      apply(simp add: ip_and_mask8_bl_drop24)
+      done
+  
+    have blip_split: "\<And> blip. length blip = 32 \<Longrightarrow>
+      blip = (take 8 blip) @ (take 8 (drop 8 blip)) @ (take 8 (drop 16 blip)) @ (take 8 (drop 24 blip))"
+      apply(case_tac blip)
+      apply(simp_all)
+      (*thin_tac "blip = ?x",*)
+      apply(rename_tac blip,case_tac blip,simp_all)+ (*I'm so sorry for this ...*)
+      done
+  
+    have "ipv4addr_of_dotdecimal (dotdecimal_of_ipv4addr ip) = of_bl (to_bl ip)"
+      apply(subst blip_split)
+       apply(simp)
+      apply(simp add: ipv4addr_of_dotdecimal_bit dotdecimal_of_ipv4addr.simps)
+      apply(simp add: ipv4addr_of_nat_nat_of_ipv4addr)
+      apply(simp add: bit_equality)
+      done
+  
+    thus ?thesis using Word.word_bl.Rep_inverse[symmetric] by simp
+  qed
+
 
   lemma ipv4addr_of_dotdecimal_eqE: "\<lbrakk> ipv4addr_of_dotdecimal (a,b,c,d) = ipv4addr_of_dotdecimal (e,f,g,h); a < 256; b < 256; c < 256; d < 256; e < 256; f < 256; g < 256; h < 256 \<rbrakk> \<Longrightarrow>
      a = e \<and> b = f \<and> c = g \<and> d = h"

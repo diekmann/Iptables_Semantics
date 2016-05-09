@@ -3,8 +3,6 @@ imports IPAddr
         PrefixMatch
 begin
 
-
-
 section{*CIDR Split Motivation (Example for IPv4)*}
   text{*When talking about ranges of IP addresses, we can make the ranges explicit by listing them.*}
 
@@ -519,5 +517,7 @@ proof(rule ccontr, goal_cases)
 qed
 
 end
+
+
 
 end

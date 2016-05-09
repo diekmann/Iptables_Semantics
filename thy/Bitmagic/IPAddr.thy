@@ -47,6 +47,7 @@ subsection{*Sets of IP addresses*}
   
   (*alternate definition*)
   lemma ipset_from_cidr_alt1: fixes addr :: "'i::len word"
+    (*TODO: I meant something different!*)
     shows "ipset_from_cidr addr pflength = ipset_from_netmask addr ((mask pflength) << (len_of(TYPE('i)) - pflength))"
     by(simp add: ipset_from_cidr_def)
 
@@ -100,6 +101,86 @@ subsection{*Sets of IP addresses*}
   definition ip_cidr_set :: "'i::len word \<Rightarrow> nat \<Rightarrow> 'i word set" where
     "ip_cidr_set i r = {j . i AND NOT mask (len_of TYPE('i) - r) = j AND NOT mask (len_of TYPE('i) - r)}"
 
+
+
+  lemma ipset_from_cidr_base_wellforemd: fixes base:: "'a::len word"
+    assumes "mask (len_of TYPE('a) - l) AND base = 0"
+      shows "ipset_from_cidr base l = {base .. base || mask (len_of TYPE('a) - l)}"
+  proof -
+    have maskshift_eq_not_mask_generic: "((mask m << len_of TYPE('a) - m) :: 'a::len word) = NOT mask (len_of TYPE('a) - m)" for m
+      using NOT_mask_shifted_lenword by (metis word_not_not) 
+    
+    have *: "base AND NOT  mask (len_of TYPE('a) - l) = base"
+      unfolding mask_eq_0_eq_x[symmetric] using assms word_bw_comms(1)[of base] by simp
+    hence **: "base AND NOT mask (len_of TYPE('a) - l) OR mask (len_of TYPE('a) - l) = base OR mask (len_of TYPE('a) - l)"
+      by simp
+  
+    have "ipset_from_netmask base (NOT mask (len_of TYPE('a) - l)) = {base .. base || mask (len_of TYPE('a) - l)}"
+      by(simp add: ipset_from_netmask_def Let_def ** *)
+    thus ?thesis by(simp add: ipset_from_cidr_def maskshift_eq_not_mask_generic)
+  qed
+
+
+
+  context
+  begin
+    (*contributed by Lars Noschinski*)
+    private lemma ip_cidr_set_change_base: "j \<in> ip_cidr_set i r \<Longrightarrow> ip_cidr_set j r = ip_cidr_set i r"
+      by (auto simp: ip_cidr_set_def)
+    
+    private lemma less_and_not_mask_eq:
+      fixes i :: "('a :: len) word"
+      assumes "r2 \<le> r1" "i && ~~ mask r2 = x && ~~ mask r2"
+      shows "i && ~~ mask r1 = x && ~~ mask r1"
+    proof -
+      have "i AND NOT mask r1 = (i && ~~ mask r2) && ~~ mask r1" (is "_ = ?w && _")
+        using \<open>r2 \<le> r1\<close> by (simp add: and_not_mask_twice max_def)
+      also have "?w = x && ~~ mask r2" by fact
+      also have "\<dots> && ~~ mask r1 = x && ~~ mask r1"
+        using \<open>r2 \<le> r1\<close> by (simp add: and_not_mask_twice max_def)
+      finally show ?thesis .
+    qed
+    
+    lemma ip_cidr_set_less:
+      fixes i :: "'i::len word"
+      shows "r1 \<le> r2 \<Longrightarrow> ip_cidr_set i r2 \<subseteq> ip_cidr_set i r1"
+      unfolding ip_cidr_set_def
+      apply auto
+      apply (rule less_and_not_mask_eq[where ?r2.0="len_of TYPE('i) - r2"])
+      apply auto
+      done
+    
+    
+    private lemma ip_cidr_set_intersect_subset_helper:
+      fixes i1 r1 i2 r2
+      assumes disj: "ip_cidr_set i1 r1 \<inter> ip_cidr_set i2 r2 \<noteq> {}" and  "r1 \<le> r2"
+      shows "ip_cidr_set i2 r2 \<subseteq> ip_cidr_set i1 r1"
+      proof -
+      from disj obtain j where "j \<in> ip_cidr_set i1 r1" "j \<in> ip_cidr_set i2 r2" by auto
+      with `r1 \<le> r2` have "j \<in> ip_cidr_set j r1" "j \<in> ip_cidr_set j r1"
+        using ip_cidr_set_change_base ip_cidr_set_less by blast+
+    
+      show "ip_cidr_set i2 r2 \<subseteq> ip_cidr_set i1 r1"
+      proof
+        fix i assume "i \<in> ip_cidr_set i2 r2"
+        with \<open>j \<in> ip_cidr_set i2 r2\<close> have "i \<in> ip_cidr_set j r2" using ip_cidr_set_change_base by auto
+        also have "ip_cidr_set j r2 \<subseteq> ip_cidr_set j r1" using \<open>r1 \<le> r2\<close> ip_cidr_set_less by blast
+        also have "\<dots> = ip_cidr_set i1 r1" using \<open>j \<in> ip_cidr_set i1 r1\<close> ip_cidr_set_change_base by blast
+        finally show "i \<in> ip_cidr_set i1 r1" .
+      qed
+    qed
+    
+    lemma ip_cidr_set_notsubset_empty_inter:
+      "\<not> ip_cidr_set i1 r1 \<subseteq> ip_cidr_set i2 r2 \<Longrightarrow>
+       \<not> ip_cidr_set i2 r2 \<subseteq> ip_cidr_set i1 r1 \<Longrightarrow>
+       ip_cidr_set i1 r1 \<inter> ip_cidr_set i2 r2 = {}"
+      apply(cases "r1 \<le> r2")
+       using ip_cidr_set_intersect_subset_helper apply blast
+      apply(cases "r2 \<le> r1")
+       using ip_cidr_set_intersect_subset_helper apply blast
+      apply(simp)
+      done
+  end
 
 
   text{*making element check executable*}

@@ -112,12 +112,12 @@ proof(rule iffI,goal_cases)
         subst(asm) set_eq_iff; drule (1) *; simp_all split: option.splits prod.splits protocol.splits)+
   next
     have *: "\<And>P z x. \<lbrakk>\<forall>x :: of_match_field. P x; z = Some x\<rbrakk> \<Longrightarrow> P (split L4Src x)" by simp
-    show "c = h"  using 1 by(cases c; cases h)
+    show "c = h" using 1 by(cases c; cases h)
         (simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def;
         subst(asm) set_eq_iff; drule (1) *; simp_all split: option.splits prod.splits protocol.splits)+
   next
     have *: "\<And>P z x. \<lbrakk>\<forall>x :: of_match_field. P x; z = Some x\<rbrakk> \<Longrightarrow> P (split L4Dst x)" by simp
-    show "d = i"  using 1 by(cases d; cases i)
+    show "d = i" using 1 by(cases d; cases i)
         (simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def;
         subst(asm) set_eq_iff; drule (1) *; simp_all split: option.splits prod.splits protocol.splits)+
   qed
