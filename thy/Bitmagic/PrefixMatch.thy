@@ -259,48 +259,6 @@ lemma prefix_match_if_in_corny_set2:
 private lemma maskshift_eq_not_mask_generic: "((mask m << len_of TYPE('a) - m) :: 'a::len word) = NOT mask (len_of TYPE('a) - m)"
   using NOT_mask_shifted_lenword by (metis word_not_not) 
 
-(* we needed this lemma once. It is commented out because the proof is slow. No comment about its overwhelming elegance.
-As of commit 225779834c209401231eeec664adcc756701c5f7, isabelle 2015, it is still working, but horribly slow.
-private lemma ipv4addr_andnot_eq_takem: "(a::32 word) AND NOT mask (32 - m) = b AND NOT mask (32 - m) \<longleftrightarrow> (take (m) (to_bl a)) = (take (m) (to_bl b))"
-  apply word_bitwise
-  apply (subgoal_tac "m > 32 \<or> m \<in> set (map nat (upto 0 32))")
-   apply (simp add: upto_code upto_aux_rec, elim disjE)
-                                    apply (simp_all add: size_mask_32word) [34]
-                                  apply satx
-                                 apply satx
-                                apply satx
-                               apply satx
-                              apply satx
-                             apply satx
-                            apply satx
-                           apply satx
-                          apply satx
-                         apply satx
-                        apply satx
-                       apply satx
-                      apply satx
-                     apply satx
-                    apply satx
-                   apply satx
-                  apply satx
-                 apply satx
-                apply satx
-               apply satx
-              apply satx
-             apply satx
-            apply satx
-           apply satx
-          apply satx
-         apply satx
-        apply satx
-       apply satx
-      apply satx
-     apply satx
-    apply satx
-   apply satx
-  apply (simp add: upto_code upto_aux_rec, presburger)
-done
-*)
 
 (*declare[[show_types]]
 declare[[unify_trace_failure]]*)
