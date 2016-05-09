@@ -45,18 +45,11 @@ subsection{*Sets of IP addresses*}
     by(auto simp add: ipset_from_cidr_def ipset_from_netmask_def Let_def)
 
   
-  (*alternate definition*)
-  lemma ipset_from_cidr_alt1: fixes addr :: "'i::len word"
-    (*TODO: I meant something different!*)
-    shows "ipset_from_cidr addr pflength = ipset_from_netmask addr ((mask pflength) << (len_of(TYPE('i)) - pflength))"
-    by(simp add: ipset_from_cidr_def)
-
-
-  lemma ipset_from_cidr_alt2:
+  lemma ipset_from_cidr_bl:
     fixes addr :: "'i::len word"
     shows "ipset_from_cidr addr pflength \<equiv> 
             ipset_from_netmask addr (of_bl ((replicate pflength True) @ (replicate ((len_of(TYPE('i))) - pflength)) False))"
-    by(simp add: ipset_from_cidr_alt1 mask_bl Word.shiftl_of_bl)
+    by(simp add: ipset_from_cidr_def mask_bl Word.shiftl_of_bl)
 
 
   (*TODO: obsoletes NOT_mask_len32, requires WordLemmaBucket.*)
@@ -72,7 +65,7 @@ subsection{*Sets of IP addresses*}
   lemma ipset_from_cidr_alt: 
     fixes pre :: "'i::len word"
     shows "ipset_from_cidr pre len = {(pre AND ((mask len) << (len_of(TYPE('i)) - len))) .. pre OR (mask (len_of(TYPE('i)) - len))}"
-    apply(simp only: ipset_from_cidr_alt1 ipset_from_netmask_def Let_def)
+    apply(simp only: ipset_from_cidr_def ipset_from_netmask_def Let_def)
     apply(subst Word.word_oa_dist)
     apply(simp only: word_or_not)
     apply(simp only: Word.word_and_max)
@@ -84,7 +77,7 @@ subsection{*Sets of IP addresses*}
   lemma ipset_from_cidr_wordlength: 
     fixes foo :: "'i::len word"
     shows "ipset_from_cidr foo (len_of TYPE('i)) = {foo}"
-    by(simp add: ipset_from_cidr_alt1 ipset_from_netmask_def Let_def mask_def)
+    by(simp add: ipset_from_cidr_def ipset_from_netmask_def Let_def mask_def)
 
 
   lemma ipset_from_netmask_base_mask_consume:
@@ -95,12 +88,11 @@ subsection{*Sets of IP addresses*}
     by(simp add: AND_twice)
 
 
-
-
   text{*Another definition of CIDR notation: All IP addresse which are equal on the first @{text "len - n"} bits*}
   definition ip_cidr_set :: "'i::len word \<Rightarrow> nat \<Rightarrow> 'i word set" where
     "ip_cidr_set i r = {j . i AND NOT mask (len_of TYPE('i) - r) = j AND NOT mask (len_of TYPE('i) - r)}"
 
+  (*TODO: equivalence lemma here!*)
 
 
   lemma ipset_from_cidr_base_wellforemd: fixes base:: "'a::len word"
@@ -236,7 +228,7 @@ subsection{*IP Addresses in CIDR Notation*}
 
   lemma ipset_from_cidr_ipcidr_to_interval:
     "ipset_from_cidr base len = {ipcidr_to_interval_start (base,len) .. ipcidr_to_interval_end (base,len)}"
-    by(simp add: Let_def ipcidr_to_interval_def ipset_from_cidr_alt1 ipset_from_netmask_def)
+    by(simp add: Let_def ipcidr_to_interval_def ipset_from_cidr_def ipset_from_netmask_def)
   declare ipcidr_to_interval_start.simps[simp del] ipcidr_to_interval_end.simps[simp del]
 
 end

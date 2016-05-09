@@ -64,7 +64,7 @@ using some
 	apply(clarsimp simp add: fun_eq_iff)
 	apply(subst PrefixMatch.prefix_match_if_in_corny_set[OF vld])
 	apply(cases m)
-	apply(clarsimp simp add: fun_eq_iff toprefixmatch_def ipset_from_cidr_alt1 pfxm_mask_def split: if_splits)
+	apply(clarsimp simp add: fun_eq_iff toprefixmatch_def ipset_from_cidr_def pfxm_mask_def split: if_splits)
 	using NOT_mask_shifted_lenword by (metis word_not_not)
 
 definition simple_match_to_of_match_single ::

@@ -279,7 +279,7 @@ subsection{*IP ranges*}
 
   lemma transition_lemma_ipv4_delete_me:
     "ipv4range_set_from_prefix = ipset_from_cidr"
-    apply(simp add: fun_eq_iff ipv4range_set_from_prefix_def ipv4range_set_from_netmask_def ipset_from_netmask_def ipset_from_cidr_alt2)
+    apply(simp add: fun_eq_iff ipv4range_set_from_prefix_def ipv4range_set_from_netmask_def ipset_from_netmask_def ipset_from_cidr_bl)
     done
 
   lemma "(replicate 3 True) = [True, True, True]" by eval

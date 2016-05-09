@@ -252,7 +252,7 @@ lemma prefix_match_if_in_corny_set:
 lemma prefix_match_if_in_corny_set2:
   assumes "valid_prefix pfx"
   shows "prefix_match_semantics pfx (a :: 'i::len word) \<longleftrightarrow> a \<in> ipset_from_cidr (pfxm_prefix pfx) (pfxm_length pfx)"
- unfolding prefix_match_if_in_corny_set[OF assms] pfxm_mask_def ipset_from_cidr_alt1
+ unfolding prefix_match_if_in_corny_set[OF assms] pfxm_mask_def ipset_from_cidr_def
  by (metis (full_types) NOT_mask_shifted_lenword word_not_not)
 
 (*TODO: can this be deleted?*)
@@ -363,7 +363,7 @@ lemma ipv4range_set_from_prefix_eq_ip_cidr_set: fixes base::"'i::len word"
   unfolding ip_cidr_set_def
   unfolding set_eq_iff
   unfolding mem_Collect_eq
-  unfolding ipset_from_cidr_alt1
+  unfolding ipset_from_cidr_def
   unfolding maskshift_eq_not_mask_generic
   using caesar_proof_without_structures[OF mask_and_not_mask_helper, of _ base m]
   unfolding ipset_from_netmask_base_mask_consume
