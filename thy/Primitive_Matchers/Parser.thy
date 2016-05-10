@@ -541,9 +541,16 @@ Pretty.writeln (Syntax.pretty_term @{context} example);*)
 
 ML{*
 local
-  fun define_const t name =
-    Proof_Context.set_stmt false  (* FIXME workaround "context begin" oddity *)
-    #> Local_Theory.define ((name, NoSyn), ((Thm.def_binding name, @{attributes [code]}), t)) #> #2;
+  fun define_const t name lthy = let
+      val binding_name = Thm.def_binding name
+      val _ = writeln ("Defining constant `" ^ Binding.name_of binding_name ^ "'");
+    in
+      lthy
+      (*without Proof_Context.set_stmt, there is an ML stack overflow for large iptables-save dumps*)
+      (*Debugged by Makarius, Isabelle2016*)
+      |> Proof_Context.set_stmt false  (* FIXME workaround "context begin" oddity *)
+      |> Local_Theory.define ((name, NoSyn), ((binding_name, @{attributes [code]}), t)) |> #2
+    end;
 
   fun print_default_policies (ps: (string * term) list) = let
       val _ = map (fn (name, _) => if name <> "INPUT" andalso name <> "FORWARD" andalso name <> "OUTPUT" then
