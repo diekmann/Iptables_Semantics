@@ -543,8 +543,10 @@ ML{*
 local
   fun define_const (t: term) (name: binding) (lthy: local_theory) : local_theory = let
         val _ = writeln ("Defining constant `"^Binding.name_of name^"' ("^Binding.name_of name^"_def')");
-        val ((_, (_, thm)), lthy) = Local_Theory.define ((name, NoSyn), ((Binding.empty, []), t)) lthy;
-        val (_, lthy) = Local_Theory.note ((Binding.suffix_name "_def" name, @{attributes [code]}), [thm]) lthy;
+        val ((_, (str, thm)), lthy) = Runtime.exn_trace (fn _ => Local_Theory.define ((name, NoSyn), ((Binding.empty, []), t)) lthy);
+        val _ = writeln ("Defined. Returned: "^str);
+        val (str_thmlist, lthy) = Runtime.exn_trace (fn _ => Local_Theory.note ((Binding.suffix_name "_def" name, @{attributes [code]}), [thm]) lthy);
+        val _ = writeln ("Noted. Returned: "^fst str_thmlist);
        in
          lthy
        end
