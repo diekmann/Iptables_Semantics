@@ -46,7 +46,7 @@ section{*Example: Implementing spoofing protection*}
   definition "preprocess default_policy fw \<equiv> (upper_closure (ctstate_assume_new (unfold_ruleset_CHAIN ''PREROUTING'' default_policy (map_of_string fw))))"
 
   local_setup \<open>
-    local_setup_parse_iptables_save "raw" @{binding raw_fw1} ["2015_aug_iptables-save-spoofing-protection"]
+    parse_iptables_save "raw" @{binding raw_fw1} ["2015_aug_iptables-save-spoofing-protection"]
    \<close>
   thm raw_fw1_def
   thm raw_fw1_PREROUTING_default_policy_def

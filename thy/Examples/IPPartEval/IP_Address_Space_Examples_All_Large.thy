@@ -115,9 +115,7 @@ end
 
 context
 begin
- private local_setup \<open>
-    local_setup_parse_iptables_save "filter" @{binding net_fw2} ["TUM_Net", "iptables-save-2015-09-03_15-56-50"]
-   \<close>
+ private parse_iptables_save net_fw2 = "TUM_Net" "iptables-save-2015-09-03_15-56-50"
 
   value[code] "bench upper_closure FWD ipassmt net_fw2_FORWARD_default_policy net_fw2"
   value[code] "view upper_closure FWD ipassmt net_fw2_FORWARD_default_policy net_fw2"
@@ -137,9 +135,7 @@ end
 
 context
 begin
- private local_setup \<open>
-    local_setup_parse_iptables_save "filter" @{binding net_fw2013} ["TUM_Net", "iptables_20.10.2013"]
-   \<close>
+ private parse_iptables_save net_fw2013 = "TUM_Net" "iptables_20.10.2013"
 
   value[code] "bench upper_closure FWD ipassmt net_fw2013_FORWARD_default_policy net_fw2013"
   value[code] "view upper_closure FWD ipassmt net_fw2013_FORWARD_default_policy net_fw2013"
@@ -160,9 +156,7 @@ end
 
 context
 begin
- private local_setup \<open>
-    local_setup_parse_iptables_save "filter" @{binding net_fw2014} ["TUM_Net", "iptables_25.07.2014"]
-   \<close>
+ private parse_iptables_save net_fw2014 = "TUM_Net" "iptables_25.07.2014"
 
   value[code] "bench upper_closure FWD ipassmt net_fw2014_FORWARD_default_policy net_fw2014"
   value[code] "view upper_closure FWD ipassmt net_fw2014_FORWARD_default_policy net_fw2014"
