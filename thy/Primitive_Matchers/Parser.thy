@@ -549,7 +549,7 @@ local
       (*without Proof_Context.set_stmt, there is an ML stack overflow for large iptables-save dumps*)
       (*Debugged by Makarius, Isabelle2016*)
       |> Proof_Context.set_stmt false  (* FIXME workaround "context begin" oddity *)
-      |> Local_Theory.define ((name, NoSyn), ((binding_name, @{attributes [code]}), t)) |> #2
+      |> Runtime.exn_trace (fn _ => Local_Theory.define ((name, NoSyn), ((binding_name, @{attributes [code]}), t))) |> #2
     end;
 
   fun print_default_policies (ps: (string * term) list) = let
@@ -557,8 +557,8 @@ local
                       writeln ("WARNING: the chain `"^name^"' is not a built-in chain of the filter table") else ()) ps
       in ps end;
 
-  fun sanity_check_ruleset t = let
-      val check = Code_Evaluation.dynamic_value_strict @{context} (@{const sanity_wf_ruleset (common_primitive)} $ t)
+  fun sanity_check_ruleset (ctx: Proof.context) t = let
+      val check = Code_Evaluation.dynamic_value_strict ctx (@{const sanity_wf_ruleset (common_primitive)} $ t)
     in
       if check <> @{term "True"} then raise ERROR "sanity_wf_ruleset failed" else t
     end;
@@ -573,8 +573,8 @@ in
             |> make_firewall_table
             |> mk_Ruleset
             (*this may a while*)
-            |> simplify_code @{context}
-            |> trace_timing "checked sanity with sanity_wf_ruleset" sanity_check_ruleset
+            |> simplify_code lthy (*was: @{context} (*TODO: is this correct here?*)*)
+            |> trace_timing "checked sanity with sanity_wf_ruleset" (sanity_check_ruleset lthy)
       val default_policis = prepared
             |> get_chain_decls_policy
             |> preparedefault_policies
