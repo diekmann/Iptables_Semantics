@@ -52,9 +52,7 @@ export_code bench view in SML
 
 context
 begin
-  private local_setup \<open>
-     local_setup_parse_iptables_save "filter" @{binding fw12} ["config_memphis_testbed", "iptables-save"]
-    \<close>
+  private  parse_iptables_save fw12 = config_memphis_testbed "iptables-save"
   thm fw12_def
 
   value[code] "bench upper_closure FWD ipassmt_generic fw12_FORWARD_default_policy fw12"
@@ -65,7 +63,7 @@ begin
 end
 
 
-
+(*
 context
 begin
  private local_setup \<open>
@@ -425,5 +423,5 @@ begin
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt15 fw15_INPUT_default_policy fw15 in
                map ipv4addr_wordinterval_toString (build_ip_partition tcpdst137 fw)"
 end
-
+*)
 end

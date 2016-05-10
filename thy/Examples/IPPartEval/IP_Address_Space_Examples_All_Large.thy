@@ -73,9 +73,9 @@ definition ldaps_tcp where "ldaps_tcp = \<lparr>pc_iiface=''1'', pc_oiface=''1''
 
 context
 begin
- private local_setup \<open>
-    local_setup_parse_iptables_save "filter" @{binding net_fw} ["TUM_Net", "iptables-save-2015-05-15_15-23-41"]
-   \<close>
+
+
+ private parse_iptables_save net_fw = "TUM_Net" "iptables-save-2015-05-15_15-23-41"
 
   value[code] "bench upper_closure FWD ipassmt net_fw_FORWARD_default_policy net_fw"
   value[code] "view upper_closure FWD ipassmt net_fw_FORWARD_default_policy net_fw"
