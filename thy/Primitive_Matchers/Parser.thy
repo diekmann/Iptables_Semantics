@@ -11,7 +11,8 @@ begin
   private definition get_pos_Extra :: "common_primitive negation_type \<Rightarrow> string" where
     "get_pos_Extra a \<equiv> (case a of Pos (Extra e) \<Rightarrow> e | _ \<Rightarrow> undefined)"
   
-  fun compress_parsed_extra :: "common_primitive negation_type list \<Rightarrow> common_primitive negation_type list" where
+  fun compress_parsed_extra
+    :: "common_primitive negation_type list \<Rightarrow> common_primitive negation_type list" where
     "compress_parsed_extra [] = []" |
     "compress_parsed_extra (a1#a2#as) = (if is_pos_Extra a1 \<and> is_pos_Extra a2
         then compress_parsed_extra (Pos (Extra (get_pos_Extra a1@'' ''@get_pos_Extra a2))#as)
@@ -19,33 +20,46 @@ begin
         )" |
     "compress_parsed_extra (a#as) = a#compress_parsed_extra as"
   
-  value "compress_parsed_extra
-    (map Pos [Extra ''-m'', Extra ''recent'', Extra ''--update'', Extra ''--seconds'', Extra ''60'', IIface (Iface ''foobar''),
-              Extra ''--name'', Extra ''DEFAULT'', Extra ''--rsource''])"
+  lemma "compress_parsed_extra
+    (map Pos [Extra ''-m'', Extra ''recent'',
+              Extra ''--update'', Extra ''--seconds'', Extra ''60'',
+              IIface (Iface ''foobar''),
+              Extra ''--name'', Extra ''DEFAULT'', Extra ''--rsource'']) =
+     map Pos [Extra ''-m recent --update --seconds 60'',
+              IIface (Iface ''foobar''),
+              Extra ''--name DEFAULT --rsource'']" by eval
   
-  private lemma eval_ternary_And_Unknown_Unkown: "eval_ternary_And TernaryUnknown (eval_ternary_And TernaryUnknown tv) = (eval_ternary_And TernaryUnknown tv)"
+  private lemma eval_ternary_And_Unknown_Unkown:
+    "eval_ternary_And TernaryUnknown (eval_ternary_And TernaryUnknown tv) =
+        eval_ternary_And TernaryUnknown tv"
     by(cases tv) (simp_all)
   
-  private lemma is_pos_Extra_alist_and: "is_pos_Extra a \<Longrightarrow> alist_and (a#as) = MatchAnd (Match (Extra (get_pos_Extra a))) (alist_and as)"
+  private lemma is_pos_Extra_alist_and:
+    "is_pos_Extra a \<Longrightarrow> alist_and (a#as) = MatchAnd (Match (Extra (get_pos_Extra a))) (alist_and as)"
     apply(cases a)
      apply(simp_all add: get_pos_Extra_def is_pos_Extra_def)
     apply(rename_tac e)
     by(case_tac e)(simp_all)
   
-  private lemma compress_parsed_extra_matchexpr_helper: "ternary_ternary_eval (map_match_tac common_matcher p (alist_and (compress_parsed_extra as))) =
+  private lemma compress_parsed_extra_matchexpr_helper:
+    "ternary_ternary_eval (map_match_tac common_matcher p (alist_and (compress_parsed_extra as))) =
          ternary_ternary_eval (map_match_tac common_matcher p (alist_and as))"
-   apply(induction as rule: compress_parsed_extra.induct)
-     apply(simp_all split: match_expr.split match_expr.split_asm common_primitive.split)
-   apply(simp_all add: is_pos_Extra_alist_and)
-   apply(safe)
-     apply(simp_all add: eval_ternary_And_Unknown_Unkown bool_to_ternary_simps)
-    apply(rename_tac a1 a2 as)
-    apply(case_tac [!] a1)
-      apply(simp_all)
-   done
+   proof(induction as rule: compress_parsed_extra.induct)
+   case 1 thus ?case by(simp)
+   next
+   case (2 a1 a2) thus ?case
+     apply(simp add: is_pos_Extra_alist_and)
+     apply(cases a1)
+      apply(simp_all add: eval_ternary_And_Unknown_Unkown)
+     done
+   next
+   case 3 thus ?case by(simp)
+   qed
   
   text{*This lemma justifies that it is okay to fold together the parsed unknown tokens*}
-  lemma compress_parsed_extra_matchexpr: "matches (common_matcher, \<alpha>) (alist_and (compress_parsed_extra as)) = matches (common_matcher, \<alpha>) (alist_and as)"
+  lemma compress_parsed_extra_matchexpr:
+    "matches (common_matcher, \<alpha>) (alist_and (compress_parsed_extra as)) =
+        matches (common_matcher, \<alpha>) (alist_and as)"
     apply(simp add: fun_eq_iff)
     apply(intro allI)
     apply(rule matches_iff_apply_f)
@@ -91,23 +105,35 @@ local
   fun is_end_of_table s = s = "COMMIT";
 
   fun load_file (thy: theory) (path: string list) =
-      let val p =  File.full_path (Resources.master_directory thy) (Path.make path); in
-      let val _ = "loading file "^File.platform_path p |> writeln; in
-        if not (File.exists p) orelse (File.is_dir p) then raise Fail "File not found" else File.read_lines p
-      end end;
+      let val p =  File.full_path (Resources.master_directory thy) (Path.make path);
+          val _ = "loading file "^File.platform_path p |> writeln;
+      in
+        if
+          not (File.exists p) orelse (File.is_dir p)
+        then
+          raise Fail "File not found"
+        else
+          File.read_lines p
+      end;
 
   fun extract_table _ [] = []
-   |  extract_table table (r::rs) = if not (is_start_of_table table r) then extract_table table rs else
-                                     takeWhile (fn x => not (is_end_of_table x)) rs
+   |  extract_table table (r::rs) = if not (is_start_of_table table r)
+                                    then
+                                      extract_table table rs
+                                    else
+                                      takeWhile (fn x => not (is_end_of_table x)) rs;
 
-  fun writenumloaded table_name table =
-    let val _ = "Loaded "^ Int.toString (length table) ^" lines of the "^table_name^" table" |> writeln; in
-      table
-    end;
+  fun writenumloaded table_name table = let
+      val _ = "Loaded "^ Int.toString (length table) ^" lines of the "^table_name^" table" |> writeln;
+    in table end;
 
   fun warn_windows_line_endings lines =
     let
-      val warn = fn s => if String.isSuffix "\r" s then writeln "WARNING: windows \\r\\n line ending detected" else ()
+      val warn = fn s => if String.isSuffix "\r" s
+                         then
+                           writeln "WARNING: windows \\r\\n line ending detected"
+                         else
+                           ()
       val _ = map warn lines
     in
       lines
@@ -141,17 +167,22 @@ ipt_explode "ad \"foobar --boo boo";
 
 ML{*
 datatype parsed_action_type = TypeCall | TypeGoto
-datatype parsed_match_action = ParsedMatch of term | ParsedNegatedMatch of term | ParsedAction of parsed_action_type * string;
+datatype parsed_match_action = ParsedMatch of term
+                             | ParsedNegatedMatch of term
+                             | ParsedAction of parsed_action_type * string;
+
 local (*iptables-save parsers*)
   val is_whitespace = Scan.many (fn x => x = " ");
   
   local (*parser for matches*)
     local
-      fun extract_int ss = case ss |> implode |> Int.fromString of SOME i => i
-                                                                 | NONE => raise Fail "unparsable int";
+      fun extract_int ss = case ss |> implode |> Int.fromString
+                                                    of SOME i => i
+                                                    |  NONE   => raise Fail "unparsable int";
     
       fun is_iface_char x = Symbol.is_ascii x andalso
-          (Symbol.is_ascii_letter x orelse Symbol.is_ascii_digit x orelse x = "+" orelse x = "*" orelse x = "." orelse x = "-")
+            (Symbol.is_ascii_letter x orelse Symbol.is_ascii_digit x orelse x = "+"
+             orelse x = "*" orelse x = "." orelse x = "-")
     in
       fun mk_nat maxval i = if i < 0 orelse i > maxval
                 then
@@ -204,7 +235,12 @@ local (*iptables-save parsers*)
       local
         val mk_port_single = mk_nat 65535 #> (fn n => @{const nat_to_16word} $ n)
         val parse_port_raw = Scan.many1 Symbol.is_ascii_digit >> extract_int
-        fun port_tuple_warn (p1,p2) = if p1 >= p2 then let val _= writeln ("WARNING (in ports): "^Int.toString p1^" >= "^Int.toString p2) in (p1, p2) end else (p1, p2);
+        fun port_tuple_warn (p1,p2) = 
+                if p1 >= p2
+                then
+                  let val _= writeln ("WARNING (in ports): "^Int.toString p1^" >= "^Int.toString p2)
+                  in (p1, p2) end
+                else (p1, p2);
       in
         val parser_port_single_tup = (
                  (parse_port_raw --| $$ ":" -- parse_port_raw) >> (port_tuple_warn #> (fn (p1,p2) => (mk_port_single p1, mk_port_single p2)))
@@ -359,17 +395,22 @@ map (fn p => case p of ParsedMatch t => Pretty.writeln (Syntax.pretty_term @{con
 
 ML{*
 local
-  fun parse_rule_options (s: string list) : parsed_match_action list = let val (parsed, rest) = (case try (Scan.catch (Scan_cons_repeat option_parser)) s of SOME x => x | NONE => raise Fail "scanning")
-            in
-            if rest <> []
-            then
-              raise Fail ("Unparsed: `"^implode rest^"'")
-            else
-              parsed
-            end
-            handle Fail m => raise Fail ("parse_rule_options: "^m^" for rule `"^implode s^"'");
+  fun parse_rule_options (s: string list) : parsed_match_action list = let
+        val (parsed, rest) = (case try (Scan.catch (Scan_cons_repeat option_parser)) s
+                                                                of SOME x => x
+                                                                |  NONE   => raise Fail "scanning")
+      in
+      if rest <> []
+      then
+        raise Fail ("Unparsed: `"^implode rest^"'")
+      else
+        parsed
+      end
+      handle Fail m => raise Fail ("parse_rule_options: "^m^" for rule `"^implode s^"'");
 
-   fun get_target (ps : parsed_match_action list) : (parsed_action_type * string) option = let val actions = List.mapPartial (fn p => case p of ParsedAction a => SOME a | _ => NONE) ps
+   fun get_target (ps : parsed_match_action list) : (parsed_action_type * string) option = let
+        val actions = List.mapPartial (fn p => case p of ParsedAction a => SOME a
+                                                      |   _             => NONE) ps
       in case actions of [] => NONE
                       |  [action] => SOME action
                       | _ => raise Fail "there can be at most one target"
@@ -385,23 +426,29 @@ local
 
    (*returns: (chainname the rule was appended to, target, matches)*)
    fun parse_rule (s: string) : (string * (parsed_action_type * string) option * term) = let
-      val (chainname, rest) =
-        (case try (ipt_explode #> Scan.finite Symbol.stopper parse_table_append) s of SOME x => x | NONE => raise Fail ("parse_rule: parse_table_append: "^s))
-      in let val parsed = parse_rule_options rest in
-        (chainname, get_target parsed, get_matches parsed)
-      end end;
+        val (chainname, rest) =
+          (case try (ipt_explode #> Scan.finite Symbol.stopper parse_table_append) s
+                                    of SOME x => x
+                                    |  NONE   => raise Fail ("parse_rule: parse_table_append: "^s));
+        val parsed = parse_rule_options rest
+      in (chainname, get_target parsed, get_matches parsed) end;
 in
   (*returns (parsed chain declarations, parsed appended rules*)
   fun rule_type_partition (rs : string list) : ((string * string option) list * (string * (parsed_action_type * string) option * term) list) =
-      let val (chain_decl, rules) = List.partition (String.isPrefix ":") rs in
-      if not (List.all (String.isPrefix "-A") rules) then raise Fail "could not partition rules" else
-        let val parsed_chain_decls = (case try (map (ipt_explode #> chain_decl_parser)) chain_decl of SOME x => x | NONE =>
-                                                      raise Fail ("could not parse chain declarations: "^implode chain_decl)) in
-        let val parsed_rules = map parse_rule rules in
-            let val  _ = "Parsed "^ Int.toString (length parsed_chain_decls) ^" chain declarations" |> writeln in
-            let val  _ = "Parsed "^ Int.toString (length parsed_rules) ^" rules" |> writeln in
-              (parsed_chain_decls, parsed_rules)
-            end end end end
+      let
+        val (chain_decl, rules) = List.partition (String.isPrefix ":") rs
+      in
+      if not (List.all (String.isPrefix "-A") rules)
+      then
+        raise Fail "could not partition rules"
+      else
+        let val parsed_chain_decls = (case try (map (ipt_explode #> chain_decl_parser)) chain_decl
+                      of SOME x => x
+                      |  NONE => raise Fail ("could not parse chain declarations: "^implode chain_decl));
+            val parsed_rules = map parse_rule rules;
+            val  _ = "Parsed "^ Int.toString (length parsed_chain_decls) ^" chain declarations" |> writeln;
+            val  _ = "Parsed "^ Int.toString (length parsed_rules) ^" rules" |> writeln;
+         in (parsed_chain_decls, parsed_rules) end
       end
    fun get_chain_decls_policy (ls: ((string * string option) list * (string * (parsed_action_type * string) option * term) list)) = fst ls
    fun get_parsed_rules (ls: ((string * string option) list * (string * (parsed_action_type * string) option * term) list)) = snd ls
@@ -425,7 +472,11 @@ local
   fun hacky_hack t = (*Code_Evaluation.dynamic_value_strict @{context} (@{const compress_extra} $ t)*)
     @{const alist_and' ("common_primitive")} $ (@{const compress_parsed_extra} $ t)
   
-  fun mk_MatchExpr t = if fastype_of t <> @{typ "common_primitive negation_type list"} then raise Fail "Type Error" else hacky_hack t;
+  fun mk_MatchExpr t = if fastype_of t <> @{typ "common_primitive negation_type list"}
+                       then
+                         raise Fail "Type Error"
+                       else
+                         hacky_hack t;
   fun mk_Rule_help t a = let val r = @{const Rule (common_primitive)} $ (mk_MatchExpr t) $ a in
       if fastype_of r <> @{typ "common_primitive rule"} then raise Fail "Type error in mk_Rule_help"
       else r end;
@@ -435,23 +486,31 @@ local
       |  SOME rules => FirewallTable.update (chain, rules@[rule]) table
   
   fun mk_Rule (tbl: firewall_table) (chain: string, target : (parsed_action_type * string) option, t : term) =
-    if not (FirewallTable.defined tbl chain) then raise Fail ("undefined chain to be appended: "^chain) else
-    case target
+    if not (FirewallTable.defined tbl chain)
+    then
+      raise Fail ("undefined chain to be appended: "^chain)
+    else case target
     of NONE => mk_Rule_help t @{const action.Empty}
      | SOME (TypeCall, "ACCEPT") => mk_Rule_help t @{const action.Accept}
      | SOME (TypeCall, "DROP") => mk_Rule_help t @{const action.Drop}
      | SOME (TypeCall, "REJECT") => mk_Rule_help t @{const action.Reject}
      | SOME (TypeCall, "LOG") => mk_Rule_help t @{const action.Log}
      | SOME (TypeCall, "RETURN") => mk_Rule_help t @{const action.Return}
-     | SOME (TypeCall, custom) => if not (FirewallTable.defined tbl custom) then raise Fail ("unknown action: "^custom) else
-                      mk_Rule_help t (@{const action.Call} $ HOLogic.mk_string custom)
+     | SOME (TypeCall, custom) => if not (FirewallTable.defined tbl custom)
+                                  then
+                                    raise Fail ("unknown action: "^custom)
+                                  else
+                                    mk_Rule_help t (@{const action.Call} $ HOLogic.mk_string custom)
      | SOME (TypeGoto, "ACCEPT") => raise Fail "Unexpected"
      | SOME (TypeGoto, "DROP") => raise Fail "Unexpected"
      | SOME (TypeGoto, "REJECT") => raise Fail "Unexpected"
      | SOME (TypeGoto, "LOG") => raise Fail "Unexpected"
      | SOME (TypeGoto, "RETURN") => raise Fail "Unexpected"
-     | SOME (TypeGoto, custom) => if not (FirewallTable.defined tbl custom) then raise Fail ("unknown action: "^custom) else
-                      mk_Rule_help t (@{const action.Goto} $ HOLogic.mk_string custom);
+     | SOME (TypeGoto, custom) => if not (FirewallTable.defined tbl custom)
+                                  then
+                                    raise Fail ("unknown action: "^custom)
+                                  else
+                                    mk_Rule_help t (@{const action.Goto} $ HOLogic.mk_string custom);
   
   (*val init = FirewallTable_init parsed_chain_decls;*)
   (*map type_of (map (mk_Rule init) parsed_rules);*)
@@ -466,22 +525,6 @@ in
 end
 *}
 
-
-
-(*TODO: think about the path handling in the parser again*)
-(*
-ML_val{* (*Example: the functions*)
-val filter_table = load_filter_table @{theory} ["../", "Examples", "Parser_Test", "data", "iptables-save"];
-val parsed_ruleset = filter_table |> rule_type_partition |> filter_chain_decls_names_only |> make_firewall_table;
-
-val (parsed_chain_decls, parsed_rules) = rule_type_partition filter_table;
-
-val toString = (fn (a,target,b) => "-A "^a^" "^((Syntax.pretty_term @{context} #> Pretty.string_of) b)^(case target of NONE => "" | SOME (TypeCall, t) => " -j "^t | SOME (TypeGoto, t) => " -g "^t));
-map (toString #> writeln) parsed_rules;
-
-map (fn (_,_,b) =>  type_of b) parsed_rules;
-*}
-*)
 
 ML{*
 fun mk_Ruleset (tbl: firewall_table) = FirewallTable.dest tbl
@@ -553,8 +596,11 @@ local
     end;
 
   fun print_default_policies (ps: (string * term) list) = let
-      val _ = map (fn (name, _) => if name <> "INPUT" andalso name <> "FORWARD" andalso name <> "OUTPUT" then
-                      writeln ("WARNING: the chain `"^name^"' is not a built-in chain of the filter table") else ()) ps
+      val _ = ps |> map (fn (name, _) =>
+              if name <> "INPUT" andalso name <> "FORWARD" andalso name <> "OUTPUT"
+              then
+                writeln ("WARNING: the chain `"^name^"' is not a built-in chain of the filter table")
+              else ())
       in ps end;
 
   fun sanity_check_ruleset (ctx: Proof.context) t = let
