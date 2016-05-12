@@ -775,5 +775,7 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
   apply(case_tac ip)
   apply(simp)
   apply(simp add: Let_def split_if_asm)
+  oops (*TODO: unfinished theory*)
+
 
 end

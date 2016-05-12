@@ -4,7 +4,6 @@
 theory WordInterval
 imports Main
   Word_Next
-  NumberWang
   "~~/src/HOL/Word/Word"
   "~~/src/HOL/Library/Code_Target_Nat" (*!*)
 begin

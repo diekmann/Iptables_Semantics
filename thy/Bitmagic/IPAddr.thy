@@ -6,7 +6,6 @@ imports Main
   NumberWang
   WordInterval_Lists
   "~~/src/HOL/Word/Word"
-  "./l4v/lib/WordLemmaBucket" (*will things break if I include this early?*)
 begin
 
 section {*Modelling IP Adresses*}
@@ -136,77 +135,104 @@ subsection{*Sets of IP addresses*}
   qed
 
 
-(*This is what 
-thm packet_ipset_prefix_eq24[simplified ipset_prefix_match_def]
-without all the prefix semantics definitions gives us*)
-lemma zero_base_lsb_imp_set_eq_as_bit_operation:
-  fixes base ::"'a::len word"
-  assumes valid_prefix: "mask (len_of TYPE('a) - len) AND base = 0"
-  shows "(base = NOT mask (len_of TYPE('a) - len) AND a) \<longleftrightarrow>
-         (a \<in> {base .. base || mask (len_of TYPE('a) - len)})"
-proof
-  have helper3: "x OR y = x OR y AND NOT x" for x y ::"'a::len word" by (simp add: word_oa_dist2)
-  from assms show "base = NOT mask (len_of TYPE('a) - len) AND a \<Longrightarrow> a \<in> {base..base || mask (len_of TYPE('a) - len)}"
-    apply(simp add: word_and_le1)
-    apply(metis helper3 le_word_or2 word_bw_comms(1) word_bw_comms(2))
+
+(*TODO: rename*)
+lemma ipv4set_from_cidr_eq_ip_cidr_set:
+  fixes base::"'i::len word"
+  shows "ipset_from_cidr base len = ip_cidr_set base len"
+proof -
+  have maskshift_eq_not_mask_generic: "((mask len << len_of TYPE('a) - len) :: 'a::len word) = NOT mask (len_of TYPE('a) - len)"
+    using NOT_mask_shifted_lenword by (metis word_not_not) 
+
+  have 1: "mask (len - m) AND base AND NOT mask (len - m) = 0"
+    for len m and base::"'i::len word"
+    by(simp add: word_bw_lcs)
+
+  have 2: "mask (len_of TYPE('i) - len) AND pfxm_p = 0 \<Longrightarrow>
+         (a \<in> ipset_from_netmask pfxm_p (NOT mask (len_of TYPE('i) - len))) \<longleftrightarrow>
+         (pfxm_p = NOT mask (len_of TYPE('i) - len) AND a)" for a::"'i::len word" and pfxm_p
+  apply(subst ipset_from_cidr_alt2[symmetric])
+  apply(subst zero_base_lsb_imp_set_eq_as_bit_operation)
+   apply(simp; fail)
+  apply(subst ipset_from_cidr_base_wellforemd)
+   apply(simp; fail)
+  apply(simp)
   done
-next
-  assume"a \<in> {base..base || mask (len_of TYPE('a) - len)}"
-  hence a: "base \<le> a \<and> a \<le> base OR mask (len_of TYPE('a) - len)" by simp
-  show "base = NOT mask (len_of TYPE('a) - len) AND a"
-  proof -
-    have f2: "\<forall>x\<^sub>0. base AND NOT mask x\<^sub>0 \<le> a AND NOT mask x\<^sub>0"
-      using a neg_mask_mono_le by blast
-    have f3: "\<forall>x\<^sub>0. a AND NOT mask x\<^sub>0 \<le> (base OR mask (len_of TYPE('a) - len)) AND NOT mask x\<^sub>0"
-      using a neg_mask_mono_le by blast
-    have f4: "base = base AND NOT mask (len_of TYPE('a) - len)"
-      using valid_prefix by (metis mask_eq_0_eq_x word_bw_comms(1))
-    hence f5: "\<forall>x\<^sub>6. (base OR x\<^sub>6) AND NOT mask (len_of TYPE('a) - len) = base OR x\<^sub>6 AND NOT mask (len_of TYPE('a) - len)"
-      using word_ao_dist by (metis)
-    have f6: "\<forall>x\<^sub>2 x\<^sub>3. a AND NOT mask x\<^sub>2 \<le> x\<^sub>3 \<or> \<not> (base OR mask (len_of TYPE('a) - len)) AND NOT mask x\<^sub>2 \<le> x\<^sub>3"
-      using f3 dual_order.trans by auto
-    have "base = (base OR mask (len_of TYPE('a) - len)) AND NOT mask (len_of TYPE('a) - len)"
-      using f5 by auto
-    hence "base = a AND NOT mask (len_of TYPE('a) - len)"
-      using f2 f4 f6 by (metis eq_iff)
-    thus "base = NOT mask (len_of TYPE('a) - len) AND a"
-      by (metis word_bw_comms(1))
-  qed
+
+  from 2[OF 1, of _ base] have
+    "(x \<in> ipset_from_netmask base (~~ mask (len_of TYPE('i) - len))) \<longleftrightarrow>
+     (base && ~~ mask (len_of TYPE('i) - len) = x && ~~ mask (len_of TYPE('i) - len))" for x
+  apply(subst ipset_from_netmask_base_mask_consume[symmetric])
+  unfolding word_bw_comms(1)[of _ " ~~ mask (len_of TYPE('i) - len)"] by simp
+  then show ?thesis
+    unfolding ip_cidr_set_def ipset_from_cidr_def
+    by(auto simp add:  maskshift_eq_not_mask_generic)
 qed
 
 
-(*TODO: delete*)
-lemma maskshift_eq_not_mask_generic: "((mask m << len_of TYPE('a) - m) :: 'a::len word) = NOT mask (len_of TYPE('a) - m)"
-  using NOT_mask_shifted_lenword by (metis word_not_not) 
+
+subsection{*IP Addresses as WordIntervals*}
+  definition iprange_single :: "'i::len word \<Rightarrow> 'i wordinterval" where
+    "iprange_single ip \<equiv> WordInterval ip ip"
+
+  fun iprange_interval :: "('i::len word \<times> 'i::len word) \<Rightarrow> 'i wordinterval" where
+    "iprange_interval (ip_start, ip_end) = WordInterval ip_start ip_end"
+  declare iprange_interval.simps[simp del]
 
 
-lemma caesar_proof_without_structures: "mask (len_of TYPE('a) - l) AND (pfxm_p::'a::len word) = 0 \<Longrightarrow>
-       (a \<in> ipset_from_netmask (pfxm_p) (NOT mask (len_of TYPE('a) - l))) \<longleftrightarrow>
-       (pfxm_p = NOT mask (len_of TYPE('a) - l) AND a)"
-apply(subst ipset_from_cidr_alt2[symmetric])
-apply(subst zero_base_lsb_imp_set_eq_as_bit_operation)
- apply(simp; fail)
-apply(subst ipset_from_cidr_base_wellforemd)
- apply(simp; fail)
-apply(simp)
-done
+  lemma "wordinterval_to_set (iprange_single ip) = {ip}" by(simp add: iprange_single_def)
+  lemma "wordinterval_to_set (iprange_interval (ip1, ip2)) = {ip1 .. ip2}" by(simp add: iprange_interval.simps)
+  
+  text{*Now we can use the set operations on @{typ "'i::len wordinterval"}s*}
 
-(*TODO: delete*)
-lemma mask_and_not_mask_helper: "mask (len - m) AND base AND NOT mask (len - m) = 0"
-  by(simp add: word_bw_lcs)
+  term wordinterval_to_set
+  term wordinterval_element
+  term wordinterval_union
+  term wordinterval_empty
+  term wordinterval_setminus
+  term wordinterval_UNIV
+  term wordinterval_invert
+  term wordinterval_intersection
+  term wordinterval_subset
+  term wordinterval_eq
 
-(*TODO: rename*)
-lemma ipv4set_from_cidr_eq_ip_cidr_set: fixes base::"'i::len word"
-  shows "ipset_from_cidr base m = ip_cidr_set base m"
-  unfolding ip_cidr_set_def
-  unfolding set_eq_iff
-  unfolding mem_Collect_eq
-  unfolding ipset_from_cidr_def
-  unfolding maskshift_eq_not_mask_generic
-  using caesar_proof_without_structures[OF mask_and_not_mask_helper, of _ base m]
-  apply(subst ipset_from_netmask_base_mask_consume[symmetric])
-  unfolding word_bw_comms(1)[of _ " ~~ mask (len_of TYPE('i) - m)"]
-  ..
+
+subsection{*IP Addresses in CIDR Notation*}
+
+  fun ipcidr_to_interval_start :: "('a::len word \<times> nat) \<Rightarrow> 'a::len word" where
+    "ipcidr_to_interval_start (pre, len) = (
+      let netmask = (mask len) << (len_of TYPE('a) - len);
+          network_prefix = (pre AND netmask)
+      in network_prefix)"
+  fun ipcidr_to_interval_end :: "('a::len word \<times> nat) \<Rightarrow> 'a::len word" where
+    "ipcidr_to_interval_end (pre, len) = (
+      let netmask = (mask len) << (len_of TYPE('a) - len);
+          network_prefix = (pre AND netmask)
+      in network_prefix OR (NOT netmask))"
+  definition ipcidr_to_interval :: "('a::len word \<times> nat) \<Rightarrow> ('a::len word \<times> 'a::len word)" where
+    "ipcidr_to_interval cidr = (ipcidr_to_interval_start cidr, ipcidr_to_interval_end cidr)"
+
+
+  lemma ipset_from_cidr_ipcidr_to_interval:
+    "ipset_from_cidr base len = {ipcidr_to_interval_start (base,len) .. ipcidr_to_interval_end (base,len)}"
+    by(simp add: Let_def ipcidr_to_interval_def ipset_from_cidr_def ipset_from_netmask_def)
+  declare ipcidr_to_interval_start.simps[simp del] ipcidr_to_interval_end.simps[simp del]
+
+
+  definition ipcidr_tuple_to_wordinterval :: "('i::len word \<times> nat) \<Rightarrow> 'i wordinterval" where
+    "ipcidr_tuple_to_wordinterval iprng = iprange_interval (ipcidr_to_interval iprng)"
+
+
+  (*TODO: rename*)
+  lemma wordinterval_to_set_ipcidr_tuple_to_wordinterval:
+    "wordinterval_to_set (ipcidr_tuple_to_wordinterval (b, m)) = ipset_from_cidr b m"
+    unfolding ipcidr_tuple_to_wordinterval_def ipset_from_cidr_ipcidr_to_interval ipcidr_to_interval_def
+    by(simp add: iprange_interval.simps)   
+
+
+
+
+
 
   context
   begin
@@ -269,6 +295,62 @@ lemma ipv4set_from_cidr_eq_ip_cidr_set: fixes base::"'i::len word"
   end
 
 
+(*TODO: move to IpAddresses or somewhere*)
+lemma ip_cidr_intersect: " \<not> ipset_from_cidr b2 m2 \<subseteq> ipset_from_cidr b1 m1 \<Longrightarrow>
+       \<not> ipset_from_cidr b1 m1 \<subseteq> ipset_from_cidr b2 m2 \<Longrightarrow>
+       ipset_from_cidr b1 m1 \<inter> ipset_from_cidr b2 m2 = {}"
+apply(simp add: ipv4set_from_cidr_eq_ip_cidr_set)
+using ip_cidr_set_notsubset_empty_inter by blast
+
+
+
+fun ipcidr_conjunct :: "('i::len word \<times> nat) \<Rightarrow> ('i word \<times> nat) \<Rightarrow> ('i word \<times> nat) option" where 
+  "ipcidr_conjunct (base1, m1) (base2, m2) = (if ipset_from_cidr base1 m1 \<inter> ipset_from_cidr base2 m2 = {}
+     then
+      None
+     else if 
+      ipset_from_cidr base1 m1 \<subseteq> ipset_from_cidr base2 m2
+     then 
+      Some (base1, m1)
+     else
+      Some (base2, m2)
+    )"
+
+lemma ipcidr_conjunct_any: "ipcidr_conjunct (0, 0) (0, 0) \<noteq> None"
+  by(simp add: ipset_from_cidr_0)
+
+lemma ipcidr_conjunct_correct: "(case ipcidr_conjunct (b1, m1) (b2, m2)
+                                        of Some (bx, mx) \<Rightarrow> ipset_from_cidr bx mx
+                                        |  None \<Rightarrow> {})
+    = (ipset_from_cidr b1 m1) \<inter> (ipset_from_cidr b2 m2)"
+  apply(simp split: split_if_asm)
+  using ip_cidr_intersect by fast
+declare ipcidr_conjunct.simps[simp del]
+
+
+lemma [code_unfold]: 
+"ipcidr_conjunct ips1 ips2 = (if wordinterval_empty (wordinterval_intersection (ipcidr_tuple_to_wordinterval ips1) (ipcidr_tuple_to_wordinterval ips2))
+     then
+      None
+     else if 
+      wordinterval_subset (ipcidr_tuple_to_wordinterval ips1) (ipcidr_tuple_to_wordinterval ips2)
+     then 
+      Some ips1
+     else
+      Some ips2
+    )"
+apply(simp)
+apply(cases ips1, cases ips2, rename_tac b1 m1 b2 m2, simp)
+apply(safe)
+   apply(auto simp add: wordinterval_to_set_ipcidr_tuple_to_wordinterval ipcidr_conjunct.simps split:split_if_asm)
+done
+(*with the code_unfold lemma before, this works!*)
+lemma "ipcidr_conjunct (0::32 word,0) (8,1) = Some (8, 1)" by eval
+
+
+
+
+
   text{*making element check executable*}
   lemma addr_in_ipset_from_netmask_code[code_unfold]: 
     "addr \<in> (ipset_from_netmask base netmask) \<longleftrightarrow> (base AND netmask) \<le> addr \<and> addr \<le> (base AND netmask) OR (NOT netmask)"
@@ -278,62 +360,6 @@ lemma ipv4set_from_cidr_eq_ip_cidr_set: fixes base::"'i::len word"
   unfolding ipset_from_cidr_alt by simp
 
 
-  definition iprange_single :: "'i::len word \<Rightarrow> 'i wordinterval" where
-    "iprange_single ip \<equiv> WordInterval ip ip"
-
-  fun iprange_interval :: "('i::len word \<times> 'i::len word) \<Rightarrow> 'i wordinterval" where
-    "iprange_interval (ip_start, ip_end) = WordInterval ip_start ip_end"
-  declare iprange_interval.simps[simp del]
-
-
-  lemma "wordinterval_to_set (iprange_single ip) = {ip}" by(simp add: iprange_single_def)
-  lemma "wordinterval_to_set (iprange_interval (ip1, ip2)) = {ip1 .. ip2}" by(simp add: iprange_interval.simps)
   
-  text{*Now we can use the set operations on @{typ "'i::len wordinterval"}s*}
-
-  term wordinterval_to_set
-  term wordinterval_element
-  term wordinterval_union
-  term wordinterval_empty
-  term wordinterval_setminus
-  term wordinterval_UNIV
-  term wordinterval_invert
-  term wordinterval_intersection
-  term wordinterval_subset
-  term wordinterval_eq
-
-
-
-subsection{*IP Addresses in CIDR Notation*}
-
-  fun ipcidr_to_interval_start :: "('a::len word \<times> nat) \<Rightarrow> 'a::len word" where
-    "ipcidr_to_interval_start (pre, len) = (
-      let netmask = (mask len) << (len_of TYPE('a) - len);
-          network_prefix = (pre AND netmask)
-      in network_prefix)"
-  fun ipcidr_to_interval_end :: "('a::len word \<times> nat) \<Rightarrow> 'a::len word" where
-    "ipcidr_to_interval_end (pre, len) = (
-      let netmask = (mask len) << (len_of TYPE('a) - len);
-          network_prefix = (pre AND netmask)
-      in network_prefix OR (NOT netmask))"
-  definition ipcidr_to_interval :: "('a::len word \<times> nat) \<Rightarrow> ('a::len word \<times> 'a::len word)" where
-    "ipcidr_to_interval cidr = (ipcidr_to_interval_start cidr, ipcidr_to_interval_end cidr)"
-
-
-  lemma ipset_from_cidr_ipcidr_to_interval:
-    "ipset_from_cidr base len = {ipcidr_to_interval_start (base,len) .. ipcidr_to_interval_end (base,len)}"
-    by(simp add: Let_def ipcidr_to_interval_def ipset_from_cidr_def ipset_from_netmask_def)
-  declare ipcidr_to_interval_start.simps[simp del] ipcidr_to_interval_end.simps[simp del]
-
-
-  definition ipcidr_tuple_to_wordinterval :: "('i::len word \<times> nat) \<Rightarrow> 'i wordinterval" where
-    "ipcidr_tuple_to_wordinterval iprng = iprange_interval (ipcidr_to_interval iprng)"
-
-
-  (*TODO: rename*)
-  lemma wordinterval_to_set_ipcidr_tuple_to_wordinterval:
-    "wordinterval_to_set (ipcidr_tuple_to_wordinterval (b, m)) = ipset_from_cidr b m"
-    unfolding ipcidr_tuple_to_wordinterval_def ipset_from_cidr_ipcidr_to_interval ipcidr_to_interval_def
-    by(simp add: iprange_interval.simps)     
     
 end

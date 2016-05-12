@@ -3,8 +3,6 @@
 *)
 theory IPv4Addr
 imports Main
-  NumberWang
-  WordInterval_Lists
   IPAddr
   "~~/src/HOL/Library/Code_Target_Nat" (*!*)
 begin
