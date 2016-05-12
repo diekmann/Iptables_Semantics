@@ -549,7 +549,7 @@ local
       (*without Proof_Context.set_stmt, there is an ML stack overflow for large iptables-save dumps*)
       (*Debugged by Makarius, Isabelle2016*)
       |> Proof_Context.set_stmt false  (* FIXME workaround "context begin" oddity *)
-      |> Runtime.exn_trace (fn _ => Local_Theory.define ((name, NoSyn), ((binding_name, @{attributes [code]}), t))) |> #2
+      |> Local_Theory.define ((name, NoSyn), ((binding_name, @{attributes [code]}), t)) |> #2
     end;
 
   fun print_default_policies (ps: (string * term) list) = let
