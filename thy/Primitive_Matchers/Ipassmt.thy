@@ -51,10 +51,9 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
   lemma[code_unfold]: "ipassmt_sanity_disjoint (map_of ipassmt) \<longleftrightarrow> (let Is = fst` set ipassmt in 
       (\<forall> i1 \<in> Is. \<forall> i2 \<in> Is. i1 \<noteq> i2 \<longrightarrow> wordinterval_empty (wordinterval_intersection (l2br (map ipcidr_to_interval (the ((map_of ipassmt) i1))))  (l2br (map ipcidr_to_interval (the ((map_of ipassmt) i2)))))))"
     apply(simp add: ipassmt_sanity_disjoint_def Map.dom_map_of_conv_image_fst)
-    apply(simp add: ipv4cidr_union_set_def)
+    apply(simp add: ipv4cidr_union_set_def ipv4set_from_cidr_def)
     apply(simp add: l2br)
     apply(simp add: ipcidr_to_interval_def)
-    apply(subst transition_lemma_ipv4_delete_me)+
     using ipset_from_cidr_ipcidr_to_interval by blast
   
   
@@ -71,9 +70,7 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
       apply(simp add:  wordinterval_eq_set_eq wordinterval_Union)
       apply(simp add: l2br)
       apply(simp add: ipcidr_to_interval_def)
-      apply(simp add: ipv4cidr_union_set_def)
-      apply(subst transition_lemma_ipv4_delete_me)+
-      using ipset_from_cidr_ipcidr_to_interval apply fast (*500ms*) (*TODO: only since transition lemma so slow*)
+      apply(simp add: ipv4cidr_union_set_def ipv4set_from_cidr_def ipset_from_cidr_ipcidr_to_interval; fail)
      apply(simp add: ipassmt_sanity_complete_def)
      done
 
@@ -135,7 +132,7 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
        apply(simp)
       apply(simp)
       apply(simp split:option.split option.split_asm)
-      apply(simp add: transition_lemma_ipv4_delete_me ipv4cidr_union_set_def ipset_from_cidr_ipcidr_to_interval)
+      apply(simp add: ipv4set_from_cidr_def ipv4cidr_union_set_def ipset_from_cidr_ipcidr_to_interval)
       apply(safe)
                         apply(simp_all)
       by (simp add: rev_image_eqI)

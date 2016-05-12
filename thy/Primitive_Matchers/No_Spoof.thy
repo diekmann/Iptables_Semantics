@@ -399,8 +399,7 @@ begin
   case (1 iface ipassmt allowed denied1)
     have "(\<Union>a\<in>set (the (ipassmt iface)). case ipcidr_to_interval a of (x, xa) \<Rightarrow> {x..xa}) = 
           (\<Union>x\<in>set (the (ipassmt iface)). case x of (base, len) \<Rightarrow> ipv4set_from_cidr base len)"
-    unfolding ipcidr_to_interval_def (*since we used an arbitrary 'a::len word, we need to unfold manually*)
-    apply(subst transition_lemma_ipv4_delete_me)+
+    unfolding ipcidr_to_interval_def ipv4set_from_cidr_def (*since we used an arbitrary 'a::len word, we need to unfold manually*)
     using ipset_from_cidr_ipcidr_to_interval by blast
     with 1 show ?case by(simp add: ipv4cidr_union_set_def l2br)
   next
