@@ -35,37 +35,24 @@ lemma ipcidr_conjunct_correct: "(case ipcidr_conjunct (b1, m1) (b2, m2)
 declare ipcidr_conjunct.simps[simp del]
 
 
-  (*TODO: this is a duplicate, right?*)
-  (*TODO: if not, move!*)
-  definition ipcidr_tuple_to_wordinterval :: "('i::len word \<times> nat) \<Rightarrow> 'i wordinterval" where
-    "ipcidr_tuple_to_wordinterval iprng = iprange_interval (ipcidr_to_interval iprng)"
-
-  
-  (*TODO: rename*)
-  lemma wordinterval_to_set_ipcidr_tuple_to_wordinterval:
-    "wordinterval_to_set (ipcidr_tuple_to_wordinterval (b, m)) = ipset_from_cidr b m"
-    unfolding ipcidr_tuple_to_wordinterval_def ipset_from_cidr_ipcidr_to_interval ipcidr_to_interval_def
-    by(simp add: iprange_interval.simps)
-
-
-  lemma [code_unfold]: 
-  "ipcidr_conjunct ips1 ips2 = (if wordinterval_empty (wordinterval_intersection (ipcidr_tuple_to_wordinterval ips1) (ipcidr_tuple_to_wordinterval ips2))
-       then
-        None
-       else if 
-        wordinterval_subset (ipcidr_tuple_to_wordinterval ips1) (ipcidr_tuple_to_wordinterval ips2)
-       then 
-        Some ips1
-       else
-        Some ips2
-      )"
-  apply(simp)
-  apply(cases ips1, cases ips2, rename_tac b1 m1 b2 m2, simp)
-  apply(safe)
-     apply(auto simp add: wordinterval_to_set_ipcidr_tuple_to_wordinterval ipcidr_conjunct.simps split:split_if_asm)
-  done
-  (*with the code_unfold lemma before, this works!*)
-  lemma "ipcidr_conjunct (0::32 word,0) (8,1) = Some (8, 1)" by eval
+lemma [code_unfold]: 
+"ipcidr_conjunct ips1 ips2 = (if wordinterval_empty (wordinterval_intersection (ipcidr_tuple_to_wordinterval ips1) (ipcidr_tuple_to_wordinterval ips2))
+     then
+      None
+     else if 
+      wordinterval_subset (ipcidr_tuple_to_wordinterval ips1) (ipcidr_tuple_to_wordinterval ips2)
+     then 
+      Some ips1
+     else
+      Some ips2
+    )"
+apply(simp)
+apply(cases ips1, cases ips2, rename_tac b1 m1 b2 m2, simp)
+apply(safe)
+   apply(auto simp add: wordinterval_to_set_ipcidr_tuple_to_wordinterval ipcidr_conjunct.simps split:split_if_asm)
+done
+(*with the code_unfold lemma before, this works!*)
+lemma "ipcidr_conjunct (0::32 word,0) (8,1) = Some (8, 1)" by eval
 
 
 

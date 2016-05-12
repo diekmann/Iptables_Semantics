@@ -246,6 +246,14 @@ subsection{*IP Addresses in CIDR Notation*}
   declare ipcidr_to_interval_start.simps[simp del] ipcidr_to_interval_end.simps[simp del]
 
 
-     
+  definition ipcidr_tuple_to_wordinterval :: "('i::len word \<times> nat) \<Rightarrow> 'i wordinterval" where
+    "ipcidr_tuple_to_wordinterval iprng = iprange_interval (ipcidr_to_interval iprng)"
+
+
+  (*TODO: rename*)
+  lemma wordinterval_to_set_ipcidr_tuple_to_wordinterval:
+    "wordinterval_to_set (ipcidr_tuple_to_wordinterval (b, m)) = ipset_from_cidr b m"
+    unfolding ipcidr_tuple_to_wordinterval_def ipset_from_cidr_ipcidr_to_interval ipcidr_to_interval_def
+    by(simp add: iprange_interval.simps)     
     
 end
