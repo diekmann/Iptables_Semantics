@@ -398,7 +398,7 @@ begin
   proof(induction iface ipassmt rs allowed denied rule: no_spoofing_algorithm_executable.induct)
   case (1 iface ipassmt allowed denied1)
     have "(\<Union>a\<in>set (the (ipassmt iface)). case ipcidr_to_interval a of (x, xa) \<Rightarrow> {x..xa}) = 
-          (\<Union>x\<in>set (the (ipassmt iface)). case x of (base, len) \<Rightarrow> ipv4range_set_from_prefix base len)"
+          (\<Union>x\<in>set (the (ipassmt iface)). case x of (base, len) \<Rightarrow> ipv4set_from_cidr base len)"
     unfolding ipcidr_to_interval_def (*since we used an arbitrary 'a::len word, we need to unfold manually*)
     apply(subst transition_lemma_ipv4_delete_me)+
     using ipset_from_cidr_ipcidr_to_interval by blast

@@ -883,7 +883,7 @@ lemma route2match_correct: "valid_prefix (routing_match a) \<Longrightarrow> pre
 by(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_refl ipset_from_cidr_0 prefix_match_if_in_corny_set2)
 
 lemma route2match_correct_noupd: "valid_prefix (routing_match a) \<Longrightarrow> simple_matches (route2match a) p \<Longrightarrow> prefix_match_semantics (routing_match a) (p_dst p)"
-by(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_refl ipv4range_set_from_prefix_UNIV prefix_match_if_in_corny_set2)
+by(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_refl ipv4set_from_cidr_UNIV prefix_match_if_in_corny_set2)
 
 lemma s1_correct: "valid_prefixes rt \<Longrightarrow> has_default_route rt \<Longrightarrow> 
   \<exists>rm ra. generalized_sfw (lr_of_tran_s1 rt) p = Some (rm,ra) \<and> ra = output_iface (routing_table_semantics rt (p_dst p))"
@@ -907,7 +907,7 @@ lemma s1_correct: "valid_prefixes rt \<Longrightarrow> has_default_route rt \<Lo
 	apply(split if_splits)
 	apply(rule conjI[rotated])
 	 apply(simp add: lr_of_tran_s1_split generalized_sfw_simps;fail)
-	apply(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_refl ipv4range_set_from_prefix_UNIV prefix_match_if_in_corny_set2)
+	apply(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_refl ipv4set_from_cidr_UNIV prefix_match_if_in_corny_set2)
 done
 
 lemma find_split: "find f l = Some r \<Longrightarrow> \<exists>a b. l = (a @ r # b) \<and> find f a = None"

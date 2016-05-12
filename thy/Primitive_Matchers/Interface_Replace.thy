@@ -16,7 +16,7 @@ definition ipassmt_iface_constrain_srcip_mexpr :: "ipassignment \<Rightarrow> if
         )"
 
 lemma ipv4s_to_set_Ip4AddrNetmask_case: "ipv4s_to_set (case x of (ip, x) \<Rightarrow> Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) x) =
-       (case x of (x, xa) \<Rightarrow> ipv4range_set_from_prefix x xa)"
+       (case x of (x, xa) \<Rightarrow> ipv4set_from_cidr x xa)"
   by(cases x) (simp add: ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
 
 
@@ -30,7 +30,7 @@ case None thus ?thesis by(simp add: ipassmt_iface_constrain_srcip_mexpr_def matc
 next
 case (Some ips)
   have "matches (common_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) y)) ips)) a p \<longleftrightarrow>
-       (\<exists>m\<in>set ips. p_src p \<in> (case m of (ip, y) \<Rightarrow> ipv4range_set_from_prefix ip y))" 
+       (\<exists>m\<in>set ips. p_src p \<in> (case m of (ip, y) \<Rightarrow> ipv4set_from_cidr ip y))" 
        by(simp add: match_list_to_match_expr_disjunction[symmetric] match_list_matches match_simplematcher_SrcDst ipv4s_to_set_Ip4AddrNetmask_case)
   with Some show ?thesis
     apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def bunch_of_lemmata_about_matches(1))
@@ -224,7 +224,7 @@ case None thus ?thesis by(simp add: ipassmt_iface_replace_srcip_mexpr_def match_
 next
 case (Some ips)
   have "matches (common_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) y)) ips)) a p \<longleftrightarrow>
-       (\<exists>m\<in>set ips. p_src p \<in> (case m of (ip, y) \<Rightarrow> ipv4range_set_from_prefix ip y))" 
+       (\<exists>m\<in>set ips. p_src p \<in> (case m of (ip, y) \<Rightarrow> ipv4set_from_cidr ip y))" 
        by(simp add: match_list_to_match_expr_disjunction[symmetric] match_list_matches match_simplematcher_SrcDst ipv4s_to_set_Ip4AddrNetmask_case)
   with Some show ?thesis
     apply(simp add: ipassmt_iface_replace_srcip_mexpr_def bunch_of_lemmata_about_matches(1))

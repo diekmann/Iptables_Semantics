@@ -6,7 +6,7 @@ begin
 lemma ip_cidr_intersect: " \<not> ipset_from_cidr b2 m2 \<subseteq> ipset_from_cidr b1 m1 \<Longrightarrow>
        \<not> ipset_from_cidr b1 m1 \<subseteq> ipset_from_cidr b2 m2 \<Longrightarrow>
        ipset_from_cidr b1 m1 \<inter> ipset_from_cidr b2 m2 = {}"
-apply(simp add: ipv4range_set_from_prefix_eq_ip_cidr_set)
+apply(simp add: ipv4set_from_cidr_eq_ip_cidr_set)
 using ip_cidr_set_notsubset_empty_inter by blast
 
 

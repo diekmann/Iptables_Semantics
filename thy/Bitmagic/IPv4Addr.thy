@@ -255,85 +255,63 @@ subsection{*Representing IPv4 Adresses*}
 
 
 subsection{*IP ranges*}
-  lemma UNIV_ipv4addrset: "(UNIV :: ipv4addr set) = {0 .. max_ipv4_addr}"
-    by(auto)
+  lemma UNIV_ipv4addrset: "(UNIV :: ipv4addr set) = {0 .. max_ipv4_addr}" by(auto)
   lemma "(42::ipv4addr) \<in> UNIV" by eval
 
 
   (*Warning, not executable!*)
-  definition ipv4range_set_from_netmask::"ipv4addr \<Rightarrow> ipv4addr \<Rightarrow> ipv4addr set" where
-    "ipv4range_set_from_netmask addr netmask \<equiv> let network_prefix = (addr AND netmask) in {network_prefix .. network_prefix OR (NOT netmask)}"
+  definition ipv4set_from_netmask::"ipv4addr \<Rightarrow> ipv4addr \<Rightarrow> ipv4addr set" where
+    "ipv4set_from_netmask addr netmask \<equiv> ipset_from_netmask addr netmask"
 
 
-  lemma "ipv4range_set_from_netmask (ipv4addr_of_dotdecimal (192,168,0,42)) (ipv4addr_of_dotdecimal (255,255,0,0)) =
+  lemma "ipv4set_from_netmask (ipv4addr_of_dotdecimal (192,168,0,42)) (ipv4addr_of_dotdecimal (255,255,0,0)) =
           {ipv4addr_of_dotdecimal (192,168,0,0) .. ipv4addr_of_dotdecimal (192,168,255,255)}"
-   by(simp add: ipv4range_set_from_netmask_def ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
+   by(simp add: ipv4set_from_netmask_def ipset_from_netmask_def ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
 
-  lemma "ipv4range_set_from_netmask (ipv4addr_of_dotdecimal (192,168,0,42)) (ipv4addr_of_dotdecimal (0,0,0,0)) = UNIV"
-    by(simp add: UNIV_ipv4addrset ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4range_set_from_netmask_def max_ipv4_addr_max_word)
+  lemma "ipv4set_from_netmask (ipv4addr_of_dotdecimal (192,168,0,42)) (ipv4addr_of_dotdecimal (0,0,0,0)) = UNIV"
+    by(simp add: UNIV_ipv4addrset ipset_from_netmask_def ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4set_from_netmask_def max_ipv4_addr_max_word)
    
   
   text{*192.168.0.0/24*}
-  definition ipv4range_set_from_prefix::"ipv4addr \<Rightarrow> nat \<Rightarrow> ipv4addr set" where
-    "ipv4range_set_from_prefix addr pflength \<equiv> ipv4range_set_from_netmask addr (of_bl ((replicate pflength True) @ (replicate (32 - pflength) False)))"
+  definition ipv4set_from_cidr::"ipv4addr \<Rightarrow> nat \<Rightarrow> ipv4addr set" where
+    "ipv4set_from_cidr addr pflength \<equiv> ipset_from_cidr addr pflength"
+
+  lemma ipv4set_from_cidr_alt: "ipv4set_from_cidr addr pflength = ipv4set_from_netmask addr ((mask pflength) << (32 - pflength))"
+    by(simp add: ipv4set_from_cidr_def ipv4set_from_netmask_def ipset_from_cidr_def)
 
   lemma transition_lemma_ipv4_delete_me:
-    "ipv4range_set_from_prefix = ipset_from_cidr"
-    apply(simp add: fun_eq_iff ipv4range_set_from_prefix_def ipv4range_set_from_netmask_def ipset_from_netmask_def ipset_from_cidr_bl)
+    "ipv4set_from_cidr = ipset_from_cidr"
+    apply(simp add: fun_eq_iff ipv4set_from_cidr_def )
     done
 
-  lemma "(replicate 3 True) = [True, True, True]" by eval
-  lemma "of_bl (replicate 3 True) = (7::ipv4addr)" by eval
-
-  (*alternate definition*)
-  lemma ipv4range_set_from_prefix_alt1: 
-    "ipv4range_set_from_prefix addr pflength = ipv4range_set_from_netmask addr ((mask pflength) << (32 - pflength))"
-    apply(simp add: ipv4range_set_from_prefix_def mask_bl)
-    apply(simp add: Word.shiftl_of_bl)
-    done
-
-  lemma "ipv4range_set_from_prefix (ipv4addr_of_dotdecimal (192,168,0,42)) 16 = 
+  lemma "ipv4set_from_cidr (ipv4addr_of_dotdecimal (192,168,0,42)) 16 = 
           {ipv4addr_of_dotdecimal (192,168,0,0) .. ipv4addr_of_dotdecimal (192,168,255,255)}"
-   by(simp add: ipv4range_set_from_prefix_def ipv4range_set_from_netmask_def ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
-  lemma ipv4range_set_from_prefix_UNIV: "ipv4range_set_from_prefix 0 0 = UNIV"
-    apply(simp add: ipv4range_set_from_prefix_def ipv4range_set_from_netmask_def )
-    by (simp add: UNIV_ipv4addrset max_ipv4_addr_max_word)
-  lemma ip_in_ipv4range_set_from_prefix_UNIV: "ip \<in> (ipv4range_set_from_prefix (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 0)"
-    by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4range_set_from_prefix_UNIV)
+   by(simp add: ipv4set_from_cidr_def ipset_from_cidr_alt mask_def  ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
+  lemma ipv4set_from_cidr_UNIV: "ipv4set_from_cidr 0 0 = UNIV"
+    by(simp add: ipv4set_from_cidr_def ipset_from_cidr_0)
+  lemma ip_in_ipv4set_from_cidr_UNIV: "ip \<in> (ipv4set_from_cidr (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 0)"
+    by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4set_from_cidr_UNIV)
 
-  lemma ipv4range_set_from_prefix_0: "ipv4range_set_from_prefix foo 0 = UNIV"
-    apply(rule)
-     apply(simp_all)
-    apply(simp add: ipv4range_set_from_prefix_alt1 ipv4range_set_from_netmask_def Let_def)
-    apply(simp add: range_0_max_UNIV)
-    (*apply(simp add: mask_def)*)
-    done
+  lemma ipv4set_from_cidr_0: "ipv4set_from_cidr foo 0 = UNIV"
+    by(simp add: ipv4set_from_cidr_def ipset_from_cidr_0)
 
-  lemma ipv4range_set_from_prefix_32: "ipv4range_set_from_prefix foo 32 = {foo}"
-    apply(simp add: ipv4range_set_from_prefix_alt1 ipv4range_set_from_netmask_def Let_def)
-    apply(simp add: mask_def)
-    (*apply(simp only: max_ipv4_addr_number[symmetric] max_ipv4_addr_max_word Word.word_and_max)
-    apply(simp add: word32_or_NOT4294967296)*)
-    done
+  lemma ipv4set_from_cidr_32: "ipv4set_from_cidr foo 32 = {foo}"
+    by(simp add: ipv4set_from_cidr_alt ipv4set_from_netmask_def mask_def ipset_from_netmask_minusone)
 
   (*TODO: delete completely, use generic version*)
-  lemma ipv4range_set_from_prefix_alt: "ipv4range_set_from_prefix pre len = {(pre AND ((mask len) << (32 - len))) .. pre OR (mask (32 - len))}"
-    apply(simp only: ipv4range_set_from_prefix_alt1 ipv4range_set_from_netmask_def Let_def)
-    apply(subst Word.word_oa_dist)
-    apply(simp only: word_or_not)
-    apply(simp only: Word.word_and_max)
-    using NOT_mask_shifted_lenword len32 by metis
+  lemma "ipv4set_from_cidr pre len = {(pre AND ((mask len) << (32 - len))) .. pre OR (mask (32 - len))}"
+    by (simp add: ipset_from_cidr_alt ipv4set_from_cidr_def)
 
 
   text{*making element check executable*}
-  lemma addr_in_ipv4range_set_from_netmask_code[code_unfold]: 
-    "addr \<in> (ipv4range_set_from_netmask base netmask) \<longleftrightarrow> (base AND netmask) \<le> addr \<and> addr \<le> (base AND netmask) OR (NOT netmask)"
-    by(simp add: ipv4range_set_from_netmask_def Let_def)
-  lemma addr_in_ipv4range_set_from_prefix_code[code_unfold]: "addr \<in> (ipv4range_set_from_prefix pre len) \<longleftrightarrow> 
+  lemma addr_in_ipv4set_from_netmask_code[code_unfold]: 
+    "addr \<in> (ipv4set_from_netmask base netmask) \<longleftrightarrow> (base AND netmask) \<le> addr \<and> addr \<le> (base AND netmask) OR (NOT netmask)"
+    by (simp add: addr_in_ipset_from_netmask_code ipv4set_from_netmask_def)
+  lemma addr_in_ipv4set_from_cidr_code[code_unfold]: "addr \<in> (ipv4set_from_cidr pre len) \<longleftrightarrow> 
               (pre AND ((mask len) << (32 - len))) \<le> addr \<and> addr \<le> pre OR (mask (32 - len))"
-  unfolding ipv4range_set_from_prefix_alt by simp
+    by(simp add: ipv4set_from_cidr_def addr_in_ipset_from_cidr_code)
 
-  value "ipv4addr_of_dotdecimal (192,168,4,8) \<in> (ipv4range_set_from_prefix (ipv4addr_of_dotdecimal (192,168,0,42)) 16)"
+  value[code] "ipv4addr_of_dotdecimal (192,168,4,8) \<in> (ipv4set_from_cidr (ipv4addr_of_dotdecimal (192,168,0,42)) 16)"
 
   
 

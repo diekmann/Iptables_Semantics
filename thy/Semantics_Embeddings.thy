@@ -337,7 +337,7 @@ proof -
   from assms show ?thesis
   apply(induction m rule: optimize_primitive_univ.induct)
   apply(auto elim!: matcher_agree_on_exact_matches_gammaE
-             simp add: port_range match_ifaceAny ip_in_ipv4range_set_from_prefix_UNIV ctstate_is_UNIV)
+             simp add: port_range match_ifaceAny ip_in_ipv4set_from_cidr_UNIV ctstate_is_UNIV)
   done
 qed
 

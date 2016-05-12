@@ -44,6 +44,8 @@ subsection{*Sets of IP addresses*}
   lemma ipset_from_cidr_0: "ipset_from_cidr foo 0 = UNIV"
     by(auto simp add: ipset_from_cidr_def ipset_from_netmask_def Let_def)
 
+  lemma ipset_from_netmask_minusone: 
+    "ipset_from_netmask foo (- 1) = {foo}" by (simp add: ipset_from_netmask_def) 
   
   lemma ipset_from_cidr_bl:
     fixes addr :: "'i::len word"
@@ -112,6 +114,18 @@ subsection{*Sets of IP addresses*}
     thus ?thesis by(simp add: ipset_from_cidr_def maskshift_eq_not_mask_generic)
   qed
 
+
+  lemma ipset_from_cidr_large_pfxlen:
+    fixes ip:: "'a::len word"
+    assumes "n \<ge> len_of TYPE('a)"
+    shows "ipset_from_cidr ip n = {ip}"
+  proof -
+    have obviously: "mask (len_of TYPE('a) - n) = 0" by (simp add: assms)
+    show ?thesis
+      apply(subst ipset_from_cidr_base_wellforemd)
+       subgoal using assms by simp
+      by (simp add: obviously)
+  qed
 
 
   context
@@ -231,4 +245,7 @@ subsection{*IP Addresses in CIDR Notation*}
     by(simp add: Let_def ipcidr_to_interval_def ipset_from_cidr_def ipset_from_netmask_def)
   declare ipcidr_to_interval_start.simps[simp del] ipcidr_to_interval_end.simps[simp del]
 
+
+     
+    
 end

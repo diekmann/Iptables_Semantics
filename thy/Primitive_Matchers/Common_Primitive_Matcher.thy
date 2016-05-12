@@ -146,7 +146,7 @@ subsection{*Basic optimisations*}
       hence port_range: "\<And>s e port. s = 0 \<and> e = 0xFFFF \<longrightarrow> (port::16 word) \<le> 0xFFFF" by simp
       have "ternary_ternary_eval (map_match_tac common_matcher p m) = ternary_ternary_eval (map_match_tac common_matcher p (optimize_primitive_univ m))"
         by(induction m rule: optimize_primitive_univ.induct)
-          (simp_all add: port_range match_ifaceAny ip_in_ipv4range_set_from_prefix_UNIV ctstate_is_UNIV)
+          (simp_all add: port_range match_ifaceAny ip_in_ipv4set_from_cidr_UNIV ctstate_is_UNIV)
       thus "matches (common_matcher, \<alpha>) m a p = matches (common_matcher, \<alpha>) (optimize_primitive_univ m) a p"
         by(rule matches_iff_apply_f)
       qed

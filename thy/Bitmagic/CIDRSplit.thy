@@ -78,8 +78,8 @@ private lemma prefix_match_list_union:
   done
 
 
-private lemma "\<Union>((\<lambda>(base, len). ipv4range_set_from_prefix base len) ` prefix_match_to_CIDR ` set (cidrlist)) =
-      \<Union>((\<lambda>pfx. ipv4range_set_from_prefix (pfxm_prefix pfx) (pfxm_length pfx)) ` set (cidrlist))"
+private lemma "\<Union>((\<lambda>(base, len). ipv4set_from_cidr base len) ` prefix_match_to_CIDR ` set (cidrlist)) =
+      \<Union>((\<lambda>pfx. ipv4set_from_cidr (pfxm_prefix pfx) (pfxm_length pfx)) ` set (cidrlist))"
 unfolding prefix_match_to_CIDR_def2 by blast 
 
 
@@ -454,7 +454,7 @@ corollary cidr_split_prefix_single:
 
 
 (*
-lemma "(\<Union> (base, len) \<in> set (cidr_split (ipv4range_range start end)). ipv4range_set_from_prefix base len) = {start .. end}"
+lemma "(\<Union> (base, len) \<in> set (cidr_split (ipv4range_range start end)). ipv4set_from_cidr base len) = {start .. end}"
 (*using [[simp_trace, simp_trace_depth_limit=10]]*)
 using [[simproc del: list_to_set_comprehension]] (* okay, simplifier is a bit broken **)
   apply(simp del: ) (*simp: "Tactic failed"*)

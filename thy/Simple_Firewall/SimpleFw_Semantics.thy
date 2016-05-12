@@ -77,15 +77,15 @@ subsection{*Simple Firewall Semantics*}
 
 
   (*Sanity check:*)
-  lemma "ipset_from_cidr = ipv4range_set_from_prefix"
-    by(simp add: fun_eq_iff ipset_from_cidr_def ipv4range_set_from_prefix_alt1 ipset_from_netmask_def ipv4range_set_from_netmask_def)
+  lemma "ipset_from_cidr = ipv4set_from_cidr"
+    by(simp add: fun_eq_iff ipset_from_cidr_def ipv4set_from_cidr_alt ipset_from_netmask_def ipv4set_from_netmask_def)
 
   fun simple_match_ip :: "('i::len word \<times> nat) \<Rightarrow> 'i::len word \<Rightarrow> bool" where
     "simple_match_ip (base, len) p_ip \<longleftrightarrow> p_ip \<in> ipset_from_cidr base len"
 
   (*TODO: move? Delete?*)
   fun simple_match_ip4 :: "(ipv4addr \<times> nat) \<Rightarrow> ipv4addr \<Rightarrow> bool" where
-    "simple_match_ip4 (base, len) p_ip \<longleftrightarrow> p_ip \<in> ipv4range_set_from_prefix base len"
+    "simple_match_ip4 (base, len) p_ip \<longleftrightarrow> p_ip \<in> ipv4set_from_cidr base len"
 
   lemma wordinterval_to_set_ipcidr_tuple_to_wordinterval_simple_match_ip_set:
     "wordinterval_to_set (ipcidr_tuple_to_wordinterval ip) = {d. simple_match_ip ip d}"
@@ -165,7 +165,7 @@ subsection{*Simple Firewall Semantics*}
           from assm have nomatch: "\<forall>(p::('i::len, 'a) simple_packet_scheme). ?x p" by(simp add: m)
           { fix ips::"'i::len word \<times> nat"
             have "a \<in> ipset_from_cidr a n" for a::"'i::len word" and n
-              using ipv4range_set_from_prefix_lowest by auto
+              using ipv4set_from_cidr_lowest by auto
             hence "simple_match_ip ips (fst ips)" by(cases ips) simp
           } note ips=this
           have proto: "match_proto protocol (case protocol of ProtoAny \<Rightarrow> TCP | Proto p \<Rightarrow> p)"

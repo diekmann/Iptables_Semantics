@@ -316,7 +316,7 @@ private lemma mask_and_not_mask_helper: "mask (len - m) AND base AND NOT mask (l
 
 
 (*TODO: rename*)
-lemma ipv4range_set_from_prefix_eq_ip_cidr_set: fixes base::"'i::len word"
+lemma ipv4set_from_cidr_eq_ip_cidr_set: fixes base::"'i::len word"
   shows "ipset_from_cidr base m = ip_cidr_set base m"
   unfolding ip_cidr_set_def
   unfolding set_eq_iff

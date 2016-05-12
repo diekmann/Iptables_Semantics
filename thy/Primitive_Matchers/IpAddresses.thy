@@ -9,13 +9,13 @@ begin
 text{*Misc*}
   (*TODO: delete?*)
   (*TODO:move?*)
-  lemma ipv4range_set_from_prefix_lowest: "a \<in> ipset_from_cidr a n" 
-    using ip_cidr_set_def ipv4range_set_from_prefix_eq_ip_cidr_set by blast
+  lemma ipv4set_from_cidr_lowest: "a \<in> ipset_from_cidr a n" 
+    using ip_cidr_set_def ipv4set_from_cidr_eq_ip_cidr_set by blast
 
   (*this is why I call the previous lemma 'lowest'*)
   lemma "valid_prefix (PrefixMatch a n) \<Longrightarrow> is_lowest_element a (ipset_from_cidr a n)"
-    apply(simp add: is_lowest_element_def ipv4range_set_from_prefix_lowest)
-    apply(simp add: ipv4range_set_from_prefix_eq_ip_cidr_set ip_cidr_set_def)
+    apply(simp add: is_lowest_element_def ipv4set_from_cidr_lowest)
+    apply(simp add: ipv4set_from_cidr_eq_ip_cidr_set ip_cidr_set_def)
     apply(simp add: valid_prefix_def pfxm_mask_def)
     apply clarify
     by (metis add.left_neutral antisym_conv word_and_le2 word_bw_comms(1) word_plus_and_or_coroll2)
@@ -26,8 +26,9 @@ section{*IPv4 Addresses*}
 
 --"Misc"
 (*we dont't have an empty ip space, but a space which only contains the 0 address. We will use the option type to denote the empty space in some functions.*)
-lemma "ipv4range_set_from_prefix (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 33 = {0}"
-by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4range_set_from_prefix_def ipv4range_set_from_netmask_def)
+lemma "ipv4set_from_cidr (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 33 = {0}"
+  by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4set_from_cidr_def ipset_from_cidr_large_pfxlen)
+  
 
 
   (*TODO: move to IPv4?*)
@@ -39,7 +40,7 @@ by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4range_set_from
   by(simp add: ipcidr_to_interval_def Let_def ipcidr_to_interval_start.simps ipcidr_to_interval_end.simps)
 
   (*TODO: remove this lemma?, refactor*)
-  lemma ipv4cidr_to_interval: "ipcidr_to_interval (base, len) = (s,e) \<Longrightarrow> ipv4range_set_from_prefix base len = {s .. e}"
+  lemma ipv4cidr_to_interval: "ipcidr_to_interval (base, len) = (s,e) \<Longrightarrow> ipv4set_from_cidr base len = {s .. e}"
     apply(subst transition_lemma_ipv4_delete_me)
     apply(simp add: Let_def ipcidr_to_interval_def)
     using ipset_from_cidr_ipcidr_to_interval by blast
@@ -103,7 +104,7 @@ by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4range_set_from
   
   (*TODO: generalize, move*)
   definition ipv4cidr_union_set :: "(ipv4addr \<times> nat) set \<Rightarrow> ipv4addr set" where
-    "ipv4cidr_union_set ips \<equiv> \<Union>(base, len) \<in> ips. ipv4range_set_from_prefix base len"
+    "ipv4cidr_union_set ips \<equiv> \<Union>(base, len) \<in> ips. ipv4set_from_cidr base len"
 
 
   (*helper we use for spoofing protection specification*)
@@ -113,7 +114,7 @@ by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4range_set_from
   (*only ipv4*)
   lemma all_but_those_ips:
     "ipv4cidr_union_set (set (all_but_those_ips cidrips)) =
-      UNIV - (\<Union> (ip,n) \<in> set cidrips. ipv4range_set_from_prefix ip n)"
+      UNIV - (\<Union> (ip,n) \<in> set cidrips. ipv4set_from_cidr ip n)"
     apply(simp add:)
     unfolding ipv4cidr_union_set_def all_but_those_ips_def
     apply(simp)
@@ -135,16 +136,16 @@ subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
   
   
   fun ipv4s_to_set :: "ipt_ipv4range \<Rightarrow> ipv4addr set" where
-    "ipv4s_to_set (Ip4AddrNetmask base m) = ipv4range_set_from_prefix (ipv4addr_of_dotdecimal base) m" |
+    "ipv4s_to_set (Ip4AddrNetmask base m) = ipv4set_from_cidr (ipv4addr_of_dotdecimal base) m" |
     "ipv4s_to_set (Ip4Addr ip) = { ipv4addr_of_dotdecimal ip }" |
     "ipv4s_to_set (Ip4AddrRange ip1 ip2) = { ipv4addr_of_dotdecimal ip1 .. ipv4addr_of_dotdecimal ip2 }"
   
   text{*@{term ipv4s_to_set} can only represent an empty set if it is an empty range.*}
   lemma ipv4s_to_set_nonempty: "ipv4s_to_set ip = {} \<longleftrightarrow> (\<exists>ip1 ip2. ip = Ip4AddrRange ip1 ip2 \<and> ipv4addr_of_dotdecimal ip1 > ipv4addr_of_dotdecimal ip2)"
     apply(cases ip)
-      apply(simp)
-     apply(simp add: ipv4range_set_from_prefix_alt bitmagic_zeroLast_leq_or1Last)
-    apply(simp add:linorder_not_le)
+      apply(simp; fail)
+     apply(simp add: ipv4set_from_cidr_def ipset_from_cidr_alt bitmagic_zeroLast_leq_or1Last; fail)
+    apply(simp add:linorder_not_le; fail)
     done
   
   text{*maybe this is necessary as code equation?*}
@@ -153,9 +154,9 @@ subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
     | Ip4Addr ip \<Rightarrow> (addr = (ipv4addr_of_dotdecimal ip))
     | Ip4AddrRange ip1 ip2 \<Rightarrow> ipv4addr_of_dotdecimal ip1 \<le> addr \<and> ipv4addr_of_dotdecimal ip2 \<ge> addr)"
   apply(cases X)
-    apply(simp)
-   apply(simp add: ipv4range_set_from_prefix_alt)
-  apply(simp)
+    apply(simp; fail)
+   apply(simp add: ipv4set_from_cidr_def ipset_from_cidr_alt; fail)
+  apply(simp; fail)
   done
   
 
@@ -198,9 +199,9 @@ subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
 
   lemma wi_2_cidr_ipt_ipv4range_list: "(\<Union> ip \<in> set (wi_2_cidr_ipt_ipv4range_list r). ipv4s_to_set ip) = wordinterval_to_set r"
     proof -
-    have "\<And>a. ipv4s_to_set (case a of (base, x) \<Rightarrow> Ip4AddrNetmask (dotdecimal_of_ipv4addr base) x) = (case a of (x, xa) \<Rightarrow> ipv4range_set_from_prefix x xa)"
+    have "\<And>a. ipv4s_to_set (case a of (base, x) \<Rightarrow> Ip4AddrNetmask (dotdecimal_of_ipv4addr base) x) = (case a of (x, xa) \<Rightarrow> ipv4set_from_cidr x xa)"
       by(clarsimp simp add: ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
-    hence "(\<Union> ip \<in> set (wi_2_cidr_ipt_ipv4range_list r). ipv4s_to_set ip) = \<Union>((\<lambda>(x, y). ipv4range_set_from_prefix x y) ` set (cidr_split r))"
+    hence "(\<Union> ip \<in> set (wi_2_cidr_ipt_ipv4range_list r). ipv4s_to_set ip) = \<Union>((\<lambda>(x, y). ipv4set_from_cidr x y) ` set (cidr_split r))"
       unfolding wi_2_cidr_ipt_ipv4range_list_def by(simp)
     thus ?thesis
     apply(subst(asm) transition_lemma_ipv4_delete_me)
@@ -258,7 +259,7 @@ definition interval_to_wi_to_ipt_ipv4range :: "32 word \<Rightarrow> 32 word \<R
 lemma interval_to_wi_to_ipt_ipv4range: "ipv4s_to_set (interval_to_wi_to_ipt_ipv4range s e) = {s..e}"
   proof -
     from cidr_split_prefix_single[unfolded ipv4range_range.simps, of s e] have
-      "cidr_split (WordInterval s e) = [(a, b)] \<Longrightarrow> ipv4range_set_from_prefix a b = {s..e}" for a b
+      "cidr_split (WordInterval s e) = [(a, b)] \<Longrightarrow> ipv4set_from_cidr a b = {s..e}" for a b
         apply(subst transition_lemma_ipv4_delete_me)
         by(simp add: iprange_interval.simps)
     thus ?thesis 
