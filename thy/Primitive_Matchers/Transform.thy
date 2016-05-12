@@ -34,43 +34,57 @@ context begin
     using compress_normalize_output_interfaces_nnf apply blast
     done
   private lemma compress_normalize_besteffort_matches:
-  "f \<in> set [compress_normalize_protocols,
-            compress_normalize_input_interfaces,
-            compress_normalize_output_interfaces] \<Longrightarrow>
-         normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches (common_matcher, \<alpha>) m' a p = matches (common_matcher, \<alpha>) m a p"
+    assumes generic: "primitive_matcher_generic \<beta>"
+    shows "f \<in> set [compress_normalize_protocols,
+                    compress_normalize_input_interfaces,
+                    compress_normalize_output_interfaces] \<Longrightarrow>
+           normalized_nnf_match m \<Longrightarrow>
+           f m = Some m' \<Longrightarrow>
+           matches (\<beta>, \<alpha>) m' a p = matches (\<beta>, \<alpha>) m a p"
     apply(simp)
     apply(elim disjE)
-      using primitive_matcher_generic.compress_normalize_protocols_Some[OF primitive_matcher_generic_common_matcher] apply blast
-     using compress_normalize_input_interfaces_Some[OF primitive_matcher_generic_common_matcher] apply blast
-    using compress_normalize_output_interfaces_Some[OF primitive_matcher_generic_common_matcher] apply blast
+      using primitive_matcher_generic.compress_normalize_protocols_Some[OF generic] apply blast
+     using compress_normalize_input_interfaces_Some[OF generic] apply blast
+    using compress_normalize_output_interfaces_Some[OF generic] apply blast
     done
   
   
-  lemma compress_normalize_besteffort_Some: "normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
-    matches (common_matcher, \<alpha>) m' a p = matches (common_matcher, \<alpha>) m a p"
+  lemma compress_normalize_besteffort_Some: 
+    assumes generic: "primitive_matcher_generic \<beta>"
+    shows "normalized_nnf_match m \<Longrightarrow>
+           compress_normalize_besteffort m = Some m' \<Longrightarrow>
+           matches (\<beta>, \<alpha>) m' a p = matches (\<beta>, \<alpha>) m a p"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad)
-    using compress_normalize_besteffort_normalized compress_normalize_besteffort_matches by blast+
+    using compress_normalize_besteffort_normalized compress_normalize_besteffort_matches[OF generic] by blast+
   lemma compress_normalize_besteffort_None:
-      "normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = None \<Longrightarrow>
-         \<not> matches (common_matcher, \<alpha>) m a p"
+    assumes generic: "primitive_matcher_generic \<beta>"
+    shows "normalized_nnf_match m \<Longrightarrow>
+           compress_normalize_besteffort m = None \<Longrightarrow>
+           \<not> matches (\<beta>, \<alpha>) m a p"
   proof -
-   have notmatches: "\<And>f m. f \<in> set [compress_normalize_protocols, compress_normalize_input_interfaces, compress_normalize_output_interfaces] \<Longrightarrow>
-           normalized_nnf_match m \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p"
+   have notmatches: "f \<in> set [compress_normalize_protocols, compress_normalize_input_interfaces, compress_normalize_output_interfaces] \<Longrightarrow>
+           normalized_nnf_match m \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches (\<beta>, \<alpha>) m a p" for f m
       apply(simp)
-      using primitive_matcher_generic.compress_normalize_protocols_None[OF primitive_matcher_generic_common_matcher]
-            compress_normalize_input_interfaces_None[OF primitive_matcher_generic_common_matcher]
-            compress_normalize_output_interfaces_None[OF primitive_matcher_generic_common_matcher] by blast
-   show "normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p"
+      using primitive_matcher_generic.compress_normalize_protocols_None[OF generic]
+            compress_normalize_input_interfaces_None[OF generic]
+            compress_normalize_output_interfaces_None[OF generic] by blast
+   show "normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = None \<Longrightarrow> \<not> matches (\<beta>, \<alpha>) m a p"
      unfolding compress_normalize_besteffort_def
      apply(rule compress_normalize_primitive_monad_None)
-         using compress_normalize_besteffort_normalized compress_normalize_besteffort_matches notmatches by blast+
+         using compress_normalize_besteffort_normalized
+               compress_normalize_besteffort_matches[OF generic]
+               notmatches by blast+
   qed 
-  lemma compress_normalize_besteffort_nnf: "normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
-    normalized_nnf_match m'"
+  lemma compress_normalize_besteffort_nnf:
+    "normalized_nnf_match m \<Longrightarrow>
+     compress_normalize_besteffort m = Some m' \<Longrightarrow>
+     normalized_nnf_match m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad)
-       using compress_normalize_besteffort_normalized compress_normalize_besteffort_matches by blast+
+       using compress_normalize_besteffort_normalized
+             compress_normalize_besteffort_matches[OF primitive_matcher_generic_common_matcher]
+             by blast+
   
   lemma compress_normalize_besteffort_not_introduces_Iiface:
       "\<not> has_disc is_Iiface m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
@@ -743,7 +757,9 @@ theorem transform_normalize_primitives:
       using normalized_rs0 apply(simp; fail)
      apply(subst local_simp, simp_all)
      apply(rule optimize_matches_option_generic[where P="\<lambda> m a. normalized_nnf_match m"])
-       apply(simp_all add: normalized compress_normalize_besteffort_Some compress_normalize_besteffort_None)
+       apply(simp_all add: normalized
+                  compress_normalize_besteffort_Some[OF primitive_matcher_generic_common_matcher]
+                  compress_normalize_besteffort_None[OF primitive_matcher_generic_common_matcher])
      done
 
     from normalize_src_ports_normalized_n_primitive
