@@ -30,77 +30,12 @@ lemma "ipv4set_from_cidr (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 33 = {0}"
   by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4set_from_cidr_def ipset_from_cidr_large_pfxlen)
   
 
-
-  (*TODO: move to IPv4?*)
-  text{*This @{text "len_of TYPE('a)"} is 32 for IPv4 addresses.*}
-  lemma ipv4cidr_to_interval_simps[code_unfold]: "ipcidr_to_interval ((pre::ipv4addr), len) = (
-      let netmask = (mask len) << (32 - len);
-          network_prefix = (pre AND netmask)
-      in (network_prefix, network_prefix OR (NOT netmask)))"
-  by(simp add: ipcidr_to_interval_def Let_def ipcidr_to_interval_start.simps ipcidr_to_interval_end.simps)
-
   (*TODO: remove this lemma?, refactor*)
   lemma ipv4cidr_to_interval: "ipcidr_to_interval (base, len) = (s,e) \<Longrightarrow> ipv4set_from_cidr base len = {s .. e}"
     apply(simp add: ipv4set_from_cidr_def Let_def ipcidr_to_interval_def)
     using ipset_from_cidr_ipcidr_to_interval by blast
 
 
-
-  fun ipcidr_conjunct :: "('i::len word \<times> nat) \<Rightarrow> ('i word \<times> nat) \<Rightarrow> ('i word \<times> nat) option" where 
-    "ipcidr_conjunct (base1, m1) (base2, m2) = (if ipset_from_cidr base1 m1 \<inter> ipset_from_cidr base2 m2 = {}
-       then
-        None
-       else if 
-        ipset_from_cidr base1 m1 \<subseteq> ipset_from_cidr base2 m2
-       then 
-        Some (base1, m1)
-       else
-        Some (base2, m2)
-      )"
-
-  (*TODO: move*)
-  lemma ipcidr_conjunct_any: "ipcidr_conjunct (0, 0) (0, 0) \<noteq> None"
-    by(simp add: ipset_from_cidr_0)
-  
-  lemma ipcidr_conjunct_correct: "(case ipcidr_conjunct (b1, m1) (b2, m2)
-                                          of Some (bx, mx) \<Rightarrow> ipset_from_cidr bx mx
-                                          |  None \<Rightarrow> {})
-      = 
-      (ipset_from_cidr b1 m1) \<inter> (ipset_from_cidr b2 m2)"
-    apply(simp split: split_if_asm)
-    using ip_cidr_intersect by fast
-  declare ipcidr_conjunct.simps[simp del]
-
-  (*TODO: this is a duplicate, right?*)
-  (*TODO: if not, move!*)
-  definition ipcidr_tuple_to_wordinterval :: "('i::len word \<times> nat) \<Rightarrow> 'i wordinterval" where
-    "ipcidr_tuple_to_wordinterval iprng = iprange_interval (ipcidr_to_interval iprng)"
-
-  (*TODO: rename*)
-  lemma wordinterval_to_set_ipcidr_tuple_to_wordinterval:
-    "wordinterval_to_set (ipcidr_tuple_to_wordinterval (b, m)) = ipset_from_cidr b m"
-    unfolding ipcidr_tuple_to_wordinterval_def ipset_from_cidr_ipcidr_to_interval ipcidr_to_interval_def
-    by(simp add: iprange_interval.simps)
-
-  lemma [code_unfold]: 
-  "ipcidr_conjunct ips1 ips2 = (if wordinterval_empty (wordinterval_intersection (ipcidr_tuple_to_wordinterval ips1) (ipcidr_tuple_to_wordinterval ips2))
-       then
-        None
-       else if 
-        wordinterval_subset (ipcidr_tuple_to_wordinterval ips1) (ipcidr_tuple_to_wordinterval ips2)
-       then 
-        Some ips1
-       else
-        Some ips2
-      )"
-  apply(simp)
-  apply(cases ips1, cases ips2, rename_tac b1 m1 b2 m2, simp)
-  apply(safe)
-     apply(auto simp add: wordinterval_to_set_ipcidr_tuple_to_wordinterval ipcidr_conjunct.simps split:split_if_asm)
-  done
-  value "ipcidr_conjunct (0,0) (8,1)" (*with the code_unfold lemma before, this works!*)
-
-  
   (*TODO: generalize, move*)
   definition ipv4cidr_union_set :: "(ipv4addr \<times> nat) set \<Rightarrow> ipv4addr set" where
     "ipv4cidr_union_set ips \<equiv> \<Union>(base, len) \<in> ips. ipv4set_from_cidr base len"
@@ -126,9 +61,15 @@ lemma "ipv4set_from_cidr (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 33 = {0}"
 
 subsection{*IPv4 Addresses in IPTables Notation (how we parse it)*}
   (*src dst ipv4*)
-  datatype ipt_ipv4range = Ip4Addr "nat \<times> nat \<times> nat \<times> nat"
-                        | Ip4AddrNetmask "nat \<times> nat \<times> nat \<times> nat" nat -- "addr/xx"
-                        | Ip4AddrRange  "nat \<times> nat \<times> nat \<times> nat" "nat \<times> nat \<times> nat \<times> nat"-- "-m iprange --src-range a.b.c.d-e.f.g.h"
+  datatype ipt_ipv4range =
+                        -- "Singleton IP Address"
+                        Ip4Addr "nat \<times> nat \<times> nat \<times> nat"
+
+                        -- "CIDR notation: addr/xx"
+                        | Ip4AddrNetmask "nat \<times> nat \<times> nat \<times> nat" nat
+
+                        -- "-m iprange --src-range a.b.c.d-e.f.g.h"
+                        | Ip4AddrRange  "nat \<times> nat \<times> nat \<times> nat" "nat \<times> nat \<times> nat \<times> nat"
                             (*the range is inclusive*)
   
   

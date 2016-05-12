@@ -345,5 +345,14 @@ subsection{*IP ranges*}
   declare ipv4range_range_set_eq[unfolded ipv4range_range.simps, simp]
   declare iffD1[OF wordinterval_eq_set_eq, cong]
   *)
+
+
+  (*TODO: move to IPv4?*)
+  text{*This @{text "len_of TYPE('a)"} is 32 for IPv4 addresses.*}
+  lemma ipv4cidr_to_interval_simps[code_unfold]: "ipcidr_to_interval ((pre::ipv4addr), len) = (
+      let netmask = (mask len) << (32 - len);
+          network_prefix = (pre AND netmask)
+      in (network_prefix, network_prefix OR (NOT netmask)))"
+  by(simp add: ipcidr_to_interval_def Let_def ipcidr_to_interval_start.simps ipcidr_to_interval_end.simps)
  
 end
