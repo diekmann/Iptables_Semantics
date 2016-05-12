@@ -279,11 +279,6 @@ subsection{*IP ranges*}
   lemma ipv4set_from_cidr_alt: "ipv4set_from_cidr addr pflength = ipv4set_from_netmask addr ((mask pflength) << (32 - pflength))"
     by(simp add: ipv4set_from_cidr_def ipv4set_from_netmask_def ipset_from_cidr_def)
 
-  lemma transition_lemma_ipv4_delete_me:
-    "ipv4set_from_cidr = ipset_from_cidr"
-    apply(simp add: fun_eq_iff ipv4set_from_cidr_def )
-    done
-
   lemma "ipv4set_from_cidr (ipv4addr_of_dotdecimal (192,168,0,42)) 16 = 
           {ipv4addr_of_dotdecimal (192,168,0,0) .. ipv4addr_of_dotdecimal (192,168,255,255)}"
    by(simp add: ipv4set_from_cidr_def ipset_from_cidr_alt mask_def  ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
