@@ -4,45 +4,6 @@ begin
 
 (*Contributed by Julius Michaelis*)
 
-(*This is what 
-thm packet_ipset_prefix_eq24[simplified ipset_prefix_match_def]
-without all the prefix semantics definitions gives us*)
-lemma zero_base_lsb_imp_set_eq_as_bit_operation:
-  fixes base ::"'a::len word"
-  assumes valid_prefix: "mask (len_of TYPE('a) - len) AND base = 0"
-  shows "(base = NOT mask (len_of TYPE('a) - len) AND a) \<longleftrightarrow>
-         (a \<in> {base .. base || mask (len_of TYPE('a) - len)})"
-proof
-  have helper3: "x OR y = x OR y AND NOT x" for x y ::"'a::len word" by (simp add: word_oa_dist2)
-  from assms show "base = NOT mask (len_of TYPE('a) - len) AND a \<Longrightarrow> a \<in> {base..base || mask (len_of TYPE('a) - len)}"
-    apply(simp add: word_and_le1)
-    apply(metis helper3 le_word_or2 word_bw_comms(1) word_bw_comms(2))
-  done
-next
-  assume"a \<in> {base..base || mask (len_of TYPE('a) - len)}"
-  hence a: "base \<le> a \<and> a \<le> base OR mask (len_of TYPE('a) - len)" by simp
-  show "base = NOT mask (len_of TYPE('a) - len) AND a"
-  proof -
-    have f2: "\<forall>x\<^sub>0. base AND NOT mask x\<^sub>0 \<le> a AND NOT mask x\<^sub>0"
-      using a neg_mask_mono_le by blast
-    have f3: "\<forall>x\<^sub>0. a AND NOT mask x\<^sub>0 \<le> (base OR mask (len_of TYPE('a) - len)) AND NOT mask x\<^sub>0"
-      using a neg_mask_mono_le by blast
-    have f4: "base = base AND NOT mask (len_of TYPE('a) - len)"
-      using valid_prefix by (metis mask_eq_0_eq_x word_bw_comms(1))
-    hence f5: "\<forall>x\<^sub>6. (base OR x\<^sub>6) AND NOT mask (len_of TYPE('a) - len) = base OR x\<^sub>6 AND NOT mask (len_of TYPE('a) - len)"
-      using word_ao_dist by (metis)
-    have f6: "\<forall>x\<^sub>2 x\<^sub>3. a AND NOT mask x\<^sub>2 \<le> x\<^sub>3 \<or> \<not> (base OR mask (len_of TYPE('a) - len)) AND NOT mask x\<^sub>2 \<le> x\<^sub>3"
-      using f3 dual_order.trans by auto
-    have "base = (base OR mask (len_of TYPE('a) - len)) AND NOT mask (len_of TYPE('a) - len)"
-      using f5 by auto
-    hence "base = a AND NOT mask (len_of TYPE('a) - len)"
-      using f2 f4 f6 by (metis eq_iff)
-    thus "base = NOT mask (len_of TYPE('a) - len) AND a"
-      by (metis word_bw_comms(1))
-  qed
-qed
-
-
 section{*Prefix match*}
 text{*
   The main difference between the prefix matched defined here and CIDR notation is a validity constraint 
@@ -61,7 +22,7 @@ begin
 end
 
 definition pfxm_mask :: "'a prefix_match \<Rightarrow> 'a::len word" where
-  "pfxm_mask x \<equiv> mask ((len_of (TYPE('a))) - pfxm_length x)"
+  "pfxm_mask x \<equiv> mask (len_of (TYPE('a)) - pfxm_length x)"
 
 definition valid_prefix :: "('a::len) prefix_match \<Rightarrow> bool" where
   "valid_prefix pf = ((pfxm_mask pf) AND pfxm_prefix pf = 0)"
@@ -233,19 +194,23 @@ lemma prefix_match_if_in_prefix_to_wordset: assumes "valid_prefix pfx"
   using packet_ipset_prefix_eq24[OF _ assms]
 by (metis (erased, hide_lams) Int_iff UNIV_I fst_conv ipset_prefix_match_def)
 
+private lemma valid_prefix_ipset_from_netmask_ipset_from_cidr:
+  shows "ipset_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx) = ipset_from_cidr (pfxm_prefix pfx) (pfxm_length pfx)"
+  using assms apply(cases pfx)
+  apply(simp add: ipset_from_cidr_alt2 pfxm_mask_def)
+ done
+  
+
 lemma prefix_match_if_in_corny_set: 
   assumes "valid_prefix pfx"
   shows "prefix_match_semantics pfx a \<longleftrightarrow> a \<in> ipset_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx)"
   unfolding prefix_match_if_in_prefix_to_wordset[OF assms]
-  unfolding prefix_to_wordset_def ipset_from_netmask_def Let_def
-  unfolding word_bool_alg.double_compl
-  proof(goal_cases)
-    have *: "pfxm_prefix pfx AND NOT pfxm_mask pfx = pfxm_prefix pfx"
-      unfolding mask_eq_0_eq_x[symmetric] using valid_prefix_E[OF assms] word_bw_comms(1)[of "pfxm_prefix pfx"] by simp
-    hence **: "pfxm_prefix pfx AND NOT pfxm_mask pfx OR pfxm_mask pfx = pfxm_prefix pfx OR pfxm_mask pfx"
-      by simp
-    case 1 show ?case unfolding * ** ..
-  qed
+  unfolding valid_prefix_ipset_from_netmask_ipset_from_cidr
+  unfolding prefix_to_wordset_def
+  apply(subst ipset_from_cidr_base_wellforemd)
+   subgoal using assms by(simp add: valid_prefix_def pfxm_mask_def)
+  by(simp add: pfxm_mask_def)
+  
 
 lemma prefix_match_if_in_corny_set2:
   assumes "valid_prefix pfx"
@@ -307,24 +272,10 @@ proof -
   show "(a \<in> ipset_from_netmask (pfxm_p) (NOT mask (len_of TYPE('a) - l))) \<longleftrightarrow> (pfxm_p = NOT mask (len_of TYPE('a) - l) AND a)"
     unfolding pfxm_mask_def by(simp)
 qed
- 
 
+(*TODO: delete*)
 private lemma mask_and_not_mask_helper: "mask (len - m) AND base AND NOT mask (len - m) = 0"
   by(simp add: word_bw_lcs)
-
-
-(*TODO: rename*)
-lemma ipv4set_from_cidr_eq_ip_cidr_set: fixes base::"'i::len word"
-  shows "ipset_from_cidr base m = ip_cidr_set base m"
-  unfolding ip_cidr_set_def
-  unfolding set_eq_iff
-  unfolding mem_Collect_eq
-  unfolding ipset_from_cidr_def
-  unfolding maskshift_eq_not_mask_generic
-  using caesar_proof_without_structures[OF mask_and_not_mask_helper, of _ base m]
-  unfolding ipset_from_netmask_base_mask_consume
-  unfolding word_bw_comms(1)[of _ " ~~ mask (len_of TYPE('i) - m)"]
-  ..
 
 
 (*the bitmagic (pfxm_prefix pfx) AND pfxm_mask pfx). we just want to make sure to get a valid_prefix*)

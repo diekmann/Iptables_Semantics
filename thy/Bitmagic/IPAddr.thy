@@ -74,6 +74,14 @@ subsection{*Sets of IP addresses*}
     apply(simp add: NOT_mask_shifted_lenword)
     done
 
+
+  lemma ipset_from_cidr_alt2:
+    fixes base ::"'a::len word"
+    shows "ipset_from_cidr base len = 
+           ipset_from_netmask base (NOT mask (len_of (TYPE('a)) - len))"
+    apply(simp add: ipset_from_cidr_def)
+    using NOT_mask_shifted_lenword by (metis word_not_not) 
+
   lemma "ipset_from_cidr 0 0 = UNIV" using ipset_from_cidr_0 by blast
 
   lemma ipset_from_cidr_wordlength: 
@@ -127,6 +135,78 @@ subsection{*Sets of IP addresses*}
       by (simp add: obviously)
   qed
 
+
+(*This is what 
+thm packet_ipset_prefix_eq24[simplified ipset_prefix_match_def]
+without all the prefix semantics definitions gives us*)
+lemma zero_base_lsb_imp_set_eq_as_bit_operation:
+  fixes base ::"'a::len word"
+  assumes valid_prefix: "mask (len_of TYPE('a) - len) AND base = 0"
+  shows "(base = NOT mask (len_of TYPE('a) - len) AND a) \<longleftrightarrow>
+         (a \<in> {base .. base || mask (len_of TYPE('a) - len)})"
+proof
+  have helper3: "x OR y = x OR y AND NOT x" for x y ::"'a::len word" by (simp add: word_oa_dist2)
+  from assms show "base = NOT mask (len_of TYPE('a) - len) AND a \<Longrightarrow> a \<in> {base..base || mask (len_of TYPE('a) - len)}"
+    apply(simp add: word_and_le1)
+    apply(metis helper3 le_word_or2 word_bw_comms(1) word_bw_comms(2))
+  done
+next
+  assume"a \<in> {base..base || mask (len_of TYPE('a) - len)}"
+  hence a: "base \<le> a \<and> a \<le> base OR mask (len_of TYPE('a) - len)" by simp
+  show "base = NOT mask (len_of TYPE('a) - len) AND a"
+  proof -
+    have f2: "\<forall>x\<^sub>0. base AND NOT mask x\<^sub>0 \<le> a AND NOT mask x\<^sub>0"
+      using a neg_mask_mono_le by blast
+    have f3: "\<forall>x\<^sub>0. a AND NOT mask x\<^sub>0 \<le> (base OR mask (len_of TYPE('a) - len)) AND NOT mask x\<^sub>0"
+      using a neg_mask_mono_le by blast
+    have f4: "base = base AND NOT mask (len_of TYPE('a) - len)"
+      using valid_prefix by (metis mask_eq_0_eq_x word_bw_comms(1))
+    hence f5: "\<forall>x\<^sub>6. (base OR x\<^sub>6) AND NOT mask (len_of TYPE('a) - len) = base OR x\<^sub>6 AND NOT mask (len_of TYPE('a) - len)"
+      using word_ao_dist by (metis)
+    have f6: "\<forall>x\<^sub>2 x\<^sub>3. a AND NOT mask x\<^sub>2 \<le> x\<^sub>3 \<or> \<not> (base OR mask (len_of TYPE('a) - len)) AND NOT mask x\<^sub>2 \<le> x\<^sub>3"
+      using f3 dual_order.trans by auto
+    have "base = (base OR mask (len_of TYPE('a) - len)) AND NOT mask (len_of TYPE('a) - len)"
+      using f5 by auto
+    hence "base = a AND NOT mask (len_of TYPE('a) - len)"
+      using f2 f4 f6 by (metis eq_iff)
+    thus "base = NOT mask (len_of TYPE('a) - len) AND a"
+      by (metis word_bw_comms(1))
+  qed
+qed
+
+
+(*TODO: delete*)
+lemma maskshift_eq_not_mask_generic: "((mask m << len_of TYPE('a) - m) :: 'a::len word) = NOT mask (len_of TYPE('a) - m)"
+  using NOT_mask_shifted_lenword by (metis word_not_not) 
+
+
+lemma caesar_proof_without_structures: "mask (len_of TYPE('a) - l) AND (pfxm_p::'a::len word) = 0 \<Longrightarrow>
+       (a \<in> ipset_from_netmask (pfxm_p) (NOT mask (len_of TYPE('a) - l))) \<longleftrightarrow>
+       (pfxm_p = NOT mask (len_of TYPE('a) - l) AND a)"
+apply(subst ipset_from_cidr_alt2[symmetric])
+apply(subst zero_base_lsb_imp_set_eq_as_bit_operation)
+ apply(simp; fail)
+apply(subst ipset_from_cidr_base_wellforemd)
+ apply(simp; fail)
+apply(simp)
+done
+
+(*TODO: delete*)
+lemma mask_and_not_mask_helper: "mask (len - m) AND base AND NOT mask (len - m) = 0"
+  by(simp add: word_bw_lcs)
+
+(*TODO: rename*)
+lemma ipv4set_from_cidr_eq_ip_cidr_set: fixes base::"'i::len word"
+  shows "ipset_from_cidr base m = ip_cidr_set base m"
+  unfolding ip_cidr_set_def
+  unfolding set_eq_iff
+  unfolding mem_Collect_eq
+  unfolding ipset_from_cidr_def
+  unfolding maskshift_eq_not_mask_generic
+  using caesar_proof_without_structures[OF mask_and_not_mask_helper, of _ base m]
+  apply(subst ipset_from_netmask_base_mask_consume[symmetric])
+  unfolding word_bw_comms(1)[of _ " ~~ mask (len_of TYPE('i) - m)"]
+  ..
 
   context
   begin
