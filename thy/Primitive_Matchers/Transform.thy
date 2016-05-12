@@ -264,8 +264,7 @@ by(cases r)(simp add: optimize_matches_def)
   
 
 theorem transform_optimize_dnf_strict_structure: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
-      shows (*"(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
-      and*) "simple_ruleset (transform_optimize_dnf_strict rs)"
+      shows "simple_ruleset (transform_optimize_dnf_strict rs)"
       and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc disc m"
       and "\<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_nnf_match m"
       and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
@@ -273,36 +272,9 @@ theorem transform_optimize_dnf_strict_structure: assumes simplers: "simple_rules
       and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc_negated disc neg m"
   proof -
-    let ?\<gamma>="(common_matcher, \<alpha>)"
     show simplers_transform: "simple_ruleset (transform_optimize_dnf_strict rs)"
       unfolding transform_optimize_dnf_strict_def
       using simplers by (simp add: optimize_matches_simple_ruleset simple_ruleset_normalize_rules_dnf)
-
-    (*let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
-
-    have simplers1: "simple_ruleset (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs)"
-      using simplers optimize_matches_simple_ruleset by (metis)
-
-
-    have 1: "?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?fw rs = t"
-      using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]] by fast
-
-    have "?fw rs = ?fw (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs)"
-      apply(rule optimize_matches[symmetric])
-      using optimize_primitive_univ_correct_matchexpr opt_MatchAny_match_expr_correct by (metis comp_apply)
-    also have "\<dots> = ?fw (normalize_rules_dnf (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs))"
-      apply(rule normalize_rules_dnf_correct[symmetric])
-      using simplers1 by (metis good_imp_wf_ruleset simple_imp_good_ruleset)
-    also have "\<dots> = ?fw (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs)))"
-      apply(rule optimize_matches[symmetric])
-      using opt_MatchAny_match_expr_correct by (metis)
-    finally have rs: "?fw rs = ?fw (transform_optimize_dnf_strict rs)"
-      unfolding transform_optimize_dnf_strict_def by(simp)
-
-    have 2: "?fw (transform_optimize_dnf_strict rs) = t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t "
-      using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_transform], symmetric] by fast
-    from 1 2 rs show "?\<gamma>,p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t" by simp*)
-
 
     have tf1: "\<And>r rs. transform_optimize_dnf_strict (r#rs) =
       (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) [r])))@
