@@ -830,14 +830,14 @@ done
 
 lemma x_comp_fst_comp_apsnd[simp]: "x \<circ> fst \<circ> apsnd f = x \<circ> fst" unfolding comp_def by simp
 
-lemma lr_of_tran_no_overlaps: assumes "is_iface_list ifs" shows "Inr t = (lr_of_tran rt fw ifs) \<Longrightarrow> no_overlaps OF_match_fields_unsafe t"
+lemma lr_of_tran_no_overlaps: assumes "distinct ifs" shows "Inr t = (lr_of_tran rt fw ifs) \<Longrightarrow> no_overlaps OF_match_fields_unsafe t"
 	apply(unfold lr_of_tran_def Let_def pack_OF_entries_def)
 	apply(simp split: if_splits)
 	apply(thin_tac "t = _")
 	apply(drule distinct_of_prio_hlp)
 	apply(rule no_overlaps_lroft_s3_hlp[rotated])
-	apply(simp add: assms[unfolded is_iface_list_def];fail)
-	apply(simp add: o_assoc;fail)
+	subgoal by(simp add: assms)
+	subgoal by(simp add: o_assoc)
 done
 
 lemma sorted_lr_of_tran_s3_hlp: "\<forall>x\<in>set f. fst x \<le> a \<Longrightarrow> b \<in> set (lr_of_tran_s3 s f) \<Longrightarrow> fst b \<le> a" 
@@ -1533,7 +1533,7 @@ lemma lr_of_tran_correct:
 	    and s2: "has_default_policy fw" "simple_fw_valid fw" "no_oif_match fw"
 	  and nerr: "lr_of_tran rt fw ifs = Inr oft"
 	 and ippkt: "p_l2type p = 0x800"
-	 and   ifl: "is_iface_list ifs"
+	 and  difs: "distinct ifs"
 	 and ifvld: "p_iiface p \<in> set ifs"
 	shows "OF_priority_match OF_match_fields_safe oft p = Action [Forward oif] \<longleftrightarrow> simple_linux_router_nol12 rt fw p = (Some (p\<lparr>p_oiface := oif\<rparr>))"
 	      "OF_priority_match OF_match_fields_safe oft p = Action [] \<longleftrightarrow> simple_linux_router_nol12 rt fw p = None"
@@ -1549,7 +1549,7 @@ proof -
     apply(subst OF_unsafe_safe_match_linear_eq; (rule lr_of_tran_prereqs s1 s2 nerr refl)+)
   done
   have lin: "OF_priority_match OF_match_fields_safe oft = OF_match_linear OF_match_fields_safe oft"
-    using OF_eq[OF lr_of_tran_no_overlaps lr_of_tran_sorted_descending, OF ifl nerr[symmetric] nerr[symmetric]] unfolding fun_eq_iff unsafe_safe_eq by metis
+    using OF_eq[OF lr_of_tran_no_overlaps lr_of_tran_sorted_descending, OF difs nerr[symmetric] nerr[symmetric]] unfolding fun_eq_iff unsafe_safe_eq by metis
   let ?ard = "map (apfst of_nat) (annotate_rlen (lr_of_tran_fbs rt fw ifs))"
   have oft_def: "oft = pack_OF_entries ifs ?ard" using nerr unfolding lr_of_tran_def Let_def by(simp split: if_splits)
   have vld: "list_all simple_match_valid $ map (fst \<circ> snd) ?ard" 
