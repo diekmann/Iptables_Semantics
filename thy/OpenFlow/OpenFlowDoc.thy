@@ -490,7 +490,7 @@ fixes
 assumes
   "valid_prefixes rt" and "has_default_route rt"
   "has_default_policy fw" and  "simple_fw_valid fw" and  "no_oif_match fw"
-  "is_iface_list ifs"
+  "distinct ifs"
   "p_iiface p \<in> set ifs" and "p_l2type p = 0x800"
   "lr_of_tran rt fw ifs = Inr oft"
 shows
