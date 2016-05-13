@@ -87,6 +87,9 @@ definition prefix_to_wordset :: "'a::len prefix_match \<Rightarrow> 'a word set"
 private lemma pfx_not_empty: "valid_prefix pfx \<Longrightarrow> prefix_to_wordset pfx \<noteq> {}"
   unfolding valid_prefix_def prefix_to_wordset_def by(simp add: le_word_or2)
 
+text\<open>Walking through a routing table:
+  Splits the (remaining) IP space when traversing a routing table: the pair contains the IPs
+  concerned by the current rule and those left alone.\<close>
 definition ipset_prefix_match where 
   "ipset_prefix_match pfx rg = (let pfxrg = prefix_to_wordset pfx in (rg \<inter> pfxrg, rg - pfxrg))"
 lemma ipset_prefix_match_m[simp]:  "fst (ipset_prefix_match pfx rg) = rg \<inter> (prefix_to_wordset pfx)" by(simp only: Let_def ipset_prefix_match_def, simp)
@@ -116,8 +119,6 @@ lemma pfx_match_addr_ipset: "valid_prefix rr \<Longrightarrow> prefix_match_sema
   by(simp add: prefix_match_semantics_def prefix_to_wordset_def valid_prefix_def)
      (metis (no_types, lifting) neg_mask_add_mask pfxm_mask_def word_and_le1 word_ao_absorbs(1) word_ao_absorbs(6) word_bool_alg.conj.commute word_neg_and_le)
 (* inversion should hold\<dots> *)
-
-private lemma helper3: "(x::'a::len word) OR y = x OR y AND NOT x" by (simp add: word_oa_dist2)
 
 private lemma packet_ipset_prefix_eq1:
   assumes "addr \<in> addrrg"
@@ -157,20 +158,21 @@ qed
 
 
 private lemma packet_ipset_prefix_eq3:
-  assumes "addr \<in> addrrg"
-  assumes "valid_prefix match"
   assumes "addr \<in> (snd (ipset_prefix_match match addrrg))"
   shows "\<not>prefix_match_semantics match addr"
-using assms
-  apply(subst(asm) ipset_prefix_match_def)
-  apply(simp only: Let_def fst_def)
-  apply(simp)
-  apply(subst(asm) prefix_to_wordset_def)
-  apply(transfer)
-  apply(simp only: prefix_match_semantics_def valid_prefix_def Set_Interval.ord_class.atLeastAtMost_iff prefix_to_wordset_def)
-  apply(simp)
-  apply(metis helper3 le_word_or2 word_and_le2 word_bw_comms(1) word_bw_comms(2))
-done
+proof -
+  have helper3: "(x::'a::len word) OR y = x OR y AND NOT x" for x y by (simp add: word_oa_dist2)
+  from assms have "addr \<notin> prefix_to_wordset match"
+    apply(subst(asm) ipset_prefix_match_def)
+    by(simp add: Let_def fst_def)
+  thus ?thesis
+    apply(subst(asm) prefix_to_wordset_def)
+    apply(simp only: prefix_match_semantics_def valid_prefix_def
+                     Set_Interval.ord_class.atLeastAtMost_iff prefix_to_wordset_def)
+    apply(simp)
+    apply(metis helper3 le_word_or2 word_and_le2 word_bw_comms(1) word_bw_comms(2))
+    done
+qed
 
 private lemma packet_ipset_prefix_eq24:
   assumes "addr \<in> addrrg"
@@ -187,7 +189,7 @@ private lemma packet_ipset_prefix_eq13:
   assumes "addr \<in> addrrg"
   assumes "valid_prefix match"
   shows "\<not>prefix_match_semantics match addr = (addr \<in> (snd (ipset_prefix_match match addrrg)))"
-using packet_ipset_prefix_eq1[OF assms] packet_ipset_prefix_eq3[OF assms] by fast
+using packet_ipset_prefix_eq1[OF assms] packet_ipset_prefix_eq3 by fast
 
 lemma prefix_match_if_in_prefix_to_wordset: assumes "valid_prefix pfx" 
   shows "prefix_match_semantics pfx a \<longleftrightarrow> a \<in> prefix_to_wordset pfx"
@@ -228,7 +230,8 @@ declare[[unify_trace_failure]]*)
 (*TODO: due to generalization, this can be simplified*)
 lemma prefix_to_wordset_ipset_from_cidr: assumes "valid_prefix (pfx::'a::len prefix_match)"
       shows "prefix_to_wordset pfx = ipset_from_cidr (pfxm_prefix pfx) (pfxm_length pfx)"
-proof-
+proof -
+  have helper3: "(x::'a::len word) OR y = x OR y AND NOT x" for x y by (simp add: word_oa_dist2)
   have prefix_match_if_in_corny_set: "(prefix_to_wordset pfx) = ipset_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx)"
     unfolding prefix_to_wordset_def ipset_from_netmask_def Let_def
     unfolding word_bool_alg.double_compl
