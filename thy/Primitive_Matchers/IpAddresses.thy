@@ -10,12 +10,12 @@ text\<open>Misc\<close>
   (*TODO: delete?*)
   (*TODO:move?*)
   lemma ipv4set_from_cidr_lowest: "a \<in> ipset_from_cidr a n" 
-    using ip_cidr_set_def ipv4set_from_cidr_eq_ip_cidr_set by blast
+    using ip_cidr_set_def ipset_from_cidr_eq_ip_cidr_set by blast
 
   (*this is why I call the previous lemma 'lowest'*)
   lemma "valid_prefix (PrefixMatch a n) \<Longrightarrow> is_lowest_element a (ipset_from_cidr a n)"
     apply(simp add: is_lowest_element_def ipv4set_from_cidr_lowest)
-    apply(simp add: ipv4set_from_cidr_eq_ip_cidr_set ip_cidr_set_def)
+    apply(simp add: ipset_from_cidr_eq_ip_cidr_set ip_cidr_set_def)
     apply(simp add: valid_prefix_def pfxm_mask_def)
     apply clarify
     by (metis add.left_neutral antisym_conv word_and_le2 word_bw_comms(1) word_plus_and_or_coroll2)

@@ -165,7 +165,7 @@ subsection\<open>Simple Firewall Semantics\<close>
           from assm have nomatch: "\<forall>(p::('i::len, 'a) simple_packet_scheme). ?x p" by(simp add: m)
           { fix ips::"'i::len word \<times> nat"
             have "a \<in> ipset_from_cidr a n" for a::"'i::len word" and n
-              using ipv4set_from_cidr_lowest by auto
+              using ipset_from_cidr_lowest by auto
             hence "simple_match_ip ips (fst ips)" by(cases ips) simp
           } note ips=this
           have proto: "match_proto protocol (case protocol of ProtoAny \<Rightarrow> TCP | Proto p \<Rightarrow> p)"

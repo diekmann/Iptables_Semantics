@@ -147,8 +147,7 @@ subsection\<open>Sets of IP addresses\<close>
 
 
   text\<open>The definitions are equal\<close>
-  (*TODO: rename*)
-  lemma ipv4set_from_cidr_eq_ip_cidr_set:
+  lemma ipset_from_cidr_eq_ip_cidr_set:
     fixes base::"'i::len word"
     shows "ipset_from_cidr base len = ip_cidr_set base len"
   proof -
@@ -314,7 +313,7 @@ subsection\<open>Clever Operations on IP Addresses in CIDR Notation\<close>
       \<not> ipset_from_cidr b2 m2 \<subseteq> ipset_from_cidr b1 m1 \<Longrightarrow>
       \<not> ipset_from_cidr b1 m1 \<subseteq> ipset_from_cidr b2 m2 \<Longrightarrow>
       ipset_from_cidr b1 m1 \<inter> ipset_from_cidr b2 m2 = {}"
-    apply(simp add: ipv4set_from_cidr_eq_ip_cidr_set)
+    apply(simp add: ipset_from_cidr_eq_ip_cidr_set)
     using ip_cidr_set_notsubset_empty_inter by blast
 
   text\<open>Computing the intersection of two IP address ranges in CIDR notation\<close>

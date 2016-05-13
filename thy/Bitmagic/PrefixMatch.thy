@@ -306,7 +306,23 @@ lemma range_prefix_match_snm[simp]: "wordinterval_to_set (snd (range_prefix_matc
   by (metis snd_conv ipset_prefix_match_nm wordinterval_setminus_set_eq prefix_to_wordinterval_set_eq range_prefix_match_def)
 
 end
-	
+
+
+
+
+text\<open>Getting a lowest element\<close>
+  lemma ipset_from_cidr_lowest: "a \<in> ipset_from_cidr a n" 
+    using ip_cidr_set_def ipset_from_cidr_eq_ip_cidr_set by blast
+
+  (*this is why I call the previous lemma 'lowest'*)
+  lemma "valid_prefix (PrefixMatch a n) \<Longrightarrow> is_lowest_element a (ipset_from_cidr a n)"
+    apply(simp add: is_lowest_element_def ipset_from_cidr_lowest)
+    apply(simp add: ipset_from_cidr_eq_ip_cidr_set ip_cidr_set_def)
+    apply(simp add: valid_prefix_def pfxm_mask_def)
+    apply clarify
+    by (metis add.left_neutral antisym_conv word_and_le2 word_bw_comms(1) word_plus_and_or_coroll2)
+
+
  
 lemma "valid_prefix a \<Longrightarrow> valid_prefix b \<Longrightarrow> card (prefix_to_wordset a) < card (prefix_to_wordset b) \<Longrightarrow> a \<le> b"
 oops (* Das geht bestümmt irgendwie™ 
