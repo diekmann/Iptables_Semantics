@@ -2,10 +2,10 @@ theory RepeatStabilize
 imports Main
 begin
 
-text{*Repeating something a number of times*}
+text\<open>Repeating something a number of times\<close>
 
 
-text{*repeat the application at most n times (param 1) until it stabilizes*}
+text\<open>repeat the application at most n times (param 1) until it stabilizes\<close>
 fun repeat_stabilize :: "nat \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'a" where
   "repeat_stabilize 0 _ v = v" |
   "repeat_stabilize (Suc n) f v = (let v_new = f v in if v = v_new then v else repeat_stabilize n f v_new)"

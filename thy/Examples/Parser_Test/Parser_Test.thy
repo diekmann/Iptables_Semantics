@@ -4,13 +4,13 @@ imports "../../Primitive_Matchers/Parser"
 begin
 
 
-text{*
+text\<open>
 Argument 1: the name of the prefix for all constants which will be defined.
 Argument 2: The path to the firewall (iptables-save). A path is represented as list.
-*}
+\<close>
 parse_iptables_save parser_test_firewall = "data" "iptables-save"
 
-text{*The command @{text parse_iptables_save} would provide nicer syntax (but does not support paths at the moment)*}
+text\<open>The command @{text parse_iptables_save} would provide nicer syntax (but does not support paths at the moment)\<close>
 
 term parser_test_firewall
 thm parser_test_firewall_def
@@ -143,9 +143,9 @@ value[code] "let fw = (upper_closure (unfold_ruleset_FORWARD parser_test_firewal
                   (map_of_string (Semantics_Goto.rewrite_Goto parser_test_firewall))))
              in map common_primitive_rule_toString fw"
 
-text{*@{const abstract_for_simple_firewall} requires @{const normalized_nnf_match} primitives, 
+text\<open>@{const abstract_for_simple_firewall} requires @{const normalized_nnf_match} primitives, 
       therefore @{const upper_closure} is called first. Afterwards, the match expressions can 
-      @{const has_unknowns}, therefore, @{const upper_closure} is called again.*}
+      @{const has_unknowns}, therefore, @{const upper_closure} is called again.\<close>
 value[code] "(optimize_matches abstract_for_simple_firewall
                   (upper_closure (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
                     (map_of_string (Semantics_Goto.rewrite_Goto parser_test_firewall)))))"

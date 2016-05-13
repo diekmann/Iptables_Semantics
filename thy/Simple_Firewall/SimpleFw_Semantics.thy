@@ -8,12 +8,12 @@ imports Main "../Common/Negation_Type"
 begin
 
 
-section{*Simple Firewall Syntax (IPv4 only)*}
+section\<open>Simple Firewall Syntax (IPv4 only)\<close>
 
 
   datatype simple_action = Accept | Drop
   
-  text{*Simple match expressions do not allow negated expressions.
+  text\<open>Simple match expressions do not allow negated expressions.
         However, Most match expressions can still be transformed into simple match expressions.
         
         A negated IP address range can be represented as a set of non-negated IP ranges.
@@ -43,7 +43,7 @@ section{*Simple Firewall Syntax (IPv4 only)*}
 
         Noteworthy, simple match expressions are both expressive and support conjunction:
         @{text "simple-match1 \<and> simple-match2 = simple-match3"}
-        *}
+\<close>
         (*It took very long to design the simple match such that it can represent everything we need
         and that you can calculate with it. Disjunction is easy: just have two consecutive rules with the same action.
         Conjunction was a tough fight! It is needed to translate:
@@ -73,7 +73,7 @@ section{*Simple Firewall Syntax (IPv4 only)*}
     datatype 'i simple_rule = SimpleRule (match_sel: "'i simple_match") (action_sel: simple_action)
   end
 
-subsection{*Simple Firewall Semantics*}
+subsection\<open>Simple Firewall Semantics\<close>
 
 
   (*Sanity check:*)
@@ -114,7 +114,7 @@ subsection{*Simple Firewall Semantics*}
       (simple_match_port (dports m) (p_dport p))"
 
 
-  text{*The semantics of a simple firewall: just iterate over the rules sequentially*}
+  text\<open>The semantics of a simple firewall: just iterate over the rules sequentially\<close>
   fun simple_fw :: "'i::len simple_rule list \<Rightarrow> ('i, 'a) simple_packet_scheme \<Rightarrow> state" where
     "simple_fw [] _ = Undecided" |
     "simple_fw ((SimpleRule m Accept)#rs) p = (if simple_matches m p then Decision FinalAllow else simple_fw rs p)" |
@@ -136,7 +136,7 @@ subsection{*Simple Firewall Semantics*}
       thus ?thesis by(simp add: simple_match_any_def ipset_from_cidr_0 match_ifaceAny)
     qed
 
-  text{*we specify only one empty port range*}
+  text\<open>we specify only one empty port range\<close>
   definition simple_match_none :: "'i::len simple_match" where
     "simple_match_none \<equiv> \<lparr>iiface=ifaceAny, oiface=ifaceAny, src=(1,0), dst=(0,0), proto=ProtoAny, sports=(1,0), dports=(0,65535) \<rparr>"
   lemma simple_match_none: "\<not> simple_matches simple_match_none p"
@@ -193,7 +193,7 @@ subsection{*Simple Firewall Semantics*}
   qed
     
 
-subsection{*Simple Ports*}
+subsection\<open>Simple Ports\<close>
   fun simpl_ports_conjunct :: "(16 word \<times> 16 word) \<Rightarrow> (16 word \<times> 16 word) \<Rightarrow> (16 word \<times> 16 word)" where
     "simpl_ports_conjunct (p1s, p1e) (p2s, p2e) = (max p1s p2s, min p1e p2e)"
 
@@ -235,7 +235,7 @@ subsection{*Simple Ports*}
 
   value[code] "simple_match_port_and_not (1,8) (6,8)"
 
-subsection{*Simple IPs*}
+subsection\<open>Simple IPs\<close>
   lemma simple_match_ip_conjunct:
     fixes ip1 :: "'i::len word \<times> nat"
     shows "simple_match_ip ip1 p_ip \<and> simple_match_ip ip2 p_ip \<longleftrightarrow> 
@@ -258,8 +258,8 @@ subsection{*Simple IPs*}
 
 declare simple_matches.simps[simp del]
 
-subsubsection{*Merging Simple Matches*}
-text{*@{typ "'i::len simple_match"} @{text \<and>} @{typ "'i::len simple_match"}*}
+subsubsection\<open>Merging Simple Matches\<close>
+text\<open>@{typ "'i::len simple_match"} @{text \<and>} @{typ "'i::len simple_match"}\<close>
 
 fun simple_match_and :: "'i::len simple_match \<Rightarrow> 'i simple_match \<Rightarrow> 'i simple_match option" where
   "simple_match_and \<lparr>iiface=iif1, oiface=oif1, src=sip1, dst=dip1, proto=p1, sports=sps1, dports=dps1 \<rparr> 
@@ -394,12 +394,12 @@ lemma simple_fw_not_matches_removeAll: "\<not> simple_matches m p \<Longrightarr
    apply blast+
   done
 
-subsection{*Reality check*}
-text{* While it is possible to construct a @{text "simple_fw"} expression that only matches a source
+subsection\<open>Reality check\<close>
+text\<open>While it is possible to construct a @{text "simple_fw"} expression that only matches a source
 or destination port, such a match is not meaningful, as the presence of the port information is 
 dependent on the protocol. Thus, a match for a port should always include the match for a protocol.
 Additionally, prefixes should be zero on bits beyond the prefix length.
-*}
+\<close>
 
 definition "valid_prefix_fw m = valid_prefix (split PrefixMatch m)"
 
@@ -429,7 +429,7 @@ unfolding simple_match_valid_alt_hlp1 simple_match_valid_alt_hlp2
 by(clarify, rename_tac m, case_tac "sports m"; case_tac "dports m"; case_tac "proto m") auto
 
 definition "example_simple_match2 \<equiv> (proto_update (const ProtoAny) example_simple_match1)"
-text{* Thus, @{text "example_simple_match1"} is valid, but if we set its protocol match to any, it no longer is. *}
+text\<open>Thus, @{text "example_simple_match1"} is valid, but if we set its protocol match to any, it no longer is.\<close>
 lemma "simple_match_valid example_simple_match1" by eval
 lemma "\<not>simple_match_valid example_simple_match2" by eval
 

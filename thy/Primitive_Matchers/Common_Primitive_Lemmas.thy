@@ -3,7 +3,7 @@ imports Common_Primitive_Matcher
         "../Semantics_Ternary/Primitive_Normalization"
 begin
 
-section{*Further Lemmas about the Common Matcher*}
+section\<open>Further Lemmas about the Common Matcher\<close>
 
 lemma has_unknowns_common_matcher: "has_unknowns common_matcher m \<longleftrightarrow> has_disc is_Extra m"
   proof -

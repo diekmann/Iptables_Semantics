@@ -8,7 +8,7 @@ datatype 'a flowtable_behavior = Action 'a | NoAction | Undefined
 definition "option_to_ftb b \<equiv> case b of Some a \<Rightarrow> Action a | None \<Rightarrow> NoAction"
 definition "ftb_to_option b \<equiv> case b of Action a \<Rightarrow> Some a | NoAction \<Rightarrow> None"
 
-section{*OpenFlow*}
+section\<open>OpenFlow\<close>
 
 (*https://www.opennetworking.org/images/stories/downloads/sdn-resources/onf-specifications/openflow/openflow-switch-v1.5.0.pdf*)
 

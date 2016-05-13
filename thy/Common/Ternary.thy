@@ -2,8 +2,8 @@ theory Ternary
 imports Main
 begin
 
-section{*Ternary Logic*}
-text{*Kleene logic*}
+section\<open>Ternary Logic\<close>
+text\<open>Kleene logic\<close>
 
 datatype ternaryvalue = TernaryTrue | TernaryFalse | TernaryUnknown
 datatype ternaryformula = TernaryAnd ternaryformula ternaryformula | TernaryOr ternaryformula ternaryformula | 
@@ -64,8 +64,8 @@ fun eval_ternary_Not :: "ternaryvalue \<Rightarrow>  ternaryvalue" where
   "eval_ternary_Not TernaryUnknown = TernaryUnknown"
 
 
-text{*Just to hint that we did not make a typo, we add the truth table for
-      the implication and show that it is compliant with @{term "a \<longrightarrow> b \<longleftrightarrow> \<not>a \<or> b"}*}
+text\<open>Just to hint that we did not make a typo, we add the truth table for
+      the implication and show that it is compliant with @{term "a \<longrightarrow> b \<longleftrightarrow> \<not>a \<or> b"}\<close>
 fun eval_ternary_Imp :: "ternaryvalue \<Rightarrow> ternaryvalue \<Rightarrow> ternaryvalue" where
   "eval_ternary_Imp TernaryTrue TernaryTrue = TernaryTrue" |
   "eval_ternary_Imp TernaryTrue TernaryFalse = TernaryFalse" |
@@ -187,16 +187,16 @@ end
 definition ternary_eval :: "ternaryformula \<Rightarrow> bool option" where
   "ternary_eval t = ternary_to_bool (ternary_ternary_eval t)"
 
-subsection{*Negation Normal Form*}
+subsection\<open>Negation Normal Form\<close>
 
-text{*A formula is in Negation Normal Form (NNF) if negations only occur at the atoms (not before and/or)*}
+text\<open>A formula is in Negation Normal Form (NNF) if negations only occur at the atoms (not before and/or)\<close>
 inductive NegationNormalForm :: "ternaryformula \<Rightarrow> bool" where
   "NegationNormalForm (TernaryValue v)" |
   "NegationNormalForm (TernaryNot (TernaryValue v))" |
   "NegationNormalForm \<phi> \<Longrightarrow> NegationNormalForm \<psi> \<Longrightarrow> NegationNormalForm (TernaryAnd \<phi> \<psi>)"|
   "NegationNormalForm \<phi> \<Longrightarrow> NegationNormalForm \<psi> \<Longrightarrow> NegationNormalForm (TernaryOr \<phi> \<psi>)"
 
-text{*Convert a @{typ ternaryformula} to a  @{typ ternaryformula} in NNF.*}
+text\<open>Convert a @{typ ternaryformula} to a  @{typ ternaryformula} in NNF.\<close>
 fun NNF_ternary :: "ternaryformula \<Rightarrow> ternaryformula" where
   "NNF_ternary (TernaryValue v) = TernaryValue v" |
   "NNF_ternary (TernaryAnd t1 t2) = TernaryAnd (NNF_ternary t1) (NNF_ternary t2)" |

@@ -43,7 +43,7 @@ begin
   lemma "ipassmt_sanity_nowildcards (map_of ipassmt)" by eval
 
   
-  text{*We check for all interfaces, except for @{term "Iface ''eth0''"}, which does not need spoofing protection.*}
+  text\<open>We check for all interfaces, except for @{term "Iface ''eth0''"}, which does not need spoofing protection.\<close>
   definition "interfaces = tl (map (iface_sel \<circ> fst) ipassmt)"
   
   lemma "interfaces = 

@@ -14,7 +14,7 @@ fun ipt_ipv4range_to_ipv4_word_netmask :: "ipt_ipv4range \<Rightarrow> (ipv4addr
 *)
 
 
-subsection{*Simple Match to MatchExpr*}
+subsection\<open>Simple Match to MatchExpr\<close>
 
 fun simple_match_to_ipportiface_match :: "32 simple_match \<Rightarrow> common_primitive match_expr" where
   "simple_match_to_ipportiface_match \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> = 
@@ -61,7 +61,7 @@ theorem simple_match_to_ipportiface_match_correct:
 qed
 
 
-subsection{*MatchExpr to Simple Match*}
+subsection\<open>MatchExpr to Simple Match\<close>
 
 fun common_primitive_match_to_simple_match :: "common_primitive match_expr \<Rightarrow> 32 simple_match option" where
   "common_primitive_match_to_simple_match MatchAny = Some (simple_match_any)" |
@@ -105,13 +105,13 @@ fun common_primitive_match_to_simple_match :: "common_primitive match_expr \<Rig
 
 
 
-subsubsection{*Normalizing Interfaces*}
-text{*As for now, negated interfaces are simply not allowed*}
+subsubsection\<open>Normalizing Interfaces\<close>
+text\<open>As for now, negated interfaces are simply not allowed\<close>
   definition normalized_ifaces :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_ifaces m \<equiv> \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False m"
 
-subsubsection{*Normalizing Protocols*}
-text{*As for now, negated protocols are simply not allowed*}
+subsubsection\<open>Normalizing Protocols\<close>
+text\<open>As for now, negated protocols are simply not allowed\<close>
   definition normalized_protocols :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_protocols m \<equiv> \<not> has_disc_negated is_Prot False m"
 
@@ -293,7 +293,7 @@ theorem to_simple_firewall: "check_simple_fw_preconditions rs \<Longrightarrow> 
     from to_simple_firewall_simps r Cons.prems have to_simple_firewall_simps': "to_simple_firewall (Rule m a # rs) =
         (case common_primitive_match_to_simple_match m of None \<Rightarrow> to_simple_firewall rs
                        | Some sm \<Rightarrow> SimpleRule sm (action_to_simple_action a) # to_simple_firewall rs)" by simp
-    from `check_simple_fw_preconditions [r]` have "a = action.Accept \<or> a = action.Drop" by(simp add: r check_simple_fw_preconditions_def)
+    from \<open>check_simple_fw_preconditions [r]\<close> have "a = action.Accept \<or> a = action.Drop" by(simp add: r check_simple_fw_preconditions_def)
     thus ?case
       by(auto simp add: r to_simple_firewall_simps' IH match nomatch split: option.split action.split)
   qed
@@ -313,8 +313,8 @@ lemma ctstate_assume_new_not_has_CT_State:
    apply(simp_all add: not_hasdisc_ctstate_assume_state split:split_if_asm)
   done
 
-text{*The precondition for the simple firewall can be easily fulfilled.
-      The subset relation is due to abstracting over some primitives (e.g., negated primitives, l4 flags)*}
+text\<open>The precondition for the simple firewall can be easily fulfilled.
+      The subset relation is due to abstracting over some primitives (e.g., negated primitives, l4 flags)\<close>
 theorem transform_simple_fw_upper:
   defines "preprocess rs \<equiv> upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new rs)))"
   and "newpkt p \<equiv> match_tcp_flags ipt_tcp_syn (p_tcp_flags p) \<and> p_tag_ctstate p = CT_New"

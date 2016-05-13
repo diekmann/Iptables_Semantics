@@ -56,7 +56,7 @@ begin
    case 3 thus ?case by(simp)
    qed
   
-  text{*This lemma justifies that it is okay to fold together the parsed unknown tokens*}
+  text\<open>This lemma justifies that it is okay to fold together the parsed unknown tokens\<close>
   lemma compress_parsed_extra_matchexpr:
     "matches (common_matcher, \<alpha>) (alist_and (compress_parsed_extra as)) =
         matches (common_matcher, \<alpha>) (alist_and as)"
@@ -66,7 +66,7 @@ begin
     apply(simp add: compress_parsed_extra_matchexpr_helper)
     done
 
-  text{*This version of @{const alist_and} avoids the trailing @{const MatchAny}*}
+  text\<open>This version of @{const alist_and} avoids the trailing @{const MatchAny}\<close>
   fun alist_and' :: "'a negation_type list \<Rightarrow> 'a match_expr" where
     "alist_and' [] = MatchAny" |
     "alist_and' [Pos e] = Match e" |
@@ -80,7 +80,7 @@ end
 
 
 
-ML{* (*my personal small library*)
+ML\<open>(*my personal small library*)
 fun takeWhile p xs = fst (take_prefix p xs);
 
 fun dropWhile p xs = snd (take_prefix p xs);
@@ -89,17 +89,17 @@ fun dropWhileInclusive p xs = drop 1 (dropWhile p xs)
 
 (*split at the predicate, do NOT keep the position where it was split*)
 fun split_at p xs = (takeWhile p xs, dropWhileInclusive p xs);
-*}
+\<close>
 
-ML_val{*
+ML_val\<open>
 split_at (fn x => x <> " ") (raw_explode "foo bar")
-*}
+\<close>
 
 
-section{*An SML Parser for iptables-save*}
-text{*Work in Progress*}
+section\<open>An SML Parser for iptables-save\<close>
+text\<open>Work in Progress\<close>
 
-ML{*
+ML\<open>
 local
   fun is_start_of_table table s = s = ("*"^table);
   fun is_end_of_table s = s = "COMMIT";
@@ -145,10 +145,10 @@ in
       #> writenumloaded table;
   val load_filter_table = load_table "filter";
 end;
-*}
+\<close>
 
 
-ML{*
+ML\<open>
 (*keep quoted strings as one token*)
 local
   fun collapse_quotes [] = []
@@ -158,14 +158,14 @@ local
 in
   val ipt_explode = raw_explode #> collapse_quotes;
 end
-*}
-ML_val{*
+\<close>
+ML_val\<open>
 ipt_explode "ad \"as das\" boo";
 ipt_explode "ad \"foobar --boo boo";
-*}
+\<close>
 
 
-ML{*
+ML\<open>
 datatype parsed_action_type = TypeCall | TypeGoto
 datatype parsed_match_action = ParsedMatch of term
                              | ParsedNegatedMatch of term
@@ -366,11 +366,11 @@ in
           Scan.recover (builtin_chain_decl_parser #> wrap_builtin_chain) (K (custom_chain_decl_parser #> wrap_custom_chain));
   end
 end;
-*}
+\<close>
 
 
 (*TODO: is there a library function for this?*)
-ML{*
+ML\<open>
 local
   fun concat [] = []
    | concat (x :: xs) = x @ concat xs;
@@ -378,22 +378,22 @@ in
 fun Scan_cons_repeat (parser: ('a -> 'b list * 'a)) (s: 'a) : ('b list * 'a) =
     let val (x, rest) = Scan.repeat parser s in (concat x, rest) end;
 end
-*}
+\<close>
 
-ML_val{*(Scan_cons_repeat option_parser) (ipt_explode "-i lup -j net-fw")*}
-ML_val{*(Scan_cons_repeat option_parser) (ipt_explode "")*}
-ML_val{*(Scan_cons_repeat option_parser) (ipt_explode "-i lup foo")*}
-ML_val{*(Scan_cons_repeat option_parser) (ipt_explode "-m tcp --dport 22 --sport 88")*}
-ML_val{*(Scan_cons_repeat option_parser) (ipt_explode "-j LOG --log-prefix \"Shorewall:INPUT:REJECT:\" --log-level 6")*}
+ML_val\<open>(Scan_cons_repeat option_parser) (ipt_explode "-i lup -j net-fw")\<close>
+ML_val\<open>(Scan_cons_repeat option_parser) (ipt_explode "")\<close>
+ML_val\<open>(Scan_cons_repeat option_parser) (ipt_explode "-i lup foo")\<close>
+ML_val\<open>(Scan_cons_repeat option_parser) (ipt_explode "-m tcp --dport 22 --sport 88")\<close>
+ML_val\<open>(Scan_cons_repeat option_parser) (ipt_explode "-j LOG --log-prefix \"Shorewall:INPUT:REJECT:\" --log-level 6")\<close>
 
 
-ML_val{*
+ML_val\<open>
 val (x, rest) = (Scan_cons_repeat option_parser) (ipt_explode "-d 0.31.123.213/88 --foo_bar \"he he\" -f -i eth0+ -s 0.31.123.213/21 moreextra -j foobar --log");
 map (fn p => case p of ParsedMatch t => type_of t | ParsedAction (_,_) => dummyT) x;
 map (fn p => case p of ParsedMatch t => Pretty.writeln (Syntax.pretty_term @{context} t) | ParsedAction (_,a) => writeln ("action: "^a)) x;
-*}
+\<close>
 
-ML{*
+ML\<open>
 local
   fun parse_rule_options (s: string list) : parsed_match_action list = let
         val (parsed, rest) = (case try (Scan.catch (Scan_cons_repeat option_parser)) s
@@ -456,10 +456,10 @@ in
          ((string * string option) list * (string * (parsed_action_type * string) option * term) list) ->
            (string list * (string * (parsed_action_type * string) option * term) list) = (fn (a,b) => (map fst a, b))
 end;
-*}
+\<close>
 
 
-ML{* (*create a table with the firewall definition*)
+ML\<open>(*create a table with the firewall definition*)
 structure FirewallTable = Table(type key = string; val ord = Library.string_ord);
 type firewall_table = term list FirewallTable.table;
 
@@ -523,18 +523,18 @@ in
       fold (fn rule => fn accu => append_rule accu rule) parsed_rules (FirewallTable_init parsed_chain_decls);
   end
 end
-*}
+\<close>
 
 
-ML{*
+ML\<open>
 fun mk_Ruleset (tbl: firewall_table) = FirewallTable.dest tbl
     |> map (fn (k,v) => HOLogic.mk_prod (HOLogic.mk_string k, HOLogic.mk_list @{typ "common_primitive rule"} v))
     |> HOLogic.mk_list @{typ "string \<times> common_primitive rule list"}
-*}
+\<close>
 
 
 (*default policies*)
-ML{*
+ML\<open>
 local
   fun default_policy_action_to_term "ACCEPT" = @{const "action.Accept"}
    |  default_policy_action_to_term "DROP" = @{const "action.Drop"}
@@ -546,10 +546,10 @@ in
           (chain_name, default_policy_action_to_term default_policy) :: preparedefault_policies ls
    |  preparedefault_policies ((_, NONE)::ls) = preparedefault_policies ls
 end
-*}
+\<close>
 
 
-ML{*
+ML\<open>
 fun trace_timing (printstr : string) (f : 'a -> 'b) (a : 'a) : 'b =
   let val t0 = Time.now(); in
     let val result =  f a; in
@@ -563,10 +563,10 @@ fun simplify_code (ctx: Proof.context) = let val _ = writeln "unfolding (this ma
     end
 
 fun certify_term (ctx: Proof.context) (t: term) = trace_timing "Certified term" (Thm.cterm_of ctx) t
-*}
+\<close>
 
 
-ML_val{*(*Example: putting it all together*)
+ML_val\<open>(*Example: putting it all together*)
 fun parse_iptables_save_global thy (file: string list) : term = 
     load_filter_table thy file
     |> rule_type_partition
@@ -579,10 +579,10 @@ fun parse_iptables_save_global thy (file: string list) : term =
 val example = parse_iptables_save @{theory} ["Parser_Test", "data", "iptables-save"];
 
 Pretty.writeln (Syntax.pretty_term @{context} example);*)
-*}
+\<close>
 
 
-ML{*
+ML\<open>
 local
   fun define_const t name lthy = let
       val binding_name = Thm.def_binding name
@@ -633,7 +633,7 @@ in
           default_policis
     end
 end
-*}
+\<close>
 
 
 ML\<open>

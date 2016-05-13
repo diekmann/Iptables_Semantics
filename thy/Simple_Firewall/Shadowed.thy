@@ -5,12 +5,12 @@ imports SimpleFw_Semantics
 begin
 
 
-section{*Optimizing Simple Firewall*}
+section\<open>Optimizing Simple Firewall\<close>
 
-subsection{*Removing Shadowed Rules*}
+subsection\<open>Removing Shadowed Rules\<close>
 (*Testing, not executable*)
 
-text{*Assumes: @{term "simple_ruleset"}*}
+text\<open>Assumes: @{term "simple_ruleset"}\<close>
 fun rmshadow :: "'i::len simple_rule list \<Rightarrow> 'i simple_packet set \<Rightarrow> 'i simple_rule list" where
   "rmshadow [] _ = []" |
   "rmshadow ((SimpleRule m a)#rs) P = (if (\<forall>p\<in>P. \<not> simple_matches m p)
@@ -20,7 +20,7 @@ fun rmshadow :: "'i::len simple_rule list \<Rightarrow> 'i simple_packet set \<R
       (SimpleRule m a) # (rmshadow rs {p \<in> P. \<not> simple_matches m p}))"
 
 
-subsubsection{*Soundness*}
+subsubsection\<open>Soundness\<close>
   lemma rmshadow_sound: 
     "p \<in> P \<Longrightarrow> simple_fw (rmshadow rs P) p = simple_fw rs p"
   proof(induction rs arbitrary: P)
@@ -46,7 +46,7 @@ subsubsection{*Soundness*}
 
 
 
-text{*A different approach where we start with the empty set of packets and collect packets which are already ``matched-away''.*}
+text\<open>A different approach where we start with the empty set of packets and collect packets which are already ``matched-away''.\<close>
 fun rmshadow' :: "'i::len simple_rule list \<Rightarrow> 'i simple_packet set \<Rightarrow> 'i simple_rule list" where
   "rmshadow' [] _ = []" |
   "rmshadow' ((SimpleRule m a)#rs) P = (if {p. simple_matches m p} \<subseteq> P
@@ -94,12 +94,12 @@ value "rmshadow [SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', 
 
 
 
-text{*Previous algorithm is not executable because we have no code for @{typ "'i::len simple_packet set"}.
+text\<open>Previous algorithm is not executable because we have no code for @{typ "'i::len simple_packet set"}.
       To get some code, some efficient set operations would be necessary.
         We either need union and subset or intersection and negation.
         Both subset and negation are complicated.
       Probably the BDDs which related work uses is really necessary.
-     *}
+\<close>
 
 context
 begin
@@ -140,7 +140,7 @@ begin
       apply meson
       done
 
-    text{*subset or negation ... One efficient implementation would suffice.*}
+    text\<open>subset or negation ... One efficient implementation would suffice.\<close>
     private lemma "{p:: 'i::len simple_packet. simple_matches m p} \<subseteq> (simple_packet_set_toSet ms) \<longleftrightarrow>
       {p:: 'i::len simple_packet. simple_matches m p} \<inter> (\<Inter> m \<in> set ms. {p. \<not> simple_matches m p}) = {}" (is "?l \<longleftrightarrow> ?r")
     proof - 

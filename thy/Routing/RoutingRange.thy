@@ -107,7 +107,7 @@ proof -
     by force
 qed
 
-subsection{*Reduction*}
+subsection\<open>Reduction\<close>
 
 (*
 definition "range_left_reduce \<equiv> list_left_reduce list_to_ipv4range"

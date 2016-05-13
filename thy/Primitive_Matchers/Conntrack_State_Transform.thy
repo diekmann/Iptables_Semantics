@@ -4,7 +4,7 @@ imports "Common_Primitive_Matcher"
 begin
 
 
-text{*The following function assumes that the packet is in a certain state.*}
+text\<open>The following function assumes that the packet is in a certain state.\<close>
 
 fun ctstate_assume_state :: "ctstate \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
   "ctstate_assume_state s (Match (CT_State x)) = (if s \<in> x then MatchAny else MatchNot MatchAny)" |
@@ -25,11 +25,11 @@ definition ctstate_assume_new :: "common_primitive rule list \<Rightarrow> commo
 lemma ctstate_assume_new_simple_ruleset: "simple_ruleset rs \<Longrightarrow> simple_ruleset (ctstate_assume_new rs)"
   by (simp add: ctstate_assume_new_def optimize_matches_simple_ruleset)
 
-text{*Usually, the interesting part of a firewall is only about the rules for setting up connections.
+text\<open>Usually, the interesting part of a firewall is only about the rules for setting up connections.
       That means, we mostly only care about packets in state @{const CT_New}.
       Use the function @{const ctstate_assume_new} to remove all state matching and just care about
       the connection setup.
-      *}
+\<close>
 corollary ctstate_assume_new: "p_tag_ctstate p = CT_New \<Longrightarrow> 
   approximating_bigstep_fun (common_matcher, \<alpha>) p (ctstate_assume_new rs) s = approximating_bigstep_fun (common_matcher, \<alpha>) p rs s"
 unfolding ctstate_assume_new_def
@@ -37,7 +37,7 @@ apply(rule optimize_matches)
 apply(simp add: ctstate_assume_state)
 done
 
-text{*If we assume the CT State is @{const CT_New}, we can also assume that the TCP SYN flag (@{const ipt_tcp_syn}) is set.*}
+text\<open>If we assume the CT State is @{const CT_New}, we can also assume that the TCP SYN flag (@{const ipt_tcp_syn}) is set.\<close>
 (*TODO: move?*)
 fun ipt_tcp_flags_assume_flag :: "ipt_tcp_flags \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
   "ipt_tcp_flags_assume_flag flg (Match (L4_Flags x)) = (if ipt_tcp_flags_equal x flg then MatchAny else (case match_tcp_flags_conjunct_option x flg of None \<Rightarrow> MatchNot MatchAny | Some f3 \<Rightarrow> Match (L4_Flags f3)))" |

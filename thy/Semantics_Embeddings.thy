@@ -3,9 +3,9 @@ imports "Simple_Firewall/SimpleFw_Compliance" Matching_Embeddings Semantics "Sem
 begin
 
 
-section{*Semantics Embedding*}
+section\<open>Semantics Embedding\<close>
 
-subsection{*Tactic @{const in_doubt_allow}*}
+subsection\<open>Tactic @{const in_doubt_allow}\<close>
 
 lemma iptables_bigstep_undecided_to_undecided_in_doubt_allow_approx:
   assumes agree: "matcher_agree_on_exact_matches \<gamma> \<beta>"
@@ -127,10 +127,10 @@ corollary FinalDenys_subseteq_in_doubt_allow: "matcher_agree_on_exact_matches \<
    {p. (\<beta>, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny} \<subseteq> {p. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalDeny}"
 using FinalDeny_approximating_in_doubt_allow by (metis (lifting, full_types) Collect_mono)
 
-text{*
+text\<open>
   If our approximating firewall (the executable version) concludes that we deny a packet, 
   the exact semantic agrees that this packet is definitely denied!
-*}
+\<close>
 corollary "matcher_agree_on_exact_matches \<gamma> \<beta> \<Longrightarrow> good_ruleset rs \<Longrightarrow>
   approximating_bigstep_fun (\<beta>, in_doubt_allow) p rs Undecided = (Decision FinalDeny) \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalDeny"
 apply(frule(1) FinalDeny_approximating_in_doubt_allow[where p=p and \<Gamma>=\<Gamma>])
@@ -141,7 +141,7 @@ done
 
 
 
-subsection{*Tactic  @{const in_doubt_deny}*}
+subsection\<open>Tactic  @{const in_doubt_deny}\<close>
 
 
 lemma iptables_bigstep_undecided_to_undecided_in_doubt_deny_approx: "matcher_agree_on_exact_matches \<gamma> \<beta> \<Longrightarrow>
@@ -256,7 +256,7 @@ qed
 
 
 
-subsection{*Approximating Closures*}
+subsection\<open>Approximating Closures\<close>
 
 theorem FinalAllowClosure:
   assumes "matcher_agree_on_exact_matches \<gamma> \<beta>" and "good_ruleset rs"
@@ -276,14 +276,14 @@ by (metis FinalDeny_approximating_in_doubt_deny assms mem_Collect_eq subsetI)
 
 
 
-subsection{*Exact Embedding*}
+subsection\<open>Exact Embedding\<close>
 
 lemma LukassLemma: assumes agree: "matcher_agree_on_exact_matches \<gamma> \<beta>"
         and noUnknown: "(\<forall> r \<in> set rs. ternary_ternary_eval (map_match_tac \<beta> p (get_match r)) \<noteq> TernaryUnknown)"
         and good: "good_ruleset rs"
       shows "(\<beta>,\<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow>  \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
 proof -
-  { fix t --{*if we show it for arbitrary @{term t}, we can reuse this fact for the other direction.*}
+  { fix t --\<open>if we show it for arbitrary @{term t}, we can reuse this fact for the other direction.\<close>
     assume a: "(\<beta>,\<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
     from a good agree noUnknown have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
       proof(induction rs s t rule: approximating_bigstep_induct)
@@ -301,9 +301,9 @@ proof -
 qed
   
 
-text{*
+text\<open>
 For rulesets without @{term Call}s, the approximating ternary semantics can perfectly simulate the Boolean semantics.
-*}
+\<close>
 theorem \<beta>\<^sub>m\<^sub>a\<^sub>g\<^sub>i\<^sub>c_approximating_bigstep_iff_iptables_bigstep:
   assumes "\<forall>r \<in> set rs. \<forall>c. get_action r \<noteq> Call c"
   shows "((\<beta>\<^sub>m\<^sub>a\<^sub>g\<^sub>i\<^sub>c \<gamma>),\<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow>  \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
@@ -326,8 +326,8 @@ by simp
 
 
 
-text{*The function @{const optimize_primitive_univ} was only applied to the ternary semantics.
-      It is, in fact, also correct for the Boolean semantics, assuming the @{const common_matcher}.*}
+text\<open>The function @{const optimize_primitive_univ} was only applied to the ternary semantics.
+      It is, in fact, also correct for the Boolean semantics, assuming the @{const common_matcher}.\<close>
 lemma Semantics_optimize_primitive_univ_common_matcher:
   assumes "matcher_agree_on_exact_matches \<gamma> common_matcher" 
     shows "Semantics.matches \<gamma> (optimize_primitive_univ m) p = Semantics.matches \<gamma> m p"

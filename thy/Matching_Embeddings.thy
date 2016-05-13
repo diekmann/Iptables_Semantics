@@ -2,34 +2,34 @@ theory Matching_Embeddings
 imports "Semantics_Ternary/Matching_Ternary" Matching "Semantics_Ternary/Unknown_Match_Tacs"
 begin
 
-section{*Boolean Matching vs. Ternary Matching*}
+section\<open>Boolean Matching vs. Ternary Matching\<close>
 
 term Semantics.matches
 term Matching_Ternary.matches
 (*'a is the primitive match condition, e.g. IpSrc \<dots>*)
 
 
-text{*The two matching semantics are related. However, due to the ternary logic, we cannot directly translate one to the other.
+text\<open>The two matching semantics are related. However, due to the ternary logic, we cannot directly translate one to the other.
 The problem are @{const MatchNot} expressions which evaluate to @{const TernaryUnknown} because @{text "MatchNot TernaryUnknown"} and
-@{text TernaryUnknown} are semantically equal!*}
+@{text TernaryUnknown} are semantically equal!\<close>
 lemma "\<exists>m \<beta> \<alpha> a. Matching_Ternary.matches (\<beta>, \<alpha>) m a p \<noteq> 
   Semantics.matches (\<lambda> atm p. case \<beta> atm p of TernaryTrue \<Rightarrow> True | TernaryFalse \<Rightarrow> False | TernaryUnknown \<Rightarrow> \<alpha> a p) m p"
-apply(rule_tac x="MatchNot (Match X)" in exI) --{*any @{term "X::'a"}*}
+apply(rule_tac x="MatchNot (Match X)" in exI) --\<open>any @{term "X::'a"}\<close>
 apply (simp split: ternaryvalue.split ternaryvalue.split_asm add: matches_case_ternaryvalue_tuple bunch_of_lemmata_about_matches)
 by fast
 
-text{*the @{const the} in the next definition is always defined *}
+text\<open>the @{const the} in the next definition is always defined\<close>
 lemma "\<forall>m \<in> {m. approx m p \<noteq> TernaryUnknown}. ternary_to_bool (approx m p) \<noteq> None"
   by(simp add: ternary_to_bool_None)
 
 
-text{*
+text\<open>
 The Boolean and the ternary matcher agree (where the ternary matcher is defined)
-*}
+\<close>
 definition matcher_agree_on_exact_matches :: "('a, 'p) matcher \<Rightarrow> ('a \<Rightarrow> 'p \<Rightarrow> ternaryvalue) \<Rightarrow> bool" where
   "matcher_agree_on_exact_matches exact approx \<equiv> \<forall>p m. approx m p \<noteq> TernaryUnknown \<longrightarrow> exact m p = the (ternary_to_bool (approx m p))"
 
-text{*We say the Boolean and ternary matchers agree iff they return the same result or the ternary matcher returns @{const TernaryUnknown}.*}
+text\<open>We say the Boolean and ternary matchers agree iff they return the same result or the ternary matcher returns @{const TernaryUnknown}.\<close>
 lemma "matcher_agree_on_exact_matches exact approx \<longleftrightarrow> (\<forall>p m. exact m p = the (ternary_to_bool (approx m p)) \<or> approx m p = TernaryUnknown)"
   unfolding matcher_agree_on_exact_matches_def by blast
 lemma matcher_agree_on_exact_matches_alt: (*no `the`*)
@@ -122,7 +122,7 @@ lemma not_exact_match_in_doubt_deny_approx_match: "matcher_agree_on_exact_matche
          apply(simp_all)
   done
 
-text{*The ternary primitive matcher can return exactly the result of the Boolean primitive matcher*}
+text\<open>The ternary primitive matcher can return exactly the result of the Boolean primitive matcher\<close>
 definition \<beta>\<^sub>m\<^sub>a\<^sub>g\<^sub>i\<^sub>c :: "('a, 'p) matcher \<Rightarrow> ('a \<Rightarrow> 'p \<Rightarrow> ternaryvalue)" where
   "\<beta>\<^sub>m\<^sub>a\<^sub>g\<^sub>i\<^sub>c \<gamma> \<equiv> (\<lambda> a p. if \<gamma> a p then TernaryTrue else TernaryFalse)"
 

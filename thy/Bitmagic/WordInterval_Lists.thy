@@ -25,7 +25,7 @@ begin
 
   lemma l2br_intersect: "wordinterval_to_set (l2br_intersect l) = (\<Inter> (i,j) \<in> set l. {i .. j})"
     proof -
-    { fix U --{*@{const wordinterval_UNIV} generalized*}
+    { fix U --\<open>@{const wordinterval_UNIV} generalized\<close>
       have "wordinterval_to_set (foldl (\<lambda>acc (s, e). wordinterval_intersection (WordInterval s e) acc) U l) = (wordinterval_to_set U) \<inter> (\<Inter>(i, j)\<in>set l. {i..j})"
           apply(induction l arbitrary: U)
            apply(simp)

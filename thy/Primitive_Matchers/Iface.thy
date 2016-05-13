@@ -7,14 +7,14 @@ imports String
         "~~/src/HOL/Library/Char_ord" (*WARNING: importing char ord. TODO*)
 begin
 
-section{*Network Interfaces*}
+section\<open>Network Interfaces\<close>
 
 (*TODO: add some rule that says an interface starting with ! is invalid (because we want to fail if negation occurs!) See man iptables.
   But the parser/lexer should handle this*)
 datatype iface = Iface (iface_sel: "string")  --"no negation supported, but wildcards"
 
 
-text{*Just a normal lexicographical ordering on the interface strings. Used only for optimizing code.*}
+text\<open>Just a normal lexicographical ordering on the interface strings. Used only for optimizing code.\<close>
 (*We cannot use List_lexord because it clashed with the l4v imported ordering!*)
 instantiation iface :: linorder
 begin
@@ -101,7 +101,7 @@ definition ifaceAny :: iface where
   "ifaceAny \<equiv> Iface ''+''"
 (* there is no IfaceFalse, proof below *)
 
-text{*If the interface name ends in a ``+'', then any interface which begins with this name will match. (man iptables)
+text\<open>If the interface name ends in a ``+'', then any interface which begins with this name will match. (man iptables)
 
 Here is how iptables handles this wildcard on my system. A packet for the loopback interface \texttt{lo} is matched by the following expressions
   \<^item> lo
@@ -116,17 +116,17 @@ It is not matched by the following expressions
   \<^item> lo1
 
 By the way: \texttt{Warning: weird characters in interface ` ' ('/' and ' ' are not allowed by the kernel).}
-*}
+\<close>
 
 
 context
 begin
     
-  subsection{*Helpers for the interface name (@{typ string})*}
+  subsection\<open>Helpers for the interface name (@{typ string})\<close>
     (*Do not use outside this thy! Type is really misleading.*)
-    text{*
+    text\<open>
       argument 1: interface as in firewall rule - Wildcard support
-      argument 2: interface a packet came from - No wildcard support*}
+      argument 2: interface a packet came from - No wildcard support\<close>
     fun internal_iface_name_match :: "string \<Rightarrow> string \<Rightarrow> bool" where
       "internal_iface_name_match []     []         \<longleftrightarrow> True" |
       "internal_iface_name_match (i#is) []         \<longleftrightarrow> (i = CHR ''+'' \<and> is = [])" |
@@ -145,7 +145,7 @@ begin
       lemma "\<not> internal_iface_name_match ''lo+++'' ''lo''" by eval
       lemma "\<not> internal_iface_name_match ''lo1+'' ''lo''" by eval
       lemma "\<not> internal_iface_name_match ''lo1'' ''lo''" by eval
-      text{*The wildcard interface name*}
+      text\<open>The wildcard interface name\<close>
       lemma "internal_iface_name_match ''+'' ''''" by eval (*>*)
   
   
@@ -189,7 +189,7 @@ begin
      } thus ?thesis by simp
      qed
   
-  subsection{*Matching*}
+  subsection\<open>Matching\<close>
     fun match_iface :: "iface \<Rightarrow> string \<Rightarrow> bool" where
       "match_iface (Iface i) p_iface \<longleftrightarrow> internal_iface_name_match i p_iface"
     
@@ -221,7 +221,7 @@ begin
       
   
   
-    --{*@{const match_iface} explained by the individual cases*}
+    --\<open>@{const match_iface} explained by the individual cases\<close>
     lemma match_iface_case_nowildcard: "\<not> iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface i) p_i \<longleftrightarrow> i = p_i"
       proof(induction i p_i rule: internal_iface_name_match.induct)
       qed(auto simp add: iface_name_is_wildcard_alt split: split_if_asm)
@@ -328,13 +328,13 @@ begin
           case True
             with assm3 have "X = i2" unfolding internal_iface_name_wildcard_longest_def by(simp split: split_if_asm)
             from True assm3' have take_i1i2: "take (length i1 - 1) i1 = take (length i1 - 1) i2" by linarith
-            from longer_iface_imp_shorter[OF assm1 assm2 True take_i1i2] `X = i2`
+            from longer_iface_imp_shorter[OF assm1 assm2 True take_i1i2] \<open>X = i2\<close>
             show "(internal_iface_name_match i1 p_i \<and> internal_iface_name_match i2 p_i) \<longleftrightarrow> internal_iface_name_match X p_i" by fastforce
           next
           case False
             with assm3 have "X = i1" unfolding internal_iface_name_wildcard_longest_def by(simp split: split_if_asm)
             from False assm3' have take_i1i2: "take (length i2 - 1) i2 = take (length i2 - 1) i1" by (metis min_def min_diff)
-            from longer_iface_imp_shorter[OF assm2 assm1 _ take_i1i2] False `X = i1`
+            from longer_iface_imp_shorter[OF assm2 assm1 _ take_i1i2] False \<open>X = i1\<close>
             show "(internal_iface_name_match i1 p_i \<and> internal_iface_name_match i2 p_i) \<longleftrightarrow> internal_iface_name_match X p_i" by auto
           qed
         qed
@@ -501,13 +501,13 @@ begin
 
 
 
-  subsection{*Enumerating Interfaces*}
+  subsection\<open>Enumerating Interfaces\<close>
     private definition all_chars :: "char list" where
       "all_chars \<equiv> Enum.enum"
     private lemma all_chars: "set all_chars = (UNIV::char set)"
        by(simp add: all_chars_def enum_UNIV)
   
-    text{*we can compute this, but its horribly inefficient!*}
+    text\<open>we can compute this, but its horribly inefficient!\<close>
     (*TODO: reduce size of valid chars to the printable ones*)
     private lemma strings_of_length_n: "set (List.n_lists n all_chars) = {s::string. length s = n}"
       apply(induction n)
@@ -523,11 +523,11 @@ begin
        apply(simp_all)
       done
   
-    text{*Non-wildacrd interfaces of length @{term n}*}
+    text\<open>Non-wildacrd interfaces of length @{term n}\<close>
     private definition non_wildcard_ifaces :: "nat \<Rightarrow> string list" where
      "non_wildcard_ifaces n \<equiv> filter (\<lambda>i. \<not> iface_name_is_wildcard i) (List.n_lists n all_chars)"
 
-    text{*Example: (any number higher than zero are probably too inefficient)*}
+    text\<open>Example: (any number higher than zero are probably too inefficient)\<close>
     private lemma "non_wildcard_ifaces 0 = ['''']" by eval
 
     private lemma non_wildcard_ifaces: "set (non_wildcard_ifaces n) = {s::string. length s = n \<and> \<not> iface_name_is_wildcard s}"
@@ -536,7 +536,7 @@ begin
     private lemma "(\<Union> i \<in> set (non_wildcard_ifaces n). internal_iface_name_to_set i) = {s::string. length s = n \<and> \<not> iface_name_is_wildcard s}"
      by(simp add: non_wildcard_ifaces)
   
-    text{*Non-wildacrd interfaces up to length @{term n}*}
+    text\<open>Non-wildacrd interfaces up to length @{term n}\<close>
     private fun non_wildcard_ifaces_upto :: "nat \<Rightarrow> string list" where
       "non_wildcard_ifaces_upto 0 = [[]]" |
       "non_wildcard_ifaces_upto (Suc n) = (non_wildcard_ifaces (Suc n)) @ non_wildcard_ifaces_upto n"
@@ -546,7 +546,7 @@ begin
       using non_wildcard_ifaces by fastforce
 
 
-  subsection{*Negating Interfaces*}
+  subsection\<open>Negating Interfaces\<close>
     private lemma inv_iface_name_set: "- (internal_iface_name_to_set i) = (
       if iface_name_is_wildcard i
       then
@@ -595,20 +595,20 @@ begin
       qed
     qed
 
-    text{*Negating is really not intuitive.
+    text\<open>Negating is really not intuitive.
           The Interface @{term "''et''"} is in the negated set of @{term "''eth+''"}.
           And the Interface @{term "''et+''"} is also in this set! This is because @{term "''+''"}
           is a normal interface character and not a wildcard here!
           In contrast, the set described by @{term "''et+''"} (with @{term "''+''"} a wildcard)
-          is not a subset of the previously negated set.*}
+          is not a subset of the previously negated set.\<close>
     lemma "''et'' \<in> - (internal_iface_name_to_set ''eth+'')" by(simp)
     lemma "''et+'' \<in> - (internal_iface_name_to_set ''eth+'')" by(simp)
     lemma "''+'' \<in> - (internal_iface_name_to_set ''eth+'')" by(simp)
     lemma "\<not> {i. match_iface (Iface ''et+'') i} \<subseteq> - (internal_iface_name_to_set ''eth+'')" by force
 
-    text{*Because @{term "''+''"} can appear as interface wildcard and normal interface character,
+    text\<open>Because @{term "''+''"} can appear as interface wildcard and normal interface character,
           we cannot take negate an @{term "Iface i"} such that we get back @{typ "iface list"} which
-          describe the negated interface.*}
+          describe the negated interface.\<close>
     lemma "''+'' \<in> - (internal_iface_name_to_set ''eth+'')" by(simp)
 
 

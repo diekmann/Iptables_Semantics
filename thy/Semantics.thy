@@ -2,12 +2,12 @@ theory Semantics
 imports Main Firewall_Common Misc "~~/src/HOL/Library/LaTeXsugar"
 begin
 
-section{*Big Step Semantics*}
+section\<open>Big Step Semantics\<close>
 
 
-text{*
+text\<open>
 The assumption we apply in general is that the firewall does not alter any packets.
-*}
+\<close>
 
 type_synonym 'a ruleset = "string \<rightharpoonup> 'a rule list"
 
@@ -40,7 +40,7 @@ call_return:  "\<lbrakk> matches \<gamma> m p; \<Gamma> chain = Some (rs\<^sub>1
 call_result:  "\<lbrakk> matches \<gamma> m p; \<Gamma> chain = Some rs; \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<rbrakk> \<Longrightarrow>
                \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> t"
 
-text{*
+text\<open>
 The semantic rules again in pretty format:
 \begin{center}
 @{thm[mode=Axiom] skip [no_vars]}\\[1ex]
@@ -55,7 +55,7 @@ The semantic rules again in pretty format:
 @{thm[mode=Rule] call_return [no_vars]}\\[1ex] 
 @{thm[mode=Rule] call_result [no_vars]}
 \end{center}
-*}
+\<close>
 
 
 (*future work:
@@ -249,13 +249,13 @@ lemma nomatch':
   qed (blast intro: decision)
 
 
-text{*there are only two cases when there can be a Return on top-level:
+text\<open>there are only two cases when there can be a Return on top-level:
 \begin{enumerate}
   \item the firewall is in a Decision state
   \item the return does not match
 \end{enumerate}
 In both cases, it is not applied!
-*}
+\<close>
 lemma no_free_return: assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m Return], Undecided\<rangle> \<Rightarrow> t" and "matches \<gamma> m p" shows "False"
   proof -
   { fix a s
@@ -464,9 +464,9 @@ proof -
   by (metis "1" "2" decision iptables_bigstep_deterministic)
 qed
 
-text{*
+text\<open>
 The notation we prefer in the paper. The semantics are defined for fixed @{text \<Gamma>} and @{text \<gamma>}
-*}
+\<close>
 locale iptables_bigstep_fixedbackground =
   fixes \<Gamma>::"'a ruleset"
   and \<gamma>::"('a, 'p) matcher"
@@ -515,15 +515,15 @@ locale iptables_bigstep_fixedbackground =
 
 
 
-text{*Showing that semantics are defined.
-  For rulesets which can be loaded by the Linux kernel. The kernel does not allow loops.*}
+text\<open>Showing that semantics are defined.
+  For rulesets which can be loaded by the Linux kernel. The kernel does not allow loops.\<close>
 
 
 
 
-text{*
+text\<open>
   We call a ruleset well-formed (wf) iff all @{const Call}s are into actually existing chains.
-*}
+\<close>
 definition wf_chain :: "'a ruleset \<Rightarrow> 'a rule list \<Rightarrow> bool" where
   "wf_chain \<Gamma> rs \<equiv> (\<forall>r \<in> set rs. \<forall> chain. get_action r = Call chain \<longrightarrow> \<Gamma> chain \<noteq> None)"
 lemma wf_chain_append: "wf_chain \<Gamma> (rs1@rs2) \<longleftrightarrow> wf_chain \<Gamma> rs1 \<and> wf_chain \<Gamma> rs2"
@@ -533,7 +533,7 @@ lemma wf_chain_fst: "wf_chain \<Gamma> (r # rs) \<Longrightarrow>  wf_chain \<Ga
   by(simp add: wf_chain_def)
 
 
-text{*This is what our tool will check at runtime*}
+text\<open>This is what our tool will check at runtime\<close>
 definition sanity_wf_ruleset :: "(string \<times> 'a rule list) list \<Rightarrow> bool" where
   "sanity_wf_ruleset \<Gamma> \<equiv> distinct (map fst \<Gamma>) \<and>
           (\<forall> rs \<in> ran (map_of \<Gamma>). (\<forall>r \<in> set rs. case get_action r of Accept \<Rightarrow> True
@@ -683,7 +683,7 @@ case (Cons r rs)
   qed
 qed
 
-text{*Showing the main theorem*}
+text\<open>Showing the main theorem\<close>
 
 context
 begin
@@ -715,7 +715,7 @@ begin
   
   
   
-  text{*well founded relation.*}
+  text\<open>well founded relation.\<close>
   definition calls_chain :: "'a ruleset \<Rightarrow> (string \<times> string) set" where
     "calls_chain \<Gamma> = {(r, s). case \<Gamma> r of Some rs \<Rightarrow> \<exists>m. Rule m (Call s) \<in> set rs | None \<Rightarrow> False}"  
   
@@ -726,7 +726,7 @@ begin
     apply(simp)
     by blast
   
-  text{*example*}
+  text\<open>example\<close>
   private lemma "calls_chain [
       ''FORWARD'' \<mapsto> [(Rule m1 Log), (Rule m2 (Call ''foo'')), (Rule m3 Accept), (Rule m' (Call ''baz''))],
       ''foo'' \<mapsto> [(Rule m4 Log), (Rule m5 Return), (Rule m6 (Call ''bar''))], 
@@ -756,7 +756,7 @@ begin
   qed    
       
   
-  text{*In our proof, we will need the reverse.*}
+  text\<open>In our proof, we will need the reverse.\<close>
   private definition called_by_chain :: "'a ruleset \<Rightarrow> (string \<times> string) set" where
     "called_by_chain \<Gamma> = {(callee, caller). case \<Gamma> caller of Some rs \<Rightarrow> \<exists>m. Rule m (Call callee) \<in> set rs | None \<Rightarrow> False}"
   private lemma called_by_chain_converse: "calls_chain \<Gamma> = converse (called_by_chain \<Gamma>)"
@@ -1028,11 +1028,11 @@ begin
       next
       case (Call chain_name)
         thm wf_induct_rule[where r="(calls_chain \<Gamma>)" and P="\<lambda>x. \<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call x)], Undecided\<rangle> \<Rightarrow> t"]
-        --{*Only the assumptions we will need*}
+        --\<open>Only the assumptions we will need\<close>
         from assms have "wf (called_by_chain \<Gamma>)"
             "\<forall>rsg\<in>ran \<Gamma>. wf_chain \<Gamma> rsg"
             "\<forall>rsg\<in>ran \<Gamma>. \<forall>r\<in>set rsg. (\<forall>chain. get_action r \<noteq> Goto chain) \<and> get_action r \<noteq> Unknown" by auto
-        --{*strengthening the IH to do a well-founded induction*}
+        --\<open>strengthening the IH to do a well-founded induction\<close>
         hence "matches \<gamma> m p \<Longrightarrow> wf_chain \<Gamma> [Rule m (Call chain_name)] \<Longrightarrow> (\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m (Call chain_name)], Undecided\<rangle> \<Rightarrow> t)"
         proof(induction arbitrary: m rule: wf_induct_rule[where r="called_by_chain \<Gamma>"])
         case (less chain_name_neu)
@@ -1061,8 +1061,8 @@ begin
              apply(rule_tac x=Undecided in exI)
              apply(simp add: nomatch; fail)
              done
-          from less.prems(4) rs_called `rs_called \<in> ran \<Gamma>`
-            helper_cases_call_subchain_defined_or_return[OF less.prems(3) less.prems(4) this `wf_chain \<Gamma> rs_called`] have
+          from less.prems(4) rs_called \<open>rs_called \<in> ran \<Gamma>\<close>
+            helper_cases_call_subchain_defined_or_return[OF less.prems(3) less.prems(4) this \<open>wf_chain \<Gamma> rs_called\<close>] have
             "(\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called, Undecided\<rangle> \<Rightarrow> t) \<or>
              (\<exists>rs_called1 rs_called2 m'.
                   \<Gamma> chain_name_neu = Some (rs_called1@[Rule m' Return]@rs_called2) \<and>
@@ -1126,7 +1126,7 @@ end
 
 
 
-text{*Common Algorithms*}
+text\<open>Common Algorithms\<close>
 
 lemma iptables_bigstep_rm_LogEmpty: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rm_LogEmpty rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
 proof(induction rs arbitrary: s)

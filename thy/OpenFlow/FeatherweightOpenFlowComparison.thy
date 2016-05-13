@@ -102,9 +102,9 @@ proof(rule ccontr)
 	"fe1\<in>set ft" "x1 = ofe_action fe1" "\<gamma> (ofe_fields fe1) p" "(\<forall>fe'\<in>set ft. ofe_prio fe1 < ofe_prio fe' \<longrightarrow> \<not> \<gamma> (ofe_fields fe') p)"
     "fe2\<in>set ft" "a  = ofe_action fe2" "\<gamma> (ofe_fields fe2) p" "(\<forall>fe'\<in>set ft. ofe_prio fe2 < ofe_prio fe' \<longrightarrow> \<not> \<gamma> (ofe_fields fe') p)"
     	by blast
-    from `x1 \<noteq> a` have fene: "fe1 \<noteq> fe2" using fes(2,6) by blast
+    from \<open>x1 \<noteq> a\<close> have fene: "fe1 \<noteq> fe2" using fes(2,6) by blast
     have pe: "ofe_prio fe1 = ofe_prio fe2" using fes(1,3-4,5,7-8) less_linear by blast
-    note `no_overlaps \<gamma> ft`[THEN check_no_overlapI, unfolded check_no_overlap_def]
+    note \<open>no_overlaps \<gamma> ft\<close>[THEN check_no_overlapI, unfolded check_no_overlap_def]
     note this[unfolded Ball_def, THEN spec, THEN mp, OF fes(1), THEN spec, THEN mp, OF fes(5),THEN spec, THEN mp, OF UNIV_I, of p] pe fene fes(3,7)
     thus False by blast
 qed

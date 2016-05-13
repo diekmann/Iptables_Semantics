@@ -50,7 +50,7 @@ lemma remdups_rev_set: "set (remdups_rev rs) = set rs" by (simp add: remdups_rev
 lemma remdups_rev_removeAll: "remdups_rev (removeAll r rs) = removeAll r (remdups_rev rs)"
   by (simp add: remdups_filter remdups_rev_def removeAll_filter_not_eq rev_filter)
 
-text{*Faster code equations*}
+text\<open>Faster code equations\<close>
 fun remdups_rev_code :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list" where
   "remdups_rev_code _ [] = []" |
   "remdups_rev_code ps (r#rs) = (if r \<in> set ps then remdups_rev_code ps rs else r#remdups_rev_code (r#ps) rs)"

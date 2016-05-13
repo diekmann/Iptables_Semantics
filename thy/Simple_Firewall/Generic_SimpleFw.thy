@@ -171,9 +171,9 @@ lemma generalized_sfw_mapsnd[simp]: "generalized_sfw (map (apsnd f) fw) p = map_
 definition "generalized_sfw_conjunct_i t \<equiv> (case t of (a,b) \<Rightarrow> (case a of simple_action.Accept \<Rightarrow> b | simple_action.Drop \<Rightarrow> simple_action.Drop))"
 definition "generalized_sfw_conjunct_o \<equiv> map (apsnd generalized_sfw_conjunct_i)"
 
-text{*We image two firewalls are positioned directly after each other.
+text\<open>We image two firewalls are positioned directly after each other.
       The first one has ruleset rs1 installed, the second one has ruleset rs2 installed.
-      A packet needs to pass both firewalls. *}
+      A packet needs to pass both firewalls.\<close>
 
 theorem simple_fw_join: "simple_fw rs1 p = Decision FinalAllow \<and> simple_fw rs2 p = Decision FinalAllow \<longleftrightarrow>
        simple_fw (map (\<lambda>(u,a,b). SimpleRule u (if a = simple_action.Accept \<and> b = simple_action.Accept then simple_action.Accept else simple_action.Drop) )

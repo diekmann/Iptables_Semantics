@@ -8,12 +8,12 @@ imports Main
   "~~/src/HOL/Word/Word"
 begin
 
-section {*Modelling IP Adresses*}
-  text{*An IP address is basically a unsigned integer.
+section \<open>Modelling IP Adresses\<close>
+  text\<open>An IP address is basically a unsigned integer.
         We model IP addresses of arbitrary lengths.
-        The files @{file "IPv4Addr.thy"} @{file "IPv6Addr.thy"} concrete this for IPv4 and IPv6.*}
+        The files @{file "IPv4Addr.thy"} @{file "IPv6Addr.thy"} concrete this for IPv4 and IPv6.\<close>
 
-  text{*The maximum IP addres*}
+  text\<open>The maximum IP addres\<close>
   definition max_ip_addr :: "'i::len word" where 
     "max_ip_addr \<equiv> of_nat ((2^(len_of(TYPE('i)))) - 1)"
 
@@ -27,15 +27,15 @@ section {*Modelling IP Adresses*}
 
   lemma size_ipaddr: "size (x::'i::len word) = len_of(TYPE('i))" by(simp add:word_size)
 
-subsection{*Sets of IP addresses*}
+subsection\<open>Sets of IP addresses\<close>
 
   (*Warning, not executable!*)
-  text{*192.168.0.0 255.255.255.0*}
+  text\<open>192.168.0.0 255.255.255.0\<close>
   definition ipset_from_netmask::"'i::len word \<Rightarrow> 'i::len word \<Rightarrow> 'i::len word set" where
     "ipset_from_netmask addr netmask \<equiv> let network_prefix = (addr AND netmask) in {network_prefix .. network_prefix OR (NOT netmask)}"
   (*Example: ipset_from_netmask 192.168.1.129  255.255.255.0  = {192.168.1.0 .. 192.168.1.255}*)
 
-  text{*192.168.0.0/24*}
+  text\<open>192.168.0.0/24\<close>
   definition ipset_from_cidr ::"'i::len word \<Rightarrow> nat \<Rightarrow> 'i::len word set" where
     "ipset_from_cidr addr pflength \<equiv> ipset_from_netmask addr ((mask pflength) << (len_of(TYPE('i)) - pflength))"
   (*Example: ipset_from_cidr 192.168.1.129 24  = {192.168.1.0 .. 192.168.1.255}*)
@@ -97,7 +97,7 @@ subsection{*Sets of IP addresses*}
     by(simp add: AND_twice)
 
 
-  text{*Another definition of CIDR notation: All IP addresse which are equal on the first @{text "len - n"} bits*}
+  text\<open>Another definition of CIDR notation: All IP addresse which are equal on the first @{text "len - n"} bits\<close>
   definition ip_cidr_set :: "'i::len word \<Rightarrow> nat \<Rightarrow> 'i word set" where
     "ip_cidr_set i r = {j . i AND NOT mask (len_of TYPE('i) - r) = j AND NOT mask (len_of TYPE('i) - r)}"
 
@@ -171,7 +171,7 @@ qed
 
 
 
-subsection{*IP Addresses as WordIntervals*}
+subsection\<open>IP Addresses as WordIntervals\<close>
   definition iprange_single :: "'i::len word \<Rightarrow> 'i wordinterval" where
     "iprange_single ip \<equiv> WordInterval ip ip"
 
@@ -183,7 +183,7 @@ subsection{*IP Addresses as WordIntervals*}
   lemma "wordinterval_to_set (iprange_single ip) = {ip}" by(simp add: iprange_single_def)
   lemma "wordinterval_to_set (iprange_interval (ip1, ip2)) = {ip1 .. ip2}" by(simp add: iprange_interval.simps)
   
-  text{*Now we can use the set operations on @{typ "'i::len wordinterval"}s*}
+  text\<open>Now we can use the set operations on @{typ "'i::len wordinterval"}s\<close>
 
   term wordinterval_to_set
   term wordinterval_element
@@ -197,7 +197,7 @@ subsection{*IP Addresses as WordIntervals*}
   term wordinterval_eq
 
 
-subsection{*IP Addresses in CIDR Notation*}
+subsection\<open>IP Addresses in CIDR Notation\<close>
 
   fun ipcidr_to_interval_start :: "('a::len word \<times> nat) \<Rightarrow> 'a::len word" where
     "ipcidr_to_interval_start (pre, len) = (
@@ -269,7 +269,7 @@ subsection{*IP Addresses in CIDR Notation*}
       shows "ip_cidr_set i2 r2 \<subseteq> ip_cidr_set i1 r1"
       proof -
       from disj obtain j where "j \<in> ip_cidr_set i1 r1" "j \<in> ip_cidr_set i2 r2" by auto
-      with `r1 \<le> r2` have "j \<in> ip_cidr_set j r1" "j \<in> ip_cidr_set j r1"
+      with \<open>r1 \<le> r2\<close> have "j \<in> ip_cidr_set j r1" "j \<in> ip_cidr_set j r1"
         using ip_cidr_set_change_base ip_cidr_set_less by blast+
     
       show "ip_cidr_set i2 r2 \<subseteq> ip_cidr_set i1 r1"
@@ -351,7 +351,7 @@ lemma "ipcidr_conjunct (0::32 word,0) (8,1) = Some (8, 1)" by eval
 
 
 
-  text{*making element check executable*}
+  text\<open>making element check executable\<close>
   lemma addr_in_ipset_from_netmask_code[code_unfold]: 
     "addr \<in> (ipset_from_netmask base netmask) \<longleftrightarrow> (base AND netmask) \<le> addr \<and> addr \<le> (base AND netmask) OR (NOT netmask)"
     by(simp add: ipset_from_netmask_def Let_def)

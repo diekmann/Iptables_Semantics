@@ -151,7 +151,7 @@ proof -
   next
     case (Cons r rs)
     { fix m
-      from `s1 \<in> B` `s2 \<in> B` have 
+      from \<open>s1 \<in> B\<close> \<open>s2 \<in> B\<close> have 
         "B \<subseteq> (case src m of (x, xa) \<Rightarrow> ipset_from_cidr x xa) \<or> B \<inter> (case src m of (x, xa) 
                       \<Rightarrow> ipset_from_cidr x xa) = {} \<Longrightarrow>
              simple_matches m (p\<lparr>p_src := s1\<rparr>) \<longleftrightarrow> simple_matches m (p\<lparr>p_src := s2\<rparr>)"
@@ -186,7 +186,7 @@ proof -
   next
     case (Cons r rs)
     { fix m
-      from `s1 \<in> B` `s2 \<in> B` have
+      from \<open>s1 \<in> B\<close> \<open>s2 \<in> B\<close> have
         "B \<subseteq> (case dst m of (x, xa) \<Rightarrow> ipset_from_cidr x xa) \<or> B \<inter> (case dst m of (x, xa) 
                   \<Rightarrow> ipset_from_cidr x xa) = {} \<Longrightarrow>
          simple_matches m (p\<lparr>p_dst := s1\<rparr>) \<longleftrightarrow> simple_matches m (p\<lparr>p_dst := s2\<rparr>)"
@@ -302,7 +302,7 @@ proof -
                    (set (map wordinterval_to_set (partitioningIps ss [wordinterval_UNIV])))"
      for ss::"'a wordinterval list"
   apply(rule hlp_rule)
-    apply(simp_all add: wordinterval_list_to_set_def `disjoint_list [UNIV]`)
+    apply(simp_all add: wordinterval_list_to_set_def \<open>disjoint_list [UNIV]\<close>)
   done
   thus ?thesis
   unfolding getParts_def by blast
@@ -440,7 +440,7 @@ lemma same_fw_spec: "same_fw_behaviour ip1 ip2 rs \<Longrightarrow> same_fw_beha
   apply(simp)
   done
 
-text{*Is an equivalence relation*}
+text\<open>Is an equivalence relation\<close>
 lemma same_fw_behaviour_one_equi:
   "same_fw_behaviour_one x x c rs"
   "same_fw_behaviour_one x y c rs = same_fw_behaviour_one y x c rs"
@@ -1155,11 +1155,11 @@ lemma access_matrix_nodes_defined:
       "(V,E) = access_matrix c rs \<Longrightarrow> (s, d) \<in> set E \<Longrightarrow> d \<in> dom (map_of V)"
   by(auto simp add: access_matrix_def Let_def all_pairs_def)
 
-text{*For all the entries @{term E} of the matrix, the access is allowed*}
+text\<open>For all the entries @{term E} of the matrix, the access is allowed\<close>
 lemma "(V,E) = access_matrix c rs \<Longrightarrow> (s, d) \<in> set E \<Longrightarrow> runFw s d c rs = Decision FinalAllow"
   by(auto simp add: access_matrix_def Let_def)
-text{*However, the entries are only a representation of a whole set of IP addresses. 
-      For all IP addresses which the entries represent, the access must be allowed.*}
+text\<open>However, the entries are only a representation of a whole set of IP addresses. 
+      For all IP addresses which the entries represent, the access must be allowed.\<close>
 
 
 (*TODO: move to generic library*)
@@ -1206,12 +1206,12 @@ lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and
     from d_range_in_part have d_range_in_part': "d_range \<in> set (build_ip_partition c rs)" by simp
 
     from build_ip_partition_same_fw[OF s_range_in_part', unfolded same_fw_behaviour_one_def] s
-                                                        `s_repr \<in> wordinterval_to_set s_range` have 
+                                                        \<open>s_repr \<in> wordinterval_to_set s_range\<close> have 
       "\<forall>d. runFw s_repr d c rs = runFw s d c rs" by blast
     with repr_Allow have 1: "runFw s d_repr c rs = Decision FinalAllow" by simp
 
     from build_ip_partition_same_fw[OF d_range_in_part', unfolded same_fw_behaviour_one_def] d
-                                                        `d_repr \<in> wordinterval_to_set d_range` have 
+                                                        \<open>d_repr \<in> wordinterval_to_set d_range\<close> have 
       "\<forall>s. runFw s d_repr c rs = runFw s d c rs" by blast
     with 1 have 2: "runFw s d c rs = Decision FinalAllow" by simp
     thus ?thesis .
@@ -1334,7 +1334,7 @@ using matrix access_matrix_sound access_matrix_complete by blast
   vertices = (name, list of ip addresses this vertex corresponds to)
   and edges = (name \<times> name) list
 *)
-text{*Only defined for @{const simple_firewall_without_interfaces}*}
+text\<open>Only defined for @{const simple_firewall_without_interfaces}\<close>
 definition access_matrix_pretty
   :: "parts_connection \<Rightarrow> 32 simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
   where

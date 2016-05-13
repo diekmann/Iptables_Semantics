@@ -4,16 +4,16 @@ imports Matching Ruleset_Update
 begin
 
 
-section{*@{term Call} @{term Return} Unfolding*}
+section\<open>@{term Call} @{term Return} Unfolding\<close>
 
-text{*Remove @{term Return}s*}
+text\<open>Remove @{term Return}s\<close>
 fun process_ret :: "'a rule list \<Rightarrow> 'a rule list" where
   "process_ret [] = []" |
   "process_ret (Rule m Return # rs) = add_match (MatchNot m) (process_ret rs)" |
   "process_ret (r#rs) = r # process_ret rs"
 
 
-text{*Remove @{term Call}s*}
+text\<open>Remove @{term Call}s\<close>
 fun process_call :: "'a ruleset \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
   "process_call \<Gamma> [] = []" |
   "process_call \<Gamma> (Rule m (Call chain) # rs) = add_match m (process_ret (the (\<Gamma> chain))) @ process_call \<Gamma> rs" |
@@ -78,7 +78,7 @@ lemma add_match_add_missing_ret_unfoldings_rot:
   by(simp add: add_missing_ret_unfoldings_def iptables_bigstep_add_match_notnot_simp)
 
 
-subsection{*Completeness*}
+subsection\<open>Completeness\<close>
 lemma process_ret_split_obvious: "process_ret (rs\<^sub>1 @ rs\<^sub>2) = 
   (process_ret rs\<^sub>1) @ (add_missing_ret_unfoldings rs\<^sub>1 (process_ret rs\<^sub>2))"
   unfolding add_missing_ret_unfoldings_def
@@ -183,7 +183,7 @@ apply(cases "map (\<lambda>r. MatchNot (get_match r)) [r\<leftarrow>rs1 . (get_a
  apply(simp_all add: add_match_distrib)
 done
 
-text {* Completeness *}
+text \<open>Completeness\<close>
 theorem unfolding_complete: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs,s\<rangle> \<Rightarrow> t  \<Longrightarrow>  \<Gamma>,\<gamma>,p\<turnstile> \<langle>process_call \<Gamma> rs,s\<rangle> \<Rightarrow> t"
   proof (induction rule: iptables_bigstep_induct)
     case (Nomatch m a)
@@ -287,13 +287,13 @@ proof -
                apply(rule_tac x="[]" in exI)
                apply(rule_tac x="rs" in exI)
                apply(rule_tac x="m" in exI)
-               apply(simp add: skip r `a = Return`)
+               apply(simp add: skip r \<open>a = Return\<close>)
                done
             thus ?thesis by simp
           next
           case False
             with nomatch seq_cons False r have r_nomatch: "\<And>rs. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>r # rs, Undecided\<rangle> \<Rightarrow> Undecided" by fast
-            note r_nomatch'=r_nomatch[simplified r `a = Return`] --"r unfolded"
+            note r_nomatch'=r_nomatch[simplified r \<open>a = Return\<close>] --"r unfolded"
             from False not_matches_add_matchNot_simp prems have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>process_ret rs, Undecided\<rangle> \<Rightarrow> Undecided" by fast
             with Cons.IH have IH: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<or> (\<exists>rs\<^sub>1 rs\<^sub>2 m. rs = rs\<^sub>1 @ [Rule m Return] @ rs\<^sub>2 \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided \<and> matches \<gamma> m p)" .
             thus ?thesis
@@ -308,7 +308,7 @@ proof -
                   apply(rule_tac x="Rule m Return # rs\<^sub>1" in exI)
                   apply(rule_tac x="rs\<^sub>2" in exI)
                   apply(rule_tac x="m'" in exI)
-                  by(simp add:  `a = Return` False r r_nomatch')
+                  by(simp add:  \<open>a = Return\<close> False r r_nomatch')
                 thus ?thesis by simp
               qed
           qed
@@ -340,7 +340,7 @@ proof (induction rs arbitrary: s)
     by (metis decision state.exhaust nomatch seq'_cons)
 qed simp
 
-subsection{*@{const process_ret} correctness*}
+subsection\<open>@{const process_ret} correctness\<close>
 lemma process_ret_add_match_dist1: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>process_ret (add_match m rs), s\<rangle> \<Rightarrow> t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m (process_ret rs), s\<rangle> \<Rightarrow> t"
 apply(induction rs arbitrary: s t)
  apply(simp add: add_match_def)
@@ -615,7 +615,7 @@ lemma wf_chain_process_ret: "wf_chain \<Gamma> rs \<Longrightarrow> wf_chain \<G
 lemma wf_chain_add_match: "wf_chain \<Gamma> rs \<Longrightarrow> wf_chain \<Gamma> (add_match m rs)"
   by(induction rs) (simp_all add: wf_chain_def add_match_def get_action_case_simp)
 
-subsection{* Soundness *}
+subsection\<open>Soundness\<close>
 theorem unfolding_sound: "wf_chain \<Gamma> rs \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>process_call \<Gamma> rs, s\<rangle> \<Rightarrow> t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
 proof (induction rs arbitrary: s t)
   case (Cons r rs)
@@ -672,7 +672,7 @@ corollary unfolding_n_sound_complete: "\<forall>rsg \<in> ran \<Gamma> \<union> 
               apply(simp add: wf_chain_def)
               done
             from this Cons.prems Cons.IH have "wf_chain \<Gamma> (process_call \<Gamma> rs)" by blast
-            from this `wf_chain \<Gamma> [r]`have "wf_chain \<Gamma> (r # (process_call \<Gamma> rs))" by(simp add: wf_chain_def)
+            from this \<open>wf_chain \<Gamma> [r]\<close>have "wf_chain \<Gamma> (r # (process_call \<Gamma> rs))" by(simp add: wf_chain_def)
             from this Cons.prems have "wf_chain \<Gamma> (process_call \<Gamma> (r#rs))"
               apply(cases r)
               apply(rename_tac m a, clarify)
@@ -680,13 +680,13 @@ corollary unfolding_n_sound_complete: "\<forall>rsg \<in> ran \<Gamma> \<union> 
                       apply(simp_all)
               apply(simp add: wf_chain_append)
               apply(clarify)
-              apply(simp add: `wf_chain \<Gamma> (process_call \<Gamma> rs)`)
+              apply(simp add: \<open>wf_chain \<Gamma> (process_call \<Gamma> rs)\<close>)
               apply(rule wf_chain_add_match)
               apply(rule wf_chain_process_ret)
               apply(simp add: wf_chain_def)
               apply(clarify)
               by (metis ranI option.sel)
-          from this `\<forall>a\<in>ran \<Gamma>. wf_chain \<Gamma> a` show ?case by simp
+          from this \<open>\<forall>a\<in>ran \<Gamma>. wf_chain \<Gamma> a\<close> show ?case by simp
         qed
       from this Suc.IH[of "((process_call \<Gamma>) rs)"] have 
         "\<Gamma>,\<gamma>,p\<turnstile> \<langle>(process_call \<Gamma> ^^ n) (process_call \<Gamma> rs), s\<rangle> \<Rightarrow> t = \<Gamma>,\<gamma>,p\<turnstile> \<langle>process_call \<Gamma> rs, s\<rangle> \<Rightarrow> t"
@@ -695,7 +695,7 @@ corollary unfolding_n_sound_complete: "\<forall>rsg \<in> ran \<Gamma> \<union> 
   qed
 
 
-text_raw{*
+text_raw\<open>
 \begin{verbatim}
 loops in the linux kernel:
 http://lxr.linux.no/linux+v3.2/net/ipv4/netfilter/ip_tables.c#L464
@@ -706,21 +706,21 @@ http://lxr.linux.no/linux+v3.2/net/ipv4/netfilter/ip_tables.c#L464
 
 discussion: http://marc.info/?l=netfilter-devel&m=105190848425334&w=2
 \end{verbatim}
-*}
+\<close>
 
-text{*Example*}
+text\<open>Example\<close>
 lemma "process_call [''X'' \<mapsto> [Rule (Match b) Return, Rule (Match c) Accept]] [Rule (Match a) (Call ''X'')] =
        [Rule (MatchAnd (Match a) (MatchAnd (MatchNot (Match b)) (Match c))) Accept]" by (simp add: add_match_def)
 
 
 
 
-text{*This is how a firewall processes a ruleset. 
+text\<open>This is how a firewall processes a ruleset. 
        It starts at a certain chain, usually INPUT, FORWARD, or OUTPUT (called @{term chain_name} in the lemma).
        The firewall has a default action of accept or drop.
       We can check @{const sanity_wf_ruleset} and the other assumptions at runtime.
       Consequently, we can apply @{const repeat_stabilize} as often as we want.
-       *}
+\<close>
 
 theorem repeat_stabilize_process_call:
     assumes "sanity_wf_ruleset \<Gamma>" and "chain_name \<in> set (map fst \<Gamma>)" and "default_action = Accept \<or> default_action = Drop"

@@ -2,7 +2,7 @@ theory Sort_Descending
 imports Main
 begin
 
-section{* sorting descending *}
+section\<open>sorting descending\<close>
   context linorder
   begin
   fun sorted_descending :: "'a list \<Rightarrow> bool" where

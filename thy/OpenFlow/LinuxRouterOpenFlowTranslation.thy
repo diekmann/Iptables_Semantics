@@ -504,7 +504,7 @@ qed
 lemma map_annotate_rlen[simp]: "annotate_rlen (map f x) = map (apsnd f) (annotate_rlen x)"
 by(induction x) simp_all
 
-text{*l3 device to l2 forwarding*}
+text\<open>l3 device to l2 forwarding\<close>
 definition "lr_of_tran_s3 ifs ard = (
 	[(p, b, case a of simple_action.Accept \<Rightarrow> [Forward c] | simple_action.Drop \<Rightarrow> []).
 		(p,r,(c,a)) \<leftarrow> ard, b \<leftarrow> simple_match_to_of_match r ifs])"

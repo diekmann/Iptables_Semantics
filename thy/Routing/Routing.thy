@@ -4,7 +4,7 @@ imports "../Bitmagic/PrefixMatch"
         CaesarTheories
 begin
 
-subsection{*Definition*}
+subsection\<open>Definition\<close>
 
 record routing_action = 
   output_iface :: string
@@ -74,7 +74,7 @@ proof(induction rs arbitrary: r)
   from Cons.IH[OF this] show ?case by simp
 qed simp
 
-subsection{*Single Packet Semantics*}
+subsection\<open>Single Packet Semantics\<close>
 
 (* WARNING: all proofs assume correct_routing: list is sorted by descending prefix length, prefixes are valid. Some need a default route. *)
 fun routing_table_semantics :: "prefix_routing \<Rightarrow> ipv4addr \<Rightarrow> routing_action" where

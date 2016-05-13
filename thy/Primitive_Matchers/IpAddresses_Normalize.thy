@@ -3,7 +3,7 @@ imports Common_Primitive_Lemmas
 begin
 
 
-subsection{*Normalizing IP Addresses*}
+subsection\<open>Normalizing IP Addresses\<close>
   fun normalized_src_ips :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_src_ips MatchAny = True" |
     "normalized_src_ips (Match (Src (Ip4AddrRange _ _))) = False" |
@@ -101,7 +101,7 @@ subsection{*Normalizing IP Addresses*}
     using normalize_primitive_extract[OF _ wf_disc_sel_common_primitive(4), where f=ipt_ipv4range_compress and \<gamma>="(common_matcher, \<alpha>)"]
       ipt_ipv4range_compress_dst_matching by blast
 
-   text{*Normalizing the dst ips preserves the normalized src ips*}
+   text\<open>Normalizing the dst ips preserves the normalized src ips\<close>
    lemma "normalized_nnf_match m \<Longrightarrow> normalized_src_ips m \<Longrightarrow> \<forall>mn\<in>set (normalize_dst_ips m). normalized_src_ips mn"
    unfolding normalize_dst_ips_def normalized_src_ips_def2
    by(rule normalize_primitive_extract_preserves_unrelated_normalized_n_primitive)(simp_all add: wf_disc_sel_common_primitive)

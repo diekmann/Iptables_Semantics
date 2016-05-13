@@ -3,7 +3,7 @@ imports Common_Primitive_Matcher_Generic
 begin
 
 
-subsection{*Primitive Matchers: IP Port Iface Matcher*}
+subsection\<open>Primitive Matchers: IP Port Iface Matcher\<close>
 
 (*IPv4 matcher*)
 fun common_matcher :: "(common_primitive, (32, 'a) simple_packet_scheme) exact_match_tac" where
@@ -36,20 +36,20 @@ fun common_matcher :: "(common_primitive, (32, 'a) simple_packet_scheme) exact_m
     In general, it would be best to raise an error if such a range occurs.
     *)
 
-  text{*Warning: beware of the sloppy term `empty' portrange*}
-  text{*An `empty' port range means it can never match! Basically, @{term "MatchNot (Match (Src_Ports [(0,65535)]))"} is False*}
+  text\<open>Warning: beware of the sloppy term `empty' portrange\<close>
+  text\<open>An `empty' port range means it can never match! Basically, @{term "MatchNot (Match (Src_Ports [(0,65535)]))"} is False\<close>
   lemma "\<not> matches (common_matcher, \<alpha>) (MatchNot (Match (Src_Ports [(0,65535)]))) a 
           \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
                    p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
   (*<*)by(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)(*>*)
-  text{*An `empty' port range means it always matches! Basically, @{term "(MatchNot (Match (Src_Ports [])))"} is True.
+  text\<open>An `empty' port range means it always matches! Basically, @{term "(MatchNot (Match (Src_Ports [])))"} is True.
         This corresponds to firewall behavior, but usually you cannot specify an empty portrange in firewalls, but omission of portrange means no-port-restrictions, 
-        i.e. every port matches.*}
+        i.e. every port matches.\<close>
   lemma "matches (common_matcher, \<alpha>) (MatchNot (Match (Src_Ports []))) a 
           \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
                    p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
   (*<*)by(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)(*>*)
-  text{*If not a corner case, portrange matching is straight forward.*}
+  text\<open>If not a corner case, portrange matching is straight forward.\<close>
   lemma "matches (common_matcher, \<alpha>) (Match (Src_Ports [(1024,4096), (9999, 65535)])) a 
           \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
                    p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
@@ -64,7 +64,7 @@ fun common_matcher :: "(common_primitive, (32, 'a) simple_packet_scheme) exact_m
 
 
 
-text{*Lemmas when matching on @{term Src} or @{term Dst}*}
+text\<open>Lemmas when matching on @{term Src} or @{term Dst}\<close>
 lemma common_matcher_SrcDst_defined:
   "common_matcher (Src m) p \<noteq> TernaryUnknown"
   "common_matcher (Dst m) p \<noteq> TernaryUnknown"
@@ -115,8 +115,8 @@ lemmas match_simplematcher_Iface_not = primitive_matcher_generic.Iface_single_no
 
 
 
-subsection{*Basic optimisations*}
-  text{*Perform very basic optimization. Remove matches to primitives which are essentially @{const MatchAny}*}
+subsection\<open>Basic optimisations\<close>
+  text\<open>Perform very basic optimization. Remove matches to primitives which are essentially @{const MatchAny}\<close>
   fun optimize_primitive_univ :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
     "optimize_primitive_univ (Match (Src (Ip4AddrNetmask (0,0,0,0) 0))) = MatchAny" |
     "optimize_primitive_univ (Match (Dst (Ip4AddrNetmask (0,0,0,0) 0))) = MatchAny" |
@@ -156,8 +156,8 @@ subsection{*Basic optimisations*}
   using optimize_matches optimize_primitive_univ_correct_matchexpr by metis
   
   
-subsection{*Abstracting over unknowns*}
-  text{*remove @{const Extra} (i.e. @{const TernaryUnknown}) match expressions*}
+subsection\<open>Abstracting over unknowns\<close>
+  text\<open>remove @{const Extra} (i.e. @{const TernaryUnknown}) match expressions\<close>
   fun upper_closure_matchexpr :: "action \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
     "upper_closure_matchexpr _ MatchAny = MatchAny" |
     "upper_closure_matchexpr Accept (Match (Extra _)) = MatchAny" |

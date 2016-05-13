@@ -3,7 +3,7 @@ imports Common_Primitive_Lemmas
 begin
 
 
-subsection{*Optimizing protocols in match expressions*}
+subsection\<open>Optimizing protocols in match expressions\<close>
 
 
   fun compress_pos_protocols :: "protocol list \<Rightarrow> protocol option" where

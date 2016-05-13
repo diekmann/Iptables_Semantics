@@ -6,7 +6,7 @@ imports
 begin
 
 
-section{*Example: ringofsaturn.com*}
+section\<open>Example: ringofsaturn.com\<close>
 
 (* Based on <http://networking.ringofsaturn.com/Unix/iptables.php> *)
 (* Archived at <https://archive.today/3c309> *)
@@ -15,9 +15,9 @@ parse_iptables_save saturn_fw="iptables-save"
 
 thm saturn_fw_def
 
-text{*The Firewall*}
+text\<open>The Firewall\<close>
 
-text{*Infix pretty-printing for @{const MatchAnd} and @{const MatchNot}.*}
+text\<open>Infix pretty-printing for @{const MatchAnd} and @{const MatchNot}.\<close>
 abbreviation MatchAndInfix :: "'a match_expr \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr" (infixr "MATCHAND" 65) where
   "MatchAndInfix m1 m2 \<equiv> MatchAnd m1 m2"
 abbreviation MatchNotPrefix :: "'a match_expr \<Rightarrow> 'a match_expr" ("\<not> \<langle>_\<rangle>" 66) where
@@ -97,13 +97,13 @@ lemma "unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string saturn
 lemma "good_ruleset (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string saturn_fw))" by eval
 lemma "simple_ruleset (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string saturn_fw))" by eval
 
-text{*Basically, it accepts everything*}
+text\<open>Basically, it accepts everything\<close>
 lemma "take 2 (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string saturn_fw)) =
     [Rule (Match (CT_State {CT_Related, CT_Established})) action.Accept, Rule (Match (CT_State {CT_New})) action.Accept]" by eval
 
 (*TODO: all the CT states are essentially the universe*)
 
-text{*The upper closure*}
+text\<open>The upper closure\<close>
 value[code] "upper_closure (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string saturn_fw))"
 lemma upper: "upper_closure (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string saturn_fw)) =
  [Rule (Match (CT_State {CT_Related, CT_Established})) action.Accept,
@@ -157,13 +157,13 @@ lemma upper: "upper_closure (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy
 
 
 
-text{*The firewall accepts all NEW packets*}
+text\<open>The firewall accepts all NEW packets\<close>
 lemma "cutt_off_after_default (rmMatchFalse (ctstate_assume_new
           (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string saturn_fw))))
         = [Rule MatchAny action.Accept]"
 by eval
 
-text{*The firewall also accepts all ESTABLISHED packets. Essentially, it accepts all packets!*}
+text\<open>The firewall also accepts all ESTABLISHED packets. Essentially, it accepts all packets!\<close>
 lemma "cutt_off_after_default (rmMatchFalse (optimize_matches (ctstate_assume_state CT_Established)
           (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string saturn_fw))))
         = [Rule MatchAny action.Accept]"
@@ -179,17 +179,17 @@ lemma "approximating_bigstep_fun (common_matcher, in_doubt_allow)
         = Decision FinalAllow" by eval
 
 
-text{*We are removing the first call to the @{term "''STATEFUL''"} chain.*}
+text\<open>We are removing the first call to the @{term "''STATEFUL''"} chain.\<close>
 
 definition "saturn_fw_2 = map (\<lambda> (decl, rs). if decl = ''INPUT'' then (decl, remove1 (Rule MatchAny (Call ''STATEFUL'')) rs) else (decl, rs)) saturn_fw"
 
 lemma "tl (the ((map_of_string saturn_fw) ''INPUT'')) = the ((map_of_string saturn_fw_2) ''INPUT'')" by eval
 
 
-text{*in doubt allow closure*}
+text\<open>in doubt allow closure\<close>
 definition "upper = upper_closure (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string saturn_fw_2))"
 
-text{*Now the upper closure looks as expected*}
+text\<open>Now the upper closure looks as expected\<close>
 lemma "upper =
  [Rule (Match (IIface (Iface ''lo''))) action.Accept,
   Rule (Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)))
@@ -258,7 +258,7 @@ lemma "check_simple_fw_preconditions upper" by eval
 value "map simple_rule_toString (to_simple_firewall upper)"
 
 
-text{*in doubt deny closure*}
+text\<open>in doubt deny closure\<close>
 value[code] "lower_closure (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string saturn_fw_2))"
 
 lemma "simple_fw_valid (to_simple_firewall upper)" by eval

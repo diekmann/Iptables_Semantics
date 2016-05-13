@@ -2,11 +2,11 @@ theory Fixed_Action
 imports Semantics_Ternary
 begin
 
-section{*Fixed Action*}
+section\<open>Fixed Action\<close>
 
-text{*If firewall rules have the same action, we can focus on the matching only. *}
+text\<open>If firewall rules have the same action, we can focus on the matching only.\<close>
 
-text{*Applying a rule once or several times makes no difference.*}
+text\<open>Applying a rule once or several times makes no difference.\<close>
 lemma approximating_bigstep_fun_prepend_replicate: 
   "n > 0 \<Longrightarrow> approximating_bigstep_fun \<gamma> p (r#rs) Undecided = approximating_bigstep_fun \<gamma> p ((replicate n r)@rs) Undecided"
 apply(induction n)
@@ -20,7 +20,7 @@ by fastforce
 
 
 
-text{*utility lemmas*}
+text\<open>utility lemmas\<close>
 context
 begin
   private lemma fixedaction_Log: "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m Log) ms) Undecided = Undecided"
@@ -126,7 +126,7 @@ have "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m1 @ m2 
 qed
 
 
-text{*If the actions are equal, the @{term set} (position and replication independent) of the match expressions can be considered. *}
+text\<open>If the actions are equal, the @{term set} (position and replication independent) of the match expressions can be considered.\<close>
 lemma approximating_bigstep_fun_fixaction_matchseteq: "set m1 = set m2 \<Longrightarrow>
         approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m1) s = 
        approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m2) s"
@@ -142,16 +142,16 @@ proof -
       proof (cases "m \<in> set m1")
       case True
         from True have "set m1 = set (m # m1)" by auto
-        from Cons.IH[OF `set m1 = set (m # m1)`] have "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m # m1)) Undecided = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m1)) Undecided" ..
-        thus ?thesis by (metis Cons.IH Cons.prems `set m1 = set (m # m1)`)
+        from Cons.IH[OF \<open>set m1 = set (m # m1)\<close>] have "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m # m1)) Undecided = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m1)) Undecided" ..
+        thus ?thesis by (metis Cons.IH Cons.prems \<open>set m1 = set (m # m1)\<close>)
       next
       case False
         from False have "m \<notin> set m1" .
         show ?thesis
         proof (cases "m \<notin> set m2")
           case True
-          from True `m \<notin> set m1` Cons.prems have "set m1 = set m2" by auto
-          from Cons.IH[OF this] show ?thesis by (metis Cons.IH Cons.prems `set m1 = set m2`)
+          from True \<open>m \<notin> set m1\<close> Cons.prems have "set m1 = set m2" by auto
+          from Cons.IH[OF this] show ?thesis by (metis Cons.IH Cons.prems \<open>set m1 = set m2\<close>)
         next
         case False
           hence "m \<in> set m2" by simp
@@ -159,7 +159,7 @@ proof -
           have repl_filter_simp: "(replicate (length [x\<leftarrow>m2 . x = m]) m) = [x\<leftarrow>m2 . x = m]"
             by (metis (lifting, full_types) filter_set member_filter replicate_length_same)
   
-          from Cons.prems  `m \<notin> set m1` have "set m1 = set (filter (\<lambda>x. x\<noteq>m) m2)" by auto
+          from Cons.prems  \<open>m \<notin> set m1\<close> have "set m1 = set (filter (\<lambda>x. x\<noteq>m) m2)" by auto
           from Cons.IH[OF this] have "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m1) Undecided = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) [x\<leftarrow>m2 . x \<noteq> m]) Undecided" .
           from this have "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m#m1)) Undecided = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) (m#[x\<leftarrow>m2 . x \<noteq> m])) Undecided"
             apply(simp split: action.split)
@@ -207,8 +207,8 @@ qed
 
 
 
-subsection{*@{term match_list}*}
-  text{*Reducing the firewall semantics to short-circuit matching evaluation*}
+subsection\<open>@{term match_list}\<close>
+  text\<open>Reducing the firewall semantics to short-circuit matching evaluation\<close>
 
   fun match_list :: "('a, 'packet) match_tac \<Rightarrow> 'a match_expr list \<Rightarrow> action \<Rightarrow> 'packet \<Rightarrow> bool" where
    "match_list \<gamma> [] a p = False" |
@@ -236,7 +236,7 @@ subsection{*@{term match_list}*}
     apply(simp split: split_if_asm action.split)
     done
 
-  text{*The key idea behind @{const match_list}: Reducing semantics to match list*}
+  text\<open>The key idea behind @{const match_list}: Reducing semantics to match list\<close>
   lemma match_list_semantics: "match_list \<gamma> ms1 a p \<longleftrightarrow> match_list \<gamma> ms2 a p \<Longrightarrow>
     approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) ms1) s = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) ms2) s"
     apply(rule just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided)
@@ -255,14 +255,14 @@ subsection{*@{term match_list}*}
     done
 
 
-  text{*We can exploit de-morgan to get a disjunction in the match expression!*}
+  text\<open>We can exploit de-morgan to get a disjunction in the match expression!\<close>
   fun match_list_to_match_expr :: "'a match_expr list \<Rightarrow> 'a match_expr" where
     "match_list_to_match_expr [] = MatchNot MatchAny" |
     "match_list_to_match_expr (m#ms) = MatchOr m (match_list_to_match_expr ms)"
-  text{*@{const match_list_to_match_expr} constructs a unwieldy @{typ "'a match_expr"} from a list.
+  text\<open>@{const match_list_to_match_expr} constructs a unwieldy @{typ "'a match_expr"} from a list.
         The semantics of the resulting match expression is the disjunction of the elements of the list.
         This is handy because the normal match expressions do not directly support disjunction.
-        Use this function with care because the resulting match expression is very ugly!*}
+        Use this function with care because the resulting match expression is very ugly!\<close>
   lemma match_list_to_match_expr_disjunction: "match_list \<gamma> ms a p \<longleftrightarrow> matches \<gamma> (match_list_to_match_expr ms) a p"
     apply(induction ms rule: match_list_to_match_expr.induct)
      apply(simp add: bunch_of_lemmata_about_matches)

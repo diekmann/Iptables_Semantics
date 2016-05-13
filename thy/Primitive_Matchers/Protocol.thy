@@ -2,7 +2,7 @@ theory Protocol
 imports "../Common/Negation_Type" "../Common/Lib_toString" "~~/src/HOL/Word/Word"
 begin
 
-section{*Protocols*}
+section\<open>Protocols\<close>
 
 type_synonym primitive_protocol = "8 word"
 
@@ -49,9 +49,9 @@ fun match_proto :: "protocol \<Rightarrow> primitive_protocol \<Rightarrow> bool
     using simple_proto_conjunct_correct by simp
 
 
-  text{*Originally, there was a @{typ nat} in the protocol definition, allowing infinitly many protocols 
+  text\<open>Originally, there was a @{typ nat} in the protocol definition, allowing infinitly many protocols 
         This was intended behavior. We want to prevent things such as @{term "\<not>TCP = UDP"}.
-        So be careful with what you prove...*}
+        So be careful with what you prove...\<close>
   lemma primitive_protocol_Ex_neq: "p = Proto pi \<Longrightarrow> \<exists>p'. p' \<noteq> pi" 
   proof
   	show "pi + 1 \<noteq> pi" by simp
@@ -59,7 +59,7 @@ fun match_proto :: "protocol \<Rightarrow> primitive_protocol \<Rightarrow> bool
   lemma protocol_Ex_neq: "\<exists>p'. Proto p' \<noteq> p"
     by(cases p) (simp_all add: primitive_protocol_Ex_neq)
 
-section{*TCP flags*}
+section\<open>TCP flags\<close>
   datatype tcp_flag = TCP_SYN | TCP_ACK | TCP_FIN | TCP_RST | TCP_URG | TCP_PSH (*| TCP_ALL | TCP_NONE*)
 
   lemma UNIV_tcp_flag: "UNIV = {TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST, TCP_URG, TCP_PSH}" using tcp_flag.exhaust by auto 
@@ -132,7 +132,7 @@ section{*TCP flags*}
   declare match_tcp_flags_conjunct.simps[simp del]
 
 
-  text{*Same as @{const match_tcp_flags_conjunct}, but returns @{const None} if result cannot match anyway*}
+  text\<open>Same as @{const match_tcp_flags_conjunct}, but returns @{const None} if result cannot match anyway\<close>
   definition match_tcp_flags_conjunct_option :: "ipt_tcp_flags \<Rightarrow> ipt_tcp_flags \<Rightarrow> ipt_tcp_flags option" where
     "match_tcp_flags_conjunct_option f1 f2 = (case match_tcp_flags_conjunct f1 f2 of (TCP_Flags fmask c) \<Rightarrow> if c \<subseteq> fmask then Some (TCP_Flags fmask c) else None)"
 

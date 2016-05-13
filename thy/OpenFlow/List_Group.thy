@@ -2,7 +2,7 @@ theory List_Group
 imports Sort_Descending
 begin
 
-section{*List Group*}
+section\<open>List Group\<close>
 
 function (sequential) list_group_eq :: "'a list \<Rightarrow> 'a list list" where
   "list_group_eq [] = []" |

@@ -6,7 +6,7 @@ imports
 begin
 
 
-section{*toString Functions*}
+section\<open>toString Functions\<close>
 
 
 fun simple_action_toString :: "simple_action \<Rightarrow> string" where

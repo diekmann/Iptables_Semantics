@@ -3,22 +3,22 @@ imports Packet_Set_Impl
 begin
 
 
-section{*Packet Set*}
-text{*
+section\<open>Packet Set\<close>
+text\<open>
 An explicit representation of sets of packets allowed/denied by a firewall.
 Very work in progress, such pre-alpha, wow.
 Probably everything here wants a simple ruleset.
-*}
+\<close>
 
 
 (*TODO: collect_by_action
 has_Default \<Longrightarrow> UNIV - collect_drop = collect_allow
 *)
 
-subsection{*The set of all accepted packets*}
-  text{*
+subsection\<open>The set of all accepted packets\<close>
+  text\<open>
   Collect all packets which are allowed by the firewall.
-  *}
+\<close>
   fun collect_allow :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'p set \<Rightarrow> 'p set" where
     "collect_allow _ [] P = {}" |
     "collect_allow \<gamma> ((Rule m Accept)#rs) P = {p \<in> P. matches \<gamma> m Accept p} \<union> (collect_allow \<gamma> rs {p \<in> P. \<not> matches \<gamma> m Accept p})" |
@@ -104,7 +104,7 @@ subsection{*The set of all accepted packets*}
   using collect_allow_complete[where P=UNIV] by fast
 
 
-  text{*the complement of the allowed packets*}
+  text\<open>the complement of the allowed packets\<close>
   fun collect_allow_compl :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'p set \<Rightarrow> 'p set" where
     "collect_allow_compl _ [] P = UNIV" |
     "collect_allow_compl \<gamma> ((Rule m Accept)#rs) P = (P \<union> {p. \<not>matches \<gamma> m Accept p}) \<inter> (collect_allow_compl \<gamma> rs (P \<union> {p. matches \<gamma> m Accept p}))" |
@@ -129,10 +129,10 @@ subsection{*The set of all accepted packets*}
       thus ?case by auto
     qed(simp_all add: simple_ruleset_def)
 
-subsection{*The set of all dropped packets*}
-  text{*
+subsection\<open>The set of all dropped packets\<close>
+  text\<open>
   Collect all packets which are denied by the firewall.
-  *}
+\<close>
   fun collect_deny :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'p set \<Rightarrow> 'p set" where
     "collect_deny _ [] P = {}" |
     "collect_deny \<gamma> ((Rule m Drop)#rs) P = {p \<in> P. matches \<gamma> m Drop p} \<union> (collect_deny \<gamma> rs {p \<in> P. \<not> matches \<gamma> m Drop p})" |
@@ -217,7 +217,7 @@ subsection{*The set of all dropped packets*}
   using collect_deny_sound[where P=UNIV] apply fast
   using collect_deny_complete[where P=UNIV] by fast
   
-  text{*the complement of the denied packets*}
+  text\<open>the complement of the denied packets\<close>
   fun collect_deny_compl :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'p set \<Rightarrow> 'p set" where
     "collect_deny_compl _ [] P = UNIV" |
     "collect_deny_compl \<gamma> ((Rule m Drop)#rs) P = (P \<union> {p. \<not>matches \<gamma> m Drop p}) \<inter> (collect_deny_compl \<gamma> rs (P \<union> {p. matches \<gamma> m Drop p}))" |
@@ -242,7 +242,7 @@ subsection{*The set of all dropped packets*}
       thus ?case by auto
     qed(simp_all add: simple_ruleset_def)
 
-subsection{*Rulesets with default rules*}
+subsection\<open>Rulesets with default rules\<close>
   definition has_default :: "'a rule list \<Rightarrow> bool" where
     "has_default rs \<equiv> length rs > 0 \<and> ((last rs = Rule MatchAny Accept) \<or> (last rs = Rule MatchAny Drop))"
 
@@ -282,13 +282,13 @@ subsection{*Rulesets with default rules*}
   
 
 
-text{*with @{thm packet_set_constrain_correct} and @{thm packet_set_constrain_not_correct}, it should be possible to build an executable version of the algorithm above.*}
+text\<open>with @{thm packet_set_constrain_correct} and @{thm packet_set_constrain_not_correct}, it should be possible to build an executable version of the algorithm above.\<close>
 
 
 
 
 
-subsection{*The set of all accepted packets -- Executable Implementation*}
+subsection\<open>The set of all accepted packets -- Executable Implementation\<close>
 fun collect_allow_impl_v1 :: "'a rule list \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
   "collect_allow_impl_v1 [] P = packet_set_Empty" |
   "collect_allow_impl_v1 ((Rule m Accept)#rs) P = packet_set_union (packet_set_constrain Accept m P) (collect_allow_impl_v1 rs (packet_set_constrain_not Accept m P))" |
@@ -312,7 +312,7 @@ apply(simp_all add: simple_ruleset_def packet_set_union_correct packet_set_opt_c
 done
 
 
-text{*executable!*}
+text\<open>executable!\<close>
 export_code collect_allow_impl_v2 in SML
 
 
@@ -328,7 +328,7 @@ using collect_allow_impl_v1_sound_complete collect_allow_impl_v2 by fast
 
 
 
-text{*instead of the expensive invert and intersect operations, we try to build the algorithm primarily by union*}
+text\<open>instead of the expensive invert and intersect operations, we try to build the algorithm primarily by union\<close>
 lemma "(UNIV - A) \<inter> (UNIV - B) = UNIV - (A \<union> B)" by blast
 lemma "A \<inter> (- P) = UNIV - (-A \<union> P)" by blast
 lemma "UNIV - ((- P) \<inter> A) = P \<union> - A" by blast
@@ -363,7 +363,7 @@ apply(simp_all add: simple_ruleset_def packet_set_union_correct packet_set_opt_c
 done
 
 
-text{*take @{text "UNIV"} setminus the intersect over the result and get the set of allowed packets*}
+text\<open>take @{text "UNIV"} setminus the intersect over the result and get the set of allowed packets\<close>
 fun collect_allow_compl_impl_tailrec :: "'a rule list \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set list \<Rightarrow> 'a packet_set list" where
   "collect_allow_compl_impl_tailrec [] P PAs = PAs" |
   "collect_allow_compl_impl_tailrec ((Rule m Accept)#rs) P PAs =
@@ -403,7 +403,7 @@ by metis
 definition allow_set_not_inter :: "'a rule list \<Rightarrow> 'a packet_set list" where
   "allow_set_not_inter rs \<equiv> collect_allow_compl_impl_tailrec rs packet_set_Empty []"
 
-text{*Intersecting over the result of @{const allow_set_not_inter} and inverting is the list of all allowed packets*}
+text\<open>Intersecting over the result of @{const allow_set_not_inter} and inverting is the list of all allowed packets\<close>
 lemma allow_set_not_inter: "simple_ruleset rs \<Longrightarrow> 
   - (\<Inter>x\<in>set (allow_set_not_inter rs). packet_set_to_set \<gamma> x) = {p. approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalAllow}"
   unfolding allow_set_not_inter_def
@@ -412,7 +412,7 @@ lemma allow_set_not_inter: "simple_ruleset rs \<Longrightarrow>
   apply(simp add: packet_set_Empty)
   using collect_allow_sound_complete by fast 
 
-text{*this gives the set of denied packets*}
+text\<open>this gives the set of denied packets\<close>
 lemma "simple_ruleset rs \<Longrightarrow> has_default rs \<Longrightarrow> 
   (\<Inter>x\<in>set (allow_set_not_inter rs). packet_set_to_set \<gamma> x) = {p. approximating_bigstep_fun \<gamma> p rs Undecided = Decision FinalDeny}"
 apply(frule simple_imp_good_ruleset)

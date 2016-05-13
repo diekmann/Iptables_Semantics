@@ -10,13 +10,13 @@ begin
 value "(2::nat) < 2^128" (*without Code_Target_Nat, this would be really slow*)
 
 
-section {*Modelling IPv6 Adresses*}
-  text{*An IPv6 address is basically a 128 bit unsigned integer. RFC 4291, Section 2.*}
+section \<open>Modelling IPv6 Adresses\<close>
+  text\<open>An IPv6 address is basically a 128 bit unsigned integer. RFC 4291, Section 2.\<close>
   type_synonym ipv6addr = "128 word"
  
 
   (*the next lines are a copy from IPv4Addr.thy*)
-  text{*Conversion between natural numbers and IPv6 adresses*}
+  text\<open>Conversion between natural numbers and IPv6 adresses\<close>
   definition nat_of_ipv6addr :: "ipv6addr \<Rightarrow> nat" where
     "nat_of_ipv6addr a = unat a"
   definition ipv6addr_of_nat :: "nat \<Rightarrow> ipv6addr" where
@@ -25,7 +25,7 @@ section {*Modelling IPv6 Adresses*}
   lemma "((nat_of_ipv6addr (42::ipv6addr))::nat) = 42" by eval
   lemma "((ipv6addr_of_nat (42::nat))::ipv6addr) = 42" by eval
 
-  text{*The maximum IPv6 addres*}
+  text\<open>The maximum IPv6 addres\<close>
   definition max_ipv6_addr :: "ipv6addr" where 
     "max_ipv6_addr \<equiv> ipv6addr_of_nat ((2^128) - 1)"
 
@@ -40,7 +40,7 @@ section {*Modelling IPv6 Adresses*}
   lemma range_0_max_UNIV: "UNIV = {0 .. max_ipv6_addr}" (*not in the simp set, for a reason*)
     by(simp add: max_ipv6_addr_max_word) fastforce
 
-  text{*identity functions*}
+  text\<open>identity functions\<close>
   lemma nat_of_ipv6addr_ipv6addr_of_nat: "\<lbrakk> n \<le> nat_of_ipv6addr max_ipv6_addr \<rbrakk> \<Longrightarrow> nat_of_ipv6addr (ipv6addr_of_nat n) = n"
     by (metis ipv6addr_of_nat_def le_unat_uoi nat_of_ipv6addr_def)
   lemma nat_of_ipv6addr_ipv6addr_of_nat_mod: "nat_of_ipv6addr (ipv6addr_of_nat n) = n mod 2^128"
@@ -49,7 +49,7 @@ section {*Modelling IPv6 Adresses*}
     by(simp add: ipv6addr_of_nat_def nat_of_ipv6addr_def)
 
 
-  text{*Equality of IPv6 adresses*}
+  text\<open>Equality of IPv6 adresses\<close>
   lemma "\<lbrakk> n \<le> nat_of_ipv6addr max_ipv6_addr \<rbrakk> \<Longrightarrow> nat_of_ipv6addr (ipv6addr_of_nat n) = n"
     apply(simp add: nat_of_ipv6addr_def ipv6addr_of_nat_def)
     apply(induction n)
@@ -59,21 +59,21 @@ section {*Modelling IPv6 Adresses*}
   lemma ipv6addr_of_nat_eq: "x = y \<Longrightarrow> ipv6addr_of_nat x = ipv6addr_of_nat y"
     by(simp add: ipv6addr_of_nat_def)
 
-subsection{*Syntax of IPv6 Adresses*}
-  text{*RFC 4291, Section 2.2.: Text Representation of Addresses*}
+subsection\<open>Syntax of IPv6 Adresses\<close>
+  text\<open>RFC 4291, Section 2.2.: Text Representation of Addresses\<close>
 
-  text{*Quoting the RFC (note: errata exists):
+  text\<open>Quoting the RFC (note: errata exists):
    1. The preferred form is x:x:x:x:x:x:x:x, where the 'x's are one to
       four hexadecimal digits of the eight 16-bit pieces of the address.
       Examples:
          ABCD:EF01:2345:6789:ABCD:EF01:2345:6789
          2001:DB8:0:0:8:800:200C:417A
-  *}
+\<close>
   datatype ipv6addr_syntax = 
     IPv6AddrPreferred "16 word" "16 word" "16 word" "16 word" "16 word" "16 word" "16 word" "16 word"
 
 
-text{*
+text\<open>
    2. [...] In order to make writing addresses containing zero
       bits easier, a special syntax is available to compress the zeros.
       The use of "::" indicates one or more groups of 16 bits of zeros.
@@ -91,13 +91,13 @@ text{*
          FF01::101                      a multicast address
          ::1                            the loopback address
          ::                             the unspecified address
-  *}
+\<close>
   (*datatype may take some minutes to load*)
   datatype ipv6addr_syntax_compressed =
-  --{*using @{typ unit} for the omission :: 
+  --\<open>using @{typ unit} for the omission :: 
       The first number is the position where the omission occurs.
       The second number is the length of the specified address pieces.
-        I.e. `8 minus the second number' pieces are omitted.*}
+        I.e. `8 minus the second number' pieces are omitted.\<close>
     IPv6AddrCompressed1_0 unit
   | IPv6AddrCompressed1_1 unit "16 word"
   | IPv6AddrCompressed1_2 unit "16 word" "16 word"
@@ -410,10 +410,10 @@ next
     by (cases ipv6_syntax) (auto simp: parse_ipv6_address_def)
 qed
 
-text{*Valid IPv6 compressed notation:
+text\<open>Valid IPv6 compressed notation:
   \<^item> at most one omission
   \<^item> at most 7 pieces
-*}
+\<close>
 lemma RFC_4291_format: "parse_ipv6_address as \<noteq> None \<longleftrightarrow>
        length (filter (\<lambda>p. p = None) as) = 1 \<and> length (filter (\<lambda>p. p \<noteq> None) as) \<le> 7"
        (is "?lhs = ?rhs")
@@ -430,7 +430,7 @@ next
     by (auto split: option.split list.split split_if_asm)
 qed
 
-text{*
+text\<open>
   3. An alternative form that is sometimes more convenient when dealing
       with a mixed environment of IPv4 and IPv6 nodes is
       x:x:x:x:x:x:d.d.d.d, where the 'x's are the hexadecimal values of
@@ -445,11 +445,11 @@ text{*
 
          ::13.1.68.3
          ::FFFF:129.144.52.38
-*}
+\<close>
   (*TODO*)
   (*TODO: oh boy, they can also be compressed*)
 
-subsection{*Semantics*}
+subsection\<open>Semantics\<close>
   fun ipv6preferred_to_int :: "ipv6addr_syntax \<Rightarrow> ipv6addr" where
     "ipv6preferred_to_int (IPv6AddrPreferred a b c d e f g h) = (ucast a << (16 * 7)) OR
                                                                 (ucast b << (16 * 6)) OR
@@ -498,7 +498,7 @@ subsection{*Semantics*}
 
 
 
-  text{*Correctness: round trip property one*}
+  text\<open>Correctness: round trip property one\<close>
   lemma ipv6preferred_to_int_int_to_ipv6preferred:
     "ipv6preferred_to_int (int_to_ipv6preferred ip) = ip"
   proof -
@@ -579,7 +579,7 @@ subsection{*Semantics*}
 
 
 
-  text{*Correctness: round trip property two*}
+  text\<open>Correctness: round trip property two\<close>
   lemma int_to_ipv6preferred_ipv6preferred_to_int: "int_to_ipv6preferred (ipv6preferred_to_int ip) = ip"
   proof -
     note ucast_shift_simps=helper_masked_ucast_generic helper_masked_ucast_reverse_generic

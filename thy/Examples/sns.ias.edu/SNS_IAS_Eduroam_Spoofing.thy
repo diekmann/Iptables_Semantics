@@ -5,17 +5,17 @@ imports
 begin
 
 
-section{*Example: Eduroam and sns.ias Firewall Script*}
+section\<open>Example: Eduroam and sns.ias Firewall Script\<close>
 
 definition "everything_but_my_ip = all_but_those_ips [(ipv4addr_of_dotdecimal (131,159,207,206), 32)]"
 
 
-text{* Incoming: everything but my IP *}
+text\<open>Incoming: everything but my IP\<close>
 definition "ipassignment_incoming = [(Iface ''wlan0'', everything_but_my_ip), (Iface ''lo'', [(0,0)])]"
 
 lemma "ipassmt_sanity_nowildcards (map_of ipassignment_incoming)" by eval
 
-text{* Outgoing: only my IP *}
+text\<open>Outgoing: only my IP\<close>
 definition "ipassignment_outgoing = [(Iface ''wlan0'',  [(ipv4addr_of_dotdecimal (131,159,207,206), 32)]), (Iface ''lo'', [(0,0)])]"
 
 lemma "ipassmt_sanity_nowildcards (map_of ipassignment_outgoing)" by eval
@@ -40,25 +40,25 @@ value[code] "debug_ipassmt ipassignment_incoming (unfold_ruleset_INPUT eduroam_f
 value[code] "debug_ipassmt ipassignment_outgoing (unfold_ruleset_OUTPUT eduroam_fw_OUTPUT_default_policy (map_of_string eduroam_fw))"
 
 
-text{*The ruleset*}
+text\<open>The ruleset\<close>
 lemma "check_simple_fw_preconditions (upper_closure (packet_assume_new (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw))))" by eval
 value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)))))"
 lemma "simple_fw_valid (to_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)))))" by eval
 lemma "simple_fw_valid (to_simple_firewall (lower_closure (packet_assume_new (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)))))" by eval
 
 
-text{*We do not need to call things such as @{const transform_optimize_dnf_strict} because the
-     firewall already is in @{const normalized_nnf_match} (required for @{const no_spoofing_iface})*}
+text\<open>We do not need to call things such as @{const transform_optimize_dnf_strict} because the
+     firewall already is in @{const normalized_nnf_match} (required for @{const no_spoofing_iface})\<close>
 lemma "transform_optimize_dnf_strict (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)) =
           unfold_ruleset_INPUT action.Drop (map_of_string eduroam_fw)" by eval
 
-text{* The ruleset prevents spoofed incoming packets *}
+text\<open>The ruleset prevents spoofed incoming packets\<close>
 lemma "no_spoofing_iface (Iface ''wlan0'')
         (map_of_ipassmt ipassignment_incoming) (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw))" by eval
 
 
-text{*Ruleset does not prevent that I'm spoofing (which is not necessary anyways since I need root right to spoof, which 
-      would also enable me to deactivate the firewall). This is only a one-user laptop!*}
+text\<open>Ruleset does not prevent that I'm spoofing (which is not necessary anyways since I need root right to spoof, which 
+      would also enable me to deactivate the firewall). This is only a one-user laptop!\<close>
 
 lemma "transform_optimize_dnf_strict (unfold_ruleset_OUTPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)) =
         unfold_ruleset_OUTPUT eduroam_fw_INPUT_default_policy (map_of_string eduroam_fw)" by eval

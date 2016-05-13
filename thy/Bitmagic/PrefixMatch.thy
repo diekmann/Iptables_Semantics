@@ -4,17 +4,17 @@ begin
 
 (*Contributed by Julius Michaelis*)
 
-section{*Prefix match*}
-text{*
+section\<open>Prefix match\<close>
+text\<open>
   The main difference between the prefix matched defined here and CIDR notation is a validity constraint 
   imposed on prefix matches.
 
   For example, 192.168.42.42/16 is valid CIDR notation whereas for a prefix match, it must be 192.168.0.0/16.
 
   I.e. the last bits of the prefix must be set to zero.
-*}
+\<close>
 
-text{*We define a type for ips in CIDR notation, e.g. 192.168.0.0/24.*}
+text\<open>We define a type for ips in CIDR notation, e.g. 192.168.0.0/24.\<close>
 context
   notes [[typedef_overloaded]]
 begin
@@ -27,8 +27,8 @@ definition pfxm_mask :: "'a prefix_match \<Rightarrow> 'a::len word" where
 definition valid_prefix :: "('a::len) prefix_match \<Rightarrow> bool" where
   "valid_prefix pf = ((pfxm_mask pf) AND pfxm_prefix pf = 0)"
 
-text{*The type @{typ "'a prefix_match"} usually requires @{const valid_prefix}.
-      When we allow working on arbitrary IPs in CIDR notation, we will use the type @{typ "('i::len word \<times> nat)"} directly.*}
+text\<open>The type @{typ "'a prefix_match"} usually requires @{const valid_prefix}.
+      When we allow working on arbitrary IPs in CIDR notation, we will use the type @{typ "('i::len word \<times> nat)"} directly.\<close>
 
 lemma valid_prefix_00(*[simp,intro!]*): "valid_prefix (PrefixMatch 0 0)" by (simp add: valid_prefix_def)
 
@@ -73,13 +73,13 @@ private lemma valid_prefix_alt: fixes p::"'a::len prefix_match"
   unfolding pfxm_prefix_def pfxm_mask_def mask_def
   by metis
 
-subsection{*Address Semantics*}
+subsection\<open>Address Semantics\<close>
 
 definition prefix_match_semantics where
   "prefix_match_semantics m a = (pfxm_prefix m = (NOT pfxm_mask m) AND a)"
 
 
-subsection{*Set Semantics*}
+subsection\<open>Set Semantics\<close>
 
 definition prefix_to_wordset :: "'a::len prefix_match \<Rightarrow> 'a word set" where
   "prefix_to_wordset pfx = {pfxm_prefix pfx .. pfxm_prefix pfx OR pfxm_mask pfx}"
@@ -110,7 +110,7 @@ lemma prefix_to_wordset_subset_ipset_from_cidr:
   apply(simp add: pfxm_mask_def)
   done
 
-subsection{*Equivalence Proofs*}
+subsection\<open>Equivalence Proofs\<close>
 
 lemma pfx_match_addr_ipset: "valid_prefix rr \<Longrightarrow> prefix_match_semantics rr addr \<Longrightarrow> (addr \<in> prefix_to_wordset rr)"
   by(simp add: prefix_match_semantics_def prefix_to_wordset_def valid_prefix_def)
@@ -345,12 +345,12 @@ proof(induction l)
 	note mIH = Cons.IH[OF this]
 	moreover have "?mstp a \<notin> ?mstp ` set as"
 	proof 
-		have representable_set: "set as \<subseteq> {0..unat ?mmw}" using `\<forall>e\<in>set (a # as). e \<le> unat max_word` by fastforce
-		have a_reprbl: "a \<in> {0..unat ?mmw}" using `\<forall>e\<in>set (a # as). e \<le> unat max_word` by simp
+		have representable_set: "set as \<subseteq> {0..unat ?mmw}" using \<open>\<forall>e\<in>set (a # as). e \<le> unat max_word\<close> by fastforce
+		have a_reprbl: "a \<in> {0..unat ?mmw}" using \<open>\<forall>e\<in>set (a # as). e \<le> unat max_word\<close> by simp
 		assume "?mstp a \<in> ?mstp ` set as"
 		with inj_on_image_mem_iff[OF suc2plus_inj_on a_reprbl representable_set]
 		have "a \<in> set as" by simp
-		with `distinct (a # as)` show False by simp
+		with \<open>distinct (a # as)\<close> show False by simp
 	qed
 	ultimately show ?case by simp
 qed simp

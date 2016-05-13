@@ -4,10 +4,10 @@ imports "Semantics_Embeddings"
 begin
 
 
-section{*Spoofing protection in Ternary Semantics implies Spoofing protection Boolean Semantics*}
-text{*If @{const no_spoofing} is shown in the ternary semantics, it implies that no spoofing
+section\<open>Spoofing protection in Ternary Semantics implies Spoofing protection Boolean Semantics\<close>
+text\<open>If @{const no_spoofing} is shown in the ternary semantics, it implies that no spoofing
         is possible in the Boolean semantics with magic oracle.
-        We only assume that the oracle agrees with the @{const common_matcher} on the not-unknown parts.*}
+        We only assume that the oracle agrees with the @{const common_matcher} on the not-unknown parts.\<close>
 (*TODO: ipv4 only*)
   lemma approximating_imp_booloan_semantics_nospoofing: 
       assumes "matcher_agree_on_exact_matches \<gamma> common_matcher" and "simple_ruleset rs" and no_spoofing: "no_spoofing ipassmt rs"

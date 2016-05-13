@@ -2,9 +2,9 @@ theory Negation_Type
 imports Main
 begin
 
-section{*Negation Type*}
+section\<open>Negation Type\<close>
 
-text{*Only negated or non-negated literals *}
+text\<open>Only negated or non-negated literals\<close>
 datatype 'a negation_type = Pos 'a | Neg 'a
 
 fun getPos :: "'a negation_type list \<Rightarrow> 'a list" where
@@ -18,14 +18,14 @@ fun getNeg :: "'a negation_type list \<Rightarrow> 'a list" where
   "getNeg (_#xs) = getNeg xs"
 
 
-text{*If there is @{typ "'a negation_type"}, then apply a @{term map} only to @{typ 'a}.
-I.e. keep @{term Neg} and @{term Pos}*}
+text\<open>If there is @{typ "'a negation_type"}, then apply a @{term map} only to @{typ 'a}.
+I.e. keep @{term Neg} and @{term Pos}\<close>
 fun NegPos_map :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a negation_type list \<Rightarrow> 'b negation_type list" where
   "NegPos_map _ [] = []" |
   "NegPos_map f ((Pos a)#as) = (Pos (f a))#NegPos_map f as" |
   "NegPos_map f ((Neg a)#as) = (Neg (f a))#NegPos_map f as"
 
-text{*Example*}
+text\<open>Example\<close>
 lemma "NegPos_map (\<lambda>x::nat. x+1) [Pos 0, Neg 1] = [Pos 1, Neg 2]" by eval
 
 lemma getPos_NegPos_map_simp: "(getPos (NegPos_map X (map Pos src))) = map X src"

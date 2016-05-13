@@ -10,15 +10,15 @@ begin
 value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
 
 
-section {*Modelling IPv4 Adresses*}
-  text{*An IPv4 address is basically a 32 bit unsigned integer*}
+section \<open>Modelling IPv4 Adresses\<close>
+  text\<open>An IPv4 address is basically a 32 bit unsigned integer\<close>
   type_synonym ipv4addr = "32 word"
  
   value "42 :: ipv4addr"
 
   value "(42 :: ipv4addr) \<le> 45"
 
-  text{*Conversion between natural numbers and IPv4 adresses*}
+  text\<open>Conversion between natural numbers and IPv4 adresses\<close>
   definition nat_of_ipv4addr :: "ipv4addr \<Rightarrow> nat" where
     "nat_of_ipv4addr a = unat a"
   definition ipv4addr_of_nat :: "nat \<Rightarrow> ipv4addr" where
@@ -27,7 +27,7 @@ section {*Modelling IPv4 Adresses*}
   lemma "((nat_of_ipv4addr (42::ipv4addr))::nat) = 42" by eval
   lemma "((ipv4addr_of_nat (42::nat))::ipv4addr) = 42" by eval
 
-  text{*The maximum IPv4 addres*}
+  text\<open>The maximum IPv4 addres\<close>
   definition max_ipv4_addr :: "ipv4addr" where 
     "max_ipv4_addr \<equiv> ipv4addr_of_nat ((2^32) - 1)"
 
@@ -42,7 +42,7 @@ section {*Modelling IPv4 Adresses*}
   lemma range_0_max_UNIV: "UNIV = {0 .. max_ipv4_addr}" (*not in the simp set, for a reason*)
     by(simp add: max_ipv4_addr_max_word) fastforce
 
-  text{*identity functions*}
+  text\<open>identity functions\<close>
   lemma nat_of_ipv4addr_ipv4addr_of_nat: "\<lbrakk> n \<le> nat_of_ipv4addr max_ipv4_addr \<rbrakk> \<Longrightarrow> nat_of_ipv4addr (ipv4addr_of_nat n) = n"
     by (metis ipv4addr_of_nat_def le_unat_uoi nat_of_ipv4addr_def)
   lemma nat_of_ipv4addr_ipv4addr_of_nat_mod: "nat_of_ipv4addr (ipv4addr_of_nat n) = n mod 2^32"
@@ -51,7 +51,7 @@ section {*Modelling IPv4 Adresses*}
     by(simp add: ipv4addr_of_nat_def nat_of_ipv4addr_def)
 
 
-  text{*Equality of IPv4 adresses*}
+  text\<open>Equality of IPv4 adresses\<close>
   lemma "\<lbrakk> n \<le> nat_of_ipv4addr max_ipv4_addr \<rbrakk> \<Longrightarrow> nat_of_ipv4addr (ipv4addr_of_nat n) = n"
     apply(simp add: nat_of_ipv4addr_def ipv4addr_of_nat_def)
     apply(induction n)
@@ -61,7 +61,7 @@ section {*Modelling IPv4 Adresses*}
   lemma ipv4addr_of_nat_eq: "x = y \<Longrightarrow> ipv4addr_of_nat x = ipv4addr_of_nat y"
     by(simp add: ipv4addr_of_nat_def)
 
-subsection{*Representing IPv4 Adresses*}
+subsection\<open>Representing IPv4 Adresses\<close>
   fun ipv4addr_of_dotdecimal :: "nat \<times> nat \<times> nat \<times> nat \<Rightarrow> ipv4addr" where
     "ipv4addr_of_dotdecimal (a,b,c,d) = ipv4addr_of_nat (d + 256 * c + 65536 * b + 16777216 * a )"
 
@@ -77,7 +77,7 @@ subsection{*Representing IPv4 Adresses*}
   lemma "ipv4addr_of_dotdecimal (192, 168, 0, 1) = 3232235521" by eval
   lemma "dotdecimal_of_ipv4addr 3232235521 = (192, 168, 0, 1)" by eval
 
-  text{*a different notation for @{term ipv4addr_of_dotdecimal}*}
+  text\<open>a different notation for @{term ipv4addr_of_dotdecimal}\<close>
   lemma ipv4addr_of_dotdecimal_bit: 
     "ipv4addr_of_dotdecimal (a,b,c,d) = (ipv4addr_of_nat a << 24) + (ipv4addr_of_nat b << 16) + (ipv4addr_of_nat c << 8) + ipv4addr_of_nat d"
   proof -
@@ -142,7 +142,7 @@ subsection{*Representing IPv4 Adresses*}
   "\<lbrakk> a < 256; b < 256; c < 256; d < 256 \<rbrakk> \<Longrightarrow> dotdecimal_of_ipv4addr (ipv4addr_of_dotdecimal (a,b,c,d)) = (a,b,c,d)"
   proof -
     assume  "a < 256" and "b < 256" and "c < 256" and "d < 256"
-    note assms= `a < 256` `b < 256` `c < 256` `d < 256` 
+    note assms= \<open>a < 256\<close> \<open>b < 256\<close> \<open>c < 256\<close> \<open>d < 256\<close> 
     hence a: "nat_of_ipv4addr ((ipv4addr_of_nat (d + 256 * c + 65536 * b + 16777216 * a) >> 24) AND mask 8) = a"
       apply(simp add: ipv4addr_of_nat_def word_of_nat)
       apply(simp add: nat_of_ipv4addr_def unat_def)
@@ -168,8 +168,8 @@ subsection{*Representing IPv4 Adresses*}
         apply simp_all
       apply(simp add: NumberWang.div65536[simplified]) (*we add the simplified because the WordLemmaBucket adds some additional simp rules*)
       done
-      --{*When @{file "./l4v/lib/WordLemmaBucket.thy"} is imported, some @{file "NumberWang.thy"} lemmas need the [simplified] attribute
-          because WordLemmaBucket adds some simp rules. This theory should also work without WordLemmaBucket*}
+      --\<open>When @{file "./l4v/lib/WordLemmaBucket.thy"} is imported, some @{file "NumberWang.thy"} lemmas need the [simplified] attribute
+          because WordLemmaBucket adds some simp rules. This theory should also work without WordLemmaBucket\<close>
     from assms have c: "nat_of_ipv4addr ((ipv4addr_of_nat (d + 256 * c + 65536 * b + 16777216 * a) >> 8) AND mask 8) = c"
       apply(simp add: ipv4addr_of_nat_def word_of_nat)
       apply(simp add: nat_of_ipv4addr_def unat_def)
@@ -182,7 +182,7 @@ subsection{*Representing IPv4 Adresses*}
         apply simp_all
       apply(simp add: NumberWang.div256[simplified])
       done
-    from `d < 256` have d: "nat_of_ipv4addr (ipv4addr_of_nat (d + 256 * c + 65536 * b + 16777216 * a) AND mask 8) = d"
+    from \<open>d < 256\<close> have d: "nat_of_ipv4addr (ipv4addr_of_nat (d + 256 * c + 65536 * b + 16777216 * a) AND mask 8) = d"
       apply(simp add: ipv4addr_of_nat_AND_mask8)
       apply(simp add: ipv4addr_of_nat_def word_of_nat)
       apply(simp add: nat_of_ipv4addr_def)
@@ -252,7 +252,7 @@ subsection{*Representing IPv4 Adresses*}
      by (metis Pair_inject dotdecimal_of_ipv4addr_ipv4addr_of_dotdecimal)
 
 
-subsection{*IP ranges*}
+subsection\<open>IP ranges\<close>
   lemma UNIV_ipv4addrset: "(UNIV :: ipv4addr set) = {0 .. max_ipv4_addr}" by(auto)
   lemma "(42::ipv4addr) \<in> UNIV" by eval
 
@@ -270,7 +270,7 @@ subsection{*IP ranges*}
     by(simp add: UNIV_ipv4addrset ipset_from_netmask_def ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4set_from_netmask_def max_ipv4_addr_max_word)
    
   
-  text{*192.168.0.0/24*}
+  text\<open>192.168.0.0/24\<close>
   definition ipv4set_from_cidr::"ipv4addr \<Rightarrow> nat \<Rightarrow> ipv4addr set" where
     "ipv4set_from_cidr addr pflength \<equiv> ipset_from_cidr addr pflength"
 
@@ -296,7 +296,7 @@ subsection{*IP ranges*}
     by (simp add: ipset_from_cidr_alt ipv4set_from_cidr_def)
 
 
-  text{*making element check executable*}
+  text\<open>making element check executable\<close>
   lemma addr_in_ipv4set_from_netmask_code[code_unfold]: 
     "addr \<in> (ipv4set_from_netmask base netmask) \<longleftrightarrow> (base AND netmask) \<le> addr \<and> addr \<le> (base AND netmask) OR (NOT netmask)"
     by (simp add: addr_in_ipset_from_netmask_code ipv4set_from_netmask_def)
@@ -346,7 +346,7 @@ subsection{*IP ranges*}
 
 
   (*TODO: move to IPv4?*)
-  text{*This @{text "len_of TYPE('a)"} is 32 for IPv4 addresses.*}
+  text\<open>This @{text "len_of TYPE('a)"} is 32 for IPv4 addresses.\<close>
   lemma ipv4cidr_to_interval_simps[code_unfold]: "ipcidr_to_interval ((pre::ipv4addr), len) = (
       let netmask = (mask len) << (32 - len);
           network_prefix = (pre AND netmask)

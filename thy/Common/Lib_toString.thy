@@ -3,7 +3,7 @@ imports Main
 begin
 
 
-section{*toString Functions*}
+section\<open>toString Functions\<close>
 
 (*http://stackoverflow.com/questions/23864965/string-of-nat-in-isabelle*)
 fun string_of_nat :: "nat \<Rightarrow> string" where
@@ -19,7 +19,7 @@ lemma "string_of_nat 123456 = ''123456''" by eval
 definition list_separated_toString :: "string \<Rightarrow> ('a \<Rightarrow> string) \<Rightarrow> 'a list \<Rightarrow> string" where
   "list_separated_toString sep toStr ls = concat (splice (map toStr ls) (replicate (length ls - 1) sep))"
 
-text{*A slightly more efficient code equation, which is actually not really faster*}
+text\<open>A slightly more efficient code equation, which is actually not really faster\<close>
 fun list_separated_toString_helper :: "string \<Rightarrow> ('a \<Rightarrow> string) \<Rightarrow> 'a list \<Rightarrow> string" where
   "list_separated_toString_helper sep toStr [] = ''''" |
   "list_separated_toString_helper sep toStr [l] = toStr l" |
@@ -47,7 +47,7 @@ fun bool_toString :: "bool \<Rightarrow> string" where
   "bool_toString True = ''True''" |
   "bool_toString False = ''False''"
 
-subsection{*Enum set to string*}
+subsection\<open>Enum set to string\<close>
   fun enum_set_get_one :: "'a list \<Rightarrow> 'a set \<Rightarrow> 'a option" where
     "enum_set_get_one []     S = None" |
     "enum_set_get_one (s#ss) S = (if s \<in> S then Some s else enum_set_get_one ss S)"

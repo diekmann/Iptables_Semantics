@@ -3,8 +3,8 @@ imports IPAddr
         PrefixMatch
 begin
 
-section{*CIDR Split Motivation (Example for IPv4)*}
-  text{*When talking about ranges of IP addresses, we can make the ranges explicit by listing them.*}
+section\<open>CIDR Split Motivation (Example for IPv4)\<close>
+  text\<open>When talking about ranges of IP addresses, we can make the ranges explicit by listing them.\<close>
 
 context
 begin
@@ -39,15 +39,15 @@ begin
       by (metis atLeastAtMost_iff image_eqI word_le_nat_alt word_unat.Rep_inverse)
     qed
 
-  text{*The function @{const ipv4addr_upto} gives back a list of all the ips in the list.
+  text\<open>The function @{const ipv4addr_upto} gives back a list of all the ips in the list.
         This list can be pretty huge! In the following, we will use CIDR notation (e.g. 192.168.0.0/24)
-        to describe the list more compactly. *}
+        to describe the list more compactly.\<close>
 end
 
 
 
 
-subsection{*Prefix Match Range stuff*}
+subsection\<open>Prefix Match Range stuff\<close>
 
 context
 begin
@@ -414,7 +414,7 @@ lemma wordinterval_CIDR_split_prefixmatch_all_valid_less_Ball:
 	apply blast
 done
 
-text{*Since @{const wordinterval_CIDR_split_prefixmatch} only returns valid prefixes, we can safely convert it to CIDR lists*}
+text\<open>Since @{const wordinterval_CIDR_split_prefixmatch} only returns valid prefixes, we can safely convert it to CIDR lists\<close>
 (* actually, just valid_prefix doesn't mean that the prefix length is sane. Fortunately, we also have wordinterval_CIDR_split_prefixmatch_all_valid_less_Ball *)
 lemma "valid_prefix (PrefixMatch (0::16 word) 20)" by(simp add: valid_prefix_def)
 

@@ -94,7 +94,7 @@ lemma compress_normalize_primitive_monad_preserves:
     
 
 
-subsection{*Optimizing interfaces in match expressions*}
+subsection\<open>Optimizing interfaces in match expressions\<close>
 
   (*returns: (list of positive interfaces \<times> a list of negated interfaces)
     it matches the conjunction of both

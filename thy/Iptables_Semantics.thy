@@ -2,7 +2,7 @@ theory Iptables_Semantics
 imports Semantics_Embeddings "Semantics_Ternary/Normalized_Matches"
 begin
 
-section{*Normalizing Rulesets in the Boolean Big Step Semantics*}
+section\<open>Normalizing Rulesets in the Boolean Big Step Semantics\<close>
 corollary normalize_rules_dnf_correct_BooleanSemantics: 
   assumes "good_ruleset rs"
   shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>normalize_rules_dnf rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"

@@ -2,7 +2,7 @@ theory CaesarTheories
 imports Main
 begin
 
-subsection{*Misc*}
+subsection\<open>Misc\<close>
 
 lemma ex_helper: "cond something = (\<exists>x. (x = something \<and> (cond x)))" by simp
 
@@ -36,7 +36,7 @@ lemma snd_image_pair: "snd ` (\<lambda>(x, y). (f1 x, f2 y)) ` r = (f2 \<circ> s
 lemma image_set_comprehension: "f ` set S = {f x|x. x \<in> set S}"
    by blast
 
-subsection{*single valued on lists*}
+subsection\<open>single valued on lists\<close>
 
 lemma foldr_True_set: "foldr (\<lambda>x. op \<and> (f x)) l True = (\<forall>x \<in> set l. f x)"
   by (induction l) simp_all
@@ -72,7 +72,7 @@ qed
 
 lemma set_Cons: "e \<in> set (a # as) \<longleftrightarrow> (e = a \<or> e \<in> set as)" by simp
 
-subsection{*Reduction*}
+subsection\<open>Reduction\<close>
 
 definition "domain_for R y \<equiv> {x. (x, y) \<in> R}"
 lemma "domain_for {(1::nat, ''x''), (2, ''y''), (3, ''x'')} ''x'' = {1,3}" by(auto simp add: domain_for_def)

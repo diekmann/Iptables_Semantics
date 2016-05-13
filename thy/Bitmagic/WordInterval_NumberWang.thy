@@ -4,7 +4,7 @@ imports WordInterval
   WordInterval_Lists
 begin
 
-text{*Cardinality approximation for @{typ "('a::len) wordinterval"}s*}
+text\<open>Cardinality approximation for @{typ "('a::len) wordinterval"}s\<close>
 (*TODO: move!*)
 context begin
   lemma remdups_enum_upto: fixes s::"('a::len) word" shows "remdups [s .e. e] = [s .e. e]"
@@ -41,7 +41,7 @@ context begin
       with RangeUnion show ?case by(simp)
     qed
 
-  text{*With @{thm wordinterval_compress} it should be possible to get the exact cardinality*}
+  text\<open>With @{thm wordinterval_compress} it should be possible to get the exact cardinality\<close>
 end
 
 

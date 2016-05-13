@@ -4,7 +4,7 @@ begin
 
 
 
-subsection{*Normalizing ports*}
+subsection\<open>Normalizing ports\<close>
 
 context
 begin
@@ -33,7 +33,7 @@ begin
   *)
   
   (* [ [(1,2) \<or> (3,4)]  \<and>  [] ]*)
-  text{* @{typ "ipt_ports list \<Rightarrow> ipt_ports"} *}
+  text\<open>@{typ "ipt_ports list \<Rightarrow> ipt_ports"}\<close>
   private definition ipt_ports_andlist_compress :: "('a::len word \<times> 'a::len word) list list \<Rightarrow> ('a::len word \<times> 'a::len word) list" where
     "ipt_ports_andlist_compress pss = br2l (fold (\<lambda>ps accu. (wordinterval_intersection (l2br ps) accu)) pss wordinterval_UNIV)"
   
@@ -139,7 +139,7 @@ begin
           of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) rst) (ipt_ports_compress spts)"
   
   
-  text{*Normalizing match expressions such that at most one port will exist in it. Returns a list of match expressions (splits one firewall rule into several rules).*}
+  text\<open>Normalizing match expressions such that at most one port will exist in it. Returns a list of match expressions (splits one firewall rule into several rules).\<close>
   definition normalize_ports_step :: "((common_primitive \<Rightarrow> bool) \<times> (common_primitive \<Rightarrow> ipt_ports)) \<Rightarrow> 
                                (ipt_ports \<Rightarrow> common_primitive) \<Rightarrow>
                                common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where 

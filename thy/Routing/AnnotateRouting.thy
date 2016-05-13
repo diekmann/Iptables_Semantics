@@ -2,10 +2,10 @@ theory AnnotateRouting
 imports RoutingRange
 begin
 
-subsection{*Annoted routintables*}
-text{* The range relation destroys a vital piece of information: given an entry in the range relation, 
+subsection\<open>Annoted routintables\<close>
+text\<open>The range relation destroys a vital piece of information: given an entry in the range relation, 
 	it is not easily possible to find which prefix it originated from. That prefix is interesting
-	because it is a very succinct way to represent the information. *}
+	because it is a very succinct way to represent the information.\<close>
 
 type_synonym annotated_routing = "(routing_rule \<times> ipv4range) list"
 

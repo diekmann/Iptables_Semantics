@@ -2,7 +2,7 @@ theory RoutingSet
 imports Routing
 begin
 
-subsection{*Definition*}
+subsection\<open>Definition\<close>
 
 fun ipset_destination :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> (ipv4addr set \<times> routing_action) set" where
 "ipset_destination [] rg = (if rg = {} then  {} else {(rg, routing_action (undefined::routing_rule))})" |
@@ -205,7 +205,7 @@ lemma "(ipset_destination_map2 rtbl rg ip = Some ports) = in_rel (ipset_rel (ips
 lemma ipset_destination_empty[simp]: "ipset_destination rtbl {} = {}"
   by(induction rtbl) simp_all
 
-subsection{*Correctness*}
+subsection\<open>Correctness\<close>
 
 lemma packet_semantics_rdm2_eq:
   assumes "valid_prefixes rtbl"
@@ -239,7 +239,7 @@ proof -
     (ipset_destination_map rtbl rg ip = Some ports)" using rdm_rd_eq ..
   also have "\<dots> = (ipset_destination_map2 rtbl rg ip = Some ports)" unfolding rdm_rdm2_eq ..
   also have "\<dots> = (routing_table_semantics rtbl ip = ports)" 
-    unfolding packet_semantics_rdm2_eq[OF `valid_prefixes rtbl` rg_elem]  ..
+    unfolding packet_semantics_rdm2_eq[OF \<open>valid_prefixes rtbl\<close> rg_elem]  ..
   finally show ?thesis ..
 qed
 
@@ -259,7 +259,7 @@ lemma ipset_left_side_nonempty: "x \<in> (fst ` (ipset_destination rtbl rg)) \<L
   apply(force)
 done
 
-subsection{*Reduction*}
+subsection\<open>Reduction\<close>
 
 lemma left_reduce_ipset_rel_stable: "ipset_rel R = ipset_rel (left_reduce R)"
   unfolding ipset_rel_def left_reduce_def domain_for_def

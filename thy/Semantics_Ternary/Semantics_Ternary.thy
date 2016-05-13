@@ -2,9 +2,9 @@ theory Semantics_Ternary
 imports Matching_Ternary "../Misc"
 begin
 
-section{*Embedded Ternary-Matching Big Step Semantics*}
+section\<open>Embedded Ternary-Matching Big Step Semantics\<close>
 
-subsection{*Ternary Semantics (Big Step)*}
+subsection\<open>Ternary Semantics (Big Step)\<close>
 
 inductive approximating_bigstep :: "('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> 'a rule list \<Rightarrow> state \<Rightarrow> state \<Rightarrow> bool"
   ("_,_\<turnstile> \<langle>_, _\<rangle> \<Rightarrow>\<^sub>\<alpha> _"  [60,60,20,98,98] 89)
@@ -154,14 +154,14 @@ proof(cases s)
 qed
 
 
-subsection{*wf ruleset*}
-  text{*
+subsection\<open>wf ruleset\<close>
+  text\<open>
   A @{typ "'a rule list"} here is well-formed (for a packet) if
   \begin{enumerate}
     \item either the rules do not match
     \item or the action is not @{const Call}, not @{const Return}, not @{const Unknown}
   \end{enumerate}
-  *}
+\<close>
   definition wf_ruleset :: "('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> 'a rule list \<Rightarrow> bool" where
     "wf_ruleset \<gamma> p rs \<equiv> \<forall>r \<in> set rs. 
       (\<not> matches \<gamma> (get_match r) (get_action r) p) \<or> 
@@ -178,7 +178,7 @@ subsection{*wf ruleset*}
   lemma wf_ruleset_rest: "wf_ruleset \<gamma> p (Rule m a # rs) \<Longrightarrow> wf_ruleset \<gamma> p [Rule m a]"
     by(simp add: wf_ruleset_def)
 
-subsection{*Ternary Semantics (Function)*}
+subsection\<open>Ternary Semantics (Function)\<close>
 
 fun approximating_bigstep_fun :: "('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> 'a rule list \<Rightarrow> state \<Rightarrow> state" where
   "approximating_bigstep_fun \<gamma> p [] s = s" |
@@ -258,13 +258,13 @@ lemma just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided[ca
   case Decision thus ?thesis by (simp add: Decision_approximating_bigstep_fun)
   qed
 
-subsubsection{*Append, Prepend, Postpend, Composition*}
+subsubsection\<open>Append, Prepend, Postpend, Composition\<close>
   lemma approximating_bigstep_fun_seq_wf: "\<lbrakk> wf_ruleset \<gamma> p rs\<^sub>1\<rbrakk> \<Longrightarrow>
       approximating_bigstep_fun \<gamma> p (rs\<^sub>1 @ rs\<^sub>2) s = approximating_bigstep_fun \<gamma> p rs\<^sub>2 (approximating_bigstep_fun \<gamma> p rs\<^sub>1 s)"
    proof(induction \<gamma> p rs\<^sub>1 s rule: approximating_bigstep_fun_induct)
    qed(simp_all add: wf_ruleset_def Decision_approximating_bigstep_fun split: action.split)
 
-  text{*The state transitions from @{const Undecided} to @{const Undecided} if all intermediate states are @{const Undecided}*}
+  text\<open>The state transitions from @{const Undecided} to @{const Undecided} if all intermediate states are @{const Undecided}\<close>
  lemma approximating_bigstep_fun_seq_Undecided_wf: "\<lbrakk> wf_ruleset \<gamma> p (rs1@rs2)\<rbrakk> \<Longrightarrow> 
       approximating_bigstep_fun \<gamma> p (rs1@rs2) Undecided = Undecided \<longleftrightarrow> 
   approximating_bigstep_fun \<gamma> p rs1 Undecided = Undecided \<and> approximating_bigstep_fun \<gamma> p rs2 Undecided = Undecided"
@@ -304,7 +304,7 @@ lemma approximating_bigstep_fun_singleton_prepend:
   with assms show ?thesis by(cases r)(simp split: action.split)
   qed
 
-subsection{*Equality with @{term "\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"} semantics*}
+subsection\<open>Equality with @{term "\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"} semantics\<close>
   lemma approximating_bigstep_wf: "\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Undecided \<Longrightarrow> wf_ruleset \<gamma> p rs"
   unfolding wf_ruleset_def
   proof(induction rs Undecided Undecided rule: approximating_bigstep_induct)
@@ -320,7 +320,7 @@ subsection{*Equality with @{term "\<gamma>,p\<turnstile> \<langle>rs, s\<rangle>
   qed
   
 
-  text{*only valid actions appear in this ruleset*}
+  text\<open>only valid actions appear in this ruleset\<close>
   definition good_ruleset :: "'a rule list \<Rightarrow> bool" where
     "good_ruleset rs \<equiv> \<forall>r \<in> set rs. (\<not>(\<exists>chain. get_action r = Call chain) \<and> get_action r \<noteq> Return \<and> \<not>(\<exists>chain. get_action r = Goto chain) \<and> get_action r \<noteq> Unknown)"
 
@@ -349,9 +349,9 @@ subsection{*Equality with @{term "\<gamma>,p\<turnstile> \<langle>rs, s\<rangle>
   lemma good_ruleset_tail: "good_ruleset (r#rs) \<Longrightarrow> good_ruleset rs"
     by(simp add: good_ruleset_def)
 
-  text{*
+  text\<open>
     @{term good_ruleset} is stricter than @{term wf_ruleset}. It can be easily checked with running code!
-  *}
+\<close>
   lemma good_imp_wf_ruleset: "good_ruleset rs \<Longrightarrow> wf_ruleset \<gamma> p rs" by (metis good_ruleset_def wf_ruleset_def)
 
   lemma simple_imp_good_ruleset: "simple_ruleset rs \<Longrightarrow> good_ruleset rs"
@@ -414,9 +414,9 @@ lemma approximating_fun_imp_semantics: assumes "wf_ruleset \<gamma> p rs"
     qed
 
 
-text{*Henceforth, we will use the @{term approximating_bigstep_fun} semantics, because they are easier.
+text\<open>Henceforth, we will use the @{term approximating_bigstep_fun} semantics, because they are easier.
 We show that they are equal.
-*}
+\<close>
 theorem approximating_semantics_iff_fun: "wf_ruleset \<gamma> p rs \<Longrightarrow>
     \<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> approximating_bigstep_fun \<gamma> p rs s = t"
 by (metis approximating_fun_imp_semantics approximating_semantics_imp_fun)
@@ -521,7 +521,7 @@ lemma rmLogEmpty_rwReject_good_to_simple: "good_ruleset rs \<Longrightarrow> sim
           apply(simp_all)
   done
 
-subsection{*Matching*}
+subsection\<open>Matching\<close>
 lemma optimize_matches_option_generic:
   assumes "\<forall> r \<in> set rs. P (get_match r) (get_action r)"
       and "(\<And>m m' a. P m a \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p = matches \<gamma> m a p)"
@@ -587,7 +587,7 @@ lemma optimize_matches_a_simplers:
   shows "approximating_bigstep_fun \<gamma> p (optimize_matches_a f rs) s = approximating_bigstep_fun \<gamma> p rs s"
 proof -
   from assms(1) have "wf_ruleset \<gamma> p rs" by(simp add: simple_imp_good_ruleset good_imp_wf_ruleset)
-  from `wf_ruleset \<gamma> p rs` assms show "approximating_bigstep_fun \<gamma> p (optimize_matches_a f rs) s = approximating_bigstep_fun \<gamma> p rs s"
+  from \<open>wf_ruleset \<gamma> p rs\<close> assms show "approximating_bigstep_fun \<gamma> p (optimize_matches_a f rs) s = approximating_bigstep_fun \<gamma> p rs s"
     proof(induction \<gamma> p rs s rule: approximating_bigstep_fun_induct_wf)
     case Nomatch thus ?case
      apply(simp add: optimize_matches_a_def simple_ruleset_def)

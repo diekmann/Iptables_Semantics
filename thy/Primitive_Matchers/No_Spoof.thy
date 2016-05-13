@@ -3,13 +3,13 @@ imports Common_Primitive_Lemmas
         Ipassmt
 begin
 
-section{*No Spoofing*}
+section\<open>No Spoofing\<close>
 (* we do this in ternary (not simple firewall) to support negated interfaces *)
-  text{*assumes: @{const simple_ruleset}*}
+  text\<open>assumes: @{const simple_ruleset}\<close>
 
 
-subsection{*Spoofing Protection*}
-  text{*
+subsection\<open>Spoofing Protection\<close>
+  text\<open>
   No spoofing means:
   Every packet that is (potentially) allowed by the firewall and comes from an interface @{text iface} 
   must have a Source IP Address in the assigned range @{text iface}.
@@ -17,19 +17,19 @@ subsection{*Spoofing Protection*}
   ``potentially allowed'' means we use the upper closure.
   The definition states: For all interfaces which are configured, every packet that comes from this
   interface and is allowed by the firewall must be in the IP range of that interface.
-  *}
+\<close>
   definition no_spoofing :: "ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> bool" where
     "no_spoofing ipassmt rs \<equiv> \<forall> iface \<in> dom ipassmt. \<forall>p :: 32 simple_packet. (* TODO: We want an ('i::len, 'a) simple_packet_scheme here. How do we pass the 'a? *)
         ((common_matcher, in_doubt_allow),p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow) \<longrightarrow>
             p_src p \<in> (ipv4cidr_union_set (set (the (ipassmt iface))))"
 
-  text{* The definition is sound (if that can be said about a definition):
+  text\<open>The definition is sound (if that can be said about a definition):
           if @{const no_spoofing} certifies your ruleset, then your ruleset prohibits spoofing.
          The definition may not be complete:
           @{const no_spoofing} may return @{const False} even though your ruleset prevents spoofing
-          (should only occur if some strange and unknown primitives occur)*}
+          (should only occur if some strange and unknown primitives occur)\<close>
 
-  text{*Technical note: The definition can can be thought of as protection from OUTGOING spoofing.
+  text\<open>Technical note: The definition can can be thought of as protection from OUTGOING spoofing.
         OUTGOING means: I define my interfaces and their IP addresses. For all interfaces,
                         only the assigned IP addresses may pass the firewall.
                         This definition is simple for e.g. local sub-networks.
@@ -40,7 +40,7 @@ subsection{*Spoofing Protection*}
           This is also a good opportunity to exclude the private IP space, link local, and probably multicast space.
         See @{const all_but_those_ips} to easily specify these ranges.
 
-        See examples below. Check Example 3 why it can be thought of as OUTGOING spoofing.*}
+        See examples below. Check Example 3 why it can be thought of as OUTGOING spoofing.\<close>
 
 
 
@@ -49,7 +49,7 @@ and now code to check spoofing protection
 *)
 context
 begin
-  text{*The set of any ip addresses which may match for a fixed @{text iface} (overapproximation)*}
+  text\<open>The set of any ip addresses which may match for a fixed @{text iface} (overapproximation)\<close>
   private definition get_exists_matching_src_ips :: "iface \<Rightarrow> common_primitive match_expr \<Rightarrow> ipv4addr set" where
     "get_exists_matching_src_ips iface m \<equiv> let (i_matches, _) = (primitive_extractor (is_Iiface, iiface_sel) m) in
               if (\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface)
@@ -162,7 +162,7 @@ begin
   lemma "\<not> has_primitive m \<and> matcheq_matchAny m \<longleftrightarrow> (if \<not> has_primitive m then matcheq_matchAny m else False)"
     by simp
 
-  text{*The set of ip addresses which definitely match for a fixed @{text iface} (underapproximation)*}
+  text\<open>The set of ip addresses which definitely match for a fixed @{text iface} (underapproximation)\<close>
   private definition get_all_matching_src_ips :: "iface \<Rightarrow> common_primitive match_expr \<Rightarrow> ipv4addr set" where
     "get_all_matching_src_ips iface m \<equiv> let (i_matches, rest1) = (primitive_extractor (is_Iiface, iiface_sel) m) in
               if (\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface)
@@ -370,7 +370,7 @@ begin
 
      
 
-  text{* The following algorithm sound but not complete.*}
+  text\<open>The following algorithm sound but not complete.\<close>
   (*alowed: set ip ips potentially allowed for iface
     denied: set of ips definitely dropped for iface*)
   private fun no_spoofing_algorithm :: "iface \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr set \<Rightarrow> bool" where
@@ -437,7 +437,7 @@ begin
       proof(safe)
         fix p :: "32 simple_packet"
         assume a2: "approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface := iface_sel iface\<rparr>) rs Undecided = Decision FinalAllow"
-        --{*In @{text setbydecision_fix_p}the @{text \<exists>} quantifier is gone and we consider this set for @{term p}.*}
+        --\<open>In @{text setbydecision_fix_p}the @{text \<exists>} quantifier is gone and we consider this set for @{term p}.\<close>
         let ?setbydecision_fix_p="{ip. approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>) rs Undecided = Decision FinalAllow}"
         from a1 a2 have 1: "?setbydecision_fix_p \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))" by(simp add: nospoof_def setbydecision_def) blast
         from a2 have 2: "p_src p \<in> ?setbydecision_fix_p" by simp
@@ -767,7 +767,7 @@ begin
     done
     
 
-  text{*The @{const nospoof} definition used throughout the proofs corresponds to checking @{const no_spoofing} for all interfaces*}
+  text\<open>The @{const nospoof} definition used throughout the proofs corresponds to checking @{const no_spoofing} for all interfaces\<close>
   private lemma nospoof: "simple_ruleset rs \<Longrightarrow> (\<forall>iface \<in> dom ipassmt. nospoof iface ipassmt rs) \<longleftrightarrow> no_spoofing ipassmt rs"
     unfolding nospoof_def no_spoofing_def
     apply(drule simple_imp_good_ruleset)
@@ -782,10 +782,10 @@ begin
   
 
 
-text{*Examples*}
-  text{*Example 1:
+text\<open>Examples\<close>
+  text\<open>Example 1:
     Ruleset: Accept all non-spoofed packets, drop rest.
-  *}
+\<close>
   lemma "no_spoofing_iface
       (Iface ''eth0'') 
           [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
@@ -800,10 +800,10 @@ text{*Examples*}
     by eval (*executable spoofing alogorithm*)
 
 
-  text{*Example 2:
+  text\<open>Example 2:
     Ruleset: Drop packets from a spoofed IP range, allow rest.
     Handles negated interfaces correctly.
-  *}
+\<close>
   lemma "no_spoofing
       [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
       [Rule (MatchAnd (Match (IIface (Iface ''wlan+''))) (Match (Extra ''no idea what this is''))) action.Accept, (*not interesting for spoofing*)
@@ -816,10 +816,10 @@ text{*Examples*}
     by eval
    
     
-  text{*Example 3:
+  text\<open>Example 3:
     Accidentally, matching on wlan+, spoofed packets for eth0 are allowed.
     First, we prove that there actually is no spoofing protection. Then we show that our algorithm finds out.
-  *}
+\<close>
   lemma "\<not> no_spoofing
           [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
           [Rule (MatchNot (Match (IIface (Iface ''wlan+'')))) action.Accept, (*accidently allow everything for eth0*)
@@ -847,12 +847,12 @@ text{*Examples*}
            Rule MatchAny action.Accept]
           " by eval
 
-  text{*Example 4:
+  text\<open>Example 4:
     Ruleset: Drop packets coming from the wrong interface, allow the rest.
     Warning: this does not prevent spoofing for eth0!
     Explanation: someone on eth0 can send a packet e.g. with source IP 8.8.8.8
     The ruleset only prevents spoofing of 192.168.0.0/24 for other interfaces
-  *}
+\<close>
    lemma "\<not> no_spoofing [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
           [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (MatchNot (Match (IIface (Iface ''eth0''))))) action.Drop,
            Rule MatchAny action.Accept]"
@@ -869,18 +869,18 @@ text{*Examples*}
      apply eval
      done
   
-  text{*Our algorithm detects it.*}
+  text\<open>Our algorithm detects it.\<close>
   lemma "\<not> no_spoofing_iface 
           (Iface ''eth0'') 
           [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
           [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (MatchNot (Match (IIface (Iface ''eth0''))))) action.Drop,
            Rule MatchAny action.Accept]" by eval
 
-  text{*Example 5:
+  text\<open>Example 5:
     Spoofing protection but the algorithm fails.
     The algorithm @{const no_spoofing_iface} is only sound, not complete.
     The ruleset first drops spoofed packets for TCP and then drops spoofed packets for @{text "\<not> TCP"}.
-    The algorithm cannot detect that @{text "TCP \<union> \<not>TCP"} together will match all spoofed packets. *}
+    The algorithm cannot detect that @{text "TCP \<union> \<not>TCP"} together will match all spoofed packets.\<close>
 
   lemma "no_spoofing [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
           [Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))))
@@ -904,7 +904,7 @@ text{*Examples*}
                       primitive_matcher_generic.Prot_single_not[OF primitive_matcher_generic_common_matcher])
       done
   qed
-  text{*Spoofing protection but the algorithm cannot certify spoofing protection.*}
+  text\<open>Spoofing protection but the algorithm cannot certify spoofing protection.\<close>
   lemma "\<not> no_spoofing_iface
           (Iface ''eth0'') 
           [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
@@ -924,8 +924,8 @@ lemma "no_spoofing_iface (Iface ''eth1.1011'')
    Rule (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (131,159,14,0) 24)))) (Match (IIface (Iface ''eth1.1011'')))) action.Drop,
    Rule MatchAny action.Accept]" by eval
 
-text{*We only check accepted packets.
-      If there is no default rule (this will never happen if parsed from iptables!), the result is unfinished.*}
+text\<open>We only check accepted packets.
+      If there is no default rule (this will never happen if parsed from iptables!), the result is unfinished.\<close>
 lemma "no_spoofing_iface (Iface ''eth1.1011'')
                          ([Iface ''eth1.1011'' \<mapsto> [(ipv4addr_of_dotdecimal (131,159,14,0), 24)]]:: ipassignment)
   [Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) Drop]" by eval

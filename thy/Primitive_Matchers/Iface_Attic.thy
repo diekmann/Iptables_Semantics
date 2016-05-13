@@ -91,7 +91,7 @@ begin
         apply(subst b1)
         apply(subst b2)
         by blast
-      from `?A \<subseteq> ?B1 \<union> ?B2` `?B1 \<union> ?B2 \<subseteq> ?A` show ?thesis by blast
+      from \<open>?A \<subseteq> ?B1 \<union> ?B2\<close> \<open>?B1 \<union> ?B2 \<subseteq> ?A\<close> show ?thesis by blast
     qed
 
   lemma other_char: "a \<noteq> (char_of_nat (Suc (nat_of_char a)))"
@@ -105,7 +105,7 @@ begin
   lemma all_empty_string_False: "(\<forall>cs::string. cs \<noteq> []) \<longleftrightarrow> False" by simp
 
 
-  text{*some @{term common_prefix} sets*}
+  text\<open>some @{term common_prefix} sets\<close>
   lemma "{c | c. common_prefix i c} \<subseteq> {c@cs| c cs. common_prefix i c}"
     apply(safe)
     apply(simp add: common_prefix_alt)

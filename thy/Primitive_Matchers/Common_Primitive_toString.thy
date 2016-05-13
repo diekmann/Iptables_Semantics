@@ -5,7 +5,7 @@ imports
 begin
 
 
-section{*Firewall toString Functions*}
+section\<open>Firewall toString Functions\<close>
 
 fun dotteddecimal_toString :: "nat \<times> nat \<times> nat \<times> nat \<Rightarrow> string" where
   "dotteddecimal_toString (a,b,c,d) = string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d"

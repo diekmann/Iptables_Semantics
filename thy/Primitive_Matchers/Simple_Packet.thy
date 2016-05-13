@@ -2,10 +2,10 @@ theory Simple_Packet
 imports "../Bitmagic/IPv4Addr" Protocol Conntrack_State
 begin
 
-section{*Simple Packet*}
-  text{*Packet constants are prefixed with @{text p}*}
+section\<open>Simple Packet\<close>
+  text\<open>Packet constants are prefixed with @{text p}\<close>
 
-  text{*@{typ "'i::len word"} is an IP address of variable length. 32bit for IPv4, 128bit for IPv6*}
+  text\<open>@{typ "'i::len word"} is an IP address of variable length. 32bit for IPv4, 128bit for IPv6\<close>
 
   record (overloaded) 'i simple_packet = p_iiface :: string
                          p_oiface :: string

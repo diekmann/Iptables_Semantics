@@ -2,8 +2,8 @@ theory Unknown_Match_Tacs
 imports Matching_Ternary
 begin
 
-section{*Approximate Matching Tactics*}
-text{*in-doubt-tactics*}
+section\<open>Approximate Matching Tactics\<close>
+text\<open>in-doubt-tactics\<close>
 
 fun in_doubt_allow :: "'packet unknown_match_tac" where
   "in_doubt_allow Accept _ = True" |

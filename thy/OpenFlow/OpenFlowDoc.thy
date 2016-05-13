@@ -19,14 +19,14 @@ text_raw\<open>
 
 section\<open>Configuration Translation\<close>
 text_raw\<open>\label{sec:conv}\<close>
-text{*
+text\<open>
 All the results we present in this section are formalized and verified in Isabelle/HOL~\cite{nipkow2002isabelle}.
 This means that their formal correctness can be trusted a level close to absolute certainty.
 The definitions and lemmas stated here are merely a repetition of lemmas stated in other theory files.
 This means that they have been directly set to this document from Isabelle and no typos or hidden assumptions are possible.
 Additionally, it allows us to omit various helper lemmas that do not help the understanding.
 However, it causes some notation inaccuracy, as type and function definitions are stated as lemmas or schematic goals.
-*}
+\<close>
 theory OpenFlowDoc
 (*<*)
 imports 

@@ -11,7 +11,7 @@ imports Common_Primitive_Lemmas
 begin
 
 
-section{*Optimizing and normalizing primitives*}
+section\<open>Optimizing and normalizing primitives\<close>
 (*TODO: cleanup*)
 
 
@@ -202,9 +202,9 @@ context begin
     done
 end
 
-section{*Transforming rulesets*}
+section\<open>Transforming rulesets\<close>
 
-subsection{*Optimizations*}
+subsection\<open>Optimizations\<close>
 
 lemma approximating_bigstep_fun_remdups_rev:
   "approximating_bigstep_fun \<gamma> p (remdups_rev rs) s = approximating_bigstep_fun \<gamma> p rs s"
@@ -249,7 +249,7 @@ lemma remdups_rev_preserve_matches: "\<forall> m \<in> get_match ` set rs. P m \
 (*TODO: closure bounds*)
 
 
-subsection{*Optimize and Normalize to NNF form*}
+subsection\<open>Optimize and Normalize to NNF form\<close>
 
 (*without normalize_rules_dnf, the result cannot be normalized as optimize_primitive_univ can contain MatchNot MatchAny*)
 definition transform_optimize_dnf_strict :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where 
@@ -424,7 +424,7 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
 qed
 
 
-subsection{*Abstracting over unknowns*}
+subsection\<open>Abstracting over unknowns\<close>
 
 definition transform_remove_unknowns_generic :: "('a, 'packet) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where 
     "transform_remove_unknowns_generic \<gamma> = optimize_matches_a (remove_unknowns_generic \<gamma>) "
@@ -583,9 +583,9 @@ qed
 
 
 
-subsection{*Normalizing and Transforming Primitives*}
+subsection\<open>Normalizing and Transforming Primitives\<close>
 
-text{*Rewrite the primitives IPs and Ports such that can be used by the simple firewall.*}
+text\<open>Rewrite the primitives IPs and Ports such that can be used by the simple firewall.\<close>
 definition transform_normalize_primitives :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where 
     "transform_normalize_primitives =
       normalize_rules normalize_dst_ips \<circ>
@@ -1003,8 +1003,8 @@ theorem iiface_constrain:
      done
 qed
 
-text{*In contrast to @{thm iiface_constrain}, this requires  @{const ipassmt_sanity_disjoint} and 
-      as much stronger nospoof assumption: This assumption requires that the packet is actually in ipassmt!*}
+text\<open>In contrast to @{thm iiface_constrain}, this requires  @{const ipassmt_sanity_disjoint} and 
+      as much stronger nospoof assumption: This assumption requires that the packet is actually in ipassmt!\<close>
 theorem iiface_rewrite:
   assumes simplers: "simple_ruleset rs"
       and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
@@ -1116,7 +1116,7 @@ definition lower_closure :: "common_primitive rule list \<Rightarrow> common_pri
       (transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a lower_closure_matchexpr rs))))"
 
 
-text{*putting it all together*}
+text\<open>putting it all together\<close>
 lemma transform_upper_closure:
   assumes simplers: "simple_ruleset rs"
   -- "semantics are preserved"

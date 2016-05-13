@@ -5,7 +5,7 @@ imports Main
 begin
 
 
-text{*previous and next words addresses, without wrap around*}
+text\<open>previous and next words addresses, without wrap around\<close>
 definition word_next :: "'a::len word \<Rightarrow> 'a::len word" where
   "word_next a \<equiv> if a = max_word then max_word else a + 1"
 definition word_prev :: "'a::len word \<Rightarrow> 'a::len word" where

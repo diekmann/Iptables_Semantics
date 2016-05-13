@@ -6,7 +6,7 @@ imports
 begin
 
 
-section{*Example: SQRL Shorewall*}
+section\<open>Example: SQRL Shorewall\<close>
 
 
 parse_iptables_save SQRL_fw="iptables-saveakachan"

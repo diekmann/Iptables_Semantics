@@ -6,9 +6,9 @@ imports "../Semantics_Ternary/Semantics_Ternary"
 begin
 
 
-subsection{*A Generic primitive matcher: Agnostic of IP Addresses*}
+subsection\<open>A Generic primitive matcher: Agnostic of IP Addresses\<close>
 
-text{*Generalized Definition agnostic of IP Addresses fro IPv4 and IPv6*}
+text\<open>Generalized Definition agnostic of IP Addresses fro IPv4 and IPv6\<close>
 
 
 (*TODO: generic assumptions for a common matcher without information about IPs.
@@ -29,7 +29,7 @@ begin
     "matches (\<beta>, \<alpha>) (Match (OIface X)) a p \<longleftrightarrow> match_iface X (p_oiface p)"
      by(simp_all add: IIface OIface matches_case_ternaryvalue_tuple bool_to_ternary_simps
                split: ternaryvalue.split)
-  text{*Since matching on the iface cannot be @{const TernaryUnknown}*, we can pull out negations.*}
+  text\<open>Since matching on the iface cannot be @{const TernaryUnknown}*, we can pull out negations.\<close>
   lemma Iface_single_not:
     "matches (\<beta>, \<alpha>) (MatchNot (Match (IIface X))) a p \<longleftrightarrow> \<not> match_iface X (p_iiface p)"
     "matches (\<beta>, \<alpha>) (MatchNot (Match (OIface X))) a p \<longleftrightarrow> \<not> match_iface X (p_oiface p)"
@@ -67,7 +67,7 @@ begin
   lemma Extra_single:
     "matches (\<beta>, \<alpha>) (Match (Extra str)) a p \<longleftrightarrow> \<alpha> a p"
      by(simp add: Extra matches_case_ternaryvalue_tuple)
-  lemma Extra_single_not:  --{*ternary logic, @{text "\<not> unknown = unknown"}*}
+  lemma Extra_single_not:  --\<open>ternary logic, @{text "\<not> unknown = unknown"}\<close>
     "matches (\<beta>, \<alpha>) (MatchNot (Match (Extra str))) a p \<longleftrightarrow> \<alpha> a p"
      by(simp add: Extra matches_case_ternaryvalue_tuple)
 end
@@ -76,11 +76,11 @@ end
 
 
 
-subsection{*Basic optimisations*}
+subsection\<open>Basic optimisations\<close>
   
   (*TODO: move
     TODO: this is currently not used.*)
-  text{*Compress many @{const Extra} expressions to one expression.*}
+  text\<open>Compress many @{const Extra} expressions to one expression.\<close>
   fun compress_extra :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
     "compress_extra (Match x) = Match x" |
     "compress_extra (MatchNot (Match (Extra e))) = Match (Extra (''NOT (''@e@'')''))" |
