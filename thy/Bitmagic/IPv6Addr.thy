@@ -158,7 +158,19 @@ text\<open>
 
   (*More convenient parser helper function:
     Some 16word \<longrightarrow> address piece
-    None \<longrightarrow> omission :: *)
+    None \<longrightarrow> omission ::
+    
+  
+   Basically, the parser must only do the following (python syntax):
+     split the string which is an ipv6 address at ':'
+     map empty string to None
+     map everything else to Some (string_to_16word str)
+   Example:
+     "1:2:3".split(":")  = ['1', '2', '3']
+     ":2:3:4".split(":") = ['', '2', '3', '4']
+     ":2::3".split(":")  = ['', '2', '', '3']
+     "1:2:3:".split(":") = ['1', '2', '3', '']
+  *)
   definition parse_ipv6_address :: "((16 word) option) list \<Rightarrow> ipv6addr_syntax_compressed option" where
     "parse_ipv6_address as = (case as of 
       [None] \<Rightarrow> Some (IPv6AddrCompressed1_0 ())

@@ -10,8 +10,14 @@ begin
 
 section \<open>Modelling IP Adresses\<close>
   text\<open>An IP address is basically a unsigned integer.
-        We model IP addresses of arbitrary lengths.
-        The files @{file "IPv4Addr.thy"} @{file "IPv6Addr.thy"} concrete this for IPv4 and IPv6.\<close>
+    We model IP addresses of arbitrary lengths.
+
+    We will write @{typ "'i::len word"} for IP addresses of length @{term "len_of TYPE('i::len)"}.
+    We use the convention to write @{typ 'i} whenever we mean IP addresses instead of generic words.
+    When we will have later theorems with several polymorphic types in it (e.g. arbitrarily
+    extensible packets), this makes it easier to spot that type @{typ 'i} is for IP addresses.
+
+    The files @{file "IPv4Addr.thy"} @{file "IPv6Addr.thy"} concrete this for IPv4 and IPv6.\<close>
 
   text\<open>The maximum IP addres\<close>
   definition max_ip_addr :: "'i::len word" where 
@@ -75,9 +81,9 @@ subsection\<open>Sets of IP addresses\<close>
 
 
   lemma ipset_from_cidr_alt2:
-    fixes base ::"'a::len word"
+    fixes base ::"'i::len word"
     shows "ipset_from_cidr base len = 
-           ipset_from_netmask base (NOT mask (len_of (TYPE('a)) - len))"
+           ipset_from_netmask base (NOT mask (len_of (TYPE('i)) - len))"
     apply(simp add: ipset_from_cidr_def)
     using NOT_mask_shifted_lenword by (metis word_not_not) 
 
@@ -90,9 +96,9 @@ subsection\<open>Sets of IP addresses\<close>
 
 
   lemma ipset_from_netmask_base_mask_consume:
-    fixes base :: "'a::len word"
-    shows "ipset_from_netmask (base AND NOT mask (len_of TYPE('a) - m)) (NOT mask (len_of TYPE('a) - m)) =
-            ipset_from_netmask base (NOT mask (len_of TYPE('a) - m))"
+    fixes base :: "'i::len word"
+    shows "ipset_from_netmask (base AND NOT mask (len_of TYPE('i) - m)) (NOT mask (len_of TYPE('i) - m)) =
+            ipset_from_netmask base (NOT mask (len_of TYPE('i) - m))"
     unfolding ipset_from_netmask_def
     by(simp add: AND_twice)
 
@@ -104,30 +110,31 @@ subsection\<open>Sets of IP addresses\<close>
   (*TODO: equivalence lemma here!*)
 
 
-  lemma ipset_from_cidr_base_wellforemd: fixes base:: "'a::len word"
-    assumes "mask (len_of TYPE('a) - l) AND base = 0"
-      shows "ipset_from_cidr base l = {base .. base || mask (len_of TYPE('a) - l)}"
+  lemma ipset_from_cidr_base_wellforemd: fixes base:: "'i::len word"
+    assumes "mask (len_of TYPE('i) - l) AND base = 0"
+      shows "ipset_from_cidr base l = {base .. base || mask (len_of TYPE('i) - l)}"
   proof -
-    have maskshift_eq_not_mask_generic: "((mask m << len_of TYPE('a) - m) :: 'a::len word) = NOT mask (len_of TYPE('a) - m)" for m
+    have maskshift_eq_not_mask_generic:
+      "((mask l << len_of TYPE('i) - l) :: 'i::len word) = NOT mask (len_of TYPE('i) - l)"
       using NOT_mask_shifted_lenword by (metis word_not_not) 
     
-    have *: "base AND NOT  mask (len_of TYPE('a) - l) = base"
+    have *: "base AND NOT  mask (len_of TYPE('i) - l) = base"
       unfolding mask_eq_0_eq_x[symmetric] using assms word_bw_comms(1)[of base] by simp
-    hence **: "base AND NOT mask (len_of TYPE('a) - l) OR mask (len_of TYPE('a) - l) = base OR mask (len_of TYPE('a) - l)"
+    hence **: "base AND NOT mask (len_of TYPE('i) - l) OR mask (len_of TYPE('i) - l) = base OR mask (len_of TYPE('i) - l)"
       by simp
   
-    have "ipset_from_netmask base (NOT mask (len_of TYPE('a) - l)) = {base .. base || mask (len_of TYPE('a) - l)}"
+    have "ipset_from_netmask base (NOT mask (len_of TYPE('i) - l)) = {base .. base || mask (len_of TYPE('i) - l)}"
       by(simp add: ipset_from_netmask_def Let_def ** *)
     thus ?thesis by(simp add: ipset_from_cidr_def maskshift_eq_not_mask_generic)
   qed
 
 
   lemma ipset_from_cidr_large_pfxlen:
-    fixes ip:: "'a::len word"
-    assumes "n \<ge> len_of TYPE('a)"
+    fixes ip:: "'i::len word"
+    assumes "n \<ge> len_of TYPE('i)"
     shows "ipset_from_cidr ip n = {ip}"
   proof -
-    have obviously: "mask (len_of TYPE('a) - n) = 0" by (simp add: assms)
+    have obviously: "mask (len_of TYPE('i) - n) = 0" by (simp add: assms)
     show ?thesis
       apply(subst ipset_from_cidr_base_wellforemd)
        subgoal using assms by simp
@@ -199,17 +206,17 @@ subsection\<open>IP Addresses as WordIntervals\<close>
 
 subsection\<open>IP Addresses in CIDR Notation\<close>
 
-  fun ipcidr_to_interval_start :: "('a::len word \<times> nat) \<Rightarrow> 'a::len word" where
+  fun ipcidr_to_interval_start :: "('i::len word \<times> nat) \<Rightarrow> 'i::len word" where
     "ipcidr_to_interval_start (pre, len) = (
-      let netmask = (mask len) << (len_of TYPE('a) - len);
+      let netmask = (mask len) << (len_of TYPE('i) - len);
           network_prefix = (pre AND netmask)
       in network_prefix)"
-  fun ipcidr_to_interval_end :: "('a::len word \<times> nat) \<Rightarrow> 'a::len word" where
+  fun ipcidr_to_interval_end :: "('i::len word \<times> nat) \<Rightarrow> 'i::len word" where
     "ipcidr_to_interval_end (pre, len) = (
-      let netmask = (mask len) << (len_of TYPE('a) - len);
+      let netmask = (mask len) << (len_of TYPE('i) - len);
           network_prefix = (pre AND netmask)
       in network_prefix OR (NOT netmask))"
-  definition ipcidr_to_interval :: "('a::len word \<times> nat) \<Rightarrow> ('a::len word \<times> 'a::len word)" where
+  definition ipcidr_to_interval :: "('i::len word \<times> nat) \<Rightarrow> ('i::len word \<times> 'i::len word)" where
     "ipcidr_to_interval cidr = (ipcidr_to_interval_start cidr, ipcidr_to_interval_end cidr)"
 
 
