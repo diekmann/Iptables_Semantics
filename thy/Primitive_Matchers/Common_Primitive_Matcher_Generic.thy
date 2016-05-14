@@ -63,7 +63,7 @@ begin
 
   lemma Extra_single:
     "matches (\<beta>, \<alpha>) (Match (Extra str)) a p \<longleftrightarrow> \<alpha> a p"
-     by(simp add: Extra matches_case_ternaryvalue_tuple)
+     by(simp add: Extra match_raw_ternary)
   lemma Extra_single_not:  --\<open>ternary logic, @{text "\<not> unknown = unknown"}\<close>
     "matches (\<beta>, \<alpha>) (MatchNot (Match (Extra str))) a p \<longleftrightarrow> \<alpha> a p"
      by(simp add: Extra matches_case_ternaryvalue_tuple)
