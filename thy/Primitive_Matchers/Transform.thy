@@ -91,36 +91,30 @@ context begin
        \<not> has_disc is_Iiface m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves[THEN conjunct2])
-        using compress_normalize_besteffort_normalized apply blast
-       apply(simp split: option.split_asm)
-       using compress_normalize_input_interfaces_not_introduces_Iiface compress_normalize_protocols_hasdisc
-             compress_normalize_output_interfaces_hasdisc
-       apply (meson common_primitive.disc(24) common_primitive.disc(25))
-      apply simp_all
+        apply(drule(3) compress_normalize_besteffort_normalized)
+       apply(auto dest: compress_normalize_input_interfaces_not_introduces_Iiface
+                        compress_normalize_protocols_hasdisc
+                        compress_normalize_output_interfaces_hasdisc)
     done
   lemma compress_normalize_besteffort_not_introduces_Oiface:
       "\<not> has_disc is_Oiface m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
        \<not> has_disc is_Oiface m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves[THEN conjunct2])
-        using compress_normalize_besteffort_normalized apply blast
-       apply(simp split: option.split_asm)
-       using compress_normalize_output_interfaces_hasdisc compress_normalize_output_interfaces_not_introduces_Oiface
-             compress_normalize_protocols_hasdisc compress_normalize_input_interfaces_hasdisc
-       apply (meson common_primitive.disc(33) common_primitive.disc(35))
-      apply simp_all
+        apply(drule(3) compress_normalize_besteffort_normalized)
+       apply(auto dest: compress_normalize_output_interfaces_hasdisc
+                        compress_normalize_output_interfaces_not_introduces_Oiface
+                        compress_normalize_protocols_hasdisc
+                        compress_normalize_input_interfaces_hasdisc)
     done
   lemma compress_normalize_besteffort_not_introduces_Prot:
       "\<not> has_disc is_Prot m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
        \<not> has_disc is_Prot m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves[THEN conjunct2])
-        using compress_normalize_besteffort_normalized apply blast
-       apply(simp split: option.split_asm)
-       using compress_normalize_input_interfaces_hasdisc compress_normalize_protocols_not_introduces_Prot
-             compress_normalize_output_interfaces_hasdisc
-       apply (meson common_primitive.disc(44) common_primitive.disc(43))       
-      apply simp_all
+        apply(drule(3) compress_normalize_besteffort_normalized)
+       apply(auto dest: compress_normalize_input_interfaces_hasdisc compress_normalize_protocols_not_introduces_Prot
+             compress_normalize_output_interfaces_hasdisc)
     done
   
   lemma compress_normalize_besteffort_not_introduces_Iiface_negated:
@@ -128,36 +122,30 @@ context begin
        \<not> has_disc_negated is_Iiface False m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves[THEN conjunct2])
-        using compress_normalize_besteffort_normalized apply blast
-       apply(simp split: option.split_asm)
-       using compress_normalize_input_interfaces_not_introduces_Iiface_negated compress_normalize_protocols_hasdisc_negated
-            compress_normalize_output_interfaces_hasdisc_negated 
-            common_primitive.disc(24) common_primitive.disc(25) apply blast
-      apply simp_all  
+        apply(drule(3) compress_normalize_besteffort_normalized)
+       apply(auto dest: compress_normalize_besteffort_normalized compress_normalize_input_interfaces_not_introduces_Iiface_negated
+                        compress_normalize_protocols_hasdisc_negated
+                        compress_normalize_output_interfaces_hasdisc_negated)
     done
   lemma compress_normalize_besteffort_not_introduces_Oiface_negated:
       "\<not> has_disc_negated is_Oiface False m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
        \<not> has_disc_negated is_Oiface False m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves[THEN conjunct2])
-        using compress_normalize_besteffort_normalized apply blast
-       apply(simp split: option.split_asm)
-       using compress_normalize_output_interfaces_not_introduces_Oiface_negated
-             compress_normalize_input_interfaces_hasdisc_negated compress_normalize_protocols_hasdisc_negated
-       apply (meson common_primitive.disc(33) common_primitive.disc(35)) 
-      apply simp_all  
+        apply(drule(3) compress_normalize_besteffort_normalized)
+       apply(auto dest: compress_normalize_output_interfaces_not_introduces_Oiface_negated
+                        compress_normalize_input_interfaces_hasdisc_negated
+                        compress_normalize_protocols_hasdisc_negated)
     done
   lemma compress_normalize_besteffort_not_introduces_Prot_negated:
       "\<not> has_disc_negated is_Prot False m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
        \<not> has_disc_negated is_Prot False m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves[THEN conjunct2])
-        using compress_normalize_besteffort_normalized apply blast
-       apply(simp split: option.split_asm)
-       using compress_normalize_input_interfaces_hasdisc_negated compress_normalize_protocols_not_introduces_Prot_negated
-             compress_normalize_output_interfaces_hasdisc_negated
-       apply (meson common_primitive.disc(34) common_primitive.disc(43) common_primitive.distinct_disc(50))
-      apply simp_all
+        apply(drule(3) compress_normalize_besteffort_normalized)
+       apply(auto dest: compress_normalize_input_interfaces_hasdisc_negated
+                        compress_normalize_protocols_not_introduces_Prot_negated
+                        compress_normalize_output_interfaces_hasdisc_negated)
     done
   lemma compress_normalize_besteffort_hasdisc:
       "\<not> has_disc disc m \<Longrightarrow> (\<forall>a. \<not> disc (IIface a)) \<Longrightarrow> (\<forall>a. \<not> disc (OIface a)) \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow>
@@ -165,12 +153,10 @@ context begin
        normalized_nnf_match m' \<and> \<not> has_disc disc m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves)
-        using compress_normalize_besteffort_normalized apply blast
-       apply(simp split: option.split_asm)
-       using compress_normalize_input_interfaces_hasdisc
-             compress_normalize_output_interfaces_hasdisc
-             compress_normalize_protocols_hasdisc apply blast
-    apply simp_all
+        apply(drule(3) compress_normalize_besteffort_normalized)
+       apply(auto dest: compress_normalize_input_interfaces_hasdisc
+                        compress_normalize_output_interfaces_hasdisc
+                        compress_normalize_protocols_hasdisc)
     done
   lemma compress_normalize_besteffort_hasdisc_negated:
       "\<not> has_disc_negated disc neg m \<Longrightarrow>
@@ -179,7 +165,7 @@ context begin
        normalized_nnf_match m' \<and> \<not> has_disc_negated disc neg m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves)
-        using compress_normalize_besteffort_normalized apply blast
+        apply(drule(3) compress_normalize_besteffort_normalized)
        apply(simp split: option.split_asm)
        using compress_normalize_input_interfaces_hasdisc_negated
              compress_normalize_output_interfaces_hasdisc_negated
@@ -193,12 +179,10 @@ context begin
      normalized_nnf_match m' \<and> normalized_n_primitive (disc, sel) P m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves)
-        using compress_normalize_besteffort_normalized apply blast
-       apply(simp split: option.split_asm)
-       using compress_normalize_input_interfaces_preserves_normalized_n_primitive
+        apply(drule(3) compress_normalize_besteffort_normalized)
+       apply(auto dest: compress_normalize_input_interfaces_preserves_normalized_n_primitive
              compress_normalize_output_interfaces_preserves_normalized_n_primitive
-             compress_normalize_protocols_preserves_normalized_n_primitive apply blast
-    apply simp_all
+             compress_normalize_protocols_preserves_normalized_n_primitive)
     done
 end
 
