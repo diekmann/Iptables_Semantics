@@ -33,7 +33,7 @@ case (Some ips)
        (\<exists>m\<in>set ips. p_src p \<in> (case m of (ip, y) \<Rightarrow> ipv4set_from_cidr ip y))" 
        by(simp add: match_list_to_match_expr_disjunction[symmetric] match_list_matches match_simplematcher_SrcDst ipv4s_to_set_Ip4AddrNetmask_case)
   with Some show ?thesis
-    apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def bunch_of_lemmata_about_matches(1))
+    apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def bunch_of_lemmata_about_matches)
     apply(simp add: match_simplematcher_Iface ipv4cidr_union_set_def)
     done
 qed
@@ -227,7 +227,7 @@ case (Some ips)
        (\<exists>m\<in>set ips. p_src p \<in> (case m of (ip, y) \<Rightarrow> ipv4set_from_cidr ip y))" 
        by(simp add: match_list_to_match_expr_disjunction[symmetric] match_list_matches match_simplematcher_SrcDst ipv4s_to_set_Ip4AddrNetmask_case)
   with Some show ?thesis
-    apply(simp add: ipassmt_iface_replace_srcip_mexpr_def bunch_of_lemmata_about_matches(1))
+    apply(simp add: ipassmt_iface_replace_srcip_mexpr_def bunch_of_lemmata_about_matches)
     apply(simp add: match_simplematcher_Iface ipv4cidr_union_set_def)
     done
 qed

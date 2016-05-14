@@ -101,7 +101,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
       matches (\<beta>, \<alpha>) (alist_and (NegPos_map Prot ((map Pos ps_pos)@(map Neg ps_neg)))) a p \<longleftrightarrow>
       matches (\<beta>, \<alpha>) (alist_and (NegPos_map Prot ps)) a p"
       apply(simp add: compress_protocols_def)
-      apply(simp add: bunch_of_lemmata_about_matches(1) alist_and_append NegPos_map_append)
+      apply(simp add: bunch_of_lemmata_about_matches alist_and_append NegPos_map_append)
       apply(simp add: nt_match_list_matches[symmetric] nt_match_list_simp)
       apply(simp add: NegPos_map_simps Prot_single Prot_single_not)
       apply(case_tac "compress_pos_protocols (getPos ps)")

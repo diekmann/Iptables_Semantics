@@ -15,8 +15,7 @@ The problem are @{const MatchNot} expressions which evaluate to @{const TernaryU
 lemma "\<exists>m \<beta> \<alpha> a. Matching_Ternary.matches (\<beta>, \<alpha>) m a p \<noteq> 
   Semantics.matches (\<lambda> atm p. case \<beta> atm p of TernaryTrue \<Rightarrow> True | TernaryFalse \<Rightarrow> False | TernaryUnknown \<Rightarrow> \<alpha> a p) m p"
 apply(rule_tac x="MatchNot (Match X)" in exI) --\<open>any @{term "X::'a"}\<close>
-apply (simp split: ternaryvalue.split ternaryvalue.split_asm add: matches_case_ternaryvalue_tuple bunch_of_lemmata_about_matches)
-by fast
+by (auto split: ternaryvalue.split ternaryvalue.split_asm simp add: matches_case_ternaryvalue_tuple)
 
 text\<open>the @{const the} in the next definition is always defined\<close>
 lemma "\<forall>m \<in> {m. approx m p \<noteq> TernaryUnknown}. ternary_to_bool (approx m p) \<noteq> None"

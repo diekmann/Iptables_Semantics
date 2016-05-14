@@ -135,7 +135,7 @@ fun cutt_off_after_default :: "'a rule list \<Rightarrow> 'a rule list" where
 
 lemma cutt_off_after_default_correct: "approximating_bigstep_fun \<gamma> p (cutt_off_after_default rs) s = approximating_bigstep_fun \<gamma> p rs s"
 apply(rule just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided)
-by(induction rs rule: cutt_off_after_default.induct) (simp_all add: bunch_of_lemmata_about_matches(2) split: action.split)
+by(induction rs rule: cutt_off_after_default.induct) (simp_all add: bunch_of_lemmata_about_matches split: action.split)
 
 
 end

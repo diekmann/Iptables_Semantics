@@ -48,7 +48,7 @@ theorem simple_match_to_ipportiface_match_correct:
     have "p_src p \<in> ipv4s_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_src p)"
     and  "p_dst p \<in> ipv4s_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_dst p)"
      apply(case_tac [!] ip)
-     by(simp_all add: ipv4set_from_cidr_def bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
+     by(simp_all add: ipv4set_from_cidr_def ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
   } note simple_match_ips=this
   { fix ps
     have "p_sport p \<in> ports_to_set [ps] \<longleftrightarrow> simple_match_port ps (p_sport p)"
@@ -57,7 +57,9 @@ theorem simple_match_to_ipportiface_match_correct:
       by(simp_all)
   } note simple_match_ports=this
   show ?thesis unfolding sm
-  by(simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary simple_match_ips simple_match_ports simple_matches.simps)
+  apply(simp add: bunch_of_lemmata_about_matches simple_matches.simps)
+  apply(simp add: match_raw_bool ternary_to_bool_bool_to_ternary simple_match_ips simple_match_ports simple_matches.simps)
+  done
 qed
 
 
@@ -147,7 +149,7 @@ proof -
   show ?thesis
   using assms proof(induction m arbitrary: sm rule: common_primitive_match_to_simple_match.induct)
   case 1 thus ?case 
-    by(simp_all add: match_iface_simple_match_any_simps bunch_of_lemmata_about_matches(2) simple_matches.simps)
+    by(simp add: match_iface_simple_match_any_simps bunch_of_lemmata_about_matches simple_matches.simps)
   next
   case (13 m1 m2)
     let ?caseSome="Some sm = common_primitive_match_to_simple_match (MatchAnd m1 m2)"
@@ -185,8 +187,7 @@ proof -
       hence "\<not> matches (common_matcher, \<alpha>) (MatchAnd m1 m2) a p" 
         apply(elim disjE)
           apply(simp_all)
-         using "13.IH" normalized apply(simp_all add: bunch_of_lemmata_about_matches(1))
-        done
+         using "13.IH" normalized by(simp add: bunch_of_lemmata_about_matches)+
     }note caseNone=this
 
     { assume caseSome: ?caseSome
@@ -206,7 +207,8 @@ proof -
 
     from caseNone caseSome show ?goal by blast
   qed(simp_all add: match_iface_simple_match_any_simps simple_matches.simps normalized_protocols_def normalized_ifaces_def, 
-    simp_all add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary ipv4set_from_cidr_def)
+      simp_all add: bunch_of_lemmata_about_matches, 
+      simp_all add: match_raw_bool ternary_to_bool_bool_to_ternary ipv4set_from_cidr_def)
 qed
 
 lemma simple_fw_remdups_Rev: "simple_fw (remdups_rev rs) p = simple_fw rs p"

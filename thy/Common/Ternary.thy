@@ -6,8 +6,10 @@ section\<open>Ternary Logic\<close>
 text\<open>Kleene logic\<close>
 
 datatype ternaryvalue = TernaryTrue | TernaryFalse | TernaryUnknown
-datatype ternaryformula = TernaryAnd ternaryformula ternaryformula | TernaryOr ternaryformula ternaryformula | 
-                           TernaryNot ternaryformula | TernaryValue ternaryvalue
+datatype ternaryformula = TernaryAnd ternaryformula ternaryformula
+                        | TernaryOr ternaryformula ternaryformula
+                        | TernaryNot ternaryformula
+                        | TernaryValue ternaryvalue
 
 fun ternary_to_bool :: "ternaryvalue \<Rightarrow> bool option" where
   "ternary_to_bool TernaryTrue = Some True" |
@@ -125,7 +127,7 @@ end
 
 context
 begin
-  (*new facts, to they break something?*)
+  (*new facts, do they break something?*)
   private lemma bool_to_ternary_pullup1: "eval_ternary_Not (bool_to_ternary X) = bool_to_ternary (\<not> X)"
     by(cases X)(simp_all)
   

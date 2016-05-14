@@ -50,13 +50,10 @@ lemma match_list_normalize_match: "match_list \<gamma> [m] a p \<longleftrightar
     done
   next 
   case 5 thus ?case 
-    apply(simp_all add: match_list_singleton del: match_list.simps(2))
-    apply (metis matches_not_idem)
-    done
+    by(simp add: match_list_singleton bunch_of_lemmata_about_matches)
   next
   case 6 thus ?case 
-    apply(simp_all add: match_list_singleton del: match_list.simps(2))
-    by (metis bunch_of_lemmata_about_matches(3))
+    by(simp add: match_list_singleton bunch_of_lemmata_about_matches)
   next
   case 7 thus ?case by(simp add: match_list_singleton)
 qed
@@ -129,9 +126,9 @@ proof(induction m rule: normalize_match.induct)
   case 5 thus ?case 
     unfolding wf_ruleset_singleton by(simp add: matches_to_match_list_normalize)
   next
-  case 6 thus ?case unfolding wf_ruleset_singleton using bunch_of_lemmata_about_matches(3) by metis
+  case 6 thus ?case unfolding wf_ruleset_singleton by(simp add: bunch_of_lemmata_about_matches)
   next
-  case 7 thus ?case by(simp_all add: wf_ruleset_append)
+  case 7 thus ?case by(simp add: wf_ruleset_append)
   qed
 
 

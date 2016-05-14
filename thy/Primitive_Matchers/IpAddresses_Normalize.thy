@@ -56,7 +56,7 @@ subsection\<open>Normalizing IP Addresses\<close>
       have "matches (common_matcher, \<alpha>) (alist_and (NegPos_map common_primitive.Src ml)) a p \<longleftrightarrow>
             (\<forall>m \<in> set (getPos ml). matches (common_matcher, \<alpha>) (Match (Src m)) a p) \<and>
             (\<forall>m \<in> set (getNeg ml). matches (common_matcher, \<alpha>) (MatchNot (Match (Src m))) a p)"
-        by(induction ml rule: alist_and.induct) (auto simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+        by(induction ml rule: alist_and.induct) (auto simp add: bunch_of_lemmata_about_matches)
       also have "\<dots> \<longleftrightarrow>  p_src p \<in>  (\<Inter> ip \<in> set (getPos ml). ipv4s_to_set ip) - (\<Union> ip \<in> set (getNeg ml). ipv4s_to_set ip)"
        by(simp add: match_simplematcher_SrcDst match_simplematcher_SrcDst_not)
       also have "\<dots> \<longleftrightarrow> p_src p \<in> (\<Union> ip \<in> set (ipt_ipv4range_compress ml). ipv4s_to_set ip)" using ipt_ipv4range_compress by presburger
@@ -87,7 +87,7 @@ subsection\<open>Normalizing IP Addresses\<close>
       have "matches (common_matcher, \<alpha>) (alist_and (NegPos_map common_primitive.Dst ml)) a p \<longleftrightarrow>
             (\<forall>m \<in> set (getPos ml). matches (common_matcher, \<alpha>) (Match (Dst m)) a p) \<and>
             (\<forall>m \<in> set (getNeg ml). matches (common_matcher, \<alpha>) (MatchNot (Match (Dst m))) a p)"
-        by(induction ml rule: alist_and.induct) (auto simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+        by(induction ml rule: alist_and.induct) (auto simp add: bunch_of_lemmata_about_matches)
       also have "\<dots> \<longleftrightarrow>  p_dst p \<in>  (\<Inter> ip \<in> set (getPos ml). ipv4s_to_set ip) - (\<Union> ip \<in> set (getNeg ml). ipv4s_to_set ip)"
        by(simp add: match_simplematcher_SrcDst match_simplematcher_SrcDst_not)
       also have "\<dots> \<longleftrightarrow> p_dst p \<in> (\<Union> ip \<in> set (ipt_ipv4range_compress ml). ipv4s_to_set ip)" using ipt_ipv4range_compress by presburger

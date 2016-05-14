@@ -82,9 +82,7 @@ done
 lemma match_simplematcher_SrcDst:
   "matches (common_matcher, \<alpha>) (Match (Src X)) a p \<longleftrightarrow> p_src  p \<in> ipv4s_to_set X"
   "matches (common_matcher, \<alpha>) (Match (Dst X)) a p \<longleftrightarrow> p_dst  p \<in> ipv4s_to_set X"
-   apply(simp_all add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
-   apply (metis bool_to_ternary.elims bool_to_ternary_Unknown ternaryvalue.distinct(1))+
-   done
+   by(simp_all add: match_raw_ternary bool_to_ternary_simps split: ternaryvalue.split)
 lemma match_simplematcher_SrcDst_not:
   "matches (common_matcher, \<alpha>) (MatchNot (Match (Src X))) a p \<longleftrightarrow> p_src  p \<notin> ipv4s_to_set X"
   "matches (common_matcher, \<alpha>) (MatchNot (Match (Dst X))) a p \<longleftrightarrow> p_dst  p \<notin> ipv4s_to_set X"
@@ -95,7 +93,7 @@ lemma match_simplematcher_SrcDst_not:
 lemma common_matcher_SrcDst_Inter:
   "(\<forall>m\<in>set X. matches (common_matcher, \<alpha>) (Match (Src m)) a p) \<longleftrightarrow> p_src p \<in> (\<Inter>x\<in>set X. ipv4s_to_set x)"
   "(\<forall>m\<in>set X. matches (common_matcher, \<alpha>) (Match (Dst m)) a p) \<longleftrightarrow> p_dst p \<in> (\<Inter>x\<in>set X. ipv4s_to_set x)"
-  by(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_Unknown bool_to_ternary_simps split: ternaryvalue.split)
+  by(simp_all add: match_raw_ternary bool_to_ternary_simps split: ternaryvalue.split)
 
 
 

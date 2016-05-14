@@ -98,13 +98,18 @@ by(simp add: matches_case_ternaryvalue_tuple)
 lemma bunch_of_lemmata_about_matches:
   "matches \<gamma> (MatchAnd m1 m2) a p \<longleftrightarrow> matches \<gamma> m1 a p \<and> matches \<gamma> m2 a p" (*split AND*)
   "matches \<gamma> MatchAny a p" (*MatchAny is True*)
-  "matches \<gamma> (MatchNot MatchAny) a p \<longleftrightarrow> False" (*Not True*) 
-  "matches (\<beta>, \<alpha>) (Match expr) a p = (case ternary_to_bool (\<beta> expr p) of Some r \<Rightarrow> r | None \<Rightarrow> (\<alpha> a p))" (*Match raw*)
-  "matches (\<beta>, \<alpha>) (Match expr) a p = (case (\<beta> expr p) of TernaryTrue \<Rightarrow> True | TernaryFalse \<Rightarrow> False | TernaryUnknown \<Rightarrow> (\<alpha> a p))" (*Match raw explicit*)
+  "matches \<gamma> (MatchNot MatchAny) a p \<longleftrightarrow> False" (*Not True*)
   "matches \<gamma> (MatchNot (MatchNot m)) a p \<longleftrightarrow> matches \<gamma> m a p" (*idempotence*)
 proof(case_tac [!] \<gamma>)
 qed (simp_all split: ternaryvalue.split add: matches_case_ternaryvalue_tuple)
 
+(*TODO: use?*)
+lemma match_raw_bool:
+  "matches (\<beta>, \<alpha>) (Match expr) a p = (case ternary_to_bool (\<beta> expr p) of Some r \<Rightarrow> r | None \<Rightarrow> (\<alpha> a p))" (*Match raw*)
+by(simp_all split: ternaryvalue.split add: matches_case_ternaryvalue_tuple)
+lemma match_raw_ternary:
+  "matches (\<beta>, \<alpha>) (Match expr) a p = (case (\<beta> expr p) of TernaryTrue \<Rightarrow> True | TernaryFalse \<Rightarrow> False | TernaryUnknown \<Rightarrow> (\<alpha> a p))" (*Match raw explicit*)
+by(simp_all split: ternaryvalue.split add: matches_case_ternaryvalue_tuple)
 
 (*kind of the DeMorgan Rule for matches*)
 lemma matches_DeMorgan: "matches \<gamma> (MatchNot (MatchAnd m1 m2)) a p \<longleftrightarrow> (matches \<gamma> (MatchNot m1) a p) \<or> (matches \<gamma> (MatchNot m2) a p)"
@@ -115,10 +120,10 @@ subsection\<open>Ternary Matcher Algebra\<close>
 
 lemma matches_and_comm: "matches \<gamma> (MatchAnd m m') a p \<longleftrightarrow> matches \<gamma> (MatchAnd m' m) a p"
 apply(cases \<gamma>, rename_tac \<beta> \<alpha>, clarify)
-by(simp split: ternaryvalue.split add: matches_case_ternaryvalue_tuple eval_ternary_And_comm)
+by(simp add: matches_case_ternaryvalue_tuple eval_ternary_And_comm)
 
 lemma matches_not_idem: "matches \<gamma> (MatchNot (MatchNot m)) a p \<longleftrightarrow> matches \<gamma> m a p"
-by (metis bunch_of_lemmata_about_matches(6))
+by (fact bunch_of_lemmata_about_matches)
 
 
 lemma MatchOr: "matches \<gamma> (MatchOr m1 m2) a p \<longleftrightarrow> matches \<gamma> m1 a p \<or> matches \<gamma> m2 a p"
@@ -142,9 +147,9 @@ begin
     by(simp_all add: matches_and_comm matches_simp1)
   
   private lemma matches_simp2: "matches \<gamma> (MatchAnd m m') a p \<Longrightarrow> \<not> matches \<gamma> m a p \<Longrightarrow> False"
-    by (metis bunch_of_lemmata_about_matches(1))
+    by (simp add: bunch_of_lemmata_about_matches)
   private lemma matches_simp22: "matches \<gamma> (MatchAnd m m') a p \<Longrightarrow> \<not> matches \<gamma> m' a p \<Longrightarrow> False"
-    by (metis bunch_of_lemmata_about_matches(1))
+    by (simp add: bunch_of_lemmata_about_matches)
   
   (*m simplifies to MatchUnknown*)
  private  lemma matches_simp3: "matches \<gamma> (MatchNot m) a p \<Longrightarrow> matches \<gamma> m a p \<Longrightarrow> (snd \<gamma>) a p"
@@ -282,7 +287,7 @@ lemmas remove_unknowns_generic_simps2 = remove_unknowns_generic.simps(1) remove_
 
 lemma "a = Accept \<or> a = Drop \<Longrightarrow> matches (\<beta>, \<alpha>) (remove_unknowns_generic (\<beta>, \<alpha>) a (MatchNot (Match A))) a p = matches (\<beta>, \<alpha>) (MatchNot (Match A)) a p"
 apply(simp del: remove_unknowns_generic.simps add: remove_unknowns_generic_simps2)
-apply(simp add: bunch_of_lemmata_about_matches matches_case_ternaryvalue_tuple)
+apply(simp add: matches_case_ternaryvalue_tuple)
 by presburger
 
 
@@ -293,10 +298,10 @@ lemma remove_unknowns_generic: "a = Accept \<or> a = Drop \<Longrightarrow>
   apply(rename_tac p)
   apply(induction \<gamma> a m rule: remove_unknowns_generic.induct)
         apply(simp_all add: bunch_of_lemmata_about_matches)[2]
-      apply(simp_all add: bunch_of_lemmata_about_matches del: remove_unknowns_generic.simps add: remove_unknowns_generic_simps2)[1]
-     apply(simp add: matches_case_ternaryvalue_tuple  del: remove_unknowns_generic.simps  add: remove_unknowns_generic_simps2)
+      apply(simp add: bunch_of_lemmata_about_matches match_raw_ternary del: remove_unknowns_generic.simps add: remove_unknowns_generic_simps2; fail)
+     apply(simp add: matches_case_ternaryvalue_tuple del: remove_unknowns_generic.simps  add: remove_unknowns_generic_simps2; fail)
     apply(simp_all add: bunch_of_lemmata_about_matches matches_DeMorgan)
-  apply(simp_all add: matches_case_ternaryvalue_tuple)
+  apply(simp add: matches_case_ternaryvalue_tuple)
   apply safe
                apply(simp_all add : ternary_to_bool_Some ternary_to_bool_None)
 done
@@ -374,7 +379,7 @@ begin
     with MatchNot show ?case by(simp)
   next
   case (MatchAnd m1 m2)
-    thus ?case by(simp add: Matching_Ternary.bunch_of_lemmata_about_matches)
+    thus ?case by(simp add: bunch_of_lemmata_about_matches)
   next
   case MatchAny show ?case by(simp add: Matching_Ternary.bunch_of_lemmata_about_matches)
   qed

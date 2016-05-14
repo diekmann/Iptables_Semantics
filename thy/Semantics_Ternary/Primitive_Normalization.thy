@@ -58,9 +58,7 @@ lemma has_disc_negated_alist_and: "has_disc_negated disc neg (alist_and as) \<lo
   
 
 lemma "matches ((\<lambda>x _. bool_to_ternary (disc x)), (\<lambda>_ _. False)) (Match x) a p \<longleftrightarrow> has_disc disc (Match x)"
-apply(simp split: ternaryvalue.split_asm ternaryvalue.split add: matches_case_ternaryvalue_tuple)
-apply(simp add: bool_to_ternary_simps)
-done
+by(simp add: match_raw_ternary bool_to_ternary_simps split: ternaryvalue.split )
 
 
 

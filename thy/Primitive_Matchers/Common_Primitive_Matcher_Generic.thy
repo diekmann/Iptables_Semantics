@@ -27,7 +27,7 @@ begin
   lemma Iface_single:
     "matches (\<beta>, \<alpha>) (Match (IIface X)) a p \<longleftrightarrow> match_iface X (p_iiface p)"
     "matches (\<beta>, \<alpha>) (Match (OIface X)) a p \<longleftrightarrow> match_iface X (p_oiface p)"
-     by(simp_all add: IIface OIface matches_case_ternaryvalue_tuple bool_to_ternary_simps
+     by(simp_all add: IIface OIface match_raw_ternary bool_to_ternary_simps
                split: ternaryvalue.split)
   text\<open>Since matching on the iface cannot be @{const TernaryUnknown}*, we can pull out negations.\<close>
   lemma Iface_single_not:
@@ -38,7 +38,7 @@ begin
 
   lemma Prot_single:
     "matches (\<beta>, \<alpha>) (Match (Prot X)) a p \<longleftrightarrow> match_proto X (p_proto p)"
-     by(simp add: Prot matches_case_ternaryvalue_tuple bool_to_ternary_simps split: ternaryvalue.split)
+     by(simp add: Prot match_raw_ternary bool_to_ternary_simps split: ternaryvalue.split)
   lemma Prot_single_not:
     "matches (\<beta>, \<alpha>) (MatchNot (Match (Prot X))) a p \<longleftrightarrow> \<not> match_proto X (p_proto p)"
      by(simp add: Prot matches_case_ternaryvalue_tuple bool_to_ternary_simps split: ternaryvalue.split)
@@ -46,7 +46,7 @@ begin
   lemma Ports_single:
     "matches (\<beta>, \<alpha>) (Match (Src_Ports ps)) a p \<longleftrightarrow> p_sport p \<in> ports_to_set ps"
     "matches (\<beta>, \<alpha>) (Match (Dst_Ports ps)) a p \<longleftrightarrow> p_dport p \<in> ports_to_set ps"
-     by(simp_all add: Src_Ports Dst_Ports matches_case_ternaryvalue_tuple bool_to_ternary_simps
+     by(simp_all add: Src_Ports Dst_Ports match_raw_ternary bool_to_ternary_simps
                split: ternaryvalue.split)
   lemma Ports_single_not:
     "matches (\<beta>, \<alpha>) (MatchNot (Match (Src_Ports ps))) a p \<longleftrightarrow> p_sport p \<notin> ports_to_set ps"
@@ -57,11 +57,8 @@ begin
   lemma multiports_disjuction:
         "(\<exists>rg\<in>set spts. matches (\<beta>, \<alpha>) (Match (Src_Ports [rg])) a p) \<longleftrightarrow> matches (\<beta>, \<alpha>) (Match (Src_Ports spts)) a p"
         "(\<exists>rg\<in>set dpts. matches (\<beta>, \<alpha>) (Match (Dst_Ports [rg])) a p) \<longleftrightarrow> matches (\<beta>, \<alpha>) (Match (Dst_Ports dpts)) a p"
-    apply(simp_all add: Src_Ports Dst_Ports bool_to_ternary_Unknown matches_case_ternaryvalue_tuple
-                        bunch_of_lemmata_about_matches bool_to_ternary_simps
-                   split: ternaryvalue.split ternaryvalue.split_asm)
-    apply(simp_all add: ports_to_set)
-    by blast+
+    by(auto simp add: Src_Ports Dst_Ports match_raw_ternary bool_to_ternary_simps ports_to_set
+                   split: ternaryvalue.split)
 
 
   lemma Extra_single:

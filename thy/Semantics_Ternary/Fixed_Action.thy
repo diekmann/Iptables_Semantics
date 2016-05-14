@@ -265,7 +265,7 @@ subsection\<open>@{term match_list}\<close>
         Use this function with care because the resulting match expression is very ugly!\<close>
   lemma match_list_to_match_expr_disjunction: "match_list \<gamma> ms a p \<longleftrightarrow> matches \<gamma> (match_list_to_match_expr ms) a p"
     apply(induction ms rule: match_list_to_match_expr.induct)
-     apply(simp add: bunch_of_lemmata_about_matches)
+     apply(simp add: bunch_of_lemmata_about_matches; fail)
     apply(simp add: MatchOr)
   done
 

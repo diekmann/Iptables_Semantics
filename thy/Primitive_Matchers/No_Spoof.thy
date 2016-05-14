@@ -832,7 +832,7 @@ text\<open>Examples\<close>
       apply(intro conjI)
       apply(subst approximating_semantics_iff_fun_good_ruleset)
        apply(simp add: good_ruleset_def; fail)
-      apply(simp add: bunch_of_lemmata_about_matches(1,2)
+      apply(simp add: bunch_of_lemmata_about_matches
           match_simplematcher_SrcDst_not match_simplematcher_Iface match_simplematcher_Iface_not)
       apply(intro impI, thin_tac _)
       apply eval
@@ -862,7 +862,7 @@ text\<open>Examples\<close>
       apply(intro conjI)
       apply(subst approximating_semantics_iff_fun_good_ruleset)
        apply(simp add: good_ruleset_def; fail)
-      apply(simp add: bunch_of_lemmata_about_matches(1,2)
+      apply(simp add: bunch_of_lemmata_about_matches
           match_simplematcher_SrcDst_not match_simplematcher_Iface match_simplematcher_Iface_not)
       apply(intro impI, thin_tac _)
       apply eval
@@ -897,7 +897,7 @@ text\<open>Examples\<close>
     show ?thesis
       unfolding no_spoofing_def
       apply(simp add: 1 ipv4cidr_union_set_def)
-      apply(simp add: bunch_of_lemmata_about_matches(1,2)
+      apply(simp add: bunch_of_lemmata_about_matches
            match_simplematcher_SrcDst_not match_simplematcher_Iface match_simplematcher_Iface_not)
       apply(simp add: match_iface.simps
                       primitive_matcher_generic.Prot_single[OF primitive_matcher_generic_common_matcher]

@@ -75,7 +75,7 @@ begin
         case (Neg a)
           thus ?thesis using Cons.IH generic primitive_matcher_generic.Ports_single_not[where p = p] primitive_matcher_generic.Ports_single[where p = p]
           apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct
-                          bunch_of_lemmata_about_matches[where p = p] ternary_to_bool_bool_to_ternary)
+                          bunch_of_lemmata_about_matches[where p = p])
           apply(simp add: ports_invert ipt_ports_negation_type_normalize.simps)
           done
         qed
@@ -100,7 +100,7 @@ begin
         case (Neg a)
           thus ?thesis using Cons.IH primitive_matcher_generic.Ports_single[OF generic] primitive_matcher_generic.Ports_single_not[OF generic]
           apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct
-                          bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+                          bunch_of_lemmata_about_matches)
           apply(simp add: ports_invert ipt_ports_negation_type_normalize.simps)
           done
         qed
