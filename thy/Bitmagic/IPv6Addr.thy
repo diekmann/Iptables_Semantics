@@ -752,6 +752,31 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
     in
       List_explode shortened
     )"
+
+  lemma foldr_max_length: "foldr (\<lambda>xs. max (length xs)) lss n = fold max (map length lss) n"
+    apply(subst List.foldr_fold)
+     apply fastforce
+    apply(induction lss arbitrary: n)
+     apply(simp; fail)
+    apply(simp)
+    done
+  
+  lemma List_explode_goup_by_zeros: "List_explode (goup_by_zeros xs) = map Some xs"
+    apply(induction xs rule: goup_by_zeros.induct)
+     apply(simp; fail)
+    apply(simp)
+    apply(safe)
+     apply(simp)
+    by (metis map_append takeWhile_dropWhile_id)
+    
+  lemma ipv6_preferred_to_compressed_pull_out_if:
+    "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (
+    if foldr (\<lambda>xs. max (length xs)) (goup_by_zeros [a,b,c,d,e,f,g,h]) 0 > 1 then
+      List_explode (List_replace1 (replicate (foldr (\<lambda>xs. max (length xs)) (goup_by_zeros [a,b,c,d,e,f,g,h]) 0) 0) [] (goup_by_zeros [a,b,c,d,e,f,g,h]))
+    else
+      map Some [a,b,c,d,e,f,g,h]
+    )"
+  by(simp add: List_explode_goup_by_zeros)
     
   value[code] "ipv6_preferred_to_compressed (IPv6AddrPreferred 0 0 0 0 0 0 0 0)"
   value[code] "ipv6_preferred_to_compressed (IPv6AddrPreferred 0x2001 0xDB8 0 0 8 0x800 0x200C 0x417A)"
@@ -764,9 +789,15 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
   apply(elim exE conjE)
   apply(case_tac ip)
   apply(erule parse_ipv6_address_compressed_someE)
-  apply(simp_all)
+  apply(simp)
   apply(simp add: Let_def split: split_if_asm)
-  apply(simp add: Let_def)
+  apply(simp add: ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps)
+  apply(simp split: split_if_asm)
+  apply(simp add: ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps split: split_if_asm)
+  apply(simp add: ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps split: split_if_asm)
+  apply(simp add: ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps split: split_if_asm)
+  apply(simp add: ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps split: split_if_asm)
+  apply(simp add: ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps split: )
   (*apply(simp_all add: Let_def)
   apply(simp split: split_if_asm) (*this could probably solve it, but it gets slower with every subgoal*)*)
   oops (*TODO: unfinished theory*)
