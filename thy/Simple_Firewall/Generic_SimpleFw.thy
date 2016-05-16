@@ -8,7 +8,7 @@ unfolding fun_eq_iff
 apply(clarify)
 apply(rename_tac x xa)
 apply(induct_tac xa)
-apply(auto)
+ apply(auto)
 done
 
 definition "generalized_sfw l p = List.find (\<lambda>(m,a). simple_matches m p) l"
@@ -48,7 +48,7 @@ proof(induction as)
 		generalized_sfw (concat (map (\<lambda>(m2, b). map (\<lambda>u. (u, ad, b)) (option2list (simple_match_and am m2))) bs)) p" 
 		unfolding list.map prod.simps
 		apply(cases "simple_match_and am bm")
-		apply(simp add: option2list_def; fail)
+		 apply(simp add: option2list_def; fail)
 		apply(frule simple_match_and_SomeD[of _ _ _ p])
 		apply(subst option2list_def)
 		apply(unfold concat.simps)
@@ -320,7 +320,7 @@ definition gsfw_valid :: "('i::len simple_match \<times> 'c) list \<Rightarrow> 
 lemma gsfw_join_valid: "gsfw_valid f1 \<Longrightarrow> gsfw_valid f2 \<Longrightarrow> gsfw_valid (generalized_fw_join f1 f2)"
 unfolding gsfw_valid_def
 apply(induction f1)
-apply(simp;fail)
+ apply(simp;fail)
 apply(simp)
 apply(rename_tac a f1)
 apply(case_tac a)
@@ -329,7 +329,7 @@ apply(clarify)
 apply(thin_tac "list_all _ f1")
 apply(thin_tac "list_all _ (generalized_fw_join _ _)")
 apply(induction f2)
-apply(simp;fail)
+ apply(simp;fail)
 apply(simp)
 apply(clarsimp simp add: option2list_def list_all_iff)
 using simple_match_and_valid apply metis
