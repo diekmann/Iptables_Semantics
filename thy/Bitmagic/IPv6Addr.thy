@@ -719,7 +719,31 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
 	  
 	  
   value[code] "List_explode [[0::int], [2,3], [], [3,4]]"
+
+  lemma List_explode_def: 
+    "List_explode xss = concat (map (\<lambda>xs. if xs = [] then [None] else map Some xs) xss)"
+    apply(induction xss rule: List_explode.induct)
+      apply(simp; fail)
+     apply(simp; fail)
+    apply(simp)
+    done
 	  
+  lemma List_explode_no_empty: "[] \<notin> set xss \<Longrightarrow> List_explode xss = map Some (concat xss)"
+    apply(induction xss rule: List_explode.induct)
+      by(simp)+
+
+  lemma "[] \<notin> set xss \<Longrightarrow> foo \<in> set xss \<Longrightarrow>
+          List_explode (List_replace1 foo [] xss) =
+            map Some (concat (takeWhile (\<lambda>xs. xs \<noteq> foo) xss)) @ [None] @
+              map Some (concat (tl (dropWhile (\<lambda>xs. xs \<noteq> foo) xss)))"
+    apply(induction xss rule: List_explode.induct)
+      apply(simp; fail)
+     apply(simp; fail)
+    apply(simp)
+    apply safe
+      apply(simp_all add: List_explode_no_empty)
+    done
+    
   fun ipv6_preferred_to_compressed :: "ipv6addr_syntax \<Rightarrow> ((16 word) option) list" where
   "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (
     let lss = goup_by_zeros [a,b,c,d,e,f,g,h];
@@ -738,11 +762,13 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
   thm HOL.iffD1[OF ipv6_unparsed_compressed_to_preferred_identity2] 
   apply(drule HOL.iffD1[OF ipv6_unparsed_compressed_to_preferred_identity2])
   apply(elim exE conjE)
+  apply(case_tac ip)
   apply(erule parse_ipv6_address_compressed_someE)
   apply(simp_all)
-  apply(case_tac ip)
-  apply(simp)
-  apply(simp add: Let_def split_if_asm)
+  apply(simp add: Let_def split: split_if_asm)
+  apply(simp add: Let_def)
+  (*apply(simp_all add: Let_def)
+  apply(simp split: split_if_asm) (*this could probably solve it, but it gets slower with every subgoal*)*)
   oops (*TODO: unfinished theory*)
 
 
