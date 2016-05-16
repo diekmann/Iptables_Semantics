@@ -8,7 +8,7 @@ imports Main "../Common/Negation_Type"
 begin
 
 
-section\<open>Simple Firewall Syntax (IPv4 only)\<close>
+section\<open>Simple Firewall Syntax (for IP addresses of arbitrary length)\<close>
 
 
   datatype simple_action = Accept | Drop
@@ -75,17 +75,8 @@ section\<open>Simple Firewall Syntax (IPv4 only)\<close>
 
 subsection\<open>Simple Firewall Semantics\<close>
 
-
-  (*Sanity check:*)
-  lemma "ipset_from_cidr = ipv4set_from_cidr"
-    by(simp add: fun_eq_iff ipset_from_cidr_def ipv4set_from_cidr_alt ipset_from_netmask_def ipv4set_from_netmask_def)
-
   fun simple_match_ip :: "('i::len word \<times> nat) \<Rightarrow> 'i::len word \<Rightarrow> bool" where
     "simple_match_ip (base, len) p_ip \<longleftrightarrow> p_ip \<in> ipset_from_cidr base len"
-
-  (*TODO: move? Delete?*)
-  fun simple_match_ip4 :: "(ipv4addr \<times> nat) \<Rightarrow> ipv4addr \<Rightarrow> bool" where
-    "simple_match_ip4 (base, len) p_ip \<longleftrightarrow> p_ip \<in> ipv4set_from_cidr base len"
 
   lemma wordinterval_to_set_ipcidr_tuple_to_wordinterval_simple_match_ip_set:
     "wordinterval_to_set (ipcidr_tuple_to_wordinterval ip) = {d. simple_match_ip ip d}"
@@ -125,8 +116,7 @@ subsection\<open>Simple Firewall Semantics\<close>
     "simple_fw_alt (r#rs) p = (if simple_matches (match_sel r) p then 
     	(case action_sel r of Accept \<Rightarrow> Decision FinalAllow | Drop \<Rightarrow> Decision FinalDeny) else simple_fw_alt rs p)"
  
- lemma simple_fw_alt: "simple_fw r p = simple_fw_alt r p" by(induction rule: simple_fw.induct) simp_all
-
+  lemma simple_fw_alt: "simple_fw r p = simple_fw_alt r p" by(induction rule: simple_fw.induct) simp_all
 
   definition simple_match_any :: "'i::len simple_match" where
     "simple_match_any \<equiv> \<lparr>iiface=ifaceAny, oiface=ifaceAny, src=(0,0), dst=(0,0), proto=ProtoAny, sports=(0,65535), dports=(0,65535) \<rparr>"
@@ -138,14 +128,17 @@ subsection\<open>Simple Firewall Semantics\<close>
 
   text\<open>we specify only one empty port range\<close>
   definition simple_match_none :: "'i::len simple_match" where
-    "simple_match_none \<equiv> \<lparr>iiface=ifaceAny, oiface=ifaceAny, src=(1,0), dst=(0,0), proto=ProtoAny, sports=(1,0), dports=(0,65535) \<rparr>"
+    "simple_match_none \<equiv>
+      \<lparr>iiface=ifaceAny, oiface=ifaceAny, src=(1,0), dst=(0,0),
+       proto=ProtoAny, sports=(1,0), dports=(0,65535) \<rparr>"
   lemma simple_match_none: "\<not> simple_matches simple_match_none p"
     proof -
       show ?thesis by(simp add: simple_match_none_def)
     qed
 
   fun empty_match :: "'i::len simple_match \<Rightarrow> bool" where
-    "empty_match \<lparr>iiface=_, oiface=_, src=_, dst=_, proto=_, sports=(sps1, sps2), dports=(dps1, dps2) \<rparr> \<longleftrightarrow> (sps1 > sps2) \<or> (dps1 > dps2)"
+    "empty_match \<lparr>iiface=_, oiface=_, src=_, dst=_, proto=_,
+                  sports=(sps1, sps2), dports=(dps1, dps2) \<rparr> \<longleftrightarrow> (sps1 > sps2) \<or> (dps1 > dps2)"
 
   lemma empty_match: "empty_match m \<longleftrightarrow> (\<forall>(p::('i::len, 'a) simple_packet_scheme). \<not> simple_matches m p)"
     proof
@@ -193,13 +186,17 @@ subsection\<open>Simple Firewall Semantics\<close>
   qed
     
 
+lemma nomatch: "\<not> simple_matches m p \<Longrightarrow> simple_fw (SimpleRule m a # rs) p = simple_fw rs p"
+  by(cases a, simp_all del: simple_matches.simps)
+
 subsection\<open>Simple Ports\<close>
   fun simpl_ports_conjunct :: "(16 word \<times> 16 word) \<Rightarrow> (16 word \<times> 16 word) \<Rightarrow> (16 word \<times> 16 word)" where
     "simpl_ports_conjunct (p1s, p1e) (p2s, p2e) = (max p1s p2s, min p1e p2e)"
 
   lemma "{(p1s:: 16 word) .. p1e} \<inter> {p2s .. p2e} = {max p1s p2s .. min p1e p2e}" by(simp)
   
-  lemma simple_ports_conjunct_correct: "simple_match_port p1 pkt \<and> simple_match_port p2 pkt \<longleftrightarrow> simple_match_port (simpl_ports_conjunct p1 p2) pkt"
+  lemma simple_ports_conjunct_correct:
+    "simple_match_port p1 pkt \<and> simple_match_port p2 pkt \<longleftrightarrow> simple_match_port (simpl_ports_conjunct p1 p2) pkt"
     apply(cases p1, cases p2, simp)
     by blast
 
@@ -319,49 +316,16 @@ lemma simple_match_and_correct: "simple_matches m1 p \<and> simple_matches m2 p 
     from case_Some case_None show ?thesis by(cases "simple_match_and m1 m2") simp_all
  qed
 
-lemma simple_match_and_SomeD: "simple_match_and m1 m2 = Some m \<Longrightarrow> simple_matches m p = (simple_matches m1 p \<and> simple_matches m2 p)"
+lemma simple_match_and_SomeD: "simple_match_and m1 m2 = Some m \<Longrightarrow>
+  simple_matches m p \<longleftrightarrow> (simple_matches m1 p \<and> simple_matches m2 p)"
 	by(simp add: simple_match_and_correct)
-lemma simple_match_and_NoneD: "simple_match_and m1 m2 = None \<Longrightarrow> \<not>(simple_matches m1 p \<and> simple_matches m2 p)"
+lemma simple_match_and_NoneD: "simple_match_and m1 m2 = None \<Longrightarrow>
+  \<not>(simple_matches m1 p \<and> simple_matches m2 p)"
 	by(simp add: simple_match_and_correct)
-lemma simple_matches_andD: "simple_matches m1 p \<Longrightarrow> simple_matches m2 p \<Longrightarrow> \<exists>m. simple_match_and m1 m2 = Some m \<and> simple_matches m p"
+lemma simple_matches_andD: "simple_matches m1 p \<Longrightarrow> simple_matches m2 p \<Longrightarrow>
+  \<exists>m. simple_match_and m1 m2 = Some m \<and> simple_matches m p"
   by (meson option.exhaust_sel simple_match_and_NoneD simple_match_and_SomeD)
 
-(*
-(*TODO*)
-  context begin
-  (*TODO*)
-  (*if we had a quite optimized version of this, ...*)
-  (*positive match \<times> negative match*)
-  private fun simple_match_and_not :: "simple_match \<Rightarrow> simple_match \<Rightarrow> (simple_match \<times> simple_match option) option" where
-    "simple_match_and_not pos neg = 
-      Some (pos, Some neg)"
-
-  lemma "simple_match_and_not m1 m2 = Some (m_p, Some m_n) \<Longrightarrow>
-    simple_matches m1 p \<and> \<not> simple_matches m2 p \<longleftrightarrow> simple_matches m_p p \<and> \<not> simple_matches m_n p"
-  apply(cases m1, cases m2)
-  by(simp)
-  lemma "simple_match_and_not m1 m2 = None \<Longrightarrow> \<not>(\<exists>p. simple_matches m1 p \<and> \<not> simple_matches m2 p)"
-  apply(cases m1, cases m2)
-  by(simp)
-  lemma "simple_match_and_not m1 m2 = Some (m_p, None) \<Longrightarrow>
-    simple_matches m1 p \<and> \<not> simple_matches m2 p \<longleftrightarrow> simple_matches m_p p"
-  apply(cases m1, cases m2)
-  by(simp)
-end
-(*END TODO*)
-*)
-
-lemma nomatch: "\<not> simple_matches m p \<Longrightarrow> simple_fw (SimpleRule m a # rs) p = simple_fw rs p"
-  by(cases a, simp_all)
-
-
-
-definition "example_simple_match1 \<equiv> \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0::ipv4addr, 0), dst = (0, 0), proto = Proto TCP, sports = (0, 0x0), dports = (0, 0x0)\<rparr>"
-(*export_code simple_fw in SML   not possible here*)
-value[code] "simple_fw [
-  SimpleRule example_simple_match1 simple_action.Drop]
-  
-  \<lparr>p_iiface = '''', p_oiface = '''',  p_src = 1, p_dst = 2, p_proto = TCP, p_sport = 8, p_dport = 9, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
 
 fun has_default_policy :: "'i::len simple_rule list \<Rightarrow> bool" where
   "has_default_policy [] = False" |
@@ -405,33 +369,45 @@ definition "valid_prefix_fw m = valid_prefix (split PrefixMatch m)"
 
 definition simple_match_valid :: "('i::len, 'a) simple_match_scheme \<Rightarrow> bool" where
   "simple_match_valid m \<equiv> 
-(((({p. simple_match_port (sports m) p} \<noteq> UNIV (*\<and> {p. simple_match_port (sports m) p} \<noteq> {}*)) \<or> 
-({p. simple_match_port (dports m) p} \<noteq> UNIV (*\<and> {p. simple_match_port (dports m) p} \<noteq> {}*))) 
-\<longrightarrow> (proto m \<in> Proto `{TCP, UDP, SCTP})) \<and>
-valid_prefix_fw (src m) \<and> valid_prefix_fw (dst m)
-)" 
+  ({p. simple_match_port (sports m) p} \<noteq> UNIV \<or> {p. simple_match_port (dports m) p} \<noteq> UNIV \<longrightarrow>
+      proto m \<in> Proto `{TCP, UDP, SCTP}) \<and>
+  valid_prefix_fw (src m) \<and> valid_prefix_fw (dst m)" 
 
 lemma simple_match_valid_alt_hlp1: "{p. simple_match_port x p} \<noteq> UNIV \<longleftrightarrow> (case x of (s,e) \<Rightarrow> s \<noteq> 0 \<or> e \<noteq> max_word)"
 	apply(clarsimp simp: set_eq_UNIV split: prod.splits)
-	apply(auto)
-	 using word_le_0_iff apply blast
-	using antisym_conv apply blast
-done
+ 	apply(rename_tac x1 x2)
+	apply(rule)
+ 	 apply(elim exE)
+ 	 using word_zero_le apply blast
+ 	apply(case_tac "x1 = 0")
+	 using antisym_conv apply blast
+	using word_le_0_iff by blast
 lemma simple_match_valid_alt_hlp2: "{p. simple_match_port x p} \<noteq> {} \<longleftrightarrow> (case x of (s,e) \<Rightarrow> s \<le> e)" by auto
 lemma simple_match_valid_alt[code_unfold]: "simple_match_valid = (\<lambda> m.
-	(let c = (\<lambda>(s,e). (*s \<le> e \<and>*) (s \<noteq> 0 \<or> e \<noteq> max_word)) in (
+	(let c = (\<lambda>(s,e). (s \<noteq> 0 \<or> e \<noteq> max_word)) in (
 	if c (sports m) \<or> c (dports m) then proto m = Proto TCP \<or> proto m = Proto UDP \<or> proto m = Proto SCTP else True)) \<and>
-valid_prefix_fw (src m) \<and> valid_prefix_fw (dst m))
-" 
+valid_prefix_fw (src m) \<and> valid_prefix_fw (dst m))" 
 unfolding fun_eq_iff
 unfolding simple_match_valid_def Let_def
 unfolding simple_match_valid_alt_hlp1 simple_match_valid_alt_hlp2
-by(clarify, rename_tac m, case_tac "sports m"; case_tac "dports m"; case_tac "proto m") auto
+apply(clarify, rename_tac m, case_tac "sports m"; case_tac "dports m"; case_tac "proto m")
+  by auto
 
-definition "example_simple_match2 \<equiv> (proto_update (const ProtoAny) example_simple_match1)"
-text\<open>Thus, @{text "example_simple_match1"} is valid, but if we set its protocol match to any, it no longer is.\<close>
-lemma "simple_match_valid example_simple_match1" by eval
-lemma "\<not>simple_match_valid example_simple_match2" by eval
+context
+begin
+  private definition "example_simple_match1 \<equiv>
+    \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0::ipv4addr, 0), dst = (0, 0),
+     proto = Proto TCP, sports = (0, 1024), dports = (0, 1024)\<rparr>"
+
+  lemma "simple_fw [SimpleRule example_simple_match1 simple_action.Drop]
+    \<lparr>p_iiface = '''', p_oiface = '''',  p_src = (1::ipv4addr), p_dst = 2, p_proto = TCP, p_sport = 8,
+     p_dport = 9, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr> = Decision FinalDeny" by eval
+
+  private definition "example_simple_match2 \<equiv> (proto_update (const ProtoAny) example_simple_match1)"
+  text\<open>Thus, @{text "example_simple_match1"} is valid, but if we set its protocol match to any, it no longer is.\<close>
+  private lemma "simple_match_valid example_simple_match1" by eval
+  private lemma "\<not> simple_match_valid example_simple_match2" by eval
+end
 
 definition "simple_fw_valid \<equiv> list_all (simple_match_valid \<circ> match_sel)"
 
