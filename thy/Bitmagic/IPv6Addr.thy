@@ -684,9 +684,12 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
   by(pat_completeness, auto)
   
   termination goup_by_zeros
-	apply(relation "measure (\<lambda>xs. length xs)")
-	apply(simp_all)
-	by (simp add: le_imp_less_Suc length_dropWhile_le)
+	 apply(relation "measure (\<lambda>xs. length xs)")
+	   apply(simp_all)
+	 by (simp add: le_imp_less_Suc length_dropWhile_le)
+
+	(*"goup_by_zeros xs \<noteq> groupF (\<lambda>x. x=0) xs"
+	  groupF does not preserver the order but groups the whole list*)
 	
 	value[code] "goup_by_zeros [0,1,2,3,0,0,0,0,3,4,0,0,0,2,0,0,2,0,3,0]"
 	
@@ -732,7 +735,7 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
     apply(induction xss rule: List_explode.induct)
       by(simp)+
 
-  lemma "[] \<notin> set xss \<Longrightarrow> foo \<in> set xss \<Longrightarrow>
+  lemma List_explode_replace1: "[] \<notin> set xss \<Longrightarrow> foo \<in> set xss \<Longrightarrow>
           List_explode (List_replace1 foo [] xss) =
             map Some (concat (takeWhile (\<lambda>xs. xs \<noteq> foo) xss)) @ [None] @
               map Some (concat (tl (dropWhile (\<lambda>xs. xs \<noteq> foo) xss)))"
@@ -760,7 +763,15 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
      apply(simp; fail)
     apply(simp)
     done
-  
+
+  lemma "foldr (\<lambda>xs. max (length xs)) (goup_by_zeros xs) 0 > 1 \<Longrightarrow>
+         replicate (fold max (map length (goup_by_zeros xs)) 0) 0 =
+           fold (\<lambda>xs acc. if length acc \<le> length xs then xs else acc) (goup_by_zeros xs) []"
+   apply(induction xs rule: goup_by_zeros.induct)
+    apply(simp)
+   apply(simp)
+   oops
+
   lemma List_explode_goup_by_zeros: "List_explode (goup_by_zeros xs) = map Some xs"
     apply(induction xs rule: goup_by_zeros.induct)
      apply(simp; fail)
@@ -768,25 +779,66 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
     apply(safe)
      apply(simp)
     by (metis map_append takeWhile_dropWhile_id)
-    
+  
+  definition "max_zero_streak xs \<equiv> foldr (\<lambda>xs. max (length xs)) (goup_by_zeros xs) 0"    
+
   lemma ipv6_preferred_to_compressed_pull_out_if:
     "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (
-    if foldr (\<lambda>xs. max (length xs)) (goup_by_zeros [a,b,c,d,e,f,g,h]) 0 > 1 then
-      List_explode (List_replace1 (replicate (foldr (\<lambda>xs. max (length xs)) (goup_by_zeros [a,b,c,d,e,f,g,h]) 0) 0) [] (goup_by_zeros [a,b,c,d,e,f,g,h]))
+    if max_zero_streak [a,b,c,d,e,f,g,h] > 1 then
+      List_explode (List_replace1 (replicate (max_zero_streak [a,b,c,d,e,f,g,h]) 0) [] (goup_by_zeros [a,b,c,d,e,f,g,h]))
     else
       map Some [a,b,c,d,e,f,g,h]
     )"
-  by(simp add: List_explode_goup_by_zeros)
+  by(simp add: max_zero_streak_def List_explode_goup_by_zeros)
+
+  lemma ipv6_preferred_to_compressed_None1:
+    "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = None#xs \<Longrightarrow>
+      xs = map Some (dropWhile (\<lambda>x. x=0) [a,b,c,d,e,f,g,h]) "
+    by(simp del: ipv6_preferred_to_compressed.simps
+              add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def split: split_if_asm)
+    (*10s*)
+  lemma ipv6_preferred_to_compressed_None2:
+    "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (Some a)#None#xs \<Longrightarrow>
+      (map Some (dropWhile (\<lambda>x. x=0) [b,c,d,e,f,g,h]) = xs \<Longrightarrow> (IPv6AddrPreferred a b c d e f g h) = ip) \<Longrightarrow>
+      (IPv6AddrPreferred a b c d e f g h) = ip"
+    by(simp del: ipv6_preferred_to_compressed.simps
+              add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def split: split_if_asm)
+    (*10s*)
     
   value[code] "ipv6_preferred_to_compressed (IPv6AddrPreferred 0 0 0 0 0 0 0 0)"
   value[code] "ipv6_preferred_to_compressed (IPv6AddrPreferred 0x2001 0xDB8 0 0 8 0x800 0x200C 0x417A)"
   value[code] "ipv6_preferred_to_compressed (IPv6AddrPreferred 0x2001 0xDB8 0 3 8 0x800 0x200C 0x417A)"
-  
+
+  lemma "ipv6_preferred_to_compressed ip = as \<Longrightarrow> 
+          length (filter (\<lambda>p. p = None) as) = 0 \<and> length (filter (\<lambda>p. p \<noteq> None) as) = 8
+          \<or>
+          length (filter (\<lambda>p. p = None) as) = 1 \<and> length (filter (\<lambda>p. p \<noteq> None) as) \<le> 7"
+  apply(cases ip)
+  apply(simp add: ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps)
+  apply(simp only:  split: split_if_asm)
+  prefer 2
+  apply(rule disjI1)
+  apply(simp)
+  apply force
+  apply(rule disjI2)
+  apply(case_tac "x1=0")
+  apply(case_tac [!] "x2=0")
+  apply(case_tac [!] "x3=0")
+  apply(case_tac [!] "x4=0")
+  apply(case_tac [!] "x5=0")
+  apply(case_tac [!] "x6=0")
+  apply(case_tac [!] "x7=0")
+  apply(case_tac [!] "x8=0")
+  apply(simp_all add: max_zero_streak_def) (*6.449s*)
+  apply auto (*15.167s*)
+  done
+
   lemma "ipv6_unparsed_compressed_to_preferred (ipv6_preferred_to_compressed ip) = Some ip' \<Longrightarrow>
          ip = ip'"
   thm HOL.iffD1[OF ipv6_unparsed_compressed_to_preferred_identity2] 
   apply(drule HOL.iffD1[OF ipv6_unparsed_compressed_to_preferred_identity2])
   apply(elim exE conjE)
+  apply(simp)
   apply(case_tac ip)
   apply(erule parse_ipv6_address_compressed_someE)
   apply(simp)
@@ -794,10 +846,23 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
   apply(simp add: ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps)
   apply(simp split: split_if_asm)
   apply(simp add: ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps split: split_if_asm)
+  apply(auto dest!: ipv6_preferred_to_compressed_None1 simp del:ipv6_preferred_to_compressed.simps split: split_if_asm)[5]
+  apply(simp del:ipv6_preferred_to_compressed.simps)
+  thm ipv6_preferred_to_compressed_None2
+  apply(erule ipv6_preferred_to_compressed_None2)
+  apply(simp del:ipv6_preferred_to_compressed.simps)
+  apply(drule ipv6_preferred_to_compressed_None1)
+  apply(simp split: split_if_asm)
   apply(simp add: ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps split: split_if_asm)
   apply(simp add: ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps split: split_if_asm)
-  apply(simp add: ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps split: split_if_asm)
-  apply(simp add: ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps split: )
+  (*apply(auto simp add: ipv6_preferred_to_compressed_pull_out_if simp del:ipv6_preferred_to_compressed.simps split: split_if_asm)*)
+  apply(simp_all add: foldr_max_length ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps split: )
+
+  apply(simp split: split_if_asm)
+  apply(subst(asm) List_explode_replace1)
+  apply(simp)
+  defer
+  
   (*apply(simp_all add: Let_def)
   apply(simp split: split_if_asm) (*this could probably solve it, but it gets slower with every subgoal*)*)
   oops (*TODO: unfinished theory*)
