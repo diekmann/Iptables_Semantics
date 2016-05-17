@@ -61,11 +61,11 @@ lemma prefix_match_semantics_simple_match:
 	assumes vld: "valid_prefix pm"
 	shows "prefix_match_semantics pm = simple_match_ip m"
 using some
-	apply(clarsimp simp add: fun_eq_iff)
-	apply(subst PrefixMatch.prefix_match_if_in_corny_set[OF vld])
-	apply(cases m)
-	apply(clarsimp simp add: fun_eq_iff toprefixmatch_def ipset_from_cidr_def pfxm_mask_def split: if_splits)
-	using NOT_mask_shifted_lenword by (metis word_not_not)
+  by(cases m)
+	  (clarsimp 
+	   simp add: toprefixmatch_def ipset_from_cidr_def pfxm_mask_def fun_eq_iff
+	            PrefixMatch.prefix_match_if_in_corny_set[OF vld] NOT_mask_shifted_lenword[symmetric]
+	   split: if_splits)
 
 definition simple_match_to_of_match_single ::
     "(32, 'a) simple_match_scheme
@@ -424,10 +424,8 @@ primrec annotate_rlen where
 value "annotate_rlen ''asdf''"
 
 lemma fst_annotate_rlen_le: "(k, a) \<in> set (annotate_rlen l) \<Longrightarrow> k < length l"
-	apply(induction l arbitrary: k)
-	 apply simp
-	apply fastforce
-done
+	by(induction l arbitrary: k; simp; force)
+
 lemma distinct_fst_annotate_rlen: "distinct (map fst (annotate_rlen l))"
 	using fst_annotate_rlen_le by(induction l) (simp, fastforce)
 lemma distinct_annotate_rlen: "distinct (annotate_rlen l)"
@@ -445,12 +443,9 @@ primrec annotate_rlen_code where
 lemma annotate_rlen_len: "fst (annotate_rlen_code r) = length r"
 by(induction r) (clarsimp split: prod.splits)+
 lemma annotate_rlen_code[code]: "annotate_rlen s = snd (annotate_rlen_code s)"
-	apply(induction s)
-	 apply(simp)
-	apply(clarsimp split: prod.split)
-	apply(metis annotate_rlen_len fst_conv)
-done
-
+proof(induction s)
+  case (Cons s ss) thus ?case using annotate_rlen_len[of ss] by(clarsimp split: prod.split)
+qed simp
 
 lemma annotate_first_le_hlp:
 	"length l < unat (max_word :: ('l :: len) word) \<Longrightarrow> \<forall>e\<in>set (map fst (annotate_rlen l)). e \<le> unat (max_word :: 'l word)"
@@ -484,11 +479,10 @@ lemma sorted_word_upt:
   assumes "length l \<le> unat (max_word :: 'l word)"
   shows "sorted_descending (map won (rev [0..<Suc (length l)]))" 
 using assms
-  apply(induction l rule: rev_induct;clarsimp)
-  apply(metis (mono_tags, hide_lams) le_SucI le_unat_uoi of_nat_Suc order_refl word_le_nat_alt)
-  (* This proof is kind of ugly. In case it breaks unfixably, go back to rev a9c4927 and get word_upto.
-     The lemmas on word_upto can be used to shows this trivially. *)
-done
+  by(induction l rule: rev_induct;clarsimp)
+    (metis (mono_tags, hide_lams) le_SucI le_unat_uoi of_nat_Suc order_refl word_le_nat_alt)
+    (* This proof is kind of ugly. In case it breaks unfixably, go back to rev a9c4927 and get word_upto.
+       The lemmas on word_upto can be used to shows this trivially. *)
 
 lemma sorted_annotated:
 	assumes "length l \<le> unat (max_word :: ('l :: len) word)"
@@ -548,12 +542,14 @@ definition "is_iface_list ifs \<equiv> distinct ifs \<and> list_all is_iface_nam
 
 lemma simple_rule_and_iiface_update: "is_iface_name a1 \<Longrightarrow> match_iface (Iface a1) a \<longleftrightarrow> a = a1"
 	apply(rule iffI)
+	subgoal
 	 apply(clarsimp simp: is_iface_name_def match_iface.simps  split: bool.splits option.splits if_splits)
 	 apply(induction a1 a rule: internal_iface_name_match.induct)
-	    apply(simp_all add: iface_name_is_wildcard.simps split: if_splits)
-	 apply(metis iface_name_is_wildcard.simps(3) internal_iface_name_match.elims(2) list.discI)
-	apply(simp add: match_iface_refl)
-done
+	    apply(simp_all add: iface_name_is_wildcard.simps match_iface_refl split: if_splits)
+   apply(metis iface_name_is_wildcard.simps(3) internal_iface_name_match.elims(2) list.discI)
+  done
+  subgoal by(simp add: match_iface_refl)
+proof - qed
 
 lemma max_16_word_max[simp]: "(a :: 16 word) \<le> 0xffff"
 proof -
@@ -573,15 +569,15 @@ lemma oif_ne_iif_alt: "oif_ne_iif ifs =	map (\<lambda>(oi,ii). (simple_match_any
 oops
 
 lemma oif_ne_iif_p1_correct: "is_iface_list ifs \<Longrightarrow> generalized_sfw (oif_ne_iif_p1 ifs) p \<noteq> None \<longleftrightarrow> (p_oiface p \<noteq> p_iiface p \<and> p_oiface p \<in> set ifs \<and> p_iiface p \<in> set ifs)"
-proof(rule iffI, defer_tac, rule ccontr, unfold not_not)
-	case goal2
+proof(rule iffI, defer_tac, rule ccontr, unfold not_not, goal_cases)
+	case 2 note goal2 = 2
 	then obtain m d where "generalized_sfw (oif_ne_iif_p1 ifs) p = Some (m,d)" by fast
 	note m = generalized_sfwD[OF this]
 	then obtain oif iif where ifs[simp]: "oif \<noteq> iif" "oif \<in> set ifs" "iif \<in> set ifs" "m = simple_match_any\<lparr>oiface := Iface oif, iiface := Iface iif\<rparr>" unfolding oif_ne_iif_p1_def by auto
 	hence ifn: "is_iface_name iif" "is_iface_name oif" using goal2 by(simp_all add: is_iface_list_def list_all_iff)
 	show ?case using m unfolding ifs unfolding simple_matches_ioiface[OF ifn] by simp
 next
-	case goal1
+	case 1 note goal1 = 1
 	hence ifn: "is_iface_name (p_iiface p)" "is_iface_name (p_oiface p)" by(simp_all add: is_iface_list_def list_all_iff)
 	note goal1(3)[THEN generalized_sfw_NoneD]
 	hence "\<not> simple_matches (simple_match_any\<lparr>oiface := Iface (p_oiface p), iiface := Iface (p_iiface p)\<rparr>) p" 
@@ -600,7 +596,7 @@ lemma  oif_ne_iif_p12_snd:
 	unfolding oif_ne_iif_p2_def oif_ne_iif_p1_def
 	by(drule generalized_sfwD; clarsimp)+
 
-lemma oif_ne_iif_correct: "is_iface_list ifs \<Longrightarrow> (\<exists>r. generalized_sfw (oif_ne_iif ifs) p = Some (r, ad)) \<longleftrightarrow> ((p_oiface p = p_iiface p \<longleftrightarrow> ad = simple_action.Drop) \<and> p_oiface p \<in> set ifs \<and> p_iiface p \<in> set ifs)"
+lemma oif_ne_iif_correctt: "is_iface_list ifs \<Longrightarrow> (\<exists>r. generalized_sfw (oif_ne_iif ifs) p = Some (r, ad)) \<longleftrightarrow> ((p_oiface p = p_iiface p \<longleftrightarrow> ad = simple_action.Drop) \<and> p_oiface p \<in> set ifs \<and> p_iiface p \<in> set ifs)"
 	unfolding oif_ne_iif_def
 	unfolding generalized_sfw_append
 	apply(rule iffI; split option.splits; clarify)
@@ -631,16 +627,16 @@ proof -
 qed
 
 lemma mask_inj_hlp1: "inj_on (mask :: nat \<Rightarrow> 16 word) {0..16}"
-proof(intro inj_onI)
-       case goal1
-       from goal1(3)
-       have oe: "of_bl (replicate (16 - x) False @ replicate x True) = (of_bl (replicate (16 - y) False @ replicate y True) :: 16 word)"
-               unfolding mask_bl of_bl_rep_False .
-       have "\<And>z. z \<le> 16 \<Longrightarrow> length (replicate (16 - z) False @ replicate z True) = 16" by auto
-       with goal1(1,2)
-       have ps: "replicate (16 - x) False @ replicate x True \<in> {bl. length bl = len_of TYPE(16)}" " replicate (16 - y) False @ replicate y True \<in> {bl. length bl = len_of TYPE(16)}" by simp_all
-       from inj_onD[OF word_bl.Abs_inj_on, OF oe ps]
-       show ?case apply - apply(rule replicate_FT_hlp) using  goal1(1,2) apply simp apply blast done 
+proof(intro inj_onI, goal_cases)
+  case (1 x y)
+  from 1(3)
+  have oe: "of_bl (replicate (16 - x) False @ replicate x True) = (of_bl (replicate (16 - y) False @ replicate y True) :: 16 word)"
+         unfolding mask_bl of_bl_rep_False .
+  have "\<And>z. z \<le> 16 \<Longrightarrow> length (replicate (16 - z) False @ replicate z True) = 16" by auto
+  with 1(1,2)
+  have ps: "replicate (16 - x) False @ replicate x True \<in> {bl. length bl = len_of TYPE(16)}" " replicate (16 - y) False @ replicate y True \<in> {bl. length bl = len_of TYPE(16)}" by simp_all
+  from inj_onD[OF word_bl.Abs_inj_on, OF oe ps]
+  show ?case using 1(1,2) by(fastforce intro: replicate_FT_hlp)
 qed
 
 lemma distinct_simple_match_to_of_match_portlist_hlp: 
@@ -652,31 +648,26 @@ lemma distinct_simple_match_to_of_match_portlist_hlp:
            then map (Some \<circ> (\<lambda>pfx. (pfxm_prefix pfx, ~~ pfxm_mask pfx)))
                  (wordinterval_CIDR_split_prefixmatch (WordInterval (fst ps) (snd ps)))
            else [])"
-  apply(simp_all add: smtoms_eq_hlp)
-  apply(unfold distinct_map)
-  apply(clarify)
-  apply(intro conjI wordinterval_CIDR_split_prefixmatch_distinct)
-  apply(subst comp_inj_on_iff[symmetric])
-  apply(intro inj_onI)
-  apply(case_tac x; case_tac y)
-  apply(clarsimp simp: pfxm_mask_def)
-  apply(drule wordinterval_CIDR_split_prefixmatch_all_valid_less_Ball[unfolded Ball_def, THEN spec, THEN mp])+
-  apply(rename_tac x2 x1a x2a)
-  apply(subgoal_tac "16 - x2 = 16 - x2a")
-  apply(simp;fail)
-  apply(rule mask_inj_hlp1[THEN inj_onD])
-  apply(simp;fail)+
-done
+proof -
+  assume di: "distinct ifs"
+  { def wis \<equiv> "set (wordinterval_CIDR_split_prefixmatch (WordInterval (fst ps) (snd ps)))"
+    fix x y :: "16 prefix_match"
+    obtain xm xn ym yn where xyd[simp]: "x = PrefixMatch xm xn" "y = PrefixMatch ym yn" by(cases x; cases y)
+    assume iw: "x \<in> wis" "y \<in> wis" and et: "(pfxm_prefix x, ~~ pfxm_mask x) = (pfxm_prefix y, ~~ pfxm_mask y)"
+    hence le16: "xn \<le> 16" "yn \<le> 16" unfolding wis_def using wordinterval_CIDR_split_prefixmatch_all_valid_less_Ball[unfolded Ball_def, THEN spec, THEN mp] by force+
+    with et have "16 - xn = 16 - yn" unfolding pfxm_mask_def by(auto intro: mask_inj_hlp1[THEN inj_onD])
+    hence "x = y" using et le16 using diff_diff_cancel by simp
+  } note * = this
+  show ?thesis 
+    apply(clarsimp simp add: smtoms_eq_hlp distinct_map wordinterval_CIDR_split_prefixmatch_distinct)
+    apply(subst comp_inj_on_iff[symmetric]; intro inj_onI)
+  using * by simp_all
+qed
 
 lemma distinct_simple_match_to_of_match: "distinct ifs \<Longrightarrow> distinct (simple_match_to_of_match m ifs)"
   apply(unfold simple_match_to_of_match_def Let_def)
   apply(rule distinct_3lcomprI)
-  subgoal
-    apply(clarsimp)
-    apply(induction ifs)
-    apply(simp;fail)
-    apply(simp;fail)
-  done
+  subgoal by(induction ifs; clarsimp)
   subgoal by(fact distinct_simple_match_to_of_match_portlist_hlp)
   subgoal by(fact distinct_simple_match_to_of_match_portlist_hlp)
   subgoal by(simp_all add: smtoms_eq_hlp)
@@ -684,17 +675,16 @@ done
 
 lemma no_overlaps_lroft_hlp2: "distinct (map fst amr) \<Longrightarrow> (\<And>r. distinct (fm r)) \<Longrightarrow>
     distinct (concat (map (\<lambda>(p, r, c, a). map (\<lambda>b. (p, b, fs a c)) (fm r)) amr))"
-apply(induction amr)
-apply(simp;fail)
-apply(simp only: list.map concat.simps distinct_append)
-apply(rule)
-apply(clarsimp simp add: distinct_map split: prod.splits)
-apply(rule inj_inj_on)
-apply(rule injI)
-apply(simp;fail)
-apply(rule)
-apply(simp)
-apply(force)
+  apply(induction amr)
+   subgoal by simp
+  apply(simp)
+  apply(rule conjI[rotated])
+   subgoal by fastforce
+   subgoal
+    apply(clarsimp simp add: distinct_map split: prod.splits)
+    apply(rule inj_inj_on)
+    apply(force intro: injI)+
+   done
 done
 
 
@@ -703,26 +693,18 @@ lemma no_overlaps_lroft_hlp4: "distinct (map fst amr) \<Longrightarrow>
  ab \<noteq> bb \<Longrightarrow> aa \<noteq> ba"
 by (metis map_of_eq_Some_iff old.prod.inject option.inject)
 
-lemma "
-	OF_match_fields_unsafe (simple_match_to_of_match_single m a b c d) p \<Longrightarrow>
-	OF_match_fields_unsafe (simple_match_to_of_match_single m e f g h) p \<Longrightarrow>
-	(a = e \<and> b = f \<and> c = g \<and> d = h)"
-apply(cases h, case_tac[!] d)
-apply(simp_all add: OF_match_fields_unsafe_def simple_match_to_of_match_single_def option2set_def)
-oops
-
 lemma distinct_lroft_s3: "\<lbrakk>distinct (map fst amr); distinct ifs\<rbrakk> \<Longrightarrow> distinct (lr_of_tran_s3 ifs amr)"
-unfolding lr_of_tran_s3_def
-by(erule no_overlaps_lroft_hlp2, simp add: distinct_simple_match_to_of_match)
+  unfolding lr_of_tran_s3_def
+  by(erule no_overlaps_lroft_hlp2, simp add: distinct_simple_match_to_of_match)
 
 lemma no_overlaps_lroft_hlp3: "distinct (map fst amr) \<Longrightarrow>
 (aa, ab, ac) \<in> set (lr_of_tran_s3 ifs amr) \<Longrightarrow> (ba, bb, bc) \<in> set (lr_of_tran_s3 ifs amr) \<Longrightarrow>
 ac \<noteq> bc \<Longrightarrow> aa \<noteq> ba"
-apply(unfold lr_of_tran_s3_def)
-apply(clarsimp)
-apply(clarsimp split: simple_action.splits)
-apply(metis map_of_eq_Some_iff old.prod.inject option.inject)
-apply(metis map_of_eq_Some_iff old.prod.inject option.inject simple_action.distinct(2))+
+  apply(unfold lr_of_tran_s3_def)
+  apply(clarsimp)
+  apply(clarsimp split: simple_action.splits)
+    apply(metis map_of_eq_Some_iff old.prod.inject option.inject)
+   apply(metis map_of_eq_Some_iff old.prod.inject option.inject simple_action.distinct(2))+
 done
 
 lemma no_overlaps_lroft_s3_hlp: "distinct (map fst amr) \<Longrightarrow> distinct ifs \<Longrightarrow> 
@@ -774,42 +756,11 @@ by(simp add: simple_match_to_of_match_def simple_match_to_of_match_single_def op
 
 lemma not_wildcard_Cons: "\<not> iface_name_is_wildcard (i # is) \<Longrightarrow> i = CHR ''+'' \<Longrightarrow> is \<noteq> []" using iface_name_is_wildcard.simps(2) by blast 
 
-lemma match_iface_name: "is_iface_name (iface_sel n) \<Longrightarrow> match_iface n a \<longleftrightarrow> (iface_sel n) = a"
-proof(cases n, simp add: is_iface_name_def, subst match_iface.simps) (* I hereby ignore an explicit warning not to use that function. TODO: FIX! *)
-	case (goal1 x)
-	show ?case using goal1(1)
-	apply(induction x a rule: internal_iface_name_match.induct)
-	apply(simp_all add: not_wildcard_Cons)
-	apply(rule conjI)
-	apply(clarsimp simp add: not_wildcard_Cons iface_name_is_wildcard.simps)
-	apply(metis iface_name_is_wildcard.simps(3) internal_iface_name_match.simps(1) internal_iface_name_match.simps(3) splice.elims)
-	done
-qed
-
-lemma simple_match_to_of_match_iface_specific: "\<lbrakk>xa \<in> set (simple_match_to_of_match (match_sel ae) ifs); iiface (match_sel ae) \<noteq> ifaceAny; is_iface_name (iface_sel (iiface (match_sel ae)))\<rbrakk> 
-\<Longrightarrow> IngressPort (iface_sel (iiface (match_sel ae))) \<in> xa"
-	apply(clarsimp simp add: simple_match_to_of_match_def simple_match_to_of_match_single_def option2set_def Let_def)
-	apply(subst(asm) match_iface_name)
-	 apply assumption
-	apply fast
-done
-
 lemma smtoms_only_one_iport: "\<lbrakk>xa \<in> set (simple_match_to_of_match (match_sel ba) ifs); IngressPort p1 \<in> xa; IngressPort p2 \<in> xa\<rbrakk> \<Longrightarrow> p1 = p2" 
-apply(clarsimp simp add: simple_match_to_of_match_def simple_match_to_of_match_single_def option2set_def Let_def)
+apply(clarsimp 
+  simp add: simple_match_to_of_match_def simple_match_to_of_match_single_def option2set_def Let_def)
 apply(auto split: option.splits protocol.splits)
 done
-
-lemma smtoms_hlp2: "\<lbrakk>xa \<in> set (simple_match_to_of_match (match_sel ba) ifs); xa \<in> set (simple_match_to_of_match (match_sel ae) ifs); iiface (match_sel ae) \<noteq> iiface (match_sel ba);
-is_iface_name (iface_sel (iiface (match_sel ae))); is_iface_name (iface_sel (iiface (match_sel ba)))\<rbrakk> \<Longrightarrow> False"
-apply(cases "iiface (match_sel ae) = ifaceAny"; cases "iiface (match_sel ba) = ifaceAny")
-apply(simp_all)
-apply((drule (1) simple_match_to_of_match_iface_any[rotated] | drule (1) simple_match_to_of_match_iface_some[rotated])+; (clarsimp;fail))+
-apply(drule (2) simple_match_to_of_match_iface_specific[rotated])
-apply(drule (2) simple_match_to_of_match_iface_specific[rotated])
-apply(drule (2) smtoms_only_one_iport[rotated])
-apply(simp add: iface.expand)
-done
-
 
 (* Todo: Move to Iface? I'd rather not\<dots> *)
 lemma no_overlaps_lroft_s4_hlp1: "\<lbrakk>Some r1 = simple_rule_and (simple_match_any\<lparr>iiface := Iface a1\<rparr>) a; Some r2 = simple_rule_and (simple_match_any\<lparr>iiface := Iface a2\<rparr>) a;
@@ -843,14 +794,15 @@ done
 lemma sorted_lr_of_tran_s3_hlp: "\<forall>x\<in>set f. fst x \<le> a \<Longrightarrow> b \<in> set (lr_of_tran_s3 s f) \<Longrightarrow> fst b \<le> a" 
 	by(auto simp add: lr_of_tran_s3_def)
 
+lemma lr_of_tran_s3_Cons: "lr_of_tran_s3 ifs (a#ard) = (
+	[(p, b, case a of simple_action.Accept \<Rightarrow> [Forward c] | simple_action.Drop \<Rightarrow> []).
+		(p,r,(c,a)) \<leftarrow> [a], b \<leftarrow> simple_match_to_of_match r ifs]) @ lr_of_tran_s3 ifs ard"
+	by(clarsimp simp: lr_of_tran_s3_def)
+
 lemma sorted_lr_of_tran_s3: "sorted_descending (map fst f) \<Longrightarrow> sorted_descending (map fst (lr_of_tran_s3 s f))"
 	apply(induction f)
-	apply(simp add: lr_of_tran_s3_def; fail)
-	apply(clarsimp)
-	apply(subst lr_of_tran_s3_def)
-	apply(clarsimp)
-	apply(subst lr_of_tran_s3_def[symmetric])
-	apply(unfold map_concat map_map comp_def)
+	 subgoal by(simp add: lr_of_tran_s3_def)
+	apply(clarsimp simp: lr_of_tran_s3_Cons map_concat comp_def)
 	apply(unfold sorted_descending_append)
 	apply(simp add: sorted_descending_alt rev_map sorted_const sorted_lr_of_tran_s3_hlp)
 done
@@ -892,32 +844,16 @@ lemma s1_correct: "valid_prefixes rt \<Longrightarrow> has_default_route rt \<Lo
 	apply(drule valid_prefixes_split)
 	apply(clarsimp)
 	apply(erule disjE)
-	 apply(rename_tac a rt)
+	subgoal for a rt
 	 apply(case_tac a)
 	 apply(rename_tac routing_m metric routing_action)
 	 apply(case_tac routing_m)
 	 apply(simp add: valid_prefix_def pfxm_mask_def mask_32_max_word prefix_match_semantics_def generalized_sfw_def lr_of_tran_s1_def route2match_def simple_matches.simps match_ifaceAny match_iface_refl ipset_from_cidr_0;fail)
+	done
 	apply(rule conjI)
 	 apply(simp add: generalized_sfw_def lr_of_tran_s1_def route2match_correct;fail)
-	apply(clarsimp)
-	apply(rename_tac rm)
-	apply(rule_tac x = rm in exI)
-	apply(unfold lr_of_tran_s1_split generalized_sfw_simps)
-	apply(clarify)
-	apply(split if_splits)
-	apply(rule conjI[rotated])
-	 apply(simp add: lr_of_tran_s1_split generalized_sfw_simps;fail)
-	apply(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_refl ipv4set_from_cidr_UNIV prefix_match_if_in_corny_set2)
-done
-
-lemma find_split: "find f l = Some r \<Longrightarrow> \<exists>a b. l = (a @ r # b) \<and> find f a = None"
-apply(induction l)
-apply(simp)
-apply(clarsimp split: if_splits)
-apply(fastforce)
-apply(rename_tac a aa b)
-apply(rule_tac x = "a # aa" in exI)
-apply(simp)
+	apply(simp add: route2match_def simple_matches.simps prefix_match_if_in_corny_set2 
+	                lr_of_tran_s1_split generalized_sfw_simps)
 done
 
 lemma simple_fw_undecided: "simple_fw fw p = Undecided \<longleftrightarrow> (\<forall>r \<in> set fw. \<not>simple_matches (match_sel r) p)"
@@ -1291,41 +1227,46 @@ lemma s3_correct:
 unfolding pack_OF_entries_def lr_of_tran_s3_def fun_app_def
 using vsfwm oiifs
   apply(induction ard)
-   apply(simp add: generalized_sfw_simps)
+   subgoal by(simp add: generalized_sfw_simps)
   apply simp
   apply(clarsimp simp add: generalized_sfw_simps split: prod.splits)
   apply(intro conjI) (* make two subgoals from one *)
-   apply(clarsimp simp add: OF_match_linear_append split: prod.splits)
-   apply(drule simple_match_to_of_matchI[rotated])
-      apply(rule iiifs)
-     apply(rule ippkt)
-    apply blast
-   apply(clarsimp simp add: comp_def)
-   apply(rename_tac ard x1 ac ad ba gr)
-   apply(drule_tac oms = "simple_match_to_of_match ac ifs" and pri = x1 and act = "case ba of simple_action.Accept \<Rightarrow> [Forward ad] | simple_action.Drop \<Rightarrow> []" in OF_match_linear_match_allsameaction[where \<gamma>=OF_match_fields_safe])
-    apply(unfold OF_match_fields_safe_def comp_def)
-    apply(erule the_SomeI;fail)
-   defer
-   apply(simp add: OF_match_linear_append)
-   apply(rename_tac ard x1 ac ad ba)
+   subgoal for ard x1 ac ad ba
+    apply(clarsimp simp add: OF_match_linear_append split: prod.splits)
+    apply(drule simple_match_to_of_matchI[rotated])
+       apply(rule iiifs)
+      apply(rule ippkt)
+     apply blast
+    apply(clarsimp simp add: comp_def)
+    apply(drule 
+       OF_match_linear_match_allsameaction[where
+         \<gamma>=OF_match_fields_safe and pri = x1 and
+         oms = "simple_match_to_of_match ac ifs" and 
+         act = "case ba of simple_action.Accept \<Rightarrow> [Forward ad] | simple_action.Drop \<Rightarrow> []"])
+     apply(unfold OF_match_fields_safe_def comp_def)
+     apply(erule the_SomeI;fail)
+    apply(clarsimp)
+    apply(intro iffI)
+    subgoal
+     apply(rule exI[where x = ac])
+     apply(rule exI[where x = ad])
+     apply(rule exI[where x = ba])
+     apply(clarsimp simp: split3_def split: simple_action.splits flowtable_behavior.splits if_splits)
+    done
+    subgoal
+     apply(clarsimp)
+     apply(rename_tac b)
+     apply(case_tac b)
+     apply(simp_all)
+   done
+  done
+  subgoal for ard x1 ac ad ba
+   apply(simp add: OF_match_linear_append OF_match_fields_safe_def comp_def)
    apply(clarify)
    apply(subgoal_tac "OF_match_linear OF_match_fields_safe (map (\<lambda>x. split3 OFEntry (x1, x, case ba of simple_action.Accept \<Rightarrow> [Forward ad] | simple_action.Drop \<Rightarrow> [])) (simple_match_to_of_match ac ifs)) p = NoAction")
     apply(simp;fail)
    apply(erule (1) s3_noaction_hlp)
    apply(simp add: match_ifaceAny;fail)
-  apply(clarsimp)
-  apply(intro iffI)
-   subgoal for ard x1 ac ad ba gr 
-    apply(rule exI[where x = ac])
-    apply(rule exI[where x = ad])
-    apply(rule exI[where x = ba])
-    apply(clarsimp simp: split3_def split: simple_action.splits flowtable_behavior.splits if_splits)
-   done
-   subgoal
-    apply(clarsimp)
-    apply(rename_tac b)
-    apply(case_tac b)
-    apply(simp_all)
   done
 done
 
@@ -1414,14 +1355,8 @@ definition "no_oif_match \<equiv> list_all (\<lambda>m. oiface (match_sel m) = i
 lemma match_ifaceAny_eq: "oiface m = ifaceAny \<Longrightarrow> simple_matches m p = simple_matches m (p\<lparr>p_oiface := any\<rparr>)"
 by(cases m) (simp add: simple_matches.simps match_ifaceAny)
 lemma no_oif_matchD: "no_oif_match fw \<Longrightarrow> simple_fw fw p = simple_fw fw (p\<lparr>p_oiface := any\<rparr>)"
-  apply(induction fw)
-   apply(simp add: simple_fw_alt;fail)
-  apply(rename_tac a fw)
-  apply(subgoal_tac "oiface (match_sel a) = ifaceAny")
-   apply(drule match_ifaceAny_eq[of _ p any])
-   apply(clarsimp simp add: simple_fw_alt no_oif_match_def)
-  apply(simp add: no_oif_match_def)
-done
+  by(induction fw)
+    (auto simp add: no_oif_match_def simple_fw_alt dest: match_ifaceAny_eq)
 
 lemma lr_of_tran_fbs_acceptD:
   assumes s1: "valid_prefixes rt" "has_default_route rt"
