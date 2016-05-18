@@ -674,7 +674,7 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
   
   
 
-(*DRAFT below*)
+(*DRAFT below: IPv6 pretty printing (converting to compressed format)*)
   function goup_by_zeros :: "16 word list \<Rightarrow> 16 word list list" where
     "goup_by_zeros [] = []" |
     "goup_by_zeros (x#xs) = (
@@ -833,6 +833,8 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
   apply auto (*15.167s*)
   done
 
+(*TODO: show this to show that the pretty printing is correct!*)
+(*
   lemma "ipv6_unparsed_compressed_to_preferred (ipv6_preferred_to_compressed ip) = Some ip' \<Longrightarrow>
          ip = ip'"
   thm HOL.iffD1[OF ipv6_unparsed_compressed_to_preferred_identity2] 
@@ -866,6 +868,6 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
   (*apply(simp_all add: Let_def)
   apply(simp split: split_if_asm) (*this could probably solve it, but it gets slower with every subgoal*)*)
   oops (*TODO: unfinished theory*)
-
+*)
 
 end
