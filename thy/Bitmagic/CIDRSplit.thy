@@ -3,7 +3,8 @@ imports IPAddr
         PrefixMatch
 begin
 
-(*TODO: delete, this is not haskell*)
+(*TODO: delete, this is not haskell
+  Hmm, then what about uncurry?*)
 definition
   "const x \<equiv>\<lambda>y. x"
 
@@ -259,10 +260,7 @@ proof(goal_cases)
 qed
 private lemma wordinterval_CIDR_split1_distinct2: fixes r:: "'a::len wordinterval"
   shows "wordinterval_CIDR_split1 r = (Some s, u) \<Longrightarrow> wordinterval_empty (wordinterval_intersection (prefix_to_wordinterval s) u)"
-by(rule wordinterval_CIDR_split1_distinct[where r = r]) simp  
-(*TODO: sqrl!*)
-private lemma "wordinterval_empty r \<longleftrightarrow> fst (wordinterval_CIDR_split1 r) = None"
-by (metis (no_types, lifting) old.prod.inject option.simps(4) prod.exhaust_sel r_split1_not_none wordinterval_CIDR_split1_def wordinterval_lowest_none_empty)
+by(rule wordinterval_CIDR_split1_distinct[where r = r]) simp
 
 function wordinterval_CIDR_split_prefixmatch :: "'a::len wordinterval \<Rightarrow> 'a prefix_match list"where
   "wordinterval_CIDR_split_prefixmatch rs = (if \<not>wordinterval_empty rs then case wordinterval_CIDR_split1 rs of (Some s, u) \<Rightarrow> s # wordinterval_CIDR_split_prefixmatch u | _ \<Rightarrow> [] else [])"
