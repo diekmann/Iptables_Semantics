@@ -94,7 +94,9 @@ lemma guha_equal_hlp:
 	apply(simp add: no no_overlaps_not_unefined)
 done
 
-lemma guha_deterministic1: "guha_table_semantics \<gamma> ft p (Some x1) \<Longrightarrow> \<not> guha_table_semantics \<gamma> ft p None" by (metis Some_helper guha_table_semantics.simps in_set_conv_decomp)
+lemma guha_deterministic1: "guha_table_semantics \<gamma> ft p (Some x1) \<Longrightarrow> \<not> guha_table_semantics \<gamma> ft p None" 
+by(auto simp add: guha_table_semantics.simps)
+
 lemma guha_deterministic2: "\<lbrakk>no_overlaps \<gamma> ft; guha_table_semantics \<gamma> ft p (Some x1); guha_table_semantics \<gamma> ft p (Some a)\<rbrakk> \<Longrightarrow> x1 = a"
 proof(rule ccontr)
 	case goal1

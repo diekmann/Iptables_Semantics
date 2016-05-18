@@ -367,8 +367,9 @@ Additionally, prefixes should be zero on bits beyond the prefix length.
 \<close>
 
 (*TODO: delete or move*)
-definition "split f a \<equiv> (case a of (x,y) \<Rightarrow> f x y)"
-lemma "curry \<circ> split = id" by(simp add: fun_eq_iff split_def)
+definition "split f \<equiv> (\<lambda>a. case a of (x,y) \<Rightarrow> f x y)"
+declare split_def[simp]
+lemma "curry \<circ> split = id" by(simp add: fun_eq_iff)
 
 definition "valid_prefix_fw m = valid_prefix (split PrefixMatch m)"
 
