@@ -243,26 +243,34 @@ local (*iptables-save parsers*)
                 else (p1, p2);
       in
         val parser_port_single_tup = (
-                 (parse_port_raw --| $$ ":" -- parse_port_raw) >> (port_tuple_warn #> (fn (p1,p2) => (mk_port_single p1, mk_port_single p2)))
+                 (parse_port_raw --| $$ ":" -- parse_port_raw)
+                    >> (port_tuple_warn #> (fn (p1,p2) => (mk_port_single p1, mk_port_single p2)))
               || (parse_port_raw  >> (fn p => (mk_port_single p, mk_port_single p)))
             ) >> HOLogic.mk_prod
         end
-      val parser_port_single_tup_term = parser_port_single_tup >> ((fn x => [x]) #> HOLogic.mk_list @{typ "16 word \<times> 16 word"})
+      val parser_port_single_tup_term = parser_port_single_tup
+            >> ((fn x => [x]) #> HOLogic.mk_list @{typ "16 word \<times> 16 word"})
 
-      val parser_port_many1_tup = parse_comma_separated_list parser_port_single_tup >> HOLogic.mk_list @{typ "16 word \<times> 16 word"}
+      val parser_port_many1_tup = parse_comma_separated_list parser_port_single_tup
+            >> HOLogic.mk_list @{typ "16 word \<times> 16 word"}
 
-      val parser_ctstate_set = parse_comma_separated_list parser_ctstate >> HOLogic.mk_set @{typ "ctstate"}
+      val parser_ctstate_set = parse_comma_separated_list parser_ctstate
+            >> HOLogic.mk_set @{typ "ctstate"}
 
-      val parser_tcp_flag_set = parse_comma_separated_list parser_tcp_flag >> HOLogic.mk_set @{typ "tcp_flag"}
+      val parser_tcp_flag_set = parse_comma_separated_list parser_tcp_flag
+            >> HOLogic.mk_set @{typ "tcp_flag"}
 
-      val parser_tcp_flags = (parser_tcp_flag_set --| $$ " " -- parser_tcp_flag_set) >> (fn (m,c) => @{const TCP_Flags} $ m $ c)
+      val parser_tcp_flags = (parser_tcp_flag_set --| $$ " " -- parser_tcp_flag_set)
+            >> (fn (m,c) => @{const TCP_Flags} $ m $ c)
 
-      val parser_extra = Scan.many1 (fn x => x <> " " andalso Symbol.not_eof x) >> (implode #> HOLogic.mk_string);
+      val parser_extra = Scan.many1 (fn x => x <> " " andalso Symbol.not_eof x)
+            >> (implode #> HOLogic.mk_string);
     end;
-    fun parse_cmd_option_generic (d: term -> parsed_match_action) (s: string) (t: term) (parser: string list -> (term * string list)) = 
+    fun parse_cmd_option_generic (d: term -> parsed_match_action) s t (parser: string list -> (term * string list)) = 
         Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string s |-- (parser >> (fn r => d (t $ r))))
 
-    fun parse_cmd_option (s: string) (t: term) (parser: string list -> (term * string list)) =  parse_cmd_option_generic ParsedMatch s t parser;
+    fun parse_cmd_option (s: string) (t: term) (parser: string list -> (term * string list)) =
+            parse_cmd_option_generic ParsedMatch s t parser;
 
     (*both negated and not negated primitives*)
     fun parse_cmd_option_negated (s: string) (t: term) (parser: string list -> (term * string list)) =
@@ -279,8 +287,9 @@ local (*iptables-save parsers*)
                  || parse_cmd_option_negated_singleton "-d " @{const Dst} (parser_ip_cidr || parser_ip_addr);
 
                             
-    val parse_iprange = parse_with_module_prefix "-m iprange " (parse_cmd_option_negated "--src-range " @{const Src} parser_ip_range
-                                                             || parse_cmd_option_negated "--dst-range " @{const Dst} parser_ip_range); 
+    val parse_iprange = parse_with_module_prefix "-m iprange "
+                            (   parse_cmd_option_negated "--src-range " @{const Src} parser_ip_range
+                             || parse_cmd_option_negated "--dst-range " @{const Dst} parser_ip_range); 
     
     val parse_iface = parse_cmd_option_negated_singleton "-i " @{const IIface} parser_interface
                    || parse_cmd_option_negated_singleton "-o " @{const OIface} parser_interface;
@@ -288,19 +297,21 @@ local (*iptables-save parsers*)
     val parse_protocol = parse_cmd_option_negated_singleton "-p " @{term "Prot \<circ> Proto"} parser_protocol; (*negated?*)
 
     (*-m tcp requires that there is already an -p tcp, iptables checks that for you, we assume valid iptables-save (otherwise the kernel would not load it)*)
-    val parse_tcp_options =
-             parse_with_module_prefix "-m tcp " (parse_cmd_option_negated "--sport " @{const Src_Ports} parser_port_single_tup_term
-                                              || parse_cmd_option_negated "--dport " @{const Dst_Ports} parser_port_single_tup_term
-                                              || parse_cmd_option_negated "--tcp-flags " @{const L4_Flags} parser_tcp_flags);
-    val parse_multiports = 
-             parse_with_module_prefix "-m multiport " (parse_cmd_option_negated "--sports " @{const Src_Ports} parser_port_many1_tup
-                                                    || parse_cmd_option_negated "--dports " @{const Dst_Ports} parser_port_many1_tup);
-    val parse_udp_options = 
-             parse_with_module_prefix "-m udp " (parse_cmd_option_negated "--sport " @{const Src_Ports} parser_port_single_tup_term
-                                              || parse_cmd_option_negated "--dport " @{const Dst_Ports} parser_port_single_tup_term);
+    val parse_tcp_options = parse_with_module_prefix "-m tcp "
+              (   parse_cmd_option_negated "--sport " @{const Src_Ports} parser_port_single_tup_term
+               || parse_cmd_option_negated "--dport " @{const Dst_Ports} parser_port_single_tup_term
+               || parse_cmd_option_negated "--tcp-flags " @{const L4_Flags} parser_tcp_flags);
+    val parse_multiports = parse_with_module_prefix "-m multiport "
+              (   parse_cmd_option_negated "--sports " @{const Src_Ports} parser_port_many1_tup
+               || parse_cmd_option_negated "--dports " @{const Dst_Ports} parser_port_many1_tup);
+    val parse_udp_options = parse_with_module_prefix "-m udp "
+              (   parse_cmd_option_negated "--sport " @{const Src_Ports} parser_port_single_tup_term
+               || parse_cmd_option_negated "--dport " @{const Dst_Ports} parser_port_single_tup_term);
 
-    val parse_ctstate = parse_with_module_prefix "-m state " (parse_cmd_option_negated "--state " @{term "CT_State"} parser_ctstate_set)
-                     || parse_with_module_prefix "-m conntrack " (parse_cmd_option_negated "--ctstate " @{term "CT_State"} parser_ctstate_set);
+    val parse_ctstate = parse_with_module_prefix "-m state "
+                  (parse_cmd_option_negated "--state " @{term "CT_State"} parser_ctstate_set)
+              || parse_with_module_prefix "-m conntrack "
+                  (parse_cmd_option_negated "--ctstate " @{term "CT_State"} parser_ctstate_set);
     
      (*TODO: it would be good to fail if there is a "!" in the extra; it might be an unparsed negation*)
     val parse_unknown = (parse_cmd_option "" @{const Extra} parser_extra) >> (fn x => [x]);
@@ -465,7 +476,8 @@ type firewall_table = term list FirewallTable.table;
 
 local
   (* Initialize the table. Create a key for every declared chain. *)
-  fun FirewallTable_init chain_decls : firewall_table = fold (fn entry => fn accu => FirewallTable.update_new (entry, []) accu) chain_decls FirewallTable.empty;
+  fun FirewallTable_init chain_decls : firewall_table = FirewallTable.empty
+            |> fold (fn entry => fn accu => FirewallTable.update_new (entry, []) accu) chain_decls;
   
   (* this takes like forever! *)
   (* apply compress_parsed_extra here?*)
