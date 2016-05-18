@@ -367,11 +367,11 @@ Additionally, prefixes should be zero on bits beyond the prefix length.
 \<close>
 
 (*TODO: delete or move*)
-definition "split f \<equiv> (\<lambda>a. case a of (x,y) \<Rightarrow> f x y)"
-declare split_def[simp]
-lemma "curry \<circ> split = id" by(simp add: fun_eq_iff)
+definition "uncurry f \<equiv> (\<lambda>a. case a of (x,y) \<Rightarrow> f x y)"
+declare uncurry_def[simp]
+lemma uncurry_curry_id: "uncurry \<circ> curry = id" "curry \<circ> uncurry = id" by(simp_all add: fun_eq_iff)
 
-definition "valid_prefix_fw m = valid_prefix (split PrefixMatch m)"
+definition "valid_prefix_fw m = valid_prefix (uncurry PrefixMatch m)"
 
 definition simple_match_valid :: "('i::len, 'a) simple_match_scheme \<Rightarrow> bool" where
   "simple_match_valid m \<equiv> 

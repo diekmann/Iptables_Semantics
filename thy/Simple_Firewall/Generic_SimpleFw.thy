@@ -22,7 +22,7 @@ lemma generalized_sfw_simps: "generalized_sfw [] p = None" "generalized_sfw (a #
 lemma generalized_sfw_append: "generalized_sfw (a @ b) p = (case generalized_sfw a p of Some x \<Rightarrow> Some x | None \<Rightarrow> generalized_sfw b p)"
 	by(induction a) (simp_all add: generalized_sfw_simps)
 definition "simple_rule_dtor r = (case r of SimpleRule m a \<Rightarrow> (m,a))"
-lemma simple_rule_dtor_ids: "split SimpleRule \<circ> simple_rule_dtor = id" "simple_rule_dtor \<circ> split SimpleRule = id" 
+lemma simple_rule_dtor_ids: "uncurry SimpleRule \<circ> simple_rule_dtor = id" "simple_rule_dtor \<circ> uncurry SimpleRule = id" 
 	unfolding simple_rule_dtor_def comp_def fun_eq_iff by(simp_all split: simple_rule.splits)
 lemma simple_generalized_undecided: "simple_fw fw p \<noteq> Undecided \<Longrightarrow> generalized_sfw (map simple_rule_dtor fw) p \<noteq> None" 
 	by(induction fw) (clarsimp simp add: generalized_sfw_def simple_fw_alt simple_rule_dtor_def split: prod.splits if_splits simple_action.splits simple_rule.splits)+

@@ -72,7 +72,7 @@ definition simple_match_to_of_match_single ::
      \<Rightarrow> char list option \<Rightarrow> protocol \<Rightarrow> (16 word \<times> 16 word) option \<Rightarrow> (16 word \<times> 16 word) option \<Rightarrow> of_match_field set" 
     where
 "simple_match_to_of_match_single m iif prot sport dport \<equiv>
-	   split L4Src ` option2set sport \<union> split L4Dst ` option2set dport
+	   uncurry L4Src ` option2set sport \<union> uncurry L4Dst ` option2set dport
 	 \<union> IPv4Proto ` (case prot of ProtoAny \<Rightarrow> {} | Proto p \<Rightarrow> {p}) (* protocol is an 8 word option anyway\<dots> *)
 	 \<union> IngressPort ` option2set iif
 	 \<union> IPv4Src ` option2set (toprefixmatch (src m)) \<union> IPv4Dst ` option2set (toprefixmatch (dst m))
@@ -111,12 +111,12 @@ proof(rule iffI,goal_cases)
         (simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def;
         subst(asm) set_eq_iff; drule (1) *; simp_all split: option.splits prod.splits protocol.splits)+
   next
-    have *: "\<And>P z x. \<lbrakk>\<forall>x :: of_match_field. P x; z = Some x\<rbrakk> \<Longrightarrow> P (split L4Src x)" by simp
+    have *: "\<And>P z x. \<lbrakk>\<forall>x :: of_match_field. P x; z = Some x\<rbrakk> \<Longrightarrow> P (uncurry L4Src x)" by simp
     show "c = h" using 1 by(cases c; cases h)
         (simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def;
         subst(asm) set_eq_iff; drule (1) *; simp_all split: option.splits prod.splits protocol.splits)+
   next
-    have *: "\<And>P z x. \<lbrakk>\<forall>x :: of_match_field. P x; z = Some x\<rbrakk> \<Longrightarrow> P (split L4Dst x)" by simp
+    have *: "\<And>P z x. \<lbrakk>\<forall>x :: of_match_field. P x; z = Some x\<rbrakk> \<Longrightarrow> P (uncurry L4Dst x)" by simp
     show "d = i" using 1 by(cases d; cases i)
         (simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def;
         subst(asm) set_eq_iff; drule (1) *; simp_all split: option.splits prod.splits protocol.splits)+
@@ -163,9 +163,9 @@ lemmas custom_simpset = Let_def set_concat set_map map_map comp_def concat_map_m
 
 lemma bex_singleton: "\<exists>x\<in>{s}.P x = P s" by simp
 
-abbreviation "simple_fw_prefix_to_wordinterval \<equiv> prefix_to_wordinterval \<circ> split PrefixMatch"
+abbreviation "simple_fw_prefix_to_wordinterval \<equiv> prefix_to_wordinterval \<circ> uncurry PrefixMatch"
 
-lemma simple_match_port_alt: "simple_match_port m p \<longleftrightarrow> p \<in> wordinterval_to_set (split WordInterval m)" by(simp split: prod.splits)
+lemma simple_match_port_alt: "simple_match_port m p \<longleftrightarrow> p \<in> wordinterval_to_set (uncurry WordInterval m)" by(simp split: prod.splits)
 
 
 (* TODO: move? *)
@@ -195,48 +195,48 @@ proof -
 	let ?sb = "\<lambda>p r. (if ?npm p then None else Some r)"
 	obtain si where si: "case si of Some ssi \<Rightarrow> p_sport p \<in> prefix_to_wordset ssi | None \<Rightarrow> True"
 		"case si of None \<Rightarrow> True | Some ssi \<Rightarrow> ssi \<in> set (
-		wordinterval_CIDR_split_prefixmatch (split WordInterval (sports r)))"
+		wordinterval_CIDR_split_prefixmatch (uncurry WordInterval (sports r)))"
 		"si = None \<longleftrightarrow> ?npm (sports r)"
 	proof(cases "?npm (sports r)")
 		case goal1
 		hence "(case None of None \<Rightarrow> True | Some ssi \<Rightarrow> p_sport p \<in> prefix_to_wordset ssi) \<and>
             (case None of None \<Rightarrow> True
-            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_prefixmatch (split WordInterval (sports r))))" by simp
+            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_prefixmatch (uncurry WordInterval (sports r))))" by simp
         with goal1 show ?thesis by blast
 	next
 		case goal2
-		from mm have "p_sport p \<in> wordinterval_to_set (split WordInterval (sports r))"
+		from mm have "p_sport p \<in> wordinterval_to_set (uncurry WordInterval (sports r))"
 			by(simp only: simple_matches.simps simple_match_port_alt)
 		then obtain ssi where ssi:
-			"ssi \<in> set (wordinterval_CIDR_split_prefixmatch (split WordInterval (sports r)))"
+			"ssi \<in> set (wordinterval_CIDR_split_prefixmatch (uncurry WordInterval (sports r)))"
 			"p_sport p \<in> prefix_to_wordset ssi" 
 			using wordinterval_CIDR_split_existential by fast
 		hence "(case Some ssi of None \<Rightarrow> True | Some ssi \<Rightarrow> p_sport p \<in> prefix_to_wordset ssi) \<and>
             (case Some ssi of None \<Rightarrow> True
-            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_prefixmatch (split WordInterval (sports r))))" by simp
+            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_prefixmatch (uncurry WordInterval (sports r))))" by simp
         with goal2 show ?thesis by blast
     qed				
 	obtain di where di: "case di of Some ddi \<Rightarrow> p_dport p \<in> prefix_to_wordset ddi | None \<Rightarrow> True"
 		"case di of None \<Rightarrow> True | Some ddi \<Rightarrow> ddi \<in> set (
-		wordinterval_CIDR_split_prefixmatch (split WordInterval (dports r)))"
+		wordinterval_CIDR_split_prefixmatch (uncurry WordInterval (dports r)))"
 		"di = None \<longleftrightarrow> ?npm (dports r)"
 	proof(cases "?npm (dports r)")
 		case goal1
 		hence "(case None of None \<Rightarrow> True | Some ssi \<Rightarrow> p_dport p \<in> prefix_to_wordset ssi) \<and>
             (case None of None \<Rightarrow> True
-            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_prefixmatch (split WordInterval (dports r))))" by simp
+            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_prefixmatch (uncurry WordInterval (dports r))))" by simp
         with goal1 show ?thesis by blast
 	next
 		case goal2
-		from mm have "p_dport p \<in> wordinterval_to_set (split WordInterval (dports r))"
+		from mm have "p_dport p \<in> wordinterval_to_set (uncurry WordInterval (dports r))"
 			by(simp only: simple_matches.simps simple_match_port_alt)
 		then obtain ddi where ddi:
-			"ddi \<in> set (wordinterval_CIDR_split_prefixmatch (split WordInterval (dports r)))"
+			"ddi \<in> set (wordinterval_CIDR_split_prefixmatch (uncurry WordInterval (dports r)))"
 			"p_dport p \<in> prefix_to_wordset ddi" 
 			using wordinterval_CIDR_split_existential by fast
 		hence "(case Some ddi of None \<Rightarrow> True | Some ssi \<Rightarrow> p_dport p \<in> prefix_to_wordset ssi) \<and>
             (case Some ddi of None \<Rightarrow> True
-            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_prefixmatch (split WordInterval (dports r))))" by simp
+            | Some ssi \<Rightarrow> ssi \<in> set (wordinterval_CIDR_split_prefixmatch (uncurry WordInterval (dports r))))" by simp
         with goal2 show ?thesis by blast
     qed
     show ?thesis
@@ -319,7 +319,7 @@ lemma simple_match_to_of_matchD:
 	shows "simple_matches r p"
 proof -
 	from mv have validpfx: 
-		"valid_prefix (split PrefixMatch (src r))" "valid_prefix (split PrefixMatch (dst r))"
+		"valid_prefix (uncurry PrefixMatch (src r))" "valid_prefix (uncurry PrefixMatch (dst r))"
 		"\<And>pm. toprefixmatch (src r) = Some pm \<Longrightarrow> valid_prefix pm"
 		"\<And>pm. toprefixmatch (dst r) = Some pm \<Longrightarrow> valid_prefix pm"
 		unfolding simple_match_valid_def valid_prefix_fw_def toprefixmatch_def by(simp_all split: prod.splits if_splits)
@@ -422,6 +422,8 @@ lemma map_snd_annotate_rlen: "map snd (annotate_rlen l) = l"
   by(induction l) simp_all
 lemma "sorted_descending (map fst (annotate_rlen l))"
   by(induction l; clarsimp) (force dest: fst_annotate_rlen_le)
+lemma "annotate_rlen l = zip (rev [0..<length l]) l"
+  by(induction l; simp) (* It would probably have been better to just use the zip, but oh well\<dots> *)
 
 primrec annotate_rlen_code where
 "annotate_rlen_code [] = (0,[])" |
