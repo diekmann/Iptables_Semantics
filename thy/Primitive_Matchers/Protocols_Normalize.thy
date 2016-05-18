@@ -62,11 +62,14 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
                            Some ([proto], getNeg ps)"
   
   (* It is kind of messy to find a definition that checks whether a match is the exhaustive list and is executable *)
-  lemma all_proto_hlp: "ProtoAny \<notin> a \<Longrightarrow> (\<forall>p \<in> {0..max_word}. Proto p \<in> a) \<longleftrightarrow> a = {p. p \<noteq> ProtoAny}"
-  	by(auto intro: protocol.exhaust)
+  (*TODO: probably code_unfold was meant. TODO: check whether we actually need this!*)
   lemma all_proto_hlp2[code]: "ProtoAny \<in> a \<or> (\<forall>p \<in> {0..max_word}. Proto p \<in> a) \<longleftrightarrow>
                                ProtoAny \<in> a \<or> a = {p. p \<noteq> ProtoAny}"
-    using all_proto_hlp by blast
+  proof -   
+    have all_proto_hlp: "ProtoAny \<notin> a \<Longrightarrow> (\<forall>p \<in> {0..max_word}. Proto p \<in> a) \<longleftrightarrow> a = {p. p \<noteq> ProtoAny}"
+      by(auto intro: protocol.exhaust)
+    thus ?thesis by blast
+  qed
 
   (*fully optimized, i.e. we cannot compress it better*)
   lemma "compress_protocols ps = Some (ps_pos, ps_neg) \<Longrightarrow>
