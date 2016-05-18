@@ -915,6 +915,8 @@ begin
     private lemma terminal_chain_no_matching_Goto: "terminal_chain rs \<Longrightarrow> no_matching_Goto \<gamma> p rs"
        by(induction rs rule: terminal_chain.induct)  simp_all
     
+    text\<open>A terminal chain means (if the semantics are actually defined) that the chain will
+         ultimately yield a final filtering decision, for all packets.\<close>
     qualified lemma "terminal_chain rs \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> \<exists>X. t = Decision X"
             apply(induction rs)
              apply(simp)
