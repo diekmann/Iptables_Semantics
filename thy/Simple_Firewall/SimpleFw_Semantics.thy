@@ -351,7 +351,8 @@ lemma has_default_policy_fst: "has_default_policy rs \<Longrightarrow> has_defau
 
 
 
-lemma simple_fw_not_matches_removeAll: "\<not> simple_matches m p \<Longrightarrow> simple_fw (removeAll (SimpleRule m a) rs) p = simple_fw rs p"
+lemma simple_fw_not_matches_removeAll: "\<not> simple_matches m p \<Longrightarrow>
+  simple_fw (removeAll (SimpleRule m a) rs) p = simple_fw rs p"
   apply(induction rs p rule: simple_fw.induct)
     apply(simp)
    apply(simp_all)
@@ -365,6 +366,10 @@ dependent on the protocol. Thus, a match for a port should always include the ma
 Additionally, prefixes should be zero on bits beyond the prefix length.
 \<close>
 
+(*TODO: delete or move*)
+definition "split f a \<equiv> (case a of (x,y) \<Rightarrow> f x y)"
+lemma "curry \<circ> split = id" by(simp add: fun_eq_iff split_def)
+
 definition "valid_prefix_fw m = valid_prefix (split PrefixMatch m)"
 
 definition simple_match_valid :: "('i::len, 'a) simple_match_scheme \<Rightarrow> bool" where
@@ -374,10 +379,9 @@ definition simple_match_valid :: "('i::len, 'a) simple_match_scheme \<Rightarrow
   valid_prefix_fw (src m) \<and> valid_prefix_fw (dst m)" 
 
 lemma simple_match_valid_alt_hlp1: "{p. simple_match_port x p} \<noteq> UNIV \<longleftrightarrow> (case x of (s,e) \<Rightarrow> s \<noteq> 0 \<or> e \<noteq> max_word)"
-	apply(clarsimp simp: set_eq_UNIV split: prod.splits)
+	apply(clarsimp split: prod.splits)
  	apply(rename_tac x1 x2)
 	apply(rule)
- 	 apply(elim exE)
  	 using word_zero_le apply blast
  	apply(case_tac "x1 = 0")
 	 using antisym_conv apply blast

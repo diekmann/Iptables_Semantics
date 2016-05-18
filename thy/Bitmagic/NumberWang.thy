@@ -1,15 +1,15 @@
 theory NumberWang
 imports Main
   "~~/src/HOL/Word/Word"
-  "./l4v/lib/WordLemmaBucket" (*will things break if I include this early?*)
+  "./l4v/lib/Word_Lib/Word_Lemmas" (*will things break if I include this early?*)
 begin
 
 
-  (*TODO: obsoletes NOT_mask_len32, requires WordLemmaBucket.*)
+  (*TODO: obsoletes NOT_mask_len32, requires Word_Lemmas*)
   (*TODO: added to l4v, use lemma from there*)
   lemma NOT_mask_shifted_lenword: "NOT ((mask len << (len_of(TYPE('a)) - len))::'a::len word) = (mask (len_of(TYPE('a)) - len))"
     apply(rule Word.word_bool_alg.compl_unique)
-     using WordLemmaBucket.mask_shift_and_negate apply(simp; fail)
+     using Word_Lemmas.mask_shift_and_negate apply(simp; fail)
     apply (rule word_eqI)
     apply (simp add: word_size nth_shiftl nth_shiftr)
     apply auto

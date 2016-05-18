@@ -168,7 +168,7 @@ subsection\<open>Representing IPv4 Adresses\<close>
         apply simp_all
       apply(simp add: NumberWang.div65536[simplified]) (*we add the simplified because the WordLemmaBucket adds some additional simp rules*)
       done
-      --\<open>When @{file "./l4v/lib/WordLemmaBucket.thy"} is imported, some @{file "NumberWang.thy"} lemmas need the [simplified] attribute
+      --\<open>When @{file "./l4v/lib/Word_Lib/Word_Lemmas.thy"} is imported, some @{file "NumberWang.thy"} lemmas need the [simplified] attribute
           because WordLemmaBucket adds some simp rules. This theory should also work without WordLemmaBucket\<close>
     from assms have c: "nat_of_ipv4addr ((ipv4addr_of_nat (d + 256 * c + 65536 * b + 16777216 * a) >> 8) AND mask 8) = c"
       apply(simp add: ipv4addr_of_nat_def word_of_nat)
@@ -204,14 +204,14 @@ subsection\<open>Representing IPv4 Adresses\<close>
     "(ipv4addr_of_dotdecimal (dotdecimal_of_ipv4addr ip)) = ip"
   proof -
     have ip_and_mask8_bl_drop24: "(ip::ipv4addr) AND mask 8 = of_bl (drop 24 (to_bl ip))"
-      by(simp add: WordLemmaBucket.of_drop_to_bl size_ipv4addr)
+      by(simp add: Word_Lemmas.of_drop_to_bl size_ipv4addr)
   
     have List_rev_drop_geqn: "\<And>x n. length x \<ge> n \<Longrightarrow> (take n (rev x)) = rev (drop (length x - n) x)"
       by(simp add: List.rev_drop)
   
     have and_mask_bl_take: "\<And> x n. length x \<ge> n \<Longrightarrow> ((of_bl x) AND mask n) = (of_bl (rev (take n (rev (x)))))"
       apply(simp add: List_rev_drop_geqn)
-      apply(simp add: WordLib.of_bl_drop)
+      apply(simp add: Word_Lib.of_bl_drop)
       done
   
     have bit_equality: "((ip >> 24) AND 0xFF << 24) + ((ip >> 16) AND 0xFF << 16) + ((ip >> 8) AND 0xFF << 8) + (ip AND 0xFF) =

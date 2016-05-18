@@ -2,7 +2,7 @@ theory IPv6Bitmagic
 imports 
   (*NumberWang*)
   (*WordInterval_Lists*)
-  "./l4v/lib/WordLemmaBucket"
+  "./l4v/lib/Word_Lib/Word_Lemmas"
 begin
 
 (*
@@ -20,7 +20,7 @@ lemma bl_to_bin_lt2p_drop: "bl_to_bin bs < 2 ^ length (dropWhile Not bs)"
   qed(simp)
 
 (*TODO: add to l4v uint_of_bl_is_bl_to_bin*)
-thm WordLib.uint_of_bl_is_bl_to_bin
+thm Word_Lib.uint_of_bl_is_bl_to_bin
 lemma uint_of_bl_is_bl_to_bin_drop:
   "length (dropWhile Not l) \<le> len_of TYPE('a) \<Longrightarrow>
    uint ((of_bl::bool list\<Rightarrow> ('a :: len) word) l) = bl_to_bin l"
@@ -54,7 +54,7 @@ lemma length_drop_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs
             (to_bl ((of_bl:: bool list \<Rightarrow> 'l::len word) ls)))) =
     (of_bl:: bool list \<Rightarrow> 'l::len word) ls"
     apply(rule Word.word_uint_eqI)
-    apply(subst WordLib.uint_of_bl_is_bl_to_bin)
+    apply(subst Word_Lib.uint_of_bl_is_bl_to_bin)
      apply(simp; fail)
     apply(subst Word.to_bl_bin)
     apply(subst uint_of_bl_is_bl_to_bin_drop)
@@ -104,7 +104,7 @@ lemma length_drop_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs
    len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
     (of_bl:: bool list \<Rightarrow> 'l::len word) (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) (to_bl w))) = w"
     apply(rule Word.word_uint_eqI)
-    apply(subst WordLib.uint_of_bl_is_bl_to_bin)
+    apply(subst Word_Lib.uint_of_bl_is_bl_to_bin)
      apply(simp; fail)
     apply(subst Word.to_bl_bin)
     apply(subst uint_of_bl_is_bl_to_bin_drop)
@@ -168,22 +168,22 @@ lemma length_drop_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs
   (*TODO: move those two lemmas to l4? maybe they are too specific*)
   lemma length_drop_mask_outer: fixes ip::"'a::len word"
     shows "len_of TYPE('a) - n' = len \<Longrightarrow> length (dropWhile Not (to_bl (ip AND (mask n << n') >> n'))) \<le> len"
-    apply(subst WordLemmaBucket.word_and_mask_shiftl)
-    apply(subst WordLib.shiftl_shiftr1)
+    apply(subst Word_Lemmas.word_and_mask_shiftl)
+    apply(subst Word_Lib.shiftl_shiftr1)
      apply(simp; fail)
     apply(simp)
-    apply(subst WordLib.and_mask)
+    apply(subst Word_Lib.and_mask)
     apply(simp add: word_size)
     apply(simp add: length_drop_mask)
     done
   lemma length_drop_mask_inner: fixes ip::"'a::len word"
     shows "n \<le> len_of TYPE('a) - n' \<Longrightarrow> length (dropWhile Not (to_bl (ip AND (mask n << n') >> n'))) \<le> n"
-    apply(subst WordLemmaBucket.word_and_mask_shiftl)
-    apply(subst WordLemmaBucket.shiftl_shiftr3)
+    apply(subst Word_Lemmas.word_and_mask_shiftl)
+    apply(subst Word_Lemmas.shiftl_shiftr3)
      apply(simp; fail)
     apply(simp)
     apply(simp add: word_size)
-    apply(simp add: WordLemmaBucket.mask_twice)
+    apply(simp add: Word_Lemmas.mask_twice)
     apply(simp add: length_drop_mask)
     done
 
@@ -249,18 +249,18 @@ lemma length_drop_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs
       done
     have mnhelper3: "(of_bl::bool list \<Rightarrow> 128 word) (to_bl b) * 2 ^ n < 2 ^ m"
       apply(rule Word.div_lt_mult)
-       apply(rule WordLemmaBucket.word_less_two_pow_divI)
-         using assms by(simp_all add: mnhelper2 WordLib.p2_gt_0)
+       apply(rule Word_Lemmas.word_less_two_pow_divI)
+         using assms by(simp_all add: mnhelper2 Word_Lib.p2_gt_0)
 
     from assms show ?thesis
       apply(subst Word.ucast_bl)+
       apply(subst Word.shiftl_of_bl)
       apply(subst Word.of_bl_append)
       apply simp
-      apply(subst WordLemmaBucket.word_and_mask_shiftl)
-      apply(subst WordLib.shiftr_div_2n_w)
+      apply(subst Word_Lemmas.word_and_mask_shiftl)
+      apply(subst Word_Lib.shiftr_div_2n_w)
        subgoal by(simp add: word_size; fail)
-      apply(subst WordLemmaBucket.word_div_less)
+      apply(subst Word_Lemmas.word_div_less)
        subgoal by(rule mnhelper3)
       apply simp
       done
@@ -273,7 +273,7 @@ lemma length_drop_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs
   proof -
     from Word.word_bl_Rep' have 1: "length (to_bl b) = 16" by simp
     have "unat ((of_bl::bool list \<Rightarrow> 128 word) (to_bl b)) < 2^(length (to_bl b))"
-      by(fact WordLemmaBucket.unat_of_bl_length)
+      by(fact Word_Lemmas.unat_of_bl_length)
     with 1 show ?thesis by auto
   qed
   lemma unat_of_bl_128_16_le_helper: "unat ((of_bl:: bool list \<Rightarrow> 128 word) (to_bl (b::16 word))) \<le> 65535"
@@ -348,8 +348,8 @@ lemma length_drop_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs
 
      show ?thesis
       apply(subst Word.ucast_bl)+
-      apply(subst WordLemmaBucket.word_and_mask_shiftl)
-      apply(subst WordLemmaBucket.aligned_shiftr_mask_shiftl)
+      apply(subst Word_Lemmas.word_and_mask_shiftl)
+      apply(subst Aligned.aligned_shiftr_mask_shiftl)
        subgoal by (fact aligned)
       subgoal by (fact of_bl_to_bl_shift_mask)
       done
@@ -373,7 +373,7 @@ lemma length_drop_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs
     shows "ucast (((ucast:: 16 word \<Rightarrow> 128 word) b << n) && (mask 16 << n) >> n) = b"
   proof -
    have ucast_mask: "(ucast:: 16 word \<Rightarrow> 128 word) b && mask 16 = ucast b" 
-    apply(subst WordLib.and_mask_eq_iff_le_mask)
+    apply(subst Word_Lib.and_mask_eq_iff_le_mask)
     apply(subst Word.ucast_bl)
     apply(simp add: mask_def)
     thm Word.word_uint_eqI word_le_nat_alt
@@ -382,12 +382,12 @@ lemma length_drop_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs
     using unat_of_bl_128_16_le_helper by simp
 
    from assms have "ucast (((ucast:: 16 word \<Rightarrow> 128 word) b && mask (128 - n) && mask 16) && mask (128 - n)) = b"
-    apply(subst WordLemmaBucket.mask_and_mask)
+    apply(subst Word_Lemmas.mask_and_mask)
     apply(simp)
     apply(subst Word.word_bool_alg.conj.assoc)
-    apply(subst WordLemmaBucket.mask_and_mask)
+    apply(subst Word_Lemmas.mask_and_mask)
     apply(simp)
-    apply(simp add: ucast_mask WordLemmaBucket.ucast_ucast_mask)
+    apply(simp add: ucast_mask Word_Lemmas.ucast_ucast_mask)
     apply(subst Word.mask_eq_iff)
     apply(rule order_less_trans)
      apply(rule Word.uint_lt)
@@ -395,11 +395,11 @@ lemma length_drop_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs
     done
    
    thus ?thesis
-    apply(subst WordLemmaBucket.word_and_mask_shiftl)
-    apply(subst WordLemmaBucket.shiftl_shiftr3)
+    apply(subst Word_Lemmas.word_and_mask_shiftl)
+    apply(subst Word_Lemmas.shiftl_shiftr3)
      apply(simp; fail)
     apply(simp)
-    apply(subst WordLemmaBucket.shiftl_shiftr3)
+    apply(subst Word_Lemmas.shiftl_shiftr3)
      apply(simp; fail)
     apply(simp add: word_size)
     apply(subst Word.word_bool_alg.conj.assoc)

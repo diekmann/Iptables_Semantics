@@ -119,6 +119,9 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
       using assms(2) by(simp add: compress_normalize_protocols_def)
     next
       fix ps
+      have if_option_Some:
+        "((if P then None else Some x) = Some y) = (\<not>P \<and> x = y)"
+        for P and x::protocol and y by simp
       show "compress_protocols ps = None \<Longrightarrow> \<not> matches (\<beta>, \<alpha>) (alist_and (NegPos_map Prot ps)) a p"
         apply(simp add: compress_protocols_def)
         apply(simp add: nt_match_list_matches[symmetric] nt_match_list_simp)
@@ -131,7 +134,12 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
         apply(simp split:split_if_asm)
          apply fastforce
         apply(elim bexE exE)
-        by (metis if_option_Some simple_proto_conjunct.elims)
+        apply(simp)
+        (*by (metis (full_types) option.distinct(1) simple_proto_conjunct.elims)*)
+        apply(elim simple_proto_conjunct.elims)
+          apply(simp; fail)
+         apply(simp; fail)
+        using if_option_Some by metis
     qed
 
   lemma compress_normalize_protocols_nnf: "normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols m = Some m' \<Longrightarrow>

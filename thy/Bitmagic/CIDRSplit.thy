@@ -3,6 +3,10 @@ imports IPAddr
         PrefixMatch
 begin
 
+(*TODO: delete, this is not haskell*)
+definition
+  "const x \<equiv>\<lambda>y. x"
+
 section\<open>CIDR Split Motivation (Example for IPv4)\<close>
   text\<open>When talking about ranges of IP addresses, we can make the ranges explicit by listing them.\<close>
 
@@ -144,7 +148,7 @@ private lemma r_split1_not_none: fixes r:: "'a::len wordinterval" shows "\<not>w
   apply(simp)
 done
 private lemma find_in: "Some a = find f s \<Longrightarrow> a \<in> {x \<in> set s. f x}"
-  by (metis findSomeD mem_Collect_eq)
+  by (metis CollectI find_Some_iff nth_mem)
 private theorem wordinterval_CIDR_split1_preserve: fixes r:: "'a::len wordinterval"
   shows "(Some s, u) = wordinterval_CIDR_split1 r \<Longrightarrow> wordinterval_eq (wordinterval_union (prefix_to_wordinterval s) u) r"
 proof(unfold wordinterval_eq_set_eq)
@@ -166,7 +170,7 @@ proof(unfold wordinterval_eq_set_eq)
     using option.collapse
     by force
   have "u = wordinterval_setminus r (prefix_to_wordinterval s)"
-    using as unfolding s_def using m by (metis (erased, lifting) Pair_inject handy_lemma)
+    using as unfolding s_def using m by (metis (no_types, lifting) Pair_inject Some_to_the)
   moreover have "wordinterval_subset (prefix_to_wordinterval s) r"
     using as unfolding s_def
     apply(rule Pair_inject)
@@ -211,9 +215,8 @@ proof -
   have "wordinterval_element (pfxm_prefix d) (prefix_to_wordinterval d)"
     unfolding wordinterval_element_set_eq
     unfolding prefix_to_wordinterval_set_eq
-    unfolding prefix_to_wordset_def 
-    using first_in_uptoD[OF ie]
-    .
+    unfolding prefix_to_wordset_def
+    using ie by simp
   thus ?thesis
     unfolding wordinterval_empty_set_eq
     unfolding wordinterval_element_set_eq
@@ -257,8 +260,9 @@ qed
 private lemma wordinterval_CIDR_split1_distinct2: fixes r:: "'a::len wordinterval"
   shows "wordinterval_CIDR_split1 r = (Some s, u) \<Longrightarrow> wordinterval_empty (wordinterval_intersection (prefix_to_wordinterval s) u)"
 by(rule wordinterval_CIDR_split1_distinct[where r = r]) simp  
+(*TODO: sqrl!*)
 private lemma "wordinterval_empty r \<longleftrightarrow> fst (wordinterval_CIDR_split1 r) = None"
-by (metis (no_types, lifting) Pair_inject case_option_If2 wordinterval_lowest_none_empty wordinterval_CIDR_split1_def prod.collapse r_split1_not_none) 
+by (metis (no_types, lifting) old.prod.inject option.simps(4) prod.exhaust_sel r_split1_not_none wordinterval_CIDR_split1_def wordinterval_lowest_none_empty)
 
 function wordinterval_CIDR_split_prefixmatch :: "'a::len wordinterval \<Rightarrow> 'a prefix_match list"where
   "wordinterval_CIDR_split_prefixmatch rs = (if \<not>wordinterval_empty rs then case wordinterval_CIDR_split1 rs of (Some s, u) \<Rightarrow> s # wordinterval_CIDR_split_prefixmatch u | _ \<Rightarrow> [] else [])"
@@ -394,6 +398,12 @@ private lemma wordinterval_CIDR_split_prefixmatch_all_valid_less_Ball_hlp:
 	"x \<in> set [s\<leftarrow>map (PrefixMatch x2) (pfxes TYPE('a::len0)) . valid_prefix s \<and> wordinterval_to_set (prefix_to_wordinterval s) \<subseteq> wordinterval_to_set rs] \<Longrightarrow> pfxm_length x \<le> len_of TYPE('a)"
 by(clarsimp simp: pfxes_def) presburger
 
+(*TODO: delete*)
+private lemma cons_set_intro:
+  "lst = x # xs \<Longrightarrow> x \<in> set lst"
+  by fastforce
+
+
 lemma wordinterval_CIDR_split_prefixmatch_all_valid_less_Ball: 
   fixes r:: "'a::len wordinterval"
   shows "Ball (set (wordinterval_CIDR_split_prefixmatch r)) (\<lambda>e. pfxm_length e \<le> len_of TYPE('a))"
@@ -408,7 +418,7 @@ lemma wordinterval_CIDR_split_prefixmatch_all_valid_less_Ball:
 	apply(elim disjE)
 	prefer 2
 	apply(simp;fail)
-	apply(simp add: wordinterval_CIDR_split1_def Let_def find_const_True_hlp  split: option.splits list.splits)
+	apply(simp add: wordinterval_CIDR_split1_def Let_def find_const_True_hlp split: option.splits list.splits)
 	apply(drule cons_set_intro)
 	apply(drule wordinterval_CIDR_split_prefixmatch_all_valid_less_Ball_hlp)
 	apply blast

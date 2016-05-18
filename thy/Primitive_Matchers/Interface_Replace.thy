@@ -194,7 +194,7 @@ lemma
    apply(erule_tac x="p" in allE)
    apply(simp)
    apply fastforce
-  by (simp add: case_option_dom)
+  by (simp add: domIff)
 
 
 

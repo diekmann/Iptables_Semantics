@@ -1188,10 +1188,10 @@ lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and
     from matrix repr have repr_Allow: "runFw s_repr d_repr c rs = Decision FinalAllow"
       by(auto simp add: access_matrix_def Let_def)
 
-    have s_range_in_part: "s_range \<in> set ?part" using V in_set_zip2 s_range by (fastforce dest: map_of_SomeD)
+    have s_range_in_part: "s_range \<in> set ?part" using V s_range by (fastforce elim: in_set_zipE dest: map_of_SomeD)
     with build_ip_partition_no_empty_elems have "\<not> wordinterval_empty s_range" by simp
 
-    have d_range_in_part: "d_range \<in> set ?part" using V in_set_zip2 d_range by (fastforce dest: map_of_SomeD)
+    have d_range_in_part: "d_range \<in> set ?part" using V d_range by (fastforce elim: in_set_zipE dest: map_of_SomeD)
     with build_ip_partition_no_empty_elems have "\<not> wordinterval_empty d_range" by simp
 
     from map_of_zip_map V s_range have "s_repr = getOneIp s_range" by fast
@@ -1289,9 +1289,9 @@ lemma access_matrix_complete:
       by blast
 
     have 1: "s_repr \<in> getOneIp ` set (build_ip_partition c rs)"
-      using V \<open>map_of V s_repr = Some s_range\<close> in_set_zip1 map_of_SomeD by fastforce
+      using V \<open>map_of V s_repr = Some s_range\<close> by (fastforce elim: in_set_zipE dest: map_of_SomeD)
     have 2: "d_repr \<in> getOneIp ` set (build_ip_partition c rs)"
-      using V \<open>map_of V d_repr = Some d_range\<close> in_set_zip1 map_of_SomeD by fastforce
+      using V \<open>map_of V d_repr = Some d_range\<close> by (fastforce elim: in_set_zipE dest: map_of_SomeD)
 
     have "runFw s_repr d_repr c rs = Decision FinalAllow"
     proof -

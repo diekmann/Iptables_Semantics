@@ -1,7 +1,7 @@
 theory Word_Next
 imports Main
   "~~/src/HOL/Word/Word"
-  "./l4v/lib/WordLemmaBucket"
+  "./l4v/lib/Word_Lib/Word_Lemmas"
 begin
 
 
@@ -18,7 +18,7 @@ lemma "word_prev (0:: 8 word) = 0" by eval
 
 
 lemma word_Suc_leq: fixes k::"'a::len word" shows "k \<noteq> max_word \<Longrightarrow> x < k + 1 \<longleftrightarrow> x \<le> k"
-  using WordLemmaBucket.less_x_plus_1 word_le_less_eq by auto
+  using Word_Lemmas.less_x_plus_1 word_le_less_eq by auto
 
 lemma word_Suc_le: fixes k::"'a::len word" shows "x \<noteq> max_word \<Longrightarrow> x + 1 \<le> k \<longleftrightarrow> x < k"
   by (meson not_less word_Suc_leq)
