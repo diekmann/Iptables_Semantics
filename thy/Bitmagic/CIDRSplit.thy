@@ -1,12 +1,8 @@
 theory CIDRSplit
 imports IPAddr
         PrefixMatch
+        Hs_Compat
 begin
-
-(*TODO: delete, this is not haskell
-  Hmm, then what about uncurry?*)
-definition
-  "const x \<equiv>\<lambda>y. x"
 
 section\<open>CIDR Split Motivation (Example for IPv4)\<close>
   text\<open>When talking about ranges of IP addresses, we can make the ranges explicit by listing them.\<close>

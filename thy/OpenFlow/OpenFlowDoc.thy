@@ -395,7 +395,7 @@ definition "simple_action_conj a b \<equiv> (if a = simple_action.Accept \<and> 
 definition "simple_rule_conj \<equiv> (uncurry SimpleRule \<circ> apsnd (uncurry simple_action_conj))"
 theorem "simple_fw rs\<^sub>1 p = Decision FinalAllow \<and> simple_fw rs\<^sub>2 p = Decision FinalAllow \<longleftrightarrow>
 simple_fw (map simple_rule_conj (generalized_fw_join (map simple_rule_dtor rs\<^sub>1) (map simple_rule_dtor rs\<^sub>2))) p = Decision FinalAllow"
-unfolding simple_rule_conj_def simple_action_conj_def[abs_def] using simple_fw_join by(force simp add: comp_def apsnd_def map_prod_def case_prod_unfold)
+unfolding simple_rule_conj_def simple_action_conj_def[abs_def] using simple_fw_join by(force simp add: comp_def apsnd_def map_prod_def case_prod_unfold uncurry_def[abs_def])
 text\<open>Using the join, it should be possible to compute any $n$-ary logical operation on firewalls.
 We will use it for something somewhat different in the next section.\<close>
 

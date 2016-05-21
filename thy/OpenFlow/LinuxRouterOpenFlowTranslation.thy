@@ -104,22 +104,22 @@ proof(rule iffI,goal_cases)
     have *: "\<And>P z x. \<lbrakk>\<forall>x :: of_match_field. P x; z = Some x\<rbrakk> \<Longrightarrow> P (IngressPort x)" by simp
     show "a = f" using 1 by(cases a; cases f)
         (simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def;
-        subst(asm) set_eq_iff; drule (1) *; simp_all split: option.splits prod.splits protocol.splits)+
+        subst(asm) set_eq_iff; drule (1) *; simp split: option.splits uncurry_splits protocol.splits)+
   next
     have *: "\<And>P z x. \<lbrakk>\<forall>x :: of_match_field. P x; z = Proto x\<rbrakk> \<Longrightarrow> P (IPv4Proto x)" by simp
     show "b = g" using 1 by(cases b; cases g) 
         (simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def;
-        subst(asm) set_eq_iff; drule (1) *; simp_all split: option.splits prod.splits protocol.splits)+
+        subst(asm) set_eq_iff; drule (1) *; simp split: option.splits uncurry_splits protocol.splits)+
   next
     have *: "\<And>P z x. \<lbrakk>\<forall>x :: of_match_field. P x; z = Some x\<rbrakk> \<Longrightarrow> P (uncurry L4Src x)" by simp
     show "c = h" using 1 by(cases c; cases h)
         (simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def;
-        subst(asm) set_eq_iff; drule (1) *; simp_all split: option.splits prod.splits protocol.splits)+
+        subst(asm) set_eq_iff; drule (1) *; simp split: option.splits uncurry_splits protocol.splits)+
   next
     have *: "\<And>P z x. \<lbrakk>\<forall>x :: of_match_field. P x; z = Some x\<rbrakk> \<Longrightarrow> P (uncurry L4Dst x)" by simp
     show "d = i" using 1 by(cases d; cases i)
         (simp add: option2set_None simple_match_to_of_match_single_def toprefixmatch_def option2set_def;
-        subst(asm) set_eq_iff; drule (1) *; simp_all split: option.splits prod.splits protocol.splits)+
+        subst(asm) set_eq_iff; drule (1) *; simp split: option.splits uncurry_splits protocol.splits)+
   qed
 qed simp
 
@@ -140,7 +140,7 @@ proof(clarsimp, goal_cases)
       by(clarsimp split: if_splits)
     show ?case
       using o(3) e
-      by(elim disjE; simp add: option2set_def split: if_splits prod.splits;fail)
+      by(elim disjE; simp add: option2set_def split: if_splits prod.splits uncurry_splits)
   next
     case 2
     have e: "(fst (dports m) = 0 \<and> snd (dports m) = max_word) \<or> proto m = Proto TCP \<or> proto m = Proto UDP \<or> proto m = Proto SCTP"
@@ -149,7 +149,7 @@ proof(clarsimp, goal_cases)
       by(clarsimp split: if_splits)
     show ?case
       using o(4) e
-      by(elim disjE; simp add: option2set_def split: if_splits prod.splits;fail)
+      by(elim disjE; simp add: option2set_def split: if_splits prod.splits uncurry_splits)
   qed
 qed
 
@@ -165,7 +165,7 @@ lemma bex_singleton: "\<exists>x\<in>{s}.P x = P s" by simp
 
 abbreviation "simple_fw_prefix_to_wordinterval \<equiv> prefix_to_wordinterval \<circ> uncurry PrefixMatch"
 
-lemma simple_match_port_alt: "simple_match_port m p \<longleftrightarrow> p \<in> wordinterval_to_set (uncurry WordInterval m)" by(simp split: prod.splits)
+lemma simple_match_port_alt: "simple_match_port m p \<longleftrightarrow> p \<in> wordinterval_to_set (uncurry WordInterval m)" by(simp split: uncurry_splits)
 
 
 (* TODO: move? *)
@@ -257,13 +257,15 @@ proof -
 			unfolding smtoms_eq_hlp
 			proof(intro bexI, (intro conjI; ((rule refl)?)), goal_cases)
 				case 2 thus ?case using ple(2) di
-					apply(simp add: pfxm_mask_def prefix_match_dtor_def Set.image_iff split: option.splits prod.splits)
+					apply(simp add: pfxm_mask_def prefix_match_dtor_def Set.image_iff 
+					           split: option.splits prod.splits uncurry_splits)
 					apply(erule bexI[rotated])
 					apply(simp split: prefix_match.splits)
 				done
 			next
 				case 3 thus ?case using ple(1) si
-					apply(simp add: Set.image_iff pfxm_mask_def prefix_match_dtor_def split: option.splits prod.splits)
+					apply(simp add: pfxm_mask_def prefix_match_dtor_def Set.image_iff 
+					           split: option.splits prod.splits uncurry_splits)
 					apply(erule bexI[rotated])
 					apply(simp split: prefix_match.splits)
 				done
@@ -322,7 +324,8 @@ proof -
 		"valid_prefix (uncurry PrefixMatch (src r))" "valid_prefix (uncurry PrefixMatch (dst r))"
 		"\<And>pm. toprefixmatch (src r) = Some pm \<Longrightarrow> valid_prefix pm"
 		"\<And>pm. toprefixmatch (dst r) = Some pm \<Longrightarrow> valid_prefix pm"
-		unfolding simple_match_valid_def valid_prefix_fw_def toprefixmatch_def by(simp_all split: prod.splits if_splits)
+		unfolding simple_match_valid_def valid_prefix_fw_def toprefixmatch_def 
+		  by(simp_all split: uncurry_splits if_splits)
 	from mo have mo: "OF_match_fields_unsafe gr p" 
 		unfolding of_safe_unsafe_match_eq[OF simple_match_to_of_match_generates_prereqs[OF mv eg]]
 		by simp
@@ -731,8 +734,9 @@ no_overlaps OF_match_fields_unsafe (map (split3 OFEntry) (lr_of_tran_s3 ifs amr)
   done
 done
 
-lemma simple_match_to_of_match_iface_any: "\<lbrakk>xa \<in> set (simple_match_to_of_match (match_sel ae) ifs); iiface (match_sel ae) = ifaceAny\<rbrakk> \<Longrightarrow> \<not>(\<exists>p. IngressPort p \<in> xa)"
-  by(simp add: simple_match_to_of_match_def simple_match_to_of_match_single_def option2set_def) fast
+lemma simple_match_to_of_match_iface_any: "\<lbrakk>xa \<in> set (simple_match_to_of_match (match_sel ae) ifs); iiface (match_sel ae) = ifaceAny\<rbrakk>
+\<Longrightarrow> \<not>(\<exists>p. IngressPort p \<in> xa)"
+  by(simp add: simple_match_to_of_match_def simple_match_to_of_match_single_def option2set_def uncurry_def[abs_def]) fast
 
 lemma simple_match_to_of_match_iface_some: "\<lbrakk>xa \<in> set (simple_match_to_of_match (match_sel ae) ifs); iiface (match_sel ae) \<noteq> ifaceAny\<rbrakk> \<Longrightarrow> \<exists>p. IngressPort p \<in> xa"
   by(simp add: simple_match_to_of_match_def simple_match_to_of_match_single_def option2set_def) fast
@@ -743,7 +747,7 @@ lemma not_wildcard_Cons: "\<not> iface_name_is_wildcard (i # is) \<Longrightarro
 lemma smtoms_only_one_iport: "\<lbrakk>xa \<in> set (simple_match_to_of_match (match_sel ba) ifs); IngressPort p1 \<in> xa; IngressPort p2 \<in> xa\<rbrakk> \<Longrightarrow> p1 = p2" 
 apply(clarsimp 
   simp add: simple_match_to_of_match_def simple_match_to_of_match_single_def option2set_def Let_def)
-apply(auto split: option.splits protocol.splits)
+subgoal by(auto split: option.splits protocol.splits)
 done
 
 (* Todo: Move to Iface? I'd rather not\<dots> *)

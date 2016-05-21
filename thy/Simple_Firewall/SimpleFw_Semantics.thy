@@ -5,6 +5,7 @@ imports Main "../Common/Negation_Type"
   "../Primitive_Matchers/Iface"
   "../Primitive_Matchers/Protocol"
   "../Primitive_Matchers/Simple_Packet"
+  "../Bitmagic/Hs_Compat"
 begin
 
 
@@ -365,11 +366,6 @@ or destination port, such a match is not meaningful, as the presence of the port
 dependent on the protocol. Thus, a match for a port should always include the match for a protocol.
 Additionally, prefixes should be zero on bits beyond the prefix length.
 \<close>
-
-(*TODO: delete or move*)
-definition "uncurry f \<equiv> (\<lambda>a. case a of (x,y) \<Rightarrow> f x y)"
-declare uncurry_def[simp]
-lemma uncurry_curry_id: "uncurry \<circ> curry = id" "curry \<circ> uncurry = id" by(simp_all add: fun_eq_iff)
 
 definition "valid_prefix_fw m = valid_prefix (uncurry PrefixMatch m)"
 
