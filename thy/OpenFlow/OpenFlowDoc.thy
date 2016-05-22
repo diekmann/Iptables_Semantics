@@ -387,15 +387,15 @@ lemma "generalized_fw_join l1 l2 \<equiv> [(u,a,b). (m1,a) \<leftarrow> l1, (m2,
 by(fact generalized_fw_join_def[unfolded option2list_def])+
 text\<open>This definition validates the following lemma:\<close>
 lemma "generalized_sfw (generalized_fw_join fw\<^sub>1 fw\<^sub>2) p = Some (u, d\<^sub>1,d\<^sub>2) \<longleftrightarrow> (\<exists>r\<^sub>1 r\<^sub>2. generalized_sfw fw\<^sub>1 p = Some (r\<^sub>1,d\<^sub>1) \<and> generalized_sfw fw\<^sub>2 p = Some (r\<^sub>2,d\<^sub>2) \<and> Some u = simple_match_and r\<^sub>1 r\<^sub>2)"
-  by(force dest: generalized_fw_joinD generalized_fw_joinI intro: the_SomeI)
+  by(force dest: generalized_fw_joinD generalized_fw_joinI intro: Some_to_the[symmetric])
 text\<open>Thus, @{const generalized_fw_join} has a number of applications.
 For example, it could be used to compute a firewall ruleset that represents two firewalls that are executed in sequence.
 \<close>
 definition "simple_action_conj a b \<equiv> (if a = simple_action.Accept \<and> b = simple_action.Accept then simple_action.Accept else simple_action.Drop)"
-definition "simple_rule_conj \<equiv> (split SimpleRule \<circ> apsnd (split simple_action_conj))"
+definition "simple_rule_conj \<equiv> (uncurry SimpleRule \<circ> apsnd (uncurry simple_action_conj))"
 theorem "simple_fw rs\<^sub>1 p = Decision FinalAllow \<and> simple_fw rs\<^sub>2 p = Decision FinalAllow \<longleftrightarrow>
 simple_fw (map simple_rule_conj (generalized_fw_join (map simple_rule_dtor rs\<^sub>1) (map simple_rule_dtor rs\<^sub>2))) p = Decision FinalAllow"
-unfolding simple_rule_conj_def simple_action_conj_def[abs_def] using simple_fw_join by(force simp add: comp_def apsnd_def map_prod_def case_prod_unfold)
+unfolding simple_rule_conj_def simple_action_conj_def[abs_def] using simple_fw_join by(force simp add: comp_def apsnd_def map_prod_def case_prod_unfold uncurry_def[abs_def])
 text\<open>Using the join, it should be possible to compute any $n$-ary logical operation on firewalls.
 We will use it for something somewhat different in the next section.\<close>
 
@@ -412,8 +412,8 @@ lemma "lr_of_tran rt fw ifs \<equiv> let
   ard = (map (apfst of_nat) \<circ> annotate_rlen) nrd
   in
   if length nrd < unat (max_word :: 16 word)
-  then Inr $ pack_OF_entries ifs ard
-  else Inl $ ''Error in creating OpenFlow table: priority number space exhausted''
+  then Inr (pack_OF_entries ifs ard)
+  else Inl ''Error in creating OpenFlow table: priority number space exhausted''
 "
 unfolding Let_def lr_of_tran_def lr_of_tran_fbs_def lr_of_tran_s1_def comp_def route2match_def by force
 text_raw\<open>

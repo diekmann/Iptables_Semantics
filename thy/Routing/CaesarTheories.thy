@@ -201,4 +201,11 @@ apply(rule distinct_3lcomprI; simp_all; fail)
 apply fastforce
 done
 
+lemma if_f_distrib: "(if a then b else c) k = (if a then b k else c k)" by simp
+
+lemma distinct_fst: "distinct (map fst a) \<Longrightarrow> distinct a" by (metis distinct_zipI1 zip_map_fst_snd)
+lemma distinct_snd: "distinct (map snd a) \<Longrightarrow> distinct a" by (metis distinct_zipI2 zip_map_fst_snd)
+
+lemma inter_empty_fst2: "(\<lambda>(p, m, a). (p, m)) ` S \<inter> (\<lambda>(p, m, a). (p, m)) ` T = {} \<Longrightarrow> S \<inter> T = {}" by blast
+
 end

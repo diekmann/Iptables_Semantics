@@ -5,6 +5,7 @@ imports Main "../Common/Negation_Type"
   "../Primitive_Matchers/Iface"
   "../Primitive_Matchers/Protocol"
   "../Primitive_Matchers/Simple_Packet"
+  "../Bitmagic/Hs_Compat"
 begin
 
 
@@ -366,11 +367,7 @@ dependent on the protocol. Thus, a match for a port should always include the ma
 Additionally, prefixes should be zero on bits beyond the prefix length.
 \<close>
 
-(*TODO: delete or move*)
-definition "split f a \<equiv> (case a of (x,y) \<Rightarrow> f x y)"
-lemma "curry \<circ> split = id" by(simp add: fun_eq_iff split_def)
-
-definition "valid_prefix_fw m = valid_prefix (split PrefixMatch m)"
+definition "valid_prefix_fw m = valid_prefix (uncurry PrefixMatch m)"
 
 definition simple_match_valid :: "('i::len, 'a) simple_match_scheme \<Rightarrow> bool" where
   "simple_match_valid m \<equiv> 

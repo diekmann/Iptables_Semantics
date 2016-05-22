@@ -2,15 +2,6 @@ theory Generic_SimpleFw
 imports SimpleFw_Compliance
 begin
 
-(* careful which find you use, friend\<dots> *)
-lemma list_lib_find: "List.find = find"
-unfolding fun_eq_iff
-apply(clarify)
-apply(rename_tac x xa)
-apply(induct_tac xa)
- apply(auto)
-done
-
 definition "generalized_sfw l p = List.find (\<lambda>(m,a). simple_matches m p) l"
 text\<open>Essentially, the idea of the generalized @{term simple_fw} semantics @{term generalized_sfw} is that you can have anything as the resulting action, not only a @{type simple_action}.\<close>
 (* We could have generalized away the fact that those are simple_matches, use a locale, assume an option monadic conjunction operator and then have this be an interpretation.
@@ -31,7 +22,7 @@ lemma generalized_sfw_simps: "generalized_sfw [] p = None" "generalized_sfw (a #
 lemma generalized_sfw_append: "generalized_sfw (a @ b) p = (case generalized_sfw a p of Some x \<Rightarrow> Some x | None \<Rightarrow> generalized_sfw b p)"
 	by(induction a) (simp_all add: generalized_sfw_simps)
 definition "simple_rule_dtor r = (case r of SimpleRule m a \<Rightarrow> (m,a))"
-lemma simple_rule_dtor_ids: "split SimpleRule \<circ> simple_rule_dtor = id" "simple_rule_dtor \<circ> split SimpleRule = id" 
+lemma simple_rule_dtor_ids: "uncurry SimpleRule \<circ> simple_rule_dtor = id" "simple_rule_dtor \<circ> uncurry SimpleRule = id" 
 	unfolding simple_rule_dtor_def comp_def fun_eq_iff by(simp_all split: simple_rule.splits)
 lemma simple_generalized_undecided: "simple_fw fw p \<noteq> Undecided \<Longrightarrow> generalized_sfw (map simple_rule_dtor fw) p \<noteq> None" 
 	by(induction fw) (clarsimp simp add: generalized_sfw_def simple_fw_alt simple_rule_dtor_def split: prod.splits if_splits simple_action.splits simple_rule.splits)+
