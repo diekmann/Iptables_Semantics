@@ -169,8 +169,8 @@ lemma "(\<exists>ips. ipassmt (Iface (p_iiface p)) = Some ips \<and> p_src p \<i
 
 text\<open>Sanity check:
       If we assume that there are no spoofed packets, spoofing protection is trivially fulfilled.\<close>
-(*TODO: only 32 simple_packet*)
-lemma "\<forall> p:: 32 simple_packet. Iface (p_iiface p) \<in> dom ipassmt \<longrightarrow> p_src p \<in> ipv4cidr_union_set (set (the (ipassmt (Iface (p_iiface p))))) \<Longrightarrow> no_spoofing ipassmt rs"
+(*TODO: only 32 simple_packet_scheme*)
+lemma "\<forall> p:: (32,'pkt_ext) simple_packet_scheme. Iface (p_iiface p) \<in> dom ipassmt \<longrightarrow> p_src p \<in> ipv4cidr_union_set (set (the (ipassmt (Iface (p_iiface p))))) \<Longrightarrow> no_spoofing TYPE('pkt_ext) ipassmt rs"
   apply(simp add: no_spoofing_def)
   apply(clarify)
   apply(rename_tac iface ips p)
@@ -184,8 +184,9 @@ text\<open>Sanity check:
       Then the packet's src ip must be according to ipassmt. (case Some)
       We don't case about packets from an interface which are not defined in ipassmt. (case None)\<close>
 lemma 
-  fixes p :: "32 simple_packet"
-  shows "no_spoofing ipassmt rs \<Longrightarrow> (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<Longrightarrow>
+  fixes p :: "(32,'pkt_ext) simple_packet_scheme"
+  shows "no_spoofing TYPE('pkt_ext) ipassmt rs \<Longrightarrow> 
+      (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<Longrightarrow>
        case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips) | None \<Rightarrow> True"
   apply(simp add: no_spoofing_def)
   apply(case_tac "Iface (p_iiface p) \<in> dom ipassmt")
