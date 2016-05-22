@@ -85,7 +85,7 @@ definition "SQRL_ports \<equiv> [
 	(''s1-wan'', ''2'')
 ]"
 
-definition "ofi \<equiv> map (serialize_of_entry (the \<circ> map_of SQRL_ports)) \<circ> theRight $ lr_of_tran SQRL_rtbl_main_sorted SQRL_fw_simple (map iface_name SQRL_ifs)"
+definition "ofi \<equiv> map (serialize_of_entry (the \<circ> map_of SQRL_ports)) \<circ> theRight (lr_of_tran SQRL_rtbl_main_sorted SQRL_fw_simple (map iface_name SQRL_ifs))"
 lemma "ofi =
 [''priority=11,hard_timeout=0,idle_timeout=0,dl_type=0x800,nw_proto=1,nw_dst=10.0.2.0/24,action=output:2'',
   ''priority=10,hard_timeout=0,idle_timeout=0,in_port=1,dl_type=0x800,nw_proto=6,nw_dst=10.0.2.0/24,tp_src=1024/0xfc00,tp_dst=80,action=output:2'',
