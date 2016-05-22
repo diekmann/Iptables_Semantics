@@ -20,7 +20,11 @@ thm SQRL_fw_FORWARD_default_policy_def
 
 value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) SQRL_fw"
 definition "unfolded = unfold_ruleset_FORWARD SQRL_fw_FORWARD_default_policy (map_of_string SQRL_fw)"
-value[code] "map (quote_rewrite \<circ> common_primitive_rule_toString) (unfolded)"
+lemma "map (quote_rewrite \<circ> common_primitive_rule_toString) (unfolded) =
+  [''-p icmp -j ACCEPT'',
+   ''-i s1-lan -o s1-wan -p tcp --spts [1024:65535] --dpts [80] -j ACCEPT'',
+   ''-i s1-wan -o s1-lan -p tcp --spts [80] --dpts [1024:65535] -j ACCEPT'',
+   '' -j DROP'']" by eval
 
 lemma "length unfolded = 4" by eval
 
@@ -85,7 +89,9 @@ definition "SQRL_ports \<equiv> [
 	(''s1-wan'', ''2'')
 ]"
 
-definition "ofi \<equiv> map (serialize_of_entry (the \<circ> map_of SQRL_ports)) \<circ> theRight (lr_of_tran SQRL_rtbl_main_sorted SQRL_fw_simple (map iface_name SQRL_ifs))"
+definition "ofi \<equiv> 
+    case (lr_of_tran SQRL_rtbl_main_sorted SQRL_fw_simple (map iface_name SQRL_ifs))
+    of (Inr openflow_rules) \<Rightarrow> map (serialize_of_entry (the \<circ> map_of SQRL_ports)) openflow_rules"
 lemma "ofi =
 [''priority=11,hard_timeout=0,idle_timeout=0,dl_type=0x800,nw_proto=1,nw_dst=10.0.2.0/24,action=output:2'',
   ''priority=10,hard_timeout=0,idle_timeout=0,in_port=1,dl_type=0x800,nw_proto=6,nw_dst=10.0.2.0/24,tp_src=1024/0xfc00,tp_dst=80,action=output:2'',
