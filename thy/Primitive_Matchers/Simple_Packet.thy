@@ -18,5 +18,10 @@ section\<open>Simple Packet\<close>
                          p_tag_ctstate :: ctstate
 
 
-  value "\<lparr>p_iiface = ''eth1'', p_oiface = '''', p_src = 0, p_dst = 0, p_proto = TCP, p_sport = 0, p_dport = 0, p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New\<rparr>"
+  value "\<lparr> 
+          p_iiface = ''eth1'', p_oiface = '''', 
+          p_src = 0, p_dst = 0, 
+          p_proto = TCP, p_sport = 0, p_dport = 0, 
+          p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New
+         \<rparr>"
 end
