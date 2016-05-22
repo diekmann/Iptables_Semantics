@@ -19,11 +19,21 @@ subsection\<open>Spoofing Protection\<close>
   interface and is allowed by the firewall must be in the IP range of that interface.
 \<close>
 
-declare[[show_types]]
+
+text\<open>We add @{typ "'pkt_ext itself"} as a parameter to have the type of a generic, extensible packet
+     in the definition.\<close>
   definition no_spoofing :: "'pkt_ext itself \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> bool" where
     "no_spoofing TYPE('pkt_ext) ipassmt rs \<equiv> \<forall> iface \<in> dom ipassmt. \<forall>p :: (32,'pkt_ext) simple_packet_scheme.
         ((common_matcher, in_doubt_allow),p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow) \<longrightarrow>
             p_src p \<in> (ipv4cidr_union_set (set (the (ipassmt iface))))"
+
+  text \<open>This is how it looks like for an IPv4 simple packet: We add @{type unit} because a
+        @{typ "32 simple_packet"} does not have any additional fields.\<close>
+  lemma "no_spoofing TYPE(unit) ipassmt rs \<longleftrightarrow>
+    (\<forall> iface \<in> dom ipassmt. \<forall>p :: 32 simple_packet.
+      ((common_matcher, in_doubt_allow),p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow)
+         \<longrightarrow> p_src p \<in> (ipv4cidr_union_set (set (the (ipassmt iface)))))"
+    unfolding no_spoofing_def by blast
 
   text\<open>The definition is sound (if that can be said about a definition):
           if @{const no_spoofing} certifies your ruleset, then your ruleset prohibits spoofing.
