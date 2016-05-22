@@ -6,10 +6,10 @@ begin
 
 
 
-section{*Documentation*}
+section\<open>Documentation\<close>
 
-subsection{*General Model*}
-text{*
+subsection\<open>General Model\<close>
+text\<open>
 The semantics of the filtering behavior of iptables is expressed by @{const iptables_bigstep}.
 The notation @{term "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"} reads as follows:
   @{term "\<Gamma> :: string \<rightharpoonup> 'a rule list"} is the background ruleset (user-defined rules).
@@ -33,19 +33,19 @@ The semantics:
 @{thm[mode=Rule] call_return [no_vars]}\\[1ex] 
 @{thm[mode=Rule] call_result [no_vars]}
 \end{center}
-*}
+\<close>
 
 
-subsection{*Unfolding the Ruleset*}
+subsection\<open>Unfolding the Ruleset\<close>
 
-text{*We can replace all @{const Goto}s to terminal chains (chains that ultimately yield a final
+text\<open>We can replace all @{const Goto}s to terminal chains (chains that ultimately yield a final
   decision for every packet) with @{const Call}s.
   Otherwise we don't have as rich goto semantics as iptables has, but this rewriting is safe.
 
 @{thm Semantics_Goto.rewrite_Goto_chain_safe [no_vars]}
-*}
+\<close>
 
-text{* The iptables firewall starts as follows:
+text\<open>The iptables firewall starts as follows:
   @{term "[Rule MatchAny (Call chain_name), Rule MatchAny default_action]"}
   We call to a built-in chain @{term chain_name}, usually INPUT, OUTPUT, or FORWARD.
   If we don't get a decision, iptables uses the default policy (-P) @{term default_action}.
@@ -60,10 +60,10 @@ text{* The iptables firewall starts as follows:
   May make the parser easier.
   The following lemma shows that this does not change the semantics.
 
-*}
+\<close>
 lemma unfold_optimize_common_matcher_univ_ruleset_CHAIN:
-    --"for simple packets"
-    fixes \<gamma> :: "common_primitive \<Rightarrow> simple_packet \<Rightarrow> bool"
+    --"for simple Ipv4 packets"
+    fixes \<gamma> :: "common_primitive \<Rightarrow> (32, 'a) simple_packet_scheme \<Rightarrow> bool"
     assumes "sanity_wf_ruleset \<Gamma>" and "chain_name \<in> set (map fst \<Gamma>)" and "default_action = action.Accept \<or> default_action = action.Drop"
     and "matcher_agree_on_exact_matches \<gamma> common_matcher"
     and "unfold_ruleset_CHAIN_safe chain_name default_action (map_of \<Gamma>) = Some rs"
@@ -75,9 +75,9 @@ apply(intro unfold_optimize_ruleset_CHAIN[where optimize=optimize_primitive_univ
 by(simp add: unfold_optimize_ruleset_CHAIN_def Let_def split: split_if_asm)
 
 
-subsection{*Spoofing protection*}
+subsection\<open>Spoofing protection\<close>
 
-text{*We provide an executable algorithm @{const no_spoofing_iface} which checks that a ruleset provides spoofing protection:
+text\<open>We provide an executable algorithm @{const no_spoofing_iface} which checks that a ruleset provides spoofing protection:
 
 @{thm no_spoofing_executable_set [no_vars]}
 
@@ -86,10 +86,10 @@ checking spoofing protection:
 
 @{thm no_spoofing_executable_set_preprocessed [no_vars]}
 
-*}
+\<close>
 
-subsection{*Simple Firewall Model*}
-text{*The simple firewall supports the following match conditions: @{typ simple_match}.
+subsection\<open>Simple Firewall Model\<close>
+text\<open>The simple firewall supports the following match conditions: @{typ "'i::len simple_match"}.
 
 The @{const simple_fw} model is remarkably simple: @{thm simple_fw.simps [no_vars]}
 
@@ -108,12 +108,12 @@ There is also a different approach to translate to the simple firewall which rem
 
 @{thm to_simple_firewall_without_interfaces[no_vars]}
 
-*}
+\<close>
 
 
-subsection{*Service Matrices*}
-text{*
-For a @{typ "simple_rule list"} and a fixed @{typ parts_connection}, we support to partition the IPv4 address space the following.
+subsection\<open>Service Matrices\<close>
+text\<open>
+For a @{typ "'i::len simple_rule list"} and a fixed @{typ parts_connection}, we support to partition the IPv4 address space the following.
 
 All members of a partition have the same access rights:
 @{thm build_ip_partition_same_fw [no_vars]}
@@ -135,6 +135,6 @@ the graph (e.g. with Graphviz or tkiz): The vertices are the node description (i
   @{term "dom V"} is the label for each node which will also be referenced in the edges,
   @{term "ran V"} is the human-readable description for each node (i.e. the full IP range it represents)), 
 the edges are the edges. Result looks nice. Theorem also tells us that this visualization is correct.
-*}
+\<close>
 
 end

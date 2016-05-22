@@ -3,7 +3,6 @@ chapter Iptables_Semantics
 session "Iptables_Semantics" = Bitmagic +
   theories[document=false]
     "~~/src/HOL/Library/LaTeXsugar"
-    "afp/Mergesort"
   theories
     Semantics
     "Examples/Example_Semantics"
@@ -42,26 +41,45 @@ session "Iptables_Semantics_Documentation" = Iptables_Semantics +
 session "Iptables_Semantics_Examples" = Iptables_Semantics_Documentation +
    theories
     "Examples/Parser_Test/Parser_Test"
-    "Examples/TUM_Net_Firewall/Analyze_TUM_Net_Firewall"
     "Examples/Synology_Diskstation_DS414/Analyze_Synology_Diskstation"
     "Examples/Ringofsaturn_com/Analyze_Ringofsaturn_com"
     "Examples/SQRL_Shorewall/Analyze_SQRL_Shorewall"
     "Examples/SQRL_Shorewall/SQRL_2015_nospoof"
     "Examples/sns.ias.edu/SNS_IAS_Eduroam_Spoofing"
-    "Examples/TUM_Net_Firewall/TUM_Spoofing_new3"
-    "Examples/TUM_Net_Firewall/TUM_Simple_FW"
     "Examples/medium-sized-company/Analyze_medium_sized_company"
     "Examples/topoS_generated/Analyze_topos_generated"
+    "Examples/IPPartEval/IP_Address_Space_Examples_All_Small"
   document_files
     "root.tex"
     "mathpartir.sty"
 
-session "Iptables_Semantics_Examples2" = Iptables_Semantics_Examples +
+
+session "Iptables_Semantics_Examples_Large1" = Iptables_Semantics_Documentation +
    theories
-    "Examples/IPPartEval/IP_Address_Space_Examples_All_Small"
+    "Examples/TUM_Net_Firewall/Analyze_TUM_Net_Firewall"
+    "Examples/TUM_Net_Firewall/TUM_Spoofing_new3"
+    "Examples/TUM_Net_Firewall/TUM_Simple_FW"
+  document_files
+    "root.tex"
+    "mathpartir.sty"
+    
+session "Iptables_Semantics_Examples_Large2" = Iptables_Semantics_Documentation +
+   theories
     "Examples/IPPartEval/IP_Address_Space_Examples_All_Large"
   document_files
     "root.tex"
     "mathpartir.sty"
 
-
+session Routing = Iptables_Semantics (* the linux router model needs simple_fw *) +
+  theories[document=false]
+    "Routing/CaesarTheories" (* just some helper lemmas *)
+  theories
+    "Routing/AnnotateRouting"
+    "Routing/IpRoute_Parser"
+    "Routing/RoutingRange"
+    "Routing/Routing"
+    "Routing/LinuxRouter"
+    "Routing/RoutingSet"
+  document_files
+    "root.tex"
+    "mathpartir.sty"

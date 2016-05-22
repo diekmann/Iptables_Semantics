@@ -54,12 +54,12 @@ ipv4range = do
 protocol :: Parsec String s Isabelle.Protocol
 protocol = choice (map make ps)
     where make (s, p) = string s $> Isabelle.Proto p
-          ps = [ ("tcp",  Isabelle.TCP)
-               , ("udp",  Isabelle.UDP)
-               , ("icmp", Isabelle.ICMP)
-               , ("esp",  Isabelle.OtherProtocol (Isabelle.Nat 50))
-               , ("ah",   Isabelle.OtherProtocol (Isabelle.Nat 51))
-               , ("gre",  Isabelle.OtherProtocol (Isabelle.Nat 47))
+          ps = [ ("tcp",  Isabelle.tcp)
+               , ("udp",  Isabelle.udp)
+               , ("icmp", Isabelle.icmp)
+               , ("esp",  Isabelle.nat_to_8word (Isabelle.Nat 50))
+               , ("ah",   Isabelle.nat_to_8word (Isabelle.Nat 51))
+               , ("gre",  Isabelle.nat_to_8word (Isabelle.Nat 47))
                ]
 
 iface :: Parsec String s Isabelle.Iface

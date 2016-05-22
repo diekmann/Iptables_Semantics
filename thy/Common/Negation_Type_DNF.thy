@@ -2,7 +2,7 @@ theory Negation_Type_DNF
 imports Negation_Type
 begin
 
-section{*Negation Type DNF*}
+section\<open>Negation Type DNF\<close>
 
 (*Just a draft. needed for packet_set*)
 
@@ -17,13 +17,13 @@ fun dnf_to_bool :: "('a \<Rightarrow> bool) \<Rightarrow> 'a dnf \<Rightarrow> b
   "dnf_to_bool _ [] \<longleftrightarrow> False" |
   "dnf_to_bool f (as#ass) \<longleftrightarrow> (cnf_to_bool f as) \<or> (dnf_to_bool f ass)"
 
-text{*representing @{const True}*}
+text\<open>representing @{const True}\<close>
 definition dnf_True :: "'a dnf" where
   "dnf_True \<equiv> [[]]"
 lemma dnf_True: "dnf_to_bool f dnf_True"
   unfolding dnf_True_def by(simp)
 
-text{*representing @{const False}*}
+text\<open>representing @{const False}\<close>
 definition dnf_False :: "'a dnf" where
   "dnf_False \<equiv> []"
 lemma dnf_False: "\<not> dnf_to_bool f dnf_False"
@@ -76,8 +76,8 @@ lemma dnf_and_symmetric: "dnf_to_bool \<gamma> (dnf_and d1 d2) \<longleftrightar
   using dnf_and_correct by blast
 
  
-subsubsection{*inverting a DNF*}
-  text{*Example*}
+subsubsection\<open>inverting a DNF\<close>
+  text\<open>Example\<close>
   lemma "(\<not> ((a1 \<and> a2) \<or> b \<or> c)) = ((\<not>a1 \<and> \<not> b \<and> \<not> c) \<or> (\<not>a2 \<and> \<not> b \<and> \<not> c))" by blast
   lemma "(\<not> ((a1 \<and> a2) \<or> (b1 \<and> b2) \<or> c)) = ((\<not>a1 \<and> \<not> b1 \<and> \<not> c) \<or> (\<not>a2 \<and> \<not> b1 \<and> \<not> c) \<or> (\<not>a1 \<and> \<not> b2 \<and> \<not> c) \<or> (\<not>a2 \<and> \<not> b2 \<and> \<not> c))" by blast
   
@@ -95,14 +95,14 @@ subsubsection{*inverting a DNF*}
      apply blast+
     done
   
-  text{*this is how @{const listprepend} works: *}
+  text\<open>this is how @{const listprepend} works:\<close>
   lemma "\<not> dnf_to_bool \<gamma> (listprepend [] ds)" by(simp)
   lemma "dnf_to_bool \<gamma> (listprepend [a] ds) \<longleftrightarrow> dnf_to_bool \<gamma> [[a]] \<and> dnf_to_bool \<gamma> ds" by(simp add: map_a_and)
   lemma "dnf_to_bool \<gamma> (listprepend [a, b] ds) \<longleftrightarrow> (dnf_to_bool \<gamma> [[a]] \<and> dnf_to_bool \<gamma> ds) \<or> (dnf_to_bool \<gamma> [[b]] \<and> dnf_to_bool \<gamma> ds)" 
     by(simp add: map_a_and dnf_to_bool_append)
   
   
-  text{*We use @{text "\<exists>"} to model the big @{text "\<or>"} operation*}
+  text\<open>We use @{text "\<exists>"} to model the big @{text "\<or>"} operation\<close>
   lemma listprepend_correct: "dnf_to_bool \<gamma> (listprepend as ds) \<longleftrightarrow> (\<exists>a\<in> set as. dnf_to_bool \<gamma> [[a]] \<and> dnf_to_bool \<gamma> ds)"
     apply(induction as)
      apply(simp)
@@ -134,7 +134,7 @@ subsubsection{*inverting a DNF*}
     apply(simp add: cnf_invert_singelton cnf_singleton_false)
     done
 
-subsubsection{*Optimizing*}
+subsubsection\<open>Optimizing\<close>
   (*there is probably a way better way to represent the set in the Collection framework
     A list of lists can be quite inefficient
     A better datastructure can help as we actually only use a set of sets*)

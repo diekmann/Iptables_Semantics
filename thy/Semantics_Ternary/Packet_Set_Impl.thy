@@ -3,7 +3,7 @@ imports Normalized_Matches Negation_Type_Matching "../Datatype_Selectors"
 begin
 
 
-section{*Util: listprod*}
+section\<open>Util: listprod\<close>
     definition listprod :: "nat list \<Rightarrow> nat" where "listprod as \<equiv> foldr (op *) as 1"
     (*better: "'a::comm_semiring_1 list \<Rightarrow> 'a"*)
     lemma listprod_append[simp]: "listprod (as @ bs) =  listprod as * listprod bs"
@@ -21,18 +21,18 @@ section{*Util: listprod*}
 
 
 
-section{*Executable Packet Set Representation*}
+section\<open>Executable Packet Set Representation\<close>
 
-text{*Recall: @{const alist_and} transforms @{typ "'a negation_type list \<Rightarrow> 'a match_expr"} and uses conjunction as connective. *}
+text\<open>Recall: @{const alist_and} transforms @{typ "'a negation_type list \<Rightarrow> 'a match_expr"} and uses conjunction as connective.\<close>
 
-text{*Symbolic (executable) representation. inner is @{text \<and>}, outer is @{text \<or>}*}
+text\<open>Symbolic (executable) representation. inner is @{text \<and>}, outer is @{text \<or>}\<close>
 (*we remember the action which might be necessary for applying \<alpha>*)
 (*the @{typ "'a"} negation type tells whether to negate the match expression*)
 (*test: the action negation tells whether to negate the result of the match*)
 (*due to unknowns, this may make a huge difference!*)
 datatype 'a packet_set = PacketSet (packet_set_repr: "(('a negation_type \<times> action negation_type) list) list")
 
-text{*Essentially, the @{typ "'a list list"} structure represents a DNF. See @{file "../Common/Negation_Type_DNF.thy"} for a pure Boolean version (without matching).*}
+text\<open>Essentially, the @{typ "'a list list"} structure represents a DNF. See @{file "../Common/Negation_Type_DNF.thy"} for a pure Boolean version (without matching).\<close>
 
 definition to_packet_set :: "action \<Rightarrow> 'a match_expr \<Rightarrow> 'a packet_set" where
  "to_packet_set a m = PacketSet (map (map (\<lambda>m'. (m',Pos a)) o to_negation_type_nnf) (normalize_match m))"
@@ -45,12 +45,12 @@ fun get_action_sign :: "action negation_type \<Rightarrow> (bool \<Rightarrow> b
   "get_action_sign (Pos _) = id" |
   "get_action_sign (Neg _) = (\<lambda>m. \<not> m)"
 
-text{*
+text\<open>
 We collect all entries of the outer list.
 For the inner list, we request that a packet matches all the entries.
 A negated action means that the expression must not match.
 Recall: @{term "matches \<gamma> (MatchNot m) a p \<noteq> (\<not> matches \<gamma> m a p)"}, due to @{const TernaryUnknown}
-*}
+\<close>
 definition packet_set_to_set :: "('a, 'packet) match_tac \<Rightarrow> 'a packet_set \<Rightarrow> 'packet set" where
   "packet_set_to_set \<gamma> ps \<equiv> \<Union> ms \<in> set (packet_set_repr ps).  {p. \<forall> (m, a) \<in> set ms. get_action_sign a (matches \<gamma> (negation_type_to_match_expr m) (get_action a) p)}"
 
@@ -60,7 +60,7 @@ unfolding packet_set_to_set_def
 by fast
 
 
-text{*We really have a disjunctive normal form*}
+text\<open>We really have a disjunctive normal form\<close>
 lemma packet_set_to_set_alt2:  "packet_set_to_set \<gamma> ps = (\<Union> ms \<in> set (packet_set_repr ps).  
   (\<Inter>(m, a) \<in> set ms. {p. get_action_sign a (matches \<gamma> (negation_type_to_match_expr m) (get_action a) p)}))"
 unfolding packet_set_to_set_alt
@@ -93,16 +93,16 @@ definition packet_set_Empty :: "'a packet_set" where
 lemma packet_set_Empty: "packet_set_to_set \<gamma> packet_set_Empty = {}"
 by(simp add: packet_set_Empty_def packet_set_to_set_def)
 
-text{*If the matching agrees for two actions, then the packet sets are also equal*}
+text\<open>If the matching agrees for two actions, then the packet sets are also equal\<close>
 lemma "\<forall>p. matches \<gamma> m a1 p \<longleftrightarrow> matches \<gamma> m a2 p \<Longrightarrow> packet_set_to_set \<gamma> (to_packet_set a1 m) = packet_set_to_set \<gamma> (to_packet_set a2 m)"
 apply(subst(asm) to_packet_set_correct[symmetric])+
 apply safe
 apply simp_all
 done
 
-subsubsection{*Basic Set Operations*}
+subsubsection\<open>Basic Set Operations\<close>
   
-  text{* @{text \<inter>} *}
+  text\<open>@{text \<inter>}\<close>
     fun packet_set_intersect :: "'a packet_set \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
       "packet_set_intersect (PacketSet olist1) (PacketSet olist2) = PacketSet [andlist1 @ andlist2. andlist1 <- olist1, andlist2 <- olist2]"
     
@@ -133,13 +133,13 @@ subsubsection{*Basic Set Operations*}
     apply(simp add: to_packet_set_correct[symmetric])
     using packet_set_intersect_correct by fast
   
-    text{*The length of the result is the product of the input lengths*}
+    text\<open>The length of the result is the product of the input lengths\<close>
     lemma packet_set_intersetc_length: "length (packet_set_repr (packet_set_intersect (PacketSet ass) (PacketSet bss))) = length ass * length bss"
       by(induction ass) (simp_all add: packet_set_intersect.simps)
       
 
   
-  text{* @{text \<union>} *}
+  text\<open>@{text \<union>}\<close>
     fun packet_set_union :: "'a packet_set \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
       "packet_set_union (PacketSet olist1) (PacketSet olist2) = PacketSet (olist1 @ olist2)"
     declare packet_set_union.simps[simp del]
@@ -159,12 +159,12 @@ subsubsection{*Basic Set Operations*}
   
   
 
-  text{* @{text -} *}
+  text\<open>@{text -}\<close>
     fun listprepend :: "'a list \<Rightarrow> 'a list list \<Rightarrow> 'a list list" where
       "listprepend [] ns = []" |
       "listprepend (a#as) ns = (map (\<lambda>xs. a#xs) ns) @ (listprepend as ns)"
     
-    text{*The returned result of @{const listprepend} can get long.*}
+    text\<open>The returned result of @{const listprepend} can get long.\<close>
     lemma listprepend_length: "length (listprepend as bss) = length as * length bss"
       by(induction as) (simp_all)
     
@@ -232,10 +232,10 @@ subsubsection{*Basic Set Operations*}
       "packet_set_not (PacketSet ps) = PacketSet (packet_set_not_internal ps)"
     declare packet_set_not.simps[simp del]
 
-    text{*The length of the result of @{const packet_set_not} is the multiplication over the length of all the inner sets.
+    text\<open>The length of the result of @{const packet_set_not} is the multiplication over the length of all the inner sets.
       Warning: gets huge!
       See @{thm packet_set_not_internal_length}
-    *}
+\<close>
     
     lemma packet_set_not_correct: "packet_set_to_set \<gamma> (packet_set_not P) = - packet_set_to_set \<gamma> P"
     apply(cases P)
@@ -246,7 +246,7 @@ subsubsection{*Basic Set Operations*}
 
     
 
-subsubsection{*Derived Operations*}
+subsubsection\<open>Derived Operations\<close>
   definition packet_set_constrain :: "action \<Rightarrow> 'a match_expr \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
     "packet_set_constrain a m ns = packet_set_intersect ns (to_packet_set a m)"
   
@@ -256,7 +256,7 @@ subsubsection{*Derived Operations*}
   unfolding to_packet_set_set
   by blast
   
-  text{*Warning: result gets huge*}
+  text\<open>Warning: result gets huge\<close>
   definition packet_set_constrain_not :: "action \<Rightarrow> 'a match_expr \<Rightarrow> 'a packet_set \<Rightarrow> 'a packet_set" where
     "packet_set_constrain_not a m ns = packet_set_intersect ns (packet_set_not (to_packet_set a m))"
   
@@ -268,7 +268,7 @@ subsubsection{*Derived Operations*}
   by blast
 
 
-subsubsection{*Optimizing*}
+subsubsection\<open>Optimizing\<close>
   fun packet_set_opt1 :: "'a packet_set \<Rightarrow> 'a packet_set" where
     "packet_set_opt1 (PacketSet ps) = PacketSet (map remdups (remdups ps))"
   declare packet_set_opt1.simps[simp del]
@@ -317,7 +317,7 @@ subsubsection{*Optimizing*}
     by(cases ps) (simp add: packet_set_opt2.simps packet_set_opt2_internal_correct)
 
 
-  text{*If we sort by length, we will hopefully get better results when applying @{const packet_set_opt2}.*}
+  text\<open>If we sort by length, we will hopefully get better results when applying @{const packet_set_opt2}.\<close>
   fun packet_set_opt3 :: "'a packet_set \<Rightarrow> 'a packet_set" where
     "packet_set_opt3 (PacketSet ps) = PacketSet (sort_key (\<lambda>p. length p) ps)" (*quadratic runtime of sort?*)
   declare packet_set_opt3.simps[simp del]
@@ -361,7 +361,7 @@ subsubsection{*Optimizing*}
     using packet_set_opt_def packet_set_opt2_correct packet_set_opt3_correct packet_set_opt4_correct packet_set_opt1_correct by metis
 
 
-subsection{*Conjunction Normal Form Packet Set*}
+subsection\<open>Conjunction Normal Form Packet Set\<close>
 datatype 'a packet_set_cnf = PacketSetCNF (packet_set_repr_cnf: "(('a negation_type \<times> action negation_type) list) list")
 
 
@@ -373,7 +373,7 @@ definition packet_set_cnf_to_set :: "('a, 'packet) match_tac \<Rightarrow> 'a pa
   (\<Union>(m, a) \<in> set ms. {p. get_action_sign a (matches \<gamma> (negation_type_to_match_expr m) (get_action a) p)}))"
 
 
-  text{*Inverting a @{typ "'a packet_set"} and returning @{typ "'a packet_set_cnf"} is very efficient!*}
+  text\<open>Inverting a @{typ "'a packet_set"} and returning @{typ "'a packet_set_cnf"} is very efficient!\<close>
   fun packet_set_not_to_cnf :: "'a packet_set \<Rightarrow> 'a packet_set_cnf" where
     "packet_set_not_to_cnf (PacketSet ps) = PacketSetCNF (map (\<lambda>a. map invertt a) ps)"
   declare packet_set_not_to_cnf.simps[simp del]
@@ -401,7 +401,7 @@ definition packet_set_cnf_to_set :: "('a, 'packet) match_tac \<Rightarrow> 'a pa
   apply(subst helper)
   by simp
   
-  text{*Also, intersection is highly efficient in CNF*}
+  text\<open>Also, intersection is highly efficient in CNF\<close>
   fun packet_set_cnf_intersect :: "'a packet_set_cnf \<Rightarrow> 'a packet_set_cnf \<Rightarrow> 'a packet_set_cnf" where
     "packet_set_cnf_intersect (PacketSetCNF ps1) (PacketSetCNF ps2) = PacketSetCNF (ps1 @ ps2)"
   declare packet_set_cnf_intersect.simps[simp del]
@@ -414,7 +414,7 @@ definition packet_set_cnf_to_set :: "('a, 'packet) match_tac \<Rightarrow> 'a pa
     apply(simp_all)
     done
 
-  text{*Optimizing*}
+  text\<open>Optimizing\<close>
   fun packet_set_cnf_opt1 :: "'a packet_set_cnf \<Rightarrow> 'a packet_set_cnf" where
     "packet_set_cnf_opt1 (PacketSetCNF ps) = PacketSetCNF (map remdups (remdups ps))"
   declare packet_set_cnf_opt1.simps[simp del]

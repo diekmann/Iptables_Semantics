@@ -2,7 +2,7 @@ theory Matching
 imports Semantics
 begin
 
-subsection{*Boolean Matcher Algebra*}
+subsection\<open>Boolean Matcher Algebra\<close>
 
 lemma MatchOr: "matches \<gamma> (MatchOr m1 m2) p \<longleftrightarrow> matches \<gamma> m1 p \<or> matches \<gamma> m2 p"
   by(simp add: MatchOr_def)
@@ -21,7 +21,7 @@ lemma matcheq_matchNone_not_matches: "matcheq_matchNone m \<Longrightarrow> \<no
   by(induction m rule: matcheq_matchNone.induct) auto
 
 
-text{*Lemmas about matching in the @{const iptables_bigstep} semantics.*}
+text\<open>Lemmas about matching in the @{const iptables_bigstep} semantics.\<close>
 
 lemma matches_rule_iptables_bigstep:
   assumes "matches \<gamma> m p \<longleftrightarrow> matches \<gamma> m' p"
@@ -106,7 +106,7 @@ proof -
 qed
 
 
-subsection{*Add match*}
+subsection\<open>Add match\<close>
 
 definition add_match :: "'a match_expr \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
   "add_match m rs = map (\<lambda>r. case r of Rule m' a' \<Rightarrow> Rule (MatchAnd m m') a') rs"
@@ -166,7 +166,7 @@ lemma matches_add_match_simp:
         with Cons.prems(2) obtain ti where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule (MatchAnd m m') a], s\<rangle> \<Rightarrow> ti" and "\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m rs, ti\<rangle> \<Rightarrow> t"
           by(auto elim:seqE_cons simp add: add_match_split_fst)
         with Cons.prems(1) IH have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m' a], s\<rangle> \<Rightarrow> ti" by(simp add: matches_rule_and_simp)
-        with `\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m rs, ti\<rangle> \<Rightarrow> t` IH r show ?case by(metis decision state.exhaust iptables_bigstep_deterministic seq_cons)
+        with \<open>\<Gamma>,\<gamma>,p\<turnstile> \<langle>add_match m rs, ti\<rangle> \<Rightarrow> t\<close> IH r show ?case by(metis decision state.exhaust iptables_bigstep_deterministic seq_cons)
       qed
   next
     assume ?r with m show ?l
@@ -181,7 +181,7 @@ lemma matches_add_match_simp:
         with Cons.prems(2) obtain ti where "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m' a], s\<rangle> \<Rightarrow> ti" and "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, ti\<rangle> \<Rightarrow> t"
           by(auto elim:seqE_cons simp add: add_match_split_fst)
         with Cons.prems(1) IH have "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule (MatchAnd m m') a], s\<rangle> \<Rightarrow> ti" by(simp add: matches_rule_and_simp)
-        with `\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, ti\<rangle> \<Rightarrow> t` IH r show ?case 
+        with \<open>\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, ti\<rangle> \<Rightarrow> t\<close> IH r show ?case 
           apply(simp add: add_match_split_fst)
           by(metis decision state.exhaust iptables_bigstep_deterministic seq_cons)
       qed

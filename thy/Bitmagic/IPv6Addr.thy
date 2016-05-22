@@ -10,13 +10,13 @@ begin
 value "(2::nat) < 2^128" (*without Code_Target_Nat, this would be really slow*)
 
 
-section {*Modelling IPv6 Adresses*}
-  text{*An IPv6 address is basically a 128 bit unsigned integer. RFC 4291, Section 2.*}
+section \<open>Modelling IPv6 Adresses\<close>
+  text\<open>An IPv6 address is basically a 128 bit unsigned integer. RFC 4291, Section 2.\<close>
   type_synonym ipv6addr = "128 word"
  
 
   (*the next lines are a copy from IPv4Addr.thy*)
-  text{*Conversion between natural numbers and IPv6 adresses*}
+  text\<open>Conversion between natural numbers and IPv6 adresses\<close>
   definition nat_of_ipv6addr :: "ipv6addr \<Rightarrow> nat" where
     "nat_of_ipv6addr a = unat a"
   definition ipv6addr_of_nat :: "nat \<Rightarrow> ipv6addr" where
@@ -25,7 +25,7 @@ section {*Modelling IPv6 Adresses*}
   lemma "((nat_of_ipv6addr (42::ipv6addr))::nat) = 42" by eval
   lemma "((ipv6addr_of_nat (42::nat))::ipv6addr) = 42" by eval
 
-  text{*The maximum IPv6 addres*}
+  text\<open>The maximum IPv6 addres\<close>
   definition max_ipv6_addr :: "ipv6addr" where 
     "max_ipv6_addr \<equiv> ipv6addr_of_nat ((2^128) - 1)"
 
@@ -40,7 +40,7 @@ section {*Modelling IPv6 Adresses*}
   lemma range_0_max_UNIV: "UNIV = {0 .. max_ipv6_addr}" (*not in the simp set, for a reason*)
     by(simp add: max_ipv6_addr_max_word) fastforce
 
-  text{*identity functions*}
+  text\<open>identity functions\<close>
   lemma nat_of_ipv6addr_ipv6addr_of_nat: "\<lbrakk> n \<le> nat_of_ipv6addr max_ipv6_addr \<rbrakk> \<Longrightarrow> nat_of_ipv6addr (ipv6addr_of_nat n) = n"
     by (metis ipv6addr_of_nat_def le_unat_uoi nat_of_ipv6addr_def)
   lemma nat_of_ipv6addr_ipv6addr_of_nat_mod: "nat_of_ipv6addr (ipv6addr_of_nat n) = n mod 2^128"
@@ -49,7 +49,7 @@ section {*Modelling IPv6 Adresses*}
     by(simp add: ipv6addr_of_nat_def nat_of_ipv6addr_def)
 
 
-  text{*Equality of IPv6 adresses*}
+  text\<open>Equality of IPv6 adresses\<close>
   lemma "\<lbrakk> n \<le> nat_of_ipv6addr max_ipv6_addr \<rbrakk> \<Longrightarrow> nat_of_ipv6addr (ipv6addr_of_nat n) = n"
     apply(simp add: nat_of_ipv6addr_def ipv6addr_of_nat_def)
     apply(induction n)
@@ -59,21 +59,21 @@ section {*Modelling IPv6 Adresses*}
   lemma ipv6addr_of_nat_eq: "x = y \<Longrightarrow> ipv6addr_of_nat x = ipv6addr_of_nat y"
     by(simp add: ipv6addr_of_nat_def)
 
-subsection{*Syntax of IPv6 Adresses*}
-  text{*RFC 4291, Section 2.2.: Text Representation of Addresses*}
+subsection\<open>Syntax of IPv6 Adresses\<close>
+  text\<open>RFC 4291, Section 2.2.: Text Representation of Addresses\<close>
 
-  text{*Quoting the RFC (note: errata exists):
+  text\<open>Quoting the RFC (note: errata exists):
    1. The preferred form is x:x:x:x:x:x:x:x, where the 'x's are one to
       four hexadecimal digits of the eight 16-bit pieces of the address.
       Examples:
          ABCD:EF01:2345:6789:ABCD:EF01:2345:6789
          2001:DB8:0:0:8:800:200C:417A
-  *}
+\<close>
   datatype ipv6addr_syntax = 
     IPv6AddrPreferred "16 word" "16 word" "16 word" "16 word" "16 word" "16 word" "16 word" "16 word"
 
 
-text{*
+text\<open>
    2. [...] In order to make writing addresses containing zero
       bits easier, a special syntax is available to compress the zeros.
       The use of "::" indicates one or more groups of 16 bits of zeros.
@@ -91,13 +91,13 @@ text{*
          FF01::101                      a multicast address
          ::1                            the loopback address
          ::                             the unspecified address
-  *}
+\<close>
   (*datatype may take some minutes to load*)
   datatype ipv6addr_syntax_compressed =
-  --{*using @{typ unit} for the omission :: 
+  --\<open>using @{typ unit} for the omission :: 
       The first number is the position where the omission occurs.
       The second number is the length of the specified address pieces.
-        I.e. `8 minus the second number' pieces are omitted.*}
+        I.e. `8 minus the second number' pieces are omitted.\<close>
     IPv6AddrCompressed1_0 unit
   | IPv6AddrCompressed1_1 unit "16 word"
   | IPv6AddrCompressed1_2 unit "16 word" "16 word"
@@ -156,11 +156,24 @@ text{*
     "[...] all implementations must accept and be able to handle any legitimate RFC 4291 format."
   *)
 
-  (*More convenient parser helper function:
-    Some 16word \<longrightarrow> address piece
-    None \<longrightarrow> omission :: *)
-  definition parse_ipv6_address :: "((16 word) option) list \<Rightarrow> ipv6addr_syntax_compressed option" where
-    "parse_ipv6_address as = (case as of 
+  (*More convenient parser helper function for compressed IPv6 addresses:
+    Input list (from parser):
+      Some 16word \<longrightarrow> address piece
+      None \<longrightarrow> omission '::'
+    
+  
+   Basically, the parser must only do the following (python syntax):
+     split the string which is an ipv6 address at ':'
+     map empty string to None
+     map everything else to Some (string_to_16word str)
+   Example:
+     "1:2:3".split(":")  = ['1', '2', '3']
+     ":2:3:4".split(":") = ['', '2', '3', '4']
+     ":2::3".split(":")  = ['', '2', '', '3']
+     "1:2:3:".split(":") = ['1', '2', '3', '']
+  *)
+  definition parse_ipv6_address_compressed :: "((16 word) option) list \<Rightarrow> ipv6addr_syntax_compressed option" where
+    "parse_ipv6_address_compressed as = (case as of 
       [None] \<Rightarrow> Some (IPv6AddrCompressed1_0 ())
     | [None, Some a] \<Rightarrow> Some (IPv6AddrCompressed1_1 () a)
     | [None, Some a, Some b] \<Rightarrow> Some (IPv6AddrCompressed1_2 () a b)
@@ -290,66 +303,21 @@ text{*
 
 
 (*for all ipv6_syntax, there is a corresponding list representation*)
-lemma parse_ipv6_address_exists:
-  obtains ss where "parse_ipv6_address ss = Some ipv6_syntax"
+lemma parse_ipv6_address_compressed_exists:
+  obtains ss where "parse_ipv6_address_compressed ss = Some ipv6_syntax"
   proof
     def ss \<equiv> "ipv6addr_syntax_compressed_to_list ipv6_syntax"
-    thus "parse_ipv6_address ss = Some ipv6_syntax"
-      by (cases ipv6_syntax; simp add: parse_ipv6_address_def)
+    thus "parse_ipv6_address_compressed ss = Some ipv6_syntax"
+      by (cases ipv6_syntax; simp add: parse_ipv6_address_compressed_def)
   qed
 
-lemma parse_ipv6_address_identity:
-      "parse_ipv6_address (ipv6addr_syntax_compressed_to_list (ipv6_syntax)) = Some ipv6_syntax"
-  by(cases ipv6_syntax; simp add: parse_ipv6_address_def)
+lemma parse_ipv6_address_compressed_identity:
+      "parse_ipv6_address_compressed (ipv6addr_syntax_compressed_to_list (ipv6_syntax)) = Some ipv6_syntax"
+  by(cases ipv6_syntax; simp add: parse_ipv6_address_compressed_def)
 
-(* won't load in reasonable time
- fun parse_ipv6_address2 :: "((16 word) option) list \<Rightarrow> ipv6addr_syntax_compressed option" where
-      "parse_ipv6_address2 [None] = Some (IPv6AddrCompressed1_0 ())"
-    | "parse_ipv6_address2 [None, Some a] = Some (IPv6AddrCompressed1_1 () a)"
-    | "parse_ipv6_address2 [None, Some a, Some b] = Some (IPv6AddrCompressed1_2 () a b)"
-    | "parse_ipv6_address2 [None, Some a, Some b, Some c] = Some (IPv6AddrCompressed1_3 () a b c)"
-    | "parse_ipv6_address2 [None, Some a, Some b, Some c, Some d] = Some (IPv6AddrCompressed1_4 () a b c d)"
-    | "parse_ipv6_address2 [None, Some a, Some b, Some c, Some d, Some e] = Some (IPv6AddrCompressed1_5 () a b c d e)"
-    | "parse_ipv6_address2 [None, Some a, Some b, Some c, Some d, Some e, Some f] = Some (IPv6AddrCompressed1_6 () a b c d e f)"
-    | "parse_ipv6_address2 [None, Some a, Some b, Some c, Some d, Some e, Some f, Some g] = Some (IPv6AddrCompressed1_7 () a b c d e f g)"
-  
-    | "parse_ipv6_address2 [Some a, None] = Some (IPv6AddrCompressed2_1 a ())"
-    | "parse_ipv6_address2 [Some a, None, Some b] = Some (IPv6AddrCompressed2_2 a () b)"
-    | "parse_ipv6_address2 [Some a, None, Some b, Some c] = Some (IPv6AddrCompressed2_3 a () b c)"
-    | "parse_ipv6_address2 [Some a, None, Some b, Some c, Some d] = Some (IPv6AddrCompressed2_4 a () b c d)"
-    | "parse_ipv6_address2 [Some a, None, Some b, Some c, Some d, Some e] = Some (IPv6AddrCompressed2_5 a () b c d e)"
-    | "parse_ipv6_address2 [Some a, None, Some b, Some c, Some d, Some e, Some f] = Some (IPv6AddrCompressed2_6 a () b c d e f)"
-    | "parse_ipv6_address2 [Some a, None, Some b, Some c, Some d, Some e, Some f, Some g] = Some (IPv6AddrCompressed2_7 a () b c d e f g)"
-  
-    | "parse_ipv6_address2 [Some a, Some b, None] = Some (IPv6AddrCompressed3_2 a b ())"
-    | "parse_ipv6_address2 [Some a, Some b, None, Some c] = Some (IPv6AddrCompressed3_3 a b () c)"
-    | "parse_ipv6_address2 [Some a, Some b, None, Some c, Some d] = Some (IPv6AddrCompressed3_4 a b () c d)"
-    | "parse_ipv6_address2 [Some a, Some b, None, Some c, Some d, Some e] = Some (IPv6AddrCompressed3_5 a b () c d e)"
-    | "parse_ipv6_address2 [Some a, Some b, None, Some c, Some d, Some e, Some f] = Some (IPv6AddrCompressed3_6 a b () c d e f)"
-    | "parse_ipv6_address2 [Some a, Some b, None, Some c, Some d, Some e, Some f, Some g] = Some (IPv6AddrCompressed3_7 a b () c d e f g)"
-  
-    | "parse_ipv6_address2 [Some a, Some b, Some c, None] = Some (IPv6AddrCompressed4_3 a b c ())"
-    | "parse_ipv6_address2 [Some a, Some b, Some c, None, Some d] = Some (IPv6AddrCompressed4_4 a b c () d)"
-    | "parse_ipv6_address2 [Some a, Some b, Some c, None, Some d, Some e] = Some (IPv6AddrCompressed4_5 a b c () d e)"
-    | "parse_ipv6_address2 [Some a, Some b, Some c, None, Some d, Some e, Some f] = Some (IPv6AddrCompressed4_6 a b c () d e f)"
-    | "parse_ipv6_address2 [Some a, Some b, Some c, None, Some d, Some e, Some f, Some g] = Some (IPv6AddrCompressed4_7 a b c () d e f g)"
-  
-    | "parse_ipv6_address2 [Some a, Some b, Some c, Some d, None] = Some (IPv6AddrCompressed5_4 a b c d ())"
-    | "parse_ipv6_address2 [Some a, Some b, Some c, Some d, None, Some e] = Some (IPv6AddrCompressed5_5 a b c d () e)"
-    | "parse_ipv6_address2 [Some a, Some b, Some c, Some d, None, Some e, Some f] = Some (IPv6AddrCompressed5_6 a b c d () e f)"
-    | "parse_ipv6_address2 [Some a, Some b, Some c, Some d, None, Some e, Some f, Some g] = Some (IPv6AddrCompressed5_7 a b c d () e f g)"
-  
-    | "parse_ipv6_address2 [Some a, Some b, Some c, Some d, Some e, None] = Some (IPv6AddrCompressed6_5 a b c d e ())"
-    | "parse_ipv6_address2 [Some a, Some b, Some c, Some d, Some e, None, Some f] = Some (IPv6AddrCompressed6_6 a b c d e () f)"
-    | "parse_ipv6_address2 [Some a, Some b, Some c, Some d, Some e, None, Some f, Some g] = Some (IPv6AddrCompressed6_7 a b c d e () f g)"
-  
-    | "parse_ipv6_address2 [Some a, Some b, Some c, Some d, Some e, Some f, None] = Some (IPv6AddrCompressed7_6 a b c d e f ())"
-    | "parse_ipv6_address2 [Some a, Some b, Some c, Some d, Some e, Some f, None, Some g] = Some (IPv6AddrCompressed7_7 a b c d e f () g)"
-    | "parse_ipv6_address2 _ = None"
-*)
 
-lemma parse_ipv6_address_someE:
-  assumes "parse_ipv6_address as = Some ipv6"
+lemma parse_ipv6_address_compressed_someE:
+  assumes "parse_ipv6_address_compressed as = Some ipv6"
   obtains
     "as = [None]" "ipv6 = (IPv6AddrCompressed1_0 ())"  |
     a where "as = [None, Some a]" "ipv6 = (IPv6AddrCompressed1_1 () a)"  |
@@ -395,42 +363,42 @@ lemma parse_ipv6_address_someE:
 
     a b c d e f g where "as = [Some a, Some b, Some c, Some d, Some e, Some f, Some g, None]" "ipv6 = (IPv6AddrCompressed8_7 a b c d e f g ())"
 using assms
-unfolding parse_ipv6_address_def
+unfolding parse_ipv6_address_compressed_def
 by (auto split: list.split_asm option.split_asm) (* takes a minute *)
 
-lemma parse_ipv6_address_identity2:
-      "ipv6addr_syntax_compressed_to_list ipv6_syntax = ls \<longleftrightarrow> (parse_ipv6_address ls) = Some ipv6_syntax" (is "?lhs = ?rhs")
+lemma parse_ipv6_address_compressed_identity2:
+      "ipv6addr_syntax_compressed_to_list ipv6_syntax = ls \<longleftrightarrow> (parse_ipv6_address_compressed ls) = Some ipv6_syntax" (is "?lhs = ?rhs")
 proof
   assume ?rhs
   thus ?lhs
-    by (auto elim: parse_ipv6_address_someE)
+    by (auto elim: parse_ipv6_address_compressed_someE)
 next
   assume ?lhs
   thus ?rhs
-    by (cases ipv6_syntax) (auto simp: parse_ipv6_address_def)
+    by (cases ipv6_syntax) (auto simp: parse_ipv6_address_compressed_def)
 qed
 
-text{*Valid IPv6 compressed notation:
+text\<open>Valid IPv6 compressed notation:
   \<^item> at most one omission
   \<^item> at most 7 pieces
-*}
-lemma RFC_4291_format: "parse_ipv6_address as \<noteq> None \<longleftrightarrow>
+\<close>
+lemma RFC_4291_format: "parse_ipv6_address_compressed as \<noteq> None \<longleftrightarrow>
        length (filter (\<lambda>p. p = None) as) = 1 \<and> length (filter (\<lambda>p. p \<noteq> None) as) \<le> 7"
        (is "?lhs = ?rhs")
 proof
   assume ?lhs
-  then obtain addr where "parse_ipv6_address as = Some addr"
+  then obtain addr where "parse_ipv6_address_compressed as = Some addr"
     by blast
   thus ?rhs
-    by (elim parse_ipv6_address_someE; simp)
+    by (elim parse_ipv6_address_compressed_someE; simp)
 next
   assume ?rhs
   thus ?lhs
-    unfolding parse_ipv6_address_def
+    unfolding parse_ipv6_address_compressed_def
     by (auto split: option.split list.split split_if_asm)
 qed
 
-text{*
+text\<open>
   3. An alternative form that is sometimes more convenient when dealing
       with a mixed environment of IPv4 and IPv6 nodes is
       x:x:x:x:x:x:d.d.d.d, where the 'x's are the hexadecimal values of
@@ -445,11 +413,11 @@ text{*
 
          ::13.1.68.3
          ::FFFF:129.144.52.38
-*}
+\<close>
   (*TODO*)
   (*TODO: oh boy, they can also be compressed*)
 
-subsection{*Semantics*}
+subsection\<open>Semantics\<close>
   fun ipv6preferred_to_int :: "ipv6addr_syntax \<Rightarrow> ipv6addr" where
     "ipv6preferred_to_int (IPv6AddrPreferred a b c d e f g h) = (ucast a << (16 * 7)) OR
                                                                 (ucast b << (16 * 6)) OR
@@ -498,7 +466,7 @@ subsection{*Semantics*}
 
 
 
-  text{*Correctness: round trip property one*}
+  text\<open>Correctness: round trip property one\<close>
   lemma ipv6preferred_to_int_int_to_ipv6preferred:
     "ipv6preferred_to_int (int_to_ipv6preferred ip) = ip"
   proof -
@@ -579,7 +547,7 @@ subsection{*Semantics*}
 
 
 
-  text{*Correctness: round trip property two*}
+  text\<open>Correctness: round trip property two\<close>
   lemma int_to_ipv6preferred_ipv6preferred_to_int: "int_to_ipv6preferred (ipv6preferred_to_int ip) = ip"
   proof -
     note ucast_shift_simps=helper_masked_ucast_generic helper_masked_ucast_reverse_generic
@@ -682,9 +650,9 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
  
   lemma ipv6_unparsed_compressed_to_preferred_identity2: 
     "ipv6_unparsed_compressed_to_preferred ls = Some ipv6prferred
-     \<longleftrightarrow> (\<exists>ipv6compressed. parse_ipv6_address ls = Some ipv6compressed \<and> ipv6addr_c2p ipv6compressed = ipv6prferred)"
+     \<longleftrightarrow> (\<exists>ipv6compressed. parse_ipv6_address_compressed ls = Some ipv6compressed \<and> ipv6addr_c2p ipv6compressed = ipv6prferred)"
   apply(rule iffI)
-   apply(subgoal_tac "parse_ipv6_address ls \<noteq> None")
+   apply(subgoal_tac "parse_ipv6_address_compressed ls \<noteq> None")
     prefer 2
     apply(subst RFC_4291_format)
     apply(simp add: ipv6_unparsed_compressed_to_preferred_def split: split_if_asm; fail)
@@ -694,19 +662,19 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
    apply(simp)
    apply(subgoal_tac "(ipv6addr_syntax_compressed_to_list ipv6compressed = ls)")
     prefer 2
-    using parse_ipv6_address_identity2 apply presburger
+    using parse_ipv6_address_compressed_identity2 apply presburger
    using ipv6_unparsed_compressed_to_preferred_identity1 apply blast
   apply(erule exE, rename_tac ipv6compressed)
   apply(subgoal_tac "(ipv6addr_syntax_compressed_to_list ipv6compressed = ls)")
    prefer 2
-   using parse_ipv6_address_identity2 apply presburger
+   using parse_ipv6_address_compressed_identity2 apply presburger
   using ipv6_unparsed_compressed_to_preferred_identity1 apply blast
   done
   
   
   
 
-(*DRAFT below*)
+(*DRAFT below: IPv6 pretty printing (converting to compressed format)*)
   function goup_by_zeros :: "16 word list \<Rightarrow> 16 word list list" where
     "goup_by_zeros [] = []" |
     "goup_by_zeros (x#xs) = (
@@ -716,9 +684,12 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
   by(pat_completeness, auto)
   
   termination goup_by_zeros
-	apply(relation "measure (\<lambda>xs. length xs)")
-	apply(simp_all)
-	by (simp add: le_imp_less_Suc length_dropWhile_le)
+	 apply(relation "measure (\<lambda>xs. length xs)")
+	   apply(simp_all)
+	 by (simp add: le_imp_less_Suc length_dropWhile_le)
+
+	(*"goup_by_zeros xs \<noteq> groupF (\<lambda>x. x=0) xs"
+	  groupF does not preserver the order but groups the whole list*)
 	
 	value[code] "goup_by_zeros [0,1,2,3,0,0,0,0,3,4,0,0,0,2,0,0,2,0,3,0]"
 	
@@ -751,7 +722,31 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
 	  
 	  
   value[code] "List_explode [[0::int], [2,3], [], [3,4]]"
+
+  lemma List_explode_def: 
+    "List_explode xss = concat (map (\<lambda>xs. if xs = [] then [None] else map Some xs) xss)"
+    apply(induction xss rule: List_explode.induct)
+      apply(simp; fail)
+     apply(simp; fail)
+    apply(simp)
+    done
 	  
+  lemma List_explode_no_empty: "[] \<notin> set xss \<Longrightarrow> List_explode xss = map Some (concat xss)"
+    apply(induction xss rule: List_explode.induct)
+      by(simp)+
+
+  lemma List_explode_replace1: "[] \<notin> set xss \<Longrightarrow> foo \<in> set xss \<Longrightarrow>
+          List_explode (List_replace1 foo [] xss) =
+            map Some (concat (takeWhile (\<lambda>xs. xs \<noteq> foo) xss)) @ [None] @
+              map Some (concat (tl (dropWhile (\<lambda>xs. xs \<noteq> foo) xss)))"
+    apply(induction xss rule: List_explode.induct)
+      apply(simp; fail)
+     apply(simp; fail)
+    apply(simp)
+    apply safe
+      apply(simp_all add: List_explode_no_empty)
+    done
+    
   fun ipv6_preferred_to_compressed :: "ipv6addr_syntax \<Rightarrow> ((16 word) option) list" where
   "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (
     let lss = goup_by_zeros [a,b,c,d,e,f,g,h];
@@ -760,20 +755,119 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
     in
       List_explode shortened
     )"
+
+  lemma foldr_max_length: "foldr (\<lambda>xs. max (length xs)) lss n = fold max (map length lss) n"
+    apply(subst List.foldr_fold)
+     apply fastforce
+    apply(induction lss arbitrary: n)
+     apply(simp; fail)
+    apply(simp)
+    done
+
+  lemma "foldr (\<lambda>xs. max (length xs)) (goup_by_zeros xs) 0 > 1 \<Longrightarrow>
+         replicate (fold max (map length (goup_by_zeros xs)) 0) 0 =
+           fold (\<lambda>xs acc. if length acc \<le> length xs then xs else acc) (goup_by_zeros xs) []"
+   apply(induction xs rule: goup_by_zeros.induct)
+    apply(simp)
+   apply(simp)
+   oops
+
+  lemma List_explode_goup_by_zeros: "List_explode (goup_by_zeros xs) = map Some xs"
+    apply(induction xs rule: goup_by_zeros.induct)
+     apply(simp; fail)
+    apply(simp)
+    apply(safe)
+     apply(simp)
+    by (metis map_append takeWhile_dropWhile_id)
+  
+  definition "max_zero_streak xs \<equiv> foldr (\<lambda>xs. max (length xs)) (goup_by_zeros xs) 0"    
+
+  lemma ipv6_preferred_to_compressed_pull_out_if:
+    "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (
+    if max_zero_streak [a,b,c,d,e,f,g,h] > 1 then
+      List_explode (List_replace1 (replicate (max_zero_streak [a,b,c,d,e,f,g,h]) 0) [] (goup_by_zeros [a,b,c,d,e,f,g,h]))
+    else
+      map Some [a,b,c,d,e,f,g,h]
+    )"
+  by(simp add: max_zero_streak_def List_explode_goup_by_zeros)
+
+  lemma ipv6_preferred_to_compressed_None1:
+    "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = None#xs \<Longrightarrow>
+      xs = map Some (dropWhile (\<lambda>x. x=0) [a,b,c,d,e,f,g,h]) "
+    by(simp del: ipv6_preferred_to_compressed.simps
+              add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def split: split_if_asm)
+    (*10s*)
+  lemma ipv6_preferred_to_compressed_None2:
+    "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (Some a)#None#xs \<Longrightarrow>
+      (map Some (dropWhile (\<lambda>x. x=0) [b,c,d,e,f,g,h]) = xs \<Longrightarrow> (IPv6AddrPreferred a b c d e f g h) = ip) \<Longrightarrow>
+      (IPv6AddrPreferred a b c d e f g h) = ip"
+    by(simp del: ipv6_preferred_to_compressed.simps
+              add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def split: split_if_asm)
+    (*10s*)
     
   value[code] "ipv6_preferred_to_compressed (IPv6AddrPreferred 0 0 0 0 0 0 0 0)"
   value[code] "ipv6_preferred_to_compressed (IPv6AddrPreferred 0x2001 0xDB8 0 0 8 0x800 0x200C 0x417A)"
   value[code] "ipv6_preferred_to_compressed (IPv6AddrPreferred 0x2001 0xDB8 0 3 8 0x800 0x200C 0x417A)"
-  
+
+  lemma "ipv6_preferred_to_compressed ip = as \<Longrightarrow> 
+          length (filter (\<lambda>p. p = None) as) = 0 \<and> length (filter (\<lambda>p. p \<noteq> None) as) = 8
+          \<or>
+          length (filter (\<lambda>p. p = None) as) = 1 \<and> length (filter (\<lambda>p. p \<noteq> None) as) \<le> 7"
+  apply(cases ip)
+  apply(simp add: ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps)
+  apply(simp only:  split: split_if_asm)
+  prefer 2
+  apply(rule disjI1)
+  apply(simp)
+  apply force
+  apply(rule disjI2)
+  apply(case_tac "x1=0")
+  apply(case_tac [!] "x2=0")
+  apply(case_tac [!] "x3=0")
+  apply(case_tac [!] "x4=0")
+  apply(case_tac [!] "x5=0")
+  apply(case_tac [!] "x6=0")
+  apply(case_tac [!] "x7=0")
+  apply(case_tac [!] "x8=0")
+  apply(simp_all add: max_zero_streak_def) (*6.449s*)
+  apply auto (*15.167s*)
+  done
+
+(*TODO: show this to show that the pretty printing is correct!*)
+(*
   lemma "ipv6_unparsed_compressed_to_preferred (ipv6_preferred_to_compressed ip) = Some ip' \<Longrightarrow>
          ip = ip'"
   thm HOL.iffD1[OF ipv6_unparsed_compressed_to_preferred_identity2] 
   apply(drule HOL.iffD1[OF ipv6_unparsed_compressed_to_preferred_identity2])
   apply(elim exE conjE)
-  apply(erule parse_ipv6_address_someE)
-  apply(simp_all)
-  apply(case_tac ip)
   apply(simp)
-  apply(simp add: Let_def split_if_asm)
+  apply(case_tac ip)
+  apply(erule parse_ipv6_address_compressed_someE)
+  apply(simp)
+  apply(simp add: Let_def split: split_if_asm)
+  apply(simp add: ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps)
+  apply(simp split: split_if_asm)
+  apply(simp add: ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps split: split_if_asm)
+  apply(auto dest!: ipv6_preferred_to_compressed_None1 simp del:ipv6_preferred_to_compressed.simps split: split_if_asm)[5]
+  apply(simp del:ipv6_preferred_to_compressed.simps)
+  thm ipv6_preferred_to_compressed_None2
+  apply(erule ipv6_preferred_to_compressed_None2)
+  apply(simp del:ipv6_preferred_to_compressed.simps)
+  apply(drule ipv6_preferred_to_compressed_None1)
+  apply(simp split: split_if_asm)
+  apply(simp add: ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps split: split_if_asm)
+  apply(simp add: ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps split: split_if_asm)
+  (*apply(auto simp add: ipv6_preferred_to_compressed_pull_out_if simp del:ipv6_preferred_to_compressed.simps split: split_if_asm)*)
+  apply(simp_all add: foldr_max_length ipv6_preferred_to_compressed_pull_out_if del:ipv6_preferred_to_compressed.simps split: )
+
+  apply(simp split: split_if_asm)
+  apply(subst(asm) List_explode_replace1)
+  apply(simp)
+  defer
+  
+  (*apply(simp_all add: Let_def)
+  apply(simp split: split_if_asm) (*this could probably solve it, but it gets slower with every subgoal*)*)
+  oops (*TODO: unfinished theory*)
+*)
 
 end

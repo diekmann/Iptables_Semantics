@@ -4,11 +4,11 @@ imports String
   "../Bitmagic/WordInterval_Lists" 
 begin
 
-section{*Ports (layer 4)*}
-text{*E.g. source and destination ports for TCP/UDP*}
+section\<open>Ports (layer 4)\<close>
+text\<open>E.g. source and destination ports for TCP/UDP\<close>
 
 
-text{*list of (start, end) port ranges*}
+text\<open>list of (start, end) port ranges\<close>
 type_synonym ipt_ports = "(16 word \<times> 16 word) list"
 
 fun ports_to_set :: "ipt_ports \<Rightarrow> (16 word) set" where
@@ -22,7 +22,7 @@ lemma ports_to_set: "ports_to_set pts = \<Union> {{s..e} | s e . (s,e) \<in> set
   case (Cons p pts) thus ?case by(cases p, simp, blast)
   qed
 
-text{*We can reuse the wordinterval theory to reason about ports*}
+text\<open>We can reuse the wordinterval theory to reason about ports\<close>
 lemma ports_to_set_wordinterval: "ports_to_set ps = wordinterval_to_set (l2br ps)"
   by(induction ps rule: l2br.induct) (auto)
 

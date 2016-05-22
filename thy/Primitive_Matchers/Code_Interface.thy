@@ -17,11 +17,11 @@ begin
 
 (*Note: common_primitive_match_expr_toString can be really slow*)
 
-section{*Code Interface*}
+section\<open>Code Interface\<close>
 
 
-text{*The parser returns the @{typ "common_primitive ruleset"} not as a map but as an association list.
-      This function converts it*}
+text\<open>The parser returns the @{typ "common_primitive ruleset"} not as a map but as an association list.
+      This function converts it\<close>
 definition map_of_string :: "(string \<times> common_primitive rule list) list \<Rightarrow> string \<rightharpoonup> common_primitive rule list" where
   "map_of_string rs = map_of rs"
 
@@ -58,6 +58,9 @@ definition port_to_nat :: "16 word \<Rightarrow> nat" where
 *)
 
 (* only used for ML code to convert types *)
+definition nat_to_8word :: "nat \<Rightarrow> 8 word" where
+  "nat_to_8word i \<equiv> of_nat i"
+
 definition nat_to_16word :: "nat \<Rightarrow> 16 word" where
   "nat_to_16word i \<equiv> of_nat i"
 
@@ -66,7 +69,7 @@ definition integer_to_16word :: "integer \<Rightarrow> 16 word" where
 
 
 
-text{*Example*}
+text\<open>Example\<close>
 context
 begin
   (*cool example*)

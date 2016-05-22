@@ -2,9 +2,9 @@ theory Normalized_Matches
 imports Fixed_Action
 begin
 
-section{*Normalized (DNF) matches*}
+section\<open>Normalized (DNF) matches\<close>
 
-text{*simplify a match expression. The output is a list of match exprissions, the semantics is @{text "\<or>"} of the list elements.*}
+text\<open>simplify a match expression. The output is a list of match exprissions, the semantics is @{text "\<or>"} of the list elements.\<close>
 fun normalize_match :: "'a match_expr \<Rightarrow> 'a match_expr list" where
   "normalize_match (MatchAny) = [MatchAny]" |
   "normalize_match (Match m) = [Match m]" |
@@ -50,13 +50,10 @@ lemma match_list_normalize_match: "match_list \<gamma> [m] a p \<longleftrightar
     done
   next 
   case 5 thus ?case 
-    apply(simp_all add: match_list_singleton del: match_list.simps(2))
-    apply (metis matches_not_idem)
-    done
+    by(simp add: match_list_singleton bunch_of_lemmata_about_matches)
   next
   case 6 thus ?case 
-    apply(simp_all add: match_list_singleton del: match_list.simps(2))
-    by (metis bunch_of_lemmata_about_matches(3))
+    by(simp add: match_list_singleton bunch_of_lemmata_about_matches)
   next
   case 7 thus ?case by(simp add: match_list_singleton)
 qed
@@ -129,16 +126,16 @@ proof(induction m rule: normalize_match.induct)
   case 5 thus ?case 
     unfolding wf_ruleset_singleton by(simp add: matches_to_match_list_normalize)
   next
-  case 6 thus ?case unfolding wf_ruleset_singleton using bunch_of_lemmata_about_matches(3) by metis
+  case 6 thus ?case unfolding wf_ruleset_singleton by(simp add: bunch_of_lemmata_about_matches)
   next
-  case 7 thus ?case by(simp_all add: wf_ruleset_append)
+  case 7 thus ?case by(simp add: wf_ruleset_append)
   qed
 
 
 lemma good_ruleset_normalize_match: "good_ruleset [(Rule m a)] \<Longrightarrow> good_ruleset (map (\<lambda>m. Rule m a) (normalize_match m))"
 by(simp add: good_ruleset_def)
 
-section{*Normalizing rules instead of only match expressions*}
+section\<open>Normalizing rules instead of only match expressions\<close>
   fun normalize_rules :: "('a match_expr \<Rightarrow> 'a match_expr list) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
     "normalize_rules _ [] = []" |
     "normalize_rules f ((Rule m a)#rs) = (map (\<lambda>m. Rule m a) (f m))@(normalize_rules f rs)"
@@ -199,9 +196,9 @@ section{*Normalizing rules instead of only match expressions*}
         from Cons.prems have "simple_ruleset [r]" by(simp add: simple_ruleset_def)
         with simple_imp_good_ruleset good_imp_wf_ruleset have wf_r: "wf_ruleset \<gamma> p [r]" by fast
   
-        from `simple_ruleset [r]` simple_imp_good_ruleset good_imp_wf_ruleset have wf_r: 
+        from \<open>simple_ruleset [r]\<close> simple_imp_good_ruleset good_imp_wf_ruleset have wf_r: 
           "wf_ruleset \<gamma> p [r]" by fast
-        from simple_ruleset_normalize_rules[OF `simple_ruleset [r]`] have "simple_ruleset (normalize_rules f [r])"
+        from simple_ruleset_normalize_rules[OF \<open>simple_ruleset [r]\<close>] have "simple_ruleset (normalize_rules f [r])"
           by(simp) 
         with simple_imp_good_ruleset good_imp_wf_ruleset have wf_nr: "wf_ruleset \<gamma> p (normalize_rules f [r])" by fast
   
@@ -227,7 +224,7 @@ section{*Normalizing rules instead of only match expressions*}
     using assms by(simp_all)
 
 
- text{*applying a function (with a prerequisite @{text Q}) to all rules*}
+ text\<open>applying a function (with a prerequisite @{text Q}) to all rules\<close>
  lemma normalize_rules_property:
  assumes "\<forall> m \<in> get_match ` set rs. P m"
      and "\<forall>m. P m \<longrightarrow> (\<forall>m' \<in> set (f m). Q m')"
@@ -256,7 +253,7 @@ section{*Normalizing rules instead of only match expressions*}
     qed
  qed
 
- text{*If a function @{text f} preserves some property of the match expressions, then this property is preserved when applying @{const normalize_rules}*}
+ text\<open>If a function @{text f} preserves some property of the match expressions, then this property is preserved when applying @{const normalize_rules}\<close>
  lemma normalize_rules_preserves: assumes "\<forall> m \<in> get_match ` set rs. P m"
      and "\<forall>m. P m \<longrightarrow> (\<forall>m' \<in> set (f m). P m')"
   shows "\<forall>m \<in> get_match ` set (normalize_rules f rs). P m"
@@ -333,7 +330,7 @@ lemma normalize_rules_dnf_correct: "wf_ruleset \<gamma> p rs \<Longrightarrow>
               apply(simp_all add: normalize_match_correct Decision_approximating_bigstep_fun wf_ruleset_singleton)
       done
     hence "approximating_bigstep_fun \<gamma> p (normalize_rules_dnf [r] @ normalize_rules_dnf rs) s = approximating_bigstep_fun \<gamma> p (r # rs) s"
-      using Undecided `wf_ruleset \<gamma> p [r]` `wf_ruleset \<gamma> p (normalize_rules_dnf [r])` 
+      using Undecided \<open>wf_ruleset \<gamma> p [r]\<close> \<open>wf_ruleset \<gamma> p (normalize_rules_dnf [r])\<close> 
       by(simp add: approximating_bigstep_fun_seq_wf)
     thus ?thesis using normalize_rules_fst normalize_rules_dnf_def2 by metis
     qed
@@ -353,9 +350,9 @@ fun normalized_nnf_match :: "'a match_expr \<Rightarrow> bool" where
   "normalized_nnf_match _ = False"
 
 
-text{*Essentially, @{term normalized_nnf_match} checks for a negation normal form: Only AND is at toplevel, negation only occurs in front of literals.
+text\<open>Essentially, @{term normalized_nnf_match} checks for a negation normal form: Only AND is at toplevel, negation only occurs in front of literals.
  Since @{typ "'a match_expr"} does not support OR, the result is in conjunction normal form.
- Applying @{const normalize_match}, the reuslt is a list. Essentially, this is the disjunctive normal form.*}
+ Applying @{const normalize_match}, the reuslt is a list. Essentially, this is the disjunctive normal form.\<close>
 
 
 lemma normalized_nnf_match_normalize_match: "\<forall> m' \<in> set (normalize_match m). normalized_nnf_match m'"
@@ -368,12 +365,12 @@ lemma normalized_nnf_match_MatchNot_D: "normalized_nnf_match (MatchNot m) \<Long
   by(induction m) (simp_all)
 
 
-text{*Example*}
+text\<open>Example\<close>
 lemma "normalize_match (MatchNot (MatchAnd (Match ip_src) (Match tcp))) = [MatchNot (Match ip_src), MatchNot (Match tcp)]" by simp
 
 
 
-subsection{*Functions which preserve @{const normalized_nnf_match}*}
+subsection\<open>Functions which preserve @{const normalized_nnf_match}\<close>
 
 (* TODO: this is the place to collect functions that maintain the normalized structure *)
 lemma optimize_matches_option_normalized_nnf_match: "(\<And> r. r \<in> set rs \<Longrightarrow> normalized_nnf_match (get_match r)) \<Longrightarrow>

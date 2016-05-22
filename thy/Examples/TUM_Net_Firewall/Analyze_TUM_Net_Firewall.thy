@@ -6,7 +6,7 @@ imports "../../Primitive_Matchers/Code_Interface"
 begin
 
 
-section{*Example: Chair for Network Architectures and Services (TUM) 2013*}
+section\<open>Example: Chair for Network Architectures and Services (TUM) 2013\<close>
 
 
 parse_iptables_save net_fw_2013="iptables_20.11.2013_cheating"

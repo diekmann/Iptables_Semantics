@@ -1,0 +1,92 @@
+\documentclass[a4paper]{article}
+\usepackage{isabelle,isabellesym}
+
+% further packages required for unusual symbols (see also
+% isabellesym.sty), use only when needed
+
+%\usepackage{amssymb}
+  %for \<leadsto>, \<box>, \<diamond>, \<sqsupset>, \<mho>, \<Join>,
+  %\<lhd>, \<lesssim>, \<greatersim>, \<lessapprox>, \<greaterapprox>,
+  %\<triangleq>, \<yen>, \<lozenge>
+
+%\usepackage{eurosym}
+  %for \<euro>
+
+%\usepackage[only,bigsqcap]{stmaryrd}
+  %for \<Sqinter>
+
+%\usepackage{eufrak}
+  %for \<AA> ... \<ZZ>, \<aa> ... \<zz> (also included in amssymb)
+
+%\usepackage{textcomp}
+  %for \<onequarter>, \<onehalf>, \<threequarters>, \<degree>, \<cent>,
+  %\<currency>
+
+\usepackage[utf8]{inputenc}
+\usepackage{makeidx}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{color}
+\usepackage{booktabs}
+\newcommand{\todo}[1]{\textcolor{red}{TODO: #1}}
+\usepackage{pifont}
+\usepackage{moeptikz}
+\DeclareUnicodeCharacter{2713}{\ding{52}}
+\DeclareUnicodeCharacter{2717}{\ding{56}}
+\DeclareUnicodeCharacter{00D7}{\ensuremath{\times}}%               ×
+\usepackage{flushend}
+\usepackage{stmaryrd}
+\usepackage{mathtools}
+\hyphenation{swit-ches}
+\usepackage{alphabeta}
+\usepackage{url}
+\usepackage{tikz}
+\usetikzlibrary{calc,positioning}
+\widowpenalty100000
+\clubpenalty100000
+\usepackage{pbox}
+\usepackage{subcaption}
+\usepackage{listings}
+\lstset{breaklines=true,numbers=left,numberstyle=\tiny\color{gray},basicstyle=\footnotesize\ttfamily}
+\usepackage{pgfplots}
+\twocolumn
+\columnsep 2pc          %    Space between columns
+\textwidth 42pc         % Width of text line.
+\oddsidemargin 4.5pc
+\evensidemargin 4.5pc
+\advance\oddsidemargin by -1in  % Correct for LaTeX gratuitousness
+\advance\evensidemargin by -1in % Correct for LaTeX gratuitousness
+\marginparwidth 0pt             % Margin pars are not allowed.
+\marginparsep 11pt              % Horizontal space between outer margin and
+\emergencystretch=3cm
+
+
+% this should be the last package used
+\usepackage{pdfsetup}
+
+% urls in roman style, theory text in math-similar italics
+\urlstyle{rm}
+\isabellestyle{it}
+
+% for uniform font size
+%\renewcommand{\isastyle}{\isastyleminor}
+
+\usepackage[english]{babel}
+% for \frqq (whatever that actually is)
+
+\begin{document}
+
+\input{session}
+
+% optional bibliography
+%\bibliographystyle{abbrv}
+%\bibliography{root}
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

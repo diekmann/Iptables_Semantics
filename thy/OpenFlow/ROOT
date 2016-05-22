@@ -1,0 +1,33 @@
+chapter OpenFlow
+session "OpenFlow_Documentation" = OpenFlow +
+	options [document_output = "of_doc"]
+	theories
+		OpenFlowDoc
+	document_files
+		"root.tex"
+		"chap1.tex"
+		"chap3.tex"
+		"root.bib"
+		"moeptikz.sty"
+		"fig/ofts.pdf"
+		"fig/pipeline.pdf"
+		"fig/rtr.pdf"
+		"bench.csv"
+
+session "OpenFlow" = Iptables_Semantics +
+	options [document_output = "of_outp"]
+	theories[document=false]
+		List_Group
+		Sort_Descending
+	theories
+		"../Examples/OF_conv_test/OF_conv_test"
+		LinuxRouterOpenFlowTranslation
+		FeatherweightOpenFlowComparison
+		OpenFlowAction
+		OpenFlowMatches
+		OpenFlowSerialize
+		Semantics_OpenFlow
+	document_files
+		"root.tex"
+		"moeptikz.sty"
+	

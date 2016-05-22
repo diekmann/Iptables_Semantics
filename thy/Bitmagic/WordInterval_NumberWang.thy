@@ -1,10 +1,10 @@
 theory WordInterval_NumberWang
 imports WordInterval
-  "./l4v/lib/WordLemmaBucket"
+  "./l4v/lib/Word_Lib/Word_Lemmas"
   WordInterval_Lists
 begin
 
-text{*Cardinality approximation for @{typ "('a::len) wordinterval"}s*}
+text\<open>Cardinality approximation for @{typ "('a::len) wordinterval"}s\<close>
 (*TODO: move!*)
 context begin
   lemma remdups_enum_upto: fixes s::"('a::len) word" shows "remdups [s .e. e] = [s .e. e]"
@@ -20,12 +20,12 @@ context begin
      apply(simp)
      apply(subst(asm) Word.word_less_nat_alt)
      apply simp
-    apply(subst WordLemmaBucket.upto_enum_set_conv2[symmetric])
+    apply(subst Word_Lemmas.upto_enum_set_conv2[symmetric])
     apply(subst List.card_set)
     apply(simp add: remdups_enum_upto)
     done
 
-  lemma finite_wordinterval: "finite (wordinterval_to_set r)" using WordLemmaBucket.finite_word by simp
+  lemma finite_wordinterval: "finite (wordinterval_to_set r)" by simp
 
   fun wordinterval_card :: "('a::len) wordinterval \<Rightarrow> nat" where
     "wordinterval_card (WordInterval s e) = Suc (unat e) - (unat s)" |
@@ -41,7 +41,7 @@ context begin
       with RangeUnion show ?case by(simp)
     qed
 
-  text{*With @{thm wordinterval_compress} it should be possible to get the exact cardinality*}
+  text\<open>With @{thm wordinterval_compress} it should be possible to get the exact cardinality\<close>
 end
 
 

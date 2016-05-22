@@ -13,17 +13,20 @@ import Network.IPTables.IpassmtParser (IsabelleIpAssmt) --nicer type --TODO: mov
 import qualified Network.IPTables.Generated as Isabelle
 
 
+type Word32 = Isabelle.Bit0 (Isabelle.Bit0
+                              (Isabelle.Bit0 (Isabelle.Bit0 (Isabelle.Bit0 Isabelle.Num1))))
+
 -- all functions must only be called with a simple_ruleset. TODO: check this?
 
 
 -- Theorem: new_packets_to_simple_firewall_overapproximation
-toSimpleFirewall :: [Isabelle.Rule Isabelle.Common_primitive] -> [Isabelle.Simple_rule]
+toSimpleFirewall :: [Isabelle.Rule Isabelle.Common_primitive] -> [Isabelle.Simple_rule Word32]
 toSimpleFirewall = Isabelle.to_simple_firewall . Isabelle.upper_closure . 
                        Isabelle.optimize_matches Isabelle.abstract_for_simple_firewall .
                            Isabelle.upper_closure . Isabelle.packet_assume_new 
 
 -- Theorem: to_simple_firewall_without_interfaces
-toSimpleFirewallWithoutInterfaces :: IsabelleIpAssmt -> [Isabelle.Rule Isabelle.Common_primitive] -> [Isabelle.Simple_rule]
+toSimpleFirewallWithoutInterfaces :: IsabelleIpAssmt -> [Isabelle.Rule Isabelle.Common_primitive] -> [Isabelle.Simple_rule Word32]
 toSimpleFirewallWithoutInterfaces = Isabelle.to_simple_firewall_without_interfaces
 
 

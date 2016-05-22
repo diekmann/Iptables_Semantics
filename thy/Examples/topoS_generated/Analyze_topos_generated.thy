@@ -104,7 +104,7 @@ lemma "access_matrix_pretty parts_connection_http (
    (''10.0.1.1'', ''10.0.0.2''),
    (''10.0.0.2'', ''10.0.0.1'')])" by eval
 
-text{*@{const CT_Established}*}
+text\<open>@{const CT_Established}\<close>
 lemma "access_matrix_pretty parts_connection_ssh 
     (to_simple_firewall (upper_closure
               (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_L4_Flags a

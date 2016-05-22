@@ -6,10 +6,10 @@ imports
 begin
 
 
-section{*Example: Chair for Network Architectures and Services (TUM)*}
-subsection{*General Setup*}
+section\<open>Example: Chair for Network Architectures and Services (TUM)\<close>
+subsection\<open>General Setup\<close>
   
-  text{*Our IP ranges. If a packet comes from there but from a wrong interface, it is spoofed.*}
+  text\<open>Our IP ranges. If a packet comes from there but from a wrong interface, it is spoofed.\<close>
   (* 
       131.159.14.0/23
       131.159.20.0/23
@@ -60,7 +60,7 @@ subsection{*General Setup*}
   lemma "ipassmt_sanity_nowildcards (map_of ipassmt)" by eval
 
   
-  text{*We check for all interfaces, except for @{term "Iface ''eth0''"}, which does not need spoofing protection.*}
+  text\<open>We check for all interfaces, except for @{term "Iface ''eth0''"}, which does not need spoofing protection.\<close>
   definition "interfaces = tl (map (iface_sel \<circ> fst) ipassmt)"
   
   lemma "interfaces = 
@@ -74,21 +74,21 @@ subsection{*General Setup*}
   
   definition "spoofing_protection fw \<equiv> map (\<lambda>ifce. (ifce, no_spoofing_iface (Iface ifce) (map_of_ipassmt ipassmt) fw)) interfaces"
   
-  text{*We only consider packets which are @{const CT_New} and @{const ipt_tcp_syn}. Packets which already belong to an established connection are okay be definition.*}
+  text\<open>We only consider packets which are @{const CT_New} and @{const ipt_tcp_syn}. Packets which already belong to an established connection are okay be definition.\<close>
   definition "preprocess default_policy fw \<equiv> (upper_closure (packet_assume_new (unfold_ruleset_FORWARD default_policy (map_of_string fw))))"
 
 
   value[code] "debug_ipassmt ipassmt []"
 
-text{*In all three iterations, we have removed two rules from the ruleset. The first rule excluded
+text\<open>In all three iterations, we have removed two rules from the ruleset. The first rule excluded
 from analysis is the ESTABLISHED rule, as discussed earlier.
 The second rule we removed was an exception for an asterisk server. This rule is probably an error 
 because this rule prevents any spoofing protection. It was a temporary rule and it should have been
 removed but was forgotten. We are investigating ...
-*}
-section{*Checking spoofing Protection*}
+\<close>
+section\<open>Checking spoofing Protection\<close>
 
-subsubsection{*Try 1*}
+subsubsection\<open>Try 1\<close>
   (*457.224s*)
   parse_iptables_save net_fw_1="iptables-save-2015-05-13_10-53-20_cheating"
 
@@ -112,7 +112,7 @@ subsubsection{*Try 1*}
 
   value[code] "debug_ipassmt ipassmt (preprocess net_fw_1_FORWARD_default_policy net_fw_1)"
   
-  text{*the parsed firewall:*}
+  text\<open>the parsed firewall:\<close>
   (*339.034s*)
   value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw_1"
 
@@ -124,7 +124,7 @@ subsubsection{*Try 1*}
   (*372.806s*)
   value[code] "map (quote_rewrite \<circ> common_primitive_rule_toString) (preprocess net_fw_1_FORWARD_default_policy net_fw_1)"
   
-  text{*sanity check that @{const ipassmt} is complete*}
+  text\<open>sanity check that @{const ipassmt} is complete\<close>
   (*226.773s*)
   lemma "ipassmt_sanity_defined (preprocess net_fw_1_FORWARD_default_policy net_fw_1) (map_of_ipassmt ipassmt)" by eval
   
@@ -152,7 +152,7 @@ subsubsection{*Try 1*}
     (''eth1.1025'', False),
     (''eth1.1024'', False)
    ]" by eval
-   text{*Spoofing protection fails for all but the 96 VLAN.
+   text\<open>Spoofing protection fails for all but the 96 VLAN.
    The reason is that the @{text filter_96} chain allows spoofed packets.
    
    An empirical test reveals that the kernel's automatic reverse-path filter (rp) blocks most spoofing attempts.
@@ -160,11 +160,11 @@ subsubsection{*Try 1*}
    However, the firewall ruleset also features a MAC address filter. This filter was constructed 
    analogously to the spoofing protection filter and, hence, was also broken. rp cannot help in this
    situation.
-   *}
+\<close>
 
-   text{*Here is a spoofed packet from IP address @{term "0::ipv4addr"} which is (probably, @{const in_doubt_allow}) accepted in 
+   text\<open>Here is a spoofed packet from IP address @{term "0::ipv4addr"} which is (probably, @{const in_doubt_allow}) accepted in 
          the @{text filter_96} chain.
-         Manual inspection of the ruleset and an empirical test demonstrate that this kind of packets is actually accepted.*}
+         Manual inspection of the ruleset and an empirical test demonstrate that this kind of packets is actually accepted.\<close>
    lemma "approximating_bigstep_fun (common_matcher, in_doubt_allow)
     \<lparr>p_iiface = ''anything but 1.96'', p_oiface = ''eth1.96'',
      p_src = 0, p_dst = ipv4addr_of_dotdecimal (131,159,14,9), p_proto = TCP, p_sport = 12345, p_dport = 22, p_tcp_flags= {TCP_SYN}, p_tag_ctstate = CT_New\<rparr>
@@ -173,7 +173,7 @@ subsubsection{*Try 1*}
 
   
 
-subsubsection{*Try 2*}
+subsubsection\<open>Try 2\<close>
 
   parse_iptables_save net_fw_2="iptables-save-2015-05-15_14-14-46_cheating"
   (*$ diff -u ~/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-save-2015-05-15_14-14-46 iptables-save-2015-05-15_14-14-46_cheating
@@ -189,10 +189,10 @@ subsubsection{*Try 2*}
      -A FORWARD -s 131.159.15.248/32 -i eth1.152 -o eth1.110 -j ACCEPT
   *)
 
-  text{*the parsed firewall:*}
+  text\<open>the parsed firewall:\<close>
   value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw_2"
   
-  text{*sanity check that @{const ipassmt} is complete*}
+  text\<open>sanity check that @{const ipassmt} is complete\<close>
   (*198.191s*)
   lemma "ipassmt_sanity_defined (preprocess net_fw_2_FORWARD_default_policy net_fw_2) (map_of_ipassmt ipassmt)" by eval
   
@@ -221,10 +221,10 @@ subsubsection{*Try 2*}
     (''eth1.1024'', False) (*transfer net*)
    ]" by eval
 
-   text{*Success for all internal VLANs*}
+   text\<open>Success for all internal VLANs\<close>
 
 
-subsection{*Try 3*}
+subsection\<open>Try 3\<close>
   parse_iptables_save net_fw_3="iptables-save-2015-05-15_15-23-41_cheating"
   (* $ diff -u ~/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-save-2015-05-15_15-23-41 iptables-save-2015-05-15_15-23-41_cheating
   --- /home/diekmann/git/net-network/configs_chair_for_Network_Architectures_and_Services/iptables-save-2015-05-15_15-23-41	2015-05-15 15:24:23.180698000 +0200
@@ -240,17 +240,17 @@ subsection{*Try 3*}
   *)
 
 
-  text{*In the simplified firewall, we see a lot of DROPs in the beginning now*}
+  text\<open>In the simplified firewall, we see a lot of DROPs in the beginning now\<close>
   value[code] "let x = to_simple_firewall (upper_closure
                       (packet_assume_new (unfold_ruleset_FORWARD net_fw_3_FORWARD_default_policy (map_of net_fw_3))))
                in map simple_rule_toString x" (*225.039s*)
   
   
-  text{*the parsed firewall:*}
+  text\<open>the parsed firewall:\<close>
   value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) net_fw_3"
   
   
-  text{*sanity check that @{const ipassmt} is complete*}
+  text\<open>sanity check that @{const ipassmt} is complete\<close>
   (*177.848s*)
   lemma "ipassmt_sanity_defined (preprocess net_fw_3_FORWARD_default_policy net_fw_3) (map_of_ipassmt ipassmt)" by eval
   
@@ -280,7 +280,7 @@ subsection{*Try 3*}
     (''eth1.1024'', True) (*transfer net*)
    ]" by eval
   
-  text{*now we have spoofing protection!*}
+  text\<open>now we have spoofing protection!\<close>
   
 
 end

@@ -4,7 +4,7 @@ begin
 
 
 
-subsection{*Normalizing ports*}
+subsection\<open>Normalizing ports\<close>
 
 context
 begin
@@ -33,7 +33,7 @@ begin
   *)
   
   (* [ [(1,2) \<or> (3,4)]  \<and>  [] ]*)
-  text{* @{typ "ipt_ports list \<Rightarrow> ipt_ports"} *}
+  text\<open>@{typ "ipt_ports list \<Rightarrow> ipt_ports"}\<close>
   private definition ipt_ports_andlist_compress :: "('a::len word \<times> 'a::len word) list list \<Rightarrow> ('a::len word \<times> 'a::len word) list" where
     "ipt_ports_andlist_compress pss = br2l (fold (\<lambda>ps accu. (wordinterval_intersection (l2br ps) accu)) pss wordinterval_UNIV)"
   
@@ -56,6 +56,7 @@ begin
   
   (*only for src*)
   private lemma ipt_ports_compress_src_correct:
+  fixes p :: "('i::len, 'a) simple_packet_scheme"
   assumes generic: "primitive_matcher_generic \<beta>"
   shows "matches (\<beta>, \<alpha>) (alist_and (NegPos_map Src_Ports ms)) a p \<longleftrightarrow> 
          matches (\<beta>, \<alpha>) (Match (Src_Ports (ipt_ports_compress ms))) a p"
@@ -72,9 +73,9 @@ begin
                 ipt_ports_negation_type_normalize.simps)
         next
         case (Neg a)
-          thus ?thesis using Cons.IH generic primitive_matcher_generic.Ports_single_not primitive_matcher_generic.Ports_single
+          thus ?thesis using Cons.IH generic primitive_matcher_generic.Ports_single_not[where p = p] primitive_matcher_generic.Ports_single[where p = p]
           apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct
-                          bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+                          bunch_of_lemmata_about_matches[where p = p])
           apply(simp add: ports_invert ipt_ports_negation_type_normalize.simps)
           done
         qed
@@ -99,7 +100,7 @@ begin
         case (Neg a)
           thus ?thesis using Cons.IH primitive_matcher_generic.Ports_single[OF generic] primitive_matcher_generic.Ports_single_not[OF generic]
           apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct
-                          bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+                          bunch_of_lemmata_about_matches)
           apply(simp add: ports_invert ipt_ports_negation_type_normalize.simps)
           done
         qed
@@ -138,7 +139,7 @@ begin
           of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) rst) (ipt_ports_compress spts)"
   
   
-  text{*Normalizing match expressions such that at most one port will exist in it. Returns a list of match expressions (splits one firewall rule into several rules).*}
+  text\<open>Normalizing match expressions such that at most one port will exist in it. Returns a list of match expressions (splits one firewall rule into several rules).\<close>
   definition normalize_ports_step :: "((common_primitive \<Rightarrow> bool) \<times> (common_primitive \<Rightarrow> ipt_ports)) \<Rightarrow> 
                                (ipt_ports \<Rightarrow> common_primitive) \<Rightarrow>
                                common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where 

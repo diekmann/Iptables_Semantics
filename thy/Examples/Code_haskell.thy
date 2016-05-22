@@ -27,6 +27,7 @@ export_code Rule
   Src Dst IIface OIface Prot Src_Ports Dst_Ports CT_State Extra
   ProtoAny Proto TCP UDP ICMP Iface
   integer_to_16word nat_to_16word Nat word_less_eq word_to_nat
+  nat_to_8word
   Ip4AddrNetmask Ip4AddrRange Ip4Addr
   CT_New CT_Established CT_Related CT_Untracked CT_Invalid
   TCP_Flags TCP_SYN TCP_ACK TCP_FIN TCP_RST TCP_URG TCP_PSH

@@ -3,7 +3,7 @@ imports Common_Primitive_Lemmas
 begin
 
 
-subsection{*Normalizing IP Addresses*}
+subsection\<open>Normalizing IP Addresses\<close>
   fun normalized_src_ips :: "common_primitive match_expr \<Rightarrow> bool" where
     "normalized_src_ips MatchAny = True" |
     "normalized_src_ips (Match (Src (Ip4AddrRange _ _))) = False" |
@@ -56,7 +56,7 @@ subsection{*Normalizing IP Addresses*}
       have "matches (common_matcher, \<alpha>) (alist_and (NegPos_map common_primitive.Src ml)) a p \<longleftrightarrow>
             (\<forall>m \<in> set (getPos ml). matches (common_matcher, \<alpha>) (Match (Src m)) a p) \<and>
             (\<forall>m \<in> set (getNeg ml). matches (common_matcher, \<alpha>) (MatchNot (Match (Src m))) a p)"
-        by(induction ml rule: alist_and.induct) (auto simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+        by(induction ml rule: alist_and.induct) (auto simp add: bunch_of_lemmata_about_matches)
       also have "\<dots> \<longleftrightarrow>  p_src p \<in>  (\<Inter> ip \<in> set (getPos ml). ipv4s_to_set ip) - (\<Union> ip \<in> set (getNeg ml). ipv4s_to_set ip)"
        by(simp add: match_simplematcher_SrcDst match_simplematcher_SrcDst_not)
       also have "\<dots> \<longleftrightarrow> p_src p \<in> (\<Union> ip \<in> set (ipt_ipv4range_compress ml). ipv4s_to_set ip)" using ipt_ipv4range_compress by presburger
@@ -68,7 +68,7 @@ subsection{*Normalizing IP Addresses*}
       match_list (common_matcher, \<alpha>) (normalize_src_ips m) a p = matches (common_matcher, \<alpha>) m a p"
     unfolding normalize_src_ips_def
     using normalize_primitive_extract[OF _ wf_disc_sel_common_primitive(3), where f=ipt_ipv4range_compress and \<gamma>="(common_matcher, \<alpha>)"]
-      ipt_ipv4range_compress_src_matching by simp
+      ipt_ipv4range_compress_src_matching by blast
 
   lemma normalize_src_ips_normalized_n_primitive: "normalized_nnf_match m \<Longrightarrow> 
       \<forall>m' \<in> set (normalize_src_ips m). normalized_src_ips m'"
@@ -87,7 +87,7 @@ subsection{*Normalizing IP Addresses*}
       have "matches (common_matcher, \<alpha>) (alist_and (NegPos_map common_primitive.Dst ml)) a p \<longleftrightarrow>
             (\<forall>m \<in> set (getPos ml). matches (common_matcher, \<alpha>) (Match (Dst m)) a p) \<and>
             (\<forall>m \<in> set (getNeg ml). matches (common_matcher, \<alpha>) (MatchNot (Match (Dst m))) a p)"
-        by(induction ml rule: alist_and.induct) (auto simp add: bunch_of_lemmata_about_matches ternary_to_bool_bool_to_ternary)
+        by(induction ml rule: alist_and.induct) (auto simp add: bunch_of_lemmata_about_matches)
       also have "\<dots> \<longleftrightarrow>  p_dst p \<in>  (\<Inter> ip \<in> set (getPos ml). ipv4s_to_set ip) - (\<Union> ip \<in> set (getNeg ml). ipv4s_to_set ip)"
        by(simp add: match_simplematcher_SrcDst match_simplematcher_SrcDst_not)
       also have "\<dots> \<longleftrightarrow> p_dst p \<in> (\<Union> ip \<in> set (ipt_ipv4range_compress ml). ipv4s_to_set ip)" using ipt_ipv4range_compress by presburger
@@ -99,9 +99,9 @@ subsection{*Normalizing IP Addresses*}
       match_list (common_matcher, \<alpha>) (normalize_dst_ips m) a p = matches (common_matcher, \<alpha>) m a p"
     unfolding normalize_dst_ips_def
     using normalize_primitive_extract[OF _ wf_disc_sel_common_primitive(4), where f=ipt_ipv4range_compress and \<gamma>="(common_matcher, \<alpha>)"]
-      ipt_ipv4range_compress_dst_matching by simp
+      ipt_ipv4range_compress_dst_matching by blast
 
-   text{*Normalizing the dst ips preserves the normalized src ips*}
+   text\<open>Normalizing the dst ips preserves the normalized src ips\<close>
    lemma "normalized_nnf_match m \<Longrightarrow> normalized_src_ips m \<Longrightarrow> \<forall>mn\<in>set (normalize_dst_ips m). normalized_src_ips mn"
    unfolding normalize_dst_ips_def normalized_src_ips_def2
    by(rule normalize_primitive_extract_preserves_unrelated_normalized_n_primitive)(simp_all add: wf_disc_sel_common_primitive)

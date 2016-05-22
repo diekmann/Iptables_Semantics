@@ -6,7 +6,7 @@ imports
 begin
 
 
-section{*Example: SQRL Shorewall*}
+section\<open>Example: SQRL Shorewall\<close>
 
 
 parse_iptables_save SQRL_fw="iptables-saveakachan"
@@ -67,5 +67,8 @@ lemma "length (to_simple_firewall (lower_closure (optimize_matches abstract_for_
 value[code] "length (remdups_rev (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))))" (*not smaller*)
 
 value[code] "map ipv4addr_wordinterval_toString (getParts (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))))"
+
+lemma "simple_fw_valid (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded)))))" by eval
+lemma "simple_fw_valid (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded)))))" by eval
 
 end

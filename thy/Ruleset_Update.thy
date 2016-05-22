@@ -6,7 +6,7 @@ lemma free_return_not_match: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m R
   using no_free_return by fast
 
 
-subsection{*Background Ruleset Updating*}
+subsection\<open>Background Ruleset Updating\<close>
 lemma update_Gamma_nomatch: 
   assumes "\<not> matches \<gamma> m p"
   shows "\<Gamma>(chain \<mapsto> Rule m a # rs),\<gamma>,p\<turnstile> \<langle>rs', s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>(chain \<mapsto> rs),\<gamma>,p\<turnstile> \<langle>rs', s\<rangle> \<Rightarrow> t" (is "?l \<longleftrightarrow> ?r")
@@ -84,9 +84,9 @@ lemma update_Gamma_log_empty:
         from Call_return have "\<Gamma>(chain \<mapsto> rs),\<gamma>,p\<turnstile> \<langle>[Rule m' (Call chain')], Undecided\<rangle> \<Rightarrow> Undecided" (is ?Call_return_case)
           proof(cases "chain' = chain")
           case True with Call_return show ?Call_return_case
-            --{*@{term rs\<^sub>1} cannot be empty*}
+            --\<open>@{term rs\<^sub>1} cannot be empty\<close>
             proof(cases "rs\<^sub>1")
-            case Nil with Call_return(3) `chain' = chain` assms have "False" by simp
+            case Nil with Call_return(3) \<open>chain' = chain\<close> assms have "False" by simp
               thus ?Call_return_case by simp
             next
             case (Cons r\<^sub>1 rs\<^sub>1s)
@@ -94,7 +94,7 @@ lemma update_Gamma_log_empty:
             with seqE_cons[where \<Gamma>="\<Gamma>(chain \<mapsto> rs)"] obtain ti where 
               "\<Gamma>(chain \<mapsto> rs),\<gamma>,p\<turnstile> \<langle>[r\<^sub>1], Undecided\<rangle> \<Rightarrow> ti" and "\<Gamma>(chain \<mapsto> rs),\<gamma>,p\<turnstile> \<langle>rs\<^sub>1s, ti\<rangle> \<Rightarrow> Undecided" by metis
             with iptables_bigstep_to_undecided[where \<Gamma>="\<Gamma>(chain \<mapsto> rs)"] have "\<Gamma>(chain \<mapsto> rs),\<gamma>,p\<turnstile> \<langle>rs\<^sub>1s, Undecided\<rangle> \<Rightarrow> Undecided" by fast
-            with Cons Call_return `chain' = chain` show ?Call_return_case
+            with Cons Call_return \<open>chain' = chain\<close> show ?Call_return_case
                apply(rule_tac rs\<^sub>1="rs\<^sub>1s" and m'="m''" and rs\<^sub>2="rs\<^sub>2" in call_return)
                   apply(simp_all)
                done

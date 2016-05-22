@@ -5,17 +5,17 @@ imports Common_Primitive_Lemmas
         "../afp/Mergesort" (*TODO: dependnecy! import from afp directly!*)
 begin
 
-  text{*A mapping from an interface to its assigned ip addresses in CIDR notation*}
+  text\<open>A mapping from an interface to its assigned ip addresses in CIDR notation\<close>
   type_synonym ipassignment="iface \<rightharpoonup> (ipv4addr \<times> nat) list" (*technically, a set*)
 
 
-subsection{*Sanity checking for an @{typ ipassignment}. *}
+subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
 
-  text{*warning if interface map has wildcards*}
+  text\<open>warning if interface map has wildcards\<close>
   definition ipassmt_sanity_nowildcards :: "ipassignment \<Rightarrow> bool" where
     "ipassmt_sanity_nowildcards ipassmt \<equiv> \<forall> iface \<in> dom ipassmt. \<not> iface_is_wildcard iface"
 
-    text{*Executable of the @{typ ipassignment} is given as a list.*}
+    text\<open>Executable of the @{typ ipassignment} is given as a list.\<close>
     lemma[code_unfold]: "ipassmt_sanity_nowildcards (map_of ipassmt) \<longleftrightarrow> (\<forall> iface \<in> fst` set ipassmt. \<not> iface_is_wildcard iface)"
       by(simp add: ipassmt_sanity_nowildcards_def Map.dom_map_of_conv_image_fst)
   
@@ -41,9 +41,9 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
       else undefined (*undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces*))"
 
 
-  text{* some additional (optional) sanity checks *}
+  text\<open>some additional (optional) sanity checks\<close>
   
-  text{*sanity check that there are no zone-spanning interfaces*}
+  text\<open>sanity check that there are no zone-spanning interfaces\<close>
   definition ipassmt_sanity_disjoint :: "ipassignment \<Rightarrow> bool" where
     "ipassmt_sanity_disjoint ipassmt \<equiv> \<forall> i1 \<in> dom ipassmt. \<forall> i2 \<in> dom ipassmt. i1 \<noteq> i2 \<longrightarrow>
           ipv4cidr_union_set (set (the (ipassmt i1))) \<inter> ipv4cidr_union_set (set (the (ipassmt i2))) = {}"
@@ -51,14 +51,13 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
   lemma[code_unfold]: "ipassmt_sanity_disjoint (map_of ipassmt) \<longleftrightarrow> (let Is = fst` set ipassmt in 
       (\<forall> i1 \<in> Is. \<forall> i2 \<in> Is. i1 \<noteq> i2 \<longrightarrow> wordinterval_empty (wordinterval_intersection (l2br (map ipcidr_to_interval (the ((map_of ipassmt) i1))))  (l2br (map ipcidr_to_interval (the ((map_of ipassmt) i2)))))))"
     apply(simp add: ipassmt_sanity_disjoint_def Map.dom_map_of_conv_image_fst)
-    apply(simp add: ipv4cidr_union_set_def)
+    apply(simp add: ipv4cidr_union_set_def ipv4set_from_cidr_def)
     apply(simp add: l2br)
     apply(simp add: ipcidr_to_interval_def)
-    apply(simp add: ipcidr_to_interval_ipv4range_set_from_prefix)
-    done
+    using ipset_from_cidr_ipcidr_to_interval by blast
   
   
-  text{*Checking that the ipassmt covers the complete ipv4 address space.*}
+  text\<open>Checking that the ipassmt covers the complete ipv4 address space.\<close>
   definition ipassmt_sanity_complete :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> bool" where
     "ipassmt_sanity_complete ipassmt \<equiv> distinct (map fst ipassmt) \<and> (\<Union>(ipv4cidr_union_set ` set ` (ran (map_of ipassmt)))) = UNIV"
 
@@ -71,7 +70,7 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
       apply(simp add:  wordinterval_eq_set_eq wordinterval_Union)
       apply(simp add: l2br)
       apply(simp add: ipcidr_to_interval_def)
-      apply(simp add: ipv4cidr_union_set_def ipcidr_to_interval_ipv4range_set_from_prefix)
+      apply(simp add: ipv4cidr_union_set_def ipv4set_from_cidr_def ipset_from_cidr_ipcidr_to_interval; fail)
      apply(simp add: ipassmt_sanity_complete_def)
      done
 
@@ -90,7 +89,7 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
   lemma "set (collect_ifaces rs) = set (collect_ifaces' rs)"
     by(simp add: collect_ifaces_def mergesort_remdups_correct)
 
-  text{*sanity check that all interfaces mentioned in the ruleset are also listed in the ipassmt. May fail for wildcard interfaces in the ruleset.*}
+  text\<open>sanity check that all interfaces mentioned in the ruleset are also listed in the ipassmt. May fail for wildcard interfaces in the ruleset.\<close>
   (*TODO: wildcards*)
   (*primitive_extractor requires normalized_nnf_primitives*)
   definition ipassmt_sanity_defined :: "common_primitive rule list \<Rightarrow> ipassignment \<Rightarrow> bool" where
@@ -133,14 +132,14 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
        apply(simp)
       apply(simp)
       apply(simp split:option.split option.split_asm)
-      apply(simp add: ipv4cidr_union_set_def ipcidr_to_interval_ipv4range_set_from_prefix)
+      apply(simp add: ipv4set_from_cidr_def ipv4cidr_union_set_def ipset_from_cidr_ipcidr_to_interval)
       apply(safe)
                         apply(simp_all)
       by (simp add: rev_image_eqI)
       
 
   
-  text{*Debug algorithm with human-readable output*}
+  text\<open>Debug algorithm with human-readable output\<close>
   definition debug_ipassmt :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> common_primitive rule list \<Rightarrow> string list" where
     "debug_ipassmt ipassmt rs \<equiv> let ifaces = (map fst ipassmt) in [
       ''distinct: '' @ (if distinct ifaces then ''passed'' else ''FAIL!'')
@@ -234,9 +233,9 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
     apply(simp add: ipassmt_ignore_wildcard_the)
     done
 
-  text{*Confusing names: @{const ipassmt_sanity_nowildcards} refers to wildcard interfaces.
+  text\<open>Confusing names: @{const ipassmt_sanity_nowildcards} refers to wildcard interfaces.
        @{const ipassmt_ignore_wildcard} refers to the UNIV ip range.
-  *}
+\<close>
   lemma ipassmt_sanity_nowildcards_ignore_wildcardD:
     "ipassmt_sanity_nowildcards ipassmt \<Longrightarrow> ipassmt_sanity_nowildcards (ipassmt_ignore_wildcard ipassmt)"
     by (simp add: dom_ipassmt_ignore_wildcard ipassmt_sanity_nowildcards_def)
@@ -275,7 +274,7 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
        case (Some i_ips') (*TODO: proofs mainly by sledgehammer*)
          hence "i_ips' = i_ips" using ifce ipassmt_ignore_wildcard_the(2) by fastforce
          hence "(ipassmt_ignore_wildcard ipassmt) k = Some i_ips" using Some ifce ipassmt_ignore_wildcard_def k by auto 
-         thus False using Some `i_ips' = i_ips` `k \<noteq> ifce` a ipassmt_disjoint ipassmt_disjoint_nonempty_inj by blast
+         thus False using Some \<open>i_ips' = i_ips\<close> \<open>k \<noteq> ifce\<close> a ipassmt_disjoint ipassmt_disjoint_nonempty_inj by blast
        next
        case None
          with ipassmt_ignore_wildcard_None_Some have "ipv4cidr_union_set (set i_ips) = UNIV" using ifce by auto 
@@ -313,7 +312,7 @@ subsection{*Sanity checking for an @{typ ipassignment}. *}
        by (metis domI iface.sel iface_is_wildcard_def ifce ipassmt_nowild ipassmt_sanity_nowildcards_def match_iface.elims(2) match_iface_case_nowildcard)
    next
      assume a: "p_src p \<in> ipv4cidr_union_set (set i_ips)"
-     --{*basically, we need to reverse the map @{term ipassmt}*}
+     --\<open>basically, we need to reverse the map @{term ipassmt}\<close>
 
      from ipassmt_disjoint_nonempty_inj[OF ipassmt_disjoint ifce] a have ipassmt_inj: "\<forall>k. ipassmt k = Some i_ips \<longrightarrow> k = ifce" by blast
 

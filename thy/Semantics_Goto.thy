@@ -2,15 +2,15 @@ theory Semantics_Goto
 imports Main Firewall_Common Misc "~~/src/HOL/Library/LaTeXsugar"
 begin
 
-section{*Big Step Semantics with Goto*}
-text{*
+section\<open>Big Step Semantics with Goto\<close>
+text\<open>
   We extend the iptables semantics to support the goto action.
   A goto directly continues processing at the start of the called chain.
   It does not change the call stack.
   In contrast to calls, goto does not return.
   Consequently, everything behind a matching goto cannot be reached.
-*}
-text{*
+\<close>
+text\<open>
   This theory is structured as follows.
   Fist, the goto semantics are introduced.
   Then, we show that those semantics are deterministic.
@@ -19,12 +19,12 @@ text{*
    The second replaces gotos with calls.
   Finally, since the goto rules makes all proofs quite ugly, we never mention the goto semantics again.
   As we have shown, we can get rid of the gotos easily, thus, we stick to the nicer iptables semantics without goto.
-*}
+\<close>
 
 context
 begin
   
-  subsection{*Semantics*}
+  subsection\<open>Semantics\<close>
     private type_synonym 'a ruleset = "string \<rightharpoonup> 'a rule list"
     
     private type_synonym ('a, 'p) matcher = "'a \<Rightarrow> 'p \<Rightarrow> bool"
@@ -99,7 +99,7 @@ begin
     goto_no_decision:  "\<lbrakk> matches \<gamma> m p; \<Gamma> chain = Some rs; \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<rbrakk> \<Longrightarrow>
                    \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>(Rule m (Goto chain))#rest, Undecided\<rangle> \<Rightarrow> Undecided"
     
-    text{*
+    text\<open>
     The semantic rules again in pretty format:
     \begin{center}
     @{thm[mode=Axiom] skip [no_vars]}\\[1ex]
@@ -116,7 +116,7 @@ begin
     @{thm[mode=Rule] goto_decision [no_vars]}\\[1ex] 
     @{thm[mode=Rule] goto_no_decision [no_vars]}
     \end{center}
-    *}
+\<close>
     
     private lemma deny:
       "matches \<gamma> m p \<Longrightarrow> a = Drop \<or> a = Reject \<Longrightarrow> iptables_goto_bigstep \<Gamma> \<gamma> p [Rule m a] Undecided (Decision FinalDeny)"
@@ -155,7 +155,7 @@ begin
 
 
   
-  subsubsection{*Forward reasoning*}
+  subsubsection\<open>Forward reasoning\<close>
   
     private lemma decisionD: "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>r, s\<rangle> \<Rightarrow> t \<Longrightarrow> s = Decision X \<Longrightarrow> t = Decision X"
       by (induction rule: iptables_goto_bigstep_induct) auto
@@ -200,10 +200,10 @@ begin
           proof(cases rs)
           case Nil
             obtain m a where "r = Rule m a" by (cases r) simp
-            with `\<not> no_matching_Goto \<gamma> p (r # rs)` Nil not_no_matching_Goto_singleton_cases have "(\<exists> chain. a = (Goto chain)) \<and> matches \<gamma> m p" by metis
+            with \<open>\<not> no_matching_Goto \<gamma> p (r # rs)\<close> Nil not_no_matching_Goto_singleton_cases have "(\<exists> chain. a = (Goto chain)) \<and> matches \<gamma> m p" by metis
             from this obtain chain where "a = (Goto chain)" and "matches \<gamma> m p" by blast
             have "r # rs = [] @ Rule m (Goto chain) # []" "no_matching_Goto \<gamma> p []" "matches \<gamma> m p"
-              by (simp_all add: `a = Goto chain` `r = Rule m a` Nil `matches \<gamma> m p`)
+              by (simp_all add: \<open>a = Goto chain\<close> \<open>r = Rule m a\<close> Nil \<open>matches \<gamma> m p\<close>)
             thus ?thesis by blast
           next
           case(Cons r' rs')
@@ -211,11 +211,11 @@ begin
             show ?thesis
             proof(cases"no_matching_Goto \<gamma> p [r]")
             case True 
-              with `\<not> no_matching_Goto \<gamma> p (r # rs)` have "\<not> no_matching_Goto \<gamma> p rs" by (meson no_matching_Goto_Cons)
+              with \<open>\<not> no_matching_Goto \<gamma> p (r # rs)\<close> have "\<not> no_matching_Goto \<gamma> p rs" by (meson no_matching_Goto_Cons)
               have "rs \<noteq> []" using Cons by simp
-              from Cons_outer(1)[OF `\<not> no_matching_Goto \<gamma> p rs` `rs \<noteq> []`]
+              from Cons_outer(1)[OF \<open>\<not> no_matching_Goto \<gamma> p rs\<close> \<open>rs \<noteq> []\<close>]
                 obtain rs1 m chain rs2 where "rs = rs1 @ Rule m (Goto chain) # rs2" "no_matching_Goto \<gamma> p rs1" "matches \<gamma> m p" by blast
-              with `r # rs =  r # r' # rs'` `no_matching_Goto \<gamma> p [r]` no_matching_Goto_Cons
+              with \<open>r # rs =  r # r' # rs'\<close> \<open>no_matching_Goto \<gamma> p [r]\<close> no_matching_Goto_Cons
                   have "r # rs = r # rs1 @ Rule m (Goto chain) # rs2 \<and> no_matching_Goto \<gamma> p (r#rs1) \<and> matches \<gamma> m p" by fast
               thus ?thesis
                 apply(rule_tac x="r#rs1" in exI)
@@ -226,7 +226,7 @@ begin
               with False not_no_matching_Goto_singleton_cases have "(\<exists> chain. a = (Goto chain)) \<and> matches \<gamma> m p" by metis
               from this obtain chain where "a = (Goto chain)" and "matches \<gamma> m p" by blast
               have "r # rs = [] @ Rule m (Goto chain) # rs" "no_matching_Goto \<gamma> p []" "matches \<gamma> m p"
-                by (simp_all add: `a = Goto chain` `r = Rule m a` `matches \<gamma> m p`)
+                by (simp_all add: \<open>a = Goto chain\<close> \<open>r = Rule m a\<close> \<open>matches \<gamma> m p\<close>)
               thus ?thesis by blast
             qed
           qed
@@ -370,7 +370,7 @@ begin
                 with t1 rs_part2 have rs_part1: "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>take (length rsa) rs\<^sub>1 @ drop (length rsa) rs\<^sub>1, Undecided\<rangle> \<Rightarrow> t2"
                   using Seq.hyps(4) longer(1) seq by fastforce
                 have "no_matching_Goto \<gamma> p (take (length rsa) rs\<^sub>1 @ drop (length rsa) rs\<^sub>1)"
-                  using Seq.hyps(4) `no_matching_Goto \<gamma> p (drop (length rsa) rs\<^sub>1)` longer(1)
+                  using Seq.hyps(4) \<open>no_matching_Goto \<gamma> p (drop (length rsa) rs\<^sub>1)\<close> longer(1)
                         no_matching_Goto_append by fastforce 
                 with Seq rs_part1 rs_part2 show ?thesis by auto
               next
@@ -405,7 +405,7 @@ begin
         
                   from no_matching_Goto_rs2 t2 seq' t1b have rs2: "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs\<^sub>2,t1\<rangle> \<Rightarrow> t'"
                     by  fastforce
-                  from t1a rs2 `no_matching_Goto \<gamma> p rs\<^sub>1` show ?thesis by fast
+                  from t1a rs2 \<open>no_matching_Goto \<gamma> p rs\<^sub>1\<close> show ?thesis by fast
               next
                 assume ?IH_Goto
                 thus ?thesis by (metis Seq.hyps(4) no_matching_Goto_append1 rsa') 
@@ -463,7 +463,7 @@ begin
             from Cons Goto_no_Decision have 1: "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided"
               using x by auto[1]
             have 2: "\<not> no_matching_Goto \<gamma> p rs\<^sub>1"
-              by (simp add: Goto_no_Decision.hyps(1) `rs\<^sub>1 = Rule m (Goto chain) # take (length rs\<^sub>1s) rest`) 
+              by (simp add: Goto_no_Decision.hyps(1) \<open>rs\<^sub>1 = Rule m (Goto chain) # take (length rs\<^sub>1s) rest\<close>) 
             from 1 2 show ?thesis by fast
           qed
       qed
@@ -495,9 +495,9 @@ begin
           "((\<exists>chain. (get_action r) = Goto chain) \<and> matches \<gamma> (get_match r) p)" by simp
         from this obtain chain m where r: "r = Rule m (Goto chain)" "matches \<gamma> m p" by(cases r) auto
         from matching_Goto r have "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Goto chain)],Undecided\<rangle> \<Rightarrow> t" by simp
-        from gotoD[OF matching_Goto(1)] r `matches \<gamma> m p` obtain rs' where "\<Gamma> chain = Some rs'" by blast
+        from gotoD[OF matching_Goto(1)] r \<open>matches \<gamma> m p\<close> obtain rs' where "\<Gamma> chain = Some rs'" by blast
       from local.that 
-      show ?thesis using `\<Gamma> chain = Some rs'` `\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Goto chain)], Undecided\<rangle> \<Rightarrow> t` r(1) r(2) by blast
+      show ?thesis using \<open>\<Gamma> chain = Some rs'\<close> \<open>\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Goto chain)], Undecided\<rangle> \<Rightarrow> t\<close> r(1) r(2) by blast
     qed
     
     private lemma nomatch':
@@ -531,7 +531,7 @@ begin
       } with assms show ?thesis by blast
       qed
   
-  subsection{*Determinism*}
+  subsection\<open>Determinism\<close>
     private lemma iptables_goto_bigstep_Undecided_Undecided_deterministic: 
       "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> t = Undecided"
     proof(induction rs Undecided Undecided arbitrary: t rule: iptables_goto_bigstep_induct)
@@ -587,7 +587,7 @@ begin
        apply(simp add: iptables_goto_bigstep_Undecided_deterministic)
       by(auto dest: decisionD)
   
-  subsection{*Matching*}
+  subsection\<open>Matching\<close>
     
     private lemma matches_rule_and_simp_help:
       assumes "matches \<gamma> m p"
@@ -704,7 +704,7 @@ begin
         let ?lhs="\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>Rule (MatchAnd m m') a # add_match m rs, Undecided\<rangle> \<Rightarrow> t"
         let ?rhs="\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[], Undecided\<rangle> \<Rightarrow> t"
         { assume ?lhs
-          from `?lhs` Cons have ?rhs
+          from \<open>?lhs\<close> Cons have ?rhs
            proof(cases  \<Gamma> \<gamma> p "Rule (MatchAnd m m') a" "add_match m rs"  t rule: seqE_cons_Undecided)
            case (no_matching_Goto ti)
              hence "ti = Undecided"  by (simp add: assms nomatchD)
@@ -715,7 +715,7 @@ begin
         } note 1=this
         { assume ?rhs
           hence "t = Undecided" using skipD by metis
-          with Cons.IH `?rhs` have ?lhs 
+          with Cons.IH \<open>?rhs\<close> have ?lhs 
            by (meson assms matches.simps(1) nomatch not_no_matching_Goto_singleton_cases seq_cons)  
         } with 1 show ?case by(auto simp add: r add_match_split_fst)
       qed
@@ -838,7 +838,7 @@ begin
       "\<not> matches \<gamma> m p \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>add_match (MatchNot m) rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, s\<rangle> \<Rightarrow> t"
       by (simp add: matches_add_match_simp)
     
-  subsection{*Goto Unfolding*}
+  subsection\<open>Goto Unfolding\<close>
     private lemma unfold_Goto_Undecided:
         assumes chain_defined: "\<Gamma> chain = Some rs" and no_matching_Goto_rs: "no_matching_Goto \<gamma> p rs"
         shows "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>(Rule m (Goto chain))#rest, Undecided\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>add_match m rs @ add_match (MatchNot m) rest, Undecided\<rangle> \<Rightarrow> t"
@@ -850,13 +850,13 @@ begin
         case (no_matching_Goto ti)
           from no_matching_Goto have "\<not> matches \<gamma> m p" by simp
           with no_matching_Goto have ti: "ti = Undecided" using nomatchD by metis
-          from `\<not> matches \<gamma> m p` have "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>add_match m rs, Undecided\<rangle> \<Rightarrow> Undecided"
+          from \<open>\<not> matches \<gamma> m p\<close> have "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>add_match m rs, Undecided\<rangle> \<Rightarrow> Undecided"
             using not_matches_add_match_simp skip by fast
-          from `\<not> matches \<gamma> m p` matches_add_match_MatchNot_no_matching_Goto_simp have "no_matching_Goto \<gamma> p (add_match m rs)" by force
+          from \<open>\<not> matches \<gamma> m p\<close> matches_add_match_MatchNot_no_matching_Goto_simp have "no_matching_Goto \<gamma> p (add_match m rs)" by force
           from no_matching_Goto ti have "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rest, Undecided\<rangle> \<Rightarrow> t" by simp
-          with not_matches_add_matchNot_simp[OF `\<not> matches \<gamma> m p`] have "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>add_match (MatchNot m) rest, Undecided\<rangle> \<Rightarrow> t" by simp
+          with not_matches_add_matchNot_simp[OF \<open>\<not> matches \<gamma> m p\<close>] have "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>add_match (MatchNot m) rest, Undecided\<rangle> \<Rightarrow> t" by simp
           show ?thesis
-            by (meson `\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>add_match (MatchNot m) rest, Undecided\<rangle> \<Rightarrow> t` `\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>add_match m rs, Undecided\<rangle> \<Rightarrow> Undecided` `no_matching_Goto \<gamma> p (add_match m rs)` seq)
+            by (meson \<open>\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>add_match (MatchNot m) rest, Undecided\<rangle> \<Rightarrow> t\<close> \<open>\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>add_match m rs, Undecided\<rangle> \<Rightarrow> Undecided\<close> \<open>no_matching_Goto \<gamma> p (add_match m rs)\<close> seq)
         next
         case (matching_Goto m chain rs')
           from matching_Goto gotoD assms have "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> t" by fastforce
@@ -871,19 +871,19 @@ begin
         proof(cases "matches \<gamma> m p")
         case True
           have "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> t"
-            by (metis True `\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>add_match m rs @ add_match (MatchNot m) rest, Undecided\<rangle> \<Rightarrow> t`
+            by (metis True \<open>\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>add_match m rs @ add_match (MatchNot m) rest, Undecided\<rangle> \<Rightarrow> t\<close>
                 matches_add_match_MatchNot_simp matches_add_match_simp_helper self_append_conv seq' seqE)
           show ?l
           apply(cases t)
-           using goto_no_decision[OF True] chain_defined apply (metis `\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> t`)
-          using goto_decision[OF True, of \<Gamma> chain rs _ rest] chain_defined apply (metis `\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> t`)
+           using goto_no_decision[OF True] chain_defined apply (metis \<open>\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> t\<close>)
+          using goto_decision[OF True, of \<Gamma> chain rs _ rest] chain_defined apply (metis \<open>\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> t\<close>)
           done
         next
         case False
-          with `?r` have "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>add_match (MatchNot m) rest, Undecided\<rangle> \<Rightarrow> t"
+          with \<open>?r\<close> have "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>add_match (MatchNot m) rest, Undecided\<rangle> \<Rightarrow> t"
             by (metis matches_add_match_MatchNot_no_matching_Goto_simp not_matches_add_match_simp seqE skipD)
           with False have "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rest, Undecided\<rangle> \<Rightarrow> t" by (meson not_matches_add_matchNot_simp) 
-          show ?l by (meson False `\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rest, Undecided\<rangle> \<Rightarrow> t` nomatch not_no_matching_Goto_singleton_cases seq_cons)
+          show ?l by (meson False \<open>\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rest, Undecided\<rangle> \<Rightarrow> t\<close> nomatch not_no_matching_Goto_singleton_cases seq_cons)
         qed
     qed
     
@@ -900,7 +900,7 @@ begin
     
     
     
-    text{*A chain that will definitely come to a direct decision*}
+    text\<open>A chain that will definitely come to a direct decision\<close>
     qualified fun terminal_chain :: "'a rule list \<Rightarrow> bool" where
       "terminal_chain [] = False" |
       "terminal_chain [Rule MatchAny Accept] = True" |
@@ -915,6 +915,8 @@ begin
     private lemma terminal_chain_no_matching_Goto: "terminal_chain rs \<Longrightarrow> no_matching_Goto \<gamma> p rs"
        by(induction rs rule: terminal_chain.induct)  simp_all
     
+    text\<open>A terminal chain means (if the semantics are actually defined) that the chain will
+         ultimately yield a final filtering decision, for all packets.\<close>
     qualified lemma "terminal_chain rs \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> t \<Longrightarrow> \<exists>X. t = Decision X"
             apply(induction rs)
              apply(simp)
@@ -940,13 +942,13 @@ begin
           case (no_matching_Goto ti)
             from no_matching_Goto have "\<not> matches \<gamma> m p" by simp
             with nomatch have 1: "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Goto chain)], Undecided\<rangle> \<Rightarrow> Undecided" by fast
-            from `\<not> matches \<gamma> m p` nomatch have 2: "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> Undecided" by fast
+            from \<open>\<not> matches \<gamma> m p\<close> nomatch have 2: "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> Undecided" by fast
             from 1 2 show ?thesis
-              using `?l` iptables_goto_bigstep_Undecided_Undecided_deterministic by fastforce 
+              using \<open>?l\<close> iptables_goto_bigstep_Undecided_Undecided_deterministic by fastforce 
           next
           case (matching_Goto m chain rs')
             from matching_Goto gotoD assms have "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> t" by fastforce
-            from call_result[OF `matches \<gamma> m p` chain_defined `\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> t`] show ?thesis
+            from call_result[OF \<open>matches \<gamma> m p\<close> chain_defined \<open>\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> t\<close>] show ?thesis
               by (metis matching_Goto(1) rule.sel(1))
           qed
       next
@@ -968,17 +970,17 @@ begin
               done
             } note no_return=this
             have "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> t"
-              apply(rule callD[OF `?r` _ _ True chain_defined])
+              apply(rule callD[OF \<open>?r\<close> _ _ True chain_defined])
                  apply(simp_all)
               using no_return terminal_chain by blast
             show ?l
               apply(cases t)
-               using goto_no_decision[OF True] chain_defined apply (metis `\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> t`)
-              using goto_decision[OF True, of \<Gamma> chain rs _ "[]"] chain_defined apply (metis `\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> t`)
+               using goto_no_decision[OF True] chain_defined apply (metis \<open>\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> t\<close>)
+              using goto_decision[OF True, of \<Gamma> chain rs _ "[]"] chain_defined apply (metis \<open>\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, Undecided\<rangle> \<Rightarrow> t\<close>)
               done
           next
           case False
-            show ?l using False `\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> t` nomatch nomatchD by fastforce 
+            show ?l using False \<open>\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>[Rule m (Call chain)], Undecided\<rangle> \<Rightarrow> t\<close> nomatch nomatchD by fastforce 
           qed
       qed
     
@@ -1146,7 +1148,7 @@ begin
   
 
 
-  text{*Example: The semantics are actually defined (for this example).*}
+  text\<open>Example: The semantics are actually defined (for this example).\<close>
   lemma defines "\<gamma> \<equiv> (\<lambda>_ _. True)" and "m \<equiv> MatchAny"
   shows "[''FORWARD'' \<mapsto> [Rule m Log, Rule m (Call ''foo''), Rule m Drop],
           ''foo'' \<mapsto> [Rule m Log, Rule m (Goto ''bar''), Rule m Reject],

@@ -2,14 +2,14 @@ theory Primitive_Normalization
 imports Negation_Type_Matching
 begin
 
-section{*Primitive Normalization*}
+section\<open>Primitive Normalization\<close>
 
-subsection{*Normalized Primitives*}
+subsection\<open>Normalized Primitives\<close>
 
-text{*
+text\<open>
   Test if a @{text disc} is in the match expression.
   For example, it call tell whether there are some matches for @{text "Src ip"}.
-*}
+\<close>
 fun has_disc :: "('a \<Rightarrow> bool) \<Rightarrow> 'a match_expr \<Rightarrow> bool" where
   "has_disc _ MatchAny = False" |
   "has_disc disc (Match a) = disc a" |
@@ -58,9 +58,7 @@ lemma has_disc_negated_alist_and: "has_disc_negated disc neg (alist_and as) \<lo
   
 
 lemma "matches ((\<lambda>x _. bool_to_ternary (disc x)), (\<lambda>_ _. False)) (Match x) a p \<longleftrightarrow> has_disc disc (Match x)"
-apply(simp split: ternaryvalue.split_asm ternaryvalue.split add: matches_case_ternaryvalue_tuple)
-apply(simp add: bool_to_ternary_simps)
-done
+by(simp add: match_raw_ternary bool_to_ternary_simps split: ternaryvalue.split )
 
 
 
@@ -104,16 +102,16 @@ lemma normalized_n_primitive_alist_and: "normalized_n_primitive disc_sel P (alis
   qed
 
 
-subsection{*Primitive Extractor*}
+subsection\<open>Primitive Extractor\<close>
 
-text{*
+text\<open>
   The following function takes a tuple of functions (@{typ "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b))"}) and a @{typ "'a match_expr"}.
   The passed function tuple must be the discriminator and selector of the datatype package.
   @{text primitive_extractor} filters the @{typ "'a match_expr"} and returns a tuple.
   The first element of the returned tuple is the filtered primitive matches, the second element is the remaining match expression.
 
   It requires a @{const normalized_nnf_match}.
-  *}
+\<close>
 fun primitive_extractor :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> 'a match_expr \<Rightarrow> ('b negation_type list \<times> 'a match_expr)" where
  "primitive_extractor _ MatchAny = ([], MatchAny)" |
  "primitive_extractor (disc,sel) (Match a) = (if disc a then ([Pos (sel a)], MatchAny) else ([], Match a))" |
@@ -124,7 +122,7 @@ fun primitive_extractor :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 
         in (a1'@a2', MatchAnd ms1' ms2'))" |
  "primitive_extractor _ _ = undefined"
 
-text{*
+text\<open>
   The first part returned by @{const primitive_extractor}, here @{text as}:
     A list of primitive match expressions.
     For example, let @{text "m = MatchAnd (Src ip1) (Dst ip2)"} then, using the src @{text "(disc, sel)"}, the result is @{text "[ip1]"}.
@@ -133,7 +131,7 @@ text{*
     The second part, here @{text ms} is the match expression which was not extracted.
 
     Together, the first and second part match iff @{text m} matches.
-*}
+\<close>
 
 
 (*unused*)
@@ -316,15 +314,15 @@ lemma primitive_extractor_matches_lastE: "wf_disc_sel (disc,sel) C \<Longrightar
   matches \<gamma> (alist_and (NegPos_map C as)) a p  \<longleftrightarrow>  matches \<gamma> m a p"
 using primitive_extractor_correct(1,2,3,4) by metis
 
-text{*The lemmas @{thm primitive_extractor_matchesE} and @{thm primitive_extractor_matches_lastE} can be used as
+text\<open>The lemmas @{thm primitive_extractor_matchesE} and @{thm primitive_extractor_matches_lastE} can be used as
   erule to solve goals about consecutive application of @{const primitive_extractor}.
   They should be used as @{text "primitive_extractor_matchesE[OF wf_disc_sel_for_first_extracted_thing]"}.
-  *}
+\<close>
 
 
 
-subsection{*Normalizing and Optimizing Primitives*}
-  text{*
+subsection\<open>Normalizing and Optimizing Primitives\<close>
+  text\<open>
     Normalize primitives by a function @{text f} with type @{typ "'b negation_type list \<Rightarrow> 'b list"}.
     @{typ "'b"} is a primitive type, e.g. ipt-ipv4range.
     @{text f} takes a conjunction list of negated primitives and must compress them such that:
@@ -339,7 +337,7 @@ subsection{*Normalizing and Optimizing Primitives*}
       f [Neg 41] = [{0..40}, {42..ipv4max}]   one rule is translated into multiple rules to translate negation
       f [Neg 41, {20..50}, {30..50}] = [{30..40}, {42..50}]   input: conjunction list, output disjunction list!
     \end{verbatim}
-  *}
+\<close>
   definition normalize_primitive_extract :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow>
                                ('b \<Rightarrow> 'a) \<Rightarrow>
                                ('b negation_type list \<Rightarrow> 'b list) \<Rightarrow>
@@ -350,8 +348,8 @@ subsection{*Normalizing and Optimizing Primitives*}
   
                 (*TODO: if f spts is empty, we get back an empty list. problem? *)
   
-  text{*
-    If @{text f} has the properties described above, then @{const normalize_primitive_extract} is a valid transformation of a match expression*}
+  text\<open>
+    If @{text f} has the properties described above, then @{const normalize_primitive_extract} is a valid transformation of a match expression\<close>
   lemma normalize_primitive_extract: assumes "normalized_nnf_match m" and "wf_disc_sel disc_sel C" and
         "\<forall>ml. (match_list \<gamma> (map (Match \<circ> C) (f ml)) a p \<longleftrightarrow> matches \<gamma> (alist_and (NegPos_map C ml)) a p)"
         shows "match_list \<gamma> (normalize_primitive_extract disc_sel C f m) a p \<longleftrightarrow> matches \<gamma> m a p"
@@ -422,7 +420,7 @@ subsection{*Normalizing and Optimizing Primitives*}
       from as_ms primitive_extractor_correct[OF assms(1) assms(2)] have "normalized_nnf_match ms" by simp
       from assm2 as_ms have normalize_primitive_extract_unfolded: "mn \<in> ((\<lambda>spt. MatchAnd (Match (C spt)) ms) ` set (f as))"
         unfolding normalize_primitive_extract_def by force
-      with `normalized_nnf_match ms` show "normalized_nnf_match mn" by fastforce
+      with \<open>normalized_nnf_match ms\<close> show "normalized_nnf_match mn" by fastforce
     qed
 
   lemma normalize_rules_primitive_extract_preserves_nnf_normalized:
@@ -433,12 +431,12 @@ subsection{*Normalizing and Optimizing Primitives*}
   apply(cases disc_sel)
   using normalize_primitive_extract_preserves_nnf_normalized by fast
 
-  text{*If something is normalized for disc2 and disc2 @{text \<noteq>} disc1 and we do something on disc1, then disc2 remains normalized*}
+  text\<open>If something is normalized for disc2 and disc2 @{text \<noteq>} disc1 and we do something on disc1, then disc2 remains normalized\<close>
   lemma normalize_primitive_extract_preserves_unrelated_normalized_n_primitive:
   assumes "normalized_nnf_match m"
       and "normalized_n_primitive (disc2, sel2) P m"
       and "wf_disc_sel (disc1, sel1) C"
-      and "\<forall>a. \<not> disc2 (C a)" --{*disc1 and disc2 match for different stuff. e.g. @{text Src_Ports} and @{text Dst_Ports}*}
+      and "\<forall>a. \<not> disc2 (C a)" --\<open>disc1 and disc2 match for different stuff. e.g. @{text Src_Ports} and @{text Dst_Ports}\<close>
     shows "\<forall>mn \<in> set (normalize_primitive_extract (disc1, sel1) C f m). normalized_n_primitive (disc2, sel2) P mn"
     proof
       fix mn
@@ -455,7 +453,7 @@ subsection{*Normalizing and Optimizing Primitives*}
       
       from normalize_primitive_extract_unfolded obtain Casms where Casms: "mn = (MatchAnd (Match (C Casms)) ms)" by blast
 
-      from `normalized_n_primitive (disc2, sel2) P ms` assms(4) have "normalized_n_primitive (disc2, sel2) P (MatchAnd (Match (C Casms)) ms)"
+      from \<open>normalized_n_primitive (disc2, sel2) P ms\<close> assms(4) have "normalized_n_primitive (disc2, sel2) P (MatchAnd (Match (C Casms)) ms)"
         by(simp)
 
       with Casms show "normalized_n_primitive (disc2, sel2) P mn" by blast
@@ -497,20 +495,20 @@ lemma "wf_disc_sel (disc, sel) C \<Longrightarrow> disc (C x) \<longrightarrow> 
       with prems obtain spt where "m' = MatchAnd (Match (C spt)) ms" and "spt \<in> set (f as)" by auto
 
       from primitive_extractor_correct(3)[OF assms(1) assms(2) as_ms] have "\<not> has_disc disc ms" .
-      with `normalized_nnf_match ms` have "normalized_n_primitive (disc, sel) P ms"
+      with \<open>normalized_nnf_match ms\<close> have "normalized_n_primitive (disc, sel) P ms"
         by(induction "(disc, sel)" P ms rule: normalized_n_primitive.induct) simp_all
 
       (*
       from primitive_extractor_correct(4)[OF assms(1) assms(2) as_ms] have "\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms" .*)
 
-      from `wf_disc_sel (disc, sel) C` have "(sel (C spt)) = spt" by(simp add: wf_disc_sel.simps)
-      with np `spt \<in> set (f as)` have "P (sel (C spt))" by simp
+      from \<open>wf_disc_sel (disc, sel) C\<close> have "(sel (C spt)) = spt" by(simp add: wf_disc_sel.simps)
+      with np \<open>spt \<in> set (f as)\<close> have "P (sel (C spt))" by simp
 
       show "normalized_n_primitive (disc, sel) P m'"
-      apply(simp add: `m' = MatchAnd (Match (C spt)) ms`)
+      apply(simp add: \<open>m' = MatchAnd (Match (C spt)) ms\<close>)
       apply(rule conjI)
-       apply(simp_all add: `normalized_n_primitive (disc, sel) P ms`)
-      apply(simp add: `P (sel (C spt))`)
+       apply(simp_all add: \<open>normalized_n_primitive (disc, sel) P ms\<close>)
+      apply(simp add: \<open>P (sel (C spt))\<close>)
       done
     qed
   qed
@@ -533,7 +531,7 @@ lemma "wf_disc_sel (disc, sel) C \<Longrightarrow> disc (C x) \<longrightarrow> 
   qed
 
 
-text{*@{const normalized_n_primitive} does NOT imply @{const normalized_nnf_match}*}
+text\<open>@{const normalized_n_primitive} does NOT imply @{const normalized_nnf_match}\<close>
 lemma "\<exists>m. normalized_n_primitive disc_sel f m \<longrightarrow> \<not> normalized_nnf_match m"
   by(rule_tac x="MatchNot MatchAny" in exI) (simp)
 
@@ -559,10 +557,10 @@ lemma normalize_match_preserves_disc_negated:
   case 4
     from 4 show ?case by(simp) blast
   qed(simp_all)
-text{*@{const has_disc_negated} is a structural property and @{const normalize_match} is a semantical property.
+text\<open>@{const has_disc_negated} is a structural property and @{const normalize_match} is a semantical property.
   @{const normalize_match} removes subexpressions which cannot match. Thus, we cannot show (without complicated assumptions)
   the opposite direction of @{thm normalize_match_preserves_disc_negated}, because a negated primitive
-  might occur in a subexpression which will be optimized away.*}
+  might occur in a subexpression which will be optimized away.\<close>
 (* but the other direction would be nice anyway ;)*)
 
 
@@ -585,16 +583,16 @@ lemma not_has_disc_normalize_match: "\<not> has_disc_negated disc neg  m \<longr
 
 
 
-subsection{*Optimizing a match expression*}
+subsection\<open>Optimizing a match expression\<close>
 
-  text{*Optimizes a match expression with a function that takes @{typ "'b negation_type list"}
+  text\<open>Optimizes a match expression with a function that takes @{typ "'b negation_type list"}
   and returns @{typ "('b list \<times> 'b list) option"}.
   The function should return @{const None} if the match expression cannot match.
   It returns @{term "Some (as_pos, as_neg)"} where @{term as_pos} and @{term as_neg} are lists of
   primitives. Positive and Negated.
   The result is one match expression.
 
-  In contrast @{const normalize_primitive_extract} returns a list of match expression, to be read es their disjunction.*}
+  In contrast @{const normalize_primitive_extract} returns a list of match expression, to be read es their disjunction.\<close>
 
   definition compress_normalize_primitive :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> ('b \<Rightarrow> 'a) \<Rightarrow>
                                               ('b negation_type list \<Rightarrow> ('b list \<times> 'b list) option) \<Rightarrow> 

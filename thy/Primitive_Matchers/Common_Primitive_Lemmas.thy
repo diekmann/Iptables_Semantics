@@ -3,11 +3,11 @@ imports Common_Primitive_Matcher
         "../Semantics_Ternary/Primitive_Normalization"
 begin
 
-section{*Further Lemmas about the Common Matcher*}
+section\<open>Further Lemmas about the Common Matcher\<close>
 
 lemma has_unknowns_common_matcher: "has_unknowns common_matcher m \<longleftrightarrow> has_disc is_Extra m"
   proof -
-  { fix A p
+  { fix A and p :: "(32, 'a) simple_packet_scheme"
     have "common_matcher A p = TernaryUnknown \<longleftrightarrow> is_Extra A"
       by(induction A p rule: common_matcher.induct) (simp_all add: bool_to_ternary_Unknown)
   } thus ?thesis

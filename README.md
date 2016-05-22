@@ -33,9 +33,10 @@ $ git submodule update
 Checking all proofs:
 
 ```
-$ isabelle build -v -d . -o document=pdf Iptables_Semantics_Examples2
+$ isabelle build -v -D . -o document=pdf
 ```
-This needs about 1:30h for Iptables_Semantics_Examples and additionally 2:30h for Iptables_Semantics_Examples2 on my laptop.
+This needs about 12 CPU hours (about 5 hours real time on an x220, i7 2.7GHz, 16GB ram).
+The session `Iptables_Semantics_Examples_Large1` needs about 3 hours CPU time and `Iptables_Semantics_Examples_Large2` needs about 5 hours of CPU time; you may want to skip those.
 
 
 Building the documentation:

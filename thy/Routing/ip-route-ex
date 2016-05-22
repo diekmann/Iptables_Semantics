@@ -1,0 +1,5 @@
+default via 10.13.42.161 dev ewlan  src 10.13.42.162  metric 303 
+10.13.37.0/24 via 255.255.255.0 dev tun0 
+10.13.42.160/28 dev ewlan  proto kernel  scope link  src 10.13.42.162  metric 303 
+10.13.44.0/24 via 255.255.255.0 dev tun0 
+255.255.255.0 dev tun0  proto kernel  scope link  src 10.13.37.210 

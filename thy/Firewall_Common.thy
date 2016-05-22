@@ -2,18 +2,18 @@ theory Firewall_Common
 imports Main Firewall_Common_Decision_State
 begin
 
-section{*Firewall Basic Syntax*}
+section\<open>Firewall Basic Syntax\<close>
 
-text{*
+text\<open>
 Our firewall model supports the following actions.
-*}
+\<close>
 datatype action = Accept | Drop | Log | Reject | Call string | Return | Goto string | Empty | Unknown
 
-text{*
+text\<open>
 The type parameter @{typ 'a} denotes the primitive match condition For example, matching
 on source IP address or on protocol.
 We list the primitives to an algebra. Note that we do not have an Or expression.
-*}
+\<close>
 datatype 'a match_expr = Match 'a | MatchNot "'a match_expr" | MatchAnd "'a match_expr" "'a match_expr" | MatchAny
 
 definition MatchOr :: "'a match_expr \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr" where
@@ -28,11 +28,11 @@ by (cases rs\<^sub>1) auto
 
 
 
-section{*Basic Algorithms*}
-text{*These algorithms should be valid for all firewall semantics The corresponding proofs follow once the semantics are defined. *}
+section\<open>Basic Algorithms\<close>
+text\<open>These algorithms should be valid for all firewall semantics The corresponding proofs follow once the semantics are defined.\<close>
 
 
-text{*The actions Log and Empty do not modify the packet processing in any way. They can be removed.*}
+text\<open>The actions Log and Empty do not modify the packet processing in any way. They can be removed.\<close>
 fun rm_LogEmpty :: "'a rule list \<Rightarrow> 'a rule list" where
   "rm_LogEmpty [] = []" |
   "rm_LogEmpty ((Rule _ Empty)#rs) = rm_LogEmpty rs" |
@@ -49,7 +49,7 @@ lemma rm_LogEmpty_seq: "rm_LogEmpty (rs1@rs2) = rm_LogEmpty rs1 @ rm_LogEmpty rs
 
 
 
-text{*Optimize away MatchAny matches*}
+text\<open>Optimize away MatchAny matches\<close>
 fun opt_MatchAny_match_expr :: "'a match_expr \<Rightarrow> 'a match_expr" where
   "opt_MatchAny_match_expr MatchAny = MatchAny" |
   "opt_MatchAny_match_expr (Match a) = (Match a)" |
@@ -65,7 +65,7 @@ fun opt_MatchAny_match_expr :: "'a match_expr \<Rightarrow> 'a match_expr" where
 (* without recursive call: need to apply multiple times until it stabelizes *)
 
 
-text{*It is still a good idea to apply @{const opt_MatchAny_match_expr} multiple times. Example:*}
+text\<open>It is still a good idea to apply @{const opt_MatchAny_match_expr} multiple times. Example:\<close>
 lemma "MatchNot (opt_MatchAny_match_expr (MatchAnd MatchAny (MatchNot MatchAny))) = MatchNot (MatchNot MatchAny)" by simp
 lemma "m = (MatchAnd (MatchAnd MatchAny MatchAny) (MatchAnd MatchAny MatchAny)) \<Longrightarrow> 
   (opt_MatchAny_match_expr^^2) m \<noteq> opt_MatchAny_match_expr m" by(simp add: funpow_def)
@@ -74,8 +74,8 @@ lemma "m = (MatchAnd (MatchAnd MatchAny MatchAny) (MatchAnd MatchAny MatchAny)) 
 
 
 
-text{*Rewrite @{const Reject} actions to @{const Drop} actions.
-      If we just care about the filtering decision (@{const FinalAllow} or @{const FinalDeny}), they should be equal. *}
+text\<open>Rewrite @{const Reject} actions to @{const Drop} actions.
+      If we just care about the filtering decision (@{const FinalAllow} or @{const FinalDeny}), they should be equal.\<close>
 fun rw_Reject :: "'a rule list \<Rightarrow> 'a rule list" where
   "rw_Reject [] = []" |
   "rw_Reject ((Rule m Reject)#rs) = (Rule m Drop)#rw_Reject rs" |
@@ -83,7 +83,7 @@ fun rw_Reject :: "'a rule list \<Rightarrow> 'a rule list" where
 
 
 
-text{*We call a ruleset simple iff the only actions are @{const Accept} and @{const Drop}*}
+text\<open>We call a ruleset simple iff the only actions are @{const Accept} and @{const Drop}\<close>
   definition simple_ruleset :: "'a rule list \<Rightarrow> bool" where
     "simple_ruleset rs \<equiv> \<forall>r \<in> set rs. get_action r = Accept \<or> get_action r = Drop"
 
@@ -98,15 +98,15 @@ text{*We call a ruleset simple iff the only actions are @{const Accept} and @{co
 
 
 
-text{*Structural properties about match expressions*}
+text\<open>Structural properties about match expressions\<close>
   fun has_primitive :: "'a match_expr \<Rightarrow> bool" where
     "has_primitive MatchAny = False" |
     "has_primitive (Match a) = True" |
     "has_primitive (MatchNot m) = has_primitive m" |
     "has_primitive (MatchAnd m1 m2) = (has_primitive m1 \<or> has_primitive m2)"
 
-  text{*Is a match expression equal to the @{const MatchAny} expression?
-        Only applicable if no primitives are in the expression. *}
+  text\<open>Is a match expression equal to the @{const MatchAny} expression?
+        Only applicable if no primitives are in the expression.\<close>
   fun matcheq_matchAny :: "'a match_expr \<Rightarrow> bool" where
     "matcheq_matchAny MatchAny \<longleftrightarrow> True" |
     "matcheq_matchAny (MatchNot m) \<longleftrightarrow> \<not> (matcheq_matchAny m)" |
@@ -133,7 +133,7 @@ text{*Structural properties about match expressions*}
 
 
 
-text{*optimizing match expressions*}
+text\<open>optimizing match expressions\<close>
 
 fun optimize_matches_option :: "('a match_expr \<Rightarrow> 'a match_expr option) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
   "optimize_matches_option _ [] = []" |

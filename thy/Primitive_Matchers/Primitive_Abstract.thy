@@ -5,16 +5,16 @@ imports
   Conntrack_State_Transform
 begin
 
-section{*Abstracting over Primitives*}
+section\<open>Abstracting over Primitives\<close>
 
 
 
-text{* Abstract over certain primitives. The first parameter is a function
+text\<open>Abstract over certain primitives. The first parameter is a function
   @{typ "common_primitive negation_type \<Rightarrow> bool"} to select the primitives to be abstracted over.
   The @{typ common_primitive} is wrapped in a @{typ "common_primitive negation_type"} to let the function
   selectively abstract only over negated, non-negated, or both kinds of primitives.
   This functions requires a @{const normalized_nnf_match}.
-*}
+\<close>
 fun abstract_primitive :: "(common_primitive negation_type \<Rightarrow> bool) \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
   "abstract_primitive _     MatchAny = MatchAny" |
   "abstract_primitive disc (Match a) = (if disc (Pos a) then Match (Extra (common_primitive_toString a)) else (Match a))" |
@@ -23,8 +23,8 @@ fun abstract_primitive :: "(common_primitive negation_type \<Rightarrow> bool) \
   "abstract_primitive disc (MatchAnd m1 m2) = MatchAnd (abstract_primitive disc m1) (abstract_primitive disc m2)"
 
 
-text{*For example, a simple firewall requires that no negated interfaces and protocols occur in the 
-      expression. *}
+text\<open>For example, a simple firewall requires that no negated interfaces and protocols occur in the 
+      expression.\<close>
 definition abstract_for_simple_firewall :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr"
   where "abstract_for_simple_firewall \<equiv> abstract_primitive (\<lambda>r. case r
                 of Pos a \<Rightarrow> is_CT_State a \<or> is_L4_Flags a
@@ -56,9 +56,9 @@ lemma abstract_primitive_nodisc:
   
 
 
-text{*The function @{const ctstate_assume_state} can be used to fix a state and hence remove all state matches from the ruleset.
+text\<open>The function @{const ctstate_assume_state} can be used to fix a state and hence remove all state matches from the ruleset.
       It is therefore advisable to create a simple firewall for a fixed state, e.g. with @{const ctstate_assume_new} before
-      calling to @{const abstract_for_simple_firewall}.*}
+      calling to @{const abstract_for_simple_firewall}.\<close>
 lemma not_hasdisc_ctstate_assume_state: "\<not> has_disc is_CT_State (ctstate_assume_state s m)"
   by(induction m rule: ctstate_assume_state.induct) (simp_all)
 
@@ -116,6 +116,7 @@ begin
      done
   
   theorem abstract_primitive_in_doubt_allow_generic:
+    fixes \<beta>::"(common_primitive, ('i::len, 'a) simple_packet_scheme) exact_match_tac"
     assumes generic: "primitive_matcher_generic \<beta>"
        and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
     defines "\<gamma> \<equiv> (\<beta>, in_doubt_allow)" and "abstract disc \<equiv> optimize_matches (abstract_primitive disc)"
@@ -128,8 +129,9 @@ begin
       from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
        good: "good_ruleset (optimize_matches (abstract_primitive disc) rs)" by fast
 
-      let ?\<gamma>="(\<beta>, in_doubt_allow) :: (common_primitive \<Rightarrow> simple_packet \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> simple_packet \<Rightarrow> bool)"
-        --{*type signature is needed, otherwise @{const in_doubt_allow} would be for arbitrary packet*}
+      let ?\<gamma>="(\<beta>, in_doubt_allow) :: (common_primitive \<Rightarrow> ('i::len, 'a) simple_packet_scheme \<Rightarrow> ternaryvalue) \<times>
+              (action \<Rightarrow> ('i::len, 'a) simple_packet_scheme \<Rightarrow> bool)"
+        --\<open>type signature is needed, otherwise @{const in_doubt_allow} would be for arbitrary packet\<close>
 
       have abstract_primitive_in_doubt_allow_help1:
         "approximating_bigstep_fun \<gamma> p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalAllow"
@@ -157,7 +159,7 @@ begin
                   from Nomatch.prems(1) have "a = action.Accept \<or> a = action.Drop" by(simp add: simple_ruleset_def)
                   from Nomatch.hyps(1) Nomatch.prems(3) abstract_primitive_in_doubt_allow_Allow2[OF generic] have
                     "a = action.Drop \<Longrightarrow> \<not> matches ?\<gamma> (abstract_primitive disc m) action.Drop p" by simp
-                  with True `a = action.Accept \<or> a = action.Drop` have "a = action.Accept" by blast
+                  with True \<open>a = action.Accept \<or> a = action.Drop\<close> have "a = action.Accept" by blast
                   with True show ?thesis
                     using optimize_matches_matches_fst by fastforce 
                 qed
@@ -201,16 +203,16 @@ begin
                   from Nomatch.prems(1) have "a = action.Accept \<or> a = action.Drop" by(simp add: simple_ruleset_def)
                   from Nomatch.hyps(1) Nomatch.prems(3) abstract_primitive_in_doubt_allow_Allow2[OF generic] have
                     "a = action.Drop \<Longrightarrow> \<not> matches ?\<gamma> (abstract_primitive disc m) action.Drop p" by simp
-                  with True `a = action.Accept \<or> a = action.Drop` have "a = action.Accept" by blast
+                  with True \<open>a = action.Accept \<or> a = action.Drop\<close> have "a = action.Accept" by blast
                   with 1 True have False by simp
                   thus ?thesis ..
                 qed
             qed(simp_all add: simple_ruleset_def)
       qed
   
-      from good approximating_semantics_iff_fun_good_ruleset abstract_primitive_in_doubt_allow_help1 `good_ruleset rs` show ?allow
+      from good approximating_semantics_iff_fun_good_ruleset abstract_primitive_in_doubt_allow_help1 \<open>good_ruleset rs\<close> show ?allow
         unfolding abstract_def by fast
-      from good approximating_semantics_iff_fun_good_ruleset abstract_primitive_in_doubt_allow_help2 `good_ruleset rs` \<gamma>_def show ?deny 
+      from good approximating_semantics_iff_fun_good_ruleset abstract_primitive_in_doubt_allow_help2 \<open>good_ruleset rs\<close> \<gamma>_def show ?deny 
         unfolding abstract_def by fast
     qed
   corollary abstract_primitive_in_doubt_allow:
@@ -259,6 +261,7 @@ begin
      done
 
   theorem abstract_primitive_in_doubt_deny_generic:
+    fixes \<beta>::"(common_primitive, ('i::len, 'a) simple_packet_scheme) exact_match_tac"
     assumes generic: "primitive_matcher_generic \<beta>"
         and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
     defines "\<gamma> \<equiv> (\<beta>, in_doubt_deny)" and "abstract disc \<equiv> optimize_matches (abstract_primitive disc)"
@@ -271,8 +274,9 @@ begin
       from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
         good: "good_ruleset (optimize_matches (abstract_primitive disc) rs)" by fast
 
-      let ?\<gamma>="(\<beta>, in_doubt_deny) :: (common_primitive \<Rightarrow> simple_packet \<Rightarrow> ternaryvalue) \<times> (action \<Rightarrow> simple_packet \<Rightarrow> bool)"
-        --{*type signature is needed, otherwise @{const in_doubt_allow} would be for arbitrary packet*}
+      let ?\<gamma>="(\<beta>, in_doubt_deny) :: (common_primitive \<Rightarrow> ('i::len, 'a) simple_packet_scheme \<Rightarrow> ternaryvalue) \<times> 
+            (action \<Rightarrow> ('i::len, 'a) simple_packet_scheme \<Rightarrow> bool)"
+        --\<open>type signature is needed, otherwise @{const in_doubt_allow} would be for arbitrary packet\<close>
       
       have abstract_primitive_in_doubt_deny_help1:
         "approximating_bigstep_fun \<gamma> p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalDeny"
@@ -299,7 +303,7 @@ begin
                   from Nomatch.prems(1) have "a = action.Accept \<or> a = action.Drop" by(simp add: simple_ruleset_def)
                   from Nomatch.hyps(1) Nomatch.prems(3) abstract_primitive_in_doubt_deny_Deny2[OF generic] have
                     "a = action.Accept \<Longrightarrow> \<not> matches ?\<gamma> (abstract_primitive disc m) action.Accept p" by(simp)
-                  with True `a = action.Accept \<or> a = action.Drop` have "a = action.Drop" by blast
+                  with True \<open>a = action.Accept \<or> a = action.Drop\<close> have "a = action.Drop" by blast
                   with True show ?thesis using optimize_matches_matches_fst by fastforce
                 qed
             qed(simp_all add: simple_ruleset_def)
@@ -343,16 +347,16 @@ begin
                   from Nomatch.prems(1) have "a = action.Accept \<or> a = action.Drop" by(simp add: simple_ruleset_def)
                   from Nomatch.hyps(1) Nomatch.prems(3) abstract_primitive_in_doubt_deny_Deny2[OF generic] have
                     "a = action.Accept \<Longrightarrow> \<not> matches ?\<gamma> (abstract_primitive disc m) action.Accept p" by simp
-                  with True `a = action.Accept \<or> a = action.Drop` have "a = action.Drop" by blast
+                  with True \<open>a = action.Accept \<or> a = action.Drop\<close> have "a = action.Drop" by blast
                   with 1 True have False by force
                   thus ?thesis ..
                 qed
             qed(simp_all add: simple_ruleset_def)
       qed
 
-      from good approximating_semantics_iff_fun_good_ruleset abstract_primitive_in_doubt_deny_help1 `good_ruleset rs` show ?deny
+      from good approximating_semantics_iff_fun_good_ruleset abstract_primitive_in_doubt_deny_help1 \<open>good_ruleset rs\<close> show ?deny
         unfolding abstract_def by fast
-      from good approximating_semantics_iff_fun_good_ruleset abstract_primitive_in_doubt_deny_help2 `good_ruleset rs` show ?allow
+      from good approximating_semantics_iff_fun_good_ruleset abstract_primitive_in_doubt_deny_help2 \<open>good_ruleset rs\<close> show ?allow
         unfolding abstract_def by fast
     qed
 end

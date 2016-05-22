@@ -11,7 +11,7 @@ imports Common_Primitive_Lemmas
 begin
 
 
-section{*Optimizing and normalizing primitives*}
+section\<open>Optimizing and normalizing primitives\<close>
 (*TODO: cleanup*)
 
 
@@ -34,79 +34,87 @@ context begin
     using compress_normalize_output_interfaces_nnf apply blast
     done
   private lemma compress_normalize_besteffort_matches:
-  "f \<in> set [compress_normalize_protocols,
-            compress_normalize_input_interfaces,
-            compress_normalize_output_interfaces] \<Longrightarrow>
-         normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches (common_matcher, \<alpha>) m' a p = matches (common_matcher, \<alpha>) m a p"
+    assumes generic: "primitive_matcher_generic \<beta>"
+    shows "f \<in> set [compress_normalize_protocols,
+                    compress_normalize_input_interfaces,
+                    compress_normalize_output_interfaces] \<Longrightarrow>
+           normalized_nnf_match m \<Longrightarrow>
+           f m = Some m' \<Longrightarrow>
+           matches (\<beta>, \<alpha>) m' a p = matches (\<beta>, \<alpha>) m a p"
     apply(simp)
     apply(elim disjE)
-      using primitive_matcher_generic.compress_normalize_protocols_Some[OF primitive_matcher_generic_common_matcher] apply blast
-     using compress_normalize_input_interfaces_Some[OF primitive_matcher_generic_common_matcher] apply blast
-    using compress_normalize_output_interfaces_Some[OF primitive_matcher_generic_common_matcher] apply blast
+      using primitive_matcher_generic.compress_normalize_protocols_Some[OF generic] apply blast
+     using compress_normalize_input_interfaces_Some[OF generic] apply blast
+    using compress_normalize_output_interfaces_Some[OF generic] apply blast
     done
   
   
-  lemma compress_normalize_besteffort_Some: "normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
-    matches (common_matcher, \<alpha>) m' a p = matches (common_matcher, \<alpha>) m a p"
+  lemma compress_normalize_besteffort_Some: 
+    assumes generic: "primitive_matcher_generic \<beta>"
+    shows "normalized_nnf_match m \<Longrightarrow>
+           compress_normalize_besteffort m = Some m' \<Longrightarrow>
+           matches (\<beta>, \<alpha>) m' a p = matches (\<beta>, \<alpha>) m a p"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad)
-    using compress_normalize_besteffort_normalized compress_normalize_besteffort_matches by blast+
+    using compress_normalize_besteffort_normalized compress_normalize_besteffort_matches[OF generic] by blast+
   lemma compress_normalize_besteffort_None:
-      "normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = None \<Longrightarrow>
-         \<not> matches (common_matcher, \<alpha>) m a p"
+    assumes generic: "primitive_matcher_generic \<beta>"
+    shows "normalized_nnf_match m \<Longrightarrow>
+           compress_normalize_besteffort m = None \<Longrightarrow>
+           \<not> matches (\<beta>, \<alpha>) m a p"
   proof -
-   have notmatches: "\<And>f m. f \<in> set [compress_normalize_protocols, compress_normalize_input_interfaces, compress_normalize_output_interfaces] \<Longrightarrow>
-           normalized_nnf_match m \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p"
+   have notmatches: "f \<in> set [compress_normalize_protocols, compress_normalize_input_interfaces, compress_normalize_output_interfaces] \<Longrightarrow>
+           normalized_nnf_match m \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches (\<beta>, \<alpha>) m a p" for f m
       apply(simp)
-      using primitive_matcher_generic.compress_normalize_protocols_None[OF primitive_matcher_generic_common_matcher]
-            compress_normalize_input_interfaces_None[OF primitive_matcher_generic_common_matcher]
-            compress_normalize_output_interfaces_None[OF primitive_matcher_generic_common_matcher] by blast
-   show "normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = None \<Longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p"
+      using primitive_matcher_generic.compress_normalize_protocols_None[OF generic]
+            compress_normalize_input_interfaces_None[OF generic]
+            compress_normalize_output_interfaces_None[OF generic] by blast
+   show "normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = None \<Longrightarrow> \<not> matches (\<beta>, \<alpha>) m a p"
      unfolding compress_normalize_besteffort_def
      apply(rule compress_normalize_primitive_monad_None)
-         using compress_normalize_besteffort_normalized compress_normalize_besteffort_matches notmatches by blast+
+         using compress_normalize_besteffort_normalized
+               compress_normalize_besteffort_matches[OF generic]
+               notmatches by blast+
   qed 
-  lemma compress_normalize_besteffort_nnf: "normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
-    normalized_nnf_match m'"
+  lemma compress_normalize_besteffort_nnf:
+    "normalized_nnf_match m \<Longrightarrow>
+     compress_normalize_besteffort m = Some m' \<Longrightarrow>
+     normalized_nnf_match m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad)
-       using compress_normalize_besteffort_normalized compress_normalize_besteffort_matches by blast+
+       using compress_normalize_besteffort_normalized
+             compress_normalize_besteffort_matches[OF primitive_matcher_generic_common_matcher]
+             by blast+
   
   lemma compress_normalize_besteffort_not_introduces_Iiface:
       "\<not> has_disc is_Iiface m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
        \<not> has_disc is_Iiface m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves[THEN conjunct2])
-        using compress_normalize_besteffort_normalized apply blast
-       apply(simp split: option.split_asm)
-       using compress_normalize_input_interfaces_not_introduces_Iiface compress_normalize_protocols_hasdisc
-             compress_normalize_output_interfaces_hasdisc
-       apply (meson common_primitive.disc(24) common_primitive.disc(25))
-      apply simp_all
+        apply(drule(3) compress_normalize_besteffort_normalized)
+       apply(auto dest: compress_normalize_input_interfaces_not_introduces_Iiface
+                        compress_normalize_protocols_hasdisc
+                        compress_normalize_output_interfaces_hasdisc)
     done
   lemma compress_normalize_besteffort_not_introduces_Oiface:
       "\<not> has_disc is_Oiface m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
        \<not> has_disc is_Oiface m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves[THEN conjunct2])
-        using compress_normalize_besteffort_normalized apply blast
-       apply(simp split: option.split_asm)
-       using compress_normalize_output_interfaces_hasdisc compress_normalize_output_interfaces_not_introduces_Oiface
-             compress_normalize_protocols_hasdisc compress_normalize_input_interfaces_hasdisc
-       apply (meson common_primitive.disc(33) common_primitive.disc(35))
-      apply simp_all
+        apply(drule(3) compress_normalize_besteffort_normalized)
+       apply(auto dest: compress_normalize_output_interfaces_hasdisc
+                        compress_normalize_output_interfaces_not_introduces_Oiface
+                        compress_normalize_protocols_hasdisc
+                        compress_normalize_input_interfaces_hasdisc)
     done
   lemma compress_normalize_besteffort_not_introduces_Prot:
       "\<not> has_disc is_Prot m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
        \<not> has_disc is_Prot m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves[THEN conjunct2])
-        using compress_normalize_besteffort_normalized apply blast
-       apply(simp split: option.split_asm)
-       using compress_normalize_input_interfaces_hasdisc compress_normalize_protocols_not_introduces_Prot
-             compress_normalize_output_interfaces_hasdisc
-       apply (meson common_primitive.disc(44) common_primitive.disc(43))       
-      apply simp_all
+        apply(drule(3) compress_normalize_besteffort_normalized)
+       apply(auto dest: compress_normalize_input_interfaces_hasdisc compress_normalize_protocols_not_introduces_Prot
+             compress_normalize_output_interfaces_hasdisc)
     done
   
   lemma compress_normalize_besteffort_not_introduces_Iiface_negated:
@@ -114,36 +122,30 @@ context begin
        \<not> has_disc_negated is_Iiface False m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves[THEN conjunct2])
-        using compress_normalize_besteffort_normalized apply blast
-       apply(simp split: option.split_asm)
-       using compress_normalize_input_interfaces_not_introduces_Iiface_negated compress_normalize_protocols_hasdisc_negated
-            compress_normalize_output_interfaces_hasdisc_negated 
-            common_primitive.disc(24) common_primitive.disc(25) apply blast
-      apply simp_all  
+        apply(drule(3) compress_normalize_besteffort_normalized)
+       apply(auto dest: compress_normalize_besteffort_normalized compress_normalize_input_interfaces_not_introduces_Iiface_negated
+                        compress_normalize_protocols_hasdisc_negated
+                        compress_normalize_output_interfaces_hasdisc_negated)
     done
   lemma compress_normalize_besteffort_not_introduces_Oiface_negated:
       "\<not> has_disc_negated is_Oiface False m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
        \<not> has_disc_negated is_Oiface False m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves[THEN conjunct2])
-        using compress_normalize_besteffort_normalized apply blast
-       apply(simp split: option.split_asm)
-       using compress_normalize_output_interfaces_not_introduces_Oiface_negated
-             compress_normalize_input_interfaces_hasdisc_negated compress_normalize_protocols_hasdisc_negated
-       apply (meson common_primitive.disc(33) common_primitive.disc(35)) 
-      apply simp_all  
+        apply(drule(3) compress_normalize_besteffort_normalized)
+       apply(auto dest: compress_normalize_output_interfaces_not_introduces_Oiface_negated
+                        compress_normalize_input_interfaces_hasdisc_negated
+                        compress_normalize_protocols_hasdisc_negated)
     done
   lemma compress_normalize_besteffort_not_introduces_Prot_negated:
       "\<not> has_disc_negated is_Prot False m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
        \<not> has_disc_negated is_Prot False m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves[THEN conjunct2])
-        using compress_normalize_besteffort_normalized apply blast
-       apply(simp split: option.split_asm)
-       using compress_normalize_input_interfaces_hasdisc_negated compress_normalize_protocols_not_introduces_Prot_negated
-             compress_normalize_output_interfaces_hasdisc_negated
-       apply (meson common_primitive.disc(34) common_primitive.disc(43) common_primitive.distinct_disc(50))
-      apply simp_all
+        apply(drule(3) compress_normalize_besteffort_normalized)
+       apply(auto dest: compress_normalize_input_interfaces_hasdisc_negated
+                        compress_normalize_protocols_not_introduces_Prot_negated
+                        compress_normalize_output_interfaces_hasdisc_negated)
     done
   lemma compress_normalize_besteffort_hasdisc:
       "\<not> has_disc disc m \<Longrightarrow> (\<forall>a. \<not> disc (IIface a)) \<Longrightarrow> (\<forall>a. \<not> disc (OIface a)) \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow>
@@ -151,12 +153,10 @@ context begin
        normalized_nnf_match m' \<and> \<not> has_disc disc m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves)
-        using compress_normalize_besteffort_normalized apply blast
-       apply(simp split: option.split_asm)
-       using compress_normalize_input_interfaces_hasdisc
-             compress_normalize_output_interfaces_hasdisc
-             compress_normalize_protocols_hasdisc apply blast
-    apply simp_all
+        apply(drule(3) compress_normalize_besteffort_normalized)
+       apply(auto dest: compress_normalize_input_interfaces_hasdisc
+                        compress_normalize_output_interfaces_hasdisc
+                        compress_normalize_protocols_hasdisc)
     done
   lemma compress_normalize_besteffort_hasdisc_negated:
       "\<not> has_disc_negated disc neg m \<Longrightarrow>
@@ -165,7 +165,7 @@ context begin
        normalized_nnf_match m' \<and> \<not> has_disc_negated disc neg m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves)
-        using compress_normalize_besteffort_normalized apply blast
+        apply(drule(3) compress_normalize_besteffort_normalized)
        apply(simp split: option.split_asm)
        using compress_normalize_input_interfaces_hasdisc_negated
              compress_normalize_output_interfaces_hasdisc_negated
@@ -179,18 +179,16 @@ context begin
      normalized_nnf_match m' \<and> normalized_n_primitive (disc, sel) P m'"
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves)
-        using compress_normalize_besteffort_normalized apply blast
-       apply(simp split: option.split_asm)
-       using compress_normalize_input_interfaces_preserves_normalized_n_primitive
+        apply(drule(3) compress_normalize_besteffort_normalized)
+       apply(auto dest: compress_normalize_input_interfaces_preserves_normalized_n_primitive
              compress_normalize_output_interfaces_preserves_normalized_n_primitive
-             compress_normalize_protocols_preserves_normalized_n_primitive apply blast
-    apply simp_all
+             compress_normalize_protocols_preserves_normalized_n_primitive)
     done
 end
 
-section{*Transforming rulesets*}
+section\<open>Transforming rulesets\<close>
 
-subsection{*Optimizations*}
+subsection\<open>Optimizations\<close>
 
 lemma approximating_bigstep_fun_remdups_rev:
   "approximating_bigstep_fun \<gamma> p (remdups_rev rs) s = approximating_bigstep_fun \<gamma> p rs s"
@@ -235,7 +233,7 @@ lemma remdups_rev_preserve_matches: "\<forall> m \<in> get_match ` set rs. P m \
 (*TODO: closure bounds*)
 
 
-subsection{*Optimize and Normalize to NNF form*}
+subsection\<open>Optimize and Normalize to NNF form\<close>
 
 (*without normalize_rules_dnf, the result cannot be normalized as optimize_primitive_univ can contain MatchNot MatchAny*)
 definition transform_optimize_dnf_strict :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where 
@@ -250,8 +248,7 @@ by(cases r)(simp add: optimize_matches_def)
   
 
 theorem transform_optimize_dnf_strict_structure: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
-      shows (*"(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
-      and*) "simple_ruleset (transform_optimize_dnf_strict rs)"
+      shows "simple_ruleset (transform_optimize_dnf_strict rs)"
       and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc disc m"
       and "\<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_nnf_match m"
       and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
@@ -259,36 +256,9 @@ theorem transform_optimize_dnf_strict_structure: assumes simplers: "simple_rules
       and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc_negated disc neg m"
   proof -
-    let ?\<gamma>="(common_matcher, \<alpha>)"
     show simplers_transform: "simple_ruleset (transform_optimize_dnf_strict rs)"
       unfolding transform_optimize_dnf_strict_def
       using simplers by (simp add: optimize_matches_simple_ruleset simple_ruleset_normalize_rules_dnf)
-
-    (*let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
-
-    have simplers1: "simple_ruleset (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs)"
-      using simplers optimize_matches_simple_ruleset by (metis)
-
-
-    have 1: "?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?fw rs = t"
-      using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]] by fast
-
-    have "?fw rs = ?fw (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs)"
-      apply(rule optimize_matches[symmetric])
-      using optimize_primitive_univ_correct_matchexpr opt_MatchAny_match_expr_correct by (metis comp_apply)
-    also have "\<dots> = ?fw (normalize_rules_dnf (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs))"
-      apply(rule normalize_rules_dnf_correct[symmetric])
-      using simplers1 by (metis good_imp_wf_ruleset simple_imp_good_ruleset)
-    also have "\<dots> = ?fw (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs)))"
-      apply(rule optimize_matches[symmetric])
-      using opt_MatchAny_match_expr_correct by (metis)
-    finally have rs: "?fw rs = ?fw (transform_optimize_dnf_strict rs)"
-      unfolding transform_optimize_dnf_strict_def by(simp)
-
-    have 2: "?fw (transform_optimize_dnf_strict rs) = t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t "
-      using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_transform], symmetric] by fast
-    from 1 2 rs show "?\<gamma>,p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t" by simp*)
-
 
     have tf1: "\<And>r rs. transform_optimize_dnf_strict (r#rs) =
       (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) [r])))@
@@ -438,7 +408,7 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
 qed
 
 
-subsection{*Abstracting over unknowns*}
+subsection\<open>Abstracting over unknowns\<close>
 
 definition transform_remove_unknowns_generic :: "('a, 'packet) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where 
     "transform_remove_unknowns_generic \<gamma> = optimize_matches_a (remove_unknowns_generic \<gamma>) "
@@ -526,26 +496,29 @@ proof -
     apply(erule optimize_matches_a_simple_ruleset_eq)
     by (simp add: upper_closure_matchexpr_generic)
 
-  with transform_remove_unknowns_generic[OF 
+  note * = transform_remove_unknowns_generic[OF 
       simplers wf_in_doubt_allow packet_independent_unknown_match_tacs(1) packet_independent_\<beta>_unknown_common_matcher,
       simplified upper_closure_matchexpr_generic]
-    show "(common_matcher, in_doubt_allow),p\<turnstile> \<langle>upper rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t" 
-      and "simple_ruleset (upper rs)"
-      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
+
+    from *(1)[where p = p]
+    show "(common_matcher, in_doubt_allow),p\<turnstile> \<langle>upper rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+      by(subst upper)
+    from *(2) show "simple_ruleset (upper rs)" by(subst upper)
+    from *(3) show "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (upper rs). \<not> has_disc disc m"
-      and "\<forall> m \<in> get_match ` set (upper rs). \<not> has_disc is_Extra m"
-      and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (upper rs). normalized_n_primitive disc_sel f m"
-      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
+      by(subst upper) fast
+    from *(4) show "\<forall> m \<in> get_match ` set (upper rs). \<not> has_disc is_Extra m" 
+      apply(subst upper)
+      using has_unknowns_common_matcher by auto
+    from *(5) show "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (upper rs). normalized_n_primitive disc_sel f m" 
+      apply(subst upper)
+      using packet_independent_unknown_match_tacs(1) simplers
+        transform_remove_unknowns_generic(5)[OF _ _ _ packet_independent_\<beta>_unknown_common_matcher] wf_in_doubt_allow
+      by blast
+    from *(6) show "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (upper rs). \<not> has_disc_negated disc neg m"
-    apply -
-         apply(simp;fail)
-        apply(simp;fail)
-       apply presburger
-      using has_unknowns_common_matcher apply auto[1]
-     apply (metis packet_independent_unknown_match_tacs(1) simplers
-        transform_remove_unknowns_generic(5)[OF _ _ _ packet_independent_\<beta>_unknown_common_matcher] wf_in_doubt_allow)
-    by presburger
+      by(subst upper) fast
 qed
 
 
@@ -562,38 +535,41 @@ corollary transform_remove_unknowns_lower: defines "lower \<equiv> optimize_matc
       and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (lower rs). \<not> has_disc_negated disc neg m"
 proof -
-  from simplers have upper: "lower rs = transform_remove_unknowns_generic (common_matcher, in_doubt_deny) rs"
+  from simplers have lower: "lower rs = transform_remove_unknowns_generic (common_matcher, in_doubt_deny) rs"
     apply(simp add: transform_remove_unknowns_generic_def lower_def)
     apply(erule optimize_matches_a_simple_ruleset_eq)
     by (simp add: lower_closure_matchexpr_generic)
-  
-  with transform_remove_unknowns_generic[OF
+
+  note * = transform_remove_unknowns_generic[OF 
       simplers wf_in_doubt_deny packet_independent_unknown_match_tacs(2) packet_independent_\<beta>_unknown_common_matcher,
       simplified lower_closure_matchexpr_generic]
+
+    from *(1)[where p = p]
     show "(common_matcher, in_doubt_deny),p\<turnstile> \<langle>lower rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_deny),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t" 
-      and "simple_ruleset (lower rs)"
-      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
+      by(subst lower)
+    from *(2) show "simple_ruleset (lower rs)" by(subst lower)
+    from *(3) show "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (lower rs). \<not> has_disc disc m"
-      and "\<forall> m \<in> get_match ` set (lower rs). \<not> has_disc is_Extra m"
-      and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (lower rs). normalized_n_primitive disc_sel f m"
-      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
+      by(subst lower) fast
+    from *(4) show "\<forall> m \<in> get_match ` set (lower rs). \<not> has_disc is_Extra m" 
+      apply(subst lower)
+      using has_unknowns_common_matcher by auto
+    from *(5) show "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
+            \<forall> m \<in> get_match ` set (lower rs). normalized_n_primitive disc_sel f m" 
+      apply(subst lower)
+      using packet_independent_unknown_match_tacs(1) simplers
+        transform_remove_unknowns_generic(5)[OF _ _ _ packet_independent_\<beta>_unknown_common_matcher] wf_in_doubt_deny
+      by blast
+    from *(6) show "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (lower rs). \<not> has_disc_negated disc neg m"
-    apply -
-         apply(simp;fail)
-        apply(simp;fail)
-       apply presburger
-      using has_unknowns_common_matcher apply auto[1]
-     apply (metis packet_independent_unknown_match_tacs(2) simplers
-        transform_remove_unknowns_generic(5)[OF _ _ _ packet_independent_\<beta>_unknown_common_matcher] wf_in_doubt_deny)
-    by presburger
+      by(subst lower) fast
 qed
 
 
 
-subsection{*Normalizing and Transforming Primitives*}
+subsection\<open>Normalizing and Transforming Primitives\<close>
 
-text{*Rewrite the primitives IPs and Ports such that can be used by the simple firewall.*}
+text\<open>Rewrite the primitives IPs and Ports such that can be used by the simple firewall.\<close>
 definition transform_normalize_primitives :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where 
     "transform_normalize_primitives =
       normalize_rules normalize_dst_ips \<circ>
@@ -720,24 +696,26 @@ theorem transform_normalize_primitives:
      unfolding transform_normalize_primitives_def
      apply(simp)
      apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
-        using normalize_dst_ips apply(simp; fail)
+        using normalize_dst_ips[where p = p] apply(simp; fail)
        using simplers simple_ruleset_normalize_rules optimize_matches_option_simple_ruleset apply blast
       using normalized_rs3 apply(simp; fail)
      apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
-        using normalize_src_ips apply(simp; fail)
+        using normalize_src_ips[where p = p] apply(simp; fail)
        using simplers simple_ruleset_normalize_rules optimize_matches_option_simple_ruleset apply blast
       using normalized_rs2 apply(simp; fail)
      apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
-        using normalize_dst_ports[OF primitive_matcher_generic_common_matcher] apply(simp; fail)
+        using normalize_dst_ports[OF primitive_matcher_generic_common_matcher,where p = p] apply(simp; fail)
        using simplers simple_ruleset_normalize_rules optimize_matches_option_simple_ruleset apply blast
       using normalized_rs1 apply(simp; fail)
      apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
-        using normalize_src_ports[OF primitive_matcher_generic_common_matcher] apply(simp; fail)
+        using normalize_src_ports[OF primitive_matcher_generic_common_matcher, where p = p] apply(simp; fail)
        using simplers simple_ruleset_normalize_rules optimize_matches_option_simple_ruleset apply blast
       using normalized_rs0 apply(simp; fail)
      apply(subst local_simp, simp_all)
      apply(rule optimize_matches_option_generic[where P="\<lambda> m a. normalized_nnf_match m"])
-       apply(simp_all add: normalized compress_normalize_besteffort_Some compress_normalize_besteffort_None)
+       apply(simp_all add: normalized
+                  compress_normalize_besteffort_Some[OF primitive_matcher_generic_common_matcher]
+                  compress_normalize_besteffort_None[OF primitive_matcher_generic_common_matcher])
      done
 
     from normalize_src_ports_normalized_n_primitive
@@ -757,22 +735,23 @@ theorem transform_normalize_primitives:
 
     from normalize_rules_preserves_unrelated_normalized_n_primitive[of _ is_Src_Ports src_ports_sel "(\<lambda>pts. length pts \<le> 1)",
          folded normalized_src_ports_def2 normalize_ports_step_def]
-    have preserve_normalized_src_ports: "\<And>rs disc sel C f. 
+    have preserve_normalized_src_ports: " 
       \<forall>m\<in>get_match ` set rs. normalized_nnf_match m  \<Longrightarrow>
       \<forall>m\<in>get_match ` set rs. normalized_src_ports m \<Longrightarrow>
       wf_disc_sel (disc, sel) C \<Longrightarrow>
       \<forall>a. \<not> is_Src_Ports (C a) \<Longrightarrow>
       \<forall>m\<in>get_match ` set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs). normalized_src_ports m"
+      for f :: "'c negation_type list \<Rightarrow> 'c list" and rs disc sel and C :: "'c \<Rightarrow> common_primitive"
       by metis
     from preserve_normalized_src_ports[OF normalized_rs1 normalized_src_ports wf_disc_sel_common_primitive(2),
-         where f="(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))",
+         where f2 (* f *) = "(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))",
          folded normalize_ports_step_def normalize_dst_ports_def]
     have normalized_src_ports_rs2: "\<forall>m \<in> get_match ` set ?rs2.  normalized_src_ports m" by force
     from preserve_normalized_src_ports[OF normalized_rs2 normalized_src_ports_rs2 wf_disc_sel_common_primitive(3),
-         where f=ipt_ipv4range_compress, folded normalize_src_ips_def]
+         where f2=ipt_ipv4range_compress, folded normalize_src_ips_def]
     have normalized_src_ports_rs3: "\<forall>m \<in> get_match ` set ?rs3.  normalized_src_ports m" by force
     from preserve_normalized_src_ports[OF normalized_rs3 normalized_src_ports_rs3 wf_disc_sel_common_primitive(4),
-         where f=ipt_ipv4range_compress, folded normalize_dst_ips_def]
+         where f2=ipt_ipv4range_compress, folded normalize_dst_ips_def]
     have normalized_src_ports_rs4: "\<forall>m \<in> get_match ` set ?rs4.  normalized_src_ports m" by force
 
     from normalize_rules_preserves_unrelated_normalized_n_primitive[of _ is_Dst_Ports dst_ports_sel "(\<lambda>pts. length pts \<le> 1)",
@@ -785,10 +764,10 @@ theorem transform_normalize_primitives:
       \<forall>m\<in>get_match ` set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs). normalized_dst_ports m"
       by metis
     from preserve_normalized_dst_ports[OF normalized_rs2 normalized_dst_ports wf_disc_sel_common_primitive(3),
-         where f1=ipt_ipv4range_compress, folded normalize_src_ips_def]
+         where f2=ipt_ipv4range_compress, folded normalize_src_ips_def]
     have normalized_dst_ports_rs3: "\<forall>m \<in> get_match ` set ?rs3.  normalized_dst_ports m" by force
     from preserve_normalized_dst_ports[OF normalized_rs3 normalized_dst_ports_rs3 wf_disc_sel_common_primitive(4),
-         where f1=ipt_ipv4range_compress, folded normalize_dst_ips_def]
+         where f2=ipt_ipv4range_compress, folded normalize_dst_ips_def]
     have normalized_dst_ports_rs4: "\<forall>m \<in> get_match ` set ?rs4.  normalized_dst_ports m" by force
 
     from normalize_rules_preserves_unrelated_normalized_n_primitive[of ?rs3 is_Src src_sel normalized_cidr_ip,
@@ -1008,8 +987,8 @@ theorem iiface_constrain:
      done
 qed
 
-text{*In contrast to @{thm iiface_constrain}, this requires  @{const ipassmt_sanity_disjoint} and 
-      as much stronger nospoof assumption: This assumption requires that the packet is actually in ipassmt!*}
+text\<open>In contrast to @{thm iiface_constrain}, this requires  @{const ipassmt_sanity_disjoint} and 
+      as much stronger nospoof assumption: This assumption requires that the packet is actually in ipassmt!\<close>
 theorem iiface_rewrite:
   assumes simplers: "simple_ruleset rs"
       and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
@@ -1039,79 +1018,6 @@ theorem iiface_rewrite:
 qed
 
 
-(*
-theorem try_interface_replaceby_srcip:
-  assumes simplers: "simple_ruleset rs"
-      and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
-      and wf_ipassmt: "ipassmt_sanity_nowildcards ipassmt"
-      and nospoofing: "\<exists>ips. ipassmt (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipv4cidr_union_set (set ips)"
-  shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>try_interface_replaceby_srcip ipassmt rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
-    and "simple_ruleset (try_interface_replaceby_srcip ipassmt rs)"
-  proof -
-    let ?\<gamma>="(common_matcher, \<alpha>)"
-    let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
-
-    show simplers_t: "simple_ruleset (try_interface_replaceby_srcip ipassmt rs)"
-      by (simp add: try_interface_replaceby_srcip_def simple_ruleset_normalize_rules_dnf optimize_matches_simple_ruleset simplers)
-
-    --"packet must come from a defined interface!"
-    from nospoofing have "Iface (p_iiface p) \<in> dom ipassmt" by blast
-
-    have my_arg_cong: "\<And>P Q. P s = Q s \<Longrightarrow> (P s = t) \<longleftrightarrow> (Q s = t)" by simp
-
-    { assume disjoint: "ipassmt_sanity_disjoint (ipassmt_ignore_wildcard ipassmt)"
-      
-      have "?fw rs = ?fw (optimize_matches (iiface_rewrite (ipassmt_ignore_wildcard ipassmt)) rs)"
-      apply(cases "ipassmt_ignore_wildcard ipassmt (Iface (p_iiface p))")
-       defer
-       apply(rule optimize_matches_generic[where P="\<lambda> m _. normalized_nnf_match m", symmetric])
-        apply(simp add: normalized)
-       apply(rule matches_iiface_rewrite)
-          apply(simp_all add: wf_ipassmt ipassmt_sanity_nowildcards_ignore_wildcardD disjoint)
-       using ipassmt_ignore_wildcard_the(2) nospoofing apply fastforce
-      oops
-    }
-
-    have "ipassmt_sanity_disjoint (ipassmt_ignore_wildcard ipassmt) \<Longrightarrow>
-    \<not> ipassmt_sanity_disjoint ipassmt \<Longrightarrow>
-    approximating_bigstep_fun (common_matcher, \<alpha>) p
-      (optimize_matches (iiface_constrain ipassmt) (normalize_rules_dnf (optimize_matches (iiface_rewrite (ipassmt_ignore_wildcard ipassmt)) rs))) s =
-    approximating_bigstep_fun (common_matcher, \<alpha>) p rs s"
-    apply -
-    thm optimize_matches_generic
-    apply(rule optimize_matches_generic[where P="\<lambda> m _. normalized_nnf_match m"])
-     apply(simp add: normalized)
-    apply(rule matches_iiface_rewrite)
-       apply(simp_all add: wf_ipassmt nospoofing)
-       oops
-    
-    show "(common_matcher, \<alpha>),p\<turnstile> \<langle>try_interface_replaceby_srcip ipassmt rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
-     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_t]]
-     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
-     apply(rule my_arg_cong)
-     apply(simp add: try_interface_replaceby_srcip_def)
-     apply(intro conjI impI)
-        apply(rule optimize_matches_generic[where P="\<lambda> m _. normalized_nnf_match m"])
-         apply(simp add: normalized)
-        apply(rule matches_iiface_rewrite)
-           apply(simp_all add: wf_ipassmt nospoofing)
-       defer
-       apply(rule optimize_matches_generic[where P="\<lambda> m _. normalized_nnf_match m"])
-        apply(simp add: normalized)
-       apply(rule matches_iiface_rewrite)
-          apply(simp_all add: wf_ipassmt nospoofing)
-      apply(rule optimize_matches_generic[where P="\<lambda> m _. normalized_nnf_match m"])
-       apply(simp add: normalized)
-      apply(rule matches_iiface_constrain)
-         apply(simp_all add: wf_ipassmt)
-      using nospoofing apply fastforce
-     (*case (optimize_matches (iiface_constrain ipassmt) (normalize_rules_dnf (optimize_matches (iiface_rewrite (ipassmt_ignore_wildcard ipassmt)) rs)))*)
-     
-     done
-qed
-*)
-
-
 
 definition upper_closure :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
   "upper_closure rs == remdups_rev (transform_optimize_dnf_strict
@@ -1121,7 +1027,7 @@ definition lower_closure :: "common_primitive rule list \<Rightarrow> common_pri
       (transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a lower_closure_matchexpr rs))))"
 
 
-text{*putting it all together*}
+text\<open>putting it all together\<close>
 lemma transform_upper_closure:
   assumes simplers: "simple_ruleset rs"
   -- "semantics are preserved"

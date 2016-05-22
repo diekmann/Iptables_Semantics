@@ -1,11 +1,12 @@
 theory Common_Primitive_Matcher
-imports "../Semantics_Ternary/Semantics_Ternary" Common_Primitive_Syntax "../Bitmagic/IPv4Addr" "../Semantics_Ternary/Unknown_Match_Tacs"
+imports Common_Primitive_Matcher_Generic
 begin
 
 
-subsection{*Primitive Matchers: IP Port Iface Matcher*}
+subsection\<open>Primitive Matchers: IP Port Iface Matcher\<close>
 
-fun common_matcher :: "(common_primitive, simple_packet) exact_match_tac" where
+(*IPv4 matcher*)
+fun common_matcher :: "(common_primitive, (32, 'a) simple_packet_scheme) exact_match_tac" where
   "common_matcher (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))" |
   "common_matcher (OIface i) p = bool_to_ternary (match_iface i (p_oiface p))" |
 
@@ -35,20 +36,20 @@ fun common_matcher :: "(common_primitive, simple_packet) exact_match_tac" where
     In general, it would be best to raise an error if such a range occurs.
     *)
 
-  text{*Warning: beware of the sloppy term `empty' portrange*}
-  text{*An `empty' port range means it can never match! Basically, @{term "MatchNot (Match (Src_Ports [(0,65535)]))"} is False*}
+  text\<open>Warning: beware of the sloppy term `empty' portrange\<close>
+  text\<open>An `empty' port range means it can never match! Basically, @{term "MatchNot (Match (Src_Ports [(0,65535)]))"} is False\<close>
   lemma "\<not> matches (common_matcher, \<alpha>) (MatchNot (Match (Src_Ports [(0,65535)]))) a 
           \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
                    p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
   (*<*)by(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)(*>*)
-  text{*An `empty' port range means it always matches! Basically, @{term "(MatchNot (Match (Src_Ports [])))"} is True.
+  text\<open>An `empty' port range means it always matches! Basically, @{term "(MatchNot (Match (Src_Ports [])))"} is True.
         This corresponds to firewall behavior, but usually you cannot specify an empty portrange in firewalls, but omission of portrange means no-port-restrictions, 
-        i.e. every port matches.*}
+        i.e. every port matches.\<close>
   lemma "matches (common_matcher, \<alpha>) (MatchNot (Match (Src_Ports []))) a 
           \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
                    p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
   (*<*)by(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)(*>*)
-  text{*If not a corner case, portrange matching is straight forward.*}
+  text\<open>If not a corner case, portrange matching is straight forward.\<close>
   lemma "matches (common_matcher, \<alpha>) (Match (Src_Ports [(1024,4096), (9999, 65535)])) a 
           \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
                    p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr>"
@@ -63,7 +64,7 @@ fun common_matcher :: "(common_primitive, simple_packet) exact_match_tac" where
 
 
 
-text{*Lemmas when matching on @{term Src} or @{term Dst}*}
+text\<open>Lemmas when matching on @{term Src} or @{term Dst}\<close>
 lemma common_matcher_SrcDst_defined:
   "common_matcher (Src m) p \<noteq> TernaryUnknown"
   "common_matcher (Dst m) p \<noteq> TernaryUnknown"
@@ -81,9 +82,7 @@ done
 lemma match_simplematcher_SrcDst:
   "matches (common_matcher, \<alpha>) (Match (Src X)) a p \<longleftrightarrow> p_src  p \<in> ipv4s_to_set X"
   "matches (common_matcher, \<alpha>) (Match (Dst X)) a p \<longleftrightarrow> p_dst  p \<in> ipv4s_to_set X"
-   apply(simp_all add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
-   apply (metis bool_to_ternary.elims bool_to_ternary_Unknown ternaryvalue.distinct(1))+
-   done
+   by(simp_all add: match_raw_ternary bool_to_ternary_simps split: ternaryvalue.split)
 lemma match_simplematcher_SrcDst_not:
   "matches (common_matcher, \<alpha>) (MatchNot (Match (Src X))) a p \<longleftrightarrow> p_src  p \<notin> ipv4s_to_set X"
   "matches (common_matcher, \<alpha>) (MatchNot (Match (Dst X))) a p \<longleftrightarrow> p_dst  p \<notin> ipv4s_to_set X"
@@ -94,11 +93,9 @@ lemma match_simplematcher_SrcDst_not:
 lemma common_matcher_SrcDst_Inter:
   "(\<forall>m\<in>set X. matches (common_matcher, \<alpha>) (Match (Src m)) a p) \<longleftrightarrow> p_src p \<in> (\<Inter>x\<in>set X. ipv4s_to_set x)"
   "(\<forall>m\<in>set X. matches (common_matcher, \<alpha>) (Match (Dst m)) a p) \<longleftrightarrow> p_dst p \<in> (\<Inter>x\<in>set X. ipv4s_to_set x)"
-  by(simp_all add: matches_case_ternaryvalue_tuple bool_to_ternary_Unknown bool_to_ternary_simps split: ternaryvalue.split)
+  by(simp_all add: match_raw_ternary bool_to_ternary_simps split: ternaryvalue.split)
 
 
-
-subsection{*Generalized Definition agnostic of IP Addresses fro IPv4 and IPv6*}
 
 lemma packet_independent_\<beta>_unknown_common_matcher: "packet_independent_\<beta>_unknown common_matcher"
   apply(simp add: packet_independent_\<beta>_unknown_def)
@@ -106,73 +103,8 @@ lemma packet_independent_\<beta>_unknown_common_matcher: "packet_independent_\<b
   apply(rename_tac a p1 p2)
   by(case_tac a,simp_all add: bool_to_ternary_Unknown)
 
-
-(*TODO: generic assumptions for a common matcher without information about IPs.
-        to be used to add ipv6 integration without duplicating all proofs *)
-locale primitive_matcher_generic =
-  fixes \<beta> :: "(common_primitive, simple_packet) exact_match_tac"
-  assumes IIface: "\<forall> p i. \<beta> (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))"
-      and OIface: "\<forall> p i. \<beta> (OIface i) p = bool_to_ternary (match_iface i (p_oiface p))"
-        and Prot: "\<forall> p proto. \<beta> (Prot proto) p = bool_to_ternary (match_proto proto (p_proto p))"
-   and Src_Ports: "\<forall> p ps. \<beta> (Src_Ports ps) p = bool_to_ternary (p_sport p \<in> ports_to_set ps)"
-   and Dst_Ports: "\<forall> p ps. \<beta> (Dst_Ports ps) p = bool_to_ternary (p_dport p \<in> ports_to_set ps)"
-    and L4_Flags: "\<forall> p flags. \<beta> (L4_Flags flags) p = bool_to_ternary (match_tcp_flags flags (p_tcp_flags p))"
-    and CT_State: "\<forall> p S. \<beta> (CT_State S) p = bool_to_ternary (match_ctstate S (p_tag_ctstate p))"
-        and Extra: "\<forall> p str. \<beta> (Extra str) p = TernaryUnknown"
-begin
-  lemma Iface_single:
-    "matches (\<beta>, \<alpha>) (Match (IIface X)) a p \<longleftrightarrow> match_iface X (p_iiface p)"
-    "matches (\<beta>, \<alpha>) (Match (OIface X)) a p \<longleftrightarrow> match_iface X (p_oiface p)"
-     by(simp_all add: IIface OIface matches_case_ternaryvalue_tuple bool_to_ternary_simps
-               split: ternaryvalue.split)
-  text{*Since matching on the iface cannot be @{const TernaryUnknown}*, we can pull out negations.*}
-  lemma Iface_single_not:
-    "matches (\<beta>, \<alpha>) (MatchNot (Match (IIface X))) a p \<longleftrightarrow> \<not> match_iface X (p_iiface p)"
-    "matches (\<beta>, \<alpha>) (MatchNot (Match (OIface X))) a p \<longleftrightarrow> \<not> match_iface X (p_oiface p)"
-     by(simp_all add: IIface OIface matches_case_ternaryvalue_tuple bool_to_ternary_simps
-          split: ternaryvalue.split)
-
-  lemma Prot_single:
-    "matches (\<beta>, \<alpha>) (Match (Prot X)) a p \<longleftrightarrow> match_proto X (p_proto p)"
-     by(simp add: Prot matches_case_ternaryvalue_tuple bool_to_ternary_simps split: ternaryvalue.split)
-  lemma Prot_single_not:
-    "matches (\<beta>, \<alpha>) (MatchNot (Match (Prot X))) a p \<longleftrightarrow> \<not> match_proto X (p_proto p)"
-     by(simp add: Prot matches_case_ternaryvalue_tuple bool_to_ternary_simps split: ternaryvalue.split)
-
-  lemma Ports_single:
-    "matches (\<beta>, \<alpha>) (Match (Src_Ports ps)) a p \<longleftrightarrow> p_sport p \<in> ports_to_set ps"
-    "matches (\<beta>, \<alpha>) (Match (Dst_Ports ps)) a p \<longleftrightarrow> p_dport p \<in> ports_to_set ps"
-     by(simp_all add: Src_Ports Dst_Ports matches_case_ternaryvalue_tuple bool_to_ternary_simps
-               split: ternaryvalue.split)
-  lemma Ports_single_not:
-    "matches (\<beta>, \<alpha>) (MatchNot (Match (Src_Ports ps))) a p \<longleftrightarrow> p_sport p \<notin> ports_to_set ps"
-    "matches (\<beta>, \<alpha>) (MatchNot (Match (Dst_Ports ps))) a p \<longleftrightarrow> p_dport p \<notin> ports_to_set ps"
-     by(simp_all add: Src_Ports Dst_Ports matches_case_ternaryvalue_tuple bool_to_ternary_simps
-               split: ternaryvalue.split)
-
-  lemma multiports_disjuction:
-        "(\<exists>rg\<in>set spts. matches (\<beta>, \<alpha>) (Match (Src_Ports [rg])) a p) \<longleftrightarrow> matches (\<beta>, \<alpha>) (Match (Src_Ports spts)) a p"
-        "(\<exists>rg\<in>set dpts. matches (\<beta>, \<alpha>) (Match (Dst_Ports [rg])) a p) \<longleftrightarrow> matches (\<beta>, \<alpha>) (Match (Dst_Ports dpts)) a p"
-    apply(simp_all add: Src_Ports Dst_Ports bool_to_ternary_Unknown matches_case_ternaryvalue_tuple
-                        bunch_of_lemmata_about_matches bool_to_ternary_simps
-                   split: ternaryvalue.split ternaryvalue.split_asm)
-    apply(simp_all add: ports_to_set)
-    by blast+
-
-
-  lemma Extra_single:
-    "matches (\<beta>, \<alpha>) (Match (Extra str)) a p \<longleftrightarrow> \<alpha> a p"
-     by(simp add: Extra matches_case_ternaryvalue_tuple)
-  lemma Extra_single_not:  --{*ternary logic, @{text "\<not> unknown = unknown"}*}
-    "matches (\<beta>, \<alpha>) (MatchNot (Match (Extra str))) a p \<longleftrightarrow> \<alpha> a p"
-     by(simp add: Extra matches_case_ternaryvalue_tuple)
-end
-
-
 lemma primitive_matcher_generic_common_matcher: "primitive_matcher_generic common_matcher"
   by unfold_locales  simp_all
-
-
 
 
 (*TODO: delete, only use generic ones!*)
@@ -181,8 +113,8 @@ lemmas match_simplematcher_Iface_not = primitive_matcher_generic.Iface_single_no
 
 
 
-subsection{*Basic optimisations*}
-  text{*Perform very basic optimization. Remove matches to primitives which are essentially @{const MatchAny}*}
+subsection\<open>Basic optimisations\<close>
+  text\<open>Perform very basic optimization. Remove matches to primitives which are essentially @{const MatchAny}\<close>
   fun optimize_primitive_univ :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
     "optimize_primitive_univ (Match (Src (Ip4AddrNetmask (0,0,0,0) 0))) = MatchAny" |
     "optimize_primitive_univ (Match (Dst (Ip4AddrNetmask (0,0,0,0) 0))) = MatchAny" |
@@ -207,13 +139,12 @@ subsection{*Basic optimisations*}
   
   lemma optimize_primitive_univ_correct_matchexpr: "matches (common_matcher, \<alpha>) m = matches (common_matcher, \<alpha>) (optimize_primitive_univ m)"
     proof(simp add: fun_eq_iff, clarify, rename_tac a p)
-      fix a p
+      fix a and p :: "(32, 'a) simple_packet_scheme"
       have "(max_word::16 word) =  65535" by(simp add: max_word_def)
       hence port_range: "\<And>s e port. s = 0 \<and> e = 0xFFFF \<longrightarrow> (port::16 word) \<le> 0xFFFF" by simp
       have "ternary_ternary_eval (map_match_tac common_matcher p m) = ternary_ternary_eval (map_match_tac common_matcher p (optimize_primitive_univ m))"
-        apply(induction m rule: optimize_primitive_univ.induct)
-        apply(simp_all add: port_range match_ifaceAny ip_in_ipv4range_set_from_prefix_UNIV ctstate_is_UNIV)
-        done
+        by(induction m rule: optimize_primitive_univ.induct)
+          (simp_all add: port_range match_ifaceAny ip_in_ipv4set_from_cidr_UNIV ctstate_is_UNIV)
       thus "matches (common_matcher, \<alpha>) m a p = matches (common_matcher, \<alpha>) (optimize_primitive_univ m) a p"
         by(rule matches_iff_apply_f)
       qed
@@ -223,51 +154,8 @@ subsection{*Basic optimisations*}
   using optimize_matches optimize_primitive_univ_correct_matchexpr by metis
   
   
-  
-  (*TODO: move
-    TODO: this is currently not used.*)
-  text{*Compress many @{const Extra} expressions to one expression.*}
-  fun compress_extra :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
-    "compress_extra (Match x) = Match x" |
-    "compress_extra (MatchNot (Match (Extra e))) = Match (Extra (''NOT (''@e@'')''))" |
-    "compress_extra (MatchNot m) = (MatchNot (compress_extra m))" |
-    (*"compress_extra (MatchAnd (Match (Extra e1)) (Match (Extra e2))) = compress_extra (Match (Extra (e1@'' ''@e2)))" |*)
-    (*"compress_extra (MatchAnd (Match (Extra e1)) MatchAny) = Match (Extra e1)" |*)
-    "compress_extra (MatchAnd (Match (Extra e1)) m2) = (case compress_extra m2 of Match (Extra e2) \<Rightarrow> Match (Extra (e1@'' ''@e2)) | MatchAny \<Rightarrow> Match (Extra e1) | m2' \<Rightarrow> MatchAnd (Match (Extra e1)) m2')" |
-    "compress_extra (MatchAnd m1 m2) = MatchAnd (compress_extra m1) (compress_extra m2)" |
-    (*"compress_extra (MatchAnd m1 m2) = (case (compress_extra m1, compress_extra m2) of 
-          (Match (Extra e1), Match (Extra e2)) \<Rightarrow> Match (Extra (e1@'' ''@e2))
-        | (Match (Extra e1), MatchAny) \<Rightarrow> Match (Extra e1)
-        | (MatchAny, Match (Extra e2)) \<Rightarrow> Match (Extra e2)
-        | (m1', m2') \<Rightarrow> MatchAnd m1' m2')" |*)
-    "compress_extra MatchAny = MatchAny"
-  
-  thm compress_extra.simps
-  
-  value "compress_extra (MatchAnd (Match (Extra ''foo'')) (Match (Extra ''bar'')))"
-  value "compress_extra (MatchAnd (Match (Extra ''foo'')) (MatchNot (Match (Extra ''bar''))))"
-  value "compress_extra (MatchAnd (Match (Extra ''-m'')) (MatchAnd (Match (Extra ''addrtype'')) (MatchAnd (Match (Extra ''--dst-type'')) (MatchAnd (Match (Extra ''BROADCAST'')) MatchAny))))"
-  
-  lemma compress_extra_correct_matchexpr: "matches (common_matcher, \<alpha>) m = matches (common_matcher, \<alpha>) (compress_extra m)"
-    proof(simp add: fun_eq_iff, clarify, rename_tac a p)
-      fix a p
-      have "ternary_ternary_eval (map_match_tac common_matcher p m) = ternary_ternary_eval (map_match_tac common_matcher p (compress_extra m))"
-        apply(induction m rule: compress_extra.induct)
-        apply (simp_all)
-        (*apply(simp_all add: eval_ternary_simps)*)
-        apply(simp_all split: match_expr.split match_expr.split_asm common_primitive.split)
-        (*apply(simp_all add: eval_ternary_simps_simple)*)
-        done (*TODO: tune proof*)
-      thus "matches (common_matcher, \<alpha>) m a p = matches (common_matcher, \<alpha>) (compress_extra m) a p"
-        by(rule matches_iff_apply_f)
-      qed
-
-
-
-
-
-subsection{*Abstracting over unknowns*}
-  text{*remove @{const Extra} (i.e. @{const TernaryUnknown}) match expressions*}
+subsection\<open>Abstracting over unknowns\<close>
+  text\<open>remove @{const Extra} (i.e. @{const TernaryUnknown}) match expressions\<close>
   fun upper_closure_matchexpr :: "action \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
     "upper_closure_matchexpr _ MatchAny = MatchAny" |
     "upper_closure_matchexpr Accept (Match (Extra _)) = MatchAny" |

@@ -52,9 +52,7 @@ export_code bench view in SML
 
 context
 begin
-  private local_setup \<open>
-     local_setup_parse_iptables_save "filter" @{binding fw12} ["config_memphis_testbed", "iptables-save"]
-    \<close>
+  private  parse_iptables_save fw12 = config_memphis_testbed "iptables-save"
   thm fw12_def
 
   value[code] "bench upper_closure FWD ipassmt_generic fw12_FORWARD_default_policy fw12"
@@ -68,9 +66,8 @@ end
 
 context
 begin
- private local_setup \<open>
-    local_setup_parse_iptables_save "filter" @{binding fw13} ["config_random_srv", "iptables-save"]
-   \<close>
+ private parse_iptables_save fw13 = "config_random_srv" "iptables-save"
+
  thm fw13_def
 
   value[code] "bench upper_closure INP ipassmt_generic fw13_INPUT_default_policy fw13"
@@ -84,9 +81,7 @@ end
 
 context
 begin
-  private local_setup \<open>
-     local_setup_parse_iptables_save "filter" @{binding fw_home_user} ["config_home_user", "typical_home_user_iptables-save"]
-    \<close>
+  private parse_iptables_save fw_home_user ="config_home_user" "typical_home_user_iptables-save"
   thm fw_home_user_def
 
   private  definition "ipassmt_wg = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
@@ -143,9 +138,7 @@ context begin
   ]"
   
 
- private local_setup \<open>
-    local_setup_parse_iptables_save "filter" @{binding fw1} ["configs_sqrl_shorewall", "2015_aug_iptables-save-spoofing-protection"]
-   \<close>
+ private parse_iptables_save fw1 = "configs_sqrl_shorewall" "2015_aug_iptables-save-spoofing-protection"
 
   value[code] "bench upper_closure FWD ipassmt fw1_FORWARD_default_policy fw1"
   value[code] "view upper_closure FWD ipassmt fw1_FORWARD_default_policy fw1"
@@ -160,9 +153,7 @@ context begin
   value[code] "bench lower_closure INP ipassmt fw1_INPUT_default_policy fw1"
   value[code] "view lower_closure INP ipassmt fw1_INPUT_default_policy fw1"
 
- private local_setup \<open>
-    local_setup_parse_iptables_save "filter" @{binding fw2} ["configs_sqrl_shorewall", "2014_sep_iptables-saveakachan"]
-   \<close>
+ private parse_iptables_save fw2 = "configs_sqrl_shorewall" "2014_sep_iptables-saveakachan"
   value[code] "Semantics_Goto.rewrite_Goto fw2"
 
 
@@ -179,9 +170,7 @@ begin
   private definition "ipassmt2 = [(Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,1,0), 24)]),
   (Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)])
   ]"
- private local_setup \<open>
-    local_setup_parse_iptables_save "filter" @{binding fw3} ["configs_synology_diskstation_ds414", "iptables-save_jun_2015_legacyifacerules"]
-   \<close>
+ private parse_iptables_save fw3 = "configs_synology_diskstation_ds414" "iptables-save_jun_2015_legacyifacerules"
 
   value[code] "bench upper_closure INP ipassmt2 fw3_INPUT_default_policy fw3"
   value[code] "view upper_closure INP ipassmt2 fw3_INPUT_default_policy fw3"
@@ -202,9 +191,7 @@ end
 
 context
 begin
- private local_setup \<open>
-    local_setup_parse_iptables_save "filter" @{binding fw4} ["configs_srvs_ufw", "server2-iptables-save"]
-   \<close>
+ private parse_iptables_save fw4 = "configs_srvs_ufw" "server2-iptables-save"
  thm fw4_def
 
   value[code] "bench upper_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"
@@ -221,9 +208,7 @@ end
 
 context
 begin
-  private local_setup \<open>
-     local_setup_parse_iptables_save "filter" @{binding fw_worst} ["worst_case", "iptables-save"]
-    \<close>
+  private parse_iptables_save fw_worst = "worst_case" "iptables-save"
   thm fw_worst_def
 
   value[code] "bench upper_closure FWD ipassmt_generic fw_worst_FORWARD_default_policy fw_worst"
@@ -236,9 +221,7 @@ end
 
 context
 begin
-  private local_setup \<open>
-     local_setup_parse_iptables_save "filter" @{binding fw5} ["linux.gda.pl", "firewallp.txt"]
-    \<close>
+  private parse_iptables_save fw5 = "linux.gda.pl" "firewallp.txt"
   thm fw5_def
 
   value[code] "bench upper_closure FWD ipassmt_generic fw5_FORWARD_default_policy fw5"
@@ -251,9 +234,7 @@ end
 
 context
 begin
-  private local_setup \<open>
-     local_setup_parse_iptables_save "filter" @{binding fw6} ["openvpn.eu", "iptables-save"]
-    \<close>
+  private parse_iptables_save fw6 = "openvpn.eu" "iptables-save"
   thm fw6_def
 
   private  definition "ipassmt6 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
@@ -272,9 +253,7 @@ end
 
 context
 begin
-  private local_setup \<open>
-     local_setup_parse_iptables_save "filter" @{binding fw7} ["openwrt.org", "iptables-save-AA.txt_fixed_newline"]
-    \<close>
+  private parse_iptables_save fw7 = "openwrt.org" "iptables-save-AA.txt_fixed_newline"
   thm fw7_def
 
   private  definition "ipassmt7 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
@@ -296,9 +275,7 @@ end
 
 context
 begin
-  private local_setup \<open>
-     local_setup_parse_iptables_save "filter" @{binding fw8} ["pastebin.com_bbWXHaTn", "iptables-save"]
-    \<close>
+  private parse_iptables_save fw8 = "pastebin.com_bbWXHaTn" "iptables-save"
   thm fw8_def
 
   value[code] "bench upper_closure FWD ipassmt_generic fw8_FORWARD_default_policy fw8"
@@ -312,9 +289,7 @@ end
 
 context
 begin
-  private local_setup \<open>
-     local_setup_parse_iptables_save "filter" @{binding fw9} ["rlworkman.net", "iptables-save"]
-    \<close>
+  private parse_iptables_save fw9 = "rlworkman.net" "iptables-save"
   thm fw9_def
  
   (*I loaded the script on my local machine*)
@@ -341,9 +316,7 @@ end
 
 context
 begin
-  private local_setup \<open>
-     local_setup_parse_iptables_save "filter" @{binding fw10} ["sargon", "iptables-save.txt"]
-    \<close>
+  private parse_iptables_save fw10 = "sargon" "iptables-save.txt"
   thm fw10_def
 
   value[code] "bench upper_closure INP ipassmt_generic fw10_INPUT_default_policy fw10"
@@ -356,9 +329,7 @@ end
 
 context
 begin
- private local_setup \<open>
-    local_setup_parse_iptables_save "filter" @{binding fw11} ["gopherproxy.meulie.net", "iptables-save"]
-   \<close>
+ private parse_iptables_save fw11 = "gopherproxy.meulie.net" "iptables-save"
  thm fw11_def
 
   value[code] "bench upper_closure INP ipassmt_generic fw11_INPUT_default_policy fw11"
@@ -372,9 +343,7 @@ end
 
 context
 begin
- private local_setup \<open>
-    local_setup_parse_iptables_save "filter" @{binding fw14} ["medium-sized-company", "iptables-save"]
-   \<close>
+ private parse_iptables_save fw14 = "medium-sized-company" "iptables-save"
  thm fw14_def
  private definition "ipassmt14 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
   (Iface ''eth0'', [(ipv4addr_of_dotdecimal (172,16,2,0),24)])
@@ -397,9 +366,7 @@ end
 
 context
 begin
-  private local_setup \<open>
-     local_setup_parse_iptables_save "filter" @{binding fw15} ["configs_ugent", "iptables-save.v1.4.21"]
-    \<close>
+  private parse_iptables_save fw15 = "configs_ugent" "iptables-save.v1.4.21"
   thm fw15_def
  private definition "ipassmt15 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)]),
   (Iface ''eth0'', [(ipv4addr_of_dotdecimal (192,168,134,0),24)]),

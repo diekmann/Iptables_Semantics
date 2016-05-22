@@ -6,20 +6,20 @@ imports iptables_Ln_tuned_parsed (*2014 firewall dump*)
 begin
 
 
-section{*Example: Synology Diskstation 2014*}
-text{*We analyze a dump of a NAS. The dump was created 2014. Unfortunately, we don't have an 
+section\<open>Example: Synology Diskstation 2014\<close>
+text\<open>We analyze a dump of a NAS. The dump was created 2014. Unfortunately, we don't have an 
       @{text "iptables-save"} dump from that time and have to rely on the @{text "iptables -L -n"}
-      dump. This dump was translated by our legacy python importer.*}
+      dump. This dump was translated by our legacy python importer.\<close>
 
 
-text{*we removed the established,related rule*}
+text\<open>we removed the established,related rule\<close>
   definition "example_ruleset == firewall_chains(''INPUT'' \<mapsto> 
     remove1 (Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0))))
             (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0))))
             (MatchAnd (Match (Prot (ProtoAny)))
             (Match (Extra (''state RELATED,ESTABLISHED'')))))) (action.Accept)) (the (firewall_chains ''INPUT'')))"
 
-text{*Infix pretty-printing for @{const MatchAnd} and @{const MatchNot}.*}
+text\<open>Infix pretty-printing for @{const MatchAnd} and @{const MatchNot}.\<close>
 abbreviation MatchAndInfix :: "'a match_expr \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr" (infixr "MATCHAND" 65) where
   "MatchAndInfix m1 m2 \<equiv> MatchAnd m1 m2"
 abbreviation MatchNotPrefix :: "'a match_expr \<Rightarrow> 'a match_expr" ("\<not> \<langle>_\<rangle>" 66) where
@@ -108,21 +108,21 @@ lemma "unfold_ruleset_INPUT action.Accept example_ruleset =
   lemma "simple_ruleset (unfold_ruleset_INPUT action.Accept example_ruleset)" by eval
 
 
-  text{*packets from the local LAN are allowed (@{const in_doubt_allow})*}
+  text\<open>packets from the local LAN are allowed (@{const in_doubt_allow})\<close>
   lemma "approximating_bigstep_fun (common_matcher, in_doubt_allow)
     \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (8,8,8,8),
          p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New\<rparr>
         (unfold_ruleset_INPUT action.Accept example_ruleset)
         Undecided = Decision FinalAllow" by eval
 
-  text{*However, they might also be rate-limited, ... (we don't know about icmp)*}
+  text\<open>However, they might also be rate-limited, ... (we don't know about icmp)\<close>
   lemma "approximating_bigstep_fun (common_matcher, in_doubt_deny)
     \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (8,8,8,8),
          p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New\<rparr>
         (unfold_ruleset_INPUT action.Accept example_ruleset)
         Undecided = Decision FinalDeny" by eval
   
-  text{*But we can guarantee that packets from the outside are blocked!*}
+  text\<open>But we can guarantee that packets from the outside are blocked!\<close>
   lemma "approximating_bigstep_fun (common_matcher, in_doubt_allow)
     \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (8,8,8,8), p_dst= 0, p_proto=TCP, p_sport=2065, p_dport=80,
      p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New\<rparr> 
@@ -131,18 +131,17 @@ lemma "unfold_ruleset_INPUT action.Accept example_ruleset =
 
 
 
-text{*in doubt allow closure*}
+text\<open>in doubt allow closure\<close>
 lemma upper: "upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset) =
   [Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16))) action.Accept, Rule MatchAny action.Drop, Rule MatchAny action.Accept]" by eval
 
-text{*in doubt deny closure*}
+text\<open>in doubt deny closure\<close>
 lemma lower: "lower_closure (unfold_ruleset_INPUT action.Accept example_ruleset) =
  [Rule MatchAny action.Drop, Rule (Match (Prot (Proto TCP))) action.Drop, Rule (Match (Prot (Proto UDP))) action.Drop,
   Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16))) action.Accept, Rule MatchAny action.Accept]" by eval
 
 
-
-text{*upper closure*}
+text\<open>upper closure\<close>
 lemma "rmshadow (common_matcher, in_doubt_allow) (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset)) UNIV = 
   [Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16))) action.Accept, Rule MatchAny action.Drop]"
 (*<*)apply(subst upper)
@@ -150,15 +149,15 @@ apply(subst rmshadow.simps)
 apply(simp del: rmshadow.simps)
 apply(simp add: Matching_Ternary.matches_def)
 apply(intro conjI impI)
- apply(rule_tac x="\<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (8,8,8,8), p_dst= 0, p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New\<rparr> " in exI)
- apply(simp add: ipv4addr_of_dotdecimal.simps ipv4range_set_from_prefix_def ipv4range_set_from_netmask_def Let_def ipv4addr_of_nat_def)
+ apply(rule_tac x="undefined\<lparr>p_iiface := ''eth0'', p_oiface := ''eth1'', p_src := ipv4addr_of_dotdecimal (8,8,8,8), p_dst := 0, p_proto := TCP, p_sport:=2065, p_dport:=80, p_tcp_flags := {TCP_SYN}, p_tag_ctstate := CT_New\<rparr>" in exI)
+ apply(simp add: ipv4addr_of_dotdecimal.simps ipv4set_from_cidr_def ipv4addr_of_nat_def ipset_from_cidr_alt mask_def; fail)
 apply(thin_tac "\<exists>p. x p" for x)
-apply(rule_tac x="\<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,8,8), p_dst= 0, p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New\<rparr> " in exI)
-apply(simp add: ipv4addr_of_dotdecimal.simps ipv4range_set_from_prefix_def ipv4range_set_from_netmask_def Let_def ipv4addr_of_nat_def)
+apply(rule_tac x="undefined\<lparr>p_iiface := ''eth0'', p_oiface := ''eth1'', p_src := ipv4addr_of_dotdecimal (192,168,8,8), p_dst:= 0, p_proto:=TCP, p_sport:=2065, p_dport:=80, p_tcp_flags := {TCP_SYN}, p_tag_ctstate := CT_New\<rparr> " in exI)
+apply(simp add: ipv4addr_of_dotdecimal.simps ipv4set_from_cidr_def ipv4addr_of_nat_def ipset_from_cidr_alt mask_def; fail)
 done(*>*)
 
 
-text{*lower closure*}
+text\<open>lower closure\<close>
 lemma "rmshadow (common_matcher, in_doubt_deny) (lower_closure (unfold_ruleset_INPUT action.Accept example_ruleset)) UNIV =  
   [Rule MatchAny action.Drop]"
 apply(subst lower)
@@ -182,14 +181,14 @@ value[code] "map simple_rule_toString (to_simple_firewall (lower_closure (unfold
 
 
 lemma "length (unfold_ruleset_INPUT action.Accept example_ruleset) = 19" by eval
-text{*Wow, normalization has exponential(?) blowup here.*}
+text\<open>Wow, normalization has exponential(?) blowup here.\<close>
 lemma "length (normalize_rules_dnf (unfold_ruleset_INPUT action.Accept example_ruleset)) = 259" by eval
 
 
-section{*Synology Diskstation 2015*}
-text{*This is a snapshot from 2015, available as @{text "iptables-save"} format. The firewall definition
+section\<open>Synology Diskstation 2015\<close>
+text\<open>This is a snapshot from 2015, available as @{text "iptables-save"} format. The firewall definition
       and structure has changed with various firmware updates to the device.
-      Also, the new parser also parses ports and interfaces*}
+      Also, the new parser also parses ports and interfaces\<close>
 
 parse_iptables_save ds2015_fw="iptables-save"
 
@@ -197,7 +196,7 @@ thm ds2015_fw_def
 thm ds2015_fw_INPUT_default_policy_def
 
 
-text{*this time, we don't removed the established,related rule*}
+text\<open>this time, we don't removed the established,related rule\<close>
 
 
 value[code] "unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw)"
@@ -309,16 +308,18 @@ lemma "check_simple_fw_preconditions (upper_closure (optimize_matches abstract_f
 
 value[code] "map simple_rule_toString (to_simple_firewall
               (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw)))))))"
-
-
+lemma "simple_fw_valid (to_simple_firewall
+              (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw)))))))" by eval
+lemma "simple_fw_valid (to_simple_firewall
+              (lower_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw)))))))" by eval
 
 parse_iptables_save ds2015_2_fw="iptables-save_jun_2015_cleanup"
-text{*In 2015 there was also an update and a cleanup of the ruleset.
+text\<open>In 2015 there was also an update and a cleanup of the ruleset.
 The following should be fulfilled:
 Port 80 globally blocked (fulfilled, only reachable by localhost).
 Port 22 globally blocked (not fulfilled, error in the ruleset).
 Port 8080 only reachable from 192.168.0.0/24 and localhost (fulfilled).
-*}
+\<close>
 
 value[code] "unfold_ruleset_INPUT ds2015_2_fw_INPUT_default_policy (map_of ds2015_2_fw)"
 

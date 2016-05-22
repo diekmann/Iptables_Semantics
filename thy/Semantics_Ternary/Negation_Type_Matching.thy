@@ -2,10 +2,10 @@ theory Negation_Type_Matching
 imports  "../Common/Negation_Type" Matching_Ternary "../Datatype_Selectors" Normalized_Matches
 begin
 
-section{*Negation Type Matching*}
+section\<open>Negation Type Matching\<close>
 
 
-text{*Transform a @{typ "'a negation_type list"} to a @{typ "'a match_expr"} via conjunction.*}
+text\<open>Transform a @{typ "'a negation_type list"} to a @{typ "'a match_expr"} via conjunction.\<close>
 fun alist_and :: "'a negation_type list \<Rightarrow> 'a match_expr" where
   "alist_and [] = MatchAny" |
   "alist_and ((Pos e)#es) = MatchAnd (Match e) (alist_and es)" |
@@ -53,7 +53,7 @@ lemma "normalized_nnf_match m \<Longrightarrow> matches \<gamma> (alist_and (to_
   qed(simp_all add: bunch_of_lemmata_about_matches alist_and_append)
 
 
-text{*Isolating the matching semantics*}
+text\<open>Isolating the matching semantics\<close>
 fun nt_match_list :: "('a, 'packet) match_tac \<Rightarrow> action \<Rightarrow> 'packet \<Rightarrow> 'a negation_type list \<Rightarrow> bool" where
   "nt_match_list _ _ _ [] = True" |
   "nt_match_list \<gamma> a p ((Pos x)#xs) \<longleftrightarrow> matches \<gamma> (Match x) a p \<and> nt_match_list \<gamma> a p xs" |

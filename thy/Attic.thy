@@ -2,7 +2,7 @@ theory Attic
 imports Main
 begin
 
-ML{* (*unused*)
+ML\<open>(*unused*)
 local
   fun skip_until_r _ beginning [] = (false, beginning, [])
    |  skip_until_r k beginning ss =
@@ -17,9 +17,9 @@ in
       if found then SOME (beginning, rest) else NONE
     end;
 end;
-*}
-ML_val{*
+\<close>
+ML_val\<open>
 skip_until " -j " (raw_explode "asdf -j foo");
 skip_until " -xx " (raw_explode "a -x foo");
-*}
+\<close>
 end

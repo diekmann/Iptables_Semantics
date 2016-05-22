@@ -3,12 +3,12 @@ imports Semantics_Ternary Packet_Set_Impl
 begin
 
 
-section{*Optimizing*}
+section\<open>Optimizing\<close>
 
-subsection{*Removing Shadowed Rules*}
-text{*Note: there is no executable code for rmshadow at the moment*}
+subsection\<open>Removing Shadowed Rules\<close>
+text\<open>Note: there is no executable code for rmshadow at the moment\<close>
 
-text{*Assumes: @{term "simple_ruleset"}*}
+text\<open>Assumes: @{term "simple_ruleset"}\<close>
 fun rmshadow :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'p set \<Rightarrow> 'a rule list" where
   "rmshadow _ [] _ = []" |
   "rmshadow \<gamma> ((Rule m a)#rs) P = (if (\<forall>p\<in>P. \<not> matches \<gamma> m a p)
@@ -20,7 +20,7 @@ fun rmshadow :: "('a, 'p) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'p 
 
 
 
-subsubsection{*Soundness*}
+subsubsection\<open>Soundness\<close>
   lemma rmshadow_sound: 
     "simple_ruleset rs \<Longrightarrow> p \<in> P \<Longrightarrow> approximating_bigstep_fun \<gamma> p (rmshadow \<gamma> rs P) = approximating_bigstep_fun \<gamma> p rs"
   proof(induction rs arbitrary: P)
@@ -69,7 +69,7 @@ subsubsection{*Soundness*}
             case False
               from False Cons.prems have "?match p" by simp
               from Cons.prems have "get_action r = Accept \<or> get_action r = Drop" by(simp add: simple_ruleset_def)
-              from this `?match p`show "?fw p (r # (?rm rs ?set)) = ?fw p (r#rs)"
+              from this \<open>?match p\<close>show "?fw p (r # (?rm rs ?set)) = ?fw p (r#rs)"
                 apply(cases r)
                 apply(rename_tac m a)
                 apply(simp add: fun_eq_iff)
@@ -93,7 +93,7 @@ subsubsection{*Soundness*}
 
 
 
-subsection{*Removing rules which cannot apply*}
+subsection\<open>Removing rules which cannot apply\<close>
 
 fun rmMatchFalse :: "'a rule list \<Rightarrow> 'a rule list" where
   "rmMatchFalse [] = []" |
@@ -135,7 +135,7 @@ fun cutt_off_after_default :: "'a rule list \<Rightarrow> 'a rule list" where
 
 lemma cutt_off_after_default_correct: "approximating_bigstep_fun \<gamma> p (cutt_off_after_default rs) s = approximating_bigstep_fun \<gamma> p rs s"
 apply(rule just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided)
-by(induction rs rule: cutt_off_after_default.induct) (simp_all add: bunch_of_lemmata_about_matches(2) split: action.split)
+by(induction rs rule: cutt_off_after_default.induct) (simp_all add: bunch_of_lemmata_about_matches split: action.split)
 
 
 end

@@ -1,8 +1,12 @@
+{-# Language FlexibleInstances #-}
 module Network.IPTables.IsabelleToString where
 
 import           Data.List (intercalate)
 import qualified Network.IPTables.Generated as Isabelle
 
+
+type Word32 = Isabelle.Bit0 (Isabelle.Bit0
+                              (Isabelle.Bit0 (Isabelle.Bit0 (Isabelle.Bit0 Isabelle.Num1))))
 
 instance Show a => Show (Isabelle.Negation_type a) where
     show (Isabelle.Pos x) = "Pos " ++ show x
@@ -16,8 +20,8 @@ instance Show Isabelle.Common_primitive where
 
 instance Show Isabelle.Action where
     show = Isabelle.action_toString
-    
-instance Show Isabelle.Simple_rule where
+
+instance Show (Isabelle.Simple_rule Word32) where
     show = Isabelle.simple_rule_toString
 
 instance Show Isabelle.Iface where

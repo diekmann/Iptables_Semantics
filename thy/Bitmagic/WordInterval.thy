@@ -4,16 +4,15 @@
 theory WordInterval
 imports Main
   Word_Next
-  NumberWang
   "~~/src/HOL/Word/Word"
   "~~/src/HOL/Library/Code_Target_Nat" (*!*)
 begin
 
-section{*WordInterval: Intervals of consecutive words*}
+section\<open>WordInterval: Intervals of consecutive words\<close>
 
 value "(2::nat) < 2^32" (*without Code_Target_Nat, this would be really slow*)
 
-subsection{*Syntax*}
+subsection\<open>Syntax\<close>
 (*declare[[typedef_overloaded]]*)
 context
   notes [[typedef_overloaded]]
@@ -24,12 +23,12 @@ begin
                                   | RangeUnion "'a wordinterval" "'a wordinterval"
 end
 
-subsection{*Semantics*}
+subsection\<open>Semantics\<close>
   fun wordinterval_to_set :: "'a::len0 wordinterval \<Rightarrow> ('a::len0 word) set" where
     "wordinterval_to_set (WordInterval start end) = {start .. end}" |
     "wordinterval_to_set (RangeUnion r1 r2) = (wordinterval_to_set r1) \<union> (wordinterval_to_set r2)"
 
-subsection{*Basic operations*}
+subsection\<open>Basic operations\<close>
   fun wordinterval_element :: "'a::len0 word \<Rightarrow> 'a::len0 wordinterval \<Rightarrow> bool" where
     "wordinterval_element el (WordInterval s e) = (s \<le> el \<and> el \<le> e)" |
     "wordinterval_element el (RangeUnion r1 r2) = (wordinterval_element el r1 \<or> wordinterval_element el r2)"
@@ -57,8 +56,8 @@ subsection{*Basic operations*}
 
 
 
-subsection{*WordInterval and Lists*}
-  text{*A list of @{text "(start, end)"} tuples.*}
+subsection\<open>WordInterval and Lists\<close>
+  text\<open>A list of @{text "(start, end)"} tuples.\<close>
 
   fun br2l :: "'a::len0 wordinterval \<Rightarrow> ('a::len0 word \<times> 'a::len0 word) list" where
     "br2l (RangeUnion r1 r2) = br2l r1 @ br2l r2" |
@@ -93,8 +92,8 @@ subsection{*WordInterval and Lists*}
 
 
 
-subsection{*Optimizing and minimizing @{typ "('a::len0) wordinterval"}s*}
-text{*Removing empty intervals*}
+subsection\<open>Optimizing and minimizing @{typ "('a::len0) wordinterval"}s\<close>
+text\<open>Removing empty intervals\<close>
 context
 begin
   fun wordinterval_optimize_empty where
@@ -123,7 +122,7 @@ end
 
 
 
-text{*Merging overlapping intervals*}
+text\<open>Merging overlapping intervals\<close>
 context
 begin
 
@@ -151,7 +150,7 @@ begin
     by fastforce
 
 
-  text{*BEGIN merging overlapping intervals*}
+  text\<open>BEGIN merging overlapping intervals\<close>
   (*result has no empty intervals and all are disjoiint. merging things such as [1,7] [8,10] would still be possible*)
   private fun merge_overlap :: "(('a::len0) word \<times> ('a::len0) word) \<Rightarrow> ('a word \<times> 'a word) list \<Rightarrow> ('a word \<times> 'a word) list" where
    "merge_overlap s [] = [s]" |
@@ -249,12 +248,12 @@ begin
      apply(thin_tac [!] "False \<Longrightarrow> _ \<Longrightarrow> _ \<Longrightarrow> _")
      apply(blast dest: A_in_listwordinterval_compress)+
     done
-  text{*END merging overlapping intervals*}
+  text\<open>END merging overlapping intervals\<close>
 
 
 
 
-  text{*BEGIN merging adjacent intervals*}
+  text\<open>BEGIN merging adjacent intervals\<close>
   private fun merge_adjacent :: "(('a::len) word \<times> ('a::len) word) \<Rightarrow> ('a word \<times> 'a word) list \<Rightarrow> ('a word \<times> 'a word) list" where
      "merge_adjacent s [] = [s]" |
      "merge_adjacent (s,e) ((s',e')#ss) = (
@@ -311,7 +310,7 @@ begin
     done
 
   value[code] "listwordinterval_adjacent [(1::16 word, 3), (5, 10), (10,10), (4,4)]"
-  text{*END merging adjacent intervals*}
+  text\<open>END merging adjacent intervals\<close>
 
 
   definition wordinterval_compress :: "('a::len) wordinterval \<Rightarrow> 'a wordinterval" where
@@ -355,9 +354,9 @@ lemma wordinterval_optimize_same_set_eq[simp]: "wordinterval_to_set (wordinterva
 *)
 
 
-subsection{*Further operations*}
+subsection\<open>Further operations\<close>
 
-  text{*@{text "\<Union>"}*}
+  text\<open>@{text "\<Union>"}\<close>
   definition wordinterval_Union :: "('a::len) wordinterval list \<Rightarrow> 'a wordinterval" where
     "wordinterval_Union ws = wordinterval_compress (foldr wordinterval_union ws Empty_WordInterval)"
   
@@ -451,7 +450,7 @@ lemma wordinterval_invert_set_eq[simp]: "wordinterval_to_set (wordinterval_inver
 lemma wordinterval_invert_UNIV_empty: "wordinterval_empty (wordinterval_invert wordinterval_UNIV)" by simp
 
 
-text{*@{text "\<inter>"}*}
+text\<open>@{text "\<inter>"}\<close>
 context
 begin
   private lemma "{(s::nat) .. e} \<inter> {s' .. e'} = {} \<longleftrightarrow> s > e' \<or> s' > e \<or> s > e \<or> s' > e'"
@@ -620,6 +619,26 @@ lemma wordinterval_to_list_union_free: "l = wordinterval_to_list r \<Longrightar
 
  definition is_lowest_element :: "'a::ord \<Rightarrow> 'a set \<Rightarrow> bool" where
   "is_lowest_element x S = (x \<in> S \<and> (\<forall>y\<in>S. y \<le> x \<longrightarrow> y = x))"
+
+
+  lemma 
+  	fixes x :: "'a :: complete_lattice"
+  	assumes "x \<in> S"
+  	shows " x = Inf S \<Longrightarrow> is_lowest_element x S"
+  using assms apply(simp add: is_lowest_element_def)
+   by (simp add: Inf_lower eq_iff)
+
+  lemma 
+  	fixes x :: "'a :: linorder"
+  	assumes "finite S" and "x \<in> S"
+  	shows "is_lowest_element x S \<longleftrightarrow> x = Min S"
+  apply(rule)
+  subgoal
+   apply(simp add: is_lowest_element_def)
+   apply(subst Min_eqI[symmetric])
+   using assms by(auto)
+  by (metis Min.coboundedI assms(1) assms(2) dual_order.antisym is_lowest_element_def)
+
     
   fun wordinterval_lowest_element :: "'a::len0 wordinterval \<Rightarrow> 'a word option" where
     "wordinterval_lowest_element (WordInterval s e) = (if s \<le> e then Some s else None)" | 

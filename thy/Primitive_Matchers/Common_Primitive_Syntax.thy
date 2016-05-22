@@ -2,10 +2,10 @@ theory Common_Primitive_Syntax
 imports "../Datatype_Selectors" IpAddresses Iface Protocol Ports Simple_Packet Conntrack_State
 begin
 
-section{*Primitive Matchers: Interfaces, IP Space, Layer 4 Ports Matcher*}
+section\<open>Primitive Matchers: Interfaces, IP Space, Layer 4 Ports Matcher\<close>
 
-text{*Primitive Match Conditions which only support interfaces, IPv4 addresses,  layer 4 protocols, and layer 4 ports.
-*}
+text\<open>Primitive Match Conditions which only support interfaces, IPv4 addresses,  layer 4 protocols, and layer 4 ports.
+\<close>
 
 
 datatype common_primitive =

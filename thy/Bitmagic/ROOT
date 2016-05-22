@@ -7,11 +7,12 @@ session "Bitmagic" = HOL +
     "~~/src/HOL/Word/WordBitwise"
     "~~/src/HOL/Library/Code_Target_Int"
     "~~/src/HOL/Library/Code_Char"
-    "l4v/lib/WordLemmaBucket"
+    "l4v/lib/Word_Lib/Word_Lemmas"
+    "../afp/Mergesort"
     NumberWang
   theories
     IPv4Addr
-    Numberwang_Ln
+    IPv6Addr
     CIDRSplit
     WordInterval_NumberWang
     WordInterval_Lists

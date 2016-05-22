@@ -5,7 +5,7 @@ imports
 begin
 
 
-section{*Example: Implementing spoofing protection*}
+section\<open>Example: Implementing spoofing protection\<close>
   
   definition "everything_but_private_ips = all_but_those_ips [
     (ipv4addr_of_dotdecimal (192,168,0,0), 16),
@@ -38,28 +38,28 @@ section{*Example: Implementing spoofing protection*}
   
   definition "spoofing_protection fw \<equiv> map (\<lambda>ifce. (ifce, no_spoofing_iface (Iface ifce) (map_of_ipassmt ipassmt) fw)) interfaces"
   
-  text{*We only consider packets which are @{const CT_New}. Packets which already belong to an established connection are okay be definition.
+  text\<open>We only consider packets which are @{const CT_New}. Packets which already belong to an established connection are okay be definition.
   A very interesting side aspect: In theory, this theory only supports the filter table.
   For efficiency, the firewall's administrator implemented the spoofing protection in the raw table's PREROUTING chain.
   Because the administrator only used actions which are supported by our semantics, we can apply our theory here.
-  *}
+\<close>
   definition "preprocess default_policy fw \<equiv> (upper_closure (ctstate_assume_new (unfold_ruleset_CHAIN ''PREROUTING'' default_policy (map_of_string fw))))"
 
   local_setup \<open>
-    local_setup_parse_iptables_save "raw" @{binding raw_fw1} ["2015_aug_iptables-save-spoofing-protection"]
+    parse_iptables_save "raw" @{binding raw_fw1} ["2015_aug_iptables-save-spoofing-protection"]
    \<close>
   thm raw_fw1_def
   thm raw_fw1_PREROUTING_default_policy_def
 
-  text{*sanity check that @{const ipassmt} is complete*}
+  text\<open>sanity check that @{const ipassmt} is complete\<close>
   (*This actually caught a typo I made in the ipassmt!*)
   lemma "ipassmt_sanity_defined (preprocess raw_fw1_PREROUTING_default_policy raw_fw1) (map_of_ipassmt ipassmt)" by eval
 
   value[code] "debug_ipassmt ipassmt (preprocess raw_fw1_PREROUTING_default_policy raw_fw1)"
 
-  text{*The administrator wanted to make sure that he will not lock himself out of the firewall.
+  text\<open>The administrator wanted to make sure that he will not lock himself out of the firewall.
   Hence, we must verify that ssh packets are still accepted by the firewall.
-  Therefore, we also load the filter table.*}
+  Therefore, we also load the filter table.\<close>
 
   parse_iptables_save filter_fw1="2015_aug_iptables-save-spoofing-protection"
   thm filter_fw1_def
@@ -78,25 +78,25 @@ section{*Example: Implementing spoofing protection*}
   lemma "ipassmt_sanity_defined (unfold_ruleset_OUTPUT filter_fw1_OUTPUT_default_policy (map_of_string filter_fw1)) (map_of_ipassmt ipassmt)" by eval
 
 
-  text{*the parsed firewall raw table:*}
+  text\<open>the parsed firewall raw table:\<close>
   value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) raw_fw1"
 
-  text{*Printing the simplified PREROUTING chain of the raw table:*}
+  text\<open>Printing the simplified PREROUTING chain of the raw table:\<close>
   value[code] "let x = to_simple_firewall (upper_closure
                        (unfold_ruleset_CHAIN ''PREROUTING'' raw_fw1_PREROUTING_default_policy (map_of raw_fw1)))
                in map simple_rule_toString x"
 
 
-  text{*First, we check that NEW and ESTABLISHED ssh packets from the Internet are definitely allowed by the firewall:
+  text\<open>First, we check that NEW and ESTABLISHED ssh packets from the Internet are definitely allowed by the firewall:
     The packets must be allowed by both the PREROUTING and INPUT chain.
-    We use @{const in_doubt_deny} to be absolutely sure that these packets will be accepted by the firewall.*}
+    We use @{const in_doubt_deny} to be absolutely sure that these packets will be accepted by the firewall.\<close>
   definition "ssh_packet_new = \<lparr>p_iiface = ''lup'', p_oiface = ''anything'',
      p_src = ipv4addr_of_dotdecimal (123,123,123,123), p_dst = ipv4addr_of_dotdecimal (131,159,14,9),
      p_proto = TCP, p_sport = 12345, p_dport = 22, p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New\<rparr>"
 
   definition "ssh_packet_established = ssh_packet_new\<lparr>p_tag_ctstate := CT_Established\<rparr>"
 
-  text{*it is possible to reach the firewall over ssh*}
+  text\<open>it is possible to reach the firewall over ssh\<close>
   lemma "approximating_bigstep_fun (common_matcher, in_doubt_deny) ssh_packet_new
      (unfold_ruleset_CHAIN ''PREROUTING'' raw_fw1_PREROUTING_default_policy (map_of_string raw_fw1)) Undecided
      = Decision FinalAllow" by eval
@@ -112,7 +112,7 @@ section{*Example: Implementing spoofing protection*}
      = Decision FinalAllow" by eval
 
   
-  text{*Finally, we show that the PREROUTING chain correctly implements spoofing protection.*}
+  text\<open>Finally, we show that the PREROUTING chain correctly implements spoofing protection.\<close>
   lemma "spoofing_protection (preprocess raw_fw1_PREROUTING_default_policy raw_fw1) =
        [(''ldit'', True),
         (''lmd'', True),

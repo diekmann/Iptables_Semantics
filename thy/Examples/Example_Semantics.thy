@@ -3,8 +3,8 @@ imports "../Call_Return_Unfolding" "../Primitive_Matchers/Common_Primitive_Match
 begin
 
 
-section{*Examples Big Step Semantics*}
-text{*we use a primitive matcher which always applies.*}
+section\<open>Examples Big Step Semantics\<close>
+text\<open>we use a primitive matcher which always applies.\<close>
   fun applies_Yes :: "('a, 'p) matcher" where
   "applies_Yes m p = True" 
   lemma[simp]: "Semantics.matches applies_Yes MatchAny p" by simp
@@ -57,13 +57,12 @@ text{*we use a primitive matcher which always applies.*}
   
   definition "pkt=\<lparr>p_iiface=''+'', p_oiface=''+'', p_src=0, p_dst=0, p_proto=TCP, p_sport=0, p_dport=0, p_tcp_flags = {TCP_SYN}, p_tag_ctstate= CT_New\<rparr>"
 
-  text{*We tune the primitive matcher to support everything we need in the example. Note that the undefined cases cannot be handled with these exact semantics!*}
-  fun applies_exampleMatchExact :: "(common_primitive, simple_packet) matcher" where
+  text\<open>We tune the primitive matcher to support everything we need in the example. Note that the undefined cases cannot be handled with these exact semantics!\<close>
+  fun applies_exampleMatchExact :: "(common_primitive, 32 simple_packet) matcher" where
   "applies_exampleMatchExact (Src (Ip4Addr addr)) p \<longleftrightarrow> p_src p = (ipv4addr_of_dotdecimal addr)" |
   "applies_exampleMatchExact (Dst (Ip4Addr addr)) p \<longleftrightarrow> p_dst p = (ipv4addr_of_dotdecimal addr)" |
   "applies_exampleMatchExact (Prot ProtoAny) p \<longleftrightarrow> True" |
-  "applies_exampleMatchExact (Prot (Proto TCP)) p \<longleftrightarrow> p_proto p = TCP" |
-  "applies_exampleMatchExact (Prot (Proto UDP)) p \<longleftrightarrow> p_proto p = UDP"
+  "applies_exampleMatchExact (Prot (Proto pr)) p \<longleftrightarrow> p_proto p = pr"
   (*TODO, not exhaustive, only an example!!*)
 
   lemma "[''FORWARD'' \<mapsto> [ Rule (MatchAnd (Match (Src (Ip4Addr (0,0,0,0)))) (Match (Dst (Ip4Addr (0,0,0,0))))) Reject, 
