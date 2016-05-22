@@ -6,7 +6,7 @@ begin
 definition "empty_rr_hlp pm = routing_rule.make pm default_metric (routing_action.make '''' None)"
 lemma empty_rr_hlp_alt: "empty_rr_hlp pm = \<lparr> routing_match = pm, metric = 0, routing_action = \<lparr>output_iface = [], next_hop = None\<rparr>\<rparr>"
 unfolding empty_rr_hlp_def routing_rule.defs default_metric_def routing_action.defs ..
-definition "routing_action_next_hop_update h pk = routing_action_update (next_hop_update (const $ Some h)) (pk::routing_rule)"
+definition "routing_action_next_hop_update h pk = routing_action_update (next_hop_update (const (Some h))) (pk::routing_rule)"
 definition "routing_action_oiface_update h pk = routing_action_update (output_iface_update (const h)) (pk::routing_rule)"
 
 (* Hide all the ugly ml in a file with the right extension *)
