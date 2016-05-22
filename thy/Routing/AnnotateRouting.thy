@@ -51,10 +51,9 @@ proof(induction tbl arbitrary: s)
 	next
 		case True
 		hence fe: "fst e = a" by simp
-		from True have "k \<in> (wordinterval_to_set \<circ> fst \<circ> range_prefix_match (routing_match a) $ s)"
-			using Cons.prems(2) by(simp add: comp_def)
+		from True have "k \<in> wordinterval_to_set (fst (range_prefix_match (routing_match a) s))"
+			using Cons.prems(2) by(simp)
 		hence "prefix_match_semantics (routing_match a) k" 
-			unfolding comp_def fun_app_def
 			unfolding prefix_match_if_in_prefix_to_wordset[OF conjunct1, OF vpfx]
 			unfolding range_prefix_match_def Let_def
 			by(simp add: prefix_to_wordinterval_set_eq[symmetric])
