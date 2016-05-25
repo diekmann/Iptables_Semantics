@@ -823,9 +823,16 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
 
 
 
-  lemma ipv6_preferred_to_compressed_None1:
+  lemma
     "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = None#xs \<Longrightarrow>
       xs = map Some (dropWhile (\<lambda>x. x=0) [a,b,c,d,e,f,g,h]) "
+    by(simp del: ipv6_preferred_to_compressed.simps
+              add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def split: split_if_asm)
+    (*10s*)
+  lemma ipv6_preferred_to_compressed_None1:
+    "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = None#xs \<Longrightarrow>
+      (map Some (dropWhile (\<lambda>x. x=0) [a,b,c,d,e,f,g,h]) = xs \<Longrightarrow> (IPv6AddrPreferred a b c d e f g h) = ip) \<Longrightarrow>
+      (IPv6AddrPreferred a b c d e f g h) = ip"
     by(simp del: ipv6_preferred_to_compressed.simps
               add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def split: split_if_asm)
     (*10s*)
@@ -886,14 +893,8 @@ declare ipv6_preferred_to_compressed.simps[simp del]
   apply(elim exE conjE)
   apply(case_tac ip)
   apply(erule parse_ipv6_address_compressed_someE)
-  apply(simp)
-  thm ipv6_preferred_to_compressed_None1
-  apply(simp add: ipv6_preferred_to_compressed_pull_out_if Let_def split: split_if_asm)
-  apply(simp add: ipv6_preferred_to_compressed_pull_out_if)
-  apply(simp split: split_if_asm)
-  apply(simp add: ipv6_preferred_to_compressed_pull_out_if split: split_if_asm)
-  apply(auto dest!: ipv6_preferred_to_compressed_None1  split: split_if_asm)[5]
   apply(simp_all)
+  apply(erule ipv6_preferred_to_compressed_None1, simp split: split_if_asm)+
   apply(erule ipv6_preferred_to_compressed_None2,simp split: split_if_asm)+
   apply(erule ipv6_preferred_to_compressed_None3,simp split: split_if_asm)+
   apply(erule ipv6_preferred_to_compressed_None4,simp split: split_if_asm)+
