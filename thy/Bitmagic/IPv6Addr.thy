@@ -797,7 +797,7 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
   value[code] "ipv6_preferred_to_compressed (IPv6AddrPreferred 0x2001 0xDB8 0 3 8 0x800 0x200C 0x417A)"
 
   lemma "ipv6_preferred_to_compressed ip = as \<Longrightarrow> 
-          length (filter (\<lambda>p. p = None) as) = 0 \<and> length (filter (\<lambda>p. p \<noteq> None) as) = 8
+          length (filter (\<lambda>p. p = None) as) = 0 \<and> length as = 8
           \<or>
           length (filter (\<lambda>p. p = None) as) = 1 \<and> length (filter (\<lambda>p. p \<noteq> None) as) \<le> 7"
   apply(cases ip)
