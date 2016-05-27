@@ -1,29 +1,18 @@
 theory IPv6Bitmagic
 imports 
-  (*NumberWang*)
-  (*WordInterval_Lists*)
   "./l4v/lib/Word_Lib/Word_Lemmas"
 begin
 
 
-lemma length_takeWhile_Not_replicate_False:
-  "length (takeWhile Not (replicate n False @ ls)) = n + length (takeWhile Not ls)"
-  by(subst takeWhile_append2) simp+
 
 
-lemma length_drop_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs"
- apply(subst Word.word_rep_drop)
- apply(subst List.dropWhile_eq_drop)
- apply(simp)
- apply(subst length_takeWhile_Not_replicate_False)
- apply(simp)
- done
-  
-
-  lemma "length (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) (dropWhile Not bs))) = 
-         length (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) bs))"
-    apply(fact Word.word_rotate.lbl_lbl)
-    done
+  lemma length_drop_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs"
+  proof -
+    have length_takeWhile_Not_replicate_False:
+      "length (takeWhile Not (replicate n False @ ls)) = n + length (takeWhile Not ls)"
+    for n ls by(subst takeWhile_append2) simp+
+    show ?thesis by(simp add: word_rep_drop dropWhile_eq_drop length_takeWhile_Not_replicate_False)
+  qed
 
   (*TODO: push this somewhere! maybe to isabelle main word thy!*)
   lemma bl_drop_leading_zeros: 
