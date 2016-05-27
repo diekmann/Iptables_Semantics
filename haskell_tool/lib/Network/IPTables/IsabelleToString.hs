@@ -28,12 +28,7 @@ instance Show Isabelle.Iface where
     show (Isabelle.Iface i) = i
 
 instance Show (Isabelle.Ipt_iprange Word32) where
-  --show = Isabelle.ipt_ipv4range_toString
-  show (Isabelle.IpAddr ip) = "Ip4Addr " ++ Isabelle.ipv4addr_toString ip
-  show (Isabelle.IpAddrNetmask ip (Isabelle.Nat n)) =
-          "Ip4AddrNetmask " ++ Isabelle.ipv4addr_toString ip ++ "/" ++ show n
-  show (Isabelle.IpAddrRange ip1 ip2) =
-           "Ip4AddrRange " ++ Isabelle.ipv4addr_toString ip1 ++ "-" ++ Isabelle.ipv4addr_toString ip2
+  show = Isabelle.ipt_ipv4range_toString
 
 instance Show a => Show (Isabelle.Match_expr a) where
     --show = Isabelle.common_primitive_match_expr_toString -- TODO if we could fix the type, we could reuse this

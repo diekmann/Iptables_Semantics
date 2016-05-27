@@ -41,7 +41,6 @@ ipv4dotdecimal = do
     where ipv4word :: (Isabelle.Nat, (Isabelle.Nat, (Isabelle.Nat, Isabelle.Nat))) -> Isabelle.Word Word32
           ipv4word = Isabelle.ipv4addr_of_dotdecimal
 
---TODO: Isabelle.ipv4addr_of_dotdecimal
 ipv4addr :: Parsec String s (Isabelle.Ipt_iprange Word32)
 ipv4addr = Isabelle.IpAddr <$> ipv4dotdecimal
 
