@@ -25,14 +25,14 @@ text\<open>We add @{typ "'pkt_ext itself"} as a parameter to have the type of a 
   definition no_spoofing :: "'pkt_ext itself \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> bool" where
     "no_spoofing TYPE('pkt_ext) ipassmt rs \<equiv> \<forall> iface \<in> dom ipassmt. \<forall>p :: (32,'pkt_ext) simple_packet_scheme.
         ((common_matcher, in_doubt_allow),p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow) \<longrightarrow>
-            p_src p \<in> (ipv4cidr_union_set (set (the (ipassmt iface))))"
+            p_src p \<in> (ipcidr_union_set (set (the (ipassmt iface))))"
 
   text \<open>This is how it looks like for an IPv4 simple packet: We add @{type unit} because a
         @{typ "32 simple_packet"} does not have any additional fields.\<close>
   lemma "no_spoofing TYPE(unit) ipassmt rs \<longleftrightarrow>
     (\<forall> iface \<in> dom ipassmt. \<forall>p :: 32 simple_packet.
       ((common_matcher, in_doubt_allow),p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow)
-         \<longrightarrow> p_src p \<in> (ipv4cidr_union_set (set (the (ipassmt iface)))))"
+         \<longrightarrow> p_src p \<in> (ipcidr_union_set (set (the (ipassmt iface)))))"
     unfolding no_spoofing_def by blast
 
   text\<open>The definition is sound (if that can be said about a definition):
@@ -387,7 +387,7 @@ begin
     denied: set of ips definitely dropped for iface*)
   private fun no_spoofing_algorithm :: "iface \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr set \<Rightarrow> bool" where
     "no_spoofing_algorithm iface ipassmt [] allowed denied1  \<longleftrightarrow> 
-      (allowed - denied1) \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))" |
+      (allowed - denied1) \<subseteq> ipcidr_union_set (set (the (ipassmt iface)))" |
     "no_spoofing_algorithm iface ipassmt ((Rule m Accept)#rs) allowed denied1 = no_spoofing_algorithm iface ipassmt rs 
         (allowed \<union> get_exists_matching_src_ips iface m) denied1" |
     "no_spoofing_algorithm iface ipassmt ((Rule m Drop)#rs) allowed denied1 = no_spoofing_algorithm iface ipassmt rs
@@ -413,7 +413,9 @@ begin
           (\<Union>x\<in>set (the (ipassmt iface)). case x of (base, len) \<Rightarrow> ipv4set_from_cidr base len)"
     unfolding ipcidr_to_interval_def ipv4set_from_cidr_def (*since we used an arbitrary 'a::len word, we need to unfold manually*)
     using ipset_from_cidr_ipcidr_to_interval by blast
-    with 1 show ?case by(simp add: ipv4cidr_union_set_def l2br)
+    with 1 show ?case 
+      apply(simp add: ipcidr_union_set_def l2br)
+      by(simp add: ipv4set_from_cidr_def)
   next
   case 2 thus ?case by(simp add: get_exists_matching_src_ips_executable get_all_matching_src_ips_executable)
   next
@@ -423,18 +425,18 @@ begin
 
   private definition "nospoof TYPE('pkt_ext) iface ipassmt rs = (\<forall>p :: (32,'pkt_ext) simple_packet_scheme.
           (approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface\<rparr>) rs Undecided = Decision FinalAllow) \<longrightarrow>
-              p_src p \<in> (ipv4cidr_union_set (set (the (ipassmt iface)))))"
+              p_src p \<in> (ipcidr_union_set (set (the (ipassmt iface)))))"
   private definition "setbydecision TYPE('pkt_ext) iface rs dec = {ip. \<exists>p :: (32,'pkt_ext) simple_packet_scheme. approximating_bigstep_fun (common_matcher, in_doubt_allow) 
                            (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs Undecided = Decision dec}"
 
   private lemma nospoof_setbydecision: "nospoof TYPE('pkt_ext) iface ipassmt rs \<longleftrightarrow> 
-        setbydecision TYPE('pkt_ext) iface rs FinalAllow \<subseteq> (ipv4cidr_union_set (set (the (ipassmt iface))))"
+        setbydecision TYPE('pkt_ext) iface rs FinalAllow \<subseteq> (ipcidr_union_set (set (the (ipassmt iface))))"
   proof
     assume a: "nospoof TYPE('pkt_ext) iface ipassmt rs"
     have packet_update_iface_simp: "p\<lparr>p_iiface := iface_sel iface, p_src := x\<rparr> = p\<lparr>p_src := x, p_iiface := iface_sel iface\<rparr>"
       for p::"('i::len, 'p) simple_packet_scheme" and x by simp
  
-    from a show "setbydecision TYPE('pkt_ext) iface rs FinalAllow \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))"
+    from a show "setbydecision TYPE('pkt_ext) iface rs FinalAllow \<subseteq> ipcidr_union_set (set (the (ipassmt iface)))"
       apply(simp add: nospoof_def setbydecision_def)
       apply(safe)
       apply(rename_tac x p)
@@ -443,7 +445,7 @@ begin
       apply(simp add: packet_update_iface_simp)
       done
   next
-    assume a1: "setbydecision TYPE('pkt_ext) iface rs FinalAllow \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))"
+    assume a1: "setbydecision TYPE('pkt_ext) iface rs FinalAllow \<subseteq> ipcidr_union_set (set (the (ipassmt iface)))"
     show "nospoof TYPE('pkt_ext) iface ipassmt rs"
       unfolding nospoof_def
       proof(safe)
@@ -452,9 +454,9 @@ begin
         --\<open>In @{text setbydecision_fix_p}the @{text \<exists>} quantifier is gone and we consider this set for @{term p}.\<close>
         let ?setbydecision_fix_p="{ip. approximating_bigstep_fun (common_matcher, in_doubt_allow) 
           (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>) rs Undecided = Decision FinalAllow}"
-        from a1 a2 have 1: "?setbydecision_fix_p \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))" by(simp add: nospoof_def setbydecision_def) blast
+        from a1 a2 have 1: "?setbydecision_fix_p \<subseteq> ipcidr_union_set (set (the (ipassmt iface)))" by(simp add: nospoof_def setbydecision_def) blast
         from a2 have 2: "p_src p \<in> ?setbydecision_fix_p" by simp
-        from 1 2 show "p_src p \<in> ipv4cidr_union_set (set (the (ipassmt iface)))" by blast
+        from 1 2 show "p_src p \<in> ipcidr_union_set (set (the (ipassmt iface)))" by blast
       qed
   qed
 
@@ -687,10 +689,10 @@ begin
         nospoof TYPE('pkt_ext) iface ipassmt (rs1@rs2)"
   proof(induction iface ipassmt rs2 allowed denied1 arbitrary: rs1 allowed denied1 rule: no_spoofing_algorithm.induct)
   case (1 iface ipassmt)
-    from 1 have "allowed - denied1 \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))"
+    from 1 have "allowed - denied1 \<subseteq> ipcidr_union_set (set (the (ipassmt iface)))"
       by(simp)
     with 1 have "setbydecision TYPE('pkt_ext) iface rs1 FinalAllow - setbydecision_all TYPE('pkt_ext) iface rs1 FinalDeny
-          \<subseteq> ipv4cidr_union_set (set (the (ipassmt iface)))"
+          \<subseteq> ipcidr_union_set (set (the (ipassmt iface)))"
       by blast
     thus ?case 
       by(simp add: nospoof_setbydecision setbydecision_setbydecision_all_Allow)
@@ -849,7 +851,7 @@ text\<open>Examples\<close>
           "
      apply(simp add: no_spoofing_def)
      apply(rule_tac x="p\<lparr>p_src := 0\<rparr>" in exI) (*any p*)
-     apply(simp add: range_0_max_UNIV ipv4cidr_union_set_def)
+     apply(simp add: range_0_max_UNIV ipcidr_union_set_def)
       apply(intro conjI)
       apply(subst approximating_semantics_iff_fun_good_ruleset)
        apply(simp add: good_ruleset_def; fail)
@@ -879,7 +881,7 @@ text\<open>Examples\<close>
            Rule MatchAny action.Accept]"
      apply(simp add: no_spoofing_def)
      apply(rule_tac x="p\<lparr>p_src := 0\<rparr>" in exI) (*any p*)
-     apply(simp add: range_0_max_UNIV ipv4cidr_union_set_def)
+     apply(simp add: range_0_max_UNIV ipcidr_union_set_def)
       apply(intro conjI)
       apply(subst approximating_semantics_iff_fun_good_ruleset)
        apply(simp add: good_ruleset_def; fail)
@@ -917,12 +919,13 @@ text\<open>Examples\<close>
       by(subst approximating_semantics_iff_fun_good_ruleset) (simp_all add: good_ruleset_def)
     show ?thesis
       unfolding no_spoofing_def
-      apply(simp add: 1 ipv4cidr_union_set_def)
+      apply(simp add: 1 ipcidr_union_set_def)
       apply(simp add: bunch_of_lemmata_about_matches
            match_simplematcher_SrcDst_not match_simplematcher_Iface match_simplematcher_Iface_not)
       apply(simp add: match_iface.simps
                       primitive_matcher_generic.Prot_single[OF primitive_matcher_generic_common_matcher]
                       primitive_matcher_generic.Prot_single_not[OF primitive_matcher_generic_common_matcher])
+      apply(simp add: ipv4set_from_cidr_def)
       done
   qed
   text\<open>Spoofing protection but the algorithm cannot certify spoofing protection.\<close>

@@ -562,7 +562,8 @@ theorem to_simple_firewall_without_interfaces:
       and wf_ipassmt1: "ipassmt_sanity_nowildcards (map_of ipassmt)" and wf_ipassmt2: "distinct (map fst ipassmt)"
       --"There are no spoofed packets (probably by kernel's reverse path filter or our checker).
          This assumption implies that ipassmt lists ALL interfaces (!!)."
-      and nospoofing: "\<forall>(p::(32, 'a) simple_packet_scheme). \<exists>ips. (map_of ipassmt) (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipv4cidr_union_set (set ips)"
+      and nospoofing: "\<forall>(p::(32, 'a) simple_packet_scheme).
+            \<exists>ips. (map_of ipassmt) (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipcidr_union_set (set ips)"
 
   --"the set of new packets, which are accepted is an overapproximations"
   shows "{p::(32,'a) simple_packet_scheme. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>

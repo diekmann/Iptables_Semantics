@@ -46,12 +46,12 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
   text\<open>sanity check that there are no zone-spanning interfaces\<close>
   definition ipassmt_sanity_disjoint :: "ipassignment \<Rightarrow> bool" where
     "ipassmt_sanity_disjoint ipassmt \<equiv> \<forall> i1 \<in> dom ipassmt. \<forall> i2 \<in> dom ipassmt. i1 \<noteq> i2 \<longrightarrow>
-          ipv4cidr_union_set (set (the (ipassmt i1))) \<inter> ipv4cidr_union_set (set (the (ipassmt i2))) = {}"
+          ipcidr_union_set (set (the (ipassmt i1))) \<inter> ipcidr_union_set (set (the (ipassmt i2))) = {}"
   
   lemma[code_unfold]: "ipassmt_sanity_disjoint (map_of ipassmt) \<longleftrightarrow> (let Is = fst` set ipassmt in 
       (\<forall> i1 \<in> Is. \<forall> i2 \<in> Is. i1 \<noteq> i2 \<longrightarrow> wordinterval_empty (wordinterval_intersection (l2br (map ipcidr_to_interval (the ((map_of ipassmt) i1))))  (l2br (map ipcidr_to_interval (the ((map_of ipassmt) i2)))))))"
     apply(simp add: ipassmt_sanity_disjoint_def Map.dom_map_of_conv_image_fst)
-    apply(simp add: ipv4cidr_union_set_def ipv4set_from_cidr_def)
+    apply(simp add: ipcidr_union_set_def ipv4set_from_cidr_def)
     apply(simp add: l2br)
     apply(simp add: ipcidr_to_interval_def)
     using ipset_from_cidr_ipcidr_to_interval by blast
@@ -59,7 +59,7 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
   
   text\<open>Checking that the ipassmt covers the complete ipv4 address space.\<close>
   definition ipassmt_sanity_complete :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> bool" where
-    "ipassmt_sanity_complete ipassmt \<equiv> distinct (map fst ipassmt) \<and> (\<Union>(ipv4cidr_union_set ` set ` (ran (map_of ipassmt)))) = UNIV"
+    "ipassmt_sanity_complete ipassmt \<equiv> distinct (map fst ipassmt) \<and> (\<Union>(ipcidr_union_set ` set ` (ran (map_of ipassmt)))) = UNIV"
 
     lemma[code_unfold]: "ipassmt_sanity_complete ipassmt \<longleftrightarrow> distinct (map fst ipassmt) \<and> (let range = map snd ipassmt in 
         wordinterval_eq (wordinterval_Union (map (l2br \<circ> (map ipcidr_to_interval)) range)) wordinterval_UNIV
@@ -70,7 +70,7 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
       apply(simp add:  wordinterval_eq_set_eq wordinterval_Union)
       apply(simp add: l2br)
       apply(simp add: ipcidr_to_interval_def)
-      apply(simp add: ipv4cidr_union_set_def ipv4set_from_cidr_def ipset_from_cidr_ipcidr_to_interval; fail)
+      apply(simp add: ipcidr_union_set_def ipv4set_from_cidr_def ipset_from_cidr_ipcidr_to_interval; fail)
      apply(simp add: ipassmt_sanity_complete_def)
      done
 
@@ -108,7 +108,7 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
   (*TODO: use and add code equation*)
   definition ipassmt_ignore_wildcard :: "ipassignment \<Rightarrow> ipassignment" where
     "ipassmt_ignore_wildcard ipassmt \<equiv> \<lambda>k. case ipassmt k of None \<Rightarrow> None 
-                                                           | Some ips \<Rightarrow> if ipv4cidr_union_set (set ips) = UNIV then None else Some ips"
+                                                           | Some ips \<Rightarrow> if ipcidr_union_set (set ips) = UNIV then None else Some ips"
 
   lemma ipassmt_ignore_wildcard_le: "ipassmt_ignore_wildcard ipassmt \<subseteq>\<^sub>m ipassmt"
     apply(simp add: ipassmt_ignore_wildcard_def map_le_def)
@@ -132,7 +132,7 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
        apply(simp)
       apply(simp)
       apply(simp split:option.split option.split_asm)
-      apply(simp add: ipv4set_from_cidr_def ipv4cidr_union_set_def ipset_from_cidr_ipcidr_to_interval)
+      apply(simp add: ipv4set_from_cidr_def ipcidr_union_set_def ipset_from_cidr_ipcidr_to_interval)
       apply(safe)
                         apply(simp_all)
       by (simp add: rev_image_eqI)
@@ -184,7 +184,7 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
 
 
   lemma dom_ipassmt_ignore_wildcard:
-    "i\<in>dom (ipassmt_ignore_wildcard ipassmt) \<longleftrightarrow> i \<in> dom ipassmt \<and> ipv4cidr_union_set (set (the (ipassmt i))) \<noteq> UNIV"
+    "i\<in>dom (ipassmt_ignore_wildcard ipassmt) \<longleftrightarrow> i \<in> dom ipassmt \<and> ipcidr_union_set (set (the (ipassmt i))) \<noteq> UNIV"
     apply(simp add: ipassmt_ignore_wildcard_def)
     apply(rule)
      apply(clarify)
@@ -195,9 +195,9 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
     done
 
   lemma ipassmt_ignore_wildcard_the:
-    "ipassmt i = Some ips \<Longrightarrow> ipv4cidr_union_set (set ips) \<noteq> UNIV \<Longrightarrow> (the (ipassmt_ignore_wildcard ipassmt i)) = ips"
+    "ipassmt i = Some ips \<Longrightarrow> ipcidr_union_set (set ips) \<noteq> UNIV \<Longrightarrow> (the (ipassmt_ignore_wildcard ipassmt i)) = ips"
     "ipassmt_ignore_wildcard ipassmt i = Some ips \<Longrightarrow> the (ipassmt i) = ips"
-    "ipassmt_ignore_wildcard ipassmt i = Some ips \<Longrightarrow> ipv4cidr_union_set (set ips) \<noteq> UNIV"
+    "ipassmt_ignore_wildcard ipassmt i = Some ips \<Longrightarrow> ipcidr_union_set (set ips) \<noteq> UNIV"
     by (simp_all add: ipassmt_ignore_wildcard_def split: option.split_asm split_if_asm)
     
 
@@ -205,10 +205,10 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
         "ipassmt_sanity_disjoint (ipassmt_ignore_wildcard ipassmt) \<longleftrightarrow>
          (\<forall>i1\<in>dom ipassmt.
           \<forall>i2\<in>dom ipassmt.
-            ipv4cidr_union_set (set (the (ipassmt i1))) \<noteq> UNIV \<and>
-            ipv4cidr_union_set (set (the (ipassmt i2))) \<noteq> UNIV \<and>
+            ipcidr_union_set (set (the (ipassmt i1))) \<noteq> UNIV \<and>
+            ipcidr_union_set (set (the (ipassmt i2))) \<noteq> UNIV \<and>
             i1 \<noteq> i2 
-            \<longrightarrow> ipv4cidr_union_set (set (the (ipassmt i1))) \<inter> ipv4cidr_union_set (set (the (ipassmt i2))) = {})"
+            \<longrightarrow> ipcidr_union_set (set (the (ipassmt i1))) \<inter> ipcidr_union_set (set (the (ipassmt i2))) = {})"
     apply(simp add: ipassmt_sanity_disjoint_def)
     apply(rule)
      apply(clarify)
@@ -244,18 +244,18 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
  lemma ipassmt_disjoint_nonempty_inj:
      assumes ipassmt_disjoint: "ipassmt_sanity_disjoint ipassmt"
         and ifce: "ipassmt ifce = Some i_ips"
-        and a: "ipv4cidr_union_set (set i_ips) \<noteq> {}"
+        and a: "ipcidr_union_set (set i_ips) \<noteq> {}"
         and k: "ipassmt k = Some i_ips"
      shows "k = ifce"
      proof(rule ccontr)
        assume "k \<noteq> ifce"
-       with ifce k ipassmt_disjoint have "ipv4cidr_union_set (set (the (ipassmt k))) \<inter> ipv4cidr_union_set (set (the (ipassmt ifce))) = {}"
+       with ifce k ipassmt_disjoint have "ipcidr_union_set (set (the (ipassmt k))) \<inter> ipcidr_union_set (set (the (ipassmt ifce))) = {}"
          unfolding ipassmt_sanity_disjoint_def by fastforce
        thus False using a ifce k by auto 
      qed
 
   lemma ipassmt_ignore_wildcard_None_Some:
-    "ipassmt_ignore_wildcard ipassmt ifce = None \<Longrightarrow> ipassmt ifce = Some ips \<Longrightarrow> ipv4cidr_union_set (set ips) = UNIV"
+    "ipassmt_ignore_wildcard ipassmt ifce = None \<Longrightarrow> ipassmt ifce = Some ips \<Longrightarrow> ipcidr_union_set (set ips) = UNIV"
     by (metis domI domIff dom_ipassmt_ignore_wildcard option.sel)
     
 
@@ -264,7 +264,7 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
  lemma ipassmt_disjoint_ignore_wildcard_nonempty_inj:
      assumes ipassmt_disjoint: "ipassmt_sanity_disjoint (ipassmt_ignore_wildcard ipassmt)"
         and ifce: "ipassmt ifce = Some i_ips"
-        and a: "ipv4cidr_union_set (set i_ips) \<noteq> {}"
+        and a: "ipcidr_union_set (set i_ips) \<noteq> {}"
         and k: "(ipassmt_ignore_wildcard ipassmt) k = Some i_ips"
      shows "k = ifce"
      proof(rule ccontr)
@@ -277,7 +277,7 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
          thus False using Some \<open>i_ips' = i_ips\<close> \<open>k \<noteq> ifce\<close> a ipassmt_disjoint ipassmt_disjoint_nonempty_inj by blast
        next
        case None
-         with ipassmt_ignore_wildcard_None_Some have "ipv4cidr_union_set (set i_ips) = UNIV" using ifce by auto 
+         with ipassmt_ignore_wildcard_None_Some have "ipcidr_union_set (set i_ips) = UNIV" using ifce by auto 
          thus False using ipassmt_ignore_wildcard_the(3) k by blast 
        qed
      qed
@@ -286,14 +286,15 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
      assumes ipassmt_disjoint: "ipassmt_sanity_disjoint ipassmt"
         and ifce: "ipassmt ifce = Some ips"
         and k: "ipassmt k = Some ips'"
-        and a: "p \<in> ipv4cidr_union_set (set ips)"
-        and b: "p \<in> ipv4cidr_union_set (set ips')"
+        and a: "p \<in> ipcidr_union_set (set ips)"
+        and b: "p \<in> ipcidr_union_set (set ips')"
      shows "k = ifce"
      proof(rule ccontr)
        assume "k \<noteq> ifce"
-       with ipassmt_disjoint have "ipv4cidr_union_set (set (the (ipassmt k))) \<inter> ipv4cidr_union_set (set (the (ipassmt ifce))) = {}"
+       with ipassmt_disjoint have
+          "ipcidr_union_set (set (the (ipassmt k))) \<inter> ipcidr_union_set (set (the (ipassmt ifce))) = {}"
          unfolding ipassmt_sanity_disjoint_def using ifce k by blast
-       hence "ipv4cidr_union_set (set ips') \<inter> ipv4cidr_union_set (set ips) = {}" by(simp add: k ifce)
+       hence "ipcidr_union_set (set ips') \<inter> ipcidr_union_set (set ips) = {}" by(simp add: k ifce)
        thus False using a b by blast
      qed
 
@@ -302,24 +303,24 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
         assumes ipassmt_nowild: "ipassmt_sanity_nowildcards ipassmt"
             and ipassmt_disjoint: "ipassmt_sanity_disjoint ipassmt"
             and ifce: "ipassmt ifce = Some i_ips"
-            and p_ifce: "ipassmt (Iface (p_iiface p)) = Some p_ips \<and> p_src p \<in> ipv4cidr_union_set (set p_ips)"
-        shows   "match_iface ifce (p_iiface p) \<longleftrightarrow> p_src p \<in> ipv4cidr_union_set (set i_ips)"
+            and p_ifce: "ipassmt (Iface (p_iiface p)) = Some p_ips \<and> p_src p \<in> ipcidr_union_set (set p_ips)"
+        shows   "match_iface ifce (p_iiface p) \<longleftrightarrow> p_src p \<in> ipcidr_union_set (set i_ips)"
     proof
      assume "match_iface ifce (p_iiface p)"
-     thus "p_src p \<in> ipv4cidr_union_set (set i_ips)"
+     thus "p_src p \<in> ipcidr_union_set (set i_ips)"
        apply(cases "ifce = Iface (p_iiface p)")
         using ifce p_ifce apply force
        by (metis domI iface.sel iface_is_wildcard_def ifce ipassmt_nowild ipassmt_sanity_nowildcards_def match_iface.elims(2) match_iface_case_nowildcard)
    next
-     assume a: "p_src p \<in> ipv4cidr_union_set (set i_ips)"
+     assume a: "p_src p \<in> ipcidr_union_set (set i_ips)"
      --\<open>basically, we need to reverse the map @{term ipassmt}\<close>
 
      from ipassmt_disjoint_nonempty_inj[OF ipassmt_disjoint ifce] a have ipassmt_inj: "\<forall>k. ipassmt k = Some i_ips \<longrightarrow> k = ifce" by blast
 
      from ipassmt_disjoint_inj_k[OF ipassmt_disjoint ifce _ a] have ipassmt_inj_k:
-      "\<And>k ips'. ipassmt k = Some ips' \<Longrightarrow> p_src p \<in> ipv4cidr_union_set (set ips') \<Longrightarrow> k = ifce" by simp
+      "\<And>k ips'. ipassmt k = Some ips' \<Longrightarrow> p_src p \<in> ipcidr_union_set (set ips') \<Longrightarrow> k = ifce" by simp
 
-     have ipassmt_inj_p: "\<forall>ips'. p_src p \<in> ipv4cidr_union_set (set ips') \<and> (\<exists>k. ipassmt k = Some ips') \<longrightarrow> ips' = i_ips"
+     have ipassmt_inj_p: "\<forall>ips'. p_src p \<in> ipcidr_union_set (set ips') \<and> (\<exists>k. ipassmt k = Some ips') \<longrightarrow> ips' = i_ips"
        apply(clarify)
        apply(rename_tac ips' k)
        apply(subgoal_tac "k = ifce")

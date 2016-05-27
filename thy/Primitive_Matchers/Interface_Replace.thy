@@ -23,7 +23,7 @@ lemma ipv4s_to_set_Ip4AddrNetmask_case: "ipv4s_to_set (case x of (ip, x) \<Right
 lemma matches_ipassmt_iface_constrain_srcip_mexpr: 
     "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow> (case ipassmt ifce of
             None \<Rightarrow> match_iface ifce (p_iiface p)
-          | Some ips \<Rightarrow> match_iface ifce (p_iiface p) \<and> p_src p \<in> ipv4cidr_union_set (set ips)
+          | Some ips \<Rightarrow> match_iface ifce (p_iiface p) \<and> p_src p \<in> ipcidr_union_set (set ips)
           )"
 proof(cases "ipassmt ifce")
 case None thus ?thesis by(simp add: ipassmt_iface_constrain_srcip_mexpr_def match_simplematcher_Iface; fail)
@@ -34,7 +34,7 @@ case (Some ips)
        by(simp add: match_list_to_match_expr_disjunction[symmetric] match_list_matches match_simplematcher_SrcDst ipv4s_to_set_Ip4AddrNetmask_case)
   with Some show ?thesis
     apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def bunch_of_lemmata_about_matches)
-    apply(simp add: match_simplematcher_Iface ipv4cidr_union_set_def)
+    apply(simp add: match_simplematcher_Iface ipcidr_union_set_def ipv4set_from_cidr_def)
     done
 qed
 
@@ -67,14 +67,14 @@ begin
        {  fix ips
           have "matches (common_matcher, \<alpha>)
                  (MatchNot (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) y)) ips))) a p \<longleftrightarrow>
-                 (p_src p \<notin> ipv4cidr_union_set (set ips))"
+                 (p_src p \<notin> ipcidr_union_set (set ips))"
         apply(induction ips)
-         apply(simp add: bunch_of_lemmata_about_matches ipv4cidr_union_set_def)
+         apply(simp add: bunch_of_lemmata_about_matches ipcidr_union_set_def)
         apply(simp add: MatchOr_MatchNot)
-        apply(simp add: ipv4cidr_union_set_def)
+        apply(simp add: ipcidr_union_set_def)
         apply(simp add: match_simplematcher_SrcDst_not)
         apply(thin_tac _)
-        apply(simp add: ipv4s_to_set_Ip4AddrNetmask_case)
+        apply(simp add: ipv4s_to_set_Ip4AddrNetmask_case ipv4set_from_cidr_def)
         done
        } note helper=this
        from Some show ?thesis
@@ -92,7 +92,7 @@ begin
   (*helper2: used in induction base case*)
   private lemma matches_ipassmt_iface_constrain_srcip_mexpr_case_Iface:
         fixes ifce::iface
-        assumes "ipassmt_sanity_nowildcards ipassmt" and "case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)"
+        assumes "ipassmt_sanity_nowildcards ipassmt" and "case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipcidr_union_set (set ips)"
         shows   "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow>
                  matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p"
   proof -
@@ -111,12 +111,12 @@ begin
         qed
       next
       case (Some x)
-        with assms(2) have assms2: "p_src p \<in> ipv4cidr_union_set (set x)" by(simp) (*unused*)
+        with assms(2) have assms2: "p_src p \<in> ipcidr_union_set (set x)" by(simp) (*unused*)
         show ?thesis
         proof(cases "ipassmt ifce")
           case None thus ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
           next
-          case (Some y) with assms(2) have "(match_iface ifce (p_iiface p) \<and> p_src p \<in> ipv4cidr_union_set (set y)) = match_iface ifce (p_iiface p)"
+          case (Some y) with assms(2) have "(match_iface ifce (p_iiface p) \<and> p_src p \<in> ipcidr_union_set (set y)) = match_iface ifce (p_iiface p)"
             apply(cases ifce)
             apply(rename_tac ifce_str)
             apply(case_tac "ifce_str = (p_iiface p)")
@@ -134,7 +134,7 @@ begin
 
   lemma matches_iiface_constrain:
        "normalized_nnf_match m \<Longrightarrow> ipassmt_sanity_nowildcards ipassmt \<Longrightarrow>
-        (case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips)) \<Longrightarrow>
+        (case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipcidr_union_set (set ips)) \<Longrightarrow>
         matches (common_matcher, \<alpha>) (iiface_constrain ipassmt m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
     proof(induction m)
     case MatchAny thus ?case by simp
@@ -159,8 +159,8 @@ subsection\<open>Sanity checking the assumption\<close>
 (*TODO: we need a good formulation of the assumption. the case stuff is so undefined fo the None case \<dots>
         EX-quantor is too strong
         Also holds if EX replaced by ALL*)
-lemma "(\<exists>ips. ipassmt (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipv4cidr_union_set (set ips)) \<Longrightarrow>
-       (case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips))"
+lemma "(\<exists>ips. ipassmt (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipcidr_union_set (set ips)) \<Longrightarrow>
+       (case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipcidr_union_set (set ips))"
   apply(cases "ipassmt (Iface (p_iiface p))")
    apply(simp_all)
   done
@@ -170,7 +170,7 @@ lemma "(\<exists>ips. ipassmt (Iface (p_iiface p)) = Some ips \<and> p_src p \<i
 text\<open>Sanity check:
       If we assume that there are no spoofed packets, spoofing protection is trivially fulfilled.\<close>
 (*TODO: only 32 simple_packet_scheme*)
-lemma "\<forall> p:: (32,'pkt_ext) simple_packet_scheme. Iface (p_iiface p) \<in> dom ipassmt \<longrightarrow> p_src p \<in> ipv4cidr_union_set (set (the (ipassmt (Iface (p_iiface p))))) \<Longrightarrow> no_spoofing TYPE('pkt_ext) ipassmt rs"
+lemma "\<forall> p:: (32,'pkt_ext) simple_packet_scheme. Iface (p_iiface p) \<in> dom ipassmt \<longrightarrow> p_src p \<in> ipcidr_union_set (set (the (ipassmt (Iface (p_iiface p))))) \<Longrightarrow> no_spoofing TYPE('pkt_ext) ipassmt rs"
   apply(simp add: no_spoofing_def)
   apply(clarify)
   apply(rename_tac iface ips p)
@@ -187,7 +187,7 @@ lemma
   fixes p :: "(32,'pkt_ext) simple_packet_scheme"
   shows "no_spoofing TYPE('pkt_ext) ipassmt rs \<Longrightarrow> 
       (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<Longrightarrow>
-       case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipv4cidr_union_set (set ips) | None \<Rightarrow> True"
+       case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipcidr_union_set (set ips) | None \<Rightarrow> True"
   apply(simp add: no_spoofing_def)
   apply(case_tac "Iface (p_iiface p) \<in> dom ipassmt")
    apply(erule_tac x="Iface (p_iiface p)" in ballE)
@@ -218,7 +218,7 @@ definition ipassmt_iface_replace_srcip_mexpr :: "ipassignment \<Rightarrow> ifac
 lemma matches_ipassmt_iface_replace_srcip_mexpr: 
     "matches (common_matcher, \<alpha>) (ipassmt_iface_replace_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow> (case ipassmt ifce of
             None \<Rightarrow> match_iface ifce (p_iiface p)
-          | Some ips \<Rightarrow> (*match_iface ifce (p_iiface p) \<and>*) p_src p \<in> ipv4cidr_union_set (set ips)
+          | Some ips \<Rightarrow> (*match_iface ifce (p_iiface p) \<and>*) p_src p \<in> ipcidr_union_set (set ips)
           )"
 proof(cases "ipassmt ifce")
 case None thus ?thesis by(simp add: ipassmt_iface_replace_srcip_mexpr_def match_simplematcher_Iface)
@@ -229,7 +229,8 @@ case (Some ips)
        by(simp add: match_list_to_match_expr_disjunction[symmetric] match_list_matches match_simplematcher_SrcDst ipv4s_to_set_Ip4AddrNetmask_case)
   with Some show ?thesis
     apply(simp add: ipassmt_iface_replace_srcip_mexpr_def bunch_of_lemmata_about_matches)
-    apply(simp add: match_simplematcher_Iface ipv4cidr_union_set_def)
+    apply(simp add: match_simplematcher_Iface ipcidr_union_set_def)
+    apply(simp add: ipv4set_from_cidr_def)
     done
 qed
 
@@ -262,14 +263,15 @@ begin
        {  fix ips
           have "matches (common_matcher, \<alpha>)
                  (MatchNot (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) y)) ips))) a p \<longleftrightarrow>
-                 (p_src p \<notin> ipv4cidr_union_set (set ips))"
+                 (p_src p \<notin> ipcidr_union_set (set ips))"
         apply(induction ips)
-         apply(simp add: bunch_of_lemmata_about_matches ipv4cidr_union_set_def)
+         apply(simp add: bunch_of_lemmata_about_matches ipcidr_union_set_def)
         apply(simp add: MatchOr_MatchNot)
-        apply(simp add: ipv4cidr_union_set_def)
+        apply(simp add: ipcidr_union_set_def)
         apply(simp add: match_simplematcher_SrcDst_not)
         apply(thin_tac _)
         apply(simp add: ipv4s_to_set_Ip4AddrNetmask_case)
+        apply(simp add: ipv4set_from_cidr_def)
         done
        } note helper=this
        from Some show ?thesis
@@ -287,7 +289,7 @@ begin
         fixes ifce::iface
         assumes "ipassmt_sanity_nowildcards ipassmt"
             and "ipassmt_sanity_disjoint ipassmt"
-            and "ipassmt (Iface (p_iiface p)) = Some p_ips \<and> p_src p \<in> ipv4cidr_union_set (set p_ips)"
+            and "ipassmt (Iface (p_iiface p)) = Some p_ips \<and> p_src p \<in> ipcidr_union_set (set p_ips)"
         shows   "matches (common_matcher, \<alpha>) (ipassmt_iface_replace_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow>
                  matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p"
   proof -
@@ -297,7 +299,7 @@ begin
         proof(cases "ipassmt ifce")
           case None thus ?thesis by(simp add: matches_ipassmt_iface_replace_srcip_mexpr)
           next
-          case (Some y) with assms(2) have "p_src p \<in> ipv4cidr_union_set (set y) = match_iface ifce (p_iiface p)"
+          case (Some y) with assms(2) have "p_src p \<in> ipcidr_union_set (set y) = match_iface ifce (p_iiface p)"
             using assms(1) assms(3) ipassmt_disjoint_matcheq_iifce_srcip by blast
             with Some show ?thesis by(simp add: matches_ipassmt_iface_replace_srcip_mexpr)
         qed
@@ -309,7 +311,7 @@ begin
 
   lemma matches_iiface_rewrite:
        "normalized_nnf_match m \<Longrightarrow> ipassmt_sanity_nowildcards ipassmt \<Longrightarrow> ipassmt_sanity_disjoint ipassmt \<Longrightarrow>
-        (\<exists>p_ips. ipassmt (Iface (p_iiface p)) = Some p_ips \<and> p_src p \<in> ipv4cidr_union_set (set p_ips)) \<Longrightarrow>
+        (\<exists>p_ips. ipassmt (Iface (p_iiface p)) = Some p_ips \<and> p_src p \<in> ipcidr_union_set (set p_ips)) \<Longrightarrow>
         matches (common_matcher, \<alpha>) (iiface_rewrite ipassmt m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
     proof(induction m)
     case MatchAny thus ?case by simp
@@ -348,17 +350,17 @@ end
 
     { fix p :: "32 simple_packet"
       from iface_replace[of  i1 "p\<lparr> p_iiface := iface_sel i2\<rparr>"] have
-        "(p_src p \<in> ipv4cidr_union_set (set i2_ips) \<Longrightarrow> (p_src p \<in> ipv4cidr_union_set (set i1_ips)) = match_iface i1 (iface_sel i2))"
+        "(p_src p \<in> ipcidr_union_set (set i2_ips) \<Longrightarrow> (p_src p \<in> ipcidr_union_set (set i1_ips)) = match_iface i1 (iface_sel i2))"
       apply(simp add: match_simplematcher_Iface  \<open>i1 \<in> dom ipassmt\<close>)
       apply(simp add: matches_ipassmt_iface_replace_srcip_mexpr i1_ips)
       done
-      with \<open>i1 \<noteq> i2\<close> have "\<not> (p_src p \<in> ipv4cidr_union_set (set i2_ips) \<and> (p_src p \<in> ipv4cidr_union_set (set i1_ips)))"
+      with \<open>i1 \<noteq> i2\<close> have "\<not> (p_src p \<in> ipcidr_union_set (set i2_ips) \<and> (p_src p \<in> ipcidr_union_set (set i1_ips)))"
         by (metis \<open>i1 \<in> dom ipassmt\<close> assms(1) iface.exhaust_sel iface_is_wildcard_def ipassmt_sanity_nowildcards_def match_iface_case_nowildcard) 
     }
-    hence "\<And>src. \<not> (src \<in> ipv4cidr_union_set (set i2_ips) \<and> (src \<in> ipv4cidr_union_set (set i1_ips)))"
+    hence "\<And>src. \<not> (src \<in> ipcidr_union_set (set i2_ips) \<and> (src \<in> ipcidr_union_set (set i1_ips)))"
       by (metis select_convs(3)) 
 
-    thus "ipv4cidr_union_set (set (the (ipassmt i1))) \<inter> ipv4cidr_union_set (set (the (ipassmt i2))) = {}"
+    thus "ipcidr_union_set (set (the (ipassmt i1))) \<inter> ipcidr_union_set (set (the (ipassmt i2))) = {}"
       apply(simp add: i1_ips i2_ips)
       by blast
   qed

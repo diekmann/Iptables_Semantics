@@ -22,21 +22,15 @@ lemma "ipv4set_from_cidr (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 33 = {0}"
     using ipset_from_cidr_ipcidr_to_interval by blast
 
 
-  (*TODO: generalize, move*)
-  definition ipv4cidr_union_set :: "(ipv4addr \<times> nat) set \<Rightarrow> ipv4addr set" where
-    "ipv4cidr_union_set ips \<equiv> \<Union>(base, len) \<in> ips. ipv4set_from_cidr base len"
-
-
   (*helper we use for spoofing protection specification*)
-  definition all_but_those_ips :: "(ipv4addr \<times> nat) list \<Rightarrow> (ipv4addr \<times> nat) list" where
+  definition all_but_those_ips :: "('i::len word \<times> nat) list \<Rightarrow> ('i word \<times> nat) list" where
     "all_but_those_ips cidrips = cidr_split (wordinterval_invert (l2br (map ipcidr_to_interval cidrips)))"
   
-  (*only ipv4*)
   lemma all_but_those_ips:
-    "ipv4cidr_union_set (set (all_but_those_ips cidrips)) =
+    "ipcidr_union_set (set (all_but_those_ips cidrips)) =
       UNIV - (\<Union> (ip,n) \<in> set cidrips. ipv4set_from_cidr ip n)"
     apply(simp add:)
-    unfolding ipv4cidr_union_set_def all_but_those_ips_def
+    unfolding ipcidr_union_set_def all_but_those_ips_def
     apply(simp add: ipv4set_from_cidr_def cidr_split_prefix[simplified])
     apply(simp add: l2br)
     apply(simp add: ipcidr_to_interval_def)
@@ -158,16 +152,15 @@ subsection\<open>IPv4 Addresses in IPTables Notation (how we parse it)\<close>
   definition ipt_ipv4range_to_cidr :: "ipt_ipv4range \<Rightarrow> (ipv4addr \<times> nat) list" where
     "ipt_ipv4range_to_cidr ips = cidr_split (ipv4range_range (ipt_ipv4range_to_interval ips))"
 
-  lemma ipt_ipv4range_to_cidr: "ipv4cidr_union_set (set (ipt_ipv4range_to_cidr ips)) = (ipv4s_to_set ips)"
+  lemma ipt_ipv4range_to_cidr: "ipcidr_union_set (set (ipt_ipv4range_to_cidr ips)) = (ipv4s_to_set ips)"
     apply(simp add: ipt_ipv4range_to_cidr_def)
     thm cidr_split_prefix_single
-    apply(simp add: ipv4cidr_union_set_def)
+    apply(simp add: ipcidr_union_set_def)
     apply(case_tac "(ipt_ipv4range_to_interval ips)")
     apply(simp add: ipt_ipv4range_to_interval)
-    apply(subst ipv4set_from_cidr_def)
     apply(subst ipv4range_range_transition_todo_delete_me)
     apply(simp)
-    by (metis (no_types, hide_lams) SUP_def ipt_ipv4range_to_interval cidr_split_prefix_single)
+    using ipt_ipv4range_to_interval cidr_split_prefix_single by blast
     
 
 

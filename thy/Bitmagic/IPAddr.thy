@@ -242,7 +242,12 @@ subsection\<open>IP Addresses in CIDR Notation\<close>
   lemma wordinterval_to_set_ipcidr_tuple_to_wordinterval:
     "wordinterval_to_set (ipcidr_tuple_to_wordinterval (b, m)) = ipset_from_cidr b m"
     unfolding ipcidr_tuple_to_wordinterval_def ipset_from_cidr_ipcidr_to_interval ipcidr_to_interval_def
-    by(simp add: iprange_interval.simps)   
+    by(simp add: iprange_interval.simps)
+
+
+  definition ipcidr_union_set :: "('i::len word \<times> nat) set \<Rightarrow> ('i word) set" where
+    "ipcidr_union_set ips \<equiv> \<Union>(base, len) \<in> ips. ipset_from_cidr base len"
+
 
 
 subsection\<open>Clever Operations on IP Addresses in CIDR Notation\<close>
