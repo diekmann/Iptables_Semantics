@@ -307,32 +307,10 @@ subsection\<open>IP ranges\<close>
   value[code] "ipv4addr_of_dotdecimal (192,168,4,8) \<in> (ipv4set_from_cidr (ipv4addr_of_dotdecimal (192,168,0,42)) 16)"
 
   
-
-
-  (*TODO: delete*)
-  definition ipv4range_single :: "ipv4addr \<Rightarrow> 32 wordinterval" where
-    "ipv4range_single ip \<equiv> WordInterval ip ip"
-
-  fun ipv4range_range :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> 32 wordinterval" where
-    "ipv4range_range (ip_start, ip_end) = WordInterval ip_start ip_end"
-  declare ipv4range_range.simps[simp del]
-
-  (*TODO: delete*)
-  lemma ipv4range_range_transition_todo_delete_me: "ipv4range_range = iprange_interval"
-    by(simp add: fun_eq_iff ipv4range_range.simps iprange_interval.simps)
-
-
   definition ipv4range_UNIV :: "32 wordinterval" where "ipv4range_UNIV \<equiv> wordinterval_UNIV"
   
 
-
-  (*TODO: delete*)
-  lemma ipv4range_single_set_eq: "wordinterval_to_set (ipv4range_single ip) = {ip}"
-    by(simp add: ipv4range_single_def)
-  lemma ipv4range_range_set_eq: "wordinterval_to_set (ipv4range_range (ip1, ip2)) = {ip1 .. ip2}"
-    by(simp add: ipv4range_range.simps)
-  
-  lemma ipv4range_UNIV_set_eq(*[simp]*): "wordinterval_to_set ipv4range_UNIV = UNIV"
+  lemma ipv4range_UNIV_set_eq: "wordinterval_to_set ipv4range_UNIV = UNIV"
     by(simp only: ipv4range_UNIV_def wordinterval_UNIV_set_eq)
  
 
@@ -340,7 +318,6 @@ subsection\<open>IP ranges\<close>
   thm iffD1[OF wordinterval_eq_set_eq]
   (*TODO: probably the following is a good idea?*)
   (*
-  declare ipv4range_range_set_eq[unfolded ipv4range_range.simps, simp]
   declare iffD1[OF wordinterval_eq_set_eq, cong]
   *)
 

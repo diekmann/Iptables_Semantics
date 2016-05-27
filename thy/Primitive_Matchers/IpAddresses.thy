@@ -150,7 +150,7 @@ subsection\<open>IPv4 Addresses in IPTables Notation (how we parse it)\<close>
 
   
   definition ipt_ipv4range_to_cidr :: "ipt_ipv4range \<Rightarrow> (ipv4addr \<times> nat) list" where
-    "ipt_ipv4range_to_cidr ips = cidr_split (ipv4range_range (ipt_ipv4range_to_interval ips))"
+    "ipt_ipv4range_to_cidr ips = cidr_split (iprange_interval (ipt_ipv4range_to_interval ips))"
 
   lemma ipt_ipv4range_to_cidr: "ipcidr_union_set (set (ipt_ipv4range_to_cidr ips)) = (ipv4s_to_set ips)"
     apply(simp add: ipt_ipv4range_to_cidr_def)
@@ -158,8 +158,6 @@ subsection\<open>IPv4 Addresses in IPTables Notation (how we parse it)\<close>
     apply(simp add: ipcidr_union_set_def)
     apply(case_tac "(ipt_ipv4range_to_interval ips)")
     apply(simp add: ipt_ipv4range_to_interval)
-    apply(subst ipv4range_range_transition_todo_delete_me)
-    apply(simp)
     using ipt_ipv4range_to_interval cidr_split_prefix_single by blast
     
 
@@ -175,7 +173,7 @@ definition interval_to_wi_to_ipt_ipv4range :: "32 word \<Rightarrow> 32 word \<R
 
 lemma interval_to_wi_to_ipt_ipv4range: "ipv4s_to_set (interval_to_wi_to_ipt_ipv4range s e) = {s..e}"
   proof -
-    from cidr_split_prefix_single[unfolded ipv4range_range.simps, of s e] have
+    from cidr_split_prefix_single[of s e] have
       "cidr_split (WordInterval s e) = [(a, b)] \<Longrightarrow> ipv4set_from_cidr a b = {s..e}" for a b
         by(simp add: ipv4set_from_cidr_def iprange_interval.simps)
     thus ?thesis 
