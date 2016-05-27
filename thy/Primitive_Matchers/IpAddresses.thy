@@ -29,7 +29,7 @@ lemma "ipv4set_from_cidr (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 33 = {0}"
   lemma all_but_those_ips:
     "ipcidr_union_set (set (all_but_those_ips cidrips)) =
       UNIV - (\<Union> (ip,n) \<in> set cidrips. ipv4set_from_cidr ip n)"
-    apply(simp add:)
+    apply(simp add: )
     unfolding ipcidr_union_set_def all_but_those_ips_def
     apply(simp add: ipv4set_from_cidr_def cidr_split_prefix[simplified])
     apply(simp add: l2br)

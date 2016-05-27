@@ -4,6 +4,7 @@
 theory IPAddr
 imports Main
   NumberWang
+  Hs_Compat
   WordInterval_Lists
   "~~/src/HOL/Word/Word"
 begin
@@ -26,7 +27,7 @@ section \<open>Modelling IP Adresses\<close>
   lemma max_ip_addr_max_word: "max_ip_addr = max_word"
     by(simp add: max_ip_addr_def max_word_def word_of_int_minus)
     
-  lemma max_ipv4_addr_max: "\<forall>a. a \<le> max_ip_addr"
+  lemma max_ip_addr_max: "\<forall>a. a \<le> max_ip_addr"
     by(simp add: max_ip_addr_max_word)
   lemma range_0_max_UNIV: "UNIV = {0 .. max_ip_addr}" (*not in the simp set, for a reason*)
     by(simp add: max_ip_addr_max_word) fastforce
@@ -62,6 +63,10 @@ subsection\<open>Sets of IP addresses\<close>
 
   text\<open>Example (pseudo syntax):
     @{const ipset_from_cidr}@{text "192.168.1.129 24  = {192.168.1.0 .. 192.168.1.255}"}\<close>
+
+  (*TODO: does this help?*)
+  lemma "(case ipcidr of (base, len) \<Rightarrow> ipset_from_cidr base len) = uncurry ipset_from_cidr ipcidr"
+    by(simp add: uncurry_case_stmt)
 
   lemma ipset_from_cidr_0: "ipset_from_cidr ip 0 = UNIV"
     by(auto simp add: ipset_from_cidr_def ipset_from_netmask_def Let_def)
@@ -195,6 +200,10 @@ subsection\<open>IP Addresses as WordIntervals\<close>
     "iprange_interval (ip_start, ip_end) = WordInterval ip_start ip_end"
   declare iprange_interval.simps[simp del]
 
+  lemma iprange_interval_uncurry: "iprange_interval ipcidr = uncurry WordInterval ipcidr"
+    apply(cases ipcidr)
+    by(simp add: iprange_interval.simps)
+
   lemma "wordinterval_to_set (iprange_single ip) = {ip}" by(simp add: iprange_single_def)
   lemma "wordinterval_to_set (iprange_interval (ip1, ip2)) = {ip1 .. ip2}" by(simp add: iprange_interval.simps)
   
@@ -244,10 +253,17 @@ subsection\<open>IP Addresses in CIDR Notation\<close>
     unfolding ipcidr_tuple_to_wordinterval_def ipset_from_cidr_ipcidr_to_interval ipcidr_to_interval_def
     by(simp add: iprange_interval.simps)
 
+  lemma wordinterval_to_set_ipcidr_tuple_to_wordinterval_uncurry:
+    "wordinterval_to_set (ipcidr_tuple_to_wordinterval ipcidr) = uncurry ipset_from_cidr ipcidr"
+    by(cases ipcidr, simp add: wordinterval_to_set_ipcidr_tuple_to_wordinterval)
+
 
   definition ipcidr_union_set :: "('i::len word \<times> nat) set \<Rightarrow> ('i word) set" where
     "ipcidr_union_set ips \<equiv> \<Union>(base, len) \<in> ips. ipset_from_cidr base len"
 
+  lemma ipcidr_union_set_uncurry:
+    "ipcidr_union_set ips = (\<Union> ipcidr \<in> ips. uncurry ipset_from_cidr ipcidr)"
+    by(simp add: ipcidr_union_set_def uncurry_case_stmt)
 
 
 subsection\<open>Clever Operations on IP Addresses in CIDR Notation\<close>
