@@ -74,10 +74,12 @@ example = Ruleset $ M.fromList
 -- also returns a Map with the default policies
 -- may throw an error
 rulesetLookup :: TableName -> Ruleset ->
-    ([(String, [Isabelle.Rule Isabelle.Common_primitive])], Map ChainName Isabelle.Action)
+    Either String ([(String, [Isabelle.Rule Isabelle.Common_primitive])], Map ChainName Isabelle.Action)
 rulesetLookup table r = case M.lookup table (rsetTables r)
-    of Nothing -> error $ "Table with name `"++table++"' not found"
-       Just t -> (to_Isabelle_ruleset_AssocList t, default_policies t)
+    of Nothing -> Left $ "Table with name `"++table++"' not found"
+       Just t -> case to_Isabelle_ruleset_AssocList t of
+                       Left err -> Left err
+                       Right isabelle_rules -> Right (isabelle_rules, default_policies t)
     where default_policies t = M.foldWithKey (\ k v acc -> update_action k v acc) M.empty (tblChains t)
           update_action :: ChainName -> Chain -> Map ChainName Isabelle.Action -> Map ChainName Isabelle.Action
           update_action k v acc = case chnDefault v of Just a -> M.insert k a acc
@@ -100,7 +102,9 @@ loadUnfoldedRuleset debug table chain res = do
     putStrLn "== Checking which tables are supported for analysis. Usually, only `filter'. =="
     checkParsedTables res
     putStrLn $ "== Transformed to Isabelle type (only " ++ table ++ " table) =="
-    let (fw, defaultPolicies) = rulesetLookup table res
+    let (fw, defaultPolicies) = case rulesetLookup table res of
+                    Right rules -> rules
+                    Left err -> error err
     let policy = case M.lookup chain defaultPolicies of
                     Just policy -> policy
                     Nothing -> error $ "Default policy for chain " ++ chain ++ " not found"
@@ -121,11 +125,11 @@ loadUnfoldedRuleset debug table chain res = do
 
 -- transforming to Isabelle type
 
-to_Isabelle_ruleset_AssocList :: Table -> [(String, [Isabelle.Rule Isabelle.Common_primitive])]
+to_Isabelle_ruleset_AssocList :: Table -> Either String [(String, [Isabelle.Rule Isabelle.Common_primitive])]
 to_Isabelle_ruleset_AssocList t = let rs = convertRuleset (tblChains t) in 
                                         if not (Isabelle.sanity_wf_ruleset rs)
-                                        then error $ "Reading ruleset failed! sanity_wf_ruleset check failed."
-                                        else Debug.Trace.trace "sanity_wf_ruleset passed" rs
+                                        then Left "Reading ruleset failed! sanity_wf_ruleset check failed."
+                                        else Debug.Trace.trace "sanity_wf_ruleset passed" (Right rs)
     where convertRules = map to_Isabelle_Rule
           convertRuleset = map (\(k,v) -> (k, convertRules (chnRules v))) . M.toList 
            
@@ -154,22 +158,21 @@ filter_Isabelle_Action ps = case fAction ps of [] -> Isabelle.Empty
 
 -- this is just DEBUGING
 -- tries to catch exceptions of rulesetLookup
+-- TODO: hopefully, thw whole thing now runs without exceptions
 checkParsedTables :: Ruleset -> IO ()
 checkParsedTables res = check tables
     where tables = M.keys (rsetTables res)
           check :: [TableName] -> IO ()
           check [] = return ()
           check (t:ts) = do
-                         let (chain, defaults) = rulesetLookup t res
-                         catch t (putStrLn (success t chain))
+                         case rulesetLookup t res of Right (chain, defaults) -> putStrLn (success t chain)
+                                                     Left err -> putStrLn (errormsg t err)
                          check ts
-          catch :: String -> IO () -> IO ()
-          catch t fn = Control.Exception.catch fn (putStrLn . (error t))
-          error t msg = concat ["Table `", t ,"' caught exception: `"
-                               , show (msg::Control.Exception.SomeException)
-                               , "'. Analysis not possible for this table. "
-                               , "This is probably due to unsupportd actions "
-                               , "(or a bug in the parser)."]
+          errormsg t msg = concat ["Table `", t ,"' caught exception: `"
+                                   , msg
+                                   , "'. Analysis not possible for this table. "
+                                   , "This is probably due to unsupportd actions "
+                                   , "(or a bug in the parser)."]
           success t chain = concat ["Parsed ", show (length chain)
                                    , " chains in table ", t, ", a total of "
                                    , show (length (concat (map snd chain)))
