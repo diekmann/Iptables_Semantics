@@ -7,20 +7,22 @@ begin
 section\<open>Trying to connect inbound interfaces by their IP ranges\<close>
 subsection\<open>constraining interfaces\<close>
 
+
+(*TODO: use uncurry here to make def simpler*)
 definition ipassmt_iface_constrain_srcip_mexpr :: "ipassignment \<Rightarrow> iface \<Rightarrow> common_primitive match_expr" where
   "ipassmt_iface_constrain_srcip_mexpr ipassmt ifce = (case ipassmt ifce of
           None \<Rightarrow> Match (IIface ifce)
         | Some ips \<Rightarrow> MatchAnd
             (Match (IIface ifce))
-            (match_list_to_match_expr (map (Match \<circ> Src) (map (\<lambda>(ip, n). (Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) n)) ips)))
+            (match_list_to_match_expr (map (Match \<circ> Src) (map (\<lambda>(ip, n). (IpAddrNetmask ip n)) ips)))
         )"
 
 
-(*TODO: move*)
-lemma ipv4s_to_set_Ip4AddrNetmask_case:
-  "ipv4s_to_set (case x of (ip, x) \<Rightarrow> Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) x) =
+(*TODO: move or delete*)
+lemma ipt_iprange_to_set_IpAddrNetmask_case:
+  "ipt_iprange_to_set (case x of (ip, x) \<Rightarrow> IpAddrNetmask ip x) =
        uncurry ipset_from_cidr x"
-  by(cases x) (simp add: ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr ipv4set_from_cidr_def)
+  by(cases x) (simp)
 
 
 lemma matches_ipassmt_iface_constrain_srcip_mexpr: 
@@ -32,13 +34,13 @@ proof(cases "ipassmt ifce")
 case None thus ?thesis by(simp add: ipassmt_iface_constrain_srcip_mexpr_def match_simplematcher_Iface; fail)
 next
 case (Some ips)
-  have "matches (common_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) y)) ips)) a p \<longleftrightarrow>
+  have "matches (common_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). IpAddrNetmask ip y)) ips)) a p \<longleftrightarrow>
        (\<exists>m\<in>set ips. p_src p \<in> uncurry ipset_from_cidr m)" 
        apply(simp add: match_list_to_match_expr_disjunction[symmetric] match_list_matches match_simplematcher_SrcDst
           ipv4set_from_cidr_def )
-       by(simp add: ipv4s_to_set_Ip4AddrNetmask_case)
+       by(simp add: ipt_iprange_to_set_IpAddrNetmask_case)
   with Some show ?thesis
-    apply(simp add: ipv4set_from_cidr_def ipcidr_union_set_uncurry uncurry_case_stmt)
+    apply(simp add: ipcidr_union_set_uncurry uncurry_case_stmt)
     apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def bunch_of_lemmata_about_matches)
     apply(simp add: match_simplematcher_Iface)
     done
@@ -72,7 +74,7 @@ begin
      case (Some ips)
        {  fix ips
           have "matches (common_matcher, \<alpha>)
-                 (MatchNot (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) y)) ips))) a p \<longleftrightarrow>
+                 (MatchNot (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). IpAddrNetmask ip y)) ips))) a p \<longleftrightarrow>
                  (p_src p \<notin> ipcidr_union_set (set ips))"
         apply(induction ips)
          apply(simp add: bunch_of_lemmata_about_matches ipcidr_union_set_def)
@@ -80,7 +82,7 @@ begin
         apply(simp add: ipcidr_union_set_uncurry)
         apply(simp add: match_simplematcher_SrcDst_not)
         apply(thin_tac _)
-        apply(simp add: ipv4s_to_set_Ip4AddrNetmask_case ipv4set_from_cidr_def)
+        apply(simp add: ipt_iprange_to_set_IpAddrNetmask_case)
         done
        } note helper=this
        from Some show ?thesis
@@ -217,7 +219,7 @@ thm ipassmt_sanity_disjoint_def
 definition ipassmt_iface_replace_srcip_mexpr :: "ipassignment \<Rightarrow> iface \<Rightarrow> common_primitive match_expr" where
   "ipassmt_iface_replace_srcip_mexpr ipassmt ifce = (case ipassmt ifce of
           None \<Rightarrow> Match (IIface ifce)
-        | Some ips \<Rightarrow> (match_list_to_match_expr (map (Match \<circ> Src) (map (\<lambda>(ip, n). (Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) n)) ips)))
+        | Some ips \<Rightarrow> (match_list_to_match_expr (map (Match \<circ> Src) (map (\<lambda>(ip, n). (IpAddrNetmask ip n)) ips)))
         )"
 
 
@@ -230,10 +232,10 @@ proof(cases "ipassmt ifce")
 case None thus ?thesis by(simp add: ipassmt_iface_replace_srcip_mexpr_def match_simplematcher_Iface)
 next
 case (Some ips)
-  have "matches (common_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) y)) ips)) a p \<longleftrightarrow>
+  have "matches (common_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). IpAddrNetmask ip y)) ips)) a p \<longleftrightarrow>
        (\<exists>m\<in>set ips. p_src p \<in> (uncurry ipset_from_cidr m))" 
        by(simp add: match_list_to_match_expr_disjunction[symmetric]
-                    match_list_matches match_simplematcher_SrcDst ipv4s_to_set_Ip4AddrNetmask_case)
+                    match_list_matches match_simplematcher_SrcDst ipt_iprange_to_set_IpAddrNetmask_case)
   with Some show ?thesis
     apply(simp add: ipassmt_iface_replace_srcip_mexpr_def bunch_of_lemmata_about_matches)
     apply(simp add: match_simplematcher_Iface ipcidr_union_set_uncurry)
@@ -268,7 +270,7 @@ begin
      case (Some ips)
        {  fix ips
           have "matches (common_matcher, \<alpha>)
-                 (MatchNot (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) y)) ips))) a p \<longleftrightarrow>
+                 (MatchNot (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). IpAddrNetmask ip y)) ips))) a p \<longleftrightarrow>
                  (p_src p \<notin> ipcidr_union_set (set ips))"
         apply(induction ips)
          apply(simp add: bunch_of_lemmata_about_matches ipcidr_union_set_def)
@@ -276,7 +278,7 @@ begin
         apply(simp add: ipcidr_union_set_uncurry)
         apply(simp add: match_simplematcher_SrcDst_not)
         apply(thin_tac _)
-        apply(simp add: ipv4s_to_set_Ip4AddrNetmask_case)
+        apply(simp add: ipt_iprange_to_set_IpAddrNetmask_case)
         done
        } note helper=this
        from Some show ?thesis
@@ -405,7 +407,7 @@ lemma iiface_rewrite_preserves_nodisc: "\<forall>a. \<not> disc (Src a) \<Longri
       for ifce ipassmt
       apply(simp add: ipassmt_iface_replace_srcip_mexpr_def split: option.split)
       apply(intro allI impI, rename_tac ips)
-      apply(drule_tac X=Src and ls="map (\<lambda>(ip, n). (Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) n)) ips" in match_list_to_match_expr_not_has_disc)
+      apply(drule_tac X=Src and ls="map (\<lambda>(ip, n). (IpAddrNetmask ip n)) ips" in match_list_to_match_expr_not_has_disc)
       apply(simp)
       done
     with 2 show ?case by simp
@@ -417,7 +419,7 @@ lemma iiface_constrain_preserves_nodisc: "\<forall>a. \<not> disc (Src a) \<Long
       for ifce ipassmt
       apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def split: option.split)
       apply(intro allI impI, rename_tac ips)
-      apply(drule_tac X=Src and ls="map (\<lambda>(ip, n). (Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) n)) ips" in match_list_to_match_expr_not_has_disc)
+      apply(drule_tac X=Src and ls="map (\<lambda>(ip, n). (IpAddrNetmask ip n)) ips" in match_list_to_match_expr_not_has_disc)
       apply(simp)
       done
     with 2 show ?case by simp

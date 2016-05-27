@@ -10,8 +10,8 @@ fun common_matcher :: "(common_primitive, (32, 'a) simple_packet_scheme) exact_m
   "common_matcher (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))" |
   "common_matcher (OIface i) p = bool_to_ternary (match_iface i (p_oiface p))" |
 
-  "common_matcher (Src ip) p = bool_to_ternary (p_src p \<in> ipv4s_to_set ip)" |
-  "common_matcher (Dst ip) p = bool_to_ternary (p_dst p \<in> ipv4s_to_set ip)" |
+  "common_matcher (Src ip) p = bool_to_ternary (p_src p \<in> ipt_iprange_to_set ip)" |
+  "common_matcher (Dst ip) p = bool_to_ternary (p_dst p \<in> ipt_iprange_to_set ip)" |
 
   "common_matcher (Prot proto) p = bool_to_ternary (match_proto proto (p_proto p))" |
 
@@ -80,19 +80,19 @@ apply (metis eval_ternary_Not.cases common_matcher_SrcDst_defined(1) ternaryvalu
 apply (metis eval_ternary_Not.cases common_matcher_SrcDst_defined(2) ternaryvalue.distinct(1))
 done
 lemma match_simplematcher_SrcDst:
-  "matches (common_matcher, \<alpha>) (Match (Src X)) a p \<longleftrightarrow> p_src  p \<in> ipv4s_to_set X"
-  "matches (common_matcher, \<alpha>) (Match (Dst X)) a p \<longleftrightarrow> p_dst  p \<in> ipv4s_to_set X"
+  "matches (common_matcher, \<alpha>) (Match (Src X)) a p \<longleftrightarrow> p_src  p \<in> ipt_iprange_to_set X"
+  "matches (common_matcher, \<alpha>) (Match (Dst X)) a p \<longleftrightarrow> p_dst  p \<in> ipt_iprange_to_set X"
    by(simp_all add: match_raw_ternary bool_to_ternary_simps split: ternaryvalue.split)
 lemma match_simplematcher_SrcDst_not:
-  "matches (common_matcher, \<alpha>) (MatchNot (Match (Src X))) a p \<longleftrightarrow> p_src  p \<notin> ipv4s_to_set X"
-  "matches (common_matcher, \<alpha>) (MatchNot (Match (Dst X))) a p \<longleftrightarrow> p_dst  p \<notin> ipv4s_to_set X"
+  "matches (common_matcher, \<alpha>) (MatchNot (Match (Src X))) a p \<longleftrightarrow> p_src  p \<notin> ipt_iprange_to_set X"
+  "matches (common_matcher, \<alpha>) (MatchNot (Match (Dst X))) a p \<longleftrightarrow> p_dst  p \<notin> ipt_iprange_to_set X"
    apply(simp_all add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
    apply(case_tac [!] X)
    apply(simp_all add: bool_to_ternary_simps)
    done
 lemma common_matcher_SrcDst_Inter:
-  "(\<forall>m\<in>set X. matches (common_matcher, \<alpha>) (Match (Src m)) a p) \<longleftrightarrow> p_src p \<in> (\<Inter>x\<in>set X. ipv4s_to_set x)"
-  "(\<forall>m\<in>set X. matches (common_matcher, \<alpha>) (Match (Dst m)) a p) \<longleftrightarrow> p_dst p \<in> (\<Inter>x\<in>set X. ipv4s_to_set x)"
+  "(\<forall>m\<in>set X. matches (common_matcher, \<alpha>) (Match (Src m)) a p) \<longleftrightarrow> p_src p \<in> (\<Inter>x\<in>set X. ipt_iprange_to_set x)"
+  "(\<forall>m\<in>set X. matches (common_matcher, \<alpha>) (Match (Dst m)) a p) \<longleftrightarrow> p_dst p \<in> (\<Inter>x\<in>set X. ipt_iprange_to_set x)"
   by(simp_all add: match_raw_ternary bool_to_ternary_simps split: ternaryvalue.split)
 
 
@@ -116,8 +116,9 @@ lemmas match_simplematcher_Iface_not = primitive_matcher_generic.Iface_single_no
 subsection\<open>Basic optimisations\<close>
   text\<open>Perform very basic optimization. Remove matches to primitives which are essentially @{const MatchAny}\<close>
   fun optimize_primitive_univ :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
-    "optimize_primitive_univ (Match (Src (Ip4AddrNetmask (0,0,0,0) 0))) = MatchAny" |
-    "optimize_primitive_univ (Match (Dst (Ip4AddrNetmask (0,0,0,0) 0))) = MatchAny" |
+    "optimize_primitive_univ (Match (Src (IpAddrNetmask _ 0))) = MatchAny" |
+    "optimize_primitive_univ (Match (Dst (IpAddrNetmask _ 0))) = MatchAny" |
+    (*TODO: the other IPs ...*)
     "optimize_primitive_univ (Match (IIface iface)) = (if iface = ifaceAny then MatchAny else (Match (IIface iface)))" |
     "optimize_primitive_univ (Match (OIface iface)) = (if iface = ifaceAny then MatchAny else (Match (OIface iface)))" |
     "optimize_primitive_univ (Match (Src_Ports [(s, e)])) = (if s = 0 \<and> e = 0xFFFF then MatchAny else (Match (Src_Ports [(s, e)])))" |

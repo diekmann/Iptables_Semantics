@@ -20,10 +20,10 @@ definition ipv4_cidr_toString :: "(ipv4addr \<times> nat) \<Rightarrow> string" 
 lemma "ipv4_cidr_toString (ipv4addr_of_dotdecimal (192,168,0,1), 22) = ''192.168.0.1/22''" by eval
 
 
-fun ipt_ipv4range_toString :: "ipt_ipv4range \<Rightarrow> string" where
-  "ipt_ipv4range_toString (Ip4Addr ip) = dotteddecimal_toString ip" |
-  "ipt_ipv4range_toString (Ip4AddrNetmask ip n) = dotteddecimal_toString ip@''/''@string_of_nat n"  |
-  "ipt_ipv4range_toString (Ip4AddrRange ip1 ip2) = dotteddecimal_toString ip1@''-''@dotteddecimal_toString ip2"
+fun ipt_ipv4range_toString :: "32 ipt_iprange \<Rightarrow> string" where
+  "ipt_ipv4range_toString (IpAddr ip) = ipv4addr_toString ip" |
+  "ipt_ipv4range_toString (IpAddrNetmask ip n) = ipv4addr_toString ip@''/''@string_of_nat n"  |
+  "ipt_ipv4range_toString (IpAddrRange ip1 ip2) = ipv4addr_toString ip1@''-''@ipv4addr_toString ip2"
 
 
 fun ipv4addr_wordinterval_toString :: "32 wordinterval \<Rightarrow> string" where
@@ -32,7 +32,7 @@ fun ipv4addr_wordinterval_toString :: "32 wordinterval \<Rightarrow> string" whe
 
 
 definition ipv4addr_wordinterval_pretty_toString :: "32 wordinterval \<Rightarrow> string" where
-  "ipv4addr_wordinterval_pretty_toString wi = list_toString ipt_ipv4range_toString (wi_to_ipt_ipv4range wi)"
+  "ipv4addr_wordinterval_pretty_toString wi = list_toString ipt_ipv4range_toString (wi_to_ipt_iprange wi)"
 
 lemma "ipv4addr_wordinterval_pretty_toString 
     (RangeUnion (RangeUnion (WordInterval 0x7F000000 0x7FFFFFFF) (WordInterval 0x1020304 0x1020306))
@@ -78,12 +78,12 @@ lemma "ports_toString ''spt: '' (1024,1024) = ''spt: 1024''" by eval
 
   
 fun common_primitive_toString :: "common_primitive \<Rightarrow> string" where
-  "common_primitive_toString (Src (Ip4Addr ip)) = ''-s ''@dotteddecimal_toString ip" |
-  "common_primitive_toString (Dst (Ip4Addr ip)) = ''-d ''@dotteddecimal_toString ip" |
-  "common_primitive_toString (Src (Ip4AddrNetmask ip n)) = ''-s ''@dotteddecimal_toString ip@''/''@string_of_nat n"  |
-  "common_primitive_toString (Dst (Ip4AddrNetmask ip n)) = ''-d ''@dotteddecimal_toString ip@''/''@string_of_nat n"  |
-  "common_primitive_toString (Src (Ip4AddrRange ip1 ip2)) = ''-m iprange --src-range ''@dotteddecimal_toString ip1@''-''@dotteddecimal_toString ip2"  |
-  "common_primitive_toString (Dst (Ip4AddrRange ip1 ip2)) = ''-m iprange --dst-range ''@dotteddecimal_toString ip1@''-''@dotteddecimal_toString ip2"  |
+  "common_primitive_toString (Src (IpAddr ip)) = ''-s ''@ipv4addr_toString ip" |
+  "common_primitive_toString (Dst (IpAddr ip)) = ''-d ''@ipv4addr_toString ip" |
+  "common_primitive_toString (Src (IpAddrNetmask ip n)) = ''-s ''@ipv4addr_toString ip@''/''@string_of_nat n"  |
+  "common_primitive_toString (Dst (IpAddrNetmask ip n)) = ''-d ''@ipv4addr_toString ip@''/''@string_of_nat n"  |
+  "common_primitive_toString (Src (IpAddrRange ip1 ip2)) = ''-m iprange --src-range ''@ipv4addr_toString ip1@''-''@ipv4addr_toString ip2"  |
+  "common_primitive_toString (Dst (IpAddrRange ip1 ip2)) = ''-m iprange --dst-range ''@ipv4addr_toString ip1@''-''@ipv4addr_toString ip2"  |
   "common_primitive_toString (IIface ifce) = iface_toString ''-i '' ifce" |
   "common_primitive_toString (OIface ifce) = iface_toString ''-o '' ifce" |
   "common_primitive_toString (Prot prot) = ''-p ''@protocol_toString prot" |

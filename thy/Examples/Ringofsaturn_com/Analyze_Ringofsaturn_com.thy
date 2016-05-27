@@ -32,42 +32,42 @@ lemma "unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string saturn
   Rule (Match (Prot (Proto UDP))) action.Drop,
   Rule MatchAny action.Drop,
   Rule (Match (IIface (Iface ''lo''))) action.Accept,
-  Rule ((Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto TCP)))
+  Rule ((Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto TCP)))
    action.Drop,
-  Rule ((Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto UDP)))
+  Rule ((Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto UDP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule ((Match (Src (Ip4AddrNetmask (10, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto TCP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule ((Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (10, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto TCP)))
    action.Drop,
-  Rule ((Match (Src (Ip4AddrNetmask (10, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto UDP)))
+  Rule ((Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (10, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto UDP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (10, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule ((Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto TCP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (10, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule ((Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto TCP)))
    action.Drop,
-  Rule ((Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto UDP)))
+  Rule ((Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto UDP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule ((Match (Src (Ip4AddrNetmask (169, 254, 0, 0) 16)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto TCP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule ((Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (169, 254, 0, 0)) 16)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto TCP)))
    action.Drop,
-  Rule ((Match (Src (Ip4AddrNetmask (169, 254, 0, 0) 16)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto UDP)))
+  Rule ((Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (169, 254, 0, 0)) 16)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto UDP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (169, 254, 0, 0) 16)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule ((Match (Src (Ip4AddrNetmask (172, 16, 0, 0) 12)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto TCP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (169, 254, 0, 0)) 16)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule ((Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (172, 16, 0, 0)) 12)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto TCP)))
    action.Drop,
-  Rule ((Match (Src (Ip4AddrNetmask (172, 16, 0, 0) 12)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto UDP)))
+  Rule ((Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (172, 16, 0, 0)) 12)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto UDP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (172, 16, 0, 0) 12)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule ((Match (Src (Ip4AddrNetmask (224, 0, 0, 0) 3)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto TCP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (172, 16, 0, 0)) 12)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule ((Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (224, 0, 0, 0)) 3)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto TCP)))
    action.Drop,
-  Rule ((Match (Src (Ip4AddrNetmask (224, 0, 0, 0) 3)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto UDP)))
+  Rule ((Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (224, 0, 0, 0)) 3)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto UDP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (224, 0, 0, 0) 3)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule ((Match (Src (Ip4AddrNetmask (240, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto TCP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (224, 0, 0, 0)) 3)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule ((Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (240, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto TCP)))
    action.Drop,
-  Rule ((Match (Src (Ip4AddrNetmask (240, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto UDP)))
+  Rule ((Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (240, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) MATCHAND Match (Prot (Proto UDP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (240, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (160, 86, 0, 0) 16)) MATCHAND Match (IIface (Iface ''eth1''))) action.Accept,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (240, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (160, 86, 0, 0)) 16)) MATCHAND Match (IIface (Iface ''eth1''))) action.Accept,
   Rule (Match (IIface (Iface ''eth1''))) action.Drop,
   Rule (Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto ICMP)) MATCHAND Match (Extra ''-m icmp --icmp-type 3'')) action.Accept,
   Rule (Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto ICMP)) MATCHAND Match (Extra ''-m icmp --icmp-type 11'')) action.Accept,
@@ -112,28 +112,28 @@ lemma upper: "upper_closure (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy
   Rule (Match (Prot (Proto UDP))) action.Drop,
   Rule MatchAny action.Drop,
   Rule (Match (IIface (Iface ''lo''))) action.Accept,
-  Rule (Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (10, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (10, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (10, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (169, 254, 0, 0) 16)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (169, 254, 0, 0) 16)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (169, 254, 0, 0) 16)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (172, 16, 0, 0) 12)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (172, 16, 0, 0) 12)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (172, 16, 0, 0) 12)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (224, 0, 0, 0) 3)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (224, 0, 0, 0) 3)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (224, 0, 0, 0) 3)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (240, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (240, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (240, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (160, 86, 0, 0) 16)) MATCHAND Match (IIface (Iface ''eth1''))) action.Accept,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (10, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (10, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (10, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (169, 254, 0, 0)) 16)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (169, 254, 0, 0)) 16)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (169, 254, 0, 0)) 16)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (172, 16, 0, 0)) 12)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (172, 16, 0, 0)) 12)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (172, 16, 0, 0)) 12)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (224, 0, 0, 0)) 3)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (224, 0, 0, 0)) 3)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (224, 0, 0, 0)) 3)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (240, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (240, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (240, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (160, 86, 0, 0)) 16)) MATCHAND Match (IIface (Iface ''eth1''))) action.Accept,
   Rule (Match (IIface (Iface ''eth1''))) action.Drop,
   Rule (Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto ICMP))) action.Accept,
   Rule (Match (Dst_Ports [(0x6F, 0x6F)]) MATCHAND Match (Prot (Proto TCP))) action.Drop,
@@ -192,42 +192,42 @@ definition "upper = upper_closure (unfold_ruleset_INPUT saturn_fw_INPUT_default_
 text\<open>Now the upper closure looks as expected\<close>
 lemma "upper =
  [Rule (Match (IIface (Iface ''lo''))) action.Accept,
-  Rule (Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (0, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (10, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (10, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (10, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (10, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (10, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (10, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (169, 254, 0, 0) 16)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (169, 254, 0, 0)) 16)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (169, 254, 0, 0) 16)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (169, 254, 0, 0)) 16)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (169, 254, 0, 0) 16)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (172, 16, 0, 0) 12)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (169, 254, 0, 0)) 16)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (172, 16, 0, 0)) 12)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (172, 16, 0, 0) 12)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (172, 16, 0, 0)) 12)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (172, 16, 0, 0) 12)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (224, 0, 0, 0) 3)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (172, 16, 0, 0)) 12)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (224, 0, 0, 0)) 3)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (224, 0, 0, 0) 3)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (224, 0, 0, 0)) 3)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (224, 0, 0, 0) 3)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (240, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (224, 0, 0, 0)) 3)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (240, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (240, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP)))
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (240, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP)))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (240, 0, 0, 0) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (160, 86, 0, 0) 16)) MATCHAND Match (IIface (Iface ''eth1''))) action.Accept,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (240, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (160, 86, 0, 0)) 16)) MATCHAND Match (IIface (Iface ''eth1''))) action.Accept,
   Rule (Match (IIface (Iface ''eth1''))) action.Drop,
   Rule (Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto ICMP))) action.Accept,
   Rule (Match (Dst_Ports [(0x6F, 0x6F)]) MATCHAND Match (Prot (Proto TCP))) action.Drop,

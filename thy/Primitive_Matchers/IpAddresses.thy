@@ -35,6 +35,7 @@ section\<open>IPv4 Addresses\<close>
 
 subsection\<open>IPv4 Addresses in IPTables Notation (how we parse it)\<close>
   (*src dst ipv4*)
+  (*
   datatype ipt_ipv4range =
                         -- "Singleton IP Address"
                         Ip4Addr "nat \<times> nat \<times> nat \<times> nat"
@@ -45,140 +46,159 @@ subsection\<open>IPv4 Addresses in IPTables Notation (how we parse it)\<close>
                         -- "-m iprange --src-range a.b.c.d-e.f.g.h"
                         | Ip4AddrRange  "nat \<times> nat \<times> nat \<times> nat" "nat \<times> nat \<times> nat \<times> nat"
                             (*the range is inclusive*)
+  *)
+  context
+    notes [[typedef_overloaded]]
+  begin
+    datatype 'i ipt_iprange =
+                          -- "Singleton IP Address"
+                          IpAddr "'i::len word"
   
+                          -- "CIDR notation: addr/xx"
+                          | IpAddrNetmask "'i word" nat
   
-  fun ipv4s_to_set :: "ipt_ipv4range \<Rightarrow> ipv4addr set" where
-    "ipv4s_to_set (Ip4AddrNetmask base m) = ipset_from_cidr (ipv4addr_of_dotdecimal base) m" |
-    "ipv4s_to_set (Ip4Addr ip) = { ipv4addr_of_dotdecimal ip }" |
-    "ipv4s_to_set (Ip4AddrRange ip1 ip2) = { ipv4addr_of_dotdecimal ip1 .. ipv4addr_of_dotdecimal ip2 }"
+                          -- "-m iprange --src-range a.b.c.d-e.f.g.h"
+                          | IpAddrRange  "'i word" "'i word"
+                              (*the range is inclusive*)
+  end  
   
-  text\<open>@{term ipv4s_to_set} can only represent an empty set if it is an empty range.\<close>
-  lemma ipv4s_to_set_nonempty: "ipv4s_to_set ip = {} \<longleftrightarrow> (\<exists>ip1 ip2. ip = Ip4AddrRange ip1 ip2 \<and> ipv4addr_of_dotdecimal ip1 > ipv4addr_of_dotdecimal ip2)"
+  fun ipt_iprange_to_set :: "'i::len ipt_iprange \<Rightarrow> 'i word set" where
+    "ipt_iprange_to_set (IpAddrNetmask base m) = ipset_from_cidr base m" |
+    "ipt_iprange_to_set (IpAddr ip) = { ip }" |
+    "ipt_iprange_to_set (IpAddrRange ip1 ip2) = { ip1 .. ip2 }"
+  
+  text\<open>@{term ipt_iprange_to_set} can only represent an empty set if it is an empty range.\<close>
+  lemma ipt_iprange_to_set_nonempty: "ipt_iprange_to_set ip = {} \<longleftrightarrow> 
+    (\<exists>ip1 ip2. ip = IpAddrRange ip1 ip2 \<and> ip1 > ip2)"
     apply(cases ip)
       apply(simp; fail)
-     apply(simp add: ipv4set_from_cidr_def ipset_from_cidr_alt bitmagic_zeroLast_leq_or1Last; fail)
+     apply(simp add: ipset_from_cidr_alt bitmagic_zeroLast_leq_or1Last; fail)
     apply(simp add:linorder_not_le; fail)
     done
   
   text\<open>maybe this is necessary as code equation?\<close>
-  lemma element_ipv4s_to_set[code_unfold]: "addr \<in> ipv4s_to_set X = (
-    case X of (Ip4AddrNetmask pre len) \<Rightarrow> ((ipv4addr_of_dotdecimal pre) AND ((mask len) << (32 - len))) \<le> addr \<and> addr \<le> (ipv4addr_of_dotdecimal pre) OR (mask (32 - len))
-    | Ip4Addr ip \<Rightarrow> (addr = (ipv4addr_of_dotdecimal ip))
-    | Ip4AddrRange ip1 ip2 \<Rightarrow> ipv4addr_of_dotdecimal ip1 \<le> addr \<and> ipv4addr_of_dotdecimal ip2 \<ge> addr)"
+  lemma element_ipt_iprange_to_set[code_unfold]: "(addr::'i::len word) \<in> ipt_iprange_to_set X = (
+    case X of (IpAddrNetmask pre len) \<Rightarrow>
+                  (pre AND ((mask len) << (len_of (TYPE('i)) - len))) \<le> addr \<and>
+                  addr \<le> pre OR (mask (len_of (TYPE('i)) - len))
+    | IpAddr ip \<Rightarrow> (addr = ip)
+    | IpAddrRange ip1 ip2 \<Rightarrow> ip1 \<le> addr \<and> ip2 \<ge> addr)"
   apply(cases X)
     apply(simp; fail)
-   apply(simp add: ipv4set_from_cidr_def ipset_from_cidr_alt; fail)
+   apply(simp add: ipset_from_cidr_alt; fail)
   apply(simp; fail)
   done
   
 
-  text\<open>IPv4 address ranges to @{text "(start, end)"} notation\<close>
-  fun ipt_ipv4range_to_interval :: "ipt_ipv4range \<Rightarrow> (ipv4addr \<times> ipv4addr)" where
-    "ipt_ipv4range_to_interval (Ip4Addr addr) = (ipv4addr_of_dotdecimal addr, ipv4addr_of_dotdecimal addr)" |
-    "ipt_ipv4range_to_interval (Ip4AddrNetmask pre len) = ipcidr_to_interval ((ipv4addr_of_dotdecimal pre), len)" |
-    "ipt_ipv4range_to_interval (Ip4AddrRange ip1 ip2) = (ipv4addr_of_dotdecimal ip1, ipv4addr_of_dotdecimal ip2)"
+  text\<open>IP address ranges to @{text "(start, end)"} notation\<close>
+  fun ipt_iprange_to_interval :: "'i::len ipt_iprange \<Rightarrow> ('i word \<times> 'i word)" where
+    "ipt_iprange_to_interval (IpAddr addr) = (addr, addr)" |
+    "ipt_iprange_to_interval (IpAddrNetmask pre len) = ipcidr_to_interval (pre, len)" |
+    "ipt_iprange_to_interval (IpAddrRange ip1 ip2) = (ip1, ip2)"
   
-  lemma ipt_ipv4range_to_interval: "ipt_ipv4range_to_interval ip = (s,e) \<Longrightarrow> {s .. e} = ipv4s_to_set ip"
+  lemma ipt_iprange_to_interval: "ipt_iprange_to_interval ip = (s,e) \<Longrightarrow> {s .. e} = ipt_iprange_to_set ip"
     apply(cases ip)
-      apply(auto simp add: ipv4set_from_cidr_def ipcidr_to_interval)
+      apply(auto simp add: ipcidr_to_interval)
     done
 
 
-  text\<open>A list of IPv4 address ranges to a @{typ "32 wordinterval"}.
+  text\<open>A list of IP address ranges to a @{typ "'i::len wordinterval"}.
         The nice thing is: the usual set operations are defined on this type.
         We can use the existing function @{const l2br_intersect} if we want the intersection of the supplied list\<close>
-  lemma "wordinterval_to_set (l2br_intersect (map ipt_ipv4range_to_interval ips)) = (\<Inter> ip \<in> set ips. ipv4s_to_set ip)"
+  lemma "wordinterval_to_set (l2br_intersect (map ipt_iprange_to_interval ips)) =
+            (\<Inter> ip \<in> set ips. ipt_iprange_to_set ip)"
     apply(simp add: l2br_intersect)
-    using ipt_ipv4range_to_interval by blast
+    using ipt_iprange_to_interval by blast
   
   text\<open>We can use @{const l2br} if we want the union of the supplied list\<close>
-  lemma "wordinterval_to_set (l2br (map ipt_ipv4range_to_interval ips)) = (\<Union> ip \<in> set ips. ipv4s_to_set ip)"
+  lemma "wordinterval_to_set (l2br (map ipt_iprange_to_interval ips)) = (\<Union> ip \<in> set ips. ipt_iprange_to_set ip)"
     apply(simp add: l2br)
-    using ipt_ipv4range_to_interval by blast
+    using ipt_iprange_to_interval by blast
 
-  text\<open>A list of (negated) IPv4 address to a @{typ "32 wordinterval"}.\<close>
-  definition ipt_ipv4range_negation_type_to_br_intersect :: "ipt_ipv4range negation_type list \<Rightarrow> 32 wordinterval" where
-    "ipt_ipv4range_negation_type_to_br_intersect l = l2br_negation_type_intersect (NegPos_map ipt_ipv4range_to_interval l)" 
+  text\<open>A list of (negated) IP address to a @{typ "'i::len wordinterval"}.\<close>
+  definition ipt_iprange_negation_type_to_br_intersect ::
+    "'i::len ipt_iprange negation_type list \<Rightarrow> 'i wordinterval" where
+    "ipt_iprange_negation_type_to_br_intersect l = l2br_negation_type_intersect (NegPos_map ipt_iprange_to_interval l)" 
 
-  lemma ipt_ipv4range_negation_type_to_br_intersect: "wordinterval_to_set (ipt_ipv4range_negation_type_to_br_intersect l) =
-      (\<Inter> ip \<in> set (getPos l). ipv4s_to_set ip) - (\<Union> ip \<in> set (getNeg l). ipv4s_to_set ip)"
-    apply(simp add: ipt_ipv4range_negation_type_to_br_intersect_def l2br_negation_type_intersect NegPos_map_simps)
-    using ipt_ipv4range_to_interval by blast
+  lemma ipt_iprange_negation_type_to_br_intersect: "wordinterval_to_set (ipt_iprange_negation_type_to_br_intersect l) =
+      (\<Inter> ip \<in> set (getPos l). ipt_iprange_to_set ip) - (\<Union> ip \<in> set (getNeg l). ipt_iprange_to_set ip)"
+    apply(simp add: ipt_iprange_negation_type_to_br_intersect_def l2br_negation_type_intersect NegPos_map_simps)
+    using ipt_iprange_to_interval by blast
 
-  text\<open>The @{typ "32 wordinterval"} can be translated back into a list of IP ranges.
+  text\<open>The @{typ "'i::len wordinterval"} can be translated back into a list of IP ranges.
         If a list of intervals is enough, we can use @{const br2l}.
-        If we need it in @{typ ipt_ipv4range}, we can use this function.\<close>
-  definition wi_2_cidr_ipt_ipv4range_list :: "32 wordinterval \<Rightarrow> ipt_ipv4range list" where
-    "wi_2_cidr_ipt_ipv4range_list r = map (\<lambda> (base, len). Ip4AddrNetmask (dotdecimal_of_ipv4addr base) len) (cidr_split r)"
+        If we need it in @{typ "'i::len ipt_iprange"}, we can use this function.\<close>
+  definition wi_2_cidr_ipt_iprange_list :: "'i::len wordinterval \<Rightarrow> 'i ipt_iprange list" where
+    "wi_2_cidr_ipt_iprange_list r = map (\<lambda> (base, len). IpAddrNetmask base len) (cidr_split r)"
 
-  lemma wi_2_cidr_ipt_ipv4range_list: "(\<Union> ip \<in> set (wi_2_cidr_ipt_ipv4range_list r). ipv4s_to_set ip) = wordinterval_to_set r"
+  lemma wi_2_cidr_ipt_iprange_list: "(\<Union> ip \<in> set (wi_2_cidr_ipt_iprange_list r). ipt_iprange_to_set ip) = wordinterval_to_set r"
     proof -
-    have "\<And>a. ipv4s_to_set (case a of (base, x) \<Rightarrow> Ip4AddrNetmask (dotdecimal_of_ipv4addr base) x) = uncurry ipset_from_cidr a"
-      by(clarsimp simp add: ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
-    hence "(\<Union> ip \<in> set (wi_2_cidr_ipt_ipv4range_list r). ipv4s_to_set ip) = (\<Union>x\<in>set (cidr_split r). uncurry ipset_from_cidr x)"
-      unfolding wi_2_cidr_ipt_ipv4range_list_def by simp
+    have "\<And>a. ipt_iprange_to_set (case a of (base, x) \<Rightarrow> IpAddrNetmask base x) = uncurry ipset_from_cidr a"
+      by(clarsimp)
+    hence "(\<Union> ip \<in> set (wi_2_cidr_ipt_iprange_list r). ipt_iprange_to_set ip) = (\<Union>x\<in>set (cidr_split r). uncurry ipset_from_cidr x)"
+      unfolding wi_2_cidr_ipt_iprange_list_def by force
     thus ?thesis using cidr_split_prefix by metis
   qed
 
   text\<open>For example, this allows the following transformation\<close>
-  definition ipt_ipv4range_compress :: "ipt_ipv4range negation_type list \<Rightarrow> ipt_ipv4range list" where
-    "ipt_ipv4range_compress = wi_2_cidr_ipt_ipv4range_list \<circ> ipt_ipv4range_negation_type_to_br_intersect"
+  definition ipt_iprange_compress :: "'i::len ipt_iprange negation_type list \<Rightarrow> 'i ipt_iprange list" where
+    "ipt_iprange_compress = wi_2_cidr_ipt_iprange_list \<circ> ipt_iprange_negation_type_to_br_intersect"
 
-  lemma ipt_ipv4range_compress: "(\<Union> ip \<in> set (ipt_ipv4range_compress l). ipv4s_to_set ip) =
-      (\<Inter> ip \<in> set (getPos l). ipv4s_to_set ip) - (\<Union> ip \<in> set (getNeg l). ipv4s_to_set ip)"
-    by (metis wi_2_cidr_ipt_ipv4range_list comp_apply ipt_ipv4range_compress_def ipt_ipv4range_negation_type_to_br_intersect)
+  lemma ipt_iprange_compress: "(\<Union> ip \<in> set (ipt_iprange_compress l). ipt_iprange_to_set ip) =
+      (\<Inter> ip \<in> set (getPos l). ipt_iprange_to_set ip) - (\<Union> ip \<in> set (getNeg l). ipt_iprange_to_set ip)"
+    by (metis wi_2_cidr_ipt_iprange_list comp_apply ipt_iprange_compress_def ipt_iprange_negation_type_to_br_intersect)
   
-  definition normalized_cidr_ip :: "ipt_ipv4range \<Rightarrow> bool" where
-    "normalized_cidr_ip ip \<equiv> case ip of Ip4AddrNetmask _ _ \<Rightarrow> True | _ \<Rightarrow> False"
+  definition normalized_cidr_ip :: "'i::len ipt_iprange \<Rightarrow> bool" where
+    "normalized_cidr_ip ip \<equiv> case ip of IpAddrNetmask _ _ \<Rightarrow> True | _ \<Rightarrow> False"
 
-  lemma wi_2_cidr_ipt_ipv4range_list_normalized_Ip4AddrNetmask: 
-    "\<forall>a'\<in>set (wi_2_cidr_ipt_ipv4range_list as). normalized_cidr_ip a'"
+  lemma wi_2_cidr_ipt_iprange_list_normalized_IpAddrNetmask: 
+    "\<forall>a'\<in>set (wi_2_cidr_ipt_iprange_list as). normalized_cidr_ip a'"
     apply(clarify)
-    apply(simp add: wi_2_cidr_ipt_ipv4range_list_def normalized_cidr_ip_def)
+    apply(simp add: wi_2_cidr_ipt_iprange_list_def normalized_cidr_ip_def)
     by force
 
-  lemma ipt_ipv4range_compress_normalized_Ip4AddrNetmask:
-    "\<forall>a'\<in>set (ipt_ipv4range_compress as). normalized_cidr_ip a'"
-    by(simp add: ipt_ipv4range_compress_def wi_2_cidr_ipt_ipv4range_list_normalized_Ip4AddrNetmask)
+  lemma ipt_iprange_compress_normalized_IpAddrNetmask:
+    "\<forall>a'\<in>set (ipt_iprange_compress as). normalized_cidr_ip a'"
+    by(simp add: ipt_iprange_compress_def wi_2_cidr_ipt_iprange_list_normalized_IpAddrNetmask)
 
 
   
-  definition ipt_ipv4range_to_cidr :: "ipt_ipv4range \<Rightarrow> (ipv4addr \<times> nat) list" where
-    "ipt_ipv4range_to_cidr ips = cidr_split (iprange_interval (ipt_ipv4range_to_interval ips))"
+  definition ipt_iprange_to_cidr :: "'i::len ipt_iprange \<Rightarrow> ('i word \<times> nat) list" where
+    "ipt_iprange_to_cidr ips = cidr_split (iprange_interval (ipt_iprange_to_interval ips))"
 
-  lemma ipt_ipv4range_to_cidr: "ipcidr_union_set (set (ipt_ipv4range_to_cidr ips)) = (ipv4s_to_set ips)"
-    apply(simp add: ipt_ipv4range_to_cidr_def)
+  lemma ipt_ipvange_to_cidr: "ipcidr_union_set (set (ipt_iprange_to_cidr ips)) = (ipt_iprange_to_set ips)"
+    apply(simp add: ipt_iprange_to_cidr_def)
     apply(simp add: ipcidr_union_set_uncurry)
-    apply(case_tac "(ipt_ipv4range_to_interval ips)")
-    apply(simp add: ipt_ipv4range_to_interval cidr_split_prefix_single)
+    apply(case_tac "(ipt_iprange_to_interval ips)")
+    apply(simp add: ipt_iprange_to_interval cidr_split_prefix_single)
     done
     
 
 
 
 (*TODO probably MOVE: actually, these are toString pretty printing helpers*)
-definition interval_to_wi_to_ipt_ipv4range :: "32 word \<Rightarrow> 32 word \<Rightarrow> ipt_ipv4range" where
-  "interval_to_wi_to_ipt_ipv4range s e \<equiv>
+definition interval_to_wi_to_ipt_iprange :: "'i::len word \<Rightarrow> 'i word \<Rightarrow> 'i ipt_iprange" where
+  "interval_to_wi_to_ipt_iprange s e \<equiv>
     if s = e
-    then Ip4Addr (dotdecimal_of_ipv4addr s)
-    else case cidr_split (WordInterval s e) of [(ip,nmask)] \<Rightarrow> Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) nmask
-                                                  | _ \<Rightarrow> Ip4AddrRange (dotdecimal_of_ipv4addr s) (dotdecimal_of_ipv4addr e)"
+    then IpAddr s
+    else case cidr_split (WordInterval s e) of [(ip,nmask)] \<Rightarrow> IpAddrNetmask ip nmask
+                                            |   _ \<Rightarrow> IpAddrRange s e"
 
-lemma interval_to_wi_to_ipt_ipv4range: "ipv4s_to_set (interval_to_wi_to_ipt_ipv4range s e) = {s..e}"
+lemma interval_to_wi_to_ipt_ipv4range: "ipt_iprange_to_set (interval_to_wi_to_ipt_iprange s e) = {s..e}"
   proof -
     from cidr_split_prefix_single[of s e] have
       "cidr_split (WordInterval s e) = [(a, b)] \<Longrightarrow> ipset_from_cidr a b = {s..e}" for a b
         by(simp add: iprange_interval.simps)
     thus ?thesis 
-      by(simp add: interval_to_wi_to_ipt_ipv4range_def ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr split: list.split)
+      by(simp add: interval_to_wi_to_ipt_iprange_def split: list.split)
   qed
 
-fun wi_to_ipt_ipv4range :: "32 wordinterval \<Rightarrow> ipt_ipv4range list" where
-  "wi_to_ipt_ipv4range (WordInterval s e) = (if s > e then [] else 
-      [interval_to_wi_to_ipt_ipv4range s e])" |
-  "wi_to_ipt_ipv4range (RangeUnion a b) = wi_to_ipt_ipv4range a @ wi_to_ipt_ipv4range b"
+fun wi_to_ipt_iprange :: "'i::len wordinterval \<Rightarrow> 'i ipt_iprange list" where
+  "wi_to_ipt_iprange (WordInterval s e) = (if s > e then [] else 
+      [interval_to_wi_to_ipt_iprange s e])" |
+  "wi_to_ipt_iprange (RangeUnion a b) = wi_to_ipt_iprange a @ wi_to_ipt_iprange b"
 
-lemma wi_to_ipt_ipv4range: "\<Union> set (map ipv4s_to_set (wi_to_ipt_ipv4range wi)) = wordinterval_to_set wi"
+lemma wi_to_ipt_ipv4range: "\<Union> set (map ipt_iprange_to_set (wi_to_ipt_iprange wi)) = wordinterval_to_set wi"
   apply(induction wi)
    apply(simp add: interval_to_wi_to_ipt_ipv4range)
   apply(simp)

@@ -192,9 +192,11 @@ local (*iptables-save parsers*)
     
       fun mk_quadrupel (((a,b),c),d) = HOLogic.mk_prod
                (mk_nat255 a, HOLogic.mk_prod (mk_nat255 b, HOLogic.mk_prod (mk_nat255 c, mk_nat255 d)));
-    
-      fun ipNetmask_to_hol (ip,len) = @{const Ip4AddrNetmask} $ mk_quadrupel ip $ mk_nat 32 len;
-      fun ipRange_to_hol (ip1,ip2) = @{const Ip4AddrRange} $ mk_quadrupel ip1 $ mk_quadrupel ip2;
+      
+      fun mk_ipv4addr ip = @{const ipv4addr_of_dotdecimal} $ mk_quadrupel ip
+     
+      fun ipNetmask_to_hol (ip,len) = @{const IpAddrNetmask (32)} $ mk_ipv4addr ip $ mk_nat 32 len;
+      fun ipRange_to_hol (ip1,ip2) = @{const IpAddrRange (32)} $ mk_ipv4addr ip1 $ mk_ipv4addr ip2;
     
       val parser_ip = (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
                      (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
@@ -205,7 +207,7 @@ local (*iptables-save parsers*)
 
       val parser_ip_range = parser_ip --| ($$ "-") -- parser_ip >> ipRange_to_hol;
 
-      val parser_ip_addr = parser_ip >> (fn ip => @{const Ip4Addr} $ mk_quadrupel ip);
+      val parser_ip_addr = parser_ip >> (fn ip => @{const IpAddr (32)} $ mk_ipv4addr ip);
     
       val parser_interface = Scan.many1 is_iface_char >> (implode #> (fn x => @{const Iface} $ HOLogic.mk_string x));
 

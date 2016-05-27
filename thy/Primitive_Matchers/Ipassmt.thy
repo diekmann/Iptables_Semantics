@@ -98,10 +98,11 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
     lemma[code]: "ipassmt_sanity_defined rs ipassmt \<longleftrightarrow> (\<forall> iface \<in> set (collect_ifaces rs). ipassmt iface \<noteq> None)"
       by(simp add: ipassmt_sanity_defined_def Map.domIff)
   
-    value[code] "ipassmt_sanity_defined [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (Match (IIface (Iface ''eth1.1017'')))) action.Accept,
-             Rule (MatchAnd (Match (Src (Ip4AddrNetmask (192,168,0,0) 24))) (Match (IIface (ifaceAny)))) action.Accept,
-             Rule MatchAny action.Drop]
-             (map_of [(Iface ''eth1.1017'', [(ipv4addr_of_dotdecimal (131,159,14,240), 28)])])"
+    lemma "ipassmt_sanity_defined [
+         Rule (MatchAnd (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192,168,0,0)) 24))) (Match (IIface (Iface ''eth1.1017'')))) action.Accept,
+         Rule (MatchAnd (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192,168,0,0)) 24))) (Match (IIface (ifaceAny)))) action.Accept,
+         Rule MatchAny action.Drop]
+             (map_of [(Iface ''eth1.1017'', [(ipv4addr_of_dotdecimal (131,159,14,240), 28)])])" by eval
 
 
 

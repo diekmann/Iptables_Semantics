@@ -15,11 +15,11 @@ definition mk_Set :: "'a list \<Rightarrow> 'a set" where
   "mk_Set = set"
 
 
-fun ipassmt_iprange_translate :: "ipt_ipv4range list negation_type \<Rightarrow> (32 word \<times> nat) list" where
-  "ipassmt_iprange_translate (Pos ips) = concat (map ipt_ipv4range_to_cidr ips)" |
-  "ipassmt_iprange_translate (Neg ips) = all_but_those_ips (concat (map ipt_ipv4range_to_cidr ips))"
+fun ipassmt_iprange_translate :: "32 ipt_iprange list negation_type \<Rightarrow> (32 word \<times> nat) list" where
+  "ipassmt_iprange_translate (Pos ips) = concat (map ipt_iprange_to_cidr ips)" |
+  "ipassmt_iprange_translate (Neg ips) = all_but_those_ips (concat (map ipt_iprange_to_cidr ips))"
 
-definition to_ipassmt :: "(iface \<times> ipt_ipv4range list negation_type) list \<Rightarrow> (iface \<times> (32 word \<times> nat) list) list" where
+definition to_ipassmt :: "(iface \<times> 32 ipt_iprange list negation_type) list \<Rightarrow> (iface \<times> (32 word \<times> nat) list) list" where
   "to_ipassmt assmt = map (\<lambda>(ifce, ips). (ifce, ipassmt_iprange_translate ips)) assmt"
 
 export_code Rule
@@ -28,7 +28,7 @@ export_code Rule
   ProtoAny Proto TCP UDP ICMP Iface
   integer_to_16word nat_to_16word Nat word_less_eq word_to_nat
   nat_to_8word
-  Ip4AddrNetmask Ip4AddrRange Ip4Addr
+  ipv4addr_of_dotdecimal IpAddrNetmask IpAddrRange IpAddr
   CT_New CT_Established CT_Related CT_Untracked CT_Invalid
   TCP_Flags TCP_SYN TCP_ACK TCP_FIN TCP_RST TCP_URG TCP_PSH
   Accept Drop Log Reject Call Return Goto Empty Unknown

@@ -8,9 +8,10 @@ text\<open>Primitive Match Conditions which only support interfaces, IPv4 addres
 \<close>
 
 
+(*TODO: currently only IPv4*)
 datatype common_primitive =
-  is_Src: Src (src_sel: ipt_ipv4range) | 
-  is_Dst: Dst (dst_sel: ipt_ipv4range) |
+  is_Src: Src (src_sel: "32 ipt_iprange") | 
+  is_Dst: Dst (dst_sel: "32 ipt_iprange") |
   is_Iiface: IIface (iiface_sel: iface) |
   is_Oiface: OIface (oiface_sel: iface) |
   is_Prot: Prot (prot_sel: protocol) | 

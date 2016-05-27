@@ -10,7 +10,7 @@ text\<open>we use a primitive matcher which always applies.\<close>
   lemma[simp]: "Semantics.matches applies_Yes MatchAny p" by simp
   lemma[simp]: "Semantics.matches applies_Yes (Match e) p" by simp
 
-  definition "m=Match (Src (Ip4Addr (0,0,0,0)))"
+  definition "m=Match (Src (IpAddr 0))"
   lemma[simp]: "Semantics.matches applies_Yes m p" by (simp add: m_def)
 
   lemma "[''FORWARD'' \<mapsto> [(Rule m Log), (Rule m Accept), (Rule m Drop)]],applies_Yes,p\<turnstile>
@@ -59,14 +59,14 @@ text\<open>we use a primitive matcher which always applies.\<close>
 
   text\<open>We tune the primitive matcher to support everything we need in the example. Note that the undefined cases cannot be handled with these exact semantics!\<close>
   fun applies_exampleMatchExact :: "(common_primitive, 32 simple_packet) matcher" where
-  "applies_exampleMatchExact (Src (Ip4Addr addr)) p \<longleftrightarrow> p_src p = (ipv4addr_of_dotdecimal addr)" |
-  "applies_exampleMatchExact (Dst (Ip4Addr addr)) p \<longleftrightarrow> p_dst p = (ipv4addr_of_dotdecimal addr)" |
+  "applies_exampleMatchExact (Src (IpAddr addr)) p \<longleftrightarrow> p_src p = addr" |
+  "applies_exampleMatchExact (Dst (IpAddr addr)) p \<longleftrightarrow> p_dst p = addr" |
   "applies_exampleMatchExact (Prot ProtoAny) p \<longleftrightarrow> True" |
   "applies_exampleMatchExact (Prot (Proto pr)) p \<longleftrightarrow> p_proto p = pr"
   (*TODO, not exhaustive, only an example!!*)
 
-  lemma "[''FORWARD'' \<mapsto> [ Rule (MatchAnd (Match (Src (Ip4Addr (0,0,0,0)))) (Match (Dst (Ip4Addr (0,0,0,0))))) Reject, 
-                          Rule (Match (Dst (Ip4Addr (0,0,0,0)))) Log, 
+  lemma "[''FORWARD'' \<mapsto> [ Rule (MatchAnd (Match (Src (IpAddr 0))) (Match (Dst (IpAddr 0)))) Reject, 
+                          Rule (Match (Dst (IpAddr 0))) Log, 
                           Rule (Match (Prot (Proto TCP))) Accept,
                           Rule (Match (Prot (Proto TCP))) Drop]
          ],applies_exampleMatchExact, pkt\<lparr>p_src:=(ipv4addr_of_dotdecimal (1,2,3,4)), p_dst:=(ipv4addr_of_dotdecimal (0,0,0,0))\<rparr>\<turnstile>

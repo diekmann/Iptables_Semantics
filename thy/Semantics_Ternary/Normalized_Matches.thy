@@ -336,11 +336,6 @@ lemma normalize_rules_dnf_correct: "wf_ruleset \<gamma> p rs \<Longrightarrow>
     qed
   qed
 
-(*
-value "normalize_rules_dnf
-  [(Rule (MatchNot (MatchAnd (MatchNot (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16)))) (MatchAnd (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) (MatchAnd (Match (Prot ipt_protocol.ProtTCP)) (Match (Extra ''reject-with tcp-reset'')))))) Drop)]
- "
-*)
 
 fun normalized_nnf_match :: "'a match_expr \<Rightarrow> bool" where
   "normalized_nnf_match MatchAny = True" |

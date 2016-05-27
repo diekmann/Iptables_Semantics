@@ -2,9 +2,9 @@ theory SimpleFw_Compliance
 imports SimpleFw_Semantics "../Primitive_Matchers/Transform" "../Primitive_Matchers/Primitive_Abstract"
 begin
 
-(*TODO: remove somehow or move*)
-fun ipv4_word_netmask_to_ipt_ipv4range :: "(ipv4addr \<times> nat) \<Rightarrow> ipt_ipv4range" where
-  "ipv4_word_netmask_to_ipt_ipv4range (ip, n) = Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) n"
+(*TODO: remove! ! !*)
+fun ipv4_word_netmask_to_ipt_ipv4range :: "(ipv4addr \<times> nat) \<Rightarrow> 32 ipt_iprange" where
+  "ipv4_word_netmask_to_ipt_ipv4range (ip, n) = IpAddrNetmask ip n"
 
 (*
 fun ipt_ipv4range_to_ipv4_word_netmask :: "ipt_ipv4range \<Rightarrow> (ipv4addr \<times> nat)" where
@@ -45,8 +45,8 @@ theorem simple_match_to_ipportiface_match_correct:
   proof -
   obtain iif oif sip dip pro sps dps where sm: "sm = \<lparr>iiface = iif, oiface = oif, src = sip, dst = dip, proto = pro, sports = sps, dports = dps\<rparr>" by (cases sm)
   { fix ip
-    have "p_src p \<in> ipv4s_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_src p)"
-    and  "p_dst p \<in> ipv4s_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_dst p)"
+    have "p_src p \<in> ipt_iprange_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_src p)"
+    and  "p_dst p \<in> ipt_iprange_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_dst p)"
      apply(case_tac [!] ip)
      by(simp_all add: ipv4set_from_cidr_def ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
   } note simple_match_ips=this
@@ -70,8 +70,8 @@ fun common_primitive_match_to_simple_match :: "common_primitive match_expr \<Rig
   "common_primitive_match_to_simple_match (MatchNot MatchAny) = None" |
   "common_primitive_match_to_simple_match (Match (IIface iif)) = Some (simple_match_any\<lparr> iiface := iif \<rparr>)" |
   "common_primitive_match_to_simple_match (Match (OIface oif)) = Some (simple_match_any\<lparr> oiface := oif \<rparr>)" |
-  "common_primitive_match_to_simple_match (Match (Src (Ip4AddrNetmask pre len))) = Some (simple_match_any\<lparr> src := (ipv4addr_of_dotdecimal pre, len) \<rparr>)" |
-  "common_primitive_match_to_simple_match (Match (Dst (Ip4AddrNetmask pre len))) = Some (simple_match_any\<lparr> dst := (ipv4addr_of_dotdecimal pre, len) \<rparr>)" |
+  "common_primitive_match_to_simple_match (Match (Src (IpAddrNetmask pre len))) = Some (simple_match_any\<lparr> src := (pre, len) \<rparr>)" |
+  "common_primitive_match_to_simple_match (Match (Dst (IpAddrNetmask pre len))) = Some (simple_match_any\<lparr> dst := (pre, len) \<rparr>)" |
   "common_primitive_match_to_simple_match (Match (Prot p)) = Some (simple_match_any\<lparr> proto := p \<rparr>)" |
   "common_primitive_match_to_simple_match (Match (Src_Ports [])) = None" |
   "common_primitive_match_to_simple_match (Match (Src_Ports [(s,e)])) = Some (simple_match_any\<lparr> sports := (s,e) \<rparr>)" |
@@ -83,10 +83,10 @@ fun common_primitive_match_to_simple_match :: "common_primitive match_expr \<Rig
     | (_, None) \<Rightarrow> None
     | (Some m1', Some m2') \<Rightarrow> simple_match_and m1' m2')" |
   --"undefined cases, normalize before!"
-  "common_primitive_match_to_simple_match (Match (Src (Ip4Addr _))) = undefined" |
-  "common_primitive_match_to_simple_match (Match (Src (Ip4AddrRange _ _))) = undefined" |
-  "common_primitive_match_to_simple_match (Match (Dst (Ip4Addr _))) = undefined" |
-  "common_primitive_match_to_simple_match (Match (Dst (Ip4AddrRange _ _))) = undefined" |
+  "common_primitive_match_to_simple_match (Match (Src (IpAddr _))) = undefined" |
+  "common_primitive_match_to_simple_match (Match (Src (IpAddrRange _ _))) = undefined" |
+  "common_primitive_match_to_simple_match (Match (Dst (IpAddr _))) = undefined" |
+  "common_primitive_match_to_simple_match (Match (Dst (IpAddrRange _ _))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (Prot _))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (IIface _))) = undefined" |
   "common_primitive_match_to_simple_match (MatchNot (Match (OIface _))) = undefined" |
@@ -264,18 +264,18 @@ lemma to_simple_firewall_simps:
 
 
 value "check_simple_fw_preconditions
-     [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8)))
+     [Rule (MatchAnd (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)))
                           (MatchAnd (Match (Dst_Ports [(0, 65535)]))
                                     (Match (Src_Ports [(0, 65535)]))))
                 Drop]"
 value "to_simple_firewall
-     [Rule (MatchAnd (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8)))
+     [Rule (MatchAnd (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)))
                           (MatchAnd (Match (Dst_Ports [(0, 65535)]))
                                     (Match (Src_Ports [(0, 65535)]))))
                 Drop]"
 value "check_simple_fw_preconditions [Rule (MatchAnd MatchAny MatchAny) Drop]"
 value "to_simple_firewall [Rule (MatchAnd MatchAny MatchAny) Drop]"
-value "to_simple_firewall [Rule (Match (Src (Ip4AddrNetmask (127, 0, 0, 0) 8))) Drop]"
+value "to_simple_firewall [Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8))) Drop]"
 
 
 

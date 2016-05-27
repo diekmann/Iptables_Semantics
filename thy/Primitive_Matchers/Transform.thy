@@ -748,10 +748,10 @@ theorem transform_normalize_primitives:
          folded normalize_ports_step_def normalize_dst_ports_def]
     have normalized_src_ports_rs2: "\<forall>m \<in> get_match ` set ?rs2.  normalized_src_ports m" by force
     from preserve_normalized_src_ports[OF normalized_rs2 normalized_src_ports_rs2 wf_disc_sel_common_primitive(3),
-         where f2=ipt_ipv4range_compress, folded normalize_src_ips_def]
+         where f2=ipt_iprange_compress, folded normalize_src_ips_def]
     have normalized_src_ports_rs3: "\<forall>m \<in> get_match ` set ?rs3.  normalized_src_ports m" by force
     from preserve_normalized_src_ports[OF normalized_rs3 normalized_src_ports_rs3 wf_disc_sel_common_primitive(4),
-         where f2=ipt_ipv4range_compress, folded normalize_dst_ips_def]
+         where f2=ipt_iprange_compress, folded normalize_dst_ips_def]
     have normalized_src_ports_rs4: "\<forall>m \<in> get_match ` set ?rs4.  normalized_src_ports m" by force
 
     from normalize_rules_preserves_unrelated_normalized_n_primitive[of _ is_Dst_Ports dst_ports_sel "(\<lambda>pts. length pts \<le> 1)",
@@ -764,15 +764,15 @@ theorem transform_normalize_primitives:
       \<forall>m\<in>get_match ` set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs). normalized_dst_ports m"
       by metis
     from preserve_normalized_dst_ports[OF normalized_rs2 normalized_dst_ports wf_disc_sel_common_primitive(3),
-         where f2=ipt_ipv4range_compress, folded normalize_src_ips_def]
+         where f2=ipt_iprange_compress, folded normalize_src_ips_def]
     have normalized_dst_ports_rs3: "\<forall>m \<in> get_match ` set ?rs3.  normalized_dst_ports m" by force
     from preserve_normalized_dst_ports[OF normalized_rs3 normalized_dst_ports_rs3 wf_disc_sel_common_primitive(4),
-         where f2=ipt_ipv4range_compress, folded normalize_dst_ips_def]
+         where f2=ipt_iprange_compress, folded normalize_dst_ips_def]
     have normalized_dst_ports_rs4: "\<forall>m \<in> get_match ` set ?rs4.  normalized_dst_ports m" by force
 
     from normalize_rules_preserves_unrelated_normalized_n_primitive[of ?rs3 is_Src src_sel normalized_cidr_ip,
          OF _ wf_disc_sel_common_primitive(4),
-         where f=ipt_ipv4range_compress, folded normalize_dst_ips_def normalized_src_ips_def2]
+         where f=ipt_iprange_compress, folded normalize_dst_ips_def normalized_src_ips_def2]
          normalized_rs3 normalized_src_ips
     have normalized_src_rs4: "\<forall>m \<in> get_match ` set ?rs4. normalized_src_ips m" by force
     from normalized_src_ports_rs4 normalized_dst_ports_rs4 normalized_src_rs4 normalized_dst_ips
@@ -810,11 +810,11 @@ theorem transform_normalize_primitives:
        folded normalize_dst_ports_def normalize_ports_step_def]
      have "\<forall>m\<in>get_match ` set ?rs2. normalized_n_primitive (disc2, sel2) f m" by blast
      with normalized_rs2 normalize_rules_preserves_unrelated_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(3) a_Src,
-       of ?rs2 sel2 f ipt_ipv4range_compress,
+       of ?rs2 sel2 f ipt_iprange_compress,
        folded normalize_src_ips_def]
      have "\<forall>m\<in>get_match ` set ?rs3. normalized_n_primitive (disc2, sel2) f m" by blast
      with normalized_rs3 normalize_rules_preserves_unrelated_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(4) a_Dst,
-       of ?rs3 sel2 f ipt_ipv4range_compress,
+       of ?rs3 sel2 f ipt_iprange_compress,
        folded normalize_dst_ips_def]
      have "\<forall>m\<in>get_match ` set ?rs4. normalized_n_primitive (disc2, sel2) f m" by blast
      thus ?thesis
@@ -882,8 +882,8 @@ theorem transform_normalize_primitives:
              of "(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))",folded normalize_src_ports_def normalize_ports_step_def] apply blast
      using x[OF wf_disc_sel_common_primitive(2), 
             of "(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))",folded normalize_dst_ports_def normalize_ports_step_def] apply blast
-    using x[OF wf_disc_sel_common_primitive(3), of ipt_ipv4range_compress,folded normalize_src_ips_def] apply blast
-   using x[OF wf_disc_sel_common_primitive(4), of ipt_ipv4range_compress,folded normalize_dst_ips_def] apply blast
+    using x[OF wf_disc_sel_common_primitive(3), of ipt_iprange_compress,folded normalize_src_ips_def] apply blast
+   using x[OF wf_disc_sel_common_primitive(4), of ipt_iprange_compress,folded normalize_dst_ips_def] apply blast
    done
    
    thus "unchanged disc1 \<Longrightarrow> changeddisc disc1 \<Longrightarrow>
@@ -952,8 +952,8 @@ theorem transform_normalize_primitives:
              of "(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))",folded normalize_src_ports_def normalize_ports_step_def] apply blast
      using x[OF wf_disc_sel_common_primitive(2), 
             of "(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))",folded normalize_dst_ports_def normalize_ports_step_def] apply blast
-    using x[OF wf_disc_sel_common_primitive(3), of ipt_ipv4range_compress,folded normalize_src_ips_def] apply blast
-   using x[OF wf_disc_sel_common_primitive(4), of ipt_ipv4range_compress,folded normalize_dst_ips_def] apply blast
+    using x[OF wf_disc_sel_common_primitive(3), of ipt_iprange_compress,folded normalize_src_ips_def] apply blast
+   using x[OF wf_disc_sel_common_primitive(4), of ipt_iprange_compress,folded normalize_dst_ips_def] apply blast
    done
 
    thus "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow>
