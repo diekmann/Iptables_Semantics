@@ -2,25 +2,13 @@ theory SimpleFw_Compliance
 imports SimpleFw_Semantics "../Primitive_Matchers/Transform" "../Primitive_Matchers/Primitive_Abstract"
 begin
 
-(*TODO: remove! ! !*)
-fun ipv4_word_netmask_to_ipt_ipv4range :: "(ipv4addr \<times> nat) \<Rightarrow> 32 ipt_iprange" where
-  "ipv4_word_netmask_to_ipt_ipv4range (ip, n) = IpAddrNetmask ip n"
-
-(*
-fun ipt_ipv4range_to_ipv4_word_netmask :: "ipt_ipv4range \<Rightarrow> (ipv4addr \<times> nat)" where
-  "ipt_ipv4range_to_ipv4_word_netmask (Ip4Addr ip_ddecim) = (ipv4addr_of_dotdecimal ip_ddecim, 32)" | 
-  "ipt_ipv4range_to_ipv4_word_netmask (Ip4AddrNetmask pre len) = (ipv4addr_of_dotdecimal pre, len)"
-  (*we could make sure here that this is a @{term valid_prefix}, \<dots>*)
-*)
-
-
 subsection\<open>Simple Match to MatchExpr\<close>
 
 fun simple_match_to_ipportiface_match :: "32 simple_match \<Rightarrow> common_primitive match_expr" where
   "simple_match_to_ipportiface_match \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> = 
     MatchAnd (Match (IIface iif)) (MatchAnd (Match (OIface oif)) 
-    (MatchAnd (Match (Src (ipv4_word_netmask_to_ipt_ipv4range sip)))
-    (MatchAnd (Match (Dst (ipv4_word_netmask_to_ipt_ipv4range dip)))
+    (MatchAnd (Match (Src (uncurry IpAddrNetmask sip)))
+    (MatchAnd (Match (Dst (uncurry IpAddrNetmask dip)))
     (MatchAnd (Match (Prot p))
     (MatchAnd (Match (Src_Ports [sps]))
     (Match (Dst_Ports [dps]))
@@ -29,8 +17,8 @@ fun simple_match_to_ipportiface_match :: "32 simple_match \<Rightarrow> common_p
 
 (*is this usefull?*)
 lemma "matches \<gamma> (simple_match_to_ipportiface_match \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr>) a p \<longleftrightarrow> 
-      matches \<gamma> (alist_and ([Pos (IIface iif), Pos (OIface oif)] @ [Pos (Src (ipv4_word_netmask_to_ipt_ipv4range sip))]
-        @ [Pos (Dst (ipv4_word_netmask_to_ipt_ipv4range dip))] @ [Pos (Prot p)]
+      matches \<gamma> (alist_and ([Pos (IIface iif), Pos (OIface oif)] @ [Pos (Src (uncurry IpAddrNetmask sip))]
+        @ [Pos (Dst (uncurry IpAddrNetmask dip))] @ [Pos (Prot p)]
         @ [Pos (Src_Ports [sps])] @ [Pos (Dst_Ports [dps])])) a p"
 apply(cases sip,cases dip)
 apply(simp add: bunch_of_lemmata_about_matches)
@@ -45,8 +33,8 @@ theorem simple_match_to_ipportiface_match_correct:
   proof -
   obtain iif oif sip dip pro sps dps where sm: "sm = \<lparr>iiface = iif, oiface = oif, src = sip, dst = dip, proto = pro, sports = sps, dports = dps\<rparr>" by (cases sm)
   { fix ip
-    have "p_src p \<in> ipt_iprange_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_src p)"
-    and  "p_dst p \<in> ipt_iprange_to_set (ipv4_word_netmask_to_ipt_ipv4range ip) \<longleftrightarrow> simple_match_ip ip (p_dst p)"
+    have "p_src p \<in> ipt_iprange_to_set (uncurry IpAddrNetmask ip) \<longleftrightarrow> simple_match_ip ip (p_src p)"
+    and  "p_dst p \<in> ipt_iprange_to_set (uncurry IpAddrNetmask ip) \<longleftrightarrow> simple_match_ip ip (p_dst p)"
      apply(case_tac [!] ip)
      by(simp_all add: ipv4set_from_cidr_def ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
   } note simple_match_ips=this
