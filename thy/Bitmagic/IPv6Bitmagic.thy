@@ -71,11 +71,7 @@ begin
     done
 *)
 
-  lemma mask_len_word: fixes w::"'a::len word"
-    shows "n = (len_of TYPE('a)) \<Longrightarrow> w AND mask n = w"
-    by (simp add: mask_eq_iff) 
-  
-
+ 
   lemma mask128: "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF = mask 128"
     by(simp add: mask_def)
 
