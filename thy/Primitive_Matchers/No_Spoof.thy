@@ -925,7 +925,6 @@ text\<open>Examples\<close>
       apply(simp add: match_iface.simps
                       primitive_matcher_generic.Prot_single[OF primitive_matcher_generic_common_matcher]
                       primitive_matcher_generic.Prot_single_not[OF primitive_matcher_generic_common_matcher])
-      apply(simp add: ipv4set_from_cidr_def)
       done
   qed
   text\<open>Spoofing protection but the algorithm cannot certify spoofing protection.\<close>

@@ -428,7 +428,7 @@ definition cidr_split :: "'i::len wordinterval \<Rightarrow> ('i word \<times> n
 (*also works with corny definitions*)
 corollary cidr_split_prefix: 
   fixes r :: "'i::len wordinterval"
-  shows "(\<Union> ((\<lambda> (base, len). ipset_from_cidr base len) ` (set (cidr_split r))) ) = wordinterval_to_set r"
+  shows "(\<Union>x\<in>set (cidr_split r). uncurry ipset_from_cidr x) = wordinterval_to_set r"
   proof -
   --"without valid prefix assumption"
   have prefix_to_wordset_subset_ipset_from_cidr_helper:
@@ -452,7 +452,7 @@ corollary cidr_split_prefix:
 qed
 corollary cidr_split_prefix_single: 
   fixes start :: "'i::len word"
-  shows "(\<Union> ((\<lambda> (base, len). ipset_from_cidr base len) ` (set (cidr_split (iprange_interval (start, end))))) ) = {start .. end}"
+  shows "(\<Union>x\<in>set (cidr_split (iprange_interval (start, end))). uncurry ipset_from_cidr x) = {start..end}"
   unfolding wordinterval_to_set.simps[symmetric]
   using cidr_split_prefix iprange_interval.simps by metis
 

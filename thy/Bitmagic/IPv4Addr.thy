@@ -82,11 +82,11 @@ subsection\<open>Representing IPv4 Adresses\<close>
     "ipv4addr_of_dotdecimal (a,b,c,d) = (ipv4addr_of_nat a << 24) + (ipv4addr_of_nat b << 16) + (ipv4addr_of_nat c << 8) + ipv4addr_of_nat d"
   proof -
     have a: "(ipv4addr_of_nat a) << 24 = ipv4addr_of_nat (a * 16777216)"
-      by(simp add: ipv4addr_of_nat_def shiftl_t2n of_nat_mult)
+      by(simp add: ipv4addr_of_nat_def shiftl_t2n)
     have b: "(ipv4addr_of_nat b) << 16 = ipv4addr_of_nat (b * 65536)"
-      by(simp add: ipv4addr_of_nat_def shiftl_t2n of_nat_mult)
+      by(simp add: ipv4addr_of_nat_def shiftl_t2n)
     have c: "(ipv4addr_of_nat c) << 8 = ipv4addr_of_nat (c * 256)"
-      by(simp add: ipv4addr_of_nat_def shiftl_t2n of_nat_mult)
+      by(simp add: ipv4addr_of_nat_def shiftl_t2n)
     have ipv4addr_of_nat_suc: "\<And>x. ipv4addr_of_nat (Suc x) = word_succ (ipv4addr_of_nat (x))"
       by(simp add: ipv4addr_of_nat_def, metis Abs_fnat_hom_Suc of_nat_Suc)
     { fix x y
@@ -280,13 +280,14 @@ subsection\<open>IP ranges\<close>
   lemma "ipv4set_from_cidr (ipv4addr_of_dotdecimal (192,168,0,42)) 16 = 
           {ipv4addr_of_dotdecimal (192,168,0,0) .. ipv4addr_of_dotdecimal (192,168,255,255)}"
    by(simp add: ipv4set_from_cidr_def ipset_from_cidr_alt mask_def  ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
-  lemma ipv4set_from_cidr_UNIV: "ipv4set_from_cidr 0 0 = UNIV"
-    by(simp add: ipv4set_from_cidr_def ipset_from_cidr_0)
-  lemma ip_in_ipv4set_from_cidr_UNIV: "ip \<in> (ipv4set_from_cidr (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 0)"
-    by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4set_from_cidr_UNIV)
 
   lemma ipv4set_from_cidr_0: "ipv4set_from_cidr foo 0 = UNIV"
     by(simp add: ipv4set_from_cidr_def ipset_from_cidr_0)
+
+  lemma "ipv4set_from_cidr 0 0 = UNIV"
+    by(simp add: ipv4set_from_cidr_def ipset_from_cidr_0)
+  lemma "ip \<in> (ipv4set_from_cidr (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 0)"
+    by(simp add: ipv4set_from_cidr_0)
 
   lemma ipv4set_from_cidr_32: "ipv4set_from_cidr foo 32 = {foo}"
     by(simp add: ipv4set_from_cidr_alt ipv4set_from_netmask_def mask_def ipset_from_netmask_minusone)
