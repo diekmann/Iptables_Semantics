@@ -215,8 +215,8 @@ addRules chnMap =
     in  join $ map renderRule rules
 
 
-renderPolicy (Just Isabelle.Accept)      = "ACCEPT"
-renderPolicy (Just Isabelle.Drop)        = "DROP"
+renderPolicy (Just Isabelle.Accept) = "ACCEPT"
+renderPolicy (Just Isabelle.Drop)   = "DROP"
 renderPolicy Nothing = "-"
 
 
