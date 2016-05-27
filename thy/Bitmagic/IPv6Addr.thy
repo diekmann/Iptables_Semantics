@@ -35,27 +35,21 @@ section \<open>Modelling IPv6 Adresses\<close>
     by(fact max_ipv6_addr_number)
   lemma max_ipv6_addr_max_word: "max_ipv6_addr = max_word"
     by(simp add: max_ipv6_addr_number max_word_def)
-  lemma max_ipv6_addr_max[simp]: "\<forall>a. a \<le> max_ipv6_addr"
+  lemma max_ipv6_addr_max: "\<forall>a. a \<le> max_ipv6_addr"
     by(simp add: max_ipv6_addr_max_word)
   lemma range_0_max_UNIV: "UNIV = {0 .. max_ipv6_addr}" (*not in the simp set, for a reason*)
     by(simp add: max_ipv6_addr_max_word) fastforce
 
   text\<open>identity functions\<close>
-  lemma nat_of_ipv6addr_ipv6addr_of_nat: "\<lbrakk> n \<le> nat_of_ipv6addr max_ipv6_addr \<rbrakk> \<Longrightarrow> nat_of_ipv6addr (ipv6addr_of_nat n) = n"
-    by (metis ipv6addr_of_nat_def le_unat_uoi nat_of_ipv6addr_def)
+  lemma nat_of_ipv6addr_ipv6addr_of_nat:
+    "n \<le> nat_of_ipv6addr max_ipv6_addr \<Longrightarrow> nat_of_ipv6addr (ipv6addr_of_nat n) = n"
+    by(simp add: nat_of_ipv6addr_def ipv6addr_of_nat_def le_unat_uoi)
   lemma nat_of_ipv6addr_ipv6addr_of_nat_mod: "nat_of_ipv6addr (ipv6addr_of_nat n) = n mod 2^128"
     by(simp add: ipv6addr_of_nat_def nat_of_ipv6addr_def unat_of_nat)
   lemma ipv6addr_of_nat_nat_of_ipv6addr: "ipv6addr_of_nat (nat_of_ipv6addr addr) = addr"
     by(simp add: ipv6addr_of_nat_def nat_of_ipv6addr_def)
 
-
   text\<open>Equality of IPv6 adresses\<close>
-  lemma "\<lbrakk> n \<le> nat_of_ipv6addr max_ipv6_addr \<rbrakk> \<Longrightarrow> nat_of_ipv6addr (ipv6addr_of_nat n) = n"
-    apply(simp add: nat_of_ipv6addr_def ipv6addr_of_nat_def)
-    apply(induction n)
-     apply(simp_all)
-    by(unat_arith)
-
   lemma ipv6addr_of_nat_eq: "x = y \<Longrightarrow> ipv6addr_of_nat x = ipv6addr_of_nat y"
     by(simp add: ipv6addr_of_nat_def)
 
@@ -450,9 +444,6 @@ subsection\<open>Semantics\<close>
   lemma "int_to_ipv6preferred 42540766411282592856906245548098208122 =
          IPv6AddrPreferred 0x2001 0xDB8 0x0 0x0 0x8 0x800 0x200C 0x417A" by eval
 
-
-
-
   lemma word128_masks_ipv6pieces:
     "(0xFFFF0000000000000000000000000000::ipv6addr) = (mask 16) << 112"
     "(0xFFFF000000000000000000000000::ipv6addr) = (mask 16) << 96"
@@ -463,7 +454,6 @@ subsection\<open>Semantics\<close>
     "(0xFFFF0000::ipv6addr) = (mask 16) << 16"
     "(0xFFFF::ipv6addr) = (mask 16)"
     by(simp add: mask_def)+
-
 
 
   text\<open>Correctness: round trip property one\<close>
@@ -519,7 +509,6 @@ subsection\<open>Semantics\<close>
         apply simp_all
       by (simp add: length_drop_mask)
 
-
     have mask_len_word:"n = (len_of TYPE('a)) \<Longrightarrow> w AND mask n = w"
       for n and w::"'a::len word" by (simp add: mask_eq_iff) 
 
@@ -547,8 +536,6 @@ subsection\<open>Semantics\<close>
       apply(rule ipv6addr_16word_pieces_compose_or)
       done
   qed
-
-
 
 
   text\<open>Correctness: round trip property two\<close>
@@ -616,10 +603,6 @@ fun ipv6addr_c2p :: "ipv6addr_syntax_compressed \<Rightarrow> ipv6addr_syntax" w
   | "ipv6addr_c2p (IPv6AddrCompressed8_7 a b c d e f g ()) = IPv6AddrPreferred a b c d e f g 0"
 
 
-
-value "dropWhile (\<lambda>x. x \<noteq> None) [Some (1::int), Some 2, None, Some 3]"
-term the
-
 definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<Rightarrow> ipv6addr_syntax option" where
   "ipv6_unparsed_compressed_to_preferred ls = (
     if
@@ -643,8 +626,7 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
 
   lemma "ipv6_unparsed_compressed_to_preferred [None] = Some (IPv6AddrPreferred 0 0 0 0 0 0 0 0)" by eval
 
-
-  value "ipv6_unparsed_compressed_to_preferred []"
+  lemma "ipv6_unparsed_compressed_to_preferred [] = None" by eval
 
 
   lemma ipv6_unparsed_compressed_to_preferred_identity1:
@@ -678,7 +660,7 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
   
   
 
-(*DRAFT below: IPv6 pretty printing (converting to compressed format)*)
+text\<open>IPv6 pretty printing (converting to compressed format)\<close>
   function goup_by_zeros :: "16 word list \<Rightarrow> 16 word list list" where
     "goup_by_zeros [] = []" |
     "goup_by_zeros (x#xs) = (
@@ -695,7 +677,9 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
 	(*"goup_by_zeros xs \<noteq> groupF (\<lambda>x. x=0) xs"
 	  groupF does not preserver the order but groups the whole list*)
 	
-	value[code] "goup_by_zeros [0,1,2,3,0,0,0,0,3,4,0,0,0,2,0,0,2,0,3,0]"
+	lemma "goup_by_zeros [0,1,2,3,0,0,0,0,3,4,0,0,0,2,0,0,2,0,3,0] =
+	        [[0], [1], [2], [3], [0, 0, 0, 0], [3], [4], [0, 0, 0], [2], [0, 0], [2], [0], [3], [0]]"
+	by eval
 	
 	lemma "concat (goup_by_zeros ls) = ls"
 	  by(induction ls rule:goup_by_zeros.induct) simp+
@@ -724,20 +708,15 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
 	  "List_explode ([]#xs) = None#List_explode xs" |
 	  "List_explode (xs1#xs2) = map Some xs1@List_explode xs2"
 	  
-	  
-  value[code] "List_explode [[0::int], [2,3], [], [3,4]]"
+  lemma "List_explode [[0::int], [2,3], [], [3,4]] = [Some 0, Some 2, Some 3, None, Some 3, Some 4]"
+  by eval
 
   lemma List_explode_def: 
     "List_explode xss = concat (map (\<lambda>xs. if xs = [] then [None] else map Some xs) xss)"
-    apply(induction xss rule: List_explode.induct)
-      apply(simp; fail)
-     apply(simp; fail)
-    apply(simp)
-    done
+    by(induction xss rule: List_explode.induct) simp+
 	  
   lemma List_explode_no_empty: "[] \<notin> set xss \<Longrightarrow> List_explode xss = map Some (concat xss)"
-    apply(induction xss rule: List_explode.induct)
-      by(simp)+
+    by(induction xss rule: List_explode.induct) simp+
 
   lemma List_explode_replace1: "[] \<notin> set xss \<Longrightarrow> foo \<in> set xss \<Longrightarrow>
           List_explode (List_replace1 foo [] xss) =
@@ -759,7 +738,6 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
     in
       List_explode shortened
     )"
-
   declare ipv6_preferred_to_compressed.simps[simp del]
 
   lemma foldr_max_length: "foldr (\<lambda>xs. max (length xs)) lss n = fold max (map length lss) n"
@@ -769,14 +747,6 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
      apply(simp; fail)
     apply(simp)
     done
-
-  lemma "foldr (\<lambda>xs. max (length xs)) (goup_by_zeros xs) 0 > 1 \<Longrightarrow>
-         replicate (fold max (map length (goup_by_zeros xs)) 0) 0 =
-           fold (\<lambda>xs acc. if length acc \<le> length xs then xs else acc) (goup_by_zeros xs) []"
-   apply(induction xs rule: goup_by_zeros.induct)
-    apply(simp)
-   apply(simp)
-   oops
 
   lemma List_explode_goup_by_zeros: "List_explode (goup_by_zeros xs) = map Some xs"
     apply(induction xs rule: goup_by_zeros.induct)
@@ -802,9 +772,11 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
   by(simp add: ipv6_preferred_to_compressed.simps max_zero_streak_def List_explode_goup_by_zeros)
 
     
-  value[code] "ipv6_preferred_to_compressed (IPv6AddrPreferred 0 0 0 0 0 0 0 0)"
-  value[code] "ipv6_preferred_to_compressed (IPv6AddrPreferred 0x2001 0xDB8 0 0 8 0x800 0x200C 0x417A)"
-  value[code] "ipv6_preferred_to_compressed (IPv6AddrPreferred 0x2001 0xDB8 0 3 8 0x800 0x200C 0x417A)"
+  lemma "ipv6_preferred_to_compressed (IPv6AddrPreferred 0 0 0 0 0 0 0 0) = [None]" by eval
+  lemma "ipv6_preferred_to_compressed (IPv6AddrPreferred 0x2001 0xDB8 0 0 8 0x800 0x200C 0x417A) =
+                [Some 0x2001, Some 0xDB8, None,           Some 8, Some 0x800, Some 0x200C, Some 0x417A]" by eval
+  lemma "ipv6_preferred_to_compressed (IPv6AddrPreferred 0x2001 0xDB8 0 3 8 0x800 0x200C 0x417A) =
+                [Some 0x2001, Some 0xDB8, Some 0, Some 3, Some 8, Some 0x800, Some 0x200C, Some 0x417A]" by eval
 
   lemma "ipv6_preferred_to_compressed ip = as \<Longrightarrow> 
           length (filter (\<lambda>p. p = None) as) = 0 \<and> length as = 8
@@ -828,8 +800,7 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
 
 
 
-  lemma
-    "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = None#xs \<Longrightarrow>
+  lemma "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = None#xs \<Longrightarrow>
       xs = map Some (dropWhile (\<lambda>x. x=0) [a,b,c,d,e,f,g,h])"
     apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
           case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
