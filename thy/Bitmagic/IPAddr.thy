@@ -240,9 +240,14 @@ subsection\<open>IP Addresses in CIDR Notation\<close>
 
 
   lemma ipset_from_cidr_ipcidr_to_interval:
-    "ipset_from_cidr base len = {ipcidr_to_interval_start (base,len) .. ipcidr_to_interval_end (base,len)}"
+    "ipset_from_cidr base len =
+      {ipcidr_to_interval_start (base,len) .. ipcidr_to_interval_end (base,len)}"
     by(simp add: Let_def ipcidr_to_interval_def ipset_from_cidr_def ipset_from_netmask_def)
   declare ipcidr_to_interval_start.simps[simp del] ipcidr_to_interval_end.simps[simp del]
+
+  lemma ipcidr_to_interval:
+    "ipcidr_to_interval (base, len) = (s,e) \<Longrightarrow> ipset_from_cidr base len = {s .. e}"
+    by (simp add: ipcidr_to_interval_def ipset_from_cidr_ipcidr_to_interval)
 
 
   definition ipcidr_tuple_to_wordinterval :: "('i::len word \<times> nat) \<Rightarrow> 'i wordinterval" where

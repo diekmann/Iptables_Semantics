@@ -16,12 +16,6 @@ lemma "ipv4set_from_cidr (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 33 = {0}"
   by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4set_from_cidr_def ipset_from_cidr_large_pfxlen)
   
 
-  (*TODO: remove this lemma?, refactor*)
-  lemma ipv4cidr_to_interval: "ipcidr_to_interval (base, len) = (s,e) \<Longrightarrow> ipv4set_from_cidr base len = {s .. e}"
-    apply(simp add: ipv4set_from_cidr_def Let_def ipcidr_to_interval_def)
-    using ipset_from_cidr_ipcidr_to_interval by blast
-
-
   (*helper we use for spoofing protection specification*)
   definition all_but_those_ips :: "('i::len word \<times> nat) list \<Rightarrow> ('i word \<times> nat) list" where
     "all_but_those_ips cidrips = cidr_split (wordinterval_invert (l2br (map ipcidr_to_interval cidrips)))"
@@ -85,7 +79,9 @@ subsection\<open>IPv4 Addresses in IPTables Notation (how we parse it)\<close>
     "ipt_ipv4range_to_interval (Ip4AddrRange ip1 ip2) = (ipv4addr_of_dotdecimal ip1, ipv4addr_of_dotdecimal ip2)"
   
   lemma ipt_ipv4range_to_interval: "ipt_ipv4range_to_interval ip = (s,e) \<Longrightarrow> {s .. e} = ipv4s_to_set ip"
-    by(cases ip) (auto simp add: ipv4cidr_to_interval)
+    apply(cases ip)
+      apply(auto simp add: ipv4set_from_cidr_def ipcidr_to_interval)
+    done
 
 
   text\<open>A list of IPv4 address ranges to a @{typ "32 wordinterval"}.
