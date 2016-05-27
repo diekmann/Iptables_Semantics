@@ -5,16 +5,6 @@ imports Main
 begin
 
 
-  (*TODO: obsoletes NOT_mask_len32, requires Word_Lemmas*)
-  (*TODO: added to l4v, use lemma from there*)
-  lemma NOT_mask_shifted_lenword: "NOT ((mask len << (len_of(TYPE('a)) - len))::'a::len word) = (mask (len_of(TYPE('a)) - len))"
-    apply(rule Word.word_bool_alg.compl_unique)
-     using Word_Lemmas.mask_shift_and_negate apply(simp; fail)
-    apply (rule word_eqI)
-    apply (simp add: word_size nth_shiftl nth_shiftr)
-    apply auto
-    done
-
 lemma pow2_mask: "((2^x) - 1) = mask x" by (metis mask_def shiftl_1)
 
 lemma mod256: "((d::nat) + 256 * c + 65536 * b + 16777216 * a) mod 256 = d mod 256"
@@ -69,10 +59,6 @@ lemma div65536: assumes "a < 256" "b < 256" "c < 256" "d < 256"
   qed
 
 
-
-
-(*TODO: delete*)
-lemma size_mask_32word: "n < 32 ==> n < size ((mask x)::32 word)" by(simp add:word_size)
 
 
   lemma word32_or_NOT4294967296: "(foo::32 word) OR -4294967296 = foo"
