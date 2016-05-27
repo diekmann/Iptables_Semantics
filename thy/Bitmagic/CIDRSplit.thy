@@ -60,7 +60,7 @@ value[code] "pfxes TYPE(32)"
 
 
 (* Split off one prefix *)
-definition wordinterval_CIDR_split1 :: "'a::len wordinterval \<Rightarrow> 'a prefix_match option \<times> 'a wordinterval" where
+private definition wordinterval_CIDR_split1 :: "'a::len wordinterval \<Rightarrow> 'a prefix_match option \<times> 'a wordinterval" where
   "wordinterval_CIDR_split1 r \<equiv> (
    let ma = wordinterval_lowest_element r in
    case ma of None \<Rightarrow> (None, r) |
@@ -74,9 +74,17 @@ definition wordinterval_CIDR_split1 :: "'a::len wordinterval \<Rightarrow> 'a pr
 text\<open>The function @{term "find (const True)"} is basically a safe version of @{const List.hd}\<close>
 private lemma "find (const True) cfs = (if cfs = [] then None else Some (hd cfs))"
   by(induction cfs) (simp_all split: split_if_asm add: const_def)
-
+private lemma find_const_True_hlp: "find (const True) x = (case x of [] \<Rightarrow> None | (a#as) \<Rightarrow> Some a)"
+  by(cases x; simp add: const_def)
 private lemma find_const_True: "find (const True) l = None \<longleftrightarrow> l = []"
   by(cases l, simp_all add: const_def) 
+private lemma hd_find_const: "l \<noteq> [] \<Longrightarrow> hd l = the (find (const True) l)"
+proof -
+	assume "l \<noteq> []" then obtain a ls where [simp]: "l = a # ls" by(cases l) blast+
+	then show "hd l = the (find (const True) l)" by(simp add: const_def)
+qed
+
+
 private lemma wordinterval_CIDR_split1_innard_helper: fixes a::"'a::len word"
   shows "wordinterval_lowest_element r = Some a \<Longrightarrow> 
   [s \<leftarrow> map (\<lambda>s. PrefixMatch a s) (pfxes TYPE('a)).
@@ -149,11 +157,7 @@ definition wordinterval_CIDR_split1_2 :: "'a::len wordinterval \<Rightarrow> 'a 
                             ms = (filter (\<lambda>s. valid_prefix s \<and> wordinterval_subset (prefix_to_wordinterval s) r) cs) in
                             (Some (hd ms), wordinterval_setminus r (prefix_to_wordinterval (hd ms))))"
 
-private lemma hd_find_const: "l \<noteq> [] \<Longrightarrow> hd l = the (find (const True) l)"
-proof -
-	assume "l \<noteq> []" then obtain a ls where [simp]: "l = a # ls" by(cases l) blast+
-	then show "hd l = the (find (const True) l)" by(simp add: const_def)
-qed
+
 
 lemma wordinterval_CIDR_split1_2_eq[code]: "wordinterval_CIDR_split1 s = wordinterval_CIDR_split1_2 s"
 	apply(simp add: wordinterval_CIDR_split1_2_def wordinterval_CIDR_split1_def split: option.splits)
@@ -166,20 +170,6 @@ lemma wordinterval_CIDR_split1_2_eq[code]: "wordinterval_CIDR_split1 s = wordint
 	apply simp
 done
 
-private lemma prefix_never_empty: fixes d:: "'a::len prefix_match"
-  shows"\<not> wordinterval_empty (prefix_to_wordinterval d)"
-proof -
-  have ie: "pfxm_prefix d \<le> pfxm_prefix d || pfxm_mask d" by (metis le_word_or2)
-  have "wordinterval_element (pfxm_prefix d) (prefix_to_wordinterval d)"
-    unfolding wordinterval_element_set_eq
-    unfolding prefix_to_wordinterval_set_eq
-    unfolding prefix_to_wordset_def
-    using ie by simp
-  thus ?thesis
-    unfolding wordinterval_empty_set_eq
-    unfolding wordinterval_element_set_eq
-    by blast
-qed
 
 private lemma wordinterval_CIDR_split1_never_empty: "(Some s, u) = wordinterval_CIDR_split1 r \<Longrightarrow> \<not>wordinterval_empty (prefix_to_wordinterval s)"
   unfolding wordinterval_CIDR_split1_def Let_def
@@ -220,7 +210,15 @@ private lemma wordinterval_CIDR_split1_distinct2: fixes r:: "'a::len wordinterva
 by(rule wordinterval_CIDR_split1_distinct[where r = r]) simp
 
 function wordinterval_CIDR_split_prefixmatch :: "'a::len wordinterval \<Rightarrow> 'a prefix_match list"where
-  "wordinterval_CIDR_split_prefixmatch rs = (if \<not>wordinterval_empty rs then case wordinterval_CIDR_split1 rs of (Some s, u) \<Rightarrow> s # wordinterval_CIDR_split_prefixmatch u | _ \<Rightarrow> [] else [])"
+  "wordinterval_CIDR_split_prefixmatch rs = (
+      if
+        \<not> wordinterval_empty rs
+      then case wordinterval_CIDR_split1 rs
+                      of (Some s, u) \<Rightarrow> s # wordinterval_CIDR_split_prefixmatch u
+                      |   _ \<Rightarrow> []
+      else
+        []
+      )"
   by clarsimp+
 
 termination wordinterval_CIDR_split_prefixmatch
@@ -329,8 +327,6 @@ next
     by blast
 qed
 
-lemma find_const_True_hlp: "find (const True) x = (case x of [] \<Rightarrow> None | (a#as) \<Rightarrow> Some a)" by(cases x; simp add: const_def)
-
 private lemma wordinterval_CIDR_split_prefixmatch_all_valid_less_Ball_hlp:
 	"x \<in> set [s\<leftarrow>map (PrefixMatch x2) (pfxes TYPE('a::len0)) . valid_prefix s \<and> wordinterval_to_set (prefix_to_wordinterval s) \<subseteq> wordinterval_to_set rs] \<Longrightarrow> pfxm_length x \<le> len_of TYPE('a)"
 by(clarsimp simp: pfxes_def) presburger
@@ -350,11 +346,11 @@ lemma wordinterval_CIDR_split_prefixmatch_all_valid_less_Ball:
 	apply(subst(asm)(2) wordinterval_CIDR_split_prefixmatch.simps)
 	apply(simp only: split: if_splits) (* wooooo, simplifier bug! (try without the only) *)
 	prefer 2
-	apply(simp;fail)
+	 apply(simp;fail)
 	apply(clarsimp)
 	apply(elim disjE)
-	prefer 2
-	apply(simp;fail)
+	 prefer 2
+	 apply(simp;fail)
 	apply(simp add: wordinterval_CIDR_split1_def Let_def find_const_True_hlp split: option.splits list.splits)
 	apply(drule cons_set_intro)
 	apply(drule wordinterval_CIDR_split_prefixmatch_all_valid_less_Ball_hlp)
@@ -368,7 +364,7 @@ lemma "valid_prefix (PrefixMatch (0::16 word) 20)" by(simp add: valid_prefix_def
 definition cidr_split :: "'i::len wordinterval \<Rightarrow> ('i word \<times> nat) list" where
   "cidr_split rs \<equiv> map prefix_match_to_CIDR (wordinterval_CIDR_split_prefixmatch rs)"
                                         
-(*also works with corny definitions*)
+text\<open>Versions for @{const ipset_from_cidr}\<close>
 corollary cidr_split_prefix: 
   fixes r :: "'i::len wordinterval"
   shows "(\<Union>x\<in>set (cidr_split r). uncurry ipset_from_cidr x) = wordinterval_to_set r"
@@ -400,7 +396,7 @@ corollary cidr_split_prefix_single:
   using cidr_split_prefix iprange_interval.simps by metis
 
 (* TODO: Move to the wordinterval lemma bucket *)
-lemma interval_in_splitD: "xa \<in> foo \<Longrightarrow> prefix_to_wordset xa \<subseteq> \<Union>(prefix_to_wordset ` foo)" by auto
+private lemma interval_in_splitD: "xa \<in> foo \<Longrightarrow> prefix_to_wordset xa \<subseteq> \<Union>(prefix_to_wordset ` foo)" by auto
 
 lemma wordinterval_CIDR_split_prefixmatch_distinct: "distinct (wordinterval_CIDR_split_prefixmatch a)"
 	apply(induction rule: wordinterval_CIDR_split_prefixmatch.induct)
@@ -412,26 +408,28 @@ lemma wordinterval_CIDR_split_prefixmatch_distinct: "distinct (wordinterval_CIDR
 	apply(simp add: prefix_to_wordinterval_set_eq[symmetric])
 using prefix_never_empty by fastforce
 
-lemma CIDR_splits_disjunct: "a \<in> set (wordinterval_CIDR_split_prefixmatch i) \<Longrightarrow> b \<in> set (wordinterval_CIDR_split_prefixmatch i) \<Longrightarrow> a \<noteq> b \<Longrightarrow> prefix_to_wordset a \<inter> prefix_to_wordset b = {}"
+lemma CIDR_splits_disjunct: "a \<in> set (wordinterval_CIDR_split_prefixmatch i) \<Longrightarrow>
+  b \<in> set (wordinterval_CIDR_split_prefixmatch i) \<Longrightarrow> a \<noteq> b \<Longrightarrow>
+  prefix_to_wordset a \<inter> prefix_to_wordset b = {}"
 apply(induction rule: wordinterval_CIDR_split_prefixmatch.induct)
 apply(subst(asm)(4) wordinterval_CIDR_split_prefixmatch.simps)
 apply(subst(asm)(3) wordinterval_CIDR_split_prefixmatch.simps)
 apply(clarsimp simp only: set_simps not_False_eq_True split: if_splits prod.splits option.splits)
 apply(rename_tac rem x2b ne)
 apply(case_tac "b = ne"; case_tac "a = ne")
-apply(simp;fail)
-prefer 3
-apply(simp;fail)
-(*apply(clarsimp, metis (full_types) Int_commute disjoint_subset2 interval_in_splitD prefix_to_wordinterval_set_eq wordinterval_CIDR_split1_distinct wordinterval_CIDR_split_prefixmatch wordinterval_empty_set_eq wordinterval_intersection_set_eq)+*)
-apply(subgoal_tac "prefix_to_wordset b \<inter> wordinterval_to_set rem = {}")
-apply(simp add: wordinterval_CIDR_split_prefixmatch[symmetric])
-apply(clarsimp)
-apply blast
-apply(intro wordinterval_CIDR_split1_distinct2[unfolded wordinterval_empty_set_eq wordinterval_intersection_set_eq prefix_to_wordinterval_set_eq]; fast)
+   apply(simp;fail)
+  prefer 3
+  apply(simp;fail)
+ (*apply(clarsimp, metis (full_types) Int_commute disjoint_subset2 interval_in_splitD prefix_to_wordinterval_set_eq wordinterval_CIDR_split1_distinct wordinterval_CIDR_split_prefixmatch wordinterval_empty_set_eq wordinterval_intersection_set_eq)+*)
+ apply(subgoal_tac "prefix_to_wordset b \<inter> wordinterval_to_set rem = {}")
+  apply(simp add: wordinterval_CIDR_split_prefixmatch[symmetric])
+  apply(clarsimp)
+  apply blast
+ apply(intro wordinterval_CIDR_split1_distinct2[unfolded wordinterval_empty_set_eq wordinterval_intersection_set_eq prefix_to_wordinterval_set_eq]; fast)
 apply(subgoal_tac "prefix_to_wordset a \<inter> wordinterval_to_set rem = {}")
-apply(simp add: wordinterval_CIDR_split_prefixmatch[symmetric])
-apply(clarsimp)
-apply blast
+ apply(simp add: wordinterval_CIDR_split_prefixmatch[symmetric])
+ apply(clarsimp)
+ apply blast
 apply(intro wordinterval_CIDR_split1_distinct2[unfolded wordinterval_empty_set_eq wordinterval_intersection_set_eq prefix_to_wordinterval_set_eq]; fast)
 done
 

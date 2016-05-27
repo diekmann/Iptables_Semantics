@@ -298,6 +298,10 @@ corollary prefix_to_wordinterval_ipset_from_cidr: "valid_prefix pfx \<Longrighta
   wordinterval_to_set (prefix_to_wordinterval pfx) = ipset_from_cidr (pfxm_prefix pfx) (pfxm_length pfx)"
 using prefix_to_wordset_ipset_from_cidr prefix_to_wordinterval_set_eq by auto
 
+lemma prefix_never_empty: 
+  fixes d:: "'a::len prefix_match"
+  shows"\<not> wordinterval_empty (prefix_to_wordinterval d)"
+by (simp add: le_word_or2 prefix_to_wordinterval_def)
 
 definition range_prefix_match :: "'a::len prefix_match \<Rightarrow> 'a wordinterval \<Rightarrow> 'a wordinterval \<times> 'a wordinterval" where
   "range_prefix_match pfx rg \<equiv> (let pfxrg = prefix_to_wordinterval pfx in 
