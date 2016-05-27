@@ -30,14 +30,10 @@ instance Show Isabelle.Iface where
 instance Show (Isabelle.Ipt_iprange Word32) where
   show = Isabelle.ipt_ipv4range_toString
 
-instance Show a => Show (Isabelle.Match_expr a) where
-    --show = Isabelle.common_primitive_match_expr_toString -- TODO if we could fix the type, we could reuse this
-    show (Isabelle.MatchAny) = ""
-    show (Isabelle.Match a) = show a
-    show (Isabelle.MatchNot (Isabelle.Match a)) = "! " ++ show a
-    show (Isabelle.MatchNot m) = "! (" ++ show m ++ ")"
-    show (Isabelle.MatchAnd m1 m2) = show m1 ++ " " ++ show m2
+instance Show (Isabelle.Match_expr Isabelle.Common_primitive) where
+    show = Isabelle.common_primitive_match_expr_toString
 
-instance Show a => Show (Isabelle.Rule a) where
+instance Show (Isabelle.Rule Isabelle.Common_primitive) where
+    --TODO: unify with Isabelle.common_primitive_rule_toString
     show (Isabelle.Rule m a) = "(" ++ show m ++ ", " ++ show a ++ ")"
     
