@@ -77,13 +77,9 @@ rulesetLookup :: TableName -> Ruleset ->
     Either String ([(String, [Isabelle.Rule Isabelle.Common_primitive])], Map ChainName Isabelle.Action)
 rulesetLookup table r = case M.lookup table (rsetTables r)
     of Nothing -> Left $ "Table with name `"++table++"' not found"
-       Just t -> case to_Isabelle_ruleset_AssocList t of
-                       Left err -> Left err
-                       Right isabelle_rules -> Right (isabelle_rules, default_policies t)
-    where default_policies t = M.foldWithKey (\ k v acc -> update_action k v acc) M.empty (tblChains t)
-          update_action :: ChainName -> Chain -> Map ChainName Isabelle.Action -> Map ChainName Isabelle.Action
-          update_action k v acc = case chnDefault v of Just a -> M.insert k a acc
-                                                       Nothing -> acc
+       Just t -> to_Isabelle_ruleset_AssocList t
+                 >>= \isabelle_rules -> Right (isabelle_rules, default_policies t)
+    where default_policies t = M.mapMaybe chnDefault (tblChains t)
 
 
 -- input: ruleset from the parser
@@ -136,20 +132,21 @@ to_Isabelle_ruleset_AssocList t = let rs = convertRuleset (tblChains t) in
 
 to_Isabelle_Rule :: ParseRule -> Isabelle.Rule Isabelle.Common_primitive
 to_Isabelle_Rule r = Isabelle.Rule
-    (Isabelle.alist_and $ Isabelle.compress_parsed_extra (filter_Isabelle_Common_Primitive (ruleArgs r)))
-    (filter_Isabelle_Action (ruleArgs r))
-
-filter_Isabelle_Common_Primitive :: [ParsedMatchAction] -> [Isabelle.Negation_type Isabelle.Common_primitive]
-filter_Isabelle_Common_Primitive [] = []
-filter_Isabelle_Common_Primitive (ParsedMatch a : ss) = Isabelle.Pos a : filter_Isabelle_Common_Primitive ss
-filter_Isabelle_Common_Primitive (ParsedNegatedMatch a : ss) = Isabelle.Neg a : filter_Isabelle_Common_Primitive ss
-filter_Isabelle_Common_Primitive (ParsedAction _ : ss) = filter_Isabelle_Common_Primitive ss
+                        (Isabelle.alist_and $ Isabelle.compress_parsed_extra (fMatch (ruleArgs r)))
+                        (filter_Isabelle_Action (ruleArgs r))
+    where --filter out the Matches (Common_primitive) in ParsedMatchAction
+          fMatch :: [ParsedMatchAction] -> [Isabelle.Negation_type Isabelle.Common_primitive]
+          fMatch [] = []
+          fMatch (ParsedMatch a : ss) = Isabelle.Pos a : fMatch ss
+          fMatch (ParsedNegatedMatch a : ss) = Isabelle.Neg a : fMatch ss
+          fMatch (ParsedAction _ : ss) = fMatch ss
 
 filter_Isabelle_Action :: [ParsedMatchAction] -> Isabelle.Action
 filter_Isabelle_Action ps = case fAction ps of [] -> Isabelle.Empty
                                                [a] -> a
                                                as -> error $ "at most one action per rule: " ++ show as
-    where fAction [] = []
+    where --filter out the Action in ParsedMatchAction
+          fAction [] = []
           fAction (ParsedMatch _ : ss) = fAction ss
           fAction (ParsedNegatedMatch _ : ss) = fAction ss
           fAction (ParsedAction a : ss) = a : fAction ss
