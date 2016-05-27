@@ -104,8 +104,6 @@ subsection\<open>Representing IPv4 Adresses\<close>
 
 
   lemma size_ipv4addr: "size (x::ipv4addr) = 32" by(simp add:word_size)
-  lemma ipv4addr_of_nat_shiftr_slice: "ipv4addr_of_nat a >> x = slice x (ipv4addr_of_nat a)"
-    by(simp add: ipv4addr_of_nat_def shiftr_slice)
   lemma "(4294967296::ipv4addr) = 2^32" by eval
 
   lemma nat_of_ipv4addr_slice_ipv4addr_of_nat: 
@@ -310,7 +308,6 @@ subsection\<open>IP ranges\<close>
   
   definition ipv4range_UNIV :: "32 wordinterval" where "ipv4range_UNIV \<equiv> wordinterval_UNIV"
   
-
   lemma ipv4range_UNIV_set_eq: "wordinterval_to_set ipv4range_UNIV = UNIV"
     by(simp only: ipv4range_UNIV_def wordinterval_UNIV_set_eq)
  

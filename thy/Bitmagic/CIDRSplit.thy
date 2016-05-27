@@ -313,22 +313,6 @@ lemma "wordinterval_CIDR_split_prefixmatch
 lemma "length (wordinterval_CIDR_split_prefixmatch (WordInterval 0 (0xFFFFFFFE::32 word))) = 32" by eval
 
 
-
-(*
-text{* @{text "10.0.0.0/8 - 10.8.0.0/16"}*}
-lemma "map (\<lambda>pfx. (dotdecimal_of_ipv4addr (pfxm_prefix pfx), (pfxm_length pfx))) (wordinterval_CIDR_split_prefixmatch (wordinterval_setminus
-          (ipv4range_range ((ipv4addr_of_dotdecimal (10,0,0,0)), (ipv4addr_of_dotdecimal (10,255,255,255))))
-          (ipv4range_range ((ipv4addr_of_dotdecimal (10,8,0,0)), (ipv4addr_of_dotdecimal (10,8,255,255)))))) =
- [((10, 0, 0, 0), 13), ((10, 9, 0, 0), 16), ((10, 10, 0, 0), 15), ((10, 12, 0, 0), 14), ((10, 16, 0, 0), 12), ((10, 32, 0, 0), 11), ((10, 64, 0, 0), 10),
-  ((10, 128, 0, 0), 9)]" 
-  by eval
-
-
-lemma "map (\<lambda>pfx. (dotdecimal_of_ipv4addr (pfxm_prefix pfx), (pfxm_length pfx))) (wordinterval_CIDR_split_prefixmatch (
-    (ipv4range_range ((ipv4addr_of_dotdecimal (10,0,0,1)), (ipv4addr_of_dotdecimal (10,0,0,15)))))) =
-    [((10, 0, 0, 1), 32), ((10, 0, 0, 2), 31), ((10, 0, 0, 4), 30), ((10, 0, 0, 8), 29)]" by eval
-*)
-
 declare wordinterval_CIDR_split_prefixmatch.simps[simp del]
 
 corollary wordinterval_CIDR_split_prefixmatch: "(\<Union> (prefix_to_wordset ` (set (wordinterval_CIDR_split_prefixmatch r)))) = wordinterval_to_set r"
@@ -455,15 +439,6 @@ corollary cidr_split_prefix_single:
   shows "(\<Union>x\<in>set (cidr_split (iprange_interval (start, end))). uncurry ipset_from_cidr x) = {start..end}"
   unfolding wordinterval_to_set.simps[symmetric]
   using cidr_split_prefix iprange_interval.simps by metis
-
-
-(*
-lemma "(\<Union> (base, len) \<in> set (cidr_split (ipv4range_range start end)). ipv4set_from_cidr base len) = {start .. end}"
-(*using [[simp_trace, simp_trace_depth_limit=10]]*)
-using [[simproc del: list_to_set_comprehension]] (* okay, simplifier is a bit broken **)
-  apply(simp del: ) (*simp: "Tactic failed"*)
-  oops
-*)
 
 (* TODO: Move to the wordinterval lemma bucket *)
 lemma interval_in_splitD: "xa \<in> foo \<Longrightarrow> prefix_to_wordset xa \<subseteq> \<Union>(prefix_to_wordset ` foo)" by auto

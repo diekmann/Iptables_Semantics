@@ -2072,20 +2072,15 @@ ipt_ipv4range_to_interval (Ip4AddrNetmask pre len) =
 ipt_ipv4range_to_interval (Ip4AddrRange ip1 ip2) =
   (ipv4addr_of_dotdecimal ip1, ipv4addr_of_dotdecimal ip2);
 
-ipv4range_range ::
-  (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))),
-    Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))) ->
-    Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
-ipv4range_range (ip_start, ip_end) = WordInterval ip_start ip_end;
+iprange_interval :: forall a. (Len a) => (Word a, Word a) -> Wordinterval a;
+iprange_interval (ip_start, ip_end) = WordInterval ip_start ip_end;
 
 ipt_ipv4range_to_cidr ::
   Ipt_ipv4range -> [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
 ipt_ipv4range_to_cidr ips =
-  cidr_split (ipv4range_range (ipt_ipv4range_to_interval ips));
+  cidr_split (iprange_interval (ipt_ipv4range_to_interval ips));
 
-all_but_those_ips ::
-  [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)] ->
-    [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
+all_but_those_ips :: forall a. (Len a) => [(Word a, Nat)] -> [(Word a, Nat)];
 all_but_those_ips cidrips =
   cidr_split (wordinterval_invert (l2br (map ipcidr_to_interval cidrips)));
 
@@ -2104,9 +2099,6 @@ to_ipassmt assmt =
 
 matchOr :: forall a. Match_expr a -> Match_expr a -> Match_expr a;
 matchOr m1 m2 = MatchNot (MatchAnd (MatchNot m1) (MatchNot m2));
-
-iprange_interval :: forall a. (Len a) => (Word a, Word a) -> Wordinterval a;
-iprange_interval (ip_start, ip_end) = WordInterval ip_start ip_end;
 
 getOneIp :: forall a. (Len a) => Wordinterval a -> Word a;
 getOneIp (WordInterval b uu) = b;
