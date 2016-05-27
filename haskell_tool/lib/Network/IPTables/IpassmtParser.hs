@@ -11,13 +11,12 @@ import qualified Network.IPTables.Generated as Isabelle
 import           Network.IPTables.ParserHelper
 import           Network.IPTables.IsabelleToString()
 
-type IpRange = Isabelle.Negation_type [Isabelle.Ipt_ipv4range]
+type IpRange = Isabelle.Negation_type [Isabelle.Ipt_iprange Word32]
 
 data IpAssmt =  IpAssmt [(Isabelle.Iface, IpRange)] deriving (Show)
 
-type IsabelleIPv4AddrWord = Isabelle.Word
-            (Isabelle.Bit0 (Isabelle.Bit0
-                    (Isabelle.Bit0 (Isabelle.Bit0 (Isabelle.Bit0 Isabelle.Num1)))))
+
+type IsabelleIPv4AddrWord = Isabelle.Word Word32
 type IsabelleIpAssmt = [(Isabelle.Iface, [(IsabelleIPv4AddrWord, Isabelle.Nat)])]
 
 ipAssmtToIsabelle:: IpAssmt -> IsabelleIpAssmt
@@ -41,7 +40,7 @@ ipAssmt = do
                        rng <- ipRange
                        return (Isabelle.Neg rng)
 
-ipRange :: Parsec String s [Isabelle.Ipt_ipv4range]
+ipRange :: Parsec String s [Isabelle.Ipt_iprange Word32]
 ipRange = enclosedList '[' ips ']'
     where ips = choice [try ipv4cidr, try ipv4range, try ipv4addr]
 

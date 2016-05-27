@@ -4,14 +4,15 @@ module
   Network.IPTables.Generated(Int, Num, Nat(..), Set, Word, Len, Iface(..), Bit0,
                               Num1, Protocol(..), Tcp_flag(..), Match_expr(..),
                               Action(..), Rule(..), Ctstate(..),
-                              Ipt_ipv4range(..), Ipt_tcp_flags(..), Nibble,
+                              Ipt_tcp_flags(..), Nibble, Ipt_iprange(..),
                               Common_primitive(..), Wordinterval,
                               Negation_type(..), Simple_match_ext,
                               Simple_action(..), Simple_rule,
                               Parts_connection_ext, tcp, udp, icmp, alist_and,
                               mk_Set, dotteddecimal_toString, ipv4addr_toString,
                               ipassmt_sanity_defined, debug_ipassmt,
-                              map_of_ipassmt, to_ipassmt, ipassmt_generic,
+                              map_of_ipassmt, to_ipassmt,
+                              ipv4addr_of_dotdecimal, ipassmt_generic,
                               optimize_matches, upper_closure, word_to_nat,
                               word_less_eq, no_spoofing_iface, nat_to_8word,
                               sanity_wf_ruleset, map_of_string, nat_to_16word,
@@ -22,6 +23,7 @@ module
                               ipv4_cidr_toString, simple_rule_toString,
                               unfold_ruleset_CHAIN_safe, action_toString,
                               packet_assume_new, abstract_for_simple_firewall,
+                              ipt_ipv4range_toString,
                               to_simple_firewall_without_interfaces,
                               common_primitive_match_expr_toString)
   where {
@@ -791,23 +793,6 @@ instance Eq State where {
   a == b = equal_state a b;
 };
 
-data Ipt_ipv4range = Ip4Addr (Nat, (Nat, (Nat, Nat)))
-  | Ip4AddrNetmask (Nat, (Nat, (Nat, Nat))) Nat
-  | Ip4AddrRange (Nat, (Nat, (Nat, Nat))) (Nat, (Nat, (Nat, Nat)));
-
-equal_ipt_ipv4range :: Ipt_ipv4range -> Ipt_ipv4range -> Bool;
-equal_ipt_ipv4range (Ip4AddrNetmask x21 x22) (Ip4AddrRange x31 x32) = False;
-equal_ipt_ipv4range (Ip4AddrRange x31 x32) (Ip4AddrNetmask x21 x22) = False;
-equal_ipt_ipv4range (Ip4Addr x1) (Ip4AddrRange x31 x32) = False;
-equal_ipt_ipv4range (Ip4AddrRange x31 x32) (Ip4Addr x1) = False;
-equal_ipt_ipv4range (Ip4Addr x1) (Ip4AddrNetmask x21 x22) = False;
-equal_ipt_ipv4range (Ip4AddrNetmask x21 x22) (Ip4Addr x1) = False;
-equal_ipt_ipv4range (Ip4AddrRange x31 x32) (Ip4AddrRange y31 y32) =
-  x31 == y31 && x32 == y32;
-equal_ipt_ipv4range (Ip4AddrNetmask x21 x22) (Ip4AddrNetmask y21 y22) =
-  x21 == y21 && equal_nat x22 y22;
-equal_ipt_ipv4range (Ip4Addr x1) (Ip4Addr y1) = x1 == y1;
-
 data Ipt_tcp_flags = TCP_Flags (Set Tcp_flag) (Set Tcp_flag);
 
 data Nibble = Nibble0 | Nibble1 | Nibble2 | Nibble3 | Nibble4 | Nibble5
@@ -838,7 +823,26 @@ equal_ipt_tcp_flags :: Ipt_tcp_flags -> Ipt_tcp_flags -> Bool;
 equal_ipt_tcp_flags (TCP_Flags x1 x2) (TCP_Flags y1 y2) =
   equal_set x1 y1 && equal_set x2 y2;
 
-data Common_primitive = Src Ipt_ipv4range | Dst Ipt_ipv4range | IIface Iface
+data Ipt_iprange a = IpAddr (Word a) | IpAddrNetmask (Word a) Nat
+  | IpAddrRange (Word a) (Word a);
+
+equal_ipt_iprange ::
+  forall a. (Len a) => Ipt_iprange a -> Ipt_iprange a -> Bool;
+equal_ipt_iprange (IpAddrNetmask x21 x22) (IpAddrRange x31 x32) = False;
+equal_ipt_iprange (IpAddrRange x31 x32) (IpAddrNetmask x21 x22) = False;
+equal_ipt_iprange (IpAddr x1) (IpAddrRange x31 x32) = False;
+equal_ipt_iprange (IpAddrRange x31 x32) (IpAddr x1) = False;
+equal_ipt_iprange (IpAddr x1) (IpAddrNetmask x21 x22) = False;
+equal_ipt_iprange (IpAddrNetmask x21 x22) (IpAddr x1) = False;
+equal_ipt_iprange (IpAddrRange x31 x32) (IpAddrRange y31 y32) =
+  equal_word x31 y31 && equal_word x32 y32;
+equal_ipt_iprange (IpAddrNetmask x21 x22) (IpAddrNetmask y21 y22) =
+  equal_word x21 y21 && equal_nat x22 y22;
+equal_ipt_iprange (IpAddr x1) (IpAddr y1) = equal_word x1 y1;
+
+data Common_primitive =
+  Src (Ipt_iprange (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))
+  | Dst (Ipt_iprange (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))) | IIface Iface
   | OIface Iface | Prot Protocol
   | Src_Ports
       [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
@@ -947,8 +951,8 @@ equal_common_primitive (Src_Ports x6) (Src_Ports y6) = x6 == y6;
 equal_common_primitive (Prot x5) (Prot y5) = equal_protocol x5 y5;
 equal_common_primitive (OIface x4) (OIface y4) = equal_iface x4 y4;
 equal_common_primitive (IIface x3) (IIface y3) = equal_iface x3 y3;
-equal_common_primitive (Dst x2) (Dst y2) = equal_ipt_ipv4range x2 y2;
-equal_common_primitive (Src x1) (Src y1) = equal_ipt_ipv4range x1 y1;
+equal_common_primitive (Dst x2) (Dst y2) = equal_ipt_iprange x2 y2;
+equal_common_primitive (Src x1) (Src y1) = equal_ipt_iprange x1 y1;
 
 instance Eq Common_primitive where {
   a == b = equal_common_primitive a b;
@@ -2045,54 +2049,33 @@ map_of_ipassmt ipassmt =
           (\ iface -> not (iface_is_wildcard iface))
     then map_of ipassmt else error "undefined");
 
-ipv4addr_of_nat :: Nat -> Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
-ipv4addr_of_nat n = of_nat n;
-
-ipv4addr_of_dotdecimal ::
-  (Nat, (Nat, (Nat, Nat))) -> Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
-ipv4addr_of_dotdecimal (a, (b, (c, d))) =
-  ipv4addr_of_nat
-    (plus_nat
-      (plus_nat (plus_nat d (times_nat (nat_of_integer (256 :: Integer)) c))
-        (times_nat (nat_of_integer (65536 :: Integer)) b))
-      (times_nat (nat_of_integer (16777216 :: Integer)) a));
-
-ipt_ipv4range_to_interval ::
-  Ipt_ipv4range ->
-    (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))),
-      Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))));
-ipt_ipv4range_to_interval (Ip4Addr addr) =
-  (ipv4addr_of_dotdecimal addr, ipv4addr_of_dotdecimal addr);
-ipt_ipv4range_to_interval (Ip4AddrNetmask pre len) =
-  let {
-    netmask =
-      shiftl_word (mask len) (minus_nat (nat_of_integer (32 :: Integer)) len);
-    network_prefix = bitAND_word (ipv4addr_of_dotdecimal pre) netmask;
-  } in (network_prefix, bitOR_word network_prefix (bitNOT_word netmask));
-ipt_ipv4range_to_interval (Ip4AddrRange ip1 ip2) =
-  (ipv4addr_of_dotdecimal ip1, ipv4addr_of_dotdecimal ip2);
+ipt_iprange_to_interval ::
+  forall a. (Len a) => Ipt_iprange a -> (Word a, Word a);
+ipt_iprange_to_interval (IpAddr addr) = (addr, addr);
+ipt_iprange_to_interval (IpAddrNetmask pre len) = ipcidr_to_interval (pre, len);
+ipt_iprange_to_interval (IpAddrRange ip1 ip2) = (ip1, ip2);
 
 iprange_interval :: forall a. (Len a) => (Word a, Word a) -> Wordinterval a;
 iprange_interval (ip_start, ip_end) = WordInterval ip_start ip_end;
 
-ipt_ipv4range_to_cidr ::
-  Ipt_ipv4range -> [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
-ipt_ipv4range_to_cidr ips =
-  cidr_split (iprange_interval (ipt_ipv4range_to_interval ips));
+ipt_iprange_to_cidr :: forall a. (Len a) => Ipt_iprange a -> [(Word a, Nat)];
+ipt_iprange_to_cidr ips =
+  cidr_split (iprange_interval (ipt_iprange_to_interval ips));
 
 all_but_those_ips :: forall a. (Len a) => [(Word a, Nat)] -> [(Word a, Nat)];
 all_but_those_ips cidrips =
   cidr_split (wordinterval_invert (l2br (map ipcidr_to_interval cidrips)));
 
 ipassmt_iprange_translate ::
-  Negation_type [Ipt_ipv4range] ->
+  Negation_type [Ipt_iprange (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))] ->
     [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
-ipassmt_iprange_translate (Pos ips) = concatMap ipt_ipv4range_to_cidr ips;
+ipassmt_iprange_translate (Pos ips) = concatMap ipt_iprange_to_cidr ips;
 ipassmt_iprange_translate (Neg ips) =
-  all_but_those_ips (concatMap ipt_ipv4range_to_cidr ips);
+  all_but_those_ips (concatMap ipt_iprange_to_cidr ips);
 
 to_ipassmt ::
-  [(Iface, Negation_type [Ipt_ipv4range])] ->
+  [(Iface,
+     Negation_type [Ipt_iprange (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))])] ->
     [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])];
 to_ipassmt assmt =
   map (\ (ifce, ips) -> (ifce, ipassmt_iprange_translate ips)) assmt;
@@ -2131,6 +2114,18 @@ getParts rs = partitioningIps (extract_IPSets rs) [wordinterval_UNIV];
 
 ipv4range_UNIV :: Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
 ipv4range_UNIV = wordinterval_UNIV;
+
+ipv4addr_of_nat :: Nat -> Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+ipv4addr_of_nat n = of_nat n;
+
+ipv4addr_of_dotdecimal ::
+  (Nat, (Nat, (Nat, Nat))) -> Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+ipv4addr_of_dotdecimal (a, (b, (c, d))) =
+  ipv4addr_of_nat
+    (plus_nat
+      (plus_nat (plus_nat d (times_nat (nat_of_integer (256 :: Integer)) c))
+        (times_nat (nat_of_integer (65536 :: Integer)) b))
+      (times_nat (nat_of_integer (16777216 :: Integer)) a));
 
 ipassmt_generic ::
   [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])];
@@ -2416,7 +2411,8 @@ normalize_primitive_extract disc_sel c f m =
     (spts, rst) = primitive_extractor disc_sel m;
   } in map (\ spt -> MatchAnd (Match (c spt)) rst) (f spts);
 
-src_sel :: Common_primitive -> Ipt_ipv4range;
+src_sel ::
+  Common_primitive -> Ipt_iprange (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
 src_sel (Src x1) = x1;
 
 is_Src :: Common_primitive -> Bool;
@@ -2441,28 +2437,28 @@ l2br_negation_type_intersect (Neg (s, e) : ls) =
   wordinterval_intersection (wordinterval_invert (WordInterval s e))
     (l2br_negation_type_intersect ls);
 
-ipt_ipv4range_negation_type_to_br_intersect ::
-  [Negation_type Ipt_ipv4range] ->
-    Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
-ipt_ipv4range_negation_type_to_br_intersect l =
-  l2br_negation_type_intersect (negPos_map ipt_ipv4range_to_interval l);
+ipt_iprange_negation_type_to_br_intersect ::
+  forall a. (Len a) => [Negation_type (Ipt_iprange a)] -> Wordinterval a;
+ipt_iprange_negation_type_to_br_intersect l =
+  l2br_negation_type_intersect (negPos_map ipt_iprange_to_interval l);
 
-wi_2_cidr_ipt_ipv4range_list ::
-  Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Ipt_ipv4range];
-wi_2_cidr_ipt_ipv4range_list r =
-  map (\ (base, a) -> Ip4AddrNetmask (dotdecimal_of_ipv4addr base) a)
-    (cidr_split r);
+wi_2_cidr_ipt_iprange_list ::
+  forall a. (Len a) => Wordinterval a -> [Ipt_iprange a];
+wi_2_cidr_ipt_iprange_list r =
+  map (\ (a, b) -> IpAddrNetmask a b) (cidr_split r);
 
-ipt_ipv4range_compress :: [Negation_type Ipt_ipv4range] -> [Ipt_ipv4range];
-ipt_ipv4range_compress =
-  wi_2_cidr_ipt_ipv4range_list . ipt_ipv4range_negation_type_to_br_intersect;
+ipt_iprange_compress ::
+  forall a. (Len a) => [Negation_type (Ipt_iprange a)] -> [Ipt_iprange a];
+ipt_iprange_compress =
+  wi_2_cidr_ipt_iprange_list . ipt_iprange_negation_type_to_br_intersect;
 
 normalize_src_ips ::
   Match_expr Common_primitive -> [Match_expr Common_primitive];
 normalize_src_ips =
-  normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress;
+  normalize_primitive_extract (is_Src, src_sel) Src ipt_iprange_compress;
 
-dst_sel :: Common_primitive -> Ipt_ipv4range;
+dst_sel ::
+  Common_primitive -> Ipt_iprange (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
 dst_sel (Dst x2) = x2;
 
 is_Dst :: Common_primitive -> Bool;
@@ -2480,7 +2476,7 @@ is_Dst (Extra x10) = False;
 normalize_dst_ips ::
   Match_expr Common_primitive -> [Match_expr Common_primitive];
 normalize_dst_ips =
-  normalize_primitive_extract (is_Dst, dst_sel) Dst ipt_ipv4range_compress;
+  normalize_primitive_extract (is_Dst, dst_sel) Dst ipt_iprange_compress;
 
 optimize_matches_option ::
   forall a. (Match_expr a -> Maybe (Match_expr a)) -> [Rule a] -> [Rule a];
@@ -2614,12 +2610,12 @@ optimize_primitive_univ (Match (L4_Flags (TCP_Flags m c))) =
     else Match (L4_Flags (TCP_Flags m c)));
 optimize_primitive_univ (Match (CT_State ctstate)) =
   (if ctstate_is_UNIV ctstate then MatchAny else Match (CT_State ctstate));
-optimize_primitive_univ (Match (Src (Ip4Addr va))) = Match (Src (Ip4Addr va));
-optimize_primitive_univ (Match (Src (Ip4AddrRange va vb))) =
-  Match (Src (Ip4AddrRange va vb));
-optimize_primitive_univ (Match (Dst (Ip4Addr va))) = Match (Dst (Ip4Addr va));
-optimize_primitive_univ (Match (Dst (Ip4AddrRange va vb))) =
-  Match (Dst (Ip4AddrRange va vb));
+optimize_primitive_univ (Match (Src (IpAddr va))) = Match (Src (IpAddr va));
+optimize_primitive_univ (Match (Src (IpAddrRange va vb))) =
+  Match (Src (IpAddrRange va vb));
+optimize_primitive_univ (Match (Dst (IpAddr va))) = Match (Dst (IpAddr va));
+optimize_primitive_univ (Match (Dst (IpAddrRange va vb))) =
+  Match (Dst (IpAddrRange va vb));
 optimize_primitive_univ (Match (Prot (Proto va))) = Match (Prot (Proto va));
 optimize_primitive_univ (Match (Src_Ports [])) = Match (Src_Ports []);
 optimize_primitive_univ (Match (Src_Ports (va : vc : vd))) =
@@ -2632,50 +2628,12 @@ optimize_primitive_univ (MatchNot m) = MatchNot (optimize_primitive_univ m);
 optimize_primitive_univ (MatchAnd m1 m2) =
   MatchAnd (optimize_primitive_univ m1) (optimize_primitive_univ m2);
 optimize_primitive_univ MatchAny = MatchAny;
-optimize_primitive_univ (Match (Src (Ip4AddrNetmask (ve, (vg, (vi, via))) vc)))
-  = (if equal_nat vc zero_nat
-      then (if equal_nat via zero_nat
-             then (if equal_nat vi zero_nat
-                    then (if equal_nat vg zero_nat
-                           then (if equal_nat ve zero_nat then MatchAny
-                                  else Match
- (Src (Ip4AddrNetmask
-        (suc (minus_nat ve one_nat), (zero_nat, (zero_nat, zero_nat)))
-        zero_nat)))
-                           else Match (Src
-(Ip4AddrNetmask (ve, (suc (minus_nat vg one_nat), (zero_nat, zero_nat)))
-  zero_nat)))
-                    else Match (Src (Ip4AddrNetmask
-                                      (ve,
-(vg, (suc (minus_nat vi one_nat), zero_nat)))
-                                      zero_nat)))
-             else Match (Src (Ip4AddrNetmask
-                               (ve, (vg, (vi, suc (minus_nat via one_nat))))
-                               zero_nat)))
-      else Match (Src (Ip4AddrNetmask (ve, (vg, (vi, via)))
-                        (suc (minus_nat vc one_nat)))));
-optimize_primitive_univ (Match (Dst (Ip4AddrNetmask (ve, (vg, (vi, via))) vc)))
-  = (if equal_nat vc zero_nat
-      then (if equal_nat via zero_nat
-             then (if equal_nat vi zero_nat
-                    then (if equal_nat vg zero_nat
-                           then (if equal_nat ve zero_nat then MatchAny
-                                  else Match
- (Dst (Ip4AddrNetmask
-        (suc (minus_nat ve one_nat), (zero_nat, (zero_nat, zero_nat)))
-        zero_nat)))
-                           else Match (Dst
-(Ip4AddrNetmask (ve, (suc (minus_nat vg one_nat), (zero_nat, zero_nat)))
-  zero_nat)))
-                    else Match (Dst (Ip4AddrNetmask
-                                      (ve,
-(vg, (suc (minus_nat vi one_nat), zero_nat)))
-                                      zero_nat)))
-             else Match (Dst (Ip4AddrNetmask
-                               (ve, (vg, (vi, suc (minus_nat via one_nat))))
-                               zero_nat)))
-      else Match (Dst (Ip4AddrNetmask (ve, (vg, (vi, via)))
-                        (suc (minus_nat vc one_nat)))));
+optimize_primitive_univ (Match (Src (IpAddrNetmask uu vc))) =
+  (if equal_nat vc zero_nat then MatchAny
+    else Match (Src (IpAddrNetmask uu (suc (minus_nat vc one_nat)))));
+optimize_primitive_univ (Match (Dst (IpAddrNetmask uv vc))) =
+  (if equal_nat vc zero_nat then MatchAny
+    else Match (Dst (IpAddrNetmask uv (suc (minus_nat vc one_nat)))));
 
 opt_MatchAny_match_expr :: forall a. Match_expr a -> Match_expr a;
 opt_MatchAny_match_expr MatchAny = MatchAny;
@@ -3021,7 +2979,7 @@ get_exists_matching_src_ips_executable iface m =
                 (ip_matches, _) = primitive_extractor (is_Src, src_sel) m;
               } in (if null ip_matches then ipv4range_UNIV
                      else l2br_negation_type_intersect
-                            (negPos_map ipt_ipv4range_to_interval ip_matches))
+                            (negPos_map ipt_iprange_to_interval ip_matches))
          else empty_WordInterval);
 
 matcheq_matchAny :: forall a. Match_expr a -> Bool;
@@ -3054,7 +3012,7 @@ get_all_matching_src_ips_executable iface m =
               } in (if not (has_primitive rest2) && matcheq_matchAny rest2
                      then (if null ip_matches then ipv4range_UNIV
                             else l2br_negation_type_intersect
-                                   (negPos_map ipt_ipv4range_to_interval
+                                   (negPos_map ipt_iprange_to_interval
                                      ip_matches))
                      else empty_WordInterval)
          else empty_WordInterval);
@@ -3245,9 +3203,7 @@ ipassmt_iface_replace_srcip_mexpr ipassmt ifce =
     Nothing -> Match (IIface ifce);
     Just ips ->
       match_list_to_match_expr
-        (map (Match . Src)
-          (map (\ (ip, a) -> Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) a)
-            ips));
+        (map (Match . Src) (map (\ (a, b) -> IpAddrNetmask a b) ips));
   });
 
 iiface_rewrite ::
@@ -3387,9 +3343,7 @@ ipassmt_iface_constrain_srcip_mexpr ipassmt ifce =
     Just ips ->
       MatchAnd (Match (IIface ifce))
         (match_list_to_match_expr
-          (map (Match . Src)
-            (map (\ (ip, a) -> Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) a)
-              ips)));
+          (map (Match . Src) (map (\ (a, b) -> IpAddrNetmask a b) ips)));
   });
 
 iiface_constrain ::
@@ -3614,20 +3568,18 @@ iface_toString descr iface =
       } in descr ++ a);
 
 common_primitive_toString :: Common_primitive -> [Prelude.Char];
-common_primitive_toString (Src (Ip4Addr ip)) =
-  "-s " ++ dotteddecimal_toString ip;
-common_primitive_toString (Dst (Ip4Addr ip)) =
-  "-d " ++ dotteddecimal_toString ip;
-common_primitive_toString (Src (Ip4AddrNetmask ip n)) =
-  "-s " ++ dotteddecimal_toString ip ++ "/" ++ string_of_nat n;
-common_primitive_toString (Dst (Ip4AddrNetmask ip n)) =
-  "-d " ++ dotteddecimal_toString ip ++ "/" ++ string_of_nat n;
-common_primitive_toString (Src (Ip4AddrRange ip1 ip2)) =
+common_primitive_toString (Src (IpAddr ip)) = "-s " ++ ipv4addr_toString ip;
+common_primitive_toString (Dst (IpAddr ip)) = "-d " ++ ipv4addr_toString ip;
+common_primitive_toString (Src (IpAddrNetmask ip n)) =
+  "-s " ++ ipv4addr_toString ip ++ "/" ++ string_of_nat n;
+common_primitive_toString (Dst (IpAddrNetmask ip n)) =
+  "-d " ++ ipv4addr_toString ip ++ "/" ++ string_of_nat n;
+common_primitive_toString (Src (IpAddrRange ip1 ip2)) =
   "-m iprange --src-range " ++
-    dotteddecimal_toString ip1 ++ "-" ++ dotteddecimal_toString ip2;
-common_primitive_toString (Dst (Ip4AddrRange ip1 ip2)) =
+    ipv4addr_toString ip1 ++ "-" ++ ipv4addr_toString ip2;
+common_primitive_toString (Dst (IpAddrRange ip1 ip2)) =
   "-m iprange --dst-range " ++
-    dotteddecimal_toString ip1 ++ "-" ++ dotteddecimal_toString ip2;
+    ipv4addr_toString ip1 ++ "-" ++ ipv4addr_toString ip2;
 common_primitive_toString (IIface ifce) = iface_toString "-i " ifce;
 common_primitive_toString (OIface ifce) = iface_toString "-o " ifce;
 common_primitive_toString (Prot prot) = "-p " ++ protocol_toString prot;
@@ -3746,10 +3698,10 @@ common_primitive_match_to_simple_match (Match (IIface iif)) =
   Just (iiface_update (\ _ -> iif) simple_match_any);
 common_primitive_match_to_simple_match (Match (OIface oif)) =
   Just (oiface_update (\ _ -> oif) simple_match_any);
-common_primitive_match_to_simple_match (Match (Src (Ip4AddrNetmask pre len))) =
-  Just (src_update (\ _ -> (ipv4addr_of_dotdecimal pre, len)) simple_match_any);
-common_primitive_match_to_simple_match (Match (Dst (Ip4AddrNetmask pre len))) =
-  Just (dst_update (\ _ -> (ipv4addr_of_dotdecimal pre, len)) simple_match_any);
+common_primitive_match_to_simple_match (Match (Src (IpAddrNetmask pre len))) =
+  Just (src_update (\ _ -> (pre, len)) simple_match_any);
+common_primitive_match_to_simple_match (Match (Dst (IpAddrNetmask pre len))) =
+  Just (dst_update (\ _ -> (pre, len)) simple_match_any);
 common_primitive_match_to_simple_match (Match (Prot p)) =
   Just (proto_update (\ _ -> p) simple_match_any);
 common_primitive_match_to_simple_match (Match (Src_Ports [])) = Nothing;
@@ -3768,13 +3720,13 @@ common_primitive_match_to_simple_match (MatchAnd m1 m2) =
     (Just _, Nothing) -> Nothing;
     (Just a, Just b) -> simple_match_and a b;
   });
-common_primitive_match_to_simple_match (Match (Src (Ip4Addr uu))) =
+common_primitive_match_to_simple_match (Match (Src (IpAddr uu))) =
   error "undefined";
-common_primitive_match_to_simple_match (Match (Src (Ip4AddrRange uv uw))) =
+common_primitive_match_to_simple_match (Match (Src (IpAddrRange uv uw))) =
   error "undefined";
-common_primitive_match_to_simple_match (Match (Dst (Ip4Addr ux))) =
+common_primitive_match_to_simple_match (Match (Dst (IpAddr ux))) =
   error "undefined";
-common_primitive_match_to_simple_match (Match (Dst (Ip4AddrRange uy uz))) =
+common_primitive_match_to_simple_match (Match (Dst (IpAddrRange uy uz))) =
   error "undefined";
 common_primitive_match_to_simple_match (MatchNot (Match (Prot (Proto v)))) =
   error "undefined";
@@ -3851,9 +3803,9 @@ normalized_protocols m = not (has_disc_negated is_Prot False m);
 
 normalized_src_ips :: Match_expr Common_primitive -> Bool;
 normalized_src_ips MatchAny = True;
-normalized_src_ips (Match (Src (Ip4AddrRange uu uv))) = False;
-normalized_src_ips (Match (Src (Ip4Addr uw))) = False;
-normalized_src_ips (Match (Src (Ip4AddrNetmask ux uy))) = True;
+normalized_src_ips (Match (Src (IpAddrRange uu uv))) = False;
+normalized_src_ips (Match (Src (IpAddr uw))) = False;
+normalized_src_ips (Match (Src (IpAddrNetmask ux uy))) = True;
 normalized_src_ips (Match (Dst v)) = True;
 normalized_src_ips (Match (IIface v)) = True;
 normalized_src_ips (Match (OIface v)) = True;
@@ -3881,9 +3833,9 @@ normalized_src_ips (MatchNot MatchAny) = True;
 
 normalized_dst_ips :: Match_expr Common_primitive -> Bool;
 normalized_dst_ips MatchAny = True;
-normalized_dst_ips (Match (Dst (Ip4AddrRange uu uv))) = False;
-normalized_dst_ips (Match (Dst (Ip4Addr uw))) = False;
-normalized_dst_ips (Match (Dst (Ip4AddrNetmask ux uy))) = True;
+normalized_dst_ips (Match (Dst (IpAddrRange uu uv))) = False;
+normalized_dst_ips (Match (Dst (IpAddr uw))) = False;
+normalized_dst_ips (Match (Dst (IpAddrNetmask ux uy))) = True;
 normalized_dst_ips (Match (Src v)) = True;
 normalized_dst_ips (Match (IIface v)) = True;
 normalized_dst_ips (Match (OIface v)) = True;
@@ -4087,6 +4039,14 @@ abstract_for_simple_firewall =
             (is_Oiface aa ||
               (is_Prot aa || (is_CT_State aa || is_L4_Flags aa)));
       }));
+
+ipt_ipv4range_toString ::
+  Ipt_iprange (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prelude.Char];
+ipt_ipv4range_toString (IpAddr ip) = ipv4addr_toString ip;
+ipt_ipv4range_toString (IpAddrNetmask ip n) =
+  ipv4addr_toString ip ++ "/" ++ string_of_nat n;
+ipt_ipv4range_toString (IpAddrRange ip1 ip2) =
+  ipv4addr_toString ip1 ++ "-" ++ ipv4addr_toString ip2;
 
 to_simple_firewall_without_interfaces ::
   [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->

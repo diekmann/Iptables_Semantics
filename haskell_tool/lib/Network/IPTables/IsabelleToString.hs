@@ -27,15 +27,13 @@ instance Show (Isabelle.Simple_rule Word32) where
 instance Show Isabelle.Iface where
     show (Isabelle.Iface i) = i
 
-instance Show Isabelle.Ipt_ipv4range where
-  show (Isabelle.Ip4Addr ip) = "Ip4Addr " ++ showIP ip
-  show (Isabelle.Ip4AddrNetmask ip (Isabelle.Nat n)) =
-          "Ip4AddrNetmask " ++ showIP ip ++ "/" ++ show n
-  show (Isabelle.Ip4AddrRange ip1 ip2) =
-           "Ip4AddrRange " ++ showIP ip1 ++ "-" ++ showIP ip2
-
-showIP (Isabelle.Nat a, (Isabelle.Nat b, (Isabelle.Nat c, Isabelle.Nat d))) =
-        intercalate "." [show a, show b, show c, show d]
+instance Show (Isabelle.Ipt_iprange Word32) where
+  --show = Isabelle.ipt_ipv4range_toString
+  show (Isabelle.IpAddr ip) = "Ip4Addr " ++ Isabelle.ipv4addr_toString ip
+  show (Isabelle.IpAddrNetmask ip (Isabelle.Nat n)) =
+          "Ip4AddrNetmask " ++ Isabelle.ipv4addr_toString ip ++ "/" ++ show n
+  show (Isabelle.IpAddrRange ip1 ip2) =
+           "Ip4AddrRange " ++ Isabelle.ipv4addr_toString ip1 ++ "-" ++ Isabelle.ipv4addr_toString ip2
 
 instance Show a => Show (Isabelle.Match_expr a) where
     --show = Isabelle.common_primitive_match_expr_toString -- TODO if we could fix the type, we could reuse this

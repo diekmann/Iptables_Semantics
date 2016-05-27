@@ -7,6 +7,11 @@ import           Data.Functor ((<$>), ($>))
 import qualified Network.IPTables.Generated as Isabelle
 import           Text.Parsec (char, choice, many1, Parsec, oneOf, string)
 
+-- TODO: add this type to generic lib?
+type Word32 = Isabelle.Bit0 (Isabelle.Bit0
+                              (Isabelle.Bit0 (Isabelle.Bit0 (Isabelle.Bit0 Isabelle.Num1))))
+
+
 nat :: Parsec String s Integer
 nat = do
     n <- read <$> many1 (oneOf ['0'..'9'])
@@ -23,7 +28,7 @@ natMaxval maxval = do
     else
         return (Isabelle.Nat n)
 
-ipv4dotdecimal :: Parsec String s (Isabelle.Nat, (Isabelle.Nat, (Isabelle.Nat, Isabelle.Nat)))
+ipv4dotdecimal :: Parsec String s (Isabelle.Word Word32)
 ipv4dotdecimal = do
     a <- natMaxval 255
     char '.'
@@ -32,24 +37,27 @@ ipv4dotdecimal = do
     c <- natMaxval 255
     char '.'
     d <- natMaxval 255
-    return (a, (b, (c, d)))
+    return $ ipv4word (a, (b, (c, d)))
+    where ipv4word :: (Isabelle.Nat, (Isabelle.Nat, (Isabelle.Nat, Isabelle.Nat))) -> Isabelle.Word Word32
+          ipv4word = Isabelle.ipv4addr_of_dotdecimal
 
-ipv4addr :: Parsec String s Isabelle.Ipt_ipv4range
-ipv4addr = Isabelle.Ip4Addr <$> ipv4dotdecimal
+--TODO: Isabelle.ipv4addr_of_dotdecimal
+ipv4addr :: Parsec String s (Isabelle.Ipt_iprange Word32)
+ipv4addr = Isabelle.IpAddr <$> ipv4dotdecimal
 
-ipv4cidr :: Parsec String s Isabelle.Ipt_ipv4range
+ipv4cidr :: Parsec String s (Isabelle.Ipt_iprange Word32)
 ipv4cidr = do
     ip <- ipv4dotdecimal
     char '/'
     netmask <- natMaxval 32
-    return $ Isabelle.Ip4AddrNetmask ip netmask
+    return $ Isabelle.IpAddrNetmask ip netmask
 
-ipv4range :: Parsec String s Isabelle.Ipt_ipv4range
+ipv4range :: Parsec String s (Isabelle.Ipt_iprange Word32)
 ipv4range = do
     ip1 <- ipv4dotdecimal
     char '-'
     ip2 <- ipv4dotdecimal
-    return $ Isabelle.Ip4AddrRange ip1 ip2
+    return $ Isabelle.IpAddrRange ip1 ip2
 
 protocol :: Parsec String s Isabelle.Protocol
 protocol = choice (map make ps)
