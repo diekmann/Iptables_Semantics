@@ -42,9 +42,9 @@ lemma decisionD: "\<gamma>,p\<turnstile> \<langle>rs, Decision X\<rangle> \<Righ
 by (induction rs "Decision X" t rule: approximating_bigstep_induct) (simp_all)
 
 lemma acceptD: "\<gamma>,p\<turnstile> \<langle>[Rule m Accept], Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<Longrightarrow> matches \<gamma> m Accept p \<Longrightarrow> t = Decision FinalAllow"
-apply (induction "[Rule m Accept]" Undecided t rule: approximating_bigstep_induct)
-    apply (simp_all)
-by (metis list_app_singletonE skipD)
+proof (induction "[Rule m Accept]" Undecided t rule: approximating_bigstep_induct)
+  case Seq thus ?case by (metis list_app_singletonE skipD)
+qed(simp_all)
 
 lemma dropD: "\<gamma>,p\<turnstile> \<langle>[Rule m Drop], Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<Longrightarrow> matches \<gamma> m Drop p \<Longrightarrow> t = Decision FinalDeny"
 apply (induction "[Rule m Drop]" Undecided t rule: approximating_bigstep_induct)
@@ -73,18 +73,17 @@ lemma approximating_bigstep_to_undecided: "\<gamma>,p\<turnstile> \<langle>rs, s
 
 lemma approximating_bigstep_to_decision1: "\<gamma>,p\<turnstile> \<langle>rs, Decision Y\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision X \<Longrightarrow> Y = X"
   by (metis decisionD state.inject)
-thm decisionD
 
 lemma nomatch_fst: "\<not> matches \<gamma> m a p \<Longrightarrow>  \<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<Longrightarrow> \<gamma>,p\<turnstile> \<langle>Rule m a # rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
   apply(cases s)
    apply(clarify)
    apply(drule nomatch)
    apply(drule(1) seq)
-   apply (simp)
+   apply (simp; fail)
   apply(clarify)
   apply(drule decisionD)
   apply(clarify)
- apply(simp_all add: decision)
+ apply(simp add: decision)
 done
 
 lemma seq':
@@ -157,10 +156,8 @@ qed
 subsection\<open>wf ruleset\<close>
   text\<open>
   A @{typ "'a rule list"} here is well-formed (for a packet) if
-  \begin{enumerate}
-    \item either the rules do not match
-    \item or the action is not @{const Call}, not @{const Return}, not @{const Unknown}
-  \end{enumerate}
+    \<^item> either the rules do not match
+    \<^item> or the action is not @{const Call}, not @{const Return}, not @{const Unknown}
 \<close>
   definition wf_ruleset :: "('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> 'a rule list \<Rightarrow> bool" where
     "wf_ruleset \<gamma> p rs \<equiv> \<forall>r \<in> set rs. 

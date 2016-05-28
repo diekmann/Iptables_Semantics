@@ -350,12 +350,12 @@ begin
   private lemma no_primitives_matchNot: assumes "\<not> has_primitive m" shows "matches \<gamma> (MatchNot m) a p \<longleftrightarrow> \<not> matches \<gamma> m a p"
   proof -
     obtain \<beta> \<alpha> where "(\<beta>, \<alpha>) = \<gamma>" by (cases \<gamma>, simp)
+    thm no_primitives_no_unknown
     from assms have "matches (\<beta>, \<alpha>) (MatchNot m) a p \<longleftrightarrow> \<not> matches (\<beta>, \<alpha>) m a p"
       apply(induction m)
-         apply(simp_all add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)
+         apply(simp_all add: matches_case_ternaryvalue_tuple split: ternaryvalue.split )
       apply(rename_tac m1 m2)
-      using no_primitives_no_unknown by (metis (no_types, hide_lams) eval_ternary_simps_simple(1) 
-                                          eval_ternary_simps_simple(3) ternaryvalue.exhaust) 
+      by(simp split: ternaryvalue.split_asm)
     with \<open>(\<beta>, \<alpha>) = \<gamma>\<close> assms show ?thesis by simp
   qed
   
