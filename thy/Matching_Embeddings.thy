@@ -55,7 +55,6 @@ lemma matches_comply_exact: "ternary_ternary_eval (map_match_tac \<beta> p m) \<
   next
   case (MatchAnd m1 m2)
     thus ?case
-     apply(simp split: ternaryvalue.split_asm ternaryvalue.split)
      apply(case_tac "ternary_ternary_eval (map_match_tac \<beta> p m1)")
        apply(case_tac [!] "ternary_ternary_eval (map_match_tac \<beta> p m2)")
                 by(simp_all)
