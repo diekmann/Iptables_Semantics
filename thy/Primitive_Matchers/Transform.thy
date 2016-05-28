@@ -442,37 +442,27 @@ theorem transform_remove_unknowns_generic:
       unfolding transform_remove_unknowns_generic_def
       using optimize_matches_a_simplers[OF simplers] remove_unknowns_generic by metis
 
-    { fix a m
-      have "\<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (remove_unknowns_generic ?\<gamma> a m)"
-      by(induction ?\<gamma> a m rule: remove_unknowns_generic.induct) simp_all
-    } thus "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
+      from remove_unknowns_generic_not_has_disc show
+        "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_disc disc m"
       unfolding transform_remove_unknowns_generic_def
       by(intro optimize_matches_a_preserves) blast
 
-      { fix a m
-        have "normalized_n_primitive disc_sel f m \<Longrightarrow> 
-                normalized_n_primitive disc_sel f (remove_unknowns_generic ?\<gamma> a m)"
-      by(induction ?\<gamma> a m rule: remove_unknowns_generic.induct) (simp_all,cases disc_sel, simp)
-    } thus "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). normalized_n_primitive disc_sel f m"
+      from remove_unknowns_generic_normalized_n_primitive show
+        "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
+           \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). normalized_n_primitive disc_sel f m"
       unfolding transform_remove_unknowns_generic_def
       by(intro optimize_matches_a_preserves) blast
 
-    from simplers show "\<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_unknowns \<beta> m"
+    show "\<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_unknowns \<beta> m"
       unfolding transform_remove_unknowns_generic_def
-      apply -
       apply(rule optimize_matches_a_preserves)
       apply(rule remove_unknowns_generic_specification[OF _ packet_independent_\<alpha> wf\<beta>])
-      apply(simp add: simple_ruleset_def)
-      done
+      using simplers by(simp add: simple_ruleset_def)
 
-    { fix m a
-      have "\<not> has_disc_negated disc neg m \<Longrightarrow> \<not> has_disc_negated disc neg (remove_unknowns_generic ?\<gamma> a m)"
-        by(induction m rule:remove_unknowns_generic.induct)(simp_all)
-    }
-    thus "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_disc_negated disc neg m"
+    from remove_unknowns_generic_not_has_disc_negated show
+      "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
+         \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_disc_negated disc neg m"
       unfolding transform_remove_unknowns_generic_def
       by(rule optimize_matches_a_preserves) blast
 qed

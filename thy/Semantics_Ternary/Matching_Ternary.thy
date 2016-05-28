@@ -170,7 +170,7 @@ lemma matches_iff_apply_f_generic: "ternary_ternary_eval (map_match_tac \<beta> 
   by(simp split: ternaryvalue.split_asm ternaryvalue.split add: matches_case_ternaryvalue_tuple)
 
 lemma matches_iff_apply_f: "ternary_ternary_eval (map_match_tac \<beta> p (f m)) = ternary_ternary_eval (map_match_tac \<beta> p m) \<Longrightarrow> matches (\<beta>,\<alpha>) (f m) a p \<longleftrightarrow> matches (\<beta>,\<alpha>) m a p"
-  by(simp split: ternaryvalue.split_asm ternaryvalue.split add: matches_case_ternaryvalue_tuple)
+  by(fact matches_iff_apply_f_generic)
 
 
 
@@ -197,24 +197,10 @@ definition wf_unknown_match_tac :: "'p unknown_match_tac \<Rightarrow> bool" whe
 
 
 lemma wf_unknown_match_tacD_False1: "wf_unknown_match_tac \<alpha> \<Longrightarrow> \<not> matches (\<beta>, \<alpha>) m Reject p \<Longrightarrow> matches (\<beta>, \<alpha>) m Drop p \<Longrightarrow> False"
-apply(simp add: wf_unknown_match_tac_def)
-apply(simp add: matches_def)
-apply(case_tac "(ternary_ternary_eval (map_match_tac \<beta> p m))")
-  apply(simp)
- apply(simp)
-apply(simp)
-done
+unfolding wf_unknown_match_tac_def by(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split_asm)
 
 lemma wf_unknown_match_tacD_False2: "wf_unknown_match_tac \<alpha> \<Longrightarrow> matches (\<beta>, \<alpha>) m Reject p \<Longrightarrow> \<not> matches (\<beta>, \<alpha>) m Drop p \<Longrightarrow> False"
-apply(simp add: wf_unknown_match_tac_def)
-apply(simp add: matches_def)
-apply(case_tac "(ternary_ternary_eval (map_match_tac \<beta> p m))")
-  apply(simp)
- apply(simp)
-apply(simp)
-done
-
-thm eval_ternary_simps_simple
+unfolding wf_unknown_match_tac_def by(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split_asm)
 
 
 subsection\<open>Removing Unknown Primitives\<close>
@@ -280,31 +266,36 @@ lemma remove_unknowns_generic_simp_3_4_unfolded: "remove_unknowns_generic (\<bet
     else MatchNot (Match A))"
   by(auto simp add: unknown_match_all_def unknown_not_match_any_def)
 
+declare remove_unknowns_generic.simps[simp del]
+
 lemmas remove_unknowns_generic_simps2 = remove_unknowns_generic.simps(1) remove_unknowns_generic.simps(2) 
             remove_unknowns_generic_simp_3_4_unfolded
             remove_unknowns_generic.simps(5) remove_unknowns_generic.simps(6) remove_unknowns_generic.simps(7)
 
 
-lemma "a = Accept \<or> a = Drop \<Longrightarrow> matches (\<beta>, \<alpha>) (remove_unknowns_generic (\<beta>, \<alpha>) a (MatchNot (Match A))) a p = matches (\<beta>, \<alpha>) (MatchNot (Match A)) a p"
-apply(simp del: remove_unknowns_generic.simps add: remove_unknowns_generic_simps2)
-apply(simp add: matches_case_ternaryvalue_tuple)
-by presburger
+lemma "matches (\<beta>, \<alpha>) (remove_unknowns_generic (\<beta>, \<alpha>) a (MatchNot (Match A))) a p = matches (\<beta>, \<alpha>) (MatchNot (Match A)) a p"
+by(simp add: remove_unknowns_generic_simps2 matches_case_ternaryvalue_tuple)
 
 
 
-lemma remove_unknowns_generic: "a = Accept \<or> a = Drop \<Longrightarrow>
-      matches \<gamma> (remove_unknowns_generic \<gamma> a m) a = matches \<gamma> m a"
-  apply(simp add: fun_eq_iff, clarify)
-  apply(rename_tac p)
-  apply(induction \<gamma> a m rule: remove_unknowns_generic.induct)
-        apply(simp_all add: bunch_of_lemmata_about_matches)[2]
-      apply(simp add: bunch_of_lemmata_about_matches match_raw_ternary del: remove_unknowns_generic.simps add: remove_unknowns_generic_simps2; fail)
-     apply(simp add: matches_case_ternaryvalue_tuple del: remove_unknowns_generic.simps  add: remove_unknowns_generic_simps2; fail)
-    apply(simp_all add: bunch_of_lemmata_about_matches matches_DeMorgan)
-  apply(simp add: matches_case_ternaryvalue_tuple)
-  apply safe
-               apply(simp_all add : ternary_to_bool_Some ternary_to_bool_None)
-done
+lemma remove_unknowns_generic: "matches \<gamma> (remove_unknowns_generic \<gamma> a m) a = matches \<gamma> m a"
+proof -
+  have "matches \<gamma> (remove_unknowns_generic \<gamma> a m) a p = matches \<gamma> m a p"
+  for p
+  proof(induction \<gamma> a m rule: remove_unknowns_generic.induct)
+  case 3 thus ?case
+      by(simp add: bunch_of_lemmata_about_matches match_raw_ternary remove_unknowns_generic_simps2)
+  next
+  case 4 thus ?case
+     by(simp add: matches_case_ternaryvalue_tuple remove_unknowns_generic_simps2)
+  next
+  case 7 thus ?case
+    apply(simp add: bunch_of_lemmata_about_matches matches_DeMorgan remove_unknowns_generic_simps2)
+    apply(simp add: matches_case_ternaryvalue_tuple)
+    by fastforce
+  qed(simp_all add: bunch_of_lemmata_about_matches remove_unknowns_generic_simps2)
+  thus ?thesis by(simp add: fun_eq_iff)
+qed
 
 
 
@@ -328,13 +319,14 @@ definition packet_independent_\<beta>_unknown :: "('a, 'packet) exact_match_tac 
   "packet_independent_\<beta>_unknown \<beta> \<equiv> \<forall>A. (\<exists>p. \<beta> A p \<noteq> TernaryUnknown) \<longrightarrow> (\<forall>p. \<beta> A p \<noteq> TernaryUnknown)"
 
 
-lemma remove_unknowns_generic_specification: "a = Accept \<or> a = Drop \<Longrightarrow> packet_independent_\<alpha> \<alpha> \<Longrightarrow> packet_independent_\<beta>_unknown \<beta> \<Longrightarrow>
+lemma remove_unknowns_generic_specification: "a = Accept \<or> a = Drop \<Longrightarrow> packet_independent_\<alpha> \<alpha> \<Longrightarrow>
+  packet_independent_\<beta>_unknown \<beta> \<Longrightarrow>
    \<not> has_unknowns \<beta> (remove_unknowns_generic (\<beta>, \<alpha>) a m)"
   proof(induction "(\<beta>, \<alpha>)" a m rule: remove_unknowns_generic.induct)
-  case 3 thus ?case by(simp add: packet_independent_unknown_match packet_independent_\<beta>_unknown_def)
+  case 3 thus ?case by(simp add: packet_independent_unknown_match packet_independent_\<beta>_unknown_def remove_unknowns_generic.simps)
   next
-  case 4 thus ?case by(simp add: packet_independent_unknown_match packet_independent_\<beta>_unknown_def)
-  qed(simp_all)
+  case 4 thus ?case by(simp add: packet_independent_unknown_match packet_independent_\<beta>_unknown_def remove_unknowns_generic.simps)
+  qed(simp_all add: remove_unknowns_generic.simps)
 
 
 

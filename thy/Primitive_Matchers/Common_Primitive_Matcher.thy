@@ -183,9 +183,7 @@ subsection\<open>Abstracting over unknowns\<close>
   lemma upper_closure_matchexpr_generic: 
     "a = Accept \<or> a = Drop \<Longrightarrow> remove_unknowns_generic (common_matcher, in_doubt_allow) a m = upper_closure_matchexpr a m"
     by(induction a m rule: upper_closure_matchexpr.induct)
-    (simp_all add: unknown_match_all_def unknown_not_match_any_def bool_to_ternary_Unknown)
-  
-  
+      (simp_all add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown)
   
   fun lower_closure_matchexpr :: "action \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
     "lower_closure_matchexpr _ MatchAny = MatchAny" |
@@ -213,7 +211,7 @@ subsection\<open>Abstracting over unknowns\<close>
   lemma lower_closure_matchexpr_generic: 
     "a = Accept \<or> a = Drop \<Longrightarrow> remove_unknowns_generic (common_matcher, in_doubt_deny) a m = lower_closure_matchexpr a m"
     by(induction a m rule: lower_closure_matchexpr.induct)
-    (simp_all add: unknown_match_all_def unknown_not_match_any_def bool_to_ternary_Unknown)
+    (simp_all add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown)
 
 
 
