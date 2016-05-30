@@ -10,7 +10,7 @@ text\<open>we use a primitive matcher which always applies.\<close>
   lemma[simp]: "Semantics.matches applies_Yes MatchAny p" by simp
   lemma[simp]: "Semantics.matches applies_Yes (Match e) p" by simp
 
-  definition "m=Match (Src (IpAddr 0))"
+  definition "m=Match (Src (IpAddr (0::ipv4addr)))"
   lemma[simp]: "Semantics.matches applies_Yes m p" by (simp add: m_def)
 
   lemma "[''FORWARD'' \<mapsto> [(Rule m Log), (Rule m Accept), (Rule m Drop)]],applies_Yes,p\<turnstile>
@@ -58,7 +58,7 @@ text\<open>we use a primitive matcher which always applies.\<close>
   definition "pkt=\<lparr>p_iiface=''+'', p_oiface=''+'', p_src=0, p_dst=0, p_proto=TCP, p_sport=0, p_dport=0, p_tcp_flags = {TCP_SYN}, p_tag_ctstate= CT_New\<rparr>"
 
   text\<open>We tune the primitive matcher to support everything we need in the example. Note that the undefined cases cannot be handled with these exact semantics!\<close>
-  fun applies_exampleMatchExact :: "(common_primitive, 32 simple_packet) matcher" where
+  fun applies_exampleMatchExact :: "(32 common_primitive, 32 simple_packet) matcher" where
   "applies_exampleMatchExact (Src (IpAddr addr)) p \<longleftrightarrow> p_src p = addr" |
   "applies_exampleMatchExact (Dst (IpAddr addr)) p \<longleftrightarrow> p_dst p = addr" |
   "applies_exampleMatchExact (Prot ProtoAny) p \<longleftrightarrow> True" |
@@ -81,6 +81,5 @@ text\<open>we use a primitive matcher which always applies.\<close>
    apply(auto simp add: pkt_def intro: Semantics.accept)
   apply(auto intro: Semantics.decision)
   done
-
 
 end
