@@ -111,7 +111,7 @@ lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (ma
 
 
 (*this is just for testing*)
-definition deny_set :: "common_primitive rule list \<Rightarrow> common_primitive packet_set list" where
+definition deny_set :: "32 common_primitive rule list \<Rightarrow> 32 common_primitive packet_set list" where
   "deny_set rs \<equiv> filter (\<lambda>a. a \<noteq> packet_set_UNIV) (map packet_set_opt (allow_set_not_inter rs))"
 
 (*TODO: probably test the deny set somewhere ;-)*)

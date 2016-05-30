@@ -323,7 +323,7 @@ theorem transform_optimize_dnf_strict_structure: assumes simplers: "simple_rules
       "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc_negated disc neg m"
       using matchpred_rule[of "\<lambda>m. \<not> has_disc_negated disc neg m"] by fast
    
-   { fix P a
+   { fix P and a::"'a common_primitive"
      have "(optimize_primitive_univ (Match a)) = (Match a) \<or> (optimize_primitive_univ (Match a)) = MatchAny"
        by(induction "(Match a)" rule: optimize_primitive_univ.induct) (auto)
      hence "((optimize_primitive_univ (Match a)) = Match a \<Longrightarrow> P a) \<Longrightarrow> (optimize_primitive_univ (Match a) = MatchAny \<Longrightarrow> P a) \<Longrightarrow> P a" by blast

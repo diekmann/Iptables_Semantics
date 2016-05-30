@@ -142,12 +142,12 @@ begin
   text\<open>Normalizing match expressions such that at most one port will exist in it. Returns a list of match expressions (splits one firewall rule into several rules).\<close>
   definition normalize_ports_step :: "(('i::len common_primitive \<Rightarrow> bool) \<times> ('i common_primitive \<Rightarrow> ipt_ports)) \<Rightarrow> 
                                (ipt_ports \<Rightarrow> 'i common_primitive) \<Rightarrow>
-                               'i common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where 
+                               'i common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where 
     "normalize_ports_step (disc_sel) C = normalize_primitive_extract disc_sel C (\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))"
 
-  definition normalize_src_ports :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where
+  definition normalize_src_ports :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
     "normalize_src_ports = normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports"  
-  definition normalize_dst_ports :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where
+  definition normalize_dst_ports :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
     "normalize_dst_ports = normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports"
 
   lemma normalize_src_ports: assumes generic: "primitive_matcher_generic \<beta>" and n: "normalized_nnf_match m" shows
@@ -183,7 +183,7 @@ begin
   (*probably we should optimize away the (Match (Src_Ports [(0, 65535)]))*)
   value "normalize_src_ports (MatchAnd (MatchNot (Match (Prot (Proto TCP)))) (Match (Prot (ProtoAny))))"
   
-  fun normalized_src_ports :: "common_primitive match_expr \<Rightarrow> bool" where
+  fun normalized_src_ports :: "'i::len common_primitive match_expr \<Rightarrow> bool" where
     "normalized_src_ports MatchAny = True" |
     "normalized_src_ports (Match (Src_Ports [])) = True" |
     "normalized_src_ports (Match (Src_Ports [_])) = True" |
@@ -196,7 +196,7 @@ begin
     "normalized_src_ports (MatchNot (MatchNot _)) = False" |
     "normalized_src_ports (MatchNot MatchAny) = True"
   
-  fun normalized_dst_ports :: "common_primitive match_expr \<Rightarrow> bool" where
+  fun normalized_dst_ports :: "'i::len common_primitive match_expr \<Rightarrow> bool" where
     "normalized_dst_ports MatchAny = True" |
     "normalized_dst_ports (Match (Dst_Ports [])) = True" |
     "normalized_dst_ports (Match (Dst_Ports [_])) = True" |

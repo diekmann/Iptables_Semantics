@@ -6,7 +6,7 @@ begin
 
 text\<open>The following function assumes that the packet is in a certain state.\<close>
 
-fun ctstate_assume_state :: "ctstate \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
+fun ctstate_assume_state :: "ctstate \<Rightarrow> 'i::len  common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where
   "ctstate_assume_state s (Match (CT_State x)) = (if s \<in> x then MatchAny else MatchNot MatchAny)" |
   "ctstate_assume_state s (Match m) = Match m" |
   "ctstate_assume_state s (MatchNot m) = MatchNot (ctstate_assume_state s m)" |
@@ -19,7 +19,7 @@ apply(rule matches_iff_apply_f)
 by(induction m rule: ctstate_assume_state.induct) (simp_all)
 
 
-definition ctstate_assume_new :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
+definition ctstate_assume_new :: "'i::len  common_primitive rule list \<Rightarrow> 'i common_primitive rule list" where
   "ctstate_assume_new \<equiv> optimize_matches (ctstate_assume_state CT_New)"
 
 lemma ctstate_assume_new_simple_ruleset: "simple_ruleset rs \<Longrightarrow> simple_ruleset (ctstate_assume_new rs)"
@@ -39,7 +39,7 @@ done
 
 text\<open>If we assume the CT State is @{const CT_New}, we can also assume that the TCP SYN flag (@{const ipt_tcp_syn}) is set.\<close>
 (*TODO: move?*)
-fun ipt_tcp_flags_assume_flag :: "ipt_tcp_flags \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
+fun ipt_tcp_flags_assume_flag :: "ipt_tcp_flags \<Rightarrow> 'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where
   "ipt_tcp_flags_assume_flag flg (Match (L4_Flags x)) = (if ipt_tcp_flags_equal x flg then MatchAny else (case match_tcp_flags_conjunct_option x flg of None \<Rightarrow> MatchNot MatchAny | Some f3 \<Rightarrow> Match (L4_Flags f3)))" |
   "ipt_tcp_flags_assume_flag flg (Match m) = Match m" |
   "ipt_tcp_flags_assume_flag flg (MatchNot m) = MatchNot (ipt_tcp_flags_assume_flag flg m)" |
@@ -63,7 +63,7 @@ show "ternary_ternary_eval (map_match_tac common_matcher p (ipt_tcp_flags_assume
   qed(simp_all del: match_tcp_flags.simps)
 qed
 
-definition ipt_tcp_flags_assume_syn :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
+definition ipt_tcp_flags_assume_syn :: "'i::len common_primitive rule list \<Rightarrow> 'i common_primitive rule list" where
   "ipt_tcp_flags_assume_syn \<equiv> optimize_matches (ipt_tcp_flags_assume_flag ipt_tcp_syn)"
 
 lemma ipt_tcp_flags_assume_syn_simple_ruleset: "simple_ruleset rs \<Longrightarrow> simple_ruleset (ipt_tcp_flags_assume_syn rs)"
@@ -80,7 +80,7 @@ done
 
 
 
-definition packet_assume_new :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
+definition packet_assume_new :: "'i::len common_primitive rule list \<Rightarrow> 'i common_primitive rule list" where
   "packet_assume_new \<equiv> ctstate_assume_new \<circ> ipt_tcp_flags_assume_syn"
 
 lemma packet_assume_new_simple_ruleset: "simple_ruleset rs \<Longrightarrow> simple_ruleset (packet_assume_new rs)"

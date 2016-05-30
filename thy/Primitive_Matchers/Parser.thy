@@ -6,13 +6,13 @@ begin
 
 context
 begin
-  private definition is_pos_Extra :: "common_primitive negation_type \<Rightarrow> bool" where
+  private definition is_pos_Extra :: "'i::len common_primitive negation_type \<Rightarrow> bool" where
     "is_pos_Extra a \<equiv> (case a of Pos (Extra _) \<Rightarrow> True | _ \<Rightarrow> False)"
-  private definition get_pos_Extra :: "common_primitive negation_type \<Rightarrow> string" where
+  private definition get_pos_Extra :: "'i::len common_primitive negation_type \<Rightarrow> string" where
     "get_pos_Extra a \<equiv> (case a of Pos (Extra e) \<Rightarrow> e | _ \<Rightarrow> undefined)"
   
   fun compress_parsed_extra
-    :: "common_primitive negation_type list \<Rightarrow> common_primitive negation_type list" where
+    :: "'i::len common_primitive negation_type list \<Rightarrow> 'i common_primitive negation_type list" where
     "compress_parsed_extra [] = []" |
     "compress_parsed_extra (a1#a2#as) = (if is_pos_Extra a1 \<and> is_pos_Extra a2
         then compress_parsed_extra (Pos (Extra (get_pos_Extra a1@'' ''@get_pos_Extra a2))#as)
@@ -21,7 +21,7 @@ begin
     "compress_parsed_extra (a#as) = a#compress_parsed_extra as"
   
   lemma "compress_parsed_extra
-    (map Pos [Extra ''-m'', Extra ''recent'',
+    (map Pos [Extra ''-m'', (Extra ''recent'' :: 32 common_primitive),
               Extra ''--update'', Extra ''--seconds'', Extra ''60'',
               IIface (Iface ''foobar''),
               Extra ''--name'', Extra ''DEFAULT'', Extra ''--rsource'']) =
@@ -285,38 +285,40 @@ local (*iptables-save parsers*)
       (Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string module)) |-- (Scan.repeat parser)
   in
 
-    val parse_ips = parse_cmd_option_negated_singleton "-s " @{const Src} (parser_ip_cidr || parser_ip_addr)
-                 || parse_cmd_option_negated_singleton "-d " @{const Dst} (parser_ip_cidr || parser_ip_addr);
+    val parse_ips = parse_cmd_option_negated_singleton "-s " @{const Src (32)} (parser_ip_cidr || parser_ip_addr)
+                 || parse_cmd_option_negated_singleton "-d " @{const Dst (32)} (parser_ip_cidr || parser_ip_addr);
 
                             
     val parse_iprange = parse_with_module_prefix "-m iprange "
-                            (   parse_cmd_option_negated "--src-range " @{const Src} parser_ip_range
-                             || parse_cmd_option_negated "--dst-range " @{const Dst} parser_ip_range); 
+                            (   parse_cmd_option_negated "--src-range " @{const Src (32)} parser_ip_range
+                             || parse_cmd_option_negated "--dst-range " @{const Dst (32)} parser_ip_range); 
     
-    val parse_iface = parse_cmd_option_negated_singleton "-i " @{const IIface} parser_interface
-                   || parse_cmd_option_negated_singleton "-o " @{const OIface} parser_interface;
+    val parse_iface = parse_cmd_option_negated_singleton "-i " @{const IIface (32)} parser_interface
+                   || parse_cmd_option_negated_singleton "-o " @{const OIface (32)} parser_interface;
 
-    val parse_protocol = parse_cmd_option_negated_singleton "-p " @{term "Prot \<circ> Proto"} parser_protocol; (*negated?*)
+    (*TODO type is explicit here*)
+    val parse_protocol = parse_cmd_option_negated_singleton "-p "
+                @{term "(Prot \<circ> Proto) :: primitive_protocol \<Rightarrow> 32 common_primitive"} parser_protocol; (*negated?*)
 
     (*-m tcp requires that there is already an -p tcp, iptables checks that for you, we assume valid iptables-save (otherwise the kernel would not load it)*)
     val parse_tcp_options = parse_with_module_prefix "-m tcp "
-              (   parse_cmd_option_negated "--sport " @{const Src_Ports} parser_port_single_tup_term
-               || parse_cmd_option_negated "--dport " @{const Dst_Ports} parser_port_single_tup_term
-               || parse_cmd_option_negated "--tcp-flags " @{const L4_Flags} parser_tcp_flags);
+              (   parse_cmd_option_negated "--sport " @{const Src_Ports (32)} parser_port_single_tup_term
+               || parse_cmd_option_negated "--dport " @{const Dst_Ports (32)} parser_port_single_tup_term
+               || parse_cmd_option_negated "--tcp-flags " @{const L4_Flags (32)} parser_tcp_flags);
     val parse_multiports = parse_with_module_prefix "-m multiport "
-              (   parse_cmd_option_negated "--sports " @{const Src_Ports} parser_port_many1_tup
-               || parse_cmd_option_negated "--dports " @{const Dst_Ports} parser_port_many1_tup);
+              (   parse_cmd_option_negated "--sports " @{const Src_Ports (32)} parser_port_many1_tup
+               || parse_cmd_option_negated "--dports " @{const Dst_Ports (32)} parser_port_many1_tup);
     val parse_udp_options = parse_with_module_prefix "-m udp "
-              (   parse_cmd_option_negated "--sport " @{const Src_Ports} parser_port_single_tup_term
-               || parse_cmd_option_negated "--dport " @{const Dst_Ports} parser_port_single_tup_term);
+              (   parse_cmd_option_negated "--sport " @{const Src_Ports (32)} parser_port_single_tup_term
+               || parse_cmd_option_negated "--dport " @{const Dst_Ports (32)} parser_port_single_tup_term);
 
     val parse_ctstate = parse_with_module_prefix "-m state "
-                  (parse_cmd_option_negated "--state " @{term "CT_State"} parser_ctstate_set)
+                  (parse_cmd_option_negated "--state " @{const CT_State (32)} parser_ctstate_set)
               || parse_with_module_prefix "-m conntrack "
-                  (parse_cmd_option_negated "--ctstate " @{term "CT_State"} parser_ctstate_set);
+                  (parse_cmd_option_negated "--ctstate " @{const CT_State (32)} parser_ctstate_set);
     
      (*TODO: it would be good to fail if there is a "!" in the extra; it might be an unparsed negation*)
-    val parse_unknown = (parse_cmd_option "" @{const Extra} parser_extra) >> (fn x => [x]);
+    val parse_unknown = (parse_cmd_option "" @{const Extra (32)} parser_extra) >> (fn x => [x]);
   end;
   
   
@@ -431,10 +433,10 @@ local
 
    val get_matches : (parsed_match_action list -> term) =
         List.mapPartial (fn p => case p of
-                            ParsedMatch m => SOME (@{const Pos (common_primitive)} $ m)
-                          | ParsedNegatedMatch m => SOME (@{const Neg (common_primitive)} $ m)
+                            ParsedMatch m => SOME (@{const Pos ("32 common_primitive")} $ m)
+                          | ParsedNegatedMatch m => SOME (@{const Neg ("32 common_primitive")} $ m)
                           | ParsedAction _ => NONE)
-                         #> HOLogic.mk_list @{typ "common_primitive negation_type"};
+                         #> HOLogic.mk_list @{typ "32 common_primitive negation_type"};
 
 
    (*returns: (chainname the rule was appended to, target, matches)*)
@@ -484,15 +486,15 @@ local
   (* this takes like forever! *)
   (* apply compress_parsed_extra here?*)
   fun hacky_hack t = (*Code_Evaluation.dynamic_value_strict @{context} (@{const compress_extra} $ t)*)
-    @{const alist_and' ("common_primitive")} $ (@{const compress_parsed_extra} $ t)
+    @{const alist_and' ("32 common_primitive")} $ (@{const compress_parsed_extra (32)} $ t)
   
-  fun mk_MatchExpr t = if fastype_of t <> @{typ "common_primitive negation_type list"}
+  fun mk_MatchExpr t = if fastype_of t <> @{typ "32 common_primitive negation_type list"}
                        then
                          raise Fail "Type Error"
                        else
                          hacky_hack t;
-  fun mk_Rule_help t a = let val r = @{const Rule (common_primitive)} $ (mk_MatchExpr t) $ a in
-      if fastype_of r <> @{typ "common_primitive rule"} then raise Fail "Type error in mk_Rule_help"
+  fun mk_Rule_help t a = let val r = @{const Rule ("32 common_primitive")} $ (mk_MatchExpr t) $ a in
+      if fastype_of r <> @{typ "32 common_primitive rule"} then raise Fail "Type error in mk_Rule_help"
       else r end;
   
   fun append table chain rule = case FirewallTable.lookup table chain
@@ -542,8 +544,8 @@ end
 
 ML\<open>
 fun mk_Ruleset (tbl: firewall_table) = FirewallTable.dest tbl
-    |> map (fn (k,v) => HOLogic.mk_prod (HOLogic.mk_string k, HOLogic.mk_list @{typ "common_primitive rule"} v))
-    |> HOLogic.mk_list @{typ "string \<times> common_primitive rule list"}
+    |> map (fn (k,v) => HOLogic.mk_prod (HOLogic.mk_string k, HOLogic.mk_list @{typ "32 common_primitive rule"} v))
+    |> HOLogic.mk_list @{typ "string \<times> 32 common_primitive rule list"}
 \<close>
 
 
@@ -618,7 +620,7 @@ local
       in ps end;
 
   fun sanity_check_ruleset (ctx: Proof.context) t = let
-      val check = Code_Evaluation.dynamic_value_strict ctx (@{const sanity_wf_ruleset (common_primitive)} $ t)
+      val check = Code_Evaluation.dynamic_value_strict ctx (@{const sanity_wf_ruleset ("32 common_primitive")} $ t)
     in
       if check <> @{term "True"} then raise ERROR "sanity_wf_ruleset failed" else t
     end;

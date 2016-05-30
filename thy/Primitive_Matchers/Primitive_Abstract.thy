@@ -10,12 +10,14 @@ section\<open>Abstracting over Primitives\<close>
 
 
 text\<open>Abstract over certain primitives. The first parameter is a function
-  @{typ "common_primitive negation_type \<Rightarrow> bool"} to select the primitives to be abstracted over.
-  The @{typ common_primitive} is wrapped in a @{typ "common_primitive negation_type"} to let the function
+  @{typ "'i::len common_primitive negation_type \<Rightarrow> bool"} to select the primitives to be abstracted over.
+  The @{typ "'i::len common_primitive"} is wrapped in a @{typ "'i::len common_primitive negation_type"} to let the function
   selectively abstract only over negated, non-negated, or both kinds of primitives.
   This functions requires a @{const normalized_nnf_match}.
 \<close>
-fun abstract_primitive :: "(common_primitive negation_type \<Rightarrow> bool) \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
+(*TODO: damn tosting function!*)
+fun abstract_primitive
+  :: "(32 common_primitive negation_type \<Rightarrow> bool) \<Rightarrow> 32 common_primitive match_expr \<Rightarrow> 32 common_primitive match_expr" where
   "abstract_primitive _     MatchAny = MatchAny" |
   "abstract_primitive disc (Match a) = (if disc (Pos a) then Match (Extra (common_primitive_toString a)) else (Match a))" |
   "abstract_primitive disc (MatchNot (Match a)) = (if disc (Neg a) then Match (Extra (''! ''@common_primitive_toString a)) else (MatchNot (Match a)))" |
@@ -25,7 +27,7 @@ fun abstract_primitive :: "(common_primitive negation_type \<Rightarrow> bool) \
 
 text\<open>For example, a simple firewall requires that no negated interfaces and protocols occur in the 
       expression.\<close>
-definition abstract_for_simple_firewall :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr"
+definition abstract_for_simple_firewall :: "32 common_primitive match_expr \<Rightarrow> 32 common_primitive match_expr"
   where "abstract_for_simple_firewall \<equiv> abstract_primitive (\<lambda>r. case r
                 of Pos a \<Rightarrow> is_CT_State a \<or> is_L4_Flags a
                 |  Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_CT_State a \<or> is_L4_Flags a)"
@@ -67,7 +69,7 @@ lemma abstract_for_simple_firewall_hasdisc:
   "\<not> has_disc is_CT_State (abstract_for_simple_firewall m)"
   "\<not> has_disc is_L4_Flags (abstract_for_simple_firewall m)"
   unfolding abstract_for_simple_firewall_def
-  apply(induction "(\<lambda>r. case r of Pos a \<Rightarrow> is_CT_State a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_CT_State a)" m rule: abstract_primitive.induct)
+  apply(induction "(\<lambda>r:: 32 common_primitive negation_type. case r of Pos a \<Rightarrow> is_CT_State a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_CT_State a)" m rule: abstract_primitive.induct)
   apply(simp_all)
   done
 
@@ -75,7 +77,7 @@ lemma abstract_for_simple_firewall_negated_ifaces_prots:
     "normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False (abstract_for_simple_firewall m)"
     "normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated is_Prot False (abstract_for_simple_firewall m)"
   unfolding abstract_for_simple_firewall_def
-  apply(induction "(\<lambda>r. case r of Pos a \<Rightarrow> is_CT_State a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_CT_State a)" m rule: abstract_primitive.induct)
+  apply(induction "(\<lambda>r:: 32 common_primitive negation_type. case r of Pos a \<Rightarrow> is_CT_State a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_CT_State a)" m rule: abstract_primitive.induct)
   apply(simp_all)
   done
 
@@ -116,7 +118,7 @@ begin
      done
   
   theorem abstract_primitive_in_doubt_allow_generic:
-    fixes \<beta>::"(common_primitive, ('i::len, 'a) simple_packet_scheme) exact_match_tac"
+    fixes \<beta>::"(32 common_primitive, (32, 'a) simple_packet_scheme) exact_match_tac"
     assumes generic: "primitive_matcher_generic \<beta>"
        and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
     defines "\<gamma> \<equiv> (\<beta>, in_doubt_allow)" and "abstract disc \<equiv> optimize_matches (abstract_primitive disc)"
@@ -129,8 +131,8 @@ begin
       from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
        good: "good_ruleset (optimize_matches (abstract_primitive disc) rs)" by fast
 
-      let ?\<gamma>="(\<beta>, in_doubt_allow) :: (common_primitive \<Rightarrow> ('i::len, 'a) simple_packet_scheme \<Rightarrow> ternaryvalue) \<times>
-              (action \<Rightarrow> ('i::len, 'a) simple_packet_scheme \<Rightarrow> bool)"
+      let ?\<gamma>="(\<beta>, in_doubt_allow) :: (32 common_primitive \<Rightarrow> (32, 'a) simple_packet_scheme \<Rightarrow> ternaryvalue) \<times>
+              (action \<Rightarrow> (32, 'a) simple_packet_scheme \<Rightarrow> bool)"
         --\<open>type signature is needed, otherwise @{const in_doubt_allow} would be for arbitrary packet\<close>
 
       have abstract_primitive_in_doubt_allow_help1:
@@ -261,7 +263,7 @@ begin
      done
 
   theorem abstract_primitive_in_doubt_deny_generic:
-    fixes \<beta>::"(common_primitive, ('i::len, 'a) simple_packet_scheme) exact_match_tac"
+    fixes \<beta>::"(32 common_primitive, (32, 'a) simple_packet_scheme) exact_match_tac"
     assumes generic: "primitive_matcher_generic \<beta>"
         and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
     defines "\<gamma> \<equiv> (\<beta>, in_doubt_deny)" and "abstract disc \<equiv> optimize_matches (abstract_primitive disc)"
@@ -274,8 +276,8 @@ begin
       from optimize_matches_simple_ruleset simple simple_imp_good_ruleset have
         good: "good_ruleset (optimize_matches (abstract_primitive disc) rs)" by fast
 
-      let ?\<gamma>="(\<beta>, in_doubt_deny) :: (common_primitive \<Rightarrow> ('i::len, 'a) simple_packet_scheme \<Rightarrow> ternaryvalue) \<times> 
-            (action \<Rightarrow> ('i::len, 'a) simple_packet_scheme \<Rightarrow> bool)"
+      let ?\<gamma>="(\<beta>, in_doubt_deny) :: (32 common_primitive \<Rightarrow> (32, 'a) simple_packet_scheme \<Rightarrow> ternaryvalue) \<times> 
+            (action \<Rightarrow> (32, 'a) simple_packet_scheme \<Rightarrow> bool)"
         --\<open>type signature is needed, otherwise @{const in_doubt_allow} would be for arbitrary packet\<close>
       
       have abstract_primitive_in_doubt_deny_help1:
