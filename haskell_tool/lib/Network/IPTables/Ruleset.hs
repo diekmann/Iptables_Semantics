@@ -23,6 +23,7 @@ import qualified Control.Exception
 import qualified Network.IPTables.Generated as Isabelle
 import           Network.IPTables.IsabelleToString()
 import           Control.Monad (when)
+import Network.IPTables.IsabelleToString (Word32)
 
 
 data Ruleset = Ruleset { rsetTables :: Map TableName Table } -- deriving (Ord)
@@ -37,8 +38,8 @@ data Chain = Chain { chnDefault :: Maybe Isabelle.Action
 
 
 
-data ParsedMatchAction = ParsedMatch Isabelle.Common_primitive
-                       | ParsedNegatedMatch Isabelle.Common_primitive
+data ParsedMatchAction = ParsedMatch (Isabelle.Common_primitive Word32)
+                       | ParsedNegatedMatch (Isabelle.Common_primitive Word32)
                        | ParsedAction Isabelle.Action
     deriving (Show)
 
@@ -74,7 +75,7 @@ example = Ruleset $ M.fromList
 -- also returns a Map with the default policies
 -- may throw an error
 rulesetLookup :: TableName -> Ruleset ->
-    Either String ([(String, [Isabelle.Rule Isabelle.Common_primitive])], Map ChainName Isabelle.Action)
+    Either String ([(String, [Isabelle.Rule (Isabelle.Common_primitive Word32)])], Map ChainName Isabelle.Action)
 rulesetLookup table r = case M.lookup table (rsetTables r)
     of Nothing -> Left $ "Table with name `"++table++"' not found"
        Just t -> to_Isabelle_ruleset_AssocList t
@@ -86,7 +87,7 @@ rulesetLookup table r = case M.lookup table (rsetTables r)
 -- output: rule list our Isabelle algorithms can work on
 -- may throw an error; is IO because it dumps debug info at you :)
 -- verbose_flag -> table -> chain -> pased_ruleset -> isabelle_ruleset_and_debugging_output
-loadUnfoldedRuleset :: Bool -> String -> String -> Ruleset -> IO [Isabelle.Rule Isabelle.Common_primitive]
+loadUnfoldedRuleset :: Bool -> String -> String -> Ruleset -> IO [Isabelle.Rule (Isabelle.Common_primitive Word32)]
 loadUnfoldedRuleset debug table chain res = do
     when (table /= "filter") $ do 
         putStrLn $ "INFO: Officially, we only support the filter table. \
@@ -121,7 +122,7 @@ loadUnfoldedRuleset debug table chain res = do
 
 -- transforming to Isabelle type
 
-to_Isabelle_ruleset_AssocList :: Table -> Either String [(String, [Isabelle.Rule Isabelle.Common_primitive])]
+to_Isabelle_ruleset_AssocList :: Table -> Either String [(String, [Isabelle.Rule (Isabelle.Common_primitive Word32)])]
 to_Isabelle_ruleset_AssocList t = let rs = convertRuleset (tblChains t) in 
                                         if not (Isabelle.sanity_wf_ruleset rs)
                                         then Left "Reading ruleset failed! sanity_wf_ruleset check failed."
@@ -130,12 +131,12 @@ to_Isabelle_ruleset_AssocList t = let rs = convertRuleset (tblChains t) in
           convertRuleset = map (\(k,v) -> (k, convertRules (chnRules v))) . M.toList 
            
 
-to_Isabelle_Rule :: ParseRule -> Isabelle.Rule Isabelle.Common_primitive
+to_Isabelle_Rule :: ParseRule -> Isabelle.Rule (Isabelle.Common_primitive Word32)
 to_Isabelle_Rule r = Isabelle.Rule
                         (Isabelle.alist_and $ Isabelle.compress_parsed_extra (fMatch (ruleArgs r)))
                         (filter_Isabelle_Action (ruleArgs r))
     where --filter out the Matches (Common_primitive) in ParsedMatchAction
-          fMatch :: [ParsedMatchAction] -> [Isabelle.Negation_type Isabelle.Common_primitive]
+          fMatch :: [ParsedMatchAction] -> [Isabelle.Negation_type (Isabelle.Common_primitive Word32)]
           fMatch [] = []
           fMatch (ParsedMatch a : ss) = Isabelle.Pos a : fMatch ss
           fMatch (ParsedNegatedMatch a : ss) = Isabelle.Neg a : fMatch ss

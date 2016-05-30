@@ -15,7 +15,7 @@ instance Show a => Show (Isabelle.Negation_type a) where
 instance Show Isabelle.Nat where
     show (Isabelle.Nat n) = "Nat " ++ show n
 
-instance Show Isabelle.Common_primitive where
+instance Show (Isabelle.Common_primitive Word32) where
     show = Isabelle.common_primitive_toString
 
 instance Show Isabelle.Action where
@@ -30,10 +30,10 @@ instance Show Isabelle.Iface where
 instance Show (Isabelle.Ipt_iprange Word32) where
   show = Isabelle.ipt_ipv4range_toString
 
-instance Show (Isabelle.Match_expr Isabelle.Common_primitive) where
+instance Show (Isabelle.Match_expr (Isabelle.Common_primitive Word32)) where
     show = Isabelle.common_primitive_match_expr_toString
 
-instance Show (Isabelle.Rule Isabelle.Common_primitive) where
+instance Show (Isabelle.Rule (Isabelle.Common_primitive Word32)) where
     --TODO: unify with Isabelle.common_primitive_rule_toString
     show (Isabelle.Rule m a) = "(" ++ show m ++ ", " ++ show a ++ ")"
     

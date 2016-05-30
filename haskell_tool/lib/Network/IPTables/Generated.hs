@@ -840,10 +840,8 @@ equal_ipt_iprange (IpAddrNetmask x21 x22) (IpAddrNetmask y21 y22) =
   equal_word x21 y21 && equal_nat x22 y22;
 equal_ipt_iprange (IpAddr x1) (IpAddr y1) = equal_word x1 y1;
 
-data Common_primitive =
-  Src (Ipt_iprange (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))
-  | Dst (Ipt_iprange (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))) | IIface Iface
-  | OIface Iface | Prot Protocol
+data Common_primitive a = Src (Ipt_iprange a) | Dst (Ipt_iprange a)
+  | IIface Iface | OIface Iface | Prot Protocol
   | Src_Ports
       [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
          Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))]
@@ -852,7 +850,8 @@ data Common_primitive =
          Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))]
   | L4_Flags Ipt_tcp_flags | CT_State (Set Ctstate) | Extra [Prelude.Char];
 
-equal_common_primitive :: Common_primitive -> Common_primitive -> Bool;
+equal_common_primitive ::
+  forall a. (Len a) => Common_primitive a -> Common_primitive a -> Bool;
 equal_common_primitive (CT_State x9) (Extra x10) = False;
 equal_common_primitive (Extra x10) (CT_State x9) = False;
 equal_common_primitive (L4_Flags x8) (Extra x10) = False;
@@ -954,7 +953,7 @@ equal_common_primitive (IIface x3) (IIface y3) = equal_iface x3 y3;
 equal_common_primitive (Dst x2) (Dst y2) = equal_ipt_iprange x2 y2;
 equal_common_primitive (Src x1) (Src y1) = equal_ipt_iprange x1 y1;
 
-instance Eq Common_primitive where {
+instance (Len a) => Eq (Common_primitive a) where {
   a == b = equal_common_primitive a b;
 };
 
@@ -1368,7 +1367,7 @@ char_of_nat =
 mk_Set :: forall a. [a] -> Set a;
 mk_Set = Set;
 
-is_pos_Extra :: Negation_type Common_primitive -> Bool;
+is_pos_Extra :: forall a. (Len a) => Negation_type (Common_primitive a) -> Bool;
 is_pos_Extra a = (case a of {
                    Pos (Src _) -> False;
                    Pos (Dst _) -> False;
@@ -1705,7 +1704,8 @@ getPos [] = [];
 getPos (Pos x : xs) = x : getPos xs;
 getPos (Neg v : xs) = getPos xs;
 
-get_pos_Extra :: Negation_type Common_primitive -> [Prelude.Char];
+get_pos_Extra ::
+  forall a. (Len a) => Negation_type (Common_primitive a) -> [Prelude.Char];
 get_pos_Extra a = let {
                     (Pos (Extra e)) = a;
                   } in e;
@@ -1811,8 +1811,7 @@ ipcidr_to_interval cidr =
   (ipcidr_to_interval_start cidr, ipcidr_to_interval_end cidr);
 
 ipassmt_ignore_wildcard_list ::
-  [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
-    [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])];
+  forall a. (Len a) => [(Iface, [(Word a, Nat)])] -> [(Iface, [(Word a, Nat)])];
 ipassmt_ignore_wildcard_list ipassmt =
   filter
     (\ (_, ips) ->
@@ -1831,13 +1830,13 @@ wordinterval_Union ws =
 mergesort_remdups :: forall a. (Eq a, Linorder a) => [a] -> [a];
 mergesort_remdups xs = merge_list [] (map (\ x -> [x]) xs);
 
-oiface_sel :: Common_primitive -> Iface;
+oiface_sel :: forall a. (Len a) => Common_primitive a -> Iface;
 oiface_sel (OIface x4) = x4;
 
-iiface_sel :: Common_primitive -> Iface;
+iiface_sel :: forall a. (Len a) => Common_primitive a -> Iface;
 iiface_sel (IIface x3) = x3;
 
-is_Oiface :: Common_primitive -> Bool;
+is_Oiface :: forall a. (Len a) => Common_primitive a -> Bool;
 is_Oiface (Src x1) = False;
 is_Oiface (Dst x2) = False;
 is_Oiface (IIface x3) = False;
@@ -1849,7 +1848,7 @@ is_Oiface (L4_Flags x8) = False;
 is_Oiface (CT_State x9) = False;
 is_Oiface (Extra x10) = False;
 
-is_Iiface :: Common_primitive -> Bool;
+is_Iiface :: forall a. (Len a) => Common_primitive a -> Bool;
 is_Iiface (Src x1) = False;
 is_Iiface (Dst x2) = False;
 is_Iiface (IIface x3) = True;
@@ -1878,7 +1877,7 @@ primitive_extractor uv (MatchNot (MatchNot va)) = error "undefined";
 primitive_extractor uv (MatchNot (MatchAnd va vb)) = error "undefined";
 primitive_extractor uv (MatchNot MatchAny) = error "undefined";
 
-collect_ifacesa :: [Rule Common_primitive] -> [Iface];
+collect_ifacesa :: forall a. (Len a) => [Rule (Common_primitive a)] -> [Iface];
 collect_ifacesa [] = [];
 collect_ifacesa (Rule m a : rs) =
   filter (\ iface -> not (equal_iface iface ifaceAny))
@@ -1894,13 +1893,13 @@ collect_ifacesa (Rule m a : rs) =
         (fst (primitive_extractor (is_Oiface, oiface_sel) m)) ++
         collect_ifacesa rs);
 
-collect_ifaces :: [Rule Common_primitive] -> [Iface];
+collect_ifaces :: forall a. (Len a) => [Rule (Common_primitive a)] -> [Iface];
 collect_ifaces rs = mergesort_remdups (collect_ifacesa rs);
 
 ipassmt_sanity_defined ::
-  [Rule Common_primitive] ->
-    (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
-      Bool;
+  forall a.
+    (Len a) => [Rule (Common_primitive a)] ->
+                 (Iface -> Maybe [(Word a, Nat)]) -> Bool;
 ipassmt_sanity_defined rs ipassmt =
   all (\ iface -> not (is_none (ipassmt iface))) (collect_ifaces rs);
 
@@ -1918,7 +1917,8 @@ iface_is_wildcard ifce = iface_name_is_wildcard (iface_sel ifce);
 
 debug_ipassmt ::
   [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
-    [Rule Common_primitive] -> [[Prelude.Char]];
+    [Rule (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))] ->
+      [[Prelude.Char]];
 debug_ipassmt ipassmt rs =
   let {
     ifaces = map fst ipassmt;
@@ -2041,8 +2041,7 @@ partIps s (t : ts) =
                            partIps (wordinterval_setminus s t) ts)));
 
 map_of_ipassmt ::
-  [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
-    Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
+  forall a. [(Iface, [(Word a, Nat)])] -> Iface -> Maybe [(Word a, Nat)];
 map_of_ipassmt ipassmt =
   (if distinct (map fst ipassmt) &&
         ball (image fst (Set ipassmt))
@@ -2136,7 +2135,10 @@ ipassmt_generic =
         nat_of_integer (8 :: Integer))])];
 
 upper_closure_matchexpr ::
-  Action -> Match_expr Common_primitive -> Match_expr Common_primitive;
+  forall a.
+    (Len a) => Action ->
+                 Match_expr (Common_primitive a) ->
+                   Match_expr (Common_primitive a);
 upper_closure_matchexpr uu MatchAny = MatchAny;
 upper_closure_matchexpr Accept (Match (Extra uv)) = MatchAny;
 upper_closure_matchexpr Reject (Match (Extra uw)) = MatchNot MatchAny;
@@ -2307,13 +2309,17 @@ compress_interfaces ifces =
   });
 
 compress_normalize_output_interfaces ::
-  Match_expr Common_primitive -> Maybe (Match_expr Common_primitive);
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 Maybe (Match_expr (Common_primitive a));
 compress_normalize_output_interfaces m =
   compress_normalize_primitive (is_Oiface, oiface_sel) OIface
     compress_interfaces m;
 
 compress_normalize_input_interfaces ::
-  Match_expr Common_primitive -> Maybe (Match_expr Common_primitive);
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 Maybe (Match_expr (Common_primitive a));
 compress_normalize_input_interfaces m =
   compress_normalize_primitive (is_Iiface, iiface_sel) IIface
     compress_interfaces m;
@@ -2329,10 +2335,10 @@ compress_normalize_primitive_monad (f : fs) m =
     Just a -> compress_normalize_primitive_monad fs a;
   });
 
-prot_sel :: Common_primitive -> Protocol;
+prot_sel :: forall a. (Len a) => Common_primitive a -> Protocol;
 prot_sel (Prot x5) = x5;
 
-is_Prot :: Common_primitive -> Bool;
+is_Prot :: forall a. (Len a) => Common_primitive a -> Bool;
 is_Prot (Src x1) = False;
 is_Prot (Dst x2) = False;
 is_Prot (IIface x3) = False;
@@ -2390,12 +2396,16 @@ compress_protocols ps =
   });
 
 compress_normalize_protocols ::
-  Match_expr Common_primitive -> Maybe (Match_expr Common_primitive);
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 Maybe (Match_expr (Common_primitive a));
 compress_normalize_protocols m =
   compress_normalize_primitive (is_Prot, prot_sel) Prot compress_protocols m;
 
 compress_normalize_besteffort ::
-  Match_expr Common_primitive -> Maybe (Match_expr Common_primitive);
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 Maybe (Match_expr (Common_primitive a));
 compress_normalize_besteffort m =
   compress_normalize_primitive_monad
     [compress_normalize_protocols, compress_normalize_input_interfaces,
@@ -2411,11 +2421,10 @@ normalize_primitive_extract disc_sel c f m =
     (spts, rst) = primitive_extractor disc_sel m;
   } in map (\ spt -> MatchAnd (Match (c spt)) rst) (f spts);
 
-src_sel ::
-  Common_primitive -> Ipt_iprange (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+src_sel :: forall a. (Len a) => Common_primitive a -> Ipt_iprange a;
 src_sel (Src x1) = x1;
 
-is_Src :: Common_primitive -> Bool;
+is_Src :: forall a. (Len a) => Common_primitive a -> Bool;
 is_Src (Src x1) = True;
 is_Src (Dst x2) = False;
 is_Src (IIface x3) = False;
@@ -2453,15 +2462,16 @@ ipt_iprange_compress =
   wi_2_cidr_ipt_iprange_list . ipt_iprange_negation_type_to_br_intersect;
 
 normalize_src_ips ::
-  Match_expr Common_primitive -> [Match_expr Common_primitive];
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 [Match_expr (Common_primitive a)];
 normalize_src_ips =
   normalize_primitive_extract (is_Src, src_sel) Src ipt_iprange_compress;
 
-dst_sel ::
-  Common_primitive -> Ipt_iprange (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+dst_sel :: forall a. (Len a) => Common_primitive a -> Ipt_iprange a;
 dst_sel (Dst x2) = x2;
 
-is_Dst :: Common_primitive -> Bool;
+is_Dst :: forall a. (Len a) => Common_primitive a -> Bool;
 is_Dst (Src x1) = False;
 is_Dst (Dst x2) = True;
 is_Dst (IIface x3) = False;
@@ -2474,7 +2484,9 @@ is_Dst (CT_State x9) = False;
 is_Dst (Extra x10) = False;
 
 normalize_dst_ips ::
-  Match_expr Common_primitive -> [Match_expr Common_primitive];
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 [Match_expr (Common_primitive a)];
 normalize_dst_ips =
   normalize_primitive_extract (is_Dst, dst_sel) Dst ipt_iprange_compress;
 
@@ -2488,12 +2500,13 @@ optimize_matches_option f (Rule m a : rs) =
   });
 
 src_ports_sel ::
-  Common_primitive ->
-    [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
-       Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
+  forall a.
+    (Len a) => Common_primitive a ->
+                 [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
+                    Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
 src_ports_sel (Src_Ports x6) = x6;
 
-is_Src_Ports :: Common_primitive -> Bool;
+is_Src_Ports :: forall a. (Len a) => Common_primitive a -> Bool;
 is_Src_Ports (Src x1) = False;
 is_Src_Ports (Dst x2) = False;
 is_Src_Ports (IIface x3) = False;
@@ -2530,30 +2543,35 @@ ipt_ports_compress pss =
   ipt_ports_andlist_compress (map ipt_ports_negation_type_normalize pss);
 
 normalize_ports_step ::
-  (Common_primitive -> Bool,
-    Common_primitive ->
-      [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
-         Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))]) ->
-    ([(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
-        Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))] ->
-      Common_primitive) ->
-      Match_expr Common_primitive -> [Match_expr Common_primitive];
+  forall a.
+    (Len a) => (Common_primitive a -> Bool,
+                 Common_primitive a ->
+                   [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
+                      Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))]) ->
+                 ([(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
+                     Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))] ->
+                   Common_primitive a) ->
+                   Match_expr (Common_primitive a) ->
+                     [Match_expr (Common_primitive a)];
 normalize_ports_step disc_sel c =
   normalize_primitive_extract disc_sel c
     (\ me -> map (\ pt -> [pt]) (ipt_ports_compress me));
 
 normalize_src_ports ::
-  Match_expr Common_primitive -> [Match_expr Common_primitive];
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 [Match_expr (Common_primitive a)];
 normalize_src_ports =
   normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports;
 
 dst_ports_sel ::
-  Common_primitive ->
-    [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
-       Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
+  forall a.
+    (Len a) => Common_primitive a ->
+                 [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
+                    Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
 dst_ports_sel (Dst_Ports x7) = x7;
 
-is_Dst_Ports :: Common_primitive -> Bool;
+is_Dst_Ports :: forall a. (Len a) => Common_primitive a -> Bool;
 is_Dst_Ports (Src x1) = False;
 is_Dst_Ports (Dst x2) = False;
 is_Dst_Ports (IIface x3) = False;
@@ -2566,7 +2584,9 @@ is_Dst_Ports (CT_State x9) = False;
 is_Dst_Ports (Extra x10) = False;
 
 normalize_dst_ports ::
-  Match_expr Common_primitive -> [Match_expr Common_primitive];
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 [Match_expr (Common_primitive a)];
 normalize_dst_ports =
   normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports;
 
@@ -2577,7 +2597,8 @@ normalize_rules f (Rule m a : rs) =
   map (\ ma -> Rule ma a) (f m) ++ normalize_rules f rs;
 
 transform_normalize_primitives ::
-  [Rule Common_primitive] -> [Rule Common_primitive];
+  forall a.
+    (Len a) => [Rule (Common_primitive a)] -> [Rule (Common_primitive a)];
 transform_normalize_primitives =
   (((normalize_rules normalize_dst_ips . normalize_rules normalize_src_ips) .
      normalize_rules normalize_dst_ports) .
@@ -2591,7 +2612,9 @@ ctstate_is_UNIV c =
       member CT_Related c && member CT_Untracked c && member CT_Invalid c;
 
 optimize_primitive_univ ::
-  Match_expr Common_primitive -> Match_expr Common_primitive;
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 Match_expr (Common_primitive a);
 optimize_primitive_univ (Match (IIface iface)) =
   (if equal_iface iface ifaceAny then MatchAny else Match (IIface iface));
 optimize_primitive_univ (Match (OIface iface)) =
@@ -2793,7 +2816,8 @@ optimize_matches f rs =
     (\ m -> (if matcheq_matchNone (f m) then Nothing else Just (f m))) rs;
 
 transform_optimize_dnf_strict ::
-  [Rule Common_primitive] -> [Rule Common_primitive];
+  forall a.
+    (Len a) => [Rule (Common_primitive a)] -> [Rule (Common_primitive a)];
 transform_optimize_dnf_strict =
   (optimize_matches opt_MatchAny_match_expr . normalize_rules_dnf) .
     optimize_matches (opt_MatchAny_match_expr . optimize_primitive_univ);
@@ -2815,7 +2839,9 @@ remdups_rev_code ps (r : rs) =
   (if membera ps r then remdups_rev_code ps rs
     else r : remdups_rev_code (r : ps) rs);
 
-upper_closure :: [Rule Common_primitive] -> [Rule Common_primitive];
+upper_closure ::
+  forall a.
+    (Len a) => [Rule (Common_primitive a)] -> [Rule (Common_primitive a)];
 upper_closure rs =
   remdups_rev_code []
     (transform_optimize_dnf_strict
@@ -2965,7 +2991,7 @@ rw_Reject (Rule v Unknown : rs) = Rule v Unknown : rw_Reject rs;
 
 get_exists_matching_src_ips_executable ::
   Iface ->
-    Match_expr Common_primitive ->
+    Match_expr (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))) ->
       Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
 get_exists_matching_src_ips_executable iface m =
   let {
@@ -2996,7 +3022,7 @@ has_primitive (MatchAnd m1 m2) = has_primitive m1 || has_primitive m2;
 
 get_all_matching_src_ips_executable ::
   Iface ->
-    Match_expr Common_primitive ->
+    Match_expr (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))) ->
       Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
 get_all_matching_src_ips_executable iface m =
   let {
@@ -3020,7 +3046,7 @@ get_all_matching_src_ips_executable iface m =
 no_spoofing_algorithm_executable ::
   Iface ->
     (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
-      [Rule Common_primitive] ->
+      [Rule (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))] ->
         Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
           Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> Bool;
 no_spoofing_algorithm_executable iface ipassmt [] allowed denied1 =
@@ -3056,7 +3082,7 @@ no_spoofing_algorithm_executable uu uv (Rule vb Unknown : va) ux uy =
 no_spoofing_iface ::
   Iface ->
     (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
-      [Rule Common_primitive] -> Bool;
+      [Rule (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))] -> Bool;
 no_spoofing_iface iface ipassmt rs =
   no_spoofing_algorithm_executable iface ipassmt rs empty_WordInterval
     empty_WordInterval;
@@ -3103,15 +3129,19 @@ sanity_wf_ruleset gamma =
                          ran;
 
 map_of_string ::
-  [([Prelude.Char], [Rule Common_primitive])] ->
-    [Prelude.Char] -> Maybe [Rule Common_primitive];
+  [([Prelude.Char],
+     [Rule (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))])] ->
+    [Prelude.Char] ->
+      Maybe [Rule (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))];
 map_of_string rs = map_of rs;
 
 nat_to_16word :: Nat -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
 nat_to_16word i = of_nat i;
 
 compress_parsed_extra ::
-  [Negation_type Common_primitive] -> [Negation_type Common_primitive];
+  forall a.
+    (Len a) => [Negation_type (Common_primitive a)] ->
+                 [Negation_type (Common_primitive a)];
 compress_parsed_extra [] = [];
 compress_parsed_extra (a1 : a2 : asa) =
   (if is_pos_Extra a1 && is_pos_Extra a2
@@ -3196,8 +3226,9 @@ match_list_to_match_expr [] = MatchNot MatchAny;
 match_list_to_match_expr (m : ms) = matchOr m (match_list_to_match_expr ms);
 
 ipassmt_iface_replace_srcip_mexpr ::
-  (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
-    Iface -> Match_expr Common_primitive;
+  forall a.
+    (Len a) => (Iface -> Maybe [(Word a, Nat)]) ->
+                 Iface -> Match_expr (Common_primitive a);
 ipassmt_iface_replace_srcip_mexpr ipassmt ifce =
   (case ipassmt ifce of {
     Nothing -> Match (IIface ifce);
@@ -3207,8 +3238,10 @@ ipassmt_iface_replace_srcip_mexpr ipassmt ifce =
   });
 
 iiface_rewrite ::
-  (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
-    Match_expr Common_primitive -> Match_expr Common_primitive;
+  forall a.
+    (Len a) => (Iface -> Maybe [(Word a, Nat)]) ->
+                 Match_expr (Common_primitive a) ->
+                   Match_expr (Common_primitive a);
 iiface_rewrite uu MatchAny = MatchAny;
 iiface_rewrite ipassmt (Match (IIface ifce)) =
   ipassmt_iface_replace_srcip_mexpr ipassmt ifce;
@@ -3335,8 +3368,9 @@ process_call gamma (Rule v Unknown : rs) =
   Rule v Unknown : process_call gamma rs;
 
 ipassmt_iface_constrain_srcip_mexpr ::
-  (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
-    Iface -> Match_expr Common_primitive;
+  forall a.
+    (Len a) => (Iface -> Maybe [(Word a, Nat)]) ->
+                 Iface -> Match_expr (Common_primitive a);
 ipassmt_iface_constrain_srcip_mexpr ipassmt ifce =
   (case ipassmt ifce of {
     Nothing -> Match (IIface ifce);
@@ -3347,8 +3381,10 @@ ipassmt_iface_constrain_srcip_mexpr ipassmt ifce =
   });
 
 iiface_constrain ::
-  (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
-    Match_expr Common_primitive -> Match_expr Common_primitive;
+  forall a.
+    (Len a) => (Iface -> Maybe [(Word a, Nat)]) ->
+                 Match_expr (Common_primitive a) ->
+                   Match_expr (Common_primitive a);
 iiface_constrain uu MatchAny = MatchAny;
 iiface_constrain ipassmt (Match (IIface ifce)) =
   ipassmt_iface_constrain_srcip_mexpr ipassmt ifce;
@@ -3400,8 +3436,9 @@ access_matrix_pretty ::
 access_matrix_pretty = access_matrix_pretty_code;
 
 iface_try_rewrite ::
-  [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
-    [Rule Common_primitive] -> [Rule Common_primitive];
+  forall a.
+    (Len a) => [(Iface, [(Word a, Nat)])] ->
+                 [Rule (Common_primitive a)] -> [Rule (Common_primitive a)];
 iface_try_rewrite ipassmt rs =
   (if let {
         is = image fst (Set ipassmt);
@@ -3478,7 +3515,8 @@ ctstate_set_toString :: Set Ctstate -> [Prelude.Char];
 ctstate_set_toString s =
   list_separated_toString "," ctstate_toString (enum_set_to_list s);
 
-normalized_dst_ports :: Match_expr Common_primitive -> Bool;
+normalized_dst_ports ::
+  forall a. (Len a) => Match_expr (Common_primitive a) -> Bool;
 normalized_dst_ports MatchAny = True;
 normalized_dst_ports (Match (Dst_Ports [])) = True;
 normalized_dst_ports (Match (Dst_Ports [uu])) = True;
@@ -3508,7 +3546,8 @@ normalized_dst_ports (MatchNot (MatchAnd uz va)) = False;
 normalized_dst_ports (MatchNot (MatchNot vb)) = False;
 normalized_dst_ports (MatchNot MatchAny) = True;
 
-normalized_src_ports :: Match_expr Common_primitive -> Bool;
+normalized_src_ports ::
+  forall a. (Len a) => Match_expr (Common_primitive a) -> Bool;
 normalized_src_ports MatchAny = True;
 normalized_src_ports (Match (Src_Ports [])) = True;
 normalized_src_ports (Match (Src_Ports [uu])) = True;
@@ -3567,7 +3606,8 @@ iface_toString descr iface =
         (Iface a) = iface;
       } in descr ++ a);
 
-common_primitive_toString :: Common_primitive -> [Prelude.Char];
+common_primitive_toString ::
+  Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prelude.Char];
 common_primitive_toString (Src (IpAddr ip)) = "-s " ++ ipv4addr_toString ip;
 common_primitive_toString (Dst (IpAddr ip)) = "-d " ++ ipv4addr_toString ip;
 common_primitive_toString (Src (IpAddrNetmask ip n)) =
@@ -3594,8 +3634,10 @@ common_primitive_toString (L4_Flags (TCP_Flags c m)) =
 common_primitive_toString (Extra e) = "~~" ++ e ++ "~~";
 
 abstract_primitive ::
-  (Negation_type Common_primitive -> Bool) ->
-    Match_expr Common_primitive -> Match_expr Common_primitive;
+  (Negation_type (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))) ->
+    Bool) ->
+    Match_expr (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))) ->
+      Match_expr (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))));
 abstract_primitive uu MatchAny = MatchAny;
 abstract_primitive disc (Match a) =
   (if disc (Pos a) then Match (Extra (common_primitive_toString a))
@@ -3619,7 +3661,8 @@ has_disc_negated disc neg (MatchNot m) = has_disc_negated disc (not neg) m;
 has_disc_negated disc neg (MatchAnd m1 m2) =
   has_disc_negated disc neg m1 || has_disc_negated disc neg m2;
 
-normalized_ifaces :: Match_expr Common_primitive -> Bool;
+normalized_ifaces ::
+  forall a. (Len a) => Match_expr (Common_primitive a) -> Bool;
 normalized_ifaces m =
   not (has_disc_negated (\ a -> is_Iiface a || is_Oiface a) False m);
 
@@ -3690,8 +3733,8 @@ dst_update dsta
   Simple_match_ext iiface oiface src (dsta dst) proto sports dports more;
 
 common_primitive_match_to_simple_match ::
-  Match_expr Common_primitive ->
-    Maybe (Simple_match_ext (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ());
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) -> Maybe (Simple_match_ext a ());
 common_primitive_match_to_simple_match MatchAny = Just simple_match_any;
 common_primitive_match_to_simple_match (MatchNot MatchAny) = Nothing;
 common_primitive_match_to_simple_match (Match (IIface iif)) =
@@ -3762,7 +3805,7 @@ common_primitive_match_to_simple_match (MatchNot (Match (Extra vs))) =
 common_primitive_match_to_simple_match (MatchNot (Match (CT_State vt))) =
   error "undefined";
 
-is_L4_Flags :: Common_primitive -> Bool;
+is_L4_Flags :: forall a. (Len a) => Common_primitive a -> Bool;
 is_L4_Flags (Src x1) = False;
 is_L4_Flags (Dst x2) = False;
 is_L4_Flags (IIface x3) = False;
@@ -3774,7 +3817,7 @@ is_L4_Flags (L4_Flags x8) = True;
 is_L4_Flags (CT_State x9) = False;
 is_L4_Flags (Extra x10) = False;
 
-is_CT_State :: Common_primitive -> Bool;
+is_CT_State :: forall a. (Len a) => Common_primitive a -> Bool;
 is_CT_State (Src x1) = False;
 is_CT_State (Dst x2) = False;
 is_CT_State (IIface x3) = False;
@@ -3786,7 +3829,7 @@ is_CT_State (L4_Flags x8) = False;
 is_CT_State (CT_State x9) = True;
 is_CT_State (Extra x10) = False;
 
-is_Extra :: Common_primitive -> Bool;
+is_Extra :: forall a. (Len a) => Common_primitive a -> Bool;
 is_Extra (Src x1) = False;
 is_Extra (Dst x2) = False;
 is_Extra (IIface x3) = False;
@@ -3798,10 +3841,12 @@ is_Extra (L4_Flags x8) = False;
 is_Extra (CT_State x9) = False;
 is_Extra (Extra x10) = True;
 
-normalized_protocols :: Match_expr Common_primitive -> Bool;
+normalized_protocols ::
+  forall a. (Len a) => Match_expr (Common_primitive a) -> Bool;
 normalized_protocols m = not (has_disc_negated is_Prot False m);
 
-normalized_src_ips :: Match_expr Common_primitive -> Bool;
+normalized_src_ips ::
+  forall a. (Len a) => Match_expr (Common_primitive a) -> Bool;
 normalized_src_ips MatchAny = True;
 normalized_src_ips (Match (Src (IpAddrRange uu uv))) = False;
 normalized_src_ips (Match (Src (IpAddr uw))) = False;
@@ -3831,7 +3876,8 @@ normalized_src_ips (MatchNot (MatchAnd vc vd)) = False;
 normalized_src_ips (MatchNot (MatchNot ve)) = False;
 normalized_src_ips (MatchNot MatchAny) = True;
 
-normalized_dst_ips :: Match_expr Common_primitive -> Bool;
+normalized_dst_ips ::
+  forall a. (Len a) => Match_expr (Common_primitive a) -> Bool;
 normalized_dst_ips MatchAny = True;
 normalized_dst_ips (Match (Dst (IpAddrRange uu uv))) = False;
 normalized_dst_ips (Match (Dst (IpAddr uw))) = False;
@@ -3861,7 +3907,8 @@ normalized_dst_ips (MatchNot (MatchAnd vc vd)) = False;
 normalized_dst_ips (MatchNot (MatchNot ve)) = False;
 normalized_dst_ips (MatchNot MatchAny) = True;
 
-check_simple_fw_preconditions :: [Rule Common_primitive] -> Bool;
+check_simple_fw_preconditions ::
+  forall a. (Len a) => [Rule (Common_primitive a)] -> Bool;
 check_simple_fw_preconditions rs =
   all (\ (Rule m a) ->
         normalized_src_ports m &&
@@ -3888,8 +3935,7 @@ action_to_simple_action Empty = error "undefined";
 action_to_simple_action Unknown = error "undefined";
 
 to_simple_firewall ::
-  [Rule Common_primitive] ->
-    [Simple_rule (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
+  forall a. (Len a) => [Rule (Common_primitive a)] -> [Simple_rule a];
 to_simple_firewall rs =
   (if check_simple_fw_preconditions rs
     then map_filter
@@ -3952,8 +3998,10 @@ unfold_optimize_ruleset_CHAIN optimize chain_name default_action rs =
 unfold_ruleset_CHAIN_safe ::
   [Prelude.Char] ->
     Action ->
-      ([Prelude.Char] -> Maybe [Rule Common_primitive]) ->
-        Maybe [Rule Common_primitive];
+      ([Prelude.Char] ->
+        Maybe [Rule (Common_primitive
+                      (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))]) ->
+        Maybe [Rule (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))];
 unfold_ruleset_CHAIN_safe =
   unfold_optimize_ruleset_CHAIN optimize_primitive_univ;
 
@@ -3976,7 +4024,10 @@ action_toString Return = "-j RETURN";
 action_toString Unknown = "!!!!!!!!!!! UNKNOWN !!!!!!!!!!!";
 
 ipt_tcp_flags_assume_flag ::
-  Ipt_tcp_flags -> Match_expr Common_primitive -> Match_expr Common_primitive;
+  forall a.
+    (Len a) => Ipt_tcp_flags ->
+                 Match_expr (Common_primitive a) ->
+                   Match_expr (Common_primitive a);
 ipt_tcp_flags_assume_flag flg (Match (L4_Flags x)) =
   (if ipt_tcp_flags_equal x flg then MatchAny
     else (case match_tcp_flags_conjunct_option x flg of {
@@ -3999,12 +4050,17 @@ ipt_tcp_flags_assume_flag flg (MatchAnd m1 m2) =
   MatchAnd (ipt_tcp_flags_assume_flag flg m1)
     (ipt_tcp_flags_assume_flag flg m2);
 
-ipt_tcp_flags_assume_syn :: [Rule Common_primitive] -> [Rule Common_primitive];
+ipt_tcp_flags_assume_syn ::
+  forall a.
+    (Len a) => [Rule (Common_primitive a)] -> [Rule (Common_primitive a)];
 ipt_tcp_flags_assume_syn =
   optimize_matches (ipt_tcp_flags_assume_flag ipt_tcp_syn);
 
 ctstate_assume_state ::
-  Ctstate -> Match_expr Common_primitive -> Match_expr Common_primitive;
+  forall a.
+    (Len a) => Ctstate ->
+                 Match_expr (Common_primitive a) ->
+                   Match_expr (Common_primitive a);
 ctstate_assume_state s (Match (CT_State x)) =
   (if member s x then MatchAny else MatchNot MatchAny);
 ctstate_assume_state s (Match (Src v)) = Match (Src v);
@@ -4021,14 +4077,19 @@ ctstate_assume_state uu MatchAny = MatchAny;
 ctstate_assume_state s (MatchAnd m1 m2) =
   MatchAnd (ctstate_assume_state s m1) (ctstate_assume_state s m2);
 
-ctstate_assume_new :: [Rule Common_primitive] -> [Rule Common_primitive];
+ctstate_assume_new ::
+  forall a.
+    (Len a) => [Rule (Common_primitive a)] -> [Rule (Common_primitive a)];
 ctstate_assume_new = optimize_matches (ctstate_assume_state CT_New);
 
-packet_assume_new :: [Rule Common_primitive] -> [Rule Common_primitive];
+packet_assume_new ::
+  forall a.
+    (Len a) => [Rule (Common_primitive a)] -> [Rule (Common_primitive a)];
 packet_assume_new = ctstate_assume_new . ipt_tcp_flags_assume_syn;
 
 abstract_for_simple_firewall ::
-  Match_expr Common_primitive -> Match_expr Common_primitive;
+  Match_expr (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))) ->
+    Match_expr (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))));
 abstract_for_simple_firewall =
   abstract_primitive
     (\ a ->
@@ -4050,7 +4111,7 @@ ipt_ipv4range_toString (IpAddrRange ip1 ip2) =
 
 to_simple_firewall_without_interfaces ::
   [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
-    [Rule Common_primitive] ->
+    [Rule (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))] ->
       [Simple_rule (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
 to_simple_firewall_without_interfaces ipassmt rs =
   to_simple_firewall
@@ -4066,7 +4127,8 @@ to_simple_firewall_without_interfaces ipassmt rs =
               (upper_closure (packet_assume_new rs)))))));
 
 common_primitive_match_expr_toString ::
-  Match_expr Common_primitive -> [Prelude.Char];
+  Match_expr (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))) ->
+    [Prelude.Char];
 common_primitive_match_expr_toString MatchAny = [];
 common_primitive_match_expr_toString (Match m) = common_primitive_toString m;
 common_primitive_match_expr_toString (MatchAnd m1 m2) =
