@@ -4,7 +4,7 @@ begin
 
 
 section\<open>Examples Big Step Semantics\<close>
-text\<open>we use a primitive matcher which always applies.\<close>
+text\<open>We use a primitive matcher which always applies. We don't care about matching in this example.\<close>
   fun applies_Yes :: "('a, 'p) matcher" where
   "applies_Yes m p = True" 
   lemma[simp]: "Semantics.matches applies_Yes MatchAny p" by simp
