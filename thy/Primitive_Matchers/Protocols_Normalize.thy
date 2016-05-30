@@ -90,7 +90,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
     apply(auto intro: protocol.exhaust)
     done
   
-  definition compress_normalize_protocols :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr option" where 
+  definition compress_normalize_protocols :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr option" where 
     "compress_normalize_protocols m \<equiv> compress_normalize_primitive (is_Prot, prot_sel) Prot compress_protocols m"
 
   lemma (in primitive_matcher_generic) compress_normalize_protocols_Some:
@@ -192,10 +192,10 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
 
   (*TODO: optimize much much much more!*)
   value[code] "compress_normalize_protocols 
-    (MatchAnd (MatchAnd (MatchAnd (Match (Prot (Proto TCP))) (MatchNot (Match (Prot (Proto UDP))))) (Match (IIface (Iface ''eth1''))))
+    (MatchAnd (MatchAnd (MatchAnd (Match ((Prot (Proto TCP)):: 32 common_primitive)) (MatchNot (Match (Prot (Proto UDP))))) (Match (IIface (Iface ''eth1''))))
               (Match (Prot (Proto TCP))))"
     
-  value[code] "compress_normalize_protocols MatchAny"
+  value[code] "compress_normalize_protocols (MatchAny:: 32 common_primitive match_expr)"
 
 
   

@@ -6,16 +6,16 @@ imports Common_Primitive_Lemmas
 begin
 
   text\<open>A mapping from an interface to its assigned ip addresses in CIDR notation\<close>
-  type_synonym ipassignment="iface \<rightharpoonup> (ipv4addr \<times> nat) list" (*technically, a set*)
+  type_synonym 'i ipassignment="iface \<rightharpoonup> ('i word \<times> nat) list" (*technically, a set*)
 
 
-subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
+subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
 
   text\<open>warning if interface map has wildcards\<close>
-  definition ipassmt_sanity_nowildcards :: "ipassignment \<Rightarrow> bool" where
+  definition ipassmt_sanity_nowildcards :: "'i ipassignment \<Rightarrow> bool" where
     "ipassmt_sanity_nowildcards ipassmt \<equiv> \<forall> iface \<in> dom ipassmt. \<not> iface_is_wildcard iface"
 
-    text\<open>Executable of the @{typ ipassignment} is given as a list.\<close>
+    text\<open>Executable of the @{typ "'i ipassignment"} is given as a list.\<close>
     lemma[code_unfold]: "ipassmt_sanity_nowildcards (map_of ipassmt) \<longleftrightarrow> (\<forall> iface \<in> fst` set ipassmt. \<not> iface_is_wildcard iface)"
       by(simp add: ipassmt_sanity_nowildcards_def Map.dom_map_of_conv_image_fst)
   
@@ -32,7 +32,7 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
   (*consts undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces :: "'a"
   declare [[code abort: undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces]]*)
   (*pretty excpetion breaks value[code] and by eval*)
-  definition map_of_ipassmt :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> iface \<rightharpoonup> (32 word \<times> nat) list" where
+  definition map_of_ipassmt :: "(iface \<times> ('i word \<times> nat) list) list \<Rightarrow> iface \<rightharpoonup> ('i word \<times> nat) list" where
     "map_of_ipassmt ipassmt = (
       if
         distinct (map fst ipassmt) \<and> ipassmt_sanity_nowildcards (map_of ipassmt)
@@ -44,7 +44,7 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
   text\<open>some additional (optional) sanity checks\<close>
   
   text\<open>sanity check that there are no zone-spanning interfaces\<close>
-  definition ipassmt_sanity_disjoint :: "ipassignment \<Rightarrow> bool" where
+  definition ipassmt_sanity_disjoint :: "'i::len ipassignment \<Rightarrow> bool" where
     "ipassmt_sanity_disjoint ipassmt \<equiv> \<forall> i1 \<in> dom ipassmt. \<forall> i2 \<in> dom ipassmt. i1 \<noteq> i2 \<longrightarrow>
           ipcidr_union_set (set (the (ipassmt i1))) \<inter> ipcidr_union_set (set (the (ipassmt i2))) = {}"
   
@@ -58,7 +58,7 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
   
   
   text\<open>Checking that the ipassmt covers the complete ipv4 address space.\<close>
-  definition ipassmt_sanity_complete :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> bool" where
+  definition ipassmt_sanity_complete :: "(iface \<times> ('i::len word \<times> nat) list) list \<Rightarrow> bool" where
     "ipassmt_sanity_complete ipassmt \<equiv> distinct (map fst ipassmt) \<and> (\<Union>(ipcidr_union_set ` set ` (ran (map_of ipassmt)))) = UNIV"
 
     lemma[code_unfold]: "ipassmt_sanity_complete ipassmt \<longleftrightarrow> distinct (map fst ipassmt) \<and> (let range = map snd ipassmt in 
@@ -78,13 +78,13 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
 
     value[code] "ipassmt_sanity_nowildcards (map_of [(Iface ''eth1.1017'', [(ipv4addr_of_dotdecimal (131,159,14,240), 28)])])"
 
-  fun collect_ifaces' :: "common_primitive rule list \<Rightarrow> iface list" where
+  fun collect_ifaces' :: "'i::len common_primitive rule list \<Rightarrow> iface list" where
     "collect_ifaces' [] = []" |
     "collect_ifaces' ((Rule m a)#rs) = filter (\<lambda>iface. iface \<noteq> ifaceAny) (
                                       (map (\<lambda>x. case x of Pos i \<Rightarrow> i | Neg i \<Rightarrow> i) (fst (primitive_extractor (is_Iiface, iiface_sel) m))) @
                                       (map (\<lambda>x. case x of Pos i \<Rightarrow> i | Neg i \<Rightarrow> i) (fst (primitive_extractor (is_Oiface, oiface_sel) m))) @ collect_ifaces' rs)"
 
-  definition collect_ifaces :: "common_primitive rule list \<Rightarrow> iface list" where
+  definition collect_ifaces :: "'i::len common_primitive rule list \<Rightarrow> iface list" where
     "collect_ifaces rs \<equiv> mergesort_remdups (collect_ifaces' rs)"
   lemma "set (collect_ifaces rs) = set (collect_ifaces' rs)"
     by(simp add: collect_ifaces_def mergesort_remdups_correct)
@@ -92,7 +92,7 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
   text\<open>sanity check that all interfaces mentioned in the ruleset are also listed in the ipassmt. May fail for wildcard interfaces in the ruleset.\<close>
   (*TODO: wildcards*)
   (*primitive_extractor requires normalized_nnf_primitives*)
-  definition ipassmt_sanity_defined :: "common_primitive rule list \<Rightarrow> ipassignment \<Rightarrow> bool" where
+  definition ipassmt_sanity_defined :: "'i::len common_primitive rule list \<Rightarrow> 'i ipassignment \<Rightarrow> bool" where
     "ipassmt_sanity_defined rs ipassmt \<equiv> \<forall> iface \<in> set (collect_ifaces rs). iface \<in> dom ipassmt"
 
     lemma[code]: "ipassmt_sanity_defined rs ipassmt \<longleftrightarrow> (\<forall> iface \<in> set (collect_ifaces rs). ipassmt iface \<noteq> None)"
@@ -107,7 +107,7 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
 
 
   (*TODO: use and add code equation*)
-  definition ipassmt_ignore_wildcard :: "ipassignment \<Rightarrow> ipassignment" where
+  definition ipassmt_ignore_wildcard :: "'i::len ipassignment \<Rightarrow> 'i ipassignment" where
     "ipassmt_ignore_wildcard ipassmt \<equiv> \<lambda>k. case ipassmt k of None \<Rightarrow> None 
                                                            | Some ips \<Rightarrow> if ipcidr_union_set (set ips) = UNIV then None else Some ips"
 
@@ -117,7 +117,7 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
     apply(simp split: option.split_asm split_if_asm)
     done
 
-  definition ipassmt_ignore_wildcard_list:: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> (iface \<times> (32 word \<times> nat) list) list" where
+  definition ipassmt_ignore_wildcard_list:: "(iface \<times> ('i::len word \<times> nat) list) list \<Rightarrow> (iface \<times> ('i word \<times> nat) list) list" where
     "ipassmt_ignore_wildcard_list ipassmt = filter (\<lambda>(_,ips).  \<not> wordinterval_eq (l2br (map ipcidr_to_interval ips)) wordinterval_UNIV) ipassmt"
 
   (*distinct fst ipassmt notwendig?*)
@@ -141,7 +141,8 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
 
   
   text\<open>Debug algorithm with human-readable output\<close>
-  definition debug_ipassmt :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> common_primitive rule list \<Rightarrow> string list" where
+  (*TODO: ipv4 only!*)
+  definition debug_ipassmt :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> 32 common_primitive rule list \<Rightarrow> string list" where
     "debug_ipassmt ipassmt rs \<equiv> let ifaces = (map fst ipassmt) in [
       ''distinct: '' @ (if distinct ifaces then ''passed'' else ''FAIL!'')
       , ''ipassmt_sanity_nowildcards: '' @
@@ -217,10 +218,10 @@ subsection\<open>Sanity checking for an @{typ ipassignment}.\<close>
      apply(rename_tac i1 i2 ips1 ips2)
      apply(erule_tac x=i1 in ballE)
       prefer 2
-      using dom_ipassmt_ignore_wildcard apply auto[1]
+      using dom_ipassmt_ignore_wildcard apply (metis domI option.sel) (*TODO: tune*)
      apply(erule_tac x=i2 in ballE)
       prefer 2
-      using dom_ipassmt_ignore_wildcard apply auto[1]
+      using dom_ipassmt_ignore_wildcard apply (metis domI domIff option.sel) (*TODO: tune*)
      apply(simp add: ipassmt_ignore_wildcard_the; fail)
     apply(clarify)
     apply(simp)

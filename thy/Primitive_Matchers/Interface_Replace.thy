@@ -9,7 +9,7 @@ subsection\<open>constraining interfaces\<close>
 
 
 (*TODO: use uncurry here to make def simpler*)
-definition ipassmt_iface_constrain_srcip_mexpr :: "ipassignment \<Rightarrow> iface \<Rightarrow> common_primitive match_expr" where
+definition ipassmt_iface_constrain_srcip_mexpr :: "'i::len ipassignment \<Rightarrow> iface \<Rightarrow> 'i common_primitive match_expr" where
   "ipassmt_iface_constrain_srcip_mexpr ipassmt ifce = (case ipassmt ifce of
           None \<Rightarrow> Match (IIface ifce)
         | Some ips \<Rightarrow> MatchAnd
@@ -47,7 +47,7 @@ case (Some ips)
 qed
 
 
-fun iiface_constrain :: "ipassignment \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
+fun iiface_constrain :: "'i::len ipassignment \<Rightarrow> 'i common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where
   "iiface_constrain _       MatchAny = MatchAny" |
   "iiface_constrain ipassmt (Match (IIface ifce)) = ipassmt_iface_constrain_srcip_mexpr ipassmt ifce" |
   "iiface_constrain ipassmt (Match a) = Match a" |
@@ -216,7 +216,7 @@ text\<open>This is a stringer rewriting since it removes the interface completel
 
 thm ipassmt_sanity_disjoint_def
 
-definition ipassmt_iface_replace_srcip_mexpr :: "ipassignment \<Rightarrow> iface \<Rightarrow> common_primitive match_expr" where
+definition ipassmt_iface_replace_srcip_mexpr :: "'i::len ipassignment \<Rightarrow> iface \<Rightarrow> 'i common_primitive match_expr" where
   "ipassmt_iface_replace_srcip_mexpr ipassmt ifce = (case ipassmt ifce of
           None \<Rightarrow> Match (IIface ifce)
         | Some ips \<Rightarrow> (match_list_to_match_expr (map (Match \<circ> Src) (map (\<lambda>(ip, n). (IpAddrNetmask ip n)) ips)))
@@ -243,7 +243,7 @@ case (Some ips)
 qed
 
 
-fun iiface_rewrite :: "ipassignment \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
+fun iiface_rewrite :: "'i::len ipassignment \<Rightarrow> 'i common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where
   "iiface_rewrite _       MatchAny = MatchAny" |
   "iiface_rewrite ipassmt (Match (IIface ifce)) = ipassmt_iface_replace_srcip_mexpr ipassmt ifce" |
   "iiface_rewrite ipassmt (Match a) = Match a" |

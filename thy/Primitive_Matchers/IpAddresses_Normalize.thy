@@ -4,7 +4,7 @@ begin
 
 
 subsection\<open>Normalizing IP Addresses\<close>
-  fun normalized_src_ips :: "common_primitive match_expr \<Rightarrow> bool" where
+  fun normalized_src_ips :: "'i::len common_primitive match_expr \<Rightarrow> bool" where
     "normalized_src_ips MatchAny = True" |
     "normalized_src_ips (Match (Src (IpAddrRange _ _))) = False" |
     "normalized_src_ips (Match (Src (IpAddr _))) = False" |
@@ -20,7 +20,7 @@ subsection\<open>Normalizing IP Addresses\<close>
   lemma normalized_src_ips_def2: "normalized_src_ips ms = normalized_n_primitive (is_Src, src_sel) normalized_cidr_ip ms"
     by(induction ms rule: normalized_src_ips.induct, simp_all add: normalized_cidr_ip_def)
 
-  fun normalized_dst_ips :: "common_primitive match_expr \<Rightarrow> bool" where
+  fun normalized_dst_ips :: "'i::len common_primitive match_expr \<Rightarrow> bool" where
     "normalized_dst_ips MatchAny = True" |
     "normalized_dst_ips (Match (Dst (IpAddrRange _ _))) = False" |
     "normalized_dst_ips (Match (Dst (IpAddr _))) = False" |
@@ -38,16 +38,16 @@ subsection\<open>Normalizing IP Addresses\<close>
   
 
   value "normalize_primitive_extract (is_Src, src_sel) Src ipt_iprange_compress
-      (MatchAnd (MatchNot (Match (Src_Ports [(1,2)]))) (Match (Src_Ports [(1,2)])))"
+      (MatchAnd (MatchNot (Match ((Src_Ports [(1,2)]):: 32 common_primitive))) (Match (Src_Ports [(1,2)])))"
   value "normalize_primitive_extract (is_Src, src_sel) Src ipt_iprange_compress
-      (MatchAnd (MatchNot (Match (Src (IpAddrNetmask 10 2)))) (Match (Src_Ports [(1,2)])))"
+      (MatchAnd (MatchNot (Match (Src (IpAddrNetmask (10::ipv4addr) 2)))) (Match (Src_Ports [(1,2)])))"
   value "normalize_primitive_extract (is_Src, src_sel) Src ipt_iprange_compress
-      (MatchAnd (Match (Src (IpAddrNetmask 10 2))) (MatchAnd (Match (Src (IpAddrNetmask 10 8))) (Match (Src_Ports [(1,2)]))))"
+      (MatchAnd (Match (Src (IpAddrNetmask (10::ipv4addr) 2))) (MatchAnd (Match (Src (IpAddrNetmask 10 8))) (Match (Src_Ports [(1,2)]))))"
   value "normalize_primitive_extract (is_Src, src_sel) Src ipt_iprange_compress
-      (MatchAnd (Match (Src (IpAddrNetmask 10 2))) (MatchAnd (Match (Src (IpAddrNetmask 192 8))) (Match (Src_Ports [(1,2)]))))"
+      (MatchAnd (Match (Src (IpAddrNetmask (10::ipv4addr) 2))) (MatchAnd (Match (Src (IpAddrNetmask 192 8))) (Match (Src_Ports [(1,2)]))))"
 
 
-  definition normalize_src_ips :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where
+  definition normalize_src_ips :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
     "normalize_src_ips = normalize_primitive_extract (common_primitive.is_Src, src_sel)
                                       common_primitive.Src ipt_iprange_compress"
   
@@ -80,7 +80,7 @@ subsection\<open>Normalizing IP Addresses\<close>
    by(simp_all add: ipt_iprange_compress_normalized_IpAddrNetmask)
 
 
-  definition normalize_dst_ips :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where
+  definition normalize_dst_ips :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
     "normalize_dst_ips = normalize_primitive_extract (common_primitive.is_Dst, dst_sel)
                                 common_primitive.Dst ipt_iprange_compress"
 

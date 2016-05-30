@@ -14,7 +14,7 @@ text\<open>Generalized Definition agnostic of IP Addresses fro IPv4 and IPv6\<cl
 (*TODO: generic assumptions for a common matcher without information about IPs.
         to be used to add ipv6 integration without duplicating all proofs *)
 locale primitive_matcher_generic =
-  fixes \<beta> :: "(common_primitive, ('i::len, 'a) simple_packet_scheme) exact_match_tac"
+  fixes \<beta> :: "('i::len common_primitive, ('i::len, 'a) simple_packet_scheme) exact_match_tac"
   assumes IIface: "\<forall> p i. \<beta> (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))"
       and OIface: "\<forall> p i. \<beta> (OIface i) p = bool_to_ternary (match_iface i (p_oiface p))"
         and Prot: "\<forall> p proto. \<beta> (Prot proto) p = bool_to_ternary (match_proto proto (p_proto p))"
@@ -78,7 +78,7 @@ subsection\<open>Basic optimisations\<close>
   (*TODO: move
     TODO: this is currently not used.*)
   text\<open>Compress many @{const Extra} expressions to one expression.\<close>
-  fun compress_extra :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
+  fun compress_extra :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where
     "compress_extra (Match x) = Match x" |
     "compress_extra (MatchNot (Match (Extra e))) = Match (Extra (''NOT (''@e@'')''))" |
     "compress_extra (MatchNot m) = (MatchNot (compress_extra m))" |
@@ -100,7 +100,7 @@ subsection\<open>Basic optimisations\<close>
   value "compress_extra (MatchAnd (Match (Extra ''-m'')) (MatchAnd (Match (Extra ''addrtype'')) (MatchAnd (Match (Extra ''--dst-type'')) (MatchAnd (Match (Extra ''BROADCAST'')) MatchAny))))"
   
   lemma compress_extra_correct_matchexpr:
-    fixes \<beta>::"(common_primitive, ('i::len, 'a) simple_packet_scheme) exact_match_tac"
+    fixes \<beta>::"('i::len common_primitive, ('i::len, 'a) simple_packet_scheme) exact_match_tac"
     assumes generic: "primitive_matcher_generic \<beta>"
     shows "matches (\<beta>, \<alpha>) m = matches (\<beta>, \<alpha>) (compress_extra m)"
     proof(simp add: fun_eq_iff, clarify, rename_tac a p)

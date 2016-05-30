@@ -15,7 +15,7 @@ section\<open>Optimizing and normalizing primitives\<close>
 (*TODO: cleanup*)
 
 
-definition compress_normalize_besteffort :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr option" where
+definition compress_normalize_besteffort :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr option" where
    "compress_normalize_besteffort m \<equiv> compress_normalize_primitive_monad
           [compress_normalize_protocols,
            compress_normalize_input_interfaces,
@@ -236,7 +236,7 @@ lemma remdups_rev_preserve_matches: "\<forall> m \<in> get_match ` set rs. P m \
 subsection\<open>Optimize and Normalize to NNF form\<close>
 
 (*without normalize_rules_dnf, the result cannot be normalized as optimize_primitive_univ can contain MatchNot MatchAny*)
-definition transform_optimize_dnf_strict :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where 
+definition transform_optimize_dnf_strict :: "'i::len common_primitive rule list \<Rightarrow> 'i common_primitive rule list" where 
     "transform_optimize_dnf_strict = optimize_matches opt_MatchAny_match_expr \<circ> 
         normalize_rules_dnf \<circ> (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ))"
 
@@ -270,7 +270,7 @@ theorem transform_optimize_dnf_strict_structure: assumes simplers: "simple_rules
       done
 
     --"if the individual optimization functions preserve a property, then the whole thing does"
-    { fix P m
+    { fix P :: "'a::len common_primitive match_expr \<Rightarrow> bool"
       assume p1: "\<forall>m. P m \<longrightarrow> P (optimize_primitive_univ m)"
       assume p2: "\<forall>m. P m \<longrightarrow> P (opt_MatchAny_match_expr m)"
       assume p3: "\<forall>m. P m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). P m')"
@@ -291,7 +291,7 @@ theorem transform_optimize_dnf_strict_structure: assumes simplers: "simple_rules
       { fix rs
         have "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches opt_MatchAny_match_expr rs). P m"
           apply(rule optimize_matches_preserves)
-          using p2  by simp (*1s*)
+          using p2 by simp (*1s*)
       } note opt3=this
       have "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). P m"
         apply(subst transform_optimize_dnf_strict_def)
@@ -354,8 +354,8 @@ theorem transform_optimize_dnf_strict_structure: assumes simplers: "simple_rules
       using matchpred_rule[of "\<lambda>m. normalized_n_primitive disc_sel f m"] normalized_n_primitive_opt_MatchAny_match_expr by fast
     
 
-    { fix rs::"common_primitive rule list"
-      {  fix m::"common_primitive match_expr"
+    { fix rs::"'a::len common_primitive rule list"
+      {  fix m::"'a::len common_primitive match_expr"
              have "normalized_nnf_match m \<Longrightarrow> normalized_nnf_match (opt_MatchAny_match_expr m)"
                by(induction m rule: opt_MatchAny_match_expr.induct) (simp_all)
       } note x=this
@@ -560,7 +560,7 @@ qed
 subsection\<open>Normalizing and Transforming Primitives\<close>
 
 text\<open>Rewrite the primitives IPs and Ports such that can be used by the simple firewall.\<close>
-definition transform_normalize_primitives :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where 
+definition transform_normalize_primitives :: "'i::len common_primitive rule list \<Rightarrow> 'i common_primitive rule list" where 
     "transform_normalize_primitives =
       normalize_rules normalize_dst_ips \<circ>
       normalize_rules normalize_src_ips \<circ>
@@ -627,7 +627,7 @@ theorem transform_normalize_primitives:
   defines "unchanged disc \<equiv> (\<forall>a. \<not> disc (Src_Ports a)) \<and> (\<forall>a. \<not> disc (Dst_Ports a)) \<and> (\<forall>a. \<not> disc (Src a)) \<and> (\<forall>a. \<not> disc (Dst a))"
       -- "also holds for these discriminators"
       and "changeddisc disc \<equiv> ((\<forall>a. \<not> disc (IIface a)) \<or> disc = is_Iiface) \<and> ((\<forall>a. \<not> disc (OIface a)) \<or> disc = is_Oiface) \<and> ((\<forall>a. \<not> disc (Prot a)) \<or> disc = is_Prot)"
-  assumes simplers: "simple_ruleset rs"
+  assumes simplers: "simple_ruleset (rs :: 'i::len common_primitive rule list)"
       and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
       and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
   shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_normalize_primitives rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
@@ -663,16 +663,16 @@ theorem transform_normalize_primitives:
       by(simp_all add: normalized)
     from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(1)]
          normalize_src_ports_def normalize_ports_step_def
-    have normalized_rs1: "\<forall>m \<in> get_match ` set ?rs1. normalized_nnf_match m" by presburger
+    have normalized_rs1: "\<forall>m \<in> get_match ` set ?rs1. normalized_nnf_match m" by metis
     from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(2)]
          normalize_dst_ports_def normalize_ports_step_def
-    have normalized_rs2: "\<forall>m \<in> get_match ` set ?rs2. normalized_nnf_match m" by presburger
+    have normalized_rs2: "\<forall>m \<in> get_match ` set ?rs2. normalized_nnf_match m" by metis
     from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(3)]
          normalize_src_ips_def
-    have normalized_rs3: "\<forall>m \<in> get_match ` set ?rs3. normalized_nnf_match m" by presburger
+    have normalized_rs3: "\<forall>m \<in> get_match ` set ?rs3. normalized_nnf_match m" by metis
     from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(4)]
          normalize_dst_ips_def
-    have normalized_rs4: "\<forall>m \<in> get_match ` set ?rs4. normalized_nnf_match m" by presburger
+    have normalized_rs4: "\<forall>m \<in> get_match ` set ?rs4. normalized_nnf_match m" by metis
     thus "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m"
       unfolding transform_normalize_primitives_def by simp
 
@@ -731,7 +731,7 @@ theorem transform_normalize_primitives:
       wf_disc_sel (disc, sel) C \<Longrightarrow>
       \<forall>a. \<not> is_Src_Ports (C a) \<Longrightarrow>
       \<forall>m\<in>get_match ` set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs). normalized_src_ports m"
-      for f :: "'c negation_type list \<Rightarrow> 'c list" and rs disc sel and C :: "'c \<Rightarrow> common_primitive"
+      for f :: "'c negation_type list \<Rightarrow> 'c list" and rs disc sel and C :: "'c \<Rightarrow> 'i::len common_primitive"
       by metis
     from preserve_normalized_src_ports[OF normalized_rs1 normalized_src_ports wf_disc_sel_common_primitive(2),
          where f2 (* f *) = "(\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))",
@@ -812,7 +812,8 @@ theorem transform_normalize_primitives:
    qed
 
 
-   { fix m and m' and disc::"(common_primitive \<Rightarrow> bool)" and sel::"(common_primitive \<Rightarrow> 'x)" and C'::" ('x \<Rightarrow> common_primitive)"
+   { fix m and m' and disc::"('i::len common_primitive \<Rightarrow> bool)"
+         and sel::"('i::len common_primitive \<Rightarrow> 'x)" and C'::" ('x \<Rightarrow> 'i::len common_primitive)"
          and f'::"('x negation_type list \<Rightarrow> 'x list)"
      assume am: "\<not> has_disc disc1 m"
         and nm: "normalized_nnf_match m"
@@ -882,7 +883,8 @@ theorem transform_normalize_primitives:
 
    (*TODO: copy pasta*)
    (*TODO: add normalized condition to the preserves lemma?*)
-   { fix m and m' and disc::"(common_primitive \<Rightarrow> bool)" and sel::"(common_primitive \<Rightarrow> 'x)" and C'::" ('x \<Rightarrow> common_primitive)"
+   { fix m and m' and disc::"('i::len common_primitive \<Rightarrow> bool)"
+         and sel::"('i::len common_primitive \<Rightarrow> 'x)" and C'::" ('x \<Rightarrow> 'i::len common_primitive)"
          and f'::"('x negation_type list \<Rightarrow> 'x list)" and neg
      assume am: "\<not> has_disc_negated disc3 neg m"
         and nm: "normalized_nnf_match m"
@@ -1009,10 +1011,10 @@ qed
 
 
 
-definition upper_closure :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
+definition upper_closure :: "'i::len common_primitive rule list \<Rightarrow> 'i common_primitive rule list" where
   "upper_closure rs == remdups_rev (transform_optimize_dnf_strict
       (transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a upper_closure_matchexpr rs))))"
-definition lower_closure :: "common_primitive rule list \<Rightarrow> common_primitive rule list" where
+definition lower_closure :: "'i::len common_primitive rule list \<Rightarrow> 'i common_primitive rule list" where
   "lower_closure rs == remdups_rev (transform_optimize_dnf_strict
       (transform_normalize_primitives (transform_optimize_dnf_strict (optimize_matches_a lower_closure_matchexpr rs))))"
 

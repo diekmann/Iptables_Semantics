@@ -77,7 +77,7 @@ lemma "ports_toString ''spt: '' (1024,2048) = ''spt: 1024:2048''" by eval
 lemma "ports_toString ''spt: '' (1024,1024) = ''spt: 1024''" by eval
 
   
-fun common_primitive_toString :: "common_primitive \<Rightarrow> string" where
+fun common_primitive_toString :: "32 common_primitive \<Rightarrow> string" where
   "common_primitive_toString (Src (IpAddr ip)) = ''-s ''@ipv4addr_toString ip" |
   "common_primitive_toString (Dst (IpAddr ip)) = ''-d ''@ipv4addr_toString ip" |
   "common_primitive_toString (Src (IpAddrNetmask ip n)) = ''-s ''@ipv4addr_toString ip@''/''@string_of_nat n"  |
@@ -94,14 +94,14 @@ fun common_primitive_toString :: "common_primitive \<Rightarrow> string" where
   "common_primitive_toString (Extra e) = ''~~''@e@''~~''"
 
 
-fun common_primitive_match_expr_toString :: "common_primitive match_expr \<Rightarrow> string" where
+fun common_primitive_match_expr_toString :: "32 common_primitive match_expr \<Rightarrow> string" where
   "common_primitive_match_expr_toString MatchAny = ''''" |
   "common_primitive_match_expr_toString (Match m) = common_primitive_toString m" |
   "common_primitive_match_expr_toString (MatchAnd m1 m2) = common_primitive_match_expr_toString m1 @'' '' @ common_primitive_match_expr_toString m2" |
   "common_primitive_match_expr_toString (MatchNot (Match m)) = ''! ''@common_primitive_toString m" |
   "common_primitive_match_expr_toString (MatchNot m) = ''NOT (''@common_primitive_match_expr_toString m@'')''"
 
-fun common_primitive_rule_toString :: "common_primitive rule \<Rightarrow> string" where
+fun common_primitive_rule_toString :: "32 common_primitive rule \<Rightarrow> string" where
   "common_primitive_rule_toString (Rule m a) = common_primitive_match_expr_toString m @'' ''@action_toString a"
 
 

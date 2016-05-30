@@ -22,8 +22,8 @@ subsection\<open>Spoofing Protection\<close>
 
 text\<open>We add @{typ "'pkt_ext itself"} as a parameter to have the type of a generic, extensible packet
      in the definition.\<close>
-  definition no_spoofing :: "'pkt_ext itself \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> bool" where
-    "no_spoofing TYPE('pkt_ext) ipassmt rs \<equiv> \<forall> iface \<in> dom ipassmt. \<forall>p :: (32,'pkt_ext) simple_packet_scheme.
+  definition no_spoofing :: "'pkt_ext itself \<Rightarrow> 'i::len ipassignment \<Rightarrow> 'i::len common_primitive rule list \<Rightarrow> bool" where
+    "no_spoofing TYPE('pkt_ext) ipassmt rs \<equiv> \<forall> iface \<in> dom ipassmt. \<forall>p :: ('i,'pkt_ext) simple_packet_scheme.
         ((common_matcher, in_doubt_allow),p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow) \<longrightarrow>
             p_src p \<in> (ipcidr_union_set (set (the (ipassmt iface))))"
 
@@ -62,7 +62,7 @@ and now code to check spoofing protection
 context
 begin
   text\<open>The set of any ip addresses which may match for a fixed @{text iface} (overapproximation)\<close>
-  private definition get_exists_matching_src_ips :: "iface \<Rightarrow> common_primitive match_expr \<Rightarrow> ipv4addr set" where
+  private definition get_exists_matching_src_ips :: "iface \<Rightarrow> 'i::len common_primitive match_expr \<Rightarrow> 'i word set" where
     "get_exists_matching_src_ips iface m \<equiv> let (i_matches, _) = (primitive_extractor (is_Iiface, iiface_sel) m) in
               if (\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface)
                                                   | Neg i \<Rightarrow> \<not> match_iface i (iface_sel iface)))
@@ -78,7 +78,7 @@ begin
 
   (*when we replace the set by a 32 wordinterval, we should get executable code*)
   lemma "primitive_extractor (is_Src, src_sel)
-      (MatchAnd (Match (Src (IpAddrNetmask 0 30))) (Match (IIface (Iface ''eth0'')))) =
+      (MatchAnd (Match (Src (IpAddrNetmask (0::ipv4addr) 30))) (Match (IIface (Iface ''eth0'')))) =
       ([Pos (IpAddrNetmask 0 30)], MatchAnd MatchAny (Match (IIface (Iface ''eth0''))))" by eval
 
  private lemma get_exists_matching_src_ips_subset: 
@@ -130,7 +130,7 @@ begin
 
   (*TODO: could this be useful somewhere?*)
   lemma common_primitive_not_has_primitive_expand: 
-        "\<not> has_primitive (m::common_primitive match_expr) \<longleftrightarrow>
+        "\<not> has_primitive (m::32 common_primitive match_expr) \<longleftrightarrow>
          \<not> has_disc is_Dst m \<and> 
          \<not> has_disc is_Src m \<and>
          \<not> has_disc is_Iiface m \<and>
@@ -175,7 +175,7 @@ begin
     by simp
 
   text\<open>The set of ip addresses which definitely match for a fixed @{text iface} (underapproximation)\<close>
-  private definition get_all_matching_src_ips :: "iface \<Rightarrow> common_primitive match_expr \<Rightarrow> ipv4addr set" where
+  private definition get_all_matching_src_ips :: "iface \<Rightarrow> 'i::len common_primitive match_expr \<Rightarrow> 'i word set" where
     "get_all_matching_src_ips iface m \<equiv> let (i_matches, rest1) = (primitive_extractor (is_Iiface, iiface_sel) m) in
               if (\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface)
                                                   | Neg i \<Rightarrow> \<not> match_iface i (iface_sel iface)))
@@ -298,7 +298,8 @@ begin
 
 
 
-  private definition get_exists_matching_src_ips_executable :: "iface \<Rightarrow> common_primitive match_expr \<Rightarrow> 32 wordinterval" where
+  private definition get_exists_matching_src_ips_executable
+    :: "iface \<Rightarrow> 32 common_primitive match_expr \<Rightarrow> 32 wordinterval" where
     "get_exists_matching_src_ips_executable iface m \<equiv> let (i_matches, _) = (primitive_extractor (is_Iiface, iiface_sel) m) in
               if (\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface)
                                                   | Neg i \<Rightarrow> \<not>match_iface i (iface_sel iface)))
@@ -336,7 +337,8 @@ begin
       (MatchAnd (MatchNot (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192,168,0,0)) 24)))) (Match (IIface (Iface ''eth0''))))) =
       RangeUnion (WordInterval 0 0xC0A7FFFF) (WordInterval 0xC0A80100 0xFFFFFFFF)" by eval
 
-  private definition get_all_matching_src_ips_executable :: "iface \<Rightarrow> common_primitive match_expr \<Rightarrow> 32 wordinterval" where
+  private definition get_all_matching_src_ips_executable
+    :: "iface \<Rightarrow> 32 common_primitive match_expr \<Rightarrow> 32 wordinterval" where
     "get_all_matching_src_ips_executable iface m \<equiv> let (i_matches, rest1) = (primitive_extractor (is_Iiface, iiface_sel) m) in
               if (\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface)
                                                   | Neg i \<Rightarrow> \<not>match_iface i (iface_sel iface)))
@@ -385,7 +387,8 @@ begin
   text\<open>The following algorithm sound but not complete.\<close>
   (*alowed: set ip ips potentially allowed for iface
     denied: set of ips definitely dropped for iface*)
-  private fun no_spoofing_algorithm :: "iface \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr set \<Rightarrow> bool" where
+  private fun no_spoofing_algorithm
+    :: "iface \<Rightarrow> 'i::len ipassignment \<Rightarrow> 'i common_primitive rule list \<Rightarrow> 'i word set \<Rightarrow> 'i word set \<Rightarrow> bool" where
     "no_spoofing_algorithm iface ipassmt [] allowed denied1  \<longleftrightarrow> 
       (allowed - denied1) \<subseteq> ipcidr_union_set (set (the (ipassmt iface)))" |
     "no_spoofing_algorithm iface ipassmt ((Rule m Accept)#rs) allowed denied1 = no_spoofing_algorithm iface ipassmt rs 
@@ -396,7 +399,7 @@ begin
 
 
 
-  private fun no_spoofing_algorithm_executable :: "iface \<Rightarrow> (iface \<rightharpoonup> (ipv4addr \<times> nat) list) \<Rightarrow> common_primitive rule list \<Rightarrow> 32 wordinterval \<Rightarrow> 32 wordinterval \<Rightarrow> bool" where
+  private fun no_spoofing_algorithm_executable :: "iface \<Rightarrow> (iface \<rightharpoonup> (ipv4addr \<times> nat) list) \<Rightarrow> 32 common_primitive rule list \<Rightarrow> 32 wordinterval \<Rightarrow> 32 wordinterval \<Rightarrow> bool" where
     "no_spoofing_algorithm_executable iface ipassmt [] allowed denied1  \<longleftrightarrow> 
       wordinterval_subset (wordinterval_setminus allowed denied1) (l2br (map ipcidr_to_interval (the (ipassmt iface))))" |
     "no_spoofing_algorithm_executable iface ipassmt ((Rule m Accept)#rs) allowed denied1 = no_spoofing_algorithm_executable iface ipassmt rs 
@@ -773,7 +776,7 @@ begin
   case "4_7" thus ?case by(simp add: simple_ruleset_def)
   qed
 
-  definition no_spoofing_iface :: "iface \<Rightarrow> ipassignment \<Rightarrow> common_primitive rule list \<Rightarrow> bool" where
+  definition no_spoofing_iface :: "iface \<Rightarrow> 32 ipassignment \<Rightarrow> 32 common_primitive rule list \<Rightarrow> bool" where
     "no_spoofing_iface iface ipassmt rs \<equiv> no_spoofing_algorithm iface ipassmt rs {} {}"
 
   lemma[code]: "no_spoofing_iface iface ipassmt rs = 
@@ -942,7 +945,7 @@ text\<open>Examples\<close>
 end
 
 lemma "no_spoofing_iface (Iface ''eth1.1011'')
-                         ([Iface ''eth1.1011'' \<mapsto> [(ipv4addr_of_dotdecimal (131,159,14,0), 24)]]:: ipassignment)
+                         ([Iface ''eth1.1011'' \<mapsto> [(ipv4addr_of_dotdecimal (131,159,14,0), 24)]]:: 32 ipassignment)
   [Rule (MatchNot (Match (IIface (Iface ''eth1.1011+'')))) action.Accept,
    Rule (MatchAnd (MatchNot (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (131,159,14,0)) 24)))) (Match (IIface (Iface ''eth1.1011'')))) action.Drop,
    Rule MatchAny action.Accept]" by eval
@@ -950,7 +953,7 @@ lemma "no_spoofing_iface (Iface ''eth1.1011'')
 text\<open>We only check accepted packets.
       If there is no default rule (this will never happen if parsed from iptables!), the result is unfinished.\<close>
 lemma "no_spoofing_iface (Iface ''eth1.1011'')
-                         ([Iface ''eth1.1011'' \<mapsto> [(ipv4addr_of_dotdecimal (131,159,14,0), 24)]]:: ipassignment)
+                         ([Iface ''eth1.1011'' \<mapsto> [(ipv4addr_of_dotdecimal (131,159,14,0), 24)]]:: 32 ipassignment)
   [Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8))) Drop]" by eval
 
 end

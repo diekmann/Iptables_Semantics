@@ -171,7 +171,7 @@ begin
       by force
 
   
-  definition compress_normalize_input_interfaces :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr option" where 
+  definition compress_normalize_input_interfaces :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr option" where 
     "compress_normalize_input_interfaces m \<equiv> compress_normalize_primitive (is_Iiface, iiface_sel) IIface compress_interfaces m"
 
   lemma compress_normalize_input_interfaces_Some:
@@ -236,15 +236,15 @@ begin
 
 
   value[code] "compress_normalize_input_interfaces 
-    (MatchAnd (MatchAnd (MatchAnd (Match (IIface (Iface ''eth+''))) (MatchNot (Match (IIface (Iface ''eth4''))))) (Match (IIface (Iface ''eth1''))))
+    (MatchAnd (MatchAnd (MatchAnd (Match ((IIface (Iface ''eth+'')::32 common_primitive))) (MatchNot (Match (IIface (Iface ''eth4''))))) (Match (IIface (Iface ''eth1''))))
               (Match (Prot (Proto TCP))))"
     
-  value[code] "compress_normalize_input_interfaces MatchAny"
+  value[code] "compress_normalize_input_interfaces (MatchAny:: 32 common_primitive match_expr)"
 
 
 
 
-  definition compress_normalize_output_interfaces :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr option" where 
+  definition compress_normalize_output_interfaces :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr option" where 
     "compress_normalize_output_interfaces m \<equiv> compress_normalize_primitive (is_Oiface, oiface_sel) OIface compress_interfaces m"
 
   lemma compress_normalize_output_interfaces_Some:

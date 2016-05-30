@@ -136,13 +136,13 @@ begin
   
   (*idea:*)
   value "case primitive_extractor (is_Src_Ports, src_ports_sel) m 
-          of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (Src_Ports [spt]))) rst) (ipt_ports_compress spts)"
+          of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match ((Src_Ports [spt]) :: 32 common_primitive))) rst) (ipt_ports_compress spts)"
   
   
   text\<open>Normalizing match expressions such that at most one port will exist in it. Returns a list of match expressions (splits one firewall rule into several rules).\<close>
-  definition normalize_ports_step :: "((common_primitive \<Rightarrow> bool) \<times> (common_primitive \<Rightarrow> ipt_ports)) \<Rightarrow> 
-                               (ipt_ports \<Rightarrow> common_primitive) \<Rightarrow>
-                               common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where 
+  definition normalize_ports_step :: "(('i::len common_primitive \<Rightarrow> bool) \<times> ('i common_primitive \<Rightarrow> ipt_ports)) \<Rightarrow> 
+                               (ipt_ports \<Rightarrow> 'i common_primitive) \<Rightarrow>
+                               'i common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where 
     "normalize_ports_step (disc_sel) C = normalize_primitive_extract disc_sel C (\<lambda>me. map (\<lambda>pt. [pt]) (ipt_ports_compress me))"
 
   definition normalize_src_ports :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr list" where
