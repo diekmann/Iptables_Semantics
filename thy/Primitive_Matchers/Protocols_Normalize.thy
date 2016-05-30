@@ -63,7 +63,8 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
   
   (* It is kind of messy to find a definition that checks whether a match is the exhaustive list and is executable *)
   (*TODO: probably code_unfold was meant. TODO: check whether we actually need this!*)
-  lemma all_proto_hlp2[code]: "ProtoAny \<in> a \<or> (\<forall>p \<in> {0..max_word}. Proto p \<in> a) \<longleftrightarrow>
+  (*Changed to code_unfold. TODO: move and check if this breaks anything*)
+  lemma all_proto_hlp2[code_unfold]: "ProtoAny \<in> a \<or> (\<forall>p \<in> {0..max_word}. Proto p \<in> a) \<longleftrightarrow>
                                ProtoAny \<in> a \<or> a = {p. p \<noteq> ProtoAny}"
   proof -   
     have all_proto_hlp: "ProtoAny \<notin> a \<Longrightarrow> (\<forall>p \<in> {0..max_word}. Proto p \<in> a) \<longleftrightarrow> a = {p. p \<noteq> ProtoAny}"
