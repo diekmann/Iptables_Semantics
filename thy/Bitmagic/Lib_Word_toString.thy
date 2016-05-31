@@ -55,4 +55,12 @@ done
 lemma "hex_string_of_word0 (0xdeadbeef42 :: 42 word) = ''deadbeef42''" by eval
 lemma "hex_string_of_word 1 (0x1 :: 5 word) = ''01''" by eval
 
+value "dec_string_of_word0 (8::32 word)"
+value "string_of_nat (unat  (8::32 word))"
+value "dec_string_of_word0 (-1::8 word)" (*wow, this is fast!*)
+value "string_of_nat (unat  (-1::8 word))"
+lemma "dec_string_of_word0 w = string_of_nat (unat w)"
+  (*TODO*)
+  oops
+
 end
