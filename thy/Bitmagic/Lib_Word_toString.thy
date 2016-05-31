@@ -8,25 +8,39 @@ begin
 (*lc = lower-case*)
 definition string_of_word_single :: "bool \<Rightarrow> 'a::len word \<Rightarrow> string" where
   "string_of_word_single lc w \<equiv>
-    (if w < 10 then [char_of_nat (48 + unat w)] else if w < 36 then [char_of_nat ((if lc then 87 else 55) + unat w)] else undefined)"
+    (if
+       w < 10
+     then
+       [char_of_nat (48 + unat w)]
+     else if
+       w < 36
+     then
+       [char_of_nat ((if lc then 87 else 55) + unat w)]
+     else
+       undefined)"
 
-value "let word_upto = ((\<lambda> i j. map (of_nat \<circ> nat) [i .. j]) :: int \<Rightarrow> int \<Rightarrow> 12 word list)
-       in map (string_of_word_single False) (word_upto (-1) (36))"
+lemma "let word_upto = ((\<lambda> i j. map (of_nat \<circ> nat) [i .. j]) :: int \<Rightarrow> int \<Rightarrow> 32 word list)
+       in map (string_of_word_single False) (word_upto 1 35) =
+  [''1'', ''2'', ''3'', ''4'', ''5'', ''6'', ''7'', ''8'', ''9'',
+   ''A'', ''B'', ''C'', ''D'', ''E'', ''F'', ''G'', ''H'', ''I'',
+   ''J'', ''K'', ''L'', ''M'', ''N'', ''O'', ''P'', ''Q'', ''R'',
+   ''S'', ''T'', ''U'', ''V'', ''W'', ''X'', ''Y'', ''Z'']" by eval
 
 (* parameters: lowercase, base, minimum length - 1, to-be-serialized word *) 
 function string_of_word :: "bool \<Rightarrow> ('a :: len) word \<Rightarrow> nat \<Rightarrow> ('a :: len) word \<Rightarrow> string" where
-  "string_of_word lc base ml n =
+  "string_of_word lc base ml w =
     (if
        base < 2 \<or> len_of TYPE('a) < 2
      then
        undefined
-     else (if
-       n < base \<and> ml = 0
+     else if
+       w < base \<and> ml = 0
      then
-       string_of_word_single lc n
-     else string_of_word lc base (ml - 1) (n div base) @ string_of_word_single lc (n mod base)
-     ))"
-by clarsimp+
+       string_of_word_single lc w
+     else
+       string_of_word lc base (ml - 1) (w div base) @ string_of_word_single lc (w mod base)
+     )"
+by pat_completeness auto
 
 definition "hex_string_of_word l \<equiv> string_of_word True (16 :: ('a::len) word) l"
 definition "hex_string_of_word0 \<equiv> hex_string_of_word 0"
@@ -57,48 +71,88 @@ declare string_of_word.simps[simp del]
 lemma "hex_string_of_word0 (0xdeadbeef42 :: 42 word) = ''deadbeef42''" by eval
 lemma "hex_string_of_word 1 (0x1 :: 5 word) = ''01''" by eval
 
+lemma "hex_string_of_word 8 (0xff::32 word) = ''0000000ff''" by eval
+
 value "dec_string_of_word0 (8::32 word)"
 value "string_of_nat (unat  (8::32 word))"
-value "dec_string_of_word0 (1::2 word)"
-value "string_of_nat (unat  (1::2 word))"
-value "dec_string_of_word0 (-1::8 word)" (*wow, this is fast!*)
-value "string_of_nat (unat  (-1::8 word))"
+value "dec_string_of_word0 (3::2 word)"
+value "string_of_nat (unat  (3::2 word))"
+value[code] "dec_string_of_word0 (-1::8 word)" (*wow, this is fast! try for 32 word*)
+value[code] "string_of_nat (unat  (-1::8 word))"
+value "dec_string_of_word0 (1::1 word)"
+value "string_of_nat (unat  (1::1 word))"
 
+value "bintrunc n 5 BIT False"
 
 lemma string_of_word_single_atoi:
   "n < 10 \<Longrightarrow> string_of_word_single True n = [char_of_nat (48 + unat n)]"
   by(simp add: string_of_word_single_def)
 
+
 (*TODO: I want the reverse as [code_unfold] ! ! ! ! ! ! ! ! !*)
 lemma string_of_word_base_ten_zeropad:
   fixes w ::"32 word" (*TODO: for all words?*)
+  (*assumes lena: "len_of TYPE('a) \<ge> 5"*)
   shows "base = 10 \<Longrightarrow> zero = 0 \<Longrightarrow> string_of_word True base zero w = string_of_nat (unat w)"
   proof(induction True base zero w rule: string_of_word.induct)
   case (1 base ml n)
+
+  (*TODO: why is this so hard? generalize? make a theorem?*)
+  have "5 \<le> n \<Longrightarrow> bintrunc n 10 = 10" for n
+  proof(induction rule: Nat.dec_induct)
+  case base thus ?case by simp
+  next
+  case (step x)
+    from step have "10 = bintrunc x 10" by simp
+    also have "\<dots> = bintrunc x (bintrunc x 5 + bintrunc x 5)"
+      apply(subst Bit_Representation.bintr_ariths(2))
+      by simp
+    also have "\<dots> = bintrunc x 5 + bintrunc x 5"
+      by (metis Bit_B0 add.right_neutral add_Suc_right bintrunc_Sucs(6) bintrunc_bintrunc_l' calculation)
+      (* by (metis Bit_B0 \<open>10 = bintrunc x 10\<close> bintrunc_Sucs(6) bintrunc_bintrunc_l nat_le_linear) (137 ms)*)
+    finally have bintrunc_10_split: "10 = bintrunc x 5 + bintrunc x 5" .
+    have bintrunc_IH: "bintrunc n 5 BIT False = bintrunc n 5 + bintrunc n 5" for n
+      using Bit_B0 by blast
+    show "bintrunc (Suc x) 10 = 10"
+    apply(simp)
+    apply(subst bintrunc_IH)
+    apply(subst bintrunc_10_split)
+    apply(simp)
+    done
+  qed
+  (*with lena have "uint (0xA::'a::len word) = 10" by(simp)
+  hence unat_ten: "unat (0xA::'a::len word) = 10"
+    by(simp)*)
   have unat_mod_ten: "unat (n mod 0xA) = unat n mod 10"
     apply(subst Word.unat_mod)
+    (*apply(subst unat_ten)*)
     by(simp)
+    
   have unat_div_ten: "(unat (n div 0xA)) = unat n div 10"
     apply(subst Word.unat_div)
+    (*apply(subst unat_ten)*)
     by simp
   have n_less_ten_unat: "n < 0xA \<Longrightarrow> (unat n < 10)"
     apply(rule Word_Lemmas.unat_less_helper)
     by(simp)
   have "0xA \<le> n \<Longrightarrow> 10 \<le> unat n" 
     apply(subst(asm) Word.word_le_nat_alt)
+    (*apply(subst(asm) unat_ten)*)
     by(simp)
   hence n_less_ten_unat_not: "\<not> n < 0xA \<Longrightarrow> \<not> unat n < 10" by fastforce
+  (*have "\<not> (0xA::'a word) < 2"
+    using[[simp_trace]] apply(simp del: Word.word_less_no Word.uint_bintrunc)*)
   from 1(2,3) have " \<not> (base < 2 \<or> len_of TYPE(32) < 2)"
     by(simp)
   with 1 have IH: "\<not> n < 0xA \<Longrightarrow> string_of_word True 0xA 0 (n div 0xA) = string_of_nat (unat (n div 0xA))"
-     by(simp del: string_of_word.simps)
+     by(simp)
   show ?case
     apply(simp add: 1)
     apply(case_tac "n < 0xA")
      subgoal
      apply(subst(1) string_of_word.simps)
      apply(subst(1) string_of_nat.simps)
-     apply(simp add: n_less_ten_unat del: string_of_word.simps)
+     apply(simp add: n_less_ten_unat del: Word.word_less_no Word.uint_bintrunc)
      by(simp add: string_of_word_single_atoi)
     using sym[OF IH] apply(simp)
     apply(subst(1) string_of_word.simps)
