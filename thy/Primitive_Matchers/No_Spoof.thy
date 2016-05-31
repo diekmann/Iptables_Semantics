@@ -213,7 +213,7 @@ begin
       with a show ?thesis by simp
     next
     case True
-      let ?\<gamma>="(common_matcher :: ('i common_primitive, ('i, 'a) simple_packet_scheme) exact_match_tac, in_doubt_allow)"
+      let ?\<gamma>="(common_matcher, in_doubt_allow) :: ('i::len common_primitive, ('i, 'a) simple_packet_scheme) match_tac"
       let ?p="\<lambda>p::('i, 'a) simple_packet_scheme. p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>"
       obtain ip_matches rest2 where select2: "primitive_extractor (is_Src, src_sel) rest1 = (ip_matches, rest2)" by fastforce
 
