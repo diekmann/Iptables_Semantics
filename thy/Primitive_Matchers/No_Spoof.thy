@@ -146,30 +146,6 @@ begin
     apply(rename_tac x, case_tac x, simp_all)
    by blast
 
-  (*
-  (*TODO: we can clean up the \<not>has_disc hell below with \<not> has_primitive*)
-  lemma assumes n: "normalized_nnf_match m"
-        and p1: "(primitive_extractor (is_Iiface, iiface_sel) m) = (i_matches, rest1)"
-        and p2: "(primitive_extractor (is_Src, src_sel) rest1) = (ip_matches, rest2)"
-        shows "\<not> has_disc is_Dst rest2 \<and> 
-               \<not> has_disc is_Oiface rest2 \<and>
-               \<not> has_disc is_Prot rest2 \<and>
-               \<not> has_disc is_Src_Ports rest2 \<and>
-               \<not> has_disc is_Dst_Ports rest2 \<and>
-               \<not> has_disc is_L4_Flags rest2 \<and>
-               \<not> has_disc is_CT_State rest2 \<and>
-               \<not> has_disc is_Extra rest2 \<longleftrightarrow>
-               \<not> has_primitive rest2"
-    using p1 p2
-    unfolding common_primitive_not_has_primitive_expand
-    apply -
-    apply(frule primitive_extractor_correct(2)[OF n wf_disc_sel_common_primitive(5)])
-    apply(frule primitive_extractor_correct(3)[OF n wf_disc_sel_common_primitive(5)])
-    apply(frule primitive_extractor_correct(4)[OF n wf_disc_sel_common_primitive(5)])
-    apply(frule primitive_extractor_correct(3)[OF _ wf_disc_sel_common_primitive(3)], simp)
-    apply(frule primitive_extractor_correct(4)[OF _ wf_disc_sel_common_primitive(3)], simp)
-    by blast
-  *)
   (*TODO: matcheq_matchAny is undefined for primitives. this is the proper way to call it!*)
   lemma "\<not> has_primitive m \<and> matcheq_matchAny m \<longleftrightarrow> (if \<not> has_primitive m then matcheq_matchAny m else False)"
     by simp
@@ -482,16 +458,6 @@ begin
     apply(simp add: setbydecision_def setbydecision_all_def)
     done
 
-(*
-  (*follows directly from existing lemmas, move into proof below, do not move to generic thy!*)
-  private lemma decision_append: "simple_ruleset rs1 \<Longrightarrow> approximating_bigstep_fun \<gamma> p rs1 Undecided = Decision X \<Longrightarrow>
-           approximating_bigstep_fun \<gamma> p (rs1 @ rs2) Undecided = Decision X"
-    apply(drule simple_imp_good_ruleset)
-    apply(drule good_imp_wf_ruleset[of _ \<gamma> p])
-    apply(simp add: approximating_bigstep_fun_seq_wf Decision_approximating_bigstep_fun)
-    done
-*)
-
   private lemma setbydecision_append:
     "simple_ruleset (rs1 @ rs2) \<Longrightarrow>
       setbydecision TYPE('pkt_ext) iface (rs1 @ rs2) FinalAllow =
@@ -575,117 +541,12 @@ begin
        apply(simp)
       by blast
 
-
-(*
-  private lemma notin_setbydecisionD: "ip \<notin> setbydecision iface rs FinalAllow \<Longrightarrow> (\<forall>p.
-      approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs Undecided = Decision FinalDeny \<or>
-      approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs Undecided = Undecided)"
-    by(simp add: setbydecision_def not_FinalAllow)
-
-  private lemma "- {ip. \<exists>p. \<not> match_iface iface (p_iiface p) \<or> \<not> matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_src := ip\<rparr>)}
-      \<subseteq> setbydecision_all iface ([Rule m Drop]) FinalDeny"
-      apply(simp add: setbydecision_all_def)
-      apply(subst Collect_neg_eq[symmetric])
-      apply(rule Set.Collect_mono)
-      apply(simp)
-      done
-
-  private lemma p_iiface_update: "p\<lparr>p_iiface := p_iiface p, p_src := x\<rparr> = p\<lparr>p_src := x\<rparr>" by(simp)
-  private lemma setbydecision_all_not_iface: "(\<Inter> if' \<in> {if'. \<not> match_iface iface if'}. setbydecision_all (Iface if') rs1 FinalDeny) = 
-      {ip. \<forall>p. \<not> match_iface iface (p_iiface p) \<longrightarrow> 
-          approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs1 Undecided = Decision FinalDeny}"
-    apply(simp add: setbydecision_all_def)
-    apply(safe)
-     apply(simp_all)
-    apply(erule_tac x="(p_iiface p)" in allE)
-    apply(simp)
-    using p_iiface_update by metis
-
-
-  private lemma setbydecision_all2: "setbydecision_all iface rs dec = 
-      {ip. \<forall>p. (iface_sel iface) = (p_iiface p) \<longrightarrow> approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs Undecided = Decision dec}"
-    apply(simp add: setbydecision_all_def)
-    apply(rule Set.Collect_cong)
-    apply(rule iffI)
-     apply(clarify)
-     apply(erule_tac x=p in allE)
-     apply(simp)
-    apply(clarify)
-    apply(erule_tac x="p\<lparr>p_iiface := iface_sel iface\<rparr>" in allE)
-    apply(simp)
-    done
-  private lemma "{ip. approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs Undecided = Decision dec} =
-                 {ip | ip. approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs Undecided = Decision dec}" by simp
-
-  private lemma setbydecision_all2': "setbydecision_all iface rs dec = 
-      {ip. \<forall>p. (iface_sel iface) = (p_iiface p) \<longrightarrow> p_src p = ip \<longrightarrow> approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision dec}"
-    apply(simp add: setbydecision_all_def)
-    apply(rule Set.Collect_cong)
-    apply(rule iffI)
-     apply(clarify)
-     apply(erule_tac x=p in allE)
-     apply(simp)
-    apply(clarify)
-    apply(erule_tac x="p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>" in allE)
-    apply(simp)
-    done
-
-  private lemma setbydecision_all3: "setbydecision_all iface rs dec = (\<Inter> p \<in> {p. (iface_sel iface) = (p_iiface p)}. 
-        {ip. approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs Undecided = Decision dec})"
-    apply(simp add: setbydecision_all2)
-    by blast
-
-  (*WTF?*)
-  private lemma setbydecision_all3': "setbydecision_all iface rs dec = (\<Inter> p \<in> {p. (iface_sel iface) = (p_iiface p)}. 
-        {ip | ip. p_src p = ip \<longrightarrow> approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision dec})"
-    apply(simp add: setbydecision_all3)
-    apply(safe)
-    apply(simp_all)
-    by fastforce
-
-  (*this is a bit WTF*)
-  private lemma setbydecision_all4: "setbydecision_all iface rs dec =
-    (\<Inter> p \<in> {p. \<not> approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision dec}. 
-            {ip. p_src p = ip \<longrightarrow> (iface_sel iface) \<noteq> (p_iiface p)})"
-    apply(simp add: setbydecision_all2')
-    apply(safe)
-    apply(simp_all)
-    by blast
-
-  private lemma setbydecision2: "setbydecision iface rs dec = 
-      {ip. \<exists>p. (iface_sel iface) = (p_iiface p) \<and> approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs Undecided = Decision dec}"
-    apply(simp add: setbydecision_def)
-    apply(rule Set.Collect_cong)
-    apply(rule iffI)
-     apply(clarify)
-     apply(rule_tac x="p\<lparr>p_iiface := iface_sel iface\<rparr>" in exI)
-     apply(simp)
-    apply(clarify)
-    apply(rule_tac x="p" in exI)
-    apply(simp)
-    done
-
-  private lemma setbydecision3: "setbydecision iface rs dec = (\<Union> p \<in> {p. (iface_sel iface) = (p_iiface p)}. 
-        {ip. approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_src := ip\<rparr>) rs Undecided = Decision dec})"
-    apply(simp add: setbydecision2)
-    by blast
-
-  private lemma "{ip. (iface_sel iface) = (p_iiface p) \<and> p_src p = ip} = {ip | ip. (iface_sel iface) = (p_iiface p) \<and> p_src p = ip}" by simp
-
-  private lemma setbydecision4: "setbydecision iface rs dec = 
-    (\<Union> p \<in> {p. approximating_bigstep_fun (common_matcher, in_doubt_allow) p rs Undecided = Decision dec}. 
-            {ip. (iface_sel iface) = (p_iiface p) \<and> p_src p = ip})"
-    apply(simp add: setbydecision2)
-    by fastforce
-  *)
-
   private lemma "setbydecision_all TYPE('pkt_ext) iface rs FinalDeny \<subseteq> - setbydecision TYPE('pkt_ext) iface rs FinalAllow"
       apply(simp add: setbydecision_def setbydecision_all_def)
       apply(subst Set.Collect_neg_eq[symmetric])
       apply(rule Set.Collect_mono)
       apply(simp)
       done
-
 
   private lemma no_spoofing_algorithm_sound_generalized:
   fixes rs1 :: "'i::len common_primitive rule list"
