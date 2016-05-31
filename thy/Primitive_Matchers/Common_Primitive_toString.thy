@@ -14,6 +14,13 @@ definition ipv4addr_toString :: "ipv4addr \<Rightarrow> string" where
   "ipv4addr_toString ip = dotteddecimal_toString (dotdecimal_of_ipv4addr ip)"
 
 
+text\<open>Generic function. Whenever possible, use IPv4 or IPv6 pretty printing!\<close>
+definition ipaddr_generic_toString :: "'i::len word \<Rightarrow> string" where
+  "ipaddr_generic_toString ip \<equiv>
+    ''[IP address ('' @ string_of_nat (len_of TYPE('i)) @ '' bit): '' @ string_of_nat (unat ip) @ '']''"
+
+lemma "ipaddr_generic_toString (ipv4addr_of_dotdecimal (192,168,0,1)) = ''[IP address (32 bit): 3232235521]''" by eval
+
 definition ipv4_cidr_toString :: "(ipv4addr \<times> nat) \<Rightarrow> string" where
   "ipv4_cidr_toString ip_n = (case ip_n of (base, n) \<Rightarrow>  (ipv4addr_toString base @''/''@ string_of_nat n))"
 
