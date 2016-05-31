@@ -146,6 +146,30 @@ begin
     apply(rename_tac x, case_tac x, simp_all)
    by blast
 
+  (*
+  (*TODO: we can clean up the \<not>has_disc hell below with \<not> has_primitive*)
+  lemma assumes n: "normalized_nnf_match m"
+        and p1: "(primitive_extractor (is_Iiface, iiface_sel) m) = (i_matches, rest1)"
+        and p2: "(primitive_extractor (is_Src, src_sel) rest1) = (ip_matches, rest2)"
+        shows "\<not> has_disc is_Dst rest2 \<and> 
+               \<not> has_disc is_Oiface rest2 \<and>
+               \<not> has_disc is_Prot rest2 \<and>
+               \<not> has_disc is_Src_Ports rest2 \<and>
+               \<not> has_disc is_Dst_Ports rest2 \<and>
+               \<not> has_disc is_L4_Flags rest2 \<and>
+               \<not> has_disc is_CT_State rest2 \<and>
+               \<not> has_disc is_Extra rest2 \<longleftrightarrow>
+               \<not> has_primitive rest2"
+    using p1 p2
+    unfolding common_primitive_not_has_primitive_expand
+    apply -
+    apply(frule primitive_extractor_correct(2)[OF n wf_disc_sel_common_primitive(5)])
+    apply(frule primitive_extractor_correct(3)[OF n wf_disc_sel_common_primitive(5)])
+    apply(frule primitive_extractor_correct(4)[OF n wf_disc_sel_common_primitive(5)])
+    apply(frule primitive_extractor_correct(3)[OF _ wf_disc_sel_common_primitive(3)], simp)
+    apply(frule primitive_extractor_correct(4)[OF _ wf_disc_sel_common_primitive(3)], simp)
+    by blast
+  *)
   (*TODO: matcheq_matchAny is undefined for primitives. this is the proper way to call it!*)
   lemma "\<not> has_primitive m \<and> matcheq_matchAny m \<longleftrightarrow> (if \<not> has_primitive m then matcheq_matchAny m else False)"
     by simp

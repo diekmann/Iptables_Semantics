@@ -43,7 +43,7 @@ section\<open>Example: Implementing spoofing protection\<close>
   For efficiency, the firewall's administrator implemented the spoofing protection in the raw table's PREROUTING chain.
   Because the administrator only used actions which are supported by our semantics, we can apply our theory here.
 \<close>
-  definition "preprocess default_policy fw \<equiv> (upper_closure (ctstate_assume_new (unfold_ruleset_CHAIN ''PREROUTING'' default_policy (map_of_string fw))))"
+  definition "preprocess default_policy fw \<equiv> (upper_closure (ctstate_assume_new (unfold_ruleset_CHAIN ''PREROUTING'' default_policy (map_of_string_ipv4 fw))))"
 
   local_setup \<open>
     parse_iptables_save "raw" @{binding raw_fw1} ["2015_aug_iptables-save-spoofing-protection"]
@@ -71,11 +71,11 @@ section\<open>Example: Implementing spoofing protection\<close>
    *)
 
 
-  value[code] "remdups (collect_ifaces (unfold_ruleset_INPUT filter_fw1_INPUT_default_policy (map_of_string filter_fw1)))"
+  value[code] "remdups (collect_ifaces (unfold_ruleset_INPUT filter_fw1_INPUT_default_policy (map_of_string_ipv4 filter_fw1)))"
 
-  lemma "ipassmt_sanity_defined (unfold_ruleset_INPUT filter_fw1_INPUT_default_policy (map_of_string filter_fw1)) (map_of_ipassmt ipassmt)" by eval
-  lemma "ipassmt_sanity_defined (unfold_ruleset_FORWARD filter_fw1_FORWARD_default_policy (map_of_string filter_fw1)) (map_of_ipassmt ipassmt)" by eval
-  lemma "ipassmt_sanity_defined (unfold_ruleset_OUTPUT filter_fw1_OUTPUT_default_policy (map_of_string filter_fw1)) (map_of_ipassmt ipassmt)" by eval
+  lemma "ipassmt_sanity_defined (unfold_ruleset_INPUT filter_fw1_INPUT_default_policy (map_of_string_ipv4 filter_fw1)) (map_of_ipassmt ipassmt)" by eval
+  lemma "ipassmt_sanity_defined (unfold_ruleset_FORWARD filter_fw1_FORWARD_default_policy (map_of_string_ipv4 filter_fw1)) (map_of_ipassmt ipassmt)" by eval
+  lemma "ipassmt_sanity_defined (unfold_ruleset_OUTPUT filter_fw1_OUTPUT_default_policy (map_of_string_ipv4 filter_fw1)) (map_of_ipassmt ipassmt)" by eval
 
 
   text\<open>the parsed firewall raw table:\<close>
@@ -98,17 +98,17 @@ section\<open>Example: Implementing spoofing protection\<close>
 
   text\<open>it is possible to reach the firewall over ssh\<close>
   lemma "approximating_bigstep_fun (common_matcher, in_doubt_deny) ssh_packet_new
-     (unfold_ruleset_CHAIN ''PREROUTING'' raw_fw1_PREROUTING_default_policy (map_of_string raw_fw1)) Undecided
+     (unfold_ruleset_CHAIN ''PREROUTING'' raw_fw1_PREROUTING_default_policy (map_of_string_ipv4 raw_fw1)) Undecided
      = Decision FinalAllow" by eval
   lemma "approximating_bigstep_fun (common_matcher, in_doubt_deny) ssh_packet_established
-     (unfold_ruleset_CHAIN ''PREROUTING'' raw_fw1_PREROUTING_default_policy (map_of_string raw_fw1)) Undecided
+     (unfold_ruleset_CHAIN ''PREROUTING'' raw_fw1_PREROUTING_default_policy (map_of_string_ipv4 raw_fw1)) Undecided
      = Decision FinalAllow" by eval
 
   lemma "approximating_bigstep_fun (common_matcher, in_doubt_deny) ssh_packet_new
-     (unfold_ruleset_INPUT filter_fw1_INPUT_default_policy (map_of_string filter_fw1)) Undecided
+     (unfold_ruleset_INPUT filter_fw1_INPUT_default_policy (map_of_string_ipv4 filter_fw1)) Undecided
      = Decision FinalAllow" by eval
   lemma "approximating_bigstep_fun (common_matcher, in_doubt_deny) ssh_packet_established
-     (unfold_ruleset_INPUT filter_fw1_INPUT_default_policy (map_of_string filter_fw1)) Undecided
+     (unfold_ruleset_INPUT filter_fw1_INPUT_default_policy (map_of_string_ipv4 filter_fw1)) Undecided
      = Decision FinalAllow" by eval
 
   

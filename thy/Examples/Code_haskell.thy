@@ -34,11 +34,11 @@ export_code Rule
   Accept Drop Log Reject Call Return Goto Empty Unknown
   dotteddecimal_toString ipv4addr_toString ipv4_cidr_toString action_toString
   ipt_ipv4range_toString ipv4addr_toString
-  common_primitive_toString common_primitive_match_expr_toString
+  common_primitive_v4_toString common_primitive_match_expr_toString
   simple_rule_toString
   Semantics_Goto.rewrite_Goto_safe
   (*parser helpers:*) alist_and' compress_parsed_extra Pos Neg mk_Set
-  unfold_ruleset_CHAIN_safe map_of_string
+  unfold_ruleset_CHAIN_safe map_of_string_ipv4
   upper_closure
   abstract_for_simple_firewall optimize_matches
   packet_assume_new

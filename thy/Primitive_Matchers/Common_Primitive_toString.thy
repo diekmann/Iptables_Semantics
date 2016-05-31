@@ -76,29 +76,33 @@ lemma "ports_toString ''spt: '' (0,65535) = ''''" by eval
 lemma "ports_toString ''spt: '' (1024,2048) = ''spt: 1024:2048''" by eval
 lemma "ports_toString ''spt: '' (1024,1024) = ''spt: 1024''" by eval
 
-  
-fun common_primitive_toString :: "32 common_primitive \<Rightarrow> string" where
-  "common_primitive_toString (Src (IpAddr ip)) = ''-s ''@ipv4addr_toString ip" |
-  "common_primitive_toString (Dst (IpAddr ip)) = ''-d ''@ipv4addr_toString ip" |
-  "common_primitive_toString (Src (IpAddrNetmask ip n)) = ''-s ''@ipv4addr_toString ip@''/''@string_of_nat n"  |
-  "common_primitive_toString (Dst (IpAddrNetmask ip n)) = ''-d ''@ipv4addr_toString ip@''/''@string_of_nat n"  |
-  "common_primitive_toString (Src (IpAddrRange ip1 ip2)) = ''-m iprange --src-range ''@ipv4addr_toString ip1@''-''@ipv4addr_toString ip2"  |
-  "common_primitive_toString (Dst (IpAddrRange ip1 ip2)) = ''-m iprange --dst-range ''@ipv4addr_toString ip1@''-''@ipv4addr_toString ip2"  |
-  "common_primitive_toString (IIface ifce) = iface_toString ''-i '' ifce" |
-  "common_primitive_toString (OIface ifce) = iface_toString ''-o '' ifce" |
-  "common_primitive_toString (Prot prot) = ''-p ''@protocol_toString prot" |
-  "common_primitive_toString (Src_Ports pts) = ''--spts '' @ list_toString (ports_toString '''') pts" |
-  "common_primitive_toString (Dst_Ports pts) = ''--dpts '' @ list_toString (ports_toString '''') pts" |
-  "common_primitive_toString (CT_State S) = ''-m state --state ''@ctstate_set_toString S" |
-  "common_primitive_toString (L4_Flags (TCP_Flags c m)) = ''--tcp-flags ''@ipt_tcp_flags_toString c@'' ''@ipt_tcp_flags_toString m" |
-  "common_primitive_toString (Extra e) = ''~~''@e@''~~''"
 
+
+fun common_primitive_toString :: "('i::len word \<Rightarrow> string) \<Rightarrow> 'i common_primitive \<Rightarrow> string" where
+  "common_primitive_toString ipToStr (Src (IpAddr ip)) = ''-s ''@ipToStr ip" |
+  "common_primitive_toString ipToStr (Dst (IpAddr ip)) = ''-d ''@ipToStr ip" |
+  "common_primitive_toString ipToStr (Src (IpAddrNetmask ip n)) = ''-s ''@ipToStr ip@''/''@string_of_nat n"  |
+  "common_primitive_toString ipToStr (Dst (IpAddrNetmask ip n)) = ''-d ''@ipToStr ip@''/''@string_of_nat n"  |
+  "common_primitive_toString ipToStr (Src (IpAddrRange ip1 ip2)) = ''-m iprange --src-range ''@ipToStr ip1@''-''@ipToStr ip2"  |
+  "common_primitive_toString ipToStr (Dst (IpAddrRange ip1 ip2)) = ''-m iprange --dst-range ''@ipToStr ip1@''-''@ipToStr ip2"  |
+  "common_primitive_toString _ (IIface ifce) = iface_toString ''-i '' ifce" |
+  "common_primitive_toString _ (OIface ifce) = iface_toString ''-o '' ifce" |
+  "common_primitive_toString _ (Prot prot) = ''-p ''@protocol_toString prot" |
+  "common_primitive_toString _ (Src_Ports pts) = ''--spts '' @ list_toString (ports_toString '''') pts" |
+  "common_primitive_toString _ (Dst_Ports pts) = ''--dpts '' @ list_toString (ports_toString '''') pts" |
+  "common_primitive_toString _ (CT_State S) = ''-m state --state ''@ctstate_set_toString S" |
+  "common_primitive_toString _ (L4_Flags (TCP_Flags c m)) = ''--tcp-flags ''@ipt_tcp_flags_toString c@'' ''@ipt_tcp_flags_toString m" |
+  "common_primitive_toString _ (Extra e) = ''~~''@e@''~~''"
+
+
+definition common_primitive_v4_toString :: "32 common_primitive \<Rightarrow> string" where
+  "common_primitive_v4_toString \<equiv> common_primitive_toString ipv4addr_toString"
 
 fun common_primitive_match_expr_toString :: "32 common_primitive match_expr \<Rightarrow> string" where
   "common_primitive_match_expr_toString MatchAny = ''''" |
-  "common_primitive_match_expr_toString (Match m) = common_primitive_toString m" |
+  "common_primitive_match_expr_toString (Match m) = common_primitive_v4_toString m" |
   "common_primitive_match_expr_toString (MatchAnd m1 m2) = common_primitive_match_expr_toString m1 @'' '' @ common_primitive_match_expr_toString m2" |
-  "common_primitive_match_expr_toString (MatchNot (Match m)) = ''! ''@common_primitive_toString m" |
+  "common_primitive_match_expr_toString (MatchNot (Match m)) = ''! ''@common_primitive_v4_toString m" |
   "common_primitive_match_expr_toString (MatchNot m) = ''NOT (''@common_primitive_match_expr_toString m@'')''"
 
 fun common_primitive_rule_toString :: "32 common_primitive rule \<Rightarrow> string" where

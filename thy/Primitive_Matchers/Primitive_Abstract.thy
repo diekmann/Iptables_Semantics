@@ -19,8 +19,8 @@ text\<open>Abstract over certain primitives. The first parameter is a function
 fun abstract_primitive
   :: "(32 common_primitive negation_type \<Rightarrow> bool) \<Rightarrow> 32 common_primitive match_expr \<Rightarrow> 32 common_primitive match_expr" where
   "abstract_primitive _     MatchAny = MatchAny" |
-  "abstract_primitive disc (Match a) = (if disc (Pos a) then Match (Extra (common_primitive_toString a)) else (Match a))" |
-  "abstract_primitive disc (MatchNot (Match a)) = (if disc (Neg a) then Match (Extra (''! ''@common_primitive_toString a)) else (MatchNot (Match a)))" |
+  "abstract_primitive disc (Match a) = (if disc (Pos a) then Match (Extra (common_primitive_v4_toString a)) else (Match a))" |
+  "abstract_primitive disc (MatchNot (Match a)) = (if disc (Neg a) then Match (Extra (''! ''@common_primitive_v4_toString a)) else (MatchNot (Match a)))" |
   "abstract_primitive disc (MatchNot m) = MatchNot (abstract_primitive disc m)" |
   "abstract_primitive disc (MatchAnd m1 m2) = MatchAnd (abstract_primitive disc m1) (abstract_primitive disc m2)"
 

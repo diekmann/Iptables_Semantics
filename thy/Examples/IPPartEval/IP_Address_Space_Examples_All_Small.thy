@@ -104,9 +104,9 @@ begin
   (Iface ''eth0.23'', [(ipv4addr_of_dotdecimal (192,168,23,0),24)]),
   (Iface ''eth0.24'', [(ipv4addr_of_dotdecimal (192,168,24,0),24)])]"
 
-  value[code] "collect_ifaces (upper_closure (unfold_ruleset_FORWARD fw_home_user_FORWARD_default_policy (map_of_string fw_home_user)))"
+  value[code] "collect_ifaces (upper_closure (unfold_ruleset_FORWARD fw_home_user_FORWARD_default_policy (map_of_string_ipv4 fw_home_user)))"
 
-  value[code] "debug_ipassmt ipassmt_wg (upper_closure (unfold_ruleset_FORWARD fw_home_user_FORWARD_default_policy (map_of_string fw_home_user)))"
+  value[code] "debug_ipassmt ipassmt_wg (upper_closure (unfold_ruleset_FORWARD fw_home_user_FORWARD_default_policy (map_of_string_ipv4 fw_home_user)))"
 
   value[code] "bench upper_closure FWD ipassmt_wg fw_home_user_FORWARD_default_policy fw_home_user"
   value[code] "view upper_closure FWD ipassmt_wg fw_home_user_FORWARD_default_policy fw_home_user"
