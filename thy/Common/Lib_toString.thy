@@ -16,6 +16,7 @@ definition string_of_int :: "int \<Rightarrow> string" where
 lemma "string_of_nat 123456 = ''123456''" by eval
 
 
+declare string_of_nat.simps[simp del]
 
 
 
