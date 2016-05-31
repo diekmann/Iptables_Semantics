@@ -50,7 +50,9 @@ termination string_of_word
     apply(thin_tac "n \<noteq> 0")
     subgoal by (metis One_nat_def mult.right_neutral power_0 power_Suc unat_1 unat_power_lower Suc_1 inc_induct le_def less_eq_Suc_le lt1_neq0 not_degenerate_imp_2_neq_0 word_le_less_eq)
   done
-done 
+done
+
+declare string_of_word.simps[simp del]
 
 lemma "hex_string_of_word0 (0xdeadbeef42 :: 42 word) = ''deadbeef42''" by eval
 lemma "hex_string_of_word 1 (0x1 :: 5 word) = ''01''" by eval
@@ -68,7 +70,8 @@ lemma string_of_word_single_atoi:
   by(simp add: string_of_word_single_def)
 
 (*TODO: I want the reverse as [code_unfold] ! ! ! ! ! ! ! ! !*)
-lemma fixes w ::"32 word" (*TODO: for all words?*)
+lemma string_of_word_base_ten_zeropad:
+  fixes w ::"32 word" (*TODO: for all words?*)
   shows "base = 10 \<Longrightarrow> zero = 0 \<Longrightarrow> string_of_word True base zero w = string_of_nat (unat w)"
   proof(induction True base zero w rule: string_of_word.induct)
   case (1 base ml n)
@@ -90,32 +93,33 @@ lemma fixes w ::"32 word" (*TODO: for all words?*)
   with 1 have IH: "\<not> n < 0xA \<Longrightarrow> string_of_word True 0xA 0 (n div 0xA) = string_of_nat (unat (n div 0xA))"
      by(simp del: string_of_word.simps)
   show ?case
-    apply(simp add: 1 del: string_of_word.simps)
-    (*using[[simp_trace]] apply(simp del: string_of_word.simps string_of_nat.simps)*)
+    apply(simp add: 1)
     apply(case_tac "n < 0xA")
      subgoal
      apply(subst(1) string_of_word.simps)
      apply(subst(1) string_of_nat.simps)
      apply(simp add: n_less_ten_unat del: string_of_word.simps)
      by(simp add: string_of_word_single_atoi)
-    using sym[OF IH] apply(simp del: string_of_word.simps)
+    using sym[OF IH] apply(simp)
     apply(subst(1) string_of_word.simps)
-    apply(simp del: string_of_word.simps)
+    apply(simp)
     apply(subst(1) string_of_nat.simps)
-    apply(simp add: del: string_of_word.simps)
+    apply(simp)
     apply(safe)
-     apply(simp add: n_less_ten_unat_not del: string_of_word.simps; fail)
+     apply(simp add: n_less_ten_unat_not; fail)
     apply(subst string_of_word_single_atoi)
      apply(rule Word.word_mod_less_divisor, simp; fail)
-    apply(simp add: unat_mod_ten del: string_of_word.simps)
+    apply(simp add: unat_mod_ten)
     apply(rule sym)
-    apply(simp add: n_less_ten_unat_not del: string_of_word.simps)
-    apply(simp add: unat_div_ten del: string_of_word.simps)
+    apply(simp add: n_less_ten_unat_not)
+    apply(simp add: unat_div_ten)
     done
 qed
-lemma "dec_string_of_word0 w = string_of_nat (unat w)"
+lemma dec_string_of_word0:
+  fixes w ::"32 word" (*TODO: for all words?*)
+  shows "dec_string_of_word0 w = string_of_nat (unat w)"
   (*TODO*)
   unfolding dec_string_of_word0_def
-  oops
+  using string_of_word_base_ten_zeropad by simp
 
 end

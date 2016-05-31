@@ -32,7 +32,7 @@ value[code] "ipv6addr_toString (ipv6preferred_to_int (IPv6AddrPreferred 0 0 0 0 
 text\<open>Generic function. Whenever possible, use IPv4 or IPv6 pretty printing!\<close>
 definition ipaddr_generic_toString :: "'i::len word \<Rightarrow> string" where
   "ipaddr_generic_toString ip \<equiv>
-    ''[IP address ('' @ string_of_nat (len_of TYPE('i)) @ '' bit): '' @ string_of_nat (unat ip) @ '']''"
+    ''[IP address ('' @ string_of_nat (len_of TYPE('i)) @ '' bit): '' @ dec_string_of_word0 ip @ '']''"
 
 lemma "ipaddr_generic_toString (ipv4addr_of_dotdecimal (192,168,0,1)) = ''[IP address (32 bit): 3232235521]''" by eval
 
@@ -68,7 +68,7 @@ fun protocol_toString :: "protocol \<Rightarrow> string" where
   if protid = UDP then ''udp'' else
   if protid = ICMP then ''icmp'' else
   if protid = SCTP then ''sctp'' else
-  ''protocolid:''@string_of_nat (unat protid))"
+  ''protocolid:''@dec_string_of_word0 protid)"
   
 
 
@@ -84,7 +84,7 @@ fun action_toString :: "action \<Rightarrow> string" where
   "action_toString action.Unknown = ''!!!!!!!!!!! UNKNOWN !!!!!!!!!!!''"
 
 definition port_toString :: "16 word \<Rightarrow> string" where
-  "port_toString p \<equiv> string_of_nat (unat p)"
+  "port_toString p \<equiv> dec_string_of_word0 p"
 
 definition iface_toString :: "string \<Rightarrow> iface \<Rightarrow> string" where
   "iface_toString descr iface = (if iface = ifaceAny then '''' else
