@@ -36,8 +36,7 @@ next
 case (Some ips)
   have "matches (common_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). IpAddrNetmask ip y)) ips)) a p \<longleftrightarrow>
        (\<exists>m\<in>set ips. p_src p \<in> uncurry ipset_from_cidr m)" 
-       apply(simp add: match_list_to_match_expr_disjunction[symmetric] match_list_matches match_simplematcher_SrcDst
-          ipv4set_from_cidr_def )
+       apply(simp add: match_list_to_match_expr_disjunction[symmetric] match_list_matches match_simplematcher_SrcDst)
        by(simp add: ipt_iprange_to_set_IpAddrNetmask_case)
   with Some show ?thesis
     apply(simp add: ipcidr_union_set_uncurry uncurry_case_stmt)

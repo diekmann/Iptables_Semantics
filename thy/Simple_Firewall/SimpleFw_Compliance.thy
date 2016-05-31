@@ -35,8 +35,7 @@ theorem simple_match_to_ipportiface_match_correct:
   { fix ip
     have "p_src p \<in> ipt_iprange_to_set (uncurry IpAddrNetmask ip) \<longleftrightarrow> simple_match_ip ip (p_src p)"
     and  "p_dst p \<in> ipt_iprange_to_set (uncurry IpAddrNetmask ip) \<longleftrightarrow> simple_match_ip ip (p_dst p)"
-     apply(case_tac [!] ip)
-     by(simp_all add: ipv4set_from_cidr_def ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr)
+     by(simp split: uncurry_split)+
   } note simple_match_ips=this
   { fix ps
     have "p_sport p \<in> ports_to_set [ps] \<longleftrightarrow> simple_match_port ps (p_sport p)"
@@ -196,7 +195,7 @@ proof -
     from caseNone caseSome show ?goal by blast
   qed(simp_all add: match_iface_simple_match_any_simps simple_matches.simps normalized_protocols_def normalized_ifaces_def, 
       simp_all add: bunch_of_lemmata_about_matches, 
-      simp_all add: match_raw_bool ternary_to_bool_bool_to_ternary ipv4set_from_cidr_def)
+      simp_all add: match_raw_bool ternary_to_bool_bool_to_ternary)
 qed
 
 lemma simple_fw_remdups_Rev: "simple_fw (remdups_rev rs) p = simple_fw rs p"

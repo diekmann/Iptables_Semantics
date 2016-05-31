@@ -698,7 +698,7 @@ qed
   
   lemma simple_conn_matches_simple_match_any: "simple_conn_matches simple_match_any c"
     apply(simp add: simple_conn_matches_def)
-    apply(simp add: simple_match_any_def ipv4set_from_cidr_0 match_ifaceAny)
+    apply(simp add: simple_match_any_def match_ifaceAny)
     apply(subgoal_tac "(65535::16 word) = max_word")
      apply(simp)
     by(simp add: max_word_def)
