@@ -5,21 +5,34 @@ imports "../Common/Lib_toString"
 begin
 
 (*immitation of http://stackoverflow.com/questions/23864965/string-of-nat-in-isabelle*)
-definition "string_of_word_single lc w \<equiv> (if w < 10 then [char_of_nat (48 + unat w)] else if w < 36 then [char_of_nat ((if lc then 87 else 55) + unat w)] else undefined)"
-value "map (string_of_word_single False) (word_upto (-1) (36 :: 12 word))"
-function string_of_word :: "bool \<Rightarrow> ('a :: len) word \<Rightarrow> nat \<Rightarrow> ('a :: len) word \<Rightarrow> string" where (* lowercase?, base, minimum length - 1, to-be-serialized word *) 
-  "string_of_word lc base ml n = (if base < 2 \<or> len_of TYPE('a) < 2 then undefined else
-  	(if n < base \<and> ml = 0 then string_of_word_single lc n else string_of_word lc base (ml - 1) (n div base) @ string_of_word_single lc (n mod base)))"
-by clarsimp+
+(*lc = lower-case*)
+definition string_of_word_single :: "bool \<Rightarrow> 'a::len word \<Rightarrow> string" where
+  "string_of_word_single lc w \<equiv>
+    (if w < 10 then [char_of_nat (48 + unat w)] else if w < 36 then [char_of_nat ((if lc then 87 else 55) + unat w)] else undefined)"
 
-value[code] "(0 :: nat) - 1"
+value "let word_upto = ((\<lambda> i j. map (of_nat \<circ> nat) [i .. j]) :: int \<Rightarrow> int \<Rightarrow> 12 word list)
+       in map (string_of_word_single False) (word_upto (-1) (36))"
+
+(* parameters: lowercase, base, minimum length - 1, to-be-serialized word *) 
+function string_of_word :: "bool \<Rightarrow> ('a :: len) word \<Rightarrow> nat \<Rightarrow> ('a :: len) word \<Rightarrow> string" where
+  "string_of_word lc base ml n =
+    (if
+       base < 2 \<or> len_of TYPE('a) < 2
+     then
+       undefined
+     else (if
+       n < base \<and> ml = 0
+     then
+       string_of_word_single lc n
+     else string_of_word lc base (ml - 1) (n div base) @ string_of_word_single lc (n mod base)
+     ))"
+by clarsimp+
 
 definition "hex_string_of_word l \<equiv> string_of_word True (16 :: ('a::len) word) l"
 definition "hex_string_of_word0 \<equiv> hex_string_of_word 0"
 (* be careful though, these functions only make sense with words > length 4. With 4 bits, base 16 is not representable. *)
 definition "dec_string_of_word0 \<equiv> string_of_word True 10 0"
 
-find_theorems "?a div (?b::('a :: len) word)"
 termination string_of_word
 	apply(relation "measure (\<lambda>(a,b,c,d). unat d + c)")
 	 apply(rule wf_measure)
@@ -39,7 +52,7 @@ termination string_of_word
   done
 done 
 
-value "hex_string_of_word0 (0xdeadbeef42 :: 42 word)"
-value "hex_string_of_word 1 (0x1 :: 5 word)"
+lemma "hex_string_of_word0 (0xdeadbeef42 :: 42 word) = ''deadbeef42''" by eval
+lemma "hex_string_of_word 1 (0x1 :: 5 word) = ''01''" by eval
 
 end
