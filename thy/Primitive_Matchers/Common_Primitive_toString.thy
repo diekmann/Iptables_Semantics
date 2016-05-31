@@ -1,6 +1,7 @@
 theory Common_Primitive_toString
 imports 
         "../Common/Lib_toString"
+        "../Bitmagic/Lib_Word_toString"
         Common_Primitive_Matcher
 begin
 
@@ -13,6 +14,15 @@ fun dotteddecimal_toString :: "nat \<times> nat \<times> nat \<times> nat \<Righ
 definition ipv4addr_toString :: "ipv4addr \<Rightarrow> string" where
   "ipv4addr_toString ip = dotteddecimal_toString (dotdecimal_of_ipv4addr ip)"
 
+(* TODO: IPv6 parts need to be printed as hex
+definition ipv6addr_toString :: "ipv6addr \<Rightarrow> string" where
+  "ipv6addr_toString ip = list_separated_toString '':''
+      (\<lambda>pt. case pt of None \<Rightarrow> '':''
+                    |  Some w \<Rightarrow> string_of_nat (unat w))
+      (ipv6_preferred_to_compressed (int_to_ipv6preferred ip))"
+
+value[code] "ipv6addr_toString (ipv6preferred_to_int (IPv6AddrPreferred 0x2001 0xDB8 0x0 0x0 0x8 0x800 0x200C 0x417A))"
+*)
 
 text\<open>Generic function. Whenever possible, use IPv4 or IPv6 pretty printing!\<close>
 definition ipaddr_generic_toString :: "'i::len word \<Rightarrow> string" where
