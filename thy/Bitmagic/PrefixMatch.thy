@@ -40,8 +40,6 @@ lemma prefix_match_to_CIDR_def2: "prefix_match_to_CIDR = (\<lambda>pfx. (pfxm_pr
 
 
 
-
-
 definition "prefix_match_dtor m \<equiv> (case m of PrefixMatch p l \<Rightarrow> (p,l))"
 
 definition "prefix_match_less_eq1 a b = (if pfxm_length a = pfxm_length b then pfxm_prefix a \<le> pfxm_prefix b else pfxm_length a > pfxm_length b)"
@@ -293,6 +291,18 @@ definition prefix_to_wordinterval :: "'a::len prefix_match \<Rightarrow> 'a word
 lemma prefix_to_wordinterval_set_eq: "wordinterval_to_set (prefix_to_wordinterval pfx) = prefix_to_wordset pfx"
   unfolding prefix_to_wordinterval_def prefix_to_wordset_def by simp
 
+lemma prefix_to_wordinterval_def2:
+  "prefix_to_wordinterval pfx = iprange_interval ((pfxm_prefix pfx), (pfxm_prefix pfx OR pfxm_mask pfx))"
+  unfolding iprange_interval.simps prefix_to_wordinterval_def by simp
+corollary prefix_to_wordinterval_ipset_from_cidr: "valid_prefix pfx \<Longrightarrow>
+  wordinterval_to_set (prefix_to_wordinterval pfx) = ipset_from_cidr (pfxm_prefix pfx) (pfxm_length pfx)"
+using prefix_to_wordset_ipset_from_cidr prefix_to_wordinterval_set_eq by auto
+
+lemma prefix_never_empty: 
+  fixes d:: "'a::len prefix_match"
+  shows"\<not> wordinterval_empty (prefix_to_wordinterval d)"
+by (simp add: le_word_or2 prefix_to_wordinterval_def)
+
 definition range_prefix_match :: "'a::len prefix_match \<Rightarrow> 'a wordinterval \<Rightarrow> 'a wordinterval \<times> 'a wordinterval" where
   "range_prefix_match pfx rg \<equiv> (let pfxrg = prefix_to_wordinterval pfx in 
   (wordinterval_intersection rg pfxrg, wordinterval_setminus rg pfxrg))"
@@ -373,5 +383,6 @@ proof(induction l)
 	qed
 	ultimately show ?case by simp
 qed simp
+
 
 end

@@ -1,27 +1,30 @@
 {-# LANGUAGE EmptyDataDecls, RankNTypes, ScopedTypeVariables #-}
 
 module
-  Network.IPTables.Generated(Int, Num, Nat(..), Set, Word, Len, Iface(..), Bit0,
+  Network.IPTables.Generated(Int, Num, Nat(..), Word, Len, Iface(..), Bit0,
                               Num1, Protocol(..), Tcp_flag(..), Match_expr(..),
-                              Action(..), Rule(..), Ctstate(..),
-                              Ipt_ipv4range(..), Ipt_tcp_flags(..), Nibble,
+                              Action(..), Rule(..), Ctstate(..), Set,
+                              Ipt_tcp_flags(..), Nibble, Ipt_iprange(..),
                               Common_primitive(..), Wordinterval,
                               Negation_type(..), Simple_match_ext,
                               Simple_action(..), Simple_rule,
                               Parts_connection_ext, tcp, udp, icmp, alist_and,
                               mk_Set, dotteddecimal_toString, ipv4addr_toString,
                               ipassmt_sanity_defined, debug_ipassmt,
-                              map_of_ipassmt, to_ipassmt, ipassmt_generic,
+                              map_of_ipassmt, to_ipassmt,
+                              ipv4addr_of_dotdecimal, ipassmt_generic,
                               optimize_matches, upper_closure, word_to_nat,
                               word_less_eq, no_spoofing_iface, nat_to_8word,
-                              sanity_wf_ruleset, map_of_string, nat_to_16word,
+                              sanity_wf_ruleset, nat_to_16word,
                               compress_parsed_extra, integer_to_16word,
-                              rewrite_Goto_safe, access_matrix_pretty,
-                              common_primitive_toString,
-                              mk_parts_connection_TCP, to_simple_firewall,
-                              ipv4_cidr_toString, simple_rule_toString,
-                              unfold_ruleset_CHAIN_safe, action_toString,
-                              packet_assume_new, abstract_for_simple_firewall,
+                              rewrite_Goto_safe, map_of_string_ipv4,
+                              access_matrix_pretty, mk_parts_connection_TCP,
+                              to_simple_firewall, ipv4_cidr_toString,
+                              simple_rule_toString, unfold_ruleset_CHAIN_safe,
+                              action_toString, packet_assume_new,
+                              abstract_for_simple_firewall,
+                              ipt_ipv4range_toString,
+                              common_primitive_v4_toString,
                               to_simple_firewall_without_interfaces,
                               common_primitive_match_expr_toString)
   where {
@@ -80,23 +83,6 @@ instance Eq Nat where {
   a == b = equal_nat a b;
 };
 
-one_nat :: Nat;
-one_nat = Nat (1 :: Integer);
-
-instance One Nat where {
-  one = one_nat;
-};
-
-times_nat :: Nat -> Nat -> Nat;
-times_nat m n = Nat (integer_of_nat m * integer_of_nat n);
-
-instance Times Nat where {
-  times = times_nat;
-};
-
-instance Power Nat where {
-};
-
 less_eq_nat :: Nat -> Nat -> Bool;
 less_eq_nat m n = integer_of_nat m <= integer_of_nat n;
 
@@ -131,13 +117,8 @@ class (Order a) => Linorder a where {
 instance Linorder Nat where {
 };
 
-data Set a = Set [a] | Coset [a];
-
-top_set :: forall a. Set a;
-top_set = Coset [];
-
-ball :: forall a. Set a -> (a -> Bool) -> Bool;
-ball (Set xs) p = all p xs;
+equal_int :: Int -> Int -> Bool;
+equal_int k l = integer_of_int k == integer_of_int l;
 
 data Itself a = Type;
 
@@ -147,53 +128,14 @@ class Len0 a where {
 
 newtype Word a = Word Int;
 
-class (Len0 a) => Len a where {
-};
+uint :: forall a. (Len0 a) => Word a -> Int;
+uint (Word x) = x;
 
-enum_all_word :: forall a. (Len a) => (Word a -> Bool) -> Bool;
-enum_all_word p = ball top_set p;
+equal_word :: forall a. (Len0 a) => Word a -> Word a -> Bool;
+equal_word k l = equal_int (uint k) (uint l);
 
-bex :: forall a. Set a -> (a -> Bool) -> Bool;
-bex (Set xs) p = any p xs;
-
-enum_ex_word :: forall a. (Len a) => (Word a -> Bool) -> Bool;
-enum_ex_word p = bex top_set p;
-
-max :: forall a. (Ord a) => a -> a -> a;
-max a b = (if less_eq a b then b else a);
-
-instance Ord Integer where {
-  less_eq = (\ a b -> a <= b);
-  less = (\ a b -> a < b);
-};
-
-nat_of_integer :: Integer -> Nat;
-nat_of_integer k = Nat (max (0 :: Integer) k);
-
-zero_nat :: Nat;
-zero_nat = Nat (0 :: Integer);
-
-class Plus a where {
-  plus :: a -> a -> a;
-};
-
-class (Plus a) => Semigroup_add a where {
-};
-
-class (One a, Semigroup_add a) => Numeral a where {
-};
-
-numeral :: forall a. (Numeral a) => Num -> a;
-numeral (Bit1 n) = let {
-                     m = numeral n;
-                   } in plus (plus m m) one;
-numeral (Bit0 n) = let {
-                     m = numeral n;
-                   } in plus m m;
-numeral One = one;
-
-class Zero a where {
-  zero :: a;
+instance (Len0 a) => Eq (Word a) where {
+  a == b = equal_word a b;
 };
 
 sgn_integer :: Integer -> Integer;
@@ -217,82 +159,34 @@ divmod_integer k l =
                                 else (negate r - (1 :: Integer),
                                        Prelude.abs l - s)))));
 
-divide_integer :: Integer -> Integer -> Integer;
-divide_integer k l = fst (divmod_integer k l);
-
-divide_nat :: Nat -> Nat -> Nat;
-divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
-
 mod_integer :: Integer -> Integer -> Integer;
 mod_integer k l = snd (divmod_integer k l);
 
-mod_nat :: Nat -> Nat -> Nat;
-mod_nat m n = Nat (mod_integer (integer_of_nat m) (integer_of_nat n));
+mod_int :: Int -> Int -> Int;
+mod_int k l =
+  Int_of_integer (mod_integer (integer_of_int k) (integer_of_int l));
 
-divmod_nat :: Nat -> Nat -> (Nat, Nat);
-divmod_nat m n = (divide_nat m n, mod_nat m n);
+max :: forall a. (Ord a) => a -> a -> a;
+max a b = (if less_eq a b then b else a);
 
-class (Times a) => Semigroup_mult a where {
+instance Ord Integer where {
+  less_eq = (\ a b -> a <= b);
+  less = (\ a b -> a < b);
 };
-
-class (Semigroup_mult a, Power a) => Monoid_mult a where {
-};
-
-class (Semigroup_add a) => Ab_semigroup_add a where {
-};
-
-class (Ab_semigroup_add a, Semigroup_mult a) => Semiring a where {
-};
-
-class (Monoid_mult a, Numeral a, Semiring a) => Semiring_numeral a where {
-};
-
-class (One a, Zero a) => Zero_neq_one a where {
-};
-
-class (Semigroup_add a, Zero a) => Monoid_add a where {
-};
-
-class (Ab_semigroup_add a, Monoid_add a) => Comm_monoid_add a where {
-};
-
-class (Times a, Zero a) => Mult_zero a where {
-};
-
-class (Comm_monoid_add a, Mult_zero a, Semiring a) => Semiring_0 a where {
-};
-
-class (Semiring_numeral a, Semiring_0 a, Zero_neq_one a) => Semiring_1 a where {
-};
-
-of_nat :: forall a. (Semiring_1 a) => Nat -> a;
-of_nat n =
-  (if equal_nat n zero_nat then zero
-    else let {
-           (m, q) = divmod_nat n (nat_of_integer (2 :: Integer));
-           ma = times (numeral (Bit0 One)) (of_nat m);
-         } in (if equal_nat q zero_nat then ma else plus ma one));
 
 minus_nat :: Nat -> Nat -> Nat;
 minus_nat m n = Nat (max (0 :: Integer) (integer_of_nat m - integer_of_nat n));
+
+zero_nat :: Nat;
+zero_nat = Nat (0 :: Integer);
+
+one_nat :: Nat;
+one_nat = Nat (1 :: Integer);
 
 power :: forall a. (Power a) => a -> Nat -> a;
 power a n =
   (if equal_nat n zero_nat then one
     else times a (power a (minus_nat n one_nat)));
-
-plus_nat :: Nat -> Nat -> Nat;
-plus_nat m n = Nat (integer_of_nat m + integer_of_nat n);
-
-suc :: Nat -> Nat;
-suc n = plus_nat n one_nat;
-
-upt :: Nat -> Nat -> [Nat];
-upt i j = (if less_nat i j then i : upt (suc i) j else []);
-
-mod_int :: Int -> Int -> Int;
-mod_int k l =
-  Int_of_integer (mod_integer (integer_of_int k) (integer_of_int l));
 
 word_of_int :: forall a. (Len0 a) => Int -> Word a;
 word_of_int k =
@@ -300,17 +194,12 @@ word_of_int k =
          (power (Int_of_integer (2 :: Integer))
            ((len_of :: Itself a -> Nat) Type)));
 
-uint :: forall a. (Len0 a) => Word a -> Int;
-uint (Word x) = x;
+one_word :: forall a. (Len0 a) => Word a;
+one_word = word_of_int (Int_of_integer (1 :: Integer));
 
-times_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
-times_word a b = word_of_int (times_int (uint a) (uint b));
-
-zero_int :: Int;
-zero_int = Int_of_integer (0 :: Integer);
-
-zero_word :: forall a. (Len0 a) => Word a;
-zero_word = word_of_int zero_int;
+instance (Len0 a) => One (Word a) where {
+  one = one_word;
+};
 
 plus_int :: Int -> Int -> Int;
 plus_int k l = Int_of_integer (integer_of_int k + integer_of_int l);
@@ -318,100 +207,48 @@ plus_int k l = Int_of_integer (integer_of_int k + integer_of_int l);
 plus_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
 plus_word a b = word_of_int (plus_int (uint a) (uint b));
 
-one_word :: forall a. (Len0 a) => Word a;
-one_word = word_of_int (Int_of_integer (1 :: Integer));
-
-instance (Len0 a) => Times (Word a) where {
-  times = times_word;
-};
-
-instance (Len0 a) => Semigroup_mult (Word a) where {
-};
-
-instance (Len0 a) => One (Word a) where {
-  one = one_word;
-};
-
-instance (Len0 a) => Power (Word a) where {
-};
-
-instance (Len0 a) => Monoid_mult (Word a) where {
+class Plus a where {
+  plus :: a -> a -> a;
 };
 
 instance (Len0 a) => Plus (Word a) where {
   plus = plus_word;
 };
 
-instance (Len0 a) => Semigroup_add (Word a) where {
-};
+zero_int :: Int;
+zero_int = Int_of_integer (0 :: Integer);
 
-instance (Len0 a) => Ab_semigroup_add (Word a) where {
-};
+zero_word :: forall a. (Len0 a) => Word a;
+zero_word = word_of_int zero_int;
 
-instance (Len0 a) => Semiring (Word a) where {
-};
-
-instance (Len0 a) => Numeral (Word a) where {
-};
-
-instance (Len a) => Semiring_numeral (Word a) where {
+class Zero a where {
+  zero :: a;
 };
 
 instance (Len0 a) => Zero (Word a) where {
   zero = zero_word;
 };
 
-instance (Len a) => Zero_neq_one (Word a) where {
+class (Plus a) => Semigroup_add a where {
 };
 
-instance (Len0 a) => Monoid_add (Word a) where {
+class (One a, Semigroup_add a) => Numeral a where {
 };
 
-instance (Len0 a) => Comm_monoid_add (Word a) where {
+instance (Len0 a) => Semigroup_add (Word a) where {
 };
 
-instance (Len0 a) => Mult_zero (Word a) where {
+instance (Len0 a) => Numeral (Word a) where {
 };
 
-instance (Len0 a) => Semiring_0 (Word a) where {
+times_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
+times_word a b = word_of_int (times_int (uint a) (uint b));
+
+instance (Len0 a) => Times (Word a) where {
+  times = times_word;
 };
 
-instance (Len a) => Semiring_1 (Word a) where {
-};
-
-enum_word :: forall a. (Len a) => [Word a];
-enum_word =
-  map of_nat
-    (upt zero_nat
-      (power (nat_of_integer (2 :: Integer))
-        ((len_of :: Itself a -> Nat) Type)));
-
-class Finite a where {
-};
-
-class (Finite a) => Enum a where {
-  enum :: [a];
-  enum_all :: (a -> Bool) -> Bool;
-  enum_ex :: (a -> Bool) -> Bool;
-};
-
-instance (Len0 a) => Finite (Word a) where {
-};
-
-instance (Len a) => Enum (Word a) where {
-  enum = enum_word;
-  enum_all = enum_all_word;
-  enum_ex = enum_ex_word;
-};
-
-equal_int :: Int -> Int -> Bool;
-equal_int k l = integer_of_int k == integer_of_int l;
-
-equal_word :: forall a. (Len0 a) => Word a -> Word a -> Bool;
-equal_word k l = equal_int (uint k) (uint l);
-
-instance (Len0 a) => Eq (Word a) where {
-  a == b = equal_word a b;
+instance (Len0 a) => Power (Word a) where {
 };
 
 less_eq_int :: Int -> Int -> Bool;
@@ -431,10 +268,79 @@ instance (Len0 a) => Ord (Word a) where {
   less = less_word;
 };
 
+class (Semigroup_add a) => Ab_semigroup_add a where {
+};
+
+class (Times a) => Semigroup_mult a where {
+};
+
+class (Ab_semigroup_add a, Semigroup_mult a) => Semiring a where {
+};
+
+instance (Len0 a) => Ab_semigroup_add (Word a) where {
+};
+
+instance (Len0 a) => Semigroup_mult (Word a) where {
+};
+
+instance (Len0 a) => Semiring (Word a) where {
+};
+
 instance (Len0 a) => Preorder (Word a) where {
 };
 
 instance (Len0 a) => Order (Word a) where {
+};
+
+class (Times a, Zero a) => Mult_zero a where {
+};
+
+instance (Len0 a) => Mult_zero (Word a) where {
+};
+
+class (Semigroup_add a, Zero a) => Monoid_add a where {
+};
+
+class (Ab_semigroup_add a, Monoid_add a) => Comm_monoid_add a where {
+};
+
+class (Comm_monoid_add a, Mult_zero a, Semiring a) => Semiring_0 a where {
+};
+
+instance (Len0 a) => Monoid_add (Word a) where {
+};
+
+instance (Len0 a) => Comm_monoid_add (Word a) where {
+};
+
+instance (Len0 a) => Semiring_0 (Word a) where {
+};
+
+class (Semigroup_mult a, Power a) => Monoid_mult a where {
+};
+
+class (Monoid_mult a, Numeral a, Semiring a) => Semiring_numeral a where {
+};
+
+class (One a, Zero a) => Zero_neq_one a where {
+};
+
+class (Semiring_numeral a, Semiring_0 a, Zero_neq_one a) => Semiring_1 a where {
+};
+
+class (Len0 a) => Len a where {
+};
+
+instance (Len0 a) => Monoid_mult (Word a) where {
+};
+
+instance (Len a) => Semiring_numeral (Word a) where {
+};
+
+instance (Len a) => Zero_neq_one (Word a) where {
+};
+
+instance (Len a) => Semiring_1 (Word a) where {
 };
 
 instance (Len0 a) => Linorder (Word a) where {
@@ -474,6 +380,15 @@ instance Order Iface where {
 };
 
 instance Linorder Iface where {
+};
+
+times_nat :: Nat -> Nat -> Nat;
+times_nat m n = Nat (integer_of_nat m * integer_of_nat n);
+
+nat_of_integer :: Integer -> Nat;
+nat_of_integer k = Nat (max (0 :: Integer) k);
+
+class Finite a where {
 };
 
 newtype Bit0 a = Abs_bit0 Int;
@@ -546,6 +461,12 @@ enum_ex_tcp_flag p =
 
 enum_tcp_flag :: [Tcp_flag];
 enum_tcp_flag = [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST, TCP_URG, TCP_PSH];
+
+class (Finite a) => Enum a where {
+  enum :: [a];
+  enum_all :: (a -> Bool) -> Bool;
+  enum_ex :: (a -> Bool) -> Bool;
+};
 
 instance Finite Tcp_flag where {
 };
@@ -791,22 +712,7 @@ instance Eq State where {
   a == b = equal_state a b;
 };
 
-data Ipt_ipv4range = Ip4Addr (Nat, (Nat, (Nat, Nat)))
-  | Ip4AddrNetmask (Nat, (Nat, (Nat, Nat))) Nat
-  | Ip4AddrRange (Nat, (Nat, (Nat, Nat))) (Nat, (Nat, (Nat, Nat)));
-
-equal_ipt_ipv4range :: Ipt_ipv4range -> Ipt_ipv4range -> Bool;
-equal_ipt_ipv4range (Ip4AddrNetmask x21 x22) (Ip4AddrRange x31 x32) = False;
-equal_ipt_ipv4range (Ip4AddrRange x31 x32) (Ip4AddrNetmask x21 x22) = False;
-equal_ipt_ipv4range (Ip4Addr x1) (Ip4AddrRange x31 x32) = False;
-equal_ipt_ipv4range (Ip4AddrRange x31 x32) (Ip4Addr x1) = False;
-equal_ipt_ipv4range (Ip4Addr x1) (Ip4AddrNetmask x21 x22) = False;
-equal_ipt_ipv4range (Ip4AddrNetmask x21 x22) (Ip4Addr x1) = False;
-equal_ipt_ipv4range (Ip4AddrRange x31 x32) (Ip4AddrRange y31 y32) =
-  x31 == y31 && x32 == y32;
-equal_ipt_ipv4range (Ip4AddrNetmask x21 x22) (Ip4AddrNetmask y21 y22) =
-  x21 == y21 && equal_nat x22 y22;
-equal_ipt_ipv4range (Ip4Addr x1) (Ip4Addr y1) = x1 == y1;
+data Set a = Set [a] | Coset [a];
 
 data Ipt_tcp_flags = TCP_Flags (Set Tcp_flag) (Set Tcp_flag);
 
@@ -838,8 +744,25 @@ equal_ipt_tcp_flags :: Ipt_tcp_flags -> Ipt_tcp_flags -> Bool;
 equal_ipt_tcp_flags (TCP_Flags x1 x2) (TCP_Flags y1 y2) =
   equal_set x1 y1 && equal_set x2 y2;
 
-data Common_primitive = Src Ipt_ipv4range | Dst Ipt_ipv4range | IIface Iface
-  | OIface Iface | Prot Protocol
+data Ipt_iprange a = IpAddr (Word a) | IpAddrNetmask (Word a) Nat
+  | IpAddrRange (Word a) (Word a);
+
+equal_ipt_iprange ::
+  forall a. (Len a) => Ipt_iprange a -> Ipt_iprange a -> Bool;
+equal_ipt_iprange (IpAddrNetmask x21 x22) (IpAddrRange x31 x32) = False;
+equal_ipt_iprange (IpAddrRange x31 x32) (IpAddrNetmask x21 x22) = False;
+equal_ipt_iprange (IpAddr x1) (IpAddrRange x31 x32) = False;
+equal_ipt_iprange (IpAddrRange x31 x32) (IpAddr x1) = False;
+equal_ipt_iprange (IpAddr x1) (IpAddrNetmask x21 x22) = False;
+equal_ipt_iprange (IpAddrNetmask x21 x22) (IpAddr x1) = False;
+equal_ipt_iprange (IpAddrRange x31 x32) (IpAddrRange y31 y32) =
+  equal_word x31 y31 && equal_word x32 y32;
+equal_ipt_iprange (IpAddrNetmask x21 x22) (IpAddrNetmask y21 y22) =
+  equal_word x21 y21 && equal_nat x22 y22;
+equal_ipt_iprange (IpAddr x1) (IpAddr y1) = equal_word x1 y1;
+
+data Common_primitive a = Src (Ipt_iprange a) | Dst (Ipt_iprange a)
+  | IIface Iface | OIface Iface | Prot Protocol
   | Src_Ports
       [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
          Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))]
@@ -848,7 +771,8 @@ data Common_primitive = Src Ipt_ipv4range | Dst Ipt_ipv4range | IIface Iface
          Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))]
   | L4_Flags Ipt_tcp_flags | CT_State (Set Ctstate) | Extra [Prelude.Char];
 
-equal_common_primitive :: Common_primitive -> Common_primitive -> Bool;
+equal_common_primitive ::
+  forall a. (Len a) => Common_primitive a -> Common_primitive a -> Bool;
 equal_common_primitive (CT_State x9) (Extra x10) = False;
 equal_common_primitive (Extra x10) (CT_State x9) = False;
 equal_common_primitive (L4_Flags x8) (Extra x10) = False;
@@ -947,10 +871,10 @@ equal_common_primitive (Src_Ports x6) (Src_Ports y6) = x6 == y6;
 equal_common_primitive (Prot x5) (Prot y5) = equal_protocol x5 y5;
 equal_common_primitive (OIface x4) (OIface y4) = equal_iface x4 y4;
 equal_common_primitive (IIface x3) (IIface y3) = equal_iface x3 y3;
-equal_common_primitive (Dst x2) (Dst y2) = equal_ipt_ipv4range x2 y2;
-equal_common_primitive (Src x1) (Src y1) = equal_ipt_ipv4range x1 y1;
+equal_common_primitive (Dst x2) (Dst y2) = equal_ipt_iprange x2 y2;
+equal_common_primitive (Src x1) (Src y1) = equal_ipt_iprange x1 y1;
 
-instance Eq Common_primitive where {
+instance (Len a) => Eq (Common_primitive a) where {
   a == b = equal_common_primitive a b;
 };
 
@@ -985,6 +909,15 @@ data Parts_connection_ext a =
 
 nat :: Int -> Nat;
 nat = nat_of_integer . integer_of_int;
+
+plus_nat :: Nat -> Nat -> Nat;
+plus_nat m n = Nat (integer_of_nat m + integer_of_nat n);
+
+suc :: Nat -> Nat;
+suc n = plus_nat n one_nat;
+
+ball :: forall a. Set a -> (a -> Bool) -> Bool;
+ball (Set xs) p = all p xs;
 
 fold :: forall a b. (a -> b -> b) -> [a] -> b -> b;
 fold f (x : xs) s = fold f xs (f x s);
@@ -1061,9 +994,6 @@ splice (x : xs) (y : ys) = x : y : splice xs ys;
 splice [] ys = ys;
 splice xs [] = xs;
 
-collect :: forall a. (Enum a) => (a -> Bool) -> Set a;
-collect p = Set (filter p enum);
-
 butlast :: forall a. [a] -> [a];
 butlast [] = [];
 butlast (x : xs) = (if null xs then [] else x : butlast xs);
@@ -1087,6 +1017,9 @@ udp = word_of_int (Int_of_integer (17 :: Integer));
 
 is_empty :: forall a. Set a -> Bool;
 is_empty (Set xs) = null xs;
+
+divide_integer :: Integer -> Integer -> Integer;
+divide_integer k l = fst (divmod_integer k l);
 
 divide_int :: Int -> Int -> Int;
 divide_int k l =
@@ -1198,6 +1131,15 @@ l2br :: forall a. (Len a) => [(Word a, Word a)] -> Wordinterval a;
 l2br [] = empty_WordInterval;
 l2br [(s, e)] = WordInterval s e;
 l2br ((s, e) : v : va) = RangeUnion (WordInterval s e) (l2br (v : va));
+
+divide_nat :: Nat -> Nat -> Nat;
+divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
+
+mod_nat :: Nat -> Nat -> Nat;
+mod_nat m n = Nat (mod_integer (integer_of_nat m) (integer_of_nat n));
+
+divmod_nat :: Nat -> Nat -> (Nat, Nat);
+divmod_nat m n = (divide_nat m n, mod_nat m n);
 
 size_list :: forall a. [a] -> Nat;
 size_list = gen_length zero_nat;
@@ -1364,7 +1306,7 @@ char_of_nat =
 mk_Set :: forall a. [a] -> Set a;
 mk_Set = Set;
 
-is_pos_Extra :: Negation_type Common_primitive -> Bool;
+is_pos_Extra :: forall a. (Len a) => Negation_type (Common_primitive a) -> Bool;
 is_pos_Extra a = (case a of {
                    Pos (Src _) -> False;
                    Pos (Dst _) -> False;
@@ -1378,6 +1320,13 @@ is_pos_Extra a = (case a of {
                    Pos (Extra _) -> True;
                    Neg _ -> False;
                  });
+
+word_upto :: forall a. (Len0 a) => Word a -> Word a -> [Word a];
+word_upto a b = word_uptoa a b;
+
+word_uptoa :: forall a. (Len0 a) => Word a -> Word a -> [Word a];
+word_uptoa a b =
+  (if equal_word a b then [a] else a : word_upto (plus_word a one_word) b);
 
 wordinterval_lowest_element ::
   forall a. (Len0 a) => Wordinterval a -> Maybe (Word a);
@@ -1701,7 +1650,8 @@ getPos [] = [];
 getPos (Pos x : xs) = x : getPos xs;
 getPos (Neg v : xs) = getPos xs;
 
-get_pos_Extra :: Negation_type Common_primitive -> [Prelude.Char];
+get_pos_Extra ::
+  forall a. (Len a) => Negation_type (Common_primitive a) -> [Prelude.Char];
 get_pos_Extra a = let {
                     (Pos (Extra e)) = a;
                   } in e;
@@ -1807,8 +1757,7 @@ ipcidr_to_interval cidr =
   (ipcidr_to_interval_start cidr, ipcidr_to_interval_end cidr);
 
 ipassmt_ignore_wildcard_list ::
-  [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
-    [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])];
+  forall a. (Len a) => [(Iface, [(Word a, Nat)])] -> [(Iface, [(Word a, Nat)])];
 ipassmt_ignore_wildcard_list ipassmt =
   filter
     (\ (_, ips) ->
@@ -1827,13 +1776,13 @@ wordinterval_Union ws =
 mergesort_remdups :: forall a. (Eq a, Linorder a) => [a] -> [a];
 mergesort_remdups xs = merge_list [] (map (\ x -> [x]) xs);
 
-oiface_sel :: Common_primitive -> Iface;
+oiface_sel :: forall a. (Len a) => Common_primitive a -> Iface;
 oiface_sel (OIface x4) = x4;
 
-iiface_sel :: Common_primitive -> Iface;
+iiface_sel :: forall a. (Len a) => Common_primitive a -> Iface;
 iiface_sel (IIface x3) = x3;
 
-is_Oiface :: Common_primitive -> Bool;
+is_Oiface :: forall a. (Len a) => Common_primitive a -> Bool;
 is_Oiface (Src x1) = False;
 is_Oiface (Dst x2) = False;
 is_Oiface (IIface x3) = False;
@@ -1845,7 +1794,7 @@ is_Oiface (L4_Flags x8) = False;
 is_Oiface (CT_State x9) = False;
 is_Oiface (Extra x10) = False;
 
-is_Iiface :: Common_primitive -> Bool;
+is_Iiface :: forall a. (Len a) => Common_primitive a -> Bool;
 is_Iiface (Src x1) = False;
 is_Iiface (Dst x2) = False;
 is_Iiface (IIface x3) = True;
@@ -1874,7 +1823,7 @@ primitive_extractor uv (MatchNot (MatchNot va)) = error "undefined";
 primitive_extractor uv (MatchNot (MatchAnd va vb)) = error "undefined";
 primitive_extractor uv (MatchNot MatchAny) = error "undefined";
 
-collect_ifacesa :: [Rule Common_primitive] -> [Iface];
+collect_ifacesa :: forall a. (Len a) => [Rule (Common_primitive a)] -> [Iface];
 collect_ifacesa [] = [];
 collect_ifacesa (Rule m a : rs) =
   filter (\ iface -> not (equal_iface iface ifaceAny))
@@ -1890,13 +1839,13 @@ collect_ifacesa (Rule m a : rs) =
         (fst (primitive_extractor (is_Oiface, oiface_sel) m)) ++
         collect_ifacesa rs);
 
-collect_ifaces :: [Rule Common_primitive] -> [Iface];
+collect_ifaces :: forall a. (Len a) => [Rule (Common_primitive a)] -> [Iface];
 collect_ifaces rs = mergesort_remdups (collect_ifacesa rs);
 
 ipassmt_sanity_defined ::
-  [Rule Common_primitive] ->
-    (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
-      Bool;
+  forall a.
+    (Len a) => [Rule (Common_primitive a)] ->
+                 (Iface -> Maybe [(Word a, Nat)]) -> Bool;
 ipassmt_sanity_defined rs ipassmt =
   all (\ iface -> not (is_none (ipassmt iface))) (collect_ifaces rs);
 
@@ -1914,7 +1863,8 @@ iface_is_wildcard ifce = iface_name_is_wildcard (iface_sel ifce);
 
 debug_ipassmt ::
   [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
-    [Rule Common_primitive] -> [[Prelude.Char]];
+    [Rule (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))] ->
+      [[Prelude.Char]];
 debug_ipassmt ipassmt rs =
   let {
     ifaces = map fst ipassmt;
@@ -2037,76 +1987,46 @@ partIps s (t : ts) =
                            partIps (wordinterval_setminus s t) ts)));
 
 map_of_ipassmt ::
-  [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
-    Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
+  forall a. [(Iface, [(Word a, Nat)])] -> Iface -> Maybe [(Word a, Nat)];
 map_of_ipassmt ipassmt =
   (if distinct (map fst ipassmt) &&
         ball (image fst (Set ipassmt))
           (\ iface -> not (iface_is_wildcard iface))
     then map_of ipassmt else error "undefined");
 
-ipv4addr_of_nat :: Nat -> Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
-ipv4addr_of_nat n = of_nat n;
+ipt_iprange_to_interval ::
+  forall a. (Len a) => Ipt_iprange a -> (Word a, Word a);
+ipt_iprange_to_interval (IpAddr addr) = (addr, addr);
+ipt_iprange_to_interval (IpAddrNetmask pre len) = ipcidr_to_interval (pre, len);
+ipt_iprange_to_interval (IpAddrRange ip1 ip2) = (ip1, ip2);
 
-ipv4addr_of_dotdecimal ::
-  (Nat, (Nat, (Nat, Nat))) -> Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
-ipv4addr_of_dotdecimal (a, (b, (c, d))) =
-  ipv4addr_of_nat
-    (plus_nat
-      (plus_nat (plus_nat d (times_nat (nat_of_integer (256 :: Integer)) c))
-        (times_nat (nat_of_integer (65536 :: Integer)) b))
-      (times_nat (nat_of_integer (16777216 :: Integer)) a));
+iprange_interval :: forall a. (Len a) => (Word a, Word a) -> Wordinterval a;
+iprange_interval (ip_start, ip_end) = WordInterval ip_start ip_end;
 
-ipt_ipv4range_to_interval ::
-  Ipt_ipv4range ->
-    (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))),
-      Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))));
-ipt_ipv4range_to_interval (Ip4Addr addr) =
-  (ipv4addr_of_dotdecimal addr, ipv4addr_of_dotdecimal addr);
-ipt_ipv4range_to_interval (Ip4AddrNetmask pre len) =
-  let {
-    netmask =
-      shiftl_word (mask len) (minus_nat (nat_of_integer (32 :: Integer)) len);
-    network_prefix = bitAND_word (ipv4addr_of_dotdecimal pre) netmask;
-  } in (network_prefix, bitOR_word network_prefix (bitNOT_word netmask));
-ipt_ipv4range_to_interval (Ip4AddrRange ip1 ip2) =
-  (ipv4addr_of_dotdecimal ip1, ipv4addr_of_dotdecimal ip2);
+ipt_iprange_to_cidr :: forall a. (Len a) => Ipt_iprange a -> [(Word a, Nat)];
+ipt_iprange_to_cidr ips =
+  cidr_split (iprange_interval (ipt_iprange_to_interval ips));
 
-ipv4range_range ::
-  (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))),
-    Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))) ->
-    Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
-ipv4range_range (ip_start, ip_end) = WordInterval ip_start ip_end;
-
-ipt_ipv4range_to_cidr ::
-  Ipt_ipv4range -> [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
-ipt_ipv4range_to_cidr ips =
-  cidr_split (ipv4range_range (ipt_ipv4range_to_interval ips));
-
-all_but_those_ips ::
-  [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)] ->
-    [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
+all_but_those_ips :: forall a. (Len a) => [(Word a, Nat)] -> [(Word a, Nat)];
 all_but_those_ips cidrips =
   cidr_split (wordinterval_invert (l2br (map ipcidr_to_interval cidrips)));
 
 ipassmt_iprange_translate ::
-  Negation_type [Ipt_ipv4range] ->
+  Negation_type [Ipt_iprange (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))] ->
     [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
-ipassmt_iprange_translate (Pos ips) = concatMap ipt_ipv4range_to_cidr ips;
+ipassmt_iprange_translate (Pos ips) = concatMap ipt_iprange_to_cidr ips;
 ipassmt_iprange_translate (Neg ips) =
-  all_but_those_ips (concatMap ipt_ipv4range_to_cidr ips);
+  all_but_those_ips (concatMap ipt_iprange_to_cidr ips);
 
 to_ipassmt ::
-  [(Iface, Negation_type [Ipt_ipv4range])] ->
+  [(Iface,
+     Negation_type [Ipt_iprange (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))])] ->
     [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])];
 to_ipassmt assmt =
   map (\ (ifce, ips) -> (ifce, ipassmt_iprange_translate ips)) assmt;
 
 matchOr :: forall a. Match_expr a -> Match_expr a -> Match_expr a;
 matchOr m1 m2 = MatchNot (MatchAnd (MatchNot m1) (MatchNot m2));
-
-iprange_interval :: forall a. (Len a) => (Word a, Word a) -> Wordinterval a;
-iprange_interval (ip_start, ip_end) = WordInterval ip_start ip_end;
 
 getOneIp :: forall a. (Len a) => Wordinterval a -> Word a;
 getOneIp (WordInterval b uu) = b;
@@ -2137,8 +2057,34 @@ extract_IPSets rs =
 getParts :: forall a. (Len a) => [Simple_rule a] -> [Wordinterval a];
 getParts rs = partitioningIps (extract_IPSets rs) [wordinterval_UNIV];
 
-ipv4range_UNIV :: Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
-ipv4range_UNIV = wordinterval_UNIV;
+numeral :: forall a. (Numeral a) => Num -> a;
+numeral (Bit1 n) = let {
+                     m = numeral n;
+                   } in plus (plus m m) one;
+numeral (Bit0 n) = let {
+                     m = numeral n;
+                   } in plus m m;
+numeral One = one;
+
+of_nat :: forall a. (Semiring_1 a) => Nat -> a;
+of_nat n =
+  (if equal_nat n zero_nat then zero
+    else let {
+           (m, q) = divmod_nat n (nat_of_integer (2 :: Integer));
+           ma = times (numeral (Bit0 One)) (of_nat m);
+         } in (if equal_nat q zero_nat then ma else plus ma one));
+
+ipv4addr_of_nat :: Nat -> Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+ipv4addr_of_nat n = of_nat n;
+
+ipv4addr_of_dotdecimal ::
+  (Nat, (Nat, (Nat, Nat))) -> Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+ipv4addr_of_dotdecimal (a, (b, (c, d))) =
+  ipv4addr_of_nat
+    (plus_nat
+      (plus_nat (plus_nat d (times_nat (nat_of_integer (256 :: Integer)) c))
+        (times_nat (nat_of_integer (65536 :: Integer)) b))
+      (times_nat (nat_of_integer (16777216 :: Integer)) a));
 
 ipassmt_generic ::
   [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])];
@@ -2149,7 +2095,10 @@ ipassmt_generic =
         nat_of_integer (8 :: Integer))])];
 
 upper_closure_matchexpr ::
-  Action -> Match_expr Common_primitive -> Match_expr Common_primitive;
+  forall a.
+    (Len a) => Action ->
+                 Match_expr (Common_primitive a) ->
+                   Match_expr (Common_primitive a);
 upper_closure_matchexpr uu MatchAny = MatchAny;
 upper_closure_matchexpr Accept (Match (Extra uv)) = MatchAny;
 upper_closure_matchexpr Reject (Match (Extra uw)) = MatchNot MatchAny;
@@ -2320,13 +2269,17 @@ compress_interfaces ifces =
   });
 
 compress_normalize_output_interfaces ::
-  Match_expr Common_primitive -> Maybe (Match_expr Common_primitive);
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 Maybe (Match_expr (Common_primitive a));
 compress_normalize_output_interfaces m =
   compress_normalize_primitive (is_Oiface, oiface_sel) OIface
     compress_interfaces m;
 
 compress_normalize_input_interfaces ::
-  Match_expr Common_primitive -> Maybe (Match_expr Common_primitive);
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 Maybe (Match_expr (Common_primitive a));
 compress_normalize_input_interfaces m =
   compress_normalize_primitive (is_Iiface, iiface_sel) IIface
     compress_interfaces m;
@@ -2342,10 +2295,10 @@ compress_normalize_primitive_monad (f : fs) m =
     Just a -> compress_normalize_primitive_monad fs a;
   });
 
-prot_sel :: Common_primitive -> Protocol;
+prot_sel :: forall a. (Len a) => Common_primitive a -> Protocol;
 prot_sel (Prot x5) = x5;
 
-is_Prot :: Common_primitive -> Bool;
+is_Prot :: forall a. (Len a) => Common_primitive a -> Bool;
 is_Prot (Src x1) = False;
 is_Prot (Dst x2) = False;
 is_Prot (IIface x3) = False;
@@ -2372,19 +2325,6 @@ compress_pos_protocols (p1 : p2 : ps) =
     Just p -> compress_pos_protocols (p : ps);
   });
 
-atLeast :: forall a. (Enum a, Ord a) => a -> Set a;
-atLeast l = collect (less_eq l);
-
-atMost :: forall a. (Enum a, Ord a) => a -> Set a;
-atMost u = collect (\ x -> less_eq x u);
-
-inf_set :: forall a. (Eq a) => Set a -> Set a -> Set a;
-inf_set a (Coset xs) = fold remove xs a;
-inf_set a (Set xs) = Set (filter (\ x -> member x a) xs);
-
-atLeastAtMost :: forall a. (Enum a, Eq a, Ord a) => a -> a -> Set a;
-atLeastAtMost l u = inf_set (atLeast l) (atMost u);
-
 compress_protocols ::
   [Negation_type Protocol] -> Maybe ([Protocol], [Protocol]);
 compress_protocols ps =
@@ -2392,8 +2332,9 @@ compress_protocols ps =
     Nothing -> Nothing;
     Just proto ->
       (if membera (getNeg ps) ProtoAny ||
-            ball (atLeastAtMost zero_word max_word)
-              (\ p -> membera (getNeg ps) (Proto p))
+            all (\ p -> membera (getNeg ps) (Proto p))
+              (word_upto zero_word
+                (word_of_int (Int_of_integer (255 :: Integer))))
         then Nothing
         else (if equal_protocol proto ProtoAny then Just ([], getNeg ps)
                else (if any (\ p ->
@@ -2403,12 +2344,16 @@ compress_protocols ps =
   });
 
 compress_normalize_protocols ::
-  Match_expr Common_primitive -> Maybe (Match_expr Common_primitive);
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 Maybe (Match_expr (Common_primitive a));
 compress_normalize_protocols m =
   compress_normalize_primitive (is_Prot, prot_sel) Prot compress_protocols m;
 
 compress_normalize_besteffort ::
-  Match_expr Common_primitive -> Maybe (Match_expr Common_primitive);
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 Maybe (Match_expr (Common_primitive a));
 compress_normalize_besteffort m =
   compress_normalize_primitive_monad
     [compress_normalize_protocols, compress_normalize_input_interfaces,
@@ -2424,10 +2369,10 @@ normalize_primitive_extract disc_sel c f m =
     (spts, rst) = primitive_extractor disc_sel m;
   } in map (\ spt -> MatchAnd (Match (c spt)) rst) (f spts);
 
-src_sel :: Common_primitive -> Ipt_ipv4range;
+src_sel :: forall a. (Len a) => Common_primitive a -> Ipt_iprange a;
 src_sel (Src x1) = x1;
 
-is_Src :: Common_primitive -> Bool;
+is_Src :: forall a. (Len a) => Common_primitive a -> Bool;
 is_Src (Src x1) = True;
 is_Src (Dst x2) = False;
 is_Src (IIface x3) = False;
@@ -2449,31 +2394,32 @@ l2br_negation_type_intersect (Neg (s, e) : ls) =
   wordinterval_intersection (wordinterval_invert (WordInterval s e))
     (l2br_negation_type_intersect ls);
 
-ipt_ipv4range_negation_type_to_br_intersect ::
-  [Negation_type Ipt_ipv4range] ->
-    Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
-ipt_ipv4range_negation_type_to_br_intersect l =
-  l2br_negation_type_intersect (negPos_map ipt_ipv4range_to_interval l);
+ipt_iprange_negation_type_to_br_intersect ::
+  forall a. (Len a) => [Negation_type (Ipt_iprange a)] -> Wordinterval a;
+ipt_iprange_negation_type_to_br_intersect l =
+  l2br_negation_type_intersect (negPos_map ipt_iprange_to_interval l);
 
-wi_2_cidr_ipt_ipv4range_list ::
-  Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Ipt_ipv4range];
-wi_2_cidr_ipt_ipv4range_list r =
-  map (\ (base, a) -> Ip4AddrNetmask (dotdecimal_of_ipv4addr base) a)
-    (cidr_split r);
+wi_2_cidr_ipt_iprange_list ::
+  forall a. (Len a) => Wordinterval a -> [Ipt_iprange a];
+wi_2_cidr_ipt_iprange_list r =
+  map (\ (a, b) -> IpAddrNetmask a b) (cidr_split r);
 
-ipt_ipv4range_compress :: [Negation_type Ipt_ipv4range] -> [Ipt_ipv4range];
-ipt_ipv4range_compress =
-  wi_2_cidr_ipt_ipv4range_list . ipt_ipv4range_negation_type_to_br_intersect;
+ipt_iprange_compress ::
+  forall a. (Len a) => [Negation_type (Ipt_iprange a)] -> [Ipt_iprange a];
+ipt_iprange_compress =
+  wi_2_cidr_ipt_iprange_list . ipt_iprange_negation_type_to_br_intersect;
 
 normalize_src_ips ::
-  Match_expr Common_primitive -> [Match_expr Common_primitive];
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 [Match_expr (Common_primitive a)];
 normalize_src_ips =
-  normalize_primitive_extract (is_Src, src_sel) Src ipt_ipv4range_compress;
+  normalize_primitive_extract (is_Src, src_sel) Src ipt_iprange_compress;
 
-dst_sel :: Common_primitive -> Ipt_ipv4range;
+dst_sel :: forall a. (Len a) => Common_primitive a -> Ipt_iprange a;
 dst_sel (Dst x2) = x2;
 
-is_Dst :: Common_primitive -> Bool;
+is_Dst :: forall a. (Len a) => Common_primitive a -> Bool;
 is_Dst (Src x1) = False;
 is_Dst (Dst x2) = True;
 is_Dst (IIface x3) = False;
@@ -2486,9 +2432,11 @@ is_Dst (CT_State x9) = False;
 is_Dst (Extra x10) = False;
 
 normalize_dst_ips ::
-  Match_expr Common_primitive -> [Match_expr Common_primitive];
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 [Match_expr (Common_primitive a)];
 normalize_dst_ips =
-  normalize_primitive_extract (is_Dst, dst_sel) Dst ipt_ipv4range_compress;
+  normalize_primitive_extract (is_Dst, dst_sel) Dst ipt_iprange_compress;
 
 optimize_matches_option ::
   forall a. (Match_expr a -> Maybe (Match_expr a)) -> [Rule a] -> [Rule a];
@@ -2500,12 +2448,13 @@ optimize_matches_option f (Rule m a : rs) =
   });
 
 src_ports_sel ::
-  Common_primitive ->
-    [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
-       Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
+  forall a.
+    (Len a) => Common_primitive a ->
+                 [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
+                    Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
 src_ports_sel (Src_Ports x6) = x6;
 
-is_Src_Ports :: Common_primitive -> Bool;
+is_Src_Ports :: forall a. (Len a) => Common_primitive a -> Bool;
 is_Src_Ports (Src x1) = False;
 is_Src_Ports (Dst x2) = False;
 is_Src_Ports (IIface x3) = False;
@@ -2542,30 +2491,35 @@ ipt_ports_compress pss =
   ipt_ports_andlist_compress (map ipt_ports_negation_type_normalize pss);
 
 normalize_ports_step ::
-  (Common_primitive -> Bool,
-    Common_primitive ->
-      [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
-         Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))]) ->
-    ([(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
-        Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))] ->
-      Common_primitive) ->
-      Match_expr Common_primitive -> [Match_expr Common_primitive];
+  forall a.
+    (Len a) => (Common_primitive a -> Bool,
+                 Common_primitive a ->
+                   [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
+                      Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))]) ->
+                 ([(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
+                     Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))] ->
+                   Common_primitive a) ->
+                   Match_expr (Common_primitive a) ->
+                     [Match_expr (Common_primitive a)];
 normalize_ports_step disc_sel c =
   normalize_primitive_extract disc_sel c
     (\ me -> map (\ pt -> [pt]) (ipt_ports_compress me));
 
 normalize_src_ports ::
-  Match_expr Common_primitive -> [Match_expr Common_primitive];
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 [Match_expr (Common_primitive a)];
 normalize_src_ports =
   normalize_ports_step (is_Src_Ports, src_ports_sel) Src_Ports;
 
 dst_ports_sel ::
-  Common_primitive ->
-    [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
-       Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
+  forall a.
+    (Len a) => Common_primitive a ->
+                 [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
+                    Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
 dst_ports_sel (Dst_Ports x7) = x7;
 
-is_Dst_Ports :: Common_primitive -> Bool;
+is_Dst_Ports :: forall a. (Len a) => Common_primitive a -> Bool;
 is_Dst_Ports (Src x1) = False;
 is_Dst_Ports (Dst x2) = False;
 is_Dst_Ports (IIface x3) = False;
@@ -2578,7 +2532,9 @@ is_Dst_Ports (CT_State x9) = False;
 is_Dst_Ports (Extra x10) = False;
 
 normalize_dst_ports ::
-  Match_expr Common_primitive -> [Match_expr Common_primitive];
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 [Match_expr (Common_primitive a)];
 normalize_dst_ports =
   normalize_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports;
 
@@ -2589,7 +2545,8 @@ normalize_rules f (Rule m a : rs) =
   map (\ ma -> Rule ma a) (f m) ++ normalize_rules f rs;
 
 transform_normalize_primitives ::
-  [Rule Common_primitive] -> [Rule Common_primitive];
+  forall a.
+    (Len a) => [Rule (Common_primitive a)] -> [Rule (Common_primitive a)];
 transform_normalize_primitives =
   (((normalize_rules normalize_dst_ips . normalize_rules normalize_src_ips) .
      normalize_rules normalize_dst_ports) .
@@ -2603,7 +2560,9 @@ ctstate_is_UNIV c =
       member CT_Related c && member CT_Untracked c && member CT_Invalid c;
 
 optimize_primitive_univ ::
-  Match_expr Common_primitive -> Match_expr Common_primitive;
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 Match_expr (Common_primitive a);
 optimize_primitive_univ (Match (IIface iface)) =
   (if equal_iface iface ifaceAny then MatchAny else Match (IIface iface));
 optimize_primitive_univ (Match (OIface iface)) =
@@ -2622,12 +2581,12 @@ optimize_primitive_univ (Match (L4_Flags (TCP_Flags m c))) =
     else Match (L4_Flags (TCP_Flags m c)));
 optimize_primitive_univ (Match (CT_State ctstate)) =
   (if ctstate_is_UNIV ctstate then MatchAny else Match (CT_State ctstate));
-optimize_primitive_univ (Match (Src (Ip4Addr va))) = Match (Src (Ip4Addr va));
-optimize_primitive_univ (Match (Src (Ip4AddrRange va vb))) =
-  Match (Src (Ip4AddrRange va vb));
-optimize_primitive_univ (Match (Dst (Ip4Addr va))) = Match (Dst (Ip4Addr va));
-optimize_primitive_univ (Match (Dst (Ip4AddrRange va vb))) =
-  Match (Dst (Ip4AddrRange va vb));
+optimize_primitive_univ (Match (Src (IpAddr va))) = Match (Src (IpAddr va));
+optimize_primitive_univ (Match (Src (IpAddrRange va vb))) =
+  Match (Src (IpAddrRange va vb));
+optimize_primitive_univ (Match (Dst (IpAddr va))) = Match (Dst (IpAddr va));
+optimize_primitive_univ (Match (Dst (IpAddrRange va vb))) =
+  Match (Dst (IpAddrRange va vb));
 optimize_primitive_univ (Match (Prot (Proto va))) = Match (Prot (Proto va));
 optimize_primitive_univ (Match (Src_Ports [])) = Match (Src_Ports []);
 optimize_primitive_univ (Match (Src_Ports (va : vc : vd))) =
@@ -2640,50 +2599,12 @@ optimize_primitive_univ (MatchNot m) = MatchNot (optimize_primitive_univ m);
 optimize_primitive_univ (MatchAnd m1 m2) =
   MatchAnd (optimize_primitive_univ m1) (optimize_primitive_univ m2);
 optimize_primitive_univ MatchAny = MatchAny;
-optimize_primitive_univ (Match (Src (Ip4AddrNetmask (ve, (vg, (vi, via))) vc)))
-  = (if equal_nat vc zero_nat
-      then (if equal_nat via zero_nat
-             then (if equal_nat vi zero_nat
-                    then (if equal_nat vg zero_nat
-                           then (if equal_nat ve zero_nat then MatchAny
-                                  else Match
- (Src (Ip4AddrNetmask
-        (suc (minus_nat ve one_nat), (zero_nat, (zero_nat, zero_nat)))
-        zero_nat)))
-                           else Match (Src
-(Ip4AddrNetmask (ve, (suc (minus_nat vg one_nat), (zero_nat, zero_nat)))
-  zero_nat)))
-                    else Match (Src (Ip4AddrNetmask
-                                      (ve,
-(vg, (suc (minus_nat vi one_nat), zero_nat)))
-                                      zero_nat)))
-             else Match (Src (Ip4AddrNetmask
-                               (ve, (vg, (vi, suc (minus_nat via one_nat))))
-                               zero_nat)))
-      else Match (Src (Ip4AddrNetmask (ve, (vg, (vi, via)))
-                        (suc (minus_nat vc one_nat)))));
-optimize_primitive_univ (Match (Dst (Ip4AddrNetmask (ve, (vg, (vi, via))) vc)))
-  = (if equal_nat vc zero_nat
-      then (if equal_nat via zero_nat
-             then (if equal_nat vi zero_nat
-                    then (if equal_nat vg zero_nat
-                           then (if equal_nat ve zero_nat then MatchAny
-                                  else Match
- (Dst (Ip4AddrNetmask
-        (suc (minus_nat ve one_nat), (zero_nat, (zero_nat, zero_nat)))
-        zero_nat)))
-                           else Match (Dst
-(Ip4AddrNetmask (ve, (suc (minus_nat vg one_nat), (zero_nat, zero_nat)))
-  zero_nat)))
-                    else Match (Dst (Ip4AddrNetmask
-                                      (ve,
-(vg, (suc (minus_nat vi one_nat), zero_nat)))
-                                      zero_nat)))
-             else Match (Dst (Ip4AddrNetmask
-                               (ve, (vg, (vi, suc (minus_nat via one_nat))))
-                               zero_nat)))
-      else Match (Dst (Ip4AddrNetmask (ve, (vg, (vi, via)))
-                        (suc (minus_nat vc one_nat)))));
+optimize_primitive_univ (Match (Src (IpAddrNetmask uu vc))) =
+  (if equal_nat vc zero_nat then MatchAny
+    else Match (Src (IpAddrNetmask uu (suc (minus_nat vc one_nat)))));
+optimize_primitive_univ (Match (Dst (IpAddrNetmask uv vc))) =
+  (if equal_nat vc zero_nat then MatchAny
+    else Match (Dst (IpAddrNetmask uv (suc (minus_nat vc one_nat)))));
 
 opt_MatchAny_match_expr :: forall a. Match_expr a -> Match_expr a;
 opt_MatchAny_match_expr MatchAny = MatchAny;
@@ -2843,7 +2764,8 @@ optimize_matches f rs =
     (\ m -> (if matcheq_matchNone (f m) then Nothing else Just (f m))) rs;
 
 transform_optimize_dnf_strict ::
-  [Rule Common_primitive] -> [Rule Common_primitive];
+  forall a.
+    (Len a) => [Rule (Common_primitive a)] -> [Rule (Common_primitive a)];
 transform_optimize_dnf_strict =
   (optimize_matches opt_MatchAny_match_expr . normalize_rules_dnf) .
     optimize_matches (opt_MatchAny_match_expr . optimize_primitive_univ);
@@ -2865,7 +2787,9 @@ remdups_rev_code ps (r : rs) =
   (if membera ps r then remdups_rev_code ps rs
     else r : remdups_rev_code (r : ps) rs);
 
-upper_closure :: [Rule Common_primitive] -> [Rule Common_primitive];
+upper_closure ::
+  forall a.
+    (Len a) => [Rule (Common_primitive a)] -> [Rule (Common_primitive a)];
 upper_closure rs =
   remdups_rev_code []
     (transform_optimize_dnf_strict
@@ -2994,6 +2918,10 @@ groupWIs3 c rs =
   (if has_default_policy rs then groupWIs3_default_policy c rs
     else groupWIs2 c rs);
 
+inf_set :: forall a. (Eq a) => Set a -> Set a -> Set a;
+inf_set a (Coset xs) = fold remove xs a;
+inf_set a (Set xs) = Set (filter (\ x -> member x a) xs);
+
 sup_set :: forall a. (Eq a) => Set a -> Set a -> Set a;
 sup_set (Coset xs) a = Coset (filter (\ x -> not (member x a)) xs);
 sup_set (Set xs) a = fold insert xs a;
@@ -3014,9 +2942,8 @@ rw_Reject (Rule v Empty : rs) = Rule v Empty : rw_Reject rs;
 rw_Reject (Rule v Unknown : rs) = Rule v Unknown : rw_Reject rs;
 
 get_exists_matching_src_ips_executable ::
-  Iface ->
-    Match_expr Common_primitive ->
-      Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+  forall a.
+    (Len a) => Iface -> Match_expr (Common_primitive a) -> Wordinterval a;
 get_exists_matching_src_ips_executable iface m =
   let {
     (i_matches, _) = primitive_extractor (is_Iiface, iiface_sel) m;
@@ -3027,9 +2954,9 @@ get_exists_matching_src_ips_executable iface m =
              i_matches
          then let {
                 (ip_matches, _) = primitive_extractor (is_Src, src_sel) m;
-              } in (if null ip_matches then ipv4range_UNIV
+              } in (if null ip_matches then wordinterval_UNIV
                      else l2br_negation_type_intersect
-                            (negPos_map ipt_ipv4range_to_interval ip_matches))
+                            (negPos_map ipt_iprange_to_interval ip_matches))
          else empty_WordInterval);
 
 matcheq_matchAny :: forall a. Match_expr a -> Bool;
@@ -3045,9 +2972,8 @@ has_primitive (MatchNot m) = has_primitive m;
 has_primitive (MatchAnd m1 m2) = has_primitive m1 || has_primitive m2;
 
 get_all_matching_src_ips_executable ::
-  Iface ->
-    Match_expr Common_primitive ->
-      Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+  forall a.
+    (Len a) => Iface -> Match_expr (Common_primitive a) -> Wordinterval a;
 get_all_matching_src_ips_executable iface m =
   let {
     (i_matches, rest1) = primitive_extractor (is_Iiface, iiface_sel) m;
@@ -3060,19 +2986,19 @@ get_all_matching_src_ips_executable iface m =
                 (ip_matches, rest2) =
                   primitive_extractor (is_Src, src_sel) rest1;
               } in (if not (has_primitive rest2) && matcheq_matchAny rest2
-                     then (if null ip_matches then ipv4range_UNIV
+                     then (if null ip_matches then wordinterval_UNIV
                             else l2br_negation_type_intersect
-                                   (negPos_map ipt_ipv4range_to_interval
+                                   (negPos_map ipt_iprange_to_interval
                                      ip_matches))
                      else empty_WordInterval)
          else empty_WordInterval);
 
 no_spoofing_algorithm_executable ::
-  Iface ->
-    (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
-      [Rule Common_primitive] ->
-        Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
-          Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> Bool;
+  forall a.
+    (Len a) => Iface ->
+                 (Iface -> Maybe [(Word a, Nat)]) ->
+                   [Rule (Common_primitive a)] ->
+                     Wordinterval a -> Wordinterval a -> Bool;
 no_spoofing_algorithm_executable iface ipassmt [] allowed denied1 =
   wordinterval_subset (wordinterval_setminus allowed denied1)
     (l2br (map ipcidr_to_interval (the (ipassmt iface))));
@@ -3104,9 +3030,10 @@ no_spoofing_algorithm_executable uu uv (Rule vb Unknown : va) ux uy =
   error "undefined";
 
 no_spoofing_iface ::
-  Iface ->
-    (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
-      [Rule Common_primitive] -> Bool;
+  forall a.
+    (Len a) => Iface ->
+                 (Iface -> Maybe [(Word a, Nat)]) ->
+                   [Rule (Common_primitive a)] -> Bool;
 no_spoofing_iface iface ipassmt rs =
   no_spoofing_algorithm_executable iface ipassmt rs empty_WordInterval
     empty_WordInterval;
@@ -3152,16 +3079,16 @@ sanity_wf_ruleset gamma =
 })))
                          ran;
 
-map_of_string ::
-  [([Prelude.Char], [Rule Common_primitive])] ->
-    [Prelude.Char] -> Maybe [Rule Common_primitive];
-map_of_string rs = map_of rs;
+mod_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
+mod_word a b = word_of_int (mod_int (uint a) (uint b));
 
 nat_to_16word :: Nat -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
 nat_to_16word i = of_nat i;
 
 compress_parsed_extra ::
-  [Negation_type Common_primitive] -> [Negation_type Common_primitive];
+  forall a.
+    (Len a) => [Negation_type (Common_primitive a)] ->
+                 [Negation_type (Common_primitive a)];
 compress_parsed_extra [] = [];
 compress_parsed_extra (a1 : a2 : asa) =
   (if is_pos_Extra a1 && is_pos_Extra a2
@@ -3246,21 +3173,22 @@ match_list_to_match_expr [] = MatchNot MatchAny;
 match_list_to_match_expr (m : ms) = matchOr m (match_list_to_match_expr ms);
 
 ipassmt_iface_replace_srcip_mexpr ::
-  (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
-    Iface -> Match_expr Common_primitive;
+  forall a.
+    (Len a) => (Iface -> Maybe [(Word a, Nat)]) ->
+                 Iface -> Match_expr (Common_primitive a);
 ipassmt_iface_replace_srcip_mexpr ipassmt ifce =
   (case ipassmt ifce of {
     Nothing -> Match (IIface ifce);
     Just ips ->
       match_list_to_match_expr
-        (map (Match . Src)
-          (map (\ (ip, a) -> Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) a)
-            ips));
+        (map (Match . Src) (map (\ (a, b) -> IpAddrNetmask a b) ips));
   });
 
 iiface_rewrite ::
-  (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
-    Match_expr Common_primitive -> Match_expr Common_primitive;
+  forall a.
+    (Len a) => (Iface -> Maybe [(Word a, Nat)]) ->
+                 Match_expr (Common_primitive a) ->
+                   Match_expr (Common_primitive a);
 iiface_rewrite uu MatchAny = MatchAny;
 iiface_rewrite ipassmt (Match (IIface ifce)) =
   ipassmt_iface_replace_srcip_mexpr ipassmt ifce;
@@ -3276,6 +3204,34 @@ iiface_rewrite ipassmt (Match (Extra v)) = Match (Extra v);
 iiface_rewrite ipassmt (MatchNot m) = MatchNot (iiface_rewrite ipassmt m);
 iiface_rewrite ipassmt (MatchAnd m1 m2) =
   MatchAnd (iiface_rewrite ipassmt m1) (iiface_rewrite ipassmt m2);
+
+string_of_word_single :: forall a. (Len a) => Bool -> Word a -> [Prelude.Char];
+string_of_word_single lc w =
+  (if less_word w (word_of_int (Int_of_integer (10 :: Integer)))
+    then [char_of_nat (plus_nat (nat_of_integer (48 :: Integer)) (unat w))]
+    else (if less_word w (word_of_int (Int_of_integer (36 :: Integer)))
+           then [char_of_nat
+                   (plus_nat
+                     (if lc then nat_of_integer (87 :: Integer)
+                       else nat_of_integer (55 :: Integer))
+                     (unat w))]
+           else error "undefined"));
+
+divide_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
+divide_word a b = word_of_int (divide_int (uint a) (uint b));
+
+string_of_word ::
+  forall a. (Len a) => Bool -> Word a -> Nat -> Word a -> [Prelude.Char];
+string_of_word lc base ml w =
+  (if less_word base (word_of_int (Int_of_integer (2 :: Integer))) ||
+        less_nat ((len_of :: Itself a -> Nat) Type)
+          (nat_of_integer (2 :: Integer))
+    then error "undefined"
+    else (if less_word w base && equal_nat ml zero_nat
+           then string_of_word_single lc w
+           else string_of_word lc base (minus_nat ml one_nat)
+                  (divide_word w base) ++
+                  string_of_word_single lc (mod_word w base)));
 
 has_disc :: forall a. (a -> Bool) -> Match_expr a -> Bool;
 has_disc uu MatchAny = False;
@@ -3348,6 +3304,13 @@ process_ret (Rule v (Goto vb) : rs) = Rule v (Goto vb) : process_ret rs;
 process_ret (Rule v Empty : rs) = Rule v Empty : process_ret rs;
 process_ret (Rule v Unknown : rs) = Rule v Unknown : process_ret rs;
 
+map_of_string_ipv4 ::
+  [([Prelude.Char],
+     [Rule (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))])] ->
+    [Prelude.Char] ->
+      Maybe [Rule (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))];
+map_of_string_ipv4 rs = map_of rs;
+
 wordinterval_sort :: forall a. (Len a) => Wordinterval a -> Wordinterval a;
 wordinterval_sort w = l2br (mergesort_remdups (br2l w));
 
@@ -3387,22 +3350,23 @@ process_call gamma (Rule v Unknown : rs) =
   Rule v Unknown : process_call gamma rs;
 
 ipassmt_iface_constrain_srcip_mexpr ::
-  (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
-    Iface -> Match_expr Common_primitive;
+  forall a.
+    (Len a) => (Iface -> Maybe [(Word a, Nat)]) ->
+                 Iface -> Match_expr (Common_primitive a);
 ipassmt_iface_constrain_srcip_mexpr ipassmt ifce =
   (case ipassmt ifce of {
     Nothing -> Match (IIface ifce);
     Just ips ->
       MatchAnd (Match (IIface ifce))
         (match_list_to_match_expr
-          (map (Match . Src)
-            (map (\ (ip, a) -> Ip4AddrNetmask (dotdecimal_of_ipv4addr ip) a)
-              ips)));
+          (map (Match . Src) (map (\ (a, b) -> IpAddrNetmask a b) ips)));
   });
 
 iiface_constrain ::
-  (Iface -> Maybe [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)]) ->
-    Match_expr Common_primitive -> Match_expr Common_primitive;
+  forall a.
+    (Len a) => (Iface -> Maybe [(Word a, Nat)]) ->
+                 Match_expr (Common_primitive a) ->
+                   Match_expr (Common_primitive a);
 iiface_constrain uu MatchAny = MatchAny;
 iiface_constrain ipassmt (Match (IIface ifce)) =
   ipassmt_iface_constrain_srcip_mexpr ipassmt ifce;
@@ -3454,8 +3418,9 @@ access_matrix_pretty ::
 access_matrix_pretty = access_matrix_pretty_code;
 
 iface_try_rewrite ::
-  [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
-    [Rule Common_primitive] -> [Rule Common_primitive];
+  forall a.
+    (Len a) => [(Iface, [(Word a, Nat)])] ->
+                 [Rule (Common_primitive a)] -> [Rule (Common_primitive a)];
 iface_try_rewrite ipassmt rs =
   (if let {
         is = image fst (Set ipassmt);
@@ -3532,7 +3497,8 @@ ctstate_set_toString :: Set Ctstate -> [Prelude.Char];
 ctstate_set_toString s =
   list_separated_toString "," ctstate_toString (enum_set_to_list s);
 
-normalized_dst_ports :: Match_expr Common_primitive -> Bool;
+normalized_dst_ports ::
+  forall a. (Len a) => Match_expr (Common_primitive a) -> Bool;
 normalized_dst_ports MatchAny = True;
 normalized_dst_ports (Match (Dst_Ports [])) = True;
 normalized_dst_ports (Match (Dst_Ports [uu])) = True;
@@ -3562,7 +3528,8 @@ normalized_dst_ports (MatchNot (MatchAnd uz va)) = False;
 normalized_dst_ports (MatchNot (MatchNot vb)) = False;
 normalized_dst_ports (MatchNot MatchAny) = True;
 
-normalized_src_ports :: Match_expr Common_primitive -> Bool;
+normalized_src_ports ::
+  forall a. (Len a) => Match_expr (Common_primitive a) -> Bool;
 normalized_src_ports MatchAny = True;
 normalized_src_ports (Match (Src_Ports [])) = True;
 normalized_src_ports (Match (Src_Ports [uu])) = True;
@@ -3592,6 +3559,10 @@ normalized_src_ports (MatchNot (MatchAnd uz va)) = False;
 normalized_src_ports (MatchNot (MatchNot vb)) = False;
 normalized_src_ports (MatchNot MatchAny) = True;
 
+dec_string_of_word0 :: forall a. (Len a) => Word a -> [Prelude.Char];
+dec_string_of_word0 =
+  string_of_word True (word_of_int (Int_of_integer (10 :: Integer))) zero_nat;
+
 protocol_toString :: Protocol -> [Prelude.Char];
 protocol_toString ProtoAny = "all";
 protocol_toString (Proto protid) =
@@ -3599,10 +3570,10 @@ protocol_toString (Proto protid) =
     else (if equal_word protid udp then "udp"
            else (if equal_word protid icmp then "icmp"
                   else (if equal_word protid sctp then "sctp"
-                         else "protocolid:" ++ string_of_nat (unat protid)))));
+                         else "protocolid:" ++ dec_string_of_word0 protid))));
 
 port_toString :: Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))) -> [Prelude.Char];
-port_toString p = string_of_nat (unat p);
+port_toString p = dec_string_of_word0 p;
 
 ports_toString ::
   [Prelude.Char] ->
@@ -3621,43 +3592,53 @@ iface_toString descr iface =
         (Iface a) = iface;
       } in descr ++ a);
 
-common_primitive_toString :: Common_primitive -> [Prelude.Char];
-common_primitive_toString (Src (Ip4Addr ip)) =
-  "-s " ++ dotteddecimal_toString ip;
-common_primitive_toString (Dst (Ip4Addr ip)) =
-  "-d " ++ dotteddecimal_toString ip;
-common_primitive_toString (Src (Ip4AddrNetmask ip n)) =
-  "-s " ++ dotteddecimal_toString ip ++ "/" ++ string_of_nat n;
-common_primitive_toString (Dst (Ip4AddrNetmask ip n)) =
-  "-d " ++ dotteddecimal_toString ip ++ "/" ++ string_of_nat n;
-common_primitive_toString (Src (Ip4AddrRange ip1 ip2)) =
-  "-m iprange --src-range " ++
-    dotteddecimal_toString ip1 ++ "-" ++ dotteddecimal_toString ip2;
-common_primitive_toString (Dst (Ip4AddrRange ip1 ip2)) =
-  "-m iprange --dst-range " ++
-    dotteddecimal_toString ip1 ++ "-" ++ dotteddecimal_toString ip2;
-common_primitive_toString (IIface ifce) = iface_toString "-i " ifce;
-common_primitive_toString (OIface ifce) = iface_toString "-o " ifce;
-common_primitive_toString (Prot prot) = "-p " ++ protocol_toString prot;
-common_primitive_toString (Src_Ports pts) =
+common_primitive_toString ::
+  forall a.
+    (Len a) => (Word a -> [Prelude.Char]) ->
+                 Common_primitive a -> [Prelude.Char];
+common_primitive_toString ipToStr (Src (IpAddr ip)) = "-s " ++ ipToStr ip;
+common_primitive_toString ipToStr (Dst (IpAddr ip)) = "-d " ++ ipToStr ip;
+common_primitive_toString ipToStr (Src (IpAddrNetmask ip n)) =
+  "-s " ++ ipToStr ip ++ "/" ++ string_of_nat n;
+common_primitive_toString ipToStr (Dst (IpAddrNetmask ip n)) =
+  "-d " ++ ipToStr ip ++ "/" ++ string_of_nat n;
+common_primitive_toString ipToStr (Src (IpAddrRange ip1 ip2)) =
+  "-m iprange --src-range " ++ ipToStr ip1 ++ "-" ++ ipToStr ip2;
+common_primitive_toString ipToStr (Dst (IpAddrRange ip1 ip2)) =
+  "-m iprange --dst-range " ++ ipToStr ip1 ++ "-" ++ ipToStr ip2;
+common_primitive_toString uu (IIface ifce) = iface_toString "-i " ifce;
+common_primitive_toString uv (OIface ifce) = iface_toString "-o " ifce;
+common_primitive_toString uw (Prot prot) = "-p " ++ protocol_toString prot;
+common_primitive_toString ux (Src_Ports pts) =
   "--spts " ++ list_toString (ports_toString []) pts;
-common_primitive_toString (Dst_Ports pts) =
+common_primitive_toString uy (Dst_Ports pts) =
   "--dpts " ++ list_toString (ports_toString []) pts;
-common_primitive_toString (CT_State s) =
+common_primitive_toString uz (CT_State s) =
   "-m state --state " ++ ctstate_set_toString s;
-common_primitive_toString (L4_Flags (TCP_Flags c m)) =
+common_primitive_toString va (L4_Flags (TCP_Flags c m)) =
   "--tcp-flags " ++ ipt_tcp_flags_toString c ++ " " ++ ipt_tcp_flags_toString m;
-common_primitive_toString (Extra e) = "~~" ++ e ++ "~~";
+common_primitive_toString vb (Extra e) = "~~" ++ e ++ "~~";
+
+ipaddr_generic_toString :: forall a. (Len a) => Word a -> [Prelude.Char];
+ipaddr_generic_toString ip =
+  "[IP address (" ++
+    string_of_nat ((len_of :: Itself a -> Nat) Type) ++
+      " bit): " ++ dec_string_of_word0 ip ++ "]";
 
 abstract_primitive ::
-  (Negation_type Common_primitive -> Bool) ->
-    Match_expr Common_primitive -> Match_expr Common_primitive;
+  forall a.
+    (Len a) => (Negation_type (Common_primitive a) -> Bool) ->
+                 Match_expr (Common_primitive a) ->
+                   Match_expr (Common_primitive a);
 abstract_primitive uu MatchAny = MatchAny;
 abstract_primitive disc (Match a) =
-  (if disc (Pos a) then Match (Extra (common_primitive_toString a))
+  (if disc (Pos a)
+    then Match (Extra (common_primitive_toString ipaddr_generic_toString a))
     else Match a);
 abstract_primitive disc (MatchNot (Match a)) =
-  (if disc (Neg a) then Match (Extra ("! " ++ common_primitive_toString a))
+  (if disc (Neg a)
+    then Match (Extra
+                 ("! " ++ common_primitive_toString ipaddr_generic_toString a))
     else MatchNot (Match a));
 abstract_primitive disc (MatchNot (MatchNot v)) =
   MatchNot (abstract_primitive disc (MatchNot v));
@@ -3675,7 +3656,8 @@ has_disc_negated disc neg (MatchNot m) = has_disc_negated disc (not neg) m;
 has_disc_negated disc neg (MatchAnd m1 m2) =
   has_disc_negated disc neg m1 || has_disc_negated disc neg m2;
 
-normalized_ifaces :: Match_expr Common_primitive -> Bool;
+normalized_ifaces ::
+  forall a. (Len a) => Match_expr (Common_primitive a) -> Bool;
 normalized_ifaces m =
   not (has_disc_negated (\ a -> is_Iiface a || is_Oiface a) False m);
 
@@ -3746,18 +3728,18 @@ dst_update dsta
   Simple_match_ext iiface oiface src (dsta dst) proto sports dports more;
 
 common_primitive_match_to_simple_match ::
-  Match_expr Common_primitive ->
-    Maybe (Simple_match_ext (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ());
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) -> Maybe (Simple_match_ext a ());
 common_primitive_match_to_simple_match MatchAny = Just simple_match_any;
 common_primitive_match_to_simple_match (MatchNot MatchAny) = Nothing;
 common_primitive_match_to_simple_match (Match (IIface iif)) =
   Just (iiface_update (\ _ -> iif) simple_match_any);
 common_primitive_match_to_simple_match (Match (OIface oif)) =
   Just (oiface_update (\ _ -> oif) simple_match_any);
-common_primitive_match_to_simple_match (Match (Src (Ip4AddrNetmask pre len))) =
-  Just (src_update (\ _ -> (ipv4addr_of_dotdecimal pre, len)) simple_match_any);
-common_primitive_match_to_simple_match (Match (Dst (Ip4AddrNetmask pre len))) =
-  Just (dst_update (\ _ -> (ipv4addr_of_dotdecimal pre, len)) simple_match_any);
+common_primitive_match_to_simple_match (Match (Src (IpAddrNetmask pre len))) =
+  Just (src_update (\ _ -> (pre, len)) simple_match_any);
+common_primitive_match_to_simple_match (Match (Dst (IpAddrNetmask pre len))) =
+  Just (dst_update (\ _ -> (pre, len)) simple_match_any);
 common_primitive_match_to_simple_match (Match (Prot p)) =
   Just (proto_update (\ _ -> p) simple_match_any);
 common_primitive_match_to_simple_match (Match (Src_Ports [])) = Nothing;
@@ -3776,13 +3758,13 @@ common_primitive_match_to_simple_match (MatchAnd m1 m2) =
     (Just _, Nothing) -> Nothing;
     (Just a, Just b) -> simple_match_and a b;
   });
-common_primitive_match_to_simple_match (Match (Src (Ip4Addr uu))) =
+common_primitive_match_to_simple_match (Match (Src (IpAddr uu))) =
   error "undefined";
-common_primitive_match_to_simple_match (Match (Src (Ip4AddrRange uv uw))) =
+common_primitive_match_to_simple_match (Match (Src (IpAddrRange uv uw))) =
   error "undefined";
-common_primitive_match_to_simple_match (Match (Dst (Ip4Addr ux))) =
+common_primitive_match_to_simple_match (Match (Dst (IpAddr ux))) =
   error "undefined";
-common_primitive_match_to_simple_match (Match (Dst (Ip4AddrRange uy uz))) =
+common_primitive_match_to_simple_match (Match (Dst (IpAddrRange uy uz))) =
   error "undefined";
 common_primitive_match_to_simple_match (MatchNot (Match (Prot (Proto v)))) =
   error "undefined";
@@ -3818,7 +3800,7 @@ common_primitive_match_to_simple_match (MatchNot (Match (Extra vs))) =
 common_primitive_match_to_simple_match (MatchNot (Match (CT_State vt))) =
   error "undefined";
 
-is_L4_Flags :: Common_primitive -> Bool;
+is_L4_Flags :: forall a. (Len a) => Common_primitive a -> Bool;
 is_L4_Flags (Src x1) = False;
 is_L4_Flags (Dst x2) = False;
 is_L4_Flags (IIface x3) = False;
@@ -3830,7 +3812,7 @@ is_L4_Flags (L4_Flags x8) = True;
 is_L4_Flags (CT_State x9) = False;
 is_L4_Flags (Extra x10) = False;
 
-is_CT_State :: Common_primitive -> Bool;
+is_CT_State :: forall a. (Len a) => Common_primitive a -> Bool;
 is_CT_State (Src x1) = False;
 is_CT_State (Dst x2) = False;
 is_CT_State (IIface x3) = False;
@@ -3842,7 +3824,7 @@ is_CT_State (L4_Flags x8) = False;
 is_CT_State (CT_State x9) = True;
 is_CT_State (Extra x10) = False;
 
-is_Extra :: Common_primitive -> Bool;
+is_Extra :: forall a. (Len a) => Common_primitive a -> Bool;
 is_Extra (Src x1) = False;
 is_Extra (Dst x2) = False;
 is_Extra (IIface x3) = False;
@@ -3854,14 +3836,16 @@ is_Extra (L4_Flags x8) = False;
 is_Extra (CT_State x9) = False;
 is_Extra (Extra x10) = True;
 
-normalized_protocols :: Match_expr Common_primitive -> Bool;
+normalized_protocols ::
+  forall a. (Len a) => Match_expr (Common_primitive a) -> Bool;
 normalized_protocols m = not (has_disc_negated is_Prot False m);
 
-normalized_src_ips :: Match_expr Common_primitive -> Bool;
+normalized_src_ips ::
+  forall a. (Len a) => Match_expr (Common_primitive a) -> Bool;
 normalized_src_ips MatchAny = True;
-normalized_src_ips (Match (Src (Ip4AddrRange uu uv))) = False;
-normalized_src_ips (Match (Src (Ip4Addr uw))) = False;
-normalized_src_ips (Match (Src (Ip4AddrNetmask ux uy))) = True;
+normalized_src_ips (Match (Src (IpAddrRange uu uv))) = False;
+normalized_src_ips (Match (Src (IpAddr uw))) = False;
+normalized_src_ips (Match (Src (IpAddrNetmask ux uy))) = True;
 normalized_src_ips (Match (Dst v)) = True;
 normalized_src_ips (Match (IIface v)) = True;
 normalized_src_ips (Match (OIface v)) = True;
@@ -3887,11 +3871,12 @@ normalized_src_ips (MatchNot (MatchAnd vc vd)) = False;
 normalized_src_ips (MatchNot (MatchNot ve)) = False;
 normalized_src_ips (MatchNot MatchAny) = True;
 
-normalized_dst_ips :: Match_expr Common_primitive -> Bool;
+normalized_dst_ips ::
+  forall a. (Len a) => Match_expr (Common_primitive a) -> Bool;
 normalized_dst_ips MatchAny = True;
-normalized_dst_ips (Match (Dst (Ip4AddrRange uu uv))) = False;
-normalized_dst_ips (Match (Dst (Ip4Addr uw))) = False;
-normalized_dst_ips (Match (Dst (Ip4AddrNetmask ux uy))) = True;
+normalized_dst_ips (Match (Dst (IpAddrRange uu uv))) = False;
+normalized_dst_ips (Match (Dst (IpAddr uw))) = False;
+normalized_dst_ips (Match (Dst (IpAddrNetmask ux uy))) = True;
 normalized_dst_ips (Match (Src v)) = True;
 normalized_dst_ips (Match (IIface v)) = True;
 normalized_dst_ips (Match (OIface v)) = True;
@@ -3917,7 +3902,8 @@ normalized_dst_ips (MatchNot (MatchAnd vc vd)) = False;
 normalized_dst_ips (MatchNot (MatchNot ve)) = False;
 normalized_dst_ips (MatchNot MatchAny) = True;
 
-check_simple_fw_preconditions :: [Rule Common_primitive] -> Bool;
+check_simple_fw_preconditions ::
+  forall a. (Len a) => [Rule (Common_primitive a)] -> Bool;
 check_simple_fw_preconditions rs =
   all (\ (Rule m a) ->
         normalized_src_ports m &&
@@ -3944,8 +3930,7 @@ action_to_simple_action Empty = error "undefined";
 action_to_simple_action Unknown = error "undefined";
 
 to_simple_firewall ::
-  [Rule Common_primitive] ->
-    [Simple_rule (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
+  forall a. (Len a) => [Rule (Common_primitive a)] -> [Simple_rule a];
 to_simple_firewall rs =
   (if check_simple_fw_preconditions rs
     then map_filter
@@ -4006,10 +3991,11 @@ unfold_optimize_ruleset_CHAIN optimize chain_name default_action rs =
   } in (if simple_ruleset rsa then Just rsa else Nothing);
 
 unfold_ruleset_CHAIN_safe ::
-  [Prelude.Char] ->
-    Action ->
-      ([Prelude.Char] -> Maybe [Rule Common_primitive]) ->
-        Maybe [Rule Common_primitive];
+  forall a.
+    (Len a) => [Prelude.Char] ->
+                 Action ->
+                   ([Prelude.Char] -> Maybe [Rule (Common_primitive a)]) ->
+                     Maybe [Rule (Common_primitive a)];
 unfold_ruleset_CHAIN_safe =
   unfold_optimize_ruleset_CHAIN optimize_primitive_univ;
 
@@ -4032,7 +4018,10 @@ action_toString Return = "-j RETURN";
 action_toString Unknown = "!!!!!!!!!!! UNKNOWN !!!!!!!!!!!";
 
 ipt_tcp_flags_assume_flag ::
-  Ipt_tcp_flags -> Match_expr Common_primitive -> Match_expr Common_primitive;
+  forall a.
+    (Len a) => Ipt_tcp_flags ->
+                 Match_expr (Common_primitive a) ->
+                   Match_expr (Common_primitive a);
 ipt_tcp_flags_assume_flag flg (Match (L4_Flags x)) =
   (if ipt_tcp_flags_equal x flg then MatchAny
     else (case match_tcp_flags_conjunct_option x flg of {
@@ -4055,12 +4044,17 @@ ipt_tcp_flags_assume_flag flg (MatchAnd m1 m2) =
   MatchAnd (ipt_tcp_flags_assume_flag flg m1)
     (ipt_tcp_flags_assume_flag flg m2);
 
-ipt_tcp_flags_assume_syn :: [Rule Common_primitive] -> [Rule Common_primitive];
+ipt_tcp_flags_assume_syn ::
+  forall a.
+    (Len a) => [Rule (Common_primitive a)] -> [Rule (Common_primitive a)];
 ipt_tcp_flags_assume_syn =
   optimize_matches (ipt_tcp_flags_assume_flag ipt_tcp_syn);
 
 ctstate_assume_state ::
-  Ctstate -> Match_expr Common_primitive -> Match_expr Common_primitive;
+  forall a.
+    (Len a) => Ctstate ->
+                 Match_expr (Common_primitive a) ->
+                   Match_expr (Common_primitive a);
 ctstate_assume_state s (Match (CT_State x)) =
   (if member s x then MatchAny else MatchNot MatchAny);
 ctstate_assume_state s (Match (Src v)) = Match (Src v);
@@ -4077,14 +4071,20 @@ ctstate_assume_state uu MatchAny = MatchAny;
 ctstate_assume_state s (MatchAnd m1 m2) =
   MatchAnd (ctstate_assume_state s m1) (ctstate_assume_state s m2);
 
-ctstate_assume_new :: [Rule Common_primitive] -> [Rule Common_primitive];
+ctstate_assume_new ::
+  forall a.
+    (Len a) => [Rule (Common_primitive a)] -> [Rule (Common_primitive a)];
 ctstate_assume_new = optimize_matches (ctstate_assume_state CT_New);
 
-packet_assume_new :: [Rule Common_primitive] -> [Rule Common_primitive];
+packet_assume_new ::
+  forall a.
+    (Len a) => [Rule (Common_primitive a)] -> [Rule (Common_primitive a)];
 packet_assume_new = ctstate_assume_new . ipt_tcp_flags_assume_syn;
 
 abstract_for_simple_firewall ::
-  Match_expr Common_primitive -> Match_expr Common_primitive;
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 Match_expr (Common_primitive a);
 abstract_for_simple_firewall =
   abstract_primitive
     (\ a ->
@@ -4096,10 +4096,22 @@ abstract_for_simple_firewall =
               (is_Prot aa || (is_CT_State aa || is_L4_Flags aa)));
       }));
 
+ipt_ipv4range_toString ::
+  Ipt_iprange (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prelude.Char];
+ipt_ipv4range_toString (IpAddr ip) = ipv4addr_toString ip;
+ipt_ipv4range_toString (IpAddrNetmask ip n) =
+  ipv4addr_toString ip ++ "/" ++ string_of_nat n;
+ipt_ipv4range_toString (IpAddrRange ip1 ip2) =
+  ipv4addr_toString ip1 ++ "-" ++ ipv4addr_toString ip2;
+
+common_primitive_v4_toString ::
+  Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prelude.Char];
+common_primitive_v4_toString = common_primitive_toString ipv4addr_toString;
+
 to_simple_firewall_without_interfaces ::
-  [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
-    [Rule Common_primitive] ->
-      [Simple_rule (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
+  forall a.
+    (Len a) => [(Iface, [(Word a, Nat)])] ->
+                 [Rule (Common_primitive a)] -> [Simple_rule a];
 to_simple_firewall_without_interfaces ipassmt rs =
   to_simple_firewall
     (upper_closure
@@ -4114,14 +4126,15 @@ to_simple_firewall_without_interfaces ipassmt rs =
               (upper_closure (packet_assume_new rs)))))));
 
 common_primitive_match_expr_toString ::
-  Match_expr Common_primitive -> [Prelude.Char];
+  Match_expr (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))) ->
+    [Prelude.Char];
 common_primitive_match_expr_toString MatchAny = [];
-common_primitive_match_expr_toString (Match m) = common_primitive_toString m;
+common_primitive_match_expr_toString (Match m) = common_primitive_v4_toString m;
 common_primitive_match_expr_toString (MatchAnd m1 m2) =
   common_primitive_match_expr_toString m1 ++
     " " ++ common_primitive_match_expr_toString m2;
 common_primitive_match_expr_toString (MatchNot (Match m)) =
-  "! " ++ common_primitive_toString m;
+  "! " ++ common_primitive_v4_toString m;
 common_primitive_match_expr_toString (MatchNot (MatchNot v)) =
   "NOT (" ++ common_primitive_match_expr_toString (MatchNot v) ++ ")";
 common_primitive_match_expr_toString (MatchNot (MatchAnd v va)) =

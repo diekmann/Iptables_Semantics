@@ -17,14 +17,14 @@ thm SQRL_fw_FORWARD_default_policy_def
 
 value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) SQRL_fw"
 
-lemma "Semantics_Goto.terminal_chain (the ((map_of_string SQRL_fw) ''smurflog''))" by eval
-lemma "Semantics_Goto.terminal_chain (the ((map_of_string SQRL_fw) ''logflags''))" by eval
-lemma "Semantics_Goto.terminal_chain (the ((map_of_string SQRL_fw) ''reject''))" by eval
+lemma "Semantics_Goto.terminal_chain (the ((map_of_string_ipv4 SQRL_fw) ''smurflog''))" by eval
+lemma "Semantics_Goto.terminal_chain (the ((map_of_string_ipv4 SQRL_fw) ''logflags''))" by eval
+lemma "Semantics_Goto.terminal_chain (the ((map_of_string_ipv4 SQRL_fw) ''reject''))" by eval
 
 (*12.942s*)
 value[code] "Semantics_Goto.rewrite_Goto SQRL_fw"
 
-definition "unfolded = unfold_ruleset_FORWARD SQRL_fw_FORWARD_default_policy (map_of_string (Semantics_Goto.rewrite_Goto SQRL_fw))"
+definition "unfolded = unfold_ruleset_FORWARD SQRL_fw_FORWARD_default_policy (map_of_string_ipv4 (Semantics_Goto.rewrite_Goto SQRL_fw))"
 
 (*
 (*2174.839s elapsed time, 3308.410s cpu time, 161.539s GC time*)

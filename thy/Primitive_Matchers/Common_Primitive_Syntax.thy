@@ -1,5 +1,5 @@
 theory Common_Primitive_Syntax
-imports "../Datatype_Selectors" IpAddresses Iface Protocol Ports Simple_Packet Conntrack_State
+imports "../Datatype_Selectors" "../Bitmagic/IpAddresses" Iface Protocol Ports Simple_Packet Conntrack_State
 begin
 
 section\<open>Primitive Matchers: Interfaces, IP Space, Layer 4 Ports Matcher\<close>
@@ -8,18 +8,22 @@ text\<open>Primitive Match Conditions which only support interfaces, IPv4 addres
 \<close>
 
 
-datatype common_primitive =
-  is_Src: Src (src_sel: ipt_ipv4range) | 
-  is_Dst: Dst (dst_sel: ipt_ipv4range) |
-  is_Iiface: IIface (iiface_sel: iface) |
-  is_Oiface: OIface (oiface_sel: iface) |
-  is_Prot: Prot (prot_sel: protocol) | 
-  is_Src_Ports: Src_Ports (src_ports_sel: ipt_ports) |
-  is_Dst_Ports: Dst_Ports (dst_ports_sel: ipt_ports) |
-  is_L4_Flags: L4_Flags (l4_flags_sel: ipt_tcp_flags) |
-  is_CT_State: CT_State (ct_state_sel: "ctstate set") |
-  is_Extra: Extra (extra_sel: string)
-
+(*TODO: currently only IPv4*)
+context
+  notes [[typedef_overloaded]]
+begin
+  datatype 'i common_primitive =
+    is_Src: Src (src_sel: "'i::len ipt_iprange") | 
+    is_Dst: Dst (dst_sel: "'i::len ipt_iprange") |
+    is_Iiface: IIface (iiface_sel: iface) |
+    is_Oiface: OIface (oiface_sel: iface) |
+    is_Prot: Prot (prot_sel: protocol) | 
+    is_Src_Ports: Src_Ports (src_ports_sel: ipt_ports) |
+    is_Dst_Ports: Dst_Ports (dst_ports_sel: ipt_ports) |
+    is_L4_Flags: L4_Flags (l4_flags_sel: ipt_tcp_flags) |
+    is_CT_State: CT_State (ct_state_sel: "ctstate set") |
+    is_Extra: Extra (extra_sel: string)
+end
 
 
 lemma wf_disc_sel_common_primitive: 

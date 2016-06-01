@@ -20,36 +20,37 @@ begin
 section\<open>Code Interface\<close>
 
 
-text\<open>The parser returns the @{typ "common_primitive ruleset"} not as a map but as an association list.
+text\<open>The parser returns the @{typ "'i::len common_primitive ruleset"} not as a map but as an association list.
       This function converts it\<close>
-definition map_of_string :: "(string \<times> common_primitive rule list) list \<Rightarrow> string \<rightharpoonup> common_primitive rule list" where
-  "map_of_string rs = map_of rs"
+(*TODO: this is IPv4 only currently*)
+definition map_of_string_ipv4 :: "(string \<times> 32 common_primitive rule list) list \<Rightarrow> string \<rightharpoonup> 32 common_primitive rule list" where
+  "map_of_string_ipv4 rs = map_of rs"
 
 
-definition unfold_ruleset_CHAIN_safe :: "string \<Rightarrow> action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list option" where
+definition unfold_ruleset_CHAIN_safe :: "string \<Rightarrow> action \<Rightarrow> 'i::len common_primitive ruleset \<Rightarrow> 'i common_primitive rule list option" where
 "unfold_ruleset_CHAIN_safe = unfold_optimize_ruleset_CHAIN optimize_primitive_univ"
 
 lemma "(unfold_ruleset_CHAIN_safe chain a rs = Some rs') \<Longrightarrow> simple_ruleset rs'"
   by(simp add: Let_def unfold_ruleset_CHAIN_safe_def unfold_optimize_ruleset_CHAIN_def split: split_if_asm)
 
 (*TODO: This is just for legacy code compatibility. Use the new _safe function instead*)
-definition unfold_ruleset_CHAIN :: "string \<Rightarrow> action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
+definition unfold_ruleset_CHAIN :: "string \<Rightarrow> action \<Rightarrow> 'i::len common_primitive ruleset \<Rightarrow> 'i common_primitive rule list" where
   "unfold_ruleset_CHAIN chain default_action rs = the (unfold_ruleset_CHAIN_safe chain default_action rs)"
 
 
-definition unfold_ruleset_FORWARD :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
+definition unfold_ruleset_FORWARD :: "action \<Rightarrow> 'i::len common_primitive ruleset \<Rightarrow> 'i::len common_primitive rule list" where
   "unfold_ruleset_FORWARD = unfold_ruleset_CHAIN ''FORWARD''"
 
-definition unfold_ruleset_INPUT :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
+definition unfold_ruleset_INPUT :: "action \<Rightarrow> 'i::len common_primitive ruleset \<Rightarrow> 'i::len common_primitive rule list" where
   "unfold_ruleset_INPUT = unfold_ruleset_CHAIN ''INPUT''"
 
-definition unfold_ruleset_OUTPUT :: "action \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive rule list" where
+definition unfold_ruleset_OUTPUT :: "action \<Rightarrow> 'i::len common_primitive ruleset \<Rightarrow> 'i::len common_primitive rule list" where
   "unfold_ruleset_OUTPUT \<equiv> unfold_ruleset_CHAIN ''OUTPUT''"
 
 
 lemma "let fw = [''FORWARD'' \<mapsto> []] in
   unfold_ruleset_FORWARD action.Drop fw
-  = [Rule MatchAny action.Drop]" by eval
+  = [Rule (MatchAny :: 32 common_primitive match_expr) action.Drop]" by eval
 
 
 (*
@@ -73,8 +74,8 @@ text\<open>Example\<close>
 context
 begin
   (*cool example*)
-  lemma "let fw = [''FORWARD'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (10,0,0,0) 8))) (Call ''foo'')],
-                   ''foo'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (10,128,0,0) 9))) action.Return,
+  lemma "let fw = [''FORWARD'' \<mapsto> [Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (10,0,0,0)) 8))) (Call ''foo'')],
+                   ''foo'' \<mapsto> [Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (10,128,0,0)) 9))) action.Return,
                                Rule (Match (Prot (Proto TCP))) action.Accept]
                    ] in
     let simplfw = to_simple_firewall
@@ -86,8 +87,8 @@ begin
   
   (*cooler example*)
   private definition "cool_example \<equiv> (let fw = 
-                [''FORWARD'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (10,0,0,0) 8))) (Call ''foo'')],
-                 ''foo'' \<mapsto> [Rule (MatchNot (Match (Src (Ip4AddrNetmask (10,0,0,0) 9)))) action.Drop,
+                [''FORWARD'' \<mapsto> [Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (10,0,0,0)) 8))) (Call ''foo'')],
+                 ''foo'' \<mapsto> [Rule (MatchNot (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (10,0,0,0)) 9)))) action.Drop,
                              Rule (Match (Prot (Proto TCP))) action.Accept]
                  ] in
     to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall
@@ -120,9 +121,9 @@ context
 begin
   (*now with a destination IP*)
   private definition "cool_example2 \<equiv> (let fw =
-    [''FORWARD'' \<mapsto> [Rule (Match (Src (Ip4AddrNetmask (10,0,0,0) 8))) (Call ''foo'')],
-     ''foo'' \<mapsto> [Rule (MatchNot (Match (Src (Ip4AddrNetmask (10,0,0,0) 9)))) action.Drop,
-                 Rule (MatchAnd (Match (Prot (Proto TCP))) (Match (Dst (Ip4AddrNetmask (10,0,0,42) 32)))) action.Accept]
+    [''FORWARD'' \<mapsto> [Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (10,0,0,0)) 8))) (Call ''foo'')],
+     ''foo'' \<mapsto> [Rule (MatchNot (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (10,0,0,0)) 9)))) action.Drop,
+                 Rule (MatchAnd (Match (Prot (Proto TCP))) (Match (Dst (IpAddrNetmask (ipv4addr_of_dotdecimal (10,0,0,42)) 32)))) action.Accept]
                 ] in
     to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall
                           (upper_closure (packet_assume_new (unfold_ruleset_FORWARD action.Drop fw))))))"

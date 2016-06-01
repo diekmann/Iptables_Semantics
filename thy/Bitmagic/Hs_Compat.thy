@@ -17,4 +17,7 @@ lemma uncurry_split_asm: "P (uncurry f a) \<longleftrightarrow> \<not>(\<exists>
   by(simp split: uncurry_split)
 lemmas uncurry_splits = uncurry_split uncurry_split_asm
 
+lemma uncurry_case_stmt: "(case x of (a, b) \<Rightarrow> f a b) = uncurry f x"
+  by(cases x, simp)
+
 end

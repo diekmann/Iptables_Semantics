@@ -75,7 +75,7 @@ subsection\<open>General Setup\<close>
   definition "spoofing_protection fw \<equiv> map (\<lambda>ifce. (ifce, no_spoofing_iface (Iface ifce) (map_of_ipassmt ipassmt) fw)) interfaces"
   
   text\<open>We only consider packets which are @{const CT_New} and @{const ipt_tcp_syn}. Packets which already belong to an established connection are okay be definition.\<close>
-  definition "preprocess default_policy fw \<equiv> (upper_closure (packet_assume_new (unfold_ruleset_FORWARD default_policy (map_of_string fw))))"
+  definition "preprocess default_policy fw \<equiv> (upper_closure (packet_assume_new (unfold_ruleset_FORWARD default_policy (map_of_string_ipv4 fw))))"
 
 
   value[code] "debug_ipassmt ipassmt []"
@@ -168,7 +168,7 @@ subsubsection\<open>Try 1\<close>
    lemma "approximating_bigstep_fun (common_matcher, in_doubt_allow)
     \<lparr>p_iiface = ''anything but 1.96'', p_oiface = ''eth1.96'',
      p_src = 0, p_dst = ipv4addr_of_dotdecimal (131,159,14,9), p_proto = TCP, p_sport = 12345, p_dport = 22, p_tcp_flags= {TCP_SYN}, p_tag_ctstate = CT_New\<rparr>
-     (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of_string net_fw_1)) Undecided
+     (unfold_ruleset_FORWARD net_fw_1_FORWARD_default_policy (map_of_string_ipv4 net_fw_1)) Undecided
     = Decision FinalAllow" by eval (*88.265s*)
 
   

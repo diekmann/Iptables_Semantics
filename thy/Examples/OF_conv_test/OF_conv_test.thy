@@ -19,7 +19,7 @@ thm SQRL_fw_def
 thm SQRL_fw_FORWARD_default_policy_def
 
 value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) SQRL_fw"
-definition "unfolded = unfold_ruleset_FORWARD SQRL_fw_FORWARD_default_policy (map_of_string SQRL_fw)"
+definition "unfolded = unfold_ruleset_FORWARD SQRL_fw_FORWARD_default_policy (map_of_string_ipv4 SQRL_fw)"
 lemma "map (quote_rewrite \<circ> common_primitive_rule_toString) (unfolded) =
   [''-p icmp -j ACCEPT'',
    ''-i s1-lan -o s1-wan -p tcp --spts [1024:65535] --dpts [80] -j ACCEPT'',

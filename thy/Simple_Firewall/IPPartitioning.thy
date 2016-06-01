@@ -399,9 +399,11 @@ record parts_connection = pc_iiface :: string
 
 
 
-definition same_fw_behaviour :: "'i::len word \<Rightarrow> 'i word \<Rightarrow> 'i simple_rule list \<Rightarrow> bool" where
-  "same_fw_behaviour a b rs \<equiv> \<forall>(p::'i simple_packet). simple_fw rs (p\<lparr>p_src:=a\<rparr>) = simple_fw rs (p\<lparr>p_src:=b\<rparr>) \<and>
-                                  simple_fw rs (p\<lparr>p_dst:=a\<rparr>) = simple_fw rs (p\<lparr>p_dst:=b\<rparr>)"
+definition same_fw_behaviour :: "(*'pkt_ext itself \<Rightarrow>*) 'i::len word \<Rightarrow> 'i word \<Rightarrow> 'i simple_rule list \<Rightarrow> bool" where
+  "same_fw_behaviour (*TYPE('pkt_ext)*) a b rs \<equiv>
+      \<forall>(p:: 'i::len simple_packet).
+                simple_fw rs (p\<lparr>p_src:=a\<rparr>) = simple_fw rs (p\<lparr>p_src:=b\<rparr>) \<and>
+                simple_fw rs (p\<lparr>p_dst:=a\<rparr>) = simple_fw rs (p\<lparr>p_dst:=b\<rparr>)"
 
 lemma getParts_same_fw_behaviour:
   "A \<in> set (map wordinterval_to_set (getParts rs)) \<Longrightarrow>  s1 \<in> A \<Longrightarrow> s2 \<in> A \<Longrightarrow> 
@@ -698,7 +700,7 @@ qed
   
   lemma simple_conn_matches_simple_match_any: "simple_conn_matches simple_match_any c"
     apply(simp add: simple_conn_matches_def)
-    apply(simp add: simple_match_any_def ipv4set_from_cidr_0 match_ifaceAny)
+    apply(simp add: simple_match_any_def match_ifaceAny)
     apply(subgoal_tac "(65535::16 word) = max_word")
      apply(simp)
     by(simp add: max_word_def)

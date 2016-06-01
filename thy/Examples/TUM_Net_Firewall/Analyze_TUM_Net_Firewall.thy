@@ -24,22 +24,22 @@ parse_iptables_save net_fw_2013="iptables_20.11.2013_cheating"
 
 lemma "sanity_wf_ruleset net_fw_2013" by eval
 
-lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string net_fw_2013)
+lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string_ipv4 net_fw_2013)
                     in (length rules, length (upper_closure rules), length (lower_closure rules))
   = (2375, 2382, 2840)" by eval
 
-value[code] "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string net_fw_2013)
+value[code] "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string_ipv4 net_fw_2013)
                     in ()"
 (*116.392s, compiled ML is less than one second*)
 
-lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string net_fw_2013)
+lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string_ipv4 net_fw_2013)
                     in (length (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall
                               (upper_closure (packet_assume_new rules))))),
                         length (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall
                               (lower_closure (packet_assume_new rules)))))) 
  = (2381, 2837)" by eval
 
-lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string net_fw_2013)
+lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string_ipv4 net_fw_2013)
      in map simple_rule_toString (take 43 (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall
                               (upper_closure (packet_assume_new rules)))))) =
  [''DROP     all  --  127.0.0.0/8            0.0.0.0/0    '',
@@ -86,7 +86,7 @@ lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (ma
   ''DROP     all  --  192.0.0.0/2            0.0.0.0/0 in: vlan96   '',
   ''ACCEPT     tcp  --  0.0.0.0/0            131.159.14.36/32  out: vlan96  dports: 22'']" by eval
 
-lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string net_fw_2013)
+lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string_ipv4 net_fw_2013)
      in map simple_rule_toString (take 18 (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall
                               (lower_closure (packet_assume_new rules)))))) = 
  [''DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 22'',
@@ -111,7 +111,7 @@ lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (ma
 
 
 (*this is just for testing*)
-definition deny_set :: "common_primitive rule list \<Rightarrow> common_primitive packet_set list" where
+definition deny_set :: "32 common_primitive rule list \<Rightarrow> 32 common_primitive packet_set list" where
   "deny_set rs \<equiv> filter (\<lambda>a. a \<noteq> packet_set_UNIV) (map packet_set_opt (allow_set_not_inter rs))"
 
 (*TODO: probably test the deny set somewhere ;-)*)

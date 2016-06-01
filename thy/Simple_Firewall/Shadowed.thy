@@ -120,7 +120,7 @@ begin
 
   value "(\<exists>m' \<in> set ms. iface_subset iif (iiface m')) \<and>
         (\<exists>m' \<in> set ms. iface_subset oif (oiface m')) \<and>
-        wordinterval_subset (ipcidr_tuple_to_wordinterval sip) (l2br (map ipv4cidr_to_interval (map src ms)))"
+        wordinterval_subset (ipcidr_tuple_to_wordinterval sip) (l2br (map ipcidr_to_interval (map src ms)))"
 
    (*TODO: either a sound but not complete executable implementation or a better idea to implement subset*)
    private lemma "(\<exists>m' \<in> set ms.

@@ -1,73 +1,18 @@
 theory IPv6Bitmagic
 imports 
-  (*NumberWang*)
-  (*WordInterval_Lists*)
   "./l4v/lib/Word_Lib/Word_Lemmas"
 begin
 
-(*
-  lemma uint_bl_less_length: "uint (of_bl ls) < 2 ^ length ls"
-    by (metis bintrunc_bintrunc_min bl_to_bin_lt2p lt2p_lem min_def of_bl_def trunc_bl2bin_len word_ubin.inverse_norm)
-*)
-
-thm Bool_List_Representation.bl_to_bin_lt2p
-(*TODO: delete, this will be in the Isabelle main distribution in future*)
-lemma bl_to_bin_lt2p_drop: "bl_to_bin bs < 2 ^ length (dropWhile Not bs)"
-  unfolding bl_to_bin_def
-  proof(induction bs)
-  case(Cons b bs)
-    with bl_to_bin_lt2p_aux[where w=1] show ?case by simp
-  qed(simp)
-
-(*TODO: add to l4v uint_of_bl_is_bl_to_bin*)
-thm Word_Lib.uint_of_bl_is_bl_to_bin
-lemma uint_of_bl_is_bl_to_bin_drop:
-  "length (dropWhile Not l) \<le> len_of TYPE('a) \<Longrightarrow>
-   uint ((of_bl::bool list\<Rightarrow> ('a :: len) word) l) = bl_to_bin l"
-  apply (simp add: of_bl_def)
-  apply (rule word_uint.Abs_inverse)
-  apply (simp add: uints_num bl_to_bin_ge0)
-  apply (rule order_less_le_trans)
-  apply (rule bl_to_bin_lt2p_drop)
-  apply(simp)
-  done
 
 
-lemma length_takeWhile_Not_replicate_False:
-  "length (takeWhile Not (replicate n False @ ls)) = n + length (takeWhile Not ls)"
-  by(subst takeWhile_append2) simp+
 
-
-lemma length_drop_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs"
- apply(subst Word.word_rep_drop)
- apply(subst List.dropWhile_eq_drop)
- apply(simp)
- apply(subst length_takeWhile_Not_replicate_False)
- apply(simp)
- done
-  
-
-  lemma 
-  "length (dropWhile Not (to_bl ((of_bl:: bool list \<Rightarrow> 'l::len word) ls))) \<le> len_of TYPE('s) \<Longrightarrow>
-   len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
-    of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) 
-            (to_bl ((of_bl:: bool list \<Rightarrow> 'l::len word) ls)))) =
-    (of_bl:: bool list \<Rightarrow> 'l::len word) ls"
-    apply(rule Word.word_uint_eqI)
-    apply(subst Word_Lib.uint_of_bl_is_bl_to_bin)
-     apply(simp; fail)
-    apply(subst Word.to_bl_bin)
-    apply(subst uint_of_bl_is_bl_to_bin_drop)
-     apply assumption
-     (*using[[unify_trace_failure]]
-       apply assumption*)
-    apply(simp)
-    done
-
-  lemma "length (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) (dropWhile Not bs))) = 
-         length (to_bl ((of_bl:: bool list \<Rightarrow> 'a::len word) bs))"
-    apply(fact Word.word_rotate.lbl_lbl)
-    done
+  lemma length_drop_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs"
+  proof -
+    have length_takeWhile_Not_replicate_False:
+      "length (takeWhile Not (replicate n False @ ls)) = n + length (takeWhile Not ls)"
+    for n ls by(subst takeWhile_append2) simp+
+    show ?thesis by(simp add: word_rep_drop dropWhile_eq_drop length_takeWhile_Not_replicate_False)
+  qed
 
   (*TODO: push this somewhere! maybe to isabelle main word thy!*)
   lemma bl_drop_leading_zeros: 
@@ -92,77 +37,6 @@ lemma length_drop_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs
     apply(rule order.trans, rule *)
     using assms by(simp)
   qed
-
-  (*TODO: add to l4v*)
-  (* casting a long word to a shorter word and casting back to the long word 
-     is equal to the original long word -- if the word is small enough.
-    'l is the longer word.
-    's is the shorter word.
-  *)
-  lemma bl_cast_long_short_long_ingoreLeadingZero_generic:
-  "length (dropWhile Not (to_bl w)) \<le> len_of TYPE('s) \<Longrightarrow>
-   len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
-    (of_bl:: bool list \<Rightarrow> 'l::len word) (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) (to_bl w))) = w"
-    apply(rule Word.word_uint_eqI)
-    apply(subst Word_Lib.uint_of_bl_is_bl_to_bin)
-     apply(simp; fail)
-    apply(subst Word.to_bl_bin)
-    apply(subst uint_of_bl_is_bl_to_bin_drop)
-     apply blast
-    apply(simp)
-    done
-
-  (*
-   Casting between longer and shorter word.
-    'l is the longer word.
-    's is the shorter word.
-   For example: 'l::len word is 128 word (full ipv6 address)
-                's::len word is 16 word (address piece of ipv6 address in colon-text-representation)
-  *)
-  corollary ucast_short_ucast_long_ingoreLeadingZero:
-  "length (dropWhile Not (to_bl w)) \<le> len_of TYPE('s) \<Longrightarrow>
-   len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
-    (ucast:: 's::len word \<Rightarrow> 'l::len word) ((ucast:: 'l::len word \<Rightarrow> 's::len word) w) = w"
-    apply(subst Word.ucast_bl)+
-    apply(rule bl_cast_long_short_long_ingoreLeadingZero_generic)
-     apply(simp_all)
-    done
-
-  (*
-  corollary bl_cast_long_short_long_ingoreLeadingZero: 
-  "length (dropWhile Not ls) \<le> len_of TYPE('s) \<Longrightarrow>
-   len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
-    of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) 
-            (to_bl ((of_bl:: bool list \<Rightarrow> 'l::len word) ls)))) =
-    (of_bl:: bool list \<Rightarrow> 'l::len word) ls"
-    apply(rule bl_cast_long_short_long_ingoreLeadingZero_generic)
-     apply(rule bl_length_drop_bound)
-     apply blast
-    apply(simp)
-    done
-  *)
-
-  (*
-  corollary bl_cast_long_short_long_take:
-  "n \<le> len_of TYPE('s) \<Longrightarrow> len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
-    of_bl (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) 
-            (to_bl ((of_bl:: bool list \<Rightarrow> 'l::len word) (take n ls))))) =
-    (of_bl:: bool list \<Rightarrow> 'l::len word) (take n ls)"
-    proof(rule bl_cast_long_short_long_ingoreLeadingZero, goal_cases)
-    case 1 
-      have "length (dropWhile Not (take n ls)) \<le> min (length ls) n"
-        by (metis (no_types) length_dropWhile_le length_take)
-      then show "length (dropWhile Not (take n ls)) \<le> len_of (TYPE('s)::'s itself)"
-        using 1(1) by linarith
-    qed(simp)*)
-    
-
-  (*TODO: to l4v!*)
-  lemma length_drop_mask:
-    fixes w::"'a::len word"
-    shows "length (dropWhile Not (to_bl (w AND mask n))) \<le> n"
-    apply(subst Word.bl_and_mask)
-    by (simp add: List.dropWhile_eq_drop length_takeWhile_Not_replicate_False)
 
   
   (*TODO: move those two lemmas to l4? maybe they are too specific*)
@@ -197,11 +71,7 @@ lemma length_drop_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs
     done
 *)
 
-  lemma mask_len_word: fixes w::"'a::len word"
-    shows "n = (len_of TYPE('a)) \<Longrightarrow> w AND mask n = w"
-    by (simp add: mask_eq_iff) 
-  
-
+ 
   lemma mask128: "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF = mask 128"
     by(simp add: mask_def)
 

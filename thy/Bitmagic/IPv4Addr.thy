@@ -82,11 +82,11 @@ subsection\<open>Representing IPv4 Adresses\<close>
     "ipv4addr_of_dotdecimal (a,b,c,d) = (ipv4addr_of_nat a << 24) + (ipv4addr_of_nat b << 16) + (ipv4addr_of_nat c << 8) + ipv4addr_of_nat d"
   proof -
     have a: "(ipv4addr_of_nat a) << 24 = ipv4addr_of_nat (a * 16777216)"
-      by(simp add: ipv4addr_of_nat_def shiftl_t2n of_nat_mult)
+      by(simp add: ipv4addr_of_nat_def shiftl_t2n)
     have b: "(ipv4addr_of_nat b) << 16 = ipv4addr_of_nat (b * 65536)"
-      by(simp add: ipv4addr_of_nat_def shiftl_t2n of_nat_mult)
+      by(simp add: ipv4addr_of_nat_def shiftl_t2n)
     have c: "(ipv4addr_of_nat c) << 8 = ipv4addr_of_nat (c * 256)"
-      by(simp add: ipv4addr_of_nat_def shiftl_t2n of_nat_mult)
+      by(simp add: ipv4addr_of_nat_def shiftl_t2n)
     have ipv4addr_of_nat_suc: "\<And>x. ipv4addr_of_nat (Suc x) = word_succ (ipv4addr_of_nat (x))"
       by(simp add: ipv4addr_of_nat_def, metis Abs_fnat_hom_Suc of_nat_Suc)
     { fix x y
@@ -104,8 +104,6 @@ subsection\<open>Representing IPv4 Adresses\<close>
 
 
   lemma size_ipv4addr: "size (x::ipv4addr) = 32" by(simp add:word_size)
-  lemma ipv4addr_of_nat_shiftr_slice: "ipv4addr_of_nat a >> x = slice x (ipv4addr_of_nat a)"
-    by(simp add: ipv4addr_of_nat_def shiftr_slice)
   lemma "(4294967296::ipv4addr) = 2^32" by eval
 
   lemma nat_of_ipv4addr_slice_ipv4addr_of_nat: 
@@ -280,13 +278,14 @@ subsection\<open>IP ranges\<close>
   lemma "ipv4set_from_cidr (ipv4addr_of_dotdecimal (192,168,0,42)) 16 = 
           {ipv4addr_of_dotdecimal (192,168,0,0) .. ipv4addr_of_dotdecimal (192,168,255,255)}"
    by(simp add: ipv4set_from_cidr_def ipset_from_cidr_alt mask_def  ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def)
-  lemma ipv4set_from_cidr_UNIV: "ipv4set_from_cidr 0 0 = UNIV"
-    by(simp add: ipv4set_from_cidr_def ipset_from_cidr_0)
-  lemma ip_in_ipv4set_from_cidr_UNIV: "ip \<in> (ipv4set_from_cidr (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 0)"
-    by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4set_from_cidr_UNIV)
 
   lemma ipv4set_from_cidr_0: "ipv4set_from_cidr foo 0 = UNIV"
     by(simp add: ipv4set_from_cidr_def ipset_from_cidr_0)
+
+  lemma "ipv4set_from_cidr 0 0 = UNIV"
+    by(simp add: ipv4set_from_cidr_def ipset_from_cidr_0)
+  lemma "ip \<in> (ipv4set_from_cidr (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 0)"
+    by(simp add: ipv4set_from_cidr_0)
 
   lemma ipv4set_from_cidr_32: "ipv4set_from_cidr foo 32 = {foo}"
     by(simp add: ipv4set_from_cidr_alt ipv4set_from_netmask_def mask_def ipset_from_netmask_minusone)
@@ -307,32 +306,9 @@ subsection\<open>IP ranges\<close>
   value[code] "ipv4addr_of_dotdecimal (192,168,4,8) \<in> (ipv4set_from_cidr (ipv4addr_of_dotdecimal (192,168,0,42)) 16)"
 
   
-
-
-  (*TODO: delete*)
-  definition ipv4range_single :: "ipv4addr \<Rightarrow> 32 wordinterval" where
-    "ipv4range_single ip \<equiv> WordInterval ip ip"
-
-  fun ipv4range_range :: "(ipv4addr \<times> ipv4addr) \<Rightarrow> 32 wordinterval" where
-    "ipv4range_range (ip_start, ip_end) = WordInterval ip_start ip_end"
-  declare ipv4range_range.simps[simp del]
-
-  (*TODO: delete*)
-  lemma ipv4range_range_transition_todo_delete_me: "ipv4range_range = iprange_interval"
-    by(simp add: fun_eq_iff ipv4range_range.simps iprange_interval.simps)
-
-
   definition ipv4range_UNIV :: "32 wordinterval" where "ipv4range_UNIV \<equiv> wordinterval_UNIV"
   
-
-
-  (*TODO: delete*)
-  lemma ipv4range_single_set_eq: "wordinterval_to_set (ipv4range_single ip) = {ip}"
-    by(simp add: ipv4range_single_def)
-  lemma ipv4range_range_set_eq: "wordinterval_to_set (ipv4range_range (ip1, ip2)) = {ip1 .. ip2}"
-    by(simp add: ipv4range_range.simps)
-  
-  lemma ipv4range_UNIV_set_eq(*[simp]*): "wordinterval_to_set ipv4range_UNIV = UNIV"
+  lemma ipv4range_UNIV_set_eq: "wordinterval_to_set ipv4range_UNIV = UNIV"
     by(simp only: ipv4range_UNIV_def wordinterval_UNIV_set_eq)
  
 
@@ -340,12 +316,10 @@ subsection\<open>IP ranges\<close>
   thm iffD1[OF wordinterval_eq_set_eq]
   (*TODO: probably the following is a good idea?*)
   (*
-  declare ipv4range_range_set_eq[unfolded ipv4range_range.simps, simp]
   declare iffD1[OF wordinterval_eq_set_eq, cong]
   *)
 
 
-  (*TODO: move to IPv4?*)
   text\<open>This @{text "len_of TYPE('a)"} is 32 for IPv4 addresses.\<close>
   lemma ipv4cidr_to_interval_simps[code_unfold]: "ipcidr_to_interval ((pre::ipv4addr), len) = (
       let netmask = (mask len) << (32 - len);

@@ -5,13 +5,17 @@ begin
 
 section\<open>Further Lemmas about the Common Matcher\<close>
 
-lemma has_unknowns_common_matcher: "has_unknowns common_matcher m \<longleftrightarrow> has_disc is_Extra m"
+lemma has_unknowns_common_matcher: fixes m::"'i::len common_primitive match_expr"
+  shows "has_unknowns common_matcher m \<longleftrightarrow> has_disc is_Extra m"
   proof -
-  { fix A and p :: "(32, 'a) simple_packet_scheme"
+  { fix A and p :: "('i, 'a) simple_packet_scheme"
     have "common_matcher A p = TernaryUnknown \<longleftrightarrow> is_Extra A"
       by(induction A p rule: common_matcher.induct) (simp_all add: bool_to_ternary_Unknown)
-  } thus ?thesis
-  by(induction common_matcher m rule: has_unknowns.induct) (simp_all)
+  } hence "\<beta> = (common_matcher::('i::len common_primitive, ('i, 'a) simple_packet_scheme) exact_match_tac)
+            \<Longrightarrow> has_unknowns \<beta> m = has_disc is_Extra m" for \<beta>
+  by(induction \<beta> m rule: has_unknowns.induct)
+    (simp_all)
+  thus ?thesis by simp
 qed
 
 end

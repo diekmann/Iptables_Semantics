@@ -27,9 +27,10 @@ by(cases X, simp_all)
 lemma ternary_to_bool_None: "ternary_to_bool t = None \<longleftrightarrow> t = TernaryUnknown"
   by(cases t, simp_all)
 lemma ternary_to_bool_SomeE: "ternary_to_bool t = Some X \<Longrightarrow>
-(t = TernaryTrue \<Longrightarrow> X = True \<Longrightarrow> P) \<Longrightarrow> (t = TernaryFalse \<Longrightarrow> X = False \<Longrightarrow> P)  \<Longrightarrow> P"
-  by (metis option.distinct(1) option.inject ternary_to_bool.elims)
-lemma ternary_to_bool_Some: "ternary_to_bool t = Some X \<longleftrightarrow> (t = TernaryTrue \<and> X = True) \<or> (t = TernaryFalse \<and> X = False)"
+  (t = TernaryTrue \<Longrightarrow> X = True \<Longrightarrow> P) \<Longrightarrow> (t = TernaryFalse \<Longrightarrow> X = False \<Longrightarrow> P)  \<Longrightarrow> P"
+  by(cases t)(simp)+
+lemma ternary_to_bool_Some: "ternary_to_bool t = Some X \<longleftrightarrow>
+  (t = TernaryTrue \<and> X = True) \<or> (t = TernaryFalse \<and> X = False)"
   by(cases t, simp_all)
 lemma bool_to_ternary_Unknown: "bool_to_ternary t = TernaryUnknown \<longleftrightarrow> False"
 by(cases t, simp_all)

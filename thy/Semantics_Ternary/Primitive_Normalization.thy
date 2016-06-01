@@ -537,13 +537,16 @@ lemma "\<exists>m. normalized_n_primitive disc_sel f m \<longrightarrow> \<not> 
 
 
 lemma remove_unknowns_generic_not_has_disc: "\<not> has_disc C m \<Longrightarrow> \<not> has_disc C (remove_unknowns_generic \<gamma> a m)"
-  by(induction \<gamma> a m rule: remove_unknowns_generic.induct) (simp_all)
+  by(induction \<gamma> a m rule: remove_unknowns_generic.induct) (simp_all add: remove_unknowns_generic_simps2)
+
+lemma remove_unknowns_generic_not_has_disc_negated: "\<not> has_disc_negated C neg m \<Longrightarrow> \<not> has_disc_negated C neg (remove_unknowns_generic \<gamma> a m)"
+  by(induction \<gamma> a m rule: remove_unknowns_generic.induct) (simp_all add: remove_unknowns_generic_simps2)
 
 lemma remove_unknowns_generic_normalized_n_primitive: "normalized_n_primitive disc_sel f m \<Longrightarrow> 
     normalized_n_primitive disc_sel f (remove_unknowns_generic \<gamma> a m)"
   proof(induction \<gamma> a m rule: remove_unknowns_generic.induct)
-    case 6 thus ?case by(case_tac disc_sel, simp)
-  qed(simp_all)
+    case 6 thus ?case by(case_tac disc_sel, simp add: remove_unknowns_generic_simps2)
+  qed(simp_all add: remove_unknowns_generic_simps2)
 
 
 

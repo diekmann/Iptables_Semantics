@@ -14,8 +14,8 @@ text\<open>We analyze a dump of a NAS. The dump was created 2014. Unfortunately,
 
 text\<open>we removed the established,related rule\<close>
   definition "example_ruleset == firewall_chains(''INPUT'' \<mapsto> 
-    remove1 (Rule (MatchAnd (Match (Src (Ip4AddrNetmask ((0,0,0,0)) (0))))
-            (MatchAnd (Match (Dst (Ip4AddrNetmask ((0,0,0,0)) (0))))
+    remove1 (Rule (MatchAnd (Match (Src (IpAddrNetmask 0 0)))
+            (MatchAnd (Match (Dst (IpAddrNetmask 0 0)))
             (MatchAnd (Match (Prot (ProtoAny)))
             (Match (Extra (''state RELATED,ESTABLISHED'')))))) (action.Accept)) (the (firewall_chains ''INPUT'')))"
 
@@ -100,7 +100,7 @@ lemma "unfold_ruleset_INPUT action.Accept example_ruleset =
   Rule (Match (Prot (Proto TCP)) MATCHAND Match (Extra ''multiport dports 21,873,5005,5006,80,548,111,2049,892''))
    action.Drop,
   Rule (Match (Prot (Proto UDP)) MATCHAND Match (Extra ''multiport dports 123,111,2049,892,5353'')) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16))) action.Accept, Rule MatchAny action.Drop,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192, 168, 0, 0)) 16))) action.Accept, Rule MatchAny action.Drop,
   Rule MatchAny action.Accept, Rule MatchAny action.Accept]
   " by eval
 
@@ -133,17 +133,17 @@ lemma "unfold_ruleset_INPUT action.Accept example_ruleset =
 
 text\<open>in doubt allow closure\<close>
 lemma upper: "upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset) =
-  [Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16))) action.Accept, Rule MatchAny action.Drop, Rule MatchAny action.Accept]" by eval
+  [Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192, 168, 0, 0)) 16))) action.Accept, Rule MatchAny action.Drop, Rule MatchAny action.Accept]" by eval
 
 text\<open>in doubt deny closure\<close>
 lemma lower: "lower_closure (unfold_ruleset_INPUT action.Accept example_ruleset) =
  [Rule MatchAny action.Drop, Rule (Match (Prot (Proto TCP))) action.Drop, Rule (Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16))) action.Accept, Rule MatchAny action.Accept]" by eval
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192, 168, 0, 0)) 16))) action.Accept, Rule MatchAny action.Accept]" by eval
 
 
 text\<open>upper closure\<close>
 lemma "rmshadow (common_matcher, in_doubt_allow) (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset)) UNIV = 
-  [Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16))) action.Accept, Rule MatchAny action.Drop]"
+  [Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192, 168, 0, 0)) 16))) action.Accept, Rule MatchAny action.Drop]"
 (*<*)apply(subst upper)
 apply(subst rmshadow.simps)
 apply(simp del: rmshadow.simps)
@@ -287,7 +287,7 @@ lemma "unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw) =
   Rule (Match (IIface (Iface ''eth0'')) MATCHAND
         Match (Prot (Proto UDP)) MATCHAND Match (Dst_Ports [(0x7B, 0x7B), (0x6F, 0x6F), (0x37C, 0x37C), (0x801, 0x801), (0x14E9, 0x14E9)]))
    action.Drop,
-  Rule (Match (Src (Ip4AddrNetmask (192, 168, 0, 0) 16)) MATCHAND Match (IIface (Iface ''eth0''))) action.Accept,
+  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192, 168, 0, 0)) 16)) MATCHAND Match (IIface (Iface ''eth0''))) action.Accept,
   Rule (Match (IIface (Iface ''eth0''))) action.Drop, Rule MatchAny action.Accept]" by eval
 
 value[code] "map common_primitive_rule_toString (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw))"

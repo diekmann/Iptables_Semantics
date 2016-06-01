@@ -1,5 +1,5 @@
 Parsed IpAssmt
-IpAssmt [(ldit,Pos [Ip4AddrNetmask 10.13.42.136/29]),(lmd,Pos [Ip4AddrNetmask 10.13.42.128/29]),(loben,Pos [Ip4AddrNetmask 10.13.42.144/28]),(wg,Pos [Ip4AddrNetmask 10.13.42.176/28]),(wt,Pos [Ip4AddrNetmask 10.13.42.160/28]),(lup,Neg [Ip4AddrNetmask 192.168.0.0/16,Ip4AddrNetmask 172.16.0.0/12,Ip4AddrNetmask 10.0.0.0/8]),(lo,Pos [Ip4AddrNetmask 127.0.0.0/8]),(vpriv,Pos [Ip4AddrNetmask 0.0.0.0/0]),(vshit,Pos [Ip4AddrNetmask 0.0.0.0/0]),(vocb,Pos [Ip4AddrNetmask 0.0.0.0/0]),(lua,Pos [Ip4AddrNetmask 0.0.0.0/0])]
+IpAssmt [(ldit,Pos [10.13.42.136/29]),(lmd,Pos [10.13.42.128/29]),(loben,Pos [10.13.42.144/28]),(wg,Pos [10.13.42.176/28]),(wt,Pos [10.13.42.160/28]),(lup,Neg [192.168.0.0/16,172.16.0.0/12,10.0.0.0/8]),(lo,Pos [127.0.0.0/8]),(vpriv,Pos [0.0.0.0/0]),(vshit,Pos [0.0.0.0/0]),(vocb,Pos [0.0.0.0/0]),(lua,Pos [0.0.0.0/0])]
 == Parser output ==
 *filter
 :BasicSvc - [0:0]

@@ -14,7 +14,7 @@ thm company_fw_INPUT_default_policy_def
 
 value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) company_fw"
 
-definition "unfolded_INPUT = unfold_ruleset_INPUT company_fw_INPUT_default_policy (map_of_string (company_fw))"
+definition "unfolded_INPUT = unfold_ruleset_INPUT company_fw_INPUT_default_policy (map_of_string_ipv4 (company_fw))"
 
 value[code] "map (quote_rewrite \<circ> common_primitive_rule_toString) (unfolded_INPUT)"
 
@@ -42,7 +42,7 @@ value[code] "map simple_rule_toString (to_simple_firewall
 
 
 
-definition "unfolded_FORWARD = unfold_ruleset_FORWARD company_fw_FORWARD_default_policy (map_of_string (company_fw))"
+definition "unfolded_FORWARD = unfold_ruleset_FORWARD company_fw_FORWARD_default_policy (map_of_string_ipv4 (company_fw))"
 
 value[code] "map (quote_rewrite \<circ> common_primitive_rule_toString) (unfolded_FORWARD)"
 

@@ -37,7 +37,7 @@ lemma "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rul
   (''INPUT'', []),
   (''OUTPUT'', [])]" by eval
 
-definition "unfolded_FORWARD = unfold_ruleset_FORWARD factory_fw_FORWARD_default_policy (map_of_string (factory_fw))"
+definition "unfolded_FORWARD = unfold_ruleset_FORWARD factory_fw_FORWARD_default_policy (map_of_string_ipv4 (factory_fw))"
 
 value[code] "map (quote_rewrite \<circ> common_primitive_rule_toString) (unfolded_FORWARD)"
 

@@ -1,7 +1,7 @@
 theory SimpleFw_Semantics
 imports Main "../Common/Negation_Type"
   "../Firewall_Common_Decision_State"
-  "../Primitive_Matchers/IpAddresses"
+  "../Bitmagic/IpAddresses"
   "../Primitive_Matchers/Iface"
   "../Primitive_Matchers/Protocol"
   "../Primitive_Matchers/Simple_Packet"

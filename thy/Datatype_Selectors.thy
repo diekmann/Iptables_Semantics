@@ -3,7 +3,7 @@ imports Main
 begin
 
 text\<open>
-  Running Example: @{text "datatype_new iptrule_match = is_Src: Src (src_range: ipt_ipv4range)"}
+  Running Example: @{text "datatype_new iptrule_match = is_Src: Src (src_range: ipt_iprange)"}
 
   A discriminator @{text disc} tells whether a value is of a certain constructor.
     Example: @{text "is_Src"}
