@@ -21,6 +21,46 @@ apply auto
 done
 
 declare word_upto.simps[simp del]
+ 
+
+(*TODO: this is probably what we want!*)
+fun word_upto' :: "'a word \<Rightarrow> 'a word \<Rightarrow> ('a::len0) word list" where
+"word_upto' a b = (if a = b then [a] else a # word_upto (a + 1) b)"
+
+declare word_upto'.simps[simp del]
+
+value[code] "let x = word_upto' (3 :: 32 word) 16000 in ()"
+
+lemma word_upto_cons_front[code]:
+ "word_upto a b = word_upto' a b"
+ proof(induction a b rule:word_upto.induct)
+ case (1 a b)
+   have hlp1: "a \<noteq> b \<Longrightarrow> a # word_upto (a + 1) b = word_upto a b"
+   apply(induction a b rule:word_upto.induct)
+   apply simp
+   apply(subst(1) word_upto.simps)
+   apply(simp)
+   apply safe
+    apply(subst(1) word_upto.simps)
+    apply (simp add: )
+    apply(subst(1) word_upto.simps)
+    apply (simp add: )
+   apply(case_tac "a \<noteq> b - 1")
+    apply(simp)
+    apply (metis Cons_eq_appendI word_upto.simps)
+   apply(simp)
+   done
+
+   from 1 show ?case
+     apply(subst word_upto.simps)
+     apply(subst word_upto'.simps)
+     apply(simp)
+     apply(safe)
+     apply(simp)
+     apply(simp add: hlp1)
+     by (simp add: word_upto.simps)
+ qed
+
 
 (* Most of the lemmas I show about word_upto hold without a \<le> b, but I don't need that right now and it's giving me a headache *)
 

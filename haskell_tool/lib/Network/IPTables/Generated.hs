@@ -1322,8 +1322,11 @@ is_pos_Extra a = (case a of {
                  });
 
 word_upto :: forall a. (Len0 a) => Word a -> Word a -> [Word a];
-word_upto a b =
-  (if equal_word a b then [a] else word_upto a (minus_word b one_word) ++ [b]);
+word_upto a b = word_uptoa a b;
+
+word_uptoa :: forall a. (Len0 a) => Word a -> Word a -> [Word a];
+word_uptoa a b =
+  (if equal_word a b then [a] else a : word_upto (plus_word a one_word) b);
 
 wordinterval_lowest_element ::
   forall a. (Len0 a) => Wordinterval a -> Maybe (Word a);
