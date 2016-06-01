@@ -96,85 +96,94 @@ value "bintrunc 3 (8)"
 value "bintrunc 4 (-8)"
 value "bintrunc 3 (-8)"
 
+(*TODO: move!*)
 lemma bintrunc_pos_eq: "x \<ge> 0 \<Longrightarrow> bintrunc n x = x \<longleftrightarrow> x < 2^n"
 apply(rule iffI)
- subgoal apply (simp add: bintrunc_mod2p mod_pos_pos_trivial)
- using int_mod_lem zless2p by blast
- thm mod_pos_pos_trivial no_bintr_alt1 bintrunc_mod2p mod_pos_pos_trivial
+ subgoal using bintr_lt2p by metis
 by (simp add: mod_pos_pos_trivial no_bintr_alt1; fail)
 
-
-  
 
 
 (*TODO: I want the reverse as [code_unfold] ! ! ! ! ! ! ! ! !*)
 lemma string_of_word_base_ten_zeropad:
-  fixes w ::"32 word" (*TODO: for all words?*)
-  (*assumes lena: "len_of TYPE('a) \<ge> 5"*)
+  fixes w ::"'a::len word"
+  assumes lena: "len_of TYPE('a) \<ge> 5" (*word must be long enough to encode 10 = 0xA*)
   shows "base = 10 \<Longrightarrow> zero = 0 \<Longrightarrow> string_of_word True base zero w = string_of_nat (unat w)"
   proof(induction True base zero w rule: string_of_word.induct)
   case (1 base ml n)
 
+  note  Word.word_less_no[simp del]
+  note  Word.uint_bintrunc[simp del]
 
   have "5 \<le> n \<Longrightarrow> bintrunc n 10 = 10" for n
    apply(subst bintrunc_pos_eq)
     apply(simp; fail)
    apply(induction rule: Nat.dec_induct)
     by simp+
-  (*with lena have "uint (0xA::'a::len word) = 10" by(simp)
-  hence unat_ten: "unat (0xA::'a::len word) = 10"
-    by(simp)*)
+  with lena have unat_ten: "unat (0xA::'a::len word) = 10" by(simp)
+
+  have "5 \<le> n \<Longrightarrow> bintrunc n 2 = 2" for n
+   apply(subst bintrunc_pos_eq)
+    apply(simp; fail)
+   apply(induction rule: Nat.dec_induct)
+    by simp+
+  with lena have unat_two: "unat (2::'a::len word) = 2" by(simp)
+
   have unat_mod_ten: "unat (n mod 0xA) = unat n mod 10"
     apply(subst Word.unat_mod)
-    (*apply(subst unat_ten)*)
+    apply(subst unat_ten)
     by(simp)
     
   have unat_div_ten: "(unat (n div 0xA)) = unat n div 10"
     apply(subst Word.unat_div)
-    (*apply(subst unat_ten)*)
+    apply(subst unat_ten)
     by simp
   have n_less_ten_unat: "n < 0xA \<Longrightarrow> (unat n < 10)"
     apply(rule Word_Lemmas.unat_less_helper)
     by(simp)
   have "0xA \<le> n \<Longrightarrow> 10 \<le> unat n" 
     apply(subst(asm) Word.word_le_nat_alt)
-    (*apply(subst(asm) unat_ten)*)
+    apply(subst(asm) unat_ten)
     by(simp)
   hence n_less_ten_unat_not: "\<not> n < 0xA \<Longrightarrow> \<not> unat n < 10" by fastforce
-  (*have "\<not> (0xA::'a word) < 2"
-    using[[simp_trace]] apply(simp del: Word.word_less_no Word.uint_bintrunc)*)
-  from 1(2,3) have " \<not> (base < 2 \<or> len_of TYPE(32) < 2)"
+  have not_wordlength_too_small: "\<not> len_of TYPE('a) < 2" using lena by fastforce
+  have "2 \<le> (0xA::'a word)"
+    apply(subst word_le_nat_alt)
+    apply(subst unat_ten unat_two)
+    apply(subst unat_two)
     by(simp)
-  with 1 have IH: "\<not> n < 0xA \<Longrightarrow> string_of_word True 0xA 0 (n div 0xA) = string_of_nat (unat (n div 0xA))"
-     by(simp)
+  hence ten_not_less_two: "\<not> (0xA::'a word) < 2" by (simp add: Word.word_less_no Word.uint_bintrunc)
+  with 1(2,3) have " \<not> (base < 2 \<or> len_of TYPE(32) < 2)"
+    by(simp)
+  with 1 not_wordlength_too_small have IH: "\<not> n < 0xA \<Longrightarrow> string_of_word True 0xA 0 (n div 0xA) = string_of_nat (unat (n div 0xA))"
+    by(simp)
   show ?case
     apply(simp add: 1)
-    apply(case_tac "n < 0xA")
+    apply(cases "n < 0xA")
      subgoal
      apply(subst(1) string_of_word.simps)
      apply(subst(1) string_of_nat.simps)
-     apply(simp add: n_less_ten_unat del: Word.word_less_no Word.uint_bintrunc)
-     by(simp add: string_of_word_single_atoi)
+     apply(simp add: n_less_ten_unat)
+     by(simp add: not_wordlength_too_small ten_not_less_two string_of_word_single_atoi)
     using sym[OF IH] apply(simp)
     apply(subst(1) string_of_word.simps)
     apply(simp)
     apply(subst(1) string_of_nat.simps)
     apply(simp)
-    apply(safe)
-     apply(simp add: n_less_ten_unat_not; fail)
+    apply(simp add: not_wordlength_too_small ten_not_less_two)
     apply(subst string_of_word_single_atoi)
-     apply(rule Word.word_mod_less_divisor, simp; fail)
+     apply(rule Word.word_mod_less_divisor)
+     using unat_ten word_gt_0_no apply fastforce
     apply(simp add: unat_mod_ten)
     apply(rule sym)
-    apply(simp add: n_less_ten_unat_not)
+    apply(drule n_less_ten_unat_not)
     apply(simp add: unat_div_ten)
-    done
+    by (simp add: string_of_nat.simps)
 qed
 lemma dec_string_of_word0:
   fixes w ::"32 word" (*TODO: for all words?*)
   shows "dec_string_of_word0 w = string_of_nat (unat w)"
-  (*TODO*)
   unfolding dec_string_of_word0_def
-  using string_of_word_base_ten_zeropad by simp
+  using string_of_word_base_ten_zeropad by force
 
 end
