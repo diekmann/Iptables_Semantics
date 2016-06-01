@@ -108,6 +108,10 @@ subsection\<open>IPv6 Pretty Printing\<close>
   lemma "ipv6addr_toString (ipv6preferred_to_int (IPv6AddrPreferred 0x2001 0xdb8 0x0 0x1 0x1 0x1 0x1 0x1)) =
               ''2001:db8:0:1:1:1:1:1''" by eval --\<open>Section 4.2.2 of RFC5952\<close>
 
+  lemma "ipv6addr_toString max_ipv6_addr = ''ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff''" by eval
+  lemma "ipv6addr_toString (ipv6preferred_to_int (IPv6AddrPreferred 0xffff 0xffff 0xffff 0xffff 0xffff 0xffff 0xffff 0xffff)) =
+              ''ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff''" by eval
+
 
   text\<open>Correctness Theorems:\<close>
   thm ipv6_preferred_to_compressed
