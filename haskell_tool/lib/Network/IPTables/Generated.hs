@@ -1,9 +1,9 @@
 {-# LANGUAGE EmptyDataDecls, RankNTypes, ScopedTypeVariables #-}
 
 module
-  Network.IPTables.Generated(Int, Num, Nat(..), Set, Word, Len, Iface(..), Bit0,
+  Network.IPTables.Generated(Int, Num, Nat(..), Word, Len, Iface(..), Bit0,
                               Num1, Protocol(..), Tcp_flag(..), Match_expr(..),
-                              Action(..), Rule(..), Ctstate(..),
+                              Action(..), Rule(..), Ctstate(..), Set,
                               Ipt_tcp_flags(..), Nibble, Ipt_iprange(..),
                               Common_primitive(..), Wordinterval,
                               Negation_type(..), Simple_match_ext,
@@ -83,23 +83,6 @@ instance Eq Nat where {
   a == b = equal_nat a b;
 };
 
-one_nat :: Nat;
-one_nat = Nat (1 :: Integer);
-
-instance One Nat where {
-  one = one_nat;
-};
-
-times_nat :: Nat -> Nat -> Nat;
-times_nat m n = Nat (integer_of_nat m * integer_of_nat n);
-
-instance Times Nat where {
-  times = times_nat;
-};
-
-instance Power Nat where {
-};
-
 less_eq_nat :: Nat -> Nat -> Bool;
 less_eq_nat m n = integer_of_nat m <= integer_of_nat n;
 
@@ -134,13 +117,8 @@ class (Order a) => Linorder a where {
 instance Linorder Nat where {
 };
 
-data Set a = Set [a] | Coset [a];
-
-top_set :: forall a. Set a;
-top_set = Coset [];
-
-ball :: forall a. Set a -> (a -> Bool) -> Bool;
-ball (Set xs) p = all p xs;
+equal_int :: Int -> Int -> Bool;
+equal_int k l = integer_of_int k == integer_of_int l;
 
 data Itself a = Type;
 
@@ -150,53 +128,14 @@ class Len0 a where {
 
 newtype Word a = Word Int;
 
-class (Len0 a) => Len a where {
-};
+uint :: forall a. (Len0 a) => Word a -> Int;
+uint (Word x) = x;
 
-enum_all_word :: forall a. (Len a) => (Word a -> Bool) -> Bool;
-enum_all_word p = ball top_set p;
+equal_word :: forall a. (Len0 a) => Word a -> Word a -> Bool;
+equal_word k l = equal_int (uint k) (uint l);
 
-bex :: forall a. Set a -> (a -> Bool) -> Bool;
-bex (Set xs) p = any p xs;
-
-enum_ex_word :: forall a. (Len a) => (Word a -> Bool) -> Bool;
-enum_ex_word p = bex top_set p;
-
-max :: forall a. (Ord a) => a -> a -> a;
-max a b = (if less_eq a b then b else a);
-
-instance Ord Integer where {
-  less_eq = (\ a b -> a <= b);
-  less = (\ a b -> a < b);
-};
-
-nat_of_integer :: Integer -> Nat;
-nat_of_integer k = Nat (max (0 :: Integer) k);
-
-zero_nat :: Nat;
-zero_nat = Nat (0 :: Integer);
-
-class Plus a where {
-  plus :: a -> a -> a;
-};
-
-class (Plus a) => Semigroup_add a where {
-};
-
-class (One a, Semigroup_add a) => Numeral a where {
-};
-
-numeral :: forall a. (Numeral a) => Num -> a;
-numeral (Bit1 n) = let {
-                     m = numeral n;
-                   } in plus (plus m m) one;
-numeral (Bit0 n) = let {
-                     m = numeral n;
-                   } in plus m m;
-numeral One = one;
-
-class Zero a where {
-  zero :: a;
+instance (Len0 a) => Eq (Word a) where {
+  a == b = equal_word a b;
 };
 
 sgn_integer :: Integer -> Integer;
@@ -220,82 +159,34 @@ divmod_integer k l =
                                 else (negate r - (1 :: Integer),
                                        Prelude.abs l - s)))));
 
-divide_integer :: Integer -> Integer -> Integer;
-divide_integer k l = fst (divmod_integer k l);
-
-divide_nat :: Nat -> Nat -> Nat;
-divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
-
 mod_integer :: Integer -> Integer -> Integer;
 mod_integer k l = snd (divmod_integer k l);
 
-mod_nat :: Nat -> Nat -> Nat;
-mod_nat m n = Nat (mod_integer (integer_of_nat m) (integer_of_nat n));
+mod_int :: Int -> Int -> Int;
+mod_int k l =
+  Int_of_integer (mod_integer (integer_of_int k) (integer_of_int l));
 
-divmod_nat :: Nat -> Nat -> (Nat, Nat);
-divmod_nat m n = (divide_nat m n, mod_nat m n);
+max :: forall a. (Ord a) => a -> a -> a;
+max a b = (if less_eq a b then b else a);
 
-class (Times a) => Semigroup_mult a where {
+instance Ord Integer where {
+  less_eq = (\ a b -> a <= b);
+  less = (\ a b -> a < b);
 };
-
-class (Semigroup_mult a, Power a) => Monoid_mult a where {
-};
-
-class (Semigroup_add a) => Ab_semigroup_add a where {
-};
-
-class (Ab_semigroup_add a, Semigroup_mult a) => Semiring a where {
-};
-
-class (Monoid_mult a, Numeral a, Semiring a) => Semiring_numeral a where {
-};
-
-class (One a, Zero a) => Zero_neq_one a where {
-};
-
-class (Semigroup_add a, Zero a) => Monoid_add a where {
-};
-
-class (Ab_semigroup_add a, Monoid_add a) => Comm_monoid_add a where {
-};
-
-class (Times a, Zero a) => Mult_zero a where {
-};
-
-class (Comm_monoid_add a, Mult_zero a, Semiring a) => Semiring_0 a where {
-};
-
-class (Semiring_numeral a, Semiring_0 a, Zero_neq_one a) => Semiring_1 a where {
-};
-
-of_nat :: forall a. (Semiring_1 a) => Nat -> a;
-of_nat n =
-  (if equal_nat n zero_nat then zero
-    else let {
-           (m, q) = divmod_nat n (nat_of_integer (2 :: Integer));
-           ma = times (numeral (Bit0 One)) (of_nat m);
-         } in (if equal_nat q zero_nat then ma else plus ma one));
 
 minus_nat :: Nat -> Nat -> Nat;
 minus_nat m n = Nat (max (0 :: Integer) (integer_of_nat m - integer_of_nat n));
+
+zero_nat :: Nat;
+zero_nat = Nat (0 :: Integer);
+
+one_nat :: Nat;
+one_nat = Nat (1 :: Integer);
 
 power :: forall a. (Power a) => a -> Nat -> a;
 power a n =
   (if equal_nat n zero_nat then one
     else times a (power a (minus_nat n one_nat)));
-
-plus_nat :: Nat -> Nat -> Nat;
-plus_nat m n = Nat (integer_of_nat m + integer_of_nat n);
-
-suc :: Nat -> Nat;
-suc n = plus_nat n one_nat;
-
-upt :: Nat -> Nat -> [Nat];
-upt i j = (if less_nat i j then i : upt (suc i) j else []);
-
-mod_int :: Int -> Int -> Int;
-mod_int k l =
-  Int_of_integer (mod_integer (integer_of_int k) (integer_of_int l));
 
 word_of_int :: forall a. (Len0 a) => Int -> Word a;
 word_of_int k =
@@ -303,17 +194,12 @@ word_of_int k =
          (power (Int_of_integer (2 :: Integer))
            ((len_of :: Itself a -> Nat) Type)));
 
-uint :: forall a. (Len0 a) => Word a -> Int;
-uint (Word x) = x;
+one_word :: forall a. (Len0 a) => Word a;
+one_word = word_of_int (Int_of_integer (1 :: Integer));
 
-times_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
-times_word a b = word_of_int (times_int (uint a) (uint b));
-
-zero_int :: Int;
-zero_int = Int_of_integer (0 :: Integer);
-
-zero_word :: forall a. (Len0 a) => Word a;
-zero_word = word_of_int zero_int;
+instance (Len0 a) => One (Word a) where {
+  one = one_word;
+};
 
 plus_int :: Int -> Int -> Int;
 plus_int k l = Int_of_integer (integer_of_int k + integer_of_int l);
@@ -321,100 +207,48 @@ plus_int k l = Int_of_integer (integer_of_int k + integer_of_int l);
 plus_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
 plus_word a b = word_of_int (plus_int (uint a) (uint b));
 
-one_word :: forall a. (Len0 a) => Word a;
-one_word = word_of_int (Int_of_integer (1 :: Integer));
-
-instance (Len0 a) => Times (Word a) where {
-  times = times_word;
-};
-
-instance (Len0 a) => Semigroup_mult (Word a) where {
-};
-
-instance (Len0 a) => One (Word a) where {
-  one = one_word;
-};
-
-instance (Len0 a) => Power (Word a) where {
-};
-
-instance (Len0 a) => Monoid_mult (Word a) where {
+class Plus a where {
+  plus :: a -> a -> a;
 };
 
 instance (Len0 a) => Plus (Word a) where {
   plus = plus_word;
 };
 
-instance (Len0 a) => Semigroup_add (Word a) where {
-};
+zero_int :: Int;
+zero_int = Int_of_integer (0 :: Integer);
 
-instance (Len0 a) => Ab_semigroup_add (Word a) where {
-};
+zero_word :: forall a. (Len0 a) => Word a;
+zero_word = word_of_int zero_int;
 
-instance (Len0 a) => Semiring (Word a) where {
-};
-
-instance (Len0 a) => Numeral (Word a) where {
-};
-
-instance (Len a) => Semiring_numeral (Word a) where {
+class Zero a where {
+  zero :: a;
 };
 
 instance (Len0 a) => Zero (Word a) where {
   zero = zero_word;
 };
 
-instance (Len a) => Zero_neq_one (Word a) where {
+class (Plus a) => Semigroup_add a where {
 };
 
-instance (Len0 a) => Monoid_add (Word a) where {
+class (One a, Semigroup_add a) => Numeral a where {
 };
 
-instance (Len0 a) => Comm_monoid_add (Word a) where {
+instance (Len0 a) => Semigroup_add (Word a) where {
 };
 
-instance (Len0 a) => Mult_zero (Word a) where {
+instance (Len0 a) => Numeral (Word a) where {
 };
 
-instance (Len0 a) => Semiring_0 (Word a) where {
+times_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
+times_word a b = word_of_int (times_int (uint a) (uint b));
+
+instance (Len0 a) => Times (Word a) where {
+  times = times_word;
 };
 
-instance (Len a) => Semiring_1 (Word a) where {
-};
-
-enum_word :: forall a. (Len a) => [Word a];
-enum_word =
-  map of_nat
-    (upt zero_nat
-      (power (nat_of_integer (2 :: Integer))
-        ((len_of :: Itself a -> Nat) Type)));
-
-class Finite a where {
-};
-
-class (Finite a) => Enum a where {
-  enum :: [a];
-  enum_all :: (a -> Bool) -> Bool;
-  enum_ex :: (a -> Bool) -> Bool;
-};
-
-instance (Len0 a) => Finite (Word a) where {
-};
-
-instance (Len a) => Enum (Word a) where {
-  enum = enum_word;
-  enum_all = enum_all_word;
-  enum_ex = enum_ex_word;
-};
-
-equal_int :: Int -> Int -> Bool;
-equal_int k l = integer_of_int k == integer_of_int l;
-
-equal_word :: forall a. (Len0 a) => Word a -> Word a -> Bool;
-equal_word k l = equal_int (uint k) (uint l);
-
-instance (Len0 a) => Eq (Word a) where {
-  a == b = equal_word a b;
+instance (Len0 a) => Power (Word a) where {
 };
 
 less_eq_int :: Int -> Int -> Bool;
@@ -434,10 +268,79 @@ instance (Len0 a) => Ord (Word a) where {
   less = less_word;
 };
 
+class (Semigroup_add a) => Ab_semigroup_add a where {
+};
+
+class (Times a) => Semigroup_mult a where {
+};
+
+class (Ab_semigroup_add a, Semigroup_mult a) => Semiring a where {
+};
+
+instance (Len0 a) => Ab_semigroup_add (Word a) where {
+};
+
+instance (Len0 a) => Semigroup_mult (Word a) where {
+};
+
+instance (Len0 a) => Semiring (Word a) where {
+};
+
 instance (Len0 a) => Preorder (Word a) where {
 };
 
 instance (Len0 a) => Order (Word a) where {
+};
+
+class (Times a, Zero a) => Mult_zero a where {
+};
+
+instance (Len0 a) => Mult_zero (Word a) where {
+};
+
+class (Semigroup_add a, Zero a) => Monoid_add a where {
+};
+
+class (Ab_semigroup_add a, Monoid_add a) => Comm_monoid_add a where {
+};
+
+class (Comm_monoid_add a, Mult_zero a, Semiring a) => Semiring_0 a where {
+};
+
+instance (Len0 a) => Monoid_add (Word a) where {
+};
+
+instance (Len0 a) => Comm_monoid_add (Word a) where {
+};
+
+instance (Len0 a) => Semiring_0 (Word a) where {
+};
+
+class (Semigroup_mult a, Power a) => Monoid_mult a where {
+};
+
+class (Monoid_mult a, Numeral a, Semiring a) => Semiring_numeral a where {
+};
+
+class (One a, Zero a) => Zero_neq_one a where {
+};
+
+class (Semiring_numeral a, Semiring_0 a, Zero_neq_one a) => Semiring_1 a where {
+};
+
+class (Len0 a) => Len a where {
+};
+
+instance (Len0 a) => Monoid_mult (Word a) where {
+};
+
+instance (Len a) => Semiring_numeral (Word a) where {
+};
+
+instance (Len a) => Zero_neq_one (Word a) where {
+};
+
+instance (Len a) => Semiring_1 (Word a) where {
 };
 
 instance (Len0 a) => Linorder (Word a) where {
@@ -477,6 +380,15 @@ instance Order Iface where {
 };
 
 instance Linorder Iface where {
+};
+
+times_nat :: Nat -> Nat -> Nat;
+times_nat m n = Nat (integer_of_nat m * integer_of_nat n);
+
+nat_of_integer :: Integer -> Nat;
+nat_of_integer k = Nat (max (0 :: Integer) k);
+
+class Finite a where {
 };
 
 newtype Bit0 a = Abs_bit0 Int;
@@ -549,6 +461,12 @@ enum_ex_tcp_flag p =
 
 enum_tcp_flag :: [Tcp_flag];
 enum_tcp_flag = [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST, TCP_URG, TCP_PSH];
+
+class (Finite a) => Enum a where {
+  enum :: [a];
+  enum_all :: (a -> Bool) -> Bool;
+  enum_ex :: (a -> Bool) -> Bool;
+};
 
 instance Finite Tcp_flag where {
 };
@@ -794,6 +712,8 @@ instance Eq State where {
   a == b = equal_state a b;
 };
 
+data Set a = Set [a] | Coset [a];
+
 data Ipt_tcp_flags = TCP_Flags (Set Tcp_flag) (Set Tcp_flag);
 
 data Nibble = Nibble0 | Nibble1 | Nibble2 | Nibble3 | Nibble4 | Nibble5
@@ -990,6 +910,18 @@ data Parts_connection_ext a =
 nat :: Int -> Nat;
 nat = nat_of_integer . integer_of_int;
 
+plus_nat :: Nat -> Nat -> Nat;
+plus_nat m n = Nat (integer_of_nat m + integer_of_nat n);
+
+suc :: Nat -> Nat;
+suc n = plus_nat n one_nat;
+
+upt :: Nat -> Nat -> [Nat];
+upt i j = (if less_nat i j then i : upt (suc i) j else []);
+
+ball :: forall a. Set a -> (a -> Bool) -> Bool;
+ball (Set xs) p = all p xs;
+
 fold :: forall a b. (a -> b -> b) -> [a] -> b -> b;
 fold f (x : xs) s = fold f xs (f x s);
 fold f [] s = s;
@@ -1065,9 +997,6 @@ splice (x : xs) (y : ys) = x : y : splice xs ys;
 splice [] ys = ys;
 splice xs [] = xs;
 
-collect :: forall a. (Enum a) => (a -> Bool) -> Set a;
-collect p = Set (filter p enum);
-
 butlast :: forall a. [a] -> [a];
 butlast [] = [];
 butlast (x : xs) = (if null xs then [] else x : butlast xs);
@@ -1091,6 +1020,9 @@ udp = word_of_int (Int_of_integer (17 :: Integer));
 
 is_empty :: forall a. Set a -> Bool;
 is_empty (Set xs) = null xs;
+
+divide_integer :: Integer -> Integer -> Integer;
+divide_integer k l = fst (divmod_integer k l);
 
 divide_int :: Int -> Int -> Int;
 divide_int k l =
@@ -1202,6 +1134,15 @@ l2br :: forall a. (Len a) => [(Word a, Word a)] -> Wordinterval a;
 l2br [] = empty_WordInterval;
 l2br [(s, e)] = WordInterval s e;
 l2br ((s, e) : v : va) = RangeUnion (WordInterval s e) (l2br (v : va));
+
+divide_nat :: Nat -> Nat -> Nat;
+divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
+
+mod_nat :: Nat -> Nat -> Nat;
+mod_nat m n = Nat (mod_integer (integer_of_nat m) (integer_of_nat n));
+
+divmod_nat :: Nat -> Nat -> (Nat, Nat);
+divmod_nat m n = (divide_nat m n, mod_nat m n);
 
 size_list :: forall a. [a] -> Nat;
 size_list = gen_length zero_nat;
@@ -1382,6 +1323,10 @@ is_pos_Extra a = (case a of {
                    Pos (Extra _) -> True;
                    Neg _ -> False;
                  });
+
+word_upto :: forall a. (Len0 a) => Word a -> Word a -> [Word a];
+word_upto a b =
+  (if equal_word a b then [a] else word_upto a (minus_word b one_word) ++ [b]);
 
 wordinterval_lowest_element ::
   forall a. (Len0 a) => Wordinterval a -> Maybe (Word a);
@@ -2112,6 +2057,23 @@ extract_IPSets rs =
 getParts :: forall a. (Len a) => [Simple_rule a] -> [Wordinterval a];
 getParts rs = partitioningIps (extract_IPSets rs) [wordinterval_UNIV];
 
+numeral :: forall a. (Numeral a) => Num -> a;
+numeral (Bit1 n) = let {
+                     m = numeral n;
+                   } in plus (plus m m) one;
+numeral (Bit0 n) = let {
+                     m = numeral n;
+                   } in plus m m;
+numeral One = one;
+
+of_nat :: forall a. (Semiring_1 a) => Nat -> a;
+of_nat n =
+  (if equal_nat n zero_nat then zero
+    else let {
+           (m, q) = divmod_nat n (nat_of_integer (2 :: Integer));
+           ma = times (numeral (Bit0 One)) (of_nat m);
+         } in (if equal_nat q zero_nat then ma else plus ma one));
+
 ipv4addr_of_nat :: Nat -> Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
 ipv4addr_of_nat n = of_nat n;
 
@@ -2363,18 +2325,8 @@ compress_pos_protocols (p1 : p2 : ps) =
     Just p -> compress_pos_protocols (p : ps);
   });
 
-atLeast :: forall a. (Enum a, Ord a) => a -> Set a;
-atLeast l = collect (less_eq l);
-
-atMost :: forall a. (Enum a, Ord a) => a -> Set a;
-atMost u = collect (\ x -> less_eq x u);
-
-inf_set :: forall a. (Eq a) => Set a -> Set a -> Set a;
-inf_set a (Coset xs) = fold remove xs a;
-inf_set a (Set xs) = Set (filter (\ x -> member x a) xs);
-
-atLeastAtMost :: forall a. (Enum a, Eq a, Ord a) => a -> a -> Set a;
-atLeastAtMost l u = inf_set (atLeast l) (atMost u);
+stop_word_upto_unfold :: forall a. (Len0 a) => Word a -> Word a -> [Word a];
+stop_word_upto_unfold = word_upto;
 
 compress_protocols ::
   [Negation_type Protocol] -> Maybe ([Protocol], [Protocol]);
@@ -2383,8 +2335,22 @@ compress_protocols ps =
     Nothing -> Nothing;
     Just proto ->
       (if membera (getNeg ps) ProtoAny ||
-            ball (atLeastAtMost zero_word max_word)
-              (\ p -> membera (getNeg ps) (Proto p))
+            all (\ p -> membera (getNeg ps) (Proto p))
+              (if (less_eq_word ::
+                    Word (Bit0 (Bit0 (Bit0 Num1))) ->
+                      Word (Bit0 (Bit0 (Bit0 Num1))) -> Bool)
+                    (zero_word :: Word (Bit0 (Bit0 (Bit0 Num1))))
+                    ((word_of_int :: Int -> Word (Bit0 (Bit0 (Bit0 Num1))))
+                      (Int_of_integer (255 :: Integer)))
+                then map of_nat
+                       (upt ((unat :: Word (Bit0 (Bit0 (Bit0 Num1))) -> Nat)
+                              (zero_word :: Word (Bit0 (Bit0 (Bit0 Num1)))))
+                         (suc ((unat :: Word (Bit0 (Bit0 (Bit0 Num1))) -> Nat)
+                                ((word_of_int ::
+                                   Int -> Word (Bit0 (Bit0 (Bit0 Num1))))
+                                  (Int_of_integer (255 :: Integer))))))
+                else stop_word_upto_unfold zero_word
+                       (word_of_int (Int_of_integer (255 :: Integer))))
         then Nothing
         else (if equal_protocol proto ProtoAny then Just ([], getNeg ps)
                else (if any (\ p ->
@@ -2967,6 +2933,10 @@ groupWIs3 ::
 groupWIs3 c rs =
   (if has_default_policy rs then groupWIs3_default_policy c rs
     else groupWIs2 c rs);
+
+inf_set :: forall a. (Eq a) => Set a -> Set a -> Set a;
+inf_set a (Coset xs) = fold remove xs a;
+inf_set a (Set xs) = Set (filter (\ x -> member x a) xs);
 
 sup_set :: forall a. (Eq a) => Set a -> Set a -> Set a;
 sup_set (Coset xs) a = Coset (filter (\ x -> not (member x a)) xs);

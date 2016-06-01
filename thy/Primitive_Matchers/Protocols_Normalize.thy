@@ -1,5 +1,6 @@
 theory Protocols_Normalize
 imports Common_Primitive_Lemmas
+  "../Bitmagic/Word_Upto"
 begin
 
 
@@ -64,13 +65,53 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
   (* It is kind of messy to find a definition that checks whether a match is the exhaustive list and is executable *)
   (*TODO: probably code_unfold was meant. TODO: check whether we actually need this!*)
   (*Changed to code_unfold. TODO: move and check if this breaks anything*)
-  lemma all_proto_hlp2[code_unfold]: "ProtoAny \<in> a \<or> (\<forall>p \<in> {0..max_word}. Proto p \<in> a) \<longleftrightarrow>
+  (*TODO: no longer code_unfold, needs testing!*)
+  lemma all_proto_hlp2: "ProtoAny \<in> a \<or> (\<forall>p \<in> {0..max_word}. Proto p \<in> a) \<longleftrightarrow>
                                ProtoAny \<in> a \<or> a = {p. p \<noteq> ProtoAny}"
   proof -   
     have all_proto_hlp: "ProtoAny \<notin> a \<Longrightarrow> (\<forall>p \<in> {0..max_word}. Proto p \<in> a) \<longleftrightarrow> a = {p. p \<noteq> ProtoAny}"
       by(auto intro: protocol.exhaust)
     thus ?thesis by blast
   qed
+
+  lemma set_word8_word_upto: "{0..(max_word :: 8 word)} = set (word_upto 0 255)"
+    apply(simp add: max_word_def)
+    apply(safe)
+     apply(simp add: word_upto_set_eq)
+    apply(simp add: word_upto_set_eq)
+    done
+  lemma "(\<forall>p \<in> {0..max_word}. Proto p \<in> set (getNeg ps)) \<longleftrightarrow>
+         ((\<forall>p \<in> set (word_upto 0 255). Proto p \<in> set (getNeg ps)))"
+    by(simp add: set_word8_word_upto)
+  (*
+        "../afp/Mergesort" (*TODO: dependnecy! import from afp directly!*)
+  lemma "of_int ` {0..255} = {0:: 8 word..255}"
+    oops
+  lemma "(\<forall>p \<in> {0..max_word}. Proto p \<in> set (getNeg ps)) \<longleftrightarrow>
+         (mergesort_remdups (List.map_filter (\<lambda>p. case p of Proto x \<Rightarrow> Some x | ProtoAny \<Rightarrow> None) (getNeg ps)) =
+          word_upto 0 255)"
+    apply(rule iffI)
+    subgoal
+     apply(rule List.linorder_class.sorted_distinct_set_unique)
+     apply(simp_all add: Mergesort.mergesort_remdups_correct)
+     prefer 3
+    oops
+  *)
+  
+  lemma compress_protocols_code[code]: (*does not seem better*)
+    "compress_protocols ps = (case (compress_pos_protocols (getPos ps))
+        of None \<Rightarrow> None
+        |  Some proto \<Rightarrow> if ProtoAny \<in> set (getNeg ps) \<or> (\<forall>p \<in> set (word_upto 0 255). Proto p \<in> set (getNeg ps)) then
+                           None
+                         else if proto = ProtoAny then
+                           Some ([], getNeg ps)
+                         else if (\<exists>p \<in> set (getNeg ps). simple_proto_conjunct proto p \<noteq> None) then
+                           None
+                         else
+                           Some ([proto], getNeg ps)
+        )"
+    unfolding compress_protocols_def
+    using set_word8_word_upto by presburger
 
   (*fully optimized, i.e. we cannot compress it better*)
   lemma "compress_protocols ps = Some (ps_pos, ps_neg) \<Longrightarrow>
