@@ -16,7 +16,7 @@ instance Show Isabelle.Nat where
     show (Isabelle.Nat n) = "Nat " ++ show n
 
 instance Show (Isabelle.Common_primitive Word32) where
-    show = Isabelle.common_primitive_toString
+    show = Isabelle.common_primitive_v4_toString
 
 instance Show Isabelle.Action where
     show = Isabelle.action_toString
