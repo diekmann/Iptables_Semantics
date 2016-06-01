@@ -29,6 +29,41 @@ subsection\<open>IPv4 Pretty Printing\<close>
   thm dotdecimal_of_ipv4addr_ipv4addr_of_dotdecimal
       ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr
 
+--\<open>Example parser\<close>
+ML_val\<open>
+local
+  fun extract_int ss = case ss |> implode |> Int.fromString
+                                of SOME i => i
+                                |  NONE   => raise Fail "unparsable int";
+
+  fun mk_nat maxval i = if i < 0 orelse i > maxval
+            then
+              raise Fail("nat ("^Int.toString i^") must be between 0 and "^Int.toString maxval)
+            else (HOLogic.mk_number HOLogic.natT i);
+  val mk_nat255 = mk_nat 255;
+
+  fun mk_quadrupel (((a,b),c),d) = HOLogic.mk_prod
+           (mk_nat255 a, HOLogic.mk_prod (mk_nat255 b, HOLogic.mk_prod (mk_nat255 c, mk_nat255 d)));
+  
+  fun mk_ipv4addr ip = @{const ipv4addr_of_dotdecimal} $ mk_quadrupel ip;
+
+  val parser_ip = (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
+                 (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
+                 (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
+                 (Scan.many1 Symbol.is_ascii_digit >> extract_int);
+
+in
+  val (ip_term, rest) = "10.8.0.255" |> raw_explode |> Scan.finite Symbol.stopper (parser_ip >> mk_ipv4addr);
+  val _ = if rest <> [] then raise Fail "did not parse everything" else writeln "parsed";
+  val _ = if
+            Code_Evaluation.dynamic_value_strict @{context} ip_term <> @{term "168296703::ipv4addr"}
+          then
+            raise Fail "parser failed"
+          else
+            writeln "test passed";
+end
+\<close>
+
 
 subsection\<open>IPv6 Pretty Printing\<close>
 
