@@ -89,6 +89,24 @@ lemma string_of_word_single_atoi:
   by(simp add: string_of_word_single_def)
 
 
+value "bintrunc 10 (-8)"
+value "bintrunc 10 (8)"
+value "bintrunc 4 (8)"
+value "bintrunc 3 (8)"
+value "bintrunc 4 (-8)"
+value "bintrunc 3 (-8)"
+
+lemma bintrunc_pos_eq: "x \<ge> 0 \<Longrightarrow> bintrunc n x = x \<longleftrightarrow> x < 2^n"
+apply(rule iffI)
+ subgoal apply (simp add: bintrunc_mod2p mod_pos_pos_trivial)
+ using int_mod_lem zless2p by blast
+ thm mod_pos_pos_trivial no_bintr_alt1 bintrunc_mod2p mod_pos_pos_trivial
+by (simp add: mod_pos_pos_trivial no_bintr_alt1; fail)
+
+
+  
+
+
 (*TODO: I want the reverse as [code_unfold] ! ! ! ! ! ! ! ! !*)
 lemma string_of_word_base_ten_zeropad:
   fixes w ::"32 word" (*TODO: for all words?*)
@@ -97,29 +115,12 @@ lemma string_of_word_base_ten_zeropad:
   proof(induction True base zero w rule: string_of_word.induct)
   case (1 base ml n)
 
-  (*TODO: why is this so hard? generalize? make a theorem?*)
+
   have "5 \<le> n \<Longrightarrow> bintrunc n 10 = 10" for n
-  proof(induction rule: Nat.dec_induct)
-  case base thus ?case by simp
-  next
-  case (step x)
-    from step have "10 = bintrunc x 10" by simp
-    also have "\<dots> = bintrunc x (bintrunc x 5 + bintrunc x 5)"
-      apply(subst Bit_Representation.bintr_ariths(2))
-      by simp
-    also have "\<dots> = bintrunc x 5 + bintrunc x 5"
-      by (metis Bit_B0 add.right_neutral add_Suc_right bintrunc_Sucs(6) bintrunc_bintrunc_l' calculation)
-      (* by (metis Bit_B0 \<open>10 = bintrunc x 10\<close> bintrunc_Sucs(6) bintrunc_bintrunc_l nat_le_linear) (137 ms)*)
-    finally have bintrunc_10_split: "10 = bintrunc x 5 + bintrunc x 5" .
-    have bintrunc_IH: "bintrunc n 5 BIT False = bintrunc n 5 + bintrunc n 5" for n
-      using Bit_B0 by blast
-    show "bintrunc (Suc x) 10 = 10"
-    apply(simp)
-    apply(subst bintrunc_IH)
-    apply(subst bintrunc_10_split)
-    apply(simp)
-    done
-  qed
+   apply(subst bintrunc_pos_eq)
+    apply(simp; fail)
+   apply(induction rule: Nat.dec_induct)
+    by simp+
   (*with lena have "uint (0xA::'a::len word) = 10" by(simp)
   hence unat_ten: "unat (0xA::'a::len word) = 10"
     by(simp)*)
