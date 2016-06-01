@@ -1,6 +1,5 @@
 theory IpAddresses
-imports "../Bitmagic/IPv4Addr"
-  "../Bitmagic/IPv6Addr"
+imports "../Bitmagic/IpAddr_toString"
   "../Bitmagic/CIDRSplit"
   "../Bitmagic/WordInterval_Lists"
 begin

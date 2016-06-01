@@ -661,7 +661,9 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
   
 
 text\<open>IPv6 pretty printing (converting to compressed format)\<close>
-  function goup_by_zeros :: "16 word list \<Rightarrow> 16 word list list" where
+context
+begin
+  private function goup_by_zeros :: "16 word list \<Rightarrow> 16 word list list" where
     "goup_by_zeros [] = []" |
     "goup_by_zeros (x#xs) = (
         if x = 0
@@ -677,48 +679,48 @@ text\<open>IPv6 pretty printing (converting to compressed format)\<close>
 	(*"goup_by_zeros xs \<noteq> groupF (\<lambda>x. x=0) xs"
 	  groupF does not preserver the order but groups the whole list*)
 	
-	lemma "goup_by_zeros [0,1,2,3,0,0,0,0,3,4,0,0,0,2,0,0,2,0,3,0] =
+	private lemma "goup_by_zeros [0,1,2,3,0,0,0,0,3,4,0,0,0,2,0,0,2,0,3,0] =
 	        [[0], [1], [2], [3], [0, 0, 0, 0], [3], [4], [0, 0, 0], [2], [0, 0], [2], [0], [3], [0]]"
 	by eval
 	
-	lemma "concat (goup_by_zeros ls) = ls"
+	private lemma "concat (goup_by_zeros ls) = ls"
 	  by(induction ls rule:goup_by_zeros.induct) simp+
 	
-	lemma "[] \<notin> set (goup_by_zeros ls)"
+	private lemma "[] \<notin> set (goup_by_zeros ls)"
 	  by(induction ls rule:goup_by_zeros.induct) simp+
 	  
-  fun List_replace1 :: "'a \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+  private fun List_replace1 :: "'a \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
     "List_replace1 _ _ [] = []" |
     "List_replace1 a b (x#xs) = (if a = x then b#xs else x#List_replace1 a b xs)"
     
-	lemma "List_replace1 a a ls = ls"
+	private lemma "List_replace1 a a ls = ls"
 	  by(induction ls) simp_all
 	
-	lemma "a \<notin> set ls \<Longrightarrow> List_replace1 a b ls = ls"
+	private lemma "a \<notin> set ls \<Longrightarrow> List_replace1 a b ls = ls"
 	  by(induction ls) simp_all
 	
-	lemma "a \<in> set ls \<Longrightarrow> b \<in> set (List_replace1 a b ls)"
+	private lemma "a \<in> set ls \<Longrightarrow> b \<in> set (List_replace1 a b ls)"
 	  apply(induction ls)
 	   apply(simp)
 	  apply(simp)
 	  by blast
   
-	fun List_explode :: "'a list list \<Rightarrow> ('a option) list" where
+	private fun List_explode :: "'a list list \<Rightarrow> ('a option) list" where
 	  "List_explode [] = []" |
 	  "List_explode ([]#xs) = None#List_explode xs" |
 	  "List_explode (xs1#xs2) = map Some xs1@List_explode xs2"
 	  
-  lemma "List_explode [[0::int], [2,3], [], [3,4]] = [Some 0, Some 2, Some 3, None, Some 3, Some 4]"
+  private lemma "List_explode [[0::int], [2,3], [], [3,4]] = [Some 0, Some 2, Some 3, None, Some 3, Some 4]"
   by eval
 
-  lemma List_explode_def: 
+  private lemma List_explode_def: 
     "List_explode xss = concat (map (\<lambda>xs. if xs = [] then [None] else map Some xs) xss)"
     by(induction xss rule: List_explode.induct) simp+
 	  
-  lemma List_explode_no_empty: "[] \<notin> set xss \<Longrightarrow> List_explode xss = map Some (concat xss)"
+  private lemma List_explode_no_empty: "[] \<notin> set xss \<Longrightarrow> List_explode xss = map Some (concat xss)"
     by(induction xss rule: List_explode.induct) simp+
 
-  lemma List_explode_replace1: "[] \<notin> set xss \<Longrightarrow> foo \<in> set xss \<Longrightarrow>
+  private lemma List_explode_replace1: "[] \<notin> set xss \<Longrightarrow> foo \<in> set xss \<Longrightarrow>
           List_explode (List_replace1 foo [] xss) =
             map Some (concat (takeWhile (\<lambda>xs. xs \<noteq> foo) xss)) @ [None] @
               map Some (concat (tl (dropWhile (\<lambda>xs. xs \<noteq> foo) xss)))"
@@ -740,7 +742,7 @@ text\<open>IPv6 pretty printing (converting to compressed format)\<close>
     )"
   declare ipv6_preferred_to_compressed.simps[simp del]
 
-  lemma foldr_max_length: "foldr (\<lambda>xs. max (length xs)) lss n = fold max (map length lss) n"
+  private lemma foldr_max_length: "foldr (\<lambda>xs. max (length xs)) lss n = fold max (map length lss) n"
     apply(subst List.foldr_fold)
      apply fastforce
     apply(induction lss arbitrary: n)
@@ -748,7 +750,7 @@ text\<open>IPv6 pretty printing (converting to compressed format)\<close>
     apply(simp)
     done
 
-  lemma List_explode_goup_by_zeros: "List_explode (goup_by_zeros xs) = map Some xs"
+  private lemma List_explode_goup_by_zeros: "List_explode (goup_by_zeros xs) = map Some xs"
     apply(induction xs rule: goup_by_zeros.induct)
      apply(simp; fail)
     apply(simp)
@@ -756,13 +758,13 @@ text\<open>IPv6 pretty printing (converting to compressed format)\<close>
      apply(simp)
     by (metis map_append takeWhile_dropWhile_id)
   
-  definition "max_zero_streak xs \<equiv> foldr (\<lambda>xs. max (length xs)) (goup_by_zeros xs) 0"    
+  private definition "max_zero_streak xs \<equiv> foldr (\<lambda>xs. max (length xs)) (goup_by_zeros xs) 0"    
 
-  lemma max_zero_streak_def2: "max_zero_streak xs = fold max (map length (goup_by_zeros xs)) 0"
+  private lemma max_zero_streak_def2: "max_zero_streak xs = fold max (map length (goup_by_zeros xs)) 0"
     unfolding max_zero_streak_def
     by(simp add: foldr_max_length)
 
-  lemma ipv6_preferred_to_compressed_pull_out_if:
+  private lemma ipv6_preferred_to_compressed_pull_out_if:
     "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (
     if max_zero_streak [a,b,c,d,e,f,g,h] > 1 then
       List_explode (List_replace1 (replicate (max_zero_streak [a,b,c,d,e,f,g,h]) 0) [] (goup_by_zeros [a,b,c,d,e,f,g,h]))
@@ -772,13 +774,15 @@ text\<open>IPv6 pretty printing (converting to compressed format)\<close>
   by(simp add: ipv6_preferred_to_compressed.simps max_zero_streak_def List_explode_goup_by_zeros)
 
     
-  lemma "ipv6_preferred_to_compressed (IPv6AddrPreferred 0 0 0 0 0 0 0 0) = [None]" by eval
-  lemma "ipv6_preferred_to_compressed (IPv6AddrPreferred 0x2001 0xDB8 0 0 8 0x800 0x200C 0x417A) =
+  private lemma "ipv6_preferred_to_compressed (IPv6AddrPreferred 0 0 0 0 0 0 0 0) = [None]" by eval
+  private lemma "ipv6_preferred_to_compressed (IPv6AddrPreferred 0x2001 0xDB8 0 0 8 0x800 0x200C 0x417A) =
                 [Some 0x2001, Some 0xDB8, None,           Some 8, Some 0x800, Some 0x200C, Some 0x417A]" by eval
-  lemma "ipv6_preferred_to_compressed (IPv6AddrPreferred 0x2001 0xDB8 0 3 8 0x800 0x200C 0x417A) =
+  private lemma "ipv6_preferred_to_compressed (IPv6AddrPreferred 0x2001 0xDB8 0 3 8 0x800 0x200C 0x417A) =
                 [Some 0x2001, Some 0xDB8, Some 0, Some 3, Some 8, Some 0x800, Some 0x200C, Some 0x417A]" by eval
 
-  lemma "ipv6_preferred_to_compressed ip = as \<Longrightarrow> 
+  (*the output should even conform to RFC5952, ...*)
+  lemma ipv6_preferred_to_compressed_RFC_4291_format:
+    "ipv6_preferred_to_compressed ip = as \<Longrightarrow> 
           length (filter (\<lambda>p. p = None) as) = 0 \<and> length as = 8
           \<or>
           length (filter (\<lambda>p. p = None) as) = 1 \<and> length (filter (\<lambda>p. p \<noteq> None) as) \<le> 7"
@@ -800,7 +804,7 @@ text\<open>IPv6 pretty printing (converting to compressed format)\<close>
 
 
 
-  lemma "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = None#xs \<Longrightarrow>
+  private lemma "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = None#xs \<Longrightarrow>
       xs = map Some (dropWhile (\<lambda>x. x=0) [a,b,c,d,e,f,g,h])"
     apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
           case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
@@ -808,7 +812,8 @@ text\<open>IPv6 pretty printing (converting to compressed format)\<close>
 
 
  
-  lemma assumes "ipv6_unparsed_compressed_to_preferred (ipv6_preferred_to_compressed ip) = Some ip'"
+  lemma ipv6_preferred_to_compressed:
+    assumes "ipv6_unparsed_compressed_to_preferred (ipv6_preferred_to_compressed ip) = Some ip'"
     shows "ip = ip'"
   proof -
   from assms have 1: "\<exists>ipv6compressed.
@@ -894,5 +899,6 @@ text\<open>IPv6 pretty printing (converting to compressed format)\<close>
     done
   from 1 2 ip show ?thesis by(elim exE conjE, simp)
   qed
+end
 
 end
