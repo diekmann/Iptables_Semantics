@@ -1,7 +1,7 @@
 theory IpAddresses
-imports "../Bitmagic/IpAddr_toString"
-  "../Bitmagic/CIDRSplit"
-  "../Bitmagic/WordInterval_Lists"
+imports IpAddr_toString
+  CIDRSplit
+  WordInterval_Lists
 begin
 
 

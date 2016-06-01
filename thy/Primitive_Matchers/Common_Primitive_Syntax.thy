@@ -1,5 +1,5 @@
 theory Common_Primitive_Syntax
-imports "../Datatype_Selectors" IpAddresses Iface Protocol Ports Simple_Packet Conntrack_State
+imports "../Datatype_Selectors" "../Bitmagic/IpAddresses" Iface Protocol Ports Simple_Packet Conntrack_State
 begin
 
 section\<open>Primitive Matchers: Interfaces, IP Space, Layer 4 Ports Matcher\<close>

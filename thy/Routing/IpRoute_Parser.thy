@@ -1,5 +1,5 @@
 theory IpRoute_Parser
-imports Main "../Primitive_Matchers/IpAddresses" "../Routing/Routing"
+imports Main "../Bitmagic/IpAddresses" "../Routing/Routing"
 keywords "parse_ip_route" :: thy_decl
 begin
 
