@@ -117,9 +117,9 @@ proof -
 qed
 
 definition "stop_word_upto_unfold = word_upto"
-lemma [code_unfold]: "word_upto a b = (if a \<le> b then map of_nat (upt (unat a) (Suc (unat b))) else stop_word_upto_unfold a b)"
+lemma (*[code_unfold]:*) "word_upto a b = (if a \<le> b then map of_nat (upt (unat a) (Suc (unat b))) else stop_word_upto_unfold a b)"
        using word_upto_alt stop_word_upto_unfold_def by metis
-value[code] "word_upto (3 :: 16 word) 5"
+value[code] "let x = word_upto (3 :: 32 word) 16000 in ()"
 (* TODO: Does this break something? *)
 
 lemma sorted_word_upto:

@@ -916,9 +916,6 @@ plus_nat m n = Nat (integer_of_nat m + integer_of_nat n);
 suc :: Nat -> Nat;
 suc n = plus_nat n one_nat;
 
-upt :: Nat -> Nat -> [Nat];
-upt i j = (if less_nat i j then i : upt (suc i) j else []);
-
 ball :: forall a. Set a -> (a -> Bool) -> Bool;
 ball (Set xs) p = all p xs;
 
@@ -2325,9 +2322,6 @@ compress_pos_protocols (p1 : p2 : ps) =
     Just p -> compress_pos_protocols (p : ps);
   });
 
-stop_word_upto_unfold :: forall a. (Len0 a) => Word a -> Word a -> [Word a];
-stop_word_upto_unfold = word_upto;
-
 compress_protocols ::
   [Negation_type Protocol] -> Maybe ([Protocol], [Protocol]);
 compress_protocols ps =
@@ -2336,21 +2330,8 @@ compress_protocols ps =
     Just proto ->
       (if membera (getNeg ps) ProtoAny ||
             all (\ p -> membera (getNeg ps) (Proto p))
-              (if (less_eq_word ::
-                    Word (Bit0 (Bit0 (Bit0 Num1))) ->
-                      Word (Bit0 (Bit0 (Bit0 Num1))) -> Bool)
-                    (zero_word :: Word (Bit0 (Bit0 (Bit0 Num1))))
-                    ((word_of_int :: Int -> Word (Bit0 (Bit0 (Bit0 Num1))))
-                      (Int_of_integer (255 :: Integer)))
-                then map of_nat
-                       (upt ((unat :: Word (Bit0 (Bit0 (Bit0 Num1))) -> Nat)
-                              (zero_word :: Word (Bit0 (Bit0 (Bit0 Num1)))))
-                         (suc ((unat :: Word (Bit0 (Bit0 (Bit0 Num1))) -> Nat)
-                                ((word_of_int ::
-                                   Int -> Word (Bit0 (Bit0 (Bit0 Num1))))
-                                  (Int_of_integer (255 :: Integer))))))
-                else stop_word_upto_unfold zero_word
-                       (word_of_int (Int_of_integer (255 :: Integer))))
+              (word_upto zero_word
+                (word_of_int (Int_of_integer (255 :: Integer))))
         then Nothing
         else (if equal_protocol proto ProtoAny then Just ([], getNeg ps)
                else (if any (\ p ->
