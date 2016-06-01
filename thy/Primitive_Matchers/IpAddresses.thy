@@ -33,19 +33,6 @@ section\<open>IPv4 Addresses\<close>
 
 
 subsection\<open>IPv4 Addresses in IPTables Notation (how we parse it)\<close>
-  (*src dst ipv4*)
-  (*
-  datatype ipt_ipv4range =
-                        -- "Singleton IP Address"
-                        Ip4Addr "nat \<times> nat \<times> nat \<times> nat"
-
-                        -- "CIDR notation: addr/xx"
-                        | Ip4AddrNetmask "nat \<times> nat \<times> nat \<times> nat" nat
-
-                        -- "-m iprange --src-range a.b.c.d-e.f.g.h"
-                        | Ip4AddrRange  "nat \<times> nat \<times> nat \<times> nat" "nat \<times> nat \<times> nat \<times> nat"
-                            (*the range is inclusive*)
-  *)
   context
     notes [[typedef_overloaded]]
   begin

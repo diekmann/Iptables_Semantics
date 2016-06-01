@@ -1,7 +1,6 @@
 theory Common_Primitive_toString
 imports 
         "../Common/Lib_toString"
-        "../Bitmagic/Lib_Word_toString"
         "../Bitmagic/IpAddr_toString"
         Common_Primitive_Matcher
 begin
