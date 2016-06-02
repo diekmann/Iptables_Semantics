@@ -2,6 +2,7 @@ theory Code_haskell
 imports "../Primitive_Matchers/Parser"
   (*
   "../Simple_Firewall/IPPartitioning"*)
+  "../Routing/IpRoute_Parser"
 begin
 
 definition word_less_eq :: "('a::len) word \<Rightarrow> ('a::len) word \<Rightarrow> bool" where
@@ -50,6 +51,8 @@ export_code Rule
   Pos Neg
   (*ip partitioning*)
   access_matrix_pretty mk_parts_connection_TCP (*parts_connection_ssh parts_connection_http*)
+  (* routing *)
+  PrefixMatch routing_action_oiface_update metric_update routing_action_next_hop_update empty_rr_hlp
   in Haskell module_name "Network.IPTables.Generated" file "generated_code/"
 
 end
