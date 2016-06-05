@@ -52,7 +52,8 @@ export_code Rule
   (*ip partitioning*)
   access_matrix_pretty mk_parts_connection_TCP (*parts_connection_ssh parts_connection_http*)
   (* routing *)
-  PrefixMatch routing_action_oiface_update metric_update routing_action_next_hop_update empty_rr_hlp
+  PrefixMatch routing_rule_ext routing_action_ext
+  routing_action_oiface_update metric_update routing_action_next_hop_update empty_rr_hlp sort_rtbl
   in Haskell module_name "Network.IPTables.Generated" file "generated_code/"
 
 end

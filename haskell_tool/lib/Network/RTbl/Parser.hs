@@ -5,8 +5,6 @@ module Network.RTbl.Parser
 ( parseRTbl
 , rTblToIsabelle) where
 
-{- FAT TODO: Sort output. Do in Isabelle -}
-
 import           Text.Parsec
 import           Data.Functor ((<$>), ($>))
 import           Control.Applicative ((<*), (*>), (<$>))
@@ -15,31 +13,30 @@ import           Network.IPTables.Ruleset
 import           Network.IPTables.ParserHelper
 import qualified Network.IPTables.Generated as Isabelle
 import           Network.IPTables.Generated (metric_update, routing_action_next_hop_update, routing_action_oiface_update, empty_rr_hlp)
-import           Data.Maybe (catMaybes, Maybe (Just, Nothing))
-import           Control.Monad (void)
+import           Data.Maybe (catMaybes, Maybe (Just, Nothing), fromMaybe)
+import           Control.Monad (void,liftM)
 
-data RRuleInfo =
-	OutputIface String |
-	NextHop (Isabelle.Word Word32) |
-	Metric Integer
+type Routing_rule = Isabelle.Routing_rule_ext ()
+data RTbl = RTbl [Routing_rule]
 
-data RRule = RRule { dstRange :: (Isabelle.Prefix_match Word32), infos :: [RRuleInfo] }
+parseRTbl = flip runParser () $ RTbl . Isabelle.sort_rtbl <$> many parseRTblEntry 
 
-data RTbl = RTbl [RRule]
-
-parseRTbl = flip runParser () $ RTbl <$> many parseRTblEntry 
-
+parseRTblEntry :: Parsec String s Routing_rule
 parseRTblEntry = do
-	let zn = Isabelle.Nat 0
-	pfx <- ipv4addrOrCidr <|> (Prelude.const (Isabelle.PrefixMatch (Isabelle.ipv4addr_of_dotdecimal (zn,(zn,(zn,zn)))) zn) <$> lit "default")
+	pfx <- ipv4addrOrCidr <|> defaultParser
 	skipWS
-	opts <- try parseOpts
+	opts <- parseOpts
 	many1 (char '\n')
-	return $ RRule pfx opts
+	return $ opts . empty_rr_hlp $ pfx
+	where
+		zn = Isabelle.Nat 0
+		defaultParser = (Prelude.const (Isabelle.PrefixMatch (Isabelle.ipv4addr_of_dotdecimal (zn,(zn,(zn,zn)))) zn) <$> lit "default")
 	
+parseOpt :: Parsec String s (Routing_rule -> Routing_rule)
 parseOpt = choice (map try [parseOIF, parseNH, parseMetric, ignoreScope, ignoreProto, ignoreSrc])
 
-parseOpts = catMaybes <$> many (parseOpt <* skipWS)
+parseOpts :: Parsec String s (Routing_rule -> Routing_rule)
+parseOpts = flip (foldl (flip id)) <$> many (parseOpt <* skipWS)
 
 litornat l =  (void $ nat) <|> void (choice (map lit l))
 
@@ -47,56 +44,46 @@ ignoreScope = do
 	lit "scope"
 	skipWS
 	litornat ["host", "link", "global"]
-	return Nothing
+	return id
 
 ignoreProto = do
 	lit "proto"
 	skipWS
 	litornat ["kernel", "boot", "static", "dhcp"]
-	return Nothing
+	return id
 
 ignoreSrc = do
 	lit "src"
 	skipWS
 	ipv4addr
-	return Nothing
+	return id
 
 parseOIF = do
 	lit "dev"
 	skipWS
-	Just . OutputIface <$> siface
+	routing_action_oiface_update <$> siface
 
 parseNH = do
 	lit "via"
 	skipWS
-	Just . NextHop <$> ipv4dotdecimal
+	routing_action_next_hop_update <$> ipv4dotdecimal
 
 parseMetric = do
 	lit "metric"
 	skipWS
-	Just . Metric <$> nat
+	metric_update . const . Isabelle.Nat <$> nat
 
-rTblToIsabelle (RTbl r) = map rTblEntryToIsabelle r
-
-rTblEntryToIsabelle (RRule d i) = foldr info2update (empty_rr_hlp d) i
-
-info2update (OutputIface i) = routing_action_oiface_update i
-info2update (Metric m) = metric_update $ const $ Isabelle.Nat 0
-info2update (NextHop h) = routing_action_next_hop_update h
+rTblToIsabelle (RTbl t) = t
 
 instance Show RTbl where
-	show (RTbl t) = unlines $ map show t
-instance Show RRule where
-	show (RRule r i) = unwords $ show r : map show i
-instance Show RRuleInfo where
-	show (OutputIface i) = unwords ["dev", i]
-	show (NextHop i) = unwords ["via", Isabelle.ipv4addr_toString i]
-	show (Metric i) = unwords ["metric", show i]
+	show (RTbl t) = unlines . map show $ t
+instance Show (Isabelle.Routing_rule_ext a) where 
+	show (Isabelle.Routing_rule_ext pfxm (Isabelle.Nat met) (Isabelle.Routing_action_ext dev nh ()) a) = 
+		unwords ([show pfxm, "dev", dev] ++ (fromMaybe [] . liftM (("via" :) . (: []) . Isabelle.ipv4addr_toString) $ nh) ++ ["metric", show met]) 
 
 {- now, for some code duplication, because that's how its done in Ipassmt and IPTables parser -}
 skipWS = void $ many $ oneOf " \t"
-{-lit str = token str (string str)-}
 lit str = (string str)
 ipv4addrOrCidr = try (Isabelle.PrefixMatch <$> (ipv4dotdecimal <* char '/') <*> (Isabelle.Nat <$> nat)) 
-             <|> try (flip Isabelle.PrefixMatch (Isabelle.Nat 0) <$> ipv4dotdecimal)
+             <|> try (flip Isabelle.PrefixMatch (Isabelle.Nat 32) <$> ipv4dotdecimal)
 siface = many1 (oneOf $ ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ ['+', '*', '.'])
