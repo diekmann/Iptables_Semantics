@@ -2,6 +2,22 @@ theory RoutingRange
 imports RoutingSet
 begin
 
+(* how is the IP space transformed when a rule applies? *)
+definition range_prefix_match :: "'a::len prefix_match \<Rightarrow> 'a wordinterval \<Rightarrow> 'a wordinterval \<times> 'a wordinterval" where
+  "range_prefix_match pfx rg \<equiv> (let pfxrg = prefix_to_wordinterval pfx in 
+  (wordinterval_intersection rg pfxrg, wordinterval_setminus rg pfxrg))"
+lemma range_prefix_match_set_eq:
+  "(\<lambda>(r1,r2). (wordinterval_to_set r1, wordinterval_to_set r2)) (range_prefix_match pfx rg) =
+    ipset_prefix_match pfx (wordinterval_to_set rg)"
+  unfolding range_prefix_match_def ipset_prefix_match_def Let_def 
+  using wordinterval_intersection_set_eq wordinterval_setminus_set_eq prefix_to_wordinterval_set_eq  by auto
+lemma range_prefix_match_sm[simp]:  "wordinterval_to_set (fst (range_prefix_match pfx rg)) = 
+    fst (ipset_prefix_match pfx (wordinterval_to_set rg))"
+  by (metis fst_conv ipset_prefix_match_m  wordinterval_intersection_set_eq prefix_to_wordinterval_set_eq range_prefix_match_def)
+lemma range_prefix_match_snm[simp]: "wordinterval_to_set (snd (range_prefix_match pfx rg)) =
+    snd (ipset_prefix_match pfx (wordinterval_to_set rg))"
+  by (metis snd_conv ipset_prefix_match_nm wordinterval_setminus_set_eq prefix_to_wordinterval_set_eq range_prefix_match_def)
+
 type_synonym ipv4range = "32 wordinterval"
 
 fun range_destination :: "prefix_routing \<Rightarrow> ipv4range \<Rightarrow> (ipv4range \<times> routing_action) list" where
@@ -109,8 +125,6 @@ qed
 
 subsection\<open>Reduction\<close>
 
-lemma hlp: "wordinterval_to_set (wordinterval_Union ws) = (\<Union>w\<in>set ws. wordinterval_to_set w)" sorry
-
 definition "range_left_reduce \<equiv> list_left_reduce wordinterval_Union"
 lemma range_left_reduce_set_eq: "rr_to_sr (range_left_reduce r) = left_reduce (rr_to_sr r)"
   by(fact list_left_reduce_set_eq[OF wordinterval_Union rr_to_sr_def, folded range_left_reduce_def])
@@ -157,7 +171,7 @@ proof goal_cases
   show ?thesis using 1
     unfolding reduced_range_destination_def range_left_reduce_def
     unfolding list_left_reduce_def
-    by(clarsimp simp add: image_iff hlp list_domain_for_eq domain_for_def *)
+    by(clarsimp simp add: image_iff wordinterval_Union list_domain_for_eq domain_for_def *)
 qed
 
 theorem "valid_prefixes rtbl \<Longrightarrow>

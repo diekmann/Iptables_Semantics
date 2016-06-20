@@ -57,14 +57,14 @@ section\<open>Example: SQRL RTBL\<close>
 
 parse_ip_route SQRL_rtbl_main = "ip-route"
 value SQRL_rtbl_main
-lemma "SQRL_rtbl_main = [\<lparr>routing_match = PrefixMatch 0 0, metric = 0, routing_action = \<lparr>output_iface = ''s1-wan'', next_hop = Some 0xA000201\<rparr>\<rparr>,
-  \<lparr>routing_match = PrefixMatch 0xA000100 24, metric = 0, routing_action = \<lparr>output_iface = ''s1-lan'', next_hop = None\<rparr>\<rparr>,
-  \<lparr>routing_match = PrefixMatch 0xA000200 24, metric = 0, routing_action = \<lparr>output_iface = ''s1-wan'', next_hop = None\<rparr>\<rparr>]" by eval
+lemma "SQRL_rtbl_main = [\<lparr>routing_match = PrefixMatch 0xA000100 24, metric = 0, routing_action = \<lparr>output_iface = ''s1-lan'', next_hop = None\<rparr>\<rparr>,
+  \<lparr>routing_match = PrefixMatch 0xA000200 24, metric = 0, routing_action = \<lparr>output_iface = ''s1-wan'', next_hop = None\<rparr>\<rparr>,
+  \<lparr>routing_match = PrefixMatch 0 0, metric = 0, routing_action = \<lparr>output_iface = ''s1-wan'', next_hop = Some 0xA000201\<rparr>\<rparr>]" by eval
 value "dotdecimal_of_ipv4addr 0xA0D2500"
 lemma "SQRL_rtbl_main = [
-	rr_ctor (0,0,0,0) 0 ''s1-wan'' (Some (10,0,2,1)) 0,
 	rr_ctor (10,0,1,0) 24 ''s1-lan'' None 0,
-	rr_ctor (10,0,2,0) 24 ''s1-wan'' None 0
+	rr_ctor (10,0,2,0) 24 ''s1-wan'' None 0,
+	rr_ctor (0,0,0,0) 0 ''s1-wan'' (Some (10,0,2,1)) 0
 	]" 
 by eval
 

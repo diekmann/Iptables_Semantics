@@ -4,6 +4,20 @@ begin
 
 subsection\<open>Definition\<close>
 
+text\<open>Walking through a routing table:
+  Splits the (remaining) IP space when traversing a routing table: the pair contains the IPs
+  concerned by the current rule and those left alone.\<close>
+definition ipset_prefix_match where 
+  "ipset_prefix_match pfx rg = (let pfxrg = prefix_to_wordset pfx in (rg \<inter> pfxrg, rg - pfxrg))"
+lemma ipset_prefix_match_m[simp]:  "fst (ipset_prefix_match pfx rg) = rg \<inter> (prefix_to_wordset pfx)" by(simp only: Let_def ipset_prefix_match_def, simp)
+lemma ipset_prefix_match_nm[simp]: "snd (ipset_prefix_match pfx rg) = rg - (prefix_to_wordset pfx)" by(simp only: Let_def ipset_prefix_match_def, simp)
+lemma ipset_prefix_match_distinct: "rpm = ipset_prefix_match pfx rg \<Longrightarrow> 
+  (fst rpm) \<inter> (snd rpm) = {}" by force
+lemma ipset_prefix_match_complete: "rpm = ipset_prefix_match pfx rg \<Longrightarrow> 
+  (fst rpm) \<union> (snd rpm) = rg" by force
+lemma rpm_m_dup_simp: "rg \<inter> fst (ipset_prefix_match (routing_match r) rg) = fst (ipset_prefix_match (routing_match r) rg)"
+  by simp
+
 fun ipset_destination :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> (ipv4addr set \<times> routing_action) set" where
 "ipset_destination [] rg = (if rg = {} then  {} else {(rg, routing_action (undefined::routing_rule))})" |
 "ipset_destination (r # rs) rg = (
