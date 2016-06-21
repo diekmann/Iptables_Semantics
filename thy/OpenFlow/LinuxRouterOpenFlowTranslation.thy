@@ -438,6 +438,26 @@ proof(induction s)
   case (Cons s ss) thus ?case using annotate_rlen_len[of ss] by(clarsimp split: prod.split)
 qed simp
 
+lemma distinct_of_nat_list: (* TODO: Move to CaesarWordLemmaBucket *)
+	"distinct l \<Longrightarrow> \<forall>e \<in> set l. e \<le> unat (max_word :: ('l::len) word) \<Longrightarrow> distinct (map (of_nat :: nat \<Rightarrow> 'l word) l)"
+proof(induction l)
+	let ?mmw = "(max_word :: 'l word)"
+	let ?mstp = "(of_nat :: nat \<Rightarrow> 'l word)"
+	case (Cons a as)
+	have "distinct as" "\<forall>e\<in>set as. e \<le> unat ?mmw" using Cons.prems by simp_all 
+	note mIH = Cons.IH[OF this]
+	moreover have "?mstp a \<notin> ?mstp ` set as"
+	proof 
+		have representable_set: "set as \<subseteq> {0..unat ?mmw}" using \<open>\<forall>e\<in>set (a # as). e \<le> unat max_word\<close> by fastforce
+		have a_reprbl: "a \<in> {0..unat ?mmw}" using \<open>\<forall>e\<in>set (a # as). e \<le> unat max_word\<close> by simp
+		assume "?mstp a \<in> ?mstp ` set as"
+		with inj_on_image_mem_iff[OF suc2plus_inj_on a_reprbl representable_set]
+		have "a \<in> set as" by simp
+		with \<open>distinct (a # as)\<close> show False by simp
+	qed
+	ultimately show ?case by simp
+qed simp
+
 lemma annotate_first_le_hlp:
 	"length l < unat (max_word :: ('l :: len) word) \<Longrightarrow> \<forall>e\<in>set (map fst (annotate_rlen l)). e \<le> unat (max_word :: 'l word)"
 	by(clarsimp) (meson fst_annotate_rlen_le less_trans nat_less_le)
