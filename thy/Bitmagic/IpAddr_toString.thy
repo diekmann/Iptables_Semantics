@@ -140,15 +140,6 @@ subsection\<open>IPv6 Pretty Printing\<close>
                    |  _ \<Rightarrow> None
       )"
 
-  value "mk_ipv6addr [Some 0xffff, Some 0xffff, Some 0xffff, Some 0xffff, Some 0xffff, Some 0xffff, Some 0xffff, Some 0xffff]"
-
-  value "mk_ipv6addr [Some 0x2222, None, Some 0xffff, Some 0x123, Some 0xabc]"
-  value "mk_ipv6addr [None, None, Some 0xffff, Some 0x123, Some 0xabc]"
-  value "mk_ipv6addr [None, Some 0xffff, Some 0x123, Some 0xabc]"
-  value "mk_ipv6addr [None]"
-  value "mk_ipv6addr [None, None]"
-  value "mk_ipv6addr [None, Some 1]"
-
 (*TODO: parser for compressed and preferred is needed! Does it handle all cases, e.g. :: or ::1 or 1:: correctly?*)
 (*TODO: HOLogic.mk_nat makes a large SucSucSuc mess! jvm ran out of memory once*)
 (*TODO: does not work for large numbers*)
@@ -195,7 +186,7 @@ in
   val _ = map unit_test
           [("10:ab:FF:0::FF:4:255", @{term "83090298060623265259947972050027093::ipv6addr"})
           ,("2001:db8::8:800:200c:417a", @{term "42540766411282592856906245548098208122::ipv6addr"})
-          (*,("ff01::101", @{term "338958331222012082418099330867817087233::ipv6addr"})*)
+          ,("ff01::101", @{term "338958331222012082418099330867817087233::ipv6addr"})
           ,("::8:800:200c:417a", @{term "2260596444381562::ipv6addr"})
           ,("2001:db8::", @{term "42540766411282592856903984951653826560::ipv6addr"})
           ,("ff00::", @{term "338953138925153547590470800371487866880::ipv6addr"})
@@ -205,7 +196,7 @@ in
           ,("::", @{term "0::ipv6addr"})
           ,("::1", @{term "1::ipv6addr"})
           ,("2001:db8:0:1:1:1:1:1", @{term "42540766411282592875351010504635121665::ipv6addr"})
-          (*,("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", @{term "340282366920938463463374607431768211455::ipv6addr"})*)
+          ,("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", @{term "340282366920938463463374607431768211455::ipv6addr"})
           ];
 end
 \<close>
