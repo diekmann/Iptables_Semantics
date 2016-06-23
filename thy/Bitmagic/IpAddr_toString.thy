@@ -29,6 +29,8 @@ subsection\<open>IPv4 Pretty Printing\<close>
   thm dotdecimal_of_ipv4addr_ipv4addr_of_dotdecimal
       ipv4addr_of_dotdecimal_dotdecimal_of_ipv4addr
 
+
+(*TODO: put parser to separate file, write negative test cases, export ML*)
 --\<open>Example parser\<close>
 ML_val\<open>
 local
@@ -143,7 +145,6 @@ subsection\<open>IPv6 Pretty Printing\<close>
 
 ML_val\<open>
 local
-  
   val fromHexString = StringCvt.scanString (Int.scan StringCvt.HEX);
 
   fun extract_int ss = case ss of [] => NONE
@@ -168,10 +169,13 @@ local
                    @@@ (Scan.many Symbol.is_ascii_hex >> extract_int >> (fn p => [p]))
 
 in
-  val parse = raw_explode
-              #> Scan.finite Symbol.stopper (parser_ip >> mk_ipv6addr);
+  val parse_ipv6 = raw_explode
+                   #> Scan.finite Symbol.stopper (parser_ip >> mk_ipv6addr);
+end;
+
+local
   fun unit_test (ip_string, ip_result) = let
-    val (ip_term, rest) = ip_string |> parse;
+    val (ip_term, rest) = ip_string |> parse_ipv6;
     val _ = if rest <> [] then raise Fail "did not parse everything" else ();
     val _ = Code_Evaluation.dynamic_value_strict @{context} ip_term |> Syntax.pretty_term @{context} |> Pretty.writeln;
     val _ = if
@@ -183,7 +187,7 @@ in
   in
     ()
   end;
-
+in
   val _ = map unit_test
           [("10:ab:FF:0::FF:4:255", @{term "83090298060623265259947972050027093::ipv6addr"})
           ,("2001:db8::8:800:200c:417a", @{term "42540766411282592856906245548098208122::ipv6addr"})
