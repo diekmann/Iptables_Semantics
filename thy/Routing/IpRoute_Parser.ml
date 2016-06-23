@@ -78,8 +78,7 @@ in
 	  (*val _ = map (Pretty.writeln o Syntax.pretty_term @{context} o parser o Symbol.explode) fcontent (* keep this one, lets you see where it fails *)*)
 	  val r = map (parser o Symbol.explode) fcontent
 	in
-	  define_const (HOLogic.mk_list @{typ "routing_rule"} r) name lthy
+	  define_const (@{const sort_rtbl} $ (HOLogic.mk_list @{typ "routing_rule"} r)) name lthy
 	  (* TODO: Some kind of sanity check. Especially, output_iface \<noteq> [] *)
-	  (* TODO: Rules are unsorted. Sort. *)
 	end
 end

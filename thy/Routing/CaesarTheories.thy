@@ -101,7 +101,7 @@ definition list_left_reduce :: "('a list \<Rightarrow> 'a) \<Rightarrow> ('a \<t
   "list_left_reduce ff R \<equiv> map (\<lambda>rs. (ff (list_domain_for R rs), rs)) (remdups (map snd R))"
 
 lemma list_left_reduce_set_eq:
-  assumes ltr: "\<And>rs. rts (ltr rs) = \<Union>set (map rts rs)"
+  assumes ltr: "\<And>rs. rts (ltr rs) = (\<Union>x \<in> set rs. (rts x))"
   assumes rrtsr: "\<And>r. rrtsr r \<equiv> set (map (\<lambda>(x, y). (rts x, y)) r)"
   shows "rrtsr (list_left_reduce ltr r) = left_reduce (rrtsr r)"
   unfolding list_left_reduce_def left_reduce_def
@@ -109,7 +109,6 @@ lemma list_left_reduce_set_eq:
   unfolding set_map set_remdups
   unfolding image_pair_image
   unfolding ltr
-  unfolding set_map
   unfolding list_domain_for_eq
   unfolding domain_for_image
   unfolding image_image

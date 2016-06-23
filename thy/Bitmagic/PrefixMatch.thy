@@ -14,7 +14,6 @@ text\<open>
   I.e. the last bits of the prefix must be set to zero.
 \<close>
 
-text\<open>We define a type for ips in CIDR notation, e.g. 192.168.0.0/24.\<close>
 context
   notes [[typedef_overloaded]]
 begin
@@ -39,22 +38,19 @@ lemma prefix_match_to_CIDR_def2: "prefix_match_to_CIDR = (\<lambda>pfx. (pfxm_pr
   unfolding prefix_match_to_CIDR_def fun_eq_iff by simp
 
 
-
 definition "prefix_match_dtor m \<equiv> (case m of PrefixMatch p l \<Rightarrow> (p,l))"
 
-definition "prefix_match_less_eq1 a b = (if pfxm_length a = pfxm_length b then pfxm_prefix a \<le> pfxm_prefix b else pfxm_length a > pfxm_length b)"
+text\<open>Some more or less random linear order on prefixes. Only used for serialization at the time of this writing.\<close>
 instantiation prefix_match :: (len) linorder
 begin
-	definition "a \<le> b \<longleftrightarrow> prefix_match_less_eq1 a b"
-	definition "a < b \<longleftrightarrow> (a \<noteq> b \<and> prefix_match_less_eq1 a b)"
+	definition "a \<le> b \<longleftrightarrow> (if pfxm_length a = pfxm_length b then pfxm_prefix a \<le> pfxm_prefix b else pfxm_length a > pfxm_length b)"
+	definition "a < b \<longleftrightarrow> (a \<noteq> b \<and> (if pfxm_length a = pfxm_length b then pfxm_prefix a \<le> pfxm_prefix b else pfxm_length a > pfxm_length b))"
 instance
-apply standard
-by(auto simp: less_eq_prefix_match_def less_prefix_match_def prefix_match.expand prefix_match_less_eq1_def split: if_splits)
+by standard (auto simp: less_eq_prefix_match_def less_prefix_match_def prefix_match.expand split: if_splits)
 end
 
 lemma "sorted_list_of_set {PrefixMatch 0 32 :: 32 prefix_match, PrefixMatch 42 32, PrefixMatch 0 0, PrefixMatch 0 1, PrefixMatch 12 31} =
        [PrefixMatch 0 32, PrefixMatch 0x2A 32, PrefixMatch 0xC 31, PrefixMatch 0 1, PrefixMatch 0 0]" by eval
-
 
 context
 begin
@@ -77,27 +73,13 @@ definition prefix_match_semantics where
   "prefix_match_semantics m a = (pfxm_prefix m = (NOT pfxm_mask m) AND a)"
 
 
-subsection\<open>Set Semantics\<close>
+subsection\<open>Relation between prefix and set\<close>
 
 definition prefix_to_wordset :: "'a::len prefix_match \<Rightarrow> 'a word set" where
   "prefix_to_wordset pfx = {pfxm_prefix pfx .. pfxm_prefix pfx OR pfxm_mask pfx}"
 
 private lemma pfx_not_empty: "valid_prefix pfx \<Longrightarrow> prefix_to_wordset pfx \<noteq> {}"
   unfolding valid_prefix_def prefix_to_wordset_def by(simp add: le_word_or2)
-
-text\<open>Walking through a routing table:
-  Splits the (remaining) IP space when traversing a routing table: the pair contains the IPs
-  concerned by the current rule and those left alone.\<close>
-definition ipset_prefix_match where 
-  "ipset_prefix_match pfx rg = (let pfxrg = prefix_to_wordset pfx in (rg \<inter> pfxrg, rg - pfxrg))"
-lemma ipset_prefix_match_m[simp]:  "fst (ipset_prefix_match pfx rg) = rg \<inter> (prefix_to_wordset pfx)" by(simp only: Let_def ipset_prefix_match_def, simp)
-lemma ipset_prefix_match_nm[simp]: "snd (ipset_prefix_match pfx rg) = rg - (prefix_to_wordset pfx)" by(simp only: Let_def ipset_prefix_match_def, simp)
-lemma ipset_prefix_match_distinct: "rpm = ipset_prefix_match pfx rg \<Longrightarrow> 
-  (fst rpm) \<inter> (snd rpm) = {}" by force
-lemma ipset_prefix_match_complete: "rpm = ipset_prefix_match pfx rg \<Longrightarrow> 
-  (fst rpm) \<union> (snd rpm) = rg" by force
-lemma rpm_m_dup_simp: "rg \<inter> fst (ipset_prefix_match (routing_match r) rg) = fst (ipset_prefix_match (routing_match r) rg)"
-  by simp
 
 lemma zero_prefix_match_all: "valid_prefix m \<Longrightarrow> pfxm_length m = 0 \<Longrightarrow> prefix_match_semantics m ip"
   by(simp add: pfxm_mask_def mask_2pm1 valid_prefix_alt prefix_match_semantics_def)
@@ -122,7 +104,7 @@ private lemma packet_ipset_prefix_eq1:
   assumes "addr \<in> addrrg"
   assumes "valid_prefix match"
   assumes "\<not>prefix_match_semantics match addr" 
-  shows "addr \<in> (snd (ipset_prefix_match match addrrg))"
+  shows "addr \<in> addrrg - prefix_to_wordset match"
 using assms
 proof -
   have "pfxm_prefix match \<le> addr \<Longrightarrow> \<not> addr \<le> pfxm_prefix match OR pfxm_mask match"
@@ -150,18 +132,17 @@ proof -
       using a2 by (metis 1 word_bool_alg.conj_cancel_right word_bool_alg.conj_commute word_log_esimps(3))
   qed
   from this show ?thesis using assms(1)
-    unfolding ipset_prefix_match_def Let_def snd_conv prefix_to_wordset_def
+    unfolding prefix_to_wordset_def
     by simp
 qed
 
 
 private lemma packet_ipset_prefix_eq3:
-  assumes "addr \<in> (snd (ipset_prefix_match match addrrg))"
+  assumes "addr \<in> addrrg - prefix_to_wordset match"
   shows "\<not>prefix_match_semantics match addr"
 proof -
   have helper3: "(x::'a::len word) OR y = x OR y AND NOT x" for x y by (simp add: word_oa_dist2)
   from assms have "addr \<notin> prefix_to_wordset match"
-    apply(subst(asm) ipset_prefix_match_def)
     by(simp add: Let_def fst_def)
   thus ?thesis
     apply(subst(asm) prefix_to_wordset_def)
@@ -175,7 +156,7 @@ qed
 private lemma packet_ipset_prefix_eq24:
   assumes "addr \<in> addrrg"
   assumes "valid_prefix match"
-  shows "prefix_match_semantics match addr = (addr \<in> (fst (ipset_prefix_match match addrrg)))"
+  shows "prefix_match_semantics match addr = (addr \<in> addrrg \<inter> prefix_to_wordset match)"
 apply(cases match)
 using assms
 apply(simp add: prefix_match_semantics_def prefix_to_wordset_def pfxm_mask_def valid_prefix_def)
@@ -186,13 +167,13 @@ using zero_base_lsb_imp_set_eq_as_bit_operation by auto
 private lemma packet_ipset_prefix_eq13:
   assumes "addr \<in> addrrg"
   assumes "valid_prefix match"
-  shows "\<not>prefix_match_semantics match addr = (addr \<in> (snd (ipset_prefix_match match addrrg)))"
+  shows "\<not>prefix_match_semantics match addr = (addr \<in> addrrg - prefix_to_wordset match)"
 using packet_ipset_prefix_eq1[OF assms] packet_ipset_prefix_eq3 by fast
 
 lemma prefix_match_if_in_prefix_to_wordset: assumes "valid_prefix pfx" 
   shows "prefix_match_semantics pfx a \<longleftrightarrow> a \<in> prefix_to_wordset pfx"
   using packet_ipset_prefix_eq24[OF _ assms]
-by (metis (erased, hide_lams) Int_iff UNIV_I fst_conv ipset_prefix_match_def)
+by (metis (erased, hide_lams) Int_iff UNIV_I)
 
 private lemma valid_prefix_ipset_from_netmask_ipset_from_cidr:
   shows "ipset_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx) = ipset_from_cidr (pfxm_prefix pfx) (pfxm_length pfx)"
@@ -303,24 +284,7 @@ lemma prefix_never_empty:
   shows"\<not> wordinterval_empty (prefix_to_wordinterval d)"
 by (simp add: le_word_or2 prefix_to_wordinterval_def)
 
-definition range_prefix_match :: "'a::len prefix_match \<Rightarrow> 'a wordinterval \<Rightarrow> 'a wordinterval \<times> 'a wordinterval" where
-  "range_prefix_match pfx rg \<equiv> (let pfxrg = prefix_to_wordinterval pfx in 
-  (wordinterval_intersection rg pfxrg, wordinterval_setminus rg pfxrg))"
-lemma range_prefix_match_set_eq:
-  "(\<lambda>(r1,r2). (wordinterval_to_set r1, wordinterval_to_set r2)) (range_prefix_match pfx rg) =
-    ipset_prefix_match pfx (wordinterval_to_set rg)"
-  unfolding range_prefix_match_def ipset_prefix_match_def Let_def 
-  using wordinterval_intersection_set_eq wordinterval_setminus_set_eq prefix_to_wordinterval_set_eq  by auto
-lemma range_prefix_match_sm[simp]:  "wordinterval_to_set (fst (range_prefix_match pfx rg)) = 
-    fst (ipset_prefix_match pfx (wordinterval_to_set rg))"
-  by (metis fst_conv ipset_prefix_match_m  wordinterval_intersection_set_eq prefix_to_wordinterval_set_eq range_prefix_match_def)
-lemma range_prefix_match_snm[simp]: "wordinterval_to_set (snd (range_prefix_match pfx rg)) =
-    snd (ipset_prefix_match pfx (wordinterval_to_set rg))"
-  by (metis snd_conv ipset_prefix_match_nm wordinterval_setminus_set_eq prefix_to_wordinterval_set_eq range_prefix_match_def)
-
 end
-
-
 
 
 text\<open>Getting a lowest element\<close>
@@ -345,44 +309,5 @@ proof -
 	thus ?thesis by (simp add: less_eq_prefix_match_def prefix_match_less_eq1_def)
 qed
 *)
-
-text\<open>The only stuff here that is not about @{type prefix_match}\<close>
-lemma suc2plus_inj_on: "inj_on (of_nat :: nat \<Rightarrow> ('l :: len) word) {0..unat (max_word :: 'l word)}"
-proof(rule inj_onI)
-	let ?mmw = "(max_word :: 'l word)"
-	let ?mstp = "(of_nat :: nat \<Rightarrow> 'l word)"
-	fix x y :: nat
-	assume "x \<in> {0..unat ?mmw}" "y \<in> {0..unat ?mmw}"
-	hence se: "x \<le> unat ?mmw" "y \<le> unat ?mmw" by simp_all
-	assume eq: "?mstp x = ?mstp y"
-	note f = le_unat_uoi[OF se(1)] le_unat_uoi[OF se(2)]
-	(*show "x = y"
-	apply(subst f(1)[symmetric])
-	apply(subst f(2)[symmetric])
-	apply(subst word_unat.Rep_inject)
-	using eq .*)
-	show "x = y" using eq le_unat_uoi se by metis
-qed
-
-lemma distinct_of_nat_list: (* TODO: Move to CaesarWordLemmaBucket *)
-	"distinct l \<Longrightarrow> \<forall>e \<in> set l. e \<le> unat (max_word :: ('l::len) word) \<Longrightarrow> distinct (map (of_nat :: nat \<Rightarrow> 'l word) l)"
-proof(induction l)
-	let ?mmw = "(max_word :: 'l word)"
-	let ?mstp = "(of_nat :: nat \<Rightarrow> 'l word)"
-	case (Cons a as)
-	have "distinct as" "\<forall>e\<in>set as. e \<le> unat ?mmw" using Cons.prems by simp_all 
-	note mIH = Cons.IH[OF this]
-	moreover have "?mstp a \<notin> ?mstp ` set as"
-	proof 
-		have representable_set: "set as \<subseteq> {0..unat ?mmw}" using \<open>\<forall>e\<in>set (a # as). e \<le> unat max_word\<close> by fastforce
-		have a_reprbl: "a \<in> {0..unat ?mmw}" using \<open>\<forall>e\<in>set (a # as). e \<le> unat max_word\<close> by simp
-		assume "?mstp a \<in> ?mstp ` set as"
-		with inj_on_image_mem_iff[OF suc2plus_inj_on a_reprbl representable_set]
-		have "a \<in> set as" by simp
-		with \<open>distinct (a # as)\<close> show False by simp
-	qed
-	ultimately show ?case by simp
-qed simp
-
 
 end

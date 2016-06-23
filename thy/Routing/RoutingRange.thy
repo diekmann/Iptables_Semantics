@@ -2,6 +2,22 @@ theory RoutingRange
 imports RoutingSet
 begin
 
+(* how is the IP space transformed when a rule applies? *)
+definition range_prefix_match :: "'a::len prefix_match \<Rightarrow> 'a wordinterval \<Rightarrow> 'a wordinterval \<times> 'a wordinterval" where
+  "range_prefix_match pfx rg \<equiv> (let pfxrg = prefix_to_wordinterval pfx in 
+  (wordinterval_intersection rg pfxrg, wordinterval_setminus rg pfxrg))"
+lemma range_prefix_match_set_eq:
+  "(\<lambda>(r1,r2). (wordinterval_to_set r1, wordinterval_to_set r2)) (range_prefix_match pfx rg) =
+    ipset_prefix_match pfx (wordinterval_to_set rg)"
+  unfolding range_prefix_match_def ipset_prefix_match_def Let_def 
+  using wordinterval_intersection_set_eq wordinterval_setminus_set_eq prefix_to_wordinterval_set_eq  by auto
+lemma range_prefix_match_sm[simp]:  "wordinterval_to_set (fst (range_prefix_match pfx rg)) = 
+    fst (ipset_prefix_match pfx (wordinterval_to_set rg))"
+  by (metis fst_conv ipset_prefix_match_m  wordinterval_intersection_set_eq prefix_to_wordinterval_set_eq range_prefix_match_def)
+lemma range_prefix_match_snm[simp]: "wordinterval_to_set (snd (range_prefix_match pfx rg)) =
+    snd (ipset_prefix_match pfx (wordinterval_to_set rg))"
+  by (metis snd_conv ipset_prefix_match_nm wordinterval_setminus_set_eq prefix_to_wordinterval_set_eq range_prefix_match_def)
+
 type_synonym ipv4range = "32 wordinterval"
 
 fun range_destination :: "prefix_routing \<Rightarrow> ipv4range \<Rightarrow> (ipv4range \<times> routing_action) list" where
@@ -109,10 +125,9 @@ qed
 
 subsection\<open>Reduction\<close>
 
-(*
-definition "range_left_reduce \<equiv> list_left_reduce list_to_ipv4range"
-lemmas range_left_reduce_set_eq = list_left_reduce_set_eq[OF list_to_ipv4range_set_eq rr_to_sr_def, 
-                                    unfolded range_left_reduce_def[symmetric]]
+definition "range_left_reduce \<equiv> list_left_reduce wordinterval_Union"
+lemma range_left_reduce_set_eq: "rr_to_sr (range_left_reduce r) = left_reduce (rr_to_sr r)"
+  by(fact list_left_reduce_set_eq[OF wordinterval_Union rr_to_sr_def, folded range_left_reduce_def])
 
 lemma "range_rel r = range_rel (range_left_reduce r)"
   unfolding range_rel_to_sr
@@ -136,6 +151,49 @@ lemma reduced_range_destination_eq1: (* equality that was first proven. *)
   unfolding reduced_range_destination_def
   using range_left_reduce_set_eq[unfolded rr_to_sr_def set_map, of "range_destination rtbl rg"]
   unfolding image_set_comprehension by simp
-*)
+
+subsection\<open>Formulation\<close>
+
+lemma in_rr_to_sr: "(xs, y) \<in> set foo \<Longrightarrow> (wordinterval_to_set xs, y) \<in> rr_to_sr foo"
+  by(force simp add: rr_to_sr_def)
+
+lemma rrd_subsets: "(x,y) \<in> set (reduced_range_destination rtbl rg) \<Longrightarrow> wordinterval_subset x rg"
+proof goal_cases
+  case 1
+  { fix x xa
+    assume "(xa, y) \<in> set (range_destination rtbl rg)"
+    hence "(wordinterval_to_set xa, y) \<in> (ipset_destination rtbl (wordinterval_to_set rg))"
+      using range_destination_eq by fastforce
+    hence "x \<in> wordinterval_to_set xa
+              \<Longrightarrow> x \<in> wordinterval_to_set rg"
+      using ipset_destination_subsets by fastforce
+  } note * = this
+  show ?thesis using 1
+    unfolding reduced_range_destination_def range_left_reduce_def
+    unfolding list_left_reduce_def
+    by(clarsimp simp add: image_iff wordinterval_Union list_domain_for_eq domain_for_def *)
+qed
+
+theorem "valid_prefixes rtbl \<Longrightarrow>
+  (xs,y) \<in> set (reduced_range_destination rtbl rg) \<Longrightarrow> 
+  x \<in> wordinterval_to_set xs \<Longrightarrow> 
+  routing_table_semantics rtbl x = y"
+proof goal_cases
+  case 1
+  def xs' \<equiv> "wordinterval_to_set xs"
+  with 1(3) have i: "x \<in> xs'" by simp
+  hence ir: "x \<in> wordinterval_to_set rg" using 1(2) unfolding xs'_def using rrd_subsets by force
+  from 1(2) have "(xs', y) \<in> reduced_ipset_destination rtbl (wordinterval_to_set rg)"
+    by(simp add: reduced_range_destination_eq xs'_def in_rr_to_sr)
+  hence "(x, y) \<in> ipset_rel (reduced_ipset_destination rtbl (wordinterval_to_set rg))" unfolding ipset_rel_def
+  using i by blast
+  thus ?thesis using reduced_ipset_destination_correct[OF 1(1) ir] by simp
+qed
+
+theorem "valid_prefixes rtbl \<Longrightarrow>
+  x \<in> wordinterval_to_set rg \<Longrightarrow>
+  routing_table_semantics rtbl x = y \<Longrightarrow>
+  \<exists>xs. (xs,y) \<in> set (reduced_range_destination rtbl rg) \<and>  x \<in> wordinterval_to_set xs"
+by(simp add: reduced_ipset_destination_correct reduced_range_destination_eq1[symmetric] ipset_rel_def) blast
 
 end
