@@ -438,6 +438,18 @@ proof(induction s)
   case (Cons s ss) thus ?case using annotate_rlen_len[of ss] by(clarsimp split: prod.split)
 qed simp
 
+lemma suc2plus_inj_on: "inj_on (of_nat :: nat \<Rightarrow> ('l :: len) word) {0..unat (max_word :: 'l word)}"
+proof(rule inj_onI)
+   let ?mmw = "(max_word :: 'l word)"
+   let ?mstp = "(of_nat :: nat \<Rightarrow> 'l word)"
+   fix x y :: nat
+   assume "x \<in> {0..unat ?mmw}" "y \<in> {0..unat ?mmw}"
+   hence se: "x \<le> unat ?mmw" "y \<le> unat ?mmw" by simp_all
+   assume eq: "?mstp x = ?mstp y"
+   note f = le_unat_uoi[OF se(1)] le_unat_uoi[OF se(2)]
+   show "x = y" using eq le_unat_uoi se by metis
+qed
+
 lemma distinct_of_nat_list: (* TODO: Move to CaesarWordLemmaBucket *)
 	"distinct l \<Longrightarrow> \<forall>e \<in> set l. e \<le> unat (max_word :: ('l::len) word) \<Longrightarrow> distinct (map (of_nat :: nat \<Rightarrow> 'l word) l)"
 proof(induction l)
