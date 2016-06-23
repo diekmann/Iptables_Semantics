@@ -124,6 +124,31 @@ subsection\<open>IPv6 Pretty Printing\<close>
 
 
 --\<open>DRAFT: Example parser\<close>
+
+  definition mk_ipv6addr :: "16 word option list \<Rightarrow> ipv6addr_syntax option" where
+    "mk_ipv6addr partslist = (
+      let (*remove empty lists to the beginning and end if omission occurs at start/end
+            to join over ':' properly *)
+          fix_start = (\<lambda>ps. case ps of None#None#_ \<Rightarrow> tl ps | _ \<Rightarrow> ps);
+          fix_end = (\<lambda>ps. case rev ps of None#None#_ \<Rightarrow> butlast ps | _ \<Rightarrow> ps);
+          ps = (fix_end \<circ> fix_start) partslist
+      in
+      if length (filter (\<lambda>p. p = None) ps) = 1
+      then ipv6_unparsed_compressed_to_preferred ps
+      else case ps of [Some a,Some b,Some c,Some d,Some e,Some f,Some g,Some h]
+                              \<Rightarrow> Some (IPv6AddrPreferred a b c d e f g h)
+                   |  _ \<Rightarrow> None
+      )"
+
+  value "mk_ipv6addr [Some 0xffff, Some 0xffff, Some 0xffff, Some 0xffff, Some 0xffff, Some 0xffff, Some 0xffff, Some 0xffff]"
+
+  value "mk_ipv6addr [Some 0x2222, None, Some 0xffff, Some 0x123, Some 0xabc]"
+  value "mk_ipv6addr [None, None, Some 0xffff, Some 0x123, Some 0xabc]"
+  value "mk_ipv6addr [None, Some 0xffff, Some 0x123, Some 0xabc]"
+  value "mk_ipv6addr [None]"
+  value "mk_ipv6addr [None, None]"
+  value "mk_ipv6addr [None, Some 1]"
+
 (*TODO: parser for compressed and preferred is needed! Does it handle all cases, e.g. :: or ::1 or 1:: correctly?*)
 (*TODO: HOLogic.mk_nat makes a large SucSucSuc mess! jvm ran out of memory once*)
 (*TODO: does not work for large numbers*)
@@ -144,26 +169,44 @@ local
                  #> HOLogic.mk_list @{typ "16 word option"}
                  (*TODO: is there a nicer way?*)
                  (*TODO: never use THE!*)
-                 #> (fn x => @{const ipv6preferred_to_int} $ (@{const the ("ipv6addr_syntax")} $ (@{const ipv6_unparsed_compressed_to_preferred} $ x)));
+                 #> (fn x => @{const ipv6preferred_to_int} $ (@{const the ("ipv6addr_syntax")} $ (@{const mk_ipv6addr} $ x)));
 
-  (*TODO: i just want to split at ':'. There must be a better way to achieve this!*)
+  (*TODO: I just want to split at ':'. There must be a better way to achieve this!*)
   val parser_ip = Scan.repeat ((Scan.many Symbol.is_ascii_hex >> extract_int) --| ($$ ":"))
                    @@@ (Scan.many Symbol.is_ascii_hex >> extract_int >> (fn p => [p]))
 
 in
-  val _ = ()
-  val (ip_term, rest) = "10:ab:FF:0::FF:4:255"
-                        |> raw_explode
-                        |> Scan.finite Symbol.stopper (parser_ip >> mk_ipv6addr);
-  val _ = if rest <> [] then raise Fail "did not parse everything" else writeln "parsed";
-  val _ = Code_Evaluation.dynamic_value_strict @{context} ip_term |> Syntax.pretty_term @{context} |> Pretty.writeln;
-  val _ = if
-            Code_Evaluation.dynamic_value_strict @{context} ip_term
-            <> @{term "83090298060623265259947972050027093::ipv6addr"}
-          then
-            raise Fail "parser failed"
-          else
-            writeln "test passed";
+  val parse = raw_explode
+              #> Scan.finite Symbol.stopper (parser_ip >> mk_ipv6addr);
+  fun unit_test (ip_string, ip_result) = let
+    val (ip_term, rest) = ip_string |> parse;
+    val _ = if rest <> [] then raise Fail "did not parse everything" else ();
+    val _ = Code_Evaluation.dynamic_value_strict @{context} ip_term |> Syntax.pretty_term @{context} |> Pretty.writeln;
+    val _ = if
+              Code_Evaluation.dynamic_value_strict @{context} ip_term <> ip_result
+            then
+              raise Fail "parser failed"
+            else
+              writeln ("test passed for "^ip_string);
+  in
+    ()
+  end;
+
+  val _ = map unit_test
+          [("10:ab:FF:0::FF:4:255", @{term "83090298060623265259947972050027093::ipv6addr"})
+          ,("2001:db8::8:800:200c:417a", @{term "42540766411282592856906245548098208122::ipv6addr"})
+          (*,("ff01::101", @{term "338958331222012082418099330867817087233::ipv6addr"})*)
+          ,("::8:800:200c:417a", @{term "2260596444381562::ipv6addr"})
+          ,("2001:db8::", @{term "42540766411282592856903984951653826560::ipv6addr"})
+          ,("ff00::", @{term "338953138925153547590470800371487866880::ipv6addr"})
+          ,("fe80::", @{term "338288524927261089654018896841347694592::ipv6addr"})
+          ,("1::", @{term "5192296858534827628530496329220096::ipv6addr"})
+          ,("1::", @{term "5192296858534827628530496329220096::ipv6addr"})
+          ,("::", @{term "0::ipv6addr"})
+          ,("::1", @{term "1::ipv6addr"})
+          ,("2001:db8:0:1:1:1:1:1", @{term "42540766411282592875351010504635121665::ipv6addr"})
+          (*,("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", @{term "340282366920938463463374607431768211455::ipv6addr"})*)
+          ];
 end
 \<close>
 end
