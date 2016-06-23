@@ -79,28 +79,28 @@ lemma word_upto_cons_front[code]:
 lemma word_upto_set_eq2: "a \<le> b \<Longrightarrow> x \<in> set (word_upto a b) \<Longrightarrow> a \<le> x \<and> x \<le> b"
 apply(induction a b rule: word_upto.induct)
 apply(case_tac "a = b")
-apply(subst(asm) word_upto.simps)
+ apply(subst(asm) word_upto.simps)
 apply(simp)
 apply(subst(asm) word_upto.simps)
 apply(simp)
 apply(erule disjE)
-apply simp
-proof -
-       case goal1
-       from goal1(2-3) have "b \<noteq> 0" by force
-       from goal1(2,3) have "a \<le> b - 1" by (metis `b \<noteq> 0` le_step_down_nat order_class.order.antisym unat_minus_one word_le_nat_alt) 
-       from goal1(1)[OF this goal1(4)] show ?case by (metis dual_order.trans goal1(2) goal1(3) less_imp_le measure_unat word_le_0_iff word_le_nat_alt)
+ apply simp
+proof(goal_cases)
+ case (1 a b)
+ from 1(2-3) have "b \<noteq> 0" by force
+ from 1(2,3) have "a \<le> b - 1" by (metis `b \<noteq> 0` le_step_down_nat order_class.order.antisym unat_minus_one word_le_nat_alt) 
+ from 1(1)[OF this 1(4)] show ?case by (metis dual_order.trans 1(2,3) less_imp_le measure_unat word_le_0_iff word_le_nat_alt)
 qed
 
 lemma word_upto_set_eq3: "a \<le> x \<and> x \<le> b \<Longrightarrow> x \<in> set (word_upto a b)"
 apply(induction a b rule: word_upto.induct)
 apply(case_tac "a = b")
-apply(subst word_upto.simps)
-apply(simp; force)
+ apply(subst word_upto.simps)
+ apply(simp; force)
 apply(subst word_upto.simps)
 apply(simp)
 apply(case_tac "x = b")
-apply(simp;fail)
+ apply(simp;fail)
 proof -
        case goal1
        from goal1(2-4) have "b \<noteq> 0" by force
