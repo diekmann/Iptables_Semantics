@@ -2,6 +2,8 @@ theory Hs_Compat
 imports Main
 begin
 
+text\<open>Definitions inspired by the Haskell world.\<close>
+
 definition
   "const x \<equiv>\<lambda>y. x"
 

@@ -290,17 +290,17 @@ qed
 lemma wordinterval_CIDR_split_prefixmatch_all_valid_Ball: fixes r:: "'a::len wordinterval"
   shows "Ball (set (wordinterval_CIDR_split_prefixmatch r)) valid_prefix"
 apply(induction r rule: wordinterval_CIDR_split_prefixmatch.induct)
-proof(subst wordinterval_CIDR_split_prefixmatch.simps, rename_tac rs, case_tac "wordinterval_empty rs")
-  case goal1 thus ?case
+proof(subst wordinterval_CIDR_split_prefixmatch.simps, rename_tac rs, case_tac "wordinterval_empty rs", goal_cases)
+  case 1 thus ?case
     by(simp only: not_True_eq_False if_False Ball_def set_simps empty_iff) clarify
 next
-  case goal2
-  obtain u s where su: "(Some s, u) = wordinterval_CIDR_split1 rs" using r_split1_not_none[OF goal2(2)] by (metis option.collapse surjective_pairing)
-  note mIH = goal2(1)[OF goal2(2) su refl]
+  case (2 rs)
+  obtain u s where su: "(Some s, u) = wordinterval_CIDR_split1 rs" using r_split1_not_none[OF 2(2)] by (metis option.collapse surjective_pairing)
+  note mIH = 2(1)[OF 2(2) su refl]
   have vpfx: "valid_prefix s"
   proof -
     obtain a where a: "wordinterval_lowest_element rs = Some a"
-      using goal2(2)[unfolded arg_cong_Not[OF wordinterval_lowest_none_empty, symmetric]]
+      using 2(2)[unfolded arg_cong_Not[OF wordinterval_lowest_none_empty, symmetric]]
       by force
     obtain m where m: "find (const True) [s\<leftarrow>map (PrefixMatch a) (pfxes TYPE('a)). valid_prefix s \<and> wordinterval_subset (prefix_to_wordinterval s) rs] = Some m"
       using wordinterval_CIDR_split1_innard_helper[OF a, unfolded arg_cong_Not[OF find_const_True, symmetric]]
@@ -319,7 +319,7 @@ next
     show "valid_prefix s" by simp
   qed
   show ?case
-    unfolding eqTrueI[OF goal2(2)]
+    unfolding eqTrueI[OF 2(2)]
     unfolding if_True
     unfolding unfold_rsplit_case[OF su]
     unfolding list.set

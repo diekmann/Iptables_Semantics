@@ -24,16 +24,29 @@ declare word_upto.simps[simp del]
  
 
 (*TODO: this is probably what we want!*)
-fun word_upto' :: "'a word \<Rightarrow> 'a word \<Rightarrow> ('a::len0) word list" where
-"word_upto' a b = (if a = b then [a] else a # word_upto (a + 1) b)"
+function word_upto' :: "'a word \<Rightarrow> 'a word \<Rightarrow> ('a::len0) word list" where
+"word_upto' a b = (if a = b then [a] else a # word_upto' (a + 1) b)"
+by auto
+
+termination word_upto'
+apply(relation "measure (\<lambda> (a, b). unat (b - a))")
+apply(rule wf_measure)
+apply(unfold in_measure)
+apply(simp)
+apply(subgoal_tac "unat (b - a - 1) < unat (b - a)")
+ apply (simp add: diff_diff_add; fail)
+apply(rule measure_unat)
+apply auto
+done
 
 declare word_upto'.simps[simp del]
 
 value[code] "let x = word_upto' (3 :: 32 word) 16000 in ()"
 
+(*
 lemma word_upto_cons_front[code]:
  "word_upto a b = word_upto' a b"
- proof(induction a b rule:word_upto.induct)
+ proof(induction a b rule:word_upto'.induct)
  case (1 a b)
    have hlp1: "a \<noteq> b \<Longrightarrow> a # word_upto (a + 1) b = word_upto a b"
    apply(induction a b rule:word_upto.induct)
@@ -58,9 +71,10 @@ lemma word_upto_cons_front[code]:
      apply(safe)
      apply(simp)
      apply(simp add: hlp1)
-     by (simp add: word_upto.simps)
+     (*by (ssimp add: word_upto.simp)*)
+     oops
  qed
-
+*)
 
 (* Most of the lemmas I show about word_upto hold without a \<le> b, but I don't need that right now and it's giving me a headache *)
 

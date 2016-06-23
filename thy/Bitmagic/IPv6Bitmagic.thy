@@ -95,10 +95,8 @@ proof -
   qed
   hence mnhelper2: "(of_bl::bool list \<Rightarrow> 128 word) (to_bl b) < 2 ^ (m - n)"
     apply(subgoal_tac "(of_bl::bool list \<Rightarrow> 128 word) (to_bl b) < 2^(len_of TYPE(16))")
-     prefer 2
-     apply(rule Word.of_bl_length_less)
-      apply(simp_all)
-    done
+     apply(simp; fail)
+    by(rule Word.of_bl_length_less) simp+
   have mnhelper3: "(of_bl::bool list \<Rightarrow> 128 word) (to_bl b) * 2 ^ n < 2 ^ m"
     apply(rule Word.div_lt_mult)
      apply(rule Word_Lemmas.word_less_two_pow_divI)

@@ -142,7 +142,7 @@ subsection\<open>Sets of IP addresses\<close>
     fixes base :: "'i::len word"
     shows "ipset_from_netmask (base AND NOT mask (len_of TYPE('i) - m)) (NOT mask (len_of TYPE('i) - m)) =
             ipset_from_netmask base (NOT mask (len_of TYPE('i) - m))"
-    unfolding ipset_from_netmask_def by(simp add: AND_twice)
+    unfolding ipset_from_netmask_def by(simp)
 
 
   text\<open>Another definition of CIDR notation:
