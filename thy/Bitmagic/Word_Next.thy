@@ -1,7 +1,7 @@
 theory Word_Next
 imports Main
   "~~/src/HOL/Word/Word"
-  "./l4v/lib/Word_Lib/Word_Lemmas"
+  "../afp/Word_Lib/Word_Lemmas"
 begin
 
 

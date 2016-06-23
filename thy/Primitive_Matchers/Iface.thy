@@ -1,7 +1,7 @@
 theory Iface
 imports String
         "../Common/Negation_Type"
-        (* l4v imports: "~~/src/HOL/Library/Prefix_Order" clash! This does not give a total order. :(
+        (* Word_Lib imports: "~~/src/HOL/Library/Prefix_Order" clash! This does not give a total order. :(
           we have to define a order by ourselves*)
         (*"~~/src/HOL/Library/List_lexord" (*WARNING: importing lexord. TODO*)*)
         "~~/src/HOL/Library/Char_ord" (*WARNING: importing char ord. TODO*)
@@ -16,7 +16,7 @@ datatype iface = Iface (iface_sel: "string")  --"no negation supported, but wild
 
 
 text\<open>Just a normal lexicographical ordering on the interface strings. Used only for optimizing code.\<close>
-(*We cannot use List_lexord because it clashed with the l4v imported ordering!*)
+(*We cannot use List_lexord because it clashed with the Word_Lib imported ordering!*)
 instantiation iface :: linorder
 begin
   function (sequential) less_eq_iface :: "iface \<Rightarrow> iface \<Rightarrow> bool" where

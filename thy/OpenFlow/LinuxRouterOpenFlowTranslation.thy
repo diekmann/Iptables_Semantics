@@ -696,7 +696,7 @@ lemma distinct_simple_match_to_of_match: "distinct ifs \<Longrightarrow> distinc
   subgoal by(simp_all add: smtoms_eq_hlp)
 done
 
-lemma inj_inj_on: "inj F \<Longrightarrow> inj_on F A" using subset_inj_on by auto (* TODO: include ../Bitmagic/l4v/lib/Lib *)
+lemma inj_inj_on: "inj F \<Longrightarrow> inj_on F A" using subset_inj_on by auto (* TODO: include Word_Lib *)
 
 lemma no_overlaps_lroft_hlp2: "distinct (map fst amr) \<Longrightarrow> (\<And>r. distinct (fm r)) \<Longrightarrow>
     distinct (concat (map (\<lambda>(p, r, c, a). map (\<lambda>b. (p, b, fs a c)) (fm r)) amr))"

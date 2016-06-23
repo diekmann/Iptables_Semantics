@@ -1,6 +1,6 @@
 theory WordInterval_NumberWang
 imports WordInterval
-  "./l4v/lib/Word_Lib/Word_Lemmas"
+  "../afp/Word_Lib/Word_Lemmas"
   WordInterval
 begin
 

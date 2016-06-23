@@ -1,6 +1,6 @@
 theory IPv6Bitmagic
 imports 
-  "./l4v/lib/Word_Lib/Word_Lemmas"
+  "../afp/Word_Lib/Word_Lemmas"
 begin
 
 lemma length_drop_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs"

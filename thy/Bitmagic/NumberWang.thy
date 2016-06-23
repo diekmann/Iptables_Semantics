@@ -1,7 +1,7 @@
 theory NumberWang
 imports Main
   "~~/src/HOL/Word/Word"
-  "./l4v/lib/Word_Lib/Word_Lemmas" (*will things break if I include this early?*)
+  "../afp/Word_Lib/Word_Lemmas" (*will things break if I include this early?*)
 begin
 
 

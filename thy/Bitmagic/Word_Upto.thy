@@ -1,7 +1,7 @@
 theory Word_Upto
 imports Main
   Hs_Compat
-  "./l4v/lib/Word_Lib/Word_Lemmas"
+  "../afp/Word_Lib/Word_Lemmas"
 begin
 
 function word_upto :: "'a word \<Rightarrow> 'a word \<Rightarrow> ('a::len0) word list" where

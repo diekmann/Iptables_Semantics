@@ -165,7 +165,7 @@ subsection\<open>Representing IPv4 Adresses\<close>
         apply simp_all
       apply(simp add: NumberWang.div65536[simplified]) (*we add the simplified because the WordLemmaBucket adds some additional simp rules*)
       done
-      --\<open>When @{file "./l4v/lib/Word_Lib/Word_Lemmas.thy"} is imported, some @{file "NumberWang.thy"} lemmas need the [simplified] attribute
+      --\<open>When @{file "../afp/Word_Lib/Word_Lemmas.thy"} is imported, some @{file "NumberWang.thy"} lemmas need the [simplified] attribute
           because WordLemmaBucket adds some simp rules. This theory should also work without WordLemmaBucket\<close>
     from assms have c: "nat_of_ipv4addr ((ipv4addr_of_nat (d + 256 * c + 65536 * b + 16777216 * a) >> 8) AND mask 8) = c"
       apply(simp add: ipv4addr_of_nat_def word_of_nat)

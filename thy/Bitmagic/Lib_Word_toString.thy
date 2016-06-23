@@ -1,7 +1,7 @@
 theory Lib_Word_toString
 imports "../Common/Lib_toString"
         "~~/src/HOL/Word/Word"
-        "./l4v/lib/Word_Lib/Word_Lemmas"
+        "../afp/Word_Lib/Word_Lemmas"
 begin
 
 (*immitation of http://stackoverflow.com/questions/23864965/string-of-nat-in-isabelle*)
