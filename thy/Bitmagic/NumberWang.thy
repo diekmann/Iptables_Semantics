@@ -5,8 +5,6 @@ imports Main
 begin
 
 
-lemma pow2_mask: "((2^x) - 1) = mask x" by (metis mask_def shiftl_1)
-
 lemma mod256: "((d::nat) + 256 * c + 65536 * b + 16777216 * a) mod 256 = d mod 256"
   proof -
   from mod_mult_self2[where a="d + 256 * c + 65536 * b" and b="256" and c="65536 * a"] have 

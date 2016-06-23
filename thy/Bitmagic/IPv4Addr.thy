@@ -125,8 +125,7 @@ subsection\<open>Representing IPv4 Adresses\<close>
       done
      qed
   lemma ipv4addr_and_255: "(x::ipv4addr) AND 255 = x AND mask 8"
-    apply(subst pow2_mask[of 8, simplified, symmetric])
-    by simp
+    by(simp add: mask_def)
   lemma ipv4addr_of_nat_AND_mask8: "(ipv4addr_of_nat a) AND mask 8 = (ipv4addr_of_nat (a mod 256))"
     apply(simp add: ipv4addr_of_nat_def and_mask_mod_2p)
     apply(simp add: word_of_nat) (*use this to get rid of of_nat. All thm are with word_of_int*)

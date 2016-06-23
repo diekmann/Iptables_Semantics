@@ -80,9 +80,8 @@ proof -
         apply(subst Nat.less_eq_Suc_le)
         apply(simp; fail)
        apply(subgoal_tac "(65536::nat) = 2^16")
-        prefer 2
-        apply(simp; fail)
-       using power2_rule \<open>16 \<le> n\<close> by presburger
+        subgoal using power2_rule \<open>16 \<le> n\<close> by presburger
+       by(simp)
     qed
     have "65536 = unat (65536::128 word)" by auto
     moreover from mnh2 have "unat x <  unat (65536::128 word)" by(rule Word.unat_mono)
