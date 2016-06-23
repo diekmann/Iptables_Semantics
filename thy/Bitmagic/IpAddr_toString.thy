@@ -140,8 +140,7 @@ subsection\<open>IPv6 Pretty Printing\<close>
                    |  _ \<Rightarrow> None
       )"
 
-(*TODO: HOLogic.mk_nat makes a large SucSucSuc mess! jvm ran out of memory once*)
-(*TODO: does not work for large numbers*)
+
 ML_val\<open>
 local
   
@@ -155,7 +154,10 @@ local
 
 
   val mk_ipv6addr = map (fn p => case p of NONE => @{const None ("16 word")}
-                                        |  SOME i => @{const Some ("16 word")} $ (@{const of_nat ("16 word")} $ HOLogic.mk_nat i))
+                                        |  SOME i => @{const Some ("16 word")} $
+                                              (*TODO: cann I have word_of_int as const?*)
+                                                                (@{term "word_of_int :: int \<Rightarrow> 16 word"} $ HOLogic.mk_number HOLogic.intT i)
+                        )
                  #> HOLogic.mk_list @{typ "16 word option"}
                  (*TODO: is there a nicer way?*)
                  (*TODO: never use THE!*)
