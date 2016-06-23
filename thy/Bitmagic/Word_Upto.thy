@@ -43,7 +43,6 @@ declare word_upto'.simps[simp del]
 
 value[code] "let x = word_upto' (3 :: 32 word) 16000 in ()"
 
-(*
 lemma word_upto_cons_front[code]:
  "word_upto a b = word_upto' a b"
  proof(induction a b rule:word_upto'.induct)
@@ -64,17 +63,17 @@ lemma word_upto_cons_front[code]:
    apply(simp)
    done
 
-   from 1 show ?case
-     apply(subst word_upto.simps)
+   from 1[symmetric] show ?case
+     (*apply(subst word_upto.simps)*)
+     apply(case_tac "a = b")
+      subgoal
+      apply(subst word_upto.simps)
+      apply(subst word_upto'.simps)
+      by(simp)
      apply(subst word_upto'.simps)
-     apply(simp)
-     apply(safe)
-     apply(simp)
-     apply(simp add: hlp1)
-     (*by (ssimp add: word_upto.simp)*)
-     oops
+     by(simp add: hlp1)
  qed
-*)
+
 
 (* Most of the lemmas I show about word_upto hold without a \<le> b, but I don't need that right now and it's giving me a headache *)
 
