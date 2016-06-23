@@ -140,7 +140,6 @@ subsection\<open>IPv6 Pretty Printing\<close>
                    |  _ \<Rightarrow> None
       )"
 
-(*TODO: parser for compressed and preferred is needed! Does it handle all cases, e.g. :: or ::1 or 1:: correctly?*)
 (*TODO: HOLogic.mk_nat makes a large SucSucSuc mess! jvm ran out of memory once*)
 (*TODO: does not work for large numbers*)
 ML_val\<open>
