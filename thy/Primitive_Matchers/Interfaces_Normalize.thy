@@ -117,7 +117,6 @@ subsection\<open>Optimizing interfaces in match expressions\<close>
 
 
 term map_option
-term option_map (*Word_Lib*)
 
 context
 begin
