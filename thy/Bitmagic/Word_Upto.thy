@@ -64,8 +64,7 @@ lemma word_upto_cons_front[code]:
    done
 
    from 1[symmetric] show ?case
-     (*apply(subst word_upto.simps)*)
-     apply(case_tac "a = b")
+     apply(cases "a = b")
       subgoal
       apply(subst word_upto.simps)
       apply(subst word_upto'.simps)
