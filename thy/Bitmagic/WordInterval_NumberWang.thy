@@ -1,15 +1,12 @@
 theory WordInterval_NumberWang
 imports WordInterval
   "./l4v/lib/Word_Lib/Word_Lemmas"
-  WordInterval_Lists
+  WordInterval
 begin
 
 text\<open>Cardinality approximation for @{typ "('a::len) wordinterval"}s\<close>
 (*TODO: move!*)
 context begin
-  lemma remdups_enum_upto: fixes s::"('a::len) word" shows "remdups [s .e. e] = [s .e. e]"
-    by(simp)
-  
   lemma card_enum_upto: fixes s::"('a::len) word" shows "card (set [s .e. e]) = Suc (unat e) - unat s"
     apply(subst List.card_set)
     apply(simp add: remdups_enum_upto)

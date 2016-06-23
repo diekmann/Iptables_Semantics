@@ -22,10 +22,13 @@ section \<open>Modelling IPv6 Adresses\<close>
   definition ipv6addr_of_nat :: "nat \<Rightarrow> ipv6addr" where
     "ipv6addr_of_nat n =  of_nat n"
 
+  lemma "ipv6addr_of_nat n = word_of_int (int n)"
+    by(simp add: ipv6addr_of_nat_def word_of_nat)
+
   lemma "((nat_of_ipv6addr (42::ipv6addr))::nat) = 42" by eval
   lemma "((ipv6addr_of_nat (42::nat))::ipv6addr) = 42" by eval
 
-  text\<open>The maximum IPv6 addres\<close>
+  text\<open>The maximum IPv6 address\<close>
   definition max_ipv6_addr :: "ipv6addr" where 
     "max_ipv6_addr \<equiv> ipv6addr_of_nat ((2^128) - 1)"
 
@@ -160,6 +163,7 @@ text\<open>
      split the string which is an ipv6 address at ':'
      map empty string to None
      map everything else to Some (string_to_16word str)
+     sanitize empty strings at the start and the end
    Example:
      "1:2:3".split(":")  = ['1', '2', '3']
      ":2:3:4".split(":") = ['', '2', '3', '4']

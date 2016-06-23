@@ -5,7 +5,7 @@ theory IPAddr
 imports Main
   NumberWang
   Hs_Compat
-  WordInterval_Lists
+  WordInterval
   "~~/src/HOL/Word/Word"
 begin
 
