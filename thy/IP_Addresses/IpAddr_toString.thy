@@ -32,7 +32,7 @@ subsection\<open>IPv4 Pretty Printing\<close>
 
 (*TODO: put parser to separate file, write negative test cases, export ML*)
 --\<open>Example parser\<close>
-ML_val\<open>
+ML\<open>
 local
   fun extract_int ss = case ss |> implode |> Int.fromString
                                 of SOME i => i
@@ -46,16 +46,19 @@ local
 
   fun mk_quadrupel (((a,b),c),d) = HOLogic.mk_prod
            (mk_nat255 a, HOLogic.mk_prod (mk_nat255 b, HOLogic.mk_prod (mk_nat255 c, mk_nat255 d)));
-  
+
+in 
   fun mk_ipv4addr ip = @{const ipv4addr_of_dotdecimal} $ mk_quadrupel ip;
 
-  val parser_ip = (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
+  val parser_ipv4 = (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
                   (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
                   (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
                   (Scan.many1 Symbol.is_ascii_digit >> extract_int);
+end;
 
+local
+  val (ip_term, rest) = "10.8.0.255" |> raw_explode |> Scan.finite Symbol.stopper (parser_ipv4 >> mk_ipv4addr);
 in
-  val (ip_term, rest) = "10.8.0.255" |> raw_explode |> Scan.finite Symbol.stopper (parser_ip >> mk_ipv4addr);
   val _ = if rest <> [] then raise Fail "did not parse everything" else writeln "parsed";
   val _ = if
             Code_Evaluation.dynamic_value_strict @{context} ip_term
@@ -64,7 +67,7 @@ in
             raise Fail "parser failed"
           else
             writeln "test passed";
-end
+end;
 \<close>
 
 
@@ -143,7 +146,7 @@ subsection\<open>IPv6 Pretty Printing\<close>
       )"
 
 
-ML_val\<open>
+ML\<open>
 local
   val fromHexString = StringCvt.scanString (Int.scan StringCvt.HEX);
 
@@ -152,12 +155,12 @@ local
                           case xs |> implode |> fromHexString
                                 of SOME i => SOME i
                                 |  NONE   => raise Fail "unparsable int";
-
-
+in
   val mk_ipv6addr = map (fn p => case p of NONE => @{const None ("16 word")}
                                         |  SOME i => @{const Some ("16 word")} $
-                                              (*TODO: cann I have word_of_int as const?*)
-                                                                (@{term "word_of_int :: int \<Rightarrow> 16 word"} $ HOLogic.mk_number HOLogic.intT i)
+                                              (*TODO: can I have word_of_int as const?*)
+                                                      (@{term "word_of_int :: int \<Rightarrow> 16 word"} $
+                                                                  HOLogic.mk_number HOLogic.intT i)
                         )
                  #> HOLogic.mk_list @{typ "16 word option"}
                  (*TODO: is there a nicer way?*)
@@ -165,15 +168,13 @@ local
                  #> (fn x => @{const ipv6preferred_to_int} $ (@{const the ("ipv6addr_syntax")} $ (@{const mk_ipv6addr} $ x)));
 
   (*TODO: I just want to split at ':'. There must be a better way to achieve this!*)
-  val parser_ip = Scan.repeat ((Scan.many Symbol.is_ascii_hex >> extract_int) --| ($$ ":"))
+  val parser_ipv6 = Scan.repeat ((Scan.many Symbol.is_ascii_hex >> extract_int) --| ($$ ":"))
                    @@@ (Scan.many Symbol.is_ascii_hex >> extract_int >> (fn p => [p]))
-
-in
-  val parse_ipv6 = raw_explode
-                   #> Scan.finite Symbol.stopper (parser_ip >> mk_ipv6addr);
 end;
 
 local
+  val parse_ipv6 = raw_explode
+                   #> Scan.finite Symbol.stopper (parser_ipv6 >> mk_ipv6addr);
   fun unit_test (ip_string, ip_result) = let
     val (ip_term, rest) = ip_string |> parse_ipv6;
     val _ = if rest <> [] then raise Fail "did not parse everything" else ();
@@ -203,6 +204,6 @@ in
           ,("2001:db8:0:1:1:1:1:1", @{term "42540766411282592875351010504635121665::ipv6addr"})
           ,("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", @{term "340282366920938463463374607431768211455::ipv6addr"})
           ];
-end
+end;
 \<close>
 end
