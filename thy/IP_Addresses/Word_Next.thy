@@ -12,6 +12,7 @@ definition word_prev :: "'a::len word \<Rightarrow> 'a::len word" where
   "word_prev a \<equiv> if a = 0 then 0 else a - 1"
 
 lemma "word_next (2:: 8 word) = 3" by eval
+lemma "word_next (255:: 8 word) = 255" by eval
 lemma "word_prev (2:: 8 word) = 1" by eval
 lemma "word_prev (0:: 8 word) = 0" by eval
 
@@ -32,7 +33,6 @@ lemma word_atLeastLessThan_Suc_atLeastAtMost:
 lemma word_atLeastAtMost_Suc_greaterThanAtMost: fixes l::"'a::len word" shows "m \<noteq> max_word \<Longrightarrow> {m<..u} = {m + 1..u}"
   by(simp add: greaterThanAtMost_def greaterThan_def atLeastAtMost_def atLeast_def word_Suc_le)
   
-
 lemma word_atLeastLessThan_Suc_atLeastAtMost_union: 
   fixes l::"'a::len word"
   assumes "m \<noteq> max_word" and "l \<le> m" and "m \<le> u"
@@ -41,7 +41,6 @@ lemma word_atLeastLessThan_Suc_atLeastAtMost_union:
   from ivl_disj_un_two(8)[OF assms(2) assms(3)] have "{l..u} = {l..m} \<union> {m<..u}" by blast
   with assms show ?thesis by(simp add: word_atLeastAtMost_Suc_greaterThanAtMost)
   qed
-
 
 lemma word_adjacent_union: "word_next e = s' \<Longrightarrow> s \<le> e \<Longrightarrow> s' \<le> e' \<Longrightarrow> {s..e} \<union> {s'..e'} = {s .. e'}"
   by (metis Un_absorb2 atLeastatMost_subset_iff ivl_disj_un_two(7) max_word_max
