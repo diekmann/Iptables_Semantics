@@ -234,11 +234,11 @@ proof(induction rtbl) (* Note how this induction is not made over arbitrary rg *
   show ?case
   proof(cases "prefix_match_semantics ?match ip")
     case True thus ?thesis
-      using prefix_match_if_in_prefix_to_wordset[OF v_pfx] rg_elem
+      using prefix_match_semantics_wordset[OF v_pfx] rg_elem
       by simp
     next
       case False thus ?thesis
-        using prefix_match_if_in_prefix_to_wordset[OF v_pfx] rg_elem
+        using prefix_match_semantics_wordset[OF v_pfx] rg_elem
               Cons.IH[OF conjunct2[OF valid_prefixes_split[OF Cons.prems(1)]]]
         by simp
   qed

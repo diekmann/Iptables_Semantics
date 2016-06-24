@@ -453,7 +453,8 @@ proof(rule ccontr, goal_cases)
 	case 1
 	hence "prefix_match_semantics x pt" "prefix_match_semantics xa pt" unfolding prefix_match_semantics_def by (simp_all add: word_bw_comms(1))
 	moreover have "valid_prefix x" "valid_prefix xa" using 1(1-2) wordinterval_CIDR_split_prefixmatch_all_valid_Ball by blast+
-	ultimately have "pt \<in> prefix_to_wordset x" "pt \<in> prefix_to_wordset xa" using pfx_match_addr_ipset by blast+
+	ultimately have "pt \<in> prefix_to_wordset x" "pt \<in> prefix_to_wordset xa"
+	  using prefix_match_semantics_wordset by blast+
 	with CIDR_splits_disjunct[OF 1(1,2) 1(5)] show False by blast
 qed
 
