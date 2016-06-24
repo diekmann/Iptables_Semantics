@@ -65,18 +65,6 @@ value[code] "pfxes TYPE(32)"
 text\<open>somebody likes Haskell here\<close>
 private definition "const x \<equiv> \<lambda>y. x"
 
-(* Split off one prefix *)
-private definition wordinterval_CIDR_split1 :: "'a::len wordinterval \<Rightarrow> 'a prefix_match option \<times> 'a wordinterval" where
-  "wordinterval_CIDR_split1 r \<equiv> (
-   let ma = wordinterval_lowest_element r in
-   case ma of None \<Rightarrow> (None, r) |
-              Some a \<Rightarrow> let cs = (map (\<lambda>s. PrefixMatch a s) (pfxes TYPE('a))) in
-                        let cfs = filter (\<lambda>s. valid_prefix s \<and> wordinterval_subset (prefix_to_wordinterval s) r) cs in (* anything that is a subset should also be a valid prefix. but try proving that.*)
-                        let mc = find (const True) cfs in 
-                        (case mc of None \<Rightarrow> (None, r) |
-                                  Some m \<Rightarrow> (mc, wordinterval_setminus r (prefix_to_wordinterval m))))"
-
-
 text\<open>The function @{term "find (const True)"} is basically a safe version of @{const List.hd}\<close>
 private lemma "find (const True) cfs = (if cfs = [] then None else Some (hd cfs))"
   by(induction cfs) (simp_all split: split_if_asm add: const_def)
@@ -89,6 +77,18 @@ proof -
 	assume "l \<noteq> []" then obtain a ls where [simp]: "l = a # ls" by(cases l) blast+
 	then show "hd l = the (find (const True) l)" by(simp add: const_def)
 qed
+
+
+(* Split off one prefix *)
+private definition wordinterval_CIDR_split1 :: "'a::len wordinterval \<Rightarrow> 'a prefix_match option \<times> 'a wordinterval" where
+  "wordinterval_CIDR_split1 r \<equiv> (
+   let ma = wordinterval_lowest_element r in
+   case ma of None \<Rightarrow> (None, r) |
+              Some a \<Rightarrow> let cs = (map (\<lambda>s. PrefixMatch a s) (pfxes TYPE('a))) in
+                        let cfs = filter (\<lambda>s. valid_prefix s \<and> wordinterval_subset (prefix_to_wordinterval s) r) cs in (* anything that is a subset should also be a valid prefix. but try proving that.*)
+                        let mc = find (const True) cfs in 
+                        (case mc of None \<Rightarrow> (None, r) |
+                                  Some m \<Rightarrow> (mc, wordinterval_setminus r (prefix_to_wordinterval m))))"
 
 
 private lemma wordinterval_CIDR_split1_innard_helper: fixes a::"'a::len word"
