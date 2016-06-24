@@ -8,14 +8,12 @@ session "IP_Addresses" = HOL +
     "~~/src/HOL/Library/Code_Target_Int"
     "~~/src/HOL/Library/Code_Char"
     "../Word_Lib/Word_Lemmas"
-    "../afp/Mergesort"
     NumberWang
   theories
     WordInterval
     IPv4Addr
     IPv6Addr
     CIDRSplit
-    WordInterval_Lists
   document_files
     "root.tex"
 

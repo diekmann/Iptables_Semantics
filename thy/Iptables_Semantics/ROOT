@@ -1,6 +1,19 @@
 chapter Iptables_Semantics
 
-session "Iptables_Semantics" = IP_Addresses +
+session "Bitmagic" = IP_Addresses +
+  theories[document=false]
+    "~~/src/HOL/Word/Word"
+    "~~/src/HOL/Library/Code_Target_Nat"
+    "~~/src/HOL/Word/WordBitwise"
+    "~~/src/HOL/Library/Code_Target_Int"
+    "~~/src/HOL/Library/Code_Char"
+    "../afp/Mergesort"
+  theories
+    "Common/WordInterval_Lists"
+  document_files
+    "root.tex"
+
+session "Iptables_Semantics" = Bitmagic +
   theories[document=false]
     "~~/src/HOL/Library/LaTeXsugar"
   theories

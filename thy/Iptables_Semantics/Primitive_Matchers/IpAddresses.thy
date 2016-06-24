@@ -1,7 +1,7 @@
 theory IpAddresses
-imports IpAddr_toString
-  CIDRSplit
-  "../Iptables_Semantics/Common/WordInterval_Lists"
+imports "../../IP_Addresses/IpAddr_toString"
+  "../../IP_Addresses/CIDRSplit"
+  "../Common/WordInterval_Lists"
 begin
 
 
