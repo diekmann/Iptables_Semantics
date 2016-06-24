@@ -1,5 +1,5 @@
 theory IpRoute_Parser
-imports Main "../../IP_Addresses/IpAddresses" "../Routing/Routing"
+imports "../../IP_Addresses/IpAddresses" "../Routing/Routing"
 keywords "parse_ip_route" :: thy_decl
 begin
 
