@@ -1,6 +1,6 @@
 theory WordInterval_Sorted
 imports WordInterval
-        "../afp/Mergesort" (*TODO: dependnecy! import from afp directly!*)
+        "../Automatic_Refinement/Lib/Misc" (*Mergesort. TODO: dependnecy! we need a mergesort afp entry!!*)
 begin
 
 

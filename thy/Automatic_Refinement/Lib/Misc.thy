@@ -1,5 +1,3 @@
-(*https://bitbucket.org/isa-afp/afp-devel/src/9eac64ded88a9005dab537417fa965b01b75ad21/thys/Automatic_Refinement/Lib/?at=default*)
-
 (*  Title:       Miscellaneous Definitions and Lemmas
     Author:      Peter Lammich <peter.lammich@uni-muenster.de>
     Maintainer:  Peter Lammich <peter.lammich@uni-muenster.de>
@@ -16,7 +14,7 @@
 
 section {* Miscellaneous Definitions and Lemmas *}
 
-theory Mergesort
+theory Misc
 imports Main 
   "~~/src/HOL/Library/Multiset" 
   "~~/src/HOL/ex/Quicksort"
@@ -437,7 +435,7 @@ lemma fun_comp_eq_conv: "f o g = fg \<longleftrightarrow> (\<forall>x. f (g x) =
 abbreviation comp2 (infixl "oo" 55) where "f oo g \<equiv> \<lambda>x. f o (g x)"
 abbreviation comp3 (infixl "ooo" 55) where "f ooo g \<equiv> \<lambda>x. f oo (g x)"
 
-notation (xsymbols)
+notation
   comp2  (infixl "\<circ>\<circ>" 55) and
   comp3  (infixl "\<circ>\<circ>\<circ>" 55)
 

@@ -2,7 +2,7 @@ theory Ipassmt
 imports Common_Primitive_Lemmas
         Common_Primitive_toString
         "../Common/Lib_toString"
-        "../../afp/Mergesort" (*TODO: dependnecy! import from afp directly!*)
+        "../../Automatic_Refinement/Lib/Misc" (*TODO: dependnecy!*)
 begin
 
   text\<open>A mapping from an interface to its assigned ip addresses in CIDR notation\<close>

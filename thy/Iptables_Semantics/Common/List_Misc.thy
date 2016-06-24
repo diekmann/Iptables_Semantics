@@ -1,4 +1,4 @@
-theory Misc
+theory List_Misc
 imports Main
 begin
 

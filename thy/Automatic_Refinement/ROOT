@@ -1,0 +1,26 @@
+chapter AFP
+
+session Automatic_Refinement (AFP) = HOL +
+  options [timeout = 600]
+  theories [document = false]
+    "Lib/Refine_Lib"
+  theories
+    "Parametricity/Param_Chapter"
+    "Parametricity/Relators"
+    "Parametricity/Parametricity"
+  theories [document = false]
+    "Tool/Autoref_Phases"
+    "Tool/Autoref_Data"
+    "Tool/Autoref_Id_Ops"
+    "Tool/Autoref_Relator_Interface"
+    "Tool/Autoref_Fix_Rel"
+    "Tool/Autoref_Gen_Algo"
+    "Tool/Autoref_Translate"
+  theories
+    "Tool/Autoref_Chapter"
+    "Tool/Autoref_Tool"
+    "Autoref_Bindings_HOL"
+    "Automatic_Refinement"
+  document_files
+    "root.tex"
+

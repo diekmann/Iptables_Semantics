@@ -7,7 +7,7 @@ session "Bitmagic" = IP_Addresses +
     "~~/src/HOL/Word/WordBitwise"
     "~~/src/HOL/Library/Code_Target_Int"
     "~~/src/HOL/Library/Code_Char"
-    "../afp/Mergesort"
+    "../Automatic_Refinement/Lib/Misc" (* mergesort *)
   theories
     "Common/WordInterval_Lists"
   document_files
@@ -16,6 +16,7 @@ session "Bitmagic" = IP_Addresses +
 session "Iptables_Semantics" = Bitmagic +
   theories[document=false]
     "~~/src/HOL/Library/LaTeXsugar"
+    "Common/List_Misc"
   theories
     Semantics
     "Examples/Example_Semantics"

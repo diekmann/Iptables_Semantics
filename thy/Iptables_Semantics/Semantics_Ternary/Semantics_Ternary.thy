@@ -1,5 +1,5 @@
 theory Semantics_Ternary
-imports Matching_Ternary "../Misc"
+imports Matching_Ternary "../Common/List_Misc"
 begin
 
 section\<open>Embedded Ternary-Matching Big Step Semantics\<close>
