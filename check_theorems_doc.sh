@@ -6,7 +6,7 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 function check_thm {
-	filename="./thy/Documentation.thy"
+	filename="./thy/Iptables_Semantics/Documentation.thy"
 	if [ -n "$(grep "$@" $filename)" ]; then
 	    echo -n " [ok]"
 	 else
