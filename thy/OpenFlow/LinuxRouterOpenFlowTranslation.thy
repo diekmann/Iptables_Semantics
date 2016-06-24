@@ -1,11 +1,11 @@
 theory LinuxRouterOpenFlowTranslation
 imports 
-	"../Simple_Firewall/Generic_SimpleFw" 
+	"../Iptables_Semantics/Simple_Firewall/Generic_SimpleFw" 
 	"Semantics_OpenFlow"
 	"OpenFlowMatches"
 	"OpenFlowAction"
-	(*"../Routing/AnnotateRouting"*)
-	"../Routing/LinuxRouter"
+	(*"../Iptables_Semantics/Routing/AnnotateRouting"*)
+	"../Iptables_Semantics/Routing/LinuxRouter"
 begin
 
 primrec filter_nones where

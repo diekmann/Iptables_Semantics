@@ -101,7 +101,7 @@ expected_result = "*filter\n\
     \COMMIT"
 
 test_parser_test_data = HU.testCase "parser_test_data" $ do
-    let fileName = "../thy/Examples/Parser_Test/data/iptables-save"
+    let fileName = "../thy/Iptables_Semantics/Examples/Parser_Test/data/iptables-save"
     f <- readFile fileName
     let result = show <$> parseIptablesSave fileName f
     result @?= Right expected_result
@@ -128,7 +128,7 @@ test_spoofing_certification table chain ipassmtString fileName expected_spoofing
                 error errormsg
 
 test_spoofing_SQRL = HU.testCase "spoofing_SQRL" $ test_spoofing_certification "raw" "PREROUTING" ipassmt_sqrl_hardcoded rulesetFile expected_spoofing_result "SQRL Spoofing 2015 failed"
-    where rulesetFile = "../thy/Examples/SQRL_Shorewall/2015_aug_iptables-save-spoofing-protection"
+    where rulesetFile = "../thy/Iptables_Semantics/Examples/SQRL_Shorewall/2015_aug_iptables-save-spoofing-protection"
           expected_spoofing_result = [("ldit", True)
                                      , ("lmd", True)
                                      , ("loben", True)
@@ -206,7 +206,7 @@ ipassmt_i8_hardcoded  = "eth0 = [0.0.0.0-255.255.255.255]\n\
 
 
 test_spoofing_TUM_Net1 = HU.testCase "spoofing_TUM_Net1" $ test_spoofing_TUM_i8 rulesetFile expected_spoofing_result "computed_result != expected_spoofing_result (almost all interfaces should have spoofing protection)"
-    where rulesetFile = "../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating" 
+    where rulesetFile = "../thy/Iptables_Semantics/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating" 
           expected_spoofing_result = [  ("eth0", True)
                             , ("foo", False)
                             , ("eth1.96", True)
@@ -233,7 +233,7 @@ test_spoofing_TUM_Net1 = HU.testCase "spoofing_TUM_Net1" $ test_spoofing_TUM_i8 
 
 
 test_spoofing_TUM_Net2 = HU.testCase "spoofing_TUM_Net2" $ test_spoofing_TUM_i8 rulesetFile expected_spoofing_result "computed_result != expected_spoofing_result (ifaces foo, 110, 97, 1024 must fail)"
-    where rulesetFile = "../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_14-14-46_cheating" 
+    where rulesetFile = "../thy/Iptables_Semantics/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_14-14-46_cheating" 
           expected_spoofing_result = [  ("eth0", True)
                             , ("foo", False)
                             , ("eth1.96", True)
@@ -260,7 +260,7 @@ test_spoofing_TUM_Net2 = HU.testCase "spoofing_TUM_Net2" $ test_spoofing_TUM_i8 
 
 
 test_spoofing_TUM_Net3 = HU.testCase "spoofing_TUM_Net3" $ test_spoofing_TUM_i8 rulesetFile expected_spoofing_result "computed_result != expected_spoofing_result (only ifaces 96 and eth0 have protection)"
-    where rulesetFile = "../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-13_10-53-20_cheating"
+    where rulesetFile = "../thy/Iptables_Semantics/Examples/TUM_Net_Firewall/iptables-save-2015-05-13_10-53-20_cheating"
           expected_spoofing_result = [  ("eth0", True)
                             , ("foo", False)
                             , ("eth1.96", True)
@@ -306,7 +306,7 @@ test_service_matrix ipassmtMaybeString fileName expected_result errormsg = do
 
 
 test_topoS_generated_service_matrix = HU.testCase "test_topoS_generated_service_matrix" $ test_service_matrix Nothing rulesetFile expected_result errormsg
-    where rulesetFile = "../thy/Examples/topoS_generated/imaginray_factory_network.iptables-save.by-linux-kernel"
+    where rulesetFile = "../thy/Iptables_Semantics/Examples/topoS_generated/imaginray_factory_network.iptables-save.by-linux-kernel"
           errormsg = "service marix topoS_generated differs"
           expected_result = ([
               ("10.8.8.1","10.8.8.1")
@@ -335,7 +335,7 @@ test_topoS_generated_service_matrix = HU.testCase "test_topoS_generated_service_
             ])
 
 test_i8_2015_service_matrix = HU.testCase "test_i8_2015_service_matrix" $ test_service_matrix (Just ipassmt_i8_hardcoded) rulesetFile expected_result errormsg
-    where rulesetFile = "../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating"
+    where rulesetFile = "../thy/Iptables_Semantics/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating"
           errormsg = "service marix i8 iptables-save-2015-05-15_15-23-41_cheating differs"
           expected_result = ([
                               ("224.0.0.0", "{224.0.0.0 .. 239.255.255.255}")

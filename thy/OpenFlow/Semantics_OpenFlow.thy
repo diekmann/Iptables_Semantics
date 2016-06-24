@@ -1,6 +1,6 @@
 theory Semantics_OpenFlow
 imports List_Group Sort_Descending
-  "../Bitmagic/IPv4Addr"
+  "../IP_Addresses/IPv4Addr"
 begin
 
 datatype 'a flowtable_behavior = Action 'a | NoAction | Undefined
