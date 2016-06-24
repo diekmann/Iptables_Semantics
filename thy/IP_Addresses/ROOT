@@ -11,10 +11,12 @@ session "IP_Addresses" = HOL +
     "../Automatic_Refinement/Lib/Misc" (* mergesort *)
     NumberWang
   theories
+    Word_Next
     WordInterval
+    IPAddr
     IPv4Addr
     IPv6Addr
-    CIDRSplit
+    CIDR_Split
     WordInterval_Sorted (* depends on mergesort *)
   document_files
     "root.tex"

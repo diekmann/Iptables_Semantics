@@ -4,12 +4,15 @@ imports Main
   "../Word_Lib/Word_Lemmas"
 begin
 
+text\<open>Helper lemmas about numbers and words\<close>
 
 lemma mod256: "((d::nat) + 256 * c + 65536 * b + 16777216 * a) mod 256 = d mod 256"
   proof -
   from mod_mult_self2[where a="d + 256 * c + 65536 * b" and b="256" and c="65536 * a"] have 
-    "(d + 256 * c + 65536 * b + 256 * 65536 * a) mod 256 = (d + 256 * c + 65536 * b) mod 256" by simp
-  also have "\<dots>  = (d + 256 * c) mod 256" using mod_mult_self2[where a="d + 256 * c" and b="256" and c="256 * b"] by simp
+    "(d + 256 * c + 65536 * b + 256 * 65536 * a) mod 256 = (d + 256 * c + 65536 * b) mod 256"
+    by simp
+  also have "\<dots>  = (d + 256 * c) mod 256"
+    using mod_mult_self2[where a="d + 256 * c" and b="256" and c="256 * b"] by simp
   also have "\<dots> = d mod 256" using mod_mult_self2 by blast
   finally show ?thesis by presburger
   qed
@@ -23,7 +26,8 @@ lemma div65536: assumes "a < 256" "b < 256" "c < 256" "d < 256"
   also from zdiv_mult_self[where a="int d + int (256 * c)" and m="65536" and n="int b"] have
     "\<dots> = (int d + int (256 * c)) div 65536 + int b + 256 * int a" by linarith
   also from assms have "\<dots> = int b + 256 * int a" by simp
-  finally have helper: "(int d + int (256 * c) + int (65536 * b) + int (16777216 * a)) div 65536 = int b + 256 * int a" .
+  finally have helper:
+    "(int d + int (256 * c) + int (65536 * b) + int (16777216 * a)) div 65536 = int b + 256 * int a" .
   from assms show ?thesis
     unfolding helper
     apply(simp)
@@ -43,7 +47,8 @@ lemma div65536: assumes "a < 256" "b < 256" "c < 256" "d < 256"
   also from zdiv_mult_self[where a="int d" and m="256" and n="int c"] have
     "\<dots> = (int d) div 256 + int c + 256 * int b + 65536 * int a" by linarith
   also from assms have "\<dots> = int c + 256 * int b + 65536 * int a" by simp
-  finally have helper1: "(int d + int (256 * c) + int (65536 * b) + int (16777216 * a)) div 256 = int c + 256 * int b + 65536 * int a" .
+  finally have helper1: "(int d + int (256 * c) + int (65536 * b) + int (16777216 * a)) div 256 =
+                          int c + 256 * int b + 65536 * int a" .
   
   from mod_mult_self2[where a="int c + 256 * int b" and c="256 * int a" and b=256] have 
     "(int c + 256 * int b + 65536 * int a) mod 256 = (int c + 256 * int b) mod 256" by simp
@@ -56,9 +61,6 @@ lemma div65536: assumes "a < 256" "b < 256" "c < 256" "d < 256"
   from helper1 helper2 show ?thesis by simp
   qed
 
-
-
-
   lemma word32_or_NOT4294967296: "(foo::32 word) OR -4294967296 = foo"
     proof -
       let ?null="-4294967296::32 word"
@@ -67,10 +69,9 @@ lemma div65536: assumes "a < 256" "b < 256" "c < 256" "d < 256"
       show "foo OR ?null = foo" by metis
     qed
 
-
-
   (*usually: x,y = (len_of TYPE ('a)) i.e. 32 for ipv4addr*)
-  lemma bitmagic_zeroLast_leq_or1Last: "(a::('a::len) word) AND (mask len << x - len) \<le> a OR mask (y - len)"
+  lemma bitmagic_zeroLast_leq_or1Last:
+    "(a::('a::len) word) AND (mask len << x - len) \<le> a OR mask (y - len)"
     by (meson le_word_or2 order_trans word_and_le2)
 
 
@@ -81,7 +82,8 @@ lemma div65536: assumes "a < 256" "b < 256" "c < 256" "d < 256"
            (a \<in> {base .. base OR mask (len_of TYPE('a) - len)})"
   proof
     have helper3: "x OR y = x OR y AND NOT x" for x y ::"'a::len word" by (simp add: word_oa_dist2)
-    from assms show "base = NOT mask (len_of TYPE('a) - len) AND a \<Longrightarrow> a \<in> {base..base OR mask (len_of TYPE('a) - len)}"
+    from assms show "base = NOT mask (len_of TYPE('a) - len) AND a \<Longrightarrow>
+                      a \<in> {base..base OR mask (len_of TYPE('a) - len)}"
       apply(simp add: word_and_le1)
       apply(metis helper3 le_word_or2 word_bw_comms(1) word_bw_comms(2))
     done
@@ -96,9 +98,11 @@ lemma div65536: assumes "a < 256" "b < 256" "c < 256" "d < 256"
         using a neg_mask_mono_le by blast
       have f4: "base = base AND NOT mask (len_of TYPE('a) - len)"
         using valid_prefix by (metis mask_eq_0_eq_x word_bw_comms(1))
-      hence f5: "\<forall>x\<^sub>6. (base OR x\<^sub>6) AND NOT mask (len_of TYPE('a) - len) = base OR x\<^sub>6 AND NOT mask (len_of TYPE('a) - len)"
+      hence f5: "\<forall>x\<^sub>6. (base OR x\<^sub>6) AND NOT mask (len_of TYPE('a) - len) =
+                        base OR x\<^sub>6 AND NOT mask (len_of TYPE('a) - len)"
         using word_ao_dist by (metis)
-      have f6: "\<forall>x\<^sub>2 x\<^sub>3. a AND NOT mask x\<^sub>2 \<le> x\<^sub>3 \<or> \<not> (base OR mask (len_of TYPE('a) - len)) AND NOT mask x\<^sub>2 \<le> x\<^sub>3"
+      have f6: "\<forall>x\<^sub>2 x\<^sub>3. a AND NOT mask x\<^sub>2 \<le> x\<^sub>3 \<or>
+                        \<not> (base OR mask (len_of TYPE('a) - len)) AND NOT mask x\<^sub>2 \<le> x\<^sub>3"
         using f3 dual_order.trans by auto
       have "base = (base OR mask (len_of TYPE('a) - len)) AND NOT mask (len_of TYPE('a) - len)"
         using f5 by auto

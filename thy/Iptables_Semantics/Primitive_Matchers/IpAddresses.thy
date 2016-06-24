@@ -1,6 +1,6 @@
 theory IpAddresses
 imports "../../IP_Addresses/IpAddr_toString"
-  "../../IP_Addresses/CIDRSplit"
+  "../../IP_Addresses/CIDR_Split"
   "../Common/WordInterval_Lists"
 begin
 

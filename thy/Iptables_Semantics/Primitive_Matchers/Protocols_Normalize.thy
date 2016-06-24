@@ -1,6 +1,6 @@
 theory Protocols_Normalize
 imports Common_Primitive_Lemmas
-  "../../IP_Addresses/Word_Upto"
+  "../Common/Word_Upto"
 begin
 
 

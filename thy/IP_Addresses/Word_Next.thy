@@ -30,7 +30,8 @@ lemma word_atLeastLessThan_Suc_atLeastAtMost:
   fixes l::"'a::len word" shows "u \<noteq> max_word \<Longrightarrow> {l..< u + 1} = {l..u}"
   by (simp add: atLeastAtMost_def atLeastLessThan_def word_lessThan_Suc_atMost)
 
-lemma word_atLeastAtMost_Suc_greaterThanAtMost: fixes l::"'a::len word" shows "m \<noteq> max_word \<Longrightarrow> {m<..u} = {m + 1..u}"
+lemma word_atLeastAtMost_Suc_greaterThanAtMost: fixes l::"'a::len word"
+  shows "m \<noteq> max_word \<Longrightarrow> {m<..u} = {m + 1..u}"
   by(simp add: greaterThanAtMost_def greaterThan_def atLeastAtMost_def atLeast_def word_Suc_le)
   
 lemma word_atLeastLessThan_Suc_atLeastAtMost_union: 
@@ -42,7 +43,8 @@ lemma word_atLeastLessThan_Suc_atLeastAtMost_union:
   with assms show ?thesis by(simp add: word_atLeastAtMost_Suc_greaterThanAtMost)
   qed
 
-lemma word_adjacent_union: "word_next e = s' \<Longrightarrow> s \<le> e \<Longrightarrow> s' \<le> e' \<Longrightarrow> {s..e} \<union> {s'..e'} = {s .. e'}"
+lemma word_adjacent_union:
+  "word_next e = s' \<Longrightarrow> s \<le> e \<Longrightarrow> s' \<le> e' \<Longrightarrow> {s..e} \<union> {s'..e'} = {s .. e'}"
   by (metis Un_absorb2 atLeastatMost_subset_iff ivl_disj_un_two(7) max_word_max
             word_atLeastLessThan_Suc_atLeastAtMost word_le_less_eq word_next_def word_not_le)
   

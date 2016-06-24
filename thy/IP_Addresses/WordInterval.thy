@@ -24,6 +24,9 @@ subsection\<open>Semantics\<close>
     "wordinterval_to_set (WordInterval start end) = {start .. end}" |
     "wordinterval_to_set (RangeUnion r1 r2) = (wordinterval_to_set r1) \<union> (wordinterval_to_set r2)"
 
+(*Note: The runtime of all the operations could be improved, for example by keeping the tree sorted
+  and balanced.*)
+
 subsection\<open>Basic operations\<close>
   fun wordinterval_element :: "'a::len0 word \<Rightarrow> 'a::len0 wordinterval \<Rightarrow> bool" where
     "wordinterval_element el (WordInterval s e) \<longleftrightarrow> s \<le> el \<and> el \<le> e" |

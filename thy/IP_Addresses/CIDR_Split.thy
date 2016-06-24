@@ -1,7 +1,7 @@
 (*  Title:      CIDRSplit.thy
     Authors:    Julius Michaelis, Cornelius Diekmann
 *)
-theory CIDRSplit
+theory CIDR_Split
 imports IPAddr
         PrefixMatch
         Hs_Compat
@@ -59,13 +59,11 @@ private definition pfxes :: "'a::len0 itself \<Rightarrow> nat list" where
   "pfxes _ = map nat [0..int(len_of TYPE ('a))]"
 
 lemma "pfxes TYPE(32) = map nat [0 .. 32]" by eval
-value[code] "pfxes TYPE(32)"
-
 
 text\<open>somebody likes Haskell here\<close>
 private definition "const x \<equiv> \<lambda>y. x"
 
-text\<open>The function @{term "find (const True)"} is basically a safe version of @{const List.hd}\<close>
+text\<open>The idiom @{term "find (const True)"} is basically a safe version of @{const List.hd}\<close>
 private lemma "find (const True) cfs = (if cfs = [] then None else Some (hd cfs))"
   by(induction cfs) (simp_all split: split_if_asm add: const_def)
 private lemma find_const_True_hlp: "find (const True) x = (case x of [] \<Rightarrow> None | (a#as) \<Rightarrow> Some a)"
@@ -79,14 +77,17 @@ proof -
 qed
 
 
-(* Split off one prefix *)
-private definition wordinterval_CIDR_split1 :: "'a::len wordinterval \<Rightarrow> 'a prefix_match option \<times> 'a wordinterval" where
+text\<open>Split off one prefix\<close>
+private definition wordinterval_CIDR_split1
+  :: "'a::len wordinterval \<Rightarrow> 'a prefix_match option \<times> 'a wordinterval" where
   "wordinterval_CIDR_split1 r \<equiv> (
    let ma = wordinterval_lowest_element r in
    case ma of None \<Rightarrow> (None, r) |
-              Some a \<Rightarrow> let cs = (map (\<lambda>s. PrefixMatch a s) (pfxes TYPE('a))) in
-                        let cfs = filter (\<lambda>s. valid_prefix s \<and> wordinterval_subset (prefix_to_wordinterval s) r) cs in (* anything that is a subset should also be a valid prefix. but try proving that.*)
-                        let mc = find (const True) cfs in 
+              Some a \<Rightarrow> let cs = (map (\<lambda>s. PrefixMatch a s) (pfxes TYPE('a)));
+                            cfs = filter (\<lambda>s. valid_prefix s \<and> wordinterval_subset (prefix_to_wordinterval s) r) cs;
+                            (* anything that is a subset should also be a valid prefix. but try proving that.*)
+                            mc = find (const True) cfs
+                        in 
                         (case mc of None \<Rightarrow> (None, r) |
                                   Some m \<Rightarrow> (mc, wordinterval_setminus r (prefix_to_wordinterval m))))"
 
@@ -94,7 +95,8 @@ private definition wordinterval_CIDR_split1 :: "'a::len wordinterval \<Rightarro
 private lemma wordinterval_CIDR_split1_innard_helper: fixes a::"'a::len word"
   shows "wordinterval_lowest_element r = Some a \<Longrightarrow> 
   [s \<leftarrow> map (\<lambda>s. PrefixMatch a s) (pfxes TYPE('a)).
-          valid_prefix s \<and> wordinterval_to_set (prefix_to_wordinterval s) \<subseteq> wordinterval_to_set r] \<noteq> []"
+                  valid_prefix s \<and>
+                  wordinterval_to_set (prefix_to_wordinterval s) \<subseteq> wordinterval_to_set r] \<noteq> []"
 proof -
   assume a: "wordinterval_lowest_element r = Some a"
   have b: "(a,len_of(TYPE('a))) \<in> set (map (Pair a) (pfxes TYPE('a)))"
@@ -102,16 +104,21 @@ proof -
     unfolding set_map set_upto
     using Set.image_iff atLeastAtMost_iff int_eq_iff order_refl by metis (*400ms*)
   have c: "valid_prefix (PrefixMatch a (len_of(TYPE('a))))" by(simp add: valid_prefix_def pfxm_mask_def)
-  have "wordinterval_to_set (prefix_to_wordinterval (PrefixMatch a (len_of(TYPE('a))))) = {a}" unfolding prefix_to_wordinterval_def pfxm_mask_def by simp
-  moreover have "a \<in> wordinterval_to_set r" using a wordinterval_lowest_element_set_eq wordinterval_lowest_none_empty
+  have "wordinterval_to_set (prefix_to_wordinterval (PrefixMatch a (len_of(TYPE('a))))) = {a}"
+    unfolding prefix_to_wordinterval_def pfxm_mask_def by simp
+  moreover have "a \<in> wordinterval_to_set r"
+    using a wordinterval_lowest_element_set_eq wordinterval_lowest_none_empty
     by (metis is_lowest_element_def option.distinct(1))
-  ultimately have d: "wordinterval_to_set (prefix_to_wordinterval (PrefixMatch a (len_of(TYPE('a))))) \<subseteq> wordinterval_to_set r" by simp
+  ultimately have d:
+    "wordinterval_to_set (prefix_to_wordinterval (PrefixMatch a (len_of TYPE('a)))) \<subseteq> wordinterval_to_set r"
+    by simp
   show ?thesis
     unfolding arg_cong_Not[OF set_empty[symmetric]]
     apply simp
     using b c d by auto
 qed
-private lemma r_split1_not_none: fixes r:: "'a::len wordinterval" shows "\<not>wordinterval_empty r \<Longrightarrow> fst (wordinterval_CIDR_split1 r) \<noteq> None"
+private lemma r_split1_not_none: fixes r:: "'a::len wordinterval"
+  shows "\<not> wordinterval_empty r \<Longrightarrow> fst (wordinterval_CIDR_split1 r) \<noteq> None"
   unfolding wordinterval_CIDR_split1_def Let_def
   apply(cases "wordinterval_lowest_element r")
    apply(simp add: wordinterval_lowest_none_empty; fail)
@@ -155,7 +162,8 @@ proof(unfold wordinterval_eq_set_eq)
   ultimately show "wordinterval_to_set (wordinterval_union (prefix_to_wordinterval s) u) = wordinterval_to_set r" by auto
 qed
 
-definition wordinterval_CIDR_split1_2 :: "'a::len wordinterval \<Rightarrow> 'a prefix_match option \<times> 'a wordinterval" where
+definition wordinterval_CIDR_split1_2
+  :: "'a::len wordinterval \<Rightarrow> 'a prefix_match option \<times> 'a wordinterval" where
   "wordinterval_CIDR_split1_2 r \<equiv> (
    let ma = wordinterval_lowest_element r in
    case ma of None \<Rightarrow> (None, r) |
@@ -176,13 +184,8 @@ lemma wordinterval_CIDR_split1_2_eq[code]: "wordinterval_CIDR_split1 s = wordint
 	apply simp
 done
 
-
-private lemma wordinterval_CIDR_split1_never_empty: "(Some s, u) = wordinterval_CIDR_split1 r \<Longrightarrow> \<not>wordinterval_empty (prefix_to_wordinterval s)"
-  unfolding wordinterval_CIDR_split1_def Let_def
-  using prefix_never_empty
-  by simp
-
-private lemma wordinterval_CIDR_split1_some_r_ne: "(Some s, u) = wordinterval_CIDR_split1 r \<Longrightarrow> \<not>wordinterval_empty r"
+private lemma wordinterval_CIDR_split1_some_r_ne:
+  "(Some s, u) = wordinterval_CIDR_split1 r \<Longrightarrow> \<not> wordinterval_empty r"
 proof(rule ccontr, goal_cases)
   case 1
   have "wordinterval_lowest_element r = None" unfolding wordinterval_lowest_none_empty using 1(2) unfolding not_not .
@@ -191,11 +194,12 @@ proof(rule ccontr, goal_cases)
 qed
 
 private lemma wordinterval_CIDR_split1_distinct: fixes r:: "'a::len wordinterval"
-  shows "(Some s, u) = wordinterval_CIDR_split1 r \<Longrightarrow> wordinterval_empty (wordinterval_intersection (prefix_to_wordinterval s) u)"
+  shows "(Some s, u) = wordinterval_CIDR_split1 r \<Longrightarrow>
+           wordinterval_empty (wordinterval_intersection (prefix_to_wordinterval s) u)"
 proof(goal_cases)
   case 1
-  note ne = wordinterval_CIDR_split1_never_empty[OF 1]
-  have nn: "wordinterval_lowest_element r \<noteq> None" using wordinterval_CIDR_split1_some_r_ne[OF 1, unfolded wordinterval_lowest_none_empty[symmetric]] .
+  have nn: "wordinterval_lowest_element r \<noteq> None"
+    using wordinterval_CIDR_split1_some_r_ne[OF 1, unfolded wordinterval_lowest_none_empty[symmetric]] .
   obtain a where ad: "Some a = wordinterval_lowest_element r" using nn by force
   {
     fix rr :: "'a::len prefix_match \<Rightarrow> 'b option \<times> 'a wordinterval"
@@ -212,7 +216,8 @@ proof(goal_cases)
   then show ?thesis by simp
 qed
 private lemma wordinterval_CIDR_split1_distinct2: fixes r:: "'a::len wordinterval"
-  shows "wordinterval_CIDR_split1 r = (Some s, u) \<Longrightarrow> wordinterval_empty (wordinterval_intersection (prefix_to_wordinterval s) u)"
+  shows "wordinterval_CIDR_split1 r = (Some s, u) \<Longrightarrow>
+          wordinterval_empty (wordinterval_intersection (prefix_to_wordinterval s) u)"
 by(rule wordinterval_CIDR_split1_distinct[where r = r]) simp
 
 function wordinterval_CIDR_split_prefixmatch :: "'a::len wordinterval \<Rightarrow> 'a prefix_match list"where
@@ -232,7 +237,7 @@ proof(relation "measure (card \<circ> wordinterval_to_set)", rule wf_measure, un
   note vernichter = wordinterval_empty_set_eq wordinterval_intersection_set_eq wordinterval_union_set_eq wordinterval_eq_set_eq
   case (1 rs x y x2)
   note some = 1(2)[unfolded 1(3)]
-  from wordinterval_CIDR_split1_never_empty[OF this] have "\<not> wordinterval_empty (prefix_to_wordinterval x2)" .
+  from prefix_never_empty have "\<not> wordinterval_empty (prefix_to_wordinterval x2)" .
   thus ?case
     unfolding vernichter
     unfolding wordinterval_CIDR_split1_preserve[OF some, unfolded vernichter, symmetric]
@@ -242,7 +247,8 @@ qed
 
 private lemma unfold_rsplit_case:
   assumes su: "(Some s, u) = wordinterval_CIDR_split1 rs"
-  shows "(case wordinterval_CIDR_split1 rs of (None, u) \<Rightarrow> [] | (Some s, u) \<Rightarrow> s # wordinterval_CIDR_split_prefixmatch u) = s # wordinterval_CIDR_split_prefixmatch u"
+  shows "(case wordinterval_CIDR_split1 rs of (None, u) \<Rightarrow> []
+                                            | (Some s, u) \<Rightarrow> s # wordinterval_CIDR_split_prefixmatch u) = s # wordinterval_CIDR_split_prefixmatch u"
 using su by (metis option.simps(5) split_conv)
 
 private lemma wordinterval_CIDR_split_prefixmatch_union: "\<Union>set (map wordinterval_to_set (map prefix_to_wordinterval (wordinterval_CIDR_split_prefixmatch r))) = wordinterval_to_set r"
@@ -266,15 +272,9 @@ next
     by (metis Sup_insert list.set(2))
 qed
 
-(* Wolololo *)
-(*wordinterval_CIDR_split_prefixmatch
-    (RangeUnion (WordInterval (ipv4addr_of_dotdecimal (64,0,0,0))         (ipv4addr_of_dotdecimal (95, 239, 187, 204)))
-                      (WordInterval (ipv4addr_of_dotdecimal (95, 238, 187, 28)) (ipv4addr_of_dotdecimal (127,255,255,255))))
-  = [PrefixMatch (ipv4addr_of_dotdecimal (64, 0, 0, 0)) 2]*)
 lemma "wordinterval_CIDR_split_prefixmatch
           (RangeUnion (WordInterval (0x40000000) 0x5FEFBBCC) (WordInterval 0x5FEEBB1C 0x7FFFFFFF))
        = [PrefixMatch (0x40000000::32 word) 2]" by eval
-(*ipv4addr_of_dotdecimal (255,255,255,254) = 0xFFFFFFFE*)
 lemma "length (wordinterval_CIDR_split_prefixmatch (WordInterval 0 (0xFFFFFFFE::32 word))) = 32" by eval
 
 
@@ -401,7 +401,6 @@ corollary cidr_split_prefix_single:
   unfolding wordinterval_to_set.simps[symmetric]
   using cidr_split_prefix iprange_interval.simps by metis
 
-(* TODO: Move to the wordinterval lemma bucket *)
 private lemma interval_in_splitD: "xa \<in> foo \<Longrightarrow> prefix_to_wordset xa \<subseteq> \<Union>(prefix_to_wordset ` foo)" by auto
 
 lemma wordinterval_CIDR_split_prefixmatch_distinct: "distinct (wordinterval_CIDR_split_prefixmatch a)"
