@@ -66,11 +66,6 @@ definition simple_linux_router_nol12 ::
 (* an alternative formulation would maybe be "if the routing decision for the source is the same as for the destination, don't forward it." 
    This might be advantageous in $cases, however, this formulation is clearly easier to translate *)
 
-lemma update_unfold_hlps:
-	"p\<lparr>p_l2dst := x\<rparr> = p_l2dst_update (const x) p"
-	"p\<lparr>p_oiface := y\<rparr> = p_oiface_update (const y) p"
-by(simp_all add: const_def)
-
 lemma rtr_nomac_e1:
 	assumes "simple_linux_router rt fw mlf ifl pi = Some po"
 	assumes "simple_linux_router_nol12 rt fw pi = Some po'"
@@ -99,11 +94,10 @@ lemma rtr_nomac_eq:
 	assumes "iface_packet_check ifl pi \<noteq> None"
 	assumes "mlf (fromMaybe (p_dst pi) (next_hop (routing_table_semantics rt (p_dst pi)))) \<noteq> None"
 	shows "\<exists>x. map_option (\<lambda>p. p\<lparr>p_l2dst := x\<rparr>) (simple_linux_router_nol12 rt fw pi) = simple_linux_router rt fw mlf ifl pi"
-unfolding update_unfold_hlps
 proof(cases "simple_linux_router_nol12 rt fw pi"; cases "simple_linux_router rt fw mlf ifl pi")
 	case goal4
 	note rtr_nomac_e1[OF goal4(2) goal4(1)]
-	with goal4 show ?case by(auto simp add: update_unfold_hlps) 
+	with goal4 show ?case by auto 
 next
 	case (goal2 a)
 	note rtr_nomac_e2[OF goal2(2)]

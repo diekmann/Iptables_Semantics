@@ -404,7 +404,7 @@ begin
     \<lparr>p_iiface = '''', p_oiface = '''',  p_src = (1::ipv4addr), p_dst = 2, p_proto = TCP, p_sport = 8,
      p_dport = 9, p_tcp_flags = {}, p_tag_ctstate = CT_New\<rparr> = Decision FinalDeny" by eval
 
-  private definition "example_simple_match2 \<equiv> (proto_update (const ProtoAny) example_simple_match1)"
+  private definition "example_simple_match2 \<equiv> example_simple_match1\<lparr> proto := ProtoAny \<rparr>"
   text\<open>Thus, @{text "example_simple_match1"} is valid, but if we set its protocol match to any, it no longer is.\<close>
   private lemma "simple_match_valid example_simple_match1" by eval
   private lemma "\<not> simple_match_valid example_simple_match2" by eval

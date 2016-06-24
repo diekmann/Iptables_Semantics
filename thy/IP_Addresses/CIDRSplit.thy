@@ -62,6 +62,9 @@ lemma "pfxes TYPE(32) = map nat [0 .. 32]" by eval
 value[code] "pfxes TYPE(32)"
 
 
+text\<open>somebody likes Haskell here\<close>
+private definition "const x \<equiv> \<lambda>y. x"
+
 (* Split off one prefix *)
 private definition wordinterval_CIDR_split1 :: "'a::len wordinterval \<Rightarrow> 'a prefix_match option \<times> 'a wordinterval" where
   "wordinterval_CIDR_split1 r \<equiv> (

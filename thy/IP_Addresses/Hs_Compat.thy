@@ -4,10 +4,6 @@ begin
 
 text\<open>Definitions inspired by the Haskell world.\<close>
 
-(*TODO: remove? too special?*)
-definition
-  "const x \<equiv>\<lambda>y. x"
-
 definition 
   "uncurry f a \<equiv> (case a of (x,y) \<Rightarrow> f x y)"
 lemma uncurry_simp[simp]: "uncurry f (a,b) = f a b" 
