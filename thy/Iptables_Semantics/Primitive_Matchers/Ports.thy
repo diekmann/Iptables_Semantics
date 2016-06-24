@@ -1,7 +1,7 @@
 theory Ports
 imports String 
   "~~/src/HOL/Word/Word"
-  "../../IP_Addresses/WordInterval_Lists" 
+  "../Common/WordInterval_Lists" 
 begin
 
 section\<open>Ports (layer 4)\<close>

@@ -1,6 +1,6 @@
 theory WordInterval_Lists
-imports WordInterval
-  "../Iptables_Semantics/Common/Negation_Type"
+imports "../../IP_Addresses/WordInterval"
+  Negation_Type
 begin
 
 
