@@ -1,6 +1,7 @@
 theory IpAddr_toString
 imports IPAddr IPv4Addr IPv6Addr
         Lib_Word_toString
+        Lib_List_toString
 begin
 
 section\<open>Pretty Printing IP Addresses\<close>
@@ -150,26 +151,27 @@ ML\<open>
 local
   val fromHexString = StringCvt.scanString (Int.scan StringCvt.HEX);
 
-  fun extract_int ss = case ss of [] => NONE
+  fun extract_int ss = case ss of "" => NONE
                                |  xs =>
-                          case xs |> implode |> fromHexString
+                          case xs |> fromHexString
                                 of SOME i => SOME i
                                 |  NONE   => raise Fail "unparsable int";
 in
   val mk_ipv6addr = map (fn p => case p of NONE => @{const None ("16 word")}
                                         |  SOME i => @{const Some ("16 word")} $
-                                              (*TODO: can I have word_of_int as const?*)
-                                                      (@{term "word_of_int :: int \<Rightarrow> 16 word"} $
+                                                      (@{const word_of_int (16)} $
                                                                   HOLogic.mk_number HOLogic.intT i)
                         )
                  #> HOLogic.mk_list @{typ "16 word option"}
-                 (*TODO: is there a nicer way?*)
-                 (*TODO: never use THE!*)
-                 #> (fn x => @{const ipv6preferred_to_int} $ (@{const the ("ipv6addr_syntax")} $ (@{const mk_ipv6addr} $ x)));
+                 (*TODO: never use THE! is there some option_dest?*)
+                 #> (fn x => @{const ipv6preferred_to_int} $
+                                   (@{const the ("ipv6addr_syntax")} $ (@{const mk_ipv6addr} $ x)));
 
-  (*TODO: I just want to split at ':'. There must be a better way to achieve this!*)
-  val parser_ipv6 = Scan.repeat ((Scan.many Symbol.is_ascii_hex >> extract_int) --| ($$ ":"))
-                   @@@ (Scan.many Symbol.is_ascii_hex >> extract_int >> (fn p => [p]))
+  val parser_ipv6 = Scan.many1 (fn x => Symbol.is_ascii_hex x orelse x = ":")
+                      >> (implode #> space_explode ":" #> map extract_int)
+                  (* a different implementation which returns a list of exploded strings:
+                    Scan.repeat ((Scan.many Symbol.is_ascii_hex >> extract_int) --| ($$ ":"))
+                   @@@ (Scan.many Symbol.is_ascii_hex >> extract_int >> (fn p => [p]))*)
 end;
 
 local

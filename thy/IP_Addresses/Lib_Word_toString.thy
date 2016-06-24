@@ -1,11 +1,12 @@
 theory Lib_Word_toString
-imports "../Iptables_Semantics/Common/Lib_toString"
-        "~~/src/HOL/Word/Word"
+imports Lib_Numbers_toString
         "../Word_Lib/Word_Lemmas"
 begin
 
-(*immitation of http://stackoverflow.com/questions/23864965/string-of-nat-in-isabelle*)
-(*lc = lower-case*)
+(*imitation of http://stackoverflow.com/questions/23864965/string-of-nat-in-isabelle*)
+(*parameters:
+    lc = lower-case
+    w  = word to print*)
 definition string_of_word_single :: "bool \<Rightarrow> 'a::len word \<Rightarrow> string" where
   "string_of_word_single lc w \<equiv>
     (if
@@ -19,6 +20,7 @@ definition string_of_word_single :: "bool \<Rightarrow> 'a::len word \<Rightarro
      else
        undefined)"
 
+text\<open>Example:\<close>
 lemma "let word_upto = ((\<lambda> i j. map (of_nat \<circ> nat) [i .. j]) :: int \<Rightarrow> int \<Rightarrow> 32 word list)
        in map (string_of_word_single False) (word_upto 1 35) =
   [''1'', ''2'', ''3'', ''4'', ''5'', ''6'', ''7'', ''8'', ''9'',
@@ -44,7 +46,8 @@ by pat_completeness auto
 
 definition "hex_string_of_word l \<equiv> string_of_word True (16 :: ('a::len) word) l"
 definition "hex_string_of_word0 \<equiv> hex_string_of_word 0"
-(* be careful though, these functions only make sense with words > length 4. With 4 bits, base 16 is not representable. *)
+(* be careful though, these functions only make sense with words > length 4.
+   With 4 bits, base 16 is not representable. *)
 definition "dec_string_of_word0 \<equiv> string_of_word True 10 0"
 
 termination string_of_word
@@ -59,42 +62,30 @@ termination string_of_word
     apply(subgoal_tac "(n div base) < n")
      apply(blast intro: unat_mono)
     apply(rule div_less_dividend_word)
-     subgoal by(metis Word_Lemmas.power_not_zero linorder_neqE_nat numeral_less_iff power_zero_numeral semiring_norm(76) word_neq_0_conv)
+     subgoal by(metis Word_Lemmas.power_not_zero linorder_neqE_nat numeral_less_iff
+                      power_zero_numeral semiring_norm(76) word_neq_0_conv)
     apply(clarsimp)
     apply(thin_tac "n \<noteq> 0")
-    subgoal by (metis One_nat_def mult.right_neutral power_0 power_Suc unat_1 unat_power_lower Suc_1 inc_induct le_def less_eq_Suc_le lt1_neq0 not_degenerate_imp_2_neq_0 word_le_less_eq)
+    subgoal by (metis One_nat_def mult.right_neutral power_0 power_Suc unat_1
+                      unat_power_lower Suc_1 inc_induct le_def less_eq_Suc_le lt1_neq0
+                      not_degenerate_imp_2_neq_0 word_le_less_eq)
   done
 done
 
 declare string_of_word.simps[simp del]
 
 lemma "hex_string_of_word0 (0xdeadbeef42 :: 42 word) = ''deadbeef42''" by eval
-lemma "hex_string_of_word 1 (0x1 :: 5 word) = ''01''" by eval
 
+lemma "hex_string_of_word 1 (0x1 :: 5 word) = ''01''" by eval
 lemma "hex_string_of_word 8 (0xff::32 word) = ''0000000ff''" by eval
 
-value "dec_string_of_word0 (8::32 word)"
-value "string_of_nat (unat  (8::32 word))"
-value "dec_string_of_word0 (3::2 word)"
-value "string_of_nat (unat  (3::2 word))"
-value[code] "dec_string_of_word0 (-1::8 word)" (*wow, this is fast! try for 32 word*)
-value[code] "string_of_nat (unat  (-1::8 word))"
-value "dec_string_of_word0 (1::1 word)"
-value "string_of_nat (unat  (1::1 word))"
-
-value "bintrunc n 5 BIT False"
+lemma "dec_string_of_word0 (8::32 word) = ''8''" by eval
+lemma "dec_string_of_word0 (3::2 word) = ''11''" by eval
+lemma "dec_string_of_word0 (-1::8 word) = ''255''" by eval
 
 lemma string_of_word_single_atoi:
   "n < 10 \<Longrightarrow> string_of_word_single True n = [char_of_nat (48 + unat n)]"
   by(simp add: string_of_word_single_def)
-
-
-value "bintrunc 10 (-8)"
-value "bintrunc 10 (8)"
-value "bintrunc 4 (8)"
-value "bintrunc 3 (8)"
-value "bintrunc 4 (-8)"
-value "bintrunc 3 (-8)"
 
 (*TODO: move!*)
 lemma bintrunc_pos_eq: "x \<ge> 0 \<Longrightarrow> bintrunc n x = x \<longleftrightarrow> x < 2^n"
@@ -103,8 +94,7 @@ apply(rule iffI)
 by (simp add: mod_pos_pos_trivial no_bintr_alt1; fail)
 
 
-
-(*TODO: I want the reverse as [code_unfold] ! ! ! ! ! ! ! ! !*)
+(*The following lemma [symmetric] as [code_unfold] may give some cool speedup*)
 lemma string_of_word_base_ten_zeropad:
   fixes w ::"'a::len word"
   assumes lena: "len_of TYPE('a) \<ge> 5" (*word must be long enough to encode 10 = 0xA*)
@@ -180,6 +170,7 @@ lemma string_of_word_base_ten_zeropad:
     apply(simp add: unat_div_ten)
     by (simp add: string_of_nat.simps)
 qed
+
 lemma dec_string_of_word0:
   fixes w ::"32 word" (*TODO: for all words?*)
   shows "dec_string_of_word0 w = string_of_nat (unat w)"
