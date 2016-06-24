@@ -23,14 +23,14 @@ lemma ports_to_set: "ports_to_set pts = \<Union> {{s..e} | s e . (s,e) \<in> set
   qed
 
 text\<open>We can reuse the wordinterval theory to reason about ports\<close>
-lemma ports_to_set_wordinterval: "ports_to_set ps = wordinterval_to_set (l2br ps)"
-  by(induction ps rule: l2br.induct) (auto)
+lemma ports_to_set_wordinterval: "ports_to_set ps = wordinterval_to_set (l2wi ps)"
+  by(induction ps rule: l2wi.induct) (auto)
 
 
 definition "ports_invert" :: "ipt_ports \<Rightarrow> ipt_ports" where
-  "ports_invert ps = br2l (wordinterval_invert (l2br ps))"
+  "ports_invert ps = wi2l (wordinterval_invert (l2wi ps))"
 
 lemma ports_invert: "ports_to_set (ports_invert ps) = - ports_to_set ps"
-  by(auto simp add: ports_invert_def l2br_br2l ports_to_set_wordinterval)
+  by(auto simp add: ports_invert_def l2wi_wi2l ports_to_set_wordinterval)
 
 end

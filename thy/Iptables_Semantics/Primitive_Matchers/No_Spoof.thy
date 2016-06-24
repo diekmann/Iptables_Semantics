@@ -310,7 +310,7 @@ begin
                 then
                   wordinterval_UNIV
                 else
-                  l2br_negation_type_intersect (NegPos_map ipt_iprange_to_interval ip_matches))
+                  l2wi_negation_type_intersect (NegPos_map ipt_iprange_to_interval ip_matches))
               else
                 Empty_WordInterval"
   (*WOW, such horrible proof!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*)
@@ -320,7 +320,7 @@ begin
     apply(case_tac "primitive_extractor (is_Iiface, iiface_sel) m")
     apply(case_tac "primitive_extractor (is_Src, src_sel) m")
     apply(simp)
-    apply(simp add: l2br_negation_type_intersect)
+    apply(simp add: l2wi_negation_type_intersect)
     apply(simp add: NegPos_map_simps)
     apply(safe)
          apply(simp_all add: ipt_iprange_to_interval)
@@ -350,7 +350,7 @@ begin
                   then
                     wordinterval_UNIV
                   else
-                    l2br_negation_type_intersect (NegPos_map ipt_iprange_to_interval ip_matches)
+                    l2wi_negation_type_intersect (NegPos_map ipt_iprange_to_interval ip_matches)
                 else
                   Empty_WordInterval)
               else
@@ -363,7 +363,7 @@ begin
     apply(simp, rename_tac i_matches rest1)
     apply(case_tac "primitive_extractor (is_Src, src_sel) rest1")
     apply(simp)
-    apply(simp add: l2br_negation_type_intersect)
+    apply(simp add: l2wi_negation_type_intersect)
     apply(simp add: NegPos_map_simps)
     apply(safe)
          apply(simp_all add: ipt_iprange_to_interval)
@@ -402,7 +402,7 @@ begin
     :: "iface \<Rightarrow> (iface \<rightharpoonup> ('i::len word \<times> nat) list) \<Rightarrow> 'i common_primitive rule list
           \<Rightarrow> 'i wordinterval \<Rightarrow> 'i wordinterval \<Rightarrow> bool" where
     "no_spoofing_algorithm_executable iface ipassmt [] allowed denied1  \<longleftrightarrow> 
-      wordinterval_subset (wordinterval_setminus allowed denied1) (l2br (map ipcidr_to_interval (the (ipassmt iface))))" |
+      wordinterval_subset (wordinterval_setminus allowed denied1) (l2wi (map ipcidr_to_interval (the (ipassmt iface))))" |
     "no_spoofing_algorithm_executable iface ipassmt ((Rule m Accept)#rs) allowed denied1 = no_spoofing_algorithm_executable iface ipassmt rs 
         (wordinterval_union allowed (get_exists_matching_src_ips_executable iface m)) denied1" |
     "no_spoofing_algorithm_executable iface ipassmt ((Rule m Drop)#rs) allowed denied1 = no_spoofing_algorithm_executable iface ipassmt rs
@@ -418,7 +418,7 @@ begin
           (\<Union>x\<in>set (the (ipassmt iface)). case x of (base, len) \<Rightarrow> ipset_from_cidr base len)"
     unfolding ipcidr_to_interval_def (*since we used an arbitrary 'a::len word, we need to unfold manually*)
     using ipset_from_cidr_ipcidr_to_interval by blast
-    with 1 show ?case by(simp add: ipcidr_union_set_def l2br)
+    with 1 show ?case by(simp add: ipcidr_union_set_def l2wi)
   next
   case 2 thus ?case by(simp add: get_exists_matching_src_ips_executable get_all_matching_src_ips_executable)
   next

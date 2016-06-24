@@ -6,7 +6,6 @@ imports Main
   NumberWang
   Hs_Compat
   WordInterval
-  "~~/src/HOL/Word/Word"
 begin
 
 section \<open>Modelling IP Adresses\<close>

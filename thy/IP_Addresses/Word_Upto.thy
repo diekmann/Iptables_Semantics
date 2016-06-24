@@ -10,12 +10,10 @@ by auto
 
 termination word_upto
 apply(relation "measure (unat \<circ> uncurry (op -) \<circ> prod.swap)")
-apply(rule wf_measure)
-apply(unfold in_measure)
-apply(unfold comp_def)
+ apply(rule wf_measure)
 apply(simp)
 apply(subgoal_tac "unat (b - a - 1) < unat (b - a)")
-apply(simp add: diff_right_commute)
+ apply(simp add: diff_right_commute; fail)
 apply(rule measure_unat)
 apply auto
 done
@@ -30,8 +28,7 @@ by auto
 
 termination word_upto'
 apply(relation "measure (\<lambda> (a, b). unat (b - a))")
-apply(rule wf_measure)
-apply(unfold in_measure)
+ apply(rule wf_measure)
 apply(simp)
 apply(subgoal_tac "unat (b - a - 1) < unat (b - a)")
  apply (simp add: diff_diff_add; fail)
@@ -125,12 +122,12 @@ done
 lemma distinct_word_upto: "a \<le> b \<Longrightarrow> distinct (word_upto a b)"
 apply(induction a b rule: word_upto.induct)
 apply(case_tac "a = b")
-apply(subst word_upto.simps)
-apply(simp; force)
+ apply(subst word_upto.simps)
+ apply(simp; force)
 apply(subst word_upto.simps)
 apply(case_tac "a \<le> b - 1")
-apply(simp)
-apply(rule word_upto_distinct_hlp;simp_all;fail)
+ apply(simp)
+ apply(rule word_upto_distinct_hlp; simp; fail)
 apply(simp)
 apply(rule ccontr)
 apply(metis le_step_down_nat less_le not_le unat_minus_one word_le_nat_alt word_not_simps(1))

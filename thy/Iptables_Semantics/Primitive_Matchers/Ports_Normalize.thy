@@ -35,18 +35,18 @@ begin
   (* [ [(1,2) \<or> (3,4)]  \<and>  [] ]*)
   text\<open>@{typ "ipt_ports list \<Rightarrow> ipt_ports"}\<close>
   private definition ipt_ports_andlist_compress :: "('a::len word \<times> 'a::len word) list list \<Rightarrow> ('a::len word \<times> 'a::len word) list" where
-    "ipt_ports_andlist_compress pss = br2l (fold (\<lambda>ps accu. (wordinterval_intersection (l2br ps) accu)) pss wordinterval_UNIV)"
+    "ipt_ports_andlist_compress pss = wi2l (fold (\<lambda>ps accu. (wordinterval_intersection (l2wi ps) accu)) pss wordinterval_UNIV)"
   
   private lemma ipt_ports_andlist_compress_correct: "ports_to_set (ipt_ports_andlist_compress pss) = \<Inter> set (map ports_to_set pss)"
     proof -
       { fix accu
-        have "ports_to_set (br2l (fold (\<lambda>ps accu. (wordinterval_intersection (l2br ps) accu)) pss accu)) = (\<Inter> set (map ports_to_set pss)) \<inter> (ports_to_set (br2l accu))"
+        have "ports_to_set (wi2l (fold (\<lambda>ps accu. (wordinterval_intersection (l2wi ps) accu)) pss accu)) = (\<Inter> set (map ports_to_set pss)) \<inter> (ports_to_set (wi2l accu))"
           apply(induction pss arbitrary: accu)
-           apply(simp_all add: ports_to_set_wordinterval l2br_br2l)
+           apply(simp_all add: ports_to_set_wordinterval l2wi_wi2l)
           by fast
       }
       from this[of wordinterval_UNIV] show ?thesis
-        unfolding ipt_ports_andlist_compress_def by(simp add: ports_to_set_wordinterval l2br_br2l)
+        unfolding ipt_ports_andlist_compress_def by(simp add: ports_to_set_wordinterval l2wi_wi2l)
     qed
   
   

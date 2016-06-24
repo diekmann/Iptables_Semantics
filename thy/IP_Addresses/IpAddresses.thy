@@ -15,7 +15,7 @@ lemma "ipset_from_cidr (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 33 = {0}"
 
   (*helper we use for spoofing protection specification*)
   definition all_but_those_ips :: "('i::len word \<times> nat) list \<Rightarrow> ('i word \<times> nat) list" where
-    "all_but_those_ips cidrips = cidr_split (wordinterval_invert (l2br (map ipcidr_to_interval cidrips)))"
+    "all_but_those_ips cidrips = cidr_split (wordinterval_invert (l2wi (map ipcidr_to_interval cidrips)))"
   
   lemma all_but_those_ips:
     "ipcidr_union_set (set (all_but_those_ips cidrips)) =
@@ -23,7 +23,7 @@ lemma "ipset_from_cidr (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 33 = {0}"
     apply(simp add: )
     unfolding ipcidr_union_set_uncurry all_but_those_ips_def
     apply(simp add: cidr_split_prefix)
-    apply(simp add: l2br)
+    apply(simp add: l2wi)
     apply(simp add: ipcidr_to_interval_def)
     using ipset_from_cidr_ipcidr_to_interval by blast
   
@@ -90,29 +90,29 @@ subsection\<open>IPv4 Addresses in IPTables Notation (how we parse it)\<close>
 
   text\<open>A list of IP address ranges to a @{typ "'i::len wordinterval"}.
         The nice thing is: the usual set operations are defined on this type.
-        We can use the existing function @{const l2br_intersect} if we want the intersection of the supplied list\<close>
-  lemma "wordinterval_to_set (l2br_intersect (map ipt_iprange_to_interval ips)) =
+        We can use the existing function @{const l2wi_intersect} if we want the intersection of the supplied list\<close>
+  lemma "wordinterval_to_set (l2wi_intersect (map ipt_iprange_to_interval ips)) =
             (\<Inter> ip \<in> set ips. ipt_iprange_to_set ip)"
-    apply(simp add: l2br_intersect)
+    apply(simp add: l2wi_intersect)
     using ipt_iprange_to_interval by blast
   
-  text\<open>We can use @{const l2br} if we want the union of the supplied list\<close>
-  lemma "wordinterval_to_set (l2br (map ipt_iprange_to_interval ips)) = (\<Union> ip \<in> set ips. ipt_iprange_to_set ip)"
-    apply(simp add: l2br)
+  text\<open>We can use @{const l2wi} if we want the union of the supplied list\<close>
+  lemma "wordinterval_to_set (l2wi (map ipt_iprange_to_interval ips)) = (\<Union> ip \<in> set ips. ipt_iprange_to_set ip)"
+    apply(simp add: l2wi)
     using ipt_iprange_to_interval by blast
 
   text\<open>A list of (negated) IP address to a @{typ "'i::len wordinterval"}.\<close>
   definition ipt_iprange_negation_type_to_br_intersect ::
     "'i::len ipt_iprange negation_type list \<Rightarrow> 'i wordinterval" where
-    "ipt_iprange_negation_type_to_br_intersect l = l2br_negation_type_intersect (NegPos_map ipt_iprange_to_interval l)" 
+    "ipt_iprange_negation_type_to_br_intersect l = l2wi_negation_type_intersect (NegPos_map ipt_iprange_to_interval l)" 
 
   lemma ipt_iprange_negation_type_to_br_intersect: "wordinterval_to_set (ipt_iprange_negation_type_to_br_intersect l) =
       (\<Inter> ip \<in> set (getPos l). ipt_iprange_to_set ip) - (\<Union> ip \<in> set (getNeg l). ipt_iprange_to_set ip)"
-    apply(simp add: ipt_iprange_negation_type_to_br_intersect_def l2br_negation_type_intersect NegPos_map_simps)
+    apply(simp add: ipt_iprange_negation_type_to_br_intersect_def l2wi_negation_type_intersect NegPos_map_simps)
     using ipt_iprange_to_interval by blast
 
   text\<open>The @{typ "'i::len wordinterval"} can be translated back into a list of IP ranges.
-        If a list of intervals is enough, we can use @{const br2l}.
+        If a list of intervals is enough, we can use @{const wi2l}.
         If we need it in @{typ "'i::len ipt_iprange"}, we can use this function.\<close>
   definition wi_2_cidr_ipt_iprange_list :: "'i::len wordinterval \<Rightarrow> 'i ipt_iprange list" where
     "wi_2_cidr_ipt_iprange_list r = map (\<lambda> (base, len). IpAddrNetmask base len) (cidr_split r)"

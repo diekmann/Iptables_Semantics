@@ -16,7 +16,6 @@ lemma "word_prev (2:: 8 word) = 1" by eval
 lemma "word_prev (0:: 8 word) = 0" by eval
 
 
-
 lemma word_Suc_leq: fixes k::"'a::len word" shows "k \<noteq> max_word \<Longrightarrow> x < k + 1 \<longleftrightarrow> x \<le> k"
   using Word_Lemmas.less_x_plus_1 word_le_less_eq by auto
 
