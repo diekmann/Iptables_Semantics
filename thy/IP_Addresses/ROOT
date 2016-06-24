@@ -11,10 +11,10 @@ session "IP_Addresses" = HOL +
     "../afp/Mergesort"
     NumberWang
   theories
+    WordInterval
     IPv4Addr
     IPv6Addr
     CIDRSplit
-    WordInterval_NumberWang
     WordInterval_Lists
   document_files
     "root.tex"
