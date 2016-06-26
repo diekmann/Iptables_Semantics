@@ -64,7 +64,7 @@ proof(induction rtbl)
 qed simp
 
 subsection\<open>Longest Prefix Match\<close>
-text\<open>Sorting is fun\<dots>\<close>
+text\<open>Sorting is fun...\<close>
 
 text\<open>The problem is that Isabelle does not have anything like \texttt{sortBy}, but we want a list that is sorted first by descending prefix length and then by ascending metric.\<close>
 text\<open>Enter this thing:\<close>

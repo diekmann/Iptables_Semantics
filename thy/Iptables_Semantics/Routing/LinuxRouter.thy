@@ -26,7 +26,7 @@ record interface =
 	iface_name :: string
 	iface_mac :: "48 word"
 	(*iface_ips :: "(ipv4addr \<times> 32 prefix_match) set" (* there is a set of IP addresses and the reachable subnets for them *), but we don't use that right now, so it is commented out. 
-	Also, part of that information is already in the routing table, so careful here\<dots> *)
+	Also, part of that information is already in the routing table, so careful here... *)
 
 definition iface_packet_check ::  "interface list \<Rightarrow>('i::len,'b) simple_packet_ext_scheme \<Rightarrow> interface option"
 where "iface_packet_check ifs p \<equiv> find (\<lambda>i. iface_name i = p_iiface p \<and> iface_mac i = p_l2dst p) ifs" 
@@ -51,7 +51,7 @@ definition simple_linux_router ::
  - Unicast only. 
  - Only one routing table.
  - Only default iptables table (no raw, nat)
- - No traffic to localhost (might be a limit to lift\<dots>)
+ - No traffic to localhost (might be a limit to lift...)
 *)
 
 definition simple_linux_router_nol12 ::

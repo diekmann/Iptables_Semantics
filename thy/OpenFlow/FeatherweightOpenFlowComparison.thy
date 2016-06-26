@@ -11,7 +11,7 @@ guha_unmatched: "\<forall>fe \<in> set ft. \<gamma> (ofe_fields fe) p = False \<
  guha_table_semantics \<gamma> ft p None"
 
 (* 
-so\<dots> there's the possibility for a flow table with two matching entries.
+so... there's the possibility for a flow table with two matching entries.
 I'm not so sure it is a good idea to model undefined behavior by nondeterministic but very defined behavior..
 *)
 lemma guha_table_semantics_ex2res:
