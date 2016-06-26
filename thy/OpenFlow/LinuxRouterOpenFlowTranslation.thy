@@ -182,7 +182,7 @@ thm prefix_match_semantics_simple_match (* mph, I had one like that already. TOD
 
 
 lemma "x \<in> set (wordinterval_CIDR_split_prefixmatch w) \<Longrightarrow> valid_prefix x"
-using wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec] .
+using wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec, THEN conjunct1] .
 
 lemma simple_match_to_of_matchI: 
 	assumes mv: "simple_match_valid r"
@@ -380,10 +380,10 @@ proof -
 			apply(subgoal_tac "p_sport p \<in> wordinterval_to_set (WordInterval a b)")
 			apply(simp;fail)
 			apply(subgoal_tac "p_sport p \<in> prefix_to_wordset xc")
-			apply(subst wordinterval_CIDR_split_prefixmatch[symmetric])
+			apply(subst wordinterval_CIDR_split_prefixmatch)
 			apply blast
 			apply(subst(asm)(1) prefix_match_semantics_wordset)
-			apply(erule wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec];fail)
+			apply(erule wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec, THEN conjunct1];fail)
 			apply assumption
 		done
 	next
@@ -398,10 +398,10 @@ proof -
 			apply(subgoal_tac "p_dport p \<in> wordinterval_to_set (WordInterval a b)")
 			apply(simp;fail)
 			apply(subgoal_tac "p_dport p \<in> prefix_to_wordset xc")
-			apply(subst wordinterval_CIDR_split_prefixmatch[symmetric])
+			apply(subst wordinterval_CIDR_split_prefixmatch)
 			apply blast
 			apply(subst(asm)(1) prefix_match_semantics_wordset)
-			apply(erule wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec];fail)
+			apply(erule wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec, THEN conjunct1];fail)
 			apply assumption
 		done
     qed
@@ -677,12 +677,12 @@ proof -
     fix x y :: "16 prefix_match"
     obtain xm xn ym yn where xyd[simp]: "x = PrefixMatch xm xn" "y = PrefixMatch ym yn" by(cases x; cases y)
     assume iw: "x \<in> wis" "y \<in> wis" and et: "(pfxm_prefix x, ~~ pfxm_mask x) = (pfxm_prefix y, ~~ pfxm_mask y)"
-    hence le16: "xn \<le> 16" "yn \<le> 16" unfolding wis_def using wordinterval_CIDR_split_prefixmatch_all_valid_less_Ball[unfolded Ball_def, THEN spec, THEN mp] by force+
+    hence le16: "xn \<le> 16" "yn \<le> 16" unfolding wis_def using wordinterval_CIDR_split_prefixmatch_all_valid_Ball[unfolded Ball_def, THEN spec, THEN mp] by force+
     with et have "16 - xn = 16 - yn" unfolding pfxm_mask_def by(auto intro: mask_inj_hlp1[THEN inj_onD])
     hence "x = y" using et le16 using diff_diff_cancel by simp
   } note * = this
   show ?thesis 
-    apply(clarsimp simp add: smtoms_eq_hlp distinct_map wordinterval_CIDR_split_prefixmatch_distinct)
+    apply(clarsimp simp add: smtoms_eq_hlp distinct_map wordinterval_CIDR_split_distinct)
     apply(subst comp_inj_on_iff[symmetric]; intro inj_onI)
   using * by simp_all
 qed
