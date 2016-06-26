@@ -12,6 +12,7 @@ session "Bitmagic" = IP_Addresses +
     "Common/WordInterval_Lists"
   document_files
     "root.tex"
+    "mathpartir.sty"
 
 session "Iptables_Semantics" = Bitmagic +
   theories[document=false]
