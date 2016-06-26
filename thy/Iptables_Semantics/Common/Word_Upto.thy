@@ -38,8 +38,6 @@ done
 
 declare word_upto'.simps[simp del]
 
-value[code] "let x = word_upto' (3 :: 32 word) 16000 in ()"
-
 lemma word_upto_cons_front[code]:
  "word_upto a b = word_upto' a b"
  proof(induction a b rule:word_upto'.induct)
@@ -168,8 +166,6 @@ qed
 definition "stop_word_upto_unfold = word_upto"
 lemma (*[code_unfold]:*) "word_upto a b = (if a \<le> b then map of_nat (upt (unat a) (Suc (unat b))) else stop_word_upto_unfold a b)"
        using word_upto_alt stop_word_upto_unfold_def by metis
-value[code] "let x = word_upto (3 :: 32 word) 16000 in ()"
-(* TODO: Does this break something? *)
 
 lemma sorted_word_upto:
        fixes a b :: "('l :: len) word"
