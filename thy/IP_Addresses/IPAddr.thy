@@ -63,7 +63,7 @@ subsection\<open>Sets of IP Addresses\<close>
        ipset_from_netmask addr ((mask pflength) << (len_of(TYPE('i)) - pflength))"
 
   text\<open>Example (pseudo syntax):
-    @{const ipset_from_cidr}@{text "192.168.1.129 24"} = @{text "{192.168.1.0 .. 192.168.1.255}"}\<close>
+    @{const ipset_from_cidr} @{text "192.168.1.129 24"} = @{text "{192.168.1.0 .. 192.168.1.255}"}\<close>
 
   (*does this simplify stuff?*)
   lemma "(case ipcidr of (base, len) \<Rightarrow> ipset_from_cidr base len) = uncurry ipset_from_cidr ipcidr"
