@@ -10,14 +10,18 @@ session "IP_Addresses" = HOL +
     "../Word_Lib/Word_Lemmas"
     "../Automatic_Refinement/Lib/Misc" (* mergesort *)
     NumberWang
+    IPv6Bitmagic
   theories
     Word_Next
     WordInterval
     IPAddr
     IPv4Addr
     IPv6Addr
+    PrefixMatch
     CIDR_Split
     WordInterval_Sorted (* depends on mergesort *)
+    IpAddr_Parser
+    IpAddr_toString
   document_files
     "root.tex"
 
