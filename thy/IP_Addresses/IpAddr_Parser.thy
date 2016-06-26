@@ -1,5 +1,8 @@
 theory IpAddr_Parser
-imports IPAddr IPv4Addr IPv6Addr
+imports IPAddr
+        IPv4Addr
+        IPv6Addr
+        "~~/src/HOL/Library/Code_Target_Nat" (*!!*)
 begin
 
 section\<open>Parsing IP Addresses\<close>

@@ -260,9 +260,10 @@ subsection\<open>IP Ranges: Examples\<close>
               (pre AND ((mask len) << (32 - len))) \<le> addr \<and> addr \<le> pre OR (mask (32 - len))"
     by(simp add: addr_in_ipset_from_cidr_code)
 
-  (*small numbers because we didn't load Code_Target_Nat*)
-  lemma "ipv4addr_of_dotdecimal (0,0,0,8) \<in> (ipset_from_cidr (ipv4addr_of_dotdecimal (0,0,0,0)) 16)"
-    by eval
+  (*small numbers because we didn't load Code_Target_Nat. Should work by eval*)
+  lemma "ipv4addr_of_dotdecimal (192,168,42,8) \<in> (ipset_from_cidr (ipv4addr_of_dotdecimal (192,168,0,0)) 16)"
+    by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipset_from_cidr_def
+                    ipset_from_netmask_def mask_def)
 
   definition ipv4range_UNIV :: "32 wordinterval" where "ipv4range_UNIV \<equiv> wordinterval_UNIV"
   

@@ -2,6 +2,7 @@ theory IpAddr_toString
 imports IPAddr IPv4Addr IPv6Addr
         Lib_Word_toString
         Lib_List_toString
+        "~~/src/HOL/Library/Code_Target_Nat" (*!!*)
 begin
 
 section\<open>Pretty Printing IP Addresses\<close>
@@ -19,7 +20,8 @@ subsection\<open>Generic Pretty Printer\<close>
 subsection\<open>IPv4 Pretty Printing\<close>
 
   fun dotteddecimal_toString :: "nat \<times> nat \<times> nat \<times> nat \<Rightarrow> string" where
-    "dotteddecimal_toString (a,b,c,d) = string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d"
+    "dotteddecimal_toString (a,b,c,d) =
+      string_of_nat a@''.''@string_of_nat b@''.''@string_of_nat c@''.''@string_of_nat d"
   
   definition ipv4addr_toString :: "ipv4addr \<Rightarrow> string" where
     "ipv4addr_toString ip = dotteddecimal_toString (dotdecimal_of_ipv4addr ip)"
@@ -71,11 +73,13 @@ subsection\<open>IPv6 Pretty Printing\<close>
   lemma "ipv6addr_toString (ipv6preferred_to_int (IPv6AddrPreferred 0 0 0 0 0 0 0 1)) =
                ''::1''" by eval --\<open>loopback address\<close>
   
-  lemma "ipv6addr_toString (ipv6preferred_to_int (IPv6AddrPreferred 0x2001 0xdb8 0x0 0x1 0x1 0x1 0x1 0x1)) =
+  lemma "ipv6addr_toString (ipv6preferred_to_int
+          (IPv6AddrPreferred 0x2001 0xdb8 0x0 0x1 0x1 0x1 0x1 0x1)) =
               ''2001:db8:0:1:1:1:1:1''" by eval --\<open>Section 4.2.2 of RFC5952\<close>
 
   lemma "ipv6addr_toString max_ipv6_addr = ''ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff''" by eval
-  lemma "ipv6addr_toString (ipv6preferred_to_int (IPv6AddrPreferred 0xffff 0xffff 0xffff 0xffff 0xffff 0xffff 0xffff 0xffff)) =
+  lemma "ipv6addr_toString (ipv6preferred_to_int
+           (IPv6AddrPreferred 0xffff 0xffff 0xffff 0xffff 0xffff 0xffff 0xffff 0xffff)) =
               ''ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff''" by eval
 
 

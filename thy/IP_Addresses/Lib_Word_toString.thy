@@ -171,10 +171,14 @@ lemma string_of_word_base_ten_zeropad:
     by (simp add: string_of_nat.simps)
 qed
 
+(*TODO: one for all words?*)
 lemma dec_string_of_word0:
-  fixes w ::"32 word" (*TODO: for all words?*)
-  shows "dec_string_of_word0 w = string_of_nat (unat w)"
+  "dec_string_of_word0 (w8:: 8 word) = string_of_nat (unat w8)"
+  "dec_string_of_word0 (w16:: 16 word) = string_of_nat (unat w16)"
+  "dec_string_of_word0 (w32:: 32 word) = string_of_nat (unat w32)"
+  "dec_string_of_word0 (w64:: 64 word) = string_of_nat (unat w64)"
+  "dec_string_of_word0 (w128:: 128 word) = string_of_nat (unat w128)"
   unfolding dec_string_of_word0_def
-  using string_of_word_base_ten_zeropad by force
+  using string_of_word_base_ten_zeropad by force+
 
 end
