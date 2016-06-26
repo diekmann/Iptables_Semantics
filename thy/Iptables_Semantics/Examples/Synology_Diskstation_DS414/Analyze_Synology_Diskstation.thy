@@ -150,10 +150,10 @@ apply(simp del: rmshadow.simps)
 apply(simp add: Matching_Ternary.matches_def)
 apply(intro conjI impI)
  apply(rule_tac x="undefined\<lparr>p_iiface := ''eth0'', p_oiface := ''eth1'', p_src := ipv4addr_of_dotdecimal (8,8,8,8), p_dst := 0, p_proto := TCP, p_sport:=2065, p_dport:=80, p_tcp_flags := {TCP_SYN}, p_tag_ctstate := CT_New\<rparr>" in exI)
- apply(simp add: ipv4addr_of_dotdecimal.simps ipv4set_from_cidr_def ipv4addr_of_nat_def ipset_from_cidr_alt mask_def; fail)
+ apply(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipset_from_cidr_alt mask_def; fail)
 apply(thin_tac "\<exists>p. x p" for x)
 apply(rule_tac x="undefined\<lparr>p_iiface := ''eth0'', p_oiface := ''eth1'', p_src := ipv4addr_of_dotdecimal (192,168,8,8), p_dst:= 0, p_proto:=TCP, p_sport:=2065, p_dport:=80, p_tcp_flags := {TCP_SYN}, p_tag_ctstate := CT_New\<rparr> " in exI)
-apply(simp add: ipv4addr_of_dotdecimal.simps ipv4set_from_cidr_def ipv4addr_of_nat_def ipset_from_cidr_alt mask_def; fail)
+apply(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipset_from_cidr_alt mask_def; fail)
 done(*>*)
 
 

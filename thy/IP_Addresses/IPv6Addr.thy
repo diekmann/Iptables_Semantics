@@ -3,19 +3,15 @@
 *)
 theory IPv6Addr
 imports IPv6Bitmagic
-  "~~/src/HOL/Word/Word"
-  "~~/src/HOL/Library/Code_Target_Nat" (*!*)
+        IPAddr
+        (* include "~~/src/HOL/Library/Code_Target_Nat" if you need to work with actual numbers.*)
 begin
 
-value "(2::nat) < 2^128" (*without Code_Target_Nat, this would be really slow*)
 
-
-section \<open>Modelling IPv6 Adresses\<close>
+section \<open>IPv6 Addresses\<close>
   text\<open>An IPv6 address is basically a 128 bit unsigned integer. RFC 4291, Section 2.\<close>
   type_synonym ipv6addr = "128 word"
  
-
-  (*the next lines are a copy from IPv4Addr.thy*)
   text\<open>Conversion between natural numbers and IPv6 adresses\<close>
   definition nat_of_ipv6addr :: "ipv6addr \<Rightarrow> nat" where
     "nat_of_ipv6addr a = unat a"
@@ -24,9 +20,6 @@ section \<open>Modelling IPv6 Adresses\<close>
 
   lemma "ipv6addr_of_nat n = word_of_int (int n)"
     by(simp add: ipv6addr_of_nat_def word_of_nat)
-
-  lemma "((nat_of_ipv6addr (42::ipv6addr))::nat) = 42" by eval
-  lemma "((ipv6addr_of_nat (42::nat))::ipv6addr) = 42" by eval
 
   text\<open>The maximum IPv6 address\<close>
   definition max_ipv6_addr :: "ipv6addr" where 
@@ -40,7 +33,7 @@ section \<open>Modelling IPv6 Adresses\<close>
     by(simp add: max_ipv6_addr_number max_word_def)
   lemma max_ipv6_addr_max: "\<forall>a. a \<le> max_ipv6_addr"
     by(simp add: max_ipv6_addr_max_word)
-  lemma range_0_max_UNIV: "UNIV = {0 .. max_ipv6_addr}" (*not in the simp set, for a reason*)
+  lemma UNIV_ipv6addrset: "UNIV = {0 .. max_ipv6_addr}" (*not in the simp set, for a reason*)
     by(simp add: max_ipv6_addr_max_word) fastforce
 
   text\<open>identity functions\<close>
@@ -51,10 +44,6 @@ section \<open>Modelling IPv6 Adresses\<close>
     by(simp add: ipv6addr_of_nat_def nat_of_ipv6addr_def unat_of_nat)
   lemma ipv6addr_of_nat_nat_of_ipv6addr: "ipv6addr_of_nat (nat_of_ipv6addr addr) = addr"
     by(simp add: ipv6addr_of_nat_def nat_of_ipv6addr_def)
-
-  text\<open>Equality of IPv6 adresses\<close>
-  lemma ipv6addr_of_nat_eq: "x = y \<Longrightarrow> ipv6addr_of_nat x = ipv6addr_of_nat y"
-    by(simp add: ipv6addr_of_nat_def)
 
 subsection\<open>Syntax of IPv6 Adresses\<close>
   text\<open>RFC 4291, Section 2.2.: Text Representation of Addresses\<close>
@@ -163,7 +152,7 @@ text\<open>
      split the string which is an ipv6 address at ':'
      map empty string to None
      map everything else to Some (string_to_16word str)
-     sanitize empty strings at the start and the end
+     sanitize empty strings at the start and the end (see toString and parser theories)
    Example:
      "1:2:3".split(":")  = ['1', '2', '3']
      ":2:3:4".split(":") = ['', '2', '3', '4']
@@ -365,7 +354,9 @@ unfolding parse_ipv6_address_compressed_def
 by (auto split: list.split_asm option.split_asm) (* takes a minute *)
 
 lemma parse_ipv6_address_compressed_identity2:
-      "ipv6addr_syntax_compressed_to_list ipv6_syntax = ls \<longleftrightarrow> (parse_ipv6_address_compressed ls) = Some ipv6_syntax" (is "?lhs = ?rhs")
+      "ipv6addr_syntax_compressed_to_list ipv6_syntax = ls \<longleftrightarrow>
+        (parse_ipv6_address_compressed ls) = Some ipv6_syntax"
+      (is "?lhs = ?rhs")
 proof
   assume ?rhs
   thus ?lhs
@@ -640,7 +631,8 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
  
   lemma ipv6_unparsed_compressed_to_preferred_identity2: 
     "ipv6_unparsed_compressed_to_preferred ls = Some ipv6prferred
-     \<longleftrightarrow> (\<exists>ipv6compressed. parse_ipv6_address_compressed ls = Some ipv6compressed \<and> ipv6addr_c2p ipv6compressed = ipv6prferred)"
+     \<longleftrightarrow> (\<exists>ipv6compressed. parse_ipv6_address_compressed ls = Some ipv6compressed \<and>
+                           ipv6addr_c2p ipv6compressed = ipv6prferred)"
   apply(rule iffI)
    apply(subgoal_tac "parse_ipv6_address_compressed ls \<noteq> None")
     prefer 2
@@ -661,10 +653,8 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
   using ipv6_unparsed_compressed_to_preferred_identity1 apply blast
   done
   
-  
-  
 
-text\<open>IPv6 pretty printing (converting to compressed format)\<close>
+subsection\<open>IPv6 pretty printing (converting to compressed format)\<close>
 context
 begin
   private function goup_by_zeros :: "16 word list \<Rightarrow> 16 word list list" where
@@ -679,9 +669,6 @@ begin
 	 apply(relation "measure (\<lambda>xs. length xs)")
 	   apply(simp_all)
 	 by (simp add: le_imp_less_Suc length_dropWhile_le)
-
-	(*"goup_by_zeros xs \<noteq> groupF (\<lambda>x. x=0) xs"
-	  groupF does not preserver the order but groups the whole list*)
 	
 	private lemma "goup_by_zeros [0,1,2,3,0,0,0,0,3,4,0,0,0,2,0,0,2,0,3,0] =
 	        [[0], [1], [2], [3], [0, 0, 0, 0], [3], [4], [0, 0, 0], [2], [0, 0], [2], [0], [3], [0]]"
@@ -793,16 +780,15 @@ begin
   apply(cases ip)
   apply(simp add: ipv6_preferred_to_compressed_pull_out_if)
   apply(simp only: split: split_if_asm)
-   prefer 2
-   subgoal
-   apply(rule disjI1)
-   apply(simp)
-   by force
-  subgoal for a b c d e f g h
-  apply(rule disjI2)
-  apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
-        case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
-  by(auto simp add: max_zero_streak_def) (*28.129s cpu time*)
+   subgoal for a b c d e f g h
+   apply(rule disjI2)
+   apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
+         case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
+   by(auto simp add: max_zero_streak_def) (*28.129s cpu time*)
+  subgoal
+  apply(rule disjI1)
+  apply(simp)
+  by force
   done
 
 
@@ -820,88 +806,86 @@ begin
     assumes "ipv6_unparsed_compressed_to_preferred (ipv6_preferred_to_compressed ip) = Some ip'"
     shows "ip = ip'"
   proof -
-  from assms have 1: "\<exists>ipv6compressed.
-       parse_ipv6_address_compressed (ipv6_preferred_to_compressed ip) = Some ipv6compressed \<and>
-       ipv6addr_c2p ipv6compressed = ip'" using ipv6_unparsed_compressed_to_preferred_identity2 by simp
+    from assms have 1: "\<exists>ipv6compressed.
+         parse_ipv6_address_compressed (ipv6_preferred_to_compressed ip) = Some ipv6compressed \<and>
+         ipv6addr_c2p ipv6compressed = ip'" using ipv6_unparsed_compressed_to_preferred_identity2 by simp
+  
+    obtain a b c d e f g h where ip: "ip = IPv6AddrPreferred a b c d e f g h" by(cases ip)
+  
+    have ipv6_preferred_to_compressed_None1:
+      "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = None#xs \<Longrightarrow>
+        (map Some (dropWhile (\<lambda>x. x=0) [a,b,c,d,e,f,g,h]) = xs \<Longrightarrow> (IPv6AddrPreferred a b c d e f g h) = ip') \<Longrightarrow>
+        (IPv6AddrPreferred a b c d e f g h) = ip'" for xs
+      apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
+            case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
+      by(simp_all add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def) (*5s*)
+    have ipv6_preferred_to_compressed_None2:
+      "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (Some a')#None#xs \<Longrightarrow>
+        (map Some (dropWhile (\<lambda>x. x=0) [b,c,d,e,f,g,h]) = xs \<Longrightarrow> (IPv6AddrPreferred a' b c d e f g h) = ip') \<Longrightarrow>
+        (IPv6AddrPreferred a b c d e f g h) = ip'" for xs a'
+      apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
+            case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
+      by(simp_all add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def) (*5s*)
+    have ipv6_preferred_to_compressed_None3:
+      "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (Some a')#(Some b')#None#xs \<Longrightarrow>
+        (map Some (dropWhile (\<lambda>x. x=0) [c,d,e,f,g,h]) = xs \<Longrightarrow> (IPv6AddrPreferred a' b' c d e f g h) = ip') \<Longrightarrow>
+        (IPv6AddrPreferred a b c d e f g h) = ip'" for xs a' b'
+      apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
+            case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
+      by(simp_all add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def) (*5s*)
+    have ipv6_preferred_to_compressed_None4:
+      "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (Some a')#(Some b')#(Some c')#None#xs \<Longrightarrow>
+        (map Some (dropWhile (\<lambda>x. x=0) [d,e,f,g,h]) = xs \<Longrightarrow> (IPv6AddrPreferred a' b' c' d e f g h) = ip') \<Longrightarrow>
+        (IPv6AddrPreferred a b c d e f g h) = ip'" for xs a' b' c'
+      apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
+            case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
+      by(simp_all add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def) (*5s*)
+    have ipv6_preferred_to_compressed_None5:
+      "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (Some a')#(Some b')#(Some c')#(Some d')#None#xs \<Longrightarrow>
+        (map Some (dropWhile (\<lambda>x. x=0) [e,f,g,h]) = xs \<Longrightarrow> (IPv6AddrPreferred a' b' c' d' e f g h) = ip') \<Longrightarrow>
+        (IPv6AddrPreferred a b c d e f g h) = ip'" for xs a' b' c' d'
+      apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
+            case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
+      by(simp_all add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def) (*5s*)
+    have ipv6_preferred_to_compressed_None6:
+      "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (Some a')#(Some b')#(Some c')#(Some d')#(Some e')#None#xs \<Longrightarrow>
+        (map Some (dropWhile (\<lambda>x. x=0) [f,g,h]) = xs \<Longrightarrow> (IPv6AddrPreferred a' b' c' d' e' f g h) = ip') \<Longrightarrow>
+        (IPv6AddrPreferred a b c d e f g h) = ip'" for xs a' b' c' d' e'
+      apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
+            case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
+      by(simp_all add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def) (*5s*)
+    have ipv6_preferred_to_compressed_None7:
+      "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (Some a')#(Some b')#(Some c')#(Some d')#(Some e')#(Some f')#None#xs \<Longrightarrow>
+        (map Some (dropWhile (\<lambda>x. x=0) [g,h]) = xs \<Longrightarrow> (IPv6AddrPreferred a' b' c' d' e' f' g h) = ip') \<Longrightarrow>
+        (IPv6AddrPreferred a b c d e f g h) = ip'"  for xs a' b' c' d' e' f'
+      apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
+            case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
+      by(simp_all add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def) (*5s*)
+    have ipv6_preferred_to_compressed_None8:
+      "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (Some a')#(Some b')#(Some c')#(Some d')#(Some e')#(Some f')#(Some g')#None#xs \<Longrightarrow>
+        (map Some (dropWhile (\<lambda>x. x=0) [h]) = xs \<Longrightarrow> (IPv6AddrPreferred a' b' c' d' e' f' g' h) = ip') \<Longrightarrow>
+        (IPv6AddrPreferred a b c d e f g h) = ip'" for xs a' b' c' d' e' f' g'
+      apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
+            case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
+      by(simp_all add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def) (*5s*)
 
-  obtain a b c d e f g h where ip: "ip = IPv6AddrPreferred a b c d e f g h" by(cases ip)
-
-  have ipv6_preferred_to_compressed_None1:
-    "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = None#xs \<Longrightarrow>
-      (map Some (dropWhile (\<lambda>x. x=0) [a,b,c,d,e,f,g,h]) = xs \<Longrightarrow> (IPv6AddrPreferred a b c d e f g h) = ip') \<Longrightarrow>
-      (IPv6AddrPreferred a b c d e f g h) = ip'" for xs
-    apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
-          case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
-    by(simp_all add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def) (*5s*)
-  have ipv6_preferred_to_compressed_None2:
-    "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (Some a')#None#xs \<Longrightarrow>
-      (map Some (dropWhile (\<lambda>x. x=0) [b,c,d,e,f,g,h]) = xs \<Longrightarrow> (IPv6AddrPreferred a' b c d e f g h) = ip') \<Longrightarrow>
-      (IPv6AddrPreferred a b c d e f g h) = ip'" for xs a'
-    apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
-          case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
-    by(simp_all add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def) (*5s*)
-  have ipv6_preferred_to_compressed_None3:
-    "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (Some a')#(Some b')#None#xs \<Longrightarrow>
-      (map Some (dropWhile (\<lambda>x. x=0) [c,d,e,f,g,h]) = xs \<Longrightarrow> (IPv6AddrPreferred a' b' c d e f g h) = ip') \<Longrightarrow>
-      (IPv6AddrPreferred a b c d e f g h) = ip'" for xs a' b'
-    apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
-          case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
-    by(simp_all add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def) (*5s*)
-  have ipv6_preferred_to_compressed_None4:
-    "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (Some a')#(Some b')#(Some c')#None#xs \<Longrightarrow>
-      (map Some (dropWhile (\<lambda>x. x=0) [d,e,f,g,h]) = xs \<Longrightarrow> (IPv6AddrPreferred a' b' c' d e f g h) = ip') \<Longrightarrow>
-      (IPv6AddrPreferred a b c d e f g h) = ip'" for xs a' b' c'
-    apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
-          case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
-    by(simp_all add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def) (*5s*)
-  have ipv6_preferred_to_compressed_None5:
-    "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (Some a')#(Some b')#(Some c')#(Some d')#None#xs \<Longrightarrow>
-      (map Some (dropWhile (\<lambda>x. x=0) [e,f,g,h]) = xs \<Longrightarrow> (IPv6AddrPreferred a' b' c' d' e f g h) = ip') \<Longrightarrow>
-      (IPv6AddrPreferred a b c d e f g h) = ip'" for xs a' b' c' d'
-    apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
-          case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
-    by(simp_all add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def) (*5s*)
-  have ipv6_preferred_to_compressed_None6:
-    "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (Some a')#(Some b')#(Some c')#(Some d')#(Some e')#None#xs \<Longrightarrow>
-      (map Some (dropWhile (\<lambda>x. x=0) [f,g,h]) = xs \<Longrightarrow> (IPv6AddrPreferred a' b' c' d' e' f g h) = ip') \<Longrightarrow>
-      (IPv6AddrPreferred a b c d e f g h) = ip'" for xs a' b' c' d' e'
-    apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
-          case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
-    by(simp_all add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def) (*5s*)
-  have ipv6_preferred_to_compressed_None7:
-    "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (Some a')#(Some b')#(Some c')#(Some d')#(Some e')#(Some f')#None#xs \<Longrightarrow>
-      (map Some (dropWhile (\<lambda>x. x=0) [g,h]) = xs \<Longrightarrow> (IPv6AddrPreferred a' b' c' d' e' f' g h) = ip') \<Longrightarrow>
-      (IPv6AddrPreferred a b c d e f g h) = ip'"  for xs a' b' c' d' e' f'
-    apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
-          case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
-    by(simp_all add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def) (*5s*)
-  have ipv6_preferred_to_compressed_None8:
-    "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = (Some a')#(Some b')#(Some c')#(Some d')#(Some e')#(Some f')#(Some g')#None#xs \<Longrightarrow>
-      (map Some (dropWhile (\<lambda>x. x=0) [h]) = xs \<Longrightarrow> (IPv6AddrPreferred a' b' c' d' e' f' g' h) = ip') \<Longrightarrow>
-      (IPv6AddrPreferred a b c d e f g h) = ip'" for xs a' b' c' d' e' f' g'
-    apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
-          case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
-    by(simp_all add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def) (*5s*)
-
-
-
-  have 2: "parse_ipv6_address_compressed (ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h))
-              = Some ipv6compressed \<Longrightarrow>
-     ipv6addr_c2p ipv6compressed = ip' \<Longrightarrow>
-     IPv6AddrPreferred a b c d e f g h = ip'"
-  for ipv6compressed
-    apply(erule parse_ipv6_address_compressed_someE)
-                                       apply(simp_all)
-                                       apply(erule ipv6_preferred_to_compressed_None1, simp split: split_if_asm)+
-                               apply(erule ipv6_preferred_to_compressed_None2, simp split: split_if_asm)+
-                       apply(erule ipv6_preferred_to_compressed_None3, simp split: split_if_asm)+
-                  apply(erule ipv6_preferred_to_compressed_None4, simp split: split_if_asm)+
-             apply(erule ipv6_preferred_to_compressed_None5, simp split: split_if_asm)+
-         apply(erule ipv6_preferred_to_compressed_None6, simp split: split_if_asm)+
-      apply(erule ipv6_preferred_to_compressed_None7, simp split: split_if_asm)+
-    apply(erule ipv6_preferred_to_compressed_None8, simp split: split_if_asm)
-    done
-  from 1 2 ip show ?thesis by(elim exE conjE, simp)
+    have 2: "parse_ipv6_address_compressed (ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h))
+                = Some ipv6compressed \<Longrightarrow>
+       ipv6addr_c2p ipv6compressed = ip' \<Longrightarrow>
+       IPv6AddrPreferred a b c d e f g h = ip'"
+    for ipv6compressed
+      apply(erule parse_ipv6_address_compressed_someE)
+                                         apply(simp_all)
+                                         apply(erule ipv6_preferred_to_compressed_None1, simp split: split_if_asm)+
+                                 apply(erule ipv6_preferred_to_compressed_None2, simp split: split_if_asm)+
+                         apply(erule ipv6_preferred_to_compressed_None3, simp split: split_if_asm)+
+                    apply(erule ipv6_preferred_to_compressed_None4, simp split: split_if_asm)+
+               apply(erule ipv6_preferred_to_compressed_None5, simp split: split_if_asm)+
+           apply(erule ipv6_preferred_to_compressed_None6, simp split: split_if_asm)+
+        apply(erule ipv6_preferred_to_compressed_None7, simp split: split_if_asm)+
+      apply(erule ipv6_preferred_to_compressed_None8, simp split: split_if_asm)
+      done
+    from 1 2 ip show ?thesis by(elim exE conjE, simp)
   qed
 end
 

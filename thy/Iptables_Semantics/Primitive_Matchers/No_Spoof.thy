@@ -744,7 +744,7 @@ text\<open>Examples\<close>
           "
      apply(simp add: no_spoofing_def)
      apply(rule_tac x="p\<lparr>p_src := 0\<rparr>" in exI) (*any p*)
-     apply(simp add: range_0_max_UNIV ipcidr_union_set_def)
+     apply(simp add: range_0_max_UNIV ipcidr_union_set_def) (*TODO: renamed UNIV_ipv4addrset*)
       apply(intro conjI)
       apply(subst approximating_semantics_iff_fun_good_ruleset)
        apply(simp add: good_ruleset_def; fail)

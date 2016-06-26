@@ -10,7 +10,7 @@ begin
 --"Misc"
 (*we dont't have an empty ip space, but a space which only contains the 0 address. We will use the option type to denote the empty space in some functions.*)
 lemma "ipset_from_cidr (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 33 = {0}"
-  by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipv4set_from_cidr_def ipset_from_cidr_large_pfxlen)
+  by(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipset_from_cidr_large_pfxlen)
   
 
   (*helper we use for spoofing protection specification*)

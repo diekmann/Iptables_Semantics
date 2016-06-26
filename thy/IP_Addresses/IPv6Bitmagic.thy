@@ -3,6 +3,9 @@ imports
   "../Word_Lib/Word_Lemmas"
 begin
 
+section\<open>Helper Lemmas for Low-Level Operations on Machine Words\<close>
+text\<open>Needed for IPv6 Syntax\<close>
+
 lemma length_drop_bl: "length (dropWhile Not (to_bl (of_bl bs))) \<le> length bs"
 proof -
   have length_takeWhile_Not_replicate_False:
