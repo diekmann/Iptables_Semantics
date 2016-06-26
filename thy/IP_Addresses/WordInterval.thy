@@ -7,7 +7,12 @@ imports Main
   "~~/src/HOL/Word/Word"
 begin
 
-section\<open>WordInterval: Intervals of consecutive words\<close>
+section\<open>WordInterval: Executable datatype for Machine Word Sets\<close>
+text\<open>Stores ranges of machine words as interval. This has been proven quite efficient for 
+     IP Addresses.\<close>
+(*NOTE: All algorithms here use a straight-forward implementation. There is a lot of room for 
+        improving the computation complexity, for example by making the WordInterval a balanced,
+        sorted tree.*)
 
 subsection\<open>Syntax\<close>
 context
@@ -20,14 +25,18 @@ begin
 end
 
 subsection\<open>Semantics\<close>
-  fun wordinterval_to_set :: "'a::len0 wordinterval \<Rightarrow> ('a::len0 word) set" where
-    "wordinterval_to_set (WordInterval start end) = {start .. end}" |
-    "wordinterval_to_set (RangeUnion r1 r2) = (wordinterval_to_set r1) \<union> (wordinterval_to_set r2)"
+  fun wordinterval_to_set :: "'a::len0 wordinterval \<Rightarrow> ('a::len0 word) set"
+  where
+    "wordinterval_to_set (WordInterval start end) =
+        {start .. end}" |
+    "wordinterval_to_set (RangeUnion r1 r2) =
+        wordinterval_to_set r1 \<union> wordinterval_to_set r2"
 
 (*Note: The runtime of all the operations could be improved, for example by keeping the tree sorted
   and balanced.*)
 
 subsection\<open>Basic operations\<close>
+  text\<open>@{text \<in>}\<close>
   fun wordinterval_element :: "'a::len0 word \<Rightarrow> 'a::len0 wordinterval \<Rightarrow> bool" where
     "wordinterval_element el (WordInterval s e) \<longleftrightarrow> s \<le> el \<and> el \<le> e" |
     "wordinterval_element el (RangeUnion r1 r2) \<longleftrightarrow>

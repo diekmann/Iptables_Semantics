@@ -48,18 +48,21 @@ section \<open>IPv6 Addresses\<close>
 subsection\<open>Syntax of IPv6 Adresses\<close>
   text\<open>RFC 4291, Section 2.2.: Text Representation of Addresses\<close>
 
-  text\<open>Quoting the RFC (note: errata exists):
+  text\<open>Quoting the RFC (note: errata exists):\<close>
+  text_raw\<open>
+  \begin{verbatim}
    1. The preferred form is x:x:x:x:x:x:x:x, where the 'x's are one to
       four hexadecimal digits of the eight 16-bit pieces of the address.
       Examples:
          ABCD:EF01:2345:6789:ABCD:EF01:2345:6789
          2001:DB8:0:0:8:800:200C:417A
+  \end{verbatim}
 \<close>
   datatype ipv6addr_syntax = 
     IPv6AddrPreferred "16 word" "16 word" "16 word" "16 word" "16 word" "16 word" "16 word" "16 word"
 
-
-text\<open>
+  text_raw\<open>
+  \begin{verbatim}
    2. [...] In order to make writing addresses containing zero
       bits easier, a special syntax is available to compress the zeros.
       The use of "::" indicates one or more groups of 16 bits of zeros.
@@ -77,10 +80,13 @@ text\<open>
          FF01::101                      a multicast address
          ::1                            the loopback address
          ::                             the unspecified address
+  \end{verbatim}
 \<close>
   (*datatype may take some minutes to load*)
   datatype ipv6addr_syntax_compressed =
-  --\<open>using @{typ unit} for the omission :: 
+  --\<open>using @{typ unit} for the omission @{text "::"}. 
+
+     Naming convention of the datatype: 
       The first number is the position where the omission occurs.
       The second number is the length of the specified address pieces.
         I.e. `8 minus the second number' pieces are omitted.\<close>
@@ -387,7 +393,8 @@ next
     by (auto split: option.split list.split split_if_asm)
 qed
 
-text\<open>
+  text_raw\<open>
+  \begin{verbatim}
   3. An alternative form that is sometimes more convenient when dealing
       with a mixed environment of IPv4 and IPv6 nodes is
       x:x:x:x:x:x:d.d.d.d, where the 'x's are the hexadecimal values of
@@ -402,6 +409,9 @@ text\<open>
 
          ::13.1.68.3
          ::FFFF:129.144.52.38
+  \end{verbatim}
+
+  This is currently not supported by our library!
 \<close>
   (*TODO*)
   (*TODO: oh boy, they can also be compressed*)
@@ -551,7 +561,7 @@ subsection\<open>Semantics\<close>
 
 
 
-(*compressed to preferred format*)
+text\<open>compressed to preferred format\<close>
 fun ipv6addr_c2p :: "ipv6addr_syntax_compressed \<Rightarrow> ipv6addr_syntax" where
     "ipv6addr_c2p (IPv6AddrCompressed1_0 ()) = IPv6AddrPreferred 0 0 0 0 0 0 0 0"
   | "ipv6addr_c2p (IPv6AddrCompressed1_1 () h) = IPv6AddrPreferred 0 0 0 0 0 0 0 h"

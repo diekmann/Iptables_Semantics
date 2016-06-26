@@ -1,6 +1,6 @@
 chapter Iptables_Semantics
 
-session "IP_Addresses" = HOL +
+session "IP_Addresses" = Word_Lib +
   theories[document=false]
     "~~/src/HOL/Word/Word"
     "~~/src/HOL/Library/Code_Target_Nat"

@@ -4,13 +4,15 @@ imports Main
   "../Word_Lib/Word_Lemmas"
 begin
 
+section\<open>Increment and Decrement Machine Words Without Wrap-Around\<close>
 
-text\<open>previous and next words addresses, without wrap around\<close>
+text\<open>Previous and next words addresses, without wrap around.\<close>
 definition word_next :: "'a::len word \<Rightarrow> 'a::len word" where
   "word_next a \<equiv> if a = max_word then max_word else a + 1"
 definition word_prev :: "'a::len word \<Rightarrow> 'a::len word" where
   "word_prev a \<equiv> if a = 0 then 0 else a - 1"
 
+text\<open>Examples:\<close>
 lemma "word_next (2:: 8 word) = 3" by eval
 lemma "word_next (255:: 8 word) = 255" by eval
 lemma "word_prev (2:: 8 word) = 1" by eval

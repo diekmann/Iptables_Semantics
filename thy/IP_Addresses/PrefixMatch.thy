@@ -6,7 +6,7 @@ imports IPAddr
 begin
 
 
-section\<open>Prefix match\<close>
+section\<open>Prefix Match\<close>
 text\<open>
   The main difference between the prefix match defined here and CIDR notation is a validity
   constraint imposed on prefix matches.

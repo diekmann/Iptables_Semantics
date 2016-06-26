@@ -10,19 +10,6 @@
   %\<triangleq>, \<yen>, \<lozenge>
 
 
-%\usepackage{eurosym}
-  %for \<euro>
-
-%\usepackage[only,bigsqcap]{stmaryrd}
-  %for \<Sqinter>
-
-%\usepackage{eufrak}
-  %for \<AA> ... \<ZZ>, \<aa> ... \<zz> (also included in amssymb)
-
-%\usepackage{textcomp}
-  %for \<onequarter>, \<onehalf>, \<threequarters>, \<degree>, \<cent>,
-  %\<currency>
-
 % this should be the last package used
 \usepackage{pdfsetup}
 
@@ -38,9 +25,20 @@
 
 \begin{document}
 
-\title{Bitmagic}
-\author{Cornelius Diekmann, Lars Hupel, Julius Michaelis}
+\title{IP Addresses}
+\author{Cornelius Diekmann, Julius Michaelis, Lars Hupel}
 \maketitle
+
+\begin{abstract}  
+  This entry contains a definition of IP addresses and a library to work with them. 
+  
+  Generic IP addresses are modeled as machine words of arbitrary length. 
+  Derived from this generic definition, IPv4 addresses are 32bit machine words, IPv6 addresses are 128bit words. 
+  Additionally, IPv4 addresses can be represented in dot-decimal notation and IPv6 addresses in (compressed) colon-separated notation. 
+  We support toString functions and parsers for both notations. 
+  Sets of IP addresses can be represented with a netmask (e.g. 192.168.0.0/255.255.0.0) or in CIDR notation (e.g. 192.168.0.0/16). 
+  To provide executable code for set operations on IP address ranges, the library includes a datatype to work on arbitrary intervals of machine words. 
+\end{abstract}
 
 \tableofcontents
 

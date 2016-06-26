@@ -2,9 +2,10 @@ theory Hs_Compat
 imports Main
 begin
 
-text\<open>Definitions inspired by the Haskell world.\<close>
+section\<open>Definitions inspired by the Haskell world.\<close>
 
-definition 
+definition uncurry :: "('b \<Rightarrow> 'c \<Rightarrow> 'a) \<Rightarrow> 'b \<times> 'c \<Rightarrow> 'a"
+where
   "uncurry f a \<equiv> (case a of (x,y) \<Rightarrow> f x y)"
 lemma uncurry_simp[simp]: "uncurry f (a,b) = f a b" 
   by(simp add: uncurry_def)

@@ -4,7 +4,7 @@ imports Main
   "../Word_Lib/Word_Lemmas"
 begin
 
-text\<open>Helper lemmas about numbers and words\<close>
+section\<open>Helper lemmas about numbers and words\<close>
 
 lemma mod256: "((d::nat) + 256 * c + 65536 * b + 16777216 * a) mod 256 = d mod 256"
   proof -

@@ -13,8 +13,9 @@ section \<open>Modelling IP Adresses\<close>
 
     We will write @{typ "'i::len word"} for IP addresses of length @{term "len_of TYPE('i::len)"}.
     We use the convention to write @{typ 'i} whenever we mean IP addresses instead of generic words.
-    When we will have later theorems with several polymorphic types in it (e.g. arbitrarily
-    extensible packets), this makes it easier to spot that type @{typ 'i} is for IP addresses.
+    When we will later have theorems with several polymorphic types in it (e.g. arbitrarily
+    extensible packets), this notation makes it easier to spot that type @{typ 'i} is for
+    IP addresses.
 
     The files @{file "IPv4Addr.thy"} @{file "IPv6Addr.thy"} concrete this for IPv4 and IPv6.\<close>
 
@@ -32,7 +33,7 @@ section \<open>Modelling IP Adresses\<close>
 
   lemma "size (x::'i::len word) = len_of(TYPE('i))" by(simp add:word_size)
 
-subsection\<open>Sets of IP addresses\<close>
+subsection\<open>Sets of IP Addresses\<close>
   (*Warning, not executable!*)
   text\<open>Specifying sets with network masks: 192.168.0.0 255.255.255.0\<close>
   definition ipset_from_netmask::"'i::len word \<Rightarrow> 'i::len word \<Rightarrow> 'i::len word set" where
@@ -43,7 +44,7 @@ subsection\<open>Sets of IP addresses\<close>
         {network_prefix .. network_prefix OR (NOT netmask)}"
   
   text\<open>Example (pseudo syntax):
-    @{const ipset_from_netmask}@{text "192.168.1.129  255.255.255.0"} =
+    @{const ipset_from_netmask} @{text "192.168.1.129  255.255.255.0"} =
         @{text "{192.168.1.0 .. 192.168.1.255}"}\<close>
 
   text{*A network mask of all ones (i.e. @{term "(- 1)::'i::len word"}).*}
@@ -56,7 +57,7 @@ subsection\<open>Sets of IP addresses\<close>
     "ipset_from_netmask ip 0 = UNIV" by (auto simp add: ipset_from_netmask_def) 
 
 
-  text\<open>Specifying sets in Classless Inter-domain Routing (CIDR )notation: 192.168.0.0/24\<close>
+  text\<open>Specifying sets in Classless Inter-domain Routing (CIDR) notation: 192.168.0.0/24\<close>
   definition ipset_from_cidr ::"'i::len word \<Rightarrow> nat \<Rightarrow> 'i::len word set" where
     "ipset_from_cidr addr pflength \<equiv>
        ipset_from_netmask addr ((mask pflength) << (len_of(TYPE('i)) - pflength))"
