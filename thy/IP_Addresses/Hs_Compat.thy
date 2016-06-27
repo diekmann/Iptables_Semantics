@@ -2,7 +2,7 @@ theory Hs_Compat
 imports Main
 begin
 
-section\<open>Definitions inspired by the Haskell world.\<close>
+section\<open>Definitions inspired by the Haskell World.\<close>
 
 definition uncurry :: "('b \<Rightarrow> 'c \<Rightarrow> 'a) \<Rightarrow> 'b \<times> 'c \<Rightarrow> 'a"
 where

@@ -2,6 +2,9 @@ theory Lib_List_toString
 imports Lib_Numbers_toString
 begin
 
+
+section\<open>Printing Lists\<close>
+
 fun intersperse :: "'a \<Rightarrow> 'a list list \<Rightarrow> 'a list" where
 "intersperse _ [] = []" |
 "intersperse a [x] = x" |
@@ -11,7 +14,7 @@ fun intersperse :: "'a \<Rightarrow> 'a list list \<Rightarrow> 'a list" where
 definition list_separated_toString :: "string \<Rightarrow> ('a \<Rightarrow> string) \<Rightarrow> 'a list \<Rightarrow> string" where
   "list_separated_toString sep toStr ls = concat (splice (map toStr ls) (replicate (length ls - 1) sep))"
 
-text\<open>A slightly more efficient code equation, which is actually not really faster\<close>
+text\<open>A slightly more efficient code equation, which is actually not really faster (in certain languages)\<close>
 fun list_separated_toString_helper :: "string \<Rightarrow> ('a \<Rightarrow> string) \<Rightarrow> 'a list \<Rightarrow> string" where
   "list_separated_toString_helper sep toStr [] = ''''" |
   "list_separated_toString_helper sep toStr [l] = toStr l" |

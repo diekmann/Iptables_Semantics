@@ -2,6 +2,8 @@ theory Lib_Numbers_toString
 imports Main
 begin
 
+section\<open>Printing Numbers\<close>
+
 (*http://stackoverflow.com/questions/23864965/string-of-nat-in-isabelle*)
 fun string_of_nat :: "nat \<Rightarrow> string" where
   "string_of_nat n = (if n < 10 then [char_of_nat (48 + n)] else 

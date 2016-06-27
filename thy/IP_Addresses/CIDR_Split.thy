@@ -88,8 +88,7 @@ private lemma wordinterval_CIDR_split1_innard_helper: fixes a::"'a::len word"
 proof -
   assume a: "wordinterval_lowest_element r = Some a"
   have b: "(a,len_of(TYPE('a))) \<in> set (map (Pair a) (pfxes TYPE('a)))"
-    unfolding pfxes_def
-    unfolding set_map set_upto
+    unfolding pfxes_def set_map set_upto
     using Set.image_iff atLeastAtMost_iff int_eq_iff order_refl by metis (*400ms*)
   have c: "valid_prefix (PrefixMatch a (len_of(TYPE('a))))" by(simp add: valid_prefix_def pfxm_mask_def)
   have "wordinterval_to_set (prefix_to_wordinterval (PrefixMatch a (len_of(TYPE('a))))) = {a}"
@@ -162,7 +161,8 @@ private lemma wordinterval_CIDR_split1_distinct2: fixes r:: "'a::len wordinterva
           wordinterval_empty (wordinterval_intersection (prefix_to_wordinterval s) u)"
 by(rule wordinterval_CIDR_split1_distinct[where r = r]) simp
 
-function wordinterval_CIDR_split_prefixmatch :: "'a::len wordinterval \<Rightarrow> 'a prefix_match list"where
+function wordinterval_CIDR_split_prefixmatch
+  :: "'a::len wordinterval \<Rightarrow> 'a prefix_match list" where
   "wordinterval_CIDR_split_prefixmatch rs = (
       if
         \<not> wordinterval_empty rs

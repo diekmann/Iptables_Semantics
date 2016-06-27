@@ -3,6 +3,8 @@ imports Lib_Numbers_toString
         "../Word_Lib/Word_Lemmas"
 begin
 
+section\<open>Printing Machine Words\<close>
+
 (*imitation of http://stackoverflow.com/questions/23864965/string-of-nat-in-isabelle*)
 (*parameters:
     lc = lower-case
