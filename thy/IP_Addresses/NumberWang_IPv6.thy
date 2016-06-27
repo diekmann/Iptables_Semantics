@@ -1,4 +1,4 @@
-theory IPv6Bitmagic
+theory NumberWang_IPv6
 imports 
   "../Word_Lib/Word_Lemmas"
 begin

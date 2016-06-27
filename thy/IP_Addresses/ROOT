@@ -9,8 +9,9 @@ session "IP_Addresses" = Word_Lib +
     "~~/src/HOL/Library/Code_Char"
     "../Word_Lib/Word_Lemmas"
     "../Automatic_Refinement/Lib/Misc" (* mergesort *)
-    NumberWang
-    IPv6Bitmagic
+    NumberWang_IPv4
+    NumberWang_IPv6
+    Word_More
   theories
     Word_Next
     WordInterval

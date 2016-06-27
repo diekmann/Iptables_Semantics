@@ -2,7 +2,7 @@
     Authors:    Cornelius Diekmann
 *)
 theory IP_Address
-imports NumberWang
+imports Word_More
         Hs_Compat
         WordInterval
 begin

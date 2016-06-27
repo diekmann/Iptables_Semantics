@@ -2,8 +2,8 @@
     Authors:    Cornelius Diekmann
 *)
 theory IPv6
-imports IPv6Bitmagic
-        IP_Address
+imports IP_Address
+        NumberWang_IPv6
         (* include "~~/src/HOL/Library/Code_Target_Nat" if you need to work with actual numbers.*)
 begin
 

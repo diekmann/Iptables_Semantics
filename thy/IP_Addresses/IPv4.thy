@@ -3,6 +3,7 @@
 *)
 theory IPv4
 imports IP_Address
+        NumberWang_IPv4
         (* include "~~/src/HOL/Library/Code_Target_Nat" if you need to work with actual numbers.*)
 begin
 
@@ -133,12 +134,12 @@ subsection\<open>Representing IPv4 Adresses (Syntax)\<close>
       apply(subst mod_pos_pos_trivial[where b="4294967296"])
         apply(simp; fail)
        apply(simp; fail)
-      apply(simp add: NumberWang.div65536[simplified])
+      apply(simp add: NumberWang_IPv4.div65536[simplified])
       (*The [simplified] is needed because Word_Lib adds some additional simp rules*)
       done
       --\<open>When @{file "../Word_Lib/Word_Lemmas.thy"} is imported,
-         some @{file "NumberWang.thy"} lemmas need the [simplified] attribute
-         because @{text Word_Lib} adds some simp rules.
+         some @{file "Word_More.thy"} and @{file "NumberWang_IPv4.thy"} lemmas need the
+         [simplified] attribute because @{text Word_Lib} adds some simp rules.
          This theory should also work without @{file "../Word_Lib/Word_Lemmas.thy"}\<close>
     from assms have c:
       "nat_of_ipv4addr ((ipv4addr_of_nat (d + 256 * c + 65536 * b + 16777216 * a) >> 8) AND mask 8) = c"
@@ -153,7 +154,7 @@ subsection\<open>Representing IPv4 Adresses (Syntax)\<close>
       apply(subst mod_pos_pos_trivial[where b="4294967296"])
         apply(simp; fail)
        apply(simp; fail)
-      apply(simp add: NumberWang.div256[simplified])
+      apply(simp add: NumberWang_IPv4.div256[simplified])
       done
     from \<open>d < 256\<close> have d: "nat_of_ipv4addr (ipv4addr_of_nat (d + 256 * c + 65536 * b + 16777216 * a) AND mask 8) = d"
       apply(simp add: ipv4addr_of_nat_AND_mask8)
@@ -161,7 +162,7 @@ subsection\<open>Representing IPv4 Adresses (Syntax)\<close>
       apply(simp add: nat_of_ipv4addr_def)
       apply(subgoal_tac "(d + 256 * c + 65536 * b + 16777216 * a) mod 256 = d")
        apply(simp add: unat_def uint_word_of_int mod_pos_pos_trivial; fail)
-      apply(simp add: NumberWang.mod256)
+      apply(simp add: NumberWang_IPv4.mod256)
       done
     from a b c d show ?thesis
       apply(simp add: ipv4addr_of_dotdecimal.simps dotdecimal_of_ipv4addr.simps)
