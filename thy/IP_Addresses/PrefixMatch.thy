@@ -203,7 +203,7 @@ subsection\<open>Equivalence Proofs\<close>
   definition prefix_to_wordinterval :: "'a::len prefix_match \<Rightarrow> 'a wordinterval" where
     "prefix_to_wordinterval pfx \<equiv> WordInterval (pfxm_prefix pfx) (pfxm_prefix pfx OR pfxm_mask pfx)"
   
-  lemma prefix_to_wordinterval_set_eq:
+  lemma prefix_to_wordinterval_set_eq[simp]:
     "wordinterval_to_set (prefix_to_wordinterval pfx) = prefix_to_wordset pfx"
     unfolding prefix_to_wordinterval_def prefix_to_wordset_def by simp
   
