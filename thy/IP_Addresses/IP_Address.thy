@@ -1,7 +1,7 @@
-(*  Title:      IPAddr.thy
+(*  Title:      IP_Address.thy
     Authors:    Cornelius Diekmann
 *)
-theory IPAddr
+theory IP_Address
 imports NumberWang
         Hs_Compat
         WordInterval
@@ -17,7 +17,7 @@ section \<open>Modelling IP Adresses\<close>
     extensible packets), this notation makes it easier to spot that type @{typ 'i} is for
     IP addresses.
 
-    The files @{file "IPv4Addr.thy"} @{file "IPv6Addr.thy"} concrete this for IPv4 and IPv6.\<close>
+    The files @{file "IPv4.thy"} @{file "IPv6.thy"} concrete this for IPv4 and IPv6.\<close>
 
   text\<open>The maximum IP address\<close>
   definition max_ip_addr :: "'i::len word" where 

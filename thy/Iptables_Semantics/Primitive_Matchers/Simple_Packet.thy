@@ -1,5 +1,5 @@
 theory Simple_Packet
-imports "../../IP_Addresses/IPv4Addr" Protocol Conntrack_State
+imports Protocol Conntrack_State
 begin
 
 section\<open>Simple Packet\<close>

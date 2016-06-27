@@ -14,14 +14,14 @@ session "IP_Addresses" = Word_Lib +
   theories
     Word_Next
     WordInterval
-    IPAddr
-    IPv4Addr
-    IPv6Addr
-    PrefixMatch
+    IP_Address
+    IPv4
+    IPv6
+    Prefix_Match
     CIDR_Split
     WordInterval_Sorted (* depends on mergesort *)
-    IpAddr_Parser
-    IpAddr_toString
+    IP_Address_Parser
+    IP_Address_toString
   document_files
     "root.tex"
 

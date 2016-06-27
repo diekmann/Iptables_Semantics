@@ -1,5 +1,5 @@
-theory IpAddr_toString
-imports IPAddr IPv4Addr IPv6Addr
+theory IP_Address_toString
+imports IP_Address IPv4 IPv6
         Lib_Word_toString
         Lib_List_toString
         "~~/src/HOL/Library/Code_Target_Nat" (*!!*)

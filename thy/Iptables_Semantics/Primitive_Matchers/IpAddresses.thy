@@ -1,5 +1,5 @@
 theory IpAddresses
-imports "../../IP_Addresses/IpAddr_toString"
+imports "../../IP_Addresses/IP_Address_toString"
   "../../IP_Addresses/CIDR_Split"
   "../Common/WordInterval_Lists"
 begin

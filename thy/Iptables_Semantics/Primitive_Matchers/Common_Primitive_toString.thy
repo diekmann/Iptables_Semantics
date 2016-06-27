@@ -1,7 +1,7 @@
 theory Common_Primitive_toString
 imports 
         "../Common/Lib_toString"
-        "../../IP_Addresses/IpAddr_toString"
+        "../../IP_Addresses/IP_Address_toString"
         Common_Primitive_Matcher
 begin
 

@@ -1,9 +1,9 @@
-(*  Title:      CIDRSplit.thy
+(*  Title:      CIDR_Split.thy
     Authors:    Julius Michaelis, Cornelius Diekmann
 *)
 theory CIDR_Split
-imports IPAddr
-        PrefixMatch
+imports IP_Address
+        Prefix_Match
         Hs_Compat
 begin
 

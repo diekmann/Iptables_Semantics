@@ -1,6 +1,6 @@
 theory Routing
-imports "../../IP_Addresses/PrefixMatch"
-        "../../IP_Addresses/IPv4Addr" (*we could probably generalize*)
+imports "../../IP_Addresses/Prefix_Match"
+        "../../IP_Addresses/IPv4" (*we could probably generalize*)
         CaesarTheories
         "~~/src/HOL/Library/Code_Target_Nat" (*!!, int_of_nat*)
 begin

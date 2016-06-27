@@ -1,8 +1,8 @@
-(*  Title:      IPAddr.thy
+(*  Title:      Prefix_Match.thy
     Authors:    Julius Michaelis, Cornelius Diekmann
 *)
-theory PrefixMatch
-imports IPAddr
+theory Prefix_Match
+imports IP_Address
 begin
 
 

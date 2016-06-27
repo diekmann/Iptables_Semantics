@@ -1,8 +1,8 @@
-(*  Title:      IPv4Addr.thy
+(*  Title:      IPv4.thy
     Authors:    Cornelius Diekmann, Julius Michaelis
 *)
-theory IPv4Addr
-imports IPAddr
+theory IPv4
+imports IP_Address
         (* include "~~/src/HOL/Library/Code_Target_Nat" if you need to work with actual numbers.*)
 begin
 

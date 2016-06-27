@@ -1,7 +1,6 @@
 theory Common_Primitive_Matcher_Generic
 imports "../Semantics_Ternary/Semantics_Ternary"
         Common_Primitive_Syntax
-        "../../IP_Addresses/IPv4Addr"
         "../Semantics_Ternary/Unknown_Match_Tacs"
 begin
 

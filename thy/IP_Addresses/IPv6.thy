@@ -1,9 +1,9 @@
-(*  Title:      IPv6Addr.thy
+(*  Title:      IPv6.thy
     Authors:    Cornelius Diekmann
 *)
-theory IPv6Addr
+theory IPv6
 imports IPv6Bitmagic
-        IPAddr
+        IP_Address
         (* include "~~/src/HOL/Library/Code_Target_Nat" if you need to work with actual numbers.*)
 begin
 
