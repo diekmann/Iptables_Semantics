@@ -1001,6 +1001,10 @@ nth (x : xs) n =
 ball :: forall a. Set a -> (a -> Bool) -> Bool;
 ball (Set xs) p = all p xs;
 
+find :: forall a. (a -> Bool) -> [a] -> Maybe a;
+find uu [] = Nothing;
+find p (x : xs) = (if p x then Just x else find p xs);
+
 fold :: forall a b. (a -> b -> b) -> [a] -> b -> b;
 fold f (x : xs) s = fold f xs (f x s);
 fold f [] s = s;
@@ -1056,6 +1060,13 @@ map_of :: forall a b. (Eq a) => [(a, b)] -> a -> Maybe b;
 map_of ((l, v) : ps) k = (if l == k then Just v else map_of ps k);
 map_of [] k = Nothing;
 
+merge :: forall a. (Eq a, Linorder a) => [a] -> [a] -> [a];
+merge [] l2 = l2;
+merge (v : va) [] = v : va;
+merge (x1 : l1) (x2 : l2) =
+  (if less x1 x2 then x1 : merge l1 (x2 : l2)
+    else (if x1 == x2 then x1 : merge l1 l2 else x2 : merge (x1 : l1) l2));
+
 removeAll :: forall a. (Eq a) => a -> [a] -> [a];
 removeAll x [] = [];
 removeAll x (y : xs) = (if x == y then removeAll x xs else y : removeAll x xs);
@@ -1079,9 +1090,6 @@ splice xs [] = xs;
 butlast :: forall a. [a] -> [a];
 butlast [] = [];
 butlast (x : xs) = (if null xs then [] else x : butlast xs);
-
-hd :: forall a. [a] -> a;
-hd (x21 : x22) = x21;
 
 product :: forall a b. [a] -> [b] -> [(a, b)];
 product [] uu = [];
@@ -1156,13 +1164,6 @@ is_none :: forall a. Maybe a -> Bool;
 is_none (Just x) = False;
 is_none Nothing = True;
 
-int_of_nat :: Nat -> Int;
-int_of_nat n = Int_of_integer (integer_of_nat n);
-
-pfxes :: forall a. (Len0 a) => Itself a -> [Nat];
-pfxes uu =
-  map nat (upto zero_int (int_of_nat ((len_of :: Itself a -> Nat) Type)));
-
 gen_length :: forall a. Nat -> [a] -> Nat;
 gen_length n (x : xs) = gen_length (suc n) xs;
 gen_length n [] = n;
@@ -1174,12 +1175,19 @@ map_filter f (x : xs) = (case f x of {
                           Just y -> y : map_filter f xs;
                         });
 
-merge :: forall a. (Eq a, Linorder a) => [a] -> [a] -> [a];
-merge [] l2 = l2;
-merge (v : va) [] = v : va;
-merge (x1 : l1) (x2 : l2) =
-  (if less x1 x2 then x1 : merge l1 (x2 : l2)
-    else (if x1 == x2 then x1 : merge l1 l2 else x2 : merge (x1 : l1) l2));
+merge_list :: forall a. (Eq a, Linorder a) => [[a]] -> [[a]] -> [a];
+merge_list [] [] = [];
+merge_list [] [l] = l;
+merge_list (la : acc2) [] = merge_list [] (la : acc2);
+merge_list (la : acc2) [l] = merge_list [] (l : la : acc2);
+merge_list acc2 (l1 : l2 : ls) = merge_list (merge l1 l2 : acc2) ls;
+
+int_of_nat :: Nat -> Int;
+int_of_nat n = Int_of_integer (integer_of_nat n);
+
+pfxes :: forall a. (Len0 a) => Itself a -> [Nat];
+pfxes uu =
+  map nat (upto zero_int (int_of_nat ((len_of :: Itself a -> Nat) Type)));
 
 internal_iface_name_match :: [Prelude.Char] -> [Prelude.Char] -> Bool;
 internal_iface_name_match [] [] = True;
@@ -1256,17 +1264,17 @@ sort_key f xs =
 sort_rtbl :: [Routing_rule_ext ()] -> [Routing_rule_ext ()];
 sort_rtbl = sort_key routing_rule_sort_key;
 
-br2l :: forall a. (Len0 a) => Wordinterval a -> [(Word a, Word a)];
-br2l (RangeUnion r1 r2) = br2l r1 ++ br2l r2;
-br2l (WordInterval s e) = (if less_word e s then [] else [(s, e)]);
-
 empty_WordInterval :: forall a. (Len a) => Wordinterval a;
 empty_WordInterval = WordInterval one_word zero_word;
 
-l2br :: forall a. (Len a) => [(Word a, Word a)] -> Wordinterval a;
-l2br [] = empty_WordInterval;
-l2br [(s, e)] = WordInterval s e;
-l2br ((s, e) : v : va) = RangeUnion (WordInterval s e) (l2br (v : va));
+l2wi :: forall a. (Len a) => [(Word a, Word a)] -> Wordinterval a;
+l2wi [] = empty_WordInterval;
+l2wi [(s, e)] = WordInterval s e;
+l2wi ((s, e) : v : va) = RangeUnion (WordInterval s e) (l2wi (v : va));
+
+wi2l :: forall a. (Len0 a) => Wordinterval a -> [(Word a, Word a)];
+wi2l (RangeUnion r1 r2) = wi2l r1 ++ wi2l r2;
+wi2l (WordInterval s e) = (if less_word e s then [] else [(s, e)]);
 
 mod_nat :: Nat -> Nat -> Nat;
 mod_nat m n = Nat (mod_integer (integer_of_nat m) (integer_of_nat n));
@@ -1405,10 +1413,10 @@ listwordinterval_adjacent ((s, e) : ss) =
 
 wordinterval_compress :: forall a. (Len a) => Wordinterval a -> Wordinterval a;
 wordinterval_compress r =
-  l2br (remdups
+  l2wi (remdups
          (listwordinterval_adjacent
            (listwordinterval_compress
-             (br2l (wordinterval_optimize_empty2 r)))));
+             (wi2l (wordinterval_optimize_empty2 r)))));
 
 wordinterval_setminus ::
   forall a. (Len a) => Wordinterval a -> Wordinterval a -> Wordinterval a;
@@ -1426,7 +1434,7 @@ ports_invert ::
      Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))] ->
     [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
        Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
-ports_invert ps = br2l (wordinterval_invert (l2br ps));
+ports_invert ps = wi2l (wordinterval_invert (l2wi ps));
 
 char_of_nat :: Nat -> Prelude.Char;
 char_of_nat =
@@ -1457,111 +1465,6 @@ word_uptoa a b =
 
 word_upto :: forall a. (Len0 a) => Word a -> Word a -> [Word a];
 word_upto a b = word_uptoa a b;
-
-wordinterval_lowest_element ::
-  forall a. (Len0 a) => Wordinterval a -> Maybe (Word a);
-wordinterval_lowest_element (WordInterval s e) =
-  (if less_eq_word s e then Just s else Nothing);
-wordinterval_lowest_element (RangeUnion a b) =
-  (case (wordinterval_lowest_element a, wordinterval_lowest_element b) of {
-    (Nothing, Nothing) -> Nothing;
-    (Nothing, Just aa) -> Just aa;
-    (Just aa, Nothing) -> Just aa;
-    (Just aa, Just ba) -> Just (if less_word aa ba then aa else ba);
-  });
-
-pfxm_prefix :: forall a. (Len a) => Prefix_match a -> Word a;
-pfxm_prefix (PrefixMatch x1 x2) = x1;
-
-uminus_int :: Int -> Int;
-uminus_int k = Int_of_integer (negate (integer_of_int k));
-
-bitNOT_int :: Int -> Int;
-bitNOT_int = (\ x -> minus_int (uminus_int x) (Int_of_integer (1 :: Integer)));
-
-bin_last :: Int -> Bool;
-bin_last w =
-  equal_int (mod_int w (Int_of_integer (2 :: Integer)))
-    (Int_of_integer (1 :: Integer));
-
-bitAND_int :: Int -> Int -> Int;
-bitAND_int x y =
-  (if equal_int x zero_int then zero_int
-    else (if equal_int x (uminus_int (Int_of_integer (1 :: Integer))) then y
-           else bit (bitAND_int (bin_rest x) (bin_rest y))
-                  (bin_last x && bin_last y)));
-
-bitOR_int :: Int -> Int -> Int;
-bitOR_int = (\ x y -> bitNOT_int (bitAND_int (bitNOT_int x) (bitNOT_int y)));
-
-bitOR_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
-bitOR_word a b = word_of_int (bitOR_int (uint a) (uint b));
-
-pfxm_mask :: forall a. (Len a) => Prefix_match a -> Word a;
-pfxm_mask x =
-  mask (minus_nat ((len_of :: Itself a -> Nat) Type) (pfxm_length x));
-
-prefix_to_wordinterval :: forall a. (Len a) => Prefix_match a -> Wordinterval a;
-prefix_to_wordinterval pfx =
-  WordInterval (pfxm_prefix pfx) (bitOR_word (pfxm_prefix pfx) (pfxm_mask pfx));
-
-wordinterval_empty :: forall a. (Len0 a) => Wordinterval a -> Bool;
-wordinterval_empty (WordInterval s e) = less_word e s;
-wordinterval_empty (RangeUnion r1 r2) =
-  wordinterval_empty r1 && wordinterval_empty r2;
-
-wordinterval_subset ::
-  forall a. (Len a) => Wordinterval a -> Wordinterval a -> Bool;
-wordinterval_subset r1 r2 = wordinterval_empty (wordinterval_setminus r1 r2);
-
-bitAND_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
-bitAND_word a b = word_of_int (bitAND_int (uint a) (uint b));
-
-valid_prefix :: forall a. (Len a) => Prefix_match a -> Bool;
-valid_prefix pf =
-  equal_word (bitAND_word (pfxm_mask pf) (pfxm_prefix pf)) zero_word;
-
-wordinterval_CIDR_split1_2 ::
-  forall a.
-    (Len a) => Wordinterval a -> (Maybe (Prefix_match a), Wordinterval a);
-wordinterval_CIDR_split1_2 r =
-  let {
-    a = wordinterval_lowest_element r;
-  } in (case a of {
-         Nothing -> (Nothing, r);
-         Just aa ->
-           let {
-             cs = map (PrefixMatch aa) ((pfxes :: Itself a -> [Nat]) Type);
-             ms = filter
-                    (\ s ->
-                      valid_prefix s &&
-                        wordinterval_subset (prefix_to_wordinterval s) r)
-                    cs;
-           } in (Just (hd ms),
-                  wordinterval_setminus r (prefix_to_wordinterval (hd ms)));
-       });
-
-wordinterval_CIDR_split1 ::
-  forall a.
-    (Len a) => Wordinterval a -> (Maybe (Prefix_match a), Wordinterval a);
-wordinterval_CIDR_split1 s = wordinterval_CIDR_split1_2 s;
-
-wordinterval_CIDR_split_prefixmatch ::
-  forall a. (Len a) => Wordinterval a -> [Prefix_match a];
-wordinterval_CIDR_split_prefixmatch rs =
-  (if not (wordinterval_empty rs)
-    then (case wordinterval_CIDR_split1 rs of {
-           (Nothing, _) -> [];
-           (Just s, u) -> s : wordinterval_CIDR_split_prefixmatch u;
-         })
-    else []);
-
-prefix_match_to_CIDR :: forall a. (Len a) => Prefix_match a -> (Word a, Nat);
-prefix_match_to_CIDR pfx = (pfxm_prefix pfx, pfxm_length pfx);
-
-cidr_split :: forall a. (Len a) => Wordinterval a -> [(Word a, Nat)];
-cidr_split rs =
-  map prefix_match_to_CIDR (wordinterval_CIDR_split_prefixmatch rs);
 
 pc_tag_ctstate :: forall a. Parts_connection_ext a -> Ctstate;
 pc_tag_ctstate
@@ -1676,6 +1579,33 @@ src (Simple_match_ext iiface oiface src dst proto sports dports more) = src;
 dst :: forall a b. (Len a) => Simple_match_ext a b -> (Word a, Nat);
 dst (Simple_match_ext iiface oiface src dst proto sports dports more) = dst;
 
+uminus_int :: Int -> Int;
+uminus_int k = Int_of_integer (negate (integer_of_int k));
+
+bin_last :: Int -> Bool;
+bin_last w =
+  equal_int (mod_int w (Int_of_integer (2 :: Integer)))
+    (Int_of_integer (1 :: Integer));
+
+bitAND_int :: Int -> Int -> Int;
+bitAND_int x y =
+  (if equal_int x zero_int then zero_int
+    else (if equal_int x (uminus_int (Int_of_integer (1 :: Integer))) then y
+           else bit (bitAND_int (bin_rest x) (bin_rest y))
+                  (bin_last x && bin_last y)));
+
+bitAND_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
+bitAND_word a b = word_of_int (bitAND_int (uint a) (uint b));
+
+bitNOT_int :: Int -> Int;
+bitNOT_int = (\ x -> minus_int (uminus_int x) (Int_of_integer (1 :: Integer)));
+
+bitOR_int :: Int -> Int -> Int;
+bitOR_int = (\ x y -> bitNOT_int (bitAND_int (bitNOT_int x) (bitNOT_int y)));
+
+bitOR_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
+bitOR_word a b = word_of_int (bitOR_int (uint a) (uint b));
+
 simple_match_ip :: forall a. (Len a) => (Word a, Nat) -> Word a -> Bool;
 simple_match_ip (base, len) p_ip =
   less_eq_word
@@ -1732,6 +1662,29 @@ runFw s d c rs =
     (Simple_packet_ext (pc_iiface c) (pc_oiface c) s d (pc_proto c) (pc_sport c)
       (pc_dport c) (insert TCP_SYN bot_set) (pc_tag_ctstate c) ());
 
+numeral :: forall a. (Numeral a) => Num -> a;
+numeral (Bit1 n) = let {
+                     m = numeral n;
+                   } in plus (plus m m) one;
+numeral (Bit0 n) = let {
+                     m = numeral n;
+                   } in plus m m;
+numeral One = one;
+
+of_nat :: forall a. (Semiring_1 a) => Nat -> a;
+of_nat n =
+  (if equal_nat n zero_nat then zero
+    else let {
+           (m, q) = divmod_nat n (nat_of_integer (2 :: Integer));
+           ma = times (numeral (Bit0 One)) (of_nat m);
+         } in (if equal_nat q zero_nat then ma else plus ma one));
+
+ipv4addr_of_nat :: Nat -> Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+ipv4addr_of_nat n = of_nat n;
+
+nat_of_ipv4addr :: Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> Nat;
+nat_of_ipv4addr a = unat a;
+
 internal_iface_name_wildcard_longest ::
   [Prelude.Char] -> [Prelude.Char] -> Maybe [Prelude.Char];
 internal_iface_name_wildcard_longest i1 i2 =
@@ -1760,13 +1713,6 @@ iface_conjunct (Iface i1) (Iface i2) =
     (False, False) -> (if i1 == i2 then Just (Iface i1) else Nothing);
   });
 
-merge_list :: forall a. (Eq a, Linorder a) => [[a]] -> [[a]] -> [a];
-merge_list [] [] = [];
-merge_list [] [l] = l;
-merge_list (la : acc2) [] = merge_list [] (la : acc2);
-merge_list (la : acc2) [l] = merge_list [] (l : la : acc2);
-merge_list acc2 (l1 : l2 : ls) = merge_list (merge l1 l2 : acc2) ls;
-
 getNeg :: forall a. [Negation_type a] -> [a];
 getNeg [] = [];
 getNeg (Neg x : xs) = x : getNeg xs;
@@ -1789,6 +1735,86 @@ ipt_tcp_syn =
     (insert TCP_SYN (insert TCP_RST (insert TCP_ACK (insert TCP_FIN bot_set))))
     (insert TCP_SYN bot_set);
 
+wordinterval_lowest_element ::
+  forall a. (Len0 a) => Wordinterval a -> Maybe (Word a);
+wordinterval_lowest_element (WordInterval s e) =
+  (if less_eq_word s e then Just s else Nothing);
+wordinterval_lowest_element (RangeUnion a b) =
+  (case (wordinterval_lowest_element a, wordinterval_lowest_element b) of {
+    (Nothing, Nothing) -> Nothing;
+    (Nothing, Just aa) -> Just aa;
+    (Just aa, Nothing) -> Just aa;
+    (Just aa, Just ba) -> Just (if less_word aa ba then aa else ba);
+  });
+
+pfxm_prefix :: forall a. (Len a) => Prefix_match a -> Word a;
+pfxm_prefix (PrefixMatch x1 x2) = x1;
+
+pfxm_mask :: forall a. (Len a) => Prefix_match a -> Word a;
+pfxm_mask x =
+  mask (minus_nat ((len_of :: Itself a -> Nat) Type) (pfxm_length x));
+
+prefix_to_wordinterval :: forall a. (Len a) => Prefix_match a -> Wordinterval a;
+prefix_to_wordinterval pfx =
+  WordInterval (pfxm_prefix pfx) (bitOR_word (pfxm_prefix pfx) (pfxm_mask pfx));
+
+wordinterval_empty :: forall a. (Len0 a) => Wordinterval a -> Bool;
+wordinterval_empty (WordInterval s e) = less_word e s;
+wordinterval_empty (RangeUnion r1 r2) =
+  wordinterval_empty r1 && wordinterval_empty r2;
+
+wordinterval_subset ::
+  forall a. (Len a) => Wordinterval a -> Wordinterval a -> Bool;
+wordinterval_subset r1 r2 = wordinterval_empty (wordinterval_setminus r1 r2);
+
+valid_prefix :: forall a. (Len a) => Prefix_match a -> Bool;
+valid_prefix pf =
+  equal_word (bitAND_word (pfxm_mask pf) (pfxm_prefix pf)) zero_word;
+
+largest_contained_prefix ::
+  forall a. (Len a) => Word a -> Wordinterval a -> Maybe (Prefix_match a);
+largest_contained_prefix a r =
+  let {
+    cs = map (PrefixMatch a) ((pfxes :: Itself a -> [Nat]) Type);
+    cfs = find (\ s ->
+                 valid_prefix s &&
+                   wordinterval_subset (prefix_to_wordinterval s) r)
+            cs;
+  } in cfs;
+
+wordinterval_CIDR_split1 ::
+  forall a.
+    (Len a) => Wordinterval a -> (Maybe (Prefix_match a), Wordinterval a);
+wordinterval_CIDR_split1 r =
+  let {
+    a = wordinterval_lowest_element r;
+  } in (case a of {
+         Nothing -> (Nothing, r);
+         Just aa ->
+           (case largest_contained_prefix aa r of {
+             Nothing -> (Nothing, r);
+             Just m ->
+               (Just m, wordinterval_setminus r (prefix_to_wordinterval m));
+           });
+       });
+
+wordinterval_CIDR_split_prefixmatch ::
+  forall a. (Len a) => Wordinterval a -> [Prefix_match a];
+wordinterval_CIDR_split_prefixmatch rs =
+  (if not (wordinterval_empty rs)
+    then (case wordinterval_CIDR_split1 rs of {
+           (Nothing, _) -> [];
+           (Just s, u) -> s : wordinterval_CIDR_split_prefixmatch u;
+         })
+    else []);
+
+prefix_match_to_CIDR :: forall a. (Len a) => Prefix_match a -> (Word a, Nat);
+prefix_match_to_CIDR pfx = (pfxm_prefix pfx, pfxm_length pfx);
+
+cidr_split :: forall a. (Len a) => Wordinterval a -> [(Word a, Nat)];
+cidr_split rs =
+  map prefix_match_to_CIDR (wordinterval_CIDR_split_prefixmatch rs);
+
 string_of_nat :: Nat -> [Prelude.Char];
 string_of_nat n =
   (if less_nat n (nat_of_integer (10 :: Integer))
@@ -1805,9 +1831,6 @@ dotteddecimal_toString (a, (b, (c, d))) =
 
 shiftr_word :: forall a. (Len0 a) => Word a -> Nat -> Word a;
 shiftr_word w n = funpow n shiftr1 w;
-
-nat_of_ipv4addr :: Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> Nat;
-nat_of_ipv4addr a = unat a;
 
 dotdecimal_of_ipv4addr ::
   Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> (Nat, (Nat, (Nat, Nat)));
@@ -1856,10 +1879,6 @@ wordinterval_intersection ::
 wordinterval_intersection r1 r2 =
   wordinterval_compress (wordinterval_intersectiona r1 r2);
 
-wordinterval_eq ::
-  forall a. (Len a) => Wordinterval a -> Wordinterval a -> Bool;
-wordinterval_eq r1 r2 = wordinterval_subset r1 r2 && wordinterval_subset r2 r1;
-
 ipcidr_to_interval_start :: forall a. (Len a) => (Word a, Nat) -> Word a;
 ipcidr_to_interval_start (pre, len) =
   let {
@@ -1883,12 +1902,16 @@ ipcidr_to_interval :: forall a. (Len a) => (Word a, Nat) -> (Word a, Word a);
 ipcidr_to_interval cidr =
   (ipcidr_to_interval_start cidr, ipcidr_to_interval_end cidr);
 
+wordinterval_eq ::
+  forall a. (Len a) => Wordinterval a -> Wordinterval a -> Bool;
+wordinterval_eq r1 r2 = wordinterval_subset r1 r2 && wordinterval_subset r2 r1;
+
 ipassmt_ignore_wildcard_list ::
   forall a. (Len a) => [(Iface, [(Word a, Nat)])] -> [(Iface, [(Word a, Nat)])];
 ipassmt_ignore_wildcard_list ipassmt =
   filter
     (\ (_, ips) ->
-      not (wordinterval_eq (l2br (map ipcidr_to_interval ips))
+      not (wordinterval_eq (l2wi (map ipcidr_to_interval ips))
             wordinterval_UNIV))
     ipassmt;
 
@@ -1900,8 +1923,14 @@ wordinterval_Union :: forall a. (Len a) => [Wordinterval a] -> Wordinterval a;
 wordinterval_Union ws =
   wordinterval_compress (foldr wordinterval_union ws empty_WordInterval);
 
-mergesort_remdups :: forall a. (Eq a, Linorder a) => [a] -> [a];
-mergesort_remdups xs = merge_list [] (map (\ x -> [x]) xs);
+list_separated_toString ::
+  forall a. [Prelude.Char] -> (a -> [Prelude.Char]) -> [a] -> [Prelude.Char];
+list_separated_toString sep toStr ls =
+  concat
+    (splice (map toStr ls) (replicate (minus_nat (size_list ls) one_nat) sep));
+
+list_toString :: forall a. (a -> [Prelude.Char]) -> [a] -> [Prelude.Char];
+list_toString toStr ls = "[" ++ list_separated_toString ", " toStr ls ++ "]";
 
 oiface_sel :: forall a. (Len a) => Common_primitive a -> Iface;
 oiface_sel (OIface x4) = x4;
@@ -1966,6 +1995,9 @@ collect_ifacesa (Rule m a : rs) =
         (fst (primitive_extractor (is_Oiface, oiface_sel) m)) ++
         collect_ifacesa rs);
 
+mergesort_remdups :: forall a. (Eq a, Linorder a) => [a] -> [a];
+mergesort_remdups xs = merge_list [] (map (\ x -> [x]) xs);
+
 collect_ifaces :: forall a. (Len a) => [Rule (Common_primitive a)] -> [Iface];
 collect_ifaces rs = mergesort_remdups (collect_ifacesa rs);
 
@@ -1975,15 +2007,6 @@ ipassmt_sanity_defined ::
                  (Iface -> Maybe [(Word a, Nat)]) -> Bool;
 ipassmt_sanity_defined rs ipassmt =
   all (\ iface -> not (is_none (ipassmt iface))) (collect_ifaces rs);
-
-list_separated_toString ::
-  forall a. [Prelude.Char] -> (a -> [Prelude.Char]) -> [a] -> [Prelude.Char];
-list_separated_toString sep toStr ls =
-  concat
-    (splice (map toStr ls) (replicate (minus_nat (size_list ls) one_nat) sep));
-
-list_toString :: forall a. (a -> [Prelude.Char]) -> [a] -> [Prelude.Char];
-list_toString toStr ls = "[" ++ list_separated_toString ", " toStr ls ++ "]";
 
 iface_is_wildcard :: Iface -> Bool;
 iface_is_wildcard ifce = iface_name_is_wildcard (iface_sel ifce);
@@ -2018,9 +2041,9 @@ debug_ipassmt ipassmt rs =
                             (if not (equal_iface i1 i2)
                               then wordinterval_empty
                                      (wordinterval_intersection
-                                       (l2br
+                                       (l2wi
  (map ipcidr_to_interval (the (map_of ipassmt i1))))
-                                       (l2br
+                                       (l2wi
  (map ipcidr_to_interval (the (map_of ipassmt i2)))))
                               else True)))
              then "passed"
@@ -2033,9 +2056,9 @@ debug_ipassmt ipassmt rs =
                           not (equal_iface i1 i2) &&
                             not (wordinterval_empty
                                   (wordinterval_intersection
-                                    (l2br (map ipcidr_to_interval
+                                    (l2wi (map ipcidr_to_interval
     (the (map_of ipassmt i1))))
-                                    (l2br (map ipcidr_to_interval
+                                    (l2wi (map ipcidr_to_interval
     (the (map_of ipassmt i2)))))))
                         (product ifaces ifaces))),
          "ipassmt_sanity_disjoint excluding UNIV interfaces: " ++
@@ -2051,8 +2074,8 @@ debug_ipassmt ipassmt rs =
                                  (if not (equal_iface i1 i2)
                                    then wordinterval_empty
   (wordinterval_intersection
-    (l2br (map ipcidr_to_interval (the (map_of ipassmta i1))))
-    (l2br (map ipcidr_to_interval (the (map_of ipassmta i2)))))
+    (l2wi (map ipcidr_to_interval (the (map_of ipassmta i1))))
+    (l2wi (map ipcidr_to_interval (the (map_of ipassmta i2)))))
                                    else True)))
                   then "passed"
                   else "fail: " ++
@@ -2064,8 +2087,8 @@ debug_ipassmt ipassmt rs =
                                not (equal_iface i1 i2) &&
                                  not (wordinterval_empty
                                        (wordinterval_intersection
- (l2br (map ipcidr_to_interval (the (map_of ipassmta i1))))
- (l2br (map ipcidr_to_interval (the (map_of ipassmta i2)))))))
+ (l2wi (map ipcidr_to_interval (the (map_of ipassmta i1))))
+ (l2wi (map ipcidr_to_interval (the (map_of ipassmta i2)))))))
                              (product ifacesa ifacesa))),
          "ipassmt_sanity_complete: " ++
            (if distinct (map fst ipassmt) &&
@@ -2073,14 +2096,14 @@ debug_ipassmt ipassmt rs =
                    range = map snd ipassmt;
                  } in wordinterval_eq
                         (wordinterval_Union
-                          (map (l2br . map ipcidr_to_interval) range))
+                          (map (l2wi . map ipcidr_to_interval) range))
                         wordinterval_UNIV
              then "passed"
              else "the following is not covered: " ++
                     ipv4addr_wordinterval_toString
                       (wordinterval_setminus wordinterval_UNIV
                         (wordinterval_Union
-                          (map (l2br . map ipcidr_to_interval)
+                          (map (l2wi . map ipcidr_to_interval)
                             (map snd ipassmt))))),
          "ipassmt_sanity_complete excluding UNIV interfaces: " ++
            let {
@@ -2090,14 +2113,14 @@ debug_ipassmt ipassmt rs =
                         range = map snd ipassmta;
                       } in wordinterval_eq
                              (wordinterval_Union
-                               (map (l2br . map ipcidr_to_interval) range))
+                               (map (l2wi . map ipcidr_to_interval) range))
                              wordinterval_UNIV
                   then "passed"
                   else "the following is not covered: " ++
                          ipv4addr_wordinterval_toString
                            (wordinterval_setminus wordinterval_UNIV
                              (wordinterval_Union
-                               (map (l2br . map ipcidr_to_interval)
+                               (map (l2wi . map ipcidr_to_interval)
                                  (map snd ipassmta)))))];
 
 partIps ::
@@ -2139,7 +2162,7 @@ ipt_iprange_to_cidr ips =
 
 all_but_those_ips :: forall a. (Len a) => [(Word a, Nat)] -> [(Word a, Nat)];
 all_but_those_ips cidrips =
-  cidr_split (wordinterval_invert (l2br (map ipcidr_to_interval cidrips)));
+  cidr_split (wordinterval_invert (l2wi (map ipcidr_to_interval cidrips)));
 
 ipassmt_iprange_translate ::
   Negation_type [Ipt_iprange (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))] ->
@@ -2186,26 +2209,6 @@ extract_IPSets rs =
 
 getParts :: forall a. (Len a) => [Simple_rule a] -> [Wordinterval a];
 getParts rs = partitioningIps (extract_IPSets rs) [wordinterval_UNIV];
-
-numeral :: forall a. (Numeral a) => Num -> a;
-numeral (Bit1 n) = let {
-                     m = numeral n;
-                   } in plus (plus m m) one;
-numeral (Bit0 n) = let {
-                     m = numeral n;
-                   } in plus m m;
-numeral One = one;
-
-of_nat :: forall a. (Semiring_1 a) => Nat -> a;
-of_nat n =
-  (if equal_nat n zero_nat then zero
-    else let {
-           (m, q) = divmod_nat n (nat_of_integer (2 :: Integer));
-           ma = times (numeral (Bit0 One)) (of_nat m);
-         } in (if equal_nat q zero_nat then ma else plus ma one));
-
-ipv4addr_of_nat :: Nat -> Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
-ipv4addr_of_nat n = of_nat n;
 
 ipv4addr_of_dotdecimal ::
   (Nat, (Nat, (Nat, Nat))) -> Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
@@ -2514,20 +2517,20 @@ is_Src (L4_Flags x8) = False;
 is_Src (CT_State x9) = False;
 is_Src (Extra x10) = False;
 
-l2br_negation_type_intersect ::
+l2wi_negation_type_intersect ::
   forall a. (Len a) => [Negation_type (Word a, Word a)] -> Wordinterval a;
-l2br_negation_type_intersect [] = wordinterval_UNIV;
-l2br_negation_type_intersect (Pos (s, e) : ls) =
+l2wi_negation_type_intersect [] = wordinterval_UNIV;
+l2wi_negation_type_intersect (Pos (s, e) : ls) =
   wordinterval_intersection (WordInterval s e)
-    (l2br_negation_type_intersect ls);
-l2br_negation_type_intersect (Neg (s, e) : ls) =
+    (l2wi_negation_type_intersect ls);
+l2wi_negation_type_intersect (Neg (s, e) : ls) =
   wordinterval_intersection (wordinterval_invert (WordInterval s e))
-    (l2br_negation_type_intersect ls);
+    (l2wi_negation_type_intersect ls);
 
 ipt_iprange_negation_type_to_br_intersect ::
   forall a. (Len a) => [Negation_type (Ipt_iprange a)] -> Wordinterval a;
 ipt_iprange_negation_type_to_br_intersect l =
-  l2br_negation_type_intersect (negPos_map ipt_iprange_to_interval l);
+  l2wi_negation_type_intersect (negPos_map ipt_iprange_to_interval l);
 
 wi_2_cidr_ipt_iprange_list ::
   forall a. (Len a) => Wordinterval a -> [Ipt_iprange a];
@@ -2608,7 +2611,7 @@ ipt_ports_negation_type_normalize (Neg ps) = ports_invert ps;
 ipt_ports_andlist_compress ::
   forall a. (Len a) => [[(Word a, Word a)]] -> [(Word a, Word a)];
 ipt_ports_andlist_compress pss =
-  br2l (fold (\ ps -> wordinterval_intersection (l2br ps)) pss
+  wi2l (fold (\ ps -> wordinterval_intersection (l2wi ps)) pss
          wordinterval_UNIV);
 
 ipt_ports_compress ::
@@ -3091,7 +3094,7 @@ get_exists_matching_src_ips_executable iface m =
          then let {
                 (ip_matches, _) = primitive_extractor (is_Src, src_sel) m;
               } in (if null ip_matches then wordinterval_UNIV
-                     else l2br_negation_type_intersect
+                     else l2wi_negation_type_intersect
                             (negPos_map ipt_iprange_to_interval ip_matches))
          else empty_WordInterval);
 
@@ -3123,7 +3126,7 @@ get_all_matching_src_ips_executable iface m =
                   primitive_extractor (is_Src, src_sel) rest1;
               } in (if not (has_primitive rest2) && matcheq_matchAny rest2
                      then (if null ip_matches then wordinterval_UNIV
-                            else l2br_negation_type_intersect
+                            else l2wi_negation_type_intersect
                                    (negPos_map ipt_iprange_to_interval
                                      ip_matches))
                      else empty_WordInterval)
@@ -3137,7 +3140,7 @@ no_spoofing_algorithm_executable ::
                      Wordinterval a -> Wordinterval a -> Bool;
 no_spoofing_algorithm_executable iface ipassmt [] allowed denied1 =
   wordinterval_subset (wordinterval_setminus allowed denied1)
-    (l2br (map ipcidr_to_interval (the (ipassmt iface))));
+    (l2wi (map ipcidr_to_interval (the (ipassmt iface))));
 no_spoofing_algorithm_executable iface ipassmt (Rule m Accept : rs) allowed
   denied1 =
   no_spoofing_algorithm_executable iface ipassmt rs
@@ -3458,7 +3461,7 @@ map_of_string_ipv4 ::
 map_of_string_ipv4 rs = map_of rs;
 
 wordinterval_sort :: forall a. (Len a) => Wordinterval a -> Wordinterval a;
-wordinterval_sort w = l2br (mergesort_remdups (br2l w));
+wordinterval_sort w = l2wi (mergesort_remdups (wi2l w));
 
 build_ip_partition ::
   forall a.
@@ -3583,9 +3586,9 @@ iface_try_rewrite ipassmt rs =
                    (if not (equal_iface i1 i2)
                      then wordinterval_empty
                             (wordinterval_intersection
-                              (l2br (map ipcidr_to_interval
+                              (l2wi (map ipcidr_to_interval
                                       (the (map_of ipassmt i1))))
-                              (l2br (map ipcidr_to_interval
+                              (l2wi (map ipcidr_to_interval
                                       (the (map_of ipassmt i2)))))
                      else True))) &&
         ipassmt_sanity_defined rs (map_of ipassmt)
