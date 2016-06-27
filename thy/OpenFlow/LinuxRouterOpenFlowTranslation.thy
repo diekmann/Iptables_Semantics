@@ -64,7 +64,7 @@ using some
   by(cases m)
 	  (clarsimp 
 	   simp add: toprefixmatch_def ipset_from_cidr_def pfxm_mask_def fun_eq_iff
-	            PrefixMatch.prefix_match_semantics_ipset_from_netmask[OF vld] NOT_mask_shifted_lenword[symmetric]
+	            prefix_match_semantics_ipset_from_netmask[OF vld] NOT_mask_shifted_lenword[symmetric]
 	   split: if_splits)
 
 definition simple_match_to_of_match_single ::
@@ -734,7 +734,7 @@ proof(elim disjE, goal_cases)
         (auto dest: conjunctSomeProtoAnyD cidrsplit_no_overlaps
 	            simp add: OF_match_fields_unsafe_def simple_match_to_of_match_single_def option2set_def comp_def
 	            split: if_splits
-	            cong: smtoms_eq_hlp)
+	            cong: smtoms_eq_hlp) (*1min*)
   from 1 show ?case
   using 4 5 by(clarsimp simp add: lr_of_tran_s3_def) blast
 qed(metis no_overlaps_lroft_hlp3)
