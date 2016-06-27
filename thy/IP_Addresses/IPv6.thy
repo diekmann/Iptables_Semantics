@@ -664,7 +664,60 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
   done
   
 
-subsection\<open>IPv6 pretty printing (converting to compressed format)\<close>
+subsection\<open>IPv6 Pretty Printing (converting to compressed format)\<close>
+text_raw\<open>
+RFC5952:
+\begin{verbatim}
+4.  A Recommendation for IPv6 Text Representation
+
+   A recommendation for a canonical text representation format of IPv6
+   addresses is presented in this section.  The recommendation in this
+   document is one that complies fully with [RFC4291], is implemented by
+   various operating systems, and is human friendly.  The recommendation
+   in this section SHOULD be followed by systems when generating an
+   address to be represented as text, but all implementations MUST
+   accept and be able to handle any legitimate [RFC4291] format.  It is
+   advised that humans also follow these recommendations when spelling
+   an address.
+
+4.1.  Handling Leading Zeros in a 16-Bit Field
+
+   Leading zeros MUST be suppressed.  For example, 2001:0db8::0001 is
+   not acceptable and must be represented as 2001:db8::1.  A single 16-
+   bit 0000 field MUST be represented as 0.
+
+4.2.  "::" Usage
+
+4.2.1.  Shorten as Much as Possible
+
+   The use of the symbol "::" MUST be used to its maximum capability.
+   For example, 2001:db8:0:0:0:0:2:1 must be shortened to 2001:db8::2:1.
+   Likewise, 2001:db8::0:1 is not acceptable, because the symbol "::"
+   could have been used to produce a shorter representation 2001:db8::1.
+
+4.2.2.  Handling One 16-Bit 0 Field
+
+   The symbol "::" MUST NOT be used to shorten just one 16-bit 0 field.
+   For example, the representation 2001:db8:0:1:1:1:1:1 is correct, but
+   2001:db8::1:1:1:1:1 is not correct.
+
+4.2.3.  Choice in Placement of "::"
+
+   When there is an alternative choice in the placement of a "::", the
+   longest run of consecutive 16-bit 0 fields MUST be shortened (i.e.,
+   the sequence with three consecutive zero fields is shortened in 2001:
+   0:0:1:0:0:0:1).  When the length of the consecutive 16-bit 0 fields
+   are equal (i.e., 2001:db8:0:0:1:0:0:1), the first sequence of zero
+   bits MUST be shortened.  For example, 2001:db8::1:0:0:1 is correct
+   representation.
+
+4.3.  Lowercase
+
+   The characters "a", "b", "c", "d", "e", and "f" in an IPv6 address
+   MUST be represented in lowercase.
+\end{verbatim}
+\<close>
+text\<open>See @{file "IP_Address_toString.thy"} for examples and test cases.\<close>
 context
 begin
   private function goup_by_zeros :: "16 word list \<Rightarrow> 16 word list list" where
@@ -690,7 +743,7 @@ begin
 	private lemma "[] \<notin> set (goup_by_zeros ls)"
 	  by(induction ls rule:goup_by_zeros.induct) simp+
 	  
-  private fun List_replace1 :: "'a \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+  private primrec List_replace1 :: "'a \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
     "List_replace1 _ _ [] = []" |
     "List_replace1 a b (x#xs) = (if a = x then b#xs else x#List_replace1 a b xs)"
     
@@ -794,21 +847,19 @@ begin
    apply(rule disjI2)
    apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
          case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
-   by(auto simp add: max_zero_streak_def) (*28.129s cpu time*)
+   by(auto simp add: max_zero_streak_def) (*1min*)
   subgoal
   apply(rule disjI1)
   apply(simp)
   by force
   done
 
-
-
-
+  --\<open>Idea for the following proof:\<close>
   private lemma "ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) = None#xs \<Longrightarrow>
       xs = map Some (dropWhile (\<lambda>x. x=0) [a,b,c,d,e,f,g,h])"
     apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
           case_tac [!] "e=0",case_tac [!] "f=0",case_tac [!] "g=0",case_tac [!] "h=0")
-    by(simp_all add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def) (*5s*)
+    by(simp_all add: ipv6_preferred_to_compressed_pull_out_if max_zero_streak_def) (*20s*)
 
 
  
