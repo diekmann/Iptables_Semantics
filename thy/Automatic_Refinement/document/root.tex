@@ -1,0 +1,76 @@
+\documentclass[11pt,a4paper]{book}
+\usepackage{isabelle,isabellesym}
+
+\usepackage{amssymb}
+\usepackage[english]{babel}
+\usepackage[only,bigsqcap]{stmaryrd}
+
+% this should be the last package used
+\usepackage{pdfsetup}
+
+% urls in roman style, theory text in math-similar italics
+\urlstyle{rm}
+\isabellestyle{it}
+
+% Tweaks
+\newcounter{TTStweak_tag}
+\setcounter{TTStweak_tag}{0}
+\newcommand{\setTTS}{\setcounter{TTStweak_tag}{1}}
+\newcommand{\resetTTS}{\setcounter{TTStweak_tag}{0}}
+\newcommand{\insertTTS}{\ifnum\value{TTStweak_tag}=1 \ \ \ \fi}
+
+\renewcommand{\isakeyword}[1]{\resetTTS\emph{\bf\def\isachardot{.}\def\isacharunderscore{\isacharunderscorekeyword}\def\isacharbraceleft{\{}\def\isacharbraceright{\}}#1}}
+\renewcommand{\isachardoublequoteopen}{\insertTTS}
+\renewcommand{\isachardoublequoteclose}{\setTTS}
+\renewcommand{\isanewline}{\mbox{}\par\mbox{}\resetTTS}
+
+
+\renewcommand{\isamarkupcmt}[1]{\hangindent5ex{\isastylecmt --- #1}}
+
+\makeatletter
+\newenvironment{abstract}{%
+  \small
+  \begin{center}%
+    {\bfseries \abstractname\vspace{-.5em}\vspace{\z@}}%
+  \end{center}%
+  \quotation}{\endquotation}
+\makeatother
+
+\begin{document}
+
+\title{Automatic Data Refinement}
+\author{Peter Lammich}
+\maketitle
+
+\begin{abstract}
+We present the Autoref tool for Isabelle/HOL, which automatically
+refines algorithms specified over abstract concepts like maps
+and sets to algorithms over concrete implementations like red-black-trees,
+and produces a refinement theorem. It is based on ideas borrowed from
+relational parametricity due to Reynolds and Wadler.
+The tool allows for rapid prototyping of verified, executable algorithms.
+Moreover, it can be configured to fine-tune the result to the user's needs.
+Our tool is able to automatically instantiate generic algorithms, which
+greatly simplifies the implementation of executable data structures.
+
+This AFP-entry provides the basic tool, which is then used by the 
+Refinement and Collection Framework to provide automatic data refinement for
+the nondeterminism monad and various collection datastructures.
+\end{abstract}
+
+\clearpage
+\tableofcontents
+
+\clearpage
+% sane default for proof documents
+\parindent 0pt\parskip 0.5ex
+
+% generated text of all theories
+\input{session}
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

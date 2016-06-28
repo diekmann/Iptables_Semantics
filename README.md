@@ -17,13 +17,8 @@ It features
 
 
 ### Obtaining
-
-Checkout:
-This repository depends on the [seL4](https://github.com/seL4/l4v/) libraries (for the bitmagic operations on IPv4 addresses).
-After cloning this repository, you need to initialized this submodule.
 ```
-$ git submodule init
-$ git submodule update
+$ git clone
 ```
 
 

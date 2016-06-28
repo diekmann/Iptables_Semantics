@@ -94,12 +94,12 @@ lo = [127.0.0.0/8]
 Try this:
 
 ```
-./dist/build/fffuu/fffuu ../thy/Examples/Parser_Test/data/iptables-save --verbose
+./dist/build/fffuu/fffuu ../thy/Iptables_Semantics/Examples/Parser_Test/data/iptables-save --verbose
 ```
 This example file is a nonsense config we use to stress the parser.
 
 Example: 
-[Input](../thy/Examples/Parser_Test/data/iptables-save) / [Output](test/Suites/GoldenFiles/parser_test)
+[Input](../thy/Iptables_Semantics/Examples/Parser_Test/data/iptables-save) / [Output](test/Suites/GoldenFiles/parser_test)
 
 ---------------------------------------
 
@@ -107,7 +107,7 @@ Example:
 Try this:
 
 ```
-./dist/build/fffuu/fffuu --ipassmt ipassmt_tumi8 ../thy/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating
+./dist/build/fffuu/fffuu --ipassmt ipassmt_tumi8 ../thy/Iptables_Semantics/Examples/TUM_Net_Firewall/iptables-save-2015-05-15_15-23-41_cheating
 ```
 
 This will generate lots of output.
@@ -125,7 +125,7 @@ For example, spoofing protection can be done in the `raw` table.
 Try this: 
 
 ```
-./dist/build/fffuu/fffuu --table raw --chain PREROUTING --ipassmt ipassmt_sqrl ../thy/Examples/SQRL_Shorewall/2015_aug_iptables-save-spoofing-protection
+./dist/build/fffuu/fffuu --table raw --chain PREROUTING --ipassmt ipassmt_sqrl ../thy/Iptables_Semantics/Examples/SQRL_Shorewall/2015_aug_iptables-save-spoofing-protection
 ```
 
 [Output](test/Suites/GoldenFiles/sqrl_2015_aug_iptables-save-spoofing-protection) (featuring the `--verbose` flag)
@@ -177,7 +177,7 @@ The NAS has the following interesting services:
 We run the following:
 
 ```
-./dist/build/fffuu/fffuu --chain INPUT --service_matrix_dport 22 --service_matrix_dport 8080 --service_matrix_dport 80 ../thy/Examples/Synology_Diskstation_DS414/iptables-save_jun_2015_cleanup
+./dist/build/fffuu/fffuu --chain INPUT --service_matrix_dport 22 --service_matrix_dport 8080 --service_matrix_dport 80 ../thy/Iptables_Semantics/Examples/Synology_Diskstation_DS414/iptables-save_jun_2015_cleanup
 ```
 
 [Output](test/Suites/GoldenFiles/synology_iptables-save_jun_2015_cleanup) (featuring the `--verbose` flag)

@@ -1,0 +1,60 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{isabelle,isabellesym}
+
+% further packages required for unusual symbols (see also
+% isabellesym.sty), use only when needed
+
+\usepackage{amssymb}
+  %for \<leadsto>, \<box>, \<diamond>, \<sqsupset>, \<mho>, \<Join>,
+  %\<lhd>, \<lesssim>, \<greatersim>, \<lessapprox>, \<greaterapprox>,
+  %\<triangleq>, \<yen>, \<lozenge>
+
+
+% this should be the last package used
+\usepackage{pdfsetup}
+
+
+
+% urls in roman style, theory text in math-similar italics
+\urlstyle{rm}
+\isabellestyle{it}
+
+% for uniform font size
+%\renewcommand{\isastyle}{\isastyleminor}
+
+
+\begin{document}
+
+\title{IP Addresses}
+\author{Cornelius Diekmann, Julius Michaelis, Lars Hupel}
+\maketitle
+
+\begin{abstract}  
+  This entry contains a definition of IP addresses and a library to work with them. 
+  
+  Generic IP addresses are modeled as machine words of arbitrary length. 
+  Derived from this generic definition, IPv4 addresses are 32bit machine words, IPv6 addresses are 128bit words. 
+  Additionally, IPv4 addresses can be represented in dot-decimal notation and IPv6 addresses in (compressed) colon-separated notation. 
+  We support toString functions and parsers for both notations. 
+  Sets of IP addresses can be represented with a netmask (e.g. 192.168.0.0/255.255.0.0) or in CIDR notation (e.g. 192.168.0.0/16). 
+  To provide executable code for set operations on IP address ranges, the library includes a datatype to work on arbitrary intervals of machine words. 
+\end{abstract}
+
+\tableofcontents
+
+% sane default for proof documents
+\parindent 0pt\parskip 0.5ex
+
+% generated text of all theories
+\input{session}
+
+% optional bibliography
+%\bibliographystyle{abbrv}
+%\bibliography{root}
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

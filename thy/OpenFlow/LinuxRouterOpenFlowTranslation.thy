@@ -1,11 +1,11 @@
 theory LinuxRouterOpenFlowTranslation
 imports 
-	"../Simple_Firewall/Generic_SimpleFw" 
+	"../Iptables_Semantics/Simple_Firewall/Generic_SimpleFw" 
 	"Semantics_OpenFlow"
 	"OpenFlowMatches"
 	"OpenFlowAction"
-	(*"../Routing/AnnotateRouting"*)
-	"../Routing/LinuxRouter"
+	(*"../Iptables_Semantics/Routing/AnnotateRouting"*)
+	"../Iptables_Semantics/Routing/LinuxRouter"
 begin
 
 primrec filter_nones where
@@ -64,7 +64,7 @@ using some
   by(cases m)
 	  (clarsimp 
 	   simp add: toprefixmatch_def ipset_from_cidr_def pfxm_mask_def fun_eq_iff
-	            PrefixMatch.prefix_match_if_in_corny_set[OF vld] NOT_mask_shifted_lenword[symmetric]
+	            prefix_match_semantics_ipset_from_netmask[OF vld] NOT_mask_shifted_lenword[symmetric]
 	   split: if_splits)
 
 definition simple_match_to_of_match_single ::
@@ -171,18 +171,18 @@ lemma simple_match_port_alt: "simple_match_port m p \<longleftrightarrow> p \<in
 (* TODO: move? *)
 lemma simple_match_ip_alt: "valid_prefix (PrefixMatch (fst m) (snd m)) \<Longrightarrow> 
 	simple_match_ip m p \<longleftrightarrow> prefix_match_semantics (PrefixMatch (fst m) (snd m)) p"
-by(cases m) (simp add: prefix_to_wordset_ipset_from_cidr prefix_match_if_in_corny_set2)
+by(cases m) (simp add: prefix_to_wordset_ipset_from_cidr prefix_match_semantics_ipset_from_netmask2)
 lemma simple_match_src_alt: "simple_match_valid r \<Longrightarrow> 
 	simple_match_ip (src r) p \<longleftrightarrow> prefix_match_semantics (PrefixMatch (fst (src r)) (snd (src r))) p"
-by(cases "(src r)") (simp add: prefix_match_if_in_corny_set2 prefix_to_wordset_ipset_from_cidr simple_match_valid_def valid_prefix_fw_def)
+by(cases "(src r)") (simp add: prefix_match_semantics_ipset_from_netmask2 prefix_to_wordset_ipset_from_cidr simple_match_valid_def valid_prefix_fw_def)
 lemma simple_match_dst_alt: "simple_match_valid r \<Longrightarrow> 
 	simple_match_ip (dst r) p \<longleftrightarrow> prefix_match_semantics (PrefixMatch (fst (dst r)) (snd (dst r))) p"
-by(cases "(dst r)") (simp add: prefix_match_if_in_corny_set2 prefix_to_wordset_ipset_from_cidr simple_match_valid_def valid_prefix_fw_def)
+by(cases "(dst r)") (simp add: prefix_match_semantics_ipset_from_netmask2 prefix_to_wordset_ipset_from_cidr simple_match_valid_def valid_prefix_fw_def)
 thm prefix_match_semantics_simple_match (* mph, I had one like that already. TODO: dedup *)
 
 
 lemma "x \<in> set (wordinterval_CIDR_split_prefixmatch w) \<Longrightarrow> valid_prefix x"
-using wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec] .
+using wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec, THEN conjunct1] .
 
 lemma simple_match_to_of_matchI: 
 	assumes mv: "simple_match_valid r"
@@ -282,7 +282,7 @@ proof -
       apply(subgoal_tac "prefix_match_semantics (the di) (p_dport p)")
        apply(clarsimp simp: prefix_match_semantics_def pfxm_mask_def word_bw_comms;fail)
       apply(clarsimp)
-      apply(subst prefix_match_if_in_prefix_to_wordset)
+      apply(subst prefix_match_semantics_wordset)
        apply(blast dest: wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec])
       apply(assumption)
     done
@@ -293,7 +293,7 @@ proof -
       apply(subgoal_tac "prefix_match_semantics (the si) (p_sport p)")
        apply(clarsimp simp: prefix_match_semantics_def pfxm_mask_def word_bw_comms;fail)
       apply(clarsimp)
-      apply(subst prefix_match_if_in_prefix_to_wordset)
+      apply(subst prefix_match_semantics_wordset)
        apply(blast dest: wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec])
       apply(assumption)
     done
@@ -380,10 +380,10 @@ proof -
 			apply(subgoal_tac "p_sport p \<in> wordinterval_to_set (WordInterval a b)")
 			apply(simp;fail)
 			apply(subgoal_tac "p_sport p \<in> prefix_to_wordset xc")
-			apply(subst wordinterval_CIDR_split_prefixmatch[symmetric])
+			apply(subst wordinterval_CIDR_split_prefixmatch)
 			apply blast
-			apply(subst(asm)(1) prefix_match_if_in_prefix_to_wordset)
-			apply(erule wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec];fail)
+			apply(subst(asm)(1) prefix_match_semantics_wordset)
+			apply(erule wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec, THEN conjunct1];fail)
 			apply assumption
 		done
 	next
@@ -398,10 +398,10 @@ proof -
 			apply(subgoal_tac "p_dport p \<in> wordinterval_to_set (WordInterval a b)")
 			apply(simp;fail)
 			apply(subgoal_tac "p_dport p \<in> prefix_to_wordset xc")
-			apply(subst wordinterval_CIDR_split_prefixmatch[symmetric])
+			apply(subst wordinterval_CIDR_split_prefixmatch)
 			apply blast
-			apply(subst(asm)(1) prefix_match_if_in_prefix_to_wordset)
-			apply(erule wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec];fail)
+			apply(subst(asm)(1) prefix_match_semantics_wordset)
+			apply(erule wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec, THEN conjunct1];fail)
 			apply assumption
 		done
     qed
@@ -437,6 +437,18 @@ lemma annotate_rlen_code[code]: "annotate_rlen s = snd (annotate_rlen_code s)"
 proof(induction s)
   case (Cons s ss) thus ?case using annotate_rlen_len[of ss] by(clarsimp split: prod.split)
 qed simp
+
+lemma suc2plus_inj_on: "inj_on (of_nat :: nat \<Rightarrow> ('l :: len) word) {0..unat (max_word :: 'l word)}"
+proof(rule inj_onI)
+   let ?mmw = "(max_word :: 'l word)"
+   let ?mstp = "(of_nat :: nat \<Rightarrow> 'l word)"
+   fix x y :: nat
+   assume "x \<in> {0..unat ?mmw}" "y \<in> {0..unat ?mmw}"
+   hence se: "x \<le> unat ?mmw" "y \<le> unat ?mmw" by simp_all
+   assume eq: "?mstp x = ?mstp y"
+   note f = le_unat_uoi[OF se(1)] le_unat_uoi[OF se(2)]
+   show "x = y" using eq le_unat_uoi se by metis
+qed
 
 lemma distinct_of_nat_list: (* TODO: Move to CaesarWordLemmaBucket *)
 	"distinct l \<Longrightarrow> \<forall>e \<in> set l. e \<le> unat (max_word :: ('l::len) word) \<Longrightarrow> distinct (map (of_nat :: nat \<Rightarrow> 'l word) l)"
@@ -665,12 +677,12 @@ proof -
     fix x y :: "16 prefix_match"
     obtain xm xn ym yn where xyd[simp]: "x = PrefixMatch xm xn" "y = PrefixMatch ym yn" by(cases x; cases y)
     assume iw: "x \<in> wis" "y \<in> wis" and et: "(pfxm_prefix x, ~~ pfxm_mask x) = (pfxm_prefix y, ~~ pfxm_mask y)"
-    hence le16: "xn \<le> 16" "yn \<le> 16" unfolding wis_def using wordinterval_CIDR_split_prefixmatch_all_valid_less_Ball[unfolded Ball_def, THEN spec, THEN mp] by force+
+    hence le16: "xn \<le> 16" "yn \<le> 16" unfolding wis_def using wordinterval_CIDR_split_prefixmatch_all_valid_Ball[unfolded Ball_def, THEN spec, THEN mp] by force+
     with et have "16 - xn = 16 - yn" unfolding pfxm_mask_def by(auto intro: mask_inj_hlp1[THEN inj_onD])
     hence "x = y" using et le16 using diff_diff_cancel by simp
   } note * = this
   show ?thesis 
-    apply(clarsimp simp add: smtoms_eq_hlp distinct_map wordinterval_CIDR_split_prefixmatch_distinct)
+    apply(clarsimp simp add: smtoms_eq_hlp distinct_map wordinterval_CIDR_split_distinct)
     apply(subst comp_inj_on_iff[symmetric]; intro inj_onI)
   using * by simp_all
 qed
@@ -684,7 +696,7 @@ lemma distinct_simple_match_to_of_match: "distinct ifs \<Longrightarrow> distinc
   subgoal by(simp_all add: smtoms_eq_hlp)
 done
 
-lemma inj_inj_on: "inj F \<Longrightarrow> inj_on F A" using subset_inj_on by auto (* TODO: include ../Bitmagic/l4v/lib/Lib *)
+lemma inj_inj_on: "inj F \<Longrightarrow> inj_on F A" using subset_inj_on by auto (* TODO: include Word_Lib *)
 
 lemma no_overlaps_lroft_hlp2: "distinct (map fst amr) \<Longrightarrow> (\<And>r. distinct (fm r)) \<Longrightarrow>
     distinct (concat (map (\<lambda>(p, r, c, a). map (\<lambda>b. (p, b, fs a c)) (fm r)) amr))"
@@ -722,7 +734,7 @@ proof(elim disjE, goal_cases)
         (auto dest: conjunctSomeProtoAnyD cidrsplit_no_overlaps
 	            simp add: OF_match_fields_unsafe_def simple_match_to_of_match_single_def option2set_def comp_def
 	            split: if_splits
-	            cong: smtoms_eq_hlp)
+	            cong: smtoms_eq_hlp) (*1min*)
   from 1 show ?case
   using 4 5 by(clarsimp simp add: lr_of_tran_s3_def) blast
 qed(metis no_overlaps_lroft_hlp3)
@@ -840,10 +852,10 @@ lemma lr_of_tran_s1_append: "lr_of_tran_s1 (a @ rt) = lr_of_tran_s1 a @ lr_of_tr
 	by(induction a) (simp_all add: lr_of_tran_s1_split lr_of_tran_s1_def)
 
 lemma route2match_correct: "valid_prefix (routing_match a) \<Longrightarrow> prefix_match_semantics (routing_match a) (p_dst p) \<longleftrightarrow> simple_matches (route2match a) (p)"
-by(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_refl ipset_from_cidr_0 prefix_match_if_in_corny_set2)
+by(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_refl ipset_from_cidr_0 prefix_match_semantics_ipset_from_netmask2)
 
 lemma route2match_correct_noupd: "valid_prefix (routing_match a) \<Longrightarrow> simple_matches (route2match a) p \<Longrightarrow> prefix_match_semantics (routing_match a) (p_dst p)"
-by(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_refl prefix_match_if_in_corny_set2)
+by(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_refl prefix_match_semantics_ipset_from_netmask2)
 
 lemma s1_correct: "valid_prefixes rt \<Longrightarrow> has_default_route rt \<Longrightarrow> 
   \<exists>rm ra. generalized_sfw (lr_of_tran_s1 rt) p = Some (rm,ra) \<and> ra = output_iface (routing_table_semantics rt (p_dst p))"
@@ -862,7 +874,7 @@ lemma s1_correct: "valid_prefixes rt \<Longrightarrow> has_default_route rt \<Lo
 	done
 	apply(rule conjI)
 	 apply(simp add: generalized_sfw_def lr_of_tran_s1_def route2match_correct;fail)
-	apply(simp add: route2match_def simple_matches.simps prefix_match_if_in_corny_set2 
+	apply(simp add: route2match_def simple_matches.simps prefix_match_semantics_ipset_from_netmask2 
 	                lr_of_tran_s1_split generalized_sfw_simps)
 done
 

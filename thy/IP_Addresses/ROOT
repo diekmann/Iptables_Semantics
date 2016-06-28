@@ -1,0 +1,28 @@
+chapter Iptables_Semantics
+
+session "IP_Addresses" = Word_Lib +
+  theories[document=false]
+    "~~/src/HOL/Word/Word"
+    "~~/src/HOL/Library/Code_Target_Nat"
+    "~~/src/HOL/Word/WordBitwise"
+    "~~/src/HOL/Library/Code_Target_Int"
+    "~~/src/HOL/Library/Code_Char"
+    "../Word_Lib/Word_Lemmas"
+    "../Automatic_Refinement/Lib/Misc" (* mergesort *)
+    NumberWang_IPv4
+    NumberWang_IPv6
+    Word_More
+  theories
+    Word_Next
+    WordInterval
+    IP_Address
+    IPv4
+    IPv6
+    Prefix_Match
+    CIDR_Split
+    WordInterval_Sorted (* depends on mergesort *)
+    IP_Address_Parser
+    IP_Address_toString
+  document_files
+    "root.tex"
+
