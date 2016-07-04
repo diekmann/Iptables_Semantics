@@ -3801,7 +3801,6 @@ Table `raw' caught exception: `Reading ruleset failed! sanity_wf_ruleset check f
 (-o eth1.1024 -p icmp, -j ACCEPT)
 (-o eth1.1024, -j DROP)
 (, -j DROP)
-(, -j ACCEPT)
 == to simple firewall ==
 DROP     all  --  131.159.14.0/23            0.0.0.0/0 in: eth1.110   
 DROP     all  --  131.159.20.0/23            0.0.0.0/0 in: eth1.110   
@@ -7597,7 +7596,6 @@ ACCEPT     udp  --  188.95.233.0/24            0.0.0.0/0  out: eth1.1024  dports
 ACCEPT     icmp  --  0.0.0.0/0            0.0.0.0/0  out: eth1.1024  
 DROP     all  --  0.0.0.0/0            0.0.0.0/0  out: eth1.1024  
 DROP     all  --  0.0.0.0/0            0.0.0.0/0    
-ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0    
 == to even-simpler firewall ==
 DROP     all  --  127.0.0.0/8            0.0.0.0/0    
 ACCEPT     all  --  131.159.14.197/32            0.0.0.0/0    
@@ -10740,7 +10738,6 @@ ACCEPT     tcp  --  131.159.20.38/32            185.86.232.0/22    dports: 1:655
 ACCEPT     udp  --  131.159.20.38/32            185.86.232.0/22    dports: 1:65535
 ACCEPT     icmp  --  0.0.0.0/0            185.86.232.0/22    
 DROP     all  --  0.0.0.0/0            0.0.0.0/0    
-ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0    
 == checking spoofing protection ==
 distinct: passed
 ipassmt_sanity_nowildcards: passed

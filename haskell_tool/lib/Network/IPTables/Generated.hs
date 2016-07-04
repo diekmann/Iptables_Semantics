@@ -2927,6 +2927,14 @@ normalize_rules_dnf [] = [];
 normalize_rules_dnf (Rule m a : rs) =
   map (\ ma -> Rule ma a) (normalize_match m) ++ normalize_rules_dnf rs;
 
+cut_off_after_match_any :: forall a. (Eq a) => [Rule a] -> [Rule a];
+cut_off_after_match_any [] = [];
+cut_off_after_match_any (Rule m a : rs) =
+  (if equal_match_expr m MatchAny &&
+        (equal_action a Accept ||
+          (equal_action a Drop || equal_action a Reject))
+    then [Rule m a] else Rule m a : cut_off_after_match_any rs);
+
 matcheq_matchNone :: forall a. Match_expr a -> Bool;
 matcheq_matchNone MatchAny = False;
 matcheq_matchNone (Match uu) = False;
@@ -2948,8 +2956,9 @@ transform_optimize_dnf_strict ::
   forall a.
     (Len a) => [Rule (Common_primitive a)] -> [Rule (Common_primitive a)];
 transform_optimize_dnf_strict =
-  (optimize_matches opt_MatchAny_match_expr . normalize_rules_dnf) .
-    optimize_matches (opt_MatchAny_match_expr . optimize_primitive_univ);
+  cut_off_after_match_any .
+    (optimize_matches opt_MatchAny_match_expr . normalize_rules_dnf) .
+      optimize_matches (opt_MatchAny_match_expr . optimize_primitive_univ);
 
 get_action :: forall a. Rule a -> Action;
 get_action (Rule x1 x2) = x2;
@@ -3542,7 +3551,7 @@ ipt_tcp_flags_toString flags =
   list_toString tcp_flag_toString (enum_set_to_list flags);
 
 integer_to_16word :: Integer -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
-integer_to_16word i = word_of_int (Int_of_integer i);
+integer_to_16word i = nat_to_16word (nat_of_integer i);
 
 ctstate_toString :: Ctstate -> [Prelude.Char];
 ctstate_toString CT_New = "NEW";

@@ -96,8 +96,6 @@ Default Policies: fromList [("FORWARD",-j ACCEPT),("INPUT",-j ACCEPT),("OUTPUT",
 (--dpts [2049] -p udp, -j DROP)
 (-s 192.168.0.0/16, -j ACCEPT)
 (, -j DROP)
-(-i eth0, -j DROP)
-(, -j ACCEPT)
 == to simple firewall ==
 ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0 in: lo   
 ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 22
@@ -124,8 +122,6 @@ DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 892
 DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 2049
 ACCEPT     all  --  192.168.0.0/16            0.0.0.0/0    
 DROP     all  --  0.0.0.0/0            0.0.0.0/0    
-DROP     all  --  0.0.0.0/0            0.0.0.0/0 in: eth0   
-ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0    
 == to even-simpler firewall ==
 ACCEPT     all  --  127.0.0.0/8            0.0.0.0/0    
 ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 22
@@ -151,13 +147,10 @@ DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 111
 DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 892
 DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 2049
 ACCEPT     all  --  192.168.0.0/16            0.0.0.0/0    
-DROP     all  --  0.0.0.0/0            0.0.0.0/0    
-ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0    
 == checking spoofing protection ==
-WARNING There are some interfaces in your firewall ruleset which are not defined in your ipassmt.
 distinct: passed
 ipassmt_sanity_nowildcards: passed
-ipassmt_sanity_defined (interfaces defined in the ruleset are also in ipassmt): fail: [eth0]
+ipassmt_sanity_defined (interfaces defined in the ruleset are also in ipassmt): fail: passed
 ipassmt_sanity_disjoint (no zone-spanning interfaces): passed
 ipassmt_sanity_disjoint excluding UNIV interfaces: passed
 ipassmt_sanity_complete: the following is not covered: {0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 255.255.255.255}
