@@ -53,7 +53,7 @@ text\<open>If @{const no_spoofing} is shown in the ternary semantics, it implies
                  ipcidr_union_set (set (the (ipassmt iface)))"
   proof -
     { assume no_spoofing: "no_spoofing TYPE('pkt_ext) ipassmt rs"
-      have "{p_src p | p :: ('i,'pkt_ext) simple_packet_ext. (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow)} \<subseteq>
+      have "{p_src p | p :: ('i,'pkt_ext) simple_packet_scheme. (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow)} \<subseteq>
                  ipcidr_union_set (set (the (ipassmt iface)))"
       using approximating_imp_booloan_semantics_nospoofing[OF assms(1) assms(2) no_spoofing, where \<Gamma>=\<Gamma>]
       using assms(5) by blast

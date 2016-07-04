@@ -74,6 +74,11 @@ subsection\<open>IPv4 Addresses in IPTables Notation (how we parse it)\<close>
    apply(simp add: ipset_from_cidr_alt; fail)
   apply(simp; fail)
   done
+
+  
+  lemma ipt_iprange_to_set_uncurry_IpAddrNetmask:
+    "ipt_iprange_to_set (uncurry IpAddrNetmask a) = uncurry ipset_from_cidr a"
+    by(simp split: uncurry_splits)
   
 
   text\<open>IP address ranges to @{text "(start, end)"} notation\<close>
@@ -115,13 +120,13 @@ subsection\<open>IPv4 Addresses in IPTables Notation (how we parse it)\<close>
         If a list of intervals is enough, we can use @{const wi2l}.
         If we need it in @{typ "'i::len ipt_iprange"}, we can use this function.\<close>
   definition wi_2_cidr_ipt_iprange_list :: "'i::len wordinterval \<Rightarrow> 'i ipt_iprange list" where
-    "wi_2_cidr_ipt_iprange_list r = map (\<lambda> (base, len). IpAddrNetmask base len) (cidr_split r)"
+    "wi_2_cidr_ipt_iprange_list r = map (uncurry IpAddrNetmask) (cidr_split r)"
 
-  lemma wi_2_cidr_ipt_iprange_list: "(\<Union> ip \<in> set (wi_2_cidr_ipt_iprange_list r). ipt_iprange_to_set ip) = wordinterval_to_set r"
+  lemma wi_2_cidr_ipt_iprange_list:
+    "(\<Union> ip \<in> set (wi_2_cidr_ipt_iprange_list r). ipt_iprange_to_set ip) = wordinterval_to_set r"
     proof -
-    have "\<And>a. ipt_iprange_to_set (case a of (base, x) \<Rightarrow> IpAddrNetmask base x) = uncurry ipset_from_cidr a"
-      by(clarsimp)
-    hence "(\<Union> ip \<in> set (wi_2_cidr_ipt_iprange_list r). ipt_iprange_to_set ip) = (\<Union>x\<in>set (cidr_split r). uncurry ipset_from_cidr x)"
+    have "(\<Union> ip \<in> set (wi_2_cidr_ipt_iprange_list r). ipt_iprange_to_set ip) =
+           (\<Union>x\<in>set (cidr_split r). uncurry ipset_from_cidr x)"
       unfolding wi_2_cidr_ipt_iprange_list_def by force
     thus ?thesis using cidr_split_prefix by metis
   qed

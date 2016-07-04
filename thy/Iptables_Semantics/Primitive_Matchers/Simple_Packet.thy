@@ -29,7 +29,15 @@ section\<open>Simple Packet\<close>
           p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New
          \<rparr>"
 
+  text\<open>We suggest to use @{typ "('i,'pkt_ext) simple_packet_scheme"} instead of 
+        @{typ "'i simple_packet"} because of its extensibility which naturally 
+        models any payload\<close>
 
+  
+  definition simple_packet_unext :: "('i::len, 'a) simple_packet_scheme \<Rightarrow> 'i simple_packet" where
+    "simple_packet_unext p \<equiv>
+      \<lparr>p_iiface = p_iiface p, p_oiface = p_oiface p, p_src = p_src p, p_dst = p_dst p, p_proto = p_proto p, 
+       p_sport = p_sport p, p_dport = p_dport p, p_tcp_flags = p_tcp_flags p, p_tag_ctstate = p_tag_ctstate p\<rparr>"
 
   text\<open>An extended simple packet with MAC addresses and VLAN header\<close>
   
@@ -39,10 +47,5 @@ section\<open>Simple Packet\<close>
     p_l2dst :: "48 word"
     p_vlanid :: "16 word"
     p_vlanprio :: "16 word"
-  
-  definition simple_packet_unext :: "('i::len, 'a) simple_packet_scheme \<Rightarrow> 'i simple_packet" where
-    "simple_packet_unext p \<equiv>
-      \<lparr>p_iiface = p_iiface p, p_oiface = p_oiface p, p_src = p_src p, p_dst = p_dst p, p_proto = p_proto p, 
-       p_sport = p_sport p, p_dport = p_dport p, p_tcp_flags = p_tcp_flags p, p_tag_ctstate = p_tag_ctstate p\<rparr>"
 
 end

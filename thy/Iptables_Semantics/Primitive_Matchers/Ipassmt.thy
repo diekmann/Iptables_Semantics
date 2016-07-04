@@ -48,7 +48,8 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
     "ipassmt_sanity_disjoint ipassmt \<equiv> \<forall> i1 \<in> dom ipassmt. \<forall> i2 \<in> dom ipassmt. i1 \<noteq> i2 \<longrightarrow>
           ipcidr_union_set (set (the (ipassmt i1))) \<inter> ipcidr_union_set (set (the (ipassmt i2))) = {}"
   
-  lemma[code_unfold]: "ipassmt_sanity_disjoint (map_of ipassmt) \<longleftrightarrow> (let Is = fst` set ipassmt in 
+  lemma[code_unfold]: "ipassmt_sanity_disjoint (map_of ipassmt) \<longleftrightarrow>
+    (let Is = fst` set ipassmt in 
       (\<forall> i1 \<in> Is. \<forall> i2 \<in> Is. i1 \<noteq> i2 \<longrightarrow> wordinterval_empty (wordinterval_intersection (l2wi (map ipcidr_to_interval (the ((map_of ipassmt) i1))))  (l2wi (map ipcidr_to_interval (the ((map_of ipassmt) i2)))))))"
     apply(simp add: ipassmt_sanity_disjoint_def Map.dom_map_of_conv_image_fst)
     apply(simp add: ipcidr_union_set_def)
@@ -122,7 +123,8 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
 
   (*distinct fst ipassmt notwendig?*)
   (*TODO: proof nochmal ordentlich machen!*)
-  lemma "distinct (map fst ipassmt) \<Longrightarrow> map_of (ipassmt_ignore_wildcard_list ipassmt) = ipassmt_ignore_wildcard (map_of ipassmt)"
+  lemma "distinct (map fst ipassmt) \<Longrightarrow>
+    map_of (ipassmt_ignore_wildcard_list ipassmt) = ipassmt_ignore_wildcard (map_of ipassmt)"
     apply(simp add: ipassmt_ignore_wildcard_list_def ipassmt_ignore_wildcard_def)
       apply(simp add: wordinterval_eq_set_eq)
       apply(simp add: l2wi)
@@ -130,7 +132,7 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
       apply(simp add: fun_eq_iff)
       apply(clarify)
       apply(induction ipassmt)
-       apply(simp)
+       apply(simp; fail)
       apply(simp)
       apply(simp split:option.split option.split_asm)
       apply(simp add: ipcidr_union_set_def ipset_from_cidr_ipcidr_to_interval)
