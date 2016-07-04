@@ -133,12 +133,12 @@ lemma "unfold_ruleset_INPUT action.Accept example_ruleset =
 
 text\<open>in doubt allow closure\<close>
 lemma upper: "upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset) =
-  [Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192, 168, 0, 0)) 16))) action.Accept, Rule MatchAny action.Drop, Rule MatchAny action.Accept]" by eval
+  [Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192, 168, 0, 0)) 16))) action.Accept,
+   Rule MatchAny action.Drop]" by eval
 
 text\<open>in doubt deny closure\<close>
 lemma lower: "lower_closure (unfold_ruleset_INPUT action.Accept example_ruleset) =
- [Rule MatchAny action.Drop, Rule (Match (Prot (Proto TCP))) action.Drop, Rule (Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192, 168, 0, 0)) 16))) action.Accept, Rule MatchAny action.Accept]" by eval
+ [Rule MatchAny action.Drop]" by eval
 
 
 text\<open>upper closure\<close>
@@ -177,8 +177,7 @@ lemma "check_simple_fw_preconditions (upper_closure (unfold_ruleset_INPUT action
 value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset)))"
 lemma "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset))) =
   [''ACCEPT     all  --  192.168.0.0/16            0.0.0.0/0    '',
-   ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '',
-   ''ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0    '']" by eval (*will break when simple_rule_toString is changed*)
+   ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '']" by eval (*will break when simple_rule_toString is changed*)
 
 lemma "check_simple_fw_preconditions (lower_closure (unfold_ruleset_INPUT action.Accept example_ruleset))" by eval
 value[code] "map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_INPUT action.Accept example_ruleset)))"

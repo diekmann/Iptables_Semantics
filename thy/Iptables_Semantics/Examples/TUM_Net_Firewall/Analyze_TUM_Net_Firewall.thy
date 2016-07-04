@@ -26,7 +26,7 @@ lemma "sanity_wf_ruleset net_fw_2013" by eval
 
 lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string_ipv4 net_fw_2013)
                     in (length rules, length (upper_closure rules), length (lower_closure rules))
-  = (2375, 2382, 2840)" by eval
+  = (2375, 2381, 2839)" by eval
 
 value[code] "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string_ipv4 net_fw_2013)
                     in ()"
@@ -37,7 +37,7 @@ lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (ma
                               (upper_closure (packet_assume_new rules))))),
                         length (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall
                               (lower_closure (packet_assume_new rules)))))) 
- = (2381, 2837)" by eval
+ = (2380, 2836)" by eval
 
 lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string_ipv4 net_fw_2013)
      in map simple_rule_toString (take 43 (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall
