@@ -9,7 +9,7 @@ import           Data.Functor ((<$>), ($>))
 import           Control.Applicative ((<*), (*>))
 import qualified Network.IPTables.Generated as Isabelle
 import           Network.IPTables.ParserHelper
-import           Network.IPTables.IsabelleToString()
+import           Network.IPTables.IsabelleToString(Word32)
 
 type IpRange = Isabelle.Negation_type [Isabelle.Ipt_iprange Word32]
 

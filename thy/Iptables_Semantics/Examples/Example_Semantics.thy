@@ -55,7 +55,9 @@ text\<open>We use a primitive matcher which always applies. We don't care about 
 
   hide_const m
   
-  definition "pkt=\<lparr>p_iiface=''+'', p_oiface=''+'', p_src=0, p_dst=0, p_proto=TCP, p_sport=0, p_dport=0, p_tcp_flags = {TCP_SYN}, p_tag_ctstate= CT_New\<rparr>"
+  definition "pkt=\<lparr>p_iiface=''+'', p_oiface=''+'', p_src=0, p_dst=0,
+                   p_proto=TCP, p_sport=0, p_dport=0, p_tcp_flags = {TCP_SYN},
+                   p_payload='''',p_tag_ctstate= CT_New\<rparr>"
 
   text\<open>We tune the primitive matcher to support everything we need in the example. Note that the undefined cases cannot be handled with these exact semantics!\<close>
   fun applies_exampleMatchExact :: "(32 common_primitive, 32 simple_packet) matcher" where

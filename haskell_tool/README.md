@@ -227,8 +227,6 @@ DROP       udp  --  0.0.0.0/0            0.0.0.0/0    dports: 892
 DROP       udp  --  0.0.0.0/0            0.0.0.0/0    dports: 2049
 ACCEPT     all  --  192.168.0.0/16       0.0.0.0/0    
 DROP       all  --  0.0.0.0/0            0.0.0.0/0    
-DROP       all  --  0.0.0.0/0            0.0.0.0/0    in: eth0   
-ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0
 ```
 
 We can see that `fffuu` has split the `multiport` matches into individual rules and that the ruleset has been unfolded into one linear ruleset (the user-defined `DEFAULT_INPUT` and `DOS_PROTECT` chains are gone). 
@@ -238,10 +236,10 @@ The original ruleset did a lot of rate limiting and drops packets which exceed t
 To answer the question about *potentially* allowed packets, we must assume that the rate limiting will not drop us (i.e. our packets make it through the `DOS_PROTECT` chain without being dropped). 
 We can see that the simplified ruleset has completely eliminated the rate limiting. 
 Finally, let's look at the last rules of the simplified ruleset. 
-The last rule (accept all) corresponds to the default policy of the original input. 
-The rule before that (drop all from eth0) corresponds to the last rule of the original `DEFAULT_INPUT` chain. 
-This rule is shadowed by the rule before anyway. 
-Why? Because firewalls can be hard!
+The last rule (drop all) corresponds to the butlast rule of the `DEFAULT_INPUT` chain. 
+This rule can be called a default policy. 
+Since it matches all packets, `fffuu` stopped processing at this point.
+Note that the last rule of `DEFAULT_INPUT` (drop all from eth0) and everything after that has been deleted.
 
 
 Let's get to the interesting services on our NAS. 

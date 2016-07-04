@@ -1,12 +1,11 @@
 theory RFC2544
 imports 
-  "../../Primitive_Matchers/Parser"
-  "../../Semantics_Ternary/Optimizing"
-  "../../Simple_Firewall/SimpleFw_toString"
-  "../../Routing/Routing"
-  "../../Routing/IpRoute_Parser"
-  "../../../OpenFlow/LinuxRouterOpenFlowTranslation"
-  "../../../OpenFlow/OpenFlowSerialize"
+  "../../../Iptables_Semantics/Primitive_Matchers/Parser"
+  "../../../Iptables_Semantics/Simple_Firewall/SimpleFw_toString"
+  "../../../Iptables_Semantics/Routing/Routing"
+  "../../../Iptables_Semantics/Routing/IpRoute_Parser"
+  "../../LinuxRouterOpenFlowTranslation"
+  "../../OpenFlowSerialize"
 begin
 
 section\<open>Example: Simple Test for Translation to OpenFlow\<close>
@@ -33,7 +32,7 @@ value[code] "upper_closure (packet_assume_new unfolded)"
 
 lemma "length (lower_closure unfolded) = 26" by eval
 
-lemma "check_simple_fw_preconditions (upper_closure unfolded) = True" by eval
+lemma "check_simple_fw_preconditions (upper_closure unfolded)" by eval
 lemma "\<forall>m \<in> get_match`set (upper_closure (packet_assume_new unfolded)). normalized_nnf_match m" by eval
 lemma "\<forall>m \<in> get_match`set (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))). normalized_nnf_match m" by eval
 lemma "check_simple_fw_preconditions (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))))" by eval

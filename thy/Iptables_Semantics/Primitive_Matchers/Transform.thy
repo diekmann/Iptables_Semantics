@@ -8,6 +8,7 @@ imports Common_Primitive_Lemmas
         Protocols_Normalize
         "../Common/Remdups_Rev"
         Interface_Replace
+        "../Semantics_Ternary/Optimizing"
 begin
 
 
@@ -15,7 +16,8 @@ section\<open>Optimizing and normalizing primitives\<close>
 (*TODO: cleanup*)
 
 
-definition compress_normalize_besteffort :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr option" where
+definition compress_normalize_besteffort
+  :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr option" where
    "compress_normalize_besteffort m \<equiv> compress_normalize_primitive_monad
           [compress_normalize_protocols,
            compress_normalize_input_interfaces,
@@ -237,8 +239,9 @@ subsection\<open>Optimize and Normalize to NNF form\<close>
 
 (*without normalize_rules_dnf, the result cannot be normalized as optimize_primitive_univ can contain MatchNot MatchAny*)
 definition transform_optimize_dnf_strict :: "'i::len common_primitive rule list \<Rightarrow> 'i common_primitive rule list" where 
-    "transform_optimize_dnf_strict = optimize_matches opt_MatchAny_match_expr \<circ> 
-        normalize_rules_dnf \<circ> (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ))"
+    "transform_optimize_dnf_strict = cut_off_after_match_any \<circ>
+        (optimize_matches opt_MatchAny_match_expr \<circ> 
+        normalize_rules_dnf \<circ> (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ)))"
 
 
 (*TODO move*)
@@ -258,12 +261,18 @@ theorem transform_optimize_dnf_strict_structure: assumes simplers: "simple_rules
   proof -
     show simplers_transform: "simple_ruleset (transform_optimize_dnf_strict rs)"
       unfolding transform_optimize_dnf_strict_def
-      using simplers by (simp add: optimize_matches_simple_ruleset simple_ruleset_normalize_rules_dnf)
+      using simplers by (simp add: cut_off_after_match_any_simplers
+          optimize_matches_simple_ruleset simple_ruleset_normalize_rules_dnf)
 
-    have tf1: "\<And>r rs. transform_optimize_dnf_strict (r#rs) =
+    def transform_optimize_dnf_strict_inner \<equiv>
+        "optimize_matches (opt_MatchAny_match_expr :: 'a common_primitive match_expr \<Rightarrow> 'a common_primitive match_expr) \<circ> 
+        normalize_rules_dnf \<circ> (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ))"
+    have inner_outer: "transform_optimize_dnf_strict = (cut_off_after_match_any \<circ> transform_optimize_dnf_strict_inner)"
+      by(auto simp add: transform_optimize_dnf_strict_def transform_optimize_dnf_strict_inner_def)
+    have tf1: "\<And>r rs. transform_optimize_dnf_strict_inner (r#rs) =
       (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) [r])))@
-        transform_optimize_dnf_strict rs"
-      unfolding transform_optimize_dnf_strict_def
+        transform_optimize_dnf_strict_inner rs"
+      unfolding transform_optimize_dnf_strict_inner_def
       apply(simp)
       apply(subst optimize_matches_fst)
       apply(simp add: normalize_rules_dnf_append optimize_matches_append)
@@ -294,11 +303,11 @@ theorem transform_optimize_dnf_strict_structure: assumes simplers: "simple_rules
           using p2 by simp (*1s*)
       } note opt3=this
       have "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). P m"
-        apply(subst transform_optimize_dnf_strict_def)
+        unfolding transform_optimize_dnf_strict_def
         apply(drule opt1)
         apply(drule opt2)
         apply(drule opt3)
-        by simp
+        using cut_off_after_match_any_preserve_matches by auto
     } note matchpred_rule=this
 
     { fix m
@@ -369,9 +378,13 @@ theorem transform_optimize_dnf_strict_structure: assumes simplers: "simple_rules
       hence "\<forall>x \<in> set (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf rs)). normalized_nnf_match (get_match x)" 
         by blast
     } 
+    from this have "\<forall> m \<in> get_match ` set (transform_optimize_dnf_strict_inner rs). normalized_nnf_match m"
+      unfolding transform_optimize_dnf_strict_inner_def by simp
     thus "\<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_nnf_match m"
-      unfolding transform_optimize_dnf_strict_def by simp
-      
+      unfolding inner_outer
+      apply simp
+      apply(rule cut_off_after_match_any_preserve_matches[simplified])
+      .
   qed
 
 theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
@@ -382,7 +395,8 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
 
     have simplers_transform: "simple_ruleset (transform_optimize_dnf_strict rs)"
       unfolding transform_optimize_dnf_strict_def
-      using simplers by (simp add: optimize_matches_simple_ruleset simple_ruleset_normalize_rules_dnf)
+      using simplers by (simp add: cut_off_after_match_any_simplers 
+                                    optimize_matches_simple_ruleset simple_ruleset_normalize_rules_dnf)
 
     have simplers1: "simple_ruleset (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs)"
       using simplers optimize_matches_simple_ruleset by (metis)
@@ -400,7 +414,7 @@ theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and
       apply(rule optimize_matches[symmetric])
       using opt_MatchAny_match_expr_correct by (metis)
     finally have rs: "?fw rs = ?fw (transform_optimize_dnf_strict rs)"
-      unfolding transform_optimize_dnf_strict_def by(simp)
+      unfolding transform_optimize_dnf_strict_def by(simp add: cut_off_after_match_any)
 
     have 2: "?fw (transform_optimize_dnf_strict rs) = t \<longleftrightarrow> ?\<gamma>,p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t "
       using approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_transform], symmetric] by fast

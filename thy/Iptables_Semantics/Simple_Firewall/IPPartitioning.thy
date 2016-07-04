@@ -386,6 +386,7 @@ fun getOneIp :: "'a::len wordinterval \<Rightarrow> 'a::len word" where
 lemma getOneIp_elem: "\<not> wordinterval_empty W \<Longrightarrow> wordinterval_element (getOneIp W) W"
   by (induction W) simp_all
 
+(*TODO: better unify with simple packet ext*)
 record parts_connection = pc_iiface :: string
                           pc_oiface :: string
                           pc_proto :: primitive_protocol
@@ -416,6 +417,7 @@ definition "runFw s d c rs = simple_fw rs \<lparr>p_iiface=pc_iiface c,p_oiface=
                           p_proto=pc_proto c,
                           p_sport=pc_sport c,p_dport=pc_dport c,
                           p_tcp_flags={TCP_SYN},
+                          p_payload='''',
                           p_tag_ctstate=pc_tag_ctstate c\<rparr>"
 
 lemma has_default_policy_runFw: "has_default_policy rs \<Longrightarrow> runFw s d c rs = Decision FinalAllow \<or> runFw s d c rs = Decision FinalDeny"
@@ -432,12 +434,14 @@ lemma same_fw_spec: "same_fw_behaviour ip1 ip2 rs \<Longrightarrow> same_fw_beha
    apply(erule_tac x="\<lparr>p_iiface = pc_iiface c, p_oiface = pc_oiface c, p_src = ip1, p_dst= d,
                        p_proto = pc_proto c, p_sport = pc_sport c, p_dport = pc_dport c,
                        p_tcp_flags = {TCP_SYN},
+                       p_payload='''',
                        p_tag_ctstate = pc_tag_ctstate c\<rparr>" in allE)
    apply(simp;fail)
   apply(clarify)
   apply(erule_tac x="\<lparr>p_iiface = pc_iiface c, p_oiface = pc_oiface c, p_src = s, p_dst= ip1,
                        p_proto = pc_proto c, p_sport = pc_sport c, p_dport = pc_dport c,
                        p_tcp_flags = {TCP_SYN},
+                       p_payload='''',
                        p_tag_ctstate = pc_tag_ctstate c\<rparr>" in allE)
   apply(simp)
   done
@@ -723,7 +727,7 @@ qed
     apply(induction rs "\<lparr>p_iiface = pc_iiface c, p_oiface = pc_oiface c,
                          p_src = s, p_dst = d, p_proto = pc_proto c, 
                          p_sport = pc_sport c, p_dport = pc_dport c,
-                         p_tcp_flags = {TCP_SYN},
+                         p_tcp_flags = {TCP_SYN},p_payload='''',
                          p_tag_ctstate = pc_tag_ctstate c\<rparr>"
           rule: simple_fw.induct)
     apply(simp add: simple_matches.simps)+

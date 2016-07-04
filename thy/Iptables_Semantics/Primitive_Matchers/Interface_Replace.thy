@@ -7,23 +7,13 @@ begin
 section\<open>Trying to connect inbound interfaces by their IP ranges\<close>
 subsection\<open>constraining interfaces\<close>
 
-
-(*TODO: use uncurry here to make def simpler*)
 definition ipassmt_iface_constrain_srcip_mexpr :: "'i::len ipassignment \<Rightarrow> iface \<Rightarrow> 'i common_primitive match_expr" where
   "ipassmt_iface_constrain_srcip_mexpr ipassmt ifce = (case ipassmt ifce of
           None \<Rightarrow> Match (IIface ifce)
         | Some ips \<Rightarrow> MatchAnd
             (Match (IIface ifce))
-            (match_list_to_match_expr (map (Match \<circ> Src) (map (\<lambda>(ip, n). (IpAddrNetmask ip n)) ips)))
+            (match_list_to_match_expr (map (Match \<circ> Src) (map (uncurry IpAddrNetmask) ips)))
         )"
-
-
-(*TODO: move or delete*)
-lemma ipt_iprange_to_set_IpAddrNetmask_case:
-  "ipt_iprange_to_set (case x of (ip, x) \<Rightarrow> IpAddrNetmask ip x) =
-       uncurry ipset_from_cidr x"
-  by(cases x) (simp)
-
 
 lemma matches_ipassmt_iface_constrain_srcip_mexpr: 
     "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow> (case ipassmt ifce of
@@ -34,12 +24,13 @@ proof(cases "ipassmt ifce")
 case None thus ?thesis by(simp add: ipassmt_iface_constrain_srcip_mexpr_def match_simplematcher_Iface; fail)
 next
 case (Some ips)
-  have "matches (common_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). IpAddrNetmask ip y)) ips)) a p \<longleftrightarrow>
+  have "matches (common_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src \<circ> (uncurry IpAddrNetmask)) ips)) a p \<longleftrightarrow>
        (\<exists>m\<in>set ips. p_src p \<in> uncurry ipset_from_cidr m)" 
-       apply(simp add: match_list_to_match_expr_disjunction[symmetric] match_list_matches match_simplematcher_SrcDst)
-       by(simp add: ipt_iprange_to_set_IpAddrNetmask_case)
+       apply(simp add: match_list_to_match_expr_disjunction[symmetric]
+                       match_list_matches match_simplematcher_SrcDst)
+       by(simp add: ipt_iprange_to_set_uncurry_IpAddrNetmask)
   with Some show ?thesis
-    apply(simp add: ipcidr_union_set_uncurry uncurry_case_stmt)
+    apply(simp add: ipcidr_union_set_uncurry)
     apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def bunch_of_lemmata_about_matches)
     apply(simp add: match_simplematcher_Iface)
     done
@@ -73,16 +64,15 @@ begin
      case (Some ips)
        {  fix ips
           have "matches (common_matcher, \<alpha>)
-                 (MatchNot (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). IpAddrNetmask ip y)) ips))) a p \<longleftrightarrow>
+                 (MatchNot (match_list_to_match_expr (map (Match \<circ> Src \<circ> (uncurry IpAddrNetmask)) ips))) a p \<longleftrightarrow>
                  (p_src p \<notin> ipcidr_union_set (set ips))"
         apply(induction ips)
-         apply(simp add: bunch_of_lemmata_about_matches ipcidr_union_set_def)
+         apply(simp add: bunch_of_lemmata_about_matches ipcidr_union_set_uncurry; fail)
         apply(simp add: MatchOr_MatchNot)
         apply(simp add: ipcidr_union_set_uncurry)
         apply(simp add: match_simplematcher_SrcDst_not)
         apply(thin_tac _)
-        apply(simp add: ipt_iprange_to_set_IpAddrNetmask_case)
-        done
+        by (simp add: ipt_iprange_to_set_uncurry_IpAddrNetmask)
        } note helper=this
        from Some show ?thesis
          apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
@@ -218,7 +208,7 @@ thm ipassmt_sanity_disjoint_def
 definition ipassmt_iface_replace_srcip_mexpr :: "'i::len ipassignment \<Rightarrow> iface \<Rightarrow> 'i common_primitive match_expr" where
   "ipassmt_iface_replace_srcip_mexpr ipassmt ifce = (case ipassmt ifce of
           None \<Rightarrow> Match (IIface ifce)
-        | Some ips \<Rightarrow> (match_list_to_match_expr (map (Match \<circ> Src) (map (\<lambda>(ip, n). (IpAddrNetmask ip n)) ips)))
+        | Some ips \<Rightarrow> (match_list_to_match_expr (map (Match \<circ> Src) (map (uncurry IpAddrNetmask) ips)))
         )"
 
 
@@ -231,10 +221,10 @@ proof(cases "ipassmt ifce")
 case None thus ?thesis by(simp add: ipassmt_iface_replace_srcip_mexpr_def match_simplematcher_Iface)
 next
 case (Some ips)
-  have "matches (common_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). IpAddrNetmask ip y)) ips)) a p \<longleftrightarrow>
+  have "matches (common_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src \<circ> (uncurry IpAddrNetmask)) ips)) a p \<longleftrightarrow>
        (\<exists>m\<in>set ips. p_src p \<in> (uncurry ipset_from_cidr m))" 
        by(simp add: match_list_to_match_expr_disjunction[symmetric]
-                    match_list_matches match_simplematcher_SrcDst ipt_iprange_to_set_IpAddrNetmask_case)
+                    match_list_matches match_simplematcher_SrcDst ipt_iprange_to_set_uncurry_IpAddrNetmask)
   with Some show ?thesis
     apply(simp add: ipassmt_iface_replace_srcip_mexpr_def bunch_of_lemmata_about_matches)
     apply(simp add: match_simplematcher_Iface ipcidr_union_set_uncurry)
@@ -269,15 +259,15 @@ begin
      case (Some ips)
        {  fix ips
           have "matches (common_matcher, \<alpha>)
-                 (MatchNot (match_list_to_match_expr (map (Match \<circ> Src \<circ> (\<lambda>(ip, y). IpAddrNetmask ip y)) ips))) a p \<longleftrightarrow>
+                 (MatchNot (match_list_to_match_expr (map (Match \<circ> Src \<circ> (uncurry IpAddrNetmask)) ips))) a p \<longleftrightarrow>
                  (p_src p \<notin> ipcidr_union_set (set ips))"
         apply(induction ips)
-         apply(simp add: bunch_of_lemmata_about_matches ipcidr_union_set_def)
+         apply(simp add: bunch_of_lemmata_about_matches ipcidr_union_set_uncurry)
         apply(simp add: MatchOr_MatchNot)
         apply(simp add: ipcidr_union_set_uncurry)
         apply(simp add: match_simplematcher_SrcDst_not)
         apply(thin_tac _)
-        apply(simp add: ipt_iprange_to_set_IpAddrNetmask_case)
+        apply(simp add: ipt_iprange_to_set_uncurry_IpAddrNetmask)
         done
        } note helper=this
        from Some show ?thesis
@@ -363,8 +353,10 @@ end
       with \<open>i1 \<noteq> i2\<close> have "\<not> (p_src p \<in> ipcidr_union_set (set i2_ips) \<and> (p_src p \<in> ipcidr_union_set (set i1_ips)))"
         by (metis \<open>i1 \<in> dom ipassmt\<close> assms(1) iface.exhaust_sel iface_is_wildcard_def ipassmt_sanity_nowildcards_def match_iface_case_nowildcard) 
     }
-    hence "\<And>src. \<not> (src \<in> ipcidr_union_set (set i2_ips) \<and> (src \<in> ipcidr_union_set (set i1_ips)))"
-      by (metis select_convs(3)) 
+    hence "\<not> (src \<in> ipcidr_union_set (set i2_ips) \<and> (src \<in> ipcidr_union_set (set i1_ips)))"
+      for src
+      apply(simp)
+      by (metis simple_packet.select_convs(3))
 
     thus "ipcidr_union_set (set (the (ipassmt i1))) \<inter> ipcidr_union_set (set (the (ipassmt i2))) = {}"
       apply(simp add: i1_ips i2_ips)
@@ -399,26 +391,28 @@ lemma match_list_to_match_expr_not_has_disc:
 
 
 
-lemma iiface_rewrite_preserves_nodisc: "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (iiface_rewrite ipassmt m)"
+lemma iiface_rewrite_preserves_nodisc:
+  "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (iiface_rewrite ipassmt m)"
   proof(induction ipassmt m rule: iiface_rewrite.induct)
   case 2 
     have "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> disc (IIface ifce) \<Longrightarrow> \<not> has_disc disc (ipassmt_iface_replace_srcip_mexpr ipassmt ifce)"
       for ifce ipassmt
       apply(simp add: ipassmt_iface_replace_srcip_mexpr_def split: option.split)
       apply(intro allI impI, rename_tac ips)
-      apply(drule_tac X=Src and ls="map (\<lambda>(ip, n). (IpAddrNetmask ip n)) ips" in match_list_to_match_expr_not_has_disc)
+      apply(drule_tac X=Src and ls="map (uncurry IpAddrNetmask) ips" in match_list_to_match_expr_not_has_disc)
       apply(simp)
       done
     with 2 show ?case by simp
   qed(simp_all)
-lemma iiface_constrain_preserves_nodisc: "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (iiface_constrain ipassmt m)"
+lemma iiface_constrain_preserves_nodisc:
+  "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (iiface_constrain ipassmt m)"
   proof(induction ipassmt m rule: iiface_rewrite.induct)
   case 2 
     have "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> disc (IIface ifce) \<Longrightarrow> \<not> has_disc disc (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce)"
       for ifce ipassmt
       apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def split: option.split)
       apply(intro allI impI, rename_tac ips)
-      apply(drule_tac X=Src and ls="map (\<lambda>(ip, n). (IpAddrNetmask ip n)) ips" in match_list_to_match_expr_not_has_disc)
+      apply(drule_tac X=Src and ls="map (uncurry IpAddrNetmask) ips" in match_list_to_match_expr_not_has_disc)
       apply(simp)
       done
     with 2 show ?case by simp

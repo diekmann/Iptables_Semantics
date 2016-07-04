@@ -111,21 +111,21 @@ lemma "unfold_ruleset_INPUT action.Accept example_ruleset =
   text\<open>packets from the local LAN are allowed (@{const in_doubt_allow})\<close>
   lemma "approximating_bigstep_fun (common_matcher, in_doubt_allow)
     \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (8,8,8,8),
-         p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New\<rparr>
+         p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {TCP_SYN}, p_payload='''', p_tag_ctstate = CT_New\<rparr>
         (unfold_ruleset_INPUT action.Accept example_ruleset)
         Undecided = Decision FinalAllow" by eval
 
   text\<open>However, they might also be rate-limited, ... (we don't know about icmp)\<close>
   lemma "approximating_bigstep_fun (common_matcher, in_doubt_deny)
     \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (8,8,8,8),
-         p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New\<rparr>
+         p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {TCP_SYN}, p_payload='''', p_tag_ctstate = CT_New\<rparr>
         (unfold_ruleset_INPUT action.Accept example_ruleset)
         Undecided = Decision FinalDeny" by eval
   
   text\<open>But we can guarantee that packets from the outside are blocked!\<close>
   lemma "approximating_bigstep_fun (common_matcher, in_doubt_allow)
     \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'', p_src = ipv4addr_of_dotdecimal (8,8,8,8), p_dst= 0, p_proto=TCP, p_sport=2065, p_dport=80,
-     p_tcp_flags = {TCP_SYN}, p_tag_ctstate = CT_New\<rparr> 
+     p_tcp_flags = {TCP_SYN}, p_payload='''', p_tag_ctstate = CT_New\<rparr> 
         (unfold_ruleset_INPUT action.Accept example_ruleset)
         Undecided = Decision FinalDeny" by eval
 
@@ -133,12 +133,12 @@ lemma "unfold_ruleset_INPUT action.Accept example_ruleset =
 
 text\<open>in doubt allow closure\<close>
 lemma upper: "upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset) =
-  [Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192, 168, 0, 0)) 16))) action.Accept, Rule MatchAny action.Drop, Rule MatchAny action.Accept]" by eval
+  [Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192, 168, 0, 0)) 16))) action.Accept,
+   Rule MatchAny action.Drop]" by eval
 
 text\<open>in doubt deny closure\<close>
 lemma lower: "lower_closure (unfold_ruleset_INPUT action.Accept example_ruleset) =
- [Rule MatchAny action.Drop, Rule (Match (Prot (Proto TCP))) action.Drop, Rule (Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192, 168, 0, 0)) 16))) action.Accept, Rule MatchAny action.Accept]" by eval
+ [Rule MatchAny action.Drop]" by eval
 
 
 text\<open>upper closure\<close>
@@ -149,10 +149,14 @@ apply(subst rmshadow.simps)
 apply(simp del: rmshadow.simps)
 apply(simp add: Matching_Ternary.matches_def)
 apply(intro conjI impI)
- apply(rule_tac x="undefined\<lparr>p_iiface := ''eth0'', p_oiface := ''eth1'', p_src := ipv4addr_of_dotdecimal (8,8,8,8), p_dst := 0, p_proto := TCP, p_sport:=2065, p_dport:=80, p_tcp_flags := {TCP_SYN}, p_tag_ctstate := CT_New\<rparr>" in exI)
+ apply(rule_tac x="undefined\<lparr>p_iiface := ''eth0'', p_oiface := ''eth1'',
+                   p_src := ipv4addr_of_dotdecimal (8,8,8,8), p_dst := 0,
+                   p_proto := TCP, p_sport:=2065, p_dport:=80\<rparr>" in exI)
  apply(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipset_from_cidr_alt mask_def; fail)
 apply(thin_tac "\<exists>p. x p" for x)
-apply(rule_tac x="undefined\<lparr>p_iiface := ''eth0'', p_oiface := ''eth1'', p_src := ipv4addr_of_dotdecimal (192,168,8,8), p_dst:= 0, p_proto:=TCP, p_sport:=2065, p_dport:=80, p_tcp_flags := {TCP_SYN}, p_tag_ctstate := CT_New\<rparr> " in exI)
+apply(rule_tac x="undefined\<lparr>p_iiface := ''eth0'', p_oiface := ''eth1'',
+                            p_src := ipv4addr_of_dotdecimal (192,168,8,8), p_dst:= 0,
+                            p_proto:=TCP, p_sport:=2065, p_dport:=80\<rparr> " in exI)
 apply(simp add: ipv4addr_of_dotdecimal.simps ipv4addr_of_nat_def ipset_from_cidr_alt mask_def; fail)
 done(*>*)
 
@@ -173,8 +177,7 @@ lemma "check_simple_fw_preconditions (upper_closure (unfold_ruleset_INPUT action
 value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset)))"
 lemma "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset))) =
   [''ACCEPT     all  --  192.168.0.0/16            0.0.0.0/0    '',
-   ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '',
-   ''ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0    '']" by eval (*will break when simple_rule_toString is changed*)
+   ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '']" by eval (*will break when simple_rule_toString is changed*)
 
 lemma "check_simple_fw_preconditions (lower_closure (unfold_ruleset_INPUT action.Accept example_ruleset))" by eval
 value[code] "map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_INPUT action.Accept example_ruleset)))"

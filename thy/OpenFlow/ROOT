@@ -26,8 +26,8 @@ session "OpenFlow" = Iptables_Semantics +
 		Semantics_OpenFlow
 		FeatherweightOpenFlowComparison
 		LinuxRouterOpenFlowTranslation
-		"../Iptables_Semantics/Examples/OF_conv_test/OF_conv_test" (* TODO: move *)
-		"../Iptables_Semantics/Examples/RFC2544/RFC2544" (* TODO: likewise *)
+		"Examples/OF_conv_test/OF_conv_test"
+		"Examples/RFC2544/RFC2544"
 
 	document_files
 		"root.tex"
