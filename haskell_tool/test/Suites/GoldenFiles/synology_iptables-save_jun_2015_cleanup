@@ -147,6 +147,7 @@ DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 111
 DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 892
 DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 2049
 ACCEPT     all  --  192.168.0.0/16            0.0.0.0/0    
+DROP     all  --  0.0.0.0/0            0.0.0.0/0    
 == checking spoofing protection ==
 distinct: passed
 ipassmt_sanity_nowildcards: passed
