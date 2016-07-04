@@ -15,8 +15,9 @@ module
                               debug_ipassmt, map_of_ipassmt, to_ipassmt,
                               ipv4addr_of_dotdecimal, ipassmt_generic,
                               optimize_matches, upper_closure, word_to_nat,
-                              word_less_eq, no_spoofing_iface, nat_to_8word,
-                              empty_rr_hlp, sanity_wf_ruleset, nat_to_16word,
+                              has_default_policy, word_less_eq,
+                              no_spoofing_iface, nat_to_8word, empty_rr_hlp,
+                              sanity_wf_ruleset, nat_to_16word,
                               compress_parsed_extra, integer_to_16word,
                               rewrite_Goto_safe, map_of_string_ipv4,
                               metric_update, access_matrix_pretty,
@@ -978,7 +979,8 @@ data Routing_rule_ext a =
 data Simple_packet_ext a b =
   Simple_packet_ext [Prelude.Char] [Prelude.Char] (Word a) (Word a)
     (Word (Bit0 (Bit0 (Bit0 Num1)))) (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))
-    (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) (Set Tcp_flag) Ctstate b;
+    (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) (Set Tcp_flag) [Prelude.Char]
+    Ctstate b;
 
 data Parts_connection_ext a =
   Parts_connection_ext [Prelude.Char] [Prelude.Char]
@@ -1188,6 +1190,11 @@ int_of_nat n = Int_of_integer (integer_of_nat n);
 pfxes :: forall a. (Len0 a) => Itself a -> [Nat];
 pfxes uu =
   map nat (upto zero_int (int_of_nat ((len_of :: Itself a -> Nat) Type)));
+
+uncurry :: forall a b c. (a -> b -> c) -> (a, b) -> c;
+uncurry f a = let {
+                (aa, b) = a;
+              } in f aa b;
 
 internal_iface_name_match :: [Prelude.Char] -> [Prelude.Char] -> Bool;
 internal_iface_name_match [] [] = True;
@@ -1534,13 +1541,13 @@ proto (Simple_match_ext iiface oiface src dst proto sports dports more) = proto;
 p_oiface :: forall a b. (Len a) => Simple_packet_ext a b -> [Prelude.Char];
 p_oiface
   (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
-    p_tcp_flags p_tag_ctstate more)
+    p_tcp_flags p_payload p_tag_ctstate more)
   = p_oiface;
 
 p_iiface :: forall a b. (Len a) => Simple_packet_ext a b -> [Prelude.Char];
 p_iiface
   (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
-    p_tcp_flags p_tag_ctstate more)
+    p_tcp_flags p_payload p_tag_ctstate more)
   = p_iiface;
 
 simple_match_port ::
@@ -1554,7 +1561,7 @@ p_sport ::
     (Len a) => Simple_packet_ext a b -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
 p_sport
   (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
-    p_tcp_flags p_tag_ctstate more)
+    p_tcp_flags p_payload p_tag_ctstate more)
   = p_sport;
 
 p_proto ::
@@ -1562,7 +1569,7 @@ p_proto ::
     (Len a) => Simple_packet_ext a b -> Word (Bit0 (Bit0 (Bit0 Num1)));
 p_proto
   (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
-    p_tcp_flags p_tag_ctstate more)
+    p_tcp_flags p_payload p_tag_ctstate more)
   = p_proto;
 
 p_dport ::
@@ -1570,7 +1577,7 @@ p_dport ::
     (Len a) => Simple_packet_ext a b -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
 p_dport
   (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
-    p_tcp_flags p_tag_ctstate more)
+    p_tcp_flags p_payload p_tag_ctstate more)
   = p_dport;
 
 src :: forall a b. (Len a) => Simple_match_ext a b -> (Word a, Nat);
@@ -1619,12 +1626,12 @@ simple_match_ip (base, len) p_ip =
 
 p_src :: forall a b. (Len a) => Simple_packet_ext a b -> Word a;
 p_src (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
-        p_tcp_flags p_tag_ctstate more)
+        p_tcp_flags p_payload p_tag_ctstate more)
   = p_src;
 
 p_dst :: forall a b. (Len a) => Simple_packet_ext a b -> Word a;
 p_dst (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
-        p_tcp_flags p_tag_ctstate more)
+        p_tcp_flags p_payload p_tag_ctstate more)
   = p_dst;
 
 match_proto :: Protocol -> Word (Bit0 (Bit0 (Bit0 Num1))) -> Bool;
@@ -1660,7 +1667,7 @@ runFw ::
 runFw s d c rs =
   simple_fw rs
     (Simple_packet_ext (pc_iiface c) (pc_oiface c) s d (pc_proto c) (pc_sport c)
-      (pc_dport c) (insert TCP_SYN bot_set) (pc_tag_ctstate c) ());
+      (pc_dport c) (insert TCP_SYN bot_set) [] (pc_tag_ctstate c) ());
 
 numeral :: forall a. (Numeral a) => Num -> a;
 numeral (Bit1 n) = let {
@@ -2534,8 +2541,7 @@ ipt_iprange_negation_type_to_br_intersect l =
 
 wi_2_cidr_ipt_iprange_list ::
   forall a. (Len a) => Wordinterval a -> [Ipt_iprange a];
-wi_2_cidr_ipt_iprange_list r =
-  map (\ (a, b) -> IpAddrNetmask a b) (cidr_split r);
+wi_2_cidr_ipt_iprange_list r = map (uncurry IpAddrNetmask) (cidr_split r);
 
 ipt_iprange_compress ::
   forall a. (Len a) => [Negation_type (Ipt_iprange a)] -> [Ipt_iprange a];
@@ -3330,7 +3336,7 @@ ipassmt_iface_replace_srcip_mexpr ipassmt ifce =
     Nothing -> Match (IIface ifce);
     Just ips ->
       match_list_to_match_expr
-        (map (Match . Src) (map (\ (a, b) -> IpAddrNetmask a b) ips));
+        (map (Match . Src) (map (uncurry IpAddrNetmask) ips));
   });
 
 iiface_rewrite ::
@@ -3508,7 +3514,7 @@ ipassmt_iface_constrain_srcip_mexpr ipassmt ifce =
     Just ips ->
       MatchAnd (Match (IIface ifce))
         (match_list_to_match_expr
-          (map (Match . Src) (map (\ (a, b) -> IpAddrNetmask a b) ips)));
+          (map (Match . Src) (map (uncurry IpAddrNetmask) ips)));
   });
 
 iiface_constrain ::

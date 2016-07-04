@@ -14,18 +14,34 @@ import Network.IPTables.IpassmtParser (IsabelleIpAssmt) --nicer type --TODO: mov
 import qualified Network.IPTables.Generated as Isabelle
 
 
+-- checks that the simple_firewall has a default rule. Not having a default rule
+-- is not actually an assumption required by the theorems but it would indicate
+-- a broken parser
+-- Throws an exception
+--TODO: does Haskell have an assert statement?
+check_simpleFw_default_rule :: [Isabelle.Simple_rule Word32] -> [Isabelle.Simple_rule Word32]
+check_simpleFw_default_rule rs =
+    if 
+        Isabelle.has_default_policy rs
+    then
+        rs
+    else
+        error "simple firewall does not have a default rule!"
+
+
 -- all functions must only be called with a simple_ruleset. TODO: check this?
 
 
 -- Theorem: new_packets_to_simple_firewall_overapproximation
 toSimpleFirewall :: [Isabelle.Rule (Isabelle.Common_primitive Word32)] -> [Isabelle.Simple_rule Word32]
-toSimpleFirewall = Isabelle.to_simple_firewall . Isabelle.upper_closure . 
-                       Isabelle.optimize_matches Isabelle.abstract_for_simple_firewall .
-                           Isabelle.upper_closure . Isabelle.packet_assume_new 
+toSimpleFirewall = check_simpleFw_default_rule . 
+                        Isabelle.to_simple_firewall . Isabelle.upper_closure . 
+                            Isabelle.optimize_matches Isabelle.abstract_for_simple_firewall .
+                                Isabelle.upper_closure . Isabelle.packet_assume_new 
 
 -- Theorem: to_simple_firewall_without_interfaces
 toSimpleFirewallWithoutInterfaces :: IsabelleIpAssmt -> [Isabelle.Rule (Isabelle.Common_primitive Word32)] -> [Isabelle.Simple_rule Word32]
-toSimpleFirewallWithoutInterfaces = Isabelle.to_simple_firewall_without_interfaces
+toSimpleFirewallWithoutInterfaces ipassmt = check_simpleFw_default_rule . Isabelle.to_simple_firewall_without_interfaces ipassmt
 
 
 
