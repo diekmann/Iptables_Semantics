@@ -150,7 +150,7 @@ ACCEPT     all  --  192.168.0.0/16            0.0.0.0/0
 == checking spoofing protection ==
 distinct: passed
 ipassmt_sanity_nowildcards: passed
-ipassmt_sanity_defined (interfaces defined in the ruleset are also in ipassmt): fail: passed
+ipassmt_sanity_defined (interfaces defined in the ruleset are also in ipassmt): passed
 ipassmt_sanity_disjoint (no zone-spanning interfaces): passed
 ipassmt_sanity_disjoint excluding UNIV interfaces: passed
 ipassmt_sanity_complete: the following is not covered: {0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 255.255.255.255}

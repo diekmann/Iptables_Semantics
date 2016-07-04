@@ -45,7 +45,7 @@ lemma "length (upper_closure unfolded) = 1986" by eval
 value[code] "upper_closure (packet_assume_new unfolded)"
 
 (*28.550s*)
-lemma "length (lower_closure unfolded) = 5737" by eval
+lemma "length (lower_closure unfolded) = 5715" by eval
 
 lemma "check_simple_fw_preconditions (upper_closure unfolded) = False" by eval
 lemma "\<forall>m \<in> get_match`set (upper_closure (packet_assume_new unfolded)). normalized_nnf_match m" by eval
@@ -61,7 +61,7 @@ value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (optimi
 value[code] "map ipv4addr_wordinterval_toString (getParts (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))))))"
 
 (*43.702s*)
-lemma "length (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))) = 5140" by eval
+lemma "length (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))) = 5120" by eval
 
 (*71.518s*)
 value[code] "length (remdups_rev (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded))))))" (*not smaller*)
