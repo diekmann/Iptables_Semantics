@@ -110,61 +110,20 @@ lemma upper: "upper_closure (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy
   Rule (Match (CT_State {CT_New})) action.Accept,
   Rule (Match (Prot (Proto TCP))) action.Drop,
   Rule (Match (Prot (Proto UDP))) action.Drop,
-  Rule MatchAny action.Drop,
-  Rule (Match (IIface (Iface ''lo''))) action.Accept,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (0, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (10, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (10, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (10, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (169, 254, 0, 0)) 16)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (169, 254, 0, 0)) 16)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (169, 254, 0, 0)) 16)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (172, 16, 0, 0)) 12)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (172, 16, 0, 0)) 12)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (172, 16, 0, 0)) 12)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (224, 0, 0, 0)) 3)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (224, 0, 0, 0)) 3)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (224, 0, 0, 0)) 3)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (240, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (240, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (240, 0, 0, 0)) 8)) MATCHAND Match (IIface (Iface ''eth0''))) action.Drop,
-  Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (160, 86, 0, 0)) 16)) MATCHAND Match (IIface (Iface ''eth1''))) action.Accept,
-  Rule (Match (IIface (Iface ''eth1''))) action.Drop,
-  Rule (Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto ICMP))) action.Accept,
-  Rule (Match (Dst_Ports [(0x6F, 0x6F)]) MATCHAND Match (Prot (Proto TCP))) action.Drop,
-  Rule (Match (Dst_Ports [(0x71, 0x71)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
-  Rule (Match (Dst_Ports [(4, 4)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Accept,
-  Rule (Match (Dst_Ports [(0x14, 0x14)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Accept,
-  Rule (Match (Dst_Ports [(0x15, 0x15)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Accept,
-  Rule (Match (Dst_Ports [(0x14, 0x14)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Accept,
-  Rule (Match (Dst_Ports [(0x15, 0x15)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Accept,
-  Rule (Match (Dst_Ports [(0x16, 0x16)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Accept,
-  Rule (Match (Dst_Ports [(0x16, 0x16)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Accept,
-  Rule (Match (Dst_Ports [(0x50, 0x50)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Accept,
-  Rule (Match (Dst_Ports [(0x50, 0x50)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Accept,
-  Rule (Match (Dst_Ports [(0x1BB, 0x1BB)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Accept,
-  Rule (Match (Dst_Ports [(0x1BB, 0x1BB)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Accept,
-  Rule (Match (Dst_Ports [(0x208, 0x208)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Dst_Ports [(0x89, 0x8B)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
-  Rule (Match (Dst_Ports [(0x89, 0x8B)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
-  Rule MatchAny action.Accept]"
+  Rule MatchAny action.Drop
+  ]"
  by eval
 
 
 
 text\<open>The firewall accepts all NEW packets\<close>
-lemma "cutt_off_after_default (rmMatchFalse (ctstate_assume_new
+lemma "cut_off_after_match_any (rmMatchFalse (ctstate_assume_new
           (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string_ipv4 saturn_fw))))
         = [Rule MatchAny action.Accept]"
 by eval
 
 text\<open>The firewall also accepts all ESTABLISHED packets. Essentially, it accepts all packets!\<close>
-lemma "cutt_off_after_default (rmMatchFalse (optimize_matches (ctstate_assume_state CT_Established)
+lemma "cut_off_after_match_any (rmMatchFalse (optimize_matches (ctstate_assume_state CT_Established)
           (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string_ipv4 saturn_fw))))
         = [Rule MatchAny action.Accept]"
 by eval
@@ -248,8 +207,9 @@ lemma "upper =
   Rule (Match (Dst_Ports [(0x208, 0x208)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
   Rule (Match (Dst_Ports [(0x89, 0x8B)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP))) action.Drop,
   Rule (Match (Dst_Ports [(0x89, 0x8B)]) MATCHAND Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto UDP))) action.Drop,
-  Rule (Match (Prot (Proto TCP))) action.Drop, Rule (Match (Prot (Proto UDP))) action.Drop, Rule MatchAny action.Drop,
-  Rule MatchAny action.Accept]" by eval
+  Rule (Match (Prot (Proto TCP))) action.Drop, Rule (Match (Prot (Proto UDP))) action.Drop,
+  Rule MatchAny action.Drop
+  ]" by eval
 
 
 value[code] "zip (upto 0 (int (length upper))) upper"

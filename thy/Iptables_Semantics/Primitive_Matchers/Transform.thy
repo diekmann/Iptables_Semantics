@@ -8,6 +8,7 @@ imports Common_Primitive_Lemmas
         Protocols_Normalize
         "../Common/Remdups_Rev"
         Interface_Replace
+        "../Semantics_Ternary/Optimizing"
 begin
 
 
@@ -230,29 +231,6 @@ lemma remdups_rev_simplers: "simple_ruleset rs \<Longrightarrow> simple_ruleset 
 lemma remdups_rev_preserve_matches: "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (remdups_rev rs). P m"
   by(induction rs) (simp_all add: remdups_rev_def simple_ruleset_def)
 
-text\<open>We can stop after a default rule (a rule which matches anything) is observed.\<close>
-fun cut_off_after_match_any :: "'a rule list \<Rightarrow> 'a rule list" where
-  "cut_off_after_match_any [] = []" |
-  "cut_off_after_match_any (Rule m a # rs) =
-    (if m = MatchAny \<and> (a = Accept \<or> a = Drop \<or> a = Reject)
-     then [Rule m a] else Rule m a # cut_off_after_match_any rs)"
-
-lemma cut_off_after_match_any:
-  "approximating_bigstep_fun \<gamma> p (cut_off_after_match_any rs) s = approximating_bigstep_fun \<gamma> p rs s"
-  apply(induction \<gamma> p rs s rule: approximating_bigstep_fun.induct)
-    apply(simp; fail)
-   apply(simp add: Decision_approximating_bigstep_fun; fail)
-  by(simp split: action.split action.split_asm add: bunch_of_lemmata_about_matches(2))
-
-lemma cut_off_after_match_any_simplers: "simple_ruleset rs \<Longrightarrow> simple_ruleset (cut_off_after_match_any rs)"
-  by(induction rs rule: cut_off_after_match_any.induct) (simp_all add: simple_ruleset_def)
-
-lemma cut_off_after_match_any_preserve_matches:
-  "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (cut_off_after_match_any rs). P m"
-  apply(induction rs rule: cut_off_after_match_any.induct)
-   apply(simp; fail)
-  by(auto simp add: simple_ruleset_def)
-  
 
 (*TODO: closure bounds*)
 
