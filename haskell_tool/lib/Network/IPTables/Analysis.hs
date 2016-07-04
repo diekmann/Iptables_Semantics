@@ -8,13 +8,11 @@ where
 
 import qualified Data.List as L
 import Network.IPTables.Ruleset -- show instances
+import Network.IPTables.IsabelleToString (Word32)
 import Network.IPTables.IpassmtParser (IsabelleIpAssmt) --nicer type --TODO: move?
 
 import qualified Network.IPTables.Generated as Isabelle
 
-
-type Word32 = Isabelle.Bit0 (Isabelle.Bit0
-                              (Isabelle.Bit0 (Isabelle.Bit0 (Isabelle.Bit0 Isabelle.Num1))))
 
 -- all functions must only be called with a simple_ruleset. TODO: check this?
 

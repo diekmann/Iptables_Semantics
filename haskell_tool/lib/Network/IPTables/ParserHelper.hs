@@ -4,13 +4,9 @@
 module Network.IPTables.ParserHelper where
 
 import           Data.Functor ((<$>), ($>))
+import Network.IPTables.IsabelleToString (Word32)
 import qualified Network.IPTables.Generated as Isabelle
 import           Text.Parsec (char, choice, many1, Parsec, oneOf, string)
-
--- TODO: add this type to generic lib?
-type Word32 = Isabelle.Bit0 (Isabelle.Bit0
-                              (Isabelle.Bit0 (Isabelle.Bit0 (Isabelle.Bit0 Isabelle.Num1))))
-
 
 nat :: Parsec String s Integer
 nat = do
