@@ -66,10 +66,19 @@ definition nat_to_8word :: "nat \<Rightarrow> 8 word" where
 definition nat_to_16word :: "nat \<Rightarrow> 16 word" where
   "nat_to_16word i \<equiv> of_nat i"
 
+
 definition integer_to_16word :: "integer \<Rightarrow> 16 word" where
   "integer_to_16word i \<equiv> nat_to_16word (nat_of_integer i)"
+(*
+definition integer_to_16word :: "int \<Rightarrow> 16 word" where
+  "integer_to_16word i \<equiv> nat_to_16word (nat i)"
+*)
+(*
+definition integer_to_16word :: "int \<Rightarrow> 16 word" where
+  "integer_to_16word i \<equiv> Word.word_of_int i"
 
-
+lemma "integer_to_16word (- 1) = 0xFFFF" by eval
+*)
 
 text\<open>Example\<close>
 context

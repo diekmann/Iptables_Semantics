@@ -69,6 +69,23 @@ ipv6colonsep = do
           readHex :: String -> Integer
           readHex x = read ("0x" ++ x)
 
+ipv6addr :: Parsec String s (Isabelle.Ipt_iprange Word128)
+ipv6addr = Isabelle.IpAddr <$> ipv6colonsep
+
+ipv6cidr :: Parsec String s (Isabelle.Ipt_iprange Word128)
+ipv6cidr = do
+    ip <- ipv6colonsep
+    char '/'
+    netmask <- natMaxval 128
+    return $ Isabelle.IpAddrNetmask ip netmask
+
+ipv6range :: Parsec String s (Isabelle.Ipt_iprange Word128)
+ipv6range = do
+    ip1 <- ipv6colonsep
+    char '-'
+    ip2 <- ipv6colonsep
+    return $ Isabelle.IpAddrRange ip1 ip2
+
 protocol :: Parsec String s Isabelle.Protocol
 protocol = choice (map make ps)
     where make (s, p) = string s $> Isabelle.Proto p
