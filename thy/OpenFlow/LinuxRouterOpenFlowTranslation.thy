@@ -40,6 +40,7 @@ p_proto :: primitive_protocol
 p_sport :: "16 word"
 p_dport :: "16 word"
 p_tcp_flags :: "tcp_flag set"
+p_payload :: string, 
 p_tag_ctstate :: ctstate
 *)
 

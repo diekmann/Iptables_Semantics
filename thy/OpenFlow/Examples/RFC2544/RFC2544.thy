@@ -32,7 +32,7 @@ value[code] "upper_closure (packet_assume_new unfolded)"
 
 lemma "length (lower_closure unfolded) = 26" by eval
 
-lemma "check_simple_fw_preconditions (upper_closure unfolded) = True" by eval
+lemma "check_simple_fw_preconditions (upper_closure unfolded)" by eval
 lemma "\<forall>m \<in> get_match`set (upper_closure (packet_assume_new unfolded)). normalized_nnf_match m" by eval
 lemma "\<forall>m \<in> get_match`set (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))). normalized_nnf_match m" by eval
 lemma "check_simple_fw_preconditions (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))))" by eval
