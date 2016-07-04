@@ -20,11 +20,11 @@ lemma range_prefix_match_snm[simp]: "wordinterval_to_set (snd (range_prefix_matc
 
 type_synonym ipv4range = "32 wordinterval"
 
-fun range_destination :: "prefix_routing \<Rightarrow> ipv4range \<Rightarrow> (ipv4range \<times> routing_action) list" where
-"range_destination [] rg = (if wordinterval_empty rg then [] else [(rg, (routing_action (undefined::routing_rule)))])" |
+fun range_destination :: "prefix_routing \<Rightarrow> ipv4range \<Rightarrow> (ipv4range \<times> string) list" where
+"range_destination [] rg = (if wordinterval_empty rg then [] else [(rg, output_iface (routing_action (undefined::routing_rule)))])" |
 "range_destination (r # rs) rg = (
   let rpm = range_prefix_match (routing_match r) rg in (let m = fst rpm in (let nm = snd rpm in (
-    (if wordinterval_empty m  then [] else [ (m, routing_action r) ]) @ 
+    (if wordinterval_empty m  then [] else [ (m, output_iface (routing_action r)) ]) @ 
     (if wordinterval_empty nm then [] else range_destination rs nm)
 ))))"
 
@@ -62,8 +62,8 @@ lemma range_destination_eq2:
       using goal1(3,4,2)  by simp_all
     have *: "snd (ipset_prefix_match (routing_match a) rS) = wordinterval_to_set (snd (range_prefix_match (routing_match a) rg))"
       using goal1(2) by simp
-    have ***: "(fst (ipset_prefix_match (routing_match a) rS), routing_action a) =
-      ?maf (fst (range_prefix_match (routing_match a) rg), routing_action a)" using goal1(2) by simp
+    have ***: "(fst (ipset_prefix_match (routing_match a) rS), output_iface (routing_action a)) =
+      ?maf (fst (range_prefix_match (routing_match a) rg), output_iface (routing_action a))" using goal1(2) by simp
     moreover
     have **: "ipset_destination rtbl (snd (ipset_prefix_match (routing_match a) rS)) =
       set (map ?maf (range_destination rtbl (snd (range_prefix_match (routing_match a) rg))))"
@@ -83,7 +83,7 @@ lemma range_rel_to_sr: "range_rel = ipset_rel \<circ> rr_to_sr"
 
 lemma range_destination_correct:
   assumes v_pfx: "valid_prefixes rtbl"
-  shows "(routing_table_semantics rtbl dst_a = ports) \<longleftrightarrow> in_rel (range_rel (range_destination rtbl ipv4range_UNIV)) dst_a ports"
+  shows "(output_iface (routing_table_semantics rtbl dst_a) = port) \<longleftrightarrow> in_rel (range_rel (range_destination rtbl ipv4range_UNIV)) dst_a port"
   unfolding ipset_destination_correct[OF v_pfx UNIV_I] ipv4range_UNIV_set_eq[symmetric] range_destination_eq[symmetric] range_rel_def ipset_rel_def
   by simp blast
 
@@ -177,7 +177,7 @@ qed
 theorem "valid_prefixes rtbl \<Longrightarrow>
   (xs,y) \<in> set (reduced_range_destination rtbl rg) \<Longrightarrow> 
   x \<in> wordinterval_to_set xs \<Longrightarrow> 
-  routing_table_semantics rtbl x = y"
+  output_iface (routing_table_semantics rtbl x) = y"
 proof goal_cases
   case 1
   def xs' \<equiv> "wordinterval_to_set xs"
@@ -192,7 +192,7 @@ qed
 
 theorem "valid_prefixes rtbl \<Longrightarrow>
   x \<in> wordinterval_to_set rg \<Longrightarrow>
-  routing_table_semantics rtbl x = y \<Longrightarrow>
+  output_iface (routing_table_semantics rtbl x) = y \<Longrightarrow>
   \<exists>xs. (xs,y) \<in> set (reduced_range_destination rtbl rg) \<and>  x \<in> wordinterval_to_set xs"
 by(simp add: reduced_ipset_destination_correct reduced_range_destination_eq1[symmetric] ipset_rel_def) blast
 

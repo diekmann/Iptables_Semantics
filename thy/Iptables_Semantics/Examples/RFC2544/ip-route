@@ -1,0 +1,3 @@
+default via 198.19.1.2 dev op1 
+198.18.1.0/24 dev ip1 proto kernel  scope link  
+198.19.1.0/24 dev op1 proto kernel  scope link  

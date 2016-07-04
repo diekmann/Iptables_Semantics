@@ -65,7 +65,7 @@ lemma range_destination_deadend: "wordinterval_empty k \<Longrightarrow> range_d
 	by(induction tbl) 
 	(simp_all add: Let_def range_prefix_match_def)
 
-lemma "filter (\<lambda>(s, _). \<not>wordinterval_empty s) (map (\<lambda>(r, s). (s, routing_action r)) (annotate_rt_i tbl s)) 
+lemma "filter (\<lambda>(s, _). \<not>wordinterval_empty s) (map (\<lambda>(r, s). (s, output_iface (routing_action r))) (annotate_rt_i tbl s)) 
 	= range_destination tbl s"
 	apply(induction tbl arbitrary: s)
 	 apply simp

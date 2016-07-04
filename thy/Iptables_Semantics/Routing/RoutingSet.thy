@@ -18,16 +18,16 @@ lemma ipset_prefix_match_complete: "rpm = ipset_prefix_match pfx rg \<Longrighta
 lemma rpm_m_dup_simp: "rg \<inter> fst (ipset_prefix_match (routing_match r) rg) = fst (ipset_prefix_match (routing_match r) rg)"
   by simp
 
-fun ipset_destination :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> (ipv4addr set \<times> routing_action) set" where
-"ipset_destination [] rg = (if rg = {} then  {} else {(rg, routing_action (undefined::routing_rule))})" |
+fun ipset_destination :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> (ipv4addr set \<times> string) set" where
+"ipset_destination [] rg = (if rg = {} then  {} else {(rg, output_iface (routing_action (undefined::routing_rule)))})" |
 "ipset_destination (r # rs) rg = (
   let rpm = ipset_prefix_match (routing_match r) rg in (let m = fst rpm in (let nm = snd rpm in (
-    (if m = {}  then {} else { (m, routing_action r) }) \<union> 
+    (if m = {}  then {} else { (m, output_iface (routing_action r)) }) \<union> 
     (ipset_destination rs nm)
 ))))"
 
 lemma ipset_destination_split1: assumes "X \<inter> prefix_to_wordset (routing_match r) \<noteq> {}" 
-      shows "ipset_destination (r # rs) X = {(X \<inter> prefix_to_wordset (routing_match r), routing_action r)} \<union> 
+      shows "ipset_destination (r # rs) X = {(X \<inter> prefix_to_wordset (routing_match r), output_iface (routing_action r))} \<union> 
       ipset_destination rs (X - prefix_to_wordset (routing_match r))"
 using assms by(simp)
 lemma ipset_destination_split2: assumes "X \<inter> prefix_to_wordset (routing_match r) = {}" 
@@ -67,11 +67,11 @@ next
   case (Cons r rs)
   {
     fix rx px
-    have "(rx, px) \<noteq> (rg \<inter> prefix_to_wordset (routing_match r), routing_action r) \<Longrightarrow>
+    have "(rx, px) \<noteq> (rg \<inter> prefix_to_wordset (routing_match r), output_iface (routing_action r)) \<Longrightarrow>
     (rx, px) \<in> ipset_destination (r # rs) rg \<Longrightarrow> (rx, px) \<in> ipset_destination rs (rg - prefix_to_wordset (routing_match r))"
       by(case_tac "rg \<inter> prefix_to_wordset (routing_match r) = {}") auto
   } note hammer = this
-  let ?current = "(rg \<inter> prefix_to_wordset (routing_match r), routing_action r)"
+  let ?current = "(rg \<inter> prefix_to_wordset (routing_match r), output_iface (routing_action r))"
   note mIH = Cons(1)[OF Cons(2) Cons(3)]    
   show ?case
   proof(case_tac "(r1, p1) = ?current", case_tac[!] "(r2, p2) = ?current")
@@ -119,17 +119,17 @@ next
 qed
 
 
-fun ipset_destination_map :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr \<Rightarrow> routing_action option" where
-"ipset_destination_map [] rg = (\<lambda>ip. if ip \<in> rg then Some (routing_action (undefined::routing_rule)) else None)" |
+fun ipset_destination_map :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr \<Rightarrow> string option" where
+"ipset_destination_map [] rg = (\<lambda>ip. if ip \<in> rg then Some (output_iface (routing_action (undefined::routing_rule))) else None)" |
 "ipset_destination_map (r#rs) rg = 
   (let rpm = ipset_prefix_match (routing_match r) rg in (let m = fst rpm in (let nm = snd rpm in (\<lambda>ip.
-    if ip \<in> rg \<inter> m then Some (routing_action r) else ipset_destination_map rs nm ip))))"
+    if ip \<in> rg \<inter> m then Some (output_iface (routing_action r)) else ipset_destination_map rs nm ip))))"
 
-fun ipset_destination_map2 :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr \<Rightarrow> routing_action option" where
-"ipset_destination_map2 [] rg = (\<lambda>ip. if ip \<in> rg then Some (routing_action (undefined::routing_rule)) else None)" |
+fun ipset_destination_map2 :: "prefix_routing \<Rightarrow> ipv4addr set \<Rightarrow> ipv4addr \<Rightarrow> string option" where
+"ipset_destination_map2 [] rg = (\<lambda>ip. if ip \<in> rg then Some (output_iface (routing_action (undefined::routing_rule))) else None)" |
 "ipset_destination_map2 (r#rs) rg = 
   (let rpm = ipset_prefix_match (routing_match r) rg in (let m = fst rpm in (let nm = snd rpm in (\<lambda>ip.
-    if ip \<in> rg \<inter> m then Some (routing_action r) else ipset_destination_map2 rs rg ip))))"
+    if ip \<in> rg \<inter> m then Some (output_iface( routing_action r)) else ipset_destination_map2 rs rg ip))))"
 
 lemma rdm2_extend: "y \<subseteq> x \<Longrightarrow> ip \<in> y \<Longrightarrow> ipset_destination_map2 rs y ip = ipset_destination_map2 rs x ip"
   by(induction rs arbitrary: x y) auto
@@ -157,8 +157,11 @@ definition "ipset_rel r = {(ip,port)|ip port rg. (rg,port) \<in> r \<and> ip \<i
 lemma in_ipset_rel: "in_rel (ipset_rel r) x y = (\<exists>rg. x \<in> rg \<and> (rg,y) \<in> r)"
   unfolding in_rel_def ipset_rel_def by auto
 
-lemma rdm_rd_eq: "(ipset_destination_map rtbl rg ip = Some ports) = in_rel (ipset_rel (ipset_destination rtbl rg)) ip ports"
-  apply(induction rtbl arbitrary: rg ports)
+lemma Img_ipset_rel: "apsnd f ` ipset_rel r = ipset_rel (apsnd f ` r)"
+unfolding ipset_rel_def by force
+
+lemma rdm_rd_eq: "(ipset_destination_map rtbl rg ip = Some port) = in_rel (ipset_rel (ipset_destination rtbl rg)) ip port"
+  apply(induction rtbl arbitrary: rg port)
    apply(unfold in_ipset_rel)
    apply force
   apply(simp only: ipset_destination_map.simps Let_def)
@@ -224,7 +227,7 @@ subsection\<open>Correctness\<close>
 lemma packet_semantics_rdm2_eq:
   assumes "valid_prefixes rtbl"
   assumes rg_elem: "ip \<in> rg"
-  shows "(ipset_destination_map2 rtbl rg ip = Some ports) = (routing_table_semantics rtbl ip = ports)"
+  shows "(ipset_destination_map2 rtbl rg ip = Some port) = (output_iface (routing_table_semantics rtbl ip) = port)"
 using assms
 proof(induction rtbl) (* Note how this induction is not made over arbitrary rg *)
   case (Cons r rs) 
@@ -247,20 +250,20 @@ qed simp
 theorem ipset_destination_correct:
   assumes "valid_prefixes rtbl"
   assumes rg_elem: "ip \<in> rg"
-  shows "(routing_table_semantics rtbl ip = ports) = in_rel (ipset_rel (ipset_destination rtbl rg)) ip ports"
+  shows "(output_iface (routing_table_semantics rtbl ip) = port) = in_rel (ipset_rel (ipset_destination rtbl rg)) ip port"
 proof -
-  have "in_rel (ipset_rel (ipset_destination rtbl rg)) ip ports = 
-    (ipset_destination_map rtbl rg ip = Some ports)" using rdm_rd_eq ..
-  also have "\<dots> = (ipset_destination_map2 rtbl rg ip = Some ports)" unfolding rdm_rdm2_eq ..
-  also have "\<dots> = (routing_table_semantics rtbl ip = ports)" 
+  have "in_rel (ipset_rel (ipset_destination rtbl rg)) ip port = 
+    (ipset_destination_map rtbl rg ip = Some port)" using rdm_rd_eq ..
+  also have "\<dots> = (ipset_destination_map2 rtbl rg ip = Some port)" unfolding rdm_rdm2_eq ..
+  also have "\<dots> = (output_iface (routing_table_semantics rtbl ip) = port)" 
     unfolding packet_semantics_rdm2_eq[OF \<open>valid_prefixes rtbl\<close> rg_elem]  ..
   finally show ?thesis ..
 qed
 
 corollary ipset_destination_correct_UNIV: 
   assumes "valid_prefixes rtbl"
-  shows "(routing_table_semantics rtbl dst_a = ports) = in_rel (ipset_rel (ipset_destination rtbl UNIV)) dst_a ports"
-unfolding ipset_destination_correct[OF assms UNIV_I] ..
+  shows "(output_iface (routing_table_semantics rtbl ip) = port) = in_rel (ipset_rel (ipset_destination rtbl UNIV)) ip port"
+unfolding ipset_destination_correct[OF assms UNIV_I]  ..
 
 lemma ipset_left_side_nonempty: "x \<in> (fst ` (ipset_destination rtbl rg)) \<Longrightarrow> x \<noteq> {}"
   apply(induction rtbl arbitrary: rg)
@@ -282,9 +285,9 @@ lemma left_reduce_ipset_rel_stable: "ipset_rel R = ipset_rel (left_reduce R)"
 definition "reduced_ipset_destination tbl r = left_reduce (ipset_destination tbl r)"
 lemma reduced_ipset_destination_correct:
   "\<lbrakk> valid_prefixes rtbl; ip \<in> rg \<rbrakk> \<Longrightarrow>
-  (routing_table_semantics rtbl ip = ports) = in_rel (ipset_rel (reduced_ipset_destination rtbl rg)) ip ports"
+  (output_iface (routing_table_semantics rtbl ip) = act) = in_rel (ipset_rel (reduced_ipset_destination rtbl rg)) ip act"
   unfolding reduced_ipset_destination_def
   unfolding left_reduce_ipset_rel_stable[symmetric]
-  using ipset_destination_correct .
+  using ipset_destination_correct[unfolded Img_ipset_rel] .
 
 end
