@@ -4,7 +4,8 @@
 module Network.IPTables.ParserHelper where
 
 import           Data.Functor ((<$>), ($>))
-import Network.IPTables.IsabelleToString (Word32)
+import Network.IPTables.IsabelleToString (Word32, Word128)
+import Data.List.Split (splitOn)
 import qualified Network.IPTables.Generated as Isabelle
 import           Text.Parsec (char, choice, many1, Parsec, oneOf, string)
 
@@ -53,6 +54,20 @@ ipv4range = do
     char '-'
     ip2 <- ipv4dotdecimal
     return $ Isabelle.IpAddrRange ip1 ip2
+
+
+ipv6colonsep :: Parsec String s (Isabelle.Word Word128)
+ipv6colonsep = do 
+    ipv6string <- many1 (oneOf $ ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ [':'])
+    let ipv6parts = map option_int $ splitOn ":" ipv6string
+    let parsed = case Isabelle.mk_ipv6addr ipv6parts
+                       of Nothing -> error $ "invalid IPv6 address: " ++ ipv6string
+                          Just x -> Isabelle.ipv6preferred_to_int x
+    return parsed
+    where option_int "" = Nothing
+          option_int i  = Just (Isabelle.integer_to_16word (readHex i))
+          readHex :: String -> Integer
+          readHex x = read ("0x" ++ x)
 
 protocol :: Parsec String s Isabelle.Protocol
 protocol = choice (map make ps)

@@ -20,6 +20,10 @@ fun ipt_ipv4range_toString :: "32 ipt_iprange \<Rightarrow> string" where
   "ipt_ipv4range_toString (IpAddrNetmask ip n) = ipv4addr_toString ip@''/''@string_of_nat n"  |
   "ipt_ipv4range_toString (IpAddrRange ip1 ip2) = ipv4addr_toString ip1@''-''@ipv4addr_toString ip2"
 
+fun ipt_ipv6range_toString :: "128 ipt_iprange \<Rightarrow> string" where
+  "ipt_ipv6range_toString (IpAddr ip) = ipv6addr_toString ip" |
+  "ipt_ipv6range_toString (IpAddrNetmask ip n) = ipv6addr_toString ip@''/''@string_of_nat n"  |
+  "ipt_ipv6range_toString (IpAddrRange ip1 ip2) = ipv6addr_toString ip1@''-''@ipv6addr_toString ip2"
 
 fun ipv4addr_wordinterval_toString :: "32 wordinterval \<Rightarrow> string" where
   "ipv4addr_wordinterval_toString (WordInterval s e) = (if s = e then ipv4addr_toString s else ''{''@ipv4addr_toString s@'' .. ''@ipv4addr_toString e@''}'')" |

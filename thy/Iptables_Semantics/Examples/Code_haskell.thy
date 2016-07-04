@@ -34,11 +34,14 @@ export_code Rule
   CT_New CT_Established CT_Related CT_Untracked CT_Invalid
   TCP_Flags TCP_SYN TCP_ACK TCP_FIN TCP_RST TCP_URG TCP_PSH
   Accept Drop Log Reject Call Return Goto Empty Unknown
-  dotteddecimal_toString ipv4addr_toString ipv4_cidr_toString action_toString
-  ipt_ipv4range_toString ipv4addr_toString
+  action_toString
+  ipt_ipv4range_toString
   common_primitive_v4_toString common_primitive_match_expr_toString
   simple_rule_toString
   Semantics_Goto.rewrite_Goto_safe
+  (*IPv6*)
+  mk_ipv6addr IPv6AddrPreferred ipv6preferred_to_int int_to_ipv6preferred
+  ipt_ipv6range_toString
   (*parser helpers:*) alist_and' compress_parsed_extra Pos Neg mk_Set
   unfold_ruleset_CHAIN_safe map_of_string_ipv4
   upper_closure
