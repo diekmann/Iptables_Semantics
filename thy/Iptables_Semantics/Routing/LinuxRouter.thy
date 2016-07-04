@@ -3,8 +3,6 @@ imports
 	(* For obvious reasons *)
 	Routing
 	"../Simple_Firewall/SimpleFw_Semantics"
-	(* for the simple packet extension *)
-	(*"../../OpenFlow/OpenFlowMatches" (*TODO: dependencies!*)*)
   "../Primitive_Matchers/Simple_Packet"
 	"~~/src/HOL/Library/Monad_Syntax"
 begin

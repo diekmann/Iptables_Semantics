@@ -1,12 +1,11 @@
 theory RFC2544
 imports 
-  "../../Primitive_Matchers/Parser"
-  "../../Semantics_Ternary/Optimizing"
-  "../../Simple_Firewall/SimpleFw_toString"
-  "../../Routing/Routing"
-  "../../Routing/IpRoute_Parser"
-  "../../../OpenFlow/LinuxRouterOpenFlowTranslation"
-  "../../../OpenFlow/OpenFlowSerialize"
+  "../../../Iptables_Semantics/Primitive_Matchers/Parser"
+  "../../../Iptables_Semantics/Simple_Firewall/SimpleFw_toString"
+  "../../../Iptables_Semantics/Routing/Routing"
+  "../../../Iptables_Semantics/Routing/IpRoute_Parser"
+  "../../LinuxRouterOpenFlowTranslation"
+  "../../OpenFlowSerialize"
 begin
 
 section\<open>Example: Simple Test for Translation to OpenFlow\<close>
