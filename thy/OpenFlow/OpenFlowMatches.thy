@@ -122,17 +122,6 @@ begin
 instance by standard (auto simp: less_eq_of_match_field_def less_eq_of_match_field1_def less_of_match_field_def implode_def split: prod.splits of_match_field.splits if_splits)
 end
 
-record (overloaded) 'i simple_packet_ext = "'i::len simple_packet" +
-	p_l2type :: "16 word"
-	p_l2src :: "48 word"
-	p_l2dst :: "48 word"
-	p_vlanid :: "16 word"
-	p_vlanprio :: "16 word"
-
-definition "simple_packet_unext p = 
-\<lparr>p_iiface = p_iiface p, p_oiface = p_oiface p, p_src = p_src p, p_dst = p_dst p, p_proto = p_proto p, 
-p_sport = p_sport p, p_dport = p_dport p, p_tcp_flags = p_tcp_flags p, p_tag_ctstate = p_tag_ctstate p\<rparr>"
-
 
 fun match_no_prereq :: "of_match_field \<Rightarrow> (32, 'a) simple_packet_ext_scheme \<Rightarrow> bool" where
 "match_no_prereq (IngressPort i) p = (p_iiface p = i)" |
