@@ -3542,7 +3542,7 @@ ipt_tcp_flags_toString flags =
   list_toString tcp_flag_toString (enum_set_to_list flags);
 
 integer_to_16word :: Integer -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
-integer_to_16word i = nat_to_16word (nat_of_integer i);
+integer_to_16word i = word_of_int (Int_of_integer i);
 
 ctstate_toString :: Ctstate -> [Prelude.Char];
 ctstate_toString CT_New = "NEW";

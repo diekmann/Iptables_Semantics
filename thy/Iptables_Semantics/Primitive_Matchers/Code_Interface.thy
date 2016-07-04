@@ -69,6 +69,21 @@ definition nat_to_16word :: "nat \<Rightarrow> 16 word" where
 
 definition integer_to_16word :: "integer \<Rightarrow> 16 word" where
   "integer_to_16word i \<equiv> nat_to_16word (nat_of_integer i)"
+
+(*
+(*TODO: does this speed things up?*)
+lemma [code_unfold]: "nat_to_16word = word_of_int \<circ> int"
+  "ipv4addr_of_nat = word_of_int \<circ> int"
+  "ipv6addr_of_nat = word_of_int \<circ> int"
+  "nat_to_8word = word_of_int \<circ> int"
+  by(simp add: fun_eq_iff nat_to_16word_def ipv4addr_of_nat_def ipv6addr_of_nat_def nat_to_8word_def word_of_nat)+
+*)
+(*
+definition integer_to_16word :: "integer \<Rightarrow> 16 word" where
+  "integer_to_16word i \<equiv> word_of_int (int_of_integer i)"
+
+lemma "integer_to_16word (- 1) = 0xFFFF" by eval
+*)
 (*
 definition integer_to_16word :: "int \<Rightarrow> 16 word" where
   "integer_to_16word i \<equiv> nat_to_16word (nat i)"
@@ -77,7 +92,6 @@ definition integer_to_16word :: "int \<Rightarrow> 16 word" where
 definition integer_to_16word :: "int \<Rightarrow> 16 word" where
   "integer_to_16word i \<equiv> Word.word_of_int i"
 
-lemma "integer_to_16word (- 1) = 0xFFFF" by eval
 *)
 
 text\<open>Example\<close>

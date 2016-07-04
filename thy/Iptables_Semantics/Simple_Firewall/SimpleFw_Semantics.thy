@@ -327,13 +327,13 @@ lemma simple_matches_andD: "simple_matches m1 p \<Longrightarrow> simple_matches
   \<exists>m. simple_match_and m1 m2 = Some m \<and> simple_matches m p"
   by (meson option.exhaust_sel simple_match_and_NoneD simple_match_and_SomeD)
 
-
 fun has_default_policy :: "'i::len simple_rule list \<Rightarrow> bool" where
   "has_default_policy [] = False" |
   "has_default_policy [(SimpleRule m _)] = (m = simple_match_any)" |
   "has_default_policy (_#rs) = has_default_policy rs"
 
-lemma has_default_policy: "has_default_policy rs \<Longrightarrow> simple_fw rs p = Decision FinalAllow \<or> simple_fw rs p = Decision FinalDeny"
+lemma has_default_policy: "has_default_policy rs \<Longrightarrow>
+  simple_fw rs p = Decision FinalAllow \<or> simple_fw rs p = Decision FinalDeny"
   proof(induction rs rule: has_default_policy.induct)
   case 1 thus ?case by (simp)
   next
@@ -349,6 +349,16 @@ lemma has_default_policy_fst: "has_default_policy rs \<Longrightarrow> has_defau
  apply(cases rs)
   by(simp_all)
 
+
+text\<open>We can stop after a default rule (a rule which matches anything) is observed.\<close>
+fun cut_off_after_match_any :: "'i::len simple_rule list \<Rightarrow> 'i simple_rule list" where
+  "cut_off_after_match_any [] = []" |
+  "cut_off_after_match_any (SimpleRule m a # rs) =
+    (if m = simple_match_any then [SimpleRule m a] else SimpleRule m a # cut_off_after_match_any rs)"
+
+lemma cut_off_after_match_any: "simple_fw (cut_off_after_match_any rs) p = simple_fw rs p"
+  apply(induction rs p rule: simple_fw.induct)
+    by(simp add: simple_match_any)+
 
 
 
