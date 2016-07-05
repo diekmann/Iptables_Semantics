@@ -8,9 +8,9 @@
 
 module Main where
 
---import Data.Functor ((<$>))
+import Data.Functor ((<$>))
 import Data.Maybe (fromJust)
---import Control.Applicative ((<*>))
+import Control.Applicative ((<*>))
 import Control.Monad (when)
 import qualified Data.List as L
 import Network.IPTables.Ruleset
