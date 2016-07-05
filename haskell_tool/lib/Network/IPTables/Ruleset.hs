@@ -27,9 +27,9 @@ import           Control.Monad (when)
 import Network.IPTables.IsabelleToString (Word32)
 
 
--- where type a is either Word32 for IPv4 or Word128 for IPv6
 data Ruleset = Ruleset { rsetTables :: Map TableName (Table Word32) }
 
+-- where type a is either Word32 for IPv4 or Word128 for IPv6
 data Table a = Table { tblChains :: Map ChainName (Chain a)}
 
 data Chain a = Chain { chnDefault :: Maybe Isabelle.Action
