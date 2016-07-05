@@ -22,6 +22,8 @@ import Common.Util
 import Network.IPTables.Analysis as Analysis
 import qualified Network.IPTables.Generated as Isabelle
 
+
+putErrStrLn :: String -> IO ()
 putErrStrLn = System.IO.hPutStrLn System.IO.stderr
 
 --labeled (and optional) command line arguments. For example: ./fffuu --table "filter"
@@ -52,6 +54,7 @@ data CommandLineArgs = CommandLineArgs CommandLineArgsLabeled CommandLineArgsUnl
 instance ParseRecord CommandLineArgs where
     parseRecord = CommandLineArgs <$> parseRecord <*> parseRecord
 
+readIpAssmt :: FilePath -> IO IsabelleIpAssmt
 readIpAssmt filename = do
     src <- readFile filename
     case parseIpAssmt filename src of

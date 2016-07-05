@@ -1,7 +1,6 @@
 {-# Language FlexibleInstances #-}
 module Network.IPTables.IsabelleToString where
 
-import           Data.List (intercalate)
 import qualified Network.IPTables.Generated as Isabelle
 
 
