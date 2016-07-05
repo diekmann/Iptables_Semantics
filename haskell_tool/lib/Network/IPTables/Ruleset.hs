@@ -27,11 +27,11 @@ import           Control.Monad (when)
 import Network.IPTables.IsabelleToString (Word32)
 
 
-data Ruleset = Ruleset { rsetTables :: Map TableName Table }
-
-data Table = Table { tblChains :: Map ChainName (Chain Word32)}
-
 -- where type a is either Word32 for IPv4 or Word128 for IPv6
+data Ruleset = Ruleset { rsetTables :: Map TableName (Table Word32) }
+
+data Table a = Table { tblChains :: Map ChainName (Chain a)}
+
 data Chain a = Chain { chnDefault :: Maybe Isabelle.Action
                      , chnCounter :: (Integer,Integer)
                      , chnRules   :: [ParseRule a]
@@ -127,7 +127,7 @@ loadUnfoldedRuleset debug table chain res = do
 
 -- transforming to Isabelle type
 
-to_Isabelle_ruleset_AssocList :: Table -> Either String [(String, [Isabelle.Rule (Isabelle.Common_primitive Word32)])]
+to_Isabelle_ruleset_AssocList :: (Table Word32) -> Either String [(String, [Isabelle.Rule (Isabelle.Common_primitive Word32)])]
 to_Isabelle_ruleset_AssocList t = let rs = convertRuleset (tblChains t) in 
                                         if not (Isabelle.sanity_wf_ruleset rs)
                                         then Left "Reading ruleset failed! sanity_wf_ruleset check failed."
@@ -136,12 +136,12 @@ to_Isabelle_ruleset_AssocList t = let rs = convertRuleset (tblChains t) in
           convertRuleset = map (\(k,v) -> (k, convertRules (chnRules v))) . M.toList 
            
 
-to_Isabelle_Rule :: ParseRule Word32 -> Isabelle.Rule (Isabelle.Common_primitive Word32)
+to_Isabelle_Rule :: Isabelle.Len a => ParseRule a -> Isabelle.Rule (Isabelle.Common_primitive a)
 to_Isabelle_Rule r = Isabelle.Rule
                         (Isabelle.alist_and $ Isabelle.compress_parsed_extra (fMatch (ruleArgs r)))
                         (filter_Isabelle_Action (ruleArgs r))
     where --filter out the Matches (Common_primitive) in ParsedMatchAction
-          fMatch :: [ParsedMatchAction Word32] -> [Isabelle.Negation_type (Isabelle.Common_primitive Word32)]
+          fMatch :: [ParsedMatchAction a] -> [Isabelle.Negation_type (Isabelle.Common_primitive a)]
           fMatch [] = []
           fMatch (ParsedMatch a : ss) = Isabelle.Pos a : fMatch ss
           fMatch (ParsedNegatedMatch a : ss) = Isabelle.Neg a : fMatch ss
@@ -188,7 +188,7 @@ instance Show Ruleset where
         in  join tables
 
 
-renderTable :: (TableName, Table) -> String
+renderTable :: Show (Isabelle.Common_primitive a) => (TableName, Table a) -> String
 renderTable (name,tbl) = join
     [ "*"++name
     , declareChains (tblChains tbl)
