@@ -27,16 +27,15 @@ import           Control.Monad (when)
 import Network.IPTables.IsabelleToString (Word32)
 
 
-data Ruleset = Ruleset { rsetTables :: Map TableName Table } -- deriving (Ord)
+data Ruleset = Ruleset { rsetTables :: Map TableName Table }
 
-data Table = Table { tblChains :: Map ChainName Chain} --deriving (Ord)
+data Table = Table { tblChains :: Map ChainName (Chain Word32)}
 
-data Chain = Chain { chnDefault :: Maybe Isabelle.Action
-                   , chnCounter :: (Integer,Integer)
-                   , chnRules   :: [ParseRule]
-                   }
-    --deriving (Show)
-
+-- where type a is either Word32 for IPv4 or Word128 for IPv6
+data Chain a = Chain { chnDefault :: Maybe Isabelle.Action
+                     , chnCounter :: (Integer,Integer)
+                     , chnRules   :: [ParseRule a]
+                     }
 
 
 data ParsedMatchAction a = ParsedMatch (Isabelle.Common_primitive a)
@@ -48,7 +47,8 @@ instance Show (Isabelle.Common_primitive a) => Show (ParsedMatchAction a) where
     show (ParsedNegatedMatch m) = "ParsedNegatedMatch " ++ show m
     show (ParsedAction a) = "ParsedAction " ++ show a
 
-data ParseRule  = ParseRule  { ruleArgs   :: [ParsedMatchAction Word32] } deriving (Show)
+
+data ParseRule a = ParseRule { ruleArgs :: [ParsedMatchAction a] }
 
 
 
@@ -136,7 +136,7 @@ to_Isabelle_ruleset_AssocList t = let rs = convertRuleset (tblChains t) in
           convertRuleset = map (\(k,v) -> (k, convertRules (chnRules v))) . M.toList 
            
 
-to_Isabelle_Rule :: ParseRule -> Isabelle.Rule (Isabelle.Common_primitive Word32)
+to_Isabelle_Rule :: ParseRule Word32 -> Isabelle.Rule (Isabelle.Common_primitive Word32)
 to_Isabelle_Rule r = Isabelle.Rule
                         (Isabelle.alist_and $ Isabelle.compress_parsed_extra (fMatch (ruleArgs r)))
                         (filter_Isabelle_Action (ruleArgs r))
@@ -196,7 +196,7 @@ renderTable (name,tbl) = join
     , "COMMIT"
     ]
 
-declareChains :: Map ChainName Chain -> String
+declareChains :: Map ChainName (Chain a) -> String
 declareChains chnMap =
     join $ map renderDecl (M.toList chnMap)
     where renderDecl (name, chain) =
@@ -205,7 +205,7 @@ declareChains chnMap =
                        , " [", show packets, ":", show bytes, "]"
                        ]
 
-addRules :: Map ChainName Chain -> String
+addRules :: Show (Isabelle.Common_primitive a) => Map ChainName (Chain a) -> String
 addRules chnMap =
     let rules = concatMap expandChain (M.toList chnMap)
         expandChain (name,chain) = map (\rl -> (name,rl)) $ chnRules chain
