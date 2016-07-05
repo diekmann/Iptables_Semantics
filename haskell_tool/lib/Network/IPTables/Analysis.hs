@@ -6,8 +6,7 @@ module Network.IPTables.Analysis
 )
 where
 
-import qualified Data.List as L
-import Network.IPTables.Ruleset -- show instances
+--import Network.IPTables.Ruleset -- show instances
 import Network.IPTables.IsabelleToString (Word32)
 import Network.IPTables.IpassmtParser (IsabelleIpAssmt) --nicer type --TODO: move?
 

@@ -3,7 +3,7 @@
 
 module Network.IPTables.Parser (parseIptablesSave) where
 
-import           Control.Applicative ((<$>),(<*), (*>))
+--import           Control.Applicative ((<$>),(<*), (*>))
 import           Data.List (isPrefixOf)
 import qualified Data.Map as M
 import qualified Debug.Trace

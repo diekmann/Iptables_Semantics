@@ -5,8 +5,8 @@ module Network.IPTables.IpassmtParser
 , ipAssmtToIsabelle) where
 
 import           Text.Parsec hiding (token)
-import           Data.Functor ((<$>), ($>))
-import           Control.Applicative ((<*), (*>))
+import           Data.Functor (($>)) --(<$>),
+--import           Control.Applicative ((<*), (*>))
 import qualified Network.IPTables.Generated as Isabelle
 import           Network.IPTables.ParserHelper
 import           Network.IPTables.IsabelleToString(Word32)
