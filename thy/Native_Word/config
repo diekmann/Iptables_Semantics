@@ -1,0 +1,9 @@
+# -*- shell-script -*-
+
+# Get email when automated build fails. May be empty.
+# values: "email1 email2 .. emailn"
+NOTIFY="andreas.lochbihler@inf.ethz.ch"
+
+# Participate in frequent (nightly) build (only for small submissions)
+# values: "yes" "no"
+FREQUENT="yes"

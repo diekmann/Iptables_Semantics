@@ -18,6 +18,7 @@ library
   ghc-options:         -O3
   exposed-modules:
       Network.IPTables.Generated
+    , Data_Bits
     , Network.IPTables.IpassmtParser
     , Network.IPTables.IsabelleToString
     , Network.IPTables.ParserHelper
