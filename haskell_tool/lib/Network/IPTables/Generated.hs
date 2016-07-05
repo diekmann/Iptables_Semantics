@@ -29,6 +29,7 @@ module
                               abstract_for_simple_firewall,
                               ipt_ipv4range_toString, ipt_ipv6range_toString,
                               common_primitive_v4_toString,
+                              common_primitive_v6_toString,
                               to_simple_firewall_without_interfaces,
                               common_primitive_match_expr_toString)
   where {
@@ -4593,6 +4594,11 @@ ipt_ipv6range_toString (IpAddrRange ip1 ip2) =
 common_primitive_v4_toString ::
   Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prelude.Char];
 common_primitive_v4_toString = common_primitive_toString ipv4addr_toString;
+
+common_primitive_v6_toString ::
+  Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))) ->
+    [Prelude.Char];
+common_primitive_v6_toString = common_primitive_toString ipv6addr_toString;
 
 to_simple_firewall_without_interfaces ::
   forall a.

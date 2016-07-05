@@ -97,6 +97,9 @@ fun common_primitive_toString :: "('i::len word \<Rightarrow> string) \<Rightarr
 definition common_primitive_v4_toString :: "32 common_primitive \<Rightarrow> string" where
   "common_primitive_v4_toString \<equiv> common_primitive_toString ipv4addr_toString"
 
+definition common_primitive_v6_toString :: "128 common_primitive \<Rightarrow> string" where
+  "common_primitive_v6_toString \<equiv> common_primitive_toString ipv6addr_toString"
+
 fun common_primitive_match_expr_toString :: "32 common_primitive match_expr \<Rightarrow> string" where
   "common_primitive_match_expr_toString MatchAny = ''''" |
   "common_primitive_match_expr_toString (Match m) = common_primitive_v4_toString m" |
