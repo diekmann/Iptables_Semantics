@@ -1,3 +1,5 @@
+{-# Language FlexibleContexts #-}
+{-# Language UndecidableInstances #-}
 module Network.IPTables.Ruleset 
 ( Ruleset
 , TableName
@@ -37,12 +39,16 @@ data Chain = Chain { chnDefault :: Maybe Isabelle.Action
 
 
 
-data ParsedMatchAction = ParsedMatch (Isabelle.Common_primitive Word32)
-                       | ParsedNegatedMatch (Isabelle.Common_primitive Word32)
+data ParsedMatchAction a = ParsedMatch (Isabelle.Common_primitive a)
+                       | ParsedNegatedMatch (Isabelle.Common_primitive a)
                        | ParsedAction Isabelle.Action
-    deriving (Show)
 
-data ParseRule  = ParseRule  { ruleArgs   :: [ParsedMatchAction] } deriving (Show)
+instance Show (Isabelle.Common_primitive a) => Show (ParsedMatchAction a) where
+    show (ParsedMatch m) = "ParsedMatch " ++ show m
+    show (ParsedNegatedMatch m) = "ParsedNegatedMatch " ++ show m
+    show (ParsedAction a) = "ParsedAction " ++ show a
+
+data ParseRule  = ParseRule  { ruleArgs   :: [ParsedMatchAction Word32] } deriving (Show)
 
 
 
@@ -135,13 +141,13 @@ to_Isabelle_Rule r = Isabelle.Rule
                         (Isabelle.alist_and $ Isabelle.compress_parsed_extra (fMatch (ruleArgs r)))
                         (filter_Isabelle_Action (ruleArgs r))
     where --filter out the Matches (Common_primitive) in ParsedMatchAction
-          fMatch :: [ParsedMatchAction] -> [Isabelle.Negation_type (Isabelle.Common_primitive Word32)]
+          fMatch :: [ParsedMatchAction Word32] -> [Isabelle.Negation_type (Isabelle.Common_primitive Word32)]
           fMatch [] = []
           fMatch (ParsedMatch a : ss) = Isabelle.Pos a : fMatch ss
           fMatch (ParsedNegatedMatch a : ss) = Isabelle.Neg a : fMatch ss
           fMatch (ParsedAction _ : ss) = fMatch ss
 
-filter_Isabelle_Action :: [ParsedMatchAction] -> Isabelle.Action
+filter_Isabelle_Action :: [ParsedMatchAction a] -> Isabelle.Action
 filter_Isabelle_Action ps = case fAction ps of [] -> Isabelle.Empty
                                                [a] -> a
                                                as -> error $ "at most one action per rule: " ++ show as
