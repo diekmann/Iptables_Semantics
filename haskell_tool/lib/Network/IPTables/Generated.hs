@@ -29,6 +29,7 @@ module
                               abstract_for_simple_firewall,
                               ipt_ipv4range_toString, ipt_ipv6range_toString,
                               common_primitive_v4_toString,
+                              common_primitive_v6_toString,
                               to_simple_firewall_without_interfaces,
                               common_primitive_match_expr_toString)
   where {
@@ -39,6 +40,7 @@ import Prelude ((==), (/=), (<), (<=), (>=), (>), (+), (-), (*), (/), (**),
   zip, null, takeWhile, dropWhile, all, any, Integer, negate, abs, divMod,
   String, Bool(True, False), Maybe(Nothing, Just));
 import qualified Prelude;
+import qualified Data_Bits;
 
 newtype Int = Int_of_integer Integer;
 
@@ -1048,10 +1050,17 @@ image f (Set xs) = Set (map f xs);
 minus_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
 minus_word a b = word_of_int (minus_int (uint a) (uint b));
 
+shiftl_integer :: Integer -> Nat -> Integer;
+shiftl_integer x n =
+  (Data_Bits.shiftlUnbounded :: Integer -> Integer -> Integer) x
+    (integer_of_nat n);
+
+bit_integer :: Integer -> Bool -> Integer;
+bit_integer i True = shiftl_integer i one_nat + (1 :: Integer);
+bit_integer i False = shiftl_integer i one_nat;
+
 bit :: Int -> Bool -> Int;
-bit k b =
-  plus_int (plus_int (if b then Int_of_integer (1 :: Integer) else zero_int) k)
-    k;
+bit (Int_of_integer i) b = Int_of_integer (bit_integer i b);
 
 shiftl1 :: forall a. (Len0 a) => Word a -> Word a;
 shiftl1 w = word_of_int (bit (uint w) False);
@@ -1132,15 +1141,9 @@ udp = word_of_int (Int_of_integer (17 :: Integer));
 is_empty :: forall a. Set a -> Bool;
 is_empty (Set xs) = null xs;
 
-divide_integer :: Integer -> Integer -> Integer;
-divide_integer k l = fst (divmod_integer k l);
-
-divide_int :: Int -> Int -> Int;
-divide_int k l =
-  Int_of_integer (divide_integer (integer_of_int k) (integer_of_int l));
-
 bin_rest :: Int -> Int;
-bin_rest w = divide_int w (Int_of_integer (2 :: Integer));
+bin_rest (Int_of_integer i) =
+  Int_of_integer ((Data_Bits.shiftrUnbounded i 1 :: Integer));
 
 shiftr1 :: forall a. (Len0 a) => Word a -> Word a;
 shiftr1 w = word_of_int (bin_rest (uint w));
@@ -1262,6 +1265,9 @@ routing_rule_sort_key =
     LinordHelper
       (minus_int zero_int (int_of_nat (pfxm_length (routing_match r))))
       (metric r));
+
+divide_integer :: Integer -> Integer -> Integer;
+divide_integer k l = fst (divmod_integer k l);
 
 divide_nat :: Nat -> Nat -> Nat;
 divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
@@ -1628,29 +1634,16 @@ src (Simple_match_ext iiface oiface src dst proto sports dports more) = src;
 dst :: forall a b. (Len a) => Simple_match_ext a b -> (Word a, Nat);
 dst (Simple_match_ext iiface oiface src dst proto sports dports more) = dst;
 
-uminus_int :: Int -> Int;
-uminus_int k = Int_of_integer (negate (integer_of_int k));
-
-bin_last :: Int -> Bool;
-bin_last w =
-  equal_int (mod_int w (Int_of_integer (2 :: Integer)))
-    (Int_of_integer (1 :: Integer));
-
 bitAND_int :: Int -> Int -> Int;
-bitAND_int x y =
-  (if equal_int x zero_int then zero_int
-    else (if equal_int x (uminus_int (Int_of_integer (1 :: Integer))) then y
-           else bit (bitAND_int (bin_rest x) (bin_rest y))
-                  (bin_last x && bin_last y)));
+bitAND_int (Int_of_integer i) (Int_of_integer j) =
+  Int_of_integer (((Data_Bits..&.) :: Integer -> Integer -> Integer) i j);
 
 bitAND_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
 bitAND_word a b = word_of_int (bitAND_int (uint a) (uint b));
 
-bitNOT_int :: Int -> Int;
-bitNOT_int = (\ x -> minus_int (uminus_int x) (Int_of_integer (1 :: Integer)));
-
 bitOR_int :: Int -> Int -> Int;
-bitOR_int = (\ x y -> bitNOT_int (bitAND_int (bitNOT_int x) (bitNOT_int y)));
+bitOR_int (Int_of_integer i) (Int_of_integer j) =
+  Int_of_integer (((Data_Bits..|.) :: Integer -> Integer -> Integer) i j);
 
 bitOR_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
 bitOR_word a b = word_of_int (bitOR_int (uint a) (uint b));
@@ -1935,6 +1928,10 @@ ipcidr_to_interval_start (pre, len) =
       shiftl_word (mask len) (minus_nat ((len_of :: Itself a -> Nat) Type) len);
     network_prefix = bitAND_word pre netmask;
   } in network_prefix;
+
+bitNOT_int :: Int -> Int;
+bitNOT_int (Int_of_integer i) =
+  Int_of_integer ((Data_Bits.complement :: Integer -> Integer) i);
 
 bitNOT_word :: forall a. (Len0 a) => Word a -> Word a;
 bitNOT_word a = word_of_int (bitNOT_int (uint a));
@@ -3609,6 +3606,10 @@ string_of_word_single lc w =
                      (unat w))]
            else error "undefined"));
 
+divide_int :: Int -> Int -> Int;
+divide_int k l =
+  Int_of_integer (divide_integer (integer_of_int k) (integer_of_int l));
+
 divide_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
 divide_word a b = word_of_int (divide_int (uint a) (uint b));
 
@@ -4593,6 +4594,11 @@ ipt_ipv6range_toString (IpAddrRange ip1 ip2) =
 common_primitive_v4_toString ::
   Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prelude.Char];
 common_primitive_v4_toString = common_primitive_toString ipv4addr_toString;
+
+common_primitive_v6_toString ::
+  Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))) ->
+    [Prelude.Char];
+common_primitive_v6_toString = common_primitive_toString ipv6addr_toString;
 
 to_simple_firewall_without_interfaces ::
   forall a.

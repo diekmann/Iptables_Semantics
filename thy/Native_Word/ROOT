@@ -1,0 +1,39 @@
+chapter AFP
+
+session "Native_Word" (AFP) = "HOL-Word" +
+  theories [document = false]
+    "~~/src/HOL/Library/Code_Target_Int"
+    "~~/src/HOL/Library/Code_Char"
+    "~~/src/HOL/Library/Code_Test"
+  theories
+    More_Bits_Int
+    Bits_Integer
+    Code_Target_Bits_Int
+    Word_Misc
+    Uint32
+    Uint16
+    Uint8
+    Uint
+    Native_Cast
+    Native_Word_Test_Emu
+  theories [condition = ISABELLE_GHC]
+    Native_Word_Test_GHC
+  theories [condition = ISABELLE_MLTON]
+    Native_Word_Test_MLton
+    Native_Word_Test_MLton2
+  theories [condition = ISABELLE_OCAMLC]
+    Native_Word_Test_OCaml
+    Native_Word_Test_OCaml2
+  theories [condition = ISABELLE_POLYML]
+    Native_Word_Test_PolyML
+    Native_Word_Test_PolyML2
+  theories [condition = ISABELLE_SCALA]
+    Native_Word_Test_Scala
+  theories [condition = ISABELLE_SMLNJ]
+    Native_Word_Test_SMLNJ
+    Native_Word_Test_SMLNJ2
+  theories
+    Uint_Userguide
+  document_files
+    "root.tex"
+    "root.bib"

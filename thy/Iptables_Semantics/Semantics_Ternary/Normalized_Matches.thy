@@ -144,6 +144,13 @@ section\<open>Normalizing rules instead of only match expressions\<close>
   lemma normalize_rules_fst: "(normalize_rules f (r # rs)) = (normalize_rules f [r]) @ (normalize_rules f rs)"
     by(cases r) (simp)
 
+  lemma normalize_rules_concat_map:
+    "normalize_rules f rs = concat (map (\<lambda>r. map (\<lambda>m. Rule m (get_action r)) (f (get_match r))) rs)"
+    apply(induction rs)
+     apply(simp_all)
+    apply(rename_tac r rs, case_tac r)
+    apply(simp)
+    done
 
   lemma good_ruleset_normalize_rules: "good_ruleset rs \<Longrightarrow> good_ruleset (normalize_rules f rs)"
     proof(induction rs)

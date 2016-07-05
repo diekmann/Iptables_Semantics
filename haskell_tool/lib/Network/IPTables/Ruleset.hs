@@ -19,7 +19,6 @@ import           Data.Map (Map)
 import qualified Data.Map as M
 import qualified Data.List as L
 import qualified Debug.Trace
-import qualified Control.Exception
 import qualified Network.IPTables.Generated as Isabelle
 import           Network.IPTables.IsabelleToString()
 import           Control.Monad (when)
@@ -155,8 +154,7 @@ filter_Isabelle_Action ps = case fAction ps of [] -> Isabelle.Empty
 
 
 -- this is just DEBUGING
--- tries to catch exceptions of rulesetLookup
--- TODO: hopefully, thw whole thing now runs without exceptions
+-- tries to catch errors of rulesetLookup
 checkParsedTables :: Ruleset -> IO ()
 checkParsedTables res = check tables
     where tables = M.keys (rsetTables res)

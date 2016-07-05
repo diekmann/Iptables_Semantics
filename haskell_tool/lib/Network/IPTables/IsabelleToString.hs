@@ -1,7 +1,6 @@
 {-# Language FlexibleInstances #-}
 module Network.IPTables.IsabelleToString where
 
-import           Data.List (intercalate)
 import qualified Network.IPTables.Generated as Isabelle
 
 
@@ -21,6 +20,8 @@ instance Show Isabelle.Nat where
 
 instance Show (Isabelle.Common_primitive Word32) where
     show = Isabelle.common_primitive_v4_toString
+instance Show (Isabelle.Common_primitive Word128) where
+    show = Isabelle.common_primitive_v6_toString
 
 instance Show Isabelle.Action where
     show = Isabelle.action_toString
@@ -33,7 +34,6 @@ instance Show Isabelle.Iface where
 
 instance Show (Isabelle.Ipt_iprange Word32) where
   show = Isabelle.ipt_ipv4range_toString
-
 instance Show (Isabelle.Ipt_iprange Word128) where
   show = Isabelle.ipt_ipv6range_toString
 
