@@ -127,7 +127,7 @@ loadUnfoldedRuleset debug table chain res = do
 
 -- transforming to Isabelle type
 
-to_Isabelle_ruleset_AssocList :: (Table Word32) -> Either String [(String, [Isabelle.Rule (Isabelle.Common_primitive Word32)])]
+to_Isabelle_ruleset_AssocList :: Isabelle.Len a => Table a -> Either String [(String, [Isabelle.Rule (Isabelle.Common_primitive a)])]
 to_Isabelle_ruleset_AssocList t = let rs = convertRuleset (tblChains t) in 
                                         if not (Isabelle.sanity_wf_ruleset rs)
                                         then Left "Reading ruleset failed! sanity_wf_ruleset check failed."
