@@ -539,7 +539,7 @@ context begin
      apply(simp_all)
     by (metis partList3_complete0)
 
-lemma "partitioning1  [{1::nat},{2},{}] [{1},{},{2},{3}] = [{1}, {}, {2}, {3}]" by eval
+  lemma "partitioning1  [{1::nat},{2},{}] [{1},{},{2},{3}] = [{1}, {}, {2}, {3}]" by eval
 
 
   (*random corny stuff*)

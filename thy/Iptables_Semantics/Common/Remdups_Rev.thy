@@ -2,8 +2,10 @@ theory Remdups_Rev
 imports Main
 begin
 
-definition "remdups_rev rs = (rev (remdups (rev rs)))"
+section\<open>Reverse Remdups\<close>
 
+definition remdups_rev :: "'a list \<Rightarrow> 'a list" where
+  "remdups_rev rs \<equiv> rev (remdups (rev rs))"
 
 lemma remdups_append: "remdups (rs @ rs2) = remdups [r\<leftarrow>rs . r \<notin> set rs2] @ remdups rs2"
   by(induction rs arbitrary: rs2) (simp_all)
@@ -13,7 +15,8 @@ lemma remdups_rev_append: "remdups_rev (rs @ rs2) = remdups_rev rs @ remdups_rev
   case Cons thus ?case by(simp add: remdups_append rev_filter remdups_rev_def)
   qed(simp add: remdups_rev_def)
 
-lemma remdups_rev_fst: "remdups_rev (r#rs) = (if r \<in> set rs then r#remdups_rev (removeAll r rs) else r#remdups_rev rs)"
+lemma remdups_rev_fst:
+  "remdups_rev (r#rs) = (if r \<in> set rs then r#remdups_rev (removeAll r rs) else r#remdups_rev rs)"
 proof -
   have 1: "r \<notin> set rs \<Longrightarrow> remdups_rev (r # rs) = r # remdups_rev rs"
     unfolding remdups_rev_def
