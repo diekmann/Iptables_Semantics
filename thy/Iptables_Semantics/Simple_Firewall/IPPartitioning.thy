@@ -536,7 +536,7 @@ lemma groupWIs_not_empty_elems:
     have "\<forall>w\<in>set (concat (groupWIs c rs)). \<not> wordinterval_empty w"
       apply(subst groupWIs_def)
       apply(subst Let_def)+
-      apply(subst groupF_set_lem)
+      apply(subst groupF_concat_set)
       using getParts_nonempty_elems by blast
     from this V w show ?thesis by auto
   qed
@@ -550,7 +550,7 @@ proof -
     apply(subst groupWIs_def)
     apply(subst Let_def)+
     apply(subst set_map)
-    apply(subst groupF_set_lem)
+    apply(subst groupF_concat_set)
     using getParts_same_fw_behaviour same_fw_spec by fastforce
   from this assms show ?thesis by force
 qed
@@ -568,10 +568,10 @@ proof -
                   (map (\<lambda>d. runFw (getOneIp bw) d c rs) (map getOneIp (getParts rs)),
                    map (\<lambda>s. runFw s (getOneIp bw) c rs) (map getOneIp (getParts rs)))"
     apply(simp add: groupWIs_def Let_def)
-    using groupF_lem_not by fastforce
+    using groupF_nequality by fastforce
   have "\<forall>C \<in> set (groupWIs c rs). \<forall>c \<in> set C. getOneIp c \<in> wordinterval_to_set c"
     apply(simp add: groupWIs_def Let_def)
-    using getParts_nonempty_elems groupF_set_lem1 getOneIp_elem by fastforce
+    using getParts_nonempty_elems groupF_set getOneIp_elem by fastforce
   from this b1 asm have
   "\<forall>aw \<in> set (map wordinterval_to_set A). \<forall>bw \<in> set (map wordinterval_to_set B).
    \<exists>a \<in> aw. \<exists>b \<in> bw. (map (\<lambda>d. runFw a d c rs) (map getOneIp (getParts rs)), map (\<lambda>s. runFw s a c rs) (map getOneIp (getParts rs))) \<noteq>
@@ -626,7 +626,7 @@ proof -
   } note same_behave_runFw=this
 
   from same_behave_runFw[OF b1 getParts_complete nonempty]
-       groupF_lem[of "(\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) (map getOneIp (getParts rs)),
+       groupF_equality[of "(\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) (map getOneIp (getParts rs)),
                              map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp (getParts rs))))"
                      "(getParts rs)"] asm
   have b2: "\<forall>a1\<in>set V. \<forall>a2\<in>set V. same_fw_behaviour_one (getOneIp a1) (getOneIp a2) c rs"
@@ -674,7 +674,7 @@ using groupWIs_same_fw_not2 by blast
 lemma groupWIs_complete: "(\<Union>x\<in> set (groupWIs c rs). wordinterval_list_to_set x) = (UNIV::'i::len word set)"
   proof -
   have "(\<Union> y \<in> (\<Union>x\<in> set (groupWIs c rs). set x). wordinterval_to_set y) = (UNIV::'i word set)"
-    apply(simp add: groupWIs_def Let_def groupF_set_Union_lem)
+    apply(simp add: groupWIs_def Let_def groupF_Union_set)
     using getParts_complete wordinterval_list_to_set_def by fastforce
   thus ?thesis by(simp add: wordinterval_list_to_set_def)
 qed

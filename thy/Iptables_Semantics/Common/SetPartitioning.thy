@@ -1,8 +1,10 @@
 (*Author: Max Haslbeck, 2015*)
 theory SetPartitioning
 imports Main
-        (*"~~/src/HOL/Library/Code_Target_Nat" (*!*)*)
 begin
+
+section\<open>Partition a set by a specifc constraint\<close>
+text\<open>Will be used for the IP address space partition of a firewall. This file is completely generic.\<close>
 
 (* disjoint, ipPartition definitions *)
 
@@ -11,12 +13,12 @@ definition disjoint :: "'a set set \<Rightarrow> bool" where
 
 text_raw\<open>We will call two partitioned sets \emph{complete} iff @{term "\<Union> ss = \<Union> ts"}.\<close>
 
-
 text\<open>The condition we use to partition a set. If this holds and 
-      @{term A} is the set of ip addresses in each rule in a firewall,
+      @{term A} is the set of IP addresses in each rule in a firewall,
       then @{term B} is a partition of @{term "\<Union> A"} where each member has the same behavior
       w.r.t the firewall ruleset.\<close>
-text\<open>@{term A} is the carrier set and @{term B}* should be a partition of @{term "\<Union> A"} which fulfills the following condition:\<close>
+text\<open>@{term A} is the carrier set and @{term B}* should be a partition of @{term "\<Union> A"} 
+     which fulfills the following condition:\<close>
 definition ipPartition :: "'a set set \<Rightarrow> 'a set set \<Rightarrow> bool" where
   "ipPartition A B \<equiv> \<forall>a \<in> A. \<forall>b \<in> B. a \<inter> b = {} \<or> b \<subseteq> a"
 
@@ -39,9 +41,8 @@ context begin
      apply(simp_all add: disjoint_list_def disjoint_def)
     by fast
   
-  
   (* FUNCTIONS *)
-  definition addSubsetSet :: "'a set \<Rightarrow> 'a set set \<Rightarrow> 'a set set" where
+  private definition addSubsetSet :: "'a set \<Rightarrow> 'a set set \<Rightarrow> 'a set set" where
     "addSubsetSet s ts = insert (s - \<Union>ts) ((op \<inter> s) ` ts) \<union> ((\<lambda>x. x - s) ` ts)"
   
   fun partitioning :: "'a set list \<Rightarrow> 'a set set \<Rightarrow> 'a set set" where
@@ -56,52 +57,51 @@ context begin
   lemma "ipPartition {{1::nat,2},{3,4},{5,6,7},{6},{10}} (partitioning [{1::nat,2},{3,4},{5,6,7},{6},{10}] {})" by eval
   
   (* OTHER LEMMAS *)
-  
   lemma "ipPartition A {}" by(simp add: ipPartition_def)
   
   lemma ipPartitionUnion: "ipPartition As Cs \<and> ipPartition Bs Cs \<longleftrightarrow> ipPartition (As \<union> Bs) Cs"
-   unfolding ipPartition_def by fast
+    unfolding ipPartition_def by fast
   
   
   (* addSubsetSet LEMMAS *)
-  
-  lemma disjointAddSubset: "disjoint ts \<Longrightarrow> disjoint (addSubsetSet a ts)" 
+  private lemma disjointAddSubset: "disjoint ts \<Longrightarrow> disjoint (addSubsetSet a ts)" 
     by (auto simp add: disjoint_def addSubsetSet_def)
   
-  lemma coversallAddSubset:"\<Union> (insert a ts) = \<Union> (addSubsetSet a ts)" 
+  private lemma coversallAddSubset:"\<Union> (insert a ts) = \<Union> (addSubsetSet a ts)" 
     by (auto simp add: addSubsetSet_def)
   
-  lemma ipPartioningAddSubset0: "disjoint ts \<Longrightarrow> ipPartition ts (addSubsetSet a ts)"
-    apply(simp_all add: addSubsetSet_def ipPartition_def)
+  private lemma ipPartioningAddSubset0: "disjoint ts \<Longrightarrow> ipPartition ts (addSubsetSet a ts)"
+    apply(simp add: addSubsetSet_def ipPartition_def)
     apply(safe)
       apply blast
      apply(simp_all add: disjoint_def)
      apply blast+
     done
   
-  lemma ipPartitioningAddSubset1: "disjoint ts \<Longrightarrow> ipPartition (insert a ts) (addSubsetSet a ts)"
-    apply(simp_all add: addSubsetSet_def ipPartition_def)
+  private lemma ipPartitioningAddSubset1: "disjoint ts \<Longrightarrow> ipPartition (insert a ts) (addSubsetSet a ts)"
+    apply(simp add: addSubsetSet_def ipPartition_def)
     apply(safe)
       apply blast
      apply(simp_all add: disjoint_def)
      apply blast+
   done
   
-  lemma addSubsetSetI:
-  "s - \<Union>ts \<in> addSubsetSet s ts"
-  "t \<in> ts \<Longrightarrow> s \<inter> t \<in> addSubsetSet s ts"
-  "t \<in> ts \<Longrightarrow> t - s \<in> addSubsetSet s ts"
+  private lemma addSubsetSetI:
+    "s - \<Union>ts \<in> addSubsetSet s ts"
+    "t \<in> ts \<Longrightarrow> s \<inter> t \<in> addSubsetSet s ts"
+    "t \<in> ts \<Longrightarrow> t - s \<in> addSubsetSet s ts"
   unfolding addSubsetSet_def by blast+
     
-  lemma addSubsetSetE:
+  private lemma addSubsetSetE:
     assumes "A \<in> addSubsetSet s ts"
     obtains "A = s - \<Union>ts" | T where "T \<in> ts" "A = s \<inter> T" | T where "T \<in> ts" "A = T - s"
     using assms unfolding addSubsetSet_def by blast
-    
-  lemma Union_addSubsetSet [simp]: "\<Union>addSubsetSet b As = b \<union> \<Union>As"
+  
+  (*TODO: remove simp*)
+  private lemma Union_addSubsetSet [simp]: "\<Union>addSubsetSet b As = b \<union> \<Union>As"
     unfolding addSubsetSet_def by auto
   
-  lemma addSubsetSetCom: "addSubsetSet a (addSubsetSet b As) = addSubsetSet b (addSubsetSet a As)"
+  private lemma addSubsetSetCom: "addSubsetSet a (addSubsetSet b As) = addSubsetSet b (addSubsetSet a As)"
   proof -
     {
       fix A a b assume "A \<in> addSubsetSet a (addSubsetSet b As)"
@@ -127,7 +127,7 @@ context begin
     thus ?thesis by blast
   qed
   
-  lemma ipPartitioningAddSubset2: "ipPartition {a} (addSubsetSet a ts)"
+  private lemma ipPartitioningAddSubset2: "ipPartition {a} (addSubsetSet a ts)"
     apply(simp add: addSubsetSet_def ipPartition_def) 
     by blast
   
@@ -157,11 +157,11 @@ context begin
     thus ?thesis by (metis sup_bot.right_neutral)
   qed
   
-  lemma "\<Union> As = \<Union> Bs \<Longrightarrow> ipPartition As Bs \<Longrightarrow> ipPartition As (addSubsetSet a Bs)"
+  private lemma "\<Union> As = \<Union> Bs \<Longrightarrow> ipPartition As Bs \<Longrightarrow> ipPartition As (addSubsetSet a Bs)"
     by(auto simp add: ipPartition_def addSubsetSet_def)
   
   
-  lemma ipPartitionSingleSet: "ipPartition {t} (addSubsetSet t Bs) 
+  private lemma ipPartitionSingleSet: "ipPartition {t} (addSubsetSet t Bs) 
                \<Longrightarrow> ipPartition {t} (partitioning ts (addSubsetSet t Bs))"
     apply(induction ts arbitrary: Bs t)
      apply(simp_all)
@@ -340,7 +340,7 @@ context begin
     done
   (*TODO: use partList4 every time instead of partList3*)
   
-  lemma partList0_addSubsetSet_equi: "s \<subseteq> \<Union>(set ts) \<Longrightarrow> 
+  private lemma partList0_addSubsetSet_equi: "s \<subseteq> \<Union>(set ts) \<Longrightarrow> 
                                       addSubsetSet s (set ts) - {{}} = set(partList0 s ts) - {{}}"
     by(simp add: addSubsetSet_def partList0_set_equi)
   
@@ -348,7 +348,7 @@ context begin
     "partitioning_nontail [] ts = ts" |
     "partitioning_nontail (s#ss) ts = addSubsetSet s (partitioning_nontail ss ts)"
   
-  lemma partitioningCom: "addSubsetSet a (partitioning ss ts) = partitioning ss (addSubsetSet a ts)"
+  private lemma partitioningCom: "addSubsetSet a (partitioning ss ts) = partitioning ss (addSubsetSet a ts)"
     apply(induction ss arbitrary: a ts)
      apply(simp; fail)
     apply(simp add: addSubsetSetCom)
@@ -538,38 +538,38 @@ context begin
     apply(induction ss arbitrary: ts)
      apply(simp_all)
     by (metis partList3_complete0)
-end
 
 lemma "partitioning1  [{1::nat},{2},{}] [{1},{},{2},{3}] = [{1}, {}, {2}, {3}]" by eval
 
 
-(*random corny stuff*)
-lemma partitioning_foldr: "partitioning X B = foldr addSubsetSet X B"
-  apply(induction X)
-   apply(simp; fail)
-  apply(simp)
-  by (metis partitioningCom)
-
-lemma "ipPartition (set X) (foldr addSubsetSet X {})"
-  apply(subst partitioning_foldr[symmetric])
-  using ipPartitioning by auto
-
-lemma "\<Union> (set X) = \<Union> (foldr addSubsetSet X {})"
-  apply(subst partitioning_foldr[symmetric])
-  by (simp add: coversallPartitioning)
-
-lemma "partitioning1 X B = foldr partList3 X B"
-  by(induction X)(simp_all)
-
-lemma "ipPartition (set X) (set (partitioning1 X [UNIV]))"
-apply(rule ipPartitioning_helper_opt)
-  by(simp_all add: disjoint_list_def disjoint_def)
-
-lemma "(\<Union>(set (partitioning1 X [UNIV]))) = UNIV"
-apply(subgoal_tac "UNIV = \<Union> (set (partitioning1 X [UNIV]))")
- prefer 2
- apply(rule SetPartitioning.complete_helper[where ts="[UNIV]", simplified])
-apply(simp)
-done
+  (*random corny stuff*)
+  lemma partitioning_foldr: "partitioning X B = foldr addSubsetSet X B"
+    apply(induction X)
+     apply(simp; fail)
+    apply(simp)
+    by (metis partitioningCom)
   
+  lemma "ipPartition (set X) (foldr addSubsetSet X {})"
+    apply(subst partitioning_foldr[symmetric])
+    using ipPartitioning by auto
+  
+  lemma "\<Union> (set X) = \<Union> (foldr addSubsetSet X {})"
+    apply(subst partitioning_foldr[symmetric])
+    by (simp add: coversallPartitioning)
+  
+  lemma "partitioning1 X B = foldr partList3 X B"
+    by(induction X)(simp_all)
+  
+  lemma "ipPartition (set X) (set (partitioning1 X [UNIV]))"
+  apply(rule ipPartitioning_helper_opt)
+    by(simp_all add: disjoint_list_def disjoint_def)
+  
+  lemma "(\<Union>(set (partitioning1 X [UNIV]))) = UNIV"
+  apply(subgoal_tac "UNIV = \<Union> (set (partitioning1 X [UNIV]))")
+   prefer 2
+   apply(rule SetPartitioning.complete_helper[where ts="[UNIV]", simplified])
+  apply(simp)
+  done
+  
+end
 end

@@ -7,11 +7,11 @@ begin
 
 section\<open>toString Functions\<close>
 
-(*HACK: rewrite quotes such that they are better printable by Isabelle*)
+text\<open>HACK: rewrite quotes such that they are better printable by Isabelle\<close>
 definition quote_rewrite :: "string \<Rightarrow> string" where
   "quote_rewrite \<equiv> map (\<lambda>c. if c = Char Nibble2 Nibble2 then CHR ''~'' else c)"
-value "quote_rewrite (''foo''@[Char Nibble2 Nibble2])"
 
+lemma "quote_rewrite (''foo''@[Char Nibble2 Nibble2]) = ''foo~''" by eval
 
 fun bool_toString :: "bool \<Rightarrow> string" where
   "bool_toString True = ''True''" |
@@ -27,15 +27,15 @@ subsection\<open>Enum set to string\<close>
   
   lemma enum_set_get_one_None: "S \<subseteq> set ss \<Longrightarrow> enum_set_get_one ss S = None \<longleftrightarrow> S = {}"
     apply(induction ss)
-     apply(simp)
+     apply(simp; fail)
     apply(simp)
-    apply rule
+    apply(intro conjI)
      apply blast
     by fast
  
   lemma enum_set_get_one_Some: "S \<subseteq> set ss \<Longrightarrow> enum_set_get_one ss S = Some x \<Longrightarrow> x \<in> S"
     apply(induction ss)
-     apply(simp)
+     apply(simp; fail)
     apply(simp split: split_if_asm)
     apply(blast)
     done
@@ -44,11 +44,12 @@ subsection\<open>Enum set to string\<close>
 
   lemma enum_set_get_one_Ex_Some: "S \<subseteq> set ss \<Longrightarrow> S \<noteq> {} \<Longrightarrow> \<exists>x. enum_set_get_one ss S = Some x"
     apply(induction ss)
-     apply(simp)
+     apply(simp; fail)
     apply(simp split: split_if_asm)
     apply(blast)
     done
-  corollary enum_set_get_one_enum_Ex_Some: "S \<noteq> {} \<Longrightarrow> \<exists>x. enum_set_get_one enum_class.enum S = Some x"
+  corollary enum_set_get_one_enum_Ex_Some:
+    "S \<noteq> {} \<Longrightarrow> \<exists>x. enum_set_get_one enum_class.enum S = Some x"
     using enum_set_get_one_Ex_Some[where ss=enum_class.enum, simplified enum_UNIV] by auto
   
   function enum_set_to_list :: "('a::enum) set \<Rightarrow> 'a list" where
@@ -71,10 +72,7 @@ subsection\<open>Enum set to string\<close>
   lemma enum_set_to_list_simps: "enum_set_to_list S =
       (case enum_set_get_one (Enum.enum) S of None \<Rightarrow> []
                                            |  Some a \<Rightarrow> a#enum_set_to_list (S - {a}))"
-   apply(simp)
-   apply(intro conjI impI)
-   apply(simp add: enum_set_get_one_empty)
-   done
+   by(simp add: enum_set_get_one_empty)
   declare enum_set_to_list.simps[simp del]
 
   lemma enum_set_to_list: "set (enum_set_to_list A) = A"
@@ -90,7 +88,6 @@ subsection\<open>Enum set to string\<close>
     apply(drule enum_set_get_one_enum_Some)
     by blast
   
-
 lemma "list_toString bool_toString (enum_set_to_list {True, False}) = ''[False, True]''" by eval
 
 end
