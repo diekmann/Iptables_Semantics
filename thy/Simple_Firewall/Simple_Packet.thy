@@ -1,5 +1,5 @@
 theory Simple_Packet
-imports Protocol Conntrack_State
+imports L4_Protocol
 begin
 
 section\<open>Simple Packet\<close>
@@ -9,7 +9,7 @@ section\<open>Simple Packet\<close>
 
   text\<open>A simple packet with IP addresses and layer four ports.
              Also has the following phantom fields:
-             Network interfaces, and connection state\<close>
+             Input and Output network interfaces\<close>
 
   record (overloaded) 'i simple_packet = p_iiface :: string
                          p_oiface :: string
@@ -20,7 +20,6 @@ section\<open>Simple Packet\<close>
                          p_dport :: "16 word"
                          p_tcp_flags :: "tcp_flag set"
                          p_payload :: string
-                         p_tag_ctstate :: ctstate
 
 
   value "\<lparr> 
@@ -28,8 +27,7 @@ section\<open>Simple Packet\<close>
           p_src = 0, p_dst = 0, 
           p_proto = TCP, p_sport = 0, p_dport = 0, 
           p_tcp_flags = {TCP_SYN},
-          p_payload = ''arbitrary payload'',
-          p_tag_ctstate = CT_New
+          p_payload = ''arbitrary payload''
          \<rparr>"
 
   text\<open>We suggest to use @{typ "('i,'pkt_ext) simple_packet_scheme"} instead of 
@@ -41,8 +39,7 @@ section\<open>Simple Packet\<close>
     "simple_packet_unext p \<equiv>
       \<lparr>p_iiface = p_iiface p, p_oiface = p_oiface p, p_src = p_src p, p_dst = p_dst p, p_proto = p_proto p, 
        p_sport = p_sport p, p_dport = p_dport p, p_tcp_flags = p_tcp_flags p, 
-       p_payload = p_payload p,
-       p_tag_ctstate = p_tag_ctstate p\<rparr>"
+       p_payload = p_payload p\<rparr>"
 
   text\<open>An extended simple packet with MAC addresses and VLAN header\<close>
   

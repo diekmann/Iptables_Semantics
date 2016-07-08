@@ -1,6 +1,7 @@
 theory LinuxRouterOpenFlowTranslation
 imports 
-	"../Iptables_Semantics/Simple_Firewall/Generic_SimpleFw" 
+  "../Automaticc_Refinement/Misc" (*TODO@Peter: rename and make available at better place :)*)
+	"../Simple_Firewall/Generic_SimpleFw" 
 	"Semantics_OpenFlow"
 	"OpenFlowMatches"
 	"OpenFlowAction"
@@ -40,8 +41,7 @@ p_proto :: primitive_protocol
 p_sport :: "16 word"
 p_dport :: "16 word"
 p_tcp_flags :: "tcp_flag set"
-p_payload :: string, 
-p_tag_ctstate :: ctstate
+p_payload :: string
 *)
 
 definition "route2match r =
@@ -1155,6 +1155,7 @@ lemma
         apply(simp; fail)
        apply(simp split: split_if_asm flow_entry_match.split flow_entry_match.split_asm)
        done
+
     have OF_match_linear_ft_hd_Action: "(OF_match_linear OF_match_fields_safe ft_hd p = Action of_action) \<longleftrightarrow> 
           (\<exists>m. List.find (\<lambda>(m,a). OF_match_fields_safe m p) ?r_part = Some (m,of_action))"
       apply(rule OF_match_linear_rule2)

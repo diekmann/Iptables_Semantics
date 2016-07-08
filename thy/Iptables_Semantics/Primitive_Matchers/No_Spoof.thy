@@ -23,14 +23,14 @@ subsection\<open>Spoofing Protection\<close>
 text\<open>We add @{typ "'pkt_ext itself"} as a parameter to have the type of a generic, extensible packet
      in the definition.\<close>
   definition no_spoofing :: "'pkt_ext itself \<Rightarrow> 'i::len ipassignment \<Rightarrow> 'i::len common_primitive rule list \<Rightarrow> bool" where
-    "no_spoofing TYPE('pkt_ext) ipassmt rs \<equiv> \<forall> iface \<in> dom ipassmt. \<forall>p :: ('i,'pkt_ext) simple_packet_scheme.
+    "no_spoofing TYPE('pkt_ext) ipassmt rs \<equiv> \<forall> iface \<in> dom ipassmt. \<forall>p :: ('i,'pkt_ext) tagged_packet_scheme.
         ((common_matcher, in_doubt_allow),p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow) \<longrightarrow>
             p_src p \<in> (ipcidr_union_set (set (the (ipassmt iface))))"
 
   text \<open>This is how it looks like for an IPv4 simple packet: We add @{type unit} because a
-        @{typ "32 simple_packet"} does not have any additional fields.\<close>
+        @{typ "32 tagged_packet"} does not have any additional fields.\<close>
   lemma "no_spoofing TYPE(unit) ipassmt rs \<longleftrightarrow>
-    (\<forall> iface \<in> dom ipassmt. \<forall>p :: 32 simple_packet.
+    (\<forall> iface \<in> dom ipassmt. \<forall>p :: 32 tagged_packet.
       ((common_matcher, in_doubt_allow),p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow)
          \<longrightarrow> p_src p \<in> (ipcidr_union_set (set (the (ipassmt iface)))))"
     unfolding no_spoofing_def by blast
@@ -83,12 +83,12 @@ begin
 
  private lemma get_exists_matching_src_ips_subset: 
     assumes "normalized_nnf_match m"
-    shows "{ip. (\<exists>p :: ('i::len, 'a) simple_packet_scheme. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))} \<subseteq>
+    shows "{ip. (\<exists>p :: ('i::len, 'a) tagged_packet_scheme. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))} \<subseteq>
            get_exists_matching_src_ips iface m"
   proof -
     let ?\<gamma>="(common_matcher, in_doubt_allow)"
 
-    { fix ip_matches rest src_ip i_matches rest2 and p :: "('i, 'a) simple_packet_scheme"
+    { fix ip_matches rest src_ip i_matches rest2 and p :: "('i, 'a) tagged_packet_scheme"
       assume a1: "primitive_extractor (is_Src, src_sel) m = (ip_matches, rest)"
       and a2: "matches ?\<gamma> m a (p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
       let ?p="(p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
@@ -105,7 +105,7 @@ begin
       done
     } note 1=this
 
-    { fix ip_matches rest src_ip i_matches rest2 and p :: "('i, 'a) simple_packet_scheme"
+    { fix ip_matches rest src_ip i_matches rest2 and p :: "('i, 'a) tagged_packet_scheme"
       assume a1: "primitive_extractor (is_Iiface, iiface_sel) m = (i_matches, rest2)"
          and a2: "matches ?\<gamma> m a (p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
       let ?p="(p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
@@ -198,12 +198,12 @@ begin
  private lemma get_all_matching_src_ips: 
     assumes "normalized_nnf_match m"
     shows "get_all_matching_src_ips iface m \<subseteq>
-            {ip. (\<forall>p::('i::len, 'a) simple_packet_scheme. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))}"
+            {ip. (\<forall>p::('i::len, 'a) tagged_packet_scheme. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface:= iface_sel iface, p_src:= ip\<rparr>))}"
   proof 
     fix ip
     assume a: "ip \<in> get_all_matching_src_ips iface m" 
     obtain i_matches rest1 where select1: "primitive_extractor (is_Iiface, iiface_sel) m = (i_matches, rest1)" by fastforce
-    show "ip \<in> {ip. \<forall>p :: ('i, 'a) simple_packet_scheme. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)}"
+    show "ip \<in> {ip. \<forall>p :: ('i, 'a) tagged_packet_scheme. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)}"
     proof(cases "\<forall> is \<in> set i_matches. (case is of Pos i \<Rightarrow> match_iface i (iface_sel iface)
                                                  | Neg i \<Rightarrow> \<not>match_iface i (iface_sel iface))")
     case False
@@ -213,8 +213,8 @@ begin
       with a show ?thesis by simp
     next
     case True
-      let ?\<gamma>="(common_matcher, in_doubt_allow) :: ('i::len common_primitive, ('i, 'a) simple_packet_scheme) match_tac"
-      let ?p="\<lambda>p::('i, 'a) simple_packet_scheme. p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>"
+      let ?\<gamma>="(common_matcher, in_doubt_allow) :: ('i::len common_primitive, ('i, 'a) tagged_packet_scheme) match_tac"
+      let ?p="\<lambda>p::('i, 'a) tagged_packet_scheme. p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>"
       obtain ip_matches rest2 where select2: "primitive_extractor (is_Src, src_sel) rest1 = (ip_matches, rest2)" by fastforce
 
       let ?noDisc="\<not> has_primitive rest2"
@@ -230,9 +230,9 @@ begin
 
       from True have "(\<forall>m\<in>set (getPos i_matches). matches ?\<gamma> (Match (IIface m)) a (?p p)) \<and>
                       (\<forall>m\<in>set (getNeg i_matches). matches ?\<gamma> (MatchNot (Match (IIface m))) a (?p p))"
-       for p :: "('i, 'a) simple_packet_scheme" by(simp add: negation_type_forall_split match_simplematcher_Iface match_simplematcher_Iface_not)
+       for p :: "('i, 'a) tagged_packet_scheme" by(simp add: negation_type_forall_split match_simplematcher_Iface match_simplematcher_Iface_not)
       hence matches_iface: "matches ?\<gamma> (alist_and (NegPos_map IIface i_matches)) a (?p p)"
-        for p :: "('i,'a) simple_packet_scheme"
+        for p :: "('i,'a) tagged_packet_scheme"
         by(simp add: matches_alist_and NegPos_map_simps)
 
       show ?thesis
@@ -252,21 +252,21 @@ begin
 
         from primitive_extractor_correct[OF assms wf_disc_sel_common_primitive(5) select1] have
           select1_matches: "matches ?\<gamma> (alist_and (NegPos_map IIface i_matches)) a p \<and> matches ?\<gamma> rest1 a p \<longleftrightarrow> matches ?\<gamma> m a p"
-          and normalized1: "normalized_nnf_match rest1" for p :: "('i,'a) simple_packet_scheme"
+          and normalized1: "normalized_nnf_match rest1" for p :: "('i,'a) tagged_packet_scheme"
           apply -
             apply fast+
           done
         from select1_matches matches_iface have
-          rest1_matches: "matches ?\<gamma> rest1 a (?p p) \<longleftrightarrow> matches ?\<gamma> m a (?p p)" for p :: "('i, 'a) simple_packet_scheme" by blast
+          rest1_matches: "matches ?\<gamma> rest1 a (?p p) \<longleftrightarrow> matches ?\<gamma> m a (?p p)" for p :: "('i, 'a) tagged_packet_scheme" by blast
 
         from primitive_extractor_correct[OF normalized1 wf_disc_sel_common_primitive(3) select2] have
           select2_matches: "matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a p \<and> matches ?\<gamma> rest2 a p \<longleftrightarrow> 
-                            matches ?\<gamma> rest1 a p" for p :: "('i, 'a) simple_packet_scheme"
+                            matches ?\<gamma> rest1 a p" for p :: "('i, 'a) tagged_packet_scheme"
         by fast
-        with F matcheq_matchAny have "matches ?\<gamma> rest2 a p" for p :: "('i, 'a) simple_packet_scheme" by metis
+        with F matcheq_matchAny have "matches ?\<gamma> rest2 a p" for p :: "('i, 'a) tagged_packet_scheme" by metis
         with select2_matches rest1_matches have ip_src_matches: 
           "matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a (?p p) \<longleftrightarrow> matches ?\<gamma> m a (?p p)"
-          for p :: "('i, 'a) simple_packet_scheme" by simp
+          for p :: "('i, 'a) tagged_packet_scheme" by simp
 
         have case_nil: "\<And>p. ip_matches = [] \<Longrightarrow> matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a p"
           by(simp add: bunch_of_lemmata_about_matches)
@@ -278,15 +278,15 @@ begin
           apply(simp add: negation_type_forall_split match_simplematcher_SrcDst_not match_simplematcher_SrcDst)
           done
 
-        from a show "ip \<in> {ip. \<forall>p :: ('i, 'a) simple_packet_scheme. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)}"
+        from a show "ip \<in> {ip. \<forall>p :: ('i, 'a) tagged_packet_scheme. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)}"
           unfolding get_all_matching_src_ips_caseTrue
           proof(clarsimp split: split_if_asm)
-            fix p :: "('i, 'a) simple_packet_scheme"
+            fix p :: "('i, 'a) tagged_packet_scheme"
             assume "ip_matches = []"
             with case_nil have "matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a (?p p)" by simp
             with ip_src_matches show "matches ?\<gamma> m a (?p p)" by simp
           next
-            fix p :: "('i, 'a) simple_packet_scheme"
+            fix p :: "('i, 'a) tagged_packet_scheme"
             assume "\<forall>x\<in>set ip_matches. ip \<in> (case x of Pos x \<Rightarrow> ipt_iprange_to_set x | Neg ip \<Rightarrow> - ipt_iprange_to_set ip)"
             hence "\<forall>x\<in>set ip_matches. case x of Pos i \<Rightarrow> ip \<in> ipt_iprange_to_set i | Neg i \<Rightarrow> ip \<in> - ipt_iprange_to_set i"
              by(simp_all split: negation_type.split negation_type.split_asm)
@@ -424,10 +424,10 @@ begin
   qed(simp_all)
 
 
-  private definition "nospoof TYPE('pkt_ext) iface ipassmt rs = (\<forall>p :: ('i::len,'pkt_ext) simple_packet_scheme.
+  private definition "nospoof TYPE('pkt_ext) iface ipassmt rs = (\<forall>p :: ('i::len,'pkt_ext) tagged_packet_scheme.
           (approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface\<rparr>) rs Undecided = Decision FinalAllow) \<longrightarrow>
               p_src p \<in> (ipcidr_union_set (set (the (ipassmt iface)))))"
-  private definition "setbydecision TYPE('pkt_ext) iface rs dec = {ip. \<exists>p :: ('i::len,'pkt_ext) simple_packet_scheme. approximating_bigstep_fun (common_matcher, in_doubt_allow) 
+  private definition "setbydecision TYPE('pkt_ext) iface rs dec = {ip. \<exists>p :: ('i::len,'pkt_ext) tagged_packet_scheme. approximating_bigstep_fun (common_matcher, in_doubt_allow) 
                            (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs Undecided = Decision dec}"
 
   private lemma nospoof_setbydecision:
@@ -437,7 +437,7 @@ begin
   proof
     assume a: "nospoof TYPE('pkt_ext) iface ipassmt rs"
     have packet_update_iface_simp: "p\<lparr>p_iiface := iface_sel iface, p_src := x\<rparr> = p\<lparr>p_src := x, p_iiface := iface_sel iface\<rparr>"
-      for p::"('i::len, 'p) simple_packet_scheme" and x by simp
+      for p::"('i::len, 'p) tagged_packet_scheme" and x by simp
  
     from a show "setbydecision TYPE('pkt_ext) iface rs FinalAllow \<subseteq> ipcidr_union_set (set (the (ipassmt iface)))"
       apply(simp add: nospoof_def setbydecision_def)
@@ -452,7 +452,7 @@ begin
     show "nospoof TYPE('pkt_ext) iface ipassmt rs"
       unfolding nospoof_def
       proof(safe)
-        fix p :: "('i::len,'pkt_ext) simple_packet_scheme"
+        fix p :: "('i::len,'pkt_ext) tagged_packet_scheme"
         assume a2: "approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface := iface_sel iface\<rparr>) rs Undecided = Decision FinalAllow"
         --\<open>In @{text setbydecision_fix_p}the @{text \<exists>} quantifier is gone and we consider this set for @{term p}.\<close>
         let ?setbydecision_fix_p="{ip. approximating_bigstep_fun (common_matcher, in_doubt_allow) 
@@ -464,7 +464,7 @@ begin
   qed
 
 
-  private definition "setbydecision_all TYPE('pkt_ext) iface rs dec = {ip. \<forall>p :: ('i::len,'pkt_ext) simple_packet_scheme.
+  private definition "setbydecision_all TYPE('pkt_ext) iface rs dec = {ip. \<forall>p :: ('i::len,'pkt_ext) tagged_packet_scheme.
     approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs Undecided = Decision dec}"
 
   private lemma setbydecision_setbydecision_all_Allow: 
@@ -483,7 +483,7 @@ begin
   private lemma setbydecision_append:
     "simple_ruleset (rs1 @ rs2) \<Longrightarrow>
       setbydecision TYPE('pkt_ext) iface (rs1 @ rs2) FinalAllow =
-        setbydecision TYPE('pkt_ext) iface rs1 FinalAllow \<union> {ip. \<exists>p :: ('i::len,'pkt_ext) simple_packet_scheme. approximating_bigstep_fun (common_matcher, in_doubt_allow) 
+        setbydecision TYPE('pkt_ext) iface rs1 FinalAllow \<union> {ip. \<exists>p :: ('i::len,'pkt_ext) tagged_packet_scheme. approximating_bigstep_fun (common_matcher, in_doubt_allow) 
          (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs2 Undecided = Decision FinalAllow \<and>
           approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs1 Undecided = Undecided}"
       apply(simp add: setbydecision_def)
@@ -511,7 +511,7 @@ begin
       done
 
   private lemma setbydecision_all_append_subset: "simple_ruleset (rs1 @ rs2) \<Longrightarrow> 
-            setbydecision_all TYPE('pkt_ext) iface rs1 FinalDeny \<union> {ip. \<forall>p :: ('i::len,'pkt_ext) simple_packet_scheme.
+            setbydecision_all TYPE('pkt_ext) iface rs1 FinalDeny \<union> {ip. \<forall>p :: ('i::len,'pkt_ext) tagged_packet_scheme.
             approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs2 Undecided = Decision FinalDeny \<and>
             approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface:=iface_sel iface, p_src := ip\<rparr>) rs1 Undecided = Undecided}
             \<subseteq>
@@ -525,7 +525,7 @@ begin
       done
 
   private lemma "setbydecision_all TYPE('pkt_ext) iface rs1 FinalDeny \<union>
-                 {ip. \<forall>p :: (32,'pkt_ext) simple_packet_scheme.
+                 {ip. \<forall>p :: (32,'pkt_ext) tagged_packet_scheme.
                  approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>) rs1 Undecided = Undecided}
                  \<subseteq>
                  - setbydecision TYPE('pkt_ext) iface rs1 FinalAllow"
@@ -599,7 +599,7 @@ begin
       no_spoofing_algorithm iface ipassmt rs allowed denied1 \<Longrightarrow> nospoof TYPE('pkt_ext) iface ipassmt (rs' @ rs)"
       by(simp)
     from 2(5) have "setbydecision TYPE('pkt_ext) iface (rs1 @ [Rule m Accept]) FinalAllow \<subseteq> 
-      (allowed \<union> {ip. \<exists>p :: ('i::len,'pkt_ext) simple_packet_scheme. matches (common_matcher, in_doubt_allow) m Accept (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)})"
+      (allowed \<union> {ip. \<exists>p :: ('i::len,'pkt_ext) tagged_packet_scheme. matches (common_matcher, in_doubt_allow) m Accept (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)})"
       apply(simp add: setbydecision_append[OF simple_rs'])
       by blast
     with get_exists_matching_src_ips_subset 2(4) have allowed: "setbydecision TYPE('pkt_ext) iface (rs1 @ [Rule m Accept]) FinalAllow \<subseteq> (allowed \<union> get_exists_matching_src_ips iface m)"
@@ -628,13 +628,13 @@ begin
     from 3(5) simple_rs' have allowed: "setbydecision TYPE('pkt_ext) iface (rs1 @ [Rule m Drop]) FinalAllow \<subseteq> allowed "
       by(simp add: setbydecision_append)
     
-    have "{ip. \<forall>p :: ('i,'pkt_ext) simple_packet_scheme. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)} \<subseteq> 
+    have "{ip. \<forall>p :: ('i,'pkt_ext) tagged_packet_scheme. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)} \<subseteq> 
           setbydecision_all TYPE('pkt_ext) iface [Rule m Drop] FinalDeny" by(simp add: setbydecision_all_def)
-    with 3(5) have "setbydecision_all TYPE('pkt_ext) iface rs1 FinalDeny \<union> ({ip. \<forall>p :: ('i,'pkt_ext) simple_packet_scheme. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)} - allowed) \<subseteq>
+    with 3(5) have "setbydecision_all TYPE('pkt_ext) iface rs1 FinalDeny \<union> ({ip. \<forall>p :: ('i,'pkt_ext) tagged_packet_scheme. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)} - allowed) \<subseteq>
           setbydecision_all TYPE('pkt_ext) iface rs1 FinalDeny \<union> (setbydecision_all TYPE('pkt_ext) iface [Rule m Drop] FinalDeny - setbydecision TYPE('pkt_ext) iface rs1 FinalAllow)"
       by blast
     with 3(6) setbydecision_all_append_subset2[OF simple_rs', of iface] have
-     "denied1 \<union> ({ip. \<forall>p :: ('i,'pkt_ext) simple_packet_scheme. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)} - allowed) \<subseteq>
+     "denied1 \<union> ({ip. \<forall>p :: ('i,'pkt_ext) tagged_packet_scheme. matches (common_matcher, in_doubt_allow) m Drop (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)} - allowed) \<subseteq>
       setbydecision_all TYPE('pkt_ext) iface (rs1 @ [Rule m Drop]) FinalDeny"
       by blast
     with get_all_matching_src_ips 3(4) have denied1:

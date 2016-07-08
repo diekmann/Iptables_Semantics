@@ -1,7 +1,7 @@
 theory Shadowed
 imports SimpleFw_Semantics
-  "../Common/Negation_Type_DNF"
-  "../Primitive_Matchers/Ports"
+  (*"../Common/Negation_Type_DNF"*)
+  (*"../Primitive_Matchers/Ports"*)
 begin
 
 

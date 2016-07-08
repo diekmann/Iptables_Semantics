@@ -60,7 +60,7 @@ text\<open>We use a primitive matcher which always applies. We don't care about 
                    p_payload='''',p_tag_ctstate= CT_New\<rparr>"
 
   text\<open>We tune the primitive matcher to support everything we need in the example. Note that the undefined cases cannot be handled with these exact semantics!\<close>
-  fun applies_exampleMatchExact :: "(32 common_primitive, 32 simple_packet) matcher" where
+  fun applies_exampleMatchExact :: "(32 common_primitive, 32 tagged_packet) matcher" where
   "applies_exampleMatchExact (Src (IpAddr addr)) p \<longleftrightarrow> p_src p = addr" |
   "applies_exampleMatchExact (Dst (IpAddr addr)) p \<longleftrightarrow> p_dst p = addr" |
   "applies_exampleMatchExact (Prot ProtoAny) p \<longleftrightarrow> True" |

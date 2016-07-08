@@ -1,18 +1,16 @@
 theory SimpleFw_toString
 imports 
-        "../Common/Lib_toString"
-        "../Primitive_Matchers/Common_Primitive_toString"
-        "../Simple_Firewall/SimpleFw_Semantics"
+        "Common/Lib_toString"
+        "../Iptables_Semantics/Primitive_Matchers/Common_Primitive_toString"
+        SimpleFw_Semantics
 begin
 
 
 section\<open>toString Functions\<close>
 
-
 fun simple_action_toString :: "simple_action \<Rightarrow> string" where
   "simple_action_toString Accept = ''ACCEPT''" |
   "simple_action_toString Drop = ''DROP''"
-
 
 fun simple_rule_toString :: "32 simple_rule \<Rightarrow> string" where
   "simple_rule_toString (SimpleRule \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> a) = 

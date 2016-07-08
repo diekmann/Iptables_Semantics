@@ -1,5 +1,7 @@
 theory SimpleFw_Compliance
-imports SimpleFw_Semantics "../Primitive_Matchers/Transform" "../Primitive_Matchers/Primitive_Abstract"
+imports "../../Simple_Firewall/SimpleFw_Semantics"
+        "../Primitive_Matchers/Transform"
+        "../Primitive_Matchers/Primitive_Abstract"
 begin
 
 subsection\<open>Simple Match to MatchExpr\<close>
@@ -313,13 +315,16 @@ theorem transform_simple_fw_upper:
   --"the set of new packets, which are accepted is an overapproximations"
   and "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
        {p. simple_fw (to_simple_firewall (preprocess rs)) p = Decision FinalAllow \<and> newpkt p}"
+  --\<open>Fun fact: The theorem holds for a tagged packet. The simple firewall just ignores the tag. 
+     You may explicitly untag, if you wish to, but a @{typ "'i tagged_packet"} is just an extension of the
+     @{typ "'i simple_packet"} used by the simple firewall\<close>
   unfolding check_simple_fw_preconditions_def preprocess_def
   apply(clarify, rename_tac r, case_tac r, rename_tac m a, simp)
   proof -
     let ?rs3="optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new rs))"
     let ?rs'="upper_closure ?rs3"
     let ?\<gamma>="(common_matcher, in_doubt_allow)
-            :: ('i::len common_primitive, ('i, 'a) simple_packet_scheme) match_tac"
+            :: ('i::len common_primitive, ('i, 'a) tagged_packet_scheme) match_tac"
     let ?fw="\<lambda>rs p. approximating_bigstep_fun ?\<gamma> p rs Undecided"
 
     from packet_assume_new_simple_ruleset[OF simplers] have s1: "simple_ruleset (packet_assume_new rs)" .
@@ -429,7 +434,7 @@ theorem transform_simple_fw_lower:
     let ?rs3="optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new rs))"
     let ?rs'="lower_closure ?rs3"
     let ?\<gamma>="(common_matcher, in_doubt_deny)
-            :: ('i::len common_primitive, ('i, 'a) simple_packet_scheme) match_tac"
+            :: ('i::len common_primitive, ('i, 'a) tagged_packet_scheme) match_tac"
     let ?fw="\<lambda>rs p. approximating_bigstep_fun ?\<gamma> p rs Undecided"
 
     from packet_assume_new_simple_ruleset[OF simplers] have s1: "simple_ruleset (packet_assume_new rs)" .
@@ -543,12 +548,12 @@ theorem to_simple_firewall_without_interfaces:
       and wf_ipassmt1: "ipassmt_sanity_nowildcards (map_of ipassmt)" and wf_ipassmt2: "distinct (map fst ipassmt)"
       --"There are no spoofed packets (probably by kernel's reverse path filter or our checker).
          This assumption implies that ipassmt lists ALL interfaces (!!)."
-      and nospoofing: "\<forall>(p::('i::len, 'a) simple_packet_scheme).
+      and nospoofing: "\<forall>(p::('i::len, 'a) tagged_packet_scheme).
             \<exists>ips. (map_of ipassmt) (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipcidr_union_set (set ips)"
 
   --"the set of new packets, which are accepted is an overapproximations"
-  shows "{p::('i,'a) simple_packet_scheme. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
-         {p::('i,'a) simple_packet_scheme. simple_fw (to_simple_firewall_without_interfaces ipassmt rs) p = Decision FinalAllow \<and> newpkt p}"
+  shows "{p::('i,'a) tagged_packet_scheme. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
+         {p::('i,'a) tagged_packet_scheme. simple_fw (to_simple_firewall_without_interfaces ipassmt rs) p = Decision FinalAllow \<and> newpkt p}"
 
   and "\<forall>m \<in> match_sel ` set (to_simple_firewall_without_interfaces ipassmt rs). iiface m = ifaceAny \<and> oiface m = ifaceAny"
   proof -
@@ -560,7 +565,7 @@ theorem to_simple_firewall_without_interfaces:
     let ?rs6="optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a)) ?rs5"
     let ?rs7="upper_closure ?rs6"
     let ?\<gamma>="(common_matcher, in_doubt_allow)
-          :: ('i::len common_primitive, ('i, 'a) simple_packet_scheme) match_tac"
+          :: ('i::len common_primitive, ('i, 'a) tagged_packet_scheme) match_tac"
 
     have "to_simple_firewall_without_interfaces ipassmt rs = to_simple_firewall ?rs7"
       by(simp add: to_simple_firewall_without_interfaces_def)
@@ -657,8 +662,8 @@ theorem to_simple_firewall_without_interfaces:
     by simp
 
 
-    have "{p :: ('i,'a) simple_packet_scheme. ?\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} =
-          {p :: ('i,'a) simple_packet_scheme. ?\<gamma>,p\<turnstile> \<langle>?rs1, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
+    have "{p :: ('i,'a) tagged_packet_scheme. ?\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} =
+          {p :: ('i,'a) tagged_packet_scheme. ?\<gamma>,p\<turnstile> \<langle>?rs1, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
       apply(subst approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF s1]])
       apply(subst approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]])
       apply(rule Collect_cong)
@@ -670,7 +675,7 @@ theorem to_simple_firewall_without_interfaces:
       by simp
     also have "\<dots> = {p. ?\<gamma>,p\<turnstile> \<langle>?rs3, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
       apply(subst iface_try_rewrite[OF s2 nnf2])
-      using wf_ipassmt1 wf_ipassmt2 nospoofing by simp_all
+        using wf_ipassmt1 wf_ipassmt2 nospoofing by simp_all
     also have "\<dots> = {p. ?\<gamma>,p\<turnstile> \<langle>?rs4, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
       apply(subst transform_upper_closure(1)[OF s3])
       by simp

@@ -1,8 +1,8 @@
 theory OpenFlowMatches
 imports "../IP_Addresses/Prefix_Match"
-        "../Iptables_Semantics/Primitive_Matchers/Simple_Packet"
+        "../Simple_Firewall/Simple_Packet"
         "~~/src/HOL/Library/Monad_Syntax"
-        "../Iptables_Semantics/Primitive_Matchers/Simple_Packet" (* I just want those TCP,UDP,\<dots> defs *)
+        (*"../Iptables_Semantics/Primitive_Matchers/Simple_Packet" (* I just want those TCP,UDP,\<dots> defs *)*)
         "~~/src/HOL/Library/Char_ord" (* For a linorder on strings. See below. *)
 begin
 

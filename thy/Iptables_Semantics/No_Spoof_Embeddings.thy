@@ -12,7 +12,7 @@ text\<open>If @{const no_spoofing} is shown in the ternary semantics, it implies
       assumes "matcher_agree_on_exact_matches \<gamma> common_matcher"
       and "simple_ruleset rs"
       and no_spoofing: "no_spoofing TYPE('pkt_ext) ipassmt rs"
-      shows "\<forall> iface \<in> dom ipassmt. \<forall>p::('i::len,'pkt_ext) simple_packet_scheme.
+      shows "\<forall> iface \<in> dom ipassmt. \<forall>p::('i::len,'pkt_ext) tagged_packet_scheme.
                 (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow) \<longrightarrow>
                     p_src p \<in> (ipcidr_union_set (set (the (ipassmt iface))))"
       unfolding no_spoofing_def
@@ -36,7 +36,7 @@ text\<open>If @{const no_spoofing} is shown in the ternary semantics, it implies
   corollary
       assumes "matcher_agree_on_exact_matches \<gamma> common_matcher" and "simple_ruleset rs"
           and no_spoofing: "no_spoofing TYPE('pkt_ext) ipassmt rs" and "iface \<in> dom ipassmt"
-      shows "{p_src p | p :: ('i::len,'pkt_ext) simple_packet_scheme. (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow)} \<subseteq>
+      shows "{p_src p | p :: ('i::len,'pkt_ext) tagged_packet_scheme. (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow)} \<subseteq>
                  ipcidr_union_set (set (the (ipassmt iface)))"
       using approximating_imp_booloan_semantics_nospoofing[OF assms(1) assms(2) assms(3), where \<Gamma>=\<Gamma>]
       using assms(4) by blast
@@ -49,11 +49,11 @@ text\<open>If @{const no_spoofing} is shown in the ternary semantics, it implies
           and "\<forall>r\<in>set rs. normalized_nnf_match (get_match r)"
           and no_spoofing_executable: "\<forall>iface \<in> dom ipassmt. no_spoofing_iface iface ipassmt rs"
           and "iface \<in> dom ipassmt"
-      shows "{p_src p | p :: ('i::len,'pkt_ext) simple_packet_scheme. (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow)} \<subseteq>
+      shows "{p_src p | p :: ('i::len,'pkt_ext) tagged_packet_scheme. (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow)} \<subseteq>
                  ipcidr_union_set (set (the (ipassmt iface)))"
   proof -
     { assume no_spoofing: "no_spoofing TYPE('pkt_ext) ipassmt rs"
-      have "{p_src p | p :: ('i,'pkt_ext) simple_packet_scheme. (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow)} \<subseteq>
+      have "{p_src p | p :: ('i,'pkt_ext) tagged_packet_scheme. (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow)} \<subseteq>
                  ipcidr_union_set (set (the (ipassmt iface)))"
       using approximating_imp_booloan_semantics_nospoofing[OF assms(1) assms(2) no_spoofing, where \<Gamma>=\<Gamma>]
       using assms(5) by blast
@@ -70,7 +70,7 @@ text\<open>If @{const no_spoofing} is shown in the ternary semantics, it implies
           and simplers: "simple_ruleset rs"
           and no_spoofing_executable: "\<forall>iface \<in> dom ipassmt. no_spoofing_iface iface ipassmt (preprocess rs)"
           and "iface \<in> dom ipassmt"
-      shows "{p_src p | p :: ('i::len,'pkt_ext) simple_packet_scheme. newpkt p \<and> \<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow} \<subseteq>
+      shows "{p_src p | p :: ('i::len,'pkt_ext) tagged_packet_scheme. newpkt p \<and> \<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow} \<subseteq>
                  ipcidr_union_set (set (the (ipassmt iface)))"
   proof -
    have newpktD: "newpkt p \<Longrightarrow> newpkt (p\<lparr>p_iiface := iface_sel iface\<rparr>)" for p
@@ -108,7 +108,7 @@ text\<open>If @{const no_spoofing} is shown in the ternary semantics, it implies
      using p by simp
    note[[show_types]]
    with nospoof have y: 
-    "{p_src p | p :: ('i::len,'pkt_ext) simple_packet_scheme. newpkt p \<and> (common_matcher, in_doubt_allow),p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>preprocess rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow}
+    "{p_src p | p :: ('i::len,'pkt_ext) tagged_packet_scheme. newpkt p \<and> (common_matcher, in_doubt_allow),p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>preprocess rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow}
     \<subseteq> ipcidr_union_set (set (the (ipassmt iface)))"
     apply(simp add: no_spoofing_def)
     by(blast dest: bspec[OF _ assms(6)])

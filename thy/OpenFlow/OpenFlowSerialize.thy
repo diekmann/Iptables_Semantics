@@ -2,7 +2,7 @@ theory OpenFlowSerialize
 imports OpenFlowMatches
         OpenFlowAction
         Semantics_OpenFlow
-        "../Iptables_Semantics/Common/Lib_toString"
+        "../Simple_Firewall/Common/Lib_toString"
         "../IP_Addresses/Lib_Word_toString"
         "../Iptables_Semantics/Primitive_Matchers/Common_Primitive_toString"
 begin

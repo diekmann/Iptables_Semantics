@@ -6,11 +6,11 @@ imports
   Transform
   No_Spoof
   "../Simple_Firewall/SimpleFw_Compliance"
-  "../Simple_Firewall/SimpleFw_toString"
-  "../Simple_Firewall/IPPartitioning"
+  "../../Simple_Firewall/SimpleFw_toString"
+  "../../Simple_Firewall/IPPartitioning"
   "../Semantics_Ternary/Optimizing" (*do we use this?*)
   "../Semantics_Goto"
-  "../Simple_Firewall/SimpleFw_toString" (*hmm, here?*)
+  "../../Simple_Firewall/SimpleFw_toString" (*hmm, here?*)
   "../../Native_Word/Code_Target_Bits_Int"
   "~~/src/HOL/Library/Code_Target_Nat"
   "~~/src/HOL/Library/Code_Target_Int"

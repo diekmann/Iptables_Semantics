@@ -1,5 +1,5 @@
 theory Generic_SimpleFw
-imports SimpleFw_Compliance
+imports SimpleFw_Semantics
 begin
 
 definition "generalized_sfw l p = List.find (\<lambda>(m,a). simple_matches m p) l"
@@ -54,7 +54,9 @@ proof(induction as)
 		..
 qed(simp add: generalized_fw_join_def; fail)
 
-lemma generalized_fw_joinI: "\<lbrakk>generalized_sfw f1 p = Some (r1,d1); generalized_sfw f2 p = Some (r2,d2)\<rbrakk> \<Longrightarrow> generalized_sfw (generalized_fw_join f1 f2) p = Some (the (simple_match_and r1 r2), d1,d2)"
+lemma generalized_fw_joinI:
+  "\<lbrakk>generalized_sfw f1 p = Some (r1,d1); generalized_sfw f2 p = Some (r2,d2)\<rbrakk> \<Longrightarrow>
+   generalized_sfw (generalized_fw_join f1 f2) p = Some (the (simple_match_and r1 r2), d1,d2)"
 proof(induction f1)
 	case (Cons a as)
 	obtain am ad where a[simp]: "a = Pair am ad" by(cases a)
@@ -83,13 +85,14 @@ proof(induction f1)
 					using generalized_fw_join_2_nomatch[OF False, of "(am, ad) # as" bd bs]
 					.
 			qed
-		qed(simp add: generalized_sfw_simps generalized_fw_join_def empty_concat) 
+		qed(simp add: generalized_sfw_simps generalized_fw_join_def)
+		  (*and empty_concat: "concat (map (\<lambda>x. []) ms) = []" by simp*)
 	next
 		case False 
 		with Cons.prems have "generalized_sfw (a # as) p = generalized_sfw as p" by(simp add: generalized_sfw_simps)
 		with Cons.prems have "generalized_sfw as p = Some (r1, d1)" by simp
 		note mIH = Cons.IH[OF this Cons.prems(2)]
-		show ?thesis 
+		show ?thesis
 			unfolding mIH[symmetric] a
 			unfolding generalized_fw_join_cons_1
 			unfolding generalized_sfw_append
@@ -218,8 +221,17 @@ lemma generalized_sfw_1_join_None: "generalized_sfw fw1 p = None \<Longrightarro
 lemma generalized_sfw_filterD: "generalized_sfw (filter f fw) p = Some (r,d) \<Longrightarrow> simple_matches r p \<and> f (r,d)"
 by(induction fw) (simp_all add: generalized_sfw_simps split: if_splits)
 
+
+context begin
+  (*TODO: this lemma is probably already somewhere*)
+  private lemma find_SomeD:
+    "List.find P xs = Some x \<Longrightarrow> P x"
+    "List.find P xs = Some x \<Longrightarrow> x\<in>set xs"
+    by (auto simp add: find_Some_iff)
 lemma generalized_sfwD: "generalized_sfw fw p = Some (r,d) \<Longrightarrow> (r,d) \<in> set fw \<and> simple_matches r p"
-unfolding generalized_sfw_def using find_SomeD(1) find_SomeD(2) by fastforce
+unfolding generalized_sfw_def
+  using find_SomeD(1) find_SomeD(2) by fastforce
+end
 lemma generalized_sfw_NoneD: "generalized_sfw fw p = None \<Longrightarrow> \<forall>(a,b) \<in> set fw. \<not>simple_matches a p"
 	by(induction fw) (clarsimp simp add: generalized_sfw_simps split: if_splits)+
 

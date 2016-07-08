@@ -1,8 +1,8 @@
 (*Original Author: Max Haslbeck, 2015*)
 theory IPPartitioning
-imports "../Common/SetPartitioning"
-        "../Common/GroupF"
-        "../Primitive_Matchers/Common_Primitive_toString"
+imports "Common/SetPartitioning"
+        "Common/GroupF"
+        "../Iptables_Semantics/Primitive_Matchers/Common_Primitive_toString" (*TODO!*)
         "SimpleFw_Semantics"
         "../../IP_Addresses/WordInterval_Sorted"
 begin
@@ -392,7 +392,6 @@ record parts_connection = pc_iiface :: string
                           pc_proto :: primitive_protocol
                           pc_sport :: "16 word"
                           pc_dport :: "16 word"
-                          pc_tag_ctstate :: ctstate
 
 
 
@@ -417,8 +416,7 @@ definition "runFw s d c rs = simple_fw rs \<lparr>p_iiface=pc_iiface c,p_oiface=
                           p_proto=pc_proto c,
                           p_sport=pc_sport c,p_dport=pc_dport c,
                           p_tcp_flags={TCP_SYN},
-                          p_payload='''',
-                          p_tag_ctstate=pc_tag_ctstate c\<rparr>"
+                          p_payload=''''\<rparr>"
 
 lemma has_default_policy_runFw: "has_default_policy rs \<Longrightarrow> runFw s d c rs = Decision FinalAllow \<or> runFw s d c rs = Decision FinalDeny"
   by(simp add: runFw_def has_default_policy)
@@ -434,15 +432,13 @@ lemma same_fw_spec: "same_fw_behaviour ip1 ip2 rs \<Longrightarrow> same_fw_beha
    apply(erule_tac x="\<lparr>p_iiface = pc_iiface c, p_oiface = pc_oiface c, p_src = ip1, p_dst= d,
                        p_proto = pc_proto c, p_sport = pc_sport c, p_dport = pc_dport c,
                        p_tcp_flags = {TCP_SYN},
-                       p_payload='''',
-                       p_tag_ctstate = pc_tag_ctstate c\<rparr>" in allE)
+                       p_payload=''''\<rparr>" in allE)
    apply(simp;fail)
   apply(clarify)
   apply(erule_tac x="\<lparr>p_iiface = pc_iiface c, p_oiface = pc_oiface c, p_src = s, p_dst= ip1,
                        p_proto = pc_proto c, p_sport = pc_sport c, p_dport = pc_dport c,
                        p_tcp_flags = {TCP_SYN},
-                       p_payload='''',
-                       p_tag_ctstate = pc_tag_ctstate c\<rparr>" in allE)
+                       p_payload=''''\<rparr>" in allE)
   apply(simp)
   done
 
@@ -727,8 +723,7 @@ qed
     apply(induction rs "\<lparr>p_iiface = pc_iiface c, p_oiface = pc_oiface c,
                          p_src = s, p_dst = d, p_proto = pc_proto c, 
                          p_sport = pc_sport c, p_dport = pc_dport c,
-                         p_tcp_flags = {TCP_SYN},p_payload='''',
-                         p_tag_ctstate = pc_tag_ctstate c\<rparr>"
+                         p_tcp_flags = {TCP_SYN},p_payload=''''\<rparr>"
           rule: simple_fw.induct)
     apply(simp add: simple_matches.simps)+
   done
@@ -1375,16 +1370,16 @@ lemma access_matrix_pretty_code[code]: "access_matrix_pretty = access_matrix_pre
   
 
 
-definition parts_connection_ssh where "parts_connection_ssh = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
-                               pc_sport=10000, pc_dport=22, pc_tag_ctstate=CT_New\<rparr>"
+definition parts_connection_ssh where
+  "parts_connection_ssh \<equiv> \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP, pc_sport=10000, pc_dport=22\<rparr>"
 
-definition parts_connection_http where "parts_connection_http = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
-                               pc_sport=10000, pc_dport=80, pc_tag_ctstate=CT_New\<rparr>"
+definition parts_connection_http where
+  "parts_connection_http \<equiv> \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP, pc_sport=10000, pc_dport=80\<rparr>"
 
 
 definition mk_parts_connection_TCP :: "16 word \<Rightarrow> 16 word \<Rightarrow> parts_connection" where
   "mk_parts_connection_TCP sport dport = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
-                               pc_sport=sport, pc_dport=dport, pc_tag_ctstate=CT_New\<rparr>"
+                               pc_sport=sport, pc_dport=dport\<rparr>"
 
 lemma "mk_parts_connection_TCP 10000 22 = parts_connection_ssh"
       "mk_parts_connection_TCP 10000 80 = parts_connection_http"
