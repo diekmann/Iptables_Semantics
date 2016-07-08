@@ -2,12 +2,13 @@
 
 module
   Network.IPTables.Generated(Int, Num, Nat(..), Word, Len, Iface(..), Bit0,
-                              Num1, Protocol(..), Tcp_flag(..), Match_expr(..),
-                              Action(..), Rule(..), Linord_helper, Ctstate(..),
-                              Set, Ipt_tcp_flags(..), Nibble, Ipt_iprange(..),
-                              Common_primitive(..), Ipv6addr_syntax(..),
-                              Prefix_match(..), Wordinterval, Negation_type(..),
-                              Simple_match_ext, Simple_action(..), Simple_rule,
+                              Num1, Match_expr(..), Action(..), Rule(..),
+                              Protocol(..), Tcp_flag(..), Linord_helper,
+                              Ctstate(..), Set, Ipt_tcp_flags(..), Nibble,
+                              Ipt_iprange(..), Common_primitive(..),
+                              Ipv6addr_syntax(..), Prefix_match(..),
+                              Wordinterval, Negation_type(..), Simple_match_ext,
+                              Simple_action(..), Simple_rule,
                               Routing_action_ext(..), Routing_rule_ext(..),
                               Parts_connection_ext, tcp, udp, icmp, alist_and,
                               sort_rtbl, mk_Set, ipassmt_sanity_defined,
@@ -464,89 +465,6 @@ instance (Order a, Order b) => Order (a, b) where {
 instance (Linorder a, Linorder b) => Linorder (a, b) where {
 };
 
-data Protocol = ProtoAny | Proto (Word (Bit0 (Bit0 (Bit0 Num1))));
-
-equal_protocol :: Protocol -> Protocol -> Bool;
-equal_protocol ProtoAny (Proto x2) = False;
-equal_protocol (Proto x2) ProtoAny = False;
-equal_protocol (Proto x2) (Proto y2) = equal_word x2 y2;
-equal_protocol ProtoAny ProtoAny = True;
-
-instance Eq Protocol where {
-  a == b = equal_protocol a b;
-};
-
-data Tcp_flag = TCP_SYN | TCP_ACK | TCP_FIN | TCP_RST | TCP_URG | TCP_PSH;
-
-enum_all_tcp_flag :: (Tcp_flag -> Bool) -> Bool;
-enum_all_tcp_flag p =
-  p TCP_SYN && p TCP_ACK && p TCP_FIN && p TCP_RST && p TCP_URG && p TCP_PSH;
-
-enum_ex_tcp_flag :: (Tcp_flag -> Bool) -> Bool;
-enum_ex_tcp_flag p =
-  p TCP_SYN ||
-    (p TCP_ACK || (p TCP_FIN || (p TCP_RST || (p TCP_URG || p TCP_PSH))));
-
-enum_tcp_flag :: [Tcp_flag];
-enum_tcp_flag = [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST, TCP_URG, TCP_PSH];
-
-class (Finite a) => Enum a where {
-  enum :: [a];
-  enum_all :: (a -> Bool) -> Bool;
-  enum_ex :: (a -> Bool) -> Bool;
-};
-
-instance Finite Tcp_flag where {
-};
-
-instance Enum Tcp_flag where {
-  enum = enum_tcp_flag;
-  enum_all = enum_all_tcp_flag;
-  enum_ex = enum_ex_tcp_flag;
-};
-
-equal_tcp_flag :: Tcp_flag -> Tcp_flag -> Bool;
-equal_tcp_flag TCP_URG TCP_PSH = False;
-equal_tcp_flag TCP_PSH TCP_URG = False;
-equal_tcp_flag TCP_RST TCP_PSH = False;
-equal_tcp_flag TCP_PSH TCP_RST = False;
-equal_tcp_flag TCP_RST TCP_URG = False;
-equal_tcp_flag TCP_URG TCP_RST = False;
-equal_tcp_flag TCP_FIN TCP_PSH = False;
-equal_tcp_flag TCP_PSH TCP_FIN = False;
-equal_tcp_flag TCP_FIN TCP_URG = False;
-equal_tcp_flag TCP_URG TCP_FIN = False;
-equal_tcp_flag TCP_FIN TCP_RST = False;
-equal_tcp_flag TCP_RST TCP_FIN = False;
-equal_tcp_flag TCP_ACK TCP_PSH = False;
-equal_tcp_flag TCP_PSH TCP_ACK = False;
-equal_tcp_flag TCP_ACK TCP_URG = False;
-equal_tcp_flag TCP_URG TCP_ACK = False;
-equal_tcp_flag TCP_ACK TCP_RST = False;
-equal_tcp_flag TCP_RST TCP_ACK = False;
-equal_tcp_flag TCP_ACK TCP_FIN = False;
-equal_tcp_flag TCP_FIN TCP_ACK = False;
-equal_tcp_flag TCP_SYN TCP_PSH = False;
-equal_tcp_flag TCP_PSH TCP_SYN = False;
-equal_tcp_flag TCP_SYN TCP_URG = False;
-equal_tcp_flag TCP_URG TCP_SYN = False;
-equal_tcp_flag TCP_SYN TCP_RST = False;
-equal_tcp_flag TCP_RST TCP_SYN = False;
-equal_tcp_flag TCP_SYN TCP_FIN = False;
-equal_tcp_flag TCP_FIN TCP_SYN = False;
-equal_tcp_flag TCP_SYN TCP_ACK = False;
-equal_tcp_flag TCP_ACK TCP_SYN = False;
-equal_tcp_flag TCP_PSH TCP_PSH = True;
-equal_tcp_flag TCP_URG TCP_URG = True;
-equal_tcp_flag TCP_RST TCP_RST = True;
-equal_tcp_flag TCP_FIN TCP_FIN = True;
-equal_tcp_flag TCP_ACK TCP_ACK = True;
-equal_tcp_flag TCP_SYN TCP_SYN = True;
-
-instance Eq Tcp_flag where {
-  a == b = equal_tcp_flag a b;
-};
-
 data Match_expr a = Match a | MatchNot (Match_expr a)
   | MatchAnd (Match_expr a) (Match_expr a) | MatchAny;
 
@@ -663,6 +581,89 @@ equal_rule (Rule x1 x2) (Rule y1 y2) =
 
 instance (Eq a) => Eq (Rule a) where {
   a == b = equal_rule a b;
+};
+
+data Protocol = ProtoAny | Proto (Word (Bit0 (Bit0 (Bit0 Num1))));
+
+equal_protocol :: Protocol -> Protocol -> Bool;
+equal_protocol ProtoAny (Proto x2) = False;
+equal_protocol (Proto x2) ProtoAny = False;
+equal_protocol (Proto x2) (Proto y2) = equal_word x2 y2;
+equal_protocol ProtoAny ProtoAny = True;
+
+instance Eq Protocol where {
+  a == b = equal_protocol a b;
+};
+
+data Tcp_flag = TCP_SYN | TCP_ACK | TCP_FIN | TCP_RST | TCP_URG | TCP_PSH;
+
+enum_all_tcp_flag :: (Tcp_flag -> Bool) -> Bool;
+enum_all_tcp_flag p =
+  p TCP_SYN && p TCP_ACK && p TCP_FIN && p TCP_RST && p TCP_URG && p TCP_PSH;
+
+enum_ex_tcp_flag :: (Tcp_flag -> Bool) -> Bool;
+enum_ex_tcp_flag p =
+  p TCP_SYN ||
+    (p TCP_ACK || (p TCP_FIN || (p TCP_RST || (p TCP_URG || p TCP_PSH))));
+
+enum_tcp_flag :: [Tcp_flag];
+enum_tcp_flag = [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST, TCP_URG, TCP_PSH];
+
+class (Finite a) => Enum a where {
+  enum :: [a];
+  enum_all :: (a -> Bool) -> Bool;
+  enum_ex :: (a -> Bool) -> Bool;
+};
+
+instance Finite Tcp_flag where {
+};
+
+instance Enum Tcp_flag where {
+  enum = enum_tcp_flag;
+  enum_all = enum_all_tcp_flag;
+  enum_ex = enum_ex_tcp_flag;
+};
+
+equal_tcp_flag :: Tcp_flag -> Tcp_flag -> Bool;
+equal_tcp_flag TCP_URG TCP_PSH = False;
+equal_tcp_flag TCP_PSH TCP_URG = False;
+equal_tcp_flag TCP_RST TCP_PSH = False;
+equal_tcp_flag TCP_PSH TCP_RST = False;
+equal_tcp_flag TCP_RST TCP_URG = False;
+equal_tcp_flag TCP_URG TCP_RST = False;
+equal_tcp_flag TCP_FIN TCP_PSH = False;
+equal_tcp_flag TCP_PSH TCP_FIN = False;
+equal_tcp_flag TCP_FIN TCP_URG = False;
+equal_tcp_flag TCP_URG TCP_FIN = False;
+equal_tcp_flag TCP_FIN TCP_RST = False;
+equal_tcp_flag TCP_RST TCP_FIN = False;
+equal_tcp_flag TCP_ACK TCP_PSH = False;
+equal_tcp_flag TCP_PSH TCP_ACK = False;
+equal_tcp_flag TCP_ACK TCP_URG = False;
+equal_tcp_flag TCP_URG TCP_ACK = False;
+equal_tcp_flag TCP_ACK TCP_RST = False;
+equal_tcp_flag TCP_RST TCP_ACK = False;
+equal_tcp_flag TCP_ACK TCP_FIN = False;
+equal_tcp_flag TCP_FIN TCP_ACK = False;
+equal_tcp_flag TCP_SYN TCP_PSH = False;
+equal_tcp_flag TCP_PSH TCP_SYN = False;
+equal_tcp_flag TCP_SYN TCP_URG = False;
+equal_tcp_flag TCP_URG TCP_SYN = False;
+equal_tcp_flag TCP_SYN TCP_RST = False;
+equal_tcp_flag TCP_RST TCP_SYN = False;
+equal_tcp_flag TCP_SYN TCP_FIN = False;
+equal_tcp_flag TCP_FIN TCP_SYN = False;
+equal_tcp_flag TCP_SYN TCP_ACK = False;
+equal_tcp_flag TCP_ACK TCP_SYN = False;
+equal_tcp_flag TCP_PSH TCP_PSH = True;
+equal_tcp_flag TCP_URG TCP_URG = True;
+equal_tcp_flag TCP_RST TCP_RST = True;
+equal_tcp_flag TCP_FIN TCP_FIN = True;
+equal_tcp_flag TCP_ACK TCP_ACK = True;
+equal_tcp_flag TCP_SYN TCP_SYN = True;
+
+instance Eq Tcp_flag where {
+  a == b = equal_tcp_flag a b;
 };
 
 data Linord_helper a b = LinordHelper a b;
@@ -991,13 +992,12 @@ data Routing_rule_ext a =
 data Simple_packet_ext a b =
   Simple_packet_ext [Prelude.Char] [Prelude.Char] (Word a) (Word a)
     (Word (Bit0 (Bit0 (Bit0 Num1)))) (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))
-    (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) (Set Tcp_flag) [Prelude.Char]
-    Ctstate b;
+    (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) (Set Tcp_flag) [Prelude.Char] b;
 
 data Parts_connection_ext a =
   Parts_connection_ext [Prelude.Char] [Prelude.Char]
     (Word (Bit0 (Bit0 (Bit0 Num1)))) (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))
-    (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) Ctstate a;
+    (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) a;
 
 nat :: Int -> Nat;
 nat = nat_of_integer . integer_of_int;
@@ -1132,12 +1132,6 @@ remdups :: forall a. (Eq a) => [a] -> [a];
 remdups [] = [];
 remdups (x : xs) = (if membera xs x then remdups xs else x : remdups xs);
 
-tcp :: Word (Bit0 (Bit0 (Bit0 Num1)));
-tcp = word_of_int (Int_of_integer (6 :: Integer));
-
-udp :: Word (Bit0 (Bit0 (Bit0 Num1)));
-udp = word_of_int (Int_of_integer (17 :: Integer));
-
 is_empty :: forall a. Set a -> Bool;
 is_empty (Set xs) = null xs;
 
@@ -1167,12 +1161,6 @@ distinct :: forall a. (Eq a) => [a] -> Bool;
 distinct [] = True;
 distinct (x : xs) = not (membera xs x) && distinct xs;
 
-icmp :: Word (Bit0 (Bit0 (Bit0 Num1)));
-icmp = one_word;
-
-sctp :: Word (Bit0 (Bit0 (Bit0 Num1)));
-sctp = word_of_int (Int_of_integer (132 :: Integer));
-
 max_word :: forall a. (Len a) => Word a;
 max_word =
   word_of_int
@@ -1190,6 +1178,12 @@ replicate n x =
 is_none :: forall a. Maybe a -> Bool;
 is_none (Just x) = False;
 is_none Nothing = True;
+
+tcp :: Word (Bit0 (Bit0 (Bit0 Num1)));
+tcp = word_of_int (Int_of_integer (6 :: Integer));
+
+udp :: Word (Bit0 (Bit0 (Bit0 Num1)));
+udp = word_of_int (Int_of_integer (17 :: Integer));
 
 gen_length :: forall a. Nat -> [a] -> Nat;
 gen_length n (x : xs) = gen_length (suc n) xs;
@@ -1215,6 +1209,12 @@ int_of_nat n = Int_of_integer (integer_of_nat n);
 pfxes :: forall a. (Len0 a) => Itself a -> [Nat];
 pfxes uu =
   map nat (upto zero_int (int_of_nat ((len_of :: Itself a -> Nat) Type)));
+
+icmp :: Word (Bit0 (Bit0 (Bit0 Num1)));
+icmp = one_word;
+
+sctp :: Word (Bit0 (Bit0 (Bit0 Num1)));
+sctp = word_of_int (Int_of_integer (132 :: Integer));
 
 uncurry :: forall a b c. (a -> b -> c) -> (a, b) -> c;
 uncurry f a = let {
@@ -1521,43 +1521,74 @@ word_uptoa a b =
 word_upto :: forall a. (Len0 a) => Word a -> Word a -> [Word a];
 word_upto a b = word_uptoa a b;
 
-pc_tag_ctstate :: forall a. Parts_connection_ext a -> Ctstate;
-pc_tag_ctstate
-  (Parts_connection_ext pc_iiface pc_oiface pc_proto pc_sport pc_dport
-    pc_tag_ctstate more)
-  = pc_tag_ctstate;
-
 pc_oiface :: forall a. Parts_connection_ext a -> [Prelude.Char];
 pc_oiface
-  (Parts_connection_ext pc_iiface pc_oiface pc_proto pc_sport pc_dport
-    pc_tag_ctstate more)
-  = pc_oiface;
+  (Parts_connection_ext pc_iiface pc_oiface pc_proto pc_sport pc_dport more) =
+  pc_oiface;
 
 pc_iiface :: forall a. Parts_connection_ext a -> [Prelude.Char];
 pc_iiface
-  (Parts_connection_ext pc_iiface pc_oiface pc_proto pc_sport pc_dport
-    pc_tag_ctstate more)
-  = pc_iiface;
+  (Parts_connection_ext pc_iiface pc_oiface pc_proto pc_sport pc_dport more) =
+  pc_iiface;
 
 pc_sport ::
   forall a. Parts_connection_ext a -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
 pc_sport
-  (Parts_connection_ext pc_iiface pc_oiface pc_proto pc_sport pc_dport
-    pc_tag_ctstate more)
-  = pc_sport;
+  (Parts_connection_ext pc_iiface pc_oiface pc_proto pc_sport pc_dport more) =
+  pc_sport;
 
 pc_proto :: forall a. Parts_connection_ext a -> Word (Bit0 (Bit0 (Bit0 Num1)));
 pc_proto
-  (Parts_connection_ext pc_iiface pc_oiface pc_proto pc_sport pc_dport
-    pc_tag_ctstate more)
-  = pc_proto;
+  (Parts_connection_ext pc_iiface pc_oiface pc_proto pc_sport pc_dport more) =
+  pc_proto;
 
 pc_dport ::
   forall a. Parts_connection_ext a -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
 pc_dport
-  (Parts_connection_ext pc_iiface pc_oiface pc_proto pc_sport pc_dport
-    pc_tag_ctstate more)
-  = pc_dport;
+  (Parts_connection_ext pc_iiface pc_oiface pc_proto pc_sport pc_dport more) =
+  pc_dport;
+
+p_oiface :: forall a b. (Len a) => Simple_packet_ext a b -> [Prelude.Char];
+p_oiface
+  (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
+    p_tcp_flags p_payload more)
+  = p_oiface;
+
+p_iiface :: forall a b. (Len a) => Simple_packet_ext a b -> [Prelude.Char];
+p_iiface
+  (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
+    p_tcp_flags p_payload more)
+  = p_iiface;
+
+simple_match_port ::
+  (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
+    Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
+    Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))) -> Bool;
+simple_match_port (s, e) p_p = less_eq_word s p_p && less_eq_word p_p e;
+
+p_sport ::
+  forall a b.
+    (Len a) => Simple_packet_ext a b -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
+p_sport
+  (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
+    p_tcp_flags p_payload more)
+  = p_sport;
+
+p_proto ::
+  forall a b.
+    (Len a) => Simple_packet_ext a b -> Word (Bit0 (Bit0 (Bit0 Num1)));
+p_proto
+  (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
+    p_tcp_flags p_payload more)
+  = p_proto;
+
+p_dport ::
+  forall a b.
+    (Len a) => Simple_packet_ext a b -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
+p_dport
+  (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
+    p_tcp_flags p_payload more)
+  = p_dport;
 
 sports ::
   forall a b.
@@ -1586,54 +1617,6 @@ dports (Simple_match_ext iiface oiface src dst proto sports dports more) =
 proto :: forall a b. (Len a) => Simple_match_ext a b -> Protocol;
 proto (Simple_match_ext iiface oiface src dst proto sports dports more) = proto;
 
-p_oiface :: forall a b. (Len a) => Simple_packet_ext a b -> [Prelude.Char];
-p_oiface
-  (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
-    p_tcp_flags p_payload p_tag_ctstate more)
-  = p_oiface;
-
-p_iiface :: forall a b. (Len a) => Simple_packet_ext a b -> [Prelude.Char];
-p_iiface
-  (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
-    p_tcp_flags p_payload p_tag_ctstate more)
-  = p_iiface;
-
-simple_match_port ::
-  (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
-    Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
-    Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))) -> Bool;
-simple_match_port (s, e) p_p = less_eq_word s p_p && less_eq_word p_p e;
-
-p_sport ::
-  forall a b.
-    (Len a) => Simple_packet_ext a b -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
-p_sport
-  (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
-    p_tcp_flags p_payload p_tag_ctstate more)
-  = p_sport;
-
-p_proto ::
-  forall a b.
-    (Len a) => Simple_packet_ext a b -> Word (Bit0 (Bit0 (Bit0 Num1)));
-p_proto
-  (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
-    p_tcp_flags p_payload p_tag_ctstate more)
-  = p_proto;
-
-p_dport ::
-  forall a b.
-    (Len a) => Simple_packet_ext a b -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
-p_dport
-  (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
-    p_tcp_flags p_payload p_tag_ctstate more)
-  = p_dport;
-
-src :: forall a b. (Len a) => Simple_match_ext a b -> (Word a, Nat);
-src (Simple_match_ext iiface oiface src dst proto sports dports more) = src;
-
-dst :: forall a b. (Len a) => Simple_match_ext a b -> (Word a, Nat);
-dst (Simple_match_ext iiface oiface src dst proto sports dports more) = dst;
-
 bitAND_int :: Int -> Int -> Int;
 bitAND_int (Int_of_integer i) (Int_of_integer j) =
   Int_of_integer (((Data_Bits..&.) :: Integer -> Integer -> Integer) i j);
@@ -1661,13 +1644,19 @@ simple_match_ip (base, len) p_ip =
 
 p_src :: forall a b. (Len a) => Simple_packet_ext a b -> Word a;
 p_src (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
-        p_tcp_flags p_payload p_tag_ctstate more)
+        p_tcp_flags p_payload more)
   = p_src;
 
 p_dst :: forall a b. (Len a) => Simple_packet_ext a b -> Word a;
 p_dst (Simple_packet_ext p_iiface p_oiface p_src p_dst p_proto p_sport p_dport
-        p_tcp_flags p_payload p_tag_ctstate more)
+        p_tcp_flags p_payload more)
   = p_dst;
+
+src :: forall a b. (Len a) => Simple_match_ext a b -> (Word a, Nat);
+src (Simple_match_ext iiface oiface src dst proto sports dports more) = src;
+
+dst :: forall a b. (Len a) => Simple_match_ext a b -> (Word a, Nat);
+dst (Simple_match_ext iiface oiface src dst proto sports dports more) = dst;
 
 match_proto :: Protocol -> Word (Bit0 (Bit0 (Bit0 Num1))) -> Bool;
 match_proto ProtoAny uu = True;
@@ -1702,7 +1691,7 @@ runFw ::
 runFw s d c rs =
   simple_fw rs
     (Simple_packet_ext (pc_iiface c) (pc_oiface c) s d (pc_proto c) (pc_sport c)
-      (pc_dport c) (insert TCP_SYN bot_set) [] (pc_tag_ctstate c) ());
+      (pc_dport c) (insert TCP_SYN bot_set) [] ());
 
 numeral :: forall a. (Numeral a) => Num -> a;
 numeral (Bit1 n) = let {
@@ -1770,12 +1759,6 @@ get_pos_Extra ::
 get_pos_Extra a = let {
                     (Pos (Extra e)) = a;
                   } in e;
-
-ipt_tcp_syn :: Ipt_tcp_flags;
-ipt_tcp_syn =
-  TCP_Flags
-    (insert TCP_SYN (insert TCP_RST (insert TCP_ACK (insert TCP_FIN bot_set))))
-    (insert TCP_SYN bot_set);
 
 wordinterval_lowest_element ::
   forall a. (Len0 a) => Wordinterval a -> Maybe (Word a);
@@ -3314,14 +3297,6 @@ no_spoofing_iface iface ipassmt rs =
   no_spoofing_algorithm_executable iface ipassmt rs empty_WordInterval
     empty_WordInterval;
 
-tcp_flag_toString :: Tcp_flag -> [Prelude.Char];
-tcp_flag_toString TCP_SYN = "TCP_SYN";
-tcp_flag_toString TCP_ACK = "TCP_ACK";
-tcp_flag_toString TCP_FIN = "TCP_FIN";
-tcp_flag_toString TCP_RST = "TCP_RST";
-tcp_flag_toString TCP_URG = "TCP_URG";
-tcp_flag_toString TCP_PSH = "TCP_PSH";
-
 nat_to_8word :: Nat -> Word (Bit0 (Bit0 (Bit0 Num1)));
 nat_to_8word i = of_nat i;
 
@@ -3382,12 +3357,6 @@ compress_parsed_extra (a1 : a2 : asa) =
            (Pos (Extra (get_pos_Extra a1 ++ " " ++ get_pos_Extra a2)) : asa)
     else a1 : compress_parsed_extra (a2 : asa));
 compress_parsed_extra [a] = a : compress_parsed_extra [];
-
-ipt_tcp_flags_equal :: Ipt_tcp_flags -> Ipt_tcp_flags -> Bool;
-ipt_tcp_flags_equal (TCP_Flags fmask1 c1) (TCP_Flags fmask2 c2) =
-  (if less_eq_set c1 fmask1 && less_eq_set c2 fmask2
-    then equal_set c1 c2 && equal_set fmask1 fmask2
-    else not (less_eq_set c1 fmask1) && not (less_eq_set c2 fmask2));
 
 ipv6_unparsed_compressed_to_preferred ::
   [Maybe (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))] -> Maybe Ipv6addr_syntax;
@@ -3492,6 +3461,20 @@ mk_ipv6addr partslist =
                   -> Nothing;
               }));
 
+tcp_flag_toString :: Tcp_flag -> [Prelude.Char];
+tcp_flag_toString TCP_SYN = "TCP_SYN";
+tcp_flag_toString TCP_ACK = "TCP_ACK";
+tcp_flag_toString TCP_FIN = "TCP_FIN";
+tcp_flag_toString TCP_RST = "TCP_RST";
+tcp_flag_toString TCP_URG = "TCP_URG";
+tcp_flag_toString TCP_PSH = "TCP_PSH";
+
+ipt_tcp_syn :: Ipt_tcp_flags;
+ipt_tcp_syn =
+  TCP_Flags
+    (insert TCP_SYN (insert TCP_RST (insert TCP_ACK (insert TCP_FIN bot_set))))
+    (insert TCP_SYN bot_set);
+
 enum_set_get_one :: forall a. (Eq a) => [a] -> Set a -> Maybe a;
 enum_set_get_one [] s = Nothing;
 enum_set_get_one (sa : ss) s =
@@ -3539,13 +3522,6 @@ simple_ruleset rs =
   all (\ r ->
         equal_action (get_action r) Accept || equal_action (get_action r) Drop)
     rs;
-
-ipt_tcp_flags_NoMatch :: Ipt_tcp_flags;
-ipt_tcp_flags_NoMatch = TCP_Flags bot_set (insert TCP_SYN bot_set);
-
-ipt_tcp_flags_toString :: Set Tcp_flag -> [Prelude.Char];
-ipt_tcp_flags_toString flags =
-  list_toString tcp_flag_toString (enum_set_to_list flags);
 
 integer_to_16word :: Integer -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
 integer_to_16word i = nat_to_16word (nat_of_integer i);
@@ -3728,14 +3704,12 @@ ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) =
            else lss);
   } in list_explode aa;
 
-match_tcp_flags_conjunct :: Ipt_tcp_flags -> Ipt_tcp_flags -> Ipt_tcp_flags;
-match_tcp_flags_conjunct (TCP_Flags fmask1 c1) (TCP_Flags fmask2 c2) =
-  (if less_eq_set c1 fmask1 &&
-        less_eq_set c2 fmask2 &&
-          equal_set (inf_set (inf_set fmask1 fmask2) c1)
-            (inf_set (inf_set fmask1 fmask2) c2)
-    then TCP_Flags (sup_set fmask1 fmask2) (sup_set c1 c2)
-    else ipt_tcp_flags_NoMatch);
+dec_string_of_word0 :: forall a. (Len a) => Word a -> [Prelude.Char];
+dec_string_of_word0 =
+  string_of_word True (word_of_int (Int_of_integer (10 :: Integer))) zero_nat;
+
+port_toString :: Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))) -> [Prelude.Char];
+port_toString p = dec_string_of_word0 p;
 
 process_call ::
   forall a. ([Prelude.Char] -> Maybe [Rule a]) -> [Rule a] -> [Rule a];
@@ -3786,6 +3760,27 @@ iiface_constrain ipassmt (Match (Extra v)) = Match (Extra v);
 iiface_constrain ipassmt (MatchNot m) = MatchNot (iiface_constrain ipassmt m);
 iiface_constrain ipassmt (MatchAnd m1 m2) =
   MatchAnd (iiface_constrain ipassmt m1) (iiface_constrain ipassmt m2);
+
+ipt_tcp_flags_toString :: Set Tcp_flag -> [Prelude.Char];
+ipt_tcp_flags_toString flags =
+  list_toString tcp_flag_toString (enum_set_to_list flags);
+
+iface_toString :: [Prelude.Char] -> Iface -> [Prelude.Char];
+iface_toString descr iface =
+  (if equal_iface iface ifaceAny then [] else let {
+        (Iface a) = iface;
+      } in descr ++ a);
+
+ports_toString ::
+  [Prelude.Char] ->
+    (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
+      Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
+      [Prelude.Char];
+ports_toString descr (s, e) =
+  (if equal_word s zero_word && equal_word e max_word then []
+    else descr ++
+           (if equal_word s e then port_toString s
+             else port_toString s ++ ":" ++ port_toString e));
 
 metric_update ::
   forall a. (Nat -> Nat) -> Routing_rule_ext a -> Routing_rule_ext a;
@@ -4001,9 +3996,11 @@ ipv6addr_toString ip =
    }))
          ((fix_end . fix_start) partslist);
 
-dec_string_of_word0 :: forall a. (Len a) => Word a -> [Prelude.Char];
-dec_string_of_word0 =
-  string_of_word True (word_of_int (Int_of_integer (10 :: Integer))) zero_nat;
+ipt_tcp_flags_equal :: Ipt_tcp_flags -> Ipt_tcp_flags -> Bool;
+ipt_tcp_flags_equal (TCP_Flags fmask1 c1) (TCP_Flags fmask2 c2) =
+  (if less_eq_set c1 fmask1 && less_eq_set c2 fmask2
+    then equal_set c1 c2 && equal_set fmask1 fmask2
+    else not (less_eq_set c1 fmask1) && not (less_eq_set c2 fmask2));
 
 protocol_toString :: Protocol -> [Prelude.Char];
 protocol_toString ProtoAny = "all";
@@ -4013,26 +4010,6 @@ protocol_toString (Proto protid) =
            else (if equal_word protid icmp then "icmp"
                   else (if equal_word protid sctp then "sctp"
                          else "protocolid:" ++ dec_string_of_word0 protid))));
-
-port_toString :: Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))) -> [Prelude.Char];
-port_toString p = dec_string_of_word0 p;
-
-ports_toString ::
-  [Prelude.Char] ->
-    (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
-      Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
-      [Prelude.Char];
-ports_toString descr (s, e) =
-  (if equal_word s zero_word && equal_word e max_word then []
-    else descr ++
-           (if equal_word s e then port_toString s
-             else port_toString s ++ ":" ++ port_toString e));
-
-iface_toString :: [Prelude.Char] -> Iface -> [Prelude.Char];
-iface_toString descr iface =
-  (if equal_iface iface ifaceAny then [] else let {
-        (Iface a) = iface;
-      } in descr ++ a);
 
 common_primitive_toString ::
   forall a.
@@ -4107,7 +4084,13 @@ mk_parts_connection_TCP ::
   Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))) ->
     Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))) -> Parts_connection_ext ();
 mk_parts_connection_TCP sport dport =
-  Parts_connection_ext "1" "1" tcp sport dport CT_New ();
+  Parts_connection_ext "1" "1" tcp sport dport ();
+
+ipv4_cidr_toString ::
+  (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat) -> [Prelude.Char];
+ipv4_cidr_toString ip_n = let {
+                            (base, n) = ip_n;
+                          } in ipv4addr_toString base ++ "/" ++ string_of_nat n;
 
 next_hop_update ::
   forall a.
@@ -4392,12 +4375,6 @@ to_simple_firewall rs =
            rs
     else error "undefined");
 
-ipv4_cidr_toString ::
-  (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat) -> [Prelude.Char];
-ipv4_cidr_toString ip_n = let {
-                            (base, n) = ip_n;
-                          } in ipv4addr_toString base ++ "/" ++ string_of_nat n;
-
 simple_action_toString :: Simple_action -> [Prelude.Char];
 simple_action_toString Accepta = "ACCEPT";
 simple_action_toString Dropa = "DROP";
@@ -4420,6 +4397,9 @@ simple_rule_toString
                         " " ++
                           ports_toString "sports: " sps ++
                             " " ++ ports_toString "dports: " dps;
+
+ipt_tcp_flags_NoMatch :: Ipt_tcp_flags;
+ipt_tcp_flags_NoMatch = TCP_Flags bot_set (insert TCP_SYN bot_set);
 
 unfold_optimize_ruleset_CHAIN ::
   forall a.
@@ -4449,13 +4429,6 @@ unfold_ruleset_CHAIN_safe ::
 unfold_ruleset_CHAIN_safe =
   unfold_optimize_ruleset_CHAIN optimize_primitive_univ;
 
-match_tcp_flags_conjunct_option ::
-  Ipt_tcp_flags -> Ipt_tcp_flags -> Maybe Ipt_tcp_flags;
-match_tcp_flags_conjunct_option f1 f2 =
-  let {
-    (TCP_Flags fmask c) = match_tcp_flags_conjunct f1 f2;
-  } in (if less_eq_set c fmask then Just (TCP_Flags fmask c) else Nothing);
-
 action_toString :: Action -> [Prelude.Char];
 action_toString Accept = "-j ACCEPT";
 action_toString Drop = "-j DROP";
@@ -4466,6 +4439,15 @@ action_toString Empty = [];
 action_toString Log = "-j LOG";
 action_toString Return = "-j RETURN";
 action_toString Unknown = "!!!!!!!!!!! UNKNOWN !!!!!!!!!!!";
+
+match_tcp_flags_conjunct :: Ipt_tcp_flags -> Ipt_tcp_flags -> Ipt_tcp_flags;
+match_tcp_flags_conjunct (TCP_Flags fmask1 c1) (TCP_Flags fmask2 c2) =
+  (if less_eq_set c1 fmask1 &&
+        less_eq_set c2 fmask2 &&
+          equal_set (inf_set (inf_set fmask1 fmask2) c1)
+            (inf_set (inf_set fmask1 fmask2) c2)
+    then TCP_Flags (sup_set fmask1 fmask2) (sup_set c1 c2)
+    else ipt_tcp_flags_NoMatch);
 
 output_iface_update ::
   forall a.
@@ -4482,6 +4464,13 @@ routing_action_update ::
 routing_action_update routing_actiona
   (Routing_rule_ext routing_match metric routing_action more) =
   Routing_rule_ext routing_match metric (routing_actiona routing_action) more;
+
+match_tcp_flags_conjunct_option ::
+  Ipt_tcp_flags -> Ipt_tcp_flags -> Maybe Ipt_tcp_flags;
+match_tcp_flags_conjunct_option f1 f2 =
+  let {
+    (TCP_Flags fmask c) = match_tcp_flags_conjunct f1 f2;
+  } in (if less_eq_set c fmask then Just (TCP_Flags fmask c) else Nothing);
 
 ipt_tcp_flags_assume_flag ::
   forall a.
