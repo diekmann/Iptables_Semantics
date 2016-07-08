@@ -1,14 +1,6 @@
 chapter Simple_Firewall
 
 session "Simple_Firewall" = IP_Addresses +
-  theories[document=false]
-    "~~/src/HOL/Word/Word"
-    "~~/src/HOL/Word/WordBitwise"
-    "../Native_Word/Code_Target_Bits_Int"
-    "~~/src/HOL/Library/Code_Target_Nat"
-    "~~/src/HOL/Library/Code_Target_Int"
-    "~~/src/HOL/Library/Code_Char"
-    "../Automatic_Refinement/Lib/Misc" (* mergesort *)
   theories
     SimpleFw_Syntax
     SimpleFw_Semantics
@@ -16,4 +8,3 @@ session "Simple_Firewall" = IP_Addresses +
     Shadowed
   document_files
     "root.tex"
-    "mathpartir.sty"
