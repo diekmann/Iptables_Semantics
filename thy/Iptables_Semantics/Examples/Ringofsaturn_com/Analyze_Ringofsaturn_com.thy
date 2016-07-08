@@ -2,7 +2,6 @@ theory Analyze_Ringofsaturn_com
 imports
   "../../Primitive_Matchers/Parser"
   "../../Semantics_Ternary/Optimizing"
-  "../../Simple_Firewall/SimpleFw_toString"
 begin
 
 

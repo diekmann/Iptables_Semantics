@@ -1,8 +1,6 @@
 theory Analyze_topos_generated
 imports 
   "../../Primitive_Matchers/Parser"
-  "../../Semantics_Ternary/Optimizing"
-  "../../Simple_Firewall/SimpleFw_toString"
 begin
 
 

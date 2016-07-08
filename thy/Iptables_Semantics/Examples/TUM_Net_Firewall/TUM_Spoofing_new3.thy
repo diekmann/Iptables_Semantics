@@ -1,7 +1,6 @@
 theory TUM_Spoofing_new3
 imports 
   "../../Primitive_Matchers/Parser"
-  "../../Simple_Firewall/SimpleFw_toString"
   "../../Primitive_Matchers/Interface_Replace"
 begin
 

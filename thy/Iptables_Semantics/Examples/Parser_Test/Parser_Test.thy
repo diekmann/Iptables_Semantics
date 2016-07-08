@@ -1,6 +1,5 @@
 theory Parser_Test
 imports "../../Primitive_Matchers/Parser"
-  "../../Simple_Firewall/SimpleFw_toString"
 begin
 
 
