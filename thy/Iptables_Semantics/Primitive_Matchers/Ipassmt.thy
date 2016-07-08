@@ -1,6 +1,7 @@
 theory Ipassmt
-imports Common_Primitive_Lemmas
-        Common_Primitive_toString
+imports Common_Primitive_Syntax
+        "../Semantics_Ternary/Primitive_Normalization"
+        "../../Simple_Firewall/Primitives/Iface"
         "../../Simple_Firewall/Common/IP_Addr_WordInterval_toString" (*for debug pretty-printing*)
         "../../Automatic_Refinement/Lib/Misc" (*TODO: dependnecy!*)
 begin
