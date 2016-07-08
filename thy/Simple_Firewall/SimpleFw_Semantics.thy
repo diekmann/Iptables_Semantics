@@ -1,6 +1,5 @@
 theory SimpleFw_Semantics
 imports SimpleFw_Syntax
-  "../Iptables_Semantics/Common/Negation_Type"
   "../Iptables_Semantics/Primitive_Matchers/IpAddresses"
   "../../IP_Addresses/Hs_Compat"
 begin

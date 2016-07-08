@@ -1,7 +1,6 @@
 theory RFC2544
 imports 
   "../../../Iptables_Semantics/Primitive_Matchers/Parser"
-  "../../../Iptables_Semantics/Simple_Firewall/SimpleFw_toString"
   "../../../Iptables_Semantics/Routing/Routing"
   "../../../Iptables_Semantics/Routing/IpRoute_Parser"
   "../../LinuxRouterOpenFlowTranslation"

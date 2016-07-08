@@ -1,14 +1,12 @@
 theory SimpleFw_Syntax
-imports Main
-  Firewall_Common_Decision_State
-  "Primitives/Iface"
-  "Primitives/L4_Protocol"
-  "Simple_Packet"
+imports Firewall_Common_Decision_State
+        "Primitives/Iface"
+        "Primitives/L4_Protocol"
+        "Simple_Packet"
 begin
 
 
 section\<open>Simple Firewall Syntax (for IP addresses of arbitrary length)\<close>
-
 
   datatype simple_action = Accept | Drop
   

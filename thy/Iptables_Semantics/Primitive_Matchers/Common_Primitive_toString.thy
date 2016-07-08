@@ -1,7 +1,5 @@
 theory Common_Primitive_toString
-imports 
-        "../../Simple_Firewall/Common/Lib_toString"
-        "../../Simple_Firewall/Primitives/Primitives_toString"
+imports "../../Simple_Firewall/Primitives/Primitives_toString"
         Common_Primitive_Matcher
 begin
 

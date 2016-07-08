@@ -1,5 +1,5 @@
 theory Primitives_toString
-imports "../Common/Lib_toString"
+imports "../Common/Lib_Enum_toString"
         "../../IP_Addresses/IP_Address_toString"
         Iface
         L4_Protocol
