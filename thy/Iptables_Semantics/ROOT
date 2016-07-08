@@ -14,7 +14,7 @@ session "Bitmagic" = IP_Addresses +
     "root.tex"
     "mathpartir.sty"
 
-session "Iptables_Semantics" = Bitmagic +
+session "Iptables_Semantics" = Simple_Firewall +
   theories[document=false]
     "~~/src/HOL/Library/LaTeXsugar"
     "Common/List_Misc"

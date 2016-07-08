@@ -4,7 +4,7 @@
 (*IPPartitioning.thy
   Original Author: Max Haslbeck, 2015*)
 theory Service_Matrices
-imports "Common/SetPartitioning"
+imports "Common/IP_Partition_Preliminaries"
         "Common/GroupF"
         "Common/IP_Addr_WordInterval_toString"
         "Primitives/Primitives_toString"

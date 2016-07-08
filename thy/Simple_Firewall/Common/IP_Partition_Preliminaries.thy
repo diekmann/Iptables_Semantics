@@ -1,5 +1,9 @@
-(*Author: Max Haslbeck, 2015*)
-theory SetPartitioning
+(*  Title:      IP_Partition_Preliminaries
+    Authors:    Cornelius Diekmann, Max Haslbeck
+*)
+(*SetPartitioning.thy
+  Original Author: Max Haslbeck, 2015*)
+theory IP_Partition_Preliminaries
 imports Main
 begin
 
@@ -572,7 +576,7 @@ context begin
   lemma "(\<Union>(set (partitioning1 X [UNIV]))) = UNIV"
   apply(subgoal_tac "UNIV = \<Union> (set (partitioning1 X [UNIV]))")
    prefer 2
-   apply(rule SetPartitioning.complete_helper[where ts="[UNIV]", simplified])
+   apply(rule complete_helper[where ts="[UNIV]", simplified])
   apply(simp)
   done
   
