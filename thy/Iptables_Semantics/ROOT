@@ -56,6 +56,13 @@ session "Iptables_Semantics" = Simple_Firewall +
     "mathpartir.sty"
 
 session "Iptables_Semantics_Documentation" = Iptables_Semantics +
+  theories[document=false]
+    (*TODO: will this speed up the examples?*)
+    "../Native_Word/More_Bits_Int"
+    "../Native_Word/Code_Target_Bits_Int"
+    "~~/src/HOL/Library/Code_Target_Nat"
+    "~~/src/HOL/Library/Code_Target_Int"
+    "~~/src/HOL/Library/Code_Char"
   theories
     Documentation
   document_files
