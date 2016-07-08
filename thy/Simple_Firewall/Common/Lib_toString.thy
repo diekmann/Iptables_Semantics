@@ -7,11 +7,6 @@ begin
 
 section\<open>toString Functions\<close>
 
-text\<open>HACK: rewrite quotes such that they are better printable by Isabelle\<close>
-definition quote_rewrite :: "string \<Rightarrow> string" where
-  "quote_rewrite \<equiv> map (\<lambda>c. if c = Char Nibble2 Nibble2 then CHR ''~'' else c)"
-
-lemma "quote_rewrite (''foo''@[Char Nibble2 Nibble2]) = ''foo~''" by eval
 
 fun bool_toString :: "bool \<Rightarrow> string" where
   "bool_toString True = ''True''" |

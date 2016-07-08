@@ -1,7 +1,7 @@
 theory OF_conv_test
 imports 
   "../../../Iptables_Semantics/Primitive_Matchers/Parser"
-  "../../../Iptables_Semantics/Simple_Firewall/SimpleFw_toString"
+  "../../../Simple_Firewall/SimpleFw_toString"
   "../../../Iptables_Semantics/Routing/Routing"
   "../../../Iptables_Semantics/Routing/IpRoute_Parser"
   "../../LinuxRouterOpenFlowTranslation"
