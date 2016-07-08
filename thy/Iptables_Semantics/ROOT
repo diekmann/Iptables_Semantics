@@ -35,6 +35,7 @@ session "Iptables_Semantics" = Simple_Firewall +
     "Semantics_Ternary/Optimizing"
     "Primitive_Matchers/No_Spoof"
     No_Spoof_Embeddings
+    "Routing/RoutingIpAssmt" (*TODO: let this also depend on Routing!*)
     "Primitive_Matchers/Transform"
     "Primitive_Matchers/Primitive_Abstract"
     "Primitive_Matchers/Code_Interface"
@@ -85,7 +86,7 @@ session "Iptables_Semantics_Examples_Large2" = Iptables_Semantics_Documentation 
     "root.tex"
     "mathpartir.sty"
 
-session Routing = Simple_Firewall (* the linux router model needs simple_fw *) +
+session Routing = Simple_Firewall +
   theories[document=false]
     "Routing/CaesarTheories" (* just some helper lemmas *)
   theories
@@ -95,7 +96,6 @@ session Routing = Simple_Firewall (* the linux router model needs simple_fw *) +
     "Routing/LinuxRouter"
     "Routing/RoutingSet"
     "Routing/RoutingRange"
-    "Routing/RoutingIpAssmt"
   document_files
     "root.tex"
     "mathpartir.sty"
