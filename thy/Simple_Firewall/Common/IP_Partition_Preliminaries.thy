@@ -319,7 +319,7 @@ context begin
   private lemma partList1_partList2_equi: "set(partList1 s ts) - {{}} = set(partList2 s ts) - {{}}"
     by(induction ts arbitrary: s) (auto)
   
-  fun partList3 :: "'a set \<Rightarrow> 'a set list \<Rightarrow> 'a set list" where
+  private fun partList3 :: "'a set \<Rightarrow> 'a set list \<Rightarrow> 'a set list" where
     "partList3 s [] = []" |
     "partList3 s (t#ts) = (if s = {} then (t#ts) else
                             (if s \<inter> t = {} then  (t#(partList3 (s - t) ts))
@@ -333,8 +333,6 @@ context begin
     apply(simp add: partList2_empty)
     by blast
   
-  
-  (*TODO: add this to partList3*)
   fun partList4 :: "'a set \<Rightarrow> 'a set list \<Rightarrow> 'a set list" where
     "partList4 s [] = []" |
     "partList4 s (t#ts) = (if s = {} then (t#ts) else
@@ -343,12 +341,11 @@ context begin
                               (if t - s = {} then (t#(partList4 (s - t) ts))
                                              else (t \<inter> s)#((t - s)#(partList4 (s - t) ts)))))"
   
-  lemma partList4: "set (partList3 s ts) = set (partList4 s ts)"
+  private lemma partList4: "partList4 s ts = partList3 s ts"
     apply(induction ts arbitrary: s)
      apply(simp; fail)
     apply (simp add: Diff_triv)
     done
-  (*TODO: use partList4 every time instead of partList3*)
   
   private lemma partList0_addSubsetSet_equi: "s \<subseteq> \<Union>(set ts) \<Longrightarrow> 
                                       addSubsetSet s (set ts) - {{}} = set(partList0 s ts) - {{}}"
@@ -372,9 +369,9 @@ context begin
   
   fun partitioning1 :: "'a set list \<Rightarrow> 'a set list \<Rightarrow> 'a set list" where
     "partitioning1 [] ts = ts" |
-    "partitioning1 (s#ss) ts = partList3 s (partitioning1 ss ts)"
+    "partitioning1 (s#ss) ts = partList4 s (partitioning1 ss ts)"
   
-  lemma partList3_empty: "{} \<notin> set ts \<Longrightarrow> {} \<notin> set (partList3 s ts)"
+  lemma partList4_empty: "{} \<notin> set ts \<Longrightarrow> {} \<notin> set (partList4 s ts)"
     apply(induction ts arbitrary: s)
      apply(simp; fail)
     by auto
@@ -382,14 +379,15 @@ context begin
   lemma partitioning1_empty0: "{} \<notin> set ts \<Longrightarrow> {} \<notin> set (partitioning1 ss ts)"
     apply(induction ss arbitrary: ts)
      apply(simp; fail)
-    apply(simp add: partList3_empty)
+    apply(simp add: partList4_empty)
     done
   
   lemma partitioning1_empty1: "{} \<notin> set ts \<Longrightarrow> 
                                 set(partitioning1 ss ts) - {{}} = set(partitioning1 ss ts)"
     by(simp add: partitioning1_empty0)
   
-  lemma partList3_subset: "a \<subseteq> \<Union>(set ts) \<Longrightarrow> a \<subseteq> \<Union>set (partList3 b ts)"
+  lemma partList4_subset: "a \<subseteq> \<Union>(set ts) \<Longrightarrow> a \<subseteq> \<Union>set (partList4 b ts)"
+    apply(simp add: partList4)
     apply(induction ts arbitrary: a b)
      apply(simp; fail)
     apply(simp)
@@ -397,40 +395,42 @@ context begin
   
   private lemma "a \<noteq> {} \<Longrightarrow> disjoint_list_rec (a # ts) \<longleftrightarrow> disjoint_list_rec ts \<and> a \<inter> \<Union> (set ts) = {}" by auto
   
-  lemma partList3_complete0: "s \<subseteq> \<Union> set ts \<Longrightarrow> \<Union> set ts = \<Union> set (partList3 s ts)"
+  lemma partList4_complete0: "s \<subseteq> \<Union> set ts \<Longrightarrow> \<Union> set ts = \<Union> set (partList4 s ts)"
+  unfolding partList4
   proof(induction ts arbitrary: s)
     case Nil thus ?case by(simp)
     next
     case Cons thus ?case by (simp add: Diff_subset_conv Un_Diff_Int inf_sup_aci(7) sup.commute)
   qed
   
-  private lemma partList3_disjoint: "s \<subseteq> \<Union> set ts \<Longrightarrow> disjoint_list_rec ts \<Longrightarrow> 
-                             disjoint_list_rec (partList3 s ts)"
+  (*TODO: ugly proof*)
+  private lemma partList4_disjoint: "s \<subseteq> \<Union> set ts \<Longrightarrow> disjoint_list_rec ts \<Longrightarrow> 
+                             disjoint_list_rec (partList4 s ts)"
     apply(induction ts arbitrary: s)
      apply(simp; fail)
     apply(simp)
     apply(rule conjI)
-     apply (metis Diff_subset_conv partList3_complete0)
+     apply (metis Diff_subset_conv Int_absorb1 Int_lower2 Un_absorb1 partList4_complete0)
     apply(safe)
-        apply (metis Diff_subset_conv IntI UnionI partList3_complete0)
-       apply (simp add: Diff_subset_conv; fail)
-      apply (metis Diff_subset_conv IntI UnionI partList3_complete0)
-     apply (metis Diff_subset_conv IntI UnionI partList3_complete0)
+        using partList4_complete0 apply (metis Diff_subset_conv Diff_triv IntI UnionI)
+       apply (metis Diff_subset_conv Diff_triv)
+      using partList4_complete0 apply (metis Diff_subset_conv IntI UnionI)
+     using partList4_complete0 apply (metis Diff_subset_conv IntI UnionI)
     by (simp add: Diff_subset_conv)
   
-  lemma union_set_partList3: "\<Union>set (partList3 s ts) = \<Union>set ts"
+  lemma union_set_partList4: "\<Union>set (partList4 s ts) = \<Union>set ts"
     by (induction ts arbitrary: s, auto)
   
   
-  lemma partList3_distinct_hlp: assumes "a \<noteq> {}" "a \<notin> set ts" "disjoint (insert a (set ts))"
-    shows "a \<notin> set (partList3 s ts)"
+  lemma partList4_distinct_hlp: assumes "a \<noteq> {}" "a \<notin> set ts" "disjoint (insert a (set ts))"
+    shows "a \<notin> set (partList4 s ts)"
   proof -
     from assms have "\<not> (a \<subseteq> \<Union>set ts)" unfolding disjoint_def by fastforce
-    hence "\<not> (a \<subseteq> \<Union>set (partList3 s ts))" using union_set_partList3 by metis
+    hence "\<not> (a \<subseteq> \<Union>set (partList4 s ts))" using union_set_partList4 by metis
     thus ?thesis by blast
   qed
   
-  private lemma partList3_distinct: "{} \<notin> set ts \<Longrightarrow> disjoint_list ts \<Longrightarrow> distinct (partList3 s ts)"
+  private lemma partList4_distinct: "{} \<notin> set ts \<Longrightarrow> disjoint_list ts \<Longrightarrow> distinct (partList4 s ts)"
     proof(induction ts arbitrary: s)
     case Nil thus ?case by simp
     next
@@ -444,9 +444,9 @@ context begin
          xb \<notin> {} \<Longrightarrow> 
          xc \<in> s \<Longrightarrow> 
          xc \<notin> {} \<Longrightarrow> 
-         t \<inter> s \<in> set (partList3 (s - t) ts) \<Longrightarrow> 
-         \<not> t \<inter> s \<subseteq> \<Union>set (partList3 (s - t) ts)"
-        by(simp add: union_set_partList3 disjoint_def, force) (*1s*)
+         t \<inter> s \<in> set (partList4 (s - t) ts) \<Longrightarrow> 
+         \<not> t \<inter> s \<subseteq> \<Union>set (partList4 (s - t) ts)"
+        by(simp add: union_set_partList4 disjoint_def, force) (*1s*)
       have x2: "\<And>x xa xb xc.
          t \<notin> set ts \<Longrightarrow>
          disjoint (insert t (set ts)) \<Longrightarrow>
@@ -455,36 +455,38 @@ context begin
          xa \<notin> s \<Longrightarrow>
          xb \<in> s \<Longrightarrow> 
          xc \<in> s \<Longrightarrow> 
-         \<not> t - s \<subseteq> \<Union>set (partList3 (s - t) ts)"
-        by(simp add: union_set_partList3 disjoint_def, force) (*1s*)
+         \<not> t - s \<subseteq> \<Union>set (partList4 (s - t) ts)"
+        by(simp add: union_set_partList4 disjoint_def, force) (*1s*)
       from Cons show ?case
       unfolding disjoint_list_def
       apply(clarsimp)
       apply(safe)
-             apply(metis partList3_distinct_hlp)
-            apply(simp add: disjoint_def; fail)
-           apply(metis partList3_distinct_hlp)
-          apply(simp add: disjoint_def; fail)
-         apply(blast)
+                apply(metis partList4_distinct_hlp)
+               apply(simp add: disjoint_def; fail)
+              apply(metis partList4_distinct_hlp)
+             apply(simp add: disjoint_def; fail)
+            apply (metis partList4_distinct_hlp)
+          apply (meson Cons.prems(2) disjoint_equi disjoint_list_disjoint_list_rec disjoint_list_rec.simps(2))
+         apply blast
         using x1 apply blast
        using x2 apply blast
       apply(simp add: disjoint_def; fail) 
       done
     qed
   
-  lemma partList3_disjoint_list: assumes "s \<subseteq> \<Union> set ts" "disjoint_list ts" "{} \<notin> set ts"
-    shows "disjoint_list (partList3 s ts)"
+  lemma partList4_disjoint_list: assumes "s \<subseteq> \<Union> set ts" "disjoint_list ts" "{} \<notin> set ts"
+    shows "disjoint_list (partList4 s ts)"
     unfolding disjoint_list_def
     proof
-      from assms(2,3) show "distinct (partList3 s ts)" 
-        using partList3_distinct disjoint_list_def by auto
-      show "disjoint (set (partList3 s ts))"
+      from assms(2,3) show "distinct (partList4 s ts)" 
+        using partList4_distinct disjoint_list_def by auto
+      show "disjoint (set (partList4 s ts))"
       proof -
         have disjoint_list_disjoint_list_rec: "disjoint_list ts \<Longrightarrow> disjoint_list_rec ts"
         proof(induction ts)
         case Cons thus ?case by(auto simp add: disjoint_list_def disjoint_def)
         qed(simp)
-        with partList3_disjoint disjoint_equi assms(1,2) show ?thesis by blast
+        with partList4_disjoint disjoint_equi assms(1,2) show ?thesis by blast
       qed
     qed
   
@@ -492,7 +494,7 @@ context begin
   lemma partitioning1_subset: "a \<subseteq> \<Union> (set ts) \<Longrightarrow> a \<subseteq> \<Union> set (partitioning1 ss ts)"
     apply(induction ss arbitrary: ts a)
      apply(simp)
-    apply(simp add: partList3_subset)
+    apply(simp add: partList4_subset)
     done
   
   lemma partitioning1_disjoint_list: "{} \<notin> (set ts) \<Longrightarrow> \<Union> (set ss) \<subseteq> \<Union> (set ts) \<Longrightarrow>
@@ -502,7 +504,7 @@ context begin
   next
   case(Cons t ts) thus ?case
     apply(clarsimp)
-    apply(rule partList3_disjoint_list)
+    apply(rule partList4_disjoint_list)
       using partitioning1_subset apply(metis)
      apply(blast)
     using partitioning1_empty0 apply(metis)
@@ -512,7 +514,7 @@ context begin
   private lemma partitioning1_disjoint: "\<Union> (set ss) \<subseteq> \<Union> (set ts) \<Longrightarrow>
                                  disjoint_list_rec ts \<Longrightarrow> disjoint_list_rec (partitioning1 ss ts)"
     proof(induction ss arbitrary: ts)
-    qed(simp_all add: partList3_disjoint partitioning1_subset)
+    qed(simp_all add: partList4_disjoint partitioning1_subset)
 
   private lemma partitioning_equi: "{} \<notin> set ts \<Longrightarrow> disjoint_list_rec ts \<Longrightarrow> \<Union> (set ss) \<subseteq> \<Union> (set ts) \<Longrightarrow>
            set(partitioning1 ss ts) = partitioning_nontail ss (set ts) - {{}}"
@@ -524,8 +526,9 @@ context begin
         for s and ts::"'a set set"
         unfolding addSubsetSet_def by blast
       have r: "disjoint_list_rec ts \<Longrightarrow> s \<subseteq> \<Union>(set ts) \<Longrightarrow>
-                                        addSubsetSet s (set ts) - {{}} = set (partList3 s ts) - {{}}"
+                                        addSubsetSet s (set ts) - {{}} = set (partList4 s ts) - {{}}"
         for ts::"'a set list"
+        unfolding partList4
         by(simp add: partList0_addSubsetSet_equi partList0_partList1_equi partList1_partList2_equi
                    partList2_partList3_equi)
       have 1: "disjoint_list_rec (partitioning1 ss ts)"
@@ -533,7 +536,7 @@ context begin
       from Cons.prems have 2: "s \<subseteq> \<Union>set (partitioning1 ss ts)"
         by (meson Sup_upper dual_order.trans list.set_intros(1) partitioning1_subset)
       from Cons have IH: "set (partitioning1 ss ts) = partitioning_nontail ss (set ts) - {{}}" by auto
-      with r[OF 1 2] show ?case by (simp add: partList3_empty addSubsetSet_empty)
+      with r[OF 1 2] show ?case by (simp add: partList4_empty addSubsetSet_empty)
     qed
   
   lemma ipPartitioning_helper_opt: "{} \<notin> set ts \<Longrightarrow> disjoint_list ts \<Longrightarrow> \<Union> (set ss) \<subseteq> \<Union> (set ts) 
@@ -546,7 +549,7 @@ context begin
         \<Union> (set ts) = \<Union> (set (partitioning1 ss ts))"
     apply(induction ss arbitrary: ts)
      apply(simp_all)
-    by (metis partList3_complete0)
+    by (metis partList4_complete0)
 
   lemma "partitioning1  [{1::nat},{2},{}] [{1},{},{2},{3}] = [{1}, {}, {2}, {3}]" by eval
 
@@ -566,7 +569,7 @@ context begin
     apply(subst partitioning_foldr[symmetric])
     by (simp add: coversallPartitioning)
   
-  lemma "partitioning1 X B = foldr partList3 X B"
+  lemma "partitioning1 X B = foldr partList4 X B"
     by(induction X)(simp_all)
   
   lemma "ipPartition (set X) (set (partitioning1 X [UNIV]))"

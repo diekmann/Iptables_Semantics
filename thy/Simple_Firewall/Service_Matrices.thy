@@ -242,7 +242,7 @@ fun partIps :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval list
   "partIps _ [] = []" |
   "partIps s (t#ts) = (if wordinterval_empty s then (t#ts) else
                         (if wordinterval_empty (wordinterval_intersection s t)
-                          then (t#(partIps (wordinterval_setminus s t) ts))
+                          then (t#(partIps s ts))
                           else
                             (if wordinterval_empty (wordinterval_setminus t s)
                               then (t#(partIps (wordinterval_setminus s t) ts))
@@ -275,16 +275,17 @@ case (Cons s ss)
   with Cons show  ?case by force
 qed
 
-lemma partIps_equi: "map wordinterval_to_set (partIps s ts)
-       = (partList3 (wordinterval_to_set s) (map wordinterval_to_set ts))"
+lemma partIps_equi: "map wordinterval_to_set (partIps s ts) = 
+    partList4 (wordinterval_to_set s) (map wordinterval_to_set ts)"
   proof(induction ts arbitrary: s)
   qed(simp_all)
 
 lemma partitioningIps_equi: "map wordinterval_to_set (partitioningIps ss ts)
        = (partitioning1 (map wordinterval_to_set ss) (map wordinterval_to_set ts))"
-  proof(induction ss arbitrary: ts)
-  qed(simp_all add: partIps_equi)
-
+  apply(induction ss arbitrary: ts)
+   apply(simp; fail)
+  apply(simp add: partIps_equi)
+  done
 
            
 definition getParts :: "'i::len simple_rule list \<Rightarrow> 'i wordinterval list" where
@@ -383,7 +384,7 @@ lemma getParts_nonempty_elems: "\<forall>w\<in>set (getParts rs). \<not> wordint
       for ts ss::"'a wordinterval list"
       proof(induction ss arbitrary: ts)
         case Nil thus ?case by auto
-        case Cons thus ?case by (simp add: partIps_equi partList3_empty)
+        case Cons thus ?case by (simp add: partIps_equi partList4_empty)
       qed
     have "\<forall>t \<in> set [wordinterval_UNIV].\<not> wordinterval_empty t" by(simp)
     with partitioning_nonempty have
