@@ -4,6 +4,7 @@ session "Bitmagic" = IP_Addresses +
   theories[document=false]
     "~~/src/HOL/Word/Word"
     "~~/src/HOL/Word/WordBitwise"
+    "../Native_Word/More_Bits_Int"
     "../Native_Word/Code_Target_Bits_Int"
     "~~/src/HOL/Library/Code_Target_Nat"
     "~~/src/HOL/Library/Code_Target_Int"
@@ -17,6 +18,13 @@ session "Bitmagic" = IP_Addresses +
 session "Iptables_Semantics" = Simple_Firewall +
   theories[document=false]
     "~~/src/HOL/Library/LaTeXsugar"
+    (*The Native_Word things destory the latex document! Does not compile, ...*)
+    "../Native_Word/More_Bits_Int"
+    "../Native_Word/Code_Target_Bits_Int"
+    "~~/src/HOL/Library/Code_Target_Nat"
+    "~~/src/HOL/Library/Code_Target_Int"
+    "~~/src/HOL/Library/Code_Char"
+    "../Automatic_Refinement/Lib/Misc" (* mergesort *)
     "Common/List_Misc"
     "Common/WordInterval_Lists"
   theories
@@ -96,6 +104,7 @@ session Routing = Simple_Firewall +
     "Routing/LinuxRouter"
     "Routing/RoutingSet"
     "Routing/RoutingRange"
+    (*Dependencies: RoutingIpAssmt depends on Iptables_Semantics and is thus in another session*)
   document_files
     "root.tex"
     "mathpartir.sty"
