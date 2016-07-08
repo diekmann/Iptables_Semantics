@@ -10,12 +10,25 @@ fun simple_action_toString :: "simple_action \<Rightarrow> string" where
   "simple_action_toString Accept = ''ACCEPT''" |
   "simple_action_toString Drop = ''DROP''"
 
+(*TODO: rename for ipv6*)
 fun simple_rule_toString :: "32 simple_rule \<Rightarrow> string" where
   "simple_rule_toString (SimpleRule \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> a) = 
       simple_action_toString a @ ''     '' @ 
       protocol_toString p @ ''  --  '' @ 
       ipv4_cidr_toString sip @ ''            '' @
       ipv4_cidr_toString dip @ '' '' @ 
+      iface_toString ''in: '' iif @ '' '' @ 
+      iface_toString ''out: '' oif @ '' '' @ 
+      ports_toString ''sports: '' sps @ '' '' @ 
+      ports_toString ''dports: '' dps"
+
+fun simple_rule6_toString :: "128 simple_rule \<Rightarrow> string" where
+  "simple_rule6_toString
+    (SimpleRule \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> a) = 
+      simple_action_toString a @ ''     '' @ 
+      protocol_toString p @ ''  --  '' @ 
+      ipv6_cidr_toString sip @ ''            '' @
+      ipv6_cidr_toString dip @ '' '' @ 
       iface_toString ''in: '' iif @ '' '' @ 
       iface_toString ''out: '' oif @ '' '' @ 
       ports_toString ''sports: '' sps @ '' '' @ 
