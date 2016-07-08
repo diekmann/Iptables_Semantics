@@ -1,7 +1,6 @@
 theory Analyze_Ringofsaturn_com
 imports
   "../../Primitive_Matchers/Parser"
-  "../../Semantics_Ternary/Optimizing"
 begin
 
 

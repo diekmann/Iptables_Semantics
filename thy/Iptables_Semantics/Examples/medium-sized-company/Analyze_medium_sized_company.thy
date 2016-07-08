@@ -1,7 +1,6 @@
 theory Analyze_medium_sized_company
 imports 
   "../../Primitive_Matchers/Parser"
-  "../../Semantics_Ternary/Optimizing"
 begin
 
 
