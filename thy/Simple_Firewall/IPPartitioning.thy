@@ -2,7 +2,8 @@
 theory IPPartitioning
 imports "Common/SetPartitioning"
         "Common/GroupF"
-        "../Iptables_Semantics/Primitive_Matchers/Common_Primitive_toString" (*TODO!*)
+        "Common/IP_Addr_WordInterval_toString"
+        "Primitives/Primitives_toString"
         "SimpleFw_Semantics"
         "../../IP_Addresses/WordInterval_Sorted"
 begin
@@ -1325,6 +1326,31 @@ theorem access_matrix: assumes matrix: "(V,E) = access_matrix c rs"
              runFw s d c rs = Decision FinalAllow"
 using matrix access_matrix_sound access_matrix_complete by blast
 
+text\<open>
+For a @{typ "'i::len simple_rule list"} and a fixed @{typ parts_connection}, 
+we support to partition the IP address space; for IP addresses of arbitrary length (eg., IPv4, IPv6).
+
+All members of a partition have the same access rights:
+@{thm build_ip_partition_same_fw [no_vars]}
+
+Minimal:
+@{thm build_ip_partition_same_fw_min [no_vars]}
+
+
+The resulting access control matrix is sound and complete:
+
+@{thm access_matrix [no_vars]}
+
+Theorem reads: 
+For a fixed connection, you can look up IP addresses (source and destination pairs) in the matrix 
+if and only if the firewall accepts this src,dst IP address pair for the fixed connection.
+Note: The matrix is actually a graph (nice visualization!), you need to look up IP addresses 
+in the Vertices and check the access of the representants in the edges. If you want to visualize
+the graph (e.g. with Graphviz or tkiz): The vertices are the node description (i.e. header; 
+  @{term "dom V"} is the label for each node which will also be referenced in the edges,
+  @{term "ran V"} is the human-readable description for each node (i.e. the full IP range it represents)), 
+the edges are the edges. Result looks nice. Theorem also tells us that this visualization is correct.
+\<close>
 
 
 
@@ -1334,6 +1360,8 @@ using matrix access_matrix_sound access_matrix_complete by blast
   (vertices, edges) where
   vertices = (name, list of ip addresses this vertex corresponds to)
   and edges = (name \<times> name) list
+
+  Note that the WordInterval is already sorted, which is important for prettyness!
 *)
 text\<open>Only defined for @{const simple_firewall_without_interfaces}\<close>
 definition access_matrix_pretty
@@ -1387,8 +1415,6 @@ lemma "mk_parts_connection_TCP 10000 22 = parts_connection_ssh"
 
 
 value[code] "partitioningIps [WordInterval (0::ipv4addr) 0] [WordInterval 0 2, WordInterval 0 2]"
-
-
 
 
 

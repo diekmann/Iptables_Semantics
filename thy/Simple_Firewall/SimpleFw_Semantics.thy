@@ -1,7 +1,8 @@
 theory SimpleFw_Semantics
 imports SimpleFw_Syntax
-  "../Iptables_Semantics/Primitive_Matchers/IpAddresses"
-  "../../IP_Addresses/Hs_Compat"
+        "../../IP_Addresses/IP_Address"
+        "../../IP_Addresses/Prefix_Match"
+        "../../IP_Addresses/Hs_Compat"
 begin
 
 
@@ -338,11 +339,11 @@ apply(clarify, rename_tac m, case_tac "sports m"; case_tac "dports m"; case_tac 
 context
 begin
   private definition "example_simple_match1 \<equiv>
-    \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0::ipv4addr, 0), dst = (0, 0),
+    \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0::32 word, 0), dst = (0, 0),
      proto = Proto TCP, sports = (0, 1024), dports = (0, 1024)\<rparr>"
 
   lemma "simple_fw [SimpleRule example_simple_match1 simple_action.Drop]
-    \<lparr>p_iiface = '''', p_oiface = '''',  p_src = (1::ipv4addr), p_dst = 2, p_proto = TCP, p_sport = 8,
+    \<lparr>p_iiface = '''', p_oiface = '''',  p_src = (1::32 word), p_dst = 2, p_proto = TCP, p_sport = 8,
      p_dport = 9, p_tcp_flags = {}, p_payload = ''''\<rparr> =
       Decision FinalDeny" by eval
 

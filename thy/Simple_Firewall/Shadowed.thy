@@ -1,7 +1,5 @@
 theory Shadowed
 imports SimpleFw_Semantics
-  (*"../Common/Negation_Type_DNF"*)
-  (*"../Primitive_Matchers/Ports"*)
 begin
 
 
@@ -85,7 +83,7 @@ corollary
   shows "simple_fw (rmshadow rs UNIV) p = simple_fw (rmshadow' rs {}) p"
   using rmshadow'_sound[of p] rmshadow_sound[of p] by simp
 
-value "rmshadow [SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0::ipv4addr, 0), dst = (0, 0), proto = Proto TCP, sports = (0, 0xFFFF), dports = (0x16, 0x16)\<rparr>
+value "rmshadow [SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0::32 word, 0), dst = (0, 0), proto = Proto TCP, sports = (0, 0xFFFF), dports = (0x16, 0x16)\<rparr>
           simple_action.Drop,
         SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0, 0), dst = (0, 0), proto = ProtoAny, sports = (0, 0xFFFF), dports = (0, 0xFFFF)\<rparr>
           simple_action.Accept,

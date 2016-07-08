@@ -85,7 +85,7 @@ session "Iptables_Semantics_Examples_Large2" = Iptables_Semantics_Documentation 
     "root.tex"
     "mathpartir.sty"
 
-session Routing = Iptables_Semantics (* the linux router model needs simple_fw *) +
+session Routing = Simple_Firewall (* the linux router model needs simple_fw *) +
   theories[document=false]
     "Routing/CaesarTheories" (* just some helper lemmas *)
   theories
