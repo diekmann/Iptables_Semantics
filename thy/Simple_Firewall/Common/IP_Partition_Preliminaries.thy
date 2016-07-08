@@ -107,8 +107,7 @@ context begin
     obtains "A = s - \<Union>ts" | T where "T \<in> ts" "A = s \<inter> T" | T where "T \<in> ts" "A = T - s"
     using assms unfolding addSubsetSet_def by blast
   
-  (*TODO: remove simp*)
-  private lemma Union_addSubsetSet [simp]: "\<Union>addSubsetSet b As = b \<union> \<Union>As"
+  private lemma Union_addSubsetSet: "\<Union>addSubsetSet b As = b \<union> \<Union>As"
     unfolding addSubsetSet_def by auto
   
   private lemma addSubsetSetCom: "addSubsetSet a (addSubsetSet b As) = addSubsetSet b (addSubsetSet a As)"
@@ -120,7 +119,7 @@ context begin
       proof(goal_cases)
         case 1
         assume "A = a - \<Union>addSubsetSet b As"
-        hence "A = (a - \<Union>As) - b" by auto
+        hence "A = (a - \<Union>As) - b" by (auto simp add: Union_addSubsetSet)
         thus ?thesis by (auto intro: addSubsetSetI)
       next
         case (2 T)
@@ -130,7 +129,7 @@ context begin
       next
         case (3 T)
         have "A = b - \<Union>addSubsetSet a As \<or> (\<exists>S\<in>As. A = b \<inter> (S - a)) \<or> (\<exists>S\<in>As. A = (S - a) - b)"
-          by (rule addSubsetSetE[OF 3(1)]) (auto simp: 3(2))
+          by (rule addSubsetSetE[OF 3(1)]) (auto simp: 3(2) Union_addSubsetSet)
         thus ?thesis by (blast intro: addSubsetSetI)
       qed
     }
@@ -322,7 +321,7 @@ context begin
   private fun partList3 :: "'a set \<Rightarrow> 'a set list \<Rightarrow> 'a set list" where
     "partList3 s [] = []" |
     "partList3 s (t#ts) = (if s = {} then (t#ts) else
-                            (if s \<inter> t = {} then  (t#(partList3 (s - t) ts))
+                            (if s \<inter> t = {} then (t#(partList3 (s - t) ts))
                                            else 
                               (if t - s = {} then (t#(partList3 (s - t) ts))
                                              else (t \<inter> s)#((t - s)#(partList3 (s - t) ts)))))"
@@ -395,7 +394,7 @@ context begin
   
   private lemma "a \<noteq> {} \<Longrightarrow> disjoint_list_rec (a # ts) \<longleftrightarrow> disjoint_list_rec ts \<and> a \<inter> \<Union> (set ts) = {}" by auto
   
-  lemma partList4_complete0: "s \<subseteq> \<Union> set ts \<Longrightarrow> \<Union> set ts = \<Union> set (partList4 s ts)"
+  lemma partList4_complete0: "s \<subseteq> \<Union> set ts \<Longrightarrow> \<Union> set (partList4 s ts) = \<Union> set ts"
   unfolding partList4
   proof(induction ts arbitrary: s)
     case Nil thus ?case by(simp)
@@ -403,26 +402,23 @@ context begin
     case Cons thus ?case by (simp add: Diff_subset_conv Un_Diff_Int inf_sup_aci(7) sup.commute)
   qed
   
-  (*TODO: ugly proof*)
   private lemma partList4_disjoint: "s \<subseteq> \<Union> set ts \<Longrightarrow> disjoint_list_rec ts \<Longrightarrow> 
                              disjoint_list_rec (partList4 s ts)"
     apply(induction ts arbitrary: s)
      apply(simp; fail)
-    apply(simp)
+    apply(simp add: Diff_subset_conv)
     apply(rule conjI)
      apply (metis Diff_subset_conv Int_absorb1 Int_lower2 Un_absorb1 partList4_complete0)
     apply(safe)
-        using partList4_complete0 apply (metis Diff_subset_conv Diff_triv IntI UnionI)
-       apply (metis Diff_subset_conv Diff_triv)
-      using partList4_complete0 apply (metis Diff_subset_conv IntI UnionI)
-     using partList4_complete0 apply (metis Diff_subset_conv IntI UnionI)
-    by (simp add: Diff_subset_conv)
+       using partList4_complete0 apply (metis Diff_subset_conv Diff_triv IntI UnionI)
+      apply (metis Diff_subset_conv Diff_triv)
+     using partList4_complete0 by (metis Diff_subset_conv IntI UnionI)+
   
   lemma union_set_partList4: "\<Union>set (partList4 s ts) = \<Union>set ts"
     by (induction ts arbitrary: s, auto)
   
   
-  lemma partList4_distinct_hlp: assumes "a \<noteq> {}" "a \<notin> set ts" "disjoint (insert a (set ts))"
+  private lemma partList4_distinct_hlp: assumes "a \<noteq> {}" "a \<notin> set ts" "disjoint (insert a (set ts))"
     shows "a \<notin> set (partList4 s ts)"
   proof -
     from assms have "\<not> (a \<subseteq> \<Union>set ts)" unfolding disjoint_def by fastforce
@@ -457,21 +453,18 @@ context begin
          xc \<in> s \<Longrightarrow> 
          \<not> t - s \<subseteq> \<Union>set (partList4 (s - t) ts)"
         by(simp add: union_set_partList4 disjoint_def, force) (*1s*)
-      from Cons show ?case
+      from Cons have IH: "distinct (partList4 s ts)" for s
+        using disjoint_sublist list.set_intros(2) by auto 
+      from Cons.prems(1,2) IH show ?case
       unfolding disjoint_list_def
-      apply(clarsimp)
-      apply(safe)
-                apply(metis partList4_distinct_hlp)
-               apply(simp add: disjoint_def; fail)
-              apply(metis partList4_distinct_hlp)
-             apply(simp add: disjoint_def; fail)
-            apply (metis partList4_distinct_hlp)
-          apply (meson Cons.prems(2) disjoint_equi disjoint_list_disjoint_list_rec disjoint_list_rec.simps(2))
+       apply(simp)
+       apply(safe)
+            apply(metis partList4_distinct_hlp)
+           apply(metis partList4_distinct_hlp)
+          apply(metis partList4_distinct_hlp)
          apply blast
         using x1 apply blast
-       using x2 apply blast
-      apply(simp add: disjoint_def; fail) 
-      done
+       using x2 by blast
     qed
   
   lemma partList4_disjoint_list: assumes "s \<subseteq> \<Union> set ts" "disjoint_list ts" "{} \<notin> set ts"
