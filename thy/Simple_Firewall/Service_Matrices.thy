@@ -1,5 +1,9 @@
-(*Original Author: Max Haslbeck, 2015*)
-theory IPPartitioning
+(*  Title:      Service_Matrices.thy
+    Authors:    Cornelius Diekmann, Max Haslbeck
+*)
+(*IPPartitioning.thy
+  Original Author: Max Haslbeck, 2015*)
+theory Service_Matrices
 imports "Common/SetPartitioning"
         "Common/GroupF"
         "Common/IP_Addr_WordInterval_toString"
@@ -8,16 +12,20 @@ imports "Common/SetPartitioning"
         "../../IP_Addresses/WordInterval_Sorted"
 begin
 
+section\<open>Service Matrices\<close>
 
-(*TODO: generalize*)
-fun extract_IPSets_generic0 :: "('i::len simple_match \<Rightarrow> 'i word \<times> nat) \<Rightarrow> 'i simple_rule list \<Rightarrow> ('i wordinterval) list" where
+subsection\<open>IP Address Space Partition\<close>
+
+(* could be generalized more *)
+fun extract_IPSets_generic0
+  :: "('i::len simple_match \<Rightarrow> 'i word \<times> nat) \<Rightarrow> 'i simple_rule list \<Rightarrow> ('i wordinterval) list"
+  where
   "extract_IPSets_generic0 _ [] = []" |
   "extract_IPSets_generic0 sel ((SimpleRule m _)#ss) = (ipcidr_tuple_to_wordinterval (sel m)) #
                                                        (extract_IPSets_generic0 sel ss)"
 
 lemma extract_IPSets_generic0_length: "length (extract_IPSets_generic0 sel rs) = length rs"
   by(induction rs rule: extract_IPSets_generic0.induct) (simp_all)
-
 
 
 (*
@@ -73,11 +81,13 @@ There is no clear winner. We will just stick to mergesort_remdups.
 *)
 
 (*check the the order of mergesort_remdups did not change*)
-lemma "mergesort_remdups [(1::ipv4addr, 2::nat), (8,0), (8,1), (2,2), (2,4), (1,2), (2,2)] = [(1, 2), (2, 2), (2, 4), (8, 0), (8, 1)]" by eval
+lemma "mergesort_remdups [(1::ipv4addr, 2::nat), (8,0), (8,1), (2,2), (2,4), (1,2), (2,2)] =
+        [(1, 2), (2, 2), (2, 4), (8, 0), (8, 1)]" by eval
 
 
 (*a tail-recursive implementation*)
-fun extract_src_dst_ips :: "'i::len simple_rule list \<Rightarrow> ('i word \<times> nat) list \<Rightarrow> ('i word \<times> nat) list" where
+fun extract_src_dst_ips
+  :: "'i::len simple_rule list \<Rightarrow> ('i word \<times> nat) list \<Rightarrow> ('i word \<times> nat) list" where
   "extract_src_dst_ips [] ts = ts" |
   "extract_src_dst_ips ((SimpleRule m _)#ss) ts = extract_src_dst_ips ss  (src m # dst m # ts)"
 
@@ -86,13 +96,16 @@ proof(induction rs arbitrary: acc)
 case (Cons r rs) thus ?case by(cases r, simp)
 qed(simp)
 
-definition extract_IPSets :: "'i::len simple_rule list \<Rightarrow> ('i wordinterval) list" where
-  "extract_IPSets rs = map ipcidr_tuple_to_wordinterval (mergesort_remdups (extract_src_dst_ips rs []))"
-lemma extract_IPSets: "set (extract_IPSets rs) = set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
+definition extract_IPSets
+  :: "'i::len simple_rule list \<Rightarrow> ('i wordinterval) list" where
+  "extract_IPSets rs \<equiv> map ipcidr_tuple_to_wordinterval (mergesort_remdups (extract_src_dst_ips rs []))"
+lemma extract_IPSets:
+  "set (extract_IPSets rs) = set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
 proof -
   { fix acc
     have "ipcidr_tuple_to_wordinterval ` set (extract_src_dst_ips rs acc) =
-          ipcidr_tuple_to_wordinterval ` set acc \<union> set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
+            ipcidr_tuple_to_wordinterval ` set acc \<union> set (extract_IPSets_generic0 src rs) \<union>
+            set (extract_IPSets_generic0 dst rs)"
     proof(induction rs arbitrary: acc)
     case (Cons r rs ) thus ?case
       apply(cases r)
@@ -132,8 +145,9 @@ why you no work?
 *)
 
 
-lemma extract_equi0: "set (map wordinterval_to_set (extract_IPSets_generic0 sel rs))
-                     = (\<lambda>(base,len). ipset_from_cidr base len) ` sel ` match_sel ` set rs"
+lemma extract_equi0:
+  "set (map wordinterval_to_set (extract_IPSets_generic0 sel rs)) =
+    (\<lambda>(base,len). ipset_from_cidr base len) ` sel ` match_sel ` set rs"
   proof(induction rs)
   case (Cons r rs) thus ?case
     apply(cases r, simp)
@@ -217,7 +231,8 @@ qed
 definition wordinterval_list_to_set :: "'a::len wordinterval list \<Rightarrow> 'a::len word set" where
   "wordinterval_list_to_set ws = \<Union> set (map wordinterval_to_set ws)"
 
-lemma wordinterval_list_to_set_compressed: "wordinterval_to_set (wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) =
+lemma wordinterval_list_to_set_compressed:
+  "wordinterval_to_set (wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) =
           wordinterval_list_to_set xs"
   proof(induction xs)
   qed(simp_all add: wordinterval_compress wordinterval_list_to_set_def)
@@ -1125,6 +1140,7 @@ lemma build_ip_partition_distinct': "distinct (build_ip_partition c rs)"
   using build_ip_partition_distinct distinct_mapI by blast
 
 
+subsection\<open>Service Matrix over an IP Address Space Partition\<close>
 
 
 definition all_pairs :: "'a list \<Rightarrow> ('a \<times> 'a) list" where
@@ -1303,10 +1319,10 @@ lemma access_matrix_complete:
               same_fw_behaviour_one w wa p ss)"
         unfolding same_fw_behaviour_one_def by blast
       from \<open>s_range \<in> set (build_ip_partition c rs)\<close>  have f2: "same_fw_behaviour_one s s_repr c rs"
-        by (metis (no_types) IPPartitioning.map_of_zip_map V build_ip_partition_no_empty_elems
+        by (metis (no_types) map_of_zip_map V build_ip_partition_no_empty_elems
             build_ip_partition_same_fw ex_s1 ex_s2 getOneIp_elem wordinterval_element_set_eq)
       from \<open>d_range \<in> set (build_ip_partition c rs)\<close> have "same_fw_behaviour_one d_repr d c rs"
-        by (metis (no_types) IPPartitioning.map_of_zip_map V build_ip_partition_no_empty_elems
+        by (metis (no_types) map_of_zip_map V build_ip_partition_no_empty_elems
             build_ip_partition_same_fw ex_d1 ex_d2 getOneIp_elem wordinterval_element_set_eq)
       with f1 f2 show ?thesis
         using allow by metis (*TODO: why so slow and only metis?*)

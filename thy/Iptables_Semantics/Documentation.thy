@@ -3,7 +3,7 @@ imports Semantics_Embeddings
     Call_Return_Unfolding
     No_Spoof_Embeddings
     "Primitive_Matchers/Code_Interface"
-    "../Simple_Firewall/IPPartitioning"
+    "../Simple_Firewall/Service_Matrices"
 begin
 
 
@@ -115,7 +115,8 @@ There is also a different approach to translate to the simple firewall which rem
 
 subsection\<open>Service Matrices\<close>
 text\<open>
-For a @{typ "'i::len simple_rule list"} and a fixed @{typ parts_connection}, we support to partition the IPv4 address space the following.
+For a @{typ "'i::len simple_rule list"} and a fixed @{typ parts_connection}, 
+we support to partition the IPv4 address space the following.
 
 All members of a partition have the same access rights:
 @{thm build_ip_partition_same_fw [no_vars]}

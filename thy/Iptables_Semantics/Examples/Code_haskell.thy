@@ -2,8 +2,6 @@ theory Code_haskell
 imports
   "../Routing/IpRoute_Parser" (*TODO: sqrl strings don't get nicely exported to code! *)
   "../Primitive_Matchers/Parser"
-  (*
-  "../Simple_Firewall/IPPartitioning"*)
 begin
 
 definition word_less_eq :: "('a::len) word \<Rightarrow> ('a::len) word \<Rightarrow> bool" where
