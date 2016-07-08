@@ -10,7 +10,6 @@ session "Bitmagic" = IP_Addresses +
     "~~/src/HOL/Library/Code_Char"
     "../Automatic_Refinement/Lib/Misc" (* mergesort *)
   theories
-    "Common/WordInterval_Lists"
   document_files
     "root.tex"
     "mathpartir.sty"
@@ -19,6 +18,7 @@ session "Iptables_Semantics" = Bitmagic +
   theories[document=false]
     "~~/src/HOL/Library/LaTeXsugar"
     "Common/List_Misc"
+    "Common/WordInterval_Lists"
   theories
     Semantics
     "Examples/Example_Semantics"

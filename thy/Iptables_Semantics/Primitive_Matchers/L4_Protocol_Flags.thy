@@ -1,5 +1,5 @@
 theory L4_Protocol_Flags
-imports "../../Simple_Firewall/L4_Protocol"
+imports "../../Simple_Firewall/Primitives/L4_Protocol"
 begin
 
 section\<open>Matching TCP Flags\<close>

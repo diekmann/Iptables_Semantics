@@ -1,5 +1,5 @@
 theory Simple_Packet
-imports L4_Protocol
+imports "Primitives/L4_Protocol"
 begin
 
 section\<open>Simple Packet\<close>

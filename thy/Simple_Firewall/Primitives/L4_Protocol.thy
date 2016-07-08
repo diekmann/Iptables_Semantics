@@ -1,5 +1,5 @@
 theory L4_Protocol
-imports "Common/Lib_toString" "~~/src/HOL/Word/Word"
+imports "../Common/Lib_toString" "~~/src/HOL/Word/Word"
 begin
 
 section\<open>Transport Layer Protocols\<close>

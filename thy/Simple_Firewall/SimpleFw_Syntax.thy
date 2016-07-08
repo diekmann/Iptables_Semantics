@@ -1,8 +1,8 @@
 theory SimpleFw_Syntax
 imports Main
   Firewall_Common_Decision_State
-  "../Iptables_Semantics/Primitive_Matchers/Iface"
-  "L4_Protocol"
+  "Primitives/Iface"
+  "Primitives/L4_Protocol"
   "Simple_Packet"
 begin
 
