@@ -17,7 +17,11 @@ thm parser_test_firewall_FORWARD_default_policy_def
 
 value[code] "parser_test_firewall"
 
-(*proto icmpv6 parser broken!*)
+
+value[code] "map quote_rewrite
+                    (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
+                      (map_of parser_test_firewall))))"
+
 value[code] "map simple_rule6_toString
               (to_simple_firewall (upper_closure
                 (optimize_matches abstract_for_simple_firewall
@@ -26,6 +30,7 @@ value[code] "map simple_rule6_toString
                       (map_of parser_test_firewall)))))))" 
 (*33.224s*)
 
+(*
 
 parse_ip6tables_save parser_test_firewall2 =
    ".." ".." ".." ".." ".." "net-network" "configs_chair_for_Network_Architectures_and_Services" 
@@ -47,5 +52,7 @@ value[code] "map simple_rule6_toString
                 (optimize_matches abstract_for_simple_firewall
                   (upper_closure (packet_assume_new
                     (unfold_ruleset_FORWARD parser_test_firewall2_FORWARD_default_policy
-                      (map_of parser_test_firewall2)))))))" 
+                      (map_of parser_test_firewall2)))))))"
+
+*)
 end
