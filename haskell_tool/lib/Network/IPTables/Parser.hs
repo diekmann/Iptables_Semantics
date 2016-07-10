@@ -127,9 +127,9 @@ rule = line $ do
 
     let rest    = if unparsed == ""
                   then []
-                  else -- TODO throw real error
-                       Debug.Trace.trace ("ERROR unparsable : " ++ unparsed)
-                       [ParsedMatch (Isabelle.Extra unparsed)]
+                  else error ("ERROR unparsable : " ++ unparsed)
+                       -- Debug.Trace.trace ("ERROR unparsable : " ++ unparsed)
+                       -- [ParsedMatch (Isabelle.Extra unparsed)]
         myArgs  = args ++ rest
         rl      = mkParseRule myArgs
 
