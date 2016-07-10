@@ -162,6 +162,7 @@ end
 ML_val\<open>
 ipt_explode "ad \"as das\" boo";
 ipt_explode "ad \"foobar --boo boo";
+ipt_explode "ent \"\\\"\" this";
 \<close>
 
 

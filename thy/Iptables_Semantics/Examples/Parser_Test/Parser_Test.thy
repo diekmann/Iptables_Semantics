@@ -46,8 +46,10 @@ lemma "parser_test_firewall \<equiv>
                           @ [Char Nibble2 Nibble2]) )))
     action.Accept,
    Rule (MatchAnd (Match (Prot (Proto L4_Protocol.IPv6ICMP)))
+         (MatchAnd
           (Match (Extra (''-m icmp6 --icmpv6-type 133 -m comment --comment ''
-                          @ [Char Nibble2 Nibble2, Char Nibble5 NibbleC, Char Nibble2 Nibble2, Char Nibble2 Nibble2]) )))
+                          @ [Char Nibble2 Nibble2, Char Nibble5 NibbleC, Char Nibble2 Nibble2, Char Nibble2 Nibble2])))
+           (Match (Src (IpAddrNetmask ipv4addr_of_dotdecimal (127, 0, 0, 0) 8)))) )
     action.Accept,
     Rule (MatchNot (Match (Prot (Proto ICMP)))) Empty,
     Rule (MatchAnd (MatchNot (Match (Prot (Proto TCP))))
