@@ -5,7 +5,7 @@ begin
 
 text\<open>
 Argument 1: the name of the prefix for all constants which will be defined.
-Argument 2: The path to the firewall (iptables-save). A path is represented as list.
+Argument 2: The path to the firewall (ip6tables-save). A path is represented as list.
 \<close>
 parse_ip6tables_save parser_test_firewall =
    ".." ".." ".." ".." ".." "net-network" "configs_synology_diskstation_ds414" "ip6tables-save_jul_2016"

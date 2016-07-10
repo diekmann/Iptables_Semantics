@@ -3,6 +3,10 @@ imports Code_Interface
   keywords "parse_ip6tables_save"::thy_decl
 begin
 
+(*THIS IS A VERBATIM COPY OF THE IPv4 PARSER.
+ I JUST HAVE SEARCH/REPLACED s/32/128 and s/ipv4/ipv6
+ AND RENAMED THE COMMAND
+ ! ! ! do not edit by hand ! ! !*)
 
 context
 begin
@@ -162,6 +166,7 @@ end
 ML_val\<open>
 ipt_explode "ad \"as das\" boo";
 ipt_explode "ad \"foobar --boo boo";
+ipt_explode "ent \"\\\"\" this";
 \<close>
 
 
@@ -201,13 +206,16 @@ local (*iptables-save parsers*)
     
       val parser_interface = Scan.many1 is_iface_char >> (implode #> (fn x => @{const Iface} $ HOLogic.mk_string x));
 
+       (*TODO: it would be cool to check for a word boundary after all these strings*)
       val parser_protocol = Scan.this_string "tcp" >> K @{term "TCP :: 8 word"}
                          || Scan.this_string "udp" >> K @{term "UDP :: 8 word"}
+                         || (Scan.this_string "icmpv6" (*before icmp*) || Scan.this_string "ipv6-icmp")
+                              >> K @{term "L4_Protocol.IPv6ICMP"}
                          || Scan.this_string "icmp" >> K @{term "ICMP :: 8 word"}
                          (*Moar Assigned Internet Protocol Numbers below: *)
-                         || Scan.this_string "esp" >> K @{term "50 :: 8 word"}
-                         || Scan.this_string "ah" >> K @{term "51 :: 8 word"}
-                         || Scan.this_string "gre" >> K @{term "47  :: 8 word"}
+                         || Scan.this_string "esp" >> K @{term "L4_Protocol.ESP"}
+                         || Scan.this_string "ah" >> K @{term "L4_Protocol.AH"}
+                         || Scan.this_string "gre" >> K @{term "L4_Protocol.GRE"}
 
       val parser_ctstate = Scan.this_string "NEW" >> K @{const CT_New}
                          || Scan.this_string "ESTABLISHED" >> K @{const CT_Established}
@@ -393,7 +401,7 @@ ML_val\<open>(Scan_cons_repeat option_parser) (ipt_explode "-j LOG --log-prefix 
 
 
 ML_val\<open>
-val (x, rest) = (Scan_cons_repeat option_parser) (ipt_explode "-d ::1/88 --foo_bar \"he he\" -f -i eth0+ -s 0.31.123.213/21 moreextra -j foobar --log");
+val (x, rest) = (Scan_cons_repeat option_parser) (ipt_explode "-d 0.31.123.213/88 --foo_bar \"he he\" -f -i eth0+ -s 0.31.123.213/21 moreextra -j foobar --log");
 map (fn p => case p of ParsedMatch t => type_of t | ParsedAction (_,_) => dummyT) x;
 map (fn p => case p of ParsedMatch t => Pretty.writeln (Syntax.pretty_term @{context} t) | ParsedAction (_,a) => writeln ("action: "^a)) x;
 \<close>
@@ -648,4 +656,6 @@ ML\<open>
     (Parse.binding --| @{keyword "="} -- Scan.repeat1 Parse.path >>
       (fn (binding, paths) => parse_iptables_save "filter" binding paths))
 \<close>
+
+
 end
