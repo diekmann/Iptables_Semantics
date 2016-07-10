@@ -54,7 +54,7 @@ expected_result = "*filter\n\
         \`ParsedMatch ~~-m~~' `ParsedMatch ~~comment~~' \
         \`ParsedMatch ~~--comment~~' `ParsedMatch ~~\"\\\"\"~~' \
         \`ParsedMatch -s 127.0.0.0/8' \
-        `ParsedAction -j ACCEPT'\n\
+        \`ParsedAction -j ACCEPT'\n\
     \-A DOS~Pro-t_ect `ParsedNegatedMatch -p icmp'\n\
     \-A DOS~Pro-t_ect `ParsedNegatedMatch -p tcp' `ParsedNegatedMatch -s 131.159.0.0/16'\n\
     \-A DOS~Pro-t_ect `ParsedMatch -i vocb' `ParsedMatch -p udp' `ParsedMatch --spts [67:68]' `ParsedMatch --dpts [67:68]' `ParsedAction -j ACCEPT'\n\
