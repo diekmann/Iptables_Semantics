@@ -104,8 +104,8 @@ expected_result = "*filter\n\
     \-A FORWARD `ParsedNegatedMatch -m iprange --dst-range 127.0.0.1-127.0.10.0' `ParsedAction -j RETURN'\n\
     \-A FORWARD `ParsedAction -g Terminal'\n\
     \-A FORWARD `ParsedAction -j IPSEC_42 (call)'\n\
-    \-A IPSEC_42 `ParsedMatch -p protocolid:50' `ParsedMatch -m state --state NEW' `ParsedAction -j ACCEPT'\n\
-    \-A IPSEC_42 `ParsedMatch -p protocolid:47' `ParsedMatch -m state --state NEW' `ParsedAction -j ACCEPT'\n\
+    \-A IPSEC_42 `ParsedMatch -p esp' `ParsedMatch -m state --state NEW' `ParsedAction -j ACCEPT'\n\
+    \-A IPSEC_42 `ParsedMatch -p gre' `ParsedMatch -m state --state NEW' `ParsedAction -j ACCEPT'\n\
     \-A LOGDROP\n\
     \-A LOGDROP `ParsedAction -j DROP'\n\
     \-A Terminal `ParsedMatch -d 127.0.0.1/32' `ParsedMatch -p udp' `ParsedMatch --spts [53]' `ParsedAction -j DROP'\n\

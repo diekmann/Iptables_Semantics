@@ -237,7 +237,7 @@ target = ParsedAction <$> (
            try (string "-j REJECT --reject-with "
                 >> many1 (oneOf $ ['a'..'z']++['-']) >> return (Isabelle.Reject))
        <|> try (string "-g " >> Isabelle.Goto <$> lookAheadEOT chainName)
-       <|> try (string "-j " >> choice (map (try. lookAheadEOT)
+       <|> try (string "-j " >> choice (map (try . lookAheadEOT)
                                        [string "DROP" >> return Isabelle.Drop
                                        ,string "REJECT" >> return Isabelle.Reject
                                        ,string "ACCEPT" >> return Isabelle.Accept

@@ -25,7 +25,9 @@ definition to_ipassmt :: "(iface \<times> 32 ipt_iprange list negation_type) lis
 export_code Rule
   Match MatchNot MatchAnd MatchAny
   Src Dst IIface OIface Prot Src_Ports Dst_Ports CT_State Extra
-  ProtoAny Proto TCP UDP ICMP Iface
+  ProtoAny Proto TCP UDP ICMP L4_Protocol.IPv6ICMP L4_Protocol.SCTP L4_Protocol.GRE
+  L4_Protocol.ESP L4_Protocol.AH
+  Iface
   integer_to_16word nat_to_16word Nat word_less_eq word_to_nat
   nat_to_8word
   ipv4addr_of_dotdecimal IpAddrNetmask IpAddrRange IpAddr

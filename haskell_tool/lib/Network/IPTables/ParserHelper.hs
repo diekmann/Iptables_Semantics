@@ -96,13 +96,15 @@ ipv6range = do
 
 protocol :: Parsec String s Isabelle.Protocol
 protocol = choice (map make ps)
-    where make (s, p) = string s $> Isabelle.Proto p
-          ps = [ ("tcp",  Isabelle.tcp)
-               , ("udp",  Isabelle.udp)
-               , ("icmp", Isabelle.icmp)
-               , ("esp",  Isabelle.nat_to_8word (Isabelle.Nat 50))
-               , ("ah",   Isabelle.nat_to_8word (Isabelle.Nat 51))
-               , ("gre",  Isabelle.nat_to_8word (Isabelle.Nat 47))
+    where make (s, p) = try (string s) $> Isabelle.Proto p
+          ps = [ ("tcp",       Isabelle.tcp)
+               , ("udp",       Isabelle.udp)
+               , ("icmpv6",    Isabelle.iPv6ICMP)
+               , ("ipv6-icmp", Isabelle.iPv6ICMP)
+               , ("icmp",      Isabelle.icmp)
+               , ("esp",       Isabelle.esp)
+               , ("ah",        Isabelle.ah)
+               , ("gre",       Isabelle.gre)
                ]
 
 iface :: Parsec String s Isabelle.Iface
