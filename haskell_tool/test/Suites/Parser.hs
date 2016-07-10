@@ -42,6 +42,19 @@ expected_result = "*filter\n\
         \`ParsedMatch ~~\"has space\"~~' \
         \`ParsedAction -j ACCEPT'\n\
     \-A DOS~Pro-t_ect `ParsedMatch -p icmp' `ParsedAction -j ACCEPT'\n\
+    \-A DOS~Pro-t_ect `ParsedMatch -p ipv6-icmp' \
+        \`ParsedMatch ~~-m~~' `ParsedMatch ~~icmp6~~' \
+        \`ParsedMatch ~~--icmpv6-type~~' `ParsedMatch ~~133~~' \
+        \`ParsedMatch ~~-m~~' `ParsedMatch ~~comment~~' \
+        \`ParsedMatch ~~--comment~~' `ParsedMatch ~~\"this module only works for ip6tables but -p icmpv6 is fine\"~~' \
+        \`ParsedAction -j ACCEPT'\n\
+    \-A DOS~Pro-t_ect `ParsedMatch -p ipv6-icmp' \
+        \`ParsedMatch ~~-m~~' `ParsedMatch ~~icmp6~~' \
+        \`ParsedMatch ~~--icmpv6-type~~' `ParsedMatch ~~133~~' \
+        \`ParsedMatch ~~-m~~' `ParsedMatch ~~comment~~' \
+        \`ParsedMatch ~~--comment~~' `ParsedMatch ~~\"\\\"\"~~' \
+        \`ParsedMatch -s 127.0.0.0/8' \
+        `ParsedAction -j ACCEPT'\n\
     \-A DOS~Pro-t_ect `ParsedNegatedMatch -p icmp'\n\
     \-A DOS~Pro-t_ect `ParsedNegatedMatch -p tcp' `ParsedNegatedMatch -s 131.159.0.0/16'\n\
     \-A DOS~Pro-t_ect `ParsedMatch -i vocb' `ParsedMatch -p udp' `ParsedMatch --spts [67:68]' `ParsedMatch --dpts [67:68]' `ParsedAction -j ACCEPT'\n\
