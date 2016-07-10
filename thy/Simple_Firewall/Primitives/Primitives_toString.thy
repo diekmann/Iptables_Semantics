@@ -22,6 +22,11 @@ fun protocol_toString :: "protocol \<Rightarrow> string" where
   if protid = UDP then ''udp'' else
   if protid = ICMP then ''icmp'' else
   if protid = L4_Protocol.SCTP then ''sctp'' else
+  if protid = L4_Protocol.IGMP then ''igmp'' else
+  if protid = L4_Protocol.GRE then ''gre'' else
+  if protid = L4_Protocol.ESP then ''esp'' else
+  if protid = L4_Protocol.AH then ''ah'' else
+  if protid = L4_Protocol.IPv6ICMP then ''ipv6-icmp'' else
   ''protocolid:''@dec_string_of_word0 protid)"
 
 definition iface_toString :: "string \<Rightarrow> iface \<Rightarrow> string" where

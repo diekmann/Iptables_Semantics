@@ -1171,6 +1171,9 @@ max_word =
 ifaceAny :: Iface;
 ifaceAny = Iface "+";
 
+ah :: Word (Bit0 (Bit0 (Bit0 Num1)));
+ah = word_of_int (Int_of_integer (51 :: Integer));
+
 replicate :: forall a. Nat -> a -> [a];
 replicate n x =
   (if equal_nat n zero_nat then [] else x : replicate (minus_nat n one_nat) x);
@@ -1178,6 +1181,12 @@ replicate n x =
 is_none :: forall a. Maybe a -> Bool;
 is_none (Just x) = False;
 is_none Nothing = True;
+
+esp :: Word (Bit0 (Bit0 (Bit0 Num1)));
+esp = word_of_int (Int_of_integer (50 :: Integer));
+
+gre :: Word (Bit0 (Bit0 (Bit0 Num1)));
+gre = word_of_int (Int_of_integer (47 :: Integer));
 
 tcp :: Word (Bit0 (Bit0 (Bit0 Num1)));
 tcp = word_of_int (Int_of_integer (6 :: Integer));
@@ -1212,6 +1221,9 @@ pfxes uu =
 
 icmp :: Word (Bit0 (Bit0 (Bit0 Num1)));
 icmp = one_word;
+
+igmp :: Word (Bit0 (Bit0 (Bit0 Num1)));
+igmp = word_of_int (Int_of_integer (2 :: Integer));
 
 sctp :: Word (Bit0 (Bit0 (Bit0 Num1)));
 sctp = word_of_int (Int_of_integer (132 :: Integer));
@@ -1571,6 +1583,9 @@ iface_conjunct (Iface i1) (Iface i2) =
       (if match_iface (Iface i2) i1 then Just (Iface i1) else Nothing);
     (False, False) -> (if i1 == i2 then Just (Iface i1) else Nothing);
   });
+
+iPv6ICMP :: Word (Bit0 (Bit0 (Bit0 Num1)));
+iPv6ICMP = word_of_int (Int_of_integer (58 :: Integer));
 
 getNeg :: forall a. [Negation_type a] -> [a];
 getNeg [] = [];
@@ -3975,7 +3990,12 @@ protocol_toString (Proto protid) =
     else (if equal_word protid udp then "udp"
            else (if equal_word protid icmp then "icmp"
                   else (if equal_word protid sctp then "sctp"
-                         else "protocolid:" ++ dec_string_of_word0 protid))));
+                         else (if equal_word protid igmp then "igmp"
+                                else (if equal_word protid gre then "gre"
+                                       else (if equal_word protid esp then "esp"
+      else (if equal_word protid ah then "ah"
+             else (if equal_word protid iPv6ICMP then "ipv6-icmp"
+                    else "protocolid:" ++ dec_string_of_word0 protid)))))))));
 
 common_primitive_toString ::
   forall a.
