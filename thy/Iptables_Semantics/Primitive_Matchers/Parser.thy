@@ -201,13 +201,16 @@ local (*iptables-save parsers*)
     
       val parser_interface = Scan.many1 is_iface_char >> (implode #> (fn x => @{const Iface} $ HOLogic.mk_string x));
 
+       (*TODO: it would be cool to check for a word boundary after all these strings*)
       val parser_protocol = Scan.this_string "tcp" >> K @{term "TCP :: 8 word"}
                          || Scan.this_string "udp" >> K @{term "UDP :: 8 word"}
+                         || (Scan.this_string "icmpv6" (*before icmp*) || Scan.this_string "ipv6-icmp")
+                              >> K @{term "L4_Protocol.IPv6ICMP"}
                          || Scan.this_string "icmp" >> K @{term "ICMP :: 8 word"}
                          (*Moar Assigned Internet Protocol Numbers below: *)
-                         || Scan.this_string "esp" >> K @{term "50 :: 8 word"}
-                         || Scan.this_string "ah" >> K @{term "51 :: 8 word"}
-                         || Scan.this_string "gre" >> K @{term "47  :: 8 word"}
+                         || Scan.this_string "esp" >> K @{term "L4_Protocol.ESP"}
+                         || Scan.this_string "ah" >> K @{term "L4_Protocol.AH"}
+                         || Scan.this_string "gre" >> K @{term "L4_Protocol.GRE"}
 
       val parser_ctstate = Scan.this_string "NEW" >> K @{const CT_New}
                          || Scan.this_string "ESTABLISHED" >> K @{const CT_Established}

@@ -10,6 +10,13 @@ definition "ICMP \<equiv> 1 :: 8 word"
 definition "TCP \<equiv> 6 :: 8 word"
 definition "UDP \<equiv> 17 :: 8 word"
 definition "SCTP \<equiv> 132  :: 8 word"
+context begin (*let's not pollute the namespace too much*)
+qualified definition "IGMP \<equiv> 2 :: 8 word"
+qualified definition "GRE \<equiv> 47 :: 8 word"
+qualified definition "ESP \<equiv> 50 :: 8 word"
+qualified definition "AH \<equiv> 51 :: 8 word"
+qualified definition "IPv6ICMP \<equiv> 58 :: 8 word"
+end
 (* turn http://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml into a separate file or so? *)
 
 datatype protocol = ProtoAny | Proto "primitive_protocol"

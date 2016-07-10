@@ -30,21 +30,25 @@ lemma "parser_test_firewall \<equiv>
     Rule (MatchAnd (Match (Prot (Proto ICMP)))
            (Match
              (Extra
-               [CHR ''-'', CHR ''m'', CHR '' '', CHR ''c'', CHR ''o'', CHR ''m'', CHR ''m'',
-                CHR ''e'', CHR ''n'', CHR ''t'', CHR '' '', CHR ''-'', CHR ''-'', CHR ''c'',
-                CHR ''o'', CHR ''m'', CHR ''m'', CHR ''e'', CHR ''n'', CHR ''t'', CHR '' '',
-                Char Nibble2 Nibble2, CHR ''!'', Char Nibble2 Nibble2])))
+               (''-m comment --comment ''@ [Char Nibble2 Nibble2, CHR ''!'', Char Nibble2 Nibble2]) )))
      action.Accept,
     Rule (MatchAnd (Match (Prot (Proto ICMP)))
            (Match
              (Extra
-               [CHR ''-'', CHR ''m'', CHR '' '', CHR ''c'', CHR ''o'', CHR ''m'', CHR ''m'',
-                CHR ''e'', CHR ''n'', CHR ''t'', CHR '' '', CHR ''-'', CHR ''-'', CHR ''c'',
-                CHR ''o'', CHR ''m'', CHR ''m'', CHR ''e'', CHR ''n'', CHR ''t'', CHR '' '',
-                Char Nibble2 Nibble2, CHR ''h'', CHR ''a'', CHR ''s'', CHR '' '', CHR ''s'',
-                CHR ''p'', CHR ''a'', CHR ''c'', CHR ''e'', Char Nibble2 Nibble2])))
+               (''-m comment --comment ''
+                @ [Char Nibble2 Nibble2] @ ''has space'' @ [Char Nibble2 Nibble2]) )))
      action.Accept,
     Rule (Match (Prot (Proto ICMP))) action.Accept,
+    Rule (MatchAnd (Match (Prot (Proto L4_Protocol.IPv6ICMP)))
+          (Match (Extra  (''-m icmp6 --icmpv6-type 133 -m comment --comment ''
+                          @ [Char Nibble2 Nibble2]
+                          @ ''this module only works for ip6tables but -p icmpv6 is fine''
+                          @ [Char Nibble2 Nibble2]) )))
+    action.Accept,
+   Rule (MatchAnd (Match (Prot (Proto L4_Protocol.IPv6ICMP)))
+          (Match (Extra (''-m icmp6' --icmpv6-type 133 -m comment --comment ''
+                          @ [Char Nibble2 Nibble2, Char Nibble5 NibbleC, Char Nibble2 Nibble2, Char Nibble2 Nibble2]) )))
+    action.Accept,
     Rule (MatchNot (Match (Prot (Proto ICMP)))) Empty,
     Rule (MatchAnd (MatchNot (Match (Prot (Proto TCP))))
            (MatchNot (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (131, 159, 0, 0)) 16)))))
