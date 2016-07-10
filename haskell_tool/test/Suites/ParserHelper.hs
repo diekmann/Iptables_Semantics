@@ -23,8 +23,17 @@ test_parse_show_identiy parser str = HU.testCase ("ParserHelper: parse show iden
                eof
                return v
 
-
---TODO negative tests?
+test_parse_quotedstring str = HU.testCase ("ParserHelper: quoted string (`"++str++"')") $ do
+    let result = case runParser eofParser () "<test data>" str
+                of Left err -> do error $ show err
+                   Right result -> result
+    result @?= str
+    where eofParser =
+            do v <- Network.IPTables.ParserHelper.quotedString
+               eof
+               return v
+                   
+--TODO negative tests!
 
 tests = testGroup "ParserHelper Unit tests" $
   [ test_parse_show_identiy Network.IPTables.ParserHelper.ipv4addr "192.168.0.1"
@@ -42,4 +51,8 @@ tests = testGroup "ParserHelper Unit tests" $
   , test_parse_show_identiy Network.IPTables.ParserHelper.ipv6addr "::"
   , test_parse_show_identiy Network.IPTables.ParserHelper.ipv6addr "::1"
   , test_parse_show_identiy Network.IPTables.ParserHelper.ipv6addr "2001:db8::1"
+  , test_parse_quotedstring "\"foo\""
+  , test_parse_quotedstring "\"foo with some \\\" escaped quote \""
+  , test_parse_quotedstring "\"foo with some escaped escape (\\\\) and proper ending quote \\\\\""
+  , test_parse_quotedstring "\"asd ' adsa \v \\v \\\v \\\\v sad \\' asd \' \\\' \\\\' sa\""
   ]

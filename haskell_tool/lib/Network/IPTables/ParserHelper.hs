@@ -7,8 +7,16 @@ import           Data.Functor ((<$>), ($>))
 import Network.IPTables.IsabelleToString (Word32, Word128)
 import Data.List.Split (splitOn)
 import qualified Network.IPTables.Generated as Isabelle
-import           Text.Parsec (char, choice, many1, Parsec, oneOf, string)
+import           Text.Parsec (char, choice, many, many1, Parsec, oneOf, noneOf, string, (<|>), try)
 
+
+quotedString = do
+    a <- string "\""
+    b <- concat <$> many quotedChar
+    c <- string "\""
+    return (a ++ b ++ c)
+    where quotedChar = try (string "\\\\") <|> try (string "\\\"") <|> ((noneOf "\"\n") >>= \x -> return [x] )
+              
 nat :: Parsec String s Integer
 nat = do
     n <- read <$> many1 (oneOf ['0'..'9'])

@@ -118,11 +118,6 @@ unknownMatch = token "unknown match" $ do
               then Debug.Trace.trace ("Warning: probably a parse error at "++extra) extra
               else extra
     return $ (\x -> [x]) $ ParsedMatch $ Isabelle.Extra $ e --TODO: tune
-    where quotedString = do
-              a <- string "\""
-              b <- many (noneOf "\"\n")
-              c <- string "\""
-              return (a++b++c)
 
 rule = line $ do
     lit "-A"
@@ -132,7 +127,8 @@ rule = line $ do
 
     let rest    = if unparsed == ""
                   then []
-                  else Debug.Trace.trace ("ERROR unparsable : " ++ unparsed)
+                  else -- TODO throw real error
+                       Debug.Trace.trace ("ERROR unparsable : " ++ unparsed)
                        [ParsedMatch (Isabelle.Extra unparsed)]
         myArgs  = args ++ rest
         rl      = mkParseRule myArgs
