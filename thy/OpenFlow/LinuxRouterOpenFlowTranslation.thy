@@ -135,7 +135,7 @@ proof(clarsimp, goal_cases)
     unfolding ball_Un
   proof((intro conjI; ((simp;fail)| - )), goal_cases)
     case 1
-    have e: "(fst (sports m) = 0 \<and> snd (sports m) = max_word) \<or> proto m = Proto TCP \<or> proto m = Proto UDP \<or> proto m = Proto SCTP"
+    have e: "(fst (sports m) = 0 \<and> snd (sports m) = max_word) \<or> proto m = Proto TCP \<or> proto m = Proto UDP \<or> proto m = Proto L4_Protocol.SCTP"
       using o(1)
       unfolding simple_match_valid_alt Let_def
       by(clarsimp split: if_splits)
@@ -144,7 +144,7 @@ proof(clarsimp, goal_cases)
       by(elim disjE; simp add: option2set_def split: if_splits prod.splits uncurry_splits)
   next
     case 2
-    have e: "(fst (dports m) = 0 \<and> snd (dports m) = max_word) \<or> proto m = Proto TCP \<or> proto m = Proto UDP \<or> proto m = Proto SCTP"
+    have e: "(fst (dports m) = 0 \<and> snd (dports m) = max_word) \<or> proto m = Proto TCP \<or> proto m = Proto UDP \<or> proto m = Proto L4_Protocol.SCTP"
       using o(1)
       unfolding simple_match_valid_alt Let_def
       by(clarsimp split: if_splits)

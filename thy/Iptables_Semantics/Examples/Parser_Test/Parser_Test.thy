@@ -46,7 +46,7 @@ lemma "parser_test_firewall \<equiv>
                           @ [Char Nibble2 Nibble2]) )))
     action.Accept,
    Rule (MatchAnd (Match (Prot (Proto L4_Protocol.IPv6ICMP)))
-          (Match (Extra (''-m icmp6' --icmpv6-type 133 -m comment --comment ''
+          (Match (Extra (''-m icmp6 --icmpv6-type 133 -m comment --comment ''
                           @ [Char Nibble2 Nibble2, Char Nibble5 NibbleC, Char Nibble2 Nibble2, Char Nibble2 Nibble2]) )))
     action.Accept,
     Rule (MatchNot (Match (Prot (Proto ICMP)))) Empty,
@@ -65,13 +65,9 @@ lemma "parser_test_firewall \<equiv>
   (''FORWARD'',
    [Rule (Match
            (Extra
-             [CHR ''-'', CHR ''-'', CHR ''l'', CHR ''o'', CHR ''g'', CHR ''-'', CHR ''p'',
-              CHR ''r'', CHR ''e'', CHR ''f'', CHR ''i'', CHR ''x'', CHR '' '',
-              Char Nibble2 Nibble2, CHR ''!'', CHR ''#'', CHR ''*'', CHR ''~'', CHR ''%'',
-              CHR ''&'', CHR ''/'', CHR ''('', CHR '')'', CHR ''='', CHR ''?'',
-              Char Nibble2 Nibble2, CHR '' '', CHR ''-'', CHR ''-'', CHR ''l'', CHR ''o'',
-              CHR ''g'', CHR ''-'', CHR ''l'', CHR ''e'', CHR ''v'', CHR ''e'', CHR ''l'',
-              CHR '' '', CHR ''6'']))
+             (''--log-prefix ''
+              @ [Char Nibble2 Nibble2] @ ''!#*~%&/()=?''
+              @ [Char Nibble2 Nibble2] @ '' --log-level 6'') ))
      Log,
     Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8))) action.Drop,
     Rule (MatchAnd (Match (IIface (Iface ''wlan0'')))

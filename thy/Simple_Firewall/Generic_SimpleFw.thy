@@ -288,7 +288,7 @@ proof -
   hence dp: "?ph2 dports" unfolding nmu_def using simpl_ports_conjunct_not_UNIV by metis
 
   (* And an argument for the protocol. *)
-  def php \<equiv> "\<lambda>mr :: 'i simple_match. proto mr \<in> Proto ` {TCP, UDP, SCTP}"
+  def php \<equiv> "\<lambda>mr :: 'i simple_match. proto mr \<in> Proto ` {TCP, UDP, L4_Protocol.SCTP}"
   have pcj: "simple_proto_conjunct (proto m1) (proto m2) = Some (proto m)"
     using mj by(cases m1; cases m2; cases m; simp split: option.splits)
   hence p: "php m1 \<Longrightarrow> php m"

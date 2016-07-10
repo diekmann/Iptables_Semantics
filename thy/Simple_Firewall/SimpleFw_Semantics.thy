@@ -314,7 +314,7 @@ definition "valid_prefix_fw m = valid_prefix (uncurry PrefixMatch m)"
 definition simple_match_valid :: "('i::len, 'a) simple_match_scheme \<Rightarrow> bool" where
   "simple_match_valid m \<equiv> 
   ({p. simple_match_port (sports m) p} \<noteq> UNIV \<or> {p. simple_match_port (dports m) p} \<noteq> UNIV \<longrightarrow>
-      proto m \<in> Proto `{TCP, UDP, SCTP}) \<and>
+      proto m \<in> Proto `{TCP, UDP, L4_Protocol.SCTP}) \<and>
   valid_prefix_fw (src m) \<and> valid_prefix_fw (dst m)" 
 
 lemma simple_match_valid_alt_hlp1: "{p. simple_match_port x p} \<noteq> UNIV \<longleftrightarrow> (case x of (s,e) \<Rightarrow> s \<noteq> 0 \<or> e \<noteq> max_word)"
@@ -328,7 +328,7 @@ lemma simple_match_valid_alt_hlp1: "{p. simple_match_port x p} \<noteq> UNIV \<l
 lemma simple_match_valid_alt_hlp2: "{p. simple_match_port x p} \<noteq> {} \<longleftrightarrow> (case x of (s,e) \<Rightarrow> s \<le> e)" by auto
 lemma simple_match_valid_alt[code_unfold]: "simple_match_valid = (\<lambda> m.
 	(let c = (\<lambda>(s,e). (s \<noteq> 0 \<or> e \<noteq> max_word)) in (
-	if c (sports m) \<or> c (dports m) then proto m = Proto TCP \<or> proto m = Proto UDP \<or> proto m = Proto SCTP else True)) \<and>
+	if c (sports m) \<or> c (dports m) then proto m = Proto TCP \<or> proto m = Proto UDP \<or> proto m = Proto L4_Protocol.SCTP else True)) \<and>
 valid_prefix_fw (src m) \<and> valid_prefix_fw (dst m))" 
 unfolding fun_eq_iff
 unfolding simple_match_valid_def Let_def
