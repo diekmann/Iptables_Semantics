@@ -167,6 +167,14 @@ lemma "has_default_policy
                       (map_of_string_ipv4 (Semantics_Goto.rewrite_Goto parser_test_firewall))))))))"
   by eval
 
+lemma "sanity_check_simple_firewall
+        (to_simple_firewall (upper_closure
+                        (optimize_matches abstract_for_simple_firewall
+                          (upper_closure (packet_assume_new
+                            (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
+                              (map_of_string_ipv4 (Semantics_Goto.rewrite_Goto parser_test_firewall))))))))"
+  by eval
+
 value[code] "(optimize_matches abstract_for_simple_firewall
                   (upper_closure (packet_assume_new
                     (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy

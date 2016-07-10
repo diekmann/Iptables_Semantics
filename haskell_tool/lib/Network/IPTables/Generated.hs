@@ -25,7 +25,8 @@ module
                               map_of_string_ipv4, metric_update,
                               access_matrix_pretty, to_simple_firewall,
                               simple_rule_toString, unfold_ruleset_CHAIN_safe,
-                              mk_parts_connection_TCP, action_toString,
+                              mk_parts_connection_TCP,
+                              sanity_check_simple_firewall, action_toString,
                               packet_assume_new, routing_action_oiface_update,
                               routing_action_next_hop_update,
                               abstract_for_simple_firewall,
@@ -3791,6 +3792,9 @@ metric_update metrica
   (Routing_rule_ext routing_match metric routing_action more) =
   Routing_rule_ext routing_match (metrica metric) routing_action more;
 
+valid_prefix_fw :: forall a. (Len a) => (Word a, Nat) -> Bool;
+valid_prefix_fw m = valid_prefix (uncurry PrefixMatch m);
+
 iface_try_rewrite ::
   forall a.
     (Len a) => [(Iface, [(Word a, Nat)])] ->
@@ -4449,6 +4453,21 @@ mk_parts_connection_TCP ::
     Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))) -> Parts_connection_ext ();
 mk_parts_connection_TCP sport dport =
   Parts_connection_ext "1" "1" tcp sport dport ();
+
+sanity_check_simple_firewall :: forall a. (Len a) => [Simple_rule a] -> Bool;
+sanity_check_simple_firewall rs =
+  all (\ r ->
+        let {
+          c = (\ (s, e) ->
+                not (equal_word s zero_word) || not (equal_word e max_word));
+        } in (if c (sports (match_sel r)) || c (dports (match_sel r))
+               then equal_protocol (proto (match_sel r)) (Proto tcp) ||
+                      (equal_protocol (proto (match_sel r)) (Proto udp) ||
+                        equal_protocol (proto (match_sel r)) (Proto sctp))
+               else True) &&
+          valid_prefix_fw (src (match_sel r)) &&
+            valid_prefix_fw (dst (match_sel r)))
+    rs;
 
 action_toString :: Action -> [Prelude.Char];
 action_toString Accept = "-j ACCEPT";

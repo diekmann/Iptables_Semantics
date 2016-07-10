@@ -194,4 +194,10 @@ lemma "prefix_to_strange_inverse_cisco_mask 32 = (0, 0, 0, 0)" by eval
 
 
 
+(*TODO: deduplicate with simple_fw_valid !*)
+definition sanity_check_simple_firewall :: "'i::len simple_rule list \<Rightarrow> bool" where
+  "sanity_check_simple_firewall rs \<equiv> \<forall> r \<in> set rs. simple_match_valid (match_sel r)"
+lemma "sanity_check_simple_firewall = simple_fw_valid"
+  by(simp add: sanity_check_simple_firewall_def simple_fw_valid_def fun_eq_iff pred_list_def)
+
 end
