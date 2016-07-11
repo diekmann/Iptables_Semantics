@@ -12,13 +12,14 @@ import qualified Network.IPTables.Generated as Isabelle
 import           Network.IPTables.ParserHelper
 import           Network.IPTables.IsabelleToString(Word32)
 
-ipAssmtToIsabelle:: IpAssmt -> IsabelleIpAssmt
+ipAssmtToIsabelle:: IpAssmt Word32 -> IsabelleIpAssmt
 ipAssmtToIsabelle (IpAssmt assmt) = Isabelle.to_ipassmt assmt
 
-parseIpAssmt :: SourceName -> String -> Either ParseError IpAssmt
+-- returns IpAssmt instead of IsabelleIpAssmt because we can only show the former
+parseIpAssmt :: SourceName -> String -> Either ParseError (IpAssmt Word32)
 parseIpAssmt = runParser ifconfig ()
 
-ifconfig :: Parsec String s IpAssmt
+ifconfig :: Parsec String s (IpAssmt Word32)
 ifconfig = IpAssmt <$> many (skipWS *> ipAssmt <* skipWS)
 
 ipAssmt :: Parsec String s (Isabelle.Iface, Isabelle.Negation_type [Isabelle.Ipt_iprange Word32])
