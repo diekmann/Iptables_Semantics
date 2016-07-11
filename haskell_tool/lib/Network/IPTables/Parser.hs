@@ -31,8 +31,11 @@ rstActiveM f rst = rst { rstActive = f (rstActive rst) }
 
 
 ruleset :: Parsec String (RState Word32) (Ruleset Word32)
-ruleset = do
-    many $ choice [table, chain, rule, commit, comment, emptyLine]
+ruleset = ruleset_generic rule_ipv4
+
+ruleset_generic :: Parsec String (RState a) () -> Parsec String (RState a) (Ruleset a)
+ruleset_generic rule_parser = do
+    many $ choice [table, chain, rule_parser, commit, comment, emptyLine]
     eof
     rstRules <$> getState
 
@@ -76,6 +79,14 @@ parseWithModulePrefix modul parser = try $ skipWS *> string modul *> (many1 pars
 
 -- This file should be in sync with the SML parser. The SML parser is the reference.
 
+knownMatch_ipv4 :: Parsec String s [ParsedMatchAction Word32]
+knownMatch_ipv4 = knownMatch_generic ipv4addrOrCidr ipv4range
+    where ipv4addrOrCidr = try ipv4cidr <|> try ipv4addr
+
+knownMatch_ipv6 :: Parsec String s [ParsedMatchAction Word128]
+knownMatch_ipv6 = knownMatch_generic ipv6addrOrCidr ipv6range
+    where ipv6addrOrCidr = try ipv6cidr <|> try ipv6addr
+
 knownMatch_generic
   :: Parsec String s (Isabelle.Ipt_iprange a) -> 
      Parsec String s (Isabelle.Ipt_iprange a) ->
@@ -117,13 +128,6 @@ knownMatch_generic parser_ipaddr_cidr parser_iprange = do
       
     return $ p
 
-knownMatch_ipv4 :: Parsec String s [ParsedMatchAction Word32]
-knownMatch_ipv4 = knownMatch_generic ipv4addrOrCidr ipv4range
-    where ipv4addrOrCidr = try ipv4cidr <|> try ipv4addr
-
-knownMatch_ipv6 :: Parsec String s [ParsedMatchAction Word128]
-knownMatch_ipv6 = knownMatch_generic ipv6addrOrCidr ipv6range
-    where ipv6addrOrCidr = try ipv6cidr <|> try ipv6addr
 
 unknownMatch = token "unknown match" $ do
     extra <- (many1 (noneOf " \t\n\"") <|> try quotedString)
@@ -132,11 +136,19 @@ unknownMatch = token "unknown match" $ do
               else extra
     return $ (\x -> [x]) $ ParsedMatch $ Isabelle.Extra $ e --TODO: tune
 
-rule :: Parsec String (RState Word32) ()
-rule = line $ do
+
+rule_ipv4 :: Parsec String (RState Word32) ()
+rule_ipv4 = rule_generic knownMatch_ipv4
+
+rule_ipv6 :: Parsec String (RState Word128) ()
+rule_ipv6 = rule_generic knownMatch_ipv6
+
+rule_generic
+    :: Parsec String (RState a) [ParsedMatchAction a] -> Parsec String (RState a) ()
+rule_generic knownMatch_parser = line $ do
     lit "-A"
     chnname <- chainName <* skipWS
-    args    <- concat <$> many (knownMatch_ipv4 <|> unknownMatch)
+    args    <- concat <$> many (knownMatch_parser <|> unknownMatch)
     unparsed <- restOfLine
 
     let rest    = if unparsed == ""
@@ -155,6 +167,7 @@ rule = line $ do
                   (++ [rl])
 
     return ()
+
 
 commit = line $ do
     lit "COMMIT"
