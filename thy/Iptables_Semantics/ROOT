@@ -4,21 +4,29 @@ session "Bitmagic" = IP_Addresses +
   theories[document=false]
     "~~/src/HOL/Word/Word"
     "~~/src/HOL/Word/WordBitwise"
+    "../Native_Word/More_Bits_Int"
     "../Native_Word/Code_Target_Bits_Int"
     "~~/src/HOL/Library/Code_Target_Nat"
     "~~/src/HOL/Library/Code_Target_Int"
     "~~/src/HOL/Library/Code_Char"
     "../Automatic_Refinement/Lib/Misc" (* mergesort *)
   theories
-    "Common/WordInterval_Lists"
   document_files
     "root.tex"
     "mathpartir.sty"
 
-session "Iptables_Semantics" = Bitmagic +
+session "Iptables_Semantics" = Simple_Firewall +
   theories[document=false]
     "~~/src/HOL/Library/LaTeXsugar"
+    (*The Native_Word things destory the latex document! Does not compile, ...*)
+    "../Native_Word/More_Bits_Int"
+    "../Native_Word/Code_Target_Bits_Int"
+    "~~/src/HOL/Library/Code_Target_Nat"
+    "~~/src/HOL/Library/Code_Target_Int"
+    "~~/src/HOL/Library/Code_Char"
+    "../Automatic_Refinement/Lib/Misc" (* mergesort *)
     "Common/List_Misc"
+    "Common/WordInterval_Lists"
   theories
     Semantics
     "Examples/Example_Semantics"
@@ -35,19 +43,26 @@ session "Iptables_Semantics" = Bitmagic +
     "Semantics_Ternary/Optimizing"
     "Primitive_Matchers/No_Spoof"
     No_Spoof_Embeddings
+    "Routing/RoutingIpAssmt" (*TODO: let this also depend on Routing!*)
     "Primitive_Matchers/Transform"
     "Primitive_Matchers/Primitive_Abstract"
     "Primitive_Matchers/Code_Interface"
     "Primitive_Matchers/Parser"
     "Primitive_Matchers/Iface_Attic"
     "Simple_Firewall/SimpleFw_Compliance"
-    "Simple_Firewall/Shadowed"
     "Examples/Code_haskell"
   document_files
     "root.tex"
     "mathpartir.sty"
 
 session "Iptables_Semantics_Documentation" = Iptables_Semantics +
+  theories[document=false]
+    (*TODO: will this speed up the examples?*)
+    "../Native_Word/More_Bits_Int"
+    "../Native_Word/Code_Target_Bits_Int"
+    "~~/src/HOL/Library/Code_Target_Nat"
+    "~~/src/HOL/Library/Code_Target_Int"
+    "~~/src/HOL/Library/Code_Char"
   theories
     Documentation
   document_files
@@ -86,7 +101,7 @@ session "Iptables_Semantics_Examples_Large2" = Iptables_Semantics_Documentation 
     "root.tex"
     "mathpartir.sty"
 
-session Routing = Iptables_Semantics (* the linux router model needs simple_fw *) +
+session Routing = Simple_Firewall +
   theories[document=false]
     "Routing/CaesarTheories" (* just some helper lemmas *)
   theories
@@ -96,7 +111,7 @@ session Routing = Iptables_Semantics (* the linux router model needs simple_fw *
     "Routing/LinuxRouter"
     "Routing/RoutingSet"
     "Routing/RoutingRange"
-    "Routing/RoutingIpAssmt"
+    (*Dependencies: RoutingIpAssmt depends on Iptables_Semantics and is thus in another session*)
   document_files
     "root.tex"
     "mathpartir.sty"

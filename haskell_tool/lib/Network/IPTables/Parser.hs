@@ -118,11 +118,6 @@ unknownMatch = token "unknown match" $ do
               then Debug.Trace.trace ("Warning: probably a parse error at "++extra) extra
               else extra
     return $ (\x -> [x]) $ ParsedMatch $ Isabelle.Extra $ e --TODO: tune
-    where quotedString = do
-              a <- string "\""
-              b <- many (noneOf "\"\n")
-              c <- string "\""
-              return (a++b++c)
 
 rule = line $ do
     lit "-A"
@@ -132,8 +127,9 @@ rule = line $ do
 
     let rest    = if unparsed == ""
                   then []
-                  else Debug.Trace.trace ("ERROR unparsable : " ++ unparsed)
-                       [ParsedMatch (Isabelle.Extra unparsed)]
+                  else error ("ERROR unparsable : " ++ unparsed)
+                       -- Debug.Trace.trace ("ERROR unparsable : " ++ unparsed)
+                       -- [ParsedMatch (Isabelle.Extra unparsed)]
         myArgs  = args ++ rest
         rl      = mkParseRule myArgs
 
@@ -241,7 +237,7 @@ target = ParsedAction <$> (
            try (string "-j REJECT --reject-with "
                 >> many1 (oneOf $ ['a'..'z']++['-']) >> return (Isabelle.Reject))
        <|> try (string "-g " >> Isabelle.Goto <$> lookAheadEOT chainName)
-       <|> try (string "-j " >> choice (map (try. lookAheadEOT)
+       <|> try (string "-j " >> choice (map (try . lookAheadEOT)
                                        [string "DROP" >> return Isabelle.Drop
                                        ,string "REJECT" >> return Isabelle.Reject
                                        ,string "ACCEPT" >> return Isabelle.Accept

@@ -706,7 +706,7 @@ Table `raw' caught exception: `Reading ruleset failed! sanity_wf_ruleset check f
 (-d 224.0.0.0/4 -s 131.159.20.0/24 --dpts [22] -o eth1.96 -p tcp -m state --state NEW --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
 (-d 224.0.0.0/4 -o eth1.96 -p icmp, -j ACCEPT)
 (-d 224.0.0.0/4 -o eth1.96, -j DROP)
-(-d 131.159.14.128/26 -o eth1.108 -p protocolid:50 -m state --state NEW, -j ACCEPT)
+(-d 131.159.14.128/26 -o eth1.108 -p esp -m state --state NEW, -j ACCEPT)
 (-d 131.159.14.155/32 --dpts [22] -o eth1.108 -p tcp -m state --state NEW --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
 (-d 131.159.14.155/32 --dpts [2086] -o eth1.108 -p tcp -m state --state NEW --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
 (-d 131.159.14.155/32 --dpts [8000] -o eth1.108 -p tcp -m state --state NEW --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
@@ -782,7 +782,7 @@ Table `raw' caught exception: `Reading ruleset failed! sanity_wf_ruleset check f
 (-d 131.159.14.128/26 -s 131.159.20.232/32 --dpts [443] -o eth1.108 -p tcp -m state --state NEW --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
 (-d 131.159.14.128/26 -o eth1.108 -p icmp, -j ACCEPT)
 (-d 131.159.14.128/26 -o eth1.108, -j DROP)
-(-d 224.0.0.0/4 -o eth1.108 -p protocolid:50 -m state --state NEW, -j ACCEPT)
+(-d 224.0.0.0/4 -o eth1.108 -p esp -m state --state NEW, -j ACCEPT)
 (-d 224.0.0.0/4 -s 138.246.253.5/32 --dpts [1:65535] -o eth1.108 -p tcp -m state --state NEW --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
 (-d 224.0.0.0/4 -s 138.246.253.5/32 --dpts [1:65535] -o eth1.108 -p udp -m state --state NEW, -j ACCEPT)
 (-d 224.0.0.0/4 -s 131.159.14.216/32 --dpts [1:65535] -o eth1.108 -p tcp -m state --state NEW --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
@@ -810,8 +810,8 @@ Table `raw' caught exception: `Reading ruleset failed! sanity_wf_ruleset check f
 (-d 224.0.0.0/4 -s 131.159.20.232/32 --dpts [443] -o eth1.108 -p tcp -m state --state NEW --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
 (-d 224.0.0.0/4 -o eth1.108 -p icmp, -j ACCEPT)
 (-d 224.0.0.0/4 -o eth1.108, -j DROP)
-(-d 131.159.20.51/32 -o eth1.109 -p protocolid:50 -m state --state NEW, -j ACCEPT)
-(-d 131.159.20.202/32 -o eth1.109 -p protocolid:50 -m state --state NEW, -j ACCEPT)
+(-d 131.159.20.51/32 -o eth1.109 -p esp -m state --state NEW, -j ACCEPT)
+(-d 131.159.20.202/32 -o eth1.109 -p esp -m state --state NEW, -j ACCEPT)
 (-d 131.159.20.19/32 -s 131.159.14.58/32 --dpts [515] -o eth1.109 -p tcp -m state --state NEW --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
 (-d 131.159.20.19/32 -s 131.159.14.58/32 --dpts [631] -o eth1.109 -p tcp -m state --state NEW --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
 (-d 131.159.20.19/32 -s 131.159.14.58/32 --dpts [9100] -o eth1.109 -p tcp -m state --state NEW --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
@@ -1590,8 +1590,8 @@ Table `raw' caught exception: `Reading ruleset failed! sanity_wf_ruleset check f
 (-d 224.0.0.0/4 --dpts [113] -o eth1.109 -p tcp -m state --state NEW --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
 (-d 224.0.0.0/4 -o eth1.109 -p icmp, -j ACCEPT)
 (-d 224.0.0.0/4 -o eth1.109, -j DROP)
-(-o eth1.110 -p protocolid:50 -m state --state NEW, -j ACCEPT)
-(-o eth1.110 -p protocolid:47 -m state --state NEW, -j ACCEPT)
+(-o eth1.110 -p esp -m state --state NEW, -j ACCEPT)
+(-o eth1.110 -p gre -m state --state NEW, -j ACCEPT)
 (-s 131.159.14.12/32 --dpts [22] -o eth1.110 -p tcp, -j ACCEPT)
 (-s 131.159.15.50/32 --dpts [22] -o eth1.110 -p tcp, -j ACCEPT)
 (-s 131.159.14.26/32 --dpts [22] -o eth1.110 -p tcp, -j ACCEPT)
@@ -1796,7 +1796,7 @@ Table `raw' caught exception: `Reading ruleset failed! sanity_wf_ruleset check f
 (-d 224.0.0.0/4 --dpts [113] -o eth1.152 -p tcp -m state --state NEW --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
 (-d 224.0.0.0/4 -o eth1.152 -p icmp, -j ACCEPT)
 (-d 224.0.0.0/4 -o eth1.152, -j DROP)
-(-d 131.159.15.39/32 -o eth1.171 -p protocolid:50 -m state --state NEW, -j ACCEPT)
+(-d 131.159.15.39/32 -o eth1.171 -p esp -m state --state NEW, -j ACCEPT)
 (-d 131.159.15.9/32 -s 131.159.20.0/24 --dpts [1:65535] -o eth1.171 -p tcp -m state --state NEW --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
 (-d 131.159.15.9/32 -s 131.159.20.0/24 --dpts [1:65535] -o eth1.171 -p udp -m state --state NEW, -j ACCEPT)
 (-d 131.159.15.9/32 -s 131.159.42.16/32 --dpts [139] -o eth1.171 -p tcp -m state --state NEW --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
@@ -3744,8 +3744,8 @@ Table `raw' caught exception: `Reading ruleset failed! sanity_wf_ruleset check f
 (-d 224.0.0.0/4 -s 131.159.20.38/32 --dpts [1:65535] -o eth1.1025 -p udp -m state --state NEW, -j ACCEPT)
 (-d 224.0.0.0/4 -o eth1.1025 -p icmp, -j ACCEPT)
 (-d 224.0.0.0/4 -o eth1.1025, -j DROP)
-(-o eth1.1024 -p protocolid:50 -m state --state NEW, -j ACCEPT)
-(-o eth1.1024 -p protocolid:47 -m state --state NEW, -j ACCEPT)
+(-o eth1.1024 -p esp -m state --state NEW, -j ACCEPT)
+(-o eth1.1024 -p gre -m state --state NEW, -j ACCEPT)
 (-s 131.159.14.12/32 --dpts [22] -o eth1.1024 -p tcp, -j ACCEPT)
 (-s 131.159.15.50/32 --dpts [22] -o eth1.1024 -p tcp, -j ACCEPT)
 (-s 131.159.14.26/32 --dpts [22] -o eth1.1024 -p tcp, -j ACCEPT)
@@ -4501,7 +4501,7 @@ ACCEPT     tcp  --  0.0.0.0/0            224.0.0.0/4  out: eth1.96  dports: 113
 ACCEPT     tcp  --  131.159.20.0/24            224.0.0.0/4  out: eth1.96  dports: 22
 ACCEPT     icmp  --  0.0.0.0/0            224.0.0.0/4  out: eth1.96  
 DROP     all  --  0.0.0.0/0            224.0.0.0/4  out: eth1.96  
-ACCEPT     protocolid:50  --  0.0.0.0/0            131.159.14.128/26  out: eth1.108  
+ACCEPT     esp  --  0.0.0.0/0            131.159.14.128/26  out: eth1.108  
 ACCEPT     tcp  --  0.0.0.0/0            131.159.14.155/32  out: eth1.108  dports: 22
 ACCEPT     tcp  --  0.0.0.0/0            131.159.14.155/32  out: eth1.108  dports: 2086
 ACCEPT     tcp  --  0.0.0.0/0            131.159.14.155/32  out: eth1.108  dports: 8000
@@ -4577,7 +4577,7 @@ ACCEPT     tcp  --  131.159.20.232/32            131.159.14.128/26  out: eth1.10
 ACCEPT     tcp  --  131.159.20.232/32            131.159.14.128/26  out: eth1.108  dports: 443
 ACCEPT     icmp  --  0.0.0.0/0            131.159.14.128/26  out: eth1.108  
 DROP     all  --  0.0.0.0/0            131.159.14.128/26  out: eth1.108  
-ACCEPT     protocolid:50  --  0.0.0.0/0            224.0.0.0/4  out: eth1.108  
+ACCEPT     esp  --  0.0.0.0/0            224.0.0.0/4  out: eth1.108  
 ACCEPT     tcp  --  138.246.253.5/32            224.0.0.0/4  out: eth1.108  dports: 1:65535
 ACCEPT     udp  --  138.246.253.5/32            224.0.0.0/4  out: eth1.108  dports: 1:65535
 ACCEPT     tcp  --  131.159.14.216/32            224.0.0.0/4  out: eth1.108  dports: 1:65535
@@ -4605,8 +4605,8 @@ ACCEPT     tcp  --  131.159.20.232/32            224.0.0.0/4  out: eth1.108  dpo
 ACCEPT     tcp  --  131.159.20.232/32            224.0.0.0/4  out: eth1.108  dports: 443
 ACCEPT     icmp  --  0.0.0.0/0            224.0.0.0/4  out: eth1.108  
 DROP     all  --  0.0.0.0/0            224.0.0.0/4  out: eth1.108  
-ACCEPT     protocolid:50  --  0.0.0.0/0            131.159.20.51/32  out: eth1.109  
-ACCEPT     protocolid:50  --  0.0.0.0/0            131.159.20.202/32  out: eth1.109  
+ACCEPT     esp  --  0.0.0.0/0            131.159.20.51/32  out: eth1.109  
+ACCEPT     esp  --  0.0.0.0/0            131.159.20.202/32  out: eth1.109  
 ACCEPT     tcp  --  131.159.14.58/32            131.159.20.19/32  out: eth1.109  dports: 515
 ACCEPT     tcp  --  131.159.14.58/32            131.159.20.19/32  out: eth1.109  dports: 631
 ACCEPT     tcp  --  131.159.14.58/32            131.159.20.19/32  out: eth1.109  dports: 9100
@@ -5385,8 +5385,8 @@ ACCEPT     udp  --  131.159.20.38/32            224.0.0.0/4  out: eth1.109  dpor
 ACCEPT     tcp  --  0.0.0.0/0            224.0.0.0/4  out: eth1.109  dports: 113
 ACCEPT     icmp  --  0.0.0.0/0            224.0.0.0/4  out: eth1.109  
 DROP     all  --  0.0.0.0/0            224.0.0.0/4  out: eth1.109  
-ACCEPT     protocolid:50  --  0.0.0.0/0            0.0.0.0/0  out: eth1.110  
-ACCEPT     protocolid:47  --  0.0.0.0/0            0.0.0.0/0  out: eth1.110  
+ACCEPT     esp  --  0.0.0.0/0            0.0.0.0/0  out: eth1.110  
+ACCEPT     gre  --  0.0.0.0/0            0.0.0.0/0  out: eth1.110  
 ACCEPT     tcp  --  131.159.14.12/32            0.0.0.0/0  out: eth1.110  dports: 22
 ACCEPT     tcp  --  131.159.15.50/32            0.0.0.0/0  out: eth1.110  dports: 22
 ACCEPT     tcp  --  131.159.14.26/32            0.0.0.0/0  out: eth1.110  dports: 22
@@ -5591,7 +5591,7 @@ ACCEPT     udp  --  131.159.20.38/32            224.0.0.0/4  out: eth1.152  dpor
 ACCEPT     tcp  --  0.0.0.0/0            224.0.0.0/4  out: eth1.152  dports: 113
 ACCEPT     icmp  --  0.0.0.0/0            224.0.0.0/4  out: eth1.152  
 DROP     all  --  0.0.0.0/0            224.0.0.0/4  out: eth1.152  
-ACCEPT     protocolid:50  --  0.0.0.0/0            131.159.15.39/32  out: eth1.171  
+ACCEPT     esp  --  0.0.0.0/0            131.159.15.39/32  out: eth1.171  
 ACCEPT     tcp  --  131.159.20.0/24            131.159.15.9/32  out: eth1.171  dports: 1:65535
 ACCEPT     udp  --  131.159.20.0/24            131.159.15.9/32  out: eth1.171  dports: 1:65535
 ACCEPT     tcp  --  131.159.42.16/32            131.159.15.9/32  out: eth1.171  dports: 139
@@ -7539,8 +7539,8 @@ ACCEPT     tcp  --  131.159.20.38/32            224.0.0.0/4  out: eth1.1025  dpo
 ACCEPT     udp  --  131.159.20.38/32            224.0.0.0/4  out: eth1.1025  dports: 1:65535
 ACCEPT     icmp  --  0.0.0.0/0            224.0.0.0/4  out: eth1.1025  
 DROP     all  --  0.0.0.0/0            224.0.0.0/4  out: eth1.1025  
-ACCEPT     protocolid:50  --  0.0.0.0/0            0.0.0.0/0  out: eth1.1024  
-ACCEPT     protocolid:47  --  0.0.0.0/0            0.0.0.0/0  out: eth1.1024  
+ACCEPT     esp  --  0.0.0.0/0            0.0.0.0/0  out: eth1.1024  
+ACCEPT     gre  --  0.0.0.0/0            0.0.0.0/0  out: eth1.1024  
 ACCEPT     tcp  --  131.159.14.12/32            0.0.0.0/0  out: eth1.1024  dports: 22
 ACCEPT     tcp  --  131.159.15.50/32            0.0.0.0/0  out: eth1.1024  dports: 22
 ACCEPT     tcp  --  131.159.14.26/32            0.0.0.0/0  out: eth1.1024  dports: 22
@@ -8071,7 +8071,7 @@ ACCEPT     udp  --  131.159.20.38/32            224.0.0.0/4    dports: 1:65535
 ACCEPT     tcp  --  0.0.0.0/0            224.0.0.0/4    dports: 113
 ACCEPT     tcp  --  131.159.20.0/24            224.0.0.0/4    dports: 22
 ACCEPT     icmp  --  0.0.0.0/0            224.0.0.0/4    
-ACCEPT     protocolid:50  --  0.0.0.0/0            131.159.14.128/26    
+ACCEPT     esp  --  0.0.0.0/0            131.159.14.128/26    
 ACCEPT     tcp  --  0.0.0.0/0            131.159.14.155/32    dports: 22
 ACCEPT     tcp  --  0.0.0.0/0            131.159.14.155/32    dports: 2086
 ACCEPT     tcp  --  0.0.0.0/0            131.159.14.155/32    dports: 8000
@@ -8146,14 +8146,14 @@ ACCEPT     tcp  --  131.159.20.232/32            131.159.14.128/26    dports: 22
 ACCEPT     tcp  --  131.159.20.232/32            131.159.14.128/26    dports: 80
 ACCEPT     tcp  --  131.159.20.232/32            131.159.14.128/26    dports: 443
 ACCEPT     icmp  --  0.0.0.0/0            131.159.14.128/26    
-ACCEPT     protocolid:50  --  0.0.0.0/0            224.0.0.0/4    
+ACCEPT     esp  --  0.0.0.0/0            224.0.0.0/4    
 ACCEPT     tcp  --  131.159.20.0/24            224.0.0.0/4    dports: 80
 ACCEPT     tcp  --  131.159.20.0/24            224.0.0.0/4    dports: 443
 ACCEPT     tcp  --  131.159.20.232/32            224.0.0.0/4    dports: 22
 ACCEPT     tcp  --  131.159.20.232/32            224.0.0.0/4    dports: 80
 ACCEPT     tcp  --  131.159.20.232/32            224.0.0.0/4    dports: 443
-ACCEPT     protocolid:50  --  0.0.0.0/0            131.159.20.51/32    
-ACCEPT     protocolid:50  --  0.0.0.0/0            131.159.20.202/32    
+ACCEPT     esp  --  0.0.0.0/0            131.159.20.51/32    
+ACCEPT     esp  --  0.0.0.0/0            131.159.20.202/32    
 ACCEPT     tcp  --  131.159.14.58/32            131.159.20.19/32    dports: 515
 ACCEPT     tcp  --  131.159.14.58/32            131.159.20.19/32    dports: 631
 ACCEPT     tcp  --  131.159.14.58/32            131.159.20.19/32    dports: 9100
@@ -8884,8 +8884,8 @@ ACCEPT     tcp  --  131.159.20.38/32            131.159.20.0/24    dports: 1:655
 ACCEPT     udp  --  131.159.20.38/32            131.159.20.0/24    dports: 1:65535
 ACCEPT     tcp  --  0.0.0.0/0            131.159.20.0/24    dports: 113
 ACCEPT     icmp  --  0.0.0.0/0            131.159.20.0/24    
-ACCEPT     protocolid:50  --  0.0.0.0/0            0.0.0.0/0    
-ACCEPT     protocolid:47  --  0.0.0.0/0            0.0.0.0/0    
+ACCEPT     esp  --  0.0.0.0/0            0.0.0.0/0    
+ACCEPT     gre  --  0.0.0.0/0            0.0.0.0/0    
 ACCEPT     tcp  --  131.159.14.12/32            0.0.0.0/0    dports: 22
 ACCEPT     tcp  --  131.159.15.50/32            0.0.0.0/0    dports: 22
 ACCEPT     tcp  --  131.159.14.26/32            0.0.0.0/0    dports: 22
@@ -9046,7 +9046,7 @@ ACCEPT     tcp  --  131.159.20.38/32            131.159.15.240/28    dports: 1:6
 ACCEPT     udp  --  131.159.20.38/32            131.159.15.240/28    dports: 1:65535
 ACCEPT     tcp  --  0.0.0.0/0            131.159.15.240/28    dports: 113
 ACCEPT     icmp  --  0.0.0.0/0            131.159.15.240/28    
-ACCEPT     protocolid:50  --  0.0.0.0/0            131.159.15.39/32    
+ACCEPT     esp  --  0.0.0.0/0            131.159.15.39/32    
 ACCEPT     tcp  --  131.159.20.0/24            131.159.15.9/32    dports: 1:65535
 ACCEPT     udp  --  131.159.20.0/24            131.159.15.9/32    dports: 1:65535
 ACCEPT     tcp  --  131.159.42.16/32            131.159.15.9/32    dports: 139

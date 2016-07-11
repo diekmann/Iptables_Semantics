@@ -254,7 +254,7 @@ lemma
   "prerequisites (IPv4Proto pr) m = (let v = EtherType 0x0800 in v \<in> m \<and> prerequisites v m)"
   "prerequisites (IPv4Src a) m = (let v = EtherType 0x0800 in v \<in> m \<and> prerequisites v m)"
   "prerequisites (IPv4Dst a) m = (let v = EtherType 0x0800 in v \<in> m \<and> prerequisites v m)"
-  "prerequisites (L4Src p msk) m = (\<exists>proto \<in> {TCP,UDP,SCTP}. let v = IPv4Proto proto in v \<in> m \<and> prerequisites v m)"
+  "prerequisites (L4Src p msk) m = (\<exists>proto \<in> {TCP,UDP,L4_Protocol.SCTP}. let v = IPv4Proto proto in v \<in> m \<and> prerequisites v m)"
   "prerequisites (L4Dst p msk) m = prerequisites (L4Src undefined undefined) m"
   by(fact prerequisites.simps)+
 text\<open>Then, to actually match a set of @{type of_match_field} against a packet, we use the option type:\<close>
@@ -462,7 +462,7 @@ using assms simple_match_to_of_matchD simple_match_to_of_matchI by blast
 
 text\<open>The assumptions are to be read as follows:
 \begin{itemize}
-  \item The match @{term r} has to be valid, i.e. it has to use @{const valid_prefix} matches, and it cannot use anything other than $0$-$65535$ for the port matches unless its protocol match ensures @{const TCP}, @{const UDP} or @{const SCTP}.
+  \item The match @{term r} has to be valid, i.e. it has to use @{const valid_prefix} matches, and it cannot use anything other than $0$-$65535$ for the port matches unless its protocol match ensures @{const TCP}, @{const UDP} or @{const L4_Protocol.SCTP}.
   \item @{const simple_match_to_of_match} cannot produce rules for packets that have input interfaces that are not named in the interface list.
   \item The output interface of @{term p} has to match the output interface match of @{term r}. This is a weakened formulation of @{term "oiface r = ifaceAny"}, since @{thm[display] match_ifaceAny[no_vars]}.
     We require this because OpenFlow field matches cannot be used to match on the output port — they are supposed to match a packet and decide an output port.

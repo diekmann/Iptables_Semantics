@@ -1,8 +1,6 @@
 theory Analyze_topos_generated
 imports 
   "../../Primitive_Matchers/Parser"
-  "../../Semantics_Ternary/Optimizing"
-  "../../Simple_Firewall/SimpleFw_toString"
 begin
 
 
@@ -48,6 +46,13 @@ value[code] "upper_closure (packet_assume_new unfolded_FORWARD)"
 
 lemma "check_simple_fw_preconditions (upper_closure (optimize_matches abstract_for_simple_firewall 
           (upper_closure (packet_assume_new unfolded_FORWARD))))" by eval
+
+lemma "simple_fw_valid (to_simple_firewall (upper_closure
+              (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded_FORWARD)))))"
+by eval
+lemma "simple_fw_valid (to_simple_firewall (lower_closure
+              (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded_FORWARD)))))"
+by eval
 
 
 value[code] "map simple_rule_toString (to_simple_firewall (upper_closure

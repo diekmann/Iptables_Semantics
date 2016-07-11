@@ -1,7 +1,6 @@
 theory SNS_IAS_Eduroam_Spoofing
 imports 
   "../../Primitive_Matchers/Parser"
-  "../../Simple_Firewall/SimpleFw_toString"
 begin
 
 

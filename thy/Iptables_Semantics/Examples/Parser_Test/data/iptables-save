@@ -36,6 +36,8 @@
 -A DOS~Pro-t_ect -p icmp -m comment --comment "!" -j ACCEPT
 -A DOS~Pro-t_ect -p icmp -m comment --comment "has space" -j ACCEPT
 -A DOS~Pro-t_ect -p icmp -j ACCEPT
+-A DOS~Pro-t_ect -p icmpv6 -m icmp6 --icmpv6-type 133 -m comment --comment "this module only works for ip6tables but -p icmpv6 is fine" -j ACCEPT
+-A DOS~Pro-t_ect -p ipv6-icmp -m icmp6 --icmpv6-type 133 -m comment --comment "\"" -s 127.0.0.0/8 -j ACCEPT
 -A DOS~Pro-t_ect ! -p icmp
 -A DOS~Pro-t_ect ! -p tcp ! -s 131.159.0.0/16
 -A DOS~Pro-t_ect -i vocb -p udp -m udp --sport 67:68 --dport 67:68 -j ACCEPT

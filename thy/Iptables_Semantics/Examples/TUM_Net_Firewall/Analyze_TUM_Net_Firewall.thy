@@ -1,7 +1,6 @@
 theory Analyze_TUM_Net_Firewall
 imports "../../Primitive_Matchers/Code_Interface"
   "../../Semantics_Ternary/Packet_Set"
-  "../../Simple_Firewall/SimpleFw_toString"
   "../../Primitive_Matchers/Parser"
 begin
 

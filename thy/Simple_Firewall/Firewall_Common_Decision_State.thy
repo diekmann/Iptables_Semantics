@@ -2,7 +2,9 @@ theory Firewall_Common_Decision_State
 imports Main
 begin
 
-datatype final_decision = FinalAllow | FinalDeny (*TODO: Unknown, e.g. for NAT?*)
+section\<open>The state of a firewall, abstracted only to the packet filtering outcome\<close>
+
+datatype final_decision = FinalAllow | FinalDeny
 
 text\<open>
 The state during packet processing. If undecided, there are some remaining rules to process. If

@@ -1,8 +1,8 @@
 theory OpenFlowMatches
 imports "../IP_Addresses/Prefix_Match"
-        "../Iptables_Semantics/Primitive_Matchers/Simple_Packet"
+        "../Simple_Firewall/Simple_Packet"
         "~~/src/HOL/Library/Monad_Syntax"
-        "../Iptables_Semantics/Primitive_Matchers/Simple_Packet" (* I just want those TCP,UDP,\<dots> defs *)
+        (*"../Iptables_Semantics/Primitive_Matchers/Simple_Packet" (* I just want those TCP,UDP,\<dots> defs *)*)
         "~~/src/HOL/Library/Char_ord" (* For a linorder on strings. See below. *)
 begin
 
@@ -80,8 +80,8 @@ function prerequisites :: "of_match_field \<Rightarrow> of_match_field set \<Rig
 "prerequisites (IPv4Src _) m = (let v = EtherType 0x0800 in v \<in> m \<and> prerequisites v m)" |
 (* OF_IPV4_DST ETH_TYPE=0x0800 *)
 "prerequisites (IPv4Dst _) m = (let v = EtherType 0x0800 in v \<in> m \<and> prerequisites v m)" |
-(* Now here goes a bit of fuzz: OF specifies differen OXM_OF_(TCP,UDP,SCTP,\<dots>)_(SRC,DST). I only have L4Src. So gotta make do with that. *)
-"prerequisites (L4Src _ _) m = (\<exists>proto \<in> {TCP,UDP,SCTP}. let v = IPv4Proto proto in v \<in> m \<and> prerequisites v m)" |
+(* Now here goes a bit of fuzz: OF specifies differen OXM_OF_(TCP,UDP,L4_Protocol.SCTP,\<dots>)_(SRC,DST). I only have L4Src. So gotta make do with that. *)
+"prerequisites (L4Src _ _) m = (\<exists>proto \<in> {TCP,UDP,L4_Protocol.SCTP}. let v = IPv4Proto proto in v \<in> m \<and> prerequisites v m)" |
 "prerequisites (L4Dst _ _) m = prerequisites (L4Src undefined undefined) m"
 by pat_completeness auto
 (* Ignoredd PACKET_TYPE=foo *)
@@ -151,7 +151,7 @@ definition "all_prerequisites m \<equiv> \<forall>f \<in> m. prerequisites f m"
 lemma (* as stated in paper *)
 	"all_prerequisites p \<Longrightarrow>
 	 L4Src x y \<in> p \<Longrightarrow>
-	 IPv4Proto ` {TCP, UDP, SCTP} \<inter> p \<noteq> {}"
+	 IPv4Proto ` {TCP, UDP, L4_Protocol.SCTP} \<inter> p \<noteq> {}"
 unfolding all_prerequisites_def by auto
 
 lemma of_safe_unsafe_match_eq: "all_prerequisites m \<Longrightarrow> OF_match_fields m p = Some (OF_match_fields_unsafe m p)"

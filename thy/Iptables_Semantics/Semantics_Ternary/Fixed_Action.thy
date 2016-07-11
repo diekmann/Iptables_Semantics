@@ -271,9 +271,11 @@ subsection\<open>@{term match_list}\<close>
 
   lemma match_list_singleton: "match_list \<gamma> [m] a p \<longleftrightarrow> matches \<gamma> m a p" by(simp)
 
-  lemma empty_concat: "(concat (map (\<lambda>x. []) ms)) = []"
+  (*TODO: remove?*)
+  lemma empty_concat: "concat (map (\<lambda>x. []) ms) = []" by simp
+  (*
   apply(induction ms)
-    by(simp_all)
+    by(simp_all)*)
 
   lemma match_list_append: "match_list \<gamma> (m1@m2) a p \<longleftrightarrow> (\<not> match_list \<gamma> m1 a p \<longrightarrow> match_list \<gamma> m2 a p)"
       apply(induction m1)

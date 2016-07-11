@@ -1,22 +1,31 @@
-(*Original Author: Max Haslbeck, 2015*)
-theory IPPartitioning
-imports "../Common/SetPartitioning"
-        "../Common/GroupF"
-        "../Primitive_Matchers/Common_Primitive_toString"
+(*  Title:      Service_Matrices.thy
+    Authors:    Cornelius Diekmann, Max Haslbeck
+*)
+(*IPPartitioning.thy
+  Original Author: Max Haslbeck, 2015*)
+theory Service_Matrices
+imports "Common/IP_Partition_Preliminaries"
+        "Common/GroupF"
+        "Common/IP_Addr_WordInterval_toString"
+        "Primitives/Primitives_toString"
         "SimpleFw_Semantics"
         "../../IP_Addresses/WordInterval_Sorted"
 begin
 
+section\<open>Service Matrices\<close>
 
-(*TODO: generalize*)
-fun extract_IPSets_generic0 :: "('i::len simple_match \<Rightarrow> 'i word \<times> nat) \<Rightarrow> 'i simple_rule list \<Rightarrow> ('i wordinterval) list" where
+subsection\<open>IP Address Space Partition\<close>
+
+(* could be generalized more *)
+fun extract_IPSets_generic0
+  :: "('i::len simple_match \<Rightarrow> 'i word \<times> nat) \<Rightarrow> 'i simple_rule list \<Rightarrow> ('i wordinterval) list"
+  where
   "extract_IPSets_generic0 _ [] = []" |
   "extract_IPSets_generic0 sel ((SimpleRule m _)#ss) = (ipcidr_tuple_to_wordinterval (sel m)) #
                                                        (extract_IPSets_generic0 sel ss)"
 
 lemma extract_IPSets_generic0_length: "length (extract_IPSets_generic0 sel rs) = length rs"
   by(induction rs rule: extract_IPSets_generic0.induct) (simp_all)
-
 
 
 (*
@@ -72,11 +81,13 @@ There is no clear winner. We will just stick to mergesort_remdups.
 *)
 
 (*check the the order of mergesort_remdups did not change*)
-lemma "mergesort_remdups [(1::ipv4addr, 2::nat), (8,0), (8,1), (2,2), (2,4), (1,2), (2,2)] = [(1, 2), (2, 2), (2, 4), (8, 0), (8, 1)]" by eval
+lemma "mergesort_remdups [(1::ipv4addr, 2::nat), (8,0), (8,1), (2,2), (2,4), (1,2), (2,2)] =
+        [(1, 2), (2, 2), (2, 4), (8, 0), (8, 1)]" by eval
 
 
 (*a tail-recursive implementation*)
-fun extract_src_dst_ips :: "'i::len simple_rule list \<Rightarrow> ('i word \<times> nat) list \<Rightarrow> ('i word \<times> nat) list" where
+fun extract_src_dst_ips
+  :: "'i::len simple_rule list \<Rightarrow> ('i word \<times> nat) list \<Rightarrow> ('i word \<times> nat) list" where
   "extract_src_dst_ips [] ts = ts" |
   "extract_src_dst_ips ((SimpleRule m _)#ss) ts = extract_src_dst_ips ss  (src m # dst m # ts)"
 
@@ -85,13 +96,16 @@ proof(induction rs arbitrary: acc)
 case (Cons r rs) thus ?case by(cases r, simp)
 qed(simp)
 
-definition extract_IPSets :: "'i::len simple_rule list \<Rightarrow> ('i wordinterval) list" where
-  "extract_IPSets rs = map ipcidr_tuple_to_wordinterval (mergesort_remdups (extract_src_dst_ips rs []))"
-lemma extract_IPSets: "set (extract_IPSets rs) = set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
+definition extract_IPSets
+  :: "'i::len simple_rule list \<Rightarrow> ('i wordinterval) list" where
+  "extract_IPSets rs \<equiv> map ipcidr_tuple_to_wordinterval (mergesort_remdups (extract_src_dst_ips rs []))"
+lemma extract_IPSets:
+  "set (extract_IPSets rs) = set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
 proof -
   { fix acc
     have "ipcidr_tuple_to_wordinterval ` set (extract_src_dst_ips rs acc) =
-          ipcidr_tuple_to_wordinterval ` set acc \<union> set (extract_IPSets_generic0 src rs) \<union> set (extract_IPSets_generic0 dst rs)"
+            ipcidr_tuple_to_wordinterval ` set acc \<union> set (extract_IPSets_generic0 src rs) \<union>
+            set (extract_IPSets_generic0 dst rs)"
     proof(induction rs arbitrary: acc)
     case (Cons r rs ) thus ?case
       apply(cases r)
@@ -131,8 +145,9 @@ why you no work?
 *)
 
 
-lemma extract_equi0: "set (map wordinterval_to_set (extract_IPSets_generic0 sel rs))
-                     = (\<lambda>(base,len). ipset_from_cidr base len) ` sel ` match_sel ` set rs"
+lemma extract_equi0:
+  "set (map wordinterval_to_set (extract_IPSets_generic0 sel rs)) =
+    (\<lambda>(base,len). ipset_from_cidr base len) ` sel ` match_sel ` set rs"
   proof(induction rs)
   case (Cons r rs) thus ?case
     apply(cases r, simp)
@@ -216,7 +231,8 @@ qed
 definition wordinterval_list_to_set :: "'a::len wordinterval list \<Rightarrow> 'a::len word set" where
   "wordinterval_list_to_set ws = \<Union> set (map wordinterval_to_set ws)"
 
-lemma wordinterval_list_to_set_compressed: "wordinterval_to_set (wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) =
+lemma wordinterval_list_to_set_compressed:
+  "wordinterval_to_set (wordinterval_compress (foldr wordinterval_union xs Empty_WordInterval)) =
           wordinterval_list_to_set xs"
   proof(induction xs)
   qed(simp_all add: wordinterval_compress wordinterval_list_to_set_def)
@@ -226,7 +242,7 @@ fun partIps :: "'a::len wordinterval \<Rightarrow> 'a::len wordinterval list
   "partIps _ [] = []" |
   "partIps s (t#ts) = (if wordinterval_empty s then (t#ts) else
                         (if wordinterval_empty (wordinterval_intersection s t)
-                          then (t#(partIps (wordinterval_setminus s t) ts))
+                          then (t#(partIps s ts))
                           else
                             (if wordinterval_empty (wordinterval_setminus t s)
                               then (t#(partIps (wordinterval_setminus s t) ts))
@@ -259,16 +275,17 @@ case (Cons s ss)
   with Cons show  ?case by force
 qed
 
-lemma partIps_equi: "map wordinterval_to_set (partIps s ts)
-       = (partList3 (wordinterval_to_set s) (map wordinterval_to_set ts))"
+lemma partIps_equi: "map wordinterval_to_set (partIps s ts) = 
+    partList4 (wordinterval_to_set s) (map wordinterval_to_set ts)"
   proof(induction ts arbitrary: s)
   qed(simp_all)
 
 lemma partitioningIps_equi: "map wordinterval_to_set (partitioningIps ss ts)
        = (partitioning1 (map wordinterval_to_set ss) (map wordinterval_to_set ts))"
-  proof(induction ss arbitrary: ts)
-  qed(simp_all add: partIps_equi)
-
+  apply(induction ss arbitrary: ts)
+   apply(simp; fail)
+  apply(simp add: partIps_equi)
+  done
 
            
 definition getParts :: "'i::len simple_rule list \<Rightarrow> 'i wordinterval list" where
@@ -367,7 +384,7 @@ lemma getParts_nonempty_elems: "\<forall>w\<in>set (getParts rs). \<not> wordint
       for ts ss::"'a wordinterval list"
       proof(induction ss arbitrary: ts)
         case Nil thus ?case by auto
-        case Cons thus ?case by (simp add: partIps_equi partList3_empty)
+        case Cons thus ?case by (simp add: partIps_equi partList4_empty)
       qed
     have "\<forall>t \<in> set [wordinterval_UNIV].\<not> wordinterval_empty t" by(simp)
     with partitioning_nonempty have
@@ -392,7 +409,6 @@ record parts_connection = pc_iiface :: string
                           pc_proto :: primitive_protocol
                           pc_sport :: "16 word"
                           pc_dport :: "16 word"
-                          pc_tag_ctstate :: ctstate
 
 
 
@@ -417,8 +433,7 @@ definition "runFw s d c rs = simple_fw rs \<lparr>p_iiface=pc_iiface c,p_oiface=
                           p_proto=pc_proto c,
                           p_sport=pc_sport c,p_dport=pc_dport c,
                           p_tcp_flags={TCP_SYN},
-                          p_payload='''',
-                          p_tag_ctstate=pc_tag_ctstate c\<rparr>"
+                          p_payload=''''\<rparr>"
 
 lemma has_default_policy_runFw: "has_default_policy rs \<Longrightarrow> runFw s d c rs = Decision FinalAllow \<or> runFw s d c rs = Decision FinalDeny"
   by(simp add: runFw_def has_default_policy)
@@ -434,15 +449,13 @@ lemma same_fw_spec: "same_fw_behaviour ip1 ip2 rs \<Longrightarrow> same_fw_beha
    apply(erule_tac x="\<lparr>p_iiface = pc_iiface c, p_oiface = pc_oiface c, p_src = ip1, p_dst= d,
                        p_proto = pc_proto c, p_sport = pc_sport c, p_dport = pc_dport c,
                        p_tcp_flags = {TCP_SYN},
-                       p_payload='''',
-                       p_tag_ctstate = pc_tag_ctstate c\<rparr>" in allE)
+                       p_payload=''''\<rparr>" in allE)
    apply(simp;fail)
   apply(clarify)
   apply(erule_tac x="\<lparr>p_iiface = pc_iiface c, p_oiface = pc_oiface c, p_src = s, p_dst= ip1,
                        p_proto = pc_proto c, p_sport = pc_sport c, p_dport = pc_dport c,
                        p_tcp_flags = {TCP_SYN},
-                       p_payload='''',
-                       p_tag_ctstate = pc_tag_ctstate c\<rparr>" in allE)
+                       p_payload=''''\<rparr>" in allE)
   apply(simp)
   done
 
@@ -536,7 +549,7 @@ lemma groupWIs_not_empty_elems:
     have "\<forall>w\<in>set (concat (groupWIs c rs)). \<not> wordinterval_empty w"
       apply(subst groupWIs_def)
       apply(subst Let_def)+
-      apply(subst groupF_set_lem)
+      apply(subst groupF_concat_set)
       using getParts_nonempty_elems by blast
     from this V w show ?thesis by auto
   qed
@@ -550,7 +563,7 @@ proof -
     apply(subst groupWIs_def)
     apply(subst Let_def)+
     apply(subst set_map)
-    apply(subst groupF_set_lem)
+    apply(subst groupF_concat_set)
     using getParts_same_fw_behaviour same_fw_spec by fastforce
   from this assms show ?thesis by force
 qed
@@ -568,10 +581,10 @@ proof -
                   (map (\<lambda>d. runFw (getOneIp bw) d c rs) (map getOneIp (getParts rs)),
                    map (\<lambda>s. runFw s (getOneIp bw) c rs) (map getOneIp (getParts rs)))"
     apply(simp add: groupWIs_def Let_def)
-    using groupF_lem_not by fastforce
+    using groupF_nequality by fastforce
   have "\<forall>C \<in> set (groupWIs c rs). \<forall>c \<in> set C. getOneIp c \<in> wordinterval_to_set c"
     apply(simp add: groupWIs_def Let_def)
-    using getParts_nonempty_elems groupF_set_lem1 getOneIp_elem by fastforce
+    using getParts_nonempty_elems groupF_set getOneIp_elem by fastforce
   from this b1 asm have
   "\<forall>aw \<in> set (map wordinterval_to_set A). \<forall>bw \<in> set (map wordinterval_to_set B).
    \<exists>a \<in> aw. \<exists>b \<in> bw. (map (\<lambda>d. runFw a d c rs) (map getOneIp (getParts rs)), map (\<lambda>s. runFw s a c rs) (map getOneIp (getParts rs))) \<noteq>
@@ -626,7 +639,7 @@ proof -
   } note same_behave_runFw=this
 
   from same_behave_runFw[OF b1 getParts_complete nonempty]
-       groupF_lem[of "(\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) (map getOneIp (getParts rs)),
+       groupF_equality[of "(\<lambda>wi. (map (\<lambda>d. runFw (getOneIp wi) d c rs) (map getOneIp (getParts rs)),
                              map (\<lambda>s. runFw s (getOneIp wi) c rs) (map getOneIp (getParts rs))))"
                      "(getParts rs)"] asm
   have b2: "\<forall>a1\<in>set V. \<forall>a2\<in>set V. same_fw_behaviour_one (getOneIp a1) (getOneIp a2) c rs"
@@ -674,7 +687,7 @@ using groupWIs_same_fw_not2 by blast
 lemma groupWIs_complete: "(\<Union>x\<in> set (groupWIs c rs). wordinterval_list_to_set x) = (UNIV::'i::len word set)"
   proof -
   have "(\<Union> y \<in> (\<Union>x\<in> set (groupWIs c rs). set x). wordinterval_to_set y) = (UNIV::'i word set)"
-    apply(simp add: groupWIs_def Let_def groupF_set_Union_lem)
+    apply(simp add: groupWIs_def Let_def groupF_Union_set)
     using getParts_complete wordinterval_list_to_set_def by fastforce
   thus ?thesis by(simp add: wordinterval_list_to_set_def)
 qed
@@ -727,8 +740,7 @@ qed
     apply(induction rs "\<lparr>p_iiface = pc_iiface c, p_oiface = pc_oiface c,
                          p_src = s, p_dst = d, p_proto = pc_proto c, 
                          p_sport = pc_sport c, p_dport = pc_dport c,
-                         p_tcp_flags = {TCP_SYN},p_payload='''',
-                         p_tag_ctstate = pc_tag_ctstate c\<rparr>"
+                         p_tcp_flags = {TCP_SYN},p_payload=''''\<rparr>"
           rule: simple_fw.induct)
     apply(simp add: simple_matches.simps)+
   done
@@ -1129,6 +1141,7 @@ lemma build_ip_partition_distinct': "distinct (build_ip_partition c rs)"
   using build_ip_partition_distinct distinct_mapI by blast
 
 
+subsection\<open>Service Matrix over an IP Address Space Partition\<close>
 
 
 definition all_pairs :: "'a list \<Rightarrow> ('a \<times> 'a) list" where
@@ -1307,10 +1320,10 @@ lemma access_matrix_complete:
               same_fw_behaviour_one w wa p ss)"
         unfolding same_fw_behaviour_one_def by blast
       from \<open>s_range \<in> set (build_ip_partition c rs)\<close>  have f2: "same_fw_behaviour_one s s_repr c rs"
-        by (metis (no_types) IPPartitioning.map_of_zip_map V build_ip_partition_no_empty_elems
+        by (metis (no_types) map_of_zip_map V build_ip_partition_no_empty_elems
             build_ip_partition_same_fw ex_s1 ex_s2 getOneIp_elem wordinterval_element_set_eq)
       from \<open>d_range \<in> set (build_ip_partition c rs)\<close> have "same_fw_behaviour_one d_repr d c rs"
-        by (metis (no_types) IPPartitioning.map_of_zip_map V build_ip_partition_no_empty_elems
+        by (metis (no_types) map_of_zip_map V build_ip_partition_no_empty_elems
             build_ip_partition_same_fw ex_d1 ex_d2 getOneIp_elem wordinterval_element_set_eq)
       with f1 f2 show ?thesis
         using allow by metis (*TODO: why so slow and only metis?*)
@@ -1330,6 +1343,31 @@ theorem access_matrix: assumes matrix: "(V,E) = access_matrix c rs"
              runFw s d c rs = Decision FinalAllow"
 using matrix access_matrix_sound access_matrix_complete by blast
 
+text\<open>
+For a @{typ "'i::len simple_rule list"} and a fixed @{typ parts_connection}, 
+we support to partition the IP address space; for IP addresses of arbitrary length (eg., IPv4, IPv6).
+
+All members of a partition have the same access rights:
+@{thm build_ip_partition_same_fw [no_vars]}
+
+Minimal:
+@{thm build_ip_partition_same_fw_min [no_vars]}
+
+
+The resulting access control matrix is sound and complete:
+
+@{thm access_matrix [no_vars]}
+
+Theorem reads: 
+For a fixed connection, you can look up IP addresses (source and destination pairs) in the matrix 
+if and only if the firewall accepts this src,dst IP address pair for the fixed connection.
+Note: The matrix is actually a graph (nice visualization!), you need to look up IP addresses 
+in the Vertices and check the access of the representants in the edges. If you want to visualize
+the graph (e.g. with Graphviz or tkiz): The vertices are the node description (i.e. header; 
+  @{term "dom V"} is the label for each node which will also be referenced in the edges,
+  @{term "ran V"} is the human-readable description for each node (i.e. the full IP range it represents)), 
+the edges are the edges. Result looks nice. Theorem also tells us that this visualization is correct.
+\<close>
 
 
 
@@ -1339,6 +1377,8 @@ using matrix access_matrix_sound access_matrix_complete by blast
   (vertices, edges) where
   vertices = (name, list of ip addresses this vertex corresponds to)
   and edges = (name \<times> name) list
+
+  Note that the WordInterval is already sorted, which is important for prettyness!
 *)
 text\<open>Only defined for @{const simple_firewall_without_interfaces}\<close>
 definition access_matrix_pretty
@@ -1375,16 +1415,16 @@ lemma access_matrix_pretty_code[code]: "access_matrix_pretty = access_matrix_pre
   
 
 
-definition parts_connection_ssh where "parts_connection_ssh = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
-                               pc_sport=10000, pc_dport=22, pc_tag_ctstate=CT_New\<rparr>"
+definition parts_connection_ssh where
+  "parts_connection_ssh \<equiv> \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP, pc_sport=10000, pc_dport=22\<rparr>"
 
-definition parts_connection_http where "parts_connection_http = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
-                               pc_sport=10000, pc_dport=80, pc_tag_ctstate=CT_New\<rparr>"
+definition parts_connection_http where
+  "parts_connection_http \<equiv> \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP, pc_sport=10000, pc_dport=80\<rparr>"
 
 
 definition mk_parts_connection_TCP :: "16 word \<Rightarrow> 16 word \<Rightarrow> parts_connection" where
   "mk_parts_connection_TCP sport dport = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
-                               pc_sport=sport, pc_dport=dport, pc_tag_ctstate=CT_New\<rparr>"
+                               pc_sport=sport, pc_dport=dport\<rparr>"
 
 lemma "mk_parts_connection_TCP 10000 22 = parts_connection_ssh"
       "mk_parts_connection_TCP 10000 80 = parts_connection_http"
@@ -1394,8 +1434,151 @@ lemma "mk_parts_connection_TCP 10000 22 = parts_connection_ssh"
 value[code] "partitioningIps [WordInterval (0::ipv4addr) 0] [WordInterval 0 2, WordInterval 0 2]"
 
 
+text_raw\<open>
+Here is an example of a really large and complicated firewall:
 
 
+\begin{figure}
+\centering
+\resizebox{\linewidth}{!}{%
+\tikzset{every loop/.style={looseness=1}}
+\tikzset{myptr/.style={decoration={markings,mark=at position 1 with %
+    {\arrow[scale=2,>=latex]{>}}},shorten >=0.1cm,shorten <=0.2cm, postaction={decorate}}}%
+\tikzset{myloop/.style={-to}}%
+\begin{tikzpicture}
+\node (m) at (2,-2) {$\{224.0.0.0 .. 239.255.255.255\}$};
+
+\node[align=left] (inet) at (-3,8.5) {$\{0.0.0.0 .. 126.255.255.255\} \cup \{128.0.0.0 .. 131.159.13.255\} \cup $ \\ 
+									 $ \{131.159.16.0 .. 131.159.19.255\} \cup \{131.159.22.0 .. 138.246.253.4\} \cup $ \\ 
+									 $ \{138.246.253.11 .. 185.86.231.255\} \cup \{185.86.236.0 .. 188.1.239.85\} \cup $ \\ 
+									 $ \{188.1.239.87 .. 188.95.232.63\} \cup \{188.95.232.224 .. 188.95.232.255\} \cup $\\
+									 $ \{188.95.240.0 .. 192.48.106.255\} \cup \{192.48.108.0 .. 223.255.255.255\} \cup $\\
+									 $ \{240.0.0.0 .. 255.255.255.255\}$};
+\node[align=left] (internal) at (-5,-10) {$\{131.159.14.0 .. 131.159.14.7\} \cup \{131.159.14.12 .. 131.159.14.25\} \cup $ \\ 
+$ 131.159.14.27 \cup \{131.159.14.29 .. 131.159.14.33\} \cup $ \\ 
+$ \{131.159.14.38 .. 131.159.14.39\} \cup 131.159.14.41 \cup $ \\ 
+$ \{131.159.14.43 .. 131.159.14.51\} \cup \{131.159.14.53 .. 131.159.14.55\} \cup $ \\ 
+$ \{131.159.14.57 .. 131.159.14.59\} \cup \{131.159.14.61 .. 131.159.14.68\} \cup $ \\ 
+$ 131.159.14.70 .. 131.159.14.82\} \cup \{131.159.14.84 .. 131.159.14.103\} \cup $ \\ 
+$ \{131.159.14.105 .. 131.159.14.124\} \cup \{131.159.14.126 .. 131.159.14.136\} \cup $ \\  
+$ \{131.159.14.138 .. 131.159.14.139\} \cup \{131.159.14.141 .. 131.159.14.144\} \cup $ \\ 
+$ \{131.159.14.147 .. 131.159.14.154\} \cup \{131.159.14.157 .. 131.159.14.162\} \cup $ \\ 
+$ \{131.159.14.164 .. 131.159.14.168\} \cup \{131.159.14.170 .. 131.159.14.200\} \cup $ \\ 
+$ \{131.159.14.202 .. 131.159.14.213\} \cup \{131.159.14.215 .. 131.159.15.4\} \cup $ \\ 
+$ 131.159.15.6 \cup \{131.159.15.14 .. 131.159.15.15\} \cup $ \\ 
+$ \{131.159.15.21 .. 131.159.15.22\} \cup 131.159.15.26 \cup 131.159.15.28 \cup $ \\ 
+$ 131.159.15.30 \cup \{131.159.15.33 .. 131.159.15.35\} \cup $ \\ 
+$ \{131.159.15.37 .. 131.159.15.38\} \cup 131.159.15.40 \cup $ \\ 
+$ \{131.159.15.45 .. 131.159.15.46\} \cup \{131.159.15.48 .. 131.159.15.49\} \cup $ \\ 
+$ \{131.159.15.52 .. 131.159.15.55\} \cup 131.159.15.57 \cup 131.159.15.59 \cup $ \\ 
+$ \{131.159.15.61 .. 131.159.15.67\} \cup \{131.159.15.70 .. 131.159.15.196\} \cup $ \\ 
+$ \{131.159.15.198 .. 131.159.15.227\} \cup \{131.159.15.229 .. 131.159.15.233\} \cup $ \\ 
+$ \{131.159.15.235 .. 131.159.15.246\} \cup \{131.159.15.250 .. 131.159.15.255\} \cup $ \\ 
+$ \{131.159.20.0 .. 131.159.20.20\} \cup \{131.159.20.22 .. 131.159.20.28\} \cup $ \\ 
+$ \{131.159.20.30 .. 131.159.20.35\} \cup \{131.159.20.37 .. 131.159.20.44\} \cup $ \\ 
+$ \{131.159.20.46 .. 131.159.20.51\} \cup \{131.159.20.53 .. 131.159.20.58\} \cup $ \\ 
+$ \{131.159.20.60 .. 131.159.20.62\} \cup \{131.159.20.64 .. 131.159.20.70\} \cup $ \\ 
+$ \{131.159.20.72 .. 131.159.20.73\} \cup \{131.159.20.75 .. 131.159.20.84\} \cup $ \\ 
+$ \{131.159.20.86 .. 131.159.20.96\} \cup \{131.159.20.98 .. 131.159.20.119\} \cup $ \\ 
+$ \{131.159.20.121 .. 131.159.20.138\} \cup \{131.159.20.140 .. 131.159.20.149\} \cup $ \\ 
+$ \{131.159.20.152 .. 131.159.20.154\} \cup \{131.159.20.156 .. 131.159.20.159\} \cup $ \\ 
+$ \{131.159.20.161 .. 131.159.20.164\} \cup \{131.159.20.167 .. 131.159.20.179\} \cup $ \\ 
+$ \{131.159.20.181 .. 131.159.20.184\} \cup \{131.159.20.186 .. 131.159.20.199\} \cup $ \\ 
+$ \{131.159.20.201 .. 131.159.20.232\} \cup \{131.159.20.235 .. 131.159.20.255\} \cup $ \\ 
+$ \{185.86.232.0 .. 185.86.235.255\} \cup \{188.95.233.0 .. 188.95.233.3\} \cup $ \\ 
+$ \{188.95.233.5 .. 188.95.233.8\} \cup \{188.95.233.10 .. 188.95.233.255\} \cup $ \\ 
+$ \{192.48.107.0 .. 192.48.107.255\}$}; 
+
+\node[align=left] (srvs) at (10,0) {$\{131.159.14.8 .. 131.159.14.11\} \cup 131.159.14.26 \cup 131.159.14.28 \cup $ \\ 
+$ \{131.159.14.34 .. 131.159.14.37\} \cup 131.159.14.40 \cup 131.159.14.42 \cup $ \\ 
+$ 131.159.14.52 \cup 131.159.14.56 \cup 131.159.14.60 \cup 131.159.14.69 \cup $ \\ 
+$ 131.159.14.83 \cup 131.159.14.104 \cup 131.159.14.125 \cup 131.159.14.137 \cup $ \\ 
+$ 131.159.14.140 \cup \{131.159.14.145 .. 131.159.14.146\} \cup $ \\ 
+$ \{131.159.14.155 .. 131.159.14.156\} \cup 131.159.14.163 \cup 131.159.14.169 \cup $ \\ 
+$ 131.159.14.201 \cup 131.159.14.214 \cup 131.159.15.5 \cup $ \\ 
+$ \{131.159.15.7 .. 131.159.15.13\} \cup \{131.159.15.16 .. 131.159.15.20\} \cup $ \\ 
+$ \{131.159.15.23 .. 131.159.15.25\} \cup 131.159.15.27 \cup 131.159.15.29 \cup $ \\ 
+$ \{131.159.15.31 .. 131.159.15.32\} \cup 131.159.15.36 \cup 131.159.15.39 \cup $ \\ 
+$ \{131.159.15.41 .. 131.159.15.44\} \cup 131.159.15.47 \cup 131.159.15.51 \cup $ \\ 
+$ 131.159.15.56 \cup 131.159.15.58 \cup 131.159.15.60 \cup $ \\ 
+$ \{131.159.15.68 .. 131.159.15.69\} \cup 131.159.15.197 \cup 131.159.15.228 \cup $ \\ 
+$ 131.159.15.234 \cup \{131.159.15.247 .. 131.159.15.249\} \cup 131.159.20.21 \cup $ \\ 
+$ 131.159.20.29 \cup 131.159.20.36 \cup 131.159.20.45 \cup 131.159.20.52 \cup $ \\ 
+$ 131.159.20.59 \cup 131.159.20.63 \cup 131.159.20.71 \cup 131.159.20.74 \cup $ \\ 
+$ 131.159.20.85 \cup 131.159.20.97 \cup 131.159.20.120 \cup 131.159.20.139 \cup $ \\ 
+$ \{131.159.20.150 .. 131.159.20.151\} \cup 131.159.20.155 \cup 131.159.20.160 \cup $ \\ 
+$ \{131.159.20.165 .. 131.159.20.166\} \cup 131.159.20.180 \cup 131.159.20.185 \cup $ \\ 
+$ 131.159.20.200 \cup \{131.159.20.233 .. 131.159.20.234\} \cup $ \\ 
+$ \{131.159.21.0 .. 131.159.21.255\} \cup \{188.95.232.192 .. 188.95.232.223\} \cup $ \\ 
+$ 188.95.233.4 \cup 188.95.233.9 \cup \{188.95.234.0 .. 188.95.239.255\}$}; 
+
+\node[align=left] (ips1) at (-3,-1) {$188.1.239.86 \cup \{188.95.232.64 .. 188.95.232.191\}$};
+
+\node[align=left] (ips2) at (10,-8) {$\{138.246.253.6 .. 138.246.253.10\}$};
+
+\node[align=left] (ip3) at (5,-6) {$138.246.253.5$};
+
+\node[align=left] (ip4) at (4.5,-8) {$131.159.15.50$};
+
+\node[align=left] (l) at (8,-10) {$\{127.0.0.0 .. 127.255.255.255\}$};
+
+
+
+\draw[myloop] (m) to[loop above] (m);
+\draw[myptr] (m) to (srvs);
+\draw[myptr] (inet) to (m);
+\draw[myptr] (inet) to (srvs);
+\draw[myptr,shorten <=-0.8cm] (internal) to (m);
+\draw[myptr] (internal) to (inet);
+\draw[myloop] (internal) to[loop above] (internal);
+\draw[myptr] (internal) to (srvs);
+\draw[myptr] (internal) to (ips1);
+\draw[myptr] (internal) to (ips2);
+\draw[myptr] (internal) to (ip3);
+\draw[myptr] (internal) to (ip4);
+\draw[myptr] (internal) to (l);
+\draw[myptr] (srvs) to (m);
+\draw[myptr] (srvs) to (inet);
+\draw[myptr] (srvs) to (internal);
+\draw[myloop] (srvs) to[loop above] (srvs);
+\draw[myptr] (srvs) to (ips1);
+\draw[myptr] (srvs) to (ips2);
+\draw[myptr] (srvs) to (ip3);
+\draw[myptr] (srvs) to (ip4);
+\draw[myptr] (srvs) to (l);
+\draw[myptr] (ips1) to (m);
+\draw[myptr] (ips1) to (inet);
+\draw[myptr] (ips1) to (internal);
+\draw[myptr] (ips1) to (srvs);
+\draw[myloop] (ips1.west) to[loop left] (ips1);
+\draw[myptr] (ips1) to (ips2);
+\draw[myptr] (ips1) to (ip3);
+\draw[myptr] (ips1) to (ip4);
+\draw[myptr] (ips1) to (l);
+\draw[myptr] (ips2) to (m);
+\draw[myptr] (ips2) to (srvs);
+\draw[myptr] (ips2) to (ip4);
+\draw[myptr] (ip3) to (m);
+\draw[myptr] (ip3) to (internal);
+\draw[myptr] (ip3) to (srvs);
+\draw[myptr] (ip3) to (ip4);
+\draw[myptr] (ip4) to (m);
+\draw[myptr] (ip4) to (inet);
+\draw[myptr] (ip4) to (internal);
+\draw[myptr] (ip4) to (srvs);
+\draw[myptr] (ip4) to (ips1);
+\draw[myptr] (ip4) to (ips2);
+\draw[myptr] (ip4) to (ip3);
+\draw[myloop] (ip4) to[loop below] (ip4);
+\draw[myptr] (ip4) to (l);
+
+\end{tikzpicture}%
+}
+\caption{TUM ssh Service Matrix}
+\label{fig:tumssh}
+\end{figure}
+
+\<close>
 
 
 end                            

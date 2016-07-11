@@ -1,6 +1,5 @@
 theory Parser_Test
 imports "../../Primitive_Matchers/Parser"
-  "../../Simple_Firewall/SimpleFw_toString"
 begin
 
 
@@ -31,21 +30,27 @@ lemma "parser_test_firewall \<equiv>
     Rule (MatchAnd (Match (Prot (Proto ICMP)))
            (Match
              (Extra
-               [CHR ''-'', CHR ''m'', CHR '' '', CHR ''c'', CHR ''o'', CHR ''m'', CHR ''m'',
-                CHR ''e'', CHR ''n'', CHR ''t'', CHR '' '', CHR ''-'', CHR ''-'', CHR ''c'',
-                CHR ''o'', CHR ''m'', CHR ''m'', CHR ''e'', CHR ''n'', CHR ''t'', CHR '' '',
-                Char Nibble2 Nibble2, CHR ''!'', Char Nibble2 Nibble2])))
+               (''-m comment --comment ''@ [Char Nibble2 Nibble2, CHR ''!'', Char Nibble2 Nibble2]) )))
      action.Accept,
     Rule (MatchAnd (Match (Prot (Proto ICMP)))
            (Match
              (Extra
-               [CHR ''-'', CHR ''m'', CHR '' '', CHR ''c'', CHR ''o'', CHR ''m'', CHR ''m'',
-                CHR ''e'', CHR ''n'', CHR ''t'', CHR '' '', CHR ''-'', CHR ''-'', CHR ''c'',
-                CHR ''o'', CHR ''m'', CHR ''m'', CHR ''e'', CHR ''n'', CHR ''t'', CHR '' '',
-                Char Nibble2 Nibble2, CHR ''h'', CHR ''a'', CHR ''s'', CHR '' '', CHR ''s'',
-                CHR ''p'', CHR ''a'', CHR ''c'', CHR ''e'', Char Nibble2 Nibble2])))
+               (''-m comment --comment ''
+                @ [Char Nibble2 Nibble2] @ ''has space'' @ [Char Nibble2 Nibble2]) )))
      action.Accept,
     Rule (Match (Prot (Proto ICMP))) action.Accept,
+    Rule (MatchAnd (Match (Prot (Proto L4_Protocol.IPv6ICMP)))
+          (Match (Extra  (''-m icmp6 --icmpv6-type 133 -m comment --comment ''
+                          @ [Char Nibble2 Nibble2]
+                          @ ''this module only works for ip6tables but -p icmpv6 is fine''
+                          @ [Char Nibble2 Nibble2]) )))
+    action.Accept,
+   Rule (MatchAnd (Match (Prot (Proto L4_Protocol.IPv6ICMP)))
+         (MatchAnd
+          (Match (Extra (''-m icmp6 --icmpv6-type 133 -m comment --comment ''
+                          @ [Char Nibble2 Nibble2, Char Nibble5 NibbleC, Char Nibble2 Nibble2, Char Nibble2 Nibble2])))
+           (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)))) )
+    action.Accept,
     Rule (MatchNot (Match (Prot (Proto ICMP)))) Empty,
     Rule (MatchAnd (MatchNot (Match (Prot (Proto TCP))))
            (MatchNot (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (131, 159, 0, 0)) 16)))))
@@ -62,13 +67,9 @@ lemma "parser_test_firewall \<equiv>
   (''FORWARD'',
    [Rule (Match
            (Extra
-             [CHR ''-'', CHR ''-'', CHR ''l'', CHR ''o'', CHR ''g'', CHR ''-'', CHR ''p'',
-              CHR ''r'', CHR ''e'', CHR ''f'', CHR ''i'', CHR ''x'', CHR '' '',
-              Char Nibble2 Nibble2, CHR ''!'', CHR ''#'', CHR ''*'', CHR ''~'', CHR ''%'',
-              CHR ''&'', CHR ''/'', CHR ''('', CHR '')'', CHR ''='', CHR ''?'',
-              Char Nibble2 Nibble2, CHR '' '', CHR ''-'', CHR ''-'', CHR ''l'', CHR ''o'',
-              CHR ''g'', CHR ''-'', CHR ''l'', CHR ''e'', CHR ''v'', CHR ''e'', CHR ''l'',
-              CHR '' '', CHR ''6'']))
+             (''--log-prefix ''
+              @ [Char Nibble2 Nibble2] @ ''!#*~%&/()=?''
+              @ [Char Nibble2 Nibble2] @ '' --log-level 6'') ))
      Log,
     Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8))) action.Drop,
     Rule (MatchAnd (Match (IIface (Iface ''wlan0'')))
@@ -164,6 +165,14 @@ lemma "has_default_policy
                   (upper_closure (packet_assume_new
                     (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
                       (map_of_string_ipv4 (Semantics_Goto.rewrite_Goto parser_test_firewall))))))))"
+  by eval
+
+lemma "sanity_check_simple_firewall
+        (to_simple_firewall (upper_closure
+                        (optimize_matches abstract_for_simple_firewall
+                          (upper_closure (packet_assume_new
+                            (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
+                              (map_of_string_ipv4 (Semantics_Goto.rewrite_Goto parser_test_firewall))))))))"
   by eval
 
 value[code] "(optimize_matches abstract_for_simple_firewall

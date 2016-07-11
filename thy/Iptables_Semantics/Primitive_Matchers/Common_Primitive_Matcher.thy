@@ -6,7 +6,7 @@ begin
 subsection\<open>Primitive Matchers: IP Port Iface Matcher\<close>
 
 (*IPv4 matcher*)
-fun common_matcher :: "('i::len common_primitive, ('i, 'a) simple_packet_scheme) exact_match_tac" where
+fun common_matcher :: "('i::len common_primitive, ('i, 'a) tagged_packet_scheme) exact_match_tac" where
   "common_matcher (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))" |
   "common_matcher (OIface i) p = bool_to_ternary (match_iface i (p_oiface p))" |
 
@@ -151,7 +151,7 @@ subsection\<open>Basic optimisations\<close>
   lemma optimize_primitive_univ_correct_matchexpr: fixes m::"'i::len common_primitive match_expr"
     shows "matches (common_matcher, \<alpha>) m = matches (common_matcher, \<alpha>) (optimize_primitive_univ m)"
     proof(simp add: fun_eq_iff, clarify, rename_tac a p)
-      fix a and p :: "('i::len, 'a) simple_packet_scheme"
+      fix a and p :: "('i::len, 'a) tagged_packet_scheme"
       have "(max_word::16 word) =  65535" by(simp add: max_word_def)
       hence port_range: "\<And>s e port. s = 0 \<and> e = 0xFFFF \<longrightarrow> (port::16 word) \<le> 0xFFFF" by simp
       have "ternary_ternary_eval (map_match_tac common_matcher p m) = ternary_ternary_eval (map_match_tac common_matcher p (optimize_primitive_univ m))"

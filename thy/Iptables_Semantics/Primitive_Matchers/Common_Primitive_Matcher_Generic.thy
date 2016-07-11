@@ -13,7 +13,7 @@ text\<open>Generalized Definition agnostic of IP Addresses fro IPv4 and IPv6\<cl
 (*TODO: generic assumptions for a common matcher without information about IPs.
         to be used to add ipv6 integration without duplicating all proofs *)
 locale primitive_matcher_generic =
-  fixes \<beta> :: "('i::len common_primitive, ('i::len, 'a) simple_packet_scheme) exact_match_tac"
+  fixes \<beta> :: "('i::len common_primitive, ('i::len, 'a) tagged_packet_scheme) exact_match_tac"
   assumes IIface: "\<forall> p i. \<beta> (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))"
       and OIface: "\<forall> p i. \<beta> (OIface i) p = bool_to_ternary (match_iface i (p_oiface p))"
         and Prot: "\<forall> p proto. \<beta> (Prot proto) p = bool_to_ternary (match_proto proto (p_proto p))"
@@ -99,11 +99,11 @@ subsection\<open>Basic optimisations\<close>
   value "compress_extra (MatchAnd (Match (Extra ''-m'')) (MatchAnd (Match (Extra ''addrtype'')) (MatchAnd (Match (Extra ''--dst-type'')) (MatchAnd (Match (Extra ''BROADCAST'')) MatchAny))))"
   
   lemma compress_extra_correct_matchexpr:
-    fixes \<beta>::"('i::len common_primitive, ('i::len, 'a) simple_packet_scheme) exact_match_tac"
+    fixes \<beta>::"('i::len common_primitive, ('i::len, 'a) tagged_packet_scheme) exact_match_tac"
     assumes generic: "primitive_matcher_generic \<beta>"
     shows "matches (\<beta>, \<alpha>) m = matches (\<beta>, \<alpha>) (compress_extra m)"
     proof(simp add: fun_eq_iff, clarify, rename_tac a p)
-      fix a and p :: "('i, 'a) simple_packet_scheme"
+      fix a and p :: "('i, 'a) tagged_packet_scheme"
       from generic have "\<beta> (Extra e) p = TernaryUnknown" for e by(simp add: primitive_matcher_generic.Extra)
       hence "ternary_ternary_eval (map_match_tac \<beta> p m) = ternary_ternary_eval (map_match_tac \<beta> p (compress_extra m))"
         apply(induction m rule: compress_extra.induct)

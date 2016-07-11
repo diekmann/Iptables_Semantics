@@ -1,8 +1,12 @@
-theory Parser
+theory Parser6
 imports Code_Interface
-  keywords "parse_iptables_save"::thy_decl
+  keywords "parse_ip6tables_save"::thy_decl
 begin
 
+(*THIS IS A VERBATIM COPY OF THE IPv4 PARSER.
+ I JUST HAVE SEARCH/REPLACED s/32/128 and s/ipv4/ipv6
+ AND RENAMED THE COMMAND
+ ! ! ! do not edit by hand ! ! !*)
 
 context
 begin
@@ -21,7 +25,7 @@ begin
     "compress_parsed_extra (a#as) = a#compress_parsed_extra as"
   
   lemma "compress_parsed_extra
-    (map Pos [Extra ''-m'', (Extra ''recent'' :: 32 common_primitive),
+    (map Pos [Extra ''-m'', (Extra ''recent'' :: 128 common_primitive),
               Extra ''--update'', Extra ''--seconds'', Extra ''60'',
               IIface (Iface ''foobar''),
               Extra ''--name'', Extra ''DEFAULT'', Extra ''--rsource'']) =
@@ -190,15 +194,15 @@ local (*iptables-save parsers*)
                   raise Fail("nat ("^Int.toString i^") must be between 0 and "^Int.toString maxval)
                 else (HOLogic.mk_number HOLogic.natT i);
      
-      fun ipNetmask_to_hol (ip,len) = @{const IpAddrNetmask (32)} $ mk_ipv4addr ip $ mk_nat 32 len;
-      fun ipRange_to_hol (ip1,ip2) = @{const IpAddrRange (32)} $ mk_ipv4addr ip1 $ mk_ipv4addr ip2;
+      fun ipNetmask_to_hol (ip,len) = @{const IpAddrNetmask (128)} $ mk_ipv6addr ip $ mk_nat 128 len;
+      fun ipRange_to_hol (ip1,ip2) = @{const IpAddrRange (128)} $ mk_ipv6addr ip1 $ mk_ipv6addr ip2;
     
       
-      val parser_ip_cidr = parser_ipv4 --| ($$ "/") -- (Scan.many1 Symbol.is_ascii_digit >> extract_int) >> ipNetmask_to_hol;
+      val parser_ip_cidr = parser_ipv6 --| ($$ "/") -- (Scan.many1 Symbol.is_ascii_digit >> extract_int) >> ipNetmask_to_hol;
 
-      val parser_ip_range = parser_ipv4 --| ($$ "-") -- parser_ipv4 >> ipRange_to_hol;
+      val parser_ip_range = parser_ipv6 --| ($$ "-") -- parser_ipv6 >> ipRange_to_hol;
 
-      val parser_ip_addr = parser_ipv4 >> (fn ip => @{const IpAddr (32)} $ mk_ipv4addr ip);
+      val parser_ip_addr = parser_ipv6 >> (fn ip => @{const IpAddr (128)} $ mk_ipv6addr ip);
     
       val parser_interface = Scan.many1 is_iface_char >> (implode #> (fn x => @{const Iface} $ HOLogic.mk_string x));
 
@@ -279,40 +283,40 @@ local (*iptables-save parsers*)
       (Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string module)) |-- (Scan.repeat parser)
   in
 
-    val parse_ips = parse_cmd_option_negated_singleton "-s " @{const Src (32)} (parser_ip_cidr || parser_ip_addr)
-                 || parse_cmd_option_negated_singleton "-d " @{const Dst (32)} (parser_ip_cidr || parser_ip_addr);
+    val parse_ips = parse_cmd_option_negated_singleton "-s " @{const Src (128)} (parser_ip_cidr || parser_ip_addr)
+                 || parse_cmd_option_negated_singleton "-d " @{const Dst (128)} (parser_ip_cidr || parser_ip_addr);
 
                             
     val parse_iprange = parse_with_module_prefix "-m iprange "
-                            (   parse_cmd_option_negated "--src-range " @{const Src (32)} parser_ip_range
-                             || parse_cmd_option_negated "--dst-range " @{const Dst (32)} parser_ip_range); 
+                            (   parse_cmd_option_negated "--src-range " @{const Src (128)} parser_ip_range
+                             || parse_cmd_option_negated "--dst-range " @{const Dst (128)} parser_ip_range); 
     
-    val parse_iface = parse_cmd_option_negated_singleton "-i " @{const IIface (32)} parser_interface
-                   || parse_cmd_option_negated_singleton "-o " @{const OIface (32)} parser_interface;
+    val parse_iface = parse_cmd_option_negated_singleton "-i " @{const IIface (128)} parser_interface
+                   || parse_cmd_option_negated_singleton "-o " @{const OIface (128)} parser_interface;
 
     (*TODO type is explicit here*)
     val parse_protocol = parse_cmd_option_negated_singleton "-p "
-                @{term "(Prot \<circ> Proto) :: primitive_protocol \<Rightarrow> 32 common_primitive"} parser_protocol; (*negated?*)
+                @{term "(Prot \<circ> Proto) :: primitive_protocol \<Rightarrow> 128 common_primitive"} parser_protocol; (*negated?*)
 
     (*-m tcp requires that there is already an -p tcp, iptables checks that for you, we assume valid iptables-save (otherwise the kernel would not load it)*)
     val parse_tcp_options = parse_with_module_prefix "-m tcp "
-              (   parse_cmd_option_negated "--sport " @{const Src_Ports (32)} parser_port_single_tup_term
-               || parse_cmd_option_negated "--dport " @{const Dst_Ports (32)} parser_port_single_tup_term
-               || parse_cmd_option_negated "--tcp-flags " @{const L4_Flags (32)} parser_tcp_flags);
+              (   parse_cmd_option_negated "--sport " @{const Src_Ports (128)} parser_port_single_tup_term
+               || parse_cmd_option_negated "--dport " @{const Dst_Ports (128)} parser_port_single_tup_term
+               || parse_cmd_option_negated "--tcp-flags " @{const L4_Flags (128)} parser_tcp_flags);
     val parse_multiports = parse_with_module_prefix "-m multiport "
-              (   parse_cmd_option_negated "--sports " @{const Src_Ports (32)} parser_port_many1_tup
-               || parse_cmd_option_negated "--dports " @{const Dst_Ports (32)} parser_port_many1_tup);
+              (   parse_cmd_option_negated "--sports " @{const Src_Ports (128)} parser_port_many1_tup
+               || parse_cmd_option_negated "--dports " @{const Dst_Ports (128)} parser_port_many1_tup);
     val parse_udp_options = parse_with_module_prefix "-m udp "
-              (   parse_cmd_option_negated "--sport " @{const Src_Ports (32)} parser_port_single_tup_term
-               || parse_cmd_option_negated "--dport " @{const Dst_Ports (32)} parser_port_single_tup_term);
+              (   parse_cmd_option_negated "--sport " @{const Src_Ports (128)} parser_port_single_tup_term
+               || parse_cmd_option_negated "--dport " @{const Dst_Ports (128)} parser_port_single_tup_term);
 
     val parse_ctstate = parse_with_module_prefix "-m state "
-                  (parse_cmd_option_negated "--state " @{const CT_State (32)} parser_ctstate_set)
+                  (parse_cmd_option_negated "--state " @{const CT_State (128)} parser_ctstate_set)
               || parse_with_module_prefix "-m conntrack "
-                  (parse_cmd_option_negated "--ctstate " @{const CT_State (32)} parser_ctstate_set);
+                  (parse_cmd_option_negated "--ctstate " @{const CT_State (128)} parser_ctstate_set);
     
      (*TODO: it would be good to fail if there is a "!" in the extra; it might be an unparsed negation*)
-    val parse_unknown = (parse_cmd_option "" @{const Extra (32)} parser_extra) >> (fn x => [x]);
+    val parse_unknown = (parse_cmd_option "" @{const Extra (128)} parser_extra) >> (fn x => [x]);
   end;
   
   
@@ -427,10 +431,10 @@ local
 
    val get_matches : (parsed_match_action list -> term) =
         List.mapPartial (fn p => case p of
-                            ParsedMatch m => SOME (@{const Pos ("32 common_primitive")} $ m)
-                          | ParsedNegatedMatch m => SOME (@{const Neg ("32 common_primitive")} $ m)
+                            ParsedMatch m => SOME (@{const Pos ("128 common_primitive")} $ m)
+                          | ParsedNegatedMatch m => SOME (@{const Neg ("128 common_primitive")} $ m)
                           | ParsedAction _ => NONE)
-                         #> HOLogic.mk_list @{typ "32 common_primitive negation_type"};
+                         #> HOLogic.mk_list @{typ "128 common_primitive negation_type"};
 
 
    (*returns: (chainname the rule was appended to, target, matches)*)
@@ -480,15 +484,15 @@ local
   (* this takes like forever! *)
   (* apply compress_parsed_extra here?*)
   fun hacky_hack t = (*Code_Evaluation.dynamic_value_strict @{context} (@{const compress_extra} $ t)*)
-    @{const alist_and' ("32 common_primitive")} $ (@{const compress_parsed_extra (32)} $ t)
+    @{const alist_and' ("128 common_primitive")} $ (@{const compress_parsed_extra (128)} $ t)
   
-  fun mk_MatchExpr t = if fastype_of t <> @{typ "32 common_primitive negation_type list"}
+  fun mk_MatchExpr t = if fastype_of t <> @{typ "128 common_primitive negation_type list"}
                        then
                          raise Fail "Type Error"
                        else
                          hacky_hack t;
-  fun mk_Rule_help t a = let val r = @{const Rule ("32 common_primitive")} $ (mk_MatchExpr t) $ a in
-      if fastype_of r <> @{typ "32 common_primitive rule"} then raise Fail "Type error in mk_Rule_help"
+  fun mk_Rule_help t a = let val r = @{const Rule ("128 common_primitive")} $ (mk_MatchExpr t) $ a in
+      if fastype_of r <> @{typ "128 common_primitive rule"} then raise Fail "Type error in mk_Rule_help"
       else r end;
   
   fun append table chain rule = case FirewallTable.lookup table chain
@@ -538,8 +542,8 @@ end
 
 ML\<open>
 fun mk_Ruleset (tbl: firewall_table) = FirewallTable.dest tbl
-    |> map (fn (k,v) => HOLogic.mk_prod (HOLogic.mk_string k, HOLogic.mk_list @{typ "32 common_primitive rule"} v))
-    |> HOLogic.mk_list @{typ "string \<times> 32 common_primitive rule list"}
+    |> map (fn (k,v) => HOLogic.mk_prod (HOLogic.mk_string k, HOLogic.mk_list @{typ "128 common_primitive rule"} v))
+    |> HOLogic.mk_list @{typ "string \<times> 128 common_primitive rule list"}
 \<close>
 
 
@@ -614,7 +618,7 @@ local
       in ps end;
 
   fun sanity_check_ruleset (ctx: Proof.context) t = let
-      val check = Code_Evaluation.dynamic_value_strict ctx (@{const sanity_wf_ruleset ("32 common_primitive")} $ t)
+      val check = Code_Evaluation.dynamic_value_strict ctx (@{const sanity_wf_ruleset ("128 common_primitive")} $ t)
     in
       if check <> @{term "True"} then raise ERROR "sanity_wf_ruleset failed" else t
     end;
@@ -647,7 +651,7 @@ end
 
 
 ML\<open>
-  Outer_Syntax.local_theory @{command_keyword parse_iptables_save}
+  Outer_Syntax.local_theory @{command_keyword parse_ip6tables_save}
   "load a file generated by iptables-save and make the firewall definition available as isabelle term"
     (Parse.binding --| @{keyword "="} -- Scan.repeat1 Parse.path >>
       (fn (binding, paths) => parse_iptables_save "filter" binding paths))

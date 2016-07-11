@@ -1,19 +1,16 @@
 theory SimpleFw_toString
-imports 
-        "../Common/Lib_toString"
-        "../Primitive_Matchers/Common_Primitive_toString"
-        "../Simple_Firewall/SimpleFw_Semantics"
+imports "Primitives/Primitives_toString"
+        SimpleFw_Syntax
 begin
 
 
-section\<open>toString Functions\<close>
-
+section\<open>Simple Firewall toString Functions\<close>
 
 fun simple_action_toString :: "simple_action \<Rightarrow> string" where
   "simple_action_toString Accept = ''ACCEPT''" |
   "simple_action_toString Drop = ''DROP''"
 
-
+(*TODO: rename for ipv6*)
 fun simple_rule_toString :: "32 simple_rule \<Rightarrow> string" where
   "simple_rule_toString (SimpleRule \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> a) = 
       simple_action_toString a @ ''     '' @ 
@@ -25,18 +22,17 @@ fun simple_rule_toString :: "32 simple_rule \<Rightarrow> string" where
       ports_toString ''sports: '' sps @ '' '' @ 
       ports_toString ''dports: '' dps"
 
-
-(*TODO: move*)
-
-
-definition ipv4_cidr_opt_toString :: "string \<Rightarrow> ipv4addr \<times> nat \<Rightarrow> string" where
-  "ipv4_cidr_opt_toString descr ip = (if ip = (0,0) then '''' else
-      descr@ipv4_cidr_toString ip)"
-
-
-definition protocol_opt_toString :: "string \<Rightarrow> protocol \<Rightarrow> string" where
-  "protocol_opt_toString descr prot = (if prot = ProtoAny then '''' else
-      descr@protocol_toString prot)"
+fun simple_rule6_toString :: "128 simple_rule \<Rightarrow> string" where
+  "simple_rule6_toString
+    (SimpleRule \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> a) = 
+      simple_action_toString a @ ''     '' @ 
+      protocol_toString p @ ''  --  '' @ 
+      ipv6_cidr_toString sip @ ''            '' @
+      ipv6_cidr_toString dip @ '' '' @ 
+      iface_toString ''in: '' iif @ '' '' @ 
+      iface_toString ''out: '' oif @ '' '' @ 
+      ports_toString ''sports: '' sps @ '' '' @ 
+      ports_toString ''dports: '' dps"
 
 fun simple_rule_iptables_save_toString :: "string \<Rightarrow> 32 simple_rule \<Rightarrow> string" where
   "simple_rule_iptables_save_toString chain (SimpleRule \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> a) = 

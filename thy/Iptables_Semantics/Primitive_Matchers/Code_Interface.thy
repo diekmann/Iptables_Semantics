@@ -6,11 +6,11 @@ imports
   Transform
   No_Spoof
   "../Simple_Firewall/SimpleFw_Compliance"
-  "../Simple_Firewall/SimpleFw_toString"
-  "../Simple_Firewall/IPPartitioning"
+  "../../Simple_Firewall/SimpleFw_toString"
+  "../../Simple_Firewall/Service_Matrices"
   "../Semantics_Ternary/Optimizing" (*do we use this?*)
   "../Semantics_Goto"
-  "../Simple_Firewall/SimpleFw_toString" (*hmm, here?*)
+  "../../Simple_Firewall/SimpleFw_toString"
   "../../Native_Word/Code_Target_Bits_Int"
   "~~/src/HOL/Library/Code_Target_Nat"
   "~~/src/HOL/Library/Code_Target_Int"
@@ -21,6 +21,11 @@ begin
 
 section\<open>Code Interface\<close>
 
+text\<open>HACK: rewrite quotes such that they are better printable by Isabelle\<close>
+definition quote_rewrite :: "string \<Rightarrow> string" where
+  "quote_rewrite \<equiv> map (\<lambda>c. if c = Char Nibble2 Nibble2 then CHR ''~'' else c)"
+
+lemma "quote_rewrite (''foo''@[Char Nibble2 Nibble2]) = ''foo~''" by eval
 
 text\<open>The parser returns the @{typ "'i::len common_primitive ruleset"} not as a map but as an association list.
       This function converts it\<close>
@@ -188,5 +193,11 @@ lemma "prefix_to_strange_inverse_cisco_mask 24 = (0, 0, 0, 255)" by eval
 lemma "prefix_to_strange_inverse_cisco_mask 32 = (0, 0, 0, 0)" by eval
 
 
+
+(*TODO: deduplicate with simple_fw_valid !*)
+definition sanity_check_simple_firewall :: "'i::len simple_rule list \<Rightarrow> bool" where
+  "sanity_check_simple_firewall rs \<equiv> \<forall> r \<in> set rs. simple_match_valid (match_sel r)"
+lemma "sanity_check_simple_firewall = simple_fw_valid"
+  by(simp add: sanity_check_simple_firewall_def simple_fw_valid_def fun_eq_iff pred_list_def)
 
 end

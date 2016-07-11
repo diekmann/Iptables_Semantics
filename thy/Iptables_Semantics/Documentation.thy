@@ -1,7 +1,9 @@
 theory Documentation
-imports Semantics_Embeddings Call_Return_Unfolding No_Spoof_Embeddings
+imports Semantics_Embeddings
+    Call_Return_Unfolding
+    No_Spoof_Embeddings
     "Primitive_Matchers/Code_Interface"
-    "Simple_Firewall/IPPartitioning"
+    "../Simple_Firewall/Service_Matrices"
 begin
 
 
@@ -63,7 +65,7 @@ text\<open>The iptables firewall starts as follows:
 \<close>
 lemma unfold_optimize_common_matcher_univ_ruleset_CHAIN:
     --"for simple Ipv4 packets"
-    fixes \<gamma> :: "'i::len common_primitive \<Rightarrow> ('i, 'a) simple_packet_scheme \<Rightarrow> bool"
+    fixes \<gamma> :: "'i::len common_primitive \<Rightarrow> ('i, 'a) tagged_packet_scheme \<Rightarrow> bool"
     assumes "sanity_wf_ruleset \<Gamma>" and "chain_name \<in> set (map fst \<Gamma>)" and "default_action = action.Accept \<or> default_action = action.Drop"
     and "matcher_agree_on_exact_matches \<gamma> common_matcher"
     and "unfold_ruleset_CHAIN_safe chain_name default_action (map_of \<Gamma>) = Some rs"
@@ -113,7 +115,8 @@ There is also a different approach to translate to the simple firewall which rem
 
 subsection\<open>Service Matrices\<close>
 text\<open>
-For a @{typ "'i::len simple_rule list"} and a fixed @{typ parts_connection}, we support to partition the IPv4 address space the following.
+For a @{typ "'i::len simple_rule list"} and a fixed @{typ parts_connection}, 
+we support to partition the IPv4 address space the following.
 
 All members of a partition have the same access rights:
 @{thm build_ip_partition_same_fw [no_vars]}

@@ -1,0 +1,11 @@
+chapter Simple_Firewall
+
+session "Simple_Firewall" = IP_Addresses +
+  theories
+    SimpleFw_Syntax
+    SimpleFw_Semantics
+    Generic_SimpleFw
+    Shadowed
+    Service_Matrices
+  document_files
+    "root.tex"

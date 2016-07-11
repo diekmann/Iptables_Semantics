@@ -1,6 +1,5 @@
 theory Iface
 imports String
-        "../Common/Negation_Type"
         (* Word_Lib imports: "~~/src/HOL/Library/Prefix_Order" clash! This does not give a total order. :(
           we have to define a order by ourselves*)
         (*"~~/src/HOL/Library/List_lexord" (*WARNING: importing lexord. TODO*)*)
@@ -9,9 +8,6 @@ begin
 
 section\<open>Network Interfaces\<close>
 
-(*TODO: add some rule that says an interface starting with '!' is invalid
-  (because we want to fail if negation occurs!) See man iptables.
-  But the parser/lexer should handle this*)
 datatype iface = Iface (iface_sel: "string")  --"no negation supported, but wildcards"
 
 

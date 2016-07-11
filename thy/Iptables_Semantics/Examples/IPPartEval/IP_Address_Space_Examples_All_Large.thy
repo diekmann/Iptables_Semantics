@@ -58,18 +58,18 @@ begin
 value[code] "debug_ipassmt ipassmt []"
 
 definition netbios where "netbios = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=UDP,
-                               pc_sport=10000, pc_dport=137, pc_tag_ctstate=CT_New\<rparr>"
+                               pc_sport=10000, pc_dport=137\<rparr>"
 definition kerberos_adm_tcp where "kerberos_adm_tcp = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
-                               pc_sport=10000, pc_dport=749, pc_tag_ctstate=CT_New\<rparr>"
+                               pc_sport=10000, pc_dport=749\<rparr>"
 definition kerberos_adm_udp where "kerberos_adm_udp = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=UDP,
-                               pc_sport=10000, pc_dport=749, pc_tag_ctstate=CT_New\<rparr>"
+                               pc_sport=10000, pc_dport=749\<rparr>"
 
 definition ldap_tcp where "ldap_tcp = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
-                               pc_sport=10000, pc_dport=389, pc_tag_ctstate=CT_New\<rparr>"
+                               pc_sport=10000, pc_dport=389\<rparr>"
 definition ldap_udp where "ldap_udp = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=UDP,
-                               pc_sport=10000, pc_dport=389, pc_tag_ctstate=CT_New\<rparr>"
+                               pc_sport=10000, pc_dport=389\<rparr>"
 definition ldaps_tcp where "ldaps_tcp = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
-                               pc_sport=10000, pc_dport=636, pc_tag_ctstate=CT_New\<rparr>"
+                               pc_sport=10000, pc_dport=636\<rparr>"
 
 context
 begin

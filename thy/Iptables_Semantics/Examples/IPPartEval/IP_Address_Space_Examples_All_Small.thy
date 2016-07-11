@@ -48,7 +48,7 @@ definition view where
 
 
 (*Do we have code?*)
-export_code bench view in SML
+export_code bench view checking SML
 
 context
 begin
@@ -177,7 +177,7 @@ begin
 
 
   definition web8080 where "web8080 = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
-                               pc_sport=10000, pc_dport=8080, pc_tag_ctstate=CT_New\<rparr>"
+                               pc_sport=10000, pc_dport=8080\<rparr>"
 
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt2 fw3_INPUT_default_policy fw3 in
                map ipv4addr_wordinterval_toString (build_ip_partition web8080 fw)"
@@ -198,7 +198,7 @@ begin
   value[code] "view upper_closure INP ipassmt_generic fw4_INPUT_default_policy fw4"
 
   definition "mysql = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
-                               pc_sport=10000, pc_dport=3306, pc_tag_ctstate=CT_New\<rparr>"
+                               pc_sport=10000, pc_dport=3306\<rparr>"
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt_generic fw4_INPUT_default_policy fw4 in
              map ipv4addr_wordinterval_toString (build_ip_partition mysql fw)"
 
@@ -383,12 +383,12 @@ begin
 
 
   definition srctcp137dst137 where "srctcp137dst137 = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
-                               pc_sport=137, pc_dport=137, pc_tag_ctstate=CT_New\<rparr>"
+                               pc_sport=137, pc_dport=137\<rparr>"
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt15 fw15_INPUT_default_policy fw15 in
                map ipv4addr_wordinterval_toString (build_ip_partition srctcp137dst137 fw)"
 
   definition tcpdst137 where "tcpdst137 = \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP,
-                               pc_sport=10000, pc_dport=137, pc_tag_ctstate=CT_New\<rparr>"
+                               pc_sport=10000, pc_dport=137\<rparr>"
   value[code] "let fw = preprocess (get_unfold INP) upper_closure ipassmt15 fw15_INPUT_default_policy fw15 in
                map ipv4addr_wordinterval_toString (build_ip_partition tcpdst137 fw)"
 end

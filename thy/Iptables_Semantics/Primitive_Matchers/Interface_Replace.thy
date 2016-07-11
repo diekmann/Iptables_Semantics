@@ -166,8 +166,8 @@ lemma "(\<exists>ips. ipassmt (Iface (p_iiface p)) = Some ips \<and> p_src p \<i
 
 text\<open>Sanity check:
       If we assume that there are no spoofed packets, spoofing protection is trivially fulfilled.\<close>
-(*TODO: only 32 simple_packet_scheme*)
-lemma "\<forall> p:: (32,'pkt_ext) simple_packet_scheme. Iface (p_iiface p) \<in> dom ipassmt \<longrightarrow> p_src p \<in> ipcidr_union_set (set (the (ipassmt (Iface (p_iiface p))))) \<Longrightarrow> no_spoofing TYPE('pkt_ext) ipassmt rs"
+(*TODO: only 32 tagged_packet_scheme*)
+lemma "\<forall> p:: (32,'pkt_ext) tagged_packet_scheme. Iface (p_iiface p) \<in> dom ipassmt \<longrightarrow> p_src p \<in> ipcidr_union_set (set (the (ipassmt (Iface (p_iiface p))))) \<Longrightarrow> no_spoofing TYPE('pkt_ext) ipassmt rs"
   apply(simp add: no_spoofing_def)
   apply(clarify)
   apply(rename_tac iface ips p)
@@ -181,7 +181,7 @@ text\<open>Sanity check:
       Then the packet's src ip must be according to ipassmt. (case Some)
       We don't case about packets from an interface which are not defined in ipassmt. (case None)\<close>
 lemma 
-  fixes p :: "(32,'pkt_ext) simple_packet_scheme"
+  fixes p :: "(32,'pkt_ext) tagged_packet_scheme"
   shows "no_spoofing TYPE('pkt_ext) ipassmt rs \<Longrightarrow> 
       (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<Longrightarrow>
        case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipcidr_union_set (set ips) | None \<Rightarrow> True"
@@ -334,7 +334,7 @@ end
   text\<open>Finally, we show that @{const ipassmt_sanity_disjoint} is really needed.\<close>
   lemma iface_replace_needs_ipassmt_disjoint:
     assumes "ipassmt_sanity_nowildcards ipassmt"
-    and iface_replace: "\<And> ifce p:: 32 simple_packet.
+    and iface_replace: "\<And> ifce p:: 32 tagged_packet.
           (matches (common_matcher, \<alpha>) (ipassmt_iface_replace_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p)" 
     shows "ipassmt_sanity_disjoint ipassmt"
   unfolding ipassmt_sanity_disjoint_def
@@ -344,7 +344,7 @@ end
     from \<open>i1 \<in> dom ipassmt\<close> obtain i1_ips where i1_ips: "ipassmt i1 = Some i1_ips" by blast
     from \<open>i2 \<in> dom ipassmt\<close> obtain i2_ips where i2_ips: "ipassmt i2 = Some i2_ips" by blast
 
-    { fix p :: "32 simple_packet"
+    { fix p :: "32 tagged_packet"
       from iface_replace[of  i1 "p\<lparr> p_iiface := iface_sel i2\<rparr>"] have
         "(p_src p \<in> ipcidr_union_set (set i2_ips) \<Longrightarrow> (p_src p \<in> ipcidr_union_set (set i1_ips)) = match_iface i1 (iface_sel i2))"
       apply(simp add: match_simplematcher_Iface  \<open>i1 \<in> dom ipassmt\<close>)
@@ -356,7 +356,7 @@ end
     hence "\<not> (src \<in> ipcidr_union_set (set i2_ips) \<and> (src \<in> ipcidr_union_set (set i1_ips)))"
       for src
       apply(simp)
-      by (metis simple_packet.select_convs(3))
+      by (metis simple_packet.select_convs(3)) (*TODO: isnt this a tagged packet?*)
 
     thus "ipcidr_union_set (set (the (ipassmt i1))) \<inter> ipcidr_union_set (set (the (ipassmt i2))) = {}"
       apply(simp add: i1_ips i2_ips)

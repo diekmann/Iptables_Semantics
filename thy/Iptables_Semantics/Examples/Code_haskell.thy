@@ -2,8 +2,6 @@ theory Code_haskell
 imports
   "../Routing/IpRoute_Parser" (*TODO: sqrl strings don't get nicely exported to code! *)
   "../Primitive_Matchers/Parser"
-  (*
-  "../Simple_Firewall/IPPartitioning"*)
 begin
 
 definition word_less_eq :: "('a::len) word \<Rightarrow> ('a::len) word \<Rightarrow> bool" where
@@ -27,7 +25,9 @@ definition to_ipassmt :: "(iface \<times> 32 ipt_iprange list negation_type) lis
 export_code Rule
   Match MatchNot MatchAnd MatchAny
   Src Dst IIface OIface Prot Src_Ports Dst_Ports CT_State Extra
-  ProtoAny Proto TCP UDP ICMP Iface
+  ProtoAny Proto TCP UDP ICMP L4_Protocol.IPv6ICMP L4_Protocol.SCTP L4_Protocol.GRE
+  L4_Protocol.ESP L4_Protocol.AH
+  Iface
   integer_to_16word nat_to_16word Nat word_less_eq word_to_nat
   nat_to_8word
   ipv4addr_of_dotdecimal IpAddrNetmask IpAddrRange IpAddr
@@ -42,7 +42,7 @@ export_code Rule
   mk_ipv6addr IPv6AddrPreferred ipv6preferred_to_int int_to_ipv6preferred
   ipt_ipv6range_toString
   common_primitive_v6_toString
-  (**)
+  sanity_check_simple_firewall
   common_primitive_match_expr_toString
   simple_rule_toString
   Semantics_Goto.rewrite_Goto_safe
@@ -55,6 +55,8 @@ export_code Rule
   to_simple_firewall_without_interfaces
   sanity_wf_ruleset
   has_default_policy
+  (*sanity checking the simple firewall*)
+  
   (*spoofing:*) ipassmt_generic
   no_spoofing_iface ipassmt_sanity_defined map_of_ipassmt to_ipassmt debug_ipassmt
   Pos Neg

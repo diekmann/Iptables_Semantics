@@ -1,8 +1,6 @@
 theory Analyze_medium_sized_company
 imports 
   "../../Primitive_Matchers/Parser"
-  "../../Semantics_Ternary/Optimizing"
-  "../../Simple_Firewall/SimpleFw_toString"
 begin
 
 
@@ -62,7 +60,13 @@ value[code] "map simple_rule_toString (to_simple_firewall
 value[code] "map simple_rule_toString (to_simple_firewall
     (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded_FORWARD)))))"
 
+lemma "sanity_check_simple_firewall (to_simple_firewall
+    (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded_FORWARD)))))"
+  by eval
 
+lemma "sanity_check_simple_firewall (to_simple_firewall
+    (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded_FORWARD)))))"
+  by eval
 (*
 text{*If we call the IP address spcae partitioning incorrectly (not prepocessed, still has interfaces), we get an error*}
 value[code] " parts_connection_ssh 

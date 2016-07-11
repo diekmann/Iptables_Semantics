@@ -1,8 +1,6 @@
 theory Analyze_Ringofsaturn_com
 imports
   "../../Primitive_Matchers/Parser"
-  "../../Semantics_Ternary/Optimizing"
-  "../../Simple_Firewall/SimpleFw_toString"
 begin
 
 
@@ -216,7 +214,7 @@ value[code] "zip (upto 0 (int (length upper))) upper"
 lemma "good_ruleset upper" by eval
 lemma "simple_ruleset upper" by eval
 
-lemma "check_simple_fw_preconditions upper" by eval
+lemma "check_simple_fw_preconditions upper \<and> sanity_check_simple_firewall (to_simple_firewall upper)" by eval
 value "map simple_rule_toString (to_simple_firewall upper)"
 
 

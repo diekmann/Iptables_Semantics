@@ -1,7 +1,6 @@
 theory SQRL_2015_nospoof
 imports 
   "../../Primitive_Matchers/Parser"
-  "../../Simple_Firewall/SimpleFw_toString"
 begin
 
 
