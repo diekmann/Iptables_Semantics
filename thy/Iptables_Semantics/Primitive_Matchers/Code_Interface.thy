@@ -17,7 +17,7 @@ imports
   "~~/src/HOL/Library/Code_Char"
 begin
 
-(*Note: common_primitive_match_expr_toString can be really slow*)
+(*Note: common_primitive_match_expr_ipv4_toString can be really slow*)
 
 section\<open>Code Interface\<close>
 
@@ -149,7 +149,7 @@ begin
   (*it is not minimal if we allow to further compress the node definitions?
   the receiver nodes could be combined to UNIV
   But minimal for a symmetric matrix*)
-  lemma "access_matrix_pretty parts_connection_ssh cool_example =
+  lemma "access_matrix_pretty_ipv4 parts_connection_ssh cool_example =
     ([(''0.0.0.0'', ''{0.0.0.0 .. 9.255.255.255} u {10.128.0.0 .. 255.255.255.255}''),
       (''10.0.0.0'', ''{10.0.0.0 .. 10.127.255.255}'')],
      [(''10.0.0.0'', ''0.0.0.0''),
@@ -180,7 +180,7 @@ begin
     [''{0.0.0.0 .. 9.255.255.255} u {10.128.0.0 .. 255.255.255.255}'', ''10.0.0.42'',
      ''{10.0.0.0 .. 10.0.0.41} u {10.0.0.43 .. 10.127.255.255}'']" by eval
   
-  lemma "access_matrix_pretty parts_connection_ssh cool_example2 =
+  lemma "access_matrix_pretty_ipv4 parts_connection_ssh cool_example2 =
     ([(''0.0.0.0'', ''{0.0.0.0 .. 9.255.255.255} u {10.128.0.0 .. 255.255.255.255}''),
       (''10.0.0.42'', ''10.0.0.42''),
       (''10.0.0.0'', ''{10.0.0.0 .. 10.0.0.41} u {10.0.0.43 .. 10.127.255.255}'')

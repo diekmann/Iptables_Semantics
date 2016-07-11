@@ -43,8 +43,8 @@ definition view where
        map (simple_rule_iptables_save_toString (ipt_chain_toSting f)) (preprocess_keep_ifce (get_unfold f) closure ipassmt def fw_in),
        map (simple_rule_iptables_save_toString (ipt_chain_toSting f)) fw,
        map ipv4addr_wordinterval_toString (getParts fw),
-       (access_matrix_pretty parts_connection_ssh fw),
-       (access_matrix_pretty parts_connection_http fw))"
+       (access_matrix_pretty_ipv4 parts_connection_ssh fw),
+       (access_matrix_pretty_ipv4 parts_connection_http fw))"
 
 
 (*Do we have code?*)
@@ -106,7 +106,7 @@ begin
 
   value[code] "collect_ifaces (upper_closure (unfold_ruleset_FORWARD fw_home_user_FORWARD_default_policy (map_of_string_ipv4 fw_home_user)))"
 
-  value[code] "debug_ipassmt ipassmt_wg (upper_closure (unfold_ruleset_FORWARD fw_home_user_FORWARD_default_policy (map_of_string_ipv4 fw_home_user)))"
+  value[code] "debug_ipassmt_ipv4 ipassmt_wg (upper_closure (unfold_ruleset_FORWARD fw_home_user_FORWARD_default_policy (map_of_string_ipv4 fw_home_user)))"
 
   value[code] "bench upper_closure FWD ipassmt_wg fw_home_user_FORWARD_default_policy fw_home_user"
   value[code] "view upper_closure FWD ipassmt_wg fw_home_user_FORWARD_default_policy fw_home_user"

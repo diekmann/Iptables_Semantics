@@ -88,7 +88,7 @@ definition preprocess where
   (Iface ''eth0'', [(ipv4addr_of_dotdecimal (172,16,2,0),24)])
   ]"
 
-lemma "access_matrix_pretty parts_connection_ssh
+lemma "access_matrix_pretty_ipv4 parts_connection_ssh
     (preprocess unfold_ruleset_FORWARD upper_closure ipassmt company_fw_FORWARD_default_policy company_fw) =
  ([(''46.4.115.113'',
     ''46.4.115.113 u {46.20.32.74 .. 46.20.32.75} u 54.68.106.202 u 62.141.33.131 u ''@
@@ -142,7 +142,7 @@ lemma "access_matrix_pretty parts_connection_ssh
    (''172.16.2.0'', ''0.0.0.0''),
    (''172.16.2.16'', ''192.168.255.0'')])" by eval (*the string @ takes quite some time*)
 
-lemma "access_matrix_pretty parts_connection_http
+lemma "access_matrix_pretty_ipv4 parts_connection_http
     (preprocess unfold_ruleset_FORWARD upper_closure ipassmt company_fw_FORWARD_default_policy company_fw) =
  ([(''46.4.115.113'',
     ''46.4.115.113 u {46.20.32.74 .. 46.20.32.75} u 54.68.106.202 u 62.141.33.131 u 63.245.217.112 u 74.119.117.71 u 80.190.166.25 u 80.237.184.24 u 80.252.91.41 u 82.196.187.209 u 82.199.80.141 u 83.133.189.139 u 83.169.54.252 u 83.169.59.64 u 85.25.248.94 u 85.90.254.45 u 85.195.127.21 u 88.198.208.110 u 91.215.101.185 u 93.184.220.20 u 93.184.221.133 u 94.198.59.132 u 94.198.59.134 u 95.131.121.65 u 95.131.121.199 u 95.172.69.42 u 144.76.67.119 u 151.80.102.139 u 176.9.103.51 u 178.63.153.114 u 178.250.0.101 u 178.250.2.73 u 178.250.2.77 u 178.250.2.98 u 178.250.2.102 u 184.168.47.225 u 188.65.74.70 u 194.97.151.143 u 194.97.153.231 u 194.126.239.34 u 195.20.250.231 u 206.191.168.170 u 212.45.104.69 u 212.227.67.37 u 213.9.42.248 u 213.203.221.32 u 213.203.221.43 u 216.38.172.131 u 217.72.250.66 u 217.72.250.84 u 217.72.250.89''),

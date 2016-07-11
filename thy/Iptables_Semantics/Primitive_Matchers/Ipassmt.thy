@@ -145,8 +145,10 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
   
   text\<open>Debug algorithm with human-readable output\<close>
   (*TODO: ipv4 only!*)
-  definition debug_ipassmt :: "(iface \<times> (32 word \<times> nat) list) list \<Rightarrow> 32 common_primitive rule list \<Rightarrow> string list" where
-    "debug_ipassmt ipassmt rs \<equiv> let ifaces = (map fst ipassmt) in [
+  definition debug_ipassmt_generic
+    :: "('i::len wordinterval \<Rightarrow> string) \<Rightarrow>
+          (iface \<times> ('i word \<times> nat) list) list \<Rightarrow> 'i common_primitive rule list \<Rightarrow> string list" where
+    "debug_ipassmt_generic toStr ipassmt rs \<equiv> let ifaces = (map fst ipassmt) in [
       ''distinct: '' @ (if distinct ifaces then ''passed'' else ''FAIL!'')
       , ''ipassmt_sanity_nowildcards: '' @
           (if ipassmt_sanity_nowildcards (map_of ipassmt)
@@ -177,15 +179,18 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
           (if ipassmt_sanity_complete ipassmt
            then ''passed''
            else ''the following is not covered: '' @ 
-            ipv4addr_wordinterval_toString (wordinterval_setminus wordinterval_UNIV (wordinterval_Union (map (l2wi \<circ> (map ipcidr_to_interval)) (map snd ipassmt)))))
+            toStr (wordinterval_setminus wordinterval_UNIV (wordinterval_Union (map (l2wi \<circ> (map ipcidr_to_interval)) (map snd ipassmt)))))
       , ''ipassmt_sanity_complete excluding UNIV interfaces: '' @
           (let ipassmt = ipassmt_ignore_wildcard_list ipassmt
            in
           (if ipassmt_sanity_complete ipassmt
            then ''passed''
            else ''the following is not covered: '' @
-            ipv4addr_wordinterval_toString (wordinterval_setminus wordinterval_UNIV (wordinterval_Union (map (l2wi \<circ> (map ipcidr_to_interval)) (map snd ipassmt))))))
+            toStr (wordinterval_setminus wordinterval_UNIV (wordinterval_Union (map (l2wi \<circ> (map ipcidr_to_interval)) (map snd ipassmt))))))
       ]"
+
+  definition "debug_ipassmt_ipv4 \<equiv> debug_ipassmt_generic ipv4addr_wordinterval_toString"
+  definition "debug_ipassmt_ipv6 \<equiv> debug_ipassmt_generic ipv6addr_wordinterval_toString"
 
 
   lemma dom_ipassmt_ignore_wildcard:

@@ -62,7 +62,7 @@ certifySpoofingProtection ipassmt rs = (warn_defined ++ debug_ipassmt, certResul
           warn_defined = if (Isabelle.ipassmt_sanity_defined fuc ipassmtMap) -- fuc needs to be nnf-normalized
                          then []
                          else ["WARNING There are some interfaces in your firewall ruleset which are not defined in your ipassmt."]
-          debug_ipassmt = Isabelle.debug_ipassmt ipassmt fuc
+          debug_ipassmt = Isabelle.debug_ipassmt_ipv4 ipassmt fuc
           ipassmtMap = Isabelle.map_of_ipassmt ipassmt
           certResult = map (\ifce -> (ifce, Isabelle.no_spoofing_iface ifce ipassmtMap fuc)) interfaces
               where interfaces = map fst ipassmt
@@ -73,7 +73,8 @@ certifySpoofingProtection ipassmt rs = (warn_defined ++ debug_ipassmt, certResul
 accessMatrix :: IsabelleIpAssmt Word32 -> [Isabelle.Rule (Isabelle.Common_primitive Word32)] -> Integer -> Integer -> ([(String, String)], [(String, String)])
 accessMatrix ipassmt rs sport dport = if sport >= 65536 || dport >= 65536 then error "ports are 16 bit"
     -- Theorem: access_matrix
-    else Isabelle.access_matrix_pretty parts_connection upper_simple
+    else Isabelle.access_matrix_pretty_ipv4 parts_connection upper_simple
     -- Theorem: to_simple_firewall_without_interfaces
     where upper_simple = toSimpleFirewallWithoutInterfaces ipassmt rs
           parts_connection = Isabelle.mk_parts_connection_TCP (Isabelle.integer_to_16word sport) (Isabelle.integer_to_16word dport)
+

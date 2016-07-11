@@ -76,7 +76,7 @@ subsection\<open>General Setup\<close>
   definition "preprocess default_policy fw \<equiv> (upper_closure (packet_assume_new (unfold_ruleset_FORWARD default_policy (map_of_string_ipv4 fw))))"
 
 
-  value[code] "debug_ipassmt ipassmt []"
+  value[code] "debug_ipassmt_ipv4 ipassmt []"
 
 text\<open>In all three iterations, we have removed two rules from the ruleset. The first rule excluded
 from analysis is the ESTABLISHED rule, as discussed earlier.
@@ -108,7 +108,7 @@ subsubsection\<open>Try 1\<close>
    -A FORWARD -s 131.159.15.248/32 -i eth1.152 -o eth1.110 -j ACCEPT
   *)
 
-  value[code] "debug_ipassmt ipassmt (preprocess net_fw_1_FORWARD_default_policy net_fw_1)"
+  value[code] "debug_ipassmt_ipv4 ipassmt (preprocess net_fw_1_FORWARD_default_policy net_fw_1)"
   
   text\<open>the parsed firewall:\<close>
   (*339.034s*)

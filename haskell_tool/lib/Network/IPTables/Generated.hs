@@ -12,20 +12,22 @@ module
                               Routing_action_ext(..), Routing_rule_ext(..),
                               Parts_connection_ext, ah, esp, gre, tcp, udp,
                               icmp, sctp, alist_and, sort_rtbl, mk_Set,
-                              iPv6ICMP, ipassmt_sanity_defined, debug_ipassmt,
-                              map_of_ipassmt, to_ipassmt,
+                              iPv6ICMP, map_of_ipassmt, to_ipassmt,
                               ipv4addr_of_dotdecimal, ipassmt_generic,
                               optimize_matches, upper_closure, word_to_nat,
                               word_less_eq, int_to_ipv6preferred,
-                              ipv6preferred_to_int, no_spoofing_iface,
-                              has_default_policy, nat_to_8word, empty_rr_hlp,
-                              sanity_wf_ruleset, map_of_string, nat_to_16word,
+                              ipv6preferred_to_int, ipassmt_sanity_defined,
+                              debug_ipassmt_ipv4, debug_ipassmt_ipv6,
+                              no_spoofing_iface, has_default_policy,
+                              nat_to_8word, empty_rr_hlp, sanity_wf_ruleset,
+                              map_of_string, nat_to_16word,
                               compress_parsed_extra, mk_ipv6addr,
                               integer_to_16word, rewrite_Goto_safe,
-                              metric_update, access_matrix_pretty,
-                              to_simple_firewall, simple_rule_toString,
-                              unfold_ruleset_CHAIN_safe,
+                              metric_update, to_simple_firewall,
+                              simple_rule_toString, unfold_ruleset_CHAIN_safe,
                               mk_parts_connection_TCP, action_toString,
+                              access_matrix_pretty_ipv4,
+                              access_matrix_pretty_ipv6,
                               sanity_check_simple_firewall, packet_assume_new,
                               routing_action_oiface_update,
                               routing_action_next_hop_update,
@@ -1700,127 +1702,6 @@ cidr_split :: forall a. (Len a) => Wordinterval a -> [(Word a, Nat)];
 cidr_split rs =
   map prefix_match_to_CIDR (wordinterval_CIDR_split_prefixmatch rs);
 
-string_of_nat :: Nat -> [Prelude.Char];
-string_of_nat n =
-  (if less_nat n (nat_of_integer (10 :: Integer))
-    then [char_of_nat (plus_nat (nat_of_integer (48 :: Integer)) n)]
-    else string_of_nat (divide_nat n (nat_of_integer (10 :: Integer))) ++
-           [char_of_nat
-              (plus_nat (nat_of_integer (48 :: Integer))
-                (mod_nat n (nat_of_integer (10 :: Integer))))]);
-
-dotteddecimal_toString :: (Nat, (Nat, (Nat, Nat))) -> [Prelude.Char];
-dotteddecimal_toString (a, (b, (c, d))) =
-  string_of_nat a ++
-    "." ++ string_of_nat b ++ "." ++ string_of_nat c ++ "." ++ string_of_nat d;
-
-shiftr_word :: forall a. (Len0 a) => Word a -> Nat -> Word a;
-shiftr_word w n = funpow n shiftr1 w;
-
-dotdecimal_of_ipv4addr ::
-  Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> (Nat, (Nat, (Nat, Nat)));
-dotdecimal_of_ipv4addr a =
-  (nat_of_ipv4addr
-     (bitAND_word (shiftr_word a (nat_of_integer (24 :: Integer)))
-       (word_of_int (Int_of_integer (255 :: Integer)))),
-    (nat_of_ipv4addr
-       (bitAND_word (shiftr_word a (nat_of_integer (16 :: Integer)))
-         (word_of_int (Int_of_integer (255 :: Integer)))),
-      (nat_of_ipv4addr
-         (bitAND_word (shiftr_word a (nat_of_integer (8 :: Integer)))
-           (word_of_int (Int_of_integer (255 :: Integer)))),
-        nat_of_ipv4addr
-          (bitAND_word a (word_of_int (Int_of_integer (255 :: Integer)))))));
-
-ipv4addr_toString ::
-  Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prelude.Char];
-ipv4addr_toString ip = dotteddecimal_toString (dotdecimal_of_ipv4addr ip);
-
-ipv4addr_wordinterval_toString ::
-  Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prelude.Char];
-ipv4addr_wordinterval_toString (WordInterval s e) =
-  (if equal_word s e then ipv4addr_toString s
-    else "{" ++ ipv4addr_toString s ++ " .. " ++ ipv4addr_toString e ++ "}");
-ipv4addr_wordinterval_toString (RangeUnion a b) =
-  ipv4addr_wordinterval_toString a ++ " u " ++ ipv4addr_wordinterval_toString b;
-
-wordinterval_intersectiona ::
-  forall a. (Len a) => Wordinterval a -> Wordinterval a -> Wordinterval a;
-wordinterval_intersectiona (WordInterval sa ea) (WordInterval s e) =
-  (if less_word ea sa ||
-        (less_word e s ||
-          (less_word e sa ||
-            (less_word ea s || (less_word ea sa || less_word e s))))
-    then empty_WordInterval else WordInterval (max sa s) (min ea e));
-wordinterval_intersectiona (RangeUnion r1 r2) t =
-  RangeUnion (wordinterval_intersectiona r1 t)
-    (wordinterval_intersectiona r2 t);
-wordinterval_intersectiona (WordInterval v va) (RangeUnion r1 r2) =
-  RangeUnion (wordinterval_intersectiona (WordInterval v va) r1)
-    (wordinterval_intersectiona (WordInterval v va) r2);
-
-wordinterval_intersection ::
-  forall a. (Len a) => Wordinterval a -> Wordinterval a -> Wordinterval a;
-wordinterval_intersection r1 r2 =
-  wordinterval_compress (wordinterval_intersectiona r1 r2);
-
-ipcidr_to_interval_start :: forall a. (Len a) => (Word a, Nat) -> Word a;
-ipcidr_to_interval_start (pre, len) =
-  let {
-    netmask =
-      shiftl_word (mask len) (minus_nat ((len_of :: Itself a -> Nat) Type) len);
-    network_prefix = bitAND_word pre netmask;
-  } in network_prefix;
-
-bitNOT_int :: Int -> Int;
-bitNOT_int (Int_of_integer i) =
-  Int_of_integer ((Data_Bits.complement :: Integer -> Integer) i);
-
-bitNOT_word :: forall a. (Len0 a) => Word a -> Word a;
-bitNOT_word a = word_of_int (bitNOT_int (uint a));
-
-ipcidr_to_interval_end :: forall a. (Len a) => (Word a, Nat) -> Word a;
-ipcidr_to_interval_end (pre, len) =
-  let {
-    netmask =
-      shiftl_word (mask len) (minus_nat ((len_of :: Itself a -> Nat) Type) len);
-    network_prefix = bitAND_word pre netmask;
-  } in bitOR_word network_prefix (bitNOT_word netmask);
-
-ipcidr_to_interval :: forall a. (Len a) => (Word a, Nat) -> (Word a, Word a);
-ipcidr_to_interval cidr =
-  (ipcidr_to_interval_start cidr, ipcidr_to_interval_end cidr);
-
-wordinterval_eq ::
-  forall a. (Len a) => Wordinterval a -> Wordinterval a -> Bool;
-wordinterval_eq r1 r2 = wordinterval_subset r1 r2 && wordinterval_subset r2 r1;
-
-ipassmt_ignore_wildcard_list ::
-  forall a. (Len a) => [(Iface, [(Word a, Nat)])] -> [(Iface, [(Word a, Nat)])];
-ipassmt_ignore_wildcard_list ipassmt =
-  filter
-    (\ (_, ips) ->
-      not (wordinterval_eq (l2wi (map ipcidr_to_interval ips))
-            wordinterval_UNIV))
-    ipassmt;
-
-wordinterval_union ::
-  forall a. (Len0 a) => Wordinterval a -> Wordinterval a -> Wordinterval a;
-wordinterval_union r1 r2 = RangeUnion r1 r2;
-
-wordinterval_Union :: forall a. (Len a) => [Wordinterval a] -> Wordinterval a;
-wordinterval_Union ws =
-  wordinterval_compress (foldr wordinterval_union ws empty_WordInterval);
-
-list_separated_toString ::
-  forall a. [Prelude.Char] -> (a -> [Prelude.Char]) -> [a] -> [Prelude.Char];
-list_separated_toString sep toStr ls =
-  concat
-    (splice (map toStr ls) (replicate (minus_nat (size_list ls) one_nat) sep));
-
-list_toString :: forall a. (a -> [Prelude.Char]) -> [a] -> [Prelude.Char];
-list_toString toStr ls = "[" ++ list_separated_toString ", " toStr ls ++ "]";
-
 oiface_sel :: forall a. (Len a) => Common_primitive a -> Iface;
 oiface_sel (OIface x4) = x4;
 
@@ -1890,127 +1771,8 @@ mergesort_remdups xs = merge_list [] (map (\ x -> [x]) xs);
 collect_ifaces :: forall a. (Len a) => [Rule (Common_primitive a)] -> [Iface];
 collect_ifaces rs = mergesort_remdups (collect_ifacesa rs);
 
-ipassmt_sanity_defined ::
-  forall a.
-    (Len a) => [Rule (Common_primitive a)] ->
-                 (Iface -> Maybe [(Word a, Nat)]) -> Bool;
-ipassmt_sanity_defined rs ipassmt =
-  all (\ iface -> not (is_none (ipassmt iface))) (collect_ifaces rs);
-
 iface_is_wildcard :: Iface -> Bool;
 iface_is_wildcard ifce = iface_name_is_wildcard (iface_sel ifce);
-
-debug_ipassmt ::
-  [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
-    [Rule (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))] ->
-      [[Prelude.Char]];
-debug_ipassmt ipassmt rs =
-  let {
-    ifaces = map fst ipassmt;
-  } in ["distinct: " ++ (if distinct ifaces then "passed" else "FAIL!"),
-         "ipassmt_sanity_nowildcards: " ++
-           (if ball (image fst (Set ipassmt))
-                 (\ iface -> not (iface_is_wildcard iface))
-             then "passed"
-             else "fail: " ++
-                    list_toString iface_sel (filter iface_is_wildcard ifaces)),
-         "ipassmt_sanity_defined (interfaces defined in the ruleset are also in ipassmt): " ++
-           (if ipassmt_sanity_defined rs (map_of ipassmt) then "passed"
-             else "fail: " ++
-                    list_toString iface_sel
-                      (filter (\ i -> not (membera ifaces i))
-                        (collect_ifaces rs))),
-         "ipassmt_sanity_disjoint (no zone-spanning interfaces): " ++
-           (if let {
-                 is = image fst (Set ipassmt);
-               } in ball is
-                      (\ i1 ->
-                        ball is
-                          (\ i2 ->
-                            (if not (equal_iface i1 i2)
-                              then wordinterval_empty
-                                     (wordinterval_intersection
-                                       (l2wi
- (map ipcidr_to_interval (the (map_of ipassmt i1))))
-                                       (l2wi
- (map ipcidr_to_interval (the (map_of ipassmt i2)))))
-                              else True)))
-             then "passed"
-             else "fail: " ++
-                    list_toString
-                      (\ (i1, i2) ->
-                        "(" ++ iface_sel i1 ++ "," ++ iface_sel i2 ++ ")")
-                      (filter
-                        (\ (i1, i2) ->
-                          not (equal_iface i1 i2) &&
-                            not (wordinterval_empty
-                                  (wordinterval_intersection
-                                    (l2wi (map ipcidr_to_interval
-    (the (map_of ipassmt i1))))
-                                    (l2wi (map ipcidr_to_interval
-    (the (map_of ipassmt i2)))))))
-                        (product ifaces ifaces))),
-         "ipassmt_sanity_disjoint excluding UNIV interfaces: " ++
-           let {
-             ipassmta = ipassmt_ignore_wildcard_list ipassmt;
-             ifacesa = map fst ipassmta;
-           } in (if let {
-                      is = image fst (Set ipassmta);
-                    } in ball is
-                           (\ i1 ->
-                             ball is
-                               (\ i2 ->
-                                 (if not (equal_iface i1 i2)
-                                   then wordinterval_empty
-  (wordinterval_intersection
-    (l2wi (map ipcidr_to_interval (the (map_of ipassmta i1))))
-    (l2wi (map ipcidr_to_interval (the (map_of ipassmta i2)))))
-                                   else True)))
-                  then "passed"
-                  else "fail: " ++
-                         list_toString
-                           (\ (i1, i2) ->
-                             "(" ++ iface_sel i1 ++ "," ++ iface_sel i2 ++ ")")
-                           (filter
-                             (\ (i1, i2) ->
-                               not (equal_iface i1 i2) &&
-                                 not (wordinterval_empty
-                                       (wordinterval_intersection
- (l2wi (map ipcidr_to_interval (the (map_of ipassmta i1))))
- (l2wi (map ipcidr_to_interval (the (map_of ipassmta i2)))))))
-                             (product ifacesa ifacesa))),
-         "ipassmt_sanity_complete: " ++
-           (if distinct (map fst ipassmt) &&
-                 let {
-                   range = map snd ipassmt;
-                 } in wordinterval_eq
-                        (wordinterval_Union
-                          (map (l2wi . map ipcidr_to_interval) range))
-                        wordinterval_UNIV
-             then "passed"
-             else "the following is not covered: " ++
-                    ipv4addr_wordinterval_toString
-                      (wordinterval_setminus wordinterval_UNIV
-                        (wordinterval_Union
-                          (map (l2wi . map ipcidr_to_interval)
-                            (map snd ipassmt))))),
-         "ipassmt_sanity_complete excluding UNIV interfaces: " ++
-           let {
-             ipassmta = ipassmt_ignore_wildcard_list ipassmt;
-           } in (if distinct (map fst ipassmta) &&
-                      let {
-                        range = map snd ipassmta;
-                      } in wordinterval_eq
-                             (wordinterval_Union
-                               (map (l2wi . map ipcidr_to_interval) range))
-                             wordinterval_UNIV
-                  then "passed"
-                  else "the following is not covered: " ++
-                         ipv4addr_wordinterval_toString
-                           (wordinterval_setminus wordinterval_UNIV
-                             (wordinterval_Union
-                               (map (l2wi . map ipcidr_to_interval)
-                                 (map snd ipassmta)))))];
 
 map_of_ipassmt ::
   forall a. [(Iface, [(Word a, Nat)])] -> Iface -> Maybe [(Word a, Nat)];
@@ -2180,6 +1942,33 @@ runFw s d c rs =
   simple_fw rs
     (Simple_packet_ext (pc_iiface c) (pc_oiface c) s d (pc_proto c) (pc_sport c)
       (pc_dport c) (insert TCP_SYN bot_set) [] ());
+
+ipcidr_to_interval_start :: forall a. (Len a) => (Word a, Nat) -> Word a;
+ipcidr_to_interval_start (pre, len) =
+  let {
+    netmask =
+      shiftl_word (mask len) (minus_nat ((len_of :: Itself a -> Nat) Type) len);
+    network_prefix = bitAND_word pre netmask;
+  } in network_prefix;
+
+bitNOT_int :: Int -> Int;
+bitNOT_int (Int_of_integer i) =
+  Int_of_integer ((Data_Bits.complement :: Integer -> Integer) i);
+
+bitNOT_word :: forall a. (Len0 a) => Word a -> Word a;
+bitNOT_word a = word_of_int (bitNOT_int (uint a));
+
+ipcidr_to_interval_end :: forall a. (Len a) => (Word a, Nat) -> Word a;
+ipcidr_to_interval_end (pre, len) =
+  let {
+    netmask =
+      shiftl_word (mask len) (minus_nat ((len_of :: Itself a -> Nat) Type) len);
+    network_prefix = bitAND_word pre netmask;
+  } in bitOR_word network_prefix (bitNOT_word netmask);
+
+ipcidr_to_interval :: forall a. (Len a) => (Word a, Nat) -> (Word a, Word a);
+ipcidr_to_interval cidr =
+  (ipcidr_to_interval_start cidr, ipcidr_to_interval_end cidr);
 
 ipt_iprange_to_interval ::
   forall a. (Len a) => Ipt_iprange a -> (Word a, Word a);
@@ -2520,6 +2309,26 @@ is_Src (Dst_Ports x7) = False;
 is_Src (L4_Flags x8) = False;
 is_Src (CT_State x9) = False;
 is_Src (Extra x10) = False;
+
+wordinterval_intersectiona ::
+  forall a. (Len a) => Wordinterval a -> Wordinterval a -> Wordinterval a;
+wordinterval_intersectiona (WordInterval sa ea) (WordInterval s e) =
+  (if less_word ea sa ||
+        (less_word e s ||
+          (less_word e sa ||
+            (less_word ea s || (less_word ea sa || less_word e s))))
+    then empty_WordInterval else WordInterval (max sa s) (min ea e));
+wordinterval_intersectiona (RangeUnion r1 r2) t =
+  RangeUnion (wordinterval_intersectiona r1 t)
+    (wordinterval_intersectiona r2 t);
+wordinterval_intersectiona (WordInterval v va) (RangeUnion r1 r2) =
+  RangeUnion (wordinterval_intersectiona (WordInterval v va) r1)
+    (wordinterval_intersectiona (WordInterval v va) r2);
+
+wordinterval_intersection ::
+  forall a. (Len a) => Wordinterval a -> Wordinterval a -> Wordinterval a;
+wordinterval_intersection r1 r2 =
+  wordinterval_compress (wordinterval_intersectiona r1 r2);
 
 l2wi_negation_type_intersect ::
   forall a. (Len a) => [Negation_type (Word a, Word a)] -> Wordinterval a;
@@ -2981,6 +2790,9 @@ rw_Reject (Rule v (Goto vb) : rs) = Rule v (Goto vb) : rw_Reject rs;
 rw_Reject (Rule v Empty : rs) = Rule v Empty : rw_Reject rs;
 rw_Reject (Rule v Unknown : rs) = Rule v Unknown : rw_Reject rs;
 
+shiftr_word :: forall a. (Len0 a) => Word a -> Nat -> Word a;
+shiftr_word w n = funpow n shiftr1 w;
+
 int_to_ipv6preferred ::
   Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))) -> Ipv6addr_syntax;
 int_to_ipv6preferred i =
@@ -3098,6 +2910,292 @@ extract_IPSets rs =
 
 getParts :: forall a. (Len a) => [Simple_rule a] -> [Wordinterval a];
 getParts rs = partitioningIps (extract_IPSets rs) [wordinterval_UNIV];
+
+string_of_nat :: Nat -> [Prelude.Char];
+string_of_nat n =
+  (if less_nat n (nat_of_integer (10 :: Integer))
+    then [char_of_nat (plus_nat (nat_of_integer (48 :: Integer)) n)]
+    else string_of_nat (divide_nat n (nat_of_integer (10 :: Integer))) ++
+           [char_of_nat
+              (plus_nat (nat_of_integer (48 :: Integer))
+                (mod_nat n (nat_of_integer (10 :: Integer))))]);
+
+dotteddecimal_toString :: (Nat, (Nat, (Nat, Nat))) -> [Prelude.Char];
+dotteddecimal_toString (a, (b, (c, d))) =
+  string_of_nat a ++
+    "." ++ string_of_nat b ++ "." ++ string_of_nat c ++ "." ++ string_of_nat d;
+
+dotdecimal_of_ipv4addr ::
+  Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> (Nat, (Nat, (Nat, Nat)));
+dotdecimal_of_ipv4addr a =
+  (nat_of_ipv4addr
+     (bitAND_word (shiftr_word a (nat_of_integer (24 :: Integer)))
+       (word_of_int (Int_of_integer (255 :: Integer)))),
+    (nat_of_ipv4addr
+       (bitAND_word (shiftr_word a (nat_of_integer (16 :: Integer)))
+         (word_of_int (Int_of_integer (255 :: Integer)))),
+      (nat_of_ipv4addr
+         (bitAND_word (shiftr_word a (nat_of_integer (8 :: Integer)))
+           (word_of_int (Int_of_integer (255 :: Integer)))),
+        nat_of_ipv4addr
+          (bitAND_word a (word_of_int (Int_of_integer (255 :: Integer)))))));
+
+ipv4addr_toString ::
+  Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prelude.Char];
+ipv4addr_toString ip = dotteddecimal_toString (dotdecimal_of_ipv4addr ip);
+
+ipv4addr_wordinterval_toString ::
+  Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prelude.Char];
+ipv4addr_wordinterval_toString (WordInterval s e) =
+  (if equal_word s e then ipv4addr_toString s
+    else "{" ++ ipv4addr_toString s ++ " .. " ++ ipv4addr_toString e ++ "}");
+ipv4addr_wordinterval_toString (RangeUnion a b) =
+  ipv4addr_wordinterval_toString a ++ " u " ++ ipv4addr_wordinterval_toString b;
+
+wordinterval_eq ::
+  forall a. (Len a) => Wordinterval a -> Wordinterval a -> Bool;
+wordinterval_eq r1 r2 = wordinterval_subset r1 r2 && wordinterval_subset r2 r1;
+
+ipassmt_ignore_wildcard_list ::
+  forall a. (Len a) => [(Iface, [(Word a, Nat)])] -> [(Iface, [(Word a, Nat)])];
+ipassmt_ignore_wildcard_list ipassmt =
+  filter
+    (\ (_, ips) ->
+      not (wordinterval_eq (l2wi (map ipcidr_to_interval ips))
+            wordinterval_UNIV))
+    ipassmt;
+
+wordinterval_union ::
+  forall a. (Len0 a) => Wordinterval a -> Wordinterval a -> Wordinterval a;
+wordinterval_union r1 r2 = RangeUnion r1 r2;
+
+wordinterval_Union :: forall a. (Len a) => [Wordinterval a] -> Wordinterval a;
+wordinterval_Union ws =
+  wordinterval_compress (foldr wordinterval_union ws empty_WordInterval);
+
+list_separated_toString ::
+  forall a. [Prelude.Char] -> (a -> [Prelude.Char]) -> [a] -> [Prelude.Char];
+list_separated_toString sep toStr ls =
+  concat
+    (splice (map toStr ls) (replicate (minus_nat (size_list ls) one_nat) sep));
+
+list_toString :: forall a. (a -> [Prelude.Char]) -> [a] -> [Prelude.Char];
+list_toString toStr ls = "[" ++ list_separated_toString ", " toStr ls ++ "]";
+
+ipassmt_sanity_defined ::
+  forall a.
+    (Len a) => [Rule (Common_primitive a)] ->
+                 (Iface -> Maybe [(Word a, Nat)]) -> Bool;
+ipassmt_sanity_defined rs ipassmt =
+  all (\ iface -> not (is_none (ipassmt iface))) (collect_ifaces rs);
+
+debug_ipassmt_generic ::
+  forall a.
+    (Len a) => (Wordinterval a -> [Prelude.Char]) ->
+                 [(Iface, [(Word a, Nat)])] ->
+                   [Rule (Common_primitive a)] -> [[Prelude.Char]];
+debug_ipassmt_generic toStr ipassmt rs =
+  let {
+    ifaces = map fst ipassmt;
+  } in ["distinct: " ++ (if distinct ifaces then "passed" else "FAIL!"),
+         "ipassmt_sanity_nowildcards: " ++
+           (if ball (image fst (Set ipassmt))
+                 (\ iface -> not (iface_is_wildcard iface))
+             then "passed"
+             else "fail: " ++
+                    list_toString iface_sel (filter iface_is_wildcard ifaces)),
+         "ipassmt_sanity_defined (interfaces defined in the ruleset are also in ipassmt): " ++
+           (if ipassmt_sanity_defined rs (map_of ipassmt) then "passed"
+             else "fail: " ++
+                    list_toString iface_sel
+                      (filter (\ i -> not (membera ifaces i))
+                        (collect_ifaces rs))),
+         "ipassmt_sanity_disjoint (no zone-spanning interfaces): " ++
+           (if let {
+                 is = image fst (Set ipassmt);
+               } in ball is
+                      (\ i1 ->
+                        ball is
+                          (\ i2 ->
+                            (if not (equal_iface i1 i2)
+                              then wordinterval_empty
+                                     (wordinterval_intersection
+                                       (l2wi
+ (map ipcidr_to_interval (the (map_of ipassmt i1))))
+                                       (l2wi
+ (map ipcidr_to_interval (the (map_of ipassmt i2)))))
+                              else True)))
+             then "passed"
+             else "fail: " ++
+                    list_toString
+                      (\ (i1, i2) ->
+                        "(" ++ iface_sel i1 ++ "," ++ iface_sel i2 ++ ")")
+                      (filter
+                        (\ (i1, i2) ->
+                          not (equal_iface i1 i2) &&
+                            not (wordinterval_empty
+                                  (wordinterval_intersection
+                                    (l2wi (map ipcidr_to_interval
+    (the (map_of ipassmt i1))))
+                                    (l2wi (map ipcidr_to_interval
+    (the (map_of ipassmt i2)))))))
+                        (product ifaces ifaces))),
+         "ipassmt_sanity_disjoint excluding UNIV interfaces: " ++
+           let {
+             ipassmta = ipassmt_ignore_wildcard_list ipassmt;
+             ifacesa = map fst ipassmta;
+           } in (if let {
+                      is = image fst (Set ipassmta);
+                    } in ball is
+                           (\ i1 ->
+                             ball is
+                               (\ i2 ->
+                                 (if not (equal_iface i1 i2)
+                                   then wordinterval_empty
+  (wordinterval_intersection
+    (l2wi (map ipcidr_to_interval (the (map_of ipassmta i1))))
+    (l2wi (map ipcidr_to_interval (the (map_of ipassmta i2)))))
+                                   else True)))
+                  then "passed"
+                  else "fail: " ++
+                         list_toString
+                           (\ (i1, i2) ->
+                             "(" ++ iface_sel i1 ++ "," ++ iface_sel i2 ++ ")")
+                           (filter
+                             (\ (i1, i2) ->
+                               not (equal_iface i1 i2) &&
+                                 not (wordinterval_empty
+                                       (wordinterval_intersection
+ (l2wi (map ipcidr_to_interval (the (map_of ipassmta i1))))
+ (l2wi (map ipcidr_to_interval (the (map_of ipassmta i2)))))))
+                             (product ifacesa ifacesa))),
+         "ipassmt_sanity_complete: " ++
+           (if distinct (map fst ipassmt) &&
+                 let {
+                   range = map snd ipassmt;
+                 } in wordinterval_eq
+                        (wordinterval_Union
+                          (map (l2wi . map ipcidr_to_interval) range))
+                        wordinterval_UNIV
+             then "passed"
+             else "the following is not covered: " ++
+                    toStr (wordinterval_setminus wordinterval_UNIV
+                            (wordinterval_Union
+                              (map (l2wi . map ipcidr_to_interval)
+                                (map snd ipassmt))))),
+         "ipassmt_sanity_complete excluding UNIV interfaces: " ++
+           let {
+             ipassmta = ipassmt_ignore_wildcard_list ipassmt;
+           } in (if distinct (map fst ipassmta) &&
+                      let {
+                        range = map snd ipassmta;
+                      } in wordinterval_eq
+                             (wordinterval_Union
+                               (map (l2wi . map ipcidr_to_interval) range))
+                             wordinterval_UNIV
+                  then "passed"
+                  else "the following is not covered: " ++
+                         toStr (wordinterval_setminus wordinterval_UNIV
+                                 (wordinterval_Union
+                                   (map (l2wi . map ipcidr_to_interval)
+                                     (map snd ipassmta)))))];
+
+debug_ipassmt_ipv4 ::
+  [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
+    [Rule (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))] ->
+      [[Prelude.Char]];
+debug_ipassmt_ipv4 = debug_ipassmt_generic ipv4addr_wordinterval_toString;
+
+string_of_word_single :: forall a. (Len a) => Bool -> Word a -> [Prelude.Char];
+string_of_word_single lc w =
+  (if less_word w (word_of_int (Int_of_integer (10 :: Integer)))
+    then [char_of_nat (plus_nat (nat_of_integer (48 :: Integer)) (unat w))]
+    else (if less_word w (word_of_int (Int_of_integer (36 :: Integer)))
+           then [char_of_nat
+                   (plus_nat
+                     (if lc then nat_of_integer (87 :: Integer)
+                       else nat_of_integer (55 :: Integer))
+                     (unat w))]
+           else error "undefined"));
+
+divide_int :: Int -> Int -> Int;
+divide_int k l =
+  Int_of_integer (divide_integer (integer_of_int k) (integer_of_int l));
+
+divide_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
+divide_word a b = word_of_int (divide_int (uint a) (uint b));
+
+mod_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
+mod_word a b = word_of_int (mod_int (uint a) (uint b));
+
+string_of_word ::
+  forall a. (Len a) => Bool -> Word a -> Nat -> Word a -> [Prelude.Char];
+string_of_word lc base ml w =
+  (if less_word base (word_of_int (Int_of_integer (2 :: Integer))) ||
+        less_nat ((len_of :: Itself a -> Nat) Type)
+          (nat_of_integer (2 :: Integer))
+    then error "undefined"
+    else (if less_word w base && equal_nat ml zero_nat
+           then string_of_word_single lc w
+           else string_of_word lc base (minus_nat ml one_nat)
+                  (divide_word w base) ++
+                  string_of_word_single lc (mod_word w base)));
+
+hex_string_of_word :: forall a. (Len a) => Nat -> Word a -> [Prelude.Char];
+hex_string_of_word l =
+  string_of_word True (word_of_int (Int_of_integer (16 :: Integer))) l;
+
+hex_string_of_word0 :: forall a. (Len a) => Word a -> [Prelude.Char];
+hex_string_of_word0 = hex_string_of_word zero_nat;
+
+ipv6_preferred_to_compressed ::
+  Ipv6addr_syntax -> [Maybe (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
+ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) =
+  let {
+    lss = goup_by_zeros [a, b, c, d, e, f, g, h];
+    max_zero_seq = foldr (\ xs -> max (size_list xs)) lss zero_nat;
+    aa = (if less_nat one_nat max_zero_seq
+           then list_replace1 (replicate max_zero_seq zero_word) [] lss
+           else lss);
+  } in list_explode aa;
+
+ipv6addr_toString ::
+  Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))) -> [Prelude.Char];
+ipv6addr_toString ip =
+  let {
+    partslist = ipv6_preferred_to_compressed (int_to_ipv6preferred ip);
+    fix_start = (\ ps -> (case ps of {
+                           [] -> ps;
+                           Nothing : _ -> Nothing : ps;
+                           Just _ : _ -> ps;
+                         }));
+    fix_end = (\ ps -> (case reverse ps of {
+                         [] -> ps;
+                         Nothing : _ -> ps ++ [Nothing];
+                         Just _ : _ -> ps;
+                       }));
+  } in list_separated_toString ":" (\ a -> (case a of {
+     Nothing -> [];
+     Just aa -> hex_string_of_word0 aa;
+   }))
+         ((fix_end . fix_start) partslist);
+
+ipv6addr_wordinterval_toString ::
+  Wordinterval (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))) ->
+    [Prelude.Char];
+ipv6addr_wordinterval_toString (WordInterval s e) =
+  (if equal_word s e then ipv6addr_toString s
+    else "{" ++ ipv6addr_toString s ++ " .. " ++ ipv6addr_toString e ++ "}");
+ipv6addr_wordinterval_toString (RangeUnion a b) =
+  ipv6addr_wordinterval_toString a ++ " u " ++ ipv6addr_wordinterval_toString b;
+
+debug_ipassmt_ipv6 ::
+  [(Iface,
+     [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))), Nat)])] ->
+    [Rule (Common_primitive
+            (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))))] ->
+      [[Prelude.Char]];
+debug_ipassmt_ipv6 = debug_ipassmt_generic ipv6addr_wordinterval_toString;
 
 get_exists_matching_src_ips_executable ::
   forall a.
@@ -3357,9 +3455,6 @@ sanity_wf_ruleset gamma =
 })))
                          ran;
 
-mod_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
-mod_word a b = word_of_int (mod_int (uint a) (uint b));
-
 map_of_string ::
   forall a.
     [([Prelude.Char], [Rule (Common_primitive a)])] ->
@@ -3581,38 +3676,6 @@ iiface_rewrite ipassmt (MatchNot m) = MatchNot (iiface_rewrite ipassmt m);
 iiface_rewrite ipassmt (MatchAnd m1 m2) =
   MatchAnd (iiface_rewrite ipassmt m1) (iiface_rewrite ipassmt m2);
 
-string_of_word_single :: forall a. (Len a) => Bool -> Word a -> [Prelude.Char];
-string_of_word_single lc w =
-  (if less_word w (word_of_int (Int_of_integer (10 :: Integer)))
-    then [char_of_nat (plus_nat (nat_of_integer (48 :: Integer)) (unat w))]
-    else (if less_word w (word_of_int (Int_of_integer (36 :: Integer)))
-           then [char_of_nat
-                   (plus_nat
-                     (if lc then nat_of_integer (87 :: Integer)
-                       else nat_of_integer (55 :: Integer))
-                     (unat w))]
-           else error "undefined"));
-
-divide_int :: Int -> Int -> Int;
-divide_int k l =
-  Int_of_integer (divide_integer (integer_of_int k) (integer_of_int l));
-
-divide_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
-divide_word a b = word_of_int (divide_int (uint a) (uint b));
-
-string_of_word ::
-  forall a. (Len a) => Bool -> Word a -> Nat -> Word a -> [Prelude.Char];
-string_of_word lc base ml w =
-  (if less_word base (word_of_int (Int_of_integer (2 :: Integer))) ||
-        less_nat ((len_of :: Itself a -> Nat) Type)
-          (nat_of_integer (2 :: Integer))
-    then error "undefined"
-    else (if less_word w base && equal_nat ml zero_nat
-           then string_of_word_single lc w
-           else string_of_word lc base (minus_nat ml one_nat)
-                  (divide_word w base) ++
-                  string_of_word_single lc (mod_word w base)));
-
 has_disc :: forall a. (a -> Bool) -> Match_expr a -> Bool;
 has_disc uu MatchAny = False;
 has_disc disc (Match a) = disc a;
@@ -3683,17 +3746,6 @@ process_ret (Rule v (Call vb) : rs) = Rule v (Call vb) : process_ret rs;
 process_ret (Rule v (Goto vb) : rs) = Rule v (Goto vb) : process_ret rs;
 process_ret (Rule v Empty : rs) = Rule v Empty : process_ret rs;
 process_ret (Rule v Unknown : rs) = Rule v Unknown : process_ret rs;
-
-ipv6_preferred_to_compressed ::
-  Ipv6addr_syntax -> [Maybe (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
-ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) =
-  let {
-    lss = goup_by_zeros [a, b, c, d, e, f, g, h];
-    max_zero_seq = foldr (\ xs -> max (size_list xs)) lss zero_nat;
-    aa = (if less_nat one_nat max_zero_seq
-           then list_replace1 (replicate max_zero_seq zero_word) [] lss
-           else lss);
-  } in list_explode aa;
 
 dec_string_of_word0 :: forall a. (Len a) => Word a -> [Prelude.Char];
 dec_string_of_word0 =
@@ -3891,10 +3943,6 @@ ctstate_set_toString :: Set Ctstate -> [Prelude.Char];
 ctstate_set_toString s =
   list_separated_toString "," ctstate_toString (enum_set_to_list s);
 
-hex_string_of_word :: forall a. (Len a) => Nat -> Word a -> [Prelude.Char];
-hex_string_of_word l =
-  string_of_word True (word_of_int (Int_of_integer (16 :: Integer))) l;
-
 normalized_dst_ports ::
   forall a. (Len a) => Match_expr (Common_primitive a) -> Bool;
 normalized_dst_ports MatchAny = True;
@@ -3956,30 +4004,6 @@ normalized_src_ports (MatchAnd m1 m2) =
 normalized_src_ports (MatchNot (MatchAnd uz va)) = False;
 normalized_src_ports (MatchNot (MatchNot vb)) = False;
 normalized_src_ports (MatchNot MatchAny) = True;
-
-hex_string_of_word0 :: forall a. (Len a) => Word a -> [Prelude.Char];
-hex_string_of_word0 = hex_string_of_word zero_nat;
-
-ipv6addr_toString ::
-  Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))) -> [Prelude.Char];
-ipv6addr_toString ip =
-  let {
-    partslist = ipv6_preferred_to_compressed (int_to_ipv6preferred ip);
-    fix_start = (\ ps -> (case ps of {
-                           [] -> ps;
-                           Nothing : _ -> Nothing : ps;
-                           Just _ : _ -> ps;
-                         }));
-    fix_end = (\ ps -> (case reverse ps of {
-                         [] -> ps;
-                         Nothing : _ -> ps ++ [Nothing];
-                         Just _ : _ -> ps;
-                       }));
-  } in list_separated_toString ":" (\ a -> (case a of {
-     Nothing -> [];
-     Just aa -> hex_string_of_word0 aa;
-   }))
-         ((fix_end . fix_start) partslist);
 
 ipt_tcp_flags_equal :: Ipt_tcp_flags -> Ipt_tcp_flags -> Bool;
 ipt_tcp_flags_equal (TCP_Flags fmask1 c1) (TCP_Flags fmask2 c2) =
@@ -4057,40 +4081,6 @@ abstract_primitive disc (MatchNot MatchAny) =
   MatchNot (abstract_primitive disc MatchAny);
 abstract_primitive disc (MatchAnd m1 m2) =
   MatchAnd (abstract_primitive disc m1) (abstract_primitive disc m2);
-
-access_matrix_pretty_code ::
-  Parts_connection_ext () ->
-    [Simple_rule (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))] ->
-      ([([Prelude.Char], [Prelude.Char])], [([Prelude.Char], [Prelude.Char])]);
-access_matrix_pretty_code c rs =
-  (if not (all (\ m ->
-                 equal_iface (iiface (match_sel m)) ifaceAny &&
-                   equal_iface (oiface (match_sel m)) ifaceAny)
-            rs)
-    then error "undefined"
-    else let {
-           w = build_ip_partition c rs;
-           r = map getOneIp w;
-           _ = all_pairs r;
-         } in (zip (map ipv4addr_toString r)
-                 (map ipv4addr_wordinterval_toString w),
-                map_filter
-                  (\ x ->
-                    (if let {
-                          (s, d) = x;
-                        } in equal_state (runFw s d c rs) (Decision FinalAllow)
-                      then Just (let {
-                                   (xa, y) = x;
-                                 } in (ipv4addr_toString xa,
-ipv4addr_toString y))
-                      else Nothing))
-                  (all_pairs r)));
-
-access_matrix_pretty ::
-  Parts_connection_ext () ->
-    [Simple_rule (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))] ->
-      ([([Prelude.Char], [Prelude.Char])], [([Prelude.Char], [Prelude.Char])]);
-access_matrix_pretty = access_matrix_pretty_code;
 
 has_disc_negated :: forall a. (a -> Bool) -> Bool -> Match_expr a -> Bool;
 has_disc_negated uu uv MatchAny = False;
@@ -4488,6 +4478,74 @@ routing_action_update ::
 routing_action_update routing_actiona
   (Routing_rule_ext routing_match metric routing_action more) =
   Routing_rule_ext routing_match metric (routing_actiona routing_action) more;
+
+access_matrix_pretty_ipv4_code ::
+  Parts_connection_ext () ->
+    [Simple_rule (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))] ->
+      ([([Prelude.Char], [Prelude.Char])], [([Prelude.Char], [Prelude.Char])]);
+access_matrix_pretty_ipv4_code c rs =
+  (if not (all (\ m ->
+                 equal_iface (iiface (match_sel m)) ifaceAny &&
+                   equal_iface (oiface (match_sel m)) ifaceAny)
+            rs)
+    then error "undefined"
+    else let {
+           w = build_ip_partition c rs;
+           r = map getOneIp w;
+           _ = all_pairs r;
+         } in (zip (map ipv4addr_toString r)
+                 (map ipv4addr_wordinterval_toString w),
+                map_filter
+                  (\ x ->
+                    (if let {
+                          (s, d) = x;
+                        } in equal_state (runFw s d c rs) (Decision FinalAllow)
+                      then Just (let {
+                                   (xa, y) = x;
+                                 } in (ipv4addr_toString xa,
+ipv4addr_toString y))
+                      else Nothing))
+                  (all_pairs r)));
+
+access_matrix_pretty_ipv4 ::
+  Parts_connection_ext () ->
+    [Simple_rule (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))] ->
+      ([([Prelude.Char], [Prelude.Char])], [([Prelude.Char], [Prelude.Char])]);
+access_matrix_pretty_ipv4 = access_matrix_pretty_ipv4_code;
+
+access_matrix_pretty_ipv6_code ::
+  Parts_connection_ext () ->
+    [Simple_rule (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))))] ->
+      ([([Prelude.Char], [Prelude.Char])], [([Prelude.Char], [Prelude.Char])]);
+access_matrix_pretty_ipv6_code c rs =
+  (if not (all (\ m ->
+                 equal_iface (iiface (match_sel m)) ifaceAny &&
+                   equal_iface (oiface (match_sel m)) ifaceAny)
+            rs)
+    then error "undefined"
+    else let {
+           w = build_ip_partition c rs;
+           r = map getOneIp w;
+           _ = all_pairs r;
+         } in (zip (map ipv6addr_toString r)
+                 (map ipv6addr_wordinterval_toString w),
+                map_filter
+                  (\ x ->
+                    (if let {
+                          (s, d) = x;
+                        } in equal_state (runFw s d c rs) (Decision FinalAllow)
+                      then Just (let {
+                                   (xa, y) = x;
+                                 } in (ipv6addr_toString xa,
+ipv6addr_toString y))
+                      else Nothing))
+                  (all_pairs r)));
+
+access_matrix_pretty_ipv6 ::
+  Parts_connection_ext () ->
+    [Simple_rule (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))))] ->
+      ([([Prelude.Char], [Prelude.Char])], [([Prelude.Char], [Prelude.Char])]);
+access_matrix_pretty_ipv6 = access_matrix_pretty_ipv6_code;
 
 sanity_check_simple_firewall :: forall a. (Len a) => [Simple_rule a] -> Bool;
 sanity_check_simple_firewall rs =

@@ -57,13 +57,13 @@ export_code Rule
   to_simple_firewall_without_interfaces
   sanity_wf_ruleset
   has_default_policy
-  (*sanity checking the simple firewall*)
-  
   (*spoofing:*) ipassmt_generic
-  no_spoofing_iface ipassmt_sanity_defined map_of_ipassmt to_ipassmt debug_ipassmt
+  no_spoofing_iface ipassmt_sanity_defined map_of_ipassmt to_ipassmt
+  debug_ipassmt_ipv4 debug_ipassmt_ipv6
   Pos Neg
   (*ip partitioning*)
-  access_matrix_pretty mk_parts_connection_TCP (*parts_connection_ssh parts_connection_http*)
+  access_matrix_pretty_ipv4 access_matrix_pretty_ipv6
+  mk_parts_connection_TCP (*parts_connection_ssh parts_connection_http*)
   (* routing *)
   PrefixMatch routing_rule_ext routing_action_ext
   routing_action_oiface_update metric_update routing_action_next_hop_update empty_rr_hlp sort_rtbl

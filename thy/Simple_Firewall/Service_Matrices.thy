@@ -41,7 +41,7 @@ To get a more deterministic runtime, we are sorting the output. As a performance
 We use mergesort_remdups, which does a mergesort (i.e sorts!) and removes duplicates and mergesort_by_rel which does a mergesort
 (without removing duplicates) and allows to specify the relation we use to sort.
 In theory, the largest ip ranges (smallest prefix length) should be put first, the following evaluation shows that this may not
-be the fastest solution. The reason might be that access_matrix_pretty picks (almost randomly) one IP from the result and
+be the fastest solution. The reason might be that access_matrix_pretty_ipv4 picks (almost randomly) one IP from the result and
 there are fast and slower choices. The faster choices are the ones where the firewall ruleset has a decision very early. 
 Therefore, the running time is still a bit unpredictable.
 
@@ -1383,10 +1383,10 @@ the edges are the edges. Result looks nice. Theorem also tells us that this visu
   Note that the WordInterval is already sorted, which is important for prettyness!
 *)
 text\<open>Only defined for @{const simple_firewall_without_interfaces}\<close>
-definition access_matrix_pretty
+definition access_matrix_pretty_ipv4
   :: "parts_connection \<Rightarrow> 32 simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
   where
-  "access_matrix_pretty c rs \<equiv>
+  "access_matrix_pretty_ipv4 c rs \<equiv>
     if \<not> simple_firewall_without_interfaces rs then undefined else
     (let (V,E) = (access_matrix c rs);
          formatted_nodes =
@@ -1399,10 +1399,10 @@ definition access_matrix_pretty
 
 
 (*TODO: not sure if this gives better code*)
-definition access_matrix_pretty_code
+definition access_matrix_pretty_ipv4_code
   :: "parts_connection \<Rightarrow> 32 simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
   where
-  "access_matrix_pretty_code c rs \<equiv>
+  "access_matrix_pretty_ipv4_code c rs \<equiv>
     if \<not> simple_firewall_without_interfaces rs then undefined else
     (let W = build_ip_partition c rs;
          R = map getOneIp W;
@@ -1411,9 +1411,41 @@ definition access_matrix_pretty_code
      (zip (map ipv4addr_toString R) (map ipv4addr_wordinterval_toString W), 
       map (\<lambda>(x,y). (ipv4addr_toString x, ipv4addr_toString y)) [(s, d)\<leftarrow>all_pairs R. runFw s d c rs = Decision FinalAllow]))"
 
-lemma access_matrix_pretty_code[code]: "access_matrix_pretty = access_matrix_pretty_code"
-  by(simp add: fun_eq_iff access_matrix_pretty_def access_matrix_pretty_code_def Let_def access_matrix_def map_prod_fun_zip)
-  
+lemma access_matrix_pretty_ipv4_code[code]: "access_matrix_pretty_ipv4 = access_matrix_pretty_ipv4_code"
+  by(simp add: fun_eq_iff access_matrix_pretty_ipv4_def access_matrix_pretty_ipv4_code_def Let_def access_matrix_def map_prod_fun_zip)
+
+
+definition access_matrix_pretty_ipv6
+  :: "parts_connection \<Rightarrow> 128 simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
+  where
+  "access_matrix_pretty_ipv6 c rs \<equiv>
+    if \<not> simple_firewall_without_interfaces rs then undefined else
+    (let (V,E) = (access_matrix c rs);
+         formatted_nodes =
+              map (\<lambda>(v_repr, v_range). (ipv6addr_toString v_repr, ipv6addr_wordinterval_toString v_range)) V;
+         formatted_edges =
+              map (\<lambda>(s,d). (ipv6addr_toString s, ipv6addr_toString d)) E
+     in
+      (formatted_nodes, formatted_edges)
+    )"
+
+
+(*TODO: not sure if this gives better code*)
+definition access_matrix_pretty_ipv6_code
+  :: "parts_connection \<Rightarrow> 128 simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
+  where
+  "access_matrix_pretty_ipv6_code c rs \<equiv>
+    if \<not> simple_firewall_without_interfaces rs then undefined else
+    (let W = build_ip_partition c rs;
+         R = map getOneIp W;
+         U = all_pairs R
+     in
+     (zip (map ipv6addr_toString R) (map ipv6addr_wordinterval_toString W), 
+      map (\<lambda>(x,y). (ipv6addr_toString x, ipv6addr_toString y)) [(s, d)\<leftarrow>all_pairs R. runFw s d c rs = Decision FinalAllow]))"
+
+lemma access_matrix_pretty_ipv6_code[code]: "access_matrix_pretty_ipv6 = access_matrix_pretty_ipv6_code"
+  by(simp add: fun_eq_iff access_matrix_pretty_ipv6_def access_matrix_pretty_ipv6_code_def Let_def access_matrix_def map_prod_fun_zip)
+
   
 
 

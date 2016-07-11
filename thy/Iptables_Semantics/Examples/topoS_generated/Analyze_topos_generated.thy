@@ -83,10 +83,10 @@ definition preprocess where
   lemma "ipassmt_sanity_nowildcards (map_of ipassmt)" by eval
   value[code] "map_of_ipassmt ipassmt"
 
-value[code] "access_matrix_pretty parts_connection_ssh 
+value[code] "access_matrix_pretty_ipv4 parts_connection_ssh 
     (preprocess unfold_ruleset_FORWARD upper_closure ipassmt factory_fw_FORWARD_default_policy factory_fw)"
 
-lemma "access_matrix_pretty parts_connection_http (
+lemma "access_matrix_pretty_ipv4 parts_connection_http (
       preprocess unfold_ruleset_FORWARD upper_closure ipassmt factory_fw_FORWARD_default_policy factory_fw) =
 ([ (''10.8.8.1'', ''10.8.8.1''),
    (''10.8.2.2'', ''10.8.2.2''),
@@ -110,7 +110,7 @@ lemma "access_matrix_pretty parts_connection_http (
    (''10.0.0.2'', ''10.0.0.1'')])" by eval
 
 text\<open>@{const CT_Established}\<close>
-lemma "access_matrix_pretty parts_connection_ssh 
+lemma "access_matrix_pretty_ipv4 parts_connection_ssh 
     (to_simple_firewall (upper_closure
               (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_L4_Flags a
                                                                  | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_L4_Flags a))

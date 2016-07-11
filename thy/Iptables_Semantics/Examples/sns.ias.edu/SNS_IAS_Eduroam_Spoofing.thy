@@ -24,7 +24,7 @@ parse_iptables_save eduroam_fw="eduroam_iptables-save"
 thm eduroam_fw_def
 thm eduroam_fw_INPUT_default_policy_def
 
-value[code] "debug_ipassmt ipassignment_incoming (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string_ipv4 eduroam_fw))"
+value[code] "debug_ipassmt_ipv4 ipassignment_incoming (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string_ipv4 eduroam_fw))"
 
 value[code] "unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string_ipv4 eduroam_fw)"
 
@@ -35,8 +35,8 @@ lemma "ipassmt_sanity_defined (unfold_ruleset_INPUT eduroam_fw_INPUT_default_pol
 lemma "ipassmt_sanity_defined (unfold_ruleset_OUTPUT eduroam_fw_OUTPUT_default_policy (map_of_string_ipv4 eduroam_fw)) (map_of_ipassmt ipassignment_outgoing)" by eval
 
 
-value[code] "debug_ipassmt ipassignment_incoming (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string_ipv4 eduroam_fw))"
-value[code] "debug_ipassmt ipassignment_outgoing (unfold_ruleset_OUTPUT eduroam_fw_OUTPUT_default_policy (map_of_string_ipv4 eduroam_fw))"
+value[code] "debug_ipassmt_ipv4 ipassignment_incoming (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string_ipv4 eduroam_fw))"
+value[code] "debug_ipassmt_ipv4 ipassignment_outgoing (unfold_ruleset_OUTPUT eduroam_fw_OUTPUT_default_policy (map_of_string_ipv4 eduroam_fw))"
 
 
 text\<open>The ruleset\<close>
