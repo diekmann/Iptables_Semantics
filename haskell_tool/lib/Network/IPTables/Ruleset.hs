@@ -163,14 +163,12 @@ filter_Isabelle_Action ps = case fAction ps of [] -> Isabelle.Empty
 -- this is just DEBUGING
 -- tries to catch errors of rulesetLookup
 checkParsedTables :: Isabelle.Len a => Ruleset a -> IO ()
-checkParsedTables res = check tables
+checkParsedTables res = mapM_ check tables
     where tables = M.keys (rsetTables res)
-          check :: [TableName] -> IO ()
-          check [] = return ()
-          check (t:ts) = do
-                         case rulesetLookup t res of Right (chain, defaults) -> putStrLn (success t chain)
-                                                     Left err -> putStrLn (errormsg t err)
-                         check ts
+          check :: TableName -> IO ()
+          check t = case rulesetLookup t res of 
+                           Right (chain, defaults) -> putStrLn (success t chain)
+                           Left err -> putStrLn (errormsg t err)
           errormsg t msg = concat ["Table `", t ,"' caught exception: `"
                                    , msg
                                    , "'. Analysis not possible for this table. "
