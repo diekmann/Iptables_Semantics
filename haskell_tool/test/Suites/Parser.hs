@@ -300,7 +300,7 @@ test_spoofing_TUM_Net3 = HU.testCase "spoofing_TUM_Net3" $ test_spoofing_TUM_i8 
 
 test_service_matrix ipassmtMaybeString fileName expected_result errormsg = do 
     ipassmt <- case ipassmtMaybeString of
-        Nothing -> return Isabelle.ipassmt_generic
+        Nothing -> return Isabelle.ipassmt_generic_ipv4
         Just ipassmtString -> case parseIpAssmt_ipv4 "<hardcoded>" ipassmtString of
             Left err -> do print err
                            error "could not parse hard-coded ipassmt"

@@ -13,16 +13,16 @@ module
                               Parts_connection_ext, ah, esp, gre, tcp, udp,
                               icmp, sctp, alist_and, sort_rtbl, mk_Set,
                               iPv6ICMP, map_of_ipassmt, to_ipassmt,
-                              ipv4addr_of_dotdecimal, ipassmt_generic,
                               optimize_matches, upper_closure, word_to_nat,
                               word_less_eq, int_to_ipv6preferred,
                               ipv6preferred_to_int, ipassmt_sanity_defined,
                               debug_ipassmt_ipv4, debug_ipassmt_ipv6,
                               no_spoofing_iface, has_default_policy,
-                              nat_to_8word, empty_rr_hlp, sanity_wf_ruleset,
-                              map_of_string, nat_to_16word,
-                              compress_parsed_extra, mk_ipv6addr,
-                              integer_to_16word, rewrite_Goto_safe,
+                              nat_to_8word, ipv4addr_of_dotdecimal,
+                              empty_rr_hlp, sanity_wf_ruleset, map_of_string,
+                              nat_to_16word, ipassmt_generic_ipv4,
+                              ipassmt_generic_ipv6, compress_parsed_extra,
+                              mk_ipv6addr, integer_to_16word, rewrite_Goto_safe,
                               metric_update, to_simple_firewall,
                               simple_rule_toString, unfold_ruleset_CHAIN_safe,
                               mk_parts_connection_TCP, action_toString,
@@ -2003,23 +2003,6 @@ to_ipassmt assmt =
 matchOr :: forall a. Match_expr a -> Match_expr a -> Match_expr a;
 matchOr m1 m2 = MatchNot (MatchAnd (MatchNot m1) (MatchNot m2));
 
-ipv4addr_of_dotdecimal ::
-  (Nat, (Nat, (Nat, Nat))) -> Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
-ipv4addr_of_dotdecimal (a, (b, (c, d))) =
-  ipv4addr_of_nat
-    (plus_nat
-      (plus_nat (plus_nat d (times_nat (nat_of_integer (256 :: Integer)) c))
-        (times_nat (nat_of_integer (65536 :: Integer)) b))
-      (times_nat (nat_of_integer (16777216 :: Integer)) a));
-
-ipassmt_generic ::
-  [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])];
-ipassmt_generic =
-  [(Iface "lo",
-     [(ipv4addr_of_dotdecimal
-         (nat_of_integer (127 :: Integer), (zero_nat, (zero_nat, zero_nat))),
-        nat_of_integer (8 :: Integer))])];
-
 upper_closure_matchexpr ::
   forall a.
     (Len a) => Action ->
@@ -2989,12 +2972,12 @@ ipassmt_sanity_defined ::
 ipassmt_sanity_defined rs ipassmt =
   all (\ iface -> not (is_none (ipassmt iface))) (collect_ifaces rs);
 
-debug_ipassmt_generic ::
+debug_ipassmt_generic_ipv4 ::
   forall a.
     (Len a) => (Wordinterval a -> [Prelude.Char]) ->
                  [(Iface, [(Word a, Nat)])] ->
                    [Rule (Common_primitive a)] -> [[Prelude.Char]];
-debug_ipassmt_generic toStr ipassmt rs =
+debug_ipassmt_generic_ipv4 toStr ipassmt rs =
   let {
     ifaces = map fst ipassmt;
   } in ["distinct: " ++ (if distinct ifaces then "passed" else "FAIL!"),
@@ -3104,7 +3087,7 @@ debug_ipassmt_ipv4 ::
   [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
     [Rule (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))] ->
       [[Prelude.Char]];
-debug_ipassmt_ipv4 = debug_ipassmt_generic ipv4addr_wordinterval_toString;
+debug_ipassmt_ipv4 = debug_ipassmt_generic_ipv4 ipv4addr_wordinterval_toString;
 
 string_of_word_single :: forall a. (Len a) => Bool -> Word a -> [Prelude.Char];
 string_of_word_single lc w =
@@ -3195,7 +3178,7 @@ debug_ipassmt_ipv6 ::
     [Rule (Common_primitive
             (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))))] ->
       [[Prelude.Char]];
-debug_ipassmt_ipv6 = debug_ipassmt_generic ipv6addr_wordinterval_toString;
+debug_ipassmt_ipv6 = debug_ipassmt_generic_ipv4 ipv6addr_wordinterval_toString;
 
 get_exists_matching_src_ips_executable ::
   forall a.
@@ -3427,6 +3410,15 @@ rm_LogEmpty (Rule v Return : rs) = Rule v Return : rm_LogEmpty rs;
 rm_LogEmpty (Rule v (Goto vb) : rs) = Rule v (Goto vb) : rm_LogEmpty rs;
 rm_LogEmpty (Rule v Unknown : rs) = Rule v Unknown : rm_LogEmpty rs;
 
+ipv4addr_of_dotdecimal ::
+  (Nat, (Nat, (Nat, Nat))) -> Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+ipv4addr_of_dotdecimal (a, (b, (c, d))) =
+  ipv4addr_of_nat
+    (plus_nat
+      (plus_nat (plus_nat d (times_nat (nat_of_integer (256 :: Integer)) c))
+        (times_nat (nat_of_integer (65536 :: Integer)) b))
+      (times_nat (nat_of_integer (16777216 :: Integer)) a));
+
 makea ::
   [Prelude.Char] ->
     Maybe (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))) ->
@@ -3463,6 +3455,20 @@ map_of_string rs = map_of rs;
 
 nat_to_16word :: Nat -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
 nat_to_16word i = of_nat i;
+
+ipassmt_generic_ipv4 ::
+  [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])];
+ipassmt_generic_ipv4 =
+  [(Iface "lo",
+     [(ipv4addr_of_dotdecimal
+         (nat_of_integer (127 :: Integer), (zero_nat, (zero_nat, zero_nat))),
+        nat_of_integer (8 :: Integer))])];
+
+ipassmt_generic_ipv6 ::
+  [(Iface,
+     [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))), Nat)])];
+ipassmt_generic_ipv6 =
+  [(Iface "lo", [(one_word, nat_of_integer (128 :: Integer))])];
 
 compress_parsed_extra ::
   forall a.

@@ -82,7 +82,7 @@ readArgs (CommandLineArgs labeled unlabeled) = do
                         Just ipassmtPath -> readIpAssmt ipassmtPath
                         Nothing -> do
                             putErrStrLn "WARNING: no IP assignment specified, loading a generic file"
-                            return Isabelle.ipassmt_generic
+                            return Isabelle.ipassmt_generic_ipv4
             let tbl = case table of Just t -> t
                                     Nothing -> "filter"
             let chn = case chain of Just c -> c

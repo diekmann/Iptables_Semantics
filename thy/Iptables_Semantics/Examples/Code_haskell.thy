@@ -57,7 +57,7 @@ export_code Rule
   to_simple_firewall_without_interfaces
   sanity_wf_ruleset
   has_default_policy
-  (*spoofing:*) ipassmt_generic
+  (*spoofing:*) ipassmt_generic_ipv4 ipassmt_generic_ipv6
   no_spoofing_iface ipassmt_sanity_defined map_of_ipassmt to_ipassmt
   debug_ipassmt_ipv4 debug_ipassmt_ipv6
   Pos Neg
