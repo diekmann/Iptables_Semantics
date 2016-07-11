@@ -19,6 +19,7 @@ library
   exposed-modules:
       Network.IPTables.Generated
     , Data_Bits
+    , Network.IPTables.Ipassmt
     , Network.IPTables.IpassmtParser
     , Network.IPTables.IsabelleToString
     , Network.IPTables.ParserHelper

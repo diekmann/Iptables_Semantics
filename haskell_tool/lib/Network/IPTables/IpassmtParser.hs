@@ -7,17 +7,10 @@ module Network.IPTables.IpassmtParser
 import           Text.Parsec hiding (token)
 import           Data.Functor ((<$>), ($>))
 import           Control.Applicative ((<*), (*>))
+import           Network.IPTables.Ipassmt
 import qualified Network.IPTables.Generated as Isabelle
 import           Network.IPTables.ParserHelper
 import           Network.IPTables.IsabelleToString(Word32)
-
-type IpRange = Isabelle.Negation_type [Isabelle.Ipt_iprange Word32]
-
-data IpAssmt =  IpAssmt [(Isabelle.Iface, IpRange)] deriving (Show)
-
-
-type IsabelleIPv4AddrWord = Isabelle.Word Word32
-type IsabelleIpAssmt = [(Isabelle.Iface, [(IsabelleIPv4AddrWord, Isabelle.Nat)])]
 
 ipAssmtToIsabelle:: IpAssmt -> IsabelleIpAssmt
 ipAssmtToIsabelle (IpAssmt assmt) = Isabelle.to_ipassmt assmt
@@ -28,7 +21,7 @@ parseIpAssmt = runParser ifconfig ()
 ifconfig :: Parsec String s IpAssmt
 ifconfig = IpAssmt <$> many (skipWS *> ipAssmt <* skipWS)
 
-ipAssmt :: Parsec String s (Isabelle.Iface, IpRange)
+ipAssmt :: Parsec String s (Isabelle.Iface, Isabelle.Negation_type [Isabelle.Ipt_iprange Word32])
 ipAssmt = do
     ifce <- iface
     skipWS *> char '=' <* skipWS
