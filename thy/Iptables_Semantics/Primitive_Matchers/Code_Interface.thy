@@ -29,9 +29,17 @@ lemma "quote_rewrite (''foo''@[Char Nibble2 Nibble2]) = ''foo~''" by eval
 
 text\<open>The parser returns the @{typ "'i::len common_primitive ruleset"} not as a map but as an association list.
       This function converts it\<close>
-(*TODO: this is IPv4 only currently*)
-definition map_of_string_ipv4 :: "(string \<times> 32 common_primitive rule list) list \<Rightarrow> string \<rightharpoonup> 32 common_primitive rule list" where
+
+(*this is only to tighten the types*)
+definition map_of_string_ipv4
+  :: "(string \<times> 32 common_primitive rule list) list \<Rightarrow> string \<rightharpoonup> 32 common_primitive rule list" where
   "map_of_string_ipv4 rs = map_of rs"
+definition map_of_string_ipv6
+  :: "(string \<times> 128 common_primitive rule list) list \<Rightarrow> string \<rightharpoonup> 128 common_primitive rule list" where
+  "map_of_string_ipv6 rs = map_of rs"
+definition map_of_string
+  :: "(string \<times> 'i common_primitive rule list) list \<Rightarrow> string \<rightharpoonup> 'i common_primitive rule list" where
+  "map_of_string rs = map_of rs"
 
 
 definition unfold_ruleset_CHAIN_safe :: "string \<Rightarrow> action \<Rightarrow> 'i::len common_primitive ruleset \<Rightarrow> 'i common_primitive rule list option" where

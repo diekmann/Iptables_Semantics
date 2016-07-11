@@ -5,7 +5,7 @@ module Suites.ParserHelper ( tests ) where
 --import Network.IPTables.Parser
 --import Network.IPTables.IpassmtParser
 import qualified Network.IPTables.ParserHelper
-import qualified Network.IPTables.Generated as Isabelle
+--import qualified Network.IPTables.Generated as Isabelle
 import           Text.Parsec hiding (token)
 import Test.Tasty
 import Test.Tasty.HUnit as HU

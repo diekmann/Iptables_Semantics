@@ -24,7 +24,6 @@ import qualified Debug.Trace
 import qualified Network.IPTables.Generated as Isabelle
 import           Network.IPTables.IsabelleToString()
 import           Control.Monad (when)
-import Network.IPTables.IsabelleToString (Word32)
 
 
 -- where type a is either Word32 for IPv4 or Word128 for IPv6
@@ -93,7 +92,9 @@ rulesetLookup table r = case M.lookup table (rsetTables r)
 -- output: rule list our Isabelle algorithms can work on
 -- may throw an error; is IO because it dumps debug info at you :)
 -- verbose_flag -> table -> chain -> pased_ruleset -> isabelle_ruleset_and_debugging_output
-loadUnfoldedRuleset :: Bool -> String -> String -> Ruleset Word32 -> IO [Isabelle.Rule (Isabelle.Common_primitive Word32)]
+loadUnfoldedRuleset
+    :: (Isabelle.Len a, Show (Isabelle.Rule (Isabelle.Common_primitive a))) =>
+       Bool -> String -> String -> Ruleset a -> IO [Isabelle.Rule (Isabelle.Common_primitive a)]
 loadUnfoldedRuleset debug table chain res = do
     when (table /= "filter") $ do 
         putStrLn $ "INFO: Officially, we only support the filter table. \
@@ -116,7 +117,7 @@ loadUnfoldedRuleset debug table chain res = do
                               Nothing -> error "There are gotos in your ruleset which we cannot handle."
                               Just rs -> rs
     -- Theorem: unfold_optimize_common_matcher_univ_ruleset_CHAIN
-    let unfolded = case Isabelle.unfold_ruleset_CHAIN_safe chain policy $ Isabelle.map_of_string_ipv4 noGoto of
+    let unfolded = case Isabelle.unfold_ruleset_CHAIN_safe chain policy $ Isabelle.map_of_string noGoto of
                               Nothing -> error "Unfolding ruleset failed. Does the Linux kernel load it? Is it cyclic? Are there any actions not supported by this tool?"
                               Just rs -> rs
     

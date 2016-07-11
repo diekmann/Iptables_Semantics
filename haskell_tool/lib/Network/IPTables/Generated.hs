@@ -19,22 +19,23 @@ module
                               word_less_eq, int_to_ipv6preferred,
                               ipv6preferred_to_int, no_spoofing_iface,
                               has_default_policy, nat_to_8word, empty_rr_hlp,
-                              sanity_wf_ruleset, nat_to_16word,
+                              sanity_wf_ruleset, map_of_string, nat_to_16word,
                               compress_parsed_extra, mk_ipv6addr,
                               integer_to_16word, rewrite_Goto_safe,
-                              map_of_string_ipv4, metric_update,
-                              access_matrix_pretty, to_simple_firewall,
-                              simple_rule_toString, unfold_ruleset_CHAIN_safe,
-                              mk_parts_connection_TCP,
-                              sanity_check_simple_firewall, action_toString,
-                              packet_assume_new, routing_action_oiface_update,
+                              metric_update, access_matrix_pretty,
+                              to_simple_firewall, simple_rule_toString,
+                              unfold_ruleset_CHAIN_safe,
+                              mk_parts_connection_TCP, action_toString,
+                              sanity_check_simple_firewall, packet_assume_new,
+                              routing_action_oiface_update,
                               routing_action_next_hop_update,
                               abstract_for_simple_firewall,
                               ipt_ipv4range_toString, ipt_ipv6range_toString,
-                              common_primitive_v4_toString,
-                              common_primitive_v6_toString,
+                              common_primitive_ipv4_toString,
+                              common_primitive_ipv6_toString,
                               to_simple_firewall_without_interfaces,
-                              common_primitive_match_expr_toString)
+                              common_primitive_match_expr_ipv4_toString,
+                              common_primitive_match_expr_ipv6_toString)
   where {
 
 import Prelude ((==), (/=), (<), (<=), (>=), (>), (+), (-), (*), (/), (**),
@@ -3360,6 +3361,12 @@ sanity_wf_ruleset gamma =
 mod_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
 mod_word a b = word_of_int (mod_int (uint a) (uint b));
 
+map_of_string ::
+  forall a.
+    [([Prelude.Char], [Rule (Common_primitive a)])] ->
+      [Prelude.Char] -> Maybe [Rule (Common_primitive a)];
+map_of_string rs = map_of rs;
+
 nat_to_16word :: Nat -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
 nat_to_16word i = of_nat i;
 
@@ -3677,13 +3684,6 @@ process_ret (Rule v (Call vb) : rs) = Rule v (Call vb) : process_ret rs;
 process_ret (Rule v (Goto vb) : rs) = Rule v (Goto vb) : process_ret rs;
 process_ret (Rule v Empty : rs) = Rule v Empty : process_ret rs;
 process_ret (Rule v Unknown : rs) = Rule v Unknown : process_ret rs;
-
-map_of_string_ipv4 ::
-  [([Prelude.Char],
-     [Rule (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))])] ->
-    [Prelude.Char] ->
-      Maybe [Rule (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))];
-map_of_string_ipv4 rs = map_of rs;
 
 ipv6_preferred_to_compressed ::
   Ipv6addr_syntax -> [Maybe (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
@@ -4454,21 +4454,6 @@ mk_parts_connection_TCP ::
 mk_parts_connection_TCP sport dport =
   Parts_connection_ext "1" "1" tcp sport dport ();
 
-sanity_check_simple_firewall :: forall a. (Len a) => [Simple_rule a] -> Bool;
-sanity_check_simple_firewall rs =
-  all (\ r ->
-        let {
-          c = (\ (s, e) ->
-                not (equal_word s zero_word) || not (equal_word e max_word));
-        } in (if c (sports (match_sel r)) || c (dports (match_sel r))
-               then equal_protocol (proto (match_sel r)) (Proto tcp) ||
-                      (equal_protocol (proto (match_sel r)) (Proto udp) ||
-                        equal_protocol (proto (match_sel r)) (Proto sctp))
-               else True) &&
-          valid_prefix_fw (src (match_sel r)) &&
-            valid_prefix_fw (dst (match_sel r)))
-    rs;
-
 action_toString :: Action -> [Prelude.Char];
 action_toString Accept = "-j ACCEPT";
 action_toString Drop = "-j DROP";
@@ -4504,6 +4489,21 @@ routing_action_update ::
 routing_action_update routing_actiona
   (Routing_rule_ext routing_match metric routing_action more) =
   Routing_rule_ext routing_match metric (routing_actiona routing_action) more;
+
+sanity_check_simple_firewall :: forall a. (Len a) => [Simple_rule a] -> Bool;
+sanity_check_simple_firewall rs =
+  all (\ r ->
+        let {
+          c = (\ (s, e) ->
+                not (equal_word s zero_word) || not (equal_word e max_word));
+        } in (if c (sports (match_sel r)) || c (dports (match_sel r))
+               then equal_protocol (proto (match_sel r)) (Proto tcp) ||
+                      (equal_protocol (proto (match_sel r)) (Proto udp) ||
+                        equal_protocol (proto (match_sel r)) (Proto sctp))
+               else True) &&
+          valid_prefix_fw (src (match_sel r)) &&
+            valid_prefix_fw (dst (match_sel r)))
+    rs;
 
 match_tcp_flags_conjunct_option ::
   Ipt_tcp_flags -> Ipt_tcp_flags -> Maybe Ipt_tcp_flags;
@@ -4620,14 +4620,14 @@ ipt_ipv6range_toString (IpAddrNetmask ip n) =
 ipt_ipv6range_toString (IpAddrRange ip1 ip2) =
   ipv6addr_toString ip1 ++ "-" ++ ipv6addr_toString ip2;
 
-common_primitive_v4_toString ::
+common_primitive_ipv4_toString ::
   Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prelude.Char];
-common_primitive_v4_toString = common_primitive_toString ipv4addr_toString;
+common_primitive_ipv4_toString = common_primitive_toString ipv4addr_toString;
 
-common_primitive_v6_toString ::
+common_primitive_ipv6_toString ::
   Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))) ->
     [Prelude.Char];
-common_primitive_v6_toString = common_primitive_toString ipv6addr_toString;
+common_primitive_ipv6_toString = common_primitive_toString ipv6addr_toString;
 
 to_simple_firewall_without_interfaces ::
   forall a.
@@ -4647,20 +4647,34 @@ to_simple_firewall_without_interfaces ipassmt rs =
               (upper_closure (packet_assume_new rs)))))));
 
 common_primitive_match_expr_toString ::
+  forall a.
+    (Common_primitive a -> [Prelude.Char]) ->
+      Match_expr (Common_primitive a) -> [Prelude.Char];
+common_primitive_match_expr_toString toStr MatchAny = [];
+common_primitive_match_expr_toString toStr (Match m) = toStr m;
+common_primitive_match_expr_toString toStr (MatchAnd m1 m2) =
+  common_primitive_match_expr_toString toStr m1 ++
+    " " ++ common_primitive_match_expr_toString toStr m2;
+common_primitive_match_expr_toString toStr (MatchNot (Match m)) =
+  "! " ++ toStr m;
+common_primitive_match_expr_toString toStr (MatchNot (MatchNot v)) =
+  "NOT (" ++ common_primitive_match_expr_toString toStr (MatchNot v) ++ ")";
+common_primitive_match_expr_toString toStr (MatchNot (MatchAnd v va)) =
+  "NOT (" ++ common_primitive_match_expr_toString toStr (MatchAnd v va) ++ ")";
+common_primitive_match_expr_toString toStr (MatchNot MatchAny) =
+  "NOT (" ++ common_primitive_match_expr_toString toStr MatchAny ++ ")";
+
+common_primitive_match_expr_ipv4_toString ::
   Match_expr (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))) ->
     [Prelude.Char];
-common_primitive_match_expr_toString MatchAny = [];
-common_primitive_match_expr_toString (Match m) = common_primitive_v4_toString m;
-common_primitive_match_expr_toString (MatchAnd m1 m2) =
-  common_primitive_match_expr_toString m1 ++
-    " " ++ common_primitive_match_expr_toString m2;
-common_primitive_match_expr_toString (MatchNot (Match m)) =
-  "! " ++ common_primitive_v4_toString m;
-common_primitive_match_expr_toString (MatchNot (MatchNot v)) =
-  "NOT (" ++ common_primitive_match_expr_toString (MatchNot v) ++ ")";
-common_primitive_match_expr_toString (MatchNot (MatchAnd v va)) =
-  "NOT (" ++ common_primitive_match_expr_toString (MatchAnd v va) ++ ")";
-common_primitive_match_expr_toString (MatchNot MatchAny) =
-  "NOT (" ++ common_primitive_match_expr_toString MatchAny ++ ")";
+common_primitive_match_expr_ipv4_toString =
+  common_primitive_match_expr_toString common_primitive_ipv4_toString;
+
+common_primitive_match_expr_ipv6_toString ::
+  Match_expr
+    (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))))) ->
+    [Prelude.Char];
+common_primitive_match_expr_ipv6_toString =
+  common_primitive_match_expr_toString common_primitive_ipv6_toString;
 
 }

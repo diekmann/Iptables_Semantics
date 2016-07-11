@@ -24,7 +24,7 @@ data RState = RState { rstRules  :: Ruleset Word32
 initRState = RState mkRuleset Nothing
 
 rstRulesM :: (Ruleset Word32 -> Ruleset Word32) -> RState -> RState
-rstRulesM  f rst = rst { rstRules  = f (rstRules  rst) }
+rstRulesM  f rst = rst { rstRules  = f (rstRules rst) }
 
 rstActiveM :: (Maybe TableName -> Maybe TableName) -> RState -> RState
 rstActiveM f rst = rst { rstActive = f (rstActive rst) }

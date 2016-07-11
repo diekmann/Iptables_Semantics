@@ -37,17 +37,18 @@ export_code Rule
   action_toString
   (*IPv4*)
   ipt_ipv4range_toString
-  common_primitive_v4_toString
+  common_primitive_ipv4_toString
+  common_primitive_match_expr_ipv4_toString
   (*IPv6*)
   mk_ipv6addr IPv6AddrPreferred ipv6preferred_to_int int_to_ipv6preferred
   ipt_ipv6range_toString
-  common_primitive_v6_toString
+  common_primitive_ipv6_toString
   sanity_check_simple_firewall
-  common_primitive_match_expr_toString
+  common_primitive_match_expr_ipv6_toString
   simple_rule_toString
   Semantics_Goto.rewrite_Goto_safe
   (*parser helpers:*) alist_and' compress_parsed_extra Pos Neg mk_Set
-  unfold_ruleset_CHAIN_safe map_of_string_ipv4
+  unfold_ruleset_CHAIN_safe map_of_string
   upper_closure
   abstract_for_simple_firewall optimize_matches
   packet_assume_new

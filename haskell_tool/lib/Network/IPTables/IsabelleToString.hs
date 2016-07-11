@@ -19,15 +19,15 @@ instance Show Isabelle.Nat where
     show (Isabelle.Nat n) = "Nat " ++ show n
 
 instance Show (Isabelle.Common_primitive Word32) where
-    show = Isabelle.common_primitive_v4_toString
+    show = Isabelle.common_primitive_ipv4_toString
 instance Show (Isabelle.Common_primitive Word128) where
-    show = Isabelle.common_primitive_v6_toString
+    show = Isabelle.common_primitive_ipv6_toString
 
 instance Show Isabelle.Action where
     show = Isabelle.action_toString
 
 instance Show (Isabelle.Simple_rule Word32) where
-    show = Isabelle.simple_rule_toString
+    show = Isabelle.simple_rule_toString --TODO isabelle name!
 
 instance Show Isabelle.Iface where
     show (Isabelle.Iface i) = i
@@ -38,9 +38,13 @@ instance Show (Isabelle.Ipt_iprange Word128) where
   show = Isabelle.ipt_ipv6range_toString
 
 instance Show (Isabelle.Match_expr (Isabelle.Common_primitive Word32)) where
-    show = Isabelle.common_primitive_match_expr_toString
+    show = Isabelle.common_primitive_match_expr_ipv4_toString
+instance Show (Isabelle.Match_expr (Isabelle.Common_primitive Word128)) where
+    show = Isabelle.common_primitive_match_expr_ipv6_toString
 
 instance Show (Isabelle.Rule (Isabelle.Common_primitive Word32)) where
     --TODO: unify with Isabelle.common_primitive_rule_toString
     show (Isabelle.Rule m a) = "(" ++ show m ++ ", " ++ show a ++ ")"
-    
+instance Show (Isabelle.Rule (Isabelle.Common_primitive Word128)) where
+    --TODO: unify with Isabelle.common_primitive_rule_toString
+    show (Isabelle.Rule m a) = "(" ++ show m ++ ", " ++ show a ++ ")"    
