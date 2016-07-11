@@ -172,13 +172,13 @@ done
 
 lemma "check_simple_fw_preconditions (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset))" by eval
 
-value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset)))"
-lemma "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset))) =
+value[code] "map simple_rule_ipv4_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset)))"
+lemma "map simple_rule_ipv4_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset))) =
   [''ACCEPT     all  --  192.168.0.0/16            0.0.0.0/0    '',
-   ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '']" by eval (*will break when simple_rule_toString is changed*)
+   ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '']" by eval (*will break when simple_rule_ipv4_toString is changed*)
 
 lemma "check_simple_fw_preconditions (lower_closure (unfold_ruleset_INPUT action.Accept example_ruleset))" by eval
-value[code] "map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_INPUT action.Accept example_ruleset)))"
+value[code] "map simple_rule_ipv4_toString (to_simple_firewall (lower_closure (unfold_ruleset_INPUT action.Accept example_ruleset)))"
 
 
 lemma "length (unfold_ruleset_INPUT action.Accept example_ruleset) = 19" by eval
@@ -307,7 +307,7 @@ value[code] "upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_IN
 
 lemma "check_simple_fw_preconditions (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw))))))" by eval
 
-value[code] "map simple_rule_toString (to_simple_firewall
+value[code] "map simple_rule_ipv4_toString (to_simple_firewall
               (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw)))))))"
 lemma "simple_fw_valid (to_simple_firewall
               (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw)))))))" by eval

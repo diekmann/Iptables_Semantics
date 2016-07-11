@@ -243,7 +243,7 @@ subsection\<open>Try 3\<close>
   text\<open>In the simplified firewall, we see a lot of DROPs in the beginning now\<close>
   value[code] "let x = to_simple_firewall (upper_closure
                       (packet_assume_new (unfold_ruleset_FORWARD net_fw_3_FORWARD_default_policy (map_of net_fw_3))))
-               in map simple_rule_toString x" (*225.039s*)
+               in map simple_rule_ipv4_toString x" (*225.039s*)
   
   
   text\<open>the parsed firewall:\<close>

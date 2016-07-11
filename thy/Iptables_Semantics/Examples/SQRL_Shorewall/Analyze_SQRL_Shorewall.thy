@@ -53,7 +53,7 @@ lemma "\<forall>m \<in> get_match`set (optimize_matches abstract_for_simple_fire
 lemma "check_simple_fw_preconditions (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))))" by eval
 lemma "length (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))))) = 1389" by eval
 (*22.240s*)
-value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded)))))"
+value[code] "map simple_rule_ipv4_toString (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded)))))"
 
 (*25.480s*)
 value[code] "map ipv4addr_wordinterval_toString (getParts (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded))))))"

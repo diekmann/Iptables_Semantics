@@ -27,7 +27,9 @@ instance Show Isabelle.Action where
     show = Isabelle.action_toString
 
 instance Show (Isabelle.Simple_rule Word32) where
-    show = Isabelle.simple_rule_toString --TODO isabelle name!
+    show = Isabelle.simple_rule_ipv4_toString
+instance Show (Isabelle.Simple_rule Word128) where
+    show = Isabelle.simple_rule_ipv6_toString
 
 instance Show Isabelle.Iface where
     show (Isabelle.Iface i) = i

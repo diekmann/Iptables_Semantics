@@ -215,7 +215,7 @@ lemma "good_ruleset upper" by eval
 lemma "simple_ruleset upper" by eval
 
 lemma "check_simple_fw_preconditions upper \<and> sanity_check_simple_firewall (to_simple_firewall upper)" by eval
-value "map simple_rule_toString (to_simple_firewall upper)"
+value "map simple_rule_ipv4_toString (to_simple_firewall upper)"
 
 
 text\<open>in doubt deny closure\<close>

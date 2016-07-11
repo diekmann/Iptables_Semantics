@@ -24,7 +24,7 @@ lemma "sanity_check_simple_firewall
                     (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
                       (map_of parser_test_firewall))))))) = False" by eval
 
-value[code] "map simple_rule6_toString
+value[code] "map simple_rule_ipv6_toString
               (to_simple_firewall (upper_closure
                 (optimize_matches abstract_for_simple_firewall
                   (upper_closure (packet_assume_new
@@ -47,7 +47,7 @@ value[code] " (unfold_ruleset_FORWARD action.Accept
                               ]))"
 
 
-value[code] "map simple_rule_toString
+value[code] "map simple_rule_ipv4_toString
               (to_simple_firewall (upper_closure
                 (optimize_matches abstract_for_simple_firewall
                   (upper_closure (packet_assume_new
@@ -96,7 +96,7 @@ Defining constant `parser_test_firewall2_INPUT_default_policy_def'
 Defining constant `parser_test_firewall2_FORWARD_default_policy_def' 
 Defining constant `parser_test_firewall2_OUTPUT_default_policy_def'*)
 
-value[code] "map simple_rule6_toString
+value[code] "map simple_rule_ipv6_toString
               (to_simple_firewall (upper_closure
                 (optimize_matches abstract_for_simple_firewall
                   (upper_closure (packet_assume_new

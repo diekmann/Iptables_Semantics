@@ -41,7 +41,7 @@ value[code] "debug_ipassmt_ipv4 ipassignment_outgoing (unfold_ruleset_OUTPUT edu
 
 text\<open>The ruleset\<close>
 lemma "check_simple_fw_preconditions (upper_closure (packet_assume_new (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string_ipv4 eduroam_fw))))" by eval
-value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string_ipv4 eduroam_fw)))))"
+value[code] "map simple_rule_ipv4_toString (to_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string_ipv4 eduroam_fw)))))"
 lemma "simple_fw_valid (to_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string_ipv4 eduroam_fw)))))" by eval
 lemma "simple_fw_valid (to_simple_firewall (lower_closure (packet_assume_new (unfold_ruleset_INPUT eduroam_fw_INPUT_default_policy (map_of_string_ipv4 eduroam_fw)))))" by eval
 

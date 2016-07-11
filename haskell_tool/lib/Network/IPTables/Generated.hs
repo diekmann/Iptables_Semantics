@@ -24,12 +24,14 @@ module
                               ipassmt_generic_ipv6, compress_parsed_extra,
                               mk_ipv6addr, integer_to_16word, rewrite_Goto_safe,
                               metric_update, to_simple_firewall,
-                              simple_rule_toString, unfold_ruleset_CHAIN_safe,
+                              unfold_ruleset_CHAIN_safe,
                               mk_parts_connection_TCP, action_toString,
                               access_matrix_pretty_ipv4,
                               access_matrix_pretty_ipv6,
                               sanity_check_simple_firewall, packet_assume_new,
                               routing_action_oiface_update,
+                              simple_rule_ipv4_toString,
+                              simple_rule_ipv6_toString,
                               routing_action_next_hop_update,
                               abstract_for_simple_firewall,
                               ipt_ipv4range_toString, ipt_ipv6range_toString,
@@ -4106,6 +4108,13 @@ ipv4_cidr_toString ip_n = let {
                             (base, n) = ip_n;
                           } in ipv4addr_toString base ++ "/" ++ string_of_nat n;
 
+ipv6_cidr_toString ::
+  (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))), Nat) ->
+    [Prelude.Char];
+ipv6_cidr_toString ip_n = let {
+                            (base, n) = ip_n;
+                          } in ipv6addr_toString base ++ "/" ++ string_of_nat n;
+
 next_hop_update ::
   forall a.
     (Maybe (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))) ->
@@ -4389,29 +4398,6 @@ to_simple_firewall rs =
            rs
     else error "undefined");
 
-simple_action_toString :: Simple_action -> [Prelude.Char];
-simple_action_toString Accepta = "ACCEPT";
-simple_action_toString Dropa = "DROP";
-
-simple_rule_toString ::
-  Simple_rule (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prelude.Char];
-simple_rule_toString
-  (SimpleRule (Simple_match_ext iif oif sip dip p sps dps ()) a) =
-  simple_action_toString a ++
-    "     " ++
-      protocol_toString p ++
-        "  --  " ++
-          ipv4_cidr_toString sip ++
-            "            " ++
-              ipv4_cidr_toString dip ++
-                " " ++
-                  iface_toString "in: " iif ++
-                    " " ++
-                      iface_toString "out: " oif ++
-                        " " ++
-                          ports_toString "sports: " sps ++
-                            " " ++ ports_toString "dports: " dps;
-
 ipt_tcp_flags_NoMatch :: Ipt_tcp_flags;
 ipt_tcp_flags_NoMatch = TCP_Flags bot_set (insert TCP_SYN bot_set);
 
@@ -4448,6 +4434,10 @@ mk_parts_connection_TCP ::
     Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))) -> Parts_connection_ext ();
 mk_parts_connection_TCP sport dport =
   Parts_connection_ext "1" "1" tcp sport dport ();
+
+simple_action_toString :: Simple_action -> [Prelude.Char];
+simple_action_toString Accepta = "ACCEPT";
+simple_action_toString Dropa = "DROP";
 
 action_toString :: Action -> [Prelude.Char];
 action_toString Accept = "-j ACCEPT";
@@ -4643,6 +4633,45 @@ routing_action_oiface_update ::
   [Prelude.Char] -> Routing_rule_ext () -> Routing_rule_ext ();
 routing_action_oiface_update h pk =
   routing_action_update (output_iface_update (\ _ -> h)) pk;
+
+simple_rule_ipv4_toString ::
+  Simple_rule (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> [Prelude.Char];
+simple_rule_ipv4_toString
+  (SimpleRule (Simple_match_ext iif oif sip dip p sps dps ()) a) =
+  simple_action_toString a ++
+    "     " ++
+      protocol_toString p ++
+        "  --  " ++
+          ipv4_cidr_toString sip ++
+            "            " ++
+              ipv4_cidr_toString dip ++
+                " " ++
+                  iface_toString "in: " iif ++
+                    " " ++
+                      iface_toString "out: " oif ++
+                        " " ++
+                          ports_toString "sports: " sps ++
+                            " " ++ ports_toString "dports: " dps;
+
+simple_rule_ipv6_toString ::
+  Simple_rule (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))) ->
+    [Prelude.Char];
+simple_rule_ipv6_toString
+  (SimpleRule (Simple_match_ext iif oif sip dip p sps dps ()) a) =
+  simple_action_toString a ++
+    "     " ++
+      protocol_toString p ++
+        "  --  " ++
+          ipv6_cidr_toString sip ++
+            "            " ++
+              ipv6_cidr_toString dip ++
+                " " ++
+                  iface_toString "in: " iif ++
+                    " " ++
+                      iface_toString "out: " oif ++
+                        " " ++
+                          ports_toString "sports: " sps ++
+                            " " ++ ports_toString "dports: " dps;
 
 routing_action_next_hop_update ::
   Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->

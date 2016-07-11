@@ -31,22 +31,24 @@ export_code Rule
   Iface
   integer_to_16word nat_to_16word Nat word_less_eq word_to_nat
   nat_to_8word
-  ipv4addr_of_dotdecimal IpAddrNetmask IpAddrRange IpAddr
+  IpAddrNetmask IpAddrRange IpAddr
   CT_New CT_Established CT_Related CT_Untracked CT_Invalid
   TCP_Flags TCP_SYN TCP_ACK TCP_FIN TCP_RST TCP_URG TCP_PSH
   Accept Drop Log Reject Call Return Goto Empty Unknown
   action_toString
   (*IPv4*)
+  ipv4addr_of_dotdecimal
   ipt_ipv4range_toString
   common_primitive_ipv4_toString
   common_primitive_match_expr_ipv4_toString
+  simple_rule_ipv4_toString
   (*IPv6*)
   mk_ipv6addr IPv6AddrPreferred ipv6preferred_to_int int_to_ipv6preferred
   ipt_ipv6range_toString
   common_primitive_ipv6_toString
-  sanity_check_simple_firewall
   common_primitive_match_expr_ipv6_toString
-  simple_rule_toString
+  simple_rule_ipv6_toString
+  (*Goto support*)
   Semantics_Goto.rewrite_Goto_safe
   (*parser helpers:*) alist_and' compress_parsed_extra Pos Neg mk_Set
   unfold_ruleset_CHAIN_safe map_of_string
@@ -59,8 +61,10 @@ export_code Rule
   has_default_policy
   (*spoofing:*) ipassmt_generic_ipv4 ipassmt_generic_ipv6
   no_spoofing_iface ipassmt_sanity_defined map_of_ipassmt to_ipassmt
-  debug_ipassmt_ipv4 debug_ipassmt_ipv6
   Pos Neg
+  (*debug*)
+  sanity_check_simple_firewall
+  debug_ipassmt_ipv4 debug_ipassmt_ipv6
   (*ip partitioning*)
   access_matrix_pretty_ipv4 access_matrix_pretty_ipv6
   mk_parts_connection_TCP (*parts_connection_ssh parts_connection_http*)

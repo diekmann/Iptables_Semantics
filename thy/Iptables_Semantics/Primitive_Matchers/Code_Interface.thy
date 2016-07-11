@@ -119,7 +119,7 @@ begin
     let simplfw = to_simple_firewall
       (upper_closure (optimize_matches abstract_for_simple_firewall
         (upper_closure (packet_assume_new (unfold_ruleset_FORWARD action.Drop fw)))))
-    in map simple_rule_toString simplfw =
+    in map simple_rule_ipv4_toString simplfw =
     [''ACCEPT     tcp  --  10.0.0.0/9            0.0.0.0/0    '',
      ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '']" by eval
   
@@ -131,7 +131,7 @@ begin
                  ] in
     to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall
                           (upper_closure (packet_assume_new (unfold_ruleset_FORWARD action.Drop fw))))))"
-  lemma " map simple_rule_toString cool_example =
+  lemma " map simple_rule_ipv4_toString cool_example =
     [''DROP     all  --  10.128.0.0/9            0.0.0.0/0    '',
      ''ACCEPT     tcp  --  10.0.0.0/8            0.0.0.0/0    '',
      ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '']"
@@ -165,7 +165,7 @@ begin
                 ] in
     to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall
                           (upper_closure (packet_assume_new (unfold_ruleset_FORWARD action.Drop fw))))))"
-  lemma "map simple_rule_toString cool_example2 =
+  lemma "map simple_rule_ipv4_toString cool_example2 =
     [''DROP     all  --  10.128.0.0/9            0.0.0.0/0    '',
      ''ACCEPT     tcp  --  10.0.0.0/8            10.0.0.42/32    '',
      ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '']" by eval

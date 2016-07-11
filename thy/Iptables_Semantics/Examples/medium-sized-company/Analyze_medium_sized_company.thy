@@ -26,10 +26,10 @@ lemma "check_simple_fw_preconditions
       (upper_closure (packet_assume_new unfolded_INPUT))))" by eval
 
 
-value[code] "map simple_rule_toString (to_simple_firewall
+value[code] "map simple_rule_ipv4_toString (to_simple_firewall
     (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded_INPUT)))))"
 
-value[code] "map simple_rule_toString (to_simple_firewall
+value[code] "map simple_rule_ipv4_toString (to_simple_firewall
     (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded_INPUT)))))"
 
 
@@ -54,10 +54,10 @@ lemma "check_simple_fw_preconditions
     (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded_FORWARD))))" by eval
 
 
-value[code] "map simple_rule_toString (to_simple_firewall
+value[code] "map simple_rule_ipv4_toString (to_simple_firewall
     (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded_FORWARD)))))"
 
-value[code] "map simple_rule_toString (to_simple_firewall
+value[code] "map simple_rule_ipv4_toString (to_simple_firewall
     (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded_FORWARD)))))"
 
 lemma "sanity_check_simple_firewall (to_simple_firewall
