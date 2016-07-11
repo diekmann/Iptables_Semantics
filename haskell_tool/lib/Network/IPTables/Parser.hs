@@ -1,7 +1,9 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Network.IPTables.Parser (parseIptablesSave) where
+module Network.IPTables.Parser
+( parseIptablesSave_ipv4
+, parseIptablesSave_ipv6) where
 
 import           Control.Applicative ((<$>),(<*), (*>))
 import           Data.List (isPrefixOf)
@@ -13,8 +15,8 @@ import           Network.IPTables.IsabelleToString (Word32, Word128)
 import           Network.IPTables.ParserHelper
 import qualified Network.IPTables.Generated as Isabelle
 
-parseIptablesSave :: SourceName -> String -> Either ParseError (Ruleset Word32)
-parseIptablesSave = runParser ruleset_ipv4 initRState
+parseIptablesSave_ipv4 :: SourceName -> String -> Either ParseError (Ruleset Word32)
+parseIptablesSave_ipv4 = runParser ruleset_ipv4 initRState
 
 parseIptablesSave_ipv6 :: SourceName -> String -> Either ParseError (Ruleset Word128)
 parseIptablesSave_ipv6 = runParser ruleset_ipv6 initRState

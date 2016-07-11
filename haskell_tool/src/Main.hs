@@ -57,7 +57,7 @@ instance ParseRecord CommandLineArgs where
 --readIpAssmt :: FilePath -> IO IsabelleIpAssmt Word32
 readIpAssmt filename = do
     src <- readFile filename
-    case parseIpAssmt filename src of
+    case parseIpAssmt_ipv4 filename src of
         Left err -> do print err
                        error $ "could not parse " ++ filename
         Right res -> do putStrLn "Parsed IpAssmt"
@@ -113,7 +113,7 @@ main = do
     --print (cmdArgs::CommandLineArgs)
     (verbose, ipassmt, table, chain, smOptions, (srcname, src)) <- readArgs cmdArgs
     
-    case parseIptablesSave srcname src of
+    case parseIptablesSave_ipv4 srcname src of
         Left err -> do
             if isParseErrorWindowsNewline err
             then putStrLn "WARNING: File has Windows line endings.\n\
@@ -132,14 +132,14 @@ main = do
             let upper_simple = Analysis.toSimpleFirewallWithoutInterfaces ipassmt unfolded
             putStrLn $ L.intercalate "\n" $ map show upper_simple
             putStrLn "== checking spoofing protection =="
-            let (warnings, spoofResult) = certifySpoofingProtection ipassmt unfolded
+            let (warnings, spoofResult) = certifySpoofingProtection_ipv4 ipassmt unfolded
             mapM_ putStrLn warnings
             putStrLn "Spoofing certification results:"
             mapM_ (putStrLn . showSpoofCertification) spoofResult
             putStrLn "== calculating service matrices =="
             mapM_ (\(s,d) -> 
                         putStrLn ("=========== TCP port "++ show s ++ "->" ++ show d ++" =========")
-                     >> putStrLn (showServiceMatrix (Analysis.accessMatrix ipassmt unfolded s d))) smOptions
+                     >> putStrLn (showServiceMatrix (Analysis.accessMatrix_ipv4 ipassmt unfolded s d))) smOptions
         where showServiceMatrix (nodes, edges) = concatMap (\(n, desc) -> renameNode n ++ " |-> " ++ desc ++ "\n") nodes ++ "\n" ++
                                                  concatMap (\e -> (renameEdge e) ++ "\n") edges
                   where renaming = zip (map fst nodes) prettyNames

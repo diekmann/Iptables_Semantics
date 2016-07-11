@@ -116,22 +116,22 @@ expected_result = "*filter\n\
 test_parser_test_data = HU.testCase "parser_test_data" $ do
     let fileName = "../thy/Iptables_Semantics/Examples/Parser_Test/data/iptables-save"
     f <- readFile fileName
-    let result = show <$> parseIptablesSave fileName f
+    let result = show <$> parseIptablesSave_ipv4 fileName f
     result @?= Right expected_result
 
 test_spoofing_certification table chain ipassmtString fileName expected_spoofing_result errormsg = do
-    ipassmt <- case parseIpAssmt "<hardcoded>" ipassmtString of
+    ipassmt <- case parseIpAssmt_ipv4 "<hardcoded>" ipassmtString of
         Left err -> do print err
                        error "could not parse hard-coded ipassmt"
         Right res -> return $ ipAssmtToIsabelle res
     
     f <- readFile fileName
     
-    case parseIptablesSave fileName f of
+    case parseIptablesSave_ipv4 fileName f of
         Left err -> error $ show err
         Right res -> do
             unfolded <- loadUnfoldedRuleset False table chain res
-            let (warnings, spoofResult) = certifySpoofingProtection ipassmt unfolded
+            let (warnings, spoofResult) = Analysis.certifySpoofingProtection_ipv4 ipassmt unfolded
             --mapM_ putStrLn warnings
             let computed_result = map (\ (iface, rslt) -> (show iface, rslt)) spoofResult
             --putStrLn $ show computed_result
@@ -301,16 +301,16 @@ test_spoofing_TUM_Net3 = HU.testCase "spoofing_TUM_Net3" $ test_spoofing_TUM_i8 
 test_service_matrix ipassmtMaybeString fileName expected_result errormsg = do 
     ipassmt <- case ipassmtMaybeString of
         Nothing -> return Isabelle.ipassmt_generic
-        Just ipassmtString -> case parseIpAssmt "<hardcoded>" ipassmtString of
+        Just ipassmtString -> case parseIpAssmt_ipv4 "<hardcoded>" ipassmtString of
             Left err -> do print err
                            error "could not parse hard-coded ipassmt"
             Right res -> return $ ipAssmtToIsabelle res
     f <- readFile fileName
-    case parseIptablesSave ("file: "++fileName) f of
+    case parseIptablesSave_ipv4 ("file: "++fileName) f of
         Left err -> error $ show err
         Right res -> do
             unfolded <- loadUnfoldedRuleset False "filter" "FORWARD" res
-            let service_matrix = Analysis.accessMatrix ipassmt unfolded 10000 22
+            let service_matrix = Analysis.accessMatrix_ipv4 ipassmt unfolded 10000 22
             --putStrLn $ show service_matrix
             if service_matrix == expected_result then
                 return ()

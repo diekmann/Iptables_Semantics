@@ -1,5 +1,6 @@
 module Network.IPTables.IpassmtParser
-( parseIpAssmt
+( parseIpAssmt_ipv4
+, parseIpAssmt_ipv6
 , IpAssmt
 , IsabelleIpAssmt
 , ipAssmtToIsabelle) where
@@ -16,8 +17,8 @@ ipAssmtToIsabelle :: Isabelle.Len a => IpAssmt a -> IsabelleIpAssmt a
 ipAssmtToIsabelle (IpAssmt assmt) = Isabelle.to_ipassmt assmt
 
 -- returns IpAssmt instead of IsabelleIpAssmt because we can only show the former (nicely. TODO change this)
-parseIpAssmt :: SourceName -> String -> Either ParseError (IpAssmt Word32)
-parseIpAssmt = runParser (ifconfig_generic ipAssmt_ipv4) ()
+parseIpAssmt_ipv4 :: SourceName -> String -> Either ParseError (IpAssmt Word32)
+parseIpAssmt_ipv4 = runParser (ifconfig_generic ipAssmt_ipv4) ()
 
 parseIpAssmt_ipv6 :: SourceName -> String -> Either ParseError (IpAssmt Word128)
 parseIpAssmt_ipv6 = runParser (ifconfig_generic ipAssmt_ipv6) ()

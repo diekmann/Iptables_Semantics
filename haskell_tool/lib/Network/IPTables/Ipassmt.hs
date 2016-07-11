@@ -2,8 +2,7 @@
 {-# Language UndecidableInstances #-}
 module Network.IPTables.Ipassmt
 ( IpAssmt(..)
-, IsabelleIpAssmt
-) where
+, IsabelleIpAssmt) where
 
 
 import qualified Network.IPTables.Generated as Isabelle
