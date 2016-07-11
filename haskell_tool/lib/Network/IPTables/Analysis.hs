@@ -44,14 +44,14 @@ toSimpleFirewall = check_simpleFw_sanity .
                                 Isabelle.upper_closure . Isabelle.packet_assume_new 
 
 -- Theorem: to_simple_firewall_without_interfaces
-toSimpleFirewallWithoutInterfaces :: IsabelleIpAssmt -> [Isabelle.Rule (Isabelle.Common_primitive Word32)] -> [Isabelle.Simple_rule Word32]
+toSimpleFirewallWithoutInterfaces :: IsabelleIpAssmt Word32 -> [Isabelle.Rule (Isabelle.Common_primitive Word32)] -> [Isabelle.Simple_rule Word32]
 toSimpleFirewallWithoutInterfaces ipassmt = check_simpleFw_sanity . Isabelle.to_simple_firewall_without_interfaces ipassmt
 
 
 
 -- Theorem: no_spoofing_executable_set
 -- ipassmt -> rs -> (warning_and_debug, spoofing_certification_results)
-certifySpoofingProtection :: IsabelleIpAssmt -> [Isabelle.Rule (Isabelle.Common_primitive Word32)] -> ([String], [(Isabelle.Iface, Bool)])
+certifySpoofingProtection :: IsabelleIpAssmt Word32 -> [Isabelle.Rule (Isabelle.Common_primitive Word32)] -> ([String], [(Isabelle.Iface, Bool)])
 certifySpoofingProtection ipassmt rs = (warn_defined ++ debug_ipassmt, certResult)
     where -- fuc: firewall under certification, prepocessed
           -- no_spoofing_executable_set requires normalized_nnf_match. Isabelle.upper_closure guarantees this.
@@ -69,7 +69,7 @@ certifySpoofingProtection ipassmt rs = (warn_defined ++ debug_ipassmt, certResul
 -- Theorem: access_matrix
 -- TODO: in Main.hs we directly have upper_simple available. Make a specific function which gets upper_simple?
 -- This is slightly faster (tested!) but dangerously because someone might call it wrong (e.g. with a firewall with interfaces)
-accessMatrix :: IsabelleIpAssmt -> [Isabelle.Rule (Isabelle.Common_primitive Word32)] -> Integer -> Integer -> ([(String, String)], [(String, String)])
+accessMatrix :: IsabelleIpAssmt Word32 -> [Isabelle.Rule (Isabelle.Common_primitive Word32)] -> Integer -> Integer -> ([(String, String)], [(String, String)])
 accessMatrix ipassmt rs sport dport = if sport >= 65536 || dport >= 65536 then error "ports are 16 bit"
     -- Theorem: access_matrix
     else Isabelle.access_matrix_pretty parts_connection upper_simple

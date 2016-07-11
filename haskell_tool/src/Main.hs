@@ -54,7 +54,7 @@ data CommandLineArgs = CommandLineArgs CommandLineArgsLabeled CommandLineArgsUnl
 instance ParseRecord CommandLineArgs where
     parseRecord = CommandLineArgs <$> parseRecord <*> parseRecord
 
-readIpAssmt :: FilePath -> IO IsabelleIpAssmt
+--readIpAssmt :: FilePath -> IO IsabelleIpAssmt Word32
 readIpAssmt filename = do
     src <- readFile filename
     case parseIpAssmt filename src of

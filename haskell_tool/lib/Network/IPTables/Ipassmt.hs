@@ -15,5 +15,5 @@ data IpAssmt a = IpAssmt [(Isabelle.Iface, Isabelle.Negation_type [Isabelle.Ipt_
 instance Show (Isabelle.Ipt_iprange a) => Show (IpAssmt a) where
     show (IpAssmt ipassmt) = "IpAssmt " ++ show ipassmt
 
-type IsabelleIpAssmt = [(Isabelle.Iface, [(Isabelle.Word Word32, Isabelle.Nat)])]
+type IsabelleIpAssmt a = [(Isabelle.Iface, [(Isabelle.Word a, Isabelle.Nat)])]
 
