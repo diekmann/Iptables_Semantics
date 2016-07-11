@@ -15,7 +15,7 @@ import           Network.IPTables.IsabelleToString(Word32)
 ipAssmtToIsabelle:: IpAssmt Word32 -> IsabelleIpAssmt
 ipAssmtToIsabelle (IpAssmt assmt) = Isabelle.to_ipassmt assmt
 
--- returns IpAssmt instead of IsabelleIpAssmt because we can only show the former
+-- returns IpAssmt instead of IsabelleIpAssmt because we can only show the former (nicely. TODO change this)
 parseIpAssmt :: SourceName -> String -> Either ParseError (IpAssmt Word32)
 parseIpAssmt = runParser ifconfig ()
 
