@@ -64,9 +64,11 @@ text\<open>The iptables firewall starts as follows:
 
 \<close>
 lemma unfold_optimize_common_matcher_univ_ruleset_CHAIN:
-    --"for simple Ipv4 packets"
-    fixes \<gamma> :: "'i::len common_primitive \<Rightarrow> ('i, 'a) tagged_packet_scheme \<Rightarrow> bool"
-    assumes "sanity_wf_ruleset \<Gamma>" and "chain_name \<in> set (map fst \<Gamma>)" and "default_action = action.Accept \<or> default_action = action.Drop"
+    --"for IPv4 and IPv6 packets"
+    fixes \<gamma> :: "'i::len common_primitive \<Rightarrow> ('i, 'pkt_ext) tagged_packet_scheme \<Rightarrow> bool"
+    and   p :: "('i::len, 'pkt_ext) tagged_packet_scheme"
+    assumes "sanity_wf_ruleset \<Gamma>" and "chain_name \<in> set (map fst \<Gamma>)"
+    and "default_action = action.Accept \<or> default_action = action.Drop"
     and "matcher_agree_on_exact_matches \<gamma> common_matcher"
     and "unfold_ruleset_CHAIN_safe chain_name default_action (map_of \<Gamma>) = Some rs"
     shows "(map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow>

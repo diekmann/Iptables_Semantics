@@ -70,6 +70,7 @@ using FinalAllow_approximating_in_doubt_allow by (metis (lifting, full_types) Co
 corollary new_packets_to_simple_firewall_overapproximation:
   defines "preprocess rs \<equiv> upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new rs)))"
   and "newpkt p \<equiv> match_tcp_flags ipt_tcp_syn (p_tcp_flags p) \<and> p_tag_ctstate p = CT_New"
+  fixes p :: "('i::len, 'pkt_ext) tagged_packet_scheme"
   assumes "matcher_agree_on_exact_matches \<gamma> common_matcher" and "simple_ruleset rs"
   shows "{p. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow \<and> newpkt p} \<subseteq> {p. simple_fw (to_simple_firewall (preprocess rs)) p = Decision FinalAllow \<and> newpkt p}"
 proof -
@@ -243,6 +244,7 @@ using FinalAllow_approximating_in_doubt_deny by (metis (lifting, full_types) Col
 corollary new_packets_to_simple_firewall_underapproximation:
   defines "preprocess rs \<equiv> lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new rs)))"
   and "newpkt p \<equiv> match_tcp_flags ipt_tcp_syn (p_tcp_flags p) \<and> p_tag_ctstate p = CT_New"
+  fixes p :: "('i::len, 'pkt_ext) tagged_packet_scheme"
   assumes "matcher_agree_on_exact_matches \<gamma> common_matcher" and "simple_ruleset rs"
   shows "{p. simple_fw (to_simple_firewall (preprocess rs)) p = Decision FinalAllow \<and> newpkt p} \<subseteq> {p. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow \<and> newpkt p}"
 proof -

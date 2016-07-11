@@ -17,8 +17,8 @@ import qualified Network.IPTables.Generated as Isabelle
 -- is not actually an assumption required by the theorems but it would indicate
 -- a broken parser
 -- Throws an exception
---TODO: does Haskell have an assert statement?
-check_simpleFw_sanity :: [Isabelle.Simple_rule Word32] -> [Isabelle.Simple_rule Word32]
+check_simpleFw_sanity
+    :: Isabelle.Len a => [Isabelle.Simple_rule a] -> [Isabelle.Simple_rule a]
 check_simpleFw_sanity rs =
     if 
         not (Isabelle.has_default_policy rs)
@@ -36,7 +36,8 @@ check_simpleFw_sanity rs =
 
 
 -- Theorem: new_packets_to_simple_firewall_overapproximation
-toSimpleFirewall :: [Isabelle.Rule (Isabelle.Common_primitive Word32)] -> [Isabelle.Simple_rule Word32]
+toSimpleFirewall
+    :: Isabelle.Len a => [Isabelle.Rule (Isabelle.Common_primitive a)] -> [Isabelle.Simple_rule a]
 toSimpleFirewall = check_simpleFw_sanity . 
                         Isabelle.to_simple_firewall . Isabelle.upper_closure . 
                             Isabelle.optimize_matches Isabelle.abstract_for_simple_firewall .

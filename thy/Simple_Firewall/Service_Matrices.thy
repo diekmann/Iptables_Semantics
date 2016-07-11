@@ -977,16 +977,16 @@ definition build_ip_partition :: "parts_connection \<Rightarrow> 'i::len simple_
 
 
 theorem build_ip_partition_same_fw: "V \<in> set (build_ip_partition c rs) \<Longrightarrow>
-                               \<forall>ip1 \<in> wordinterval_to_set V.
-                               \<forall>ip2 \<in> wordinterval_to_set V.
+                               \<forall>ip1::'i::len word \<in> wordinterval_to_set V.
+                               \<forall>ip2::'i::len word \<in> wordinterval_to_set V.
                                same_fw_behaviour_one ip1 ip2 c rs"
   apply(simp add: build_ip_partition_def groupWIs3)
   using wordinterval_list_to_set_compressed groupParts_same_fw_wi2 wordinterval_sort by blast
 
 theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \<Longrightarrow> B \<in> set (build_ip_partition c rs) \<Longrightarrow> 
                                 A \<noteq> B \<Longrightarrow>
-                                \<forall>ip1 \<in> wordinterval_to_set A.
-                                \<forall>ip2 \<in> wordinterval_to_set B.
+                                \<forall>ip1::'i::len word \<in> wordinterval_to_set A.
+                                \<forall>ip2::'i::len word \<in> wordinterval_to_set B.
                                 \<not> same_fw_behaviour_one ip1 ip2 c rs"
   apply(simp add: build_ip_partition_def groupWIs3)
   using  groupWIs_same_fw_not2 wordinterval_list_to_set_compressed wordinterval_sort by blast
@@ -1335,7 +1335,9 @@ lemma access_matrix_complete:
 qed
 
 
-theorem access_matrix: assumes matrix: "(V,E) = access_matrix c rs"
+theorem access_matrix:
+      fixes rs :: "'i::len simple_rule list"
+      assumes matrix: "(V,E) = access_matrix c rs"
       shows "(\<exists>s_repr d_repr s_range d_range. (s_repr, d_repr) \<in> set E \<and>
               (map_of V) s_repr = Some s_range \<and> s \<in> wordinterval_to_set s_range \<and>
               (map_of V) d_repr = Some d_range \<and> d \<in> wordinterval_to_set d_range)

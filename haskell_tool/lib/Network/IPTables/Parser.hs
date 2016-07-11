@@ -14,7 +14,10 @@ import           Network.IPTables.ParserHelper
 import qualified Network.IPTables.Generated as Isabelle
 
 parseIptablesSave :: SourceName -> String -> Either ParseError (Ruleset Word32)
-parseIptablesSave = runParser ruleset initRState
+parseIptablesSave = runParser ruleset_ipv4 initRState
+
+parseIptablesSave_ipv6 :: SourceName -> String -> Either ParseError (Ruleset Word128)
+parseIptablesSave_ipv6 = runParser ruleset_ipv6 initRState
 
 data RState a = RState { rstRules  :: Ruleset a
                        , rstActive :: Maybe TableName
@@ -30,8 +33,11 @@ rstActiveM :: (Maybe TableName -> Maybe TableName) -> RState a -> RState a
 rstActiveM f rst = rst { rstActive = f (rstActive rst) }
 
 
-ruleset :: Parsec String (RState Word32) (Ruleset Word32)
-ruleset = ruleset_generic rule_ipv4
+ruleset_ipv6 :: Parsec String (RState Word128) (Ruleset Word128)
+ruleset_ipv6 = ruleset_generic rule_ipv6
+
+ruleset_ipv4 :: Parsec String (RState Word32) (Ruleset Word32)
+ruleset_ipv4 = ruleset_generic rule_ipv4
 
 ruleset_generic :: Parsec String (RState a) () -> Parsec String (RState a) (Ruleset a)
 ruleset_generic rule_parser = do
