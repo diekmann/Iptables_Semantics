@@ -16,21 +16,21 @@ import qualified Network.IPTables.Generated as Isabelle
 parseIptablesSave :: SourceName -> String -> Either ParseError (Ruleset Word32)
 parseIptablesSave = runParser ruleset initRState
 
-data RState = RState { rstRules  :: Ruleset Word32
-                     , rstActive :: Maybe TableName
-                     }
-    deriving (Show)
+data RState a = RState { rstRules  :: Ruleset a
+                       , rstActive :: Maybe TableName
+                       }
+    --deriving (Show)
 
 initRState = RState mkRuleset Nothing
 
-rstRulesM :: (Ruleset Word32 -> Ruleset Word32) -> RState -> RState
+rstRulesM :: (Ruleset a -> Ruleset a) -> RState a -> RState a
 rstRulesM  f rst = rst { rstRules  = f (rstRules rst) }
 
-rstActiveM :: (Maybe TableName -> Maybe TableName) -> RState -> RState
+rstActiveM :: (Maybe TableName -> Maybe TableName) -> RState a -> RState a
 rstActiveM f rst = rst { rstActive = f (rstActive rst) }
 
 
-ruleset :: Parsec String RState (Ruleset Word32)
+ruleset :: Parsec String (RState Word32) (Ruleset Word32)
 ruleset = do
     many $ choice [table, chain, rule, commit, comment, emptyLine]
     eof
@@ -132,7 +132,7 @@ unknownMatch = token "unknown match" $ do
               else extra
     return $ (\x -> [x]) $ ParsedMatch $ Isabelle.Extra $ e --TODO: tune
 
-rule :: Parsec String RState ()
+rule :: Parsec String (RState Word32) ()
 rule = line $ do
     lit "-A"
     chnname <- chainName <* skipWS
