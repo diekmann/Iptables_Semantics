@@ -44,7 +44,8 @@ toSimpleFirewall = check_simpleFw_sanity .
                                 Isabelle.upper_closure . Isabelle.packet_assume_new 
 
 -- Theorem: to_simple_firewall_without_interfaces
-toSimpleFirewallWithoutInterfaces :: IsabelleIpAssmt Word32 -> [Isabelle.Rule (Isabelle.Common_primitive Word32)] -> [Isabelle.Simple_rule Word32]
+toSimpleFirewallWithoutInterfaces
+    :: Isabelle.Len a => IsabelleIpAssmt a -> [Isabelle.Rule (Isabelle.Common_primitive a)] -> [Isabelle.Simple_rule a]
 toSimpleFirewallWithoutInterfaces ipassmt = check_simpleFw_sanity . Isabelle.to_simple_firewall_without_interfaces ipassmt
 
 
