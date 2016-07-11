@@ -2199,16 +2199,15 @@ all_but_those_ips cidrips =
   cidr_split (wordinterval_invert (l2wi (map ipcidr_to_interval cidrips)));
 
 ipassmt_iprange_translate ::
-  Negation_type [Ipt_iprange (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))] ->
-    [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)];
+  forall a. (Len a) => Negation_type [Ipt_iprange a] -> [(Word a, Nat)];
 ipassmt_iprange_translate (Pos ips) = concatMap ipt_iprange_to_cidr ips;
 ipassmt_iprange_translate (Neg ips) =
   all_but_those_ips (concatMap ipt_iprange_to_cidr ips);
 
 to_ipassmt ::
-  [(Iface,
-     Negation_type [Ipt_iprange (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))])] ->
-    [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])];
+  forall a.
+    (Len a) => [(Iface, Negation_type [Ipt_iprange a])] ->
+                 [(Iface, [(Word a, Nat)])];
 to_ipassmt assmt =
   map (\ (ifce, ips) -> (ifce, ipassmt_iprange_translate ips)) assmt;
 

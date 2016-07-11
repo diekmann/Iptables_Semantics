@@ -15,11 +15,12 @@ definition mk_Set :: "'a list \<Rightarrow> 'a set" where
   "mk_Set = set"
 
 
-fun ipassmt_iprange_translate :: "32 ipt_iprange list negation_type \<Rightarrow> (32 word \<times> nat) list" where
+fun ipassmt_iprange_translate :: "'i::len ipt_iprange list negation_type \<Rightarrow> ('i word \<times> nat) list" where
   "ipassmt_iprange_translate (Pos ips) = concat (map ipt_iprange_to_cidr ips)" |
   "ipassmt_iprange_translate (Neg ips) = all_but_those_ips (concat (map ipt_iprange_to_cidr ips))"
 
-definition to_ipassmt :: "(iface \<times> 32 ipt_iprange list negation_type) list \<Rightarrow> (iface \<times> (32 word \<times> nat) list) list" where
+definition to_ipassmt
+  :: "(iface \<times> 'i::len ipt_iprange list negation_type) list \<Rightarrow> (iface \<times> ('i word \<times> nat) list) list" where
   "to_ipassmt assmt = map (\<lambda>(ifce, ips). (ifce, ipassmt_iprange_translate ips)) assmt"
 
 export_code Rule
