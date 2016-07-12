@@ -1,6 +1,7 @@
 theory Semantics_OpenFlow
 imports List_Group Sort_Descending
   "../IP_Addresses/IPv4"
+  "CaesarTheories"
 begin
 
 datatype 'a flowtable_behavior = Action 'a | NoAction | Undefined
@@ -65,27 +66,6 @@ definition "check_no_overlap2 \<gamma> ft = (\<forall>a \<in> set ft. \<forall>b
 lemma check_no_overlap_alt: "check_no_overlap \<gamma> ft = check_no_overlap2 \<gamma> ft"
 	unfolding check_no_overlap2_def check_no_overlap_def
 	by blast
-
-lemma card1_eI: "1 \<le> card S \<Longrightarrow> \<exists>y S'. S = {y} \<union> S' \<and> y \<notin> S'"
-	by (metis One_nat_def card_infinite card_le_Suc_iff insert_is_Un leD zero_less_Suc)
-lemma card2_eI: "2 \<le> card S \<Longrightarrow> \<exists>x y. x \<noteq> y \<and> x \<in> S \<and> y \<in> S"
-proof -
-	case goal1
-	then have "1 \<le> card S" by simp
-	note card1_eI[OF this]
-	then obtain x S' where xs: "S = {x} \<union> S' \<and> x \<notin> S'" by presburger
-	then have "1 \<le> card S'" 
-		by (metis goal1 Suc_1 card_infinite card_insert_if finite_Un insert_is_Un le0 not_less_eq_eq) 
-	then obtain y where "y \<in> S'" by fastforce
-	then show ?case using xs by force
-qed
-
-lemma card1_eE: "finite S \<Longrightarrow> \<exists>y. y \<in> S \<Longrightarrow> 1 \<le> card S" using card_0_eq by fastforce
-lemma card2_eE: "finite S \<Longrightarrow> \<exists>x y. x \<noteq> y \<and> x \<in> S \<and> y \<in> S \<Longrightarrow> 2 \<le> card S"
-using card1_eE card_Suc_eq card_insert_if by fastforce
-
-
-lemma f_Img_ex_set: "{f x|x. P x} = f ` {x. P x}" by auto
 
 (* If there are no overlapping rules, our match should check out. *)
 lemma no_overlap_not_unefined: "check_no_overlap \<gamma> ft \<Longrightarrow> OF_same_priority_match2 \<gamma> ft p \<noteq> Undefined"

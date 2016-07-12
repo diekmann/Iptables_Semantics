@@ -122,7 +122,6 @@ begin
 instance by standard (auto simp: less_eq_of_match_field_def less_eq_of_match_field1_def less_of_match_field_def implode_def split: prod.splits of_match_field.splits if_splits)
 end
 
-
 fun match_no_prereq :: "of_match_field \<Rightarrow> (32, 'a) simple_packet_ext_scheme \<Rightarrow> bool" where
 "match_no_prereq (IngressPort i) p = (p_iiface p = i)" |
 "match_no_prereq (EtherDst i) p = (p_l2src p = i)" |

@@ -1,7 +1,6 @@
-theory Routing
+theory Routing_Table
 imports "../../IP_Addresses/Prefix_Match"
         "../../IP_Addresses/IPv4" (*we could probably generalize*)
-        CaesarTheories
         "~~/src/HOL/Library/Code_Target_Nat" (*!!, int_of_nat*)
 begin
 
@@ -21,10 +20,15 @@ definition "default_metric = 0"
 
 type_synonym prefix_routing = "routing_rule list"
 
+abbreviation "routing_oiface a \<equiv> output_iface (routing_action a)" (* I needed this a lot... *)
+
 definition valid_prefixes where
   "valid_prefixes r = foldr conj (map (\<lambda>rr. valid_prefix (routing_match rr)) r) True"
 lemma valid_prefixes_split: "valid_prefixes (r#rs) \<Longrightarrow> valid_prefix (routing_match r) \<and> valid_prefixes rs"
   using valid_prefixes_def by force
+
+lemma foldr_True_set: "foldr (\<lambda>x. op \<and> (f x)) l True = (\<forall>x \<in> set l. f x)"
+  by (induction l) simp_all
 lemma valid_prefixes_alt_def: "valid_prefixes r = (\<forall>e \<in> set r. valid_prefix (routing_match e))"
   unfolding valid_prefixes_def
   unfolding foldr_map
