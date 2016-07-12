@@ -268,7 +268,7 @@ matchTcpFlags = do
 -- -A ranges_96 `ParsedAction -j LOG' `ParsedMatch ~~_DROP~~'
 target = ParsedAction <$> (
            try (string "-j REJECT --reject-with "
-                >> many1 (oneOf $ ['a'..'z']++['-']) >> return (Isabelle.Reject))
+                >> many1 (oneOf $ ['a'..'z']++['-', '6']) >> return (Isabelle.Reject))
        <|> try (string "-g " >> Isabelle.Goto <$> lookAheadEOT chainName)
        <|> try (string "-j " >> choice (map (try . lookAheadEOT)
                                        [string "DROP" >> return Isabelle.Drop
