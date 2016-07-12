@@ -17,6 +17,7 @@ session "OpenFlow_Documentation" = OpenFlow +
 session "OpenFlow" = Iptables_Semantics +
 	options [document_output = "of_outp"]
 	theories[document=false]
+  		"CaesarTheories" (* just some helper lemmas *)
 		List_Group
 		Sort_Descending
 	theories

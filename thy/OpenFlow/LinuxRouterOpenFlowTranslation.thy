@@ -5,8 +5,7 @@ imports "../IP_Addresses/CIDR_Split"
 	"Semantics_OpenFlow"
 	"OpenFlowMatches"
 	"OpenFlowAction"
-	(*"../Iptables_Semantics/Routing/AnnotateRouting"*)
-	"../Iptables_Semantics/Routing/LinuxRouter"
+	"../Iptables_Semantics/Routing/Linux_Router"
 begin
 
 primrec filter_nones where
@@ -125,7 +124,7 @@ proof(rule iffI,goal_cases)
 qed simp
 
 lemma proto_in_srcdst: "IPv4Proto x \<in> IPv4Src ` s \<longleftrightarrow> False" "IPv4Proto x \<in> IPv4Dst ` s \<longleftrightarrow> False" by fastforce+
-lemma simple_match_port_UNIVD: "Collect (simple_match_port a) = UNIV \<Longrightarrow> fst a = 0 \<and> snd a = max_word" by (metis antisym_conv fst_conv hrule max_word_max mem_Collect_eq simple_match_port_code snd_conv surj_pair word_le_0_iff)
+lemma simple_match_port_UNIVD: "Collect (simple_match_port a) = UNIV \<Longrightarrow> fst a = 0 \<and> snd a = max_word" by(metis UNIV_I antisym_conv max_word_max mem_Collect_eq prod.collapse simple_match_port_code word_le_0_iff)
 lemma simple_match_to_of_match_generates_prereqs: "simple_match_valid m \<Longrightarrow> r \<in> set (simple_match_to_of_match m ifs) \<Longrightarrow> all_prerequisites r"
 unfolding simple_match_to_of_match_def Let_def
 proof(clarsimp, goal_cases)
@@ -825,7 +824,7 @@ lemma sorted_lr_of_tran_s3: "sorted_descending (map fst f) \<Longrightarrow> sor
 	 subgoal by(simp add: lr_of_tran_s3_def)
 	apply(clarsimp simp: lr_of_tran_s3_Cons map_concat comp_def)
 	apply(unfold sorted_descending_append)
-	apply(simp add: sorted_descending_alt rev_map sorted_const sorted_lr_of_tran_s3_hlp)
+	apply(simp add: sorted_descending_alt rev_map sorted_lr_of_tran_s3_hlp sorted_const)
 done
 
 lemma singleton_sorted: "set x \<subseteq> {a} \<Longrightarrow> sorted x"

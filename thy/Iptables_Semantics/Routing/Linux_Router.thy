@@ -1,9 +1,8 @@
-theory LinuxRouter
+theory Linux_Router
 imports 
-	(* For obvious reasons *)
-	Routing
+	Routing_Table
 	"../../Simple_Firewall/SimpleFw_Semantics"
-  "../../Simple_Firewall/Simple_Packet"
+	"../../Simple_Firewall/Simple_Packet"
 	"~~/src/HOL/Library/Monad_Syntax"
 begin
 

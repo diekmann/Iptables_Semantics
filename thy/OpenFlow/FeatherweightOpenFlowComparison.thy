@@ -98,9 +98,9 @@ lemma guha_deterministic1: "guha_table_semantics \<gamma> ft p (Some x1) \<Longr
 by(auto simp add: guha_table_semantics.simps)
 
 lemma guha_deterministic2: "\<lbrakk>no_overlaps \<gamma> ft; guha_table_semantics \<gamma> ft p (Some x1); guha_table_semantics \<gamma> ft p (Some a)\<rbrakk> \<Longrightarrow> x1 = a"
-proof(rule ccontr)
-	case goal1
-	note goal1(2-3)[THEN guha_matched_rule_inversion] then obtain fe1 fe2 where fes:
+proof(rule ccontr, goal_cases)
+	case 1
+	note 1(2-3)[THEN guha_matched_rule_inversion] then obtain fe1 fe2 where fes:
 	"fe1\<in>set ft" "x1 = ofe_action fe1" "\<gamma> (ofe_fields fe1) p" "(\<forall>fe'\<in>set ft. ofe_prio fe1 < ofe_prio fe' \<longrightarrow> \<not> \<gamma> (ofe_fields fe') p)"
     "fe2\<in>set ft" "a  = ofe_action fe2" "\<gamma> (ofe_fields fe2) p" "(\<forall>fe'\<in>set ft. ofe_prio fe2 < ofe_prio fe' \<longrightarrow> \<not> \<gamma> (ofe_fields fe') p)"
     	by blast
@@ -150,6 +150,52 @@ apply(rule_tac x = ft1 in exI)
 apply(rule_tac x = ft2 in exI)
 apply(simp)
 oops (* shadowed overlaps yay! *)
+
+text\<open>The above lemma does indeed not hold, the reason for this are (possibly partially) shadowed overlaps.
+This is exemplified below: If there are at least three different possible actions (necessary assumption)
+and a match expression that matches all packets (convenience assumption), it is possible to construct a flow 
+table that is admonished by @{const check_no_overlap} but still will never run into undefined behavior.
+\<close>
+(* This is not the terribly most important lemma. Feel free to delete it if the proof gives you trouble. *)
+lemma
+  assumes "CARD('action) \<ge> 3"
+  assumes "\<forall>p. \<gamma> x p" (* with a sane \<gamma>, x = {} *)
+	shows "\<exists>ft::('a, 'action) flow_entry_match list. \<not>check_no_overlap \<gamma> ft \<and>
+	  \<not>(\<exists>fe1 fe2 p. fe1 \<in> set ft \<and> fe2 \<in> set ft \<and> fe1 \<noteq> fe2 \<and> ofe_prio fe1 = ofe_prio fe2
+		\<and> guha_table_semantics \<gamma> ft p (Some (ofe_action fe1))
+		\<and> guha_table_semantics \<gamma> ft p (Some (ofe_action fe2)))"
+proof -
+  obtain adef aa ab :: 'action where anb[simp]: "aa \<noteq> ab" "adef \<noteq> aa" "adef \<noteq> ab" using assms(1) card3_eI by blast
+  let ?cex = "[OFEntry 1 x adef, OFEntry 0 x aa, OFEntry 0 x ab]"
+  have ol: "\<not>check_no_overlap \<gamma> ?cex"
+    unfolding check_no_overlap_def ball_simps
+    apply(rule bexI[where x = "OFEntry 0 x aa", rotated], (simp;fail))
+    apply(rule bexI[where x = "OFEntry 0 x ab", rotated], (simp;fail))
+    apply(simp add: assms)
+  done
+  have df: "guha_table_semantics \<gamma> ?cex p oc \<Longrightarrow> oc = Some adef" for p oc 
+  unfolding guha_table_semantics.simps
+    apply(elim disjE; clarsimp simp: assms)
+    subgoal for fe ft1 ft2
+    apply(cases "ft1 = []")
+    apply(fastforce)
+    apply(cases "ft2 = []")
+    apply(fastforce)
+    apply(subgoal_tac "ft1 = [OFEntry 1 x adef] \<and> fe = OFEntry 0 x aa \<and> ft2 = [OFEntry 0 x ab]")
+    apply(simp;fail)
+    apply(clarsimp simp add: List.neq_Nil_conv)
+    apply(rename_tac ya ys yz)
+    apply(case_tac ys; clarsimp simp add: List.neq_Nil_conv)
+  done done
+  show ?thesis
+    apply(intro exI[where x = ?cex], intro conjI, fact ol)
+    apply(clarify)
+    apply(unfold set_simps)
+    apply(elim insertE; clarsimp)
+    apply((drule df)+; unfold option.inject; (elim anb[symmetric, THEN notE] | (simp;fail))?)+
+  done
+qed
+
 
 
 end
