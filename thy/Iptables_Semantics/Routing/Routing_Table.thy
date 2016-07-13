@@ -16,6 +16,8 @@ record routing_rule =
   metric :: nat
   routing_action :: routing_action
 
+(*TODO: define (non-total) order on routing rules and add sorting alog*)
+
 definition "default_metric = 0"
 
 type_synonym prefix_routing = "routing_rule list"
@@ -45,6 +47,7 @@ lemma has_default_route_alt: "has_default_route rt \<longleftrightarrow> (\<exis
 
 subsection\<open>Single Packet Semantics\<close>
 
+(*TODO: decument as text with @{const correct_routing} *)
 (* WARNING: all proofs assume correct_routing: list is sorted by descending prefix length, prefixes are valid. Some need a default route. *)
 fun routing_table_semantics :: "prefix_routing \<Rightarrow> ipv4addr \<Rightarrow> routing_action" where
 "routing_table_semantics [] _ = routing_action (undefined::routing_rule)" | 
@@ -75,6 +78,7 @@ text\<open>Enter this thing:\<close>
 
 datatype ('a,'b) linord_helper = LinordHelper 'a 'b
 
+(*TODO: konkretisieren für routing rule und nach oben, dann weiß man was die metric ist*)
 definition "linord_helper_less_eq1 a b \<equiv> (case a of LinordHelper a1 a2 \<Rightarrow> case b of LinordHelper b1 b2 \<Rightarrow> a1 < b1 \<or> a1 = b1 \<and> a2 \<le> b2)"
 
 instantiation linord_helper :: (linorder, linorder) linorder
@@ -110,10 +114,11 @@ lemma is_longest_prefix_routing_rule_exclusion:
 using assms by(case_tac rss) (auto simp add: is_longest_prefix_routing_def)
 
 lemma int_of_nat_less: "int_of_nat a < int_of_nat b \<Longrightarrow> a < b" by (simp add: int_of_nat_def)
-  
+
+(*TODO: rename*)
 lemma is_longest_prefix_routing_rules_injection:
   assumes "is_longest_prefix_routing r"
-  assumes "r = r1 # rs @ r2 # rss"
+     and "r = r1 # rs @ r2 # rss"
   shows "(pfxm_length (routing_match r1) \<ge> pfxm_length (routing_match r2))"
 using assms
 proof(induction rs arbitrary: r)
@@ -128,5 +133,8 @@ qed
 definition "sort_rtbl :: routing_rule list \<Rightarrow> routing_rule list \<equiv> sort_key routing_rule_sort_key"
 
 lemma is_longest_prefix_routing_sort: "is_longest_prefix_routing (sort_rtbl r)" unfolding sort_rtbl_def is_longest_prefix_routing_def by simp
+
+section\<open>Routing table to Relation\<close>
+(*TODO move from ipassmt here*)
 
 end

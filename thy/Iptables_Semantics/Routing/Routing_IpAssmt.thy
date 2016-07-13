@@ -119,6 +119,8 @@ lemma routing_ipassmt_wi_distinct: "distinct (map fst (routing_ipassmt_wi tbl))"
   unfolding routing_ipassmt_wi_def reduce_range_destination_def
   by(simp add: comp_def)
 
+(*TODO: names*)
+
 lemma "(a1,b1) \<in> set (routing_port_ranges tbl wordinterval_UNIV) \<Longrightarrow> 
   \<exists>b2. wordinterval_to_set b1 \<subseteq> wordinterval_to_set b2 \<and> (a1,b2) \<in> set (routing_ipassmt_wi tbl)"
   unfolding routing_ipassmt_wi_def reduce_range_destination_def
@@ -161,10 +163,10 @@ proof(rule ccontr)
   with dif show False by simp
 qed
 
-lemma 
+lemma routing_ipassmt_wi_sound:
   assumes vpfx: "valid_prefixes tbl"
-  assumes ins: "(ea,eb) \<in> set (routing_ipassmt_wi tbl)"
-  assumes x: "k \<in> wordinterval_to_set eb"
+  and ins: "(ea,eb) \<in> set (routing_ipassmt_wi tbl)"
+  and x: "k \<in> wordinterval_to_set eb"
   shows "ea = output_iface (routing_table_semantics tbl k)"
 proof -
   note iuf = ins[unfolded routing_ipassmt_wi_def reduce_range_destination_def Let_def, simplified, unfolded Set.image_iff comp_def, simplified]
@@ -174,6 +176,16 @@ proof -
   note routing_port_ranges_sound[OF b1g(3), unfolded fst_conv snd_conv, OF b1g(1) vpfx]
   thus ?thesis .
 qed
+
+theorem assumes "valid_prefixes tbl"
+  shows 
+  "output_iface (routing_table_semantics tbl k) = output_port \<longleftrightarrow>
+    (\<exists>ip_range. k \<in> wordinterval_to_set ip_range \<and> (output_port, ip_range) \<in> set (routing_ipassmt_wi tbl))"
+  apply(rule)
+   defer
+   apply(elim exE)
+   using assms routing_ipassmt_wi_sound apply blast
+  oops (*TODO*)
 
 (* this was not given for the old reduced_range_destination *)
 lemma
