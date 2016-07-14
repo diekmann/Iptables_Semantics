@@ -7,29 +7,31 @@ text\<open>
 Argument 1: the name of the prefix for all constants which will be defined.
 Argument 2: The path to the firewall (ip6tables-save). A path is represented as list.
 \<close>
-parse_ip6tables_save parser_test_firewall =
-   ".." ".." ".." ".." ".." "net-network" "configs_synology_diskstation_ds414" "ip6tables-save_jul_2016"
+parse_ip6tables_save parser6_test_firewall =
+   "data" "ip6tables-save"
 
 
-term parser_test_firewall
-thm parser_test_firewall_def
-thm parser_test_firewall_FORWARD_default_policy_def
+term parser6_test_firewall
+thm parser6_test_firewall_def
+thm parser6_test_firewall_FORWARD_default_policy_def
 
-value[code] "parser_test_firewall"
+value[code] "parser6_test_firewall"
+
+(*Broken: (IpAddr 0xFFFF0127))  (Match (Extra ''.0.0.1/128'') ! An address must have a word boundary!*)
 
 lemma "sanity_check_simple_firewall
               (to_simple_firewall (upper_closure
                 (optimize_matches abstract_for_simple_firewall
                   (upper_closure (packet_assume_new
-                    (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
-                      (map_of parser_test_firewall))))))) = False" by eval
+                    (unfold_ruleset_FORWARD parser6_test_firewall_FORWARD_default_policy
+                      (map_of parser6_test_firewall)))))))" by eval
 
 value[code] "map simple_rule_ipv6_toString
               (to_simple_firewall (upper_closure
                 (optimize_matches abstract_for_simple_firewall
                   (upper_closure (packet_assume_new
-                    (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
-                      (map_of parser_test_firewall)))))))" 
+                    (unfold_ruleset_FORWARD parser6_test_firewall_FORWARD_default_policy
+                      (map_of parser6_test_firewall)))))))" 
 (*33.224s*)
 
 text\<open>here is a minimal example\<close>
