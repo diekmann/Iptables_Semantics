@@ -61,7 +61,7 @@ lemma "map simple_rule_ipv4_toString
                   (upper_closure (packet_assume_new
                     (unfold_ruleset_FORWARD action.Accept
                       (map_of_string_ipv4 allow_only_tcpsport_22_and_udp_dport80))))))) =
-[''DROP     all  --  0.0.0.0/0            0.0.0.0/0   sports: 0:21 dports: 0:79'',
+[ ''DROP     all  --  0.0.0.0/0            0.0.0.0/0   sports: 0:21 dports: 0:79'',
   ''DROP     all  --  0.0.0.0/0            0.0.0.0/0   sports: 0:21 dports: 81:65535'',
   ''DROP     all  --  0.0.0.0/0            0.0.0.0/0   sports: 23:65535 dports: 0:79'',
   ''DROP     all  --  0.0.0.0/0            0.0.0.0/0   sports: 23:65535 dports: 81:65535'',
@@ -99,4 +99,39 @@ dependent predicates!
 \<close>
 lemma "\<not>(tcp \<and> p80) \<longleftrightarrow> \<not>tcp \<or> (tcp \<and> \<not> p80)" by simp
 
+
+subsection\<open>Things the Simple Firewall Cannot Express\<close>
+text\<open>
+Description: 
+Let's assume we want to write a firewall which first makes sure than only @{const TCP} and @{const UDP} 
+is allowed and continues with more fine-grained filtering afterwards.
+Basically, we want a first rule which drops everything which is not tcp or udp.
+The @{const simple_fw} just cannot express this (other firewall systems can't express this neither).
+It needs a bit of work to get this behavior in iptables.
+\<close>
+definition only_allow_tcp_and_udp :: "(char list \<times> 32 common_primitive rule list) list"
+  where
+  "only_allow_tcp_and_udp \<equiv>
+    [(''FORWARD'',
+      [Rule MatchAny (Call ''OnlyTCPandUDP''),
+       Rule (Match (Extra ''more fine-grained filtering'')) action.Drop
+      (*now further more fine-grained filtering rules here*)]),
+     (''OnlyTCPandUDP'',
+      [Rule (Match (Prot (Proto TCP))) Return,
+       Rule (Match (Prot (Proto UDP))) Return,
+       Rule MatchAny Log,
+       Rule MatchAny Reject])
+    ]"
+
+text\<open>Overapproximation removes the check for tcp and udp because the simple firewall cannot
+match on negated protocols. This particular example could be expressed by the simple firewall
+but the pattern to check for tcp/udp first and do more fine-grained filtering afterwards cannot be 
+directly expressed.\<close>
+lemma "map simple_rule_ipv4_toString
+              (to_simple_firewall (upper_closure
+                (optimize_matches abstract_for_simple_firewall
+                  (upper_closure (packet_assume_new
+                    (unfold_ruleset_FORWARD action.Accept
+                      (map_of_string_ipv4 only_allow_tcp_and_udp))))))) =
+  [''ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0    '']" by eval
 end
