@@ -4,12 +4,13 @@ A formal semantics of the Linux netfilter iptables firewall.
 Written in the [Isabelle](https://isabelle.in.tum.de/) interactive proof assistant.
 
 It features
-  * A real-world model of IPv4 addresses as 32bit machine words
+  * A real-world model of IPv4/IPv6 addresses as 32bit/128bit machine words
   * Executable code
   * Support for all common actions in the iptables filter table: ACCEPT, DROP, REJECT, LOG, calling to user-defined chains, RETURN, GOTO to terminal chains, the empty action
   * Support for ALL primitive match conditions (by abstracting over unknown match conditions)
   * Translation to a simplified firewall model
-  * Certification of spoofing protection 
+  * Certification of spoofing protection
+  * Service Matrices: For a fixed port, which IP addresses are allowed to connect which other IP addresses? Shows a partition of the complete IPv4/IPv6 addresses.
   * ...
 
 
