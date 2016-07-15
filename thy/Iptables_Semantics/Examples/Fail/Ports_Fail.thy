@@ -30,7 +30,7 @@ You can only cause this issue if you cleverly construct complex negated match ex
 the @{const Return} semantics. Note: this is 100 percent valid iptables!\<close>
 
 text\<open>Examples relies on the default action being @{const action.Accept}\<close>
-definition  allow_only_tcpsport_22_and_udp_dport80 :: "(char list \<times> 32 common_primitive rule list) list"
+definition  allow_only_tcpsport_22_and_udp_dport80 :: "(string \<times> 32 common_primitive rule list) list"
   where
   "allow_only_tcpsport_22_and_udp_dport80 \<equiv>
     [(''FORWARD'', [Rule MatchAny (Call ''CHAIN'')]),
@@ -101,6 +101,9 @@ lemma "\<not>(tcp \<and> p80) \<longleftrightarrow> \<not>tcp \<or> (tcp \<and> 
 
 
 subsection\<open>Things the Simple Firewall Cannot Express\<close>
+text\<open>This example is based on the same pattern as above. 
+It does not cause an error but is a minimal example of what the simple firewall just cannot express 
+(and approximation is occurs).\<close>
 text\<open>
 Description: 
 Let's assume we want to write a firewall which first makes sure than only @{const TCP} and @{const UDP} 
@@ -109,7 +112,7 @@ Basically, we want a first rule which drops everything which is not tcp or udp.
 The @{const simple_fw} just cannot express this (other firewall systems can't express this neither).
 It needs a bit of work to get this behavior in iptables.
 \<close>
-definition only_allow_tcp_and_udp :: "(char list \<times> 32 common_primitive rule list) list"
+definition only_allow_tcp_and_udp :: "(string \<times> 32 common_primitive rule list) list"
   where
   "only_allow_tcp_and_udp \<equiv>
     [(''FORWARD'',
