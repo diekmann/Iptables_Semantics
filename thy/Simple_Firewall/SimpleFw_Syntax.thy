@@ -1,5 +1,6 @@
 theory SimpleFw_Syntax
-imports Firewall_Common_Decision_State
+imports "../../IP_Addresses/Hs_Compat"
+        Firewall_Common_Decision_State
         "Primitives/Iface"
         "Primitives/L4_Protocol"
         "Simple_Packet"
@@ -69,5 +70,17 @@ section\<open>Simple Firewall Syntax (for IP addresses of arbitrary length)\<clo
   begin
     datatype 'i simple_rule = SimpleRule (match_sel: "'i simple_match") (action_sel: simple_action)
   end
+
+
+
+text\<open>Simple rule destructor. Removes the @{typ "'a simple_rule"} type, returns a tuple with the match and action.\<close>
+  definition simple_rule_dtor :: "'a simple_rule \<Rightarrow> 'a simple_match \<times> simple_action" where
+    "simple_rule_dtor r \<equiv> (case r of SimpleRule m a \<Rightarrow> (m,a))"
+  
+  lemma simple_rule_dtor_ids:
+    "uncurry SimpleRule \<circ> simple_rule_dtor = id"
+    "simple_rule_dtor \<circ> uncurry SimpleRule = id" 
+    unfolding simple_rule_dtor_def comp_def fun_eq_iff
+    by(simp_all split: simple_rule.splits)
 
 end

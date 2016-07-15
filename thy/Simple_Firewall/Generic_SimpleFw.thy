@@ -6,11 +6,6 @@ begin
 
 subsection\<open>Syntactic Helpers\<close>
 
-definition "simple_rule_dtor r = (case r of SimpleRule m a \<Rightarrow> (m,a))"
-
-lemma simple_rule_dtor_ids: "uncurry SimpleRule \<circ> simple_rule_dtor = id" "simple_rule_dtor \<circ> uncurry SimpleRule = id" 
-	unfolding simple_rule_dtor_def comp_def fun_eq_iff by(simp_all split: simple_rule.splits)
-
 definition option2set :: "'a option \<Rightarrow> 'a set" where
   "option2set n \<equiv> (case n of None \<Rightarrow> {} | Some s \<Rightarrow> {s})"
 
@@ -20,6 +15,11 @@ definition option2list :: "'a option \<Rightarrow> 'a list" where
 lemma set_option2list[simp]: "set (option2list k) = option2set k"
   unfolding option2list_def option2set_def by (simp split: option.splits)
 
+lemma option2list_simps[simp]: "option2list (Some x) = [x]" "option2list (None) = []"
+  unfolding option2list_def option.simps by(fact refl)+
+
+lemma option2set_None: "option2set None = {}"
+  by(simp add: option2set_def)
 
 subsection\<open>Generalized Simple firewall\<close>
 
@@ -139,8 +139,6 @@ proof(induction f1)
 	qed
 qed(simp add: generalized_fw_join_def generalized_sfw_simps;fail)
 
-lemma option2list_simps[simp]: "option2list (Some x) = [x]" "option2list (None) = []"
-unfolding option2list_def option.simps by(fact refl)+
 
 lemma generalized_fw_join_2_Nil[simp]: "generalized_fw_join f1 [] = []"
 unfolding generalized_fw_join_def by(induction f1) simp_all
@@ -290,103 +288,36 @@ subsection\<open>Validity\<close>
 text\<open>There's validity of matches on @{const generalized_sfw}, too, even on the join.\<close>
 lemma conjunctSomeProtoAnyD: "Some ProtoAny = simple_proto_conjunct a (Proto b) \<Longrightarrow> False"
 by(cases a) (simp_all split: if_splits)
-lemma conjunctSomeProtoD: "Some (Proto x) = simple_proto_conjunct a (Proto b) \<Longrightarrow> x = b \<and> (a = ProtoAny \<or> a = Proto b)"
-by(cases a) (simp_all split: if_splits)
-lemma conjunctProtoD: "simple_proto_conjunct a (Proto b) = Some x \<Longrightarrow> x = Proto b \<and> (a = ProtoAny \<or> a = Proto b)"
-by(cases a) (simp_all split: if_splits)
-lemma conjunctProtoD2: "simple_proto_conjunct (Proto b) a = Some x \<Longrightarrow> x = Proto b \<and> (a = ProtoAny \<or> a = Proto b)"
-by(cases a) (simp_all split: if_splits)
 lemma simple_match_inject: " \<lparr>iiface = iifacea, oiface = oifacea, src = srca, dst = dsta, proto = protoa, sports = sportsa, dports = dportsa\<rparr>
       = \<lparr>iiface = iifaceb, oiface = oifaceb, src = srcb, dst = dstb, proto = protob, sports = sportsb, dports = dportsb\<rparr> \<longleftrightarrow>
       (iifacea = iifaceb \<and> oifacea = oifaceb \<and> srca = srcb \<and> dsta = dstb \<and> protoa = protob \<and> sportsa = sportsb \<and> dportsa = dportsb)"
 by simp
-
-lemma ipcidr_conjunct_valid: "\<lbrakk>valid_prefix_fw p1; valid_prefix_fw p2; ipcidr_conjunct p1 p2 = Some p\<rbrakk> \<Longrightarrow> valid_prefix_fw p"
-unfolding valid_prefix_fw_def
-  by(cases p; cases p1; cases p2) (simp add: ipcidr_conjunct.simps split: if_splits)
-lemma simpl_ports_conjunct_not_UNIV:
-"Collect (simple_match_port x) \<noteq> UNIV \<Longrightarrow> x = simpl_ports_conjunct p1 p2 \<Longrightarrow> Collect (simple_match_port p1) \<noteq> UNIV \<or> Collect (simple_match_port p2) \<noteq> UNIV" 
-  by (metis Collect_cong mem_Collect_eq simple_ports_conjunct_correct)
-
-lemma simple_match_and_valid: 
-  fixes m1 :: "'i::len simple_match"
-  assumes mv: "simple_match_valid m1" "simple_match_valid m2"
-  assumes mj: "simple_match_and m1 m2 = Some m"
-  shows "simple_match_valid m"
-proof -
-  (* prefix validity. That's simple. *)
-  have "valid_prefix_fw (src m1)" "valid_prefix_fw (src m2)" "valid_prefix_fw (dst m1)" "valid_prefix_fw (dst m2)"
-    using mv unfolding simple_match_valid_alt by simp_all
-  moreover have "ipcidr_conjunct (src m1) (src m2) = Some (src m)"
-                "ipcidr_conjunct (dst m1) (dst m2) = Some (dst m)"
-    using mj by(cases m1; cases m2; cases m; simp split: option.splits)+
-  ultimately have pv: "valid_prefix_fw (src m)" "valid_prefix_fw (dst m)"
-    using ipcidr_conjunct_valid by blast+
-
-  (* now for the source ports\<dots> *)
-  def nmu \<equiv> "\<lambda>ps. {p. simple_match_port ps p} \<noteq> UNIV"
-  have "simpl_ports_conjunct (sports m1) (sports m2) = (sports m)" (is "?ph1 sports")
-    using mj by(cases m1; cases m2; cases m; simp split: option.splits)
-  hence sp: "nmu (sports m) \<longrightarrow> nmu (sports m1) \<or> nmu (sports m2)"
-    (is "?ph2 sports")
-    unfolding nmu_def using simpl_ports_conjunct_not_UNIV by metis
-
-  (* dst ports: mutatis mutandem *)
-  have "?ph1 dports" using mj by(cases m1; cases m2; cases m; simp split: option.splits)
-  hence dp: "?ph2 dports" unfolding nmu_def using simpl_ports_conjunct_not_UNIV by metis
-
-  (* And an argument for the protocol. *)
-  def php \<equiv> "\<lambda>mr :: 'i simple_match. proto mr \<in> Proto ` {TCP, UDP, L4_Protocol.SCTP}"
-  have pcj: "simple_proto_conjunct (proto m1) (proto m2) = Some (proto m)"
-    using mj by(cases m1; cases m2; cases m; simp split: option.splits)
-  hence p: "php m1 \<Longrightarrow> php m"
-           "php m2 \<Longrightarrow> php m"
-    using conjunctProtoD conjunctProtoD2 pcj unfolding php_def by auto
-
-  (* Since I'm trying to trick the simplifier with these defs, I need these as explicit statements: *)
-  have "\<And>mx. simple_match_valid mx \<Longrightarrow> nmu (sports mx) \<or> nmu (dports mx) \<Longrightarrow> php mx"
-    unfolding nmu_def php_def simple_match_valid_def by blast
-  hence mps: "nmu (sports m1) \<Longrightarrow> php m1" "nmu (dports m1) \<Longrightarrow> php m1"
-             "nmu (sports m2) \<Longrightarrow> php m2" "nmu (dports m2) \<Longrightarrow> php m2" using mv by blast+
-  
-  have pa: "nmu (sports m) \<or> nmu (dports m) \<longrightarrow> php m"
-  (*  apply(intro impI)
-    apply(elim disjE)
-    apply(drule sp[THEN mp])
-    apply(elim disjE)
-    apply(drule mps)
-    apply(elim p; fail) *)
-    using sp dp mps p by fast
-
-  show ?thesis
-    unfolding simple_match_valid_def
-    using pv pa[unfolded nmu_def php_def] by blast
-qed
-    
 
 
 definition gsfw_valid :: "('i::len simple_match \<times> 'c) list \<Rightarrow> bool" where
   "gsfw_valid \<equiv> list_all (simple_match_valid \<circ> fst)"
 
 lemma gsfw_join_valid: "gsfw_valid f1 \<Longrightarrow> gsfw_valid f2 \<Longrightarrow> gsfw_valid (generalized_fw_join f1 f2)"
-unfolding gsfw_valid_def
-apply(induction f1)
- apply(simp;fail)
-apply(simp)
-apply(rename_tac a f1)
-apply(case_tac a)
-apply(simp add: generalized_fw_join_cons_1)
-apply(clarify)
-apply(thin_tac "list_all _ f1")
-apply(thin_tac "list_all _ (generalized_fw_join _ _)")
-apply(induction f2)
- apply(simp;fail)
-apply(simp)
-apply(clarsimp simp add: option2list_def list_all_iff)
-using simple_match_and_valid apply metis
-done
-lemma gsfw_validI: "simple_fw_valid fw \<Longrightarrow> gsfw_valid (map simple_rule_dtor fw)" unfolding gsfw_valid_def simple_fw_valid_def 
-by(clarsimp simp add: simple_rule_dtor_def list_all_iff split: simple_rule.splits) fastforce
+  unfolding gsfw_valid_def
+  apply(induction f1)
+   apply(simp;fail)
+  apply(simp)
+  apply(rename_tac a f1)
+  apply(case_tac a)
+  apply(simp add: generalized_fw_join_cons_1)
+  apply(clarify)
+  apply(thin_tac "list_all _ f1")
+  apply(thin_tac "list_all _ (generalized_fw_join _ _)")
+  apply(induction f2)
+   apply(simp;fail)
+  apply(simp)
+  apply(clarsimp simp add: option2list_def list_all_iff)
+  using simple_match_and_valid apply metis
+  done
+
+lemma gsfw_validI: "simple_fw_valid fw \<Longrightarrow> gsfw_valid (map simple_rule_dtor fw)"
+  unfolding gsfw_valid_def simple_fw_valid_def 
+  by(clarsimp simp add: simple_rule_dtor_def list_all_iff split: simple_rule.splits) fastforce
 
 
 end

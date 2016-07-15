@@ -48,6 +48,12 @@ fun match_proto :: "protocol \<Rightarrow> primitive_protocol \<Rightarrow> bool
     \<not> (match_proto p1 pkt \<and> match_proto p2 pkt)"
     using simple_proto_conjunct_correct by simp
 
+  lemma conjunctProtoD:
+    "simple_proto_conjunct a (Proto b) = Some x \<Longrightarrow> x = Proto b \<and> (a = ProtoAny \<or> a = Proto b)"
+  by(cases a) (simp_all split: if_splits)
+  lemma conjunctProtoD2:
+    "simple_proto_conjunct (Proto b) a = Some x \<Longrightarrow> x = Proto b \<and> (a = ProtoAny \<or> a = Proto b)"
+  by(cases a) (simp_all split: if_splits)
 
   text\<open>Originally, there was a @{typ nat} in the protocol definition, allowing infinitely many protocols 
         This was intended behavior. We want to prevent things such as @{term "\<not>TCP = UDP"}.
