@@ -10,5 +10,7 @@
 -A FORWARD -j LOG --log-prefix "~%&/()=?" --log-level 6
 -A FORWARD -s ::/128 -j DROP
 -A gh32_-2qns -s 2001:db8:85a3:8d3:1319:8a2e:370:7344/128 -j REJECT --reject-with icmp6-port-unreachable
+-A gh32_-2qns
+-A gh32_-2qns -j ACCEPT
 COMMIT
 # Completed on Thu Jul 14 18:24:51 2016
