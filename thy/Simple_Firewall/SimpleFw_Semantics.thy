@@ -142,36 +142,6 @@ subsection\<open>Simple Ports\<close>
      using word_le_0_iff apply blast
     using word_zero_le by blast
 
-  (*lemma simple_match_port_wordinterval: "simple_match_port (s,e) p \<longleftrightarrow> p \<in> wordinterval_to_set (WordInterval s e)" by(simp)*)
-
-  fun simple_match_port_and_not :: "(16 word \<times> 16 word) \<Rightarrow> (16 word \<times> 16 word) \<Rightarrow> ((16 word \<times> 16 word) \<times> (16 word \<times> 16 word) option) option" where
-    "simple_match_port_and_not (s, e) (s_n, e_n) = (let w = wordinterval_setminus (WordInterval s e) (WordInterval s_n e_n) in 
-      (if wordinterval_empty w then None
-       else case w of WordInterval s' e' \<Rightarrow> Some ((s', e'), None) (*optimized wordintervals don't have overlapping intervals*)
-                   |  _ \<Rightarrow> Some ((s,e), Some (s_n, e_n)))
-      )"
-
-  lemma "simple_match_port_and_not p1 p2 = Some (p_p, Some p_n) \<Longrightarrow>
-    simple_match_port p1 p \<and> \<not> simple_match_port p2 p \<longleftrightarrow> simple_match_port p_p p \<and> \<not> simple_match_port p_n p"
-    apply(cases p1, cases p2, cases p_p, cases p_n)
-    by(simp split:split_if_asm wordinterval.split_asm)
-  lemma "simple_match_port_and_not p1 p2 = None \<Longrightarrow> \<not>(\<exists>p. simple_match_port p1 p \<and> \<not> simple_match_port p2 p)"
-    apply(cases p1, cases p2)
-    apply(simp split:split_if_asm wordinterval.split_asm)
-    by fastforce
-  lemma "simple_match_port_and_not p1 p2 = Some (p_p, None) \<Longrightarrow>
-    simple_match_port p1 p \<and> \<not> simple_match_port p2 p \<longleftrightarrow> simple_match_port p_p p"
-  proof(cases p1, cases p2, cases p_p, simp split:split_if_asm wordinterval.split_asm)
-   fix s1::"16 word" and e1 s2 e2 sp ep
-   assume 1: "wordinterval_setminus (WordInterval s1 e1) (WordInterval s2 e2) = WordInterval sp ep"
-   from 1 have "wordinterval_to_set (wordinterval_setminus (WordInterval s1 e1) (WordInterval s2 e2)) = wordinterval_to_set (WordInterval sp ep)"
-     by simp
-   hence "{s1..e1} - {s2..e2} = {sp..ep}" using wordinterval_setminus_set_eq by simp
-   thus "(s1 \<le> p \<and> p \<le> e1 \<and> (s2 \<le> p \<longrightarrow> \<not> p \<le> e2)) = (sp \<le> p \<and> p \<le> ep)" by auto
-  qed
-
-  value[code] "simple_match_port_and_not (1,8) (6,8)"
-
 subsection\<open>Simple IPs\<close>
   lemma simple_match_ip_conjunct:
     fixes ip1 :: "'i::len word \<times> nat"
