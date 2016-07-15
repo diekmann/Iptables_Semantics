@@ -53,7 +53,7 @@ value[code] "map simple_rule_ipv4_toString
               (to_simple_firewall (upper_closure
                 (optimize_matches abstract_for_simple_firewall
                   (upper_closure (packet_assume_new
-                    (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
+                    (unfold_ruleset_FORWARD action.Accept
                       (map_of_string_ipv4 [(''FORWARD'', [Rule MatchAny (Call ''CHAIN'')]),
                                (''CHAIN'',
                                 [Rule (MatchAnd (Match (Prot (Proto TCP)))
@@ -69,7 +69,7 @@ lemma "sanity_check_simple_firewall
               (to_simple_firewall (upper_closure
                 (optimize_matches abstract_for_simple_firewall
                   (upper_closure (packet_assume_new
-                    (unfold_ruleset_FORWARD parser_test_firewall_FORWARD_default_policy
+                    (unfold_ruleset_FORWARD action.Accept
                       (map_of_string_ipv4 [(''FORWARD'', [Rule MatchAny (Call ''CHAIN'')]),
                                (''CHAIN'',
                                 [Rule (MatchAnd (Match (Prot (Proto TCP)))
