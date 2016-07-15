@@ -72,6 +72,7 @@ session "Iptables_Semantics_Documentation" = Iptables_Semantics +
 session "Iptables_Semantics_Examples" = Iptables_Semantics_Documentation +
    theories
     "Examples/Parser_Test/Parser_Test"
+    "Examples/Fail/Ports_Fail"
     "Examples/Synology_Diskstation_DS414/Analyze_Synology_Diskstation"
     "Examples/Ringofsaturn_com/Analyze_Ringofsaturn_com"
     "Examples/SQRL_Shorewall/Analyze_SQRL_Shorewall"
