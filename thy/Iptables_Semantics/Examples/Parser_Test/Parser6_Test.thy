@@ -34,53 +34,6 @@ value[code] "map simple_rule_ipv6_toString
                       (map_of parser6_test_firewall)))))))" 
 (*33.224s*)
 
-text\<open>here is a minimal example\<close>
-value[code] " (unfold_ruleset_FORWARD action.Accept
-                      (map_of_string_ipv4
-                              [(''FORWARD'', [Rule MatchAny (Call ''CHAIN'')]),
-                               (''CHAIN'',
-                                [Rule (MatchAnd (Match (Prot (Proto TCP)))
-                                        (Match (Src_Ports [(22, 22)])))
-                                  Return,
-                                 Rule (MatchAnd (Match (Prot (Proto UDP)))
-                                        (Match (Dst_Ports [(80,80)])))
-                                  Return,
-                                 Rule MatchAny action.Drop])
-                              ]))"
-
-
-value[code] "map simple_rule_ipv4_toString
-              (to_simple_firewall (upper_closure
-                (optimize_matches abstract_for_simple_firewall
-                  (upper_closure (packet_assume_new
-                    (unfold_ruleset_FORWARD action.Accept
-                      (map_of_string_ipv4 [(''FORWARD'', [Rule MatchAny (Call ''CHAIN'')]),
-                               (''CHAIN'',
-                                [Rule (MatchAnd (Match (Prot (Proto TCP)))
-                                        (Match (Src_Ports [(22, 22)])))
-                                  Return,
-                                 Rule (MatchAnd (Match (Prot (Proto UDP)))
-                                        (Match (Dst_Ports [(80,80)])))
-                                  Return,
-                                 Rule MatchAny action.Drop])
-                              ])))))))" 
-
-lemma "sanity_check_simple_firewall
-              (to_simple_firewall (upper_closure
-                (optimize_matches abstract_for_simple_firewall
-                  (upper_closure (packet_assume_new
-                    (unfold_ruleset_FORWARD action.Accept
-                      (map_of_string_ipv4 [(''FORWARD'', [Rule MatchAny (Call ''CHAIN'')]),
-                               (''CHAIN'',
-                                [Rule (MatchAnd (Match (Prot (Proto TCP)))
-                                        (Match (Src_Ports [(22, 22)])))
-                                  Return,
-                                 Rule (MatchAnd (Match (Prot (Proto UDP)))
-                                        (Match (Dst_Ports [(80,80)])))
-                                  Return,
-                                 Rule MatchAny action.Drop])
-                              ]))))))) = False" by eval 
-
 (*
 
 parse_ip6tables_save parser_test_firewall2 =
