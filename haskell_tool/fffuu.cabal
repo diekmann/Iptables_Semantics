@@ -9,7 +9,7 @@ category:            Network
 build-type:          Simple
 homepage:            http://iptables.isabelle.systems/
 bug-reports:         https://github.com/diekmann/Iptables_Semantics/issues
-cabal-version:       >= 1.24
+cabal-version:       >= 1.22 -- ghc8 needs cabal >= 1.24 or some dependency fails to install
 tested-with:         GHC >= 7.8 && < 8.1
 
 library
