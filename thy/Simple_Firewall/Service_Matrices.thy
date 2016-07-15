@@ -4,7 +4,8 @@
 (*IPPartitioning.thy
   Original Author: Max Haslbeck, 2015*)
 theory Service_Matrices
-imports "Common/IP_Partition_Preliminaries"
+imports "Common/List_Product_More"
+        "Common/IP_Partition_Preliminaries"
         "Common/GroupF"
         "Common/IP_Addr_WordInterval_toString"
         "Primitives/Primitives_toString"
@@ -1144,14 +1145,6 @@ lemma build_ip_partition_distinct': "distinct (build_ip_partition c rs)"
 subsection\<open>Service Matrix over an IP Address Space Partition\<close>
 
 
-definition all_pairs :: "'a list \<Rightarrow> ('a \<times> 'a) list" where
-  "all_pairs xs \<equiv> concat (map (\<lambda>x. map (\<lambda>y. (x,y)) xs) xs)"
-
-lemma all_pairs: "\<forall> (x,y) \<in> (set xs \<times> set xs). (x,y) \<in> set (all_pairs xs)"
-  by(auto simp add: all_pairs_def)
-lemma all_pairs_set: "set (all_pairs xs) = set xs \<times> set xs"
-  by (metis Product_Type.product_def all_pairs_def product_code) 
-
 definition simple_firewall_without_interfaces :: "'i::len simple_rule list \<Rightarrow> bool" where
   "simple_firewall_without_interfaces rs \<equiv> \<forall>m \<in> match_sel ` set rs. iiface m = ifaceAny \<and> oiface m = ifaceAny"
 
@@ -1447,7 +1440,6 @@ lemma access_matrix_pretty_ipv6_code[code]: "access_matrix_pretty_ipv6 = access_
   by(simp add: fun_eq_iff access_matrix_pretty_ipv6_def access_matrix_pretty_ipv6_code_def Let_def access_matrix_def map_prod_fun_zip)
 
   
-
 
 definition parts_connection_ssh where
   "parts_connection_ssh \<equiv> \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP, pc_sport=10000, pc_dport=22\<rparr>"
