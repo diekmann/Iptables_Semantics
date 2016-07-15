@@ -163,8 +163,32 @@ ML_val\<open>
 ipt_explode "ad \"as das\" boo";
 ipt_explode "ad \"foobar --boo boo";
 ipt_explode "ent \"\\\"\" this";
+ipt_explode "";
 \<close>
 
+
+(*
+ML_val\<open>
+fun finite_scan scan = Scan.error (Scan.finite Symbol.stopper (scan));
+finite_scan
+     ((Scan.this_string "foo") --|
+      (Scan.ahead ($$ " " || Scan.one Symbol.is_eof))) (raw_explode "foo ");
+\<close>
+ML\<open>
+local
+  val errormsg = (fn (ss, _) => raise Fail ("parse error: expected word boundary near `"^implode ss^"'"))
+  fun finite_scan scanner = (Scan.finite Symbol.stopper (Scan.error (!! errormsg scanner)));
+  val word_boundary_or_end = Scan.ahead ($$ " " || Scan.one Symbol.is_eof)
+in
+  fun look_ahead_token (scan : (string list -> 'a * string list)) s = (*TODO: why do I need to write the type?*)
+          finite_scan (scan --| word_boundary_or_end) s;
+end;
+val _ = look_ahead_token (Scan.this_string "foo") (raw_explode "foo ");
+val _ = look_ahead_token (Scan.this_string "foo") (raw_explode "foo");
+val _ = (look_ahead_token (Scan.this_string "foo")) (raw_explode "fo")
+  handle Fail m => if m = "parse error: expected word boundary near `fo'" then ("", [])
+                   else raise Fail "foo";
+\<close>*)
 
 ML\<open>
 datatype parsed_action_type = TypeCall | TypeGoto
@@ -262,8 +286,10 @@ local (*iptables-save parsers*)
       val parser_extra = Scan.many1 (fn x => x <> " " andalso Symbol.not_eof x)
             >> (implode #> HOLogic.mk_string);
     end;
+    val eoo = Scan.ahead ($$ " " || Scan.one Symbol.is_eof); (*end of option; word boundary or eof look-ahead*)
+
     fun parse_cmd_option_generic (d: term -> parsed_match_action) s t (parser: string list -> (term * string list)) = 
-        Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string s |-- (parser >> (fn r => d (t $ r))))
+        Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string s |-- (parser >> (fn r => d (t $ r))) --| eoo)
 
     fun parse_cmd_option (s: string) (t: term) (parser: string list -> (term * string list)) =
             parse_cmd_option_generic ParsedMatch s t parser;
@@ -275,6 +301,7 @@ local (*iptables-save parsers*)
     fun parse_cmd_option_negated_singleton s t parser = parse_cmd_option_negated s t parser >> (fn x => [x])
 
     (*TODO: is the 'Scan.finite Symbol.stopper' correct here?*)
+    (*TODO: eoo here?*)
     fun parse_with_module_prefix (module: string) (parser: (string list -> parsed_match_action * string list)) =
       (Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string module)) |-- (Scan.repeat parser)
   in
@@ -322,7 +349,7 @@ local (*iptables-save parsers*)
 
     fun parse_finite_skipwhite parser = Scan.finite Symbol.stopper (is_whitespace |-- parser);
 
-    val is_icmp_type = fn x => Symbol.is_ascii_letter x orelse x = "-"
+    val is_icmp_type = fn x => Symbol.is_ascii_letter x orelse x = "-" orelse x = "6"
   in
     val parser_target = Scan.many1 is_target_char >> implode;
   
@@ -397,7 +424,7 @@ ML_val\<open>(Scan_cons_repeat option_parser) (ipt_explode "-j LOG --log-prefix 
 
 
 ML_val\<open>
-val (x, rest) = (Scan_cons_repeat option_parser) (ipt_explode "-d 0.31.123.213/88 --foo_bar \"he he\" -f -i eth0+ -s 0.31.123.213/21 moreextra -j foobar --log");
+val (x, rest) = (Scan_cons_repeat option_parser) (ipt_explode "-d 0.31.123.213/11. --foo_bar \"he he\" -f -i eth0+ -s 0.31.123.213/21 moreextra -j foobar --log");
 map (fn p => case p of ParsedMatch t => type_of t | ParsedAction (_,_) => dummyT) x;
 map (fn p => case p of ParsedMatch t => Pretty.writeln (Syntax.pretty_term @{context} t) | ParsedAction (_,a) => writeln ("action: "^a)) x;
 \<close>

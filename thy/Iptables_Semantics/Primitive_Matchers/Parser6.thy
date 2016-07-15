@@ -266,8 +266,10 @@ local (*iptables-save parsers*)
       val parser_extra = Scan.many1 (fn x => x <> " " andalso Symbol.not_eof x)
             >> (implode #> HOLogic.mk_string);
     end;
+    val eoo = Scan.ahead ($$ " " || Scan.one Symbol.is_eof); (*end of option; word boundary or eof look-ahead*)
+
     fun parse_cmd_option_generic (d: term -> parsed_match_action) s t (parser: string list -> (term * string list)) = 
-        Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string s |-- (parser >> (fn r => d (t $ r))))
+        Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string s |-- (parser >> (fn r => d (t $ r))) --| eoo)
 
     fun parse_cmd_option (s: string) (t: term) (parser: string list -> (term * string list)) =
             parse_cmd_option_generic ParsedMatch s t parser;
@@ -326,7 +328,7 @@ local (*iptables-save parsers*)
 
     fun parse_finite_skipwhite parser = Scan.finite Symbol.stopper (is_whitespace |-- parser);
 
-    val is_icmp_type = fn x => Symbol.is_ascii_letter x orelse x = "-"
+    val is_icmp_type = fn x => Symbol.is_ascii_letter x orelse x = "-" orelse x = "6"
   in
     val parser_target = Scan.many1 is_target_char >> implode;
   
