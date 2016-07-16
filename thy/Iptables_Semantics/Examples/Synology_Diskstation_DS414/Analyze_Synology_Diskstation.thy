@@ -172,13 +172,13 @@ done
 
 lemma "check_simple_fw_preconditions (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset))" by eval
 
-value[code] "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset)))"
-lemma "map simple_rule_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset))) =
+value[code] "map simple_rule_ipv4_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset)))"
+lemma "map simple_rule_ipv4_toString (to_simple_firewall (upper_closure (unfold_ruleset_INPUT action.Accept example_ruleset))) =
   [''ACCEPT     all  --  192.168.0.0/16            0.0.0.0/0    '',
-   ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '']" by eval (*will break when simple_rule_toString is changed*)
+   ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '']" by eval (*will break when simple_rule_ipv4_toString is changed*)
 
 lemma "check_simple_fw_preconditions (lower_closure (unfold_ruleset_INPUT action.Accept example_ruleset))" by eval
-value[code] "map simple_rule_toString (to_simple_firewall (lower_closure (unfold_ruleset_INPUT action.Accept example_ruleset)))"
+value[code] "map simple_rule_ipv4_toString (to_simple_firewall (lower_closure (unfold_ruleset_INPUT action.Accept example_ruleset)))"
 
 
 lemma "length (unfold_ruleset_INPUT action.Accept example_ruleset) = 19" by eval
@@ -307,7 +307,7 @@ value[code] "upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_IN
 
 lemma "check_simple_fw_preconditions (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw))))))" by eval
 
-value[code] "map simple_rule_toString (to_simple_firewall
+value[code] "map simple_rule_ipv4_toString (to_simple_firewall
               (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw)))))))"
 lemma "simple_fw_valid (to_simple_firewall
               (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw)))))))" by eval
@@ -324,16 +324,16 @@ Port 8080 only reachable from 192.168.0.0/24 and localhost (fulfilled).
 
 value[code] "unfold_ruleset_INPUT ds2015_2_fw_INPUT_default_policy (map_of ds2015_2_fw)"
 
-lemma "access_matrix_pretty parts_connection_ssh
-        (to_simple_firewall_without_interfaces ipassmt_generic
+lemma "access_matrix_pretty_ipv4 parts_connection_ssh
+        (to_simple_firewall_without_interfaces ipassmt_generic_ipv4
           (unfold_ruleset_INPUT ds2015_2_fw_INPUT_default_policy (map_of ds2015_2_fw))) =
   ([(''0.0.0.0'', ''{0.0.0.0 .. 255.255.255.255}'')
    ],
    [(''0.0.0.0'', ''0.0.0.0'')])" by eval
 
 
-lemma "access_matrix_pretty parts_connection_http
-        (to_simple_firewall_without_interfaces ipassmt_generic
+lemma "access_matrix_pretty_ipv4 parts_connection_http
+        (to_simple_firewall_without_interfaces ipassmt_generic_ipv4
           (unfold_ruleset_INPUT ds2015_2_fw_INPUT_default_policy (map_of ds2015_2_fw))) =
   ([(''0.0.0.0'', ''{0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 255.255.255.255}''),
     (''127.0.0.0'', ''{127.0.0.0 .. 127.255.255.255}'')
@@ -341,8 +341,8 @@ lemma "access_matrix_pretty parts_connection_http
    [(''127.0.0.0'', ''0.0.0.0''),
     (''127.0.0.0'', ''127.0.0.0'')])" by eval
 
-lemma "access_matrix_pretty (mk_parts_connection_TCP 10000 8080)
-        (to_simple_firewall_without_interfaces ipassmt_generic
+lemma "access_matrix_pretty_ipv4 (mk_parts_connection_TCP 10000 8080)
+        (to_simple_firewall_without_interfaces ipassmt_generic_ipv4
           (unfold_ruleset_INPUT ds2015_2_fw_INPUT_default_policy (map_of ds2015_2_fw))) = 
   ([(''127.0.0.0'', ''{127.0.0.0 .. 127.255.255.255} u {192.168.0.0 .. 192.168.255.255}''),
     (''0.0.0.0'', ''{0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 192.167.255.255} u {192.169.0.0 .. 255.255.255.255}'')

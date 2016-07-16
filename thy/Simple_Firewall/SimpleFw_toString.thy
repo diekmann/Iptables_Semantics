@@ -11,8 +11,8 @@ fun simple_action_toString :: "simple_action \<Rightarrow> string" where
   "simple_action_toString Drop = ''DROP''"
 
 (*TODO: rename for ipv6*)
-fun simple_rule_toString :: "32 simple_rule \<Rightarrow> string" where
-  "simple_rule_toString (SimpleRule \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> a) = 
+fun simple_rule_ipv4_toString :: "32 simple_rule \<Rightarrow> string" where
+  "simple_rule_ipv4_toString (SimpleRule \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> a) = 
       simple_action_toString a @ ''     '' @ 
       protocol_toString p @ ''  --  '' @ 
       ipv4_cidr_toString sip @ ''            '' @
@@ -22,8 +22,8 @@ fun simple_rule_toString :: "32 simple_rule \<Rightarrow> string" where
       ports_toString ''sports: '' sps @ '' '' @ 
       ports_toString ''dports: '' dps"
 
-fun simple_rule6_toString :: "128 simple_rule \<Rightarrow> string" where
-  "simple_rule6_toString
+fun simple_rule_ipv6_toString :: "128 simple_rule \<Rightarrow> string" where
+  "simple_rule_ipv6_toString
     (SimpleRule \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> a) = 
       simple_action_toString a @ ''     '' @ 
       protocol_toString p @ ''  --  '' @ 

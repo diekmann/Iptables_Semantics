@@ -546,10 +546,18 @@ definition sanity_wf_ruleset :: "(string \<times> 'a rule list) list \<Rightarro
                                                                     | Return \<Rightarrow> True
                                                                     | _ \<Rightarrow> False))"
 
-lemma "sanity_wf_ruleset \<Gamma> \<Longrightarrow> rs \<in> ran (map_of \<Gamma>) \<Longrightarrow> wf_chain (map_of \<Gamma>) rs"
+lemma sanity_wf_ruleset_wf_chain: "sanity_wf_ruleset \<Gamma> \<Longrightarrow> rs \<in> ran (map_of \<Gamma>) \<Longrightarrow> wf_chain (map_of \<Gamma>) rs"
   apply(simp add: sanity_wf_ruleset_def wf_chain_def)
   by fastforce
 
+lemma sanity_wf_ruleset_start: "sanity_wf_ruleset \<Gamma> \<Longrightarrow> chain_name \<in> dom (map_of \<Gamma>) \<Longrightarrow>
+  default_action = Accept \<or> default_action = Drop \<Longrightarrow> 
+  wf_chain (map_of \<Gamma>) [Rule MatchAny (Call chain_name), Rule MatchAny default_action]"
+ apply(simp add: sanity_wf_ruleset_def wf_chain_def)
+ apply(safe)
+  apply(simp_all)
+  apply blast+
+ done
 
 lemma [code]: "sanity_wf_ruleset \<Gamma> =
   (let dom = map fst \<Gamma>;
@@ -1111,12 +1119,6 @@ begin
      apply(simp_all)
   done
 end
-
-
-
-
-
-
 
 
 

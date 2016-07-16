@@ -4,7 +4,8 @@
 (*IPPartitioning.thy
   Original Author: Max Haslbeck, 2015*)
 theory Service_Matrices
-imports "Common/IP_Partition_Preliminaries"
+imports "Common/List_Product_More"
+        "Common/IP_Partition_Preliminaries"
         "Common/GroupF"
         "Common/IP_Addr_WordInterval_toString"
         "Primitives/Primitives_toString"
@@ -41,7 +42,7 @@ To get a more deterministic runtime, we are sorting the output. As a performance
 We use mergesort_remdups, which does a mergesort (i.e sorts!) and removes duplicates and mergesort_by_rel which does a mergesort
 (without removing duplicates) and allows to specify the relation we use to sort.
 In theory, the largest ip ranges (smallest prefix length) should be put first, the following evaluation shows that this may not
-be the fastest solution. The reason might be that access_matrix_pretty picks (almost randomly) one IP from the result and
+be the fastest solution. The reason might be that access_matrix_pretty_ipv4 picks (almost randomly) one IP from the result and
 there are fast and slower choices. The faster choices are the ones where the firewall ruleset has a decision very early. 
 Therefore, the running time is still a bit unpredictable.
 
@@ -977,16 +978,16 @@ definition build_ip_partition :: "parts_connection \<Rightarrow> 'i::len simple_
 
 
 theorem build_ip_partition_same_fw: "V \<in> set (build_ip_partition c rs) \<Longrightarrow>
-                               \<forall>ip1 \<in> wordinterval_to_set V.
-                               \<forall>ip2 \<in> wordinterval_to_set V.
+                               \<forall>ip1::'i::len word \<in> wordinterval_to_set V.
+                               \<forall>ip2::'i::len word \<in> wordinterval_to_set V.
                                same_fw_behaviour_one ip1 ip2 c rs"
   apply(simp add: build_ip_partition_def groupWIs3)
   using wordinterval_list_to_set_compressed groupParts_same_fw_wi2 wordinterval_sort by blast
 
 theorem build_ip_partition_same_fw_min: "A \<in> set (build_ip_partition c rs) \<Longrightarrow> B \<in> set (build_ip_partition c rs) \<Longrightarrow> 
                                 A \<noteq> B \<Longrightarrow>
-                                \<forall>ip1 \<in> wordinterval_to_set A.
-                                \<forall>ip2 \<in> wordinterval_to_set B.
+                                \<forall>ip1::'i::len word \<in> wordinterval_to_set A.
+                                \<forall>ip2::'i::len word \<in> wordinterval_to_set B.
                                 \<not> same_fw_behaviour_one ip1 ip2 c rs"
   apply(simp add: build_ip_partition_def groupWIs3)
   using  groupWIs_same_fw_not2 wordinterval_list_to_set_compressed wordinterval_sort by blast
@@ -1143,14 +1144,6 @@ lemma build_ip_partition_distinct': "distinct (build_ip_partition c rs)"
 
 subsection\<open>Service Matrix over an IP Address Space Partition\<close>
 
-
-definition all_pairs :: "'a list \<Rightarrow> ('a \<times> 'a) list" where
-  "all_pairs xs \<equiv> concat (map (\<lambda>x. map (\<lambda>y. (x,y)) xs) xs)"
-
-lemma all_pairs: "\<forall> (x,y) \<in> (set xs \<times> set xs). (x,y) \<in> set (all_pairs xs)"
-  by(auto simp add: all_pairs_def)
-lemma all_pairs_set: "set (all_pairs xs) = set xs \<times> set xs"
-  by (metis Product_Type.product_def all_pairs_def product_code) 
 
 definition simple_firewall_without_interfaces :: "'i::len simple_rule list \<Rightarrow> bool" where
   "simple_firewall_without_interfaces rs \<equiv> \<forall>m \<in> match_sel ` set rs. iiface m = ifaceAny \<and> oiface m = ifaceAny"
@@ -1335,7 +1328,9 @@ lemma access_matrix_complete:
 qed
 
 
-theorem access_matrix: assumes matrix: "(V,E) = access_matrix c rs"
+theorem access_matrix:
+      fixes rs :: "'i::len simple_rule list"
+      assumes matrix: "(V,E) = access_matrix c rs"
       shows "(\<exists>s_repr d_repr s_range d_range. (s_repr, d_repr) \<in> set E \<and>
               (map_of V) s_repr = Some s_range \<and> s \<in> wordinterval_to_set s_range \<and>
               (map_of V) d_repr = Some d_range \<and> d \<in> wordinterval_to_set d_range)
@@ -1381,10 +1376,10 @@ the edges are the edges. Result looks nice. Theorem also tells us that this visu
   Note that the WordInterval is already sorted, which is important for prettyness!
 *)
 text\<open>Only defined for @{const simple_firewall_without_interfaces}\<close>
-definition access_matrix_pretty
+definition access_matrix_pretty_ipv4
   :: "parts_connection \<Rightarrow> 32 simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
   where
-  "access_matrix_pretty c rs \<equiv>
+  "access_matrix_pretty_ipv4 c rs \<equiv>
     if \<not> simple_firewall_without_interfaces rs then undefined else
     (let (V,E) = (access_matrix c rs);
          formatted_nodes =
@@ -1397,10 +1392,10 @@ definition access_matrix_pretty
 
 
 (*TODO: not sure if this gives better code*)
-definition access_matrix_pretty_code
+definition access_matrix_pretty_ipv4_code
   :: "parts_connection \<Rightarrow> 32 simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
   where
-  "access_matrix_pretty_code c rs \<equiv>
+  "access_matrix_pretty_ipv4_code c rs \<equiv>
     if \<not> simple_firewall_without_interfaces rs then undefined else
     (let W = build_ip_partition c rs;
          R = map getOneIp W;
@@ -1409,11 +1404,42 @@ definition access_matrix_pretty_code
      (zip (map ipv4addr_toString R) (map ipv4addr_wordinterval_toString W), 
       map (\<lambda>(x,y). (ipv4addr_toString x, ipv4addr_toString y)) [(s, d)\<leftarrow>all_pairs R. runFw s d c rs = Decision FinalAllow]))"
 
-lemma access_matrix_pretty_code[code]: "access_matrix_pretty = access_matrix_pretty_code"
-  by(simp add: fun_eq_iff access_matrix_pretty_def access_matrix_pretty_code_def Let_def access_matrix_def map_prod_fun_zip)
-  
-  
+lemma access_matrix_pretty_ipv4_code[code]: "access_matrix_pretty_ipv4 = access_matrix_pretty_ipv4_code"
+  by(simp add: fun_eq_iff access_matrix_pretty_ipv4_def access_matrix_pretty_ipv4_code_def Let_def access_matrix_def map_prod_fun_zip)
 
+
+definition access_matrix_pretty_ipv6
+  :: "parts_connection \<Rightarrow> 128 simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
+  where
+  "access_matrix_pretty_ipv6 c rs \<equiv>
+    if \<not> simple_firewall_without_interfaces rs then undefined else
+    (let (V,E) = (access_matrix c rs);
+         formatted_nodes =
+              map (\<lambda>(v_repr, v_range). (ipv6addr_toString v_repr, ipv6addr_wordinterval_toString v_range)) V;
+         formatted_edges =
+              map (\<lambda>(s,d). (ipv6addr_toString s, ipv6addr_toString d)) E
+     in
+      (formatted_nodes, formatted_edges)
+    )"
+
+
+(*TODO: not sure if this gives better code*)
+definition access_matrix_pretty_ipv6_code
+  :: "parts_connection \<Rightarrow> 128 simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
+  where
+  "access_matrix_pretty_ipv6_code c rs \<equiv>
+    if \<not> simple_firewall_without_interfaces rs then undefined else
+    (let W = build_ip_partition c rs;
+         R = map getOneIp W;
+         U = all_pairs R
+     in
+     (zip (map ipv6addr_toString R) (map ipv6addr_wordinterval_toString W), 
+      map (\<lambda>(x,y). (ipv6addr_toString x, ipv6addr_toString y)) [(s, d)\<leftarrow>all_pairs R. runFw s d c rs = Decision FinalAllow]))"
+
+lemma access_matrix_pretty_ipv6_code[code]: "access_matrix_pretty_ipv6 = access_matrix_pretty_ipv6_code"
+  by(simp add: fun_eq_iff access_matrix_pretty_ipv6_def access_matrix_pretty_ipv6_code_def Let_def access_matrix_def map_prod_fun_zip)
+
+  
 
 definition parts_connection_ssh where
   "parts_connection_ssh \<equiv> \<lparr>pc_iiface=''1'', pc_oiface=''1'', pc_proto=TCP, pc_sport=10000, pc_dport=22\<rparr>"

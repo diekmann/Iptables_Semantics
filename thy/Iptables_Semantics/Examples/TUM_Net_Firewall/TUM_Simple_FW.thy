@@ -10,13 +10,13 @@ section\<open>Printing various version of the simplified firewall\<close>
   value[code] "let x = to_simple_firewall (upper_closure
                       (packet_assume_new
                       (unfold_ruleset_FORWARD net_fw_3_FORWARD_default_policy (map_of net_fw_3))))
-               in map simple_rule_toString x" (*341.711s*)
+               in map simple_rule_ipv4_toString x" (*341.711s*)
 
   text\<open>Abstracting over the interfaces removes a lot of information\<close>
   value[code] "let x = to_simple_firewall (upper_closure
                       (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))
                       (upper_closure (packet_assume_new (unfold_ruleset_FORWARD net_fw_3_FORWARD_default_policy (map_of net_fw_3))))))
-               in map simple_rule_toString x" (*352.424s*)
+               in map simple_rule_ipv4_toString x" (*352.424s*)
 
 
   text\<open>If we constrain the inbound interfaces to their assigned ip range, we assume that no spoofed packets arrive.
@@ -24,7 +24,7 @@ section\<open>Printing various version of the simplified firewall\<close>
   value[code] "let x = to_simple_firewall (upper_closure
                       (optimize_matches (iiface_constrain (map_of_ipassmt ipassmt))
                       (upper_closure (packet_assume_new (unfold_ruleset_FORWARD net_fw_3_FORWARD_default_policy (map_of net_fw_3))))))
-               in map simple_rule_toString x" (*411.281s*)
+               in map simple_rule_ipv4_toString x" (*411.281s*)
 
 
 
@@ -35,7 +35,7 @@ section\<open>Printing various version of the simplified firewall\<close>
                       (upper_closure
                       (optimize_matches (iiface_constrain (map_of_ipassmt ipassmt))
                       (upper_closure (packet_assume_new (unfold_ruleset_FORWARD net_fw_3_FORWARD_default_policy (map_of net_fw_3))))))))
-               in map simple_rule_toString x" (*395.192s*)
+               in map simple_rule_ipv4_toString x" (*395.192s*)
 
 
   text\<open>This was a whitelisting firewall. Unfortunately, if we build a stricter ruleset, abstracting over the interfaces forces most
@@ -45,7 +45,7 @@ section\<open>Printing various version of the simplified firewall\<close>
                       (lower_closure
                       (optimize_matches (iiface_constrain (map_of_ipassmt ipassmt))
                       (lower_closure (packet_assume_new (unfold_ruleset_FORWARD net_fw_3_FORWARD_default_policy (map_of net_fw_3))))))))
-               in map simple_rule_toString x" (*290.862s*)
+               in map simple_rule_ipv4_toString x" (*290.862s*)
   text\<open>This problem is conquered by not constraining the interfaces but rewriting them. Literally, replacing an iiface with the corresponding src ip range.
         This is only possible if the ipassmt does not have zone-spanning interfaces.\<close>
 
@@ -61,12 +61,12 @@ section\<open>Printing various version of the simplified firewall\<close>
                       (lower_closure
                       (optimize_matches (iiface_rewrite (map_of_ipassmt disjoint_ipassmt))
                       (lower_closure (packet_assume_new (unfold_ruleset_FORWARD net_fw_3_FORWARD_default_policy (map_of net_fw_3))))))))
-               in map simple_rule_toString x" (*421.137s*)
+               in map simple_rule_ipv4_toString x" (*421.137s*)
   value[code] "let x = to_simple_firewall
                       (lower_closure
                       (optimize_matches (iiface_rewrite (map_of_ipassmt disjoint_ipassmt))
                       (lower_closure (packet_assume_new (unfold_ruleset_FORWARD net_fw_3_FORWARD_default_policy (map_of net_fw_3))))))
-               in map simple_rule_toString x" (*308.791s*)
+               in map simple_rule_ipv4_toString x" (*308.791s*)
 
 
 end

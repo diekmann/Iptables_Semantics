@@ -39,7 +39,7 @@ lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (ma
  = (2380, 2836)" by eval
 
 lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string_ipv4 net_fw_2013)
-     in map simple_rule_toString (take 43 (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall
+     in map simple_rule_ipv4_toString (take 43 (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall
                               (upper_closure (packet_assume_new rules)))))) =
  [''DROP     all  --  127.0.0.0/8            0.0.0.0/0    '',
   ''ACCEPT     tcp  --  131.159.14.206/32            0.0.0.0/0 in: vlan1011  sports: 389 '',
@@ -86,7 +86,7 @@ lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (ma
   ''ACCEPT     tcp  --  0.0.0.0/0            131.159.14.36/32  out: vlan96  dports: 22'']" by eval
 
 lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string_ipv4 net_fw_2013)
-     in map simple_rule_toString (take 18 (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall
+     in map simple_rule_ipv4_toString (take 18 (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall
                               (lower_closure (packet_assume_new rules)))))) = 
  [''DROP     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 22'',
   ''DROP     all  --  127.0.0.0/8            0.0.0.0/0    '',

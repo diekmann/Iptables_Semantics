@@ -17,7 +17,7 @@ imports
   "~~/src/HOL/Library/Code_Char"
 begin
 
-(*Note: common_primitive_match_expr_toString can be really slow*)
+(*Note: common_primitive_match_expr_ipv4_toString can be really slow*)
 
 section\<open>Code Interface\<close>
 
@@ -29,9 +29,17 @@ lemma "quote_rewrite (''foo''@[Char Nibble2 Nibble2]) = ''foo~''" by eval
 
 text\<open>The parser returns the @{typ "'i::len common_primitive ruleset"} not as a map but as an association list.
       This function converts it\<close>
-(*TODO: this is IPv4 only currently*)
-definition map_of_string_ipv4 :: "(string \<times> 32 common_primitive rule list) list \<Rightarrow> string \<rightharpoonup> 32 common_primitive rule list" where
+
+(*this is only to tighten the types*)
+definition map_of_string_ipv4
+  :: "(string \<times> 32 common_primitive rule list) list \<Rightarrow> string \<rightharpoonup> 32 common_primitive rule list" where
   "map_of_string_ipv4 rs = map_of rs"
+definition map_of_string_ipv6
+  :: "(string \<times> 128 common_primitive rule list) list \<Rightarrow> string \<rightharpoonup> 128 common_primitive rule list" where
+  "map_of_string_ipv6 rs = map_of rs"
+definition map_of_string
+  :: "(string \<times> 'i common_primitive rule list) list \<Rightarrow> string \<rightharpoonup> 'i common_primitive rule list" where
+  "map_of_string rs = map_of rs"
 
 
 definition unfold_ruleset_CHAIN_safe :: "string \<Rightarrow> action \<Rightarrow> 'i::len common_primitive ruleset \<Rightarrow> 'i common_primitive rule list option" where
@@ -111,7 +119,7 @@ begin
     let simplfw = to_simple_firewall
       (upper_closure (optimize_matches abstract_for_simple_firewall
         (upper_closure (packet_assume_new (unfold_ruleset_FORWARD action.Drop fw)))))
-    in map simple_rule_toString simplfw =
+    in map simple_rule_ipv4_toString simplfw =
     [''ACCEPT     tcp  --  10.0.0.0/9            0.0.0.0/0    '',
      ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '']" by eval
   
@@ -123,7 +131,7 @@ begin
                  ] in
     to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall
                           (upper_closure (packet_assume_new (unfold_ruleset_FORWARD action.Drop fw))))))"
-  lemma " map simple_rule_toString cool_example =
+  lemma " map simple_rule_ipv4_toString cool_example =
     [''DROP     all  --  10.128.0.0/9            0.0.0.0/0    '',
      ''ACCEPT     tcp  --  10.0.0.0/8            0.0.0.0/0    '',
      ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '']"
@@ -141,7 +149,7 @@ begin
   (*it is not minimal if we allow to further compress the node definitions?
   the receiver nodes could be combined to UNIV
   But minimal for a symmetric matrix*)
-  lemma "access_matrix_pretty parts_connection_ssh cool_example =
+  lemma "access_matrix_pretty_ipv4 parts_connection_ssh cool_example =
     ([(''0.0.0.0'', ''{0.0.0.0 .. 9.255.255.255} u {10.128.0.0 .. 255.255.255.255}''),
       (''10.0.0.0'', ''{10.0.0.0 .. 10.127.255.255}'')],
      [(''10.0.0.0'', ''0.0.0.0''),
@@ -157,7 +165,7 @@ begin
                 ] in
     to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall
                           (upper_closure (packet_assume_new (unfold_ruleset_FORWARD action.Drop fw))))))"
-  lemma "map simple_rule_toString cool_example2 =
+  lemma "map simple_rule_ipv4_toString cool_example2 =
     [''DROP     all  --  10.128.0.0/9            0.0.0.0/0    '',
      ''ACCEPT     tcp  --  10.0.0.0/8            10.0.0.42/32    '',
      ''DROP     all  --  0.0.0.0/0            0.0.0.0/0    '']" by eval
@@ -172,7 +180,7 @@ begin
     [''{0.0.0.0 .. 9.255.255.255} u {10.128.0.0 .. 255.255.255.255}'', ''10.0.0.42'',
      ''{10.0.0.0 .. 10.0.0.41} u {10.0.0.43 .. 10.127.255.255}'']" by eval
   
-  lemma "access_matrix_pretty parts_connection_ssh cool_example2 =
+  lemma "access_matrix_pretty_ipv4 parts_connection_ssh cool_example2 =
     ([(''0.0.0.0'', ''{0.0.0.0 .. 9.255.255.255} u {10.128.0.0 .. 255.255.255.255}''),
       (''10.0.0.42'', ''10.0.0.42''),
       (''10.0.0.0'', ''{10.0.0.0 .. 10.0.0.41} u {10.0.0.43 .. 10.127.255.255}'')

@@ -24,12 +24,12 @@ import qualified Debug.Trace
 import qualified Network.IPTables.Generated as Isabelle
 import           Network.IPTables.IsabelleToString()
 import           Control.Monad (when)
-import Network.IPTables.IsabelleToString (Word32)
 
-
-data Ruleset = Ruleset { rsetTables :: Map TableName (Table Word32) }
 
 -- where type a is either Word32 for IPv4 or Word128 for IPv6
+
+data Ruleset a = Ruleset { rsetTables :: Map TableName (Table a) }
+
 data Table a = Table { tblChains :: Map ChainName (Chain a)}
 
 data Chain a = Chain { chnDefault :: Maybe Isabelle.Action
@@ -79,8 +79,8 @@ example = Ruleset $ M.fromList
 -- converts a parsed table (e.g. "filter" or "raw") to the type the Isabelle code needs
 -- also returns a Map with the default policies
 -- may throw an error
-rulesetLookup :: TableName -> Ruleset ->
-    Either String ([(String, [Isabelle.Rule (Isabelle.Common_primitive Word32)])], Map ChainName Isabelle.Action)
+rulesetLookup :: Isabelle.Len a => TableName -> Ruleset a ->
+    Either String ([(String, [Isabelle.Rule (Isabelle.Common_primitive a)])], Map ChainName Isabelle.Action)
 rulesetLookup table r = case M.lookup table (rsetTables r)
     of Nothing -> Left $ "Table with name `"++table++"' not found"
        Just t -> to_Isabelle_ruleset_AssocList t
@@ -92,7 +92,9 @@ rulesetLookup table r = case M.lookup table (rsetTables r)
 -- output: rule list our Isabelle algorithms can work on
 -- may throw an error; is IO because it dumps debug info at you :)
 -- verbose_flag -> table -> chain -> pased_ruleset -> isabelle_ruleset_and_debugging_output
-loadUnfoldedRuleset :: Bool -> String -> String -> Ruleset -> IO [Isabelle.Rule (Isabelle.Common_primitive Word32)]
+loadUnfoldedRuleset
+    :: (Isabelle.Len a, Show (Isabelle.Rule (Isabelle.Common_primitive a))) =>
+       Bool -> String -> String -> Ruleset a -> IO [Isabelle.Rule (Isabelle.Common_primitive a)]
 loadUnfoldedRuleset debug table chain res = do
     when (table /= "filter") $ do 
         putStrLn $ "INFO: Officially, we only support the filter table. \
@@ -115,7 +117,7 @@ loadUnfoldedRuleset debug table chain res = do
                               Nothing -> error "There are gotos in your ruleset which we cannot handle."
                               Just rs -> rs
     -- Theorem: unfold_optimize_common_matcher_univ_ruleset_CHAIN
-    let unfolded = case Isabelle.unfold_ruleset_CHAIN_safe chain policy $ Isabelle.map_of_string_ipv4 noGoto of
+    let unfolded = case Isabelle.unfold_ruleset_CHAIN_safe chain policy $ Isabelle.map_of_string noGoto of
                               Nothing -> error "Unfolding ruleset failed. Does the Linux kernel load it? Is it cyclic? Are there any actions not supported by this tool?"
                               Just rs -> rs
     
@@ -161,15 +163,13 @@ filter_Isabelle_Action ps = case fAction ps of [] -> Isabelle.Empty
 
 -- this is just DEBUGING
 -- tries to catch errors of rulesetLookup
-checkParsedTables :: Ruleset -> IO ()
-checkParsedTables res = check tables
+checkParsedTables :: Isabelle.Len a => Ruleset a -> IO ()
+checkParsedTables res = mapM_ check tables
     where tables = M.keys (rsetTables res)
-          check :: [TableName] -> IO ()
-          check [] = return ()
-          check (t:ts) = do
-                         case rulesetLookup t res of Right (chain, defaults) -> putStrLn (success t chain)
-                                                     Left err -> putStrLn (errormsg t err)
-                         check ts
+          check :: TableName -> IO ()
+          check t = case rulesetLookup t res of 
+                           Right (chain, defaults) -> putStrLn (success t chain)
+                           Left err -> putStrLn (errormsg t err)
           errormsg t msg = concat ["Table `", t ,"' caught exception: `"
                                    , msg
                                    , "'. Analysis not possible for this table. "
@@ -182,7 +182,7 @@ checkParsedTables res = check tables
 
 -- toString functions
 
-instance Show Ruleset where
+instance Show (Isabelle.Common_primitive a) => Show (Ruleset a) where
     show rset =
         let tables = map renderTable $ M.toList $ rsetTables rset
         in  join tables

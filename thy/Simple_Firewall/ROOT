@@ -7,5 +7,6 @@ session "Simple_Firewall" = IP_Addresses +
     Generic_SimpleFw
     Shadowed
     Service_Matrices
+	Simple_Packet
   document_files
     "root.tex"

@@ -1,7 +1,6 @@
-theory Routing
+theory Routing_Table
 imports "../../IP_Addresses/Prefix_Match"
         "../../IP_Addresses/IPv4" (*we could probably generalize*)
-        CaesarTheories
         "~~/src/HOL/Library/Code_Target_Nat" (*!!, int_of_nat*)
 begin
 
@@ -17,14 +16,21 @@ record routing_rule =
   metric :: nat
   routing_action :: routing_action
 
+(*TODO: define (non-total) order on routing rules and add sorting alog*)
+
 definition "default_metric = 0"
 
 type_synonym prefix_routing = "routing_rule list"
+
+abbreviation "routing_oiface a \<equiv> output_iface (routing_action a)" (* I needed this a lot... *)
 
 definition valid_prefixes where
   "valid_prefixes r = foldr conj (map (\<lambda>rr. valid_prefix (routing_match rr)) r) True"
 lemma valid_prefixes_split: "valid_prefixes (r#rs) \<Longrightarrow> valid_prefix (routing_match r) \<and> valid_prefixes rs"
   using valid_prefixes_def by force
+
+lemma foldr_True_set: "foldr (\<lambda>x. op \<and> (f x)) l True = (\<forall>x \<in> set l. f x)"
+  by (induction l) simp_all
 lemma valid_prefixes_alt_def: "valid_prefixes r = (\<forall>e \<in> set r. valid_prefix (routing_match e))"
   unfolding valid_prefixes_def
   unfolding foldr_map
@@ -41,6 +47,7 @@ lemma has_default_route_alt: "has_default_route rt \<longleftrightarrow> (\<exis
 
 subsection\<open>Single Packet Semantics\<close>
 
+(*TODO: decument as text with @{const correct_routing} *)
 (* WARNING: all proofs assume correct_routing: list is sorted by descending prefix length, prefixes are valid. Some need a default route. *)
 fun routing_table_semantics :: "prefix_routing \<Rightarrow> ipv4addr \<Rightarrow> routing_action" where
 "routing_table_semantics [] _ = routing_action (undefined::routing_rule)" | 
@@ -71,6 +78,7 @@ text\<open>Enter this thing:\<close>
 
 datatype ('a,'b) linord_helper = LinordHelper 'a 'b
 
+(*TODO: konkretisieren für routing rule und nach oben, dann weiß man was die metric ist*)
 definition "linord_helper_less_eq1 a b \<equiv> (case a of LinordHelper a1 a2 \<Rightarrow> case b of LinordHelper b1 b2 \<Rightarrow> a1 < b1 \<or> a1 = b1 \<and> a2 \<le> b2)"
 
 instantiation linord_helper :: (linorder, linorder) linorder
@@ -106,10 +114,11 @@ lemma is_longest_prefix_routing_rule_exclusion:
 using assms by(case_tac rss) (auto simp add: is_longest_prefix_routing_def)
 
 lemma int_of_nat_less: "int_of_nat a < int_of_nat b \<Longrightarrow> a < b" by (simp add: int_of_nat_def)
-  
+
+(*TODO: rename*)
 lemma is_longest_prefix_routing_rules_injection:
   assumes "is_longest_prefix_routing r"
-  assumes "r = r1 # rs @ r2 # rss"
+     and "r = r1 # rs @ r2 # rss"
   shows "(pfxm_length (routing_match r1) \<ge> pfxm_length (routing_match r2))"
 using assms
 proof(induction rs arbitrary: r)
@@ -124,5 +133,8 @@ qed
 definition "sort_rtbl :: routing_rule list \<Rightarrow> routing_rule list \<equiv> sort_key routing_rule_sort_key"
 
 lemma is_longest_prefix_routing_sort: "is_longest_prefix_routing (sort_rtbl r)" unfolding sort_rtbl_def is_longest_prefix_routing_def by simp
+
+section\<open>Routing table to Relation\<close>
+(*TODO move from ipassmt here*)
 
 end

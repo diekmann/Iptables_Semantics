@@ -1,5 +1,5 @@
 theory IpRoute_Parser
-imports "../Primitive_Matchers/IpAddresses" "../Routing/Routing"
+imports "../Primitive_Matchers/IpAddresses" "../Routing/Routing_Table"
 keywords "parse_ip_route" :: thy_decl
 begin
 

@@ -5,8 +5,7 @@ imports "../IP_Addresses/CIDR_Split"
 	"Semantics_OpenFlow"
 	"OpenFlowMatches"
 	"OpenFlowAction"
-	(*"../Iptables_Semantics/Routing/AnnotateRouting"*)
-	"../Iptables_Semantics/Routing/LinuxRouter"
+	"../Iptables_Semantics/Routing/Linux_Router"
 begin
 
 primrec filter_nones where
@@ -94,8 +93,6 @@ definition simple_match_to_of_match :: "32 simple_match \<Rightarrow> string lis
 lemma smtoms_cong: "a = e \<Longrightarrow> b = f \<Longrightarrow> c = g \<Longrightarrow> d = h \<Longrightarrow> simple_match_to_of_match_single r a b c d = simple_match_to_of_match_single r e f g h" by simp
 (* this lemma is a bit stronger than what I actually need, but unfolds are convenient *)
 
-lemma option2set_None: "option2set None = {}"
-by(simp add: option2set_def)
 
 lemma smtoms_eq_hlp: "simple_match_to_of_match_single r a b c d = simple_match_to_of_match_single r f g h i \<longleftrightarrow> (a = f \<and> b = g \<and> c = h \<and> d = i)"
 (* In case this proof breaks: there are two alternate proofs in the repo. They are of similar quality, though. Good luck. *)
@@ -125,7 +122,7 @@ proof(rule iffI,goal_cases)
 qed simp
 
 lemma proto_in_srcdst: "IPv4Proto x \<in> IPv4Src ` s \<longleftrightarrow> False" "IPv4Proto x \<in> IPv4Dst ` s \<longleftrightarrow> False" by fastforce+
-lemma simple_match_port_UNIVD: "Collect (simple_match_port a) = UNIV \<Longrightarrow> fst a = 0 \<and> snd a = max_word" by (metis antisym_conv fst_conv hrule max_word_max mem_Collect_eq simple_match_port_code snd_conv surj_pair word_le_0_iff)
+lemma simple_match_port_UNIVD: "Collect (simple_match_port a) = UNIV \<Longrightarrow> fst a = 0 \<and> snd a = max_word" by(metis UNIV_I antisym_conv max_word_max mem_Collect_eq prod.collapse simple_match_port_code word_le_0_iff)
 lemma simple_match_to_of_match_generates_prereqs: "simple_match_valid m \<Longrightarrow> r \<in> set (simple_match_to_of_match m ifs) \<Longrightarrow> all_prerequisites r"
 unfolding simple_match_to_of_match_def Let_def
 proof(clarsimp, goal_cases)
@@ -825,7 +822,7 @@ lemma sorted_lr_of_tran_s3: "sorted_descending (map fst f) \<Longrightarrow> sor
 	 subgoal by(simp add: lr_of_tran_s3_def)
 	apply(clarsimp simp: lr_of_tran_s3_Cons map_concat comp_def)
 	apply(unfold sorted_descending_append)
-	apply(simp add: sorted_descending_alt rev_map sorted_const sorted_lr_of_tran_s3_hlp)
+	apply(simp add: sorted_descending_alt rev_map sorted_lr_of_tran_s3_hlp sorted_const)
 done
 
 lemma singleton_sorted: "set x \<subseteq> {a} \<Longrightarrow> sorted x"
@@ -1300,14 +1297,14 @@ begin
   lemma oif_ne_iif_valid: "gsfw_valid (oif_ne_iif ifs)"
     unfolding oif_ne_iif_def gsfw_valid_def list_all_iff oif_ne_iif_p1_def oif_ne_iif_p2_def
     apply(clarsimp simp add: Set.image_iff simple_match_valid_def simple_match_any_def valid_prefix_fw_def)
-    using simple_match_valid_alt_hlp1 apply force
+    apply force
   done
 
   lemma lr_of_tran_s1_valid: "valid_prefixes rt \<Longrightarrow> gsfw_valid (lr_of_tran_s1 rt)"
     unfolding lr_of_tran_s1_def route2match_def gsfw_valid_def list_all_iff
     apply(clarsimp simp: simple_match_valid_def valid_prefix_fw_def)
     apply(intro conjI)
-    using simple_match_valid_alt_hlp1 apply force
+     apply force
     using valid_prefixes_alt_def apply blast
   done
 end

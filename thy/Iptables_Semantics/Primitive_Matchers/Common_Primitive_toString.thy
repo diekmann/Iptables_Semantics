@@ -54,21 +54,30 @@ fun common_primitive_toString :: "('i::len word \<Rightarrow> string) \<Rightarr
   "common_primitive_toString _ (Extra e) = ''~~''@e@''~~''"
 
 
-definition common_primitive_v4_toString :: "32 common_primitive \<Rightarrow> string" where
-  "common_primitive_v4_toString \<equiv> common_primitive_toString ipv4addr_toString"
+definition common_primitive_ipv4_toString :: "32 common_primitive \<Rightarrow> string" where
+  "common_primitive_ipv4_toString \<equiv> common_primitive_toString ipv4addr_toString"
 
-definition common_primitive_v6_toString :: "128 common_primitive \<Rightarrow> string" where
-  "common_primitive_v6_toString \<equiv> common_primitive_toString ipv6addr_toString"
+definition common_primitive_ipv6_toString :: "128 common_primitive \<Rightarrow> string" where
+  "common_primitive_ipv6_toString \<equiv> common_primitive_toString ipv6addr_toString"
 
-fun common_primitive_match_expr_toString :: "32 common_primitive match_expr \<Rightarrow> string" where
-  "common_primitive_match_expr_toString MatchAny = ''''" |
-  "common_primitive_match_expr_toString (Match m) = common_primitive_v4_toString m" |
-  "common_primitive_match_expr_toString (MatchAnd m1 m2) = common_primitive_match_expr_toString m1 @'' '' @ common_primitive_match_expr_toString m2" |
-  "common_primitive_match_expr_toString (MatchNot (Match m)) = ''! ''@common_primitive_v4_toString m" |
-  "common_primitive_match_expr_toString (MatchNot m) = ''NOT (''@common_primitive_match_expr_toString m@'')''"
+
+fun common_primitive_match_expr_toString
+  :: "('i common_primitive \<Rightarrow> string) \<Rightarrow> 'i common_primitive match_expr \<Rightarrow> string" where
+  "common_primitive_match_expr_toString toStr MatchAny = ''''" |
+  "common_primitive_match_expr_toString toStr (Match m) = toStr m" |
+  "common_primitive_match_expr_toString toStr (MatchAnd m1 m2) =
+      common_primitive_match_expr_toString toStr m1 @'' '' @ common_primitive_match_expr_toString toStr m2" |
+  "common_primitive_match_expr_toString toStr (MatchNot (Match m)) = ''! ''@toStr m" |
+  "common_primitive_match_expr_toString toStr (MatchNot m) = ''NOT (''@common_primitive_match_expr_toString toStr m@'')''"
+
+definition common_primitive_match_expr_ipv4_toString :: "32 common_primitive match_expr \<Rightarrow> string" where
+  "common_primitive_match_expr_ipv4_toString \<equiv> common_primitive_match_expr_toString common_primitive_ipv4_toString"
+
+definition common_primitive_match_expr_ipv6_toString :: "128 common_primitive match_expr \<Rightarrow> string" where
+  "common_primitive_match_expr_ipv6_toString \<equiv> common_primitive_match_expr_toString common_primitive_ipv6_toString"
 
 fun common_primitive_rule_toString :: "32 common_primitive rule \<Rightarrow> string" where
-  "common_primitive_rule_toString (Rule m a) = common_primitive_match_expr_toString m @'' ''@action_toString a"
+  "common_primitive_rule_toString (Rule m a) = common_primitive_match_expr_ipv4_toString m @'' ''@action_toString a"
 
 
 end

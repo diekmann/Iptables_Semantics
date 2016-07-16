@@ -54,7 +54,7 @@ section\<open>Example: Implementing spoofing protection\<close>
   (*This actually caught a typo I made in the ipassmt!*)
   lemma "ipassmt_sanity_defined (preprocess raw_fw1_PREROUTING_default_policy raw_fw1) (map_of_ipassmt ipassmt)" by eval
 
-  value[code] "debug_ipassmt ipassmt (preprocess raw_fw1_PREROUTING_default_policy raw_fw1)"
+  value[code] "debug_ipassmt_ipv4 ipassmt (preprocess raw_fw1_PREROUTING_default_policy raw_fw1)"
 
   text\<open>The administrator wanted to make sure that he will not lock himself out of the firewall.
   Hence, we must verify that ssh packets are still accepted by the firewall.
@@ -83,7 +83,7 @@ section\<open>Example: Implementing spoofing protection\<close>
   text\<open>Printing the simplified PREROUTING chain of the raw table:\<close>
   value[code] "let x = to_simple_firewall (upper_closure
                        (unfold_ruleset_CHAIN ''PREROUTING'' raw_fw1_PREROUTING_default_policy (map_of raw_fw1)))
-               in map simple_rule_toString x"
+               in map simple_rule_ipv4_toString x"
 
 
   text\<open>First, we check that NEW and ESTABLISHED ssh packets from the Internet are definitely allowed by the firewall:

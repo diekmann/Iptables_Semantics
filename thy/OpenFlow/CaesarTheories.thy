@@ -3,6 +3,7 @@ imports Main
 begin
 
 subsection\<open>Misc\<close>
+(* TODO: Quite a few of these are unused after the rewrite of Routing. Get rid of them. *)
 
 lemma ex_helper: "cond something = (\<exists>x. (x = something \<and> (cond x)))" by simp
 
@@ -206,5 +207,41 @@ lemma distinct_fst: "distinct (map fst a) \<Longrightarrow> distinct a" by (meti
 lemma distinct_snd: "distinct (map snd a) \<Longrightarrow> distinct a" by (metis distinct_zipI2 zip_map_fst_snd)
 
 lemma inter_empty_fst2: "(\<lambda>(p, m, a). (p, m)) ` S \<inter> (\<lambda>(p, m, a). (p, m)) ` T = {} \<Longrightarrow> S \<inter> T = {}" by blast
+
+subsection\<open>Cardinality and Existence of Members\<close>
+lemma card1_eI: "1 \<le> card S \<Longrightarrow> \<exists>y S'. S = {y} \<union> S' \<and> y \<notin> S'"
+	by (metis One_nat_def card_infinite card_le_Suc_iff insert_is_Un leD zero_less_Suc)
+lemma card2_eI: "2 \<le> card S \<Longrightarrow> \<exists>x y. x \<noteq> y \<and> x \<in> S \<and> y \<in> S"
+proof goal_cases
+	case (1)
+	then have "1 \<le> card S" by simp
+	note card1_eI[OF this]
+	then obtain x S' where xs: "S = {x} \<union> S' \<and> x \<notin> S'" by presburger
+	then have "1 \<le> card S'" 
+		by (metis 1 Suc_1 card_infinite card_insert_if finite_Un insert_is_Un le0 not_less_eq_eq) 
+	then obtain y where "y \<in> S'" by fastforce
+	then show ?case using xs by force
+qed
+lemma card3_eI: "3 \<le> card S \<Longrightarrow> \<exists>x y z. x \<noteq> y \<and> x \<noteq> z \<and> y \<noteq> z \<and> x \<in> S \<and> y \<in> S"
+proof goal_cases
+  case 1
+  then have "2 \<le> card S" by simp
+	note card2_eI[OF this]
+	then obtain x y S' where xs: "S = {x,y} \<union> S' \<and> x \<notin> S' \<and> y \<notin> S' \<and> x \<noteq> y" 
+	  by (metis Set.set_insert Un_insert_left insert_eq_iff insert_is_Un)
+	then have "1 \<le> card S'"
+	  using 1  by (metis One_nat_def Suc_leI Un_insert_left card_gt_0_iff insert_absorb numeral_3_eq_3 singleton_insert_inj_eq card_infinite card_insert_if finite_Un insert_is_Un le0 not_less_eq_eq) (* uuuh *)
+	then obtain z where "z \<in> S'" by fastforce
+	then show ?case using xs by force
+qed
+
+lemma card1_eE: "finite S \<Longrightarrow> \<exists>y. y \<in> S \<Longrightarrow> 1 \<le> card S" using card_0_eq by fastforce
+lemma card2_eE: "finite S \<Longrightarrow> \<exists>x y. x \<noteq> y \<and> x \<in> S \<and> y \<in> S \<Longrightarrow> 2 \<le> card S"
+using card1_eE card_Suc_eq card_insert_if by fastforce
+lemma card3_eE: "finite S \<Longrightarrow> \<exists>x y z. x \<noteq> y \<and> x \<noteq> z \<and> y \<noteq> z \<and> x \<in> S \<and> y \<in> S \<Longrightarrow> 3 \<le> card S"
+using card2_eE card_Suc_eq card_insert_if oops
+
+lemma f_Img_ex_set: "{f x|x. P x} = f ` {x. P x}" by auto
+
 
 end

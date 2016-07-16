@@ -1,7 +1,9 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Network.IPTables.Parser (parseIptablesSave) where
+module Network.IPTables.Parser
+( parseIptablesSave_ipv4
+, parseIptablesSave_ipv6) where
 
 import           Control.Applicative ((<$>),(<*), (*>))
 import           Data.List (isPrefixOf)
@@ -9,29 +11,39 @@ import qualified Data.Map as M
 import qualified Debug.Trace
 import           Text.Parsec hiding (token)
 import           Network.IPTables.Ruleset
+import           Network.IPTables.IsabelleToString (Word32, Word128)
 import           Network.IPTables.ParserHelper
 import qualified Network.IPTables.Generated as Isabelle
 
-parseIptablesSave :: SourceName -> String -> Either ParseError Ruleset
-parseIptablesSave = runParser ruleset initRState
+parseIptablesSave_ipv4 :: SourceName -> String -> Either ParseError (Ruleset Word32)
+parseIptablesSave_ipv4 = runParser ruleset_ipv4 initRState
 
-data RState = RState { rstRules  :: Ruleset
-                     , rstActive :: Maybe TableName
-                     }
-    deriving (Show)
+parseIptablesSave_ipv6 :: SourceName -> String -> Either ParseError (Ruleset Word128)
+parseIptablesSave_ipv6 = runParser ruleset_ipv6 initRState
+
+data RState a = RState { rstRules  :: Ruleset a
+                       , rstActive :: Maybe TableName
+                       }
+    --deriving (Show)
 
 initRState = RState mkRuleset Nothing
 
-rstRulesM :: (Ruleset -> Ruleset) -> RState -> RState
-rstRulesM  f rst = rst { rstRules  = f (rstRules  rst) }
+rstRulesM :: (Ruleset a -> Ruleset a) -> RState a -> RState a
+rstRulesM  f rst = rst { rstRules  = f (rstRules rst) }
 
-rstActiveM :: (Maybe TableName -> Maybe TableName) -> RState -> RState
+rstActiveM :: (Maybe TableName -> Maybe TableName) -> RState a -> RState a
 rstActiveM f rst = rst { rstActive = f (rstActive rst) }
 
 
-ruleset :: Parsec String RState Ruleset
-ruleset = do
-    many $ choice [table, chain, rule, commit, comment, emptyLine]
+ruleset_ipv6 :: Parsec String (RState Word128) (Ruleset Word128)
+ruleset_ipv6 = ruleset_generic rule_ipv6
+
+ruleset_ipv4 :: Parsec String (RState Word32) (Ruleset Word32)
+ruleset_ipv4 = ruleset_generic rule_ipv4
+
+ruleset_generic :: Parsec String (RState a) () -> Parsec String (RState a) (Ruleset a)
+ruleset_generic rule_parser = do
+    many $ choice [table, chain, rule_parser, commit, comment, emptyLine]
     eof
     rstRules <$> getState
 
@@ -75,15 +87,27 @@ parseWithModulePrefix modul parser = try $ skipWS *> string modul *> (many1 pars
 
 -- This file should be in sync with the SML parser. The SML parser is the reference.
 
-knownMatch = do
+knownMatch_ipv4 :: Parsec String s [ParsedMatchAction Word32]
+knownMatch_ipv4 = knownMatch_generic ipv4addrOrCidr ipv4range
+    where ipv4addrOrCidr = try ipv4cidr <|> try ipv4addr
+
+knownMatch_ipv6 :: Parsec String s [ParsedMatchAction Word128]
+knownMatch_ipv6 = knownMatch_generic ipv6addrOrCidr ipv6range
+    where ipv6addrOrCidr = try ipv6cidr <|> try ipv6addr
+
+knownMatch_generic
+  :: Parsec String s (Isabelle.Ipt_iprange a) -> 
+     Parsec String s (Isabelle.Ipt_iprange a) ->
+     Parsec String s [ParsedMatchAction a]
+knownMatch_generic parser_ipaddr_cidr parser_iprange = do
     p <-  (probablyNegatedSingleton $ lit "-p " >> Isabelle.Prot <$> protocol)
     
-      <|> (probablyNegatedSingleton $ lit "-s " >> Isabelle.Src <$> ipv4addrOrCidr)
-      <|> (probablyNegatedSingleton $ lit "-d " >> Isabelle.Dst <$> ipv4addrOrCidr)
+      <|> (probablyNegatedSingleton $ lit "-s " >> Isabelle.Src <$> parser_ipaddr_cidr)
+      <|> (probablyNegatedSingleton $ lit "-d " >> Isabelle.Dst <$> parser_ipaddr_cidr)
       
       <|> (parseWithModulePrefix "-m iprange " $
-                (probablyNegated $ lit "--src-range " >> Isabelle.Src <$> ipv4range)
-            <|> (probablyNegated $ lit "--dst-range " >> Isabelle.Dst <$> ipv4range))
+                (probablyNegated $ lit "--src-range " >> Isabelle.Src <$> parser_iprange)
+            <|> (probablyNegated $ lit "--dst-range " >> Isabelle.Dst <$> parser_iprange))
       
       <|> (parseWithModulePrefix "-m tcp " $
                 (probablyNegated $ lit "--sport " >> Isabelle.Src_Ports <$> (\p -> [p]) <$> parsePortOne)
@@ -111,7 +135,8 @@ knownMatch = do
       <|> ((\x -> [x]) <$> ((lookAheadEOT target) <* skipWS)) --TODO: tune
       
     return $ p
-    
+
+
 unknownMatch = token "unknown match" $ do
     extra <- (many1 (noneOf " \t\n\"") <|> try quotedString)
     let e = if "-j" `isPrefixOf` extra
@@ -119,10 +144,19 @@ unknownMatch = token "unknown match" $ do
               else extra
     return $ (\x -> [x]) $ ParsedMatch $ Isabelle.Extra $ e --TODO: tune
 
-rule = line $ do
+
+rule_ipv4 :: Parsec String (RState Word32) ()
+rule_ipv4 = rule_generic knownMatch_ipv4
+
+rule_ipv6 :: Parsec String (RState Word128) ()
+rule_ipv6 = rule_generic knownMatch_ipv6
+
+rule_generic
+    :: Parsec String (RState a) [ParsedMatchAction a] -> Parsec String (RState a) ()
+rule_generic knownMatch_parser = line $ do
     lit "-A"
     chnname <- chainName <* skipWS
-    args    <- concat <$> many (knownMatch <|> unknownMatch)
+    args    <- concat <$> many (knownMatch_parser <|> unknownMatch)
     unparsed <- restOfLine
 
     let rest    = if unparsed == ""
@@ -141,6 +175,7 @@ rule = line $ do
                   (++ [rl])
 
     return ()
+
 
 commit = line $ do
     lit "COMMIT"
@@ -195,8 +230,6 @@ lookAheadEOT parser = do
     lookAhead (oneOf ws <|> eol)
     return res
 
-ipv4addrOrCidr = try ipv4cidr <|> try ipv4addr
-
 parseCommaSeparatedList parser = sepBy parser (char ',')
 
 parsePortOne = try tuple <|> single
@@ -235,7 +268,7 @@ matchTcpFlags = do
 -- -A ranges_96 `ParsedAction -j LOG' `ParsedMatch ~~_DROP~~'
 target = ParsedAction <$> (
            try (string "-j REJECT --reject-with "
-                >> many1 (oneOf $ ['a'..'z']++['-']) >> return (Isabelle.Reject))
+                >> many1 (oneOf $ ['a'..'z']++['-', '6']) >> return (Isabelle.Reject))
        <|> try (string "-g " >> Isabelle.Goto <$> lookAheadEOT chainName)
        <|> try (string "-j " >> choice (map (try . lookAheadEOT)
                                        [string "DROP" >> return Isabelle.Drop
