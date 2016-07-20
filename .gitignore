@@ -17,6 +17,7 @@ __pycache__/
 dist
 .cabal-sandbox
 cabal.sandbox.config
+.stack-work
 
 # generated code
 thy/Examples/generated_code

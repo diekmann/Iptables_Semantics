@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -e
+set -x
+
+if [ -n "$STACK" ]; then
+  echo "Using stack ..."
+  mkdir -p "$HOME/.local/bin"
+  curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C "$HOME/.local/bin" '*/stack'
+  (cd haskell_tool && stack setup)
+else
+  echo "Using cabal ..."
+  cabal --version
+  echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
+  cabal update -v
+  sed -i 's/^jobs:/-- jobs:/' ${HOME}/.cabal/config
+fi

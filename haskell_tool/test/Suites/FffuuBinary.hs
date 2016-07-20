@@ -4,6 +4,7 @@ import Data.List (intercalate)
 import Test.Tasty
 import Test.Tasty.Golden as Golden
 import qualified Data.ByteString.Lazy.Char8 as B
+import System.Directory (doesFileExist)
 import System.Process (readProcess)
 
 
@@ -13,11 +14,18 @@ execFffuu :: TestName
              -> FilePath -- path to the golden file (expected output)
              -> TestTree
 execFffuu name argv goldenFile = Golden.goldenVsStringDiff fancyName diffCmd goldenFile $ do
-    outp <- readProcess fffuuBin argv ""
+    (bin, argv') <- do
+        let bin = "./dist/build/fffuu/fffuu"
+        exists <- doesFileExist bin
+        return $
+            if exists then
+                (bin, argv)
+            else
+                ("/usr/bin/env", ["stack", "exec", "fffuu", "--"] ++ argv)
+    outp <- readProcess bin argv' ""
     return $ B.pack outp
-    where diffCmd = \ref new -> ["/usr/bin/diff", "-u", ref, new]
-          fffuuBin = "./dist/build/fffuu/fffuu"
-          fancyName = name ++ ": `" ++ fffuuBin ++ " " ++ (intercalate " " argv) ++ "`"
+    where diffCmd = \ref new -> ["/usr/bin/env", "diff", "-u", ref, new]
+          fancyName = name ++ ": `fffuu " ++ (intercalate " " argv) ++ "`"
 
 
 tests = testGroup "fffuu compiled binary output" $
