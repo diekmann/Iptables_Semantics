@@ -1,5 +1,5 @@
 theory IpRoute_Parser
-imports "../Primitive_Matchers/IpAddresses" "../Routing/Routing_Table"
+imports "../Iptables_Semantics/Primitive_Matchers/IpAddresses" "../Routing/Routing_Table"
 keywords "parse_ip_route" :: thy_decl
 begin
 
@@ -31,6 +31,7 @@ ML\<open>
 \<close>
 
 parse_ip_route "rtbl_parser_test1" = "ip-route-ex"
+lemma  "correct_routing rtbl_parser_test1" by eval (* TODO: Automatically make this check and export the fact *)
 
 lemma "rtbl_parser_test1 =
   [\<lparr>routing_match = PrefixMatch 0xFFFFFF00 32, metric = 0, routing_action = \<lparr>output_iface = ''tun0'', next_hop = None\<rparr>\<rparr>,
