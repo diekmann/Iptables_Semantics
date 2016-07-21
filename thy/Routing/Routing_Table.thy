@@ -1,36 +1,149 @@
-section\<open>Routing and IP Assignments\<close>
-theory Routing_IpAssmt
-imports "../Primitive_Matchers/Ipassmt"
-        Routing_Table
+theory Routing_Table
+imports "../../IP_Addresses/Prefix_Match"
+        "../../IP_Addresses/IPv4" (*we could probably generalize*)
+        "~~/src/HOL/Library/Code_Target_Nat" (*!!, int_of_nat*)
+        "Linorder_Helper"
 begin
+
+subsection\<open>Definition\<close>
+
+record routing_action = 
+  output_iface :: string
+  next_hop :: "ipv4addr option" (* no next hop iff locally attached *)
+
+(* Routing rule matching ip route unicast type *)
+record routing_rule =
+  routing_match :: "32 prefix_match" (* done on the dst *)
+  metric :: nat
+  routing_action :: routing_action
 
 context
 begin
 
+definition "default_metric = 0"
+
+type_synonym prefix_routing = "routing_rule list"
+
+abbreviation "routing_oiface a \<equiv> output_iface (routing_action a)" (* I needed this a lot... *)
+
+definition valid_prefixes where
+  "valid_prefixes r = foldr conj (map (\<lambda>rr. valid_prefix (routing_match rr)) r) True"
+lemma valid_prefixes_split: "valid_prefixes (r#rs) \<Longrightarrow> valid_prefix (routing_match r) \<and> valid_prefixes rs"
+  using valid_prefixes_def by force
+
+lemma foldr_True_set: "foldr (\<lambda>x. op \<and> (f x)) l True = (\<forall>x \<in> set l. f x)"
+  by (induction l) simp_all
+lemma valid_prefixes_alt_def: "valid_prefixes r = (\<forall>e \<in> set r. valid_prefix (routing_match e))"
+  unfolding valid_prefixes_def
+  unfolding foldr_map
+  unfolding comp_def
+  unfolding foldr_True_set
+  ..
+  
+fun has_default_route :: "prefix_routing \<Rightarrow> bool" where
+"has_default_route (r#rs) = (((pfxm_length (routing_match r)) = 0) \<or> has_default_route rs)" |
+"has_default_route Nil = False"
+
+lemma has_default_route_alt: "has_default_route rt \<longleftrightarrow> (\<exists>r \<in> set rt. pfxm_length (routing_match r) = 0)" by(induction rt) simp_all
+
+subsection\<open>Single Packet Semantics\<close>
+
+fun routing_table_semantics :: "prefix_routing \<Rightarrow> ipv4addr \<Rightarrow> routing_action" where
+"routing_table_semantics [] _ = routing_action (undefined::routing_rule)" | 
+"routing_table_semantics (r#rs) p = (if prefix_match_semantics (routing_match r) p then routing_action r else routing_table_semantics rs p)"
+
+lemma routing_table_semantics_ports_from_table: "valid_prefixes rtbl \<Longrightarrow> has_default_route rtbl \<Longrightarrow> 
+  routing_table_semantics rtbl packet = r \<Longrightarrow> r \<in> routing_action ` set rtbl"
+proof(induction rtbl)
+  case (Cons r rs)
+  note v_pfxs = valid_prefixes_split[OF Cons.prems(1)]
+  show ?case
+  proof(cases "pfxm_length (routing_match r) = 0")
+    case True                                                 
+    note zero_prefix_match_all[OF conjunct1[OF v_pfxs] True] Cons.prems(3)
+    then show ?thesis by simp
+  next
+    case False
+    hence "has_default_route rs" using Cons.prems(2) by simp
+    from Cons.IH[OF conjunct2[OF v_pfxs] this] Cons.prems(3) show ?thesis by force
+  qed
+qed simp
+
+subsection\<open>Longest Prefix Match\<close>
+
+text\<open>We can abuse @{const LinordHelper} to sort.\<close>
+definition "routing_rule_sort_key \<equiv> \<lambda>r. LinordHelper (0 - int_of_nat (pfxm_length (routing_match r))) (metric r)"
+text\<open>There is actually a slight design choice here. We can choose to sort based on @{thm less_eq_prefix_match_def} (thus including the address) or only the prefix length (excluding it).
+  Which is taken does not matter gravely, since the bits of the prefix can't matter. They're either eqal or the rules don't overlap and the metric decides. (It does matter for the resulting list though.)
+  Ignoring the prefix and taking only its length is slightly easier.\<close>
+
+(*example: get longest prefix match by sorting by pfxm_length*)
+definition "rr_ctor m l a nh me \<equiv> \<lparr> routing_match = PrefixMatch (ipv4addr_of_dotdecimal m) l, metric = me, routing_action =\<lparr>output_iface = a, next_hop = (map_option ipv4addr_of_dotdecimal nh)\<rparr> \<rparr>"
+value "sort_key routing_rule_sort_key [
+  rr_ctor (0,0,0,1) 3 '''' None 0,
+  rr_ctor (0,0,0,2) 8 [] None 0,
+  rr_ctor (0,0,0,3) 4 [] None 13,
+  rr_ctor (0,0,0,3) 4 [] None 42]"
+
+definition "is_longest_prefix_routing \<equiv> sorted \<circ> map routing_rule_sort_key"
+
+definition correct_routing :: "prefix_routing \<Rightarrow> bool" where 
+  "correct_routing r \<equiv> is_longest_prefix_routing r \<and> has_default_route r \<and> valid_prefixes r"
+text\<open>Many proofs and functions around routing require at least parts of @{const correct_routing} as an assumption.
+Obviously, @{const correct_routing} is not given for arbitrary routing tables. Therefore,
+@{const correct_routing} is made to be executable and should be checked for any routing table after parsing.\<close>
+
+lemma is_longest_prefix_routing_rule_exclusion:
+  assumes "is_longest_prefix_routing (r1 # rn # rss)"
+  shows "is_longest_prefix_routing (r1 # rss)"
+using assms by(case_tac rss) (auto simp add: is_longest_prefix_routing_def)
+
+lemma int_of_nat_less: "int_of_nat a < int_of_nat b \<Longrightarrow> a < b" by (simp add: int_of_nat_def)
+
+lemma is_longest_prefix_routing_sorted_by_length:
+  assumes "is_longest_prefix_routing r"
+     and "r = r1 # rs @ r2 # rss"
+  shows "(pfxm_length (routing_match r1) \<ge> pfxm_length (routing_match r2))"
+using assms
+proof(induction rs arbitrary: r)
+  case (Cons rn rs)
+  let ?ro = "r1 # rs @ r2 # rss"
+  have "is_longest_prefix_routing ?ro" using Cons.prems is_longest_prefix_routing_rule_exclusion[of r1 rn "rs @ r2 # rss"] by simp
+  from Cons.IH[OF this] show ?case by simp
+next
+  case Nil thus ?case by(auto simp add: is_longest_prefix_routing_def routing_rule_sort_key_def linord_helper_less_eq1_def less_eq_linord_helper_def int_of_nat_def)    
+qed
+
+definition "sort_rtbl :: routing_rule list \<Rightarrow> routing_rule list \<equiv> sort_key routing_rule_sort_key"
+
+lemma is_longest_prefix_routing_sort: "is_longest_prefix_routing (sort_rtbl r)" unfolding sort_rtbl_def is_longest_prefix_routing_def by simp
+
+section\<open>Routing table to Relation\<close>
+
 text\<open>Walking through a routing table splits the (remaining) IP space when traversing a routing table: the pair contains the IPs
   concerned by the current rule and those left alone.\<close>
-definition ipset_prefix_match where 
+private definition ipset_prefix_match where 
   "ipset_prefix_match pfx rg = (let pfxrg = prefix_to_wordset pfx in (rg \<inter> pfxrg, rg - pfxrg))"
-lemma ipset_prefix_match_m[simp]:  "fst (ipset_prefix_match pfx rg) = rg \<inter> (prefix_to_wordset pfx)" by(simp only: Let_def ipset_prefix_match_def, simp)
-lemma ipset_prefix_match_nm[simp]: "snd (ipset_prefix_match pfx rg) = rg - (prefix_to_wordset pfx)" by(simp only: Let_def ipset_prefix_match_def, simp)
-lemma ipset_prefix_match_distinct: "rpm = ipset_prefix_match pfx rg \<Longrightarrow> 
+private lemma ipset_prefix_match_m[simp]:  "fst (ipset_prefix_match pfx rg) = rg \<inter> (prefix_to_wordset pfx)" by(simp only: Let_def ipset_prefix_match_def, simp)
+private lemma ipset_prefix_match_nm[simp]: "snd (ipset_prefix_match pfx rg) = rg - (prefix_to_wordset pfx)" by(simp only: Let_def ipset_prefix_match_def, simp)
+private lemma ipset_prefix_match_distinct: "rpm = ipset_prefix_match pfx rg \<Longrightarrow> 
   (fst rpm) \<inter> (snd rpm) = {}" by force
-lemma ipset_prefix_match_complete: "rpm = ipset_prefix_match pfx rg \<Longrightarrow> 
+private lemma ipset_prefix_match_complete: "rpm = ipset_prefix_match pfx rg \<Longrightarrow> 
   (fst rpm) \<union> (snd rpm) = rg" by force
-lemma rpm_m_dup_simp: "rg \<inter> fst (ipset_prefix_match (routing_match r) rg) = fst (ipset_prefix_match (routing_match r) rg)"
+private lemma rpm_m_dup_simp: "rg \<inter> fst (ipset_prefix_match (routing_match r) rg) = fst (ipset_prefix_match (routing_match r) rg)"
   by simp
-definition range_prefix_match :: "'a::len prefix_match \<Rightarrow> 'a wordinterval \<Rightarrow> 'a wordinterval \<times> 'a wordinterval" where
+private definition range_prefix_match :: "'a::len prefix_match \<Rightarrow> 'a wordinterval \<Rightarrow> 'a wordinterval \<times> 'a wordinterval" where
   "range_prefix_match pfx rg \<equiv> (let pfxrg = prefix_to_wordinterval pfx in 
   (wordinterval_intersection rg pfxrg, wordinterval_setminus rg pfxrg))"
-lemma range_prefix_match_set_eq:
+private lemma range_prefix_match_set_eq:
   "(\<lambda>(r1,r2). (wordinterval_to_set r1, wordinterval_to_set r2)) (range_prefix_match pfx rg) =
     ipset_prefix_match pfx (wordinterval_to_set rg)"
   unfolding range_prefix_match_def ipset_prefix_match_def Let_def 
   using wordinterval_intersection_set_eq wordinterval_setminus_set_eq prefix_to_wordinterval_set_eq  by auto
-lemma range_prefix_match_sm[simp]:  "wordinterval_to_set (fst (range_prefix_match pfx rg)) = 
+private lemma range_prefix_match_sm[simp]:  "wordinterval_to_set (fst (range_prefix_match pfx rg)) = 
     fst (ipset_prefix_match pfx (wordinterval_to_set rg))"
   by (metis fst_conv ipset_prefix_match_m  wordinterval_intersection_set_eq prefix_to_wordinterval_set_eq range_prefix_match_def)
-lemma range_prefix_match_snm[simp]: "wordinterval_to_set (snd (range_prefix_match pfx rg)) =
+private lemma range_prefix_match_snm[simp]: "wordinterval_to_set (snd (range_prefix_match pfx rg)) =
     snd (ipset_prefix_match pfx (wordinterval_to_set rg))"
   by (metis snd_conv ipset_prefix_match_nm wordinterval_setminus_set_eq prefix_to_wordinterval_set_eq range_prefix_match_def)
 
@@ -78,9 +191,7 @@ proof(induction tbl arbitrary: s)
 	qed
 qed (simp split: if_splits)
 
-(* There are a lot of unnamed lemmas in this theory / on routing_port_ranges. Some of them I might want to use in the future, but most are just here because they're insight-providing. *)
-
-lemma
+private lemma routing_port_ranges_disjoined:
 assumes vpfx: "valid_prefixes tbl"
   and ins:  "(a1, b1) \<in> set (routing_port_ranges tbl s)" "(a2, b2) \<in> set (routing_port_ranges tbl s)"
   and nemp: "wordinterval_to_set b1 \<noteq> {}"
@@ -104,6 +215,34 @@ proof(induction tbl arbitrary: s)
     by(fastforce simp add: Let_def)    
 qed (simp split: if_splits)
 
+private lemma routing_port_rangesI:
+"valid_prefixes tbl \<Longrightarrow>
+ output_iface (routing_table_semantics tbl k) = output_port \<Longrightarrow>
+ k \<in> wordinterval_to_set wi \<Longrightarrow>
+ (\<exists>ip_range. (output_port, ip_range) \<in> set (routing_port_ranges tbl wi) \<and> k \<in> wordinterval_to_set ip_range)"
+proof(induction tbl arbitrary: wi)
+  case Nil thus ?case by simp blast
+next
+  case (Cons r rs)
+  from Cons.prems(1) have vpfx: "valid_prefix (routing_match r)" and vpfxs: "valid_prefixes rs" 
+    by(simp_all add: valid_prefixes_split)
+  show ?case
+  proof(cases "prefix_match_semantics (routing_match r) k")
+    case True
+    thus ?thesis 
+      using Cons.prems(2) using vpfx \<open>k \<in> wordinterval_to_set wi\<close>
+      by (intro exI[where x =  "fst (range_prefix_match (routing_match r) wi)"]) 
+         (simp add: prefix_match_semantics_wordset Let_def)
+  next
+    case False
+    with \<open>k \<in> wordinterval_to_set wi\<close> have ksnd: "k \<in> wordinterval_to_set (snd (range_prefix_match (routing_match r) wi))"
+      by (simp add: prefix_match_semantics_wordset vpfx)
+    have mpr: "output_iface (routing_table_semantics rs k) = output_port" using Cons.prems False by simp
+    note Cons.IH[OF vpfxs mpr ksnd]
+    thus ?thesis by(fastforce simp: Let_def)
+  qed
+qed
+
 subsection\<open>Reduction\<close>
 text\<open>So far, one entry in the list would be generated for each routing table entry. This reduces it to one for each port. The resulting list will represent a function from port to wordinterval.\<close>
 
@@ -113,32 +252,25 @@ let c = \<lambda>s. (wordinterval_Union \<circ> map snd \<circ> filter ((op = s)
 [(p, c p). p \<leftarrow> ps]
 "
 
-private definition "routing_ipassmt_wi tbl \<equiv> reduce_range_destination (routing_port_ranges tbl wordinterval_UNIV)"
+definition "routing_ipassmt_wi tbl \<equiv> reduce_range_destination (routing_port_ranges tbl wordinterval_UNIV)"
 
 lemma routing_ipassmt_wi_distinct: "distinct (map fst (routing_ipassmt_wi tbl))"
   unfolding routing_ipassmt_wi_def reduce_range_destination_def
   by(simp add: comp_def)
 
-(*TODO: names*)
-
-lemma "(a1,b1) \<in> set (routing_port_ranges tbl wordinterval_UNIV) \<Longrightarrow> 
-  \<exists>b2. wordinterval_to_set b1 \<subseteq> wordinterval_to_set b2 \<and> (a1,b2) \<in> set (routing_ipassmt_wi tbl)"
+private lemma routing_port_ranges_superseted:
+"(a1,b1) \<in> set (routing_port_ranges tbl wordinterval_UNIV) \<Longrightarrow> 
+  \<exists>b2. (a1,b2) \<in> set (routing_ipassmt_wi tbl) \<and> wordinterval_to_set b1 \<subseteq> wordinterval_to_set b2"
   unfolding routing_ipassmt_wi_def reduce_range_destination_def
   by(force simp add: Set.image_iff wordinterval_Union)
 
-lemma
+private lemma routing_ipassmt_wi_subsetted:
 "(a1,b1) \<in> set (routing_ipassmt_wi tbl) \<Longrightarrow> 
  (a1,b2) \<in> set (routing_port_ranges tbl wordinterval_UNIV) \<Longrightarrow>  wordinterval_to_set b2 \<subseteq> wordinterval_to_set b1"
   unfolding routing_ipassmt_wi_def reduce_range_destination_def
   by(fastforce simp add: Set.image_iff wordinterval_Union comp_def)
 
-lemma
-"(a1,b1) \<in> set (routing_ipassmt_wi tbl) \<Longrightarrow> w \<in> wordinterval_to_set b1 \<Longrightarrow>
- (a1,b2) \<in> set (routing_port_ranges tbl wordinterval_UNIV) \<Longrightarrow>  wordinterval_to_set b2 \<subseteq> wordinterval_to_set b1"
-  unfolding routing_ipassmt_wi_def reduce_range_destination_def
-  by(fastforce simp add: Set.image_iff wordinterval_Union comp_def)
-
-text\<open>From a pure, technical standpoint, this lemma should hold without the @{const valid_prefixes} assumption, but that would break the semantic argument and make the proof a lot harder.\<close>
+text\<open>This lemma should hold without the @{const valid_prefixes} assumption, but that would break the semantic argument and make the proof a lot harder.\<close>
 lemma routing_ipassmt_wi_disjoint:
 assumes vpfx: "valid_prefixes tbl"
   and dif: "a1 \<noteq> a2"
@@ -177,18 +309,25 @@ proof -
   thus ?thesis .
 qed
 
-theorem assumes "valid_prefixes tbl"
+theorem routing_ipassmt_wi:
+assumes vpfx: "valid_prefixes tbl"
   shows 
   "output_iface (routing_table_semantics tbl k) = output_port \<longleftrightarrow>
     (\<exists>ip_range. k \<in> wordinterval_to_set ip_range \<and> (output_port, ip_range) \<in> set (routing_ipassmt_wi tbl))"
-  apply(rule)
-   defer
-   apply(elim exE)
-   using assms routing_ipassmt_wi_sound apply blast
-  oops (*TODO*)
+proof (intro iffI, goal_cases)
+  case 2 with vpfx routing_ipassmt_wi_sound show ?case by blast
+next
+  case 1
+  then obtain ip_range where "(output_port, ip_range) \<in> set (routing_port_ranges tbl wordinterval_UNIV) \<and> k \<in> wordinterval_to_set ip_range"
+    using routing_port_rangesI[where wi = wordinterval_UNIV, OF vpfx] by auto
+  thus ?case
+    unfolding routing_ipassmt_wi_def reduce_range_destination_def
+    unfolding Let_def comp_def
+    by(force simp add: Set.image_iff wordinterval_Union)
+qed
 
 (* this was not given for the old reduced_range_destination *)
-lemma
+lemma routing_ipassmt_wi_has_all_interfaces:
   assumes in_tbl: "r \<in> set tbl"
   shows "\<exists>s. (routing_oiface r,s) \<in> set (routing_ipassmt_wi tbl)"
 proof -
@@ -208,36 +347,6 @@ proof -
     by(force simp add:  Set.image_iff)
 qed
 
-subsection\<open>Routing IP Assignment\<close>
-text\<open>Up to now, the definitions were all still on word intervals because those are much more convenient to work with.\<close>
-
-definition "routing_ipassmt rt = map_option cidr_split \<circ> map_of (routing_ipassmt_wi rt) \<circ> (\<lambda>x. case x of Iface x \<Rightarrow> x)"
-
-private lemma ipcidr_union_cidr_split[simp]: "ipcidr_union_set (set (cidr_split x)) = wordinterval_to_set x" 
-  apply(subst cidr_split_prefix[symmetric])
-  apply(fact ipcidr_union_set_uncurry)
-done
-
-lemma "valid_prefixes rt \<Longrightarrow> ipassmt_sanity_disjoint (routing_ipassmt rt)"
-unfolding ipassmt_sanity_disjoint_def routing_ipassmt_def comp_def
-  apply(clarify)
-  apply(subst the_map_option, (simp;fail))+
-  apply(simp)
-  
-  apply(drule map_of_SomeD)+
-  apply(clarsimp split: iface.splits)
-  apply(rule routing_ipassmt_wi_disjoint; assumption)
-done
-
 end
-
-(* TODO: move all of these*)
-subsection\<open>IP Assignment difference\<close>
-definition "option2wordinterval s \<equiv> (case s of None \<Rightarrow> Empty_WordInterval | Some s \<Rightarrow> ipcidr_tuple_to_wordinterval  s)"
-definition "ip_assmt_diff a b \<equiv> let
-t = \<lambda>s. (case s of None \<Rightarrow> Empty_WordInterval | Some s \<Rightarrow> ipcidr_tuple_to_wordinterval s);
-k = \<lambda>x y d. cidr_split (wordinterval_setminus (t (x d)) (t (y d))) in
-{(d, k a b d, k b a d)| d. d \<in> (dom a \<union> dom b)}
-"
 
 end
