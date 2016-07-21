@@ -1,0 +1,11 @@
+
+session Routing = Simple_Firewall +
+  theories
+    Routing_Table
+    Linux_Router
+    IpRoute_Parser
+    Linorder_Helper
+    (*Dependencies: RoutingIpAssmt depends on Iptables_Semantics and is thus in another session*)
+  document_files
+    "root.tex"
+    "mathpartir.sty"
