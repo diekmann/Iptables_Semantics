@@ -14,7 +14,7 @@ matrix:
       addons: {apt: {packages: [cabal-install-1.24,ghc-8.0.1], sources: [hvr-ghc]}}
     - env: STACK=1
       compiler: "Stackage LTS"
-      addons: {apt: {packages: [libgmp,libgmp-dev]}}
+      addons: {apt: {packages: [libgmp-dev]}}
 
 cache:
   directories:
