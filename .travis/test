@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -e
+set -x
+
+./check_theorems_doc.sh
+cd haskell_tool
+
+if [ -n "$STACK" ]; then
+  stack --no-terminal --skip-ghc-check test
+else
+  cabal install --only-dependencies --enable-tests --enable-benchmarks
+  cabal configure --enable-tests --enable-benchmarks -v2
+  cabal build
+  cabal test  --show-details=streaming
+fi
