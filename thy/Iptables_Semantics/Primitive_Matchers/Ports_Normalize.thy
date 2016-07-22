@@ -3,6 +3,46 @@ imports Common_Primitive_Lemmas
 begin
 
 
+ definition singletonize_L4Ports :: "primitive_protocol \<Rightarrow> raw_ports \<Rightarrow> ipt_l4_ports list" where
+    "singletonize_L4Ports proto pts \<equiv> map (\<lambda>p. L4Ports proto [p]) pts"
+
+  lemma singletonize_L4Ports: assumes generic: "primitive_matcher_generic \<beta>"
+   shows "match_list (\<beta>, \<alpha>) (map (Match \<circ> Src_Ports) (singletonize_L4Ports proto pts)) a p \<longleftrightarrow> 
+    matches (\<beta>, \<alpha>) (Match (Src_Ports (L4Ports proto pts))) a p"
+    apply(simp add: singletonize_L4Ports_def)
+    apply(induction pts)
+     apply(simp add: bunch_of_lemmata_about_matches primitive_matcher_generic.Ports_single[OF generic]; fail)
+    apply(simp add: match_list_matches bunch_of_lemmata_about_matches primitive_matcher_generic.Ports_single[OF generic])
+    by auto
+
+
+(*just another attempt, same stuff below*)
+  fun l4_src_ports_normalize_negate :: "ipt_l4_ports \<Rightarrow> (('i::len common_primitive) match_expr \<times> ipt_l4_ports list)" where
+    "l4_src_ports_normalize_negate (L4Ports proto pts) =
+          (
+            MatchNot (Match (Prot (Proto proto))),
+            (singletonize_L4Ports proto (raw_ports_invert pts))
+          )"
+
+
+  lemma l4_src_ports_normalize_negate:
+  fixes p :: "('i::len, 'a) tagged_packet_scheme"
+  assumes generic: "primitive_matcher_generic \<beta>"
+      and sports: "(protocol, ports) = (l4_src_ports_normalize_negate src_ports)"
+  shows "match_list (\<beta>, \<alpha>) (map (Match \<circ> Src_Ports) ports) a p \<or> matches (\<beta>, \<alpha>) protocol a p \<longleftrightarrow>
+          matches (\<beta>, \<alpha>) (MatchNot (Match (Src_Ports src_ports))) a p"
+    (*apply(simp add: match_list_matches)*)
+    apply(cases src_ports, rename_tac proto pts)
+    apply(simp)
+    apply(insert sports)
+    apply(simp)
+    apply(subst singletonize_L4Ports[OF generic])
+    apply(simp add: bunch_of_lemmata_about_matches primitive_matcher_generic.Prot_single_not[OF generic] primitive_matcher_generic.Ports_single[OF generic])
+    apply(simp add: primitive_matcher_generic.Ports_single_not[OF generic])
+    apply(simp add: raw_ports_invert)
+    by blast
+
+
 (*TODO: move oder ich hab das schon irgendwo*)
 (*
 fun andfold_MatchExp :: "'a list \<Rightarrow> 'a match_expr" where
@@ -115,7 +155,7 @@ begin
       a match expression (here, the match on the protocol) and a common primitive list (the normalized ports)
 
      does:
-      MatchAnd (map (\<lambda>port. MatchAnd first_thing (Match (Src_Ports port))) rest
+      map (MatchAnd rest)  ([first_thing]@(map (\<lambda>port. (Match (Src_Ports port))))
 
       returns a 'a match_expr list just like normalize_primitive_extract
 
