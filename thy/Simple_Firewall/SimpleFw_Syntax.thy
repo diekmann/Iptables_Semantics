@@ -1,5 +1,5 @@
 theory SimpleFw_Syntax
-imports "../../IP_Addresses/Hs_Compat"
+imports "../IP_Addresses/Hs_Compat"
         Firewall_Common_Decision_State
         "Primitives/Iface"
         "Primitives/L4_Protocol"
