@@ -54,6 +54,7 @@ begin
 
   (*TODO: I want to compress a negataion_type list of ipt_l4_ports*)
 
+  (*git commit : this is broken*)
   fun l4_src_ports_normalize :: "'i::len itself \<Rightarrow> ipt_l4_ports negation_type list \<Rightarrow> (('i common_primitive) match_expr \<times> ipt_l4_ports list)" where
     "l4_src_ports_normalize _ [] = (MatchAny, [])" |
     "l4_src_ports_normalize meta (Pos (L4Ports proto ps) # ss) = (
