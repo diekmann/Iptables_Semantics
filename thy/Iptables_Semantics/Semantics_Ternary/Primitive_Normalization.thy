@@ -343,7 +343,7 @@ subsection\<open>Normalizing and Optimizing Primitives\<close>
                                ('b negation_type list \<Rightarrow> 'b list) \<Rightarrow>
                                'a match_expr \<Rightarrow> 
                                'a match_expr list" where 
-    "normalize_primitive_extract (disc_sel) C f m = (case primitive_extractor (disc_sel) m 
+    "normalize_primitive_extract (disc_sel) C f m \<equiv> (case primitive_extractor (disc_sel) m 
                 of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (C spt))) rst) (f spts))"
   
                 (*TODO: if f spts is empty, we get back an empty list. problem? *)
@@ -548,6 +548,47 @@ lemma remove_unknowns_generic_normalized_n_primitive: "normalized_n_primitive di
     case 6 thus ?case by(case_tac disc_sel, simp add: remove_unknowns_generic_simps2)
   qed(simp_all add: remove_unknowns_generic_simps2)
 
+
+
+
+  (*TODO: this is the generic version for this above. deduplicate!*)
+
+  (*my ports normalizer is "ipt_l4_ports \<Rightarrow> (('i::len common_primitive) match_expr \<times> ipt_l4_ports list)"
+    but i want to wrap this to get a list for more global optimizations*)
+  definition normalize_primitive_extract_aux :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow>
+                                 ('b \<Rightarrow> 'a) \<Rightarrow>
+                                 ('b negation_type list \<Rightarrow> ('a match_expr \<times>'b list)) \<Rightarrow>
+                                 'a match_expr \<Rightarrow> 
+                                 'a match_expr list" where 
+      "normalize_primitive_extract_aux (disc_sel) C f m \<equiv>
+          (let (spts, rst) = primitive_extractor (disc_sel) m in
+           let (aux, ns) = f spts in
+           map (\<lambda>mexpr. (MatchAnd mexpr) rst) (aux # map (\<lambda>a. Match (C a)) ns)
+          )"
+
+  lemma normalize_primitive_extract_aux: assumes "normalized_nnf_match m" and "wf_disc_sel disc_sel C"
+        and "\<forall>ml aux normalized_primitive. (aux, normalized_primitive) = (f ml) \<longrightarrow>
+            (match_list \<gamma> (map (Match \<circ> C) normalized_primitive) a p \<or> matches \<gamma> aux a p \<longleftrightarrow> matches \<gamma> (alist_and (NegPos_map C ml)) a p)"
+        shows "match_list \<gamma> (normalize_primitive_extract_aux disc_sel C f m) a p \<longleftrightarrow> matches \<gamma> m a p"
+    proof -
+      obtain as ms where pe: "primitive_extractor disc_sel m = (as, ms)" by fastforce
+
+      from pe primitive_extractor_correct(1)[OF assms(1), where \<gamma>=\<gamma> and  a=a and p=p] assms(2) have 
+        "matches \<gamma> m a p \<longleftrightarrow> matches \<gamma> (alist_and (NegPos_map C as)) a p \<and> matches \<gamma> ms a p" by(cases disc_sel, blast)
+      also have "\<dots> \<longleftrightarrow> (match_list \<gamma> (map (Match \<circ> C) (snd (f as))) a p \<or> matches \<gamma> (fst (f as)) a p) \<and> matches \<gamma> ms a p" using assms(3) by simp
+      also have "\<dots> \<longleftrightarrow> (match_list \<gamma> (map (\<lambda>spt. MatchAnd (Match (C spt)) ms) (snd (f as))) a p) \<or> matches \<gamma> (MatchAnd (fst (f as)) ms) a p"
+        apply(simp add: match_list_matches bunch_of_lemmata_about_matches)
+        by blast
+      also have "... \<longleftrightarrow> match_list \<gamma> (normalize_primitive_extract_aux disc_sel C f m) a p"
+        apply(simp add: normalize_primitive_extract_aux_def pe) 
+        apply(cases "f as")
+        apply(simp)
+        apply(simp add: match_list_matches)
+        done
+      finally show ?thesis by simp
+    qed
+
+oops (*cont. here*)
 
 
 

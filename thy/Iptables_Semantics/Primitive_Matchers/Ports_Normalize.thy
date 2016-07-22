@@ -4,7 +4,7 @@ begin
 
 
 (*This is what i am asking for below*)
- definition singletonize_L4Ports :: "primitive_protocol \<Rightarrow> raw_ports \<Rightarrow> ipt_l4_ports list" where
+  definition singletonize_L4Ports :: "primitive_protocol \<Rightarrow> raw_ports \<Rightarrow> ipt_l4_ports list" where
     "singletonize_L4Ports proto pts \<equiv> map (\<lambda>p. L4Ports proto [p]) pts"
 
   lemma singletonize_L4Ports: assumes generic: "primitive_matcher_generic \<beta>"
@@ -25,6 +25,8 @@ begin
             (singletonize_L4Ports proto (raw_ports_invert pts))
           )"
 
+  (*TODO: I want to compress a negataion_type list of ipt_l4_ports*)
+
 
   lemma l4_src_ports_normalize_negate:
   fixes p :: "('i::len, 'a) tagged_packet_scheme"
@@ -42,6 +44,15 @@ begin
     apply(simp add: primitive_matcher_generic.Ports_single_not[OF generic])
     apply(simp add: raw_ports_invert)
     by blast
+
+
+(*\<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> 
+ \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> 
+  BIG FAT TODO: optimize away the impossible matches on ports, do intersect on all
+  remove the complete match if the protocol match is impossible
+  intersection on all port ranges
+*)
+
 
 
 (*TODO: move oder ich hab das schon irgendwo*)
@@ -138,8 +149,6 @@ begin
   
   declare l4_src_ports_negate_one.simps[simp del]
 
-  definition singletonize_L4Ports :: "primitive_protocol \<Rightarrow> raw_ports \<Rightarrow> ipt_l4_ports list" where
-    "singletonize_L4Ports proto pts \<equiv> map (\<lambda>p. L4Ports proto [p]) pts"
 
   (*Probably tune as follows:*)
   lemma  assumes generic: "primitive_matcher_generic \<beta>"
