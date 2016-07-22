@@ -25,7 +25,6 @@ begin
             (singletonize_L4Ports proto (raw_ports_invert pts))
           )"
 
-  (*TODO: I want to compress a negataion_type list of ipt_l4_ports*)
 
 
   lemma l4_src_ports_normalize_negate:
@@ -52,6 +51,80 @@ begin
   remove the complete match if the protocol match is impossible
   intersection on all port ranges
 *)
+
+  (*TODO: I want to compress a negataion_type list of ipt_l4_ports*)
+
+  fun l4_src_ports_normalize :: "'i::len itself \<Rightarrow> ipt_l4_ports negation_type list \<Rightarrow> (('i common_primitive) match_expr \<times> ipt_l4_ports list)" where
+    "l4_src_ports_normalize _ [] = (MatchAny, [])" |
+    "l4_src_ports_normalize meta (Pos (L4Ports proto ps) # ss) = (
+        let (aux::'i::len common_primitive match_expr, normalized_primitive) = (MatchNot MatchAny, singletonize_L4Ports proto ps);
+        (*TODO: adding the protocol so it can be later-on optimized on protocols and impossible matches are removed. Is this possible?*)
+            (aux', normalized_primitive') = l4_src_ports_normalize meta ss
+        in (MatchAnd aux aux', normalized_primitive @ normalized_primitive') (*the @ for normalized_primitive is nonesense! they must all match but @ is disjunction here!*)
+     )" |
+    "l4_src_ports_normalize meta ((Neg p) # ss) = (
+        let (aux::'i::len common_primitive match_expr, normalized_primitive) = l4_src_ports_normalize_negate p;
+            (aux', normalized_primitive') = l4_src_ports_normalize meta ss
+        in (MatchAnd aux aux', normalized_primitive @ normalized_primitive')
+     )"
+
+
+  lemma  assumes generic: "primitive_matcher_generic \<beta>"
+   shows "(aux, normalized_primitive) = (l4_src_ports_normalize meta ml) \<Longrightarrow>
+            (match_list (\<beta>, \<alpha>) (map (Match \<circ> Src_Ports) normalized_primitive) a p \<or> matches (\<beta>, \<alpha>) aux a p \<longleftrightarrow> matches (\<beta>, \<alpha>) (alist_and (NegPos_map Src_Ports ml)) a p)"
+  proof(induction ml arbitrary: aux normalized_primitive rule: l4_src_ports_normalize.induct)
+  print_cases
+  case 1 thus ?case by simp
+  next
+  case (2 meta proto ps ss)
+    have IH: "l4_src_ports_normalize meta ss = (aux', normalized_primitive') \<Longrightarrow>
+              (match_list (\<beta>, \<alpha>) (map (Match \<circ> Src_Ports) normalized_primitive') a p \<or> matches (\<beta>, \<alpha>) aux' a p) =
+                matches (\<beta>, \<alpha>) (alist_and (NegPos_map Src_Ports ss)) a p" for aux' normalized_primitive'
+      by (simp add: "2.IH")
+    have Match_Src_Port_pointfree: "(\<lambda>a. Match (Src_Ports a)) = (Match \<circ> Src_Ports)" by fastforce
+    from 2(2) show ?case
+      apply(simp)
+      apply(case_tac "l4_src_ports_normalize meta ss", rename_tac aux' normalized_primitive')
+      apply(simp)
+      apply(simp add: match_list_append)
+      apply(simp add: bunch_of_lemmata_about_matches)
+      apply(frule IH[symmetric])
+      apply(simp add: Match_Src_Port_pointfree)
+      apply(simp add: bunch_of_lemmata_about_matches)
+      thm singletonize_L4Ports[OF generic]
+      apply(simp add: singletonize_L4Ports[OF generic])
+      apply(subgoal_tac "\<not> matches (\<beta>, \<alpha>) aux' a p")
+      apply simp
+      try0
+      thm primitive_matcher_generic.
+      apply(simp add: match_list_matches)
+    
+  next
+    (*TODO: why does case 2 not work? ? ?*)
+    fix proto ps ss aux normalized_primitive
+    let "?case" = "(match_list (\<beta>, \<alpha>) (map (Match \<circ> Src_Ports) normalized_primitive) a p \<or> matches (\<beta>, \<alpha>) aux a p) = matches (\<beta>, \<alpha>) (alist_and (NegPos_map C (Pos (L4Ports proto ps) # ss))) a p"
+    assume IH : "\<And>x xa y aux normalizedprimitive.
+                    x = (Match (Prot (Proto proto)), singletonize_L4Ports proto ps) \<Longrightarrow>
+                    (xa, y) = x \<Longrightarrow>
+                    (aux, normalized_primitive) = l4_src_ports_normalize ss \<Longrightarrow>
+                    (match_list (\<beta>, \<alpha>) (map (Match \<circ> Src_Ports) normalized_primitive) a p \<or> matches (\<beta>, \<alpha>) aux a p) = matches (\<beta>, \<alpha>) (alist_and (NegPos_map C ss)) a p"
+      and prems : "(aux, normalized_primitive) = l4_src_ports_normalize (Pos (L4Ports proto ps) # ss)"
+
+       sorry
+    show ?case
+  oops
+
+  lemma  assumes generic: "primitive_matcher_generic \<beta>"
+   shows "(match_list (\<beta>, \<alpha>) (map (Match \<circ> Src_Ports) (snd (l4_src_ports_normalize ml))) a p \<or> matches (\<beta>, \<alpha>) (fst (l4_src_ports_normalize ml)) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) (alist_and (NegPos_map C ml)) a p)"
+  apply(induction ml rule: l4_src_ports_normalize.induct)
+    apply(simp; fail)
+   apply(simp)
+   apply(case_tac "l4_src_ports_normalize ss")
+   apply(simp)
+   apply(subst singletonize_L4Ports[OF generic])
+   thm singletonize_L4Ports[OF generic]
+
+
 
 
 
