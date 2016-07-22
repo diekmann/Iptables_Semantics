@@ -1,12 +1,14 @@
 theory IpRoute_Parser
-imports "../Iptables_Semantics/Primitive_Matchers/IpAddresses" "../Routing/Routing_Table"
+imports Routing_Table
 keywords "parse_ip_route" :: thy_decl
 begin
 
-definition "empty_rr_hlp pm = routing_rule.make pm default_metric (routing_action.make '''' None)"
+definition empty_rr_hlp :: "32 prefix_match \<Rightarrow> routing_rule" where
+  "empty_rr_hlp pm = routing_rule.make pm default_metric (routing_action.make '''' None)"
 
-lemma empty_rr_hlp_alt: "empty_rr_hlp pm = \<lparr> routing_match = pm, metric = 0, routing_action = \<lparr>output_iface = [], next_hop = None\<rparr>\<rparr>"
-unfolding empty_rr_hlp_def routing_rule.defs default_metric_def routing_action.defs ..
+lemma empty_rr_hlp_alt:
+  "empty_rr_hlp pm = \<lparr> routing_match = pm, metric = 0, routing_action = \<lparr>output_iface = [], next_hop = None\<rparr>\<rparr>"
+  unfolding empty_rr_hlp_def routing_rule.defs default_metric_def routing_action.defs ..
 
 definition routing_action_next_hop_update :: "32 word \<Rightarrow> routing_rule \<Rightarrow> routing_rule"
   where
