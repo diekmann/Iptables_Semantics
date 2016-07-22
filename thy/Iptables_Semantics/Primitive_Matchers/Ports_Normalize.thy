@@ -11,7 +11,7 @@ begin
 
   private fun ipt_ports_negation_type_normalize :: "ipt_ports negation_type \<Rightarrow> ipt_ports" where
     "ipt_ports_negation_type_normalize (Pos ps) = ps" |
-    "ipt_ports_negation_type_normalize (Neg ps) = ports_invert ps"  
+    "ipt_ports_negation_type_normalize (Neg ps) = raw_ports_invert ps"  
   
   
   private lemma "ipt_ports_negation_type_normalize (Neg [(0,65535)]) = []" by eval
@@ -28,7 +28,7 @@ begin
          matches (\<beta>, \<alpha>) (Match (Dst_Ports (ipt_ports_negation_type_normalize ps))) a p"
   apply(case_tac [!] ps)
   apply(simp_all add: primitive_matcher_generic.Ports_single primitive_matcher_generic.Ports_single_not)
-  apply(simp_all add: ipt_ports_negation_type_normalize.simps ports_invert split: ternaryvalue.split)
+  apply(simp_all add: ipt_ports_negation_type_normalize.simps raw_ports_invert split: ternaryvalue.split)
   done
   *)
   
@@ -76,7 +76,7 @@ begin
           thus ?thesis using Cons.IH generic primitive_matcher_generic.Ports_single_not[where p = p] primitive_matcher_generic.Ports_single[where p = p]
           apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct
                           bunch_of_lemmata_about_matches[where p = p])
-          apply(simp add: ports_invert ipt_ports_negation_type_normalize.simps)
+          apply(simp add: raw_ports_invert ipt_ports_negation_type_normalize.simps)
           done
         qed
   qed
@@ -101,7 +101,7 @@ begin
           thus ?thesis using Cons.IH primitive_matcher_generic.Ports_single[OF generic] primitive_matcher_generic.Ports_single_not[OF generic]
           apply(simp add: ipt_ports_compress_def ipt_ports_andlist_compress_correct
                           bunch_of_lemmata_about_matches)
-          apply(simp add: ports_invert ipt_ports_negation_type_normalize.simps)
+          apply(simp add: raw_ports_invert ipt_ports_negation_type_normalize.simps)
           done
         qed
   qed

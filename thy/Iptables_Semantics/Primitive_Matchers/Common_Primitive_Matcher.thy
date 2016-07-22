@@ -15,8 +15,8 @@ fun common_matcher :: "('i::len common_primitive, ('i, 'a) tagged_packet_scheme)
 
   "common_matcher (Prot proto) p = bool_to_ternary (match_proto proto (p_proto p))" |
 
-  "common_matcher (Src_Ports ps) p = bool_to_ternary (p_sport p \<in> ports_to_set ps)" |
-  "common_matcher (Dst_Ports ps) p = bool_to_ternary (p_dport p \<in> ports_to_set ps)" |
+  "common_matcher (Src_Ports (L4Ports proto ps)) p = bool_to_ternary (proto = p_proto p \<and> p_sport p \<in> ports_to_set ps)" |
+  "common_matcher (Dst_Ports (L4Ports proto ps)) p = bool_to_ternary (proto = p_proto p \<and> p_dport p \<in> ports_to_set ps)" |
 
   "common_matcher (L4_Flags flags) p = bool_to_ternary (match_tcp_flags flags (p_tcp_flags p))" |
 
@@ -25,6 +25,18 @@ fun common_matcher :: "('i::len common_primitive, ('i, 'a) tagged_packet_scheme)
   "common_matcher (Extra _) p = TernaryUnknown"
 
 
+
+lemma packet_independent_\<beta>_unknown_common_matcher: "packet_independent_\<beta>_unknown common_matcher"
+  apply(simp add: packet_independent_\<beta>_unknown_def)
+  apply(clarify)
+  apply(rename_tac a p1 p2)
+  apply(case_tac a)
+           apply(simp_all add: bool_to_ternary_Unknown)
+   apply(rename_tac l4ports, case_tac l4ports; simp add: bool_to_ternary_Unknown; fail)+
+  done
+
+lemma primitive_matcher_generic_common_matcher: "primitive_matcher_generic common_matcher"
+  by unfold_locales  simp_all
 
   (* What if we specify a port range where the start port is greater than the end port?
     For example, mathematically, {3 .. 2} = {}. Does iptables have the same behavior?
@@ -37,39 +49,39 @@ fun common_matcher :: "('i::len common_primitive, ('i, 'a) tagged_packet_scheme)
     *)
 
   text\<open>Warning: beware of the sloppy term `empty' portrange\<close>
-  text\<open>An `empty' port range means it can never match! Basically, @{term "MatchNot (Match (Src_Ports [(0,65535)]))"} is False\<close>
-  lemma "\<not> matches (common_matcher, \<alpha>) (MatchNot (Match (Src_Ports [(0,65535)]))) a 
+  text\<open>An `empty' port range means it can never match! Basically, @{term "MatchNot (Match (Src_Ports (L4Ports proto [(0,65535)])))"} is False\<close>
+  lemma "\<not> matches (common_matcher, \<alpha>) (MatchNot (Match (Src_Ports (L4Ports TCP [(0,65535)])))) a 
           \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'',
            p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
            p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {},
            p_payload = '''', p_tag_ctstate = CT_New\<rparr>"
-  (*<*)by(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)(*>*)
-  text\<open>An `empty' port range means it always matches! Basically, @{term "(MatchNot (Match (Src_Ports [])))"} is True.
+       by(simp add: primitive_matcher_generic_common_matcher primitive_matcher_generic.Ports_single_not)
+  text\<open>An `empty' port range means it always matches! Basically, @{term "(MatchNot (Match (Src_Ports (L4Ports any []))))"} is True.
         This corresponds to firewall behavior, but usually you cannot specify an empty portrange in firewalls, but omission of portrange means no-port-restrictions, 
         i.e. every port matches.\<close>
-  lemma "matches (common_matcher, \<alpha>) (MatchNot (Match (Src_Ports []))) a 
+  lemma "matches (common_matcher, \<alpha>) (MatchNot (Match (Src_Ports (L4Ports any [])))) a 
           \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'',
            p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
            p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {},
            p_payload = '''', p_tag_ctstate = CT_New\<rparr>"
-  (*<*)by(simp add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)(*>*)
+       by(simp add: primitive_matcher_generic_common_matcher primitive_matcher_generic.Ports_single_not)
   text\<open>If not a corner case, portrange matching is straight forward.\<close>
-  lemma "matches (common_matcher, \<alpha>) (Match (Src_Ports [(1024,4096), (9999, 65535)])) a 
+  lemma "matches (common_matcher, \<alpha>) (Match (Src_Ports (L4Ports TCP [(1024,4096), (9999, 65535)]))) a 
           \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'',
            p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
            p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {},
            p_payload = '''', p_tag_ctstate = CT_New\<rparr>"
-        "\<not> matches (common_matcher, \<alpha>) (Match (Src_Ports [(1024,4096), (9999, 65535)])) a 
+        "\<not> matches (common_matcher, \<alpha>) (Match (Src_Ports (L4Ports TCP [(1024,4096), (9999, 65535)]))) a 
           \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'',
            p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
            p_proto=TCP, p_sport=5000, p_dport=80, p_tcp_flags = {},
            p_payload = '''', p_tag_ctstate = CT_New\<rparr>"
-        "\<not>matches (common_matcher, \<alpha>) (MatchNot (Match (Src_Ports [(1024,4096), (9999, 65535)]))) a 
+        "\<not>matches (common_matcher, \<alpha>) (MatchNot (Match (Src_Ports (L4Ports TCP [(1024,4096), (9999, 65535)])))) a 
           \<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'',
            p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
            p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {},
            p_payload = '''', p_tag_ctstate = CT_New\<rparr>"
-  (*<*)by(simp_all add: matches_case_ternaryvalue_tuple split: ternaryvalue.split)(*>*)
+       by(simp_all add: primitive_matcher_generic_common_matcher primitive_matcher_generic.Ports_single_not primitive_matcher_generic.Ports_single)
   
 
 
@@ -80,7 +92,7 @@ lemma common_matcher_SrcDst_defined:
   "common_matcher (Dst m) p \<noteq> TernaryUnknown"
   "common_matcher (Src_Ports ps) p \<noteq> TernaryUnknown"
   "common_matcher (Dst_Ports ps) p \<noteq> TernaryUnknown"
-  apply(case_tac [!] m)
+  apply(case_tac [!] m, case_tac [!] ps)
   apply(simp_all add: bool_to_ternary_Unknown)
   done
 lemma common_matcher_SrcDst_defined_simp:
@@ -89,6 +101,8 @@ lemma common_matcher_SrcDst_defined_simp:
 apply (metis eval_ternary_Not.cases common_matcher_SrcDst_defined(1) ternaryvalue.distinct(1))
 apply (metis eval_ternary_Not.cases common_matcher_SrcDst_defined(2) ternaryvalue.distinct(1))
 done
+
+(*TODO: delete, use generic*)
 lemma match_simplematcher_SrcDst:
   "matches (common_matcher, \<alpha>) (Match (Src X)) a p \<longleftrightarrow> p_src  p \<in> ipt_iprange_to_set X"
   "matches (common_matcher, \<alpha>) (Match (Dst X)) a p \<longleftrightarrow> p_dst  p \<in> ipt_iprange_to_set X"
@@ -107,14 +121,6 @@ lemma common_matcher_SrcDst_Inter:
 
 
 
-lemma packet_independent_\<beta>_unknown_common_matcher: "packet_independent_\<beta>_unknown common_matcher"
-  apply(simp add: packet_independent_\<beta>_unknown_def)
-  apply(clarify)
-  apply(rename_tac a p1 p2)
-  by(case_tac a,simp_all add: bool_to_ternary_Unknown)
-
-lemma primitive_matcher_generic_common_matcher: "primitive_matcher_generic common_matcher"
-  by unfold_locales  simp_all
 
 
 (*TODO: delete, only use generic ones!*)
@@ -131,8 +137,9 @@ subsection\<open>Basic optimisations\<close>
     (*TODO: the other IPs ...*)
     "optimize_primitive_univ (Match (IIface iface)) = (if iface = ifaceAny then MatchAny else (Match (IIface iface)))" |
     "optimize_primitive_univ (Match (OIface iface)) = (if iface = ifaceAny then MatchAny else (Match (OIface iface)))" |
-    "optimize_primitive_univ (Match (Src_Ports [(s, e)])) = (if s = 0 \<and> e = 0xFFFF then MatchAny else (Match (Src_Ports [(s, e)])))" |
-    "optimize_primitive_univ (Match (Dst_Ports [(s, e)])) = (if s = 0 \<and> e = 0xFFFF then MatchAny else (Match (Dst_Ports [(s, e)])))" |
+    (*TODO: introduces nwe match. probably remove this omptimization if it causes problems?*)
+    "optimize_primitive_univ (Match (Src_Ports (L4Ports proto [(s, e)]))) = (if s = 0 \<and> e = 0xFFFF then (Match (Prot (Proto proto))) else (Match (Src_Ports (L4Ports proto [(s, e)]))))" |
+    "optimize_primitive_univ (Match (Dst_Ports (L4Ports proto [(s, e)]))) = (if s = 0 \<and> e = 0xFFFF then (Match (Prot (Proto proto))) else (Match (Dst_Ports (L4Ports proto [(s, e)]))))" |
     "optimize_primitive_univ (Match (Prot ProtoAny)) = MatchAny" |
     "optimize_primitive_univ (Match (L4_Flags (TCP_Flags m c))) = (if m = {} \<and> c = {} then MatchAny else (Match (L4_Flags (TCP_Flags m c))))" |
     "optimize_primitive_univ (Match (CT_State ctstate)) = (if ctstate_is_UNIV ctstate then MatchAny else Match (CT_State ctstate))" |
@@ -144,9 +151,13 @@ subsection\<open>Basic optimisations\<close>
     "optimize_primitive_univ (MatchAnd m1 m2) = MatchAnd (optimize_primitive_univ m1) (optimize_primitive_univ m2)" |
     "optimize_primitive_univ MatchAny = MatchAny"
 
+    (* no longer true because we might introduce a match on protocol if we optimize ports
     lemma optimize_primitive_univ_unchanged_primitives:
     "optimize_primitive_univ (Match a) = (Match a) \<or> optimize_primitive_univ (Match a) = MatchAny"
-      by (induction "(Match a)" rule: optimize_primitive_univ.induct) (auto split: split_if_asm)
+      apply (induction "(Match a)" rule: optimize_primitive_univ.induct)
+      apply(auto split: split_if_asm)
+      oops
+    *)
   
   lemma optimize_primitive_univ_correct_matchexpr: fixes m::"'i::len common_primitive match_expr"
     shows "matches (common_matcher, \<alpha>) m = matches (common_matcher, \<alpha>) (optimize_primitive_univ m)"
@@ -155,8 +166,10 @@ subsection\<open>Basic optimisations\<close>
       have "(max_word::16 word) =  65535" by(simp add: max_word_def)
       hence port_range: "\<And>s e port. s = 0 \<and> e = 0xFFFF \<longrightarrow> (port::16 word) \<le> 0xFFFF" by simp
       have "ternary_ternary_eval (map_match_tac common_matcher p m) = ternary_ternary_eval (map_match_tac common_matcher p (optimize_primitive_univ m))"
-        by(induction m rule: optimize_primitive_univ.induct)
-          (simp_all add: port_range match_ifaceAny ipset_from_cidr_0 ctstate_is_UNIV)
+        apply(induction m rule: optimize_primitive_univ.induct)
+                               apply(simp_all add: port_range match_ifaceAny ipset_from_cidr_0 ctstate_is_UNIV)
+         apply(fastforce intro: arg_cong[where f=bool_to_ternary])+
+        done
       thus "matches (common_matcher, \<alpha>) m a p = matches (common_matcher, \<alpha>) (optimize_primitive_univ m) a p"
         by(rule matches_iff_apply_f)
       qed
@@ -194,7 +207,7 @@ subsection\<open>Abstracting over unknowns\<close>
   lemma upper_closure_matchexpr_generic: 
     "a = Accept \<or> a = Drop \<Longrightarrow> remove_unknowns_generic (common_matcher, in_doubt_allow) a m = upper_closure_matchexpr a m"
     by(induction a m rule: upper_closure_matchexpr.induct)
-      (simp_all add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown)
+      (simp_all add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown common_matcher_SrcDst_defined)
   
   fun lower_closure_matchexpr :: "action \<Rightarrow> 'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where
     "lower_closure_matchexpr _ MatchAny = MatchAny" |
@@ -222,7 +235,7 @@ subsection\<open>Abstracting over unknowns\<close>
   lemma lower_closure_matchexpr_generic: 
     "a = Accept \<or> a = Drop \<Longrightarrow> remove_unknowns_generic (common_matcher, in_doubt_deny) a m = lower_closure_matchexpr a m"
     by(induction a m rule: lower_closure_matchexpr.induct)
-    (simp_all add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown)
+    (simp_all add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown common_matcher_SrcDst_defined)
 
 
 
