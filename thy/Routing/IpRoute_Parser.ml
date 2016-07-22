@@ -22,31 +22,23 @@ local
             then
               raise Fail("nat ("^Int.toString i^") must be between 0 and "^Int.toString maxval)
             else (HOLogic.mk_number HOLogic.natT i);
-  val mk_nat255 = mk_nat 255;
 
-  fun mk_quadrupel (((a,b),c),d) = HOLogic.mk_prod
-               (mk_nat255 a, HOLogic.mk_prod (mk_nat255 b, HOLogic.mk_prod (mk_nat255 c, mk_nat255 d)));
-  fun ipprefix_to_hol (ip,len) = @{term "PrefixMatch :: 32 word \<Rightarrow> nat \<Rightarrow> 32 prefix_match"} $ (@{const ipv4addr_of_dotdecimal} $ (mk_quadrupel ip)) $ mk_nat 32 len;
-
-  val parser_ip = (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
-                  (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
-                  (Scan.many1 Symbol.is_ascii_digit >> extract_int) --| ($$ ".") --
-                  (Scan.many1 Symbol.is_ascii_digit >> extract_int);
+  fun ipprefix_to_hol (ip,len) = @{term "PrefixMatch :: 32 word \<Rightarrow> nat \<Rightarrow> 32 prefix_match"} $ (mk_ipv4addr ip) $ mk_nat 32 len;
   
-  val parser_ip_cidr = parser_ip --| ($$ "/") -- (Scan.many1 Symbol.is_ascii_digit >> extract_int) >> ipprefix_to_hol;
+  val parser_ip_cidr = parser_ipv4 --| ($$ "/") -- (Scan.many1 Symbol.is_ascii_digit >> extract_int) >> ipprefix_to_hol;
   
   val parser_interface = Scan.many1 is_iface_char >> (implode #> (fn x => HOLogic.mk_string x));
   (* end dup *)
   
   val parser_subnet = parser_ip_cidr ||
-    (parser_ip >> (fn ip => ipprefix_to_hol (ip,32))) ||
+    (parser_ipv4 >> (fn ip => ipprefix_to_hol (ip,32))) ||
     (Scan.this_string "default" >> K @{term "PrefixMatch 0 0 :: 32 prefix_match"})
   val isSpace = (fn x => x = " " orelse  x = "\t")
   val parser_whitespace = Scan.many1 isSpace;
   val eater_whitespace = Scan.many isSpace; (* I refuse to have this eat \r to make the parser work with windows newlines. *)
 
-  val parser_via = (Scan.this_string "via" -- parser_whitespace |-- parser_ip) 
-    >> (fn ip => fn pk => @{const routing_action_next_hop_update} $ (@{const ipv4addr_of_dotdecimal} $ (mk_quadrupel ip)) $ pk)
+  val parser_via = (Scan.this_string "via" -- parser_whitespace |-- parser_ipv4) 
+    >> (fn ip => fn pk => @{const routing_action_next_hop_update} $ (mk_ipv4addr ip) $ pk)
   val parser_dev = (Scan.this_string "dev" -- parser_whitespace |-- parser_interface)
     >> (fn dev => fn pk => @{term "routing_action_oiface_update :: string \<Rightarrow> routing_rule \<Rightarrow> routing_rule"} $ dev $ pk)
   val parser_metric = (Scan.this_string "metric" -- parser_whitespace |-- Scan.many1 Symbol.is_ascii_digit)
@@ -58,7 +50,7 @@ local
   val parser_proto = (Scan.this_string "proto" -- parser_whitespace |-- (
     Scan.this_string "kernel" || Scan.this_string "boot" || Scan.this_string "static" || Scan.this_string "dhcp" || (Scan.many1 Symbol.is_ascii_digit >> implode)))
     >> K I
-  val parser_src = (Scan.this_string "src" -- parser_whitespace |-- parser_ip) >> mk_quadrupel >> K I
+  val parser_src = (Scan.this_string "src" -- parser_whitespace |-- parser_ipv4) >> (*mk_quadrupel >>*) K I (*TODO: I removed the mk_quadrupel, what does it do here anyway?*)
 
   fun parser_end p i = let
     val (r,es) = Scan.finite Symbol.stopper (p --| eater_whitespace) i

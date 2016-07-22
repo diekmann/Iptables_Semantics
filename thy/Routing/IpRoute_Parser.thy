@@ -1,5 +1,6 @@
 theory IpRoute_Parser
-imports Routing_Table
+imports Routing_Table 
+  "../../IP_Addresses/IP_Address_Parser"
 keywords "parse_ip_route" :: thy_decl
 begin
 
@@ -23,7 +24,7 @@ lemma "routing_action_oiface_update h pk = pk\<lparr> routing_action := (routing
   by(simp add: routing_action_oiface_update_def)
 
 (* Hide all the ugly ml in a file with the right extension *)
-term PrefixMatch
+(*Depends on the function parser_ipv4 from IP_Address_Parser*)
 ML_file "IpRoute_Parser.ml"
                   
 ML\<open>
