@@ -15,9 +15,9 @@ definition ipv6_cidr_toString :: "(ipv6addr \<times> nat) \<Rightarrow> string" 
   "ipv6_cidr_toString ip_n = (case ip_n of (base, n) \<Rightarrow>  (ipv6addr_toString base @''/''@ string_of_nat n))"
 lemma "ipv6_cidr_toString (42540766411282592856906245548098208122, 64) = ''2001:db8::8:800:200c:417a/64''" by eval
 
-fun protocol_toString :: "protocol \<Rightarrow> string" where
-  "protocol_toString (ProtoAny) = ''all''" |
-  "protocol_toString (Proto protid) = ( 
+(*TODO: probably move*)
+definition primitive_protocol_toString :: "primitive_protocol \<Rightarrow> string" where
+  "primitive_protocol_toString protid \<equiv> ( 
   if protid = TCP then ''tcp'' else
   if protid = UDP then ''udp'' else
   if protid = ICMP then ''icmp'' else
@@ -28,6 +28,10 @@ fun protocol_toString :: "protocol \<Rightarrow> string" where
   if protid = L4_Protocol.AH then ''ah'' else
   if protid = L4_Protocol.IPv6ICMP then ''ipv6-icmp'' else
   ''protocolid:''@dec_string_of_word0 protid)"
+
+fun protocol_toString :: "protocol \<Rightarrow> string" where
+  "protocol_toString (ProtoAny) = ''all''" |
+  "protocol_toString (Proto protid) = primitive_protocol_toString protid"
 
 definition iface_toString :: "string \<Rightarrow> iface \<Rightarrow> string" where
   "iface_toString descr iface = (if iface = ifaceAny then '''' else
