@@ -3,12 +3,52 @@ imports Common_Primitive_Lemmas
 begin
 
 
+(*TODO: move oder ich hab das schon irgendwo*)
+(*
+fun andfold_MatchExp :: "'a list \<Rightarrow> 'a match_expr" where
+  "andfold_MatchExp [] = MatchAny" |
+  "andfold_MatchExp (e#es) = MatchAnd (Match e) (andfold_MatchExp es)"
+
+(*TODO: this must be somewhere, deduplicate! look for fold and MatchAnd*)
+lemma andfold_MatchExp_alist_and: "alist_and (map Pos ls) = andfold_MatchExp ls"
+  apply(induction ls)
+   apply(simp)+
+  done
+*)
+
+fun andfold_MatchExp :: "'a match_expr list \<Rightarrow> 'a match_expr" where
+  "andfold_MatchExp [] = MatchAny" |
+  "andfold_MatchExp (e#es) = MatchAnd e (andfold_MatchExp es)"
+
+(*TODO: this must be somewhere, deduplicate! look for fold and MatchAnd*)
+lemma andfold_MatchExp_alist_and: "alist_and (map Pos ls) = andfold_MatchExp (map Match ls)"
+  apply(induction ls)
+   apply(simp)+
+  done
+
+lemma andfold_MatchExp_matches: "matches (\<beta>, \<alpha>) (andfold_MatchExp ms) a p \<longleftrightarrow> (\<forall>m \<in> set ms. matches (\<beta>, \<alpha>) m a p)"
+  apply(induction ms)
+   apply(simp add: bunch_of_lemmata_about_matches)+
+  done
+
+lemma andfold_MatchExp_not_disc_negated_mapMatch:
+  "\<not> has_disc_negated disc False (andfold_MatchExp (map (Match \<circ> C) ls))"
+  by(induction ls)(simp)+
+
+
+lemma andfold_MatchExp_not_disc_negatedI:
+  "\<forall>m \<in> set ms. \<not> has_disc_negated disc False m \<Longrightarrow> \<not> has_disc_negated disc False (andfold_MatchExp ms)"
+  apply(induction ms)
+   apply(simp)+
+  done
 
 subsection\<open>Normalizing ports\<close>
 
   (*TODO: new*)
 context
 begin
+(*TODO: probably return just one match expression? rely on nnf normalization later*)
+  (*
   fun l4_src_ports_negate_one :: "ipt_l4_ports \<Rightarrow> ('i::len common_primitive) match_expr list" where
     "l4_src_ports_negate_one (L4Ports proto pts) =
           [ MatchNot (Match (Prot (Proto proto))),
@@ -25,8 +65,117 @@ begin
     apply(simp add: bunch_of_lemmata_about_matches primitive_matcher_generic.Prot_single_not[OF generic] primitive_matcher_generic.Ports_single[OF generic])
     by(simp add: raw_ports_invert)
 
+  declare l4_src_ports_negate_one.simps[simp del]*)
+
+(*version two: only one match_expr not normalized returned*)
+  fun l4_src_ports_negate_one :: "ipt_l4_ports \<Rightarrow> ('i::len common_primitive) match_expr" where
+    "l4_src_ports_negate_one (L4Ports proto pts) = MatchOr
+           (MatchNot (Match (Prot (Proto proto))))
+            (Match (Src_Ports (L4Ports proto (raw_ports_invert pts))))"
+
+
+  lemma l4_src_ports_negate_one:
+  fixes p :: "('i::len, 'a) tagged_packet_scheme"
+  assumes generic: "primitive_matcher_generic \<beta>"
+  shows "matches (\<beta>, \<alpha>) (l4_src_ports_negate_one src_ports) a p \<longleftrightarrow>
+          matches (\<beta>, \<alpha>) (MatchNot (Match (Src_Ports src_ports))) a p"
+    apply(cases src_ports, rename_tac proto pts)
+    apply(simp add: primitive_matcher_generic.Ports_single_not[OF generic])
+    apply(simp add: MatchOr bunch_of_lemmata_about_matches primitive_matcher_generic.Prot_single_not[OF generic] primitive_matcher_generic.Ports_single[OF generic])
+    apply(simp add: raw_ports_invert)
+    by blast
+
+  lemma l4_src_ports_negate_one_not_has_disc_negated:
+    "\<not> has_disc_negated is_Src_Ports False (l4_src_ports_negate_one src_ports)"
+    apply(cases src_ports, rename_tac proto pts)
+    by(simp add: MatchOr_def)
+    
+
+  text\<open>beware, the result is not nnf normalized!\<close>
+  lemma "\<not> normalized_nnf_match (l4_src_ports_negate_one src_ports)"
+    by(cases src_ports) (simp add: MatchOr_def)
+  
   declare l4_src_ports_negate_one.simps[simp del]
+
+  definition singletonize_L4Ports :: "primitive_protocol \<Rightarrow> raw_ports \<Rightarrow> ipt_l4_ports list" where
+    "singletonize_L4Ports proto pts \<equiv> map (\<lambda>p. L4Ports proto [p]) pts"
+
+  (*Probably tune as follows:*)
+  lemma  assumes generic: "primitive_matcher_generic \<beta>"
+   shows "matches (\<beta>, \<alpha>) (andfold_MatchExp (map (Match \<circ> Src_Ports) (singletonize_L4Ports proto pts))) a p \<longleftrightarrow> 
+    matches (\<beta>, \<alpha>) (Match (Src_Ports (L4Ports proto pts))) a p"
+    apply(simp add: singletonize_L4Ports_def)
+    apply(induction pts)
+     apply(simp add: bunch_of_lemmata_about_matches primitive_matcher_generic.Ports_single[OF generic])
+    oops
+    (*TODO: yeah, need a big MatchOr or return a list or do the whole thing with normalize_primitive_extract
+      probably not using MatchOr but returning a list directly will give better code
+
+     \<And>  \<And> \<And> even better: generalize normalize_primitive_extract that it takes a function which returns a tuple:
+      a match expression (here, the match on the protocol) and a common primitive list (the normalized ports)
+
+     does:
+      MatchAnd (map (\<lambda>port. MatchAnd first_thing (Match (Src_Ports port))) rest
+
+      returns a 'a match_expr list just like normalize_primitive_extract
+
+     call it normalize_primitive_extract_aux (normalize_primitive_extract with an auxilliary match expression)
+
+    bonus: the things are probably all in NNF form and we don't  need to expand MatchOr in code!
+    *)
+
+  (*TODO move as internal to next proof*)
+  lemma spts: 
+    "(\<forall>m\<in>set (getNeg spts). matches (\<beta>, \<alpha>) (MatchNot (Match (Src_Ports m))) a p) \<and> (\<forall>m\<in>set (getPos spts). matches (\<beta>, \<alpha>) (Match (Src_Ports m)) a p)
+      \<longleftrightarrow>
+      matches (\<beta>, \<alpha>) (alist_and (NegPos_map Src_Ports spts)) a p"
+    apply(induction spts rule: alist_and.induct)
+      apply(simp add: bunch_of_lemmata_about_matches; fail)
+     by(auto simp add: bunch_of_lemmata_about_matches)
+
+
+  (*TODO: write primitive_extractor with "let" instead of "case" more often?*)
+  definition rewrite_negated_src_ports :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where
+    "rewrite_negated_src_ports m \<equiv>
+        let (spts, rst) = primitive_extractor (is_Src_Ports, src_ports_sel) m
+        in MatchAnd
+            (andfold_MatchExp (map l4_src_ports_negate_one (getNeg spts)))
+            (MatchAnd (andfold_MatchExp (map (Match \<circ> Src_Ports) (getPos spts))) rst)"
+  
+  lemma
+  assumes generic: "primitive_matcher_generic \<beta>"  and n: "normalized_nnf_match m"
+  shows "matches (\<beta>, \<alpha>) m a p \<longleftrightarrow> matches (\<beta>, \<alpha>) (rewrite_negated_src_ports m) a p"
+  apply(simp add: rewrite_negated_src_ports_def)
+  apply(case_tac "primitive_extractor (is_Src_Ports, src_ports_sel) m", rename_tac spts rst)
+  apply(simp)
+  apply(simp add: bunch_of_lemmata_about_matches)
+  apply(subst primitive_extractor_correct(1)[OF n wf_disc_sel_common_primitive(1), where \<gamma>="(\<beta>, \<alpha>)" and a=a and p=p, symmetric])
+   apply(simp; fail)
+  apply(simp add: andfold_MatchExp_matches)
+  apply(simp add: l4_src_ports_negate_one[OF generic])
+  apply(subgoal_tac "matches (\<beta>, \<alpha>) (alist_and (NegPos_map Src_Ports spts)) a p \<longleftrightarrow>
+          (\<forall>m\<in>set (getNeg spts). matches (\<beta>, \<alpha>) (MatchNot (Match (Src_Ports m))) a p) \<and> (\<forall>m\<in>set (getPos spts). matches (\<beta>, \<alpha>) (Match (Src_Ports m)) a p)")
+   apply(simp; fail)
+  apply(simp add: spts)
+  done
+
+
+  lemma rewrite_negated_src_ports_not_has_disc_negated:
+  assumes n: "normalized_nnf_match m"
+  shows  "\<not> has_disc_negated is_Src_Ports False (rewrite_negated_src_ports m)"
+    apply(simp add: rewrite_negated_src_ports_def)
+    apply(case_tac "primitive_extractor (is_Src_Ports, src_ports_sel) m", rename_tac spts rst)
+    apply(simp)
+    apply(frule primitive_extractor_correct(3)[OF n wf_disc_sel_common_primitive(1)])
+    apply(intro conjI)
+      apply(rule andfold_MatchExp_not_disc_negatedI)
+      apply(simp add: l4_src_ports_negate_one_not_has_disc_negated; fail)
+     using andfold_MatchExp_not_disc_negated_mapMatch apply blast
+    using has_disc_negated_has_disc by blast
+    
 end
+
+(*Old stuff from here*)
 
 context
 begin
