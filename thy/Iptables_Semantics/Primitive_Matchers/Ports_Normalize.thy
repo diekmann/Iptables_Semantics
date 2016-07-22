@@ -122,6 +122,7 @@ begin
      call it normalize_primitive_extract_aux (normalize_primitive_extract with an auxilliary match expression)
 
     bonus: the things are probably all in NNF form and we don't  need to expand MatchOr in code!
+      and we can hopefully get rid of the andfold_MatchExp
     *)
 
   (*TODO move as internal to next proof*)
