@@ -3,6 +3,7 @@ imports Common_Primitive_Lemmas
 begin
 
 
+(*This is what i am asking for below*)
  definition singletonize_L4Ports :: "primitive_protocol \<Rightarrow> raw_ports \<Rightarrow> ipt_l4_ports list" where
     "singletonize_L4Ports proto pts \<equiv> map (\<lambda>p. L4Ports proto [p]) pts"
 
