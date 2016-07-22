@@ -1,7 +1,7 @@
 theory SimpleFw_Semantics
 imports SimpleFw_Syntax
-        "../../IP_Addresses/IP_Address"
-        "../../IP_Addresses/Prefix_Match"
+        "../IP_Addresses/IP_Address"
+        "../IP_Addresses/Prefix_Match"
 begin
 
 

@@ -1,6 +1,6 @@
 theory IpRoute_Parser
 imports Routing_Table 
-  "../../IP_Addresses/IP_Address_Parser"
+  "../IP_Addresses/IP_Address_Parser"
 keywords "parse_ip_route" :: thy_decl
 begin
 
