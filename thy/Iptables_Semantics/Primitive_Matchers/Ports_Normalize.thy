@@ -191,7 +191,7 @@ begin
 term Protocols_Normalize.compress_pos_protocols (*can be used on protocol list? or need an or?*)
 
   (*makes a conjunction over the input. The input is Neg portsA \<and> Neg portsB,
-      output is disjunction list. if None, the whole thing cannot match*) (*conjunction of negated protocol list*)
+      output is disjunction list. if None, the whole thing cannot match*) (*conjunction of negated protocol list disjunction of ipt_l4_ports*)
   fun l4_src_ports_conjunct_negated
     :: "ipt_l4_ports \<Rightarrow> ipt_l4_ports \<Rightarrow> (primitive_protocol list \<times> ipt_l4_ports list) option" where
     "l4_src_ports_conjunct_negated ps1 ps2 = (
