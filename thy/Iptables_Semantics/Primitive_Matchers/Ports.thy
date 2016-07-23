@@ -41,5 +41,4 @@ text\<open>A port always belongs to a protocol! We must not loose this informati
 datatype ipt_l4_ports = L4Ports primitive_protocol raw_ports
 
 
-
 end

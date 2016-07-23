@@ -1,6 +1,74 @@
 theory Ports_Normalize
-imports Common_Primitive_Lemmas
+imports Protocols_Normalize
 begin
+
+
+
+  (* [ [(1,2) \<or> (3,4)]  \<and>  [] ]*)
+  text\<open>@{typ "raw_ports \<Rightarrow> raw_ports \<Rightarrow> raw_ports"}\<close>
+  definition raw_ports_conjunct
+    :: "('a::len word \<times> 'a::len word) list \<Rightarrow> ('a::len word \<times> 'a::len word) list \<Rightarrow> ('a::len word \<times> 'a::len word) list"
+    where
+    "raw_ports_conjunct ps1 ps2 = wi2l (wordinterval_intersection (l2wi ps1) (l2wi ps2))"
+  
+  lemma raw_ports_conjunct:
+    "ports_to_set (raw_ports_conjunct ps1 ps2) = ports_to_set ps1 \<inter> ports_to_set ps2"
+    apply(simp add: raw_ports_conjunct_def)
+    by(simp add: ports_to_set_wordinterval l2wi_wi2l)
+  
+  fun l4_src_ports_conjunct
+    :: "ipt_l4_ports \<Rightarrow> ipt_l4_ports \<Rightarrow> ipt_l4_ports option" where
+    "l4_src_ports_conjunct (L4Ports proto1 ps1) (L4Ports proto2 ps2) = (
+      if
+        proto1 \<noteq> proto2
+      then
+        None
+      else Some (L4Ports proto1 (raw_ports_conjunct ps1 ps2))
+      (*let ps' = (raw_ports_conjunct ps1 ps2) in
+      if ps' = [] then None
+      else
+      Some (L4Ports proto1 ps')*)
+      )"
+
+
+  lemma l4_src_ports_conjunct_Some:
+  fixes p :: "('i::len, 'a) tagged_packet_scheme"
+  assumes generic: "primitive_matcher_generic \<beta>"
+  shows "l4_src_ports_conjunct ps1 ps2 = Some ps' \<Longrightarrow> 
+         matches (\<beta>, \<alpha>) (Match (Src_Ports ps')) a p =
+          (matches (\<beta>, \<alpha>) (Match (Src_Ports ps1)) a p \<and> matches (\<beta>, \<alpha>) (Match (Src_Ports ps2)) a p)"
+    apply(cases ps1, cases ps2, cases ps', rename_tac pr1 po1 pr2 po2 pr3 po3)
+    apply(simp)
+    apply(case_tac "pr1 \<noteq> pr2")
+     apply(simp; fail)
+    apply(simp)
+    apply(simp add: bunch_of_lemmata_about_matches primitive_matcher_generic.Ports_single[OF generic])
+    using raw_ports_conjunct by auto
+  
+  lemma l4_src_ports_conjunct_None:
+  fixes p :: "('i::len, 'a) tagged_packet_scheme"
+  assumes generic: "primitive_matcher_generic \<beta>"
+  shows "l4_src_ports_conjunct ps1 ps2 = None \<Longrightarrow> 
+         \<not> (matches (\<beta>, \<alpha>) (Match (Src_Ports ps1)) a p \<and> matches (\<beta>, \<alpha>) (Match (Src_Ports ps2)) a p)"
+    apply(cases ps1, cases ps2)
+     apply(simp add: bunch_of_lemmata_about_matches primitive_matcher_generic.Ports_single[OF generic])
+     apply fastforce
+    done
+  
+  declare l4_src_ports_conjunct.simps[simp del]
+
+  corollary l4_src_ports_conjunct:
+  fixes p :: "('i::len, 'a) tagged_packet_scheme"
+  assumes generic: "primitive_matcher_generic \<beta>"
+  shows "(matches (\<beta>, \<alpha>) (Match (Src_Ports ps1)) a p \<and> matches (\<beta>, \<alpha>) (Match (Src_Ports ps2)) a p)
+        \<longleftrightarrow>
+        (case l4_src_ports_conjunct ps1 ps2 of None \<Rightarrow> False | Some ps' \<Rightarrow> matches (\<beta>, \<alpha>) (Match (Src_Ports ps')) a p)"
+    apply(cases "l4_src_ports_conjunct ps1 ps2")
+     using l4_src_ports_conjunct_None[OF generic] l4_src_ports_conjunct_Some[OF generic]
+     by simp+
+
+ (*TODO: rename to L4 Ports Normalizes and move stuff to ports!*)
+
 
 
 (*This is what i am asking for below*)
@@ -18,21 +86,25 @@ begin
 
 
 (*just another attempt, same stuff below*)
-  fun l4_src_ports_normalize_negate :: "ipt_l4_ports \<Rightarrow> (('i::len common_primitive) match_expr \<times> ipt_l4_ports list)" where
+  text\<open>Negate the match on one @{const L4Ports}.\<close>
+
+  (* Version 1: returns a list which corresponds to a disjunction. unhandy!
+
+  (*Output: disjunction over the the things in the tuple!*)
+  fun l4_src_ports_normalize_negate :: "ipt_l4_ports \<Rightarrow> (primitive_protocol \<times> ipt_l4_ports list)" where
     "l4_src_ports_normalize_negate (L4Ports proto pts) =
           (
-            MatchNot (Match (Prot (Proto proto))),
+            proto,
             (singletonize_L4Ports proto (raw_ports_invert pts))
           )"
-
-
 
   lemma l4_src_ports_normalize_negate:
   fixes p :: "('i::len, 'a) tagged_packet_scheme"
   assumes generic: "primitive_matcher_generic \<beta>"
       and sports: "(protocol, ports) = (l4_src_ports_normalize_negate src_ports)"
-  shows "match_list (\<beta>, \<alpha>) (map (Match \<circ> Src_Ports) ports) a p \<or> matches (\<beta>, \<alpha>) protocol a p \<longleftrightarrow>
-          matches (\<beta>, \<alpha>) (MatchNot (Match (Src_Ports src_ports))) a p"
+  shows "match_list (\<beta>, \<alpha>) (map (Match \<circ> Src_Ports) ports) a p \<or>
+         matches (\<beta>, \<alpha>) (MatchNot (Match (Prot (Proto protocol)))) a p \<longleftrightarrow>
+           matches (\<beta>, \<alpha>) (MatchNot (Match (Src_Ports src_ports))) a p"
     (*apply(simp add: match_list_matches)*)
     apply(cases src_ports, rename_tac proto pts)
     apply(simp)
@@ -43,7 +115,54 @@ begin
     apply(simp add: primitive_matcher_generic.Ports_single_not[OF generic])
     apply(simp add: raw_ports_invert)
     by blast
+  
+  lemma l4_src_ports_normalize_negate_cor:
+  fixes p :: "('i::len, 'a) tagged_packet_scheme"
+  assumes generic: "primitive_matcher_generic \<beta>"
+      and sports: "(protocol, ports) = (l4_src_ports_normalize_negate src_ports)"
+  shows "match_list (\<beta>, \<alpha>) (MatchNot (Match (Prot (Proto protocol))) # map (Match \<circ> Src_Ports) ports) a p \<longleftrightarrow>
+           matches (\<beta>, \<alpha>) (MatchNot (Match (Src_Ports src_ports))) a p"
+    apply(subst l4_src_ports_normalize_negate[OF generic sports, symmetric])
+    by(simp)
 
+  *)
+
+  text\<open>Negate the match on one @{const L4Ports}.\<close>
+  (*Output: disjunction over the the things in the tuple!*)
+  fun l4_src_ports_negate :: "ipt_l4_ports \<Rightarrow> (primitive_protocol \<times> ipt_l4_ports)" where
+    "l4_src_ports_negate (L4Ports proto pts) =
+          (
+            proto,
+            (L4Ports proto (raw_ports_invert pts))
+          )"
+
+  lemma l4_src_ports_negate:
+  fixes p :: "('i::len, 'a) tagged_packet_scheme"
+  assumes generic: "primitive_matcher_generic \<beta>"
+      and sports: "(protocol, port) = (l4_src_ports_negate src_ports)"
+  shows
+    "matches (\<beta>, \<alpha>) (Match (Src_Ports port)) a p \<or> matches (\<beta>, \<alpha>) (MatchNot (Match (Prot (Proto protocol)))) a p
+        \<longleftrightarrow>
+     matches (\<beta>, \<alpha>) (MatchNot (Match (Src_Ports src_ports))) a p"
+    (*apply(simp add: match_list_matches)*)
+    apply(cases src_ports, rename_tac proto pts)
+    apply(simp)
+    apply(insert sports)
+    apply(simp)
+    apply(simp add: bunch_of_lemmata_about_matches primitive_matcher_generic.Prot_single_not[OF generic])
+    apply(simp add: primitive_matcher_generic.Ports_single_not[OF generic])
+    apply(simp add: primitive_matcher_generic.Ports_single[OF generic])
+    apply(simp add: raw_ports_invert)
+    by blast
+  
+  lemma l4_src_ports_negate_cor:
+  fixes p :: "('i::len, 'a) tagged_packet_scheme"
+  assumes generic: "primitive_matcher_generic \<beta>"
+      and sports: "(protocol, port) = (l4_src_ports_negate src_ports)"
+  shows "match_list (\<beta>, \<alpha>) [MatchNot (Match (Prot (Proto protocol))),  Match (Src_Ports port)] a p \<longleftrightarrow>
+           matches (\<beta>, \<alpha>) (MatchNot (Match (Src_Ports src_ports))) a p"
+    apply(subst l4_src_ports_negate[OF generic sports, symmetric])
+    by(simp)
 
 (*\<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> 
  \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> 
@@ -52,9 +171,29 @@ begin
   intersection on all port ranges
 *)
 
-  (*TODO: I want to compress a negataion_type list of ipt_l4_ports*)
+term Protocols_Normalize.compress_pos_protocols (*can be used on protocol list? or need an or?*)
+
+  (*makes a conjunction over the input. The input is Neg portsA \<and> Neg portsB,
+      output is disjunction list*)
+  fun l4_src_ports_conjunct_negated
+    :: "ipt_l4_ports \<Rightarrow> ipt_l4_ports \<Rightarrow> (primitive_protocol list \<times> ipt_l4_ports list)" where
+    "l4_src_ports_conjunct_negated ps1 ps2 = (
+      let (protocol1, ports1) = (l4_src_ports_negate ps1);
+          (protocol2, ports2) = (l4_src_ports_negate ps2)
+      in if
+        protocol1 = protocol2
+      then
+        ([protocol1], raw_ports_andlist_compress [ports1, ports2])
+      else
+        ([],[])
+      )"
+
+
 
   (*git commit : this is broken*)
+
+  (*TODO: I want to compress a negataion_type list of ipt_l4_ports*)
+
   fun l4_src_ports_normalize :: "'i::len itself \<Rightarrow> ipt_l4_ports negation_type list \<Rightarrow> (('i common_primitive) match_expr \<times> ipt_l4_ports list)" where
     "l4_src_ports_normalize _ [] = (MatchAny, [])" |
     "l4_src_ports_normalize meta (Pos (L4Ports proto ps) # ss) = (
@@ -301,7 +440,7 @@ begin
 end
 
 (*Old stuff from here*)
-
+(*
 context
 begin
 
@@ -328,12 +467,16 @@ begin
   done
   *)
   
+
+
+
+
   (* [ [(1,2) \<or> (3,4)]  \<and>  [] ]*)
   text\<open>@{typ "raw_ports list \<Rightarrow> raw_ports"}\<close>
-  private definition raw_ports_andlist_compress :: "('a::len word \<times> 'a::len word) list list \<Rightarrow> ('a::len word \<times> 'a::len word) list" where
+  definition raw_ports_andlist_compress :: "('a::len word \<times> 'a::len word) list list \<Rightarrow> ('a::len word \<times> 'a::len word) list" where
     "raw_ports_andlist_compress pss = wi2l (fold (\<lambda>ps accu. (wordinterval_intersection (l2wi ps) accu)) pss wordinterval_UNIV)"
   
-  private lemma raw_ports_andlist_compress_correct: "ports_to_set (raw_ports_andlist_compress pss) = \<Inter> set (map ports_to_set pss)"
+  lemma raw_ports_andlist_compress_correct: "ports_to_set (raw_ports_andlist_compress pss) = \<Inter> set (map ports_to_set pss)"
     proof -
       { fix accu
         have "ports_to_set (wi2l (fold (\<lambda>ps accu. (wordinterval_intersection (l2wi ps) accu)) pss accu)) = (\<Inter> set (map ports_to_set pss)) \<inter> (ports_to_set (wi2l accu))"
@@ -343,9 +486,9 @@ begin
       }
       from this[of wordinterval_UNIV] show ?thesis
         unfolding raw_ports_andlist_compress_def by(simp add: ports_to_set_wordinterval l2wi_wi2l)
-    qed
-  
-  
+    qed  
+
+
   definition raw_ports_compress :: "raw_ports negation_type list \<Rightarrow> raw_ports" where
     "raw_ports_compress pss = raw_ports_andlist_compress (map raw_ports_negation_type_normalize pss)"
 
@@ -550,5 +693,5 @@ begin
    apply(simp_all)
   done
 
-end
+end*)
 end
