@@ -226,15 +226,40 @@ term Protocols_Normalize.compress_pos_protocols (*can be used on protocol list? 
     matches (\<beta>, \<alpha>) (Match (Src_Ports po1)) a p \<or> matches (\<beta>, \<alpha>) (Match (Src_Ports po2)) a p"
   apply(drule sym)
   by(simp)
+
+  lemma l4_src_ports_conjunct_negated_Some_obtain:
+    assumes "l4_src_ports_conjunct_negated x y = Some ([proto1, proto2], [po1, po2])"
+    obtains ps1 ps2 where "po1 = L4Ports proto1 ps1" and "po2 = L4Ports proto2 ps2" and "proto1 \<noteq> proto2"
+    using assms apply(simp)
+    apply(case_tac "l4_src_ports_negate x")
+    apply(case_tac "l4_src_ports_negate y")
+    apply(simp split: option.split_asm split_if_asm)
+    apply(cases x, cases y)
+    apply(simp)
+    apply(simp add: l4_src_ports_negate.simps)
+    by blast
+
+  lemma ports_proto_ausmultiplizieren_helper:
+  assumes generic: "primitive_matcher_generic \<beta>"
+  and "proto1 \<noteq> proto2"
+  shows
+   "((matches (\<beta>, \<alpha>) (Match (Src_Ports (L4Ports proto1 ps1))) a p \<or> matches (\<beta>, \<alpha>) (MatchNot (Match (Prot (Proto proto1)))) a p) \<and>
+     (matches (\<beta>, \<alpha>) (Match (Src_Ports (L4Ports proto2 ps2))) a p \<or> matches (\<beta>, \<alpha>) (MatchNot (Match (Prot (Proto proto2)))) a p))
+     \<longleftrightarrow>
+     (matches (\<beta>, \<alpha>) (MatchNot (Match (Prot (Proto proto1)))) a p \<and>
+      matches (\<beta>, \<alpha>) (MatchNot (Match (Prot (Proto proto2)))) a p) \<or>
+     matches (\<beta>, \<alpha>) (Match (Src_Ports (L4Ports proto1 ps1))) a p \<or>
+     matches (\<beta>, \<alpha>) (Match (Src_Ports (L4Ports proto2 ps2))) a p"
+   apply(simp add: primitive_matcher_generic.Ports_single[OF generic]
+                   primitive_matcher_generic.Prot_single_not[OF generic])
+   using assms(2) by meson
   
   lemma l4_src_ports_conjunct_negated_Some:
   fixes p :: "('i::len, 'a) tagged_packet_scheme"
   assumes generic: "primitive_matcher_generic \<beta>"
   shows "l4_src_ports_conjunct_negated ps1 ps2 = Some (protocols, ps') \<Longrightarrow> 
-         ((*match_list (\<beta>, \<alpha>) (map (MatchNot \<circ> Match \<circ> Prot \<circ> Proto) protocols) a p*)
-          matches (\<beta>, \<alpha>) (alist_and (map (Neg \<circ> Prot \<circ> Proto) protocols)) a p
+         (matches (\<beta>, \<alpha>) (alist_and (map (Neg \<circ> Prot \<circ> Proto) protocols)) a p
           \<or>
-          (*matches (\<beta>, \<alpha>) (Match (Src_Ports ps')) a p*)
           match_list (\<beta>, \<alpha>) (map (Match \<circ> Src_Ports) ps') a p)
            \<longleftrightarrow>
           (\<not> matches (\<beta>, \<alpha>) (Match (Src_Ports ps1)) a p \<and> \<not> matches (\<beta>, \<alpha>) (Match (Src_Ports ps2)) a p)"
@@ -263,6 +288,17 @@ term Protocols_Normalize.compress_pos_protocols (*can be used on protocol list? 
     apply(subst po1po2_is_ps_helper)
      apply blast (*po1' po2'*)
     (*Could work but we need to show that protocol \<and> ports which are unequal protocols are false*)
+    apply(case_tac po1', case_tac po2', rename_tac x1 x1' x2 x2')
+    apply(simp)
+    apply(subgoal_tac "x1=proto1")
+     apply(subgoal_tac "x2=proto2")
+      apply(simp)
+      thm ports_proto_ausmultiplizieren_helper[OF generic, where \<alpha>=\<alpha> and a=a and p=p]
+      apply(subst ports_proto_ausmultiplizieren_helper[OF generic, where \<alpha>=\<alpha> and a=a and p=p])
+       apply(simp; fail)
+      apply(simp; fail)
+     apply(simp)
+    (*follows from l4_src_ports_conjunct_negated_Some_obtain but needs a better proof style*)
    oops
 
   (*git commit : this is broken*)
