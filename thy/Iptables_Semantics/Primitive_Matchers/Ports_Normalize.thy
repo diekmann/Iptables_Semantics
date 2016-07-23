@@ -24,10 +24,8 @@ begin
       then
         None
       else Some (L4Ports proto1 (raw_ports_conjunct ps1 ps2))
-      (*let ps' = (raw_ports_conjunct ps1 ps2) in
-      if ps' = [] then None
-      else
-      Some (L4Ports proto1 ps')*)
+      (*raw_ports_conjunct ps1 ps2 can still return an empty,impossible i.e. [(0,-1)] range
+        TODO: this could be further optimized here to return None more often*)
       )"
 
 
@@ -164,6 +162,25 @@ begin
     apply(subst l4_src_ports_negate[OF generic sports, symmetric])
     by(simp)
 
+  lemma l4_src_ports_negate_helper: (*TODO: deduplicate*)
+  fixes p :: "('i::len, 'a) tagged_packet_scheme"
+  assumes generic: "primitive_matcher_generic \<beta>"
+      and sports: "(l4_src_ports_negate src_ports) = (protocol, port)"
+  shows
+    "matches (\<beta>, \<alpha>) (Match (Src_Ports port)) a p \<or> matches (\<beta>, \<alpha>) (MatchNot (Match (Prot (Proto protocol)))) a p
+        \<longleftrightarrow>
+     \<not> matches (\<beta>, \<alpha>) (Match (Src_Ports src_ports)) a p"
+    apply(cases src_ports, rename_tac proto pts)
+    apply(simp)
+    apply(insert sports[symmetric])
+    apply(simp)
+    apply(simp add: bunch_of_lemmata_about_matches primitive_matcher_generic.Prot_single_not[OF generic])
+    apply(simp add: primitive_matcher_generic.Ports_single[OF generic])
+    apply(simp add: raw_ports_invert)
+    by blast
+
+  declare l4_src_ports_negate.simps[simp del]
+
 (*\<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> 
  \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> \<And>  \<And> \<And> 
   BIG FAT TODO: optimize away the impossible matches on ports, do intersect on all
@@ -174,19 +191,81 @@ begin
 term Protocols_Normalize.compress_pos_protocols (*can be used on protocol list? or need an or?*)
 
   (*makes a conjunction over the input. The input is Neg portsA \<and> Neg portsB,
-      output is disjunction list*)
+      output is disjunction list. if None, the whole thing cannot match*) (*conjunction of negated protocol list*)
   fun l4_src_ports_conjunct_negated
-    :: "ipt_l4_ports \<Rightarrow> ipt_l4_ports \<Rightarrow> (primitive_protocol list \<times> ipt_l4_ports list)" where
+    :: "ipt_l4_ports \<Rightarrow> ipt_l4_ports \<Rightarrow> (primitive_protocol list \<times> ipt_l4_ports list) option" where
     "l4_src_ports_conjunct_negated ps1 ps2 = (
       let (protocol1, ports1) = (l4_src_ports_negate ps1);
-          (protocol2, ports2) = (l4_src_ports_negate ps2)
-      in if
+          (protocol2, ports2) = (l4_src_ports_negate ps2);
+          maybe_ports = l4_src_ports_conjunct ports1 ports2
+      in case maybe_ports of None \<Rightarrow> None
+                          |  Some ports' \<Rightarrow>
+      if
         protocol1 = protocol2
       then
-        ([protocol1], raw_ports_andlist_compress [ports1, ports2])
+        Some ([protocol1], [ports'])
       else
-        ([],[])
+        Some ([protocol1, protocol2], [ports1, ports2])
       )"
+
+  lemma proto2_is_protocols_helper:
+    "[proto2] = protocols \<Longrightarrow> matches (\<beta>, \<alpha>) (alist_and (map (Neg \<circ> Prot \<circ> Proto) protocols)) a p =
+        matches (\<beta>, \<alpha>) (MatchNot (Match (Prot (Proto proto2)))) a p"
+    apply(drule sym)
+    by(simp add: bunch_of_lemmata_about_matches)
+
+  lemma proto2proto2_is_protocols_helper: "[proto1, proto2] = protocols \<Longrightarrow> 
+    matches (\<beta>, \<alpha>) (alist_and (map (Neg \<circ> Prot \<circ> Proto) protocols)) a p \<longleftrightarrow>
+        matches (\<beta>, \<alpha>) (MatchNot (Match (Prot (Proto proto1)))) a p \<and>
+        matches (\<beta>, \<alpha>) (MatchNot (Match (Prot (Proto proto2)))) a p"
+    apply(drule sym)
+    by(simp add: bunch_of_lemmata_about_matches)
+
+  lemma l4_src_ports_conjunct_negated_Some:
+  fixes p :: "('i::len, 'a) tagged_packet_scheme"
+  assumes generic: "primitive_matcher_generic \<beta>"
+  shows "l4_src_ports_conjunct_negated ps1 ps2 = Some (protocols, ps') \<Longrightarrow> 
+         ((*match_list (\<beta>, \<alpha>) (map (MatchNot \<circ> Match \<circ> Prot \<circ> Proto) protocols) a p*)
+          matches (\<beta>, \<alpha>) (alist_and (map (Neg \<circ> Prot \<circ> Proto) protocols)) a p
+          \<or>
+          matches (\<beta>, \<alpha>) (Match (Src_Ports ps')) a p
+          (*match_list (\<beta>, \<alpha>) (map (Match \<circ> Src_Ports) ps') a p*))
+           \<longleftrightarrow>
+          (\<not> matches (\<beta>, \<alpha>) (Match (Src_Ports ps1)) a p \<and> \<not> matches (\<beta>, \<alpha>) (Match (Src_Ports ps2)) a p)"
+    apply(cases ps1, cases ps2, cases ps', rename_tac pr1 po1 pr2 po2 pr3 po3)
+    apply(simp)
+    apply(case_tac "l4_src_ports_negate (L4Ports pr1 po1)", simp)
+    apply(case_tac "l4_src_ports_negate (L4Ports pr2 po2)", simp)
+    apply(rename_tac proto1 po1' proto2 po2')
+    apply(simp split: option.split_asm split_if_asm)
+     apply(drule l4_src_ports_conjunct_Some[OF generic, where \<alpha>=\<alpha> and a=a and p=p])
+     apply(simp)
+     apply(drule l4_src_ports_negate_helper[OF generic, where \<alpha>=\<alpha> and a=a and p=p])+
+     apply(subgoal_tac "matches (\<beta>, \<alpha>) (alist_and (map (Neg \<circ> Prot \<circ> Proto) protocols)) a p =
+        matches (\<beta>, \<alpha>) (MatchNot (Match (Prot (Proto proto2)))) a p")
+      apply force
+     apply(simp add: proto2_is_protocols_helper; fail)
+
+    (*this case where protocols are not equal seems not to work*)
+    apply(drule l4_src_ports_conjunct_Some[OF generic, where \<alpha>=\<alpha> and a=a and p=p])
+    apply(simp)
+    apply(drule l4_src_ports_negate_helper[OF generic, where \<alpha>=\<alpha> and a=a and p=p])+
+    apply(subgoal_tac "matches (\<beta>, \<alpha>) (alist_and (map (Neg \<circ> Prot \<circ> Proto) protocols)) a p \<longleftrightarrow>
+        matches (\<beta>, \<alpha>) (MatchNot (Match (Prot (Proto proto1)))) a p \<and>
+        matches (\<beta>, \<alpha>) (MatchNot (Match (Prot (Proto proto2)))) a p")
+     prefer 2
+     apply(simp add: proto2proto2_is_protocols_helper; fail)
+    apply(simp)
+    try0
+     thm  l4_src_ports_negate[OF generic]
+     apply(simp add:)
+
+
+    apply(case_tac "pr1 \<noteq> pr2")
+     apply(simp; fail)
+    apply(simp)
+    apply(simp add: bunch_of_lemmata_about_matches primitive_matcher_generic.Ports_single[OF generic])
+    using raw_ports_conjunct 
 
 
 
