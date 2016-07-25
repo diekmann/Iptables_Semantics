@@ -1470,7 +1470,7 @@ proof(goal_cases)
   have la: "list_all (\<lambda>m. oiface (fst m) = ifaceAny) (lr_of_tran_fbs rt fw ifs)"
     unfolding lr_of_tran_fbs_def Let_def list_all_iff
     apply(clarify)
-    apply(drule in_fw_join_set)
+    apply(subst(asm) generalized_sfw_join_set)
     apply(clarsimp)
   using c by blast
   thus ?case
