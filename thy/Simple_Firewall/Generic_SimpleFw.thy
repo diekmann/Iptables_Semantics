@@ -21,7 +21,13 @@ lemma option2list_simps[simp]: "option2list (Some x) = [x]" "option2list (None) 
 lemma option2set_None: "option2set None = {}"
   by(simp add: option2set_def)
 
-subsection\<open>Generalized Simple firewall\<close>
+lemma option2list_map: "option2list (map_option f n) = map f (option2list n)"
+  by(simp add: option2list_def split: option.split)
+
+lemma option2set_map: "option2set (map_option f n) = f ` option2set n"
+  by(simp add: option2set_def split: option.split)
+
+section\<open>Generalized Simple firewall\<close>
 
 text\<open>The semantics of the @{term simple_fw} is quite close to @{const List.find}. 
 The idea of the generalized @{term simple_fw} semantics is that you can have anything as the 
@@ -37,19 +43,51 @@ lemma generalized_sfw_simps:
   "generalized_sfw (a # as) p = (if (case a of (m,_) \<Rightarrow> simple_matches m p) then Some a else generalized_sfw as p)"
 	unfolding generalized_sfw_def by simp_all
 
-lemma generalized_sfw_append: "generalized_sfw (a @ b) p = (case generalized_sfw a p of Some x \<Rightarrow> Some x | None \<Rightarrow> generalized_sfw b p)"
+lemma generalized_sfw_append:
+  "generalized_sfw (a @ b) p = (case generalized_sfw a p of Some x \<Rightarrow> Some x
+                                                         |  None \<Rightarrow> generalized_sfw b p)"
 	by(induction a) (simp_all add: generalized_sfw_simps)
 
-lemma simple_generalized_undecided: "simple_fw fw p \<noteq> Undecided \<Longrightarrow> generalized_sfw (map simple_rule_dtor fw) p \<noteq> None" 
-	by(induction fw) (clarsimp simp add: generalized_sfw_def simple_fw_alt simple_rule_dtor_def split: prod.splits if_splits simple_action.splits simple_rule.splits)+
+lemma simple_generalized_undecided:
+  "simple_fw fw p \<noteq> Undecided \<Longrightarrow> generalized_sfw (map simple_rule_dtor fw) p \<noteq> None" 
+	by(induction fw)
+	(clarsimp simp add: generalized_sfw_def simple_fw_alt simple_rule_dtor_def
+	          split: prod.splits if_splits simple_action.splits simple_rule.splits)+
 
 
+text\<open>A matching action of the simple firewall directly corresponds to a filtering decision\<close>
+definition simple_action_to_decision :: "simple_action \<Rightarrow> state" where
+  "simple_action_to_decision a \<equiv> case a of simple_action.Accept \<Rightarrow> Decision FinalAllow
+                                     |  simple_action.Drop \<Rightarrow> Decision FinalDeny"
 
-text\<open>Joining two firewalls, i.e. a packet is send through both sequentially. \<close>
+text\<open>The @{const simple_fw} and the @{const generalized_sfw} are equal, if the state is translated appropriately.\<close>
+lemma simple_fw_iff_generalized_fw:
+  "simple_fw fw p = simple_action_to_decision a \<longleftrightarrow> (\<exists>r. generalized_sfw (map simple_rule_dtor fw) p = Some (r,a))"
+by(induction fw)
+  (clarsimp simp add: generalized_sfw_simps simple_rule_dtor_def simple_fw_alt simple_action_to_decision_def
+            split: simple_rule.splits if_splits simple_action.splits)+
+
+lemma simple_fw_iff_generalized_fw_accept:
+  "simple_fw fw p = Decision FinalAllow \<longleftrightarrow> (\<exists>r. generalized_sfw (map simple_rule_dtor fw) p = Some (r, Accept))"
+  by(fact simple_fw_iff_generalized_fw[where a = simple_action.Accept,
+                                       unfolded simple_action_to_decision_def simple_action.simps])
+lemma simple_fw_iff_generalized_fw_drop:
+  "simple_fw fw p = Decision FinalDeny \<longleftrightarrow> (\<exists>r. generalized_sfw (map simple_rule_dtor fw) p = Some (r, Drop))"
+  by(fact simple_fw_iff_generalized_fw[where a = simple_action.Drop,
+                                       unfolded simple_action_to_decision_def simple_action.simps])
+
+
+subsection\<open>Joining two firewalls, i.e. a packet is send through both sequentially.\<close>
 definition generalized_fw_join
   :: "('i::len simple_match \<times> 'a) list \<Rightarrow> ('i simple_match \<times> 'b) list \<Rightarrow> ('i simple_match \<times> 'a \<times> 'b) list"
   where
   "generalized_fw_join l1 l2 \<equiv> [(u,(a,b)). (m1,a) \<leftarrow> l1, (m2,b) \<leftarrow> l2, u \<leftarrow> option2list (simple_match_and m1 m2)]"
+
+lemma generalized_fw_join_1_Nil[simp]: "generalized_fw_join [] f2 = []"
+unfolding generalized_fw_join_def by(induction f2) simp+
+
+lemma generalized_fw_join_2_Nil[simp]: "generalized_fw_join f1 [] = []"
+unfolding generalized_fw_join_def by(induction f1) simp+
 
 lemma generalized_fw_join_cons_1:
   "generalized_fw_join ((am,ad) # l1) l2 =
@@ -59,7 +97,9 @@ unfolding generalized_fw_join_def by(simp)
 lemma generalized_fw_join_1_nomatch:
   "\<not> simple_matches am p \<Longrightarrow>
     generalized_sfw [(u,(ad,b)). (m2,b) \<leftarrow> l2, u \<leftarrow> option2list (simple_match_and am m2)] p = None"
-	by(induction l2) (clarsimp simp add: generalized_sfw_simps generalized_sfw_append option2list_def simple_match_and_SomeD split: prod.splits option.splits)+
+	by(induction l2)
+	(clarsimp simp add: generalized_sfw_simps generalized_sfw_append option2list_def simple_match_and_SomeD
+	          split: prod.splits option.splits)+
 	
 lemma generalized_fw_join_2_nomatch:
   "\<not> simple_matches bm p \<Longrightarrow>
@@ -85,7 +125,7 @@ proof(induction as)
 		unfolding mIH
 		unfolding *
 		..
-qed(simp add: generalized_fw_join_def; fail)
+qed(simp add: generalized_fw_join_def)
 
 lemma generalized_fw_joinI:
   "\<lbrakk>generalized_sfw f1 p = Some (r1,d1); generalized_sfw f2 p = Some (r2,d2)\<rbrakk> \<Longrightarrow>
@@ -140,10 +180,6 @@ proof(induction f1)
 qed(simp add: generalized_fw_join_def generalized_sfw_simps;fail)
 
 
-lemma generalized_fw_join_2_Nil[simp]: "generalized_fw_join f1 [] = []"
-unfolding generalized_fw_join_def by(induction f1) simp_all
-lemma generalized_fw_join_1_Nil[simp]: "generalized_fw_join [] f2 = []"
-unfolding generalized_fw_join_def by(induction f2) simp_all
 
 (* The structure is nearly the same as with generalized_fw_joinI, so it should be possible to show 
    it in one proof. But I felt like this is the better way *)
@@ -187,18 +223,10 @@ proof(induction f1)
 	qed
 qed(simp add: generalized_fw_join_def generalized_sfw_simps)
 
-definition "simple_action_to_state a \<equiv> (case a of simple_action.Accept \<Rightarrow> Decision FinalAllow | simple_action.Drop \<Rightarrow> Decision FinalDeny)"
-lemma simple_fw_iff_generalized_fw: "simple_fw fw p = simple_action_to_state a \<longleftrightarrow> (\<exists>r. generalized_sfw (map simple_rule_dtor fw) p = Some (r,a))"
-by(induction fw) (clarsimp simp add: generalized_sfw_simps simple_rule_dtor_def simple_fw_alt simple_action_to_state_def split: simple_rule.splits if_splits simple_action.splits)+
+lemma generalized_sfw_mapsnd[simp]:
+  "generalized_sfw (map (apsnd f) fw) p = map_option (apsnd f) (generalized_sfw fw p)"
+	by(induction fw) (simp add: generalized_sfw_simps split: prod.splits)+
 
-lemmas simple_fw_iff_generalized_fw_accept = simple_fw_iff_generalized_fw[where a = simple_action.Accept, unfolded simple_action_to_state_def simple_action.simps]
-lemmas simple_fw_iff_generalized_fw_drop = simple_fw_iff_generalized_fw[where a = simple_action.Drop, unfolded simple_action_to_state_def simple_action.simps]
-
-lemma generalized_sfw_mapsnd[simp]: "generalized_sfw (map (apsnd f) fw) p = map_option (apsnd f) (generalized_sfw fw p)"
-	by(induction fw) (simp_all add: generalized_sfw_simps split: prod.splits)
-
-definition "generalized_sfw_conjunct_i t \<equiv> (case t of (a,b) \<Rightarrow> (case a of simple_action.Accept \<Rightarrow> b | simple_action.Drop \<Rightarrow> simple_action.Drop))"
-definition "generalized_sfw_conjunct_o \<equiv> map (apsnd generalized_sfw_conjunct_i)"
 
 text\<open>We imagine two firewalls are positioned directly after each other.
       The first one has ruleset rs1 installed, the second one has ruleset rs2 installed.
@@ -227,28 +255,39 @@ proof -
   done
 qed
 
+
+
 theorem simple_fw_join2:
-    "simple_fw rs1 p = Decision FinalAllow \<and> simple_fw rs2 p = Decision FinalAllow \<longleftrightarrow>
-       map_option snd (generalized_sfw (generalized_sfw_conjunct_o
-       	(generalized_fw_join (map simple_rule_dtor rs1) (map simple_rule_dtor rs2))) p) = Some simple_action.Accept"
+  --\<open>translates a @{text "(match, action1, action2)"} tuple of the joined generalized
+     firewall to a @{typ "'i::len simple_rule list"}. The two actions are translated such
+     that you only get @{const Accept} if both actions are @{const Accept}\<close>
+  defines "to_simple_rule_list \<equiv> map (apsnd (\<lambda>(a,b) \<Rightarrow> (case a of Accept \<Rightarrow> b
+                                                               |  Drop \<Rightarrow> Drop)))"
+  shows "simple_fw rs1 p = Decision FinalAllow \<and> simple_fw rs2 p = Decision FinalAllow \<longleftrightarrow>
+         (\<exists>m. (generalized_sfw (to_simple_rule_list
+          (generalized_fw_join (map simple_rule_dtor rs1) (map simple_rule_dtor rs2))) p) = Some (m, simple_action.Accept))"
 unfolding simple_fw_iff_generalized_fw_accept
 	apply(rule)
 	 apply(clarify)
 	 apply(drule (1) generalized_fw_joinI)
-	 apply(clarsimp simp add: generalized_sfw_conjunct_o_def generalized_sfw_conjunct_i_def;fail)
-	apply(clarsimp simp add: generalized_sfw_conjunct_o_def generalized_sfw_conjunct_i_def)
+	 apply(clarsimp simp add: to_simple_rule_list_def; fail)
+	apply(clarsimp simp add: to_simple_rule_list_def)
 	apply(drule generalized_fw_joinD)
 	apply(clarsimp split: if_splits simple_action.splits)
 done
 
-lemma concat_map_foldr: "concat (map (\<lambda>x. f x) l) = foldr (\<lambda>x. op @ (f x)) l []"
-by(induction l) simp_all
 
-lemma generalized_fw_join_1_1: "generalized_fw_join [(m1,d1)] fw2 = foldr (\<lambda>(m2,d2). op @ (case simple_match_and m1 m2 of None \<Rightarrow> [] | Some mu \<Rightarrow> [(mu,d1,d2)])) fw2 []"
-	apply(clarsimp simp: generalized_fw_join_cons_1 option2list_def)
-	apply(unfold list.map concat_map_foldr prod.case_distrib option.case_distrib)
-	apply simp
-done
+lemma generalized_fw_join_1_1:
+  "generalized_fw_join [(m1,d1)] fw2 = foldr (\<lambda>(m2,d2). op @ (case simple_match_and m1 m2 of None \<Rightarrow> [] | Some mu \<Rightarrow> [(mu,d1,d2)])) fw2 []"
+proof -
+  have concat_map_foldr: "concat (map (\<lambda>x. f x) l) = foldr (\<lambda>x. op @ (f x)) l []" for f :: "'x \<Rightarrow> 'y list" and l
+    by(induction l) simp_all
+  show ?thesis
+	apply(simp add: generalized_fw_join_cons_1 option2list_def)
+	apply(simp add: concat_map_foldr)
+	apply(unfold list.map  prod.case_distrib option.case_distrib)
+	by simp
+qed
 
 lemma generalized_fw_split: "generalized_sfw fw p = Some r \<Longrightarrow> \<exists>fw1 fw3. fw = fw1 @ r # fw3 \<and> generalized_sfw fw1 p = None"
 	apply(induction fw rule: rev_induct)
@@ -257,14 +296,17 @@ lemma generalized_fw_split: "generalized_sfw fw p = Some r \<Longrightarrow> \<e
 	  apply blast+
 done
 
-lemma generalized_sfw_2_join_None: "generalized_sfw fw2 p = None \<Longrightarrow> generalized_sfw (generalized_fw_join fw1 fw2) p = None"
+lemma generalized_sfw_2_join_None:
+  "generalized_sfw fw2 p = None \<Longrightarrow> generalized_sfw (generalized_fw_join fw1 fw2) p = None"
 	by(induction fw2) (simp_all add: generalized_sfw_simps generalized_sfw_append generalized_fw_join_2_nomatch split: if_splits option.splits prod.splits)
 
-lemma generalized_sfw_1_join_None: "generalized_sfw fw1 p = None \<Longrightarrow> generalized_sfw (generalized_fw_join fw1 fw2) p = None"
+lemma generalized_sfw_1_join_None:
+  "generalized_sfw fw1 p = None \<Longrightarrow> generalized_sfw (generalized_fw_join fw1 fw2) p = None"
 	by(induction fw1) (simp_all add: generalized_sfw_simps generalized_fw_join_cons_1 generalized_sfw_append generalized_fw_join_1_nomatch split: if_splits option.splits prod.splits)
 
 
-lemma generalized_sfw_filterD: "generalized_sfw (filter f fw) p = Some (r,d) \<Longrightarrow> simple_matches r p \<and> f (r,d)"
+lemma generalized_sfw_filterD:
+  "generalized_sfw (filter f fw) p = Some (r,d) \<Longrightarrow> simple_matches r p \<and> f (r,d)"
 by(induction fw) (simp_all add: generalized_sfw_simps split: if_splits)
 
 
