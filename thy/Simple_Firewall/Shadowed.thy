@@ -6,7 +6,7 @@ begin
 section\<open>Optimizing Simple Firewall\<close>
 
 subsection\<open>Removing Shadowed Rules\<close>
-(*Testing, not executable*)
+text\<open>Testing, not executable\<close>
 
 text\<open>Assumes: @{term "simple_ruleset"}\<close>
 fun rmshadow :: "'i::len simple_rule list \<Rightarrow> 'i simple_packet set \<Rightarrow> 'i simple_rule list" where
@@ -85,14 +85,6 @@ corollary
   fixes p :: "'i::len simple_packet"
   shows "simple_fw (rmshadow rs UNIV) p = simple_fw (rmshadow' rs {}) p"
   using rmshadow'_sound[of p] rmshadow_sound[of p] by simp
-
-value "rmshadow [SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0::32 word, 0), dst = (0, 0), proto = Proto TCP, sports = (0, 0xFFFF), dports = (0x16, 0x16)\<rparr>
-          simple_action.Drop,
-        SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0, 0), dst = (0, 0), proto = ProtoAny, sports = (0, 0xFFFF), dports = (0, 0xFFFF)\<rparr>
-          simple_action.Accept,
-        SimpleRule \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0, 0), dst = (0, 0), proto = Proto TCP, sports = (0, 0xFFFF), dports = (0x138E, 0x138E)\<rparr>
-          simple_action.Drop] UNIV"
-
 
 
 text\<open>Previous algorithm is not executable because we have no code for @{typ "'i::len simple_packet set"}.
