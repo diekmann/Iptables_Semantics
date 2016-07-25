@@ -37,8 +37,8 @@ lemma generalized_sfw_NoneD: "generalized_sfw fw p = None \<Longrightarrow> \<fo
 
 text\<open>A matching action of the simple firewall directly corresponds to a filtering decision\<close>
 definition simple_action_to_decision :: "simple_action \<Rightarrow> state" where
-  "simple_action_to_decision a \<equiv> case a of simple_action.Accept \<Rightarrow> Decision FinalAllow
-                                     |  simple_action.Drop \<Rightarrow> Decision FinalDeny"
+  "simple_action_to_decision a \<equiv> case a of Accept \<Rightarrow> Decision FinalAllow
+                                        |   Drop \<Rightarrow> Decision FinalDeny"
 
 text\<open>The @{const simple_fw} and the @{const generalized_sfw} are equal, if the state is translated appropriately.\<close>
 lemma simple_fw_iff_generalized_fw:
@@ -245,7 +245,7 @@ theorem simple_fw_join2:
                                                                |  Drop \<Rightarrow> Drop)))"
   shows "simple_fw rs1 p = Decision FinalAllow \<and> simple_fw rs2 p = Decision FinalAllow \<longleftrightarrow>
          (\<exists>m. (generalized_sfw (to_simple_rule_list
-          (generalized_fw_join (map simple_rule_dtor rs1) (map simple_rule_dtor rs2))) p) = Some (m, simple_action.Accept))"
+          (generalized_fw_join (map simple_rule_dtor rs1) (map simple_rule_dtor rs2))) p) = Some (m, Accept))"
 unfolding simple_fw_iff_generalized_fw_accept
 	apply(rule)
 	 apply(clarify)

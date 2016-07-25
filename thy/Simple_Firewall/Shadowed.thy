@@ -42,7 +42,10 @@ subsubsection\<open>Soundness\<close>
       by fast+
   qed
 
-
+  corollary rmshadow:
+    fixes p :: "'i::len simple_packet"
+    shows "simple_fw (rmshadow rs UNIV) p = simple_fw rs p"
+    using rmshadow_sound[of p] by simp
 
 text\<open>A different approach where we start with the empty set of packets and collect packets which are already ``matched-away''.\<close>
 fun rmshadow' :: "'i::len simple_rule list \<Rightarrow> 'i simple_packet set \<Rightarrow> 'i simple_rule list" where
@@ -99,6 +102,7 @@ text\<open>Previous algorithm is not executable because we have no code for @{ty
       Probably the BDDs which related work uses is really necessary.
 \<close>
 
+(*Drafting set operations which might be necessary for an executable implementation. But BDDs might just be the thing here.*)
 context
 begin
   private type_synonym 'i simple_packet_set = "'i simple_match list"

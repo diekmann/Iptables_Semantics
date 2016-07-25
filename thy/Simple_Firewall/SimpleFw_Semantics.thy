@@ -321,7 +321,7 @@ subsection\<open>Reality check: Validity of Simple Matches\<close>
       \<lparr>iiface = Iface ''+'', oiface = Iface ''+'', src = (0::32 word, 0), dst = (0, 0),
        proto = Proto TCP, sports = (0, 1024), dports = (0, 1024)\<rparr>"
   
-    lemma "simple_fw [SimpleRule example_simple_match1 simple_action.Drop]
+    lemma "simple_fw [SimpleRule example_simple_match1 Drop]
       \<lparr>p_iiface = '''', p_oiface = '''',  p_src = (1::32 word), p_dst = 2, p_proto = TCP, p_sport = 8,
        p_dport = 9, p_tcp_flags = {}, p_payload = ''''\<rparr> =
         Decision FinalDeny" by eval

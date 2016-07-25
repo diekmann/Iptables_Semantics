@@ -855,7 +855,8 @@ qed
       obtain m a where r: "r = SimpleRule m a" by(cases r, blast)
       
       from Cons.prems r have simple_match_ip_Accept: "\<And>s. simple_match_ip (dst m) d \<Longrightarrow>
-         runFw s d c (SimpleRule m simple_action.Accept # rs) = Decision FinalAllow \<longleftrightarrow> simple_match_ip (src m) s \<or> runFw s d c rs = Decision FinalAllow"
+         runFw s d c (SimpleRule m Accept # rs) = Decision FinalAllow \<longleftrightarrow>
+          simple_match_ip (src m) s \<or> runFw s d c rs = Decision FinalAllow"
         by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)
   
       { fix s a
@@ -866,7 +867,8 @@ qed
        } note not_simple_match_ip=this
   
       from Cons.prems r have simple_match_ip_Drop: "\<And>s. simple_match_ip (dst m) d \<Longrightarrow>
-         runFw s d c (SimpleRule m simple_action.Drop # rs) = Decision FinalAllow \<longleftrightarrow> \<not> simple_match_ip (src m) s \<and> runFw s d c rs = Decision FinalAllow"
+         runFw s d c (SimpleRule m Drop # rs) = Decision FinalAllow \<longleftrightarrow>
+          \<not> simple_match_ip (src m) s \<and> runFw s d c rs = Decision FinalAllow"
         by(simp add: simple_conn_matches_def runFw_def simple_matches.simps)
   
       show ?case
