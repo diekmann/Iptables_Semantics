@@ -1,9 +1,6 @@
 theory Iface
 imports String
-        (* Word_Lib imports: "~~/src/HOL/Library/Prefix_Order" clash! This does not give a total order. :(
-          we have to define a order by ourselves*)
-        (*"~~/src/HOL/Library/List_lexord" (*WARNING: importing lexord. TODO*)*)
-        "~~/src/HOL/Library/Char_ord" (*WARNING: importing char ord. TODO*)
+        "~~/src/HOL/Library/Char_ord" (*WARNING: importing char ord*)
 begin
 
 section\<open>Network Interfaces\<close>
@@ -11,7 +8,8 @@ section\<open>Network Interfaces\<close>
 datatype iface = Iface (iface_sel: "string")  --"no negation supported, but wildcards"
 
 
-text\<open>Just a normal lexicographical ordering on the interface strings. Used only for optimizing code.\<close>
+text\<open>Just a normal lexicographical ordering on the interface strings. Used only for optimizing code.
+     WARNING: not a semantic ordering.\<close>
 (*We cannot use List_lexord because it clashed with the Word_Lib imported ordering!*)
 instantiation iface :: linorder
 begin
@@ -49,43 +47,42 @@ begin
     apply(rule wf_measure, unfold in_measure comp_def)
     apply(simp)
     done
-   
 instance
   proof
     fix n m :: iface
     show "n < m \<longleftrightarrow> n \<le> m \<and> \<not> m \<le> n"
-      apply(induction rule: less_iface.induct)
-      apply(simp_all)
-      apply fastforce
-      done
+      proof(induction rule: less_iface.induct)
+      case 4 thus ?case by simp fastforce
+      qed(simp+)
   next
     fix n :: iface have "n = m \<Longrightarrow> n \<le> m" for m
-      apply(induction n m rule: less_eq_iface.induct)
-      apply(simp_all)
-      done
+      by(induction n m rule: less_eq_iface.induct) simp+
     thus "n \<le> n" by simp
   next
     fix n m :: iface
     show "n \<le> m \<Longrightarrow> m \<le> n \<Longrightarrow> n = m"
-      apply(induction n m rule: less_eq_iface.induct)
-        apply(simp_all)
-       using Iface_less_eq_empty apply blast
-      apply(simp split: split_if_asm)
-      done
+      proof(induction n m rule: less_eq_iface.induct)
+      case 1 thus ?case using Iface_less_eq_empty by blast
+      next
+      case 3 thus ?case by (simp split: split_if_asm)
+      qed(simp)+
   next
-    (*horrible proof!*)
     fix n m q :: iface show "n \<le> m \<Longrightarrow> m \<le> q \<Longrightarrow> n \<le> q" 
-      apply(induction n q arbitrary: m rule: less_eq_iface.induct)
-        apply(simp_all add: less_eq_empty split: split_if_asm)
-       apply(drule iface_cons_less_eq_i)
-       apply(elim exE conjE disjE)
-        apply(simp)
-       apply fastforce
-      apply(frule iface_cons_less_eq_i)
-      apply(elim exE conjE disjE)
-       apply(simp_all split: split_if_asm)
-       apply auto
-      done
+      proof(induction n q arbitrary: m rule: less_eq_iface.induct)
+      case 1 thus ?case by simp
+      next
+      case 2 thus ?case
+        apply simp
+        apply(drule iface_cons_less_eq_i)
+        apply(elim exE conjE disjE)
+         apply(simp; fail)
+        by fastforce
+      next
+      case 3 thus ?case
+        apply simp
+        apply(frule iface_cons_less_eq_i)
+         by(auto split: split_if_asm)
+      qed
   next
     fix n m :: iface show "n \<le> m \<or> m \<le> n"
       apply(induction n m rule: less_eq_iface.induct)
