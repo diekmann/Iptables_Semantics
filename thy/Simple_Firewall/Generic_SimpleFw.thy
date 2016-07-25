@@ -27,6 +27,8 @@ lemma option2list_map: "option2list (map_option f n) = map f (option2list n)"
 lemma option2set_map: "option2set (map_option f n) = f ` option2set n"
   by(simp add: option2set_def split: option.split)
 
+
+
 section\<open>Generalized Simple firewall\<close>
 
 text\<open>The semantics of the @{term simple_fw} is quite close to @{const List.find}. 
@@ -54,6 +56,12 @@ lemma simple_generalized_undecided:
 	(clarsimp simp add: generalized_sfw_def simple_fw_alt simple_rule_dtor_def
 	          split: prod.splits if_splits simple_action.splits simple_rule.splits)+
 
+lemma generalized_sfwSomeD: "generalized_sfw fw p = Some (r,d) \<Longrightarrow> (r,d) \<in> set fw \<and> simple_matches r p"
+  unfolding generalized_sfw_def
+  by(induction fw) (simp split: split_if_asm)+
+
+lemma generalized_sfw_NoneD: "generalized_sfw fw p = None \<Longrightarrow> \<forall>(a,b) \<in> set fw. \<not> simple_matches a p"
+	by(induction fw) (clarsimp simp add: generalized_sfw_simps split: if_splits)+
 
 text\<open>A matching action of the simple firewall directly corresponds to a filtering decision\<close>
 definition simple_action_to_decision :: "simple_action \<Rightarrow> state" where
@@ -304,37 +312,20 @@ lemma generalized_sfw_1_join_None:
   "generalized_sfw fw1 p = None \<Longrightarrow> generalized_sfw (generalized_fw_join fw1 fw2) p = None"
 	by(induction fw1) (simp_all add: generalized_sfw_simps generalized_fw_join_cons_1 generalized_sfw_append generalized_fw_join_1_nomatch split: if_splits option.splits prod.splits)
 
-
 lemma generalized_sfw_filterD:
   "generalized_sfw (filter f fw) p = Some (r,d) \<Longrightarrow> simple_matches r p \<and> f (r,d)"
 by(induction fw) (simp_all add: generalized_sfw_simps split: if_splits)
 
 
-context begin
-  (*TODO: this lemma is probably already somewhere*)
-  private lemma find_SomeD:
-    "List.find P xs = Some x \<Longrightarrow> P x"
-    "List.find P xs = Some x \<Longrightarrow> x\<in>set xs"
-    by (auto simp add: find_Some_iff)
-lemma generalized_sfwD: "generalized_sfw fw p = Some (r,d) \<Longrightarrow> (r,d) \<in> set fw \<and> simple_matches r p"
-unfolding generalized_sfw_def
-  using find_SomeD(1) find_SomeD(2) by fastforce
-end
-lemma generalized_sfw_NoneD: "generalized_sfw fw p = None \<Longrightarrow> \<forall>(a,b) \<in> set fw. \<not>simple_matches a p"
-	by(induction fw) (clarsimp simp add: generalized_sfw_simps split: if_splits)+
-
-lemma in_fw_join_set: "(a, b1, b2) \<in> set (generalized_fw_join f1 f2) \<Longrightarrow> \<exists>a1 a2. (a1, b1) \<in> set f1 \<and> (a2, b2) \<in> set f2 \<and> simple_match_and a1 a2 = Some a"
-unfolding generalized_fw_join_def by(clarsimp simp: option2set_def split: option.splits) blast
+lemma generalized_sfw_join_set: "(a, b1, b2) \<in> set (generalized_fw_join f1 f2) \<longleftrightarrow>
+  (\<exists>a1 a2. (a1, b1) \<in> set f1 \<and> (a2, b2) \<in> set f2 \<and> simple_match_and a1 a2 = Some a)"
+ unfolding generalized_fw_join_def
+ apply(rule iffI)
+  subgoal unfolding generalized_fw_join_def by(clarsimp simp: option2set_def split: option.splits) blast
+ by(clarsimp simp: option2set_def split: option.splits) fastforce
 
 subsection\<open>Validity\<close>
 text\<open>There's validity of matches on @{const generalized_sfw}, too, even on the join.\<close>
-lemma conjunctSomeProtoAnyD: "Some ProtoAny = simple_proto_conjunct a (Proto b) \<Longrightarrow> False"
-by(cases a) (simp_all split: if_splits)
-lemma simple_match_inject: " \<lparr>iiface = iifacea, oiface = oifacea, src = srca, dst = dsta, proto = protoa, sports = sportsa, dports = dportsa\<rparr>
-      = \<lparr>iiface = iifaceb, oiface = oifaceb, src = srcb, dst = dstb, proto = protob, sports = sportsb, dports = dportsb\<rparr> \<longleftrightarrow>
-      (iifacea = iifaceb \<and> oifacea = oifaceb \<and> srca = srcb \<and> dsta = dstb \<and> protoa = protob \<and> sportsa = sportsb \<and> dportsa = dportsb)"
-by simp
-
 
 definition gsfw_valid :: "('i::len simple_match \<times> 'c) list \<Rightarrow> bool" where
   "gsfw_valid \<equiv> list_all (simple_match_valid \<circ> fst)"
