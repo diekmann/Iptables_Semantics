@@ -7,7 +7,7 @@ imports
   No_Spoof
   "../Simple_Firewall/SimpleFw_Compliance"
   "../../Simple_Firewall/SimpleFw_toString"
-  "../../Simple_Firewall/Service_Matrices"
+  "../../Simple_Firewall/Service_Matrix"
   "../Semantics_Ternary/Optimizing" (*do we use this?*)
   "../Semantics_Goto"
   "../../Simple_Firewall/SimpleFw_toString"

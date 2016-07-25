@@ -3,7 +3,6 @@ imports Semantics_Embeddings
     Call_Return_Unfolding
     No_Spoof_Embeddings
     "Primitive_Matchers/Code_Interface"
-    "../Simple_Firewall/Service_Matrices"
 begin
 
 

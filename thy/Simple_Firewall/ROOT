@@ -6,7 +6,7 @@ session "Simple_Firewall" = IP_Addresses +
     SimpleFw_Semantics
     Generic_SimpleFw
     Shadowed
-    Service_Matrices
+    Service_Matrix
 	Simple_Packet
   document_files
     "root.tex"

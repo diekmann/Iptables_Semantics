@@ -11,7 +11,7 @@ section\<open>Partition a set by a specifc constraint\<close>
 text\<open>Will be used for the IP address space partition of a firewall.
     However, this file is completely generic in terms of sets, it only imports Main.
 
-    It will be used in @{file "../Service_Matrices.thy"}.
+    It will be used in @{file "../Service_Matrix.thy"}.
     Core idea: This file partitions @{typ "'a set set"} by some magic condition.
     Later, we will show that this magic condition implies that all IPs that have been grouped
     by the magic condition show the same behaviour for a simple firewall.\<close>

@@ -1,9 +1,9 @@
-(*  Title:      Service_Matrices.thy
+(*  Title:      Service_Matrix.thy
     Authors:    Cornelius Diekmann, Max Haslbeck
 *)
 (*IPPartitioning.thy
   Original Author: Max Haslbeck, 2015*)
-theory Service_Matrices
+theory Service_Matrix
 imports "Common/List_Product_More"
         "Common/IP_Partition_Preliminaries"
         "Common/GroupF"
