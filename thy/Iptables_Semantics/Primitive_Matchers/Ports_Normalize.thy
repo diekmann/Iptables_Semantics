@@ -319,12 +319,16 @@ datatype 'a match_compress = CannotMatch | MatchesAll | MatchExpr 'a
   lemma normalize_src_ports:
     assumes generic: "primitive_matcher_generic \<beta>"
     and n: "normalized_nnf_match m"
+    and noneg: "\<not> has_disc_negated is_Src_Ports False m"
     shows
         "match_list (\<beta>, \<alpha>) (normalize_src_ports m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
     apply(simp add: normalize_src_ports_def normalize_positive_ports_step_def)
     apply(case_tac "primitive_extractor (is_Src_Ports, src_ports_sel) m", rename_tac spts rst)
     apply(simp)
     apply(subgoal_tac "getNeg spts = []") (*needs assumption for this step *)
+     prefer 2 subgoal
+     apply(drule primitive_extractor_correct(8)[OF n wf_disc_sel_common_primitive(1)])
+      using noneg by simp+
     apply(simp)
     apply(drule primitive_extractor_correct(1)[OF n wf_disc_sel_common_primitive(1), where \<gamma>="(\<beta>, \<alpha>)" and a=a and p=p])
     apply(case_tac "l4_ports_compress (getPos spts)")
@@ -340,7 +344,7 @@ datatype 'a match_compress = CannotMatch | MatchesAll | MatchExpr 'a
      apply(simp add: match_list_matches)
      apply(simp add: bunch_of_lemmata_about_matches)
      apply(simp add: noNeg_mapNegPos_helper; fail)
-    qed
+    done
     
 
 (****)
