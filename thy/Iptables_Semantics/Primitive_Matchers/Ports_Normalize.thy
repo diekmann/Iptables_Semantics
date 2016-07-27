@@ -3,7 +3,54 @@ imports Protocols_Normalize
 begin
 
 
+(********************************** parser helper *******************************************)
 
+context
+begin
+
+  text\<open>Replace all matches on ports with the unspecified @{term 0} protocol with the given @{typ primitive_protocol}.\<close>
+  definition fill_l4_protocol_raw
+    :: "primitive_protocol \<Rightarrow> 'i::len common_primitive negation_type list \<Rightarrow> 'i common_primitive negation_type list"
+  where
+    "fill_l4_protocol_raw proto \<equiv> NegPos_map
+      (\<lambda> m. case m of Src_Ports (L4Ports x pts) \<Rightarrow> if x \<noteq> 0 then undefined else Src_Ports (L4Ports proto pts)
+                   |  Dst_Ports (L4Ports x pts) \<Rightarrow> if x \<noteq> 0 then undefined else Dst_Ports (L4Ports proto pts)
+                   |  Prot _ \<Rightarrow> undefined (*there should be no more match on the protocol if it was parsed from an iptables-save line*)
+                   | m \<Rightarrow> m
+      )"
+
+  lemma "fill_l4_protocol_raw TCP [Neg (Dst (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)), Pos (Src_Ports (L4Ports 0 [(22,22)]))] =
+          [Neg (Dst (IpAddrNetmask 0x7F000000 8)), Pos (Src_Ports (L4Ports 6 [(0x16, 0x16)]))]" by eval
+
+
+  fun fill_l4_protocol
+    :: "'i::len common_primitive negation_type list \<Rightarrow> 'i::len common_primitive negation_type list"
+  where
+    "fill_l4_protocol [] = []" |
+    "fill_l4_protocol (Pos (Prot (Proto proto)) # ms) = Pos (Prot (Proto proto)) # fill_l4_protocol_raw proto ms" |
+    "fill_l4_protocol (Pos (Src_Ports _) # _) = undefined" | (*need to find proto first*)
+    "fill_l4_protocol (Pos (Dst_Ports _) # _) = undefined" |
+    "fill_l4_protocol (m # ms) = m # fill_l4_protocol ms"
+
+
+  lemma "fill_l4_protocol [ Neg (Dst (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8))
+                                , Neg (Prot (Proto UDP))
+                                , Pos (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8))
+                                , Pos (Prot (Proto TCP))
+                                , Pos (Extra ''foo'')
+                                , Pos (Src_Ports (L4Ports 0 [(22,22)]))
+                                , Neg (Extra ''Bar'')] =
+  [ Neg (Dst (IpAddrNetmask 0x7F000000 8))
+  , Neg (Prot (Proto UDP))
+  , Pos (Src (IpAddrNetmask 0x7F000000 8))
+  , Pos (Prot (Proto TCP))
+  , Pos (Extra ''foo'')
+  , Pos (Src_Ports (L4Ports TCP [(0x16, 0x16)]))
+  , Neg (Extra ''Bar'')]" by eval
+
+end
+
+(********************************** parser helper *******************************************)
 
 
 (*TODO: move oder ich hab das schon irgendwo*)
@@ -57,6 +104,7 @@ lemma andfold_MatchExp_not_disc_negatedI:
   but we can tune performance later on
   go for correctness first!*)
 
+(*There may be fatser methods. In particular not using MatchOr might speed things up*)
 
  fun l4_src_ports_negate_one :: "ipt_l4_ports \<Rightarrow> ('i::len common_primitive) match_expr" where
     "l4_src_ports_negate_one (L4Ports proto pts) = MatchOr
