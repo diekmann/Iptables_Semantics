@@ -53,6 +53,14 @@ end
 (********************************** parser helper *******************************************)
 
 
+
+
+
+
+
+
+
+
 (*TODO: move oder ich hab das schon irgendwo*)
 (*
 fun andfold_MatchExp :: "'a list \<Rightarrow> 'a match_expr" where
@@ -390,9 +398,30 @@ datatype 'a match_compress = CannotMatch | MatchesAll | MatchExpr 'a
        apply(simp_all)
      using normalize_rewrite_negated_src_ports_not_has_disc_negated[OF n] apply blast
      done
-       
-      
-      
+
+
+
+(*TODO: die ganzen matchAnys gehoeren mal ordentlich weg!*)
+value[code] "normalize_src_ports
+                (MatchAnd (Match (Dst (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)))
+                   (MatchAnd (Match (Prot (Proto TCP)))
+                        (MatchNot (Match (Src_Ports (L4Ports UDP [(80,80)]))))
+                 ))"
+
+
+value[code] "map opt_MatchAny_match_expr (normalize_src_ports
+                (MatchAnd (Match (Dst (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)))
+                   (MatchAnd (Match (Prot (Proto TCP)))
+                        (MatchNot (Match (Src_Ports (L4Ports UDP [(80,80)]))))
+                 )))"
+
+value[code] "map opt_MatchAny_match_expr (normalize_src_ports
+                (MatchAnd (Match (Dst (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)))
+                   (MatchAnd (Match (Prot (Proto ICMP)))
+                     (MatchAnd (Match (Src_Ports (L4Ports TCP [(22,22)])))
+                        (MatchNot (Match (Src_Ports (L4Ports UDP [(80,80)]))))
+                 ))))"
+
 (****)
 
 
