@@ -76,28 +76,33 @@ lemma andfold_MatchExp_alist_and: "alist_and (map Pos ls) = andfold_MatchExp ls"
 
 fun andfold_MatchExp :: "'a match_expr list \<Rightarrow> 'a match_expr" where
   "andfold_MatchExp [] = MatchAny" |
+  "andfold_MatchExp [e] = e" |
   "andfold_MatchExp (e#es) = MatchAnd e (andfold_MatchExp es)"
 
 (*TODO: this must be somewhere, deduplicate! look for fold and MatchAnd*)
 lemma andfold_MatchExp_alist_and: "alist_and (map Pos ls) = andfold_MatchExp (map Match ls)"
   apply(induction ls)
    apply(simp)+
-  done
+  oops
 
 lemma andfold_MatchExp_matches: "matches (\<beta>, \<alpha>) (andfold_MatchExp ms) a p \<longleftrightarrow> (\<forall>m \<in> set ms. matches (\<beta>, \<alpha>) m a p)"
-  apply(induction ms)
-   apply(simp add: bunch_of_lemmata_about_matches)+
+  apply(induction ms rule: andfold_MatchExp.induct)
+    apply(simp add: bunch_of_lemmata_about_matches)+
   done
 
 lemma andfold_MatchExp_not_disc_negated_mapMatch:
   "\<not> has_disc_negated disc False (andfold_MatchExp (map (Match \<circ> C) ls))"
-  by(induction ls)(simp)+
+  apply(induction ls)
+   apply(simp; fail)
+  apply(simp)
+   apply(rename_tac ls, case_tac ls)
+  by(simp)+
 
 
 lemma andfold_MatchExp_not_disc_negatedI:
   "\<forall>m \<in> set ms. \<not> has_disc_negated disc False m \<Longrightarrow> \<not> has_disc_negated disc False (andfold_MatchExp ms)"
-  apply(induction ms)
-   apply(simp)+
+  apply(induction ms rule: andfold_MatchExp.induct)
+    apply(simp)+
   done
 
 
