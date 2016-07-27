@@ -93,8 +93,6 @@ lemma andfold_MatchExp_not_disc_negatedI:
   done
 
 
-
-
 (****)
 (*new idea: first, remove all negated matches, then normalize_nnf
   then only work with primitve extratctor on positive ones.
@@ -135,8 +133,6 @@ lemma andfold_MatchExp_not_disc_negatedI:
   
   declare l4_src_ports_negate_one.simps[simp del]
 
-  lemma "\<not> has_disc_negated disc t m \<Longrightarrow> \<forall>m' \<in> set (normalize_match m). \<not> has_disc_negated disc t m'"
-    by(fact i_m_giving_this_a_funny_name_so_i_can_thank_my_future_me_when_sledgehammer_will_find_this_one_day)
     
   value "normalize_match (l4_src_ports_negate_one (L4Ports TCP [(22,22),(80,90)]))"
 
@@ -157,11 +153,13 @@ lemma andfold_MatchExp_not_disc_negatedI:
         let (spts, rst) = primitive_extractor (is_Src_Ports, src_ports_sel) m
         in MatchAnd
             (andfold_MatchExp (map l4_src_ports_negate_one (getNeg spts)))
-            (MatchAnd (andfold_MatchExp (map (Match \<circ> Src_Ports) (getPos spts))) rst)"
+            (MatchAnd
+              (andfold_MatchExp (map (Match \<circ> Src_Ports) (getPos spts))) (*TODO: compress all the positive ports into one!*)
+            rst)"
   
   lemma
   assumes generic: "primitive_matcher_generic \<beta>"  and n: "normalized_nnf_match m"
-  shows "matches (\<beta>, \<alpha>) m a p \<longleftrightarrow> matches (\<beta>, \<alpha>) (rewrite_negated_src_ports m) a p"
+  shows "matches (\<beta>, \<alpha>) (rewrite_negated_src_ports m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
   apply(simp add: rewrite_negated_src_ports_def)
   apply(case_tac "primitive_extractor (is_Src_Ports, src_ports_sel) m", rename_tac spts rst)
   apply(simp)
@@ -190,11 +188,160 @@ lemma andfold_MatchExp_not_disc_negatedI:
     using has_disc_negated_has_disc by blast
     
 
+  lemma "\<not> has_disc_negated disc t m \<Longrightarrow> \<forall>m' \<in> set (normalize_match m). \<not> has_disc_negated disc t m'"
+    by(fact i_m_giving_this_a_funny_name_so_i_can_thank_my_future_me_when_sledgehammer_will_find_this_one_day)
+
+  corollary normalize_rewrite_negated_src_ports_not_has_disc_negated:
+  assumes n: "normalized_nnf_match m"
+  shows "\<forall>m' \<in> set (normalize_match (rewrite_negated_src_ports m)). \<not> has_disc_negated is_Src_Ports False m'"
+    apply(rule i_m_giving_this_a_funny_name_so_i_can_thank_my_future_me_when_sledgehammer_will_find_this_one_day)
+    apply(rule rewrite_negated_src_ports_not_has_disc_negated)
+    using n by simp
 
 
 
 
 
+
+(*TODO: move to generic place and use? ? ? *)
+datatype 'a match_compress = CannotMatch | MatchesAll | MatchExpr 'a
+
+
+
+(*compressing positive matches on ports into a single match*)
+
+  fun l4_ports_compress :: "ipt_l4_ports list \<Rightarrow> ipt_l4_ports match_compress" where
+    "l4_ports_compress [] = MatchesAll" | 
+    "l4_ports_compress [ps] = MatchExpr ps" |
+    "l4_ports_compress (L4Ports proto1 ps1 # L4Ports proto2 ps2 # pss) =
+      (if
+          proto1 \<noteq> proto2
+       then
+         CannotMatch
+       else
+         l4_ports_compress (L4Ports proto1 (wi2l (wordinterval_intersection (l2wi ps1) (l2wi ps2))) # pss)
+      )"
+  
+  (*only for src*)
+  lemma raw_ports_compress_src_CannotMatch:
+  fixes p :: "('i::len, 'a) tagged_packet_scheme"
+  assumes generic: "primitive_matcher_generic \<beta>"
+  and c: "l4_ports_compress pss = CannotMatch"
+  shows "\<not> matches (\<beta>, \<alpha>) (alist_and (map (Pos \<circ> Src_Ports) pss)) a p"
+  using c apply(induction pss rule: l4_ports_compress.induct)
+    apply(simp; fail)
+   apply(simp; fail)
+  apply(simp add: primitive_matcher_generic.Ports_single[OF generic] bunch_of_lemmata_about_matches split: split_if_asm)
+   apply meson
+  by(simp add: l2wi_wi2l ports_to_set_wordinterval)
+
+  lemma l4_ports_compress_length_Matchall: "length pss > 0 \<Longrightarrow> l4_ports_compress pss \<noteq> MatchesAll"
+    by(induction pss rule: l4_ports_compress.induct) simp+
+
+  lemma raw_ports_compress_src_MatchesAll:
+  fixes p :: "('i::len, 'a) tagged_packet_scheme"
+  assumes generic: "primitive_matcher_generic \<beta>"
+  and c: "l4_ports_compress pss = MatchesAll"
+  shows "matches (\<beta>, \<alpha>) (alist_and (map (Pos \<circ> Src_Ports) pss)) a p"
+  using c apply(induction pss rule: l4_ports_compress.induct)
+    apply(simp add: bunch_of_lemmata_about_matches; fail)
+   apply(simp add: bunch_of_lemmata_about_matches; fail)
+  apply(simp split: split_if_asm)
+  using l4_ports_compress_length_Matchall by simp
+  
+
+  lemma raw_ports_compress_src_MatchExpr:
+  fixes p :: "('i::len, 'a) tagged_packet_scheme"
+  assumes generic: "primitive_matcher_generic \<beta>"
+  and c: "l4_ports_compress pss = MatchExpr m"
+  shows "matches (\<beta>, \<alpha>) (Match (Src_Ports m)) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) (alist_and (map (Pos \<circ> Src_Ports) pss)) a p"
+  using c apply(induction pss arbitrary: m rule: l4_ports_compress.induct)
+    apply(simp add: bunch_of_lemmata_about_matches; fail)
+   apply(simp add: bunch_of_lemmata_about_matches; fail)
+  apply(case_tac m)
+  apply(simp add: bunch_of_lemmata_about_matches split: split_if_asm)
+  apply(simp add: primitive_matcher_generic.Ports_single[OF generic])
+  apply(simp add: l2wi_wi2l ports_to_set_wordinterval)
+  by fastforce
+  
+
+
+
+
+
+(*now normalizing the match expression which does not have negated ports*)
+
+
+(*creates a disjunction where all interval lists only have one element*)
+  fun singletonize_L4Ports :: "ipt_l4_ports \<Rightarrow> ipt_l4_ports list" where
+    "singletonize_L4Ports (L4Ports proto pts) = map (\<lambda>p. L4Ports proto [p]) pts"
+
+  lemma singletonize_L4Ports: assumes generic: "primitive_matcher_generic \<beta>"
+   shows "match_list (\<beta>, \<alpha>) (map (Match \<circ> Src_Ports) (singletonize_L4Ports pts)) a p \<longleftrightarrow> 
+    matches (\<beta>, \<alpha>) (Match (Src_Ports pts)) a p"
+    apply(cases pts)
+    apply(simp add: match_list_matches primitive_matcher_generic.Ports_single[OF generic])
+    apply(simp add: ports_to_set)
+    by auto
+
+
+
+
+
+
+ 
+  text\<open>Normalizing match expressions such that at most one port will exist in it. Returns a list of match expressions (splits one firewall rule into several rules).\<close>
+  definition normalize_positive_ports_step :: "(('i::len common_primitive \<Rightarrow> bool) \<times> ('i common_primitive \<Rightarrow> ipt_l4_ports)) \<Rightarrow> 
+                               (ipt_l4_ports \<Rightarrow> 'i common_primitive) \<Rightarrow>
+                               'i common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where 
+    "normalize_positive_ports_step (disc_sel) C m \<equiv>
+        let (spts, rst) = primitive_extractor (disc_sel) m in
+        case (getPos spts, getNeg spts)
+          of (pspts, []) \<Rightarrow> (case l4_ports_compress pspts of CannotMatch \<Rightarrow> []
+                                                          |  MatchesAll \<Rightarrow> [rst]
+                                                          |  MatchExpr m \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (C spt)) rst)) (singletonize_L4Ports m)
+                            )
+          |  (_, _) \<Rightarrow> undefined"
+
+  (*TODO: add that we need to remove all negated ports first and the normalize again for the complete picture*)
+
+  (*TODO: names!*)
+  definition normalize_src_ports :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
+    "normalize_src_ports = normalize_positive_ports_step (is_Src_Ports, src_ports_sel) Src_Ports"  
+  definition normalize_dst_ports :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
+    "normalize_dst_ports = normalize_positive_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports"
+
+  (*TODO: into next lemma*)
+  lemma noNeg_mapNegPos_helper: "getNeg ls = [] \<Longrightarrow>
+           map (Pos \<circ> Src_Ports) (getPos ls) = NegPos_map Src_Ports ls"
+    by(induction ls rule: getPos.induct) simp+
+
+  lemma normalize_src_ports:
+    assumes generic: "primitive_matcher_generic \<beta>"
+    and n: "normalized_nnf_match m"
+    shows
+        "match_list (\<beta>, \<alpha>) (normalize_src_ports m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
+    apply(simp add: normalize_src_ports_def normalize_positive_ports_step_def)
+    apply(case_tac "primitive_extractor (is_Src_Ports, src_ports_sel) m", rename_tac spts rst)
+    apply(simp)
+    apply(subgoal_tac "getNeg spts = []") (*needs assumption for this step *)
+    apply(simp)
+    apply(drule primitive_extractor_correct(1)[OF n wf_disc_sel_common_primitive(1), where \<gamma>="(\<beta>, \<alpha>)" and a=a and p=p])
+    apply(case_tac "l4_ports_compress (getPos spts)")
+       apply(simp)
+       apply(drule raw_ports_compress_src_CannotMatch[OF generic, where \<alpha>=\<alpha> and a=a and p=p])
+       apply(simp add: noNeg_mapNegPos_helper; fail)
+      apply(simp)
+      apply(drule raw_ports_compress_src_MatchesAll[OF generic, where \<alpha>=\<alpha> and a=a and p=p])
+      apply(simp add: noNeg_mapNegPos_helper; fail)
+     apply(simp add: bunch_of_lemmata_about_matches)
+     apply(drule raw_ports_compress_src_MatchExpr[OF generic, where \<alpha>=\<alpha> and a=a and p=p])
+     apply(insert singletonize_L4Ports[OF generic, where \<alpha>=\<alpha> and a=a and p=p])
+     apply(simp add: match_list_matches)
+     apply(simp add: bunch_of_lemmata_about_matches)
+     apply(simp add: noNeg_mapNegPos_helper; fail)
+    qed
+    
 
 (****)
 
@@ -297,18 +444,6 @@ lemma andfold_MatchExp_not_disc_negatedI:
 
 
 
-(*This is what i am asking for below*)
-  definition singletonize_L4Ports :: "primitive_protocol \<Rightarrow> raw_ports \<Rightarrow> ipt_l4_ports list" where
-    "singletonize_L4Ports proto pts \<equiv> map (\<lambda>p. L4Ports proto [p]) pts"
-
-  lemma singletonize_L4Ports: assumes generic: "primitive_matcher_generic \<beta>"
-   shows "match_list (\<beta>, \<alpha>) (map (Match \<circ> Src_Ports) (singletonize_L4Ports proto pts)) a p \<longleftrightarrow> 
-    matches (\<beta>, \<alpha>) (Match (Src_Ports (L4Ports proto pts))) a p"
-    apply(simp add: singletonize_L4Ports_def)
-    apply(induction pts)
-     apply(simp add: bunch_of_lemmata_about_matches primitive_matcher_generic.Ports_single[OF generic]; fail)
-    apply(simp add: match_list_matches bunch_of_lemmata_about_matches primitive_matcher_generic.Ports_single[OF generic])
-    by auto
 
 
 (*just another attempt, same stuff below*)
