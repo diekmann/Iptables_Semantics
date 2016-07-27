@@ -306,23 +306,23 @@ datatype 'a match_compress = CannotMatch | MatchesAll | MatchExpr 'a
   (*TODO: add that we need to remove all negated ports first and the normalize again for the complete picture*)
 
   (*TODO: names!*)
-  definition normalize_src_ports :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
-    "normalize_src_ports = normalize_positive_ports_step (is_Src_Ports, src_ports_sel) Src_Ports"  
-  definition normalize_dst_ports :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
-    "normalize_dst_ports = normalize_positive_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports"
+  definition normalize_positive_src_ports :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
+    "normalize_positive_src_ports = normalize_positive_ports_step (is_Src_Ports, src_ports_sel) Src_Ports"  
+  definition normalize_positive_dst_ports :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
+    "normalize_positive_dst_ports = normalize_positive_ports_step (is_Dst_Ports, dst_ports_sel) Dst_Ports"
 
   (*TODO: into next lemma*)
   lemma noNeg_mapNegPos_helper: "getNeg ls = [] \<Longrightarrow>
            map (Pos \<circ> Src_Ports) (getPos ls) = NegPos_map Src_Ports ls"
     by(induction ls rule: getPos.induct) simp+
 
-  lemma normalize_src_ports:
+  lemma normalize_positive_src_ports:
     assumes generic: "primitive_matcher_generic \<beta>"
     and n: "normalized_nnf_match m"
     and noneg: "\<not> has_disc_negated is_Src_Ports False m"
     shows
-        "match_list (\<beta>, \<alpha>) (normalize_src_ports m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
-    apply(simp add: normalize_src_ports_def normalize_positive_ports_step_def)
+        "match_list (\<beta>, \<alpha>) (normalize_positive_src_ports m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
+    apply(simp add: normalize_positive_src_ports_def normalize_positive_ports_step_def)
     apply(case_tac "primitive_extractor (is_Src_Ports, src_ports_sel) m", rename_tac spts rst)
     apply(simp)
     apply(subgoal_tac "getNeg spts = []") (*needs assumption for this step *)
