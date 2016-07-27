@@ -428,7 +428,7 @@ datatype 'a match_compress = CannotMatch | MatchesAll | MatchExpr 'a
 
 
 
-
+(*
   (* [ [(1,2) \<or> (3,4)]  \<and>  [] ]*)
   text\<open>@{typ "raw_ports \<Rightarrow> raw_ports \<Rightarrow> raw_ports"}\<close>
   definition raw_ports_conjunct
@@ -845,6 +845,7 @@ begin
     *)
 
 end
+*)
 
 (*Old stuff from here*)
 (*
