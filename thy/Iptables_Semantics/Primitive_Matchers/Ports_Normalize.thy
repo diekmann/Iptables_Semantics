@@ -157,7 +157,7 @@ lemma andfold_MatchExp_not_disc_negatedI:
               (andfold_MatchExp (map (Match \<circ> Src_Ports) (getPos spts))) (*TODO: compress all the positive ports into one!*)
             rst)"
   
-  lemma
+  lemma rewrite_negated_src_ports:
   assumes generic: "primitive_matcher_generic \<beta>"  and n: "normalized_nnf_match m"
   shows "matches (\<beta>, \<alpha>) (rewrite_negated_src_ports m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
   apply(simp add: rewrite_negated_src_ports_def)
@@ -305,7 +305,6 @@ datatype 'a match_compress = CannotMatch | MatchesAll | MatchExpr 'a
 
   (*TODO: add that we need to remove all negated ports first and the normalize again for the complete picture*)
 
-  (*TODO: names!*)
   definition normalize_positive_src_ports :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
     "normalize_positive_src_ports = normalize_positive_ports_step (is_Src_Ports, src_ports_sel) Src_Ports"  
   definition normalize_positive_dst_ports :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
@@ -347,6 +346,53 @@ datatype 'a match_compress = CannotMatch | MatchesAll | MatchExpr 'a
     done
     
 
+
+  definition normalize_src_ports :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
+    "normalize_src_ports m = concat (map normalize_positive_src_ports (normalize_match (rewrite_negated_src_ports m)))"  
+
+  lemma in_normalized_matches: "ls \<in> set (normalize_match m) \<and> matches \<gamma> ls a p \<Longrightarrow> matches \<gamma> m a p"
+    by (meson match_list_matches matches_to_match_list_normalize)
+
+  lemma normalize_src_ports:
+    assumes generic: "primitive_matcher_generic \<beta>"
+    and n: "normalized_nnf_match m"
+    shows
+        "match_list (\<beta>, \<alpha>) (normalize_src_ports m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
+     apply(simp add: normalize_src_ports_def)
+     apply(rule)
+      subgoal
+      apply(simp add: match_list_concat)
+      apply(clarify, rename_tac ls)
+      apply(subst(asm) normalize_positive_src_ports[OF generic])
+        using normalized_nnf_match_normalize_match apply blast
+       using normalize_rewrite_negated_src_ports_not_has_disc_negated[OF n] apply blast
+      apply(subgoal_tac "normalized_nnf_match ls")
+       prefer 2
+       using normalized_nnf_match_normalize_match apply blast
+      apply(subgoal_tac "matches (\<beta>, \<alpha>) (rewrite_negated_src_ports m) a p")
+       thm rewrite_negated_src_ports[OF generic n, where \<alpha>=\<alpha> and a=a and p=p]
+       using rewrite_negated_src_ports[OF generic n, where \<alpha>=\<alpha> and a=a and p=p] apply blast
+      thm in_normalized_matches[where \<gamma>="(\<beta>,\<alpha>)" and a=a and p=p]
+      using in_normalized_matches[where \<gamma>="(\<beta>,\<alpha>)" and a=a and p=p] apply blast
+      done
+     
+     apply(subst(asm) rewrite_negated_src_ports[OF generic n, where \<alpha>=\<alpha> and a=a and p=p, symmetric])
+     apply(subst(asm) matches_to_match_list_normalize)
+     apply(subst(asm) match_list_matches)
+     apply(elim bexE, rename_tac ls)
+     apply(subgoal_tac "normalized_nnf_match ls")
+      prefer 2
+      using normalized_nnf_match_normalize_match apply blast
+     apply(simp add: match_list_concat)
+     apply(rule_tac x=ls in bexI)
+      prefer 2 apply(simp; fail)
+     apply(subst normalize_positive_src_ports[OF generic])
+       apply(simp_all)
+     using normalize_rewrite_negated_src_ports_not_has_disc_negated[OF n] apply blast
+     done
+       
+      
+      
 (****)
 
 
