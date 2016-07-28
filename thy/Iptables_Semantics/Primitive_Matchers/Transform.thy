@@ -663,7 +663,7 @@ theorem transform_normalize_primitives:
     and "unchanged disc2 \<Longrightarrow> (\<forall>a. \<not> disc2 (IIface a)) \<Longrightarrow> (\<forall>a. \<not> disc2 (OIface a)) \<Longrightarrow> (\<forall>a. \<not> disc2 (Prot a)) \<Longrightarrow>
          \<forall> m \<in> get_match ` set rs. normalized_n_primitive (disc2, sel2) f m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_n_primitive (disc2, sel2) f m"
-    and "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow>
+    and "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow> (*we may add a match on Prot? TODO; I'm still unsure about this magic*)
          \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 False m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc_negated disc3 False m"
   proof -
@@ -746,8 +746,8 @@ theorem transform_normalize_primitives:
     have normalized_dst_ips: "\<forall>m \<in> get_match ` set ?rs4.  normalized_dst_ips m" by fast
 
 
-    from normalize_rules_preserves_unrelated_normalized_n_primitive[of _ is_Src_Ports src_ports_sel "(\<lambda>pts. length pts \<le> 1)",
-         folded normalized_src_ports_def2 normalize_ports_step_def]
+    from normalize_rules_preserves_unrelated_normalized_n_primitive[of _ is_Src_Ports src_ports_sel "(\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1)",
+         folded normalized_src_ports_def2]
     have preserve_normalized_src_ports: " 
       \<forall>m\<in>get_match ` set rs. normalized_nnf_match m  \<Longrightarrow>
       \<forall>m\<in>get_match ` set rs. normalized_src_ports m \<Longrightarrow>
@@ -756,10 +756,18 @@ theorem transform_normalize_primitives:
       \<forall>m\<in>get_match ` set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs). normalized_src_ports m"
       for f :: "'c negation_type list \<Rightarrow> 'c list" and rs disc sel and C :: "'c \<Rightarrow> 'i::len common_primitive"
       by metis
-    from preserve_normalized_src_ports[OF normalized_rs1 normalized_src_ports wf_disc_sel_common_primitive(2),
+    have normalized_src_ports_rs1: "\<forall>m \<in> get_match ` set ?rs1.  normalized_src_ports m"
+      apply(rule normalize_rules_property[where P="normalized_nnf_match"])
+       using normalized_rs0 apply blast
+      using normalize_src_ports_normalized_n_primitive by blast
+    (*from preserve_normalized_src_ports[OF normalized_rs1 normalized_src_ports wf_disc_sel_common_primitive(2),
          where f2 (* f *) = "(\<lambda>me. map (\<lambda>pt. [pt]) (raw_ports_compress me))",
-         folded normalize_ports_step_def normalize_dst_ports_def]
-    have normalized_src_ports_rs2: "\<forall>m \<in> get_match ` set ?rs2.  normalized_src_ports m" by force
+         folded normalize_ports_step_def normalize_dst_ports_def]*)
+    have normalized_src_ports_rs2: "\<forall>m \<in> get_match ` set ?rs2.  normalized_src_ports m"
+      apply(rule normalize_rules_property[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_src_ports m"])
+       using normalized_rs1 normalized_src_ports_rs1 apply blast
+      apply(clarify)
+      using normalize_dst_ports_preserves_normalized_src_ports by blast (*this lemma was by sorry*)
     from preserve_normalized_src_ports[OF normalized_rs2 normalized_src_ports_rs2 wf_disc_sel_common_primitive(3),
          where f2=ipt_iprange_compress, folded normalize_src_ips_def]
     have normalized_src_ports_rs3: "\<forall>m \<in> get_match ` set ?rs3.  normalized_src_ports m" by force
@@ -767,8 +775,8 @@ theorem transform_normalize_primitives:
          where f2=ipt_iprange_compress, folded normalize_dst_ips_def]
     have normalized_src_ports_rs4: "\<forall>m \<in> get_match ` set ?rs4.  normalized_src_ports m" by force
 
-    from normalize_rules_preserves_unrelated_normalized_n_primitive[of _ is_Dst_Ports dst_ports_sel "(\<lambda>pts. length pts \<le> 1)",
-         folded normalized_dst_ports_def2 normalize_ports_step_def]
+    from normalize_rules_preserves_unrelated_normalized_n_primitive[of _ is_Dst_Ports dst_ports_sel "(\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1)",
+         folded normalized_dst_ports_def2]
     have preserve_normalized_dst_ports: "\<And>rs disc sel C f. 
       \<forall>m\<in>get_match ` set rs. normalized_nnf_match m  \<Longrightarrow>
       \<forall>m\<in>get_match ` set rs. normalized_dst_ports m \<Longrightarrow>

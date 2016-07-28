@@ -843,7 +843,74 @@ lemma "map opt_MatchAny_match_expr (normalize_src_ports
 
 
 
+(*TODO: move*)
+lemma andfold_MatchExp_normalized_n_primitive: "\<forall>m \<in> set ms. normalized_n_primitive (disc, sel) f m \<Longrightarrow>
+    normalized_n_primitive (disc, sel) f (andfold_MatchExp ms)"
+  by(induction ms rule: andfold_MatchExp.induct)(simp)+
 
+lemma "\<forall>a. \<not> disc (C a) \<Longrightarrow> normalized_n_primitive (disc, sel) f (l4_ports_negate_one C a)"
+  apply(cases a)
+  apply(simp add: l4_ports_negate_one.simps)
+  apply(simp add: MatchOr_def)
+
+
+lemma "\<forall>a. \<not> disc (C a) \<Longrightarrow> normalized_n_primitive (disc, sel) f (andfold_MatchExp (map (l4_ports_negate_one C) pts))"
+  apply(rule andfold_MatchExp_normalized_n_primitive)
+  apply(intro ballI)
+  apply(simp)
+  apply(induction pts)
+   apply(simp)
+  apply(simp)
+  apply(elim disjE)
+   apply(simp_all)
+  apply(rename_tac p ps, case_tac p)
+  apply(simp add: l4_ports_negate_one.simps)
+  apply(simp add: MatchOr_def)
+  thm andfold_MatchExp.simps
+
+(*TODO: generalize!*)
+(*TODO: split into smaller proofs, this one is very ugly*)
+
+lemma normalize_dst_ports_preserves_normalized_src_ports_hlper:
+      "normalized_nnf_match m \<Longrightarrow>
+       normalized_src_ports m \<Longrightarrow>
+       normalized_src_ports (rewrite_negated_dst_ports m)"
+  apply(simp add: rewrite_negated_dst_ports_def)
+  apply(simp add: rewrite_negated_primitives_def)
+  apply(case_tac "primitive_extractor (is_Dst_Ports, dst_ports_sel) m", rename_tac spts rst)
+  apply(simp)
+  apply(simp add: normalized_src_ports_def2)
+  apply(subgoal_tac "normalized_n_primitive (is_Src_Ports, src_ports_sel) (\<lambda>ps. case ps of L4Ports x pts \<Rightarrow> length pts \<le> 1) rst")
+   prefer 2 subgoal
+   thm primitive_extractor_correct(5)[OF _ wf_disc_sel_common_primitive(2)]
+   apply(drule primitive_extractor_correct(5)[OF _ wf_disc_sel_common_primitive(2), where P="(\<lambda>ps. case ps of L4Ports x pts \<Rightarrow> length pts \<le> 1)"])
+    apply blast
+   by(simp)
+  apply(simp)
+
+lemma normalize_dst_ports_preserves_normalized_src_ports:
+  "\<And>m m'. m' \<in> set (normalize_dst_ports m) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow>
+    normalized_src_ports m \<Longrightarrow> normalized_src_ports m'"
+  apply(simp add: normalize_dst_ports_def)
+  apply(simp add: normalize_ports_generic_def)
+  apply(elim bexE, rename_tac a)
+  apply(subgoal_tac "normalized_nnf_match a")
+   prefer 2 using normalized_nnf_match_normalize_match apply blast 
+  apply(simp add: normalize_positive_dst_ports_def)
+  apply(simp add: normalize_positive_ports_step_def)
+  apply(elim exE conjE, rename_tac rst dpts)
+  apply(drule sym) (*primitive extractor*)
+  apply(subgoal_tac "getNeg dpts = []")
+   prefer 2
+   apply (metis not_has_disc_negated_after_normalize primitive_extractor_correct(8) rewrite_negated_dst_ports_not_has_disc_negated wf_disc_sel_common_primitive(2)) 
+  apply(simp)
+  thm primitive_extractor_correct(5)[OF _ wf_disc_sel_common_primitive(2)]
+  apply(frule_tac m=a in primitive_extractor_correct(5)[OF _ wf_disc_sel_common_primitive(2)])
+   apply blast
+  apply(simp split: match_compress.split_asm)
+   apply(simp)
+  thm primitive_extractor_correct
+sorry (*!*)
 
 
 
