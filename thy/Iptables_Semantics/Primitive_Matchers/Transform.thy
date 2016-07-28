@@ -684,15 +684,12 @@ theorem transform_normalize_primitives:
       apply(rule optimize_matches_option_preserves)
       apply(rule compress_normalize_besteffort_nnf)
       by(simp_all add: normalized)
-    (*from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(1)]
-         normalize_src_ports_def normalize_ports_step_def*)
-    have normalized_rs1: "\<forall>m \<in> get_match ` set ?rs1. normalized_nnf_match m" (*by metis*)
-      apply(rule normalize_rules_preserves[OF normalized_rs0])
-      (*cont here*)
-      
-    from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(2)]
-         normalize_dst_ports_def normalize_ports_step_def
-    have normalized_rs2: "\<forall>m \<in> get_match ` set ?rs2. normalized_nnf_match m" by metis
+    from normalize_src_ports_nnf have normalized_rs1: "\<forall>m \<in> get_match ` set ?rs1. normalized_nnf_match m"
+      apply(intro normalize_rules_preserves[OF normalized_rs0])
+      by blast
+    from normalize_dst_ports_nnf have normalized_rs2: "\<forall>m \<in> get_match ` set ?rs2. normalized_nnf_match m"
+      apply(intro normalize_rules_preserves[OF normalized_rs1])
+      by blast
     from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(3)]
          normalize_src_ips_def
     have normalized_rs3: "\<forall>m \<in> get_match ` set ?rs3. normalized_nnf_match m" by metis
