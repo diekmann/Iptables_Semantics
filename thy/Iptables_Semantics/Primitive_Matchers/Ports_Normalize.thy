@@ -351,39 +351,44 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
     using has_disc_negated_has_disc by blast
     
 
-
-  (*TODO: generalize for src/dst ports!!!*)
   definition rewrite_negated_src_ports
     :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where
     "rewrite_negated_src_ports m \<equiv>
-        let (spts, rst) = primitive_extractor (is_Src_Ports, src_ports_sel) m
-        in MatchAnd
-            (andfold_MatchExp (map (l4_ports_negate_one Src_Ports) (getNeg spts)))
-            (MatchAnd
-              (andfold_MatchExp (map (Match \<circ> Src_Ports) (getPos spts))) (*TODO: compress all the positive ports into one?*)
-            rst)"
-
-  lemma rewrite_negated_primitives_src_ports:
-  "rewrite_negated_src_ports m =
           rewrite_negated_primitives (is_Src_Ports, src_ports_sel) Src_Ports l4_ports_negate_one m"
-    by(simp add: rewrite_negated_primitives_def rewrite_negated_src_ports_def)
-  
+
+  definition rewrite_negated_dst_ports
+    :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where
+    "rewrite_negated_dst_ports m \<equiv>
+          rewrite_negated_primitives (is_Dst_Ports, dst_ports_sel) Dst_Ports l4_ports_negate_one m"
+
   lemma rewrite_negated_src_ports:
   assumes generic: "primitive_matcher_generic \<beta>"  and n: "normalized_nnf_match m"
   shows "matches (\<beta>, \<alpha>) (rewrite_negated_src_ports m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
-  apply(simp add: rewrite_negated_primitives_src_ports)
+  apply(simp add: rewrite_negated_src_ports_def)
   apply(rule rewrite_negated_primitives)
-    using n wf_disc_sel_common_primitive(1) apply(simp)+
-  by(simp add: l4_ports_negate_one[OF generic])
+    by(simp add: l4_ports_negate_one[OF generic] n wf_disc_sel_common_primitive(1))+
  
+  lemma rewrite_negated_dst_ports:
+  assumes generic: "primitive_matcher_generic \<beta>"  and n: "normalized_nnf_match m"
+  shows "matches (\<beta>, \<alpha>) (rewrite_negated_dst_ports m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
+  apply(simp add: rewrite_negated_dst_ports_def)
+  apply(rule rewrite_negated_primitives)
+    by(simp add: l4_ports_negate_one[OF generic] n wf_disc_sel_common_primitive(2))+
+
 
   lemma rewrite_negated_src_ports_not_has_disc_negated:
   assumes n: "normalized_nnf_match m"
   shows  "\<not> has_disc_negated is_Src_Ports False (rewrite_negated_src_ports m)"
-    apply(simp add: rewrite_negated_primitives_src_ports)
+    apply(simp add: rewrite_negated_src_ports_def)
     apply(rule rewrite_negated_primitives_not_has_disc_negated)
-      using n wf_disc_sel_common_primitive(1) apply(simp)+
-    by(simp add: l4_ports_negate_one_not_has_disc_negated)
+      by(simp add: n wf_disc_sel_common_primitive(1) l4_ports_negate_one_not_has_disc_negated)+
+    
+  lemma rewrite_negated_dst_ports_not_has_disc_negated:
+  assumes n: "normalized_nnf_match m"
+  shows  "\<not> has_disc_negated is_Dst_Ports False (rewrite_negated_dst_ports m)"
+    apply(simp add: rewrite_negated_dst_ports_def)
+    apply(rule rewrite_negated_primitives_not_has_disc_negated)
+      by(simp add: n wf_disc_sel_common_primitive(2) l4_ports_negate_one_not_has_disc_negated)+
     
 
   lemma "\<not> has_disc_negated disc t m \<Longrightarrow> \<forall>m' \<in> set (normalize_match m). \<not> has_disc_negated disc t m'"
@@ -726,22 +731,31 @@ subsection\<open>Complete Normalization\<close>
   where
     "normalize_src_ports m = normalize_ports_generic normalize_positive_src_ports rewrite_negated_src_ports m" 
 
-  (*definition normalize_dst_ports
+  definition normalize_dst_ports
     :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list"
   where
-    "normalize_dst_ports m = normalize_ports_generic normalize_positive_dst_ports rewrite_negated_dst_ports m"*)
+    "normalize_dst_ports m = normalize_ports_generic normalize_positive_dst_ports rewrite_negated_dst_ports m"
 
   lemma normalize_src_ports:
     assumes generic: "primitive_matcher_generic \<beta>"
     and n: "normalized_nnf_match m"
-    shows
-        "match_list (\<beta>, \<alpha>) (normalize_src_ports m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
+    shows "match_list (\<beta>, \<alpha>) (normalize_src_ports m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
      apply(simp add: normalize_src_ports_def)
      apply(rule normalize_ports_generic[OF n])
-       using normalize_positive_src_ports[OF generic] apply blast
-      using rewrite_negated_src_ports[OF generic, where \<alpha>=\<alpha> and a=a and p=p] apply blast
-     using rewrite_negated_src_ports_not_has_disc_negated by blast
+       using normalize_positive_src_ports[OF generic]
+             rewrite_negated_src_ports[OF generic, where \<alpha>=\<alpha> and a=a and p=p]
+             rewrite_negated_src_ports_not_has_disc_negated by blast+
 
+
+  lemma normalize_dst_ports:
+    assumes generic: "primitive_matcher_generic \<beta>"
+    and n: "normalized_nnf_match m"
+    shows "match_list (\<beta>, \<alpha>) (normalize_dst_ports m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
+     apply(simp add: normalize_dst_ports_def)
+     apply(rule normalize_ports_generic[OF n])
+       using normalize_positive_dst_ports[OF generic]
+             rewrite_negated_dst_ports[OF generic, where \<alpha>=\<alpha> and a=a and p=p]
+             rewrite_negated_dst_ports_not_has_disc_negated by blast+
 
   lemma normalize_src_ports_normalized_n_primitive:
     assumes n:"normalized_nnf_match m"
@@ -752,6 +766,17 @@ subsection\<open>Complete Normalization\<close>
    using normalize_positive_src_ports_nnf apply blast
   unfolding normalized_src_ports_def2[symmetric]
   using normalize_positive_src_ports_normalized_n_primitive by blast
+
+
+  lemma normalize_dst_ports_normalized_n_primitive:
+    assumes n:"normalized_nnf_match m"
+    shows "\<forall>m' \<in> set (normalize_dst_ports m). normalized_dst_ports m'"
+  unfolding normalize_dst_ports_def normalized_dst_ports_def2
+  apply(rule normalize_ports_generic_normalized_n_primitive[OF n wf_disc_sel_common_primitive(2)])
+    using rewrite_negated_dst_ports_not_has_disc_negated apply blast
+   using normalize_positive_dst_ports_nnf apply blast
+  unfolding normalized_dst_ports_def2[symmetric]
+  using normalize_positive_dst_ports_normalized_n_primitive by blast
  
 
 (*TODO: die ganzen matchAnys gehoeren mal ordentlich weg!*)
