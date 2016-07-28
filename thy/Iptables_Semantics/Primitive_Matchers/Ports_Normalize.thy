@@ -288,6 +288,20 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
       apply(simp add: bunch_of_lemmata_about_matches; fail)
      by(auto simp add: bunch_of_lemmata_about_matches)
 
+
+  definition rewrite_negated_primitives
+    :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> ('b \<Rightarrow> 'a) \<Rightarrow> (*dsic_sel C*)
+        (('b \<Rightarrow> 'a) \<Rightarrow> 'b \<Rightarrow> 'a match_expr) \<Rightarrow> (*negate_one function*)
+        'a match_expr \<Rightarrow> 'a match_expr" where
+    "rewrite_negated_primitives disc_sel C negate m \<equiv>
+        let (spts, rst) = primitive_extractor disc_sel m
+        in MatchAnd
+            (andfold_MatchExp (map (negate C) (getNeg spts)))
+            (MatchAnd
+              (andfold_MatchExp (map (Match \<circ> C) (getPos spts))) (*TODO: compress all the positive ports into one?*)
+            rst)"
+
+
   (*TODO: write primitive_extractor with "let" instead of "case" more often?*)
   (*TODO: generalize for src/dst ports!!!*)
   definition rewrite_negated_src_ports
@@ -299,6 +313,10 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
             (MatchAnd
               (andfold_MatchExp (map (Match \<circ> Src_Ports) (getPos spts))) (*TODO: compress all the positive ports into one?*)
             rst)"
+
+  lemma "rewrite_negated_src_ports m =
+          rewrite_negated_primitives (is_Src_Ports, src_ports_sel) Src_Ports l4_ports_negate_one m"
+    by(simp add: rewrite_negated_primitives_def rewrite_negated_src_ports_def)
   
   lemma rewrite_negated_src_ports:
   assumes generic: "primitive_matcher_generic \<beta>"  and n: "normalized_nnf_match m"
