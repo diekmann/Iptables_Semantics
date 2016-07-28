@@ -609,12 +609,20 @@ subsection\<open>Complete Normalization\<close>
   definition normalize_dst_ports :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
     "normalize_dst_ports m = concat (map normalize_positive_dst_ports (normalize_match (rewrite_negated_dst_ports m)))" *)
 
+  lemma normalize_src_ports_generic:
+    "normalize_src_ports m = normalize_ports_generic normalize_positive_src_ports rewrite_negated_src_ports m"
+    by(simp add: normalize_src_ports_def normalize_ports_generic_def)
 
   lemma normalize_src_ports:
     assumes generic: "primitive_matcher_generic \<beta>"
     and n: "normalized_nnf_match m"
     shows
         "match_list (\<beta>, \<alpha>) (normalize_src_ports m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
+     apply(simp add: normalize_src_ports_generic)
+     apply(rule normalize_ports_generic[OF n])
+       using normalize_positive_src_ports[OF generic] apply blast
+      using rewrite_negated_src_ports[OF generic, where \<alpha>=\<alpha> and a=a and p=p] apply blast
+     using rewrite_negated_src_ports_not_has_disc_negated[OF n] oops
      apply(simp add: normalize_src_ports_def)
      apply(rule)
       subgoal
