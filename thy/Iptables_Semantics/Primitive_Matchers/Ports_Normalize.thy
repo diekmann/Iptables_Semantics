@@ -79,7 +79,7 @@ lemma andfold_MatchExp_alist_and: "alist_and (map Pos ls) = andfold_MatchExp (ma
   oops (*TODO: tune alist_and!*)
 
 lemma andfold_MatchExp_matches:
-  "matches (\<beta>, \<alpha>) (andfold_MatchExp ms) a p \<longleftrightarrow> (\<forall>m \<in> set ms. matches (\<beta>, \<alpha>) m a p)"
+  "matches \<gamma> (andfold_MatchExp ms) a p \<longleftrightarrow> (\<forall>m \<in> set ms. matches \<gamma> m a p)"
   apply(induction ms rule: andfold_MatchExp.induct)
     apply(simp add: bunch_of_lemmata_about_matches)+
   done
@@ -279,14 +279,25 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
     , Match (Src_Ports (L4Ports 6 [(0, 21), (23, 79), (91, 0xFFFF)]))]" by eval
 
 
+  (*TODO: move?*)
+  lemma alist_and_NegPos_map_getNeg_getPos_matches: 
+    "(\<forall>m\<in>set (getNeg spts). matches \<gamma> (MatchNot (Match (C m))) a p) \<and>
+     (\<forall>m\<in>set (getPos spts). matches \<gamma> (Match (C m)) a p)
+      \<longleftrightarrow>
+      matches \<gamma> (alist_and (NegPos_map C spts)) a p"
+    apply(induction spts rule: alist_and.induct)
+      apply(simp add: bunch_of_lemmata_about_matches; fail)
+     by(auto simp add: bunch_of_lemmata_about_matches)
+
+
+
   (*TODO move as internal to next proof*)
   lemma spts: 
     "(\<forall>m\<in>set (getNeg spts). matches (\<beta>, \<alpha>) (MatchNot (Match (Src_Ports m))) a p) \<and> (\<forall>m\<in>set (getPos spts). matches (\<beta>, \<alpha>) (Match (Src_Ports m)) a p)
       \<longleftrightarrow>
       matches (\<beta>, \<alpha>) (alist_and (NegPos_map Src_Ports spts)) a p"
-    apply(induction spts rule: alist_and.induct)
-      apply(simp add: bunch_of_lemmata_about_matches; fail)
-     by(auto simp add: bunch_of_lemmata_about_matches)
+    using alist_and_NegPos_map_getNeg_getPos_matches by fast
+
 
 
   definition rewrite_negated_primitives
@@ -301,6 +312,27 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
               (andfold_MatchExp (map (Match \<circ> C) (getPos spts))) (*TODO: compress all the positive ports into one?*)
             rst)"
 
+  lemma rewrite_negated_primitives:
+  assumes n: "normalized_nnf_match m" and wf_disc_sel: "wf_disc_sel disc_sel C"
+  and negate_f: "\<forall>pts. matches \<gamma> (negate_f C pts) a p \<longleftrightarrow> matches \<gamma> (MatchNot (Match (C pts))) a p"
+  shows "matches \<gamma> (rewrite_negated_primitives disc_sel C negate_f m) a p \<longleftrightarrow> matches \<gamma> m a p"
+  apply(simp add: rewrite_negated_primitives_def)
+  apply(case_tac "primitive_extractor disc_sel m", rename_tac spts rst)
+  apply(simp)
+  apply(simp add: bunch_of_lemmata_about_matches)
+  apply(cases disc_sel, rename_tac disc sel)
+  apply(subst primitive_extractor_correct(1)[OF n _, where \<gamma>=\<gamma> and a=a and p=p, symmetric])
+    using wf_disc_sel apply(simp; fail)
+   apply(simp; fail)
+  apply(simp)
+  apply(simp add: andfold_MatchExp_matches)
+  apply(simp add: negate_f)
+  apply(subgoal_tac "matches \<gamma> (alist_and (NegPos_map C spts)) a p \<longleftrightarrow>
+          (\<forall>m\<in>set (getNeg spts). matches \<gamma> (MatchNot (Match (C m))) a p)
+          \<and> (\<forall>m\<in>set (getPos spts). matches \<gamma> (Match (C m)) a p)")
+   apply(simp; fail)
+  apply(simp add: alist_and_NegPos_map_getNeg_getPos_matches)
+  done
 
   (*TODO: write primitive_extractor with "let" instead of "case" more often?*)
   (*TODO: generalize for src/dst ports!!!*)
@@ -314,26 +346,19 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
               (andfold_MatchExp (map (Match \<circ> Src_Ports) (getPos spts))) (*TODO: compress all the positive ports into one?*)
             rst)"
 
-  lemma "rewrite_negated_src_ports m =
+  lemma rewrite_negated_primitives_src_ports:
+  "rewrite_negated_src_ports m =
           rewrite_negated_primitives (is_Src_Ports, src_ports_sel) Src_Ports l4_ports_negate_one m"
     by(simp add: rewrite_negated_primitives_def rewrite_negated_src_ports_def)
   
   lemma rewrite_negated_src_ports:
   assumes generic: "primitive_matcher_generic \<beta>"  and n: "normalized_nnf_match m"
   shows "matches (\<beta>, \<alpha>) (rewrite_negated_src_ports m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
-  apply(simp add: rewrite_negated_src_ports_def)
-  apply(case_tac "primitive_extractor (is_Src_Ports, src_ports_sel) m", rename_tac spts rst)
-  apply(simp)
-  apply(simp add: bunch_of_lemmata_about_matches)
-  apply(subst primitive_extractor_correct(1)[OF n wf_disc_sel_common_primitive(1), where \<gamma>="(\<beta>, \<alpha>)" and a=a and p=p, symmetric])
-   apply(simp; fail)
-  apply(simp add: andfold_MatchExp_matches)
-  apply(simp add: l4_ports_negate_one[OF generic])
-  apply(subgoal_tac "matches (\<beta>, \<alpha>) (alist_and (NegPos_map Src_Ports spts)) a p \<longleftrightarrow>
-          (\<forall>m\<in>set (getNeg spts). matches (\<beta>, \<alpha>) (MatchNot (Match (Src_Ports m))) a p) \<and> (\<forall>m\<in>set (getPos spts). matches (\<beta>, \<alpha>) (Match (Src_Ports m)) a p)")
-   apply(simp; fail)
-  apply(simp add: spts)
-  done
+  apply(simp add: rewrite_negated_primitives_src_ports)
+  apply(rule rewrite_negated_primitives)
+    using n wf_disc_sel_common_primitive(1) apply(simp)+
+  by(simp add: l4_ports_negate_one[OF generic])
+ 
 
   lemma rewrite_negated_src_ports_not_has_disc_negated:
   assumes n: "normalized_nnf_match m"
