@@ -421,23 +421,30 @@ subsection\<open>Normalizing Positive Matches on Ports\<close>
     apply(simp add: ports_to_set)
     by auto
 
-  lemma singletonize_L4Ports_normalized_src_ports:
-    "m' \<in> (\<lambda>spt. Match (Src_Ports spt)) ` set (singletonize_L4Ports pt) \<Longrightarrow> normalized_src_ports m'"
+
+  lemma singletonize_L4Ports_normalized_generic:
+    assumes wf_disc_sel: "wf_disc_sel (disc,sel) C"
+    and "m' \<in> (\<lambda>spt. Match (C spt)) ` set (singletonize_L4Ports pt)"
+    shows "normalized_n_primitive (disc, sel) (case_ipt_l4_ports (\<lambda>x pts. length pts \<le> 1))  m'"
+    using assms
     apply(case_tac pt)
     apply(simp)
     apply(induction m')
-    by(auto)
+    by(auto simp: wf_disc_sel.simps)
+
+  lemma singletonize_L4Ports_normalized_src_ports:
+    "m' \<in> (\<lambda>spt. Match (Src_Ports spt)) ` set (singletonize_L4Ports pt) \<Longrightarrow> normalized_src_ports m'"
+    apply(simp add: normalized_src_ports_def2)
+    using singletonize_L4Ports_normalized_generic[OF wf_disc_sel_common_primitive(1)] by blast
 
   lemma singletonize_L4Ports_normalized_dst_ports:
     "m' \<in> (\<lambda>spt. Match (Dst_Ports spt)) ` set (singletonize_L4Ports pt) \<Longrightarrow> normalized_dst_ports m'"
-    apply(case_tac pt)
-    apply(simp)
-    apply(induction m')
-    by(auto)
+    apply(simp add: normalized_dst_ports_def2)
+    using singletonize_L4Ports_normalized_generic[OF wf_disc_sel_common_primitive(2)] by blast
 
   declare singletonize_L4Ports.simps[simp del]
 
-
+  (*
   lemma normalized_src_ports_singletonize_combine_rst: 
   "normalized_src_ports rst \<Longrightarrow>
     m' \<in> (\<lambda>spt. MatchAnd (Match (Src_Ports spt)) rst) ` set (singletonize_L4Ports pt) \<Longrightarrow>
@@ -445,7 +452,18 @@ subsection\<open>Normalizing Positive Matches on Ports\<close>
    unfolding normalized_src_ports_def2
    apply(rule normalized_n_primitive_MatchAnd_combine_map)
      apply(simp_all)
-   using singletonize_L4Ports_normalized_src_ports[simplified normalized_src_ports_def2] by fastforce
+   using singletonize_L4Ports_normalized_src_ports[simplified normalized_src_ports_def2] by fastforce*)
+
+
+  lemma normalized_ports_singletonize_combine_rst:
+    assumes wf_disc_sel: "wf_disc_sel (disc,sel) C"
+    shows "normalized_n_primitive (disc, sel) (case_ipt_l4_ports (\<lambda>x pts. length pts \<le> 1)) rst \<Longrightarrow>
+    m' \<in> (\<lambda>spt. MatchAnd (Match (C spt)) rst) ` set (singletonize_L4Ports pt) \<Longrightarrow>
+    normalized_n_primitive (disc, sel) (case_ipt_l4_ports (\<lambda>x pts. length pts \<le> 1)) m'"
+   apply simp
+   apply(rule normalized_n_primitive_MatchAnd_combine_map)
+     apply(simp_all)
+   using singletonize_L4Ports_normalized_generic[OF wf_disc_sel] by fastforce
 
 
   text\<open>Normalizing match expressions such that at most one port will exist in it.
@@ -479,6 +497,28 @@ subsection\<open>Normalizing Positive Matches on Ports\<close>
       using noneg by simp+
     apply(simp split: match_compress.split_asm)
     by fastforce
+
+  lemma normalize_positive_ports_step_normalized_n_primitive: 
+    assumes n: "normalized_nnf_match m"  and wf_disc_sel: "wf_disc_sel (disc,sel) C"
+    and noneg: "\<not> has_disc_negated disc False m"
+    shows "\<forall>m' \<in> set (normalize_positive_ports_step (disc,sel) C m). 
+            normalized_n_primitive (disc,sel) (\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1) m'"
+  unfolding normalize_positive_ports_step_def
+    apply(intro ballI, rename_tac m')
+    apply(simp)
+    apply(elim exE conjE, rename_tac rst spts)
+    apply(drule sym) (*switch primitive_extrartor = *)
+    apply(frule primitive_extractor_correct(2)[OF n wf_disc_sel])
+    apply(frule primitive_extractor_correct(3)[OF n wf_disc_sel])
+    apply(subgoal_tac "getNeg spts = []") (*duplication above*)
+     prefer 2 subgoal
+     apply(drule primitive_extractor_correct(8)[OF n wf_disc_sel])
+      using noneg by simp+
+    apply(subgoal_tac "normalized_n_primitive (disc,sel) (\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1) rst")
+     prefer 2 subgoal
+     by(drule(2) normalized_n_primitive_if_no_primitive)
+    apply(simp split: match_compress.split_asm)
+    using normalized_ports_singletonize_combine_rst[OF wf_disc_sel] by blast
 
   definition normalize_positive_src_ports :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
     "normalize_positive_src_ports = normalize_positive_ports_step (is_Src_Ports, src_ports_sel) Src_Ports"  
@@ -568,26 +608,18 @@ subsection\<open>Normalizing Positive Matches on Ports\<close>
     assumes n: "normalized_nnf_match m"
     and noneg: "\<not> has_disc_negated is_Src_Ports False m"
     shows "\<forall>m' \<in> set (normalize_positive_src_ports m). normalized_src_ports m'"
-  unfolding normalize_positive_src_ports_def normalize_positive_ports_step_def
-    apply(intro ballI, rename_tac m')
-    apply(simp)
-    apply(elim exE conjE, rename_tac rst spts)
-    apply(drule sym) (*switch primitive_extrartor = *)
-    apply(frule primitive_extractor_correct(2)[OF n wf_disc_sel_common_primitive(1)])
-    apply(frule primitive_extractor_correct(3)[OF n wf_disc_sel_common_primitive(1)])
-    thm primitive_extractor_correct[OF n wf_disc_sel_common_primitive(1)]
-    apply(subgoal_tac "getNeg spts = []") (*duplication above*)
-     prefer 2 subgoal
-     apply(drule primitive_extractor_correct(8)[OF n wf_disc_sel_common_primitive(1)])
-      using noneg by simp+
-    apply(subgoal_tac "normalized_src_ports rst")
-     prefer 2 subgoal
-     unfolding normalized_src_ports_def2
-     by(drule(2) normalized_n_primitive_if_no_primitive)
-    apply(simp split: match_compress.split_asm)
-    using normalized_src_ports_singletonize_combine_rst by blast
-  
+    unfolding normalized_src_ports_def2
+    unfolding normalize_positive_src_ports_def
+    using normalize_positive_ports_step_normalized_n_primitive[OF n wf_disc_sel_common_primitive(1) noneg] by blast
 
+  lemma normalize_positive_dst_ports_normalized_n_primitive: 
+    assumes n: "normalized_nnf_match m"
+    and noneg: "\<not> has_disc_negated is_Dst_Ports False m"
+    shows "\<forall>m' \<in> set (normalize_positive_dst_ports m). normalized_dst_ports m'"
+    unfolding normalized_dst_ports_def2
+    unfolding normalize_positive_dst_ports_def
+    using normalize_positive_ports_step_normalized_n_primitive[OF n wf_disc_sel_common_primitive(2) noneg] by blast
+   
 subsection\<open>Complete Normalization\<close>
 
 
