@@ -564,8 +564,8 @@ lemma remove_unknowns_generic_normalized_n_primitive: "normalized_n_primitive di
 
 
 
-
-  (*TODO: this is the generic version for this above. deduplicate!*)
+(*
+  TODO: this is the generic version for this above. deduplicate or delete
 
   (*my ports normalizer is "ipt_l4_ports \<Rightarrow> (('i::len common_primitive) match_expr \<times> ipt_l4_ports list)"
     but i want to wrap this to get a list for more global optimizations*)
@@ -602,8 +602,7 @@ lemma remove_unknowns_generic_normalized_n_primitive: "normalized_n_primitive di
         done
       finally show ?thesis by simp
     qed
-
-oops (*cont. here*)
+*)
 
 
 

@@ -137,9 +137,9 @@ subsection\<open>Basic optimisations\<close>
     (*TODO: the other IPs ...*)
     "optimize_primitive_univ (Match (IIface iface)) = (if iface = ifaceAny then MatchAny else (Match (IIface iface)))" |
     "optimize_primitive_univ (Match (OIface iface)) = (if iface = ifaceAny then MatchAny else (Match (OIface iface)))" |
-    (*TODO: introduces nwe match. probably remove this omptimization if it causes problems?*)
-    "optimize_primitive_univ (Match (Src_Ports (L4Ports proto [(s, e)]))) = (if s = 0 \<and> e = 0xFFFF then (Match (Prot (Proto proto))) else (Match (Src_Ports (L4Ports proto [(s, e)]))))" |
-    "optimize_primitive_univ (Match (Dst_Ports (L4Ports proto [(s, e)]))) = (if s = 0 \<and> e = 0xFFFF then (Match (Prot (Proto proto))) else (Match (Dst_Ports (L4Ports proto [(s, e)]))))" |
+    (*TODO: introduces new match. probably remove this omptimization if it causes problems? Add again?*)
+    (*"optimize_primitive_univ (Match (Src_Ports (L4Ports proto [(s, e)]))) = (if s = 0 \<and> e = 0xFFFF then (Match (Prot (Proto proto))) else (Match (Src_Ports (L4Ports proto [(s, e)]))))" |
+    "optimize_primitive_univ (Match (Dst_Ports (L4Ports proto [(s, e)]))) = (if s = 0 \<and> e = 0xFFFF then (Match (Prot (Proto proto))) else (Match (Dst_Ports (L4Ports proto [(s, e)]))))" |*)
     "optimize_primitive_univ (Match (Prot ProtoAny)) = MatchAny" |
     "optimize_primitive_univ (Match (L4_Flags (TCP_Flags m c))) = (if m = {} \<and> c = {} then MatchAny else (Match (L4_Flags (TCP_Flags m c))))" |
     "optimize_primitive_univ (Match (CT_State ctstate)) = (if ctstate_is_UNIV ctstate then MatchAny else Match (CT_State ctstate))" |
@@ -151,13 +151,14 @@ subsection\<open>Basic optimisations\<close>
     "optimize_primitive_univ (MatchAnd m1 m2) = MatchAnd (optimize_primitive_univ m1) (optimize_primitive_univ m2)" |
     "optimize_primitive_univ MatchAny = MatchAny"
 
-    (* no longer true because we might introduce a match on protocol if we optimize ports
+    (* no longer true if we optimize ports because we might introduce a match on protocol if we optimize ports*)
+    (*TODO: add sth similar*)
     lemma optimize_primitive_univ_unchanged_primitives:
     "optimize_primitive_univ (Match a) = (Match a) \<or> optimize_primitive_univ (Match a) = MatchAny"
       apply (induction "(Match a)" rule: optimize_primitive_univ.induct)
       apply(auto split: split_if_asm)
-      oops
-    *)
+      done
+    
   
   lemma optimize_primitive_univ_correct_matchexpr: fixes m::"'i::len common_primitive match_expr"
     shows "matches (common_matcher, \<alpha>) m = matches (common_matcher, \<alpha>) (optimize_primitive_univ m)"
@@ -167,9 +168,8 @@ subsection\<open>Basic optimisations\<close>
       hence port_range: "\<And>s e port. s = 0 \<and> e = 0xFFFF \<longrightarrow> (port::16 word) \<le> 0xFFFF" by simp
       have "ternary_ternary_eval (map_match_tac common_matcher p m) = ternary_ternary_eval (map_match_tac common_matcher p (optimize_primitive_univ m))"
         apply(induction m rule: optimize_primitive_univ.induct)
-                               apply(simp_all add: port_range match_ifaceAny ipset_from_cidr_0 ctstate_is_UNIV)
-         apply(fastforce intro: arg_cong[where f=bool_to_ternary])+
-        done
+                               by(simp_all add: port_range match_ifaceAny ipset_from_cidr_0 ctstate_is_UNIV)
+         (*by(fastforce intro: arg_cong[where f=bool_to_ternary])+ if we add pots again*)
       thus "matches (common_matcher, \<alpha>) m a p = matches (common_matcher, \<alpha>) (optimize_primitive_univ m) a p"
         by(rule matches_iff_apply_f)
       qed

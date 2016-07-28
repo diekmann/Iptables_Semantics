@@ -250,14 +250,16 @@ lemma optimize_matches_fst: "optimize_matches f (r#rs) = optimize_matches f [r]@
 by(cases r)(simp add: optimize_matches_def)
   
 
-theorem transform_optimize_dnf_strict_structure: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
-      shows "simple_ruleset (transform_optimize_dnf_strict rs)"
-      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc disc m"
-      and "\<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_nnf_match m"
-      and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_n_primitive disc_sel f m"
-      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc_negated disc neg m"
+theorem transform_optimize_dnf_strict_structure:
+  assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
+  shows "simple_ruleset (transform_optimize_dnf_strict rs)"
+  and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
+          \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc disc m"
+  and "\<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_nnf_match m"
+  and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
+        \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_n_primitive disc_sel f m"
+  and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
+        \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc_negated disc neg m"
   proof -
     show simplers_transform: "simple_ruleset (transform_optimize_dnf_strict rs)"
       unfolding transform_optimize_dnf_strict_def
@@ -387,8 +389,9 @@ theorem transform_optimize_dnf_strict_structure: assumes simplers: "simple_rules
       .
   qed
 
-theorem transform_optimize_dnf_strict: assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
-      shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+theorem transform_optimize_dnf_strict:
+  assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
+  shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_optimize_dnf_strict rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
   proof -
     let ?\<gamma>="(common_matcher, \<alpha>)"
     let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
@@ -424,12 +427,15 @@ qed
 
 subsection\<open>Abstracting over unknowns\<close>
 
-definition transform_remove_unknowns_generic :: "('a, 'packet) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where 
+definition transform_remove_unknowns_generic
+  :: "('a, 'packet) match_tac \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list"
+where 
     "transform_remove_unknowns_generic \<gamma> = optimize_matches_a (remove_unknowns_generic \<gamma>) "
+
 theorem transform_remove_unknowns_generic:
-   assumes simplers: "simple_ruleset rs"
-       and wf\<alpha>: "wf_unknown_match_tac \<alpha>" and packet_independent_\<alpha>: "packet_independent_\<alpha> \<alpha>"
-       and wf\<beta>: "packet_independent_\<beta>_unknown \<beta>"
+  assumes simplers: "simple_ruleset rs"
+      and wf\<alpha>: "wf_unknown_match_tac \<alpha>" and packet_independent_\<alpha>: "packet_independent_\<alpha> \<alpha>"
+      and wf\<beta>: "packet_independent_\<beta>_unknown \<beta>"
     shows "(\<beta>, \<alpha>),p\<turnstile> \<langle>transform_remove_unknowns_generic (\<beta>, \<alpha>) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (\<beta>, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
       and "simple_ruleset (transform_remove_unknowns_generic (\<beta>, \<alpha>) rs)"
       and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
