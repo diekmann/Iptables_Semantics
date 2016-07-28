@@ -260,10 +260,11 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
                     primitive_matcher_generic.Ports_single[OF generic]
                     raw_ports_invert)
 
-  lemma l4_src_ports_negate_one_not_has_disc_negated:
-    "\<not> has_disc_negated is_Src_Ports False (l4_ports_negate_one Src_Ports src_ports)"
-    apply(cases src_ports, rename_tac proto pts)
-    by(simp add: MatchOr_def)
+  lemma l4_ports_negate_one_not_has_disc_negated:
+    "\<not> has_disc_negated is_Src_Ports False (l4_ports_negate_one Src_Ports ports)"
+    "\<not> has_disc_negated is_Dst_Ports False (l4_ports_negate_one Dst_Ports ports)"
+    apply(case_tac [!] ports, rename_tac proto pts)
+     by(simp add: MatchOr_def)+
     
   text\<open>beware, the result is not nnf normalized!\<close>
   lemma "\<not> normalized_nnf_match (l4_ports_negate_one C ports)"
@@ -296,7 +297,7 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
         in MatchAnd
             (andfold_MatchExp (map (l4_ports_negate_one Src_Ports) (getNeg spts)))
             (MatchAnd
-              (andfold_MatchExp (map (Match \<circ> Src_Ports) (getPos spts))) (*TODO: compress all the positive ports into one!*)
+              (andfold_MatchExp (map (Match \<circ> Src_Ports) (getPos spts))) (*TODO: compress all the positive ports into one?*)
             rst)"
   
   lemma rewrite_negated_src_ports:
@@ -325,7 +326,7 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
     apply(frule primitive_extractor_correct(3)[OF n wf_disc_sel_common_primitive(1)])
     apply(intro conjI)
       apply(rule andfold_MatchExp_not_disc_negatedI)
-      apply(simp add: l4_src_ports_negate_one_not_has_disc_negated; fail)
+      apply(simp add: l4_ports_negate_one_not_has_disc_negated; fail)
      using andfold_MatchExp_not_disc_negated_mapMatch apply blast
     using has_disc_negated_has_disc by blast
     
