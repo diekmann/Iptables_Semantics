@@ -291,14 +291,6 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
 
 
 
-  (*TODO move as internal to next proof*)
-  lemma spts: 
-    "(\<forall>m\<in>set (getNeg spts). matches (\<beta>, \<alpha>) (MatchNot (Match (Src_Ports m))) a p) \<and> (\<forall>m\<in>set (getPos spts). matches (\<beta>, \<alpha>) (Match (Src_Ports m)) a p)
-      \<longleftrightarrow>
-      matches (\<beta>, \<alpha>) (alist_and (NegPos_map Src_Ports spts)) a p"
-    using alist_and_NegPos_map_getNeg_getPos_matches by fast
-
-
 
   definition rewrite_negated_primitives
     :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> ('b \<Rightarrow> 'a) \<Rightarrow> (*dsic_sel C*)
@@ -312,6 +304,7 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
               (andfold_MatchExp (map (Match \<circ> C) (getPos spts))) (*TODO: compress all the positive ports into one?*)
             rst)"
 
+  (*TODO: isar proof*)
   lemma rewrite_negated_primitives:
   assumes n: "normalized_nnf_match m" and wf_disc_sel: "wf_disc_sel disc_sel C"
   and negate_f: "\<forall>pts. matches \<gamma> (negate_f C pts) a p \<longleftrightarrow> matches \<gamma> (MatchNot (Match (C pts))) a p"
@@ -334,7 +327,22 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
   apply(simp add: alist_and_NegPos_map_getNeg_getPos_matches)
   done
 
-  (*TODO: write primitive_extractor with "let" instead of "case" more often?*)
+  lemma rewrite_negated_primitives_not_has_disc_negated:
+  assumes n: "normalized_nnf_match m" and wf_disc_sel: "wf_disc_sel (disc,sel) C"
+  and negate_f: "\<forall>pts. \<not> has_disc_negated disc False (negate_f C pts)"
+  shows  "\<not> has_disc_negated disc False (rewrite_negated_primitives (disc,sel) C negate_f m)"
+    apply(simp add: rewrite_negated_primitives_def)
+    apply(case_tac "primitive_extractor (disc,sel) m", rename_tac spts rst)
+    apply(simp)
+    apply(frule primitive_extractor_correct(3)[OF n wf_disc_sel])
+    apply(intro conjI)
+      apply(rule andfold_MatchExp_not_disc_negatedI)
+      apply(simp add: negate_f; fail)
+     using andfold_MatchExp_not_disc_negated_mapMatch apply blast
+    using has_disc_negated_has_disc by blast
+    
+
+
   (*TODO: generalize for src/dst ports!!!*)
   definition rewrite_negated_src_ports
     :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where
@@ -363,15 +371,10 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
   lemma rewrite_negated_src_ports_not_has_disc_negated:
   assumes n: "normalized_nnf_match m"
   shows  "\<not> has_disc_negated is_Src_Ports False (rewrite_negated_src_ports m)"
-    apply(simp add: rewrite_negated_src_ports_def)
-    apply(case_tac "primitive_extractor (is_Src_Ports, src_ports_sel) m", rename_tac spts rst)
-    apply(simp)
-    apply(frule primitive_extractor_correct(3)[OF n wf_disc_sel_common_primitive(1)])
-    apply(intro conjI)
-      apply(rule andfold_MatchExp_not_disc_negatedI)
-      apply(simp add: l4_ports_negate_one_not_has_disc_negated; fail)
-     using andfold_MatchExp_not_disc_negated_mapMatch apply blast
-    using has_disc_negated_has_disc by blast
+    apply(simp add: rewrite_negated_primitives_src_ports)
+    apply(rule rewrite_negated_primitives_not_has_disc_negated)
+      using n wf_disc_sel_common_primitive(1) apply(simp)+
+    by(simp add: l4_ports_negate_one_not_has_disc_negated)
     
 
   lemma "\<not> has_disc_negated disc t m \<Longrightarrow> \<forall>m' \<in> set (normalize_match m). \<not> has_disc_negated disc t m'"
