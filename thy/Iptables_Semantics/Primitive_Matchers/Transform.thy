@@ -591,6 +591,9 @@ definition transform_normalize_primitives :: "'i::len common_primitive rule list
       (*TODO interfaces and protocols here?*)
       (*optimize_matches_option compress_normalize_input_interfaces probably not because it can introduce new interfaces
         the discriminators are pretty fucked up :( *)
+      
+      (*IMPORTANT TODO: optimizing ports may introduce matches on protocols. optimize away impossible
+          port/protocol matches!*)
 
 
 
@@ -681,9 +684,12 @@ theorem transform_normalize_primitives:
       apply(rule optimize_matches_option_preserves)
       apply(rule compress_normalize_besteffort_nnf)
       by(simp_all add: normalized)
-    from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(1)]
-         normalize_src_ports_def normalize_ports_step_def
-    have normalized_rs1: "\<forall>m \<in> get_match ` set ?rs1. normalized_nnf_match m" by metis
+    (*from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(1)]
+         normalize_src_ports_def normalize_ports_step_def*)
+    have normalized_rs1: "\<forall>m \<in> get_match ` set ?rs1. normalized_nnf_match m" (*by metis*)
+      apply(rule normalize_rules_preserves[OF normalized_rs0])
+      (*cont here*)
+      
     from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(2)]
          normalize_dst_ports_def normalize_ports_step_def
     have normalized_rs2: "\<forall>m \<in> get_match ` set ?rs2. normalized_nnf_match m" by metis

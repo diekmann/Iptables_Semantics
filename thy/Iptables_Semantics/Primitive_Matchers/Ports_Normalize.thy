@@ -646,6 +646,22 @@ subsection\<open>Complete Normalization\<close>
   lemma in_normalized_matches: "ls \<in> set (normalize_match m) \<and> matches \<gamma> ls a p \<Longrightarrow> matches \<gamma> m a p"
     by (meson match_list_matches matches_to_match_list_normalize)
 
+  lemma normalize_ports_generic_nnf:
+    assumes n: "normalized_nnf_match m"
+    and inset: "m' \<in> set (normalize_ports_generic normalize_pos rewrite_neg m)"
+    and noNeg: "\<not> has_disc_negated disc False (rewrite_neg m)"
+    and normalize_nnf_pos: "\<And>m m'.
+        normalized_nnf_match  m \<Longrightarrow> \<not> has_disc_negated disc False m \<Longrightarrow>
+          m' \<in> set (normalize_pos m) \<Longrightarrow> normalized_nnf_match m'"
+    shows "normalized_nnf_match m'"
+    using inset apply(simp add: normalize_ports_generic_def)
+    apply(elim bexE, rename_tac a)
+    apply(subgoal_tac "normalized_nnf_match a")
+     prefer 2
+     using normalized_nnf_match_normalize_match apply blast
+    apply(erule normalize_nnf_pos, simp_all)
+    apply(rule not_has_disc_negated_after_normalize)
+     using noNeg n by blast+
 
   (*TODO: isar*)
   lemma normalize_ports_generic:
@@ -769,7 +785,7 @@ subsection\<open>Complete Normalization\<close>
 
 
   lemma normalize_dst_ports_normalized_n_primitive:
-    assumes n:"normalized_nnf_match m"
+    assumes n: "normalized_nnf_match m"
     shows "\<forall>m' \<in> set (normalize_dst_ports m). normalized_dst_ports m'"
   unfolding normalize_dst_ports_def normalized_dst_ports_def2
   apply(rule normalize_ports_generic_normalized_n_primitive[OF n wf_disc_sel_common_primitive(2)])
@@ -777,7 +793,22 @@ subsection\<open>Complete Normalization\<close>
    using normalize_positive_dst_ports_nnf apply blast
   unfolding normalized_dst_ports_def2[symmetric]
   using normalize_positive_dst_ports_normalized_n_primitive by blast
- 
+
+  lemma normalize_src_ports_nnf:
+    assumes n: "normalized_nnf_match m"
+    shows "m' \<in> set (normalize_src_ports m) \<Longrightarrow> normalized_nnf_match m'"
+    apply(simp add: normalize_src_ports_def)
+    apply(erule normalize_ports_generic_nnf[OF n])
+     using n rewrite_negated_src_ports_not_has_disc_negated apply blast
+    using normalize_positive_src_ports_nnf by blast
+
+  lemma normalize_dst_ports_nnf:
+    assumes n: "normalized_nnf_match m"
+    shows "m' \<in> set (normalize_dst_ports m) \<Longrightarrow> normalized_nnf_match m'"
+    apply(simp add: normalize_dst_ports_def)
+    apply(erule normalize_ports_generic_nnf[OF n])
+     using n rewrite_negated_dst_ports_not_has_disc_negated apply blast
+    using normalize_positive_dst_ports_nnf by blast
 
 (*TODO: die ganzen matchAnys gehoeren mal ordentlich weg!*)
 value[code] "normalize_src_ports
@@ -806,7 +837,7 @@ lemma "map opt_MatchAny_match_expr (normalize_src_ports
 [MatchAnd (Match (Src_Ports (L4Ports TCP [(22, 22)])))
    (MatchAnd (MatchNot (Match (Prot (Proto UDP)))) (MatchAnd (Match (Dst (IpAddrNetmask 0x7F000000 8))) (MatchAnd (Match (Prot (Proto ICMP))) MatchAny)))]" by eval
 
-(****)
+(* ** *)
 
 
 
@@ -832,7 +863,7 @@ lemma "False" oops
 
 (*
 
-(*
+
   (* [ [(1,2) \<or> (3,4)]  \<and>  [] ]*)
   text\<open>@{typ "raw_ports \<Rightarrow> raw_ports \<Rightarrow> raw_ports"}\<close>
   definition raw_ports_conjunct
@@ -893,10 +924,6 @@ lemma "False" oops
     apply(cases "l4_src_ports_conjunct ps1 ps2")
      using l4_src_ports_conjunct_None[OF generic] l4_src_ports_conjunct_Some[OF generic]
      by simp+
-
- (*TODO: rename to L4 Ports Normalizes and move stuff to ports!*)
-
-
 
 
 
@@ -1507,5 +1534,5 @@ begin
   done
 
 end*)
-*)
+
 end
