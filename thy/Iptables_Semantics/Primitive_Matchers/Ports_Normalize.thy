@@ -848,13 +848,36 @@ lemma andfold_MatchExp_normalized_n_primitive: "\<forall>m \<in> set ms. normali
     normalized_n_primitive (disc, sel) f (andfold_MatchExp ms)"
   by(induction ms rule: andfold_MatchExp.induct)(simp)+
 
-lemma "\<forall>a. \<not> disc (C a) \<Longrightarrow> normalized_n_primitive (disc, sel) f (l4_ports_negate_one C a)"
+(*does not preserve normalized primitives! but we normalize_match, maybe things will work out.*)
+lemma "\<forall>a. \<not> disc (C a) \<Longrightarrow> \<not> normalized_n_primitive (disc, sel) f (l4_ports_negate_one C a)"
   apply(cases a)
   apply(simp add: l4_ports_negate_one.simps)
-  apply(simp add: MatchOr_def)
+  by(simp add: MatchOr_def)
+
+(*TODO: move*)
+text\<open>If we normalize nnf first, we may assume that we have normalized nnf when we want to show that a primitive is normalized\<close>
+lemma normalize_match_normalized_n_primitive:
+  "x \<in> set (normalize_match (f ms)) \<Longrightarrow>
+ (\<And>ms. normalized_nnf_match (f ms) \<Longrightarrow> normalized_n_primitive (disc, sel) nf (f ms)) \<Longrightarrow>
+  normalized_n_primitive (disc, sel) nf x"
+nitpick
+apply(induction "(disc, sel)" nf x rule: normalized_n_primitive.induct)
+      apply(simp_all)
+    using normalized_nnf_match_normalize_match  oops
+(*
+apply(induction "f ms" rule: normalize_match.induct)
+  apply(simp_all)*)
 
 
-lemma "\<forall>a. \<not> disc (C a) \<Longrightarrow> normalized_n_primitive (disc, sel) f (andfold_MatchExp (map (l4_ports_negate_one C) pts))"
+
+lemma "x \<in> set (normalize_match (andfold_MatchExp (map (l4_ports_negate_one Dst_Ports) pts))) \<Longrightarrow>
+  normalized_n_primitive (is_Dst_Ports, dst_ports_sel) f x"
+oops
+
+lemma "\<forall>a. \<not> disc (C a) \<Longrightarrow>
+  x \<in> set (normalize_match (andfold_MatchExp (map (l4_ports_negate_one Dst_Ports) pts))) \<Longrightarrow>
+  normalized_n_primitive (disc, sel) f x"
+  apply(erule normalize_match_normalized_n_primitive)
   apply(rule andfold_MatchExp_normalized_n_primitive)
   apply(intro ballI)
   apply(simp)
@@ -867,6 +890,7 @@ lemma "\<forall>a. \<not> disc (C a) \<Longrightarrow> normalized_n_primitive (d
   apply(simp add: l4_ports_negate_one.simps)
   apply(simp add: MatchOr_def)
   thm andfold_MatchExp.simps
+oops*)
 
 (*TODO: generalize!*)
 (*TODO: split into smaller proofs, this one is very ugly*)
@@ -874,7 +898,8 @@ lemma "\<forall>a. \<not> disc (C a) \<Longrightarrow> normalized_n_primitive (d
 lemma normalize_dst_ports_preserves_normalized_src_ports_hlper:
       "normalized_nnf_match m \<Longrightarrow>
        normalized_src_ports m \<Longrightarrow>
-       normalized_src_ports (rewrite_negated_dst_ports m)"
+       a \<in> set (normalize_match (rewrite_negated_dst_ports m)) \<Longrightarrow>
+       normalized_src_ports a"
   apply(simp add: rewrite_negated_dst_ports_def)
   apply(simp add: rewrite_negated_primitives_def)
   apply(case_tac "primitive_extractor (is_Dst_Ports, dst_ports_sel) m", rename_tac spts rst)
@@ -886,7 +911,9 @@ lemma normalize_dst_ports_preserves_normalized_src_ports_hlper:
    apply(drule primitive_extractor_correct(5)[OF _ wf_disc_sel_common_primitive(2), where P="(\<lambda>ps. case ps of L4Ports x pts \<Rightarrow> length pts \<le> 1)"])
     apply blast
    by(simp)
+  apply(elim bexE)
   apply(simp)
+oops
 
 lemma normalize_dst_ports_preserves_normalized_src_ports:
   "\<And>m m'. m' \<in> set (normalize_dst_ports m) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow>
@@ -910,7 +937,7 @@ lemma normalize_dst_ports_preserves_normalized_src_ports:
   apply(simp split: match_compress.split_asm)
    apply(simp)
   thm primitive_extractor_correct
-sorry (*!*)
+sorry (*!*) (*if we cannot show this, we must rearrage the transform theory to normalize the ports first*)
 
 
 
