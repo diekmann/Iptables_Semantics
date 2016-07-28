@@ -571,7 +571,7 @@ lemma "False" oops
 
 
 
-
+(*
 
 (*
   (* [ [(1,2) \<or> (3,4)]  \<and>  [] ]*)
@@ -1248,4 +1248,5 @@ begin
   done
 
 end*)
+*)
 end
