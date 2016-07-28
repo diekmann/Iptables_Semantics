@@ -555,13 +555,14 @@ subsection\<open>Complete Normalization\<close>
     by (meson match_list_matches matches_to_match_list_normalize)
 
 
+  (*TODO: isar*)
   lemma normalize_ports_generic:
     assumes n: "normalized_nnf_match m"
     and normalize_pos: "\<And>m. normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated disc False m \<Longrightarrow>
                           match_list \<gamma> (normalize_pos m) a p \<longleftrightarrow> matches \<gamma> m a p"
     and rewrite_neg: "\<And>m. normalized_nnf_match m \<Longrightarrow>
                           matches \<gamma> (rewrite_neg m) a p = matches \<gamma> m a p"
-    and noNeg: "\<And>m. \<not> has_disc_negated disc False (rewrite_neg m)"
+    and noNeg: "\<And>m. normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated disc False (rewrite_neg m)"
     shows
         "match_list \<gamma> (normalize_ports_generic normalize_pos rewrite_neg m) a p \<longleftrightarrow> matches \<gamma> m a p"
      apply(simp add: normalize_ports_generic_def)
@@ -569,15 +570,15 @@ subsection\<open>Complete Normalization\<close>
       subgoal
       apply(simp add: match_list_concat)
       apply(clarify, rename_tac ls)
+      apply(subgoal_tac "normalized_nnf_match ls")
+       prefer 2
+       using normalized_nnf_match_normalize_match apply blast
       apply(subst(asm) normalize_pos)
         subgoal using normalized_nnf_match_normalize_match by blast
        subgoal for ls
        apply(rule_tac m="rewrite_neg m" in not_has_disc_negated_after_normalize)
-        using noNeg apply blast+
-       done
-      apply(subgoal_tac "normalized_nnf_match ls")
-       prefer 2
-       using normalized_nnf_match_normalize_match apply blast
+        using noNeg n apply blast
+       by blast
       apply(subgoal_tac "matches \<gamma> (rewrite_neg m) a p")
        using rewrite_neg[OF n] apply blast
       using in_normalized_matches[where \<gamma>=\<gamma> and a=a and p=p] by blast
@@ -595,8 +596,9 @@ subsection\<open>Complete Normalization\<close>
      apply(subst normalize_pos)
        apply(simp_all)
      subgoal for ls
-     apply(rule_tac m="rewrite_neg m" in not_has_disc_negated_after_normalize)
-      using noNeg by blast+
+     apply(rule_tac m="rewrite_neg m" in not_has_disc_negated_after_normalize) (*TODO: same as above*)
+        using noNeg n apply blast
+       by blast
      done
 
 
@@ -622,39 +624,7 @@ subsection\<open>Complete Normalization\<close>
      apply(rule normalize_ports_generic[OF n])
        using normalize_positive_src_ports[OF generic] apply blast
       using rewrite_negated_src_ports[OF generic, where \<alpha>=\<alpha> and a=a and p=p] apply blast
-     using rewrite_negated_src_ports_not_has_disc_negated[OF n] oops
-     apply(simp add: normalize_src_ports_def)
-     apply(rule)
-      subgoal
-      apply(simp add: match_list_concat)
-      apply(clarify, rename_tac ls)
-      apply(subst(asm) normalize_positive_src_ports[OF generic])
-        using normalized_nnf_match_normalize_match apply blast
-       using normalize_rewrite_negated_src_ports_not_has_disc_negated[OF n] apply blast
-      apply(subgoal_tac "normalized_nnf_match ls")
-       prefer 2
-       using normalized_nnf_match_normalize_match apply blast
-      apply(subgoal_tac "matches (\<beta>, \<alpha>) (rewrite_negated_src_ports m) a p")
-       thm rewrite_negated_src_ports[OF generic n, where \<alpha>=\<alpha> and a=a and p=p]
-       using rewrite_negated_src_ports[OF generic n, where \<alpha>=\<alpha> and a=a and p=p] apply blast
-      thm in_normalized_matches[where \<gamma>="(\<beta>,\<alpha>)" and a=a and p=p]
-      using in_normalized_matches[where \<gamma>="(\<beta>,\<alpha>)" and a=a and p=p] apply blast
-      done
-     
-     apply(subst(asm) rewrite_negated_src_ports[OF generic n, where \<alpha>=\<alpha> and a=a and p=p, symmetric])
-     apply(subst(asm) matches_to_match_list_normalize)
-     apply(subst(asm) match_list_matches)
-     apply(elim bexE, rename_tac ls)
-     apply(subgoal_tac "normalized_nnf_match ls")
-      prefer 2
-      using normalized_nnf_match_normalize_match apply blast
-     apply(simp add: match_list_concat)
-     apply(rule_tac x=ls in bexI)
-      prefer 2 apply(simp; fail)
-     apply(subst normalize_positive_src_ports[OF generic])
-       apply(simp_all)
-     using normalize_rewrite_negated_src_ports_not_has_disc_negated[OF n] apply blast
-     done
+     using rewrite_negated_src_ports_not_has_disc_negated by blast
 
 
 
