@@ -102,6 +102,10 @@ lemma normalized_n_primitive_alist_and: "normalized_n_primitive disc_sel P (alis
   qed
 
 
+lemma normalized_n_primitive_if_no_primitive: "normalized_nnf_match m \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> 
+       normalized_n_primitive (disc, sel) f m"
+  by(induction "(disc, sel)" f m rule: normalized_n_primitive.induct) (simp)+
+
 subsection\<open>Primitive Extractor\<close>
 
 text\<open>

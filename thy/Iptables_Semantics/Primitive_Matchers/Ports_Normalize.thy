@@ -298,7 +298,7 @@ datatype 'a match_compress = CannotMatch | MatchesAll | MatchExpr 'a
     by auto
 
 
-
+  declare singletonize_L4Ports.simps[simp del]
 
 
 
@@ -358,8 +358,21 @@ datatype 'a match_compress = CannotMatch | MatchesAll | MatchExpr 'a
      apply(simp add: noNeg_mapNegPos_helper; fail)
     done
     
-
-
+  lemma normalize_positive_src_ports_nnf:
+    assumes n: "normalized_nnf_match m"
+    and noneg: "\<not> has_disc_negated is_Src_Ports False m"
+    shows "m' \<in> set (normalize_positive_src_ports m) \<Longrightarrow> normalized_nnf_match m'"
+    apply(simp add: normalize_positive_src_ports_def normalize_positive_ports_step_def)
+    apply(elim exE conjE, rename_tac rst spts)
+    apply(drule sym) (*switch primitive_extrartor = *)
+    apply(frule primitive_extractor_correct(2)[OF n wf_disc_sel_common_primitive(1)])
+    apply(subgoal_tac "getNeg spts = []") (*duplication above*)
+     prefer 2 subgoal
+     apply(drule primitive_extractor_correct(8)[OF n wf_disc_sel_common_primitive(1)])
+      using noneg by simp+
+    apply(simp split: match_compress.split_asm)
+    by fastforce
+    
   definition normalize_src_ports :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
     "normalize_src_ports m = concat (map normalize_positive_src_ports (normalize_match (rewrite_negated_src_ports m)))"  
 
@@ -441,6 +454,101 @@ lemma "map opt_MatchAny_match_expr (normalize_src_ports
 
 
 
+  
+  fun normalized_src_ports :: "'i::len common_primitive match_expr \<Rightarrow> bool" where
+    "normalized_src_ports MatchAny = True" |
+    "normalized_src_ports (Match (Src_Ports (L4Ports _ []))) = True" |
+    "normalized_src_ports (Match (Src_Ports (L4Ports _ [_]))) = True" |
+    "normalized_src_ports (Match (Src_Ports _)) = False" |
+    "normalized_src_ports (Match _) = True" |
+    "normalized_src_ports (MatchNot (Match (Src_Ports _))) = False" |
+    "normalized_src_ports (MatchNot (Match _)) = True" |
+    "normalized_src_ports (MatchAnd m1 m2) = (normalized_src_ports m1 \<and> normalized_src_ports m2)" |
+    "normalized_src_ports (MatchNot (MatchAnd _ _)) = False" |
+    "normalized_src_ports (MatchNot (MatchNot _)) = False" |
+    "normalized_src_ports (MatchNot MatchAny) = True"
+  
+  fun normalized_dst_ports :: "'i::len common_primitive match_expr \<Rightarrow> bool" where
+    "normalized_dst_ports MatchAny = True" |
+    "normalized_dst_ports (Match (Dst_Ports (L4Ports _ []))) = True" |
+    "normalized_dst_ports (Match (Dst_Ports (L4Ports _ [_]))) = True" |
+    "normalized_dst_ports (Match (Dst_Ports _)) = False" |
+    "normalized_dst_ports (Match _) = True" |
+    "normalized_dst_ports (MatchNot (Match (Dst_Ports _))) = False" |
+    "normalized_dst_ports (MatchNot (Match _)) = True" |
+    "normalized_dst_ports (MatchAnd m1 m2) = (normalized_dst_ports m1 \<and> normalized_dst_ports m2)" |
+    "normalized_dst_ports (MatchNot (MatchAnd _ _)) = False" |
+    "normalized_dst_ports (MatchNot (MatchNot _)) = False" |
+    "normalized_dst_ports (MatchNot MatchAny) = True" 
+
+  lemma normalized_src_ports_def2: "normalized_src_ports ms = normalized_n_primitive (is_Src_Ports, src_ports_sel) (\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1) ms"
+    by(induction ms rule: normalized_src_ports.induct, simp_all)
+  lemma normalized_dst_ports_def2: "normalized_dst_ports ms = normalized_n_primitive (is_Dst_Ports, dst_ports_sel) (\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1) ms"
+    by(induction ms rule: normalized_dst_ports.induct, simp_all)
+
+
+  lemma singletonize_L4Ports_normalized_src_ports:
+    "m' \<in> (\<lambda>spt. Match (Src_Ports spt)) ` set (singletonize_L4Ports pt) \<Longrightarrow> normalized_src_ports m'"
+    apply(case_tac pt)
+    apply(simp add: singletonize_L4Ports.simps)
+    apply(induction m' rule: normalized_src_ports.induct)
+    by(auto)
+
+
+  (*TODO: move?*)
+  lemma normalized_n_primitive_MatchAnd_combine_map: "normalized_n_primitive disc_sel f rst \<Longrightarrow>
+         \<forall>m' \<in> (\<lambda>spt. Match (C spt)) ` set pts. normalized_n_primitive disc_sel f m' \<Longrightarrow>
+          m' \<in> (\<lambda>spt. MatchAnd (Match (C spt)) rst) ` set pts \<Longrightarrow> normalized_n_primitive disc_sel f m'"
+    by(induction disc_sel f m' rule: normalized_n_primitive.induct)
+       fastforce+
+    
+  lemma normalized_src_ports_singletonize_combine_rst: 
+  "normalized_src_ports rst \<Longrightarrow> m' \<in> (\<lambda>spt. MatchAnd (Match (Src_Ports spt)) rst) ` set (singletonize_L4Ports pt) \<Longrightarrow> normalized_src_ports m'"
+   unfolding normalized_src_ports_def2
+   apply(rule normalized_n_primitive_MatchAnd_combine_map)
+     apply(simp_all)
+   using singletonize_L4Ports_normalized_src_ports[simplified normalized_src_ports_def2] by fastforce
+
+  lemma normalize_positive_src_ports_normalized_n_primitive: 
+    assumes n: "normalized_nnf_match m"
+    and noneg: "\<not> has_disc_negated is_Src_Ports False m"
+    shows "\<forall>m' \<in> set (normalize_positive_src_ports m). normalized_src_ports m'"
+  unfolding normalize_positive_src_ports_def normalize_positive_ports_step_def
+    apply(intro ballI, rename_tac m')
+    apply(simp)
+    apply(elim exE conjE, rename_tac rst spts)
+    apply(drule sym) (*switch primitive_extrartor = *)
+    apply(frule primitive_extractor_correct(2)[OF n wf_disc_sel_common_primitive(1)])
+    apply(frule primitive_extractor_correct(3)[OF n wf_disc_sel_common_primitive(1)])
+    thm primitive_extractor_correct[OF n wf_disc_sel_common_primitive(1)]
+    apply(subgoal_tac "getNeg spts = []") (*duplication above*)
+     prefer 2 subgoal
+     apply(drule primitive_extractor_correct(8)[OF n wf_disc_sel_common_primitive(1)])
+      using noneg by simp+
+    apply(subgoal_tac "normalized_src_ports rst")
+     prefer 2 subgoal
+     unfolding normalized_src_ports_def2
+     by(drule(2) normalized_n_primitive_if_no_primitive)
+    apply(simp split: match_compress.split_asm)
+    using normalized_src_ports_singletonize_combine_rst by blast
+  
+
+  lemma normalize_src_ports_normalized_n_primitive: "normalized_nnf_match m \<Longrightarrow> 
+      \<forall>m' \<in> set (normalize_src_ports m). normalized_src_ports m'"
+  unfolding normalize_src_ports_def
+  apply(intro ballI, rename_tac m')
+  apply(simp)
+  apply(elim bexE, rename_tac a)
+  apply(subgoal_tac "normalized_nnf_match a")
+   prefer 2
+   using normalized_nnf_match_normalize_match apply blast
+  apply(subgoal_tac "\<not> has_disc_negated is_Src_Ports False a")
+   prefer 2
+   using normalize_rewrite_negated_src_ports_not_has_disc_negated apply blast
+  apply(subgoal_tac "normalized_nnf_match m'")
+   prefer 2
+   using normalize_positive_src_ports_nnf apply blast
+  using normalize_positive_src_ports_normalized_n_primitive by blast
 
 
 
@@ -457,10 +565,7 @@ lemma "map opt_MatchAny_match_expr (normalize_src_ports
 
 
 
-
-
-
-
+lemma "False" oops
 
 
 
@@ -886,6 +991,7 @@ begin
 
 end
 *)
+
 
 (*Old stuff from here*)
 (*
