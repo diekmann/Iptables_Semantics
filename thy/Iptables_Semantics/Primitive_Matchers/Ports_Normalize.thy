@@ -534,16 +534,80 @@ subsection\<open>Normalizing Positive Matches on Ports\<close>
 
 
 subsection\<open>Complete Normalization\<close>
-    
-  definition normalize_src_ports :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
+
+
+  definition normalize_ports_generic
+    :: "('i common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list) \<Rightarrow>
+        ('i common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr) \<Rightarrow>
+       'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list"
+  where
+    "normalize_ports_generic normalize_pos rewrite_neg m = concat (map normalize_pos (normalize_match (rewrite_neg m)))"  
+
+  
+  (*TODO: move*)
+  lemma not_has_disc_negated_after_normalize:
+    assumes noNeg: "\<not> has_disc_negated disc neg m" and normalize: "ls \<in> set (normalize_match m)"
+    shows "\<not> has_disc_negated disc neg ls"
+    using noNeg normalize not_has_disc_normalize_match by blast
+
+  (*TODO: move*)
+  lemma in_normalized_matches: "ls \<in> set (normalize_match m) \<and> matches \<gamma> ls a p \<Longrightarrow> matches \<gamma> m a p"
+    by (meson match_list_matches matches_to_match_list_normalize)
+
+
+  lemma normalize_ports_generic:
+    assumes n: "normalized_nnf_match m"
+    and normalize_pos: "\<And>m. normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated disc False m \<Longrightarrow>
+                          match_list \<gamma> (normalize_pos m) a p \<longleftrightarrow> matches \<gamma> m a p"
+    and rewrite_neg: "\<And>m. normalized_nnf_match m \<Longrightarrow>
+                          matches \<gamma> (rewrite_neg m) a p = matches \<gamma> m a p"
+    and noNeg: "\<And>m. \<not> has_disc_negated disc False (rewrite_neg m)"
+    shows
+        "match_list \<gamma> (normalize_ports_generic normalize_pos rewrite_neg m) a p \<longleftrightarrow> matches \<gamma> m a p"
+     apply(simp add: normalize_ports_generic_def)
+     apply(rule)
+      subgoal
+      apply(simp add: match_list_concat)
+      apply(clarify, rename_tac ls)
+      apply(subst(asm) normalize_pos)
+        subgoal using normalized_nnf_match_normalize_match by blast
+       subgoal for ls
+       apply(rule_tac m="rewrite_neg m" in not_has_disc_negated_after_normalize)
+        using noNeg apply blast+
+       done
+      apply(subgoal_tac "normalized_nnf_match ls")
+       prefer 2
+       using normalized_nnf_match_normalize_match apply blast
+      apply(subgoal_tac "matches \<gamma> (rewrite_neg m) a p")
+       using rewrite_neg[OF n] apply blast
+      using in_normalized_matches[where \<gamma>=\<gamma> and a=a and p=p] by blast
+
+     apply(subst(asm) rewrite_neg[OF n, symmetric])
+     apply(subst(asm) matches_to_match_list_normalize)
+     apply(subst(asm) match_list_matches)
+     apply(elim bexE, rename_tac ls)
+     apply(subgoal_tac "normalized_nnf_match ls")
+      prefer 2
+      using normalized_nnf_match_normalize_match apply blast
+     apply(simp add: match_list_concat)
+     apply(rule_tac x=ls in bexI)
+      prefer 2 apply(simp; fail)
+     apply(subst normalize_pos)
+       apply(simp_all)
+     subgoal for ls
+     apply(rule_tac m="rewrite_neg m" in not_has_disc_negated_after_normalize)
+      using noNeg by blast+
+     done
+
+
+  definition normalize_src_ports
+    :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list"
+  where
     "normalize_src_ports m = concat (map normalize_positive_src_ports (normalize_match (rewrite_negated_src_ports m)))"  
 
   (*
   definition normalize_dst_ports :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
     "normalize_dst_ports m = concat (map normalize_positive_dst_ports (normalize_match (rewrite_negated_dst_ports m)))" *)
-
-  lemma in_normalized_matches: "ls \<in> set (normalize_match m) \<and> matches \<gamma> ls a p \<Longrightarrow> matches \<gamma> m a p"
-    by (meson match_list_matches matches_to_match_list_normalize)
 
 
   lemma normalize_src_ports:
