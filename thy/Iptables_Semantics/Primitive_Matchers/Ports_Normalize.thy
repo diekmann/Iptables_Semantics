@@ -689,6 +689,38 @@ subsection\<open>Complete Normalization\<close>
      done
 
 
+  lemma normalize_ports_generic_normalized_n_primitive:
+    assumes n: "normalized_nnf_match m"  and wf_disc_sel: "wf_disc_sel (disc,sel) C"
+    and noNeg: "\<And>m. normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated disc False (rewrite_neg m)"
+    and normalize_nnf_pos: "\<And>m m'.
+        normalized_nnf_match  m \<Longrightarrow> \<not> has_disc_negated disc False m \<Longrightarrow>
+          m' \<in> set (normalize_pos m) \<Longrightarrow> normalized_nnf_match m'"
+    and normalize_pos: "\<And>m m'.
+        normalized_nnf_match m \<Longrightarrow>  \<not> has_disc_negated disc False m \<Longrightarrow> 
+          \<forall>m'\<in>set (normalize_pos m).
+                 normalized_n_primitive (disc,sel) (\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1) m'"
+    shows "\<forall>m' \<in> set (normalize_ports_generic normalize_pos rewrite_neg m). 
+             normalized_n_primitive (disc,sel) (\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1) m'"
+  unfolding normalize_ports_generic_def
+  apply(intro ballI, rename_tac m')
+  apply(simp)
+  apply(elim bexE, rename_tac a)
+  apply(subgoal_tac "normalized_nnf_match a")
+   prefer 2
+   using normalized_nnf_match_normalize_match apply blast
+  apply(subgoal_tac "\<not> has_disc_negated disc False a")
+   prefer 2
+   subgoal for ls (*TODO: same is already above!*)
+    apply(rule_tac m="rewrite_neg m" in not_has_disc_negated_after_normalize)
+     using noNeg n apply blast
+    by blast
+  apply(subgoal_tac "normalized_nnf_match m'")
+   prefer 2
+   using normalize_nnf_pos apply blast
+  using normalize_pos by blast
+
+
+
   definition normalize_src_ports
     :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list"
   where
@@ -714,23 +746,16 @@ subsection\<open>Complete Normalization\<close>
      using rewrite_negated_src_ports_not_has_disc_negated by blast
 
 
-  lemma normalize_src_ports_normalized_n_primitive: "normalized_nnf_match m \<Longrightarrow> 
-      \<forall>m' \<in> set (normalize_src_ports m). normalized_src_ports m'"
-  unfolding normalize_src_ports_def
-  apply(intro ballI, rename_tac m')
-  apply(simp)
-  apply(elim bexE, rename_tac a)
-  apply(subgoal_tac "normalized_nnf_match a")
-   prefer 2
-   using normalized_nnf_match_normalize_match apply blast
-  apply(subgoal_tac "\<not> has_disc_negated is_Src_Ports False a")
-   prefer 2
-   using normalize_rewrite_negated_src_ports_not_has_disc_negated apply blast
-  apply(subgoal_tac "normalized_nnf_match m'")
-   prefer 2
+  lemma normalize_src_ports_normalized_n_primitive:
+    assumes n:"normalized_nnf_match m"
+    shows "\<forall>m' \<in> set (normalize_src_ports m). normalized_src_ports m'"
+  unfolding normalize_src_ports_generic normalized_src_ports_def2
+  apply(rule normalize_ports_generic_normalized_n_primitive[OF n wf_disc_sel_common_primitive(1)])
+    using rewrite_negated_src_ports_not_has_disc_negated apply blast
    using normalize_positive_src_ports_nnf apply blast
+  unfolding normalized_src_ports_def2[symmetric]
   using normalize_positive_src_ports_normalized_n_primitive by blast
-
+ 
 
 (*TODO: die ganzen matchAnys gehoeren mal ordentlich weg!*)
 value[code] "normalize_src_ports
