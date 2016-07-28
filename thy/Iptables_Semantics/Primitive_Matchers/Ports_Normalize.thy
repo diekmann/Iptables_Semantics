@@ -416,12 +416,14 @@ subsection\<open>Normalizing Positive Matches on Ports\<close>
 
 
 
-  text\<open>Normalizing match expressions such that at most one port will exist in it. Returns a list of match expressions (splits one firewall rule into several rules).\<close>
-  definition normalize_positive_ports_step :: "(('i::len common_primitive \<Rightarrow> bool) \<times> ('i common_primitive \<Rightarrow> ipt_l4_ports)) \<Rightarrow> 
-                               (ipt_l4_ports \<Rightarrow> 'i common_primitive) \<Rightarrow>
-                               'i common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where 
-    "normalize_positive_ports_step (disc_sel) C m \<equiv>
-        let (spts, rst) = primitive_extractor (disc_sel) m in
+  text\<open>Normalizing match expressions such that at most one port will exist in it.
+       Returns a list of match expressions (splits one firewall rule into several rules).\<close>
+  definition normalize_positive_ports_step
+    :: "(('i::len common_primitive \<Rightarrow> bool) \<times> ('i common_primitive \<Rightarrow> ipt_l4_ports)) \<Rightarrow> 
+       (ipt_l4_ports \<Rightarrow> 'i common_primitive) \<Rightarrow>
+       'i common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where 
+    "normalize_positive_ports_step disc_sel C m \<equiv>
+        let (spts, rst) = primitive_extractor disc_sel m in
         case (getPos spts, getNeg spts)
           of (pspts, []) \<Rightarrow> (case l4_ports_compress pspts of CannotMatch \<Rightarrow> []
                                                           |  MatchesAll \<Rightarrow> [rst]
@@ -429,7 +431,22 @@ subsection\<open>Normalizing Positive Matches on Ports\<close>
                             )
           |  (_, _) \<Rightarrow> undefined"
 
-  (*TODO: add that we need to remove all negated ports first and the normalize again for the complete picture*)
+
+
+  lemma normalize_positive_ports_step_nnf:
+    assumes n: "normalized_nnf_match m" and wf_disc_sel: "wf_disc_sel (disc,sel) C"
+    and noneg: "\<not> has_disc_negated disc False m"
+    shows "m' \<in> set (normalize_positive_ports_step (disc,sel) C m) \<Longrightarrow> normalized_nnf_match m'"
+    apply(simp add: normalize_positive_ports_step_def)
+    apply(elim exE conjE, rename_tac rst spts)
+    apply(drule sym) (*switch primitive_extrartor = *)
+    apply(frule primitive_extractor_correct(2)[OF n wf_disc_sel])
+    apply(subgoal_tac "getNeg spts = []") (*duplication above*)
+     prefer 2 subgoal
+     apply(drule primitive_extractor_correct(8)[OF n wf_disc_sel])
+      using noneg by simp+
+    apply(simp split: match_compress.split_asm)
+    by fastforce
 
   definition normalize_positive_src_ports :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
     "normalize_positive_src_ports = normalize_positive_ports_step (is_Src_Ports, src_ports_sel) Src_Ports"  
@@ -506,33 +523,14 @@ subsection\<open>Normalizing Positive Matches on Ports\<close>
     assumes n: "normalized_nnf_match m"
     and noneg: "\<not> has_disc_negated is_Src_Ports False m"
     shows "m' \<in> set (normalize_positive_src_ports m) \<Longrightarrow> normalized_nnf_match m'"
-    apply(simp add: normalize_positive_src_ports_def normalize_positive_ports_step_def)
-    apply(elim exE conjE, rename_tac rst spts)
-    apply(drule sym) (*switch primitive_extrartor = *)
-    apply(frule primitive_extractor_correct(2)[OF n wf_disc_sel_common_primitive(1)])
-    apply(subgoal_tac "getNeg spts = []") (*duplication above*)
-     prefer 2 subgoal
-     apply(drule primitive_extractor_correct(8)[OF n wf_disc_sel_common_primitive(1)])
-      using noneg by simp+
-    apply(simp split: match_compress.split_asm)
-    by fastforce
-
-
-  (*copy & paste, TODO generalize*)
+    apply(rule normalize_positive_ports_step_nnf[OF n wf_disc_sel_common_primitive(1) noneg])
+    by(simp add: normalize_positive_src_ports_def)
   lemma normalize_positive_dst_ports_nnf:
     assumes n: "normalized_nnf_match m"
     and noneg: "\<not> has_disc_negated is_Dst_Ports False m"
     shows "m' \<in> set (normalize_positive_dst_ports m) \<Longrightarrow> normalized_nnf_match m'"
-    apply(simp add: normalize_positive_dst_ports_def normalize_positive_ports_step_def)
-    apply(elim exE conjE, rename_tac rst spts)
-    apply(drule sym) (*switch primitive_extrartor = *)
-    apply(frule primitive_extractor_correct(2)[OF n wf_disc_sel_common_primitive(2)])
-    apply(subgoal_tac "getNeg spts = []") (*duplication above*)
-     prefer 2 subgoal
-     apply(drule primitive_extractor_correct(8)[OF n wf_disc_sel_common_primitive(2)])
-      using noneg by simp+
-    apply(simp split: match_compress.split_asm)
-    by fastforce
+    apply(rule normalize_positive_ports_step_nnf[OF n wf_disc_sel_common_primitive(2) noneg])
+    by(simp add: normalize_positive_dst_ports_def)
 
 
 subsection\<open>Complete Normalization\<close>
