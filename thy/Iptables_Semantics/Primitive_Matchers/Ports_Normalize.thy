@@ -239,37 +239,40 @@ subsection\<open>Compressing Positive Matches on Ports into a Single Match\<clos
 
 subsection\<open>Rewriting Negated Matches on Ports\<close>
 
- fun l4_src_ports_negate_one :: "ipt_l4_ports \<Rightarrow> ('i::len common_primitive) match_expr" where
-    "l4_src_ports_negate_one (L4Ports proto pts) = MatchOr
+  fun l4_ports_negate_one
+    :: "(ipt_l4_ports \<Rightarrow> 'i common_primitive) \<Rightarrow> ipt_l4_ports \<Rightarrow> ('i::len common_primitive) match_expr"
+  where
+    "l4_ports_negate_one C (L4Ports proto pts) = MatchOr
            (MatchNot (Match (Prot (Proto proto))))
-            (Match (Src_Ports (L4Ports proto (raw_ports_invert pts))))"
+            (Match (C (L4Ports proto (raw_ports_invert pts))))"
 
-  lemma l4_src_ports_negate_one:
+  lemma l4_ports_negate_one:
   fixes p :: "('i::len, 'a) tagged_packet_scheme"
   assumes generic: "primitive_matcher_generic \<beta>"
-  shows "matches (\<beta>, \<alpha>) (l4_src_ports_negate_one src_ports) a p \<longleftrightarrow>
-          matches (\<beta>, \<alpha>) (MatchNot (Match (Src_Ports src_ports))) a p"
-    apply(cases src_ports, rename_tac proto pts)
-    apply(simp add: primitive_matcher_generic.Ports_single_not[OF generic])
-    apply(simp add: MatchOr bunch_of_lemmata_about_matches
+  shows "matches (\<beta>, \<alpha>) (l4_ports_negate_one Src_Ports ports) a p \<longleftrightarrow>
+          matches (\<beta>, \<alpha>) (MatchNot (Match (Src_Ports ports))) a p"
+  and "matches (\<beta>, \<alpha>) (l4_ports_negate_one Dst_Ports ports) a p \<longleftrightarrow>
+          matches (\<beta>, \<alpha>) (MatchNot (Match (Dst_Ports ports))) a p"
+    apply(case_tac [!] ports)
+    by(auto simp add: primitive_matcher_generic.Ports_single_not[OF generic]
+                    MatchOr bunch_of_lemmata_about_matches
                     primitive_matcher_generic.Prot_single_not[OF generic]
-                    primitive_matcher_generic.Ports_single[OF generic])
-    apply(simp add: raw_ports_invert)
-    by blast
+                    primitive_matcher_generic.Ports_single[OF generic]
+                    raw_ports_invert)
 
   lemma l4_src_ports_negate_one_not_has_disc_negated:
-    "\<not> has_disc_negated is_Src_Ports False (l4_src_ports_negate_one src_ports)"
+    "\<not> has_disc_negated is_Src_Ports False (l4_ports_negate_one Src_Ports src_ports)"
     apply(cases src_ports, rename_tac proto pts)
     by(simp add: MatchOr_def)
     
   text\<open>beware, the result is not nnf normalized!\<close>
-  lemma "\<not> normalized_nnf_match (l4_src_ports_negate_one src_ports)"
-    by(cases src_ports) (simp add: MatchOr_def)
+  lemma "\<not> normalized_nnf_match (l4_ports_negate_one C ports)"
+    by(cases ports) (simp add: MatchOr_def)
   
-  declare l4_src_ports_negate_one.simps[simp del]
+  declare l4_ports_negate_one.simps[simp del]
 
     
-  lemma "((normalize_match (l4_src_ports_negate_one (L4Ports TCP [(22,22),(80,90)]))):: 32 common_primitive match_expr list)
+  lemma "((normalize_match (l4_ports_negate_one Src_Ports (L4Ports TCP [(22,22),(80,90)]))):: 32 common_primitive match_expr list)
     =
     [ MatchNot (Match (Prot (Proto TCP)))
     , Match (Src_Ports (L4Ports 6 [(0, 21), (23, 79), (91, 0xFFFF)]))]" by eval
@@ -291,7 +294,7 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
     "rewrite_negated_src_ports m \<equiv>
         let (spts, rst) = primitive_extractor (is_Src_Ports, src_ports_sel) m
         in MatchAnd
-            (andfold_MatchExp (map l4_src_ports_negate_one (getNeg spts)))
+            (andfold_MatchExp (map (l4_ports_negate_one Src_Ports) (getNeg spts)))
             (MatchAnd
               (andfold_MatchExp (map (Match \<circ> Src_Ports) (getPos spts))) (*TODO: compress all the positive ports into one!*)
             rst)"
@@ -306,7 +309,7 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
   apply(subst primitive_extractor_correct(1)[OF n wf_disc_sel_common_primitive(1), where \<gamma>="(\<beta>, \<alpha>)" and a=a and p=p, symmetric])
    apply(simp; fail)
   apply(simp add: andfold_MatchExp_matches)
-  apply(simp add: l4_src_ports_negate_one[OF generic])
+  apply(simp add: l4_ports_negate_one[OF generic])
   apply(subgoal_tac "matches (\<beta>, \<alpha>) (alist_and (NegPos_map Src_Ports spts)) a p \<longleftrightarrow>
           (\<forall>m\<in>set (getNeg spts). matches (\<beta>, \<alpha>) (MatchNot (Match (Src_Ports m))) a p) \<and> (\<forall>m\<in>set (getPos spts). matches (\<beta>, \<alpha>) (Match (Src_Ports m)) a p)")
    apply(simp; fail)
