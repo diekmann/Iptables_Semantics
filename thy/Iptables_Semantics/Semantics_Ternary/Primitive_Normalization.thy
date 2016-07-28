@@ -569,6 +569,7 @@ lemma remove_unknowns_generic_normalized_n_primitive: "normalized_n_primitive di
 
   (*my ports normalizer is "ipt_l4_ports \<Rightarrow> (('i::len common_primitive) match_expr \<times> ipt_l4_ports list)"
     but i want to wrap this to get a list for more global optimizations*)
+    (*remove?*)
   definition normalize_primitive_extract_aux :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow>
                                  ('b \<Rightarrow> 'a) \<Rightarrow>
                                  ('b negation_type list \<Rightarrow> ('a match_expr \<times>'b list)) \<Rightarrow>
