@@ -414,18 +414,24 @@ value[code] "normalize_src_ports
                  ))"
 
 
-value[code] "map opt_MatchAny_match_expr (normalize_src_ports
+lemma"map opt_MatchAny_match_expr (normalize_src_ports
                 (MatchAnd (Match (Dst (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)))
                    (MatchAnd (Match (Prot (Proto TCP)))
                         (MatchNot (Match (Src_Ports (L4Ports UDP [(80,80)]))))
-                 )))"
+                 ))) =
+ [MatchAnd (MatchNot (Match (Prot (Proto UDP)))) (MatchAnd (Match (Dst (IpAddrNetmask 0x7F000000 8))) (Match (Prot (Proto TCP)))),
+  MatchAnd (Match (Src_Ports (L4Ports UDP [(0, 79)]))) (MatchAnd (Match (Dst (IpAddrNetmask 0x7F000000 8))) (Match (Prot (Proto TCP)))),
+  MatchAnd (Match (Src_Ports (L4Ports UDP [(81, 0xFFFF)]))) (MatchAnd (Match (Dst (IpAddrNetmask 0x7F000000 8))) (Match (Prot (Proto TCP))))]" by eval
 
-value[code] "map opt_MatchAny_match_expr (normalize_src_ports
+lemma "map opt_MatchAny_match_expr (normalize_src_ports
                 (MatchAnd (Match (Dst (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)))
                    (MatchAnd (Match (Prot (Proto ICMP)))
                      (MatchAnd (Match (Src_Ports (L4Ports TCP [(22,22)])))
                         (MatchNot (Match (Src_Ports (L4Ports UDP [(80,80)]))))
-                 ))))"
+                 ))))
+ =
+[MatchAnd (Match (Src_Ports (L4Ports TCP [(22, 22)])))
+   (MatchAnd (MatchNot (Match (Prot (Proto UDP)))) (MatchAnd (Match (Dst (IpAddrNetmask 0x7F000000 8))) (MatchAnd (Match (Prot (Proto ICMP))) MatchAny)))]" by eval
 
 (****)
 

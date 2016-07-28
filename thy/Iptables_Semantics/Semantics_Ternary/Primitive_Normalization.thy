@@ -427,7 +427,7 @@ subsection\<open>Normalizing and Optimizing Primitives\<close>
       fix mn
       assume assm2: "mn \<in> set (normalize_primitive_extract (disc, sel) C f m)"
       obtain as ms where as_ms: "primitive_extractor (disc, sel) m = (as, ms)" by fastforce
-      from as_ms primitive_extractor_correct[OF assms(1) assms(2)] have "normalized_nnf_match ms" by simp
+      from primitive_extractor_correct(2)[OF assms(1) assms(2) as_ms] have "normalized_nnf_match ms" by simp
       from assm2 as_ms have normalize_primitive_extract_unfolded: "mn \<in> ((\<lambda>spt. MatchAnd (Match (C spt)) ms) ` set (f as))"
         unfolding normalize_primitive_extract_def by force
       with \<open>normalized_nnf_match ms\<close> show "normalized_nnf_match mn" by fastforce
