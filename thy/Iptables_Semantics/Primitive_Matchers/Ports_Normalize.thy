@@ -936,7 +936,7 @@ lemma helper_a_normalized: "a \<in> MatchAnd x ` (\<Union>x\<in>set spts. MatchA
   apply(elim exE conjE, rename_tac s r)
   apply(simp)
   using normalize_match_preserves_normalized_n_primitive by blast
-  
+
 
 lemma rewrite_negated_dst_ports_preserves_normalized_src_ports_hlper:
       "normalized_nnf_match m \<Longrightarrow>
@@ -966,6 +966,12 @@ lemma rewrite_negated_dst_ports_preserves_normalized_src_ports_hlper:
   by blast
 
 
+lemma normalized_n_primitive_MatchAnd_sinle_norm_rule:
+    "\<forall>a. \<not> disc (C a) \<Longrightarrow> normalized_n_primitive (disc, sel) f rst \<Longrightarrow>
+      m' \<in> (\<lambda>spt. MatchAnd (Match (C spt)) rst) ` set xs \<Longrightarrow>
+       normalized_n_primitive (disc, sel) f m'"
+by fastforce
+
 lemma normalize_dst_ports_preserves_normalized_src_ports:
   "\<And>m m'. m' \<in> set (normalize_dst_ports m) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow>
     normalized_src_ports m \<Longrightarrow> normalized_src_ports m'"
@@ -982,14 +988,17 @@ lemma normalize_dst_ports_preserves_normalized_src_ports:
    prefer 2
    apply (metis not_has_disc_negated_after_normalize primitive_extractor_correct(8) rewrite_negated_dst_ports_not_has_disc_negated wf_disc_sel_common_primitive(2)) 
   apply(simp)
+  (*apply(subgoal_tac "normalized_n_primitive (is_Dst_Ports, dst_ports_sel) (case_ipt_l4_ports (\<lambda>x pts. length pts \<le> Suc 0)) rst")*)
+  apply(subgoal_tac "normalized_src_ports a")
+   prefer 2 subgoal
+   using rewrite_negated_dst_ports_preserves_normalized_src_ports_hlper by blast
+  unfolding normalized_src_ports_def2
   thm primitive_extractor_correct(5)[OF _ wf_disc_sel_common_primitive(2)]
-  apply(frule_tac m=a in primitive_extractor_correct(5)[OF _ wf_disc_sel_common_primitive(2)])
+  apply(frule_tac m=a in primitive_extractor_correct(5)[OF _ wf_disc_sel_common_primitive(2), where P="(case_ipt_l4_ports (\<lambda>x pts. length pts \<le> 1))"])
    apply blast
   apply(simp split: match_compress.split_asm)
-   apply(simp)
-  thm primitive_extractor_correct
-sorry (*!*) (*if we cannot show this, we must rearrage the transform theory to normalize the ports first*)
-
+   subgoal by fastforce
+  done
 
 
 
