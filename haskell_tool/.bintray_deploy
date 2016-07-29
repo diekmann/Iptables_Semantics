@@ -16,6 +16,14 @@
           "matrixParams": {
               "override": 1
           }
-        }],
+        },
+        {
+          "includePattern": "haskell_tool/dist/build/fffuu6/fffuu6",
+          "uploadPattern": "fffuu6",
+          "matrixParams": {
+              "override": 1
+          }
+        }
+    ],
     "publish": true
 }
