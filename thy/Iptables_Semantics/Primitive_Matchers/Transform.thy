@@ -903,6 +903,7 @@ theorem transform_normalize_primitives:
          apply(simp; fail)
         apply(simp; fail)
        apply(simp; fail)
+      thm normalize_ports_generic_preserves_normalized_not_has_disc
       using x[OF wf_disc_sel_common_primitive(1), 
              of "(\<lambda>me. map (\<lambda>pt. [pt]) (raw_ports_compress me))",folded normalize_src_ports_def normalize_ports_step_def] apply blast
      using x[OF wf_disc_sel_common_primitive(2), 
