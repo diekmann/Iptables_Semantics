@@ -269,6 +269,13 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
                     primitive_matcher_generic.Ports_single[OF generic]
                     raw_ports_invert)
 
+
+  lemma l4_ports_negate_one_not_has_disc_negated_generic:
+    assumes noProt: "\<forall>a. \<not> disc (Prot a)"
+    shows "\<not> has_disc_negated disc False (l4_ports_negate_one C ports)"
+    apply(case_tac [!] ports, rename_tac proto pts)
+     by(simp add: MatchOr_def noProt)+
+
   lemma l4_ports_negate_one_not_has_disc_negated:
     "\<not> has_disc_negated is_Src_Ports False (l4_ports_negate_one Src_Ports ports)"
     "\<not> has_disc_negated is_Dst_Ports False (l4_ports_negate_one Dst_Ports ports)"
@@ -854,20 +861,6 @@ lemma "\<forall>a. \<not> disc (C a) \<Longrightarrow> \<not> normalized_n_primi
   apply(simp add: l4_ports_negate_one.simps)
   by(simp add: MatchOr_def)
 
-(*TODO: move*)
-text\<open>If we normalize nnf first, we may assume that we have normalized nnf when we want to show that a primitive is normalized\<close>
-lemma normalize_match_normalized_n_primitive:
-  "x \<in> set (normalize_match (f ms)) \<Longrightarrow>
- (\<And>ms. normalized_nnf_match (f ms) \<Longrightarrow> normalized_n_primitive (disc, sel) nf (f ms)) \<Longrightarrow>
-  normalized_n_primitive (disc, sel) nf x"
-nitpick
-apply(induction "(disc, sel)" nf x rule: normalized_n_primitive.induct)
-      apply(simp_all)
-    using normalized_nnf_match_normalize_match  oops
-(*
-apply(induction "f ms" rule: normalize_match.induct)
-  apply(simp_all)*)
-
 
 
 (*TODO: move*)
@@ -905,10 +898,6 @@ lemma negated_normalized_folded_ports_nodisc:
    using l4_ports_negate_one_nodisc apply blast
   using normalize_match_preserves_nodisc by blast
 
-
-lemma "normalized_nnf_match m \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> normalized_n_primitive (disc, sel) f m"
-by (simp add: normalized_n_primitive_if_no_primitive)
-thm normalize_match_preserves_nodisc
 
 lemma negated_normalized_folded_ports_normalized_n_primitive:
   "\<forall>a. \<not> disc (C a) \<Longrightarrow> \<forall>a. \<not> disc (Prot a) \<Longrightarrow>
@@ -980,6 +969,41 @@ lemma
        normalized_n_primitive (disc, sel) f m'"
 by fastforce
 
+lemma normalize_ports_generic_preserves_normalized_n_primitive:
+  assumes n: "normalized_nnf_match m"
+    and wf_disc_sel: "wf_disc_sel (disc, sel) C"
+    and noProt: "\<forall>a. \<not> disc (Prot a)" (*disc is src_ports or dst_ports anyway*)
+    and disc2_noC: " \<forall>a. \<not> disc2 (C a)" and disc2_noProt: " \<forall>a. \<not> disc2 (Prot a)"
+  shows "m' \<in> set (normalize_ports_generic (normalize_positive_ports_step (disc, sel) C) (rewrite_negated_primitives (disc, sel) C l4_ports_negate_one) m) \<Longrightarrow>
+       normalized_n_primitive (disc2, sel2) f  m \<Longrightarrow>
+        normalized_n_primitive (disc2, sel2) f m'"
+  apply(simp add: normalize_ports_generic_def)
+  apply(elim bexE, rename_tac a)
+  apply(subgoal_tac "normalized_nnf_match a")
+   prefer 2 using normalized_nnf_match_normalize_match apply blast
+  apply(simp add: normalize_positive_ports_step_def)
+  apply(elim exE conjE, rename_tac rst dpts)
+  apply(drule sym) (*primitive extractor*)
+  apply(subgoal_tac "getNeg dpts = []")
+   prefer 2 subgoal for a rst dpts
+   apply(erule primitive_extractor_correct(8)[OF _ wf_disc_sel])
+    apply(simp; fail)
+   apply(rule not_has_disc_negated_after_normalize)
+    apply(simp_all)
+   apply(rule rewrite_negated_primitives_not_has_disc_negated[OF n wf_disc_sel])
+   apply(intro allI)
+   apply(rule l4_ports_negate_one_not_has_disc_negated_generic)
+   by(simp add: noProt)
+  apply(subgoal_tac "normalized_n_primitive (disc2, sel2) f a")
+   prefer 2 subgoal
+   apply(rule rewrite_negated_primitives_normalized_preserves_unrelated_helper[OF wf_disc_sel _ _ n])
+      by(simp_all add: disc2_noC disc2_noProt)
+  thm primitive_extractor_correct(5)[OF _ wf_disc_sel_common_primitive(2)]
+  apply(frule_tac m=a in primitive_extractor_correct(5)[OF _ wf_disc_sel, where P=f])
+   apply blast
+  apply(simp split: match_compress.split_asm)
+  using disc2_noC by auto
+
 lemma normalize_dst_ports_preserves_normalized_src_ports:
   "\<And>m m'. m' \<in> set (normalize_dst_ports m) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow>
     normalized_src_ports m \<Longrightarrow> normalized_src_ports m'"
@@ -1013,6 +1037,12 @@ lemma normalize_dst_ports_preserves_normalized_src_ports:
 
 (*    TODO: noralize Src_Ports Dst_Ports and Prot by removing impossible matches!    *)
 
+
+lemma "m' \<in> set (normalize_src_ports m) \<Longrightarrow>
+         normalized_nnf_match m \<Longrightarrow>
+          normalized_n_primitive (disc2, sel2) f m \<Longrightarrow>
+            normalized_n_primitive (disc2, sel2) f m'"
+oops
 
 
 
