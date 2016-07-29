@@ -870,32 +870,75 @@ apply(induction "f ms" rule: normalize_match.induct)
 
 
 
-lemma "x \<in> set (normalize_match (andfold_MatchExp (map (l4_ports_negate_one Dst_Ports) pts))) \<Longrightarrow>
-  normalized_n_primitive (is_Dst_Ports, dst_ports_sel) f x"
-oops
+(*TODO: move*)
+lemma andfold_MatchExp_nodisc:
+  "\<forall>m \<in> set ms. \<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (andfold_MatchExp ms)"
+  by(induction ms rule: andfold_MatchExp.induct) simp+
 
-lemma "\<forall>a. \<not> disc (C a) \<Longrightarrow>
-  x \<in> set (normalize_match (andfold_MatchExp (map (l4_ports_negate_one Dst_Ports) pts))) \<Longrightarrow>
-  normalized_n_primitive (disc, sel) f x"
-  apply(erule normalize_match_normalized_n_primitive)
-  apply(rule andfold_MatchExp_normalized_n_primitive)
-  apply(intro ballI)
-  apply(simp)
-  apply(induction pts)
+
+
+lemma andfold_MatchExp_normalized_normalized_n_primitive_single:
+    "\<forall>a. \<not> disc (C a) \<Longrightarrow>
+      s \<in> set (normalize_match (andfold_MatchExp (map (Match \<circ> C) xs))) \<Longrightarrow>
+         normalized_n_primitive (disc, sel) f s"
+  apply(rule normalized_n_primitive_if_no_primitive)
+   using normalized_nnf_match_normalize_match apply blast
+  apply(rule normalize_match_preserves_nodisc[where m="(andfold_MatchExp (map (Match \<circ> C) xs))"])
+   apply simp_all
+  by (simp add: andfold_MatchExp_nodisc)
+
+
+(*TODO: move*)
+lemma l4_ports_negate_one_nodisc:
+  "\<forall>a. \<not> disc (C a) \<Longrightarrow> \<forall>a. \<not> disc (Prot a) \<Longrightarrow> \<not> has_disc disc (l4_ports_negate_one C pt)"
+    apply(cases pt)
+    by(simp add: l4_ports_negate_one.simps MatchOr_def)
+
+lemma negated_normalized_folded_ports_nodisc:
+  "\<forall>a. \<not> disc (C a) \<Longrightarrow> \<forall>a. \<not> disc (Prot a) \<Longrightarrow>
+  m \<in> set (normalize_match (andfold_MatchExp (map (l4_ports_negate_one C) pts))) \<Longrightarrow>
+  \<not> has_disc disc m"
+  apply(subgoal_tac "\<not> has_disc disc (andfold_MatchExp (map (l4_ports_negate_one C) pts))")
+   prefer 2
+   apply(rule andfold_MatchExp_nodisc)
    apply(simp)
-  apply(simp)
-  apply(elim disjE)
-   apply(simp_all)
-  apply(rename_tac p ps, case_tac p)
-  apply(simp add: l4_ports_negate_one.simps)
-  apply(simp add: MatchOr_def)
-  thm andfold_MatchExp.simps
-oops*)
+   using l4_ports_negate_one_nodisc apply blast
+  using normalize_match_preserves_nodisc by blast
+
+
+lemma "normalized_nnf_match m \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> normalized_n_primitive (disc, sel) f m"
+by (simp add: normalized_n_primitive_if_no_primitive)
+thm normalize_match_preserves_nodisc
+
+lemma negated_normalized_folded_ports_normalized_n_primitive:
+  "\<forall>a. \<not> disc (C a) \<Longrightarrow> \<forall>a. \<not> disc (Prot a) \<Longrightarrow>
+   x \<in> set (normalize_match (andfold_MatchExp (map (l4_ports_negate_one C) pts))) \<Longrightarrow>
+    normalized_n_primitive (disc, sel) f x"
+  apply(rule normalized_n_primitive_if_no_primitive)
+   using normalized_nnf_match_normalize_match apply blast
+  apply(rule negated_normalized_folded_ports_nodisc)
+  by simp_all
+  
 
 (*TODO: generalize!*)
 (*TODO: split into smaller proofs, this one is very ugly*)
 
-lemma normalize_dst_ports_preserves_normalized_src_ports_hlper:
+
+(*TODO: into next proof*)
+lemma helper_a_normalized: "a \<in> MatchAnd x ` (\<Union>x\<in>set spts. MatchAnd x ` set (normalize_match rst)) \<Longrightarrow>
+  normalized_n_primitive (disc, sel) f x \<Longrightarrow>
+  (\<forall>s \<in> set spts. normalized_n_primitive (disc, sel) f s) \<Longrightarrow>
+  normalized_n_primitive (disc, sel) f rst \<Longrightarrow>
+       normalized_n_primitive (disc, sel) f a"
+  apply(subgoal_tac "\<exists> s r. a = MatchAnd x (MatchAnd s r) \<and> s \<in> set spts \<and> r \<in> set (normalize_match rst)")
+   prefer 2
+   apply blast
+  apply(elim exE conjE, rename_tac s r)
+  apply(simp)
+  using normalize_match_preserves_normalized_n_primitive by blast
+  
+
+lemma rewrite_negated_dst_ports_preserves_normalized_src_ports_hlper:
       "normalized_nnf_match m \<Longrightarrow>
        normalized_src_ports m \<Longrightarrow>
        a \<in> set (normalize_match (rewrite_negated_dst_ports m)) \<Longrightarrow>
@@ -912,8 +955,16 @@ lemma normalize_dst_ports_preserves_normalized_src_ports_hlper:
     apply blast
    by(simp)
   apply(elim bexE)
-  apply(simp)
-oops
+  apply(erule helper_a_normalized)
+    subgoal for x
+    apply(rule negated_normalized_folded_ports_normalized_n_primitive[where C=Dst_Ports])
+      by(simp)+
+   subgoal for x
+   apply(intro ballI)
+   apply(rule andfold_MatchExp_normalized_normalized_n_primitive_single[where C=Dst_Ports])
+    by simp+
+  by blast
+
 
 lemma normalize_dst_ports_preserves_normalized_src_ports:
   "\<And>m m'. m' \<in> set (normalize_dst_ports m) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow>

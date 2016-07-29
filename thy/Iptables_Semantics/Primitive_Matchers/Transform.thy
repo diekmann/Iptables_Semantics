@@ -317,6 +317,7 @@ theorem transform_optimize_dnf_strict_structure:
       by(induction m rule: optimize_primitive_univ.induct) (simp_all)
     }  moreover { fix m
       have "\<not> has_disc disc m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). \<not> has_disc disc m')"
+        using normalize_match_preserves_nodisc by fast
       by(induction m rule: normalize_match.induct) (safe,auto) --"need safe, otherwise simplifier loops"
     } ultimately show "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc disc m"
       using not_has_disc_opt_MatchAny_match_expr matchpred_rule[of "\<lambda>m. \<not> has_disc disc m"] by fast
