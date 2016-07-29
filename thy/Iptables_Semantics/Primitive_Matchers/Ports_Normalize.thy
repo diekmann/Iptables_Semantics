@@ -1004,6 +1004,17 @@ lemma normalize_ports_generic_preserves_normalized_n_primitive:
   apply(simp split: match_compress.split_asm)
   using disc2_noC by auto
 
+
+lemma 
+  assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc disc1 m"
+    and wf_disc_sel: "wf_disc_sel (disc, sel) C"
+    and noProt: "\<forall>a. \<not> disc (Prot a)" (*disc is src_ports or dst_ports anyway*)
+    and disc2_noC: " \<forall>a. \<not> disc2 (C a)" and disc2_noProt: " \<forall>a. \<not> disc2 (Prot a)"
+   shows "m'\<in>set (normalize_ports_generic (normalize_positive_ports_step (disc, sel) C) (rewrite_negated_primitives (disc, sel) C l4_ports_negate_one) m)
+    \<Longrightarrow> \<not> has_disc disc2 m'"
+oops (*TODO: probably copy&paste proof from above*)
+
+
 lemma normalize_src_ports_preserves_normalized_n_primitive:
   assumes n: "normalized_nnf_match m"
     and disc2_noC: " \<forall>a. \<not> disc2 (Src_Ports a)" and disc2_noProt: " \<forall>a. \<not> disc2 (Prot a)"
@@ -1024,7 +1035,7 @@ lemma normalize_dst_ports_preserves_normalized_n_primitive:
     by(simp_all add: disc2_noC disc2_noProt normalize_dst_ports_def normalize_ports_generic_def
               normalize_positive_dst_ports_def rewrite_negated_dst_ports_def)
 
-    
+
 (*TODO: delete, follows from previous*)
 lemma normalize_dst_ports_preserves_normalized_src_ports:
   "m' \<in> set (normalize_dst_ports m) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow>
@@ -1036,6 +1047,9 @@ lemma normalize_dst_ports_preserves_normalized_src_ports:
   
 
 
+lemma "\<forall>m. normalized_nnf_match m \<and> \<not> has_disc disc1 m \<longrightarrow>
+        (\<forall>m'\<in>set (normalize_src_ports m). normalized_nnf_match m' \<and> \<not> has_disc disc1 m')"
+oops
 
 
 (*    TODO: noralize Src_Ports Dst_Ports and Prot by removing impossible matches!    *)
