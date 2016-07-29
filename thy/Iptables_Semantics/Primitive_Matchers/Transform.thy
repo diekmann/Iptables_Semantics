@@ -820,20 +820,19 @@ theorem transform_normalize_primitives:
 
 
      from a_IIface a_OIface a_Prot
-     have "\<forall>m\<in>get_match ` set ?rs0. normalized_n_primitive (disc2, sel2) f m"
+     have normalized_n_primitive_rs0: "\<forall>m\<in>get_match ` set ?rs0. normalized_n_primitive (disc2, sel2) f m"
       by (metis a' optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_normalized_n_primitive) 
-     (*with normalized_rs0 normalize_rules_preserves_unrelated_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(1) a_Src_Ports,
-       of ?rs0 sel2 f "(\<lambda>me. map (\<lambda>pt. [pt]) (raw_ports_compress me))",
-       folded normalize_src_ports_def normalize_ports_step_def]*)
-     hence "\<forall>m\<in>get_match ` set ?rs1. normalized_n_primitive (disc2, sel2) f m" (*by blast*)
+     with normalize_src_ports_preserves_normalized_n_primitive[OF _ a_Src_Ports a_Prot] have normalized_n_primitive_rs1:
+     "\<forall>m\<in>get_match ` set ?rs1. normalized_n_primitive (disc2, sel2) f m" (*by blast*)
       apply(intro normalize_rules_property[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) f m"])
        apply(simp)
        using normalized_rs0 apply blast
-      apply(clarify)
-     with normalized_rs1 normalize_rules_preserves_unrelated_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(2) a_Dst_Ports,
-       of ?rs1 sel2 f "(\<lambda>me. map (\<lambda>pt. [pt]) (raw_ports_compress me))",
-       folded normalize_dst_ports_def normalize_ports_step_def]
-     have "\<forall>m\<in>get_match ` set ?rs2. normalized_n_primitive (disc2, sel2) f m" by blast
+      by blast
+     have "\<forall>m\<in>get_match ` set ?rs2. normalized_n_primitive (disc2, sel2) f m"
+      apply(rule normalize_rules_property[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) f m"])
+       apply(simp)
+       using normalized_n_primitive_rs1 normalized_rs1 apply blast
+      using normalize_dst_ports_preserves_normalized_n_primitive[OF _ a_Dst_Ports a_Prot] by blast
      with normalized_rs2 normalize_rules_preserves_unrelated_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(3) a_Src,
        of ?rs2 sel2 f ipt_iprange_compress,
        folded normalize_src_ips_def]
