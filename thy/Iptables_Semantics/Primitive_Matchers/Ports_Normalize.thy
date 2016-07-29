@@ -938,35 +938,43 @@ lemma helper_a_normalized: "a \<in> MatchAnd x ` (\<Union>x\<in>set spts. MatchA
   using normalize_match_preserves_normalized_n_primitive by blast
 
 
+lemma rewrite_negated_primitives_normalized_preserves_unrelated_helper:
+  assumes wf_disc_sel: "wf_disc_sel (disc, sel) C" and disc: "\<forall>a. \<not> disc2 (C a)" and disc_p: "\<forall>a. \<not> disc2 (Prot a)"
+  shows "normalized_nnf_match m \<Longrightarrow>
+       normalized_n_primitive (disc2, sel2) f m \<Longrightarrow>
+       a \<in> set (normalize_match (rewrite_negated_primitives (disc, sel) C l4_ports_negate_one m)) \<Longrightarrow>
+       normalized_n_primitive (disc2, sel2) f  a"
+  apply(simp add: rewrite_negated_primitives_def)
+  apply(case_tac "primitive_extractor (disc, sel) m", rename_tac spts rst)
+  apply(simp)
+  apply(subgoal_tac "normalized_n_primitive (disc2, sel2) f rst")
+   prefer 2 subgoal for spts rst
+   thm primitive_extractor_correct(5)[OF _ wf_disc_sel]
+   apply(drule primitive_extractor_correct(5)[OF _ wf_disc_sel, where P="f"])
+    apply blast
+   by(simp)
+  apply(elim bexE)
+  apply(erule helper_a_normalized)
+    subgoal for x
+    apply(rule negated_normalized_folded_ports_normalized_n_primitive[where C=C])
+      using disc disc_p by(simp)+
+   subgoal for x
+   apply(intro ballI)
+   apply(rule andfold_MatchExp_normalized_normalized_n_primitive_single[where C=C])
+     using disc disc_p by(simp)+
+  by blast
+
 lemma rewrite_negated_dst_ports_preserves_normalized_src_ports_hlper:
       "normalized_nnf_match m \<Longrightarrow>
        normalized_src_ports m \<Longrightarrow>
        a \<in> set (normalize_match (rewrite_negated_dst_ports m)) \<Longrightarrow>
        normalized_src_ports a"
   apply(simp add: rewrite_negated_dst_ports_def)
-  apply(simp add: rewrite_negated_primitives_def)
-  apply(case_tac "primitive_extractor (is_Dst_Ports, dst_ports_sel) m", rename_tac spts rst)
-  apply(simp)
   apply(simp add: normalized_src_ports_def2)
-  apply(subgoal_tac "normalized_n_primitive (is_Src_Ports, src_ports_sel) (\<lambda>ps. case ps of L4Ports x pts \<Rightarrow> length pts \<le> 1) rst")
-   prefer 2 subgoal
-   thm primitive_extractor_correct(5)[OF _ wf_disc_sel_common_primitive(2)]
-   apply(drule primitive_extractor_correct(5)[OF _ wf_disc_sel_common_primitive(2), where P="(\<lambda>ps. case ps of L4Ports x pts \<Rightarrow> length pts \<le> 1)"])
-    apply blast
-   by(simp)
-  apply(elim bexE)
-  apply(erule helper_a_normalized)
-    subgoal for x
-    apply(rule negated_normalized_folded_ports_normalized_n_primitive[where C=Dst_Ports])
-      by(simp)+
-   subgoal for x
-   apply(intro ballI)
-   apply(rule andfold_MatchExp_normalized_normalized_n_primitive_single[where C=Dst_Ports])
-    by simp+
-  by blast
+  apply(rule rewrite_negated_primitives_normalized_preserves_unrelated_helper[OF wf_disc_sel_common_primitive(2)])
+    by(simp)+
 
-
-lemma normalized_n_primitive_MatchAnd_sinle_norm_rule:
+lemma
     "\<forall>a. \<not> disc (C a) \<Longrightarrow> normalized_n_primitive (disc, sel) f rst \<Longrightarrow>
       m' \<in> (\<lambda>spt. MatchAnd (Match (C spt)) rst) ` set xs \<Longrightarrow>
        normalized_n_primitive (disc, sel) f m'"
