@@ -1004,33 +1004,16 @@ lemma normalize_ports_generic_preserves_normalized_n_primitive:
   apply(simp split: match_compress.split_asm)
   using disc2_noC by auto
 
+(*TODO: version which preserver arbitrary disc2*)
+
 lemma normalize_dst_ports_preserves_normalized_src_ports:
-  "\<And>m m'. m' \<in> set (normalize_dst_ports m) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow>
+  "m' \<in> set (normalize_dst_ports m) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow>
     normalized_src_ports m \<Longrightarrow> normalized_src_ports m'"
-  apply(simp add: normalize_dst_ports_def)
-  apply(simp add: normalize_ports_generic_def)
-  apply(elim bexE, rename_tac a)
-  apply(subgoal_tac "normalized_nnf_match a")
-   prefer 2 using normalized_nnf_match_normalize_match apply blast 
-  apply(simp add: normalize_positive_dst_ports_def)
-  apply(simp add: normalize_positive_ports_step_def)
-  apply(elim exE conjE, rename_tac rst dpts)
-  apply(drule sym) (*primitive extractor*)
-  apply(subgoal_tac "getNeg dpts = []")
-   prefer 2
-   apply (metis not_has_disc_negated_after_normalize primitive_extractor_correct(8) rewrite_negated_dst_ports_not_has_disc_negated wf_disc_sel_common_primitive(2)) 
-  apply(simp)
-  (*apply(subgoal_tac "normalized_n_primitive (is_Dst_Ports, dst_ports_sel) (case_ipt_l4_ports (\<lambda>x pts. length pts \<le> Suc 0)) rst")*)
-  apply(subgoal_tac "normalized_src_ports a")
-   prefer 2 subgoal
-   using rewrite_negated_dst_ports_preserves_normalized_src_ports_hlper by blast
   unfolding normalized_src_ports_def2
-  thm primitive_extractor_correct(5)[OF _ wf_disc_sel_common_primitive(2)]
-  apply(frule_tac m=a in primitive_extractor_correct(5)[OF _ wf_disc_sel_common_primitive(2), where P="(case_ipt_l4_ports (\<lambda>x pts. length pts \<le> 1))"])
-   apply blast
-  apply(simp split: match_compress.split_asm)
-   subgoal by fastforce
-  done
+  apply(rule normalize_ports_generic_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(2)])
+       apply(simp_all)
+  by (simp add: normalize_dst_ports_def normalize_ports_generic_def normalize_positive_dst_ports_def rewrite_negated_dst_ports_def)
+  
 
 
 
