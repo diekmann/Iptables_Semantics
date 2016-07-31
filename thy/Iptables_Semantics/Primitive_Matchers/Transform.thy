@@ -1108,10 +1108,12 @@ lemma transform_upper_closure:
          \<not> has_disc is_Extra m"
   -- "no new primitives are introduced"
   and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
-       \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow> \<forall>a. \<not> disc (Prot a) \<or> disc = is_Prot \<Longrightarrow>
+       \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
+       \<forall>a. \<not> disc (Prot a) (*\<or> disc = is_Prot*) \<Longrightarrow>
         \<forall> r \<in> get_match ` set rs. \<not> has_disc disc r \<Longrightarrow> \<forall> r \<in> get_match ` set (upper_closure rs). \<not> has_disc disc r"
   and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
-       \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow> \<forall>a. \<not> disc (Prot a) \<or> disc = is_Prot \<Longrightarrow>
+       \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
+       \<forall>a. \<not> disc (Prot a) (*\<or> disc = is_Prot*) \<Longrightarrow>
         \<forall> r \<in> get_match ` set rs. \<not> has_disc_negated disc False r \<Longrightarrow> \<forall> r \<in> get_match ` set (upper_closure rs). \<not> has_disc_negated disc False r"
   proof -
     { fix m a
@@ -1144,9 +1146,9 @@ lemma transform_upper_closure:
         thm transform_optimize_dnf_strict[OF _ wf_in_doubt_allow]
         apply(frule(1) transform_optimize_dnf_strict_structure(2)[OF _ wf_in_doubt_allow, where disc=is_Extra])
         apply(frule transform_optimize_dnf_strict_structure(3)[OF _ wf_in_doubt_allow])
-        apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_allow, of _ "(is_Src_Ports, src_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
+        apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_allow, of _ "(is_Src_Ports, src_ports_sel)" "(\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1)"])
          apply(simp add: normalized_src_ports_def2; fail)
-        apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_allow, of _ "(is_Dst_Ports, dst_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
+        apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_allow, of _ "(is_Dst_Ports, dst_ports_sel)" "(\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1)"])
          apply(simp add: normalized_dst_ports_def2; fail)
         apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_allow, of _ "(is_Src, src_sel)" normalized_cidr_ip])
          apply(simp add: normalized_src_ips_def2; fail)
@@ -1188,7 +1190,8 @@ lemma transform_upper_closure:
       
 
     show "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
-          \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow> \<forall>a. \<not> disc (Prot a) \<or> disc = is_Prot \<Longrightarrow>
+          \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
+          \<forall>a. \<not> disc (Prot a) (*\<or> disc = is_Prot*) \<Longrightarrow>
             \<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (upper_closure rs). \<not> has_disc disc m"
     using simplers
     unfolding upper_closure_def
@@ -1208,7 +1211,8 @@ lemma transform_upper_closure:
     done
 
     show"\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
-         \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow> \<forall>a. \<not> disc (Prot a) \<or> disc = is_Prot \<Longrightarrow>
+         \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
+         \<forall>a. \<not> disc (Prot a) (*\<or> disc = is_Prot*) \<Longrightarrow>
         \<forall> r \<in> get_match ` set rs. \<not> has_disc_negated disc False r \<Longrightarrow> \<forall> r \<in> get_match ` set (upper_closure rs). \<not> has_disc_negated disc False r"
     using simplers
     unfolding upper_closure_def
@@ -1261,10 +1265,12 @@ lemma transform_lower_closure:
          \<not> has_disc is_Extra m"
   -- "no new primitives are introduced"
   and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
-       \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow> \<forall>a. \<not> disc (Prot a) \<or> disc = is_Prot \<Longrightarrow>
+       \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
+       \<forall>a. \<not> disc (Prot a) (*\<or> disc = is_Prot*) \<Longrightarrow>
         \<forall> r \<in> get_match ` set rs. \<not> has_disc disc r \<Longrightarrow> \<forall> r \<in> get_match ` set (lower_closure rs). \<not> has_disc disc r"
   and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
-       \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow> \<forall>a. \<not> disc (Prot a) \<or> disc = is_Prot \<Longrightarrow>
+       \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
+       \<forall>a. \<not> disc (Prot a) (*\<or> disc = is_Prot*) \<Longrightarrow>
         \<forall> r \<in> get_match ` set rs. \<not> has_disc_negated disc False r \<Longrightarrow> \<forall> r \<in> get_match ` set (lower_closure rs). \<not> has_disc_negated disc False r"
   proof -
     { fix m a
@@ -1297,9 +1303,9 @@ lemma transform_lower_closure:
         thm transform_optimize_dnf_strict[OF _ wf_in_doubt_deny]
         apply(frule(1) transform_optimize_dnf_strict_structure(2)[OF _ wf_in_doubt_deny, where disc=is_Extra])
         apply(frule transform_optimize_dnf_strict_structure(3)[OF _ wf_in_doubt_deny])
-        apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_deny, of _ "(is_Src_Ports, src_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
+        apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_deny, of _ "(is_Src_Ports, src_ports_sel)" "(\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1)"])
          apply(simp add: normalized_src_ports_def2; fail)
-        apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_deny, of _ "(is_Dst_Ports, dst_ports_sel)" "(\<lambda>pts. length pts \<le> 1)"])
+        apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_deny, of _ "(is_Dst_Ports, dst_ports_sel)" "(\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1)"])
          apply(simp add: normalized_dst_ports_def2; fail)
         apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_deny, of _ "(is_Src, src_sel)" normalized_cidr_ip])
          apply(simp add: normalized_src_ips_def2; fail)
@@ -1341,7 +1347,8 @@ lemma transform_lower_closure:
       
 
     show "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
-          \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow> \<forall>a. \<not> disc (Prot a) \<or> disc = is_Prot \<Longrightarrow>
+          \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
+          \<forall>a. \<not> disc (Prot a) (*\<or> disc = is_Prot*) \<Longrightarrow>
             \<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (lower_closure rs). \<not> has_disc disc m"
     using simplers
     unfolding lower_closure_def
@@ -1361,7 +1368,8 @@ lemma transform_lower_closure:
     done
 
     show"\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
-         \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow> \<forall>a. \<not> disc (Prot a) \<or> disc = is_Prot \<Longrightarrow>
+         \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
+         \<forall>a. \<not> disc (Prot a) (*\<or> disc = is_Prot*) \<Longrightarrow>
         \<forall> r \<in> get_match ` set rs. \<not> has_disc_negated disc False r \<Longrightarrow> \<forall> r \<in> get_match ` set (lower_closure rs). \<not> has_disc_negated disc False r"
     using simplers
     unfolding lower_closure_def
