@@ -353,6 +353,21 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
   apply(simp add: alist_and_NegPos_map_getNeg_getPos_matches)
   done
 
+  lemma rewrite_negated_primitives_not_has_disc:
+  assumes n: "normalized_nnf_match m" and wf_disc_sel: "wf_disc_sel (disc,sel) C"
+  and nodisc: "\<not> has_disc disc2 m"
+  and negate_f: "\<forall>pts. \<not> has_disc disc2 (negate_f C pts)" and no_disc: "\<forall>a. \<not> disc2 (C a)"
+  shows  "\<not> has_disc disc2 (rewrite_negated_primitives (disc,sel) C negate_f m)"
+    apply(simp add: rewrite_negated_primitives_def)
+    apply(case_tac "primitive_extractor (disc,sel) m", rename_tac spts rst)
+    apply(simp)
+    apply(frule primitive_extractor_correct(4)[OF n wf_disc_sel])
+    apply(intro conjI)
+      apply(rule andfold_MatchExp_not_discI)
+      apply(simp add: negate_f; fail)
+     using andfold_MatchExp_not_disc_mapMatch no_disc apply blast
+     using nodisc by blast
+
   lemma rewrite_negated_primitives_not_has_disc_negated:
   assumes n: "normalized_nnf_match m" and wf_disc_sel: "wf_disc_sel (disc,sel) C"
   and negate_f: "\<forall>pts. \<not> has_disc_negated disc False (negate_f C pts)"
@@ -368,21 +383,21 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
     using has_disc_negated_has_disc by blast
 
 
-  lemma rewrite_negated_primitives_not_has_disc:
+  lemma rewrite_negated_primitives_preserves_not_has_disc_negated:
   assumes n: "normalized_nnf_match m" and wf_disc_sel: "wf_disc_sel (disc,sel) C"
-  and nodisc: "\<not> has_disc disc2 m"
-  and negate_f: "\<forall>pts. \<not> has_disc disc2 (negate_f C pts)" and no_disc: "\<forall>a. \<not> disc2 (C a)"
-  shows  "\<not> has_disc disc2 (rewrite_negated_primitives (disc,sel) C negate_f m)"
+  and negate_f: "\<forall>pts. \<not> has_disc_negated disc2 False (negate_f C pts)"
+  and no_disc: "\<not> has_disc_negated disc2 False m"
+  shows  "\<not> has_disc_negated disc2 False (rewrite_negated_primitives (disc,sel) C negate_f m)"
     apply(simp add: rewrite_negated_primitives_def)
     apply(case_tac "primitive_extractor (disc,sel) m", rename_tac spts rst)
     apply(simp)
-    apply(frule primitive_extractor_correct(4)[OF n wf_disc_sel])
+    apply(frule primitive_extractor_correct(3)[OF n wf_disc_sel])
     apply(intro conjI)
-      apply(rule andfold_MatchExp_not_discI)
+      apply(rule andfold_MatchExp_not_disc_negatedI)
       apply(simp add: negate_f; fail)
-     using andfold_MatchExp_not_disc_mapMatch no_disc apply blast
-     using nodisc by blast
-    
+     using andfold_MatchExp_not_disc_negated_mapMatch apply blast
+    apply(drule primitive_extractor_correct(6)[OF n wf_disc_sel, where neg=False])
+    using no_disc by blast
 
   definition rewrite_negated_src_ports
     :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where
@@ -1071,13 +1086,13 @@ lemma normalize_ports_generic_preserves_normalized_not_has_disc:
   using disc2_noC by auto
  
 (*TODO copy&paste proof from above. again*)
-lemma normalize_ports_generic_preserves_normalized_not_has_disc:
-  assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc_negated disc2 neg m"
+lemma normalize_ports_generic_preserves_normalized_not_has_disc_negated:
+  assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc_negated disc2 False m"
     and wf_disc_sel: "wf_disc_sel (disc, sel) C"
     and noProt: "\<forall>a. \<not> disc (Prot a)" (*disc is src_ports or dst_ports anyway*)
-    and disc2_noC: "\<forall>a. \<not> disc2 (C a)" and disc2_noProt: "\<forall>a. \<not> disc2 (Prot a)"
+    and disc2_noProt: "\<forall>a. \<not> disc2 (Prot a)"
    shows "m'\<in> set (normalize_ports_generic (normalize_positive_ports_step (disc, sel) C) (rewrite_negated_primitives (disc, sel) C l4_ports_negate_one) m)
-    \<Longrightarrow> \<not> has_disc_negated disc2 neg m'"
+    \<Longrightarrow> \<not> has_disc_negated disc2 False m'"
   apply(simp add: normalize_ports_generic_def)
   apply(elim bexE, rename_tac a)
   apply(subgoal_tac "normalized_nnf_match a")
@@ -1095,22 +1110,19 @@ lemma normalize_ports_generic_preserves_normalized_not_has_disc:
    apply(intro allI)
    apply(rule l4_ports_negate_one_not_has_disc_negated_generic)
    by(simp add: noProt)
-  apply(subgoal_tac "\<not> has_disc_negated disc2 neg a")
+  apply(subgoal_tac "\<not> has_disc_negated disc2 False a")
    prefer 2 subgoal for a
-   thm normalize_match_preserves_nodisc
-   thm not_has_disc_normalize_match
    apply(rule_tac m="rewrite_negated_primitives (disc, sel) C l4_ports_negate_one m" in not_has_disc_normalize_match)
     apply(simp_all)
-   thm rewrite_negated_primitives_not_has_disc[of _ disc2]
-   apply(rule rewrite_negated_primitives_not_has_disc[OF n wf_disc_sel nodisc])
-    using l4_ports_negate_one_nodisc[OF disc2_noC disc2_noProt] apply blast
-   using disc2_noC by blast
-  thm primitive_extractor_correct(4)[OF _ wf_disc_sel_common_primitive(2)]
-  apply(frule_tac m=a in primitive_extractor_correct(4)[OF _ wf_disc_sel])
+   thm rewrite_negated_primitives_preserves_not_has_disc_negated[OF n wf_disc_sel ]
+   apply(rule rewrite_negated_primitives_preserves_not_has_disc_negated[OF n wf_disc_sel ])
+    using disc2_noProt l4_ports_negate_one_not_has_disc_negated_generic apply blast
+   using nodisc by blast
+  thm primitive_extractor_correct(6)[OF _ wf_disc_sel_common_primitive(2)]
+  apply(frule_tac m=a and as=dpts and ms=rst and neg=False in primitive_extractor_correct(6)[OF _ wf_disc_sel])
    apply blast
   apply(simp split: match_compress.split_asm)
-  using disc2_noC by auto
-oops
+  by auto
 
 lemma normalize_src_ports_preserves_normalized_n_primitive:
   assumes n: "normalized_nnf_match m"
