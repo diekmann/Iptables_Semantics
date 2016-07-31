@@ -634,9 +634,28 @@ lemma not_has_disc_opt_MatchAny_match_expr: "\<not> has_disc disc m \<Longrighta
 lemma not_has_disc_negated_opt_MatchAny_match_expr: "\<not> has_disc_negated disc neg m \<Longrightarrow> \<not> has_disc_negated disc neg (opt_MatchAny_match_expr m)"
   by(induction m arbitrary: neg rule:opt_MatchAny_match_expr.induct) (simp_all)
 
-lemma not_has_disc_normalize_match: "\<not> has_disc_negated disc neg  m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). \<not> has_disc_negated disc neg m')"
-  by(induction m rule: normalize_match.induct) (safe,auto) (*safe is faster*)
+lemma normalize_match_preserves_nodisc:
+  "\<not> has_disc disc m \<Longrightarrow> m' \<in> set (normalize_match m) \<Longrightarrow> \<not> has_disc disc m'"
+  proof - 
+    (*no idea why this statement is necessary*)
+    have "\<not> has_disc disc m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). \<not> has_disc disc m')"
+    by(induction m rule: normalize_match.induct) (safe,auto) --"need safe, otherwise simplifier loops"
+  thus "\<not> has_disc disc m \<Longrightarrow> m' \<in> set (normalize_match m) \<Longrightarrow> \<not> has_disc disc m'" by blast
+qed
 
+lemma not_has_disc_normalize_match:
+  "\<not> has_disc_negated disc neg  m \<Longrightarrow> m' \<in> set (normalize_match m) \<Longrightarrow> \<not> has_disc_negated disc neg m'"
+  using i_m_giving_this_a_funny_name_so_i_can_thank_my_future_me_when_sledgehammer_will_find_this_one_day by blast
+
+lemma normalize_match_preserves_normalized_n_primitive:
+  "normalized_n_primitive (disc, sel) f rst \<Longrightarrow>
+        \<forall> r \<in> set (normalize_match rst). normalized_n_primitive (disc, sel) f r"
+apply(induction rst rule: normalize_match.induct)
+      apply(simp; fail)
+     apply(simp; fail)
+    apply(simp; fail)
+   using normalized_n_primitive.simps(5) apply blast (*simp loops*)
+  by simp+
 
 
 

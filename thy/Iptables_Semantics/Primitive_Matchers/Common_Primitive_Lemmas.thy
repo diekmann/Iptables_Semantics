@@ -19,27 +19,5 @@ lemma has_unknowns_common_matcher: fixes m::"'i::len common_primitive match_expr
 qed
 
 
-(*TODO: move*)
-lemma normalize_match_preserves_nodisc:
-  "\<not> has_disc disc m \<Longrightarrow> m' \<in> set (normalize_match m) \<Longrightarrow> \<not> has_disc disc m'"
-  proof - 
-    (*no idea why this statement is necessary*)
-    have "\<not> has_disc disc m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). \<not> has_disc disc m')"
-    by(induction m rule: normalize_match.induct) (safe,auto) --"need safe, otherwise simplifier loops"
-  thus "\<not> has_disc disc m \<Longrightarrow> m' \<in> set (normalize_match m) \<Longrightarrow> \<not> has_disc disc m'" by blast
-qed
-
-
-(*TODO: move*)
-lemma normalize_match_preserves_normalized_n_primitive:
-  "normalized_n_primitive (disc, sel) f rst \<Longrightarrow>
-        \<forall> r \<in> set (normalize_match rst). normalized_n_primitive (disc, sel) f r"
-apply(induction rst rule: normalize_match.induct)
-      apply(simp; fail)
-     apply(simp; fail)
-    apply(simp; fail)
-   using normalized_n_primitive.simps(5) apply blast (*simp loops*)
-  by simp+
-
 
 end
