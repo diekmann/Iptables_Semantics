@@ -280,6 +280,12 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
                     raw_ports_invert)
 
 
+
+  lemma l4_ports_negate_one_nodisc:
+    "\<forall>a. \<not> disc (C a) \<Longrightarrow> \<forall>a. \<not> disc (Prot a) \<Longrightarrow> \<not> has_disc disc (l4_ports_negate_one C pt)"
+      apply(cases pt)
+      by(simp add: MatchOr_def)
+
   lemma l4_ports_negate_one_not_has_disc_negated_generic:
     assumes noProt: "\<forall>a. \<not> disc (Prot a)"
     shows "\<not> has_disc_negated disc False (l4_ports_negate_one C ports)"
@@ -321,7 +327,7 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
 
 
   definition rewrite_negated_primitives
-    :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> ('b \<Rightarrow> 'a) \<Rightarrow> (*dsic_sel C*)
+    :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> ('b \<Rightarrow> 'a) \<Rightarrow> (*disc_sel C*)
         (('b \<Rightarrow> 'a) \<Rightarrow> 'b \<Rightarrow> 'a match_expr) \<Rightarrow> (*negate_one function*)
         'a match_expr \<Rightarrow> 'a match_expr" where
     "rewrite_negated_primitives disc_sel C negate m \<equiv>
@@ -358,7 +364,8 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
   lemma rewrite_negated_primitives_not_has_disc:
   assumes n: "normalized_nnf_match m" and wf_disc_sel: "wf_disc_sel (disc,sel) C"
   and nodisc: "\<not> has_disc disc2 m"
-  and negate_f: "\<forall>pts. \<not> has_disc disc2 (negate_f C pts)" and no_disc: "\<forall>a. \<not> disc2 (C a)"
+  and negate_f: "\<forall>pts. \<not> has_disc disc2 (negate_f C pts)"
+  and no_disc: "\<forall>a. \<not> disc2 (C a)"
   shows  "\<not> has_disc disc2 (rewrite_negated_primitives (disc,sel) C negate_f m)"
     apply(simp add: rewrite_negated_primitives_def)
     apply(case_tac "primitive_extractor (disc,sel) m", rename_tac spts rst)
@@ -925,32 +932,29 @@ lemma andfold_MatchExp_normalized_normalized_n_primitive_single:
 
 
 (*TODO: move*)
-lemma l4_ports_negate_one_nodisc:
-  "\<forall>a. \<not> disc (C a) \<Longrightarrow> \<forall>a. \<not> disc (Prot a) \<Longrightarrow> \<not> has_disc disc (l4_ports_negate_one C pt)"
-    apply(cases pt)
-    by(simp add: l4_ports_negate_one.simps MatchOr_def)
-
 lemma negated_normalized_folded_ports_nodisc:
-  "\<forall>a. \<not> disc (C a) \<Longrightarrow> \<forall>a. \<not> disc (Prot a) \<Longrightarrow>
-  m \<in> set (normalize_match (andfold_MatchExp (map (l4_ports_negate_one C) pts))) \<Longrightarrow>
-  \<not> has_disc disc m"
+  "\<forall>a. \<not> disc (C a) \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<or> pts = [] \<Longrightarrow>
+   m \<in> set (normalize_match (andfold_MatchExp (map (l4_ports_negate_one C) pts))) \<Longrightarrow>
+    \<not> has_disc disc m"
   apply(subgoal_tac "\<not> has_disc disc (andfold_MatchExp (map (l4_ports_negate_one C) pts))")
    prefer 2
    apply(rule andfold_MatchExp_nodisc)
    apply(simp)
-   using l4_ports_negate_one_nodisc apply blast
+   apply(elim disjE)
+    using l4_ports_negate_one_nodisc apply blast
+   apply(simp; fail)
   using normalize_match_preserves_nodisc by blast
 
-
 lemma negated_normalized_folded_ports_normalized_n_primitive:
-  "\<forall>a. \<not> disc (C a) \<Longrightarrow> \<forall>a. \<not> disc (Prot a) \<Longrightarrow>
+  "\<forall>a. \<not> disc (C a) \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<or> pts = [] \<Longrightarrow>
    x \<in> set (normalize_match (andfold_MatchExp (map (l4_ports_negate_one C) pts))) \<Longrightarrow>
     normalized_n_primitive (disc, sel) f x"
   apply(rule normalized_n_primitive_if_no_primitive)
    using normalized_nnf_match_normalize_match apply blast
   apply(rule negated_normalized_folded_ports_nodisc)
   by simp_all
-  
+
+lemma "normalize_match (andfold_MatchExp (map (l4_ports_negate_one C) [])) = [MatchAny]" by(simp)
 
 (*TODO: generalize!*)
 (*TODO: split into smaller proofs, this one is very ugly*)
@@ -971,7 +975,9 @@ lemma helper_a_normalized: "a \<in> MatchAnd x ` (\<Union>x\<in>set spts. MatchA
 
 
 lemma rewrite_negated_primitives_normalized_preserves_unrelated_helper:
-  assumes wf_disc_sel: "wf_disc_sel (disc, sel) C" and disc: "\<forall>a. \<not> disc2 (C a)" and disc_p: "\<forall>a. \<not> disc2 (Prot a)"
+  assumes wf_disc_sel: "wf_disc_sel (disc, sel) C"
+  and disc: "\<forall>a. \<not> disc2 (C a)"
+  and disc_p: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated disc False m" (*either we do not disc on protocol or the is no negated port*)
   shows "normalized_nnf_match m \<Longrightarrow>
        normalized_n_primitive (disc2, sel2) f m \<Longrightarrow>
        a \<in> set (normalize_match (rewrite_negated_primitives (disc, sel) C l4_ports_negate_one m)) \<Longrightarrow>
@@ -987,9 +993,11 @@ lemma rewrite_negated_primitives_normalized_preserves_unrelated_helper:
    by(simp)
   apply(elim bexE)
   apply(erule helper_a_normalized)
-    subgoal for x
-    apply(rule negated_normalized_folded_ports_normalized_n_primitive[where C=C])
-      using disc disc_p by(simp)+
+    subgoal for spts
+    apply(rule_tac pts="(getNeg spts)" in negated_normalized_folded_ports_normalized_n_primitive[where C=C])
+      using disc apply(simp; fail)
+     using disc_p primitive_extractor_correct(8)[OF _ wf_disc_sel] apply blast
+    by simp
    subgoal for x
    apply(intro ballI)
    apply(rule andfold_MatchExp_normalized_normalized_n_primitive_single[where C=C])
@@ -1012,11 +1020,13 @@ lemma
        normalized_n_primitive (disc, sel) f m'"
 by fastforce
 
+(*disc is is_Src_Ports or is_Dst_Ports*)
 lemma normalize_ports_generic_preserves_normalized_n_primitive:
   assumes n: "normalized_nnf_match m"
     and wf_disc_sel: "wf_disc_sel (disc, sel) C"
     and noProt: "\<forall>a. \<not> disc (Prot a)" (*disc is src_ports or dst_ports anyway*)
-    and disc2_noC: "\<forall>a. \<not> disc2 (C a)" and disc2_noProt: "\<forall>a. \<not> disc2 (Prot a)"
+    and disc2_noC: "\<forall>a. \<not> disc2 (C a)"
+    and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated disc False m"
   shows "m' \<in> set (normalize_ports_generic (normalize_positive_ports_step (disc, sel) C) (rewrite_negated_primitives (disc, sel) C l4_ports_negate_one) m) \<Longrightarrow>
        normalized_n_primitive (disc2, sel2) f  m \<Longrightarrow>
         normalized_n_primitive (disc2, sel2) f m'"
@@ -1052,7 +1062,8 @@ lemma normalize_ports_generic_preserves_normalized_not_has_disc:
   assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc disc2 m"
     and wf_disc_sel: "wf_disc_sel (disc, sel) C"
     and noProt: "\<forall>a. \<not> disc (Prot a)" (*disc is src_ports or dst_ports anyway*)
-    and disc2_noC: "\<forall>a. \<not> disc2 (C a)" and disc2_noProt: "\<forall>a. \<not> disc2 (Prot a)"
+    and disc2_noC: "\<forall>a. \<not> disc2 (C a)"
+    and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) (*\<or> \<not> has_disc_negated disc False m TODO*)"
    shows "m'\<in> set (normalize_ports_generic (normalize_positive_ports_step (disc, sel) C) (rewrite_negated_primitives (disc, sel) C l4_ports_negate_one) m)
     \<Longrightarrow> \<not> has_disc disc2 m'"
   apply(simp add: normalize_ports_generic_def)
