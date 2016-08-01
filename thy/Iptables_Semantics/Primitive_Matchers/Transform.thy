@@ -648,8 +648,9 @@ lemma optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_
 
 theorem transform_normalize_primitives:
   -- "all discriminators which will not be normalized remain unchanged"
-  defines "unchanged disc \<equiv> (\<forall>a. \<not> disc (Src_Ports a)) \<and> (\<forall>a. \<not> disc (Dst_Ports a)) \<and> (\<forall>a. \<not> disc (Src a)) \<and> (\<forall>a. \<not> disc (Dst a))"
-      -- "also holds for these discriminators"
+  defines "unchanged disc \<equiv> (\<forall>a. \<not> disc (Src_Ports a)) \<and> (\<forall>a. \<not> disc (Dst_Ports a)) \<and>
+                             (\<forall>a. \<not> disc (Src a)) \<and> (\<forall>a. \<not> disc (Dst a))"
+      -- \<open>also holds for these discriminators, but not for @{const Prot}, which might be changed\<close>
       and "changeddisc disc \<equiv> ((\<forall>a. \<not> disc (IIface a)) \<or> disc = is_Iiface) \<and>
                                ((\<forall>a. \<not> disc (OIface a)) \<or> disc = is_Oiface) \<and>
                                ((\<forall>a. \<not> disc (Prot a)) (*\<or> disc = is_Prot*))" (*port normalization may introduce new matches on prtocols*)
@@ -659,14 +660,15 @@ theorem transform_normalize_primitives:
   shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_normalize_primitives rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
     and "simple_ruleset (transform_normalize_primitives rs)"
     and "unchanged disc1 \<Longrightarrow> changeddisc disc1 \<Longrightarrow>
-           \<forall> m \<in> get_match ` set rs. \<not> has_disc disc1 m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc disc1 m"
+           \<forall> m \<in> get_match ` set rs. \<not> has_disc disc1 m \<Longrightarrow>
+              \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc disc1 m"
     and "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m"
     and "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs).
           normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m"
     and "unchanged disc2 \<Longrightarrow> (\<forall>a. \<not> disc2 (IIface a)) \<Longrightarrow> (\<forall>a. \<not> disc2 (OIface a)) \<Longrightarrow> (\<forall>a. \<not> disc2 (Prot a)) \<Longrightarrow>
          \<forall> m \<in> get_match ` set rs. normalized_n_primitive (disc2, sel2) f m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_n_primitive (disc2, sel2) f m"
-    and "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow> (*we may add a match on Prot? TODO; I'm still unsure about this magic*)
+    and "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow>
          \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 False m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc_negated disc3 False m"
   proof -

@@ -283,14 +283,16 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
   lemma l4_ports_negate_one_not_has_disc_negated_generic:
     assumes noProt: "\<forall>a. \<not> disc (Prot a)"
     shows "\<not> has_disc_negated disc False (l4_ports_negate_one C ports)"
-    apply(case_tac [!] ports, rename_tac proto pts)
-     by(simp add: MatchOr_def noProt)+
+    apply(cases ports, rename_tac proto pts)
+    by(simp add: MatchOr_def noProt)
 
   lemma l4_ports_negate_one_not_has_disc_negated:
     "\<not> has_disc_negated is_Src_Ports False (l4_ports_negate_one Src_Ports ports)"
     "\<not> has_disc_negated is_Dst_Ports False (l4_ports_negate_one Dst_Ports ports)"
-    apply(case_tac [!] ports, rename_tac proto pts)
-     by(simp add: MatchOr_def)+
+    by(simp add: l4_ports_negate_one_not_has_disc_negated_generic)+
+    
+
+
     
   text\<open>beware, the result is not nnf normalized!\<close>
   lemma "\<not> normalized_nnf_match (l4_ports_negate_one C ports)"
