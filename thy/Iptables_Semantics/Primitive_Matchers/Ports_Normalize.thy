@@ -1020,6 +1020,24 @@ lemma
        normalized_n_primitive (disc, sel) f m'"
 by fastforce
 
+(*TODO: does this simplify sth?*)
+lemma rewrite_negated_primitives_preserves_not_has_disc:
+  assumes n: "normalized_nnf_match m"
+  and wf_disc_sel: "wf_disc_sel (disc, sel) C"
+  and nodisc: "\<not> has_disc disc2 m"
+  and noNeg: "\<not> has_disc_negated disc False m"
+  and disc2_noC: "\<forall>a. \<not> disc2 (C a)"
+  shows "\<not> has_disc disc2 (rewrite_negated_primitives (disc, sel) C l4_ports_negate_one m)"
+  apply(simp add: rewrite_negated_primitives_def)
+  apply(case_tac "primitive_extractor (disc, sel) m", rename_tac spts rst, simp)
+  thm primitive_extractor_correct(4)[OF n wf_disc_sel]
+  apply(frule primitive_extractor_correct(8)[OF n wf_disc_sel])
+   using noNeg apply(simp; fail)
+  apply(simp)
+  apply(frule primitive_extractor_correct(4)[OF n wf_disc_sel])
+  apply(simp add: nodisc)
+  using andfold_MatchExp_not_disc_mapMatch disc2_noC by blast
+
 (*disc is is_Src_Ports or is_Dst_Ports*)
 lemma normalize_ports_generic_preserves_normalized_n_primitive:
   assumes n: "normalized_nnf_match m"
@@ -1063,7 +1081,7 @@ lemma normalize_ports_generic_preserves_normalized_not_has_disc:
     and wf_disc_sel: "wf_disc_sel (disc, sel) C"
     and noProt: "\<forall>a. \<not> disc (Prot a)" (*disc is src_ports or dst_ports anyway*)
     and disc2_noC: "\<forall>a. \<not> disc2 (C a)"
-    and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) (*\<or> \<not> has_disc_negated disc False m TODO*)"
+    and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated disc False m"
    shows "m'\<in> set (normalize_ports_generic (normalize_positive_ports_step (disc, sel) C) (rewrite_negated_primitives (disc, sel) C l4_ports_negate_one) m)
     \<Longrightarrow> \<not> has_disc disc2 m'"
   apply(simp add: normalize_ports_generic_def)
@@ -1088,10 +1106,12 @@ lemma normalize_ports_generic_preserves_normalized_not_has_disc:
    thm normalize_match_preserves_nodisc
    apply(rule_tac m="rewrite_negated_primitives (disc, sel) C l4_ports_negate_one m" in normalize_match_preserves_nodisc)
     apply(simp_all)
-   thm rewrite_negated_primitives_not_has_disc[of _ disc2]
-   apply(rule rewrite_negated_primitives_not_has_disc[OF n wf_disc_sel nodisc])
-    using l4_ports_negate_one_nodisc[OF disc2_noC disc2_noProt] apply blast
-   using disc2_noC by blast
+   apply(insert disc2_noProt)
+   apply(elim disjE)
+    thm rewrite_negated_primitives_not_has_disc[of _ disc2]
+    subgoal apply(rule rewrite_negated_primitives_not_has_disc[OF n wf_disc_sel nodisc _ disc2_noC])
+    using l4_ports_negate_one_nodisc[OF disc2_noC] by blast
+   using rewrite_negated_primitives_preserves_not_has_disc[OF n wf_disc_sel nodisc _ disc2_noC] by blast
   thm primitive_extractor_correct(4)[OF _ wf_disc_sel_common_primitive(2)]
   apply(frule_tac m=a in primitive_extractor_correct(4)[OF _ wf_disc_sel])
    apply blast
