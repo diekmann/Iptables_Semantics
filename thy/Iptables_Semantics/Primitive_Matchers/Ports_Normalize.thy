@@ -325,7 +325,7 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
 
 
 
-
+  (*TODO: if not has disc negated, just return unmodified m? could speed up things and clean following proofs*)
   definition rewrite_negated_primitives
     :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> ('b \<Rightarrow> 'a) \<Rightarrow> (*disc_sel C*)
         (('b \<Rightarrow> 'a) \<Rightarrow> 'b \<Rightarrow> 'a match_expr) \<Rightarrow> (*negate_one function*)
@@ -1123,7 +1123,7 @@ lemma normalize_ports_generic_preserves_normalized_not_has_disc_negated:
   assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc_negated disc2 False m"
     and wf_disc_sel: "wf_disc_sel (disc, sel) C"
     and noProt: "\<forall>a. \<not> disc (Prot a)" (*disc is src_ports or dst_ports anyway*)
-    and disc2_noProt: "\<forall>a. \<not> disc2 (Prot a)"
+    and disc2_noProt: "\<forall>a. \<not> disc2 (Prot a)" (*maybe add: \<or> \<not> has_disc_negated disc False m needs more assumptions*)
    shows "m'\<in> set (normalize_ports_generic (normalize_positive_ports_step (disc, sel) C) (rewrite_negated_primitives (disc, sel) C l4_ports_negate_one) m)
     \<Longrightarrow> \<not> has_disc_negated disc2 False m'"
   apply(simp add: normalize_ports_generic_def)
