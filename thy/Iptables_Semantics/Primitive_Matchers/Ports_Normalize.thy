@@ -338,29 +338,36 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
               (andfold_MatchExp (map (Match \<circ> C) (getPos spts))) (*TODO: compress all the positive ports into one?*)
             rst)"
 
-  (*TODO: isar proof*)
   lemma rewrite_negated_primitives:
   assumes n: "normalized_nnf_match m" and wf_disc_sel: "wf_disc_sel disc_sel C"
   and negate_f: "\<forall>pts. matches \<gamma> (negate_f C pts) a p \<longleftrightarrow> matches \<gamma> (MatchNot (Match (C pts))) a p"
   shows "matches \<gamma> (rewrite_negated_primitives disc_sel C negate_f m) a p \<longleftrightarrow> matches \<gamma> m a p"
-  apply(simp add: rewrite_negated_primitives_def)
-  apply(case_tac "primitive_extractor disc_sel m", rename_tac spts rst)
-  apply(simp)
-  apply(simp add: bunch_of_lemmata_about_matches)
-  apply(cases disc_sel, rename_tac disc sel)
-  apply(subst primitive_extractor_correct(1)[OF n _, where \<gamma>=\<gamma> and a=a and p=p, symmetric])
-    using wf_disc_sel apply(simp; fail)
-   apply(simp; fail)
-  apply(simp)
-  apply(simp add: andfold_MatchExp_matches)
-  apply(simp add: negate_f)
-  apply(subgoal_tac "matches \<gamma> (alist_and (NegPos_map C spts)) a p \<longleftrightarrow>
-          (\<forall>m\<in>set (getNeg spts). matches \<gamma> (MatchNot (Match (C m))) a p)
-          \<and> (\<forall>m\<in>set (getPos spts). matches \<gamma> (Match (C m)) a p)")
-   apply(simp; fail)
-  apply(simp add: alist_and_NegPos_map_getNeg_getPos_matches)
-  done
+  proof -
+    obtain spts rst where pext: "primitive_extractor disc_sel m = (spts, rst)"
+      by(cases "primitive_extractor disc_sel m") simp
+    obtain disc sel where disc_sel: "disc_sel = (disc, sel)" by(cases disc_sel) simp
+      
+    have "matches \<gamma> (andfold_MatchExp (map (negate_f C) (getNeg spts))) a p \<and>
+          matches \<gamma> (andfold_MatchExp (map (Match \<circ> C) (getPos spts))) a p \<and> matches \<gamma> rst a p \<longleftrightarrow>
+       matches \<gamma> m a p"
+      thm pext
+      thm primitive_extractor_correct(1)[OF n _ , where \<gamma>=\<gamma> and a=a and p=p, symmetric] (*TODO: fix!*)
+      apply(subst primitive_extractor_correct(1)[OF n , where disc=disc and sel=sel and \<gamma>=\<gamma> and a=a and p=p, symmetric])
+        using wf_disc_sel disc_sel apply(simp; fail)
+       using pext disc_sel apply(simp; fail)
+      apply(simp add: andfold_MatchExp_matches)
+      apply(simp add: negate_f)
+      apply(subgoal_tac "matches \<gamma> (alist_and (NegPos_map C spts)) a p \<longleftrightarrow>
+              (\<forall>m\<in>set (getNeg spts). matches \<gamma> (MatchNot (Match (C m))) a p)
+              \<and> (\<forall>m\<in>set (getPos spts). matches \<gamma> (Match (C m)) a p)")
+       apply(simp; fail)
+      apply(simp add: alist_and_NegPos_map_getNeg_getPos_matches)
+      done
+    thus ?thesis by(simp add: rewrite_negated_primitives_def pext bunch_of_lemmata_about_matches)
+  qed
+ 
 
+  (*TODO: isar proof*)
   lemma rewrite_negated_primitives_not_has_disc:
   assumes n: "normalized_nnf_match m" and wf_disc_sel: "wf_disc_sel (disc,sel) C"
   and nodisc: "\<not> has_disc disc2 m"
