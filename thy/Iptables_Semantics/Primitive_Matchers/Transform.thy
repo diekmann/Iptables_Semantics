@@ -981,7 +981,7 @@ theorem transform_normalize_primitives:
 
    --"Pushing through properties through the ports normalizer"
    from normalize_src_ports_preserves_normalized_not_has_disc_negated normalize_src_ports_nnf have x_src_ports:
-    "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow>  \<forall>a. \<not> disc (Prot a) \<Longrightarrow>  
+    "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<or> \<not> has_disc_negated is_Src_Ports False m \<Longrightarrow>  
        m' \<in> set (normalize_src_ports m) \<Longrightarrow>
          normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated disc False m \<Longrightarrow>
             normalized_nnf_match m' \<and> \<not> has_disc_negated disc False m'"
@@ -1009,8 +1009,11 @@ theorem transform_normalize_primitives:
 
    have "\<forall>a. \<not> disc3 (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc3 (Dst_Ports a) \<Longrightarrow> 
          \<forall>a. \<not> disc3 (Src a) \<Longrightarrow> \<forall>a. \<not> disc3 (Dst a) \<Longrightarrow>
-         (\<forall>a. \<not> disc3 (IIface a)) \<or> disc3 = is_Iiface \<Longrightarrow> (\<forall>a. \<not> disc3 (OIface a)) \<or> disc3 = is_Oiface \<Longrightarrow>
-         (\<forall>a. \<not> disc3 (Prot a)) (*\<or> disc3 = is_Prot*) \<Longrightarrow>
+         (\<forall>a. \<not> disc3 (IIface a)) \<or> disc3 = is_Iiface \<Longrightarrow>
+         (\<forall>a. \<not> disc3 (OIface a)) \<or> disc3 = is_Oiface \<Longrightarrow>
+         (\<forall>a. \<not> disc3 (Prot a)) (*\<or>
+          disc3 = is_Prot \<and> (\<forall>m \<in> get_match ` set rs.
+            \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m)*) \<Longrightarrow>
          \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 False m \<and> normalized_nnf_match m \<Longrightarrow>
     \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m"
    unfolding transform_normalize_primitives_def
@@ -1019,11 +1022,12 @@ theorem transform_normalize_primitives:
        apply(rule y)
           apply(simp; fail)
          apply(simp; fail)
-        apply(simp; fail)
+        apply(blast)
        apply(simp; fail)
       subgoal
       apply(clarify)
-      by(rule x_src_ports) simp+
+      apply(rule_tac m5=m in x_src_ports)
+          by(simp)+
      subgoal
      apply(clarify)
      by(rule x_dst_ports) simp+
