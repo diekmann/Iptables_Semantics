@@ -356,6 +356,8 @@ text\<open>Essentially, @{term normalized_nnf_match} checks for a negation norma
  Since @{typ "'a match_expr"} does not support OR, the result is in conjunction normal form.
  Applying @{const normalize_match}, the reuslt is a list. Essentially, this is the disjunctive normal form.\<close>
 
+lemma normalize_match_already_normalized: "normalized_nnf_match m \<Longrightarrow> normalize_match m = [m]"
+  by(induction m rule: normalize_match.induct) (simp)+
 
 lemma normalized_nnf_match_normalize_match: "\<forall> m' \<in> set (normalize_match m). normalized_nnf_match m'"
   proof(induction m arbitrary: rule: normalize_match.induct)

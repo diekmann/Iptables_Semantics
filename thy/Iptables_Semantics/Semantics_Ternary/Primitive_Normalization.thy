@@ -156,7 +156,7 @@ theorem primitive_extractor_correct: assumes
   and "\<forall>disc2 sel2. normalized_n_primitive (disc2, sel2) P m \<longrightarrow> normalized_n_primitive (disc2, sel2) P ms"
   and "\<forall>disc2. \<not> has_disc_negated disc2 neg m \<longrightarrow> \<not> has_disc_negated disc2 neg ms"
   and "\<not> has_disc disc m \<Longrightarrow> as = [] \<and> ms = m"
-  and "\<not> has_disc_negated disc False m \<Longrightarrow> getNeg as = []"
+  and "\<not> has_disc_negated disc False m \<longleftrightarrow> getNeg as = []"
   (*TODO: preserves arbitrary P?*)
 proof -
   --"better simplification rule"
@@ -220,7 +220,7 @@ proof -
     case 4 thus ?case by(simp split: prod.split_asm)
     qed(simp_all)
 
-   from assms(1) assm3' show "\<not> has_disc_negated disc False m \<Longrightarrow> getNeg as = []"
+   from assms(1) assm3' show "\<not> has_disc_negated disc False m \<longleftrightarrow> getNeg as = []"
     proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
     case 2 thus ?case by(simp split: split_if_asm)
     next
