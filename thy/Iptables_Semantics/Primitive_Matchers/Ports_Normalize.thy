@@ -1202,7 +1202,8 @@ by fastforce
 
 lemma normalize_src_ports_preserves_normalized_n_primitive:
   assumes n: "normalized_nnf_match m"
-    and disc2_noC: "\<forall>a. \<not> disc2 (Src_Ports a)" and disc2_noProt: "\<forall>a. \<not> disc2 (Prot a)"
+    and disc2_noC: "\<forall>a. \<not> disc2 (Src_Ports a)"
+    and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated is_Src_Ports False m"
   shows "m' \<in> set (normalize_src_ports m) \<Longrightarrow>
        normalized_n_primitive (disc2, sel2) f  m \<Longrightarrow>
         normalized_n_primitive (disc2, sel2) f m'"
@@ -1212,7 +1213,8 @@ lemma normalize_src_ports_preserves_normalized_n_primitive:
 
 lemma normalize_dst_ports_preserves_normalized_n_primitive:
   assumes n: "normalized_nnf_match m"
-    and disc2_noC: "\<forall>a. \<not> disc2 (Dst_Ports a)" and disc2_noProt: "\<forall>a. \<not> disc2 (Prot a)"
+    and disc2_noC: "\<forall>a. \<not> disc2 (Dst_Ports a)"
+    and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated is_Dst_Ports False m"
   shows "m' \<in> set (normalize_dst_ports m) \<Longrightarrow>
        normalized_n_primitive (disc2, sel2) f  m \<Longrightarrow>
         normalized_n_primitive (disc2, sel2) f m'"
@@ -1233,7 +1235,8 @@ lemma normalize_dst_ports_preserves_normalized_src_ports:
 
 lemma normalize_src_ports_preserves_normalized_not_has_disc:
   assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc disc2 m"
-    and disc2_noC: "\<forall>a. \<not> disc2 (Src_Ports a)" and disc2_noProt: "\<forall>a. \<not> disc2 (Prot a)"
+    and disc2_noC: "\<forall>a. \<not> disc2 (Src_Ports a)"
+    and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated is_Src_Ports False m"
    shows "m'\<in> set (normalize_src_ports m)
     \<Longrightarrow> \<not> has_disc disc2 m'"
 apply(rule normalize_ports_generic_preserves_normalized_not_has_disc[OF n nodisc wf_disc_sel_common_primitive(1)])
@@ -1242,7 +1245,8 @@ by (simp add: normalize_ports_generic_def normalize_positive_src_ports_def norma
 
 lemma normalize_dst_ports_preserves_normalized_not_has_disc:
   assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc disc2 m"
-    and disc2_noC: "\<forall>a. \<not> disc2 (Dst_Ports a)" and disc2_noProt: "\<forall>a. \<not> disc2 (Prot a)"
+    and disc2_noC: "\<forall>a. \<not> disc2 (Dst_Ports a)"
+    and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated is_Dst_Ports False m"
    shows "m'\<in> set (normalize_dst_ports m)
     \<Longrightarrow> \<not> has_disc disc2 m'"
 apply(rule normalize_ports_generic_preserves_normalized_not_has_disc[OF n nodisc wf_disc_sel_common_primitive(2)])
@@ -1252,7 +1256,7 @@ by (simp add: normalize_ports_generic_def normalize_positive_dst_ports_def norma
 
 lemma normalize_src_ports_preserves_normalized_not_has_disc_negated:
   assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc_negated disc2 False m"
-    and disc2_noProt: "\<forall>a. \<not> disc2 (Prot a)"
+    and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated is_Src_Ports False m"
    shows "m'\<in> set (normalize_src_ports m)
     \<Longrightarrow> \<not> has_disc_negated disc2 False m'"
 apply(rule normalize_ports_generic_preserves_normalized_not_has_disc_negated[OF n nodisc wf_disc_sel_common_primitive(1)])
@@ -1261,7 +1265,7 @@ by (simp add: normalize_ports_generic_def normalize_positive_src_ports_def norma
 
 lemma normalize_dst_ports_preserves_normalized_not_has_disc_negated:
   assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc_negated disc2 False m"
-    and disc2_noProt: "\<forall>a. \<not> disc2 (Prot a)"
+    and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated is_Dst_Ports False m"
    shows "m'\<in> set (normalize_dst_ports m)
     \<Longrightarrow> \<not> has_disc_negated disc2 False m'"
 apply(rule normalize_ports_generic_preserves_normalized_not_has_disc_negated[OF n nodisc wf_disc_sel_common_primitive(2)])
@@ -1283,7 +1287,6 @@ oops
 
 
 lemma "False" oops
-
 
 
 
