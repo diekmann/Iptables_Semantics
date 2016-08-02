@@ -36,10 +36,10 @@ definition  allow_only_tcpsport_22_and_udp_dport80 :: "(string \<times> 32 commo
     [(''FORWARD'', [Rule MatchAny (Call ''CHAIN'')]),
      (''CHAIN'',
       [Rule (MatchAnd (Match (Prot (Proto TCP)))
-              (Match (Src_Ports [(22, 22)])))
+              (Match (Src_Ports (L4Ports TCP [(22, 22)]))))
         Return,
        Rule (MatchAnd (Match (Prot (Proto UDP)))
-              (Match (Dst_Ports [(80,80)])))
+              (Match (Dst_Ports (L4Ports UDP [(80,80)]))))
         Return,
        Rule MatchAny action.Drop])
     ]"
@@ -47,14 +47,20 @@ definition  allow_only_tcpsport_22_and_udp_dport80 :: "(string \<times> 32 commo
 text\<open>No problem here:\<close>
 lemma " (unfold_ruleset_FORWARD action.Accept
                       (map_of_string_ipv4 allow_only_tcpsport_22_and_udp_dport80)) =
-  [Rule (MatchAnd (MatchNot (MatchAnd (Match (Prot (Proto 6))) (Match (Src_Ports [(0x16, 0x16)]))))
-         (MatchNot (MatchAnd (Match (Prot (Proto 0x11))) (Match (Dst_Ports [(0x50, 0x50)])))))
+  [Rule (MatchAnd (MatchNot (MatchAnd (Match (Prot (Proto TCP))) (Match (Src_Ports (L4Ports TCP [(0x16, 0x16)])))))
+         (MatchNot (MatchAnd (Match (Prot (Proto UDP))) (Match (Dst_Ports (L4Ports UDP [(0x50, 0x50)]))))))
    action.Drop,
   Rule MatchAny action.Accept]" by eval
 
 
 text\<open>The simple firewall accepts everything for every protocol from source port 22 to dst port 80. 
 This is wrong!\<close>
+value"map simple_rule_ipv4_toString
+              (to_simple_firewall (upper_closure
+                (optimize_matches abstract_for_simple_firewall
+                  (upper_closure (packet_assume_new
+                    (unfold_ruleset_FORWARD action.Accept
+                      (map_of_string_ipv4 allow_only_tcpsport_22_and_udp_dport80)))))))"
 lemma "map simple_rule_ipv4_toString
               (to_simple_firewall (upper_closure
                 (optimize_matches abstract_for_simple_firewall
