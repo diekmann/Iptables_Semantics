@@ -6,8 +6,6 @@ begin
 
 subsection\<open>Simple Match to MatchExpr\<close>
 
-(*TODO: add again but be undefined when proto s ProtoAny and there are som ports defined!*)
-
 fun simple_match_to_ipportiface_match :: "'i::len simple_match \<Rightarrow> 'i common_primitive match_expr" where
   "simple_match_to_ipportiface_match \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> =
     MatchAnd (Match (IIface iif)) (MatchAnd (Match (OIface oif)) 
@@ -20,8 +18,6 @@ fun simple_match_to_ipportiface_match :: "'i::len simple_match \<Rightarrow> 'i 
                 (Match (Dst_Ports (L4Ports prim_p [dps])))
                 ))
     ))))"
-
-
 
 lemma ports_to_set_singleton_simple_match_port: "p \<in> ports_to_set [a] \<longleftrightarrow> simple_match_port a p"
   by(cases a, simp)
