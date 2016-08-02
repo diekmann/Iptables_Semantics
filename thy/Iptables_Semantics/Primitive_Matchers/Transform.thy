@@ -768,6 +768,13 @@ theorem transform_normalize_primitives:
     (*from preserve_normalized_src_ports[OF normalized_rs1 normalized_src_ports wf_disc_sel_common_primitive(2),
          where f2 (* f *) = "(\<lambda>me. map (\<lambda>pt. [pt]) (raw_ports_compress me))",
          folded normalize_ports_step_def normalize_dst_ports_def]*)
+    have normalize_dst_ports_preserves_normalized_src_ports:
+      "m' \<in> set (normalize_dst_ports m) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow>
+        normalized_src_ports m \<Longrightarrow> normalized_src_ports m'" for m m' :: " 'i common_primitive match_expr"
+      unfolding normalized_src_ports_def2
+      apply(rule normalize_ports_generic_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(2)])
+           apply(simp_all)
+      by (simp add: normalize_dst_ports_def normalize_ports_generic_def normalize_positive_dst_ports_def rewrite_negated_dst_ports_def)
     have normalized_src_ports_rs2: "\<forall>m \<in> get_match ` set ?rs2.  normalized_src_ports m"
       apply(rule normalize_rules_property[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_src_ports m"])
        using normalized_rs1 normalized_src_ports_rs1 apply blast

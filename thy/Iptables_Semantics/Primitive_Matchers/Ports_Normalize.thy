@@ -1149,6 +1149,70 @@ subsection\<open>Complete Normalization\<close>
      using n rewrite_negated_dst_ports_not_has_disc_negated apply blast
     using normalize_positive_dst_ports_nnf by blast
 
+
+  lemma normalize_src_ports_preserves_normalized_n_primitive:
+    assumes n: "normalized_nnf_match m"
+      and disc2_noC: "\<forall>a. \<not> disc2 (Src_Ports a)"
+      and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated is_Src_Ports False m"
+    shows "m' \<in> set (normalize_src_ports m) \<Longrightarrow>
+         normalized_n_primitive (disc2, sel2) f  m \<Longrightarrow>
+          normalized_n_primitive (disc2, sel2) f m'"
+      apply(rule normalize_ports_generic_preserves_normalized_n_primitive[OF n wf_disc_sel_common_primitive(1)])
+      by(simp_all add: disc2_noC disc2_noProt normalize_src_ports_def normalize_ports_generic_def
+                normalize_positive_src_ports_def rewrite_negated_src_ports_def)
+  
+  lemma normalize_dst_ports_preserves_normalized_n_primitive:
+    assumes n: "normalized_nnf_match m"
+      and disc2_noC: "\<forall>a. \<not> disc2 (Dst_Ports a)"
+      and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated is_Dst_Ports False m"
+    shows "m' \<in> set (normalize_dst_ports m) \<Longrightarrow>
+         normalized_n_primitive (disc2, sel2) f  m \<Longrightarrow>
+          normalized_n_primitive (disc2, sel2) f m'"
+      apply(rule normalize_ports_generic_preserves_normalized_n_primitive[OF n wf_disc_sel_common_primitive(2)])
+      by(simp_all add: disc2_noC disc2_noProt normalize_dst_ports_def normalize_ports_generic_def
+                normalize_positive_dst_ports_def rewrite_negated_dst_ports_def)
+  
+  
+  lemma normalize_src_ports_preserves_normalized_not_has_disc:
+    assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc disc2 m"
+      and disc2_noC: "\<forall>a. \<not> disc2 (Src_Ports a)"
+      and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated is_Src_Ports False m"
+     shows "m'\<in> set (normalize_src_ports m)
+      \<Longrightarrow> \<not> has_disc disc2 m'"
+  apply(rule normalize_ports_generic_preserves_normalized_not_has_disc[OF n nodisc wf_disc_sel_common_primitive(1)])
+      apply(simp add: disc2_noC disc2_noProt)+
+  by (simp add: normalize_ports_generic_def normalize_positive_src_ports_def normalize_src_ports_def rewrite_negated_src_ports_def)
+  
+  lemma normalize_dst_ports_preserves_normalized_not_has_disc:
+    assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc disc2 m"
+      and disc2_noC: "\<forall>a. \<not> disc2 (Dst_Ports a)"
+      and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated is_Dst_Ports False m"
+     shows "m'\<in> set (normalize_dst_ports m)
+      \<Longrightarrow> \<not> has_disc disc2 m'"
+  apply(rule normalize_ports_generic_preserves_normalized_not_has_disc[OF n nodisc wf_disc_sel_common_primitive(2)])
+      apply(simp add: disc2_noC disc2_noProt)+
+  by (simp add: normalize_ports_generic_def normalize_positive_dst_ports_def normalize_dst_ports_def rewrite_negated_dst_ports_def)
+  
+  
+  lemma normalize_src_ports_preserves_normalized_not_has_disc_negated:
+    assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc_negated disc2 False m"
+      and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated is_Src_Ports False m"
+     shows "m'\<in> set (normalize_src_ports m)
+      \<Longrightarrow> \<not> has_disc_negated disc2 False m'"
+  apply(rule normalize_ports_generic_preserves_normalized_not_has_disc_negated[OF n nodisc wf_disc_sel_common_primitive(1)])
+      apply(simp add: disc2_noProt)+
+  by (simp add: normalize_ports_generic_def normalize_positive_src_ports_def normalize_src_ports_def rewrite_negated_src_ports_def)
+  
+  lemma normalize_dst_ports_preserves_normalized_not_has_disc_negated:
+    assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc_negated disc2 False m"
+      and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated is_Dst_Ports False m"
+     shows "m'\<in> set (normalize_dst_ports m)
+      \<Longrightarrow> \<not> has_disc_negated disc2 False m'"
+  apply(rule normalize_ports_generic_preserves_normalized_not_has_disc_negated[OF n nodisc wf_disc_sel_common_primitive(2)])
+      apply(simp add: disc2_noProt)+
+  by (simp add: normalize_ports_generic_def normalize_positive_dst_ports_def normalize_dst_ports_def rewrite_negated_dst_ports_def)
+
+
 (*TODO: die ganzen matchAnys gehoeren mal ordentlich weg!*)
 value[code] "normalize_src_ports
                 (MatchAnd (Match (Dst (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)))
@@ -1157,7 +1221,7 @@ value[code] "normalize_src_ports
                  ))"
 
 
-lemma"map opt_MatchAny_match_expr (normalize_src_ports
+lemma "map opt_MatchAny_match_expr (normalize_src_ports
                 (MatchAnd (Match (Dst (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)))
                    (MatchAnd (Match (Prot (Proto TCP)))
                         (MatchNot (Match (Src_Ports (L4Ports UDP [(80,80)]))))
@@ -1191,86 +1255,6 @@ lemma "map opt_MatchAny_match_expr (normalize_src_ports
 lemma "normalize_match (andfold_MatchExp (map (l4_ports_negate_one C) [])) = [MatchAny]" by(simp)
 
 
-
-
-
-lemma
-    "\<forall>a. \<not> disc (C a) \<Longrightarrow> normalized_n_primitive (disc, sel) f rst \<Longrightarrow>
-      m' \<in> (\<lambda>spt. MatchAnd (Match (C spt)) rst) ` set xs \<Longrightarrow>
-       normalized_n_primitive (disc, sel) f m'"
-by fastforce
-
-lemma normalize_src_ports_preserves_normalized_n_primitive:
-  assumes n: "normalized_nnf_match m"
-    and disc2_noC: "\<forall>a. \<not> disc2 (Src_Ports a)"
-    and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated is_Src_Ports False m"
-  shows "m' \<in> set (normalize_src_ports m) \<Longrightarrow>
-       normalized_n_primitive (disc2, sel2) f  m \<Longrightarrow>
-        normalized_n_primitive (disc2, sel2) f m'"
-    apply(rule normalize_ports_generic_preserves_normalized_n_primitive[OF n wf_disc_sel_common_primitive(1)])
-    by(simp_all add: disc2_noC disc2_noProt normalize_src_ports_def normalize_ports_generic_def
-              normalize_positive_src_ports_def rewrite_negated_src_ports_def)
-
-lemma normalize_dst_ports_preserves_normalized_n_primitive:
-  assumes n: "normalized_nnf_match m"
-    and disc2_noC: "\<forall>a. \<not> disc2 (Dst_Ports a)"
-    and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated is_Dst_Ports False m"
-  shows "m' \<in> set (normalize_dst_ports m) \<Longrightarrow>
-       normalized_n_primitive (disc2, sel2) f  m \<Longrightarrow>
-        normalized_n_primitive (disc2, sel2) f m'"
-    apply(rule normalize_ports_generic_preserves_normalized_n_primitive[OF n wf_disc_sel_common_primitive(2)])
-    by(simp_all add: disc2_noC disc2_noProt normalize_dst_ports_def normalize_ports_generic_def
-              normalize_positive_dst_ports_def rewrite_negated_dst_ports_def)
-
-
-(*TODO: delete, follows from previous*)
-lemma normalize_dst_ports_preserves_normalized_src_ports:
-  "m' \<in> set (normalize_dst_ports m) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow>
-    normalized_src_ports m \<Longrightarrow> normalized_src_ports m'"
-  unfolding normalized_src_ports_def2
-  apply(rule normalize_ports_generic_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(2)])
-       apply(simp_all)
-  by (simp add: normalize_dst_ports_def normalize_ports_generic_def normalize_positive_dst_ports_def rewrite_negated_dst_ports_def)
-  
-
-lemma normalize_src_ports_preserves_normalized_not_has_disc:
-  assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc disc2 m"
-    and disc2_noC: "\<forall>a. \<not> disc2 (Src_Ports a)"
-    and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated is_Src_Ports False m"
-   shows "m'\<in> set (normalize_src_ports m)
-    \<Longrightarrow> \<not> has_disc disc2 m'"
-apply(rule normalize_ports_generic_preserves_normalized_not_has_disc[OF n nodisc wf_disc_sel_common_primitive(1)])
-    apply(simp add: disc2_noC disc2_noProt)+
-by (simp add: normalize_ports_generic_def normalize_positive_src_ports_def normalize_src_ports_def rewrite_negated_src_ports_def)
-
-lemma normalize_dst_ports_preserves_normalized_not_has_disc:
-  assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc disc2 m"
-    and disc2_noC: "\<forall>a. \<not> disc2 (Dst_Ports a)"
-    and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated is_Dst_Ports False m"
-   shows "m'\<in> set (normalize_dst_ports m)
-    \<Longrightarrow> \<not> has_disc disc2 m'"
-apply(rule normalize_ports_generic_preserves_normalized_not_has_disc[OF n nodisc wf_disc_sel_common_primitive(2)])
-    apply(simp add: disc2_noC disc2_noProt)+
-by (simp add: normalize_ports_generic_def normalize_positive_dst_ports_def normalize_dst_ports_def rewrite_negated_dst_ports_def)
-
-
-lemma normalize_src_ports_preserves_normalized_not_has_disc_negated:
-  assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc_negated disc2 False m"
-    and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated is_Src_Ports False m"
-   shows "m'\<in> set (normalize_src_ports m)
-    \<Longrightarrow> \<not> has_disc_negated disc2 False m'"
-apply(rule normalize_ports_generic_preserves_normalized_not_has_disc_negated[OF n nodisc wf_disc_sel_common_primitive(1)])
-    apply(simp add: disc2_noProt)+
-by (simp add: normalize_ports_generic_def normalize_positive_src_ports_def normalize_src_ports_def rewrite_negated_src_ports_def)
-
-lemma normalize_dst_ports_preserves_normalized_not_has_disc_negated:
-  assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc_negated disc2 False m"
-    and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated is_Dst_Ports False m"
-   shows "m'\<in> set (normalize_dst_ports m)
-    \<Longrightarrow> \<not> has_disc_negated disc2 False m'"
-apply(rule normalize_ports_generic_preserves_normalized_not_has_disc_negated[OF n nodisc wf_disc_sel_common_primitive(2)])
-    apply(simp add: disc2_noProt)+
-by (simp add: normalize_ports_generic_def normalize_positive_dst_ports_def normalize_dst_ports_def rewrite_negated_dst_ports_def)
 
 
 
