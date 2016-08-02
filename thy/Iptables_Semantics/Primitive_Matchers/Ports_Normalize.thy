@@ -292,6 +292,7 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
                     primitive_matcher_generic.Ports_single[OF generic]
                     raw_ports_invert)
 
+
   lemma l4_ports_negate_one_nodisc:
     "\<forall>a. \<not> disc (C a) \<Longrightarrow> \<forall>a. \<not> disc (Prot a) \<Longrightarrow> \<not> has_disc disc (l4_ports_negate_one C pt)"
       apply(cases pt)
@@ -331,11 +332,16 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
     by simp_all
 
 
-    
   text\<open>beware, the result is not nnf normalized!\<close>
   lemma "\<not> normalized_nnf_match (l4_ports_negate_one C ports)"
     by(cases ports) (simp add: MatchOr_def)
   
+  text\<open>Warning: does not preserve negated primitive property in general.
+       Might be violated for @{const Prot}. We will nnf normalize after applying the function.\<close>
+  lemma "\<forall>a. \<not> disc (C a) \<Longrightarrow> \<not> normalized_n_primitive (disc, sel) f (l4_ports_negate_one C a)"
+    apply(cases a)
+    by(simp add: MatchOr_def)
+
   declare l4_ports_negate_one.simps[simp del]
 
     
@@ -1097,7 +1103,6 @@ subsection\<open>Complete Normalization\<close>
              rewrite_negated_src_ports[OF generic, where \<alpha>=\<alpha> and a=a and p=p]
              rewrite_negated_src_ports_not_has_disc_negated by blast+
 
-
   lemma normalize_dst_ports:
     assumes generic: "primitive_matcher_generic \<beta>"
     and n: "normalized_nnf_match m"
@@ -1117,7 +1122,6 @@ subsection\<open>Complete Normalization\<close>
    using normalize_positive_src_ports_nnf apply blast
   unfolding normalized_src_ports_def2[symmetric]
   using normalize_positive_src_ports_normalized_n_primitive by blast
-
 
   lemma normalize_dst_ports_normalized_n_primitive:
     assumes n: "normalized_nnf_match m"
@@ -1177,13 +1181,6 @@ lemma "map opt_MatchAny_match_expr (normalize_src_ports
 
 
 
-
-
-(*does not preserve normalized primitives! but we normalize_match, maybe things will work out.*)
-lemma "\<forall>a. \<not> disc (C a) \<Longrightarrow> \<not> normalized_n_primitive (disc, sel) f (l4_ports_negate_one C a)"
-  apply(cases a)
-  apply(simp add: l4_ports_negate_one.simps)
-  by(simp add: MatchOr_def)
 
 
 
