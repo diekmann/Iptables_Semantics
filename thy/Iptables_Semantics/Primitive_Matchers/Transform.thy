@@ -1007,6 +1007,7 @@ theorem transform_normalize_primitives:
                  compress_normalize_besteffort_not_introduces_Prot_negated by blast+
    } note y=this
 
+  
    have "\<forall>a. \<not> disc3 (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc3 (Dst_Ports a) \<Longrightarrow> 
          \<forall>a. \<not> disc3 (Src a) \<Longrightarrow> \<forall>a. \<not> disc3 (Dst a) \<Longrightarrow>
          (\<forall>a. \<not> disc3 (IIface a)) \<or> disc3 = is_Iiface \<Longrightarrow>
@@ -1018,7 +1019,7 @@ theorem transform_normalize_primitives:
     \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m"
    unfolding transform_normalize_primitives_def
    apply(simp)
-   apply(rule normalize_rules_preserves')+
+   apply(rule normalize_rules_preserves')+ (*this rule is just not good. we need to state that there could also be no negated ports or disc3 \<noteq> is_Prot*)
        apply(rule y)
           apply(simp; fail)
          apply(simp; fail)
