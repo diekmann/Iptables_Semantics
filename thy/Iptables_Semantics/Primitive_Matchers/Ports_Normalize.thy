@@ -1034,6 +1034,20 @@ lemma helper_a_normalized: "a \<in> MatchAnd x ` (\<Union>x\<in>set spts. MatchA
   using normalize_match_preserves_normalized_n_primitive by blast
 
 
+lemma rewrite_negated_primitives_normalized_no_modification:
+  assumes wf_disc_sel: "wf_disc_sel (disc, sel) C"
+  and disc_p: "\<not> has_disc_negated disc False m"
+  and n: "normalized_nnf_match m"
+  and a: "a \<in> set (normalize_match (rewrite_negated_primitives (disc, sel) C l4_ports_negate_one m))"
+  shows "a = m"
+  proof -
+    from rewrite_negated_primitives_unchanged_if_not_has_disc_negated[OF n wf_disc_sel disc_p]
+    have m: "rewrite_negated_primitives (disc, sel) C l4_ports_negate_one m = m" by simp
+    from a show ?thesis
+      apply(subst(asm) m)
+      using normalize_match_already_normalized[OF n] by fastforce
+  qed
+
 lemma rewrite_negated_primitives_normalized_preserves_unrelated_helper:
   assumes wf_disc_sel: "wf_disc_sel (disc, sel) C"
   and disc: "\<forall>a. \<not> disc2 (C a)"
@@ -1044,9 +1058,7 @@ lemma rewrite_negated_primitives_normalized_preserves_unrelated_helper:
        normalized_n_primitive (disc2, sel2) f  a"
   apply(case_tac "\<not> has_disc_negated disc False m")
    subgoal
-   apply(subst(asm) rewrite_negated_primitives_unchanged_if_not_has_disc_negated)
-      using wf_disc_sel apply(simp)+
-   using normalize_match_already_normalized by fastforce
+   using rewrite_negated_primitives_normalized_no_modification[OF wf_disc_sel] by blast
   apply(simp add: rewrite_negated_primitives_def)
   apply(case_tac "primitive_extractor (disc, sel) m", rename_tac spts rst)
   apply(simp)
