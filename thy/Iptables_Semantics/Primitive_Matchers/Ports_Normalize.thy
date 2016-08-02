@@ -425,6 +425,15 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
     "rewrite_negated_dst_ports m \<equiv>
           rewrite_negated_primitives (is_Dst_Ports, dst_ports_sel) Dst_Ports l4_ports_negate_one m"
 
+  value "rewrite_negated_src_ports (MatchAnd (Match (Dst (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)))
+                   (MatchAnd (Match (Prot (Proto TCP)))
+                        (MatchNot (Match (Src_Ports (L4Ports UDP [(80,80)]))))
+                 ))"
+  value "rewrite_negated_src_ports (MatchAnd (Match (Dst (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)))
+                   (MatchAnd (Match (Prot (Proto TCP)))
+                        (MatchNot (Match (Extra ''foobar'')))
+                 ))"
+
   lemma rewrite_negated_src_ports:
   assumes generic: "primitive_matcher_generic \<beta>"  and n: "normalized_nnf_match m"
   shows "matches (\<beta>, \<alpha>) (rewrite_negated_src_ports m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
