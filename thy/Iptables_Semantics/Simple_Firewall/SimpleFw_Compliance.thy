@@ -7,35 +7,31 @@ begin
 subsection\<open>Simple Match to MatchExpr\<close>
 
 (*TODO: add again but be undefined when proto s ProtoAny and there are som ports defined!*)
-(*
+
 fun simple_match_to_ipportiface_match :: "'i::len simple_match \<Rightarrow> 'i common_primitive match_expr" where
-  "simple_match_to_ipportiface_match \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> = 
+  "simple_match_to_ipportiface_match \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr> =
     MatchAnd (Match (IIface iif)) (MatchAnd (Match (OIface oif)) 
     (MatchAnd (Match (Src (uncurry IpAddrNetmask sip)))
     (MatchAnd (Match (Dst (uncurry IpAddrNetmask dip)))
-    (MatchAnd (Match (Prot p))
-    (MatchAnd (Match (Src_Ports [sps]))
-    (Match (Dst_Ports [dps]))
-    )))))"
+    (case p of ProtoAny \<Rightarrow> MatchAny
+            |  Proto prim_p \<Rightarrow> 
+                (MatchAnd (Match (Prot p))
+                (MatchAnd (Match (Src_Ports (L4Ports prim_p [sps])))
+                (Match (Dst_Ports (L4Ports prim_p [dps])))
+                ))
+    ))))"
 
-
-(*is this usefull?*)
-lemma "matches \<gamma> (simple_match_to_ipportiface_match \<lparr>iiface=iif, oiface=oif, src=sip, dst=dip, proto=p, sports=sps, dports=dps \<rparr>) a p \<longleftrightarrow> 
-      matches \<gamma> (alist_and ([Pos (IIface iif), Pos (OIface oif)] @ [Pos (Src (uncurry IpAddrNetmask sip))]
-        @ [Pos (Dst (uncurry IpAddrNetmask dip))] @ [Pos (Prot p)]
-        @ [Pos (Src_Ports [sps])] @ [Pos (Dst_Ports [dps])])) a p"
-apply(cases sip,cases dip)
-apply(simp add: bunch_of_lemmata_about_matches)
-done
 
 
 lemma ports_to_set_singleton_simple_match_port: "p \<in> ports_to_set [a] \<longleftrightarrow> simple_match_port a p"
   by(cases a, simp)
 
 theorem simple_match_to_ipportiface_match_correct:
-  "matches (common_matcher, \<alpha>) (simple_match_to_ipportiface_match sm) a p \<longleftrightarrow> simple_matches sm p"
+  assumes valid: "simple_match_valid sm"
+  shows "matches (common_matcher, \<alpha>) (simple_match_to_ipportiface_match sm) a p \<longleftrightarrow> simple_matches sm p"
   proof -
-  obtain iif oif sip dip pro sps dps where sm: "sm = \<lparr>iiface = iif, oiface = oif, src = sip, dst = dip, proto = pro, sports = sps, dports = dps\<rparr>" by (cases sm)
+  obtain iif oif sip dip pro sps dps where
+    sm: "sm = \<lparr>iiface = iif, oiface = oif, src = sip, dst = dip, proto = pro, sports = sps, dports = dps\<rparr>" by (cases sm)
   { fix ip
     have "p_src p \<in> ipt_iprange_to_set (uncurry IpAddrNetmask ip) \<longleftrightarrow> simple_match_ip ip (p_src p)"
     and  "p_dst p \<in> ipt_iprange_to_set (uncurry IpAddrNetmask ip) \<longleftrightarrow> simple_match_ip ip (p_dst p)"
@@ -47,12 +43,21 @@ theorem simple_match_to_ipportiface_match_correct:
       apply(case_tac [!] ps)
       by(simp_all)
   } note simple_match_ports=this
+  from valid sm have valid':"pro = ProtoAny \<Longrightarrow> simple_match_port sps (p_sport p) \<and> simple_match_port dps (p_dport p)"
+    apply(simp add: simple_match_valid_def)
+    by blast
   show ?thesis unfolding sm
+  apply(cases pro)
+   subgoal
+   apply(simp add: bunch_of_lemmata_about_matches simple_matches.simps)
+   apply(simp add: match_raw_bool ternary_to_bool_bool_to_ternary simple_match_ips simple_match_ports simple_matches.simps)
+   using valid' by simp
   apply(simp add: bunch_of_lemmata_about_matches simple_matches.simps)
   apply(simp add: match_raw_bool ternary_to_bool_bool_to_ternary simple_match_ips simple_match_ports simple_matches.simps)
+  apply fast
   done
 qed
-*)
+
 
 
 subsection\<open>MatchExpr to Simple Match\<close>
