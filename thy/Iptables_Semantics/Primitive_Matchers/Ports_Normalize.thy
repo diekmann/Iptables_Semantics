@@ -1120,7 +1120,7 @@ lemma normalize_ports_generic_preserves_normalized_n_primitive:
   apply(drule sym) (*primitive extractor*)
   apply(subgoal_tac "getNeg dpts = []")
    prefer 2 subgoal for a rst dpts
-   apply(erule primitive_extractor_correct(8)[OF _ wf_disc_sel])
+   apply(erule iffD1[OF primitive_extractor_correct(8)[OF _ wf_disc_sel]])
     apply(simp; fail)
    apply(rule not_has_disc_negated_after_normalize)
     apply(simp_all)
@@ -1156,7 +1156,7 @@ lemma normalize_ports_generic_preserves_normalized_not_has_disc:
   apply(drule sym) (*primitive extractor*)
   apply(subgoal_tac "getNeg dpts = []")
    prefer 2 subgoal for a rst dpts
-   apply(erule primitive_extractor_correct(8)[OF _ wf_disc_sel])
+   apply(erule iffD1[OF primitive_extractor_correct(8)[OF _ wf_disc_sel]])
     apply(simp; fail)
    apply(rule not_has_disc_negated_after_normalize)
     apply(simp_all)
@@ -1198,7 +1198,7 @@ lemma normalize_ports_generic_preserves_normalized_not_has_disc_negated:
   apply(drule sym) (*primitive extractor*)
   apply(subgoal_tac "getNeg dpts = []")
    prefer 2 subgoal for a rst dpts
-   apply(erule primitive_extractor_correct(8)[OF _ wf_disc_sel])
+   apply(erule iffD1[OF primitive_extractor_correct(8)[OF _ wf_disc_sel]])
     apply(simp; fail)
    apply(rule not_has_disc_negated_after_normalize)
     apply(simp_all)
