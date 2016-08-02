@@ -471,7 +471,7 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
 
   lemma rewrite_negated_primitives_not_has_disc_negated:
   assumes n: "normalized_nnf_match m" and wf_disc_sel: "wf_disc_sel (disc,sel) C"
-  and negate_f: "\<forall>pts. \<not> has_disc_negated disc False (negate_f C pts)"
+  and negate_f: "has_disc_negated disc False m \<Longrightarrow> \<forall>pts. \<not> has_disc_negated disc False (negate_f C pts)"
   shows  "\<not> has_disc_negated disc False (rewrite_negated_primitives (disc,sel) C negate_f m)"
     apply(simp add: rewrite_negated_primitives_def)
     apply(case_tac "primitive_extractor (disc,sel) m", rename_tac spts rst)
@@ -488,7 +488,7 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
 
   lemma rewrite_negated_primitives_preserves_not_has_disc_negated:
   assumes n: "normalized_nnf_match m" and wf_disc_sel: "wf_disc_sel (disc,sel) C"
-  and negate_f: "\<forall>pts. \<not> has_disc_negated disc2 False (negate_f C pts)"
+  and negate_f: "has_disc_negated disc False m \<Longrightarrow> \<forall>pts. \<not> has_disc_negated disc2 False (negate_f C pts)"
   and no_disc: "\<not> has_disc_negated disc2 False m"
   shows  "\<not> has_disc_negated disc2 False (rewrite_negated_primitives (disc,sel) C negate_f m)"
     apply(simp add: rewrite_negated_primitives_def)
@@ -1042,7 +1042,7 @@ subsection\<open>Complete Normalization\<close>
     assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc_negated disc2 False m"
       and wf_disc_sel: "wf_disc_sel (disc, sel) C"
       and noProt: "\<forall>a. \<not> disc (Prot a)" (*disc is src_ports or dst_ports anyway*)
-      and disc2_noProt: "\<forall>a. \<not> disc2 (Prot a)" (*maybe add: \<or> \<not> has_disc_negated disc False m needs more assumptions*)
+      and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated disc False m"
      shows "m'\<in> set (normalize_ports_generic (normalize_positive_ports_step (disc, sel) C) (rewrite_negated_primitives (disc, sel) C l4_ports_negate_one) m)
       \<Longrightarrow> \<not> has_disc_negated disc2 False m'"
     apply(simp add: normalize_ports_generic_def)
