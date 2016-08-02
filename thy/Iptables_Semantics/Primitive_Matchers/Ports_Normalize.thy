@@ -954,7 +954,9 @@ subsection\<open>Complete Normalization\<close>
    using normalize_nnf_pos apply blast
   using normalize_pos by blast
 
-
+  
+  (*TODO: generalize!*)
+  (*TODO: split into smaller proofs, this one is very ugly*)
   (*disc is is_Src_Ports or is_Dst_Ports*)
   lemma normalize_ports_generic_preserves_normalized_n_primitive:
     assumes n: "normalized_nnf_match m"
@@ -1191,21 +1193,9 @@ lemma "\<forall>a. \<not> disc (C a) \<Longrightarrow> \<not> normalized_n_primi
 
 lemma "normalize_match (andfold_MatchExp (map (l4_ports_negate_one C) [])) = [MatchAny]" by(simp)
 
-(*TODO: generalize!*)
-(*TODO: split into smaller proofs, this one is very ugly*)
 
 
 
-
-lemma rewrite_negated_dst_ports_preserves_normalized_src_ports_hlper:
-      "normalized_nnf_match m \<Longrightarrow>
-       normalized_src_ports m \<Longrightarrow>
-       a \<in> set (normalize_match (rewrite_negated_dst_ports m)) \<Longrightarrow>
-       normalized_src_ports a"
-  apply(simp add: rewrite_negated_dst_ports_def)
-  apply(simp add: normalized_src_ports_def2)
-  apply(rule rewrite_negated_primitives_normalized_preserves_unrelated_helper[OF wf_disc_sel_common_primitive(2)])
-    by(simp)+
 
 lemma
     "\<forall>a. \<not> disc (C a) \<Longrightarrow> normalized_n_primitive (disc, sel) f rst \<Longrightarrow>
