@@ -1068,12 +1068,13 @@ theorem transform_normalize_primitives:
           apply(simp; fail)
          apply(simp; fail)
         apply(simp; fail)
+        subgoal
         apply(simp)
         apply(clarify)
-        (*TODO: indent!*)
         thm compress_normalize_besteffort_hasdisc_negated
         apply(frule compress_normalize_besteffort_hasdisc_negated[where disc=is_Src_Ports], simp_all)
         apply(frule compress_normalize_besteffort_hasdisc_negated[where disc=is_Dst_Ports], simp_all)
+        by(simp; fail)
        by(simp; fail)
       subgoal (*yeah, just need to consider the other cases*)
       apply(clarify)
