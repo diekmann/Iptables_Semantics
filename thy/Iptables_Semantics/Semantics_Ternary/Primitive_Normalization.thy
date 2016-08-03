@@ -91,6 +91,11 @@ lemma normalized_n_primitive_opt_MatchAny_match_expr: "normalized_n_primitive di
   qed
 
 
+lemma normalized_n_primitive_imp_not_disc_negated:
+  "wf_disc_sel (disc,sel) C \<Longrightarrow> normalized_n_primitive (disc,sel) f m \<Longrightarrow> \<not> has_disc_negated disc False m"
+  apply(induction "(disc,sel)" f m rule: normalized_n_primitive.induct)
+  by(simp add: wf_disc_sel.simps split: split_if_asm)+
+
 lemma normalized_n_primitive_alist_and: "normalized_n_primitive disc_sel P (alist_and as) \<longleftrightarrow>
       (\<forall> a \<in> set as. normalized_n_primitive disc_sel P (negation_type_to_match_expr a))"
   proof(induction as)

@@ -331,6 +331,8 @@ lemma ctstate_assume_new_not_has_CT_State:
    apply(simp_all add: not_hasdisc_ctstate_assume_state split:split_if_asm)
   done
 
+  
+
 text\<open>The precondition for the simple firewall can be easily fulfilled.
       The subset relation is due to abstracting over some primitives (e.g., negated primitives, l4 flags)\<close>
 theorem transform_simple_fw_upper:
@@ -348,14 +350,15 @@ theorem transform_simple_fw_upper:
   unfolding check_simple_fw_preconditions_def preprocess_def
   apply(clarify, rename_tac r, case_tac r, rename_tac m a, simp)
   proof -
-    let ?rs3="optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new rs))"
+    let ?rs2="upper_closure (packet_assume_new rs)"
+    let ?rs3="optimize_matches abstract_for_simple_firewall ?rs2"
     let ?rs'="upper_closure ?rs3"
     let ?\<gamma>="(common_matcher, in_doubt_allow)
             :: ('i::len common_primitive, ('i, 'a) tagged_packet_scheme) match_tac"
     let ?fw="\<lambda>rs p. approximating_bigstep_fun ?\<gamma> p rs Undecided"
 
     from packet_assume_new_simple_ruleset[OF simplers] have s1: "simple_ruleset (packet_assume_new rs)" .
-    from transform_upper_closure(2)[OF s1] have s2: "simple_ruleset (upper_closure (packet_assume_new rs))" .
+    from transform_upper_closure(2)[OF s1] have s2: "simple_ruleset ?rs2" .
     from s2 have s3: "simple_ruleset ?rs3" by (simp add: optimize_matches_simple_ruleset) 
     from transform_upper_closure(2)[OF s3] have s4: "simple_ruleset ?rs'" .
 
@@ -396,10 +399,20 @@ theorem transform_simple_fw_upper:
     with r have normalized: "normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" by fastforce
 
     (*things break because upper closure could introduce negated protocols. houls not happen if we don't have negated ports in it ...  TODO: proof*)
-    from transform_upper_closure(5)[OF s3] iface_in iface_out protocols have "\<forall>m\<in>get_match ` set ?rs'.
-     \<not> has_disc_negated is_Iiface False m \<and> \<not> has_disc_negated is_Oiface False m \<and> \<not> has_disc_negated is_Prot False m" by simp (*500ms*)
-    with r have abstracted: "normalized_ifaces m \<and> normalized_protocols m"
-    unfolding normalized_protocols_def normalized_ifaces_def has_disc_negated_disj_split by fastforce
+    (*TODO: rewrite in a way that it is in simp-normal form*)
+    from transform_upper_closure(5)[OF s3] iface_in iface_out have "\<forall>m\<in>get_match ` set ?rs'.
+     \<not> has_disc_negated is_Iiface False m \<and> \<not> has_disc_negated is_Oiface False m" by simp (*500ms*)
+    with r have abstracted: "normalized_ifaces m"
+    unfolding normalized_ifaces_def has_disc_negated_disj_split by fastforce
+
+    from transform_upper_closure(3)[OF s1] have "\<forall>m\<in>get_match ` set ?rs2. \<not> has_disc_negated is_Src_Ports False m"
+      apply(simp add: normalized_src_ports_def2)
+    from transform_upper_closure(3)[OF s1] have "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated is_Src_Ports False m" 
+    from protocols
+    from transform_upper_closure(5)[OF s3] protocols have "\<forall>m\<in>get_match ` set ?rs'.
+     \<not> has_disc_negated is_Prot False m" by simp oops (*500ms*)
+    with r have abstracted: "normalized_protocols m"
+    unfolding normalized_protocols_def has_disc_negated_disj_split by fastforce
     
     from no_CT no_L4_Flags s4 normalized a abstracted show "normalized_src_ports m \<and>
              normalized_dst_ports m \<and>
