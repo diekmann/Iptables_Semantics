@@ -58,18 +58,20 @@ lemma abstract_primitive_preserves_nodisc:
   by(induction disc m rule: abstract_primitive.induct)(simp_all)
 lemma abstract_primitive_preserves_nodisc_nedgated:
   "\<not> has_disc_negated disc' neg m \<Longrightarrow> (\<forall>str. \<not> disc' (Extra str)) \<Longrightarrow> \<not> has_disc_negated disc' neg (abstract_primitive disc m)"
-  apply(induction disc' neg m rule: has_disc_negated.induct)
-     apply(simp_all)
-  apply(rename_tac m)
-  apply(case_tac m)
-     apply(simp_all)
-  done
+  by(induction disc m arbitrary: neg rule: abstract_primitive.induct) simp+
 
 lemma abstract_primitive_nodisc:
   "\<forall>x. disc' x \<longrightarrow> disc (Pos x) \<and> disc (Neg x)  \<Longrightarrow> (\<forall>str. \<not> disc' (Extra str)) \<Longrightarrow> \<not> has_disc disc' (abstract_primitive disc m)"
   by(induction disc m rule: abstract_primitive.induct) auto
   
+lemma abstract_primitive_preserves_not_has_disc_negated:
+  "\<forall>a. \<not> disc (Extra a)\<Longrightarrow> \<not> has_disc_negated disc neg m \<Longrightarrow> \<not> has_disc_negated disc neg (abstract_primitive sel_f m)"
+by(induction sel_f m arbitrary: neg rule: abstract_primitive.induct) simp+
 
+lemma abstract_for_simple_firewall_preserves_nodisc_negated:
+  "\<forall>a. \<not> disc (Extra a)\<Longrightarrow> \<not> has_disc_negated disc False m \<Longrightarrow> \<not> has_disc_negated disc False (abstract_for_simple_firewall m)"
+unfolding abstract_for_simple_firewall_def
+using abstract_primitive_preserves_nodisc_nedgated by blast
 
 text\<open>The function @{const ctstate_assume_state} can be used to fix a state and hence remove all state matches from the ruleset.
       It is therefore advisable to create a simple firewall for a fixed state, e.g. with @{const ctstate_assume_new} before

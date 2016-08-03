@@ -388,7 +388,7 @@ theorem transform_simple_fw_upper:
 
     from nnf2 abstract_for_simple_firewall_negated_ifaces_prots have
       ifaces: "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False m" and
-      protocols: "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated is_Prot False m" 
+      protocols_rs3: "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated is_Prot False m" 
       by(intro optimize_matches_preserves, blast)+
     from ifaces have iface_in:  "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated is_Iiface False m" and
                      iface_out: "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated is_Oiface False m"
@@ -402,24 +402,36 @@ theorem transform_simple_fw_upper:
     (*TODO: rewrite in a way that it is in simp-normal form*)
     from transform_upper_closure(5)[OF s3] iface_in iface_out have "\<forall>m\<in>get_match ` set ?rs'.
      \<not> has_disc_negated is_Iiface False m \<and> \<not> has_disc_negated is_Oiface False m" by simp (*500ms*)
-    with r have abstracted: "normalized_ifaces m"
+    with r have abstracted_ifaces: "normalized_ifaces m"
     unfolding normalized_ifaces_def has_disc_negated_disj_split by fastforce
 
-    from transform_upper_closure(3)[OF s1] have "\<forall>m\<in>get_match ` set ?rs2. \<not> has_disc_negated is_Src_Ports False m"
-      apply(simp add: normalized_src_ports_def2)
-    from transform_upper_closure(3)[OF s1] have "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated is_Src_Ports False m" 
-    from protocols
-    from transform_upper_closure(5)[OF s3] protocols have "\<forall>m\<in>get_match ` set ?rs'.
-     \<not> has_disc_negated is_Prot False m" by simp oops (*500ms*)
-    with r have abstracted: "normalized_protocols m"
+    from transform_upper_closure(3)[OF s1]
+      normalized_n_primitive_imp_not_disc_negated[OF wf_disc_sel_common_primitive(1)]
+      normalized_n_primitive_imp_not_disc_negated[OF wf_disc_sel_common_primitive(2)]
+    have "\<forall>m\<in>get_match ` set ?rs2. \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m"
+      apply(simp add: normalized_src_ports_def2 normalized_dst_ports_def2)
+      by blast 
+    from this have "\<forall>m\<in>get_match ` set ?rs3. \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m"
+      apply -
+      apply(rule optimize_matches_preserves)
+      apply(intro conjI)
+      apply(intro abstract_for_simple_firewall_preserves_nodisc_negated, simp_all)+
+     done
+    from this[simplified] protocols_rs3[simplified] transform_upper_closure(5)[OF s3, where disc=is_Prot, simplified]
+          have "\<forall>m\<in>get_match ` set ?rs'. \<not> has_disc_negated is_Prot False m"
+      by simp (*now fast because we have all in simp-normal-form*)
+    with r have abstracted_prots: "normalized_protocols m"
     unfolding normalized_protocols_def has_disc_negated_disj_split by fastforce
     
-    from no_CT no_L4_Flags s4 normalized a abstracted show "normalized_src_ports m \<and>
+    from no_CT no_L4_Flags s4 normalized a abstracted_ifaces abstracted_prots show "normalized_src_ports m \<and>
              normalized_dst_ports m \<and>
              normalized_src_ips m \<and>
              normalized_dst_ips m \<and>
              normalized_ifaces m \<and>
-             normalized_protocols m \<and> \<not> has_disc is_L4_Flags m \<and> \<not> has_disc is_CT_State m \<and> \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop)"
+             normalized_protocols m \<and>
+             \<not> has_disc is_L4_Flags m \<and>
+             \<not> has_disc is_CT_State m \<and>
+             \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop)"
       by(simp)
   }
     hence simple_fw_preconditions: "check_simple_fw_preconditions ?rs'"
