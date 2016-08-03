@@ -668,7 +668,12 @@ theorem transform_normalize_primitives:
     and "unchanged disc2 \<Longrightarrow> (\<forall>a. \<not> disc2 (IIface a)) \<Longrightarrow> (\<forall>a. \<not> disc2 (OIface a)) \<Longrightarrow> (\<forall>a. \<not> disc2 (Prot a)) \<Longrightarrow>
          \<forall> m \<in> get_match ` set rs. normalized_n_primitive (disc2, sel2) f m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_n_primitive (disc2, sel2) f m"
-    and "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow> \<forall>a. \<not> disc3 (Prot a) \<Longrightarrow>
+    --\<open>For disc3, we do not allow ports and ips, because these are changed.
+       In addition, either it must not be protocol or there must be no negated port matches in the ruleset.\<close>
+    and "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow>
+        (\<forall>a. \<not> disc3 (Prot a)) \<or>
+        (disc3 = is_Prot \<and> (\<forall> m \<in> get_match ` set rs.
+          \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m)) \<Longrightarrow>
          \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 False m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc_negated disc3 False m"
   proof -
@@ -1104,10 +1109,16 @@ theorem transform_normalize_primitives:
           apply (meson common_primitive.disc(42) common_primitive.disc(52) common_primitive.disc(62))
    done
 
-   from case_disc3_is_not_prot show "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow> \<forall>a. \<not> disc3 (Prot a) \<Longrightarrow>
+   show "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow>
+    (\<forall>a. \<not> disc3 (Prot a)) \<or>
+        (disc3 = is_Prot \<and> (\<forall> m \<in> get_match ` set rs.
+          \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m)) \<Longrightarrow>
          \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 False m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc_negated disc3 False m"
-   unfolding unchanged_def changeddisc_def using normalized by blast
+   unfolding unchanged_def changeddisc_def
+   apply(elim disjE)
+    using normalized case_disc3_is_not_prot apply blast
+   using normalized case_disc3_is_prot by blast
 qed
 
 
