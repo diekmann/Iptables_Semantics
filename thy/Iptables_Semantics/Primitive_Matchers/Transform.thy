@@ -974,9 +974,10 @@ theorem transform_normalize_primitives:
         moreover from nm have "normalized_nnf_match m'" by (metis am' normalize_primitive_extract_preserves_nnf_normalized wfdiscsel)
         ultimately have "\<not> has_disc_negated disc3 neg m' \<and> normalized_nnf_match m'" by simp
    }
-   hence x: "\<And>disc sel C' f'.  wf_disc_sel (disc, sel) C' \<Longrightarrow> \<forall>a. \<not> disc3 (C' a) \<Longrightarrow>
+   hence x: "wf_disc_sel (disc, sel) C' \<Longrightarrow> \<forall>a. \<not> disc3 (C' a) \<Longrightarrow>
    \<forall>m. normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m \<longrightarrow>
     (\<forall>m'\<in>set (normalize_primitive_extract (disc, sel) C' f' m). normalized_nnf_match m' \<and> \<not> has_disc_negated disc3 False m')"
+   for disc :: "'i common_primitive \<Rightarrow> bool" and sel and C' :: "'c \<Rightarrow> 'i common_primitive" and f'
    by blast
 
    --"Pushing through properties through the ports normalizer"
@@ -1019,8 +1020,38 @@ theorem transform_normalize_primitives:
   
   note y=y_generic[of "\<lambda>_. True", simplified]
 
-   (*TODO, copy below, specific version for is_Prot*)
-   have disc3_is_prot: "disc3 = is_Prot \<Longrightarrow>
+  
+   have case_disc3_is_not_prot: "\<forall>a. \<not> disc3 (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc3 (Dst_Ports a) \<Longrightarrow> 
+         \<forall>a. \<not> disc3 (Src a) \<Longrightarrow> \<forall>a. \<not> disc3 (Dst a) \<Longrightarrow>
+         (\<forall>a. \<not> disc3 (IIface a)) \<or> disc3 = is_Iiface \<Longrightarrow>
+         (\<forall>a. \<not> disc3 (OIface a)) \<or> disc3 = is_Oiface \<Longrightarrow>
+         (\<forall>a. \<not> disc3 (Prot a)) (*\<or>
+          disc3 = is_Prot \<and> (\<forall>m \<in> get_match ` set rs.
+            \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m)*) \<Longrightarrow>
+         \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 False m \<and> normalized_nnf_match m \<Longrightarrow>
+    \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m"
+   unfolding transform_normalize_primitives_def
+   apply(simp)
+   apply(rule normalize_rules_preserves')+ (*this rule is just not good. we need to state that there could also be no negated ports or disc3 \<noteq> is_Prot*)
+       apply(rule y)
+          apply(simp; fail)
+         apply(simp; fail)
+        apply(blast)
+       apply(simp; fail)
+      subgoal
+      apply(clarify)
+      apply(rule_tac m5=m in x_src_ports)
+          by(simp)+
+     subgoal
+     apply(clarify)
+     by(rule x_dst_ports) simp+
+    using x[OF wf_disc_sel_common_primitive(3), of ipt_iprange_compress,folded normalize_src_ips_def] apply blast
+   using x[OF wf_disc_sel_common_primitive(4), of ipt_iprange_compress,folded normalize_dst_ips_def] apply blast
+   done
+
+
+   (*TODO, copy from above, specific version for is_Prot*)
+   have case_disc3_is_prot: "disc3 = is_Prot \<Longrightarrow>
   \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 False m \<and> normalized_nnf_match m \<and>
          \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m \<Longrightarrow>
     \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m \<and>
@@ -1057,39 +1088,11 @@ theorem transform_normalize_primitives:
          apply(simp_all)
       apply simp
      using normalize_dst_ports_preserves_normalized_not_has_disc_negated by blast
-    using x[OF wf_disc_sel_common_primitive(3), of ipt_iprange_compress,folded normalize_src_ips_def]oops apply blast
-   using x[OF wf_disc_sel_common_primitive(4), of ipt_iprange_compress,folded normalize_dst_ips_def] apply blast
-   done
-  
-   have "\<forall>a. \<not> disc3 (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc3 (Dst_Ports a) \<Longrightarrow> 
-         \<forall>a. \<not> disc3 (Src a) \<Longrightarrow> \<forall>a. \<not> disc3 (Dst a) \<Longrightarrow>
-         (\<forall>a. \<not> disc3 (IIface a)) \<or> disc3 = is_Iiface \<Longrightarrow>
-         (\<forall>a. \<not> disc3 (OIface a)) \<or> disc3 = is_Oiface \<Longrightarrow>
-         (\<forall>a. \<not> disc3 (Prot a)) (*\<or>
-          disc3 = is_Prot \<and> (\<forall>m \<in> get_match ` set rs.
-            \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m)*) \<Longrightarrow>
-         \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 False m \<and> normalized_nnf_match m \<Longrightarrow>
-    \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m"
-   unfolding transform_normalize_primitives_def
-   apply(simp)
-   apply(rule normalize_rules_preserves')+ (*this rule is just not good. we need to state that there could also be no negated ports or disc3 \<noteq> is_Prot*)
-       apply(rule y)
-          apply(simp; fail)
-         apply(simp; fail)
-        apply(blast)
-       apply(simp; fail)
-      subgoal
-      apply(clarify)
-      apply(rule_tac m5=m in x_src_ports)
-          by(simp)+
-     subgoal
-     apply(clarify)
-     by(rule x_dst_ports) simp+
-    using x[OF wf_disc_sel_common_primitive(3), of ipt_iprange_compress,folded normalize_src_ips_def] apply blast
-   using x[OF wf_disc_sel_common_primitive(4), of ipt_iprange_compress,folded normalize_dst_ips_def] apply blast
-   done
+    using x[OF wf_disc_sel_common_primitive(3), of ipt_iprange_compress,folded normalize_src_ips_def] apply blasts
+   using x[OF wf_disc_sel_common_primitive(4), of ipt_iprange_compress,folded normalize_dst_ips_def] apply blasts
+   sorry
 
-   thus "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow> \<forall>a. \<not> disc3 (Prot a) \<Longrightarrow>
+   from case_disc3_is_not_prot show "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow> \<forall>a. \<not> disc3 (Prot a) \<Longrightarrow>
          \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 False m \<Longrightarrow>
             \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc_negated disc3 False m"
    unfolding unchanged_def changeddisc_def using normalized by blast
