@@ -951,6 +951,7 @@ theorem transform_normalize_primitives:
    { fix m and m' and disc::"('i::len common_primitive \<Rightarrow> bool)"
          and sel::"('i::len common_primitive \<Rightarrow> 'x)" and C'::" ('x \<Rightarrow> 'i::len common_primitive)"
          and f'::"('x negation_type list \<Rightarrow> 'x list)" and neg
+         and disc3
      assume am: "\<not> has_disc_negated disc3 neg m"
         and nm: "normalized_nnf_match m"
         and am': "m' \<in> set (normalize_primitive_extract (disc, sel) C' f' m)"
@@ -974,10 +975,12 @@ theorem transform_normalize_primitives:
         moreover from nm have "normalized_nnf_match m'" by (metis am' normalize_primitive_extract_preserves_nnf_normalized wfdiscsel)
         ultimately have "\<not> has_disc_negated disc3 neg m' \<and> normalized_nnf_match m'" by simp
    }
+   note x_generic=this
    hence x: "wf_disc_sel (disc, sel) C' \<Longrightarrow> \<forall>a. \<not> disc3 (C' a) \<Longrightarrow>
    \<forall>m. normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m \<longrightarrow>
-    (\<forall>m'\<in>set (normalize_primitive_extract (disc, sel) C' f' m). normalized_nnf_match m' \<and> \<not> has_disc_negated disc3 False m')"
-   for disc :: "'i common_primitive \<Rightarrow> bool" and sel and C' :: "'c \<Rightarrow> 'i common_primitive" and f'
+    (\<forall>m' \<in> set (normalize_primitive_extract (disc, sel) C' f' m).
+            normalized_nnf_match m' \<and> \<not> has_disc_negated disc3 False m')"
+   for disc :: "'i common_primitive \<Rightarrow> bool" and sel and C' :: "'c \<Rightarrow> 'i common_primitive" and f' and disc3
    by blast
 
    --"Pushing through properties through the ports normalizer"
@@ -1045,8 +1048,8 @@ theorem transform_normalize_primitives:
      subgoal
      apply(clarify)
      by(rule x_dst_ports) simp+
-    using x[OF wf_disc_sel_common_primitive(3), of ipt_iprange_compress,folded normalize_src_ips_def] apply blast
-   using x[OF wf_disc_sel_common_primitive(4), of ipt_iprange_compress,folded normalize_dst_ips_def] apply blast
+    using x[OF wf_disc_sel_common_primitive(3), of disc3 ipt_iprange_compress, folded normalize_src_ips_def] apply blast
+   using x[OF wf_disc_sel_common_primitive(4), of disc3 ipt_iprange_compress, folded normalize_dst_ips_def] apply blast
    done
 
 
@@ -1089,9 +1092,17 @@ theorem transform_normalize_primitives:
          apply(simp_all)
       apply simp
      using normalize_dst_ports_preserves_normalized_not_has_disc_negated by blast
-    using x[OF wf_disc_sel_common_primitive(3), of ipt_iprange_compress,folded normalize_src_ips_def] apply blasts
-   using x[OF wf_disc_sel_common_primitive(4), of ipt_iprange_compress,folded normalize_dst_ips_def] apply blasts
-   sorry
+    (*TODO blast must be able to solve this! make subgoals!*)
+    using x[OF wf_disc_sel_common_primitive(3), of disc3 ipt_iprange_compress, folded normalize_src_ips_def]
+          x[OF wf_disc_sel_common_primitive(3), of is_Dst_Ports ipt_iprange_compress, folded normalize_src_ips_def]
+          x_generic[OF _ _ _ wf_disc_sel_common_primitive(3), of is_Src_Ports False _ _ ipt_iprange_compress, folded normalize_src_ips_def]
+          apply (meson common_primitive.disc(41) common_primitive.disc(51) common_primitive.disc(61))
+          
+   using x[OF wf_disc_sel_common_primitive(4), of disc3 ipt_iprange_compress, folded normalize_dst_ips_def]
+          x[OF wf_disc_sel_common_primitive(4), of is_Src_Ports ipt_iprange_compress, folded normalize_dst_ips_def]
+          x_generic[OF _ _ _ wf_disc_sel_common_primitive(4), of is_Dst_Ports False _ _ ipt_iprange_compress, folded normalize_dst_ips_def]
+          apply (meson common_primitive.disc(42) common_primitive.disc(52) common_primitive.disc(62))
+   done
 
    from case_disc3_is_not_prot show "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow> \<forall>a. \<not> disc3 (Prot a) \<Longrightarrow>
          \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 False m \<Longrightarrow>
