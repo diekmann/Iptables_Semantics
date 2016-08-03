@@ -1007,6 +1007,38 @@ theorem transform_normalize_primitives:
                  compress_normalize_besteffort_not_introduces_Prot_negated by blast+
    } note y=this
 
+   (*TODO, copy below, specific version for is_Prot*)
+   have "disc3 = is_Prot \<Longrightarrow>
+  \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 False m \<and> normalized_nnf_match m \<and>
+         \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m \<Longrightarrow>
+    \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m \<and>
+              \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m"
+   unfolding transform_normalize_primitives_def
+   apply(simp)
+   thm normalize_rules_property[simplified,
+      where P="\<lambda>m. normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m"]
+   apply(rule normalize_rules_property[simplified,
+      where P="\<lambda>m. normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m \<and>
+                   \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m"])+ (*dst ips first*)
+       apply(rule y)
+          apply(simp; fail)
+         apply(simp; fail)
+        apply(simp; fail)
+       apply(simp; fail)
+      prefer 2
+      subgoal (*yeah, just need to consider the other cases*)
+      apply(clarify)
+      thm x_src_ports[rotated 2]
+      apply(frule_tac m5=m in x_src_ports[rotated 2])
+          apply(simp_all)
+          apply simp
+          using normalize_src_ports_preserves_normalized_not_has_disc_negated by blast
+     subgoal
+     apply(clarify)
+     by(rule x_dst_ports) simp+
+    using x[OF wf_disc_sel_common_primitive(3), of ipt_iprange_compress,folded normalize_src_ips_def]oops apply blast
+   using x[OF wf_disc_sel_common_primitive(4), of ipt_iprange_compress,folded normalize_dst_ips_def] apply blast
+   done
   
    have "\<forall>a. \<not> disc3 (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc3 (Dst_Ports a) \<Longrightarrow> 
          \<forall>a. \<not> disc3 (Src a) \<Longrightarrow> \<forall>a. \<not> disc3 (Dst a) \<Longrightarrow>

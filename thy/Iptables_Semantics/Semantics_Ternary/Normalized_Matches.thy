@@ -267,7 +267,10 @@ section\<open>Normalizing rules instead of only match expressions\<close>
   using normalize_rules_property[OF assms(1) assms(2)] .
 
  (*the simplifier preferes this*)
- lemma normalize_rules_preserves': "\<forall> m \<in> set rs. P (get_match m) \<Longrightarrow> \<forall>m. P m \<longrightarrow> (\<forall>m' \<in> set (f m). P m') \<Longrightarrow> \<forall>m \<in> set (normalize_rules f rs). P (get_match m)"
+ lemma normalize_rules_preserves':
+  "\<forall> m \<in> set rs. P (get_match m) \<Longrightarrow>
+    \<forall>m. P m \<longrightarrow> (\<forall>m' \<in> set (f m). P m') \<Longrightarrow>
+      \<forall>m \<in> set (normalize_rules f rs). P (get_match m)"
   using normalize_rules_preserves[simplified] by blast
 
 (*TODO: generalize!*)
