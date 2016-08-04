@@ -286,7 +286,7 @@ lemma "unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw) =
                  (0x801, 0x801)])))
    action.Drop,
   Rule (Match (IIface (Iface ''eth0'')) MATCHAND
-        Match (Prot (Proto UDP)) MATCHAND Match (Dst_Ports (L4Ports TCP [(0x7B, 0x7B), (0x6F, 0x6F), (0x37C, 0x37C), (0x801, 0x801), (0x14E9, 0x14E9)])))
+        Match (Prot (Proto UDP)) MATCHAND Match (Dst_Ports (L4Ports UDP [(0x7B, 0x7B), (0x6F, 0x6F), (0x37C, 0x37C), (0x801, 0x801), (0x14E9, 0x14E9)])))
    action.Drop,
   Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192, 168, 0, 0)) 16)) MATCHAND Match (IIface (Iface ''eth0''))) action.Accept,
   Rule (Match (IIface (Iface ''eth0''))) action.Drop, Rule MatchAny action.Accept]" by eval
