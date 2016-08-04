@@ -701,19 +701,44 @@ theorem to_simple_firewall_without_interfaces:
       from no_Iiface no_Oiface have normalized_ifaces: "normalized_ifaces m"
         using has_disc_negated_disj_split has_disc_negated_has_disc normalized_ifaces_def by blast
 
+      from transform_upper_closure(3)[OF s6] r have normalized:
+        "normalized_src_ports m \<and> normalized_dst_ports m \<and>
+         normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" by fastforce
+
+
+      from transform_upper_closure(3)[OF s3, simplified]
+        normalized_n_primitive_imp_not_disc_negated[OF wf_disc_sel_common_primitive(1)]
+        normalized_n_primitive_imp_not_disc_negated[OF wf_disc_sel_common_primitive(2)]
+      have "\<forall>r \<in> set ?rs4. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
+                           \<not> has_disc_negated is_Dst_Ports False (get_match r)"
+        apply(simp add: normalized_src_ports_def2 normalized_dst_ports_def2)
+        by blast
+      hence "\<forall>r \<in> set ?rs5. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
+                                     \<not> has_disc_negated is_Dst_Ports False (get_match r)"
+        apply -
+        apply(rule optimize_matches_preserves[simplified])
+        apply(intro conjI)
+        apply(intro abstract_for_simple_firewall_preserves_nodisc_negated, simp_all)+
+       done
+      from this have no_ports_rs6: 
+            "\<forall>r \<in> set ?rs6. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
+                                     \<not> has_disc_negated is_Dst_Ports False (get_match r)"
+        apply -
+        apply(rule optimize_matches_preserves[simplified])
+        apply(intro conjI)
+        apply(intro abstract_primitive_preserves_nodisc_nedgated, simp_all)+
+       done
 
       from nnf4 abstract_for_simple_firewall_negated_ifaces_prots(2) have 
         "\<forall>m\<in>get_match ` set ?rs5. \<not> has_disc_negated is_Prot False m"
         by(intro optimize_matches_preserves) blast
       hence "\<forall>m\<in>get_match ` set ?rs6. \<not> has_disc_negated is_Prot False m"
         by(intro optimize_matches_preserves abstract_primitive_preserves_nodisc_nedgated) simp+
-      hence "\<forall>m\<in>get_match ` set ?rs7. \<not> has_disc_negated is_Prot False m"
-       by(intro transform_upper_closure(5)[OF s6]) (simp_all)
+      with no_ports_rs6 have "\<forall>m\<in>get_match ` set ?rs7. \<not> has_disc_negated is_Prot False m"
+       by(intro transform_upper_closure(5)[OF s6]) simp+
       with r have protocols: "normalized_protocols m" unfolding normalized_protocols_def by fastforce
 
-      from transform_upper_closure(3)[OF s6] r have normalized:
-        "normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" by fastforce
-  
+
       from no_CT no_L4_Flags s7 normalized a normalized_ifaces protocols no_Iiface no_Oiface 
          have "normalized_src_ports m \<and>
                normalized_dst_ports m \<and>
