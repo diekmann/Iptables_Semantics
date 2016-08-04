@@ -23,20 +23,25 @@ parse_iptables_save net_fw_2013="iptables_20.11.2013_cheating"
 
 lemma "sanity_wf_ruleset net_fw_2013" by eval
 
+
+value[code] "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string_ipv4 net_fw_2013)
+                    in (map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) upper_closure rules,
+                        map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) lower_closure rules)"
 lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string_ipv4 net_fw_2013)
                     in (length rules, length (upper_closure rules), length (lower_closure rules))
-  = (2375, 2381, 2839)" by eval
+  = (2375, 2425, 2883)" by eval
 
 value[code] "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string_ipv4 net_fw_2013)
                     in ()"
 (*116.392s, compiled ML is less than one second*)
+
 
 lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string_ipv4 net_fw_2013)
                     in (length (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall
                               (upper_closure (packet_assume_new rules))))),
                         length (to_simple_firewall (lower_closure (optimize_matches abstract_for_simple_firewall
                               (lower_closure (packet_assume_new rules)))))) 
- = (2380, 2836)" by eval
+ = (2424, 2880)" by eval
 
 lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string_ipv4 net_fw_2013)
      in map simple_rule_ipv4_toString (take 43 (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall

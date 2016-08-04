@@ -278,15 +278,15 @@ lemma "unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw) =
         Match (Prot (Proto TCP)) MATCHAND Match (L4_Flags (TCP_Flags {TCP_FIN, TCP_SYN, TCP_RST, TCP_ACK} {TCP_SYN})))
    action.Drop,
   Rule (Match (IIface (Iface ''lo''))) action.Accept, Rule (Match (CT_State {CT_Related, CT_Established})) action.Accept,
-  Rule (Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND Match (Dst_Ports [(0x16, 0x16)])) action.Drop,
+  Rule (Match (IIface (Iface ''eth0'')) MATCHAND Match (Prot (Proto TCP)) MATCHAND Match (Dst_Ports (L4Ports TCP [(0x16, 0x16)]))) action.Drop,
   Rule (Match (IIface (Iface ''eth0'')) MATCHAND
         Match (Prot (Proto TCP)) MATCHAND
-        Match (Dst_Ports
+        Match (Dst_Ports (L4Ports TCP 
                 [(0x15, 0x15), (0x369, 0x369), (0x138D, 0x138D), (0x138E, 0x138E), (0x50, 0x50), (0x224, 0x224), (0x6F, 0x6F), (0x37C, 0x37C),
-                 (0x801, 0x801)]))
+                 (0x801, 0x801)])))
    action.Drop,
   Rule (Match (IIface (Iface ''eth0'')) MATCHAND
-        Match (Prot (Proto UDP)) MATCHAND Match (Dst_Ports [(0x7B, 0x7B), (0x6F, 0x6F), (0x37C, 0x37C), (0x801, 0x801), (0x14E9, 0x14E9)]))
+        Match (Prot (Proto UDP)) MATCHAND Match (Dst_Ports (L4Ports TCP [(0x7B, 0x7B), (0x6F, 0x6F), (0x37C, 0x37C), (0x801, 0x801), (0x14E9, 0x14E9)])))
    action.Drop,
   Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192, 168, 0, 0)) 16)) MATCHAND Match (IIface (Iface ''eth0''))) action.Accept,
   Rule (Match (IIface (Iface ''eth0''))) action.Drop, Rule MatchAny action.Accept]" by eval
