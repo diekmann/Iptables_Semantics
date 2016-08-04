@@ -24,10 +24,11 @@ parse_iptables_save net_fw_2013="iptables_20.11.2013_cheating"
 lemma "sanity_wf_ruleset net_fw_2013" by eval
 
 
+(*
 value[code] "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string_ipv4 net_fw_2013)
                     in (map (quote_rewrite \<circ> common_primitive_rule_toString) (upper_closure rules),
                         map (quote_rewrite \<circ> common_primitive_rule_toString) (lower_closure rules))"
-end
+*)
 lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (map_of_string_ipv4 net_fw_2013)
                     in (length rules, length (upper_closure rules), length (lower_closure rules))
   = (2375, 2425, 2883)" by eval
