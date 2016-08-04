@@ -189,7 +189,7 @@ subsection\<open>Compressing Positive Matches on Ports into a Single Match\<clos
 
   fun l4_ports_compress :: "ipt_l4_ports list \<Rightarrow> ipt_l4_ports match_compress" where
     "l4_ports_compress [] = MatchesAll" | 
-    "l4_ports_compress [ps] = MatchExpr ps" |
+    "l4_ports_compress [L4Ports proto ps] = MatchExpr (L4Ports proto (wi2l (wordinterval_compress (l2wi ps))))" |
     "l4_ports_compress (L4Ports proto1 ps1 # L4Ports proto2 ps2 # pss) =
       (if
           proto1 \<noteq> proto2
@@ -198,6 +198,8 @@ subsection\<open>Compressing Positive Matches on Ports into a Single Match\<clos
        else
          l4_ports_compress (L4Ports proto1 (wi2l (wordinterval_intersection (l2wi ps1) (l2wi ps2))) # pss)
       )"
+
+  value[code] "l4_ports_compress [L4Ports TCP [(22,22), (23,23)]]"
   
   (*only for src*)
   lemma raw_ports_compress_src_CannotMatch:
@@ -237,6 +239,12 @@ subsection\<open>Compressing Positive Matches on Ports into a Single Match\<clos
   by(simp add: l4_ports_compress_length_Matchall bunch_of_lemmata_about_matches split: split_if_asm)+
 
 
+  lemma 
+  assumes generic: "primitive_matcher_generic \<beta>"
+  shows "matches (\<beta>, \<alpha>) (Match (Src_Ports (L4Ports proto (wi2l (wordinterval_compress (l2wi ps)))))) a p \<longleftrightarrow>
+          matches (\<beta>, \<alpha>) (Match (Src_Ports (L4Ports proto ps))) a p"
+    by(simp add: primitive_matcher_generic.Ports_single[OF generic] wordinterval_compress l2wi_wi2l ports_to_set_wordinterval)
+
   lemma raw_ports_compress_src_MatchExpr:
   fixes p :: "('i::len, 'a) tagged_packet_scheme"
   assumes generic: "primitive_matcher_generic \<beta>"
@@ -244,7 +252,10 @@ subsection\<open>Compressing Positive Matches on Ports into a Single Match\<clos
   shows "matches (\<beta>, \<alpha>) (Match (Src_Ports m)) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) (alist_and (map (Pos \<circ> Src_Ports) pss)) a p"
   using c apply(induction pss arbitrary: m rule: l4_ports_compress.induct)
     apply(simp add: bunch_of_lemmata_about_matches; fail)
-   apply(simp add: bunch_of_lemmata_about_matches; fail)
+   subgoal
+   apply(simp add: bunch_of_lemmata_about_matches)
+   apply(drule sym, simp)
+   by(simp add: primitive_matcher_generic.Ports_single[OF generic] wordinterval_compress l2wi_wi2l ports_to_set_wordinterval)
   apply(case_tac m)
   apply(simp add: bunch_of_lemmata_about_matches split: split_if_asm)
   apply(simp add: primitive_matcher_generic.Ports_single[OF generic])
@@ -259,7 +270,10 @@ subsection\<open>Compressing Positive Matches on Ports into a Single Match\<clos
   shows "matches (\<beta>, \<alpha>) (Match (Dst_Ports m)) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) (alist_and (map (Pos \<circ> Dst_Ports) pss)) a p"
   using c apply(induction pss arbitrary: m rule: l4_ports_compress.induct)
     apply(simp add: bunch_of_lemmata_about_matches; fail)
-   apply(simp add: bunch_of_lemmata_about_matches; fail)
+   subgoal
+   apply(simp add: bunch_of_lemmata_about_matches)
+   apply(drule sym, simp)
+   by(simp add: primitive_matcher_generic.Ports_single[OF generic] wordinterval_compress l2wi_wi2l ports_to_set_wordinterval)
   apply(case_tac m)
   apply(simp add: bunch_of_lemmata_about_matches split: split_if_asm)
   apply(simp add: primitive_matcher_generic.Ports_single[OF generic])
@@ -1239,6 +1253,13 @@ lemma "map opt_MatchAny_match_expr (normalize_src_ports
  =
 [MatchAnd (Match (Src_Ports (L4Ports TCP [(22, 22)])))
    (MatchAnd (MatchNot (Match (Prot (Proto UDP)))) (MatchAnd (Match (Dst (IpAddrNetmask 0x7F000000 8))) (MatchAnd (Match (Prot (Proto ICMP))) MatchAny)))]" by eval
+
+
+lemma "map opt_MatchAny_match_expr (normalize_src_ports
+                (MatchAnd (Match ((Src_Ports (L4Ports UDP [(21,21), (22,22)])) :: 32 common_primitive))
+                  (Match (Prot (Proto UDP)))))
+  =
+[MatchAnd (Match (Src_Ports (L4Ports 0x11 [(0x15, 0x16)]))) (Match (Prot (Proto 0x11)))]" by eval
 
 (* ** *)
 
