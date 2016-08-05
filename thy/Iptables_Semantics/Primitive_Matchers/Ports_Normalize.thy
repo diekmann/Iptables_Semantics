@@ -1259,7 +1259,7 @@ lemma "map opt_MatchAny_match_expr (normalize_src_ports
                 (MatchAnd (Match ((Src_Ports (L4Ports UDP [(21,21), (22,22)])) :: 32 common_primitive))
                   (Match (Prot (Proto UDP)))))
   =
-[MatchAnd (Match (Src_Ports (L4Ports 0x11 [(0x15, 0x16)]))) (Match (Prot (Proto 0x11)))]" by eval
+[MatchAnd (Match (Src_Ports (L4Ports UDP [(21, 22)]))) (Match (Prot (Proto UDP)))]" by eval
 
 (* ** *)
 
