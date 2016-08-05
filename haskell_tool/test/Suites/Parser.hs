@@ -10,6 +10,7 @@ import Test.Tasty
 import Test.Tasty.HUnit as HU
 
 
+-- we always have "-m protocolid:0" (note the 0) because we havn't filled the protocol yet
 expected_result = "*filter\n\
     \:DOS~Pro-t_ect - [0:0]\n\
     \:FORWARD DROP [0:0]\n\
@@ -18,9 +19,9 @@ expected_result = "*filter\n\
     \:LOGDROP - [0:0]\n\
     \:OUTPUT ACCEPT [70:23175]\n\
     \:Terminal - [0:0]\n\
-    \-A DOS~Pro-t_ect `ParsedMatch -p tcp' `ParsedMatch --dpts [22]' `ParsedAction -j ACCEPT'\n\
+    \-A DOS~Pro-t_ect `ParsedMatch -p tcp' `ParsedMatch -m protocolid:0 --dpts [22]' `ParsedAction -j ACCEPT'\n\
     \-A DOS~Pro-t_ect `ParsedMatch -p tcp' `ParsedMatch -m state --state NEW' \
-        \`ParsedMatch --dpts [1:65535]' \
+        \`ParsedMatch -m protocolid:0 --dpts [1:65535]' \
         \`ParsedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN]' \
         \`ParsedAction -j ACCEPT'\n\
     \-A DOS~Pro-t_ect `ParsedMatch -p udp' `ParsedAction -j RETURN'\n\
@@ -57,8 +58,8 @@ expected_result = "*filter\n\
         \`ParsedAction -j ACCEPT'\n\
     \-A DOS~Pro-t_ect `ParsedNegatedMatch -p icmp'\n\
     \-A DOS~Pro-t_ect `ParsedNegatedMatch -p tcp' `ParsedNegatedMatch -s 131.159.0.0/16'\n\
-    \-A DOS~Pro-t_ect `ParsedMatch -i vocb' `ParsedMatch -p udp' `ParsedMatch --spts [67:68]' `ParsedMatch --dpts [67:68]' `ParsedAction -j ACCEPT'\n\
-    \-A DOS~Pro-t_ect `ParsedMatch -i vocb' `ParsedMatch -p udp' `ParsedNegatedMatch --spts [67:68]' `ParsedNegatedMatch --dpts [67:68]' `ParsedAction -j ACCEPT'\n\
+    \-A DOS~Pro-t_ect `ParsedMatch -i vocb' `ParsedMatch -p udp' `ParsedMatch -m protocolid:0 --spts [67:68]' `ParsedMatch -m protocolid:0 --dpts [67:68]' `ParsedAction -j ACCEPT'\n\
+    \-A DOS~Pro-t_ect `ParsedMatch -i vocb' `ParsedMatch -p udp' `ParsedNegatedMatch -m protocolid:0 --spts [67:68]' `ParsedNegatedMatch -m protocolid:0 --dpts [67:68]' `ParsedAction -j ACCEPT'\n\
     \-A FORWARD `ParsedAction -j LOG' `ParsedMatch ~~--log-prefix~~' `ParsedMatch ~~\"!#*~%&/()=?\"~~' `ParsedMatch ~~--log-level~~' `ParsedMatch ~~6~~'\n\
     \-A FORWARD `ParsedMatch -s 127.0.0.0/8' `ParsedAction -j DROP'\n\
     \-A FORWARD `ParsedMatch -i wlan0' \
@@ -68,11 +69,11 @@ expected_result = "*filter\n\
         \`ParsedAction -j DROP'\n\
     \-A FORWARD `ParsedMatch -p tcp' \
         \`ParsedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN]' \
-        \`ParsedMatch --dpts [80, 443]' \
+        \`ParsedMatch -m protocolid:0 --dpts [80, 443]' \
         \`ParsedAction -j ACCEPT'\n\
     \-A FORWARD `ParsedMatch -p tcp' \
         \`ParsedMatch -m state --state NEW' \
-        \`ParsedMatch --dpts [1:65535]' \
+        \`ParsedMatch -m protocolid:0 --dpts [1:65535]' \
         \`ParsedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN]' \
         \`ParsedAction -j ACCEPT'\n\
     \-A FORWARD `ParsedMatch -m state --state NEW,INVALID' `ParsedAction -j DROP'\n\
@@ -85,19 +86,19 @@ expected_result = "*filter\n\
     \-A FORWARD `ParsedNegatedMatch -i eth+' `ParsedAction -j DROP'\n\
     \-A FORWARD `ParsedMatch -s 100.0.0.0/24' `ParsedMatch -p tcp' `ParsedAction -j DOS~Pro-t_ect (call)'\n\
     \-A FORWARD `ParsedNegatedMatch -s 131.159.0.0/16' `ParsedAction -j DROP'\n\
-    \-A FORWARD `ParsedMatch -p tcp' `ParsedMatch --spts [80, 443]' `ParsedAction -j DROP'\n\
-    \-A FORWARD `ParsedMatch -p tcp' `ParsedMatch --dpts [80, 443]' `ParsedAction -j DROP'\n\
+    \-A FORWARD `ParsedMatch -p tcp' `ParsedMatch -m protocolid:0 --spts [80, 443]' `ParsedAction -j DROP'\n\
+    \-A FORWARD `ParsedMatch -p tcp' `ParsedMatch -m protocolid:0 --dpts [80, 443]' `ParsedAction -j DROP'\n\
     \-A FORWARD `ParsedMatch -d 127.0.0.1/32' \
         \`ParsedMatch -o eth1.152' `ParsedMatch -p udp' \
-        \`ParsedMatch --dpts [4569, 5000:65535]' \
+        \`ParsedMatch -m protocolid:0 --dpts [4569, 5000:65535]' \
         \`ParsedAction -j ACCEPT'\n\
     \-A FORWARD `ParsedMatch -i eth0' \
         \`ParsedMatch -p tcp' \
-        \`ParsedMatch --dpts [22]' \
+        \`ParsedMatch -m protocolid:0 --dpts [22]' \
         \`ParsedAction -j DROP'\n\
     \-A FORWARD `ParsedMatch -i eth0' \
         \`ParsedMatch -p tcp' \
-        \`ParsedMatch --dpts [21, 873:874, 5005, 5006, 80, 548, 111, 892, 2049]' \
+        \`ParsedMatch -m protocolid:0 --dpts [21, 873:874, 5005, 5006, 80, 548, 111, 892, 2049]' \
         \`ParsedAction -j DROP'\n\
     \-A FORWARD `ParsedMatch -s 192.168.0.1' `ParsedAction -j LOGDROP (call)'\n\
     \-A FORWARD `ParsedMatch -m iprange --src-range 127.0.0.1-127.0.10.0' `ParsedAction -j RETURN'\n\
@@ -108,7 +109,7 @@ expected_result = "*filter\n\
     \-A IPSEC_42 `ParsedMatch -p gre' `ParsedMatch -m state --state NEW' `ParsedAction -j ACCEPT'\n\
     \-A LOGDROP\n\
     \-A LOGDROP `ParsedAction -j DROP'\n\
-    \-A Terminal `ParsedMatch -d 127.0.0.1/32' `ParsedMatch -p udp' `ParsedMatch --spts [53]' `ParsedAction -j DROP'\n\
+    \-A Terminal `ParsedMatch -d 127.0.0.1/32' `ParsedMatch -p udp' `ParsedMatch -m protocolid:0 --spts [53]' `ParsedAction -j DROP'\n\
     \-A Terminal `ParsedMatch -d 127.42.0.1/32' `ParsedAction -j REJECT'\n\
     \-A Terminal `ParsedAction -j REJECT'\n\
     \COMMIT"

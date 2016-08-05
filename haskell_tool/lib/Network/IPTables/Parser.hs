@@ -110,17 +110,17 @@ knownMatch_generic parser_ipaddr_cidr parser_iprange = do
             <|> (probablyNegated $ lit "--dst-range " >> Isabelle.Dst <$> parser_iprange))
       
       <|> (parseWithModulePrefix "-m tcp " $
-                (probablyNegated $ lit "--sport " >> Isabelle.Src_Ports <$> (\p -> [p]) <$> parsePortOne)
-            <|> (probablyNegated $ lit "--dport " >> Isabelle.Dst_Ports <$> (\p -> [p]) <$> parsePortOne)
+                (probablyNegated $ lit "--sport " >> Isabelle.Src_Ports <$> Isabelle.mk_L4Ports_pre <$> (\p -> [p]) <$> parsePortOne)
+            <|> (probablyNegated $ lit "--dport " >> Isabelle.Dst_Ports <$> Isabelle.mk_L4Ports_pre <$> (\p -> [p]) <$> parsePortOne)
             <|> (probablyNegated $ lit "--tcp-flags " >> Isabelle.L4_Flags <$> matchTcpFlags))
                 
       <|> (parseWithModulePrefix "-m udp " $ 
-                (probablyNegated $ lit "--sport " >> Isabelle.Src_Ports <$> (\p -> [p]) <$> parsePortOne)
-            <|> (probablyNegated $ lit "--dport " >> Isabelle.Dst_Ports <$> (\p -> [p]) <$> parsePortOne))
+                (probablyNegated $ lit "--sport " >> Isabelle.Src_Ports <$> Isabelle.mk_L4Ports_pre <$> (\p -> [p]) <$> parsePortOne)
+            <|> (probablyNegated $ lit "--dport " >> Isabelle.Dst_Ports <$> Isabelle.mk_L4Ports_pre <$> (\p -> [p]) <$> parsePortOne))
       
       <|> (parseWithModulePrefix "-m multiport "$ 
-                (probablyNegated $ lit "--sports " >> Isabelle.Src_Ports <$> parseCommaSeparatedList parsePortOne)
-            <|> (probablyNegated $ lit "--dports " >> Isabelle.Dst_Ports <$> parseCommaSeparatedList parsePortOne))
+                (probablyNegated $ lit "--sports " >> Isabelle.Src_Ports <$> Isabelle.mk_L4Ports_pre <$> parseCommaSeparatedList parsePortOne)
+            <|> (probablyNegated $ lit "--dports " >> Isabelle.Dst_Ports <$> Isabelle.mk_L4Ports_pre <$> parseCommaSeparatedList parsePortOne))
       
       <|> (probablyNegatedSingleton $ lit "-i " >> Isabelle.IIface <$> iface)
       <|> (probablyNegatedSingleton $ lit "-o " >> Isabelle.OIface <$> iface)
