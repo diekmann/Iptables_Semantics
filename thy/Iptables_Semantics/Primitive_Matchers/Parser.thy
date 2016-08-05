@@ -65,17 +65,6 @@ begin
     apply(rule matches_iff_apply_f)
     apply(simp add: compress_parsed_extra_matchexpr_helper)
     done
-
-  text\<open>This version of @{const alist_and} avoids the trailing @{const MatchAny}\<close>
-  fun alist_and' :: "'a negation_type list \<Rightarrow> 'a match_expr" where
-    "alist_and' [] = MatchAny" |
-    "alist_and' [Pos e] = Match e" |
-    "alist_and' [Neg e] = MatchNot (Match e)"|
-    "alist_and' ((Pos e)#es) = MatchAnd (Match e) (alist_and' es)" |
-    "alist_and' ((Neg e)#es) = MatchAnd (MatchNot (Match e)) (alist_and' es)"
-
-  lemma alist_and': "matches (\<gamma>, \<alpha>) (alist_and' as) = matches (\<gamma>, \<alpha>) (alist_and as)"
-    by(induction as rule: alist_and'.induct) (simp_all add: bunch_of_lemmata_about_matches)
 end
 
 

@@ -57,6 +57,13 @@ lemma has_disc_negated_alist_and: "has_disc_negated disc neg (alist_and as) \<lo
   qed(simp_all add: negation_type_to_match_expr_simps)
   
 
+lemma has_disc_alist_and': "has_disc disc (alist_and' as) \<longleftrightarrow> (\<exists> a \<in> set as. has_disc disc (negation_type_to_match_expr a))"
+  proof(induction as rule: alist_and'.induct)
+  qed(simp_all add: negation_type_to_match_expr_simps)
+lemma has_disc_negated_alist_and': "has_disc_negated disc neg (alist_and' as) \<longleftrightarrow> (\<exists> a \<in> set as. has_disc_negated disc neg (negation_type_to_match_expr a))"
+  proof(induction as rule: alist_and'.induct)
+  qed(simp_all add: negation_type_to_match_expr_simps)
+
 lemma "matches ((\<lambda>x _. bool_to_ternary (disc x)), (\<lambda>_ _. False)) (Match x) a p \<longleftrightarrow> has_disc disc (Match x)"
 by(simp add: match_raw_ternary bool_to_ternary_simps split: ternaryvalue.split )
 
@@ -105,6 +112,13 @@ lemma normalized_n_primitive_alist_and: "normalized_n_primitive disc_sel P (alis
     apply(cases disc_sel, cases a)
     by(simp_all add: negation_type_to_match_expr_simps)
   qed
+
+lemma normalized_n_primitive_alist_and': "normalized_n_primitive disc_sel P (alist_and' as) \<longleftrightarrow>
+      (\<forall> a \<in> set as. normalized_n_primitive disc_sel P (negation_type_to_match_expr a))"
+  apply(cases disc_sel)
+  apply(induction as rule: alist_and'.induct)
+      by(simp_all add: negation_type_to_match_expr_simps)
+
 
 
 lemma normalized_n_primitive_if_no_primitive: "normalized_nnf_match m \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> 
@@ -681,7 +695,7 @@ subsection\<open>Optimizing a match expression\<close>
                                               'a match_expr \<Rightarrow> 'a match_expr option" where 
     "compress_normalize_primitive disc_sel C f m \<equiv> (case primitive_extractor disc_sel m of (as, rst) \<Rightarrow>
       (map_option (\<lambda>(as_pos, as_neg). MatchAnd
-                                       (alist_and (NegPos_map C ((map Pos as_pos)@(map Neg as_neg))))
+                                       (alist_and' (NegPos_map C ((map Pos as_pos)@(map Neg as_neg))))
                                        rst
                   ) (f as)))"
 
@@ -693,7 +707,7 @@ subsection\<open>Optimizing a match expression\<close>
     apply(case_tac "primitive_extractor disc_sel m")
     apply(simp add: compress_normalize_primitive_def)
     apply(clarify)
-    apply (simp add: normalized_nnf_match_alist_and)
+    apply (simp add: normalized_nnf_match_alist_and')
     apply(cases disc_sel, simp)
     using primitive_extractor_correct(2) by blast
 
@@ -726,8 +740,8 @@ subsection\<open>Optimizing a match expression\<close>
           "\<forall>a. Neg a \<notin> set as" by(simp)
         hence "getNeg as = []" by (meson NegPos_set(5) image_subset_iff last_in_set)
         with f_preserves have f_preserves': "\<And>as_pos as_neg. f as = Some (as_pos, as_neg) \<Longrightarrow> as_neg = []" by simp
-        from 1 have "\<And> a b.\<not> has_disc_negated disc False (MatchAnd (alist_and (NegPos_map C (map Pos a))) ms)"
-          by(simp add: has_disc_negated_alist_and NegPos_map_map_Pos negation_type_to_match_expr_simps)
+        from 1 have "\<And> a b.\<not> has_disc_negated disc False (MatchAnd (alist_and' (NegPos_map C (map Pos a))) ms)"
+          by(simp add: has_disc_negated_alist_and' NegPos_map_map_Pos negation_type_to_match_expr_simps)
         with some show ?thesis by(auto dest: f_preserves' simp add: compress_normalize_primitive_def asms)
    qed
 
@@ -749,7 +763,7 @@ subsection\<open>Optimizing a match expression\<close>
     apply(drule primitive_extractor_correct(1)[OF normalized wf, where \<gamma>=\<gamma> and a=a and p=p])
     apply(elim exE conjE)
     apply(drule f_correct)
-    by (meson alist_and_append bunch_of_lemmata_about_matches(1))
+    by (meson matches_alist_and_alist_and' bunch_of_lemmata_about_matches(1))
     
 
   lemma compress_normalize_primitive_None:
@@ -789,7 +803,8 @@ subsection\<open>Optimizing a match expression\<close>
         with some have "\<not> has_disc disc2 m'"
           apply(simp add: compress_normalize_primitive_def asms)
           apply(elim exE conjE)
-          using 1 by force
+          (*TODO: confusing alist_and and alist_and'*)
+          using 1 by (meson has_disc.simps(4) has_disc_alist_and has_disc_alist_and')
         with goal1 show ?thesis by simp
    qed
   lemma compress_normalize_primitive_hasdisc_negated:
@@ -814,7 +829,8 @@ subsection\<open>Optimizing a match expression\<close>
         with some have "\<not> has_disc_negated disc2 neg m'"
           apply(simp add: compress_normalize_primitive_def asms)
           apply(elim exE conjE)
-          using 1 by force
+          using 1 by (meson has_disc_negated.simps(4) has_disc_negated_alist_and has_disc_negated_alist_and')
+          
         with goal1 show ?thesis by simp
    qed
 
@@ -842,7 +858,8 @@ subsection\<open>Optimizing a match expression\<close>
         with some have "normalized_n_primitive (disc2, sel2) P m'"
           apply(simp add: compress_normalize_primitive_def asms)
           apply(elim exE conjE)
-          using 1 by force
+          using 1 normalized_n_primitive_alist_and' normalized_n_primitive_alist_and
+                 normalized_n_primitive.simps(4) by blast 
         with goal1 show ?thesis by simp
    qed
 

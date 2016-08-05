@@ -12,9 +12,44 @@ fun alist_and :: "'a negation_type list \<Rightarrow> 'a match_expr" where
   "alist_and ((Pos e)#es) = MatchAnd (Match e) (alist_and es)" |
   "alist_and ((Neg e)#es) = MatchAnd (MatchNot (Match e)) (alist_and es)"
 
-
 lemma normalized_nnf_match_alist_and: "normalized_nnf_match (alist_and as)"
   by(induction as rule: alist_and.induct) simp_all
+
+lemma alist_and_append: "matches \<gamma> (alist_and (l1 @ l2)) a p \<longleftrightarrow> matches \<gamma>  (MatchAnd (alist_and l1)  (alist_and l2)) a p"
+  proof(induction l1)
+  case Nil thus ?case by (simp add: bunch_of_lemmata_about_matches)
+  next
+  case (Cons l l1) thus ?case by (cases l) (simp_all add: bunch_of_lemmata_about_matches)
+  qed
+
+  text\<open>This version of @{const alist_and} avoids the trailing @{const MatchAny}. Only intended for code.\<close>
+  fun alist_and' :: "'a negation_type list \<Rightarrow> 'a match_expr" where
+    "alist_and' [] = MatchAny" |
+    "alist_and' [Pos e] = Match e" |
+    "alist_and' [Neg e] = MatchNot (Match e)"|
+    "alist_and' ((Pos e)#es) = MatchAnd (Match e) (alist_and' es)" |
+    "alist_and' ((Neg e)#es) = MatchAnd (MatchNot (Match e)) (alist_and' es)"
+
+  lemma alist_and': "matches (\<gamma>, \<alpha>) (alist_and' as) = matches (\<gamma>, \<alpha>) (alist_and as)"
+    by(induction as rule: alist_and'.induct) (simp_all add: bunch_of_lemmata_about_matches)
+ 
+  lemma normalized_nnf_match_alist_and': "normalized_nnf_match (alist_and' as)"
+    by(induction as rule: alist_and'.induct) simp_all
+
+  lemma matches_alist_and_alist_and':
+    "matches \<gamma> (alist_and' ls) a p \<longleftrightarrow> matches \<gamma> (alist_and ls) a p"
+    apply(induction ls rule: alist_and'.induct)
+    by(simp add: bunch_of_lemmata_about_matches)+
+
+  lemma alist_and'_append: "matches \<gamma> (alist_and' (l1 @ l2)) a p \<longleftrightarrow> matches \<gamma> (MatchAnd (alist_and' l1) (alist_and' l2)) a p"
+    proof(induction l1)
+    case Nil thus ?case by (simp add: bunch_of_lemmata_about_matches)
+    next
+    case (Cons l l1) thus ?case
+      apply (cases l)
+       by(simp_all add: matches_alist_and_alist_and' bunch_of_lemmata_about_matches)
+    qed
+
 
 fun negation_type_to_match_expr_f :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a negation_type \<Rightarrow> 'b match_expr" where
   "negation_type_to_match_expr_f f (Pos a) = Match (f a)" |
@@ -31,14 +66,6 @@ by(simp_all add: negation_type_to_match_expr_def)
 lemma alist_and_negation_type_to_match_expr: "alist_and (n#es) =  MatchAnd (negation_type_to_match_expr n) (alist_and es)"
   by(cases n, simp_all add: negation_type_to_match_expr_simps)
 
-
-
-lemma alist_and_append: "matches \<gamma> (alist_and (l1 @ l2)) a p \<longleftrightarrow> matches \<gamma>  (MatchAnd (alist_and l1)  (alist_and l2)) a p"
-  proof(induction l1)
-  case Nil thus ?case by (simp_all add: bunch_of_lemmata_about_matches)
-  next
-  case (Cons l l1) thus ?case by (cases l) (simp_all add: bunch_of_lemmata_about_matches)
-  qed
 
 
 fun to_negation_type_nnf :: "'a match_expr \<Rightarrow> 'a negation_type list" where

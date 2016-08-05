@@ -50,7 +50,7 @@ export_code Rule
   simple_rule_ipv6_toString
   (*Goto support*)
   Semantics_Goto.rewrite_Goto_safe
-  (*parser helpers:*) alist_and' compress_parsed_extra Pos Neg mk_Set
+  (*parser helpers:*) alist_and' compress_parsed_extra fill_l4_protocol Pos Neg mk_Set
   unfold_ruleset_CHAIN_safe map_of_string
   upper_closure
   abstract_for_simple_firewall optimize_matches
