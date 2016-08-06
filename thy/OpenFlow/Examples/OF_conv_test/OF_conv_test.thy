@@ -2,7 +2,7 @@ theory OF_conv_test
 imports 
   "../../../Iptables_Semantics/Primitive_Matchers/Parser"
   "../../../Simple_Firewall/SimpleFw_toString"
-  "../../../Iptables_Semantics/Routing/IpRoute_Parser"
+  "../../../Routing/IpRoute_Parser"
   "../../LinuxRouterOpenFlowTranslation"
   "../../OpenFlowSerialize"
 begin
@@ -18,10 +18,10 @@ thm SQRL_fw_FORWARD_default_policy_def
 
 value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primitive_rule_toString) rs)) SQRL_fw"
 definition "unfolded = unfold_ruleset_FORWARD SQRL_fw_FORWARD_default_policy (map_of_string_ipv4 SQRL_fw)"
-lemma "map (quote_rewrite \<circ> common_primitive_rule_toString) (unfolded) =
+lemma "map (quote_rewrite \<circ> common_primitive_rule_toString) unfolded =
   [''-p icmp -j ACCEPT'',
-   ''-i s1-lan -o s1-wan -p tcp --spts [1024:65535] --dpts [80] -j ACCEPT'',
-   ''-i s1-wan -o s1-lan -p tcp --spts [80] --dpts [1024:65535] -j ACCEPT'',
+   ''-i s1-lan -o s1-wan -p tcp -m tcp --spts [1024:65535] -m tcp --dpts [80] -j ACCEPT'',
+   ''-i s1-wan -o s1-lan -p tcp -m tcp --spts [80] -m tcp --dpts [1024:65535] -j ACCEPT'',
    '' -j DROP'']" by eval
 
 lemma "length unfolded = 4" by eval

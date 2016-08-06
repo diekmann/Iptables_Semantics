@@ -7,8 +7,8 @@
 :LOGDROP - [0:0]
 :OUTPUT ACCEPT [70:23175]
 :Terminal - [0:0]
--A DOS~Pro-t_ect `ParsedMatch -p tcp' `ParsedMatch --dpts [22]' `ParsedAction -j ACCEPT'
--A DOS~Pro-t_ect `ParsedMatch -p tcp' `ParsedMatch -m state --state NEW' `ParsedMatch --dpts [1:65535]' `ParsedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN]' `ParsedAction -j ACCEPT'
+-A DOS~Pro-t_ect `ParsedMatch -p tcp' `ParsedMatch -m protocolid:0 --dpts [22]' `ParsedAction -j ACCEPT'
+-A DOS~Pro-t_ect `ParsedMatch -p tcp' `ParsedMatch -m state --state NEW' `ParsedMatch -m protocolid:0 --dpts [1:65535]' `ParsedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN]' `ParsedAction -j ACCEPT'
 -A DOS~Pro-t_ect `ParsedMatch -p udp' `ParsedAction -j RETURN'
 -A DOS~Pro-t_ect `ParsedMatch -p icmp' `ParsedMatch ~~-m~~' `ParsedMatch ~~icmp~~' `ParsedMatch ~~--icmp-type~~' `ParsedMatch ~~3/4~~' `ParsedAction -j ACCEPT'
 -A DOS~Pro-t_ect `ParsedMatch -p icmp' `ParsedMatch ~~-m~~' `ParsedMatch ~~comment~~' `ParsedMatch ~~--comment~~' `ParsedMatch ~~"!"~~' `ParsedAction -j ACCEPT'
@@ -18,13 +18,13 @@
 -A DOS~Pro-t_ect `ParsedMatch -p ipv6-icmp' `ParsedMatch ~~-m~~' `ParsedMatch ~~icmp6~~' `ParsedMatch ~~--icmpv6-type~~' `ParsedMatch ~~133~~' `ParsedMatch ~~-m~~' `ParsedMatch ~~comment~~' `ParsedMatch ~~--comment~~' `ParsedMatch ~~"\""~~' `ParsedMatch -s 127.0.0.0/8' `ParsedAction -j ACCEPT'
 -A DOS~Pro-t_ect `ParsedNegatedMatch -p icmp'
 -A DOS~Pro-t_ect `ParsedNegatedMatch -p tcp' `ParsedNegatedMatch -s 131.159.0.0/16'
--A DOS~Pro-t_ect `ParsedMatch -i vocb' `ParsedMatch -p udp' `ParsedMatch --spts [67:68]' `ParsedMatch --dpts [67:68]' `ParsedAction -j ACCEPT'
--A DOS~Pro-t_ect `ParsedMatch -i vocb' `ParsedMatch -p udp' `ParsedNegatedMatch --spts [67:68]' `ParsedNegatedMatch --dpts [67:68]' `ParsedAction -j ACCEPT'
+-A DOS~Pro-t_ect `ParsedMatch -i vocb' `ParsedMatch -p udp' `ParsedMatch -m protocolid:0 --spts [67:68]' `ParsedMatch -m protocolid:0 --dpts [67:68]' `ParsedAction -j ACCEPT'
+-A DOS~Pro-t_ect `ParsedMatch -i vocb' `ParsedMatch -p udp' `ParsedNegatedMatch -m protocolid:0 --spts [67:68]' `ParsedNegatedMatch -m protocolid:0 --dpts [67:68]' `ParsedAction -j ACCEPT'
 -A FORWARD `ParsedAction -j LOG' `ParsedMatch ~~--log-prefix~~' `ParsedMatch ~~"!#*~%&/()=?"~~' `ParsedMatch ~~--log-level~~' `ParsedMatch ~~6~~'
 -A FORWARD `ParsedMatch -s 127.0.0.0/8' `ParsedAction -j DROP'
 -A FORWARD `ParsedMatch -i wlan0' `ParsedMatch -p tcp' `ParsedNegatedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN]' `ParsedMatch -m state --state NEW' `ParsedAction -j DROP'
--A FORWARD `ParsedMatch -p tcp' `ParsedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN]' `ParsedMatch --dpts [80, 443]' `ParsedAction -j ACCEPT'
--A FORWARD `ParsedMatch -p tcp' `ParsedMatch -m state --state NEW' `ParsedMatch --dpts [1:65535]' `ParsedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN]' `ParsedAction -j ACCEPT'
+-A FORWARD `ParsedMatch -p tcp' `ParsedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN]' `ParsedMatch -m protocolid:0 --dpts [80, 443]' `ParsedAction -j ACCEPT'
+-A FORWARD `ParsedMatch -p tcp' `ParsedMatch -m state --state NEW' `ParsedMatch -m protocolid:0 --dpts [1:65535]' `ParsedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN]' `ParsedAction -j ACCEPT'
 -A FORWARD `ParsedMatch -m state --state NEW,INVALID' `ParsedAction -j DROP'
 -A FORWARD `ParsedMatch -i wlan0' `ParsedMatch -p icmp' `ParsedMatch -m state --state NEW,ESTABLISHED,RELATED,UNTRACKED' `ParsedAction -j ACCEPT'
 -A FORWARD `ParsedMatch -m state --state NEW,UNTRACKED' `ParsedAction -j ACCEPT'
@@ -32,11 +32,11 @@
 -A FORWARD `ParsedNegatedMatch -i eth+' `ParsedAction -j DROP'
 -A FORWARD `ParsedMatch -s 100.0.0.0/24' `ParsedMatch -p tcp' `ParsedAction -j DOS~Pro-t_ect (call)'
 -A FORWARD `ParsedNegatedMatch -s 131.159.0.0/16' `ParsedAction -j DROP'
--A FORWARD `ParsedMatch -p tcp' `ParsedMatch --spts [80, 443]' `ParsedAction -j DROP'
--A FORWARD `ParsedMatch -p tcp' `ParsedMatch --dpts [80, 443]' `ParsedAction -j DROP'
--A FORWARD `ParsedMatch -d 127.0.0.1/32' `ParsedMatch -o eth1.152' `ParsedMatch -p udp' `ParsedMatch --dpts [4569, 5000:65535]' `ParsedAction -j ACCEPT'
--A FORWARD `ParsedMatch -i eth0' `ParsedMatch -p tcp' `ParsedMatch --dpts [22]' `ParsedAction -j DROP'
--A FORWARD `ParsedMatch -i eth0' `ParsedMatch -p tcp' `ParsedMatch --dpts [21, 873:874, 5005, 5006, 80, 548, 111, 892, 2049]' `ParsedAction -j DROP'
+-A FORWARD `ParsedMatch -p tcp' `ParsedMatch -m protocolid:0 --spts [80, 443]' `ParsedAction -j DROP'
+-A FORWARD `ParsedMatch -p tcp' `ParsedMatch -m protocolid:0 --dpts [80, 443]' `ParsedAction -j DROP'
+-A FORWARD `ParsedMatch -d 127.0.0.1/32' `ParsedMatch -o eth1.152' `ParsedMatch -p udp' `ParsedMatch -m protocolid:0 --dpts [4569, 5000:65535]' `ParsedAction -j ACCEPT'
+-A FORWARD `ParsedMatch -i eth0' `ParsedMatch -p tcp' `ParsedMatch -m protocolid:0 --dpts [22]' `ParsedAction -j DROP'
+-A FORWARD `ParsedMatch -i eth0' `ParsedMatch -p tcp' `ParsedMatch -m protocolid:0 --dpts [21, 873:874, 5005, 5006, 80, 548, 111, 892, 2049]' `ParsedAction -j DROP'
 -A FORWARD `ParsedMatch -s 192.168.0.1' `ParsedAction -j LOGDROP (call)'
 -A FORWARD `ParsedMatch -m iprange --src-range 127.0.0.1-127.0.10.0' `ParsedAction -j RETURN'
 -A FORWARD `ParsedNegatedMatch -m iprange --dst-range 127.0.0.1-127.0.10.0' `ParsedAction -j RETURN'
@@ -46,43 +46,43 @@
 -A IPSEC_42 `ParsedMatch -p gre' `ParsedMatch -m state --state NEW' `ParsedAction -j ACCEPT'
 -A LOGDROP
 -A LOGDROP `ParsedAction -j DROP'
--A Terminal `ParsedMatch -d 127.0.0.1/32' `ParsedMatch -p udp' `ParsedMatch --spts [53]' `ParsedAction -j DROP'
+-A Terminal `ParsedMatch -d 127.0.0.1/32' `ParsedMatch -p udp' `ParsedMatch -m protocolid:0 --spts [53]' `ParsedAction -j DROP'
 -A Terminal `ParsedMatch -d 127.42.0.1/32' `ParsedAction -j REJECT'
 -A Terminal `ParsedAction -j REJECT'
 COMMIT
 == Checking which tables are supported for analysis. Usually, only `filter'. ==
 Parsed 7 chains in table filter, a total of 42 rules
 == Transformed to Isabelle type (only filter table) ==
-[("DOS~Pro-t_ect",[(-p tcp --dpts [22], -j ACCEPT),(-p tcp -m state --state NEW --dpts [1:65535] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT),(-p udp, -j RETURN),(-p icmp ~~-m icmp --icmp-type 3/4~~, -j ACCEPT),(-p icmp ~~-m comment --comment "!"~~, -j ACCEPT),(-p icmp ~~-m comment --comment "has space"~~, -j ACCEPT),(-p icmp, -j ACCEPT),(-p ipv6-icmp ~~-m icmp6 --icmpv6-type 133 -m comment --comment "this module only works for ip6tables but -p icmpv6 is fine"~~, -j ACCEPT),(-p ipv6-icmp ~~-m icmp6 --icmpv6-type 133 -m comment --comment "\""~~ -s 127.0.0.0/8, -j ACCEPT),(! -p icmp, ),(! -p tcp ! -s 131.159.0.0/16, ),(-i vocb -p udp --spts [67:68] --dpts [67:68], -j ACCEPT),(-i vocb -p udp ! --spts [67:68] ! --dpts [67:68], -j ACCEPT)]),("FORWARD",[(~~--log-prefix "!#*~%&/()=?" --log-level 6~~, -j LOG),(-s 127.0.0.0/8, -j DROP),(-i wlan0 -p tcp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] -m state --state NEW, -j DROP),(-p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] --dpts [80, 443], -j ACCEPT),(-p tcp -m state --state NEW --dpts [1:65535] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT),(-m state --state NEW,INVALID, -j DROP),(-i wlan0 -p icmp -m state --state NEW,ESTABLISHED,RELATED,UNTRACKED, -j ACCEPT),(-m state --state NEW,UNTRACKED, -j ACCEPT),(-m state --state ESTABLISHED,RELATED, -j ACCEPT),(! -i eth+, -j DROP),(-s 100.0.0.0/24 -p tcp, -j DOS~Pro-t_ect (call)),(! -s 131.159.0.0/16, -j DROP),(-p tcp --spts [80, 443], -j DROP),(-p tcp --dpts [80, 443], -j DROP),(-d 127.0.0.1/32 -o eth1.152 -p udp --dpts [4569, 5000:65535], -j ACCEPT),(-i eth0 -p tcp --dpts [22], -j DROP),(-i eth0 -p tcp --dpts [21, 873:874, 5005, 5006, 80, 548, 111, 892, 2049], -j DROP),(-s 192.168.0.1, -j LOGDROP (call)),(-m iprange --src-range 127.0.0.1-127.0.10.0, -j RETURN),(! -m iprange --dst-range 127.0.0.1-127.0.10.0, -j RETURN),(, -g Terminal),(, -j IPSEC_42 (call))]),("INPUT",[]),("IPSEC_42",[(-p esp -m state --state NEW, -j ACCEPT),(-p gre -m state --state NEW, -j ACCEPT)]),("LOGDROP",[(, ),(, -j DROP)]),("OUTPUT",[]),("Terminal",[(-d 127.0.0.1/32 -p udp --spts [53], -j DROP),(-d 127.42.0.1/32, -j REJECT),(, -j REJECT)])]
+[("DOS~Pro-t_ect",[(-p tcp -m tcp --dpts [22], -j ACCEPT),(-p tcp -m state --state NEW -m tcp --dpts [1:65535] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT),(-p udp, -j RETURN),(-p icmp ~~-m icmp --icmp-type 3/4~~, -j ACCEPT),(-p icmp ~~-m comment --comment "!"~~, -j ACCEPT),(-p icmp ~~-m comment --comment "has space"~~, -j ACCEPT),(-p icmp, -j ACCEPT),(-p ipv6-icmp ~~-m icmp6 --icmpv6-type 133 -m comment --comment "this module only works for ip6tables but -p icmpv6 is fine"~~, -j ACCEPT),(-p ipv6-icmp ~~-m icmp6 --icmpv6-type 133 -m comment --comment "\""~~ -s 127.0.0.0/8, -j ACCEPT),(! -p icmp, ),(! -p tcp ! -s 131.159.0.0/16, ),(-i vocb -p udp -m udp --spts [67:68] -m udp --dpts [67:68], -j ACCEPT),(-i vocb -p udp ! -m udp --spts [67:68] ! -m udp --dpts [67:68], -j ACCEPT)]),("FORWARD",[(~~--log-prefix "!#*~%&/()=?" --log-level 6~~, -j LOG),(-s 127.0.0.0/8, -j DROP),(-i wlan0 -p tcp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] -m state --state NEW, -j DROP),(-p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] -m tcp --dpts [80, 443], -j ACCEPT),(-p tcp -m state --state NEW -m tcp --dpts [1:65535] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT),(-m state --state NEW,INVALID, -j DROP),(-i wlan0 -p icmp -m state --state NEW,ESTABLISHED,RELATED,UNTRACKED, -j ACCEPT),(-m state --state NEW,UNTRACKED, -j ACCEPT),(-m state --state ESTABLISHED,RELATED, -j ACCEPT),(! -i eth+, -j DROP),(-s 100.0.0.0/24 -p tcp, -j DOS~Pro-t_ect (call)),(! -s 131.159.0.0/16, -j DROP),(-p tcp -m tcp --spts [80, 443], -j DROP),(-p tcp -m tcp --dpts [80, 443], -j DROP),(-d 127.0.0.1/32 -o eth1.152 -p udp -m udp --dpts [4569, 5000:65535], -j ACCEPT),(-i eth0 -p tcp -m tcp --dpts [22], -j DROP),(-i eth0 -p tcp -m tcp --dpts [21, 873:874, 5005, 5006, 80, 548, 111, 892, 2049], -j DROP),(-s 192.168.0.1, -j LOGDROP (call)),(-m iprange --src-range 127.0.0.1-127.0.10.0, -j RETURN),(! -m iprange --dst-range 127.0.0.1-127.0.10.0, -j RETURN),(, -g Terminal),(, -j IPSEC_42 (call))]),("INPUT",[]),("IPSEC_42",[(-p esp -m state --state NEW, -j ACCEPT),(-p gre -m state --state NEW, -j ACCEPT)]),("LOGDROP",[(, ),(, -j DROP)]),("OUTPUT",[]),("Terminal",[(-d 127.0.0.1/32 -p udp -m udp --spts [53], -j DROP),(-d 127.42.0.1/32, -j REJECT),(, -j REJECT)])]
 Default Policies: fromList [("FORWARD",-j DROP),("INPUT",-j ACCEPT),("OUTPUT",-j ACCEPT)]
 == unfolded FORWARD chain ==
 (-s 127.0.0.0/8, -j DROP)
 (-i wlan0 -p tcp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] -m state --state NEW, -j DROP)
-(-p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] --dpts [80, 443], -j ACCEPT)
-(-p tcp -m state --state NEW --dpts [1:65535] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
+(-p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] -m tcp --dpts [80, 443], -j ACCEPT)
+(-p tcp -m state --state NEW -m tcp --dpts [1:65535] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
 (-m state --state NEW,INVALID, -j DROP)
 (-i wlan0 -p icmp -m state --state NEW,ESTABLISHED,RELATED,UNTRACKED, -j ACCEPT)
 (-m state --state NEW,UNTRACKED, -j ACCEPT)
 (-m state --state ESTABLISHED,RELATED, -j ACCEPT)
 (! -i eth+, -j DROP)
-(-s 100.0.0.0/24 -p tcp -p tcp --dpts [22], -j ACCEPT)
-(-s 100.0.0.0/24 -p tcp -p tcp -m state --state NEW --dpts [1:65535] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
+(-s 100.0.0.0/24 -p tcp -p tcp -m tcp --dpts [22], -j ACCEPT)
+(-s 100.0.0.0/24 -p tcp -p tcp -m state --state NEW -m tcp --dpts [1:65535] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
 (-s 100.0.0.0/24 -p tcp ! -p udp -p icmp ~~-m icmp --icmp-type 3/4~~, -j ACCEPT)
 (-s 100.0.0.0/24 -p tcp ! -p udp -p icmp ~~-m comment --comment "!"~~, -j ACCEPT)
 (-s 100.0.0.0/24 -p tcp ! -p udp -p icmp ~~-m comment --comment "has space"~~, -j ACCEPT)
 (-s 100.0.0.0/24 -p tcp ! -p udp -p icmp, -j ACCEPT)
 (-s 100.0.0.0/24 -p tcp ! -p udp -p ipv6-icmp ~~-m icmp6 --icmpv6-type 133 -m comment --comment "this module only works for ip6tables but -p icmpv6 is fine"~~, -j ACCEPT)
 (-s 100.0.0.0/24 -p tcp ! -p udp -p ipv6-icmp ~~-m icmp6 --icmpv6-type 133 -m comment --comment "\""~~ -s 127.0.0.0/8, -j ACCEPT)
-(-s 100.0.0.0/24 -p tcp ! -p udp -i vocb -p udp --spts [67:68] --dpts [67:68], -j ACCEPT)
-(-s 100.0.0.0/24 -p tcp ! -p udp -i vocb -p udp ! --spts [67:68] ! --dpts [67:68], -j ACCEPT)
+(-s 100.0.0.0/24 -p tcp ! -p udp -i vocb -p udp -m udp --spts [67:68] -m udp --dpts [67:68], -j ACCEPT)
+(-s 100.0.0.0/24 -p tcp ! -p udp -i vocb -p udp ! -m udp --spts [67:68] ! -m udp --dpts [67:68], -j ACCEPT)
 (! -s 131.159.0.0/16, -j DROP)
-(-p tcp --spts [80, 443], -j DROP)
-(-p tcp --dpts [80, 443], -j DROP)
-(-d 127.0.0.1/32 -o eth1.152 -p udp --dpts [4569, 5000:65535], -j ACCEPT)
-(-i eth0 -p tcp --dpts [22], -j DROP)
-(-i eth0 -p tcp --dpts [21, 873:874, 5005, 5006, 80, 548, 111, 892, 2049], -j DROP)
+(-p tcp -m tcp --spts [80, 443], -j DROP)
+(-p tcp -m tcp --dpts [80, 443], -j DROP)
+(-d 127.0.0.1/32 -o eth1.152 -p udp -m udp --dpts [4569, 5000:65535], -j ACCEPT)
+(-i eth0 -p tcp -m tcp --dpts [22], -j DROP)
+(-i eth0 -p tcp -m tcp --dpts [21, 873:874, 5005, 5006, 80, 548, 111, 892, 2049], -j DROP)
 (-s 192.168.0.1, -j DROP)
-(! -m iprange --src-range 127.0.0.1-127.0.10.0 -m iprange --dst-range 127.0.0.1-127.0.10.0 -d 127.0.0.1/32 -p udp --spts [53], -j DROP)
+(! -m iprange --src-range 127.0.0.1-127.0.10.0 -m iprange --dst-range 127.0.0.1-127.0.10.0 -d 127.0.0.1/32 -p udp -m udp --spts [53], -j DROP)
 (! -m iprange --src-range 127.0.0.1-127.0.10.0 -m iprange --dst-range 127.0.0.1-127.0.10.0 -d 127.42.0.1/32, -j DROP)
 (! -m iprange --src-range 127.0.0.1-127.0.10.0 -m iprange --dst-range 127.0.0.1-127.0.10.0, -j DROP)
 (! -m iprange --src-range 127.0.0.1-127.0.10.0 -m iprange --dst-range 127.0.0.1-127.0.10.0 -p esp -m state --state NEW, -j ACCEPT)
@@ -91,16 +91,16 @@ Default Policies: fromList [("FORWARD",-j DROP),("INPUT",-j ACCEPT),("OUTPUT",-j
 == unfolded FORWARD chain (upper closure) ==
 (-s 127.0.0.0/8, -j DROP)
 (-i wlan0 -p tcp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] -m state --state NEW, -j DROP)
-(--dpts [80] -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
-(--dpts [443] -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
-(--dpts [1:65535] -p tcp -m state --state NEW --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
+(-m tcp --dpts [80] -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
+(-m tcp --dpts [443] -p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
+(-m tcp --dpts [1:65535] -p tcp -m state --state NEW --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
 (-m state --state NEW,INVALID, -j DROP)
 (-i wlan0 -p icmp -m state --state NEW,ESTABLISHED,RELATED,UNTRACKED, -j ACCEPT)
 (-m state --state NEW,UNTRACKED, -j ACCEPT)
 (-m state --state ESTABLISHED,RELATED, -j ACCEPT)
 (! -i eth+, -j DROP)
-(-s 100.0.0.0/24 --dpts [22] -p tcp , -j ACCEPT)
-(-s 100.0.0.0/24 --dpts [1:65535] -p tcp -m state --state NEW --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
+(-s 100.0.0.0/24 -m tcp --dpts [22] -p tcp , -j ACCEPT)
+(-s 100.0.0.0/24 -m tcp --dpts [1:65535] -p tcp -m state --state NEW --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
 (-s 0.0.0.0/1, -j DROP)
 (-s 128.0.0.0/7, -j DROP)
 (-s 130.0.0.0/8, -j DROP)
@@ -117,53 +117,53 @@ Default Policies: fromList [("FORWARD",-j DROP),("INPUT",-j ACCEPT),("OUTPUT",-j
 (-s 144.0.0.0/4, -j DROP)
 (-s 160.0.0.0/3, -j DROP)
 (-s 192.0.0.0/2, -j DROP)
-(--spts [80] -p tcp, -j DROP)
-(--spts [443] -p tcp, -j DROP)
-(--dpts [80] -p tcp, -j DROP)
-(--dpts [443] -p tcp, -j DROP)
-(-d 127.0.0.1/32 --dpts [4569] -o eth1.152 -p udp, -j ACCEPT)
-(-d 127.0.0.1/32 --dpts [5000:65535] -o eth1.152 -p udp, -j ACCEPT)
-(--dpts [22] -i eth0 -p tcp, -j DROP)
-(--dpts [21] -i eth0 -p tcp, -j DROP)
-(--dpts [873:874] -i eth0 -p tcp, -j DROP)
-(--dpts [5005:5006] -i eth0 -p tcp, -j DROP)
-(--dpts [80] -i eth0 -p tcp, -j DROP)
-(--dpts [548] -i eth0 -p tcp, -j DROP)
-(--dpts [111] -i eth0 -p tcp, -j DROP)
-(--dpts [892] -i eth0 -p tcp, -j DROP)
-(--dpts [2049] -i eth0 -p tcp, -j DROP)
+(-m tcp --spts [80] -p tcp, -j DROP)
+(-m tcp --spts [443] -p tcp, -j DROP)
+(-m tcp --dpts [80] -p tcp, -j DROP)
+(-m tcp --dpts [443] -p tcp, -j DROP)
+(-d 127.0.0.1/32 -m udp --dpts [4569] -o eth1.152 -p udp, -j ACCEPT)
+(-d 127.0.0.1/32 -m udp --dpts [5000:65535] -o eth1.152 -p udp, -j ACCEPT)
+(-m tcp --dpts [22] -i eth0 -p tcp, -j DROP)
+(-m tcp --dpts [21] -i eth0 -p tcp, -j DROP)
+(-m tcp --dpts [873:874] -i eth0 -p tcp, -j DROP)
+(-m tcp --dpts [5005:5006] -i eth0 -p tcp, -j DROP)
+(-m tcp --dpts [80] -i eth0 -p tcp, -j DROP)
+(-m tcp --dpts [548] -i eth0 -p tcp, -j DROP)
+(-m tcp --dpts [111] -i eth0 -p tcp, -j DROP)
+(-m tcp --dpts [892] -i eth0 -p tcp, -j DROP)
+(-m tcp --dpts [2049] -i eth0 -p tcp, -j DROP)
 (-s 192.168.0.1/32, -j DROP)
-(-d 127.0.0.1/32 -s 0.0.0.0/2 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 64.0.0.0/3 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 96.0.0.0/4 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 112.0.0.0/5 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 120.0.0.0/6 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 124.0.0.0/7 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 126.0.0.0/8 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.0.0.0/32 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.0.10.1/32 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.0.10.2/31 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.0.10.4/30 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.0.10.8/29 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.0.10.16/28 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.0.10.32/27 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.0.10.64/26 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.0.10.128/25 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.0.11.0/24 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.0.12.0/22 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.0.16.0/20 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.0.32.0/19 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.0.64.0/18 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.0.128.0/17 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.1.0.0/16 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.2.0.0/15 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.4.0.0/14 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.8.0.0/13 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.16.0.0/12 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.32.0.0/11 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.64.0.0/10 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 127.128.0.0/9 --spts [53] -p udp , -j DROP)
-(-d 127.0.0.1/32 -s 128.0.0.0/1 --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 0.0.0.0/2 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 64.0.0.0/3 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 96.0.0.0/4 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 112.0.0.0/5 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 120.0.0.0/6 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 124.0.0.0/7 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 126.0.0.0/8 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.0.0.0/32 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.0.10.1/32 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.0.10.2/31 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.0.10.4/30 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.0.10.8/29 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.0.10.16/28 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.0.10.32/27 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.0.10.64/26 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.0.10.128/25 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.0.11.0/24 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.0.12.0/22 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.0.16.0/20 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.0.32.0/19 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.0.64.0/18 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.0.128.0/17 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.1.0.0/16 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.2.0.0/15 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.4.0.0/14 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.8.0.0/13 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.16.0.0/12 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.32.0.0/11 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.64.0.0/10 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 127.128.0.0/9 -m udp --spts [53] -p udp , -j DROP)
+(-d 127.0.0.1/32 -s 128.0.0.0/1 -m udp --spts [53] -p udp , -j DROP)
 (-d 127.0.0.1/32 -s 0.0.0.0/2, -j DROP)
 (-d 127.0.0.2/31 -s 0.0.0.0/2, -j DROP)
 (-d 127.0.0.4/30 -s 0.0.0.0/2, -j DROP)

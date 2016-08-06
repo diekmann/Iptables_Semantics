@@ -15,7 +15,7 @@ session "Bitmagic" = IP_Addresses +
     "root.tex"
     "mathpartir.sty"
 
-session "Iptables_Semantics" = Simple_Firewall +
+session "Iptables_Semantics" = Routing +
   theories[document=false]
     "~~/src/HOL/Library/LaTeXsugar"
     (*The Native_Word things destory the latex document! Does not compile, ...*)
@@ -43,7 +43,7 @@ session "Iptables_Semantics" = Simple_Firewall +
     "Semantics_Ternary/Optimizing"
     "Primitive_Matchers/No_Spoof"
     No_Spoof_Embeddings
-    "Routing/Routing_IpAssmt" (*TODO: let this also depend on Routing!*)
+    "Primitive_Matchers/Routing_IpAssmt"
     "Primitive_Matchers/Transform"
     "Primitive_Matchers/Primitive_Abstract"
     "Primitive_Matchers/Code_Interface"
@@ -99,16 +99,6 @@ session "Iptables_Semantics_Examples_Large1" = Iptables_Semantics_Documentation 
 session "Iptables_Semantics_Examples_Large2" = Iptables_Semantics_Documentation +
    theories
     "Examples/IPPartEval/IP_Address_Space_Examples_All_Large"
-  document_files
-    "root.tex"
-    "mathpartir.sty"
-
-session Routing = Simple_Firewall +
-  theories
-    "Routing/Routing_Table"
-    "Routing/Linux_Router"
-    "Routing/IpRoute_Parser"
-    (*Dependencies: RoutingIpAssmt depends on Iptables_Semantics and is thus in another session*)
   document_files
     "root.tex"
     "mathpartir.sty"

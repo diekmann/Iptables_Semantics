@@ -1,11 +1,11 @@
 theory LinuxRouterOpenFlowTranslation
 imports "../IP_Addresses/CIDR_Split"
-  "../Automaticc_Refinement/Misc" (*TODO@Peter: rename and make available at better place :)*)
+  "../Automatic_Refinement/Lib/Misc" (*TODO@Peter: rename and make available at better place :)*)
 	"../Simple_Firewall/Generic_SimpleFw" 
 	"Semantics_OpenFlow"
 	"OpenFlowMatches"
 	"OpenFlowAction"
-	"../Iptables_Semantics/Routing/Linux_Router"
+	"../Routing/Linux_Router"
 begin
 
 primrec filter_nones where

@@ -140,7 +140,7 @@ to_Isabelle_ruleset_AssocList t = let rs = convertRuleset (tblChains t) in
 
 to_Isabelle_Rule :: Isabelle.Len a => ParseRule a -> Isabelle.Rule (Isabelle.Common_primitive a)
 to_Isabelle_Rule r = Isabelle.Rule
-                        (Isabelle.alist_and $ Isabelle.compress_parsed_extra (fMatch (ruleArgs r)))
+                        (Isabelle.alist_and $ Isabelle.fill_l4_protocol $ Isabelle.compress_parsed_extra (fMatch (ruleArgs r)))
                         (filter_Isabelle_Action (ruleArgs r))
     where --filter out the Matches (Common_primitive) in ParsedMatchAction
           fMatch :: [ParsedMatchAction a] -> [Isabelle.Negation_type (Isabelle.Common_primitive a)]

@@ -1,6 +1,6 @@
 theory Code_haskell
 imports
-  "../Routing/IpRoute_Parser" (*TODO: sqrl strings don't get nicely exported to code! *)
+  "../../Routing/IpRoute_Parser" (*TODO: sqrl strings don't get nicely exported to code! *)
   "../Primitive_Matchers/Parser"
 begin
 
@@ -14,6 +14,10 @@ definition word_to_nat :: "('a::len) word \<Rightarrow> nat" where
 definition mk_Set :: "'a list \<Rightarrow> 'a set" where
   "mk_Set = set"
 
+text\<open>Assumes that you call @{const fill_l4_protocol} after parsing!\<close>
+definition mk_L4Ports_pre :: "raw_ports \<Rightarrow> ipt_l4_ports" where
+  "mk_L4Ports_pre ports_raw = L4Ports 0 ports_raw"
+
 
 fun ipassmt_iprange_translate :: "'i::len ipt_iprange list negation_type \<Rightarrow> ('i word \<times> nat) list" where
   "ipassmt_iprange_translate (Pos ips) = concat (map ipt_iprange_to_cidr ips)" |
@@ -26,6 +30,7 @@ definition to_ipassmt
 export_code Rule
   Match MatchNot MatchAnd MatchAny
   Src Dst IIface OIface Prot Src_Ports Dst_Ports CT_State Extra
+  mk_L4Ports_pre
   ProtoAny Proto TCP UDP ICMP L4_Protocol.IPv6ICMP L4_Protocol.SCTP L4_Protocol.GRE
   L4_Protocol.ESP L4_Protocol.AH
   Iface
@@ -50,7 +55,7 @@ export_code Rule
   simple_rule_ipv6_toString
   (*Goto support*)
   Semantics_Goto.rewrite_Goto_safe
-  (*parser helpers:*) alist_and' compress_parsed_extra Pos Neg mk_Set
+  (*parser helpers:*) alist_and' compress_parsed_extra fill_l4_protocol Pos Neg mk_Set
   unfold_ruleset_CHAIN_safe map_of_string
   upper_closure
   abstract_for_simple_firewall optimize_matches

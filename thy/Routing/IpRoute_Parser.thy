@@ -1,12 +1,15 @@
 theory IpRoute_Parser
-imports "../Primitive_Matchers/IpAddresses" "../Routing/Routing_Table"
+imports Routing_Table 
+  "../IP_Addresses/IP_Address_Parser"
 keywords "parse_ip_route" :: thy_decl
 begin
 
-definition "empty_rr_hlp pm = routing_rule.make pm default_metric (routing_action.make '''' None)"
+definition empty_rr_hlp :: "32 prefix_match \<Rightarrow> routing_rule" where
+  "empty_rr_hlp pm = routing_rule.make pm default_metric (routing_action.make '''' None)"
 
-lemma empty_rr_hlp_alt: "empty_rr_hlp pm = \<lparr> routing_match = pm, metric = 0, routing_action = \<lparr>output_iface = [], next_hop = None\<rparr>\<rparr>"
-unfolding empty_rr_hlp_def routing_rule.defs default_metric_def routing_action.defs ..
+lemma empty_rr_hlp_alt:
+  "empty_rr_hlp pm = \<lparr> routing_match = pm, metric = 0, routing_action = \<lparr>output_iface = [], next_hop = None\<rparr>\<rparr>"
+  unfolding empty_rr_hlp_def routing_rule.defs default_metric_def routing_action.defs ..
 
 definition routing_action_next_hop_update :: "32 word \<Rightarrow> routing_rule \<Rightarrow> routing_rule"
   where
@@ -21,7 +24,7 @@ lemma "routing_action_oiface_update h pk = pk\<lparr> routing_action := (routing
   by(simp add: routing_action_oiface_update_def)
 
 (* Hide all the ugly ml in a file with the right extension *)
-term PrefixMatch
+(*Depends on the function parser_ipv4 from IP_Address_Parser*)
 ML_file "IpRoute_Parser.ml"
                   
 ML\<open>
@@ -31,6 +34,7 @@ ML\<open>
 \<close>
 
 parse_ip_route "rtbl_parser_test1" = "ip-route-ex"
+lemma  "correct_routing rtbl_parser_test1" by eval (* TODO: Automatically make this check and export the fact *)
 
 lemma "rtbl_parser_test1 =
   [\<lparr>routing_match = PrefixMatch 0xFFFFFF00 32, metric = 0, routing_action = \<lparr>output_iface = ''tun0'', next_hop = None\<rparr>\<rparr>,

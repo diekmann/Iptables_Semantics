@@ -10,7 +10,7 @@ imports "Common/List_Product_More"
         "Common/IP_Addr_WordInterval_toString"
         "Primitives/Primitives_toString"
         "SimpleFw_Semantics"
-        "../../IP_Addresses/WordInterval_Sorted"
+        "../IP_Addresses/WordInterval_Sorted"
 begin
 
 section\<open>Service Matrices\<close>
