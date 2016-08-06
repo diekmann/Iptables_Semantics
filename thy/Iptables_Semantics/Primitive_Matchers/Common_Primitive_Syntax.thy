@@ -21,8 +21,8 @@ begin
     is_Iiface: IIface (iiface_sel: iface) |
     is_Oiface: OIface (oiface_sel: iface) |
     is_Prot: Prot (prot_sel: protocol) | 
-    is_Src_Ports: Src_Ports (src_ports_sel: ipt_ports) |
-    is_Dst_Ports: Dst_Ports (dst_ports_sel: ipt_ports) |
+    is_Src_Ports: Src_Ports (src_ports_sel: ipt_l4_ports) |
+    is_Dst_Ports: Dst_Ports (dst_ports_sel: ipt_l4_ports) |
     is_L4_Flags: L4_Flags (l4_flags_sel: ipt_tcp_flags) |
     is_CT_State: CT_State (ct_state_sel: "ctstate set") |
     is_Extra: Extra (extra_sel: string)
@@ -43,12 +43,12 @@ lemma wf_disc_sel_common_primitive:
   by(simp_all add: wf_disc_sel.simps)
 
 
-  --"Example"
+  --"Example for a packet again:"
   value "\<lparr>p_iiface = ''eth0'', p_oiface = ''eth1'',
           p_src = ipv4addr_of_dotdecimal (192,168,2,45), p_dst= ipv4addr_of_dotdecimal (173,194,112,111),
           p_proto=TCP, p_sport=2065, p_dport=80, p_tcp_flags = {TCP_ACK},
           p_payload = ''GET / HTTP/1.0'',
-          p_tag_ctstate = CT_Established\<rparr>"
+          p_tag_ctstate = CT_Established\<rparr> :: 32 tagged_packet"
 
 
 

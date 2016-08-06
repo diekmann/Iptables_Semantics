@@ -18,6 +18,12 @@ fun getNeg :: "'a negation_type list \<Rightarrow> 'a list" where
   "getNeg (_#xs) = getNeg xs"
 
 
+lemma getPos_append: "getPos (as@bs) = getPos as @ getPos bs"
+  by(induct as rule: getPos.induct) simp+
+
+lemma getNeg_append: "getNeg (as@bs) = getNeg as @ getNeg bs"
+  by(induct as rule: getNeg.induct) simp+
+
 text\<open>If there is @{typ "'a negation_type"}, then apply a @{term map} only to @{typ 'a}.
 I.e. keep @{term Neg} and @{term Pos}\<close>
 fun NegPos_map :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a negation_type list \<Rightarrow> 'b negation_type list" where

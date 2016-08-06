@@ -6,7 +6,6 @@ begin
 
 subsection\<open>Optimizing protocols in match expressions\<close>
 
-
   fun compress_pos_protocols :: "protocol list \<Rightarrow> protocol option" where
     "compress_pos_protocols [] = Some ProtoAny" |
     "compress_pos_protocols [p] = Some p" |

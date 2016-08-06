@@ -57,6 +57,13 @@ lemma has_disc_negated_alist_and: "has_disc_negated disc neg (alist_and as) \<lo
   qed(simp_all add: negation_type_to_match_expr_simps)
   
 
+lemma has_disc_alist_and': "has_disc disc (alist_and' as) \<longleftrightarrow> (\<exists> a \<in> set as. has_disc disc (negation_type_to_match_expr a))"
+  proof(induction as rule: alist_and'.induct)
+  qed(simp_all add: negation_type_to_match_expr_simps)
+lemma has_disc_negated_alist_and': "has_disc_negated disc neg (alist_and' as) \<longleftrightarrow> (\<exists> a \<in> set as. has_disc_negated disc neg (negation_type_to_match_expr a))"
+  proof(induction as rule: alist_and'.induct)
+  qed(simp_all add: negation_type_to_match_expr_simps)
+
 lemma "matches ((\<lambda>x _. bool_to_ternary (disc x)), (\<lambda>_ _. False)) (Match x) a p \<longleftrightarrow> has_disc disc (Match x)"
 by(simp add: match_raw_ternary bool_to_ternary_simps split: ternaryvalue.split )
 
@@ -91,6 +98,11 @@ lemma normalized_n_primitive_opt_MatchAny_match_expr: "normalized_n_primitive di
   qed
 
 
+lemma normalized_n_primitive_imp_not_disc_negated:
+  "wf_disc_sel (disc,sel) C \<Longrightarrow> normalized_n_primitive (disc,sel) f m \<Longrightarrow> \<not> has_disc_negated disc False m"
+  apply(induction "(disc,sel)" f m rule: normalized_n_primitive.induct)
+  by(simp add: wf_disc_sel.simps split: split_if_asm)+
+
 lemma normalized_n_primitive_alist_and: "normalized_n_primitive disc_sel P (alist_and as) \<longleftrightarrow>
       (\<forall> a \<in> set as. normalized_n_primitive disc_sel P (negation_type_to_match_expr a))"
   proof(induction as)
@@ -101,6 +113,17 @@ lemma normalized_n_primitive_alist_and: "normalized_n_primitive disc_sel P (alis
     by(simp_all add: negation_type_to_match_expr_simps)
   qed
 
+lemma normalized_n_primitive_alist_and': "normalized_n_primitive disc_sel P (alist_and' as) \<longleftrightarrow>
+      (\<forall> a \<in> set as. normalized_n_primitive disc_sel P (negation_type_to_match_expr a))"
+  apply(cases disc_sel)
+  apply(induction as rule: alist_and'.induct)
+      by(simp_all add: negation_type_to_match_expr_simps)
+
+
+
+lemma normalized_n_primitive_if_no_primitive: "normalized_nnf_match m \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> 
+       normalized_n_primitive (disc, sel) f m"
+  by(induction "(disc, sel)" f m rule: normalized_n_primitive.induct) (simp)+
 
 subsection\<open>Primitive Extractor\<close>
 
@@ -152,6 +175,7 @@ theorem primitive_extractor_correct: assumes
   and "\<forall>disc2 sel2. normalized_n_primitive (disc2, sel2) P m \<longrightarrow> normalized_n_primitive (disc2, sel2) P ms"
   and "\<forall>disc2. \<not> has_disc_negated disc2 neg m \<longrightarrow> \<not> has_disc_negated disc2 neg ms"
   and "\<not> has_disc disc m \<Longrightarrow> as = [] \<and> ms = m"
+  and "\<not> has_disc_negated disc False m \<longleftrightarrow> getNeg as = []"
   (*TODO: preserves arbitrary P?*)
 proof -
   --"better simplification rule"
@@ -213,6 +237,15 @@ proof -
    from assms(1) assm3' show "\<not> has_disc disc m \<Longrightarrow> as = [] \<and> ms = m"
     proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
     case 4 thus ?case by(simp split: prod.split_asm)
+    qed(simp_all)
+
+   from assms(1) assm3' show "\<not> has_disc_negated disc False m \<longleftrightarrow> getNeg as = []"
+    proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+    case 2 thus ?case by(simp split: split_if_asm)
+    next
+    case 3 thus ?case by(simp split: split_if_asm)
+    next
+    case 4 thus ?case by(simp add: getNeg_append split: prod.split_asm)
     qed(simp_all)
 qed
 
@@ -343,7 +376,7 @@ subsection\<open>Normalizing and Optimizing Primitives\<close>
                                ('b negation_type list \<Rightarrow> 'b list) \<Rightarrow>
                                'a match_expr \<Rightarrow> 
                                'a match_expr list" where 
-    "normalize_primitive_extract (disc_sel) C f m = (case primitive_extractor (disc_sel) m 
+    "normalize_primitive_extract (disc_sel) C f m \<equiv> (case primitive_extractor (disc_sel) m 
                 of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (C spt))) rst) (f spts))"
   
                 (*TODO: if f spts is empty, we get back an empty list. problem? *)
@@ -417,7 +450,7 @@ subsection\<open>Normalizing and Optimizing Primitives\<close>
       fix mn
       assume assm2: "mn \<in> set (normalize_primitive_extract (disc, sel) C f m)"
       obtain as ms where as_ms: "primitive_extractor (disc, sel) m = (as, ms)" by fastforce
-      from as_ms primitive_extractor_correct[OF assms(1) assms(2)] have "normalized_nnf_match ms" by simp
+      from primitive_extractor_correct(2)[OF assms(1) assms(2) as_ms] have "normalized_nnf_match ms" by simp
       from assm2 as_ms have normalize_primitive_extract_unfolded: "mn \<in> ((\<lambda>spt. MatchAnd (Match (C spt)) ms) ` set (f as))"
         unfolding normalize_primitive_extract_def by force
       with \<open>normalized_nnf_match ms\<close> show "normalized_nnf_match mn" by fastforce
@@ -550,6 +583,47 @@ lemma remove_unknowns_generic_normalized_n_primitive: "normalized_n_primitive di
 
 
 
+(*
+  TODO: this is the generic version for this above. deduplicate or delete
+
+  (*my ports normalizer is "ipt_l4_ports \<Rightarrow> (('i::len common_primitive) match_expr \<times> ipt_l4_ports list)"
+    but i want to wrap this to get a list for more global optimizations*)
+    (*remove?*)
+  definition normalize_primitive_extract_aux :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow>
+                                 ('b \<Rightarrow> 'a) \<Rightarrow>
+                                 ('b negation_type list \<Rightarrow> ('a match_expr \<times>'b list)) \<Rightarrow>
+                                 'a match_expr \<Rightarrow> 
+                                 'a match_expr list" where 
+      "normalize_primitive_extract_aux (disc_sel) C f m \<equiv>
+          (let (spts, rst) = primitive_extractor (disc_sel) m in
+           let (aux, ns) = f spts in
+           map (\<lambda>mexpr. (MatchAnd mexpr) rst) (aux # map (\<lambda>a. Match (C a)) ns)
+          )"
+
+  lemma normalize_primitive_extract_aux: assumes "normalized_nnf_match m" and "wf_disc_sel disc_sel C"
+        and "\<forall>ml aux normalized_primitive. (aux, normalized_primitive) = (f ml) \<longrightarrow>
+            (match_list \<gamma> (map (Match \<circ> C) normalized_primitive) a p \<or> matches \<gamma> aux a p \<longleftrightarrow> matches \<gamma> (alist_and (NegPos_map C ml)) a p)"
+        shows "match_list \<gamma> (normalize_primitive_extract_aux disc_sel C f m) a p \<longleftrightarrow> matches \<gamma> m a p"
+    proof -
+      obtain as ms where pe: "primitive_extractor disc_sel m = (as, ms)" by fastforce
+
+      from pe primitive_extractor_correct(1)[OF assms(1), where \<gamma>=\<gamma> and  a=a and p=p] assms(2) have 
+        "matches \<gamma> m a p \<longleftrightarrow> matches \<gamma> (alist_and (NegPos_map C as)) a p \<and> matches \<gamma> ms a p" by(cases disc_sel, blast)
+      also have "\<dots> \<longleftrightarrow> (match_list \<gamma> (map (Match \<circ> C) (snd (f as))) a p \<or> matches \<gamma> (fst (f as)) a p) \<and> matches \<gamma> ms a p" using assms(3) by simp
+      also have "\<dots> \<longleftrightarrow> (match_list \<gamma> (map (\<lambda>spt. MatchAnd (Match (C spt)) ms) (snd (f as))) a p) \<or> matches \<gamma> (MatchAnd (fst (f as)) ms) a p"
+        apply(simp add: match_list_matches bunch_of_lemmata_about_matches)
+        by blast
+      also have "... \<longleftrightarrow> match_list \<gamma> (normalize_primitive_extract_aux disc_sel C f m) a p"
+        apply(simp add: normalize_primitive_extract_aux_def pe) 
+        apply(cases "f as")
+        apply(simp)
+        apply(simp add: match_list_matches)
+        done
+      finally show ?thesis by simp
+    qed
+*)
+
+
 
 (*TODO: move to normalize_match*)
 lemma normalize_match_preserves_disc_negated: 
@@ -579,9 +653,28 @@ lemma not_has_disc_opt_MatchAny_match_expr: "\<not> has_disc disc m \<Longrighta
 lemma not_has_disc_negated_opt_MatchAny_match_expr: "\<not> has_disc_negated disc neg m \<Longrightarrow> \<not> has_disc_negated disc neg (opt_MatchAny_match_expr m)"
   by(induction m arbitrary: neg rule:opt_MatchAny_match_expr.induct) (simp_all)
 
-lemma not_has_disc_normalize_match: "\<not> has_disc_negated disc neg  m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). \<not> has_disc_negated disc neg m')"
-  by(induction m rule: normalize_match.induct) (safe,auto) (*safe is faster*)
+lemma normalize_match_preserves_nodisc:
+  "\<not> has_disc disc m \<Longrightarrow> m' \<in> set (normalize_match m) \<Longrightarrow> \<not> has_disc disc m'"
+  proof - 
+    (*no idea why this statement is necessary*)
+    have "\<not> has_disc disc m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). \<not> has_disc disc m')"
+    by(induction m rule: normalize_match.induct) (safe,auto) --"need safe, otherwise simplifier loops"
+  thus "\<not> has_disc disc m \<Longrightarrow> m' \<in> set (normalize_match m) \<Longrightarrow> \<not> has_disc disc m'" by blast
+qed
 
+lemma not_has_disc_normalize_match:
+  "\<not> has_disc_negated disc neg  m \<Longrightarrow> m' \<in> set (normalize_match m) \<Longrightarrow> \<not> has_disc_negated disc neg m'"
+  using i_m_giving_this_a_funny_name_so_i_can_thank_my_future_me_when_sledgehammer_will_find_this_one_day by blast
+
+lemma normalize_match_preserves_normalized_n_primitive:
+  "normalized_n_primitive (disc, sel) f rst \<Longrightarrow>
+        \<forall> r \<in> set (normalize_match rst). normalized_n_primitive (disc, sel) f r"
+apply(induction rst rule: normalize_match.induct)
+      apply(simp; fail)
+     apply(simp; fail)
+    apply(simp; fail)
+   using normalized_n_primitive.simps(5) apply blast (*simp loops*)
+  by simp+
 
 
 
@@ -602,7 +695,7 @@ subsection\<open>Optimizing a match expression\<close>
                                               'a match_expr \<Rightarrow> 'a match_expr option" where 
     "compress_normalize_primitive disc_sel C f m \<equiv> (case primitive_extractor disc_sel m of (as, rst) \<Rightarrow>
       (map_option (\<lambda>(as_pos, as_neg). MatchAnd
-                                       (alist_and (NegPos_map C ((map Pos as_pos)@(map Neg as_neg))))
+                                       (alist_and' (NegPos_map C ((map Pos as_pos)@(map Neg as_neg))))
                                        rst
                   ) (f as)))"
 
@@ -614,7 +707,7 @@ subsection\<open>Optimizing a match expression\<close>
     apply(case_tac "primitive_extractor disc_sel m")
     apply(simp add: compress_normalize_primitive_def)
     apply(clarify)
-    apply (simp add: normalized_nnf_match_alist_and)
+    apply (simp add: normalized_nnf_match_alist_and')
     apply(cases disc_sel, simp)
     using primitive_extractor_correct(2) by blast
 
@@ -647,8 +740,8 @@ subsection\<open>Optimizing a match expression\<close>
           "\<forall>a. Neg a \<notin> set as" by(simp)
         hence "getNeg as = []" by (meson NegPos_set(5) image_subset_iff last_in_set)
         with f_preserves have f_preserves': "\<And>as_pos as_neg. f as = Some (as_pos, as_neg) \<Longrightarrow> as_neg = []" by simp
-        from 1 have "\<And> a b.\<not> has_disc_negated disc False (MatchAnd (alist_and (NegPos_map C (map Pos a))) ms)"
-          by(simp add: has_disc_negated_alist_and NegPos_map_map_Pos negation_type_to_match_expr_simps)
+        from 1 have "\<And> a b.\<not> has_disc_negated disc False (MatchAnd (alist_and' (NegPos_map C (map Pos a))) ms)"
+          by(simp add: has_disc_negated_alist_and' NegPos_map_map_Pos negation_type_to_match_expr_simps)
         with some show ?thesis by(auto dest: f_preserves' simp add: compress_normalize_primitive_def asms)
    qed
 
@@ -670,7 +763,7 @@ subsection\<open>Optimizing a match expression\<close>
     apply(drule primitive_extractor_correct(1)[OF normalized wf, where \<gamma>=\<gamma> and a=a and p=p])
     apply(elim exE conjE)
     apply(drule f_correct)
-    by (meson alist_and_append bunch_of_lemmata_about_matches(1))
+    by (meson matches_alist_and_alist_and' bunch_of_lemmata_about_matches(1))
     
 
   lemma compress_normalize_primitive_None:
@@ -710,7 +803,8 @@ subsection\<open>Optimizing a match expression\<close>
         with some have "\<not> has_disc disc2 m'"
           apply(simp add: compress_normalize_primitive_def asms)
           apply(elim exE conjE)
-          using 1 by force
+          (*TODO: confusing alist_and and alist_and'*)
+          using 1 by (meson has_disc.simps(4) has_disc_alist_and has_disc_alist_and')
         with goal1 show ?thesis by simp
    qed
   lemma compress_normalize_primitive_hasdisc_negated:
@@ -735,7 +829,8 @@ subsection\<open>Optimizing a match expression\<close>
         with some have "\<not> has_disc_negated disc2 neg m'"
           apply(simp add: compress_normalize_primitive_def asms)
           apply(elim exE conjE)
-          using 1 by force
+          using 1 by (meson has_disc_negated.simps(4) has_disc_negated_alist_and has_disc_negated_alist_and')
+          
         with goal1 show ?thesis by simp
    qed
 
@@ -763,7 +858,8 @@ subsection\<open>Optimizing a match expression\<close>
         with some have "normalized_n_primitive (disc2, sel2) P m'"
           apply(simp add: compress_normalize_primitive_def asms)
           apply(elim exE conjE)
-          using 1 by force
+          using 1 normalized_n_primitive_alist_and' normalized_n_primitive_alist_and
+                 normalized_n_primitive.simps(4) by blast 
         with goal1 show ?thesis by simp
    qed
 

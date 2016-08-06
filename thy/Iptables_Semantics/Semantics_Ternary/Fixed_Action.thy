@@ -345,6 +345,11 @@ subsection\<open>@{term match_list}\<close>
     apply safe
     apply(simp_all add: matches_simps match_list_append match_list_helper)
     done
+
+  lemma match_list_concat: "match_list \<gamma> (concat lss) a p \<longleftrightarrow> (\<exists>ls \<in> set lss. match_list \<gamma> ls a p)"
+    apply(induction lss)
+     apply(simp; fail)
+    by(auto simp add: match_list_append)
     
 
 lemma fixedaction_wf_ruleset: "wf_ruleset \<gamma> p (map (\<lambda>m. Rule m a) ms) \<longleftrightarrow>

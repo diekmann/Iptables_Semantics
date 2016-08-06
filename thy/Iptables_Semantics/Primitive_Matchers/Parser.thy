@@ -65,17 +65,6 @@ begin
     apply(rule matches_iff_apply_f)
     apply(simp add: compress_parsed_extra_matchexpr_helper)
     done
-
-  text\<open>This version of @{const alist_and} avoids the trailing @{const MatchAny}\<close>
-  fun alist_and' :: "'a negation_type list \<Rightarrow> 'a match_expr" where
-    "alist_and' [] = MatchAny" |
-    "alist_and' [Pos e] = Match e" |
-    "alist_and' [Neg e] = MatchNot (Match e)"|
-    "alist_and' ((Pos e)#es) = MatchAnd (Match e) (alist_and' es)" |
-    "alist_and' ((Neg e)#es) = MatchAnd (MatchNot (Match e)) (alist_and' es)"
-
-  lemma alist_and': "matches (\<gamma>, \<alpha>) (alist_and' as) = matches (\<gamma>, \<alpha>) (alist_and as)"
-    by(induction as rule: alist_and'.induct) (simp_all add: bunch_of_lemmata_about_matches)
 end
 
 
@@ -269,10 +258,10 @@ local (*iptables-save parsers*)
             ) >> HOLogic.mk_prod
         end
       val parser_port_single_tup_term = parser_port_single_tup
-            >> ((fn x => [x]) #> HOLogic.mk_list @{typ "16 word \<times> 16 word"})
+            >> (fn x => @{term "L4Ports 0"} $ HOLogic.mk_list @{typ "16 word \<times> 16 word"} [x])
 
       val parser_port_many1_tup = parse_comma_separated_list parser_port_single_tup
-            >> HOLogic.mk_list @{typ "16 word \<times> 16 word"}
+            >> (fn x => @{term "L4Ports 0"} $ HOLogic.mk_list @{typ "16 word \<times> 16 word"} x)
 
       val parser_ctstate_set = parse_comma_separated_list parser_ctstate
             >> HOLogic.mk_set @{typ "ctstate"}
@@ -321,7 +310,9 @@ local (*iptables-save parsers*)
     val parse_protocol = parse_cmd_option_negated_singleton "-p "
                 @{term "(Prot \<circ> Proto) :: primitive_protocol \<Rightarrow> 32 common_primitive"} parser_protocol; (*negated?*)
 
-    (*-m tcp requires that there is already an -p tcp, iptables checks that for you, we assume valid iptables-save (otherwise the kernel would not load it)*)
+    (*-m tcp requires that there is already an -p tcp, iptables checks that for you,
+      we assume valid iptables-save (otherwise the kernel would not load it)
+      We will fill the protocols in the L4Ports later*)
     val parse_tcp_options = parse_with_module_prefix "-m tcp "
               (   parse_cmd_option_negated "--sport " @{const Src_Ports (32)} parser_port_single_tup_term
                || parse_cmd_option_negated "--dport " @{const Dst_Ports (32)} parser_port_single_tup_term
@@ -507,7 +498,7 @@ local
   (* this takes like forever! *)
   (* apply compress_parsed_extra here?*)
   fun hacky_hack t = (*Code_Evaluation.dynamic_value_strict @{context} (@{const compress_extra} $ t)*)
-    @{const alist_and' ("32 common_primitive")} $ (@{const compress_parsed_extra (32)} $ t)
+    @{const alist_and' ("32 common_primitive")} $ (@{const fill_l4_protocol (32)} $ (@{const compress_parsed_extra (32)} $ t))
   
   fun mk_MatchExpr t = if fastype_of t <> @{typ "32 common_primitive negation_type list"}
                        then
