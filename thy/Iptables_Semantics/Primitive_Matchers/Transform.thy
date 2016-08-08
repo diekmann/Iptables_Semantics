@@ -585,16 +585,20 @@ definition transform_normalize_primitives :: "'i::len common_primitive rule list
     "transform_normalize_primitives =
       normalize_rules normalize_dst_ips \<circ>
       normalize_rules normalize_src_ips \<circ>
-      normalize_rules normalize_dst_ports \<circ>
-      normalize_rules normalize_src_ports \<circ>
-      optimize_matches_option compress_normalize_besteffort"
-      (*TODO: protocols and stuff? *)
-      (*TODO interfaces and protocols here?*)
-      (*optimize_matches_option compress_normalize_input_interfaces probably not because it can introduce new interfaces
-        the discriminators are pretty fucked up :( *)
+      normalize_rules normalize_dst_ports (*may introduce new matches on protocols*) \<circ>
+      normalize_rules normalize_src_ports (*may introduce new matches in protocols*) \<circ>
+      optimize_matches_option compress_normalize_besteffort (*normalizes protocols, needs to go last*)
+    "
       
       (*IMPORTANT TODO: optimizing ports may introduce matches on protocols. optimize away impossible
-          port/protocol matches!*)
+          port/protocol matches!
+
+       We are still not optimizing away: Proto udp \<and> L4Ports tcp _
+           the simple firewall takes care of this
+
+       We are still not optimizing away: \<not>Proto tcp \<and> L4Ports tcp _
+           the simple firewall takes NOT care of this
+       *)
 
 
 
