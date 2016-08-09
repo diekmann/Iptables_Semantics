@@ -10,7 +10,7 @@ FFFUU -- Fancy Formal Firewall Universal Understander
 
 ## Precompiled Binaries
 
-A pre-compiled binary of `fffuu` can be obtained from [Bintray](https://bintray.com/fffuu/binaries/nightly/nightly/view). 
+A pre-compiled binary of `fffuu` for IPv4 and `fffuu6` for IPv6 can be obtained from [Bintray](https://bintray.com/fffuu/binaries/nightly/nightly/view). 
 A new binary is created on every push to master.
 
 
@@ -68,7 +68,8 @@ Available options:
                            specified, SSH and HTTP (22 and 80) will be used.
                            Argument may be repeated multiple times.
   -h,--help                Show this help text
-  STRING                   Path to the `iptables-save` output.
+  STRING                   Required: Path to `iptables-save` output. This is the
+                           input for this tool.
 ```
 
 ## Usage
