@@ -23,7 +23,8 @@ Tested on Ubuntu 14.04.
 
 ## Building from Source
 
-Build uses `cabal` and supports the GHC 7.8.x and 7.10.x series.
+Build uses `cabal` and supports the GHC 7.8.x, 7.10.x, and 8.0.1 series.
+Stack support is available.
 To get started, use the following commands:
 
 ```

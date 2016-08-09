@@ -4,12 +4,12 @@ A formal semantics of the Linux netfilter iptables firewall.
 Written in the [Isabelle](https://isabelle.in.tum.de/) interactive proof assistant.
 
 It features
-  * A real-world model of IPv4/IPv6 addresses as 32bit/128bit machine words
-  * Executable code
-  * Support for all common actions in the iptables filter table: ACCEPT, DROP, REJECT, LOG, calling to user-defined chains, RETURN, GOTO to terminal chains, the empty action
-  * Support for ALL primitive match conditions (by abstracting over unknown match conditions)
-  * Translation to a simplified firewall model
-  * Certification of spoofing protection
+  * A real-world model of IPv4/IPv6 addresses as 32bit/128bit machine words.
+  * Executable code.
+  * Support for all common actions in the iptables filter table: ACCEPT, DROP, REJECT, LOG, calling to user-defined chains, RETURN, GOTO to terminal chains, the empty action.
+  * Support for ALL primitive match conditions (by abstracting over unknown match conditions).
+  * Translation to a simplified firewall model.
+  * Certification of spoofing protection.
   * Service Matrices: For a fixed port, which IP addresses are allowed to connect which other IP addresses? Shows a partition of the complete IPv4/IPv6 addresses.
   * ...
 
@@ -19,12 +19,28 @@ It features
 
 ### Obtaining
 ```
-$ git clone
+$ git clone https://github.com/diekmann/Iptables_Semantics.git
 ```
 
-
-### Isabelle Theory files
 ---
+
+## Haskell Tool
+
+Don't want to install Isabelle? Don't want to mess with formulas or proofs? Just want a working tool? Cool, checkout our [stand-alone Haskell tool](./haskell_tool/)!
+
+![FFFUU logo](http://i.imgur.com/qc4dNKl.png "FFFUU")
+
+| Component             | Status |
+| --------------------- | ------ |
+| Haskell tool          | [![Build Status](https://travis-ci.org/diekmann/Iptables_Semantics.svg)](https://travis-ci.org/diekmann/Iptables_Semantics) |
+
+See README.md in [haskell_tool](./haskell_tool/).
+
+
+---
+
+
+## Isabelle Theory Files
 
 Checking all proofs:
 
@@ -54,18 +70,9 @@ $ isabelle jedit -d . -l Bitmagic
 
 Check the Examples directory to get started
 
-### Haskell Tool
+---
 
-Don't want to install Isabelle? Don't want to mess with formulas or proofs? Just want a working tool? Cool, checkout our [stand-alone Haskell tool](./haskell_tool/)!
-
-![FFFUU logo](http://i.imgur.com/qc4dNKl.png "FFFUU")
-
-| Component             | Status |
-| --------------------- | ------ |
-| Haskell tool          | [![Build Status](https://travis-ci.org/diekmann/Iptables_Semantics.svg)](https://travis-ci.org/diekmann/Iptables_Semantics) |
-
-See README.md in [haskell_tool](./haskell_tool/).
-
+## Further References
 
 ### Talks
   * 32C3: Verified Firewall Ruleset Verification, Cornelius Diekmann, Hamburg, Germany, December 2015 [[description]](https://events.ccc.de/congress/2015/Fahrplan/events/7195.html) [[video]](https://media.ccc.de/v/32c3-7195-verified_firewall_ruleset_verification#video)

@@ -40,7 +40,6 @@ fun match_proto :: "protocol \<Rightarrow> primitive_protocol \<Rightarrow> bool
      apply(simp_all)
     done
 
-
   lemma simple_proto_conjunct_Some: "simple_proto_conjunct p1 p2 = Some proto \<Longrightarrow> 
     match_proto proto pkt \<longleftrightarrow> match_proto p1 pkt \<and> match_proto p2 pkt"
     using simple_proto_conjunct_correct by simp

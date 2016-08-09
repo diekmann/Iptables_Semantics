@@ -593,7 +593,7 @@ lemma oif_ne_iif_p1_correct: "is_iface_list ifs \<Longrightarrow> generalized_sf
 proof(rule iffI[rotated], rule ccontr, unfold not_not, goal_cases)
 	case 2 note goal2 = 2
 	then obtain m d where "generalized_sfw (oif_ne_iif_p1 ifs) p = Some (m,d)" by fast
-	note m = generalized_sfwD[OF this]
+	note m = generalized_sfwSomeD[OF this]
 	then obtain oif iif where ifs[simp]: "oif \<noteq> iif" "oif \<in> set ifs" "iif \<in> set ifs" "m = simple_match_any\<lparr>oiface := Iface oif, iiface := Iface iif\<rparr>" unfolding oif_ne_iif_p1_def by auto
 	hence ifn: "is_iface_name iif" "is_iface_name oif" using goal2 by(simp_all add: is_iface_list_def list_all_iff)
 	show ?case using m unfolding ifs unfolding simple_matches_ioiface[OF ifn] by simp
@@ -615,7 +615,7 @@ lemma  oif_ne_iif_p12_snd:
 	"generalized_sfw (oif_ne_iif_p1 ifs) p = Some (r,e) \<Longrightarrow> e \<noteq> simple_action.Drop"
 	"generalized_sfw (oif_ne_iif_p2 ifs) p = Some (r,e) \<Longrightarrow> e = simple_action.Drop"
 	unfolding oif_ne_iif_p2_def oif_ne_iif_p1_def
-	by(drule generalized_sfwD; clarsimp)+
+	by(drule generalized_sfwSomeD; clarsimp)+
 
 lemma oif_ne_iif_correct_unused: "is_iface_list ifs \<Longrightarrow> (\<exists>r. generalized_sfw (oif_ne_iif ifs) p = Some (r, ad)) \<longleftrightarrow> ((p_oiface p = p_iiface p \<longleftrightarrow> ad = simple_action.Drop) \<and> p_oiface p \<in> set ifs \<and> p_iiface p \<in> set ifs)"
 	unfolding oif_ne_iif_def
@@ -723,8 +723,10 @@ proof(elim disjE, goal_cases)
   have 4: "\<lbrakk>distinct (map fst amr);  (ac, ab, x1, x2) \<in> set amr; (ac, bb, x4, x5) \<in> set amr; ab \<noteq> bb\<rbrakk>
        \<Longrightarrow> False" for ab x1 x2 bb x4 x5
        by (meson distinct_map_fstD old.prod.inject)
-  have 5: "
-       \<lbrakk>OF_match_fields_unsafe am p; OF_match_fields_unsafe bm p; am \<noteq> bm; 
+  have conjunctSomeProtoAnyD: "Some ProtoAny = simple_proto_conjunct a (Proto b) \<Longrightarrow> False" for a b
+    using conjunctProtoD by force
+  have 5:
+       "\<lbrakk>OF_match_fields_unsafe am p; OF_match_fields_unsafe bm p; am \<noteq> bm; 
         am \<in> set (simple_match_to_of_match ab ifs); bm \<in> set (simple_match_to_of_match bb ifs); \<not> ab \<noteq> bb\<rbrakk>
        \<Longrightarrow> False" for ab bb am bm
       by(clarify | unfold
@@ -1468,7 +1470,7 @@ proof(goal_cases)
   have la: "list_all (\<lambda>m. oiface (fst m) = ifaceAny) (lr_of_tran_fbs rt fw ifs)"
     unfolding lr_of_tran_fbs_def Let_def list_all_iff
     apply(clarify)
-    apply(drule in_fw_join_set)
+    apply(subst(asm) generalized_sfw_join_set)
     apply(clarsimp)
   using c by blast
   thus ?case
