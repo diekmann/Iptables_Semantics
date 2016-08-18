@@ -10,7 +10,7 @@ FFFUU -- Fancy Formal Firewall Universal Understander
 
 ## Precompiled Binaries
 
-A pre-compiled binary of `fffuu` can be obtained from [Bintray](https://bintray.com/fffuu/binaries/nightly/nightly/view). 
+A pre-compiled binary of `fffuu` for IPv4 and `fffuu6` for IPv6 can be obtained from [Bintray](https://bintray.com/fffuu/binaries/nightly/nightly/view). 
 A new binary is created on every push to master.
 
 
@@ -68,7 +68,8 @@ Available options:
                            specified, SSH and HTTP (22 and 80) will be used.
                            Argument may be repeated multiple times.
   -h,--help                Show this help text
-  STRING                   Path to the `iptables-save` output.
+  STRING                   Required: Path to `iptables-save` output. This is the
+                           input for this tool.
 ```
 
 ## Usage
@@ -130,6 +131,60 @@ Try this:
 ```
 
 [Output](test/Suites/GoldenFiles/sqrl_2015_aug_iptables-save-spoofing-protection) (featuring the `--verbose` flag)
+
+
+### Small Example
+
+The `fffuu` tool is really useful for network firewalls (e.g. on your perimeter router). Here is a contrived example (compiled from many real-world rule sets):
+```
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT DROP [0:0]
+:DOS_PROTECT - [0:0]
+:GOOD~STUFF - [0:0]
+-A FORWARD -j DOS_PROTECT
+-A FORWARD -j GOOD~STUFF
+-A FORWARD -p tcp -m multiport ! --dports 80,443,6667,6697 -m hashlimit --hashlimit-above 10/sec --hashlimit-burst 20 --hashlimit-mode srcip --hashlimit-name aflood --hashlimit-srcmask 8 -j LOG
+-A FORWARD ! -i lo -s 127.0.0.0/8 -j DROP
+-A FORWARD -i inteneral -s 131.159.21.0/24 -j ACCEPT
+-A FORWARD -s 131.159.15.240/28 -d 131.159.21.0/24 -j DROP
+-A FORWARD -p tcp -d 131.159.15.240/28 -j ACCEPT
+-A FORWARD -i dmz -p tcp -s 131.159.15.240/28 -j ACCEPT
+-A GOOD~STUFF -i lo -j ACCEPT
+-A GOOD~STUFF -m state --state ESTABLISHED -j ACCEPT
+-A GOOD~STUFF -p icmp -m state --state RELATED -j ACCEPT
+-A DOS_PROTECT -i eth1 -p icmp -m icmp --icmp-type 8 -m limit --limit 1/sec -j RETURN
+-A DOS_PROTECT -i eth1 -p icmp -m icmp --icmp-type 8 -j DROP
+COMMIT
+```
+
+What does the ruleset do? The service matrix looks as follows:
+
+```
+a |-> {131.159.21.0 .. 131.159.21.255}
+b |-> {131.159.15.240 .. 131.159.15.255}
+c |-> {127.0.0.0 .. 127.255.255.255}
+d |-> {0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 131.159.15.239} u {131.159.16.0 .. 131.159.20.255} u {131.159.22.0 .. 255.255.255.255}
+
+(a,a)
+(a,b)
+(a,c)
+(a,d)
+(b,b)
+(b,c)
+(b,d)
+(c,a)
+(c,b)
+(c,c)
+(c,d)
+(d,b)
+```
+
+Let’s visualize this:
+![fffuu dmz example hosted on imgur](https://i.imgur.com/Pqudris.png “hosted on imgur”)
+
+Ignore the 127.0.0.0/8 range at the bottom. We can see that the firewall implements the textbook DMZ architecture: Internet (cloud) on the top, internal machines on the left, servers (DMZ) on the right. Yay!
 
 ### Longer Example
 We will analyze the ruleset of a NAS. 
@@ -311,6 +366,7 @@ b |-> {127.0.0.0 .. 127.255.255.255}
 This one is for port 80, which should be dropped.
 Exercise to the reader: Read the service matrix. 
 Indeed, port 80 is blocked (except for packets from `lo`).
+
 
 
 

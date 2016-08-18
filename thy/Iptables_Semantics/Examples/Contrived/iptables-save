@@ -1,0 +1,21 @@
+#contrived example
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT DROP [0:0]
+:DOS_PROTECT - [0:0]
+:GOOD~STUFF - [0:0]
+-A FORWARD -j DOS_PROTECT
+-A FORWARD -j GOOD~STUFF
+-A FORWARD -p tcp -m multiport ! --dports 80,443,6667,6697 -m hashlimit --hashlimit-above 10/sec --hashlimit-burst 20 --hashlimit-mode srcip --hashlimit-name aflood --hashlimit-srcmask 8 -j LOG
+-A FORWARD ! -i lo -s 127.0.0.0/8 -j DROP
+-A FORWARD -i inteneral -s 131.159.21.0/24 -j ACCEPT
+-A FORWARD -s 131.159.15.240/28 -d 131.159.21.0/24 -j DROP
+-A FORWARD -p tcp -d 131.159.15.240/28 -j ACCEPT
+-A FORWARD -i dmz -p tcp -s 131.159.15.240/28 -j ACCEPT
+-A GOOD~STUFF -i lo -j ACCEPT
+-A GOOD~STUFF -m state --state ESTABLISHED -j ACCEPT
+-A GOOD~STUFF -p icmp -m state --state RELATED -j ACCEPT
+-A DOS_PROTECT -i eth1 -p icmp -m icmp --icmp-type 8 -m limit --limit 1/sec -j RETURN
+-A DOS_PROTECT -i eth1 -p icmp -m icmp --icmp-type 8 -j DROP
+COMMIT

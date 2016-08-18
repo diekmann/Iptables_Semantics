@@ -33,4 +33,5 @@ Available options:
                            specified, SSH and HTTP (22 and 80) will be used.
                            Argument may be repeated multiple times.
   -h,--help                Show this help text
-  STRING                   Path to the `iptables-save` output.
+  STRING                   Required: Path to `iptables-save` output. This is the
+                           input for this tool.
