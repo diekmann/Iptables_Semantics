@@ -109,6 +109,8 @@ context begin
                         compress_normalize_protocols_hasdisc
                         compress_normalize_input_interfaces_hasdisc)
     done
+
+  (* not needed, I probably want it to introduce Prot!
   lemma compress_normalize_besteffort_not_introduces_Prot:
       "\<not> has_disc is_Prot m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
        \<not> has_disc is_Prot m'"
@@ -118,6 +120,7 @@ context begin
        apply(auto dest: compress_normalize_input_interfaces_hasdisc compress_normalize_protocols_not_introduces_Prot
              compress_normalize_output_interfaces_hasdisc)
     done
+  *)
   
   lemma compress_normalize_besteffort_not_introduces_Iiface_negated:
       "\<not> has_disc_negated is_Iiface False m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
@@ -937,7 +940,8 @@ theorem transform_normalize_primitives:
 
    { fix rs
      assume "(\<forall>a. \<not> disc1 (IIface a)) \<or> disc1 = is_Iiface"
-        and "((\<forall>a. \<not> disc1 (OIface a)) \<or> disc1 = is_Oiface)" and "(\<forall>a. \<not> disc1 (Prot a)) \<or> disc1 = is_Prot"
+        and "((\<forall>a. \<not> disc1 (OIface a)) \<or> disc1 = is_Oiface)"
+        and "(\<forall>a. \<not> disc1 (Prot a)) (*\<or> disc1 = is_Prot*)"
      hence "\<forall>m\<in>set rs. \<not> has_disc disc1 (get_match m) \<and> normalized_nnf_match (get_match m) \<Longrightarrow>
               \<forall>m\<in>set (optimize_matches_option compress_normalize_besteffort rs).
                   normalized_nnf_match (get_match m) \<and> \<not> has_disc disc1 (get_match m)"
@@ -945,8 +949,8 @@ theorem transform_normalize_primitives:
      apply(rule optimize_matches_option_preserves)
      apply(elim disjE)
             using compress_normalize_besteffort_hasdisc apply blast
-           using compress_normalize_besteffort_nnf compress_normalize_besteffort_not_introduces_Iiface compress_normalize_besteffort_not_introduces_Oiface
-                 compress_normalize_besteffort_not_introduces_Prot by blast+
+           using compress_normalize_besteffort_nnf compress_normalize_besteffort_not_introduces_Iiface
+                 compress_normalize_besteffort_not_introduces_Oiface by blast+
    } note y=this
 
    have "\<forall>a. \<not> disc1 (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc1 (Dst_Ports a) \<Longrightarrow> 

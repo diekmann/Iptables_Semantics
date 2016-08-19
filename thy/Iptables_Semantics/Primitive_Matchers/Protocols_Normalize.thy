@@ -176,6 +176,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
     unfolding compress_normalize_protocols_def
     using compress_normalize_primitive_nnf[OF wf_disc_sel_common_primitive(7)] by blast
  
+  (*TODO: not needed, I probably want it to introduce prot!*)
   lemma compress_normalize_protocols_not_introduces_Prot:
     "\<not> has_disc is_Prot m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols m = Some m' \<Longrightarrow>
      \<not> has_disc is_Prot m'"
@@ -214,6 +215,8 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
      unfolding compress_normalize_protocols_def
    using compress_normalize_primitve_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(7)] by blast
   
+
+  (*TODO: add protocols from positive L4 ports into optimization*)
 
   lemma "case compress_normalize_protocols 
     (MatchAnd (MatchAnd (MatchAnd (Match ((Prot (Proto TCP)):: 32 common_primitive)) (MatchNot (Match (Prot (Proto UDP))))) (Match (IIface (Iface ''eth1''))))
