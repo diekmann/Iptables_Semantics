@@ -217,7 +217,6 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
    using compress_normalize_primitve_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(7)] by blast
   
 
-  (*TODO: add protocols from positive L4 ports into optimization*)
 
   lemma "case compress_normalize_protocols 
     (MatchAnd (MatchAnd (MatchAnd (Match ((Prot (Proto TCP)):: 32 common_primitive)) (MatchNot (Match (Prot (Proto UDP))))) (Match (IIface (Iface ''eth1''))))
@@ -227,6 +226,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
   value[code] "compress_normalize_protocols (MatchAny:: 32 common_primitive match_expr)"
 
 
+  (*TODO: add protocols from positive L4 ports into optimization. Unfinished draft below.*)
   definition import_protocols_from_ports
     :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where 
   "import_protocols_from_ports m \<equiv>
@@ -355,4 +355,57 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
      apply(drule(1) primitive_extractor_correct(6)[OF _ wf_disc_sel_common_primitive(2), where neg=False])
      by blast
 
+
+  (*TODO: move*)
+  (*if i extract something and put it together again unchanged, things do not change*)
+  lemma primitive_extractor_reassemble_not_disc_negated:
+    "wf_disc_sel (disc, sel) C \<Longrightarrow>
+     normalized_nnf_match m \<Longrightarrow> \<not> has_disc disc' m \<Longrightarrow>
+     primitive_extractor (disc, sel) m = (as, ms) \<Longrightarrow>
+       \<not> has_disc disc' (alist_and' (NegPos_map C as))"
+    proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+    case 2 thus ?case
+      apply(simp split: split_if_asm)
+      apply(clarify)
+      by(simp add: wf_disc_sel.simps)
+    next
+    case 3 thus ?case
+      apply(simp split: split_if_asm)
+      apply(clarify)
+      by(simp add: wf_disc_sel.simps)
+    next
+    case (4 m1 m2 as ms)
+      from 4 show ?case
+        apply(simp)
+        apply(simp split: prod.split_asm)
+        apply(clarify)
+        apply(simp add: NegPos_map_append has_disc_alist_and'_append)
+      done
+  qed(simp_all split: split_if_asm)
+
+
+  lemma import_protocols_from_ports_hasdisc:
+    "normalized_nnf_match m \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow>
+     normalized_nnf_match (import_protocols_from_ports m) \<and> \<not> has_disc disc (import_protocols_from_ports m)"
+     apply(intro conjI)
+      using import_protocols_from_ports_nnf apply blast
+     apply(erule(1) import_protocols_from_ports_erule)
+     apply(simp)
+     apply(intro conjI)
+        using andfold_MatchExp_not_disc_mapMatch[
+          where C="Prot \<circ> case_ipt_l4_ports (\<lambda>proto x. Proto proto)", simplified] apply blast
+       using andfold_MatchExp_not_disc_mapMatch[
+         where C="Prot \<circ> case_ipt_l4_ports (\<lambda>proto x. Proto proto)", simplified] apply blast
+      subgoal for srcpts rst1 dstpts rst2
+      apply(frule(2) primitive_extractor_reassemble_not_disc_negated[OF wf_disc_sel_common_primitive(1)])
+      apply(subgoal_tac "\<not> has_disc disc rst1")
+       prefer 2
+       apply(drule(1) primitive_extractor_correct(4)[OF _ wf_disc_sel_common_primitive(1)])
+       apply blast
+      apply(drule(2) primitive_extractor_reassemble_not_disc_negated[OF wf_disc_sel_common_primitive(2)])
+      using has_disc_alist_and'_append by blast
+     apply(drule(1) primitive_extractor_correct(4)[OF _ wf_disc_sel_common_primitive(1)])
+     apply(drule(1) primitive_extractor_correct(4)[OF _ wf_disc_sel_common_primitive(2)])
+     apply blast
+     done
 end

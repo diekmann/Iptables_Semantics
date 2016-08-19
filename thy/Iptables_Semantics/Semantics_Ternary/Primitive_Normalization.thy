@@ -64,6 +64,16 @@ lemma has_disc_negated_alist_and': "has_disc_negated disc neg (alist_and' as) \<
   proof(induction as rule: alist_and'.induct)
   qed(simp_all add: negation_type_to_match_expr_simps)
 
+
+lemma has_disc_alist_and'_append:
+  "has_disc disc' (alist_and' (ls1 @ ls2)) \<longleftrightarrow>
+      has_disc disc' (alist_and' ls1) \<or> has_disc disc' (alist_and' ls2)"
+apply(induction ls1 arbitrary: ls2 rule: alist_and'.induct)
+    apply(simp_all)
+ apply(case_tac [!] ls2)
+   apply(simp_all)
+done
+
 lemma "matches ((\<lambda>x _. bool_to_ternary (disc x)), (\<lambda>_ _. False)) (Match x) a p \<longleftrightarrow> has_disc disc (Match x)"
 by(simp add: match_raw_ternary bool_to_ternary_simps split: ternaryvalue.split )
 
@@ -71,8 +81,8 @@ by(simp add: match_raw_ternary bool_to_ternary_simps split: ternaryvalue.split )
 
 fun normalized_n_primitive :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> ('b \<Rightarrow> bool) \<Rightarrow> 'a match_expr \<Rightarrow> bool" where
   "normalized_n_primitive _ _ MatchAny = True" |
-  "normalized_n_primitive (disc, sel) n (Match (P)) = (if disc P then n (sel P) else True)" |
-  "normalized_n_primitive (disc, sel) n (MatchNot (Match (P))) = (if disc P then False else True)" |
+  "normalized_n_primitive (disc, sel) n (Match P) = (if disc P then n (sel P) else True)" |
+  "normalized_n_primitive (disc, sel) n (MatchNot (Match P)) = (if disc P then False else True)" |
   "normalized_n_primitive (disc, sel) n (MatchAnd m1 m2) = (normalized_n_primitive (disc, sel) n m1 \<and> normalized_n_primitive (disc, sel) n m2)" |
   "normalized_n_primitive _ _ (MatchNot (MatchAnd _ _)) = False" |
   (*"normalized_n_primitive _ _ (MatchNot _) = True" *)
@@ -120,9 +130,14 @@ lemma normalized_n_primitive_alist_and': "normalized_n_primitive disc_sel P (ali
       by(simp_all add: negation_type_to_match_expr_simps)
 
 
+lemma not_has_disc_NegPos_map: "\<forall>a. \<not> disc (C a) \<Longrightarrow> \<forall>a\<in>set (NegPos_map C ls).
+        \<not> has_disc disc (negation_type_to_match_expr a)"
+by(induction C ls rule: NegPos_map.induct) (simp add: negation_type_to_match_expr_def)+
+
 lemma not_has_disc_negated_NegPos_map: "\<forall>a. \<not> disc (C a) \<Longrightarrow> \<forall>a\<in>set (NegPos_map C ls).
         \<not> has_disc_negated disc False (negation_type_to_match_expr a)"
 by(induction C ls rule: NegPos_map.induct) (simp add: negation_type_to_match_expr_def)+
+
 
 
 lemma normalized_n_primitive_if_no_primitive: "normalized_nnf_match m \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> 
