@@ -229,14 +229,18 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
 
   definition import_protocols_from_ports
     :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where 
-  "import_protocols_from_ports m \<equiv> (*TODO: dst ports*)
-    (case primitive_extractor (is_Src_Ports, src_ports_sel) m of (srcpts, rst) \<Rightarrow>
+  "import_protocols_from_ports m \<equiv>
+    (case primitive_extractor (is_Src_Ports, src_ports_sel) m of (srcpts, rst1) \<Rightarrow>
+     case primitive_extractor (is_Dst_Ports, dst_ports_sel) rst1 of (dstpts, rst2) \<Rightarrow>
       MatchAnd
       (MatchAnd
+       (MatchAnd
         (andfold_MatchExp (map (\<lambda>pt. case pt of L4Ports proto _ \<Rightarrow> Match (Prot (Proto proto))) (getPos srcpts)))
-        (alist_and' (NegPos_map Src_Ports srcpts))
+        (andfold_MatchExp (map (\<lambda>pt. case pt of L4Ports proto _ \<Rightarrow> Match (Prot (Proto proto))) (getPos dstpts)))
        )
-         rst
+        (alist_and' (NegPos_map Src_Ports srcpts @ NegPos_map Dst_Ports dstpts))
+       )
+         rst2
      )"
 
   value "import_protocols_from_ports 
@@ -245,50 +249,55 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
               (Match (Prot (Proto TCP))))"
 
 
-  (*TODO: move to nxt lemma*)
-  lemma (in primitive_matcher_generic) add_protocol:
-    assumes C: "C = Src_Ports \<or> C = Dst_Ports"
-    shows "matches (\<beta>, \<alpha>)
-      (andfold_MatchExp (map (case_ipt_l4_ports (\<lambda>proto x. Match (Prot (Proto proto)))) (getPos as))) a p \<and>
-     matches (\<beta>, \<alpha>) (alist_and' (NegPos_map C as)) a p
-     \<longleftrightarrow>
-     matches (\<beta>, \<alpha>) (alist_and (NegPos_map C as)) a p"
-    apply(simp add: matches_alist_and_alist_and')
-    proof(induction as)
-    case Nil thus ?case by(simp)
-    next
-    case (Cons x xs)
-      from Cons.IH have IH:
-      "(matches (\<beta>, \<alpha>)
-        (andfold_MatchExp (map (\<lambda>a. case a of L4Ports proto x \<Rightarrow> Match (Prot (Proto proto))) (getPos xs))) a p \<and>
-        matches (\<beta>, \<alpha>) (alist_and (NegPos_map C xs)) a p)
-       \<longleftrightarrow>
-        matches (\<beta>, \<alpha>) (alist_and (NegPos_map C xs)) a p"
-     by(simp)
-      show ?case
-      proof(cases x)
-      case Neg with IH show ?thesis
-        apply(simp add: bunch_of_lemmata_about_matches)
-        by blast
-      next
-      case (Pos portmatch)
-        with IH show ?thesis
-          apply(cases portmatch)
-          apply(simp add: andfold_MatchExp_matches bunch_of_lemmata_about_matches)
-          using Ports_single_rewrite_Prot C by blast
-      qed
-    qed
-
   lemma (in primitive_matcher_generic) import_protocols_from_ports:
   assumes normalized: "normalized_nnf_match m"
-    shows "matches (\<beta>, \<alpha>) (import_protocols_from_ports m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
+  shows "matches (\<beta>, \<alpha>) (import_protocols_from_ports m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
+  proof-
+    have add_protocol:
+    "matches (\<beta>, \<alpha>)
+      (andfold_MatchExp (map (case_ipt_l4_ports (\<lambda>proto x. Match (Prot (Proto proto)))) (getPos as))) a p \<and>
+     matches (\<beta>, \<alpha>) (alist_and (NegPos_map C as)) a p
+     \<longleftrightarrow>
+     matches (\<beta>, \<alpha>) (alist_and (NegPos_map C as)) a p"
+    if C: "C = Src_Ports \<or> C = Dst_Ports" for C as
+      proof(induction as)
+      case Nil thus ?case by(simp)
+      next
+      case (Cons x xs)
+        from Cons.IH have IH:
+        "(matches (\<beta>, \<alpha>)
+          (andfold_MatchExp (map (\<lambda>a. case a of L4Ports proto x \<Rightarrow> Match (Prot (Proto proto))) (getPos xs))) a p \<and>
+          matches (\<beta>, \<alpha>) (alist_and (NegPos_map C xs)) a p)
+         \<longleftrightarrow>
+          matches (\<beta>, \<alpha>) (alist_and (NegPos_map C xs)) a p"
+       by(simp)
+        show ?case
+        proof(cases x)
+        case Neg with IH show ?thesis
+          apply(simp add: bunch_of_lemmata_about_matches)
+          by blast
+        next
+        case (Pos portmatch)
+          with IH show ?thesis
+            apply(cases portmatch)
+            apply(simp add: andfold_MatchExp_matches bunch_of_lemmata_about_matches)
+            using Ports_single_rewrite_Prot C by blast
+        qed
+      qed
+  show ?thesis
     apply(simp add: import_protocols_from_ports_def)
-    apply(case_tac "primitive_extractor (is_Src_Ports, src_ports_sel) m")
+    apply(case_tac "primitive_extractor (is_Src_Ports, src_ports_sel) m", rename_tac srcpts rst1)
     apply(simp)
-    apply(simp add: bunch_of_lemmata_about_matches)
+    apply(case_tac "primitive_extractor (is_Dst_Ports, dst_ports_sel) rst1", rename_tac dstpts rst2)
+    apply(simp)
+    apply(simp add: bunch_of_lemmata_about_matches matches_alist_and_alist_and' alist_and_append)
     apply(subst primitive_extractor_correct(1)[OF normalized wf_disc_sel_common_primitive(1),
           where \<gamma>="(\<beta>,\<alpha>)" and a=a and p=p, symmetric])
-     apply(simp_all)
-    using add_protocol by blast
-  
+     apply(simp; fail)
+    apply(frule primitive_extractor_correct(2)[OF normalized wf_disc_sel_common_primitive(1)])
+    apply(drule(1) primitive_extractor_correct(1)[OF _ wf_disc_sel_common_primitive(2),
+          where \<gamma>="(\<beta>,\<alpha>)" and a=a and p=p, symmetric])
+      apply(simp)
+     using add_protocol by blast
+  qed
 end
