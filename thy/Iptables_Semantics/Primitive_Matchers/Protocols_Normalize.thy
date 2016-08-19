@@ -386,7 +386,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
   lemma primitive_extractor_reassemble_not_has_disc_negated:
     "wf_disc_sel (disc, sel) C \<Longrightarrow>
      normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated disc' neg m \<Longrightarrow>
-     primitive_extractor (disc, sel) m = (as, ms) \<Longrightarrow>
+     primitive_extractor (disc, sel) m = (as, ms) \<Longrightarrow> (*turn eqality around to simplify proof*)
        \<not> has_disc_negated disc' neg (alist_and' (NegPos_map C as))"
     proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
     case 2 thus ?case
@@ -403,6 +403,30 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
         apply(simp split: prod.split_asm)
         apply(clarify)
         apply(simp add: NegPos_map_append has_disc_negated_alist_and'_append)
+      done
+  qed(simp_all split: split_if_asm)
+
+
+  lemma primitive_extractor_reassemble_normalized_n_primitive:
+    "wf_disc_sel (disc, sel) C \<Longrightarrow>
+     normalized_nnf_match m \<Longrightarrow> normalized_n_primitive (disc1, sel1) f m \<Longrightarrow>
+     primitive_extractor (disc, sel) m = (as, ms) \<Longrightarrow> (*turn eqality around to simplify proof*)
+       normalized_n_primitive (disc1, sel1) f (alist_and' (NegPos_map C as))"
+    proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+    case 2 thus ?case
+      apply(simp split: split_if_asm)
+       by(clarify, simp add: wf_disc_sel.simps)+
+    next
+    case 3 thus ?case
+      apply(simp split: split_if_asm)
+       by(clarify, simp add: wf_disc_sel.simps)+
+    next
+    case (4 m1 m2 as ms)
+      from 4 show ?case
+        apply(simp)
+        apply(simp split: prod.split_asm)
+        apply(clarify)
+        apply(simp add: NegPos_map_append normalized_n_primitive_alist_and'_append)
       done
   qed(simp_all split: split_if_asm)
 
@@ -459,4 +483,35 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
      apply(drule(1) primitive_extractor_correct(6)[OF _ wf_disc_sel_common_primitive(2)])
      apply blast
      done
+
+
+  lemma import_protocols_from_ports_preserves_normalized_n_primitive:
+    "normalized_n_primitive (disc, sel) f m \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow>
+     normalized_nnf_match (import_protocols_from_ports m) \<and> normalized_n_primitive (disc, sel) f (import_protocols_from_ports m)"
+     apply(intro conjI)
+      using import_protocols_from_ports_nnf apply blast
+     apply(erule(1) import_protocols_from_ports_erule)
+     apply(simp)
+     apply(intro conjI)
+        subgoal for srcpts rst1 dstpts rst2
+        apply(rule andfold_MatchExp_normalized_n_primitive)
+        using normalized_n_primitive_impossible_map by blast
+       subgoal for srcpts rst1 dstpts rst2
+       apply(rule andfold_MatchExp_normalized_n_primitive)
+       using normalized_n_primitive_impossible_map by blast
+      subgoal for srcpts rst1 dstpts rst2
+      apply(frule(2) primitive_extractor_reassemble_normalized_n_primitive[OF wf_disc_sel_common_primitive(1)])
+      apply(subgoal_tac "normalized_n_primitive (disc, sel) f rst1")
+       prefer 2
+       apply(drule(1) primitive_extractor_correct(5)[OF _ wf_disc_sel_common_primitive(1)])
+       apply blast
+      apply(drule(2) primitive_extractor_reassemble_normalized_n_primitive[OF wf_disc_sel_common_primitive(2)])
+      using normalized_n_primitive_alist_and'_append by blast
+     apply(drule(1) primitive_extractor_correct(5)[OF _ wf_disc_sel_common_primitive(1)])
+     apply(drule(1) primitive_extractor_correct(5)[OF _ wf_disc_sel_common_primitive(2)])
+     apply blast
+     done
+
+
+
 end

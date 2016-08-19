@@ -83,6 +83,7 @@ apply(induction ls1 arbitrary: ls2 rule: alist_and'.induct)
 done
 
 
+
 lemma "matches ((\<lambda>x _. bool_to_ternary (disc x)), (\<lambda>_ _. False)) (Match x) a p \<longleftrightarrow> has_disc disc (Match x)"
 by(simp add: match_raw_ternary bool_to_ternary_simps split: ternaryvalue.split )
 
@@ -147,7 +148,26 @@ lemma not_has_disc_negated_NegPos_map: "\<forall>a. \<not> disc (C a) \<Longrigh
         \<not> has_disc_negated disc False (negation_type_to_match_expr a)"
 by(induction C ls rule: NegPos_map.induct) (simp add: negation_type_to_match_expr_def)+
 
+lemma normalized_n_primitive_impossible_map: "\<forall>a. \<not> disc (C a) \<Longrightarrow>
+  \<forall>m\<in>set (map (Match \<circ> (C \<circ> x)) ls).
+     normalized_n_primitive (disc, sel) f m"
+  apply(intro ballI)
+  apply(induction ls)
+   apply(simp)
+  apply(simp)
+  apply(case_tac m, simp_all) (*3 cases are impossible*)
+   apply(fastforce)
+  by force
 
+
+lemma normalized_n_primitive_alist_and'_append:
+  "normalized_n_primitive (disc, sel) f (alist_and' (ls1 @ ls2)) \<longleftrightarrow>
+      normalized_n_primitive (disc, sel) f (alist_and' ls1) \<and> normalized_n_primitive (disc, sel) f (alist_and' ls2)"
+apply(induction ls1 arbitrary: ls2 rule: alist_and'.induct)
+    apply(simp_all)
+ apply(case_tac [!] ls2)
+   apply(simp_all)
+done
 
 lemma normalized_n_primitive_if_no_primitive: "normalized_nnf_match m \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> 
        normalized_n_primitive (disc, sel) f m"
