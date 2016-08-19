@@ -36,10 +36,11 @@ begin
   (*is this more efficient?*)
   private function groupF_code ::  "('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'a list list"  where
     "groupF_code f [] = []" |
-    "groupF_code f (x#xs) = (let (ts, fs) = partition_tailrec (\<lambda>y. f x = f y) xs in (x#ts)#(groupF_code f fs))"
-  apply(pat_completeness)
-  apply(auto)
-  done
+    "groupF_code f (x#xs) = (let
+                               (ts, fs) = partition_tailrec (\<lambda>y. f x = f y) xs
+                             in
+                               (x#ts)#(groupF_code f fs))"
+  by(pat_completeness) auto
   
   private termination groupF_code
     apply(relation "measure (\<lambda>(f,as). length (filter (\<lambda>x. (\<lambda>y. f x = f y) x) as))")
@@ -73,7 +74,8 @@ lemma groupF_equality:
     case 1 thus ?case by simp
   next
     case (2 f x xs)
-      have groupF_fst: "groupF f (x # xs) = (x # [y\<leftarrow>xs . f x = f y]) # groupF f [y\<leftarrow>xs . f x \<noteq> f y]" by force
+      have groupF_fst:
+        "groupF f (x # xs) = (x # [y\<leftarrow>xs . f x = f y]) # groupF f [y\<leftarrow>xs . f x \<noteq> f y]" by force
       have step: " \<forall>A\<in>set [x # [y\<leftarrow>xs . f x = f y]]. same f A" unfolding same_def by fastforce
       with 2 show ?case unfolding groupF_fst by fastforce
   qed
@@ -115,17 +117,20 @@ lemma groupF_distinct: "distinct xs \<Longrightarrow> distinct (concat (groupF f
   qed(simp)
 
 
-(*It is possible to use
-    map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) P))
+text\<open>It is possible to use
+    @{term "map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) P))"}
   instead of
-    groupF f P
+    @{term "groupF f P"}
   for the following reasons:
-    groupF executes its compare function (first parameter) very often; it always tests for (f x = f y).
-    The function f may be really expensive. At least polyML does not share the result of f but 
-    (probably) always recomputes (part of) it. The optimization pre-computes f and tells groupF to use
-    a really cheap function (snd) to compare. The lemma groupF_tuple tells that those are equal.
+    @{const groupF} executes its compare function (first parameter) very often;
+    it always tests for @{term "(f x = f y)"}.
+    The function @{term f} may be really expensive.
+    At least polyML does not share the result of @{term f} but (probably) always recomputes (part of) it.
+    The optimization pre-computes @{term f} and tells @{const groupF} to use
+    a really cheap function (@{const snd}) to compare.
+    The following lemma tells that those are equal.\<close>
+  (* is this also faster for Haskell?*)
 
-  TODO: is this also faster for Haskell?*)
 lemma groupF_tuple: "groupF f xs = map (map fst) (groupF snd (map (\<lambda>x. (x, f x)) xs))"
   proof(induction f xs rule: groupF.induct)
   case (1 f) thus ?case by simp
