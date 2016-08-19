@@ -144,6 +144,7 @@ lemma cut_off_after_match_any:
 lemma cut_off_after_match_any_simplers: "simple_ruleset rs \<Longrightarrow> simple_ruleset (cut_off_after_match_any rs)"
   by(induction rs rule: cut_off_after_match_any.induct) (simp_all add: simple_ruleset_def)
 
+(*TODO: only use [simplified] !*)
 lemma cut_off_after_match_any_preserve_matches:
   "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (cut_off_after_match_any rs). P m"
   apply(induction rs rule: cut_off_after_match_any.induct)

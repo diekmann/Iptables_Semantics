@@ -228,11 +228,9 @@ lemma approximating_bigstep_fun_remdups_rev:
 lemma remdups_rev_simplers: "simple_ruleset rs \<Longrightarrow> simple_ruleset (remdups_rev rs)"
   by(induction rs) (simp_all add: remdups_rev_def simple_ruleset_def)
 
-lemma remdups_rev_preserve_matches: "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (remdups_rev rs). P m"
+lemma remdups_rev_preserve_matches:
+  "\<forall>r\<in>set rs. P (get_match r) \<Longrightarrow> \<forall>r\<in>set (remdups_rev rs). P (get_match r)"
   by(induction rs) (simp_all add: remdups_rev_def simple_ruleset_def)
-
-
-(*TODO: closure bounds*)
 
 
 subsection\<open>Optimize and Normalize to NNF form\<close>
@@ -253,13 +251,13 @@ by(cases r)(simp add: optimize_matches_def)
 theorem transform_optimize_dnf_strict_structure:
   assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
   shows "simple_ruleset (transform_optimize_dnf_strict rs)"
-  and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
-          \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc disc m"
-  and "\<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_nnf_match m"
-  and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
-        \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_n_primitive disc_sel f m"
-  and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
-        \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc_negated disc neg m"
+  and "\<forall> r \<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow>
+          \<forall> r \<in> set (transform_optimize_dnf_strict rs). \<not> has_disc disc (get_match r)"
+  and "\<forall> r \<in> set (transform_optimize_dnf_strict rs). normalized_nnf_match (get_match r)"
+  and "\<forall> r \<in> set rs. normalized_n_primitive disc_sel f (get_match r) \<Longrightarrow>
+        \<forall> r \<in> set (transform_optimize_dnf_strict rs). normalized_n_primitive disc_sel f (get_match r)"
+  and "\<forall> r \<in> set rs. \<not> has_disc_negated disc neg (get_match r) \<Longrightarrow>
+        \<forall> r \<in> set (transform_optimize_dnf_strict rs). \<not> has_disc_negated disc neg (get_match r)"
   proof -
     show simplers_transform: "simple_ruleset (transform_optimize_dnf_strict rs)"
       unfolding transform_optimize_dnf_strict_def
@@ -271,9 +269,9 @@ theorem transform_optimize_dnf_strict_structure:
         normalize_rules_dnf \<circ> (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ))"
     have inner_outer: "transform_optimize_dnf_strict = (cut_off_after_match_any \<circ> transform_optimize_dnf_strict_inner)"
       by(auto simp add: transform_optimize_dnf_strict_def transform_optimize_dnf_strict_inner_def)
-    have tf1: "\<And>r rs. transform_optimize_dnf_strict_inner (r#rs) =
+    have tf1: "transform_optimize_dnf_strict_inner (r#rs) =
       (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) [r])))@
-        transform_optimize_dnf_strict_inner rs"
+        transform_optimize_dnf_strict_inner rs" for r rs
       unfolding transform_optimize_dnf_strict_inner_def
       apply(simp)
       apply(subst optimize_matches_fst)
@@ -286,12 +284,13 @@ theorem transform_optimize_dnf_strict_structure:
       assume p2: "\<forall>m. P m \<longrightarrow> P (opt_MatchAny_match_expr m)"
       assume p3: "\<forall>m. P m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). P m')"
       { fix rs
-        have "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs). P m"
-          apply(rule optimize_matches_preserves)
-          using p1 p2 by simp (*1s*)
+        have "\<forall> r \<in> set rs. P (get_match r) \<Longrightarrow>
+          \<forall> r \<in> set (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs). P (get_match r)"
+          apply(rule optimize_matches_preserves[simplified])
+          using p1 p2 by simp
       } note opt1=this
       { fix rs
-        have "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (normalize_rules_dnf rs). P m"
+        have "\<forall> r \<in> set rs. P (get_match r) \<Longrightarrow> \<forall> r \<in> set (normalize_rules_dnf rs). P (get_match r)"
         apply(induction rs rule: normalize_rules_dnf.induct)
          apply(simp; fail)
         apply(simp)
@@ -300,11 +299,13 @@ theorem transform_optimize_dnf_strict_structure:
         using p3 by(simp)
       } note opt2=this
       { fix rs
-        have "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches opt_MatchAny_match_expr rs). P m"
-          apply(rule optimize_matches_preserves)
-          using p2 by simp (*1s*)
+        have "\<forall> r \<in> set rs. P (get_match r) \<Longrightarrow>
+          \<forall> r \<in> set (optimize_matches opt_MatchAny_match_expr rs). P (get_match r)"
+          apply(rule optimize_matches_preserves[simplified])
+          using p2 by simp
       } note opt3=this
-      have "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). P m"
+      have "\<forall> r \<in>  set rs. P (get_match r) \<Longrightarrow>
+        \<forall> r \<in> set (transform_optimize_dnf_strict rs). P (get_match r)"
         unfolding transform_optimize_dnf_strict_def
         apply(drule opt1)
         apply(drule opt2)
@@ -318,7 +319,8 @@ theorem transform_optimize_dnf_strict_structure:
     }  moreover { fix m
       have "\<not> has_disc disc m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). \<not> has_disc disc m')"
         using normalize_match_preserves_nodisc by fast
-    } ultimately show "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc disc m"
+    } ultimately show "\<forall> r \<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow>
+      \<forall> r \<in> set (transform_optimize_dnf_strict rs). \<not> has_disc disc (get_match r)"
       using not_has_disc_opt_MatchAny_match_expr matchpred_rule[of "\<lambda>m. \<not> has_disc disc m"] by fast
 
     { fix m
@@ -331,7 +333,8 @@ theorem transform_optimize_dnf_strict_structure:
         apply simp_all
       using optimize_primitive_univ_unchanged_primitives by blast
     }  with not_has_disc_negated_opt_MatchAny_match_expr not_has_disc_normalize_match show
-      "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc_negated disc neg m"
+      "\<forall> r \<in> set rs. \<not> has_disc_negated disc neg (get_match r) \<Longrightarrow>
+        \<forall> r \<in> set (transform_optimize_dnf_strict rs). \<not> has_disc_negated disc neg (get_match r)"
       using matchpred_rule[of "\<lambda>m. \<not> has_disc_negated disc neg m"] by fast
    
    { fix P and a::"'a common_primitive"
@@ -361,8 +364,8 @@ theorem transform_optimize_dnf_strict_structure:
          apply(safe)
              apply(simp_all)
       done
-    } ultimately show "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow> 
-        \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_n_primitive disc_sel f m"
+    } ultimately show "\<forall> r \<in> set rs. normalized_n_primitive disc_sel f (get_match r) \<Longrightarrow> 
+        \<forall> r \<in> set (transform_optimize_dnf_strict rs). normalized_n_primitive disc_sel f (get_match r)"
       using matchpred_rule[of "\<lambda>m. normalized_n_primitive disc_sel f m"] normalized_n_primitive_opt_MatchAny_match_expr by fast
     
 
@@ -374,16 +377,14 @@ theorem transform_optimize_dnf_strict_structure:
       from normalize_rules_dnf_normalized_nnf_match[of "rs"]
       have "\<forall>x \<in> set (normalize_rules_dnf rs). normalized_nnf_match (get_match x)" .
       (*TODO simplify proof?*)
-      hence "\<forall>m \<in> get_match ` set (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf rs)). normalized_nnf_match m"
+      hence "\<forall>r \<in> set (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf rs)). normalized_nnf_match (get_match r)"
         apply -
-        apply(rule optimize_matches_preserves)
+        apply(rule optimize_matches_preserves[simplified])
         using x by blast
-      hence "\<forall>x \<in> set (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf rs)). normalized_nnf_match (get_match x)" 
-        by blast
     } 
-    from this have "\<forall> m \<in> get_match ` set (transform_optimize_dnf_strict_inner rs). normalized_nnf_match m"
+    from this have "\<forall> r \<in> set (transform_optimize_dnf_strict_inner rs). normalized_nnf_match (get_match r)"
       unfolding transform_optimize_dnf_strict_inner_def by simp
-    thus "\<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_nnf_match m"
+    thus "\<forall> r \<in> set (transform_optimize_dnf_strict rs). normalized_nnf_match (get_match r)"
       unfolding inner_outer
       apply simp
       apply(rule cut_off_after_match_any_preserve_matches[simplified])
