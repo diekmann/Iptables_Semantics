@@ -243,10 +243,11 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
          rst2
      )"
 
-  value "import_protocols_from_ports 
-    (MatchAnd (MatchAnd (MatchAnd (Match ((Prot (Proto TCP)):: 32 common_primitive))
-      (Match (Src_Ports (L4Ports UDP [])))) (Match (IIface (Iface ''eth1''))))
-              (Match (Prot (Proto TCP))))"
+  text\<open>The @{const Proto} and @{const L4Ports} match make the following match impossible:\<close>
+  lemma "compress_normalize_protocols (import_protocols_from_ports 
+    (MatchAnd (MatchAnd (Match (Prot (Proto TCP):: 32 common_primitive))
+      (Match (Src_Ports (L4Ports UDP [(22,22)])))) (Match (IIface (Iface ''eth1''))))) = None"
+  by eval
 
 
   (*unfolding the whole primitive_extractor*)
