@@ -1,8 +1,8 @@
+section\<open>Group by Function\<close>
 theory GroupF
 imports Main
 begin
 
-section\<open>Group by Function\<close>
 text\<open>Grouping elements of a list according to a function.\<close>
 
 fun groupF ::  "('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'a list list"  where

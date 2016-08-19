@@ -1,8 +1,8 @@
+section\<open>Helper: Pretty Printing Word Intervals which correspond to IP address Ranges\<close>
 theory IP_Addr_WordInterval_toString
 imports "../../IP_Addresses/IP_Address_toString"
 begin
 
-section\<open>Helper: Pretty Printing Word Intervals which correspond to IP address Ranges\<close>
 
 fun ipv4addr_wordinterval_toString :: "32 wordinterval \<Rightarrow> string" where
   "ipv4addr_wordinterval_toString (WordInterval s e) =

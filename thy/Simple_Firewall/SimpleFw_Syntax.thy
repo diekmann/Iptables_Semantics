@@ -1,3 +1,4 @@
+section\<open>Simple Firewall Syntax\<close>
 theory SimpleFw_Syntax
 imports "../IP_Addresses/Hs_Compat"
         Firewall_Common_Decision_State
@@ -6,8 +7,7 @@ imports "../IP_Addresses/Hs_Compat"
         "Simple_Packet"
 begin
 
-
-section\<open>Simple Firewall Syntax (for IP addresses of arbitrary length)\<close>
+  text\<open>For for IP addresses of arbitrary length\<close>
 
   datatype simple_action = Accept | Drop
   

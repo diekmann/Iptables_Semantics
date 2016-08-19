@@ -1,9 +1,9 @@
+section\<open>Network Interfaces\<close>
 theory Iface
 imports String
         "~~/src/HOL/Library/Char_ord" (*WARNING: importing char ord*)
 begin
 
-section\<open>Network Interfaces\<close>
 
 datatype iface = Iface (iface_sel: "string")  --"no negation supported, but wildcards"
 

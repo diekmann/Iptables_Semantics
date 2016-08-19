@@ -1,15 +1,9 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{isabelle,isabellesym}
 
-% further packages required for unusual symbols (see also
-% isabellesym.sty), use only when needed
-
 \usepackage{amssymb}
-  %for \<leadsto>, \<box>, \<diamond>, \<sqsupset>, \<mho>, \<Join>,
-  %\<lhd>, \<lesssim>, \<greatersim>, \<lessapprox>, \<greaterapprox>,
-  %\<triangleq>, \<yen>, \<lozenge>
 
-
+%drawing a graph in Service_Matrix.thy
 \usepackage{tikz}
 \usetikzlibrary{arrows}
 \usetikzlibrary{arrows,decorations.markings}
@@ -34,8 +28,18 @@
 \maketitle
 
 \begin{abstract}  
-  Overly simple firewall. With IP address space partitioning and service matrix.
-  TODO latex example service matrix
+  We present a simple model of a firewall. 
+  The firewall can accept or drop a packet and can match on interfaces, IP addresses, protocol, and ports. 
+  It was designed to feature nice mathematical properties: 
+  The type of match expressions was carefully crafted such that the conjunction of two match expressions is only one match expression. 
+  
+  This model is too simplistic to mirror all aspects of the real world. 
+  In the upcoming entry ``Iptables Semantics'', we will translate the Linux firewall iptables to this model. 
+  
+  For a fixed service (e.g.\ ssh, hhtp), this entry provides an algorithm to compute an overview of the firewall's filtering behavior. 
+  The algorithm computes minimal service matrices, \ie graphs which partition the complete IPv4 and IPv6 address space and visualize the allowed accesses between partitions. 
+
+For a detailed description, see \cite{diekmann2016networking}. 
 \end{abstract}
 
 \tableofcontents

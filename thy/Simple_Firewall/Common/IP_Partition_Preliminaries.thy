@@ -3,11 +3,11 @@
 *)
 (*SetPartitioning.thy
   Original Author: Max Haslbeck, 2015*)
+section\<open>Partition a Set by a Specific Constraint\<close>
 theory IP_Partition_Preliminaries
 imports Main
 begin
 
-section\<open>Partition a set by a specifc constraint\<close>
 text\<open>Will be used for the IP address space partition of a firewall.
     However, this file is completely generic in terms of sets, it only imports Main.
 

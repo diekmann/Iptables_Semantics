@@ -1,8 +1,8 @@
+section\<open>Simple Packet\<close>
 theory Simple_Packet
 imports "Primitives/L4_Protocol"
 begin
 
-section\<open>Simple Packet\<close>
   text\<open>Packet constants are prefixed with @{text p}\<close>
 
   text\<open>@{typ "'i::len word"} is an IP address of variable length. 32bit for IPv4, 128bit for IPv6\<close>

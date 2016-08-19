@@ -1,10 +1,8 @@
+section\<open>Simple Firewall toString Functions\<close>
 theory SimpleFw_toString
 imports "Primitives/Primitives_toString"
         SimpleFw_Syntax
 begin
-
-
-section\<open>Simple Firewall toString Functions\<close>
 
 fun simple_action_toString :: "simple_action \<Rightarrow> string" where
   "simple_action_toString Accept = ''ACCEPT''" |

@@ -3,6 +3,7 @@
 *)
 (*IPPartitioning.thy
   Original Author: Max Haslbeck, 2015*)
+section\<open>Service Matrices\<close>
 theory Service_Matrix
 imports "Common/List_Product_More"
         "Common/IP_Partition_Preliminaries"
@@ -13,7 +14,6 @@ imports "Common/List_Product_More"
         "../IP_Addresses/WordInterval_Sorted"
 begin
 
-section\<open>Service Matrices\<close>
 
 subsection\<open>IP Address Space Partition\<close>
 

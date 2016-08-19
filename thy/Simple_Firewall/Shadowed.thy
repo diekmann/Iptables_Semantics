@@ -1,9 +1,8 @@
+section\<open>Shadowed Rules\<close>
 theory Shadowed
 imports SimpleFw_Semantics
 begin
 
-
-section\<open>Optimizing Simple Firewall\<close>
 
 subsection\<open>Removing Shadowed Rules\<close>
 text\<open>Testing, not executable\<close>

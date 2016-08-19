@@ -1,3 +1,4 @@
+section\<open>toString Functions for Primitives\<close>
 theory Primitives_toString
 imports "../Common/Lib_Enum_toString"
         "../../IP_Addresses/IP_Address_toString"
@@ -5,7 +6,6 @@ imports "../Common/Lib_Enum_toString"
         L4_Protocol
 begin
 
-section\<open>Primitives toString Functions\<close>
 
 definition ipv4_cidr_toString :: "(ipv4addr \<times> nat) \<Rightarrow> string" where
   "ipv4_cidr_toString ip_n = (case ip_n of (base, n) \<Rightarrow>  (ipv4addr_toString base @''/''@ string_of_nat n))"
