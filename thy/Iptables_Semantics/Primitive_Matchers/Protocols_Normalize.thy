@@ -58,7 +58,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
                          else if (\<exists>p \<in> set (getNeg ps). simple_proto_conjunct proto p \<noteq> None) then
                            None
                          else
-                           Some ([proto], getNeg ps)"
+                           Some ([proto], [])"
   
   (* It is kind of messy to find a definition that checks whether a match is the exhaustive list
     and is executable *)
@@ -91,7 +91,9 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
                          else if (\<exists>p \<in> set (getNeg ps). simple_proto_conjunct proto p \<noteq> None) then
                            None
                          else
-                           Some ([proto], getNeg ps)
+                          (*proto is a primitive_protocol here. This is  strict equality match, e.g.
+                            protocol must be TCP. Thus, we can remove all negative matches!*)
+                           Some ([proto], [])
         )"
     unfolding compress_protocols_def
     using set_word8_word_upto by presburger
@@ -102,10 +104,10 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
     apply(simp add: compress_protocols_def all_proto_hlp2 split: option.split_asm split_if_asm)
      defer
      apply(clarify)
-     apply(rename_tac p)
-     apply(case_tac p, simp_all)
+     subgoal for p
+     apply(case_tac p, simp)
      apply(rename_tac p_primitive)
-     using simple_proto_conjunct_None apply auto[1]
+     using simple_proto_conjunct_None by auto[1]
     apply(subgoal_tac "\<exists>p. (Proto p) \<notin> set ps_neg")
      apply(elim exE)
      apply(rename_tac x2 p)
@@ -136,7 +138,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
        apply(simp_all)
       apply(drule_tac p_prot="p_proto p" in compress_pos_protocols_Some)
       apply(simp split:split_if_asm)
-      by force
+      using simple_proto_conjunct_None by auto
   qed
 
   lemma (in primitive_matcher_generic) compress_normalize_protocols_None:
@@ -214,10 +216,10 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
    using compress_normalize_primitve_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(7)] by blast
   
 
-  (*TODO: optimize much much much more!*)
-  value[code] "compress_normalize_protocols 
+  lemma "case compress_normalize_protocols 
     (MatchAnd (MatchAnd (MatchAnd (Match ((Prot (Proto TCP)):: 32 common_primitive)) (MatchNot (Match (Prot (Proto UDP))))) (Match (IIface (Iface ''eth1''))))
-              (Match (Prot (Proto TCP))))"
+              (Match (Prot (Proto TCP)))) of Some ps \<Rightarrow> opt_MatchAny_match_expr ps
+  = MatchAnd (Match (Prot (Proto 6))) (MatchAnd MatchAny (Match (IIface (Iface ''eth1''))))" by eval
     
   value[code] "compress_normalize_protocols (MatchAny:: 32 common_primitive match_expr)"
 
