@@ -2311,7 +2311,7 @@ compress_protocols ps =
                else (if any (\ p ->
                               not (is_none (simple_proto_conjunct proto p)))
                           (getNeg ps)
-                      then Nothing else Just ([proto], getNeg ps))));
+                      then Nothing else Just ([proto], []))));
   });
 
 compress_normalize_protocols ::
