@@ -752,16 +752,16 @@ theorem transform_normalize_primitives:
 
     from normalize_src_ports_normalized_n_primitive
     have normalized_src_ports: "\<forall>r \<in> set ?rs0. normalized_src_ports (get_match r)"
-    using normalize_rules_property[simplified, OF normalized, where f=normalize_src_ports and Q=normalized_src_ports] by fast
+    using normalize_rules_property[OF normalized, where f=normalize_src_ports and Q=normalized_src_ports] by fast
       (*why u no rule? because things are not in simp-normal form!*)
     from normalize_dst_ports_normalized_n_primitive
-         normalize_rules_property[simplified, OF normalized_rs0, where f=normalize_dst_ports and Q=normalized_dst_ports]
+         normalize_rules_property[OF normalized_rs0, where f=normalize_dst_ports and Q=normalized_dst_ports]
     have normalized_dst_ports: "\<forall>r \<in> set ?rs1.  normalized_dst_ports (get_match r)" by fast
     from normalize_src_ips_normalized_n_primitive
-         normalize_rules_property[simplified, OF normalized_rs1, where f=normalize_src_ips and Q=normalized_src_ips]
+         normalize_rules_property[OF normalized_rs1, where f=normalize_src_ips and Q=normalized_src_ips]
     have normalized_src_ips: "\<forall>r \<in> set ?rs2.  normalized_src_ips (get_match r)" by fast
     from normalize_dst_ips_normalized_n_primitive
-         normalize_rules_property[simplified, OF normalized_rs2, where f=normalize_dst_ips and Q=normalized_dst_ips]
+         normalize_rules_property[OF normalized_rs2, where f=normalize_dst_ips and Q=normalized_dst_ips]
          normalized_rs3
     have normalized_dst_ips_rs3: "\<forall>r \<in> set ?rs3. normalized_nnf_match (get_match r) \<and> normalized_dst_ips (get_match r)" by fast
     with optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_normalized_n_primitive[
@@ -781,7 +781,7 @@ theorem transform_normalize_primitives:
       for f :: "'c negation_type list \<Rightarrow> 'c list" and rs disc sel and C :: "'c \<Rightarrow> 'i::len common_primitive"
       by blast
     have normalized_src_ports_rs0: "\<forall>r \<in> set ?rs0.  normalized_src_ports (get_match r)"
-      apply(rule normalize_rules_property[simplified, where P="normalized_nnf_match"])
+      apply(rule normalize_rules_property[where P="normalized_nnf_match"])
        using normalized apply blast
       using normalize_src_ports_normalized_n_primitive by blast
     have normalize_dst_ports_preserves_normalized_src_ports:
@@ -792,7 +792,7 @@ theorem transform_normalize_primitives:
            apply(simp_all)
       by (simp add: normalize_dst_ports_def normalize_ports_generic_def normalize_positive_dst_ports_def rewrite_negated_dst_ports_def)
     have normalized_src_ports_rs1: "\<forall>r \<in> set ?rs1.  normalized_src_ports (get_match r)"
-      apply(rule normalize_rules_property[simplified, where P="\<lambda>m. normalized_nnf_match m \<and> normalized_src_ports m"])
+      apply(rule normalize_rules_property[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_src_ports m"])
        using normalized_rs0 normalized_src_ports_rs0 apply blast
       apply(clarify)
       using normalize_dst_ports_preserves_normalized_src_ports by blast
@@ -867,11 +867,11 @@ theorem transform_normalize_primitives:
 
      have normalized_n_primitive_rs0:
      "\<forall>r\<in>set ?rs0. normalized_n_primitive (disc2, sel2) f (get_match r)" (*by blast*)
-      apply(intro normalize_rules_property[simplified,where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) f m"])
+      apply(intro normalize_rules_property[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) f m"])
        using a' apply blast
       using normalize_src_ports_preserves_normalized_n_primitive[OF _ a_Src_Ports] a_Prot by blast
      have "\<forall>r\<in>set ?rs1. normalized_n_primitive (disc2, sel2) f (get_match r)"
-      apply(rule normalize_rules_property[simplified, where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) f m"])
+      apply(rule normalize_rules_property[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) f m"])
        using normalized_n_primitive_rs0 normalized_rs0 apply blast
       using normalize_dst_ports_preserves_normalized_n_primitive[OF _ a_Dst_Ports] a_Prot by blast
      with normalized_rs1 normalize_rules_preserves_unrelated_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(3) a_Src,
@@ -1117,9 +1117,9 @@ theorem transform_normalize_primitives:
    apply(simp)
    apply(rule case_disc3_is_prot_optimize_matches_option)
     apply(simp; fail)
-   thm normalize_rules_property[simplified,
+   thm normalize_rules_property[
       where P="\<lambda>m. normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m"]
-   apply(rule normalize_rules_property[simplified,
+   apply(rule normalize_rules_property[
       where P="\<lambda>m. normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m \<and>
                    \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m"])+ (*dst ips first*)
        apply(simp; fail)

@@ -234,27 +234,27 @@ section\<open>Normalizing rules instead of only match expressions\<close>
  text\<open>applying a function (with a prerequisite @{text Q}) to all rules\<close>
  (*TODO: only use [simplified]*)
  lemma normalize_rules_property:
- assumes "\<forall> m \<in> get_match ` set rs. P m"
+ assumes "\<forall> r \<in> set rs. P (get_match r)"
      and "\<forall>m. P m \<longrightarrow> (\<forall>m' \<in> set (f m). Q m')"
-  shows "\<forall>m \<in> get_match ` set (normalize_rules f rs). Q m"
+  shows "\<forall>r \<in> set (normalize_rules f rs). Q (get_match r)"
   proof
-    fix m assume a: "m \<in> get_match ` set (normalize_rules f rs)"
-    from a assms show "Q m"
+    fix r' assume a: "r' \<in> set (normalize_rules f rs)"
+    from a assms show "Q (get_match r')"
     proof(induction rs)
     case Nil thus ?case by simp
     next
     case (Cons r rs)
-      {
-        assume "m \<in> get_match ` set (normalize_rules f rs)"
-        from Cons.IH this have "Q m" using Cons.prems(2) Cons.prems(3) by fastforce
+      { 
+        assume "r' \<in> set (normalize_rules f rs)"
+        from Cons.IH this have "Q (get_match r')" using Cons.prems(2) Cons.prems(3) by fastforce
       } note 1=this
-      {
-        assume "m \<in> get_match ` set (normalize_rules f [r])"
-        hence a: "m \<in> set (f (get_match r))" by(cases r) (auto)
+      { 
+        assume "r' \<in> set (normalize_rules f [r])"
+        hence a: "(get_match r') \<in> set (f (get_match r))" by(cases r) (auto)
         with Cons.prems(2) Cons.prems(3) have "\<forall>m'\<in>set (f (get_match r)). Q m'" by auto
-        with a have "Q m" by blast
+        with a have "Q (get_match r')" by blast
       } note 2=this
-      from Cons.prems(1) have "m \<in> get_match ` set (normalize_rules f [r]) \<or> m \<in> get_match ` set (normalize_rules f rs)"
+      from Cons.prems(1) have "r' \<in> set (normalize_rules f [r]) \<or> r' \<in> set (normalize_rules f rs)"
         by(subst(asm) normalize_rules_fst) auto
       with 1 2 show ?case
         by(elim disjE)(simp)
@@ -262,12 +262,14 @@ section\<open>Normalizing rules instead of only match expressions\<close>
  qed
 
  text\<open>If a function @{text f} preserves some property of the match expressions, then this property is preserved when applying @{const normalize_rules}\<close>
+  (*TODO: simplified*)
  lemma normalize_rules_preserves: assumes "\<forall> m \<in> get_match ` set rs. P m"
      and "\<forall>m. P m \<longrightarrow> (\<forall>m' \<in> set (f m). P m')"
   shows "\<forall>m \<in> get_match ` set (normalize_rules f rs). P m"
-  using normalize_rules_property[OF assms(1) assms(2)] .
+  using normalize_rules_property assms(1) assms(2) apply simp by blast
 
  (*the simplifier preferes this*)
+ (*TODO: delete, use simplified above*)
  lemma normalize_rules_preserves':
   "\<forall> r \<in> set rs. P (get_match r) \<Longrightarrow>
     \<forall>m. P m \<longrightarrow> (\<forall>m' \<in> set (f m). P m') \<Longrightarrow>
