@@ -120,6 +120,10 @@ lemma normalized_n_primitive_alist_and': "normalized_n_primitive disc_sel P (ali
       by(simp_all add: negation_type_to_match_expr_simps)
 
 
+lemma not_has_disc_negated_NegPos_map: "\<forall>a. \<not> disc (C a) \<Longrightarrow> \<forall>a\<in>set (NegPos_map C ls).
+        \<not> has_disc_negated disc False (negation_type_to_match_expr a)"
+by(induction C ls rule: NegPos_map.induct) (simp add: negation_type_to_match_expr_def)+
+
 
 lemma normalized_n_primitive_if_no_primitive: "normalized_nnf_match m \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> 
        normalized_n_primitive (disc, sel) f m"

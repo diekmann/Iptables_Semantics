@@ -67,7 +67,6 @@ lemma alist_and_negation_type_to_match_expr: "alist_and (n#es) =  MatchAnd (nega
   by(cases n, simp_all add: negation_type_to_match_expr_simps)
 
 
-
 fun to_negation_type_nnf :: "'a match_expr \<Rightarrow> 'a negation_type list" where
  "to_negation_type_nnf MatchAny = []" |
  "to_negation_type_nnf (Match a) = [Pos a]" |

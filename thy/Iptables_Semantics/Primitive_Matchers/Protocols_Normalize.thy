@@ -235,8 +235,8 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
       MatchAnd
       (MatchAnd
        (MatchAnd
-        (andfold_MatchExp (map (\<lambda>pt. Match (Prot (case pt of L4Ports proto _ \<Rightarrow> Proto proto))) (getPos srcpts)))
-        (andfold_MatchExp (map (\<lambda>pt. Match (Prot (case pt of L4Ports proto _ \<Rightarrow> Proto proto))) (getPos dstpts)))
+        (andfold_MatchExp (map (Match \<circ> (Prot \<circ> (case_ipt_l4_ports (\<lambda>proto x. Proto proto)))) (getPos srcpts)))
+        (andfold_MatchExp (map (Match \<circ> (Prot \<circ> (case_ipt_l4_ports (\<lambda>proto x. Proto proto)))) (getPos dstpts)))
        )
         (alist_and' (NegPos_map Src_Ports srcpts @ NegPos_map Dst_Ports dstpts))
        )
@@ -262,9 +262,9 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
            (MatchAnd
              (MatchAnd
                (andfold_MatchExp
-                 (map (\<lambda>pt. Match (Prot (case pt of L4Ports proto x \<Rightarrow> Proto proto))) (getPos srcpts)))
+                 (map (Match \<circ> (Prot \<circ> (case_ipt_l4_ports (\<lambda>proto x. Proto proto)))) (getPos srcpts)))
                (andfold_MatchExp
-                 (map (\<lambda>pt. Match (Prot (case pt of L4Ports proto x \<Rightarrow> Proto proto))) (getPos dstpts))))
+                 (map (Match \<circ> (Prot \<circ> (case_ipt_l4_ports (\<lambda>proto x. Proto proto)))) (getPos dstpts))))
              (alist_and' (NegPos_map Src_Ports srcpts @ NegPos_map Dst_Ports dstpts)))
            rst2)) \<Longrightarrow>
     P (import_protocols_from_ports m)"
@@ -284,7 +284,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
   proof-
     have add_protocol:
     "matches (\<beta>, \<alpha>)
-      (andfold_MatchExp (map (\<lambda>pt. Match (Prot (case pt of L4Ports proto x \<Rightarrow> Proto proto))) (getPos as))) a p \<and>
+      (andfold_MatchExp (map (Match \<circ> (Prot \<circ> (case_ipt_l4_ports (\<lambda>proto x. Proto proto)))) (getPos as))) a p \<and>
      matches (\<beta>, \<alpha>) (alist_and (NegPos_map C as)) a p
      \<longleftrightarrow>
      matches (\<beta>, \<alpha>) (alist_and (NegPos_map C as)) a p"
@@ -293,21 +293,14 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
       case Nil thus ?case by(simp)
       next
       case (Cons x xs)
-        from Cons.IH have IH:
-        "(matches (\<beta>, \<alpha>)
-          (andfold_MatchExp (map (\<lambda>pt. Match (Prot (case pt of L4Ports proto x \<Rightarrow> Proto proto))) (getPos xs))) a p \<and>
-          matches (\<beta>, \<alpha>) (alist_and (NegPos_map C xs)) a p)
-         \<longleftrightarrow>
-          matches (\<beta>, \<alpha>) (alist_and (NegPos_map C xs)) a p"
-       by(simp)
         show ?case
         proof(cases x)
-        case Neg with IH show ?thesis
+        case Neg with Cons.IH show ?thesis
           apply(simp add: bunch_of_lemmata_about_matches)
           by blast
         next
         case (Pos portmatch)
-          with IH show ?thesis
+          with Cons.IH show ?thesis
             apply(cases portmatch)
             apply(simp add: andfold_MatchExp_matches bunch_of_lemmata_about_matches)
             using Ports_single_rewrite_Prot C by blast
@@ -330,7 +323,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
   lemma import_protocols_from_ports_nnf:
     "normalized_nnf_match m \<Longrightarrow> normalized_nnf_match (import_protocols_from_ports m)"
     proof -
-      have hlp: "\<forall>m\<in>set (map (case_ipt_l4_ports (\<lambda>proto x. Match (Prot (Proto proto)))) ls).
+      have hlp: "\<forall>m\<in>set (map (Match \<circ> (Prot \<circ> (case_ipt_l4_ports (\<lambda>proto x. Proto proto)))) ls).
           normalized_nnf_match m" for ls
       apply(induction ls)
        apply(simp)
@@ -345,16 +338,21 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
       done
     qed
 
-
-  lemma compress_normalize_protocols_not_introduces_Prot_negated:
-    "normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated is_Prot False m \<Longrightarrow> \<not> has_disc_negated is_Prot False (import_protocols_from_ports m)"
+  lemma import_protocols_from_ports_not_introduces_Prot_negated:
+    "normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated is_Prot False m \<Longrightarrow>
+      \<not> has_disc_negated is_Prot False (import_protocols_from_ports m)"
      apply(erule(1) import_protocols_from_ports_erule)
      apply(simp)
+     apply(intro conjI)
+        using andfold_MatchExp_not_disc_negated_mapMatch[
+          where C="Prot \<circ> case_ipt_l4_ports (\<lambda>proto x. Proto proto)", simplified] apply blast
+       using andfold_MatchExp_not_disc_negated_mapMatch[
+         where C="Prot \<circ> case_ipt_l4_ports (\<lambda>proto x. Proto proto)", simplified] apply blast
+      apply(simp add: has_disc_negated_alist_and')
+      using not_has_disc_negated_NegPos_map[where disc=is_Prot and C=Src_Ports, simplified]
+            not_has_disc_negated_NegPos_map[where disc=is_Prot and C=Dst_Ports, simplified] apply blast
      apply(drule(1) primitive_extractor_correct(6)[OF _ wf_disc_sel_common_primitive(1), where neg=False])
      apply(drule(1) primitive_extractor_correct(6)[OF _ wf_disc_sel_common_primitive(2), where neg=False])
-     apply(intro conjI)
-     using andfold_MatchExp_not_disc_negated_mapMatch 
-     thm andfold_MatchExp_not_disc_negated_mapMatch andfold_MatchExp_not_disc_negatedI
-
+     by blast
 
 end
