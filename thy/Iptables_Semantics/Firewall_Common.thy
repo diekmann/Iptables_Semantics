@@ -144,12 +144,16 @@ lemma optimize_matches_option_simple_ruleset: "simple_ruleset rs \<Longrightarro
   proof(induction rs rule:optimize_matches_option.induct)
   qed(simp_all add: simple_ruleset_def split: option.split)
 
+(*TODO: delete, only use version below*)
 lemma optimize_matches_option_preserves: "(\<And> r m. r \<in> set rs \<Longrightarrow> f (get_match r) = Some m \<Longrightarrow> P m) \<Longrightarrow>
     \<forall> m \<in> get_match ` set (optimize_matches_option f rs). P m"
   apply(induction rs rule: optimize_matches_option.induct)
    apply(simp; fail)
   apply(simp split: option.split)
   by fastforce
+lemma optimize_matches_option_preserves':
+  "\<forall> m \<in> set rs. P (get_match m) \<Longrightarrow> \<forall>m. P m \<longrightarrow> (\<forall>m'. f m = Some m' \<longrightarrow> P m') \<Longrightarrow> \<forall>m \<in> set (optimize_matches_option f rs). P (get_match m)"
+  using optimize_matches_option_preserves[simplified] by metis
 
 lemma optimize_matches_option_append: "optimize_matches_option f (rs1@rs2) = optimize_matches_option f rs1 @ optimize_matches_option f rs2"
   proof(induction rs1 rule: optimize_matches_option.induct)
@@ -188,6 +192,7 @@ apply(simp add: optimize_matches_a_def)
 apply(simp add: simple_ruleset_def)
 done
 
+(*TODO: only use [simplified]!*)
 lemma optimize_matches_a_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_action r) (get_match r)))
     \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches_a f rs). P m"
   by(induction rs)(simp_all add: optimize_matches_a_def)

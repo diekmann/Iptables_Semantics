@@ -456,10 +456,20 @@ subsection\<open>Normalizing and Optimizing Primitives\<close>
       with \<open>normalized_nnf_match ms\<close> show "normalized_nnf_match mn" by fastforce
     qed
 
-  lemma normalize_rules_primitive_extract_preserves_nnf_normalized:
+(*
+TODO: old delete
+lemma normalize_rules_primitive_extract_preserves_nnf_normalized:
     "\<forall>m\<in>get_match ` set rs. normalized_nnf_match m \<Longrightarrow> wf_disc_sel disc_sel C \<Longrightarrow>
      \<forall>m\<in>get_match ` set (normalize_rules (normalize_primitive_extract disc_sel C f) rs). normalized_nnf_match m"
   apply(rule normalize_rules_preserves[where P="normalized_nnf_match" and f="(normalize_primitive_extract disc_sel C f)"])
+   apply(simp)
+  apply(cases disc_sel)
+  using normalize_primitive_extract_preserves_nnf_normalized by fast
+*)
+  lemma normalize_rules_primitive_extract_preserves_nnf_normalized:
+    "\<forall>r \<in> set rs. normalized_nnf_match (get_match r) \<Longrightarrow> wf_disc_sel disc_sel C \<Longrightarrow>
+     \<forall>r \<in> set (normalize_rules (normalize_primitive_extract disc_sel C f) rs). normalized_nnf_match (get_match r)"
+  apply(rule normalize_rules_preserves'[where P="normalized_nnf_match" and f="(normalize_primitive_extract disc_sel C f)"])
    apply(simp)
   apply(cases disc_sel)
   using normalize_primitive_extract_preserves_nnf_normalized by fast
