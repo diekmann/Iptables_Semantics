@@ -244,26 +244,40 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
       (Match (Src_Ports (L4Ports UDP [])))) (Match (IIface (Iface ''eth1''))))
               (Match (Prot (Proto TCP))))"
 
+
   (*TODO: move to nxt lemma*)
   lemma (in primitive_matcher_generic) add_protocol:
-    "matches (\<beta>, \<alpha>)
-           (andfold_MatchExp (map (case_ipt_l4_ports (\<lambda>proto x. Match (Prot (Proto proto)))) (getPos as))) a p \<and>
-          matches (\<beta>, \<alpha>) (alist_and' (NegPos_map Src_Ports as)) a p \<longleftrightarrow>
-            matches (\<beta>, \<alpha>) (alist_and (NegPos_map Src_Ports as)) a p"
+    assumes C: "C = Src_Ports \<or> C = Dst_Ports"
+    shows "matches (\<beta>, \<alpha>)
+      (andfold_MatchExp (map (case_ipt_l4_ports (\<lambda>proto x. Match (Prot (Proto proto)))) (getPos as))) a p \<and>
+     matches (\<beta>, \<alpha>) (alist_and' (NegPos_map C as)) a p
+     \<longleftrightarrow>
+     matches (\<beta>, \<alpha>) (alist_and (NegPos_map C as)) a p"
     apply(simp add: matches_alist_and_alist_and')
-    apply(induction as)
-     apply(simp)
-    apply(rename_tac x xs)
-    apply(case_tac x)
-    apply(simp_all)
-    defer
-     apply (metis alist_and.simps(3) matches_alist_and_alist_and' nt_match_list.simps(3) nt_match_list_matches)
-    thm andfold_MatchExp_matches
-    apply(simp add: andfold_MatchExp_matches)
-    apply(simp add: bunch_of_lemmata_about_matches)
-    apply(case_tac x1)
-    apply(simp)
-    using Ports_single_rewrite_Prot(1) by blast
+    proof(induction as)
+    case Nil thus ?case by(simp)
+    next
+    case (Cons x xs)
+      from Cons.IH have IH:
+      "(matches (\<beta>, \<alpha>)
+        (andfold_MatchExp (map (\<lambda>a. case a of L4Ports proto x \<Rightarrow> Match (Prot (Proto proto))) (getPos xs))) a p \<and>
+        matches (\<beta>, \<alpha>) (alist_and (NegPos_map C xs)) a p)
+       \<longleftrightarrow>
+        matches (\<beta>, \<alpha>) (alist_and (NegPos_map C xs)) a p"
+     by(simp)
+      show ?case
+      proof(cases x)
+      case Neg with IH show ?thesis
+        apply(simp add: bunch_of_lemmata_about_matches)
+        by blast
+      next
+      case (Pos portmatch)
+        with IH show ?thesis
+          apply(cases portmatch)
+          apply(simp add: andfold_MatchExp_matches bunch_of_lemmata_about_matches)
+          using Ports_single_rewrite_Prot C by blast
+      qed
+    qed
 
   lemma (in primitive_matcher_generic) import_protocols_from_ports:
   assumes normalized: "normalized_nnf_match m"
