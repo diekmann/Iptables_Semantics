@@ -110,12 +110,7 @@ begin
   private lemma "simple_packet_set_toSet (simple_packet_set_union ps m) = simple_packet_set_toSet ps \<union> {p. simple_matches m p}"
     unfolding simple_packet_set_toSet_def simple_packet_set_union_def by simp blast
 
-
-  value "(\<exists>m' \<in> set ms. iface_subset iif (iiface m')) \<and>
-        (\<exists>m' \<in> set ms. iface_subset oif (oiface m')) \<and>
-        wordinterval_subset (ipcidr_tuple_to_wordinterval sip) (l2wi (map ipcidr_to_interval (map src ms)))"
-
-   (*TODO: either a sound but not complete executable implementation or a better idea to implement subset*)
+   (*either a sound but not complete executable implementation or a better idea to implement subset*)
    private lemma "(\<exists>m' \<in> set ms.
         {i. match_iface iif i} \<subseteq> {i. match_iface (iiface m') i} \<and>
         {i. match_iface oif i} \<subseteq> {i. match_iface (oiface m') i} \<and>
