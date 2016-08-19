@@ -65,7 +65,7 @@ text\<open>We use a primitive matcher which always applies. We don't care about 
   "applies_exampleMatchExact (Dst (IpAddr addr)) p \<longleftrightarrow> p_dst p = addr" |
   "applies_exampleMatchExact (Prot ProtoAny) p \<longleftrightarrow> True" |
   "applies_exampleMatchExact (Prot (Proto pr)) p \<longleftrightarrow> p_proto p = pr"
-  (*TODO, not exhaustive, only an example!!*)
+  (* not exhaustive, only an example!!*)
 
   lemma "[''FORWARD'' \<mapsto> [ Rule (MatchAnd (Match (Src (IpAddr 0))) (Match (Dst (IpAddr 0)))) Reject, 
                           Rule (Match (Dst (IpAddr 0))) Log, 

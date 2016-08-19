@@ -99,7 +99,6 @@ text\<open>Basically, it accepts everything\<close>
 lemma "take 2 (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string_ipv4 saturn_fw)) =
     [Rule (Match (CT_State {CT_Related, CT_Established})) action.Accept, Rule (Match (CT_State {CT_New})) action.Accept]" by eval
 
-(*TODO: all the CT states are essentially the universe*)
 
 text\<open>The upper closure\<close>
 value[code] "upper_closure (unfold_ruleset_INPUT saturn_fw_INPUT_default_policy (map_of_string_ipv4 saturn_fw))"

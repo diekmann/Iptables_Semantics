@@ -317,7 +317,6 @@ theorem to_simple_firewall: "check_simple_fw_preconditions rs \<Longrightarrow> 
   qed
 
 
-(*TODO: is there a nocer proof that uses a generic optimize_matches lemma?*)
 lemma ctstate_assume_new_not_has_CT_State:
   "m \<in> get_match ` set (ctstate_assume_new rs) \<Longrightarrow> \<not> has_disc is_CT_State m"
   apply(simp add: ctstate_assume_new_def)
@@ -398,7 +397,7 @@ theorem transform_simple_fw_upper:
      normalized_nnf_match m \<and> normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" .
     with r have normalized: "normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" by fastforce
 
-    (*things break because upper closure could introduce negated protocols. houls not happen if we don't have negated ports in it ...  TODO: proof*)
+    (*things break because upper closure could introduce negated protocols. should not happen if we don't have negated ports in it *)
     (*TODO: rewrite in a way that it is in simp-normal form*)
     from transform_upper_closure(5)[OF s3] iface_in iface_out have "\<forall>m\<in>get_match ` set ?rs'.
      \<not> has_disc_negated is_Iiface False m \<and> \<not> has_disc_negated is_Oiface False m" by simp (*500ms*)
