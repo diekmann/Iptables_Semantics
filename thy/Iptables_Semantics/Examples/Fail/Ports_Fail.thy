@@ -49,9 +49,9 @@ lemma "unfold_ruleset_FORWARD action.Accept
    action.Drop,
   Rule MatchAny action.Accept]" by eval
 
-
 text\<open>The simple firewall accepts everything. This is a useless result but a sound overapproximation.
-The simple firewall cannot express more. See below.
+The simple firewall cannot express such scenarios with negated protocols in general (see below).
+However, for this specific scenario, it should be possible!
 
 
 Without having the protocol again in the type for ports, the nnf normalization would mix up
