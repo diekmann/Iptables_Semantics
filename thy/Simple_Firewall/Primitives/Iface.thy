@@ -4,6 +4,11 @@ imports String
         "~~/src/HOL/Library/Char_ord" (*WARNING: importing char ord*)
 begin
 
+text\<open>Network interfaces, e.g. \texttt{eth0}, \texttt{wlan1}, ...
+
+iptables supports wildcard matching, e.g. \texttt{eth+} will match \texttt{eth}, \texttt{eth1}, \texttt{ethFOO}, ...
+The character `+' is only a wildcard if it appears at the end.
+\<close>
 
 datatype iface = Iface (iface_sel: "string")  --"no negation supported, but wildcards"
 
@@ -18,7 +23,6 @@ begin
     "(Iface _) \<le> (Iface []) \<longleftrightarrow> False" |
     "(Iface (a#as)) \<le> (Iface (b#bs)) \<longleftrightarrow> (if a = b then Iface as \<le> Iface bs else a \<le> b)"
    by(pat_completeness) auto
-  thm ord_iface_inst.less_eq_iface
   termination "less_eq :: iface \<Rightarrow> _ \<Rightarrow> bool"
     apply(relation "measure (\<lambda>is. size (iface_sel (fst is)) + size (iface_sel (snd is)))")
     apply(rule wf_measure, unfold in_measure comp_def)
@@ -29,7 +33,8 @@ begin
     by(induction "Iface x" "Iface []" rule: less_eq_iface.induct) auto
   lemma less_eq_empty: "Iface [] \<le> q"
     by(induction "Iface []" q rule: less_eq_iface.induct) auto
-  lemma iface_cons_less_eq_i: "Iface (b # bs) \<le> i \<Longrightarrow> \<exists> q qs. i=Iface (q#qs) \<and> (b < q \<or> (Iface bs) \<le> (Iface qs))"
+  lemma iface_cons_less_eq_i:
+    "Iface (b # bs) \<le> i \<Longrightarrow> \<exists> q qs. i=Iface (q#qs) \<and> (b < q \<or> (Iface bs) \<le> (Iface qs))"
     apply(induction "Iface (b # bs)" i rule: less_eq_iface.induct)
      apply(simp_all split: split_if_asm)
     apply(clarify)
@@ -95,9 +100,11 @@ definition ifaceAny :: iface where
   "ifaceAny \<equiv> Iface ''+''"
 (* there is no IfaceFalse, proof below *)
 
-text\<open>If the interface name ends in a ``+'', then any interface which begins with this name will match. (man iptables)
+text\<open>If the interface name ends in a ``+'', then any interface which begins with this name will match.
+  (man iptables)
 
-Here is how iptables handles this wildcard on my system. A packet for the loopback interface \texttt{lo} is matched by the following expressions
+Here is how iptables handles this wildcard on my system.
+A packet for the loopback interface \texttt{lo} is matched by the following expressions
   \<^item> lo
   \<^item> lo+
   \<^item> l+
@@ -110,12 +117,12 @@ It is not matched by the following expressions
   \<^item> lo1
 
 By the way: \texttt{Warning: weird characters in interface ` ' ('/' and ' ' are not allowed by the kernel).}
+However, happy snowman and shell colors are fine.
 \<close>
 
 
 context
 begin
-    
   subsection\<open>Helpers for the interface name (@{typ string})\<close>
     (*Do not use outside this thy! Type is really misleading.*)
     text\<open>
@@ -213,8 +220,7 @@ begin
       apply(rule_tac x="name" in exI)
       by(simp add: internal_iface_name_match_refl)
       
-  
-  
+
     --\<open>@{const match_iface} explained by the individual cases\<close>
     lemma match_iface_case_nowildcard: "\<not> iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface i) p_i \<longleftrightarrow> i = p_i"
       proof(induction i p_i rule: internal_iface_name_match.induct)
@@ -264,9 +270,10 @@ begin
       by(simp add: internal_iface_name_wildcard_longest_def)
   
   
-    private lemma internal_iface_name_wildcard_longest_correct: "iface_name_is_wildcard i1 \<Longrightarrow> iface_name_is_wildcard i2 \<Longrightarrow> 
-             match_iface (Iface i1) p_i \<and> match_iface (Iface i2) p_i \<longleftrightarrow>
-             (case internal_iface_name_wildcard_longest i1 i2 of None \<Rightarrow> False | Some x \<Rightarrow> match_iface (Iface x) p_i)"
+    private lemma internal_iface_name_wildcard_longest_correct:
+      "iface_name_is_wildcard i1 \<Longrightarrow> iface_name_is_wildcard i2 \<Longrightarrow> 
+       match_iface (Iface i1) p_i \<and> match_iface (Iface i2) p_i \<longleftrightarrow>
+       (case internal_iface_name_wildcard_longest i1 i2 of None \<Rightarrow> False | Some x \<Rightarrow> match_iface (Iface x) p_i)"
     proof -
       assume assm1: "iface_name_is_wildcard i1"
          and assm2: "iface_name_is_wildcard i2"
@@ -369,7 +376,8 @@ begin
     by(blast dest: iface_conjunct_Some iface_conjunct_None)
 
     lemma match_iface_refl: "match_iface (Iface x) x" by (simp add: internal_iface_name_match_refl)
-    lemma match_iface_eqI: assumes "x = Iface y" shows "match_iface x y" unfolding assms using match_iface_refl .
+    lemma match_iface_eqI: assumes "x = Iface y" shows "match_iface x y"
+      unfolding assms using match_iface_refl .
 
 
     lemma iface_conjunct_ifaceAny: "iface_conjunct ifaceAny i = Some i"
@@ -397,7 +405,6 @@ begin
         (False, True) \<Rightarrow> take (length i2 - 1) i1 = butlast i2 |
         (False, False) \<Rightarrow> i1 = i2
         )"
-
 
     private lemma butlast_take_length_helper:
       fixes x ::"char list"
@@ -502,13 +509,13 @@ begin
        by(simp add: all_chars_def enum_UNIV)
   
     text\<open>we can compute this, but its horribly inefficient!\<close>
-    (*TODO: reduce size of valid chars to the printable ones*)
+    (*valid chars in an interface are NOT limited to the printable ones!*)
     private lemma strings_of_length_n: "set (List.n_lists n all_chars) = {s::string. length s = n}"
       apply(induction n)
-       apply(simp)
+       apply(simp; fail)
       apply(simp add: all_chars)
       apply(safe)
-       apply(simp)
+       apply(simp; fail)
       apply(simp)
       apply(rename_tac n x)
       apply(rule_tac x="drop 1 x" in exI)
@@ -606,26 +613,6 @@ begin
     lemma "''+'' \<in> - (internal_iface_name_to_set ''eth+'')" by(simp)
 
 
-
-    (*
-    foobar
-    lemma "iface_conjunct i1 i2 = None \<Longrightarrow> \<not> iface_is_wildcard i2 \<Longrightarrow> match_iface i2 p_i \<longleftrightarrow> (\<not> match_iface i1 p_i) \<and> match_iface i2 p_i"
-      nitpick
-      oops
-    lemma "iface_conjunct i1 i2 = None \<Longrightarrow> iface_is_wildcard i2 \<Longrightarrow> \<not> iface_is_wildcard i1 \<Longrightarrow> match_iface i2 p_i \<longleftrightarrow> (\<not> match_iface i1 p_i) \<and> match_iface i2 p_i"
-      nitpick
-      oops
-    lemma "(\<not> match_iface i1 p_i) \<and> match_iface i2 p_i \<longleftrightarrow>
-           (case iface_conjunct i1 i2
-              of Some x \<Rightarrow> ((\<not> match_iface i1 p_i) \<and> match_iface i2 p_i)
-              |  None \<Rightarrow> if \<not> iface_is_wildcard i2
-                         then
-                           match_iface i2 p_i
-                         else
-                           ((\<not> match_iface i1 p_i) \<and> match_iface i2 p_i)
-           )"
-      nitpick
-      *)
 
 
   fun compress_pos_interfaces :: "iface list \<Rightarrow> iface option" where

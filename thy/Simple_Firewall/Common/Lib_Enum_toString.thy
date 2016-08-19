@@ -1,9 +1,7 @@
 section\<open>Enum toString Functions\<close>
 theory Lib_Enum_toString
-imports Main
-        "../../IP_Addresses/Lib_List_toString"
+imports Main "../../IP_Addresses/Lib_List_toString"
 begin
-
 
 fun bool_toString :: "bool \<Rightarrow> string" where
   "bool_toString True = ''True''" |
