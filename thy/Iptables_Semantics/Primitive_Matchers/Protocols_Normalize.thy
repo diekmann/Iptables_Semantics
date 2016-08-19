@@ -35,7 +35,6 @@ subsection\<open>Optimizing protocols in match expressions\<close>
      using simple_proto_conjunct_None apply blast
     using simple_proto_conjunct_Some by blast
 
-(*TODO move and give a name?*)
 (*the intuition behind the compress_protocols*)
 lemma "simple_proto_conjunct (Proto p1) (Proto p2) \<noteq> None \<Longrightarrow> \<forall>pkt. match_proto (Proto p1) pkt \<longleftrightarrow> match_proto (Proto p2) pkt"
   apply(subgoal_tac "p1 = p2")
@@ -61,10 +60,8 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
                          else
                            Some ([proto], getNeg ps)"
   
-  (* It is kind of messy to find a definition that checks whether a match is the exhaustive list and is executable *)
-  (*TODO: probably code_unfold was meant. TODO: check whether we actually need this!*)
-  (*Changed to code_unfold. TODO: move and check if this breaks anything*)
-  (*TODO: no longer code_unfold, needs testing!*)
+  (* It is kind of messy to find a definition that checks whether a match is the exhaustive list
+    and is executable *)
   lemma all_proto_hlp2: "ProtoAny \<in> a \<or> (\<forall>p \<in> {0..max_word}. Proto p \<in> a) \<longleftrightarrow>
                                ProtoAny \<in> a \<or> a = {p. p \<noteq> ProtoAny}"
   proof -   
@@ -82,22 +79,9 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
   lemma "(\<forall>p \<in> {0..max_word}. Proto p \<in> set (getNeg ps)) \<longleftrightarrow>
          ((\<forall>p \<in> set (word_upto 0 255). Proto p \<in> set (getNeg ps)))"
     by(simp add: set_word8_word_upto)
-  (*
-        "../afp/Mergesort" (*TODO: dependnecy! import from afp directly!*)
-  lemma "of_int ` {0..255} = {0:: 8 word..255}"
-    oops
-  lemma "(\<forall>p \<in> {0..max_word}. Proto p \<in> set (getNeg ps)) \<longleftrightarrow>
-         (mergesort_remdups (List.map_filter (\<lambda>p. case p of Proto x \<Rightarrow> Some x | ProtoAny \<Rightarrow> None) (getNeg ps)) =
-          word_upto 0 255)"
-    apply(rule iffI)
-    subgoal
-     apply(rule List.linorder_class.sorted_distinct_set_unique)
-     apply(simp_all add: Mergesort.mergesort_remdups_correct)
-     prefer 3
-    oops
-  *)
+ 
   
-  lemma compress_protocols_code[code]: (*does not seem better*)
+  lemma compress_protocols_code[code]:
     "compress_protocols ps = (case (compress_pos_protocols (getPos ps))
         of None \<Rightarrow> None
         |  Some proto \<Rightarrow> if ProtoAny \<in> set (getNeg ps) \<or> (\<forall>p \<in> set (word_upto 0 255). Proto p \<in> set (getNeg ps)) then

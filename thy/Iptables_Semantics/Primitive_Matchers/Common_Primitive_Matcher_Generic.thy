@@ -87,8 +87,7 @@ end
 
 subsection\<open>Basic optimisations\<close>
   
-  (*TODO: move
-    TODO: this is currently not used.*)
+  (*this is currently not used.*)
   text\<open>Compress many @{const Extra} expressions to one expression.\<close>
   fun compress_extra :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where
     "compress_extra (Match x) = Match x" |

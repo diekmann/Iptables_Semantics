@@ -38,7 +38,7 @@ apply(simp add: ctstate_assume_state)
 done
 
 text\<open>If we assume the CT State is @{const CT_New}, we can also assume that the TCP SYN flag (@{const ipt_tcp_syn}) is set.\<close>
-(*TODO: move?*)
+
 fun ipt_tcp_flags_assume_flag :: "ipt_tcp_flags \<Rightarrow> 'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where
   "ipt_tcp_flags_assume_flag flg (Match (L4_Flags x)) = (if ipt_tcp_flags_equal x flg then MatchAny else (case match_tcp_flags_conjunct_option x flg of None \<Rightarrow> MatchNot MatchAny | Some f3 \<Rightarrow> Match (L4_Flags f3)))" |
   "ipt_tcp_flags_assume_flag flg (Match m) = Match m" |
