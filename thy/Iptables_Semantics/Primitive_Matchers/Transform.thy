@@ -623,7 +623,7 @@ definition transform_normalize_primitives :: "'i::len common_primitive rule list
              (\<forall>m' \<in> set (normalize_primitive_extract (disc, sel) C f m). normalized_n_primitive (disc, sel) P m')"
     shows "\<forall>r \<in> set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs).
            normalized_n_primitive (disc, sel) P (get_match r)"
-    apply(rule normalize_rules_property[where P=normalized_nnf_match and f="normalize_primitive_extract (disc, sel) C f", simplified])
+    apply(rule normalize_rules_property[where P=normalized_nnf_match and f="normalize_primitive_extract (disc, sel) C f"])
      using assms(1) apply simp
     using assms(2) by simp
 
@@ -1356,7 +1356,7 @@ lemma transform_upper_closure:
       "\<forall>r\<in> set (optimize_matches_a upper_closure_matchexpr rs). 
         \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)"
       by blast
-    from m this transform_optimize_dnf_strict_structure(5)[OF optimize_matches_a_simple_ruleset[OF simplers] wf_in_doubt_allow, of upper_closure_matchexpr, simplified]
+    from m this transform_optimize_dnf_strict_structure(5)[OF optimize_matches_a_simple_ruleset[OF simplers] wf_in_doubt_allow, of upper_closure_matchexpr]
       show ?thesis by blast
     qed
 
@@ -1537,7 +1537,7 @@ lemma transform_lower_closure:
       "\<forall>r\<in> set (optimize_matches_a lower_closure_matchexpr rs). 
         \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)"
       by blast
-    from m this transform_optimize_dnf_strict_structure(5)[OF optimize_matches_a_simple_ruleset[OF simplers] wf_in_doubt_deny, of lower_closure_matchexpr, simplified]
+    from m this transform_optimize_dnf_strict_structure(5)[OF optimize_matches_a_simple_ruleset[OF simplers] wf_in_doubt_deny, of lower_closure_matchexpr]
       show ?thesis by blast
     qed
 
