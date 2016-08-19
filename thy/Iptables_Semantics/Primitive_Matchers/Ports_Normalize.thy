@@ -119,6 +119,11 @@ lemma andfold_MatchExp_not_disc_mapMatch:
    apply(rename_tac ls, case_tac ls)
   by(simp)+
 
+
+lemma andfold_MatchExp_normalized_nnf: "\<forall>m \<in> set ms. normalized_nnf_match m \<Longrightarrow>
+    normalized_nnf_match (andfold_MatchExp ms)"
+  by(induction ms rule: andfold_MatchExp.induct)(simp)+
+
 lemma andfold_MatchExp_normalized_n_primitive: "\<forall>m \<in> set ms. normalized_n_primitive (disc, sel) f m \<Longrightarrow>
     normalized_n_primitive (disc, sel) f (andfold_MatchExp ms)"
   by(induction ms rule: andfold_MatchExp.induct)(simp)+
