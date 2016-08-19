@@ -232,7 +232,6 @@ lemma NNF_ternary_NegationNormalForm: "NegationNormalForm (NNF_ternary t)"
 
 
 
-(*TODO: the following are unused*)
 context
 begin
   private lemma ternary_lift1: "eval_ternary_Not tv \<noteq> TernaryFalse \<longleftrightarrow> tv = TernaryFalse \<or> tv = TernaryUnknown"

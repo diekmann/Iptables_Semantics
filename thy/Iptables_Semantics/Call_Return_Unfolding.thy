@@ -763,8 +763,9 @@ where
 
 
 lemma unfold_optimize_ruleset_CHAIN:
-    assumes "sanity_wf_ruleset \<Gamma>" and "chain_name \<in> set (map fst \<Gamma>)" and "default_action = Accept \<or> default_action = Drop"
-    and "(\<And>m. matches \<gamma> (optimize m) p = matches \<gamma> m p)" (*TODO?*)
+    assumes "sanity_wf_ruleset \<Gamma>" and "chain_name \<in> set (map fst \<Gamma>)"
+    and "default_action = Accept \<or> default_action = Drop"
+    and "\<And>m. matches \<gamma> (optimize m) p = matches \<gamma> m p"
     and "unfold_optimize_ruleset_CHAIN optimize chain_name default_action (map_of \<Gamma>) = Some rs"
     shows "(map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow>
            (map_of \<Gamma>),\<gamma>,p\<turnstile> \<langle>[Rule MatchAny (Call chain_name), Rule MatchAny default_action], s\<rangle> \<Rightarrow> t"

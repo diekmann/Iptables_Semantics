@@ -21,7 +21,7 @@ lemma matches_ipassmt_iface_constrain_srcip_mexpr:
           | Some ips \<Rightarrow> match_iface ifce (p_iiface p) \<and> p_src p \<in> ipcidr_union_set (set ips)
           )"
 proof(cases "ipassmt ifce")
-case None thus ?thesis by(simp add: ipassmt_iface_constrain_srcip_mexpr_def match_simplematcher_Iface; fail)
+case None thus ?thesis by(simp add: ipassmt_iface_constrain_srcip_mexpr_def primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher]; fail)
 next
 case (Some ips)
   have "matches (common_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src \<circ> (uncurry IpAddrNetmask)) ips)) a p \<longleftrightarrow>
@@ -32,7 +32,7 @@ case (Some ips)
   with Some show ?thesis
     apply(simp add: ipcidr_union_set_uncurry)
     apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def bunch_of_lemmata_about_matches)
-    apply(simp add: match_simplematcher_Iface)
+    apply(simp add: primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher])
     done
 qed
 
@@ -58,7 +58,7 @@ begin
     proof(cases "ipassmt ifce")
     case None thus ?thesis
        apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-       apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def match_simplematcher_Iface_not)
+       apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher])
        done
      next
      case (Some ips)
@@ -76,13 +76,15 @@ begin
        } note helper=this
        from Some show ?thesis
          apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-         apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def match_simplematcher_Iface_not)
+         apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher])
          apply(simp add: matches_DeMorgan)
          apply(simp add: helper)
-         apply(simp add: match_simplematcher_Iface_not)
+         apply(simp add: primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher])
          by blast
      qed
-     with IIface show ?thesis by(simp add: match_simplematcher_Iface_not match_simplematcher_Iface)
+     with IIface show ?thesis
+      by(simp add: primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher]
+                   primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher])
   qed(simp_all)
   
   
@@ -125,7 +127,7 @@ begin
             with Some show ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
         qed
     qed
-    thus ?thesis by(simp add: match_simplematcher_Iface)
+    thus ?thesis by(simp add: primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher])
   qed
     
 
@@ -218,7 +220,7 @@ lemma matches_ipassmt_iface_replace_srcip_mexpr:
           | Some ips \<Rightarrow> (*match_iface ifce (p_iiface p) \<and>*) p_src p \<in> ipcidr_union_set (set ips)
           )"
 proof(cases "ipassmt ifce")
-case None thus ?thesis by(simp add: ipassmt_iface_replace_srcip_mexpr_def match_simplematcher_Iface)
+case None thus ?thesis by(simp add: ipassmt_iface_replace_srcip_mexpr_def primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher])
 next
 case (Some ips)
   have "matches (common_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src \<circ> (uncurry IpAddrNetmask)) ips)) a p \<longleftrightarrow>
@@ -227,7 +229,7 @@ case (Some ips)
                     match_list_matches match_simplematcher_SrcDst ipt_iprange_to_set_uncurry_IpAddrNetmask)
   with Some show ?thesis
     apply(simp add: ipassmt_iface_replace_srcip_mexpr_def bunch_of_lemmata_about_matches)
-    apply(simp add: match_simplematcher_Iface ipcidr_union_set_uncurry)
+    apply(simp add: ipcidr_union_set_uncurry)
     done
 qed
 
@@ -253,7 +255,7 @@ begin
     proof(cases "ipassmt ifce")
     case None thus ?thesis
        apply(simp add: matches_ipassmt_iface_replace_srcip_mexpr)
-       apply(simp add: ipassmt_iface_replace_srcip_mexpr_def match_simplematcher_Iface_not)
+       apply(simp add: ipassmt_iface_replace_srcip_mexpr_def primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher])
        done
      next
      case (Some ips)
@@ -272,11 +274,13 @@ begin
        } note helper=this
        from Some show ?thesis
          apply(simp add: matches_ipassmt_iface_replace_srcip_mexpr)
-         apply(simp add: ipassmt_iface_replace_srcip_mexpr_def match_simplematcher_Iface_not)
+         apply(simp add: ipassmt_iface_replace_srcip_mexpr_def)
          apply(simp add: helper)
          done
      qed
-     with IIface show ?thesis by(simp add: match_simplematcher_Iface_not match_simplematcher_Iface)
+     with IIface show ?thesis
+      by(simp add: primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher]
+            primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher])
   qed(simp_all)
 
 
@@ -300,7 +304,7 @@ begin
             with Some show ?thesis by(simp add: matches_ipassmt_iface_replace_srcip_mexpr)
         qed
     qed
-    thus ?thesis by(simp add: match_simplematcher_Iface)
+    thus ?thesis by(simp add: primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher])
   qed
 
 
@@ -347,7 +351,7 @@ end
     { fix p :: "32 tagged_packet"
       from iface_replace[of  i1 "p\<lparr> p_iiface := iface_sel i2\<rparr>"] have
         "(p_src p \<in> ipcidr_union_set (set i2_ips) \<Longrightarrow> (p_src p \<in> ipcidr_union_set (set i1_ips)) = match_iface i1 (iface_sel i2))"
-      apply(simp add: match_simplematcher_Iface  \<open>i1 \<in> dom ipassmt\<close>)
+      apply(simp add: primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher] \<open>i1 \<in> dom ipassmt\<close>)
       apply(simp add: matches_ipassmt_iface_replace_srcip_mexpr i1_ips)
       done
       with \<open>i1 \<noteq> i2\<close> have "\<not> (p_src p \<in> ipcidr_union_set (set i2_ips) \<and> (p_src p \<in> ipcidr_union_set (set i1_ips)))"

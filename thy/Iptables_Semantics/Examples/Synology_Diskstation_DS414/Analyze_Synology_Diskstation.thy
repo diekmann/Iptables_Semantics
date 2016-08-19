@@ -294,12 +294,6 @@ lemma "unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw) =
 value[code] "map common_primitive_rule_toString (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw))"
 
 value[code] "(upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw))))"
-(*TODO: remove the following  \<not> \<langle>Match (L4_Flags (TCP_Flags {} {TCP_SYN}))\<rangle>
-                              \<not> \<langle>Match (Prot (Proto ICMP))\<rangle> MATCHAND \<not> \<langle>Match (Prot (Proto TCP))\<rangle>
-                              \<not> \<langle>Match (IIface (Iface ''eth0''))\<rangle> MATCHAND Match (IIface (Iface ''eth0'')) 
-*)
-
-(*TODO: we can get a better simple firewall!*)
 
 value[code] "optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new (unfold_ruleset_INPUT ds2015_fw_INPUT_default_policy (map_of ds2015_fw))))"
 

@@ -102,7 +102,7 @@ apply (metis eval_ternary_Not.cases common_matcher_SrcDst_defined(1) ternaryvalu
 apply (metis eval_ternary_Not.cases common_matcher_SrcDst_defined(2) ternaryvalue.distinct(1))
 done
 
-(*TODO: delete, use generic*)
+(*The primitive_matcher_generic does not know anything about IP addresses*)
 lemma match_simplematcher_SrcDst:
   "matches (common_matcher, \<alpha>) (Match (Src X)) a p \<longleftrightarrow> p_src  p \<in> ipt_iprange_to_set X"
   "matches (common_matcher, \<alpha>) (Match (Dst X)) a p \<longleftrightarrow> p_dst  p \<in> ipt_iprange_to_set X"
@@ -120,12 +120,6 @@ lemma common_matcher_SrcDst_Inter:
   by(simp_all add: match_raw_ternary bool_to_ternary_simps split: ternaryvalue.split)
 
 
-
-
-
-(*TODO: delete, only use generic ones!*)
-lemmas match_simplematcher_Iface = primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher]
-lemmas match_simplematcher_Iface_not = primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher]
 
 
 

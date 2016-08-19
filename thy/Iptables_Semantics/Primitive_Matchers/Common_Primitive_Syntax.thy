@@ -11,7 +11,6 @@ text\<open>Primitive Match Conditions which only support interfaces, IPv4 addres
 \<close>
 
 
-(*TODO: currently only IPv4*)
 context
   notes [[typedef_overloaded]]
 begin
