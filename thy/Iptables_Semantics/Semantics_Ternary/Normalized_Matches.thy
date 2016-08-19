@@ -181,7 +181,7 @@ section\<open>Normalizing rules instead of only match expressions\<close>
   lemma normalize_rules_match_list_semantics_3: 
     assumes "\<forall>m a. P m \<longrightarrow> match_list \<gamma> (f m) a p = matches \<gamma> m a p"
     and "simple_ruleset rs"
-    and P: "\<forall> m \<in> get_match ` set rs. P m"
+    and P: "\<forall> r \<in> set rs. P (get_match r)"
     shows "approximating_bigstep_fun \<gamma> p (normalize_rules f rs) s = approximating_bigstep_fun \<gamma> p rs s"
     proof -
       have assm_1: "\<forall>r\<in>set rs. match_list \<gamma> (f (get_match r)) (get_action r) p = matches \<gamma> (get_match r) (get_action r) p" using P assms(1) by blast

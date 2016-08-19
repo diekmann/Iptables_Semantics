@@ -387,7 +387,7 @@ theorem transform_optimize_dnf_strict_structure:
     thus "\<forall> r \<in> set (transform_optimize_dnf_strict rs). normalized_nnf_match (get_match r)"
       unfolding inner_outer
       apply simp
-      apply(rule cut_off_after_match_any_preserve_matches[simplified])
+      apply(rule cut_off_after_match_any_preserve_matches)
       .
   qed
 
@@ -466,17 +466,17 @@ theorem transform_remove_unknowns_generic:
         "\<forall> r \<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow>
             \<forall> r \<in> set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_disc disc (get_match r)"
       unfolding transform_remove_unknowns_generic_def
-      by(intro optimize_matches_a_preserves[simplified]) blast
+      by(intro optimize_matches_a_preserves) blast
 
       from remove_unknowns_generic_normalized_n_primitive show
         "\<forall> r \<in> set rs. normalized_n_primitive disc_sel f (get_match r) \<Longrightarrow>
            \<forall> r \<in> set (transform_remove_unknowns_generic ?\<gamma> rs). normalized_n_primitive disc_sel f (get_match r)"
       unfolding transform_remove_unknowns_generic_def
-      by(intro optimize_matches_a_preserves[simplified]) blast
+      by(intro optimize_matches_a_preserves) blast
 
     show "\<forall> r \<in> set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_unknowns \<beta> (get_match r)"
       unfolding transform_remove_unknowns_generic_def
-      apply(rule optimize_matches_a_preserves[simplified])
+      apply(rule optimize_matches_a_preserves)
       apply(rule remove_unknowns_generic_specification[OF _ packet_independent_\<alpha> wf\<beta>])
       using simplers by(simp add: simple_ruleset_def)
 
@@ -484,7 +484,7 @@ theorem transform_remove_unknowns_generic:
       "\<forall> r \<in> set rs. \<not> has_disc_negated disc neg (get_match r) \<Longrightarrow>
          \<forall> r \<in> set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_disc_negated disc neg (get_match r)"
       unfolding transform_remove_unknowns_generic_def
-      by(rule optimize_matches_a_preserves[simplified]) blast
+      by(rule optimize_matches_a_preserves) blast
 qed
 thm transform_remove_unknowns_generic[OF _ _ _ packet_independent_\<beta>_unknown_common_matcher]
 
@@ -1064,8 +1064,8 @@ theorem transform_normalize_primitives:
          (\<forall>a. \<not> disc3 (IIface a)) \<or> disc3 = is_Iiface \<Longrightarrow>
          (\<forall>a. \<not> disc3 (OIface a)) \<or> disc3 = is_Oiface \<Longrightarrow>
          (\<forall>a. \<not> disc3 (Prot a)) (*\<or>
-          disc3 = is_Prot \<and> (\<forall>m \<in> get_match ` set rs.
-            \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m)*) \<Longrightarrow>
+          disc3 = is_Prot \<and> (\<forall>r \<in> set rs.
+            \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r))*) \<Longrightarrow>
          \<forall> r \<in> set rs. \<not> has_disc_negated disc3 False (get_match r) \<and> normalized_nnf_match (get_match r) \<Longrightarrow>
     \<forall> r \<in> set (transform_normalize_primitives rs). normalized_nnf_match (get_match r) \<and> \<not> has_disc_negated disc3 False (get_match r)"
    unfolding transform_normalize_primitives_def

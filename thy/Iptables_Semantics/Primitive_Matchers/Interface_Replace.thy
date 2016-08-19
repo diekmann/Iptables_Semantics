@@ -423,8 +423,8 @@ lemma iiface_constrain_preserves_nodisc:
   qed(simp_all)
 
 lemma iface_try_rewrite_preserves_nodisc: "\<forall>a. \<not> disc (Src a) \<Longrightarrow> 
-      \<forall>m\<in>get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
-        \<forall>m\<in>get_match ` set (iface_try_rewrite ipassmt rs). \<not> has_disc disc m"   
+      \<forall>r\<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow>
+        \<forall>r\<in> set (iface_try_rewrite ipassmt rs). \<not> has_disc disc (get_match r)"   
   apply(simp add: iface_try_rewrite_def)
   apply(intro conjI impI)
    apply(rule optimize_matches_preserves)

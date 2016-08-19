@@ -192,9 +192,8 @@ apply(simp add: optimize_matches_a_def)
 apply(simp add: simple_ruleset_def)
 done
 
-(*TODO: only use [simplified]!*)
 lemma optimize_matches_a_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_action r) (get_match r)))
-    \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches_a f rs). P m"
+    \<Longrightarrow> \<forall> r \<in> set (optimize_matches_a f rs). P (get_match r)"
   by(induction rs)(simp_all add: optimize_matches_a_def)
 
 
