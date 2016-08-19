@@ -232,7 +232,6 @@ section\<open>Normalizing rules instead of only match expressions\<close>
 
 
  text\<open>applying a function (with a prerequisite @{text Q}) to all rules\<close>
- (*TODO: only use [simplified]*)
  lemma normalize_rules_property:
  assumes "\<forall> r \<in> set rs. P (get_match r)"
      and "\<forall>m. P m \<longrightarrow> (\<forall>m' \<in> set (f m). Q m')"
@@ -262,19 +261,12 @@ section\<open>Normalizing rules instead of only match expressions\<close>
  qed
 
  text\<open>If a function @{text f} preserves some property of the match expressions, then this property is preserved when applying @{const normalize_rules}\<close>
-  (*TODO: simplified*)
- lemma normalize_rules_preserves: assumes "\<forall> m \<in> get_match ` set rs. P m"
-     and "\<forall>m. P m \<longrightarrow> (\<forall>m' \<in> set (f m). P m')"
-  shows "\<forall>m \<in> get_match ` set (normalize_rules f rs). P m"
-  using normalize_rules_property assms(1) assms(2) apply simp by blast
 
- (*the simplifier preferes this*)
- (*TODO: delete, use simplified above*)
- lemma normalize_rules_preserves':
-  "\<forall> r \<in> set rs. P (get_match r) \<Longrightarrow>
-    \<forall>m. P m \<longrightarrow> (\<forall>m' \<in> set (f m). P m') \<Longrightarrow>
-      \<forall>r \<in> set (normalize_rules f rs). P (get_match r)"
-  using normalize_rules_preserves[simplified] by blast
+ lemma normalize_rules_preserves: assumes "\<forall> r \<in> set rs. P (get_match r)"
+     and "\<forall>m. P m \<longrightarrow> (\<forall>m' \<in> set (f m). P m')"
+  shows "\<forall>r \<in> set (normalize_rules f rs). P (get_match r)"
+  using normalize_rules_property[OF assms(1) assms(2)] by simp
+
 
 (*TODO: generalize!*)
 fun normalize_rules_dnf :: "'a rule list \<Rightarrow> 'a rule list" where

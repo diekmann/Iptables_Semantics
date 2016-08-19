@@ -607,9 +607,9 @@ definition transform_normalize_primitives :: "'i::len common_primitive rule list
        and "\<forall>a. \<not> disc2 (C a)"
     shows "\<forall>r \<in> set (normalize_rules (normalize_primitive_extract (disc1, sel1) C f) rs).
               normalized_nnf_match (get_match r) \<and> normalized_n_primitive (disc2, sel2) P (get_match r)"
-    thm normalize_rules_preserves'[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive  (disc2, sel2) P m"
+    thm normalize_rules_preserves[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive  (disc2, sel2) P m"
         and f="normalize_primitive_extract (disc1, sel1) C f"]
-    apply(rule normalize_rules_preserves'[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive  (disc2, sel2) P m"
+    apply(rule normalize_rules_preserves[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive  (disc2, sel2) P m"
         and f="normalize_primitive_extract (disc1, sel1) C f"])
      using assms(1) apply(simp)
     apply(safe)
@@ -689,10 +689,10 @@ theorem transform_normalize_primitives:
     let ?rs4="optimize_matches_option compress_normalize_besteffort ?rs3"
 
     have normalized_rs0: "\<forall>r \<in> set ?rs0. normalized_nnf_match (get_match r)"
-      apply(intro normalize_rules_preserves'[OF normalized])
+      apply(intro normalize_rules_preserves[OF normalized])
       using normalize_src_ports_nnf by blast
     from normalize_dst_ports_nnf have normalized_rs1: "\<forall>r \<in> set ?rs1. normalized_nnf_match (get_match r)"
-      apply(intro normalize_rules_preserves'[OF normalized_rs0])
+      apply(intro normalize_rules_preserves[OF normalized_rs0])
       by blast
     from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(3)]
          normalize_src_ips_def
@@ -961,7 +961,7 @@ theorem transform_normalize_primitives:
       apply(simp; fail)
      apply(simp; fail)
     apply(simp; fail)
-   apply(rule normalize_rules_preserves')+
+   apply(rule normalize_rules_preserves)+
        apply(simp; fail)
       subgoal
       apply clarify
@@ -1074,7 +1074,7 @@ theorem transform_normalize_primitives:
       apply(simp; fail)
      apply(simp; fail)
     apply(blast)
-   apply(rule normalize_rules_preserves')+ (*this rule is just not good. we need to state that there could also be no negated ports or disc3 \<noteq> is_Prot*)
+   apply(rule normalize_rules_preserves)+
        apply(simp; fail)
       subgoal
       apply(clarify)
