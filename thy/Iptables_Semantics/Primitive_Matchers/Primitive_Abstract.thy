@@ -135,7 +135,8 @@ begin
   theorem abstract_primitive_in_doubt_allow_generic:
     fixes \<beta>::"('i::len common_primitive, ('i, 'a) tagged_packet_scheme) exact_match_tac"
     assumes generic: "primitive_matcher_generic \<beta>"
-       and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
+       and n: "\<forall> r \<in> set rs. normalized_nnf_match (get_match r)"
+       and simple: "simple_ruleset rs"
     defines "\<gamma> \<equiv> (\<beta>, in_doubt_allow)" and "abstract disc \<equiv> optimize_matches (abstract_primitive disc)"
     shows   "{p. \<gamma>,p\<turnstile> \<langle>abstract disc rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny} \<subseteq> {p. \<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny}"
                 (is ?deny)
@@ -232,12 +233,12 @@ begin
         unfolding abstract_def by fast
     qed
   corollary abstract_primitive_in_doubt_allow:
-    assumes "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and "simple_ruleset rs"
+    assumes "\<forall> r \<in> set rs. normalized_nnf_match (get_match r)" and "simple_ruleset rs"
     defines "\<gamma> \<equiv> (common_matcher, in_doubt_allow)" and "abstract disc \<equiv> optimize_matches (abstract_primitive disc)"
     shows   "{p. \<gamma>,p\<turnstile> \<langle>abstract disc rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny} \<subseteq> {p. \<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalDeny}"
       and   "{p. \<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow} \<subseteq> {p. \<gamma>,p\<turnstile> \<langle>abstract disc rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow}"
     unfolding \<gamma>_def abstract_def
-    using assms abstract_primitive_in_doubt_allow_generic[OF primitive_matcher_generic_common_matcher] by simp_all
+    using assms abstract_primitive_in_doubt_allow_generic[OF primitive_matcher_generic_common_matcher] by blast+
 end
 
 
