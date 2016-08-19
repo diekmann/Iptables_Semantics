@@ -230,6 +230,8 @@ section\<open>Normalizing rules instead of only match expressions\<close>
   apply(rule normalize_rules_match_list_semantics_3[where P="\<lambda>_. True"])
     using assms by(simp_all)
 
+lemma in_normalized_matches: "ls \<in> set (normalize_match m) \<and> matches \<gamma> ls a p \<Longrightarrow> matches \<gamma> m a p"
+  by (meson match_list_matches matches_to_match_list_normalize)
 
  text\<open>applying a function (with a prerequisite @{text Q}) to all rules\<close>
  lemma normalize_rules_property:

@@ -47,7 +47,6 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
  apply(simp split: split_if_asm)
  done
 
-  (*TODO: optimize more? maybe?*)
   definition compress_protocols :: "protocol negation_type list \<Rightarrow> (protocol list \<times> protocol list) option" where
     "compress_protocols ps \<equiv> case (compress_pos_protocols (getPos ps))
         of None \<Rightarrow> None
