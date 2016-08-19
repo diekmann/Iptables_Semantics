@@ -427,9 +427,9 @@ lemma iface_try_rewrite_preserves_nodisc: "\<forall>a. \<not> disc (Src a) \<Lon
         \<forall>m\<in>get_match ` set (iface_try_rewrite ipassmt rs). \<not> has_disc disc m"   
   apply(simp add: iface_try_rewrite_def)
   apply(intro conjI impI)
-   apply(rule optimize_matches_preserves[simplified])
+   apply(rule optimize_matches_preserves)
    apply(simp add: iiface_rewrite_preserves_nodisc)
-  apply(rule optimize_matches_preserves[simplified])
+  apply(rule optimize_matches_preserves)
   apply(simp add: iiface_constrain_preserves_nodisc)
   done
 

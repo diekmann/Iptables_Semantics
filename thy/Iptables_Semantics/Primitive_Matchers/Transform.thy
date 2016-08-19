@@ -286,7 +286,7 @@ theorem transform_optimize_dnf_strict_structure:
       { fix rs
         have "\<forall> r \<in> set rs. P (get_match r) \<Longrightarrow>
           \<forall> r \<in> set (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs). P (get_match r)"
-          apply(rule optimize_matches_preserves[simplified])
+          apply(rule optimize_matches_preserves)
           using p1 p2 by simp
       } note opt1=this
       { fix rs
@@ -301,7 +301,7 @@ theorem transform_optimize_dnf_strict_structure:
       { fix rs
         have "\<forall> r \<in> set rs. P (get_match r) \<Longrightarrow>
           \<forall> r \<in> set (optimize_matches opt_MatchAny_match_expr rs). P (get_match r)"
-          apply(rule optimize_matches_preserves[simplified])
+          apply(rule optimize_matches_preserves)
           using p2 by simp
       } note opt3=this
       have "\<forall> r \<in>  set rs. P (get_match r) \<Longrightarrow>
@@ -379,7 +379,7 @@ theorem transform_optimize_dnf_strict_structure:
       (*TODO simplify proof?*)
       hence "\<forall>r \<in> set (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf rs)). normalized_nnf_match (get_match r)"
         apply -
-        apply(rule optimize_matches_preserves[simplified])
+        apply(rule optimize_matches_preserves)
         using x by blast
     } 
     from this have "\<forall> r \<in> set (transform_optimize_dnf_strict_inner rs). normalized_nnf_match (get_match r)"

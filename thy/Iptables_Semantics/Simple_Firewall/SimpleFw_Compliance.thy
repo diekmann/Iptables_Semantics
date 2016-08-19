@@ -376,14 +376,14 @@ theorem transform_simple_fw_upper:
       by simp
     with abstract_primitive_preserves_nodisc[where disc'="is_CT_State"]
     have "\<forall>r\<in>set ?rs3. \<not> has_disc is_CT_State (get_match r)"
-      apply(intro optimize_matches_preserves[simplified])
+      apply(intro optimize_matches_preserves)
       by(auto simp add: abstract_for_simple_firewall_def)
     with transform_upper_closure(4)[OF s3, where disc=is_CT_State] have
       "\<forall>r\<in>set ?rs'. \<not> has_disc is_CT_State (get_match r)" by simp
     with r have no_CT: "\<not> has_disc is_CT_State m" by fastforce
 
     from abstract_for_simple_firewall_hasdisc have "\<forall>r\<in>set ?rs3. \<not> has_disc is_L4_Flags (get_match r)"
-      by(intro optimize_matches_preserves[simplified], auto)
+      by(intro optimize_matches_preserves, auto)
     with transform_upper_closure(4)[OF s3, where disc=is_L4_Flags] have
       "\<forall>r\<in>set ?rs'. \<not> has_disc is_L4_Flags (get_match r)" by simp
     with r have no_L4_Flags: "\<not> has_disc is_L4_Flags m" by fastforce
@@ -391,7 +391,7 @@ theorem transform_simple_fw_upper:
     from nnf2 abstract_for_simple_firewall_negated_ifaces_prots have
       ifaces: "\<forall>r\<in>set ?rs3. \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False (get_match r)" and
       protocols_rs3: "\<forall>r\<in>set ?rs3. \<not> has_disc_negated is_Prot False (get_match r)" 
-      by(intro optimize_matches_preserves[simplified], blast)+
+      by(intro optimize_matches_preserves, blast)+
     from ifaces have iface_in:  "\<forall>r\<in>set ?rs3. \<not> has_disc_negated is_Iiface False (get_match r)" and
                      iface_out: "\<forall>r\<in>set ?rs3. \<not> has_disc_negated is_Oiface False (get_match r)"
     using has_disc_negated_disj_split by blast+
@@ -419,7 +419,7 @@ theorem transform_simple_fw_upper:
       by blast 
     from this have "\<forall>r\<in>set ?rs3. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)"
       apply -
-      apply(rule optimize_matches_preserves[simplified])
+      apply(rule optimize_matches_preserves)
       apply(intro conjI)
       apply(intro abstract_for_simple_firewall_preserves_nodisc_negated, simp_all)+
      done
@@ -517,14 +517,14 @@ theorem transform_simple_fw_lower:
       by fastforce
     with abstract_primitive_preserves_nodisc[where disc'="is_CT_State"] have
       "\<forall>r\<in>set ?rs3. \<not> has_disc is_CT_State (get_match r)"
-      apply(intro optimize_matches_preserves[simplified])
+      apply(intro optimize_matches_preserves)
       by(auto simp add: abstract_for_simple_firewall_def)
     with transform_lower_closure(4)[OF s3, where disc=is_CT_State] have
       "\<forall>r\<in>set ?rs'. \<not> has_disc is_CT_State (get_match r)" by fastforce
     with r have no_CT: "\<not> has_disc is_CT_State m" by fastforce
 
     from abstract_for_simple_firewall_hasdisc have "\<forall>r\<in>set ?rs3. \<not> has_disc is_L4_Flags (get_match r)"
-      by(intro optimize_matches_preserves[simplified], blast)
+      by(intro optimize_matches_preserves, blast)
     with transform_lower_closure(4)[OF s3, where disc=is_L4_Flags] have
       "\<forall>r\<in>set ?rs'. \<not> has_disc is_L4_Flags (get_match r)" by fastforce
     with r have no_L4_Flags: "\<not> has_disc is_L4_Flags m" by fastforce
@@ -532,7 +532,7 @@ theorem transform_simple_fw_lower:
     from nnf2 abstract_for_simple_firewall_negated_ifaces_prots have
       ifaces: "\<forall>r\<in>set ?rs3. \<not> has_disc_negated (\<lambda>a. is_Iiface a \<or> is_Oiface a) False (get_match r)" and
       protocols_rs3: "\<forall>r\<in>set ?rs3. \<not> has_disc_negated is_Prot False (get_match r)" 
-      by(intro optimize_matches_preserves[simplified], blast)+
+      by(intro optimize_matches_preserves, blast)+
     from ifaces have iface_in:  "\<forall>r\<in>set ?rs3. \<not> has_disc_negated is_Iiface False (get_match r)" and
                      iface_out: "\<forall>r\<in>set ?rs3. \<not> has_disc_negated is_Oiface False (get_match r)"
     using has_disc_negated_disj_split by blast+
@@ -557,7 +557,7 @@ theorem transform_simple_fw_lower:
       by blast 
     from this have "\<forall>r\<in>set ?rs3. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)"
       apply -
-      apply(rule optimize_matches_preserves[simplified])
+      apply(rule optimize_matches_preserves)
       apply(intro conjI)
       apply(intro abstract_for_simple_firewall_preserves_nodisc_negated, simp_all)+
      done
@@ -666,11 +666,11 @@ theorem to_simple_firewall_without_interfaces:
     from transform_upper_closure(3)[OF s1] have nnf2: "\<forall>r\<in>set ?rs2. normalized_nnf_match (get_match r)" by simp
     from transform_upper_closure(3)[OF s3] have nnf4: "\<forall>r\<in>set ?rs4. normalized_nnf_match (get_match r)" by simp
     have nnf5: "\<forall>r\<in>set ?rs5. normalized_nnf_match (get_match r)"
-      apply(intro optimize_matches_preserves[simplified])
+      apply(intro optimize_matches_preserves)
       apply(simp add: abstract_for_simple_firewall_def)
       apply(rule abstract_primitive_preserves_normalized(5))
       using nnf4 by(simp)
-    have nnf6: "\<forall>m\<in>get_match ` set ?rs6. normalized_nnf_match m"
+    have nnf6: "\<forall>r\<in>set ?rs6. normalized_nnf_match (get_match r)"
       apply(intro optimize_matches_preserves)
       apply(rule abstract_primitive_preserves_normalized(5))
       using nnf5 by(simp)
@@ -684,10 +684,10 @@ theorem to_simple_firewall_without_interfaces:
       from s7 r have a: "(a = action.Accept \<or> a = action.Drop)" by(auto simp add: simple_ruleset_def)
       
       from abstract_for_simple_firewall_hasdisc have "\<forall>r\<in>set ?rs5. \<not> has_disc is_CT_State (get_match r)"
-        by(intro optimize_matches_preserves[simplified], blast)
+        by(intro optimize_matches_preserves, blast)
       with abstract_primitive_preserves_nodisc[where disc'="is_CT_State"] have
         "\<forall>r\<in>set ?rs6. \<not> has_disc is_CT_State (get_match r)"
-        apply(intro optimize_matches_preserves[simplified])
+        apply(intro optimize_matches_preserves)
         apply(simp)
         by blast
       with transform_upper_closure(4)[OF s6, where disc=is_CT_State] have
@@ -695,23 +695,23 @@ theorem to_simple_firewall_without_interfaces:
       with r have no_CT: "\<not> has_disc is_CT_State m" by fastforce
 
       from abstract_for_simple_firewall_hasdisc have "\<forall>r\<in>set ?rs5. \<not> has_disc is_L4_Flags (get_match r)"
-        by(intro optimize_matches_preserves[simplified], blast)
+        by(intro optimize_matches_preserves, blast)
       with abstract_primitive_preserves_nodisc[where disc'="is_L4_Flags"] have
         "\<forall>r\<in>set ?rs6. \<not> has_disc is_L4_Flags (get_match r)"
-        by(intro optimize_matches_preserves[simplified]) auto
+        by(intro optimize_matches_preserves) auto
       with transform_upper_closure(4)[OF s6, where disc=is_L4_Flags] have
         "\<forall>r\<in>set ?rs7. \<not> has_disc is_L4_Flags (get_match r)" by simp
       with r have no_L4_Flags: "\<not> has_disc is_L4_Flags m" by fastforce
 
 
       have "\<forall>r\<in>set ?rs6. \<not> has_disc is_Iiface (get_match r)"
-        by(intro optimize_matches_preserves[simplified] abstract_primitive_nodisc) simp+
+        by(intro optimize_matches_preserves abstract_primitive_nodisc) simp+
       with transform_upper_closure(4)[OF s6, where disc=is_Iiface] have
         "\<forall>r\<in>set ?rs7. \<not> has_disc is_Iiface (get_match r)" by simp
       with r have no_Iiface: "\<not> has_disc is_Iiface m" by fastforce
 
       have "\<forall>r\<in>set ?rs6. \<not> has_disc is_Oiface (get_match r)"
-        by(intro optimize_matches_preserves[simplified] abstract_primitive_nodisc) simp+
+        by(intro optimize_matches_preserves abstract_primitive_nodisc) simp+
       with transform_upper_closure(4)[OF s6, where disc=is_Oiface] have
         "\<forall>r\<in>set ?rs7. \<not> has_disc is_Oiface (get_match r)" by simp
       with r have no_Oiface: "\<not> has_disc is_Oiface m" by fastforce
@@ -734,7 +734,7 @@ theorem to_simple_firewall_without_interfaces:
       hence "\<forall>r \<in> set ?rs5. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
                                      \<not> has_disc_negated is_Dst_Ports False (get_match r)"
         apply -
-        apply(rule optimize_matches_preserves[simplified])
+        apply(rule optimize_matches_preserves)
         apply(intro conjI)
         apply(intro abstract_for_simple_firewall_preserves_nodisc_negated, simp_all)+
        done
@@ -742,16 +742,16 @@ theorem to_simple_firewall_without_interfaces:
             "\<forall>r \<in> set ?rs6. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
                                      \<not> has_disc_negated is_Dst_Ports False (get_match r)"
         apply -
-        apply(rule optimize_matches_preserves[simplified])
+        apply(rule optimize_matches_preserves)
         apply(intro conjI)
         apply(intro abstract_primitive_preserves_nodisc_nedgated, simp_all)+
        done
 
       from nnf4 abstract_for_simple_firewall_negated_ifaces_prots(2) have 
         "\<forall>r\<in>set ?rs5. \<not> has_disc_negated is_Prot False (get_match r)"
-        by(intro optimize_matches_preserves[simplified]) blast
+        by(intro optimize_matches_preserves) blast
       hence "\<forall>r\<in>set ?rs6. \<not> has_disc_negated is_Prot False (get_match r)"
-        by(intro optimize_matches_preserves[simplified] abstract_primitive_preserves_nodisc_nedgated) simp+
+        by(intro optimize_matches_preserves abstract_primitive_preserves_nodisc_nedgated) simp+
       with no_ports_rs6 have "\<forall>r\<in>set ?rs7. \<not> has_disc_negated is_Prot False (get_match r)"
        by(intro transform_upper_closure(5)[OF s6]) simp+
       with r have protocols: "normalized_protocols m" unfolding normalized_protocols_def by fastforce

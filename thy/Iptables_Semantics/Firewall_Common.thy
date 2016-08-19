@@ -168,9 +168,8 @@ definition optimize_matches :: "('a match_expr \<Rightarrow> 'a match_expr) \<Ri
 lemma optimize_matches_append: "optimize_matches f (rs1@rs2) = optimize_matches f rs1 @ optimize_matches f rs2"
   by(simp add: optimize_matches_def optimize_matches_option_append)
 
-(*TODO: only use [simplified]*)
 lemma optimize_matches_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_match r))) \<Longrightarrow>
-    \<forall> m \<in> get_match ` set (optimize_matches f rs). P m"
+    \<forall> r \<in> set (optimize_matches f rs). P (get_match r)"
   unfolding optimize_matches_def
   apply(rule optimize_matches_option_preserves)
   by(auto split: split_if_asm)
