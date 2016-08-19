@@ -58,6 +58,8 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
                          else if (\<exists>p \<in> set (getNeg ps). simple_proto_conjunct proto p \<noteq> None) then
                            None
                          else
+                          (*proto is a primitive_protocol here. This is  strict equality match, e.g.
+                            protocol must be TCP. Thus, we can remove all negative matches!*)
                            Some ([proto], [])"
   
   (* It is kind of messy to find a definition that checks whether a match is the exhaustive list
@@ -91,8 +93,6 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
                          else if (\<exists>p \<in> set (getNeg ps). simple_proto_conjunct proto p \<noteq> None) then
                            None
                          else
-                          (*proto is a primitive_protocol here. This is  strict equality match, e.g.
-                            protocol must be TCP. Thus, we can remove all negative matches!*)
                            Some ([proto], [])
         )"
     unfolding compress_protocols_def
