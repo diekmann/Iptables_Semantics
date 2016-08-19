@@ -1,5 +1,5 @@
 theory Ports_Normalize
-imports Protocols_Normalize
+imports Common_Primitive_Lemmas
 begin
 
 
@@ -81,11 +81,13 @@ fun andfold_MatchExp :: "'a match_expr list \<Rightarrow> 'a match_expr" where
   "andfold_MatchExp [e] = e" |
   "andfold_MatchExp (e#es) = MatchAnd e (andfold_MatchExp es)"
 
-(*TODO: this must be somewhere, deduplicate! look for fold and MatchAnd*)
-lemma andfold_MatchExp_alist_and: "alist_and (map Pos ls) = andfold_MatchExp (map Match ls)"
+lemma andfold_MatchExp_alist_and: "alist_and' (map Pos ls) = andfold_MatchExp (map Match ls)"
   apply(induction ls)
-   apply(simp)+
-  oops (*TODO: tune alist_and!*)
+   apply(simp)
+  apply(simp)
+  apply(rename_tac l ls)
+  apply(case_tac "ls")
+   by(simp)+
 
 lemma andfold_MatchExp_matches:
   "matches \<gamma> (andfold_MatchExp ms) a p \<longleftrightarrow> (\<forall>m \<in> set ms. matches \<gamma> m a p)"

@@ -575,7 +575,7 @@ subsection\<open>Optimizing a match expression\<close>
 
   lemma compress_normalize_primitive_not_introduces_C:
     assumes notdisc: "\<not> has_disc disc m"
-        and wf: "wf_disc_sel (disc,sel) C"
+        and wf: "wf_disc_sel (disc,sel) C'" (*C is allowed to be different from C'*)
         and nm: "normalized_nnf_match m"
         and some: "compress_normalize_primitive (disc,sel) C f m = Some m'"
         and f_preserves: "\<And>as_pos as_neg. f [] = Some (as_pos, as_neg) \<Longrightarrow> as_pos = [] \<and> as_neg = []"
