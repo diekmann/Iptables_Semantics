@@ -73,6 +73,15 @@ apply(induction ls1 arbitrary: ls2 rule: alist_and'.induct)
  apply(case_tac [!] ls2)
    apply(simp_all)
 done
+lemma has_disc_negated_alist_and'_append:
+  "has_disc_negated disc' neg (alist_and' (ls1 @ ls2)) \<longleftrightarrow>
+      has_disc_negated disc' neg (alist_and' ls1) \<or> has_disc_negated disc' neg (alist_and' ls2)"
+apply(induction ls1 arbitrary: ls2 rule: alist_and'.induct)
+    apply(simp_all)
+ apply(case_tac [!] ls2)
+   apply(simp_all)
+done
+
 
 lemma "matches ((\<lambda>x _. bool_to_ternary (disc x)), (\<lambda>_ _. False)) (Match x) a p \<longleftrightarrow> has_disc disc (Match x)"
 by(simp add: match_raw_ternary bool_to_ternary_simps split: ternaryvalue.split )

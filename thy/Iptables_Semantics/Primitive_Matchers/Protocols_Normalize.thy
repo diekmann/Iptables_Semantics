@@ -358,7 +358,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
 
   (*TODO: move*)
   (*if i extract something and put it together again unchanged, things do not change*)
-  lemma primitive_extractor_reassemble_not_disc_negated:
+  lemma primitive_extractor_reassemble_not_has_disc:
     "wf_disc_sel (disc, sel) C \<Longrightarrow>
      normalized_nnf_match m \<Longrightarrow> \<not> has_disc disc' m \<Longrightarrow>
      primitive_extractor (disc, sel) m = (as, ms) \<Longrightarrow>
@@ -383,6 +383,29 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
       done
   qed(simp_all split: split_if_asm)
 
+  lemma primitive_extractor_reassemble_not_has_disc_negated:
+    "wf_disc_sel (disc, sel) C \<Longrightarrow>
+     normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated disc' neg m \<Longrightarrow>
+     primitive_extractor (disc, sel) m = (as, ms) \<Longrightarrow>
+       \<not> has_disc_negated disc' neg (alist_and' (NegPos_map C as))"
+    proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+    case 2 thus ?case
+      apply(simp split: split_if_asm)
+       by(clarify, simp add: wf_disc_sel.simps)+
+    next
+    case 3 thus ?case
+      apply(simp split: split_if_asm)
+       by(clarify, simp add: wf_disc_sel.simps)+
+    next
+    case (4 m1 m2 as ms)
+      from 4 show ?case
+        apply(simp)
+        apply(simp split: prod.split_asm)
+        apply(clarify)
+        apply(simp add: NegPos_map_append has_disc_negated_alist_and'_append)
+      done
+  qed(simp_all split: split_if_asm)
+
 
   lemma import_protocols_from_ports_hasdisc:
     "normalized_nnf_match m \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow>
@@ -397,15 +420,43 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
        using andfold_MatchExp_not_disc_mapMatch[
          where C="Prot \<circ> case_ipt_l4_ports (\<lambda>proto x. Proto proto)", simplified] apply blast
       subgoal for srcpts rst1 dstpts rst2
-      apply(frule(2) primitive_extractor_reassemble_not_disc_negated[OF wf_disc_sel_common_primitive(1)])
+      apply(frule(2) primitive_extractor_reassemble_not_has_disc[OF wf_disc_sel_common_primitive(1)])
       apply(subgoal_tac "\<not> has_disc disc rst1")
        prefer 2
        apply(drule(1) primitive_extractor_correct(4)[OF _ wf_disc_sel_common_primitive(1)])
        apply blast
-      apply(drule(2) primitive_extractor_reassemble_not_disc_negated[OF wf_disc_sel_common_primitive(2)])
+      apply(drule(2) primitive_extractor_reassemble_not_has_disc[OF wf_disc_sel_common_primitive(2)])
       using has_disc_alist_and'_append by blast
      apply(drule(1) primitive_extractor_correct(4)[OF _ wf_disc_sel_common_primitive(1)])
      apply(drule(1) primitive_extractor_correct(4)[OF _ wf_disc_sel_common_primitive(2)])
+     apply blast
+     done
+
+
+
+  lemma import_protocols_from_ports_hasdisc_negated:
+    "\<not> has_disc_negated disc False m \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow>
+     normalized_nnf_match (import_protocols_from_ports m) \<and>
+     \<not> has_disc_negated disc False (import_protocols_from_ports m)"
+     apply(intro conjI)
+      using import_protocols_from_ports_nnf apply blast
+     apply(erule(1) import_protocols_from_ports_erule)
+     apply(simp)
+     apply(intro conjI)
+        using andfold_MatchExp_not_disc_negated_mapMatch[
+          where C="Prot \<circ> case_ipt_l4_ports (\<lambda>proto x. Proto proto)", simplified] apply blast
+       using andfold_MatchExp_not_disc_negated_mapMatch[
+         where C="Prot \<circ> case_ipt_l4_ports (\<lambda>proto x. Proto proto)", simplified] apply blast
+      subgoal for srcpts rst1 dstpts rst2
+      apply(frule(2) primitive_extractor_reassemble_not_has_disc_negated[OF wf_disc_sel_common_primitive(1)])
+      apply(subgoal_tac "\<not> has_disc_negated disc False rst1")
+       prefer 2
+       apply(drule(1) primitive_extractor_correct(6)[OF _ wf_disc_sel_common_primitive(1)])
+       apply blast
+      apply(drule(2) primitive_extractor_reassemble_not_has_disc_negated[OF wf_disc_sel_common_primitive(2)])
+      using has_disc_negated_alist_and'_append by blast
+     apply(drule(1) primitive_extractor_correct(6)[OF _ wf_disc_sel_common_primitive(1)])
+     apply(drule(1) primitive_extractor_correct(6)[OF _ wf_disc_sel_common_primitive(2)])
      apply blast
      done
 end
