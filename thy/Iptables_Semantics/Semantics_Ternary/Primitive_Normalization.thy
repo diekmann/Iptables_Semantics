@@ -324,6 +324,62 @@ qed
 
 
 
+(*if i extract something and put it together again unchanged, things do not change*)
+lemma primitive_extractor_reassemble_preserves:
+  "wf_disc_sel (disc, sel) C \<Longrightarrow>
+   normalized_nnf_match m \<Longrightarrow>
+   P m \<Longrightarrow>
+   P MatchAny \<Longrightarrow>
+   primitive_extractor (disc, sel) m = (as, ms) \<Longrightarrow> (*turn eqality around to simplify proof*)
+   (\<And>m1 m2. P (MatchAnd m1 m2) \<longleftrightarrow> P m1 \<and> P m2) \<Longrightarrow>
+   (\<And>ls1 ls2. P (alist_and' (ls1 @ ls2)) \<longleftrightarrow> P (alist_and' ls1) \<and> P (alist_and' ls2)) \<Longrightarrow>
+   P (alist_and' (NegPos_map C as))"
+  proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+  case 2 thus ?case
+    apply(simp split: split_if_asm)
+    apply(clarify)
+    by(simp add: wf_disc_sel.simps)
+  next
+  case 3 thus ?case
+    apply(simp split: split_if_asm)
+    apply(clarify)
+    by(simp add: wf_disc_sel.simps)
+  next
+  case (4 m1 m2 as ms)
+    from 4 show ?case
+      apply(simp)
+      apply(simp split: prod.split_asm)
+      apply(clarify)
+      apply(simp add: NegPos_map_append)
+    done
+qed(simp_all split: split_if_asm)
+
+lemma primitive_extractor_reassemble_not_has_disc:
+  "wf_disc_sel (disc, sel) C \<Longrightarrow>
+   normalized_nnf_match m \<Longrightarrow> \<not> has_disc disc' m \<Longrightarrow>
+   primitive_extractor (disc, sel) m = (as, ms) \<Longrightarrow>
+     \<not> has_disc disc' (alist_and' (NegPos_map C as))"
+  apply(rule primitive_extractor_reassemble_preserves)
+        by(simp_all add: NegPos_map_append has_disc_alist_and'_append)
+
+lemma primitive_extractor_reassemble_not_has_disc_negated:
+  "wf_disc_sel (disc, sel) C \<Longrightarrow>
+   normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated disc' neg m \<Longrightarrow>
+   primitive_extractor (disc, sel) m = (as, ms) \<Longrightarrow> 
+     \<not> has_disc_negated disc' neg (alist_and' (NegPos_map C as))"
+  apply(rule primitive_extractor_reassemble_preserves)
+        by(simp_all add: NegPos_map_append has_disc_negated_alist_and'_append)
+
+lemma primitive_extractor_reassemble_normalized_n_primitive:
+  "wf_disc_sel (disc, sel) C \<Longrightarrow>
+   normalized_nnf_match m \<Longrightarrow> normalized_n_primitive (disc1, sel1) f m \<Longrightarrow>
+   primitive_extractor (disc, sel) m = (as, ms) \<Longrightarrow>
+     normalized_n_primitive (disc1, sel1) f (alist_and' (NegPos_map C as))"
+  apply(rule primitive_extractor_reassemble_preserves)
+        by(simp_all add: NegPos_map_append normalized_n_primitive_alist_and'_append)
+
+
+
 lemma primitive_extractor_matchesE: "wf_disc_sel (disc,sel) C \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> primitive_extractor (disc, sel) m = (as, ms)
   \<Longrightarrow>
   (normalized_nnf_match ms \<Longrightarrow> \<not> has_disc disc ms \<Longrightarrow> (\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms) \<Longrightarrow> matches_other \<longleftrightarrow>  matches \<gamma> ms a p)
