@@ -639,7 +639,8 @@ theorem to_simple_firewall_without_interfaces:
   shows "{p::('i,'a) tagged_packet_scheme. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
          {p::('i,'a) tagged_packet_scheme. simple_fw (to_simple_firewall_without_interfaces ipassmt rs) p = Decision FinalAllow \<and> newpkt p}"
 
-  and "\<forall>r \<in> set (to_simple_firewall_without_interfaces ipassmt rs). iiface (match_sel m) = ifaceAny \<and> oiface (match_sel m) = ifaceAny"
+  and "\<forall>r \<in> set (to_simple_firewall_without_interfaces ipassmt rs).
+          iiface (match_sel r) = ifaceAny \<and> oiface (match_sel r) = ifaceAny"
   proof -
     let ?rs1="packet_assume_new rs"
     let ?rs2="upper_closure ?rs1"

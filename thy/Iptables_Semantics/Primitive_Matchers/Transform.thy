@@ -636,11 +636,9 @@ lemma optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_
      and "\<forall>a. \<not> disc2 (IIface a)" and "\<forall>a. \<not> disc2 (OIface a)" and "\<forall>a. \<not> disc2 (Prot a)"
   shows "\<forall>r \<in> set (optimize_matches_option compress_normalize_besteffort rs).
           normalized_nnf_match (get_match r) \<and> normalized_n_primitive (disc2, sel2) P (get_match r)"
-  thm optimize_matches_option_preserves'
-  apply(rule optimize_matches_option_preserves'[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive  (disc2, sel2) P m"
+  thm optimize_matches_option_preserves
+  apply(rule optimize_matches_option_preserves[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive  (disc2, sel2) P m"
       and f="compress_normalize_besteffort"])
-   apply(simp add: assms(1); fail)
-  apply(intro allI impI)
   apply(rule compress_normalize_besteffort_preserves_normalized_n_primitive)
        apply(simp_all add: assms)
   done
@@ -703,7 +701,7 @@ theorem transform_normalize_primitives:
          normalize_dst_ips_def
     have normalized_rs3: "\<forall>r \<in> set ?rs3. normalized_nnf_match (get_match r)" by metis
     have normalized_rs4: "\<forall>r \<in> set ?rs4. normalized_nnf_match (get_match r)"
-      apply(intro optimize_matches_option_preserves[simplified])
+      apply(intro optimize_matches_option_preserves)
       apply(erule compress_normalize_besteffort_nnf[rotated])
       by(simp add: normalized_rs3)
     thus "\<forall> r \<in> set (transform_normalize_primitives rs). normalized_nnf_match (get_match r)"
@@ -944,8 +942,7 @@ theorem transform_normalize_primitives:
               \<forall>m\<in>set (optimize_matches_option compress_normalize_besteffort rs).
                   normalized_nnf_match (get_match m) \<and> \<not> has_disc disc1 (get_match m)"
      apply -
-     apply(rule optimize_matches_option_preserves')
-      apply(simp; fail)
+     apply(rule optimize_matches_option_preserves)
      apply(elim disjE)
             using compress_normalize_besteffort_hasdisc apply blast
            using compress_normalize_besteffort_nnf compress_normalize_besteffort_not_introduces_Iiface compress_normalize_besteffort_not_introduces_Oiface
@@ -1047,9 +1044,9 @@ theorem transform_normalize_primitives:
        \<forall>r\<in>set (optimize_matches_option compress_normalize_besteffort rs).
                 normalized_nnf_match (get_match r) \<and> \<not> has_disc_negated disc3 False (get_match r) \<and> P (get_match r)"
      apply -
-     thm optimize_matches_option_preserves[simplified, where P=
+     thm optimize_matches_option_preserves[where P=
         "\<lambda>m. normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m \<and> P m"]
-     apply(rule optimize_matches_option_preserves[simplified, where P=
+     apply(rule optimize_matches_option_preserves[where P=
         "\<lambda>m. normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m \<and> P m"])
      apply(elim disjE)
             using compress_normalize_besteffort_nnf compress_normalize_besteffort_hasdisc_negated apply blast

@@ -280,7 +280,8 @@ begin
   theorem abstract_primitive_in_doubt_deny_generic:
     fixes \<beta>::"('i::len common_primitive, ('i, 'a) tagged_packet_scheme) exact_match_tac"
     assumes generic: "primitive_matcher_generic \<beta>"
-        and n: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m" and simple: "simple_ruleset rs"
+        and n: "\<forall> r \<in> set rs. normalized_nnf_match (get_match r)"
+        and simple: "simple_ruleset rs"
     defines "\<gamma> \<equiv> (\<beta>, in_doubt_deny)" and "abstract disc \<equiv> optimize_matches (abstract_primitive disc)"
     shows   "{p. \<gamma>,p\<turnstile> \<langle>abstract disc rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow} \<subseteq> {p. \<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow}"
              (is ?allow)
