@@ -116,15 +116,15 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
     apply(auto intro: protocol.exhaust)
     done
   
-  definition compress_normalize_protocols :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr option" where 
-    "compress_normalize_protocols m \<equiv> compress_normalize_primitive (is_Prot, prot_sel) Prot compress_protocols m"
+  definition compress_normalize_protocols_step :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr option" where 
+    "compress_normalize_protocols_step m \<equiv> compress_normalize_primitive (is_Prot, prot_sel) Prot compress_protocols m"
 
-  lemma (in primitive_matcher_generic) compress_normalize_protocols_Some:
-  assumes "normalized_nnf_match m" and "compress_normalize_protocols m = Some m'"
+  lemma (in primitive_matcher_generic) compress_normalize_protocols_step_Some:
+  assumes "normalized_nnf_match m" and "compress_normalize_protocols_step m = Some m'"
     shows "matches (\<beta>, \<alpha>) m' a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
   proof(rule compress_normalize_primitive_Some[OF assms(1) wf_disc_sel_common_primitive(7), of compress_protocols])
     show "compress_normalize_primitive (is_Prot, prot_sel) Prot compress_protocols m = Some m'"
-      using assms(2) by(simp add: compress_normalize_protocols_def)
+      using assms(2) by(simp add: compress_normalize_protocols_step_def)
   next
     fix ps ps_pos ps_neg
     show "compress_protocols ps = Some (ps_pos, ps_neg) \<Longrightarrow>
@@ -141,12 +141,12 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
       using simple_proto_conjunct_None by auto
   qed
 
-  lemma (in primitive_matcher_generic) compress_normalize_protocols_None:
-  assumes "normalized_nnf_match m" and "compress_normalize_protocols m = None"
+  lemma (in primitive_matcher_generic) compress_normalize_protocols_step_None:
+  assumes "normalized_nnf_match m" and "compress_normalize_protocols_step m = None"
     shows "\<not> matches (\<beta>, \<alpha>) m a p"
   proof(rule compress_normalize_primitive_None[OF assms(1) wf_disc_sel_common_primitive(7), of "compress_protocols"])
     show "compress_normalize_primitive (is_Prot, prot_sel) Prot compress_protocols m = None"  
-      using assms(2) by(simp add: compress_normalize_protocols_def)
+      using assms(2) by(simp add: compress_normalize_protocols_step_def)
     next
       fix ps
       have if_option_Some:
@@ -171,59 +171,59 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
         using if_option_Some by metis
     qed
 
-  lemma compress_normalize_protocols_nnf:
-    "normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols m = Some m' \<Longrightarrow>
+  lemma compress_normalize_protocols_step_nnf:
+    "normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols_step m = Some m' \<Longrightarrow>
       normalized_nnf_match m'"
-    unfolding compress_normalize_protocols_def
+    unfolding compress_normalize_protocols_step_def
     using compress_normalize_primitive_nnf[OF wf_disc_sel_common_primitive(7)] by blast
  
   (*TODO: not needed, I probably want it to introduce prot!*)
-  lemma compress_normalize_protocols_not_introduces_Prot:
-    "\<not> has_disc is_Prot m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols m = Some m' \<Longrightarrow>
+  lemma compress_normalize_protocols_step_not_introduces_Prot:
+    "\<not> has_disc is_Prot m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols_step m = Some m' \<Longrightarrow>
      \<not> has_disc is_Prot m'"
-      apply(simp add: compress_normalize_protocols_def)
+      apply(simp add: compress_normalize_protocols_step_def)
       apply(drule compress_normalize_primitive_not_introduces_C[where m=m and C'=Prot])
           apply(simp_all add: wf_disc_sel_common_primitive(7))
       apply(simp add: compress_protocols_def split: if_splits)
       done
 
-  lemma compress_normalize_protocols_not_introduces_Prot_negated:
+  lemma compress_normalize_protocols_step_not_introduces_Prot_negated:
     assumes notdisc: "\<not> has_disc_negated is_Prot False m"
         and nm: "normalized_nnf_match m"
-        and some: "compress_normalize_protocols m = Some m'"
+        and some: "compress_normalize_protocols_step m = Some m'"
      shows "\<not> has_disc_negated is_Prot False m'"
      apply(rule compress_normalize_primitive_not_introduces_C_negated[OF notdisc wf_disc_sel_common_primitive(7) nm])
-     using some apply(simp add: compress_normalize_protocols_def)
+     using some apply(simp add: compress_normalize_protocols_step_def)
      by(simp add: compress_protocols_def split: option.split_asm split_if_asm)
 
 
-  lemma compress_normalize_protocols_hasdisc:
-    "\<not> has_disc disc m \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols m = Some m' \<Longrightarrow>
+  lemma compress_normalize_protocols_step_hasdisc:
+    "\<not> has_disc disc m \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols_step m = Some m' \<Longrightarrow>
      normalized_nnf_match m' \<and> \<not> has_disc disc m'"
-     unfolding compress_normalize_protocols_def
+     unfolding compress_normalize_protocols_step_def
      using compress_normalize_primitive_hasdisc[OF _ wf_disc_sel_common_primitive(7)] by blast
 
-  lemma compress_normalize_protocols_hasdisc_negated:
-    "\<not> has_disc_negated disc neg m \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols m = Some m' \<Longrightarrow>
+  lemma compress_normalize_protocols_step_hasdisc_negated:
+    "\<not> has_disc_negated disc neg m \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols_step m = Some m' \<Longrightarrow>
      normalized_nnf_match m' \<and> \<not> has_disc_negated disc neg m'"
-     unfolding compress_normalize_protocols_def
+     unfolding compress_normalize_protocols_step_def
      using compress_normalize_primitive_hasdisc_negated[OF _ wf_disc_sel_common_primitive(7)] by blast
 
 
-  lemma compress_normalize_protocols_preserves_normalized_n_primitive:
-    "normalized_n_primitive (disc, sel) P m \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols m = Some m' \<Longrightarrow>
+  lemma compress_normalize_protocols_step_preserves_normalized_n_primitive:
+    "normalized_n_primitive (disc, sel) P m \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols_step m = Some m' \<Longrightarrow>
      normalized_nnf_match m' \<and> normalized_n_primitive (disc, sel) P m'"
-     unfolding compress_normalize_protocols_def
+     unfolding compress_normalize_protocols_step_def
    using compress_normalize_primitve_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(7)] by blast
   
 
-
-  lemma "case compress_normalize_protocols 
+   (*TODO: damn matchAny in the middle, this must be gone, matchexpr blows up otherwise!*)
+  lemma "case compress_normalize_protocols_step 
     (MatchAnd (MatchAnd (MatchAnd (Match ((Prot (Proto TCP)):: 32 common_primitive)) (MatchNot (Match (Prot (Proto UDP))))) (Match (IIface (Iface ''eth1''))))
               (Match (Prot (Proto TCP)))) of Some ps \<Rightarrow> opt_MatchAny_match_expr ps
   = MatchAnd (Match (Prot (Proto 6))) (MatchAnd MatchAny (Match (IIface (Iface ''eth1''))))" by eval
     
-  value[code] "compress_normalize_protocols (MatchAny:: 32 common_primitive match_expr)"
+  value[code] "compress_normalize_protocols_step (MatchAny:: 32 common_primitive match_expr)"
 
 
   (*TODO: add protocols from positive L4 ports into optimization. Unfinished draft below.*)
@@ -244,7 +244,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
      )"
 
   text\<open>The @{const Proto} and @{const L4Ports} match make the following match impossible:\<close>
-  lemma "compress_normalize_protocols (import_protocols_from_ports 
+  lemma "compress_normalize_protocols_step (import_protocols_from_ports 
     (MatchAnd (MatchAnd (Match (Prot (Proto TCP):: 32 common_primitive))
       (Match (Src_Ports (L4Ports UDP [(22,22)])))) (Match (IIface (Iface ''eth1''))))) = None"
   by eval
@@ -438,6 +438,79 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
      apply blast
      done
 
+
+
+(*Putting things together*)
+
+ 
+  definition compress_normalize_protocols
+    :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr option" where 
+    "compress_normalize_protocols m \<equiv> compress_normalize_protocols_step (import_protocols_from_ports m)"
+
+  lemma (in primitive_matcher_generic) compress_normalize_protocols_Some:
+  assumes "normalized_nnf_match m" and "compress_normalize_protocols m = Some m'"
+    shows "matches (\<beta>, \<alpha>) m' a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
+  using assms apply(simp add: compress_normalize_protocols_def)
+  by (metis import_protocols_from_ports import_protocols_from_ports_nnf
+            compress_normalize_protocols_step_Some)
+   
+  lemma (in primitive_matcher_generic) compress_normalize_protocols_None:
+  assumes "normalized_nnf_match m" and "compress_normalize_protocols m = None"
+    shows "\<not> matches (\<beta>, \<alpha>) m a p"
+  using assms apply(simp add: compress_normalize_protocols_def)
+  by (metis import_protocols_from_ports import_protocols_from_ports_nnf
+            compress_normalize_protocols_step_None)
+   
+
+  lemma compress_normalize_protocols_nnf:
+    "normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols m = Some m' \<Longrightarrow>
+      normalized_nnf_match m'"
+  using assms apply(simp add: compress_normalize_protocols_def)
+  by (metis import_protocols_from_ports_nnf compress_normalize_protocols_step_nnf)
+ 
+
+  lemma compress_normalize_protocols_not_introduces_Prot_negated:
+    assumes notdisc: "\<not> has_disc_negated is_Prot False m"
+        and nm: "normalized_nnf_match m"
+        and some: "compress_normalize_protocols m = Some m'"
+     shows "\<not> has_disc_negated is_Prot False m'"
+    using assms apply(simp add: compress_normalize_protocols_def)
+    using import_protocols_from_ports_nnf
+          import_protocols_from_ports_not_introduces_Prot_negated
+          compress_normalize_protocols_step_not_introduces_Prot_negated by auto
+
+
+  lemma compress_normalize_protocols_hasdisc:
+    "\<not> has_disc disc m \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols m = Some m' \<Longrightarrow>
+     normalized_nnf_match m' \<and> \<not> has_disc disc m'"
+    using assms apply(simp add: compress_normalize_protocols_def)
+    using import_protocols_from_ports_hasdisc
+          compress_normalize_protocols_step_hasdisc by blast
+
+  lemma compress_normalize_protocols_hasdisc_negated:
+    "\<not> has_disc_negated disc False m \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow>
+     normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols m = Some m' \<Longrightarrow>
+     normalized_nnf_match m' \<and> \<not> has_disc_negated disc False m'" (*original lemma allowed arbitrary neg*)
+    using assms apply(simp add: compress_normalize_protocols_def)
+    apply(frule(2) import_protocols_from_ports_hasdisc_negated)
+    using compress_normalize_protocols_step_hasdisc_negated by blast
+
+  lemma compress_normalize_protocols_preserves_normalized_n_primitive:
+    "normalized_n_primitive (disc, sel) P m \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols m = Some m' \<Longrightarrow>
+     normalized_nnf_match m' \<and> normalized_n_primitive (disc, sel) P m'"
+    using assms apply(simp add: compress_normalize_protocols_def)
+    using import_protocols_from_ports_preserves_normalized_n_primitive
+          compress_normalize_protocols_step_preserves_normalized_n_primitive by blast
+
+  (*TODO: damn MatchAny in the middle!*)
+  lemma "case compress_normalize_protocols 
+    (MatchAnd (MatchAnd (MatchAnd (Match ((Prot (Proto TCP)):: 32 common_primitive)) (MatchNot (Match (Prot (Proto UDP))))) (Match (IIface (Iface ''eth1''))))
+              (Match (Prot (Proto TCP)))) of Some ps \<Rightarrow> opt_MatchAny_match_expr ps
+  =
+  MatchAnd (Match (Prot (Proto 6))) (MatchAnd MatchAny (MatchAnd MatchAny (Match (IIface (Iface ''eth1'')))))" by eval
+  
+  (*TODO: too many MatchAny!*)
+  value[code] "compress_normalize_protocols (MatchAny:: 32 common_primitive match_expr)"
 
 
 end

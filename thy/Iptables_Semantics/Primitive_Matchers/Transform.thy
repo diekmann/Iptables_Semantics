@@ -164,10 +164,11 @@ context begin
                         compress_normalize_protocols_hasdisc)
     done
   lemma compress_normalize_besteffort_hasdisc_negated:
-      "\<not> has_disc_negated disc neg m \<Longrightarrow>
+      "\<not> has_disc_negated disc False m \<Longrightarrow>
        (\<forall>a. \<not> disc (IIface a)) \<Longrightarrow> (\<forall>a. \<not> disc (OIface a)) \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow>
        normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
-       normalized_nnf_match m' \<and> \<not> has_disc_negated disc neg m'"
+       normalized_nnf_match m' \<and> \<not> has_disc_negated disc False m'"
+       (*due to protocols, we can only show for neg := False*)
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves)
         apply(drule(3) compress_normalize_besteffort_normalized)
@@ -1107,8 +1108,8 @@ theorem transform_normalize_primitives:
        apply simp+
     apply(clarify)
     apply(intro conjI)
-     using compress_normalize_besteffort_hasdisc_negated[of is_Src_Ports False] apply fastforce
-    using compress_normalize_besteffort_hasdisc_negated[of is_Dst_Ports False] apply fastforce
+     using compress_normalize_besteffort_hasdisc_negated[of is_Src_Ports] apply fastforce
+    using compress_normalize_besteffort_hasdisc_negated[of is_Dst_Ports] apply fastforce
    by simp
 
    (*TODO, copy from above, specific version for is_Prot*)
