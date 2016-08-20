@@ -100,21 +100,43 @@ fun normalized_n_primitive :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarro
   "normalized_n_primitive _ _ (MatchNot MatchAny) = True"
 
 
-
-lemma normalized_n_primitive_opt_MatchAny_match_expr: "normalized_n_primitive disc_sel f m \<Longrightarrow> normalized_n_primitive disc_sel f (opt_MatchAny_match_expr m)"
+lemma normalized_nnf_match_opt_MatchAny_match_expr:
+  "normalized_nnf_match m \<Longrightarrow> normalized_nnf_match (opt_MatchAny_match_expr m)"
   proof-
-  { fix disc::"('a \<Rightarrow> bool)" and sel::"('a \<Rightarrow> 'b)" and n m1 m2
-    have "normalized_n_primitive (disc, sel) n (opt_MatchAny_match_expr m1) \<Longrightarrow>
-         normalized_n_primitive (disc, sel) n (opt_MatchAny_match_expr m2) \<Longrightarrow>
-         normalized_n_primitive (disc, sel) n m1 \<and> normalized_n_primitive (disc, sel) n m2 \<Longrightarrow>
-         normalized_n_primitive (disc, sel) n (opt_MatchAny_match_expr (MatchAnd m1 m2))"
-  by(induction "(MatchAnd m1 m2)" rule: opt_MatchAny_match_expr.induct) (auto)
-  }note x=this
-  assume "normalized_n_primitive disc_sel f m"
-  thus ?thesis
-    apply(induction disc_sel f m rule: normalized_n_primitive.induct)
-          apply simp_all
-    using x by simp
+  have "normalized_nnf_match m \<Longrightarrow> normalized_nnf_match (opt_MatchAny_match_expr_once m)"
+  for m :: "'a match_expr"
+  by(induction m rule: opt_MatchAny_match_expr_once.induct) (simp_all)
+  thus "normalized_nnf_match m \<Longrightarrow> normalized_nnf_match (opt_MatchAny_match_expr m)"
+    apply(simp add: opt_MatchAny_match_expr_def)
+    apply(induction rule: repeat_stabilize_induct)
+     by(simp)+
+  qed
+
+lemma normalized_n_primitive_opt_MatchAny_match_expr:
+  "normalized_n_primitive disc_sel f m \<Longrightarrow> normalized_n_primitive disc_sel f (opt_MatchAny_match_expr m)"
+  proof-
+
+  have "normalized_n_primitive disc_sel f m \<Longrightarrow> normalized_n_primitive disc_sel f (opt_MatchAny_match_expr_once m)"
+  for m
+    proof-
+    { fix disc::"('a \<Rightarrow> bool)" and sel::"('a \<Rightarrow> 'b)" and n m1 m2
+      have "normalized_n_primitive (disc, sel) n (opt_MatchAny_match_expr_once m1) \<Longrightarrow>
+           normalized_n_primitive (disc, sel) n (opt_MatchAny_match_expr_once m2) \<Longrightarrow>
+           normalized_n_primitive (disc, sel) n m1 \<and> normalized_n_primitive (disc, sel) n m2 \<Longrightarrow>
+           normalized_n_primitive (disc, sel) n (opt_MatchAny_match_expr_once (MatchAnd m1 m2))"
+    by(induction "(MatchAnd m1 m2)" rule: opt_MatchAny_match_expr_once.induct) (auto)
+    }note x=this
+    assume "normalized_n_primitive disc_sel f m"
+    thus ?thesis
+      apply(induction disc_sel f m rule: normalized_n_primitive.induct)
+            apply simp_all
+      using x by simp
+    qed
+  from this show
+    "normalized_n_primitive disc_sel f m \<Longrightarrow> normalized_n_primitive disc_sel f (opt_MatchAny_match_expr m)"
+    apply(simp add: opt_MatchAny_match_expr_def)
+    apply(induction rule: repeat_stabilize_induct)
+     by(simp)+ 
   qed
 
 
@@ -612,11 +634,27 @@ corollary i_m_giving_this_a_funny_name_so_i_can_thank_my_future_me_when_sledgeha
 using normalize_match_preserves_disc_negated by blast
 
 
-(*TODO: maybe move?*)
-lemma not_has_disc_opt_MatchAny_match_expr: "\<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (opt_MatchAny_match_expr m)"
-  by(induction m rule: opt_MatchAny_match_expr.induct) simp_all
-lemma not_has_disc_negated_opt_MatchAny_match_expr: "\<not> has_disc_negated disc neg m \<Longrightarrow> \<not> has_disc_negated disc neg (opt_MatchAny_match_expr m)"
-  by(induction m arbitrary: neg rule:opt_MatchAny_match_expr.induct) (simp_all)
+lemma not_has_disc_opt_MatchAny_match_expr:
+  "\<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (opt_MatchAny_match_expr m)"
+  proof -
+    have "\<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (opt_MatchAny_match_expr_once m)" for m
+    by(induction m rule: opt_MatchAny_match_expr_once.induct) simp_all
+  thus "\<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (opt_MatchAny_match_expr m)"
+    apply(simp add: opt_MatchAny_match_expr_def)
+    apply(rule repeat_stabilize_induct)
+     by(simp)+
+  qed
+lemma not_has_disc_negated_opt_MatchAny_match_expr:
+  "\<not> has_disc_negated disc neg m \<Longrightarrow> \<not> has_disc_negated disc neg (opt_MatchAny_match_expr m)"
+  proof -
+    have "\<not> has_disc_negated disc neg m \<Longrightarrow> \<not> has_disc_negated disc neg (opt_MatchAny_match_expr_once m)"
+    for m
+    by(induction m arbitrary: neg rule:opt_MatchAny_match_expr_once.induct) (simp_all)
+  thus "\<not> has_disc_negated disc neg m \<Longrightarrow> \<not> has_disc_negated disc neg (opt_MatchAny_match_expr m)"
+    apply(simp add: opt_MatchAny_match_expr_def)
+    apply(rule repeat_stabilize_induct)
+     by(simp)+
+  qed
 
 lemma normalize_match_preserves_nodisc:
   "\<not> has_disc disc m \<Longrightarrow> m' \<in> set (normalize_match m) \<Longrightarrow> \<not> has_disc disc m'"

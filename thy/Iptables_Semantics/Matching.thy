@@ -8,8 +8,16 @@ lemma MatchOr: "matches \<gamma> (MatchOr m1 m2) p \<longleftrightarrow> matches
   by(simp add: MatchOr_def)
 
 lemma opt_MatchAny_match_expr_correct: "matches \<gamma> (opt_MatchAny_match_expr m) = matches \<gamma> m"
- apply(simp add: fun_eq_iff)
- by(induction m rule: opt_MatchAny_match_expr.induct) (simp_all)
+ proof -
+  have "matches \<gamma> (opt_MatchAny_match_expr_once m) = matches \<gamma> m" for m
+   apply(simp add: fun_eq_iff)
+   by(induction m rule: opt_MatchAny_match_expr_once.induct) (simp_all)
+   thus ?thesis
+    apply(simp add: opt_MatchAny_match_expr_def)
+    apply(rule repeat_stabilize_induct)
+     by(simp)+
+ qed
+    
 
 lemma matcheq_matchAny: "\<not> has_primitive m \<Longrightarrow> matcheq_matchAny m \<longleftrightarrow> matches \<gamma> m p"
   by(induction m) simp_all

@@ -1,5 +1,6 @@
 theory Firewall_Common
-imports Main "../Simple_Firewall/Firewall_Common_Decision_State"
+imports Main "../Simple_Firewall/Firewall_Common_Decision_State" 
+  "Common/RepeatStabilize"
 begin
 
 section\<open>Firewall Basic Syntax\<close>
@@ -51,27 +52,30 @@ lemma rm_LogEmpty_seq: "rm_LogEmpty (rs1@rs2) = rm_LogEmpty rs1 @ rm_LogEmpty rs
 
 
 text\<open>Optimize away MatchAny matches\<close>
-fun opt_MatchAny_match_expr :: "'a match_expr \<Rightarrow> 'a match_expr" where
-  "opt_MatchAny_match_expr MatchAny = MatchAny" |
-  "opt_MatchAny_match_expr (Match a) = (Match a)" |
-  "opt_MatchAny_match_expr (MatchNot (MatchNot m)) = (opt_MatchAny_match_expr m)" |
-  "opt_MatchAny_match_expr (MatchNot m) = MatchNot (opt_MatchAny_match_expr m)" |
-  "opt_MatchAny_match_expr (MatchAnd MatchAny MatchAny) = MatchAny" |
-  "opt_MatchAny_match_expr (MatchAnd MatchAny m) = (opt_MatchAny_match_expr m)" |
-  (*note: remove recursive call to opt_MatchAny_match_expr to make it probably faster*)
-  "opt_MatchAny_match_expr (MatchAnd m MatchAny) = (opt_MatchAny_match_expr m)" |
-  "opt_MatchAny_match_expr (MatchAnd _ (MatchNot MatchAny)) = (MatchNot MatchAny)" |
-  "opt_MatchAny_match_expr (MatchAnd (MatchNot MatchAny) _) = (MatchNot MatchAny)" |
-  "opt_MatchAny_match_expr (MatchAnd m1 m2) = MatchAnd (opt_MatchAny_match_expr m1) (opt_MatchAny_match_expr m2)"
+fun opt_MatchAny_match_expr_once :: "'a match_expr \<Rightarrow> 'a match_expr" where
+  "opt_MatchAny_match_expr_once MatchAny = MatchAny" |
+  "opt_MatchAny_match_expr_once (Match a) = (Match a)" |
+  "opt_MatchAny_match_expr_once (MatchNot (MatchNot m)) = (opt_MatchAny_match_expr_once m)" |
+  "opt_MatchAny_match_expr_once (MatchNot m) = MatchNot (opt_MatchAny_match_expr_once m)" |
+  "opt_MatchAny_match_expr_once (MatchAnd MatchAny MatchAny) = MatchAny" |
+  "opt_MatchAny_match_expr_once (MatchAnd MatchAny m) = (opt_MatchAny_match_expr_once m)" |
+  (*note: remove recursive call to opt_MatchAny_match_expr_once to make it probably faster*)
+  "opt_MatchAny_match_expr_once (MatchAnd m MatchAny) = (opt_MatchAny_match_expr_once m)" |
+  "opt_MatchAny_match_expr_once (MatchAnd _ (MatchNot MatchAny)) = (MatchNot MatchAny)" |
+  "opt_MatchAny_match_expr_once (MatchAnd (MatchNot MatchAny) _) = (MatchNot MatchAny)" |
+  "opt_MatchAny_match_expr_once (MatchAnd m1 m2) = MatchAnd (opt_MatchAny_match_expr_once m1) (opt_MatchAny_match_expr_once m2)"
 (* without recursive call: need to apply multiple times until it stabelizes *)
 
 
-text\<open>It is still a good idea to apply @{const opt_MatchAny_match_expr} multiple times. Example:\<close>
-lemma "MatchNot (opt_MatchAny_match_expr (MatchAnd MatchAny (MatchNot MatchAny))) = MatchNot (MatchNot MatchAny)" by simp
+text\<open>It is still a good idea to apply @{const opt_MatchAny_match_expr_once} multiple times. Example:\<close>
+lemma "MatchNot (opt_MatchAny_match_expr_once (MatchAnd MatchAny (MatchNot MatchAny))) = MatchNot (MatchNot MatchAny)" by simp
 lemma "m = (MatchAnd (MatchAnd MatchAny MatchAny) (MatchAnd MatchAny MatchAny)) \<Longrightarrow> 
-  (opt_MatchAny_match_expr^^2) m \<noteq> opt_MatchAny_match_expr m" by(simp add: funpow_def)
+  (opt_MatchAny_match_expr_once^^2) m \<noteq> opt_MatchAny_match_expr_once m" by(simp add: funpow_def)
 
+(*TODO: replace all uses of opt_MatchAny_match_expr with a version which removes all*)
 
+definition opt_MatchAny_match_expr :: "'a match_expr \<Rightarrow> 'a match_expr" where
+  "opt_MatchAny_match_expr m \<equiv> repeat_stabilize 2 opt_MatchAny_match_expr_once m"
 
 
 

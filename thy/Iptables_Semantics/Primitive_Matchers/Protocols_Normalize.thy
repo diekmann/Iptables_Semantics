@@ -217,16 +217,16 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
    using compress_normalize_primitve_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(7)] by blast
   
 
-   (*TODO: damn matchAny in the middle, this must be gone, matchexpr blows up otherwise!*)
   lemma "case compress_normalize_protocols_step 
     (MatchAnd (MatchAnd (MatchAnd (Match ((Prot (Proto TCP)):: 32 common_primitive)) (MatchNot (Match (Prot (Proto UDP))))) (Match (IIface (Iface ''eth1''))))
               (Match (Prot (Proto TCP)))) of Some ps \<Rightarrow> opt_MatchAny_match_expr ps
-  = MatchAnd (Match (Prot (Proto 6))) (MatchAnd MatchAny (Match (IIface (Iface ''eth1''))))" by eval
+  = MatchAnd (Match (Prot (Proto 6))) (Match (IIface (Iface ''eth1'')))" by eval
     
   value[code] "compress_normalize_protocols_step (MatchAny:: 32 common_primitive match_expr)"
 
 
-  (*TODO: add protocols from positive L4 ports into optimization. Unfinished draft below.*)
+  (* add protocols from positive L4 ports into optimization. *)
+  (*TODO: add subsections*)
   definition import_protocols_from_ports
     :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where 
   "import_protocols_from_ports m \<equiv>
@@ -502,12 +502,11 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
     using import_protocols_from_ports_preserves_normalized_n_primitive
           compress_normalize_protocols_step_preserves_normalized_n_primitive by blast
 
-  (*TODO: damn MatchAny in the middle!*)
   lemma "case compress_normalize_protocols 
     (MatchAnd (MatchAnd (MatchAnd (Match ((Prot (Proto TCP)):: 32 common_primitive)) (MatchNot (Match (Prot (Proto UDP))))) (Match (IIface (Iface ''eth1''))))
               (Match (Prot (Proto TCP)))) of Some ps \<Rightarrow> opt_MatchAny_match_expr ps
   =
-  MatchAnd (Match (Prot (Proto 6))) (MatchAnd MatchAny (MatchAnd MatchAny (Match (IIface (Iface ''eth1'')))))" by eval
+  MatchAnd (Match (Prot (Proto 6))) (Match (IIface (Iface ''eth1'')))" by eval
   
   (*TODO: too many MatchAny!*)
   value[code] "compress_normalize_protocols (MatchAny:: 32 common_primitive match_expr)"

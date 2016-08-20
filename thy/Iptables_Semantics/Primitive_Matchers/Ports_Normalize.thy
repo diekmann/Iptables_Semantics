@@ -1248,7 +1248,7 @@ lemma "map opt_MatchAny_match_expr (normalize_src_ports
                  ))))
  =
 [MatchAnd (Match (Src_Ports (L4Ports TCP [(22, 22)])))
-   (MatchAnd (MatchNot (Match (Prot (Proto UDP)))) (MatchAnd (Match (Dst (IpAddrNetmask 0x7F000000 8))) (MatchAnd (Match (Prot (Proto ICMP))) MatchAny)))]" by eval
+   (MatchAnd (MatchNot (Match (Prot (Proto UDP)))) (MatchAnd (Match (Dst (IpAddrNetmask 0x7F000000 8))) (Match (Prot (Proto ICMP)))))]" by eval
 
 
 lemma "map opt_MatchAny_match_expr (normalize_src_ports

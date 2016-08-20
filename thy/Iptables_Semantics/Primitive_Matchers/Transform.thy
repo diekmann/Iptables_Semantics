@@ -374,17 +374,12 @@ theorem transform_optimize_dnf_strict_structure:
     
 
     { fix rs::"'a::len common_primitive rule list"
-      {  fix m::"'a::len common_primitive match_expr"
-             have "normalized_nnf_match m \<Longrightarrow> normalized_nnf_match (opt_MatchAny_match_expr m)"
-               by(induction m rule: opt_MatchAny_match_expr.induct) (simp_all)
-      } note x=this
       from normalize_rules_dnf_normalized_nnf_match[of "rs"]
       have "\<forall>x \<in> set (normalize_rules_dnf rs). normalized_nnf_match (get_match x)" .
-      (*TODO simplify proof?*)
       hence "\<forall>r \<in> set (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf rs)). normalized_nnf_match (get_match r)"
         apply -
         apply(rule optimize_matches_preserves)
-        using x by blast
+        using normalized_nnf_match_opt_MatchAny_match_expr by blast
     } 
     from this have "\<forall> r \<in> set (transform_optimize_dnf_strict_inner rs). normalized_nnf_match (get_match r)"
       unfolding transform_optimize_dnf_strict_inner_def by simp
