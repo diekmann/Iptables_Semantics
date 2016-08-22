@@ -167,7 +167,7 @@ subsection\<open>IPv4 Addresses in IPTables Notation (how we parse it)\<close>
 
 
 
-(*TODO probably MOVE: actually, these are toString pretty printing helpers*)
+(* actually, these are toString pretty printing helpers*)
 definition interval_to_wi_to_ipt_iprange :: "'i::len word \<Rightarrow> 'i word \<Rightarrow> 'i ipt_iprange" where
   "interval_to_wi_to_ipt_iprange s e \<equiv>
     if s = e
@@ -194,6 +194,5 @@ lemma wi_to_ipt_ipv4range: "\<Union> set (map ipt_iprange_to_set (wi_to_ipt_ipra
    apply(simp add: interval_to_wi_to_ipt_ipv4range)
   apply(simp)
   done
-(*TODO end move*)
 
 end

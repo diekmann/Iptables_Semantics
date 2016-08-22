@@ -82,11 +82,15 @@ apply(induction ls1 arbitrary: ls2 rule: alist_and'.induct)
    apply(simp_all)
 done
 
+lemma match_list_to_match_expr_not_has_disc: 
+    "\<forall>a. \<not> disc (X a) \<Longrightarrow> \<not> has_disc disc (match_list_to_match_expr (map (Match \<circ> X) ls))"
+  apply(induction ls)
+   apply(simp; fail)
+  by(simp add: MatchOr_def)
 
 
 lemma "matches ((\<lambda>x _. bool_to_ternary (disc x)), (\<lambda>_ _. False)) (Match x) a p \<longleftrightarrow> has_disc disc (Match x)"
 by(simp add: match_raw_ternary bool_to_ternary_simps split: ternaryvalue.split )
-
 
 
 fun normalized_n_primitive :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> ('b \<Rightarrow> bool) \<Rightarrow> 'a match_expr \<Rightarrow> bool" where

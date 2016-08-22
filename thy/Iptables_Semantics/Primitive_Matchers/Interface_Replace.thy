@@ -359,7 +359,7 @@ end
     hence "\<not> (src \<in> ipcidr_union_set (set i2_ips) \<and> (src \<in> ipcidr_union_set (set i1_ips)))"
       for src
       apply(simp)
-      by (metis simple_packet.select_convs(3)) (*TODO: isnt this a tagged packet?*)
+      by (metis simple_packet.select_convs(3))
 
     thus "ipcidr_union_set (set (the (ipassmt i1))) \<inter> ipcidr_union_set (set (the (ipassmt i2))) = {}"
       apply(simp add: i1_ips i2_ips)
@@ -385,12 +385,6 @@ lemma iface_try_rewrite_simplers: "simple_ruleset rs \<Longrightarrow> simple_ru
     by(simp add: iface_try_rewrite_def optimize_matches_simple_ruleset)
 
 
-(*TODO: move?*)
-lemma match_list_to_match_expr_not_has_disc: 
-    "\<forall>a. \<not> disc (X a) \<Longrightarrow> \<not> has_disc disc (match_list_to_match_expr (map (Match \<circ> X) ls))"
-  apply(induction ls)
-   apply(simp; fail)
-  by(simp add: MatchOr_def)
 
 
 
