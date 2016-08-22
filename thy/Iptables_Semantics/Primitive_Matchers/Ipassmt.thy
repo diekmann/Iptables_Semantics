@@ -144,11 +144,10 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
 
   
   text\<open>Debug algorithm with human-readable output\<close>
-  (*TODO: ipv4 only!*)
-  definition debug_ipassmt_generic_ipv4
+  definition debug_ipassmt_generic
     :: "('i::len wordinterval \<Rightarrow> string) \<Rightarrow>
           (iface \<times> ('i word \<times> nat) list) list \<Rightarrow> 'i common_primitive rule list \<Rightarrow> string list" where
-    "debug_ipassmt_generic_ipv4 toStr ipassmt rs \<equiv> let ifaces = (map fst ipassmt) in [
+    "debug_ipassmt_generic toStr ipassmt rs \<equiv> let ifaces = (map fst ipassmt) in [
       ''distinct: '' @ (if distinct ifaces then ''passed'' else ''FAIL!'')
       , ''ipassmt_sanity_nowildcards: '' @
           (if ipassmt_sanity_nowildcards (map_of ipassmt)
@@ -189,8 +188,8 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
             toStr (wordinterval_setminus wordinterval_UNIV (wordinterval_Union (map (l2wi \<circ> (map ipcidr_to_interval)) (map snd ipassmt))))))
       ]"
 
-  definition "debug_ipassmt_ipv4 \<equiv> debug_ipassmt_generic_ipv4 ipv4addr_wordinterval_toString"
-  definition "debug_ipassmt_ipv6 \<equiv> debug_ipassmt_generic_ipv4 ipv6addr_wordinterval_toString"
+  definition "debug_ipassmt_ipv4 \<equiv> debug_ipassmt_generic ipv4addr_wordinterval_toString"
+  definition "debug_ipassmt_ipv6 \<equiv> debug_ipassmt_generic ipv6addr_wordinterval_toString"
 
 
   lemma dom_ipassmt_ignore_wildcard:

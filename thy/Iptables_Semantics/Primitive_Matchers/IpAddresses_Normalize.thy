@@ -37,14 +37,14 @@ subsection\<open>Normalizing IP Addresses\<close>
     by(induction ms rule: normalized_dst_ips.induct, simp_all add: normalized_cidr_ip_def)
   
 
-  (*TODO: remove the UNIV match on ip here!*)
+  (*possible optimizations: remove the UNIV match on ip here!*)
   value "normalize_primitive_extract (is_Src, src_sel) Src ipt_iprange_compress
       (MatchAnd (MatchNot (Match ((Src_Ports (L4Ports TCP [(1,2)])):: 32 common_primitive))) (Match (Src_Ports (L4Ports TCP [(1,2)]))))"
   value "normalize_primitive_extract (is_Src, src_sel) Src ipt_iprange_compress
       (MatchAnd (MatchNot (Match (Src (IpAddrNetmask (10::ipv4addr) 2)))) (Match (Src_Ports (L4Ports TCP [(1,2)]))))"
   value "normalize_primitive_extract (is_Src, src_sel) Src ipt_iprange_compress
       (MatchAnd (Match (Src (IpAddrNetmask (10::ipv4addr) 2))) (MatchAnd (Match (Src (IpAddrNetmask 10 8))) (Match (Src_Ports (L4Ports TCP [(1,2)])))))"
-  (*TODO: too many MatchAny*)
+  (*too many MatchAny*)
   value "normalize_primitive_extract (is_Src, src_sel) Src ipt_iprange_compress
       (MatchAnd (Match (Src (IpAddrNetmask (10::ipv4addr) 2))) (MatchAnd (Match (Src (IpAddrNetmask 192 8))) (Match (Src_Ports (L4Ports TCP [(1,2)])))))"
 

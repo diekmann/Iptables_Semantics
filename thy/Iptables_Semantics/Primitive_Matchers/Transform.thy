@@ -13,8 +13,6 @@ begin
 
 
 section\<open>Optimizing and normalizing primitives\<close>
-(*TODO: cleanup*)
-
 
 definition compress_normalize_besteffort
   :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr option" where
@@ -244,12 +242,6 @@ definition transform_optimize_dnf_strict :: "'i::len common_primitive rule list 
     "transform_optimize_dnf_strict = cut_off_after_match_any \<circ>
         (optimize_matches opt_MatchAny_match_expr \<circ> 
         normalize_rules_dnf \<circ> (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ)))"
-
-
-(*TODO move*)
-(*TODO: simplifier loops with this lemma*)
-lemma optimize_matches_fst: "optimize_matches f (r#rs) = optimize_matches f [r]@optimize_matches f rs"
-by(cases r)(simp add: optimize_matches_def)
   
 
 theorem transform_optimize_dnf_strict_structure:
@@ -354,20 +346,8 @@ theorem transform_optimize_dnf_strict_structure:
         apply(rule optimize_primitive_univ_match_cases, simp_all)+
       done
     }  moreover { fix m
-      (*TODO: do I have this already somewhere? move!*)
       have "normalized_n_primitive disc_sel f m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). normalized_n_primitive disc_sel f  m')"
-      apply(induction m rule: normalize_match.induct)
-            apply(simp_all)[2]
-
-          apply(case_tac disc_sel) --"no idea why the simplifier loops"
-          apply(clarify)
-          apply(simp)
-          apply(clarify)
-          apply(simp)
-
-         apply(safe)
-             apply(simp_all)
-      done
+      using normalize_match_preserves_normalized_n_primitive by blast
     } ultimately show "\<forall> r \<in> set rs. normalized_n_primitive disc_sel f (get_match r) \<Longrightarrow> 
         \<forall> r \<in> set (transform_optimize_dnf_strict rs). normalized_n_primitive disc_sel f (get_match r)"
       using matchpred_rule[of "\<lambda>m. normalized_n_primitive disc_sel f m"] normalized_n_primitive_opt_MatchAny_match_expr by fast

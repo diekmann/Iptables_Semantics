@@ -1,7 +1,7 @@
 theory Protocols_Normalize
 imports Common_Primitive_Lemmas
   "../Common/Word_Upto"
-  Ports_Normalize (*TODO: remove dependency*)
+  Ports_Normalize (*dependency: we also consider the protocols from the L4Ports when optimizing*)
 begin
 
 
