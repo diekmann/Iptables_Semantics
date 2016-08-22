@@ -4,8 +4,9 @@ imports Common_Primitive_Lemmas
   Ports_Normalize (*dependency: we also consider the protocols from the L4Ports when optimizing*)
 begin
 
+section\<open>Optimizing Protocols\<close>
 
-subsection\<open>Optimizing protocols in match expressions\<close>
+section\<open>Optimizing protocols in match expressions\<close>
 
   fun compress_pos_protocols :: "protocol list \<Rightarrow> protocol option" where
     "compress_pos_protocols [] = Some ProtoAny" |
@@ -225,8 +226,9 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
   value[code] "compress_normalize_protocols_step (MatchAny:: 32 common_primitive match_expr)"
 
 
+subsection\<open>Importing the matches on @{typ primitive_protocol} from @{const L4Ports}\<close>
+
   (* add protocols from positive L4 ports into optimization. *)
-  (*TODO: add subsections*)
   definition import_protocols_from_ports
     :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where 
   "import_protocols_from_ports m \<equiv>
@@ -440,7 +442,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
 
 
 
-(*Putting things together*)
+subsection\<open>Putting things together\<close>
 
  
   definition compress_normalize_protocols
@@ -508,7 +510,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
   =
   MatchAnd (Match (Prot (Proto 6))) (Match (IIface (Iface ''eth1'')))" by eval
   
-  (*TODO: too many MatchAny!*)
+  (*too many MatchAny!*)
   value[code] "compress_normalize_protocols (MatchAny:: 32 common_primitive match_expr)"
 
 

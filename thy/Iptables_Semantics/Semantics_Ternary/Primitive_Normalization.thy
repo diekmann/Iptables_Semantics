@@ -250,7 +250,6 @@ theorem primitive_extractor_correct: assumes
   and "\<forall>disc2. \<not> has_disc_negated disc2 neg m \<longrightarrow> \<not> has_disc_negated disc2 neg ms"
   and "\<not> has_disc disc m \<Longrightarrow> as = [] \<and> ms = m"
   and "\<not> has_disc_negated disc False m \<longleftrightarrow> getNeg as = []"
-  (*TODO: preserves arbitrary P?*)
 proof -
   --"better simplification rule"
   from assms have assm3': "(as, ms) = primitive_extractor (disc, sel) m" by simp

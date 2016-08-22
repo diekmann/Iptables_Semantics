@@ -286,7 +286,7 @@ subsubsection\<open>Optimizing\<close>
     (*"packet_set_opt2_internal ([a]#ps) = ([a]#(filter (\<lambda>as. a \<notin> set as) ps))" |*)
 
     (*
-    (*TODO: call recursively! we did not do this because it is really slow!*)
+    (*call recursively! we did not do this because it is really slow!*)
     (*if a more permissive expression is encountered, we can drop all less-permissive ones*)
     "packet_set_opt2_internal (as#ps) = (as#(*packet_set_opt2_internal*) ((filter (\<lambda>ass. \<not> set as \<subseteq> set ass) ps)))" (*this might be horribly inefficient ...*)
     *)
@@ -325,8 +325,6 @@ subsubsection\<open>Optimizing\<close>
   lemma packet_set_opt3_correct: "packet_set_to_set \<gamma> (packet_set_opt3 ps) = packet_set_to_set \<gamma> ps"
     by(cases ps) (simp add: packet_set_opt3.simps packet_set_to_set_alt)
   
-
-  (*TODO: ugly proof*)
   fun packet_set_opt4_internal_internal :: "(('a negation_type \<times> action negation_type) list) \<Rightarrow> bool" where
     "packet_set_opt4_internal_internal cs = (\<forall> (m, a) \<in> set cs. (m, invert a) \<notin> set cs)"
   fun packet_set_opt4 :: "'a packet_set \<Rightarrow> 'a packet_set" where
@@ -446,9 +444,7 @@ definition packet_set_cnf_to_set :: "('a, 'packet) match_tac \<Rightarrow> 'a pa
   declare packet_set_cnf_opt3.simps[simp del]
   lemma packet_set_cnf_opt3_correct: "packet_set_cnf_to_set \<gamma> (packet_set_cnf_opt3 ps) = packet_set_cnf_to_set \<gamma> ps"
     by(cases ps) (simp add: packet_set_cnf_opt3.simps packet_set_cnf_to_set_def)
-  
-  (*TODO: more opt*)
-
+ 
   definition packet_set_cnf_opt :: "'a packet_set_cnf \<Rightarrow> 'a packet_set_cnf" where
     "packet_set_cnf_opt ps = packet_set_cnf_opt1 (packet_set_cnf_opt2 (packet_set_cnf_opt3 (ps)))" 
 

@@ -269,8 +269,6 @@ lemma in_normalized_matches: "ls \<in> set (normalize_match m) \<and> matches \<
   shows "\<forall>r \<in> set (normalize_rules f rs). P (get_match r)"
   using normalize_rules_property[OF assms(1) assms(2)] by simp
 
-
-(*TODO: generalize!*)
 fun normalize_rules_dnf :: "'a rule list \<Rightarrow> 'a rule list" where
   "normalize_rules_dnf [] = []" |
   "normalize_rules_dnf ((Rule m a)#rs) = (map (\<lambda>m. Rule m a) (normalize_match m))@(normalize_rules_dnf rs)"
