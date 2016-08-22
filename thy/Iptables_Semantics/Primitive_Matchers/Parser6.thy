@@ -1,3 +1,4 @@
+section\<open>Parser for iptables-save\<close>
 theory Parser6
 imports Code_Interface
   keywords "parse_ip6tables_save"::thy_decl
@@ -7,72 +8,6 @@ begin
  I JUST HAVE SEARCH/REPLACED s/32/128 and s/ipv4/ipv6
  AND RENAMED THE COMMAND
  ! ! ! do not edit by hand ! ! !*)
-
-context
-begin
-  private definition is_pos_Extra :: "'i::len common_primitive negation_type \<Rightarrow> bool" where
-    "is_pos_Extra a \<equiv> (case a of Pos (Extra _) \<Rightarrow> True | _ \<Rightarrow> False)"
-  private definition get_pos_Extra :: "'i::len common_primitive negation_type \<Rightarrow> string" where
-    "get_pos_Extra a \<equiv> (case a of Pos (Extra e) \<Rightarrow> e | _ \<Rightarrow> undefined)"
-  
-  fun compress_parsed_extra
-    :: "'i::len common_primitive negation_type list \<Rightarrow> 'i common_primitive negation_type list" where
-    "compress_parsed_extra [] = []" |
-    "compress_parsed_extra (a1#a2#as) = (if is_pos_Extra a1 \<and> is_pos_Extra a2
-        then compress_parsed_extra (Pos (Extra (get_pos_Extra a1@'' ''@get_pos_Extra a2))#as)
-        else a1#compress_parsed_extra (a2#as)
-        )" |
-    "compress_parsed_extra (a#as) = a#compress_parsed_extra as"
-  
-  lemma "compress_parsed_extra
-    (map Pos [Extra ''-m'', (Extra ''recent'' :: 128 common_primitive),
-              Extra ''--update'', Extra ''--seconds'', Extra ''60'',
-              IIface (Iface ''foobar''),
-              Extra ''--name'', Extra ''DEFAULT'', Extra ''--rsource'']) =
-     map Pos [Extra ''-m recent --update --seconds 60'',
-              IIface (Iface ''foobar''),
-              Extra ''--name DEFAULT --rsource'']" by eval
-  
-  private lemma eval_ternary_And_Unknown_Unkown:
-    "eval_ternary_And TernaryUnknown (eval_ternary_And TernaryUnknown tv) =
-        eval_ternary_And TernaryUnknown tv"
-    by(cases tv) (simp_all)
-  
-  private lemma is_pos_Extra_alist_and:
-    "is_pos_Extra a \<Longrightarrow> alist_and (a#as) = MatchAnd (Match (Extra (get_pos_Extra a))) (alist_and as)"
-    apply(cases a)
-     apply(simp_all add: get_pos_Extra_def is_pos_Extra_def)
-    apply(rename_tac e)
-    by(case_tac e)(simp_all)
-  
-  private lemma compress_parsed_extra_matchexpr_helper:
-    "ternary_ternary_eval (map_match_tac common_matcher p (alist_and (compress_parsed_extra as))) =
-         ternary_ternary_eval (map_match_tac common_matcher p (alist_and as))"
-   proof(induction as rule: compress_parsed_extra.induct)
-   case 1 thus ?case by(simp)
-   next
-   case (2 a1 a2) thus ?case
-     apply(simp add: is_pos_Extra_alist_and)
-     apply(cases a1)
-      apply(simp_all add: eval_ternary_And_Unknown_Unkown)
-     done
-   next
-   case 3 thus ?case by(simp)
-   qed
-  
-  text\<open>This lemma justifies that it is okay to fold together the parsed unknown tokens\<close>
-  lemma compress_parsed_extra_matchexpr:
-    "matches (common_matcher, \<alpha>) (alist_and (compress_parsed_extra as)) =
-        matches (common_matcher, \<alpha>) (alist_and as)"
-    apply(simp add: fun_eq_iff)
-    apply(intro allI)
-    apply(rule matches_iff_apply_f)
-    apply(simp add: compress_parsed_extra_matchexpr_helper)
-    done
-
-end
-
-
 
 ML\<open>(*my personal small library*)
 fun takeWhile p xs = fst (take_prefix p xs);
@@ -157,8 +92,32 @@ ML_val\<open>
 ipt_explode "ad \"as das\" boo";
 ipt_explode "ad \"foobar --boo boo";
 ipt_explode "ent \"\\\"\" this";
+ipt_explode "";
 \<close>
 
+
+(*
+ML_val\<open>
+fun finite_scan scan = Scan.error (Scan.finite Symbol.stopper (scan));
+finite_scan
+     ((Scan.this_string "foo") --|
+      (Scan.ahead ($$ " " || Scan.one Symbol.is_eof))) (raw_explode "foo ");
+\<close>
+ML\<open>
+local
+  val errormsg = (fn (ss, _) => raise Fail ("parse error: expected word boundary near `"^implode ss^"'"))
+  fun finite_scan scanner = (Scan.finite Symbol.stopper (Scan.error (!! errormsg scanner)));
+  val word_boundary_or_end = Scan.ahead ($$ " " || Scan.one Symbol.is_eof)
+in
+  fun look_ahead_token (scan : (string list -> 'a * string list)) s = (*TODO: why do I need to write the type?*)
+          finite_scan (scan --| word_boundary_or_end) s;
+end;
+val _ = look_ahead_token (Scan.this_string "foo") (raw_explode "foo ");
+val _ = look_ahead_token (Scan.this_string "foo") (raw_explode "foo");
+val _ = (look_ahead_token (Scan.this_string "foo")) (raw_explode "fo")
+  handle Fail m => if m = "parse error: expected word boundary near `fo'" then ("", [])
+                   else raise Fail "foo";
+\<close>*)
 
 ML\<open>
 datatype parsed_action_type = TypeCall | TypeGoto
@@ -239,10 +198,10 @@ local (*iptables-save parsers*)
             ) >> HOLogic.mk_prod
         end
       val parser_port_single_tup_term = parser_port_single_tup
-            >> ((fn x => [x]) #> HOLogic.mk_list @{typ "16 word \<times> 16 word"})
+            >> (fn x => @{term "L4Ports 0"} $ HOLogic.mk_list @{typ "16 word \<times> 16 word"} [x])
 
       val parser_port_many1_tup = parse_comma_separated_list parser_port_single_tup
-            >> HOLogic.mk_list @{typ "16 word \<times> 16 word"}
+            >> (fn x => @{term "L4Ports 0"} $ HOLogic.mk_list @{typ "16 word \<times> 16 word"} x)
 
       val parser_ctstate_set = parse_comma_separated_list parser_ctstate
             >> HOLogic.mk_set @{typ "ctstate"}
@@ -271,6 +230,7 @@ local (*iptables-save parsers*)
     fun parse_cmd_option_negated_singleton s t parser = parse_cmd_option_negated s t parser >> (fn x => [x])
 
     (*TODO: is the 'Scan.finite Symbol.stopper' correct here?*)
+    (*TODO: eoo here?*)
     fun parse_with_module_prefix (module: string) (parser: (string list -> parsed_match_action * string list)) =
       (Scan.finite Symbol.stopper (is_whitespace |-- Scan.this_string module)) |-- (Scan.repeat parser)
   in
@@ -290,7 +250,9 @@ local (*iptables-save parsers*)
     val parse_protocol = parse_cmd_option_negated_singleton "-p "
                 @{term "(Prot \<circ> Proto) :: primitive_protocol \<Rightarrow> 128 common_primitive"} parser_protocol; (*negated?*)
 
-    (*-m tcp requires that there is already an -p tcp, iptables checks that for you, we assume valid iptables-save (otherwise the kernel would not load it)*)
+    (*-m tcp requires that there is already an -p tcp, iptables checks that for you,
+      we assume valid iptables-save (otherwise the kernel would not load it)
+      We will fill the protocols in the L4Ports later*)
     val parse_tcp_options = parse_with_module_prefix "-m tcp "
               (   parse_cmd_option_negated "--sport " @{const Src_Ports (128)} parser_port_single_tup_term
                || parse_cmd_option_negated "--dport " @{const Dst_Ports (128)} parser_port_single_tup_term
@@ -393,7 +355,7 @@ ML_val\<open>(Scan_cons_repeat option_parser) (ipt_explode "-j LOG --log-prefix 
 
 
 ML_val\<open>
-val (x, rest) = (Scan_cons_repeat option_parser) (ipt_explode "-d 0.31.123.213/88 --foo_bar \"he he\" -f -i eth0+ -s 0.31.123.213/21 moreextra -j foobar --log");
+val (x, rest) = (Scan_cons_repeat option_parser) (ipt_explode "-d 0.31.123.213/11. --foo_bar \"he he\" -f -i eth0+ -s 0.31.123.213/21 moreextra -j foobar --log");
 map (fn p => case p of ParsedMatch t => type_of t | ParsedAction (_,_) => dummyT) x;
 map (fn p => case p of ParsedMatch t => Pretty.writeln (Syntax.pretty_term @{context} t) | ParsedAction (_,a) => writeln ("action: "^a)) x;
 \<close>
@@ -476,7 +438,7 @@ local
   (* this takes like forever! *)
   (* apply compress_parsed_extra here?*)
   fun hacky_hack t = (*Code_Evaluation.dynamic_value_strict @{context} (@{const compress_extra} $ t)*)
-    @{const alist_and' ("128 common_primitive")} $ (@{const compress_parsed_extra (128)} $ t)
+    @{const alist_and' ("128 common_primitive")} $ (@{const fill_l4_protocol (128)} $ (@{const compress_parsed_extra (128)} $ t))
   
   fun mk_MatchExpr t = if fastype_of t <> @{typ "128 common_primitive negation_type list"}
                        then
