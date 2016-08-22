@@ -72,8 +72,6 @@ lemma "MatchNot (opt_MatchAny_match_expr_once (MatchAnd MatchAny (MatchNot Match
 lemma "m = (MatchAnd (MatchAnd MatchAny MatchAny) (MatchAnd MatchAny MatchAny)) \<Longrightarrow> 
   (opt_MatchAny_match_expr_once^^2) m \<noteq> opt_MatchAny_match_expr_once m" by(simp add: funpow_def)
 
-(*TODO: replace all uses of opt_MatchAny_match_expr with a version which removes all*)
-
 definition opt_MatchAny_match_expr :: "'a match_expr \<Rightarrow> 'a match_expr" where
   "opt_MatchAny_match_expr m \<equiv> repeat_stabilize 2 opt_MatchAny_match_expr_once m"
 

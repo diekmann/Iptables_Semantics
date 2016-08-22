@@ -1,6 +1,5 @@
 theory Analyze_TUM_Net_Firewall
 imports "../../Primitive_Matchers/Code_Interface"
-  "../../Semantics_Ternary/Packet_Set"
   "../../Primitive_Matchers/Parser"
 begin
 
@@ -115,11 +114,5 @@ lemma "let rules = unfold_ruleset_FORWARD net_fw_2013_FORWARD_default_policy (ma
   ''DROP     all  --  131.159.14.65/32            0.0.0.0/0 in: vlan96   '']" by eval
 
 
-
-(*this is just for testing*)
-definition deny_set :: "32 common_primitive rule list \<Rightarrow> 32 common_primitive packet_set list" where
-  "deny_set rs \<equiv> filter (\<lambda>a. a \<noteq> packet_set_UNIV) (map packet_set_opt (allow_set_not_inter rs))"
-
-(*TODO: probably test the deny set somewhere ;-)*)
 
 end

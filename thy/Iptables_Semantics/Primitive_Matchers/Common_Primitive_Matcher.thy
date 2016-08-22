@@ -128,11 +128,11 @@ subsection\<open>Basic optimisations\<close>
   fun optimize_primitive_univ :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where
     "optimize_primitive_univ (Match (Src (IpAddrNetmask _ 0))) = MatchAny" |
     "optimize_primitive_univ (Match (Dst (IpAddrNetmask _ 0))) = MatchAny" |
-    (*TODO: the other IPs ...*)
+    (*missing: the other IPs ...*)
     "optimize_primitive_univ (Match (IIface iface)) = (if iface = ifaceAny then MatchAny else (Match (IIface iface)))" |
     "optimize_primitive_univ (Match (OIface iface)) = (if iface = ifaceAny then MatchAny else (Match (OIface iface)))" |
-    (*TODO: introduces new match. probably remove this omptimization if it causes problems? Add again?*)
-    (*"optimize_primitive_univ (Match (Src_Ports (L4Ports proto [(s, e)]))) = (if s = 0 \<and> e = 0xFFFF then (Match (Prot (Proto proto))) else (Match (Src_Ports (L4Ports proto [(s, e)]))))" |
+    (*missing: L4Ports. But this introduces a new match, which causes problems.
+    "optimize_primitive_univ (Match (Src_Ports (L4Ports proto [(s, e)]))) = (if s = 0 \<and> e = 0xFFFF then (Match (Prot (Proto proto))) else (Match (Src_Ports (L4Ports proto [(s, e)]))))" |
     "optimize_primitive_univ (Match (Dst_Ports (L4Ports proto [(s, e)]))) = (if s = 0 \<and> e = 0xFFFF then (Match (Prot (Proto proto))) else (Match (Dst_Ports (L4Ports proto [(s, e)]))))" |*)
     "optimize_primitive_univ (Match (Prot ProtoAny)) = MatchAny" |
     "optimize_primitive_univ (Match (L4_Flags (TCP_Flags m c))) = (if m = {} \<and> c = {} then MatchAny else (Match (L4_Flags (TCP_Flags m c))))" |
@@ -145,13 +145,10 @@ subsection\<open>Basic optimisations\<close>
     "optimize_primitive_univ (MatchAnd m1 m2) = MatchAnd (optimize_primitive_univ m1) (optimize_primitive_univ m2)" |
     "optimize_primitive_univ MatchAny = MatchAny"
 
-    (* no longer true if we optimize ports because we might introduce a match on protocol if we optimize ports*)
-    (*TODO: add sth similar*)
     lemma optimize_primitive_univ_unchanged_primitives:
     "optimize_primitive_univ (Match a) = (Match a) \<or> optimize_primitive_univ (Match a) = MatchAny"
-      apply (induction "(Match a)" rule: optimize_primitive_univ.induct)
-      apply(auto split: split_if_asm)
-      done
+      by (induction "(Match a)" rule: optimize_primitive_univ.induct)
+         (auto split: split_if_asm)
     
   
   lemma optimize_primitive_univ_correct_matchexpr: fixes m::"'i::len common_primitive match_expr"

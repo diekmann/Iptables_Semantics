@@ -76,6 +76,7 @@ session "Iptables_Semantics_Examples" = Iptables_Semantics_Documentation +
    theories
     "Examples/Parser_Test/Parser_Test"
     "Examples/Parser_Test/Parser6_Test"
+    "Examples/Small_Examples"
     "Examples/Fail/Ports_Fail"
     "Examples/Contrived/Contrived_Example"
     "Examples/Synology_Diskstation_DS414/Analyze_Synology_Diskstation"
