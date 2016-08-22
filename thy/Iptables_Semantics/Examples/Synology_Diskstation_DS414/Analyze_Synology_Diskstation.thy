@@ -1,6 +1,7 @@
 theory Analyze_Synology_Diskstation
 imports iptables_Ln_tuned_parsed (*2014 firewall dump*)
   "../../Primitive_Matchers/Parser"
+  "../../Primitive_Matchers/Parser6"
 begin
 
 
@@ -343,5 +344,123 @@ lemma "access_matrix_pretty_ipv4 (mk_parts_connection_TCP 10000 8080)
    ],
    [(''127.0.0.0'', ''127.0.0.0''),
     (''127.0.0.0'', ''0.0.0.0'')])" by eval
+
+
+
+text\<open>The 2016 version with IPv6 is very interesting. 
+ Some source ports for UDP are just allowed.
+ Is this a typo? The original structure with the @{const Return}s is very complicated.
+ Here is what is actually dropped and accepted:\<close>
+parse_ip6tables_save ds_2016_ipv6 = "ip6tables-save_jul_2016" (*5s*)
+
+lemma "map simple_rule_ipv6_toString
+              (to_simple_firewall (upper_closure
+                (optimize_matches abstract_for_simple_firewall
+                  (upper_closure (packet_assume_new
+                    (unfold_ruleset_FORWARD ds_2016_ipv6_FORWARD_default_policy
+                      (map_of ds_2016_ipv6))))))) =
+[ ''ACCEPT     all  --  ::/0            ::/0 in: lo   '',
+  ''ACCEPT     ipv6-icmp  --  fe80::/10            ::/0    '',
+  ''DROP     tcp  --  ::/0            ::/0    dports: 21'',
+  ''DROP     tcp  --  ::/0            ::/0    dports: 873'',
+  ''DROP     tcp  --  ::/0            ::/0    dports: 631'',
+  ''DROP     tcp  --  ::/0            ::/0    dports: 515'',
+  ''DROP     tcp  --  ::/0            ::/0    dports: 3260:3262'',
+  ''DROP     tcp  --  ::/0            ::/0    dports: 22:23'',
+  ''DROP     tcp  --  ::/0            ::/0    dports: 548'',
+  ''DROP     tcp  --  ::/0            ::/0    dports: 3493'',
+  ''DROP     tcp  --  ::/0            ::/0    dports: 3306'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 0:5001 dports: 67:68'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 0:5001 dports: 123'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 0:5001 dports: 514'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 0:5001 dports: 161'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 0:5001 dports: 19999'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 0:5001 dports: 5353'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5003 dports: 67:68'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5003 dports: 123'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5003 dports: 514'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5003 dports: 161'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5003 dports: 19999'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5003 dports: 5353'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5005:65000 dports: 67:68'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5005:65000 dports: 123'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5005:65000 dports: 514'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5005:65000 dports: 161'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5005:65000 dports: 19999'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5005:65000 dports: 5353'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 65002:65535 dports: 67:68'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 65002:65535 dports: 123'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 65002:65535 dports: 514'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 65002:65535 dports: 161'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 65002:65535 dports: 19999'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 65002:65535 dports: 5353'',
+  ''DROP     tcp  --  ::/0            ::/0    dports: 111'',
+  ''DROP     tcp  --  ::/0            ::/0    dports: 892'',
+  ''DROP     tcp  --  ::/0            ::/0    dports: 2049'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 0:5001 dports: 111'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 0:5001 dports: 892'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 0:5001 dports: 2049'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5003 dports: 111'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5003 dports: 892'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5003 dports: 2049'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5005:65000 dports: 111'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5005:65000 dports: 892'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5005:65000 dports: 2049'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 65002:65535 dports: 111'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 65002:65535 dports: 892'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 65002:65535 dports: 2049'',
+  ''DROP     tcp  --  ::/0            ::/0    dports: 0:79'',
+  ''DROP     tcp  --  ::/0            ::/0    dports: 81:442'',
+  ''DROP     tcp  --  ::/0            ::/0    dports: 444:9024'',
+  ''DROP     tcp  --  ::/0            ::/0    dports: 9041:50000'',
+  ''DROP     tcp  --  ::/0            ::/0    dports: 50003:65535'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 0:5001 dports: 0:1899'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 0:5001 dports: 1901:5001'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 0:5001 dports: 5003'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 0:5001 dports: 5005:65000'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 0:5001 dports: 65002:65535'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5003 dports: 0:1899'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5003 dports: 1901:5001'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5003 dports: 5003'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5003 dports: 5005:65000'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5003 dports: 65002:65535'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5005:65000 dports: 0:1899'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5005:65000 dports: 1901:5001'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5005:65000 dports: 5003'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5005:65000 dports: 5005:65000'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 5005:65000 dports: 65002:65535'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 65002:65535 dports: 0:1899'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 65002:65535 dports: 1901:5001'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 65002:65535 dports: 5003'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 65002:65535 dports: 5005:65000'',
+  ''DROP     udp  --  ::/0            ::/0   sports: 65002:65535 dports: 65002:65535'',
+  (*The following eth0 rules are shadowed*)
+  ''DROP     tcp  --  ::/0            ::/0 in: eth0   dports: 0:79'',
+  ''DROP     tcp  --  ::/0            ::/0 in: eth0   dports: 81:442'',
+  ''DROP     tcp  --  ::/0            ::/0 in: eth0   dports: 444:9024'',
+  ''DROP     tcp  --  ::/0            ::/0 in: eth0   dports: 9041:50000'',
+  ''DROP     tcp  --  ::/0            ::/0 in: eth0   dports: 50003:65535'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 0:5001 dports: 0:1899'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 0:5001 dports: 1901:5001'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 0:5001 dports: 5003'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 0:5001 dports: 5005:65000'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 0:5001 dports: 65002:65535'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 5003 dports: 0:1899'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 5003 dports: 1901:5001'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 5003 dports: 5003'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 5003 dports: 5005:65000'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 5003 dports: 65002:65535'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 5005:65000 dports: 0:1899'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 5005:65000 dports: 1901:5001'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 5005:65000 dports: 5003'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 5005:65000 dports: 5005:65000'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 5005:65000 dports: 65002:65535'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 65002:65535 dports: 0:1899'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 65002:65535 dports: 1901:5001'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 65002:65535 dports: 5003'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 65002:65535 dports: 5005:65000'',
+  ''DROP     udp  --  ::/0            ::/0 in: eth0  sports: 65002:65535 dports: 65002:65535'',
+  ''ACCEPT     all  --  ::/0            ::/0    '']"
+by eval (*50s*)
 
 end
