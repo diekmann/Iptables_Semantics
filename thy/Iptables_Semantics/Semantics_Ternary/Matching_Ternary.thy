@@ -103,7 +103,6 @@ lemma bunch_of_lemmata_about_matches:
 proof(case_tac [!] \<gamma>)
 qed (simp_all split: ternaryvalue.split add: matches_case_ternaryvalue_tuple)
 
-(*TODO: use?*)
 lemma match_raw_bool:
   "matches (\<beta>, \<alpha>) (Match expr) a p = (case ternary_to_bool (\<beta> expr p) of Some r \<Rightarrow> r | None \<Rightarrow> (\<alpha> a p))" (*Match raw*)
 by(simp_all split: ternaryvalue.split add: matches_case_ternaryvalue_tuple)

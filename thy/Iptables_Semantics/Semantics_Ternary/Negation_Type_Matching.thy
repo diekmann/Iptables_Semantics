@@ -6,7 +6,6 @@ section\<open>Negation Type Matching\<close>
 
 
 text\<open>Transform a @{typ "'a negation_type list"} to a @{typ "'a match_expr"} via conjunction.\<close>
-(*TODO: alist_and get rid of MatchAny, special case for singleton list*)
 fun alist_and :: "'a negation_type list \<Rightarrow> 'a match_expr" where
   "alist_and [] = MatchAny" |
   "alist_and ((Pos e)#es) = MatchAnd (Match e) (alist_and es)" |

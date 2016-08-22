@@ -3,7 +3,7 @@ imports Common_Primitive_Syntax
         "../Semantics_Ternary/Primitive_Normalization"
         "../../Simple_Firewall/Primitives/Iface"
         "../../Simple_Firewall/Common/IP_Addr_WordInterval_toString" (*for debug pretty-printing*)
-        "../../Automatic_Refinement/Lib/Misc" (*TODO: dependnecy!*)
+        "../../Automatic_Refinement/Lib/Misc" (*dependnecy!*)
 begin
 
   text\<open>A mapping from an interface to its assigned ip addresses in CIDR notation\<close>
@@ -30,9 +30,6 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
 
   (* use this in all exported code*)
   (*TODO: generate useful error message in exported code*)
-  (*consts undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces :: "'a"
-  declare [[code abort: undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces]]*)
-  (*pretty excpetion breaks value[code] and by eval*)
   definition map_of_ipassmt :: "(iface \<times> ('i word \<times> nat) list) list \<Rightarrow> iface \<rightharpoonup> ('i word \<times> nat) list" where
     "map_of_ipassmt ipassmt = (
       if
@@ -92,7 +89,7 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
     by(simp add: collect_ifaces_def mergesort_remdups_correct)
 
   text\<open>sanity check that all interfaces mentioned in the ruleset are also listed in the ipassmt. May fail for wildcard interfaces in the ruleset.\<close>
-  (*TODO: wildcards*)
+
   (*primitive_extractor requires normalized_nnf_primitives*)
   definition ipassmt_sanity_defined :: "'i::len common_primitive rule list \<Rightarrow> 'i ipassignment \<Rightarrow> bool" where
     "ipassmt_sanity_defined rs ipassmt \<equiv> \<forall> iface \<in> set (collect_ifaces rs). iface \<in> dom ipassmt"
