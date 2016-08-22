@@ -177,7 +177,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
     unfolding compress_normalize_protocols_step_def
     using compress_normalize_primitive_nnf[OF wf_disc_sel_common_primitive(7)] by blast
  
-  (*TODO: not needed, I probably want it to introduce prot!*)
+  (*not needed, I want it to introduce prot when I import from L4Ports!*)
   lemma compress_normalize_protocols_step_not_introduces_Prot:
     "\<not> has_disc is_Prot m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols_step m = Some m' \<Longrightarrow>
      \<not> has_disc is_Prot m'"

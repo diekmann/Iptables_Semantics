@@ -1,7 +1,7 @@
 section\<open>Routing and IP Assignments\<close>
 theory Routing_IpAssmt
 imports "../Primitive_Matchers/Ipassmt"
-        Routing_Table
+        "../../Routing/Routing_Table"
 begin
 context
 begin
