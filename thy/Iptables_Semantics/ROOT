@@ -49,7 +49,6 @@ session "Iptables_Semantics" = Routing +
     "Primitive_Matchers/Primitive_Abstract"
     "Primitive_Matchers/Code_Interface"
     "Primitive_Matchers/Parser"
-    "Primitive_Matchers/Iface_Attic"
     "Simple_Firewall/SimpleFw_Compliance"
     "Examples/Code_haskell"
   document_files
