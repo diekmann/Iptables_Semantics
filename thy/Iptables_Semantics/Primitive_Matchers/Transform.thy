@@ -606,21 +606,17 @@ definition transform_normalize_primitives :: "'i::len common_primitive rule list
      using assms(1) apply simp
     using assms(2) by simp
 
-
-
-(*TODO: generalize?*)
-(*TODO: move*)
-lemma optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_normalized_n_primitive:
- assumes "\<forall> r \<in> set rs. normalized_nnf_match (get_match r) \<and> normalized_n_primitive (disc2, sel2) P (get_match r)" 
-     and "\<forall>a. \<not> disc2 (IIface a)" and "\<forall>a. \<not> disc2 (OIface a)" and "\<forall>a. \<not> disc2 (Prot a)"
-  shows "\<forall>r \<in> set (optimize_matches_option compress_normalize_besteffort rs).
-          normalized_nnf_match (get_match r) \<and> normalized_n_primitive (disc2, sel2) P (get_match r)"
-  thm optimize_matches_option_preserves
-  apply(rule optimize_matches_option_preserves[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive  (disc2, sel2) P m"
-      and f="compress_normalize_besteffort"])
-  apply(rule compress_normalize_besteffort_preserves_normalized_n_primitive)
-       apply(simp_all add: assms)
-  done
+  lemma optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_normalized_n_primitive:
+   assumes "\<forall> r \<in> set rs. normalized_nnf_match (get_match r) \<and> normalized_n_primitive (disc2, sel2) P (get_match r)" 
+       and "\<forall>a. \<not> disc2 (IIface a)" and "\<forall>a. \<not> disc2 (OIface a)" and "\<forall>a. \<not> disc2 (Prot a)"
+    shows "\<forall>r \<in> set (optimize_matches_option compress_normalize_besteffort rs).
+            normalized_nnf_match (get_match r) \<and> normalized_n_primitive (disc2, sel2) P (get_match r)"
+    thm optimize_matches_option_preserves
+    apply(rule optimize_matches_option_preserves[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive  (disc2, sel2) P m"
+        and f="compress_normalize_besteffort"])
+    apply(rule compress_normalize_besteffort_preserves_normalized_n_primitive)
+         apply(simp_all add: assms)
+    done
 
 theorem transform_normalize_primitives:
   -- "all discriminators which will not be normalized remain unchanged"
@@ -686,7 +682,7 @@ theorem transform_normalize_primitives:
     thus "\<forall> r \<in> set (transform_normalize_primitives rs). normalized_nnf_match (get_match r)"
       unfolding transform_normalize_primitives_def by simp
 
-    (*TODO: add this as generic simp rule somewhere? But simplifier loops? what to do? cong_rule?*)
+    (*add this as generic simp rule somewhere? But simplifier loops? what to do? cong_rule?*)
     have local_simp: "\<And>rs1 rs2. approximating_bigstep_fun ?\<gamma> p rs1 s = approximating_bigstep_fun ?\<gamma> p rs2 s \<Longrightarrow>
       (approximating_bigstep_fun ?\<gamma> p rs1 s = t) = (approximating_bigstep_fun ?\<gamma> p rs2 s = t)" by simp
 
@@ -959,9 +955,7 @@ theorem transform_normalize_primitives:
       \<forall> r \<in> set (transform_normalize_primitives rs). \<not> has_disc disc1 (get_match r)"
    unfolding unchanged_def changeddisc_def using normalized by blast
 
-   (*TODO: copy pasta*)
-   (*TODO: add normalized condition to the preserves lemma?*)
-   (*TODO: generalize for disc?*)
+   (*copy pasta*)
    { fix m and m' and disc::"('i::len common_primitive \<Rightarrow> bool)"
          and sel::"('i::len common_primitive \<Rightarrow> 'x)" and C'::" ('x \<Rightarrow> 'i::len common_primitive)"
          and f'::"('x negation_type list \<Rightarrow> 'x list)" and neg
@@ -1087,7 +1081,7 @@ theorem transform_normalize_primitives:
     using compress_normalize_besteffort_hasdisc_negated[of is_Dst_Ports] apply fastforce
    by simp
 
-   (*TODO, copy from above, specific version for is_Prot*)
+   (*copy from above, specific version for is_Prot*)
    have case_disc3_is_prot: "disc3 = is_Prot \<Longrightarrow>
   \<forall> r \<in> set rs. \<not> has_disc_negated disc3 False (get_match r) \<and> normalized_nnf_match (get_match r) \<and>
          \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r) \<Longrightarrow>
@@ -1116,12 +1110,10 @@ theorem transform_normalize_primitives:
          apply(simp_all)
       apply simp
      using normalize_dst_ports_preserves_normalized_not_has_disc_negated by blast
-    (*TODO blast must be able to solve this! make subgoals!*)
     using x[OF wf_disc_sel_common_primitive(3), of disc3 ipt_iprange_compress, folded normalize_src_ips_def]
           x[OF wf_disc_sel_common_primitive(3), of is_Dst_Ports ipt_iprange_compress, folded normalize_src_ips_def]
           x_generic[OF _ _ _ wf_disc_sel_common_primitive(3), of is_Src_Ports False _ _ ipt_iprange_compress, folded normalize_src_ips_def]
           apply (meson common_primitive.disc(41) common_primitive.disc(51) common_primitive.disc(61))
-          
    using x[OF wf_disc_sel_common_primitive(4), of disc3 ipt_iprange_compress, folded normalize_dst_ips_def]
           x[OF wf_disc_sel_common_primitive(4), of is_Src_Ports ipt_iprange_compress, folded normalize_dst_ips_def]
           x_generic[OF _ _ _ wf_disc_sel_common_primitive(4), of is_Dst_Ports False _ _ ipt_iprange_compress, folded normalize_dst_ips_def]

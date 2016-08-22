@@ -451,7 +451,7 @@ subsection\<open>Normalizing and Optimizing Primitives\<close>
     "normalize_primitive_extract (disc_sel) C f m \<equiv> (case primitive_extractor (disc_sel) m 
                 of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (C spt))) rst) (f spts))"
   
-                (*TODO: if f spts is empty, we get back an empty list. problem? *)
+                (*if f spts is empty, we get back an empty list. *)
   
   text\<open>
     If @{text f} has the properties described above, then @{const normalize_primitive_extract} is a valid transformation of a match expression\<close>
@@ -617,7 +617,6 @@ lemma remove_unknowns_generic_normalized_n_primitive: "normalized_n_primitive di
 
 
 
-(*TODO: move to normalize_match*)
 lemma normalize_match_preserves_disc_negated: 
     shows "(\<exists>m_DNF \<in> set (normalize_match m). has_disc_negated disc neg m_DNF) \<Longrightarrow> has_disc_negated disc neg m"
   proof(induction m rule: normalize_match.induct)
@@ -800,18 +799,17 @@ subsection\<open>Optimizing a match expression\<close>
         obtain as ms where asms: "primitive_extractor (disc, sel) m = (as, ms)" by fastforce
         from am primitive_extractor_correct(4)[OF nm wf asms] have 1: "\<not> has_disc disc2 ms" by simp
         { fix is_pos is_neg
-          from disc have x1: "\<not> has_disc disc2 (alist_and (NegPos_map C (map Pos is_pos)))"
-            by(simp add: has_disc_alist_and NegPos_map_map_Pos negation_type_to_match_expr_simps)
-          from disc have x2: "\<not> has_disc disc2 (alist_and (NegPos_map C (map Neg is_neg)))"
-            by(simp add: has_disc_alist_and NegPos_map_map_Neg negation_type_to_match_expr_simps)
-          from x1 x2 have "\<not> has_disc disc2 (alist_and (NegPos_map C (map Pos is_pos @ map Neg is_neg)))"
-            apply(simp add: NegPos_map_append has_disc_alist_and) by blast
+          from disc have x1: "\<not> has_disc disc2 (alist_and' (NegPos_map C (map Pos is_pos)))"
+            by(simp add: has_disc_alist_and' NegPos_map_map_Pos negation_type_to_match_expr_simps)
+          from disc have x2: "\<not> has_disc disc2 (alist_and' (NegPos_map C (map Neg is_neg)))"
+            by(simp add: has_disc_alist_and' NegPos_map_map_Neg negation_type_to_match_expr_simps)
+          from x1 x2 have "\<not> has_disc disc2 (alist_and' (NegPos_map C (map Pos is_pos @ map Neg is_neg)))"
+            apply(simp add: NegPos_map_append has_disc_alist_and') by blast
         }
         with some have "\<not> has_disc disc2 m'"
           apply(simp add: compress_normalize_primitive_def asms)
           apply(elim exE conjE)
-          (*TODO: confusing alist_and and alist_and'*)
-          using 1 by (meson has_disc.simps(4) has_disc_alist_and has_disc_alist_and')
+          using 1 by fastforce
         with goal1 show ?thesis by simp
    qed
   lemma compress_normalize_primitive_hasdisc_negated:
@@ -826,17 +824,17 @@ subsection\<open>Optimizing a match expression\<close>
         obtain as ms where asms: "primitive_extractor (disc, sel) m = (as, ms)" by fastforce
         from am primitive_extractor_correct(6)[OF nm wf asms] have 1: "\<not> has_disc_negated disc2 neg ms" by simp
         { fix is_pos is_neg
-          from disc have x1: "\<not> has_disc_negated disc2 neg (alist_and (NegPos_map C (map Pos is_pos)))"
-            by(simp add: has_disc_negated_alist_and NegPos_map_map_Pos negation_type_to_match_expr_simps)
-          from disc have x2: "\<not> has_disc_negated disc2 neg (alist_and (NegPos_map C (map Neg is_neg)))"
-            by(simp add: has_disc_negated_alist_and NegPos_map_map_Neg negation_type_to_match_expr_simps)
-          from x1 x2 have "\<not> has_disc_negated disc2 neg (alist_and (NegPos_map C (map Pos is_pos @ map Neg is_neg)))"
-            apply(simp add: NegPos_map_append has_disc_negated_alist_and) by blast
+          from disc have x1: "\<not> has_disc_negated disc2 neg (alist_and' (NegPos_map C (map Pos is_pos)))"
+            by(simp add: has_disc_negated_alist_and' NegPos_map_map_Pos negation_type_to_match_expr_simps)
+          from disc have x2: "\<not> has_disc_negated disc2 neg (alist_and' (NegPos_map C (map Neg is_neg)))"
+            by(simp add: has_disc_negated_alist_and' NegPos_map_map_Neg negation_type_to_match_expr_simps)
+          from x1 x2 have "\<not> has_disc_negated disc2 neg (alist_and' (NegPos_map C (map Pos is_pos @ map Neg is_neg)))"
+            apply(simp add: NegPos_map_append has_disc_negated_alist_and') by blast
         }
         with some have "\<not> has_disc_negated disc2 neg m'"
           apply(simp add: compress_normalize_primitive_def asms)
           apply(elim exE conjE)
-          using 1 by (meson has_disc_negated.simps(4) has_disc_negated_alist_and has_disc_negated_alist_and')
+          using 1 by fastforce
           
         with goal1 show ?thesis by simp
    qed
