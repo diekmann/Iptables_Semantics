@@ -1,10 +1,12 @@
+section\<open>Word Upto\<close>
 theory Word_Upto
 imports Main
   "../../IP_Addresses/Hs_Compat"
   "../../Word_Lib/Word_Lemmas"
 begin
 
-section\<open>Word Upto\<close>
+
+text\<open>Enumerate a range of machine words.\<close>
 
 text\<open>enumerate from the back (inefficient)\<close>
 function word_upto :: "'a word \<Rightarrow> 'a word \<Rightarrow> ('a::len0) word list" where
@@ -75,47 +77,49 @@ lemma word_upto_cons_front[code]:
  qed
 
 
-(* Most of the lemmas I show about word_upto hold without a \<le> b, but I don't need that right now and it's giving me a headache *)
+(* Most of the lemmas I show about word_upto hold without a \<le> b,
+   but I don't need that right now and it's giving me a headache *)
 
-lemma word_upto_set_eq2: "a \<le> b \<Longrightarrow> x \<in> set (word_upto a b) \<Longrightarrow> a \<le> x \<and> x \<le> b"
-apply(induction a b rule: word_upto.induct)
-apply(case_tac "a = b")
- apply(subst(asm) word_upto.simps)
- apply(simp; fail)
-apply(subst(asm) word_upto.simps)
-apply(simp)
-apply(erule disjE)
- apply(simp; fail)
-proof(goal_cases)
- case (1 a b)
- from 1(2-3) have "b \<noteq> 0" by force
- from 1(2,3) have "a \<le> b - 1" by (metis `b \<noteq> 0` le_step_down_nat order_class.order.antisym unat_minus_one word_le_nat_alt) 
- from 1(1)[OF this 1(4)] show ?case by (metis dual_order.trans 1(2,3) less_imp_le measure_unat word_le_0_iff word_le_nat_alt)
-qed
-
-lemma word_upto_set_eq3: "a \<le> x \<and> x \<le> b \<Longrightarrow> x \<in> set (word_upto a b)"
-apply(induction a b rule: word_upto.induct)
-apply(case_tac "a = b")
- apply(subst word_upto.simps)
- apply(simp; force)
-apply(subst word_upto.simps)
-apply(simp)
-apply(case_tac "x = b")
- apply(simp;fail)
-proof(goal_cases)
-   case (1 a b)
-   from 1(2-4) have "b \<noteq> 0" by force
-   from 1(2,4) have "x \<le> b - 1" by (metis `b \<noteq> 0` dual_order.antisym le_step_down_nat unat_minus_one word_le_nat_alt) 
-   from 1(1) this show ?case by simp
-qed
 
 lemma word_upto_set_eq: "a \<le> b \<Longrightarrow> x \<in> set (word_upto a b) \<longleftrightarrow> a \<le> x \<and> x \<le> b"
-  using word_upto_set_eq3 word_upto_set_eq2 by metis
+proof
+  show "a \<le> b \<Longrightarrow> x \<in> set (word_upto a b) \<Longrightarrow> a \<le> x \<and> x \<le> b"
+    apply(induction a b rule: word_upto.induct)
+    apply(case_tac "a = b")
+     apply(subst(asm) word_upto.simps)
+     apply(simp; fail)
+    apply(subst(asm) word_upto.simps)
+    apply(simp)
+    apply(erule disjE)
+     apply(simp; fail)
+    proof(goal_cases)
+     case (1 a b)
+     from 1(2-3) have "b \<noteq> 0" by force
+     from 1(2,3) have "a \<le> b - 1" by (metis \<open>b \<noteq> 0\<close> eq_iff le_step_down_nat unat_arith_simps(1) unat_minus_one)
+     from 1(1)[OF this 1(4)] show ?case by (metis dual_order.trans 1(2,3) less_imp_le measure_unat word_le_0_iff word_le_nat_alt)
+    qed
+next
+  show "a \<le> x \<and> x \<le> b \<Longrightarrow> x \<in> set (word_upto a b)"
+    apply(induction a b rule: word_upto.induct)
+    apply(case_tac "a = b")
+     apply(subst word_upto.simps)
+     apply(simp; force)
+    apply(subst word_upto.simps)
+    apply(simp)
+    apply(case_tac "x = b")
+     apply(simp;fail)
+    proof(goal_cases)
+       case (1 a b)
+       from 1(2-4) have "b \<noteq> 0" by force
+       from 1(2,4) have "x \<le> b - 1" by (metis `b \<noteq> 0` dual_order.antisym le_step_down_nat unat_minus_one word_le_nat_alt) 
+       from 1(1) this show ?case by simp
+    qed
+qed
 
 lemma word_upto_distinct_hlp: "a \<le> b \<Longrightarrow> a \<noteq> b \<Longrightarrow> b \<notin> set (word_upto a (b - 1))"
    apply(rule ccontr, unfold not_not)
    apply(subgoal_tac "a \<le> b - 1")
-    apply(drule word_upto_set_eq2[of a "b -1" b])
+    apply(drule iffD1[OF word_upto_set_eq[of a "b -1" b]])
      apply(simp add: word_upto.simps; fail)
     apply(subgoal_tac "b \<noteq> 0")
      apply(meson leD measure_unat word_le_nat_alt)
@@ -137,29 +141,30 @@ apply(rule ccontr)
 apply(metis le_step_down_nat less_le not_le unat_minus_one word_le_nat_alt word_not_simps(1))
 done
 
-(*abbreviation "word_of_nat \<equiv> of_nat :: nat \<Rightarrow> ('l :: len) word"*)
+
 lemma word_upto_eq_upto: "s \<le> e \<Longrightarrow> e \<le> unat (max_word :: 'l word) \<Longrightarrow>
        word_upto ((of_nat :: nat \<Rightarrow> ('l :: len) word) s) (of_nat e) = map of_nat (upt s (Suc e))"
 proof(induction e)
-       let ?mwon = "of_nat :: nat \<Rightarrow> 'l word"
-       let ?mmw = "max_word :: 'l word"
-       case (Suc e)
-       show ?case
-       proof(cases "?mwon s = ?mwon (Suc e)")
-         case True
-         have "s = Suc e" using le_unat_uoi Suc.prems True by metis
-         with True show ?thesis by(subst word_upto.simps) (simp)
-       next
-         case False 
-         hence le: "s \<le> e" using le_SucE Suc.prems by blast
-         have lm: "e \<le> unat ?mmw" using Suc.prems by simp
-         have sucm: "(of_nat :: nat \<Rightarrow> ('l :: len) word) (Suc e) - 1 = of_nat e" using Suc.prems(2) by simp
-         note mIH = Suc.IH[OF le lm]
-         show ?thesis by(subst word_upto.simps) (simp add: False[simplified] Suc.prems mIH sucm)
-       qed
+  let ?mwon = "of_nat :: nat \<Rightarrow> 'l word"
+  let ?mmw = "max_word :: 'l word"
+  case (Suc e)
+  show ?case
+  proof(cases "?mwon s = ?mwon (Suc e)")
+    case True
+    have "s = Suc e" using le_unat_uoi Suc.prems True by metis
+    with True show ?thesis by(subst word_upto.simps) (simp)
+  next
+    case False
+    hence le: "s \<le> e" using le_SucE Suc.prems by blast
+    have lm: "e \<le> unat ?mmw" using Suc.prems by simp
+    have sucm: "(of_nat :: nat \<Rightarrow> ('l :: len) word) (Suc e) - 1 = of_nat e" using Suc.prems(2) by simp
+    note mIH = Suc.IH[OF le lm]
+    show ?thesis by(subst word_upto.simps) (simp add: False[simplified] Suc.prems mIH sucm)
+  qed
 qed(simp add: word_upto.simps)
 
-lemma word_upto_alt: "(a :: ('l :: len) word) \<le> b \<Longrightarrow> word_upto a b = map of_nat (upt (unat a) (Suc (unat b)))"
+lemma word_upto_alt: "(a :: ('l :: len) word) \<le> b \<Longrightarrow>
+  word_upto a b = map of_nat (upt (unat a) (Suc (unat b)))"
 proof -
    let ?mmw = "max_word :: 'l word"
    assume le: "a \<le> b"
@@ -169,8 +174,7 @@ proof -
    thus "word_upto a b = map of_nat [unat a..<Suc (unat b)]" .
 qed
 
-(*TODO: is this even more efficient?*)
-lemma (*[code_unfold]:*)
+lemma word_upto_upt:
   "word_upto a b = (if a \<le> b then map of_nat (upt (unat a) (Suc (unat b))) else word_upto a b)"
   using word_upto_alt by metis
 
