@@ -1,3 +1,4 @@
+section "Linux Router"
 theory Linux_Router
 imports 
 	Routing_Table
@@ -8,18 +9,28 @@ begin
 
 definition "fromMaybe a m = (case m of Some a \<Rightarrow> a | None \<Rightarrow> a)" (* mehr Haskell wagen *)
 
-(* 
-Oversimplified linux router:
- - Packet arrives (destination port is empty, destination mac address is own address).
- - Destination address is extracted and used for a routing table lookup.
- - Packet is updated with output interface of routing decision.
- - The FORWARD table of iptables is considered.
- - Next hop is extracted from the routing decision, fallback to destination address if directly attached.
- - MAC address of next hop is looked up (using the mac lookup function mlf)
- - Destination address of packet is updated.
- (net.ipv4.ip_forward enabled)
- TODO: Source mac.
-*)
+text\<open>Here, we present a heavily simplified model of a linux router. 
+(i.e., a linux-based device with \texttt{net.ipv4.ip\_forward})
+It covers the following steps in packet processing:
+\begin{itemize}
+ \item Packet arrives (destination port is empty, destination mac address is own address).
+ \item Destination address is extracted and used for a routing table lookup.
+ \item Packet is updated with output interface of routing decision.
+ \item The FORWARD chain of iptables is considered.
+ \item Next hop is extracted from the routing decision, fallback to destination address if directly attached.
+ \item MAC address of next hop is looked up (using the mac lookup function mlf)
+ \item L2 destination address of packet is updated.
+\end{itemize}
+This is stripped down to model only the most important and widely used aspects of packet processing.
+Here are a few examples of what was abstracted away:
+\begin{itemize}
+ \item No local traffic.
+ \item Only the \texttt{filter} table of iptables is considered, \texttt{raw} and \texttt{nat} are not.
+ \item Only one routing table is considered. (Linux can have other tables than the \texttt{default} one.)
+ \item No source MAC modification.
+ \item \ldots
+\end{itemize}
+\<close>
 
 record interface =
 	iface_name :: string
@@ -46,13 +57,11 @@ definition simple_linux_router ::
 (* Can I find something that looks a bit more semantic. Maybe the option monad can reduce a bit of the foo? *)
 (* TODO: What happens in linux, if I send a packet to an interface with the mac of another interface? Hopefully, that is going to be dropped? *) 
 
-(* Limitations:
- - Unicast only. 
- - Only one routing table.
- - Only default iptables table (no raw, nat)
- - No traffic to localhost (might be a limit to lift...)
-*)
-
+text\<open>However, the above model is still too powerful for some use-cases.
+Especially, the next hop look-up cannot be done without either a pre-distributed table of all MAC addresses,
+or the usual mechanic of sending out an ARP request and caching the answer.
+Doing ARP requests in the restricted environment of, e.g., an OpenFlow ruleset seems impossible.
+Therefore, we present this model:\<close>
 definition simple_linux_router_nol12 ::
     "routing_rule list \<Rightarrow> 32 simple_rule list \<Rightarrow> (32,'a) simple_packet_scheme \<Rightarrow> (32,'a) simple_packet_scheme option" where
 "simple_linux_router_nol12 rt fw p \<equiv> do {
@@ -62,8 +71,9 @@ definition simple_linux_router_nol12 ::
 	_ \<leftarrow> (case fd of Decision FinalAllow \<Rightarrow> Some () | Decision FinalDeny \<Rightarrow> None);
 	Some p
 }"
+text\<open>The differences to @{const simple_linux_router} are illustrated by the lemmata below.\<close>
 (* an alternative formulation would maybe be "if the routing decision for the source is the same as for the destination, don't forward it." 
-   This might be advantageous in $cases, however, this formulation is clearly easier to translate *)
+   This might be advantageous in $cases, however, this formulation is clearly easier to translate to openflow. *)
 
 lemma rtr_nomac_e1:
 	assumes "simple_linux_router rt fw mlf ifl pi = Some po"
@@ -94,20 +104,21 @@ lemma rtr_nomac_eq:
 	assumes "mlf (fromMaybe (p_dst pi) (next_hop (routing_table_semantics rt (p_dst pi)))) \<noteq> None"
 	shows "\<exists>x. map_option (\<lambda>p. p\<lparr>p_l2dst := x\<rparr>) (simple_linux_router_nol12 rt fw pi) = simple_linux_router rt fw mlf ifl pi"
 proof(cases "simple_linux_router_nol12 rt fw pi"; cases "simple_linux_router rt fw mlf ifl pi")
-	case goal4
-	note rtr_nomac_e1[OF goal4(2) goal4(1)]
-	with goal4 show ?case by auto 
+	fix a b
+	assume as: "simple_linux_router rt fw mlf ifl pi = Some b" "simple_linux_router_nol12 rt fw pi = Some a"
+	note rtr_nomac_e1[OF this]
+	with as show ?thesis by auto 
 next
-	case (goal2 a)
-	note rtr_nomac_e2[OF goal2(2)]
-	with goal2(1) have False by simp
-	thus ?case ..
+	fix a assume as: "simple_linux_router_nol12 rt fw pi = None" "simple_linux_router rt fw mlf ifl pi = Some a"
+	note rtr_nomac_e2[OF as(2)]
+	with as(1) have False by simp
+	thus ?thesis ..
 next
-	case (goal3 a)
+	fix a assume as: "simple_linux_router_nol12 rt fw pi = Some a" "simple_linux_router rt fw mlf ifl pi = None"
 	from \<open>iface_packet_check ifl pi \<noteq> None\<close> obtain i3 where "iface_packet_check ifl pi = Some i3" by blast
-	note rtr_nomac_e3[OF goal3(1) this] assms(2)
-	with goal3(2) have False by force
-	thus ?case ..
+	note rtr_nomac_e3[OF as(1) this] assms(2)
+	with as(2) have False by force
+	thus ?thesis ..
 qed simp
 
 end

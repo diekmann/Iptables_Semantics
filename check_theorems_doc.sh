@@ -1,4 +1,6 @@
 #!/bin/bash
+# checks whether a reference to a theorem in a Haskell file (with "-- Theorem: ") is mentioned in the Isabelle-checked documentation
+# (provides no protection against just putting that theorem name into a comment or similar.)
 
 THEOREMS_IN_HS=$(find ./haskell_tool -name '*.hs' | xargs grep -i '\-\-[[:space:]]*Theorem:[[:space:]]' | awk -F ': *' '{ print $3 }')
 

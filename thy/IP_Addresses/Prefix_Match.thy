@@ -224,7 +224,7 @@ lemma prefix_never_empty:
 by (simp add: le_word_or2 prefix_to_wordinterval_def)
 
 
-text\<open>Getting a lowest element\<close>
+text\<open>Getting the lowest element\<close>
   lemma ipset_from_cidr_lowest: "a \<in> ipset_from_cidr a n" 
     using ip_cidr_set_def ipset_from_cidr_eq_ip_cidr_set by blast
 
